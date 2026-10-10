@@ -1,0 +1,167 @@
+
+# 键盘布局 0day 漏洞分析
+
+> 原文：[`www.pediy.com/kssd/pediy12/143563.html`](https://www.pediy.com/kssd/pediy12/143563.html)
+
+最近调了 `instruder` 发的 `0day` 漏洞：`http://www.exploit-db.com/exploits/18140/`  
+把调试分析的情况写在这里。水平有限，让大家见笑了，欢迎批评指正。
+
+dump 文件的分析结果如下:
+
+`EXCEPTION_CODE`: `(NTSTATUS)` `0xc0000005` - `"0x%08lx"`
+
+`FAULTING_IP`:
+
+`win32k!ReadLayoutFile+88`
+
+`bf89ed23` `0fb75006`        `movzx`   `edx,word ptr [eax+6]`
+
+`TRAP_FRAME`:  `b28068a0` -- `(.trap 0xffffffffb28068a0)`
+
+`ErrCode` = `00000000`
+
+`eax=003e0000` `ebx=00000000` `ecx=003d0000` `edx=804ff619` `esi=00000000` `edi=00000000`
+
+`eip=bf89ed23` `esp=b2806914` `ebp=b2806944` `iopl=0`         `nv up ei pl nz na pe nc`
+
+`cs=0008`  `ss=0010`  `ds=0023`  `es=0023`  `fs=0030`  `gs=0000`             `efl=00010206`
+
+`win32k!ReadLayoutFile+0x88`:
+
+`bf89ed23` `0fb75006`        `movzx`   `edx,word ptr [eax+6]`     `ds:0023:003e0006=????`
+
+`Resetting default scope`
+
+`CUSTOMER_CRASH_COUNT`:  `1`
+
+`DEFAULT_BUCKET_ID`:  `DRIVER_FAULT`
+
+`BUGCHECK_STR`:  `0x8E`
+
+`PROCESS_NAME`:  `0Day.exe`
+
+`LAST_CONTROL_TRANSFER`:  from `bf89ec61` to `bf89ed23`
+
+`STACK_TEXT`:
+
+```
+b2806944 bf89ec61 e12a4298 000007cc 00000160 win32k!ReadLayoutFile+0x88
+b2806964 bf885192 000007cc 00000160 00000000 win32k!LoadKeyboardLayoutFile+0x6a
+b28069f0 bf884c80 81ccf038 000007cc 08040804 win32k!xxxLoadKeyboardLayoutEx+0x1be
+b2806d40 8053e638 000007cc 00000160 00409c40 win32k!NtUserLoadKeyboardLayoutEx+0x158
+b2806d40 7c92e4f4 000007cc 00000160 00409c40 nt!KiFastCallEntry+0xf8
+WARNING: Frame IP not in any known module. Following frames may be wrong.
+0012ffc0 00000000 00000000 00000000 00000000 0x7c92e4f4
+```
+
+分析后猜测，`winXP` 没有对传入的文件句柄做任何检测，导致按照 PE 文件格式逐步解析畸形的键盘布局文件时出错。
+
+漏洞发生在 `win32k!ReadLayoutFile` 函数中。下面主要是分析该函数流程：
+
+```
+.text:BF89EC9E ; int __stdcall ReadLayoutFile(int, HANDLE FileHandle, size_t, int)
+.text:BF89EC9E _ReadLayoutFile@16 proc near            ; CODE XREF: LoadKeyboardLayoutFile(x,x,x,x,x,x,x)+4Dp
+.text:BF89EC9E
+.text:BF89EC9E ObjectAttributes= OBJECT_ATTRIBUTES ptr -28h
+.text:BF89EC9E ViewSize        = dword ptr -10h
+.text:BF89EC9E Handle          = dword ptr -0Ch
+.text:BF89EC9E var_8           = dword ptr -8
+.text:BF89EC9E BaseAddress     = dword ptr -4
+.text:BF89EC9E arg_0           = dword ptr  8
+.text:BF89EC9E FileHandle      = dword ptr  0Ch
+.text:BF89EC9E arg_8           = dword ptr  10h
+.text:BF89EC9E arg_C           = dword ptr  14h
+```
+
+```
+.text:BF89ECE1                mov     [ebp+ObjectAttributes.SecurityDescriptor], esi
+.text:BF89ECE4                mov     [ebp+ObjectAttributes.SecurityQualityOfService], esi
+.text:BF89ECE7                mov     [ebp+BaseAddress], esi
+.text:BF89ECEA                call    ds:__imp__ZwCreateSection@28 ; ZwCreateSection(x,x,x,x,x,x,x)
+.text:BF89ECF0                test    eax, eax
+.text:BF89ECF2                jl      loc_BF89E265
+```
+
+```
+.text:BF89ED07                push    eax             ; BaseAddress
+.text:BF89ED08                push    0FFFFFFFFh      ; ProcessHandle
+.text:BF89ED0A                push    [ebp+Handle]    ; SectionHandle
+.text:BF89ED0D                call    ds:__imp__ZwMapViewOfSection@40 ; ZwMapViewOfSection(x,x,x,x,x,x,x,x,x,x)
+.text:BF89ED13                test    eax, eax        ; 执行对键盘文件的内存映射
+.text:BF89ED15                jl      loc_BF89EEB3
+.text:BF89ED1B                mov     ecx, [ebp+BaseAddress] ; ecx 保存执行文件映射后的内存基址
+.text:BF89ED1E                mov     eax, [ecx+3Ch]  ; 0x3c 是 IMAGE_DOS_HEADER_STRUCT 的 e_lfanew 成员，该成员保存指向 PE 文件的偏移。
+.text:BF89ED21                add     eax, ecx        ; 加上文件映射内存基址，eax 指向 IMAGE_FILE_HEADER 结构
+.text:BF89ED23                movzx   edx, word ptr [eax+6] ; IMAGE_FILE_HEADER 结构 0x6 偏移保存 NumberOfSections 成员
+.text:BF89ED23                                ; edx 保存 NumberOfSections 成员的值
+.text:BF89ED27                cmp     edx, esi        ; 比较是否 NumberOfSections 成员等于 0
+.text:BF89ED29                movzx   ecx, word ptr [eax+14h] ; IMAGE_FILE_HEADER 结构 0x14 偏移保存 SizeOfOptionalHeader 成员,
+.text:BF89ED29                                ; 用于表示 IMAGE_OPTIONAL_HEADER32 结构大小
+.text:BF89ED2D                lea     eax, [ecx+eax+18h] ; ecx+eax+18h 指向 IMAGE_NT_HEADER 结构的 OptionalHeader 成员，
+.text:BF89ED2D                                ; 也就是指向 IMAGE_OPTIONAL_HEADER32 结构, eax 得到相应的地址指针
+.text:BF89ED31                push    edi
+.text:BF89ED32                mov     [ebp+var_8], edx
+.text:BF89ED35                mov     [ebp+FileHandle], eax ; filehandle 从此保存 OptionalHeader 的地址
+.text:BF89ED38                jbe     short loc_BF89ED50 ; 执行无符号比较
+```
+
+```
+.text:BF89ED3A loc_BF89ED3A:                          ; CODE XREF: ReadLayoutFile(x,x,x,x)-A23j
+.text:BF89ED3A                push    6
+.text:BF89ED3C                mov     edi, offset a_data ; ".data" ;这里将会跳转做比较，对程序流程影响不大
+.text:BF89ED41                mov     esi, eax
+.text:BF89ED43                pop     ecx
+.text:BF89ED44                xor     edx, edx
+.text:BF89ED46                repe    cmpsb
+.text:BF89ED48                jnz     loc_BF89E26C
+.text:BF89ED4E
+.text:BF89ED4E loc_BF89ED4E:                          ; CODE XREF: ReadLayoutFile(x,x,x,x)-A29j
+.text:BF89ED4E                xor     esi, esi
+.text:BF89ED50
+.text:BF89ED50 loc_BF89ED50:                          ; CODE XREF: ReadLayoutFile(x,x,x,x)+9Aj
+.text:BF89ED50                cmp     [ebp+var_8], esi ; [ebp+var_8]保存 NumberOfSections 成员的值
+.text:BF89ED53                jz      loc_BF89EEB2    ; 如果 NumberOfSections 的值等于 0 则程序结束
+.text:BF89ED59                mov     edi, [ebp+arg_8] ; arg8 应该是文件大小 ????
+.text:BF89ED5C                sub     edi, [eax+0Ch]  ;  eax 指向 IMAGE_OPTIONAL_HEADER32 结构,eax+0xc 指向 SizeofUninitializedData
+.text:BF89ED5C                                ;  所有未初始化数据区块总大小
+.text:BF89ED5F                mov     eax, [eax+8]    ;  eax 指向 IMAGE_OPTIONAL_HEADER32 结构,eax+0x8 指向 SizeofinitializedData
+.text:BF89ED5F                                ;  所有初始化数据区块总大小
+.text:BF89ED62                push    esi             ; int
+.text:BF89ED63                push    746B7355h       ; Tag
+.text:BF89ED68                push    eax             ; NumberOfBytes
+.text:BF89ED69                mov     [ebp+arg_8], eax
+.text:BF89ED6C                call    _HeavyAllocPool@12 ; HeavyAllocPool(x,x,x)
+.text:BF89ED71                cmp     eax, esi
+.text:BF89ED73                mov     [ebp+var_8], eax ; 保存分配的地址  <------------问题就在这里
+.text:BF89ED76                jz      loc_BF89EEB2
+.text:BF89ED7C                mov     ebx, [ebp+arg_0]
+.text:BF89ED7F                mov     ecx, [ebp+FileHandle]
+.text:BF89ED82                push    [ebp+arg_8]     ; size_t 可控，从文件的 0x140 处的值
+.text:BF89ED85                mov     [ebx+0Ch], eax
+.text:BF89ED88                mov     ecx, [ecx+14h]  ; ecx 可控，从文件 0x156 处读出
+.text:BF89ED8B                add     ecx, [ebp+BaseAddress]
+.text:BF89ED8E                push    ecx             ; void * ecx 可控，从文件中读出
+.text:BF89ED8F                push    eax             ; void *
+.text:BF89ED90                call    _memmove
+```
+
+从上面的程序流程可以看出，`ReadLayoutFile` 函数调用 `ZwCreateSection` 和 `ZwMapViewOfSection` 将传入键盘布局文件映射到内存中，然后执行 PE 文件格式解析。`ecx+3Ch` 将得到 `e_lfanew` 成员，`eaxeax` 指向 `IMAGE_FILE_HEADER` 结构地址。
+
+```
+.text:BF89ED1E                mov     eax, [ecx+3Ch]  ; 0x3c 是 IMAGE_DOS_HEADER_STRUCT 的 e_lfanew 成员，该成员保存指向 PE 文件的偏移。
+.text:BF89ED21                add     eax, ecx        ; 加上文件映射内存基址，eax 指向 IMAGE_FILE_HEADER 结构
+```
+
+从 POC 代码可以看到正是对 `e_lfanew` 成员的 fuzz 导致了 `eax` 指向了一个无效地址，产生内存访问错的指令
+
+
+
+```
+.text:BF89ED23		movzx	edx, word ptr [eax+6]	; IMAGE_FILE_HEADER 结构 0x6 偏移保存 NumberOfSections 成员
+```
+
+通过适当修改 POC 文件，可以使程序流程执行到 `BF89ED62`，将调用 `_HeavyAllocPool` 分配一块空间，然后执行 `_memmove`。
+
+从代码流程分析看，拷贝数据的源、长度分别来自键盘布局文件的 `0x140` 处的值，`0x156` 处的值。数据源、数据长度可控，但是目的不可控。
+
+从后续程序流程看，也未找到可以利用之处![](img/d23858dd221cce728a3a61b46badb044.jpg "恐怖!")
