@@ -1,0 +1,128 @@
+
+# LINUX 的 crackme 的逆向小记(全文完)
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-94.htm`](https://www.pediy.com/kssd/pediy07/pediy7-94.htm)
+
+## 一个简单的 linux crackme 的逆向
+
+### 前言
+
+最不喜欢的就是写破解教程，酒后一时冲动，老夫卿发少年狂，许下将写一篇 linux 平台逆向的文章的诺言，作此文实非颇不得已。
+
+在此申明:本文在技术上非常初级，并没有用到什么高深的技术，本人水平亦有限，如有差错，还请见谅！
+
+### 开始之前的准备
+
+正如 C 语言教程从 `hello` world 开始，我们也由一个 `crackme` 说开去。本文的例子程序你可以到这来下载:
+
+`http://www.crackmes.de/users/veneta/crackmes/linux_crackme_v2`。古人云“工欲善其事，必先利其器”，本文中所用到的工具及操作平台罗列如下:
+
+操作平台: `gentoo` 2004.3 # `kernel` 2.6.9
+
+逆向工具:
+
+反汇编 -- `objdump`（这个工具基本上每个 LINUX 上都有）、`lida`( `http://lida.sourceforge.net/` )
+
+调试器 -- `gdb`
+
+十六进制编辑器 -- `hexedit`
+
+文本编辑器 -- `vim`
+
+压缩工具 -- `upx` （`http://upx.sourceforge.net`）
+
+计算器 -- `gcalctool`（gnome 计算器）
+
+### 开始逆向之旅
+
+首先我们看看程序基本信息：
+
+打开控制台，切换到程序所在目录。运行"`objdump -x cm2`"，显示如下：
+
+```
+代码:
+
+* * *
+
+    [ncc2008@localhost]$ objdump -x cm2
+
+cm2:     file format elf32-i386
+cm2
+architecture: i386, flags 0x00000102:
+EXEC_P, D_PAGED
+start address 0x08048080
+
+程序头：
+    LOAD off    0x00000000 vaddr 0x08048000 paddr 0x08048000 align 2**12
+         filesz 0x000005b8 memsz 0x000005b8 flags r-x
+    LOAD off    0x000005b8 vaddr 0x080495b8 paddr 0x080495b8 align 2**12
+         filesz 0x0000002c memsz 0x0000002c flags rw-
+
+Sections:
+Idx Name          Size      VMA       LMA       File off  Algn
+SYMBOL TABLE:
+no symbols
+
+* * *
+
+
+```
+
+我们可以看到 start address 是 `0x08048080`，但有一个问题是 Sections 下面却什么都没有。这不是一个正常的程序？
+
+接下来，使用十六进制工具 `hexedit` 查看程序信息。运行命令：`hexedit cm2` ,显示如下：
+
+```
+代码:
+
+* * *
+
+00000000   7F 45 4C 46  01 01 01 00  4C 69 6E 75  78 00 00 00  .ELF....Linux...
+00000010   02 00 03 00  01 00 00 00  80 80 04 08  34 00 00 00  ............4...
+00000020   00 00 00 00  00 00 00 00  34 00 20 00  02 00 00 00  ........4. .....
+00000030   00 00 00 00  01 00 00 00  00 00 00 00  00 80 04 08  ................
+00000040   00 80 04 08  B8 05 00 00  B8 05 00 00  05 00 00 00  ................
+00000050   00 10 00 00  01 00 00 00  B8 05 00 00  B8 95 04 08  ................
+00000060   B8 95 04 08  2C 00 00 00  2C 00 00 00  06 00 00 00  ....,...,.......
+00000070   00 10 00 00  77 6C EA 93  7F 55 50 58  E4 05 0B 0A  ....wl...UPX....
+00000080   31 ED 58 89  E1 8D 54 81  04 50 83 E4  F8 52 51 E8  1.X...T..P...RQ.
+00000090   FE 01 00 00  F4 0A 00 24  49 6E 66 6F  3A 20 54 68  .......$Info: Th
+000000A0   69 73 20 66  69 6C 65 20  69 73 20 70  61 63 6B 65  is file is packe
+000000B0   64 20 77 69  74 68 20 74  68 65 20 55  50 58 20 65  d with the UPX e
+000000C0   78 65 63 75  74 61 62 6C  65 20 70 61  63 6B 65 72  xecutable packer
+000000D0   20 68 74 74  70 3A 2F 2F  75 70 78 2E  73 66 2E 6E   http://upx.sf.n
+000000E0   65 74 20 24  0A 00 24 49  64 3A 20 55  50 58 20 31  et $..$Id: UPX 1
+000000F0   2E 32 34 20  C0 70 79 67  68  74 20 28 43  2E 32 34  Copyright (C
+00000100   29 20 31 39  39 36 2D 32  30 30 32 20  74 68 65 20  ) 1996-2002 the
+00000110   55 50 58 20  54 65 61 6D  2E 20 41 6C  6C 20 52 69  UPX Team. All Ri
+00000120   67 68 74 73  20 52 65 73  65 72 76 65  64 2E 20 24  ghts Reserved. $
+* * *
+
+
+```
+
+从上面的信息中可以看到程序被 UPX 压缩了，接下来请确信你系统中已有 UPX，如果没有请到上面给出的程序链接中下载。
+
+运行命令"`upx -d cm2`"把程序解压缩，显示如下：
+
+```
+代码:
+
+* * *
+
+[ncc2008@localhost crack]$ upx -d cm2
+                     Ultimate Packer for eXecutables
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004
+UPX 1.25         Markus F.X.J. Oberhumer & Laszlo Molnar        Jun 29th 2004
+
+        File size         Ratio      Format      Name
+   --------------------   ------   -----------   -----------
+     10584 <-      4870   46.01%    linux/386    cm2
+
+Unpacked 1 file.
+* * *
+
+
+```
+
+接下来，我们再使用命令"`objdump -x cm2`"来查看程序信息。如下：
