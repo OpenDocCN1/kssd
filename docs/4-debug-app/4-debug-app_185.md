@@ -1,0 +1,254 @@
+
+
+# DirectX 9 游戏汉化详解
+
+> 原文：[`www.pediy.com/kssd/pediy11/113739.html`](https://www.pediy.com/kssd/pediy11/113739.html)
+
+【文章标题】: DirectX 9 游戏汉化详解  
+【文章作者】: noword  
+【软件名称】: 无厘头太空战役  
+【下载地址】: http://www.verycd.com/topics/2819995/  
+\--------------------------------------------------------------------------------  
+  【前言】  
+  先 copy 一段此游戏介绍：  
+    
+  这是一个独特的战略游戏，具有即时战略与塔防的混合风格，玩家将扮演庞大太空舰队的最高指挥官，你可以自定飞船的构造，摆放飞船的位置，下达命令，然后观看绚丽的射击与爆炸。移动和爆炸时会有动态模糊效果。支持自定义地图。  
+    
+  想玩中文版，两个游戏论坛，3DM 和 YX 上，都有人说要汉化，等了几个月，没有下文，说是技术原因。于是决定自己来试试看。  
+    
+    
+  【困难何在】  
+  此游戏的文本都在 data 目录下，都是明文的文本文件。修改 data\\strings.ini，将  
+  
+
+代码:
+
+```
+  MAINMENU\_QUIT        = "Exit"
+  
+
+```
+
+  改成  
+代码:
+
+```
+  MAINMENU\_QUIT        = "退出"
+  
+
+```
+
+  
+  进入游戏后，不出所料，无法显示此中文。  
+  
+  茫茫多的游戏爱好者，在尝试汉化某款自己心仪的游戏时，都是死在了这一步找了半天文本资源，然后翻成中文，满心欢喜和期待的进入游戏，面对的却是一堆乱码或一片空白。满腔热情，化为乌有，无可奈何，黯然神伤。  
+  
+  本文的目的，就是希望能够帮助这些有志于游戏汉化的同学，主要介绍了如何让一个英文的游戏，能够正确的显示出中文。  
+  
+  
+  【调试分析】  
+  DirectX 9 游戏的启动流程是这样的，先执行 Direct3DCreate9，返回值是一个 IDirect3D9 句柄，然后执行 IDirect3D9->CreateDevice，得到 IDirect3DDevice9 句柄。  
+  有了 IDirect3DDevice9 就能使用 DirectX 9 的一切绘图手段，而我们最关心的就是能够使用 D3DXCreateFont 来创建 ID3DXFont，继而能够非常方便快捷的在游戏中显示文字。  
+  
+  用 ODBG 载入游戏的 exe 文件，“查找所有模块间的调用”，找“d3d9.Direct3DCreate9”：  
+代码:
+
+```
+  00501974   .  BB 500A5400        mov     ebx, 00540A50                   ;  ASCII "Initialising 3D Engine"
+  00501979   .  E8 22130000        call    00502CA0
+  0050197E   .  6A 20              push    20
+  00501980   .  8977 18            mov     dword ptr \[edi+18\], esi
+  00501983   .  E8 2E8B0100        call    <jmp.&d3d9.Direct3DCreate9>
+  00501988   .  85C0               test    eax, eax
+  0050198A   .  8947 10            mov     dword ptr \[edi+10\], eax         ;  edi+10 = 58d550
+  
+
+```
+
+  往下找，就能找到 IDirect3D9->CreateDevice：  
+代码:
+
+```
+  00501B4C   .  8D77 14            lea     esi, dword ptr \[edi+14\]
+  00501B4F   .  56                 push    esi                              ;  58d554  => IDirect3DDevice9
+  00501B50   .  8D4F 40            lea     ecx, dword ptr \[edi+40\]
+  00501B53   .  51                 push    ecx
+  00501B54   .  6A 40              push    40
+  00501B56   .  EB 14              jmp     short 00501B6C
+  ...
+  00501B6C   >  8B4F 18            mov     ecx, dword ptr \[edi+18\]
+  00501B6F   .  8B47 10            mov     eax, dword ptr \[edi+10\]
+  00501B72   .  8B10               mov     edx, dword ptr \[eax\]
+  00501B74   .  8B52 40            mov     edx, dword ptr \[edx+40\]
+  00501B77   .  51                 push    ecx
+  00501B78   .  8B4C24 24          mov     ecx, dword ptr \[esp+24\]
+  00501B7C   .  51                 push    ecx
+  00501B7D   .  55                 push    ebp
+  00501B7E   .  50                 push    eax
+  00501B7F   .  FFD2               call    edx                             ;  IDirect3D9::CreateDevice
+  
+
+```
+
+  
+  由于是所谓的 COM 接口，没有十分明显的标志，不是很好找。  
+  
+  在微软的 DirectX SDK d3d9.h 文件中，IDirect3D9 的接口是这样的：  
+  
+代码:
+
+```
+  DECLARE\_INTERFACE\_(IDirect3D9, IUnknown)
+  {
+      /\*\*\* IUnknown methods \*\*\*/
+      STDMETHOD(QueryInterface)(THIS\_ REFIID riid, void\*\* ppvObj) PURE;
+      STDMETHOD\_(ULONG,AddRef)(THIS) PURE;
+      STDMETHOD\_(ULONG,Release)(THIS) PURE;
+  
+      /\*\*\* IDirect3D9 methods \*\*\*/
+      STDMETHOD(RegisterSoftwareDevice)(THIS\_ void\* pInitializeFunction) PURE;
+      STDMETHOD\_(UINT, GetAdapterCount)(THIS) PURE;
+      STDMETHOD(GetAdapterIdentifier)(THIS\_ UINT Adapter,DWORD Flags,D3DADAPTER\_IDENTIFIER9\* pIdentifier) PURE;
+      STDMETHOD\_(UINT, GetAdapterModeCount)(THIS\_ UINT Adapter,D3DFORMAT Format) PURE;
+      STDMETHOD(EnumAdapterModes)(THIS\_ UINT Adapter,D3DFORMAT Format,UINT Mode,D3DDISPLAYMODE\* pMode) PURE;
+      STDMETHOD(GetAdapterDisplayMode)(THIS\_ UINT Adapter,D3DDISPLAYMODE\* pMode) PURE;
+      STDMETHOD(CheckDeviceType)(THIS\_ UINT Adapter,D3DDEVTYPE DevType,D3DFORMAT AdapterFormat,D3DFORMAT BackBufferFormat,BOOL bWindowed) PURE;
+      STDMETHOD(CheckDeviceFormat)(THIS\_ UINT Adapter,D3DDEVTYPE DeviceType,D3DFORMAT AdapterFormat,DWORD Usage,D3DRESOURCETYPE RType,D3DFORMAT CheckFormat) PURE;
+      STDMETHOD(CheckDeviceMultiSampleType)(THIS\_ UINT Adapter,D3DDEVTYPE DeviceType,D3DFORMAT SurfaceFormat,BOOL Windowed,D3DMULTISAMPLE\_TYPE MultiSampleType,DWORD\* pQualityLevels) PURE;
+      STDMETHOD(CheckDepthStencilMatch)(THIS\_ UINT Adapter,D3DDEVTYPE DeviceType,D3DFORMAT AdapterFormat,D3DFORMAT RenderTargetFormat,D3DFORMAT DepthStencilFormat) PURE;
+      STDMETHOD(CheckDeviceFormatConversion)(THIS\_ UINT Adapter,D3DDEVTYPE DeviceType,D3DFORMAT SourceFormat,D3DFORMAT TargetFormat) PURE;
+      STDMETHOD(GetDeviceCaps)(THIS\_ UINT Adapter,D3DDEVTYPE DeviceType,D3DCAPS9\* pCaps) PURE;
+      STDMETHOD\_(HMONITOR, GetAdapterMonitor)(THIS\_ UINT Adapter) PURE;
+      STDMETHOD(CreateDevice)(THIS\_ UINT Adapter,D3DDEVTYPE DeviceType,HWND hFocusWindow,DWORD BehaviorFlags,D3DPRESENT\_PARAMETERS\* pPresentationParameters,IDirect3DDevice9\*\* ppReturnedDeviceInterface) PURE;
+      
+      #ifdef D3D\_DEBUG\_INFO
+      LPCWSTR Version;
+      #endif
+  };
+  
+
+```
+
+  
+  CreateDevice 是第 17 个函数，所以它的地址是(17-1)\*4 = 0x40，  
+  00501B74   .  8B52 40            mov     edx, dword ptr \[edx+40\]  
+  这里的 edx+40 就是这么来的。  
+  
+  如果觉得算起来很麻烦的话，还有一个简单的方法，可以自己编译一个 d3d9 的程序，然后反汇编看看。  
+  
+  如果还觉得麻烦，还有个更简单的方法，直接往下找，通常会有一些调试文本能够帮助定位，例如：  
+  00501B86   .  BB 600B5400        mov     ebx, 00540B60                   ;  ASCII "CreateDevice"  
+  ...  
+  00501BBB   .  BB 700B5400        mov     ebx, 00540B70                   ;  ASCII "CreateDevice failed again"  
+  当然，这个办法并不通用，有效与否完全要看游戏作者的脸色。  
+  
+  知道了 IDirect3DDevice9 的地址，就能植入我们自己的初始化 ID3DXFont 的代码。  
+  
+  有了 ID3DXFont，下面就是要找到用于显示文字的函数，并用我们自己的代码来替换实现。  
+  
+  随便找一段游戏中出现的文字，比如开始菜单上出现的“Full 1.37”，ALT-M，进入内存窗口，在所有搜到的该字符串上下“内存访问”断点，最终会找到地址在 4FFF50 的一个函数。  
+  
+  该函数返回时，用的是“retn 14”，在 4FFF50 处用“retn 14”改写，切回到游戏后没有任何字符出现，说明这个函数正是用来显示字符的。  
+  
+  原谅我在这里对于怎么找到 4FFF50 的过程含糊其辞，一笔带过了。确实没有什么取巧的方法，完全取决于破解的功力，良好的耐力，以及一点点好运气。而这也正是游戏汉化的难点所在。  
+  
+  找到字符串显示的函数后，还要弄清楚该函数的接口。  
+  
+  在屏幕上显示一个字符串，通常需要知道这些要素：字符串、显示的位置（X,Y 坐标）、颜色、字符的大小，以及一些 flag 用于表示左对齐，右对齐，居中，加粗，倾斜等。  
+  
+  前面说过，返回用的是“retn 14”，说明栈里有 20(10 进制的 14h)/4=5 个参数，当进入该函数时，栈上的数据是这样的：  
+代码:
+
+```
+  0012FE84   00453C48  返回到 GSB\_1\_37.00453C48 来自 GSB\_1\_37.004FFF50
+  0012FE88   0012FEB8  ASCII "Full 1.37"
+  0012FE8C   00000000
+  0012FE90   40400000
+  0012FE94   FFFFFFFF
+  0012FE98   447D8000
+  
+
+```
+
+  第一个，很明显就是要显示的字符串，后面几个是什么玩意儿呢？  
+  
+  回到调用 004FFF50 的地方，在 00453C1D 下断点：  
+代码:
+
+```
+  00453C1D  |> \\D94424 14          fld     dword ptr \[esp+14\]
+  00453C21  |.  51                 push    ecx
+  00453C22  |.  D91C24             fstp    dword ptr \[esp\]                  ;  参数 5  1024.0
+  00453C25  |.  6A FF              push    -1                               ;  参数 4
+  00453C27  |.  D905 F4125400      fld     dword ptr \[5412F4\]
+  00453C2D  |.  83EC 08            sub     esp, 8
+  00453C30  |.  D95C24 04          fstp    dword ptr \[esp+4\]                ;  参数 3  3.0
+  00453C34  |.  8BD0               mov     edx, eax
+  00453C36  |.  D9EE               fldz
+  00453C38  |.  D91C24             fstp    dword ptr \[esp\]                  ;  参数 2  0.0
+  00453C3B  |.  56                 push    esi                              ;  参数 1
+  00453C3C  |.  BE 01000000        mov     esi, 1
+  00453C41  |.  8BCE               mov     ecx, esi
+  00453C43  |.  E8 08C30A00        call    004FFF50
+  
+
+```
+
+  
+  可以看到，参数 4 是一个固定值，第二、三、五参数都是浮点数。  
+  
+  这里有一个技巧，在函数开始的地方修改参数的值，看看会发生什么变化，很快就能知道参数的作用。  
+  
+  参数 4 是颜色值，Alpha 和 RGB 值都是 FF，就是白色，与在游戏中看到的字符颜色相同。  
+  参数 2 是 X 坐标，参数 3 是 Y 坐标，参数 5 用于调整。  
+  需要注意的是，还有两个参数是通过寄存器 ECX 和 EDX 传递的，ECX 用于表示左对齐(0)，右对齐(1)和居中(2)，EDX 是固定值 58D6D0，一个全局的结构或类。  
+  
+  此游戏有两种字体，因此用于显示字符的几大要素，现在还缺一个，就是不知道如何判断字符的大小。  
+  
+  在用于显示文字的 004FFF50 的上下断点，多跟几次，就会发现，每次调用以前，都会调用一个 call：  
+代码:
+
+```
+  00453BD5  |.  BE 44035300        mov     esi, 00530344                    ;  ASCII "zekton16.dds"
+  00453BDA  |.  E8 91B50A00        call    004FF170
+  
+  004479E7  |.  BE 54035300        mov     esi, 00530354                    ;  ASCII "cwfont20.dds"
+  004479EC  |.  E8 7F770B00        call    004FF170
+  
+
+```
+
+  在游戏目录 data\\font 下面有两个文件 zekton16.dds.dat 和 cwfont20.dds.dat，由此判断 004FF170 应该是用于选择字体的函数。  
+  
+  总结一下：  
+  第一步，找到 IDirect3DDevice9 句柄，用于初始化 ID3DXFont。  
+  第二步，找到显示文字的函数，用自己的代码实现之。  
+  第三步，逐步找到其他需要修改的地方，比如用于得到字符串宽度、高度，指定宽度的字符串换行显示等函数。  
+  
+  
+  【具体实现】  
+  我用的是注入 dll，然后打内存补丁的方式。这样的好处是便于更新，可以任意修改实现过程，以后游戏出了新版本，也只要修改几个地址变量，重新编译一下就可以了。  
+  另外一个好处是，不以文件补丁的形式发布，没有版权问题。（有人关心这个吗？）  
+  
+  源码在这里：  
+  http://gsbzhcn.googlecode.com/svn/trunk/src  
+  
+  简单的介绍一下流程：  
+  1.CreateProcess 启动游戏的 exe，并使之处于挂起状态。  
+  2.VirtualAllocEx 在游戏进程上申请一块内存，WriteProcessMemory 往里写入要注入的 dll 名称。  
+  3.GetProcAddress 得到 LoadLibraryA 的地址。  
+  4.CreateRemoteThread 运行 LoadLibraryA，注入 dll，dll 载入时会为游戏进程打上补丁。  
+  6.WaitForSingleObject 等候 dll 载入完成。  
+  7.VirtualFreeEx 清理掉之前申请的内存。  
+  8.ResumeThread 让打过补丁的游戏进程运行起来。  
+  
+  内存补丁主要是让游戏在关键的地方跳转到我们的 dll，执行一段代码后再跳回去，或者直接用 dll 里的函数代替之。  
+  
+  
+  【结尾】  
+  此游戏的汉化正在 http://code.google.com/p/gsbzhcn/ 进行，文本不多，奈何翻译人手也不多，希望有兴趣的同学能够参与。  
+  
+\--------------------------------------------------------------------------------  
+【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!  
+  
+                                                       2010 年 05 月 25 日 14:52:11

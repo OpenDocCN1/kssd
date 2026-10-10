@@ -1,0 +1,1421 @@
+
+
+# AVI MPEG RM WMV Joiner4.61
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6428.htm`](https://www.pediy.com/kssd/pediy06/pediy6428.htm)
+
+【脱文标题】 AVI MPEG RM WMV Joiner4.61 脱壳去暗桩+完美爆破       
+  
+【脱文作者】 weiyi75\[Dfcg\]    
+     
+【作者邮箱】 weiyi75@sohu.com    
+     
+【作者主页】 Dfcg 官方大本营    
+     
+【使用工具】 Ollydbg1.10b,ImportREC1.42,Loadpe    
+     
+【破解平台】 Win2000/XP    
+     
+【软件名称】 AVI/MPEG/RM Joiner4.61    
+     
+【下载地址】 天空软件站    
+     
+【软件简介】   AVI/MPEG/RM Joiner 将琐碎影片按顺序作结合整理,这个软件可以帮助你把零散的影片文    
+件组合成为一个大的影片文件，这个程序支持 AVI, MPEG, MPEG-4，DivX 以及 RM 格式影片，它可以将不    
+同格式的影片组合。你可以任意组合或者排列这些片段。    
+     
+【软件大小】 2.60M    
+     
+【加壳方式】 ASProtect 1.23 RC4 - 1.3.08.24 -> Alexey Solodovnikov    
+     
+【保护方式】 没有使用 Asprotcet 的 Rsa 算法保护，采用自行研究的加密算法，启动时校验注册码，10 天试    
+用期限制，SDK 防脱壳暗桩。    
+     
+【破解声明】 我是一只小菜鸟，偶得一点心得，愿与大家分享：    
+     
+     
+\--------------------------------------------------------------------------------    
+     
+     
+【破解内容】    
+  
+第一部分，脱去 Asprotect1.23 外壳保护，补上 Stolen Code,修复 IAT。   
+  
+首先 Peid 查壳，为 ASProtect 1.23 RC4 - 1.3.08.24 -> Alexey Solodovnikov。通过二哥=weiyi75=David 作品 Asprotect1.23rc4 之 Dephi 语言篇经验，脱壳修复这个软件易如反掌。    
+  
+复习一下，寄存器 EBP=0012FFF0   //这是未加壳程序停在入口点 EBP 的值，其它 Dephi 语言或编程语言这里的 EBP 值全部相同，这又说明什么，当 Asprotect 运行到这里或 Stolen Code 做手脚时 EBP 的值就为 EBP=0012FFF0,我们来具体试试。     
+  
+Ollydbg 载入程序,隐藏 OD,OD 异常设置忽略除内存异常外的全部异常。    
+     
+00401000 >  68 01504D00     push EZMerge.004D5001    //加壳程序入口点，F9 运行     
+00401005    E8 01000000     call EZMerge.0040100B    
+0040100A    C3              retn    
+0040100B    C3              retn    
+0040100C    857B 05         test dword ptr ds:\[ebx+5\], edi    
+0040100F    C5CD            lds ecx, ebp                             ; 非法使用寄存器    
+00401011    12C1            adc al, cl    
+00401013    83F6 6F         xor esi, 6F    
+00401016    32F6            xor dh, dh    
+00401018    14 9B           adc al, 9B    
+0040101A    2BD9            sub ebx, ecx    
+0040101C    F9              stc    
+0040101D    55              push ebp    
+0040101E    A9 3D9D9172     test eax, 72919D3D    
+00401023    A1 58AFD341     mov eax, dword ptr ds:\[41D3AF58\]    
+00401028    697D 7C 26EBD4F>imul edi, dword ptr ss:\[ebp+7C\], F6D4EB2>    
+0040102F    C49A 3A5F1069   les ebx, fword ptr ds:\[edx+69105F3A\]    
+00401035    6B9D 0EEB5430 3>imul ebx, dword ptr ss:\[ebp+3054EB0E\], 3>    
+0040103C    9B              wait    
+0040103D    B6 D2           mov dh, 0D2    
+0040103F    E1 11           loopde short EZMerge.00401052    
+................................................................    
+  
+内存异常    
+  
+00B441A4    3100            xor dword ptr ds:\[eax\], eax    
+00B441A6    EB 01           jmp short 00B441A9    
+00B441A8    68 648F0500     push 58F64    
+00B441AD    0000            add byte ptr ds:\[eax\], al    
+00B441AF    00EB            add bl, ch    
+00B441B1    02E8            add ch, al    
+00B441B3    0158 68         add dword ptr ds:\[eax+68\], ebx    
+00B441B6    6C              ins byte ptr es:\[edi\], dx    
+00B441B7    AF              scas dword ptr es:\[edi\]    
+00B441B8    B3 00           mov bl, 0    
+00B441BA    68 1442B400     push 0B44214    
+00B441BF    68 8836B400     push 0B43688    
+00B441C4    68 5033B400     push 0B43350    
+00B441C9    68 002DB400     push 0B42D00    
+00B441CE    68 BC26B400     push 0B426BC    
+00B441D3    68 4C3AB400     push 0B43A4C    
+00B441D8    C3              retn    
+................................................................    
+  
+Shift+F9 26 到达最后一次异常。    
+  
+00B439EC    3100            xor dword ptr ds:\[eax\], eax  //特征码     
+00B439EE    64:8F05 0000000>pop dword ptr fs:\[0\]    
+00B439F5    58              pop eax    
+00B439F6    833D B07EB400 0>cmp dword ptr ds:\[B47EB0\], 0    
+00B439FD    74 14           je short 00B43A13    
+00B439FF    6A 0C           push 0C    
+00B43A01    B9 B07EB400     mov ecx, 0B47EB0    
+00B43A06    8D45 F8         lea eax, dword ptr ss:\[ebp\-8\]    
+00B43A09    BA 04000000     mov edx, 4    
+00B43A0E    E8 2DD1FFFF     call 00B40B40    
+00B43A13    FF75 FC         push dword ptr ss:\[ebp\-4\]    
+00B43A16    FF75 F8         push dword ptr ss:\[ebp\-8\]    
+00B43A19    8B45 F4         mov eax, dword ptr ss:\[ebp\-C\]    
+00B43A1C    8338 00         cmp dword ptr ds:\[eax\], 0    
+00B43A1F    74 02           je short 00B43A23    
+00B43A21    FF30            push dword ptr ds:\[eax\]    
+00B43A23    FF75 F0         push dword ptr ss:\[ebp\-10\]    
+00B43A26    FF75 EC         push dword ptr ss:\[ebp\-14\]    
+00B43A29    C3              retn   //这里下断点，Shift+F9 到这里后取消断点。     
+................................................................    
+  
+我这次没有用内存镜像断点到 OEP,下面的这个方法可以发现 Stolen Code(如果有)+Oep 二合一。    
+  
+仍然是命令行断点    
+  
+tc ebp\==12fff0       //当前 EBP 内容为 12fff0 就被中断，略微看看就可以找到 Stolen Code(如果有)或 Oep     
+  
+00B573C1   /2E:EB 02        jmp short 00B573C6  //一会就来到这里,呵呵，C 语言就开始有 Stolen Code,往下全部用 F7 步过,转标签 1               
+00B573C4    CD20 64EB0169   vxdcall 6901EB64    
+00B573CA    83EC 06         sub esp, 6    
+00B573CD    64:EB 02        jmp short 00B573D2    
+00B573D0    CD20 8D64243F   vxdcall 3F24648D    
+00B573D6    8D6424 C3       lea esp, dword ptr ss:\[esp\-3D\]    
+00B573DA    F2:             prefix repne:    
+00B573DB    EB 01           jmp short 00B573DE    
+00B573DD    0F57EB          xorps xmm5, xmm3    
+00B573E0    01F0            add eax, esi    
+00B573E2    8F4424 00       pop dword ptr ss:\[esp\]    
+00B573E6    F2:             prefix repne:    
+00B573E7    EB 01           jmp short 00B573EA    
+00B573E9    F2:             prefix repne:    
+00B573EA    EB 02           jmp short 00B573EE    
+................................................................    
+  
+转标签 1     
+  
+00B573C6   /64:EB 01        jmp short 00B573CA    
+  
+00B573CA    83EC 06         sub esp, 6    
+00B573CD    64:EB 02        jmp short 00B573D2    
+  
+00B573D2    8D6424 3F       lea esp, dword ptr ss:\[esp+3F\]    
+00B573D6    8D6424 C3       lea esp, dword ptr ss:\[esp\-3D\]    
+00B573DA    F2:             prefix repne:    
+  
+00B573DE    57              push edi                                 ; ntdll.77F517E6    
+00B573DF    EB 01           jmp short 00B573E2    
+  
+00B573E2    8F4424 00       pop dword ptr ss:\[esp\]                   ; ntdll.77F517E6    
+00B573E6    F2:             prefix repne:    
+  
+00B573EA   /EB 02           jmp short 00B573EE    
+  
+00B573EE    8D3C95 F9047DC6 lea edi, dword ptr ds:\[edx\*4+C67D04F9\]    
+00B573F5    EB 01           jmp short 00B573F8    
+  
+00B573F8    1BF9            sbb edi, ecx    
+00B573FA    36:EB 01        jmp short 00B573FE    
+  
+00B573FE    03FE            add edi, esi                             ; ntdll.77F51778    
+00B57400    3E:EB 01        jmp short 00B57404    
+  
+00B57404    68 0674B500     push 0B57406    
+00B57409    5F              pop edi    
+00B5740A    FF57 0E         call dword ptr ds:\[edi+E\]    
+  
+00B5741F    5F              pop edi                                  ; 00B5740D    
+00B57420    36:EB 01        jmp short 00B57424    
+  
+00B57424    83E7 87         and edi, FFFFFF87    
+00B57427    F2:             prefix repne:    
+  
+00B5742B    2BFF            sub edi, edi    
+00B5742D    5F              pop edi    
+00B5742E    EB 02           jmp short 00B57432    
+  
+00B57432    55              push ebp           //Stolen Code 第一句     
+00B57433    8BEC            mov ebp, esp      //执行完它后，EBP=ESP=12FFC0,打破了从跟踪到这里 EBP 的值一直为 12fff0 的情况，同时也让我们也可以知道入口代码就在附近。Stolen Code 第二句。     
+00B57435    6A FF           push -1         //Stolen Code 第三句     
+00B57437    68 F0224800     push 4822F0    //Stolen Code 第四句     
+00B5743C    68 00E04400     push 44E000   //Stolen Code 第五句     
+00B57441    64:A1 00000000  mov eax, dword ptr fs:\[0\]    //Stolen Code 第六句     
+00B57447    EB 02           jmp short 00B5744B    
+  
+00B5744B    50              push eax       //Stolen Code 第七句     
+00B5744C    64:8925 0000000>mov dword ptr fs:\[0\], esp  //Stolen Code 第八句     
+00B57453    83EC 58         sub esp, 58       //Stolen Code 第九句     
+00B57456    EB 02           jmp short 00B5745A    
+  
+00B5745A    53              push ebx    //Stolen Code 第十句     
+00B5745B    EB 02           jmp short 00B5745F    
+  
+00B5745F    56              push esi         //Stolen Code 第十一句                        ;      
+00B57460    EB 02           jmp short 00B57464    
+  
+00B57464    57              push edi       //Stolen Code 第十二句     
+00B57465    8965 E8         mov dword ptr ss:\[ebp\-18\], esp    //Stolen Code 第十三句     
+00B57468    2E:EB 02        jmp short 00B5746D    
+  
+00B5746D   /64:EB 02        jmp short 00B57472    
+  
+00B57472    68 C4DD4400     push 44DDC4    
+00B57477    68 1F73B500     push 0B5731F    
+00B5747C    C3              retn    
+  
+00B5731F   /EB 01           jmp short 00B57322    
+  
+00B57322    51              push ecx    
+00B57323    57              push edi    
+00B57324    9C              pushfd    
+00B57325    FC              cld    
+00B57326    BF 6373B500     mov edi, 0B57363    
+00B5732B    B9 5E140000     mov ecx, 145E    
+00B57330    F3:AA           rep stos byte ptr es:\[edi\]  //F7 可以看着它循环执行 Stolen Code     
+00B57332    9D              popfd    
+00B57333    5F              pop edi    
+00B57334    59              pop ecx    
+00B57335    C3              retn    
+.......................................................................    
+  
+0044DDC4    FF15 80324700   call dword ptr ds:\[473280\]  //伪 Oep     
+0044DDCA    33D2            xor edx, edx    
+0044DDCC    8AD4            mov dl, ah    
+0044DDCE    8915 D01D4A00   mov dword ptr ds:\[4A1DD0\], edx    
+0044DDD4    8BC8            mov ecx, eax    
+0044DDD6    81E1 FF000000   and ecx, 0FF    
+0044DDDC    890D CC1D4A00   mov dword ptr ds:\[4A1DCC\], ecx    
+0044DDE2    C1E1 08         shl ecx, 8    
+0044DDE5    03CA            add ecx, edx    
+0044DDE7    890D C81D4A00   mov dword ptr ds:\[4A1DC8\], ecx    
+0044DDED    C1E8 10         shr eax, 10    
+0044DDF0    A3 C41D4A00     mov dword ptr ds:\[4A1DC4\], eax    
+0044DDF5    6A 01           push 1    
+0044DDF7    E8 EA360000     call EZMerge.004514E6    
+  
+整理一下 Stolen Code    
+  
+.......................................................    
+push ebp                        //Stolen Code     
+  
+mov ebp, esp          
+  
+push -1            
+     
+push 4822F0        
+  
+push 44E000                        一共 13 句代码    
+  
+mov eax, dword ptr fs:\[0\]     
+  
+push eax    
+  
+mov dword ptr fs:\[0\], esp    
+  
+sub esp, 58    
+  
+push ebx    
+  
+push esi                             
+  
+push edi               
+                     
+mov dword ptr ss:\[ebp\-18\], esp   //Stolen Code     
+.......................................................    
+  
+  
+  
+0044DD9E    0000            add byte ptr ds:\[eax\], al  真 OEP    
+0044DDA0    0000            add byte ptr ds:\[eax\], al    
+0044DDA2    0000            add byte ptr ds:\[eax\], al    
+0044DDA4    0000            add byte ptr ds:\[eax\], al    
+0044DDA6    0000            add byte ptr ds:\[eax\], al    
+0044DDA8    0000            add byte ptr ds:\[eax\], al    
+0044DDAA    0000            add byte ptr ds:\[eax\], al    
+0044DDAC    0000            add byte ptr ds:\[eax\], al    
+0044DDAE    0000            add byte ptr ds:\[eax\], al    
+0044DDB0    0000            add byte ptr ds:\[eax\], al    
+0044DDB2    0000            add byte ptr ds:\[eax\], al    
+0044DDB4    0000            add byte ptr ds:\[eax\], al    
+0044DDB6    0000            add byte ptr ds:\[eax\], al    
+0044DDB8    0000            add byte ptr ds:\[eax\], al    
+0044DDBA    0000            add byte ptr ds:\[eax\], al    
+0044DDBC    0000            add byte ptr ds:\[eax\], al    
+0044DDBE    0000            add byte ptr ds:\[eax\], al    
+0044DDC0    0000            add byte ptr ds:\[eax\], al    
+0044DDC2    0000            add byte ptr ds:\[eax\], al    
+0044DDC4    FF15 80324700   call dword ptr ds:\[473280\]  伪 OEP,滚动条往上面看。    
+0044DDCA    33D2            xor edx, edx    
+0044DDCC    8AD4            mov dl, ah    
+0044DDCE    8915 D01D4A00   mov dword ptr ds:\[4A1DD0\], edx    
+0044DDD4    8BC8            mov ecx, eax    
+0044DDD6    81E1 FF000000   and ecx, 0FF    
+0044DDDC    890D CC1D4A00   mov dword ptr ds:\[4A1DCC\], ecx    
+0044DDE2    C1E1 08         shl ecx, 8    
+0044DDE5    03CA            add ecx, edx    
+0044DDE7    890D C81D4A00   mov dword ptr ds:\[4A1DC8\], ecx    
+0044DDED    C1E8 10         shr eax, 10    
+0044DDF0    A3 C41D4A00     mov dword ptr ds:\[4A1DC4\], eax    
+0044DDF5    6A 01           push 1    
+0044DDF7    E8 EA360000     call EZMerge.004514E6    
+...........................................................    
+  
+0044DD9E >/$  0000          add byte ptr ds:\[eax\], al    //直接补上整理的 Stolen Code     
+0044DDA0  |.  0000          add byte ptr ds:\[eax\], al    
+0044DDA2  |.  0000          add byte ptr ds:\[eax\], al    
+0044DDA4  |.  0000          add byte ptr ds:\[eax\], al    
+0044DDA6  |.  0000          add byte ptr ds:\[eax\], al    
+0044DDA8  |.  0000          add byte ptr ds:\[eax\], al    
+0044DDAA  |.  0000          add byte ptr ds:\[eax\], al    
+0044DDAC  |.  0000          add byte ptr ds:\[eax\], al    
+0044DDAE  |.  0000          add byte ptr ds:\[eax\], al    
+0044DDB0  |.  0000          add byte ptr ds:\[eax\], al    
+0044DDB2  |.  0000          add byte ptr ds:\[eax\], al    
+0044DDB4  |.  0000          add byte ptr ds:\[eax\], al    
+0044DDB6  |.  0000          add byte ptr ds:\[eax\], al    
+0044DDB8  |.  0000          add byte ptr ds:\[eax\], al    
+0044DDBA  |.  0000          add byte ptr ds:\[eax\], al    
+0044DDBC  |.  0000          add byte ptr ds:\[eax\], al    
+0044DDBE  |.  0000          add byte ptr ds:\[eax\], al    
+0044DDC0  |.  0000          add byte ptr ds:\[eax\], al    
+0044DDC2  |.  0000          add byte ptr ds:\[eax\], al    
+0044DDC4  |.  FF15 80324700 call dword ptr ds:\[<&kernel32.GetCurrent>; \[GetCurrentProcess    
+0044DDCA  |.  33D2          xor edx, edx    
+0044DDCC  |.  8AD4          mov dl, ah    
+0044DDCE  |.  8915 D01D4A00 mov dword ptr ds:\[4A1DD0\], edx    
+0044DDD4  |.  8BC8          mov ecx, eax    
+0044DDD6  |.  81E1 FF000000 and ecx, 0FF    
+0044DDDC  |.  890D CC1D4A00 mov dword ptr ds:\[4A1DCC\], ecx    
+0044DDE2  |.  C1E1 08       shl ecx, 8    
+0044DDE5  |.  03CA          add ecx, edx    
+0044DDE7  |.  890D C81D4A00 mov dword ptr ds:\[4A1DC8\], ecx    
+0044DDED  |.  C1E8 10       shr eax, 10    
+0044DDF0  |.  A3 C41D4A00   mov dword ptr ds:\[4A1DC4\], eax    
+0044DDF5  |.  6A 01         push 1    
+0044DDF7  |.  E8 EA360000   call dumped\_.004514E6    
+...........................................................    
+  
+0044DD9E >/$  55            push ebp      //补好后复制代码到文件中，直接用 Loadpe 脱壳。     
+0044DD9F  |.  8BEC          mov ebp, esp    
+0044DDA1  |.  6A FF         push -1    
+0044DDA3  |.  68 F0224800   push dumped.004822F0    
+0044DDA8  |.  68 00E04400   push dumped.0044E000                     ;  SE handler installation    
+0044DDAD  |.  64:A1 0000000>mov eax, dword ptr fs:\[0\]    
+0044DDB3  |.  50            push eax    
+0044DDB4  |.  64:8925 00000>mov dword ptr fs:\[0\], esp    
+0044DDBB  |.  83EC 58       sub esp, 58    
+0044DDBE  |.  53            push ebx    
+0044DDBF  |.  56            push esi    
+0044DDC0  |.  57            push edi    
+0044DDC1  |.  8965 E8       mov dword ptr ss:\[ebp\-18\], esp    
+0044DDC4  |.  FF15 80324700 call dword ptr ds:\[<&kernel32.GetCurrent>; \[GetCurrentProcess    
+0044DDCA  |.  33D2          xor edx, edx    
+0044DDCC  |.  8AD4          mov dl, ah    
+0044DDCE  |.  8915 D01D4A00 mov dword ptr ds:\[4A1DD0\], edx    
+0044DDD4  |.  8BC8          mov ecx, eax    
+0044DDD6  |.  81E1 FF000000 and ecx, 0FF    
+0044DDDC  |.  890D CC1D4A00 mov dword ptr ds:\[4A1DCC\], ecx    
+0044DDE2  |.  C1E1 08       shl ecx, 8    
+0044DDE5  |.  03CA          add ecx, edx    
+0044DDE7  |.  890D C81D4A00 mov dword ptr ds:\[4A1DC8\], ecx    
+0044DDED  |.  C1E8 10       shr eax, 10    
+0044DDF0  |.  A3 C41D4A00   mov dword ptr ds:\[4A1DC4\], eax    
+0044DDF5  |.  6A 01         push 1    
+0044DDF7  |.  E8 EA360000   call dumped.004514E6    
+...........................................................    
+  
+IAT 修复    
+  
+运行 ImportREC，OEP 填入 4DD9E，自动搜索，获得输入信息，先用跟踪等级 1 修复，然后用 Asprotect1.3 插件修复剩下的几个指针，修复先脱壳的 Dumped.exe。    
+  
+第二部分，去除暗桩   
+  
+OD 载入修复的文件，F9 运行。    
+  
+00B41C08    0002            add byte ptr ds:\[edx\], al  //提示内存写错误。     
+00B41C0A    0000            add byte ptr ds:\[eax\], al    
+00B41C0C    0001            add byte ptr ds:\[ecx\], al    
+00B41C0E    0000            add byte ptr ds:\[eax\], al    
+00B41C10    0002            add byte ptr ds:\[edx\], al    
+00B41C12    0000            add byte ptr ds:\[eax\], al    
+00B41C14    0005 00000003   add byte ptr ds:\[3000000\], al    
+00B41C1A    0000            add byte ptr ds:\[eax\], al    
+00B41C1C    0001            add byte ptr ds:\[ecx\], al    
+00B41C1E    0000            add byte ptr ds:\[eax\], al    
+00B41C20    0003            add byte ptr ds:\[ebx\], al    
+00B41C22    0000            add byte ptr ds:\[eax\], al    
+00B41C24    000400          add byte ptr ds:\[eax+eax\], al    
+00B41C27    0000            add byte ptr ds:\[eax\], al    
+00B41C29    04 00           add al, 0    
+...........................................................    
+  
+堆栈友好提示    
+  
+0012A78C   0040AF15  返回到 dumped.0040AF15 来自 00B41C08  //错误来自 0040AF15     
+0012A790   00473E88  dumped.00473E88    
+0012A794   00000004    
+0012A798   FFFFFFFF    
+0012A79C   00498F98  dumped.00498F98    
+0012A7A0   0012FFC0    
+0012A7A4   FFFFFFFF    
+0012A7A8   00B03830  ASCII "E:Program FilesAVI MPEG RM WMV Joiner\\"    
+  
+那么 Ctrl+G 去 0040AF15 看看。    
+  
+0040AEFD   /72 19           jb short dumped.0040AF18    
+0040AEFF   |C786 50510000 8>mov dword ptr ds:\[esi+5150\], 38D    
+0040AF09   |89AE 54510000   mov dword ptr ds:\[esi+5154\], ebp    
+0040AF0F   |FF15 E0D44800   call dword ptr ds:\[48D4E0\]   //ds:\[48D4E0\]指向壳中,跟踪原程序发现其作用是调用解压程序。     
+0040AF15   |FF15 D8D44800   call dword ptr ds:\[48D4D8\]  //这里出错,这个 Call 是加密刚才解压的程序继续执行，脱壳后要 NOP 掉。     
+0040AF1B    E9 21000000     jmp dumped.0040AF41    
+     
+看 ds:\[48D4D8\]里面的内容是 00B41BA4，ds:\[48D4E0\]里面的内容是 00B41C08。两个地方都是指向壳中，SDK!    
+  
+Od 载入原程序   
+  
+跟进 0040AF0F   |FF15 E0D44800   call dword ptr ds:\[48D4E0\]     
+  
+00B41C08    55              push ebp  //跟进，晕，好多代码啊，壳是不可能搬回的,它进壳中的过程我们没必有知道，但它从壳中取出代码动态修改程序领空代码我们脱壳后是需要的。     
+00B41C09    8BEC            mov ebp, esp    
+00B41C0B    53              push ebx    
+00B41C0C    56              push esi    
+00B41C0D    8B5D 0C         mov ebx, dword ptr ss:\[ebp+C\]    
+00B41C10    8B75 08         mov esi, dword ptr ss:\[ebp+8\]    
+00B41C13    8BC3            mov eax, ebx    
+00B41C15    E8 F208FFFF     call 00B3250C    
+00B41C1A    A3 A463B400     mov dword ptr ds:\[B463A4\], eax    
+00B41C1F    8B15 A463B400   mov edx, dword ptr ds:\[B463A4\]    
+00B41C25    8BC6            mov eax, esi    
+00B41C27    8BCB            mov ecx, ebx    
+00B41C29    E8 EA09FFFF     call 00B32618    
+00B41C2E    891D 347EB400   mov dword ptr ds:\[B47E34\], ebx    
+00B41C34    53              push ebx    
+00B41C35    8BCE            mov ecx, esi    
+00B41C37    8B15 307EB400   mov edx, dword ptr ds:\[B47E30\]    
+00B41C3D    A1 2C7EB400     mov eax, dword ptr ds:\[B47E2C\]    
+00B41C42    E8 F9EEFFFF     call 00B40B40    
+00B41C47    833D E47AB400 0>cmp dword ptr ds:\[B47AE4\], 0    
+00B41C4E    75 05           jnz short 00B41C55    
+省去好多代码，最后    
+00B41C58    C2 0800         retn 8    
+.........................................................    
+  
+0040AF0F    FF15 E0D44800   CALL DWORD PTR DS:\[48D4E0\]   //通过 00B41C58    C2 0800         retn 8 返回到 0040AF15,这里知道了随便给它一个 retn 8 就可以过关。    
+0040AF15    FF15 D8D44800   CALL DWORD PTR DS:\[48D4D8\]  //到这里,下面和我们脱壳后看到的一样,让我们 F7 跟进看它作了些什么。    
+0040AF1B    E9 21000000     JMP EZMerge.0040AF41   
+0040AF20    9E              SAHF   
+0040AF21    96              XCHG EAX,ESI   
+0040AF22    0D 59F32354     OR EAX,5423F359   
+0040AF27  ^ 71 91           JNO SHORT EZMerge.0040AEBA   
+0040AF29    EE              OUT DX,AL                                ; I/O 命令   
+0040AF2A    51              PUSH ECX   
+0040AF2B    96              XCHG EAX,ESI   
+0040AF2C    59              POP ECX   
+0040AF2D    05 4E6A89D6     ADD EAX,D6896A4E   
+0040AF32    3F              AAS   
+0040AF33    B3 0F           MOV BL,0F   
+0040AF35    6C              INS BYTE PTR ES:\[EDI\],DX                 ; I/O 命令   
+0040AF36    94              XCHG EAX,ESP   
+0040AF37    50              PUSH EAX   
+0040AF38  - 7E FE           JLE SHORT EZMerge.0040AF38   
+0040AF3A    C15A 71 C3      RCR DWORD PTR DS:\[EDX+71\],0C3            ; 移动常数超出 1..31 的范围   
+0040AF3E    8F              ???                                      ; 未知命令   
+0040AF3F    E8 B1FF15DC     CALL DC56AEF5   
+.........................................................................   
+  
+跟进 0040AF15   |FF15 D8D44800   call dword ptr ds:\[48D4D8\]   
+  
+01271BA4    833D A4632701 0>CMP DWORD PTR DS:\[12763A4\],0   
+01271BAB    75 0D           JNZ SHORT 01271BBA   
+01271BAD    A1 407D2701     MOV EAX,DWORD PTR DS:\[1277D40\]   
+01271BB2    8B15 447D2701   MOV EDX,DWORD PTR DS:\[1277D44\]   
+01271BB8    EB 0B           JMP SHORT 01271BC5   
+01271BBA    A1 A4632701     MOV EAX,DWORD PTR DS:\[12763A4\]   
+01271BBF    8B15 347E2701   MOV EDX,DWORD PTR DS:\[1277E34\]   
+01271BC5    85C0            TEST EAX,EAX   
+01271BC7    74 0B           JE SHORT 01271BD4   
+01271BC9    85D2            TEST EDX,EDX   
+01271BCB    74 07           JE SHORT 01271BD4   
+01271BCD    52              PUSH EDX   
+01271BCE    50              PUSH EAX   
+01271BCF    E8 60FDFFFF     CALL 01271934   
+01271BD4    C3              RETN  //返回程序领空。    
+  
+0040AF1B   /E9 01000000     JMP EZMerge.0040AF21  //我的天，这个程序是动态解码用的。    
+0040AF20   |A6              CMPS BYTE PTR DS:\[ESI\],BYTE PTR ES:\[EDI\]   
+0040AF21   8B3D 94DD4800   MOV EDI,DWORD PTR DS:\[48DD94\]   
+0040AF27    33D2            XOR EDX,EDX   
+0040AF29    3BFD            CMP EDI,EBP   
+0040AF2B    0F9FC2          SETG DL   
+0040AF2E    4A              DEC EDX   
+0040AF2F    81E2 03027219   AND EDX,19720203   
+0040AF35    8996 48510000   MOV DWORD PTR DS:\[ESI+5148\],EDX   
+0040AF3B    EB 04           JMP SHORT EZMerge.0040AF41   
+0040AF3D    855450 AD       TEST DWORD PTR DS:\[EAX+EDX\*2-53\],EDX   
+0040AF41    FF15 DCD44800   CALL DWORD PTR DS:\[48D4DC\]   
+0040AF47    8B8C24 1C010000 MOV ECX,DWORD PTR SS:\[ESP+11C\]   
+0040AF4E    89AE 18510000   MOV DWORD PTR DS:\[ESI+5118\],EBP   
+0040AF54    89AE 1C510000   MOV DWORD PTR DS:\[ESI+511C\],EBP   
+0040AF5A    89AE 20510000   MOV DWORD PTR DS:\[ESI+5120\],EBP   
+0040AF60    89AE 24510000   MOV DWORD PTR DS:\[ESI+5124\],EBP   
+0040AF66    89AE 28510000   MOV DWORD PTR DS:\[ESI+5128\],EBP   
+0040AF6C    8BC6            MOV EAX,ESI   
+0040AF6E    5F              POP EDI   
+0040AF6F    5E              POP ESI   
+0040AF70    5D              POP EBP   
+0040AF71    5B              POP EBX   
+0040AF72    64:890D 0000000>MOV DWORD PTR FS:\[0\],ECX   
+0040AF79    81C4 18010000   ADD ESP,118   
+0040AF7F    C2 0400         RETN 4  //到这里结束。    
+..........................................................   
+  
+原先地址内容,未执行 Call 之前。   
+  
+0040AF1B   /E9 21000000     JMP EZMerge.0040AF41   
+0040AF20   |9E              SAHF   
+0040AF21   |96              XCHG EAX,ESI   
+0040AF22   |0D 59F32354     OR EAX,5423F359   
+0040AF27  ^|71 91           JNO SHORT EZMerge.0040AEBA   
+0040AF29   |EE              OUT DX,AL                                ; I/O 命令   
+0040AF2A   |51              PUSH ECX   
+0040AF2B   |96              XCHG EAX,ESI   
+0040AF2C   |59              POP ECX   
+0040AF2D   |05 4E6A89D6     ADD EAX,D6896A4E   
+0040AF32   |3F              AAS   
+0040AF33   |B3 0F           MOV BL,0F   
+0040AF35   |6C              INS BYTE PTR ES:\[EDI\],DX                 ; I/O 命令   
+0040AF36   |94              XCHG EAX,ESP   
+0040AF37   |50              PUSH EAX   
+0040AF38  -|7E FE           JLE SHORT EZMerge.0040AF38   
+0040AF3A   |C15A 71 C3      RCR DWORD PTR DS:\[EDX+71\],0C3            ; 移动常数超出 1..31 的范围   
+0040AF3E   |8F              ???                                      ; 未知命令   
+0040AF3F   |E8 B1FF15DC     CALL DC56AEF5   
+0040AF44    D4 48           AAM 48   
+0040AF46    008B 8C241C01   ADD BYTE PTR DS:\[EBX+11C248C\],CL   
+0040AF4C    0000            ADD BYTE PTR DS:\[EAX\],AL   
+0040AF4E    89AE 18510000   MOV DWORD PTR DS:\[ESI+5118\],EBP   
+0040AF54    89AE 1C510000   MOV DWORD PTR DS:\[ESI+511C\],EBP   
+0040AF5A    89AE 20510000   MOV DWORD PTR DS:\[ESI+5120\],EBP   
+0040AF60    89AE 24510000   MOV DWORD PTR DS:\[ESI+5124\],EBP   
+0040AF66    89AE 28510000   MOV DWORD PTR DS:\[ESI+5128\],EBP   
+0040AF6C    8BC6            MOV EAX,ESI   
+0040AF6E    5F              POP EDI   
+0040AF6F    5E              POP ESI   
+0040AF70    5D              POP EBP   
+0040AF71    5B              POP EBX   
+0040AF72    64:890D 0000000>MOV DWORD PTR FS:\[0\],ECX   
+0040AF79    81C4 18010000   ADD ESP,118   
+0040AF7F    C2 0400         RETN 4   
+....................................................................   
+  
+看到这些，你说说我们脱壳的程序能正常运行吗?   
+  
+为了验证下面两个语句作用。   
+  
+0040AF0F   |FF15 E0D44800   call dword ptr ds:\[48D4E0\]  //不用说，是从壳中解压需要的数据。    
+0040AF15   |FF15 D8D44800   call dword ptr ds:\[48D4D8\]  F2 在这里下断点，F9 运行。    
+  
+0040AF1B   /E9 21000000     JMP EZMerge.0040AF41  //呵呵，程序又变成这种样子，所以 0040AF15 处的 Call 是加密 0040AF0F 解压出来的数据，反脱壳用的，我们脱壳时已经执行了这句,中了招。    
+0040AF20   |9E              SAHF   
+0040AF21   |96              XCHG EAX,ESI   
+0040AF22   |0D 59F32354     OR EAX,5423F359   
+0040AF27  ^|71 91           JNO SHORT EZMerge.0040AEBA   
+0040AF29   |EE              OUT DX,AL                                ; I/O 命令   
+0040AF2A   |51              PUSH ECX   
+0040AF2B   |96              XCHG EAX,ESI   
+0040AF2C   |59              POP ECX   
+0040AF2D   |05 4E6A89D6     ADD EAX,D6896A4E   
+0040AF32   |3F              AAS   
+0040AF33   |B3 0F           MOV BL,0F   
+0040AF35   |6C              INS BYTE PTR ES:\[EDI\],DX                 ; I/O 命令   
+0040AF36   |94              XCHG EAX,ESP   
+0040AF37   |50              PUSH EAX   
+0040AF38  -|7E FE           JLE SHORT EZMerge.0040AF38   
+0040AF3A   |C15A 71 C3      RCR DWORD PTR DS:\[EDX+71\],0C3            ; 移动常数超出 1..31 的范围   
+0040AF3E   |8F              ???                                      ; 未知命令   
+0040AF3F   |E8 B1FF15DC     CALL DC56AEF5   
+0040AF44    D4 48           AAM 48   
+............................................................   
+  
+修复第一处暗桩。   
+  
+0040AF0F   |FF15 E0D44800   call dword ptr ds:\[48D4E0\]  //不用说，是从壳中解压需要的数据,数据我们在后面补上，看到它最后用 retn 8 返回。    
+  
+Ctrl+F 随便在程序中找个返回地址给它吧。    
+  
+0040B830    C2 0800         retn 8  //我选的这里。     
+  
+命令行 dd 48d4e0     
+  
+修改壳中数据  00B41C08  为  0040B830    
+  
+0040AF15   |FF15 D8D44800   call dword ptr ds:\[48D4D8\]  它是个加密 Call,当然要 NOP 掉，直接用 OD 修改,注意使用 NOP 填充复选框要打上，这是基本的汇编知识。   
+  
+第二步，用正确的解码替换错误的代码，OD 直接二进制复制下面的全部内容,这里 OD 一个工具足够了，Winhex 不要嫉妒啊。   
+  
+0040AF1B   /E9 01000000     JMP EZMerge.0040AF21  //我的天，这个程序是动态解码用的。    
+0040AF20   |A6              CMPS BYTE PTR DS:\[ESI\],BYTE PTR ES:\[EDI\]   
+0040AF21   8B3D 94DD4800   MOV EDI,DWORD PTR DS:\[48DD94\]   
+0040AF27    33D2            XOR EDX,EDX   
+0040AF29    3BFD            CMP EDI,EBP   
+0040AF2B    0F9FC2          SETG DL   
+0040AF2E    4A              DEC EDX   
+0040AF2F    81E2 03027219   AND EDX,19720203   
+0040AF35    8996 48510000   MOV DWORD PTR DS:\[ESI+5148\],EDX   
+0040AF3B    EB 04           JMP SHORT EZMerge.0040AF41   
+0040AF3D    855450 AD       TEST DWORD PTR DS:\[EAX+EDX\*2-53\],EDX   
+0040AF41    FF15 DCD44800   CALL DWORD PTR DS:\[48D4DC\]  //这里再度加密解码内容，NOP 掉。    
+  
+改为   
+  
+0040AF41    90              NOP   
+0040AF42    90              NOP   
+0040AF43    90              NOP   
+0040AF44    90              NOP   
+0040AF45    90              NOP   
+0040AF46    90              NOP   
+  
+0040AF47    8B8C24 1C010000 MOV ECX,DWORD PTR SS:\[ESP+11C\]   
+0040AF4E    89AE 18510000   MOV DWORD PTR DS:\[ESI+5118\],EBP   
+0040AF54    89AE 1C510000   MOV DWORD PTR DS:\[ESI+511C\],EBP   
+0040AF5A    89AE 20510000   MOV DWORD PTR DS:\[ESI+5120\],EBP   
+0040AF60    89AE 24510000   MOV DWORD PTR DS:\[ESI+5124\],EBP   
+0040AF66    89AE 28510000   MOV DWORD PTR DS:\[ESI+5128\],EBP   
+0040AF6C    8BC6            MOV EAX,ESI   
+0040AF6E    5F              POP EDI   
+0040AF6F    5E              POP ESI   
+0040AF70    5D              POP EBP   
+0040AF71    5B              POP EBX   
+0040AF72    64:890D 0000000>MOV DWORD PTR FS:\[0\],ECX   
+0040AF79    81C4 18010000   ADD ESP,118   
+0040AF7F    C2 0400         RETN 4  //到这里结束。    
+...................................................................   
+  
+Od 二进制粘贴下面的全部内容。   
+  
+0040AF1B   /E9 21000000     JMP EZMerge.0040AF41   
+0040AF20   |9E              SAHF   
+0040AF21   |96              XCHG EAX,ESI   
+0040AF22   |0D 59F32354     OR EAX,5423F359   
+0040AF27  ^|71 91           JNO SHORT EZMerge.0040AEBA   
+0040AF29   |EE              OUT DX,AL                                ; I/O 命令   
+0040AF2A   |51              PUSH ECX   
+0040AF2B   |96              XCHG EAX,ESI   
+0040AF2C   |59              POP ECX   
+0040AF2D   |05 4E6A89D6     ADD EAX,D6896A4E   
+0040AF32   |3F              AAS   
+0040AF33   |B3 0F           MOV BL,0F   
+0040AF35   |6C              INS BYTE PTR ES:\[EDI\],DX                 ; I/O 命令   
+0040AF36   |94              XCHG EAX,ESP   
+0040AF37   |50              PUSH EAX   
+0040AF38  -|7E FE           JLE SHORT EZMerge.0040AF38   
+0040AF3A   |C15A 71 C3      RCR DWORD PTR DS:\[EDX+71\],0C3            ; 移动常数超出 1..31 的范围   
+0040AF3E   |8F              ???                                      ; 未知命令   
+0040AF3F   |E8 B1FF15DC     CALL DC56AEF5   
+0040AF44    D4 48           AAM 48   
+0040AF46    008B 8C241C01   ADD BYTE PTR DS:\[EBX+11C248C\],CL   
+0040AF4C    0000            ADD BYTE PTR DS:\[EAX\],AL   
+0040AF4E    89AE 18510000   MOV DWORD PTR DS:\[ESI+5118\],EBP   
+0040AF54    89AE 1C510000   MOV DWORD PTR DS:\[ESI+511C\],EBP   
+0040AF5A    89AE 20510000   MOV DWORD PTR DS:\[ESI+5120\],EBP   
+0040AF60    89AE 24510000   MOV DWORD PTR DS:\[ESI+5124\],EBP   
+0040AF66    89AE 28510000   MOV DWORD PTR DS:\[ESI+5128\],EBP   
+0040AF6C    8BC6            MOV EAX,ESI   
+0040AF6E    5F              POP EDI   
+0040AF6F    5E              POP ESI   
+0040AF70    5D              POP EBP   
+0040AF71    5B              POP EBX   
+0040AF72    64:890D 0000000>MOV DWORD PTR FS:\[0\],ECX   
+0040AF79    81C4 18010000   ADD ESP,118   
+0040AF7F    C2 0400         RETN 4   
+  
+补上代码后。   
+  
+0040AF0F    FF15 E0D44800   CALL DWORD PTR DS:\[48D4E0\]  //注意 DS:\[48D4E0\]指针要修改指向程序中。    
+0040AF15    90              NOP   
+0040AF16    90              NOP   
+0040AF17    90              NOP   
+0040AF18    90              NOP   
+0040AF19    90              NOP   
+0040AF1A    90              NOP   
+0040AF1B    E9 01000000     JMP dumped\_.0040AF21   
+0040AF20    A6              CMPS BYTE PTR DS:\[ESI\],BYTE PTR ES:\[EDI\]   
+0040AF21    8B3D 94DD4800   MOV EDI,DWORD PTR DS:\[48DD94\]   
+0040AF27    33D2            XOR EDX,EDX   
+0040AF29    3BFD            CMP EDI,EBP   
+0040AF2B    0F9FC2          SETG DL   
+0040AF2E    4A              DEC EDX   
+0040AF2F    81E2 03027219   AND EDX,19720203   
+0040AF35    8996 48510000   MOV DWORD PTR DS:\[ESI+5148\],EDX   
+0040AF3B    EB 04           JMP SHORT dumped\_.0040AF41   
+0040AF3D    855450 AD       TEST DWORD PTR DS:\[EAX+EDX\*2-53\],EDX   
+0040AF41    90              NOP   
+0040AF42    90              NOP   
+0040AF43    90              NOP   
+0040AF44    90              NOP   
+0040AF45    90              NOP   
+0040AF46    90              NOP   
+0040AF47    8B8C24 1C010000 MOV ECX,DWORD PTR SS:\[ESP+11C\]   
+0040AF4E    89AE 18510000   MOV DWORD PTR DS:\[ESI+5118\],EBP   
+0040AF54    89AE 1C510000   MOV DWORD PTR DS:\[ESI+511C\],EBP   
+0040AF5A    89AE 20510000   MOV DWORD PTR DS:\[ESI+5120\],EBP   
+0040AF60    89AE 24510000   MOV DWORD PTR DS:\[ESI+5124\],EBP   
+0040AF66    89AE 28510000   MOV DWORD PTR DS:\[ESI+5128\],EBP   
+0040AF6C    8BC6            MOV EAX,ESI   
+0040AF6E    5F              POP EDI   
+0040AF6F    5E              POP ESI   
+0040AF70    5D              POP EBP   
+0040AF71    5B              POP EBX   
+0040AF72    64:890D 0000000>MOV DWORD PTR FS:\[0\],ECX   
+0040AF79    81C4 18010000   ADD ESP,118   
+0040AF7F    C2 0400         RETN 4   
+.................................................................   
+  
+将所有修改内容复制到程序中，保存为一个文件。   
+  
+这个程序校验处非常多，处理方式相同，我就不一一解释了。   
+  
+修复第二处暗桩。   
+  
+OD 载入修复后的程序,F9 运行。   
+  
+00B41BA4    0005 00000000   add byte ptr ds:\[0\], al     //内存写错误。     
+00B41BAA    0000            add byte ptr ds:\[eax\], al    
+00B41BAC    0020            add byte ptr ds:\[eax\], ah    
+00B41BAE    0000            add byte ptr ds:\[eax\], al    
+00B41BB0    0001            add byte ptr ds:\[ecx\], al    
+00B41BB2    0000            add byte ptr ds:\[eax\], al    
+00B41BB4    0007            add byte ptr ds:\[edi\], al    
+00B41BB6    0000            add byte ptr ds:\[eax\], al    
+00B41BB8    0070 00         add byte ptr ds:\[eax\], dh    
+00B41BBB    0000            add byte ptr ds:\[eax\], al    
+00B41BBD    0000            add byte ptr ds:\[eax\], al    
+00B41BBF    0000            add byte ptr ds:\[eax\], al    
+00B41BC1    0000            add byte ptr ds:\[eax\], al    
+00B41BC3    0000            add byte ptr ds:\[eax\], al    
+00B41BC5    15 00000015     adc eax, 15000000    
+00B41BCA    0000            add byte ptr ds:\[eax\], al    
+............................................................   
+  
+堆栈提示。    
+  
+0012A2E8   0040BA3D  返回到 dumped.0040BA3D 来自 00B41BA4  //Od 提示错误来自 40BA3D     
+0012A2EC   0012A340    
+0012A2F0   00000000    
+0012A2F4   0045F3AE  入口地址    
+0012A2F8   004500C4  dumped.004500C4    
+0012A2FC   00463D13  返回到 dumped.00463D13 来自 dumped.00463D7C    
+0012A300   00B03920  ASCII "&About AVI/MPEG/RM/WMV Joiner"  //初始化对话框，暗桩快完了。     
+  
+Ctrl+G 40BA3D    
+  
+0040BA35    FFD7            CALL EDI     
+0040BA37    FF15 D8D44800   call dword ptr ds:\[48D4D8\]  //加密解压代码，NOP 掉。     
+0040BA3D    E9 25000000     jmp dumped.0040BA67    
+0040BA42    6996 B6F57F6B 5>imul edx, dword ptr ds:\[esi+6B7FF5B6\], C>    
+0040BA4C    FC              cld    
+..................................................    
+  
+0040BA3D   /E9 25000000     JMP dumped\_.0040BA67   //这里是脱壳后被加密的错误代码。    
+0040BA42   |6996 B6F57F6B 5>IMUL EDX,DWORD PTR DS:\[ESI+6B7FF5B6\],C10>   
+0040BA4C   |FC              CLD   
+0040BA4D  ^|71 C8           JNO SHORT dumped\_.0040BA17   
+0040BA4F   |91              XCHG EAX,ECX   
+0040BA50   |04 EB           ADD AL,0EB   
+0040BA52   |E8 11394890     CALL 9088F368   
+0040BA57   |B5 53           MOV CH,53   
+0040BA59   |182F            SBB BYTE PTR DS:\[EDI\],CH   
+0040BA5B   |77 57           JA SHORT dumped\_.0040BAB4   
+0040BA5D   |E5 24           IN EAX,24                                ; I/O 命令   
+0040BA5F   |46              INC ESI   
+0040BA60   |DB53 18         FIST DWORD PTR DS:\[EBX+18\]   
+0040BA63   |9D              POPFD   
+0040BA64   |61              POPAD   
+0040BA65   |0D 0AFF15DC     OR EAX,DC15FF0A   
+0040BA6A    D4 48           AAM 48   
+0040BA6C    008B CEE89C13   ADD BYTE PTR DS:\[EBX+139CE8CE\],CL   
+0040BA72    0000            ADD BYTE PTR DS:\[EAX\],AL   
+0040BA74    8B8E 84500000   MOV ECX,DWORD PTR DS:\[ESI+5084\]   
+0040BA7A    6A 20           PUSH 20   
+0040BA7C    6A 00           PUSH 0   
+0040BA7E    68 36100000     PUSH 1036   
+0040BA83    51              PUSH ECX   
+0040BA84    FFD7            CALL EDI    //到这里结束，我多选了一点，但不影响修复，只是便于复制代码。    
+  
+0040BA3D   /E9 01000000     JMP EZMerge.0040BA43   
+0040BA42   |51              PUSH ECX   
+0040BA43   8B86 38510000   MOV EAX,DWORD PTR DS:\[ESI+5138\]   
+0040BA49    8B40 14         MOV EAX,DWORD PTR DS:\[EAX+14\]   
+0040BA4C    50              PUSH EAX   
+0040BA4D    E8 0E560000     CALL EZMerge.00411060   
+0040BA52    83C4 04         ADD ESP,4   
+0040BA55    8986 50510000   MOV DWORD PTR DS:\[ESI+5150\],EAX   
+0040BA5B    8996 54510000   MOV DWORD PTR DS:\[ESI+5154\],EDX   
+0040BA61    EB 04           JMP SHORT EZMerge.0040BA67   
+0040BA63    3236            XOR DH,BYTE PTR DS:\[ESI\]   
+0040BA65    E1 58           LOOPDE SHORT EZMerge.0040BABF   
+0040BA67    FF15 DCD44800   CALL DWORD PTR DS:\[48D4DC\]  //这里再次加密，NOP 掉。    
+0040BA6D    8BCE            MOV ECX,ESI   
+0040BA6F    E8 9C130000     CALL EZMerge.0040CE10   
+0040BA74    8B8E 84500000   MOV ECX,DWORD PTR DS:\[ESI+5084\]   
+0040BA7A    6A 20           PUSH 20   
+0040BA7C    6A 00           PUSH 0   
+0040BA7E    68 36100000     PUSH 1036   
+0040BA83    51              PUSH ECX   
+0040BA84    FFD7            CALL EDI   
+............................................................   
+  
+修复暗桩 2 处后代码   
+  
+0040BA35   .  FFD7          CALL EDI                                 ; SendMessageA   
+0040BA37   .  90            NOP   
+0040BA38   .  90            NOP   
+0040BA39   .  90            NOP   
+0040BA3A   .  90            NOP   
+0040BA3B   .  90            NOP   
+0040BA3C   .  90            NOP   
+0040BA3D   .  E9 01000000   JMP dumped2\_.0040BA43   
+0040BA42   .  51            PUSH ECX   
+0040BA43   >  8B86 38510000 MOV EAX,DWORD PTR DS:\[ESI+5138\]   
+0040BA49   .  8B40 14       MOV EAX,DWORD PTR DS:\[EAX+14\]   
+0040BA4C   .  50            PUSH EAX   
+0040BA4D   .  E8 0E560000   CALL dumped2\_.00411060   
+0040BA52   .  83C4 04       ADD ESP,4   
+0040BA55   .  8986 50510000 MOV DWORD PTR DS:\[ESI+5150\],EAX   
+0040BA5B   .  8996 54510000 MOV DWORD PTR DS:\[ESI+5154\],EDX   
+0040BA61   .  EB 04         JMP SHORT dumped2\_.0040BA67   
+0040BA63   .  3236          XOR DH,BYTE PTR DS:\[ESI\]   
+0040BA65   .  E1 58         LOOPDE SHORT dumped2\_.0040BABF   
+0040BA67   >  90            NOP   
+0040BA68   .  90            NOP   
+0040BA69   .  90            NOP   
+0040BA6A   .  90            NOP   
+0040BA6B   .  90            NOP   
+0040BA6C   .  90            NOP   
+0040BA6D   .  8BCE          MOV ECX,ESI   
+0040BA6F   .  E8 9C130000   CALL dumped2\_.0040CE10   
+0040BA74   .  8B8E 84500000 MOV ECX,DWORD PTR DS:\[ESI+5084\]   
+0040BA7A   .  6A 20         PUSH 20   
+0040BA7C   .  6A 00         PUSH 0   
+0040BA7E   .  68 36100000   PUSH 1036   
+0040BA83   .  51            PUSH ECX   
+0040BA84   .  FFD7          CALL EDI   
+...............................................................   
+  
+将所有修改内容复制到程序中，保存为一个文件。   
+  
+OD 载入修复后的程序,F9 运行，程序终于运行了，别高兴，最关键的合并功能还没有试，肯定还有暗桩。   
+  
+执行合并文件功能。    
+  
+00B41BA4    0005 00000000   add byte ptr ds:\[0\], al   //内存写错误。     
+00B41BAA    0000            add byte ptr ds:\[eax\], al    
+00B41BAC    0020            add byte ptr ds:\[eax\], ah    
+00B41BAE    0000            add byte ptr ds:\[eax\], al    
+00B41BB0    0001            add byte ptr ds:\[ecx\], al    
+00B41BB2    0000            add byte ptr ds:\[eax\], al    
+00B41BB4    0007            add byte ptr ds:\[edi\], al    
+00B41BB6    0000            add byte ptr ds:\[eax\], al    
+00B41BB8    0070 00         add byte ptr ds:\[eax\], dh    
+00B41BBB    0000            add byte ptr ds:\[eax\], al    
+00B41BBD    0000            add byte ptr ds:\[eax\], al    
+00B41BBF    0000            add byte ptr ds:\[eax\], al    
+00B41BC1    0000            add byte ptr ds:\[eax\], al    
+00B41BC3    0000            add byte ptr ds:\[eax\], al    
+00B41BC5    15 00000015     adc eax, 15000000    
+00B41BCA    0000            add byte ptr ds:\[eax\], al    
+00B41BCC    0003            add byte ptr ds:\[ebx\], al    
+..................................................    
+  
+堆栈提示。    
+  
+0012A180   0040D91A  返回到 dumped.0040D91A 来自 00B41BA4    
+0012A184   0012ADB0    
+0012A188   004740F8  dumped.004740F8    
+  
+Ctrl+G 40D91A    
+  
+0040D90F    E8 FCF0FFFF     CALL dumped2\_.0040CA10   
+0040D914    FF15 D8D44800   CALL DWORD PTR DS:\[48D4D8\]    //加密解压代码,NOP 掉。    
+0040D91A    E9 86000000     JMP dumped2\_.0040D9A5   //一眼看出这是错误的代码，必须修正。    
+0040D91F    8696 B6F57F6B   XCHG BYTE PTR DS:\[ESI+6B7FF5B6\],DL   
+0040D925    54              PUSH ESP   
+0040D926    C9              LEAVE   
+0040D927    2BD1            SUB EDX,ECX   
+0040D929    0D 0D1B8F04     OR EAX,48F1B0D   
+0040D92E    6E              OUTS DX,BYTE PTR ES:\[EDI\]                ; I/O 命令   
+0040D92F    AB              STOS DWORD PTR ES:\[EDI\]   
+0040D930    AA              STOS BYTE PTR ES:\[EDI\]   
+0040D931    7E 4A           JLE SHORT dumped2\_.0040D97D   
+0040D933    98              CWDE   
+0040D934    B5 53           MOV CH,53   
+0040D936    182F            SBB BYTE PTR DS:\[EDI\],CH   
+0040D938    75 57           JNZ SHORT dumped2\_.0040D991   
+0040D93A    E5 24           IN EAX,24                                ; I/O 命令   
+0040D93C    46              INC ESI   
+0040D93D    DB              ???                                      ; 未知命令   
+0040D93E    3150 8B         XOR DWORD PTR DS:\[EAX\-75\],EDX   
+0040D941    4F              DEC EDI   
+0040D942    67:AF           SCAS DWORD PTR ES:\[DI\]   
+0040D944    2ACD            SUB CL,CH   
+0040D946    F7BC81 D487A3CA IDIV DWORD PTR DS:\[ECX+EAX\*4+CAA387D4\]   
+0040D94D    01DC            ADD ESP,EBX   
+0040D94F    49              DEC ECX   
+0040D950    FC              CLD   
+0040D951  ^ 71 DF           JNO SHORT dumped2\_.0040D932   
+0040D953    FD              STD   
+0040D954    3E:15 8CE36AD6  ADC EAX,D66AE38C                         ; 多余的前缀   
+0040D95A    F5              CMC   
+0040D95B    AB              STOS DWORD PTR ES:\[EDI\]   
+0040D95C    FE              ???                                      ; 未知命令   
+0040D95D    6B94AC D2CFB711>IMUL EDX,DWORD PTR SS:\[ESP+EBP\*4+11B7CFD>   
+0040D965    D275 4B         SAL BYTE PTR SS:\[EBP+4B\],CL   
+0040D968    BF 36D01FE7     MOV EDI,E71FD036   
+0040D96D    4B              DEC EBX   
+0040D96E    36:24 F8        AND AL,0F8                               ; 多余的前缀   
+0040D971    C3              RETN   
+0040D972    B9 4FB1998D     MOV ECX,8D99B14F   
+0040D977    3F              AAS   
+0040D978    B5 A5           MOV CH,0A5   
+0040D97A    BE 66610D67     MOV ESI,670D6166   
+0040D97F    94              XCHG EAX,ESP   
+0040D980    C9              LEAVE   
+0040D981    67:50           PUSH EAX                                 ; 多余的前缀   
+0040D983    B4 98           MOV AH,98   
+0040D985    A3 C9E50966     MOV DWORD PTR DS:\[6609E5C9\],EAX   
+0040D98A    CD E1           INT 0E1   
+0040D98C    F6              ???                                      ; 未知命令   
+0040D98D    8F              ???                                      ; 未知命令   
+0040D98E    27              DAA   
+0040D98F    F0:15 6E2A5CCC  LOCK ADC EAX,CC5C2A6E                    ; 锁定前缀是不允许的   
+0040D995    E6 FE           OUT 0FE,AL                               ; I/O 命令   
+0040D997    51              PUSH ECX   
+0040D998    E0 41           LOOPDNE SHORT dumped2\_.0040D9DB   
+0040D99A    90              NOP   
+0040D99B    67:62D3         BOUND EDX,EBX                            ; 非法使用寄存器   
+0040D99E    1E              PUSH DS   
+0040D99F    0F7B            ???                                      ; 未知命令   
+0040D9A1    635D E7         ARPL DWORD PTR SS:\[EBP\-19\],EBX   
+0040D9A4    8985 DB0F848F   MOV DWORD PTR SS:\[EBP+8F840FDB\],EAX   
+0040D9AA    0000            ADD BYTE PTR DS:\[EAX\],AL   
+0040D9AC    006A 00         ADD BYTE PTR DS:\[EDX\],CH   
+0040D9AF    8D8E A42D0000   LEA ECX,DWORD PTR DS:\[ESI+2DA4\]   
+0040D9B5    E8 C5520500     CALL dumped2\_.00462C7F   
+0040D9BA    6A 00           PUSH 0   
+0040D9BC    8D8E 9C320000   LEA ECX,DWORD PTR DS:\[ESI+329C\]   
+0040D9C2    E8 B8520500     CALL dumped2\_.00462C7F   
+0040D9C7    6A 01           PUSH 1   
+0040D9C9    8D8E 744B0000   LEA ECX,DWORD PTR DS:\[ESI+4B74\]   
+0040D9CF    E8 AB520500     CALL dumped2\_.00462C7F   
+0040D9D4    6A 00           PUSH 0   
+0040D9D6    8D8E D4190000   LEA ECX,DWORD PTR DS:\[ESI+19D4\]   
+0040D9DC    E8 9E520500     CALL dumped2\_.00462C7F   
+0040D9E1    6A 00           PUSH 0   
+0040D9E3    8D8E BC230000   LEA ECX,DWORD PTR DS:\[ESI+23BC\]   
+0040D9E9    E8 91520500     CALL dumped2\_.00462C7F   
+0040D9EE    6A 00           PUSH 0   
+0040D9F0    8D8E 94370000   LEA ECX,DWORD PTR DS:\[ESI+3794\]   
+0040D9F6    E8 84520500     CALL dumped2\_.00462C7F   
+0040D9FB    6A 00           PUSH 0   
+0040D9FD    8D8E 8C3C0000   LEA ECX,DWORD PTR DS:\[ESI+3C8C\]   
+0040DA03    E8 77520500     CALL dumped2\_.00462C7F   
+0040DA08    6A 00           PUSH 0   
+0040DA0A    8D8E EC0F0000   LEA ECX,DWORD PTR DS:\[ESI+FEC\]   
+0040DA10    E8 6A520500     CALL dumped2\_.00462C7F   
+0040DA15    6A 00           PUSH 0   
+0040DA17    8D8E C81E0000   LEA ECX,DWORD PTR DS:\[ESI+1EC8\]   
+0040DA1D    E8 5D520500     CALL dumped2\_.00462C7F   
+0040DA22    6A 00           PUSH 0   
+0040DA24    8D8E 7C460000   LEA ECX,DWORD PTR DS:\[ESI+467C\]   
+0040DA2A    E8 50520500     CALL dumped2\_.00462C7F   
+0040DA2F    6A 00           PUSH 0   
+0040DA31    8D8E 84410000   LEA ECX,DWORD PTR DS:\[ESI+4184\]   
+0040DA37    E8 43520500     CALL dumped2\_.00462C7F   
+0040DA3C    E9 14000000     JMP dumped2\_.0040DA55   
+0040DA41    A3 96B6197E     MOV DWORD PTR DS:\[7E19B696\],EAX   
+0040DA46    6B5412 BC C0    IMUL EDX,DWORD PTR DS:\[EDX+EDX\-44\],-40   
+0040DA4B    68 AA81C7EF     PUSH EFC781AA   
+0040DA50    EF              OUT DX,EAX                               ; I/O 命令   
+0040DA51    92              XCHG EAX,EDX   
+0040DA52    04 D0           ADD AL,0D0   
+0040DA54    61              POPAD   
+0040DA55    FF15 DCD44800   CALL DWORD PTR DS:\[48D4DC\]   
+0040DA5B    85DB            TEST EBX,EBX   
+0040DA5D    75 41           JNZ SHORT dumped2\_.0040DAA0   
+0040DA5F    6A 6C           PUSH 6C   
+0040DA61    E8 A7600500     CALL dumped2\_.00463B0D   
+0040DA66    83C4 04         ADD ESP,4   
+0040DA69    894424 14       MOV DWORD PTR SS:\[ESP+14\],EAX   
+0040DA6D    85C0            TEST EAX,EAX   
+0040DA6F    C64424 28 02    MOV BYTE PTR SS:\[ESP+28\],2   
+0040DA74    74 0C           JE SHORT dumped2\_.0040DA82   
+0040DA76    53              PUSH EBX   
+0040DA77    8BC8            MOV ECX,EAX   
+0040DA79    E8 F23A0000     CALL dumped2\_.00411570   
+0040DA7E    8BF0            MOV ESI,EAX   
+0040DA80    EB 02           JMP SHORT dumped2\_.0040DA84   
+0040DA82    33F6            XOR ESI,ESI   
+0040DA84    85F6            TEST ESI,ESI   
+0040DA86    C64424 28 00    MOV BYTE PTR SS:\[ESP+28\],0   
+0040DA8B    74 13           JE SHORT dumped2\_.0040DAA0   
+0040DA8D    8B16            MOV EDX,DWORD PTR DS:\[ESI\]   
+0040DA8F    8BCE            MOV ECX,ESI   
+0040DA91    FF92 B8000000   CALL DWORD PTR DS:\[EDX+B8\]   
+0040DA97    8B06            MOV EAX,DWORD PTR DS:\[ESI\]   
+0040DA99    6A 01           PUSH 1   
+0040DA9B    8BCE            MOV ECX,ESI   
+0040DA9D    FF50 04         CALL DWORD PTR DS:\[EAX+4\]   
+0040DAA0    8D4C24 10       LEA ECX,DWORD PTR SS:\[ESP+10\]   
+0040DAA4    C74424 28 FFFFF>MOV DWORD PTR SS:\[ESP+28\],-1   
+0040DAAC    E8 8C5A0500     CALL dumped2\_.0046353D   
+0040DAB1    8B4C24 20       MOV ECX,DWORD PTR SS:\[ESP+20\]   
+0040DAB5    5F              POP EDI   
+0040DAB6    5E              POP ESI   
+0040DAB7    5D              POP EBP   
+0040DAB8    5B              POP EBX   
+0040DAB9    64:890D 0000000>MOV DWORD PTR FS:\[0\],ECX   
+0040DAC0    83C4 1C         ADD ESP,1C   
+0040DAC3    C3              RETN   
+.........................................................................   
+  
+切换到加壳程序中，Ctrl+G 0040D91A    
+  
+0040D91A   /E9 01000000     JMP EZMerge.0040D920      //二进制复制下面全部代码。    
+0040D91F   |BE 8B863851     MOV ESI,5138868B   
+0040D924    0000            ADD BYTE PTR DS:\[EAX\],AL   
+0040D926    8B68 04         MOV EBP,DWORD PTR DS:\[EAX+4\]   
+0040D929    A1 94DD4800     MOV EAX,DWORD PTR DS:\[48DD94\]   
+0040D92E    85C0            TEST EAX,EAX   
+0040D930    7F 43           JG SHORT EZMerge.0040D975   
+0040D932    8B8E 50510000   MOV ECX,DWORD PTR DS:\[ESI+5150\]   
+0040D938    8B96 54510000   MOV EDX,DWORD PTR DS:\[ESI+5154\]   
+0040D93E    894C24 18       MOV DWORD PTR SS:\[ESP+18\],ECX   
+0040D942    8BFD            MOV EDI,EBP   
+0040D944    8D4424 18       LEA EAX,DWORD PTR SS:\[ESP+18\]   
+0040D948    33C9            XOR ECX,ECX   
+0040D94A    895424 1C       MOV DWORD PTR SS:\[ESP+1C\],EDX   
+0040D94E    2BF8            SUB EDI,EAX   
+0040D950    8D440C 18       LEA EAX,DWORD PTR SS:\[ESP+ECX+18\]   
+0040D954    8A1407          MOV DL,BYTE PTR DS:\[EDI+EAX\]   
+0040D957    3010            XOR BYTE PTR DS:\[EAX\],DL   
+0040D959    41              INC ECX   
+0040D95A    83F9 08         CMP ECX,8   
+0040D95D  ^ 72 F1           JB SHORT EZMerge.0040D950   
+0040D95F    8B4424 18       MOV EAX,DWORD PTR SS:\[ESP+18\]   
+0040D963    8B4D 20         MOV ECX,DWORD PTR SS:\[EBP+20\]   
+0040D966    3BC1            CMP EAX,ECX   
+0040D968    75 35           JNZ SHORT EZMerge.0040D99F   
+0040D96A    8B4C24 1C       MOV ECX,DWORD PTR SS:\[ESP+1C\]   
+0040D96E    8B45 24         MOV EAX,DWORD PTR SS:\[EBP+24\]   
+0040D971    3BC8            CMP ECX,EAX   
+0040D973    75 2A           JNZ SHORT EZMerge.0040D99F   
+0040D975    8D5424 18       LEA EDX,DWORD PTR SS:\[ESP+18\]   
+0040D979    BB 01000000     MOV EBX,1   
+0040D97E    52              PUSH EDX   
+0040D97F    6A 04           PUSH 4   
+0040D981    56              PUSH ESI   
+0040D982    68 30E64000     PUSH EZMerge.0040E630   
+0040D987    6A 00           PUSH 0   
+0040D989    6A 00           PUSH 0   
+0040D98B    FF15 C0334700   CALL DWORD PTR DS:\[4733C0\]   
+0040D991    85C0            TEST EAX,EAX   
+0040D993    8986 D4500000   MOV DWORD PTR DS:\[ESI+50D4\],EAX   
+0040D999    0F84 01010000   JE EZMerge.0040DAA0   
+0040D99F    EB 04           JMP SHORT EZMerge.0040D9A5   
+0040D9A1    CC              INT3   
+0040D9A2    6E              OUTS DX,BYTE PTR ES:\[EDI\]                ; I/O 命令   
+0040D9A3    8170 85 DB0F848>XOR DWORD PTR DS:\[EAX\-7B\],8F840FDB   
+0040D9AA    0000            ADD BYTE PTR DS:\[EAX\],AL   
+0040D9AC    006A 00         ADD BYTE PTR DS:\[EDX\],CH   
+0040D9AF    8D8E A42D0000   LEA ECX,DWORD PTR DS:\[ESI+2DA4\]   
+0040D9B5    E8 C5520500     CALL EZMerge.00462C7F   
+0040D9BA    6A 00           PUSH 0   
+0040D9BC    8D8E 9C320000   LEA ECX,DWORD PTR DS:\[ESI+329C\]   
+0040D9C2    E8 B8520500     CALL EZMerge.00462C7F   
+0040D9C7    6A 01           PUSH 1   
+0040D9C9    8D8E 744B0000   LEA ECX,DWORD PTR DS:\[ESI+4B74\]   
+0040D9CF    E8 AB520500     CALL EZMerge.00462C7F   
+0040D9D4    6A 00           PUSH 0   
+0040D9D6    8D8E D4190000   LEA ECX,DWORD PTR DS:\[ESI+19D4\]   
+0040D9DC    E8 9E520500     CALL EZMerge.00462C7F   
+0040D9E1    6A 00           PUSH 0   
+0040D9E3    8D8E BC230000   LEA ECX,DWORD PTR DS:\[ESI+23BC\]   
+0040D9E9    E8 91520500     CALL EZMerge.00462C7F   
+0040D9EE    6A 00           PUSH 0   
+0040D9F0    8D8E 94370000   LEA ECX,DWORD PTR DS:\[ESI+3794\]   
+0040D9F6    E8 84520500     CALL EZMerge.00462C7F   
+0040D9FB    6A 00           PUSH 0   
+0040D9FD    8D8E 8C3C0000   LEA ECX,DWORD PTR DS:\[ESI+3C8C\]   
+0040DA03    E8 77520500     CALL EZMerge.00462C7F   
+0040DA08    6A 00           PUSH 0   
+0040DA0A    8D8E EC0F0000   LEA ECX,DWORD PTR DS:\[ESI+FEC\]   
+0040DA10    E8 6A520500     CALL EZMerge.00462C7F   
+0040DA15    6A 00           PUSH 0   
+0040DA17    8D8E C81E0000   LEA ECX,DWORD PTR DS:\[ESI+1EC8\]   
+0040DA1D    E8 5D520500     CALL EZMerge.00462C7F   
+0040DA22    6A 00           PUSH 0   
+0040DA24    8D8E 7C460000   LEA ECX,DWORD PTR DS:\[ESI+467C\]   
+0040DA2A    E8 50520500     CALL EZMerge.00462C7F   
+0040DA2F    6A 00           PUSH 0   
+0040DA31    8D8E 84410000   LEA ECX,DWORD PTR DS:\[ESI+4184\]   
+0040DA37    E8 43520500     CALL EZMerge.00462C7F   
+0040DA3C    E9 01000000     JMP EZMerge.0040DA42   
+0040DA41    9B              WAIT   
+0040DA42    8B86 D4500000   MOV EAX,DWORD PTR DS:\[ESI+50D4\]   
+0040DA48    50              PUSH EAX   
+0040DA49    FF15 C4334700   CALL DWORD PTR DS:\[4733C4\]   
+0040DA4F    EB 04           JMP SHORT EZMerge.0040DA55   
+0040DA51    F9              STC   
+0040DA52    D1ED            SHR EBP,1   
+0040DA54    A0 FF15DCD4     MOV AL,BYTE PTR DS:\[D4DC15FF\]   
+0040DA59    48              DEC EAX   
+0040DA5A    0085 DB75416A   ADD BYTE PTR SS:\[EBP+6A4175DB\],AL   
+0040DA60    6C              INS BYTE PTR ES:\[EDI\],DX                 ; I/O 命令   
+0040DA61    E8 A7600500     CALL EZMerge.00463B0D   
+0040DA66    83C4 04         ADD ESP,4   
+0040DA69    894424 14       MOV DWORD PTR SS:\[ESP+14\],EAX   
+0040DA6D    85C0            TEST EAX,EAX   
+0040DA6F    C64424 28 02    MOV BYTE PTR SS:\[ESP+28\],2   
+0040DA74    74 0C           JE SHORT EZMerge.0040DA82   
+0040DA76    53              PUSH EBX   
+0040DA77    8BC8            MOV ECX,EAX   
+0040DA79    E8 F23A0000     CALL EZMerge.00411570   
+0040DA7E    8BF0            MOV ESI,EAX   
+0040DA80    EB 02           JMP SHORT EZMerge.0040DA84   
+0040DA82    33F6            XOR ESI,ESI   
+0040DA84    85F6            TEST ESI,ESI   
+0040DA86    C64424 28 00    MOV BYTE PTR SS:\[ESP+28\],0   
+0040DA8B    74 13           JE SHORT EZMerge.0040DAA0   
+0040DA8D    8B16            MOV EDX,DWORD PTR DS:\[ESI\]   
+0040DA8F    8BCE            MOV ECX,ESI   
+0040DA91    FF92 B8000000   CALL DWORD PTR DS:\[EDX+B8\]   
+0040DA97    8B06            MOV EAX,DWORD PTR DS:\[ESI\]   
+0040DA99    6A 01           PUSH 1   
+0040DA9B    8BCE            MOV ECX,ESI   
+0040DA9D    FF50 04         CALL DWORD PTR DS:\[EAX+4\]   
+0040DAA0    8D4C24 10       LEA ECX,DWORD PTR SS:\[ESP+10\]   
+0040DAA4    C74424 28 FFFFF>MOV DWORD PTR SS:\[ESP+28\],-1   
+0040DAAC    E8 8C5A0500     CALL EZMerge.0046353D   
+0040DAB1    8B4C24 20       MOV ECX,DWORD PTR SS:\[ESP+20\]   
+0040DAB5    5F              POP EDI   
+0040DAB6    5E              POP ESI   
+0040DAB7    5D              POP EBP   
+0040DAB8    5B              POP EBX   
+0040DAB9    64:890D 0000000>MOV DWORD PTR FS:\[0\],ECX   
+0040DAC0    83C4 1C         ADD ESP,1C   
+0040DAC3    C3              RETN   
+................................................................   
+  
+0040D91A   /E9 01000000     JMP dumped2\_.0040D920  //粘贴入程序中,需要处理一下花指令。    
+0040D91F   |BE 8B863851     MOV ESI,5138868B   
+0040D924    0000            ADD BYTE PTR DS:\[EAX\],AL   
+  
+0040D91A   /EB 04           JMP SHORT dumped2\_.0040D920   
+0040D91C   |90              NOP   
+0040D91D   |90              NOP                   处理后。   
+0040D91E   |90              NOP   
+0040D91F   |90              NOP   
+0040D920   8B86 38510000   MOV EAX,DWORD PTR DS:\[ESI+5138\]   
+  
+  
+0040D926    8B68 04         MOV EBP,DWORD PTR DS:\[EAX+4\]   
+0040D929    A1 94DD4800     MOV EAX,DWORD PTR DS:\[48DD94\]   
+0040D92E    85C0            TEST EAX,EAX   
+0040D930    7F 43           JG SHORT dumped2\_.0040D975   
+0040D932    8B8E 50510000   MOV ECX,DWORD PTR DS:\[ESI+5150\]   
+0040D938    8B96 54510000   MOV EDX,DWORD PTR DS:\[ESI+5154\]   
+0040D93E    894C24 18       MOV DWORD PTR SS:\[ESP+18\],ECX   
+0040D942    8BFD            MOV EDI,EBP   
+0040D944    8D4424 18       LEA EAX,DWORD PTR SS:\[ESP+18\]   
+0040D948    33C9            XOR ECX,ECX   
+0040D94A    895424 1C       MOV DWORD PTR SS:\[ESP+1C\],EDX   
+0040D94E    2BF8            SUB EDI,EAX   
+0040D950    8D440C 18       LEA EAX,DWORD PTR SS:\[ESP+ECX+18\]   
+0040D954    8A1407          MOV DL,BYTE PTR DS:\[EDI+EAX\]   
+0040D957    3010            XOR BYTE PTR DS:\[EAX\],DL   
+0040D959    41              INC ECX   
+0040D95A    83F9 08         CMP ECX,8   
+0040D95D  ^ 72 F1           JB SHORT dumped2\_.0040D950   
+0040D95F    8B4424 18       MOV EAX,DWORD PTR SS:\[ESP+18\]   
+0040D963    8B4D 20         MOV ECX,DWORD PTR SS:\[EBP+20\]   
+0040D966    3BC1            CMP EAX,ECX   
+0040D968    75 35           JNZ SHORT dumped2\_.0040D99F   
+0040D96A    8B4C24 1C       MOV ECX,DWORD PTR SS:\[ESP+1C\]   
+0040D96E    8B45 24         MOV EAX,DWORD PTR SS:\[EBP+24\]   
+0040D971    3BC8            CMP ECX,EAX   
+0040D973    75 2A           JNZ SHORT dumped2\_.0040D99F   
+0040D975    8D5424 18       LEA EDX,DWORD PTR SS:\[ESP+18\]   
+0040D979    BB 01000000     MOV EBX,1   
+0040D97E    52              PUSH EDX   
+0040D97F    6A 04           PUSH 4   
+0040D981    56              PUSH ESI   
+0040D982    68 30E64000     PUSH dumped2\_.0040E630   
+0040D987    6A 00           PUSH 0   
+0040D989    6A 00           PUSH 0   
+0040D98B    FF15 C0334700   CALL DWORD PTR DS:\[<&kernel32.CreateThre>; KERNEL32.CreateThread   
+0040D991    85C0            TEST EAX,EAX   
+0040D993    8986 D4500000   MOV DWORD PTR DS:\[ESI+50D4\],EAX   
+0040D999    0F84 01010000   JE dumped2\_.0040DAA0   
+0040D99F    EB 04           JMP SHORT dumped2\_.0040D9A5    //处理一下花指令    
+0040D9A1    CC              INT3   
+0040D9A2    6E              OUTS DX,BYTE PTR ES:\[EDI\]                ; I/O 命令   
+0040D9A3    8170 85 DB0F848>XOR DWORD PTR DS:\[EAX\-7B\],8F840FDB   
+0040D9AA    0000            ADD BYTE PTR DS:\[EAX\],AL   
+0040D9AC    006A 00         ADD BYTE PTR DS:\[EDX\],CH   
+0040D9AF    8D8E A42D0000   LEA ECX,DWORD PTR DS:\[ESI+2DA4\]   
+0040D9B5    E8 C5520500     CALL dumped2\_.00462C7F   
+  
+0040D99F   /EB 04           JMP SHORT dumped2\_.0040D9A5   //处理后。    
+0040D9A1   |90              NOP   
+0040D9A2   |90              NOP   
+0040D9A3   |90              NOP   
+0040D9A4   |90              NOP   
+0040D9A5   85DB            TEST EBX,EBX   
+0040D9A7   /0F84 8F000000   JE dumped2\_.0040DA3C   
+0040D9AD   |6A 00           PUSH 0   
+0040D9AF   |8D8E A42D0000   LEA ECX,DWORD PTR DS:\[ESI+2DA4\]   
+0040D9B5   |E8 C5520500     CALL dumped2\_.00462C7F      //处理后。         
+  
+0040D9BA    6A 00           PUSH 0   
+0040D9BC    8D8E 9C320000   LEA ECX,DWORD PTR DS:\[ESI+329C\]   
+0040D9C2    E8 B8520500     CALL dumped2\_.00462C7F   
+0040D9C7    6A 01           PUSH 1   
+0040D9C9    8D8E 744B0000   LEA ECX,DWORD PTR DS:\[ESI+4B74\]   
+0040D9CF    E8 AB520500     CALL dumped2\_.00462C7F   
+0040D9D4    6A 00           PUSH 0   
+0040D9D6    8D8E D4190000   LEA ECX,DWORD PTR DS:\[ESI+19D4\]   
+0040D9DC    E8 9E520500     CALL dumped2\_.00462C7F   
+0040D9E1    6A 00           PUSH 0   
+0040D9E3    8D8E BC230000   LEA ECX,DWORD PTR DS:\[ESI+23BC\]   
+0040D9E9    E8 91520500     CALL dumped2\_.00462C7F   
+0040D9EE    6A 00           PUSH 0   
+0040D9F0    8D8E 94370000   LEA ECX,DWORD PTR DS:\[ESI+3794\]   
+0040D9F6    E8 84520500     CALL dumped2\_.00462C7F   
+0040D9FB    6A 00           PUSH 0   
+0040D9FD    8D8E 8C3C0000   LEA ECX,DWORD PTR DS:\[ESI+3C8C\]   
+0040DA03    E8 77520500     CALL dumped2\_.00462C7F   
+0040DA08    6A 00           PUSH 0   
+0040DA0A    8D8E EC0F0000   LEA ECX,DWORD PTR DS:\[ESI+FEC\]   
+0040DA10    E8 6A520500     CALL dumped2\_.00462C7F   
+0040DA15    6A 00           PUSH 0   
+0040DA17    8D8E C81E0000   LEA ECX,DWORD PTR DS:\[ESI+1EC8\]   
+0040DA1D    E8 5D520500     CALL dumped2\_.00462C7F   
+0040DA22    6A 00           PUSH 0   
+0040DA24    8D8E 7C460000   LEA ECX,DWORD PTR DS:\[ESI+467C\]   
+0040DA2A    E8 50520500     CALL dumped2\_.00462C7F   
+0040DA2F    6A 00           PUSH 0   
+0040DA31    8D8E 84410000   LEA ECX,DWORD PTR DS:\[ESI+4184\]   
+0040DA37    E8 43520500     CALL dumped2\_.00462C7F   
+0040DA3C    E9 01000000     JMP dumped2\_.0040DA42     //这里又有花指令。    
+0040DA41    9B              WAIT   
+0040DA42    8B86 D4500000   MOV EAX,DWORD PTR DS:\[ESI+50D4\]   
+  
+0040DA3C   /EB 04           JMP SHORT dumped2\_.0040DA42   
+0040DA3E   |90              NOP   
+0040DA3F   |90              NOP   
+0040DA40   |90              NOP   
+0040DA41   |90              NOP   
+0040DA42   8B86 D4500000   MOV EAX,DWORD PTR DS:\[ESI+50D4\]   
+  
+0040DA48    50              PUSH EAX   
+0040DA49    FF15 C4334700   CALL DWORD PTR DS:\[<&kernel32.ResumeThre>; KERNEL32.ResumeThread   
+0040DA4F    EB 04           JMP SHORT dumped2\_.0040DA55  //这里又有花指令。    
+0040DA51    F9              STC   
+0040DA52    D1ED            SHR EBP,1   
+0040DA54    A0 FF15DCD4     MOV AL,BYTE PTR DS:\[D4DC15FF\]   
+0040DA59    48              DEC EAX   
+0040DA5A    0085 DB75416A   ADD BYTE PTR SS:\[EBP+6A4175DB\],AL   
+0040DA60    6C              INS BYTE PTR ES:\[EDI\],DX                 ; I/O 命令   
+  
+0040DA4F   /EB 04           JMP SHORT dumped2\_.0040DA55   
+0040DA51   |90              NOP   
+0040DA52   |90              NOP   
+0040DA53   |90              NOP   
+0040DA54   |90              NOP   
+0040DA55   FF15 DCD44800   CALL DWORD PTR DS:\[48D4DC\]   //加密指令，Nop 掉。    
+  
+0040DA55    90              NOP   
+0040DA56    90              NOP   
+0040DA57    90              NOP   
+0040DA58    90              NOP   
+0040DA59    90              NOP   
+0040DA5A    90              NOP   
+  
+0040DA5B    85DB            TEST EBX,EBX   
+0040DA5D    75 41           JNZ SHORT dumped2\_.0040DAA0   
+0040DA5F    6A 6C           PUSH 6C   
+0040DA61    E8 A7600500     CALL dumped2\_.00463B0D   
+  
+0040DA66    83C4 04         ADD ESP,4   
+0040DA69    894424 14       MOV DWORD PTR SS:\[ESP+14\],EAX   
+0040DA6D    85C0            TEST EAX,EAX   
+0040DA6F    C64424 28 02    MOV BYTE PTR SS:\[ESP+28\],2   
+0040DA74    74 0C           JE SHORT dumped2\_.0040DA82   
+0040DA76    53              PUSH EBX   
+0040DA77    8BC8            MOV ECX,EAX   
+0040DA79    E8 F23A0000     CALL dumped2\_.00411570   
+0040DA7E    8BF0            MOV ESI,EAX   
+0040DA80    EB 02           JMP SHORT dumped2\_.0040DA84   
+0040DA82    33F6            XOR ESI,ESI   
+0040DA84    85F6            TEST ESI,ESI   
+0040DA86    C64424 28 00    MOV BYTE PTR SS:\[ESP+28\],0   
+0040DA8B    74 13           JE SHORT dumped2\_.0040DAA0   
+0040DA8D    8B16            MOV EDX,DWORD PTR DS:\[ESI\]   
+0040DA8F    8BCE            MOV ECX,ESI   
+0040DA91    FF92 B8000000   CALL DWORD PTR DS:\[EDX+B8\]   
+0040DA97    8B06            MOV EAX,DWORD PTR DS:\[ESI\]   
+0040DA99    6A 01           PUSH 1   
+0040DA9B    8BCE            MOV ECX,ESI   
+0040DA9D    FF50 04         CALL DWORD PTR DS:\[EAX+4\]   
+0040DAA0    8D4C24 10       LEA ECX,DWORD PTR SS:\[ESP+10\]   
+0040DAA4    C74424 28 FFFFF>MOV DWORD PTR SS:\[ESP+28\],-1   
+0040DAAC    E8 8C5A0500     CALL dumped2\_.0046353D   
+0040DAB1    8B4C24 20       MOV ECX,DWORD PTR SS:\[ESP+20\]   
+0040DAB5    5F              POP EDI   
+0040DAB6    5E              POP ESI   
+0040DAB7    5D              POP EBP   
+0040DAB8    5B              POP EBX   
+0040DAB9    64:890D 0000000>MOV DWORD PTR FS:\[0\],ECX   
+0040DAC0    83C4 1C         ADD ESP,1C   
+0040DAC3    C3              RETN   
+...............................................................   
+  
+0040D90F    E8 FCF0FFFF     CALL dumped2\_.0040CA10   //完成第三处暗桩代码。    
+0040D914    90              NOP   
+0040D915    90              NOP   
+0040D916    90              NOP   
+0040D917    90              NOP   
+0040D918    90              NOP   
+0040D919    90              NOP   
+0040D91A    EB 04           JMP SHORT dumped2\_.0040D920   
+0040D91C    90              NOP   
+0040D91D    90              NOP   
+0040D91E    90              NOP   
+0040D91F    90              NOP   
+0040D920    8B86 38510000   MOV EAX,DWORD PTR DS:\[ESI+5138\]   
+0040D926    8B68 04         MOV EBP,DWORD PTR DS:\[EAX+4\]   
+0040D929    A1 94DD4800     MOV EAX,DWORD PTR DS:\[48DD94\]   
+0040D92E    85C0            TEST EAX,EAX   
+0040D930    7F 43           JG SHORT dumped2\_.0040D975   
+0040D932    8B8E 50510000   MOV ECX,DWORD PTR DS:\[ESI+5150\]   
+0040D938    8B96 54510000   MOV EDX,DWORD PTR DS:\[ESI+5154\]   
+0040D93E    894C24 18       MOV DWORD PTR SS:\[ESP+18\],ECX   
+0040D942    8BFD            MOV EDI,EBP   
+0040D944    8D4424 18       LEA EAX,DWORD PTR SS:\[ESP+18\]   
+0040D948    33C9            XOR ECX,ECX   
+0040D94A    895424 1C       MOV DWORD PTR SS:\[ESP+1C\],EDX   
+0040D94E    2BF8            SUB EDI,EAX   
+0040D950    8D440C 18       LEA EAX,DWORD PTR SS:\[ESP+ECX+18\]   
+0040D954    8A1407          MOV DL,BYTE PTR DS:\[EDI+EAX\]   
+0040D957    3010            XOR BYTE PTR DS:\[EAX\],DL   
+0040D959    41              INC ECX   
+0040D95A    83F9 08         CMP ECX,8   
+0040D95D  ^ 72 F1           JB SHORT dumped2\_.0040D950   
+0040D95F    8B4424 18       MOV EAX,DWORD PTR SS:\[ESP+18\]   
+0040D963    8B4D 20         MOV ECX,DWORD PTR SS:\[EBP+20\]   
+0040D966    3BC1            CMP EAX,ECX   
+0040D968    75 35           JNZ SHORT dumped2\_.0040D99F   
+0040D96A    8B4C24 1C       MOV ECX,DWORD PTR SS:\[ESP+1C\]   
+0040D96E    8B45 24         MOV EAX,DWORD PTR SS:\[EBP+24\]   
+0040D971    3BC8            CMP ECX,EAX   
+0040D973    75 2A           JNZ SHORT dumped2\_.0040D99F   
+0040D975    8D5424 18       LEA EDX,DWORD PTR SS:\[ESP+18\]   
+0040D979    BB 01000000     MOV EBX,1   
+0040D97E    52              PUSH EDX   
+0040D97F    6A 04           PUSH 4   
+0040D981    56              PUSH ESI   
+0040D982    68 30E64000     PUSH dumped2\_.0040E630   
+0040D987    6A 00           PUSH 0   
+0040D989    6A 00           PUSH 0   
+0040D98B    FF15 C0334700   CALL DWORD PTR DS:\[<&kernel32.CreateThre>; KERNEL32.CreateThread   
+0040D991    85C0            TEST EAX,EAX   
+0040D993    8986 D4500000   MOV DWORD PTR DS:\[ESI+50D4\],EAX   
+0040D999    0F84 01010000   JE dumped2\_.0040DAA0   
+0040D99F    EB 04           JMP SHORT dumped2\_.0040D9A5   
+0040D9A1    90              NOP   
+0040D9A2    90              NOP   
+0040D9A3    90              NOP   
+0040D9A4    90              NOP   
+0040D9A5    85DB            TEST EBX,EBX   
+0040D9A7    0F84 8F000000   JE dumped2\_.0040DA3C   
+0040D9AD    6A 00           PUSH 0   
+0040D9AF    8D8E A42D0000   LEA ECX,DWORD PTR DS:\[ESI+2DA4\]   
+0040D9B5    E8 C5520500     CALL dumped2\_.00462C7F   
+0040D9BA    6A 00           PUSH 0   
+0040D9BC    8D8E 9C320000   LEA ECX,DWORD PTR DS:\[ESI+329C\]   
+0040D9C2    E8 B8520500     CALL dumped2\_.00462C7F   
+0040D9C7    6A 01           PUSH 1   
+0040D9C9    8D8E 744B0000   LEA ECX,DWORD PTR DS:\[ESI+4B74\]   
+0040D9CF    E8 AB520500     CALL dumped2\_.00462C7F   
+0040D9D4    6A 00           PUSH 0   
+0040D9D6    8D8E D4190000   LEA ECX,DWORD PTR DS:\[ESI+19D4\]   
+0040D9DC    E8 9E520500     CALL dumped2\_.00462C7F   
+0040D9E1    6A 00           PUSH 0   
+0040D9E3    8D8E BC230000   LEA ECX,DWORD PTR DS:\[ESI+23BC\]   
+0040D9E9    E8 91520500     CALL dumped2\_.00462C7F   
+0040D9EE    6A 00           PUSH 0   
+0040D9F0    8D8E 94370000   LEA ECX,DWORD PTR DS:\[ESI+3794\]   
+0040D9F6    E8 84520500     CALL dumped2\_.00462C7F   
+0040D9FB    6A 00           PUSH 0   
+0040D9FD    8D8E 8C3C0000   LEA ECX,DWORD PTR DS:\[ESI+3C8C\]   
+0040DA03    E8 77520500     CALL dumped2\_.00462C7F   
+0040DA08    6A 00           PUSH 0   
+0040DA0A    8D8E EC0F0000   LEA ECX,DWORD PTR DS:\[ESI+FEC\]   
+0040DA10    E8 6A520500     CALL dumped2\_.00462C7F   
+0040DA15    6A 00           PUSH 0   
+0040DA17    8D8E C81E0000   LEA ECX,DWORD PTR DS:\[ESI+1EC8\]   
+0040DA1D    E8 5D520500     CALL dumped2\_.00462C7F   
+0040DA22    6A 00           PUSH 0   
+0040DA24    8D8E 7C460000   LEA ECX,DWORD PTR DS:\[ESI+467C\]   
+0040DA2A    E8 50520500     CALL dumped2\_.00462C7F   
+0040DA2F    6A 00           PUSH 0   
+0040DA31    8D8E 84410000   LEA ECX,DWORD PTR DS:\[ESI+4184\]   
+0040DA37    E8 43520500     CALL dumped2\_.00462C7F   
+0040DA3C    EB 04           JMP SHORT dumped2\_.0040DA42   
+  
+ 4dd466d0e1e0cc123afbe504da2462ca

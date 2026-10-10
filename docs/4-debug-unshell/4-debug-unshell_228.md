@@ -1,0 +1,115 @@
+
+
+# 手脱 Armadillo 3.00a - 3.61 单进程壳
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-576.htm`](https://www.pediy.com/kssd/pediy07/pediy7-576.htm)
+
+【脱壳目标】:影音嗅探专家 V2005.22  
+【下载页面】:[`www1.skycn.com/soft/20858.html`](http://www1.skycn.com/soft/20858.html)  
+【加壳方式】:Armadillo 3.00a - 3.61 -> Silicon Realms Toolworks  
+【任    务】:此软件是免费软件，目的在于学习脱壳  
+【工    具】:Olydbg1.1、LORDPE、ImportREC1.6F  
+【操作平台】:Microsoft Windows XP Professional+sp2  
+【作    者】:wer412  
+【详细过程】:参考了前人的脱壳文章，说说自己的理解  
+一、避开函数加密  
+(一)设置 Ollydbg，忽略所有异常  
+0045C000 > 60               PUSHAD    \*载入后停留在这\*  
+0045C001   E8 00000000      CALL msniffer.0045C006  
+0045C006   5D               POP EBP  
+0045C007   50               PUSH EAX  
+0045C008   51               PUSH ECX  
+0045C009   EB 0F            JMP SHORT msniffer.0045C01A  
+(二)下断点 HE GetModuleHandleA，F9 运行。两次 Shift+F9 通过异常后，Ctrl+F9 返回直到如下形式  
+00AF4E83   8B0D 00B8B100    MOV ECX,DWORD PTR DS:\[B1B800\]  
+00AF4E89   89040E           MOV DWORD PTR DS:\[ESI+ECX\],EAX  
+00AF4E8C   A1 00B8B100      MOV EAX,DWORD PTR DS:\[B1B800\]  
+00AF4E91   393C06           CMP DWORD PTR DS:\[ESI+EAX\],EDI  
+00AF4E94   75 16            JNZ SHORT 00AF4EAC  
+00AF4E96   8D85 B4FEFFFF    LEA EAX,DWORD PTR SS:\[EBP-14C\]  
+00AF4E9C   50               PUSH EAX  
+00AF4E9D   FF15 C030B100    CALL DWORD PTR DS:\[B130C0\]               ; kernel32.LoadLibraryA  
+00AF4EA3   8B0D 00B8B100    MOV ECX,DWORD PTR DS:\[B1B800\]  
+00AF4EA9   89040E           MOV DWORD PTR DS:\[ESI+ECX\],EAX  
+00AF4EAC   A1 00B8B100      MOV EAX,DWORD PTR DS:\[B1B800\]  
+00AF4EB1   393C06           CMP DWORD PTR DS:\[ESI+EAX\],EDI  
+00AF4EB4   0F84 AD000000    JE 00AF4F67        \*改为 JMP，避开函数加密\*  
+00AF4EBA   33C9             XOR ECX,ECX  
+00AF4EBC   8B03             MOV EAX,DWORD PTR DS:\[EBX\]  
+00AF4EBE   3938             CMP DWORD PTR DS:\[EAX\],EDI  
+00AF4EC0   74 06            JE SHORT 00AF4EC8      
+00AF4EC2   41               INC ECX  
+00AF4EC3   83C0 0C          ADD EAX,0C  
+00AF4EC6  ^EB F6            JMP SHORT 00AF4EBE  
+二、寻找 OEP  
+(三)取消断点，下 BP GetCurrentThreadId 断点，F9 运行。Ctrl+F9 和 F9 配合直到返回程序空间，向下寻找 CALL EDI 下断点  
+00B0A0AF   A3 90F8B100      MOV DWORD PTR DS:\[B1F890\],EAX  
+00B0A0B4   E8 F4B0FEFF      CALL 00AF51AD  
+00B0A0B9   6A 00            PUSH 0  
+00B0A0BB   E8 5B03FFFF      CALL 00AFA41B  
+00B0A0C0   59               POP ECX  
+00B0A0C1   E8 8D63FFFF      CALL 00B00453  
+00B0A0C6   8BF8             MOV EDI,EAX  
+00B0A0C8   A1 80F8B100      MOV EAX,DWORD PTR DS:\[B1F880\]  
+00B0A0CD   8B48 74          MOV ECX,DWORD PTR DS:\[EAX+74\]  
+00B0A0D0   3348 5C          XOR ECX,DWORD PTR DS:\[EAX+5C\]  
+00B0A0D3   3308             XOR ECX,DWORD PTR DS:\[EAX\]  
+00B0A0D5   03F9             ADD EDI,ECX  
+00B0A0D7   8B0E             MOV ECX,DWORD PTR DS:\[ESI\]  
+00B0A0D9   85C9             TEST ECX,ECX  
+00B0A0DB   75 2E            JNZ SHORT 00B0A10B  
+00B0A0DD   8B78 5C          MOV EDI,DWORD PTR DS:\[EAX+5C\]  
+00B0A0E0   E8 6E63FFFF      CALL 00B00453  
+00B0A0E5   8B0D 80F8B100    MOV ECX,DWORD PTR DS:\[B1F880\]            ; msniffer.0046C258  
+00B0A0EB   FF76 14          PUSH DWORD PTR DS:\[ESI+14\]  
+00B0A0EE   8B51 74          MOV EDX,DWORD PTR DS:\[ECX+74\]  
+00B0A0F1   FF76 10          PUSH DWORD PTR DS:\[ESI+10\]  
+00B0A0F4   33D7             XOR EDX,EDI  
+00B0A0F6   3311             XOR EDX,DWORD PTR DS:\[ECX\]  
+00B0A0F8   FF76 0C          PUSH DWORD PTR DS:\[ESI+C\]  
+00B0A0FB   03C2             ADD EAX,EDX  
+00B0A0FD   8B51 78          MOV EDX,DWORD PTR DS:\[ECX+78\]  
+00B0A100   3351 14          XOR EDX,DWORD PTR DS:\[ECX+14\]  
+00B0A103   33D7             XOR EDX,EDI  
+00B0A105   2BC2             SUB EAX,EDX  
+00B0A107   FFD0             CALL EAX  
+00B0A109   EB 25            JMP SHORT 00B0A130  
+00B0A10B   83F9 01          CMP ECX,1  
+00B0A10E   75 22            JNZ SHORT 00B0A132  
+00B0A110   FF76 04          PUSH DWORD PTR DS:\[ESI+4\]  
+00B0A113   FF76 08          PUSH DWORD PTR DS:\[ESI+8\]  
+00B0A116   6A 00            PUSH 0  
+00B0A118   E8 3663FFFF      CALL 00B00453  
+00B0A11D   50               PUSH EAX  
+00B0A11E   A1 80F8B100      MOV EAX,DWORD PTR DS:\[B1F880\]  
+00B0A123   8B48 78          MOV ECX,DWORD PTR DS:\[EAX+78\]  
+00B0A126   3348 5C          XOR ECX,DWORD PTR DS:\[EAX+5C\]  
+00B0A129   3348 14          XOR ECX,DWORD PTR DS:\[EAX+14\]  
+00B0A12C   2BF9             SUB EDI,ECX  
+00B0A12E   FFD7             CALL EDI        \*取消以前断点。F2 下断点于此，F9 运行断下后 F7 进入程序 OEP 了\*  
+00B0A130   8BD8             MOV EBX,EAX  
+00B0A132   5F               POP EDI  
+00B0A133   8BC3             MOV EAX,EBX  
+00B0A135   5E               POP ESI  
+00B0A136   5B               POP EBX  
+00B0A137   C3               RETN  
+F7 进入后  
+00423D7E   55               PUSH EBP        \*程序入口，OEP=423D70-400000=23D7E\*  
+00423D7F   8BEC             MOV EBP,ESP  
+00423D81   6A FF            PUSH -1  
+00423D83   68 48C14200      PUSH msniffer.0042C148  
+00423D88   68 E83E4200      PUSH msniffer.00423EE8                   ; JMP to msvcrt.\_except\_handler3  
+00423D8D   64:A1 00000000   MOV EAX,DWORD PTR FS:\[0\]  
+00423D93   50               PUSH EAX  
+00423D94   64:8925 00000000 MOV DWORD PTR FS:\[0\],ESP  
+00423D9B   83EC 68          SUB ESP,68  
+00423D9E   53               PUSH EBX  
+00423D9F   56               PUSH ESI  
+00423DA0   57               PUSH EDI  
+00423DA1   8965 E8          MOV DWORD PTR SS:\[EBP-18\],ESP  
+00423DA4   33DB             XOR EBX,EBX  
+00423DA6   895D FC          MOV DWORD PTR SS:\[EBP-4\],EBX  
+三、程序的抓取及修复  
+(四)使用 LOADPE 抓取。运行 ImportREC，选择程序进程，填入 OEP=23D7E，点击右键选择“Advanced Commands”-->“Get Api Calls ”-->选择“Get' Call\[X\]' ... ”-->“Show Invalid”剪掉两个无效函数，修复即可。 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

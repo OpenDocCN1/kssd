@@ -1,0 +1,75 @@
+
+
+# 易语言 3.5
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6299.htm`](https://www.pediy.com/kssd/pediy06/pediy6299.htm)
+
+这个程序很多人破解不成功其实是因为它发现你修改了他 :lol:    
+作者的方法是检测程序运行后代码段校验和是否为作者预先设置好的，不是就无声无息的编译垃圾出来:twisted:这个是他的发现你修改它代码的代码（有点绕口），可以通过构造数据（CRC）或者爆破掉这个桩子。   
+同时很佩服作者呀 :wink:    
+.text:004BDD50 ; 内存代码段校验   
+.text:004BDD50    
+.text:004BDD50 MemoryCodeCheck proc near               ; CODE XREF: .text:00454AA6p   
+.text:004BDD50                 push    ebx   
+.text:004BDD51                 push    ebp   
+.text:004BDD52                 mov     ebp, ecx   
+.text:004BDD54                 push    esi   
+.text:004BDD55                 push    edi   
+.text:004BDD56                 push    4               ; DataSize = 0x4(DWORD)   
+.text:004BDD58                 mov     edi, \[ebp+68h\]  ; ImageBase -> EDI   
+.text:004BDD5B                 push    edi             ; DataAddress = 0x00400000   
+.text:004BDD5C                 call    ds:IsBadReadPtr ; IsBadReadPtr   
+.text:004BDD62                 test    eax, eax   
+.text:004BDD64                 jnz     short loc\_4BDDC5 ; IsBadReadPtr 返回不为 0 直接返回   
+.text:004BDD66                 mov     eax, \[edi+3Ch\]  ; DOS Stub -> EAX   
+.text:004BDD69                 xor     ecx, ecx   
+.text:004BDD6B                 add     eax, edi        ; PE Header -> EAX   
+.text:004BDD6D                 mov     ebx, dword\_533C88 ; 预设校验和 -> EBX   
+.text:004BDD73                 xor     esi, esi   
+.text:004BDD75                 mov     cx, \[eax+14h\]   ; File Header -> CX   
+.text:004BDD79                 lea     edx, \[ecx+eax+18h\] ; Section Name -> EDX   
+.text:004BDD7D                 xor     ecx, ecx   
+.text:004BDD7F                 mov     cx, \[eax+6\]     ; NumberOfSections -> CX   
+.text:004BDD83                 test    ecx, ecx   
+.text:004BDD85                 jle     short loc\_4BDDC5 ; NumberOfSections 不大于 0 直接返回   
+.text:004BDD87                 mov     eax, 20000000h  ; 0x20000000 -> EAX   
+.text:004BDD8C    
+.text:004BDD8C loc\_4BDD8C:                             ; CODE XREF: MemoryCodeCheck+47j   
+.text:004BDD8C                 test    \[edx+24h\], eax   
+.text:004BDD8F                 jnz     short loc\_4BDD9E ; Characteristics 不为 0x20000000 则为代码段   
+.text:004BDD8F                                         ; 跳到校验部分   
+.text:004BDD91                 add     edx, 28h   
+.text:004BDD94                 inc     esi             ; 计数器自加   
+.text:004BDD95                 cmp     esi, ecx        ; 没有取完节循环   
+.text:004BDD97                 jl      short loc\_4BDD8C   
+.text:004BDD99                 pop     edi             ; 没有找到代码段返回   
+.text:004BDD9A                 pop     esi   
+.text:004BDD9B                 pop     ebp   
+.text:004BDD9C                 pop     ebx   
+.text:004BDD9D                 retn   
+.text:004BDD9E ; 哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪?   
+.text:004BDD9E    
+.text:004BDD9E loc\_4BDD9E:                             ; CODE XREF: MemoryCodeCheck+3Fj   
+.text:004BDD9E                 mov     ecx, \[edx+0Ch\]   
+.text:004BDDA1                 mov     eax, \[edx+8\]   
+.text:004BDDA4                 add     ecx, edi   
+.text:004BDDA6                 push    eax   
+.text:004BDDA7                 push    ecx   
+.text:004BDDA8                 call    CRC32\_hash      ; 进行循环冗余校验   
+.text:004BDDAD                 mov     edx, \[ebp+674h\]   
+.text:004BDDB3                 add     esp, 8          ; 清理堆栈   
+.text:004BDDB6                 cmp     eax, \[ebx+edx\*4\] ; 比较内存代码校验和与预设的是否符合   
+.text:004BDDB9                 jz      short loc\_4BDDC5 ; 胜利   
+.text:004BDDBB                 or      dword ptr \[ebp+77Ch\], 938Fh ; 往下就不好玩了:(   
+.text:004BDDC5    
+.text:004BDDC5 loc\_4BDDC5:                             ; CODE XREF: MemoryCodeCheck+14j   
+.text:004BDDC5                                         ; MemoryCodeCheck+35j ...   
+.text:004BDDC5                 pop     edi   
+.text:004BDDC6                 pop     esi   
+.text:004BDDC7                 pop     ebp   
+.text:004BDDC8                 pop     ebx   
+.text:004BDDC9                 retn   
+.text:004BDDC9 MemoryCodeCheck endp   
+\---   
+written by linson  
+ 4dd466d0e1e0cc123afbe504da2462ca

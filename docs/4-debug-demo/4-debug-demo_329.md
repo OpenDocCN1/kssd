@@ -1,0 +1,71 @@
+
+
+# Key File 保护
+
+> 原文：[`www.pediy.com/kssd/tutorial/chap6-1-4.htm`](https://www.pediy.com/kssd/tutorial/chap6-1-4.htm)
+
+**Key File 保护 **　**【习题】**
+
+　　Key File（注册文件）是一种利用文件来注册软件的保护方式。Key File 一般是一个小文件，可以是纯文本文件，也可以是包含不可显示字符的二进制文件，其内容是一些加密过或未加密的数据，其中可能有用户名、注册码等信息。文件格式则由软件作者自己定义。试用版软件没有注册文件，当用户向作者付费注册之后，会收到作者寄来的注册文件，其中可能包含用户的个人信息。用户只要将该文件放入指定的目录，就可以让软件成为正式版。该文件一般是放在软件的安装目录中或系统目录下。软件每次启动时，从该文件中读取数据，然后利用某种算法进行处理，根据处理的结果判断是否为正确的注册文件，如果正确则以注册版模式来运行。
+
+（1）破解 Key File 一般思路
+
+1\. 最好分析 Key File 的工具是十六进制工具，普通的文本编辑工具不太适合。  
+  
+2\. 对付这类程序，你首先建立一假的 Key File 文件。一般的软件容许 Key File 有不同的大小和文件名，你建立的文件内容必须易读，跟据情况调整 Key File 的大小和文件名。为什么要易读呢？因为目标程序从 Key File 中读取数据，然后进行处理，易读有利于你分析其运算过程。  
+  
+3\. Key File 文件在大多数情况下，是以'\*.key'形式存在的。  
+  
+4\. Key File 文件名可用 W32DASM 或十六进制工具打开程序用查找字符串方式确定；  
+  
+5\. 读用户手册（有时作者可能会提到）； 
+
+6\. 用 Filemon 这一工具，它能实时监视系统各文件的状态，因此运行程序时，如它去读指定文件名的 Key File 时，会在 Filemon 显示 Key File 文件名。一但你发现 Key File 文件名，就建立一假的 Key File 到要被 crack 软件目录下,然后去 crack。  
+  
+（2）Windows 下破解 Key File 几个常用的函数：   
+
+| 函数 ReadFile  
+作用：从文件中读出数据   
+参数：其中 Long，非零表示成功，零表示失败。BOOL ReadFile(  
+HANDLE hFile, // Long，文件的句柄  
+LPVOID lpBuffer, // Any，用于保存读入数据的一个缓冲区   
+DWORD nNumberOfBytesToRead, //Long，要读入的字符数   
+LPDWORD lpNumberOfBytesRead, // Long，从文件中实际读入的字符数  
+LPOVERLAPPED lpOverlapped // address of structure for data   
+);  |
+| --- |
+
+  
+
+| 函数 CreateFileA   
+作用：可打开和创建文件、管道、邮槽、通信服务、设备以及控制台  
+HANDLE CreateFileA( LPCTSTR lpFileName, // String，要打开的文件的名字  
+DWORD dwDesiredAccess, // 允许对设备进行读写访问；  
+DWORD dwShareMode, // 共享模式  
+LPSECURITY\_ATTRIBUTES lpSecurityAttributes// 指向一个 SECURITY\_ATTRIBUTES 结构的指针，定义了文件的安全特性（如果操作系统支持的）  
+DWORD dwCreationDistribution, // 如何创建文件  
+DWORD dwFlagsAndAttributes, // file attributes   
+HANDLE hTemplateFile //Long，如果不为零，则指定一个文件句柄。新文件将从这个文件中复制 扩展属性  
+);  |
+| --- |
+
+  
+
+| 函数\_lopen( )  
+作用：以二进制模式打开指定的文件  
+HFILE \_lopen( LPCSTR lpPathName, // 欲打开文件的名字  
+int iReadWrite // 访问模式和共享模式常数的一个组合  
+);  |
+| --- |
+
+  
+
+| 函数 FindFirstFileA( )  
+作用：根据文件名查找文件 HANDLE FindFirstFile( LPCTSTR lpFileName, // 欲搜索的文件名。可包含通配符，并可包含一个路径或相对路径名  
+LPWIN32\_FIND\_DATA lpFindFileData // WIN32\_FIND\_DATA，这个结构用于装载与找到的文件有关的信息。该结构可用于后续的搜索  
+);  |
+| --- |
+
+ 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

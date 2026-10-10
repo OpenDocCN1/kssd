@@ -1,0 +1,272 @@
+
+
+# 处理 Pespin13 Nanomite 的程序
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-605.htm`](https://www.pediy.com/kssd/pediy07/pediy7-605.htm)
+
+Pespin1.3 的 Nanomites 手动处理挺麻烦, 就写了下面这段程序,   
+可以计算被替换代码的地址, 长度, 二进制代码.   
+程序用于主程序, 但只要改几个参数, 就能用于 Pespin13 加壳的程序.  
+感谢您的测试.  
+  
+.386  
+.model flat, stdcall  ;32 bit memory model  
+option casemap :none  ;case sensitive  
+  
+include c:\\masm32\\include\\windows.inc  
+include c:\\masm32\\include\\kernel32.inc   
+include c:\\masm32\\include\\user32.inc   
+includelib c:\\masm32\\lib\\kernel32.lib   
+includelib c:\\masm32\\lib\\user32.lib  
+  
+.data  
+  
+Nanomite STRUCT  
+  dwAddrHash       DD ?               ; 对应地址的 Hash  
+  dwOffset         DD ?               ; 见下面  
+  dbType           DB ?  
+  dbReg            DB ?  
+  dbLen            DB ?               ; 被替换的代码长度  
+Nanomite ENDS  
+  
+deNanomite STRUCT  
+  dwAddr           DD ?               ; 对应的地址  
+  dwLen            DD ?               ; 代码长度  
+  dbCode           DB 8 dup(?)        ; 二进制代码  
+deNanomite ENDS  
+  
+  
+    ;对 Type = 0, Reg 表示两个 reg,    (3-5)reg1, (0-2)reg2, offset 表示偏移(1 or 4 byte),  mov reg1, \[reg2+offset\]    
+    ;对 Type = 1, Reg 表示两个 reg,    (4-7)reg1, (0-3)reg2, offset 表示五种运算  xxx reg1, reg2  
+    ;对 Type = 3, Reg=1 表示 JNZ,  Reg=0 表示 JZ,  offset 表示偏移(最高位表示方向, 1 or 4 byte)  
+    ;0 or ,  1 and , 2 xor, 3 add, 4 sub, 5 mov  
+    ;00 EAX, 01 ECX, 02 EDX, 03 EBX, 04 ESP, 05 EBP, 06 ESI, 07 EDI  
+  
+    ; 下面这段数据可直接从 OD 二进制复制  
+  
+NanomData db  9Ah,  78h, 0C3h, 0A0h, 1Eh, 00, 00, 00, 03, 01, 02  
+          db  82h,  14h, 0AAh, 21h , 94h, 00, 00, 00, 03, 00, 06  
+          db  9Fh,  92h, 0FDh, 0DDh, 05,  00, 00, 00, 01, 03, 02    
+          db  8Ah,  9Eh, 73h,  0E9h, 05,  00, 00, 00, 01, 20h,02   
+          db  31h,  1Eh, 0B4h, 0ECh, 05,  00, 00, 00, 01, 54h,02   
+          db  79h,  0FBh,0C9h, 4Ch,  5Fh, 00, 00, 00, 03, 00, 02    
+          db  0FFh, 0DBh,0C5h, 85h,  9Ch, 04, 00, 00, 03, 00, 06  
+          db  0BEh, 6Dh, 88h,  03h,  27h, 00, 00, 00, 03, 00, 02  
+          db  38h,  4Dh, 84h,  0CAh, 34h, 04, 00, 00, 03, 00, 06  
+          db  0FFh, 5Ch, 93h,  1Ah,  19h, 04, 00, 00, 03, 00, 06    
+          db  09h,  0AAh,0DDh, 0D8h, 0Fh, 04, 00, 00, 03, 00, 06    
+          db  88h,  89h, 37h,  0FCh, 0C4h,04, 00, 00, 03, 00, 06    
+          db  46h,  4Ch, 46h,  95h,  0F0h,03, 00, 00, 03, 00, 06      
+          db  56h,  5Ch, 4Dh,  2Bh,  0E9h,04, 00, 00, 03, 00, 06    
+          db  0C7h, 2Dh, 0B7h, 0CCh, 05,  00, 00, 00, 01, 30h,02   
+          db  82h,  5Eh, 96h,  2Eh,  27h, 00, 00, 00, 03, 00, 02     
+          db  8Bh,  8Ah, 0F0h, 97h,  03,  00, 00, 00, 01, 71h,02   
+          db  58h,  0C1h,0F1h, 70h,  16h, 00, 00, 00, 03, 00, 02    
+          db  0EFh, 81h, 0F2h, 34h,  20h, 00, 00, 00, 03, 01, 02   
+          db  98h,  2Bh, 0EEh, 7Ah,  20h, 00, 00, 00, 03, 01, 02  
+          db  0DDh, 0DFh,99h,  07h,  20h, 00, 00, 00, 03, 01, 02    
+          db  6Bh,  0C1h,25h,  32h,  11h, 00, 00, 00, 03, 01, 02   
+          db  17h,  50h, 0F5h, 0E7h, 11h, 00, 00, 00, 03, 00, 02  
+          db  3Bh,  31h, 0FBh, 09h,  14h, 00, 00, 00, 00, 75h,03    
+          db  39h,  71h, 2Bh,  0Ch,  14h, 00, 00, 00, 00, 45h,03   
+          db  30h,  0A5h,4Dh,  0B5h, 08,  00, 00, 00, 00, 40h,03  
+          db  75h,  0D6h,6Ch,  57h,  07,  00, 00, 00, 03, 00, 02   
+          db  54h,  0A6h,68h,  64h,  10h, 00, 00, 00, 00, 5Dh,03    
+          db  36h,  0D6h,4Ah,  23h,  1Bh, 00, 00, 00, 03, 00, 02    
+          db  8Ah,  0FCh,63h,  5Eh,  1Ch, 00, 00, 00, 03, 01, 02   
+          db  0DAh, 9Eh, 64h,  97h,  01,  00, 00, 00, 01, 03, 02   
+           
+;NanomData   db (sizeof Nanomite \* 31) dup (0)    ; 如果用 OD 复制, 用这句代替上面初始化  
+             dd  0                                ; 结束的标志  
+  
+deNanomData  db (sizeof deNanomite \* 31) dup (0)  ; 结果包存在这里, 31 处  
+  
+StartAddr    dd 409800h    ; 可以从 401000 开始, 花不了多少时间  
+EndAddr      dd 40C000h  
+AddrString   db 9 dup (0)  
+StringFormat db "%08X",0  
+  
+  
+.code  
+  
+CalcHash Proc uses edx edi, pStr : dword   
+    OR EDX, 0FFFFFFFFh  
+    mov edi, pStr  
+      
+@@next1:  
+    MOV AL,BYTE PTR DS:\[EDI\]  
+    OR AL, AL  
+    JE @@CalcEnd  
+    INC EDI  
+    XOR DL, AL  
+    MOV AL, 8  
+  
+@@next2:  
+    SHR EDX,1  
+    JNB @F  
+    XOR EDX,0EDB88320h  
+@@: DEC AL  
+    JNZ @@next2  
+  
+    JMP @@next1  
+      
+@@CalcEnd:   
+    mov EAX,EDX  
+    RET  
+CalcHash endp  
+;--------------------------------------------------------------------------------  
+  
+  
+start:  
+  lea esi, NanomData  
+  lea edi, deNanomData  
+  
+assume esi : ptr   Nanomite  
+assume edi : ptr  deNanomite  
+  
+next:  
+  mov eax, \[esi\].dwAddrHash  
+  test eax, eax  
+  je exit  
+  mov ebx, eax                        ; 保留 Hash  
+  mov eax, \[StartAddr\]  
+  
+@@:  
+  push eax    
+  invoke wsprintf, offset AddrString, offset StringFormat, eax  
+  invoke CalcHash, offset AddrString  
+  cmp eax, ebx                        ; 比较 Hash  
+  pop eax  
+  jz find  
+  inc eax                             ; 下一地址  
+  cmp eax, \[EndAddr\]  
+  jb @B  
+    
+  xor eax, eax                        ; 找不到, 0  
+    
+find:  
+  mov \[edi\].dwAddr, eax               ; 找到了, 对应的地址  
+    
+  movzx eax, \[esi\].dbLen              ; 被替换指令长度  
+  mov \[edi\].dwLen, eax  
+    
+  mov al, \[esi\].dbType                ; 三种类型  
+    
+  .if al==0  
+        mov al, \[esi\].dbReg  
+        and al, 00111111b  
+        
+        .if \[esi\].dbLen==3  
+              or al, 01000000b  
+        .else  
+              or al, 10000000b  
+        .endif  
+        
+        lea ecx, \[edi\].dbCode  
+        mov byte ptr \[ecx\], 08bh  
+        inc ecx  
+        mov byte ptr \[ecx\], al  
+        inc ecx  
+        mov eax, \[esi\].dwOffset  
+        mov \[ecx\], eax  
+    
+  .elseif al==1  
+          
+        mov al, \[esi\].dbReg  
+        mov bl, al  
+        and al, 00000111b  
+        and bl, 01110000b  
+        shr bl, 1  
+        or bl, al  
+        or bl, 11000000b  
+          
+        lea ecx, \[edi\].dbCode  
+        mov eax, \[esi\].dwOffset  
+        .if eax==0  
+              mov byte ptr \[ecx\], 0Bh  ; or  
+        .elseif eax==1  
+              mov byte ptr \[ecx\], 23h  ; and  
+        .elseif eax==2  
+              mov byte ptr \[ecx\], 33h   ; xor  
+        .elseif eax==3  
+              mov byte ptr \[ecx\], 03h  ; add  
+        .elseif eax==4  
+              mov byte ptr \[ecx\], 2Bh  ; sub  
+        .else  
+              mov byte ptr \[ecx\], 8Bh  ; mov  
+        .endif  
+          
+        inc ecx  
+        mov byte ptr \[ecx\], bl          
+    
+  .elseif al==3  
+           
+         mov al, \[esi\].dbLen  
+         mov bl, \[esi\].dbReg  
+         lea ecx, \[edi\].dbCode  
+           
+         .if al==2  
+               mov al, 074h  
+               add al, bl  
+               mov byte ptr \[ecx\], al  
+               inc ecx  
+         .elseif al==6  
+               mov ax, 840Fh  
+               add ah, bl  
+               mov word ptr \[ecx\], ax  
+               inc ecx  
+               inc ecx          
+         .endif  
+           
+         mov eax, \[esi\].dwOffset  
+         mov \[ecx\], eax  
+             
+  .endif   
+    
+  add esi, sizeof Nanomite  
+  add edi, sizeof deNanomite  
+  jmp next  
+    
+exit:  
+assume esi : nothing  
+assume edi : nothing  
+    
+  invoke ExitProcess, 0  
+  
+end start  
+  
+  
+结果如下:  
+F8 98 40 00 02 00 00 00 75 1E 00 00 00 00 00 00   
+12 99 40 00 06 00 00 00 0F 84 94 00 00 00 00 00  
+3E 99 40 00 02 00 00 00 8B C3 00 00 00 00 00 00   
+92 99 40 00 02 00 00 00 8B D0 00 00 00 00 00 00  
+BA 99 40 00 02 00 00 00 8B EC 00 00 00 00 00 00   
+C7 99 40 00 02 00 00 00 74 5F 00 00 00 00 00 00  
+CD 99 40 00 06 00 00 00 0F 84 9C 04 00 00 00 00   
+D7 99 40 00 02 00 00 00 74 27 00 00 00 00 00 00  
+DD 99 40 00 06 00 00 00 0F 84 34 04 00 00 00 00   
+E7 99 40 00 06 00 00 00 0F 84 19 04 00 00 00 00  
+F1 99 40 00 06 00 00 00 0F 84 0F 04 00 00 00 00   
+05 9A 40 00 06 00 00 00 0F 84 C4 04 00 00 00 00  
+10 9A 40 00 06 00 00 00 0F 84 F0 03 00 00 00 00   
+1B 9A 40 00 06 00 00 00 0F 84 E9 04 00 00 00 00  
+4A 9C 40 00 02 00 00 00 8B D8 00 00 00 00 00 00   
+72 9C 40 00 02 00 00 00 74 27 00 00 00 00 00 00  
+7D 9C 40 00 02 00 00 00 03 F9 00 00 00 00 00 00   
+AC 9C 40 00 02 00 00 00 74 16 00 00 00 00 00 00  
+E6 9C 40 00 02 00 00 00 75 20 00 00 00 00 00 00   
+16 9D 40 00 02 00 00 00 75 20 00 00 00 00 00 00  
+46 9D 40 00 02 00 00 00 75 20 00 00 00 00 00 00   
+85 9D 40 00 02 00 00 00 75 11 00 00 00 00 00 00  
+B5 9D 40 00 02 00 00 00 74 11 00 00 00 00 00 00   
+B7 9D 40 00 03 00 00 00 8B 75 14 00 00 00 00 00  
+17 9E 40 00 03 00 00 00 8B 45 14 00 00 00 00 00   
+1A 9E 40 00 03 00 00 00 8B 40 08 00 00 00 00 00  
+22 9E 40 00 02 00 00 00 74 07 00 00 00 00 00 00   
+6F 9E 40 00 03 00 00 00 8B 5D 10 00 00 00 00 00  
+99 9E 40 00 02 00 00 00 74 1B 00 00 00 00 00 00   
+D7 9E 40 00 02 00 00 00 75 1C 00 00 00 00 00 00  
+14 9F 40 00 02 00 00 00 23 C3 00 00 00 00 00 00 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

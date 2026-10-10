@@ -1,0 +1,420 @@
+
+
+# NsPack 3.7 浅析 （7.3 更新脱壳机和源码）
+
+> 原文：[`www.pediy.com/kssd/pediy11/115901.html`](https://www.pediy.com/kssd/pediy11/115901.html)
+
+1. 申请空间并用 Aplib 将 LAZM 模块解码至此  
+2. 用 LAZM 解码代码段  
+3. 处理 E9 指令的偏移值  
+4. 恢复输入表  
+5. 恢复各区段的属性  
+6. JMP 到 OEP  
+  
+写脱壳机的时遇到的一些小东东： 北斗壳有一些小手法 一个是关键数据的偏移值是变量 需要通过 OEP 偏移来求取 一个是处理输入表的时候 API addr 中间有 thunk 值的特殊处理  
+  
+更详细的分析 有时间送大家个视频好了 权当 PE 结构浅析的视频 o(∩\_∩)o...   
+  
+  
+  
+壳代码太多的通过 EBP 来求偏移的数据，直接用 OD 分析了，更方便些。  
+  
+有两点疑惑：  
+一个是 Nspack 直接舍去了原程序的.reloc 段，当然壳自己实现了 LoadPE 也无须该节了，还没想明白为啥他就理直气壮的给我拿掉了。  
+第二个是原程序的资源段的数据，NsPack 首先填充了解码 IAT 的关键数据，故此原程序的资源势必造成相对偏移值增加，这里不清楚壳是如何处理好对资源的调用 OK 的。  
+  
+刚接触壳，挑个简单的捏吧，有分析不当之处还望老大们多多指正。  
+  
+  
+0043298A >  9C              PUSHFD  
+0043298B    60              PUSHAD  
+0043298C    E8 00000000     CALL 复件\_Sdk.00432991  
+00432991    5D              POP EBP  
+00432992    83ED 07         SUB EBP,7                                ; 求得程序入口地址，将壳段入口作为偏移 保存到 EBP 中  
+00432995    8D8D 96FEFFFF   LEA ECX,DWORD PTR SS:\[EBP-16A\]           ; 类似标志位  
+0043299B    8039 01         CMP BYTE PTR DS:\[ECX\],1  
+0043299E    0F84 42020000   JE 复件\_Sdk.00432BE6  
+004329A4    C601 01         MOV BYTE PTR DS:\[ECX\],1  
+004329A7    8BC5            MOV EAX,EBP  
+004329A9    2B85 2AFEFFFF   SUB EAX,DWORD PTR SS:\[EBP-1D6\]           ; AddressOfEntryPoint  
+004329AF    8985 2AFEFFFF   MOV DWORD PTR SS:\[EBP-1D6\],EAX           ; BaseAddr  
+004329B5    0185 5AFEFFFF   ADD DWORD PTR SS:\[EBP-1A6\],EAX           ; SizeOfHeaders+ BaseAddr = CodeSection Addr  
+004329BB    8DB5 9EFEFFFF   LEA ESI,DWORD PTR SS:\[EBP-162\]           ; SectionAlignment  
+004329C1    0106            ADD DWORD PTR DS:\[ESI\],EAX               ; SizeOfHeaders + BaseAddr = CodeSection Addr  
+004329C3    55              PUSH EBP                                 ; 程序入口点  
+004329C4    56              PUSH ESI  
+004329C5    6A 40           PUSH 40  
+004329C7    68 00100000     PUSH 1000  
+004329CC    68 00100000     PUSH 1000                                ; Size  
+004329D1    6A 00           PUSH 0  
+004329D3    FF95 D2FEFFFF   CALL DWORD PTR SS:\[EBP-12E\]              ; VirtualAlloc  return = 3F0000  
+004329D9    85C0            TEST EAX,EAX  
+004329DB    0F84 69030000   JE 复件\_Sdk.00432D4A  
+004329E1    8985 52FEFFFF   MOV DWORD PTR SS:\[EBP-1AE\],EAX           ; NewAddr size = 1000  
+004329E7    E8 00000000     CALL 复件\_Sdk.004329EC  
+004329EC    5B              POP EBX                                  ; 求出该代码的 EIP  004329EC  
+004329ED    B9 67030000     MOV ECX,367                              ; 固定数值  
+004329F2    03D9            ADD EBX,ECX                              ; 求出偏移地址    00432D53  
+004329F4    50              PUSH EAX                                 ; NewAddr  
+004329F5    53              PUSH EBX                                 ; 程序待解码的数据地址  
+004329F6    E8 B0020000     CALL 复件\_Sdk.00432CAB                     ; 疑似 APLIB 解码出 LZMA 的代码  
+004329FB    5E              POP ESI  
+004329FC    5D              POP EBP                                  ; 这两句平衡堆栈  
+004329FD    8B36            MOV ESI,DWORD PTR DS:\[ESI\]  
+004329FF    8BFD            MOV EDI,EBP                              ; 入口点  
+00432A01    03BD 1AFEFFFF   ADD EDI,DWORD PTR SS:\[EBP-1E6\]           ; 第二个偏移值 ： 0x906  
+00432A07    8BDF            MOV EBX,EDI                              ; EBX = EDI = 00433290  
+00432A09    833F 00         CMP DWORD PTR DS:\[EDI\],0  
+00432A0C    75 0A           JNZ SHORT 复件\_Sdk.00432A18  
+00432A0E    83C7 04         ADD EDI,4  
+00432A11    B9 00000000     MOV ECX,0  
+00432A16    EB 16           JMP SHORT 复件\_Sdk.00432A2E  
+00432A18    B9 01000000     MOV ECX,1  
+00432A1D    033B            ADD EDI,DWORD PTR DS:\[EBX\]  
+00432A1F    83C3 04         ADD EBX,4  
+00432A22    833B 00         CMP DWORD PTR DS:\[EBX\],0  
+00432A25    74 34           JE SHORT 复件\_Sdk.00432A5B  
+00432A27    0113            ADD DWORD PTR DS:\[EBX\],EDX  
+00432A29    8B33            MOV ESI,DWORD PTR DS:\[EBX\]  
+00432A2B    037B 04         ADD EDI,DWORD PTR DS:\[EBX+4\]  
+00432A2E    57              PUSH EDI  
+00432A2F    51              PUSH ECX  
+00432A30    53              PUSH EBX  
+00432A31    FFB5 D6FEFFFF   PUSH DWORD PTR SS:\[EBP-12A\]              ; 参数一：VirtualFree  
+00432A37    FFB5 D2FEFFFF   PUSH DWORD PTR SS:\[EBP-12E\]              ; 参数二：VitrualAlloc  
+00432A3D    8BD6            MOV EDX,ESI                              ; 参数三：EDX 401000  
+00432A3F    8BCF            MOV ECX,EDI                              ; 参数四：ECX 433294  
+00432A41    8B85 52FEFFFF   MOV EAX,DWORD PTR SS:\[EBP-1AE\]           ; NewAddr  
+00432A47    05 AA050000     ADD EAX,5AA                              ; 求得新空间某 API 的地址  
+00432A4C    FFD0            CALL EAX                                 ; 解码了 Code 段  
+00432A4E    5B              POP EBX  
+00432A4F    59              POP ECX  
+00432A50    5F              POP EDI  
+00432A51    83F9 00         CMP ECX,0  
+00432A54    74 05           JE SHORT 复件\_Sdk.00432A5B  
+00432A56    83C3 08         ADD EBX,8  
+00432A59  ^ EB C7           JMP SHORT 复件\_Sdk.00432A22  
+00432A5B    68 00800000     PUSH 8000  
+00432A60    6A 00           PUSH 0  
+00432A62    FFB5 52FEFFFF   PUSH DWORD PTR SS:\[EBP-1AE\]  
+00432A68    FF95 D6FEFFFF   CALL DWORD PTR SS:\[EBP-12A\]              ; VirtualFree  释放 LZMA 的代码  
+00432A6E    8DB5 5AFEFFFF   LEA ESI,DWORD PTR SS:\[EBP-1A6\]           ; EBP 43298A  
+00432A74    8B4E 08         MOV ECX,DWORD PTR DS:\[ESI+8\]             ; ECX = 391  
+00432A77    8D56 10         LEA EDX,DWORD PTR DS:\[ESI+10\]            ; 这行代码有啥用呢  下边做比较判断用  
+00432A7A    8B36            MOV ESI,DWORD PTR DS:\[ESI\]               ; 一下一个循环要处理 CALL 的重定位表  
+00432A7C    8BFE            MOV EDI,ESI  
+00432A7E    83F9 00         CMP ECX,0  
+00432A81    74 3F           JE SHORT 复件\_Sdk.00432AC2  
+00432A83    8A07            MOV AL,BYTE PTR DS:\[EDI\]  
+00432A85    47              INC EDI  
+00432A86    2C E8           SUB AL,0E8  
+00432A88    3C 01           CMP AL,1                                 ; 处理 Call 的重定位表  
+00432A8A  ^ 77 F7           JA SHORT 复件\_Sdk.00432A83                 ; 处理 E9   找到 E9  
+00432A8C    8B07            MOV EAX,DWORD PTR DS:\[EDI\]               ; COPY 出 CALL 的偏移值  
+00432A8E    807A 01 00      CMP BYTE PTR DS:\[EDX+1\],0  
+00432A92    74 14           JE SHORT 复件\_Sdk.00432AA8  
+00432A94    8A1A            MOV BL,BYTE PTR DS:\[EDX\]                 ; EDX 这里做判断用  
+00432A96    381F            CMP BYTE PTR DS:\[EDI\],BL  
+00432A98  ^ 75 E9           JNZ SHORT 复件\_Sdk.00432A83  
+00432A9A    8A5F 04         MOV BL,BYTE PTR DS:\[EDI+4\]  
+00432A9D    66:C1E8 08      SHR AX,8                                 ; 算法  解密偏移  
+00432AA1    C1C0 10         ROL EAX,10  
+00432AA4    86C4            XCHG AH,AL  
+00432AA6    EB 0A           JMP SHORT 复件\_Sdk.00432AB2  
+00432AA8    8A5F 04         MOV BL,BYTE PTR DS:\[EDI+4\]               ; 第二种解法  
+00432AAB    86C4            XCHG AH,AL  
+00432AAD    C1C0 10         ROL EAX,10  
+00432AB0    86C4            XCHG AH,AL  
+00432AB2    2BC7            SUB EAX,EDI                              ; 计算的结果 - 自身的偏移  
+00432AB4    03C6            ADD EAX,ESI                              ; + Code 的起始地址  
+00432AB6    8907            MOV DWORD PTR DS:\[EDI\],EAX  
+00432AB8    83C7 05         ADD EDI,5  
+00432ABB    80EB E8         SUB BL,0E8  
+00432ABE    8BC3            MOV EAX,EBX  
+00432AC0  ^ E2 C6           LOOPD SHORT 复件\_Sdk.00432A88  
+00432AC2    E8 3A010000     CALL 复件\_Sdk.00432C01                     ; Fix IAT  
+00432AC7    8D8D 6EFEFFFF   LEA ECX,DWORD PTR SS:\[EBP-192\]  
+00432ACD    8B41 08         MOV EAX,DWORD PTR DS:\[ECX+8\]  
+00432AD0    83F8 00         CMP EAX,0  
+00432AD3    0F84 81000000   JE 复件\_Sdk.00432B5A                       ; JMP 没看懂这里比较的是什么  
+00432AD9    8BF2            MOV ESI,EDX  
+00432ADB    2B71 10         SUB ESI,DWORD PTR DS:\[ECX+10\]  
+00432ADE    74 7A           JE SHORT 复件\_Sdk.00432B5A  
+00432AE0    8971 10         MOV DWORD PTR DS:\[ECX+10\],ESI  
+00432AE3    8DB5 9EFEFFFF   LEA ESI,DWORD PTR SS:\[EBP-162\]  
+00432AE9    8B36            MOV ESI,DWORD PTR DS:\[ESI\]  
+00432AEB    8D5E FC         LEA EBX,DWORD PTR DS:\[ESI-4\]  
+00432AEE    8B01            MOV EAX,DWORD PTR DS:\[ECX\]  
+00432AF0    83F8 01         CMP EAX,1  
+00432AF3    74 0A           JE SHORT 复件\_Sdk.00432AFF  
+00432AF5    8BFA            MOV EDI,EDX  
+00432AF7    0379 08         ADD EDI,DWORD PTR DS:\[ECX+8\]  
+00432AFA    8B49 10         MOV ECX,DWORD PTR DS:\[ECX+10\]  
+00432AFD    EB 08           JMP SHORT 复件\_Sdk.00432B07  
+00432AFF    8BFE            MOV EDI,ESI  
+00432B01    0379 08         ADD EDI,DWORD PTR DS:\[ECX+8\]  
+00432B04    8B49 10         MOV ECX,DWORD PTR DS:\[ECX+10\]  
+00432B07    33C0            XOR EAX,EAX  
+00432B09    8A07            MOV AL,BYTE PTR DS:\[EDI\]  
+00432B0B    47              INC EDI  
+00432B0C    0BC0            OR EAX,EAX  
+00432B0E    74 20           JE SHORT 复件\_Sdk.00432B30  
+00432B10    3C EF           CMP AL,0EF  
+00432B12    77 06           JA SHORT 复件\_Sdk.00432B1A  
+00432B14    03D8            ADD EBX,EAX  
+00432B16    010B            ADD DWORD PTR DS:\[EBX\],ECX  
+00432B18  ^ EB ED           JMP SHORT 复件\_Sdk.00432B07  
+00432B1A    24 0F           AND AL,0F  
+00432B1C    C1E0 10         SHL EAX,10  
+00432B1F    66:8B07         MOV AX,WORD PTR DS:\[EDI\]  
+00432B22    83C7 02         ADD EDI,2  
+00432B25    0BC0            OR EAX,EAX  
+00432B27  ^ 75 EB           JNZ SHORT 复件\_Sdk.00432B14  
+00432B29    8B07            MOV EAX,DWORD PTR DS:\[EDI\]  
+00432B2B    83C7 04         ADD EDI,4  
+00432B2E  ^ EB E4           JMP SHORT 复件\_Sdk.00432B14  
+00432B30    33DB            XOR EBX,EBX  
+00432B32    87FE            XCHG ESI,EDI  
+00432B34    8B06            MOV EAX,DWORD PTR DS:\[ESI\]  
+00432B36    83F8 00         CMP EAX,0  
+00432B39    74 1F           JE SHORT 复件\_Sdk.00432B5A  
+00432B3B    AD              LODS DWORD PTR DS:\[ESI\]  
+00432B3C    0BC0            OR EAX,EAX  
+00432B3E    74 08           JE SHORT 复件\_Sdk.00432B48  
+00432B40    03D8            ADD EBX,EAX  
+00432B42    66:010C1F       ADD WORD PTR DS:\[EDI+EBX\],CX  
+00432B46  ^ EB F3           JMP SHORT 复件\_Sdk.00432B3B  
+00432B48    33DB            XOR EBX,EBX  
+00432B4A    C1E9 10         SHR ECX,10  
+00432B4D    AD              LODS DWORD PTR DS:\[ESI\]  
+00432B4E    0BC0            OR EAX,EAX  
+00432B50    74 08           JE SHORT 复件\_Sdk.00432B5A  
+00432B52    03D8            ADD EBX,EAX  
+00432B54    66:010C1F       ADD WORD PTR DS:\[EDI+EBX\],CX  
+00432B58  ^ EB F3           JMP SHORT 复件\_Sdk.00432B4D  
+00432B5A    8DB5 2AFEFFFF   LEA ESI,DWORD PTR SS:\[EBP-1D6\]               ;  jmp 到这里  
+00432B60    8B16            MOV EDX,DWORD PTR DS:\[ESI\]               ; BaseAddr  
+00432B62    8DB5 86FEFFFF   LEA ESI,DWORD PTR SS:\[EBP-17A\]  
+00432B68    8A06            MOV AL,BYTE PTR DS:\[ESI\]  
+00432B6A    3C 01           CMP AL,1                                 ; 这里有一个分支  
+00432B6C    75 3F           JNZ SHORT 复件\_Sdk.00432BAD                ; 跳走  
+00432B6E    0356 04         ADD EDX,DWORD PTR DS:\[ESI+4\]  
+00432B71    56              PUSH ESI  
+00432B72    52              PUSH EDX  
+00432B73    56              PUSH ESI  
+00432B74    6A 04           PUSH 4  
+00432B76    68 00010000     PUSH 100  
+00432B7B    52              PUSH EDX  
+00432B7C    FF95 CEFEFFFF   CALL DWORD PTR SS:\[EBP-132\]  
+00432B82    5F              POP EDI  
+00432B83    5E              POP ESI  
+00432B84    83F8 01         CMP EAX,1  
+00432B87    0F85 BD010000   JNZ 复件\_Sdk.00432D4A  
+00432B8D    83C6 08         ADD ESI,8  
+00432B90    B9 08000000     MOV ECX,8  
+00432B95    F3:A4           REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR DS:\[>  
+00432B97    83EE 0C         SUB ESI,0C  
+00432B9A    83EF 08         SUB EDI,8  
+00432B9D    56              PUSH ESI  
+00432B9E    FF76 FC         PUSH DWORD PTR DS:\[ESI-4\]  
+00432BA1    68 00010000     PUSH 100  
+00432BA6    57              PUSH EDI  
+00432BA7    FF95 CEFEFFFF   CALL DWORD PTR SS:\[EBP-132\]  
+00432BAD    55              PUSH EBP  
+00432BAE    5B              POP EBX  
+00432BAF    81EB 21000000   SUB EBX,21  
+00432BB5    33C9            XOR ECX,ECX  
+00432BB7    8A0B            MOV CL,BYTE PTR DS:\[EBX\]                 ; 当前程序的区段数  
+00432BB9    80F9 00         CMP CL,0  
+00432BBC    74 28           JE SHORT 复件\_Sdk.00432BE6  
+00432BBE    43              INC EBX  
+00432BBF    8DB5 2AFEFFFF   LEA ESI,DWORD PTR SS:\[EBP-1D6\]  
+00432BC5    8B16            MOV EDX,DWORD PTR DS:\[ESI\]  
+00432BC7    56              PUSH ESI  
+00432BC8    51              PUSH ECX  
+00432BC9    53              PUSH EBX  
+00432BCA    52              PUSH EDX  
+00432BCB    56              PUSH ESI  
+00432BCC    FF33            PUSH DWORD PTR DS:\[EBX\]  
+00432BCE    FF73 04         PUSH DWORD PTR DS:\[EBX+4\]  
+00432BD1    8B43 08         MOV EAX,DWORD PTR DS:\[EBX+8\]  
+00432BD4    03C2            ADD EAX,EDX  
+00432BD6    50              PUSH EAX  
+00432BD7    FF95 CEFEFFFF   CALL DWORD PTR SS:\[EBP-132\]              ; VirtualProtect 恢复各区段属性  
+00432BDD    5A              POP EDX  
+00432BDE    5B              POP EBX  
+00432BDF    59              POP ECX  
+00432BE0    5E              POP ESI  
+00432BE1    83C3 0C         ADD EBX,0C  
+00432BE4  ^ E2 E1           LOOPD SHORT 复件\_Sdk.00432BC7  
+00432BE6    B8 00000000     MOV EAX,0  
+00432BEB    83F8 00         CMP EAX,0  
+00432BEE    74 0A           JE SHORT 复件\_Sdk.00432BFA  
+00432BF0    61              POPAD  
+00432BF1    9D              POPFD  
+00432BF2    B8 01000000     MOV EAX,1  
+00432BF7    C2 0C00         RETN 0C  
+00432BFA    61              POPAD  
+00432BFB    9D              POPFD  
+00432BFC  - E9 DF07FDFF     JMP 复件\_Sdk.004033E0                      ; JMP 到 OEP  
+  
+  
+Fix IAT 函数的处理：  
+  
+00432C01    8BB5 22FEFFFF   MOV ESI,DWORD PTR SS:\[EBP-1DE\]           ; 修复 IAT 表      EBP 永远是基地址  
+00432C07    0BF6            OR ESI,ESI  
+00432C09    0F84 97000000   JE 复件\_Sdk.00432CA6  
+00432C0F    8B95 2AFEFFFF   MOV EDX,DWORD PTR SS:\[EBP-1D6\]           ; 400000  
+00432C15    03F2            ADD ESI,EDX                              ; 430000  
+00432C17    833E 00         CMP DWORD PTR DS:\[ESI\],0  
+00432C1A    75 0E           JNZ SHORT 复件\_Sdk.00432C2A  
+00432C1C    837E 04 00      CMP DWORD PTR DS:\[ESI+4\],0  
+00432C20    75 08           JNZ SHORT 复件\_Sdk.00432C2A  
+00432C22    837E 08 00      CMP DWORD PTR DS:\[ESI+8\],0  
+00432C26    75 02           JNZ SHORT 复件\_Sdk.00432C2A  
+00432C28    EB 7A           JMP SHORT 复件\_Sdk.00432CA4  
+00432C2A    8B5E 08         MOV EBX,DWORD PTR DS:\[ESI+8\]             ; IAT TABLE ADDR  
+00432C2D    03DA            ADD EBX,EDX  
+00432C2F    53              PUSH EBX                                 ; 保存表  
+00432C30    52              PUSH EDX  
+00432C31    56              PUSH ESI                                 ; 保存 ESI  
+00432C32    8DBD 42FFFFFF   LEA EDI,DWORD PTR SS:\[EBP-BE\]            ; KERNEL32.DLL  
+00432C38    037E 04         ADD EDI,DWORD PTR DS:\[ESI+4\]  
+00432C3B    83C6 0C         ADD ESI,0C                               ; ADD  
+00432C3E    57              PUSH EDI  
+00432C3F    FF95 C6FEFFFF   CALL DWORD PTR SS:\[EBP-13A\]              ; LoadLibraryA  
+00432C45    5F              POP EDI                                  ; 恢复 ESI 到 EDI  
+00432C46    5A              POP EDX  
+00432C47    5B              POP EBX  
+00432C48    83F8 00         CMP EAX,0                                ; hHandle  
+00432C4B    74 59           JE SHORT 复件\_Sdk.00432CA6  
+00432C4D    8985 32FEFFFF   MOV DWORD PTR SS:\[EBP-1CE\],EAX           ; EBX 是 IAT ADDR 的表  
+00432C53    033E            ADD EDI,DWORD PTR DS:\[ESI\]               ; EDI + IAT STRING 的相对偏移  
+00432C55    83C6 04         ADD ESI,4  
+00432C58    33C9            XOR ECX,ECX                              ; DO  
+00432C5A    8A0E            MOV CL,BYTE PTR DS:\[ESI\]                 ; 这里又是一张表 对应每个 API 的长度  
+00432C5C    83F9 00         CMP ECX,0  
+00432C5F    75 03           JNZ SHORT 复件\_Sdk.00432C64  
+00432C61    46              INC ESI  
+00432C62  ^ EB B3           JMP SHORT 复件\_Sdk.00432C17  
+00432C64    8BC7            MOV EAX,EDI                              ; 保存字符串地址  
+00432C66    03F9            ADD EDI,ECX                              ; EDI = NEXT API String  
+00432C68    52              PUSH EDX  
+00432C69    53              PUSH EBX  
+00432C6A    50              PUSH EAX  
+00432C6B    8038 FF         CMP BYTE PTR DS:\[EAX\],0FF                ; 比较 API first Char if OFF  
+00432C6E    75 08           JNZ SHORT 复件\_Sdk.00432C78  
+00432C70    40              INC EAX  
+00432C71    8B00            MOV EAX,DWORD PTR DS:\[EAX\]  
+00432C73    25 FFFFFF7F     AND EAX,7FFFFFFF  
+00432C78    8A0F            MOV CL,BYTE PTR DS:\[EDI\]                 ; 先保存  
+00432C7A    C607 00         MOV BYTE PTR DS:\[EDI\],0                  ; 在至零  
+00432C7D    51              PUSH ECX                                 ; 保存临时值  CL  
+00432C7E    50              PUSH EAX                                 ; API String  
+00432C7F    FFB5 32FEFFFF   PUSH DWORD PTR SS:\[EBP-1CE\]              ; DLL Handle  
+00432C85    FF95 CAFEFFFF   CALL DWORD PTR SS:\[EBP-136\]              ; GetProcAddress  
+00432C8B    59              POP ECX  
+00432C8C    5A              POP EDX                                  ; mov edx,eax  // 不影响 API addr  
+00432C8D    5B              POP EBX  
+00432C8E    5A              POP EDX  
+00432C8F    83F8 00         CMP EAX,0  
+00432C92    74 12           JE SHORT 复件\_Sdk.00432CA6  
+00432C94    880F            MOV BYTE PTR DS:\[EDI\],CL                 ; 还原 API STRING  
+00432C96    8946 FC         MOV DWORD PTR DS:\[ESI-4\],EAX             ; 临时空间  
+00432C99    FF76 FC         PUSH DWORD PTR DS:\[ESI-4\]  
+00432C9C    8F03            POP DWORD PTR DS:\[EBX\]                   ; EBX 存放 Import Table  
+00432C9E    83C3 04         ADD EBX,4  
+00432CA1    46              INC ESI                                  ; API STRING LENTABLE ++  
+00432CA2  ^ EB B4           JMP SHORT 复件\_Sdk.00432C58  
+00432CA4    F8              CLC  
+00432CA5    C3              RETN  
+  
+  
+对 Fix Iat 函数中的一些笔记注释：  
+  
+  
+原程序输入表部分的信息：  
+  
+00400158    00F00200    DD 0002F000          ;  Import Table address = 2F000   // 5 DWORD Tables  
+0040015C    50000000    DD 00000050          ;  Import Table size = 50 (80.)  
+  
+004001B0    78F20200    DD 0002F278          ;  Import Address Table address = 2F278  // IATs  
+004001B4    28020000    DD 00000228          ;  Import Address Table size = 228 (552.)  
+  
+  
+\[ebp-0be\] 是 DLL 名称表，其对应了一个 SIZE 表\[ESI+4\]   
+004328CC  4B 45 52 4E 45 4C 33 32 2E 44 4C 4C 00 55 53 45  KERNEL32.DLL.USE  
+004328DC  52 33 32 2E 44 4C 4C 00 47 44 49 33 32 2E 44 4C  R32.DLL.GDI32.DL  
+004328EC  4C 00 00 00  
+  
+全局数据：  
+MOV ESI,DWORD PTR SS:\[EBP-1DE\]     // 30000    这个应该是 VirtualAddress  数据在资源段中  
+00400270    2E 72 73 72>ASCII ".rsrc"        ; SECTION  
+00400278    8C190000    DD 0000198C          ;  VirtualSize = 198C (6540.)  
+0040027C    00000300    DD 00030000          ;  VirtualAddress = 30000  
+00400280    00200000    DD 00002000          ;  SizeOfRawData = 2000 (8192.)  
+00400284    00E00200    DD 0002E000          ;  PointerToRawData = 2E000  
+  
+MOV EDX,DWORD PTR SS:\[EBP-1D6\]   400000      // BaseAddr   
+  
+求出 VirtualAddr 的内容数据：  
+  
+                      处理 DLL 名称表的偏移  
+                      OffSet       IAT Addr   API STRINGS   
+00430000  4A 00 00 00 00 00 00 00 B4 F2 02 00 9C 00 00 00  J.......打.?..  
+00430010  0E 0C 0E 0C 0C 0E 0E 13 08 06 09 0E 0C 0C 0B 09  .......  
+00430020  09 0B 08 0A 0B 0D 17 0B 17 10 0B 15 0C 16 0D 0C  ......  
+00430030  10 0F 0F 0A 0B 0D 0C 0C 0A 09 14 12 0E 0C 14 12  .......  
+00430040  10 11 18 17 17 13 15 16 0E 00 2D 00 00 00 0D 00  .-.....  
+00430050  00 00 F0 F3 02 00 88 03 00 00 09 0F 0D 0E 0A 08  ..痼.?.....  
+00430060  08 0F 0F 0A 0C 0B 10 0B 11 0B 15 10 10 09 09 0B  ....  
+00430070  0D 0E 08 08 05 09 00 15 00 00 00 18 00 00 00 78  .........x  
+00430080  F2 02 00 A9 04 00 00 0E 10 08 0A 00 00 00 00 00  ?.?........  
+00430090  00 00 00 00 00 00 00 00 00 00 00 00 43 6F 6D 70  ............Comp  
+  
+简单说下 00430000 处的数据：  
+4A 00 00 00     
+00 00 00 00    计算中的相对偏移  
+B4 F2 02 00    IAT Table Addr   
+9C 00 00 00    API 字符串的偏移 // 这里使用一次后做临时变量空间用  
+00430010：0E 0C 0E 0C  字符串中对应 API Name 的长度  
+  
+填补输入表，只要拥有结构体中的 IAT TABLE Addr 和 API NAME、DLL NAME 就 OK 了   
+  
+  
+IAT TABLE STRUCT:  
+1. OFFSET TABLE ADDR   XX // 通过偏移找到对应的 IAT 名称  
+2. XXX  
+3. XXX  
+4. DLL STRING ADDR     OK // 数据中已给出  
+5. IAT ADDR                  OK // 数据中已给出  
+  
+  
+接触壳不多，之前了解过 PE 格式，现学先用好了，这里分享一份 IAT 的复习笔记：  
+  
+学习 Import Address Table  和 Import Table 格式的时候不需要看什么资料，先拿最简单的 MsgBox 程序，OD 载入后直接猜其输入表就 OK 了。大致能猜个差不多，然后再找一个复杂些的输入表验证一下猜测结果，基本上就八九不离十了。  
+  
+如图，详细的资料见附件：  
+  
+  
+![](img/25a7f2610fb289c0a0c4df1acaa57516.jpg)
+
+上传的附件
+| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) || Import Table.rar  
+ |
+| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) || NsPack 试验品.rar  
+ |
+
+占位发脱壳机   
+  还没写完 稍等 ~~  
+  
+  
+详细的分析 回头有时间了 做一个视频好了 权当 PE 格式入门视频   
+  
+![](img/d09a329104cdd3a3d8f74dbe9daf3971.jpg)
+
+上传的附件
+| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) || Release.rar  
+ |
+| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) || UnPackNsPack\_Src.rar  
+ |

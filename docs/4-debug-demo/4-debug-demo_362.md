@@ -1,0 +1,283 @@
+
+
+# 轻松班主任的调试笔记\[keyfile\]
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-382.htm`](https://www.pediy.com/kssd/pediy07/pediy7-382.htm)
+
+【破文作者】   rdsnow\[BCG\]\[PYG\]\[D.4s\]  
+【作者主页】   [`rdsnow.ys168.com`](http://rdsnow.ys168.com)  
+【 E-mail 】   rdsnow@163.com  
+【 作者 QQ 】   83757177  
+【文章题目】   轻松班主任的调试笔记\[keyfile\]  
+【软件名称】   轻松班主任 V4.4\[个人版\]  
+\----------------------------------------------------------------------------------------------  
+【加密方式】   keyfile  
+【破解工具】   ODbyDYK v1.10\[05.09\]  
+【软件限制】   功能限制  
+【破解平台】   MicroSoft Windows XP SP2  
+\----------------------------------------------------------------------------------------------  
+【文章简介】  
+  
+最近被外壳的 ANTI 搞的头大，找个简单的调整一下，这是一个典型的 Keyfile 保护的共享软件，因为 keyfile 文件较短，难度不大，高手就忽略了，只是用来练手，通过这个程序了解一下破解 kyefile 的一般过程。  
+  
+\----------------------------------------------------------------------------------------------  
+【破解过程】  
+  
+先脱掉程序的壳，Aspack 2.12 的压缩壳很容易搞定。  
+  
+打开程序的时候，同时打开 FileMon 监视，显示 zuce.dat：File Not Found。从名字上猜想这就是注册文件了，  
+于是在安装目录下伪造一个 keyfile。取名为 zuce.dat。跟踪程序对该文件的读取动作。  
+  
+00779961  |.  50              PUSH EAX  
+00779962  |.  8D45 F4         LEA EAX,\[LOCAL.3\]  
+00779965  |.  B9 189A7700     MOV ECX,qsbzr.00779A18        ;  ASCII "zuce.dat"  
+0077996A  |.  8B15 64DC7800   MOV EDX,DWORD PTR DS:\[78DC64\]  
+00779970  |.  E8 37B4C8FF     CALL qsbzr.00404DAC           ;  打开 keyfile  
+00779975  |.  8B45 F4         MOV EAX,\[LOCAL.3\]  
+00779978  |.  B9 2C9A7700     MOV ECX,qsbzr.00779A2C        ;  ASCII "name"  
+0077997D  |.  BA 3C9A7700     MOV EDX,qsbzr.00779A3C  
+00779982  |.  E8 59FDFFFF     CALL qsbzr.007796E0           ;  读取用户名  
+00779987  |.  8B45 F8         MOV EAX,\[LOCAL.2\]  
+0077998A  |.  8D55 FC         LEA EDX,\[LOCAL.1\]  
+0077998D  |.  E8 46FCFFFF     CALL qsbzr.007795D8           ;  算法 Call,跟进  
+00779992  |.  8B45 FC         MOV EAX,\[LOCAL.1\]  
+00779995  |.  50              PUSH EAX  
+00779996  |.  68 4C9A7700     PUSH qsbzr.00779A4C           ;  ASCII "123"  
+0077999B  |.  8D45 F0         LEA EAX,\[LOCAL.4\]  
+0077999E  |.  50              PUSH EAX  
+0077999F  |.  8D45 EC         LEA EAX,\[LOCAL.5\]  
+007799A2  |.  B9 189A7700     MOV ECX,qsbzr.00779A18        ;  ASCII "zuce.dat"  
+007799A7  |.  8B15 64DC7800   MOV EDX,DWORD PTR DS:\[78DC64\]  
+007799AD  |.  E8 FAB3C8FF     CALL qsbzr.00404DAC           ;  再次打开 keyfile  
+007799B2  |.  8B45 EC         MOV EAX,\[LOCAL.5\]  
+007799B5  |.  B9 589A7700     MOV ECX,qsbzr.00779A58        ;  ASCII "code"  
+007799BA  |.  BA 689A7700     MOV EDX,qsbzr.00779A68  
+007799BF  |.  E8 1CFDFFFF     CALL qsbzr.007796E0           ;  读出 keyfile 中的假码  
+007799C4  |.  8B55 F0         MOV EDX,\[LOCAL.4\]  
+007799C7  |.  58              POP EAX  
+007799C8  |.  E8 DFB4C8FF     CALL qsbzr.00404EAC           ;  真假注册比较  
+007799CD  |.  75 04           JNZ SHORT qsbzr.007799D3      ;  爆破点  
+007799CF  |.  B3 01           MOV BL,1                      ;  返回值＝1  
+007799D1  |.  EB 02           JMP SHORT qsbzr.007799D5  
+007799D3  |>  33DB            XOR EBX,EBX                   ;  返回值＝0  
+007799D5  |>  33C0            XOR EAX,EAX  
+  
+原来的 keyfile 读取数据不成功，这个 keyfile 不需要用 WinHex 生成，直接用记事本输入一个 txt 文档，将扩展名改为 dat，根据读取数据的参数，结果常见的 ini 文件的格式，加上猜想，在记事本内输入：  
+  
+\[班主任\]  
+name=rdsnow\[BCG\]\[PYG\]\[D.4s\]  
+\[注册\]  
+code=98765432-87654321-abcdefgh-hijklmno  
+  
+这个格式我也是试了很多次才成功的。注册码的格式可以从 0077998D 处的 CALL qsbzr.007795D8 的返回结果可以看到。那里返回的就是真码。  
+  
+\----------------------------------------------------------------------------------------------  
+要知道注册码是怎样得到的，跟进 0077998D 处的 CALL qsbzr.007795D8:  
+  
+007795D8  /$  55              PUSH EBP  
+007795D9  |.  8BEC            MOV EBP,ESP  
+007795DB  |.  B9 05000000     MOV ECX,5  
+007795E0  |>  6A 00           /PUSH 0  
+007795E2  |.  6A 00           |PUSH 0  
+007795E4  |.  49              |DEC ECX  
+007795E5  |.^ 75 F9           \\JNZ SHORT qsbzr.007795E0  
+007795E7  |.  51              PUSH ECX  
+007795E8  |.  53              PUSH EBX  
+007795E9  |.  8BDA            MOV EBX,EDX  
+007795EB  |.  8945 FC         MOV \[LOCAL.1\],EAX  
+007795EE  |.  8B45 FC         MOV EAX,\[LOCAL.1\]  
+007795F1  |.  E8 5AB9C8FF     CALL qsbzr.00404F50  
+007795F6  |.  33C0            XOR EAX,EAX  
+007795F8  |.  55              PUSH EBP  
+007795F9  |.  68 C7967700     PUSH qsbzr.007796C7  
+007795FE  |.  64:FF30         PUSH DWORD PTR FS:\[EAX\]  
+00779601  |.  64:8920         MOV DWORD PTR FS:\[EAX\],ESP  
+00779604  |.  8D55 D4         LEA EDX,\[LOCAL.11\]  
+00779607  |.  8B45 FC         MOV EAX,\[LOCAL.1\]  
+0077960A  |.  E8 2D04C9FF     CALL qsbzr.00409A3C           ;  对注册码进行格式校验  
+0077960F  |.  8B45 D4         MOV EAX,\[LOCAL.11\]  
+00779612  |.  8D55 D8         LEA EDX,\[LOCAL.10\]  
+00779615  |.  E8 56BED3FF     CALL qsbzr.004B5470           ;  算法,看输出格式,应该使用了 MD5 算法,跟进  
+0077961A  |.  8D45 D8         LEA EAX,\[LOCAL.10\]  
+0077961D  |.  8D55 F8         LEA EDX,\[LOCAL.2\]  
+00779620  |.  E8 17BFD3FF     CALL qsbzr.004B553C           ;  将 MD5 输出 128 位信息转为 32 个字符  
+00779625  |.  8D45 F4         LEA EAX,\[LOCAL.3\]  
+00779628  |.  50              PUSH EAX  
+00779629  |.  B9 08000000     MOV ECX,8  
+0077962E  |.  BA 01000000     MOV EDX,1  
+00779633  |.  8B45 F8         MOV EAX,\[LOCAL.2\]  
+00779636  |.  E8 85B9C8FF     CALL qsbzr.00404FC0           ;  取前 8 个字符  
+0077963B  |.  8D45 F0         LEA EAX,\[LOCAL.4\]  
+0077963E  |.  50              PUSH EAX  
+0077963F  |.  B9 08000000     MOV ECX,8  
+00779644  |.  BA 09000000     MOV EDX,9  
+00779649  |.  8B45 F8         MOV EAX,\[LOCAL.2\]  
+0077964C  |.  E8 6FB9C8FF     CALL qsbzr.00404FC0           ;  取第 9 到 16 个字符  
+00779651  |.  8D45 EC         LEA EAX,\[LOCAL.5\]  
+00779654  |.  50              PUSH EAX  
+00779655  |.  B9 08000000     MOV ECX,8  
+0077965A  |.  BA 11000000     MOV EDX,11  
+0077965F  |.  8B45 F8         MOV EAX,\[LOCAL.2\]  
+00779662  |.  E8 59B9C8FF     CALL qsbzr.00404FC0           ;  取第 17 到 24 个字符  
+00779667  |.  8D45 E8         LEA EAX,\[LOCAL.6\]  
+0077966A  |.  50              PUSH EAX  
+0077966B  |.  B9 08000000     MOV ECX,8  
+00779670  |.  BA 19000000     MOV EDX,19  
+00779675  |.  8B45 F8         MOV EAX,\[LOCAL.2\]  
+00779678  |.  E8 43B9C8FF     CALL qsbzr.00404FC0           ;  取第 25 到 32 个字符  
+0077967D  |.  FF75 F4         PUSH \[LOCAL.3\]  
+00779680  |.  68 DC967700     PUSH qsbzr.007796DC  
+00779685  |.  FF75 F0         PUSH \[LOCAL.4\]  
+00779688  |.  68 DC967700     PUSH qsbzr.007796DC  
+0077968D  |.  FF75 EC         PUSH \[LOCAL.5\]  
+00779690  |.  68 DC967700     PUSH qsbzr.007796DC  
+00779695  |.  FF75 E8         PUSH \[LOCAL.6\]  
+00779698  |.  8BC3            MOV EAX,EBX  
+0077969A  |.  BA 07000000     MOV EDX,7  
+0077969F  |.  E8 7CB7C8FF     CALL qsbzr.00404E20           ;  用"-"连接得到注册码  
+007796A4  |.  33C0            XOR EAX,EAX  
+007796A6  |.  5A              POP EDX  
+007796A7  |.  59              POP ECX  
+007796A8  |.  59              POP ECX  
+007796A9  |.  64:8910         MOV DWORD PTR FS:\[EAX\],EDX  
+007796AC  |.  68 CE967700     PUSH qsbzr.007796CE  
+007796B1  |>  8D45 D4         LEA EAX,\[LOCAL.11\]  
+007796B4  |.  E8 E7B3C8FF     CALL qsbzr.00404AA0  
+007796B9  |.  8D45 E8         LEA EAX,\[LOCAL.6\]  
+007796BC  |.  BA 06000000     MOV EDX,6  
+007796C1  |.  E8 FEB3C8FF     CALL qsbzr.00404AC4  
+007796C6  \\.  C3              RETN  
+  
+\----------------------------------------------------------------------------------------------  
+跟进 00779615 处的 CALL qsbzr.004B5470  
+  
+004B5470  /$  55              PUSH EBP  
+004B5471  |.  8BEC            MOV EBP,ESP  
+004B5473  |.  83C4 9C         ADD ESP,-64  
+004B5476  |.  53              PUSH EBX  
+004B5477  |.  33C9            XOR ECX,ECX  
+004B5479  |.  894D 9C         MOV \[LOCAL.25\],ECX  
+004B547C  |.  894D A0         MOV \[LOCAL.24\],ECX  
+004B547F  |.  8BDA            MOV EBX,EDX  
+004B5481  |.  8945 FC         MOV \[LOCAL.1\],EAX  
+004B5484  |.  8B45 FC         MOV EAX,\[LOCAL.1\]  
+004B5487  |.  E8 C4FAF4FF     CALL qsbzr.00404F50  
+004B548C  |.  33C0            XOR EAX,EAX  
+004B548E  |.  55              PUSH EBP  
+004B548F  |.  68 0B554B00     PUSH qsbzr.004B550B  
+004B5494  |.  64:FF30         PUSH DWORD PTR FS:\[EAX\]  
+004B5497  |.  64:8920         MOV DWORD PTR FS:\[EAX\],ESP  
+004B549A  |.  8D45 A4         LEA EAX,\[LOCAL.23\]  
+004B549D  |.  E8 A6FEFFFF     CALL qsbzr.004B5348           ;  MD5 初始化，进出可以看到 MD5 的四个常数  
+004B54A2  |.  8D45 A0         LEA EAX,\[LOCAL.24\]  
+004B54A5  |.  B9 20554B00     MOV ECX,qsbzr.004B5520        ;  ASCII "jltxgl"  
+004B54AA  |.  8B55 FC         MOV EDX,\[LOCAL.1\]  
+004B54AD  |.  E8 FAF8F4FF     CALL qsbzr.00404DAC           ;  用户名后接字符串"jltxgl"得到 S1  
+004B54B2  |.  8B45 A0         MOV EAX,\[LOCAL.24\]  
+004B54B5  |.  E8 A6F8F4FF     CALL qsbzr.00404D60           ;  S1 的长度  
+004B54BA  |.  50              PUSH EAX  
+004B54BB  |.  8D45 9C         LEA EAX,\[LOCAL.25\]  
+004B54BE  |.  B9 30554B00     MOV ECX,qsbzr.004B5530  
+004B54C3  |.  8B55 FC         MOV EDX,\[LOCAL.1\]  
+004B54C6  |.  E8 E1F8F4FF     CALL qsbzr.00404DAC           ;  用户名后接字符串"江龙工作室"得 S2  
+004B54CB  |.  8B45 9C         MOV EAX,\[LOCAL.25\]  
+004B54CE  |.  E8 8DFAF4FF     CALL qsbzr.00404F60  
+004B54D3  |.  8BD0            MOV EDX,EAX  
+004B54D5  |.  8D45 A4         LEA EAX,\[LOCAL.23\]            ;  MD5 的四个常数  
+004B54D8  |.  59              POP ECX                       ;  S1 的长度  
+004B54D9  |.  E8 9EFEFFFF     CALL qsbzr.004B537C           ;  对 S2 进行 MD5 运算,参数却是 S1 的长度  
+004B54DE  |.  8BD3            MOV EDX,EBX                   ;  上面可以简单成实际只在用户名后接了"江龙工"  
+004B54E0  |.  8D45 A4         LEA EAX,\[LOCAL.23\]  
+004B54E3  |.  E8 14FFFFFF     CALL qsbzr.004B53FC           ;  标准 MD5 核心运算,没有必要跟进了  
+004B54E8  |.  33C0            XOR EAX,EAX  
+004B54EA  |.  5A              POP EDX  
+004B54EB  |.  59              POP ECX  
+004B54EC  |.  59              POP ECX  
+004B54ED  |.  64:8910         MOV DWORD PTR FS:\[EAX\],EDX  
+004B54F0  |.  68 12554B00     PUSH qsbzr.004B5512  
+004B54F5  |>  8D45 9C         LEA EAX,\[LOCAL.25\]  
+004B54F8  |.  BA 02000000     MOV EDX,2  
+004B54FD  |.  E8 C2F5F4FF     CALL qsbzr.00404AC4  
+004B5502  |.  8D45 FC         LEA EAX,\[LOCAL.1\]  
+004B5505  |.  E8 96F5F4FF     CALL qsbzr.00404AA0  
+004B550A  \\.  C3              RETN  
+  
+\----------------------------------------------------------------------------------------------  
+【破解心得】  
+  
+从破解过程来看，对用 keyfile 保护的文件有下面一些建议。  
+  
+1、keyfile 的文件名不要使用 zhuce、reg、key 等敏感的文件名或扩展名，现在有一些作者将 keyfile 伪装成 DLL、exe、com 等就是一个很好的做法。  
+  
+2、keyfile 的内容不要过于简单，内容越多越好，并将关键信息分开保存在 keyfile 的各个不同地方。干扰调试者伪造。或者生成几个不同的 keyfile 保存在不同的地方。  
+  
+3、keyfile 内保存的内容不要直接是明码，文字，这样会给调试者不少提示信息。最好用户名、机器码、注册码等信息要经过加密，让调试者看到的是乱码。  
+  
+4、程序内分不同的地方不同的时刻对 keyfile 的不同的部分进行验证，不要使用同一个验证 Call，比如开机时验证 keyfile 的一部分，进入程序后再验证其他部分。增加暴力修改点。  
+  
+5、keyfile 的位置也要隐蔽，不要总是放在程序安装目录内。  
+  
+6、最后尽可能采取一些反跟踪的手段组织程序被调试。  
+  
+\----------------------------------------------------------------------------------------------  
+【注册机源码】  
+  
+Microsoft Visual C++ 6.0 写的 MFC 程序，使用网上下载 MD5 类，下载的类不同，用法也不大一样。  
+  
+void CMyDlg::OnOK()   
+{  
+  // TODO: Add extra validation here  
+    
+  //CDialog::OnOK();  
+  
+  unsigned char inbuff\[512\],outbuff\[16\];  
+  int i,n;  
+  CString temp,MD5En;  
+  FILE \*keyfile;  
+  
+  //检查输入  
+  UpdateData(true);  
+  n=m\_Edit1.GetLength ();  
+  if(n==0){  
+    MessageBox("★★★请输入你的用户名★★★","提示",MB\_OK);  
+    return;  
+  }  
+  
+  //MD5 编码,结果赋给 MD5EN  
+  n+=6;  
+  memcpy(inbuff,m\_Edit1+"江龙工",n);  
+  MD5\_CTX context;  
+  context.MD5Update (inbuff,n);  
+  context.MD5Final (outbuff);  
+  for(i=0;i<16;i++){  
+    temp.Format ("%02x",outbuff\[i\]);  
+    MD5En += temp;  
+  }  
+  
+  //插入'-'形成注册码  
+  MD5En.Insert (8,'-');  
+  MD5En.Insert (17,'-');  
+  MD5En.Insert (26,'-');  
+    
+  //输出注册文件  
+  keyfile=fopen("zuce.dat","w+t");  
+  if(keyfile){  
+    fwrite("\[班主任\]\\nname=",1,14,keyfile);  
+    fwrite(m\_Edit1,1,n-6,keyfile);  
+    fwrite("\\n\[注册\]\\ncode=",1,13,keyfile);  
+    fwrite(MD5En,1,35,keyfile);  
+    fclose(keyfile);  
+    MessageBox("     ★注册文件 zuce.dat 已经生成★\\n\\n★将该文件拷贝到软件安装目录完成注册★","成功",MB\_OK);  
+  }  
+  else  MessageBox("注册文件 zuce.dat 生成不成功，请重试一下","错误",MB\_OK);  
+  
+}  
+  
+\----------------------------------------------------------------------------------------------  
+【破解声明】   我是一只小菜鸟,偶得一点心得,愿与大家分享:)  
+  
+【版权声明】   本文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢!   
+\----------------------------------------------------------------------------------------------  
+                                                                     文章写于 2005-9-12 12:42:43 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

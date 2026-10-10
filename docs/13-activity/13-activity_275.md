@@ -1,0 +1,98 @@
+
+
+# 【看雪论坛.腾讯公司 2008 软件安全竞赛】我的第四题分析过程及答案
+
+> 原文：[`www.pediy.com/kssd/pediy10/74641.html`](https://www.pediy.com/kssd/pediy10/74641.html)
+
+首先说明一下为什么虽然 Explorer.exe 本身并没有直接调用 StretchDIBits 但还是会因为这个 BUG 受到影响。  
+Explorer.exe 在显示目录时会调用到 shell32.dll 中的代码，并间接调用到 user32.dll 中的代码，在 user32.dll 区间内会设置 SEH 处理异常，这也是虽然 StretchDIBits 出错了，但 Explorer.exe 会因此进入一个无限循环并不会显示错误消息的原因  
+  
+StretchDIBits 是通过 LookupIconIdFromDirectoryEx 被调用到的。当参数 lpBits 的最低两位不都为 0 时，会跳转到 77F2C6BE 执行一段额外的处理构造一块新的内存空间重新排列对齐并将 lpBits 指向的内容复制过去，这是因为在 win32k.sys 中的 NtGdiStretchDIBitsInternal 函数中，如果 lpBits 的最低两位为 0 时会调用 ExRaiseDatatypeMisalignment 引发一个异常  
+  
+
+引用: .text:77F1B0A6                 **test    byte ptr \[ebp+lpBits\], 3**  
+.text:77F1B0AA                 mov     \[eax+6D0h\], edi  
+.text:77F1B0B0                 **jnz     StretchDIBits\_RtlAllocateHeap\_77F2C6BE  
+** 
+
+**77F26BE**处的代码如下，这段代码的作用是从堆当中分配一块内存，然后将长度为 bitmap\_file\_size，lpBits 指向的数据复制到新分 配的内存中，虽然目标地址是安全的，但是这里有个问题是 lpBits 指向的数据未必有 bitmap\_file\_size 个字节，也就是说有可能读到非法地 址  
+  
+
+引用: .text:77F2C6BE StretchDIBits\_RtlAllocateHeap\_77F2C6BE: ; CODE XREF: StretchDIBits+71  
+.text:77F2C6BE                 mov     eax, large fs:18h  
+.text:77F2C6C4                 push    \[ebp+bitmap\_file\_size\]  
+.text:77F2C6C7                 mov     eax, \[eax+30h\]  
+.text:77F2C6CA                 push    edi  
+.text:77F2C6CB                 push    dword ptr \[eax+18h\]  
+.text:77F2C6CE                 call    ds:RtlAllocateHeap  
+.text:77F2C6D4                 cmp     eax, edi  
+.text:77F2C6D6                 mov     \[ebp+heap\_handle\], eax  
+.text:77F2C6D9                 jz      loc\_77F1B0B6  
+.text:77F2C6DF                 **mov     ecx, \[ebp+bitmap\_file\_size\]**  
+.text:77F2C6E2                 mov     esi, \[ebp+lpBits\]  
+.text:77F2C6E5                 mov     edx, ecx  
+.text:77F2C6E7                 shr     ecx, 2  
+.text:77F2C6EA                 mov     edi, eax  
+.text:77F2C6EC                 rep movsd  
+.text:77F2C6EE                 mov     ecx, edx  
+.text:77F2C6F0                 and     ecx, 3  
+.text:77F2C6F3                 rep movsb  
+.text:77F2C6F5                 mov     esi, \[ebp+bmi\]  
+.text:77F2C6F8                 mov     \[ebp+lpBits\], eax  
+.text:77F2C6FB                 xor     edi, edi  
+.text:77F2C6FD                 jmp     loc\_77F1B0B6                   
+
+现在回过头来在看看 bitmap\_file\_size 是怎么计算出来的  
+  
+
+引用: .text:77F1B094                 mov     esi, \[ebp+bmi\]  
+.text:77F1B097                 push    esi  
+.text:77F1B098                 **call    calc\_bitmap\_size\_77F1ABD7**  
+.text:77F1B09D                 mov     \[**ebp+bitmap\_file\_size**\], eax  
+  
+...  
+  
+.text:77F1ABD7                 mov     edi, edi  
+.text:77F1ABD9                 push    ebp  
+.text:77F1ABDA                 mov     ebp, esp  
+.text:77F1ABDC                 mov     ecx, \[ebp+arg\_bmi\]  
+.text:77F1ABDF                 cmp     \[ecx+BITMAPINFO.bmiHeader.biSize\], 0Ch  
+.text:77F1ABE2                 push    esi  
+.text:77F1ABE3                 jz      loc\_77F32330  
+.text:77F1ABE9                 mov     eax, \[ecx+BITMAPINFO.bmiHeader.biCompression\]  
+.text:77F1ABEC                 test    eax, eax  
+.text:77F1ABEE                 jnz     loc\_77F1B23D  
+.text:77F1ABF4                 mov     eax, \[ecx+BITMAPINFO.bmiHeader.biHeight\]  
+.text:77F1ABF7                 test    eax, eax  
+.text:77F1ABF9                 jl      loc\_77F3235A  
+.text:77F1ABFF                 movzx   edx, \[ecx+BITMAPINFO.bmiHeader.biPlanes\]  
+.text:77F1AC03                 mov     esi, eax  
+.text:77F1AC05                 movzx   eax, \[ecx+BITMAPINFO.bmiHeader.biBitCount\]  
+.text:77F1AC09                 imul    eax, edx  
+.text:77F1AC0C                 imul    eax, \[ecx+BITMAPINFO.bmiHeader.biWidth\]  
+.text:77F1AC10                 add     eax, 1Fh  
+.text:77F1AC13                 and     eax, 0FFFFFFE0h  
+.text:77F1AC16                 cdq  
+.text:77F1AC17                 push    8  
+.text:77F1AC19                 pop     ecx  
+.text:77F1AC1A                 idiv    ecx  
+.text:77F1AC1C                 imul    eax, esi  
+.text:77F1AC1F                 pop     esi  
+.text:77F1AC20                 pop     ebp  
+.text:77F1AC21                 retn    4                   
+
+很明显 bitmap\_file\_size 的计算公式是  
+((((BITMAPINFO.bmiHeader.biBitCount \* BITMAPINFO.bmiHeader.biPlanes \* BITMAPINFO.bmiHeader.biWidth) + 0x1F) & 0xFFFFFFE0) / 8) \* BITMAPINFO.bmiHeader.biHeight  
+  
+所以要利用这个 BUG 需要满足两个条件：  
+1. 参数 lpBits 的最低两位不都为 0。这一点可以通过修改可执行文件图标资源的指针来实现，缺省情况下，资源起始地址被排列对齐过，最低两位是 0。这里的处理方法是修改指针+1 并将图标头及数据相应的向后移 1 位  
+2. bitmap\_file\_size 足够大，这一点可以通过调整 BITMAPINFO.bmiHeader.biHeight 来完成  
+  
+另外我是用 OD+IDA 分析这个漏洞的  
+先 IDA 看 GDI32.DLL，弄明白为什么会出错，然后用 OllyDbg attach 到 Explorer.exe 进程上调试  
+  
+**注：附件请不要解压到桌面上测试，否则****就算重启了****explorer.exe 还是会挂掉**![](img/9d43c9aee695f95b024aafd1b69ffa5a.jpg "伤心")
+
+上传的附件
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || pediy4.rar\[解压密码：pediy.com\]  
+ |

@@ -1,0 +1,276 @@
+
+
+# 调试 SEH0day
+
+> 原文：[`www.pediy.com/kssd/pediy12/131317.html`](https://www.pediy.com/kssd/pediy12/131317.html)
+
+这是自己调试某软件的漏洞分析的，虽然参考文献给出了一些重要的提示，但并不像之前的教程那样完整，自己重新整理了思路来实现溢出，与经典的 SEH 漏洞利用有点不一样，这次需要我们将 Shellcode 放在缓冲区才能够进行溢出。  
+  
+跟踪了下软件，得到下面的反汇编结果，因为逆向能力不好，不知道判断漏洞溢出的地方是否正确，可能是在读取文件内容的时候进行比较时候引发了异常。如果上面的分析有错，请大家更正下，谢谢。不是会员的可以到我的博客去下载文章也行。如何入门驱动编程领域是自己将两篇好指引文章组合起来的，谢谢原创的两位作者。其中之一的作者主页[`www.x86asm.com/`](http://www.x86asm.com/)  
+
+代码:
+
+```
+
+
+\_TEXT:004133EC
+\_TEXT:004133EC                   ; =============== S U B R O U T I N E =======================================
+\_TEXT:004133EC
+\_TEXT:004133EC                   ; Attributes: bp-based frame
+\_TEXT:004133EC
+\_TEXT:004133EC                   sub\_4133EC proc near          ; CODE XREF: sub\_42CB50+294p
+\_TEXT:004133EC
+\_TEXT:004133EC                   File= dword ptr -2DCh
+\_TEXT:004133EC                   DstBuf= byte ptr -2D8h
+\_TEXT:004133EC                   Buf1= byte ptr -2D0h
+\_TEXT:004133EC                   Str2= byte ptr -2CCh
+\_TEXT:004133EC                   Filename= byte ptr -1CCh
+\_TEXT:004133EC                   var\_CC= dword ptr -0CCh
+\_TEXT:004133EC                   var\_C8= dword ptr -0C8h
+\_TEXT:004133EC                   var\_C4= dword ptr -0C4h
+\_TEXT:004133EC                   var\_C0= dword ptr -0C0h
+\_TEXT:004133EC                   Dst= byte ptr -0BCh
+\_TEXT:004133EC                   var\_90= dword ptr -90h
+\_TEXT:004133EC                   var\_8C= byte ptr -8Ch
+\_TEXT:004133EC
+\_TEXT:004133EC C8 DC 02 00       enter   2DCh, 0
+\_TEXT:004133F0 53                push    ebx
+\_TEXT:004133F1 56                push    esi
+\_TEXT:004133F2 57                push    edi
+\_TEXT:004133F3 31 C0             xor     eax, eax
+\_TEXT:004133F5 89 85 34 FF FF FF mov     \[ebp+var\_CC\], eax
+\_TEXT:004133FB 89 85 38 FF FF FF mov     \[ebp+var\_C8\], eax
+\_TEXT:00413401 89 85 3C FF FF FF mov     \[ebp+var\_C4\], eax
+\_TEXT:00413407 E8 C0 FA 01 00    call    sub\_432ECC
+\_TEXT:0041340C 83 3D 64 6A 47 00+cmp     ds:hLibModule, 0
+\_TEXT:00413413 75 23             jnz     short loc\_413438
+\_TEXT:00413415 6A 00             push    0                     ; int
+\_TEXT:00413417 6A 00             push    0                     ; hWnd
+\_TEXT:00413419 E8 BE 3E 00 00    call    sub\_4172DC
+\_TEXT:0041341E 68 90 C9 45 00    push    offset aCanTAccessWind ; "Can't access Windows AVI function calls"...
+\_TEXT:00413423 FF 35 8C 98 48 00 push    ds:dword\_48988C
+\_TEXT:00413429 E8 FC 82 01 00    call    sub\_42B72A
+\_TEXT:0041342E 31 C0             xor     eax, eax
+\_TEXT:00413430 83 C4 10          add     esp, 10h
+\_TEXT:00413433 5F                pop     edi
+\_TEXT:00413434 5E                pop     esi
+\_TEXT:00413435 5B                pop     ebx
+\_TEXT:00413436 C9                leave
+\_TEXT:00413437 C3                retn
+\_TEXT:00413438                   ; ---------------------------------------------------------------------------
+\_TEXT:00413438
+\_TEXT:00413438                   loc\_413438:                   ; CODE XREF: sub\_4133EC+27j
+\_TEXT:00413438 68 38 C6 45 00    push    offset aAllFiles\_AviFi ; "All files|\*.\*|AVI files (\*.AVI)|\*.AVI|"
+\_TEXT:0041343D B8 B0 8F 48 00    mov     eax, offset byte\_488FB0
+\_TEXT:00413442 50                push    eax                   ; Dest
+\_TEXT:00413443 E8 D0 EE 03 00    call    \_strcpy
+\_TEXT:00413448 B8 B0 8F 48 00    mov     eax, offset byte\_488FB0
+\_TEXT:0041344D 50                push    eax                   ; Str 在这里比较文件开头是否包含版本信息
+\_TEXT:0041344E E8 29 EF 03 00    call    \_strlen
+\_TEXT:00413453 89 C7             mov     edi, eax              ; edi 此时保存版本信息的长度
+\_TEXT:00413455 BE 00 00 00 00    mov     esi, 0
+\_TEXT:0041345A 83 C4 0C          add     esp, 0Ch
+\_TEXT:0041345D
+\_TEXT:0041345D                   loc\_41345D:                   ; CODE XREF: sub\_4133EC+88j
+\_TEXT:0041345D 8B C6             mov     eax, esi
+\_TEXT:0041345F 3B C7             cmp     eax, edi
+\_TEXT:00413461 7D 13             jge     short loc\_413476      ; CFileDialog 类结构体
+\_TEXT:00413463 8B C6             mov     eax, esi
+\_TEXT:00413465 8D 98 B0 8F 48 00 lea     ebx, byte\_488FB0\[eax\]
+\_TEXT:0041346B 80 3B 7C          cmp     byte ptr \[ebx\], 7Ch
+\_TEXT:0041346E 75 03             jnz     short loc\_413473
+\_TEXT:00413470 C6 03 00          mov     byte ptr \[ebx\], 0
+\_TEXT:00413473
+\_TEXT:00413473                   loc\_413473:                   ; CODE XREF: sub\_4133EC+82j
+\_TEXT:00413473 46                inc     esi
+\_TEXT:00413474 EB E7             jmp     short loc\_41345D
+\_TEXT:00413476                   ; ---------------------------------------------------------------------------
+\_TEXT:00413476
+\_TEXT:00413476                   loc\_413476:                   ; CODE XREF: sub\_4133EC+75j
+\_TEXT:00413476 C7 05 F0 93 48 00+mov     ds:stru\_4893F0.lStructSize, 4Ch ; CFileDialog 类结构体
+\_TEXT:00413480 A1 8C 98 48 00    mov     eax, ds:dword\_48988C
+\_TEXT:00413485 A3 F4 93 48 00    mov     ds:stru\_4893F0.hwndOwner, eax
+\_TEXT:0041348A A1 84 98 48 00    mov     eax, ds:hInstance
+\_TEXT:0041348F A3 F8 93 48 00    mov     ds:stru\_4893F0.hInstance, eax
+\_TEXT:00413494 C7 05 FC 93 48 00+mov     ds:stru\_4893F0.lpstrFilter, offset byte\_488FB0
+\_TEXT:0041349E A1 2C C0 45 00    mov     eax, ds:dword\_45C02C
+\_TEXT:004134A3 A3 08 94 48 00    mov     ds:stru\_4893F0.nFilterIndex, eax
+\_TEXT:004134A8 B8 B0 8B 48 00    mov     eax, offset byte\_488BB0
+\_TEXT:004134AD A3 0C 94 48 00    mov     ds:stru\_4893F0.lpstrFile, eax
+\_TEXT:004134B2 C7 05 10 94 48 00+mov     ds:stru\_4893F0.nMaxFile, 3FFh
+\_TEXT:004134BC 31 C9             xor     ecx, ecx
+\_TEXT:004134BE 89 0D 00 94 48 00 mov     ds:stru\_4893F0.lpstrCustomFilter, ecx
+\_TEXT:004134C4 89 0D 14 94 48 00 mov     ds:stru\_4893F0.lpstrFileTitle, ecx
+\_TEXT:004134CA C7 05 1C 94 48 00+mov     ds:stru\_4893F0.lpstrInitialDir, offset byte\_4889B0
+\_TEXT:004134D4 C7 05 24 94 48 00+mov     ds:stru\_4893F0.Flags, 81804h
+\_TEXT:004134DE 68 00 04 00 00    push    400h                  ; Size
+\_TEXT:004134E3 68 FF 00 00 00    push    0FFh                  ; Val
+\_TEXT:004134E8 50                push    eax                   ; Dst
+\_TEXT:004134E9 E8 6E CD 03 00    call    \_memset
+\_TEXT:004134EE C6 05 B0 8B 48 00+mov     ds:byte\_488BB0, 0
+\_TEXT:004134F5 83 C4 0C          add     esp, 0Ch
+\_TEXT:004134F8 68 F0 93 48 00    push    offset stru\_4893F0    ; LPOPENFILENAMEA
+\_TEXT:004134FD E8 62 5F 04 00    call    GetOpenFileNameA
+\_TEXT:00413502 85 C0             test    eax, eax
+\_TEXT:00413504 75 07             jnz     short loc\_41350D
+\_TEXT:00413506 31 C0             xor     eax, eax
+\_TEXT:00413508 5F                pop     edi
+\_TEXT:00413509 5E                pop     esi
+\_TEXT:0041350A 5B                pop     ebx
+\_TEXT:0041350B C9                leave
+\_TEXT:0041350C C3                retn
+\_TEXT:0041350D                   ; ---------------------------------------------------------------------------
+\_TEXT:0041350D
+\_TEXT:0041350D                   loc\_41350D:                   ; CODE XREF: sub\_4133EC+118j
+\_TEXT:0041350D A1 08 94 48 00    mov     eax, ds:stru\_4893F0.nFilterIndex
+\_TEXT:00413512 A3 2C C0 45 00    mov     ds:dword\_45C02C, eax
+\_TEXT:00413517 68 B9 C9 45 00    push    offset aRb\_0          ; "rb"
+\_TEXT:0041351C 68 B0 8B 48 00    push    offset byte\_488BB0    ; Filename
+\_TEXT:00413521 E8 42 F0 03 00    call    \_fopen
+\_TEXT:00413526 83 C4 08          add     esp, 8
+\_TEXT:00413529 85 C0             test    eax, eax
+\_TEXT:0041352B 89 85 24 FD FF FF mov     \[ebp+File\], eax       ; 这里判断文件的后缀名是否有 rb，
+\_TEXT:0041352B                                                 ; 如果没有则显示不能够读文件，可以就打开文件
+\_TEXT:00413531 75 1A             jnz     short loc\_41354D
+\_TEXT:00413533 68 BC C9 45 00    push    offset aCanTReadFile\_ ; "Can't read file."
+\_TEXT:00413538 FF 35 8C 98 48 00 push    ds:dword\_48988C
+\_TEXT:0041353E E8 E7 81 01 00    call    sub\_42B72A
+\_TEXT:00413543 31 C0             xor     eax, eax
+\_TEXT:00413545 83 C4 08          add     esp, 8
+\_TEXT:00413548 5F                pop     edi
+\_TEXT:00413549 5E                pop     esi
+\_TEXT:0041354A 5B                pop     ebx
+\_TEXT:0041354B C9                leave
+\_TEXT:0041354C C3                retn
+\_TEXT:0041354D                   ; ---------------------------------------------------------------------------
+\_TEXT:0041354D
+\_TEXT:0041354D                   loc\_41354D:                   ; CODE XREF: sub\_4133EC+145j
+\_TEXT:0041354D 6A 5C             push    5Ch                   ; Val
+\_TEXT:0041354F B8 B0 8B 48 00    mov     eax, offset byte\_488BB0
+\_TEXT:00413554 50                push    eax                   ; Str
+\_TEXT:00413555 E8 82 EE 03 00    call    \_strchr               ; 这里判断文件的开头有没有软件版本信息
+\_TEXT:0041355A 83 C4 08          add     esp, 8
+\_TEXT:0041355D 85 C0             test    eax, eax
+\_TEXT:0041355F 74 13             jz      short loc\_413574
+\_TEXT:00413561 B8 B0 8B 48 00    mov     eax, offset byte\_488BB0
+\_TEXT:00413566 50                push    eax                   ; Source
+\_TEXT:00413567 68 B0 89 48 00    push    offset byte\_4889B0    ; Str
+\_TEXT:0041356C E8 EA 78 00 00    call    sub\_41AE5B
+\_TEXT:00413571 83 C4 08          add     esp, 8
+\_TEXT:00413574
+\_TEXT:00413574                   loc\_413574:                   ; CODE XREF: sub\_4133EC+173j
+\_TEXT:00413574 FF B5 24 FD FF FF push    \[ebp+File\]            ; File
+\_TEXT:0041357A 6A 0C             push    0Ch                   ; Count
+\_TEXT:0041357C 6A 01             push    1                     ; ElementSize
+\_TEXT:0041357E 8D 85 28 FD FF FF lea     eax, \[ebp+DstBuf\]
+\_TEXT:00413584 50                push    eax                   ; DstBuf
+\_TEXT:00413585 E8 F2 F5 03 00    call    \_fread
+\_TEXT:0041358A FF B5 24 FD FF FF push    \[ebp+File\]            ; File
+\_TEXT:00413590 E8 2B EF 03 00    call    \_fclose
+\_TEXT:00413595 83 C4 14          add     esp, 14h
+\_TEXT:00413598 6A 04             push    4                     ; Size
+\_TEXT:0041359A 68 CD C9 45 00    push    offset aRiff\_0        ; "RIFF"
+\_TEXT:0041359F 8D 85 28 FD FF FF lea     eax, \[ebp+DstBuf\]
+\_TEXT:004135A5 50                push    eax                   ; Buf1
+\_TEXT:004135A6 E8 71 F7 03 00    call    \_memcmp               ; 判断资源文件是否为 AVI 文件，否则显示无法识别文件格式
+\_TEXT:004135A6                                                 ; 这种情况在读入的字符串不会造成溢出的情况下
+\_TEXT:004135AB 83 C4 0C          add     esp, 0Ch
+\_TEXT:004135AE 85 C0             test    eax, eax
+\_TEXT:004135B0 75 1A             jnz     short loc\_4135CC
+\_TEXT:004135B2 6A 04             push    4                     ; Size
+\_TEXT:004135B4 68 D2 C9 45 00    push    offset aAvi           ; "AVI "
+\_TEXT:004135B9 8D 85 30 FD FF FF lea     eax, \[ebp+Buf1\]
+\_TEXT:004135BF 50                push    eax                   ; Buf1
+\_TEXT:004135C0 E8 57 F7 03 00    call    \_memcmp
+\_TEXT:004135C5 83 C4 0C          add     esp, 0Ch
+\_TEXT:004135C8 85 C0             test    eax, eax
+\_TEXT:004135CA 74 1A             jz      short loc\_4135E6
+\_TEXT:004135CC
+\_TEXT:004135CC                   loc\_4135CC:                   ; CODE XREF: sub\_4133EC+1C4j
+\_TEXT:004135CC 68 D7 C9 45 00    push    offset aFileIsNotAReco ; "File is not a recognized AVI file."
+\_TEXT:004135D1 FF 35 8C 98 48 00 push    ds:dword\_48988C
+\_TEXT:004135D7 E8 4E 81 01 00    call    sub\_42B72A
+\_TEXT:004135DC 31 C0             xor     eax, eax
+\_TEXT:004135DE 83 C4 08          add     esp, 8
+\_TEXT:004135E1 5F                pop     edi
+\_TEXT:004135E2 5E                pop     esi
+\_TEXT:004135E3 5B                pop     ebx
+\_TEXT:004135E4 C9                leave
+\_TEXT:004135E5 C3                retn
+\_TEXT:004135E6                   ; ---------------------------------------------------------------------------
+\_TEXT:004135E6
+\_TEXT:004135E6                   loc\_4135E6:                   ; CODE XREF: sub\_4133EC+1DEj
+\_TEXT:004135E6 68 B0 8B 48 00    push    offset byte\_488BB0    ; Source
+\_TEXT:004135EB 8D 85 34 FD FF FF lea     eax, \[ebp+Str2\]
+\_TEXT:004135F1 50                push    eax                   ; Dest
+\_TEXT:004135F2 E8 21 ED 03 00    call    \_strcpy
+\_TEXT:004135F7 68 58 C7 45 00    push    offset aAviFile\_avi\_av ; "AVI file (\*.AVI)|\*.AVI|"
+\_TEXT:004135FC B8 B0 8F 48 00    mov     eax, offset byte\_488FB0
+\_TEXT:00413601 50                push    eax                   ; Dest
+\_TEXT:00413602 E8 11 ED 03 00    call    \_strcpy
+\_TEXT:00413607 B8 B0 8F 48 00    mov     eax, offset byte\_488FB0 ; 此处就可以看出读入文件的缓冲区大小为 1088 字节
+\_TEXT:0041360C 50                push    eax                   ; Str
+\_TEXT:0041360D E8 6A ED 03 00    call    \_strlen
+\_TEXT:00413612 89 C7             mov     edi, eax
+\_TEXT:00413614 BE 00 00 00 00    mov     esi, 0
+\_TEXT:00413619 83 C4 14          add     esp, 14h
+\_TEXT:0041361C
+\_TEXT:0041361C                   loc\_41361C:                   ; CODE XREF: sub\_4133EC+247j
+\_TEXT:0041361C 8B C6             mov     eax, esi
+\_TEXT:0041361E 3B C7             cmp     eax, edi
+\_TEXT:00413620 7D 13             jge     short loc\_413635
+\_TEXT:00413622 8B C6             mov     eax, esi
+\_TEXT:00413624 8D 98 B0 8F 48 00 lea     ebx, byte\_488FB0\[eax\]
+\_TEXT:0041362A 80 3B 7C          cmp     byte ptr \[ebx\], 7Ch
+\_TEXT:0041362D 75 03             jnz     short loc\_413632
+\_TEXT:0041362F C6 03 00          mov     byte ptr \[ebx\], 0
+\_TEXT:00413632
+\_TEXT:00413632                   loc\_413632:                   ; CODE XREF: sub\_4133EC+241j
+\_TEXT:00413632 46                inc     esi
+\_TEXT:00413633 EB E7             jmp     short loc\_41361C
+\_TEXT:00413635                   ; ---------------------------------------------------------------------------
+\_TEXT:00413635
+\_TEXT:00413635                   loc\_413635:                   ; CODE XREF: sub\_4133EC+234j
+\_TEXT:00413635 C7 05 FC 93 48 00+mov     ds:stru\_4893F0.lpstrFilter, offset byte\_488FB0
+\_TEXT:0041363F A1 30 C0 45 00    mov     eax, ds:dword\_45C030
+\_TEXT:00413644 A3 08 94 48 00    mov     ds:stru\_4893F0.nFilterIndex, eax
+\_TEXT:00413649 31 C0             xor     eax, eax
+\_TEXT:0041364B A3 00 94 48 00    mov     ds:stru\_4893F0.lpstrCustomFilter, eax
+\_TEXT:00413650 A3 14 94 48 00    mov     ds:stru\_4893F0.lpstrFileTitle, eax
+\_TEXT:00413655 C7 05 1C 94 48 00+mov     ds:stru\_4893F0.lpstrInitialDir, offset byte\_488AB0
+\_TEXT:0041365F A3 20 94 48 00    mov     ds:stru\_4893F0.lpstrTitle, eax
+\_TEXT:00413664 B8 4E 7A 41 00    mov     eax, offset sub\_417A4E
+\_TEXT:00413669 A3 34 94 48 00    mov     ds:stru\_4893F0.lpfnHook, eax
+\_TEXT:0041366E A1 AC 9C 48 00    mov     eax, ds:dword\_489CAC
+\_TEXT:00413673 D1 E0             shl     eax, 1
+\_TEXT:00413675 0D 24 08 08 00    or      eax, 80824h
+\_TEXT:0041367A A3 24 94 48 00    mov     ds:stru\_4893F0.Flags, eax
+\_TEXT:0041367F 68 00 04 00 00    push    400h                  ; Size
+\_TEXT:00413684 68 FF 00 00 00    push    0FFh                  ; Val
+\_TEXT:00413689 68 B0 8B 48 00    push    offset byte\_488BB0    ; Dst
+\_TEXT:0041368E E8 C9 CB 03 00    call    \_memset
+\_TEXT:00413693 C6 05 B0 8B 48 00+mov     ds:byte\_488BB0, 0
+\_TEXT:0041369A 83 C4 0C          add     esp, 0Ch
+\_TEXT:0041369D 68 F0 93 48 00    push    offset stru\_4893F0    ; LPOPENFILENAMEA
+\_TEXT:004136A2 E8 B7 5D 04 00    call    GetSaveFileNameA
+\_TEXT:004136A7 85 C0             test    eax, eax
+\_TEXT:004136A9 75 07             jnz     short loc\_4136B2
+\_TEXT:004136AB 31 C0             xor     eax, eax
+\_TEXT:004136AD 5F                pop     edi
+\_TEXT:004136AE 5E                pop     esi
+\_TEXT:004136AF 5B                pop     ebx
+\_TEXT:004136B0 C9                leave
+\_TEXT:004136B1 C3                retn
+\_TEXT:004136B2                   ; ---------------------------------------------------------------------------
+\_TEXT:004136B2
+\_TEXT:004136B2                   loc\_4136B2:     
+
+```
+
+上传的附件
+| ![](img/67af4f1ef9c98996f43e89e749c7dcf5.jpg) || setupov.rar  
+ |
+| ![](img/aabdec8de01ec04d2bc68959c61abb93.jpg) || 调试 SEH0day.pdf  
+ |
+| ![](img/aabdec8de01ec04d2bc68959c61abb93.jpg) || 如何入门 Windows 驱动开发领域.pdf  
+ |

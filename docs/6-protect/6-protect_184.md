@@ -1,0 +1,294 @@
+
+
+# 速达 3000PRO 
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50408.htm`](https://www.pediy.com/kssd/pediy05/pediy50408.htm)
+
+我写这篇文章是以技术交流为主，希望论坛的前辈多多指点。   
+          
+    看过 XIAQIN\[CCG\]的文章后，想找个速达 3000PRO 加密狗软件学习一下。恰好我有个朋友是其地区级的代理商，我去找到他给我了一张试用光盘，一看上面什么软件都有，于是决定试试。 下面谈谈我的学习过程。   
+  
+    这是小弟第六次学习加密狗的软件，水平有限。不足之处，请各位大侠指点。   
+  
+    软件简介：《速达 3000 PRO》软件是非常著名的进销存财务软件。   
+  
+破解工具：   
+    Trw2000   
+    SuperBPM   
+    WINHEX   
+    OFFCAL   
+    在没有安装加密狗之前，在启动软件时会弹出“未检测到本软件使用的软件狗，本软件将工作试验版状态”对话框。在软件的启动画面中醒目的有红色“试用版”三个字。就进入了“选择公司帐套”。在进入软件后。在 “关于速达 3000 PRO”中同样有红色“试用版”三个字。   
+  
+  该软件静态分析时列机（用的 W32Dasm），IDA 又太慢，所以只好直接动态分析了。经过仔细跟踪来到 CC3250.EXE 的领空，继续单步跟踪，一路上有很多的花指令，但用点技巧也是很容易走出来的。直到：   
+  
+0167:3257DBEB  PUSH    EAX   
+0167:3257DBEC  CALL    NEAR \[ESI+18\]          //F10 走过时弹出对话框，F8 进入   
+0167:3257DBEF  ADD      ESP,BYTE +10   
+0167:3257DBF2  PUSH    EAX   
+0167:3257DBF3  CALL    \`CC3250MT!\_exit\`   
+0167:3257DBF8  POP      ECX   
+0167:3257DBF9  JMP      SHORT 3257DC1C   
+0167:3257DBFB  MOV      EDX,\[325AD400\]   
+0167:3257DC01  PUSH    EDX   
+0167:3257DC02  MOV      ECX,\[325AD3FC\]   
+  从 3257DBEC 进入后来到：   
+  
+            .   
+            .   
+            .   
+0167:00401859  XOR      EAX,EAX   
+0167:0040185B  MOV      EDX,\[EBP\-38\]   
+0167:0040185E  MOV      \[FS:00\],EDX   
+0167:00401865  JMP      00401C52   
+0167:0040186A  MOV      BYTE \[00B25934\],00   
+0167:00401871  CMP      BYTE \[00B25934\],00   
+0167:00401878  JNZ      NEAR 004019A1   
+0167:0040187E  MOV      BYTE \[00B25934\],01   
+0167:00401885  CALL    00939944   
+0167:0040188A  TEST    AL,AL   
+0167:0040188C  JZ      0040189A   
+0167:0040188E  MOV      BYTE \[00B25934\],00   
+0167:00401895  JMP      00401963   
+0167:0040189A  MOV      WORD \[EBP\-28\],14   
+0167:004018A0  LEA      EAX,\[EBP\-08\]   
+0167:004018A3  CALL    00401C5C   
+0167:004018A8  INC      DWORD \[EBP\-1C\]   
+0167:004018AB  CALL    \`SD3000PRO!@Dogtestpro@\_ManCheckDlgDan$qqrv\` //DOG   
+0167:004018B0  MOV      WORD \[EBP\-28\],08   
+0167:004018B6  MOV      WORD \[EBP\-28\],20   
+0167:004018BC  MOV      EDX,00942C1F   
+0167:004018C1  LEA      EAX,\[EBP\-0C\]   
+0167:004018C4  CALL    00939C34   
+0167:004018C9  INC      DWORD \[EBP\-1C\]   
+0167:004018CC  LEA      EDX,\[EBP\-0C\]   
+0167:004018CF  LEA      EAX,\[EBP\-08\]   
+0167:004018D2  CALL    00939FAC   
+0167:004018D7  PUSH    EAX   
+0167:004018D8  DEC      DWORD \[EBP\-1C\]   
+0167:004018DB  LEA      EAX,\[EBP\-0C\]   
+0167:004018DE  MOV      EDX,02   
+0167:004018E3  CALL    00939EC8   
+0167:004018E8  POP      ECX   
+0167:004018E9  TEST    CL,CL   
+0167:004018EB  JZ      004018FF   
+0167:004018ED  CALL    \`SD3000PRO!@Dogtestpro@\_GoldenSoftCheckdlgDan$qqrv\`   
+0167:004018F2  TEST    AL,AL   
+0167:004018F4  JZ      0040194D   
+0167:004018F6  MOV      BYTE \[00B25934\],00   
+            .   
+            .   
+            .   
+0167:00401932  TEST    CL,CL   
+0167:00401934  JZ      0040194D   
+0167:00401936  XOR      EAX,EAX   
+0167:00401938  CALL    00427814   
+0167:0040193D  TEST    AL,AL   
+0167:0040193F  JZ      0040194D   
+0167:00401941  CALL    \`SD3000PRO!@Dogtestpro@WriteNewInfo$qqrv\`  //DOG   
+0167:00401946  MOV      BYTE \[00B25934\],00   
+0167:0040194D  DEC      DWORD \[EBP\-1C\]   
+0167:00401950  LEA      EAX,\[EBP\-08\]   
+0167:00401953  MOV      EDX,02   
+0167:00401958  CALL    00939EC8   
+0167:0040195D  MOV      WORD \[EBP\-28\],00   
+0167:00401963  CMP      BYTE \[00B25934\],00   
+0167:0040196A  JZ      004019A1   
+0167:0040196C  MOV      WORD \[EBP\-28\],38   
+0167:00401972  MOV      EDX,00942C23   
+            .   
+            .   
+            .   
+  
+从上面我们很容易发现\[00b25934\]的多次出现，且鞭后都跟有   
+比较指令，实际上\[00b25934\]值是 0 时表示有狗。我们看看是哪   
+个地方改变了\[00b25934\]的值。我们下断点监看到的写操作。   
+等拦断后来到:   
+  
+0167:00401871  CMP      BYTE \[00B25934\],00   
+0167:00401878  JNZ      NEAR 004019A1      //此处如果让它直接跳走，即成为正式版了   
+0167:0040187E  MOV      BYTE \[00B25934\],01  //如果上面没有跳走，这里把 01 改成 00 也能成为正式版   
+0167:00401885  CALL    00939944   
+0167:0040188A  TEST    AL,AL   
+0167:0040188C  JZ      0040189A   
+0167:0040188E  MOV      BYTE \[00B25934\],00   
+0167:00401895  JMP      00401963   
+0167:0040189A  MOV      WORD \[EBP\-28\],14   
+0167:004018A0  LEA      EAX,\[EBP\-08\]   
+0167:004018A3  CALL    00401C5C   
+0167:004018A8  INC      DWORD \[EBP\-1C\]   
+0167:004018AB  CALL    \`SD3000PRO!@Dogtestpro@\_ManCheckDlgDan$qqrv\`   
+0167:004018B0  MOV      WORD \[EBP\-28\],08   
+0167:004018B6  MOV      WORD \[EBP\-28\],20   
+0167:004018BC  MOV      EDX,00942C1F   
+0167:004018C1  LEA      EAX,\[EBP\-0C\]   
+0167:004018C4  CALL    00939C34   
+0167:004018C9  INC      DWORD \[EBP\-1C\]   
+0167:004018CC  LEA      EDX,\[EBP\-0C\]   
+0167:004018CF  LEA      EAX,\[EBP\-08\]   
+0167:004018D2  CALL    00939FAC   
+0167:004018D7  PUSH    EAX   
+0167:004018D8  DEC      DWORD \[EBP\-1C\]   
+0167:004018DB  LEA      EAX,\[EBP\-0C\]   
+0167:004018DE  MOV      EDX,02   
+0167:004018E3  CALL    00939EC8   
+0167:004018E8  POP      ECX   
+0167:004018E9  TEST    CL,CL   
+0167:004018EB  JZ      004018FF   
+0167:004018ED  CALL    \`SD3000PRO!@Dogtestpro@\_GoldenSoftCheckdlgDan$qqrv\`   
+0167:004018F2  TEST    AL,AL   
+0167:004018F4  JZ      0040194D   
+0167:004018F6  MOV      BYTE \[00B25934\],00   
+0167:004018FD  JMP      SHORT 0040194D   
+0167:004018FF  MOV      WORD \[EBP\-28\],2C   
+0167:00401905  MOV      EDX,00942C21   
+  
+可见，改这个软件只需一个字节,而且测试三次的结算限制也没了。下一篇我想写写 SD-ERP 网络版丢狗方法   
+和某著名工程预算软件的丢狗方法。在下水平有限，想和各位打狗高手及   
+PJ 界的前辈学习一下，不知有人愿意否，如有请留言，我会及时和你联系！   
+  
+                      -------青石 
+
+acrobatcn 申请第二篇：速达 3000pro－无狗解狗   
+软件名称：速达 3000 pro   
+软件语言：  中文   
+软件类别：  共享版/财务软件   
+应用平台：  Win9x/NT/2000/XP   
+限制类型：软件狗   
+难易程度：易   
+下载地质：http://www.superdata.com.cn/download1/index.asp   
+  
+1.peid 检查，无壳   
+2\. w32dasm 反汇编，结果不行，w32dasm 死掉   
+3\. 只能用 trw 了。   
+  
+w32dasm 在起始时就死了，不能正确的定位程序的起始，所以干脆不用了，直接 bpio 378   
+结果转到了读狗的 tdsd.vxd 里，转晕了也看不明白，而且也不太容易出来，pret 在 0 级模式用不了。所以干脆从程序的开始跟起，delphi 的程序起始都一样,以如下开头：   
+  
+0167:00401022  CALL    \`KERNEL32!GetModuleHandleA\`   
+0167:00401027  MOV      EDX,EAX   
+0167:00401029  CALL    009A534C   
+0167:0040102E  POP      EDX   
+0167:0040102F  CALL    \`CC3250MT!\_\_\_CRTL\_MEM\_UseBorMM\`   
+0167:00401034  CALL    009A5390   
+0167:00401039  PUSH    BYTE +00   
+0167:0040103B  CALL    009A54C4   
+0167:00401040  POP      ECX   
+0167:00401041  PUSH    DWORD 009AED08   
+0167:00401046  PUSH    BYTE +00   
+0167:00401048  CALL    \`KERNEL32!GetModuleHandleA\`   
+0167:0040104D  MOV      \[009AED67\],EAX   
+0167:00401052  PUSH    BYTE +00   
+0167:00401054  JMP CC3250MT!\_Startup<----从这里跳到 CC3250MT 里，进入 CC3250MT 里后，经过一系列的初始，小心按 F7，很快来到：   
+  
+0167:3257DBE0  PUSH    EAX   
+0167:3257DBE1  PUSH    EBX   
+0167:3257DBE2  PUSH    BYTE +00   
+0167:3257DBE4  PUSH    BYTE +00   
+0167:3257DBE6  CALL    \`KERNEL32!GetModuleHandleA\`   
+0167:3257DBEB  PUSH    EAX   
+0167:3257DBEC  CALL    NEAR \[ESI+18\]<---还不进入主程序的领空吗？快进吧！大家不要说我笨，按 F11 不就 ok 了吗？你试试吧！   
+0167:3257DBEF  ADD      ESP,BYTE +10   
+0167:3257DBF2  PUSH    EAX   
+0167:3257DBF3  CALL    \`CC3250MT!\_exit\`<-----看见了吗？要 exit 了，所以前面的 call 是返回到主程序的。   
+..................................................................   
+进入了 sd3000xp，如下很简单：   
+  
+.....   
+0167:00401887 0F854D010000    JNZ      NEAR 004019DA            (NO JUMP)1.<-----这里改为跳转就无 nag，而且也无试用版字样，有点奇怪吧！我为什么要改它，因为它可以跳过 nag 窗口，而且如果你再去看看速达 3000pro 就知道了。   
+0167:0040188D C6051C3ABD0001  MOV      BYTE \[00BD3A1C\],01   
+0167:00401894 E8D7305A00      CALL    009A4970<----读狗,tdsd.vxd   
+0167:00401899 84C0            TEST    AL,AL   
+0167:0040189B 740C            JZ      004018A9   
+0167:0040189D C6051C3ABD0000  MOV      BYTE \[00BD3A1C\],00<-------注意，00BD3A1C 标志位，在这里改，连狗都不用读了，就不会有试用版的字样，成了正式版，太简单了。   
+0167:004018A4 E9EA000000      JMP      00401993   
+0167:004018A9 66C78510FDFFFF14+MOV      WORD \[EBP+FFFFFD10\],14   
+0167:004018B2 8D45F8          LEA      EAX,\[EBP\-08\]   
+0167:004018B5 E882350000      CALL    00404E3C<---又读狗，烦   
+0167:004018BA FF851CFDFFFF    INC      DWORD \[EBP+FFFFFD1C\]   
+0167:004018C0 E8D3DA3300      CALL    \`SD3000XP!@Dogtestpro@\_ManCheckDlgDan$qqrv\`<-----多简单，提示也太明显了吧！是否有狗   
+0167:004018C5 66C78510FDFFFF08+MOV      WORD \[EBP+FFFFFD10\],08   
+0167:004018CE 66C78510FDFFFF20+MOV      WORD \[EBP+FFFFFD10\],20   
+0167:004018D7 BAAFED9A00      MOV      EDX,009AEDAF   
+0167:004018DC 8D45F4          LEA      EAX,\[EBP\-0C\]   
+0167:004018DF E808405A00      CALL    009A58EC   
+0167:004018E4 FF851CFDFFFF    INC      DWORD \[EBP+FFFFFD1C\]   
+0167:004018EA 8D55F4          LEA      EDX,\[EBP\-0C\]   
+0167:004018ED 8D45F8          LEA      EAX,\[EBP\-08\]   
+0167:004018F0 E86F435A00      CALL    009A5C64   
+0167:004018F5 50              PUSH    EAX   
+0167:004018F6 FF8D1CFDFFFF    DEC      DWORD \[EBP+FFFFFD1C\]   
+0167:004018FC 8D45F4          LEA      EAX,\[EBP\-0C\]   
+0167:004018FF BA02000000      MOV      EDX,02   
+0167:00401904 E877425A00      CALL    009A5B80   
+0167:00401909 59              POP      ECX   
+0167:0040190A 84C9            TEST    CL,CL   
+0167:0040190C 7412            JZ      00401920<---改为不跳，跳了就 over 了   
+0167:0040190E E875DC3300      CALL    \`SD3000XP!@Dogtestpro@\_GoldenSoftCheckdlgDan$qqrv\`<--进行狗的判断   
+0167:00401913 84C0            TEST    AL,AL<---返回 al 为判断值   
+0167:00401915 7460            JZ      00401977<---0 就跳，改为不跳，让下面的一句自己对标志位赋值   
+0167:00401917 C6051C3ABD0000  MOV      BYTE \[00BD3A1C\],00<-----呵呵，对标志位赋值 0，正式版啊！   
+0167:0040191E EB57            JMP      SHORT 00401977<---跳   
+0167:00401920 66C78510FDFFFF2C+MOV      WORD \[EBP+FFFFFD10\],2C   
+0167:00401929 BAB1ED9A00      MOV      EDX,009AEDB1   
+0167:0040192E 8D45F0          LEA      EAX,\[EBP\-10\]   
+0167:00401931 E8B63F5A00      CALL    009A58EC   
+0167:00401936 FF851CFDFFFF    INC      DWORD \[EBP+FFFFFD1C\]   
+0167:0040193C 8D55F0          LEA      EDX,\[EBP\-10\]   
+0167:0040193F 8D45F8          LEA      EAX,\[EBP\-08\]   
+0167:00401942 E81D435A00      CALL    009A5C64   
+0167:00401947 50              PUSH    EAX   
+0167:00401948 FF8D1CFDFFFF    DEC      DWORD \[EBP+FFFFFD1C\]   
+0167:0040194E 8D45F0          LEA      EAX,\[EBP\-10\]   
+0167:00401951 BA02000000      MOV      EDX,02   
+0167:00401956 E825425A00      CALL    009A5B80   
+0167:0040195B 59              POP      ECX   
+0167:0040195C 84C9            TEST    CL,CL   
+0167:0040195E 7417            JZ      00401977   
+0167:00401960 33C0            XOR      EAX,EAX   
+0167:00401962 E8158E0200      CALL    0042A77C   
+0167:00401967 84C0            TEST    AL,AL   
+0167:00401969 740C            JZ      00401977   
+0167:0040196B E88CE03300      CALL    \`SD3000XP!@Dogtestpro@WriteNewInfo$qqrv\`   
+0167:00401970 C6051C3ABD0000  MOV      BYTE \[00BD3A1C\],00   
+0167:00401977 FF8D1CFDFFFF    DEC      DWORD \[EBP+FFFFFD1C\]   
+0167:0040197D 8D45F8          LEA      EAX,\[EBP\-08\]   
+0167:00401980 BA02000000      MOV      EDX,02   
+0167:00401985 E8F6415A00      CALL    009A5B80   
+0167:0040198A 66C78510FDFFFF00+MOV      WORD \[EBP+FFFFFD10\],00   
+0167:00401993 803D1C3ABD0000  CMP      BYTE \[00BD3A1C\],00<----标志比较啊   
+0167:0040199A 743E            JZ      004019DA<-----根据上面的结果，呵呵，会跳的，跳过 nag，好了，我们启动程序后，从帮助菜单力看看 about，结果，呵呵，使用版三个字没有了吧！   
+0167:0040199C 66C78510FDFFFF38+MOV      WORD \[EBP+FFFFFD10\],38   
+0167:004019A5 BAB3ED9A00      MOV      EDX,009AEDB3   
+0167:004019AA 8D45EC          LEA      EAX,\[EBP\-14\]   
+0167:004019AD E83A3F5A00      CALL    009A58EC   
+0167:004019B2 FF851CFDFFFF    INC      DWORD \[EBP+FFFFFD1C\]   
+0167:004019B8 8B00            MOV      EAX,\[EAX\]   
+0167:004019BA 33C9            XOR      ECX,ECX   
+0167:004019BC 8B1554329C00    MOV      EDX,\[009C3254\]   
+0167:004019C2 E869B90200      CALL    0042D330<-------nag，窗口啊，kill it！   
+0167:004019C7 FF8D1CFDFFFF    DEC      DWORD \[EBP+FFFFFD1C\]   
+0167:004019CD 8D45EC          LEA      EAX,\[EBP\-14\]   
+0167:004019D0 BA02000000      MOV      EDX,02   
+0167:004019D5 E8A6415A00      CALL    009A5B80   
+0167:004019DA 66C78510FDFFFF44+MOV      WORD \[EBP+FFFFFD10\],44   
+0167:004019E3 8B0DB4C2BD00    MOV      ECX,\[00BDC2B4\]   
+0167:004019E9 8B09            MOV      ECX,\[ECX\]   
+0167:004019EB B201            MOV      DL,01   
+0167:004019ED A1CC05B200      MOV      EAX,\[00B205CC\]   
+0167:004019F2 E8411A3800      CALL    00783438   
+0167:004019F7 8B15A838BD00    MOV      EDX,\[00BD38A8\]   
+0167:004019FD 8902            MOV      \[EDX\],EAX   
+0167:004019FF A1A838BD00      MOV      EAX,\[00BD38A8\]   
+0167:00401A04 8B00            MOV      EAX,\[EAX\]   
+0167:00401A06 E857805A00      CALL    \`VCL50!@Forms@TCustomForm@Show$qqrv\`   
+0167:00401A0B 8B15A838BD00    MOV      EDX,\[00BD38A8\]   
+0167:00401A11 8B02            MOV      EAX,\[EDX\]   
+0167:00401A13 8B10            MOV      EDX,\[EAX\]   
+0167:00401A15 FF9280000000    CALL    NEAR \[EDX+80\]   
+0167:00401A1B 8B0DB4C2BD00    MOV      ECX,\[00BDC2B4\]   
+0167:00401A21 8B01            MOV      EAX,\[ECX\]   
+0167:00401A23 E8627F5A00      CALL    \`VCL50!@Forms@TApplication@Initialize$qqrv\`   
+0167:00401A28 B201            MOV      DL,01   
+0167:00401A2A A1F8B6BD00      MOV      EAX,\[00BDB6F8\] 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

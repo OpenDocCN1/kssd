@@ -1,0 +1,832 @@
+
+
+# FlipBook V4.5 注册算法分析--IDEA+custom
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-79.htm`](https://www.pediy.com/kssd/pediy07/pediy7-79.htm)
+
+官方 URL:http://www.digicelinc.com  
+  
+Team ECLiPSE 的 Release Notes:  
+FlipBook Pro is a complete, full-featured,              
+traditional style, 2D animation program that does       
+everything you need to produce Saturday morning           
+cartoons and the commercials that interrupt them.        
+In addition to everything you get in the other          
+versions of FlipBook you now get 100 levels and the    
+ ability to do soft-edged shadows and multi-plane              
+camera moves. And with FlipBook's High-Resolution             
+Processing features you can zoom in and in and in     
+  
+明天就回学校了,这是偶寒假里的最后一篇文章(其实就写了两篇 :P).这个软件是从 2 月 12 号的 0day 中发现的,  
+Team ECLiPSE 的作品,精品啊!拿过来看了一下,没想到又是一个其貌不扬却使用了很少见的 IDEA(International Data Encryption Algorithm,国际数据加密算法)算法来保护自己的  
+当即决定拿下它,来看看 IDEA 在软件保护中的应用.  
+  
+PEiD 查壳,无壳,Visual C++ 6.0, kanal 插件没有分析出来 IDEA 算法,只给了 CRC32,而 CRC32 并没有用在注册验证上.  
+开始偶以为没有用到什么强的密码学算法,直到发现子密钥的生成的时候发现了特别,进而绷紧了神经,根据生成  
+子密钥的特点,偶有点怀疑到了 IDEA,但没有确定,真到发现了 0x10001,再加上独特的生成子密钥的代码,说明它是 IDEA 无疑了.  
+  
+注册信息保存在 C:\\WINDOWS\\FlipBook.ini 中  
+\[KeyLogic\]  
+SystemId=M38170-23723  
+KeyMsg=M26463-21522-19868-48523  
+User Name=  
+  
+IDA 分析完后导出.map 文件,然后利用 OD 的 Loadmap 插件导入.map  
+我们输入注册码,registration code 为 M26463-21522-19868-48523,这个是我构造好了的,  
+经分析后,可知注册认证在这里  
+  
+00461230   |.  8B4C24 24               mov ecx,dword ptr ss:\[esp+24\]  
+00461234   |.  33D2                    xor edx,edx  
+00461236   |.  8BC1                    mov eax,ecx  
+00461238   |.  BE A0860100             mov esi,186A0  
+0046123D   |.  F7F6                    div esi  
+0046123F   |.  B8 8F588B4F             mov eax,4F8B588F  
+00461244   |.  52                      push edx  
+00461245   |.  F7E1                    mul ecx  
+00461247   |.  2BCA                    sub ecx,edx  
+00461249   |.  D1E9                    shr ecx,1  
+0046124B   |.  03CA                    add ecx,edx  
+0046124D   |.  8D9424 C8000000         lea edx,dword ptr ss:\[esp+C8\]  
+00461254   |.  C1E9 10                 shr ecx,10  
+00461257   |.  51                      push ecx  
+00461258   |.  8B4C24 18               mov ecx,dword ptr ss:\[esp+18\]  
+0046125C   |.  51                      push ecx  
+0046125D   |.  68 5C0A4D00             push FlipBook.004D0A5C                        ;  ASCII "%c%05d-%05d"  
+00461262   |.  52                      push edx  
+00461263   |.  E8 A73D0100             call <FlipBook.\_sprintf>  
+  
+上面是生成机器码 ,后面会说到如何生成机器码的  
+  
+00461291 <>|> /8B8C24 BC000000         /mov ecx,dword ptr ss:\[esp+BC\]                ;  loc\_461291  
+00461298   |. |51                      |push ecx                                     ;  输入的假码  
+00461299   |. |68 680A4D00             |push FlipBook.004D0A68                       ;  ASCII "educational"  
+0046129E   |. |E8 AD4C0100             |call <FlipBook.\_\_strcmpi>  
+004612A3   |. |83C4 08                 |add esp,8  
+004612A6   |. |85C0                    |test eax,eax  
+004612A8   |. |0F84 E5030000           |je <FlipBook.loc\_461693>  
+004612AE   |. |8B9424 BC000000         |mov edx,dword ptr ss:\[esp+BC\]  
+004612B5   |. |52                      |push edx  
+004612B6   |. |68 740A4D00             |push FlipBook.004D0A74                       ;  ASCII "demo"  
+004612BB   |. |E8 904C0100             |call <FlipBook.\_\_strcmpi>  
+004612C0   |. |83C4 08                 |add esp,8  
+004612C3   |. |85C0                    |test eax,eax  
+004612C5   |. |0F84 BD030000           |je <FlipBook.loc\_461688>  
+004612CB   |. |8B8424 BC000000         |mov eax,dword ptr ss:\[esp+BC\]    ;假码  
+004612D2   |. |8BE8                    |mov ebp,eax  
+004612D4   |. |8A08                    |mov cl,byte ptr ds:\[eax\]         ;取假码第一个字符  
+004612D6   |. |80C9 20                 |or cl,20  
+004612D9   |. |80F9 65                 |cmp cl,65                        ;是否为 e  
+004612DC   |. |75 22                   |jnz short <FlipBook.loc\_461300>  
+004612DE   |. |8A50 01                 |mov dl,byte ptr ds:\[eax+1\]  
+004612E1   |. |80CA 20                 |or dl,20  
+004612E4   |. |80FA 64                 |cmp dl,64  
+004612E7   |. |75 17                   |jnz short <FlipBook.loc\_461300>  
+004612E9   |. |6A FF                   |push -1  
+004612EB   |. |6A 04                   |push 4  
+004612ED   |. |68 15E00000             |push 0E015  
+004612F2   |. |E8 BB370300             |call <FlipBook.sub\_494AB2>  
+004612F7   |. |83F8 06                 |cmp eax,6  
+004612FA   |. |0F84 93030000           |je <FlipBook.loc\_461693>  
+00461300 <>|> |8B3D 74F34A00           |mov edi,dword ptr ds:\[<&KERNEL32.GetTickCoun>;  loc\_461300  
+00461306   |. |FFD7                    |call edi                                     ; \[GetTickCount  
+00461308   |. |8BF0                    |mov esi,eax  
+0046130A   |. |FFD7                    |call edi                                     ; \[GetTickCount  
+0046130C   |. |3BC6                    |cmp eax,esi  
+0046130E   |. |72 14                   |jb short <FlipBook.loc\_461324>  
+00461310   |. |8D9E E8030000           |lea ebx,dword ptr ds:\[esi+3E8\]  
+00461316 <>|> |3BC3                    |/cmp eax,ebx                                 ;  loc\_461316  
+00461318   |. |77 06                   ||ja short <FlipBook.loc\_461320>  
+0046131A   |. |FFD7                    ||call edi  
+0046131C   |. |3BC6                    ||cmp eax,esi  
+0046131E   |.^|73 F6                   |\\jnb short <FlipBook.loc\_461316>  
+00461320 <>|> |8B5C24 20               |mov ebx,dword ptr ss:\[esp+20\]                ;  loc\_461320  
+00461324 <>|> |8B4424 10               |mov eax,dword ptr ss:\[esp+10\]                ;  loc\_461324 机器码的第一个字符  
+00461328   |. |8A4D 00                 |mov cl,byte ptr ss:\[ebp\]                     ; 假码的第一个字符  
+0046132B   |. |0C 20                   |or al,20  
+0046132D   |. |80C9 20                 |or cl,20  
+00461330   |. |45                      |inc ebp  
+00461331   |. |3AC1                    |cmp al,cl   
+00461333   |. |894424 10               |mov dword ptr ss:\[esp+10\],eax              ;机器码 or 20 后存与原来的  
+00461337   |. |75 27                   |jnz short <FlipBook.loc\_461360>  
+00461339   |. |8D5424 4C               |lea edx,dword ptr ss:\[esp+4C\]  
+0046133D   |. |8D4424 34               |lea eax,dword ptr ss:\[esp+34\]  
+00461341   |. |52                      |push edx  
+00461342   |. |8D4C24 3C               |lea ecx,dword ptr ss:\[esp+3C\]  
+00461346   |. |50                      |push eax  
+00461347   |. |8D5424 48               |lea edx,dword ptr ss:\[esp+48\]  
+0046134B   |. |51                      |push ecx  
+0046134C   |. |52                      |push edx                           
+0046134D   |. |68 7C0A4D00             |push FlipBook.004D0A7C                       ;  ASCII "%u-%u-%u-%u"   
+00461352   |. |55                      |push ebp  
+00461353   |. |E8 4E3D0100             |call <FlipBook.\_sscanf>                ;读入假码剩下的字符串  
+00461358   |. |83C4 18                 |add esp,18  
+0046135B   |. |83F8 04                 |cmp eax,4  
+0046135E   |. |74 0C                   |je short <FlipBook.loc\_46136C>  
+00461360 <>|> |6A 00                   |push 0                                       ;  loc\_461360  
+00461362   |. |68 304E0000             |push 4E30  
+00461367   |. |E9 76010000             |jmp <FlipBook.loc\_4614E2>  
+0046136C <>|> |8B4424 40               |mov eax,dword ptr ss:\[esp+40\]                ;    
+00461370   |. |8B6C24 4C               |mov ebp,dword ptr ss:\[esp+4C\]                ;    
+00461374   |. |8B5424 38               |mov edx,dword ptr ss:\[esp+38\]                ;    
+00461378   |. |BF A0860100             |mov edi,186A0  
+0046137D   |. |8D0480                  |lea eax,dword ptr ds:\[eax+eax\*4\]             ;  
+00461380   |. |8D0480                  |lea eax,dword ptr ds:\[eax+eax\*4\]             ;  
+00461383   |. |8D0480                  |lea eax,dword ptr ds:\[eax+eax\*4\]              
+00461386   |. |8D0480                  |lea eax,dword ptr ds:\[eax+eax\*4\]   
+00461389   |. |8D0C80                  |lea ecx,dword ptr ds:\[eax+eax\*4\]   
+0046138C   |. |8B4424 34               |mov eax,dword ptr ss:\[esp+34\]      ;  
+00461390   |. |C1E1 05                 |shl ecx,5  
+00461393   |. |8D0480                  |lea eax,dword ptr ds:\[eax+eax\*4\]  
+00461396   |. |03CA                    |add ecx,edx  
+00461398   |. |33D2                    |xor edx,edx  
+0046139A   |. |894C24 50               |mov dword ptr ss:\[esp+50\],ecx  
+0046139E   |. |8D0480                  |lea eax,dword ptr ds:\[eax+eax\*4\]  
+004613A1   |. |8D0480                  |lea eax,dword ptr ds:\[eax+eax\*4\]  
+004613A4   |. |8D0480                  |lea eax,dword ptr ds:\[eax+eax\*4\]  
+004613A7   |. |8D3480                  |lea esi,dword ptr ds:\[eax+eax\*4\]  
+004613AA   |. |C1E6 05                 |shl esi,5  
+004613AD   |. |03F5                    |add esi,ebp  
+004613AF   |. |8BC6                    |mov eax,esi  
+004613B1   |. |897424 54               |mov dword ptr ss:\[esp+54\],esi  
+004613B5   |. |F7F7                    |div edi  
+004613B7   |. |B8 8F588B4F             |mov eax,4F8B588F  
+004613BC   |. |52                      |push edx  
+004613BD   |. |F7E6                    |mul esi  
+004613BF   |. |2BF2                    |sub esi,edx  
+004613C1   |. |8BC1                    |mov eax,ecx  
+004613C3   |. |D1EE                    |shr esi,1  
+004613C5   |. |03F2                    |add esi,edx  
+004613C7   |. |33D2                    |xor edx,edx  
+004613C9   |. |C1EE 10                 |shr esi,10  
+004613CC   |. |56                      |push esi  
+004613CD   |. |8BF7                    |mov esi,edi  
+004613CF   |. |F7F6                    |div esi  
+004613D1   |. |B8 8F588B4F             |mov eax,4F8B588F  
+004613D6   |. |52                      |push edx  
+004613D7   |. |F7E1                    |mul ecx  
+004613D9   |. |2BCA                    |sub ecx,edx  
+004613DB   |. |8D8424 E0000000         |lea eax,dword ptr ss:\[esp+E0\]  
+004613E2   |. |D1E9                    |shr ecx,1  
+004613E4   |. |03CA                    |add ecx,edx  
+004613E6   |. |C1E9 10                 |shr ecx,10  
+004613E9   |. |51                      |push ecx                   ;00390  
+004613EA   |. |68 880A4D00             |push FlipBook.004D0A88                       ;  ASCII "%5u-%5u-%5u-%5u"  
+004613EF   |. |50                      |push eax   
+004613F0   |. |E8 1A3C0100             |call <FlipBook.\_sprintf>  
+004613F5   |. |83C4 18                 |add esp,18                        
+\------------------------------------------------------------------------------  
+上面的一段经仔细分析,最终逆向为如下 C 代码  
+for(i=0;i<4;i++)  
+{  
+s1+=s1\*4  
+}  
+temp1=s1+s1\*4;  
+shl temp1,5;  
+temp1+=s2     temp1=9dbba972  
+for(i=0;i<4;i++)  
+{  
+s1+=s1\*4  
+}  
+temp2=s1+s1\*4;  
+shl temp2,5;  
+temp2+=s4;    temp2=766ce70b  
+  
+s4=temp2%0x186A0  
+eax=temp2/0x186A0  
+edx=0x4F8B588F\*temp2  
+temp2-=edx;  
+temp2>>=1  
+temp2+=edx;  
+temp2>>=0x10;  
+s3=temp2  
+  
+s2=temp1%0x186a0  
+eax=temp1/0x186A0  
+edx=0x4F8B588F\*temp1  
+temp1-=edx;  
+temp1>>=1  
+temp1+=edx;  
+temp1>>=0x10;  
+s1=temp1  
+实际上就是  
+s1=temp1/0x186A0;  
+  s2=temp1%0x186A0;  
+  s3=temp2/0x186A0;  
+  s4=temp2%0x186A0;  
+  
+\--------------------------------------------------------------------------------  
+004613F8   |. |8D4C24 48               |lea ecx,dword ptr ss:\[esp+48\]  
+004613FC   |. |6A 01                   |push 1  
+004613FE   |. |E8 0DAEFBFF             |call <FlipBook.unknown\_libname\_6>  
+00461403   |. |8D4C24 50               |lea ecx,dword ptr ss:\[esp+50\]  
+00461407   |. |6A 00                   |push 0                                       ; /Arg3 = 00000000  
+00461409   |. |8D5424 2C               |lea edx,dword ptr ss:\[esp+2C\]                ; |  
+0046140D   |. |51                      |push ecx                                     ; |Arg2  
+0046140E   |. |52                      |push edx                                     ; |Arg1  
+0046140F   |. |8D4C24 54               |lea ecx,dword ptr ss:\[esp+54\]                ; |  
+00461413   |. |E8 98AEFBFF             |call <FlipBook.sub\_41C2B0>                   ; \\FlipBook.0041C2B0  
+\--------------------------------------------------------------------------------  
+0041C2B0 <>/$  8B4424 0C               mov eax,dword ptr ss:\[esp+C\]                  ;  这个 call 是生成 IDEA 的加密密钥  
+0041C2B4   |.  81EC E4000000           sub esp,0E4  
+0041C2BA   |.  85C0                    test eax,eax  
+0041C2BC   |.  53                      push ebx  
+0041C2BD   |.  8BD9                    mov ebx,ecx  
+0041C2BF   |.  75 45                   jnz short <FlipBook.loc\_41C306>  
+0041C2C1   |.  56                      push esi  
+0041C2C2   |.  57                      push edi  
+0041C2C3   |.  BF 2CED4C00             mov edi,FlipBook.004CED2C                     ;  ASCII "DigiCelAnimation"  
+0041C2C8   |.  83C9 FF                 or ecx,FFFFFFFF  
+0041C2CB   |.  F2:AE                   repne scas byte ptr es:\[edi\]  
+0041C2CD   |.  F7D1                    not ecx  
+0041C2CF   |.  2BF9                    sub edi,ecx  
+0041C2D1   |.  8D5424 0C               lea edx,dword ptr ss:\[esp+C\]  
+0041C2D5   |.  8BC1                    mov eax,ecx  
+0041C2D7   |.  8BF7                    mov esi,edi  
+0041C2D9   |.  8BFA                    mov edi,edx  
+0041C2DB   |.  C1E9 02                 shr ecx,2  
+0041C2DE   |.  F3:A5                   rep movs dword ptr es:\[edi\],dword ptr ds:\[esi>  
+0041C2E0   |.  8BC8                    mov ecx,eax  
+0041C2E2   |.  8B03                    mov eax,dword ptr ds:\[ebx\]  
+0041C2E4   |.  83E1 03                 and ecx,3  
+0041C2E7   |.  F3:A4                   rep movs byte ptr es:\[edi\],byte ptr ds:\[esi\]  
+0041C2E9   |.  5F                      pop edi  
+0041C2EA   |.  5E                      pop esi  
+0041C2EB   |.  85C0                    test eax,eax  
+0041C2ED   |.  74 13                   je short <FlipBook.loc\_41C302>  
+0041C2EF   |.  33C0                    xor eax,eax  
+0041C2F1 <>|>  8A4C04 04               /mov cl,byte ptr ss:\[esp+eax+4\]               ;  key\[i\]^=0x20  
+0041C2F5   |.  80F1 20                 |xor cl,20  
+0041C2F8   |.  884C04 04               |mov byte ptr ss:\[esp+eax+4\],cl  
+0041C2FC   |.  40                      |inc eax  
+0041C2FD   |.  83F8 10                 |cmp eax,10  
+0041C300   |.^ 7C EF                   \\jl short <FlipBook.loc\_41C2F1>  
+0041C302 <>|>  8D4424 04               lea eax,dword ptr ss:\[esp+4\]                  ;  key  
+0041C306 <>|>  8D4C24 18               lea ecx,dword ptr ss:\[esp+18\]                 ;  loc\_41C306  
+0041C30A   |.  51                      push ecx  
+0041C30B   |.  50                      push eax  
+0041C30C   |.  E8 0FFDFFFF             call <FlipBook.sub\_41C020>  
+\---------------------------------------------------------------------------------  
+0041C020 <>/$  8B4C24 04               mov ecx,dword ptr ss:\[esp+4\]                  ;    
+0041C024   |.  8B4424 08               mov eax,dword ptr ss:\[esp+8\]  
+0041C028   |.  56                      push esi  
+0041C029   |.  8BD0                    mov edx,eax  
+0041C02B   |.  8B31                    mov esi,dword ptr ds:\[ecx\]  
+0041C02D   |.  8932                    mov dword ptr ds:\[edx\],esi  
+0041C02F   |.  8B71 04                 mov esi,dword ptr ds:\[ecx+4\]  
+0041C032   |.  8972 04                 mov dword ptr ds:\[edx+4\],esi  
+0041C035   |.  8B71 08                 mov esi,dword ptr ds:\[ecx+8\]  
+0041C038   |.  8972 08                 mov dword ptr ds:\[edx+8\],esi  
+0041C03B   |.  8B49 0C                 mov ecx,dword ptr ds:\[ecx+C\]  
+0041C03E   |.  894A 0C                 mov dword ptr ds:\[edx+C\],ecx          ;上面是 temp\[4\]=key\[4\]  
+0041C041   |.  BA 08000000             mov edx,8  
+0041C046   |.  8D48 F4                 lea ecx,dword ptr ds:\[eax-C\]  
+0041C049 <>|>  8BC2                    /mov eax,edx                                  ;  loc\_41C049  
+0041C04B   |.  83E0 07                 |and eax,7  
+0041C04E   |.  66:3D 0600              |cmp ax,6  
+0041C052   |.  75 11                   |jnz short <FlipBook.loc\_41C065>  
+0041C054   |.  66:8B41 0E              |mov ax,word ptr ds:\[ecx+E\]  
+0041C058   |.  66:8B31                 |mov si,word ptr ds:\[ecx\]  
+0041C05B   |.  66:C1E0 09              |shl ax,9  
+0041C05F   |.  66:C1EE 07              |shr si,7  
+0041C063   |.  EB 27                   |jmp short <FlipBook.loc\_41C08C>  
+0041C065 <>|>  66:3D 0700              |cmp ax,7                                     ;  loc\_41C065  
+0041C069   |.  75 11                   |jnz short <FlipBook.loc\_41C07C>  
+0041C06B   |.  66:8B41 FE              |mov ax,word ptr ds:\[ecx-2\]  
+0041C06F   |.  66:8B31                 |mov si,word ptr ds:\[ecx\]  
+0041C072   |.  66:C1E0 09              |shl ax,9  
+0041C076   |.  66:C1EE 07              |shr si,7  
+0041C07A   |.  EB 10                   |jmp short <FlipBook.loc\_41C08C>  
+0041C07C <>|>  66:8B41 10              |mov ax,word ptr ds:\[ecx+10\]                  ;  loc\_41C07C  
+0041C080   |.  66:8B71 0E              |mov si,word ptr ds:\[ecx+E\]  
+0041C084   |.  66:C1E8 07              |shr ax,7  
+0041C088   |.  66:C1E6 09              |shl si,9  
+0041C08C <>|>  33C6                    |xor eax,esi                                  ;  loc\_41C08C  
+0041C08E   |.  42                      |inc edx  
+0041C08F   |.  66:8941 1C              |mov word ptr ds:\[ecx+1C\],ax  
+0041C093   |.  83C1 02                 |add ecx,2  
+0041C096   |.  66:83FA 34              |cmp dx,34  
+0041C09A   |.^ 72 AD                   \\jb short <FlipBook.loc\_41C049>  
+0041C09C   |.  5E                      pop esi  
+0041C09D   \\.  C3                      retn  
+  
+生成的 encrypt\_subkey 如下  
+0012FC20  64 49 47 49 63 45 4C 61 4E 49 4D 41 54 49 4F 4E  dIGIcELaNIMATION  
+0012FC30  8A 8E C2 C6 92 98 82 9C 92 9A 9C A8 92 9E 92 C8  妿缕挊倻挌湪挒捜  
+0012FC40  31 85 39 25 35 05 51 25 3D 39 91 25 1D 25 8D 15  1?%5Q%=9?%?  
+0012FC50  0A 72 4A 6A 72 A2 4B 7A 4A 22 2B 3A 0A 1B 4A 62  .rJjrzJ"+:.Jb  
+0012FC60  44 95 F4 E4 44 96 74 94 36 56 C4 14 E4 94 D4 14  D 曯銬杢?V?鋽?  
+0012FC70  2C E9 28 89 AC E8 29 6C 29 89 29 C8 2A A9 C9 89  ,?壃?l)??┥  
+0012FC80  D1 51 D8 58 12 53 90 53                          裃豖 S 怱...  
+\-------------------------------------------------------------------------------------  
+0041C311   |.  8D9424 88000000         lea edx,dword ptr ss:\[esp+88\]  ;  
+0041C318   |.  8D4424 20               lea eax,dword ptr ss:\[esp+20\]  ;  
+0041C31C   |.  52                      push edx  
+0041C31D   |.  50                      push eax  
+0041C31E   |.  E8 7DFDFFFF             call <FlipBook.sub\_41C0A0>  
+\-------------------------------------------------------------------------------------  
+0041C0A0 <>/$  83EC 7C                 sub esp,7C                                    ;  下面是生成 IDEA 的解密密钥  
+0041C0A3   |.  53                      push ebx  
+0041C0A4   |.  55                      push ebp  
+0041C0A5   |.  8D5424 1E               lea edx,dword ptr ss:\[esp+1E\]  
+0041C0A9   |.  56                      push esi  
+0041C0AA   |.  57                      push edi  
+0041C0AB   |.  C74424 14 00000000      mov dword ptr ss:\[esp+14\],0  
+0041C0B3   |.  C74424 18 30000000      mov dword ptr ss:\[esp+18\],30  
+0041C0BB   |.  895424 10               mov dword ptr ss:\[esp+10\],edx  
+0041C0BF <>|>  8B6C24 18               /mov ebp,dword ptr ss:\[esp+18\]                ;  loc\_41C0BF  
+0041C0C3   |.  8B8424 90000000         |mov eax,dword ptr ss:\[esp+90\]       subkey  
+0041C0CA   |.  81E5 FFFF0000           |and ebp,0FFFF  
+0041C0D0   |.  33C9                    |xor ecx,ecx  
+0041C0D2   |.  33DB                    |xor ebx,ebx  
+0041C0D4   |.  896C24 1C               |mov dword ptr ss:\[esp+1C\],ebp  
+0041C0D8   |.  66:8B0C68               |mov cx,word ptr ds:\[eax+ebp\*2\]     ;以初始化的 0x30 为 index 取 subkey  
+0041C0DC   |.  BE 01000100             |mov esi,10001                      ;不能看到 0x10001 就以为是 RSA 啦~  
+0041C0E1   |.  85C9                    |test ecx,ecx                       ;它同样用在 IDEA 中  
+0041C0E3   |.  BF 01000000             |mov edi,1  
+0041C0E8   |.  7E 35                   |jle short <FlipBook.loc\_41C11F>  
+0041C0EA <>|>  8BC6                    |/mov eax,esi                                 ;  loc\_41C0EA  
+0041C0EC   |.  99                      ||cdq  
+0041C0ED   |.  F7F9                    ||idiv ecx  
+0041C0EF   |.  8BC6                    ||mov eax,esi  
+0041C0F1   |.  8BF1                    ||mov esi,ecx  
+0041C0F3   |.  895424 20               ||mov dword ptr ss:\[esp+20\],edx  
+0041C0F7   |.  99                      ||cdq  
+0041C0F8   |.  F7F9                    ||idiv ecx  
+0041C0FA   |.  8B4C24 20               ||mov ecx,dword ptr ss:\[esp+20\]  
+0041C0FE   |.  8BD0                    ||mov edx,eax  
+0041C100   |.  8BC3                    ||mov eax,ebx  
+0041C102   |.  0FAFD7                  ||imul edx,edi  
+0041C105   |.  2BC2                    ||sub eax,edx  
+0041C107   |.  8BDF                    ||mov ebx,edi  
+0041C109   |.  85C9                    ||test ecx,ecx  
+0041C10B   |.  8BF8                    ||mov edi,eax  
+0041C10D   |.^ 7F DB                   |\\jg short <FlipBook.loc\_41C0EA>  
+0041C10F   |.  85DB                    |test ebx,ebx  
+0041C111   |.  7D 01                   |jge short <FlipBook.loc\_41C114>  
+0041C113   |.  43                      |inc ebx  
+0041C114 <>|>  8B5424 10               |mov edx,dword ptr ss:\[esp+10\]                ;  loc\_41C114  
+0041C118   |.  8B8424 90000000         |mov eax,dword ptr ss:\[esp+90\]  
+0041C11F <>|>  8B4C24 14               |mov ecx,dword ptr ss:\[esp+14\]                ;  loc\_41C11F  
+0041C123   |.  66:895A FE              |mov word ptr ds:\[edx-2\],bx  
+0041C127   |.  66:85C9                 |test cx,cx  
+0041C12A   |.  74 18                   |je short <FlipBook.loc\_41C144>  
+0041C12C   |.  66:83F9 30              |cmp cx,30  
+0041C130   |.  74 12                   |je short <FlipBook.loc\_41C144>  
+0041C132   |.  66:8B4C68 04            |mov cx,word ptr ds:\[eax+ebp\*2+4\]  
+0041C137   |.  66:F7D9                 |neg cx  
+0041C13A   |.  66:890A                 |mov word ptr ds:\[edx\],cx  
+0041C13D   |.  66:8B4C68 02            |mov cx,word ptr ds:\[eax+ebp\*2+2\]  
+0041C142   |.  EB 10                   |jmp short <FlipBook.loc\_41C154>  
+0041C144 <>|>  66:8B4C68 02            |mov cx,word ptr ds:\[eax+ebp\*2+2\]             ;  loc\_41C144  
+0041C149   |.  66:F7D9                 |neg cx  
+0041C14C   |.  66:890A                 |mov word ptr ds:\[edx\],cx  
+0041C14F   |.  66:8B4C68 04            |mov cx,word ptr ds:\[eax+ebp\*2+4\]  
+0041C154 <>|>  66:F7D9                 |neg cx                                       ;  loc\_41C154  
+0041C157   |.  66:894A 02              |mov word ptr ds:\[edx+2\],cx  
+0041C15B   |.  33C9                    |xor ecx,ecx  
+0041C15D   |.  66:8B4C68 06            |mov cx,word ptr ds:\[eax+ebp\*2+6\]  
+0041C162   |.  33DB                    |xor ebx,ebx  
+0041C164   |.  85C9                    |test ecx,ecx  
+0041C166   |.  BE 01000100             |mov esi,10001  
+0041C16B   |.  BF 01000000             |mov edi,1  
+0041C170   |.  7E 35                   |jle short <FlipBook.loc\_41C1A7>  
+0041C172 <>|>  8BC6                    |/mov eax,esi                                 ;  loc\_41C172  
+0041C174   |.  99                      ||cdq  
+0041C175   |.  F7F9                    ||idiv ecx  
+0041C177   |.  8BC6                    ||mov eax,esi  
+0041C179   |.  8BF1                    ||mov esi,ecx  
+0041C17B   |.  8BEA                    ||mov ebp,edx  
+0041C17D   |.  99                      ||cdq  
+0041C17E   |.  F7F9                    ||idiv ecx  
+0041C180   |.  8BCD                    ||mov ecx,ebp  
+0041C182   |.  8BD0                    ||mov edx,eax  
+0041C184   |.  8BC3                    ||mov eax,ebx  
+0041C186   |.  0FAFD7                  ||imul edx,edi  
+0041C189   |.  2BC2                    ||sub eax,edx  
+0041C18B   |.  8BDF                    ||mov ebx,edi  
+0041C18D   |.  85ED                    ||test ebp,ebp  
+0041C18F   |.  8BF8                    ||mov edi,eax  
+0041C191   |.^ 7F DF                   |\\jg short <FlipBook.loc\_41C172>  
+0041C193   |.  85DB                    |test ebx,ebx  
+0041C195   |.  7D 01                   |jge short <FlipBook.loc\_41C198>  
+0041C197   |.  43                      |inc ebx  
+0041C198 <>|>  8B6C24 1C               |mov ebp,dword ptr ss:\[esp+1C\]                ;  loc\_41C198  
+0041C19C   |.  8B5424 10               |mov edx,dword ptr ss:\[esp+10\]  
+0041C1A0   |.  8B8424 90000000         |mov eax,dword ptr ss:\[esp+90\]  
+0041C1A7 <>|>  8B4C24 14               |mov ecx,dword ptr ss:\[esp+14\]                ;  loc\_41C1A7  
+0041C1AB   |.  66:895A 04              |mov word ptr ds:\[edx+4\],bx  
+0041C1AF   |.  66:83F9 30              |cmp cx,30  
+0041C1B3   |.  73 12                   |jnb short <FlipBook.loc\_41C1C7>  
+0041C1B5   |.  66:8B7468 FC            |mov si,word ptr ds:\[eax+ebp\*2-4\]  
+0041C1BA   |.  66:8B4468 FE            |mov ax,word ptr ds:\[eax+ebp\*2-2\]  
+0041C1BF   |.  66:8972 06              |mov word ptr ds:\[edx+6\],si  
+0041C1C3   |.  66:8942 08              |mov word ptr ds:\[edx+8\],ax  
+0041C1C7 <>|>  8B7424 18               |mov esi,dword ptr ss:\[esp+18\]                ;  loc\_41C1C7  
+0041C1CB   |.  83C1 06                 |add ecx,6  
+0041C1CE   |.  83C2 0C                 |add edx,0C  
+0041C1D1   |.  81C6 FAFF0000           |add esi,0FFFA  
+0041C1D7   |.  66:83F9 34              |cmp cx,34  
+0041C1DB   |.  894C24 14               |mov dword ptr ss:\[esp+14\],ecx  
+0041C1DF   |.  895424 10               |mov dword ptr ss:\[esp+10\],edx  
+0041C1E3   |.  897424 18               |mov dword ptr ss:\[esp+18\],esi  
+0041C1E7   |.^ 0F82 D2FEFFFF           \\jb <FlipBook.loc\_41C0BF>  
+0041C1ED   |.  8BBC24 94000000         mov edi,dword ptr ss:\[esp+94\]  
+0041C1F4   |.  B9 1A000000             mov ecx,1A  
+0041C1F9   |.  8D7424 24               lea esi,dword ptr ss:\[esp+24\]  
+0041C1FD   |.  F3:A5                   rep movs dword ptr es:\[edi\],dword ptr ds:\[esi>  
+\------------------------------------------------------------------------------------  
+0041C323   |.  8B9424 FC000000         mov edx,dword ptr ss:\[esp+FC\]  
+0041C32A   |.  8B8424 00010000         mov eax,dword ptr ss:\[esp+100\]  
+0041C331   |.  83C4 10                 add esp,10  
+0041C334   |.  8D8C24 80000000         lea ecx,dword ptr ss:\[esp+80\]  
+0041C33B   |.  51                      push ecx  
+0041C33C   |.  52                      push edx  
+0041C33D   |.  50                      push eax  
+0041C33E   |.  8BCB                    mov ecx,ebx  
+0041C340   |.  E8 7BFAFFFF             call <FlipBook.sub\_41BDC0>  
+\-------------------------------------------------------------------------------------  
+0041BDC0 <>/$  51                      push ecx                                      ;  这是 IDEA 的解密 function  
+0041BDE6 <>|>  8B5424 18               /mov edx,dword ptr ss:\[esp+18\]                ;  是对 temp1 和 temp2 进行解密  
+0041BDEA   |.  8B7424 20               |mov esi,dword ptr ss:\[esp+20\]                ;  得到 m1 和 m2  
+0041BDEE <>|>  66:8B08                  mov cx,word ptr ds:\[eax\]                     ;  loc\_41BDEE  
+0041BDF1   |.  83C0 02                 |add eax,2  
+0041BDF4   |.  66:85C9                 |test cx,cx  
+0041BDF7   |.  75 09                   |jnz short <FlipBook.loc\_41BE02>  
+0041BDF9   |.  B9 01000000             |mov ecx,1  
+0041BDFE   |.  2BCB                    |sub ecx,ebx  
+0041BE00   |.  EB 2F                   |jmp short <FlipBook.loc\_41BE31>  
+0041BE02 <>|>  66:85DB                 |test bx,bx                                   ;  loc\_41BE02  
+0041BE05   |.  75 09                   |jnz short <FlipBook.loc\_41BE10>  
+0041BE07   |.  BB 01000000             |mov ebx,1  
+0041BE0C   |.  2BD9                    |sub ebx,ecx  
+0041BE0E   |.  EB 23                   |jmp short <FlipBook.loc\_41BE33>  
+0041BE10 <>|>  81E1 FFFF0000           |and ecx,0FFFF                                ;  loc\_41BE10  
+0041BE16   |.  81E3 FFFF0000           |and ebx,0FFFF  
+0041BE1C   |.  0FAFCB                  |imul ecx,ebx  
+0041BE1F   |.  8BF9                    |mov edi,ecx  
+0041BE21   |.  81E1 FFFF0000           |and ecx,0FFFF  
+0041BE27   |.  C1EF 10                 |shr edi,10  
+0041BE2A   |.  2BCF                    |sub ecx,edi  
+0041BE2C   |.  85C9                    |test ecx,ecx  
+0041BE2E   |.  7F 01                   |jg short <FlipBook.loc\_41BE31>  
+0041BE30   |.  41                      |inc ecx  
+0041BE31 <>|>  8BD9                    |mov ebx,ecx                                  ;  loc\_41BE31  
+0041BE33 <>|>  66:8B08                 |mov cx,word ptr ds:\[eax\]                     ;  loc\_41BE33  
+0041BE36   |.  83C0 02                 |add eax,2  
+0041BE39   |.  03F1                    |add esi,ecx  
+0041BE3B   |.  66:8B08                 |mov cx,word ptr ds:\[eax\]  
+0041BE3E   |.  83C0 02                 |add eax,2  
+0041BE41   |.  03D1                    |add edx,ecx  
+0041BE43   |.  897424 20               |mov dword ptr ss:\[esp+20\],esi  
+0041BE47   |.  66:8B08                 |mov cx,word ptr ds:\[eax\]  
+0041BE4A   |.  83C0 02                 |add eax,2  
+0041BE4D   |.  66:85C9                 |test cx,cx  
+0041BE50   |.  895424 18               |mov dword ptr ss:\[esp+18\],edx  
+0041BE54   |.  75 09                   |jnz short <FlipBook.loc\_41BE5F>  
+0041BE56   |.  B9 01000000             |mov ecx,1  
+0041BE5B   |.  2BCD                    |sub ecx,ebp  
+0041BE5D   |.  EB 2F                   |jmp short <FlipBook.loc\_41BE8E>  
+0041BE5F <>|>  66:85ED                 |test bp,bp                                   ;  loc\_41BE5F  
+0041BE62   |.  75 09                   |jnz short <FlipBook.loc\_41BE6D>  
+0041BE64   |.  BD 01000000             |mov ebp,1  
+0041BE69   |.  2BE9                    |sub ebp,ecx  
+0041BE6B   |.  EB 23                   |jmp short <FlipBook.loc\_41BE90>  
+0041BE6D <>|>  81E1 FFFF0000           |and ecx,0FFFF                                ;  loc\_41BE6D  
+0041BE73   |.  81E5 FFFF0000           |and ebp,0FFFF  
+0041BE79   |.  0FAFCD                  |imul ecx,ebp  
+0041BE7C   |.  8BF9                    |mov edi,ecx  
+0041BE7E   |.  81E1 FFFF0000           |and ecx,0FFFF  
+0041BE84   |.  C1EF 10                 |shr edi,10  
+0041BE87   |.  2BCF                    |sub ecx,edi  
+0041BE89   |.  85C9                    |test ecx,ecx  
+0041BE8B   |.  7F 01                   |jg short <FlipBook.loc\_41BE8E>  
+0041BE8D   |.  41                      |inc ecx  
+0041BE8E <>|>  8BE9                    |mov ebp,ecx                                  ;  loc\_41BE8E  
+0041BE90 <>|>  66:8B08                 |mov cx,word ptr ds:\[eax\]                     ;  loc\_41BE90  
+0041BE93   |.  33D3                    |xor edx,ebx  
+0041BE95   |.  83C0 02                 |add eax,2  
+0041BE98   |.  66:85C9                 |test cx,cx  
+0041BE9B   |.  75 09                   |jnz short <FlipBook.loc\_41BEA6>  
+0041BE9D   |.  BF 01000000             |mov edi,1  
+0041BEA2   |.  2BFA                    |sub edi,edx  
+.............  
+0041BF1A   |.  2BF1                    |sub esi,ecx  
+0041BF1C   |.  85F6                    |test esi,esi  
+0041BF1E   |.  7F 01                   |jg short <FlipBook.loc\_41BF21>  
+0041BF20   |.  46                      |inc esi  
+0041BF21 <>|>  8BCE                    |mov ecx,esi                                  ;  loc\_41BF21  
+0041BF23 <>|>  8B5424 18               |mov edx,dword ptr ss:\[esp+18\]                ;  loc\_41BF23  
+0041BF27   |.  8B7424 20               |mov esi,dword ptr ss:\[esp+20\]  
+0041BF2B   |.  03F9                    |add edi,ecx  
+0041BF2D   |.  33D9                    |xor ebx,ecx  
+0041BF2F   |.  33CA                    |xor ecx,edx  
+0041BF31   |.  33EF                    |xor ebp,edi  
+0041BF33   |.  894C24 20               |mov dword ptr ss:\[esp+20\],ecx  
+0041BF37   |.  8B4C24 10               |mov ecx,dword ptr ss:\[esp+10\]  
+0041BF3B   |.  33FE                    |xor edi,esi  
+0041BF3D   |.  49                      |dec ecx  
+0041BF3E   |.  897C24 18               |mov dword ptr ss:\[esp+18\],edi  
+0041BF42   |.  894C24 10               |mov dword ptr ss:\[esp+10\],ecx  
+0041BF46   |.^ 0F85 9AFEFFFF           \\jnz <FlipBook.loc\_41BDE6>  
+0041BF4C   |.  66:8B08                 mov cx,word ptr ds:\[eax\]  
+0041BF4F   |.  83C0 02                 add eax,2  
+0041BF52   |.  66:85C9                 test cx,cx  
+................  
+0041BF7A   |.  0FAFCB                  imul ecx,ebx  
+0041BF7D   |.  8BD1                    mov edx,ecx  
+\----------------------------------------------------------------------------------  
+00461418   |. |8B7424 2C               |mov esi,dword ptr ss:\[esp+2C\]        ;这是解密后的 m2  
+0046141C   |. |8B5424 28               |mov edx,dword ptr ss:\[esp+28\]        ; m1  
+00461420   |. |8BFE                    |mov edi,esi  
+00461422   |. |8BEE                    |mov ebp,esi  
+00461424   |. |C1EF 1A                 |shr edi,1A  
+00461427   |. |C1EE 10                 |shr esi,10  
+0046142A   |. |81F2 AA55AA55           |xor edx,55AA55AA  
+00461430   |. |83E7 03                 |and edi,3  
+00461433   |. |C1ED 1C                 |shr ebp,1C  
+00461436   |. |81E6 FF030000           |and esi,3FF  
+0046143C   |. |895424 28               |mov dword ptr ss:\[esp+28\],edx  
+00461440   |. |74 73                   |je short <FlipBook.loc\_4614B5>  
+00461442   |. |6A FF                   |push -1                                      ; /Arg7 = FFFFFFFF  
+00461444   |. |6A 00                   |push 0                                       ; |Arg6 = 00000000  
+00461446   |. |6A 00                   |push 0                                       ; |Arg5 = 00000000  
+00461448   |. |6A 00                   |push 0                                       ; |Arg4 = 00000000  
+0046144A   |. |6A 0B                   |push 0B                                      ; |Arg3 = 0000000B  
+0046144C   |. |6A 0C                   |push 0C                                      ; |Arg2 = 0000000C  
+0046144E   |. |68 D3070000             |push 7D3                                     ; |Arg1 = 000007D3  
+00461453   |. |8D4C24 38               |lea ecx,dword ptr ss:\[esp+38\]                ; |  
+00461457   |. |E8 E44F0200             |call <FlipBook.CTime::CTime(int,int,int,int,>; \\FlipBook.00486440  
+0046145C   |. |51                      |push ecx  
+0046145D   |. |8B4C24 20               |mov ecx,dword ptr ss:\[esp+20\]  
+00461461   |. |8BC4                    |mov eax,esp  
+00461463   |. |81C3 EC000000           |add ebx,0EC  
+00461469   |. |896424 34               |mov dword ptr ss:\[esp+34\],esp  
+0046146D   |. |8908                    |mov dword ptr ds:\[eax\],ecx  
+0046146F   |. |8BCB                    |mov ecx,ebx  
+00461471   |. |E8 0A310000             |call <FlipBook.sub\_464580>  
+00461476   |. |85C0                    |test eax,eax  
+00461478   |. |75 32                   |jnz short <FlipBook.loc\_4614AC>  
+0046147A   |. |8B5424 1C               |mov edx,dword ptr ss:\[esp+1C\]  
+0046147E   |. |51                      |push ecx  
+0046147F   |. |8BC4                    |mov eax,esp  
+00461481   |. |896424 34               |mov dword ptr ss:\[esp+34\],esp  
+00461485   |. |8BCB                    |mov ecx,ebx  
+00461487   |. |8910                    |mov dword ptr ds:\[eax\],edx  
+00461489   |. |8D4424 48               |lea eax,dword ptr ss:\[esp+48\]  
+0046148D   |. |50                      |push eax  
+0046148E   |. |E8 CD300000             |call <FlipBook.sub\_464560>  
+00461493   |. |8B08                    |mov ecx,dword ptr ds:\[eax\]  
+00461495   |. |B8 07452EC2             |mov eax,C22E4507  
+0046149A   |. |F7E9                    |imul ecx  
+0046149C   |. |03D1                    |add edx,ecx  
+0046149E   |. |C1FA 10                 |sar edx,10  
+004614A1   |. |8BCA                    |mov ecx,edx  
+004614A3   |. |C1E9 1F                 |shr ecx,1F  
+004614A6   |. |03D1                    |add edx,ecx  
+004614A8   |. |3BD6                    |cmp edx,esi  
+004614AA   |. |7E 05                   |jle short <FlipBook.loc\_4614B1>  
+004614AC <>|> |BD 09000000             |mov ebp,9                                    ;  loc\_4614AC  
+004614B1 <>|> |8B5C24 20               |mov ebx,dword ptr ss:\[esp+20\]                ;  loc\_4614B1  
+004614B5 <>|> |8B5424 28               |mov edx,dword ptr ss:\[esp+28\]                ;  loc\_4614B5  
+004614B9   |. |8B4424 24               |mov eax,dword ptr ss:\[esp+24\]  
+004614BD   |. |3BD0                    |cmp edx,eax  
+004614BF   |. |75 1A                   |jnz short <FlipBook.loc\_4614DB>  
+004614C1   |. |85ED                    |test ebp,ebp  
+004614C3   |. |75 16                   |jnz short <FlipBook.loc\_4614DB>  
+004614C5   |. |3B7C24 18               |cmp edi,dword ptr ss:\[esp+18\]  
+004614C9   |. |75 10                   |jnz short <FlipBook.loc\_4614DB>  
+004614CB   |. |8B4424 2C               |mov eax,dword ptr ss:\[esp+2C\]  
+004614CF   |. |83E0 0F                 |and eax,0F  
+004614D2   |. |83F8 04                 |cmp eax,4  
+004614D5   |. |77 04                   |ja short <FlipBook.loc\_4614DB>  
+004614D7   |. |85C0                    |test eax,eax  
+004614D9   |. |75 26                   |jnz short <FlipBook.loc\_461501>  
+004614DB <>|> |6A 00                   |push 0                                       ;  loc\_4614DB  
+004614DD   |. |68 314E0000             |push 4E31  
+004614E2 <>|> |E8 49310000             |call <FlipBook.sub\_464630>                   ;  loc\_4614E2  
+004614E7   |. |83C4 08                 |add esp,8  
+004614EA   |. |8D4C24 58               |lea ecx,dword ptr ss:\[esp+58\]  
+004614EE   |. |E8 166E0200             |call <FlipBook.sub\_488309>  
+004614F3   |. |83F8 01                 |cmp eax,1  
+004614F6   |.^\\0F84 95FDFFFF           \\je <FlipBook.loc\_461291>  
+\---------------------------------------------------------------------------------------  
+  
+上面是进行最后的验证,验证的思路如下:  
+  
+对 m1 的验证:  
+m1(0xB6297D41) xor 0x55AA55AA=0xE38328EB  这个 0xE38328EB 就是用来生成机器码的,不同的机器这个值不同  
+以我的机器码 M38170-23723,前面的 M 是固定的 , machinecode\[1\]=(38170)d=0xE38328EB/0x186a0  
+machinecode\[2\]=(23723)d=0xE38328EB%0x186a0.因些只要根据机器码做一次乘法运算即可得到 0xE38328EB.  
+对 m2 的验证  
+m2=0x0400FF04  
+edi=m2;  
+ebp=m2;  
+shr edi,0x1A  
+shr m2,0x10  
+and edi,3         edi 要等于 1,不等于 1 就 88 了即第 27,28 位和 3(11)b 与等到于 1  
+shr ebp,0x1C      ebp 要为 0,不为 0 就 88 了,即高 4 位必须为 0  
+and m2,0x3FF      也要为 0,即第 27 位以后 10 位必须为 0  
+  
+m2=0x0400FF04  
+eax=m2;  
+and m2,0xF  
+若 m2 为 0 或>4,就 886 即  低 4 位(al)必须为 0,但次高 4 位(ah)不能大于 4  
+因此构造出了这样一个二进制字串 100000000001111111100000100,即 0x0400FF04,以过测试 0x0400FF03 同样可以  
+  
+做注册机的时候只需要对 m1 和 m2 进行 IDEA\_encrypt,得到 temp1 和 temp2,然后利用  
+s1=temp1/0x186A0;  
+  s2=temp1%0x186A0;  
+  s3=temp2/0x186A0;  
+  s4=temp2%0x186A0;  
+  
+即可得到正确的注册码,附 keygen 源码,VC6 下编译通过
+
+/\* C - program of block cipher IDEA \*/
+
+#include <stdio.h>  
+#define maxim 65537  
+#define fuyi 65536  
+#define one 65535  
+#define round 8 
+
+void cip(unsigned IN\[5\],unsigned OUT\[5\], unsigned Z\[7\]\[10\]);  
+void key(short unsigned uskey\[9\], unsigned Z\[7\]\[10\]);  
+void de\_key(unsigned Z\[7\]\[10\], unsigned DK\[7\]\[10\]);  
+unsigned inv(unsigned xin);  
+unsigned mul(unsigned a, unsigned b);
+
+void main()   
+{  
+unsigned Z\[7\]\[10\], DK\[7\]\[10\], XX\[5\],YY\[5\];  
+short unsigned uskey\[9\];  
+char format\[\]="%c%5u-%5u-%5u-%5u";  
+unsigned long s1,s2,s3,s4,temp1,temp2;  
+char machinecode\[12\];  
+char sn1;  
+char tempsn\[25\];  
+printf("Your MachineCode is : \\t");  
+scanf("%s",machinecode);  
+s1=temp1=temp2=s2=s3=s4=0;  
+sn1=machinecode\[0\];  
+sscanf((machinecode+1),"%u-%u",&temp1,&temp2);  
+temp1\*=0x186A0;  
+temp1+=temp2;  
+temp1^=0x55AA55AA;  
+uskey\[1\]=0x4964;  
+uskey\[2\]=0x4947;  
+uskey\[3\]=0x4563;  
+uskey\[4\]=0x614C;  
+uskey\[5\]=0x494E;  
+uskey\[6\]=0x414D;  
+uskey\[7\]=0x4954;  
+uskey\[8\]=0x4E4F;  
+key(uskey,Z); /\* generate encryption subkeys Z\[i\]\[r\] \*/
+
+de\_key(Z,DK); /\* compute decryption subkeys DK\[i\]\[r\] \*/  
+  
+XX\[1\]=(unsigned short)temp1;  
+XX\[2\]=(unsigned short)(temp1>>0x10);  
+XX\[3\]=0xFF04;  
+XX\[4\]=0x0400;
+
+cip(XX,YY,Z); /\* encipher XX to YY with key Z \*/  
+\_\_asm  
+{  
+lea ecx,YY;  
+add ecx,4;  
+mov eax,dword ptr ds:\[ecx\];  
+add ecx,4;  
+mov edx,dword ptr ds:\[ecx\];  
+shl edx,0x10;  
+or eax,edx;  
+mov temp1,eax;  
+add ecx,4;  
+mov eax,dword ptr ds:\[ecx\];  
+add ecx,4;  
+mov edx,dword ptr ds:\[ecx\];  
+shl edx,0x10;  
+or eax,edx;  
+mov temp2,eax;   
+}  
+s1=temp1/0x186A0;  
+s2=temp1%0x186A0;  
+s3=temp2/0x186A0;  
+s4=temp2%0x186A0;  
+sprintf(tempsn,format,sn1,s1,s2,s3,s4);  
+tempsn\[24\]='\\0';  
+printf("Registration Code is :\\t%s\\n",tempsn);  
+}
+
+/\* encrypt algorithm \*/  
+void cip(unsigned IN\[5\],unsigned OUT\[5\],unsigned Z\[7\]\[10\])   
+{  
+unsigned r,x1,x2,x3,x4,kk,t1,t2,a;  
+x1=IN\[1\]; x2=IN\[2\]; x3=IN\[3\]; x4=IN\[4\];  
+for(r=1;r<=8;r++) /\* the round function \*/  
+{  
+/\* the group operation on 64-bits block \*/  
+x1 = mul(x1,Z\[1\]\[r\]); x4 = mul(x4,Z\[4\]\[r\]);  
+x2 = (x2 + Z\[2\]\[r\]) & one; x3 = (x3 + Z\[3\]\[r\]) & one;  
+/\* the function of the MA structure \*/  
+kk = mul(Z\[5\]\[r\],(x1^x3));  
+t1 = mul(Z\[6\]\[r\],(kk+(x2^x4)) & one);  
+t2 = (kk+t1) & one;  
+/\* the involutary permutation PI \*/  
+x1 = x1^t1; x4=x4^t2;  
+a = x2^t2; x2=x3^t1; x3=a;  
+}
+
+/\* the output transformation \*/  
+OUT\[1\] = mul(x1,Z\[1\]\[round+1\]);  
+OUT\[4\] = mul(x4,Z\[4\]\[round+1\]);  
+OUT\[2\] = (x3+Z\[2\]\[round+1\]) & one;  
+OUT\[3\] = (x2+Z\[3\]\[round+1\]) & one;  
+}
+
+/\* multiplication using the Low-High algorithm \*/
+
+unsigned mul(unsigned a,unsigned b)   
+{  
+long int p;  
+long unsigned q;  
+if(a==0) p=maxim-b;  
+else  
+if(b==0) p=maxim-a;  
+else {  
+q=(unsigned long)a\*(unsigned long)b;  
+p=(q & one) - (q>>16);   
+if(p<=0) p=p+maxim;  
+}  
+return (unsigned)(p&one);  
+}
+
+/\* compute inverse of xin by Euclidean gcd alg. \*/
+
+unsigned inv(unsigned xin)  
+{  
+long n1,n2,q,r,b1,b2,t;  
+if(xin==0) b2=0;  
+else  
+{ n1=maxim; n2=xin; b2=1; b1=0;  
+do { r = (n1 % n2); q = (n1-r)/n2;  
+if(r==0) { if(b2<0) b2=maxim+b2; }  
+else { n1=n2; n2=r; t=b2; b2=b1-q\*b2; b1=t; }  
+} while (r!=0);  
+}  
+return (unsigned)b2;  
+}
+
+/\* generate encryption subkeys Z's \*/
+
+void key(short unsigned uskey\[9\], unsigned Z\[7\]\[10\])   
+{  
+short unsigned S\[54\];  
+int i,j,r;  
+for(i=1;i<9;i++) S\[i-1\]=uskey\[i\];  
+/\* shifts \*/  
+for(i=8;i<54;i++)  
+{  
+if((i+2)%8 == 0) /\* for S\[14\],S\[22\],... \*/  
+S\[i\] = ((S\[i-7\]<<9) ^ (S\[i-14\]>>7)) & one;  
+else if((i+1)%8==0) /\* for S\[15\],S\[23\],... \*/  
+S\[i\] = ((S\[i-15\]<<9) ^ (S\[i-14\]>>7)) & one;  
+else  
+S\[i\] = ((S\[i-7\]<<9) ^ (S\[i-6\]>>7)) & one;  
+}
+
+/\* get subkeys \*/
+
+for(r=1;r<=round+1;r++)   
+for(j=1;j<7;j++)  
+Z\[j\]\[r\]=S\[6\*(r-1)+j-1\];  
+}
+
+/\* compute decryption subkeys DK's \*/
+
+void de\_key(unsigned Z\[7\]\[10\],unsigned DK\[7\]\[10\])  
+{  
+int j;  
+for(j=1;j<=round+1;j++)  
+{  
+DK\[1\]\[round-j+2\] = inv(Z\[1\]\[j\]);  
+DK\[4\]\[round-j+2\] = inv(Z\[4\]\[j\]);  
+  
+if (j==1 || j==round+1) {  
+DK\[2\]\[round-j+2\] = (fuyi-Z\[2\]\[j\]) & one;  
+DK\[3\]\[round-j+2\] = (fuyi-Z\[3\]\[j\]) & one;  
+} else {  
+DK\[2\]\[round-j+2\] = (fuyi-Z\[3\]\[j\]) & one;  
+DK\[3\]\[round-j+2\] = (fuyi-Z\[2\]\[j\]) & one;  
+}  
+}
+
+for(j=1;j<=round+1;j++)  
+{ DK\[5\]\[round+1-j\]=Z\[5\]\[j\];  
+DK\[6\]\[round+1-j\]=Z\[6\]\[j\];  
+}  
+}  
+  
+Regards  
+cnbragon  
+
+ 4dd466d0e1e0cc123afbe504da2462ca

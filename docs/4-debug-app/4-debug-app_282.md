@@ -1,0 +1,571 @@
+
+
+# 空当接龙逆向算法分析
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-438.htm`](https://www.pediy.com/kssd/pediy09/pediy09-438.htm)
+
+> 【文章标题】: 空当接龙逆向算法分析  
+> 【文章作者】: fqucuo  
+> 【作者 QQ 号】: 389990968  
+> 【软件名称】: freecell  
+> 【下载地址】: windows 自带  
+> 【编写语言】: C  
+> 【使用工具】: OD, WinHex，VC++6.0  
+> 【操作平台】: WinXpSp2 中文版  
+> 【作者声明】: 初学者的新一次的挑战！  
+> \--------------------------------------------------------------------------------  
+> 【详细过程】  
+>     
+>            老规矩，与文章无关的话后面说，我们先谈过程。  
+>          上次我发扫雷的文章，给朋友用了扫雷辅助工具后，他说他不会玩扫雷，倒是希望我做个秒杀空挡接龙的工具，其实大家比我都清楚，想要秒杀...呵呵，无非是跳转的事情，不过还好没什么事，也就准备尝试逆一下空挡（干嘛总是搞微软的小游戏呀！，原因嘛，蛮简单的方便），俗话说，麻雀虽小五脏俱全，再者说，我这种新手，也就这类玩意还好练练手，行了，废话不多说，Let's GO!  
+>            其实我比较关心的是两个部分,一是随机发牌部分；二是能自动算出是否是死局。其中第二个是最关心，有玩过空挡的人可能知道，当你玩到无解的时候，会弹出个 dialog 说你 over 了,所以,我就想其内部一定维护了一个算牌局是否 over 的算法，其实到后面我们可以发现，这个猜测是错误的，其内部并没有实现算出全盘 over 的功能，这个问题我会在下面的过程中讲解。Go on!  
+>            先说明一下,因为游戏内用到的全局变量与函数的调用过多,尤其是全局变量,所以我先把需要用到的全局变量和关键函数用 C 方式列出来,便于述说。还有就是篇幅的问题，考虑到过长所以我省去跟关键代码的过程，直接列出关键点的地址，大家有兴趣可以自己跟跟。  
+>       
+>     int nCards = 0x34; // 总牌数 52  
+>     int\* pBaseAddress = (unsigned int\*)0x1007500; // 中转站和最终站的地址  
+>     int\* pGameAddress = (unsigned int\*)0x1007554; // 游戏中牌局相对应的内存区地址  
+>     int\* pUndoAddress = (unsigned int\*)0x1007500; // 一份游戏场景拷贝，用于撤销操作  
+>       
+>       
+>            第一个问题：随机发牌  
+>   我们先来到 1003153 处，此块是完成了取系统时间做种子，然后取随机数作为游戏局数的操作  
+>   01003153  /$  56            push    esi  
+>   01003154  |.  6A 00         push    0                                ; /timer = NULL  
+>   01003156  |.  FF15 E4110001 call    dword ptr \[<&msvcrt.time>\]       ; \\time 获取系统时间  
+>   0100315C  |.  50            push    eax                              ; /seed  
+>   0100315D  |.  FF15 E8110001 call    dword ptr \[<&msvcrt.srand>\]      ; \\srand 用时间最为时间种子  
+>     time\_t tm;  
+>     time(&tm);  
+>       
+>   01003163  |.  8B35 EC110001 mov     esi, dword ptr \[<&msvcrt.rand>\]  ;  msvcrt.rand  
+>   01003169  |.  59            pop     ecx  
+>   0100316A  |.  59            pop     ecx  
+>   0100316B  |.  FFD6          call    esi                              ; \[rand 连 Call3 次 狠！  
+>   0100316D  |.  FFD6          call    esi  
+>   0100316F  |>  FFD6          call    esi  
+>     srand((unsigned int)tm);  
+>     rand();  
+>     rand();  
+>     int nGameNum = rand();  
+>       
+>   01003171  |.  83F8 01       cmp     eax, 1                           ;  是否大于等于第 1 局  
+>   01003174  |.^ 72 F9         jb      short 0100316F  
+>   01003176  |.  3D 40420F00   cmp     eax, 0F4240                      ;  是否小于等于第 1000000 局  
+>   0100317B  |.^ 77 F2         ja      short 0100316F  
+>   0100317D  |.  5E            pop     esi  
+>   0100317E  \\.  C3            retn  
+>     if(nGameNum  < 1 || nGameNum  > 1000000)  
+>     {  
+>       return 0;  
+>     }  
+>     
+>   这样游戏得到了随机牌局，下面我们继续向下分析，看看它是怎么做随机发牌的  
+>   01003213  |.  83C8 FF       or      eax, FFFFFFFF                    ;  存放游戏区将要写入-1  
+>   01003216  |.  B9 BD000000   mov     ecx, 0BD                         ;  写入数量：0x0BD  
+>   0100321B  |.  BF 00750001   mov     edi, 01007500                    ;  写入的目标地址  
+>   01003220  |.  F3:AB         rep     stos dword ptr es:\[edi\]  
+>     我在上面已经说明了 pBaseAddress = 0x1007500，然后将目标地址初始化为-1，但是这个写入数量 0xBD 从哪里来的呢？这  
+>   里有一个细节，就是说，空挡接龙总共有 8 列牌，每列最多可以放 0x15 张，也就是 0x15 行（为什么是 0x15 行后面会看到），所以 0x15 \* 0x8 = 0xA8？？怎么不是 0xBD 呢？因为游戏算上了中转站与最终牌的空间，8 个 int 就够了，为了对齐也给了他们 0x15 个，所以地址规划应该是这样：  
+>     pBaseAddress + 0 \* sizeof(int) == 中转站地址  
+>     pBaseAddress + 4 \* sizeof(int) == 最终牌地址  
+>     pBaseAddress + 0x15 \* sizeof(int) == 8 列牌的首地址 也就是 pGameAddress   
+>     
+>   01003222  |.  33C0          xor     eax, eax  
+>   01003224  |>  894485 A0     /mov     dword ptr \[ebp+eax\*4-60\], eax   ;  将 52(0x34)张牌从 0-51 按顺序放入局部数组变量中  
+>   01003228  |.  40            |inc     eax  
+>   01003229  |.  83F8 34       |cmp     eax, 34  
+>   0100322C  |.^ 72 F6         \\jb      short 01003224  
+>     int aryCards\[0x34\] = {0};  
+>     for(int i = 0; i < 0x34; i++)  
+>     {  
+>       aryCards\[i\] = i;  
+>     }  
+>     这里定义了一个 52 大小的数组，用来顺序存放 52 张牌  
+>       
+>   0100322E  |.  A1 4C830001   mov     eax, dword ptr \[100834C\]  
+>     \[100834C\]存放了牌局，至于牌局是什么时候放进去，我没跟，也懒得跟，知道即可  
+>       
+>   01003233  |.  83F8 FF       cmp     eax, -1                          ;  这里就是-1 局  
+>   01003236  |.  75 43         jnz     short 0100327B  
+>   .....省去  
+>   0100327B  |> \\83F8 FE       cmp     eax, -2                          ;  这里就是-2 局  
+>   0100327E  |.  75 53         jnz     short 010032D3  
+>     .....省去  
+>     这里就是微软设计的经典的-1 和-2 局，我是无解，有高手能解的共享哦！（不知道？自己到游戏中选局-1 或-2 就知道啦！）  
+>     
+>   010032D3  |> \\50            push    eax                              ; /seed 用牌局最为随机种子  
+>   010032D4  |.  FF15 E8110001 call    dword ptr \[<&msvcrt.srand>\]      ; \\srand  
+>   010032DA  |.  59            pop     ecx  
+>   010032DB  |.  33F6          xor     esi, esi                         ;  int i = 0  
+>   010032DD  |>  FF15 EC110001 /call    dword ptr \[<&msvcrt.rand>\]      ; \[rand  
+>   010032E3  |.  33D2          |xor     edx, edx                        ;  临时变量(edx)用来存放随机数 Mod 剩余牌数的余数  
+>   010032E5  |.  F7F3          |div     ebx                             ;  除以剩余牌数, ebx 用于存放剩余牌数  
+>   010032E7  |.  8BCE          |mov     ecx, esi                        ;  每次循环将计数器值给 ecx  
+>   010032E9  |.  83E1 07       |and     ecx, 7                          ;  限定发牌范围，不允许超过 8 列  
+>   010032EC  |.  6BC9 15       |imul    ecx, ecx, 15                    ;  每列牌最多允许放入 0x15(21)张（行）牌 010032EF  |.  4B            |dec     ebx                             ;  剩余牌数减一  
+>   010032F0  |.  8D4495 A0     |lea     eax, dword ptr \[ebp+edx\*4-60\]   ;  \[ebp-60\]数组首地址，用余数 \* sizeof(int)随机取数组中的牌  
+>   010032F4  |.  8BD6          |mov     edx, esi  
+>   010032F6  |.  C1EA 03       |shr     edx, 3                          ;  ？  
+>   010032F9  |.  03CA          |add     ecx, edx                        ;  ？  
+>   010032FB  |.  8B10          |mov     edx, dword ptr \[eax\]  
+>   010032FD  |.  89148D 547500>|mov     dword ptr \[ecx\*4+1007554\], edx  ;  因为有 mov ecx,esi 并且基数为 15，则将顺序存放入游戏内存堆中  
+>   01003304  |.  8B4C9D A0     |mov     ecx, dword ptr \[ebp+ebx\*4-60\]   ;  以剩余牌数(ebx)为基址取牌  
+>   01003308  |.  46            |inc     esi                             ;  i++  
+>   01003309  |.  83FE 34       |cmp     esi, 34                         ;  i < 0x34  
+>   0100330C  |.  8908          |mov     dword ptr \[eax\], ecx            ;  将刚取到的牌放入先前用过的牌地址中  
+>   0100330E  |.^ 72 CD         \\jb      short 010032DD  
+>     srand(nGameNum);  
+>     int nMod = 0; // 余数  
+>     int nRand = 0; // 随机数  
+>     int nTempCards = nCards; // 牌总数  
+>     int nIndex = 0; // 写入牌的目标索引  
+>     int temp = 0;  
+>     int\* pTempAryCards = aryCards;  
+>     for(int i = 0; i < 0x34; i++)  
+>     {  
+>       nRand  = rand(); // 取随机数  
+>       nMod %= nTempCards ;  // 取随机数的模  
+>       nIndex = i;   
+>       nIndex &= 0x7;  
+>       nIndex \*= 0x15;  
+>       nTempCards--;  
+>       nIndex += i; // 得到写入地址的索引  
+>       temp = \*(pTempAryCards + nMod); // 用随机数的模读一张牌  
+>       pGameAddress\[nIndex\] = temp; // 写入到游戏区中  
+>       temp = aryCards\[nTempCards\]; // 把最后一张牌读出来  
+>       \*(pTempAryCards + nMod) = temp; // 写入到先前读走的牌地址去  
+>     }  
+>     这个随机发牌的算法只用 52 次就可以分完,并且保证没有重复的,（如获至宝了），比如：取 52 的模一定是 0-51 之间，然后从  
+>   中取走一张牌，再将最后一张 52 放入先前读走的那张牌的位置，再下来 52 递减，取 51 的模...如此重复即可，具体可以自己在纸上画画也就出来了，哈哈，这个算法稍加封装就可以为我们所用啦！很爽吧！  
+>     
+>     第二部分：“死局”算法  
+>     我们跟到 0100423C 处，哇，好长的一段，这段代码包括其中的算法调用我也是看了挺长时间才理清思路，其实上下两部分之间跑了很多代码，介于本例的目的和篇幅，就不予实现了，其中不熟悉的全局函数和变量我会一一解释  
+>   0100423C   /$  55              push ebp  
+>   0100423D   |.  8BEC            mov ebp,esp  
+>   0100423F   |.  83EC 28         sub esp,28  
+>   01004242   |.  53              push ebx  
+>   01004243   |.  56              push esi  
+>   01004244   |.  33F6            xor esi,esi  
+>   01004246   |.  33DB            xor ebx,ebx  
+>   01004248   |.  46              inc esi  
+>   01004249   |.  3935 30710001   cmp dword ptr ds:\[1007130\],esi                          ; 不知道比的什么，不管了  
+>   0100424F   |.  895D FC         mov dword ptr ss:\[ebp-4\],ebx  
+>     nFlag = 0; // epb - 4 一直是我迷茫的一个变量，不过后面就会知道它是个标志，用来判断是否 over 的  
+>       
+>   01004252   |.  0F84 2B010000   je freecell.01004383  
+>   01004258   |.  33C0            xor eax,eax  
+>   0100425A   |>  83B8 00750001 F>/cmp dword ptr ds:\[eax+1007500\],-1       ;  判断中转站是否有可用位置，有就说明游戏死不了  
+>   01004261   |.  0F84 5C010000   |je freecell.010043C3                    ;  有就 return  
+>   01004267   |.  83C0 04         |add eax,4  
+>   0100426A   |.  83F8 10         |cmp eax,10  
+>   0100426D   |.^ 72 EB           \\jb short freecell.0100425A  
+>     int index = 0;  
+>     do   
+>     {  
+>       if(pBaseAddress\[index\] == -1)  
+>       {  
+>         return;  
+>       }  
+>       index++;  
+>     } while(index < 4);// 检测中转站中是否有空位，有的话说明 over 不了，就走人了  
+>       
+>   0100426F   |.  6A 54           push 54                                  ;  54 为一列纸牌的内存快 4 \* 15H  
+>   01004271   |.  58              pop eax  
+>   01004272   |>  83B8 00750001 F>/cmp dword ptr ds:\[eax+1007500\],-1       ;  检查是不是每列都有牌  
+>   01004279   |.  0F84 44010000   |je freecell.010043C3                    ;  如果有无牌的列， 说明游戏死不了  
+>   0100427F   |.  83C0 54         |add eax,54  
+>   01004282   |.  3D F4020000     |cmp eax,2F4                             ;  9H \* 54H = 2F4H  
+>   01004287   |.^ 72 E9           \\jb short freecell.01004272  
+>     index = 0x54 / sizeof(int); // 加上中转站和最终牌的空间  
+>     do   
+>     {  
+>       if(pBaseAddress\[index\] == -1)  
+>       {  
+>         return;  
+>       }  
+>       index += 0x54 / sizeof(int);  
+>     } while(index < 0x2F4 / sizeof(int));// 检测是否有空牌的列，如果有的话游戏就 over 不了，走人  
+>       
+>   01004289   |.  57              push edi  
+>   0100428A   |.  6A 15           push 15                                  ;  读取每列的最下方牌 看是否能进位  
+>   0100428C   |.  5F              pop edi                                  ;  获得每块的长度  
+>   0100428D   |>  56              /push esi                                ;  次循环估计是用来对比右上  
+>   0100428E   |.  E8 4AFBFFFF     |call freecell.01003DDD                  ;  取每列的有效行标 行标 + 1 为有效牌数  
+>   01004293   |.  03C7            |add eax,edi                             ;  因为起始地址是 7554 所以要加上 15H  
+>   01004295   |.  8B0485 00750001 |mov eax,dword ptr ds:\[eax\*4+1007500\]    ;  读取了最下面一行的牌  
+>   0100429C   |.  8944B5 D8       |mov dword ptr ss:\[ebp+esi\*4-28\],eax     ;  取出每列最下面的牌放入一个 8 元素的数组  
+>   010042A0   |.  6A 04           |push 4  
+>   010042A2   |.  99              |cdq  
+>   010042A3   |.  59              |pop ecx  
+>   010042A4   |.  F7F9            |idiv ecx                                ;    
+>   010042A6   |.  3BC3            |cmp eax,ebx                             ;    
+>   010042A8   |.  75 03           |jnz short freecell.010042AD  
+>   010042AA   |.  FF45 FC         |inc dword ptr ss:\[ebp-4\]  
+>   010042AD   |>  48              |dec eax  
+>   010042AE   |.  390495 60830001 |cmp dword ptr ds:\[edx\*4+1008360\],eax    ;  \[1008360\] 右上最终目标牌的地址  
+>   010042B5   |.  75 03           |jnz short freecell.010042BA  
+>   010042B7   |.  FF45 FC         |inc dword ptr ss:\[ebp-4\]  
+>   010042BA   |>  83C7 15         |add edi,15                              ;  edi + 15H 再增 15H  
+>   010042BD   |.  46              |inc esi                                 ;  i++  
+>   010042BE   |.  81FF BD000000   |cmp edi,0BD                             ;  edi < BDH  
+>   010042C4   |.^ 72 C7           \\jb short freecell.0100428D  
+>     int temp = 0x15; // edi 从 0x15 开始,因为算上中转站的 0x15 大小  
+>     unsigned int aryTemp\[9\] = {0}; // 记录每列最下面一行的牌,最多 8 个,不过游戏中是按照 1-8 的下标,所以我们也跟他学咯,定义 9 个就 ok 了  
+>     int i = 1; // esi  01004244 处有定义  
+>     do   
+>     {  
+>   0100428E   |.  E8 4AFBFFFF     |call freecell.01003DDD                  ;  取每列的有效行标  
+>       index = GetRow(i); // 得到指定列的行数，此函数原型为     ret 行标 GetRow(int in 列标);  
+>       // 这个函数不做为关键部分，故不予以实现，有兴趣的可以自己跟  
+>       index += temp;  
+>       index = pBaseAddress\[index\];  
+>       aryTemp\[i\] = index;  
+>         
+>       int nQuotient = index / 4; // 得到牌值，也是牌的行值  
+>       int nMod = index % 4;// 取牌花色，也是牌的列值  
+>       if (nQuotient == 0)  
+>       {  
+>         nFlag++; // 如果牌值是 0，就是 A  
+>       }  
+>     
+>       nQuotient--; // 将牌值-1 用于下面与最终牌比较  
+>     
+>       if (nQuotient == pEndAddress\[nMod\])  
+>       {  
+>         nFlag++;// 如果牌值与最终牌相等，标志++  
+>       }  
+>     
+>       temp += 0x15;  
+>       i++;  
+>     } while(temp < 0xBD);  
+>     // 以上部分是用来计算 8 列牌的最下面的 8 张牌是否可以进位，就是进最终牌的位置，进位的话 nFlag 标志++  
+>       
+>     这里还要说一下的就是，游戏中经常使用/4 %4 来取它的花色与牌面值，这与它排牌的方式有关，这里有必要讲一下空挡的排牌方式，具体情况如下：（写程序模拟一个即可），就可以得到一个（行坐标，列坐标）组成的牌局  
+>      0:梅花 1   1:方片 1   2:红桃 1   3:黑桃 1  
+>      4:梅花 2   5:方片 2   6:红桃 2   7:黑桃 2  
+>      8:梅花 3   9:方片 3   A:红桃 3   B:黑桃 3  
+>      C:梅花 4   D:方片 4   E:红桃 4   F:黑桃 4  
+>     10:梅花 5  11:方片 5  12:红桃 5  13:黑桃 5  
+>     14:梅花 6  15:方片 6  16:红桃 6  17:黑桃 6  
+>     18:梅花 7  19:方片 7  1A:红桃 7  1B:黑桃 7  
+>     1C:梅花 8  1D:方片 8  1E:红桃 8  1F:黑桃 8  
+>     20:梅花 9  21:方片 9  22:红桃 9  23:黑桃 9  
+>     24:梅花 10  25:方片 10  26:红桃 10  27:黑桃 10  
+>     28:梅花 11  29:方片 11  2A:红桃 11  2B:黑桃 11  
+>     2C:梅花 12  2D:方片 12  2E:红桃 12  2F:黑桃 12  
+>     30:梅花 13  31:方片 13  32:红桃 13  33:黑桃 13  
+>       
+>     比如说红桃 10，其 16 进制值为 0x26，除以 4 之后得到其行数 0x9（商），列数或者叫花色 0x2（余），记得是从 0 开始的哦，这点还是挺关键的，对于理解下面代码有所帮助，OK，继续  
+>       
+>   010042C6   |.  33C9            xor ecx,ecx  
+>   010042C8   |>  8B81 00750001   /mov eax,dword ptr ds:\[ecx+1007500\]      ;  读取中转站里的牌，然后与最终牌比较，看是否能进位牌  
+>   010042CE   |.  99              |cdq  
+>   010042CF   |.  6A 04           |push 4  
+>   010042D1   |.  5E              |pop esi  
+>   010042D2   |.  F7FE            |idiv esi  
+>   010042D4   |.  48              |dec eax  
+>   010042D5   |.  390495 60830001 |cmp dword ptr ds:\[edx\*4+1008360\],eax  
+>   010042DC   |.  75 03           |jnz short freecell.010042E1  
+>   010042DE   |.  FF45 FC         |inc dword ptr ss:\[ebp-4\]  
+>   010042E1   |>  83C1 04         |add ecx,4  
+>   010042E4   |.  83F9 10         |cmp ecx,10  
+>   010042E7   |.^ 72 DF           \\jb short freecell.010042C8  
+>     int nCount = 0;  
+>     do   
+>     {  
+>       index = pBaseAddress\[nCount\];  
+>       unsigned int nQuotient = index / 4;  
+>       unsigned int nMod = index / 4;  
+>     
+>       nQuotient--;  
+>       if (pEndAddress\[nMod\] == nQuotient)  
+>       {  
+>         nFlag++;  
+>       }  
+>       nCount++;  
+>     } while(nCount < 4);  
+>     // 读取中转站里的牌，然后与最终牌比较，能进位的话 nFlag 标志++，与上面的类似，不多说了  
+>       
+>   // 走到这一步说明回收站里的 4 个位置都有牌了，并且无空列  
+>   // 这里使用了一个算法用来检测中转站的牌是否可以放到某一个匹配列的  
+>   010042E9   |.  33F6            xor esi,esi                              ;  int i = 0  
+>   010042EB   |>  8B9E 00750001   /mov ebx,dword ptr ds:\[esi+1007500\]      ;  分 4 次取出中转站的牌，作为外层循环  
+>   010042F1   |.  33FF            |xor edi,edi  
+>   010042F3   |.  47              |inc edi                                 ;  int j = 1  
+>   010042F4   |>  FF74BD D8       |/push dword ptr ss:\[ebp+edi\*4-28\]  
+>   010042F8   |.  53              ||push ebx  
+>   010042F9   |.  E8 90FAFFFF     ||call freecell.01003D8E  
+>   010042FE   |.  85C0            ||test eax,eax  
+>   01004300   |.  74 03           ||je short freecell.01004305  
+>   01004302   |.  FF45 FC         ||inc dword ptr ss:\[ebp-4\]  
+>   01004305   |>  47              ||inc edi                                ;  j++  
+>   01004306   |.  83FF 09         ||cmp edi,9                              ;  j < 9  
+>   01004309   |.^ 72 E9           |\\jb short freecell.010042F4  
+>   0100430B   |.  83C6 04         |add esi,4                               ;  i += 4  
+>   0100430E   |.  83FE 10         |cmp esi,10                              ;  i < 10H  
+>   01004311   |.^ 72 D8           \\jb short freecell.010042EB  
+>     for (i = 0; i < 4; i++)  
+>     {  
+>       unsigned int nRecycle = pBaseAddress\[i\];  
+>       for (j = 1; j < 9; j++)  
+>       {  
+>   010042F9   |.  E8 90FAFFFF     ||call freecell.01003D8E  
+>         if(IsCanMove(nRecycle, aryCards\[j\]))  // 关键算法，后面有详解  
+>         {  
+>           nFlag++;  
+>         }  
+>       }  
+>     }// 这部分是将中转站中的每张牌分别与牌面中的最下面的牌分别用 IsCanMove 做以下比较，如果可以移动那就将 nFlag 标志++  
+>       
+>   其中 IsCanMove 下面还要用，把这段分析完我们再来看 IsCanMove 的实现，看流程先........  
+>       
+>       
+>   01004313   |.  33FF            xor edi,edi                              ;  下面是用来计算最下面的 8 张牌是否可以互相放  
+>   01004315   |.  47              inc edi                                  ;  int i = 1  
+>   01004316   |>  33F6            /xor esi,esi  
+>   01004318   |.  46              |inc esi                                 ;  int j = 1  
+>   01004319   |>  3BF7            |/cmp esi,edi  
+>   0100431B   |.  74 14           ||je short freecell.01004331  
+>   0100431D   |.  FF74B5 D8       ||push dword ptr ss:\[ebp+esi\*4-28\]  
+>   01004321   |.  FF74BD D8       ||push dword ptr ss:\[ebp+edi\*4-28\]  
+>   01004325   |.  E8 64FAFFFF     ||call freecell.01003D8E  
+>   0100432A   |.  85C0            ||test eax,eax  
+>   0100432C   |.  74 03           ||je short freecell.01004331  
+>   0100432E   |.  FF45 FC         ||inc dword ptr ss:\[ebp-4\]  
+>   01004331   |>  46              ||inc esi                                ;  j++  
+>   01004332   |.  83FE 09         ||cmp esi,9                              ;  j < 9  
+>   01004335   |.^ 72 E2           |\\jb short freecell.01004319  
+>   01004337   |.  47              |inc edi                                 ;  i++  
+>   01004338   |.  83FF 09         |cmp edi,9                               ;  i < 9  
+>   0100433B   |.^ 72 D9           \\jb short freecell.01004316  
+>     for (i = 1; i < 9; i++)  
+>     {  
+>       for (j = 1; j < 9; j++)  
+>       {  
+>         if (i == j)  
+>         {  
+>           continue;  
+>         }  
+>     
+>         if(IsCanMove(aryCards\[i\], aryCards\[j\]))  
+>         {  
+>           nFlag++;  
+>         }  
+>       }  
+>     }// 同上，只不过是牌面与牌面之间的互相比较看是否能移动，有能移动的 nFlag++  
+>       
+>   0100433D   |.  837D FC 00      cmp dword ptr ss:\[ebp-4\],0               ;  如果标志位为 0 说明游戏 over  
+>   01004341   |.  5F              pop edi  
+>   01004342   |.  76 3D           jbe short freecell.01004381  
+>     if (nFlag <= 0)  
+>     {  
+>       goto OVER;  
+>     } // 如果从一开始的 0100424F  处，到这里 nFlag(ebp - 4)都没有任何赋值，说明游戏死定了！，直接跳到 Dialog 显示 over  
+>       
+>   01004344   |.  837D FC 01      cmp dword ptr ss:\[ebp-4\],1  
+>   01004348   |.  75 79           jnz short freecell.010043C3  
+>     if (nFlag != 1)  
+>     {  
+>       return;  
+>     } // 比较是否等于 1，不等于就走人，说明游戏死不了，为什么？其实这又要说到 nFlag(ebp - 4)这个值的含义了，其实它是记录了可以移牌的个数，如果是 0 个，那就是 over，如果是 1 个，说明暂时还死不了，不过这个时候有玩过空挡的人可能知道，在即将 over 的时候，你的游戏窗口会闪几下，也基本上是由这个标志来决定的。  
+>       
+>     后面的部分我没有分析，因为也没什么可分析的了，其中 1008378 与 10079A0 至今不知道是做什么的，也懒得管了！  
+>   0100434A   |.  833D 78830001 0>cmp dword ptr ds:\[1008378\],0  
+>   01004351   |.  C705 A0790001 0>mov dword ptr ds:\[10079A0\],4  
+>   0100435B   |.  74 0B           je short freecell.01004368  
+>   0100435D   |.  6A 02           push 2                                   ; /TimerID = 2  
+>   0100435F   |.  FF75 08         push dword ptr ss:\[ebp+8\]                ; |hWnd  
+>   01004362   |.  FF15 F0100001   call dword ptr ds:\[<&USER32.KillTimer>\]  ; \\KillTimer  
+>   01004368   |>  6A 00           push 0                                   ; /Timerproc = NULL  
+>   0100436A   |.  68 90010000     push 190                                 ; |Timeout = 400. ms  
+>   0100436F   |.  6A 02           push 2                                   ; |TimerID = 2  
+>   01004371   |.  FF75 08         push dword ptr ss:\[ebp+8\]                ; |hWnd  
+>   01004374   |.  FF15 E8100001   call dword ptr ds:\[<&USER32.SetTimer>\]   ; \\SetTimer  
+>   0100437A   |.  A3 78830001     mov dword ptr ds:\[1008378\],eax  
+>   0100437F   |.  EB 42           jmp short freecell.010043C3  
+>     
+>     OVER;  
+>   01004381   |>  33DB            xor ebx,ebx  
+>   01004383   |>  6A 01           push 1                                   ; /Flags = MF\_BYCOMMAND|MF\_GRAYED|MF\_STRING  
+>   01004385   |.  6A 73           push 73                                  ; |ItemID = 73 (115.)  
+>   01004387   |.  FF75 08         push dword ptr ss:\[ebp+8\]                ; |/hWnd  
+>   0100438A   |.  891D 84790001   mov dword ptr ds:\[1007984\],ebx           ; ||  
+>   01004390   |.  FF15 34110001   call dword ptr ds:\[<&USER32.GetMenu>\]    ; |\\GetMenu  
+>   01004396   |.  50              push eax                                 ; |hMenu  
+>   01004397   |.  FF15 30110001   call dword ptr ds:\[<&USER32.EnableMenuIt>; \\EnableMenuItem  
+>   0100439D   |.  53              push ebx                                 ; /lParam  
+>   0100439E   |.  68 A5250001     push freecell.010025A5                   ; |DlgProc = freecell.010025A5  
+>   010043A3   |.  FF75 08         push dword ptr ss:\[ebp+8\]                ; |hOwner  
+>   010043A6   |.  68 38150001     push freecell.01001538                   ; |pTemplate = "YouLose"  
+>   010043AB   |.  FF35 60780001   push dword ptr ds:\[1007860\]              ; |hInst = 01000000  
+>   010043B1   |.  FF15 2C110001   call dword ptr ds:\[<&USER32.DialogBoxPar>; \\DialogBoxParamW  
+>   010043B7   |.  891D 4C830001   mov dword ptr ds:\[100834C\],ebx  
+>   010043BD   |.  891D 30710001   mov dword ptr ds:\[1007130\],ebx  
+>   010043C3   |>  5E              pop esi  
+>   010043C4   |.  5B              pop ebx  
+>   010043C5   |.  C9              leave  
+>   010043C6   \\.  C2 0400         retn 4  
+>     
+>     
+>     好了，现在我们回来看一下关键的 IsCanMove  
+>     名字是我随便起的，怎么方便怎么着来，其原型为：  
+>       int IsCanMove(int paiA, int paiB);  
+>     功能：计算 paiB 是否可以移动到 paiA，  
+>     在这里我先介绍一下大概的思路：空挡接龙中是否可以移动判断，是由两个条件决定的：其一，牌按照从大到小顺序排列，并且递减量为 1，其二，黑红花色顺次相反。只有符合这两个条件才能满足移动的要求（这点我是看反汇编看了半天才看明白的，哎~，早知道多玩几盘游戏咯。。。）  
+>     OK 我们先来看下反汇编：  
+>   01003D8E   /$  8B4424 04       mov eax,dword ptr ss:\[esp+4\]             ;    
+>   01003D92   |.  56              push esi  
+>   01003D93   |.  57              push edi  
+>   01003D94   |.  99              cdq  
+>   01003D95   |.  6A 04           push 4  
+>   01003D97   |.  59              pop ecx  
+>   01003D98   |.  F7F9            idiv ecx  
+>   01003D9A   |.  6A 04           push 4  
+>   01003D9C   |.  5F              pop edi  
+>   01003D9D   |.  8BF0            mov esi,eax                              ;  esi = eax = 商  
+>   01003D9F   |.  8B4424 10       mov eax,dword ptr ss:\[esp+10\]            ;    
+>   01003DA3   |.  8BCA            mov ecx,edx                              ;  ecx = edx = 余  
+>   01003DA5   |.  99              cdq  
+>   01003DA6   |.  F7FF            idiv edi  
+>   01003DA8   |.  2BC6            sub eax,esi                              ;    
+>   01003DAA   |.  33F6            xor esi,esi  
+>   01003DAC   |.  46              inc esi  
+>   01003DAD   |.  3BC6            cmp eax,esi  
+>   01003DAF   |.  74 04           je short freecell.01003DB5               ;    
+>   01003DB1   |.  33C0            xor eax,eax                              ;    
+>   01003DB3   |.  EB 23           jmp short freecell.01003DD8  
+>   01003DB5   |>  3BCE            cmp ecx,esi  
+>   01003DB7   |.  74 09           je short freecell.01003DC2  
+>   01003DB9   |.  83F9 02         cmp ecx,2  
+>   01003DBC   |.  74 04           je short freecell.01003DC2  
+>   01003DBE   |.  33C0            xor eax,eax  
+>   01003DC0   |.  EB 02           jmp short freecell.01003DC4  
+>   01003DC2   |>  8BC6            mov eax,esi  
+>   01003DC4   |>  3BD6            cmp edx,esi  
+>   01003DC6   |.  74 07           je short freecell.01003DCF  
+>   01003DC8   |.  83FA 02         cmp edx,2  
+>   01003DCB   |.  74 02           je short freecell.01003DCF  
+>   01003DCD   |.  33F6            xor esi,esi  
+>   01003DCF   |>  33C9            xor ecx,ecx  
+>   01003DD1   |.  3BC6            cmp eax,esi  
+>   01003DD3   |.  0F95C1          setne cl  
+>   01003DD6   |.  8BC1            mov eax,ecx  
+>   01003DD8   |>  5F              pop edi  
+>   01003DD9   |.  5E              pop esi  
+>   01003DDA   \\.  C2 0800         retn 8  
+>     这里我们先定义几个变量  
+>     int nShangPaiA, nShangPaiB; // 记录两个牌/4 的商，因为英文水平问题，查金山词霸也没找到商的英文，这里用拼音表示了  
+>     int nModPaiA, nModPaiB; // 记录两个牌/4 的余，  
+>       
+>   01003D8E   /$  8B4424 04       mov eax,dword ptr ss:\[esp+4\]             ;    
+>   01003D92   |.  56              push esi  
+>   01003D93   |.  57              push edi  
+>   01003D94   |.  99              cdq  
+>   01003D95   |.  6A 04           push 4  
+>   01003D97   |.  59              pop ecx  
+>   01003D98   |.  F7F9            idiv ecx  
+>     nShangPaiA = paiA / 4;  
+>     nModPaiA= paiA % 4;  
+>     
+>   01003D9A   |.  6A 04           push 4  
+>   01003D9C   |.  5F              pop edi  
+>   01003D9D   |.  8BF0            mov esi,eax                              ;  esi = eax = 商  
+>   01003D9F   |.  8B4424 10       mov eax,dword ptr ss:\[esp+10\]            ;  int temp 场景的牌 = 场景的牌  
+>   01003DA3   |.  8BCA            mov ecx,edx                              ;  ecx = edx = 余  
+>   01003DA5   |.  99              cdq  
+>   01003DA6   |.  F7FF            idiv edi  
+>     nShangPaiB = paiB / 4;  
+>     nModPaiB= paiB % 4;  
+>     
+>   // 这个时候 esi == nQuotientOfPaiA     ecx == nModOfPaiA  
+>   // 这个时候 eax == nQuotientOfPaiB     edx == nModOfPaiB  
+>     
+>   01003DA8   |.  2BC6            sub eax,esi                              ;  场景牌的商 - 中转站的商  
+>     nShangPaiB -= nShangPaiA;  
+>       
+>   01003DAA   |.  33F6            xor esi,esi  
+>   01003DAC   |.  46              inc esi  
+>     int temp = 1;  
+>       
+>   01003DAD   |.  3BC6            cmp eax,esi  
+>   01003DAF   |. /74 04           je short freecell.01003DB5  
+>   01003DB1   |. |33C0            xor eax,eax                                
+>   01003DB3   |. |EB 23           jmp short freecell.01003DD8  
+>     if (nShangPaiB != i)  
+>     {  
+>       nShangPaiB = 0;  
+>       return false;  
+>     } // 此处判断是否等于 1，也就是 paiB - paiA 是否只差 1，如果差 1 就去比较花色，如果不为 0，那就没戏，直接走人了  
+>       
+>   01003DB5   |> \\3BCE            cmp ecx,esi  
+>   01003DB7   |.  74 09           je short freecell.01003DC2  
+>   01003DB9   |.  83F9 02         cmp ecx,2  
+>   01003DBC   |.  74 04           je short freecell.01003DC2  
+>   01003DBE   |.  33C0            xor eax,eax  
+>   01003DC0   |.  EB 02           jmp short freecell.01003DC4  
+>   01003DC2   |>  8BC6            mov eax,esi  
+>     
+>     if(nModPaiA != i || nModPaiA != 2)  
+>     {  
+>       nShangPaiB = 0; // 说明此牌不是红色  
+>     }  
+>     else  
+>     {  
+>       nShangPaiB = i; // 说明此牌是红色的  
+>     }//这部分是用来比较花色的，先与 1 比较，再与 2 比较，上面我给列出过牌表，可以知道，1 代表方片，2 代表红桃，而两者都是红色牌系，所以我们有：这里是比较花色是否是红色系的，如果是红色系的就赋值 1,否则就是黑色系的，赋值 0  
+>       
+>   01003DC4   |>  3BD6            cmp edx,esi  
+>   01003DC6   |.  74 07           je short freecell.01003DCF  
+>   01003DC8   |.  83FA 02         cmp edx,2  
+>   01003DCB   |.  74 02           je short freecell.01003DCF  
+>   01003DCD   |.  33F6            xor esi,esi  
+>   01003DCF   |>  33C9            xor ecx,ecx  
+>     
+>     if(nModPaiB != i || nModPaiB != 2)  
+>     {  
+>       i = 0;  
+>     }  
+>     else  
+>     {  
+>       nModPaiA = 0;  
+>     }// 用来检测 PaiB 的花色  
+>       
+>   01003DD1   |.  3BC6            cmp eax,esi  
+>   // 这个时候 nShangPaiB 里记录了 paiB 的花色（eax）， nModPaiA 里记录了 paiA 的花色（ecx），然后通过 setne cl 来返回其 0 或 1 的值，然后外部通过其真值或非真值来做相应处理，到了这里大家应该都很清楚了。  
+>   01003DD3   |.  0F95C1          setne cl  
+>   01003DD6   |.  8BC1            mov eax,ecx  
+>   01003DD8   |>  5F              pop edi  
+>   01003DD9   |.  5E              pop esi  
+>   01003DDA   \\.  C2 0800         retn 8  
+>     
+>   我们应该可以看出整个函数是用 asm 直接写的（猜测，如果说的不对，望请高手们指出啊！），写完了感觉是不是没有什么秘密感了，如果自己以后做此类程序的时候，或许可以拿来一用也无妨。  
+>     
+>   哈，经过这一部分的代码，我们可以证明开文提到的空挡接龙判断“死亡”的方法是有缺陷的，比如牌面中任意 2 列牌的最下方牌移动到 A 可以，再从 A 移动到 B 也可以的话，那么游戏就死不了。  
+>     
+>   附言：  
+>   还有一个值得注意的地方就是移动多张牌的操作，之所以不写，倒不是篇幅的问题，而是因为这个操作嵌套了很多 DC 操作（这就是为什么移动牌的时候你会看到牌从回收站闪到其他牌下面的原因），其中又嵌套了其他操作，拆分起来比较麻烦，所以我也懒得写了。  
+>     
+>   再有就是最终牌的问题，我们知道，当最终牌从 A - K 依次填上去的时候，下面的那张牌就覆盖了，所以我们只需要记录最上面那张牌的 num 和花色就 ok 了，空挡也是这么做的，地址我忘了多少了，知道即可  
+>     
+>   给出几个已知的全局变量地址：  
+>     1007868: 用于记录纸牌的高度（固定值）  
+>     1008370: 用于记录纸牌的宽度（固定值）  
+>     1007800: 用于存放剩余牌数  
+>     ....  
+>       
+>   有兴趣各位写个空挡出来 (\*^\_\_^\*) 嘻嘻……  记得发给我哦。。  
+>     
+> \--------------------------------------------------------------------------------  
+> 【经验总结】  
+>   自打偶的处女贴“扫雷”得到老大们认可后，自己的信心倍增，恩，我会继续努力的！再此也特别感谢 Backer 老师的深深教  
+>   导，听说 Backer 老师开培训班了，在这里我就祝老师公司越办越好，多多培养新新人才！（哈哈，看着像打广告的样子...   
+>   仁者见仁,智者见智吧!）  
+>       由于是一气呵成，文中难免有不正确的地方，望大家多批评指教！谢先！  
+>        呼。。。一口气写了这么一大堆，看看表快 12 点了，睡觉觉咯！  
+>     
+> \--------------------------------------------------------------------------------  
+> 【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!  
+>   
+>                                                        2007 年 12 月 12 日 9:40:39 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

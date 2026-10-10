@@ -1,0 +1,113 @@
+
+
+# LaunchIt NOW! Plus 2.5 
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50396.htm`](https://www.pediy.com/kssd/pediy05/pediy50396.htm)
+
+LaunchIt NOW! Plus 2.5 自校验破解   
+  
+软件名称: LaunchIt NOW! Plus 2.5   
+适用系统: Win 9x/ME/2000/XP   
+授权形式: 共享软件   
+官方主页: http://www.gemiscorp.com/   
+软件下载: http://www.webattack.com/dlnow/rdir.dll?id=105746 (1842k)   
+软件简介: 按下 Ctrl+Tab 就可以快捷地访问设定文件或文件夹的软件，如同用 Alt+Tab 切换窗口一样的软件！   
+  
+作者：炎之川   
+主页：http://skipli.yeah.net/   
+  
+声明: 此文仅用于学习及交流，若要转载请保持文章完整。   
+  
+  
+  
+以前有朋友在汉化新世纪论坛上有人问的，我自己试了试，稀里糊涂地就把这个自校验给解决掉了，顺便写一下过程，请大家指教。   
+  
+先用 Fileinfo 看看软件有没有加壳（不管是汉化还是破解，这都是好习惯^^）...Aspack 2.12 的，于是用 aspackdie 1.41 脱掉壳。运行脱壳后的软件，马上弹出一个 messagebox，告诉你软件自校验失败，建议你用反病毒软件检查云云。ok，这个软件自校验还有提示，不像某些软件连脸都不肯露一下，还算是善良了:)   
+  
+然后按照惯例是用 W32dasm 反一下看看。在串式参考中找到了自校验错误的提示，双击发现有两处有此提示，于是先来到下面的代码段：   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:00402604(C)   
+|   
+:0040260D 6A00                    push 00000000   
+:0040260F 8B8DA4F7FFFF            mov ecx, dword ptr \[ebp+FFFFF7A4\]   
+:00402615 E894BE0100              call 0041E4AE  //   
+:0040261A 85C0                    test eax, eax  //乱经典的比较语句 =)   
+:0040261C 7519                    jne 00402637  //eax 不等就死，所以 jne -> jmp    
+:0040261E 6A10                    push 00000010   
+  
+\* Possible Reference to String Resource ID=41346: "The application integrity checking failed, possibly caused b"  //自校验失败的提示信息    
+                                  |   
+:00402620 6882A10000              push 0000A182   
+:00402625 8B8DA4F7FFFF            mov ecx, dword ptr \[ebp+FFFFF7A4\]   
+:0040262B E858C90100              call 0041EF88   
+:00402630 33C0                    xor eax, eax   
+:00402632 E974050000              jmp 00402BAB   
+  
+改完之后试着运行软件，还是弹出了自校验失败的提示，不过仔细一点注意一下，发现未修改之前，运行软件直接就弹出了出错提示，而修改之后是先出现了系统托盘图标（程序已经开始运行了），然后过了半秒再弹出提示信息！有门！说明软件验证自校验的地方不只一处，我们修改的地方是其中一处，还有其他的地方是在这里校验之后才继续校验的。   
+  
+  
+接下来看到串式参考中找到的另一处出错提示：   
+  
+\* Possible Reference to String Resource ID=00128: " LaunchIt NOW! Plus"   
+                                  |   
+:00402590 C705FC63450080000000    mov dword ptr \[004563FC\], 00000080   
+  
+\* Possible Reference to String Resource ID=41346: "The application integrity checking failed, possibly caused b"  //提示信息   
+                                  |   
+:0040259A C7050064450082A10000    mov dword ptr \[00456400\], 0000A182   
+  
+附近并没有什么跳转可以找，所以要另想办法。   
+  
+用资源标记软件如 eXescope、Resource Hacker 之类，打开脱壳后的程序，在“字符串”里面找到自校验出错的语句，可以看到语句的 ID 为 41346，转换为 16 进制就是 0xA182，很明显了，0040259A 这里就是把出错的提示送到 dword ptr \[00456400\] 中，也就是说，调用 dword ptr \[00456400\] 之处也与自校验有关。   
+  
+  
+搜索 dword ptr \[00456400\]，来到下面的代码段：   
+  
+:0041F068 55                      push ebp   
+:0041F069 8BEC                    mov ebp, esp   
+:0041F06B 6AFF                    push FFFFFFFF   
+:0041F06D 68F2254400              push 004425F2   
+:0041F072 64A100000000            mov eax, dword ptr fs:\[00000000\]   
+:0041F078 50                      push eax   
+:0041F079 64892500000000          mov dword ptr fs:\[00000000\], esp   
+:0041F080 83EC08                  sub esp, 00000008   
+:0041F083 8B4508                  mov eax, dword ptr \[ebp+08\]   
+:0041F086 833800                  cmp dword ptr \[eax\], 00000000   
+:0041F089 756B                    jne 0041F0F6                  //jne -> jmp   
+:0041F08B C7050864450001000000    mov dword ptr \[00456408\], 00000001   
+:0041F095 8B0D68214500            mov ecx, dword ptr \[00452168\]   
+:0041F09B 894DEC                  mov dword ptr \[ebp\-14\], ecx   
+:0041F09E C745FC00000000          mov \[ebp\-04\], 00000000   
+:0041F0A5 8B15FC634500            mov edx, dword ptr \[004563FC\]   
+:0041F0AB 52                      push edx   
+:0041F0AC 8D4DEC                  lea ecx, dword ptr \[ebp\-14\]   
+:0041F0AF E81B920100              call 004382CF   
+:0041F0B4 A168214500              mov eax, dword ptr \[00452168\]   
+:0041F0B9 8945F0                  mov dword ptr \[ebp\-10\], eax   
+:0041F0BC C645FC01                mov \[ebp\-04\], 01   
+:0041F0C0 8B0D00644500            mov ecx, dword ptr \[00456400\]  //在这里调用，往上找跳转   
+:0041F0C6 51                      push ecx   
+:0041F0C7 8D4DF0                  lea ecx, dword ptr \[ebp\-10\]   
+:0041F0CA E800920100              call 004382CF   
+:0041F0CF 6A09                    push 00000009   
+:0041F0D1 8D4DF0                  lea ecx, dword ptr \[ebp\-10\]   
+:0041F0D4 E83D900100              call 00438116   
+:0041F0D9 6810100000              push 00001010   
+:0041F0DE 8B55EC                  mov edx, dword ptr \[ebp\-14\]   
+:0041F0E1 52                      push edx   
+:0041F0E2 8B45F0                  mov eax, dword ptr \[ebp\-10\]   
+:0041F0E5 50                      push eax   
+:0041F0E6 6A00                    push 00000000   
+  
+\* Reference To: USER32.MessageBoxA, Ord:01DEh  //messagebox   
+                                  |   
+:0041F0E8 FF1500454400            Call dword ptr \[00444500\]   
+:0041F0EE 6A00                    push 00000000   
+  
+两处修改完成后测试一下，OK，搞定了！:)   
+  
+总结一下，要解除自校验，只需修改以下两处即可：   
+  
+0x261C:  75 -> EB   
+0x1F089:  75 -> EB  4dd466d0e1e0cc123afbe504da2462ca

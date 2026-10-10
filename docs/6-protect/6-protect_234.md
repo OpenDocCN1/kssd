@@ -1,0 +1,225 @@
+
+
+# FLEXlm9.2 的破解教学二
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6934.htm`](https://www.pediy.com/kssd/pediy06/pediy6934.htm)
+
+On Software Reverse Engineering - 2     选择自 zxg32 的 Blog   
+Reverse Engineering, FLEXlm, IMSL  
+  
+翻译第二篇 FLEXlm 结构  
+   在配备有 VS+FLEXLM 源代码、W32Dasm+cmath.exe 以及 IDA+cmath.exe(具签名)后，现在我们将能够揭示 FLEXLM 的核心了。下面是我们的一些发现，在这里 lm\_ckout.c!lc\_checkout()表示”在 lm\_ckout.c 模块/文件中的函数 lc\_checkout()“，箭头符号指示函数调用。注意，由于程序分支的原因，仅部分代码被追踪和展示，但通常情况下，我们感兴趣的仅是这些分支。  
+  
+0047D0C6: push 00000018 ;程序入口点  
+0047D22D: call 00401000 ;调用 cmath.exe!main()  
+0047D240: call 0047F20D ;调用链接到 ntdll.dll!NtTerminateProcess()  
+sub\_401000: cmath.exe!main()  
+0040101D: call 004033B0 ;调用 vc++\\flexlm.obj!imsl\_f\_lin\_sol\_gen()  
+00401039: call 00401050 ;调用 vc++\\fwrimat.obj!imsl\_f\_write\_matrix()  
+sub\_004033B0: vc++\\flexlm.obj!imsl\_f\_lin\_sol\_gen()  
+004033C8: call 00408F24 ;调用 vc++\\error.obj!imsl\_e1psh()  
+0040342C: call 004034A0 ;调用 vc++\\flinslg.obj!l\_lin\_sol\_gen()以进行真正的工作  
+sub\_00408F24: vc++\\error.obj!imsl\_e1psh()  
+00408F3A: call 0040A850 ;调用链接 vc++\\single.obj!imsl\_once() ® vc++\\error.obj!l\_error\_init()  
+;® vc++\\flexlm.obj!imsl\_flexlm()  
+00408F76: call 00414AFD ;调用 imsl\_highland\_check() ® l\_check.c!lc\_timer() ® l\_timer\_heart()  
+;® l\_check() ® l\_reconnect() ® lm\_ckout.c!l\_checkout() as heartbeat  
+sub\_00413290: vc++\\flexlm.obj!imsl\_flexlm()  
+004132EF: call 004294A0 ;调用 lm\_njob.c!lc\_new\_job()  
+004133A4: call 00426380 ;设置 LM\_A\_DISABLE\_ENV 为 1  
+004133DE: call 00426380 ;设置 LM\_A\_LICENSE\_FILE\_PTR 为许可证文件位置  
+00413486: call 00426380 ;设置 LM\_A\_CHECK\_INTERVAL 为 -1  
+004134C0: call 00426380 ;设置 LM\_A\_RETRY\_INTERVAL 为 -1  
+004134FB: call 00426380 ;设置 LM\_A\_RETRY\_COUNT 为 -1  
+004135A7: call 00426380 ;设置 LM\_A\_LINGER 为 0  
+004136A6: call 0042420C ;调用 l\_check.c!lc\_status(), 返回 LM\_NEVERCHECKOUT  
+004138CD: call 0041A010 ;调用 lm\_ckout.c!lc\_checkout()  
+00414099: call 0047FA9B ;返回当前日期和时间  
+004141C6: call 0042563D ;调用 lm\_config.c!lc\_get\_config()  
+0041434E: call 0047F8F0 ;检查许可证十分过期，如果没有返回 0  
+sub\_0041A010: lm\_ckout.c!lc\_checkout()  
+0041A093: call 0041A14B ;调用 lm\_ckout.c!l\_checkout(),返回 FFFFFFF8  
+sub\_0041A14B: lm\_ckout.c!l\_checkout()  
+0041A2E8: call \[004AA01C\] ;调用 lm\_ckout.c!lm\_start\_real(),返回 FFFFFFF8  
+sub\_0041A875: lm\_ckout.c!lm\_start\_real()  
+0041AA47: call 0041B4A5 ;调用 lm\_ckout.c!l\_local\_verify\_conf(), 返回 1=成功  
+0041AC01: call 0041BD89 ;调用 lm\_ckout.c!l\_good\_lic\_key(), 返回 0=失败  
+sub\_0041BD89: lm\_ckout.c!l\_good\_lic\_key()  
+0041BE30: call 00433D15 ;调用 l\_getattr.c!l\_xorname()  
+0041BE4D: call 0041DB9E ;调用 lm\_ckout.c!l\_sg()  
+0041C202: call 0041EBE3 ;调用 vc++\\lm\_ckout.obj!l\_crypt\_private(), 返回 0  
+sub\_0041DB9E: lm\_ckout.c!l\_sg()  
+0041DBF7: call \[004AD064\] ;调用 lm\_new.c!l\_n36\_buff()  
+0041DC16: call 00443283 ;调用 l\_key.c!l\_key()  
+sub\_0041EBE3: vc++\\lm\_ckout.obj!l\_crypt\_private()  
+0041EC07: call 0041EE44 ;调用 vc++\\lm\_ckout.obj!real\_crypt(), 返回 0  
+sub\_0041EE44: vc++\\lm\_ckout.obj!real\_crypt()  
+0041F9B6: call 00420AF6 ;调用 vc++\\lm\_ckout.obj!l\_string\_key(), 返回 0  
+sub\_00420AF6: vc++\\lm\_ckout.obj!l\_string\_key()  
+00420E94 - 00421156 ;调用宏 XOR\_SEEDS\_INIT\_ARRAY(xor\_arr)  
+00421247: call 0047F250 ;调用 strcpy(lkey, license\_key)  
+0042145E: call 004803A0 ;调用 memcpy(newinput, input, inputlen)  
+0042191D: call 00421D66 ;调用 l\_strkey.c!our\_encrypt()  
+00421A13 - 00421B27 ;for{}循环许可证密码匹配  
+00421B34: call 00421C22 ;调用 l\_strkey.c!atox()以转换二进制串为 ASCII 文本  
+sub\_00426380: lm\_set\_attr.c!lc\_set\_attr()  
+004263E4: call 0042641E ;调用 lm\_set\_attr.c!l\_set\_attr()以设置配置结构中的属性  
+sub\_0042641E: lm\_set\_attr.c!l\_set\_attr()  
+00427045: call 00427DBC ;如果设置 LM\_A\_LICENSE\_FILE\_PTR,调用 lm\_set\_attr.c!l\_set\_license\_path()  
+;® lm\_config.c!l\_flush\_config() ® l\_init\_file.c!l\_init\_file()  
+;® l\_allfeat.c!l\_allfeat() ® l\_allfeat.c!l\_parse\_feature\_line()  
+;® l\_allfeat.c!oldkey() ® vc++\\l\_allfeat.obj!l\_crypt\_private()  
+sub\_004294A0: lm\_njob.c!lc\_new\_job()  
+004294C0: call \[004A5A98\] ;调用 lm\_new.c!l\_n36\_buf(), 返回 1  
+004294D2: call \[004A5A98\] ;调用具有所有的 O 参数的 lm\_new.c!l\_n36\_buf(),返回 0  
+004294E8: call 0044357F ;调用链接 lm\_init.c!lc\_init() ® lm\_init.c!l\_init()  
+004294FD – 00429516 ;打开 LM\_OPTFLAG\_CUSTOM\_KEY5 标志  
+sub\_0043873B: vc++\\l\_allfeat.obj!l\_crypt\_private()  
+0043875F: call 00438771 ;调用 vc++\\l\_allfeat.obj!real\_crypt(), 返回 21D5B6E8572E  
+sub\_00438771: vc++\\l\_allfeat.obj!real\_crypt()  
+004392DC: call 0043A41C ;调用 vc++\\l\_allfeat.obj!l\_string\_key(), 返回 21D5B6E8572E  
+sub\_0043A41C: vc++\\l\_allfeat.obj!l\_string\_key()  
+sub\_0044359E: lm\_init.c!l\_init() ;接收 VENDORCODE 和 VENDORNAME 以初始化 job 结构  
+00443E8F – 00444354 ;一些有效性测试，可能报告错误  
+004441F9: call 0041DB9E ;调用 lm\_ckout.c!l\_sg()  
+sub\_0044A110: lm\_new.c!l\_n36\_buf() ;初始化 VENDORCODE 结构和 VENDORNAME  
+0044B503: push 00450BE0 ;压入 lm\_new.c!l\_n36\_buff() 地址  
+0044B508: call 00444B11 ;调用 lm\_init.c!l\_x77\_buf() 以设置 L\_UNIQ\_KEY5\_FUNC  
+sub\_00450BE0: lm\_new.c!l\_n36\_buff()  
+00450C34 – 00450EB0 ;模糊化在 job 中的 mem\_ptr2\_bytes\[\]   
+00450EB5 – 00450FF8 ;模糊化在 VENDORCODE 中的 data\[0\]和 data\[1\]   
+sub\_77F8DD80: ntdll.dll!NtTerminateProcess()  
+77F8DD8B: ret 00000008 ;程序退出  
+   
+    正如我们所看到的，我们先前提及的子程序 0041A010 实际上是 lm\_ckout.c!lc\_checkout()，它是一个真正的核心函数。如果许可证检查成功，它将返回 0；否则，它将返回错误代码(在 lmclient.h 中 FFFFFFF8 被定义为 LM\_BADCODE ![](img/e45fac309594d4f9580d902b0ed40a73.jpg)。由于是核心，l\_checkout()可能将被调用几次，但我们不关心（它）。记住，我们的目标是找到 checksum 对比代码的位置和恢复真正的签名。  
+    一个快速的搜索告诉我们： STRNCMP(在 l\_privat.h 中定义的宏， 如果串匹配则设置结果=0)仅在 lm\_ckout.c!l\_good\_lic\_key()和 l\_crypt.c!l\_crypt\_private()中出现。注意 l\_crypt.c 和 l\_strkey.c 并不直接被编译为目标文件，而是被包含进模块 lm\_ckout.obj 和 l\_allfeat.obj 中。除了这两个之外，lm\_crypt.obj 也包含了 l\_crypt.c 并揭示其函数到外部作为了 API，其下的许多(函数)具有不同的别名，比如 lc\_crypt()。但是，在 cmath.exe 中并未用该（代码）拷贝：lc\_crypt()的地址是 00469960，但我们在该处设置断点却什么也没有发生。  
+  
+lm\_ckout.c  
+... ...  
+#define l\_crypt\_private l\_ckout\_crypt  
+#define l\_string\_key l\_ckout\_string\_key  
+... ...  
+/\* Include l\_crypt.c, so that these functions won’t be global. \*/  
+#define LM\_CKOUT  
+#include "l\_crypt.c"  
+l\_allfeat.c  
+... ...  
+#define LM\_CRYPT\_HASH  
+#include "l\_crypt.c"  
+l\_crypt.c  
+#include "l\_strkey.c"  
+l\_strkey.c  
+#include "l\_strkey.h"  
+lm\_crypt.c  
+#define l\_crypt\_private lc\_crypt  
+... ...  
+#define LM\_CRYPT  
+... ...  
+#include "l\_crypt.c"  
+   
+    由于包含了超过一次，因为编译指令的原因，l\_crypt/l\_strkey 函数的多个拷贝将不再相同。下面的 l\_crypt\_private()代码说明了这点（在这里，STRNCMP 不是真正的问题）。取决于 LM\_CKOUT 是否被定义，0041EBE3 (长版本)和 0043873B (短版本)在两个模块中将有所不同。IDA FLAIR 认知后者而非前者－实践中，我们必须在 lm\_ckout.obj 中手工识别这些函数。  
+  
+ret = real\_crypt(job, conf, sdate, code);  
+#ifdef LM\_CKOUT  
+if (!(job->user\_crypt\_filter) && !(job->lc\_this\_keylist) && valid\_code(conf->code))  
+{  
+if (job->flags & LM\_FLAG\_MAKE\_OLD\_KEY)  
+{  
+STRNCMP(conf->code, ret, MAX\_CRYPT\_LEN, not\_eq);  
+}  
+else  
+{  
+STRNCMP(conf->lc\_sign, ret, MAX\_CRYPT\_LEN, not\_eq);  
+}  
+if (not\_eq && !(job->options->flags & LM\_OPTFLAG\_STRINGS\_CASE\_SENSITIVE))  
+{  
+job->options->flags |= LM\_OPTFLAG\_STRINGS\_CASE\_SENSITIVE;  
+ret = real\_crypt(job, conf, sdate, code);  
+job->options->flags &= ~LM\_OPTFLAG\_STRINGS\_CASE\_SENSITIVE;  
+}  
+}  
+#endif /\* LM\_CKOUT \*/  
+return ret;  
+  
+    在上面的代码注释中，我们看到 l\_crypt\_private()是计算 SIGN 杂乱信息的关键函数。当分别设置 LM\_A\_LICENSE\_FILE\_PTR 和 lc\_checkout()时，将调用两个链接并从 lc\_set\_attr()初始化。第一次追踪 l\_crypt\_private()的结果是 21D5B6E8572E，第二次为 0。它看起来就好像是签名代码，因此我们立即尝试用于许可证文件。很不幸的是，它并不工作。  
+    好了，那并不令人吃惊；令人吃惊的事情是，为什么 lc\_set\_attr()将计算 checksum（总和检查）?（其实）设置属性与授权无关。但是，我们必须指出，在链接调用中，许可证文件的每行是被逐字解析的！在我们的例子中，在 license.dat 中有 3 行但仅有一个 feature（特征）行，因此 l\_parse\_feature\_line()被调用了三次而 oldkey()仅被调用一次。我们认为，最大的可能解释是：它仅仅是填充一个杂乱信息代码到 config 结构中作为初始化，正如其 oldkey()名字所暗示的那样。或者，你可以说这是一个花招来引诱破解者从真相到伪装得很好的（假）代码上去，以此来浪费他们的时间。  
+    当然，我们也不笨哈，我们知道是 checkout 调用链接在计数。因为链接的后半部分返回值为 0 而不是杂乱信息，l\_good\_lic\_key()报告失败（1=成功，0=失败），然后 lm\_start\_real()设置错误数字并接着回到 lc\_checkout()。注意在 l\_good\_lic\_key()中的 STRNCMP 代码并不如我们所期望的那样运转。如果在许可证文件中的签名不正确，那么 l\_crypt\_private()返回 0 并绕过 STRNCMP；如果签名正确，那么 l\_crypt\_private()返回相同的字符串，STRNCMP 则完全没有意义。不管哪种方式，STRNCMP 都不会将正确的和错误的 checksum（总和检查）进行比较。再次的，关于 FLEXLM 为什么这么做，也许你将会有两种不同的观点。  
+  
+code = l\_crypt\_private(job, conf, sdate, &vc);  
+... ...  
+if (job->user\_crypt\_filter)  
+{  
+if (!code || !\*code)  
+str\_res = 1;  
+}  
+else  
+{  
+if (conf->lc\_keylist && job->L\_SIGN\_LEVEL)  
+{  
+if (!code || !\*code || !\*conf->code) /\*P5552 \*/  
+str\_res = 1;  
+else  
+STRNCMP(code, conf->lc\_sign, MAX\_CRYPT\_LEN, str\_res);  
+}  
+else  
+{  
+if (!code || !\*code || !\*conf->code) /\*P5552 \*/  
+str\_res = 1;  
+else  
+STRNCMP(code, conf->code, MAX\_CRYPT\_LEN, str\_res);  
+}  
+}  
+if (str\_res)  
+{  
+... ...  
+}  
+else  
+ok = 1;  
+   
+    忽略掉 STRNCMP，我们意识到必须一路追踪直到调用链接的底部，以挖掘出真正的签名－它必定在某处被计算并和输入的许可证文件对比！已经证明，该处是 l\_string\_key()。用户文件签名作为参数被传递，计算正确的许可证文件，然后这两者将按位进行匹配。因此，该处揭示了正确和错误（签名），而不是那些伪装的 STRNCMP。  
+  
+#ifdef LM\_CKOUT  
+static unsigned char \* l\_string\_key(job, input, inputlen, code, len, license\_key)  
+#else  
+static unsigned char \* l\_string\_key(job, input, inputlen, code, len)  
+#endif  
+{  
+... ...  
+strcpy(lkey, license\_key);  
+... ... /\* 计算 y, 真正的 checksum \*/  
+#ifdef LM\_CKOUT  
+for (i = 0; i < j; i++)  
+{  
+/\* 将 ASCII 的用户 checksum 转换为 16 进制 \*/  
+c = lkey\[i \* 2\];  
+if (isdigit(c))  
+x = (c - '0') << 4;  
+else  
+x = ((c - 'A') + 10) << 4;  
+   
+c = lkey\[(i \* 2) + 1\];  
+if (isdigit(c))  
+x += (c - '0');  
+else  
+x += ((c - 'A') + 10);  
+   
+/\* 对比用户和真正的 checksums \*/  
+if (x != y\[i\])  
+return 0;  
+}  
+... ...  
+#endif  
+ret = (atox(job, y, len));  
+return ret;  
+}  
+  
+    剩下的工作就很容易了：我们仅需追踪进行并抓取 Y，（得到）正确的许可证密码。实际上，我们在运行时修改了匹配结果，避开了”return 0；"分支，并让函数在 ASCII 中返回 Y。对 CSTAT 重复相同的处理，我们将获得如下的新的许可证文件。  
+  
+SERVER hostname hostid 27000   
+DAEMON VNI "<vni\_dir>\\license\\bin\\bin.i386nt\\vni.exe"  
+FEATURE CMATH VNI 5.5 permanent uncounted 6D5C01FD71C9 HOSTID=ANY  
+FEATURE CSTAT VNI 5.5 permanent uncounted 369B56AC8B35 HOSTID=ANY  
+  
+    用 VNI 提供的所有有效脚本来测试许可证，所有的都成功通过\[7\]。该成果证实了我们的假设：每个保护方案都必须进行正误对比以区别合法和非法用户。其关键是精确定位时间和空间（？）恰好匹配的地方。为了做到这点，破解者必须对代码有一些深度的理解。在我们的例子中，我们配有诸如原代码和 LIB 文件等一些条件优越的东西（原为奢侈品），而这并非都能提供给一般人的。我不知道如果没有它们，我是否能做出许可证。因此，解决许可证代码绝对比补丁水平高。
+
+ 4dd466d0e1e0cc123afbe504da2462ca

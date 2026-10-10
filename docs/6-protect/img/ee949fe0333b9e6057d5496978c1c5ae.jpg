@@ -1,0 +1,1635 @@
+<html lang="en">
+<head>
+                <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="author" content="XiunoBBS 4.0" />
+        <meta name="keywords" content="看雪学院" />
+        <meta name="description" content="看雪学院" />
+        <meta name="renderer" content="webkit" />
+        <meta name="Referrer" content="origin" />
+        <title>
+                看雪学院        </title>
+        <link rel="icon" sizes="32x32" href="https://www.kanxue.com/view/img/favicon.ico">
+        
+        <link rel="stylesheet" href="https://www.kanxue.com/view/css/bootstrap.css">
+        <link rel="stylesheet" href="https://www.kanxue.com/view/css/bootstrap-bbs.css">
+        
+        <link rel="stylesheet" href="https://www.kanxue.com/view/css/font-awesome.min.css">
+        <link rel="stylesheet" href="https://www.kanxue.com/view/css/swiper.min.css">
+        <link rel="stylesheet" href="https://www.kanxue.com/view/css/index.css">
+                <link rel="stylesheet" href="https://www.kanxue.com/view/css/kanxue.css">
+        <link rel="stylesheet" href="https://www.kanxue.com/plugin/xn_syntax_hightlighter/syntax_hightlighter/syntax.css">
+        <link href="//www.kanxue.com/view/css_bs4_beta3/bootstrapSwitch.css" rel="stylesheet">
+
+        <link rel="stylesheet" href="https://www.kanxue.com/view/css_bs4_beta3/footer_iconfont.css">
+        
+        <style>
+                html {
+                        background: https://www.kanxue.com/3b4348 !important;
+                }
+        </style>
+</head>
+
+<body>
+        <style>
+https://www.kanxue.com/header {
+    /* border-top: 3px solid https://www.kanxue.com/0099ee; */
+    box-shadow: 0px 2px 10px 0px rgba(0, 0, 0, 0.1), 0 1px rgba(0, 0, 0, 0.1);
+    background: https://www.kanxue.com/fafafa;
+}
+
+https://www.kanxue.com/header .container,https://www.kanxue.com/header .container nav {
+    height: 64px;
+    line-height: 64px;
+}
+
+https://www.kanxue.com/header .navbar {
+    padding: 0;
+}
+
+https://www.kanxue.com/header nav li.nav-item {
+    line-height: 34px;
+}
+
+https://www.kanxue.com/header nav a.nav-link{
+    font-size: 16px;
+    color: https://www.kanxue.com/757575;
+    font-weight: 500;
+    text-decoration: none;
+}
+https://www.kanxue.com/header .login_btn,  https://www.kanxue.com/header .reg_btn{
+	font-size: 13px;
+	padding: 4px 16px;
+	
+	font-weight: 500;
+	color: https://www.kanxue.com/0099ee;
+	text-decoration: none;
+	border: 1px solid https://www.kanxue.com/0099ee;
+}
+https://www.kanxue.com/header .reg_btn {
+	color: #fff;
+	background: https://www.kanxue.com/0099ee;
+}
+https://www.kanxue.com/header nav a.nav-link,
+https://www.kanxue.com/header nav .dropdown {
+    padding: 0 1rem;
+}
+
+https://www.kanxue.com/header nav a.nav-link:hover {
+    background-color: https://www.kanxue.com/F3F3F3;
+}
+
+https://www.kanxue.com/header nav li.nav-item.active a {
+    color: https://www.kanxue.com/0099ee;
+    font-weight: 600;
+}
+
+https://www.kanxue.com/header nav .home_seach_form {
+    border: 1px solid https://www.kanxue.com/ccc;
+    border-radius: 4px;
+}
+
+https://www.kanxue.com/header nav .dropdown a.dropdown-item:hover {
+    color: https://www.kanxue.com/0099ee;
+    text-decoration: none;
+    background-color: https://www.kanxue.com/f3f3f3;
+}
+
+.dropup .dropdown-toggle::after {
+    display: none !important;
+}
+.header_nav_a {
+    /* padding: 10px 0; */
+}
+.bottom-nav {
+    /* display: none; */
+    background-color: https://www.kanxue.com/fafafa;
+    box-shadow: 0 -1px rgba(0,0,0,0.1), 0 -2px 10px rgba(0,0,0,0.1);
+}
+.bottom-nav .opts-group {
+    position: relative;
+    display: inline-block;
+    /* padding-top: 6px; */
+    line-height: 20px;
+    color: https://www.kanxue.com/9e9e9e;
+    cursor: pointer;
+}
+.bottom-nav .opts-group.active {
+    color: https://www.kanxue.com/0099ee;
+}
+.seach_li {
+    margin-left: 40px;
+    
+}
+.active_member,.active_chm {
+    color: https://www.kanxue.com/0099ee !important;
+}
+https://www.kanxue.com/header nav li.nav-item.active_chm a.seach_btn, https://www.kanxue.com/header nav li.nav-item.active_member a.seach_btn {
+    color: https://www.kanxue.com/0099ee !important;
+    font-weight: 600 !important;
+}
+@media screen and (min-width: 992px) {
+    .bottom-nav, .header_seach_but {
+        display: none !important;
+    }
+    
+}
+@media screen and (max-width: 992px) {
+    .nav-logo {
+        margin-right: 0 !important;
+    }
+    .seach_li {
+        margin-left: 70px;
+    }
+
+	.nav_user_item {
+		width: 96px;
+	}
+	.nav_user_item .login_btn,  .nav_user_item .reg_btn {
+		padding: 3px 6px !important;
+	}
+}
+@media screen and (max-width: 1200px) {
+    .seach_li {
+        margin-left: 0px;
+        max-width: 120px;
+    }
+    
+}
+
+</style>
+<header id="header">
+        <div class="container">
+        <nav class="navbar navbar-expand-lg navbar-light">
+                        <a href="//zhuanlan.kanxue.com/search.htm" class="header_seach_but" style="display: block; width: 96px;"><i class="fa fa-search" aria-hidden="true"></i></a>
+                        <a class="navbar-brand nav-logo" href="//www.kanxue.com">
+                <img src="//www.kanxue.com/view/img/newhome3/kanxuelogo.png" height="25" />
+            </a>
+            <div class="collapse navbar-collapse" id="navbarTogglerDemo03">
+                <ul class="navbar-nav mr-auto mt-2 mt-lg-0">
+                    <li class="nav-item active">
+                        <a class="nav-link" href="//www.kanxue.com">首页</a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="//bbs.pediy.com">论坛</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="//zhuanlan.kanxue.com">专栏</a>
+                    </li>
+                    
+                    <li class="nav-item ">
+                        <a class="nav-link" href="//www.kanxue.com/course.htm">课程</a>
+                    </li>
+                    <!-- <li class="nav-item position-relative">
+                            <a class="nav-link" href="//ctf.pediy.com">CTF</a>
+                            <img class="position-absolute" style="width: 27px; top: -5px; right: -7px; z-index: 3;" src="//passport.kanxue.com/pc/view/img/hot.png" alt="">
+                    </li> -->
+                    <li class="nav-item  position-relative">
+                        <div class="dropdown">
+                            <a class="dropdown-toggle nav-link px-0" href="https://www.kanxue.com/" role="button" id="ctfdropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                CTF
+                            </a>
+                            <img class="position-absolute" style="width: 27px; top: -5px; right: -7px; z-index: 3;" src="//passport.kanxue.com/pc/view/img/hot.png" alt="">
+                            <div class="dropdown-menu " aria-labelledby="ctfdropdownMenuLink">
+                                <a class="dropdown-item" style="color: https://www.kanxue.com/212529; font-weight: 400;" href="//ctf.pediy.com">CTF竞赛</a>
+                                <a class="dropdown-item" style="color: https://www.kanxue.com/212529; font-weight: 400;" href="//ctf.pediy.com/itembank.htm">题库</a>
+                                
+                            </div>
+                        </div>
+                    </li>
+                    <li class="nav-item position-relative">
+                            <a class="nav-link" href="//www.kanxue.com/conference.htm">看雪峰会</a>
+                            <!-- <img class="position-absolute" style="width: 27px; top: -5px; right: -7px; z-index: 3;" src="//passport.kanxue.com/pc/view/img/hot.png" alt=""> -->
+                    </li>
+                    <!-- <li class="nav-item position-relative">
+                        <a class="nav-link" href="//www.kanxue.com/mrt.htm">看雪20年</a>
+                        <img class="position-absolute" style="width: 27px; top: -5px; right: -7px; z-index: 3;" src="//passport.kanxue.com/pc/view/img/hot.png" alt=""> 
+                    </li> -->
+                    <li class="nav-item">
+                        <a class="nav-link" target="_blank" href="//qifu.kanxue.com">企服</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="//job.kanxue.com">招聘</a>
+                    </li>
+                    
+                    <li class="nav-item  ">
+                        <div class="dropdown">
+                            <a class="dropdown-toggle nav-link px-0 seach_btn" href="https://www.kanxue.com/" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                发现
+                            </a>
+                            <div class="dropdown-menu text-left" aria-labelledby="dropdownMenuLink">
+                                <!-- <a class="dropdown-item" href="//ctf.pediy.com">CTF</a> -->
+                                <a class="dropdown-item" href="//ce.kanxue.com">众测</a>
+                                <a class="dropdown-item " href="//www.kanxue.com/rank.htm">排行榜</a>
+                                <a class="dropdown-item " href="//www.kanxue.com/chm.htm">知识库</a>
+                                <a class="dropdown-item" href="//www.kanxue.com/tool.htm">工具下载</a>
+                                <!-- <a class="dropdown-item" href="//www.kanxue.com/conference.htm">看雪峰会</a> -->
+                                <a class="dropdown-item " href="//www.kanxue.com/mrt.htm">看雪20年</a>
+                                <a class="dropdown-item " href="//www.kanxue.com/shop.htm">看雪商城</a>
+                            </div>
+                        </div>
+                    </li>
+                                        <li class="seach_li">
+                        <form class="form-inline my-2 my-lg-0 mr-auto" action="//zhuanlan.kanxue.com/search.htm" style="margin-right: 20px; max-width: 150px;">
+                            <div class="input-group home_seach_form">
+                                <input type="text" class="form-control border-0"  name="keyword" placeholder="搜索专栏文章">
+                                <div class="input-group-append">
+                                    <button class="btn px-2" type="submit" id="button-addon2">
+                                        <i class="fa fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </li>
+                                    </ul>
+            </div>
+            <div class="text-right nav_user_item" style="white-space: nowrap;">
+                                <a class="login_btn" href="//passport.kanxue.com/user-login.htm">登录</a>
+                <a class="reg_btn ml-2" href="//passport.kanxue.com/user-mobile-1.htm">注册</a>
+                            </div>
+            
+        </nav>
+    </div>
+</header>
+<div class="position-fixed w-100 header_fiexd bottom-nav" style="width: 100%; height: 50px; bottom: 0; z-index: 2; background: https://www.kanxue.com/fafafa;">
+    <div class="row mx-0 text-center align-items-center" style="height: 50px;">
+        <a href="//www.kanxue.com" class="d-inline-blok col px-0 header_nav_a opts-group active" style="max-width: 20%;">
+            <div style="padding: 3px 0;">
+                <i class="fa fa-home"></i>
+            </div>
+            <div>
+                首页
+            </div>
+        </a>
+        
+        <a href="//bbs.pediy.com" class="d-inline-blok col px-0 header_nav_a opts-group" style="max-width: 20%;">
+            <div style="padding: 3px 0;">
+                <i class="fa fa-comments"></i>
+
+            </div>
+            <div>
+                论坛
+            </div>
+        </a>
+        <a href="//zhuanlan.kanxue.com" class="d-inline-blok col px-0 header_nav_a opts-group" style="max-width: 20%;">
+            <div style="padding: 3px 0;">
+                <i class="fa fa-clipboard"></i>
+            </div>
+            <div>
+                专栏
+            </div>
+        </a>
+        <a href="//www.kanxue.com/course.htm" class="d-inline-blok col px-0 header_nav_a opts-group " style="max-width: 20%;">
+            <div style="padding: 3px 0;">
+                <i class="fa fa-book"></i>
+            </div>
+            <div>
+                课程
+            </div>
+        </a>
+        
+        <!-- <a href="https://www.kanxue.com/" class="d-inline-blok col px-0" style="max-width: 20%;"> -->
+        <div class=" dropup d-inline-blok col px-0"  style="max-width: 20%;">
+            <a class="dropdown-toggle d-inline-block header_nav_a opts-group  " href="https://www.kanxue.com/" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <div style="padding: 3px 0;">
+
+                    <i class="fa fa-list"></i>
+                </div>
+                <div>
+                    发现
+                </div>
+            </a>
+            <div class="dropdown-menu" aria-labelledby="dropdownMenuLink">
+
+                <a class="dropdown-item" href="//qifu.kanxue.com">企服</a>
+                <a class="dropdown-item" href="//job.kanxue.com">招聘</a>
+                <a class="dropdown-item" href="//ctf.pediy.com">CTF</a>
+                <a class="dropdown-item" href="//ctf.pediy.com/itembank.htm">题库</a>
+                <a class="dropdown-item" href="//ce.kanxue.com">众测</a>
+                <a class="dropdown-item " href="//www.kanxue.com/rank.htm">排行榜</a>
+                <a class="dropdown-item " href="//www.kanxue.com/chm.htm">知识库</a>
+                <a class="dropdown-item" href="//www.kanxue.com/tool.htm">工具下载</a>
+                <a class="dropdown-item" href="//www.kanxue.com/conference.htm">看雪峰会</a>
+                <a class="dropdown-item " href="//www.kanxue.com/mrt.htm">看雪20年</a>
+                <a class="dropdown-item " href="//www.kanxue.com/shop.htm">看雪商城</a>
+                            </div>
+        </div>
+        <!-- </a> -->
+    </div>
+</div>
+
+
+        <!--top2-->
+
+        
+
+        <!--top2--><style>
+body {
+    height: auto !important;
+    display: block !important;
+    background: #fff;
+}
+.card_cover {
+
+}
+.ellipsis { text-overflow: ellipsis; overflow: hidden; white-space: nowrap; width: 220px;}
+
+https://www.kanxue.com/shouye_tuijian .card_cover .label {
+    margin: 5px;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+}
+https://www.kanxue.com/shouye_tuijian .nice_book_content {
+    padding-bottom: 0;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.09);
+} 
+https://www.kanxue.com/shouye_tuijian .nice_book_content:hover {
+    box-shadow: 0 6px 12px rgba(0,0,0,0.09);
+}
+https://www.kanxue.com/shouye_tuijian .nice_book_list .nice_book_content a img {
+    border-radius: 0px;
+    border-top-right-radius: 4px;
+    border-top-left-radius: 4px;
+}
+https://www.kanxue.com/shouye_tuijian .book_count {
+        font-size: 0.95rem;
+}
+@media screen and (min-width: 1200px){
+    .left_content_area {
+        max-width: 840px;
+    }
+}
+@media screen and (max-width: 992px){
+    https://www.kanxue.com/kanxuehomecarousel .carousel-inner {
+        border-radius: 0 !important; 
+    }
+    https://www.kanxue.com/home_tablist .nav-link {
+        font-size: 16px;
+    }
+    .article_userinfo, .article_userinfo a {
+        font-size: 12px;
+    }
+
+}
+</style>
+<div class="container pt-0 pt-lg-3">
+    <div class="row">
+        <!-- banner-->
+        <div class="col px-0">
+            <div id="kanxuehomecarousel" class="carousel slide" data-ride="carousel">
+                <ol class="carousel-indicators">
+                                                                                                            <li data-target="https://www.kanxue.com/kanxuehomecarousel" data-slide-to="0" class="active"></li>
+                                                <li data-target="https://www.kanxue.com/kanxuehomecarousel" data-slide-to="1" class=""></li>
+                                                <li data-target="https://www.kanxue.com/kanxuehomecarousel" data-slide-to="2" class=""></li>
+                                                <li data-target="https://www.kanxue.com/kanxuehomecarousel" data-slide-to="3" class=""></li>
+                                                                                                                                                                                                                            </ol>
+                <div class="carousel-inner" style="border-radius: 5px;">
+                                                                                                                    <div class="carousel-item active">
+                            <a href="https://bbs.pediy.com/thread-257913.htm" target="_blank">
+                                <img class="d-block w-100" src="//www.kanxue.com/upload/attach/202003/202003050922_RMPBKNW9EG2X86Q.jpg" alt="">
+                            </a>
+                        </div>
+                                                <div class="carousel-item ">
+                            <a href="https://ctf.pediy.com/game-team_list-11-9" target="_blank">
+                                <img class="d-block w-100" src="//www.kanxue.com/upload/attach/202002/202002151010_AR9KG6PFAKNG4D8.jpg" alt="">
+                            </a>
+                        </div>
+                                                <div class="carousel-item ">
+                            <a href="https://ksa.kanxue.com/" target="_blank">
+                                <img class="d-block w-100" src="//www.kanxue.com/upload/attach/202002/202002041636_PFWSNXHSMCRSCRG.jpg" alt="">
+                            </a>
+                        </div>
+                                                <div class="carousel-item ">
+                            <a href="https://bbs.pediy.com/thread-257446.htm" target="_blank">
+                                <img class="d-block w-100" src="//www.kanxue.com/upload/attach/202002/202002031644_FAJAPM2NP7ZFERX.jpg" alt="">
+                            </a>
+                        </div>
+                                                                                                                                                                                                                                                
+
+                </div>
+                <a class="carousel-control-prev" href="https://www.kanxue.com/kanxuehomecarousel" role="button" data-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="sr-only">Previous</span>
+                </a>
+                <a class="carousel-control-next" href="https://www.kanxue.com/kanxuehomecarousel" role="button" data-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="sr-only">Next</span>
+                </a>
+            </div>
+        </div>
+        <!-- banner右侧工具 -->
+        <div class="right_tool_card" style="padding-left: 20px;width: 300px; height: 340px; ">
+            <div class="px-4 pt-4" style="padding-bottom: 4px; height: 100%; background: url(./view/img/newhome3/right_part_bg.png) no-repeat;">
+                <div style="height: 100%; background: url(./view/img/newhome3/working.gif) no-repeat; background-position: center bottom;">
+                    <a href="//qifu.kanxue.com" class="right_tool_">
+                        <div class="media pt-4">
+                            <img class="mr-3" src="https://www.kanxue.com/view/img/newhome3/right_icon_company.png" alt="Generic placeholder image">
+                            <div class="media-body">
+                                <div class="mt-0 font16_weight">企服平台</div>
+                                <div class="text-muted">
+                                    看雪学院拥有一支值得信赖的专家团队
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                    
+                    <a href="//www.kanxue.com/chm.htm" class="right_tool_">
+                        <div class="media pt-4">
+                            <img class="mr-3" src="https://www.kanxue.com/view/img/newhome3/right_icon_knowledge.png" alt="Generic placeholder image">
+                            <div class="media-body">
+                                <div class="mt-0 font16_weight">看雪知识库</div>
+                                <div class="text-muted">
+                                    已收录 12774 篇精华文章
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                    <a href="//www.kanxue.com/tool.htm" class="right_tool_">
+                        <div class="media pt-4">
+                            <img class="mr-3" src="https://www.kanxue.com/view/img/newhome3/right_icon_tools.png" alt="Generic placeholder image">
+                            <div class="media-body">
+                                <div class="mt-0 font16_weight">工具下载</div>
+                                <div class="text-muted">
+                                    点击进行工具下载
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Tab 推荐/看雪课程-->
+    <div class="row">
+        <div class="col px-0 left_content_area">
+            <ul class="nav nav-tabs pt-2" id="home_tablist" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active" href="/">推荐</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link " href="https://www.kanxue.com/index-course.htm">看雪课程</a>
+                </li>
+            </ul>
+            <div class="tab-content">
+                <div class="tab-pane fade show active px-3 px-md-0" id="shouye_tuijian">
+                                                                                                        <div class="media py-4 home_article" style="overflow: hidden;">
+                                    <div class="mr-4 article-img" style="width: 160px; height: 120px;border-radius: 4px;background: url(//zhuanlan.kanxue.com/view/img/rand_img/69.jpg) no-repeat;background-size: cover;background-position: center;">
+                                        
+                                    </div>
+                                    <!-- <img class="mr-4" src="//zhuanlan.kanxue.com/view/img/rand_img/69.jpg" width="160" height="120"> -->
+                                    <div class="media-body">
+                                                                                <a href="//zhuanlan.kanxue.com/article-10607.htm" target="_blank" class="article_url">
+                                            <h4 class="mt-0 article_title">抓包中情局特工后，是时候聊聊勒索黑客了！</h4>
+                                            <div class="article-excerpt" style="margin-bottom:5px;!important">
+                                                360安全大脑发布《2月份勒索病毒疫情分析报告》，当前勒索病毒攻击形势依然严峻。                                            </div>
+                                        </a>
+                                                                                <div class="row article_userinfo">
+                                            <div class="col-3 text-truncate">
+                                                                                                <a href="//zhuanlan.kanxue.com/user-845837.htm" class="article_author"><img src="//passport.kanxue.com/upload/avatar/837/845837.png?1550460692" class="avatar-2" /></a>
+                                                <a href="//zhuanlan.kanxue.com/user-845837.htm" class="article_author">360安全卫士</a>
+                                            </div>
+                                             <div class="col-9 text-right text-truncate" style="color: https://www.kanxue.com/888;">
+                                                                                                已有 <span class="read_number_style">4103</span> 人阅读・<span>1天前</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                                                                                            <div class="media py-4 home_article" style="overflow: hidden;">
+                                    <div class="mr-4 article-img" style="width: 160px; height: 120px;border-radius: 4px;background: url(//zhuanlan.kanxue.com/view/img/rand_img/116.jpg) no-repeat;background-size: cover;background-position: center;">
+                                        
+                                    </div>
+                                    <!-- <img class="mr-4" src="//zhuanlan.kanxue.com/view/img/rand_img/116.jpg" width="160" height="120"> -->
+                                    <div class="media-body">
+                                                                                <a href="//zhuanlan.kanxue.com/article-10600.htm" target="_blank" class="article_url">
+                                            <h4 class="mt-0 article_title">腾讯玄武最新研究成果：戴口罩能解锁苹果Face ID？</h4>
+                                            <div class="article-excerpt" style="margin-bottom:5px;!important">
+                                                戴着口罩解锁iPhone！你学会了吗？                                            </div>
+                                        </a>
+                                                                                <div class="row article_userinfo">
+                                            <div class="col-3 text-truncate">
+                                                                                                <a href="//zhuanlan.kanxue.com/user-837998.htm" class="article_author"><img src="//passport.kanxue.com/upload/avatar/998/837998.png?1552273448" class="avatar-2" /></a>
+                                                <a href="//zhuanlan.kanxue.com/user-837998.htm" class="article_author">腾讯安全</a>
+                                            </div>
+                                             <div class="col-9 text-right text-truncate" style="color: https://www.kanxue.com/888;">
+                                                                                                已有 <span class="read_number_style">5259</span> 人阅读・<span>2天前</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                                                                                            <div class="media py-4 home_article" style="overflow: hidden;">
+                                    <div class="mr-4 article-img" style="width: 160px; height: 120px;border-radius: 4px;background: url(//zhuanlan.kanxue.com/upload/article/202003/202003061655_Q3YXTBX9GFNVSRQ.jpg) no-repeat;background-size: cover;background-position: center;">
+                                        
+                                    </div>
+                                    <!-- <img class="mr-4" src="//zhuanlan.kanxue.com/upload/article/202003/202003061655_Q3YXTBX9GFNVSRQ.jpg" width="160" height="120"> -->
+                                    <div class="media-body">
+                                                                                <a href="//zhuanlan.kanxue.com/article-10597.htm" target="_blank" class="article_url">
+                                            <h4 class="mt-0 article_title">17年的PPP严重漏洞披露；iPhone 7能刷安卓10.0；华为折叠屏手机Mate Xs被炒高价</h4>
+                                            <div class="article-excerpt" style="margin-bottom:5px;!important">
+                                                
+
+近日，微软宣布发布 PowerShell 7.0 正式版。微软表示通过该版本它完成了对 Windows PowerShell 的向后兼容，PowerShell 7 与底层的 .NET 运行时的生命周期将保持一致，提供大约 3 年的支持。1、PPP严重漏...                                            </div>
+                                        </a>
+                                                                                <div class="row article_userinfo">
+                                            <div class="col-3 text-truncate">
+                                                                                                <a href="//zhuanlan.kanxue.com/user-236762.htm" class="article_author"><img src="//passport.kanxue.com/upload/avatar/762/236762.png?1558504876" class="avatar-2" /></a>
+                                                <a href="//zhuanlan.kanxue.com/user-236762.htm" class="article_author">Editor</a>
+                                            </div>
+                                             <div class="col-9 text-right text-truncate" style="color: https://www.kanxue.com/888;">
+                                                                                                已有 <span class="read_number_style">9356</span> 人阅读・<span>3天前</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                                                                                            <div class="media py-4 home_article" style="overflow: hidden;">
+                                    <div class="mr-4 article-img" style="width: 160px; height: 120px;border-radius: 4px;background: url(//zhuanlan.kanxue.com/upload/article/202003/202003051632_6X8M92FFEGXXUBP.jpg) no-repeat;background-size: cover;background-position: center;">
+                                        
+                                    </div>
+                                    <!-- <img class="mr-4" src="//zhuanlan.kanxue.com/upload/article/202003/202003051632_6X8M92FFEGXXUBP.jpg" width="160" height="120"> -->
+                                    <div class="media-body">
+                                                                                <a href="//zhuanlan.kanxue.com/article-10591.htm" target="_blank" class="article_url">
+                                            <h4 class="mt-0 article_title">300万个TLS证书被撤销；霍尼韦尔将发布量子计算机；韩新天地教会网站被黑</h4>
+                                            <div class="article-excerpt" style="margin-bottom:5px;!important">
+                                                
+
+滴滴在官微表示，疫情期间不佩戴口罩的乘客，司机有权拒载（取消订单）。为避免耽误行程，请一定佩戴口罩出行。1、Let’s Encrypt撤销300万个TLS证书3月4日，Let's Encrypt由于域验证和发布软件中的一个错误，吊销近300万个TLS ...                                            </div>
+                                        </a>
+                                                                                <div class="row article_userinfo">
+                                            <div class="col-3 text-truncate">
+                                                                                                <a href="//zhuanlan.kanxue.com/user-236762.htm" class="article_author"><img src="//passport.kanxue.com/upload/avatar/762/236762.png?1558504876" class="avatar-2" /></a>
+                                                <a href="//zhuanlan.kanxue.com/user-236762.htm" class="article_author">Editor</a>
+                                            </div>
+                                             <div class="col-9 text-right text-truncate" style="color: https://www.kanxue.com/888;">
+                                                                                                已有 <span class="read_number_style">11720</span> 人阅读・<span>4天前</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                                                                    <div class="recommended_bit py-4">
+                                        <div class="row random_course">
+                                                                                                                                                <div class="col-4">
+                                                        <div class="text-center p-2 hoverborder" style="height: 200px; width: 270px;  border: 1px solid https://www.kanxue.com/e8e8e8;">
+                                                            <a class="course_url d-inline-block" style="width: 100%;" href="//www.kanxue.com/book-39.htm">
+                                                                <div class="position-relative" style="width: 100%; display: inline-block;">
+                                                                    <span class="position-absolute px-1" style="top: 5px; left: 5px; border-radius: 3px; font-size: 12px; background: red; color: #fff;">推 荐</span>
+                                                                    <img class="course_cover" src="//www.kanxue.com/upload/attach/201911/201911121405_PDVPVTE74SHJKGS.jpg" width="250" height="140" alt="推荐课程">
+                                                                    <div class="book_title text-left my-2">
+                                                                        <span class="recommend_course course_title" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block;">游戏外挂对抗的安全实践[初级篇]</span>
+                                                                    </div>
+
+                                                                </div>
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                                                                    <div class="col-4">
+                                                        <div class="text-center p-2 hoverborder" style="height: 200px; width: 270px;  border: 1px solid https://www.kanxue.com/e8e8e8;">
+                                                            <a class="course_url d-inline-block" style="width: 100%;" href="//www.kanxue.com/book-43.htm">
+                                                                <div class="position-relative" style="width: 100%; display: inline-block;">
+                                                                    <span class="position-absolute px-1" style="top: 5px; left: 5px; border-radius: 3px; font-size: 12px; background: red; color: #fff;">推 荐</span>
+                                                                    <img class="course_cover" src="//www.kanxue.com/upload/attach/201911/201911121403_Q8SMCCJE5Y7H9RV.jpg" width="250" height="140" alt="推荐课程">
+                                                                    <div class="book_title text-left my-2">
+                                                                        <span class="recommend_course course_title" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block;">Web安全基础教程</span>
+                                                                    </div>
+
+                                                                </div>
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                                                                    <div class="col-4">
+                                                        <div class="text-center p-2 hoverborder" style="height: 200px; width: 270px;  border: 1px solid https://www.kanxue.com/e8e8e8;">
+                                                            <a class="course_url d-inline-block" style="width: 100%;" href="//www.kanxue.com/book-13.htm">
+                                                                <div class="position-relative" style="width: 100%; display: inline-block;">
+                                                                    <span class="position-absolute px-1" style="top: 5px; left: 5px; border-radius: 3px; font-size: 12px; background: red; color: #fff;">推 荐</span>
+                                                                    <img class="course_cover" src="//www.kanxue.com/upload/attach/201812/201812220853_W93W34B85BZWPNJ.jpg" width="250" height="140" alt="推荐课程">
+                                                                    <div class="book_title text-left my-2">
+                                                                        <span class="recommend_course course_title" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block;">传统安全x区块链</span>
+                                                                    </div>
+
+                                                                </div>
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                                                                                                        
+                                        </div>
+                                        <div class="text-center pt-3">
+                                            <button type="button" class="change_course_btn px-3 py-1"><i class="fa fa-refresh"></i> 换一批</button>
+                                        </div>
+                                    </div>
+                                                                                            <div class="media py-4 home_article" style="overflow: hidden;">
+                                    <div class="mr-4 article-img" style="width: 160px; height: 120px;border-radius: 4px;background: url(//zhuanlan.kanxue.com/view/img/rand_img/67.jpg) no-repeat;background-size: cover;background-position: center;">
+                                        
+                                    </div>
+                                    <!-- <img class="mr-4" src="//zhuanlan.kanxue.com/view/img/rand_img/67.jpg" width="160" height="120"> -->
+                                    <div class="media-body">
+                                                                                <a href="http://bbs.pediy.com/thread-257951.htm" target="_blank" class="article_url">
+                                            <h4 class="mt-0 article_title">[原创]通过CTF学习Android漏洞（炸弹引爆 dex修复）</h4>
+                                            <div class="article-excerpt" style="margin-bottom:5px;!important">
+                                                https://www.kanxue.com/https://www.kanxue.com/ 0x00 说明
+https://www.kanxue.com/https://www.kanxue.com/https://www.kanxue.com/https://www.kanxue.com/ 刷android ctf题，感觉涉及的点不错，分享一下做题过程。
+https://www.kanxue.com/https://www.kanxue.com/https://www.kanxue.com/ 题目：
+2015 RCTF / 攻防世界高手区 where
+https://www.kanxue.com/https://www.kanxue.com/https://www.kanxue.com/ 描述（提示）：
+Where is the flag.(The flag should include RCTF{}) ...                                            </div>
+                                        </a>
+                                                                                <div class="row article_userinfo">
+                                            <div class="col-3 text-truncate">
+                                                                                                <a href="//bbs.pediy.com/user-590753.htm" class="article_author"><img src="//passport.kanxue.com/upload/avatar/753/590753.png?1568183385" class="avatar-2" /></a>
+                                                <a href="//bbs.pediy.com/user-590753.htm" class="article_author">neilwu</a>
+                                            </div>
+                                             <div class="col-9 text-right text-truncate" style="color: https://www.kanxue.com/888;">
+                                                <span>3天前</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                                                                                            <div class="media py-4 home_article" style="overflow: hidden;">
+                                    <div class="mr-4 article-img" style="width: 160px; height: 120px;border-radius: 4px;background: url(//zhuanlan.kanxue.com/upload/article/202003/202003041726_E8RNQC7CU7QJNJW.jpg) no-repeat;background-size: cover;background-position: center;">
+                                        
+                                    </div>
+                                    <!-- <img class="mr-4" src="//zhuanlan.kanxue.com/upload/article/202003/202003041726_E8RNQC7CU7QJNJW.jpg" width="160" height="120"> -->
+                                    <div class="media-body">
+                                                                                <a href="//zhuanlan.kanxue.com/article-10589.htm" target="_blank" class="article_url">
+                                            <h4 class="mt-0 article_title">实锤披露CIA网攻中国11年；腾讯回应微信封杀钉钉；免费Wi-Fi致1.46亿条数据泄露</h4>
+                                            <div class="article-excerpt" style="margin-bottom:5px;!important">
+                                                
+
+世卫组织报告，新冠病毒的虚假和误导性新闻的分享远远超过CDC和WHO等权威信息，高达142倍以上。1、实锤！CIA持续11年攻击中国网络近日，网络安全公司360宣布，通过该公司旗下“360安全大脑”的调查分析，发现美国中央情报局（CIA）的网络攻击组织...                                            </div>
+                                        </a>
+                                                                                <div class="row article_userinfo">
+                                            <div class="col-3 text-truncate">
+                                                                                                <a href="//zhuanlan.kanxue.com/user-236762.htm" class="article_author"><img src="//passport.kanxue.com/upload/avatar/762/236762.png?1558504876" class="avatar-2" /></a>
+                                                <a href="//zhuanlan.kanxue.com/user-236762.htm" class="article_author">Editor</a>
+                                            </div>
+                                             <div class="col-9 text-right text-truncate" style="color: https://www.kanxue.com/888;">
+                                                                                                已有 <span class="read_number_style">14788</span> 人阅读・<span>5天前</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                                                                    <div class="recommended_bit py-4" >
+                                        <div class="row random_job">
+                                                                                                                                            <div class="col-4">
+                                                    <div class="p-4 hovercard" style="height: 180px; width: 270px;  border: 1px solid https://www.kanxue.com/e8e8e8;">
+                                                        <div class="pb-3" style="border-bottom: 1px solid https://www.kanxue.com/e9e9e9;">
+                                                            <a class="job_title job_url nowrap pb-3" href="//job.kanxue.com/position-read-320.htm">运维经理</a>
+                                                            <div class="row color888">
+                                                                <div class="col-7 nowrap job_fmt">
+                                                                    <span class="">5-10年</span>／<span class="">学历不限</span>                                                                </div>
+                                                                <div class="col-5 text-right job_salary">
+                                                                    <span>20-30k</span>                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="pt-3">
+                                                            <div class="row m-0">
+                                                                <div style="width: 46px;">
+                                                                    <img class="mr-2 job_cover" src="//job.kanxue.com/upload/logo/201905/201905100937_25HRUWW8SGHG6JJ.png" width="46" height="46">
+                                                                </div>
+                                                                
+                                                                <div class="col-9 pr-0">
+                                                                    <a href="//job.kanxue.com/company-read-262.htm" class="article_url">
+                                                                        <h6 class="job_company_name nowrap" style="color: https://www.kanxue.com/4a4a4a; font-size: 14px;font-weight: 600;">北京梆梆安全科技有限公司</h6>
+                                                                        
+                                                                    </a>
+                                                                    <div class="nowrap job_company_fmt">
+                                                                         <span class="">D轮及以上</span>/北京                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>            
+                                                    </div>
+                                                </div>
+                                                                                                <div class="col-4">
+                                                    <div class="p-4 hovercard" style="height: 180px; width: 270px;  border: 1px solid https://www.kanxue.com/e8e8e8;">
+                                                        <div class="pb-3" style="border-bottom: 1px solid https://www.kanxue.com/e9e9e9;">
+                                                            <a class="job_title job_url nowrap pb-3" href="//job.kanxue.com/position-read-567.htm">物联网安全研究员（无线电安全方向）</a>
+                                                            <div class="row color888">
+                                                                <div class="col-7 nowrap job_fmt">
+                                                                    <span class="">经验不限</span>／<span class="">本科</span>                                                                </div>
+                                                                <div class="col-5 text-right job_salary">
+                                                                    <span>20-30k</span>                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="pt-3">
+                                                            <div class="row m-0">
+                                                                <div style="width: 46px;">
+                                                                    <img class="mr-2 job_cover" src="//job.kanxue.com/upload/logo/202002/202002101228_VCX6PKQJRT6TTPD.jpg" width="46" height="46">
+                                                                </div>
+                                                                
+                                                                <div class="col-9 pr-0">
+                                                                    <a href="//job.kanxue.com/company-read-472.htm" class="article_url">
+                                                                        <h6 class="job_company_name nowrap" style="color: https://www.kanxue.com/4a4a4a; font-size: 14px;font-weight: 600;">杭州安恒信息技术股份有限公司 （总部杭州  上市公司）</h6>
+                                                                        
+                                                                    </a>
+                                                                    <div class="nowrap job_company_fmt">
+                                                                         <span class="">上市公司</span>/杭州                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>            
+                                                    </div>
+                                                </div>
+                                                                                                <div class="col-4">
+                                                    <div class="p-4 hovercard" style="height: 180px; width: 270px;  border: 1px solid https://www.kanxue.com/e8e8e8;">
+                                                        <div class="pb-3" style="border-bottom: 1px solid https://www.kanxue.com/e9e9e9;">
+                                                            <a class="job_title job_url nowrap pb-3" href="//job.kanxue.com/position-read-558.htm">安全工程师（Android）</a>
+                                                            <div class="row color888">
+                                                                <div class="col-7 nowrap job_fmt">
+                                                                    <span class="">3-5年</span>／<span class="">本科</span>                                                                </div>
+                                                                <div class="col-5 text-right job_salary">
+                                                                    <span>30k以上</span>                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="pt-3">
+                                                            <div class="row m-0">
+                                                                <div style="width: 46px;">
+                                                                    <img class="mr-2 job_cover" src="//job.kanxue.com/upload/logo/201908/201908071357_BBXZWFAZBB59XK5.jpg" width="46" height="46">
+                                                                </div>
+                                                                
+                                                                <div class="col-9 pr-0">
+                                                                    <a href="//job.kanxue.com/company-read-343.htm" class="article_url">
+                                                                        <h6 class="job_company_name nowrap" style="color: https://www.kanxue.com/4a4a4a; font-size: 14px;font-weight: 600;">网易（杭州）网络有限公司</h6>
+                                                                        
+                                                                    </a>
+                                                                    <div class="nowrap job_company_fmt">
+                                                                         <span class="">上市公司</span>/杭州                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>            
+                                                    </div>
+                                                </div>
+                                                                                                                                        
+                                        </div>
+                                        <div class="text-center pt-3">
+                                            <button type="button" class="change_job_btn px-3 py-1"><i class="fa fa-refresh"></i> 换一批</button>
+                                        </div>
+                                    </div>
+                                                                                            <div class="media py-4 home_article" style="overflow: hidden;">
+                                    <div class="mr-4 article-img" style="width: 160px; height: 120px;border-radius: 4px;background: url(//zhuanlan.kanxue.com/upload/article/202003/202003041522_PXS7QSTME9CCEU7.jpg) no-repeat;background-size: cover;background-position: center;">
+                                        
+                                    </div>
+                                    <!-- <img class="mr-4" src="//zhuanlan.kanxue.com/upload/article/202003/202003041522_PXS7QSTME9CCEU7.jpg" width="160" height="120"> -->
+                                    <div class="media-body">
+                                                                                <a href="//zhuanlan.kanxue.com/article-10588.htm" target="_blank" class="article_url">
+                                            <h4 class="mt-0 article_title">解构全球网军之英国网络作战部队</h4>
+                                            <div class="article-excerpt" style="margin-bottom:5px;!important">
+                                                在美国照应之下，英国已将网络霸主的姿态“复刻”至大西洋东岸。                                            </div>
+                                        </a>
+                                                                                <div class="row article_userinfo">
+                                            <div class="col-3 text-truncate">
+                                                                                                <a href="//zhuanlan.kanxue.com/user-845828.htm" class="article_author"><img src="//passport.kanxue.com/upload/avatar/828/845828.png?1570799550" class="avatar-2" /></a>
+                                                <a href="//zhuanlan.kanxue.com/user-845828.htm" class="article_author">零日情报局</a>
+                                            </div>
+                                             <div class="col-9 text-right text-truncate" style="color: https://www.kanxue.com/888;">
+                                                                                                已有 <span class="read_number_style">14042</span> 人阅读・<span>5天前</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <div class="media py-4 ad_article position-relative">
+                                                    <img class="ad-icon position-absolute" src="https://www.kanxue.com/view/img/newhome3/201608021757063065.png" alt="">
+                                                    <img class="mr-4 article-img" src="https://www.kanxue.com/upload/attach/201810/201810231115_SKVKAQRUNN8XYNV.jpg" width="160" height="120">
+                                                    <div class="media-body">
+                                                        <a href="https://bbs.pediy.com/thread-223326.htm" target="_blank" class="article_url">
+                                                            <h4 class="mt-0 article_title">看雪讲师招募</h4>
+                                                            <div class="article-excerpt">
+                                                                看雪社区人才辈出，如何搭建一个平台和桥梁，将大牛与学习者建立联系，让牛人将其所掌握的知识和技能分享给新人，促进知识的传承，是我们一直在考虑的问题。   看雪学院课程系统就是为解决上述问题而开发出来的。我们准备推出一套精品课程，专门为不同阶段的学习者量身定制，为在学海中迷茫不知所措的学者指明方向。                                                            </div>
+                                                        </a>
+                                                        
+                                                    </div>
+                                                    
+                                                </div>
+                                                                                                                                                                                                                    <div class="media py-4 home_article" style="overflow: hidden;">
+                                    <div class="mr-4 article-img" style="width: 160px; height: 120px;border-radius: 4px;background: url(//zhuanlan.kanxue.com/upload/article/202003/202003041322_S5TKX4UASPBJS7Y.jpg) no-repeat;background-size: cover;background-position: center;">
+                                        
+                                    </div>
+                                    <!-- <img class="mr-4" src="//zhuanlan.kanxue.com/upload/article/202003/202003041322_S5TKX4UASPBJS7Y.jpg" width="160" height="120"> -->
+                                    <div class="media-body">
+                                                                                <a href="//zhuanlan.kanxue.com/article-10586.htm" target="_blank" class="article_url">
+                                            <h4 class="mt-0 article_title">披露美国中央情报局CIA攻击组织（APT-C-39）对中国关键领域长达十一年的网络渗透攻击</h4>
+                                            <div class="article-excerpt" style="margin-bottom:5px;!important">
+                                                这是记载历史的时刻。                                            </div>
+                                        </a>
+                                                                                <div class="row article_userinfo">
+                                            <div class="col-3 text-truncate">
+                                                                                                <a href="//zhuanlan.kanxue.com/user-870855.htm" class="article_author"><img src="//passport.kanxue.com/upload/avatar/855/870855.png?1571298902" class="avatar-2" /></a>
+                                                <a href="//zhuanlan.kanxue.com/user-870855.htm" class="article_author">国际安全智库</a>
+                                            </div>
+                                             <div class="col-9 text-right text-truncate" style="color: https://www.kanxue.com/888;">
+                                                                                                已有 <span class="read_number_style">14569</span> 人阅读・<span>5天前</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                                                                                            <div class="media py-4 home_article" style="overflow: hidden;">
+                                    <div class="mr-4 article-img" style="width: 160px; height: 120px;border-radius: 4px;background: url(//zhuanlan.kanxue.com/view/img/rand_img/40.jpg) no-repeat;background-size: cover;background-position: center;">
+                                        
+                                    </div>
+                                    <!-- <img class="mr-4" src="//zhuanlan.kanxue.com/view/img/rand_img/40.jpg" width="160" height="120"> -->
+                                    <div class="media-body">
+                                                                                <a href="http://bbs.pediy.com/thread-257926.htm" target="_blank" class="article_url">
+                                            <h4 class="mt-0 article_title">[原创]百度加固免费版分析及VMP修复</h4>
+                                            <div class="article-excerpt" style="margin-bottom:5px;!important">
+                                                    背景 本来计划年后跑路的，不知道是我太菜，还是疫情原因，投简历都没人搭理我。现在又不能出门，只好自己找点事干了。 本文基于Android8.1分析。如果不想看分析过程，可以直接跳到最后的总结。    加固和简单分析 自己随便写个app，上传到百度开发者平台去加固。      加固后反编译看下 ...                                            </div>
+                                        </a>
+                                                                                <div class="row article_userinfo">
+                                            <div class="col-3 text-truncate">
+                                                                                                <a href="//bbs.pediy.com/user-745332.htm" class="article_author"><img src="//passport.kanxue.com/upload/avatar/332/745332.png?1583213048" class="avatar-2" /></a>
+                                                <a href="//bbs.pediy.com/user-745332.htm" class="article_author">卧勒个槽</a>
+                                            </div>
+                                             <div class="col-9 text-right text-truncate" style="color: https://www.kanxue.com/888;">
+                                                <span>5天前</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                                                                                            <div class="media py-4 home_article" style="overflow: hidden;">
+                                    <div class="mr-4 article-img" style="width: 160px; height: 120px;border-radius: 4px;background: url(//zhuanlan.kanxue.com/view/img/rand_img/195.jpg) no-repeat;background-size: cover;background-position: center;">
+                                        
+                                    </div>
+                                    <!-- <img class="mr-4" src="//zhuanlan.kanxue.com/view/img/rand_img/195.jpg" width="160" height="120"> -->
+                                    <div class="media-body">
+                                                                                <a href="http://bbs.pediy.com/thread-257917.htm" target="_blank" class="article_url">
+                                            <h4 class="mt-0 article_title">[原创]菜鸟学8.1版本dex加载流程笔记--第二篇:DexFile::Open流程与简单脱壳原理</h4>
+                                            <div class="article-excerpt" style="margin-bottom:5px;!important">
+                                                菜鸟刚刚学完了
+dex_file.cc这个源码，大致搞明白了大佬们hook脱整体加固的原理了，原理在帖子最后学习了大佬
+angelToms
+
+的帖子https://bbs.pediy.com/thread-252828.htm与https://bbs.pediy.com/thread-252 ...                                            </div>
+                                        </a>
+                                                                                <div class="row article_userinfo">
+                                            <div class="col-3 text-truncate">
+                                                                                                <a href="//bbs.pediy.com/user-877073.htm" class="article_author"><img src="//passport.kanxue.com/upload/avatar/073/877073.png?1582276540" class="avatar-2" /></a>
+                                                <a href="//bbs.pediy.com/user-877073.htm" class="article_author">挤蹭菌衣</a>
+                                            </div>
+                                             <div class="col-9 text-right text-truncate" style="color: https://www.kanxue.com/888;">
+                                                <span>5天前</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                                                                                        <div class="text-center mb-5 loadingmore_box">
+                                <a href="javascript:void(0);" data-page="1" class="color0099ee border0099ee d-inline-block py-1 px-3 loding_more" style="text-decoration: none;">加载更多</a>
+                            </div>
+                                                            </div>
+                
+            </div>
+        </div>
+        <div class="right_content_area" style="padding-left: 20px;padding-top: 20px;width: 300px;">
+                                                                                                           
+                        <div class="pt-4">
+                            <a href="" target="_blank">
+                                <img src="" alt="">
+                            </a>
+                        </div>
+                       
+                                                                                                                                <div class="mt-4 course_new_comment" style="border: 1px solid https://www.kanxue.com/e9e9e9;">
+                <div class="row my-3 mx-0">
+                    <div class="col-6 color0099ee h5 m-0">课程评论</div>
+                    <div class="col-6 text-right"><a href="//www.kanxue.com/course.htm" class="color888">看雪课程&nbsp;<span>&gt;&gt;&gt;</span></a></div>
+                </div>
+                <hr/>
+                                <div class="media py-2">
+                    <img class="mx-2 avatar-3" src="//passport.kanxue.com/static/avatar.png" >
+                    <div class="media-body">
+                            <div class="mt-0 new_comment_title new_comment_">suaqer</div>
+                            <a href="https://www.kanxue.com/book-57-864.htm">
+                                <div class="article-excerpt new_comment_content new_comment_ color888" style="word-break: break-all; word-wrap:break-word">
+                                    <strong><a href=//bbs.pediy.com/user-832631.htm class=text-info target=_blank>@Roger</a></strong>&nbsp; 师傅，我在学习的时候遇到以下两个问题<br>1.&nbsp; exp问题，我这里利用exp的时候确实出现了$符，但是执行命令的时候就报错了，比如执行`ls`，就显示“Process&nbsp; './test'&nbsp; stopped&nbsp; with&nbsp; exit&nbsp; code&nbsp; -11&nbsp; (SIGSEGV)&nbsp; (pid&nbsp; 21229)”，然后就退出了<br>2.&nbsp; 就是调试exp的时候，我发现单步跟到回车符`\n`被压入`rcx`的时候，您这边显示的是&quot;0xa（'\n'）&quot;，而我这边显示的只有&quot;0xa&quot;，并不能看到回车符，是环境配置的有问题吗                                </div>
+                            </a>
+                    </div>
+                </div>
+                                <div class="media py-2">
+                    <img class="mx-2 avatar-3" src="//passport.kanxue.com/static/avatar.png" >
+                    <div class="media-body">
+                            <div class="mt-0 new_comment_title new_comment_">suaqer</div>
+                            <a href="https://www.kanxue.com/book-57-862.htm">
+                                <div class="article-excerpt new_comment_content new_comment_ color888" style="word-break: break-all; word-wrap:break-word">
+                                    <strong><a href=//bbs.pediy.com/user-832631.htm class=text-info target=_blank>@Roger</a></strong>&nbsp; 清楚啦&nbsp; 谢谢师傅                                </div>
+                            </a>
+                    </div>
+                </div>
+                                <div class="media py-2">
+                    <img class="mx-2 avatar-3" src="//passport.kanxue.com/upload/avatar/663/850663.png?1554105674" >
+                    <div class="media-body">
+                            <div class="mt-0 new_comment_title new_comment_">Sunny灬</div>
+                            <a href="https://www.kanxue.com/book-57-854.htm">
+                                <div class="article-excerpt new_comment_content new_comment_ color888" style="word-break: break-all; word-wrap:break-word">
+                                    老师，请看下我这个地方fuc的汇编：pwndbg&gt;&nbsp; disass&nbsp; func<br>Dump&nbsp; of&nbsp; assembler&nbsp; code&nbsp; for&nbsp; function&nbsp; func:<br>&nbsp; &nbsp; &nbsp; 0x08048454&nbsp; &lt;+0&gt;: &nbsp; &nbsp; &nbsp; &nbsp;push&nbsp; &nbsp; &nbsp; ebp<br>&nbsp; &nbsp; &nbsp; 0x08048455&nbsp; &lt;+1&gt;: &nbsp; &nbsp; &nbsp; &nbsp;mov&nbsp; &nbsp; &nbsp; &nbsp; ebp,esp<br>&nbsp; &nbsp; &nbsp; 0x08048457&nbsp; &lt;+3&gt;: &nbsp; &nbsp; &nbsp; &nbsp;sub&nbsp; &nbsp; &nbsp; &nbsp; esp,0x28<br>&nbsp; &nbsp; &nbsp; 0x0804845a&nbsp; &lt;+6&gt;: &nbsp; &nbsp; &nbsp; &nbsp;sub&nbsp; &nbsp; &nbsp; &nbsp; esp,0x4<br>&nbsp; &nbsp; &nbsp; 0x0804845d&nbsp; &lt;+9&gt;: &nbsp; &nbsp; &nbsp; &nbsp;push&nbsp; &nbsp; &nbsp; 0x50<br>&nbsp; &nbsp; &nbsp; 0x0804845f&nbsp; &lt;+11&gt;: &nbsp; &nbsp; &nbsp; &nbsp;lea&nbsp; &nbsp; &nbsp; &nbsp; eax,[ebp-0x28]<br>&nbsp; &nbsp; &nbsp; 0x08048462&nbsp; &lt;+14&gt;: &nbsp; &nbsp; &nbsp; &nbsp;push&nbsp; &nbsp; &nbsp; eax<br>&nbsp; &nbsp; &nbsp; 0x08048463&nbsp; &lt;+15&gt;: &nbsp; &nbsp; &nbsp; &nbsp;push&nbsp; &nbsp; &nbsp; 0x0<br>&nbsp; &nbsp; &nbsp; 0x08048465&nbsp; &lt;+17&gt;: &nbsp; &nbsp; &nbsp; &nbsp;call&nbsp; &nbsp; &nbsp; 0x8048300&nbsp; &lt;read<strong><a href=//bbs.pediy.com/user-215965.htm class=text-info target=_blank>@plt</a></strong>&gt;<br>&nbsp; &nbsp; &nbsp; 0x0804846a&nbsp; &lt;+22&gt;: &nbsp; &nbsp; &nbsp; &nbsp;add&nbsp; &nbsp; &nbsp; &nbsp; esp,0x10<br>&nbsp; &nbsp; &nbsp; 0x0804846d&nbsp; &lt;+25&gt;: &nbsp; &nbsp; &nbsp; &nbsp;nop<br>&nbsp; &nbsp; &nbsp; 0x0804846e&nbsp; &lt;+26&gt;: &nbsp; &nbsp; &nbsp; &nbsp;leave&nbsp; &nbsp; <br>&nbsp; &nbsp; &nbsp; 0x0804846f&nbsp; &lt;+27&gt;: &nbsp; &nbsp; &nbsp; &nbsp;ret&nbsp; &nbsp; &nbsp; &nbsp; <br>End&nbsp; of&nbsp; assembler&nbsp; dump.<br>按您视频的话，我这里的offset应该是0x28+0x4+0x4，但是这样并不能getshell，只有offset是0x28+0x4才可以，那这里是怎么判断的呢，我这开辟的空间明明是0x28+0x4啊，求解。                                </div>
+                            </a>
+                    </div>
+                </div>
+                                <div class="media py-2">
+                    <img class="mx-2 avatar-3" src="//passport.kanxue.com/static/avatar.png" >
+                    <div class="media-body">
+                            <div class="mt-0 new_comment_title new_comment_">路否大客户</div>
+                            <a href="https://www.kanxue.com/https://www.kanxue.com/book-57-871.htm">
+                                <div class="article-excerpt new_comment_content new_comment_ color888" style="word-break: break-all; word-wrap:break-word">
+                                    就是攻防世界高手区的pwn-200题                                </div>
+                            </a>
+                    </div>
+                </div>
+                                <div class="media py-2">
+                    <img class="mx-2 avatar-3" src="//passport.kanxue.com/static/avatar.png" >
+                    <div class="media-body">
+                            <div class="mt-0 new_comment_title new_comment_">路否大客户</div>
+                            <a href="https://www.kanxue.com/https://www.kanxue.com/book-57-871.htm">
+                                <div class="article-excerpt new_comment_content new_comment_ color888" style="word-break: break-all; word-wrap:break-word">
+                                    为什么有的这类跟你这个很像，但是这个解题方法用不了，而是在”bss段写入/bin/sh，用pppt来调用read执行system”payload3='a'*112+p32(read_plt)+p32(ppp_addr)+p32(0)+p32(bss_addr)+p32(8)<br>payload3+=p32(sys_addr)+p32(func_addr)+p32(bss_addr)<br>为什么不是跟你的这个wp一样直接传参，谢谢                                </div>
+                            </a>
+                    </div>
+                </div>
+                
+            </div>
+                                                                                                                                               
+                        <div class="pt-4">
+                            <a href="https://www.kanxue.com/mrt.htm" target="_blank">
+                                <img src="https://www.kanxue.com/upload/attach/201810/201810231032_FHMJCY3T65CR99N.jpg" alt="">
+                            </a>
+                        </div>
+                       
+                                                                                            <div class="mt-4 active_column" style="border: 1px solid https://www.kanxue.com/e9e9e9;">
+                <div class="row my-3 mx-0">
+                    <div class="col-6 color0099ee h5 m-0">活跃专栏</div>
+                    <div class="col-6 text-right"><a href="//zhuanlan.kanxue.com" class="color888">去专栏&nbsp;<span>&gt;&gt;&gt;</span></a></div>
+                </div>
+                <hr class="m-0" />
+                
+            </div>
+                                                                                                                                                                                                    <div class="mt-4" style="border: 1px solid https://www.kanxue.com/e9e9e9;">
+                <div class="row my-3 mx-0">
+                    <div class="col-6 color0099ee h5 m-0">论坛最新回帖</div>
+                    <div class="col-6 text-right"><a href="//bbs.pediy.com" class="color888" >逛论坛&nbsp;<span>&gt;&gt;&gt;</span></a></div>
+                </div>
+                <hr class="m-0" />
+                                <div class="px-3">
+                    <div class="color888 py-2">
+                        1小时前            
+                    </div>
+                    <div class="pb-2 ellipsis" style="border-bottom: 1px solid https://www.kanxue.com/e9e9e9;">
+                        <a href="//bbs.pediy.com/thread-254357.htm" class="nowrap d-inline-block" title="">
+                         [挑战] 连续打卡30天，有好礼相送！【第三期活动开启】                        </a>
+                    </div>  
+                </div>
+                                <div class="px-3">
+                    <div class="color888 py-2">
+                        1小时前            
+                    </div>
+                    <div class="pb-2 ellipsis" style="border-bottom: 1px solid https://www.kanxue.com/e9e9e9;">
+                        <a href="//bbs.pediy.com/thread-257881.htm" class="nowrap d-inline-block" title="">
+                         [原创]UnicornVM-全平台全架构正式发布                        </a>
+                    </div>  
+                </div>
+                                <div class="px-3">
+                    <div class="color888 py-2">
+                        1小时前            
+                    </div>
+                    <div class="pb-2 ellipsis" style="border-bottom: 1px solid https://www.kanxue.com/e9e9e9;">
+                        <a href="//bbs.pediy.com/thread-257909.htm" class="nowrap d-inline-block" title="">
+                         [求助]如何用xposed 在别人APP上实现文本框输入和模拟按钮点击，并且重复执行                        </a>
+                    </div>  
+                </div>
+                                <div class="px-3">
+                    <div class="color888 py-2">
+                        1小时前            
+                    </div>
+                    <div class="pb-2 ellipsis" style="border-bottom: 1px solid https://www.kanxue.com/e9e9e9;">
+                        <a href="//bbs.pediy.com/thread-254567.htm" class="nowrap d-inline-block" title="">
+                         [原创]脱壳成长之路(1)一款很老的2代壳脱壳经历                        </a>
+                    </div>  
+                </div>
+                                <div class="px-3">
+                    <div class="color888 py-2">
+                        3小时前            
+                    </div>
+                    <div class="pb-2 ellipsis" style="border-bottom: 1px solid https://www.kanxue.com/e9e9e9;">
+                        <a href="//bbs.pediy.com/thread-257878.htm" class="nowrap d-inline-block" title="">
+                         [原创]细说arm反类ollvm混淆-基本思想                        </a>
+                    </div>  
+                </div>
+                                <div class="px-3">
+                    <div class="color888 py-2">
+                        4小时前            
+                    </div>
+                    <div class="pb-2 ellipsis" style="border-bottom: 1px solid https://www.kanxue.com/e9e9e9;">
+                        <a href="//bbs.pediy.com/thread-257963.htm" class="nowrap d-inline-block" title="">
+                         [讨论] 你用得最久的电子产品是什么？                        </a>
+                    </div>  
+                </div>
+                                <div class="px-3">
+                    <div class="color888 py-2">
+                        5小时前            
+                    </div>
+                    <div class="pb-2 ellipsis" style="border-bottom: 1px solid https://www.kanxue.com/e9e9e9;">
+                        <a href="//bbs.pediy.com/thread-257981.htm" class="nowrap d-inline-block" title="">
+                         [原创]本地内核调试环境搭建，就这么简单！                        </a>
+                    </div>  
+                </div>
+                                <div class="px-3">
+                    <div class="color888 py-2">
+                        5小时前            
+                    </div>
+                    <div class="pb-2 ellipsis" style="border-bottom: 1px solid https://www.kanxue.com/e9e9e9;">
+                        <a href="//bbs.pediy.com/thread-257998.htm" class="nowrap d-inline-block" title="">
+                         还原一个js函数编码的算法                        </a>
+                    </div>  
+                </div>
+                            </div>
+                                                                                                                                                                                                </div>
+    </div>
+</div>
+<div style="background: https://www.kanxue.com/3b4348;">
+    <div class="container">
+        <div class="h5 text-muted pt-3">合作伙伴</div>
+        <div class="partner_list row mx-0 ">
+            <ul class="mb-0 pl-0">
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="https://www.bangcle.com">梆梆安全</a></li>
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="https://anquan.baidu.com">百度安全</a></li>
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="https://s.tencent.com/">腾讯安全</a></li>
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="https://security.tencent.com/">腾讯TSRC</a></li>
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="https://www.360.cn">360集团</a></li>
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="https://110.alibaba.com/policeHall/hallIndex.htm">阿里安全</a></li>
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="http://www.cheetahfun.com/">豹趣科技</a></li>
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="http://www.ijiami.cn">爱加密</a></li>
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="https://security.oppo.com/">OPPO SRC</a></li>
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="https://www.kanxue.com/ https:/www.dbappsecurity.com.cn/">安恒信息</a></li>
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="https://www.tongdun.cn/">同盾科技</a></li>
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="https://security.jd.com/https://www.kanxue.com//index">京东安全</a></li>
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="https://www.csdn.net">CSDN</a></li>
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="http://www.newdon.net/">纽盾科技</a></li>
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="http://www.nagain.com/">娜迦</a></li>
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="https://sec.wifi.com/index.html">WiFi万能钥匙SRC</a></li>
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="javascript:void(0);">第五空间</a></li>
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="http://www.nsfocus.com.cn/">绿盟科技</a></li>
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="https://www.kiwisec.com/">几维安全</a></li>
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="http://www.51asm.com/">科锐</a></li>
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="http://www.15pb.com.cn/">15派</a></li>
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="http://www.ijinshan.com/">金山毒霸</a></li>
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="http://www.broadview.com.cn/">博文视点</a></li>
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="https://www.yunaq.com/">知道创宇</a></li>
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="http://dun.163.com/?from=kanxue_DDoS_2018&hmsr=kanxue">网易易盾</a></li>
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="https://www.trustasia.com/">亚数信息</a></li>
+                
+
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="http://www.secwk.com">威客安全</a></li>
+                
+                
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="http://www.seclover.com">四叶草安全</a></li>
+                
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="https://www.butian.net/">补天平台</a></li>
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="https://www.okii.com/">小天才</a></li>
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="https://www.freebuf.com/">FreeBuf</a></li>
+                <li class="float-left my-2 mx-3 text-muted">|</li>
+                <li class="float-left my-2"><a class="text-muted" target="_blank" href="http://www.geekpwn.org/zh/index.html">极棒</a></li>
+            </ul>
+        </div>
+        <hr class="mb-0" style="border-bottom: 1px solid https://www.kanxue.com/868e96;" />
+    </div>
+
+</div> 
+
+<style>
+    .contact_right_box i {
+        font-size: 2.5rem;
+
+    }
+    .contact_right_box i:hover {
+        cursor: pointer;
+        color: https://www.kanxue.com/eee;
+
+    }
+</style>
+
+<div class="text-muted footer"  id="footer">
+    
+    <div style="background: https://www.kanxue.com/3b4348;">
+    <div class="container">
+        <div class="row align-items-center" style="height: 9rem;">
+            <div class="col-12 col-lg-6" style="font-size: 1rem; line-height: 2rem;">
+                <div>
+                    <a class="text-muted" href="https://zhuanlan.kanxue.com/article-56.htm">关于我们</a> | <a class="text-muted" href="https://www.kanxue.com/user-online_sendmsg.htm">联系我们</a>
+                </div>
+                <div>
+                域名：<a href="https://www.yunaq.com/" target="_blank" class="text-muted">加速乐</a> | 
+                SSL证书：<a href="https://www.trustasia.com/trustasia" target="_blank" class="text-muted">亚洲诚信</a> | 
+                <a href="http://dun.163.com/?from=kanxue_DDoS_2018&hmsr=kanxue" target="_blank" class="text-muted">安全网易易盾</a>| 
+                <a href="https://x.tongdun.cn/" target="_blank" class="text-muted">同盾反欺诈</a>
+                </div>
+                <div>
+                    ©2000 - 2020 看雪学院 / 京ICP备10040895号-17 /  
+                </div>
+                
+            </div>
+            <div class="col-12 col-lg-6 text-center text-lg-right py-5 py-lg-0">
+                <div class="d-inline-block contact_right_box">
+                
+                    <div class="d-inline-block mr-4 position-relative text-center">
+                        <i class="icon iconfont icon-weixingongzhonghao"></i>
+                        <img src="https://www.kanxue.com/view/img/new_homepage/gongzhonghao.png" class="position-absolute gongzhonghao " style="box-shadow: 0 0 1px 0 https://www.kanxue.com/dedede; display: none; left: -36px; top: -150px; width: 10rem; height: 10rem;">
+                        <br>
+                        <div class="pt-2">官方公众号</div>
+                    </div>
+                    <div class="d-inline-block mr-4 position-relative text-center">
+                        <i class="icon iconfont icon-weibo"></i>
+                        <img src="https://www.kanxue.com/view/img/new_homepage/weibo.png" class="position-absolute weibo " style="box-shadow: 0 0 1px 0 https://www.kanxue.com/dedede; display: none; left: -44px; top: -150px; width: 10rem; height: 10rem;">
+                        <br>
+                        <div class="pt-2">官方微博</div>
+                    </div>
+                    <div class="d-inline-block position-relative text-center">
+                        <a class="text-muted" style="text-decoration: none;" href='tencent://message/?uin=882704amp;Site=小万&amp;Menu=yes' target='_blank' title='小万' rel='nofollow'>
+                            <i class="icon iconfont icon-qq"></i>
+                            <img src="https://www.kanxue.com/view/img/new_homepage/qq.png" class="position-absolute qq " style="box-shadow: 0 0 1px 0 https://www.kanxue.com/dedede; display: none; left: -51px; top: -150px; width: 10rem; height: 10rem;">
+                        </a>
+                        <br>
+                        <div class="pt-2">官方QQ</div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+    <audio src="" autoplay id="newpm"></audio>
+    
+</div>
+
+<div class="act_go_top position-fixed" style="display: none; bottom: 80px; right: 10px; width: 70px; height: 70px;">
+    <a href="javascript:void(0);" class="d-inline-block" style="width: 70px; height: 70px; background: url(/view/img/new_homepage/return_top.png) no-repeat; outline: none;" title="返回顶部"></a>
+</div>
+<script src="//www.kanxue.com/lang/zh-cn/bbs.js??1.0"></script>
+<script src="//www.kanxue.com/view/js/storagePlus.js"></script>
+
+<script src="//www.kanxue.com/view/js/jquery-3.1.0.js?1.0"></script>
+
+<script src="https://www.kanxue.com/view/js_bs4_beta3/jquery-ui.js"></script>
+
+<script src="//www.kanxue.com/view/js/popper.js?1.0"></script>
+<script src="//www.kanxue.com/view/js/bootstrap.js?1.0"></script>
+<script src="//www.kanxue.com/view/js/xiuno.js?1.0"></script>
+<script src="//www.kanxue.com/view/js/bootstrap-plugin.js?1.0"></script>
+
+<script src="//www.kanxue.com/view/js/async.js?1.0"></script>
+<script src="//www.kanxue.com/view/js/form.js?1.0"></script>
+<script src="//www.kanxue.com/view/js/bbs.js?1.0"></script>
+<script src="https://www.kanxue.com/view/js_bs4_beta3/marked.js"></script>
+<script src="https://www.kanxue.com/view/js_bs4_beta3/bootstrapSwitch.js"></script>
+
+
+
+<script>
+$(function() {
+    console.log("%cXiunoBBS"," text-shadow: 0 1px 0 https://www.kanxue.com/ccc,0 2px 0 https://www.kanxue.com/c9c9c9,0 3px 0 https://www.kanxue.com/bbb,0 4px 0 https://www.kanxue.com/b9b9b9,0 5px 0 https://www.kanxue.com/aaa,0 6px 1px rgba(0,0,0,.1),0 0 5px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.3),0 3px 5px rgba(0,0,0,.2),0 5px 10px rgba(0,0,0,.25),0 10px 10px rgba(0,0,0,.2),0 20px 20px rgba(0,0,0,.15);font-size:3em");
+    console.log(
+    'Downloading xiunobbs as a secondary development platform will be very beneficial to your project:\n' +
+    '%chttps://github.com/xiuno/xiunobbs',"color:https://www.kanxue.com/97D0F1;");
+    
+    $(".contact_right_box").on("mouseenter",".icon-weixingongzhonghao, .icon-weibo, .icon-qq",function(){
+        $(this).next("img").show();
+    })
+    $(".contact_right_box").on("mouseleave", ".icon-weixingongzhonghao, .icon-weibo, .icon-qq", function(){
+        $(this).next("img").hide();
+    })
+    // 导航
+    var new_p = 0, start_scrollTop = 0;
+        $(window).scroll(function(e){  
+                new_p = $(this).scrollTop();  
+                  
+                if(start_scrollTop < new_p) {//下滚  
+                    $('.header_fiexd').css("display","none");
+                } else {//上滚  
+                    $('.header_fiexd').css("display","block");
+                }  
+                setTimeout(function(){start_scrollTop = new_p;},0);         
+        });
+
+    // 返回顶部
+    
+    $(window).scroll(function() {
+        
+        if ($(window).scrollTop() >= 500) {
+            $('.act_go_top').fadeIn(300);
+        } else {
+            $('.act_go_top').fadeOut(300);
+        }
+    });
+
+    $('.act_go_top').click(function() {
+        $('html,body').animate({
+            scrollTop: '0px'
+        }, 800);
+    });
+    var m1 = 0;     // 滚动的值
+    var m2 = 0;     // 对比时间的值
+    var timer = null;
+    document.onscroll = function(){
+        clearTimeout(timer) // 每次滚动前 清除一次
+        timer = setTimeout(Data, 2000);
+        m1 = document.documentElement.scrollTop || document.body.scrollTop;
+
+    }
+    function Data(){
+        m2 = document.documentElement.scrollTop || document.body.scrollTop;
+        if(m2 == m1){
+            $('.act_go_top').fadeOut(300);
+        }
+    }
+
+
+    var islogin = '0';
+    if(islogin == 0)  return; 
+    var pm_number = "//www.kanxue.com/pm-new.htm";
+    $.xget(pm_number, function(code, message) {
+        var pm_number = $(".pm_number");
+        var sysm_number = $(".system_message_number");
+        if (code == 0) {
+            var newpms = parseInt(message.newpms);
+            var system_pms = parseInt(message.system_pms);
+            var pm_total = newpms + system_pms;
+            if (pm_total != 0) {
+                pm_total = pm_total > 99 ? "99+" : pm_total;
+                $(".pm_total").html(pm_total);
+                // $(".pm_total").css({
+                //     "display": "inline-block",
+                //     "padding": "0px 7px",
+                //     "font-size": "12px",
+                //     "line-height": "20px",
+                //     "color": "white",
+                //     "background-color": "https://www.kanxue.com/f57e42",
+                //     "border-radius": "9px",
+                //     "text-indent": "0px"
+                // });
+
+                if (system_pms > 0 && newpms == 0) {
+                    var href = "//www.kanxue.com/pm-system_read-1.htm";
+                    $(".pm_total_a").attr("href", href);
+                }
+                //是否超过2分钟。
+                var new_audio_isexpr = storagePlus.get("new_audio_isexpr");
+                if(new_audio_isexpr) {
+                    //更新时间
+                    $("https://www.kanxue.com/newpm").attr("src","");
+                } else {
+                    storagePlus.set("new_audio_isexpr", "/view/mp3/newmsg.mp3", new Date().getTime());
+                    $("https://www.kanxue.com/newpm").attr("src","/view/mp3/newmsg.mp3");
+                }
+                //
+               // 
+            } else {
+                // $(".pm_total_a").css("display","none");
+            };
+            if (message.newpms != 0) {
+                pm_number.html(message.newpms);
+                pm_number.addClass("pmmessage_number");
+            } else {
+                pm_number.css("display", "none");
+            };
+            if (message.system_pms != 0) {
+                sysm_number.html(message.system_pms);
+                sysm_number.addClass("pmmessage_number");
+            } else {
+                sysm_number.css("display", "none");
+            };
+            if (message.newpms != 0) {
+                pm_number.html(message.newpms);
+                pm_number.addClass("pm_numbers_");
+            } else {
+                pm_number.css("display", "none");
+            };
+            if (message.system_pms != 0) {
+                sysm_number.html(message.system_pms);
+                sysm_number.addClass("pm_numbers_");
+            } else {
+                sysm_number.css("display", "none");
+            };
+
+
+        } else {
+            // $(".pm_total").css({
+            //     "display": "inline-block",
+            //     "padding": "0px 3px",
+            //     "font-size": "12px",
+            //     "line-height": "20px",
+            //     "color": "white",
+            //     "background-color": "https://www.kanxue.com/f57e42",
+            //     "border-radius": "9px",
+            //     "text-indent": "0px"
+            // });
+            pm_number.css("display", "none");
+            sysm_number.css("display", "none");
+
+        }
+    })
+
+
+    setTimeout(function(){
+        var googletagmanage = "https://www.googletagmanager.com/gtag/js?id=UA-42439274-1";
+        $("script[data-id='google_src']").attr('src', googletagmanage);
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-42439274-1');
+    },2000)
+
+    $('[data-toggle="tooltip"]').tooltip()
+
+});
+</script>
+
+
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async data-id='google_src'></script>
+<script>
+    // 用于个人中心 判断路由 center ，还是 pm
+    var sele_route = 'index';
+    var sele_action = 'index';
+</script>
+
+</body>
+
+</html>
+
+
+
+<script>
+	$(function(){
+
+		$(".loding_more").click(function(){
+
+            var _this = this;
+
+            $(_this).html('<img src="https://www.kanxue.com/view/img/newhome3/loading.gif" alt="">加载中...');
+            var page = parseInt($(_this).attr("data-page"))+1;
+			var zhuanlanurl = '//'+'www.kanxue.com'+'/homepost-morearticle.htm';
+           
+			$.xpost(zhuanlanurl,{
+                page: page,
+                pagesize: 10
+        	}, function(code, message) {
+				if(code == 0) {
+                    var str='';
+                    var author_url = '';
+                    for (var i = 0; i < message.list.length; i++) {
+                        str += '<div class="media py-4 home_article" style="overflow: hidden;">';
+                        str += '<div class="mr-4 article-img" style="width: 160px; height: 120px;border-radius: 4px;background: url(//zhuanlan.kanxue.com/'+message.list[i].pic_fmt+') no-repeat;background-size: cover;background-position: center;"></div>'
+                        str += ' <div class="media-body">';
+                        if(message.list[i].is_bbs_digest == 0) {
+                            str += ' <a href="//zhuanlan.kanxue.com/article-'+message.list[i].articleid+'.htm"  target="_blank" class="article_url">';
+                            author_url = '//zhuanlan.kanxue.com/user-'+message.list[i].userinfo.uid+'.htm';
+                        } else {
+                            str += ' <a href="'+message.list[i].source_url +'" target="_blank" class="article_url">';
+                            author_url = '//bbs.pediy.com/user-'+message.list[i].uid+'.htm';
+                        }
+                       
+                        str += ' <h4 class="mt-0 article_title">'+message.list[i].subject+'</h4>';
+                        str += ' <div class="article-excerpt" style="margin-bottom:5px!important;">';
+                        str += message.list[i].brief;
+                        str += '</div></a><div class="row mb-1">';
+                        // str += '<span style="border: 1px solid https://www.kanxue.com/bbb; color: https://www.kanxue.com/bbb; border-radius: 10px; padding: 0px 5px; margin-left: 4px;" class="small hidden-sm hidden-md ml-2">'+message.list[i].tags[0]+'</span>';
+                        // str += '<span style="border: 1px solid https://www.kanxue.com/bbb; color: https://www.kanxue.com/bbb; border-radius: 10px; padding: 0px 5px; margin-left: 4px;" class="small hidden-sm hidden-md ml-2">'+message.list[i].tags[1]+'</span>';
+                        str += '</div><div class="row"> <div class="col-3">';
+                        str += '<a href="'+author_url+'" class="article_author"><img src="'+message.list[i].userinfo.avatar_url+'" class="avatar-1" /></a>';
+                        str += '<a href="'+author_url+'" class="article_author">'+message.list[i].userinfo.username+'</a> </div>';
+                        str += '<div class="col-9 text-right" style="color: https://www.kanxue.com/888;">';
+                        if(message.list[i].is_bbs_digest == 0) {
+                            str += '已有 <span class="read_number_style">'+message.list[i].views+'</span> 人阅读・<span>'+message.list[i].create_date+'</span>';
+                        } else {
+                            str += '<span>'+message.list[i].create_date+'</span>';
+                        }
+                        str += '</div></div></div></div>';
+                        
+                    }
+                    $(".loadingmore_box").before(str);
+                    $(_this).attr("data-page", message.page);
+                    $(_this).html("加载更多");
+			    } else {
+			    	$.alert('错误：'+message);
+			    }
+			})
+		})
+
+        function random_courses(obj,i,weburl,message) {
+            obj.find(".course_url").attr("href",weburl+'/book-'+message[i]['id']+'.htm');
+            obj.find(".course_cover").attr("src",weburl+message[i]['pic']);
+            obj.find(".course_title").text(message[i]['title']);
+            
+        }
+        $(".change_course_btn").click(function(){
+            $(this).find('i').remove();
+            var _this = this;
+            $(_this).html('<img src="https://www.kanxue.com/view/img/newhome3/loading.gif" alt="">加载中...');
+            var courseurl = '//'+'www.kanxue.com'+'/homepost-morecourse.htm';
+            var random_course = $(".random_course");
+            var weburl = '//'+'www.kanxue.com';
+            $.xpost(courseurl,{}, function(code, message) {
+
+                for (var i = 0; i < message.length; i++) {
+                    switch (i) {
+                        case 0:
+                            var obj = random_course.children("div:nth-child(1)");
+                            random_courses(obj,i,weburl,message);
+                            break;
+                        case 1:
+                            var obj1 = random_course.children("div:nth-child(2)");
+                            random_courses(obj1,i,weburl,message);
+                            break;
+                        case 2:
+                            var obj2 = random_course.children("div:nth-child(3)");
+                            random_courses(obj2,i,weburl,message);
+                            break;
+                        default:
+                            break;
+                    }
+                    $(_this).html('<i class="fa fa-refresh"></i> 换一批');
+                }
+            })
+
+        })
+        function random_jobs(obj,i,weburl,message) {
+            obj.find(".job_url").attr("href",weburl+'position-read-'+message[i]['positionid']+'.htm');
+            obj.find(".job_cover").attr("src",weburl+message[i]['logo_img_url']);
+            obj.find(".job_title").text(message[i]['subject']);
+            obj.find(".job_fmt").html(message[i]['work_year_fmt']+'/'+message[i]['degree_fmt']);
+            obj.find(".job_salary").html(message[i]['salary_fmt']);
+            obj.find(".job_company_name").text(message[i]['name']);
+            obj.find(".job_company_fmt").html(message[i]['financing_fmt']+'/'+message[i]['city_name']);
+
+        }
+        $(".change_job_btn").click(function(){
+            $(this).find("i").remove();
+            var _this = this;
+            $(_this).html('<img src="https://www.kanxue.com/view/img/newhome3/loading.gif" alt="">加载中...');
+
+            var joburl = '//'+'www.kanxue.com'+'/homepost-morejob.htm';
+            var random_job = $(".random_job");
+            var weburl = '//'+'job.kanxue.com'+'/';
+            $.xpost(joburl,{}, function(code, message) {
+                for (var i = 0; i < message.length; i++) {
+                    switch (i) {
+                        case 0:
+                            var obj = random_job.children("div:nth-child(1)");
+                            random_jobs(obj,i,weburl,message);
+                            
+                            break;
+                        case 1:
+                            var obj1 = random_job.children("div:nth-child(2)");
+                            random_jobs(obj1,i,weburl,message);
+                            break;
+                        case 2:
+                            var obj2 = random_job.children("div:nth-child(3)");
+                            random_jobs(obj2,i,weburl,message);
+                            break;
+                        default:
+                            break;
+                    } 
+                   
+                    $(_this).html('<i class="fa fa-refresh"></i> 换一批');
+                }
+            })
+
+        })
+        var huoyuezhuanlan_str='';
+        $.xget('//'+'zhuanlan.kanxue.com'+'/user-get_fieldlist.htm',function(code, message){
+
+            if (code == 0) {
+                for (var i = 0; i < message.length; i++) {
+                    // console.log(message[i]);
+                    huoyuezhuanlan_str += '<div class="py-4" style="border-bottom: 1px solid https://www.kanxue.com/e9e9e9;"><div class="row mx-0"><div class="col-8 px-2"><div class="media">';
+                    huoyuezhuanlan_str += '<img class="avatar-3 mr-2" src="//zhuanlan.kanxue.com/'+message[i].avatar_img_url+'" >';
+                    huoyuezhuanlan_str += '<div class="media-body"><div class="d-inline-block h6 m-0 nowrap" style="max-width: 124px;">';
+                    huoyuezhuanlan_str += message[i].name;
+                    huoyuezhuanlan_str += '</div><div style="font-size: 12px; color: https://www.kanxue.com/0099ee;">';
+                    huoyuezhuanlan_str += '作者：'+message[i].username;
+                    huoyuezhuanlan_str += '</div></div></div></div><div class="col-4 text-right">';
+                    if (message[i].isfollow == 1) {
+                    huoyuezhuanlan_str += '<button type="button" class="btn btn-sm py-0 my-1 zhuanlan_follow_btn" data-uid="'+message[i].uid+'" data-follow="'+message[i].isfollow+'" style="background: https://www.kanxue.com/dcdcdc; color: #fff;">已关注</button>';
+                    } else if(message[i].isfollow == 0){
+                    huoyuezhuanlan_str += '<button type="button" class="btn btn-sm py-0 my-1 zhuanlan_follow_btn" data-uid="'+message[i].uid+'" data-follow="'+message[i].isfollow+'" style="background: https://www.kanxue.com/0099ee; color: #fff;">关注</button>';
+                    }
+
+                    huoyuezhuanlan_str += '</div></div><div class="color888 px-2 mt-3 column-excerpt">';
+                    huoyuezhuanlan_str += message[i].brief;
+                    huoyuezhuanlan_str += '</div></div>';
+                }
+                // console.log(huoyuezhuanlan_str);
+                $('.active_column').append(huoyuezhuanlan_str);
+                zhuanlan_follow();
+            }
+
+        })
+        function zhuanlan_follow(){
+            $(".zhuanlan_follow_btn").on("click",function(){
+                var _this = this;
+                var zhuanlan_uid = $(this).attr("data-uid");
+
+                $.xget('//'+'zhuanlan.kanxue.com'+'/user-get_follow-'+zhuanlan_uid+'.htm', function(code, message) {
+                    if (code == 0) {
+                        $(_this).text('已关注');
+                        $(_this).css("background", "https://www.kanxue.com/dcdcdc");
+                    } else if (code == 1) {
+                        $(_this).text('关注');
+                        $(_this).css("background", "https://www.kanxue.com/0099ee");
+                    } else if(code == -1) {
+                        $.alert(message);
+                    } 
+                })
+            })
+        }
+  //       console.log($(window).scrollTop())
+		
+		// setTimeout(function(){
+  //           if ($(window).scrollTop() == 0) {
+  //               $('.header_fiexd').css("display","block");
+  //           } else {
+  //               $('.header_fiexd').css("display","none");
+  //           }
+  //       },0);
+  $(".price").each(function(index,ele){
+            v = $(ele).text();
+            if(v === ''){  
+                v = '0.00';  
+            }else if(v === '0'){  
+                v = '0.00';  
+            }else if(v === '0.'){  
+                v = '0.00';  
+            }else if(/^0+\d+\.?\d*.*$/.test(v)){  
+                v = v.replace(/^0+(\d+\.?\d*).*$/, '$1');  
+                v = inp.getRightPriceFormat(v).val;  
+            }else if(/^0\.\d$/.test(v)){  
+                v = v + '0';  
+            }else if(!/^\d+\.\d{2}$/.test(v)){  
+                if(/^\d+\.\d{2}.+/.test(v)){  
+                    v = v.replace(/^(\d+\.\d{2}).*$/, '$1');  
+                }else if(/^\d+$/.test(v)){  
+                    v = v + '.00';  
+                }else if(/^\d+\.$/.test(v)){  
+                    v = v + '00';  
+                }else if(/^\d+\.\d$/.test(v)){  
+                    v = v + '0';  
+                }else if(/^[^\d]+\d+\.?\d*$/.test(v)){  
+                    v = v.replace(/^[^\d]+(\d+\.?\d*)$/, '$1');  
+                }else if(/\d+/.test(v)){  
+                    v = v.replace(/^[^\d]*(\d+\.?\d*).*$/, '$1');  
+                    ty = false;  
+                }else if(/^0+\d+\.?\d*$/.test(v)){  
+                    v = v.replace(/^0+(\d+\.?\d*)$/, '$1');  
+                    ty = false;  
+                }else{  
+                    v = '0.00';  
+                }  
+            }  
+            $(this).html('<i class="fa fa-jpy"></i> '+v);   
+        });
+        
+	})
+
+</script>
+
+
+
+
+
+
+
+
+

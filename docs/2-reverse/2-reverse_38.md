@@ -1,0 +1,44 @@
+
+
+# Cmdbar ---- 【bp 与 bpx 的区别】
+
+> 原文：[`www.pediy.com/kssd/pediy11/118053.html`](https://www.pediy.com/kssd/pediy11/118053.html)
+
+bp 与 bpx 的区别  
+bp address,string -- Break with condition   \[对 address 或 string 下断点\]  
+bpx string -- Break on all calls            \[对 call string 下断点\]  
+  
+下面以记事本为例进行说明，在此分别利用 bp 与 bpx 对函数 CreateFileW 下断.  
+bp CreateFileW  
+\--------------------------------------------------------------------------------------------------  
+7C810800 >  8BFF            mov     edi, edi                         ; bp CreateFileW ----断点位置\[系统领空\]  
+7C810802    55              push    ebp  
+7C810803    8BEC            mov     ebp, esp  
+7C810805    83EC 58         sub     esp, 58  
+7C810808    8B45 18         mov     eax, dword ptr \[ebp+18\]  
+  
+0x7c810800 就是函数 CreateFileW 的地址,大家可以利用工具 dllexp.exe 查看,显示的信息如下:  
+函数名称          : CreateFileW  
+偏移地址          : 0x7c810800  
+相对偏移地址      : 0x00010800  
+顺序数            : 83 (0x53)  
+文件名            : kernel32.dll  
+完整路径          : C:\\WINDOWS\\system32\\kernel32.dll  
+类型              : 导出函数  
+  
+  
+bpx CreateFileW  
+\--------------------------------------------------------------------------------------------------  
+Breakpoints  
+Address    Module                     Active                     Disassembly                                         Comment  
+01002653   Gall\_NOT                   Always                     call    dword ptr \[<&KERNEL32.CreateFileW>\]  
+01002DAA   Gall\_NOT                   Always                     call    dword ptr \[<&KERNEL32.CreateFileW>\]  
+010033AA   Gall\_NOT                   Always                     call    dword ptr \[<&KERNEL32.CreateFileW>\]  
+0100423E   Gall\_NOT                   Always                     call    edi  
+010043D0   Gall\_NOT                   Always                     call    dword ptr \[<&KERNEL32.CreateFileW>\]  
+01004A07   Gall\_NOT                   Always                     call    dword ptr \[<&KERNEL32.CreateFileW>\]  
+01004A5B   Gall\_NOT                   Always                     call    dword ptr \[<&KERNEL32.CreateFileW>\]  
+01004ED8   Gall\_NOT                   Always                     call    dword ptr \[<&KERNEL32.CreateFileW>\]  
+  
+  
+相信不用多说,大家已经知道 bp 与 bpx 的区别了吧

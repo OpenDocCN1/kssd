@@ -1,0 +1,126 @@
+
+
+# 基于 crc32 实现的内存的代码校验
+
+> 原文：[`www.pediy.com/kssd/pediy12/140471.html`](https://www.pediy.com/kssd/pediy12/140471.html)
+
+原理：a，crc32 函数的实现  
+      b，内存校验:顾名思义，运行在内存代码通过 crc32 得到一个值，当第二次运行可执行文件的时候，可以把第一次保存下来的值和第二次运行的结果相比较，从而根据比较结果判断时候内存数据吧被修改。  
+  
+1，crc32 算法的实现部分：  
+DWORD CRC32(BYTE\* ptr,DWORD Size)  
+{  
+     
+  DWORD crcTable\[256\],crcTmp1;  
+    
+  //动态生成 CRC-32 表  
+  for (int i=0; i<256; i++)  
+   {  
+    crcTmp1 = i;  
+    for (int j=8; j>0; j--)  
+     {  
+      if (crcTmp1&1) crcTmp1 = (crcTmp1 >> 1) ^ 0xEDB88320L;  
+       else crcTmp1 >>= 1;  
+    }  
+  
+     crcTable\[i\] = crcTmp1;  
+   }  
+  //计算 CRC32 值  
+  DWORD crcTmp2= 0xFFFFFFFF;  
+  while(Size--)  
+  {  
+    crcTmp2 = ((crcTmp2>>8) & 0x00FFFFFF) ^ crcTable\[ (crcTmp2^(\*ptr)) & 0xFF \];  
+    ptr++;  
+  }  
+    
+  return (crcTmp2⁰xFFFFFFFF);  
+}  
+2，代码实现：  
+A，要保护的代码：  
+ProtectStart:   //要保护的代码的起始地址  
+  \_\_asm  
+  {  
+         inc eax   //花指令  
+       dec eax  
+       push eax  
+       pop eax  
+  }  
+start:  
+     HMODULE hMod = GetModuleHandle(NULL);//同样是花指令  
+     HMODULE hUser32 = LoadLibrary("user32.dll");  
+ProtectEnd:               //要保护代码的终结地址  
+     DWORD dwThreadId = 0;  
+  
+     STBINGLEPARAM stParam = {0};  
+       stParam.hEvent = CreateEvent(NULL,FALSE,FALSE,"bingle");  
+       
+     DWORD dwAddr = 0;  //一个缓存空间  
+     \_\_asm mov eax,offset ProtectStart  //计算代码的起始地址  
+     \_\_asm mov dwAddr,eax  
+     stParam.dwStart = dwAddr; //保存在我们自己定义的结构体里  
+  
+       \_\_asm mov eax,offset ProtectEnd //计算保护代码的结束地址，同样保存在自己定义的                   结构体里。  
+     \_\_asm mov dwAddr,eax  
+     stParam.dwEnd = dwAddr;  
+       
+     printf("开始了\\n");  
+       CreateThread(NULL,0,(LPTHREAD\_START\_ROUTINE)bingleProc,(LPVOID)&stParam,0,&dwThreadId);  
+B，创建了一个线程，用来计算校验值。并且将线程的创建放在循环中，这样保证在程序运行的过程中，会不断的监视内存的数据是否改变。  
+CreateThread(NULL,0,(LPTHREAD\_START\_ROUTINE)bingleProc,(LPVOID)&stParam,0,&dwThreadId);  
+  
+     DWORD dwRet = 0;  
+     dwRet = WaitForSingleObject(stParam.hEvent,INFINITE);  
+     while(dwRet == WAIT\_OBJECT\_0)  
+     {  
+         Sleep(5000);  
+           CreateThread(NULL,0,(LPTHREAD\_START\_ROUTINE)bingleProc,(LPVOID)&stParam,0,&dwThreadId);  
+       dwRet = WaitForSingleObject(stParam.hEvent,INFINITE);  
+     }  
+上边的代码是创建线程的，根据创建线程的返回值来作为循环条件。其中 stParam 是我自定义结构体生成的一个对象。这个对象保存在堆栈中。该结构体的定义如下：  
+#pragma pack(1)  
+typedef struct \_\_STBINGLEPARAM  
+{  
+  HANDLE hEvent;  //用于同步的一个信号量  
+  DWORD dwStart;  //要校验的代码的起始地址  
+  DWORD dwEnd;   //要校验的代码的终结地址  
+}STBINGLEPARAM,\*PBINGLEPARAM;  
+#pragma pack()  
+  
+接下来是是线程函数了。  
+STBINGLEPARAM \*stParam = (STBINGLEPARAM \*)lpParameter;  
+     
+  DWORD dwCodeSize = stParam->dwEnd - stParam->dwStart;  
+  BYTE \*pbyteBuf = NULL;  
+  pbyteBuf = (BYTE \*)stParam->dwStart;  
+    
+  DWORD dwOldProtect = 0;  
+  VirtualProtect((LPVOID)stParam->dwStart,4\*1024,PAGE\_EXECUTE\_READWRITE,&dwOldProtect);  
+  if(CRC32(pbyteBuf,dwCodeSize) != 0xa0eb5866)  
+  {  
+     MessageBox(NULL,"bingle","代码被修改了",NULL);  
+     printf("代码被修改了\\n");  
+  
+     SetEvent(stParam->hEvent);  
+     ExitProcess(0);  
+  }  
+  
+  
+  SetEvent(stParam->hEvent); //执行完上边的代码开始传信，让主线程继续运行  
+在这里要说的是中的 0xa0eb5866,这个是我在 od 中让代码运行起来找到的。  
+在创建的线程函数体中找到 0x40100a，ctrl+g 来到这个地址，F2 下断点，然后就来到线程函数了。  
+  
+一直往下找，找到比较代码 cmp eax,0xa0eb5866 这一句，把这个地址保存下来，就是我们要校验的地址。可以直接用在代码中。。  
+  
+3，测试:  
+让 debug 版本的程序运行起来，ce 附加进程。  
+点击 Memory View，定位到我们要保护的代码段。  
+  
+找到我们要保护的代码,然后用 ce 修改一下内存的数值试试,我想修改 0x40127a。只要这个内存地址在我们要保护的代码中就可以。  
+  
+哈哈哈，还不错吧。内存校验不难吧。。  
+  
+明天要交作业。周围同学用 java 开发库的算法来做保护，说实话，俺不会。今晚做了个这个应付老师。大学的老师，哈哈。。。还是自学的好。。
+
+上传的附件
+| ![](img/b7e61e3627e1e92d7b948dd8fdd24fa6.jpg) || 基于 crc32 实现的内存的代码校验.doc  
+ |

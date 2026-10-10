@@ -1,0 +1,281 @@
+
+
+# WinRAR 2.80 beta 4
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum645.htm`](https://www.pediy.com/kssd/pediy03/forum645.htm)
+
+暴力破解 WinRAR4.80b4。不知对否。   
+  
+TRW2000 下 bpm 473B04，看看改成 01 后会如何。   
+  
+\* Reference To: KERNEL32.GetLocalTime, Ord:0000h   
+                                  |   
+:0042B713 E81CC80300              Call 00467F34   
+:0042B718 33C0                    xor eax, eax   
+:0042B71A E8D9A0FEFF              call 004157F8  <------- 进去看看。   
+:0042B71F A2043B4700              mov byte ptr \[00473B04\], al  <-----  需要 al=01，否则没有注册。   
+:0042B724 33C0                    xor eax, eax   
+:0042B726 E9230D0000              jmp 0042C44E   
+  
+\* Referenced by a CALL at Addresses:   
+|:0042B71A  , :00433D68  , :004346FB    
+|   
+:004157F8 55                      push ebp   
+                .   
+                .   
+                .   
+\* Possible StringData Ref from Data Obj ->"rarreg.\*"   
+                                  |   
+:0041581C B82D9B4600              mov eax, 00469B2D   
+:00415821 E8683DFFFF              call 0040958E   
+:00415826 84C0                    test al, al   
+:00415828 7511                    jne 0041583B   
+:0041582A 33C0                    xor eax, eax  <--------- 改为 mov al, 01 (33C0 改为 B001)   
+:0041582C 8B55A4                  mov edx, dword ptr \[ebp\-5C\]   
+:0041582F 64891500000000          mov dword ptr fs:\[00000000\], edx   
+:00415836 E970040000              jmp 00415CAB   
+                .   
+                .   
+                .   
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
+|:00415836(U), :0041588C(U), :00415985(U), :004159CC(U), :00415B20(U)   
+|:00415BAF(U), :00415C16(U), :00415C8A(U)   
+|   
+:00415CAB 5F                      pop edi   
+:00415CAC 5E                      pop esi   
+:00415CAD 5B                      pop ebx   
+:00415CAE 8BE5                    mov esp, ebp   
+:00415CB0 5D                      pop ebp   
+:00415CB1 C3                      ret   
+  
+还有一处，否则运行某些功能时还是会变为 40 days trial copy 的：   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:004248A3(C)   
+|   
+:004248CB 803D043B470000          cmp byte ptr \[00473B04\], 00   
+:004248D2 7410                    je 004248E4   
+:004248D4 803D0035470000          cmp byte ptr \[00473500\], 00   
+:004248DB 7507                    jne 004248E4   
+:004248DD C605043B470000          mov byte ptr \[00473B04\], 00  <---- 需将 01 放入。   
+  
+应该可以了。如若不行，请诸位告知，谢谢。
+
+WinRAR 2.80 beta 4 破解手记 （转载时请保持完整）   
+作者：Pcrocker   
+  
+IP Tools 最新版本：    不详   
+文件大小：        622KB   
+软件授权：        共享软件   
+使用平台：        Win9X   
+  
+软件简介：   
+压缩工具，就不需要说了吧   
+  
+http://www.jswz.com/jstn/download/openfile.asp?softID=1930&downurl=http://61.132.97.140/soft2/wrar28b4.exe   
+在别处也能找得到。   
+  
+  
+    没有注意看坛子里以前的文章，有可能这一板 WINRAR 被解过。如果有的话，我的思路可能有所不同，下面是流程：   
+  
+    这个软件是 evaluation 版本，它的注册比较麻烦，没有注册窗口：-（，好象它的 40 天时间限制不存在（在我的机器上如此），不知为什么？未注册版本会有一定的功能限制，具体也没耐心找。   
+    那么只能别的角度入手，从什么角度呢？   
+    用 w32dsm 反汇编，找经常出现的消息框，我 KAO！不是一个单独的 CALL，太多了。找发现的两个功能限制的相关 string： Log errors to file、Put authenticity vetification，也没有找到，不过在浏览 string 资源倒发现了另一个好东东：Thank you for support。这通常是在注册成功时才会出现的，关键点就在此处。   
+  
+下面是此处代码：   
+  
+:00433D88 B830734700              mov eax, 00477330   
+:00433D8D E87E920000              call 0043D010   
+:00433D92 EB0F                    jmp 00433DA3   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:00433D86(C)   
+|   
+:00433D94 BA6DB84600              mov edx, 0046B86D   
+:00433D99 B830734700              mov eax, 00477330   
+:00433D9E E879800000              call 0043BE1C   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:00433D92(U)   
+  
+:00433DA3 803D043B470000          cmp byte ptr \[00473B04\], 00        <----此处有点可疑   
+:00433DAA 0F84DC000000            je 00433E8C                <----这里跳走就死定了   
+:00433DB0 6A30                    push 00000030   
+  
+\* Possible Reference to String Resource ID=00872: "Correct registration"   
+                                  |   
+:00433DB2 B868030000              mov eax, 00000368   
+:00433DB7 E8A468FEFF              call 0041A660   
+:00433DBC 50                      push eax   
+  
+\* Possible Reference to String Resource ID=00871: "Thank you for support"    <----我想亲亲你   
+                                  |   
+:00433DBD B867030000              mov eax, 00000367   
+:00433DC2 E89968FEFF              call 0041A660   
+:00433DC7 50                      push eax   
+:00433DC8 FF351C734700            push dword ptr \[0047731C\]   
+  
+\* Reference To: USER32.MessageBoxA, Ord:0000h   
+                                  |   
+:00433DCE E8F7460300              Call 004684CA   
+:00433DD3 E9B4000000              jmp 00433E8C   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
+|:00433C66(C), :00433CE5(C), :00433D06(C)   
+|   
+:00433DD8 6A00                    push 00000000   
+:00433DDA 6A00                    push 00000000   
+  
+。。。。   
+  
+  
+\* Reference To: SHELL32.DragFinish, Ord:0000h   
+                                  |   
+:00433E87 E8A4430300              Call 00468230   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
+|:00433C50(U), :00433CD9(U), :00433DAA(C), :00433DD3(U), :00433DF9(C)   
+|   
+:00433E8C 81C400100000            add esp, 00001000   
+:00433E92 5D                      pop ebp   
+:00433E93 5F                      pop edi   
+:00433E94 5E                      pop esi   
+:00433E95 5B                      pop ebx   
+:00433E96 C3                      ret   
+  
+:00433E97 90                      nop   
+  
+下面需要老大 SICE 出场----同志们冲呀，我掩护。。   
+    先运行 WINRAR，^D 到 SICE，下 bpx 473b04，不成功，原来是在系统里面。那么^D 返回 WINRAR，随便打开一个有输入的对话框，^D 再回到 SICE，下 bpx hmemcpy，这样做的目的只是为取得程序的段址。^D 再返回 WINRAR，输入一个字符，立刻到 ICE 的空间中，下 bd 0 阻断，再下 bpm 473b04（比较关键）。^D 再返回 WINRAR，发现伴随着操作这个中断会不停出现，不过都是读出数据，还是得找出写数据的位置。下面关闭 WINRAR，再打开，立刻跳到 ICE 的窗口中，代码如下：   
+  
+  
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
+|:0042B6CD(C), :0042B6DF(C)   
+|   
+:0042B6FC 53                      push ebx   
+:0042B6FD 56                      push esi   
+  
+\* Reference To: USER32.SetMenu, Ord:0000h   
+                                  |   
+:0042B6FE E851CE0300              Call 00468554   
+:0042B703 56                      push esi   
+  
+\* Reference To: USER32.DrawMenuBar, Ord:0000h   
+                                  |   
+:0042B704 E829CC0300              Call 00468332   
+:0042B709 E832980000              call 00434F40   
+:0042B70E 68C8BB4700              push 0047BBC8   
+  
+\* Reference To: KERNEL32.GetLocalTime, Ord:0000h   
+                                  |   
+:0042B713 E81CC80300              Call 00467F34   
+:0042B718 33C0                    xor eax, eax   
+:0042B71A E8D9A0FEFF              call 004157F8            <----这个 CALL 得追进   
+:0042B71F A2043B4700              mov byte ptr \[00473B04\], al        <----你会停在这里   
+:0042B724 33C0                    xor eax, eax   
+:0042B726 E9230D0000              jmp 0042C44E   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:0042B636(C)   
+|   
+:0042B72B 83EF02                  sub edi, 00000002   
+:0042B72E 7405                    je 0042B735   
+:0042B730 4F                      dec edi   
+:0042B731 740E                    je 0042B741   
+:0042B733 EB16                    jmp 0042B74B   
+  
+|   
+:0042C44E 5F                      pop edi   
+:0042C44F 5E                      pop esi   
+:0042C450 5B                      pop ebx   
+:0042C451 8BE5                    mov esp, ebp   
+:0042C453 5D                      pop ebp   
+:0042C454 C21000                  ret 0010   
+  
+:0042C457 90                      nop   
+  
+  
+在上面的代码中，显然需要让 CALL 4157F8 返回的 AL 为非 0，令 AL=1 即可。   
+  
+bd \*阻断先，下 bpx 42b718，^D 返回 WINRAR，退出。再次运行，在 ICE 中 F8 追进那个 CALL 4157F8：   
+  
+\* Referenced by a CALL at Addresses:   
+|:0042B71A  , :00433D68  , :004346FB    
+|   
+:004157F8 55                      push ebp   
+:004157F9 8BEC                    mov ebp, esp   
+:004157FB 81C408F3FFFF            add esp, FFFFF308   
+:00415801 53                      push ebx   
+:00415802 56                      push esi   
+:00415803 57                      push edi   
+:00415804 8845A3                  mov byte ptr \[ebp\-5D\], al   
+:00415807 BE00354700              mov esi, 00473500   
+:0041580C B854A94600              mov eax, 0046A954   
+:00415811 E8767B0400              call 0045D38C   
+:00415816 8D9588FBFFFF            lea edx, dword ptr \[ebp+FFFFFB88\]   
+  
+\* Possible StringData Ref from Data Obj ->"rarreg.\*"   
+                                  |   
+:0041581C B82D9B4600              mov eax, 00469B2D   
+:00415821 E8683DFFFF              call 0040958E   
+:00415826 84C0                    test al, al   
+:00415828 7511                    jne 0041583B            <----不知道跳到下面去是否重要.   
+:0041582A 33C0                    xor eax, eax   
+:0041582C 8B55A4                  mov edx, dword ptr \[ebp\-5C\]   
+:0041582F 64891500000000          mov dword ptr fs:\[00000000\], edx   
+:00415836 E970040000              jmp 00415CAB            <----会在这里跳走   
+  
+。。。。。。。。   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
+|:00415836(U), :0041588C(U), :00415985(U), :004159CC(U), :00415B20(U)   
+|:00415BAF(U), :00415C16(U), :00415C8A(U)   
+|   
+:00415CAB 5F                      pop edi   
+:00415CAC 5E                      pop esi   
+:00415CAD 5B                      pop ebx   
+:00415CAE 8BE5                    mov esp, ebp   
+:00415CB0 5D                      pop ebp   
+:00415CB1 C3                      ret   
+  
+  
+:00415CB2 90                      nop   
+:00415CB3 90                      nop   
+  
+看到了么，两个 nop，我又一次发现 WINRAR 的可爱之处，inc al 的代码是 fe c0，正好是两个字母的空间。没说的，将:00415CB1 处改为 inc al，接下来当然是 ret。   
+bc \*清断，^D 返回 WINRAR，About 中的 evaluation 不见了，而成了 register to，初战胜利。   
+退出 WINRAR，用文件编辑器找字串：   
+    5B 8B E5 5D C3 90 90 08 0C 00   
+替换为：   
+    -- -- -- -- FE C0 C3 -- -- --   
+  
+收工。   
+  
+咦。。有暗桩，在 ADD。。的对话框中，那个 Put authenticity vetification 依然选不了，于是再跟踪\[00473B04\]处的写入，这次是：   
+  
+:004248CB 803D043B470000          cmp byte ptr \[00473B04\], 00   
+:004248D2 7410                    je 004248E4                <----看到这里了吗?   
+:004248D4 803D0035470000          cmp byte ptr \[00473500\], 00   
+:004248DB 7507                    jne 004248E4   
+:004248DD C605043B470000          mov byte ptr \[00473B04\], 00        <----显然需要 nop 掉   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
+|:004248D2(C), :004248DB(C)   
+|   
+:004248E4 C60520C2470001          mov byte ptr \[0047C220\], 01   
+:004248EB 803D15C2470000          cmp byte ptr \[0047C215\], 00   
+:004248F2 740E                    je 00424902   
+:004248F4 33C9                    xor ecx, ecx   
+  
+这回编辑文件查找所有的：   
+    C6 05 04 3B 47 00 00   
+替换为：   
+    90 90 90 90 90 90 90   
+还好只有一处。   
+  
+我不知道还有没有类似于 mov byte ptr \[00473B04\], al 或 cl 之类的指令，如果测试中发现问题再解决吧。   
+  
+这是我第一次利用注册成功的信息来暴力破解，经验值也该加 2 了吧 ^\_^   
+  
+我发现还是破解比写手记要容易些....  4dd466d0e1e0cc123afbe504da2462ca

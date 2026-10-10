@@ -1,0 +1,293 @@
+
+
+# StayOn Pro V4.00 Build 2003.03.01 
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6441.htm`](https://www.pediy.com/kssd/pediy06/pediy6441.htm)
+
+另类 Armadillo 脱壳+破解——StayOn Pro V4.00 Build 2003.03.01    
+    
+    
+    
+下载页面：  http://www.skycn.com/soft/1427.html   
+软件大小：  485 KB   
+软件语言：  英文   
+软件类别：  国外软件 / 共享版 / 网络辅助   
+应用平台：  Win9x/NT/2000/XP   
+加入时间：  2003-03-04 15:03:31   
+下载次数：  1035   
+推荐等级：  \*\*\*\*   
+  
+【软件简介】：保持你的 Internet 连接性，如果你要离开，但是又不想下网，用这个可以保持网络连接，避免你被强行断线。   
+  
+【作者声明】：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！   
+  
+【调试环境】：WinXP、Ollydbg、PEiD、LordPE、ImportREC 1.6   
+  
+—————————————————————————————————    
+【脱壳过程】：   
+             
+            
+         
+一、何谓 另类 Armadillo   
+           
+  
+           
+Armadillo 加壳的方式想必大家都知道。其加壳程序运行时有的是单进程有的是双进程，单进程的一般是标准方式加壳，双进程的则有的是标准方式加壳有的是 CopyMem-II 方式加壳。   
+  
+但是 N 久以前我却突然发现另类 Armadillo，程序运行后看是单进程，其实并不仅仅是唯一的单进程！这次以 StayOn Pro 为例简单说一下这种加壳方式。感谢 jwh51 兄的帮忙，告诉我这其实还是标准壳，里面没有 CC，呵呵。   
+  
+  
+设置 Ollydbg 忽略所有的异常选项。老规矩：用 IsDebug 1.4 插件去掉 Ollydbg 的调试器标志。   
+  
+下断：BP CreateProcessA          F9 运行程序断下，Alt+F9 返回程序代码   
+    
+0043FBAF     50                  push eax   
+0043FBB0     8D8D A8FAFFFF       lea ecx,dword ptr ss:\[ebp\-558\]   
+0043FBB6     51                  push ecx   
+0043FBB7     FF15 30B14400       call dword ptr ds:\[<&KERNEL32.CreateProcessA>\]//产生子进程    
+0043FBBD     85C0                test eax,eax   
+0043FBBF     75 2A               jnz short StayOn\_P.0043FBEB   
+  
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆   
+CreateProcessA 时的堆栈：   
+  
+0012F59C    0043FBBD  /CALL 到 CreateProcessA 来自 StayOn\_P.0043FBB7   
+0012F5A0    0012F7C4  |ModuleFileName = "E:..............ArmadilloStayOn ProStayOn Pro.exe"   
+0012F5A4    00141EE0  |CommandLine = """E:..............ArmadilloStayOn ProStayOn Pro.exe"""   
+0012F5A8    00000000  |pProcessSecurity = NULL   
+0012F5AC    00000000  |pThreadSecurity = NULL   
+0012F5B0    00000000  |InheritHandles = FALSE   
+0012F5B4    00000000  |CreationFlags = 0   
+0012F5B8    00000000  |pEnvironment = NULL   
+0012F5BC    00000000  |CurrentDir = NULL   
+0012F5C0    0012F780  |pStartupInfo = 0012F780   
+0012F5C4    0012F8C8  pProcessInfo = 0012F8C8   
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆   
+  
+Ollydbg 里的 StayOn Pro.exe 用 CreateProcessA 产生了新的子进程，然后完成任务，ExitProcess 退出了！我们的 Ollydbg 里面是“死悄悄”的代码，而新进程的 StayOn Pro.exe 已经得意的运行起来啦。如果此时再用 Ollydbg 附加这个新的子进程，已经没有什么意义了，IAT 的处理已经完毕，程序依然运行。这种方式似曾相识，某个壳也是这样。    
+  
+00445746     FF15 2CB14400       call dword ptr ds:\[<&KERNEL32.ExitProcess>\]//退出    
+  
+  
+呵呵，没有办法了？有！最简单的就用 mysqladm 大虾的方法！搞定这个另类 Armadillo，Let's Go！   
+           
+           
+—————————————————————————————————   
+二、使程序把自己当成子进程运行   
+           
+           
+           
+用 Ollydbg 载入程序，按双进程标准壳的脱壳方法就 OK 了！   
+  
+00444974     55                  push ebp//进入 OD 后停在这    
+00444975     8BEC                mov ebp,esp   
+00444977     6A FF               push -1   
+00444979     68 00E64400         push StayOn\_P.0044E600   
+0044497E     68 94444400         push StayOn\_P.00444494   
+00444983     64:A1 00000000      mov eax,dword ptr fs:\[0\]   
+00444989     50                  push eax   
+0044498A     64:8925 00000000    mov dword ptr fs:\[0\],esp   
+00444991     83EC 58             sub esp,58   
+00444994     53                  push ebx   
+00444995     56                  push esi   
+00444996     57                  push edi   
+00444997     8965 E8             mov dword ptr ss:\[ebp\-18\],esp   
+0044499A     FF15 6CB14400       call dword ptr ds:\[<&KERNEL32.GetVersion>\]   
+  
+下断：BP OpenMutexA   
+  
+77E6074A     55                  push ebp//断在这，看看堆栈    
+77E6074B     8BEC                mov ebp,esp   
+77E6074D     51                  push ecx   
+77E6074E     51                  push ecx   
+77E6074F     837D 10 00          cmp dword ptr ss:\[ebp+10\],0   
+  
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆   
+BP OpenMutexA 时的堆栈：   
+  
+0012F5B8    0043F85D  /CALL 到 OpenMutexA 来自 StayOn\_P.0043F857   
+0012F5BC    001F0001  |Access = 1F0001   
+0012F5C0    00000000  |Inheritable = FALSE   
+0012F5C4    0012FBF8  MutexName = "37C::DAA99D8E17"  ★注意 0012FBF8   
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆   
+  
+Ctrl+G：401000  键入以下代码：   
+  
+  
+00401000     60                  pushad   
+00401001     9C                  pushfd   
+00401002     68 F8FB1200         push 12FBF8 ★ 堆栈里看到的值   
+00401007     33C0                xor eax,eax   
+00401009     50                  push eax   
+0040100A     50                  push eax   
+0040100B     E8 B4B2A577         call kernel32.CreateMutexA   
+00401010     9D                  popfd   
+00401011     61                  popad   
+00401012     E9 33F7A577         jmp kernel32.OpenMutexA   
+  
+在 401000 处新建起源，F9 运行，再次中断在 OpenMutexA 处。   
+           
+           
+—————————————————————————————————   
+二、Magic Jump，避开 IAT 加密   
+                 
+              
+           
+取消以前断点，下断：BP GetModuleHandleA+5    
+  
+77E59F93     837C24 04 00        cmp dword ptr ss:\[esp+4\],0   
+77E59F98     0F84 23060000       je kernel32.77E5A5C1//断在这，注意看堆栈    
+77E59F9E     FF7424 04           push dword ptr ss:\[esp+4\]   
+77E59FA2     E8 55080000         call kernel32.77E5A7FC   
+77E59FA7     85C0                test eax,eax   
+77E59FA9     74 08               je short kernel32.77E59FB3   
+77E59FAB     FF70 04             push dword ptr ds:\[eax+4\]   
+77E59FAE     E8 B0060000         call kernel32.GetModuleHandleW   
+77E59FB3     C2 0400             retn 4   
+  
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆   
+注意看 BP GetModuleHandleA+5 时的堆栈变化：   
+  
+0012E210    003C5DC8  返回到 003C5DC8 来自 kernel32.GetModuleHandleA   
+0012E214    003DA7F8  ASCII "kernel32.dll"   
+  
+0012E210    003C5DC8  返回到 003C5DC8 来自 kernel32.GetModuleHandleA   
+0012E214    003DA7EC  ASCII "user32.dll"   
+  
+0012E24C    003CF6BD  返回到 003CF6BD 来自 kernel32.GetModuleHandleA   
+0012E250    00BD1528  ASCII "WSOCK32.dll"   
+  
+0012E230    003C622B  返回到 003C622B 来自 kernel32.GetModuleHandleA ★ OK   
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆   
+  
+当堆栈如上变化后，就可以 Alt+F9 返回程序代码了。   
+  
+  
+003C6225     FF15 D4803D00       call dword ptr ds:\[3D80D4\]; kernel32.GetModuleHandleA   
+003C622B     8B4D 08             mov ecx,dword ptr ss:\[ebp+8\]   
+003C622E     3BC8                cmp ecx,eax   
+003C6230     75 07               jnz short 003C6239   
+003C6232     B8 98A33D00         mov eax,3DA398   
+003C6237     EB 30               jmp short 003C6269   
+003C6239     393D C8A73D00       cmp dword ptr ds:\[3DA7C8\],edi   
+003C623F     B8 C8A73D00         mov eax,3DA7C8   
+003C6244     74 0C               je short 003C6252//Magic Jump ★    
+  
+直接修改 003C6244 jmp 003C6252  因为这个东东使用的是 Armadillo 旧版加壳，所以这里可以直接修改。   
+同时开始下面的第三步，以防程序直接运行！   
+  
+  
+—————————————————————————————————   
+三、401000 段 内存断点 大法，直达 OEP   
+  
+  
+Alt+M 查看内存，在 401000 开始的段上下 内存访问断点，F9 运行，直接中断在 OEP 处    
+  
+  
+0040DED2     55                  push ebp//用 LordPE 纠正 ImageSize 后完全 DUMP 这个进程    
+0040DED3     8BEC                mov ebp,esp   
+0040DED5     6A FF               push -1   
+0040DED7     68 38C34200         push StayOn\_P.0042C338   
+0040DEDC     68 8C054100         push StayOn\_P.0041058C   
+0040DEE1     64:A1 00000000      mov eax,dword ptr fs:\[0\]   
+0040DEE7     50                  push eax   
+0040DEE8     64:8925 00000000    mov dword ptr fs:\[0\],esp   
+0040DEEF     83EC 58             sub esp,58   
+0040DEF2     53                  push ebx   
+0040DEF3     56                  push esi   
+0040DEF4     57                  push edi   
+0040DEF5     8965 E8             mov dword ptr ss:\[ebp\-18\],esp   
+0040DEF8     FF15 90824200       call dword ptr ds:\[428290\]                 ; kernel32.GetVersion   
+             
+             
+运行 ImportREC 1.6，选择这个进程。把 OEP 改为 0000DED2，点 IT AutoSearch，所有的函数都是有效的。点“Get Import”，FixDump，正常运行！   
+             
+               
+—————————————————————————————————   
+四、破解   
+             
+             
+             
+脱壳后的程序可以正常运行了，已经不需要注册了，时间限制也没用了。但是启动时的要求注册的 NAG 居然还弹了出来，这使我疑惑了一会儿，没脱完？载入 Ollydbg 里看看，真相大白了！原来作者把注册界面写进了主程序，注册验证依旧是在 Armadillo 壳里面进行。继续搞定他！   
+           
+           
+00404A46     E8 B18B0000         call dumped\_.0040D5FC//判断是否已经注册    
+00404A4B     59                  pop ecx   
+00404A4C     85C0                test eax,eax   
+00404A4E     59                  pop ecx   
+00404A4F     75 11               jnz short dumped\_.00404A62//跳就弹出要求注册的 NAG    
+00404A51     C787 D0000000010000 mov dword ptr ds:\[edi+D0\],1   
+00404A5B     33DB                xor ebx,ebx   
+00404A5D     E9 3C010000         jmp dumped\_.00404B9E   
+00404A62     83A7 D0000000 00    and dword ptr ds:\[edi+D0\],0   
+00404A69     6A 0E               push 0E   
+00404A6B     53                  push ebx   
+00404A6C     68 40434300         push dumped\_.00434340; ASCII "DAYSINSTALLED"   
+00404A71     FF15 D4814200       call dword ptr ds:\[<&kernel32.GetEnvironmentVariableA>\]   
+00404A77     8D45 DC             lea eax,dword ptr ss:\[ebp\-24\]   
+00404A7A     53                  push ebx   
+00404A7B     50                  push eax   
+00404A7C     8BCF                mov ecx,edi   
+00404A7E     E8 EFFCFFFF         call dumped\_.00404772   
+00404A83     50                  push eax   
+00404A84     8D8F 30010000       lea ecx,dword ptr ds:\[edi+130\]   
+00404A8A     C645 FC 02          mov byte ptr ss:\[ebp\-4\],2   
+00404A8E     E8 7F6B0100         call dumped\_.0041B612   
+00404A93     8D4D DC             lea ecx,dword ptr ss:\[ebp\-24\]   
+00404A96     C645 FC 01          mov byte ptr ss:\[ebp\-4\],1   
+00404A9A     E8 7E6A0100         call dumped\_.0041B51D   
+00404A9F     8B87 D4000000       mov eax,dword ptr ds:\[edi+D4\]   
+00404AA5     8D8F D4000000       lea ecx,dword ptr ds:\[edi+D4\]   
+00404AAB     FF90 B8000000       call dword ptr ds:\[eax+B8\]   
+00404AB1     83BF 34010000 01    cmp dword ptr ds:\[edi+134\],1   
+00404AB8     8B87 AC020000       mov eax,dword ptr ds:\[edi+2AC\]   
+00404ABE     74 29               je short dumped\_.00404AE9   
+00404AC0     50                  push eax   
+00404AC1     68 50434300         push dumped\_.00434350 ; ASCII "sop"   
+00404AC6     8BCF                mov ecx,edi   
+00404AC8     E8 4FFCFFFF         call dumped\_.0040471C//调用 ArmAccess.DLL 验证注册码 ★    
+00404ACD     85C0                test eax,eax   
+00404ACF     74 18               je short dumped\_.00404AE9   
+00404AD1     6A 00               push 0   
+00404AD3     6A 00               push 0   
+00404AD5     68 18434300         push dumped\_.00434318; ASCII "Thank You For registering StayOn Pro!"   
+00404ADF     C787 D0000000010000 mov dword ptr ds:\[edi+D0\],1   
+00404AE9     6A 08               push 8   
+00404AEB     53                  push ebx   
+00404AEC     68 10434300         push dumped\_.00434310 ; ASCII "EXPIRED"//过期    
+00404AF1     FF15 D4814200       call dword ptr ds:\[<&kernel32.GetEnvironmentVariableA>\]   
+00404AF7     53                  push ebx   
+00404AF8     8D4D F0             lea ecx,dword ptr ss:\[ebp\-10\]   
+00404AFB     E8 476A0100         call dumped\_.0041B547   
+00404B00     68 08434300         push dumped\_.00434308 ; ASCII "True"   
+           
+           
+已经脱壳了当然找不到 ArmAccess.DLL 验证注册码啦，我们索性帮忙一下，呵呵。   
+           
+00404A4F     75 11               jnz short dumped\_.00404A62//NOP 掉！    
+           
+这样启动时候的 NAG 永不再来了，About 里面也是 Registered 了！   
+           
+           
+—————————————————————————————————       
+                                   
+         ,     \_/    
+        /| \_.-~/            \_     ,        青春都一晌   
+       ( /~   /              ~-.\_ |   
+       \`\\  \_/                   ~ )          忍把浮名    
+   \_-~~~-.)  )\_\_/;;,.          \_  //'    
+  /'\_,   --~    ~~~-  ,;;\_\_\_(  (.-~~~-.        换了破解轻狂   
+ \`~ \_( ,\_..-- (     ,;'' /    ~--   /.\_\`    
+  /~~//'   /' \`~         ) /--..\_, )\_  \`~    
+  "  \`~"  "      \`"      /~'\`    \`\\~~      
+                         "     "   "~'  ""   
+  
+       
+  
+     Cracked By 巢水工作坊——fly \[OCN\]\[FCG\]\[NUKE\]\[DCM\]   
+  
+                2004-03-16  16:16 
+
+  
+  
+ 4dd466d0e1e0cc123afbe504da2462ca

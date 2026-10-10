@@ -1,0 +1,695 @@
+
+
+# ASProtect 1.23RC4
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6425.htm`](https://www.pediy.com/kssd/pediy06/pediy6425.htm)
+
+【脱文作者】 weiyi75\[Dfcg\]   
+  
+【作者邮箱】 weiyi75@sohu.com   
+    
+【作者主页】 Dfcg 官方大本营   
+  
+【使用工具】 Ollydbg1.10b,ImportREC1.6F,LoadPe   
+    
+【破解平台】 Win2000/XP   
+    
+【软件名称】 PE 文件分析器   
+  
+【下载地址】 原程序   
+  
+http://bbs2.pediy.com/download.php?id=1514   
+  
+【下载地址】 加密程序   
+  
+http://bbs2.pediy.com/download.php?id=1513   
+  
+【软件简介】 ASProtect 1.23 RC4 Registered 版本加密的一个 PE 文件分析器。   
+    
+【软件大小】 453K   
+  
+【加壳方式】 ASProtect 1.23 RC4 - 1.3.08.24 -> Alexey Solodovnikov   
+    
+【破解声明】 我是一只小菜鸟，偶得一点心得，愿与大家分享。   
+  
+【破解目的】 模拟跟踪寻找 Stolen Code 具体内容或 Oep 入口。   
+  
+前言，这个软件是我用 ASProtect 1.23 RC4 Registered 版本加密的，使用了所有反跟踪选项。   
+  
+先 OD 载入原程序看看      
+  
+004B7220 > $  55            PUSH EBP    //典型 Dephi 语言入口点     
+  
+004B7221   .  8BEC          MOV EBP,ESP   
+  
+004B7223   .  83C4 F0       ADD ESP,-10   
+  
+004B7226   .  B8 A86F4B00   MOV EAX,Pe.004B6FA8   
+  
+004B722B   .  E8 6CF4F4FF   CALL Pe.0040669C   
+  
+004B7230   .  A1 C4A04B00   MOV EAX,DWORD PTR DS:\[4BA0C4\]   
+  
+004B7235   .  8B00          MOV EAX,DWORD PTR DS:\[EAX\]   
+  
+004B7237   .  E8 C48CFCFF   CALL Pe.0047FF00   
+  
+004B723C   .  A1 C4A04B00   MOV EAX,DWORD PTR DS:\[4BA0C4\]   
+  
+004B7241   .  8B00          MOV EAX,DWORD PTR DS:\[EAX\]   
+  
+004B7243   .  BA 80724B00   MOV EDX,Pe.004B7280   
+  
+004B7248   .  E8 AB88FCFF   CALL Pe.0047FAF8   
+  
+004B724D   .  8B0D F4A14B00 MOV ECX,DWORD PTR DS:\[4BA1F4\]            ;  Pe.004BBCAC   
+  
+004B7253   .  A1 C4A04B00   MOV EAX,DWORD PTR DS:\[4BA0C4\]   
+  
+004B7258   .  8B00          MOV EAX,DWORD PTR DS:\[EAX\]   
+  
+004B725A   .  8B15 48E44A00 MOV EDX,DWORD PTR DS:\[4AE448\]            ;  Pe.004AE494   
+  
+004B7260   .  E8 B38CFCFF   CALL Pe.0047FF18   
+  
+..........................................................................................   
+  
+  
+寄存器 EBP=0012FFF0   //这是程序停在入口点 EBP 的值，其它 Dephi 语言或编程语言这里的 EBP 值全部相同，这又说明什么，当 Asprotect 运行到这里或 Stolen Code 时 EBP 的值就为 EBP=0012FFF0,我们来具体试试。    
+  
+    
+  
+OD 异常设置不忽略内存异常，其余全部忽略,载入程序,用插件隐藏 OD。   
+  
+    
+  
+00401000 >  68 01F04E00     PUSH Pej.004EF001        //加壳程序入口点，F9 运行    
+  
+00401005    E8 01000000     CALL Pej.0040100B   
+  
+0040100A    C3              RETN   
+  
+0040100B    C3              RETN   
+  
+0040100C    9A 7FCE25CC 76C>CALL FAR CE76:CC25CE7F                   ; 远距呼叫   
+  
+00401013    FA              CLI   
+  
+00401014    0C 55           OR AL,55   
+  
+00401016    6C              INS BYTE PTR ES:\[EDI\],DX                 ; I/O 命令   
+  
+00401017    D0DC            RCR AH,1   
+  
+00401019    25 4B551335     AND EAX,3513554B   
+  
+0040101E    45              INC EBP   
+  
+0040101F    BC B431C8D3     MOV ESP,D3C831B4   
+  
+00401024    73 66           JNB SHORT Pej.0040108C   
+  
+00401026    5C              POP ESP   
+  
+00401027    21E2            AND EDX,ESP   
+  
+00401029    04 04           ADD AL,4   
+  
+0040102B    7C 0C           JL SHORT Pej.00401039   
+  
+0040102D  - 75 AB           JNZ SHORT Pej.00400FDA   
+  
+0040102F    2B4415 15       SUB EAX,DWORD PTR SS:\[EBP+EDX+15\]   
+  
+00401033    826D 84 F0      SUB BYTE PTR SS:\[EBP\-7C\],-10   
+  
+00401037    CA 5FD0         RETF 0D05F                               ; 远距返回   
+  
+........................................................................   
+  
+    
+  
+内存异常   
+  
+    
+  
+00DB41A4    3100            XOR DWORD PTR DS:\[EAX\],EAX   
+  
+00DB41A6    EB 01           JMP SHORT 00DB41A9   
+  
+00DB41A8    68 648F0500     PUSH 58F64   
+  
+00DB41AD    0000            ADD BYTE PTR DS:\[EAX\],AL   
+  
+00DB41AF    00EB            ADD BL,CH   
+  
+00DB41B1    02E8            ADD CH,AL   
+  
+00DB41B3    0158 68         ADD DWORD PTR DS:\[EAX+68\],EBX   
+  
+00DB41B6    6C              INS BYTE PTR ES:\[EDI\],DX                 ; I/O 命令   
+  
+00DB41B7    AF              SCAS DWORD PTR ES:\[EDI\]   
+  
+00DB41B8    DA00            FIADD DWORD PTR DS:\[EAX\]   
+  
+00DB41BA    68 1442DB00     PUSH 0DB4214   
+  
+00DB41BF    68 8836DB00     PUSH 0DB3688   
+  
+00DB41C4    68 5033DB00     PUSH 0DB3350   
+  
+00DB41C9    68 002DDB00     PUSH 0DB2D00   
+  
+00DB41CE    68 BC26DB00     PUSH 0DB26BC   
+  
+00DB41D3    68 4C3ADB00     PUSH 0DB3A4C   
+  
+00DB41D8    C3              RETN   
+  
+........................................................................   
+  
+继续 Shift+F9 25 次来到 Asprotect 典型的最后一次异常。   
+  
+00DB39EC    3100            XOR DWORD PTR DS:\[EAX\],EAX    //特征码    
+  
+00DB39EE    64:8F05 0000000>POP DWORD PTR FS:\[0\]   
+  
+00DB39F5    58              POP EAX   
+  
+00DB39F6    833D B07EDB00 0>CMP DWORD PTR DS:\[DB7EB0\],0   
+  
+00DB39FD    74 14           JE SHORT 00DB3A13   
+  
+00DB39FF    6A 0C           PUSH 0C   
+  
+00DB3A01    B9 B07EDB00     MOV ECX,0DB7EB0   
+  
+00DB3A06    8D45 F8         LEA EAX,DWORD PTR SS:\[EBP\-8\]   
+  
+00DB3A09    BA 04000000     MOV EDX,4   
+  
+00DB3A0E    E8 2DD1FFFF     CALL 00DB0B40   
+  
+00DB3A13    FF75 FC         PUSH DWORD PTR SS:\[EBP\-4\]   
+  
+00DB3A16    FF75 F8         PUSH DWORD PTR SS:\[EBP\-8\]   
+  
+00DB3A19    8B45 F4         MOV EAX,DWORD PTR SS:\[EBP\-C\]   
+  
+00DB3A1C    8338 00         CMP DWORD PTR DS:\[EAX\],0   
+  
+00DB3A1F    74 02           JE SHORT 00DB3A23   
+  
+00DB3A21    FF30            PUSH DWORD PTR DS:\[EAX\]   
+  
+00DB3A23    FF75 F0         PUSH DWORD PTR SS:\[EBP\-10\]   
+  
+00DB3A26    FF75 EC         PUSH DWORD PTR SS:\[EBP\-14\]   
+  
+00DB3A29    C3              RETN    //这里下断点，Shift+F9 中断后取消断点。     
+  
+........................................................................   
+  
+我这次没有用内存镜像断点到 OEP,下面的这个方法可以发现 Stolen Code(如果有)+Oep 二合一。   
+  
+仍然是命令行断点   
+  
+tc ebp\==12fff0       //当前 EBP 内容为 12fff0 就被中断，略微看看就可以找到 Stolen Code(如果有)或 Oep    
+  
+00DC6348   /EB 02           JMP SHORT 00DC634C //一会就来到这里,呵呵，C++语言就开始有 Stolen Code，而且略有变形,往下全部用 F7 步过,转标签 1    
+  
+00DC634A   |CD 20           INT 20   
+  
+00DC634C   F2:             PREFIX REPNE:     //这样的语句其实是一些变形 Jmp  ; 多余的前缀    
+  
+00DC634D    EB 01           JMP SHORT 00DC6350   
+  
+00DC634F  - E9 65EB01E9     JMP E9DE4EB9   
+  
+00DC6354    68 91AA7FAE     PUSH AE7FAA91   
+  
+00DC6359    6A 2A           PUSH 2A   
+  
+00DC635B    897C24 04       MOV DWORD PTR SS:\[ESP+4\],EDI   
+  
+00DC635F    F2:             PREFIX REPNE:                            ; 多余的前缀   
+  
+00DC6360    EB 01           JMP SHORT 00DC6363   
+  
+00DC6362    9A 8D642404 F3E>CALL FAR EBF3:0424648D                   ; 远距呼叫   
+  
+00DC6369    02CD            ADD CL,CH   
+  
+00DC636B    20F2            AND DL,DH   
+  
+00DC636D    EB 01           JMP SHORT 00DC6370   
+  
+00DC636F    C7              ???                                      ; 未知命令   
+  
+00DC6370    0FCF            BSWAP EDI   
+  
+00DC6372    EB 02           JMP SHORT 00DC6376   
+  
+........................................................................   
+  
+标签 1   
+  
+00DC634C    F2:             PREFIX REPNE:                            ; 多余的前缀   
+  
+    
+  
+00DC6350   /65:EB 01        JMP SHORT 00DC6354                       ; 多余的前缀   
+  
+    
+  
+00DC6354    68 91AA7FAE     PUSH AE7FAA91   
+  
+00DC6359    6A 2A           PUSH 2A   
+  
+00DC635B    897C24 04       MOV DWORD PTR SS:\[ESP+4\],EDI   
+  
+00DC635F    F2:             PREFIX REPNE:                            ; 多余的前缀   
+  
+    
+  
+00DC6363    8D6424 04       LEA ESP,DWORD PTR SS:\[ESP+4\]   
+  
+00DC6367    F3:             PREFIX REP:                              ; 多余的前缀   
+  
+00DC6368    EB 02           JMP SHORT 00DC636C   
+  
+    
+  
+00DC636C    F2:             PREFIX REPNE:                            ; 多余的前缀   
+  
+    
+  
+00DC6370    0FCF            BSWAP EDI   
+  
+00DC6372    EB 02           JMP SHORT 00DC6376   
+  
+    
+  
+00DC6376    F2:             PREFIX REPNE:                            ; 多余的前缀   
+  
+    
+  
+00DC637A    FF7424 07       PUSH DWORD PTR SS:\[ESP+7\]   
+  
+00DC637E    36:EB 01        JMP SHORT 00DC6382                       ; 多余的前缀   
+  
+    
+  
+00DC6382    68 6C63DC00     PUSH 0DC636C   
+  
+00DC6387    F2:             PREFIX REPNE:                            ; 多余的前缀   
+  
+    
+  
+00DC638B    8F4424 00       POP DWORD PTR SS:\[ESP\]                   ; 00DC636C   
+  
+00DC638F    5F              POP EDI   
+  
+00DC6390    FF57 28         CALL DWORD PTR DS:\[EDI+28\]   
+  
+    
+  
+00DC639D    5F              POP EDI                                  ; 00DC6393   
+  
+00DC639E    26:EB 01        JMP SHORT 00DC63A2                       ; 多余的前缀   
+  
+    
+  
+00DC63A2    81E7 E50A9E59   AND EDI,599E0AE5   
+  
+00DC63A8    F2:             PREFIX REPNE:                            ; 多余的前缀   
+  
+    
+  
+00DC63AC    C1E7 E1         SHL EDI,0E1                              ; 移动常数超出 1..31 的范围   
+  
+00DC63AF    EB 01           JMP SHORT 00DC63B2   
+  
+    
+  
+00DC63B2    C1EF D6         SHR EDI,0D6                              ; 移动常数超出 1..31 的范围   
+  
+00DC63B5    5F              POP EDI   
+  
+00DC63B6    F2:             PREFIX REPNE:                            ; 多余的前缀   
+  
+    
+  
+00DC63BA    8D6424 F7       LEA ESP,DWORD PTR SS:\[ESP\-9\]   
+  
+00DC63BE    66:8135 C763DC0>XOR WORD PTR DS:\[DC63C7\],0AA91   
+  
+00DC63C7    7A AB           JPE SHORT 00DC6374   
+  
+    
+  
+00DC63C7   /EB 01           JMP SHORT 00DC63CA   
+  
+    
+  
+00DC63CA    8D6424 42       LEA ESP,DWORD PTR SS:\[ESP+42\]   
+  
+00DC63CE    8D6424 C3       LEA ESP,DWORD PTR SS:\[ESP\-3D\]   
+  
+00DC63D2    66:8135 DB63DC0>XOR WORD PTR DS:\[DC63DB\],0D71A   
+  
+    
+  
+00DC63DB    F3:             PREFIX REP:                              ; 多余的前缀   
+  
+    
+  
+00DC63E0    55              PUSH EBP //Stolen Code 第一句。    
+  
+00DC63E1    66:8135 EB63DC0>XOR WORD PTR DS:\[DC63EB\],80A3   
+  
+00DC63EA    F2:             PREFIX REPNE:                            ; 多余的前缀   
+  
+    
+  
+00DC63EE    8F4424 00       POP DWORD PTR SS:\[ESP\]                   ; 0012FFF0   
+  
+00DC63F2    8BEC            MOV EBP,ESP   执行完它后，EBP=ESP\=12FFC0,打破了从跟踪到这里 EBP 的值一直为 12fff0 的情况，同时也让我们也可以知道入口代码就在附近。Stolen Code 第二句。   
+  
+00DC63F4    81EC 10000000   SUB ESP,10 Stolen Code 第三句,这句要改为 ADD ESP,10 标准化。   
+  
+00DC63FA    F2:             PREFIX REPNE:                            ; 多余的前缀   
+  
+    
+  
+00DC63FE   /65:EB 01        JMP SHORT 00DC6402                       ; 多余的前缀   
+  
+    
+  
+00DC6402    51              PUSH ECX   
+  
+00DC6403   /EB 04           JMP SHORT 00DC6409   
+  
+................................................................   
+  
+后面有无数条小跳转，全部都是垃圾，我跟踪了 40 分钟，还没走完,已经吐血了。   
+  
+所以 Dephi 程序最好先确定 Stolen Code 数目。   
+  
+004B7220 > $  55            PUSH EBP   
+  
+004B7221   .  8BEC          MOV EBP,ESP   
+  
+004B7223   .  83C4 F0       ADD ESP,-10      
+  
+004B7226   .  B8 A86F4B00   MOV EAX,Pe.004B6FA8   
+  
+    
+  
+这个程序一共抽掉 11 字节。   
+  
+    
+  
+前面三句我们已经得到,现在的问题是 MOV EAX,xxxxxxxx   
+  
+    
+  
+EAX 的值是多少?     
+  
+    
+  
+ALT+M 打开内存镜像。   
+  
+    
+  
+内存镜像, 项目 12   
+  
+    
+  
+ 地址=00401000      //对 401000 Code 段下内存断点。    
+  
+ 大小=000B7000 (749568.)   
+  
+ Owner=Pej      00400000   
+  
+ 区段=   
+  
+ Contains=code   
+  
+ 类型=Imag 01001002   
+  
+ 访问=R   
+  
+ 初始访问=RWE   
+  
+        
+  
+004065D8  - FF25 58C24B00   JMP DWORD PTR DS:\[4BC258\]  //中断在这里,清除内存断点。    
+  
+004065DE    8BC0            MOV EAX,EAX   
+  
+004065E0  - FF25 54C24B00   JMP DWORD PTR DS:\[4BC254\]   
+  
+004065E6    8BC0            MOV EAX,EAX   
+  
+004065E8  - FF25 50C24B00   JMP DWORD PTR DS:\[4BC250\]   
+  
+004065EE    8BC0            MOV EAX,EAX   
+  
+004065F0  - FF25 4CC24B00   JMP DWORD PTR DS:\[4BC24C\]   
+  
+004065F6    8BC0            MOV EAX,EAX   
+  
+004065F8    50              PUSH EAX   
+  
+004065F9    6A 40           PUSH 40   
+  
+004065FB    E8 E0FFFFFF     CALL Pej.004065E0   
+  
+00406600    C3              RETN   
+  
+....................................................   
+  
+                     
+  
+00DB1C64    55              PUSH EBP  //F8 返回壳中。    
+  
+00DB1C65    8BEC            MOV EBP,ESP   
+  
+00DB1C67    8B45 08         MOV EAX,DWORD PTR SS:\[EBP+8\]   
+  
+00DB1C6A    85C0            TEST EAX,EAX   
+  
+00DB1C6C    75 13           JNZ SHORT 00DB1C81   
+  
+00DB1C6E    813D A47ADB00 0>CMP DWORD PTR DS:\[DB7AA4\],400000         ; ASCII "MZP"   
+  
+00DB1C78    75 07           JNZ SHORT 00DB1C81   
+  
+00DB1C7A    A1 A47ADB00     MOV EAX,DWORD PTR DS:\[DB7AA4\]   
+  
+00DB1C7F    EB 06           JMP SHORT 00DB1C87   
+  
+00DB1C81    50              PUSH EAX   
+  
+00DB1C82    E8 3135FFFF     CALL 00DA51B8                            ; JMP to kernel32.GetModuleHandleA   
+  
+00DB1C87    5D              POP EBP   
+  
+00DB1C88    C2 0400         RETN 4  //Ctrl+F9 返回。    
+  
+......................................................   
+  
+    
+  
+004066AD    A3 68B64B00     MOV DWORD PTR DS:\[4BB668\],EAX            ; Pej.00400000   
+  
+004066B2    A1 68B64B00     MOV EAX,DWORD PTR DS:\[4BB668\]   
+  
+004066B7    A3 AC804B00     MOV DWORD PTR DS:\[4B80AC\],EAX   
+  
+004066BC    33C0            XOR EAX,EAX   
+  
+004066BE    A3 B0804B00     MOV DWORD PTR DS:\[4B80B0\],EAX   
+  
+004066C3    33C0            XOR EAX,EAX   
+  
+004066C5    A3 B4804B00     MOV DWORD PTR DS:\[4B80B4\],EAX   
+  
+004066CA    E8 C1FFFFFF     CALL Pej.00406690   
+  
+004066CF    BA A8804B00     MOV EDX,Pej.004B80A8   
+  
+004066D4    8BC3            MOV EAX,EBX  //这里 EBX 就是我们要的 EAX 的数值。004B6FA8 记下来。    
+  
+004066D6    E8 D9DBFFFF     CALL Pej.004042B4   
+  
+004066DB    5B              POP EBX   
+  
+004066DC    C3              RETN   
+  
+......................................................   
+  
+    
+  
+004B721B    0080 6F4B0000   ADD BYTE PTR DS:\[EAX+4B6F\],AL  //向上数 11 个 00，确定真 Oep 为 004B7220,补上我们记录的 Stolen Code 吧。    
+  
+004B7221    0000            ADD BYTE PTR DS:\[EAX\],AL   
+  
+004B7223    0000            ADD BYTE PTR DS:\[EAX\],AL   
+  
+004B7225    0000            ADD BYTE PTR DS:\[EAX\],AL   
+  
+004B7227    0000            ADD BYTE PTR DS:\[EAX\],AL   
+  
+004B7229    0000            ADD BYTE PTR DS:\[EAX\],AL   
+  
+004B722B    E8 6CF4F4FF     CALL Pej.0040669C   
+  
+004B7230    A1 C4A04B00     MOV EAX,DWORD PTR DS:\[4BA0C4\]  //临时 Oep    
+  
+004B7235    8B00            MOV EAX,DWORD PTR DS:\[EAX\]   
+  
+004B7237    E8 C48CFCFF     CALL Pej.0047FF00   
+  
+004B723C    A1 C4A04B00     MOV EAX,DWORD PTR DS:\[4BA0C4\]   
+  
+004B7241    8B00            MOV EAX,DWORD PTR DS:\[EAX\]   
+  
+004B7243    BA 80724B00     MOV EDX,Pej.004B7280   
+  
+004B7248    E8 AB88FCFF     CALL Pej.0047FAF8   
+  
+004B724D    8B0D F4A14B00   MOV ECX,DWORD PTR DS:\[4BA1F4\]            ; Pej.004BBCAC   
+  
+004B7253    A1 C4A04B00     MOV EAX,DWORD PTR DS:\[4BA0C4\]   
+  
+004B7258    8B00            MOV EAX,DWORD PTR DS:\[EAX\]   
+  
+004B725A    8B15 48E44A00   MOV EDX,DWORD PTR DS:\[4AE448\]            ; Pej.004AE494   
+  
+004B7260    E8 B38CFCFF     CALL Pej.0047FF18   
+  
+004B7265    A1 C4A04B00     MOV EAX,DWORD PTR DS:\[4BA0C4\]   
+  
+004B726A    8B00            MOV EAX,DWORD PTR DS:\[EAX\]   
+  
+004B726C    E8 278DFCFF     CALL Pej.0047FF98   
+  
+004B7271    E8 06D2F4FF     CALL Pej.0040447C   
+  
+......................................................   
+  
+    
+  
+Ctrl+G 004B7220     
+  
+    
+  
+004B7220    55              PUSH EBP      //现在可以用插件修正入口为 B7220,重建输入表选方式 2 脱壳。    
+  
+004B7221    8BEC            MOV EBP,ESP   
+  
+004B7223    83C4 10         ADD ESP,10   
+  
+004B7226    B8 A86F4B00     MOV EAX,Pej.004B6FA8   
+  
+004B722B    E8 6CF4F4FF     CALL Pej.0040669C   
+  
+004B7230    A1 C4A04B00     MOV EAX,DWORD PTR DS:\[4BA0C4\]   
+  
+004B7235    8B00            MOV EAX,DWORD PTR DS:\[EAX\]   
+  
+004B7237    E8 C48CFCFF     CALL Pej.0047FF00   
+  
+004B723C    A1 C4A04B00     MOV EAX,DWORD PTR DS:\[4BA0C4\]   
+  
+004B7241    8B00            MOV EAX,DWORD PTR DS:\[EAX\]   
+  
+004B7243    BA 80724B00     MOV EDX,Pej.004B7280   
+  
+004B7248    E8 AB88FCFF     CALL Pej.0047FAF8   
+  
+004B724D    8B0D F4A14B00   MOV ECX,DWORD PTR DS:\[4BA1F4\]            ; Pej.004BBCAC   
+  
+004B7253    A1 C4A04B00     MOV EAX,DWORD PTR DS:\[4BA0C4\]   
+  
+004B7258    8B00            MOV EAX,DWORD PTR DS:\[EAX\]   
+  
+004B725A    8B15 48E44A00   MOV EDX,DWORD PTR DS:\[4AE448\]            ; Pej.004AE494   
+  
+004B7260    E8 B38CFCFF     CALL Pej.0047FF18   
+  
+......................................................   
+  
+    
+  
+IAT 修复，关闭 OD，打开加壳程序，呵呵 OEP 填 1000,ImportREC 把 Size 认为 000000A8 太小了，改为 1000,点获得输入表。显示无效，先用等级 1 方式跟踪，然后用 Asprtect1.22 插件再减轻一下压力。还剩 591 个指针没修复。   
+  
+    
+  
+现在的问题是,这 591 个指针是有用的吗?ImpRec 1.6 会告诉你   
+  
+    
+  
+点击 show invalid 并右键单击选择其中的一个，让我们来修复它                           
+  
+    
+  
+00BC214<- 右键单击选择 DeasmHexView 查看:     
+  
+    
+  
+ImpRec 1.6 提示你,read error!好,够了,只要有这个提示的一律可以安全的 Cut。   
+  
+    
+  
+如果这个指针有效,里面会显示汇编指令。   
+  
+    
+  
+找了一会,发现 00BC370 处的指针是唯一一个没识别的指针。   
+  
+    
+  
+右键单击选择 DeasmHexView 查看,究竟它是 Kernel32.dll 中的哪个函数呢,按 Page Down 两次,看到   
+  
+    
+  
+00DB1D2E    call 00DA5158    // = kernel32.dll/00B3/FindResourceA    
+  
+    
+  
+第一个看到的 Api 函数就是要修复的指针。   
+  
+    
+  
+呵呵,修复它吧,双击 00BC370 这行,填入 Api 函数 FindResourceA。   
+  
+    
+  
+拿起剪刀，将剩下 590 个垃圾指针全部 Cut,IAT 全部修复，爽啊。修正 Oep 为 B7220 最后修复文件,无法运行!   
+  
+    
+  
+经过调试 N 个 Dephi 文件，发现 Asprotect1.23rc4 的 Dephi 程序，入口处脱壳有反脱壳代码，只能在最后一次异常处脱壳,不然即使修复 IAT 和补上代码也不能运行。   
+  
+    
+  
+于是在最后一次异常处用 LoadPe 脱壳，IAT 修复和 Stolen Code 过程同上面,最后正常运行。   
+  
+    
+  
+    
+  
+【破解总结】发现 Dephi 语言的 Asprotect1.23Rc4 的壳开始用 Stolen Code，并且有变形指令，反脱壳代码，最麻烦,tc ebp\==12fff0 还不错吧,好累啊，全文完。   
+  
+    
+  
+\--------------------------------------------------------------------------------    
+  
+    
+【版权声明】 本文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢!  
+  
+ 4dd466d0e1e0cc123afbe504da2462ca

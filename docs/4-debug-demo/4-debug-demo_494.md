@@ -1,0 +1,163 @@
+
+
+# 剑侠情缘 2
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum324.htm`](https://www.pediy.com/kssd/pediy03/forum324.htm)
+
+ 读取光盘信息的软件，此类软件多为游戏软件，一般要调用"GetDriveTypeA（判断一个驱动器的类型）"以及"GetVolumeInformationA（返回卷标信息）等相关 API 函数，所以只要反编译成功后有针对性的分析这些函数所在位置的代码，并细心注意关键跳跃指令，往往起到事半功倍的效果。有时这些函数可能出现多个，也许单独出现，也许混合出现，但 80%以上都是对光盘进行校验。这类游戏软件有：星际争霸、生化危机 2、地狱火、等等。   
+  
+实例：剑侠情缘 2   
+  
+运行 W32dsm89 打开游戏主执行程序文件，反编译成功后，单击“Imports”查看程序调用的相关函数，找到“KERNEL32.GetDriveTypeA”后双击将其打开，我们可看到如下代码：   
+  
+:00409610 83EC48                  sub esp, 00000048   
+:00409613 8D442408                lea eax, dword ptr \[esp+08\]   
+:00409617 53                      push ebx   
+:00409618 56                      push esi   
+:00409619 57                      push edi   
+  
+\* Possible StringData Ref from Data Obj ->"C:"    “从盘符"C:"开始   
+                                  |                后的所有有效盘   
+:0040961A 684C804300              push 0043804C    符，结果存入 EAX   
+:0040961F 50                      push eax        中。”   
+  
+\* Reference To: KERNEL32.lstrcpyA, Ord:0302h   
+                                  |   
+:00409620 FF15E0304300            Call dword ptr \[004330E0\]   
+  
+\* Reference To: KERNEL32.GetDriveTypeA, Ord:0104h  “API 函数标志，判断一个驱动器的类型”   
+                ~~~~~~~~~~~~~~~~~~~~~~   
+                                  |   
+:00409626 8B3D70304300            mov edi, dword ptr \[00433070\]   
+:0040962C 33F6                    xor esi, esi   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:00409648(C)   
+|   
+:0040962E 8D4C2414                lea ecx, dword ptr \[esp+14\]   
+:00409632 51                      push ecx   
+:00409633 FFD7                    call edi   
+:00409635 83F805                  cmp eax, 00000005  “返回的值如等于 5，则为 CD-Rom 驱动器”   
+:00409638 7410                    je 0040964A          相等则跳转。“关键的一跳”   
+:0040963A 8A542414                mov dl, byte ptr \[esp+14\]   
+:0040963E FEC2                    inc dl   
+:00409640 46                      inc esi            “下一个盘符”   
+:00409641 83FE18                  cmp esi, 00000018  “我们将对 24 个英文字母（盘符）清扫一遍”   
+:00409644 88542414                mov byte ptr \[esp+14\], dl   
+:00409648 7CE4                    jl 0040962E          "再试一次吧，可能这个家伙的硬盘分区   
+                                                        太多了。"   
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:00409638(C)   
+|   
+  
+\* Reference To: KERNEL32.SetErrorMode, Ord:0264h      “API 函数标志，设置出错模式”   
+                                  |   
+:0040964A 8B3574304300            mov esi, dword ptr \[00433074\]   
+:00409650 6A01                    push 00000001   
+:00409652 FFD6                    call esi   
+:00409654 8BF8                    mov edi, eax   
+:00409656 6A00                    push 00000000   
+:00409658 8D542410                lea edx, dword ptr \[esp+10\]   
+:0040965C 6A00                    push 00000000   
+:0040965E 8D442418                lea eax, dword ptr \[esp+18\]   
+:00409662 52                      push edx   
+:00409663 50                      push eax   
+:00409664 6A00                    push 00000000   
+:00409666 8D4C2448                lea ecx, dword ptr \[esp+48\]   
+:0040966A 6A20                    push 00000020   
+:0040966C 8D54242C                lea edx, dword ptr \[esp+2C\]   
+:00409670 51                      push ecx   
+:00409671 52                      push edx   
+  
+\* Reference To: KERNEL32.GetVolumeInformationA, Ord:0177h  “API 函数标志，返回卷标信息”   
+                                  |   
+:00409672 FF1578304300            Call dword ptr \[00433078\]   
+:00409678 57                      push edi   
+:00409679 8BD8                    mov ebx, eax   
+:0040967B FFD6                    call esi   
+:0040967D 5F                      pop edi   
+:0040967E 5E                      pop esi   
+:0040967F 85DB                    test ebx, ebx        “同志，你错了，连光盘都不在   
+:00409681 5B                      pop ebx              驱动器中，还有卷标吗？请插   
+:00409682 741D                    je 004096A1          入游戏光盘。”“关键的一跳”   
+:00409684 8D442428                lea eax, dword ptr \[esp+28\]   
+  
+\* Possible StringData Ref from Data Obj ->"JXQY2CD2"   
+                                  |   
+:00409688 6840804300              push 00438040   
+:0040968D 50                      push eax   
+  
+\* Reference To: KERNEL32.lstrcmpA, Ord:02FCh   
+                                  |   
+:0040968E FF1580304300            Call dword ptr \[00433080\]   
+:00409694 85C0                    test eax, eax    “与运算”   
+:00409696 7509                    jne 004096A1    “不相等则跳跃，请插入游戏光盘”“关键的一跳”   
+:00409698 B801000000              mov eax, 00000001  “完全正确，卷标为"JXQY2CD2"   
+:0040969D 83C448                  add esp, 00000048  的光盘已在光盘驱动器中，谢   
+:004096A0 C3                      ret                谢合作。”   
+  
+  
+单击“Imports”，找到“KERNEL32.GetDriveTypeA”后再双击将其打开，看一下是否还有相关代码，如果 W32dsm89 窗口中的光条还停留在原来的位置，说明该程序中只调用了一次这个函数，如不只一次出现则可能在多个地方都有判断。（可多试几次看一下有几个地方）现在我们又第二次看到如下代码：   
+  
+:0040DC80 53                      push ebx   
+:0040DC81 56                      push esi   
+:0040DC82 8B74240C                mov esi, dword ptr \[esp+0C\]   
+:0040DC86 57                      push edi   
+  
+\* Possible StringData Ref from Data Obj ->"C:"        “从盘符"C:"开始   
+                                  |                  后的所有有效盘   
+:0040DC87 684C804300              push 0043804C      符，结果存入 EAX   
+:0040DC8C 56                      push esi            中。”   
+  
+\* Reference To: KERNEL32.lstrcpyA, Ord:0302h   
+                                  |   
+:0040DC8D FF15E0304300            Call dword ptr \[004330E0\]   
+  
+\* Reference To: KERNEL32.GetDriveTypeA, Ord:0104h    “API 函数标志，判断一个驱动器的类型”   
+                ~~~~~~~~~~~~~~~~~~~~~~   
+                                  |   
+:0040DC93 8B1D70304300            mov ebx, dword ptr \[00433070\]   
+:0040DC99 33FF                    xor edi, edi   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:0040DCAD(C)   
+|   
+:0040DC9B 56                      push esi   
+:0040DC9C FFD3                    call ebx   
+:0040DC9E 83F805                  cmp eax, 00000005    “返回的值如等于 5，则为 CD-Rom 驱动器”   
+:0040DCA1 740C                    je 0040DCAF          相等则跳转。“关键的一跳”   
+:0040DCA3 8A16                    mov dl, byte ptr \[esi\]   
+:0040DCA5 FEC2                    inc dl   
+:0040DCA7 47                      inc edi              “下一个盘符”   
+:0040DCA8 83FF18                  cmp edi, 00000018   
+:0040DCAB 8816                    mov byte ptr \[esi\], dl   
+:0040DCAD 7CEC                    jl 0040DC9B          “再试一次”   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:0040DCA1(C)   
+|   
+:0040DCAF 8B5C2414                mov ebx, dword ptr \[esp+14\]   
+:0040DCB3 803B5C                  cmp byte ptr \[ebx\], 5C   
+:0040DCB6 750C                    jne 0040DCC4          不相等则跳转，不跳就完了。“关键的一跳”   
+:0040DCB8 53                      push ebx   
+:0040DCB9 56                      push esi   
+  
+\* Reference To: KERNEL32.lstrcatA, Ord:02F9h   
+                                  |   
+:0040DCBA FF1530304300            Call dword ptr \[00433030\]   
+:0040DCC0 5F                      pop edi   
+:0040DCC1 5E                      pop esi   
+:0040DCC2 5B                      pop ebx   
+:0040DCC3 C3                      ret   
+  
+  
+好了，让这个游戏不读光盘的方法有很多，如“cmp eax, 00000005”改为“cmp eax, 00000003”再跳过卷标检查，或直接修改关键跳转指令，任你发挥。   
+  
+  
+费话，还有某些游戏软件需要读光盘上的某个文件，可利用 W32dsm89 的“String Data References”命令查找该文件名称字串在 W32dsm89 代码窗口中的位置，并分析关键代码，修改时去掉该文件检查的 CALL 或强行跳过即可。这类游戏如：   
+  
+风云之天下会 ---- 要跳过“winc.dat”   
+笑傲江湖 -------- 要跳过“resource.dat”、“Opening.avi”   
+  
+  
+初学之作烦请前辈高手多多指点   4dd466d0e1e0cc123afbe504da2462ca

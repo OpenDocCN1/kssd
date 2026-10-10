@@ -1,0 +1,158 @@
+
+
+# SourceRescuer
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6740.htm`](https://www.pediy.com/kssd/pediy06/pediy6740.htm)
+
+前言：七月份就已经发布在 DFCG 论坛里了，现在看雪老大要出精华 6 了，大菜鸟我近来没时间写东东了，就把它转来，算是投一篇稿吧。真希望能入选一篇，以回报这个给了我很多帮助的看雪论坛！  
+  
+软件名称：  
+  以壳解壳--SourceRescuer 脱壳手记  
+     
+软件简介：  
+  半年多前(过年前)看见 fly 脱神放出的该软件脱壳破解版(含原版)。当时偶初学破解，先当下来用用。时隔半年多，打开杂乱的硬盘，才又发现该软件。想想初学脱壳，一眨眼半年又过去了，唉，岁月匆匆啊!!!话不多说了，今天我们用 fly 脱神的以壳脱壳法治理该软件，希望广大脱友能有所收获!又注：用 fly 脱神的标准方法脱了 N>10 次，没有成功，后看了 Mr.David 兄的脱 system cleaner4.91 的动画，才成功。Mr.David 兄在后期处理使用了稍有不同的方法，我们来学学看。呵呵  
+     
+下载地址：[`bbs.pediy.com/showthread.php?s=&threadid=7042`](http://bbs.pediy.com/showthread.php?s=&threadid=7042)  
+    
+\------------------------------------------------------------  
+     
+破解作者：  
+  springkang\[DFCG\]  
+     
+破解工具：  
+  OllyDbg,impr,loadpe,AsprDbgr\_build\_106.exe,winxp,etc  
+     
+破解目的：  
+  只为技术，不唯破解!互相探讨，共同提高!!  
+     
+\------------------------------------------------------------  
+     
+\[破解过程\]  
+     
+详细过程：  
+用 peid0.92 查是 ASProtect 1.23 RC4 Registered -> Alexey Solodovnikov。  
+用为 OD 载入，不忽略内存访问异常，其余全部忽略!  
+00401000 >  68 01405B00     PUSH SourceRe.005B4001   //载入后停在这里，F9 运行  
+00401005    E8 01000000     CALL SourceRe.0040100B  
+0040100A    C3              RETN  
+0040100B    C3              RETN  
+0040100C    AF              SCAS DWORD PTR ES:\[EDI\]  
+  
+  
+00AE49CB    3100            XOR DWORD PTR DS:\[EAX\],EAX   //偶这里是第二十三次异常后出现第二次硬盘指纹，然后下 ALT+M 打开下内存断点，shift+f9  
+00AE49CD    EB 01           JMP SHORT 00AE49D0  
+00AE49CF    68 648F0500     PUSH 58F64  
+00AE49D4    0000            ADD BYTE PTR DS:\[EAX\],AL  
+00AE49D6    00EB            ADD BL,CH  
+  
+  
+0056BAD4    55              PUSH EBP     //停在这里  
+0056BAD5    8BEC            MOV EBP,ESP  
+0056BAD7    8B45 08         MOV EAX,DWORD PTR SS:\[EBP+8\]  
+0056BADA    A3 F8295700     MOV DWORD PTR DS:\[5729F8\],EAX   //注意\[5729f8\],现在我们可在用 dd 5729f8 监视该内存区域的值。这里是保存注册名的。通过最后一次异常后就可以修改里面的内容了。取消内存断点后，再按几次 shift+f9 来到经典的异常处  
+0056BADF    5D              POP EBP  
+0056BAE0    C2 0400         RETN 4  
+  
+  
+  
+00AE3D03    3100            XOR DWORD PTR DS:\[EAX\],EAX  //来到这里  
+00AE3D05    64:8F05 0000000>POP DWORD PTR FS:\[0\]  
+00AE3D0C    58              POP EAX  
+00AE3D0D    833D BC7EAE00 0>CMP DWORD PTR DS:\[AE7EBC\],0  
+00AE3D14    74 14           JE SHORT 00AE3D2A  
+00AE3D16    6A 0C           PUSH 0C  
+00AE3D18    B9 BC7EAE00     MOV ECX,0AE7EBC  
+00AE3D1D    8D45 F8         LEA EAX,DWORD PTR SS:\[EBP\-8\]  
+00AE3D20    BA 04000000     MOV EDX,4  
+00AE3D25    E8 E6D2FFFF     CALL 00AE1010  
+00AE3D2A    FF75 FC         PUSH DWORD PTR SS:\[EBP\-4\]  
+00AE3D2D    FF75 F8         PUSH DWORD PTR SS:\[EBP\-8\]  
+00AE3D30    8B45 F4         MOV EAX,DWORD PTR SS:\[EBP\-C\]  
+00AE3D33    8338 00         CMP DWORD PTR DS:\[EAX\],0  
+00AE3D36    74 02           JE SHORT 00AE3D3A  
+00AE3D38    FF30            PUSH DWORD PTR DS:\[EAX\]  
+00AE3D3A    FF75 F0         PUSH DWORD PTR SS:\[EBP\-10\]  
+00AE3D3D    FF75 EC         PUSH DWORD PTR SS:\[EBP\-14\]  
+00AE3D40    C3              RETN          //在这里下 F2 断点，然后 shift+f9 到这里。取消断点，好，我们看看堆栈的值：  
+0012FF5C   00AF750C  
+0012FF60   00400000  ASCII "MZP"  
+0012FF64   E55B8319  
+0012FF68   0012FFA4      //dd 0012ff68 然后 下硬件访问断点，也可以直接：hr 12ff68.然后 F9  
+0012FF6C   00000003  
+  
+  
+00AF761A   /EB 3F           JMP SHORT 00AF765B   //中断到这里了，F7 或 F8 均可，  
+00AF761C   |60              PUSHAD  
+00AF761D   |9C              PUSHFD  
+00AF761E   |FC              CLD  
+00AF761F   |BF 00000000     MOV EDI,0  
+00AF7624   |B9 00000000     MOV ECX,0  
+00AF7629   |F3:AA           REP STOS BYTE PTR ES:\[EDI\]  //fly 是在这里再下断，可是本文中，我们不下断，往后看。  
+00AF762B   |9D              POPFD  
+00AF762C   |61              POPAD  
+00AF762D   |C3              RETN  
+  
+  
+从 00AF761A   /EB 3F           JMP SHORT 00AF765B 跳到这里：  
+  
+00AF765B    03C3            ADD EAX,EBX                              ; SourceRe.00400000  
+00AF765D    BB 3F060000     MOV EBX,63F   //单步到这里后，我们停住，不要再向前走了。等下修复时这里就是入口处了!!!到这里我们就可以 dump 了。先完全 dump,再区域 dump(我这里是：address:00af0000,size:0000c000，考虑为什么在这里，因为从 00af765d 往下几行代码就是壳对入口处代码的处理了)。然后我们装配一下 dump 后的文件。磁盘载入后：修复新载入的 section 的 voffset 为：00af0000-00400000=6f0000,保存后重建 pe,选项只先 validate pe.重建完后。接着我们运行 AsprDbgr\_build\_106，  
+00AF7662    0BDB            OR EBX,EBX  
+00AF7664    75 02           JNZ SHORT 00AF7668  
+00AF7666    50              PUSH EAX  
+00AF7667    C3              RETN  
+00AF7668    E8 00000000     CALL 00AF766D  //fly 脱神等人提示这行要注意，本文中暂且不管它。  
+  
+AsprDbgr\_build\_106 运行后的代码：  
+AsprDbgr v1.0beta () Made by me... Manko.  
+  
+  iEP=401000 (J:\\破解\\SourceRescuer\\原版\\SourceRescuer.exe)  
+  
+    IAT Start: 573140    //这里注意一下，我们在用 impr 修复时填入 173140  
+          End: 573908  
+       Length: 7C8       //这个数字我们也用得上  
+      IATentry 573194 = AE10AC resolved as GetProcAddress  
+      IATentry 573198 = AE1500 resolved as GetModuleHandleA  
+      IATentry 5731AC = AE1574 resolved as GetCommandLineA  
+      IATentry 573250 = AE1500 resolved as GetModuleHandleA  
+      IATentry 5732CC = AE1564 resolved as LockResource  
+      IATentry 573304 = AE1528 resolved as GetVersion  
+      IATentry 57331C = AE10AC resolved as GetProcAddress  
+      IATentry 573324 = AE1500 resolved as GetModuleHandleA  
+      IATentry 57334C = AE155C resolved as GetCurrentProcessId  
+      IATentry 573354 = AE158C resolved as FreeResource  
+    15 invalid entries erased.  
+  Dip-Table at adress: AE7980  
+    0 56BAD4 0 0 56BAE4 0 0 56BB00 56BB78 56BB80 0 0 0 0  
+  Last SEH passed. (AE3D05) Searching for signatures. Singlestepping to OEP!  
+    Call + OEP-jump-setup at: AF8304 ( Code: E8000000 5D81ED )  
+    Mutated, stolen bytes at: AF834F ( Code: EB02CD20 6681355D )  
+    Erase of stolen bytes at: AF82B9 ( Code: 9CFCBFF7 82AF00B9 )  
+      Repz ... found. Skipping erase of stolen bytes.   
+  possible (temp)OEP: 406EC8 (Reached from preOEP: AF82C9)  
+  Sugested tempOEP at: 56BFE3      //还有这里，等下用 impr 修复时填上 16bfe3  
+  
+  
+现在我们用 impr 打开进程，选取最新的 sourcerescuer 进程(也就用 AsprDbgr\_build\_106 产生的进程，不是 od 产生的，注意!偶就是这里失败了 N 次)  
+oep 填上：0056bfe3-00400000=  
+16bfe3,RVA 和 size 分别填上：573140-40000=173140 和 7c8,然后 iat autosearch 和 get imports,再 show invalid ,全部有效。接下来在 oep 处填入：00AF765D -40000=6f765d，fix dump.运行就 OK 了  
+  
+相比之下，后期处理和 fly 大侠的方法稍有点不同，脱友们体会到了吗？  
+  
+  
+  
+  
+     
+破解小结：  
+  方法源自 fly 脱神的以壳解壳文章，没有他，我不可能完成脱壳。还要感谢 Mr.David 兄的动画，解决了我的一些疑问！  
+  偶很菜了，没时间总结了，谢谢你能耐心的看完  
+  偶的 QQ：14695672(注明 crack)  
+                                            
+                               springkang\[DFCG\]    
+                                 2004。7。27  
+                                            
+     
+\------------------------------------------------------------
+
+版权公有，人权私有!谢谢转载，注明作者!  
+ 4dd466d0e1e0cc123afbe504da2462ca

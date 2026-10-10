@@ -1,0 +1,98 @@
+
+
+# 破解肆意修改墙纸的软件
+
+> 原文：[`www.pediy.com/kssd/pediy11/114196.html`](https://www.pediy.com/kssd/pediy11/114196.html)
+
+昨天一个网友发个软件给我，他说这个软件每次启动都会修改墙纸，问我能不能破解一下，去除这个讨厌的功能。虽然技术不咋的，但我还是答应了。软件还是比较好搞定，因为没有加壳。昨晚上我就把破解好的软件发给了他。但今天开我的电脑时我的墙纸被改了，晕，看来还没彻底搞定。虽然软件每次启动不修改墙纸，但电脑开机墙纸就会被修改。于是只好又启动 OD，分析了一下，发现这个软件每次启动都会生成一幅图片到 c:\\windows 下，只要生成了图片，我的墙纸就会被改变。呵呵，有了思路，开工。  
+  
+od 载入，查找字符串，来到下面的位置：  
+  
+0047F140      83F8 07       CMP EAX,7  //比较，随机生成一幅图片（共七幅）  
+0047F143      0F87 8E000000 JA ID\_DP0.0047F1D7  
+0047F149  |.  FF2485 50F147>JMP DWORD PTR DS:\[EAX\*4+47F150\]  
+0047F150  |.  D7F14700      DD ID\_DP0.0047F1D7                       ;  分支表 被用于 0047F149  
+0047F154  |.  70F14700      DD ID\_DP0.0047F170  
+0047F158  |.  7FF14700      DD ID\_DP0.0047F17F  
+0047F15C  |.  8EF14700      DD ID\_DP0.0047F18E  
+0047F160  |.  9DF14700      DD ID\_DP0.0047F19D  
+0047F164  |.  ACF14700      DD ID\_DP0.0047F1AC  
+0047F168  |.  BBF14700      DD ID\_DP0.0047F1BB  
+0047F16C  |.  CAF14700      DD ID\_DP0.0047F1CA  
+0047F170  |>  8D45 E4       LEA EAX,DWORD PTR SS:\[EBP-1C\]            ;  Case 1 of switch 0047F140  
+0047F173  |.  BA 10F44700   MOV EDX,ID\_DP0.0047F410                  ;  ASCII "wall\_7"  
+0047F178  |.  E8 DB53F8FF   CALL ID\_DP0.00404558  
+0047F17D  |.  EB 58         JMP SHORT ID\_DP0.0047F1D7  
+0047F17F  |>  8D45 E4       LEA EAX,DWORD PTR SS:\[EBP-1C\]            ;  Case 2 of switch 0047F140  
+0047F182  |.  BA 20F44700   MOV EDX,ID\_DP0.0047F420                  ;  ASCII "wall\_1"  
+0047F187  |.  E8 CC53F8FF   CALL ID\_DP0.00404558  
+0047F18C  |.  EB 49         JMP SHORT ID\_DP0.0047F1D7  
+0047F18E  |>  8D45 E4       LEA EAX,DWORD PTR SS:\[EBP-1C\]            ;  Case 3 of switch 0047F140  
+0047F191  |.  BA 30F44700   MOV EDX,ID\_DP0.0047F430                  ;  ASCII "wall\_2"  
+0047F196  |.  E8 BD53F8FF   CALL ID\_DP0.00404558  
+0047F19B  |.  EB 3A         JMP SHORT ID\_DP0.0047F1D7  
+0047F19D  |>  8D45 E4       LEA EAX,DWORD PTR SS:\[EBP-1C\]            ;  Case 4 of switch 0047F140  
+0047F1A0  |.  BA 40F44700   MOV EDX,ID\_DP0.0047F440                  ;  ASCII "wall\_3"  
+0047F1A5  |.  E8 AE53F8FF   CALL ID\_DP0.00404558  
+0047F1AA  |.  EB 2B         JMP SHORT ID\_DP0.0047F1D7  
+0047F1AC  |>  8D45 E4       LEA EAX,DWORD PTR SS:\[EBP-1C\]            ;  Case 5 of switch 0047F140  
+0047F1AF  |.  BA 50F44700   MOV EDX,ID\_DP0.0047F450                  ;  ASCII "wall\_4"  
+0047F1B4  |.  E8 9F53F8FF   CALL ID\_DP0.00404558  
+0047F1B9  |.  EB 1C         JMP SHORT ID\_DP0.0047F1D7  
+0047F1BB  |>  8D45 E4       LEA EAX,DWORD PTR SS:\[EBP-1C\]            ;  Case 6 of switch 0047F140  
+0047F1BE  |.  BA 60F44700   MOV EDX,ID\_DP0.0047F460                  ;  ASCII "wall\_5"  
+0047F1C3  |.  E8 9053F8FF   CALL ID\_DP0.00404558  
+0047F1C8  |.  EB 0D         JMP SHORT ID\_DP0.0047F1D7  
+0047F1CA  |>  8D45 E4       LEA EAX,DWORD PTR SS:\[EBP-1C\]            ;  Case 7 of switch 0047F140  
+0047F1CD  |.  BA 70F44700   MOV EDX,ID\_DP0.0047F470                  ;  ASCII "wall\_6"  
+0047F1D2  |.  E8 8153F8FF   CALL ID\_DP0.00404558  
+0047F1D7  |>  68 78F44700   PUSH ID\_DP0.0047F478                     ;  ASCII "wallpaper"; Default case of switch 0047F140  
+0047F1DC  |.  8B45 E4       MOV EAX,DWORD PTR SS:\[EBP-1C\]  
+0047F1DF  |.  E8 8C57F8FF   CALL ID\_DP0.00404970  
+  
+上面的代码把七幅代码放内存中，然后随机生成图片，呵呵，是不是很简单。  
+  
+继续搜索，来到关键代码处，:-)  
+  
+0047F303      B9 8CF44700   MOV ECX,ID\_DP0.0047F48C                  ;  ASCII "\\sm2100\_desktop.bmp"  
+0047F308      E8 B754F8FF   CALL ID\_DP0.004047C4   //call 将图片压入栈  
+0047F30D      8B55 F4       MOV EDX,DWORD PTR SS:\[EBP-C\]  
+0047F310      8B45 FC       MOV EAX,DWORD PTR SS:\[EBP-4\]  
+0047F313   .  8B08          MOV ECX,DWORD PTR DS:\[EAX\]  
+0047F315      FF51 50       CALL DWORD PTR DS:\[ECX+50\]  //call 出栈  
+  
+我上面已经说了这个软件修改墙纸的原理，没说，不可能，看看上面，。既然这个软件是把图片放在 c:\\windows 下，你想到怎么做了吗？呵呵，对，我们就不让它放图片在 c:\\windows 下。行动.........  
+  
+0047F303   .  B9 8CF44700   MOV ECX,ID\_DP01.0047F48C                 ;  ASCII "\\sm2100\_desktop.bmp"  
+0047F308   .  90            NOP  
+0047F309   .  90            NOP  
+0047F30A   .  90            NOP  
+0047F30B   .  90            NOP  
+0047F30C   .  90            NOP  
+0047F30D   .  8B55 F4       MOV EDX,DWORD PTR SS:\[EBP-C\]  
+0047F310   .  8B45 FC       MOV EAX,DWORD PTR SS:\[EBP-4\]  
+0047F313   .  8B08          MOV ECX,DWORD PTR DS:\[EAX\]  
+0047F315   .  90            NOP  
+0047F316   .  90            NOP  
+0047F317   .  90            NOP  
+  
+直接把 call NOP 掉，不过这里要注意，一定要两个 call 都 NOP 掉哦，不然将会出现一个警示框，呵呵！（我第一次就只 NOP 了一个）  
+  
+补上一段代码，真麻烦，每次验证都要重启机子，我的爱机啊......  
+  
+0047F377   .  84C0          TEST AL,AL //测试是否是生成的墙纸  
+  
+0047F379   . /75 2A         JZ SHORT ID\_DP0 最.0047F3A5 //是，跳转；不是，更换  
+0047F37B   . |8B4D F4       MOV ECX,DWORD PTR SS:\[EBP-C\]  
+0047F37E   . |BA C8F44700   MOV EDX,ID\_DP0 最.0047F4C8                 ;  ASCII "Wallpaper"  
+0047F383   . |8B45 F0       MOV EAX,DWORD PTR SS:\[EBP-10\]  
+0047F386   . |E8 1DD9FEFF   CALL ID\_DP0 最.0046CCA8  
+0047F38B   . |B9 DCF44700   MOV ECX,ID\_DP0 最.0047F4DC  
+0047F390   . |BA E8F44700   MOV EDX,ID\_DP0 最.0047F4E8                 ;  ASCII "TileWallpaper"  
+0047F395   . |8B45 F0       MOV EAX,DWORD PTR SS:\[EBP-10\]  
+0047F398   . |E8 0BD9FEFF   CALL ID\_DP0 最.0046CCA8  
+0047F39D   . |8B45 F0       MOV EAX,DWORD PTR SS:\[EBP-10\]  
+0047F3A0   . |E8 A3D5FEFF   CALL ID\_DP0 最.0046C948  
+0047F3A5   > \\33C0          XOR EAX,EAX  
+  
+到此功德圆满，应该没问题了吧，

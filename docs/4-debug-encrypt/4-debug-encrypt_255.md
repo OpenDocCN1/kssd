@@ -1,0 +1,770 @@
+
+
+# Cast-128 加密算法的另类分析
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-90.htm`](https://www.pediy.com/kssd/pediy07/pediy7-90.htm)
+
+Cast-128 加密算法的另类分析  
+【破解作者】 jsliyangsj  
+【作者邮箱】 sjcrack@yahoo.com.cn  
+【使用工具】 peid OllyDbg1.10  
+【破解平台】 Winxp  
+【软件名称】 MyPassWord  
+【软件地址】 http://www2.skycn.com/soft/5993.html  
+实例分析：MyPassWord  
+一块三毛钱大哥的分析，注重了方法，也没有得出此类算法的此软件的最终密码（再重新写注册机才能得到！，我准备就让 OD 直接分析这类算法的密码！我就此软件来说一说！Cast-128 加密算法如何直接逆向得到注册码！（其实最终的密码也是它自己计算出来的）  
+输入一共要 16 位，分为前 8 位与后 8 位，把这 16 位进行算法，就得到了 16 位的某值，如果这个值等于它机器码计算出来的值，则通过！。  
+此软件是这样的：  
+先把前 8 位输入码放入 ESP＋8,后 8 位输入码放入 ESP＋4 中取后 8 位密码与某一固定值（这里是 BC63FF29）相加，把结果（8 位）分成 4 对，把每对分别做指针（当然就这 2 位不可能直接做指针，而是要与基地址运算后做指针）比如：mov edx,dword ptr ds:\[esi+edx\*4\]这 4 次指针分别在密码表中取值，这 4 个值进行＋、－、XOR……，最后得到的结果与前 8 位 XOR，保存，就保存在 ESP＋8 中，这样  
+也就覆盖了前 8 位密码，再取 ESP＋8（也就是被第一次覆盖后前 8 位，后面还要覆盖好多次）中值，与固定值进行运算，运算的结果再分成 4 对分别作指针（同上）这 4 次指针分别在密码表中取值，这 4 个值进行＋、－、  
+XOR……，最后得到的结果与后 8 位（ESP+4）XOR，保存，覆盖了后 8 位数据，再取（ESP+4）的值…………………………进行运算来改变 ESP＋8 的值，再取 ESP+8……………………………………运算来改变 ESP+4 的值  
+如此往复，直到固定的次数，得到最后结果（其实逆向计算注册码时根本不担心在 4 次指针中取的什么，待会就知道了！）  
+我们画个图表示一下：  
+![](img/3a045dbfcfc3d55762109c16c52f4558.jpg)   
+如上图：假设计算就这几次。那么最后的①、②就是最终的值而这个就是最后你要等于的值，这个值你必须知道，当然是可以知道的，好假设你已经知道了，我这里是 3135333032363635     
+有了①、②你能推出⑥来，有了①、⑥你就能推出⑩，这样你一步一步往上推，就能，找到 ESP+4(就是后 8 位输入码)了，再往上一步就到了 ESP+8（前 8 位输入码）。怎么推呢？  
+是这样的，因为①、②你已经知道了，那么①就是③，③知道了，你也就知道④（这里是让计算机自己帮你计算的不用你烦），最后可以由④与②得出⑤，你会发现⑤就等于⑥；这样就上去了一步了，具体操作是这样的，当 F8 走到①处时（也可以再①处下断），把①处应该的值（最终的值）写入，得到正确的④，再用大计算器④XOR②，计算出⑤就是⑥。  
+然后，由①、⑥能推出⑩：当 F8 走到⑥处时（也可以再⑥处下断），把⑥处应该的值（就是刚计算出来⑤的值）写入⑥，得到正确的⑧，再用大计算器⑧XOR①，计算出⑨就是⑩。  
+  
+正式开始：  
+…………………………………………………………………………………………………………………………………………………………………  
+…………………………………………………………………………………………………………………………………………………………………  
+004F0B87    .  E8 9832F6FF       call 12\_.00453E24  
+004F0B8C    .  8B45 F8           mov eax,dword ptr ss:\[ebp-8\]  
+004F0B8F    .  E8 E443F1FF       call 12\_.00404F78  
+004F0B94    .  83F8 10           cmp eax,10                                 比较你输入的是否等于 16 位，我输入 1234567890abcdef  
+004F0B97    .  74 11             je short 12\_.004F0BAA  
+004F0B99    .  A1 40EA5500       mov eax,dword ptr ds:\[55EA40\]  
+004F0B9E    .  8B00              mov eax,dword ptr ds:\[eax\]  
+004F0BA0    .  E8 73C4F5FF       call 12\_.0044D018  
+004F0BA5    .  E9 E8000000       jmp 12\_.004F0C92  
+004F0BAA    >  8D55 F0           lea edx,dword ptr ss:\[ebp-10\]  
+004F0BAD    .  8B45 FC           mov eax,dword ptr ss:\[ebp-4\]  
+004F0BB0    .  8B80 F4020000     mov eax,dword ptr ds:\[eax+2F4\]  
+004F0BB6    .  E8 6932F6FF       call 12\_.00453E24  
+004F0BBB    .  8B45 F0           mov eax,dword ptr ss:\[ebp-10\]  
+004F0BBE    .  8D4D F4           lea ecx,dword ptr ss:\[ebp-C\]  
+004F0BC1    .  8B15 D8E65500     mov edx,dword ptr ds:\[55E6D8\]             ;  12\_.0055E1C0  
+004F0BC7    .  E8 2CA70500       call 12\_.0054B2F8                         ;  算法进入！！  
+004F0BCC    .  8B45 F4           mov eax,dword ptr ss:\[ebp-C\]  
+004F0BCF    .  8B15 C4E45500     mov edx,dword ptr ds:\[55E4C4\]             ;  12\_.00562358  
+004F0BD5    .  8B12              mov edx,dword ptr ds:\[edx\]  
+004F0BD7    .  E8 E044F1FF       call 12\_.004050BC                         ;  关键比较了  
+004F0BDC       74 11             je short 12\_.004F0BEF                     ;  不相等，就完了  
+004F0BDE    .  A1 40EA5500       mov eax,dword ptr ds:\[55EA40\]  
+004F0BE3    .  8B00              mov eax,dword ptr ds:\[eax\]  
+004F0BE5    .  E8 2EC4F5FF       call 12\_.0044D018  
+004F0BEA    .  E9 A3000000       jmp 12\_.004F0C92  
+004F0BEF    >  B2 01             mov dl,1  
+004F0BF1    .  A1 A0514800       mov eax,dword ptr ds:\[4851A0\]  
+004F0BF6    .  E8 A546F9FF       call 12\_.004852A0  
+004F0BFB    .  A3 981B5600       mov dword ptr ds:\[561B98\],eax  
+004F0C00    .  33C0              xor eax,eax  
+004F0C02    .  55                push ebp  
+004F0C03    .  68 770C4F00       push 12\_.004F0C77  
+004F0C08    .  64:FF30           push dword ptr fs:\[eax\]  
+004F0C0B    .  64:8920           mov dword ptr fs:\[eax\],esp  
+004F0C0E    .  BA 02000080       mov edx,80000002  
+004F0C13    .  A1 981B5600       mov eax,dword ptr ds:\[561B98\]  
+004F0C18    .  E8 2347F9FF       call 12\_.00485340  
+004F0C1D    .  B1 01             mov cl,1  
+004F0C1F    .  BA D00C4F00       mov edx,12\_.004F0CD0                      ;  ASCII "\\Software\\Microsoft\\Internet Explorer\\Security"  
+004F0C24    .  A1 981B5600       mov eax,dword ptr ds:\[561B98\]  
+004F0C29    .  E8 7647F9FF       call 12\_.004853A4  
+004F0C2E    .  84C0              test al,al  
+004F0C30    .  74 23             je short 12\_.004F0C55  
+004F0C32    .  8D55 EC           lea edx,dword ptr ss:\[ebp-14\]  
+004F0C35    .  8B45 FC           mov eax,dword ptr ss:\[ebp-4\]  
+004F0C38    .  8B80 F4020000     mov eax,dword ptr ds:\[eax+2F4\]  
+004F0C3E    .  E8 E131F6FF       call 12\_.00453E24  
+004F0C43    .  8B4D EC           mov ecx,dword ptr ss:\[ebp-14\]  
+004F0C46    .  BA 080D4F00       mov edx,12\_.004F0D08                      ;  ASCII "myreg"  
+004F0C4B    .  A1 981B5600       mov eax,dword ptr ds:\[561B98\]  
+004F0C50    .  E8 0B49F9FF       call 12\_.00485560  
+004F0C55    >  33C0              xor eax,eax  
+004F0C57    .  5A                pop edx  
+004F0C58    .  59                pop ecx  
+004F0C59    .  59                pop ecx  
+004F0C5A    .  64:8910           mov dword ptr fs:\[eax\],edx  
+004F0C5D    .  68 7E0C4F00       push 12\_.004F0C7E  
+004F0C62    >  A1 981B5600       mov eax,dword ptr ds:\[561B98\]  
+004F0C67    .  E8 A446F9FF       call 12\_.00485310  
+004F0C6C    .  A1 981B5600       mov eax,dword ptr ds:\[561B98\]  
+004F0C71    .  E8 5A31F1FF       call 12\_.00403DD0  
+004F0C76    .  C3                retn  
+  
+…………………………………………………………………………………………………………………………………………………………………  
+首先进入，看看经过算法之后应该算出的值等于多少！004F0BD7     call 12\_.004050BC     ;  关键比较了  
+…………………………………………………………………………………………………………………………………………………………………  
+004050BC   /$  53                push ebx  
+004050BD   |.  56                push esi  
+004050BE   |.  57                push edi  
+004050BF   |.  89C6              mov esi,eax  
+004050C1   |.  89D7              mov edi,edx  
+004050C3   |.  39D0              cmp eax,edx                           比较了！！！  
+004050C5       0F84 8F000000     je 12\_.0040515A  
+004050CB   |.  85F6              test esi,esi  
+004050CD   |.  74 68             je short 12\_.00405137  
+004050CF   |.  85FF              test edi,edi  
+004050D1   |.  74 6B             je short 12\_.0040513E  
+004050D3   |.  8B46 FC           mov eax,dword ptr ds:\[esi-4\]  
+004050D6   |.  8B57 FC           mov edx,dword ptr ds:\[edi-4\]  
+004050D9   |.  29D0              sub eax,edx  
+004050DB   |.  77 02             ja short 12\_.004050DF  
+004050DD   |.  01C2              add edx,eax  
+004050DF   |>  52                push edx  
+004050E0   |.  C1EA 02           shr edx,2  
+004050E3   |.  74 26             je short 12\_.0040510B  
+004050E5   |>  8B0E              /mov ecx,dword ptr ds:\[esi\]  
+004050E7   |.  8B1F              |mov ebx,dword ptr ds:\[edi\]  
+004050E9   |.  39D9              |cmp ecx,ebx  
+004050EB   |.  75 58             |jnz short 12\_.00405145  
+004050ED   |.  4A                |dec edx  
+004050EE   |.  74 15             |je short 12\_.00405105  
+004050F0   |.  8B4E 04           |mov ecx,dword ptr ds:\[esi+4\]  
+004050F3   |.  8B5F 04           |mov ebx,dword ptr ds:\[edi+4\]  
+004050F6   |.  39D9              |cmp ecx,ebx  
+004050F8   |.  75 4B             |jnz short 12\_.00405145  
+004050FA   |.  83C6 08           |add esi,8  
+004050FD   |.  83C7 08           |add edi,8  
+00405100   |.  4A                |dec edx  
+00405101   |.^ 75 E2             \\jnz short 12\_.004050E5  
+00405103   |.  EB 06             jmp short 12\_.0040510B  
+00405105   |>  83C6 04           add esi,4  
+00405108   |.  83C7 04           add edi,4  
+0040510B   |>  5A                pop edx  
+0040510C   |.  83E2 03           and edx,3  
+0040510F   |.  74 22             je short 12\_.00405133  
+00405111   |.  8B0E              mov ecx,dword ptr ds:\[esi\]  
+00405113   |.  8B1F              mov ebx,dword ptr ds:\[edi\]  
+00405115   |.  38D9              cmp cl,bl  
+00405117   |.  75 41             jnz short 12\_.0040515A  
+00405119   |.  4A                dec edx  
+0040511A   |.  74 17             je short 12\_.00405133  
+0040511C   |.  38FD              cmp ch,bh  
+0040511E   |.  75 3A             jnz short 12\_.0040515A  
+00405120   |.  4A                dec edx  
+00405121   |.  74 10             je short 12\_.00405133  
+00405123   |.  81E3 0000FF00     and ebx,0FF0000  
+00405129   |.  81E1 0000FF00     and ecx,0FF0000  
+0040512F   |.  39D9              cmp ecx,ebx  
+00405131   |.  75 27             jnz short 12\_.0040515A  
+00405133   |>  01C0              add eax,eax  
+00405135   |.  EB 23             jmp short 12\_.0040515A  
+00405137   |>  8B57 FC           mov edx,dword ptr ds:\[edi-4\]  
+0040513A   |.  29D0              sub eax,edx  
+0040513C   |.  EB 1C             jmp short 12\_.0040515A  
+0040513E   |>  8B46 FC           mov eax,dword ptr ds:\[esi-4\]  
+00405141   |.  29D0              sub eax,edx  
+00405143   |.  EB 15             jmp short 12\_.0040515A  
+00405145   |>  5A                pop edx  
+00405146   |.  38D9              cmp cl,bl  
+00405148   |.  75 10             jnz short 12\_.0040515A  
+0040514A   |.  38FD              cmp ch,bh  
+0040514C   |.  75 0C             jnz short 12\_.0040515A  
+0040514E   |.  C1E9 10           shr ecx,10  
+00405151   |.  C1EB 10           shr ebx,10  
+00405154   |.  38D9              cmp cl,bl  
+00405156   |.  75 02             jnz short 12\_.0040515A  
+00405158   |.  38FD              cmp ch,bh  
+0040515A   |>  5F                pop edi  
+0040515B   |.  5E                pop esi  
+0040515C   |.  5B                pop ebx  
+0040515D   \\.  C3                retn  
+  
+…………………………………………………………………………………………………………………………………………………………………  
+发现了等于：ESP+8=31353330        ESP+4  32363635 这两个值就是我最终计算要得到的结果！！我们准备逆向推理了  
+…………………………………………………………………………………………………………………………………………………………………  
+  
+…………………………………………………………………………………………………………………………………………………………………  
+再进入 004F0BC7    .  E8 2CA70500       call 12\_.0054B2F8                         ;  算法进入！！  
+…………………………………………………………………………………………………………………………………………………………………  
+  
+0054B2F8   /$  55                push ebp  
+0054B2F9   |.  8BEC              mov ebp,esp  
+0054B2FB   |.  51                push ecx  
+0054B2FC   |.  B9 04000000       mov ecx,4  
+0054B301   |>  6A 00             /push 0  
+0054B303   |.  6A 00             |push 0  
+0054B305   |.  49                |dec ecx  
+0054B306   |.^ 75 F9             \\jnz short 12\_.0054B301  
+0054B308   |.  874D FC           xchg dword ptr ss:\[ebp-4\],ecx  
+0054B30B   |.  53                push ebx  
+0054B30C   |.  56                push esi  
+0054B30D   |.  57                push edi  
+0054B30E   |.  894D F8           mov dword ptr ss:\[ebp-8\],ecx  
+0054B311   |.  8BFA              mov edi,edx  
+0054B313   |.  8945 FC           mov dword ptr ss:\[ebp-4\],eax  
+0054B316   |.  8B45 FC           mov eax,dword ptr ss:\[ebp-4\]  
+0054B319   |.  E8 429EEBFF       call 12\_.00405160  
+0054B31E   |.  33C0              xor eax,eax  
+0054B320   |.  55                push ebp  
+0054B321   |.  68 09B45400       push 12\_.0054B409  
+0054B326   |.  64:FF30           push dword ptr fs:\[eax\]  
+0054B329   |.  64:8920           mov dword ptr fs:\[eax\],esp  
+0054B32C   |.  8D45 F4           lea eax,dword ptr ss:\[ebp-C\]  
+0054B32F   |.  8B55 FC           mov edx,dword ptr ss:\[ebp-4\]  
+0054B332   |.  E8 219AEBFF       call 12\_.00404D58  
+0054B337   |.  8B45 F4           mov eax,dword ptr ss:\[ebp-C\]  
+0054B33A   |.  E8 399CEBFF       call 12\_.00404F78  
+0054B33F   |.  8945 E8           mov dword ptr ss:\[ebp-18\],eax  
+0054B342   |.  DB45 E8           fild dword ptr ss:\[ebp-18\]  
+0054B345   |.  D835 18B45400     fdiv dword ptr ds:\[54B418\]  
+0054B34B   |.  E8 5479EBFF       call 12\_.00402CA4  
+0054B350   |.  8BD8              mov ebx,eax  
+0054B352   |.  8B45 F4           mov eax,dword ptr ss:\[ebp-C\]  
+0054B355   |.  E8 1E9CEBFF       call 12\_.00404F78  
+0054B35A   |.  8945 E8           mov dword ptr ss:\[ebp-18\],eax  
+0054B35D   |.  DB45 E8           fild dword ptr ss:\[ebp-18\]  
+0054B360   |.  D835 18B45400     fdiv dword ptr ds:\[54B418\]  
+0054B366   |.  895D E4           mov dword ptr ss:\[ebp-1C\],ebx  
+0054B369   |.  DB45 E4           fild dword ptr ss:\[ebp-1C\]  
+0054B36C   |.  DED9              fcompp  
+0054B36E   |.  DFE0              fstsw ax  
+0054B370   |.  9E                sahf  
+0054B371   |.  74 0A             je short 12\_.0054B37D  
+0054B373   |.  8B45 F8           mov eax,dword ptr ss:\[ebp-8\]  
+0054B376   |.  E8 4599EBFF       call 12\_.00404CC0  
+0054B37B   |.  EB 5C             jmp short 12\_.0054B3D9  
+0054B37D   |>  4B                dec ebx  
+0054B37E   |.  85DB              test ebx,ebx  
+0054B380   |.  7C 36             jl short 12\_.0054B3B8  
+0054B382   |.  43                inc ebx  
+0054B383   |.  33F6              xor esi,esi  
+0054B385   |>  8D45 F0           /lea eax,dword ptr ss:\[ebp-10\]  
+0054B388   |.  50                |push eax  
+0054B389   |.  8BD6              |mov edx,esi  
+0054B38B   |.  C1E2 04           |shl edx,4  
+0054B38E   |.  42                |inc edx  
+0054B38F   |.  B9 10000000       |mov ecx,10  
+0054B394   |.  8B45 F4           |mov eax,dword ptr ss:\[ebp-C\]  
+0054B397   |.  E8 349EEBFF       |call 12\_.004051D0  
+0054B39C   |.  8D4D E0           |lea ecx,dword ptr ss:\[ebp-20\]  
+0054B39F   |.  8BD7              |mov edx,edi  
+0054B3A1   |.  8B45 F0           |mov eax,dword ptr ss:\[ebp-10\]  
+0054B3A4   |.  E8 07FEFFFF       |call 12\_.0054B1B0                     算法关键进入  
+0054B3A9   |.  8B55 E0           |mov edx,dword ptr ss:\[ebp-20\]  
+0054B3AC   |.  8D45 EC           |lea eax,dword ptr ss:\[ebp-14\]  
+0054B3AF   |.  E8 CC9BEBFF       |call 12\_.00404F80  
+0054B3B4   |.  46                |inc esi  
+0054B3B5   |.  4B                |dec ebx  
+0054B3B6   |.^ 75 CD             \\jnz short 12\_.0054B385  
+0054B3B8   |>  8D55 DC           lea edx,dword ptr ss:\[ebp-24\]  
+0054B3BB   |.  8B45 EC           mov eax,dword ptr ss:\[ebp-14\]  
+0054B3BE   |.  E8 15E3EBFF       call 12\_.004096D8  
+0054B3C3   |.  8B55 DC           mov edx,dword ptr ss:\[ebp-24\]  
+0054B3C6   |.  8D45 EC           lea eax,dword ptr ss:\[ebp-14\]  
+0054B3C9   |.  E8 8A99EBFF       call 12\_.00404D58  
+0054B3CE   |.  8B45 F8           mov eax,dword ptr ss:\[ebp-8\]  
+0054B3D1   |.  8B55 EC           mov edx,dword ptr ss:\[ebp-14\]  
+0054B3D4   |.  E8 3B99EBFF       call 12\_.00404D14  
+0054B3D9   |>  33C0              xor eax,eax  
+0054B3DB   |.  5A                pop edx  
+0054B3DC   |.  59                pop ecx  
+0054B3DD   |.  59                pop ecx  
+0054B3DE   |.  64:8910           mov dword ptr fs:\[eax\],edx  
+0054B3E1   |.  68 10B45400       push 12\_.0054B410  
+0054B3E6   |>  8D45 DC           lea eax,dword ptr ss:\[ebp-24\]  
+0054B3E9   |.  BA 02000000       mov edx,2  
+0054B3EE   |.  E8 F198EBFF       call 12\_.00404CE4  
+0054B3F3   |.  8D45 EC           lea eax,dword ptr ss:\[ebp-14\]  
+0054B3F6   |.  BA 03000000       mov edx,3  
+0054B3FB   |.  E8 E498EBFF       call 12\_.00404CE4  
+0054B400   |.  8D45 FC           lea eax,dword ptr ss:\[ebp-4\]  
+0054B403   |.  E8 B898EBFF       call 12\_.00404CC0  
+0054B408   \\.  C3                retn  
+  
+…………………………………………………………………………………………………………………………………………………………………  
+再进入 0054B3A4   |.  E8 07FEFFFF       |call 12\_.0054B1B0                     算法关键进入  
+…………………………………………………………………………………………………………………………………………………………………  
+0054B1B0   /$  55                push ebp  
+0054B1B1   |.  8BEC              mov ebp,esp  
+0054B1B3   |.  81C4 4CFFFFFF     add esp,-0B4  
+0054B1B9   |.  53                push ebx  
+0054B1BA   |.  56                push esi  
+0054B1BB   |.  33DB              xor ebx,ebx  
+0054B1BD   |.  899D 4CFFFFFF     mov dword ptr ss:\[ebp-B4\],ebx  
+0054B1C3   |.  895D E4           mov dword ptr ss:\[ebp-1C\],ebx  
+0054B1C6   |.  894D F8           mov dword ptr ss:\[ebp-8\],ecx  
+0054B1C9   |.  8BDA              mov ebx,edx  
+0054B1CB   |.  8945 FC           mov dword ptr ss:\[ebp-4\],eax  
+0054B1CE   |.  8B45 FC           mov eax,dword ptr ss:\[ebp-4\]  
+0054B1D1   |.  E8 8A9FEBFF       call 12\_.00405160  
+0054B1D6   |.  33C0              xor eax,eax  
+0054B1D8   |.  55                push ebp  
+0054B1D9   |.  68 E8B25400       push 12\_.0054B2E8  
+0054B1DE   |.  64:FF30           push dword ptr fs:\[eax\]  
+0054B1E1   |.  64:8920           mov dword ptr fs:\[eax\],esp  
+0054B1E4   |.  6A 00             push 0                                    ; /Arg1 = 00000000  
+0054B1E6   |.  8D85 50FFFFFF     lea eax,dword ptr ss:\[ebp-B0\]             ; |  
+0054B1EC   |.  B9 10000000       mov ecx,10                                ; |  
+0054B1F1   |.  8BD3              mov edx,ebx                               ; |  
+0054B1F3   |.  E8 B023F7FF       call 12\_.004BD5A8                         ; \\12\_.004BD5A8  
+0054B1F8   |.  33DB              xor ebx,ebx  
+0054B1FA   |.  8D75 F0           lea esi,dword ptr ss:\[ebp-10\]  
+0054B1FD   |>  8B45 FC           /mov eax,dword ptr ss:\[ebp-4\]             ;  下面的循环把输入码一个一个存储准备计算  
+0054B200   |.  E8 739DEBFF       |call 12\_.00404F78  
+0054B205   |.  48                |dec eax  
+0054B206   |.  3BD8              |cmp ebx,eax  
+0054B208   |.  7E 05             |jle short 12\_.0054B20F  
+0054B20A   |.  C606 00           |mov byte ptr ds:\[esi\],0  
+0054B20D   |.  EB 20             |jmp short 12\_.0054B22F  
+0054B20F   |>  8D45 E4           |lea eax,dword ptr ss:\[ebp-1C\]  
+0054B212   |.  50                |push eax  
+0054B213   |.  8BD3              |mov edx,ebx  
+0054B215   |.  03D2              |add edx,edx  
+0054B217   |.  42                |inc edx  
+0054B218   |.  B9 02000000       |mov ecx,2  
+0054B21D   |.  8B45 FC           |mov eax,dword ptr ss:\[ebp-4\]  
+0054B220   |.  E8 AB9FEBFF       |call 12\_.004051D0  
+0054B225   |.  8B45 E4           |mov eax,dword ptr ss:\[ebp-1C\]  
+0054B228   |.  E8 9B040000       |call 12\_.0054B6C8  
+0054B22D   |.  8806              |mov byte ptr ds:\[esi\],al                 ;  存储  
+0054B22F   |>  43                |inc ebx  
+0054B230   |.  46                |inc esi  
+0054B231   |.  83FB 08           |cmp ebx,8  
+0054B234   |.^ 75 C7             \\jnz short 12\_.0054B1FD  
+0054B236   |.  B2 01             mov dl,1  
+0054B238   |.  A1 30C24100       mov eax,dword ptr ds:\[41C230\]  
+0054B23D   |.  E8 5E8BEBFF       call 12\_.00403DA0  
+0054B242   |.  8BD8              mov ebx,eax  
+0054B244   |.  6A 00             push 0                                    ; /Arg2 = 00000000  
+0054B246   |.  6A 08             push 8                                    ; |Arg1 = 00000008  
+0054B248   |.  8BC3              mov eax,ebx                               ; |  
+0054B24A   |.  E8 595BEDFF       call 12\_.00420DA8                         ; \\12\_.00420DA8  
+0054B24F   |.  8D55 E8           lea edx,dword ptr ss:\[ebp-18\]  
+0054B252   |.  B9 08000000       mov ecx,8  
+0054B257   |.  8BC3              mov eax,ebx  
+0054B259   |.  8B18              mov ebx,dword ptr ds:\[eax\]  
+0054B25B   |.  FF53 0C           call dword ptr ds:\[ebx+C\]  
+0054B25E   |.  8D4D E8           lea ecx,dword ptr ss:\[ebp-18\]  
+0054B261   |.  8D55 F0           lea edx,dword ptr ss:\[ebp-10\]  
+0054B264   |.  8D85 50FFFFFF     lea eax,dword ptr ss:\[ebp-B0\]  
+0054B26A   |.  E8 AD31F7FF       call 12\_.004BE41C                         ;  真正算法  
+0054B26F   |.  8D45 E4           lea eax,dword ptr ss:\[ebp-1C\]  
+0054B272   |.  E8 499AEBFF       call 12\_.00404CC0  
+0054B277   |.  BB 08000000       mov ebx,8  
+0054B27C   |.  8D75 E8           lea esi,dword ptr ss:\[ebp-18\]  
+0054B27F   |>  8D85 4CFFFFFF     /lea eax,dword ptr ss:\[ebp-B4\]            ;  关键啊，存储的就是计算好的  
+0054B285   |.  8A16              |mov dl,byte ptr ds:\[esi\]  
+0054B287   |.  E8 149CEBFF       |call 12\_.00404EA0  
+0054B28C   |.  8B95 4CFFFFFF     |mov edx,dword ptr ss:\[ebp-B4\]  
+0054B292   |.  8D45 E4           |lea eax,dword ptr ss:\[ebp-1C\]  
+0054B295   |.  E8 E69CEBFF       |call 12\_.00404F80  
+0054B29A   |.  46                |inc esi  
+0054B29B   |.  4B                |dec ebx  
+0054B29C   |.^ 75 E1             \\jnz short 12\_.0054B27F  
+0054B29E   |.  8D45 E4           lea eax,dword ptr ss:\[ebp-1C\]  
+0054B2A1   |.  8B55 E4           mov edx,dword ptr ss:\[ebp-1C\]  
+0054B2A4   |.  E8 AF9AEBFF       call 12\_.00404D58  
+0054B2A9   |.  8B45 F8           mov eax,dword ptr ss:\[ebp-8\]  
+0054B2AC   |.  8B55 E4           mov edx,dword ptr ss:\[ebp-1C\]  
+0054B2AF   |.  E8 609AEBFF       call 12\_.00404D14  
+0054B2B4   |.  8D85 50FFFFFF     lea eax,dword ptr ss:\[ebp-B0\]  
+0054B2BA   |.  E8 912BF7FF       call 12\_.004BDE50  
+0054B2BF   |.  33C0              xor eax,eax  
+0054B2C1   |.  5A                pop edx  
+0054B2C2   |.  59                pop ecx  
+0054B2C3   |.  59                pop ecx  
+0054B2C4   |.  64:8910           mov dword ptr fs:\[eax\],edx  
+0054B2C7   |.  68 EFB25400       push 12\_.0054B2EF  
+0054B2CC   |>  8D85 4CFFFFFF     lea eax,dword ptr ss:\[ebp-B4\]  
+0054B2D2   |.  E8 E999EBFF       call 12\_.00404CC0  
+0054B2D7   |.  8D45 E4           lea eax,dword ptr ss:\[ebp-1C\]  
+0054B2DA   |.  E8 E199EBFF       call 12\_.00404CC0  
+0054B2DF   |.  8D45 FC           lea eax,dword ptr ss:\[ebp-4\]  
+0054B2E2   |.  E8 D999EBFF       call 12\_.00404CC0  
+0054B2E7   \\.  C3                retn  
+  
+…………………………………………………………………………………………………………………………………………………………………  
+再进入 0054B26A   |.  E8 AD31F7FF       call 12\_.004BE41C                         ;  真正算法进入老巢了！！！  
+…………………………………………………………………………………………………………………………………………………………………  
+004BE41C   /$  53                push ebx  
+004BE41D   |.  56                push esi  
+004BE41E   |.  57                push edi  
+004BE41F   |.  55                push ebp  
+004BE420   |.  83C4 F4           add esp,-0C  
+004BE423   |.  890C24            mov dword ptr ss:\[esp\],ecx  
+004BE426   |.  8BEA              mov ebp,edx  
+004BE428   |.  8BD8              mov ebx,eax  
+004BE42A   |.  BE 48AA5500       mov esi,12\_.0055AA48  
+004BE42F   |.  BF 48AE5500       mov edi,12\_.0055AE48  
+004BE434   |.  8D5424 08         lea edx,dword ptr ss:\[esp+8\]  
+004BE438   |.  8BC5              mov eax,ebp  
+004BE43A   |.  B9 04000000       mov ecx,4  
+004BE43F   |.  E8 5C46F4FF       call 12\_.00402AA0                         ;  把输入码前半部分放入堆栈 ESP+8  
+004BE444   |.  8D5424 04         lea edx,dword ptr ss:\[esp+4\]  
+004BE448   |.  8BC5              mov eax,ebp  
+004BE44A   |.  83C0 04           add eax,4  
+004BE44D   |.  B9 04000000       mov ecx,4  
+004BE452   |.  E8 4946F4FF       call 12\_.00402AA0                         ;  把输入码后半部分放入堆栈 ESP+4  
+004BE457   |.  8B4424 04         mov eax,dword ptr ss:\[esp+4\]              ;  取输入码的后半部分 EFCDAB90  
+004BE45B   |.  C1E8 18           shr eax,18                                ;  下面准备把 EFCDAB90 改成 90ABCDEF 得到 EF  
+004BE45E   |.  8B5424 04         mov edx,dword ptr ss:\[esp+4\]  
+004BE462   |.  C1EA 08           shr edx,8  
+004BE465   |.  81E2 00FF0000     and edx,0FF00  
+004BE46B   |.  0BC2              or eax,edx                                ;  得到 CDEF  
+004BE46D   |.  8B5424 04         mov edx,dword ptr ss:\[esp+4\]  
+004BE471   |.  C1E2 08           shl edx,8  
+004BE474   |.  81E2 0000FF00     and edx,0FF0000  
+004BE47A   |.  0BC2              or eax,edx                                ;  得到 ABCDEF  
+004BE47C   |.  8B5424 04         mov edx,dword ptr ss:\[esp+4\]  
+004BE480   |.  C1E2 18           shl edx,18  
+004BE483   |.  0BC2              or eax,edx                                ;  得到 90ABCDEF  
+004BE485   |.  894424 04         mov dword ptr ss:\[esp+4\],eax              ;  把转换后的 90ABCDEF 存储覆盖 EFCDAB90  
+004BE489   |.  8B4424 08         mov eax,dword ptr ss:\[esp+8\]              ;  下面准备把 78563412 改成 12345678 得到 78  
+004BE48D   |.  C1E8 18           shr eax,18  
+004BE490   |.  8B5424 08         mov edx,dword ptr ss:\[esp+8\]  
+004BE494   |.  C1EA 08           shr edx,8  
+004BE497   |.  81E2 00FF0000     and edx,0FF00  
+004BE49D   |.  0BC2              or eax,edx                                ;  得到 5678  
+004BE49F   |.  8B5424 08         mov edx,dword ptr ss:\[esp+8\]  
+004BE4A3   |.  C1E2 08           shl edx,8  
+004BE4A6   |.  81E2 0000FF00     and edx,0FF0000  
+004BE4AC   |.  0BC2              or eax,edx                                ;  得到 345678  
+004BE4AE   |.  8B5424 08         mov edx,dword ptr ss:\[esp+8\]  
+004BE4B2   |.  C1E2 18           shl edx,18  
+004BE4B5   |.  0BC2              or eax,edx                                ;  得到 12345678  
+004BE4B7   |.  894424 08         mov dword ptr ss:\[esp+8\],eax              ;  存储把原来 78563412 换成 12345678  
+004BE4BB   |.  83BB 90000000 0C  cmp dword ptr ds:\[ebx+90\],0C              ;  上面把密码反过来了  
+004BE4C2   |.  0F8E 28010000     jle 12\_.004BE5F0  
+004BE4C8   |.  8B93 8C000000     mov edx,dword ptr ds:\[ebx+8C\]             ;  固定值 11  
+004BE4CE   |.  8B43 4C           mov eax,dword ptr ds:\[ebx+4C\]             ;  固定值 BC62FF29  
+004BE4D1   |.  034424 04         add eax,dword ptr ss:\[esp+4\]              ;  固定值 BC62FF29 与输入码的后半部分 90ABCDEF 相加  
+004BE4D5   |.  E8 8EF0FFFF       call 12\_.004BD568  
+004BE4DA   |.  8BD0              mov edx,eax  
+004BE4DC   |.  C1EA 18           shr edx,18  
+004BE4DF   |.  8B1496            mov edx,dword ptr ds:\[esi+edx\*4\]  
+004BE4E2   |.  8BC8              mov ecx,eax  
+004BE4E4   |.  C1E9 10           shr ecx,10  
+004BE4E7   |.  81E1 FF000000     and ecx,0FF  
+004BE4ED   |.  33148F            xor edx,dword ptr ds:\[edi+ecx\*4\]  
+004BE4F0   |.  8BC8              mov ecx,eax  
+004BE4F2   |.  C1E9 08           shr ecx,8  
+004BE4F5   |.  81E1 FF000000     and ecx,0FF  
+004BE4FB   |.  2B148D 48B25500   sub edx,dword ptr ds:\[ecx\*4+55B248\]  
+004BE502   |.  25 FF000000       and eax,0FF  
+004BE507   |.  031485 48B65500   add edx,dword ptr ds:\[eax\*4+55B648\]  
+004BE50E   |.  315424 08         xor dword ptr ss:\[esp+8\],edx              ;  存储了 39BDCFAE  真实的前 8 位密码 53686CE7  
+004BE512   |.  8B93 88000000     mov edx,dword ptr ds:\[ebx+88\]             ;  固定值 11  
+004BE518   |.  8B43 48           mov eax,dword ptr ds:\[ebx+48\]             ;  固定值 D1FA7D9E  
+004BE51B   |.  2B4424 08         sub eax,dword ptr ss:\[esp+8\]  
+004BE51F   |.  E8 44F0FFFF       call 12\_.004BD568  
+004BE524   |.  8BD0              mov edx,eax  
+004BE526   |.  C1EA 18           shr edx,18  
+004BE529   |.  8B1496            mov edx,dword ptr ds:\[esi+edx\*4\]  
+004BE52C   |.  8BC8              mov ecx,eax  
+004BE52E   |.  C1E9 10           shr ecx,10  
+004BE531   |.  81E1 FF000000     and ecx,0FF  
+004BE537   |.  03148F            add edx,dword ptr ds:\[edi+ecx\*4\]  
+004BE53A   |.  8BC8              mov ecx,eax  
+004BE53C   |.  C1E9 08           shr ecx,8  
+004BE53F   |.  81E1 FF000000     and ecx,0FF  
+004BE545   |.  33148D 48B25500   xor edx,dword ptr ds:\[ecx\*4+55B248\]  
+004BE54C   |.  25 FF000000       and eax,0FF  
+004BE551   |.  2B1485 48B65500   sub edx,dword ptr ds:\[eax\*4+55B648\]  
+004BE558   |.  315424 04         xor dword ptr ss:\[esp+4\],edx              ;  存储了 B316C2A2 真实的后 8 位密码 B63E5BCA  
+004BE55C   |.  8B93 84000000     mov edx,dword ptr ds:\[ebx+84\]  
+004BE562   |.  8B43 44           mov eax,dword ptr ds:\[ebx+44\]  
+004BE565   |.  334424 04         xor eax,dword ptr ss:\[esp+4\]  
+004BE569   |.  E8 FAEFFFFF       call 12\_.004BD568  
+004BE56E   |.  8BD0              mov edx,eax  
+004BE570   |.  C1EA 18           shr edx,18  
+004BE573   |.  8B1496            mov edx,dword ptr ds:\[esi+edx\*4\]  
+004BE576   |.  8BC8              mov ecx,eax  
+004BE578   |.  C1E9 10           shr ecx,10  
+004BE57B   |.  81E1 FF000000     and ecx,0FF  
+004BE581   |.  2B148F            sub edx,dword ptr ds:\[edi+ecx\*4\]  
+004BE584   |.  8BC8              mov ecx,eax  
+004BE586   |.  C1E9 08           shr ecx,8  
+004BE589   |.  81E1 FF000000     and ecx,0FF  
+004BE58F   |.  03148D 48B25500   add edx,dword ptr ds:\[ecx\*4+55B248\]  
+004BE596   |.  25 FF000000       and eax,0FF  
+004BE59B   |.  331485 48B65500   xor edx,dword ptr ds:\[eax\*4+55B648\]  
+004BE5A2   |.  315424 08         xor dword ptr ss:\[esp+8\],edx              ;  存储了 B217DF05  
+004BE5A6   |.  8B93 80000000     mov edx,dword ptr ds:\[ebx+80\]  
+004BE5AC   |.  8B43 40           mov eax,dword ptr ds:\[ebx+40\]  
+004BE5AF   |.  034424 08         add eax,dword ptr ss:\[esp+8\]  
+004BE5B3   |.  E8 B0EFFFFF       call 12\_.004BD568  
+004BE5B8   |.  8BD0              mov edx,eax  
+004BE5BA   |.  C1EA 18           shr edx,18  
+004BE5BD   |.  8B1496            mov edx,dword ptr ds:\[esi+edx\*4\]  
+004BE5C0   |.  8BC8              mov ecx,eax  
+004BE5C2   |.  C1E9 10           shr ecx,10  
+004BE5C5   |.  81E1 FF000000     and ecx,0FF  
+004BE5CB   |.  33148F            xor edx,dword ptr ds:\[edi+ecx\*4\]  
+004BE5CE   |.  8BC8              mov ecx,eax  
+004BE5D0   |.  C1E9 08           shr ecx,8  
+004BE5D3   |.  81E1 FF000000     and ecx,0FF  
+004BE5D9   |.  2B148D 48B25500   sub edx,dword ptr ds:\[ecx\*4+55B248\]  
+004BE5E0   |.  25 FF000000       and eax,0FF  
+004BE5E5   |.  031485 48B65500   add edx,dword ptr ds:\[eax\*4+55B648\]  
+004BE5EC   |.  315424 04         xor dword ptr ss:\[esp+4\],edx              ;  存储了 10E19E3A  
+004BE5F0   |>  8B53 7C           mov edx,dword ptr ds:\[ebx+7C\]  
+004BE5F3   |.  8B43 3C           mov eax,dword ptr ds:\[ebx+3C\]  
+004BE5F6   |.  2B4424 04         sub eax,dword ptr ss:\[esp+4\]  
+004BE5FA   |.  E8 69EFFFFF       call 12\_.004BD568  
+004BE5FF   |.  8BD0              mov edx,eax  
+004BE601   |.  C1EA 18           shr edx,18  
+004BE604   |.  8B1496            mov edx,dword ptr ds:\[esi+edx\*4\]  
+004BE607   |.  8BC8              mov ecx,eax  
+004BE609   |.  C1E9 10           shr ecx,10  
+004BE60C   |.  81E1 FF000000     and ecx,0FF  
+004BE612   |.  03148F            add edx,dword ptr ds:\[edi+ecx\*4\]  
+004BE615   |.  8BC8              mov ecx,eax  
+004BE617   |.  C1E9 08           shr ecx,8  
+004BE61A   |.  81E1 FF000000     and ecx,0FF  
+004BE620   |.  33148D 48B25500   xor edx,dword ptr ds:\[ecx\*4+55B248\]  
+004BE627   |.  25 FF000000       and eax,0FF  
+004BE62C   |.  2B1485 48B65500   sub edx,dword ptr ds:\[eax\*4+55B648\]  
+004BE633   |.  315424 08         xor dword ptr ss:\[esp+8\],edx              ;  存储了 A5F8B413  
+004BE637   |.  8B53 78           mov edx,dword ptr ds:\[ebx+78\]  
+004BE63A   |.  8B43 38           mov eax,dword ptr ds:\[ebx+38\]  
+004BE63D   |.  334424 08         xor eax,dword ptr ss:\[esp+8\]  
+004BE641   |.  E8 22EFFFFF       call 12\_.004BD568  
+004BE646   |.  8BD0              mov edx,eax  
+004BE648   |.  C1EA 18           shr edx,18  
+004BE64B   |.  8B1496            mov edx,dword ptr ds:\[esi+edx\*4\]  
+004BE64E   |.  8BC8              mov ecx,eax  
+004BE650   |.  C1E9 10           shr ecx,10  
+004BE653   |.  81E1 FF000000     and ecx,0FF  
+004BE659   |.  2B148F            sub edx,dword ptr ds:\[edi+ecx\*4\]  
+004BE65C   |.  8BC8              mov ecx,eax  
+004BE65E   |.  C1E9 08           shr ecx,8  
+004BE661   |.  81E1 FF000000     and ecx,0FF  
+004BE667   |.  03148D 48B25500   add edx,dword ptr ds:\[ecx\*4+55B248\]  
+004BE66E   |.  25 FF000000       and eax,0FF  
+004BE673   |.  331485 48B65500   xor edx,dword ptr ds:\[eax\*4+55B648\]  
+004BE67A   |.  315424 04         xor dword ptr ss:\[esp+4\],edx              ;  存储了 EAC77CE9  
+004BE67E   |.  8B53 74           mov edx,dword ptr ds:\[ebx+74\]  
+004BE681   |.  8B43 34           mov eax,dword ptr ds:\[ebx+34\]  
+004BE684   |.  034424 04         add eax,dword ptr ss:\[esp+4\]  
+004BE688   |.  E8 DBEEFFFF       call 12\_.004BD568  
+004BE68D   |.  8BD0              mov edx,eax  
+004BE68F   |.  C1EA 18           shr edx,18  
+004BE692   |.  8B1496            mov edx,dword ptr ds:\[esi+edx\*4\]  
+004BE695   |.  8BC8              mov ecx,eax  
+004BE697   |.  C1E9 10           shr ecx,10  
+004BE69A   |.  81E1 FF000000     and ecx,0FF  
+004BE6A0   |.  33148F            xor edx,dword ptr ds:\[edi+ecx\*4\]  
+004BE6A3   |.  8BC8              mov ecx,eax  
+004BE6A5   |.  C1E9 08           shr ecx,8  
+004BE6A8   |.  81E1 FF000000     and ecx,0FF  
+004BE6AE   |.  2B148D 48B25500   sub edx,dword ptr ds:\[ecx\*4+55B248\]  
+004BE6B5   |.  25 FF000000       and eax,0FF  
+004BE6BA   |.  031485 48B65500   add edx,dword ptr ds:\[eax\*4+55B648\]  
+004BE6C1   |.  315424 08         xor dword ptr ss:\[esp+8\],edx              ;  存储了 E423B09C  
+004BE6C5   |.  8B53 70           mov edx,dword ptr ds:\[ebx+70\]  
+004BE6C8   |.  8B43 30           mov eax,dword ptr ds:\[ebx+30\]  
+004BE6CB   |.  2B4424 08         sub eax,dword ptr ss:\[esp+8\]  
+004BE6CF   |.  E8 94EEFFFF       call 12\_.004BD568  
+004BE6D4   |.  8BD0              mov edx,eax  
+004BE6D6   |.  C1EA 18           shr edx,18  
+004BE6D9   |.  8B1496            mov edx,dword ptr ds:\[esi+edx\*4\]  
+004BE6DC   |.  8BC8              mov ecx,eax  
+004BE6DE   |.  C1E9 10           shr ecx,10  
+004BE6E1   |.  81E1 FF000000     and ecx,0FF  
+004BE6E7   |.  03148F            add edx,dword ptr ds:\[edi+ecx\*4\]  
+004BE6EA   |.  8BC8              mov ecx,eax  
+004BE6EC   |.  C1E9 08           shr ecx,8  
+004BE6EF   |.  81E1 FF000000     and ecx,0FF  
+004BE6F5   |.  33148D 48B25500   xor edx,dword ptr ds:\[ecx\*4+55B248\]  
+004BE6FC   |.  25 FF000000       and eax,0FF  
+004BE701   |.  2B1485 48B65500   sub edx,dword ptr ds:\[eax\*4+55B648\]  
+004BE708   |.  315424 04         xor dword ptr ss:\[esp+4\],edx              ;  存储了 AEAD0BA5  
+004BE70C   |.  8B53 6C           mov edx,dword ptr ds:\[ebx+6C\]  
+004BE70F   |.  8B43 2C           mov eax,dword ptr ds:\[ebx+2C\]  
+004BE712   |.  334424 04         xor eax,dword ptr ss:\[esp+4\]  
+004BE716   |.  E8 4DEEFFFF       call 12\_.004BD568  
+004BE71B   |.  8BD0              mov edx,eax  
+004BE71D   |.  C1EA 18           shr edx,18  
+004BE720   |.  8B1496            mov edx,dword ptr ds:\[esi+edx\*4\]  
+004BE723   |.  8BC8              mov ecx,eax  
+004BE725   |.  C1E9 10           shr ecx,10  
+004BE728   |.  81E1 FF000000     and ecx,0FF  
+004BE72E   |.  2B148F            sub edx,dword ptr ds:\[edi+ecx\*4\]  
+004BE731   |.  8BC8              mov ecx,eax  
+004BE733   |.  C1E9 08           shr ecx,8  
+004BE736   |.  81E1 FF000000     and ecx,0FF  
+004BE73C   |.  03148D 48B25500   add edx,dword ptr ds:\[ecx\*4+55B248\]  
+004BE743   |.  25 FF000000       and eax,0FF  
+004BE748   |.  331485 48B65500   xor edx,dword ptr ds:\[eax\*4+55B648\]  
+004BE74F   |.  315424 08         xor dword ptr ss:\[esp+8\],edx              ;  存储了 7982365F  
+004BE753   |.  8B53 68           mov edx,dword ptr ds:\[ebx+68\]  
+004BE756   |.  8B43 28           mov eax,dword ptr ds:\[ebx+28\]  
+004BE759   |.  034424 08         add eax,dword ptr ss:\[esp+8\]  
+004BE75D   |.  E8 06EEFFFF       call 12\_.004BD568  
+004BE762   |.  8BD0              mov edx,eax  
+004BE764   |.  C1EA 18           shr edx,18  
+004BE767   |.  8B1496            mov edx,dword ptr ds:\[esi+edx\*4\]  
+004BE76A   |.  8BC8              mov ecx,eax  
+004BE76C   |.  C1E9 10           shr ecx,10  
+004BE76F   |.  81E1 FF000000     and ecx,0FF  
+004BE775   |.  33148F            xor edx,dword ptr ds:\[edi+ecx\*4\]  
+004BE778   |.  8BC8              mov ecx,eax  
+004BE77A   |.  C1E9 08           shr ecx,8  
+004BE77D   |.  81E1 FF000000     and ecx,0FF  
+004BE783   |.  2B148D 48B25500   sub edx,dword ptr ds:\[ecx\*4+55B248\]  
+004BE78A   |.  25 FF000000       and eax,0FF  
+004BE78F   |.  031485 48B65500   add edx,dword ptr ds:\[eax\*4+55B648\]  
+004BE796   |.  315424 04         xor dword ptr ss:\[esp+4\],edx              ;  存储了 DFC61D90  
+004BE79A   |.  8B53 64           mov edx,dword ptr ds:\[ebx+64\]  
+004BE79D   |.  8B43 24           mov eax,dword ptr ds:\[ebx+24\]  
+004BE7A0   |.  2B4424 04         sub eax,dword ptr ss:\[esp+4\]  
+004BE7A4   |.  E8 BFEDFFFF       call 12\_.004BD568  
+004BE7A9   |.  8BD0              mov edx,eax  
+004BE7AB   |.  C1EA 18           shr edx,18  
+004BE7AE   |.  8B1496            mov edx,dword ptr ds:\[esi+edx\*4\]  
+004BE7B1   |.  8BC8              mov ecx,eax  
+004BE7B3   |.  C1E9 10           shr ecx,10  
+004BE7B6   |.  81E1 FF000000     and ecx,0FF  
+004BE7BC   |.  03148F            add edx,dword ptr ds:\[edi+ecx\*4\]  
+004BE7BF   |.  8BC8              mov ecx,eax  
+004BE7C1   |.  C1E9 08           shr ecx,8  
+004BE7C4   |.  81E1 FF000000     and ecx,0FF  
+004BE7CA   |.  33148D 48B25500   xor edx,dword ptr ds:\[ecx\*4+55B248\]  
+004BE7D1   |.  25 FF000000       and eax,0FF  
+004BE7D6   |.  2B1485 48B65500   sub edx,dword ptr ds:\[eax\*4+55B648\]  
+004BE7DD   |.  315424 08         xor dword ptr ss:\[esp+8\],edx              ;  存储了   61B1ACF7  
+004BE7E1   |.  8B53 60           mov edx,dword ptr ds:\[ebx+60\]  
+004BE7E4   |.  8B43 20           mov eax,dword ptr ds:\[ebx+20\]  
+004BE7E7   |.  334424 08         xor eax,dword ptr ss:\[esp+8\]  
+004BE7EB   |.  E8 78EDFFFF       call 12\_.004BD568  
+004BE7F0   |.  8BD0              mov edx,eax  
+004BE7F2   |.  C1EA 18           shr edx,18  
+004BE7F5   |.  8B1496            mov edx,dword ptr ds:\[esi+edx\*4\]  
+004BE7F8   |.  8BC8              mov ecx,eax  
+004BE7FA   |.  C1E9 10           shr ecx,10  
+004BE7FD   |.  81E1 FF000000     and ecx,0FF  
+004BE803   |.  2B148F            sub edx,dword ptr ds:\[edi+ecx\*4\]  
+004BE806   |.  8BC8              mov ecx,eax  
+004BE808   |.  C1E9 08           shr ecx,8  
+004BE80B   |.  81E1 FF000000     and ecx,0FF  
+004BE811   |.  03148D 48B25500   add edx,dword ptr ds:\[ecx\*4+55B248\]  
+004BE818   |.  25 FF000000       and eax,0FF  
+004BE81D   |.  331485 48B65500   xor edx,dword ptr ds:\[eax\*4+55B648\]  
+004BE824   |.  315424 04         xor dword ptr ss:\[esp+4\],edx              ;  存储了   0CF9CD3C  
+004BE828   |.  8B53 5C           mov edx,dword ptr ds:\[ebx+5C\]             ;  存储了   0CF9CD3C  
+004BE82B   |.  8B43 1C           mov eax,dword ptr ds:\[ebx+1C\]  
+004BE82E   |.  034424 04         add eax,dword ptr ss:\[esp+4\]  
+004BE832   |.  E8 31EDFFFF       call 12\_.004BD568  
+004BE837   |.  8BD0              mov edx,eax  
+004BE839   |.  C1EA 18           shr edx,18  
+004BE83C   |.  8B1496            mov edx,dword ptr ds:\[esi+edx\*4\]  
+004BE83F   |.  8BC8              mov ecx,eax  
+004BE841   |.  C1E9 10           shr ecx,10  
+004BE844   |.  81E1 FF000000     and ecx,0FF  
+004BE84A   |.  33148F            xor edx,dword ptr ds:\[edi+ecx\*4\]  
+004BE84D   |.  8BC8              mov ecx,eax  
+004BE84F   |.  C1E9 08           shr ecx,8  
+004BE852   |.  81E1 FF000000     and ecx,0FF  
+004BE858   |.  2B148D 48B25500   sub edx,dword ptr ds:\[ecx\*4+55B248\]  
+004BE85F   |.  25 FF000000       and eax,0FF  
+004BE864   |.  031485 48B65500   add edx,dword ptr ds:\[eax\*4+55B648\]  
+004BE86B   |.  315424 08         xor dword ptr ss:\[esp+8\],edx              ;  存储了 1  结果为 DB843288  
+004BE86F   |.  8B53 58           mov edx,dword ptr ds:\[ebx+58\]  
+004BE872   |.  8B43 18           mov eax,dword ptr ds:\[ebx+18\]  
+004BE875   |.  2B4424 08         sub eax,dword ptr ss:\[esp+8\]  
+004BE879   |.  E8 EAECFFFF       call 12\_.004BD568  
+004BE87E   |.  8BD0              mov edx,eax  
+004BE880   |.  C1EA 18           shr edx,18  
+004BE883   |.  8B1496            mov edx,dword ptr ds:\[esi+edx\*4\]  
+004BE886   |.  8BC8              mov ecx,eax  
+004BE888   |.  C1E9 10           shr ecx,10  
+004BE88B   |.  81E1 FF000000     and ecx,0FF  
+004BE891   |.  03148F            add edx,dword ptr ds:\[edi+ecx\*4\]  
+004BE894   |.  8BC8              mov ecx,eax  
+004BE896   |.  C1E9 08           shr ecx,8  
+004BE899   |.  81E1 FF000000     and ecx,0FF  
+004BE89F   |.  33148D 48B25500   xor edx,dword ptr ds:\[ecx\*4+55B248\]  
+004BE8A6   |.  25 FF000000       and eax,0FF  
+004BE8AB   |.  2B1485 48B65500   sub edx,dword ptr ds:\[eax\*4+55B648\]  
+004BE8B2   |.  315424 04         xor dword ptr ss:\[esp+4\],edx              ;  第三次下断改结果为 7755FA5B  再与第一次断点处得到 004BE86B 得值 DB843288  
+004BE8B6   |.  8B53 54           mov edx,dword ptr ds:\[ebx+54\]  
+004BE8B9   |.  8B43 14           mov eax,dword ptr ds:\[ebx+14\]  
+004BE8BC   |.  334424 04         xor eax,dword ptr ss:\[esp+4\]  
+004BE8C0   |.  E8 A3ECFFFF       call 12\_.004BD568  
+004BE8C5   |.  8BD0              mov edx,eax  
+004BE8C7   |.  C1EA 18           shr edx,18  
+004BE8CA   |.  8B1496            mov edx,dword ptr ds:\[esi+edx\*4\]  
+004BE8CD   |.  8BC8              mov ecx,eax  
+004BE8CF   |.  C1E9 10           shr ecx,10  
+004BE8D2   |.  81E1 FF000000     and ecx,0FF  
+004BE8D8   |.  2B148F            sub edx,dword ptr ds:\[edi+ecx\*4\]  
+004BE8DB   |.  8BC8              mov ecx,eax  
+004BE8DD   |.  C1E9 08           shr ecx,8  
+004BE8E0   |.  81E1 FF000000     and ecx,0FF  
+004BE8E6   |.  03148D 48B25500   add edx,dword ptr ds:\[ecx\*4+55B248\]  
+004BE8ED   |.  25 FF000000       and eax,0FF  
+004BE8F2   |.  331485 48B65500   xor edx,dword ptr ds:\[eax\*4+55B648\]  
+004BE8F9   |.  315424 08         xor dword ptr ss:\[esp+8\],edx              ;  第一次下断   改 ESP+8=31353330  
+004BE8FD   |.  8B53 50           mov edx,dword ptr ds:\[ebx+50\]  
+004BE900   |.  8B43 10           mov eax,dword ptr ds:\[ebx+10\]  
+004BE903   |.  034424 08         add eax,dword ptr ss:\[esp+8\]  
+004BE907   |.  E8 5CECFFFF       call 12\_.004BD568  
+004BE90C   |.  8BD0              mov edx,eax  
+004BE90E   |.  C1EA 18           shr edx,18  
+004BE911   |.  8B1496            mov edx,dword ptr ds:\[esi+edx\*4\]  
+004BE914   |.  8BC8              mov ecx,eax  
+004BE916   |.  C1E9 10           shr ecx,10  
+004BE919   |.  81E1 FF000000     and ecx,0FF  
+004BE91F   |.  33148F            xor edx,dword ptr ds:\[edi+ecx\*4\]  
+004BE922   |.  8BC8              mov ecx,eax  
+004BE924   |.  C1E9 08           shr ecx,8  
+004BE927   |.  81E1 FF000000     and ecx,0FF  
+004BE92D   |.  2B148D 48B25500   sub edx,dword ptr ds:\[ecx\*4+55B248\]  
+004BE934   |.  25 FF000000       and eax,0FF  
+004BE939   |.  031485 48B65500   add edx,dword ptr ds:\[eax\*4+55B648\]  
+004BE940   |.  315424 04         xor dword ptr ss:\[esp+4\],edx              ;  第二次下断   改 ESP+4  32363635 得到 004BE8B2 的结果为 7755FA5B  
+004BE944   |.  8B4424 04         mov eax,dword ptr ss:\[esp+4\]  
+004BE948   |.  C1E8 18           shr eax,18  
+004BE94B   |.  8B5424 04         mov edx,dword ptr ss:\[esp+4\]  
+004BE94F   |.  C1EA 08           shr edx,8  
+004BE952   |.  81E2 00FF0000     and edx,0FF00  
+004BE958   |.  0BC2              or eax,edx  
+004BE95A   |.  8B5424 04         mov edx,dword ptr ss:\[esp+4\]  
+004BE95E   |.  C1E2 08           shl edx,8  
+004BE961   |.  81E2 0000FF00     and edx,0FF0000  
+004BE967   |.  0BC2              or eax,edx  
+004BE969   |.  8B5424 04         mov edx,dword ptr ss:\[esp+4\]  
+004BE96D   |.  C1E2 18           shl edx,18  
+004BE970   |.  0BC2              or eax,edx  
+004BE972   |.  894424 04         mov dword ptr ss:\[esp+4\],eax  
+004BE976   |.  8B4424 08         mov eax,dword ptr ss:\[esp+8\]  
+004BE97A   |.  C1E8 18           shr eax,18  
+004BE97D   |.  8B5424 08         mov edx,dword ptr ss:\[esp+8\]  
+004BE981   |.  C1EA 08           shr edx,8  
+004BE984   |.  81E2 00FF0000     and edx,0FF00  
+004BE98A   |.  0BC2              or eax,edx  
+004BE98C   |.  8B5424 08         mov edx,dword ptr ss:\[esp+8\]  
+004BE990   |.  C1E2 08           shl edx,8  
+004BE993   |.  81E2 0000FF00     and edx,0FF0000  
+004BE999   |.  0BC2              or eax,edx  
+004BE99B   |.  8B5424 08         mov edx,dword ptr ss:\[esp+8\]  
+004BE99F   |.  C1E2 18           shl edx,18  
+004BE9A2   |.  0BC2              or eax,edx  
+004BE9A4   |.  894424 08         mov dword ptr ss:\[esp+8\],eax  
+004BE9A8   |.  8B1424            mov edx,dword ptr ss:\[esp\]  
+004BE9AB   |.  8D4424 04         lea eax,dword ptr ss:\[esp+4\]  
+004BE9AF   |.  B9 04000000       mov ecx,4  
+004BE9B4   |.  E8 E740F4FF       call 12\_.00402AA0  
+004BE9B9   |.  8B1424            mov edx,dword ptr ss:\[esp\]  
+004BE9BC   |.  83C2 04           add edx,4  
+004BE9BF   |.  8D4424 08         lea eax,dword ptr ss:\[esp+8\]  
+004BE9C3   |.  B9 04000000       mov ecx,4  
+004BE9C8   |.  E8 D340F4FF       call 12\_.00402AA0  
+004BE9CD   |.  83C4 0C           add esp,0C  
+004BE9D0   |.  5D                pop ebp  
+004BE9D1   |.  5F                pop edi  
+004BE9D2   |.  5E                pop esi  
+004BE9D3   |.  5B                pop ebx  
+004BE9D4   \\.  C3                retn  
+  
+…………………………………………………………………………………………………………………………………………………………………  
+注意上面下断，是从最下面开始的！！一步一步往上爬！！！！！！  
+…………………………………………………………………………………………………………………………………………………………………  
+最后我的序列号：77D483F465D291F3  
+最后我的注册码：53686CE7B63E5BCA  
+完成！！  
+
+ 4dd466d0e1e0cc123afbe504da2462ca

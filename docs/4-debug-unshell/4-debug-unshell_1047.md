@@ -1,0 +1,322 @@
+
+
+# telock0.98 分析
+
+> 原文：[`www.pediy.com/kssd/pediy10/89469.html`](https://www.pediy.com/kssd/pediy10/89469.html)
+
+前言:对 telock 的怨念要追溯到 半年前  那时候 比现在还菜的多 现在待业在家 有了时间 分析完后 发现 telock 其实很简单  
+详细的分析不发了  只是简单的总结下里面用到的 一些 tricks 至于花指令以及过异常 都是很简单的东西  
+略过不提  
+附件里的 repair 是修复过的  样本是个木马 调试请小心  
+  
+关注点:  
+1:经典的  硬件断点 外加异常  做密钥  对于这个  论坛里搜 telock 有很多都讲到这个了  所以 我就不说了  
+而密钥的计算方法 实际上 是对一段内存 计算 crc 然后  异或出  最后的密钥    
+硬件断点 外加异常  影响了 6dd118 的值 顺利过了的话 crc 正确 最后的密钥自然也就正确了  
+如下:  
+//第一次计算 CRC  校验 6dd000~6de992  校验值存放于 edx  
+006DD7EA    8D75 81           LEA ESI,DWORD PTR SS:\[EBP-7F\]            ;定位到 最后一节  
+006DD7ED    BB 92190000       MOV EBX,1992                             ;校验的字节数  
+006DD7F2    8D51 FF           LEA EDX,DWORD PTR DS:\[ECX-1\]             ;初始值-1  
+006DD7F5    33C0              XOR EAX,EAX  
+006DD7F7    AC                LODS BYTE PTR DS:\[ESI\]  
+006DD7F8    32C2              XOR AL,DL  
+006DD7FA    D1E8              SHR EAX,1  
+006DD7FC    73 08             JNB SHORT tElock\_0.006DD806  
+006DD7FE   /EB 01             JMP SHORT tElock\_0.006DD801  
+006DD800   |90                NOP  
+006DD801   \\35 E195C7CD       XOR EAX,CDC795E1  
+006DD806    41                INC ECX  
+006DD807    80E1 07           AND CL,7  
+006DD80A  ^ 75 EE             JNZ SHORT tElock\_0.006DD7FA              ;单个字节  是否校验完  
+006DD80C    C1EA 08           SHR EDX,8                                  
+006DD80F    33D0              XOR EDX,EAX  
+006DD811    4B                DEC EBX  
+006DD812  ^ 7F E1             JG SHORT tElock\_0.006DD7F5  
+  
+006DD814   /74 02             JE SHORT tElock\_0.006DD818  
+006DD816   |CD 20             INT 20  
+006DD818   \\B9 0D000000       MOV ECX,0D  
+006DD81D    58                POP EAX  
+006DD81E    AB                STOS DWORD PTR ES:\[EDI\]                 ;将堆栈中的函数存放于 原来的地方  
+006DD81F    83EF 08           SUB EDI,8  
+006DD822  ^ E2 F9             LOOPD SHORT tElock\_0.006DD81D  
+  
+006DD824    66:3395 551B0000  XOR DX,WORD PTR SS:\[EBP+1B55\]           ;修正 crc  
+006DD82B    8995 551C0000     MOV DWORD PTR SS:\[EBP+1C55\],EDX         ;存放 crc   \[6decd4\] = 9346BEE5 实际上 从 6decd4 开始 是一个和节信息有关的结构 struct\_telock\_2 详见下文  
+  
+2:对节的处理  
+经过仔细分析  各个节被压缩过 1 次 加密 2 次  节的解密也是比较巧妙的  
+先把逆出的结构列出来方便理解  
+struct\_telock\_2(起始地址 6decd4)  
+{  
+  +00 decode\_key    //对每一节进行 2 次解密 再解压   这是第 2 次解密的 key 即第一次 crc 修正的密钥  
+  +04 deocode\_key2       //夹杂在 异常处理中计算出的值 用于壳的后继解密   
+  +08 numberofcompress\_section//壳压缩加密过的节数目  
+  +10 checksum1     //用于对解密后的每一节校验 取反即为 oep   只要找到这个结构 就可以很轻松的知道 oep 了  
+          //幸运的是 这个结构 相对于壳基址是固定的 不幸的是在文件中是加密存储的 无法直接得到 OEP  
+  
+  //numberofcompress\_section 个 section 结构  
+  section  
+  {  
+    +14 section\_Rva  
+    +18 section\_size //最高位 为 1 则代表 需要解压  
+    +1c compress\_seciton\_crc// 压缩后节的 crc  
+  }  
+..............  
+}  
+//解密 节 1 次  
+006DDCF4    60              PUSHAD  
+006DDCF5    8BF3            MOV ESI,EBX                              ; tElock\_0.00401000  
+006DDCF7    BA 499A68C8     MOV EDX,C8689A49  
+006DDCFC    8BFE            MOV EDI,ESI  
+006DDCFE    0FB6DE          MOVZX EBX,DH  
+006DDD01    EB 01           JMP SHORT tElock\_0.006DDD04  
+006DDD03    90              NOP  
+006DDD04    69DB 73FA736A   IMUL EBX,EBX,6A73FA73  
+006DDD0A    AC              LODS BYTE PTR DS:\[ESI\]  
+006DDD0B    04 ED           ADD AL,0ED  
+006DDD0D    FEC0            INC AL  
+............省略一些  
+  
+//继续解密  2 次  
+006DDFAB    56              PUSH ESI  
+006DDFAC    57              PUSH EDI  
+006DDFAD    8BFB            MOV EDI,EBX  
+006DDFAF    8BF7            MOV ESI,EDI  
+006DDFB1    8B9D 76D34000   MOV EBX,DWORD PTR SS:\[EBP+40D376\]              ;6decd4  第一次 crc 修正值做密钥 struct\_telock\_2.decode\_key  
+006DDFB7    AC              LODS BYTE PTR DS:\[ESI\]  
+006DDFB8    EB 02           JMP SHORT tElock\_0.006DDFBC  
+006DDFBA    CD 20           INT 20  
+006DDFBC    34 9F           XOR AL,9F  
+006DDFBE    2C C3           SUB AL,0C3  
+006DDFC0    32C1            XOR AL,CL  
+006DDFC2    8807            MOV BYTE PTR DS:\[EDI\],AL  
+006DDFC4    D2C8            ROR AL,CL  
+006DDFC6    32C3            XOR AL,BL  
+006DDFC8    021F            ADD BL,BYTE PTR DS:\[EDI\]  
+006DDFCA    12D9            ADC BL,CL  
+006DDFCC    F6C1 01         TEST CL,1  
+006DDFCF    75 0F           JNZ SHORT tElock\_0.006DDFE0  
+006DDFD1    D1EB            SHR EBX,1  
+006DDFD3    F7C3 08000000   TEST EBX,8  
+006DDFD9    75 05           JNZ SHORT tElock\_0.006DDFE0  
+006DDFDB    D3C3            ROL EBX,CL  
+006DDFDD    8D1CDB          LEA EBX,DWORD PTR DS:\[EBX+EBX\*8\]  
+006DDFE0    AA              STOS BYTE PTR ES:\[EDI\]  
+006DDFE1    49              DEC ECX  
+006DDFE2  ^ 7F D3           JG SHORT tElock\_0.006DDFB7  
+//计算 crc 来校验 校验成功才解压  
+006DDFE6    8B8F 8AD34000   MOV ECX,DWORD PTR DS:\[EDI+40D38A\]      ;section\_size  
+006DDFEC    8B87 86D34000   MOV EAX,DWORD PTR DS:\[EDI+40D386\]      ;seciton\_RVa  
+006DDFF2    F7C1 00000080   TEST ECX,80000000  
+006DDFF8    74 6A           JE SHORT tElock\_0.006DE064               
+006DDFFA    81E1 FFFFFF7F   AND ECX,7FFFFFFF  
+006DE000    0385 62D34000   ADD EAX,DWORD PTR SS:\[EBP+40D362\]  
+006DE006    60              PUSHAD  
+006DE007    8BF0            MOV ESI,EAX  
+006DE009    8BD9            MOV EBX,ECX  
+006DE00B    33C9            XOR ECX,ECX  
+006DE00D    8D41 FF         LEA EAX,DWORD PTR DS:\[ECX-1\]  
+006DE010    57              PUSH EDI  
+006DE011    BF 2083B8ED     MOV EDI,EDB88320  
+006DE016    33D2            XOR EDX,EDX  
+006DE018    8A16            MOV DL,BYTE PTR DS:\[ESI\]  
+006DE01A    32D0            XOR DL,AL  
+006DE01C    D1EA            SHR EDX,1  
+006DE01E    73 02           JNB SHORT tElock\_0.006DE022  
+006DE020    33D7            XOR EDX,EDI  
+006DE022    41              INC ECX  
+006DE023    80E1 07         AND CL,7  
+006DE026  ^ 75 F4           JNZ SHORT tElock\_0.006DE01C  
+006DE028    C1E8 08         SHR EAX,8  
+006DE02B    33C2            XOR EAX,EDX  
+006DE02D    46              INC ESI  
+006DE02E    4B              DEC EBX  
+006DE02F  ^ 7F E5           JG SHORT tElock\_0.006DE016                  //计算 解密后节 crc 校验值 在 eax 中  
+006DE031    5F              POP EDI  
+006DE032    F7D0            NOT EAX                                     //对 解密后的 节 进行校验  
+006DE034    3387 8ED34000   XOR EAX,DWORD PTR DS:\[EDI+40D38E\]  
+006DE03A    35 6137E43C     XOR EAX,3CE43761  
+006DE03F    3385 FED34000   XOR EAX,DWORD PTR SS:\[EBP+40D3FE\]  
+006DE045    F7D0            NOT EAX  
+006DE047    2B85 82D34000   SUB EAX,DWORD PTR SS:\[EBP+40D382\]  
+006DE04D    61              POPAD  
+006DE04E    0F85 27020000   JNZ tElock\_0.006DE27B                       //校验失败则跳  
+006DE054    50              PUSH EAX                                   //section\_VA  
+006DE055    51              PUSH ECX                                   //section\_size  
+006DE056    E8 1A000000     CALL <tElock\_0.uncompress>                 //解压  
+006DE05B    83F8 FF         CMP EAX,-1  
+006DE05E    0F84 17020000   JE <tElock\_0.fail>  
+006DE064    83C7 0C         ADD EDI,0C  
+006DE067    4E              DEC ESI  
+006DE068    7E 06           JLE SHORT tElock\_0.006DE070              //处理完毕  
+  
+3:各个节处理完以后 开始处理 重定位(因为我分析的 是 exe 无需 重定位 所以简单点了)  
+对于重定位以及 下面处理的资源 也有个重要的结构  
+struct\_telock\_1  
+{  
+  +00 iat\_Rva     
+  +04 reloc\_Rva //重定位表 RVA  
+  +08 rsrc\_Rva //资源节 RVA  
+  +0c pack\_section //壳所在节的 RVA  
+  +10 real\_imagebase//真实的装载基址  运行时写入  
+  +14 old\_imagebase//加壳前原文件的装载基址  判断是否需要重定位  
+  +18 compress\_rsrc//压缩的资源 相对于资源节地偏移 即资源分为压缩 和未压缩两部分  
+  +1c size\_rsrc//压缩后 的那部分资源 大小  
+}  
+  
+//这里应该是 处理重定位  
+006DE177    8BB5 56D34000   MOV ESI,DWORD PTR SS:\[EBP+40D356\]        //6decb4 = 9f00 重定位表 Rva struct\_telock\_1.iat\_Rva  
+006DE17D    85F6            TEST ESI,ESI  
+006DE17F    0F84 8B000000   JE tElock\_0.006DE210  
+006DE185    8B95 62D34000   MOV EDX,DWORD PTR SS:\[EBP+40D362\]       //6decc0 = 400000 实际的 image\_base      struct\_telock\_1.real\_imagebase  
+006DE18B    03F2            ADD ESI,EDX  
+006DE18D    2B95 66D34000   SUB EDX,DWORD PTR SS:\[EBP+40D366\]       //6decc4 = 400000 原来的 image\_base      struct\_telock\_1.old\_imagebase  
+006DE193    74 7B           JE SHORT tElock\_0.006DE210             //如果 装载基址相等 则无须重定位  
+006DE195    8BDA            MOV EBX,EDX  
+006DE197    C1EB 10         SHR EBX,10  
+006DE19A    8B06            MOV EAX,DWORD PTR DS:\[ESI\]  
+006DE19C    85C0            TEST EAX,EAX  
+006DE19E    74 70           JE SHORT tElock\_0.006DE210            //重定位处理完后从此处 跳出  
+.............省略点    
+  
+4:Iat 及资源处理  
+telock 处理 Iat 的过程中 一直在破坏 Iat 的结构 这样处理完 Iat 后 内存中没有正确的结构  
+而且 处理过程中得到的函数地址 都存放在自己申请的内存中 而原文件本应存放函数地址的  
+地方 全部变成壳中的地址    有兴趣的人跟了看看  
+只贴几个 关键点  
+//应该要处理 IAT  
+006DE210    8B95 62D34000   MOV EDX,DWORD PTR SS:\[EBP+40D362\]        ;6decc0   imagebase = 400000   
+006DE216    8BB5 52D34000   MOV ESI,DWORD PTR SS:\[EBP+40D352\]        ;6decb0   IatRva = 9a0000  
+006DE21C    85F6            TEST ESI,ESI  
+006DE21E    0F84 06040000   JE tElock\_0.006DE62A  
+006DE224    03F2            ADD ESI,EDX                              ;IatVa = 49a0000  
+006DE226    83A5 52D44000 0>AND DWORD PTR SS:\[EBP+40D452\],0  
+006DE22D    8B46 0C         MOV EAX,DWORD PTR DS:\[ESI+C\]             ;IMAGE\_IMPORT\_DESCRIPTOR.Name1  
+006DE230    8366 0C 00      AND DWORD PTR DS:\[ESI+C\],0               ;破坏 iat 结构.Name1 字段  
+006DE234    85C0            TEST EAX,EAX                             ;修复好 iat 后 从此处 跳出  
+006DE236    0F84 EE030000   JE tElock\_0.006DE62A  
+006DE23C    03C2            ADD EAX,EDX                              ;dll\_name VA  
+。。。。。。。。。。。。。。。  
+。。。。。。。。。。。。。。。  
+// 生成代理 api 的指令   这样 exe->调用 Api 变成 exe->调用壳->壳调用 api  
+006DE43E    50              PUSH EAX  
+006DE43F    53              PUSH EBX  
+006DE440    0FB74424 08     MOVZX EAX,WORD PTR SS:\[ESP+8\]  
+006DE445    50              PUSH EAX  
+006DE446    8D85 14BB4000   LEA EAX,DWORD PTR SS:\[EBP+40BB14\]             ;6dd472   指令表  
+006DE44C    0FB618          MOVZX EBX,BYTE PTR DS:\[EAX\]  
+006DE44F    FF0C24          DEC DWORD PTR SS:\[ESP\]  
+006DE452    7E 09           JLE SHORT tElock\_0.006DE45D  
+006DE454    40              INC EAX  
+006DE455    03C3            ADD EAX,EBX  
+006DE457  ^ EB F3           JMP SHORT tElock\_0.006DE44C  
+006DE459    0000            ADD BYTE PTR DS:\[EAX\],AL  
+006DE45B    0000            ADD BYTE PTR DS:\[EAX\],AL  
+............................  
+............................  
+006DE4C6    83A5 FBCA4000 0>AND DWORD PTR SS:\[EBP+40CAFB\],0F                                   
+006DE4CD    8BBD 52D44000   MOV EDI,DWORD PTR SS:\[EBP+40D452\]        ;6dedb0 存放函数地址的地方  
+006DE4D3    8B85 5AD44000   MOV EAX,DWORD PTR SS:\[EBP+40D45A\]        ;6dedb8 FirstThunk     VA  
+006DE4D9    0385 4ED34000   ADD EAX,DWORD PTR SS:\[EBP+40D34E\]        ;6decac 函数名 RVA 偏移  
+006DE4DF    8B8D 56D44000   MOV ECX,DWORD PTR SS:\[EBP+40D456\]        ;6dedb4 相对于新分配内存的 RVA  
+006DE4E5    8908            MOV DWORD PTR DS:\[EAX\],ECX               ;破坏 iat 里的 IMAGE\_THUNK\_DATA  
+...........................  
+...........................  
+006DE5B7    40              INC EAX  
+006DE5B8    F8              CLC  
+006DE5B9    66:8943 FE      MOV WORD PTR DS:\[EBX-2\],AX               ;继续破坏 iat 结构 IMAGE\_IMPORT\_BY\_NAME   
+  
+资源处理没什么说的  解压而已  
+//处理完 IAT  解压资源  
+006DE62A >  8BBD 5AD34000   MOV EDI,DWORD PTR SS:\[EBP+40D35A\]                     ;rsrc\_rva  
+006DE630    85FF            TEST EDI,EDI  
+006DE632    EB 03           JMP SHORT tElock\_0.006DE637  
+006DE634    0100            ADD DWORD PTR DS:\[EAX\],EAX  
+006DE636    90              NOP  
+006DE637    74 32           JE SHORT tElock\_0.006DE66B  
+006DE639    03BD 62D34000   ADD EDI,DWORD PTR SS:\[EBP+40D362\]                     ;+imagebase = rsrc\_va  
+006DE63F    8B85 6AD34000   MOV EAX,DWORD PTR SS:\[EBP+40D36A\]                     ;压缩的资源 相对于资源节地偏移  
+006DE645    85C0            TEST EAX,EAX  
+006DE647    74 22           JE SHORT tElock\_0.006DE66B  
+006DE649    8B8D 6ED34000   MOV ECX,DWORD PTR SS:\[EBP+40D36E\]                     ;压缩后 的那部分资源 大小  
+006DE64F    85C9            TEST ECX,ECX  
+006DE651    74 18           JE SHORT tElock\_0.006DE66B  
+006DE653    03C7            ADD EAX,EDI  
+006DE655    0385 72D34000   ADD EAX,DWORD PTR SS:\[EBP+40D372\]  
+006DE65B    50              PUSH EAX  
+006DE65C    51              PUSH ECX  
+006DE65D    E8 13FAFFFF     CALL <tElock\_0.uncompress>                            ;解压资源节  
+006DE662    83F8 FF         CMP EAX,-1                                            ;关键点(跳过 iat 后在此处 dump)   
+006DE665  ^ 0F84 10FCFFFF   JE <tElock\_0.fail>  
+006DE66B    B9 03030000     MOV ECX,303                                           ;解密循环  
+006DE670    8DBD 30CD4000   LEA EDI,DWORD PTR SS:\[EBP+40CD30\]                     ;解密起始地址 6de68e  
+006DE676    8BF7            MOV ESI,EDI  
+006DE678    8A140E          MOV DL,BYTE PTR DS:\[ESI+ECX\]  
+006DE67B    8B9D 7AD34000   MOV EBX,DWORD PTR SS:\[EBP+40D37A\]                     ;前面夹杂在异常中计算出的 key    struct\_telock\_2.deocode\_key2  
+  
+5:下面几乎没什么了  需要注意的就是修改了 pe 头里的 numberofsection 值  
+006DE6B9    FF95 00BB4000   CALL DWORD PTR SS:\[EBP+40BB00\]           ;VirtualProctectEx 修改 pe 头 为可读可写  
+006DE6BF    83C4 04         ADD ESP,4  
+006DE6C2    40              INC EAX  
+006DE6C3    48              DEC EAX  
+006DE6C4    74 0D           JE SHORT tElock\_0.006DE6D3  
+006DE6C6    8BBD 62D34000   MOV EDI,DWORD PTR SS:\[EBP+40D362\]        ;imagebase  
+006DE6CC    037F 3C         ADD EDI,DWORD PTR DS:\[EDI+3C\]            ;pe 头  
+006DE6CF    66:0967 06      OR WORD PTR DS:\[EDI+6\],SP                ;修改 numberofsection  
+  
+6:oep 的出现  
+006DE745    8B9D 82D34000   MOV EBX,DWORD PTR SS:\[EBP+40D382\]         struct\_telock\_2.checksum1  
+006DE74B    33F6            XOR ESI,ESI  
+006DE74D    F7D3            NOT EBX  
+006DE74F    0BF3            OR ESI,EBX  
+006DE751    75 08           JNZ SHORT tElock\_0.006DE75B  
+006DE753    8D9D A2B64000   LEA EBX,DWORD PTR SS:\[EBP+40B6A2\]  
+006DE759    EB 06           JMP SHORT tElock\_0.006DE761  
+006DE75B    039D 62D34000   ADD EBX,DWORD PTR SS:\[EBP+40D362\]          ;得到 oep  
+。。。。。。。。。。。。。。。。  
+。。。。。。。。。。。。。。。。  
+006DE7AF    EB 02           JMP SHORT tElock\_0.006DE7B3  
+006DE7B1    CD 20           INT 20  
+006DE7B3    61              POPAD  
+006DE7B4    FF6424 D0       JMP DWORD PTR SS:\[ESP-30\]                  ;跳往 oep  
+  
+  
+脱壳思路:  
+由于在 OEP dump  修复的时候  ImportREC 跟踪 3 修复 总会假死 所以就没有在 OEP 处 DUMP  
+纵观分析全过程  发现 在 处理完资源后  内存中已经有比较完整镜像  不幸的是 IAT 已经被破坏了  
+所以 我们可以跳过  IAT 的处理 这样 内存中就有正确的 IAT 结构了  
+006DE210    8B95 62D34000   MOV EDX,DWORD PTR SS:\[EBP+40D362\]        ;6decc0   imagebase = 400000   
+006DE216    8BB5 52D34000   MOV ESI,DWORD PTR SS:\[EBP+40D352\]        ;6decb0   IatRva = 9a0000  
+006DE21C    85F6            TEST ESI,ESI  
+006DE21E    0F84 06040000   JE tElock\_0.006DE62A  
+006DE224    03F2            ADD ESI,EDX                              ;IatVa = 49a0000  
+006DE226    83A5 52D44000 0>AND DWORD PTR SS:\[EBP+40D452\],0  
+006DE22D    8B46 0C         MOV EAX,DWORD PTR DS:\[ESI+C\]             ;IMAGE\_IMPORT\_DESCRIPTOR.Name1  
+006DE230    8366 0C 00      AND DWORD PTR DS:\[ESI+C\],0               ;破坏 iat 结构.Name1 字段 (这里 NOP 掉)  
+006DE234    85C0            TEST EAX,EAX                               
+006DE236    0F84 EE030000   JE tElock\_0.006DE62A                     ;  (这里改 JNE 跳走)  
+  
+接下来  
+006DE65D    E8 13FAFFFF     CALL <tElock\_0.uncompress>                            ;解压资源节  
+006DE662    83F8 FF         CMP EAX,-1                                            ;关键点(跳过 iat 后在此处 dump)   
+006DE665  ^ 0F84 10FCFFFF   JE <tElock\_0.fail>  
+  
+dump 后 已经是正确的结构了 但是还需要 手动 修改下 PE 头里的  
+IAT 的大小和 RVA 以及 OEP.  OEP 就是靠定位前面的结构里的 checksum1 得到的  
+这样无需 ImportREC 就可以直接运行了  
+telock 的 2 个结构  是靠在一起的  以 4 字节的 0 来间隔  
+它们的位置 相对于壳所在节的偏移为 0x1cb0  
+  
+附件中的 样本 壳所在节基址是 6dd0000 那么 结构就在 6decb0 处(我试了 2 个样本 都能正确找到结构 所以姑且认为 偏移是固定的吧  
+万一找不到  就自己动手分析吧)  
+struct\_telock\_1 未加密  struct\_telock\_2 加密  dump 的时候 查下结构 找到 checksum1 取反就是 OEP  
+样本的 checksum1:006DECE0  FFF6B683  
+OEP 就是 FFF6B683 取反 9497c +　400000 = 49497c  
+  
+至于脚本  RADASM 里的脚本 很好用  就不把自己写的贴出来了  
+  
+  
+  
+我发现 汉语真的很厉害  咱没有失业 只是待业

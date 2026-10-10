@@ -1,0 +1,181 @@
+
+
+# 中国劳动人事法规大全 200601
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-106.htm`](https://www.pediy.com/kssd/pediy08/pediy8-106.htm)
+
+中国劳动人事法规大全  200601  
+  
+这个 DES 难度更强，如果输入的注册码加密结果不满足要求，就利用异常改变线路继续下一个 key 的加密，总共 6 次。  
+  
+1.基本情况：  
+机器码:177861865  
+注册码：87654321－12345678－11223344－55667788  
+确认后提示：注册码不正确。  
+  
+PEID：ASPack 2.12 -> Alexey Solodovnikov  
+脱壳后：Borland Delphi 6.0 - 7.0  
+运行出错。  
+OD 载入未脱壳程序，运行到 OEP（0052F6D8）后，运行 ImportREC，OEP 添 0012F6D8，自动搜索 IAT，RVA＝001361B4，Size＝00000E20，Get Imports，没有无效的函数，修复。  
+修复后运行 ok。  
+OD 载入脱壳后程序，ImportREC 查看 RVA＝001361B4，Size＝000007C4，看来是脱壳后 IAT 的 Size 不够引进的函数识别错误。另外：Size 添大了，好多无效函数，cut 后修复一样可以运行，看来宁可添大也不要小了。  
+  
+2.OD 载入，搜索串参考：  
+地址=0052CBC2 反汇编=mov edx,Labor\_La.0052CBFC 文本字符串=注册码不正确。  
+往上找，一直到起点：0052C990     55              push ebp  
+下断，F9 运行程序，跳出注册框，输入注册码后确认，断下，F8 往下走，先是取得各个输入的注册码，然后连接成字符串，来到：  
+0052CA97     E8 2C83EDFF     call Labor\_La.00404DC8              ; 连接注册码  
+0052CA9C     8B45 E4         mov eax,dword ptr ss:\[ebp-1C\]       ; 注册码  
+0052CA9F     E8 6046FEFF     call Labor\_La.00511104              ;  估计是计算核心  
+0052CAA4     85C0            test eax,eax  
+0052CAA6     0F8E FD000000   jle Labor\_La.0052CBA9               ; 跳往注册码错误的地方，可爆破？  
+  
+3.DES 加解密：  
+查到 DES 加密。  
+在 0052CA9C 处 HR EAX，层层下断跟踪对注册码的处理。  
+  
+字符转换成字节：  
+00510E0F     8D45 F0            lea eax,dword ptr ss:\[ebp-10\]  
+00510E12     50                 push eax  
+00510E13     8BD6               mov edx,esi  
+00510E15     03D2               add edx,edx  
+00510E17     42                 inc edx  
+00510E18     B9 02000000        mov ecx,2  
+00510E1D     8B45 FC            mov eax,dword ptr ss:\[ebp-4\]  
+00510E20     E8 4341EFFF        call Labor\_La.00404F68  
+00510E25     8B45 F0            mov eax,dword ptr ss:\[ebp-10\]  
+00510E28     E8 9BFEFFFF        call Labor\_La.00510CC8  
+00510E2D     8BD0               mov edx,eax  
+00510E2F     8D45 EC            lea eax,dword ptr ss:\[ebp-14\]  
+00510E32     E8 F93DEFFF        call Labor\_La.00404C30  
+00510E37     8B55 EC            mov edx,dword ptr ss:\[ebp-14\]  
+00510E3A     8D45 F4            lea eax,dword ptr ss:\[ebp-C\]  
+00510E3D     E8 CE3EEFFF        call Labor\_La.00404D10  
+00510E42     46                 inc esi  
+00510E43     4B                 dec ebx  
+00510E44   ^ 75 C9              jnz short Labor\_La.00510E0F  
+  
+017C6F10  87 65 43 21 12 34 56 78  噀 C!4Vx  
+017C6F18  11 22 33 44 55 66 77 88  "3DUfw  
+  
+以不同方法转移：  
+0012F4C8  87 65 43 21 12 34 56 78  噀 C!4Vx  
+0012F458  87 65 43 21 12 34 56 78  噀 C!4Vx  
+  
+然后分组转移：从 0012F4C8 到 0012F4C0    
+0012F4C0  87 65 43 21 12 34 56 78  噀 C!4Vx  
+0012F4C8  87 65 43 21 12 34 56 78  噀 C!4Vx  
+DES 的加密前总是经过相同的转移，使得\[地址\]＆\[地址＋8\]的值相同（也就是待加密的值）。  
+估计下个硬件访问中断就是 IP 置换。  
+  
+对 12F4C0 下断，断下后取消断点，然后返回：  
+005106B8     8B45 0C            mov eax,dword ptr ss:\[ebp+C\]         ; 待加解密的数据  
+005106BB     8B55 08            mov edx,dword ptr ss:\[ebp+8\]  
+005106BE     E8 81F9FFFF        call Labor\_La.00510044                ; IP 置换  
+005106C3     84DB               test bl,bl                            ; 返回处  
+005106C5     0F85 B5000000      jnz Labor\_La.00510780                 ; 判断加解密  
+  
+找到 IP 置换就好办了，DES 加解密的汇编代码几乎一样（可能用到的编程的东西一样吧）。  
+在 005106BE 下断，F9 发现有 6×2 次中断，因为注册码转换后是 16 个字节，分两次加密，那么应该有 6 次循环加密，加密的字符串都是输入的注册码的字节形式，可能 key 变了。  
+参考《\[DES\]YAHOO 通群发器》的破解，以下就不分析了，几乎一样，我们关注加密后的处理。  
+  
+4.加密后的处理：  
+从 IP 置换一直返回到：  
+00511171     E8 42FCFFFF        call Labor\_La.00510DB8                  ; 加解密  
+00511176     8B45 EC            mov eax,dword ptr ss:\[ebp-14\]           ; 值，返回处  
+00511179     E8 4289EFFF        call Labor\_La.00409AC0                  ; 检查？异常？  
+  
+如果加密值不对的话，在 00511179 的 call 会有异常：  
+00409AC9     8BC3               mov eax,ebx                    ; 加密值  
+00409ACB     E8 8899FFFF        call Labor\_La.00403458         ; 转换成十六进制  
+  hr eax，断下后单步跟进，发现：  
+  004034AA     80EB 30            sub bl,30  
+  004034AD     80FB 09            cmp bl,9  
+  004034B0     77 25              ja short Labor\_La.004034D7  
+  跳就退出，这样的话得到的加密值不能大于 39，只能是数字？  
+00409AD0     8BF0               mov esi,eax  
+00409AD2     833C24 00          cmp dword ptr ss:\[esp\],0  
+00409AD6     74 19              je short Labor\_La.00409AF1      ; 往下就异常  
+  
+异常提示：  
+0012F4D8   017C6F50  ASCII "'%s' is not a valid integer value"  
+这么说加密后的值只能是数字＋字母 A 到 F？  
+  
+修改加密值为 8765432187654321，但是进入 00409ACB 处出来还是异常，好像值太大了。  
+修改加密值为 0000000000000123，这下满足要求了，00409AD6 处跳转过异常，然后返回。  
+如果加密值不满足要求的话产生异常，然后程序改变路线不是返回到下面的 0051117E，而是又循环加密，直到加密值满足要求。  
+  
+然后返回到：  
+00511179     E8 4289EFFF       call Labor\_La.00409AC0          ; 检查？异常？  
+0051117E     99                cdq                             ; 返回到此  
+0051117F     52                push edx  
+00511180     50                push eax  
+00511181     8B45 F8           mov eax,dword ptr ss:\[ebp-8\]  
+00511184     33D2              xor edx,edx  
+00511186     3B5424 04         cmp edx,dword ptr ss:\[esp+4\]  
+0051118A     75 03             jnz short Labor\_La.0051118F     ; 不会跳   
+0051118C     3B0424            cmp eax,dword ptr ss:\[esp\]      ; 加密值的十六进制与 A99F4E9 比较  
+0051118F     5A                pop edx  
+00511190     58                pop eax  
+00511191     75 0D             jnz short Labor\_La.005111A0     ; 这个关键，跳的话继续循环  
+  
+如果加密值的十六进制＝A99F4E9 的话，那么退出，否则的话继续循环加解密（加密的 key 可能不一样），转换比较等等 6 次，第几次相等的话返回值就等于几。  
+  
+返回：  
+0052CA9F     E8 6046FEFF       call Labor\_La.00511104   ; 计算核心的地方  
+0052CAA4     85C0              test eax,eax             ; 返回值  
+0052CAA6     0F8E FD000000     jle Labor\_La.0052CBA9  
+  
+好思路清晰了：  
+程序先对输入的注册码连接成串，总共是 8×4＝32 个字符，分成 2 分进行 DES 加解密，得到的值再连接起来，然后转换成字符（如果不能转换为字符的话就异常，然后改变路线继续循环），再将字符（好像不能太大，大的话也异常）转换成十六进制，然后与 A99F4E9 比较，如果不等的话就继续下一个加解密循环（key 改变，6 次），如果相等的话，返回值就＝相等的循环次数值。  
+  
+5.反推注册码：  
+A99F4E9＝177861865（D）（呵呵，就是机器码）  
+177861865＝31 37 37 38 36 31 38 36 35  
+位数不够，前面以 30 补充凑足 16 个字节：30 30 30 30 30 30 30 31 37 37 38 36 31 38 36 35  
+也就是加密后要等于该值。  
+  
+利用程序本身的加解密进行解密（修改 IP 置换前的数据，再修改加解密判断跳转）：  
+0012F4C0  DD 4C F4 7D 9E 7A 0F 7A  軱魙瀦 z  
+0012F4C0  B7 53 D7 2B AA FB D4 0B  稴??  
+DD4CF47D－9E7A0F7A－B753D72B－AAFBD40B  
+  
+在最后判断 0052CAA4      test eax,eax  返回值的时候竟然 eax＝0。  
+看来加解密的十六进制值还不能在第一次循环的时候相等？  
+那好我搞定 6 次的结果。  
+  
+第二次循环反推的注册码：  
+0012F4C0  BF 5A 60 F5 7B 4E C9 FD  縕\`?#123;N 升  
+0012F4C0  C0 D3 56 99 5B 35 AA 71  烙 V 橻 5 猶  
+BF5A60F5－7B4EC9FD－C0D35699－5B35AA71  
+  
+第 3 次循环反推的注册码：  
+0012F444  8A A1 44 16 8A 60 1B 96  姟 D 奰  
+0012F444  6A D2 46 DC BE 8F 01 38  j 褾芫?8  
+8AA14416－8A601B96－6AD246DC－BE8F0138  
+  
+第 4 次循环反推的注册码：  
+0012F444  86 58 BA 67 FF A9 95 C0  哫篻�⿻  
+0012F444  A4 1E 98 53 24 CA 25 D2  ?楽$?  
+8658BA67-FFA995C0-A41E9853-24CA25D2  
+  
+第 5 次循环反推的注册码：  
+0012F444  DC D1 EA AE CB DA 15 8D  苎戤粟  
+0012F444  BE 8F 2F F8 66 21 EB 63  緩/鴉!隿  
+DCD1EAAE-CBDA158D-BE8F2FF8-6621EB63  
+  
+第 6 次循环反推的注册码：  
+0012F444  10 63 F1 BF D1 61 1C E1  c 窨補  
+0012F444  F9 FA 1A AF C8 BA 5C AA  篭  
+1063F1BF-D1611CE1-F9FA1AAF-C8BA5CAA  
+  
+一一试过后发现，虽然提示恭喜注册，但是重新启动程序后注册框是空白的，点击要看的内容出错。  
+于是上网查找了下《中国劳动人事法规大全》，下了个最新版，覆盖安装后解决问题。   
+  
+机器码:177861865  
+注册码：8AA14416－8A601B96－6AD246DC－BE8F0138  
+  
+至少有 5 组注册码可以，然后写入注册表：  
+HKLM\\Software\\Labor\_Law\\RegisterCode  SUCCESS  "8AA144168A601B966AD246DCBE8F0138" 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

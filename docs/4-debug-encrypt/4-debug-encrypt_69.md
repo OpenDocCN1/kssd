@@ -1,0 +1,384 @@
+
+
+# A+ File Protection 2.6 注册算法分析(MD5)
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-212.htm`](https://www.pediy.com/kssd/pediy07/pediy7-212.htm)
+
+A+ File Protection 2.6 注册算法分析(MD5)  
+  
+日期：2005 年 5 月 11 日　　破解人：Baby2008  
+  
+\-------------------------------------------------------------------------------------------------------------------------  
+『软件名称』：A+ File Protection 2.6  
+『软件大小』：742KB  
+『下载地址』：http://www.amplusnet.com/products/fileprotection/download.htm  
+  
+『保护方式』：注册码保护,使用时间 10 天限制  
+『破解声明』：初学 Crack，只是感兴趣,失误之处敬请诸位大侠赐教!  
+『破解工具』：OllyDbg.V1.10 聆风听雨汉化第二版、PeID 0.93  
+『破解过程』：  
+  
+    PeID 查壳,Microsoft Visual C++ 6.0，F9 运行，输入注册信息,Name:Baby2008,Email:jw6y8@21cn.com(给点面子,请不要发送垃圾给  
+  
+我!),Key:1234567890,下万能断点或查找字符串'The registration key is not valid!'(GetWindowTextA 无效，我是下万能断点得到的，后来  
+  
+才发现可以找固定字符串，一个字笨!),向上来到 0040A218 处下断，点击确定 OD 中断在:  
+  
+0040A218    68 88F54700     push A+\_File\_.0047F588                         ; ASCII "Software\\AFileProtection\\RegisterKey"  
+0040A21D    E8 E2230400     call A+\_File\_.0044C604  
+0040A222    8D4C24 78       lea ecx,dword ptr ss:\[esp+78\]  
+0040A226    C68424 C0000000>mov byte ptr ss:\[esp+C0\],3  
+0040A22E    E8 CD0A0000     call A+\_File\_.0040AD00  
+0040A233    8BCE            mov ecx,esi  
+0040A235    C68424 B0000000>mov byte ptr ss:\[esp+B0\],5  
+0040A23D    E8 28E20300     call A+\_File\_.0044846A  
+0040A242    68 03040000     push 403                                       ; 如果下万能断点会返回到这里  
+0040A247    8BCE            mov ecx,esi  
+0040A249    E8 FB160400     call A+\_File\_.0044B949  
+0040A24E    8DBE 5C010000   lea edi,dword ptr ds:\[esi+15C\]  
+0040A254    8BC8            mov ecx,eax  
+0040A256    57              push edi  
+0040A257    E8 5AF20300     call A+\_File\_.004494B6                         ; 获取注册名 Name  
+0040A25C    68 04040000     push 404  
+0040A261    8BCE            mov ecx,esi  
+0040A263    E8 E1160400     call A+\_File\_.0044B949  
+0040A268    8DAE 54010000   lea ebp,dword ptr ds:\[esi+154\]  
+0040A26E    8BC8            mov ecx,eax  
+0040A270    55              push ebp  
+0040A271    E8 40F20300     call A+\_File\_.004494B6                         ; 获取 Email  
+0040A276    68 05040000     push 405  
+0040A27B    8BCE            mov ecx,esi  
+0040A27D    E8 C7160400     call A+\_File\_.0044B949  
+0040A282    8D9E 58010000   lea ebx,dword ptr ds:\[esi+158\]  
+0040A288    8BC8            mov ecx,eax  
+0040A28A    53              push ebx  
+0040A28B    E8 26F20300     call A+\_File\_.004494B6                         ; 获取试炼码 Key  
+0040A290    8B45 00         mov eax,dword ptr ss:\[ebp\]                     ; Email  
+0040A293    8B17            mov edx,dword ptr ds:\[edi\]                     ; Name  
+0040A295    55              push ebp  
+0040A296    68 78F54700     push A+\_File\_.0047F578                         ; ASCII "AmplusnetAFP21"  
+0040A29B    8B48 F8         mov ecx,dword ptr ds:\[eax-8\]  
+0040A29E    8B42 F8         mov eax,dword ptr ds:\[edx-8\]  
+0040A2A1    894C24 2C       mov dword ptr ss:\[esp+2C\],ecx  
+0040A2A5    8D4C24 18       lea ecx,dword ptr ss:\[esp+18\]  
+0040A2A9    51              push ecx  
+0040A2AA    894424 28       mov dword ptr ss:\[esp+28\],eax  
+0040A2AE    E8 EC250400     call A+\_File\_.0044C89F  
+0040A2B3    57              push edi  
+0040A2B4    8D5424 1C       lea edx,dword ptr ss:\[esp+1C\]  
+0040A2B8    50              push eax  
+0040A2B9    52              push edx  
+0040A2BA    C68424 BC000000>mov byte ptr ss:\[esp+BC\],6  
+0040A2C2    E8 FE240400     call A+\_File\_.0044C7C5  
+0040A2C7    8B4C24 1C       mov ecx,dword ptr ss:\[esp+1C\]  
+0040A2CB    8B5424 24       mov edx,dword ptr ss:\[esp+24\]  
+0040A2CF    8B00            mov eax,dword ptr ds:\[eax\]                     ; 'AmplusnetAFP21'+Email+Name  
+0040A2D1    C68424 B0000000>mov byte ptr ss:\[esp+B0\],7  
+0040A2D9    8D4C11 0E       lea ecx,dword ptr ds:\[ecx+edx+E\]  
+0040A2DD    8D5424 20       lea edx,dword ptr ss:\[esp+20\]  
+0040A2E1    51              push ecx  
+0040A2E2    50              push eax                                       ; 'AmplusnetAFP21'+Email+Name  
+0040A2E3    52              push edx  
+0040A2E4    E8 57EAFFFF     call A+\_File\_.00408D40                         ; 关键函数 Md5  
+0040A2E9    8B00            mov eax,dword ptr ds:\[eax\]                     ; 注册码  
+0040A2EB    8B0B            mov ecx,dword ptr ds:\[ebx\]                     ; 试炼码  
+0040A2ED    50              push eax  
+0040A2EE    51              push ecx  
+0040A2EF    E8 21A70200     call A+\_File\_.00434A15                         ; 明码比较，内存注册机。  
+0040A2F4    83C4 14         add esp,14  
+0040A2F7    8D4C24 20       lea ecx,dword ptr ss:\[esp+20\]  
+0040A2FB    85C0            test eax,eax  
+0040A2FD    0F944424 17     sete byte ptr ss:\[esp+17\]  
+0040A302    E8 8F220400     call A+\_File\_.0044C596  
+0040A307    8D4C24 18       lea ecx,dword ptr ss:\[esp+18\]  
+0040A30B    C68424 B0000000>mov byte ptr ss:\[esp+B0\],6  
+0040A313    E8 7E220400     call A+\_File\_.0044C596  
+0040A318    8D4C24 10       lea ecx,dword ptr ss:\[esp+10\]  
+0040A31C    C68424 B0000000>mov byte ptr ss:\[esp+B0\],5  
+0040A324    E8 6D220400     call A+\_File\_.0044C596  
+0040A329    8A4424 17       mov al,byte ptr ss:\[esp+17\]  
+0040A32D    84C0            test al,al  
+0040A32F    0F84 A1000000   je A+\_File\_.0040A3D6                           ; 注册验证爆破点  
+0040A335    51              push ecx  
+0040A336    8BCC            mov ecx,esp  
+0040A338    896424 14       mov dword ptr ss:\[esp+14\],esp  
+0040A33C    57              push edi  
+0040A33D    E8 C91F0400     call A+\_File\_.0044C30B  
+0040A342    8D8C24 8C000000 lea ecx,dword ptr ss:\[esp+8C\]  
+0040A349    E8 520D0000     call A+\_File\_.0040B0A0  
+0040A34E    51              push ecx  
+0040A34F    8BCC            mov ecx,esp  
+0040A351    896424 14       mov dword ptr ss:\[esp+14\],esp  
+0040A355    55              push ebp  
+0040A356    E8 B01F0400     call A+\_File\_.0044C30B  
+0040A35B    8D4C24 4C       lea ecx,dword ptr ss:\[esp+4C\]  
+0040A35F    E8 3C0D0000     call A+\_File\_.0040B0A0  
+0040A364    51              push ecx  
+0040A365    8BCC            mov ecx,esp  
+0040A367    896424 14       mov dword ptr ss:\[esp+14\],esp  
+0040A36B    53              push ebx  
+0040A36C    E8 9A1F0400     call A+\_File\_.0044C30B  
+0040A371    8D4C24 6C       lea ecx,dword ptr ss:\[esp+6C\]  
+0040A375    E8 260D0000     call A+\_File\_.0040B0A0  
+0040A37A    68 02000080     push 80000002  
+0040A37F    6A 00           push 0  
+0040A381    6A 00           push 0  
+0040A383    51              push ecx  
+0040A384    8BCC            mov ecx,esp  
+0040A386    896424 20       mov dword ptr ss:\[esp+20\],esp  
+0040A38A    68 E4F44700     push A+\_File\_.0047F4E4                         ; ASCII   
+  
+"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\AFP"  
+0040A38F    E8 70220400     call A+\_File\_.0044C604  
+0040A394    8D4C24 38       lea ecx,dword ptr ss:\[esp+38\]  
+0040A398    E8 B3060000     call A+\_File\_.0040AA50  
+0040A39D    6A 00           push 0  
+0040A39F    8D4C24 2C       lea ecx,dword ptr ss:\[esp+2C\]  
+0040A3A3    C68424 B4000000>mov byte ptr ss:\[esp+B4\],8  
+0040A3AB    E8 20090000     call A+\_File\_.0040ACD0  
+0040A3B0    6A 40           push 40  
+0040A3B2    68 7CFA4700     push A+\_File\_.0047FA7C                         ; ASCII "xyz"  
+0040A3B7    68 60FA4700     push A+\_File\_.0047FA60                         ; ASCII "Registration successful!"  
+0040A3BC    8BCE            mov ecx,esi  
+0040A3BE    E8 7DFE0300     call A+\_File\_.0044A240  
+0040A3C3    8D4C24 28       lea ecx,dword ptr ss:\[esp+28\]  
+0040A3C7    C68424 B0000000>mov byte ptr ss:\[esp+B0\],5  
+0040A3CF    E8 AC070000     call A+\_File\_.0040AB80  
+0040A3D4    EB 13           jmp short A+\_File\_.0040A3E9  
+0040A3D6    6A 30           push 30  
+0040A3D8    68 7CFA4700     push A+\_File\_.0047FA7C                         ; ASCII "xyz"  
+0040A3DD    68 3CFA4700     push A+\_File\_.0047FA3C                         ; ASCII "The registration key is not valid!"  
+0040A3E2    8BCE            mov ecx,esi  
+0040A3E4    E8 57FE0300     call A+\_File\_.0044A240  
+0040A3E9    8D4C24 68       lea ecx,dword ptr ss:\[esp+68\]  
+0040A3ED    C68424 B0000000>mov byte ptr ss:\[esp+B0\],3  
+0040A3F5    E8 760A0000     call A+\_File\_.0040AE70  
+0040A3FA    8D4C24 48       lea ecx,dword ptr ss:\[esp+48\]  
+0040A3FE    C68424 B0000000>mov byte ptr ss:\[esp+B0\],1  
+0040A406    E8 650A0000     call A+\_File\_.0040AE70  
+0040A40B    8D8C24 88000000 lea ecx,dword ptr ss:\[esp+88\]  
+0040A412    C78424 B0000000>mov dword ptr ss:\[esp+B0\],-1  
+0040A41D    E8 4E0A0000     call A+\_File\_.0040AE70  
+0040A422    8B8C24 A8000000 mov ecx,dword ptr ss:\[esp+A8\]  
+0040A429    5F              pop edi  
+0040A42A    5E              pop esi  
+0040A42B    5D              pop ebp  
+0040A42C    64:890D 0000000>mov dword ptr fs:\[0\],ecx  
+0040A433    5B              pop ebx  
+0040A434    81C4 A4000000   add esp,0A4  
+0040A43A    C3              retn  
+\-------------------------------------------------------------------------------------------------------------------------  
+注册信息经过计算然后与试炼码明码比较，经典 F(注册信息)=注册码。  
+  
+  
+跟进关键函数:0040A2E4    E8 57EAFFFF     call A+\_File\_.00408D40  
+\-------------------------------------------------------------------------------------------------------------------------  
+00408D40    6A FF           push -1  
+00408D42    68 B81F4600     push A+\_File\_.00461FB8  
+00408D47    64:A1 00000000  mov eax,dword ptr fs:\[0\]  
+00408D4D    50              push eax  
+00408D4E    64:8925 0000000>mov dword ptr fs:\[0\],esp  
+00408D55    83EC 60         sub esp,60  
+00408D58    56              push esi  
+00408D59    8B7424 7C       mov esi,dword ptr ss:\[esp+7C\]  
+00408D5D    57              push edi  
+00408D5E    8B7C24 7C       mov edi,dword ptr ss:\[esp+7C\]                  ; 连接后的注册信息字符串  
+00408D62    6A 00           push 0  
+00408D64    56              push esi  
+00408D65    57              push edi  
+00408D66    C74424 14 00000>mov dword ptr ss:\[esp+14\],0  
+00408D6E    E8 EAC30300     call A+\_File\_.0044515D  
+00408D73    8D4C24 0C       lea ecx,dword ptr ss:\[esp+C\]  
+00408D77    E8 840A0000     call A+\_File\_.00409800                         ; 初始化 Md5 的 4 个常数  
+00408D7C    56              push esi  
+00408D7D    57              push edi                                       ; 'AmplusnetAFP21'+Email+Name  
+00408D7E    8D4C24 14       lea ecx,dword ptr ss:\[esp+14\]  
+00408D82    C74424 78 00000>mov dword ptr ss:\[esp+78\],0  
+00408D8A    E8 610C0000     call A+\_File\_.004099F0  
+00408D8F    8B7424 78       mov esi,dword ptr ss:\[esp+78\]  
+00408D93    8D4C24 0C       lea ecx,dword ptr ss:\[esp+C\]  
+00408D97    56              push esi  
+00408D98    E8 A30A0000     call A+\_File\_.00409840                         ; 产生注册码函数  
+00408D9D    8B4C24 68       mov ecx,dword ptr ss:\[esp+68\]  
+00408DA1    8BC6            mov eax,esi  
+00408DA3    5F              pop edi  
+00408DA4    5E              pop esi  
+00408DA5    64:890D 0000000>mov dword ptr fs:\[0\],ecx  
+00408DAC    83C4 6C         add esp,6C  
+00408DAF    C3              retn  
+\-------------------------------------------------------------------------------------------------------------------------  
+  
+跟进 00408D77    E8 840A0000     call A+\_File\_.00409800  
+\-------------------------------------------------------------------------------------------------------------------------  
+00409800    8BD1            mov edx,ecx  
+00409802    57              push edi  
+00409803    B9 10000000     mov ecx,10  
+00409808    33C0            xor eax,eax  
+0040980A    8D7A 04         lea edi,dword ptr ds:\[edx+4\]  
+0040980D    C702 C8824600   mov dword ptr ds:\[edx\],A+\_File\_.004682C8  
+00409813    F3:AB           rep stos dword ptr es:\[edi\]  
+00409815    8942 48         mov dword ptr ds:\[edx+48\],eax  
+00409818    8942 44         mov dword ptr ds:\[edx+44\],eax  
+0040981B    C742 4C 0123456>mov dword ptr ds:\[edx+4C\],67452301  
+00409822    C742 50 89ABCDE>mov dword ptr ds:\[edx+50\],EFCDAB89  
+00409829    C742 54 FEDCBA9>mov dword ptr ds:\[edx+54\],98BADCFE  
+00409830    C742 58 7654321>mov dword ptr ds:\[edx+58\],10325476  
+00409837    8BC2            mov eax,edx  
+00409839    5F              pop edi  
+0040983A    C3              retn  
+\-------------------------------------------------------------------------------------------------------------------------  
+  
+看见 4 个常数 67452301，EFCDAB89 ,98BADCFE,10325476 可知 call A+\_File\_.00408D40 是个 Md5 函数，MD5 跟进看看:  
+\-------------------------------------------------------------------------------------------------------------------------  
+00409840    6A FF           push -1                                        ; Md5  
+00409842    68 FF1F4600     push A+\_File\_.00461FFF  
+00409847    64:A1 00000000  mov eax,dword ptr fs:\[0\]  
+0040984D    50              push eax  
+0040984E    64:8925 0000000>mov dword ptr fs:\[0\],esp  
+00409855    83EC 28         sub esp,28  
+00409858    53              push ebx  
+00409859    55              push ebp  
+0040985A    56              push esi  
+0040985B    57              push edi  
+0040985C    8BF9            mov edi,ecx  
+0040985E    C74424 1C 00000>mov dword ptr ss:\[esp+1C\],0  
+00409866    33F6            xor esi,esi  
+00409868    8D6F 44         lea ebp,dword ptr ds:\[edi+44\]  
+0040986B    8BCD            mov ecx,ebp  
+0040986D    8A01            mov al,byte ptr ds:\[ecx\]  
+0040986F    83C1 04         add ecx,4  
+00409872    884434 20       mov byte ptr ss:\[esp+esi+20\],al  
+00409876    8B41 FC         mov eax,dword ptr ds:\[ecx-4\]  
+00409879    8BD0            mov edx,eax  
+0040987B    83C6 04         add esi,4  
+0040987E    C1EA 08         shr edx,8  
+00409881    885434 1D       mov byte ptr ss:\[esp+esi+1D\],dl  
+00409885    8BD0            mov edx,eax  
+00409887    C1EA 10         shr edx,10  
+0040988A    C1E8 18         shr eax,18  
+0040988D    885434 1E       mov byte ptr ss:\[esp+esi+1E\],dl  
+00409891    884434 1F       mov byte ptr ss:\[esp+esi+1F\],al  
+00409895    83FE 08         cmp esi,8  
+00409898  ^ 72 D3           jb short A+\_File\_.0040986D  
+0040989A    8B4D 00         mov ecx,dword ptr ss:\[ebp\]  
+0040989D    B8 38000000     mov eax,38  
+004098A2    C1E9 03         shr ecx,3  
+004098A5    83E1 3F         and ecx,3F  
+004098A8    83F9 38         cmp ecx,38  
+004098AB    72 05           jb short A+\_File\_.004098B2  
+004098AD    B8 78000000     mov eax,78  
+004098B2    2BC1            sub eax,ecx  
+004098B4    8BCF            mov ecx,edi  
+004098B6    50              push eax  
+004098B7    68 40F94700     push A+\_File\_.0047F940  
+004098BC    E8 2F010000     call A+\_File\_.004099F0  
+004098C1    8D4424 20       lea eax,dword ptr ss:\[esp+20\]  
+004098C5    6A 08           push 8  
+004098C7    50              push eax  
+004098C8    8BCF            mov ecx,edi  
+004098CA    E8 21010000     call A+\_File\_.004099F0  
+004098CF    8D4F 4C         lea ecx,dword ptr ds:\[edi+4C\]  
+004098D2    33F6            xor esi,esi  
+004098D4    8A11            mov dl,byte ptr ds:\[ecx\]  
+004098D6    8B01            mov eax,dword ptr ds:\[ecx\]  
+004098D8    885434 28       mov byte ptr ss:\[esp+esi+28\],dl  
+004098DC    8BD0            mov edx,eax  
+004098DE    C1EA 08         shr edx,8  
+004098E1    885434 29       mov byte ptr ss:\[esp+esi+29\],dl  
+004098E5    8BD0            mov edx,eax  
+004098E7    C1EA 10         shr edx,10  
+004098EA    C1E8 18         shr eax,18  
+004098ED    885434 2A       mov byte ptr ss:\[esp+esi+2A\],dl  
+004098F1    884434 2B       mov byte ptr ss:\[esp+esi+2B\],al  
+004098F5    83C6 04         add esi,4  
+004098F8    83C1 04         add ecx,4  
+004098FB    83FE 10         cmp esi,10  
+004098FE  ^ 72 D4           jb short A+\_File\_.004098D4  
+00409900    A1 480A4800     mov eax,dword ptr ds:\[480A48\]  
+00409905    894424 14       mov dword ptr ss:\[esp+14\],eax  
+00409909    BF 01000000     mov edi,1  
+0040990E    33F6            xor esi,esi  
+00409910    897C24 40       mov dword ptr ss:\[esp+40\],edi  
+00409914    B3 02           mov bl,2  
+00409916    8B0D 480A4800   mov ecx,dword ptr ds:\[480A48\]                  ; A+\_File\_.00480A5C  
+0040991C    894C24 10       mov dword ptr ss:\[esp+10\],ecx  
+00409920    8A4434 28       mov al,byte ptr ss:\[esp+esi+28\]  
+00409924    885C24 40       mov byte ptr ss:\[esp+40\],bl  
+00409928    84C0            test al,al  
+0040992A    75 2C           jnz short A+\_File\_.00409958  
+0040992C    68 F0F94700     push A+\_File\_.0047F9F0                         ; ASCII "00"  
+00409931    8D4C24 1C       lea ecx,dword ptr ss:\[esp+1C\]  
+00409935    E8 CA2C0400     call A+\_File\_.0044C604  
+0040993A    50              push eax  
+0040993B    8D4C24 14       lea ecx,dword ptr ss:\[esp+14\]  
+0040993F    C64424 44 03    mov byte ptr ss:\[esp+44\],3  
+00409944    E8 862D0400     call A+\_File\_.0044C6CF  
+00409949    8D4C24 18       lea ecx,dword ptr ss:\[esp+18\]  
+0040994D    885C24 40       mov byte ptr ss:\[esp+40\],bl  
+00409951    E8 402C0400     call A+\_File\_.0044C596  
+00409956    EB 2E           jmp short A+\_File\_.00409986  
+00409958    3C 0F           cmp al,0F  
+0040995A    77 12           ja short A+\_File\_.0040996E  
+0040995C    25 FF000000     and eax,0FF  
+00409961    8D5424 10       lea edx,dword ptr ss:\[esp+10\]  
+00409965    50              push eax  
+00409966    68 ECF94700     push A+\_File\_.0047F9EC                         ; ASCII "0%x"  
+0040996B    52              push edx  
+0040996C    EB 10           jmp short A+\_File\_.0040997E  
+0040996E    25 FF000000     and eax,0FF  
+00409973    50              push eax  
+00409974    8D4424 14       lea eax,dword ptr ss:\[esp+14\]  
+00409978    68 E8F94700     push A+\_File\_.0047F9E8                         ; ASCII "%x"  
+0040997D    50              push eax  
+0040997E    E8 B2B10300     call A+\_File\_.00444B35  
+00409983    83C4 0C         add esp,0C  
+00409986    8D4C24 10       lea ecx,dword ptr ss:\[esp+10\]  
+0040998A    51              push ecx  
+0040998B    8D4C24 18       lea ecx,dword ptr ss:\[esp+18\]  
+0040998F    E8 1A300400     call A+\_File\_.0044C9AE  
+00409994    8D4C24 10       lea ecx,dword ptr ss:\[esp+10\]  
+00409998    C64424 40 01    mov byte ptr ss:\[esp+40\],1  
+0040999D    E8 F42B0400     call A+\_File\_.0044C596  
+004099A2    46              inc esi  
+004099A3    83FE 10         cmp esi,10                                     ; 循环 16 次,产生 32 位注册码  
+004099A6  ^ 0F8C 6AFFFFFF   jl A+\_File\_.00409916  
+004099AC    8B7424 48       mov esi,dword ptr ss:\[esp+48\]  
+004099B0    8D5424 14       lea edx,dword ptr ss:\[esp+14\]                  ; 注册码  
+004099B4    52              push edx  
+004099B5    8BCE            mov ecx,esi  
+004099B7    E8 4F290400     call A+\_File\_.0044C30B  
+004099BC    897C24 1C       mov dword ptr ss:\[esp+1C\],edi  
+004099C0    8D4C24 14       lea ecx,dword ptr ss:\[esp+14\]  
+004099C4    C64424 40 00    mov byte ptr ss:\[esp+40\],0  
+004099C9    E8 C82B0400     call A+\_File\_.0044C596  
+004099CE    8B4C24 38       mov ecx,dword ptr ss:\[esp+38\]  
+004099D2    8BC6            mov eax,esi  
+004099D4    5F              pop edi  
+004099D5    5E              pop esi  
+004099D6    5D              pop ebp  
+004099D7    5B              pop ebx  
+004099D8    64:890D 0000000>mov dword ptr fs:\[0\],ecx  
+004099DF    83C4 34         add esp,34  
+004099E2    C2 0400         retn 4  
+\-------------------------------------------------------------------------------------------------------------------------  
+没发生变形,是个标准的 MD5 啊  
+  
+『算法总结』  
+看出是 Md5 算法后，注册验证非常简单，MD5(常数字符串'AmplusnetAFP21'+Email+Name)=注册码。  
+  
+注册机我就不写，可以使用密码学计算工具如 CryptTooL 直接计算。  
+  
+我的注册信息:  
+Name:=Baby2008  
+Email:jw6y8@21cn.com  
+Key:51714400a56d3391b0087e6053ae5b97  (Md5 结果要求以小写字符输出)  
+  
+即 Md5('AmplusnetAFP21jw6y8@21cn.comBaby2008')='51714400a56d3391b0087e6053ae5b97'  
+  
+  
+注册信息保存在注册表:HKEY\_LOCAL\_MACHINE\\SOFTWARE\\AFileProtection 下。  
+  
+                                                       
+                                                －完－ 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

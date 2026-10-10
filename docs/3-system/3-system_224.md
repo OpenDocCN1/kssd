@@ -1,0 +1,179 @@
+
+
+# 浅谈利用 TEB 实现的反跟踪 
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50398.htm`](https://www.pediy.com/kssd/pediy05/pediy50398.htm)
+
+[ ](http://tongtian.net/pediy/usr/10/10_1273.zip)首先声明一下，本文所讲的内容已经是老掉牙的东西了，而且本文所涉及的代码似乎只能在 NT 内核下正常发挥作用，如有不对的地方，请各位高手给我指点，谢谢。 ：）   
+我们先来看看本文中最重要的概念—— TEB 。   
+  
+TEB(Thread Environment Block) 在 Windows 9x 系列中被称为 TIB(Thread Information Block)，它记录了线程的重要信息，而且每一个线程都会对应一个 TEB 结构。 Matt Pietrek 大牛已经给我们列出了它的结构，我就不多说啦，见下：（摘自 Matt Pietrek 的 Under The Hood - MSJ 1996）   
+  
+//===========================================================   
+// file: TIB.H   
+// Author: Matt Pietrek   
+// From: Microsoft Systems Journal "Under the Hood", May 1996   
+//===========================================================   
+#pragma pack(1)   
+  
+typedef struct \_EXCEPTION\_REGISTRATION\_RECORD   
+{   
+  struct \_EXCEPTION\_REGISTRATION\_RECORD \* pNext;   
+  FARPROC                                pfnHandler;   
+} EXCEPTION\_REGISTRATION\_RECORD, \*PEXCEPTION\_REGISTRATION\_RECORD;   
+  
+typedef struct \_TIB   
+{   
+PEXCEPTION\_REGISTRATION\_RECORD pvExcept; // 00h Head of exception record list   
+PVOID  pvStackUserTop;        // 04h Top of user stack   
+PVOID  pvStackUserBase;        // 08h Base of user stack   
+  
+union                          // 0Ch (NT/Win95 differences)   
+{   
+  struct  // Win95 fields   
+  {   
+      WORD    pvTDB;          // 0Ch TDB   
+      WORD    pvThunkSS;      // 0Eh SS selector used for thunking to 16 bits   
+      DWORD  unknown1;      // 10h   
+  } WIN95;   
+  
+  struct  // WinNT fields   
+  {   
+      PVOID SubSystemTib;    // 0Ch   
+      ULONG FiberData;        // 10h   
+  } WINNT;   
+} TIB\_UNION1;   
+  
+PVOID  pvArbitrary;            // 14h Available for application use   
+struct \_tib \*ptibSelf;          // 18h Linear address of TIB structure   
+  
+union                          // 1Ch (NT/Win95 differences)   
+{   
+  struct  // Win95 fields   
+  {   
+      WORD    TIBFlags;          // 1Ch   
+      WORD    Win16MutexCount;    // 1Eh   
+      DWORD  DebugContext;      // 20h   
+      DWORD  pCurrentPriority;  // 24h   
+      DWORD  pvQueue;            // 28h Message Queue selector   
+  } WIN95;   
+  
+  struct  // WinNT fields   
+  {   
+      DWORD unknown1;            // 1Ch   
+      DWORD processID;            // 20h   
+      DWORD threadID;            // 24h   
+      DWORD unknown2;            // 28h   
+  } WINNT;   
+} TIB\_UNION2;   
+  
+PVOID\*  pvTLSArray;            // 2Ch Thread Local Storage array   
+  
+union                          // 30h (NT/Win95 differences)   
+{   
+  struct  // Win95 fields   
+  {   
+      PVOID\*  pProcess;      // 30h Pointer to owning process database   
+  } WIN95;   
+} TIB\_UNION3;   
+  
+} TIB, \*PTIB;   
+#pragma pack()   
+  
+呵呵，看到那么多的结构，是不是有点头晕了？不要紧，我来给大家找出最重要的部分加以解释。   
+  
+在 MASM/TASM 下编写过 SEH 代码的朋友，一定会对这三句代码非常熟悉：   
+  
+push    offset \_SEH\_Handler   
+push    fs:\[0\]   
+mov    fs:\[0\], esp   
+  
+这是标准的 SEH 异常处理函数的注册方法，可是各位朋友有没有想过为什么是 fs:\[0\] 呢？   
+  
+让我们抬头看看上面的 Matt Pietrek 的代码，其中有这么一行：   
+  
+PEXCEPTION\_REGISTRATION\_RECORD pvExcept; // 00h Head of exception record list   
+  
+注意到 PEXCEPTION\_REGISTRATION\_RECORD 这个定义，它表示 pvExcept 这个变量正是 exception record list 的入口，这个入口位于整个结构的 0 偏移处。同时，在 M$ 的 Intel i386 Windows NT/2K/XP 内核中，每当创建一个线程， OS 均会为每个线程分配 TEB ，而且 TEB 永远放在 fs 段选择器指定的数据段的 0 偏移处。   
+  
+这样一来，你就明白了 SEH 注册的偏移为什么是在 fs:\[0\] 了吧？   
+  
+事实上 Windows 系统都是通过这种方法来为应用程序提供信息的，比如有这样的例子：   
+  
+struct \_tib \*ptibSelf;          // 18h Linear address of TIB structure   
+DWORD threadID;                // 24h   
+  
+Windows 提供了一个 API ：GetCurrentThreadID()，它的内部工作原理其实是这样的：（利用了上面的这两个地址）   
+  
+mov eax, fs:\[18h\]    ;因为 18h 偏移处是 TIB 结构的线性偏移地址   
+mov eax, \[eax + 24h\] ;因为 24h 偏移处是 threadID 的地址   
+ret                  ;把 eax 中储存的 threadID 地址返回   
+  
+明白了上面的例子，就可以继续往下看了（罗罗嗦嗦讲了一大堆真不好意思……但是上面所说的其实并不是废话，因为这是理论基础）。   
+  
+OK，接下来让我们看看 30h 处的偏移：   
+  
+PVOID\*  pProcess;      // 30h Pointer to owning process database   
+  
+这个偏移地址处的内容非常有用，它指向本线程的拥有者的 PDB(Process Database) 的线性地址。听起来好像挺高深的，又是“拥有者”，又是“PDB”什么的……等等，聪明的你是不是已经想到了——“拥有者”意味着什么？   
+  
+当你用动态调试器，例如 OllyDbg 的时候，调试器是把调试的对象作为一个子线程进行跟踪的，在这种情况下，被调试的对象的“拥有者”就是调试器本身，也就是说，它的 TEB 的 30h 处的偏移指向的内容肯定不为 0 ，这样，我们就可以利用这一点，判断 30h 偏移指向的内容，来判断是否有调试器跟踪。   
+  
+原理就说到这里了，本文只是抛砖引玉，其实 TEB 的内容非常丰富，可以利用的地方还有不少！相信聪明的你一定能对它进行更为深入的挖掘，不过一旦有了什么研究心得，记得要告诉小弟一声啊！ ：）   
+  
+最后给出一个 Anti-Debug 的例子程序，用 MASM 编译完成后，请用 OllyDbg 来加载调试一下，看看与正常的运行结果有什么不同。 ：）   
+  
+;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*   
+;程序名称：演示利用 TEB 结构进行 Anti-Debug   
+;          请用 OllyDbg 进行调试   
+;适用 OS：Windows NT/2K/XP   
+;作者：罗聪   
+;日期：2003-2-9   
+;出处：http://www.LuoCong.com（老罗的缤纷天地）   
+;注意事项：如欲转载，请保持本程序的完整，并注明：   
+;转载自“老罗的缤纷天地”（http://www.LuoCong.com）   
+;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*   
+  
+.386   
+.model flat, stdcall   
+option casemap:none   
+  
+include \\masm32\\include\\windows.inc   
+include \\masm32\\include\\kernel32.inc   
+include \\masm32\\include\\user32.inc   
+includelib \\masm32\\lib\\kernel32.lib   
+includelib \\masm32\\lib\\user32.lib   
+  
+.data   
+szCaption  db  "Anti-Debug Demo by LC, 2003-2-9", 0   
+szDebugged  db  "Hah, let me guess... U r dEBUGGINg me! :)", 0   
+szFine      db  "Good boy, no dEBUGGEr detected!", 0   
+  
+.code   
+main:   
+  assume  fs:nothing   
+  mov    eax, fs:\[30h\]              ;指向 PDB(Process Database)   
+  movzx  eax, byte ptr \[eax + 2h\]   
+  or      al, al   
+  jz      \_Fine   
+\_Debugged:   
+  push    MB\_OK or MB\_ICONHAND   
+  push    offset szCaption   
+  push    offset szDebugged   
+  jmp    \_Output   
+\_Fine:   
+  push    MB\_OK or MB\_ICONINformATION   
+  push    offset szCaption   
+  push    offset szFine   
+\_Output:   
+  push    NULL   
+  call    MessageBoxA   
+  
+  invoke  ExitProcess, 0   
+  
+end main   
+  
+  
+  
+老罗   
+2003-2-9  4dd466d0e1e0cc123afbe504da2462ca

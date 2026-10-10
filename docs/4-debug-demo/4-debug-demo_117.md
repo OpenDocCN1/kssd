@@ -1,0 +1,134 @@
+
+
+# 菜鸟注册机编写基础教程（三）
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-211.htm`](https://www.pediy.com/kssd/pediy08/pediy8-211.htm)
+
+三、提高篇  
+  
+    上一节我们以简单的实例了解了一下三种语言的基本用法，同时做出了第一个注册机，但是这个注册机缺少人性化，在用户名框中不输入任何字符时，结果就是 0，我们知道一般来说用户名不能为空的，那我们就来增加“用户名不能为空”的提示，了解一下消息对话框。  
+一、  为程序添加人性化对话框（源码看附件 2）：  
+  
+l  VB 中的弹出对话框是 MSGBOX  
+用法：MsgBox(prompt\[, buttons\] \[, title\] \[, helpfile, context\])  
+Prompt 必需的。字符串表达式，作为显示在对话框中的消息。prompt 的最大长度大约为 1024 个字符，由所用字符的宽度决定。如果 prompt 的内容超过一行，则可以在每一行之间用回车符 (Chr(13))、换行符 (Chr(10)) 或是回车与换行符的组合 (Chr(13) & Chr(10)) 将各行分隔开来。   
+   Buttons 可选的。数值表达式是值的总和，指定显示按钮的数目及形式，使用的图标样式，缺省按钮是什么以及消息框的强制回应等。如果省略，则 buttons 的缺省值为 0。   
+   Title 可选的。在对话框标题栏中显示的字符串表达式。如果省略 title，则将应用程序名放在标题栏中。   
+   Helpfile 可选的。字符串表达式，识别用来向对话框提供上下文相关帮助的帮助文件。如果提供了 helpfile，则也必须提供 context。   
+   Context 可选的。数值表达式，由帮助文件的作者指定给适当的帮助主题的帮助上下文编号。如果提供了 context，则也必须提供 helpfile。  
+了解了以后，我们可以在原来的代码基础上添加以下代码：  
+If Text1.Text = "" Then                            ‘ 如果文本框内容为空  
+MsgBox "用户名不能为空", vbInformation, "提示"     ‘ 弹出提示  
+Else                                     ‘ 否则..，也可以在这里直接结束 IF  
+…  
+End If                                           ‘ 结束这个 IF  
+  
+l  DELPHI 中的消息对话框  
+1、  messagebox：MessageBox(0, '消息', '消息标题', MB\_OK+MB\_ICONINFORMATION);　　  
+2、messagedlg：function messagedlg(const msg:string; AType: TMsgdlgtype; Abuttons; TMsgdlgbuttons; helpctx: longint ![](img/d96007cf245c7669301e5df8beb41bf5.jpg)word;  
+3、messagedlgpas 函数，它的使用基本与 messagedlg 相同，只是多了两个参数 X 和 Y，可以在用户指定的位置显示对话框。  
+　　4、showmessage 函数，它只带一个字符串参数 msg，用于显示一个带 OK 按钮的对话框，对话框的消息为 msg，标题为可执行文件名。  
+　　如：showmessage('what are you saying?');  
+　　5、showmessagepos 函数，它的使用基本与 showmessage 相同，只是多了两个参数 X 和 Y，可以在用户指定的位置显示对话框。  
+　　如：showmessagepos('what are you saying?',125.25)   
+比较常用是第一种，同样我们为上面的注册机填加代码：  
+  If Length(edit1.text) = 0 Then             //如果文本框内容为空  
+  Begin  
+  MessageBox(0, '用户名不能为空！', '提示', MB\_OK + MB\_ICONWARNING);  
+      Exit;                            //弹出警告并退出 IF  
+  End;  
+  
+l  VC 中的消息对话框  
+   MESSAGEBOX( 提示信息 \[, 对话框的属型 \[, 对话框窗口标题 \]\])  
+注册机代码中插入：  
+           if(m\_edit1.GetLength()==0 )MessageBox("用户名不能为空！", "error", MB\_OK);   
+else{  
+…  
+    }  
+  
+    二、人性化设计之判断输入的数值类型  
+有些算法规定了用户名只能为数字或者英文字母或者中文字母，这应该怎么办呢？其实这些判断都可以用引入正则表达式的方法或者用相关控件，你会发现用正则表达式方便了很多，网络上有很多相关内容。这里介绍几种用软件本身代码实现的方法。  
+l  判断文本框中的输内容：  
+  
+VB：  
+\*  判断输入的是否为数字：  
+If IsNumeric(Text1.Text) Then  '当文本框中全是数字时将其赋值给 N   
+N = CLng(Text1.Text)  
+  
+\*  文本框中只能输入英文字母：  
+    For i = 1 To Len(Text1.Text)  
+        a = Mid(Text1.Text, i, 1)  
+                If a Like "\[a-z\]" Or a Like "\[A-Z\]" Then  
+            Text2.Text = Text1.Text  
+        Else  
+            MsgBox "输入的必须为英文字母": Text2.Text = ""  
+            Exit For  
+        End If  
+    Next i  
+  
+\*  文本框中只能输入双字节字符：  
+    For i = 1 To Len(Text1.Text) Step 1  
+        a = Mid(Text1.Text, i, 1)  
+        If Asc(a) >= 0 Then           '双字节字符的 ASC 码小于 0  
+                MsgBox "输入的必须为中文": Text2.Text = ""  
+           End If  
+    Next i  
+  
+DELPHI：  
+\* 判断输入的是数字还是字符：  
+procedure TForm1.edt1KeyPress(Sender: TObject; var Key: Char);  
+begin  
+                if not (Key in \['0'..'9','A'..'Z','a'..'z',#8\]) then  
+          showmessage('你输入了非法字符');  
+end;  
+  
+VC：  
+\* 判断输入的是否为数字：  
+BOOL IsCharAlphaNumeric(  
+                TCHAR ch   // 判断单个字符  
+);  
+\* 判断输入的是否为英文：  
+char buf\[255\]；  
+int len = GetWindowText(hEditWnd, buf, 255);  
+for(int i = 0; i < len; i++)  
+{  
+     if( bug\[i\] > 0)   
+    {  
+      //english  
+    }  
+  
+\* 判断输入的是否为中文：  
+Bool ischinesechar(const char ch)  
+{  
+     if(ch&0x08)  
+      {  
+           return TRUE;  
+       }  
+     else  
+         return FALSE;  
+}  
+       或者：  
+      IsDBCSLeadByteEx(936, a);     //对汉字的首字节进行判断，是个 api 函数  
+       或者：  
+char buf\[255\]；  
+int len = GetWindowText(hEditWnd, buf, 255);  
+for(int i = 0; i < len; i++)  
+{  
+}  
+总结：判断每个字节的最高位是 1 还是零就行了  
+CString str = "得到的输入内容"  
+CString strTemp;  
+for(int i = 0; i < str.GetLength(); i++)  
+{  
+if( (BYTE)str\[i\] < 0x80 ) //字符  
+{  
+}    
+else//汉字  
+{  
+}  
+}  
+  
+  
+【版权声明】:  本文由 langxang 原创于看雪论坛，转载请注明作者并保持文章的完整, 谢谢! 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

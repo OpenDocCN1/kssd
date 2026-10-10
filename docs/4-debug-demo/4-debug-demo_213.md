@@ -1,0 +1,56 @@
+
+
+# 天网防火墙 2.46
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue200.htm`](https://www.pediy.com/kssd/pediy04/kanxue200.htm)
+
+软件名称：天网防火墙 2.46   
+使用工具:W32Dasm9.0 trw1.03 dede 3.0   
+破解人: fish\[BCG\]   
+  
+由于我没破过天网防火墙,开始我用 W32Dasm9.0 分析,什么都看不到走了不少弯路,   
+发现天网防火墙 2.6 是用 Delphi 编写的，于是我开始用 DEDE3.0 来破解!^\_^,我也是   
+第一次使用 DEDE3.0!是不是有点孤陋寡闻!   
+此软件一共有两个限制,一个的注册口,一个是过期提示窗口,让我们一一来摆平它!   
+  
+首先用 DEDE3.0 导入,费话   
+导入后查看，‘Forms’三个可疑选项：TfrmRegister、TfrmMessage、   
+TfrmMessageDlg，其他窗体的作用可根据一一排除。在 TfrmRegister   
+窗体中我们可看到“单击这里免费获取注册号”、“确定”、“取消”等字样，很   
+明显只是我们第一次装天网防火墙要求我们注册的部分。   
+TfrmMessageDlg 窗体。我们可以看到“天网防火墙提示信息”这个提示软件过期的   
+标题，但我们再向上看，发现它有“确定”、“取消”两个按钮，跟软件提示过期   
+窗口只有一个确定按钮不大相同。于是我们再看 TfrmMessage 窗体，发现它只有“天   
+网防火墙提示信息”标题和“确定”这个按钮，而没有“取消”这个按钮，到此我   
+们可以基本确定，这就是过期提示窗!   
+分析好了，让我们开始吧！   
+  
+让我们先来解决注册窗口，我门可以看到 tfrmresgeter 的偏移量是 0041c504,使用   
+TRW2000，中断！   
+  
+:00401E19 8B10                    mov edx, dword ptr \[eax\]   
+:00401E1B FF92D8000000            call dword ptr \[edx+000000D8\]   
+\>>在当走到这儿是弹出注册窗口，并且被截住，哈~~就是他了，我的改法是 NOP 掉！   
+:00401E21 8B4DB4                  mov ecx, dword ptr \[ebp\-4C\]   
+:00401E1B FF92D8000000            call dword ptr \[edx+000000D8\]   
+:00401E21 8B4DB4                  mov ecx, dword ptr \[ebp\-4C\]   
+  
+试一下，注册窗口解决了！再看下一个！   
+我们可以看到 TfrmMessage 的偏移量！0041cd9c,使用 TRW2000，中断！   
+  
+:004033D5 8B10                    mov edx, dword ptr \[eax\]   
+:004033D7 FF92D8000000            call dword ptr \[edx+000000D8\]   
+\>>在当走到这儿是弹出注册窗口，并且被截住，哈~~就是他在作怪，   
+我的改法仍然是 NOP 掉！   
+:004033DD 66C745DC0800            mov \[ebp\-24\], 0008   
+:004033E3 8B4DC0                  mov ecx, dword ptr \[ebp\-40\]   
+:004033E6 894DF0                  mov dword ptr \[ebp\-10\], ecx   
+  
+最后用 EXESCOPE 把他的‘测试版’，那个字附删除掉！嘻！本人不喜欢测试版！   
+眼不见为净！^\_^   
+到此，我们已经完美的破解了天网防火墙 2.46!本人知识菜鸟一个，要高手都都   
+指点！   
+  
+  
+                                          fish\[BCG\]   
+                                    http://fish.bsina.com  4dd466d0e1e0cc123afbe504da2462ca

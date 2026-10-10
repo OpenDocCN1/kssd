@@ -1,0 +1,31 @@
+
+
+# 简单对特定函数防软断法，高手飘过，嘿嘿
+
+> 原文：[`www.pediy.com/kssd/pediy11/105660.html`](https://www.pediy.com/kssd/pediy11/105660.html)
+
+对于某些特定的函数，想要对其防止下软断，不毕那么大动干戈地操作输入表，循环啊循环！  
+用函数指针直接操作，效果一模一样，而且更简单直观：  
+下面是对 GetDlgItemText 防软断的具体代码，当然大家可以扩展了，像什么 GetWindowText  
+SendMessage ExitProcess 等等，一样的原理！  
+  
+//将以下代码片段放在某个隐蔽线程中检测，效果更好，哈哈，大家自由发挥！  
+  
+void CTestDlg::OnOK()   
+{  
+  // TODO: Add extra validation here  
+  typedef  UINT (\_\_stdcall \* pGetDlgItemText)(HWND, INT, LPTSTR, INT); //函数指针申明  
+    
+  PBYTE pByte = (PBYTE)(pGetDlgItemText)::GetDlgItemText;   
+  for (int i = 0; i < 5; i ++){ //检查前五字节  
+    if (0 == (\*pByte++⁰xcc) ){  
+                                //这里只是简单的异或处理，大家仁者见仁，智者见智咯！！！  
+      MessageBox("Find debuger!");  
+    }  
+  }  
+  
+  CDialog::OnOK();  
+}  
+  
+效果图：  
+![](img/fed366370eb69bf7a632b8fc4b0289ac.jpg)

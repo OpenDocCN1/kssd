@@ -1,0 +1,246 @@
+
+
+# UltraFXP 0.9941
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6491.htm`](https://www.pediy.com/kssd/pediy06/pediy6491.htm)
+
+这个软件是在很久以前看 fly 大侠脱文时，fly 大侠提到过的，当时我下载后一直没动它，最近才拿出来研究，花了不少时间。这个软件最近版本用了 ACProtect 加壳，如果要找 SVKP 壳的就找老一点的版本。虽然不是最新版，但还是要对作者说 sorry。   
+  
+  
+UltraFXP 0.9941 脱壳（ SVKP ）＋破解   
+    
+  
+【软件简介】：一国产 ftp，fxp 软件。   
+  
+【下载】：    用 google 或百度找。   
+  
+【作者声明】：初学 Crack，冒犯及失误之处请诸位大侠指正！    
+  
+【调试环境】：WinXP、Ollydbg1.10b、PEiD、LordPE、ImportREC   
+    
+     
+用 PEiD 查看壳为：SVKP 1.3x -> Pavol Cerven   
+    
+1.找 oep   
+  
+隐藏 ollydbg,忽略 kernel32 内存异常,其它的不忽略.下 bp GetProcAddress+11,(注意:不能在函数第一   
+句下断,很多壳都会检测到的),f9 运行,异常处 shift+f9 通过,直到中断在 GetProcAddress+11,然后到   
+memory map 窗口在 ultrafxp 代码段下内存访问断点,f9 运行,到下面代码:   
+  
+0056EEAB      NOP   
+0056EEAC      NOP   
+0056EEAD      NOP   
+0056EEAE      CALL UltraFxp.004079B8           //中断在这，伪 oep    
+0056EEB3      MOV EBX, DWORD PTR DS:\[58802C\]           ; UltraFxp.0058B318   
+0056EEB9      MOV EAX, DWORD PTR DS:\[588940\]   
+0056EEBE      MOV EAX, DWORD PTR DS:\[EAX\]   
+0056EEC0      CALL UltraFxp.0043C18C   
+0056EEC5      MOV EAX, DWORD PTR DS:\[588864\]   
+0056EECA      MOV EDX, UltraFxp.0056F5E4               ; ASCII "Unregistered version!"   
+0056EECF      CALL UltraFxp.00403E2C   
+0056EED4      PUSHAD   
+0056EED5      PUSH EAX   
+0056EED6      PUSH ECX   
+0056EED7      PUSH EDX   
+0056EED8      PUSH EBX   
+0056EED9      PUSH EBP   
+0056EEDA      PUSH ESI   
+0056EEDB      PUSH EDI   
+0056EEDC      MOV EDX, 8E9AF9D6   
+0056EEE1      XOR EDX, 3159F8D7   
+0056EEE7      PUSH EDX   
+                
+.............   
+                
+0056EF3A      XOR ECX, 3113B900   
+0056EF40      XOR EDX, DFB7D6BE   
+0056EF46      PUSH ECX   
+0056EF47      PUSH EDX   
+0056EF48      MOV ECX, ESP   
+0056EF4A      XOR EDX, 56EFD6BE   
+0056EF50      ADD EDX, ECX   
+0056EF52      PUSH EDX   
+0056EF53      XOR ECX, 11B8A811   
+0056EF59      XOR EDX, 22222222   
+0056EF5F      RETN   
+  
+  
+  
+0056EEAE 是伪 oep,根据 eax=56eab0,esp\=12fea8 以及经验补上 stolen bytes,共 14 字节:   
+  
+  
+0056EEA0      55                        PUSH EBP   
+0056EEA1      8BEC                   MOV EBP, ESP   
+0056EEA3      81C4 E8FEFFFF   ADD ESP, -118   
+0056EEA9      B8 B0EA5600      MOV EAX, 0056EAB0   
+                
+  
+用 lordpe 纠正大小后把它 dump 出来，并把 oep 改为 0056EEA0。   
+  
+  
+  
+  
+2.修复 IAT   
+  
+经过查找，找到加密后的 IAT，从 58C1B8 到 58ca40 共 88c 个。可以用 ImportREC 的跟踪层次来修复，有 25   
+个是错误。下面我们来看看怎么修改程序，能得到错误少一点的 IAT。重新加载程序。在 58C1B8 处下个   
+内存写入断点，运行，异常处 shift+f9 通过，中断几次后到下面代码：   
+  
+  
+07346D00       MOV DWORD PTR DS:\[EDI\], EAX   //中断在这，eax=075775DC(加密后的函数地址)    
+07346D02       JL SHORT 07346D07   
+07346D04       JMP SHORT 07346D09   
+07346D06       JMP EF96687F   
+07346D0B       ADD DWORD PTR DS:\[EAX\], EAX   
+07346D0D       ADD BYTE PTR DS:\[EAX\], AL   
+  
+  
+中断后，看看堆栈窗，esp=12ff74,在 esp+1c=12ff90 处正是正确的函数地址(不要问为什么，我也不知   
+道，是一高人的妙招），因此我们看能不能在 07346D00 之前把正确的函数地址放入 eax，在代码窗往上   
+看：   
+  
+  
+07346CF6       5F                POP EDI   
+07346CF7       EB 02           JMP SHORT 07346CFB   
+07346CF9       CD 20           INT 20   
+07346CFB       58                POP EAX   
+07346CFC       EB 02           JMP SHORT 07346D00   
+07346CFE       0F                NOP                             //花指令,nop 掉看看    
+07346CFF       E8                NOP                             //花指令,nop 掉看看    
+07346D00       8907            MOV DWORD PTR DS:\[EDI\], EAX   
+               
+               
+我们可以改成这样：   
+           
+ 073C6CF6      5F                    POP EDI   
+ 073C6CF7      58                    POP EAX   
+ 073C6CF8      8B4424 1C       MOV EAX, DWORD PTR SS:\[ESP+1C\]   
+ 073C6CFC      EB 02               JMP SHORT 073C6D00   
+         
+              
+ 在 0056EEA E 处下个断，f9 运行到 0056EEAE。ok，运行 ImportREC，填入 oep=0016EEA0，RVA=18C1B8,    
+ size=88c,按 get imports 得到基本完整的 IAT,但还有 12 个有问题:   
+              
+ 0  0 018C20C  ?  0000  075E33FC   
+ 0  0 018C21C  ?  0000  075E2A23   
+ 0  0 018C22C  ?  0000  075E2085   
+              
+0  0018C2E0  ?  0000  075E33FC   
+  
+0  0018C3C8  ?  0000  075EB008   
+0  0018C3CC  ?  0000  075EAC83   
+0  0018C3F0  ?  0000  075E33FC   
+0  0018C424  ?  0000  075E3077   
+  
+0  0018CA2C  ?  0000  075E85D2   
+0  0018CA30  ?  0000  075E8098   
+0  0018CA34  ?  0000  075E6FC4   
+0  0018CA38  ?  0000  075E6E2C   
+  
+  
+不管用什么插件都修复不了，没办法只好手工了。保存好 IAT，重载软件，一个一个慢慢跟。   
+  
+  
+004079BB      CALL UltraFxp.004078B8  （JMP DWORD PTR DS:\[58C2E0\]）   
+  
+  
+过了这个 call，eax=400000,这应该是 GetModuleHandleA。其他的我不详细写了，我得出的前面 8 个为:   
+  
+  
+1  0018C20C  kernel32.dll  016F  GetModuleHandleA   
+1  0018C21C  kernel32.dll  0103  GetCommandLineA   
+1  0018C22C  kernel32.dll  00B0  ExitProcess   
+  
+1  0018C2E0  kernel32.dll  016F  GetModuleHandleA   
+  
+1  0018C3C8  kernel32.dll  01D5  GetVersionExA   
+1  0018C3CC  kernel32.dll  01D4  GetVersion   
+1  0018C3F0  kernel32.dll  016F  GetModuleHandleA   
+  
+1  0018C424  kernel32.dll  0135  GetCurrentProcess   
+  
+  
+其中 0018C22C 处的我跟到了 VirtualFree，但后来运行退出时总有问题，改成 ExitProcess 就好了,不知   
+有没有道理。   
+  
+  
+0018CA2C～0018CA38 四个，一开始怎么也跟不到系统函数中，一生气干脆把相应的调用 nop 掉了，嘿，   
+就行了。后来再静下心来跟了一下，第一个函数是检测有没有调试器，调用了 IsDebuggerPresent 函数   
+，可以用 IsDebuggerPresent 代替。第三个是用来复制注册信息的，其他两个好像没什么用。因此相应   
+的调用改为：   
+  
+  
+004EE33F      CALL 004E4EDC       //nop 掉    
+                
+004EE352      CALL 004E4ECC      //nop 掉    
+                
+004EE361      PUSH EAX          //eax 里是注册信息地址，调用返回 eax=1,表示已注册，0 是未注册    
+004EE362      CALL 004E4EC4     //因此这两句改成：mov eax，1    
+                
+004EE392      CALL 004E4ED4      //nop 掉    
+004EE397      RETN   
+              
+              
+好，IAT 修改好了，修复 dump.exe。运行 dump\_.exe，出错。真麻烦啊，看看吧：            
+  
+  
+0012FE24      LODS BYTE PTR DS:\[ESI\]   
+0012FE25      XOR AL, DL   
+0012FE27      STOS BYTE PTR ES:\[EDI\]   
+0012FE28      LOOPD SHORT 0012FE24   
+0012FE2A      POP ECX   
+0012FE2B      POP ESI   
+0012FE2C      CALL DWORD PTR DS:\[4EEAA4\]   //出错！解码函数，指向壳内    
+0012FE32      ADD ESP, 54   
+0012FE38      POPAD   
+0012FE39      PUSH 1010101   
+0012FE3E      RETN   
+  
+  
+程序在堆栈中运行，开始我以为搞错了，怎么跑到堆栈中去了？后来发现这些代码都是动态生成的，是   
+类似前面 0056EED4～0056EF5F 的代码生成的，然后由这段代码再解码正常的程序段。0012FE2C 处是解   
+码函数，指向壳内，脱壳后当然会出错了。这样的地方有 100 多处。看来只好自己编程模拟壳来解码了   
+。还好解码函数很简单。还有一处类似的解码函数，CALL DWORD PTR DS:\[4F18D5\]。在程序末端加入以   
+下代码：   
+  
+0056FFA0      TEST AL, AL   
+0056FFA2      JE SHORT 0056FFC0   
+0056FFA4      MOV EDI, ESI   
+0056FFA6      MOV EBX, 52E4B8F8   
+0056FFAB      LODS BYTE PTR DS:\[ESI\]   
+0056FFAC      XOR EBX, ECX   
+0056FFAE      XOR AL, BL   
+0056FFB0      ROL AL, CL   
+0056FFB2      XOR AL, BH   
+0056FFB4      STOS BYTE PTR ES:\[EDI\]   
+0056FFB5      LOOPD SHORT 0056FFAB   
+0056FFB7      RETN   
+0056FFB8      NOP   
+              
+0056FFBF      NOP   
+0056FFC0      MOV EDI, ESI   
+0056FFC2      MOV EBX, 52E4B8F8   
+0056FFC7      LODS BYTE PTR DS:\[ESI\]   
+0056FFC8      XOR EBX, ECX   
+0056FFCA      XOR AL, BH   
+0056FFCC      ROR AL, CL   
+0056FFCE      XOR AL, BL   
+0056FFD0      STOS BYTE PTR ES:\[EDI\]   
+0056FFD1      LOOPD SHORT 0056FFC7   
+0056FFD3      RETN   
+               
+               
+再把\[4EEAA4\]内容改为 0056FFC0，\[4F18D5\]改为 0056FFA0,保存。运行，OK。   
+  
+注册信息放在 4ee3e0 处，你爱怎么改就怎么改。   
+  
+  
+终于写完了，好累。有些地方说起来简单，但都是经过若干遍试出来的，希望对感兴趣的人有点帮助。   
+错误之处，还请各位大侠指正。   
+  
+  
+pyzpyz   
+  
+2004.2.25  
+  
+ 4dd466d0e1e0cc123afbe504da2462ca

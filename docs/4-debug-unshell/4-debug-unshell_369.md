@@ -1,0 +1,67 @@
+
+
+# Asprotect 1.1 OEP
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum388.htm`](https://www.pediy.com/kssd/pediy03/forum388.htm)
+
+ 昨天晚上，看了一篇 E 文的文章，关于 asprotect version 1.0 版的脱壳的内容，看到里面的 Import Table 重建实在是复杂，本人能力有限，暂不打算去做。   
+    由于刚好我的手边有 asprotect version1.1 版，今天早上上班后，决定试试找它压缩过的程序的 Entry  Point(EP)。花上一些时间以后，竟然小有收获，找到一种方法能比较快地定位程序的 EP，不敢独享，在这里特写出来献给大家。   
+    我先用 asprotect 把 Notepad.Exe 压缩，试着来找它的 EP，找到方法后，把 Calc.exe 和 cdplayer.exe 压缩再来找 EP 作为验证，证明这种方法应该是正确的。   
+    下面是我用压缩过的 Notepad.exe 找 EP 的的过程。   
+      
+015F:00690E99  8D4000              LEA      EAX,\[EAX+00\]   
+015F:00690E9C  55                  PUSH      EBP        (A) <-----按 2 次 F12 后，返回到这里   
+015F:00690E9D  8BEC                MOV      EBP,ESP   
+015F:00690E9F  83C4F4              ADD      ESP,-0C   
+015F:00690EA2  E88922FFFF          CALL      00683130   
+015F:00690EA7  0F855F2FFFFF        JNZ      00683E0C   
+015F:00690EAD  E81634FFFF          CALL      006842C8   
+015F:00690EB2  E8917BFFFF          CALL      00688A48   
+015F:00690EB7  E86489FFFF          CALL      00689820   
+015F:00690EBC  E8BFACFFFF          CALL      0068BB80   
+015F:00690EC1  E8462FFFFF          CALL      00683E0C  (B)<---注意这里的 EIP   
+015F:00690EC6  8BE5                MOV      ESP,EBP   
+015F:00690EC8  5D                  POP      EBP   
+015F:00690EC9  C20C00              RET      000C   
+015F:00690ECC  0000                ADD      \[EAX\],AL   
+015F:00690ECE  0000                ADD      \[EAX\],AL   
+015F:00690ED0  0000                ADD      \[EAX\],AL   
+015F:00690ED2  0000                ADD      \[EAX\],AL   
+      1. 先用 bpx  getprocaddress 进行中断。然后运行压缩过的 Notepad.exe。按 5 次 F5 后，把刚才设的中断先 BD 掉，再按 2 次 F12 到达上面（A）的地方。往下面看，有几条语句，然后是连续的几个 CALL 语句，注意最后面的 CALL 语句（（B）的地方的）的地址是 xxxx0EC1。这里要说明一下，由于 notepad.exe 这个程序比较小，按 5 次 F5 即可以，如果程序比较大的话，要按更多次的 F5，但这里有个标准就是，按 2 次 F12 返回后，如果没有上面的几个 CALL 语句，说明还要 BE 刚才设的断点，继续按几次 F5，然后再 BD 刚才的断点，再按 F12 两次，直到符合要求。这个要求就是有连续的几个 CALL 语句，而且最后的 CALL 语句的 EIP 是 xxxx0EC1。   
+  
+015F:0068D59D  E8C26EFFFF          CALL      00684464    (C)<---注意这里的 EIP 和上面的 EIP 的关系，在这里设置断点。   
+015F:0068D5A2  8B4308              MOV      EAX,\[EBX+08\]   
+015F:0068D5A5  8BD6                MOV      EDX,ESI   
+015F:0068D5A7  E85CE9FFFF          CALL      0068BF08   
+015F:0068D5AC  8B4B08              MOV      ECX,\[EBX+08\]   
+015F:0068D5AF  83C106              ADD      ECX,06   
+015F:0068D5B2  8BC1                MOV      EAX,ECX   
+015F:0068D5B4  668B10              MOV      DX,\[EAX\]   
+015F:0068D5B7  663B15D8136900      CMP      DX,\[006913D8\]   
+015F:0068D5BE  7414                JZ        0068D5D4   
+015F:0068D5C0  663B1424            CMP      DX,\[ESP\]   
+015F:0068D5C4  7506                JNZ      0068D5CC   
+015F:0068D5C6  89442404            MOV      \[ESP+04\],EAX   
+015F:0068D5CA  EB11                JMP      0068D5DD   
+015F:0068D5CC  8B5802              MOV      EBX,\[EAX+02\]   
+015F:0068D5CF  83C306              ADD      EBX,06   
+015F:0068D5D2  03CB                ADD      ECX,EBX   
+2\. 现在根据（B）处的地址用下面的方法算出另外一个地址，新地址前 4 位是把 xxxx－1，这里是 0069－1＝0068，后面 4 位是 D59D，这样算出的另外一个地址是 0068d59d。在这个地址（上面（C）的地方）处设断。   
+  
+015F:0068F863  5B                  POP      EBX   
+015F:0068F864  6A10                PUSH      10                                  
+015F:0068F866  E8DDFEFFFF          CALL      0068F748                            
+015F:0068F86B  50                  PUSH      EAX                                  
+015F:0068F86C  E8CFFEFFFF          CALL      0068F740                            
+015F:0068F871  50                  PUSH      EAX                                  
+015F:0068F872  6A00                PUSH      00                                  
+015F:0068F874  E8D7FEFFFF          CALL      0068F750                            
+015F:0068F879  53                  PUSH      EBX                                  
+015F:0068F87A  50                  PUSH      EAX                                  
+015F:0068F87B  C3                  RET                    (D)<---  按 4 次 F12 后将返回到这里   
+3\. 按 6 次 F5 后，再按 4 次 F12，到上面（D）的地方，压缩程序就是从这里进入原来的程序的，也就是说，在这里按 F10 就到了 Entry Point 。   
+  
+上面只是介绍了如何找到 EP 的，至于 Import Table 的重建，可能是我们大家的心口的痛了,望高手能指点一二或者为我们大家找出方法来。   
+  
+有什么问题欢迎来信讨论。   
+我的 Email 是 liuhx@lpec.com.cn   4dd466d0e1e0cc123afbe504da2462ca

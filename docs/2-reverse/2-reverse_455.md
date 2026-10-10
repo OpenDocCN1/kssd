@@ -1,0 +1,23 @@
+
+
+# 让 hiew 显示正确的编码．
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-439.htm`](https://www.pediy.com/kssd/pediy09/pediy09-439.htm)
+
+> 在中文版的操作系统里面．运行 hiew 查看国外的一些 info 文件．．  
+> 总会显示一些乱码比如　哪哪哪哪哪哪哪哪哪哪哪哪哪哪．  
+> 之类的，这是因为 codepage 跟国外的不同，所显示不了．．  
+>   
+> 在 hiew 目录新建一个文件　hiew.bat,加入下面的内容．再保存．  
+>   
+> echo off  
+> chcp 1252  
+> hiew.exe %1  
+> echo on  
+>   
+> 再给　hiew.bat 建立一个快捷方式，再复制到 sendto 目录  
+> 如果你觉得　hiew.bat 的图标跟 hiew.exe 的不同的话，也可以给它改一下图标改一下名  
+> 图标是在　%SystemRoot%\\system32\\PIFMGR.DLL 里面．．  
+> 这样就可以在鼠标右键里使用了．． 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

@@ -1,0 +1,94 @@
+
+
+# MD5 程序（Delphi）
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50250.htm`](https://www.pediy.com/kssd/pediy05/pediy50250.htm)
+
+/\*\*\* Source Code of MD5 \*\*\*/   
+/  written BY upfeed\[FCG\]  /   
+/\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*/   
+  
+下面的函数是计算核心，至于分组和填充部分就略去了。   
+\====================================================   
+参数说明：   
+AA,BB,CC,DD 是摘要信息，一般初始化为   
+AA := $67452301;   
+BB := $EFCDAB89;   
+CC := $98BADCFE;   
+DD := $10325476;   
+MSGs 是一个长 64 的 LongWord 数组，保存的就是要摘要的信息   
+\====================================================   
+procedure TMainForm.MD5(var AA, BB, CC, DD: LongWord; MSGs: array of LongWord);   
+var   
+  A, B, C, D: LongWord;   
+  T: array\[1..64\] of LongWord;   
+  i: integer;   
+  
+//没有循环左移的位运算，自己写一个   
+  function ROL(r: LongWord; bit: byte): LongWord;   
+  var   
+    ii: byte;   
+  begin   
+    for ii:=1 to bit do   
+      if r and $80000000 = $80000000 then   
+        r := (r shl 1) or $01   
+      else   
+        r := (r shl 1);   
+    Result := r;   
+  end;   
+  
+//四轮运算中的函数定义，也可以自行定义的   
+  procedure FF(var a: LongWord; b, c, d: LongWord; k, s, i: byte);   
+  begin   
+    a := b + ROL((a + ((b and c) or (not b and d)) + MSGs\[k\] + T\[i\]), s);   
+  end;   
+  procedure GG(var a: LongWord; b, c, d: LongWord; k, s, i: byte);   
+  begin   
+    a := b + ROL((a + ((b and d) or (c and not d)) + MSGs\[k\] + T\[i\]), s);   
+  end;   
+  procedure HH(var a: LongWord; b, c, d: LongWord; k, s, i: byte);   
+  begin   
+    a := b + ROL((a + (b xor c xor d) + MSGs\[k\] + T\[i\]), s);   
+  end;   
+  procedure II(var a: LongWord; b, c, d: LongWord; k, s, i: byte);   
+  begin   
+    a := b + ROL((a + (c xor (b or not d)) + MSGs\[k\] + T\[i\]), s);   
+  end;   
+    
+begin   
+  fillchar(T, sizeof(T), 0);   
+  
+//常数数组的初始化，通常是这种形式，当然可以自己做手脚的   
+  for i:=1 to 64 do   
+    T\[i\] := Trunc(4294967296\*abs(sin(i)));   
+  
+  A := AA; B := BB; C := CC; D := DD;   
+//第一轮   
+  FF(A, B, C, D, 0, 7, 1); FF(D, A, B, C, 1, 12, 2); FF(C, D, A, B, 2, 17, 3); FF(B, C, D, A, 3, 22, 4);   
+  FF(A, B, C, D, 4, 7, 5); FF(D, A, B, C, 5, 12, 6); FF(C, D, A, B, 6, 17, 7); FF(B, C, D, A, 7, 22, 8);   
+  FF(A, B, C, D, 8, 7, 9); FF(D, A, B, C, 9, 12,10); FF(C, D, A, B, 10,17,11); FF(B, C, D, A, 11,22,12);   
+  FF(A, B, C, D, 12,7,13); FF(D, A, B, C, 13,12,14); FF(C, D, A, B, 14,17,15); FF(B, C, D, A, 15,22,16);   
+  
+//第二轮   
+  GG(A, B, C, D, 1, 5,17); GG(D, A, B, C, 6,  9,18); GG(C, D, A, B, 11,14,19); GG(B, C, D, A, 0, 20,20);   
+  GG(A, B, C, D, 5, 5,21); GG(D, A, B, C, 10, 9,22); GG(C, D, A, B, 15,14,23); GG(B, C, D, A, 4, 20,24);   
+  GG(A, B, C, D, 9, 5,25); GG(D, A, B, C, 14, 9,26); GG(C, D, A, B, 3, 14,27); GG(B, C, D, A, 8, 20,28);   
+  GG(A, B, C, D, 13,5,29); GG(D, A, B, C, 2,  9,30); GG(C, D, A, B, 7, 14,31); GG(B, C, D, A, 12,20,32);   
+  
+//第三轮   
+  HH(A, B, C, D, 5, 4,33); HH(D, A, B, C, 8, 11,34); HH(C, D, A, B, 11,16,35); HH(B, C, D, A, 14,23,36);   
+  HH(A, B, C, D, 1, 4,37); HH(D, A, B, C, 4, 11,38); HH(C, D, A, B, 7, 16,39); HH(B, C, D, A, 10,23,40);   
+  HH(A, B, C, D, 13,4,41); HH(D, A, B, C, 0, 11,42); HH(C, D, A, B, 3, 16,43); HH(B, C, D, A, 6, 23,44);   
+  HH(A, B, C, D, 9, 4,45); HH(D, A, B, C, 12,11,46); HH(C, D, A, B, 15,16,47); HH(B, C, D, A, 2, 23,48);   
+  
+//第四轮   
+  II(A, B, C, D, 0, 6,49); II(D, A, B, C, 7, 10,50); II(C, D, A, B, 14,15,51); II(B, C, D, A, 5, 21,52);   
+  II(A, B, C, D, 12,6,53); II(D, A, B, C, 3, 10,54); II(C, D, A, B, 10,15,55); II(B, C, D, A, 1, 21,56);   
+  II(A, B, C, D, 8, 6,57); II(D, A, B, C, 15,10,58); II(C, D, A, B, 6, 15,59); II(B, C, D, A, 13,21,60);   
+  II(A, B, C, D, 4, 6,61); II(D, A, B, C, 11,10,62); II(C, D, A, B, 2, 15,63); II(B, C, D, A, 9, 21,64);   
+  
+  AA := A + AA;   
+  BB := B + BB;   
+  CC := C + CC;   
+  DD := D + DD;   
+end;  4dd466d0e1e0cc123afbe504da2462ca

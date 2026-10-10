@@ -1,0 +1,576 @@
+
+
+# 网站推广专家 V1.26 专业版
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50435.htm`](https://www.pediy.com/kssd/pediy05/pediy50435.htm)
+
+简单算法——网站推广专家 V1.26 专业版
+
+  
+呵呵，小猫上网，若总是从网上 DOWN 软件会让我破产的，^-^ 所以从《软件王》的光盘里找些东西来练手。唉，羡慕那些宽带上网的哥们。
+
+  
+下载地址：http://www.csmarket.com/  
+软件大小：1M 多
+
+【软件简介】：推荐你的资料到各大网站。类似《商务奇兵》。  
+    
+【软件限制】：功能限制。
+
+【作者声明】：初学 Crack，只是感兴趣，没有其它目的。失误之处敬请诸位大侠赐教！
+
+【破解工具】：TRW2000 娃娃修改版、FI2.5、AspackDie、W32Dasm8.93 黄金版
+
+—————————————————————————————  
+【过    程】：  
+呵呵，老规矩，先运行注册一下，看看作者给的提示。  
+有壳先脱壳，反汇编，TRW 伺候！
+
+—————————————————————————————  
+一、脱壳
+
+websumbit.exe 是 ASPACK 2.11 壳，用 AspackDie 脱之，686K->25.5M,奇怪了。  
+当然接着反汇编了。  
+—————————————————————————————  
+二、调试
+
+TRW 装入目标程序。
+
+填好试炼信息  
+机器码：A21431E0-291（程序自给）  
+用户名：fly  
+注册码：13572468
+
+CTRL+D 切入调试界面，下 BPX HMEMCPY，F5 返回程序，点“现在注册”，拦下！  
+BD，暂停断点。PMODULE，直达程序领空。F12 七次，我们来到 00529DBE 处！
+
+  
+:00529DBE 8B55FC                  mov edx, dword ptr \[ebp\-04\]  
+                                 ====>来到这儿！  
+:00529DC1 B8F0755800              mov eax, 005875F0
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:00529D5F(C)  
+|  
+:00529DC6 E8F19FEDFF              call 00403DBC  
+:00529DCB 8D55F8                  lea edx, dword ptr \[ebp\-08\]  
+:00529DCE 8B83E8020000            mov eax, dword ptr \[ebx+000002E8\]  
+:00529DD4 E87F85F0FF              call 00432358  
+:00529DD9 8B55F8                  mov edx, dword ptr \[ebp\-08\]  
+:00529DDC B8F8755800              mov eax, 005875F8  
+:00529DE1 E8D69FEDFF              call 00403DBC  
+:00529DE6 A12C985700              mov eax, dword ptr \[0057982C\]  
+:00529DEB 8B15F0755800            mov edx, dword ptr \[005875F0\]  
+:00529DF1 E8C69FEDFF              call 00403DBC  
+:00529DF6 FF0514765800            inc dword ptr \[00587614\]  
+:00529DFC 833D1476580003          cmp dword ptr \[00587614\], 00000003  
+:00529E03 7E0F                    jle 00529E14  
+:00529E05 C7833402000002000000    mov dword ptr \[ebx+00000234\], 00000002  
+:00529E0F E9A5000000              jmp 00529EB9
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:00529E03(C)  
+|  
+:00529E14 A1049C5700              mov eax, dword ptr \[00579C04\]  
+:00529E19 8B00                    mov eax, dword ptr \[eax\]  
+:00529E1B E8982E0000              call 0052CCB8  
+                                 ====>关键 CALL！F8 进入！
+
+:00529E20 84C0                    test al, al  
+:00529E22 7447                    je 00529E6B  
+                                 ====>跳则 OVER！
+
+:00529E24 A1949B5700              mov eax, dword ptr \[00579B94\]  
+:00529E29 C70001000000            mov dword ptr \[eax\], 00000001  
+:00529E2F A1B0995700              mov eax, dword ptr \[005799B0\]  
+:00529E34 C70001000000            mov dword ptr \[eax\], 00000001  
+:00529E3A 8BC3                    mov eax, ebx  
+:00529E3C E883FEFFFF              call 00529CC4  
+:00529E41 A1049C5700              mov eax, dword ptr \[00579C04\]  
+:00529E46 8B00                    mov eax, dword ptr \[eax\]  
+:00529E48 8B8008030000            mov eax, dword ptr \[eax+00000308\]  
+:00529E4E 33D2                    xor edx, edx  
+:00529E50 E8FF8CF1FF              call 00442B54  
+:00529E55 A100765800              mov eax, dword ptr \[00587600\]  
+:00529E5A E86DDEF2FF              call 00457CCC  
+                                 ====>恭喜成功！
+
+:00529E5F A1E8755800              mov eax, dword ptr \[005875E8\]  
+:00529E64 E8DB38F2FF              call 0044D744  
+:00529E69 EB4E                    jmp 00529EB9
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:00529E22(C)  
+|  
+:00529E6B A1949B5700              mov eax, dword ptr \[00579B94\]  
+:00529E70 33D2                    xor edx, edx  
+:00529E72 8910                    mov dword ptr \[eax\], edx  
+:00529E74 A1B0995700              mov eax, dword ptr \[005799B0\]  
+:00529E79 33D2                    xor edx, edx  
+:00529E7B 8910                    mov dword ptr \[eax\], edx  
+:00529E7D A1049C5700              mov eax, dword ptr \[00579C04\]  
+:00529E82 8B00                    mov eax, dword ptr \[eax\]  
+:00529E84 8B8008030000            mov eax, dword ptr \[eax+00000308\]  
+:00529E8A B201                    mov dl, 01  
+:00529E8C E8C38CF1FF              call 00442B54  
+:00529E91 6A10                    push 00000010  
+:00529E93 A1A09A5700              mov eax, dword ptr \[00579AA0\]  
+:00529E98 8B00                    mov eax, dword ptr \[eax\]  
+:00529E9A 8B0D10765800            mov ecx, dword ptr \[00587610\]  
+:00529EA0 8B150C765800            mov edx, dword ptr \[0058760C\]  
+:00529EA6 E82D6BF2FF              call 004509D8  
+                                 ====>错了！
+
+\--------------------------------------------------------  
+F8 进入关键 CALL：00529E1B   call 0052CCB8
+
+  
+\* Referenced by a CALL at Addresses:  
+|:00529E1B   , :0052CBD7     
+|  
+:0052CCB8 55                      push ebp  
+:0052CCB9 8BEC                    mov ebp, esp  
+:0052CCBB B905000000              mov ecx, 00000005
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0052CCC5(C)  
+|  
+:0052CCC0 6A00                    push 00000000  
+:0052CCC2 6A00                    push 00000000  
+:0052CCC4 49                      dec ecx  
+:0052CCC5 75F9                    jne 0052CCC0  
+                                 ====>上面循环代码的作用是什么？请赐教！  
+:0052CCC7 53                      push ebx  
+:0052CCC8 56                      push esi  
+:0052CCC9 57                      push edi  
+:0052CCCA 33C0                    xor eax, eax  
+:0052CCCC 55                      push ebp  
+:0052CCCD 683BCF5200              push 0052CF3B  
+:0052CCD2 64FF30                  push dword ptr fs:\[eax\]  
+:0052CCD5 648920                  mov dword ptr fs:\[eax\], esp  
+:0052CCD8 8D45F0                  lea eax, dword ptr \[ebp\-10\]
+
+\* Possible StringData Ref from Code Obj ->"sef1sn8y3420dnu2ofps"  
+                                 ====>注意此字符串！
+
+:0052CCDB BA54CF5200              mov edx, 0052CF54  
+                                 ====>sef1sn8y3420dnu2ofps 入 EDX
+
+:0052CCE0 E81B71EDFF              call 00403E00  
+:0052CCE5 8D45F4                  lea eax, dword ptr \[ebp\-0C\]  
+:0052CCE8 E87B70EDFF              call 00403D68  
+:0052CCED 8B15309A5700            mov edx, dword ptr \[00579A30\]
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0052CC8F(C)  
+|  
+:0052CCF3 8B12                    mov edx, dword ptr \[edx\]  
+                                 ====>用户名入 EDX  
+:0052CCF5 8D45EC                  lea eax, dword ptr \[ebp\-14\]  
+:0052CCF8 8B0D703C1301            mov ecx, dword ptr \[01133C70\]  
+                                 ====>机器码 A21431E0-291 入 ECX  
+:0052CCFE E83173EDFF              call 00404034  
+:0052CD03 8B45EC                  mov eax, dword ptr \[ebp\-14\]  
+:0052CD06 E8DD72EDFF              call 00403FE8  
+:0052CD0B A1703C1301              mov eax, dword ptr \[01133C70\]  
+                                 ====>机器码入 EAX  
+:0052CD10 E8D372EDFF              call 00403FE8  
+:0052CD15 8BF0                    mov esi, eax  
+:0052CD17 85F6                    test esi, esi  
+                                 ====>？ ESI=C，循环次数。
+
+:0052CD19 0F8EB0000000            jle 0052CDCF  
+:0052CD1F BB01000000              mov ebx, 00000001  
+                                 ====>EBX 第一次是 1，记数器。
+
+\~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
+呵呵，循环运算开始了！
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0052CDC9(C)  
+|  
+:0052CD24 8D45E8                  lea eax, dword ptr \[ebp\-18\]
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0052CCB2(C)  
+|  
+:0052CD27 50                      push eax  
+:0052CD28 B901000000              mov ecx, 00000001  
+:0052CD2D 8BD3                    mov edx, ebx  
+:0052CD2F A1703C1301              mov eax, dword ptr \[01133C70\]  
+                                 ====>机器码 A21431E0-291 入 EAX  
+:0052CD34 E8B774EDFF              call 004041F0  
+:0052CD39 8B45E8                  mov eax, dword ptr \[ebp\-18\]  
+                                 ====>从机器码中依次取字符
+
+:0052CD3C E86B74EDFF              call 004041AC  
+:0052CD41 8BF8                    mov edi, eax  
+:0052CD43 A1309A5700              mov eax, dword ptr \[00579A30\]  
+:0052CD48 8B00                    mov eax, dword ptr \[eax\]  
+                                 ====>EAX\=fly  
+:0052CD4A E89972EDFF              call 00403FE8  
+:0052CD4F 3BD8                    cmp ebx, eax  
+:0052CD51 7F23                    jg 0052CD76  
+                                 ====>此处如果用户名不够 12 位，  
+则跳到 52CD76 处，从程序给的字符串 sef1sn8y3420dnu2ofps 接着取字符，  
+（已减去用户名的位数，如：接着 fly 后取 1sn8y3420），直至共 12 位为止！
+
+:0052CD53 8D45E4                  lea eax, dword ptr \[ebp\-1C\]  
+:0052CD56 50                      push eax  
+:0052CD57 A1309A5700              mov eax, dword ptr \[00579A30\]  
+:0052CD5C 8B00                    mov eax, dword ptr \[eax\]  
+:0052CD5E B901000000              mov ecx, 00000001  
+:0052CD63 8BD3                    mov edx, ebx  
+:0052CD65 E88674EDFF              call 004041F0  
+:0052CD6A 8B45E4                  mov eax, dword ptr \[ebp\-1C\]  
+                                 ====>fly 入 EAX
+
+:0052CD6D E83A74EDFF              call 004041AC  
+:0052CD72 8BD0                    mov edx, eax  
+                                 ====>fly 入 EDX  
+:0052CD74 EB1D                    jmp 0052CD93
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0052CD51(C)  
+|  
+:0052CD76 8D45E0                  lea eax, dword ptr \[ebp\-20\]  
+:0052CD79 50                      push eax  
+:0052CD7A B901000000              mov ecx, 00000001  
+:0052CD7F 8BD3                    mov edx, ebx  
+:0052CD81 8B45F0                  mov eax, dword ptr \[ebp\-10\]  
+                                 ====>D EAX\=sef1sn8y3420dnu2ofps
+
+:0052CD84 E86774EDFF              call 004041F0  
+:0052CD89 8B45E0                  mov eax, dword ptr \[ebp\-20\]  
+:0052CD8C E81B74EDFF              call 004041AC  
+:0052CD91 8BD0                    mov edx, eax
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0052CD74(U)  
+                              分别循环取机器码和注册名的 HEX 值！  
+:0052CD93 8A07                    mov al, byte ptr \[edi\]  
+                                 ====>1、？AL=41  
+                                 ====>1、？AL=32  
+                                 ====>1、？AL=31  
+                                 ………… 依次取机器码    
+
+:0052CD95 8A12                    mov dl, byte ptr \[edx\]  
+                                 ====>依次取用户名。  
+                                 ====>1、？DL=66 即 f 的 HEX 值    
+                                 ====>2、？DL=6C 即 l 的 HEX 值  
+                                 ====>3、？DL=79 即 y 的 HEX 值  
+                                 …………  
+        ……接着再从 1sn8y3420 取九位，共 12 位！
+
+:0052CD97 3C41                    cmp al, 41  
+                                 ====>如果 AL=41 则下面不跳  
+:0052CD99 7502                    jne 0052CD9D  
+:0052CD9B B066                    mov al, 66  
+                                 ====>则把 66 移入 AL，取代 41。
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0052CD99(C)  
+|  
+:0052CD9D 8BF8                    mov edi, eax  
+:0052CD9F 81E7FF000000            and edi, 000000FF  
+:0052CDA5 33C0                    xor eax, eax  
+:0052CDA7 8AC2                    mov al, dl  
+                                 ====>DL 入 AL  
+:0052CDA9 03F8                    add edi, eax  
+                                 ====>1、EDI=66+66=CC  
+                                 ====>2、EDI=32+6C=9E  
+                                 ====>3、EDI=34+79=AA  
+                                 …………     
+
+:0052CDAB 03FB                    add edi, ebx  
+                                 ====>EBX 是次数  
+                                 ====>1、EDI=CC+1=CD  
+                                 ====>2、EDI=9E+2=A0      
+                                 ====>3、EDI=AA+3=AD  
+                                 …………     
+
+:0052CDAD 8D4DDC                  lea ecx, dword ptr \[ebp\-24\]  
+:0052CDB0 BA02000000              mov edx, 00000002  
+:0052CDB5 8BC7                    mov eax, edi  
+:0052CDB7 E8ECCDEDFF              call 00409BA8  
+:0052CDBC 8B55DC                  mov edx, dword ptr \[ebp\-24\]  
+:0052CDBF 8D45F8                  lea eax, dword ptr \[ebp\-08\]  
+:0052CDC2 E82972EDFF              call 00403FF0  
+:0052CDC7 43                      inc ebx  
+                                 ====>EBX 增 1  
+:0052CDC8 4E                      dec esi  
+                                 ====>ESI（12 次）减 1  
+:0052CDC9 0F8555FFFFFF            jne 0052CD24  
+                                 ====>没完？继续循环！
+
+\~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0052CD19(C)  
+|  
+:0052CDCF 8B45F8                  mov eax, dword ptr \[ebp\-08\]  
+                                 ====>循环后得出的字符串：  
+                                 CDA0AD69ABA584B16970766D
+
+:0052CDD2 E81172EDFF              call 00403FE8  
+:0052CDD7 8D45FC                  lea eax, dword ptr \[ebp\-04\]  
+:0052CDDA 8B55F8                  mov edx, dword ptr \[ebp\-08\]  
+:0052CDDD E81E70EDFF              call 00403E00  
+:0052CDE2 8B45FC                  mov eax, dword ptr \[ebp\-04\]  
+:0052CDE5 E8FE71EDFF              call 00403FE8  
+:0052CDEA 8BF0                    mov esi, eax  
+:0052CDEC 85F6                    test esi, esi  
+:0052CDEE 0F8EF6000000            jle 0052CEEA  
+:0052CDF4 BB01000000              mov ebx, 00000001
+
+\~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
+下面这段代码的作用是把上面生成的字符串中的：  
+A 替换成 M、1->O（4F）、2->3、r->7、4->J、5->6、8->D、0（30H）->M、E->D  
+所以：CDA0AD69ABA584B16970766D->CDMMMD69MBM6DJBO697M766D
+
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0052CEE4(C)  
+|  
+:0052CDF9 8B45FC                  mov eax, dword ptr \[ebp\-04\]  
+:0052CDFC 807C18FF41              cmp byte ptr \[eax+ebx\-01\], 41  
+:0052CE01 750D                    jne 0052CE10  
+:0052CE03 8D45FC                  lea eax, dword ptr \[ebp\-04\]  
+:0052CE06 E8AD73EDFF              call 004041B8  
+:0052CE0B C64418FF4D              mov \[eax+ebx\-01\], 4D
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0052CE01(C)  
+|  
+:0052CE10 8B45FC                  mov eax, dword ptr \[ebp\-04\]  
+:0052CE13 807C18FF31              cmp byte ptr \[eax+ebx\-01\], 31  
+:0052CE18 750D                    jne 0052CE27  
+:0052CE1A 8D45FC                  lea eax, dword ptr \[ebp\-04\]  
+:0052CE1D E89673EDFF              call 004041B8  
+:0052CE22 C64418FF4F              mov \[eax+ebx\-01\], 4F
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0052CE18(C)  
+|  
+:0052CE27 8B45FC                  mov eax, dword ptr \[ebp\-04\]  
+:0052CE2A 807C18FF32              cmp byte ptr \[eax+ebx\-01\], 32  
+:0052CE2F 750D                    jne 0052CE3E  
+:0052CE31 8D45FC                  lea eax, dword ptr \[ebp\-04\]  
+:0052CE34 E87F73EDFF              call 004041B8  
+:0052CE39 C64418FF33              mov \[eax+ebx\-01\], 33
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0052CE2F(C)  
+|  
+:0052CE3E 8B45FC                  mov eax, dword ptr \[ebp\-04\]  
+:0052CE41 807C18FF72              cmp byte ptr \[eax+ebx\-01\], 72  
+:0052CE46 750D                    jne 0052CE55  
+:0052CE48 8D45FC                  lea eax, dword ptr \[ebp\-04\]  
+:0052CE4B E86873EDFF              call 004041B8  
+:0052CE50 C64418FF37              mov \[eax+ebx\-01\], 37
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0052CE46(C)  
+|  
+:0052CE55 8B45FC                  mov eax, dword ptr \[ebp\-04\]  
+:0052CE58 807C18FF34              cmp byte ptr \[eax+ebx\-01\], 34  
+:0052CE5D 750D                    jne 0052CE6C  
+:0052CE5F 8D45FC                  lea eax, dword ptr \[ebp\-04\]  
+:0052CE62 E85173EDFF              call 004041B8  
+:0052CE67 C64418FF4A              mov \[eax+ebx\-01\], 4A
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0052CE5D(C)  
+|  
+:0052CE6C 8B45FC                  mov eax, dword ptr \[ebp\-04\]  
+:0052CE6F 807C18FF35              cmp byte ptr \[eax+ebx\-01\], 35  
+:0052CE74 750D                    jne 0052CE83  
+:0052CE76 8D45FC                  lea eax, dword ptr \[ebp\-04\]  
+:0052CE79 E83A73EDFF              call 004041B8  
+:0052CE7E C64418FF36              mov \[eax+ebx\-01\], 36
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0052CE74(C)  
+|  
+:0052CE83 8B45FC                  mov eax, dword ptr \[ebp\-04\]  
+:0052CE86 807C18FF38              cmp byte ptr \[eax+ebx\-01\], 38  
+:0052CE8B 750D                    jne 0052CE9A  
+:0052CE8D 8D45FC                  lea eax, dword ptr \[ebp\-04\]  
+:0052CE90 E82373EDFF              call 004041B8  
+:0052CE95 C64418FF44              mov \[eax+ebx\-01\], 44
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0052CE8B(C)  
+|  
+:0052CE9A 8B45FC                  mov eax, dword ptr \[ebp\-04\]  
+:0052CE9D 807C18FF30              cmp byte ptr \[eax+ebx\-01\], 30  
+:0052CEA2 750D                    jne 0052CEB1  
+:0052CEA4 8D45FC                  lea eax, dword ptr \[ebp\-04\]  
+:0052CEA7 E80C73EDFF              call 004041B8  
+:0052CEAC C64418FF4D              mov \[eax+ebx\-01\], 4D
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0052CEA2(C)  
+|  
+:0052CEB1 8B45FC                  mov eax, dword ptr \[ebp\-04\]  
+:0052CEB4 807C18FF45              cmp byte ptr \[eax+ebx\-01\], 45  
+:0052CEB9 750D                    jne 0052CEC8  
+:0052CEBB 8D45FC                  lea eax, dword ptr \[ebp\-04\]  
+:0052CEBE E8F572EDFF              call 004041B8  
+:0052CEC3 C64418FF44              mov \[eax+ebx\-01\], 44
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0052CEB9(C)  
+|  
+:0052CEC8 8D45D8                  lea eax, dword ptr \[ebp\-28\]  
+:0052CECB 8B55FC                  mov edx, dword ptr \[ebp\-04\]  
+:0052CECE 8A541AFF                mov dl, byte ptr \[edx+ebx\-01\]  
+:0052CED2 E83970EDFF              call 00403F10  
+:0052CED7 8B55D8                  mov edx, dword ptr \[ebp\-28\]  
+:0052CEDA 8D45F4                  lea eax, dword ptr \[ebp\-0C\]  
+:0052CEDD E80E71EDFF              call 00403FF0  
+:0052CEE2 43                      inc ebx  
+:0052CEE3 4E                      dec esi  
+:0052CEE4 0F850FFFFFFF            jne 0052CDF9  
+\~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+下面进行比较了！原先我以为是变量比较，呵呵，谁知还是明码比较！
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0052CDEE(C)  
+|  
+:0052CEEA A1C09A5700              mov eax, dword ptr \[00579AC0\]  
+:0052CEEF 8B00                    mov eax, dword ptr \[eax\]  
+                                 ====>D EAX\=13572468  
+:0052CEF1 8B55F4                  mov edx, dword ptr \[ebp\-0C\]  
+                                 ====>D EDX\=CDMMMD69MBM6DJBO697M766D
+
+:0052CEF4 E8FF71EDFF              call 004040F8  
+                                 ====>比较 CALL！
+
+:0052CEF9 7523                    jne 0052CF1E  
+                                 ====>跳则 OVER！
+
+:0052CEFB B301                    mov bl, 01  
+:0052CEFD A1B4975700              mov eax, dword ptr \[005797B4\]  
+:0052CF02 8B15309A5700            mov edx, dword ptr \[00579A30\]  
+:0052CF08 8B12                    mov edx, dword ptr \[edx\]  
+:0052CF0A E8AD6EEDFF              call 00403DBC  
+:0052CF0F A144985700              mov eax, dword ptr \[00579844\]  
+:0052CF14 8B55F4                  mov edx, dword ptr \[ebp\-0C\]  
+:0052CF17 E8A06EEDFF              call 00403DBC  
+:0052CF1C EB02                    jmp 0052CF20
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0052CEF9(C)  
+|  
+:0052CF1E 33DB                    xor ebx, ebx
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0052CF1C(U)  
+|  
+:0052CF20 33C0                    xor eax, eax  
+:0052CF22 5A                      pop edx  
+:0052CF23 59                      pop ecx  
+:0052CF24 59                      pop ecx  
+:0052CF25 648910                  mov dword ptr fs:\[eax\], edx  
+:0052CF28 6842CF5200              push 0052CF42
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0052CF40(U)  
+|  
+:0052CF2D 8D45D8                  lea eax, dword ptr \[ebp\-28\]  
+:0052CF30 BA0A000000              mov edx, 0000000A  
+:0052CF35 E8526EEDFF              call 00403D8C  
+:0052CF3A C3                      ret
+
+\--------------------------------------------------------  
+F8 进入比较 CALL：0052CEF4   call 004040F8
+
+  
+搞没搞错，这么多的地方查看此处！！！  
+如果想爆破只有从这里面想办法了，否则很难爆破完全！
+
+\* Referenced by a CALL at Addresses:  
+|:00413AE3   , :00418A0F   , :00419E7F   , :0041F1D1   , :004204DC     
+|:0042B2AE   , :004313BA   , :00431445   , :00432175   , :004323B0     
+…… ……省 略…… ……
+
+:004040F8 53                      push ebx  
+:004040F9 56                      push esi  
+:004040FA 57                      push edi  
+:004040FB 89C6                    mov esi, eax  
+:004040FD 89D7                    mov edi, edx  
+:004040FF 39D0                    cmp eax, edx  
+                                 ====>D EAX\=试炼码  
+                                 ====>D EDX\=真码！！
+
+:00404101 0F848F000000            je 00404196  
+:00404107 85F6                    test esi, esi  
+:00404109 7468                    je 00404173  
+:0040410B 85FF                    test edi, edi  
+:0040410D 746B                    je 0040417A  
+:0040410F 8B46FC                  mov eax, dword ptr \[esi\-04\]  
+:00404112 8B57FC                  mov edx, dword ptr \[edi\-04\]  
+:00404115 29D0                    sub eax, edx  
+:00404117 7702                    ja 0040411B
+
+…… ……省 略…… ……
+
+:0040416F 01C0                    add eax, eax  
+:00404171 EB23                    jmp 00404196
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:00404109(C)  
+|  
+:00404173 8B57FC                  mov edx, dword ptr \[edi\-04\]  
+:00404176 29D0                    sub eax, edx  
+:00404178 EB1C                    jmp 00404196
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0040410D(C)  
+|  
+:0040417A 8B46FC                  mov eax, dword ptr \[esi\-04\]  
+:0040417D 29D0                    sub eax, edx  
+:0040417F EB15                    jmp 00404196
+
+—————————————————————————————  
+【KeyMake 之内存注册机】：
+
+中断地址：52CEF4  
+中断次数：1  
+第一字节：E8  
+指令长度：5
+
+中断地址：4040FF  
+中断次数：1  
+第一字节：39  
+指令长度：2
+
+内存方式：EDX              
+
+  
+—————————————————————————————  
+【注册信息保存】：
+
+\[HKEY\_USERS\\.DEFAULT\\Software\\Osb\\Demo\]  
+"Name"="fly"  
+"Pass"="CDMMMD69MBM6DJBO697M766D"
+
+—————————————————————————————  
+【整       理】：
+
+机器码：A21431E0-291  
+用户名：fly  
+注册码：CDMMMD69MBM6DJBO697M766D
+
+—————————————————————————————  
+【后       记】：
+
+呵呵，虽然显示“注册成功”了，且注册菜单变灰，但是程序标题栏上的“未注册状态”依然存在！不知道为何？  
+—————————————————————————————
+
+     
+                   Cracked By 巢水工作坊——fly【OCN】
+
+                          2003-2-4  4dd466d0e1e0cc123afbe504da2462ca

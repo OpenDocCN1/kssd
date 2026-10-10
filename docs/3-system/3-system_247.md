@@ -1,0 +1,252 @@
+
+
+# PEB 结构----枚举用户模块列表
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-285.htm`](https://www.pediy.com/kssd/pediy09/pediy09-285.htm)
+
+> PEB 结构----枚举用户模块列表  
+>   
+> 参考文章：  
+> 1.  [`blog.csdn.net/ayken/archive/2...3/1509027.aspx`](http://blog.csdn.net/ayken/archive/2007/02/13/1509027.aspx)  
+> 2.  [`icwin.net/ShowArtitle.ASP?art\_id=6315&cat\_id=39`](http://icwin.net/ShowArtitle.ASP?art_id=6315&cat_id=39)  
+>   
+> 本文在主主要以上述两篇文章为基础，对 PEB 的结构进行了详细的分析，重点是在揭示 PEB 结构中的 listentry 的应用，并且以 C 语言 Code 进行实证。  
+>   
+> 本文主要分为四个部分，第一部分说明 PEB 地址如何获得；第二部分说明 PEB 的框架结构；第三部对 PEB 中的 List-Entry 结构进行了详细剖析，第四部分给出了枚举用户模块列表的代码。  
+>   
+> \--------------------------------------------------------------------------------------------------------------  
+> 第一部分：PEB 地址的取得  
+>   
+> 1.1 原理：FS 段寄存器指向当前的 TEB 结构，在 TEB 偏移 0x30 处是 PEB 指针，通过这个指针即可取得 PEB 的地址。  
+> 1.2 实现方法：  
+> \_\_asm  
+> {  
+> mov eax,fs:\[0x30\]  
+> mov PEB,eax  
+> }  
+> \--------------------------------------------------------------------------------------------------------------  
+> 第二部分：PEB 的框架结构  
+>   
+> 在 PEB 中的 0x0c 处为一指针，指向 PEB\_LDR\_DATA 结构，  
+> 在 PEB\_LDR\_DATA 的 0x0c,0x14,0x1c 中为三个 LIST\_ENTRY，在 struct \_LDR\_MODULE 的 0x00,0x08 和 0x10 处是三个对应的同名称的 LIST\_ENTRY, PEB\_LDR\_DATA 和 struct \_LDR\_MODULE 就是通过这三个 LIST\_ENTRY 对应连接起来的。  
+>   
+> 2.1 struct \_PEB 结构：  
+> typedef struct \_PEB { // Size: 0x1D8  
+> /\*000\*/ UCHAR InheritedAddressSpace;  
+> /\*001\*/ UCHAR ReadImageFileExecOptions;  
+> /\*002\*/ UCHAR BeingDebugged;  
+> /\*003\*/ UCHAR SpareBool; // Allocation size  
+> /\*004\*/ HANDLE Mutant;  
+> /\*008\*/ HINSTANCE ImageBaseAddress; // Instance  
+> /\*00C\*/ VOID \*DllList;  
+> /\*010\*/ PPROCESS\_PARAMETERS \*ProcessParameters;  
+> /\*014\*/ ULONG SubSystemData;  
+> /\*018\*/ HANDLE DefaultHeap;  
+> /\*01C\*/ KSPIN\_LOCK FastPebLock;  
+> /\*020\*/ ULONG FastPebLockRoutine;  
+> /\*024\*/ ULONG FastPebUnlockRoutine;  
+> /\*028\*/ ULONG EnvironmentUpdateCount;  
+> /\*02C\*/ ULONG KernelCallbackTable;  
+> /\*030\*/ LARGE\_INTEGER SystemReserved;  
+> /\*038\*/ ULONG FreeList;  
+> /\*03C\*/ ULONG TlsExpansionCounter;  
+> /\*040\*/ ULONG TlsBitmap;  
+> /\*044\*/ LARGE\_INTEGER TlsBitmapBits;  
+> /\*04C\*/ ULONG ReadOnlySharedMemoryBase;  
+> /\*050\*/ ULONG ReadOnlySharedMemoryHeap;  
+> /\*054\*/ ULONG ReadOnlyStaticServerData;  
+> /\*058\*/ ULONG AnsiCodePageData;  
+> /\*05C\*/ ULONG OemCodePageData;  
+> /\*060\*/ ULONG UnicodeCaseTableData;  
+> /\*064\*/ ULONG NumberOfProcessors;  
+> /\*068\*/ LARGE\_INTEGER NtGlobalFlag; // Address of a local copy  
+> /\*070\*/ LARGE\_INTEGER CriticalSectionTimeout;  
+> /\*078\*/ ULONG HeapSegmentReserve;  
+> /\*07C\*/ ULONG HeapSegmentCommit;  
+> /\*080\*/ ULONG HeapDeCommitTotalFreeThreshold;  
+> /\*084\*/ ULONG HeapDeCommitFreeBlockThreshold;  
+> /\*088\*/ ULONG NumberOfHeaps;  
+> /\*08C\*/ ULONG MaximumNumberOfHeaps;  
+> /\*090\*/ ULONG ProcessHeaps;  
+> /\*094\*/ ULONG GdiSharedHandleTable;  
+> /\*098\*/ ULONG ProcessStarterHelper;  
+> /\*09C\*/ ULONG GdiDCAttributeList;  
+> /\*0A0\*/ KSPIN\_LOCK LoaderLock;  
+> /\*0A4\*/ ULONG OSMajorVersion;  
+> /\*0A8\*/ ULONG OSMinorVersion;  
+> /\*0AC\*/ USHORT OSBuildNumber;  
+> /\*0AE\*/ USHORT OSCSDVersion;  
+> /\*0B0\*/ ULONG OSPlatformId;  
+> /\*0B4\*/ ULONG ImageSubsystem;  
+> /\*0B8\*/ ULONG ImageSubsystemMajorVersion;  
+> /\*0BC\*/ ULONG ImageSubsystemMinorVersion;  
+> /\*0C0\*/ ULONG ImageProcessAffinityMask;  
+> /\*0C4\*/ ULONG GdiHandleBuffer\[0x22\];  
+> /\*14C\*/ ULONG PostProcessInitRoutine;  
+> /\*150\*/ ULONG TlsExpansionBitmap;  
+> /\*154\*/ UCHAR TlsExpansionBitmapBits\[0x80\];  
+> /\*1D4\*/ ULONG SessionId;  
+> } PEB, \*PPEB;  
+>   
+> 2.2  PEB\_LDR\_DATA 结构  
+> typedef struct \_PEB\_LDR\_DATA  
+> {  
+> 　ULONG Length; // +0x00  
+> 　BOOLEAN Initialized; // +0x04  
+> 　PVOID SsHandle; // +0x08  
+> 　LIST\_ENTRY InLoadOrderModuleList; // +0x0c  
+> 　LIST\_ENTRY InMemoryOrderModuleList; // +0x14  
+> 　LIST\_ENTRY InInitializationOrderModuleList;// +0x1c  
+> } PEB\_LDR\_DATA,\*PPEB\_LDR\_DATA; // +0x24  
+>   
+> 2.3  struct \_LDR\_MODULE 结构  
+> \-typedef struct \_LDR\_MODULE  
+> \-{  
+> \-    LIST\_ENTRY          InLoadOrderModuleList;   +0x00  
+> \-    LIST\_ENTRY          InMemoryOrderModuleList; +0x08    
+> \-    LIST\_ENTRY          InInitializationOrderModuleList; +0x10  
+> \-    void\*               BaseAddress;  +0x18  
+> \-    void\*               EntryPoint;   +0x1c  
+> \-    ULONG               SizeOfImage;  
+> \-    UNICODE\_STRING      FullDllName;  
+> \-    UNICODE\_STRING      BaseDllName;  
+> \-    ULONG               Flags;  
+> \-    SHORT               LoadCount;  
+> \-    SHORT               TlsIndex;  
+> \-    HANDLE              SectionHandle;  
+> \-    ULONG               CheckSum;  
+> \-    ULONG               TimeDateStamp;  
+> \-} LDR\_MODULE, \*PLDR\_MODULE;  
+>   
+> \--------------------------------------------------------------------------------------------------------------  
+> 第三部分：List-Entry 链接  
+>   
+> PEB\_LDR\_DATA 结构的最后三项跟 struct \_LDR\_MODULE 结构的前三项是一样的 List-Entry 链接，InLoadOrderModuleList，InMemoryOrderModuleList，和 InInitializationOrderModuleList，但是这两个结构是怎样链接起来的呢？  
+>   
+> 其实，着两个结果中的三个 List-Entry 是共用的,如下图所示：  
+>   
+> ![](img/f01fdfcedd98d15bf4a87096e4bd2d9d.jpg)
+> 
+> ![](img/22152e4708c16c514d9fca819f5b224c.jpg)  
+>   
+>   
+> \--------------------------------------------------------------------------------------------------------------  
+> 第四部分：代码实现：  
+> 4.1 程枚举用户模块列表时，可以通过以下步骤实现：  
+> a.  从 fs:\[30h\]获取 PEB 地址  
+> b.   从 PEB\[0x0c\]获取 Ldr 地址  
+> c.   从 Ldr\[0x0c\]获取 InLoadOrderModuleList.Flink\\   
+> InMemoryOrderModuleList\\InInitializationOrderModuleList  
+> d.  从 InLoadOrderModuleList.Flink\\   
+> InMemoryOrderModuleList.Flink\\InInitializationOrderModuleList.Flink 开始前向遍历循环链表  
+> e.  显示 LDR\_MODULE 结构的 BaseAddress、FullDllName 成员。  
+>   
+> 4.2 以下为取得 InLoadOrderModuleList 列表的 code  
+>   
+> #include "stdafx.h"  
+> #include "windows.h"  
+> #include "winsvc.h"  
+>   
+> int \_tmain(int argc, \_TCHAR\* argv\[\])  
+> {  
+>   void \*PEB = NULL,  
+>     \*Ldr = NULL,  
+>     \*Flink = NULL,  
+>     \*p = NULL,  
+>     \*BaseAddress = NULL,  
+>     \*FullDllName = NULL;  
+>   
+>   \_\_asm  
+>   {  
+>     mov eax,fs:\[0x30\]  
+>     mov PEB,eax  
+>   }  
+>   Ldr = \*( ( void \*\* )( ( unsigned char \* )PEB+0x0c ) );  
+>   Flink = \*( ( void \*\* )( ( unsigned char \* )Ldr+ 0x0c ) );  
+>   p = Flink;  
+>   do  
+>   {  
+>     BaseAddress = \*( ( void \*\* )( ( unsigned char \* )p+ 0x18 ) );  
+>     FullDllName = \*( ( void \*\* )( ( unsigned char \* )p+ 0x28 ) );  
+>     wprintf(L"FullDllName is %s\\n",FullDllName);  
+>     printf("BaseAddress is %x\\n",BaseAddress);  
+>     p = \*( ( void \*\* )p);  
+>   }  
+>   while ( Flink != p );  
+>   return 0;  
+> }  
+> 4.3 以下为取得 InMemoryOrderModuleList 列表的 code  
+> #include "stdafx.h"  
+> #include "windows.h"  
+> #include "winsvc.h"  
+>   
+> int \_tmain(int argc, \_TCHAR\* argv\[\])  
+> {  
+>   void \*PEB = NULL,  
+>     \*Ldr = NULL,  
+>     \*Flink = NULL,  
+>     \*p = NULL,  
+>     \*BaseAddress = NULL,  
+>     \*FullDllName = NULL;  
+>   
+>   \_\_asm  
+>   {  
+>     mov eax,fs:\[0x30\]  
+>     mov PEB,eax  
+>   }  
+>   Ldr = \*( ( void \*\* )( ( unsigned char \* )PEB+0x0c ) );  
+>   Flink = \*( ( void \*\* )( ( unsigned char \* )Ldr+ 0x14 ) );  
+>   p = Flink;  
+>   do  
+>   {  
+>     BaseAddress = \*( ( void \*\* )( ( unsigned char \* )p+ 0x10 ) );  
+>     FullDllName = \*( ( void \*\* )( ( unsigned char \* )p+ 0x20 ) );  
+>     wprintf(L"FullDllName is %s\\n",FullDllName);  
+>     printf("BaseAddress is %x\\n",BaseAddress);  
+>     p = \*( ( void \*\* )p);  
+>   }  
+>   while ( Flink != p );  
+>   return 0;  
+> }  
+>   
+> 4.4 以下为取得 InInitializationOrderModuleList 列表的 code  
+> #include "stdafx.h"  
+> #include "windows.h"  
+> #include "winsvc.h"  
+>   
+> int \_tmain(int argc, \_TCHAR\* argv\[\])  
+> {  
+>   void \*PEB = NULL,  
+>     \*Ldr = NULL,  
+>     \*Flink = NULL,  
+>     \*p = NULL,  
+>     \*BaseAddress = NULL,  
+>     \*FullDllName = NULL;  
+>   
+>   \_\_asm  
+>   {  
+>     mov eax,fs:\[0x30\]  
+>     mov PEB,eax  
+>   }  
+>   Ldr = \*( ( void \*\* )( ( unsigned char \* )PEB+0x0c ) );  
+>   Flink = \*( ( void \*\* )( ( unsigned char \* )Ldr+ 0x1c ) );  
+>   p = Flink;  
+>   do  
+>   {  
+>     BaseAddress = \*( ( void \*\* )( ( unsigned char \* )p+ 0x08 ) );  
+>     FullDllName = \*( ( void \*\* )( ( unsigned char \* )p+ 0x18) );  
+>     wprintf(L"FullDllName is %s\\n",FullDllName);  
+>     printf("BaseAddress is %x\\n",BaseAddress);  
+>     p = \*( ( void \*\* )p);  
+>   }  
+>   while ( Flink != p );  
+>   return 0;  
+> }  
+>   
+>   
+>   
+>   
+>   
+> 我是个菜鸟，以上是我的一点儿愚见，如有错误，希望能善意指出，谅解。 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

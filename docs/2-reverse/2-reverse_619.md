@@ -1,0 +1,700 @@
+
+
+# 一个简单的数据结构的逆向菜文
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-668.htm`](https://www.pediy.com/kssd/pediy08/pediy8-668.htm)
+
+【写作日期】 2007 年 1 月 2 日  
+【写作作者】 bzhkl  
+【作者邮箱】 it6688@yahoo.com.cn  
+【使用工具】 OD vc++6.0  
+【破解平台】 XP  
+【软件下载】 自己编译   
+【写作动机】 上次写了个《逆向一个最简单的程序》觉得能学到东西 呵呵 所以这次又写了一篇菜文 再说后天要考数据结构了 顺便复习一下 呵呵 不要笑话啊只想自己学点东西 谁觉得有用的话拿去看吧  
+  
+源代码是 老罗的缤纷天地上的程序在下面 昨晚小研究了一下   
+  
+  
+主函数中加了 消息框 好下断点![](img/77a5f7cfd3ec840c98be3aecc80df838.jpg)  当然也可以不用断点 在 GetCommandLineA 下面没有几行就能看到 mian 函数  
+00401080   > \\55            push ebp  
+00401081   .  8BEC          mov ebp,esp  
+00401083   .  6A FF         push -1  
+00401085   .  68 39FB4100   push writepro.0041FB39           ;  SE 处理程序安装  
+0040108A   .  64:A1 0000000>mov eax,dword ptr fs:\[0\]  
+00401090   .  50            push eax  
+00401091   .  64:8925 00000>mov dword ptr fs:\[0\],esp  
+00401098   .  83EC 54       sub esp,54  
+0040109B   .  53            push ebx  
+0040109C   .  56            push esi  
+0040109D   .  57            push edi  
+0040109E   .  8D7D A0       lea edi,dword ptr ss:\[ebp-60\]  
+004010A1   .  B9 15000000   mov ecx,15  
+004010A6   .  B8 CCCCCCCC   mov eax,CCCCCCCC  
+004010AB   .  F3:AB         rep stos dword ptr es:\[edi\]  
+004010AD   .  8BF4          mov esi,esp  
+004010AF   .  6A 00         push 0                           ; /Style = MB\_OK|MB\_APPLMODAL  
+004010B1   .  68 28204300   push writepro.00432028           ; |Title = "note"  
+004010B6   .  68 20204300   push writepro.00432020           ; |Text = "begin"  
+004010BB   .  6A 00         push 0                           ; |hOwner = NULL  
+004010BD   .  FF15 D4C24300 call dword ptr ds:\[<&USER32.Mess>; \\MessageBoxA  
+004010C3   .  3BF4          cmp esi,esp  
+004010C5   .  E8 B67A0000   call writepro.00408B80           ;  检验堆栈平衡  
+004010CA   .  8D4D E4       lea ecx,dword ptr ss:\[ebp-1C\]    ;  ebp-1c 为头节点的地址  
+004010CD   .  E8 60FFFFFF   call writepro.00401032           ;  构造函数 把各个成员初始化为零  
+004010D2   .  C745 FC 00000>mov dword ptr ss:\[ebp-4\],0  
+004010D9   .  C745 F0 00000>mov dword ptr ss:\[ebp-10\],0      ;  for 循环中的 计数器 i  
+004010E0   .  EB 09         jmp short writepro.004010EB  
+004010E2   >  8B45 F0       mov eax,dword ptr ss:\[ebp-10\]    ;  循环开始  
+004010E5   .  83C0 01       add eax,1  
+004010E8   .  8945 F0       mov dword ptr ss:\[ebp-10\],eax  
+004010EB   >  837D F0 0A    cmp dword ptr ss:\[ebp-10\],0A     ;  i > 10? 大于就跳出循环  
+004010EF   .  7D 11         jge short writepro.00401102  
+004010F1   .  8B4D F0       mov ecx,dword ptr ss:\[ebp-10\]    ;  下面功能是 i+1 作为要插入的值 并作为参数  
+004010F4   .  83C1 01       add ecx,1  
+004010F7   .  51            push ecx  
+004010F8   .  8D4D E4       lea ecx,dword ptr ss:\[ebp-1C\]    ;  ecx 头节点记录数据个数的地址 也为对象的地址  
+004010FB   .  E8 0FFFFFFF   call writepro.0040100F           ;  AddTail  
+00401100   .^ EB E0         jmp short writepro.004010E2  
+00401102   >  8BF4          mov esi,esp  
+00401104   .  6A 00         push 0                           ; /Style = MB\_OK|MB\_APPLMODAL  
+00401106   .  68 28204300   push writepro.00432028           ; |Title = "note"  
+0040110B   .  68 1C204300   push writepro.0043201C           ; |Text = "end"  
+00401110   .  6A 00         push 0                           ; |hOwner = NULL  
+00401112   .  FF15 D4C24300 call dword ptr ds:\[<&USER32.Mess>; \\MessageBoxA  
+00401118   .  3BF4          cmp esi,esp  
+0040111A   .  E8 617A0000   call writepro.00408B80  
+0040111F   .  C745 E0 00000>mov dword ptr ss:\[ebp-20\],0  
+00401126   .  C745 FC FFFFF>mov dword ptr ss:\[ebp-4\],-1  
+0040112D   .  8D4D E4       lea ecx,dword ptr ss:\[ebp-1C\]  
+00401130   .  E8 E9FEFFFF   call writepro.0040101E  
+00401135   .  8B45 E0       mov eax,dword ptr ss:\[ebp-20\]  
+00401138   .  8B4D F4       mov ecx,dword ptr ss:\[ebp-C\]  
+0040113B   .  64:890D 00000>mov dword ptr fs:\[0\],ecx  
+00401142   .  5F            pop edi  
+00401143   .  5E            pop esi  
+00401144   .  5B            pop ebx  
+00401145   .  83C4 60       add esp,60  
+00401148   .  3BEC          cmp ebp,esp  
+0040114A   .  E8 317A0000   call writepro.00408B80  
+0040114F   .  8BE5          mov esp,ebp  
+00401151   .  5D            pop ebp  
+00401152   .  C3            ret  
+  
+构造函数  
+00401190  /> \\55            push ebp  
+00401191  |.  8BEC          mov ebp,esp  
+00401193  |.  83EC 44       sub esp,44  
+00401196  |.  53            push ebx  
+00401197  |.  56            push esi  
+00401198  |.  57            push edi  
+00401199  |.  51            push ecx  
+0040119A  |.  8D7D BC       lea edi,dword ptr ss:\[ebp-44\]  
+0040119D  |.  B9 11000000   mov ecx,11  
+004011A2  |.  B8 CCCCCCCC   mov eax,CCCCCCCC  
+004011A7  |.  F3:AB         rep stos dword ptr es:\[edi\]  
+004011A9  |.  59            pop ecx                          ;  ecx 为对象的地址  
+004011AA  |.  894D FC       mov dword ptr ss:\[ebp-4\],ecx     ;  这四句的意思是 mov \[ecx\], 0 即类对象的 nCount = 0  
+004011AD  |.  8B45 FC       mov eax,dword ptr ss:\[ebp-4\]  
+004011B0  |.  C700 00000000 mov dword ptr ds:\[eax\],0  
+004011B6  |.  8B4D FC       mov ecx,dword ptr ss:\[ebp-4\]  
+004011B9  |.  C741 04 00000>mov dword ptr ds:\[ecx+4\],0       ;  ecx+4 为类类对象的第二个成员变量 m\_pNodeHead 初始化为 NULL  
+004011C0  |.  8B45 FC       mov eax,dword ptr ss:\[ebp-4\]  
+004011C3  |.  5F            pop edi  
+004011C4  |.  5E            pop esi  
+004011C5  |.  5B            pop ebx  
+004011C6  |.  8BE5          mov esp,ebp  
+004011C8  |.  5D            pop ebp  
+004011C9  \\.  C3            ret  
+  
+  
+AddTail 函数  
+00401230  /> \\55            push ebp  
+00401231  |.  8BEC          mov ebp,esp  
+00401233  |.  83EC 44       sub esp,44  
+00401236  |.  53            push ebx  
+00401237  |.  56            push esi  
+00401238  |.  57            push edi  
+00401239  |.  51            push ecx  
+0040123A  |.  8D7D BC       lea edi,dword ptr ss:\[ebp-44\]  
+0040123D  |.  B9 11000000   mov ecx,11  
+00401242  |.  B8 CCCCCCCC   mov eax,CCCCCCCC  
+00401247  |.  F3:AB         rep stos dword ptr es:\[edi\]  
+00401249  |.  59            pop ecx  
+0040124A  |.  894D FC       mov dword ptr ss:\[ebp-4\],ecx     ;  ebp-4 对象的地址  
+0040124D  |.  8B45 08       mov eax,dword ptr ss:\[ebp+8\]     ;  传进来的的第一个参数 要插入的数  
+00401250  |.  50            push eax  
+00401251  |.  8B4D FC       mov ecx,dword ptr ss:\[ebp-4\]     ;  对象的 地址  
+00401254  |.  E8 D4FDFFFF   call writepro.0040102D           ;  GetCount 函数  
+00401259  |.  50            push eax                         ;  m\_nCount 作为参数  
+0040125A  |.  8B4D FC       mov ecx,dword ptr ss:\[ebp-4\]     ;  结点数目的地址 也是对象的地址  
+0040125D  |.  E8 D5FDFFFF   call writepro.00401037           ;  InsertAfter 函数  
+00401262  |.  5F            pop edi  
+00401263  |.  5E            pop esi  
+00401264  |.  5B            pop ebx  
+00401265  |.  83C4 44       add esp,44  
+00401268  |.  3BEC          cmp ebp,esp  
+0040126A  |.  E8 11790000   call writepro.00408B80  
+0040126F  |.  8BE5          mov esp,ebp  
+00401271  |.  5D            pop ebp  
+00401272  \\.  C2 0400       ret 4  
+  
+InsertAfter 函数  
+  
+  
+004012D0   > \\55            push ebp  
+004012D1   .  8BEC          mov ebp,esp  
+004012D3   .  6A FF         push -1  
+004012D5   .  68 69FB4100   push writepro.0041FB69           ;  SE 处理程序安装  
+004012DA   .  64:A1 0000000>mov eax,dword ptr fs:\[0\]  
+004012E0   .  50            push eax  
+004012E1   .  64:8925 00000>mov dword ptr fs:\[0\],esp  
+004012E8   .  83EC 60       sub esp,60  
+004012EB   .  53            push ebx  
+004012EC   .  56            push esi  
+004012ED   .  57            push edi  
+004012EE   .  51            push ecx  
+004012EF   .  8D7D 94       lea edi,dword ptr ss:\[ebp-6C\]  
+004012F2   .  B9 18000000   mov ecx,18  
+004012F7   .  B8 CCCCCCCC   mov eax,CCCCCCCC  
+004012FC   .  F3:AB         rep stos dword ptr es:\[edi\]  
+004012FE   .  59            pop ecx                          ;  ecx 为对象的地址  
+004012FF   .  894D F0       mov dword ptr ss:\[ebp-10\],ecx  
+00401302   .  68 C8000000   push 0C8                         ; /Arg4 = 000000C8  
+00401307   .  68 C05D4300   push writepro.00435DC0           ; |Arg3 = 00435DC0  
+0040130C   .  6A 01         push 1                           ; |Arg2 = 00000001  
+0040130E   .  6A 08         push 8                           ; |Arg1 = 00000008  
+00401310   .  E8 2B7C0000   call writepro.00408F40           ; \\writepro.00408F40  
+00401315   .  83C4 10       add esp,10                       ;  上面的是分配内存函数 比如 new int 把 4 作为参数 这里类成员占 8 字节 所以有个参数 8 别的参数什么意思不太懂 高手讲讲撒  
+00401318   .  8945 D8       mov dword ptr ss:\[ebp-28\],eax    ;  \[ebp-28\]接受返回的地址  
+0040131B   .  C745 FC 00000>mov dword ptr ss:\[ebp-4\],0  
+00401322   .  837D D8 00    cmp dword ptr ss:\[ebp-28\],0      ;  创建节点内存成功？ p==NULL?  
+00401326   .  74 0D         je short writepro.00401335       ;  失败则调  
+00401328   .  8B4D D8       mov ecx,dword ptr ss:\[ebp-28\]    ;  ecx 为新分配节点的地址  
+0040132B   .  E8 DAFCFFFF   call writepro.0040100A           ;  分配一个节点调用的构造函数 数据成员都赋值为 0  
+00401330   .  8945 D4       mov dword ptr ss:\[ebp-2C\],eax    ;  下面 ebp-2c, ebp-24 ebp-20 都为新分配的节点地址 编译器真罗唆  
+00401333   .  EB 07         jmp short writepro.0040133C  
+00401335   >  C745 D4 00000>mov dword ptr ss:\[ebp-2C\],0  
+0040133C   >  8B45 D4       mov eax,dword ptr ss:\[ebp-2C\]  
+0040133F   .  8945 DC       mov dword ptr ss:\[ebp-24\],eax  
+00401342   .  C745 FC FFFFF>mov dword ptr ss:\[ebp-4\],-1  
+00401349   .  8B4D DC       mov ecx,dword ptr ss:\[ebp-24\]  
+0040134C   .  894D E0       mov dword ptr ss:\[ebp-20\],ecx  
+0040134F   .  837D E0 00    cmp dword ptr ss:\[ebp-20\],0  
+00401353   .  75 0C         jnz short writepro.00401361  
+00401355   .  C745 E8 00000>mov dword ptr ss:\[ebp-18\],0  
+0040135C   .  E9 AD000000   jmp writepro.0040140E  
+00401361   >  8B55 E0       mov edx,dword ptr ss:\[ebp-20\]    ;  新节点地址  
+00401364   .  8B45 0C       mov eax,dword ptr ss:\[ebp+C\]     ;  传进来的参数 要插入的位置  
+00401367   .  8902          mov dword ptr ds:\[edx\],eax       ;  pNewNode->data = 参数;  
+00401369   .  8B4D F0       mov ecx,dword ptr ss:\[ebp-10\]    ;  对象的地址  
+0040136C   .  8379 04 00    cmp dword ptr ds:\[ecx+4\],0       ;  检查对象的第二个成员变量 m\_pNodeHead 是不是空  
+00401370   .  75 1C         jnz short writepro.0040138E  
+00401372   .  8B55 E0       mov edx,dword ptr ss:\[ebp-20\]    ;  头节点为空的情况  新建结点的地址  
+00401375   .  C742 04 00000>mov dword ptr ds:\[edx+4\],0       ;  新建节点指针区域赋值为 0  
+0040137C   .  8B45 F0       mov eax,dword ptr ss:\[ebp-10\]    ;  对象的地址  
+0040137F   .  8B4D E0       mov ecx,dword ptr ss:\[ebp-20\]    ;  新建的节点的地址  
+00401382   .  8948 04       mov dword ptr ds:\[eax+4\],ecx     ;  相当于 m\_pNodeHead = pNewNode  
+00401385   .  C745 E8 01000>mov dword ptr ss:\[ebp-18\],1      ;  ebp-18 为保存 nCount 的变量  
+0040138C   .  EB 73         jmp short writepro.00401401      ;  处理完没有头节点情况  
+0040138E   >  837D 08 01    cmp dword ptr ss:\[ebp+8\],1       ;  判断传进来的参数 小于 1 的话异常 参考 ASSERT(1 <= pos && pos <= m\_nCount);  
+00401392   .  7C 0A         jl short writepro.0040139E  
+00401394   .  8B55 F0       mov edx,dword ptr ss:\[ebp-10\]  
+00401397   .  8B45 08       mov eax,dword ptr ss:\[ebp+8\]  
+0040139A   .  3B02          cmp eax,dword ptr ds:\[edx\]       ;  比较 插入的位置 和 对象的 m\_nCount  pos <= m\_nCount？  
+0040139C   .  7E 17         jle short writepro.004013B5  
+0040139E   >  68 DB000000   push 0DB                         ; /Arg3 = 000000DB  
+004013A3   .  68 54204300   push writepro.00432054           ; |Arg2 = 00432054  
+004013A8   .  68 30204300   push writepro.00432030           ; |Arg1 = 00432030 ASCII "1 <= pos && pos <= m\_nCount"  
+004013AD   .  E8 0E780000   call writepro.00408BC0           ; \\writepro.00408BC0  
+004013B2   .  83C4 0C       add esp,0C  
+004013B5   >  8B55 F0       mov edx,dword ptr ss:\[ebp-10\]    ;  对象的地址 也是节点数目的地址  
+004013B8   .  8B42 04       mov eax,dword ptr ds:\[edx+4\]     ;  eax = 下一个节点的地址  
+004013BB   .  8945 E4       mov dword ptr ss:\[ebp-1C\],eax    ;  ebp-1c 是保存下一个节点地址的局部变量  
+004013BE   .  C745 EC 01000>mov dword ptr ss:\[ebp-14\],1      ;  ebp-14 记录已经比较了几个节点 即源代码中的 i  
+004013C5   .  EB 09         jmp short writepro.004013D0  
+004013C7   >  8B4D EC       mov ecx,dword ptr ss:\[ebp-14\]    ;  循环开始 下面三行功能为 i++  
+004013CA   .  83C1 01       add ecx,1  
+004013CD   .  894D EC       mov dword ptr ss:\[ebp-14\],ecx  
+004013D0   >  8B55 EC       mov edx,dword ptr ss:\[ebp-14\]    ;  edx 已经比较的个数  
+004013D3   .  3B55 08       cmp edx,dword ptr ss:\[ebp+8\]     ;  比较已经比较的节点数目和要插入的位置（传进来的参数）  i < pos？  
+004013D6   .  7D 0B         jge short writepro.004013E3      ;  i >= pos 跳出循环  
+004013D8   .  8B45 E4       mov eax,dword ptr ss:\[ebp-1C\]    ;  eax 为当前节点的指针区域  
+004013DB   .  8B48 04       mov ecx,dword ptr ds:\[eax+4\]     ;  ecx 为下一个节点的指针  因为 eax＝\[ebp-1c\]为下一个节点的地址  
+004013DE   .  894D E4       mov dword ptr ss:\[ebp-1C\],ecx    ;  在循环中 ebp-1c 保存了下一个节点的指针  
+004013E1   .^ EB E4         jmp short writepro.004013C7      ;  循环结束  
+004013E3   >  8B55 E0       mov edx,dword ptr ss:\[ebp-20\]    ;  edx 新分配的节点的地址  
+004013E6   .  8B45 E4       mov eax,dword ptr ss:\[ebp-1C\]    ;  插入地址前一个节点的指针  
+004013E9   .  8B48 04       mov ecx,dword ptr ds:\[eax+4\]     ;  ecx 为要插入节点前一个节点的指针指向的地址 即源代码中的 pTmpNode->next;  
+004013EC   .  894A 04       mov dword ptr ds:\[edx+4\],ecx     ;  新节点的指针指向要插入节点的后一个节点 即源代码中的 pNewNode->next = pTmpNode->next  
+004013EF   .  8B55 E4       mov edx,dword ptr ss:\[ebp-1C\]    ;  插入地址前一个节点的指针  
+004013F2   .  8B45 E0       mov eax,dword ptr ss:\[ebp-20\]    ;  新分配的节点的地址  
+004013F5   .  8942 04       mov dword ptr ds:\[edx+4\],eax     ;  插入地址前一个节点的指针指向新分配的节点  
+004013F8   .  8B4D 08       mov ecx,dword ptr ss:\[ebp+8\]     ;  下面的功能为传进来的参数加 1 并保存在据不变量 ebp-10 中 最后赋值给 EAX 作为返回值  
+004013FB   .  83C1 01       add ecx,1  
+004013FE   .  894D E8       mov dword ptr ss:\[ebp-18\],ecx  
+00401401   >  8B55 F0       mov edx,dword ptr ss:\[ebp-10\]    ;  类对象的地址  
+00401404   .  8B02          mov eax,dword ptr ds:\[edx\]       ;  eax = m\_nCount 这四行的功能是递增记录节点个数  
+00401406   .  83C0 01       add eax,1  
+00401409   .  8B4D F0       mov ecx,dword ptr ss:\[ebp-10\]    ;  类对象的地址  
+0040140C   .  8901          mov dword ptr ds:\[ecx\],eax       ;  m\_nCount++  
+0040140E   >  8B45 E8       mov eax,dword ptr ss:\[ebp-18\]    ;  返回值  
+00401411   .  8B4D F4       mov ecx,dword ptr ss:\[ebp-C\]  
+00401414   .  64:890D 00000>mov dword ptr fs:\[0\],ecx  
+0040141B   .  5F            pop edi  
+0040141C   .  5E            pop esi  
+0040141D   .  5B            pop ebx  
+0040141E   .  83C4 6C       add esp,6C  
+00401421   .  3BEC          cmp ebp,esp  
+00401423   .  E8 58770000   call writepro.00408B80  
+00401428   .  8BE5          mov esp,ebp  
+0040142A   .  5D            pop ebp  
+0040142B   .  C2 0800       ret 8  
+  
+  
+//write.h 文件中的代码  
+  
+///////////////////////////////////////////////////////////////////////////////  
+//  
+//  FileName    :   slist.h  
+//  Version     :   0.10  
+//  Author      :   Luo Cong  
+//  Date        :   2004-12-29 9:58:38  
+//  Comment     :    
+//  
+///////////////////////////////////////////////////////////////////////////////  
+  
+#ifndef \_\_SINGLE\_LIST\_H\_\_  
+#define \_\_SINGLE\_LIST\_H\_\_  
+  
+#include <assert.h>  
+#include <crtdbg.h>  
+  
+#ifdef \_DEBUG  
+#define DEBUG\_NEW new (\_NORMAL\_BLOCK, THIS\_FILE, \_\_LINE\_\_)  
+#endif  
+  
+#ifdef \_DEBUG  
+#define new DEBUG\_NEW  
+#undef THIS\_FILE  
+static char THIS\_FILE\[\] = \_\_FILE\_\_;  
+#endif  
+  
+#ifdef \_DEBUG  
+#ifndef ASSERT  
+#define ASSERT  assert  
+#endif  
+#else   // not \_DEBUG  
+#ifndef ASSERT  
+#define ASSERT  
+#endif  
+#endif  // \_DEBUG  
+  
+template<typename T>  
+class CNode  
+{  
+public:  
+    T data;  
+    CNode<T> \*next;  
+    CNode() : data(T()), next(NULL) {}  
+    CNode(const T &initdata) : data(initdata), next(NULL) {}  
+    CNode(const T &initdata, CNode<T> \*p) : data(initdata), next(p) {}  
+};  
+  
+template<typename T>  
+class CSList  
+{  
+protected:  
+    int m\_nCount;  
+    CNode<T> \*m\_pNodeHead;  
+    
+public:  
+    CSList();  
+    CSList(const T &initdata);  
+    ~CSList();  
+    
+public:  
+    int     IsEmpty() const;  
+    int     GetCount() const;  
+    int     InsertBefore(const int pos, const T data);  
+    int     InsertAfter(const int pos, const T data);  
+    int     AddHead(const T data);  
+    int     AddTail(const T data);  
+    void    RemoveAt(const int pos);  
+    void    RemoveHead();  
+    void    RemoveTail();  
+    void    RemoveAll();  
+    T&      GetTail();  
+    T       GetTail() const;  
+    T&      GetHead();  
+    T       GetHead() const;  
+    T&      GetAt(const int pos);  
+    T       GetAt(const int pos) const;  
+    void    SetAt(const int pos, T data);  
+    int     Find(const T data) const;  
+};  
+  
+template<typename T>  
+inline CSList<T>::CSList() : m\_nCount(0), m\_pNodeHead(NULL)  
+{  
+}  
+  
+template<typename T>  
+inline CSList<T>::CSList(const T &initdata) : m\_nCount(0), m\_pNodeHead(NULL)  
+{  
+    
+    AddHead(initdata);  
+}  
+  
+template<typename T>  
+inline CSList<T>::~CSList()  
+{    
+    RemoveAll();  
+}  
+  
+template<typename T>  
+inline int CSList<T>::IsEmpty() const  
+{  
+    
+    return 0 == m\_nCount;  
+}  
+  
+template<typename T>  
+inline int CSList<T>::AddHead(const T data)  
+{    
+    CNode<T> \*pNewNode;  
+    
+    pNewNode = new CNode<T>;  
+    if (NULL == pNewNode)  
+        return 0;  
+    
+    pNewNode->data = data;  
+    pNewNode->next = m\_pNodeHead;  
+    
+    m\_pNodeHead = pNewNode;  
+    ++m\_nCount;  
+    
+    return 1;  
+}  
+  
+template<typename T>  
+inline int CSList<T>::AddTail(const T data)  
+{    
+    return InsertAfter(GetCount(), data);  
+}  
+  
+// if success, return the position of the new node.  
+// if fail, return 0.  
+template<typename T>  
+inline int CSList<T>::InsertBefore(const int pos, const T data)  
+{      
+  int i;  
+  int nRetPos;  
+  CNode<T> \*pTmpNode1;  
+  CNode<T> \*pTmpNode2;  
+  CNode<T> \*pNewNode;  
+    
+  pNewNode = new CNode<T>;  
+  if (NULL == pNewNode)  
+  {  
+    nRetPos = 0;  
+    goto Exit0;  
+  }  
+    
+  pNewNode->data = data;  
+    
+  // if the list is empty, replace the head node with the new node.  
+  if (NULL == m\_pNodeHead)  
+  {  
+    pNewNode->next = NULL;  
+    m\_pNodeHead = pNewNode;  
+    nRetPos = 1;  
+    goto Exit1;  
+  }  
+    
+  // is pos range valid?  
+  ASSERT(1 <= pos && pos <= m\_nCount);  
+    
+  // insert before head node?  
+  if (1 == pos)  
+  {  
+    pNewNode->next = m\_pNodeHead;  
+    m\_pNodeHead = pNewNode;  
+    nRetPos = 1;  
+    goto Exit1;  
+  }  
+    
+  // if the list is not empty and is not inserted before head node,  
+  // seek to the pos of the list and insert the new node before it.  
+  pTmpNode1 = m\_pNodeHead;  
+  for (i = 1; i < pos; ++i)  
+  {  
+    pTmpNode2 = pTmpNode1;                 //pTmpNode2 在前 pTmpNode1 在后  
+    pTmpNode1 = pTmpNode1->next;  
+  }  
+  pNewNode->next = pTmpNode1;  
+  pTmpNode2->next = pNewNode;  
+    
+  nRetPos = pos;  
+    
+Exit1:  
+  ++m\_nCount;  
+Exit0:  
+  return nRetPos;  
+}  
+  
+// if success, return the position of the new node.  
+// if fail, return 0.  
+template<typename T>  
+inline int CSList<T>::InsertAfter(const int pos, const T data)  
+{      
+  int i;  
+  int nRetPos;  
+  CNode<T> \*pTmpNode;  
+  CNode<T> \*pNewNode;  
+    
+  pNewNode = new CNode<T>;  
+  if (NULL == pNewNode)  
+  {  
+    nRetPos = 0;  
+    goto Exit0;  
+  }  
+    
+  pNewNode->data = data;  
+    
+  // if the list is empty, replace the head node with the new node.  
+  if (NULL == m\_pNodeHead)  
+  {  
+    pNewNode->next = NULL;  
+    m\_pNodeHead = pNewNode;  
+    nRetPos = 1;  
+    goto Exit1;  
+  }  
+    
+  // is pos range valid?  
+  ASSERT(1 <= pos && pos <= m\_nCount);  
+    
+  // if the list is not empty,  
+  // seek to the pos of the list and insert the new node after it.  
+  pTmpNode = m\_pNodeHead;  
+  for (i = 1; i < pos; ++i)  
+  {  
+    pTmpNode = pTmpNode->next;  
+  }  
+  pNewNode->next = pTmpNode->next;  
+  pTmpNode->next = pNewNode;  
+    
+  nRetPos = pos + 1;  
+    
+Exit1:  
+  ++m\_nCount;  
+Exit0:  
+  return nRetPos;  
+}  
+  
+template<typename T>  
+inline int CSList<T>::GetCount() const  
+{    
+    return m\_nCount;  
+}  
+  
+template<typename T>  
+inline void CSList<T>::RemoveAt(const int pos)  
+{      
+  ASSERT(1 <= pos && pos <= m\_nCount);  
+    
+  int i;  
+  CNode<T> \*pTmpNode1;  
+  CNode<T> \*pTmpNode2;  
+    
+  pTmpNode1 = m\_pNodeHead;  
+    
+  // head node?  
+  if (1 == pos)  
+  {  
+    m\_pNodeHead = m\_pNodeHead->next;  
+    goto Exit1;  
+  }  
+    
+  for (i = 1; i < pos; ++i)  
+  {  
+    // we will get the previous node of the target node after  
+    // the for loop finished, and it would be stored into pTmpNode2  
+    pTmpNode2 = pTmpNode1;  
+    pTmpNode1 = pTmpNode1->next;  
+  }  
+  pTmpNode2->next = pTmpNode1->next;   //pTmpNode2 是前一个     
+    
+Exit1:  
+  delete pTmpNode1;  
+  --m\_nCount;  
+}  
+  
+template<typename T>  
+inline void CSList<T>::RemoveHead()  
+{      
+  ASSERT(0 != m\_nCount);  
+  RemoveAt(1);  
+}  
+  
+template<typename T>  
+inline void CSList<T>::RemoveTail()  
+{      
+  ASSERT(0 != m\_nCount);  
+  RemoveAt(m\_nCount);  
+}  
+  
+template<typename T>  
+inline void CSList<T>::RemoveAll()  
+{      
+  int i;  
+  int nCount;  
+  CNode<T> \*pTmpNode;  
+    
+  nCount = m\_nCount;  
+  for (i = 0; i < nCount; ++i)  
+  {  
+    pTmpNode = m\_pNodeHead->next;  
+    delete m\_pNodeHead;  
+    m\_pNodeHead = pTmpNode;  
+  }  
+  m\_nCount = 0;  
+}  
+  
+template<typename T>  
+inline T& CSList<T>::GetTail()  
+{      
+  ASSERT(0 != m\_nCount);  
+    
+  int i;  
+  int nCount;  
+  CNode<T> \*pTmpNode = m\_pNodeHead;  
+    
+  nCount = m\_nCount;  
+  for (i = 1; i < nCount; ++i)  
+  {  
+    pTmpNode = pTmpNode->next;  
+  }  
+    
+  return pTmpNode->data;  
+}  
+  
+template<typename T>  
+inline T CSList<T>::GetTail() const  
+{    
+    
+  ASSERT(0 != m\_nCount);  
+    
+  int i;  
+  int nCount;  
+  CNode<T> \*pTmpNode = m\_pNodeHead;  
+    
+  nCount = m\_nCount;  
+  for (i = 1; i < nCount; ++i)  
+  {  
+    pTmpNode = pTmpNode->next;  
+  }  
+    
+  return pTmpNode->data;  
+}  
+  
+template<typename T>  
+inline T& CSList<T>::GetHead()  
+{      
+  ASSERT(0 != m\_nCount);  
+  return m\_pNodeHead->data;  
+}  
+  
+template<typename T>  
+inline T CSList<T>::GetHead() const  
+{      
+  ASSERT(0 != m\_nCount);  
+  return m\_pNodeHead->data;  
+}  
+  
+template<typename T>  
+inline T& CSList<T>::GetAt(const int pos)  
+{      
+  ASSERT(1 <= pos && pos <= m\_nCount);  
+    
+  int i;  
+  CNode<T> \*pTmpNode = m\_pNodeHead;  
+    
+  for (i = 1; i < pos; ++i)  
+  {  
+    pTmpNode = pTmpNode->next;  
+  }  
+    
+  return pTmpNode->data;  
+}  
+  
+template<typename T>  
+inline T CSList<T>::GetAt(const int pos) const  
+{        
+  ASSERT(1 <= pos && pos <= m\_nCount);  
+    
+  int i;  
+  CNode<T> \*pTmpNode = m\_pNodeHead;  
+    
+  for (i = 1; i < pos; ++i)  
+  {  
+    pTmpNode = pTmpNode->next;  
+  }  
+    
+  return pTmpNode->data;  
+}  
+  
+template<typename T>  
+inline void CSList<T>::SetAt(const int pos, T data)  
+{      
+  ASSERT(1 <= pos && pos <= m\_nCount);  
+    
+  int i;  
+  CNode<T> \*pTmpNode = m\_pNodeHead;  
+    
+  for (i = 1; i < pos; ++i)  
+  {  
+    pTmpNode = pTmpNode->next;  
+  }  
+  pTmpNode->data = data;  
+}  
+  
+template<typename T>  
+inline int CSList<T>::Find(const T data) const  
+{      
+  int i;  
+  int nCount;  
+  CNode<T> \*pTmpNode = m\_pNodeHead;  
+    
+  nCount = m\_nCount;  
+  for (i = 0; i < nCount; ++i)  
+  {  
+    if (data == pTmpNode->data)  
+      return i + 1;  
+    pTmpNode = pTmpNode->next;  
+  }  
+    
+  return 0;  
+}  
+  
+#endif  // \_\_SINGLE\_LIST\_H\_\_  
+  
+  
+//write.cpp 中的代码  
+#include <iostream>  
+#include <windows.h>  
+#include "write.h"  
+using namespace std;  
+  
+int main()  
+{  
+    ::MessageBox(0, "begin", "note", MB\_OK);  
+    int i;  
+    int nCount;  
+    CSList<int> slist;  
+  for(i = 0; i < 10; i++)  
+    slist.AddTail(i+1);  
+  ::MessageBox(0, "end", "note", MB\_OK);  
+  return 0;  
+} 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

@@ -1,0 +1,93 @@
+
+
+# ThumNailer v7.0
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum1210.htm`](https://www.pediy.com/kssd/pediy03/forum1210.htm)
+
+破解 ThumNailer v7.0   
+为什么要写这个稿子呢？实际上这个文件还有一点我实在是没有耐心再破。把我破的过程写下来让其他人做个参考，如果你破了，请别忘了 E-mail 给我一份。   
+破解：D-X-C    cracked at 2001/8/7   
+工具：TRW2000 1.22        W32DSAM8.93        UtraEdit 8.0   
+E-MAIL：ZHIDA8721@SINA.COM   
+原版下载地址：http://www.smalleranimals.com/thumb.htm   
+  
+详细的破解过程我不写了，反正追出来挺不容易的，你试一试看吧。主要的代码都 COPY 在下面了。另外这个软件还有一个限制，就是自己定义的 PROFILE 不能存盘，我懒的再破了。为什么不破注册码？因为这个东东的注册是要你发 E-MAIL 到他的站点，他在给你一个包含注册信息的文件，才能动手注册，估计破起来一定很麻烦。虽然有一个限制没破，但完全不耽误使用了。   
+  
+1.    破解时间限制   
+  
+:0047885D 33C0                    xor eax, eax   
+:0047885F A024245A00              mov al, byte ptr \[005A2424\]   
+:00478864 85C0                    test eax, eax   
+:00478866 740F                    je 00478877            关键性跳转，改成 9090 就可以了   
+:00478868 B908245A00              mov ecx, 005A2408   
+:0047886D E880AA0100              call 004932F2   
+:00478872 E929010000              jmp 004789A0   
+  
+:00478877 6A01                    push 0000000   
+  
+<省略>   
+  
+\* Possible StringData Ref from Data Obj ->"Your %d-day trial period has run "   
+                                        ->"out.   
+Visit http://www.smalleranimals.com "   
+                                        ->"to register this application."   
+                                  |   
+:004788C3 68D4485900              push 005948D4   
+:004788C8 8D55EC                  lea edx, dword ptr \[ebp\-14\]   
+:004788CB 52                      push edx   
+  
+<省略>   
+  
+\* Possible StringData Ref from Data Obj ->"You have %d days left in your "   
+                                        ->"trial period.   
+Visit http://www.smalleranimals."   
+                                        ->"com to register this application."   
+                                  |   
+:   
+0047893E 683C495900              push 0059493C   
+:00478943 8D4DE8                  lea ecx, dword ptr \[ebp\-18\]   
+:00478946 51                      push ecx   
+:00478947 E8D03F0A00              call 0051C91C   
+  
+<省略>   
+  
+\* Possible StringData Ref from Data Obj ->"%d days left in trial"   
+                                  |   
+:0047896F 68AC495900              push 005949AC   
+:00478974 8B4DDC                  mov ecx, dword ptr \[ebp\-24\]   
+:00478977 51                      push ecx   
+:00478978 E823A30000              call 00482CA0   
+  
+<省略>   
+  
+\* Possible StringData Ref from Data Obj ->"%s, %d days left"   
+                                  |   
+:0047898E 68C4495900              push 005949C4   
+:00478993 68A8245A00              push 005A24A8   
+:00478998 E879A6FFFF              call 00473016   
+:0047899D 83C410                  add esp, 00000010   
+  
+:004789A0 8B4DF4                  mov ecx, dword ptr \[ebp\-0C\]   
+:004789A3 64890D00000000          mov dword ptr fs:\[00000000\], ecx   
+:004789AA 8BE5                    mov esp, ebp   
+:004789AC 5D                      pop ebp   
+:004789AD C3                      ret   
+  
+2．破解文件个数限制   
+  
+:0047B02B 8B95C8F6FFFF      mov edx, dword ptr \[ebp+FFFFF6C8\]  该地址现在存放的是目录中的实际文件数   
+:0047B031 3B157C385900      cmp edx, dword ptr \[0059387C\]      该地址现在存放的是 100，即最大可操作文件数   
+:0047B037 7D0E              jge 0047B047                将这三句做些修改即可。主要是让\[0059387C\]等于\[ebp+FFFFF6C8\]，我不写答案了，免得写不好让高手笑话，你自己想去吧，不管怎么说我是修改成功了   
+:0047B039 8B85C8F6FFFF      mov eax, dword ptr \[ebp+FFFFF6C8\]   
+:0047B03F 89855CC0FFFF      mov dword ptr \[ebp+FFFFC05C\], eax   
+:0047B045 EB0C              jmp 0047B053   
+  
+  
+3．砍掉当文件数超过 100 时操作完后出现的警告框   
+  
+:00527140 FF75F4                  push \[ebp\-0C\]   
+  
+\* Reference To: USER32.MessageBoxA, Ord:01BEh   
+                                  |   
+:00527143 FF1588245400            Call dword ptr \[00542488\]  将 FF1588245400 改成 909090909090   
+:00527149 85F6                    test esi, esi  4dd466d0e1e0cc123afbe504da2462ca

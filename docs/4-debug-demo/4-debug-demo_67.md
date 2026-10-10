@@ -1,0 +1,44 @@
+
+
+# q\_backup
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue076.htm`](https://www.pediy.com/kssd/pediy04/kanxue076.htm)
+
+用 keymake 制注册机实战~高手莫入~~   
+  
+软件名称：q\_backup   
+破解人：fish\[BCG\]   
+实战录像：http://smallfishok.51.net/software/teach.exe   
+原版很注册机：http://person.longcity.net/home4/fish/software/q\_backup.rar   
+  
+先用 pw32gold 打开你要破解的文件，~~~~~~~废话   
+  
+查找\* Possible StringData Ref from Code Obj ->"注册成功，谢谢！"   
+  
+向上看，找关键的 CALL~呵~有多话了   
+  
+:004862F5 E816DDF7FF              call 00404010 >>>就这个 CALL 没错~   
+:004862FA 756D                    jne 00486369  >>>注册码错则跳~   
+  
+“call"进去看看   
+:00404017 39D0                    cmp eax, edx   
+:00404019 0F848F000000            je 004040AE   
+  
+有了这么多资料可以开始制作了~   
+  
+  
+打开 KEYMAKE.exe,点注册机,下面的另类注册机,或用 F8,   
+浏览你要做注册机的软件~   
+  
+写入中断 4862F5,次数 1,第一字节 E8,指令长度 5,添加好了,再写一个中断,   
+那就是个注册对比的中断,中断 404017,第一字节 39,指令长度 2,添加好了,开始制作~   
+  
+  
+添加为"内存方式" 在 EAX 处打钩,注意这里正好是 EAX,别的软件可能是别的~   
+当然你也可以添加你的信息,这里就不过说了~   
+  
+最好点生成,看注册机就做好了~是不是很简单~   
+  
+  
+  
+破文一编,不对的地方高手指点~转载请保持完好~谢谢\`难得写文章真累啊~~~~~~~  4dd466d0e1e0cc123afbe504da2462ca

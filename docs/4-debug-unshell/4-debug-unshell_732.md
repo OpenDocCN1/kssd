@@ -1,0 +1,747 @@
+
+
+# krypton 之分析
+
+> 原文：[`www.pediy.com/kssd/pediy10/87760.html`](https://www.pediy.com/kssd/pediy10/87760.html)
+
+【作者声明】：没什么技术含量,失误之处敬请诸位大侠赐教  
+【软件名称】: 程序实例见附件  
+【调试环境】：WinXP sp 2、OD、PEiD、LordPE、ImportREC   
+【分析过程】：   
+所有异常都不忽略  
+00434000 <>  8B0C24               mov ecx,dword ptr ss:\[esp\]                             ; kernel32.7C816FF7 程序入口  
+00434003    /E9 0A7C0100          jmp KRYPTON.0044BC12  
+0044BC12     E8 01000000          call KRYPTON.0044BC18  
+0044BC18     5D                   pop ebp                                                ; KRYPTON.0044BC17  
+0044BC19     81ED C2BB4100        sub ebp,KRYPTON.0041BBC2                               ；获取偏移  
+0044BC1F     898D AFBB4100        mov dword ptr ss:\[ebp+41BBAF\],ecx                      ; kernel32.7C816FF7  
+0044BC25     33D2                 xor edx,edx                                            ; ntdll.KiFastSystemCallRet  
+0044BC27     49                   dec ecx  
+0044BC28     66:8B51 3C           mov dx,word ptr ds:\[ecx+3C\]  
+  
+0044BC2C     66:F7C2 00F8         test dx,0F800  
+0044BC31   ^\\75 F2                jnz short KRYPTON.0044BC25  
+0044BC33     3B4C11 34            cmp ecx,dword ptr ds:\[ecx+edx+34\]  
+0044BC39     898D 2CBE4100        mov dword ptr ss:\[ebp+41BE2C\],ecx                      ; 上面几句代码的作用是定位 kernel32  
+  
+0044BC3F     8BC1                 mov eax,ecx                                            ; kernel32.7C800000  
+0044BC41     8BD8                 mov ebx,eax                                            ; kernel32.7C800000  
+  
+0044BC43     0340 3C              add eax,dword ptr ds:\[eax+3C\]                          ; 找到 pe 头  
+0044BC46     8BF3                 mov esi,ebx                                            ; kernel32.7C800000  
+0044BC48     0370 78              add esi,dword ptr ds:\[eax+78\]                          ;找到输出表地址  
+0044BC4B     8BD3                 mov edx,ebx                                            ; kernel32.7C800000  
+0044BC4D     0356 20              add edx,dword ptr ds:\[esi+20\]                          ;函数名字的指针地址 给 edx  
+0044BC50     8B4E 18              mov ecx,dword ptr ds:\[esi+18\]                          ;AddressOfNames 阵列中的元素个数给 ecx  
+0044BC53     33C0                 xor eax,eax                                            ; kernel32.7C8000E8  
+  
+0044BC55     8DBD 4CBE4100        lea edi,dword ptr ss:\[ebp+41BE4C\]                      ；edi = 0044BEA1  
+0044BC5B     89B5 38BE4100        mov dword ptr ss:\[ebp+41BE38\],esi                      ; kernel32.7C80261C  
+0044BC61     8985 3CBE4100        mov dword ptr ss:\[ebp+41BE3C\],eax  
+0044BC67     898D 40BE4100        mov dword ptr ss:\[ebp+41BE40\],ecx  
+0044BC6D     899D 44BE4100        mov dword ptr ss:\[ebp+41BE44\],ebx  
+0044BC73     8995 48BE4100        mov dword ptr ss:\[ebp+41BE48\],edx                      ；以上几句将获取的信息保存起来  
+0044BC79     8BF3                 mov esi,ebx                                            ; kernel32.7C800000  
+0044BC7B     033482               add esi,dword ptr ds:\[edx+eax\*4\]                       ；取得函数名 eax 为函数序号  
+0044BC7E     60                   pushad  
+0044BC7F     33D2                 xor edx,edx                                            ; kernel32.7C80351C  
+0044BC81     8B17                 mov edx,dword ptr ds:\[edi\]                             ；edi = 0044BEA1  
+0044BC83     83C7 04              add edi,4  
+0044BC86     85D2                 test edx,edx  
+0044BC88     74 5B                je short KRYPTON.0044BCE5  
+  
+0044BC8A     33C0                 xor eax,eax  
+0044BC8C     AC                   lods byte ptr ds:\[esi\]  
+0044BC8D     66:C1E0 08           shl ax,8  
+0044BC91     2BD0                 sub edx,eax  
+0044BC93     66:3D 0000           cmp ax,0  
+0044BC97     74 0C                je short KRYPTON.0044BCA5  
+0044BC99     66:33C0              xor ax,ax  
+0044BC9C     AC                   lods byte ptr ds:\[esi\]  
+0044BC9D     2BD0                 sub edx,eax  
+0044BC9F     66:3D 0000           cmp ax,0  
+0044BCA3   ^ 75 E5                jnz short KRYPTON.0044BC8A                              ；对函数名进行一系列变换  
+0044BCA5     85D2                 test edx,edx                    
+0044BCA7     74 04                je short KRYPTON.0044BCAD  
+0044BCA9     61                   popad  
+0044BCAA     40                   inc eax  
+0044BCAB   ^ E2 CC                loopd short KRYPTON.0044BC79                            ；ecx 存放的是输出表函数的个数   
+0044BCAD     61                   popad  
+0044BCAE     8BB5 38BE4100        mov esi,dword ptr ss:\[ebp+41BE38\]                      ; kernel32.7C80261C  
+0044BCB4     8BD3                 mov edx,ebx                                            ; kernel32.7C800000  
+0044BCB6     0356 24              add edx,dword ptr ds:\[esi+24\]                          ；edx 指向输出序列号数组  
+0044BCB9     0FB70442             movzx eax,word ptr ds:\[edx+eax\*2\]  
+0044BCBD     8BD3                 mov edx,ebx                                            ; kernel32.7C800000  
+0044BCBF     0356 1C              add edx,dword ptr ds:\[esi+1C\]         ；edx 指向函数地址数组  
+0044BCC2     031C82               add ebx,dword ptr ds:\[edx+eax\*4\]   
+0044BCC5     8BC3                 mov eax,ebx                                            ; 以上代码的作用就是暴力搜索找到 getprocaddress  
+0044BCC7     83C7 04              add edi,4  
+0044BCCA     AB                   stos dword ptr es:\[edi\]                                ；将 getprocaddress 存放起来  
+0044BCCB     8B85 3CBE4100        mov eax,dword ptr ss:\[ebp+41BE3C\]  
+0044BCD1     8B9D 44BE4100        mov ebx,dword ptr ss:\[ebp+41BE44\]  
+0044BCD7     8B8D 40BE4100        mov ecx,dword ptr ss:\[ebp+41BE40\]  
+0044BCDD     8B95 48BE4100        mov edx,dword ptr ss:\[ebp+41BE48\]                      ；将 kernel 信息放回寄存器  
+0044BCE3   ^\\EB 94                jmp short KRYPTON.0044BC79                             ；循环第一次获取 getproceaddress 第二次获取 getmodulehandlea 第三次 loadlibrarya  
+第四次 exitprocess  
+  
+0044BCE5     B8 00BE4100          mov eax,KRYPTON.0041BE00  
+0044BCEA     03C5                 add eax,ebp  
+0044BCF1     C008 02              ror byte ptr ds:\[eax\],2  
+0044BCF5   ^\\E0 FA                loopdne short KRYPTON.0044BCF1                         ；smc 技术  
+0044BCF7     B8 11BE4100          mov eax,KRYPTON.0041BE11  
+0044BCFC     03C5                 add eax,ebp  
+0044BCFE     B9 17000000          mov ecx,17  
+0044BD03     C008 03              ror byte ptr ds:\[eax\],3  
+0044BD06     40                   inc eax  
+0044BD07   ^ E0 FA                loopdne short KRYPTON.0044BD03                          ；smc 技术  
+         
+0044BD0E     03C5                 add eax,ebp  
+0044BD10     50                   push eax  
+0044BD11     8B85 2CBE4100        mov eax,dword ptr ss:\[ebp+41BE2C\]                      ; kernel32.7C800000  
+0044BD17     50                   push eax  
+0044BD18     50                   push eax  
+0044BD19     8B85 50BE4100        mov eax,dword ptr ss:\[ebp+41BE50\]                      ; kernel32.GetProcAddress  
+  
+0044BD1F     8038 CC              cmp byte ptr ds:\[eax\],0CC                               ；判断是否对 getprocaddress 下断  
+0044BD28     58                   pop eax                                                ; kernel32.7C800000  
+0044BD29     FF95 50BE4100        call dword ptr ss:\[ebp+41BE50\]  
+0044BD2F     0185 0DBE4100        add dword ptr ss:\[ebp+41BE0D\],eax                      ; kernel32.VirtualAlloc         获取函数地址 并存起来  
+0044BD35     B8 11BE4100          mov eax,KRYPTON.0041BE11  
+0044BD3A     03C5                 add eax,ebp  
+  
+0044BD3C     50                   push eax                                               ; KRYPTON.0044BE66  
+0044BD3D     8B85 2CBE4100        mov eax,dword ptr ss:\[ebp+41BE2C\]                      ; kernel32.7C800000  
+0044BD43     50                   push eax  
+0044BD44     50                   push eax  
+0044BD45     8B85 50BE4100        mov eax,dword ptr ss:\[ebp+41BE50\]                      ; kernel32.GetProcAddress  
+  
+0044BD4B     8038 CC              cmp byte ptr ds:\[eax\],0CC  
+0044BD4E    /0F84 F9000000        je KRYPTON.0044BE4D  
+0044BD54    |58                   pop eax  
+0044BD55    |FF95 50BE4100        call dword ptr ss:\[ebp+41BE50\]                         ; kernel32.GetProcAddress  
+0044BD5B     85C0                 test eax,eax  
+0044BD5D     74 21                je short KRYPTON.0044BD80                              ；没有成功跳了  
+  
+0044BD80     8B85 DCBE4100        mov eax,dword ptr ss:\[ebp+41BEDC\]                      ；eax = 20000  
+0044BD86     6A 40                push 40  
+0044BD88     68 00100000          push 1000  
+0044BD8D     50                   push eax  
+0044BD8E     6A 00                push 0  
+0044BD90     50                   push eax  
+0044BD91     8B85 0DBE4100        mov eax,dword ptr ss:\[ebp+41BE0D\]                      ; kernel32.VirtualAlloc  
+0044BD97     8038 CC              cmp byte ptr ds:\[eax\],0CC  
+0044BD9A    /0F84 AD000000        je KRYPTON.0044BE4D                                    ；判断是否下断  
+  
+  
+0044BDA0     58                   pop eax                                                ; 00020000  
+0044BDA1     FF95 0DBE4100        call dword ptr ss:\[ebp+41BE0D\]                         ; kernel32.VirtualAlloc 分配内存  
+0044BDA7     8985 34BE4100        mov dword ptr ss:\[ebp+41BE34\],eax                      ；保存地址 370000  
+0044BDAD     B8 11810100          mov eax,18111  
+0044BDB2     6A 40                push 40  
+0044BDB4     68 00100000          push 1000  
+0044BDB9     50                   push eax  
+0044BDBA     6A 00                push 0  
+0044BDBC     50                   push eax  
+0044BDBD     8B85 0DBE4100        mov eax,dword ptr ss:\[ebp+41BE0D\]                      ; kernel32.VirtualAlloc  
+0044BDC3     8038 CC              cmp byte ptr ds:\[eax\],0CC  
+0044BDC6     0F84 81000000        je KRYPTON.0044BE4D  
+0044BDCC     58                   pop eax  
+0044BDCD     FF95 0DBE4100        call dword ptr ss:\[ebp+41BE0D\]                         ; kernel32.VirtualAlloc 接着分配       390000  
+0044BDD3     8BF0                 mov esi,eax  
+0044BDD5     8BFE                 mov edi,esi  
+0044BDD7     B8 B33F4000          mov eax,KRYPTON.00403FB3  
+0044BDDC     03C5                 add eax,ebp  
+0044BDE3     33DB                 xor ebx,ebx                                            ; kernel32.7C800000  
+0044BDE5     8A18                 mov bl,byte ptr ds:\[eax\]  
+0044BDE7     D2CB                 ror bl,cl  
+0044BDE9     32D9                 xor bl,cl  
+0044BDEB     02D9                 add bl,cl  
+0044BDED     32D9                 xor bl,cl  
+0044BDEF     D2CB                 ror bl,cl  
+0044BDF1     881F                 mov byte ptr ds:\[edi\],bl  
+0044BDF3     47                   inc edi  
+0044BDF4     40                   inc eax  
+0044BDF5   ^ E0 EE                loopdne short KRYPTON.0044BDE5                         ；对 eax：00434009 开始 大小为 00017BF9 的代码进行处理后复制到 39000 处  
+0044BDF7     B8 ACBB4100          mov eax,KRYPTON.0041BBAC  
+0044BDFC     03C5                 add eax,ebp  
+0044BDFE     B9 10050000          mov ecx,510  
+  
+0044BE03     8A18                 mov bl,byte ptr ds:\[eax\]  
+0044BE05     881F                 mov byte ptr ds:\[edi\],bl  
+0044BE07     47                   inc edi  
+0044BE08     40                   inc eax  
+0044BE09   ^ E0 F8                loopdne short KRYPTON.0044BE03                        ；同上接着复制  
+0044BE0B     B8 00BE4100          mov eax,KRYPTON.0041BE00  
+0044BE10     03C5                 add eax,ebp  
+0044BE12     B9 0D000000          mov ecx,0D  
+  
+0044BE17     C020 05              shl byte ptr ds:\[eax\],5  
+0044BE1A     40                   inc eax  
+0044BE1B   ^ E0 FA                loopdne short KRYPTON.0044BE17                        ；eax 刚开始指向的 virtualalloc 对函数名进行加密  
+0044BE1D     B8 11BE4100          mov eax,KRYPTON.0041BE11  
+0044BE22     03C5                 add eax,ebp  
+0044BE24     B9 17000000          mov ecx,17  
+0044BE29     C020 07              shl byte ptr ds:\[eax\],7  
+0044BE2C     40                   inc eax  
+0044BE2D   ^ E0 FA                loopdne short KRYPTON.0044BE29                        ；处理函数 rerviceProcess  
+0044BE2F     E8 00000000          call KRYPTON.0044BE34  
+0044BE34     5D                   pop ebp  
+0044BE35     8BC5                 mov eax,ebp                                           ；获取偏移  
+0044BE37     81ED DFBD4100        sub ebp,KRYPTON.0041BDDF                              ；ebp = 30055  
+0044BE3D     2B85 30BE4100        sub eax,dword ptr ss:\[ebp+41BE30\]  
+0044BE4B     FFE6                 jmp esi                                               ；跳到 390000 处 刚才解密的代码处  
+00390000     E8 4A330000          call 0039334F  
+  
+0039334F     E8 01000000          call 00393355  
+00393355     5D                   pop ebp                                               ; 00393354  
+00393356     81ED 07734000        sub ebp,407307                                        ；获取偏移  
+0039335C     8985 2C784000        mov dword ptr ss:\[ebp+40782C\],eax                     ; KRYPTON.00400000  
+00393362     B8 7A764000          mov eax,40767A  
+00393367     03C5                 add eax,ebp  
+00393369     50                   push eax  
+0039336A     64:67:FF36 0000      push dword ptr fs:\[0\]  
+00393370     64:67:8926 0000      mov dword ptr fs:\[0\],esp  
+00393376     8D85 4C734000        lea eax,dword ptr ss:\[ebp+40734C\]  
+0039337C     8B58 02              mov ebx,dword ptr ds:\[eax+2\]                           ; KRYPTON.00407812  
+0039337F     03DD                 add ebx,ebp  
+00393384     8D85 67734000        lea eax,dword ptr ss:\[ebp+407367\]  
+0039338A     8B58 02              mov ebx,dword ptr ds:\[eax+2\]                           ; KRYPTON.00407812  
+0039338D     03DD                 add ebx,ebp  
+  
+0039338F     8958 02              mov dword ptr ds:\[eax+2\],ebx  
+00393392     2BC0                 sub eax,eax  
+00393394     E8 09000000          call 003933A2  
+  
+003933A2     64:FF30              push dword ptr fs:\[eax\]  
+003933A5     64:8920              mov dword ptr fs:\[eax\],esp  
+  
+003933A8     9C                   pushfd  
+003933A9     804C24 01 01         or byte ptr ss:\[esp+1\],1  
+003933AE     9D                   popfd                                                 ；构造单步异常 此时将 T 标志位置 0  
+003933AF     90                   nop                                                   ；异常  
+003933B0     64:8F00              pop dword ptr fs:\[eax\]                                ; 0012FF98  
+  
+  
+堆栈第二句转存中跟踪，反汇编， 然后 F2       shift + F9 运行程序  
+  
+00393399     FE05 5F383900        inc byte ptr ds:\[39385F\]                              ；断在这里  
+0039339F     2BC0                 sub eax,eax  
+003933A1     C3                   retn  
+  
+然后点击 ctr +　ｆ９返回到用户代码  
+  
+  
+0039340B     90                   nop                                                   ；同样在堆栈第二句跟随 然后下断 如果不下断往下走 但是我发现跟着跟着就创建进程跟不下去了    
+shift +　Ｆ９来到：  
+003936C7     E8 00000000          call 003936CC  
+  
+003936CC     5D                   pop ebp  
+003936CD     81ED 7F764000        sub ebp,40767F  
+003936D3     64:67:A1 0000        mov eax,dword ptr fs:\[0\]  
+003936D8     8B20                 mov esp,dword ptr ds:\[eax\]  
+003936DA     64:67:8F06 0000      pop dword ptr fs:\[0\]  
+003936E0     B8 734A4000          mov eax,404A73  
+003936E5     B9 B33F4000          mov ecx,403FB3  
+  
+003936EA     03CD                 add ecx,ebp　　　　　　　　　　　                    ；ｅｃｘ　＝　３９００００  
+003936EC     C701 E8000000        mov dword ptr ds:\[ecx\],0E8  
+003936F2     898D 0D784000        mov dword ptr ss:\[ebp+40780D\],ecx  
+003936F8     8DB5 F5774000        lea esi,dword ptr ss:\[ebp+4077F5\]  
+003936FE     8DBD 25414000        lea edi,dword ptr ss:\[ebp+404125\]  
+0039370B     03C5                 add eax,ebp  
+0039370D     8DB5 FB774000        lea esi,dword ptr ss:\[ebp+4077FB\]  
+00393713     8DBD 77414000        lea edi,dword ptr ss:\[ebp+404177\]  
+  
+  
+00393719     B9 02000000          mov ecx,2  
+0039371E     F3:A4                rep movs byte ptr es:\[edi\],byte ptr ds:\[esi\]  
+00393720     50                   push eax  
+00393721     8DB5 FD774000        lea esi,dword ptr ss:\[ebp+4077FD\]  
+00393727     8DBD A1414000        lea edi,dword ptr ss:\[ebp+4041A1\]  
+0039372D     B9 02000000          mov ecx,2  
+00393732     F3:A4                rep movs byte ptr es:\[edi\],byte ptr ds:\[esi\]  
+00393734     2BC0                 sub eax,eax  
+00393736     8DB5 FF774000        lea esi,dword ptr ss:\[ebp+4077FF\]  
+0039373C     8DBD C8414000        lea edi,dword ptr ss:\[ebp+4041C8\]  
+00393742     B9 02000000          mov ecx,2  
+00393747     F3:A4                rep movs byte ptr es:\[edi\],byte ptr ds:\[esi\]  
+00393749     64:67:FF36 0000      push dword ptr fs:\[0\]  
+0039374F     64:67:8926 0000      mov dword ptr fs:\[0\],esp  
+00393755     8B8D 0D784000        mov ecx,dword ptr ss:\[ebp+40780D\]  
+0039375B   ^ FFE1                 jmp ecx　　　　　　　　　　　　　跳到３９００００  
+00390000     E8 00000000          call 00390005  
+00390005     5D                   pop ebp  
+00390006     8BC5                 mov eax,ebp  
+00390008     81ED B83F4000        sub ebp,403FB8  
+0039000E     EB 3F                jmp short 0039004F  
+0039004F     51                   push ecx  
+00390050     E8 F0FFFFFF          call 00390045  
+下面有很多垃圾代码　我只记录一下有用的  
+  
+0039002E     0FB6B5 30784000      movzx esi,byte ptr ss:\[ebp+407830\]　　　　　　　　　　；ｅｓｉ　＝　３  
+00390058     8BFD                 mov edi,ebp  
+0039007E     66:C785 75674000 EBF>mov word ptr ss:\[ebp+406775\],0FEEB  
+  
+003900CE     8B9D 2C784000        mov ebx,dword ptr ss:\[ebp+40782C\]                     ; KRYPTON.00400000  
+  
+003900F5     8B87 35784000        mov eax,dword ptr ds:\[edi+407835\]　　　　　　　　　　　；ｅａｘ＝　１０００  
+  
+0039011C     03D8                 add ebx,eax　　　　　　　　　　　　　                  ；ｅｂｘ指向程序代码段  
+  
+00390145     8B8F 39784000        mov ecx,dword ptr ds:\[edi+407839\]　　　　　            ；ｅｃｘ　＝　１２００ 段的大小  
+00390172     8A85 17784000        mov al,byte ptr ss:\[ebp+407817\]　　　　　　  
+003901C4     0003                 add byte ptr ds:\[ebx\],al  
+003901EE     3003                 xor byte ptr ds:\[ebx\],al  
+00390215     D20B                 ror byte ptr ds:\[ebx\],cl  
+0039023D     FEC0                 inc al  
+  
+00390261     43                   inc ebx                                                ; KRYPTON.00401000  
+00390285     49                   dec ecx  
+003901C4     0003                 add byte ptr ds:\[ebx\],al  
+  
+003902B6   ^\\74 F0                je short 003902A8　　　　　　　　　　　　　　　　      ；上面几句就是对００４０１００开始的１２００大小的代码进行解码  
+  
+003902A8   ^\\0F85 EEFEFFFF        jnz 0039019C  
+003902AE    /EB 3E                jmp short 003902EE　  
+  
+003902D1     83C7 08              add edi,8  
+  
+003902FD     4E                   dec esi　　　　　　　　　　　　　　　　　　             ；ｅｓｉ　＝　３　肯能是要解压的段数  
+  
+003900CE     8B9D 2C784000        mov ebx,dword ptr ss:\[ebp+40782C\]                      ; KRYPTON.00400000  
+  
+  
+003900F5     8B87 35784000        mov eax,dword ptr ds:\[edi+407835\]　　　　　　　　　　　；　下一个段的偏移：３０００  
+0039011C     03D8                 add ebx,eax  
+00390145     8B8F 39784000        mov ecx,dword ptr ds:\[edi+407839\]　　　　　　　　　　　；大小：　１９２００  
+00390172     8A85 17784000        mov al,byte ptr ss:\[ebp+407817\]　　　　　　  
+003901C4     0003                 add byte ptr ds:\[ebx\],al  
+003901EE     3003                 xor byte ptr ds:\[ebx\],al  
+00390215     D20B                 ror byte ptr ds:\[ebx\],cl  
+0039023D     FEC0                 inc al  
+  
+00390261     43                   inc ebx                                                ; KRYPTON.00401000  
+00390285     49                   dec ecx  
+003901C4     0003                 add byte ptr ds:\[ebx\],al  
+  
+003902B6   ^\\74 F0                je short 003902A8　　　　　　　　　　　　　　　　      ；上面几句就是对００４０３００开始的１９２００大小的代码进行解码  
+  
+003902D1     83C7 08              add edi,8  
+  
+003902FD     4E                   dec esi  
+  
+0039036F     51                   push ecx　　　　　　　　　　　　　　　　　　           ；全部处理完跳到此处  
+  
+00390353     2BC0                 sub eax,eax  
+  
+0039037B     8918                 mov dword ptr ds:\[eax\],ebx                             ; KRYPTON.0041D400　异常　一样的处理　ｓｈｉｆｔ　＋　Ｆ９来到  
+00390AC0     E8 00000000          call 00390AC5  
+00390AC5     5D                   pop ebp                                                ; 00390AC5  
+00390AC6     81ED 784A4000        sub ebp,404A78  
+  
+  
+00390AF0     64:67:A1 0000        mov eax,dword ptr fs:\[0\]  
+  
+00390B17     8B20                 mov esp,dword ptr ds:\[eax\]  
+  
+00390B38     64:67:8F06 0000      pop dword ptr fs:\[0\]                                   ; 0012FFE0  
+  
+00390C19     B8 2B674000          mov eax,40672B  
+  
+  
+00390C3D     03C5                 add eax,ebp　　　　　　　　　　　　　　                ；此时ｅａｘ指向ａｄｖａｐｉ３２.ｄｌｌ  
+00390C5E     50                   push eax  
+00390CAB     50                   push eax  
+00390CD3     8B85 60BE4100        mov eax,dword ptr ss:\[ebp+41BE60\]                      ; kernel32.LoadLibraryA  
+  
+00390CFD     8038 CC              cmp byte ptr ds:\[eax\],0CC  
+00390D26    /0F84 19710100        je 003A7E45  
+00390D51     58                   pop eax  
+  
+00390D91     FF95 60BE4100        call dword ptr ss:\[ebp+41BE60\]                         ; kernel32.LoadLibraryA  
+00390DB8     8985 A7664000        mov dword ptr ss:\[ebp+4066A7\],eax                      ; Advapi32.77DA0000  
+00390E04     BB 38674000          mov ebx,406738  
+00390E28     03DD                 add ebx,ebp　　　　　　　　　　　　　　　　　　　　　   ；ｅｂｘ指向函数名　　　　　　　　　　　  
+00390E49     BE 64674000          mov esi,406764  
+00390E72     03F5                 add esi,ebp  
+00390EC0     8BBD A7664000        mov edi,dword ptr ss:\[ebp+4066A7\]                      ; Advapi32.77DA0000  
+  
+00390F28     57                   push edi                                               ; Advapi32.77DA0000  
+00390F73     50                   push eax                                               ; Advapi32.77DA0000  
+00390F96     8B85 50BE4100        mov eax,dword ptr ss:\[ebp+41BE50\]                      ; kernel32.GetProcAddress  
+00390FC4     8038 CC              cmp byte ptr ds:\[eax\],0CC  
+00390FEC    /0F84 536E0100        je 003A7E45  
+00391016     58                   pop eax                                                ; Advapi32.77DA0000  
+0039105D     FF95 50BE4100        call dword ptr ss:\[ebp+41BE50\]                         ; kernel32.GetProcAddress  
+00391086     0106                 add dword ptr ds:\[esi\],eax                             ; Advapi32.RegCreateKeyExA　存放函数地址　ｅｓｉ＝　003927B1  
+  
+003910C7     43                   inc ebx  
+  
+003910EF     803B 00              cmp byte ptr ds:\[ebx\],0  
+  
+003910FA   ^\\74 F3                je short 003910EF  
+  
+003910EF     803B 00              cmp byte ptr ds:\[ebx\],0　　　　　　　　　　             ；此时ｅｂｘ　指向ｃｒｅａｔｅｋｅｙｅｘａ　　此处循环处理几个注册表操作函数  
+  
+  
+  
+00391169     83C6 04              add esi,4　　　　　　　　　　　　　　　　               ；处理完注册表的函数来到此处　ｅｓｉ　＝　003927B9  
+  
+00391194     803E FF              cmp byte ptr ds:\[esi\],0FF  
+0039122A     B8 9CBE4100          mov eax,41BE9C  
+00391252     03C5                 add eax,ebp　　　　　　　　　　　　　　　　　　　        ；ｅａｘ指向ｋｅｒｎｅ３２.ｄｌｌ  
+00391273     50                   push eax  
+003912B6     50                   push eax  
+003912DC     8B85 58BE4100        mov eax,dword ptr ss:\[ebp+41BE58\]                      ; kernel32.GetModuleHandleA  
+00391301     8038 CC              cmp byte ptr ds:\[eax\],0CC  
+00391357     58                   pop eax  
+  
+003913A3     FF95 58BE4100        call dword ptr ss:\[ebp+41BE58\]                         ; kernel32.GetModuleHandleA  
+003913C8     8985 A3664000        mov dword ptr ss:\[ebp+4066A3\],eax                      ; kernel32.7C800000  
+  
+00391415     B8 CE744000          mov eax,4074CE  
+  
+00391441     03C5                 add eax,ebp　　　　　　　　　　　　　　　　　　　       ；ｅａｘ指向函数名ｇｅｔｃｏｍｍａｎｄｌｉｎｅａ  
+00391465     50                   push eax  
+00391487     8B85 A3664000        mov eax,dword ptr ss:\[ebp+4066A3\]                      ; kernel32.7C800000  
+003914B2     50                   push eax                                               ; kernel32.7C800000  
+  
+003914F5     50                   push eax                                               ; kernel32.7C800000  
+  
+00391517     8B85 50BE4100        mov eax,dword ptr ss:\[ebp+41BE50\]                      ; kernel32.GetProcAddress  
+00391540     8038 CC              cmp byte ptr ds:\[eax\],0CC  
+  
+00391591     58                   pop eax                                                ; kernel32.7C800000  
+00391601     FF95 50BE4100        call dword ptr ss:\[ebp+41BE50\]                         ; kernel32.GetProcAddress  
+0039162F     0185 71674000        add dword ptr ss:\[ebp+406771\],eax                      ; kernel32.GetCommandLineA 获取此函数地址后面会用到  
+  
+003927BE  7C812F3D  kernel32.GetCommandLineA  
+  
+0039169C     50                   push eax                                               ; kernel32.GetCommandLineA  
+003916C4     8B85 71674000        mov eax,dword ptr ss:\[ebp+406771\]                      ; kernel32.GetCommandLineA  
+  
+003916EE     8038 CC              cmp byte ptr ds:\[eax\],0CC  
+0039173B     58                   pop eax                                                ; kernel32.GetCommandLineA  
+  
+0039179F     FF95 71674000        call dword ptr ss:\[ebp+406771\]                         ; kernel32.GetCommandLineA  
+003917C5     50                   push eax  
+  
+003917EB     8BF8                 mov edi,eax  
+0039180F     32C0                 xor al,al  
+00391832     B9 FFFFFFFF          mov ecx,-1  
+  
+0039185A     F2:AE                repne scas byte ptr es:\[edi\]  
+  
+  
+0039187B     F7D9                 neg ecx　　　　　　　　　　　　　　　　　　　          ；ｅｃｘ路径名长度  
+  
+003918A1     49                   dec ecx  
+003918C5     5E                   pop esi                                                ; 00142358  
+00391911     BF D7664000          mov edi,4066D7  
+0039193D     03FD                 add edi,ebp  
+  
+00391987     33DB                 xor ebx,ebx  
+  
+  
+003919FC     8A1E                 mov bl,byte ptr ds:\[esi\]  
+00391A24     80FB 5C              cmp bl,5C  
+00391ABB     881F                 mov byte ptr ds:\[edi\],bl  
+00391AE0     46                   inc esi　　　　　　　　　　　　　　　　　　　　        ；ｅｓｉ指向的是程序路径名  
+00391B09     47                   inc edi  
+003919FC     8A1E                 mov bl,byte ptr ds:\[esi\]  
+  
+00391A24     80FB 5C              cmp bl,5C  
+  
+00391A4B    /75 47                jnz short 00391A94  
+00391A4D    /EB 3A                jmp short 00391A89  
+00391A6D     B3 2D                mov bl,2D  
+00391ABB     881F                 mov byte ptr ds:\[edi\],bl　　　　　　　　　　           ；主要是将路径名中的＼转化为－  
+00391B7C     C607 00              mov byte ptr ds:\[edi\],0  
+00391BF4     B8 27674000          mov eax,406727  
+  
+00391C1F     03C5                 add eax,ebp  
+  
+00391C47     50                   push eax  
+00391C6D     B8 23674000          mov eax,406723  
+00391C98     03C5                 add eax,ebp  
+  
+00391CC0     50                   push eax  
+00391CE0     6A 00                push 0  
+00391D08     68 03001F00          push 1F0003  
+  
+00391D30     6A 00                push 0  
+  
+00391D52     6A 00                push 0  
+00391D77     6A 00                push 0  
+00391D9B     B8 C6664000          mov eax,4066C6  
+00391DBF     03C5                 add eax,ebp  
+00391DE2     50                   push eax  
+00391E02     8B85 AF664000        mov eax,dword ptr ss:\[ebp+4066AF\]  
+00391E27     50                   push eax  
+00391E6E     50                   push eax  
+00391E97     8B85 64674000        mov eax,dword ptr ss:\[ebp+406764\]                      ; Advapi32.RegCreateKeyExA  
+00391EC0     8038 CC              cmp byte ptr ds:\[eax\],0CC  
+00391F0B     58                   pop eax                                                ; Advapi32.RegCreateKeyExA  
+00391F4E     FF95 64674000        call dword ptr ss:\[ebp+406764\]                         ; Advapi32.RegCreateKeyExA  
+  
+0012FF74   80000002    键  
+0012FF78   00392713　　　　　　　　　子键  
+0012FF7C   00000000  
+00391F93     8B85 C2664000        mov eax,dword ptr ss:\[ebp+4066C2\]  
+00391FBB     50                   push eax  
+  
+  
+00391FE1     B8 B9664000          mov eax,4066B9  
+  
+0039200B     03C5                 add eax,ebp  
+00392030     8B18                 mov ebx,dword ptr ds:\[eax\]  
+00392052     899D 73714000        mov dword ptr ss:\[ebp+407173\],ebx  
+0039207F     50                   push eax  
+003920A6     6A 03                push 3  
+003920C9     6A 00                push 0  
+  
+003920EC     B8 B3664000          mov eax,4066B3  
+00392111     03C5                 add eax,ebp  
+0039213A     50                   push eax  
+0039215B     8B85 23674000        mov eax,dword ptr ss:\[ebp+406723\]  
+00392185     50                   push eax  
+003921CC     50                   push eax  
+  
+003921F2     8B85 68674000        mov eax,dword ptr ss:\[ebp+406768\]                      ; Advapi32.RegSetValueExA  
+  
+00392219     8038 CC              cmp byte ptr ds:\[eax\],0CC  
+  
+00392268     58                   pop eax                                                ; Advapi32.RegSetValueExA  
+003922B5     FF95 68674000        call dword ptr ss:\[ebp+406768\]                         ; Advapi32.RegSetValueExA  
+  
+00392319     0FB6B5 30784000      movzx esi,byte ptr ss:\[ebp+407830\]　　　　　　　　　　　ｅｓｉ　＝　３  
+0039233F     8BFD                 mov edi,ebp  
+  
+0039238A     8B9D 2C784000        mov ebx,dword ptr ss:\[ebp+40782C\]                      ; KRYPTON.00400000  
+003923B4     8B87 35784000        mov eax,dword ptr ds:\[edi+407835\]  
+  
+003923DB     03D8                 add ebx,eax  
+  
+00392400     8B8F 39784000        mov ecx,dword ptr ds:\[edi+407839\]　　　　　　　　　　　；再一次进行解码  
+　　直接对ｃｔｒ　＋　ｇ　找到　ｇｅｔｐｒｏｃａｄｄｒｅｓｓ　在ｒｅｔｎ　８　处　下断　  
+  
+003928AC     83BD 6F714000 00     cmp dword ptr ss:\[ebp+40716F\],0  
+003928B3     74 13                je short 003928C8  
+003928B5     8B8D 6F714000        mov ecx,dword ptr ss:\[ebp+40716F\]                      ; KRYPTON.0041D176  
+003928BB     90                   nop  
+003928BC     90                   nop  
+003928BD     90                   nop  
+003928BE     D221                 shl byte ptr ds:\[ecx\],cl  
+003928C0     3001                 xor byte ptr ds:\[ecx\],al  
+003928C2     41                   inc ecx  
+003928C3     8039 00              cmp byte ptr ds:\[ecx\],0　　                        
+这段代码处理前后如下：  
+  
+ecx : 0041d168  
+0041D168  45 78 69 74 50 72 6F 63  ExitProc  
+0041D170  65 73 73 00 00 00 1D 95  ess...  
+处理后  
+0041D168  82 82 82 82 82 82 82 82    
+0041D170  82 82 82 00 00 00 1D 95  ?..  
+  
+0039298A     8B9D 34BE4100        mov ebx,dword ptr ss:\[ebp+41BE34\]                       ；00370000 赋给 ebx  
+003929AF     8985 96714000        mov dword ptr ss:\[ebp+407196\],eax                      ; kernel32.ExitProcess 赋值给 3931e3  
+  
+003929DC     8DBD 7B714000        lea edi,dword ptr ss:\[ebp+40717B\]                      ;3931c8 赋值给 edi  
+  
+00392A02     8385 A2714000 1F     add dword ptr ss:\[ebp+4071A2\],1F                       ；初始值为零  
+00392A2B     039D A2714000        add ebx,dword ptr ss:\[ebp+4071A2\]  
+00392A57     899D A6714000        mov dword ptr ss:\[ebp+4071A6\],ebx                      ；赋给 003931f3  
+00392A80     8BC3                 mov eax,ebx  
+00392AA1     8A0F                 mov cl,byte ptr ds:\[edi\]  
+  
+00392AC3     880B                 mov byte ptr ds:\[ebx\],cl  
+00392AE8     43                   inc ebx  
+00392B09     47                   inc edi  
+  
+00392B2B     833F 00              cmp dword ptr ds:\[edi\],0  
+00392B55   ^\\0F85 46FFFFFF        jnz 00392AA1  
+00392B5B    /EB 3B                jmp short 00392B98                                   ；复制完毕就跳       3931c8~  e6 ------》 37001f         
+  
+  
+00392B9F     8BC8                 mov ecx,eax                                          ；0037001f  
+       
+00392BC7     83C1 1B              add ecx,1B  
+  
+00392BEC     8948 02              mov dword ptr ds:\[eax+2\],ecx                         ；0037003A  
+0037001F  81 35 3A 00 37 00 11 11  ?:.7.  
+00370027  11 11 A1 96 71 40 00 81  q@.  
+  
+00392C11     8948 11              mov dword ptr ds:\[eax+11\],ecx                      
+0037001F  81 35 3A 00 37 00 11 11  ?:.7.  
+00370027  11 11 A1 96 71 40 00 81  q@.  
+  
+00392C39     8948 0B              mov dword ptr ds:\[eax+B\],ecx  
+  
+00392C86     8BD8                 mov ebx,eax                ；0037001f  
+00392CA8     8B85 73714000        mov eax,dword ptr ss:\[ebp+407173\]                      ；  CBFF22BB  
+00392CD5     B9 6D4EC641          mov ecx,41C64E6D  
+00392CFE     F7E1                 mul ecx  
+00392D21     05 39300000          add eax,3039  
+00392D4D     25 FFFFFF7F          and eax,7FFFFFFF  
+  
+00392D79     8985 73714000        mov dword ptr ss:\[ebp+407173\],eax  
+  
+00392DCC     3D 0000003F          cmp eax,3F000000  
+  
+00392DF7    /0F8D 2B010000        jge 00392F28                                           ； exitprocess 跳了 这里就是对 iat 加密处理的两个分支处        
+  
+00392F6B     C643 01 05           mov byte ptr ds:\[ebx+1\],5                               ；0037001f  
+  
+00392F94     C643 10 2D           mov byte ptr ds:\[ebx+10\],2D  
+  
+00392FB9     8943 06              mov dword ptr ds:\[ebx+6\],eax  
+  
+00392FDE     8943 15              mov dword ptr ds:\[ebx+15\],eax  
+  
+0039302A     2943 1B              sub dword ptr ds:\[ebx+1B\],eax                         ；处理方式 1 减的方式 当然恢复的时候就用加  
+  
+003930AF     61                   popad  
+0037001F  81 05 3A 00 37 00 D8 F3  ?:.7.伢  
+00370027  D8 6F A1 3A 00 37 00 81  ?.7.  
+0037002F  2D 3A 00 37 00 D8 F3 D8  -:.7.伢  
+  
+003930D5     8B85 A6714000        mov eax,dword ptr ss:\[ebp+4071A6\]                     ；加密地址 0037001f 填入  
+0039311F     8907                 mov dword ptr ds:\[edi\],eax                            ；0041d0c8  
+00393147     8385 1C784000 04     add dword ptr ss:\[ebp+40781C\],4                        ；00393869 初始为零  
+  
+00392812     8B95 2C784000        mov edx,dword ptr ss:\[ebp+40782C\]                      ; KRYPTON.00400000  
+  
+  
+00392818     8B06                 mov eax,dword ptr ds:\[esi\]                              ；0001D050      《          0041d000  
+  
+0039281A     0BC0                 or eax,eax  
+  
+0039281C    /75 03                jnz short 00392821  
+  
+  
+00392821     03C2                 add eax,edx                                            ; KRYPTON.00400000  
+  
+00392823     0385 1C784000        add eax,dword ptr ss:\[ebp+40781C\]  
+00392829     8B18                 mov ebx,dword ptr ds:\[eax\]                              ；0001D174  
+0039282B     8B7E 10              mov edi,dword ptr ds:\[esi+10\]                           ；0001D0C8  
+0039282E     03FA                 add edi,edx                                            ; KRYPTON.00400000  
+  
+00392830     03BD 1C784000        add edi,dword ptr ss:\[ebp+40781C\]  
+00392836     85DB                 test ebx,ebx  
+00392838    /0F84 B9090000        je 003931F7  
+0039283E    |F7C3 00000011        test ebx,11000000  
+00392846     F7C3 00000080        test ebx,80000000  
+0039284C     75 22                jnz short 00392870  
+  
+0039284E     03DA                 add ebx,edx                                            ; KRYPTON.00400000  
+00392850     83C3 02              add ebx,2  
+00392853     813B 46617461        cmp dword ptr ds:\[ebx\],61746146  
+00392859    /75 0D                jnz short 00392868  
+  
+00392868     899D 6F714000        mov dword ptr ss:\[ebp+40716F\],ebx                      ; KRYPTON.0041D176  
+  
+0039286E    /EB 17                jmp short 00392887  
+  
+00392889     C00B 02              ror byte ptr ds:\[ebx\],2  
+  
+0039288C     43                   inc ebx                                                ; KRYPTON.0041D176  
+0039288D     803B 00              cmp byte ptr ds:\[ebx\],0  
+00392890   ^ 75 F5                jnz short 00392887  
+0041D172  82 00 00 00 47 65 74 54  ?..GetT  
+0041D17A  69 63 6B 43 6F 75 6E 74  ickCount                                                ；解出函数名  
+0041D182  00 00 00 00 4D 95 D1 19  ....M  
+0041D18A  A5 B1 95 41 BD A5 B9 D1  ケ渐寡  
+00392892     8B9D 6F714000        mov ebx,dword ptr ss:\[ebp+40716F\]                      ; KRYPTON.0041D176  
+  
+00392899     81E3 FFFFFF0F        and ebx,0FFFFFFF  
+  
+0039289F     53                   push ebx  
+003928A0     FFB5 18784000        push dword ptr ss:\[ebp+407818\]                         ; kernel32.7C800000  
+003928A6     FF95 50BE4100        call dword ptr ss:\[ebp+41BE50\]                         ; kernel32.GetProcAddress  
+003928AC     83BD 6F714000 00     cmp dword ptr ss:\[ebp+40716F\],0  
+003928B3     74 13                je short 003928C8  
+  
+003928B5     8B8D 6F714000        mov ecx,dword ptr ss:\[ebp+40716F\]                      ; KRYPTON.0041D176 指向函数名  
+003928BB     90                   nop  
+003928BC     90                   nop  
+003928BD     90                   nop  
+003928BE     D221                 shl byte ptr ds:\[ecx\],cl  
+003928C0     3001                 xor byte ptr ds:\[ecx\],al  
+003928C2     41                   inc ecx  
+003928C3     8039 00              cmp byte ptr ds:\[ecx\],0  
+003928C6   ^ 75 F3                jnz short 003928BB  
+003928C8     0BC0                 or eax,eax                                             ; kernel32.GetTickCount  
+  
+003928CA   ^\\0F84 CADFFFFF        je 0039089A  
+003928D0     EB 44                jmp short 00392916  
+  
+  
+003928F5     80BD 0C784000 FF     cmp byte ptr ss:\[ebp+40780C\],0FF                        ；接着处理下一个函数   循环了  
+  
+jge  
+没有跳的情况      即是第二种加密 iat 的方式    恢复时也用异或       
+  
+00392E42     8943 06              mov dword ptr ds:\[ebx+6\],eax  
+  
+00392E6C     8943 15              mov dword ptr ds:\[ebx+15\],eax  
+  
+00392EB6     3143 1B              xor dword ptr ds:\[ebx+1B\],eax                           ；eax：2ABBD331  
+  
+  
+  
+  
+可见壳对函数加密有两种方式　一种是异或　一种是减的方式　运行到最后一次异常　　找到异常处理地方ｓｈｉｆｔ　＋f9   
+  
+  
+  
+003939DD     64:67:A1 0000        mov eax,dword ptr fs:\[0\]  
+003939E2     8B20                 mov esp,dword ptr ds:\[eax\]  
+003939E4     64:67:8F06 0000      pop dword ptr fs:\[0\]  
+  
+  
+003939EA     E8 00000000          call 003939EF  
+003939EF     5D                   pop ebp  
+003939F0     81ED A2794000        sub ebp,4079A2  
+003939F6     80BD FB824000 FF     cmp byte ptr ss:\[ebp+4082FB\],0FF  
+003939FD     74 11                je short 00393A10  
+  
+  
+00393A10     E8 00000000          call 00393A15  
+00393A15     5D                   pop ebp                                                ; 00393A15  
+  
+00393A16     81ED C8794000        sub ebp,4079C8  
+00393A1C     B8 00104000          mov eax,401000                                         ;OEP  
+00393A21     8B8D 00834000        mov ecx,dword ptr ss:\[ebp+408300\]  
+00393A27     8D9D 137A4000        lea ebx,dword ptr ss:\[ebp+407A13\]  
+00393A2D     899D A8BB4100        mov dword ptr ss:\[ebp+41BBA8\],ebx  
+00393A33     8D9D A8BB4100        lea ebx,dword ptr ss:\[ebp+41BBA8\]  
+00393A39     66:8138 FF15         cmp word ptr ds:\[eax\],15FF  
+00393A3E     75 09                jnz short 00393A49  
+00393A49     40                   inc eax  
+00393A4A     49                   dec ecx  
+00393A4B     85C9                 test ecx,ecx  
+00393A4D   ^ 75 EA                jnz short 00393A39                                    ;对 oep 开始的 call 进行处理  
+ 00393A4F     8B8D AFBB4100        mov ecx,dword ptr ss:\[ebp+41BBAF\]  
+00393A55     890C24               mov dword ptr ss:\[esp\],ecx  
+00393A58     8B95 B6BB4100        mov edx,dword ptr ss:\[ebp+41BBB6\]  
+00393A5E   - FFE2                 jmp edx                                               ;跳向 oep  
+  
+  
+脱壳：  
+忽略所有异常 ctrl +　g 到 003928BE     将下面两句 nop 掉 不让他破坏函数名  
+003928BE     D221                 shl byte ptr ds:\[ecx\],cl  
+003928C0     3001                 xor byte ptr ds:\[ecx\],al  
+  
+然后 ctrl　+  g 到 003930D5  把下面这句 nop 掉    不让加密地址写入  
+003930D5     8B85 A6714000        mov eax,dword ptr ss:\[ebp+4071A6\]    
+  
+然后 ctrl +　g　到 00401000 下硬件执行断点　dump 程序 ir 修复 全部有效 修复后可以运行  
+  
+脱壳总结：  
+这个壳主要指花指令比较繁琐 iat 加密采用了两种方式 减类型 和 异或类型  
+special thx：wynney
+
+上传的附件
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || KRYPTON.rar\[解压密码：PEDIY\]  
+ |

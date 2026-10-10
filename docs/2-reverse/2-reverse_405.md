@@ -1,0 +1,120 @@
+
+
+# IDC Script 实战
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6180.htm`](https://www.pediy.com/kssd/pediy06/pediy6180.htm)
+
+在研究一个 Borland C++写的软件时，遇到以下问题：在主 EXE 文件和一个 DLL 中包含有大量的字符串资源，包括各种提示及错误信息。代码中使用这些资源的方式基本一致，即构造一个 OWL 的 TStringIDS 对象，把资源 ID 作为参数传入。在 IDA 中，为以下格式：  
+　　　  
+　　push    nResourceID 
+
+  一开始，遇到这样的代码，我用 ResHacker 手工查找，把资源字符串作为相应代码的注释。这样做效率实在太低，转念一想，干嘛不试试 IDC Script，要是能把所有的 push nResourceID 自动做上注释，无疑能大大增加代码的可读性。  
+
+　　注意：这样做出的注释，可能有一些错误，把与资源访问无关的代码也进行解释。对于 Resource ID 在 10 以下的，最好不要用。比如 push 1 的意思可能是 push true。还有一些地方，是在调用 new 操作符分配内存，也会 push 一个立即数。不过这种注释错误一般能看出来，还是利大于弊。  
+
+  我的 IDB 文件为 9MB 多，在 AMD 1700+上跑 1 次约 5 分钟。  
+
+  几句说明：  
+
+1\. 用 ResHacker 打开该 DLL，将字符串资源另存到单独的.RC 文件中。用 Notepad 删除资源描   
+ 述语句。得到的数据格式如下(test.rc)：  
+
+　　0, "test1"  
+　　1, "test2"  
+　　2, "test3"  
+　　 ...  
+
+2\. 用 FindBinary 直接查找 push 指令的 Opcode。当操作数为立即数时,对应的代码有  
+  0x6A,0x68 两个。所以写成的 Script 在执行一次后，修改一下查找字符串再跑一次。  
+
+3.从 RC 文件中取出资源 ID,转换为 long 进行比较，匹配即作注释。  
+
+代码如下：  
+
+ #include <idc.idc>  
+
+static main()  
+{  
+auto nStartAddr; //起始地址=0x401000  
+auto nResult;    //找到的地址  
+auto szFile;     //  
+auto hFile;            
+
+ auto szData;          //RC 文件的 1 行  
+auto nPos;   //    
+auto szOperandInFile; //RC 文件 1 行的 ResourceID 部分  
+auto szComment;       //RC 文件 1 行的字符串部分  
+auto bFound;  
+
+ auto nOperand;   //当前地址的第 1 个 operand  
+auto nOperandInDataFile; //RC 文件 1 行的 ResourceID 部分转换出的 long 值  
+auto nOperandType;   //当前 operand 类型,5 为 Immediate  
+
+  
+//选择 RC 文件  
+
+ szFile=AskFile(0,"\*.rc","Select a data file");  
+   
+hFile=fopen(szFile,"r");  
+
+ if(0==hFile)  
+{  
+   Message("Failed to open the file");  
+   return;  
+}  
+
+ nStartAddr=0x401000;  
+
+ do //扫描 IDB 的 CODE 段  
+{  
+    nResult=FindBinary(nStartAddr,SEARCH\_NEXT|SEARCH\_DOWN,"6A");  //  
+                                                      //用"68"再做一遍  
+   
+    if(nResult!=BADADDR)  
+    {  
+       nOperandType=GetOpType(nResult,0); //测试 operand 类型  
+   
+       if(nOperandType==5) //Immediate  
+       {  
+          nOperand=GetOperandvalue(nResult,0);  
+
+          //在 RC 文件中搜索  
+
+          fseek(hFile,0,0);    
+          bFound=0;  
+
+          do  
+          {  
+             szData=readstr(hFile);  
+             if(szData != -1) //文件尾  
+             {  
+               nPos=strstr(szData,",");  //分成 2 部分  
+               szOperandInFile=substr(szData,0,nPos);  
+               szComment=substr(szData,nPos+3,-1);  
+
+               nOperandInDataFile=atol(szOperandInFile);  
+
+               if(nOperand==nOperandInDataFile) //匹配?  
+               {  
+                    Message(form("\\nFound at %X",nResult));  
+                    MakeComm(nResult,szComment); //注释  
+   
+                    bFound=1; //找到则退出 do-while  
+               }  
+            }  
+           }while((szData!= -1)&&(bFound==0));  
+        }  
+     }  
+
+     nStartAddr=NextAddr(nResult);  //更新地址  
+
+ }while((nStartAddr<0x48D000)&&(nResult!=BADADDR));  //在 DATA 段前结束  
+
+ fclose(hFile);  
+
+ Message("\\n");  
+Message(form("%s processed successfully!",szFile));  
+}  
+
+  
+ 4dd466d0e1e0cc123afbe504da2462ca

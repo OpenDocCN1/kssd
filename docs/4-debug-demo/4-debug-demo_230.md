@@ -1,0 +1,180 @@
+
+
+# Animated Email Magic 2.0
+
+> 原文：[`www.pediy.com/kssd/pediy02/forum233.htm`](https://www.pediy.com/kssd/pediy02/forum233.htm)
+
+ 软件名称：Animated Email Magic   
+最新版本：2.0 Release D   
+文件大小：7463KB   
+使用平台：Win95/98/NT   
+软件简介：   
+在邮件中加上动画，让 MAIL 更加生动活泼。   
+  
+安装完,运行,发现要在线注册,差点儿 uninstall,突然发现是 30 天 DEMO,干脆把时钟向前调,   
+再次运行,弹出个对话框,显示出本机代码并要求输入注册码.嘿嘿,这就好办了....   
+  
+设断点 bpx hmemcpy,找到了计算和比较的地方,看下面   
+  
+\========================================================================   
+以下是计算部分   
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:0044E94B(C)   
+|   
+:0044E930 8B550C                  mov edx, dword ptr \[ebp+0C\]   
+:0044E933 8B0C82                  mov ecx, dword ptr \[edx+4\*eax\]<-----取内部的数据   
+:0044E936 8BD3                    mov edx, ebx   
+:0044E938 D3E2                    shl edx, cl   
+:0044E93A 85F2                    test edx, esi<--ESI 存放的是十六进制的输入码与 1D7EA925 的异或结果   
+:0044E93C 7409                    je 0044E947   
+:0044E93E 8BC8                    mov ecx, eax   
+:0044E940 8BD3                    mov edx, ebx   
+:0044E942 D3E2                    shl edx, cl   
+:0044E944 0955FC                  or dword ptr \[ebp\-04\], edx   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:0044E93C(C)   
+|   
+:0044E947 40                      inc eax   
+:0044E948 83F820                  cmp eax, 00000020 <-----32 个数据   
+:0044E94B 7CE3                    jl 0044E930   
+:0044E94D 8B45FC                  mov eax, dword ptr \[ebp\-04\]   
+:0044E950 5E                      pop esi   
+:0044E951 5B                      pop ebx   
+:0044E952 59                      pop ecx   
+:0044E953 5D                      pop ebp   
+:0044E954 C3                      ret   
+  
+  
+32 个内部数据   
+4 1A  6 15   
+8  A 18  C   
+1  F  7  B   
+0  2  0 10   
+1B 1E 12 1F   
+11 1D 13 14   
+17  9  E 19   
+16 1C  5  3   
+  
+由我输入的注册码 87654321 计算后得到 3615A6A1   
+然后软件会将其与另一个码 E992DC7F(估计与本机代码 391-8716-031 有关)比较   
+  
+\=================   
+\* Referenced by a CALL at Addresses:   
+|:0044EF73  , :0044F615    
+|   
+:0044EFF3 55                      push ebp   
+:0044EFF4 8BEC                    mov ebp, esp   
+:0044EFF6 53                      push ebx   
+:0044EFF7 56                      push esi   
+:0044EFF8 8B5D08                  mov ebx, dword ptr \[ebp+08\]   
+:0044EFFB 8B750C                  mov esi, dword ptr \[ebp+0C\]   
+:0044EFFE FF35009F5000            push dword ptr \[00509F00\]   
+:0044F004 68809E5000              push 00509E80   
+:0044F009 56                      push esi   
+:0044F00A E809F9FFFF              call 0044E918   
+:0044F00F 83C40C                  add esp, 0000000C   
+:0044F012 3B4341                  cmp eax, dword ptr \[ebx+41\]<---3615A6A1 与 E992DC7F 比较   
+:0044F015 0F94C0                  sete al          <----若输入的注册码正确设标志   
+:0044F018 83E001                  and eax, 00000001   
+:0044F01B 5E                      pop esi   
+:0044F01C 5B                      pop ebx   
+:0044F01D 5D                      pop ebp   
+:0044F01E C3                      ret   
+  
+\==============   
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:0044F238(C)   
+|   
+:0044F60A 53                      push ebx   
+:0044F60B E879F3FFFF              call 0044E989   
+:0044F610 59                      pop ecx   
+:0044F611 8BD8                    mov ebx, eax   
+:0044F613 53                      push ebx   
+:0044F614 56                      push esi   
+:0044F615 E8D9F9FFFF              call 0044EFF3   
+:0044F61A 83C408                  add esp, 00000008   
+:0044F61D 84C0                    test al, al    
+:0044F61F 753D                    jne 0044F65E    <----查注册标志,若为"1"转   
+:0044F621 8B06                    mov eax, dword ptr \[esi\]              
+:0044F623 6A00                    push 00000000   
+  
+\* Possible StringData Ref from Data Obj ->"Error"   
+                                  |   
+:0044F625 68BAA35000              push 0050A3BA   
+  
+\* Possible StringData Ref from Data Obj ->"Key is invalid"   
+                                  |   
+:0044F62A 68ABA35000              push 0050A3AB   
+:0044F62F FF700C                  push \[eax+0C\]   
+:0044F632 FF7068                  push \[eax+68\]   
+:0044F635 E88F9C0700              call 004C92C9   
+:0044F63A 83C414                  add esp, 00000014   
+:0044F63D 33C0                    xor eax, eax   
+:0044F63F 50                      push eax   
+:0044F640 6A02                    push 00000002   
+:0044F642 8D55F8                  lea edx, dword ptr \[ebp\-08\]   
+:0044F645 52                      push edx   
+:0044F646 E811950A00              call 004F8B5C   
+:0044F64B 83C408                  add esp, 00000008   
+:0044F64E 58                      pop eax   
+:0044F64F 8B55C4                  mov edx, dword ptr \[ebp\-3C\]   
+:0044F652 64891500000000          mov dword ptr fs:\[00000000\], edx   
+:0044F659 E9D8010000              jmp 0044F836   
+  
+若将 jne 0044F65E  改为 jmp 0044F65E  注册后会有"注册成功"提示,但退出后重新启动又会有注册提示.   
+在跟踪第二段代码时发现在软件启动时也会走这段程序,并找到了调用处   
+  
+\==================   
+\* Reference To: USER32.ClientToScreen, Ord:0000h   
+                                  |   
+:00447524 E8612C0B00              Call 004FA18A   
+:00447529 8D45D8                  lea eax, dword ptr \[ebp\-28\]   
+:0044752C 50                      push eax   
+:0044752D 53                      push ebx   
+:0044752E E8F4F90700              call 004C6F27   
+:00447533 83C408                  add esp, 00000008   
+:00447536 56                      push esi   
+:00447537 8D75D8                  lea esi, dword ptr \[ebp\-28\]   
+:0044753A 8D7DE8                  lea edi, dword ptr \[ebp\-18\]   
+:0044753D B904000000              mov ecx, 00000004   
+:00447542 F3                      repz   
+:00447543 A5                      movsd   
+:00447544 5E                      pop esi   
+:00447545 8B4510                  mov eax, dword ptr \[ebp+10\]   
+:00447548 3B45E8                  cmp eax, dword ptr \[ebp\-18\]   
+:0044754B 7C18                    jl 00447565   
+:0044754D 8B5510                  mov edx, dword ptr \[ebp+10\]   
+:00447550 3B55F0                  cmp edx, dword ptr \[ebp\-10\]   
+:00447553 7D10                    jge 00447565   
+:00447555 8B4D14                  mov ecx, dword ptr \[ebp+14\]   
+:00447558 3B4DEC                  cmp ecx, dword ptr \[ebp\-14\]   
+:0044755B 7C08                    jl 00447565   
+:0044755D 8B4514                  mov eax, dword ptr \[ebp+14\]   
+:00447560 3B45F4                  cmp eax, dword ptr \[ebp\-0C\]   
+:00447563 7C04                    jl 00447569   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
+|:0044754B(C), :00447553(C), :0044755B(C)   
+|   
+:00447565 33C0                    xor eax, eax   
+:00447567 EB05                    jmp 0044756E   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:00447563(C)   
+|   
+:00447569 B801000000              mov eax, 00000001   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:00447567(U)   
+|   
+:0044756E 84C0                    test al, al   
+:00447570 7409                    je 0044757B <----未注册转   
+:00447572 53                      push ebx   
+:00447573 E809D90700              call 004C4E81   
+:00447578 59                      pop ecx   
+:00447579 EB41                    jmp 004475BC   
+将 je 0044757B 改为两个 nop,软件将不会过期了(但不知是否有功能限制,因为在提示软件注册成功时同时   
+显示说是 full function 了)   
+  
+由于注册码计算都是与或指令,不太好算,想有空时编个程序算.   4dd466d0e1e0cc123afbe504da2462ca

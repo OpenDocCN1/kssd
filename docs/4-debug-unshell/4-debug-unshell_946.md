@@ -1,0 +1,192 @@
+
+
+# SoftwareKey 1.1
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6360.htm`](https://www.pediy.com/kssd/pediy06/pediy6360.htm)
+
+Protection Plus V4.X 脱壳——SoftwareKey V1.1 主程序  
+   
+   
+   
+下载地址：  [`www.softwarekey.com/downloads/TrialCreator/TrialCreatorSetup.exe`](http://www.softwarekey.com/downloads/TrialCreator/TrialCreatorSetup.exe)   
+软件大小：  5.5 M  
+  
+【软件简介】：Trial Creator, Protection PLUS, and Instant SOLO provide you with a full suite of tools to demo, protect, sell and manage your software products.   
+  
+【作者声明】：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！  
+  
+【调试环境】：WinXP、Ollydbg、PEiD、LordPE、ImportREC  
+  
+—————————————————————————————————   
+【脱壳过程】：  
+            
+           
+           
+刚才收到 Concept Software 公司的宣传信“From SoftwareKey.com: Create 30 day trial software at no cost to you”，呵呵，于是下载一个 SoftwareKey 看看。  
+  
+TrialCreator.exe 用 PEiD 看是“Protection Plus 4.x->Concept Software”，不常见，姑且脱之吧。  
+感觉和 PC Guard、Visual Protect 等壳相似，脱壳难度：易  
+  
+—————————————————————————————————  
+一、Magic Jump，避开 IAT 加密  
+  
+  
+设置 Ollydbg 忽略除了“INT3 中断”之外的所有其它异常选项。  
+  
+  
+005C3030     50                      push eax//进入 OD 后停在这  
+005C3031     60                      pushad  
+005C3032     29C0                    sub eax,eax  
+005C3034     64:FF30                 push dword ptr fs:\[eax\]  
+005C3037     E8 00000000             call TrialCre.005C303C  
+  
+F9 运行，程序中断在 INT3 异常处  
+  
+00C62A51     CC                      int3  
+00C62A52     66:3D 0400              cmp ax,4  
+00C62A56     74 25                   je short 00C62A7D  
+  
+现在下断：BP GetModuleHandleA         Shift+F9 运行，断下。取消断点，返回程序  
+  
+00C6106C     FF15 0410C700           call dword ptr ds:\[C71004\]; kernel32.GetModuleHandleA  
+00C61072     85C0                    test eax,eax//返回这里  
+00C61074     894424 14               mov dword ptr ss:\[esp+14\],eax  
+00C61078     75 13                   jnz short 00C6108D  
+00C6107A     56                      push esi  
+00C6107B     FF15 9C10C700           call dword ptr ds:\[C7109C\]  
+00C61081     85C0                    test eax,eax  
+00C61083     894424 14               mov dword ptr ss:\[esp+14\],eax  
+00C61087     0F84 92000000           je 00C6111F  
+00C6108D     8B4424 18               mov eax,dword ptr ss:\[esp+18\]  
+00C61091     8B7D 08                 mov edi,dword ptr ss:\[ebp+8\]  
+00C61094     C74424 1C 00000000      mov dword ptr ss:\[esp+1C\],0  
+00C6109C     8B08                    mov ecx,dword ptr ds:\[eax\]  
+00C6109E     8B45 00                 mov eax,dword ptr ss:\[ebp\]  
+00C610A1     03F9                    add edi,ecx  
+00C610A3     85C0                    test eax,eax  
+00C610A5     76 49                   jbe short 00C610F0  
+00C610A7     8D75 0C                 lea esi,dword ptr ss:\[ebp+C\]  
+00C610AA     8B06                    mov eax,dword ptr ds:\[esi\]  
+00C610AC     3D 00000080             cmp eax,80000000  
+00C610B1     73 04                   jnb short 00C610B7  
+00C610B3     03D8                    add ebx,eax  
+00C610B5     EB 06                   jmp short 00C610BD  
+00C610B7     8D98 00000080           lea ebx,dword ptr ds:\[eax+80000000\]  
+00C610BD     8A4E 04                 mov cl,byte ptr ds:\[esi+4\]  
+00C610C0     8B5424 14               mov edx,dword ptr ss:\[esp+14\]  
+00C610C4     51                      push ecx  
+00C610C5     8B4C24 1C               mov ecx,dword ptr ss:\[esp+1C\]  
+00C610C9     53                      push ebx  
+00C610CA     52                      push edx  
+00C610CB     E8 A0000000             call 00C61170//进入！★  
+00C610D0     85C0                    test eax,eax  
+00C610D2     74 67                   je short 00C6113B  
+00C610D4     8B5C24 24               mov ebx,dword ptr ss:\[esp+24\]  
+00C610D8     8907                    mov dword ptr ds:\[edi\],eax//正确的函数写入  
+00C610DA     8B4424 1C               mov eax,dword ptr ss:\[esp+1C\]  
+00C610DE     8B4D 00                 mov ecx,dword ptr ss:\[ebp\]  
+00C610E1     83C7 04                 add edi,4  
+00C610E4     40                      inc eax  
+00C610E5     83C6 05                 add esi,5  
+00C610E8     3BC1                    cmp eax,ecx  
+00C610EA     894424 1C               mov dword ptr ss:\[esp+1C\],eax  
+00C610EE     72 BA                   jb short 00C610AA  
+00C610F0     8B45 00                 mov eax,dword ptr ss:\[ebp\]  
+00C610F3     8B7C24 10               mov edi,dword ptr ss:\[esp+10\]  
+00C610F7     8D0C28                  lea ecx,dword ptr ds:\[eax+ebp\]  
+00C610FA     8D6C81 0C               lea ebp,dword ptr ds:\[ecx+eax\*4+C\]  
+00C610FE     8B4D 04                 mov ecx,dword ptr ss:\[ebp+4\]  
+00C61101     85C9                    test ecx,ecx  
+00C61103     8D45 04                 lea eax,dword ptr ss:\[ebp+4\]  
+00C61106     0F85 5BFFFFFF           jnz 00C61067//循环  
+00C6110C     57                      push edi  
+00C6110D     E8 F38C0000             call 00C69E05  
+00C61112     83C4 04                 add esp,4  
+00C61115     5F                      pop edi  
+00C61116     5E                      pop esi  
+00C61117     5D                      pop ebp  
+00C61118     5B                      pop ebx  
+00C61119     83C4 10                 add esp,10  
+00C6111C     C2 0400                 retn 4  
+  
+————————————————————————  
+进入 00C610CB call 00C61170  
+  
+  
+00C61170     8B4424 08               mov eax,dword ptr ss:\[esp+8\]  
+00C61174     8B4C24 04               mov ecx,dword ptr ss:\[esp+4\]   
+00C61178     56                      push esi  
+00C61179     50                      push eax  
+00C6117A     51                      push ecx  
+00C6117B     FF15 0810C700           call dword ptr ds:\[C71008\]; kernel32.GetProcAddress  
+00C61181     8B5424 10               mov edx,dword ptr ss:\[esp+10\]  
+00C61185     8BF0                    mov esi,eax  
+00C61187     81E2 FF000000           and edx,0FF  
+00C6118D     8D42 FF                 lea eax,dword ptr ds:\[edx-1\]  
+00C61190     83F8 03                 cmp eax,3  
+00C61193     77 73                   ja short 00C61208//Magic Jump   改为 JMP  ★  
+  
+  
+把 00C61193 处改为 JMP 就能得到未被破坏的输入表了。这个壳不加密 VB 的 msvbvm50.dll 和 msvbvm60.dll 函数。  
+另外：用 ImportREC 的追踪层次 3 也能得到输入表。  
+  
+  
+—————————————————————————————————  
+二、走至 OEP、Dump，完成脱壳  
+  
+  
+这个壳没有自校验。改好 Magic Jump 之后就可以 Ctrl+F 在当前位置下搜索命令：xchg dword ptr ss:\[esp\],eax  
+在 00C62F12 处，下断，F9 运行，断下。  
+  
+  
+00C62F00     8B4424 04               mov eax,dword ptr ss:\[esp+4\]  
+00C62F04     8B6424 08               mov esp,dword ptr ss:\[esp+8\]  
+00C62F08     894424 20               mov dword ptr ss:\[esp+20\],eax  
+00C62F0C     29C0                    sub eax,eax  
+00C62F0E     64:8F00                 pop dword ptr fs:\[eax\]  
+00C62F11     61                      popad  
+00C62F12     870424                  xchg dword ptr ss:\[esp\],eax; TrialCre.0047F07B  
+00C62F15     C3                      retn//飞向光明之巅！:-)  
+  
+  
+———————————————————————  
+    
+  
+0047F07B     55                      push ebp//用 LordPE 纠正 ImageSize 后完全 DUMP 这个进程  
+0047F07C     8BEC                    mov ebp,esp  
+0047F07E     6A FF                   push -1  
+0047F080     68 300D5300             push TrialCre.00530D30  
+0047F085     68 00294800             push TrialCre.00482900  
+0047F08A     64:A1 00000000          mov eax,dword ptr fs:\[0\]  
+0047F090     50                      push eax  
+0047F091     64:8925 00000000        mov dword ptr fs:\[0\],esp  
+0047F098     83EC 58                 sub esp,58  
+0047F09B     53                      push ebx  
+0047F09C     56                      push esi  
+0047F09D     57                      push edi  
+0047F09E     8965 E8                 mov dword ptr ss:\[ebp-18\],esp  
+0047F0A1     FF15 20435200           call dword ptr ds:\[524320\]; kernel32.GetVersion  
+  
+得到 dumped.exe 后发现程序图标不见了，如果就这样修复输入表则程序是无法运行的，提示不是有效的程序。  
+用 LordPE 打开 dumped.exe，看见最后 1 个区段的虚拟大小和物理大小都是 0，参考原程序把其全部改为 00042000  
+  
+运行 ImportREC，选择这个进程。把 OEP 改为 0007F07B，点“IAT AutoSearch”，点“Get Import”。  
+FixDump，再用 LordPE 重建 PE 简单优化一下。正常运行！  
+  
+    
+—————————————————————————————————      
+                                  
+         ,     \_/   
+        /| \_.-~/            \\\_     ,        青春都一晌  
+       ( /~   /              \\~-.\_ |\\  
+       \`\\\\  \_/                \\   ~\\ )          忍把浮名   
+   \_-~~~-.)  )\_\_/;;,.          \\\_  //'  
+  /'\_,\\   --~   \\ ~~~-  ,;;\\\_\_\_(  (.-~~~-.        换了破解轻狂  
+ \`~ \_( ,\_..--\\ (     ,;'' /    ~--   /.\_\`\\   
+  /~~//'   /' \`~\\         ) /--..\_, )\_  \`~  
+  "  \`~"  "      \`"      /~'\`\\    \`\\\\~~\\     
+                         "     "   "~'  ""  
+  
+     UnPacked By 巢水工作坊——fly \[OCN\]\[FCG\]\[NUKE\]\[DCM\]  
+                2004-05-05 17:30   立夏  
+ 4dd466d0e1e0cc123afbe504da2462ca

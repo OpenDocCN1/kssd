@@ -1,0 +1,185 @@
+
+
+# 美萍反黄专家 2.0
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum1157.htm`](https://www.pediy.com/kssd/pediy03/forum1157.htm)
+
+美萍反黄专家 2.0 注册码破解   
+:0046FA81 B978FF4600              mov ecx, 0046FF78   
+:0046FA86 8B15E0794700            mov edx, dword ptr \[004779E0\]   
+:0046FA8C E8AF43F9FF              call 00403E40   
+:0046FA91 8B55D4                  mov edx, dword ptr \[ebp\-2C\]   
+:0046FA94 8B839C030000            mov eax, dword ptr \[ebx+0000039C\]   
+:0046FA9A 8B8008020000            mov eax, dword ptr \[eax+00000208\]   
+:0046FAA0 8B08                    mov ecx, dword ptr \[eax\]   
+:0046FAA2 FF5158                  call \[ecx+58\]   
+:0046FAA5 8D55D0                  lea edx, dword ptr \[ebp\-30\]   
+:0046FAA8 A1E8794700              mov eax, dword ptr \[004779E8\]   
+:0046FAAD E87AD1FFFF              call 0046CC2C   
+:0046FAB2 8B55D0                  mov edx, dword ptr \[ebp\-30\]   
+:0046FAB5 A1EC794700              mov eax, dword ptr \[004779EC\]   
+:0046FABA E84544F9FF              call 00403F04                            -->这个 CALL 有点可疑，进入   
+:0046FABF 750A                    jne 0046FACB   
+:0046FAC1 C705F45E470001000000    mov dword ptr \[00475EF4\], 00000001        -->让 475EF4 为 1   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:0046FABF(C)   
+|   
+:0046FACB A1E8794700              mov eax, dword ptr \[004779E8\]   
+:0046FAD0 E8B7C0FFFF              call 0046BB8C   
+:0046FAD5 48                      dec eax   
+:0046FAD6 7507                    jne 0046FADF   
+:0046FAD8 33C0                    xor eax, eax   
+:0046FADA A3F45E4700              mov dword ptr \[00475EF4\], eax   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:0046FAD6(C)   
+|   
+:0046FADF 833DF45E470000          cmp dword ptr \[00475EF4\], 00000000   
+:0046FAE6 0F8504010000            jne 0046FBF0                              -->跳往已注册版本   
+:0046FAEC E81BCFFFFF              call 0046CA0C   
+:0046FAF1 A3F85E4700              mov dword ptr \[00475EF8\], eax   
+  
+\* Possible StringData Ref from Code Obj ->"未注册版本只能使用 30 天，现在还剩"   
+                                  |   
+:0046FAF6 688CFF4600              push 0046FF8C   
+:0046FAFB 8D55C8                  lea edx, dword ptr \[ebp\-38\]   
+:0046FAFE A1FC5E4700              mov eax, dword ptr \[00475EFC\]   
+:0046FB03 2B05F85E4700            sub eax, dword ptr \[00475EF8\]   
+:0046FB09 40                      inc eax   
+:0046FB0A E8D98CF9FF              call 004087E8   
+:0046FB0F FF75C8                  push \[ebp\-38\]   
+:0046FB12 68B8FF4600              push 0046FFB8   
+:0046FB17 8D45CC                  lea eax, dword ptr \[ebp\-34\]   
+:0046FB1A BA03000000              mov edx, 00000003   
+:0046FB1F E89043F9FF              call 00403EB4   
+:0046FB24 8B55CC                  mov edx, dword ptr \[ebp\-34\]   
+:0046FB27 8B83D4030000            mov eax, dword ptr \[ebx+000003D4\]   
+:0046FB2D E832FEFBFF              call 0042F964   
+:0046FB32 8B15F85E4700            mov edx, dword ptr \[00475EF8\]   
+:0046FB38 8B83CC030000            mov eax, dword ptr \[ebx+000003CC\]   
+:0046FB3E E89DB1FEFF              call 0045ACE0   
+:0046FB43 A1FC5E4700              mov eax, dword ptr \[00475EFC\]   
+:0046FB48 83E80F                  sub eax, 0000000F   
+:0046FB4B 3B05F85E4700            cmp eax, dword ptr \[00475EF8\]   
+:0046FB51 7D50                    jge 0046FBA3   
+:0046FB53 6A40                    push 00000040   
+  
+\* Possible StringData Ref from Code Obj ->"注册信息"   
+                                  |   
+:0046FB55 68BCFF4600              push 0046FFBC   
+  
+\* Possible StringData Ref from Code Obj ->"软件试用期还剩"   
+                                  |   
+:0046FB5A 68D0FF4600              push 0046FFD0   
+:0046FB5F 8D55C0                  lea edx, dword ptr \[ebp\-40\]   
+:0046FB62 A1FC5E4700              mov eax, dword ptr \[00475EFC\]   
+:0046FB67 40                      inc eax   
+:0046FB68 2B05F85E4700            sub eax, dword ptr \[00475EF8\]   
+:0046FB6E E8758CF9FF              call 004087E8   
+:0046FB73 FF75C0                  push \[ebp\-40\]   
+:0046FB76 68B8FF4600              push 0046FFB8   
+  
+\* Possible StringData Ref from Code Obj ->",请赶快向美萍公司注册(0371-8749676)"   
+                                  |   
+:0046FB7B 68E8FF4600              push 0046FFE8   
+:0046FB80 8D45C4                  lea eax, dword ptr \[ebp\-3C\]   
+:0046FB83 BA04000000              mov edx, 00000004   
+:0046FB88 E82743F9FF              call 00403EB4   
+:0046FB8D 8B45C4                  mov eax, dword ptr \[ebp\-3C\]   
+:0046FB90 E82344F9FF              call 00403FB8   
+:0046FB95 50                      push eax   
+:0046FB96 8BC3                    mov eax, ebx   
+:0046FB98 E86F5EFCFF              call 00435A0C   
+:0046FB9D 50                      push eax   
+  
+\* Reference To: user32.MessageBoxA, Ord:0000h   
+                                  |   
+:0046FB9E E89D75F9FF              Call 00407140   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:0046FB51(C)   
+|   
+:0046FBA3 A1F85E4700              mov eax, dword ptr \[00475EF8\]   
+:0046FBA8 3B05FC5E4700            cmp eax, dword ptr \[00475EFC\]   
+:0046FBAE 7E40                    jle 0046FBF0   
+  
+\* Reference To: killporn.DllUnregisterServer, Ord:0000h   
+                                  |   
+:0046FBB0 E83BF2FFFF              Call 0046EDF0   
+:0046FBB5 BA04000000              mov edx, 00000004   
+:0046FBBA 8B83D0020000            mov eax, dword ptr \[ebx+000002D0\]   
+:0046FBC0 E8E3A3FBFF              call 00429FA8   
+:0046FBC5 8B83D0020000            mov eax, dword ptr \[ebx+000002D0\]   
+:0046FBCB E89CA3FBFF              call 00429F6C   
+:0046FBD0 8BD0                    mov edx, eax   
+:0046FBD2 8D4DBC                  lea ecx, dword ptr \[ebp\-44\]   
+:0046FBD5 8BB3D8020000            mov esi, dword ptr \[ebx+000002D8\]   
+:0046FBDB 8B86FC010000            mov eax, dword ptr \[esi+000001FC\]   
+:0046FBE1 8B38                    mov edi, dword ptr \[eax\]   
+:0046FBE3 FF570C                  call \[edi+0C\]   
+:0046FBE6 8B55BC                  mov edx, dword ptr \[ebp\-44\]   
+:0046FBE9 8BC6                    mov eax, esi   
+:0046FBEB E87436FEFF              call 00453264   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
+|:0046FAE6(C), :0046FBAE(C)   
+|   
+:0046FBF0 833DF45E470001          cmp dword ptr \[00475EF4\], 00000001   
+:0046FBF7 0F8573010000            jne 0046FD70   
+  
+\* Possible StringData Ref from Code Obj ->"已注册版本"   
+                                  |   
+:0046FBFD BA14004700              mov edx, 00470014   
+:0046FC02 8B83A0030000            mov eax, dword ptr \[ebx+000003A0\]   
+:0046FC08 E857FDFBFF              call 0042F964   
+:0046FC0D 33D2                    xor edx, edx   
+:0046FC0F 8B83CC030000            mov eax, dword ptr \[ebx+000003CC\]   
+:0046FC15 E832FCFBFF              call 0042F84C   
+:0046FC1A 33D2                    xor edx, edx   
+:0046FC1C 8B83D4030000            mov eax, dword ptr \[ebx+000003D4\]   
+:0046FC22 E825FCFBFF              call 0042F84C   
+:0046FC27 8D45B8                  lea eax, dword ptr \[ebp\-48\]   
+:0046FC2A E851CBFFFF              call 0046C780   
+:0046FC2F 8B55B8                  mov edx, dword ptr \[ebp\-48\]   
+  
+\--------------------------------------------------------------------------------------------------------------   
+\--------------------------------------------------------------------------------------------------------------   
+  
+:00403F04 53                      push ebx   
+:00403F05 56                      push esi   
+:00403F06 57                      push edi   
+:00403F07 89C6                    mov esi, eax   
+:00403F09 89D7                    mov edi, edx   
+:00403F0B 39D0                    cmp eax, edx                            -->EDX 为正确注册码   
+:00403F0D 0F848F000000            je 00403FA2   
+:00403F13 85F6                    test esi, esi   
+:00403F15 7468                    je 00403F7F   
+:00403F17 85FF                    test edi, edi   
+:00403F19 746B                    je 00403F86   
+:00403F1B 8B46FC                  mov eax, dword ptr \[esi\-04\]   
+:00403F1E 8B57FC                  mov edx, dword ptr \[edi\-04\]   
+:00403F21 29D0                    sub eax, edx   
+:00403F23 7702                    ja 00403F27   
+:00403F25 01C2                    add edx, eax   
+  
+  
+  
+好像此软件序列号必须为 8 位   
+以下是 CRACKCODE2000 的注册器   
+\[Options\]   
+CommandLine=shield.exe   
+Mode=2   
+First\_Break\_Address=46FABA   
+First\_Break\_Address\_Code=E8   
+First\_Break\_Address\_Code\_Lenth=5   
+Second\_Break\_Address=403F0B   
+Second\_Break\_Address\_Code\_Lenth=2   
+Save\_Code\_Address=EDX   
+  
+  
+  
+  
+conanxu\[BCG\]   
+Home Page:http://conanxu.51.net/   
+Email:conanxu@eastday.com  4dd466d0e1e0cc123afbe504da2462ca

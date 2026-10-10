@@ -1,0 +1,33 @@
+
+
+# 我们都爱背单词
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum894.htm`](https://www.pediy.com/kssd/pediy03/forum894.htm)
+
+“我们都爱背单词”简易破解及注册机的写法：   
+：bpx hmemcpy   
+ctrl+N   
+press OK button   
+：bc   
+：pmodule   
+F12 press 6 times, when press 7 times goto error-show   
+so press 6 times ONLY.   
+F10 press until 4992b7,   
+In here ,   
+：d edx   
+can show real register code to you!   
+write it down in paper.and next time input the real code to him.   
+  
+next we write a crackcode.ini   
+  
+\[Options\]   
+CommandLine=winzip32.exe   
+Mode=2   
+First\_Break\_Address=407C1C   
+First\_Break\_Address\_Code=BE   
+First\_Break\_Address\_Code\_Lenth=5   
+Second\_Break\_Address=457923   
+Second\_Break\_Address\_Code\_Lenth=2   
+Save\_Code\_Address=EDI   
+  
+大功告成，打个 Kiss!  4dd466d0e1e0cc123afbe504da2462ca

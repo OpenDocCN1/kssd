@@ -1,0 +1,305 @@
+
+
+# Armadillo 2.52 build 1164
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50087.htm`](https://www.pediy.com/kssd/pediy05/pediy50087.htm)
+
+目标软件：The Armadillo Software Protection System Version2.52 build 1164   
+目标文件：Armadillo.exe   
+加壳方式：Armadillo 2.52   
+使用工具：WinDbg 或 trw2000, peditor, WinHex 10.2 SR-2，m$的 win32 sdk 文档,<winnt.h>   
+        
+URL:      http://www.siliconrealms.com/   
+本文作者：leo\_cyl   
+  
+    Armadillo 的保护方式主要有以下特点：修改 pe 头，使 WinDbg 等调试器无法“attach”，使 procdump 无法 dump；anti-debug 代码（我以前的贴子有讨论）；利用调试器捕获页面保护异常，分段解码。   
+  
+（一）捕获页面保护异常、找 OEP   
+  
+    和以前版本一样，Armadillo 外壳产生另外一个进程（被加壳的程序）。所以下断点“bpx createprocessa”   
+  
+004C39E4                call    ds:CreateProcessA   
+004C39EA                test    eax, eax   
+004C39EC                jnz    4C39F5   
+……   
+……   
+  
+0187:004C3A0F 51              PUSH    ECX   
+0187:004C3A10 68E6314C00      PUSH    DWORD 004C31E6   
+0187:004C3A15 6A00            PUSH    BYTE +00   
+0187:004C3A17 6A00            PUSH    BYTE +00   
+0187:004C3A19 FF1554A04C00    CALL    \`KERNEL32!CreateThread\`   
+0187:004C3A1F 6A00            PUSH    BYTE +00   
+0187:004C3A21 FF1530A14C00    CALL    \`KERNEL32!GetModuleHandleA\`   
+……   
+……   
+……   
+0187:004C3A42 6A00            PUSH    BYTE +00   
+0187:004C3A44 FF1530A14C00    CALL    \`KERNEL32!GetModuleHandleA\`   
+……   
+……   
+  
+0187:004C3A68 E80C0C0000      CALL    004C4679   
+0187:004C3A6D 83C40C          ADD      ESP,BYTE +0C   
+0187:004C3A70 8B8D68FEFFFF    MOV      ECX,\[EBP+FFFFFE68\]   
+0187:004C3A76 51              PUSH    ECX   
+0187:004C3A77 8B157CE54C00    MOV      EDX,\[004CE57C\]   
+0187:004C3A7D 52              PUSH    EDX   
+0187:004C3A7E E8BA0C0000      CALL    004C473D   
+  
+以上代码在被加壳的程序第一条指令处写入“eb fe”代码，即“jmp eip” 使被加壳程序“挂起”   
+  
+  
+0187:004C3A83 83C408          ADD      ESP,BYTE +08   
+0187:004C3A86 A17CE54C00      MOV      EAX,\[004CE57C\]   
+0187:004C3A8B 8B4804          MOV      ECX,\[EAX+04\]   
+0187:004C3A8E 51              PUSH    ECX   
+0187:004C3A8F FF158CA04C00    CALL    \`KERNEL32!ResumeThread\`   
+0187:004C3A95 8B157CE54C00    MOV      EDX,\[004CE57C\]   
+0187:004C3A9B 8B4208          MOV      EAX,\[EDX+08\]   
+0187:004C3A9E 50              PUSH    EAX   
+0187:004C3A9F FF1588A04C00    CALL    \`KERNEL32!DebugActiveProcess\`   
+0187:004C3AA5 8B0D7CE54C00    MOV      ECX,\[004CE57C\]   
+0187:004C3AAB 8B5104          MOV      EDX,\[ECX+04\]   
+0187:004C3AAE 52              PUSH    EDX   
+0187:004C3AAF FF1584A04C00    CALL    \`KERNEL32!SuspendThread\`   
+  
+以上代码通过调用“DebugActiveProcess”开始调试被加壳的程序。   
+……   
+……   
+……   
+  
+0187:004C3AFA 68E8030000      PUSH    DWORD 03E8  《===== dwMilliseconds   
+0187:004C3AFF 8B9574FEFFFF    MOV      EDX,\[EBP+FFFFFE74\]   
+0187:004C3B05 52              PUSH    EDX          〈====  lpDebugEvent   
+0187:004C3B06 FF1580A04C00    CALL    \`KERNEL32!WaitForDebugEvent\`   
+0187:004C3B0C 85C0            TEST    EAX,EAX   
+0187:004C3B0E 0F8414060000    JZ      NEAR 004C4128   
+0187:004C3B14 C78570FDFFFF68B4+MOV      DWORD \[EBP+FFFFFD70\],004CB468   
+0187:004C3B1E 33C0            XOR      EAX,EAX   
+0187:004C3B20 A06EE54C00      MOV      AL,\[004CE56E\]   
+0187:004C3B25 85C0            TEST    EAX,EAX   
+0187:004C3B27 7565            JNZ      004C3B8E   
+0187:004C3B29 8B4DE4          MOV      ECX,\[EBP\-1C\]   
+0187:004C3B2C 81E1FF000000    AND      ECX,FF   
+0187:004C3B32 85C9            TEST    ECX,ECX   
+0187:004C3B34 7458            JZ      004C3B8E      〈==跳转   
+0187:004C3B36 C645E400        MOV      BYTE \[EBP\-1C\],00   
+0187:004C3B3A C745FC00000000  MOV      DWORD \[EBP\-04\],00   
+0187:004C3B41 669C            PUSHFW            +   
+0187:004C3B43 6658            POP      AX        |   
+0187:004C3B45 66056200        ADD      AX,62    |设置单步调试标志   
+0187:004C3B49 66059E00        ADD      AX,9E    |anti-debug？？？   
+0187:004C3B4D 6650            PUSH    AX        |   
+0187:004C3B4F 669D            POPFW              +   
+0187:004C3B51 66050100        ADD      AX,01   
+0187:004C3B55 C745FCFFFFFFFF  MOV      DWORD \[EBP\-04\],FFFFFFFF   
+0187:004C3B5C EB30            JMP      SHORT 004C3B8E   
+  
+以上进入调试循环，根据 DebugEvent 结构中的 debugging event code 做相应处理。其中最重要的是 EXCEPTION\_DEBUG\_EVENT（0x00000001）。请参考 MSDN 中 WaitForDebugEvent 的描述。   
+  
+……   
+……   
+0187:004C3BA5 MOV      DWORD \[EBP+FFFFFB60\],80010001   
+0187:004C3BAF MOV      EDX,\[EBP+FFFFFE74\]  〈====注意！edx = lpDebugEvent   
+0187:004C3BB5 CMP      DWORD \[EDX\],BYTE +01      //EXCEPTION\_DEBUG\_EVENT   
+0187:004C3BB8 JNZ      NEAR 004C3ED7   
+0187:004C3BBE MOV      DWORD \[EBP+FFFFFD70\],004CB470   
+0187:004C3BC8 XOR      EAX,EAX   
+0187:004C3BCA MOV      AL,\[004CE56F\]   
+0187:004C3BCF TEST    EAX,EAX   
+0187:004C3BD1 JZ      NEAR 004C3CB7   
+0187:004C3BD7 MOV      ECX,\[EBP+FFFFFE74\]   
+0187:004C3BDD CMP      DWORD \[ECX+0C\],80000001    //STATUS\_GUARD\_PAGE\_VIOLATION   
+0187:004C3BE4 JNZ      NEAR 004C3CB7   
+0187:004C3BEA MOV      DWORD \[EBP+FFFFFD70\],004CB488   
+0187:004C3BF4 MOV      EDX,\[EBP+FFFFFE74\]  〈====注意！edx = lpDebugEvent   
+0187:004C3BFA MOV      EAX,\[EDX+24\]   
+……   
+……   
+0187:004C3BB5 处比较是否是 EXCEPTION\_DEBUG\_EVENT。（包括页面异常）   
+注意在 NT 下，页面异常的代码是 0x80000001（STATUS\_GUARD\_PAGE\_VIOLATION）而 9x 下是 0xc0000005（STATUS\_ACCESS\_VIOLATION）所以在 9x 下会来到这里：   
+  
+0187:004C3CBD CMP      DWORD \[ECX+0C\],C0000005    //STATUS\_ACCESS\_VIOLATION   
+0187:004C3CC4 JNZ      NEAR 004C3E89   
+0187:004C3CCA MOV      EDX,\[EBP+FFFFFE74\] 〈====注意！edx = lpDebugEvent   
+0187:004C3CD0 CMP      DWORD \[EDX+5C\],BYTE +00   
+0187:004C3CD4 JZ      004C3CE2   
+0187:004C3CD6 MOV      DWORD \[EBP+FFFFFD70\],004CB4E8   
+0187:004C3CE0 JMP      SHORT 004C3CEC   
+  
+当被加壳的程序需要解码时，会触发页面异常，来到上述代码，如果你参考 MSDN 中有关 DebugEvent 结构的描述，很容易找到产生页面异常的地址，是在 lpDebugEvent+0x18 处。（即 edx+18）。   
+这有什么用呢？呵呵……这是找 OEP 的关键！！！假如在 0187:004C3CD0 下断点，当程序第一次在这里中断时，查看 edx+18h 的内容“dd edx+18”即可看到 OEP。（41EF80H）   
+  
+继续跟踪……   
+  
+0187:004C3D52 8B8D50FBFFFF    MOV      ECX,\[EBP+FFFFFB50\]   
+0187:004C3D58 83E901          SUB      ECX,BYTE +01   
+0187:004C3D5B 85C9            TEST    ECX,ECX   
+0187:004C3D5D 7C14            JL      004C3D73   
+0187:004C3D5F 6A01            PUSH    BYTE +01   
+0187:004C3D61 8B9550FBFFFF    MOV      EDX,\[EBP+FFFFFB50\]   
+0187:004C3D67 83EA01          SUB      EDX,BYTE +01   
+0187:004C3D6A 52              PUSH    EDX   
+0187:004C3D6B E8D0030000      CALL    004C4140              //关键，进入   
+0187:004C3D70 83C408          ADD      ESP,BYTE +08   
+0187:004C3D73 8B8550FBFFFF    MOV      EAX,\[EBP+FFFFFB50\]   
+0187:004C3D79 83C001          ADD      EAX,BYTE +01   
+0187:004C3D7C 3B0588E54C00    CMP      EAX,\[004CE588\]   
+0187:004C3D82 7D14            JNL      004C3D98   
+  
+以上代码将产生页面异常的地址进行页对齐，并 CALL 004C4140 解码。   
+进入函数 004C4140 后，来到这里：   
+  
+0187:004C4271 PUSH    BYTE +00   
+0187:004C4273 MOV      ECX,\[EBP+08\]   
+0187:004C4276 PUSH    ECX   
+0187:004C4277 CALL    004C432A  〈==这里对异常页解码   
+0187:004C427C ADD      ESP,BYTE +08   
+0187:004C427F AND      EAX,FF   
+0187:004C4284 TEST    EAX,EAX   
+0187:004C4286 JNZ      004C428F〈===解码成功？   
+0187:004C4288 XOR      AL,AL   
+0187:004C428A JMP      004C4326   
+0187:004C428F MOV      EDX,\[004CE58C\] 〈==注意！！！   
+0187:004C4295 ADD      EDX,BYTE +01   
+0187:004C4298 MOV      \[004CE58C\],EDX   
+0187:004C429E MOV      EAX,\[004CE588\]   
+0187:004C42A3 LEA      ECX,\[EAX\*4+FFFFFFFC\]   
+  
+注意 0187:004C428F 处，\[004CE58C\]是一个记数器，解码成功后加一，有什么用呢？看后面……   
+  
+……   
+……   
+0187:004C42D1 25FF000000      AND      EAX,FF   
+0187:004C42D6 85C0            TEST    EAX,EAX   
+0187:004C42D8 754A            JNZ      004C4324   
+0187:004C42DA 8B0D8CE54C00    MOV      ECX,\[004CE58C\]   
+0187:004C42E0 3B0D2CB44C00    CMP      ECX,\[004CB42C\]   
+0187:004C42E6 7E3C            JNG      004C4324   
+0187:004C42E8 6A01            PUSH    BYTE +01   
+0187:004C42EA 8B158CE54C00    MOV      EDX,\[004CE58C\]   
+  
+当解码一定数量的页面后，将以前解码的页面重新加密！在这里的数量是 0x13 页。为了以后脱壳方便。   
+我用 peditor 计算出 0187:004C428F 的实际偏移，然后用 WinHex，将 ADD EDX,BYTE +01 改为 ADD EDX,BYTE +00；只改了一个 byte。   
+  
+简要分析 0187:004C4277 处的解码函数“ CALL    004C432A”。以下是它的流程：   
+  
+1。调用 VirtualProtectEx 将异常页面属性改为 PAGE\_READWRITE   
+2。调用 ReadProcessMemory，将异常页面读入   
+3。解码。   
+4。调用 WriteProcessMemory，写入正确代码。   
+5。调用 VirtualProtectEx 将页面属性改为 PAGE\_EXECUTE\_READ   
+  
+  
+（二）修改 PE 头   
+  
+    被加壳的程序运行后，用 procdump 没法 dump 出，会非法操作。用 ring3 的调试器没法“attach”，用 peditor dump 出的文件是无效的 exe。为什么呢？通过比较 dump 出的 PE 头，发现偏移 0x3c 处被修改。重新装入 Armadillo，下断点“bpm 400003c w”，执行……   
+  
+0187:00A8EF54 MOV      EAX,\[EBP\-0C\]  〈== EAX\=400000H   
+0187:00A8EF57 LEA      ECX,\[EBP\-04\]    
+0187:00A8EF5A SUB      EBX,EDI      〈=== EBX = 4E7119   
+0187:00A8EF5C PUSH    ECX   
+0187:00A8EF5D ADD      \[EAX+3C\],EBX  〈== 修改 PE 头，\[EAX+3C\] = 40003C   
+0187:00A8EF60 PUSH    DWORD \[EBP\-04\]   
+0187:00A8EF63 PUSH    BYTE +40   
+……   
+……   
+……   
+0187:00A8EF89 AND      EAX,BYTE +03   
+0187:00A8EF8C LEA      ECX,\[EBP\-08\]   
+0187:00A8EF8F INC      EAX   
+0187:00A8EF90 ADD      \[EDI+06\],AX    〈==修改 PE 头，\[EDI+06\] = 4000FE   
+0187:00A8EF94 CALL    00A88597   
+0187:00A8EF99 MOV      EBX,EAX   
+  
+共修改 3C 和 FE 两处，参考有关 PE 头的资料，可知偏移 3C 的 DWORD 是 PE 表头的偏移（原值是 F8）。偏移 FE 的 WORD 是 sections 的个数（原值是 8）。Armadillo 故意将 PE 头改错，难怪没法 dump 出。   
+  
+（三）dump 出加壳的程序   
+  
+好了，原理分析清楚了。要 dump 出加壳程序就很容易了。   
+  
+事先用 peditor 查看，得知 size of image 是 104000；   
+  
+首先找到 OEP 是 41EF80，另外修改 004C428F，将 ADD EDX,BYTE +01 改为 ADD EDX,BYTE +00。   
+在 41EF80 下断点。中断后，将 PE 头改回，40003C 处是 000000F8，4000FE 处是 0008，注意高位在前！！！   
+  
+在程序中找一个没用到的地址。不要选代码段，因为解码后会覆盖掉我们写的代码。我选.Data1 段的最后 256 个 byte 即 4CF000 处，将 eip 改为 4CF000，输入以下代码：   
+  
+push esi   
+push ecx   
+push eax   
+mov esi,401000   
+mov ecx,103000  //size of image 减 1000h   
+rep lodsb   
+pop eax   
+pop ecx   
+pop esi   
+int3   
+  
+注意我没有使用 hying 的代码，因为要申请内存和查找 api 地址，而且内存不够的话也麻烦，其实只要扫描一遍内存就足以触发调试器了，修改 004C428F 的原因就是防止外壳把解码过的页面从新加密。   
+f5 执行，在 int3 处停下（注意打开 i3here on），将 eip 改回 41EF80，可看到已经解码了，挂起进程，回到 window 桌面，这时用什么工具都可以 dump 出了！（任我鱼肉了！！）。   
+  
+另外，还有一个地方要注意，最好在 OEP 处挂起进程再 dump，因为这时程序的初始化变量还没有被修改。   
+大家可对比一下，当程序运行后，用 procdump dump 出的文件和在 OEP 处 dump 出的有何不同。（会非法操作！！因为初始化变量\[438110\]已经不同了。）   
+  
+（四）修复 IAT   
+  
+没什么方便的方法!:(   
+我的方法是用 peditor 查看，得知 IAT 在 426000 处，下断点“bpm 426000 w” 在这停下：   
+  
+0187:00A8E4BB 8A06            MOV      AL,\[ESI\]   
+0187:00A8E4BD 3AC3            CMP      AL,BL   
+0187:00A8E4BF 7468            JZ      00A8E529   
+0187:00A8E4C1 3CFF            CMP      AL,FF   
+0187:00A8E4C3 7537            JNZ      00A8E4FC   
+0187:00A8E4C5 668B7E01        MOV      DI,\[ESI+01\]   
+0187:00A8E4C9 46              INC      ESI   
+0187:00A8E4CA 0FB7C7          MOVZX    EAX,DI   
+0187:00A8E4CD 50              PUSH    EAX   
+0187:00A8E4CE 46              INC      ESI   
+0187:00A8E4CF FF75F4          PUSH    DWORD \[EBP\-0C\]   
+0187:00A8E4D2 46              INC      ESI   
+0187:00A8E4D3 E84075FFFF      CALL    00A85A18   
+  
+然后把\[ESI\]前后的内容保存下来，以后手工修复 IAT 时参考。   
+  
+（五）小结   
+  
+无论用什么方法脱壳，原理和 hying 的是一样的。   
+但为什么用 procdump 不会触发调试器呢？我的解释是这样：无论 procdump 或 WinHex 在读取其他进程的内容时，是通过 WriteProcessMemory 来完成的，而 WriteProcessMemory 最终调用 VMM 完成读取，VMM 是在 ring0 上，所以不会触发 ring3 上的调试器。我能想到的方法是：在 ring3 下、在自身进程空间内扫描整个内存，以触发调试器。   
+  
+附录：   
+  
+附上部分 DEBUG\_EVENT 结构的声明：（注释是我加的）   
+typedef struct \_DEBUG\_EVENT {   
+  DWORD dwDebugEventCode;  //偏移 0x0    
+  DWORD dwProcessId;      //偏移 0x4   
+  DWORD dwThreadId;        //偏移 0x8   
+  union {   
+      EXCEPTION\_DEBUG\_INFO Exception;    //偏移 0xC   
+      CREATE\_THREAD\_DEBUG\_INFO CreateThread;   
+      CREATE\_PROCESS\_DEBUG\_INFO CreateProcessInfo;   
+      EXIT\_THREAD\_DEBUG\_INFO ExitThread;   
+      EXIT\_PROCESS\_DEBUG\_INFO ExitProcess;   
+      LOAD\_DLL\_DEBUG\_INFO LoadDll;   
+      UNLOAD\_DLL\_DEBUG\_INFO UnloadDll;   
+      OUTPUT\_DEBUG\_STRING\_INFO DebugString;   
+      RIP\_INFO RipInfo;   
+  } u;   
+} DEBUG\_EVENT, \*LPDEBUG\_EVENT;   
+  
+typedef struct \_EXCEPTION\_DEBUG\_INFO { //即异常代码是 0x00000001 时的结构   
+  EXCEPTION\_RECORD ExceptionRecord;      //偏移 0xC;0x80000001 为 STATUS\_GUARD\_PAGE\_VIOLATION(NT)   
+                                        //0xC0000005 为 STATUS\_ACCESS\_VIOLATION(WIN (win  9x)   
+  DWORD dwFirstChance;   
+} EXCEPTION\_DEBUG\_INFO, \*LPEXCEPTION\_DEBUG\_INFO;   
+  
+typedef struct \_EXCEPTION\_RECORD {   
+  DWORD ExceptionCode;              //偏移 0xc   
+  DWORD ExceptionFlags;              //偏移 0x10   
+  struct \_EXCEPTION\_RECORD \*ExceptionRecord;  //偏移 0x14   
+  PVOID ExceptionAddress;              //偏移 0x18   
+  DWORD NumberParameters;   
+  ULONG\_PTR ExceptionInformation\[EXCEPTION\_MAXIMUM\_PARAMETERS\];   
+} EXCEPTION\_RECORD, \*PEXCEPTION\_RECORD;  4dd466d0e1e0cc123afbe504da2462ca

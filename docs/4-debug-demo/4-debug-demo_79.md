@@ -1,0 +1,91 @@
+
+
+# 小李注册表大师 v1.11
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue100.htm`](https://www.pediy.com/kssd/pediy04/kanxue100.htm)
+
+题目：小李注册表大师 v1.11 的注册以及另类注册机的编写   
+下载地址：www.csdn.net 中国共享软件中心   
+目的：获取注册码，并写出另类注册机。   
+工具：Trw2000 v1.22   
+    首先用 fi 查看一下程序（习惯了），还好，没加壳。再运行一下程序，看看程序不注册有哪些限制。该程序不注册时，启动的时候会出来一个框，叫你输入注册名字和注册码。大概了解一下后，准备开工了：   
+方法一：（最常用的方法）   
+    运行程序，输入注册名字和随便输入注册码，Ctrl+N 呼出 Trw2000，bpx hmemcpy，F5 返回，点击注册，被断下来后 bc \* 清除断点，pmodule 返回程序领空，按 F12 8 次就报错，于是重来，按 F12 7 次，小心来到以下地方：   
+    ……   
+\* Possible StringData Ref from Code Obj ->"key"   
+                                  |   
+:0047F563 BADCF64700              mov edx, 0047F6DC   
+:0047F568 E8EB53FDFF              call 00454958   
+:0047F56D A1D0824800              mov eax, dword ptr \[004882D0\]   
+:0047F572 8B00                    mov eax, dword ptr \[eax\]   
+:0047F574 E83F4DFDFF              call 004542B8   
+:0047F579 8D55F0                  lea edx, dword ptr \[ebp\-10\]   
+:0047F57C 8B83DC020000            mov eax, dword ptr \[ebx+000002DC\]   
+:0047F582 E8B106FBFF              call 0042FC38   
+:0047F587 8B55F0                  mov edx, dword ptr \[ebp\-10\]   
+:0047F58A A1A8804800              mov eax, dword ptr \[004880A8\]   
+:0047F58F 8B00                    mov eax, dword ptr \[eax\]   
+:0047F591 8B8064030000            mov eax, dword ptr \[eax+00000364\]   
+:0047F597 E848E4FEFF              call 0046D9E4   
+:0047F59C 8D45FC                  lea eax, dword ptr \[ebp\-04\]   
+:0047F59F 8B15A8804800            mov edx, dword ptr \[004880A8\]   
+:0047F5A5 8B12                    mov edx, dword ptr \[edx\]   
+:0047F5A7 8B9264030000            mov edx, dword ptr \[edx+00000364\]   
+:0047F5AD 8B524C                  mov edx, dword ptr \[edx+4C\] ;<-D EDX 可看到真注册码   
+:0047F5B0 E84344F8FF              call 004039F8        ;\*\*在此中断，写另类注册机   
+:0047F5B5 8D55EC                  lea edx, dword ptr \[ebp\-14\]   
+:0047F5B8 8B83E0020000            mov eax, dword ptr \[ebx+000002E0\]   
+:0047F5BE E87506FBFF              call 0042FC38   
+:0047F5C3 8B45EC                  mov eax, dword ptr \[ebp\-14\]   
+:0047F5C6 8B55FC                  mov edx, dword ptr \[ebp\-04\]   
+:0047F5C9 E82247F8FF              call 00403CF0   
+:0047F5CE 755F                    jne 0047F62F    ;\*\*\*\*爆破注意点之一   
+:0047F5D0 8D55E4                  lea edx, dword ptr \[ebp\-1C\]   
+    ……   
+    由于程序很简单，我也不想多讲（其实是我对算法很糊涂，呵呵），下面是另类注册机的编写：   
+      
+程序名称：小李注册表大师 1.11.exe   
+中断地址：47F5B0   
+中断次数：1   
+第一字节：EB   
+指令长度：5   
+注册码->内存方式 EDX   
+  
+  
+方法二：   
+考虑到程序启动肯定也要比较注册码的，而且注册码放在注册表里，于是我们换个断点来试试看：   
+用 Trw2000 Load 该程序，下断点 bpx regqueryvalueexa，F5 返回，被断下来好几次，小心找到正确断下来的地方，按 F10 来到如下地方：   
+    ……   
+\* Possible StringData Ref from Code Obj ->"user"   
+                                  |   
+:00485CFF BAE05D4800              mov edx, 00485DE0   
+:00485D04 8B06                    mov eax, dword ptr \[esi\]   
+:00485D06 E879ECFCFF              call 00454984   
+:00485D0B 8B55EC                  mov edx, dword ptr \[ebp\-14\]   
+:00485D0E 8B8364030000            mov eax, dword ptr \[ebx+00000364\]   
+:00485D14 E8CB7CFEFF              call 0046D9E4   
+:00485D19 8D4DE8                  lea ecx, dword ptr \[ebp\-18\]   
+  
+\* Possible StringData Ref from Code Obj ->"key"   
+                                  |   
+:00485D1C BAF05D4800              mov edx, 00485DF0   
+:00485D21 8B06                    mov eax, dword ptr \[esi\]   
+:00485D23 E85CECFCFF              call 00454984   
+:00485D28 8B45E8                  mov eax, dword ptr \[ebp\-18\]   
+:00485D2B 8B9364030000            mov edx, dword ptr \[ebx+00000364\]   
+:00485D31 8B524C                  mov edx, dword ptr \[edx+4C\]  ;<-EDX 为正确的注册码   
+:00485D34 E8B7DFF7FF              call 00403CF0   
+:00485D39 752E                    jne 00485D69  ;\*\*\*爆破注意点之二   
+:00485D3B 8D4DE0                  lea ecx, dword ptr \[ebp\-20\]   
+    ……   
+    很简单吧，另类注册机如下（注意：这个注册机与前面那个用起来不一样的，必须得先运行程序，填入注册码和注册码并点击注册后才好用，而前面那个可以直接用的）：   
+      
+程序名称：小李注册表大师 1.11.exe   
+中断地址：485D34   
+中断次数：1   
+第一字节：EB   
+指令长度：5   
+注册码->内存方式 EDX   
+  
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*   
+    写完了，好累啊，这两天共写了 4 篇破文，为了加入 BCG 嘛，再累也不怕，呵呵。希望能对比我更菜的朋友有所帮助，祝大家每天都在进步！  4dd466d0e1e0cc123afbe504da2462ca

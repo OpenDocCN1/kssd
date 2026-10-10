@@ -1,0 +1,29 @@
+
+
+# （高手勿进）为 pe 文件添加 CRC32 自效验的小程序（vc）
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-154.htm`](https://www.pediy.com/kssd/pediy09/pediy09-154.htm)
+
+> 学习 CRC32 的一个习作，老实说，对 CRC 的原理还是不太明白，我是菜鸟，请大家不吝赐教。![](img/4ec4a010bb6e6d79731981cd94fbb640.jpg "尴尬") QQ:406670611  
+> 原理：http://www.pediy.com/tutorial/chap6/Chap6-2-4.htm 还有 www.luocong.com 上也有很好的讲解。  
+> 步骤：pe 文件通过比较自己的 CRC32 效验值，来判断自己是否被改写。  
+>      （1）为原 pe 文件添加一个新的节，将自效验部分（Loader）写入该新节。  
+>      （2）将原 pe 文件的 ep 改为新节的开始。  
+>      （3）计算原 pe 文件部分（在程序里计算的是从 pe 文件的开头到+0xe5）的 CRC32 效验值，并将该效验值保存在 Loader 中。  
+>      （4）修改后的 pe 文件开始运行时，先计算相应部分的（在程序里计算的是从 pe 文件的开头到+0xe5 ）CRC32 效验值。与原 pe 文件的 CRC32 效验值比较，若相等则跳转到原 pe 的 ep,否则直接调用 ExitProcess 退出。  
+> 测试：（１）打开程序 CRC32 为记事本添加自效验。  
+> 　　　（２）运行已添加自效验的记事本，能正常运行。  
+> 　　　（３）修改从记事本开头到０ｘｅ５范围内的任意一个字节（不要修改关键数据，如“MZ“），再运行，记事本直接 ExitProcess,退出。  
+>       ![](img/8b1e6290495967f7209ca0149a26b4d9.jpg)  
+> 几点说明：  
+> 　　　（１）源码在ｖｃ７＋ｘｐ＿ｘｐ２下编译通过。  
+> 　　　（２）卡巴斯基会将已添加自效验的记事本误报为病毒。  
+> 　　　（３）因为图简单所以将自效验的范围定为＂ＭＺ＂到０ＸＥ５。（添加了新的节以后，记事本的头部会改变，但０ｘｅ６之前的不会变）  
+> 　　　（4）在调用 ExitProcess 时使用了硬编码:mov eax,07c81caa2h(Kernel32.ExitProcess),call eax  
+> 参考文献：  
+> 　　（１）ｂｂｓ．ｐｅｄｉｙ．ｃｏｍ  
+> 　　（２）www.luocong.com 
+> 
+> 相关附件请到这页面下载：http://bbs.pediy.com/showthread.php?t=45074
+
+ 4dd466d0e1e0cc123afbe504da2462ca

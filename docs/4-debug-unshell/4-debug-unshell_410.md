@@ -1,0 +1,63 @@
+
+
+# Delphi Application Peeper Pro 2.3.1.9
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50056.htm`](https://www.pediy.com/kssd/pediy05/pediy50056.htm)
+
+ASPRTECT1.2X 加壳的 Delphi Application Peeper Pro 2.3.1.9 脱壳(简单)   
+crack by fwnl   
+原版下载:   
+http://www.devrace.de/files/dap\_pro.zip   
+程序简介:   
+Delphi Application Peeper 可以帮助你调试 Delphi 或 CBuilder 写的程序，它可以在运行时得到组件的对象数据.听 Sam.com 大哥说这个东西对破解有用.   
+破解工具:   
+trw2000, superbpm,Import REConstructor v1.4.2+ ,UltraEdit32, prodump   
+  
+  程序是用 Aspr1.22(FI 249 查的,很有可能版本更高)加壳，所以 caspr 不能脱此壳，于是就只有手动来脱了。   
+一.找入口点   
+  
+    由于是 delphi 程序，所以利用快速寻找 aspr 入口的方法:   
+  
+    执行 DAP\_Pro.exe，用 prodump 选 dump(full)脱壳,存为 dump.exe。接着用 UltraEdit32 打开 dump.exe，ALT+F3，填 runtime,选中查找 ASCⅡ,执行搜索，搜到后,向上查找离 runtime 最近的机器码为 55 8B EC 的地方就是程序的 oep，而在 DAP\_Pro.exe 里这个位置在 offset:00088730 处，用 peditor 的 flc 功能将它转换为 virtual address 就是 00489130----oep。   
+  
+二.用 trw2000 初步脱壳   
+  
+  下面要在入口处脱壳，打开 SuperBPM，点 erase，用 trw 载入 DAP\_Pro.exe，下 g 489130，接着下 pedump 脱出程序.   
+  
+三.修复 import table   
+  
+  打开原加壳程序,在 Import REConstructor v1.4.2+ 的 Attach to an Active Process 窗口中选取 DAP\_Pro.exe 的进程,然后在下方的 oep 处填入 00089130,点 IAI AutoSearch,再点 Get Imports 然后点 Show Invalid,在 Imported Functions Found 窗口里的无效地址上点鼠标右键，选 Trace Leve11(disasm),再点 show invaids，发现还有几个没有修复，再次在那几个没有修复的地址上点鼠标右键.   
+  选中 Plugin Tracer(Asprotect 1.2X Emul),再点 show invaids 应发现所有的 dll 显示 valid:Yes 了。然后点 Fix Dump,选中你用 trw2000 pedump 出的文件修复.   
+  这样修复后的程序在启动时还会出现一个出错对话框.于是我们要看程序在那里出错，然后再用原版的对比看.   
+  
+  
+四.修复脱壳后的程序   
+用 trw2000 载入脱出的程序，下 bpx messageboxexa ,然后 F5 返回程序将被断下,下 PMODULE 返回程序可见如下:   
+0167:0044E580 84C0            TEST    AL,AL   
+0167:0044E582 7406            JZ      0044E58A          //改成 7423 跳过出错对话框   
+0167:0044E584 81CB00001000    OR      EBX,00100000   
+0167:0044E58A 33C9            XOR      ECX,ECX   
+0167:0044E58C 55              PUSH    EBP   
+0167:0044E58D 6809E64400      PUSH    DWORD 0044E609   
+0167:0044E592 64FF31          PUSH    DWORD \[FS:ECX\]   
+0167:0044E595 648921          MOV      \[FS:ECX\],ESP   
+0167:0044E598 53              PUSH    EBX   
+0167:0044E599 57              PUSH    EDI   
+0167:0044E59A 56              PUSH    ESI   
+0167:0044E59B 8B45FC          MOV      EAX,\[EBP\-04\]   
+0167:0044E59E 8B4024          MOV      EAX,\[EAX+24\]   
+0167:0044E5A1 50              PUSH    EAX   
+0167:0044E5A2 E86589FBFF      CALL    \`USER32!MessageBoxA\` //出错对话框   
+0167:0044E5A7 8945F8          MOV      \[EBP\-08\],EAX   
+  
+  
+最后我这样改不知是否正确，我随便试了一下，好像没发现什么不对，因我不会用这个软件，所以就不知是不是真的改好了，请大家测试一下，脱了壳的程序下载:http://wind.prohosting.com/fwnl/fwnl/fwnl.rar   
+用最新的 WINRAR 解压缩,   
+  
+后记:我写文章的目的是想帮助初学脱 ASPR 朋友,因为我刚学脱 ASPR 时真的太幸苦了，其实 ASPR 的真正的难点在 RSA1024 上，而不是如何脱壳。希望有大客能想出好办法.   
+最后我要忠心的谢谢 zombieys 大哥，没有他的帮助我是不可能学会脱 ASPR 的.   
+祝各位朋友开心快乐.   
+                                                                            fwnl   
+                                                                  Beginner's Cracking Group                                                                    The Free Cracking Group Of China   
+                                                                          2002.4.6   
+                                                                            长沙  4dd466d0e1e0cc123afbe504da2462ca

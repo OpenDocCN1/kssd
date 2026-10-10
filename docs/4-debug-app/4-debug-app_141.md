@@ -1,0 +1,51 @@
+
+
+# VirtualBox 无法正常退出分析
+
+> 原文：[`www.pediy.com/kssd/pediy12/144230.html`](https://www.pediy.com/kssd/pediy12/144230.html)
+
+现象：  
+每次 VirtualBox 启动后，然后关闭，进程管理器里面居然还有，死活退不出去！！！  
+你知道，向我这种经常搞 windbg 调试的人，怎么受得了啊~~每次都去进程管理器杀 VirtualBox 进程  
+搞得我对 VirtualBox 印象很差啊！！！  
+  
+今天我实在受不了了，我决定看一下，到底发生什么原因了：  
+  
+1、开启 VirtulBox，然后点退出，界面是关掉了，但是打开进程管理器，果然还在![](img/d23858dd221cce728a3a61b46badb044.jpg "恐怖!")  
+2、开 windbg，attach 该进程，强制中断之  
+3、~\*kv ,打印出所有的堆栈信息，根据堆栈信息找到发生死锁的线程。  
+  
+很明显的线程 0 出现了死锁，堆栈如下：  
+ ~0kv  
+ChildEBP RetAddr  Args to Child                
+0012fb9c 7c957d0b 7c821d1e 00000cf0 00000000 ntdll!KiFastSystemCallRet (FPO: \[0,0,0\])  
+0012fba0 7c821d1e 00000cf0 00000000 00000000 ntdll!NtWaitForSingleObject+0xc (FPO: \[3,0,0\])  
+0012fc10 7c821c8d 00000cf0 ffffffff 00000000 kernel32!WaitForSingleObjectEx+0xac (FPO: \[SEH\])  
+0012fc24 775356f4 00000cf0 ffffffff 775d2cf0 kernel32!WaitForSingleObject+0x12 (FPO: \[2,0,0\])  
+0012fc40 774cdacc 00000cf0 00000000 00000080 ole32!CDllHost::ClientCleanupFinish+0x2a (FPO: \[1,1,0\])  
+0012fc6c 774cda32 00000000 0012fcbc 775d66d4 ole32!DllHostProcessUninitialize+0x8a (FPO: \[0,5,4\])  
+0012fc8c 774fce20 00000000 01ca0000 00155de0 ole32!ApartmentUninitialize+0xf8 (FPO: \[1,3,4\])  
+0012fca4 774fcdd2 0012fcbc 00000000 00000001 ole32!wCoUninitialize+0x7d (FPO: \[2,0,0\])  
+0012fcc0 01ca2c0b 00000000 001b3ef0 00000000 ole32!CoUninitialize+0x65 (FPO: \[0,1,0\])  
+WARNING: Stack unwind information not available. Following frames may be wrong.  
+0012fd04 7c94a352 01ca0000 00000000 00000001 opentext22+0x2c0b  
+0012fd24 7c960e70 01ca648b 01ca0000 00000000 ntdll!LdrpCallInitRoutine+0x14  
+0012fddc 7c8268a3 00000000 00000001 00000000 ntdll!LdrShutdownProcess+0x182 (FPO: \[SEH\])  
+0012fec8 7c826905 00000000 77e8f3b0 ffffffff kernel32!\_ExitProcess+0x43 (FPO: \[SEH\])  
+0012fedc 7c348d03 00000000 7c3476c9 00000000 kernel32!ExitProcess+0x14  
+0012fee4 7c3476c8 00000000 7c82474a 00000000 MSVCR71!\_\_crtExitProcess+0x2e (FPO: \[1,0,0\]) (CONV: cdecl) \[f:\\vs70builds\\3052\\vc\\crtbld\\crt\\src\\crt0dat.c @ 463\]  
+0012ff14 7c348d11 00000000 00000000 00000000 MSVCR71!doexit+0xab (FPO: \[Non-Fpo\]) (CONV: cdecl) \[f:\\vs70builds\\3052\\vc\\crtbld\\crt\\src\\crt0dat.c @ 414\]  
+0012ff24 0060b910 00000000 00000000 00000000 MSVCR71!exit+0xd (FPO: \[1,0,0\]) (CONV: cdecl) \[f:\\vs70builds\\3052\\vc\\crtbld\\crt\\src\\crt0dat.c @ 303\]  
+0012ffc0 7c82f23b 00000000 00000000 7ffde000 VirtualBox!TrustedMain+0x2085f0  
+0012fff0 00000000 0060b77a 00000000 78746341 kernel32!BaseProcessStart+0x23 (FPO: \[SEH\])  
+  
+从下往上分析，一切都很正常，VirtualBox 准备退出，调用了 MSVCR71!exit，然后 ExitProcess  
+关键是最后出现了一个 WaitForSingleObjectEx！！导致死锁  
+0012fd04 7c94a352 01ca0000 00000000 00000001 **opentext22**+0x2c0b  
+这个东西看起来不像微软的哦~~  windbg 提示  
+\*\*\* WARNING: Unable to verify checksum for C:\\Program Files\\Lingoes\\Translator2\\opentext22.dll  
+\*\*\* ERROR: Symbol file could not be found.  Defaulted to export symbols for C:\\Program Files\\Lingoes\\Translator2\\opentext22.dll -   
+  
+靠！居然是林格斯翻译软件的一个 DLL，啊哈，这类软件比较喜欢注入 dll，以实现取词啥的  
+  
+退出林格斯，测试正常，哇哈哈，困扰已久的问题搞定了，希望林格斯的厂商帮忙看看，否则我只能换软件了

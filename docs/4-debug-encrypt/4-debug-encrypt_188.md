@@ -1,0 +1,212 @@
+
+
+# 用 Win32 汇编写的 Base64 编码程序
+
+> 原文：[`www.pediy.com/kssd/pediy10/72935.html`](https://www.pediy.com/kssd/pediy10/72935.html)
+
+来看雪很久了，发个原创的 Win32 汇编小程序，希望大家支持，谢谢  
+  
+
+代码:
+
+```
+;-----------------------------------------------------------------------------
+;Base64 加密程序 BY 民大科技 2008-09-11
+;返回值    目的串的长度
+;-----------------------------------------------------------------------------
+include \\masm32\\include\\masm32rt.inc
+
+.data
+IDD\_DIALOG1  equ                101
+IDC\_INPUT       equ                1000
+IDC\_OUTPUT      equ                1001
+IDC\_ENCODE      equ                1002
+IDC\_CLEAR       equ                1003
+IDC\_STATIC      equ                -1
+
+szError    db  '源串不能为空',0
+Base64Table  db  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=',0
+;pad    db  '='
+
+.data?
+hInstance  dd  ?
+hWnd    dd  ?
+bufInput  db  512 dup(?)
+bufOutput  db  512 dup(?)
+
+.code
+;---------------------------------------------------
+;Base64 加密函数 Win32 汇编实现
+;参数  lpSrc    需加密的串的地址
+;  SrcLen    需加密的字节数
+;  lpDes    存放结果的地址
+;返回值  无
+;---------------------------------------------------
+\_Base64Encode  proc uses ebx ecx edx esi edi lpSrc:dword,SrcLen:dword,lpDes:dword
+  local  @DesLen
+  local  @Groups
+  
+  mov  esi,lpSrc
+  mov  edi,lpDes
+  
+  xor  edx,edx
+  mov  eax,SrcLen
+  mov  ebx,3
+  div  ebx          ;将源串以三位分组
+
+  mov  @Groups,eax        ;计算分组数目
+  push  edx          ;保存余数
+  
+  mov  ecx,eax
+  xor  ebx,ebx
+  .while  ebx<ecx        
+    mov  edx,ebx
+    add  edx,ebx
+    add  edx,ebx        ;edx=ebx\*3
+    
+    xor  eax,eax
+    mov  al,byte ptr \[esi+edx\]
+    shl  ax,6
+    mov  byte ptr \[edi+ebx\*4\],ah
+    shl  ax,2        ;A|al
+    
+    mov  al,byte ptr \[esi+edx+1\]    ;A|B
+    shl  ax,4
+    and  ah,63        ;and ah,0011 1111
+    mov  byte ptr \[edi+ebx\*4+1\],ah
+    shl  ax,4        ;B|al
+    
+    mov  al,byte ptr \[esi+edx+2\]    ;B|C
+    shl  ax,2
+    and  ah,63
+    mov  byte ptr \[edi+ebx\*4+2\],ah
+    shl  ax,6        ;C|al
+    
+    and  ah,63
+    mov  byte ptr \[edi+ebx\*4+3\],ah
+    
+    inc  ebx
+  .endw
+  
+  pop  edx          ;取余数
+  .if  edx
+    inc  @Groups
+    mov  ecx,ebx
+    add  ecx,ebx
+    add  ecx,ebx        ;ecx=ebx\*3
+    .if  edx==1
+      xor  eax,eax
+      mov  al,byte ptr \[esi+ecx\]
+      shl  ax,6
+      mov  byte ptr \[edi+ebx\*4\],ah
+      shl  ax,6
+      and  ah,63
+      mov  byte ptr \[edi+ebx\*4+1\],ah
+      
+      mov  byte ptr \[edi+ebx\*4+2\],64
+      mov  byte ptr \[edi+ebx\*4+3\],64
+    .elseif  edx==2
+      xor  eax,eax
+      mov  al,byte ptr \[esi+ecx\]
+      shl  ax,6
+      mov  byte ptr \[edi+ebx\*4\],ah
+      shl  ax,2
+      
+      mov  al,byte ptr \[esi+ecx+1\]
+      shl  ax,4
+      and  ah,63
+      mov  byte ptr \[edi+ebx\*4+1\],ah
+      
+      shl  ax,6
+      and  ah,63
+      mov  byte ptr \[edi+ebx\*4+2\],ah
+      
+      mov  byte ptr \[edi+ebx\*4+3\],64
+    .endif
+  .endif
+  
+  xor  edx,edx
+  mov  eax,4
+  mul  @Groups          ;edx-eax=@Groups\*4
+  
+  mov  @DesLen,eax
+  lea  esi,Base64Table
+  mov  ecx,eax
+  xor  ebx,ebx
+  .while  ebx<ecx          ;从 Base64Table 中取值，写入 edi
+    xor  eax,eax
+    mov  al,byte ptr \[edi+ebx\]
+    mov  al,byte ptr \[esi+eax\]
+    mov  byte ptr \[edi+ebx\],al
+    inc  ebx
+  .endw
+  
+  mov  eax,@DesLen
+  ret
+\_Base64Encode  endp
+
+
+MyDlgProc  proc  hwndDlg:HWND,uMsg:UINT,wParam:WPARAM,lParam:LPARAM
+        ;----------------------------------------------
+  ;INT\_PTR CALLBACK DialogProc(
+  ;  HWND hwndDlg,  // handle to dialog box
+  ;  UINT uMsg,     // message
+  ;  WPARAM wParam, // first message parameter
+  ;  LPARAM lParam  // second message parameter
+  ;);
+  ;----------------------------------------------
+
+    .if  uMsg==WM\_INITDIALOG
+      push  hwndDlg
+      pop  hWnd
+    .elseif  uMsg==WM\_CLOSE
+      invoke  EndDialog,hWnd,NULL
+    .elseif  uMsg==WM\_COMMAND
+      mov  eax,wParam
+      .if  ax==IDC\_CLEAR
+        invoke  SetDlgItemText,hWnd,IDC\_INPUT,NULL
+        invoke  SetDlgItemText,hWnd,IDC\_OUTPUT,NULL
+      .elseif  ax==IDC\_ENCODE
+        invoke  RtlZeroMemory,offset bufInput,512
+        invoke  RtlZeroMemory,offset bufOutput,512
+        invoke  GetDlgItemText,hWnd,IDC\_INPUT,offset bufInput,512
+        .if  eax!=0
+          invoke  \_Base64Encode,offset bufInput,eax,offset bufOutput
+          invoke  SetDlgItemText,hWnd,IDC\_OUTPUT,NULL
+          invoke  SetDlgItemText,hWnd,IDC\_OUTPUT,offset bufOutput
+        .else
+          invoke  SetDlgItemText,hWnd,IDC\_OUTPUT,offset szError
+        .endif
+        
+      .endif
+    .else
+      mov  eax,FALSE
+      ret
+    .endif
+    mov  eax,TRUE
+    ret
+MyDlgProc  endp
+
+start:    
+  invoke  GetModuleHandle,NULL    ;GetModuleHandle 获取应用程序实例
+  mov  hInstance,eax
+  invoke  DialogBoxParam,hInstance,IDD\_DIALOG1,NULL,MyDlgProc,NULL
+  invoke  ExitProcess,eax
+  
+  ;INT\_PTR DialogBoxParam(
+    ;HINSTANCE hInstance,     // handle to module(包含 dialog box template 的可执行文件的句柄)
+    ;LPCTSTR lpTemplateName,  // dialog box template(TemplateId)
+    ;HWND hWndParent,         // handle to owner window(将创建的对话框的所有者)
+    ;DLGPROC lpDialogFunc,    // dialog box procedure(窗口处理过程)
+    ;LPARAM dwInitParam       // initialization value(指定 WM\_INITDIALOG 的 lParam)
+    
+    
+  ;);
+
+    end start
+
+```
+
+上传的附件
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || MyBase64.rar  
+ |

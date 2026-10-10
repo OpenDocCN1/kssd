@@ -1,0 +1,113 @@
+
+
+# 防止同一程序多次运行
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum1065.htm`](https://www.pediy.com/kssd/pediy03/forum1065.htm)
+
+关于防止同一程序多次运行的破解方法   
+          by liangs   
+  
+  
+hkip 朋友提了一个问题如下：   
+如下的这个软件,是个游戏。他为了防止作弊不允许开两个窗口。   
+可我找了半天都不知道怎么解决这个问题。   
+http://61.141.247.212/MyGames/DownLoad/Setup-Plaza.exe   
+程序不大，只有 6 百 K 这个程序用 ASPROTECT11 加密，可以使用 CASPR11 解开。   
+  
+\-------------------------------------------------------------------   
+问题的解决：   
+  
+上面的 Setup-Plaza.exe 实际上是个游戏大厅的安装程序，是中国游戏中心   
+在线游戏的大厅安装程序，就象联众游戏的大厅安装程序一样。这个程序脱壳   
+后反汇编的代码中找不到任何有用的提示，全都是乱码。程序运行后，如果发   
+现已有一个进程在运行就会退出，也不给出任何提示，下 bpx ExitProcess 也   
+没法中断，faint!   
+  
+在试过多个中断没有效果的情况下，我跟踪了一下程序的 API 调用，结果如下。   
+  
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*程序首次运行的跟踪结果\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*   
+.....   
+FindWindowA(LPSTR:00465908:"iGameMainWndClass",LPSTR:00000000)::00417DBF   
+FindWindowA'returns: 00000000   
+  
+SetRectEmpty()::00447247   
+SetRectEmpty'returns: FFFFFFFF   
+  
+GetClassInfoA(HANDLE:00400000,LPSTR:00465908:"iGameMainWndClass",LPDATA:006FFD28)::00417E11   
+GetClassInfoA'returns: 00000000   
+  
+LoadCursorA(HANDLE:00400000,LPSTR:00007F00)::00417E3F   
+LoadCursorA'returns: 00000000   
+  
+GetClassInfoA(HANDLE:00400000,LPSTR:00465908:"iGameMainWndClass",LPDATA:006FFC70)::00437BA8   
+GetClassInfoA'returns: 00000000   
+  
+RegisterClassA(LPDATA:006FFD28)::00437BB3   
+RegisterClassA'returns: 0000C306   
+  
+LoadStringA(HANDLE:00400000,DWORD:000003F7,LPSTR:006FFBA4,DWORD:00000100)::0043C7AB   
+LoadStringA'returns: 00000013   
+  
+lstrlenA(LPSTR:006FFBA4:"游戏大厅 Ver 0.7.63")::0043A9DC   
+lstrlenA'returns: 00000013   
+.....   
+部分略。。。   
+  
+★★★ 特别注意 ★★★   
+CreateWindowExA(DWORD:00000200,LPSTR:00465908:"iGameMainWndClass",LPSTR:020E42A0:"游戏大厅 Ver 0.7.63",DWORD:00CF0000,DWORD:00000000,DWORD:00000000,DWORD:00000402,DWORD:000002E2,HWND:00000000,HANDLE:00000000,HANDLE:00400000,LPDATA:00000000)::0043758F   
+  
+  
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*程序二次运行的跟踪结果\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*   
+注意下面的跟踪结果是运行一个进程不关闭的情况下，再运行程序的监视结果   
+  
+FindWindowA(LPSTR:00465908:"iGameMainWndClass",LPSTR:00000000)::00417DBF   
+FindWindowA'returns: 00000FC8   
+  
+FreeLibrary(HANDLE:10000000)::0041803F   
+FreeLibrary'returns: 00000001   
+  
+CloseHandle(HANDLE:10000000)::0041804B   
+CloseHandle'returns: 00000000   
+  
+UnhookWindowsHookEx(HANDLE:4B48779C)::0044D6FC   
+UnhookWindowsHookEx'returns: 00000001   
+  
+LocalFree(HANDLE:005D0CC4)::0044ACE2   
+LocalFree'returns: 00000000   
+.....   
+部分略。。。   
+  
+SetUnhandledExceptionFilter(LPDATA:7FC69E61)::0042D21B   
+SetUnhandledExceptionFilter'returns: 0042D1B8   
+  
+ExitProcess(DWORD:00000000)::00428472   
+  
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*   
+  
+  大家比较一下上面两次跟踪的结果，会发现 00417DBF 的 FindWindowA()的   
+返回值不同!!! 如果程序首次运行返回 00000000，如果程序已经运行则返回   
+00000FC8。如果 0417DBF 的 FindWindowA()返回 00000000 的话，我们可以看到   
+不远处的 CreateWindowExA()，这个 API 大家再熟悉不过了，就是产生程序的   
+主窗口。   
+  
+  下面我们在来看看 00417DBF 处的程序调用：   
+  
+//调用 FindWindowA()   
+:00417DB9 FF1598154500            call dword ptr \[00451598\]        
+:00417DBF 85C0                    test eax, eax   
+//这里大家可以注意一下两种情况下 EAX 中的返回值   
+:00417DC1 7407                    je 00417DCA   
+//如果 EAX=0，就一切 OK!!!   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:00417C1A(U)   
+|   
+:00417DC3 33C0                    xor eax, eax   
+//不用说了，这个跳转一跳就 Over 了!!!   
+:00417DC5 E94D020000              jmp 00418017   
+  
+  
+现在你知道怎么改了，就将 00417DC1 的 7407 简单的改为 EB07 就 OK 了。   
+  
+上面我是通过 API 的跟踪来破解的，当然你也可以通过 bpx FindWindowA   
+来跟踪搞定它，同样的没问题。  4dd466d0e1e0cc123afbe504da2462ca

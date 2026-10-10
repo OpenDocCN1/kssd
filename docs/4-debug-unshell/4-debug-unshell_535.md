@@ -1,0 +1,832 @@
+
+
+# 脱掉 Aspr 2.1X SKE 壳(exe&dll) Plus stolen code 修复
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-585.htm`](https://www.pediy.com/kssd/pediy08/pediy8-585.htm)
+
+作为初学者，成功脱掉这个壳，并不容易，记录下来给自己也给比我还新的兄弟一个纪念，有什么不对的地方请各位大侠指正。  
+软件名称：国外软件，不便透露  
+目标：脱掉 Aspr 2.1X SKE 壳  
+  
+一、初探目标  
+这个软件比较大，安装好后，有 30 多兆。进入安装目录，用 PeiD 查看里面的文件，两个 exe 文件被加壳，一个 dll 文件被加壳，其它的文件未加  
+  
+壳，PeiD 探测都为 VC5 或 VC6 编写。  
+  
+二、三个文件加壳参数是否一样?  
+将两个 exe 文件分别称为 1.exe 和 2.exe，dll 文件称为 3.dll。  
+1、先看看 OEP  
+三个文件找 OEP 的方法不一定相同，两个 exe 文件用 syscom 提供的特征码方法很管用，即找到最后一次异常前面的一个函数进入运行到返回，出  
+  
+来即是 OEP 了；至于 dll 文件用这个方法好象行不通，我用的是最后一次异常后对 code 段下断点的方法，直接到 OEP 了。  
+\--1.exe  
+OD 去除忽略内存异常载入，Shift+F9，发现最后一次异常为 32~36 次不等：  
+011802F3    55              push ebp                                     ; XXXXX.0044C07A  
+011802F4    EB 02           jmp short 011802F8  
+011802F6    CD20 1BEA8BEC   vxdjump EC8BEA1B  
+011802FC    6A FF           push -1  
+011802FE    50              push eax  
+011802FF    66:9C           pushfw  
+01180301    53              push ebx  
+01180302    81DB E8A90959   sbb ebx,5909A9E8  
+01180308    81F3 4060C549   xor ebx,49C56040  
+0118030E    8D5C24 1D       lea ebx,dword ptr ss:\[esp+1D\]  
+01180312    EB 01           jmp short 01180315  
+01180314    E8 8D5C2BE3     call E4435FA6  
+01180319    EB 02           jmp short 0118031D  
+0118031B    CD20 2BDD8D5B   vxdjump 5B8DDD2B  
+01180321    06              push es  
+01180322    36:EB 01        jmp short 01180326  
+01180325    9A 68003A4E 008>call far 8F00:4E3A0068  
+0118032C    035B 66         add ebx,dword ptr ds:\[ebx+66\]  
+0118032F    9D              popfd  
+01180330    E9 6C010000     jmp 011804A1  
+01180335    68 7C041801     push 118047C  
+0118033A    E8 C1FC0500     call 011E0000  
+0118033F    56              push esi  
+01180340    66:9C           pushfw  
+明显 OEP 被抽了，按照上面的布局，OEP 应该为下面才对：  
+push ebp  
+mov ebp,esp  
+push -1  
+push XXXXXXXX  
+push XXXXXXXX  
+先不管，看 2.exe  
+\--2.exe  
+00FB025F    55              push ebp  
+00FB0260    EB 02           jmp short 00FB0264  
+00FB0262    CD20 81DD9786   vxdjump 8697DD81  
+00FB0268    64:7A 83        jpe short 00FB01EE  
+00FB026B    ED              in eax,dx  
+00FB026C    0F036C24 18     lsl ebp,dword ptr ss:\[esp+18\]  
+00FB0271    8D6C24 29       lea ebp,dword ptr ss:\[esp+29\]  
+00FB0275    8D6C25 D7       lea ebp,dword ptr ss:\[ebp-29\]  
+00FB0279    6A FF           push -1  
+00FB027B    50              push eax  
+00FB027C    66:9C           pushfw  
+00FB027E    53              push ebx  
+00FB027F    8D5F BD         lea ebx,dword ptr ds:\[edi-43\]  
+00FB0282    8D5C11 67       lea ebx,dword ptr ds:\[ecx+edx+67\]  
+00FB0286    2BDA            sub ebx,edx  
+00FB0288    EB 02           jmp short 00FB028C  
+00FB028A    CD20 8D5C2450   vxdcall 50245C8D  
+00FB0290    8D5C2B B0       lea ebx,dword ptr ds:\[ebx+ebp-50\]  
+基本同 1.exe，OEP 也被抽了；SEH 异常次数也为 32 到 36 次，由于后面经常要去 OEP，自己写了段 osc(ollyscript 也是刚学的，大家不要笑)，因为  
+  
+不知道确切的 SEH 异常次数（每次基本都会变），可能会报错，7 成机会能找到。。。  
+/\*  
+ASProtect SKE 2.1X 直达 OEP 脚本 By LiD  
+\*/  
+  
+var i//循环因子  
+var j//临时变量  
+var k//特征码找到标志位  
+  
+mov i, 0//赋初值  
+mov k, 0  
+  
+SEH\_LOOP:  
+cmp i, 20//这个值可酌情修改，此表 32 次异常后开始搜索特征字符串  
+jae FIND\_OP  
+esto  
+inc i  
+jmp SEH\_LOOP  
+  
+FIND\_OP:  
+mov j, eip  
+shr j, 10  
+shl j, 10  
+find j, #83C42C5D5F5E5BC3#//特征码  
+mov j, $RESULT  
+cmp $RESULT, 0  
+je GO\_ON\_LOOP  
+sub j, 5  
+bp j  
+mov k, 1  
+jmp GO\_ON\_LOOP  
+  
+GO\_ON\_LOOP:  
+cmp k, 0  
+je TMP\_FIND\_OP1  
+jmp TMP\_FIND\_OP2  
+  
+TMP\_FIND\_OP1:  
+esto  
+jmp FIND\_OP  
+  
+TMP\_FIND\_OP2:  
+esto  
+eval "{j}"  
+msg $RESULT  
+cmp j, eip  
+je FIND\_OK  
+jmp TMP\_FIND\_OP2  
+  
+FIND\_OK:  
+bc j  
+sti  
+rtr  
+sto  
+  
+\--3.dll  
+10007221    55              push ebp  
+10007222    8BEC            mov ebp,esp  
+10007224    53              push ebx  
+10007225    8B5D 08         mov ebx,dword ptr ss:\[ebp+8\]  
+10007228    56              push esi  
+10007229    8B75 0C         mov esi,dword ptr ss:\[ebp+C\]  
+1000722C    57              push edi  
+1000722D    8B7D 10         mov edi,dword ptr ss:\[ebp+10\]  
+10007230    85F6            test esi,esi  
+10007232    75 09           jnz short XXXXXXXX3.1000723D  
+10007234    833D 24B40010 0>cmp dword ptr ds:\[1000B424\],0  
+1000723B    EB 26           jmp short XXXXXXXX3.10007263  
+用 loaddll 载入，SEH 次数也为 32 到 36 次左右；  
+dll 文件的 OEP 好象没被抽，庆幸！  
+  
+2、代码段的函数调用是否被处理  
+到 OEP 后，进入代码段，发现有如下代码：  
+004075F1   /E9 A0000000     jmp XXXXXXXX1.00407696  
+004075F6   |8B4D F8         mov ecx,dword ptr ss:\[ebp-8\]  
+004075F9   |C741 48 0000000>mov dword ptr ds:\[ecx+48\],0  
+00407600   |8B55 F8         mov edx,dword ptr ss:\[ebp-8\]  
+00407603   |C782 EC030000 0>mov dword ptr ds:\[edx+3EC\],0  
+0040760D   |6A 20           push 20  
+0040760F   |E8 EC89D900     call 011A0000<----------------------------注意这里，又进壳  
+00407614   |79 50           jns short XXXXXXXX1.00407666  
+00407616   |E8 E589D900     call 011A0000<----------------------------注意这里，又进壳  
+0040761B   |2F              das  
+0040761C   |8B4D F8         mov ecx,dword ptr ss:\[ebp-8\]  
+0040761F   |E8 05620000     call XXXXXXXX1.0040D829  
+00407624   |8B45 F8         mov eax,dword ptr ss:\[ebp-8\]  
+00407627   |8B88 0C040000   mov ecx,dword ptr ds:\[eax+40C\]  
+0040762D   |51              push ecx  
+  
+里面的 call 011A0000 明显表明原函数被壳处理过了。我们需要把这些改成 call XXXXXX1.0040766 或 jmp XXXXXX1.0040766 之类的才对；  
+  
+同样载入 2.exe 并运行，发现如下代码：  
+004010AC    FF15 3C504000   call dword ptr ds:\[40503C\]                   ; kernel32.SetEvent  
+004010B2    8B0D E47B4000   mov ecx,dword ptr ds:\[407BE4\]  
+004010B8    6A FF           push -1  
+004010BA    51              push ecx  
+004010BB    E8 44EFC100     call 01020004<----------------------------  
+004010C0    848B 15E47B40   test byte ptr ds:\[ebx+407BE415\],cl  
+004010C6    008B 35445040   add byte ptr ds:\[ebx+40504435\],cl  
+004010CC    0052 FF         add byte ptr ds:\[edx-1\],dl  
+004010CF    D6              salc  
+004010D0    A1 E07B4000     mov eax,dword ptr ds:\[407BE0\]  
+004010D5    50              push eax  
+004010D6    FFD6            call esi  
+。。。  
+。。。  
+00402DAC    68 B47B4000     push XXXXXXXX2.00407BB4  
+00402DB1    6A 00           push 0  
+00402DB3    8BF1            mov esi,ecx  
+00402DB5    6A 00           push 0  
+00402DB7    E8 48D2C700     call 01080004<-----------------------------  
+00402DBC    54              push esp  
+00402DBD    A3 007E4000     mov dword ptr ds:\[407E00\],eax  
+00402DC2    FF15 28504000   call dword ptr ds:\[405028\]                   ; ntdll.RtlGetLastWin32Error  
+00402DC8    3D B7000000     cmp eax,0B7  
+00402DCD    A3 047E4000     mov dword ptr ds:\[407E04\],eax  
+00402DD2    75 18           jnz short XXXXXXXX2.00402DEC  
+  
+上面的 call 01020004 和 call 01080004 也表明原函数被壳处理过了。但注意，这个与 1.exe 的类型不一样，它每次 call 的函数不一样，1.exe 是  
+  
+一样的(call 011A0000)；仔细想一想，其实 2 比 1 要简单，为什么？如果写过程序的应该都知道，如果你想完成同样一个功能，写一个函数要传  
+  
+的参数要多一些，而分开写成几个函数要传的参数要少一些。可以跟进去比较一下。。。  
+  
+\--3.dll  
+这个函数没被处理，好办；  
+  
+3、看看 IAT 表有没有加密  
+\--1.exe  
+到 OEP 后随便选一个已知的函数调用，看 call 到哪儿的，就可以得到 IAT 表了（如上面 2.exe 里面的 kernel32.SetEvent 里面对应的地址是 40503C  
+  
+，则说明 IAT 表在这个地址前后，去看看就知道了，用 IR 填入 OEP 也可以自动找出来）  
+004D3000  77DBB635  ADVAPI32.ControlService  
+004D3004  77DAEDE5  ADVAPI32.RegDeleteValueA  
+004D3008  77DBB88C  ADVAPI32.OpenServiceA  
+004D300C  77DCCAC3  ADVAPI32.RegEnumKeyA  
+004D3010  77DB5EB8  ADVAPI32.QueryServiceStatus  
+004D3014  77E06CC9  ADVAPI32.ChangeServiceConfigA  
+004D3018  77DC5462  ADVAPI32.QueryServiceConfigA  
+004D301C  77DC3238  ADVAPI32.StartServiceA  
+004D3020  77DAEAF4  ADVAPI32.RegCreateKeyExA  
+...  
+004D41C0  003D30C0  versit.addPropValue  
+004D41C4  003D2C10  versit.newVObject  
+004D41C8  003D2F50  versit.moreIteration  
+004D41CC  003D2D10  versit.vObjectVObjectValue  
+004D41D0  003D34A0  versit.cleanVObject  
+004D41D4  003D2CB0  versit.vObjectName  
+004D41D8  003D2C30  versit.deleteVObject  
+004D41DC  003D1550  versit.Parse\_MIME  
+004D41E0  00000000  
+004D41E4  00000000  
+  
+很明显，IAT 未加密，4D3000~4D41E0，大小还用说，FT。  
+(提示：数据窗口选长型的地址会好看一些，因为后面会显示有哪些函数，加密没加密一眼就能看出来）  
+\--2.exe  
+00405000  7C802530  kernel32.WaitForSingleObject  
+00405004  7C801EEE  kernel32.GetStartupInfoA  
+00405008  7C80B529  kernel32.GetModuleHandleA  
+0040500C  7C8114AB  kernel32.GetVersion  
+00405010  7C81CACB  kernel32.TerminateThread  
+00405014  7C921005  ntdll.RtlEnterCriticalSection  
+00405018  7C9210ED  ntdll.RtlLeaveCriticalSection  
+0040501C  7C80AA66  kernel32.FreeLibrary  
+00405020  7C93188A  ntdll.RtlDeleteCriticalSection  
+00405024  7C80EB3F  kernel32.CreateMutexA  
+...  
+004052D8  100017D0  XXXXXX.BT\_RegisterCallback  
+004052DC  10001B70  XXXXXX.BT\_GetDefaultAudioDeviceInfo  
+004052E0  10001D30  XXXXXX.BT\_CheckFeature  
+004052E4  10001C10  XXXXXX.BT\_SendProfileCommand  
+004052E8  00000000  
+004052EC  00000000  
+  
+也未加密，405000~4052E8  
+\--3.dll  
+10008000  77DA761B  ADVAPI32.RegOpenKeyExA  
+10008004  558D75B5  
+10008008  78697766  
+1000800C  00000000  
+10008010  A9EDAAF5  
+10008014  7C8099BD  kernel32.LocalAlloc  
+10008018  7C80995D  kernel32.LocalFree  
+1000801C  CA4E820F  
+10008020  84803644  
+10008024  7C8114AB  kernel32.GetVersion  
+10008028  7C653F8E  
+1000802C  7C809B77  kernel32.CloseHandle  
+10008030  7C823053  kernel32.SetCurrentDirectoryA  
+10008034  9218F02F  
+10008038  7C80EC1B  kernel32.OpenMutexA  
+1000803C  7C802442  kernel32.Sleep  
+10008040  00000000  
+10008044  73D98D67  mfc42.#4486  
+10008048  73D35EF1  mfc42.#2554  
+...  
+10008190  77E5A77B  RPCRT4.NdrServerInitializeNew  
+10008194  77E81AFC  RPCRT4.NdrFixedArrayMarshall  
+10008198  77E5887B  RPCRT4.RpcBindingFree  
+1000819C  77E5B769  RPCRT4.NdrConformantArrayMarshall  
+100081A0  00000000  
+100081A4  00000000  
+  
+这个就没那么幸运了，其中的没显示出函数名称的都是被加过密了，10008000~100081A0  
+  
+三、开始修复  
+1、=====>针对 3.dll 先把 IAT 弄出来吧。。。  
+我采用的是林海雪原的方法，主要是比较简单：找解码 IAT 表出来之前的最后一次 SEH（大概 16 到 20 次不等），下面的位置 ASCII"85"是一个参考  
+  
+点，找到两个 ascII "85"之间正中一个函数：00949871，F7 进去（先 F2 下断，再 Shift+F9 过来）  
+00949860    68 B8A09400     push 94A0B8                                  ; ASCII "85"  
+00949865    E8 B2B7FFFF     call 0094501C  
+0094986A    A1 10979500     mov eax,dword ptr ds:\[959710\]  
+0094986F    8B00            mov eax,dword ptr ds:\[eax\]  
+00949871    E8 8EDE0000     call 00957704<-------------------------------先断在这里，Shift+F9 过来，再 F7 进去  
+00949876    84C0            test al,al  
+00949878    75 0A           jnz short 00949884  
+0094987A    68 B8A09400     push 94A0B8                                  ; ASCII "85"  
+  
+进去之后，往下找到这段：  
+00957834    E8 8BFCFFFF     call 009574C4<-------------------------------从这儿进去，就是解码函数了(F4 过来，再 F7 进去）  
+00957839    0FB707          movzx eax,word ptr ds:\[edi\]  
+0095783C    83C0 02         add eax,2  
+0095783F    03F8            add edi,eax  
+00957841    8A1F            mov bl,byte ptr ds:\[edi\]  
+00957843    47              inc edi  
+00957844    3A5E 34         cmp bl,byte ptr ds:\[esi+34\]  
+00957847  ^ 75 8A           jnz short 009577D3<<<<<<<<<<<<<<<内循环：换函数，如 kernel32.OpenMutexA->kernel32.Sleep 等  
+00957849    8BDF            mov ebx,edi  
+0095784B    8B03            mov eax,dword ptr ds:\[ebx\]  
+0095784D    85C0            test eax,eax  
+0095784F  ^ 0F85 20FFFFFF   jnz 00957775<<<<<<<<<<<<<<<<<<<<<外循环：换模块，如 kernel32->mfc42 等  
+00957855    8A0424          mov al,byte ptr ss:\[esp\]  
+00957858    83C4 0C         add esp,0C  
+0095785B    5D              pop ebp<--------------------------------------这几句可以为一个参考  
+0095785C    5F              pop edi  
+0095785D    5E              pop esi  
+0095785E    5B              pop ebx  
+0095785F    C3              retn  
+00957860    C3              retn<-----------------------------------------  
+  
+再进来，就是：  
+009574C4    55              push ebp  
+009574C5    8BEC            mov ebp,esp  
+009574C7    81C4 F8FEFFFF   add esp,-108  
+009574CD    53              push ebx  
+009574CE    56              push esi  
+009574CF    57              push edi  
+009574D0    8B55 14         mov edx,dword ptr ss:\[ebp+14\]  
+009574D3    8B5D 08         mov ebx,dword ptr ss:\[ebp+8\]  
+009574D6    8DBD FAFEFFFF   lea edi,dword ptr ss:\[ebp-106\]  
+009574DC    8BC2            mov eax,edx  
+009574DE    48              dec eax  
+009574DF    83E8 02         sub eax,2  
+009574E2    0FB630          movzx esi,byte ptr ds:\[eax\]  
+009574E5    8B45 10         mov eax,dword ptr ss:\[ebp+10\]  
+009574E8    83E8 02         sub eax,2  
+009574EB    0FB600          movzx eax,byte ptr ds:\[eax\]  
+009574EE    3B43 2C         cmp eax,dword ptr ds:\[ebx+2C\]  
+009574F1    76 06           jbe short 009574F9  
+009574F3    8943 2C         mov dword ptr ds:\[ebx+2C\],eax  
+009574F6    EB 01           jmp short 009574F9  
+009574F8    6933 C08A433B   imul esi,dword ptr ds:\[ebx\],3B438AC0  
+009574FE    3BF0            cmp esi,eax<---------------------------------------这儿就是传说中的四种类型比较了  
+00957500    75 5E           jnz short 00957560  
+00957502    EB 01           jmp short 00957505  
+  
+用林海兄的方法，先分配一块空间，把 009574Fe 处的 cmp esi,eax 改成 jmp 分配的空间（注意，因为是 long jmp，所以这个字节(5B)比 cmp   
+  
+esi,eax(3B)占的要多，就把下面的两行给占用了，要先保存下来）  
+代码无非就是把 esi 里面的两个值改成另外两个，不知道哪个改哪个，多试两次看下方的 IAT 表变化就知道了，这儿不详述。我的只有三个值，  
+  
+只改一个值，得如下修正后的 IAT，先二进制复制下来：  
+10008000  77DA761B  ADVAPI32.RegOpenKeyExA  
+10008004  77DA7883  ADVAPI32.RegQueryValueExA  
+10008008  77DA6BF0  ADVAPI32.RegCloseKey  
+1000800C  00000000  
+10008010  7C8397A1  kernel32.GetCurrentDirectoryA  
+10008014  7C8099BD  kernel32.LocalAlloc  
+10008018  7C80995D  kernel32.LocalFree  
+1000801C  7C802530  kernel32.WaitForSingleObject  
+10008020  7C81CACB  kernel32.TerminateThread  
+10008024  7C8114AB  kernel32.GetVersion  
+10008028  7C81082F  kernel32.CreateThread  
+1000802C  7C809B77  kernel32.CloseHandle  
+10008030  7C823053  kernel32.SetCurrentDirectoryA  
+10008034  7C86114D  kernel32.WinExec  
+10008038  7C80EC1B  kernel32.OpenMutexA  
+1000803C  7C802442  kernel32.Sleep  
+10008040  00000000  
+10008044  73D98D67  mfc42.#4486  
+...  
+当然，这点也可以在 OEP 后，调 IR，选择 loaddll.exe 进程，再选取 3.dll 进程，不要填 OEP，手动填 RVA：8000，Size:16C，获取输入表，手工修  
+  
+复这些函数（如果你知道这些函数是什么的话，因为我不知道，呵呵。。。）  
+  
+到这里，3.dll 文件可以先 dump 为 3-1.dll 了--(为安全起见，先 ctrl+F2 重新来过，到 OEP 处，将 IAT 表帖回去，再 dump）  
+  
+2、到这儿，以上 3 个文件不能同时处理了，要花分两头，各表一支了：  
+\--1.exe 与 2.exe 因为 code 段函数调用加密，还要再处理  
+\--而 3.dll 由于是 dll 文件，需要找重定位表的位置和大小  
+  
+\--先找 3.dll 文件的重定位表  
+ctrl+F2 重新来过，大概在 10 多次(我这儿 16 次）异常后，找到这儿，可以用原来 1.23RC 里面的命令序列（精华 6，Fly 大侠的文章）搜索：  
+0094A32B   /EB 3B           jmp short 0094A368  
+0094A32D   |8B06            mov eax,dword ptr ds:\[esi\]  
+0094A32F   |8B00            mov eax,dword ptr ds:\[eax\]  
+0094A331   |03C7            add eax,edi  
+0094A333   |8B5424 0C       mov edx,dword ptr ss:\[esp+C\]  
+0094A337   |E8 D873FFFF     call 00941714<------------------------------到这儿下断，ebx 值就是重定位表的 RVA  
+0094A33C   |8BE8            mov ebp,eax  
+0094A33E   |892D 3CB49500   mov dword ptr ds:\[95B43C\],ebp  
+0094A344   |3B6C24 10       cmp ebp,dword ptr ss:\[esp+10\]  
+0094A348   |74 0C           je short 0094A356  
+0094A34A   |68 DCA39400     push 94A3DC                                  ; ASCII "45  
+"  
+0094A34F   |E8 C8ACFFFF     call 0094501C  
+0094A354   |EB 12           jmp short 0094A368  
+0094A356   |8B4424 0C       mov eax,dword ptr ss:\[esp+C\]  
+0094A35A   |A3 38B49500     mov dword ptr ds:\[95B438\],eax  
+0094A35F   |8B4424 08       mov eax,dword ptr ss:\[esp+8\]  
+0094A363   |A3 34B49500     mov dword ptr ds:\[95B434\],eax  
+0094A368   \\833C24 00       cmp dword ptr ss:\[esp\],0  
+0094A36C    74 5D           je short 0094A3CB<-------------------------这儿下断，将 Z 位由 1 改为 0，让它不要跳  
+0094A36E    035C24 04       add ebx,dword ptr ss:\[esp+4\]  
+0094A372    EB 51           jmp short 0094A3C5  
+0094A374    8D43 04         lea eax,dword ptr ds:\[ebx+4\]  
+0094A377    8B00            mov eax,dword ptr ds:\[eax\]  
+0094A379    83E8 08         sub eax,8  
+0094A37C    D1E8            shr eax,1  
+0094A37E    8BFA            mov edi,edx  
+0094A380    037C24 04       add edi,dword ptr ss:\[esp+4\]  
+0094A384    83C3 08         add ebx,8  
+0094A387    8BF0            mov esi,eax  
+0094A389    85F6            test esi,esi  
+0094A38B    76 38           jbe short 0094A3C5  
+0094A38D    66:8B13         mov dx,word ptr ds:\[ebx\]  
+0094A390    0FB7C2          movzx eax,dx  
+0094A393    C1E8 0C         shr eax,0C  
+0094A396    66:83E8 01      sub ax,1  
+0094A39A    72 23           jb short 0094A3BF  
+0094A39C    66:83E8 02      sub ax,2  
+0094A3A0    74 02           je short 0094A3A4  
+0094A3A2    EB 11           jmp short 0094A3B5  
+0094A3A4    66:81E2 FF0F    and dx,0FFF  
+0094A3A9    0FB7C2          movzx eax,dx  
+0094A3AC    03C7            add eax,edi  
+0094A3AE    8B1424          mov edx,dword ptr ss:\[esp\]  
+0094A3B1    0110            add dword ptr ds:\[eax\],edx  
+0094A3B3    EB 0A           jmp short 0094A3BF  
+0094A3B5    68 ECA39400     push 94A3EC                                  ; ASCII "34  
+"  
+0094A3BA    E8 5DACFFFF     call 0094501C  
+0094A3BF    83C3 02         add ebx,2  
+0094A3C2    4E              dec esi  
+0094A3C3  ^ 75 C8           jnz short 0094A38D  
+0094A3C5    8B13            mov edx,dword ptr ds:\[ebx\]  
+0094A3C7    85D2            test edx,edx  
+0094A3C9  ^ 75 A9           jnz short 0094A374  
+0094A3CB    83C4 14         add esp,14  
+0094A3CE    5D              pop ebp<--------------------------------------F4 到这儿，再看 ebx 值，bx 减去上面的 bx 就是 size 了撒  
+0094A3CF    5F              pop edi  
+0094A3D0    5E              pop esi  
+0094A3D1    5B              pop ebx  
+0094A3D2    C3              retn  
+最后得：  
+RVA:D000    Size:86C  
+  
+用 loadpe 编辑 3-1.dll 文件，填入新的重定位表地址和大小（在 Directories 里面），重建 PE，OK 了。。。呵呵  
+用 Peid 查，再也不是讨厌的的 ASProtect 2.1x SKE -> Alexey Solodovnikov 了，而是：  
+而是 Microsoft Visual C++ 6.0 DLL 了，呵呵。用 loaddll 运行 OK，用主程序运行，好象有些问题，估计是主程序里面有检测 dll 文件 size 之类  
+  
+的，爆破的问题了。  
+  
+\--再表 exe 文件，exe 文件这步主要处理 code 段里面调用到壳里的函数或 jmp  
+\--1.exe  
+call 011A0000，就这一个，总体思路参照 shoooo 的"nspack3.5 主程序脱壳分析"，具体操作参考 kanxue 老大的"Asprotect SKE 2.2 的 Advanced   
+  
+Import protection 保护技术"，程序我是用的 kanxue 老大的现成的程序，先记录处理了哪些函数，后面再修复。代码我就不写了，看 kanxue 老  
+  
+大的文章，我的是里面说的 a 情况，出来之后的类型全部是 FF15，即 call \*，没有 jmp \*的情况（我就说原来用搜索改 jmp 怎么不行。。）。  
+分两步进行的，1、patch1 先记录哪些函数处理了；2、再次运行，到 OEP 后，再调用 patch2 把这些 call 011A0000 替换过来,  
+完成后，dump 为 1-1.exe  
+\--2.exe  
+先在 OEP 处 dump 为 2-1.exe。  
+对于 call 01020004;call 01040004;...的情况，我搜索了一下，一共有 12 处，在 wak 没放文章之前，我是手工修复的，过程很简单，跟踪原程序的  
+  
+这些函数进去一个一个找出来。这种比较简单，如：  
+004010AC    FF15 3C504000   call dword ptr ds:\[40503C\]                   ; kernel32.SetEvent  
+004010B2    8B0D E47B4000   mov ecx,dword ptr ds:\[407BE4\]  
+004010B8    6A FF           push -1  
+004010BA    51              push ecx  
+004010BB    E8 44EFC100     call 01020004<--------------------------------回车进去  
+004010C0    848B 15E47B40   test byte ptr ds:\[ebx+407BE415\],cl  
+004010C6    008B 35445040   add byte ptr ds:\[ebx+40504435\],cl  
+004010CC    0052 FF         add byte ptr ds:\[edx-1\],dl  
+004010CF    D6              salc  
+004010D0    A1 E07B4000     mov eax,dword ptr ds:\[407BE0\]  
+  
+  
+01020004    F2:             prefix repne:  
+01020005    EB 01           jmp short 01020008<---------------------------回车进去  
+01020007  - E9 FF0424E9     jmp EA26050B  
+0102000C    F0:FFFE         ???                                          ; 未知命令  
+0102000F    FF00            inc dword ptr ds:\[eax\]  
+01020011    0000            add byte ptr ds:\[eax\],al  
+01020013    0000            add byte ptr ds:\[eax\],al  
+  
+  
+01020008    FF0424          inc dword ptr ss:\[esp\]  
+0102000B  - E9 F0FFFEFF     jmp 01010000<---------------------------------回车进去  
+01020010    0000            add byte ptr ds:\[eax\],al  
+01020012    0000            add byte ptr ds:\[eax\],al  
+01020014    0000            add byte ptr ds:\[eax\],al  
+  
+  
+01010000    8BFF            mov edi,edi  
+01010002    55              push ebp  
+01010003    8BEC            mov ebp,esp  
+01010005    6A 00           push 0  
+01010007    FF75 0C         push dword ptr ss:\[ebp+C\]  
+0101000A    FF75 08         push dword ptr ss:\[ebp+8\]  
+0101000D    68 4225807C     push 7C802542<--------------------------------ctrl+g 到这个地址去  
+01010012    68 5025807C     push kernel32.WaitForSingleObjectEx  
+01010017    C3              retn  
+  
+  
+7C802530 >  8BFF            mov edi,edi  
+7C802532    55              push ebp  
+7C802533    8BEC            mov ebp,esp  
+7C802535    6A 00           push 0  
+7C802537    FF75 0C         push dword ptr ss:\[ebp+C\]  
+7C80253A    FF75 08         push dword ptr ss:\[ebp+8\]  
+7C80253D    E8 0E000000     call kernel32.WaitForSingleObjectEx  
+7C802542    5D              pop ebp<--------------------------------------到这儿  
+7C802543    C2 0800         retn 8  
+同上面比较，它把 7C802530 这个函数的前面几句给偷了，在 IAT 中查找 7C802530，为：  
+00405000  7C802530  kernel32.WaitForSingleObject  
+  
+将 2-1.exe 中本 call 改为 call dword ptr ds:\[405000\]//注意：这个为 6 个字节，原来为 5 个字节，改的时候不要选择填充 nop  
+依次改完所有的这种 call，aspr 处理这理很怪，全是 01020004,01040004,01060004...,01160004 这样的，居然有规律？  
+修改完后,保存。  
+  
+\*\*\*\*\*后面 wak 放了一篇文章，可以用程序把这些函数记录下来，我试了一下，文章 1 里面的函数是没问题的，文章 2 里面的函数找不到地方，郁  
+  
+闷。这里理论上应该也可以用 kanxue 的方法记录这些函数，我没试过，不知道灵不灵。  
+  
+四、修复 OEP 处的 stolen code  
+\--只对 1.exe 和 2.exe 有用，两个基本一样，就只表一个了  
+我试过将它所需要的区段全部帖上去的方法，但区段太多，根本就帖不上去，loadpe 友情提示我，“区段太多了，不能再帖。。。”  
+  
+大侠说这是体力活，其实不单是体力活，也是脑力活，要去排除 aspr 的垃圾代码也很难啊。。。  
+1.exe OEP:  
+011802F3    55              push ebp<-------------------------------------OEP  
+011802F4    EB 02           jmp short 011802F8  
+011802F6    CD20 1BEA8BEC   vxdjump EC8BEA1B  
+011802FC    6A FF           push -1  
+011802FE    50              push eax  
+011802FF    66:9C           pushfw  
+01180301    53              push ebx  
+01180302    81DB E8A90959   sbb ebx,5909A9E8  
+01180308    81F3 4060C549   xor ebx,49C56040  
+0118030E    8D5C24 1D       lea ebx,dword ptr ss:\[esp+1D\]  
+  
+  
+ctrl+g 输入 00401000 到代码段，ctrl+f 搜索 jmp 011802F3，找到原 OEP，修复之旅就从这儿开始。  
+004B0014  - E9 DA02CD00     jmp 011802F3<---------------------------------原 OEP  
+004B0019    D7              xlat byte ptr ds:\[ebx+al\]---------------------这些都是垃圾  
+004B001A    25 CFD1DD87     and eax,87DDD1CF。。。。。。。。。。。。。。。。。  
+004B001F    8C0F            mov word ptr ds:\[edi\],cs。。。。。。。。。。。。  
+004B0021    2A75 E2         sub dh,byte ptr ss:\[ebp-1E\]。。。。。。。。。  
+  
+先用 IR 修复 dump 出的 1-1.exe，填 OEP 为 004B0014，转存为 1-1\_.exe  
+用 OD 载入 1-1\_.exe 到 004B0014 处,另外 OD 再载入原程序 1.exe 到 011802F3 处，两边同时进行：  
+再 1-1\_.exe 里面填 1.exe 里面的有用代码。。。主要是去除垃圾代码。下面是去除垃圾后的部分 OEP  
+004B0014 >  55              push ebp  
+004B0015    8BEC            mov ebp,esp  
+004B0017    6A FF           push -1  
+004B0019    68 003A4E00     push XXXXXXXX.004E3A00  
+004B001E    68 C2FD4A00     push <jmp.&msvcrt.\_except\_handler3>  
+004B0023    64:A1 00000000  mov eax,dword ptr fs:\[0\]  
+004B0029    50              push eax  
+004B002A    64:8925 0000000>mov dword ptr fs:\[0\],esp  
+...  
+  
+我发现我这边程序中垃圾代码主要有这几个地方，  
+1)、胡乱 jmp  
+象 OEP 处，才 push ebp 就 jmp 了，这种情况，把代码去除 jmp 后复制到记事本再分析  
+  
+2)、代码变形  
+如 push 404134  
+它会这样处理：  
+00C20785    66:9C           pushfw  
+00C20787    57              push edi  
+00C20788    13FB            adc edi,ebx  
+00C2078A    F2:             prefix repne:  
+00C2078B    EB 01           jmp short 00C2078E  
+  
+00C2078E    8D7C51 07       lea edi,dword ptr ds:\[ecx+edx\*2+7\]//N  
+00C20792    8D7C24 12       lea edi,dword ptr ss:\[esp+12\]//  
+00C20796    8D7F EE         lea edi,dword ptr ds:\[edi-12\]//  
+00C20799    8D7F 06         lea edi,dword ptr ds:\[edi+6\]//edi = esp + 6  
+00C2079C    56              push esi  
+00C2079D    64:EB 02        jmp short 00C207A2  
+  
+00C207A2    81CE CEE6ACC5   or esi,C5ACE6CE//N  
+00C207A8    1BF5            sbb esi,ebp//N  
+00C207AA    8DB40B 34414000 lea esi,dword ptr ds:\[ebx+ecx+404134\]//  
+00C207B1    2BF1            sub esi,ecx//  
+00C207B3    2BF3            sub esi,ebx//esi = 00404134  
+00C207B5    56              push esi  
+00C207B6    F2:             prefix repne:  
+00C207B7    EB 01           jmp short 00C207BA  
+  
+00C207BA    8F07            pop dword ptr ds:\[edi\]                       ; XXXXXX.00404134  
+00C207BC    5E              pop esi  
+00C207BD    5F              pop edi  
+00C207BE    66:9D           popfw  
+如果是这种情况，在 pushfw 和 popfw 的时候，多看看堆栈，就明白了，实际它只是压入了一个值，没进行其它操作，当然，为安全起见，还是一  
+  
+行一行的跟最好。关于代码变形，kanxue 的文章里面有很多。  
+  
+3)、函数/跳转的处理  
+两种情形会 call 011E0000，都需要跟进去，不过还好，都是用的一个函数在处理，如：  
+01180330   /E9 6C010000     jmp 011804A1  
+01180335   |68 7C041801     push 118047C<-----------------------------------------------------------------这是调用后的返回点  
+0118033A   |E8 C1FC0500     call 011E0000<----------------------------------------------------------------F7 进去  
+//还原回来应该是 call 系统函数或自定义的函数，取决于第三层的返回值  
+或跳转  
+01180492    3AC3            cmp al,bl  
+01180494    0F84 4D010000   je 011805E7  
+0118049A    3C 20           cmp al,20  
+0118049C    E8 5FFB0500     call 011E0000<----------------------------------------------------------------F7 进去  
+//还原回来应该是 jnz/jz 之类的，后面地址为第三层的返回值  
+  
+跟进到这儿，第一层  
+011E0000   /EB 01           jmp short 011E0003  
+011E0002   |9A 569CBEB6 AE4>call far 40AE:B6BE9C56  
+011E0009    0003            add byte ptr ds:\[ebx\],al  
+011E000B    74 24           je short 011E0031  
+011E000D    3883 EC2081F6   cmp byte ptr ds:\[ebx+F68120EC\],al  
+011E0013    229A 86FE81DE   and bl,byte ptr ds:\[edx+DE81FE86\]  
+011E0019    3A45 EC         cmp al,byte ptr ss:\[ebp-14\]  
+011E001C    B8 EB019A8D     mov eax,8D9A01EB  
+011E0021    74 24           je short 011E0047  
+011E0023    46              inc esi  
+011E0024    8D76 BA         lea esi,dword ptr ds:\[esi-46\]  
+011E0027    895E 0C         mov dword ptr ds:\[esi+C\],ebx  
+011E002A    BB C20D4B00     mov ebx,4B0DC2  
+011E002F    335C24 28       xor ebx,dword ptr ss:\[esp+28\]  
+011E0033    51              push ecx  
+011E0034    8F46 04         pop dword ptr ds:\[esi+4\]  
+011E0037    8D0C0B          lea ecx,dword ptr ds:\[ebx+ecx\]  
+011E003A    EB 01           jmp short 011E003D  
+011E003C  - 0F89 560883CA   jns CBA10898  
+011E0042    1BF2            sbb esi,edx  
+011E0044    EB 01           jmp short 011E0047  
+011E0046    F0:C1C2 3D      lock rol edx,3D                              ; 不允许锁定前缀  
+011E004A    57              push edi  
+011E004B    8F46 1C         pop dword ptr ds:\[esi+1C\]  
+011E004E    26:EB 02        jmp short 011E0053  
+011E0051    CD20 0BF98946   vxdjump 4689F90B  
+011E0057    0083 E8693344   add byte ptr ds:\[ebx+443369E8\],al  
+011E005D    24 28           and al,28  
+011E005F    55              push ebp  
+011E0060    8F46 14         pop dword ptr ds:\[esi+14\]  
+011E0063    13EB            adc ebp,ebx  
+011E0065    0BDD            or ebx,ebp  
+011E0067    8BDC            mov ebx,esp  
+011E0069    8D5C3B 2C       lea ebx,dword ptr ds:\[ebx+edi+2C\]  
+011E006D    2BDF            sub ebx,edi  
+011E006F    53              push ebx  
+011E0070    EB 02           jmp short 011E0074  
+011E0072    CD20 81EB454C   vxdjump 4C45EB81  
+011E0078    CD E8           int 0E8  
+011E007A    56              push esi  
+011E007B    23D9            and ebx,ecx  
+011E007D    65:EB 01        jmp short 011E0081  
+011E0080    69BB 6ABD4400 C>imul edi,dword ptr ds:\[ebx+44BD6A\],8DF1C3C1  
+011E008A    5E              pop esi  
+011E008B    2326            and esp,dword ptr ds:\[esi\]  
+011E008D    EB 02           jmp short 011E0091  
+011E008F    CD20 8D5C23DD   vxdcall DD235C8D  
+011E0095    83C3 20         add ebx,20  
+011E0098    8B1B            mov ebx,dword ptr ds:\[ebx\]  
+011E009A    53              push ebx  
+011E009B    8D9C11 F03B4600 lea ebx,dword ptr ds:\[ecx+edx+463BF0\]  
+011E00A2    335C24 28       xor ebx,dword ptr ss:\[esp+28\]  
+011E00A6    C1DB D1         rcr ebx,0D1  
+011E00A9    EB 01           jmp short 011E00AC  
+011E00AB    9A 035C2438 F2E>call far EBF2:38245C03  
+011E00B2    01F0            add eax,esi  
+011E00B4    BB 827A4400     mov ebx,447A82  
+011E00B9    F3:             prefix rep:  
+011E00BA    EB 02           jmp short 011E00BE  
+011E00BC    CD20 EB02CD20   vxdcall 20CD02EB  
+011E00C2    64:EB 02        jmp short 011E00C7  
+011E00C5    CD20 8D5AB08D   vxdcall 8DB05A8D  
+011E00CB    5C              pop esp  
+011E00CC    2E:6B2B DD      imul ebp,dword ptr cs:\[ebx\],-23  
+011E00D0    64:EB 02        jmp short 011E00D5  
+011E00D3    CD20 83EB6B26   vxdjump 266BEB83  
+011E00D9    EB 02           jmp short 011E00DD  
+011E00DB    CD20 83C3288B   vxdjump 8B28C383  
+011E00E1    1BEB            sbb ebp,ebx  
+011E00E3    02CD            add cl,ch  
+011E00E5    208D 5BFB8D9B   and byte ptr ss:\[ebp+9B8DFB5B\],cl  
+011E00EB    64:0800         or byte ptr fs:\[eax\],al  
+011E00EE    0053 BB         add byte ptr ds:\[ebx-45\],dl  
+011E00F1    D6              salc  
+011E00F2    4A              dec edx  
+011E00F3    40              inc eax  
+011E00F4    0083 EB472BDB   add byte ptr ds:\[ebx+DB2B47EB\],al  
+011E00FA    68 C40EF700     push 0F70EC4  
+011E00FF    36:EB 01        jmp short 011E0103  
+011E0102    C7C1 EB1803DB   mov ecx,DB0318EB  
+011E0108    5B              pop ebx  
+011E0109    53              push ebx  
+011E010A    C1CB 35         ror ebx,35  
+011E010D    F2:             prefix repne:  
+011E010E    EB 01           jmp short 011E0111  
+011E0110    F0:035C24 38    lock add ebx,dword ptr ss:\[esp+38\]           ; 不允许锁定前缀  
+011E0115    33F3            xor esi,ebx  
+011E0117    68 FC84F500     push 0F584FC  
+011E011C    C1CE E1         ror esi,0E1  
+011E011F    BE BADA4600     mov esi,46DABA  
+011E0124    5E              pop esi  
+011E0125    FFD6            call esi<-------------------------------------从这儿再跟进去,F7  
+011E0127    68 82E7B126     push 26B1E782  
+011E012C    BE 56824500     mov esi,458256  
+011E0131    F2:             prefix repne:  
+011E0132    EB 01           jmp short 011E0135  
+  
+到这儿，第二层  
+00F584FC    55              push ebp  
+00F584FD    8BEC            mov ebp,esp  
+00F584FF    83C4 F8         add esp,-8  
+00F58502    53              push ebx  
+00F58503    56              push esi  
+00F58504    57              push edi  
+00F58505    8B5D 08         mov ebx,dword ptr ss:\[ebp+8\]  
+00F58508    EB 01           jmp short 00F5850B  
+00F5850A    9A 8B451883 E80>call far 08E8:8318458B  
+00F58511    8B00            mov eax,dword ptr ds:\[eax\]  
+00F58513    50              push eax  
+00F58514    8A8B 8E000000   mov cl,byte ptr ds:\[ebx+8E\]  
+00F5851A    8B55 14         mov edx,dword ptr ss:\[ebp+14\]  
+00F5851D    8BC3            mov eax,ebx  
+00F5851F    E8 B4FFFFFF     call 00F584D8  
+00F58524    8B45 18         mov eax,dword ptr ss:\[ebp+18\]  
+00F58527    50              push eax  
+00F58528    B1 04           mov cl,4  
+00F5852A    8B55 14         mov edx,dword ptr ss:\[ebp+14\]  
+00F5852D    8BC3            mov eax,ebx  
+00F5852F    E8 A4FFFFFF     call 00F584D8  
+00F58534    EB 01           jmp short 00F58537  
+00F58536    698B 73308B7B 1>imul ecx,dword ptr ds:\[ebx+7B8B3073\],97E4A11>  
+00F58540    F5              cmc  
+00F58541    008B 4034FFD0   add byte ptr ds:\[ebx+D0FF3440\],cl  
+00F58547    2945 0C         sub dword ptr ss:\[ebp+C\],eax  
+00F5854A    8B45 0C         mov eax,dword ptr ss:\[ebp+C\]  
+00F5854D    2B43 18         sub eax,dword ptr ds:\[ebx+18\]  
+00F58550    2B43 68         sub eax,dword ptr ds:\[ebx+68\]  
+00F58553    8945 FC         mov dword ptr ss:\[ebp-4\],eax  
+00F58556    8D43 24         lea eax,dword ptr ds:\[ebx+24\]  
+00F58559    8945 F8         mov dword ptr ss:\[ebp-8\],eax  
+00F5855C    85FF            test edi,edi  
+00F5855E    76 38           jbe short 00F58598  
+00F58560    EB 01           jmp short 00F58563  
+00F58562    C7              ???                                          ; 未知命令  
+00F58563    8B45 F8         mov eax,dword ptr ss:\[ebp-8\]  
+00F58566    0FB600          movzx eax,byte ptr ds:\[eax\]  
+00F58569    8B5483 40       mov edx,dword ptr ds:\[ebx+eax\*4+40\]  
+00F5856D    8BC6            mov eax,esi  
+00F5856F    FFD2            call edx  
+00F58571    3B45 FC         cmp eax,dword ptr ss:\[ebp-4\]  
+00F58574    75 1A           jnz short 00F58590  
+00F58576    8B45 10         mov eax,dword ptr ss:\[ebp+10\]  
+00F58579    50              push eax  
+00F5857A    8B45 14         mov eax,dword ptr ss:\[ebp+14\]  
+00F5857D    50              push eax  
+00F5857E    E8 19FAFFFF     call 00F57F9C  
+00F58583    50              push eax  
+00F58584    8BCE            mov ecx,esi  
+00F58586    8B55 18         mov edx,dword ptr ss:\[ebp+18\]  
+00F58589    8BC3            mov eax,ebx  
+00F5858B    E8 D4FDFFFF     call 00F58364<------------------------------------从这儿 F7 进去  
+00F58590    4F              dec edi  
+00F58591    0373 6C         add esi,dword ptr ds:\[ebx+6C\]  
+00F58594    85FF            test edi,edi  
+00F58596  ^ 77 CB           ja short 00F58563  
+00F58598    68 B485F500     push 0F585B4                                 ; ASCII "111"  
+00F5859D    E8 7ACAFEFF     call 00F4501C  
+  
+到这儿，第三层  
+00F58364    55              push ebp  
+00F58365    8BEC            mov ebp,esp  
+00F58367    83C4 F4         add esp,-0C  
+00F5836A    53              push ebx  
+00F5836B    56              push esi  
+00F5836C    57              push edi  
+...  
+...  
+...  
+011F00AA    2BF1            sub esi,ecx  
+011F00AC    F3:             prefix rep:  
+011F00AD    EB 02           jmp short 011F00B1  
+011F00AF    CD20 F2EB01E9   vxdjump E901EBF2  
+011F00B5    FF36            push dword ptr ds:\[esi\]  
+011F00B7    337424 08       xor esi,dword ptr ss:\[esp+8\]  
+011F00BB    BE 1ABE4100     mov esi,41BE1A  
+011F00C0    5E              pop esi  
+011F00C1    9D              popfd  
+011F00C2    5C              pop esp  
+011F00C3    FF6424 FC       jmp dword ptr ss:\[esp-4\]<---------------------------在这儿下断，里面就是要找的地址了  
+011F00C7    382B            cmp byte ptr ds:\[ebx\],ch  
+  
+如果这个地址还在壳内，说明自定义函数，则继续往下跟；如果往代码段去了，一般都是系统函数，照搬就行了：如，下面是我修复的部分代  
+  
+码:  
+004B0077    8B00            mov eax,dword ptr ds:\[eax\]  
+004B0079    A3 A0BD5000     mov dword ptr ds:\[50BDA0\],eax  
+004B007E    E8 3583FDFF     call XXXXXXXX.004883B8//这个是系统函数  
+  
+004B0096    59              pop ecx  
+004B0097    E8 B41F0200     call XXXXXXXX.004D2050//这个是自定义函数  
+\--->下面也是按照壳内的思路跟出来的  
+004D2050    68 00000300     push 30000  
+004D2055    68 00000100     push 10000                                   ; UNICODE "=::=::\\"  
+004D205A    E8 35E2FDFF     call <jmp.&msvcrt.\_controlfp>  
+004D205F    59              pop ecx  
+004D2060    59              pop ecx  
+004D2061    C3              retn  
+  
+跳转  
+004D206E    3AC3            cmp al,bl  
+004D2070    75 0E           jnz short XXXXXXXX.004D2080<------------------  
+004D2072    0000            add byte ptr ds:\[eax\],al  
+004D2074    0000            add byte ptr ds:\[eax\],al  
+004D2076    0000            add byte ptr ds:\[eax\],al  
+004D2078    0000            add byte ptr ds:\[eax\],al  
+004D207A    0000            add byte ptr ds:\[eax\],al  
+004D207C    0000            add byte ptr ds:\[eax\],al  
+004D207E    0000            add byte ptr ds:\[eax\],al  
+004D2080    3C 22           cmp al,22  
+004D2082  ^ 75 E4           jnz short XXXXXXXX.004D2068<------------------  
+004D2084    EB 0A           jmp short XXXXXXXX.004D2090  
+  
+大体的修复过程就是这样。。。  
+  
+非常之夸张，全部被偷的代码大概有 110 多行，但 aspr 写出来怎么也有个千把行，可想而之垃圾有多少。。。需要注意的是，里面的条件判断，  
+  
+对于是或否都要跟进去，这样才能把所有的代码都找回来，不然，如果换个条件就不能运行了？  
+  
+修复完毕后，保存，运行，OK。就是退出时显示非法操作，看来还有些地方没修复好，不过不伤大雅。 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

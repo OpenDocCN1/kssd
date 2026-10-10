@@ -1,0 +1,74 @@
+
+
+# 无 KEY 还原简单 XOR 加密字符探索
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-105.htm`](https://www.pediy.com/kssd/pediy09/pediy09-105.htm)
+
+> 作者：笨笨雄  
+> 工具：VC  
+>   
+> 首先看看 XOR 的运算规则：  
+>   
+> 1 XOR 0 = 1  
+> 0 XOR 1 = 1  
+> 0 XOR 0 = 0  
+> 1 XOR 1 = 0  
+>   
+> 注意到下面的规律：  
+>   
+> p XOR k = c，c XOR k = p，p XOR c = k  
+>   
+> 把 P 看成明文，通过 XOR 运算后得到密文 C，那么 K 值便是密钥。因此 XOR 常用于加密。由于简单，而且速度很快，常用于简单的字符加密，以对抗字符参考。本文仅讨论使用 8 位 key，只作一次 xor 运算的情况。尽管安全性很差(p xor c = k)，但是大家都喜欢用简单的方法  
+>   
+> 先从最简单的 ASCII 编码开始。它包括 26 个英文字母和 10 个数字以及一些符号。单字节的编码，而且最高位一般情况下为 0。由于每个字节都由固定的 KEY 进行 XOR 加密，因此检查每一个字节的最高位是否相同，便能知道处理的字符是否为 ASCII 编码。  
+>   
+> 我们知道，英文使用空格（0x20）来分隔每一单词。这样便为我们提供了另外一个攻击 XOR 加密字符的途径。我猜想“congratulation!”大概是注册文本信息中可能出现的最长的一个单词。它的长度是 15，也就是说我们可以从第 16 个字节开始，将密文 XOR 0x20，得出 KEY。现在需要穷举的 KEY 数量就只有 15（我假设第一个字符不会为空格，最短的单词大概就只有 i 和 a 了。）  
+>   
+> 现在我们需要做的只是为注册信息中可能出现的单词建立一个字典，测试每一个 KEY。下面是实现的 C 代码片段：  
+> 
+> 代码:
+> 
+> * * *
+> 
+> `  numread = fread (buffer,sizeof(char),150,srcfile);        for(a=16; a != 0; a--)     {         ckey = buffer[a] ^ 0x20;   //从 16 字节开始 xor 0x20         for (i=0; i != a; i++)           decode[i] = buffer[i] ^ ckey; //尝试用该 key 解密         if (bingo = KeyCheck(decode))  //keycheck 测试 key 是否正确           break;     }`
+> 
+> * * *
+> 
+> /\*-----------------------------------------------------------------------  
+> 无 key 还原简单 XOR 字符示例  
+> Code by 笨笨雄/www.pediy.com  
+>   
+> 下面是判断 KEY 是否正确的函数  
+> \------------------------------------------------------------------------\*/  
+> 代码:
+> 
+> * * *
+> 
+> `char *map[10]=               //字典   {     "key",     "valid",     "congratulation",     "is",     "thanks",     "the",     "register",     "to",     "please",     "full"   };`
+> 
+> * * *
+> 
+> 代码:
+> 
+> * * *
+> 
+> `bool KeyCheck(char *pDecode)   {     int Counter,Slength;      /*---------------------------------------------------------------------   此处假设得到的密文是整段字符的起始位置，只比较第   一个单词是否匹配。为了应付更复杂的情况，应在整个   解密缓冲区中搜索字典中的单词。恩，我有点懒   ---------------------------------------------------------------------*/     for (Counter = 0; Counter != 10; Counter++)     {       Slength = strlen(map[Counter]);       if((_strnicmp(map[Counter],pDecode,Slength))==0)          return true;     }     return false;   }`
+> 
+> * * *
+> 
+> 附件中的 XOR.exe 用于对文本文件进行 XOR 加密。具体格式为 xor srcfile outfile。按提示输入加密的 KEY 便可以生成演示所需要的加密文件。Ascii.exe 为解密示例程序。  
+>   
+> 按照上述思路扩展，也可以解密一些被加密的链接信息。可以假定 www 或者 http 之类的信息。然而对于中文却无能为力。或许你会想到用逗号或者句号，天知道一句话里面多少个字之后才会有逗号？你甚至可能连句号都看不到，还有问号感叹号什么的。因此，我们需要另一种思路。  
+>   
+> 注意到 KEY 只有 8 位的假设，以及 p xor c = k。也就是说，比较可能出现的明文和密文 XOR 得出的 KEY，如果相等，我们便找到真正的 KEY 了。这种方法更加灵活，由于字符始终要被解密出来的，通过人工输入软件中出现的字符，便能解密出其他字符，记录成功解密的字符，完善自动解密的字典。下面是简单的示例代码片段：  
+> 代码:
+> 
+> * * *
+> 
+> `char *map[10]=    //中文字典   {     "失败",     "恭喜",     "成功",     "授权",     "支持",     "用户",     "注册",     "限制",     "功能",     "联系"   };   /*-----------------------------------------------------------------------   无 key 还原简单 XOR 字符示例   Code by 笨笨雄/www.pediy.com   ------------------------------------------------------------------------*/     numread = fread (buffer,sizeof(char),150,srcfile);     bingo=false;          for (j = 0; j != numread; j++)     {       for (a = 0; a != 10; a++)       {         Slength = strlen(map[a]);         t_Byte = (*map[a]);    //从字典中取字符         tKey = buffer[j] ^ t_Byte; //获得第一个 KEY         counter = 1;                for (i = 1; i != Slength ; i++)         {           p_Byte = map[a] + i;           t_Byte = (*p_Byte);           ckey = buffer[j+i] ^ t_Byte;           if (ckey == tKey) //测试其他的 KEY 是否相同             counter++;         }            if (counter == Slength)         {           bingo=true;  //相同的次数等于字符长度           break;      //则认为找到 KEY         }       }       if (bingo)         break;     }`
+> 
+> * * *
+> 
+> 附件中的 DecodeXor.exe 便是示例程序，gbk.txt 和 ascii.txt 为示例文本。你可以在附件中的 src 文件夹中找到相应的源代码。 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

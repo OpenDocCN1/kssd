@@ -1,0 +1,392 @@
+
+
+# yoda's cryptor1.2 
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6635.htm`](https://www.pediy.com/kssd/pediy06/pediy6635.htm)
+
+制作脱壳机－yoda's cryptor1.2  
+kongfoo/2004.5.2-5.15
+
+附脱壳机下载（点击下载）。  
+  
+　　yoda's cryptor1.2 没有 OEP stolen code、Replace code、IAT 加密、分段加密等  
+障碍，而且没来对原程序压缩，用来做作脱壳机的演示就最合适了。  
+　　当我们要做一个脱壳机时，面对的是加壳器对原程序的加密算法，知道了加密算法  
+就可以直接对文件进行解密还原。（题外话：所以加壳器所用的加密算法强度很重要:)）  
+  
+　　由于 yoda's cryptor 是动态加/解密，所以要借用原壳代码解码。  
+　　先来分析一下解密算法，解密算法就是加密算法的逆算法：  
+010103CF    8BFE            MOV EDI,ESI                       ==代码已经去除花指令  
+010103D1    AC              LODS BYTE PTR DS:\[ESI\]  
+010103D5    34 F2           XOR AL,0F2  
+010103DA    2AC1            SUB AL,CL  
+010103DF    2AC1            SUB AL,CL  
+010103E1    34 EB           XOR AL,0EB  
+010103EA    02C1            ADD AL,CL  
+010103F0    04 36           ADD AL,36  
+010103F2    FEC8            DEC AL  
+010103F8    2AC1            SUB AL,CL  
+010103FC    2AC1            SUB AL,CL  
+010103FE    C0C8 78         ROR AL,78                                  
+01010402    AA              STOS BYTE PTR ES:\[EDI\]  
+01010403  ^ E2 CC           LOOPD SHORT NOTEPAD2.010103D1  
+　　这段代码是跟踪加过壳的程序得到的，在 Loader 里面，而 yoda's crytptor 对 Loader 也  
+做了加密，哪么我们可以先提取解密 Loader 的代码解密，再提取解密原程序的代码运行。  
+　　分析 yoda's cryptor 的源码可知，加/解密时会跳过某些节。  
+  
+　　脱壳解密思路：取节数(number of sections)，定位到各节，根据节名判断是否需要  
+解密，解密节，再恢复 peheader 中的一些值，最后去掉壳增加的节。  
+  
+　　源码附后，篇幅关系程序没有容错处理，也没有处理 CheckSum 等项目。另外在我的 XP 上  
+加壳时选上 Erase PE header 或 Delete Import Information 或 API Redirection 后被加壳程序  
+不能正常运行，所以加壳时只选上其它 3 项。另外测试方面只测试了 notepad.exe 和脱壳程序  
+本身。  
+　　写这个脱壳机感觉解密原程序并不难，难在修复 peheader 中的项目（引入表地址）。文  
+章很肤浅，旨在演示最简单的脱壳机写法，稍为复杂一点的壳我都写不出来啦，高手们不要  
+见笑:)  
+  
+  
+      .486                      ; create 32 bit code  
+      .model flat, stdcall      ; 32 bit memory model  
+      option casemap :none      ; case sensitive  
+  
+;=====include files  
+      include \\masm32\\include\\windows.inc  
+      include \\masm32\\include\\masm32.inc  
+      include \\masm32\\include\\gdi32.inc  
+      include \\masm32\\include\\user32.inc  
+      include \\masm32\\include\\kernel32.inc  
+      include \\masm32\\include\\Comctl32.inc  
+      include \\masm32\\include\\comdlg32.inc  
+      include \\masm32\\include\\shell32.inc  
+      include \\masm32\\include\\oleaut32.inc  
+  
+;=====libraries  
+      includelib \\masm32\\lib\\masm32.lib  
+      includelib \\masm32\\lib\\gdi32.lib  
+      includelib \\masm32\\lib\\user32.lib  
+      includelib \\masm32\\lib\\kernel32.lib  
+      includelib \\masm32\\lib\\Comctl32.lib  
+      includelib \\masm32\\lib\\comdlg32.lib  
+      includelib \\masm32\\lib\\shell32.lib  
+      includelib \\masm32\\lib\\oleaut32.lib  
+  
+      FUNC MACRO parameters:VARARG  
+        invoke parameters  
+        EXITM <eax\>  
+      ENDM  
+  
+      include \\masm32\\include\\dialogs.inc  
+  
+      unyc PROTO :DWORD,:DWORD,:DWORD,:DWORD  
+  
+    .data  
+        hInstance dd 0  
+        hFile     dd 0        
+        dwFsize   dd 0  
+        pMem      dd 0  
+        OEP       dd 0  
+        EP        dd 0  
+        NOofSecs  dd 0     ;NumberOfSections  
+        FirstSec  dd 0     ;offset First Section  
+        pe\_header dd 0  
+        Vir2Raw   dd 0  
+        IIDs      dd 0  
+        LastSecSize  dd 0  
+        dwBytesRead  dd 0  
+        LastSecRawSize dd 0  
+        szFname   db MAX\_PATH dup (0)   
+        ofn       OPENFILENAME <>          
+    .const  
+        szFilter  db "\*.exe",0,"\*.exe",0  
+        szCurDir  db ".",0  
+        msgSucc   db "Decrypt success.",0  
+        msgInfo   db "Info...",0  
+    .code  
+  
+;==============================================  
+start:  
+  
+      mov hInstance, FUNC(GetModuleHandle,NULL)  
+  
+      call main  
+  
+      invoke ExitProcess,eax  
+  
+;=============================================  
+main proc  
+  
+    Dialog "Decryptor for yc1.2 - DEMO /user4.2004515", \\           ; caption  
+           "MS Sans Serif",10, \\            ; font,pointsize  
+            WS\_OVERLAPPED or \\              ; styles for  
+            WS\_SYSMENU or DS\_CENTER, \\      ; dialog window  
+            5, \\                            ; number of controls  
+            50,50,200,80, \\                 ; x y co-ordinates  
+            1024                            ; memory buffer size  
+  
+    DlgButton "Quit",WS\_TABSTOP,138,40,50,15,IDCANCEL  
+    ;                             x,y,width,height  
+    DlgButton "decrypt",WS\_TABSTOP,18,40,50,15,IDOK  
+    DlgButton "open",WS\_TABSTOP,168,8,20,10,IDYES  
+    DlgEdit WS\_TABSTOP,18,20,170,8,10000  
+    DlgStatic "Choose File:",SS\_LEFT,18,8,70,9,100  
+  
+    CallModalDialog hInstance,0,unyc,NULL  
+  
+    ret  
+  
+main endp  
+  
+;=============================================  
+unyc proc hWin:DWORD,uMsg:DWORD,wParam:DWORD,lParam:DWORD  
+  
+  .if uMsg == WM\_INITDIALOG  
+    invoke SendMessage,hWin,WM\_SETICON,1,FUNC(LoadIcon,NULL,IDI\_ASTERISK)  
+  
+  .elseif uMsg == WM\_COMMAND  
+    .if wParam == IDCANCEL  
+      jmp quit\_dialog  
+    .elseif wParam == IDOK  
+       ;=========decryption beginning===========================  
+       invoke CreateFile,offset szFname,GENERIC\_WRITE + GENERIC\_READ,FILE\_SHARE\_WRITE + FILE\_SHARE\_READ,\\  
+                      NULL,OPEN\_EXISTING,FILE\_ATTRIBUTE\_NORMAL,0  
+       mov hFile, eax  
+       invoke GetFileSize,hFile,0  
+       mov dwFsize,eax  
+       invoke GlobalAlloc,GPTR,dwFsize  
+       mov pMem,eax  
+       invoke ReadFile,hFile,pMem,dwFsize,offset dwBytesRead,NULL ;读文件到内存后就可以做解密处理了。  
+        mov eax,pMem  
+        ;==第一步，取壳 Loader 的解码代码并解码壳 Loader  
+        mov ebx,\[eax+3ch\] ;取 pe\_header 偏移  
+        add ebx,pMem      ;ebx 定位到 pe\_header  
+        mov pe\_header,ebx  
+        xor eax,eax  
+        mov ax,word ptr \[ebx+14h\] ;e+14:SizeOfOptionalHeader  
+        add eax,18h  
+        add eax,ebx       ;eax 定位到第一个节表  
+        mov FirstSec,eax  
+        xor ecx,ecx  
+        mov cx,word ptr \[ebx+6\]   ;e+6:NmberOfSections  
+        dec ecx  
+        mov NOofSecs,ecx  
+        push eax  
+        mov eax,40       ;每个节表 40 字节长  
+        mul ecx  
+        mov ecx,eax  
+        pop eax  
+        add eax,ecx      ;定位到最后一个节表即壳增加的节表  
+        mov ebx,\[eax+20\] ;取节物理位置  
+        mov ecx,\[eax+08h\]  
+        mov LastSecSize,ecx    ;取节虚拟大小，后面要用  
+        mov ecx,\[eax+10h\]  
+        mov LastSecRawSize,ecx ;取节物理大小，后面用  
+        add ebx,pMem     ;定位到最后一节即壳增加的节  
+        add ebx,60h      ;定位到壳入口  
+        mov EP,ebx  
+        jmp OverDecryptCode  
+      DecryptCode:  
+        CodesFromShell db 40h dup(90h) ;用来放从壳搬过来的解码代码  
+      OverDecryptCode:  
+        mov ecx,7  
+      MakeMBI:  
+        push 0  
+        dec ecx  
+        jnz MakeMBI  
+        mov edi,esp  
+        invoke VirtualQuery,offset DecryptCode,edi,28  
+        invoke VirtualProtect,offset DecryptCode,1024,PAGE\_READWRITE,edi  
+        add esp,28  
+        mov edx,EP  
+        mov esi,edx  
+        add edx,14  
+        push \[edx\]   ;Loader 的大小，可以用固定值 97b  
+        mov edx,esi  
+        add edx,4eh  ;要解密的代码的开始地址,解密代码固定是 30h 字节，再加上其它代码长度  
+        lea edi,DecryptCode  
+        add esi,1ah  ;定位到解密代码  
+        mov ecx,34h  
+        rep movsb byte ptr \[edi\],byte ptr \[esi\]  ;将解密代码复制过来  
+        mov byte ptr \[edi\],0c3h  
+        pop ecx  
+        mov esi,edx  
+        mov edi,esi  
+        call DecryptCode  ;执行 Loader 代码的解码  
+        ;==第二步，在 Loader 中取解码原程序的代码并解码原程序  
+        mov edx,EP          
+        add edx,371h      ;定位到解密原程序的代码,由于这个脱壳机是针对 1.2 版的，所以用固定值也无妨  
+        mov ecx,34h  
+        lea edi,DecryptCode  
+        mov esi,edx  
+        rep movsb byte ptr \[edi\],byte ptr \[esi\]  ;复制  
+        push NOofSecs     ;这个节数已经减 1，即不理会壳的一节啦  
+        mov eax,FirstSec  
+      DecryptSecs:  
+        cmp dword ptr \[eax\],63727372h  ;不处理节名为 rsrc 的节  
+        je SkipDecryptSec  
+        cmp dword ptr \[eax\],7273722eh  ;.rsr  
+        je SkipDecryptSec  
+        cmp dword ptr \[eax\],6f6c6572h  ;relo  
+        je SkipDecryptSec  
+        cmp dword ptr \[eax\],6c65722eh  ;.rel  
+        je SkipDecryptSec  
+        cmp dword ptr \[eax\],6164652eh  ;.eda  
+        je SkipDecryptSec  
+        cmp dword ptr \[eax+14h\],0      ;不处理指向无效的物理位置的节  
+        je SkipDecryptSec  
+        cmp dword ptr \[eax+10h\],0      ;不处理物理大小为 0 的节  
+        je SkipDecryptSec  
+        push eax  
+        mov ecx,\[eax+10h\]  ;节大小  
+        mov edi,\[eax+14h\]  ;节位置  
+        add edi,pMem  
+        mov esi,edi  
+        call DecryptCode  
+        pop eax  
+      SkipDecryptSec:  
+        add eax,28h        ;指向下一个节表  
+        dec dword ptr \[esp\]  
+        jne DecryptSecs  
+        add esp,4          ;push NOofSecs  
+        ;==第三步，恢复 peheader 中的数据，包括程序入口，引入表地址，节数等  
+        mov eax,EP  
+        mov eax,\[eax+77bh\]   ;壳把 OEP 保存在固定位置  
+        mov ebx,pe\_header  
+        mov dword ptr \[ebx+28h\],eax  ;恢复 OEP  
+          
+        mov eax,FirstSec  
+        add eax,28h       ;指向第二个节，地址表在第二个节  
+        push \[eax+14h\]    ;节 Raw Offset  
+        mov eax,\[eax+0ch\] ;节 Virtual Offset  
+        sub eax,\[esp\]  
+        mov dword ptr \[esp\],eax  
+        mov eax,EP  
+        add eax,78fh  
+        mov IIDs,eax  
+        mov ebx,\[eax\]    ;这个地址在引入字串地址表中，向上搜索就可以找到引入表  
+        sub ebx,\[esp\]  
+        add ebx,pMem  
+        mov eax,FirstSec  
+        mov ecx,\[eax+14h\]  ;Raw Offset  
+        add ecx,\[eax+10h\]  ;Raw Size  
+        add ecx,pMem  
+        cmp ebx,ecx        ;地址表是否在第一节？是：用第一节的 VO-RO，否：用第二节的 VO-RO  
+        ja FindImp1  
+        add esp,4  
+        push \[eax+14h\]    ;节 Raw Offset  
+        mov eax,\[eax+0ch\] ;节 Virtual Offset  
+        sub eax,\[esp\]  
+        mov dword ptr \[esp\],eax  
+      FindImp1:  
+        dec ebx  
+        cmp dword ptr \[ebx\],0  
+        je FoundImp1  
+        jmp FindImp1  
+      FoundImp1:  
+        cmp dword ptr \[ebx\-4\],0  
+        jne FindImp1  
+        sub ebx,14h  
+        mov ecx,\[ebx\]  
+      FindImp2:  
+        cmp dword ptr \[ebx\-4\],ecx  
+        jne FoundImp2  
+        sub ebx,4  
+        jmp FindImp2  
+      FoundImp2:  
+        mov edx,ebx  
+        sub edx,pMem  
+        add edx,\[esp\]  
+        mov eax,pe\_header  
+        mov dword ptr \[eax+80h\],edx  ;恢复引入表地址  
+        mov eax,ebx                  ;指向原程序的引入表  
+        mov edx,IIDs                 ;指向壳摘取自原程序的引入表数据  
+      RestoreImport:         ;恢复引入表数据  
+        cmp dword ptr \[edx\],0  
+        je RestoreImportOK  
+        mov ecx,\[edx+8\]  
+        mov dword ptr \[eax\],ecx  
+        mov ecx,-1  
+        mov dword ptr \[eax+4\],ecx  
+        mov dword ptr \[eax+8\],ecx  
+        mov ecx,\[edx\]  
+        mov dword ptr \[eax+0ch\],ecx  
+        mov ecx,\[edx+4\]  
+        mov dword ptr \[eax+10h\],ecx  
+        add edx,0ch  
+        add eax,14h  
+        jmp RestoreImport  
+      RestoreImportOK:  
+        add esp,4  
+        add eax,16  
+      FindStrings:    
+        add eax,4  
+        cmp dword ptr \[eax\],0  
+        jne FindStrings  
+        cmp byte ptr \[eax+5\],0  
+        jne FindStrings  
+        add eax,5  
+        mov ebx,eax  
+      DecryptStrings:   ;恢复被加密的 API 字串  
+        inc ebx  
+        mov esi,ebx  
+        mov edi,ebx  
+        lods byte ptr \[esi\]  
+        ror al,4  
+        stos byte ptr \[edi\]  
+        cmp dword ptr \[ebx\],0  
+        je CheckEnd1  
+        jmp DecryptStrings  
+      CheckEnd1:  
+        cmp dword ptr \[ebx+4\],0  
+        jne DecryptStrings  
+  
+        mov eax,pe\_header  
+        mov ecx,NOofSecs  
+        mov word ptr \[eax+6\],cx      ;恢复节数  
+        mov ebx,\[eax+50h\]        ;SizeOfImage  
+        sub ebx,LastSecSize      ;减去壳节大小  
+        mov dword ptr \[eax+50h\],ebx  ;恢复影像大小  
+        mov eax,dwFsize  
+        sub eax,LastSecRawSize  
+        mov dwFsize,eax          ;设置文件大小  
+                  
+        ;==第四步，写回原文件，借用 yoda's cryptor 的源码即可  
+        invoke SetFilePointer,hFile,0,NULL,FILE\_BEGIN  
+        invoke WriteFile,hFile,pMem,dwFsize,offset dwBytesRead,NULL  
+        invoke SetFilePointer,hFile,dwFsize,NULL,FILE\_BEGIN  
+        invoke SetEndOfFile,hFile  
+          
+        invoke CloseHandle,hFile  
+        invoke GlobalFree,pMem  
+        invoke MessageBox,hWin,offset msgSucc,offset msgInfo,0  
+     .elseif wParam == IDYES  ;打开文件，借用 yoda's cryptor 的源码  
+        mov ofn.lStructSize,SIZEOF ofn   
+        mov ofn.lpstrFilter,offset szFilter  
+        push hWin  
+        pop ofn.hwndOwner  
+        mov ofn.lpstrFile, offset szFname   
+        mov ofn.nMaxFile,SIZEOF szFname  
+        mov ofn.lpstrInitialDir,offset szCurDir  
+        mov ofn.Flags, OFN\_FILEMUSTEXIST or OFN\_PATHMUSTEXIST or OFN\_LONGNAMES or OFN\_HIDEREADONLY  
+        push offset ofn  
+        call GetOpenFileName  
+        test eax,eax  
+        jz @@ExitDlgProc  
+        invoke SetDlgItemText,hWin,10000,offset szFname    
+      @@ExitDlgProc:  
+     .endif  
+  
+  .elseif uMsg == WM\_CLOSE  
+    quit\_dialog:  
+    invoke EndDialog,hWin,0  
+  
+  .endif  
+  
+  xor eax, eax  
+  ret  
+  
+unyc endp  
+  
+end start
+
+ 4dd466d0e1e0cc123afbe504da2462ca

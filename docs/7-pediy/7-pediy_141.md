@@ -1,0 +1,402 @@
+
+
+# ASPr 带壳调试+ASPr 内存校验完整分析+Inline Loader 使用之一+修改 vcl70.bpl 破解法
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-455.htm`](https://www.pediy.com/kssd/pediy08/pediy8-455.htm)
+
+【文章标题】: ASPr 带壳调试+ASPr 内存校验完整分析+Inline Loader 使用之一+修改 vcl70.bpl 破解法  
+【文章作者】: wynney  
+【软件名称】: RoboTask  
+【打包下载】: 看雪 FTP：/upload/11.16.06.for Inline Loader by wynney/  
+【加壳方式】: Version: ASProtect 2.2 or 2.3 SKE build > 3.19  
+【作者声明】: 很多朋友说不会用 Inline Loader，我就准备写两篇教程吧，下一篇还没找到我想强调的目标程序  
+\--------------------------------------------------------------------------------  
+【详细过程】  
+  
+前言：修改 vcl70.bpl 破解法和我之前写的 Dll 注入 NetTransport 2.25.337 方法异曲同工：）  
+  
+  1、未注册程序界面上有“Evalution version - day n of 30,Click here to order the full version”  
+  2、OD 设置除了内存访问异常\[此程序没有 INT3 异常\]和指定异常外的所有异常，OD 载入  
+  3、F9 N 次，到最后异常内存异常之后，在 code 段下断，F9 中断在 OEP  
+  4、搜索所有参考文本串“Evalution version”  
+    
+  文本字符串参考位于 RoboTask:，项目 515  
+   地址=00472FD8  
+   反汇编=mov eax,RoboTask.00484280  
+   文本字符串=ASCII 12,"Evaluation version"  
+    
+  双击来到代码处  
+    
+  00472FD8     B8 80424800        mov eax,RoboTask.00484280           ; ASCII 12,"Evaluation version"  
+  00472FDD     8BD3               mov edx,ebx  
+  00472FDF     E8 14E1F8FF        call RoboTask.004010F8              ; jmp to rtl70.System::\_CToPasStr  
+  00472FE4     EB 07              jmp short RoboTask.00472FED  
+  00472FE6     33C0               xor eax,eax  
+  00472FE8     A3 80434800        mov dword ptr ds:\[484380\],eax  
+  00472FED     5B                 pop ebx  
+  00472FEE     5D                 pop ebp  
+  00472FEF     C2 0400            retn 4  
+    
+    
+  00472FD8     B8 80424800        mov eax,RoboTask.00484280           ; 右键窗口中跟随-->直接常数  
+    
+    
+  看转存窗口  
+    
+  00484280  12 45 76 61 6C 75 61 74  Evaluat  
+  00484288  69 6F 6E 20 76 65 72 73  ion vers  
+  00484290  69 6F 6E 00 00 00 00 00  ion.....  
+    
+  5、在 00484281 处下硬件访问断点-->Byte,忽略所有异常\[方便程序跑起来\]  
+    
+  程序跑起来之后点 Help--》About，断下来了，很好  
+    
+  400034EC     FC                 cld                                 ; 断在这里  
+    
+  看堆栈  
+    
+  0012F914   0219E8D4  ASCII "Evaluation version"  
+  0012F918   00484281  ASCII "Evaluation version"  
+  0012F91C   400069BD  返回到 rtl70.400069BD 来自 rtl70.System::Move  
+  0012F920   021AA678  
+  0012F924   021C5CD0  
+  0012F928   021AA678  
+  0012F92C   004735F6  返回到 RoboTask.004735F6 来自 RoboTask.00401250    ；右键反汇编中跟随  
+  0012F930   0012F974  指针到下一个 SEH 记录  
+  0012F934   0047366D  SE 句柄  
+  0012F938   0012F964  
+  0012F93C   0062D864  vcl70.Forms::TCustomForm::DoShow  
+    
+  0047356E     E8 F1FEF8FF        call RoboTask.00403464              ; jmp to vcl70.Controls::TControl::GetText  
+  00473573     8B45 F8            mov eax,dword ptr ss:\[ebp-8\]  
+  00473576     50                 push eax  
+  00473577     B8 84364700        mov eax,RoboTask.00473684           ; ASCII "2.4.2"  
+  0047357C     8945 F0            mov dword ptr ss:\[ebp-10\],eax  
+  0047357F     C645 F4 0B         mov byte ptr ss:\[ebp-C\],0B  
+  00473583     8D55 F0            lea edx,dword ptr ss:\[ebp-10\]  
+  00473586     33C9               xor ecx,ecx  
+  00473588     58                 pop eax  
+  00473589     E8 56F5F8FF        call RoboTask.00402AE4              ; jmp to rtl70.Sysutils::Format  
+  0047358E     8B55 FC            mov edx,dword ptr ss:\[ebp-4\]  
+  00473591     8BC6               mov eax,esi  
+  00473593     E8 D4FEF8FF        call RoboTask.0040346C              ; jmp to vcl70.Controls::TControl::SetText  
+  00473598     A1 88444800        mov eax,dword ptr ds:\[484488\]  
+  0047359D     8338 00            cmp dword ptr ds:\[eax\],0  
+  004735A0     74 46              je short RoboTask.004735E8  
+  004735A2     8D45 EC            lea eax,dword ptr ss:\[ebp-14\]  
+  004735A5     50                 push eax  
+  004735A6     8D45 E4            lea eax,dword ptr ss:\[ebp-1C\]  
+  004735A9     8B15 70444800      mov edx,dword ptr ds:\[484470\]       ; RoboTask.00484280  
+  004735AF     E8 9CDCF8FF        call RoboTask.00401250              ; jmp to rtl70.System::LStrFromString  
+  004735B4     8B45 E4            mov eax,dword ptr ss:\[ebp-1C\]  
+  004735B7     8D55 E8            lea edx,dword ptr ss:\[ebp-18\]  
+  004735BA     E8 59FEFFFF        call RoboTask.00473418  
+  004735BF     8B45 E8            mov eax,dword ptr ss:\[ebp-18\]  
+  004735C2     8945 F0            mov dword ptr ss:\[ebp-10\],eax  
+  004735C5     C645 F4 0B         mov byte ptr ss:\[ebp-C\],0B  
+  004735C9     8D55 F0            lea edx,dword ptr ss:\[ebp-10\]  
+  004735CC     33C9               xor ecx,ecx  
+  004735CE     B8 94364700        mov eax,RoboTask.00473694           ; ASCII "Licensed to %s"  
+  004735D3     E8 0CF5F8FF        call RoboTask.00402AE4              ; jmp to rtl70.Sysutils::Format  
+  004735D8     8B55 EC            mov edx,dword ptr ss:\[ebp-14\]  
+  004735DB     8B83 08030000      mov eax,dword ptr ds:\[ebx+308\]  
+  004735E1     E8 86FEF8FF        call RoboTask.0040346C              ; jmp to vcl70.Controls::TControl::SetText  
+  004735E6     EB 1C              jmp short RoboTask.00473604  
+  004735E8     8D45 E0            lea eax,dword ptr ss:\[ebp-20\]  
+  004735EB     8B15 70444800      mov edx,dword ptr ds:\[484470\]       ; RoboTask.00484280  
+  004735F1     E8 5ADCF8FF        call RoboTask.00401250              ; jmp to rtl70.System::LStrFromString  
+  004735F6     8B55 E0            mov edx,dword ptr ss:\[ebp-20\]       ; 来到这里  
+    
+  大家可以看看  
+    
+  004735F1     E8 5ADCF8FF        call RoboTask.00401250              ; jmp to rtl70.System::LStrFromString  
+    
+  LStrFromString，稍微动下脑子，就应该知道这里就是加载 Evalution version 之类的字符串的  
+    
+  OK  
+    
+  00473598     A1 88444800        mov eax,dword ptr ds:\[484488\]       ; he 断点  
+  0047359D     8338 00            cmp dword ptr ds:\[eax\],0  
+  004735A0     74 46              je short RoboTask.004735E8  
+    
+  6、Ctrl+F2，F9，程序运行起来之后，照样点 About，中断下来，先跟跟  
+    
+  00473598     A1 88444800        mov eax,dword ptr ds:\[484488\]       ; he 断点  
+    
+  ds:\[00484488\]=00484380，eax=0012F8DC  
+    
+  00484380  00 00 00 00              ....  
+    
+  很明显，如 00484380 内=0，则 004735A0 会跳  
+  我们手动更改为 1，再 F9 看看 About 内提示 Licensed to Evalution version(single license)  
+    
+  呵呵，可以松口气了，看来 00484380 内的值是起控制作用的  
+    
+  7、OK，删除所有的断点，在 00484380 下硬件访问-->Dword，Ctrl+F2，F9  
+    
+  0047832D     A1 88444800        mov eax,dword ptr ds:\[484488\]       ; 又看到跟刚才一样的结构了  
+  00478332     8338 00            cmp dword ptr ds:\[eax\],0            ; 到段首下硬件执行断点吧  
+  00478335     74 1A              je short RoboTask.00478351          ; 中断在这里，再 F9 程序可就跑起来了  
+    
+    
+  0047823C     55                 push ebp                            ; 段首，he  
+  0047823D     8BEC               mov ebp,esp  
+  0047823F     83C4 D8            add esp,-28  
+    
+  8、Ctrl+F2，F9,中断在 0047823C 后，在转存窗口中看看 00484380 的值，仍然是 0，看堆栈  
+    
+  0012F9DC   0062D87F  返回到 vcl70.0062D87F  
+  0012F9E0   0012FB9C  
+  0012F9E4   0063089A  返回到 vcl70.0063089A 来自 <jmp.&rtl70.System::CallDynaInst>  
+    
+  这里就先不说了，等下讲修改 vcl70.bpl 破解法就是要从这里开始  
+    
+  跟踪  
+    
+  0047832D     A1 88444800        mov eax,dword ptr ds:\[484488\]      ; 手动更改 00484380 中为 1，我们看看  
+    
+  F9 运行  
+    
+  界面上的“Evalution version - day n of 30,Click here to order the full version”没有了，而且 Help 菜单里没有了  
+  Enter Registration Code...，About 内显示 Licensed to Evalution version(single license)  
+    
+  看来我们改这么一个地方 解决了全局：）  
+    
+  我们在转存中到 00484380 看看  
+    
+  00484380  00 00 00 00 0C 30 47 00  .....0G.  
+  00484388  00 00 00 00 A0 4A 18 02  ....\_J  
+  00484390  8C 4A 18 02 80 49 18 02  孞€I  
+  00484398  70 4A 18 02 3C 4A 18 02  pJ<J  
+  004843A0  00 00 00 00 00 8D 40 00  .....岪.  
+  004843A8  D0 3F 18 02 BC 3F 18 02  ??  
+  004843B0  A8 3F 18 02 94 3F 18 02  ??  
+  004843B8  80 3F 18 02 6C 3F 18 02  €?l?  
+  004843C0  50 3F 18 02 08 E9 47 00  P?镚.  
+  004843C8  14 E9 47 00 20 E9 47 00  镚. 镚.  
+  004843D0  30 E9 47 00 01 00 00 80  0 镚...€  
+  004843D8  00 8D 40 00 40 E9 47 00  .岪.@镚.  
+  004843E0  00 80 00 00 00 00 80 00  .€....€.  
+  004843E8  80 80 00 00 80 00 00 00  €€..€...  
+  004843F0  05 00 00 FF 05 00 00 FF  ..�..�  
+  004843F8  05 00 00 FF 05 00 00 FF  ..�..�  
+  00484400  00 8D 40 00 01 8D 40 00  .岪.岪.  
+  00484408  9E 3F 44 8E 1B 13 E3 40  ?D?鉆  
+  00484410  00 8D 40 00 00 8D 40 00  .岪..岪.  
+  00484418  01 8D 40 00 00 00 00 00  岪.....    ；注意这里的 1 我们可以借用下  
+    
+  不过我们先得知道是哪个地方在调用 00484418  
+  很简单，转存中到 484488，Ctrl+B：18 44 48 00  
+    
+  00484498  18 44 48 00              DH.  
+    
+  要的就是 00484498 这个地址了  
+    
+  修改  
+    
+  0047832D     A1 88444800        mov eax,dword ptr ds:\[484488\]  
+    
+  为  
+    
+  0047832D     A1 98444800        mov eax,dword ptr ds:\[484498\]  
+    
+  同样  
+    
+  00473598     A1 88444800        mov eax,dword ptr ds:\[484488\]  
+    
+  修改为  
+    
+  00473598     A1 98444800        mov eax,dword ptr ds:\[484498\]  
+    
+  大家可以看到，我们付出了 2 个字节的代价，就完成破解了：）  
+    
+  0047832E  88-->98  
+  00473599  88-->98  
+    
+  如果想显示自己的名字，就改这里吧  
+    
+  00484280  12 45 76 61 6C 75 61 74  Evaluat  
+  00484288  69 6F 6E 20 76 65 72 73  ion vers  
+  00484290  69 6F 6E                 ion  
+    
+  00484280  12 77 79 6E 6E 65 79 00  wynney.  
+  00484288  00 00 00 00 00 00 00 00  ........  
+  00484290  00 00 00                 ...  
+    
+  要修改的代码集合  
+    
+  Address0=$0047832E  
+  NewData0=$98  
+  Address1=$00473599  
+  NewData1=$98  
+  Address2=$00484281  
+  NewData2=$77  
+  Address3=$00484282  
+  NewData3=$79  
+  Address4=$00484283  
+  NewData4=$6E  
+  Address5=$00484284  
+  NewData5=$6E  
+  Address6=$00484285  
+  NewData6=$65  
+  Address7=$00484286  
+  NewData7=$79  
+  Address8=$00484287  
+  NewData8=$00  
+  Address9=$00484288  
+  NewData9=$00  
+  Address10=$00484289  
+  NewData10=$00  
+  Address11=$0048428A  
+  NewData11=$00  
+  Address12=$0048428B  
+  NewData12=$00  
+  Address13=$0048428C  
+  NewData13=$00  
+  Address14=$0048428D  
+  NewData14=$00  
+  Address15=$0048428E  
+  NewData15=$00  
+  Address16=$0048428F  
+  NewData16=$00  
+  Address17=$00484290  
+  NewData17=$00  
+  Address18=$00484291  
+  NewData18=$00  
+  Address19=$00484292  
+  NewData19=$00  
+   \[IMG\]  
+  9、用 Inline Loader 做补丁吧，仔细看过我写的前一篇文章的朋友应该清楚，使用 Inline Loader 制作补丁需要注意的  
+  1）、补丁数据\[1、要是正确的补丁数据，2、补丁地址是程序的物理地址，如果是内存动态虚拟地址是不行的\]  
+  2）、程序标题，这里的标题必须是你破解成功之后看到的标题\[这个将在第 2 篇使用文章中着重说明，目前没找到合适的目标\]  
+  
+  显示注册 Licensed to wynney(single license)  
+     
+  10、内存校验分析  
+    
+  忽略除了内存访问异常和指定异常外的其他异常，F9，搜索所有参考文本串  
+    
+  文本字符串参考位于 01080000..010AAFFF  
+  地址       反汇编                          文本字符串  
+  0109C931   push 109C940                    ASCII "Protection Error"  
+  0109C9EF   mov edx,109CA4C                 ASCII "90  
+  0109D3C5   push 109D46C                    ASCII "42  
+  0109E0FB   push 109E36C                    ASCII "31  
+  0109E6F2   push 109EF34                    ASCII "85  
+  0109EBDC   push 109EF34                    ASCII "85  
+  0109EBF4   push 109EF34                    ASCII "85  
+  0109ED51   push 109EF44                    ASCII "55  
+  0109EE79   push 109EF54                    ASCII "57  
+  0109EF11   push 109EF64                    ASCII "60  
+  0109F104   push 109F198                    ASCII "45    ；双击  
+  0109F16F   push 109F1A8                    ASCII "34  
+    
+  0109F0F1     E8 7227FFFF        call 01091868                        
+  0109F0F6     8BE8               mov ebp,eax  
+  0109F0F8     892D 8C4B0A01      mov dword ptr ds:\[10A4B8C\],ebp  
+  0109F0FE     3B6C24 10          cmp ebp,dword ptr ss:\[esp+10\]  
+  0109F102     74 0C              je short 0109F110  
+  0109F104     68 98F10901        push 109F198                       ; 来到这里  
+    
+  11、Ctrl+F2，保持忽略除了内存访问异常和指定异常外的其他异常，F9 中断一次之后，Ctrl+G：0109F0F1，再改成忽略所有异常  
+  \[不这么做，中断不到 0109F0F1\]，F2,F9 中断下来，先跟下  
+  01091868     53                 push ebx  
+  01091869     56                 push esi  
+  0109186A     57                 push edi  
+  0109186B     8BFA               mov edi,edx  
+    
+  0109F0F1     E8 7227FFFF        call 01091868  
+  0109F0F6     8BE8               mov ebp,eax                        ; 校验值 eax=8F97C453  
+  0109F0F8     892D 8C4B0A01      mov dword ptr ds:\[10A4B8C\],ebp  
+  0109F0FE     3B6C24 10          cmp ebp,dword ptr ss:\[esp+10\]      ; 堆栈 ss:\[0012FF58\]=8F97C453  
+  0109F102     74 0C              je short 0109F110  
+    
+  0012FF28  53 C4 97 8F 44 05 0B 01  S 臈廌  ；这里注意  
+  0012FF30  BF 2A 08 01 A5 18 09 01  ??.  
+  0012FF38  00 10 00 00 D8 41 0A 01  ...谹.  
+  0012FF40  00 E0 09 00 F6 F0 09 01  .?.鲳.  
+  0012FF48  00 00 00 00 00 00 40 00  ......@.  
+  0012FF50  00 10 00 00 00 20 08 00  .... .  
+  0012FF58  53 C4 97 8F 98 FF 12 00  S 臈彉�.  
+    
+  很容易知道  
+  改之  
+    
+  01091868     8B4424 14          mov eax,dword ptr ss:\[esp+14\]  
+  0109186C     C3                 retn  
+    
+  53 56 57 8B FA  
+  改成  
+  8B 44 24 14 C3  
+    
+  有了这个数据你就可以用 Dup2 和 KeyMake 做补丁了  
+    
+  12、继续说修改 vcl70.bpl 破解法  
+    
+  上面我们说到这里  
+    
+  0012F9DC   0062D87F  返回到 vcl70.0062D87F  
+  0012F9E0   0012FB9C  
+  0012F9E4   0063089A  返回到 vcl70.0063089A 来自 <jmp.&rtl70.System::CallDynaInst>   ；反汇编中跟随  
+    
+  0063089A     33C0               xor eax,eax                             ; 来到这里  
+    
+  找下段首  
+    
+  006307EC v>  55                 push ebp                                ; 段首，he  
+  006307ED     8BEC               mov ebp,esp  
+    
+  Ctrl+F2，F9 中断下来，看堆栈  
+    
+  0012F9EC   00611343  返回到 vcl70.00611343    ；反汇编中跟随  
+  0012F9F0   02188000  ASCII "8AG"  
+  0012F9F4   0012FB64  
+  0012F9F8   02188000  ASCII "8AG"  
+  0012F9FC   02188000  ASCII "8AG"  
+    
+  到 00611343 上面的段首下 he，再 Ctrl+F9，F9，中断后慢慢跟  
+  我们这里跟踪的目的是找一个不会被重定位的地方\[最好是段尾\]Patch 代码  
+  至于那里会被重定那里不会，你用 OD 复制的时候，OD 会告诉你的：）  
+    
+  我这里找的 00614530  
+    
+  00614530     83C4 10            add esp,10  
+  00614533     5F                 pop edi  
+  00614534     5E                 pop esi  
+  00614535     5B                 pop ebx  
+  00614536     C3                 retn  
+    
+  Patch  
+    
+  00614530    /E9 F3F00400        jmp vcl70.00663628  
+  00614535    |5B                 pop ebx  
+  00614536    |C3                 retn  
+    
+    
+  00663628     C705 80434800 0100>mov dword ptr ds:\[484380\],1                     ; 给 1  
+  00663632     C705 80424800 1277>mov dword ptr ds:\[484280\],6E797712              ; Patch 注册名  
+  0066363C     C705 84424800 6E65>mov dword ptr ds:\[484284\],79656E                ; Patch 注册名  
+  00663646     C705 88424800 0000>mov dword ptr ds:\[484288\],0                     ; Patch 注册名  
+  00663650     83C4 10            add esp,10                                      ; 原代码挪移  
+  00663653     5F                 pop edi                                         ; 原代码挪移  
+  00663654     5E                 pop esi                                         ; 原代码挪移  
+  00663655   ^ E9 DB0EFBFF        jmp vcl70.00614535                              ; 跳回去执行  
+    
+  C7 05 80 43 48 00 01 00 00 00 C7 05 80 42 48 00 12 77 79 6E C7 05 84 42 48 00 6E 65 79 00 C7 05  
+  88 42 48 00 00 00 00 00 83 C4 10 5F 5E E9 DB 0E FB FF  
+    
+  覆盖 vcl70.bpl 保存！  
+    
+   
+  
+    
+  至于为何补丁破解出来的是显示注册 Licensed to wynney(single license)而这样 Patch 出来是显示注册 Licensed to wynney  
+  
+  大家看看两种方法的补丁数据就知道了  
+    
+\--------------------------------------------------------------------------------  
+【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!  
+  
+                                                       2006 年 11 月 16 日 09:49:48 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

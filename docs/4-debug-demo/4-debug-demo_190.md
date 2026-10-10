@@ -1,0 +1,233 @@
+
+
+# Grduw 4.1.17 
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue133.htm`](https://www.pediy.com/kssd/pediy04/kanxue133.htm)
+
+软件名称:Grduw 4.1.17   
+下载地址:http://gwbn.onlinedown.net/down/grduw410.zip   
+保护方法:keyfile   
+破解方法:爆破(去除 nag,日期限制,字符串加密)   
+破 解 人:TAE! 属于 ChinA CrackinG GrouP (中国破解组织)   
+软件介绍:强大的磁盘工具,我必备的软件!   
+使用工具：TRW ，W32dasm ，UltraEdit ，还有就是一双粗犷的大手咯，   
+（放心不是拆电脑，是敲键盘）外加一包香烟!   
+  
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*   
+唉,好久没有写教程了,希望大家还没有把我忘记啊.                  \*   
+另:谁有免费上网帐号告诉我一声,小弟电话费透支了!先谢谢各位了:~) \*   
+我的 QQ:36550828                                                \*   
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*   
+  
+    运行软件，Shit！一个有计时的窗口冒了出来，要等待 8 秒钟！唉，浪费时   
+间就是浪费金钱和我的生命哟~~~ ！所以……一定要干掉它！程序好像没有输入   
+注册码的地方嘛~ ，那么就是 keyfile 咯？运行 filemon ，别说你没有哦！然后   
+就是找。找。找。哦~~~ 终于被我找到了，原来是 Grduw.key ，嘿嘿，看你往哪   
+儿躲！在软件目录下建立文件 Grduw.key ，运行软件，然后进入 TRW 设置断点在   
+createfilea 函数上！回到软件中，点击"About" 按钮，哈哈哈……被挡住了，   
+嘿嘿嘿，看我怎么虐待你！一次 pmodule 之后，来到了这里：   
+  
+\* Reference To: KERNEL32.CreateFileA, Ord:0034h   
+                                  |   
+:0042A7B1 FF1538724400            Call dword ptr \[00447238\]   
+:0042A7B7 8BF0                    mov esi, eax   
+:0042A7B9 3BF7                    cmp esi, edi   
+:0042A7BB 7514                    jne 0042A7D1   
+  
+再经过相当漫长的路程来到了下面这里:   
+  
+:0040140D E8DE080000              call 00401CF0   
+:00401412 85C0                    test eax, eax   
+:00401414 745F                    je 00401475  \\\\在这里 r fl z,然后 g   
+:00401416 8B0DD0304500            mov ecx, dword ptr \[004530D0\]   
+:0040141C B856555555              mov eax, 55555556   
+:00401421 F7E9                    imul ecx   
+:00401423 8BCA                    mov ecx, edx   
+:00401425 C1E91F                  shr ecx, 1F   
+:00401428 03D1                    add edx, ecx   
+:0040142A 8D4C240C                lea ecx, dword ptr \[esp+0C\]   
+:0040142E 895664                  mov dword ptr \[esi+64\], edx   
+:00401431 8B15F0304500            mov edx, dword ptr \[004530F0\]   
+:00401437 52                      push edx   
+:00401438 E8D6640300              call 00437913   
+:0040143D 8D4660                  lea eax, dword ptr \[esi+60\]   
+:00401440 8BCE                    mov ecx, esi   
+:00401442 50                      push eax   
+  
+哈哈,发现本来的计时按钮已经变成"ok"了,再进入 call 00401CF0 中看看:   
+  
+|:0040140D  , :0040859C  , :0040C6EE  , :0040E51C  , :0040F5C4    
+|:0040F707  , :00410816  , :00412C3E  , :0041457D  , :00418DB0    
+|   
+:00401CF0 56                      push esi   
+:00401CF1 8BF1                    mov esi, ecx   
+:00401CF3 8A463C                  mov al, byte ptr \[esi+3C\]   
+:00401CF6 84C0                    test al, al   
+:00401CF8 740E                    je 00401D08   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:00401D06(C)   
+|   
+:00401CFA 8BCE                    mov ecx, esi   
+:00401CFC E8BFA00100              call 0041BDC0   
+:00401D01 8A463C                  mov al, byte ptr \[esi+3C\]   
+:00401D04 84C0                    test al, al   
+:00401D06 75F2                    jne 00401CFA   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:00401CF8(C)   
+|   
+:00401D08 8B86B8050000            mov eax, dword ptr \[esi+000005B8\]   
+:00401D0E 5E                      pop esi   
+:00401D0F C3                      ret   
+  
+    有很多地方调用这里喔，经过尝试，发现程序好像以 eax 的值作为注册标志，   
+如果是 0 就是注册版，否则就未注册，所以我们让返回的值都为 0 ，把 00401d08   
+这一行改为 xor eax ，eax 吧，别忘了添上几个 nop 喔！好了，所有的 nag 都没   
+有了。   
+  
+    将日期调后一年，运行软件，正常，调回来，shiiiit ！！！软件退出了！   
+还有保护！既然软件退出了，好，就下断点 Exitprocess 吧，运行软件，被中断，   
+于是我想回到软件的领空呀，但无论如何都不行，因为软件执行完 exitprocess   
+后就退出内存了，所以 trw 无法回到软件代码，呵呵，谁知道如何回到程序调用   
+此函数的代码处呢？冥思苦想，终于被我聪明的脑袋想到了，啊哈哈哈哈哈，天   
+才！我不是还有 w32dasm 吗？呵呵，用它反汇编软件，然后点击" 输入函数" 按   
+钮，这时找到函数"KERNEL32.ExitProcess"双击它，这时来到下面的代码处：   
+  
+:00401DD5 7508                    jne 00401DDF   
+\* Reference To: KERNEL32.ExitProcess, Ord:007Dh   
+                                  |   
+:00401DD9 FF1560724400            Call dword ptr \[00447260\]   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
+|:00401D43(C), :00401D51(C), :00401DD5(C)   
+|   
+:00401DDF 668BC7                  mov ax, di   
+:00401DE2 5F                      pop edi   
+:00401DE3 5E                      pop esi   
+:00401DE4 83C44C                  add esp, 0000004C   
+:00401DE7 C20C00                  ret 000C   
+  
+    我们将断点设置在 00401DD5 这里，然后运行程序，没有被中断。那么我们再   
+次双击函数 ExitProcess.来到这里：   
+  
+:0041AC56 7407                    je 0041AC5F   
+:0041AC58 50                      push eax   
+  
+\* Reference To: KERNEL32.ExitProcess, Ord:007Dh   
+                                  |   
+:0041AC59 FF1560724400            Call dword ptr \[00447260\]   
+  
+    用上面方法设断后，运行程序还是没有被中断，说明不是这里调用 ExitProcess   
+的。再次双击 ExitProcess ，来到这里，设置断点在 0041ADE6，运行程序，这回，   
+程序被中断了了：   
+  
+  
+:0041ADE2 6683FF1F                cmp di, 001F    //1F 就是 16 进制的 31   
+:0041ADE6 7708                    ja 0041ADF0    //将这里改为 nop   
+:0041ADE8 8B442414                mov eax, dword ptr \[esp+14\]   
+:0041ADEC 85C0                    test eax, eax   
+:0041ADEE 7508                    jne 0041ADF8    //将这里改为 jmp,跳过函数   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:0041ADE6(C)   
+|   
+:0041ADF0 6A00                    push 00000000   
+  
+\* Reference To: KERNEL32.ExitProcess, Ord:007Dh   
+                                  |   
+:0041ADF2 FF1560724400            Call dword ptr \[00447260\]   
+  
+    （说说软件的判断过期的方法吧，第一次运行软件时，程序在 Filter 分支下   
+建立 6B5gj 这个键值，内容是加密后的软件安装日期，当你将日期向后调一年后，   
+再次运行软件时，它就会读取这个值，并写入当前日期，那么下次运行软件后，   
+软件读取此值与当前日期比较，呵呵，自然就判断为过期了。）嘿嘿嘿，软件可   
+以无限制运行了，可是看看标题栏吧，字符变成" 非法版本" 了，呵呵，真是 Shit！   
+为了美观，我们 crack 掉它！常规的，我用 UltraEdit 打开软件，查找 unregistered   
+之类的字符，可是一个都没找到，唉，连这都要加密，真是比人率还麻烦啊！对   
+于这个加密字符串的破解有两种方法，我下面就一一介绍！喂~~对，就是你！认   
+真听呀，别忘了作笔记，Oky ？别总让我管着你呀，自觉点，一会儿就下课了，   
+是不是约了 MM，你可以说嘛~~！不说我怎么知道？说了我才知道嘛~~~~！……   
+（众生：唐僧？？？打！！）   
+    我考，现在的学生可真是不得了，是了不得！阿华田的孩子不得了！（怎么   
+又作广告？？）好了好了，先下课吧，下节课我继续做广告，喔，不，不，是继   
+续讲课！嘿嘿嘿~~~   
+  
+\===========================================================================   
+  
+  
+接着上一课说,这次我们来破解它的字符串加密!   
+记得上节课讲的东西吗?我们继续执行代码!   
+  
+\* Possible StringData Ref from Data Obj ->"煬熑怂钠浪熉铒 \*这个就是加密后的字符串   
+                                  |   
+:0041ADFE BF84474500              mov edi, 00454784   
+:0041AE03 83C9FF                  or ecx, FFFFFFFF   
+:0041AE06 33C0                    xor eax, eax   
+:0041AE08 8D96D4060000            lea edx, dword ptr \[esi+000006D4\]   
+:0041AE0E F2                      repnz   
+:0041AE0F AE                      scasb   
+:0041AE10 F7D1                    not ecx   
+:0041AE12 2BF9                    sub edi, ecx   
+:0041AE14 8BF7                    mov esi, edi   
+:0041AE16 8BD9                    mov ebx, ecx   
+:0041AE18 8BFA                    mov edi, edx   
+:0041AE1A 8BC7                    mov eax, edi   
+:0041AE1C C1E902                  shr ecx, 02   
+:0041AE1F F3                      repz   
+:0041AE20 A5                      movsd   
+:0041AE21 8BCB                    mov ecx, ebx   
+:0041AE23 83E103                  and ecx, 00000003   
+:0041AE26 F3                      repz   
+:0041AE27 A4                      movsb   
+:0041AE28 8A08                    mov cl, byte ptr \[eax\]  //取出上面密文的一个字节   
+:0041AE2A 84C9                    test cl, cl            
+:0041AE2C 740D                    je 0041AE3B   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:0041AE39(C)   
+|   
+:0041AE2E 80E97F                  sub cl, 7F              //减去"7F"   
+:0041AE31 8808                    mov byte ptr \[eax\], cl  //回存   
+:0041AE33 8A4801                  mov cl, byte ptr \[eax+01\]//取出下一个字节   
+:0041AE36 40                      inc eax                  //指向下一个,   
+:0041AE37 84C9                    test cl, cl              //是否结束了?     
+:0041AE39 75F3                    jne 0041AE2E            //没有?当然是继续咯!   
+  
+    嘿嘿，原来程序将密文逐个减去"7F"就解密出字符串了，这个字符串是" 非   
+法版本" （当然是英文的，可是俺不记得了）（众生：哇，老师也不会被单词呀？）   
+  
+  
+这里先介绍第一种破解方法:   
+    如果要它显示"TAE！\[CCG\]"该怎么做呢？嘿嘿，将"TAE！\[CCG\]"这几个字符，   
+分别加上"7F"之后的 ascii 码写入文件中对应的地方就可以了，那么这个" 对应   
+" 的地方在哪里？ "笨" 在文件中查找上面的密文就是了！w32dasm 中选中那一   
+行，crtl+c 复制到一个文本文件中，然后将密文复制下来，再用 ultraedit 打开   
+软件，ctrl+f，将密文复制到文本栏，最后点击查找！ok！找到后，就将上面计   
+算好的 ascii 码写入就可以了，哈哈哈哈，运行程序，喔~~~ ！已经在软件标题   
+栏显示"TAE！\[CCG\] 了！   
+  
+介绍的二种破解方法:   
+    第一种方法比较烦，有没有更简单的方法呢？（愚蠢的问题）当然有！看看   
+这一段解密过程：   
+  
+:0041AE2E 80E97F                  sub cl, 7F              //减去"7F"   
+:0041AE31 8808                    mov byte ptr \[eax\], cl  //回存   
+:0041AE33 8A4801                  mov cl, byte ptr \[eax+01\]//取出下一个字节   
+:0041AE36 40                      inc eax                  //指向下一个,   
+:0041AE37 84C9                    test cl, cl              //是否结束了?     
+:0041AE39 75F3                    jne 0041AE2E            //没有?当然是继续咯!   
+  
+    将第一行的 sub cl，7F 变成控操作，nop 掉它，这样软件就直接将密文显示   
+于标题栏了，可我们不需要这么一大堆乱码呀，嘿嘿，这次就不需要象第一种方   
+法计算 ascii 了，直接将密文替换成"TAE！\[CCG\]"就可以了，啊哈哈哈哈。   
+    about 窗口中的"unregistered user" 同样可以用上面两种方法修改，再次   
+运行软件，喔~~~~gooood！是不是很象注册版？呵呵，好了，课就上到这里了，   
+再见！   
+  
+\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_    \_\_\_  \_\_\_\_\_\_ \_\_\_\_\_\_ \_\_\_\_\_\_          
+/      /  \\\_  \_\_\_\_/  /  / / \_\_\_\_// \_\_\_\_//  \_\_\_\_/   
+\\\_    \_/ /\\ \\  \_\_)\_  /  / / /    / /    / / \_\_   
+  |  |/  \_\_ /      \\ /\_\_/ / /\_\_\_ / /\_\_\_ / /\_/ /   
+  |\_\_/\_\_/  \\\_\_\_\_\_\_\_/ (\_)  \\\_\_\_\_/ \\\_\_\_\_/ \\\_\_\_\_/    
+                                            2001 年 10 月 16 日 13:45 完成  4dd466d0e1e0cc123afbe504da2462ca

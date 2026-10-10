@@ -1,0 +1,390 @@
+
+
+# 科锐三阶段项目---CreateProcess 流程分析之二：ObInsertObject 分析报告
+
+> 原文：[`www.pediy.com/kssd/pediy11/114734.html`](https://www.pediy.com/kssd/pediy11/114734.html)
+
+这个是武汉科锐 第三阶段 的分析项目，每个同学负责不同的模块。在此我将我所分析的模块发出来。  
+  
+声明：由于本人能力有限，文中必然有错漏之处，恳请读者不吝赐教。  
+  
+  ObInsertObject 它的作用是将所创建的对象插入对象目录和本进程句柄表(或内核句柄表)，并返回句柄。插入对象目录的目的是使得以后可以按对象名及期路径找到对象，而句柄表的插入则使当前进程在创建之余同时打开了这个对象。  
+我们先来了解一下 ObInsertObject 的大概流程:  
+  首先是一些常规检查，如果对象名没有指定的话，创建一个无名对象句柄,同时将 ObpCreateUnnamedHandle 的返回值返回。  
+  然后再判断一个访问状态(AccessState)是否为空，如果为空的话就调用 SeCreateAccessState 创建一个，如果创建出错了，返回错误码。  
+  接着再判断对象名是否为空，如果不为空的话，调用 ObpLookupObjectName 查找一下目录下面是否有同名的存在， 如果就通过指针返回对象，否则就返回 STATUS\_OBJECT\_NAME\_NOT\_FOUND,如果没有找到就把这个对象挂入给定的目录，并通过指针返回这个对象的指针。  
+  接着再判断是不是要创建符号连接，是的话通过 ObpCreateSymbolicLinkName 创建。  
+  下面再判断是不是成功插入对象目录，再根据所在目录修正目标对象的访问控制描述。  
+  最后就是句柄表中创建一个新的句柄。  
+  
+  
+  
+  现在我们开始分析 ObInsertObject 函数。  
+  首先函数完成对一些局部变量的赋值，比如取得 ObjectType 等操作。  
+  接着先判断一下是不是要创建无名对象句柄。  
+
+代码:
+
+```
+cmp     \[ecx+OBJECT\_TYPE.TypeInfo.SecurityRequired\], 0
+jnz     loc\_527F99
+cmp     \[ebp+var\_ObjectName\], eax ; 判断一下对象名有没有指定
+jnz     loc\_527F99
+
+```
+
+  如果这二个值都为空的话，调用 ObpCreateUnnamedHandle()函数创建一个无名对象句柄。  
+  之后再检查一下\_OBJECT\_CREATE\_INFORMATION.SecurityDescriptor 这个域是否有值，有值的话调用 SeReleaseSecurityDescriptor()将安全描述描给释放。  
+  接着再判断是否有\_OBJECT\_HEADER\_NAME\_INF 可选头，有的话也将空间释放，这里有一个检测，检测是从哪里申请到的空间，是 LookasideList 还是在堆里，然后调后相应的函数释放空间。  
+  接着再判断\_OBJECT\_HEADER\_NAME\_INFO.Directory 是否有值。  
+代码:
+
+```
+mov     eax, \[edi+\_OBJECT\_HEADER\_NAME\_INFO.Directory\]
+cmp     eax, ebx
+
+```
+
+  有值的话调用 ObDereferenceObjectDeferDelete。  
+接着再调用 ObfDereferenceObject 函数。  
+基本上后面都是一些善后操作。  
+最后返回 ObpCreateUnnamedHandle()函数的返回值，结束整个函数的调用。  
+  
+如果不是创建无名对象，函数接着往下走。  
+如果名字指定了，或者需要完整的安全检查，是需要访问状态的，所以首先判断 AccessState 是否有值，这个参数是 ObInsertObject 函数的参数之一。  
+代码:
+
+```
+cmp     \[ebp+arg\_AccessState\], eax ; eax 为零值，前面进行了 xor eax,eax
+jnz     short NoCreateAccessState
+
+```
+
+  如果没有值的话再调用 SeCreateAccessState()生成一个访问状态(AccessState)。  
+代码:
+
+```
+lea     eax, \[ebp+var\_LocalAccessState\]
+mov     \[ebp+arg\_AccessState\], eax
+mov     eax, \[ebp+var\_ObjectType\]
+add     eax, 68h ; 'h'  ; 这里做个加法就指到 GenericMapping
+push    eax
+push    \[ebp+arg\_DesiredAccess\] ;
+lea     eax, \[ebp+var\_AuxData\]
+push    eax
+lea     eax, \[ebp+var\_LocalAccessState\]
+push    eax
+call    SeCreateAccessState ; 创建一个访问状态
+
+```
+
+  与上面的函数调用之后的处理一样，在调用完一个函数之后，先检查一下访回值，是否成功，不成功的话就释放资源，比如引用指引的计数减一，申请的内存释放之类的操作。同时将那个函数的返回值返回，结束整个函数。  
+  
+  我们继续再往下看。  
+  这里有一个调用 ObpValidateAccessMask 函数，同时后面还有针对函数成功与否做的一些判断以及相关的操作，失败依旧是释放相关的资源，但是跟进这个函数发现，如论怎样，他都返回 STATUS\_SUCCESS。所以这里我们跳过了。  
+代码:
+
+```
+mov     eax, \[ebp+arg\_AccessState\]
+mov     ecx, \[esi+\_OBJECT\_CREATE\_INFORMATION.SecurityDescriptor\]
+push    eax
+mov     \[eax+ACCESS\_STATE.SecurityDescriptor\], ecx
+call    ObpValidateAccessMask ;无论怎么样，他都返回 STATUS\_SUCCESS
+
+```
+
+  再往下看。  
+  下面先是判断 ObjectName 是否为空，不为空的话调用 ObpLookupObjectName 函数，这个函数的作用是通过 ObjectName 去对象目录中查找，如果没有找到的话将 ObjectName 插入,同时通过最后一个参数返回结果,原来最后一个参数是指向我们的对象本身的，如果对象目录中找到有这个对象的话，将会将会改写这个值，通过这个值我们可以判断有没有将我们的对象插入进去，还是说找到同名的。  
+代码:
+
+```
+lea     eax, \[ebp+var\_InsertObject\]
+push    eax             ; int
+lea     eax, \[ebp+var\_34\] ; \_OBP\_LOOKUP\_CONTEXT 类型的变量的首地址
+push    eax 
+push    \[ebp+arg\_AccessState\]
+xor     eax, eax
+mov     al, \[ebx+0Fh\]
+push    ecx             ; int
+push    \[esi+\_OBJECT\_CREATE\_INFORMATION.SecurityQos\] ; int
+shr     al, 1
+push    \[esi+\_OBJECT\_CREATE\_INFORMATION.ParseContext\] ; int
+not     al
+and     eax, 0FFFFFF01h
+push    eax             ; AccessMode
+push    \[ebp+var\_ObjectType\] 
+push    \[esi+\_OBJECT\_CREATE\_INFORMATION.Attributes\] 
+push    \[ebp+var\_ObjectName\]
+push    \[esi+\_OBJECT\_CREATE\_INFORMATION.RootDirectory\] 
+call    ObpLookupObjectNam
+
+```
+
+  这里我们先跳过这个函数的内部实现，在后面我们会重点分析，通过函数实现，去反推出他的对象目录的结构。接着往下看。  
+  发现他没有直接单纯的判断函数有没有成功，而是做了一个检查，判断一下是不是找到同名的。  
+代码:
+
+```
+test    eax, eax        ; 判断函数是否执行成功
+mov     \[ebp+Status\], eax
+jl      loc\_5281BD
+mov     ecx, \[ebp+var\_InsertObject\]
+test    ecx, ecx        ; 判断 var\_InsertObject 是否为零
+jz      loc\_5281B3
+cmp     ecx, \[ebp+arg\_Object\] ; 判断 var\_InsertObject 是不是等于 Object
+                        ; 如果相等的话，说明已经把 Object 插进对象目录
+                        ; 否则的话说明在里面找到同名的
+
+```
+
+  接着在里面做相关的判断与操作:  
+  先判断属性中是否有 OBJ\_OPENIF 属性，有的话再判断类型是否相同，不同的话将 Status 置为 0C0000024h(STATUS\_OBJECT\_TYPE\_MISMATCH),相同的话置 Status 为 40000000h (STATUS\_OBJECT\_NAME\_EXISTS)，然后再跳去下面判断 ObjectType 是否等于 ObpSymbolicLinkObjectType，接着做相应的操作。  
+  如果属性中没有 OBJ\_OPENIF 属性的话，再判断一下类型是否等于 ObpSymbolicLinkObjectType，是的话调用 ObfDereferenceObject 函数。最后再将 Status 置为 0C0000035h(STATUS\_OBJECT\_NAME\_COLLISION)。  
+  之后下面再判断一下 Status 是否成功(注意上面有修改 Statue 的操作)，不成功的话做一些资源的释放，最后再返回，结束函数，成功的话再判断类型是否是 ObpSymbolicLinkObjectType，是的话调用 ObpCreateSymbolicLinkName。  
+  这个函数比较大，而且跳来跳去也比较麻烦，为了方便大家理解，我画了一张流程图出来。  
+![](img/76c491fa4f7b67c7e294bea9a23d14ad.jpg)  
+  
+  
+  
+  
+  接着我们往下分析。首先判断是否将我们的对象插入到了对象目录里面去了。  
+代码:
+
+```
+mov     eax, \[ebp+var\_InsertObject\]
+cmp     eax, \[ebp+arg\_Object\] ; 
+jz      loc\_5282D4      ; 如果相等，说明将我们的对象插入到对象目录中去了
+
+```
+
+  接着再判断是否有 OBJECT\_HEADER\_NAME\_INFO 可选头，以及 Directory 是否不为空。  
+代码:
+
+```
+test    edi, edi        ; 先判断 ObjectName 是否为空
+jz      short loc\_5282EE
+mov     eax, \[edi+\_OBJECT\_HEADER\_NAME\_INFO.Directory\]
+test    eax, eax
+jz      short loc\_5282EE
+
+```
+
+  如果不为空的话，调用了 ObGetObjectSecurity,获取所在目录的访问控制描述符。如果为空的话将 var\_SecurityDescriptorAllocated 变量置为 0。  
+  接着在下面调用 ObAssignSecurity 函数, 根据所在目录修正目标对象的访问控制描述。接着很自然的在后面又做了一些函数调用成功以及返回值的判断，然后是相关的操作，比如失败了，一些资源的释放。  
+  
+  接着下面这个估计大家都比较感兴趣的了。  
+  先是判断 Handle 是否有值。  
+代码:
+
+```
+cmp     \[ebp+arg\_Handle\], 0
+mov     \[ebp+var\_ReturnStatus\], eax
+jz      HandleIsZero    ; 如果 arg\_Handle 等于零的话跳走
+
+```
+
+  如果有值，就调用 ObpCreateHandle，函数调用完依旧是检查成功与否，我们看下这里不成功的话会做些什么操作。  
+代码:
+
+```
+cmp     eax, ebx        ; 这里判断函数有没有执行成功了
+mov     \[ebp+Status\], eax
+jge     loc\_528491      ; 成立就跳走
+cmp     \[ebp+var\_ObjectName\], ebx
+jz      short loc\_528189
+push    \[ebp+arg\_Object\]
+call    ObpDeleteNameCheck ; 将对象从对象目录里删除
+
+```
+
+  判断我们是不是之前把对象插入到了对象目录里，是的话这里不成功则要把刚刚插入到对象目录中的对象从对象目录里删除。  
+  接着后面是对我们之前申请的一些资源的释放工作。  
+  
+  好了，我们现在开始分析 ObpLookupObjectName 函数。  
+  在我们开始分析 ObpLookupObjectName 之前，先来看二个数据结构。  
+代码:
+
+```
+kd> dt \_OBJECT\_DIRECTORY
+ntdll!\_OBJECT\_DIRECTORY
+   +0x000 HashBuckets      : \[37\] Ptr32 \_OBJECT\_DIRECTORY\_ENTRY
+   +0x094 Lock             : \_EX\_PUSH\_LOCK
+   +0x098 DeviceMap        : Ptr32 \_DEVICE\_MAP
+   +0x09c SessionId        : Uint4B
+
+```
+
+代码:
+
+```
+kd> dt \_OBJECT\_DIRECTORY\_ENTRY
+ntdll!\_OBJECT\_DIRECTORY\_ENTRY
+   +0x000 ChainLink        : Ptr32 \_OBJECT\_DIRECTORY\_ENTRY
+   +0x004 Object           : Ptr32 Void
+   +0x008 HashValue        : Uint4B
+
+```
+
+  \_OBJECT\_DIRECTORY 里有一个名为 HashBuckets 的指针数组，维数是 37，然后\_OBJECT\_DIRECTORY\_ENTRY 有一个名为 ChainLink 的指针用来构成队列，以及 Object,用来指向其所连接的对象，里面还有一个 HashValue,用来保存节点名或者对象名的 Hash 值。  
+  基本上从上面的二个结构体中可以大致的知道对象目录是怎么组织起来的了。下面我们看对象目录的图表。  
+![](img/5f120ffaf9998d09b0020c67d4b6cb51.jpg)  
+  
+  在看代码之前，我大概的说下这个函数的工作流程:  
+  首先是一大堆的检查，比如必须是以\\开头的，是否区分大小写之类的。  
+  函数最重要的部份将对象名一个一个的分离出来，然后调用 ObpLookupDirectory  
+Entry 去查找，如果没有找到，则调用 ObpInsertDirectoryEntry。  
+  后面就是一些资源的释放工作了。  
+  其实这个函数的实现不难，只是太繁琐了。  
+  ObpLookupDirectory、ObpInsertDirectoryEntry 这二个函数都相对简单，我们等下再分析。  
+  我们结合上面的图，用一个实例来演示一下如查找\\aaa\\bbb\\ccc 的。  
+  ObpLookupDirectory 参数中有一个是指定查找的目录，刚开始值一定为空的，然后做个检查，是否为空，空的话说明是要根目录下查找，就把根目录赋给他。  
+  然后函数先分离出第一个对象名，第一次先把第一个’\\’给跳过，第二次再去找后面第一个’\\’，这二个长度一减，就可以得到当前第一个对象名的长度了，然后通过对象名再去目录下面找，第一次我们要找的是 AAA,先算出他的哈希值，再将哈希值与 37 取下模，即可得到在数组中的哪一项了，接着再在链表中一个一个的查找，第一个就是 AAA,我们很快的就可以找到了，找到了 ObpLookupDirectory 当然会提示的，接着我们再分离出第二个对象名 BBB，我们可以看到 AAA 下面有三个对象，对象 A、对象 B、以及一个对象目录 BBB,好了,BBB 就是我们要找的，接着再在 BBB 目录下面找 CCC，OK,可以找到。  
+  但是我们找\\AAA\\BBB\\DDD 呢，怎么处理。步骤和上面的一样，当然我们在 BBB 目录中是找不到 DDD 的，然后函数调用 ObpInsertDirectoryEntry 将对象插到对象目录中去。一般也没问题的。  
+  但是假如我们要找\\AAA\\DDD\\EEE,可是 DDD 不存在，很显然，如果将对象插进去就会出错。  
+  其实我觉得这个也挺好的理解，因为我们经常在用，平时打开磁盘，是不是也是这个结构呀！  
+  可能刚开始看那个图有点郁闷，怎么这个指的是对象，那个指的又是目录呢，更奇怪的是居然还有一个符号连接呢！而上面给的二个结构中却没有什么标志呀！其实在 Object 中，有一个成员是不是 ObjectType 呢！这下明白了吧！  
+  
+  现在我们来看函数吧，因为这个函数太多检查了，我们直接跳到最骨干的部分看吧！  
+  首先是分离对象名。  
+  下面是步过第一个’\\’,比如我们要查找\\aaa\\bbb\\ccc,现在这里就得到 aaa\\bbb\\ccc。  
+代码:
+
+```
+cmp     word ptr \[ebp+var\_RemainingName\], bx
+mov     \[ebp+var\_Object\], ebx ; object = NULL
+jz      short loc\_523F9D
+cmp     word ptr \[eax\], 5Ch ; '\\' ; 判断第一个字符是不是'\\'
+jnz     short loc\_523F9D
+inc     eax
+inc     eax             ; 因为是 UNICODE\_STRING,所以要加二次
+add     word ptr \[ebp+var\_RemainingName\], 0FFFEh ; 这里减 1
+mov     \[ebp+var\_UnicodeBuffer\], eax
+
+```
+
+  接着再做一个检查，检查长度是否为零，不为零的话再取出最前面的那个对象名。  
+代码:
+
+```
+cmp     word ptr \[eax\], 5Ch ; '\\' ; 这里找到下一个'\\'
+                        ; 这样就可以分离出第一个对象名了
+jz      short loc\_523FBE
+inc     eax
+inc     eax
+add     word ptr \[ebp+var\_RemainingName\], 0FFFEh
+mov     \[ebp+var\_UnicodeBuffer\], eax
+jnz     short loc\_523FAB ; 这里找到下一个'\\'
+
+```
+
+  之后做个减法就可以取得第一个对象名的长度了，这样就把当前最前面的对象名分离出来了，之后再做一些检查。  
+  之后调用一个很重要的函数。  
+代码:
+
+```
+cmp     \[ebp+arg\_InsertObject\], ebx
+push    esi             ; int
+setz    al
+push    eax             ; int
+push    \[ebp+arg\_Attributes\] ; int
+lea     eax, \[ebp+String2\]
+push    eax             ; String1
+push    edi             ; int
+call    ObpLookupDirectoryEntry ; 在指定目录中查找
+
+```
+
+  然后后面又是一大堆的判断之类的。我们跳过。  
+  如果调用 ObpLookupdirectoryEntry 没有找到的话，我们就尝试将对象插入到对象目录中去。  
+代码:
+
+```
+cmp     eax, ebx
+mov     \[ebp+P\], eax
+jz      short loc\_524400
+push    esi
+push    \[ebp+arg\_LookupContext\]
+push    \[ebp+var\_Directory\]
+call    ObpInsertDirectoryEntry
+
+```
+
+  如果当前对象名不是最后一个的话，一般这里都会失败的，现在通过看函数的参数大家都明白为什么会失败了吧！  
+  如果 ObpLookupDirectoryEntry 成功，再继续重复上面的操作。  
+  最后还是要做一大堆的检查，比如是否将我们的对象插入了，还是在里面找到了之类的。是否还要继续查找等等。  
+  然后再判断标志位，是否再进行下一轮的查找。  
+  下面我们进去分析一下 ObpLookupDirectoryEntry 函数是如何实现的。  
+  上面我们看到结构体\_OBJECT\_DIRECTORY\_ENTRY 中有一个 HashValue,理所当然，这个函数一开始将计算对象名的哈希值，我们这里直接跳过。  
+  计算出哈希值之后，和 37(25h)做个除法，因为我们是取模，所以去 dx 中取结果。  
+  接着我们再链表中一个一个的查找。  
+代码:
+
+```
+LoopFind:
+        mov     eax, \[ebp+var\_HashValue\]
+        cmp     \[esi+\_OBP\_LOOKUP\_CONTEXT.HashValue\], eax ; 
+
+```
+
+将当前对象名的哈希值和键表中的比较  
+代码:
+
+```
+        jnz     short Condition ; 这里取链表的下一个结点
+        mov     eax, \[esi+\_OBP\_LOOKUP\_CONTEXT.Object\]
+        movzx   ecx, byte ptr \[eax-0Ch\]
+        push    dword ptr \[ebp+CaseInSensitive\] ; CaseInSensitive
+        sub     eax, 18h
+        sub     eax, ecx
+        add     eax, 4
+        push    eax             ; String2
+        push    \[ebp+arg\_Name\]  ; String1
+        call    RtlEqualUnicodeString ; 
+
+```
+
+如果二个哈希值相同，再调用 RtlEqualUnicodeString 来比较对象名是否相同  
+代码:
+
+```
+        test    al, al
+        jnz     short loc\_5236C2
+
+Condition:
+        mov     ebx, esi        ; 这里取链表的下一个结点
+        mov     esi, \[esi+\_OBP\_LOOKUP\_CONTEXT.Directory\]
+        test    esi, esi
+        jnz     short LoopFind
+
+```
+
+  因为哈希值可能会存在碰撞，所以在哈希值相同的情况下再调用 RtlEqualUnicod  
+eString 函数来比较二个对象名是否相同。这样大大的提高了查找的速度。  
+  同时下面还有一个很重要的操作。  
+代码:
+
+```
+mov     eax, \[esi\]      ; esi 指向的是当前已经找到的对象名的结点
+mov     \[ebx\], eax      ; ebx 是指向上一个的,现在上一个节点的 ChainLink 就等于当前结点的 ChainLink
+mov     eax, \[edi\]      ; edi 是链表的第一个结点
+mov     \[esi\], eax
+mov     \[edi\], esi      ; 经过这些操作之后，就把找到的对象移到链表头
+
+```
+
+  我记得有一个定理是，当这个元素被访问之后，他周围的元素也必定会访问，好像是这样的吧，所以把他移到链表头，可以提高下次查找的速度。  
+  好了，这个函数的分析就到此结束了！  
+  虽然程序中有用到 ObpInsertDirectoryEntry 函数我们没有分析，但是我想大家看完上面的分析报告，已经可以想得到怎么做了吧！申请一个链表节点，把哈希值一算，往链表头部一插就完事了！  
+  
+平台环镜:  
+  Windows XP SP2 + VM6.5 + WRK1.2 + Windbg + IDA5.5  
+  
+参考文献  
+\[1\] 毛德操 著 《Windows 内核情景分析--采用开源代码 ReactOS》  \[M\]电子工业出版社 2009 年 5 月  
+\[2\]  张帆 史彩成 著《Windows 驱动开发技术详解》 \[M\]电子工业出版社  2008 年 7 月  
+  
+      马上就要毕业了，在此多谢钱方师，方老师，岳老师，赵老师，在这将近一年的时间里，对我们的教导，不仅仅是技术上，还有为人处事等等，同时还有多谢科锐的同学，是你们的陪伴，让我在这期间过得很充实，同时还有在专业学习上的交流以及指导。非常感谢。
+
+上传的附件
+| ![](img/668feaf58c8e7ddb6fbdbf839a5a19db.jpg) || ObInsertObject.pdf  
+ |

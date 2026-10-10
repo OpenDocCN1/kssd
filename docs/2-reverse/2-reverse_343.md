@@ -1,0 +1,203 @@
+
+
+# 从零开始的反反调试日志
+
+> 原文：[`www.pediy.com/kssd/pediy12/128137.html`](https://www.pediy.com/kssd/pediy12/128137.html)
+
+我也不知道取个什么名字合适，主要是给那些准备调试内核人的参考资料  
+   
+\=============    编程环境    =====================  
+VS2008+DDK+VA+DDKWIZARD  
+1、安装 VS2008，MSDN  
+2、安装 DDK  
+3、安装 ddkwizard\_setup  
+4、安装 Visual Assist X  
+5、-> 错误 1 => 找到 ddkbuild.bat、ddkbuild.cmd（下载）放入 /windows/system32 目录下   
+6、-> 错误 2 => 计算机/.../环境变量 ，添加两个系统变量  
+    1、 W7BASE = D:\\WinDDK\\7600.16385.1  
+    2、WXPBASE = D:\\WinDDK\\7600.16385.1  
+7、-> 错误 3 => VS2008/Tools/Options/Projects and Solutions/VC++ Directories  
+    Win32/Include files =>  
+    添加 D:\\WinDDK\\7600.16385.1\\inc\\api 到末尾，否则编译普通 win32 应用程序会提示错误  
+    添加 D:\\WinDDK\\7600.16385.1\\inc\\ddk 到末尾  
+Other:如果安装顺序有错，导致 VA 无法支持 DDK，则将 api、ddk 添加到 VA 的 /Options/Projects/C/C++ Directories  
+    => custom/Stable include files ，一样，添加到末尾  
+\= done =  
+   
+1 : error PRJ0019: A tool returned an error code from "Performing Makefile project actions"  
+\=>'ddkbuild.cmd' 不是内部或外部命令，也不是可运行的程序  
+2 :1>DDKBLD: ERROR #3: To build using type W7 you need to set the %W7BASE% environment variable to point to the Windows 7/Windows 2008 Server R2 DDK base directory!  
+3 :VS2008 中 UNICODE\_STRING 按 F12 无法追踪  
+   
+   
+\=============    双机调试  =======================  
+Windbg+VMware  
+1、安装 VMware  
+2、安装 Windbg(DDK 里面有这个东西)  
+3、安装 IDA  
+4、VMware 设置(装有 xp 和 win7 两个系统)  
+xp 版:  
+在 c:\\boot.ini 文件中添加 debug 的启动项  
+\[operating systems\]  
+multi(0)disk(0)rdisk(0)partition(1)\\WINDOWS="Microsoft Windows XP Professional" /noexecute=optin /fastdetect  
+multi(0)disk(0)rdisk(0)partition(1)\\WINDOWS="Microsoft Windows XP Professional - debug" /fastdetect /debug /debugport=com1 /baudrate=115200  
+   
+win7 版:  
+在 msconfig 中添加 debug 启动项  
+msconfig -> 高级选项 -> 调试，调试端口 COM1，波特率 115200  
+   
+在 VMware 上修改两个系统的串口设置：  
+打开电源时连接  
+此终端是服务器  
+另一终端是一个应用程序  
+i/o 模式 轮询时主动放弃 CPU 占用  
+xp:使用命名管道 \\\\.\\pipe\\com\_1  
+win7:使用命名管道 \\\\.\\pipe\\com\_2  
+   
+5、Windbg 设置  
+符号路径，xp 与 win7 的符号都可以放在同一个目录下，没有的话，windbg 会自动将文件下载到 E:\\sysbols  
+E:\\symbols;SRV\*E:\\symbols\*http://msdl.microsoft.com/download/symbols  
+   
+建立两个 windbg 快捷方式的设置，修改其中参数，分别连接两个虚拟机  
+xp:  
+D:\\tools\\windbg\\windbg.exe -b -k com:port=\\\\.\\pipe\\com\_1,baud=115200,pipe  
+win7 版:  
+D:\\tools\\windbg\\windbg.exe -b -k com:port=\\\\.\\pipe\\com\_2,baud=115200,pipe  
+   
+6、在 windbg 下 dump 两个系统  
+  将整个 win7 系统内存 dump 下来( Full kernel dump），耗费了我 40 多个小时...其中一次机器休眠了...  
+  （Creating a full kernel dump over the COM port is a VERY VERY slow operation.）有除 COM 外其他的连接方式，但我不会。。  
+  .dump /f e:\\win7\_dump.dmp  
+   
+\=============   驱动加载工具 ====================  
+      后面附一个源码，喜欢的可以下  
+   
+\=============   准备工作完成 ====================  
+      至此，我们有了一个能随时能增加功能的驱动加载工具，一份 win7 dump 文件，双机调试，编程环境。  
+   
+\=============   从零开始分析驱动层的反调试 =========  
+      在这以前，只有应用层的逆向经验。没接触过驱动，也不知道反调试。  
+      下面是我过某个游戏驱动保护的过程，这个过程从 11 月 14 号左右开始，到 12 月 1 号结束。   
+         游戏一开始给人的表象有：
+
+> 1、游戏进程、守护进程、驱动  
+> 2、OllyICE 附加列表中无法看到目标进程，任务管理栏则可正常显示目标进程名称。  
+> 3、Windows7:去除两个内核钩子 Hook 后，OD 可看到目标进程，但是附加时提示附加失败！(用 xuetr 看的到内核钩子)  
+> 4、Windows XP:去掉两个内核钩子，游戏直接退出。  
+> 5、采用虚拟机 VMware+Windbg 调试，游戏进程 启动时报错！  
+> 6、VMware+Windows 7 \[Debug\]：游戏启动后 Windows 7 系统无响应，只能重新启动系统。  
+> 7、VMware+Windows 7：游戏可正常启动。  
+> 8、OD 加载游戏主程，OD 崩溃，模块时发生错误，错误代码：0xc0000005（最后发现是 PE 结构中一个模块名字超长导致，我的 OD 很老了）  
+> 9、OD 正常加载游戏主程之后，有被检测到的信息，多次尝试找信息出处，无果  
+
+  
+      以上是 11 月 17 日之前的各种尝试，也是最痛苦的时候完全找不到任何方向。之后调整了思考方向，把重心放到第 5、6、7 条线索上。以下是当时调试日志的主要部分，有点小修改。  
+  
+  
+2010/11/17 对\*\*的调试终于有点突破^\_^  
+      之前一直不清楚\*\*是如何区分系统处于 Debug 还是正常状态。经过对 Windows 的异常分发机制，了解了 Debug 与正常状态的流程不同，主要是 KdpTrap 与 KdpStub 两个函数对应于不同的系统。  
+      至此，与双机调试有关的地方有 4 处：KdpDebugRoutine(函数指针)、KdpBootedNodbug(bool)、KdPitchDebugger(bool)、DebuggerEnabled(bool)。  
+      通过修改 KdpDebugRoutine 指向 KdpStub ，以及另外 3 个标志位，可将系统从 Debug 修改为正常状态，Windbg 将处于等待状态。\*\*可正常执行，待\*\*加载完毕后，将上述 4 个值修改回来，Windbg 可重新获取话语权！  
+      \*\*\*\*\*\*  
+      因此，我将要做另外一个任务，一个驱动程序，可以让系统在 Debug 与正常状态相互切换！这样，我就可以在游戏运行期间，随时进行调试。如果有可能，最好让驱动随时与 OD 进行通讯。  
+  
+2010/11/18  完成驱动加载工具  
+      完成一个通用的驱动加载工具，测试，可将 Debug 系统在 Debug 与 正常状态间随意切换。但是对于正常系统，却无法切换成 Debug。下一步要做的，就是将正常系统也能随意切换！  
+ （这个到现在也没开始做...）  
+  
+2010/11/19
+
+> 1、经过测试，被转换后的系统可以进行双机调试，下断 ws2\_32!send 失败。  
+> 2、使用 XueTr 恢复两个内核钩子后，OD 能够看到 \*\* 进程，附加失败  
+> 3、针对附加失败，使用双机调试查看原因！关键函数 kernel32!DebugActiveProcess。  
+
+         流程 kernel32!DebugActiveProcess -> ntdll!ZwDebugActiveProcess -> 功能号 0x60 -> KeServiceDescriptorTable\[0\]\[0x60\*4\] -> nt!NtDebugActiveProcess  
+         上述步骤能够成功运行  
+         失败存在于 ntdll!NtCreateThreadEx -> nt!NtCreateThreadEx:  
+         经过跟踪发现，最终问题在上述线路中的 nt\_RtlImageNtHeaderEx+0x45 处，由于对象 \*\* 进程的 PE 头被抹去，导致此函数判断时，返回了一个失败值！  
+         进一步的，在不恢复内核钩子的情况下，\*\* 的 Pe 头不被改写，一旦恢复之后，\*\*的某个线程会将此 PE 头抹去，导致 OD 无法附加  
+(有 win7 dump ，结合 ida 感觉真是好)  
+  
+2010/11/??  
+         \*\* 在对比黑白名单后，判断是否放行目标进程。  
+         通过修改黑白名单的内容，OD 可以顺利附加，但是无法读出 \*\* 的模块信息!  
+（不知道具体日期了，主要是从 xuetr 上看到的 2 个内核钩子入手 nt!NtReadVirtualMemory，nt!NtWriteVirtualMemory，这期间，通过这条线索搞定了它的白名单）  
+  
+2010/11/22     
+         制作完相关工具后，经测试，OD 能够看见目标进程，附加，但附加之后便发生错误，无法看到对象的模块信息。应该是目标进程在不断的对 debugport 进行清零操作，目前发现有  
+  
+         多个线程有此动作，其中有一个是在不断新建线程，新的线程就是不断对 debugport 做检查。如果绕过 debugport 检查？  
+         （这里可能会有些不准确，但确定是的某个线程在对 debugport 清零，查看了不少帖子，最后线索来自看雪）  
+  
+2010/11/23   \*\* 对 debugport 清零的动作  
+         Windbg 对 debugport 下写断点
+
+> kd> u \*\*+0x41764  
+> \*\*+0x41764:  
+> 9b2fb764 8702            xchg    eax,dword ptr \[edx\]    //清零操作  
+> 9b2fb766 6685e9         test     cx,bp  
+> 9b2fb769 660fbae501   bt        bp,1  
+> 9b2fb76e 8b36            mov     esi,dword ptr \[esi\]  
+> 9b2fb770 83ecdc         sub      esp,0FFFFFFDCh  
+> 9b2fb773 0f886545ffff  js         \*\*+0x35cde (9b2efcde)  
+> 9b2fb779 f5               cmc  
+> 9b2fb77a 3bf1            cmp     esi,ecx  
+
+  
+         手动修改 edx 值，发现 od 附加后可正常存活。但是如果暂停该线程，则会导致 od 附加后，很快游戏自动退出！  
+  
+         使用工具对\*\*驱动代码部分做修改(debugport 清零),在多次测试中，很少的情况可以一直附加，但实体机状态下，OD 很快就被检测到。在程序自退出时，有弹出守护进程被异常终止的对话框。程序自退出时，会有一个单独线程，冻结此线程，OD 会存活的比较久。  
+（到现在为止，还不能对游戏下断点）  
+  
+2010/11/25  
+         OD 对游戏下断，游戏会异常退出，0x80000003  
+  
+2010/11/29  
+         了解线程的 HidePort 后，制作工具可以下断点，但是 OD 还会被检测到。主要的问题在于线程 0x00cc0654 中调用了 RtlExitUserProcess 函数(该函数又调用了 ZwTerminateProcess)。  
+         该线程会不停的创建，但未经过 CreateThread API(功能号为 0x58)。  
+现在的问题是，创建该线程是否传递了参数进来？如果未有参数传递，是否该线程检测到 OD 运行？！  
+         补充：由于游戏主线程的 HidePort 被设置为 1，导致内核将该线程上的异常屏蔽，不分发给用户层。因此 OD 修改的代码 int3 会引发一个异常，导致主线程退出。  
+  
+2010/11/30  
+         在 nt!NtCreatethreadEx 下断，没有相关创建 0x00cc0654 线程的调用！因此，还是无法知道程序中哪里创建了线程 0x00cc0654 。比较奇怪的是，该线程应该是不断的被创建的、且线程 ID 总是相同，但是 retn 之后，该线程便不再被创建。。（之所以这么说，是因为在该线程的入口点，总是能断下）  
+  
+2010/12/01  
+         基本实现 OD 的附加调试，但是 0x00cc0654 线程是从哪里来的，如何被创建，如何检查 OD？ （一直未解决，太多的代码变异）  
+  
+总结：  
+大部分的反调试还是在驱动层面，并且是已知的几个技术点  
+1、  反 Debug 系统                          debug 系统与 正常版本切换  
+2、  DebugPort 清零                       nop 掉相关代码段  
+3、  主线程 HidePort 置 1                          重置 HidePort  
+4、  内核函数钩子，采用白名单方式放行。     找到白名单，手动添加  
+5、  0x00cc0654 线程检测                  直接将线程入口修改为 retn  
+  
+  
+  
+我想很多在内核之外的人，跟我一样在门外徘徊，其实，只要做，并没有那么难。 
+
+自制的驱动加载工具  
+  
+驱动部分写的很简单，删除了针对游戏的代码，保留了 3 个 win7 系统下的基本例子，检索 eprocess、内核模块、win7 下几个 debug 标志位的切换。  
+  
+  
+做这个工具的主要目的，是当我需要针对游戏的 debughide 什么的做恢复，希望能只真加一个写个 redebughide() 函数，然后直接在应用层去调用这么个函数。方便测试用。  
+最终效果是：  
+1、编写 redebughide() 函数  
+2、给它定义功能号  #define IOCTL\_CODE\_REDBUGHIDE  (ULONG)CTL\_CODE(FILE\_DEVICE\_UNKNOWN,0x906,METHOD\_BUFFERED,FILE\_ANY\_ACCESS)  
+3、 在  InitIOServer 函数中，加入信息，通知用户程序  
+  myServer\[3\].dwEx = IOCTL\_CODE\_REDBUGHIDE ;  
+  wcscpy\_s(myServer\[3\].strDescribe,L"枚举线程,恢复 DEBUGHIDE");  
+4、在 DRVWIN7\_DispatchDeviceControl  函数中添加回调  
+            case IOCTL\_CODE\_REDBUGHIDE:  
+    {  
+      KdPrint(("==== DRV\_REDEBUGHIDE ====")) ;  
+      Debughide () ;  
+      Irp->IoStatus.Status = STATUS\_SUCCESS ;  
+    }  
+    break ;  
+这样，我就能更多精力放在功能函数的实现上，而不管用户层的东西
+
+上传的附件
+| ![](img/67af4f1ef9c98996f43e89e749c7dcf5.jpg) || ffdebug1.rar  
+ |

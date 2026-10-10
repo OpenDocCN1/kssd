@@ -1,0 +1,162 @@
+
+
+# 《API 浏览器.net》smc 补丁+内存注册机【原创】
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-222.htm`](https://www.pediy.com/kssd/pediy08/pediy8-222.htm)
+
+【文章标题】: 《API 浏览器.net》+smc 补丁+内存注册机  
+【文章作者】: sfind  
+【作者邮箱】: sfindyyl@sina.com  
+【作者主页】: 无  
+【作者 QQ 号】: 无  
+【软件名称】: api 浏览器.net V5.1  
+【软件大小】: 脱后 984k  
+【下载地址】: http://www.bjjr.com.cn/yefan/apinet.exe  
+【加壳方式】: UPX  
+【保护方式】: 硬盘序列号==>注册码  
+【编写语言】: VB  
+【使用工具】: OD+loadpe+Zd+Mss+VB6.0  
+【操作平台】: WIN2000/XP  
+【作者声明】: 其实该软件作者提供免费注册，本人只是急用，没有其他目的。  
+\--------------------------------------------------------------------------------  
+【软件介绍】: API 浏览器.net 在原 API 浏览器实用、方便、可编辑的基础上，整合了 VB、VB.net、C#格式的 API 数据。除此之外 API 数据达到  
+              历史新高，函数声明 6629 条、类型 473 个、常数 33064 个、完整的示例 901 个。为了答谢广大用户对叶帆软件的支持，该浏览器  
+              一如既往的实行免费发放，欢迎大家使用。           
+【详细过程】  
+      最近在学习 c#,windows 环境下编程当然离不开 windows api 函数，但是在 c#环境下调用 api 函数比 VB 还复杂，于是在网上  
+  找到了这个软件，安装后需要注册，未注册版无法查看 API 示例，无法最大化窗口，无法编辑和使用 Spy 功能，开始动手:  
+  用 peid 查壳显示是 upx1.2，upxshell 直接搞定原来是 vb 写的，本人是菜鸟一只对 vb 程序更是头痛!但软件的确很使用，  
+    又没有现成的破解版和注册机，没办法硬着头皮上吧:)。C32asm 分析了一下没有找到有用的信息，用 OD 载入软件来到  
+    注册窗口，提示本机标识码“7104662564612851”，打开 Mss(一款小巧的内存搜索工具),输入 7104662564612851  
+    按 ASCII 字符串搜索，找到 2 处地址 00152bc8 00160d3c ，全部在系统领空，看来程序内没有直接保存这个号码,不管它了  
+    直接输入注册码 8888888888888888,在找到的两处地方分别下内存访问断点，点确定提示“请重新启动程序以便验证"，程序  
+    竟然没有被断下来，看来软件只是在某处做了个标记在下次程序启动的时候验证，果然用 Regmon 跟踪到软件写入注册表  
+    的键值"\[HKEY\_CURRENT\_USER\\Software\\VB and VBA Program Settings\\API 浏览器\\Settings\]"下的 YFENrolNO 键值为我们  
+    刚才输入的假注册码"88888888888888888",重新载入程序 下 bpx RegOpenKey 运行，还是没断下来，静下心来仔细想想，程序  
+    在写入注册表之前应该要访问硬件编号啊，难道搜索错了吗？于是改为 unicode 方式用 Mss 再搜索一下，找到地址"00159bfc"  
+    又在系统领空，下内存访问断点，还没到点确定程序就被断在了 Kernel32 中  
+  
+    
+  7C84B0F4    8801            MOV BYTE PTR DS:\[ECX\],AL    //断在此处  
+  7C84B0F6    0FB702          MOVZX EAX,WORD PTR DS:\[EDX\]  
+  7C84B0F9    8A0443          MOV AL,BYTE PTR DS:\[EBX+EAX\*2\]  
+  7C84B0FC    6A 02           PUSH 2  
+  7C84B0FE    8806            MOV BYTE PTR DS:\[ESI\],AL  
+    
+  这个地址对我们用处不大，一直按 f9,数次以后在堆栈中出现了"6510-1D97-7F3C-1D74"，  
+EAX 00160D54 UNICODE "6510-1D97-7F3C-1D74"  
+ECX 00000000  
+EDX 00000026  
+EBX 660E610E MSVBVM60.\_\_vbaStrCopy  
+ESP 0012F3F8  
+EBP 0012F5A0  
+ESI 00160CD0  
+EDI 660E60F4 MSVBVM60.\_\_vbaStrMove  
+EIP 004F8000 a.004F8000  
+  
+此时断在模块 OLEAUT32 中：  
+  770F4CC5    F3:A5           REP MOVS DWORD PTR ES:\[EDI\],DWORD PTR DS:\[ESI\] //ESI 内容为"6510-1D97-7F3C-1D74"  
+  770F4CC7    8BCA            MOV ECX,EDX  
+  770F4CC9    83E1 03         AND ECX,3  
+  770F4CCC    F3:A4           REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR DS:\[ESI\]  
+  770F4CCE    5F              POP EDI  
+  770F4CCF  ^ EB BF           JMP SHORT OLEAUT32.770F4C90  
+  770F4CD1    33C0            XOR EAX,EAX  
+  770F4CD3  ^ EB C9           JMP SHORT OLEAUT32.770F4C9E  
+    
+  难道真码出现了吗？？先不管，取消内存断点，Ctrl+F9 数次后返回到程序领空：  
+    
+  004F1A1F   .  68 ED1A4F00   PUSH a.004F1AED  //返回到这里 此时 EAX 的值为"6510-1D97-7F3C-1D74"  
+  004F1A24   .  EB 3C         JMP SHORT a.004F1A62  
+  004F1A26   .  8B4D F0       MOV ECX,DWORD PTR SS:\[EBP-10\]  
+  004F1A29   .  83E1 04       AND ECX,4  
+  004F1A2C   .  85C9          TEST ECX,ECX  
+  004F1A2E   .  74 0C         JE SHORT a.004F1A3C  
+    
+  往上看：  
+  004F1A09   > \\C745 FC 71000>MOV DWORD PTR SS:\[EBP-4\],71  
+  004F1A10   .  8B55 B0       MOV EDX,DWORD PTR SS:\[EBP-50\]              
+  004F1A13   .  8D8D 10FFFFFF LEA ECX,DWORD PTR SS:\[EBP-F0\]             
+  004F1A19   .  FF15 B4114000 CALL DWORD PTR DS:\[<&MSVBVM60.\_\_vbaStrCopy>\] //刚才我们就是从这里返回的   
+  004F1A1F   .  68 ED1A4F00   PUSH a.004F1AED  
+  004F1A24   .  EB 3C         JMP SHORT a.004F1A62  
+    
+    
+  把 004F1A1F 这个可疑地址记下来，重新打开注册窗口输入注册码 6510-1D97-7F3C-1D74，注册成功(狗戴帽子--碰中了)！！！  
+  至此本机注册功能已经实现了，但是还不能算完全破解，至少要写个注册机，现在已经在内存中发现了真码那写个内存注册机  
+  就简单了，用 keymake 做内存注册机比较简单就不说了，下面我们用 VB 自己写一个内存注册机，希望以下的文字对那些自己想写  
+  内存注册机的朋友或是想写游戏修改的朋友有所帮助。  
+    
+  重新载入软件，在刚才记住的那个地址 004F1A1F 处下断点，运行：  
+    
+  关键代码：  
+  004F1A10   .  8B55 B0       MOV EDX,DWORD PTR SS:\[EBP-50\]     
+  004F1A13   .  8D8D 10FFFFFF LEA ECX,DWORD PTR SS:\[EBP-F0\]  
+  004F1A19   .  FF15 B4114000 CALL DWORD PTR DS:\[<&MSVBVM60.\_\_vbaStrCopy>\]      ;  MSVBVM60.\_\_vbaStrCopy  
+  004F1A1F   .  68 ED1A4F00   PUSH a.004F1AED                 //此时 EAX 的内容就是关键数据存放的地址  
+    
+  第一次断在 004F1A1F 的时候：硬件编号：7104662564612851 出现在 EAX 所指向地址中 F9 继续：  
+  第二才断在 004F1A1F 的时候我们的注册码 6510-1D97-7F3C-1D74 出现在 EAX 所指向地址中  
+    
+  算法部分应该就在下面了，有兴趣的朋友可以跟一下，我们继续完成内存注册机的制作：  
+    
+  经过观察发现 EAX 中的地址不是固定的，但要从内存中把注册码读出来我们需要一个固定的地方来保存真码的地址，我们可以从这里  
+  开始跳到我们的代码处，把地址保存起来，然后再跳回来，打开 Zeroadd,输入新增块名 sfind,大小 1000，保存，用 loadpe 打开  
+  刚才的文件，VirtualOffset=000f8000 我们的领空就等于 imageBase+VirtualOffset=004f8000 修改代码如下：  
+    
+             
+  004F1A19   .  FF15 B4114000 CALL DWORD PTR DS:\[<&MSVBVM60.\_\_vbaStrCopy>\]   
+  004F1A1F   .  68 ED1A4F00   PUSH a.004F1AED  
+  004F1A24   .  EB 3C         JMP a.004f8000    //跳到我们的代码处  
+    
+  我们的代码：  
+  004F8000    A3 00814F00     MOV DWORD PTR DS:\[4F8100\],EAX   //保存真码地址  
+  004F8005    68 ED1A4F00     PUSH a.004F1AED                 //恢复被破坏的指令  
+  004F800A  - E9 159AFFFF     JMP a.004F1A24                  //跳回原来的代码处  
+    
+  至此程序修改完毕，我们直接读取 4f8100 处就能得到真码的地址，开始用 vb 写吧  
+    
+  'API 函数申明  
+  Private Declare Function FindWindow Lib "user32" Alias "FindWindowA" (ByVal lpClassName As String,   
+  \_ByVal lpWindowName As String) As Long  
+  Private Declare Function GetWindowThreadProcessId Lib "user32" (ByVal hWnd As Long,   
+  \_lpdwProcessId As Long) As Long  
+  Private Declare Function OpenProcess Lib "kernel32" (ByVal dwDesiredAccess As Long, ByVal   
+  \_bInheritHandle As Long, ByVal dwProcessId As Long) As Long  
+  Private Declare Function ReadProcessMemory Lib "kernel32" (ByVal hProcess As Long, ByVal   
+  \_lpBaseAddress As Any, lpBuffer As Any, ByVal nSize As Long,   
+  \_lpNumberOfBytesWritten As Long) As Long  
+  '定义访问权限常量  
+  Private Const PROCESS\_ALL\_ACCESS = &H1F0FFF  
+  
+  Private Sub Form\_Load()  
+   Dim hWnd As Long, hProcess As Long, pid As Long, address As Long, readBuf As Long  
+   Dim i As Integer  
+     
+     hWnd = FindWindow(vbNullString, "API 浏览器.net")                   '查找程序是否运行  
+     If hWnd = 0 Then  
+      MsgBox "请先运行 API 浏览器再运行本程序", vbCritical, "失败 "  
+     Else  
+       GetWindowThreadProcessId hWnd, pid                               '根据窗口句柄返回线程 ID  
+       hProcess = OpenProcess(PROCESS\_ALL\_ACCESS, False, pid)          '打开进程  
+       ReadProcessMemory hProcess, &H4F8100, address, 4, 0&            '读取我们在程序中保存真码地址  
+       For i = 1 To 20                                                 '从地址中取出真码  
+       ReadProcessMemory hProcess, address, readBuf, 1, 0&  
+       address = address + 2                                          '因为程序是以 Unicode 保存所以必须+2  
+       Text1 = Text1 & Chr(readBuf)  
+       Next i  
+      End If  
+  End Sub  
+    
+    WriteProcessMemory 的用法跟 ReadProcessMemory 的用法差不多，这可是游戏修改的法宝哦，希望大家都能掌握！！！  
+    
+  在论坛混了一年多了，以前总是在提问，这是第一次发表文章，希望对所有新手有所帮助，本人实属菜鸟希望各位大侠不要  
+  见笑！本来想把修改好的程序和内存注册机源代码上传但是权限不够：）  
+  
+    
+\--------------------------------------------------------------------------------  
+【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!  
+  
+                                                       2006 年 07 月 11 日 22:49:53 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

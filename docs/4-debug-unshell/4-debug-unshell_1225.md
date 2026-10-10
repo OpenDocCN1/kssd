@@ -1,0 +1,318 @@
+
+
+# DBPE2.33
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6397.htm`](https://www.pediy.com/kssd/pediy06/pediy6397.htm)
+
+【前    言】：   
+以前脱壳从来没有那么艰辛过,我虚心请教别人,没有一个人告诉我有价值的回答,基本上都是不会或是不说!   
+  
+真搞不明白到底是为什么,难道就那么保密吗?   
+  
+我学脱壳有这样的成绩多谢 jwh51,都块半年没有看见他了!   
+  
+【软件名称】：DBPE2.33 的壳   
+  
+【下载页面】：(我的试炼品是恺撒,请恺撒作者多多原谅)   
+[`yock.8866.org/down/CS-DBPE.rar`](http://yock.8866.org/down/CS-DBPE.rar)   
+  
+【软件大小】：加壳后 213K    没有加壳前原文件 20K   脱壳后文件 18K(我不会优化)   
+  
+【应用平台】：WINXP   
+  
+【软件简介】：一个恐怖的壳   
+  
+【软件限制】：多多地方反调试,还破坏导入表,破坏指针   
+  
+【文章作者】：辉仔 Yock   
+  
+【作者声明】：本人发表这篇文章只是为了学习和研究!!!请不用于商业用途或是将本文方法制作的注册机或是补丁文件任意传播,读者看了文章后所做的事情与我无关,我也不会负责,请读者看了文章后三思而后行!最后希望大家在经济基础好的时候,支持共享软件!(在这里最此软件的作者以万二分的歉意鞠躬...)   
+  
+【破解工具】：Yock-OD(FLY 改的不能加载花指令插件,所以自己改了一个,还请 OLLYDBG 的作者原谅!)    LordPE(超级强大的 PE 编辑工具,感谢作者)   
+  
+—————————————————————————————————    
+【过    程】：   
+  
+这两个壳加密基本是一样的,但解码结构有一些不同,所以 DBPE2.33 的脱壳机不能吧 DBPE2.32 的壳脱掉可能就是因为这个!   
+  
+脱这个壳给我最大激励的是"飞速"的一句话:"靠自己"真是又气(我会还用问吗?),最后又感激,感谢他!   
+  
+以下我是以 DBPE2.33 为例子脱壳!DBPE2.32 基本一样!   
+  
+由于太多花指令了,所以我不复制太多代码,读者自己理会吧.   
+  
+用 OD 载入"测试-DBPE2.33.exe"后,要一步一步跟下来,(等以后熟悉了可以直接用内存断点,可以快 1 个小时有多)   
+  
+一开始的地址时 4XXXXX-5XXXXX 地址,当你来到 7XXXXXXX 地址的时候就真正开始打仗了!   
+  
+小心的躲过一下地方:   
+Error (0): Load Dialog Error,Abort!.   
+//容易   
+Error (1): Load Dll Error,Abort!.   
+//容易   
+Error (2): Debugger detection,Abort! .   
+//要多多注意   
+Error (3): Debugger detection,Abort! .   
+//黑名单,容易   
+Error (4): File CRC Error,Abort!   
+//你看就知道是什么,所以别乱改就不会有问题的了!   
+  
+躲过上面黑名单后就开始解码了!   
+黑名单要注意下面这个跳转,不能跳,一跳就死!   
+83F8 FF                 CMP     EAX,-1   
+0F85 DA000000           JNZ     7FF7E5D9   
+  
+躲过黑名单后就是 CRC 效验了!   
+//你没有改什么的话是不会有问题的!   
+  
+解码过程基本是:   
+...//这里一个大循环"解密器"   
+7FF7EA9E    833E 00                 CMP     DWORD PTR \[ESI\],0   
+//是否有解密表   
+7FF7EAB8   /0F84 2A070000           JE      7FF7F1E8   
+//有表就不跳   
+7FF7EAC3    8B9D 32CC4200           MOV     EBX,\[EBP+42CC32\]                 ; 测试-DBP.00400000   
+7FF7EACE    031E                    ADD     EBX,\[ESI\]   
+7FF7EAD5    8B4E 04                 MOV     ECX,\[ESI+4\]   
+7FF7EAF4    83F9 00                 CMP     ECX,0   
+//是否有要解密的大小   
+7FF7EAF7    75 14                   JNZ     SHORT 7FF7EB0D   
+//有就跳走   
+7FF7EB56    D1E9                    SHR     ECX,1   
+7FF7EB85    66:8B85 83CE4200        MOV     AX,\[EBP+42CE83\]   
+7FF7EBBA    66:C1C8 07              ROR     AX,7   
+7FF7EBC3    66:05 1A00              ADD     AX,1A   
+7FF7EBCC    66:35 9242              XOR     AX,4292   
+  
+...//小解密器   
+7FF7EBE4    66:3103                 XOR     \[EBX\],AX   
+7FF7EBEC    66:48                   DEC     AX   
+7FF7EC1B    43                      INC     EBX                              ; 测试-DBP.00401001   
+7FF7EC33    43                      INC     EBX                              ; 测试-DBP.00401002   
+7FF7EC39    49                      DEC     ECX   
+7FF7EC51    83F9 00                 CMP     ECX,0   
+//解密大小是否以解完   
+7FF7EC54  ^ 75 89                   JNZ     SHORT 7FF7EBDF   
+//没有就跳回去继续解密   
+...\\循环解密   
+  
+7FF7ECBA    8B46 0C                 MOV     EAX,\[ESI+C\]   
+7FF7ECC2    83E0 01                 AND     EAX,1   
+7FF7ECF7    80BD 961C4300 01        CMP     BYTE PTR \[EBP+431C96\],1   
+7FF7ECFE    0F85 A9030000           JNZ     7FF7F0AD   
+7FF7ED09    83F8 01                 CMP     EAX,1   
+7FF7ED0C    0F85 96030000           JNZ     7FF7F0A8   
+7FF7EDED    60                      PUSHAD   
+7FF7EE0A    8B46 04                 MOV     EAX,\[ESI+4\]   
+7FF7EE12    83F8 00                 CMP     EAX,0   
+7FF7EE42   /0F84 50020000           JE      7FF7F098   
+7FF7EE52    8B46 08                 MOV     EAX,\[ESI+8\]   
+7FF7EE82    05 00100000             ADD     EAX,1000   
+7FF7EEB9    6A 04                   PUSH    4   
+7FF7EEBB    68 00100000             PUSH    1000   
+7FF7EEC0    50                      PUSH    EAX   
+7FF7EEC1    6A 00                   PUSH    0   
+7FF7EEC3    FF95 3FC64200           CALL    \[EBP+42C63F\]                     ; kernel32.VirtualAlloc   
+7FF7EEFB    8985 36CC4200           MOV     \[EBP+42CC36\],EAX   
+7FF7EF0B    56                      PUSH    ESI   
+7FF7EF3E    8B1E                    MOV     EBX,\[ESI\]   
+7FF7EF45    039D 32CC4200           ADD     EBX,\[EBP+42CC32\]                 ; 测试-DBP.00400000   
+7FF7EF50    50                      PUSH    EAX   
+7FF7EF51    53                      PUSH    EBX                              ; 测试-DBP.00403000   
+7FF7EF52    E8 1E690000             CALL    7FF85875   
+//这里面才是真正的加密器,解密器把解密出来的数据放再 3A0000 地址段!   
+7FF7EF5C    83C4 08                 ADD     ESP,8   
+7FF7EF91    8BC8                    MOV     ECX,EAX   
+7FF7EFAA    8B3E                    MOV     EDI,\[ESI\]   
+7FF7EFC3    03BD 32CC4200           ADD     EDI,\[EBP+42CC32\]                 ; 测试-DBP.00400000   
+7FF7EFF6    8BB5 36CC4200           MOV     ESI,\[EBP+42CC36\]   
+7FF7F001    F3:A4                   REP     MOVS BYTE PTR ES:\[EDI\],BYTE PTR >   
+//这里是转换数据,把\[ESI\]的数据转换到\[EDI\]里面!   
+  
+7FF7F00D    5E                      POP     ESI                              ; 7FF86421   
+7FF7F052    8B85 36CC4200           MOV     EAX,\[EBP+42CC36\]   
+7FF7F085    68 00800000             PUSH    8000   
+7FF7F08A    6A 00                   PUSH    0   
+7FF7F08C    50                      PUSH    EAX   
+7FF7F08D    FF95 43C64200           CALL    \[EBP+42C643\]                     ; kernel32.VirtualFree   
+//擦屁股,把 3A0000 地址段的数据一洗全空!   
+  
+7FF7F09D    61                      POPAD   
+7FF7F0CE    60                      PUSHAD   
+7FF7F0D4    8B9D 32CC4200           MOV     EBX,\[EBP+42CC32\]                 ; 测试-DBP.00400000   
+7FF7F0DF    031E                    ADD     EBX,\[ESI\]   
+7FF7F10E    8B4E 04                 MOV     ECX,\[ESI+4\]   
+7FF7F155    B8 02794200             MOV     EAX,427902   
+7FF7F15F    03C5                    ADD     EAX,EBP   
+7FF7F166    50                      PUSH    EAX   
+7FF7F167    6A 04                   PUSH    4   
+7FF7F169    51                      PUSH    ECX   
+7FF7F16A    53                      PUSH    EBX                              ; 测试-DBP.00401000   
+7FF7F16B    FF95 53C64200           CALL    \[EBP+42C653\]                     ; kernel32.VirtualProtect   
+7FF7F176    61                      POPAD   
+7FF7F1A9    83C6 10                 ADD     ESI,10   
+7FF7F1D9  ^E9 BBF8FFFF             JMP     7FF7EA99   
+//跳回去大循环!   
+...\\循环解密   
+  
+上面的就是解密块的解密器!   
+  
+现在就差导入表了!跟下去!   
+当你来到下面地址,这里一大段就是解密导入表的,一定要思考,怎么才能不让破坏,怎么样才能全部还原   
+其中一共有三个导入表加密器:要想要一份完整的导入表数据而且又不给破坏的就只有打补丁了!   
+  
+关于这个补丁我想了 10 天才想到的!   
+  
+7FF806D1    8985 ABC34200           MOV     \[EBP+42C3AB\],EAX                 ; MFC42.#1340   
+7FF8071B    33C0                    XOR     EAX,EAX   
+7FF8074A    8703                    XCHG    \[EBX\],EAX   
+//EBX 就是导入表的地址!   
+//要想得到一个完整的导入表的好办法就是把这个命令改成"MOV EAX,\[EBX\]"   
+//这样就不会给破坏了!其实这个死多余的,有下面一条指令就够了!   
+  
+7FF80751    53                      PUSH    EBX   
+7FF8077F    51                      PUSH    ECX                              ; kernel32.77E5D93E   
+7FF80797    52                      PUSH    EDX   
+7FF80798    33D2                    XOR     EDX,EDX   
+7FF8079F    B9 20000000             MOV     ECX,20   
+7FF807A4    33DB                    XOR     EBX,EBX   
+7FF807AB    D1F8                    SAR     EAX,1   
+7FF807B2    0F92C3                  SETB    BL   
+7FF807BA    D3E3                    SHL     EBX,CL   
+7FF807C1    03D3                    ADD     EDX,EBX   
+7FF807C3  ^ E2 DF                   LOOPD   SHORT 7FF807A4   
+//循环解密   
+7FF807DC    8BC2                    MOV     EAX,EDX   
+//注意这里!EDX 是解密后的重要数据!   
+7FF807F5    5A                      POP     EDX                              ; 00140608   
+7FF807FB    59                      POP     ECX                              ; 00140608   
+7FF80801    5B                      POP     EBX                              ; 00140608   
+//注意这里!   
+//这里就使 EBX=导入表地址!   
+//补丁就打在这里!   
+//在这个地址后面加上一个指令"MOV  \[EBX\],EAX"   
+//你明白这个是什么意思吗?结合上面的一起想想!   
+//那么我们的第一个补丁就大好了,下面还有两个,请用相同道理就可以了!   
+  
+7FF8082F    8BF0                    MOV     ESI,EAX   
+  
+解密导入表的补丁大好后就得到了一份完整,没有给破坏的导入表,但是,下面还一个加密器(烦...)   
+我知道这样跟踪很麻烦,但我也不想的啊,是 D BOY 把我们的生活弄得复杂的   
+...............   
+..............   
+............   
+  
+导入表加密器:   
+7FF8098E    8B06                    MOV     EAX,\[ESI\]   
+7FF809BD    83F8 00                 CMP     EAX,0   
+7FF809C0    75 3F                   JNZ     SHORT 7FF80A01   
+7FF80A0B    807E 03 80              CMP     BYTE PTR \[ESI+3\],80   
+7FF80A0F    75 69                   JNZ     SHORT 7FF80A7A   
+7FF80A16    33C0                    XOR     EAX,EAX   
+7FF80A2F    66:8706                 XCHG    \[ESI\],AX   
+//注意这里!当你自己跟踪的时候就会发现他是干什么的!   
+//这里就是要再打补丁的地方,要怎么打个保护数据不受破坏的补丁呢?   
+//这里就是作业了,自己想办法,要是这里不会改的话就表示你从来没有真正跟踪过一个壳   
+  
+7FF80A5F    50                      PUSH    EAX   
+7FF80A60    FFB5 ABC34200           PUSH    DWORD PTR \[EBP+42C3AB\]           ; MFC42.#1340   
+7FF80A66    FF95 1E6F4300           CALL    \[EBP+436F1E\]                     ; kernel32.GetProcAddress   
+7FF80A71    8BC8                    MOV     ECX,EAX   
+7FF80A78    EB 72                   JMP     SHORT 7FF80AEC   
+\------------------------------------   
+7FF80A7F    33C0                    XOR     EAX,EAX   
+7FF80A98    8706                    XCHG    \[ESI\],EAX                        ; MFC42.#2554   
+//这里和上面一样,你就自己改改吧!   
+//就当是作业了!要是你这个都不会改就不要学脱壳了!   
+  
+7FF80A9F    0385 32CC4200           ADD     EAX,\[EBP+42CC32\]                 ; 测试-DBP.00400000   
+7FF80AAA    83C0 02                 ADD     EAX,2   
+7FF80AB2    50                      PUSH    EAX                              ; MFC42.#2554   
+7FF80AB3    FFB5 ABC34200           PUSH    DWORD PTR \[EBP+42C3AB\]           ; MFC42.#1340   
+7FF80AB9    FF95 1E6F4300           CALL    \[EBP+436F1E\]                     ; kernel32.GetProcAddress   
+............   
+...........   
+.........   
+经过这里以后就再慢慢跟一下就来到   
+  
+7FF7F5A6    8B1B                    MOV     EBX,\[EBX\]                        ; MSVCRT.fread   
+7FF7F5D5    891E                    MOV     \[ESI\],EBX                        ; MSVCRT.fread   
+7FF7F5DC    8937                    MOV     \[EDI\],ESI   
+//这个地方,这里是对指针地址加密的,所以也要打个补丁   
+//我是学 yahoo007 的方法   
+//把    MOV     EBX,\[EBX\]  给 NOP 掉!    
+//再把  MOV     \[EDI\],ESI  改成     MOV     \[EDI\],EBX    
+  
+//这样就没有破坏我要的东西了!   
+  
+7FF7F856    8B1B                    MOV     EBX,\[EBX\]                        ; MFC42.#4673   
+7FF7F885    891E                    MOV     \[ESI\],EBX   
+7FF7F89E    8937                    MOV     \[EDI\],ESI   
+//这里是第二处,改法一样!   
+  
+..............   
+..............   
+............   
+  
+  
+最后来到这里!   
+7FF7FDF9    5B                      POP     EBX                              ; 7FFDF000   
+7FF7FDFA    59                      POP     ECX                              ; 7FFDF000   
+7FF7FDFB    5A                      POP     EDX                              ; 7FFDF000   
+7FF7FDFC    5E                      POP     ESI                              ; 7FFDF000   
+7FF7FDFD    5F                      POP     EDI                              ; 7FFDF000   
+7FF7FDFE    5D                      POP     EBP                              ; 7FFDF000   
+7FF7FE16    9D                      POPFD   
+7FF7FE21    FFB0 91CE4200           PUSH    DWORD PTR \[EAX+42CE91\]   
+7FF7FE3E    C780 91CE4200 00000000  MOV     DWORD PTR \[EAX+42CE91\],0   
+7FF7FE4D    E9 2D6D0000             JMP     7FF86B7F   
+7FF86B84    56                      PUSH    ESI   
+7FF86B8A    51                      PUSH    ECX   
+7FF86BA2    BE 19684000             MOV     ESI,406819                       ; ASCII "\_p\_\_fmode"   
+7FF86BAC    03F0                    ADD     ESI,EAX   
+7FF86BDB    B9 7F6B0200             MOV     ECX,26B7F   
+7FF86C51    C606 00                 MOV     BYTE PTR \[ESI\],0   
+7FF86C59    46                      INC     ESI   
+7FF86C87    49                      DEC     ECX   
+7FF86C8D    83F9 00                 CMP     ECX,0   
+7FF86C90  ^ 75 A8                   JNZ     SHORT 7FF86C3A   
+//一个小小小循环(擦屁股)比我去厕所擦得干净多了!   
+  
+7FF86CD6    59                      POP     ECX                              ; 00405230   
+7FF86CDC    5E                      POP     ESI                              ; 00405230   
+7FF86D0A   /E9 A23D0000             JMP     7FF8AAB1   
+  
+7FF8AAB1    60                      PUSHAD   
+7FF8AAB2    8BF0                    MOV     ESI,EAX   
+7FF8AAB4    B8 A2474300             MOV     EAX,4347A2   
+7FF8AAB9    03C6                    ADD     EAX,ESI   
+7FF8AABB    BB EE664300             MOV     EBX,4366EE   
+7FF8AAC0    03DE                    ADD     EBX,ESI   
+7FF8AAC2    803B 00                 CMP     BYTE PTR \[EBX\],0   
+7FF8AAC5    74 0C                   JE      SHORT 7FF8AAD3   
+7FF8AAC7    6A 00                   PUSH    0   
+7FF8AAC9    50                      PUSH    EAX   
+7FF8AACA    53                      PUSH    EBX   
+7FF8AACB    6A 00                   PUSH    0   
+7FF8AACD    FF96 EA664300           CALL    \[ESI+4366EA\]   
+7FF8AAD3    61                      POPAD   
+7FF8AAD4    58                      POP     EAX                              ; 00405230   
+7FF8AAD5    83F8 FF                 CMP     EAX,-1   
+7FF8AAD8    75 05                   JNZ     SHORT 7FF8AADF   
+7FF8AADA    33C0                    XOR     EAX,EAX   
+7FF8AADC    C2 0C00                 RETN    0C   
+7FF8AADF  - FFE0                    JMP     EAX   
+//飞向 OEP   
+  
+\------------------------------------------------------------------   
+【总    结】：   
+  
+最后再 OEP 处用 LordPE 把内存镜像给 Dump 出后,接着再用 LordPE 把 OEP 和导入表地址改好保存,最后用 LordPE 重建,这样就脱好了!   
+  
+黑名单没有什么可怕的,而且他的禁品不多,不过 DBPE 这个壳会在%SystemRoot%System32 目录下生成一个 cdcd.sys 文件,这个文件就是存放 3A0000 数据的地方(偶怀疑)   
+  
+以上就是我 15 天失眠的成绩,希望你可以学会!我也不打算多说了!希望所有的朋友可以把自己的技术共享出来给我们新人学习,我为了脱这个壳问了那么多高人都没有一个告诉我要怎么做!(心寒...)   
+  
+辉仔 Yock   
+2003.12.26  
+ 4dd466d0e1e0cc123afbe504da2462ca

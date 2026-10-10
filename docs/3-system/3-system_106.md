@@ -1,0 +1,651 @@
+
+
+# Exe 程序尾部附加数据添加程序(含源码)
+
+> 原文：[`www.pediy.com/kssd/pediy11/117209.html`](https://www.pediy.com/kssd/pediy11/117209.html)
+
+![](img/cda69129882b40377a87144c782680e1.jpg "微笑")  
+/\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+                                     〖软件说明〗  
+                               添加 EXE 尾部附加数据 No 1.0  
+                                 by zhanshen\[DFCG\]\[RCT\]  
+ 　　这个程序是在我处理一个有附加数据程序时有感而写的。原来我在处理 Exe 程序的尾部附加程  
+ 序时，一般都是先用 WinHex 或其它 Hex 十六进制编辑器打开原程序，再将附加数据拷出来写入到目  
+ 标程序中，一次二次还好，n 次以上就觉得烦了。所以就写下了一个程序自动添加尾部附加数据。  
+ 　　这个程序操作很简单：选择两个文件，然后点击【开始写入】按钮就行了。这个程序除了可  
+ 以直接输入文件名和浏览文件取得程序文件名外，还支持直接将文件拖到文本框中。  
+ 　　这个程序的写入方式有：  
+ 　　1、选取两个 exe 文件，一个要写入附加数据的目标 exe 文件，一个原 有附加数据的 exe 文件，  
+ 该软件可以直接取出附加数据添加到目标程序中。  
+ 　　2、选取目标 exe 文件，另一个选择一个\*.bin 文件，该程序将会将这个整个\*.bin 文件直接写  
+ 入目标 exe 程序的尾部。  
+ 　　3、其它的方式就由用户自行摸索（众：好像没有了吧？![](img/b0e6af7069663aededb11e4e29a3e6d1.jpg "碌眼")作者：-\_-!，转身偷逃。![](img/110d920e4e703968a2a60c986d363163.jpg "尴尬")众：哪里跑![](img/7eab1bc95cbb1be9f15eb01bf012328f.jpg "狂怒")）  
+ 　　附：本软件为开源免费软件，用户可以任意使用本软件，任何人均可从网上等地方获取到本  
+ 软件的副本及其源码。用户如若转载，请保持本文档的完整，谢谢！本软件作者只为测试，任何  
+ 人均不得将程序用于非法之处，否则由此引起 的问题一概由用户自负。  
+ \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*/  
+  
+![](img/9c213356ea332de873102f4486c3b5b7.jpg)  
+  
+  
+  
+**附件下载**  
+WriteOverlay.rar  
+  
+/\* WriteOverlay.cpp file \*/  
+  
+#include "WriteOverlay.h"  
+  
+int WINAPI WinMain(IN HINSTANCE hInstance,   
+           IN HINSTANCE hPrevInstance,   
+           IN LPSTR lpCmdLine,   
+           IN int nShowCmd )  
+{  
+  g\_hInstance = hInstance;  
+  g\_lpszCmdLine = lpCmdLine;  
+  DialogBox(hInstance,(char \*)DLG\_MAIN,0,(DLGPROC)MainDlgProc);  
+  return 0;  
+}  
+  
+LRESULT CALLBACK MainDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)  
+{  
+  HWND l\_hEdit = 0;  
+  OPENFILENAME l\_stOFN;  
+  void \*l\_pBuff = NULL;  
+  int l\_nStrLen;  
+  HANDLE l\_hWriteFile;  
+  char l\_szFileName\[CHAR\_MAX\],l\_szPatchFileName\[CHAR\_MAX\],l\_szOverlayFileName\[CHAR\_MAX\];  
+  switch(uMsg)  
+  {  
+  case WM\_INITDIALOG:  
+    g\_hDlgMain = hDlg;  
+    g\_hMainIcon = **LoadIcon**(g\_hInstance,(char \*)ICON\_MAIN);  
+    **SendMessage**(hDlg,WM\_SETICON,ICON\_SMALL,(LPARAM)g\_hMainIcon);  
+    l\_hEdit = **GetDlgItem**(hDlg,EDIT\_PATCH\_TO\_EXE);  
+    **SetWindowLong**(l\_hEdit,GWL\_USERDATA,**GetWindowLong**(l\_hEdit,GWL\_WNDPROC));  
+    **SetWindowLong**(l\_hEdit,GWL\_WNDPROC,(UINT)EditsProc);  
+    l\_hEdit = **GetDlgItem**(hDlg,EDIT\_DATA\_TO\_PATCH);  
+    **SetWindowLong**(l\_hEdit,GWL\_USERDATA,**GetWindowLong**(l\_hEdit,GWL\_WNDPROC));  
+    **SetWindowLong**(l\_hEdit,GWL\_WNDPROC,(UINT)EditsProc);  
+    g\_hHandCur = **LoadCursor**(g\_hInstance,(char \*)CUR\_HAND);  
+    l\_hEdit = **GetDlgItem**(hDlg,EDIT\_PRINTS);  
+    g\_hPrintfEdit = l\_hEdit;  
+    StringAdd(l\_hEdit,lpszCopyRight);  
+    break;  
+  case WM\_COMMAND:  
+    switch((WORD)wParam)  
+    {  
+    case BTN\_PATHC\_TO\_EXE\_OPEN:  
+      InitOpenFileName(0,hDlg,&l\_stOFN,l\_szFileName,sizeof(l\_szFileName));  
+      l\_stOFN.lpstrFilter = "exe files(\*.exe)\\0\*.exe\\0all files(\*.\*)\\0\*.\*\\0\\0";  
+      if (**GetOpenFileName**(&l\_stOFN))  
+        **SetDlgItemText**(hDlg,EDIT\_PATCH\_TO\_EXE,l\_szFileName);  
+      break;  
+    case BTN\_DATA\_TO\_PATHC\_OPEN:  
+      InitOpenFileName(0,hDlg,&l\_stOFN,l\_szFileName,sizeof(l\_szFileName));  
+      l\_stOFN.lpstrFilter = "exe files(\*.exe)\\0\*.exe\\0bin files(\*.bin)\\0\*.bin\\0all files(\*.\*)\\0\*.\*\\0\\0";  
+      if (**GetOpenFileName**(&l\_stOFN))  
+        **SetDlgItemText**(hDlg,EDIT\_DATA\_TO\_PATCH,l\_szFileName);  
+      break;  
+    case BTN\_START\_WRITE:  
+      if (!g\_IsStartWrite)  
+      {  
+        **SetWindowText**(g\_hPrintfEdit,"");  
+        g\_IsStartWrite = TRUE;  
+      }  
+      **ZeroMemory**(&l\_szPatchFileName,sizeof(l\_szPatchFileName));  
+      **ZeroMemory**(&l\_szOverlayFileName,sizeof(l\_szOverlayFileName));  
+      if (!**GetDlgItemText**(hDlg,EDIT\_PATCH\_TO\_EXE,l\_szPatchFileName,sizeof(l\_szPatchFileName)))  
+      {  
+        StringAdd(g\_hPrintfEdit,"错误!，要添加尾部附加数据这一栏不能为空!!\\r\\n");  
+        return TRUE;  
+      }  
+      if (!**GetDlgItemText**(hDlg,EDIT\_DATA\_TO\_PATCH,l\_szOverlayFileName,sizeof(l\_szOverlayFileName)))  
+      {  
+        StringAdd(g\_hPrintfEdit,"错误!，要写入的尾部数据这一栏不能为空!!\\r\\n");  
+        return TRUE;  
+      }  
+      if (StartWriteOverlay(l\_szPatchFileName,l\_szOverlayFileName))  
+        StringAdd(g\_hPrintfEdit,"Exe 尾部附加数据写入成功!!\\r\\n");  
+      else  
+        StringAdd(g\_hPrintfEdit,"写入失败!!，详细信息请看信息输出窗口\\r\\n");  
+      break;  
+    case BTN\_SAVE\_LOG:  
+      if (!g\_IsStartWrite)  
+      {  
+        StringAdd(g\_hPrintfEdit,"信息窗口内容为空，不用保存!\\r\\n");  
+        return TRUE;  
+      }  
+      **ZeroMemory**(&l\_szFileName,sizeof(l\_szFileName));  
+      InitOpenFileName(0,hDlg,&l\_stOFN,l\_szFileName,sizeof(l\_szFileName));  
+      l\_stOFN.lpstrFilter = "txt files(\*.txt)\\0\*.txt\\0all files(\*.\*)\\0\*.\*\\0\\0";  
+      if (**GetSaveFileName**(&l\_stOFN))  
+      {  
+        l\_nStrLen = StringAdd(g\_hPrintfEdit,"");  
+        l\_pBuff = malloc(l\_nStrLen+4);  
+        **ZeroMemory**(l\_pBuff,l\_nStrLen+4);  
+        l\_nStrLen = **GetWindowText**(g\_hPrintfEdit,(char \*)l\_pBuff,l\_nStrLen+4);  
+        l\_hWriteFile = MyCreateFile(l\_szFileName,OPEN\_ALWAYS);  
+        if (l\_hWriteFile == INVALID\_HANDLE\_VALUE)  
+        {  
+          StringAdd(g\_hPrintfEdit,"创新或打开文件失败!!\\r\\n");  
+          **free**(l\_pBuff);  
+          return TRUE;  
+        }  
+        **SetFilePointer**(l\_hWriteFile,0,0,FILE\_END);  
+        if (MyWriteFile(l\_hWriteFile,l\_pBuff,l\_nStrLen))  
+          StringAdd(g\_hPrintfEdit,"保存文件成功!!\\r\\n");  
+        else  
+          StringAdd(g\_hPrintfEdit,"保存文件失败!!\\r\\n");  
+        **CloseHandle**(l\_hWriteFile);  
+        **free**(l\_pBuff);  
+        return TRUE;  
+      }  
+      break;  
+    case BTN\_ABOUT:  
+      DialogBox(g\_hInstance,(char \*)DLG\_ABOUT,hDlg,(DLGPROC)AboutDlgProc);  
+      break;  
+    case BTN\_EXIT:  
+      **PostMessage**(hDlg,WM\_CLOSE,0,NULL);  
+      break;  
+    }  
+    break;  
+  case WM\_CLOSE:  
+    **EndDialog**(hDlg,FALSE);  
+    break;  
+  default:  
+    return FALSE;  
+  }  
+  return TRUE;  
+}  
+  
+LRESULT CALLBACK EditsProc(HWND hEdit,UINT uMsg, WPARAM wParam, LPARAM lParam)  
+{  
+  int l\_uNumFiles = 0;  
+  char l\_szFilesName\[CHAR\_MAX\];  
+  int i;  
+  switch(uMsg)  
+  {  
+  case WM\_DROPFILES:  
+    l\_uNumFiles = **DragQueryFile**((HDROP)wParam,-1,l\_szFilesName,sizeof(l\_szFilesName));  
+    for (i =0; i < l\_uNumFiles; i++)  
+    {  
+      **DragQueryFile**((HDROP)wParam,i,l\_szFilesName,sizeof(l\_szFilesName));  
+      **SetWindowText**(hEdit,l\_szFilesName);  
+    }  
+    **DragFinish**((HDROP)wParam);  
+    break;  
+  default:  
+    return **CallWindowProc**((WNDPROC)**GetWindowLong**(hEdit,GWL\_USERDATA),hEdit,uMsg,wParam,lParam);  
+  }  
+  return TRUE;  
+}  
+  
+LRESULT CALLBACK StaticProc(HWND hStatic, UINT uMsg, WPARAM wParam, LPARAM lParam)  
+{  
+  switch(uMsg)  
+  {  
+  case WM\_NCHITTEST:  
+    return (LRESULT)TRUE;  
+    break;  
+  case WM\_SETCURSOR:  
+    **SetCursor**(g\_hHandCur);  
+    break;  
+  case WM\_LBUTTONUP:  
+    switch(**GetDlgCtrlID**(hStatic))  
+    {  
+    case STATIC\_BBS\_PEDIY:  
+      **ShellExecute**(0,NULL,"http://bbs.pediy.com",NULL,NULL,0);  
+      break;  
+    case STATIC\_BBS\_DEBUGMAN:  
+      **ShellExecute**(0,NULL,"http://www.debugman.com",NULL,NULL,0);  
+      break;  
+    }  
+    break;  
+  default:  
+    return **CallWindowProc**((WNDPROC)**GetWindowLong**(hStatic,GWL\_USERDATA),hStatic,uMsg,wParam,lParam);  
+  }  
+  return TRUE;  
+}  
+  
+BOOL StartWriteOverlay(IN char \*lpszPatchFileName, IN char \*lpszOverlayFileName)  
+{  
+  HANDLE l\_hPatchFile, l\_hOverlayFile,l\_hPatchMap,l\_hOverlayMap;  
+  void \*l\_lpPatchBuff, \*l\_lpOverlayBuff,\*l\_lpPeOverlayBuff;  
+  char l\_szMsgBuff\[CHAR\_MAX\];  
+  int l\_uFileSize,l\_uOverSize;  
+  BOOL l\_bIsWrite = FALSE;  
+  if (IsFiles(g\_hPrintfEdit,lpszPatchFileName) && IsFiles(g\_hPrintfEdit,lpszOverlayFileName))  
+  {  
+    StringAdd(g\_hPrintfEdit,"\\r\\n 开始添加 EXE 尾部附加数据......\\r\\n");  
+    **ZeroMemory**(&l\_szMsgBuff,sizeof(l\_szMsgBuff));  
+    **wsprintf**(l\_szMsgBuff,"正在打开%s 文件......\\r\\n",lpszPatchFileName);  
+    StringAdd(g\_hPrintfEdit,l\_szMsgBuff);  
+    l\_hPatchFile = MyCreateFile(lpszPatchFileName,OPEN\_EXISTING);  
+    if (l\_hPatchFile == INVALID\_HANDLE\_VALUE)  
+    {  
+      **ZeroMemory**(&l\_szMsgBuff,sizeof(l\_szMsgBuff));  
+      **wsprintf**(l\_szMsgBuff,"错误!无法打开%s 文件!!\\r\\n",lpszPatchFileName);  
+      StringAdd(g\_hPrintfEdit,l\_szMsgBuff);  
+      return FALSE;  
+    }  
+    **ZeroMemory**(&l\_szMsgBuff,sizeof(l\_szMsgBuff));  
+    **wsprintf**(l\_szMsgBuff,"正在创建%s 文件映像......\\r\\n",lpszPatchFileName);  
+    StringAdd(g\_hPrintfEdit,l\_szMsgBuff);  
+    l\_uFileSize = **GetFileSize**(l\_hPatchFile,NULL);  
+    l\_hPatchMap = MyCreateMapFile(l\_hPatchFile);  
+    if (l\_hPatchMap)  
+    {  
+      l\_lpPatchBuff = MyMapViewOfFile(l\_hPatchMap);  
+      if (l\_lpPatchBuff)  
+      {  
+        if (!IsPeFile(l\_lpPatchBuff))  
+        {  
+          **ZeroMemory**(&l\_szMsgBuff,sizeof(l\_szMsgBuff));  
+          **wsprintf**(l\_szMsgBuff,"错误!%s 文件必须是 PE 文件!!\\r\\n",lpszPatchFileName);  
+          StringAdd(g\_hPrintfEdit,l\_szMsgBuff);  
+          **UnmapViewOfFile**(l\_lpPatchBuff);  
+          **CloseHandle**(l\_hPatchMap);  
+          **CloseHandle**(l\_hPatchFile);  
+          return FALSE;  
+        }  
+        if ((int)GetPeOverlay(l\_lpPatchBuff) - (int)l\_lpPatchBuff != l\_uFileSize)  
+        {  
+          StringAdd(g\_hPrintfEdit,"该程序已有尾部附加数据，是否继续添加数据『Y/N』!!\\r\\n");  
+          if (**MessageBox**(0,"该程序已有尾部附加数据，是否继续添加数据","添加提示",MB\_YESNO) != IDYES)  
+          {  
+            StringAdd(g\_hPrintfEdit,"『N』用户中止\\r\\n");  
+            **UnmapViewOfFile**(l\_lpPatchBuff);  
+            **CloseHandle**(l\_hPatchMap);  
+            **CloseHandle**(l\_hPatchFile);  
+            return FALSE;  
+          }  
+          StringAdd(g\_hPrintfEdit,"『Y』用户继续...\\r\\n");  
+        }  
+        **UnmapViewOfFile**(l\_lpPatchBuff);  
+      }  
+    }else  
+    {  
+      **ZeroMemory**(&l\_szMsgBuff,sizeof(l\_szMsgBuff));  
+      **wsprintf**(l\_szMsgBuff,"错误!无法创建%s 文件映像!!\\r\\n",lpszPatchFileName);  
+      StringAdd(g\_hPrintfEdit,l\_szMsgBuff);  
+      **CloseHandle**(l\_hPatchFile);  
+      return FALSE;  
+    }  
+    **CloseHandle**(l\_hPatchMap);  
+    **ZeroMemory**(&l\_szMsgBuff,sizeof(l\_szMsgBuff));  
+    **wsprintf**(l\_szMsgBuff,"%s 文件验效完成!!\\r\\n\\r\\n",lpszPatchFileName);  
+    StringAdd(g\_hPrintfEdit,l\_szMsgBuff);  
+    **ZeroMemory**(&l\_szMsgBuff,sizeof(l\_szMsgBuff));  
+    **wsprintf**(l\_szMsgBuff,"正在打开%s 文件......\\r\\n",lpszOverlayFileName);  
+    StringAdd(g\_hPrintfEdit,l\_szMsgBuff);  
+    l\_hOverlayFile = MyCreateFile(lpszOverlayFileName,OPEN\_EXISTING);  
+    if (l\_hOverlayFile == INVALID\_HANDLE\_VALUE)  
+    {  
+      **ZeroMemory**(&l\_szMsgBuff,sizeof(l\_szMsgBuff));  
+      **wsprintf**(l\_szMsgBuff,"错误!无法打开%s 文件!!\\r\\n",lpszOverlayFileName);  
+      StringAdd(g\_hPrintfEdit,l\_szMsgBuff);  
+      **CloseHandle**(l\_hPatchFile);  
+      return FALSE;  
+    }  
+    **ZeroMemory**(&l\_szMsgBuff,sizeof(l\_szMsgBuff));  
+    **wsprintf**(l\_szMsgBuff,"正在创建%s 文件映像......\\r\\n",lpszOverlayFileName);  
+    StringAdd(g\_hPrintfEdit,l\_szMsgBuff);  
+    l\_uFileSize = **GetFileSize**(l\_hOverlayFile,NULL);  
+    if (!l\_uFileSize)  
+    {  
+      **ZeroMemory**(&l\_szMsgBuff,sizeof(l\_szMsgBuff));  
+      **wsprintf**(l\_szMsgBuff,"错误!%s 文件大小不能为零!!\\r\\n",lpszOverlayFileName);  
+      StringAdd(g\_hPrintfEdit,l\_szMsgBuff);  
+      **CloseHandle**(l\_hOverlayFile);  
+      **CloseHandle**(l\_hPatchFile);  
+      return FALSE;  
+    }  
+    l\_hOverlayMap = MyCreateMapFile(l\_hOverlayFile);  
+    if (l\_hOverlayMap)  
+    {  
+      l\_lpOverlayBuff = MyMapViewOfFile(l\_hOverlayMap);  
+      if (l\_lpOverlayBuff)  
+      {  
+        if (IsPeFile(l\_lpOverlayBuff))  
+        {  
+          l\_lpPeOverlayBuff = GetPeOverlay(l\_lpOverlayBuff);  
+          if ((int)l\_lpPeOverlayBuff - (int)l\_lpOverlayBuff == l\_uFileSize)  
+          {  
+            StringAdd(g\_hPrintfEdit,"错误!该程序没有尾部附加数据，是否继续添加数据\\r\\n");  
+            StringAdd(g\_hPrintfEdit,"如果继续添加，将会将整个 exe 文件添加进去。『Y/N』!!\\r\\n");  
+            if (**MessageBox**(0,"该程序没有尾部附加数据，是否继续添加数据\\r\\n 如果继续添加，将会将整个 exe 文件添加进去。","添加提示",MB\_YESNO) != IDYES)  
+            {  
+              StringAdd(g\_hPrintfEdit,"『N』用户中止\\r\\n");  
+              **UnmapViewOfFile**(l\_lpOverlayBuff);  
+              **CloseHandle**(l\_hOverlayMap);  
+              **CloseHandle**(l\_hOverlayFile);  
+              **CloseHandle**(l\_hPatchFile);  
+              return FALSE;  
+            }else  
+            {  
+              StringAdd(g\_hPrintfEdit,"『Y』用户继续...\\r\\n");  
+              l\_lpPeOverlayBuff = l\_lpOverlayBuff;  
+              l\_uOverSize = l\_uFileSize;  
+            }  
+          }else  
+            l\_uOverSize = l\_uFileSize - ((int)l\_lpPeOverlayBuff - (int)l\_lpOverlayBuff);  
+        }else  
+        {  
+          l\_lpPeOverlayBuff = l\_lpOverlayBuff;  
+          l\_uOverSize = l\_uFileSize;  
+        }  
+      }  
+    }else  
+    {  
+      **ZeroMemory**(&l\_szMsgBuff,sizeof(l\_szMsgBuff));  
+      **wsprintf**(l\_szMsgBuff,"错误!无法创建%s 文件映像!!\\r\\n",lpszOverlayFileName);  
+      StringAdd(g\_hPrintfEdit,l\_szMsgBuff);  
+      **CloseHandle**(l\_hOverlayFile);  
+      **CloseHandle**(l\_hPatchFile);  
+      return FALSE;  
+    }  
+    **ZeroMemory**(&l\_szMsgBuff,sizeof(l\_szMsgBuff));  
+    **wsprintf**(l\_szMsgBuff,"%s 文件验效完成!!\\r\\n\\r\\n",lpszOverlayFileName);  
+    StringAdd(g\_hPrintfEdit,l\_szMsgBuff);  
+    StringAdd(g\_hPrintfEdit,"正在写入尾部附加数据...\\r\\n");  
+    **SetFilePointer**(l\_hPatchFile,0,0,FILE\_END);  
+    if (MyWriteFile(l\_hPatchFile,l\_lpPeOverlayBuff,l\_uOverSize))  
+      l\_bIsWrite = TRUE;  
+    **UnmapViewOfFile**(l\_lpOverlayBuff);  
+    **CloseHandle**(l\_hOverlayMap);  
+    **CloseHandle**(l\_hOverlayFile);  
+    **CloseHandle**(l\_hPatchFile);  
+  }  
+  return l\_bIsWrite;  
+}  
+  
+LPOPENFILENAME InitOpenFileName(IN HINSTANCE hInstance,  
+                IN HWND hOwner,  
+                OUT LPOPENFILENAME lpstOFN,  
+                OUT char \*lpszFileNameBuff,  
+                IN int nFileNameBuffSize)  
+{  
+  if (lpstOFN)  
+  {  
+    **ZeroMemory**(lpstOFN,sizeof(OPENFILENAME));  
+    **ZeroMemory**(lpszFileNameBuff,nFileNameBuffSize);  
+    lpstOFN->lStructSize = sizeof(OPENFILENAME);  
+    lpstOFN->hInstance = hInstance;  
+    lpstOFN->hwndOwner = hOwner;  
+    lpstOFN->lpstrFile = lpszFileNameBuff;  
+    lpstOFN->nMaxFile = nFileNameBuffSize;  
+    lpstOFN->lpstrFilter = "all Files(\*.\*)\\0\*.\*\\0\\0";  
+    lpstOFN->Flags = OFN\_FILEMUSTEXIST | OFN\_PATHMUSTEXIST;  
+  }  
+  return lpstOFN;  
+}  
+  
+LRESULT CALLBACK AboutDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)  
+{  
+  HWND l\_hStatic;  
+  switch(uMsg)  
+  {  
+  case WM\_INITDIALOG:  
+    l\_hStatic = **GetDlgItem**(hDlg,STATIC\_BBS\_PEDIY);  
+    **SetWindowLong**(l\_hStatic,GWL\_USERDATA,**GetWindowLong**(l\_hStatic,GWL\_WNDPROC));  
+    **SetWindowLong**(l\_hStatic,GWL\_WNDPROC,(UINT)StaticProc);  
+    l\_hStatic = **GetDlgItem**(hDlg,STATIC\_BBS\_DEBUGMAN);  
+    **SetWindowLong**(l\_hStatic,GWL\_USERDATA,**GetWindowLong**(l\_hStatic,GWL\_WNDPROC));  
+    **SetWindowLong**(l\_hStatic,GWL\_WNDPROC,(UINT)StaticProc);  
+    AnimateShow(hDlg);  
+    break;  
+  case WM\_LBUTTONDOWN:  
+    **SendMessage**(hDlg,WM\_CLOSE,0,0);  
+    break;  
+  case WM\_CTLCOLORSTATIC:  
+    if ((**GetDlgCtrlID**((HWND)lParam) == STATIC\_BBS\_PEDIY) || (**GetDlgCtrlID**((HWND)lParam) == STATIC\_BBS\_DEBUGMAN))  
+      return (LRESULT)DrawStatic((HDC)wParam,(HWND)lParam);  
+    return (LRESULT)FALSE;  
+  case WM\_CLOSE:  
+    **EndDialog**(hDlg,FALSE);  
+    break;  
+  default:  
+    return (LRESULT)FALSE;  
+  }  
+  return TRUE;  
+}  
+  
+int StringAdd(IN HWND hWnd,IN char \*lpszBuff)  
+{  
+  int l\_index;  
+  int l\_nSelStart,l\_uLineLen;  
+  if (hWnd && lpszBuff)  
+  {  
+    l\_index = **SendMessage**(hWnd,EM\_GETLINECOUNT,0,0);  
+    if (!(**SendMessage**(hWnd,EM\_LINELENGTH,**SendMessage**(hWnd,EM\_LINEINDEX,l\_index-1,0),0)))  
+      l\_index--;  
+    if (l\_index)  
+    {  
+      l\_nSelStart = **SendMessage**(hWnd,EM\_LINEINDEX,l\_index,0);  
+      if (l\_nSelStart == -1)  
+      {  
+        l\_nSelStart = **SendMessage**(hWnd,EM\_LINEINDEX,l\_index-1,0);  
+        if (l\_nSelStart == -1)  
+          return 0;  
+        l\_uLineLen = **SendMessage**(hWnd,EM\_LINELENGTH,l\_nSelStart,0);  
+        if (!l\_uLineLen)  
+          return 0;  
+        l\_nSelStart += l\_uLineLen;  
+      }  
+      **SendMessage**(hWnd,EM\_SETSEL,l\_nSelStart,l\_nSelStart);  
+      **SendMessage**(hWnd,EM\_REPLACESEL,0,(UINT)lpszBuff);  
+    }else  
+      **SendMessage**(hWnd,EM\_REPLACESEL,0,(UINT)lpszBuff);  
+    return l\_nSelStart;  
+  }  
+  return 0;  
+}  
+  
+HBRUSH DrawStatic(IN HDC hDc, IN HWND hStatic)  
+{  
+  HFONT l\_hFontOut;  
+  LOGFONT l\_stFont;  
+  l\_hFontOut = (HFONT)**SendMessage**(hStatic,WM\_GETFONT,0,0);  
+  **GetObject**(l\_hFontOut,sizeof(LOGFONT),&l\_stFont);  
+  l\_stFont.lfUnderline = FALSE;  
+  l\_hFontOut = **CreateFontIndirect**(&l\_stFont);  
+  **SelectObject**(hDc,l\_hFontOut);  
+  **SetTextColor**(hDc,0xff0000);  
+  **SetBkColor**(hDc,**GetSysColor**(COLOR\_BTNFACE));  
+  **DeleteObject**((HGDIOBJ)l\_hFontOut);  
+  return (HBRUSH)**GetStockObject**(NULL\_BRUSH);  
+}  
+  
+BOOL IsPeFile(IN void \*lpFileModule)  
+{  
+  PIMAGE\_DOS\_HEADER l\_lpstDosHeader;  
+  PIMAGE\_NT\_HEADERS l\_lpstNtHeaders;  
+  l\_lpstDosHeader = (PIMAGE\_DOS\_HEADER)lpFileModule;  
+  if (l\_lpstDosHeader->e\_magic == IMAGE\_DOS\_SIGNATURE)  
+  {  
+    l\_lpstNtHeaders = (PIMAGE\_NT\_HEADERS)((UINT)lpFileModule + l\_lpstDosHeader->e\_lfanew);  
+    if (l\_lpstNtHeaders->Signature == IMAGE\_NT\_SIGNATURE)  
+      return TRUE;  
+  }  
+  return FALSE;  
+}  
+  
+HANDLE MyCreateFile(IN char \*lpszFileName,UINT uOpenFlag)  
+{  
+  return **CreateFile**(lpszFileName,  
+            GENERIC\_READ | GENERIC\_WRITE,  
+            FILE\_SHARE\_READ,  
+            NULL,  
+            uOpenFlag,  
+            0,  
+            NULL);  
+}  
+  
+HANDLE MyCreateMapFile(IN HANDLE hFile)  
+{  
+  return **CreateFileMapping**(hFile,NULL,PAGE\_READWRITE,0,0,NULL);  
+}  
+  
+ULONG MyReadFile(IN HANDLE hFile,OUT void \*lpBuff,IN int nNumToRead)  
+{  
+  ULONG nNumOfRead = 0;  
+  if (**ReadFile**(hFile,lpBuff,nNumToRead,&nNumOfRead,NULL))  
+    return nNumOfRead;  
+  return 0;  
+}  
+  
+ULONG MyWriteFile(IN HANDLE hFile,IN void \*lpBuff,IN int nNumToWrite)  
+{  
+  ULONG nNumOfWrite;  
+  if (**WriteFile**(hFile,lpBuff,nNumToWrite,&nNumOfWrite,NULL))  
+    return nNumOfWrite;  
+  return 0;  
+}  
+  
+void \*MyMapViewOfFile(IN HANDLE hMap)  
+{  
+  return **MapViewOfFile**(hMap,FILE\_MAP\_READ | FILE\_MAP\_WRITE,0,0,0);  
+}  
+  
+BOOL IsFiles(IN HWND hEdit,IN char \*lpszFileName)  
+{  
+  HANDLE l\_hFile;  
+  HANDLE l\_hMap;  
+  void \*l\_lpFileBuff;    
+  char l\_szMsgBuff\[CHAR\_MAX\];  
+  **ZeroMemory**(&l\_szMsgBuff,sizeof(l\_szMsgBuff));  
+  l\_hFile = MyCreateFile(lpszFileName,OPEN\_EXISTING);  
+  if (l\_hFile == INVALID\_HANDLE\_VALUE)  
+  {  
+    **wsprintf**(l\_szMsgBuff,"打开%s 文件出错!!\\r\\n",lpszFileName);  
+    StringAdd(hEdit,l\_szMsgBuff);  
+    return FALSE;  
+  }  
+  l\_hMap = MyCreateMapFile(l\_hFile);  
+  if (!l\_hMap)  
+  {  
+    StringAdd(hEdit,"打开文件映射出错!!\\r\\n");  
+    **CloseHandle**(l\_hFile);  
+    return FALSE;  
+  }  
+  l\_lpFileBuff = MyMapViewOfFile(l\_hMap);  
+  if (!l\_lpFileBuff)  
+  {  
+    StringAdd(hEdit,"打开文件映射缓冲出错!!\\r\\n");  
+    **CloseHandle**(l\_hMap);  
+    **CloseHandle**(l\_hFile);  
+    return FALSE;  
+  }  
+  if (IsPeFile(l\_lpFileBuff))  
+  {  
+    **ZeroMemory**(&l\_szMsgBuff,sizeof(l\_szMsgBuff));  
+    **wsprintf**(l\_szMsgBuff,"%s 是有效的 PE 文件!\\r\\n",lpszFileName);  
+    StringAdd(hEdit,l\_szMsgBuff);  
+  }else  
+  {  
+    **ZeroMemory**(&l\_szMsgBuff,sizeof(l\_szMsgBuff));  
+    **wsprintf**(l\_szMsgBuff,"%s 不是一个 PE 文件!\\r\\n",lpszFileName);  
+    StringAdd(hEdit,l\_szMsgBuff);  
+  }  
+  **UnmapViewOfFile**(l\_lpFileBuff);  
+  **CloseHandle**(l\_hMap);  
+  **CloseHandle**(l\_hFile);  
+  return TRUE;  
+}  
+  
+void AnimateShow(IN HWND hWnd)  
+{  
+  RECT l\_stRC;  
+  HRGN l\_hRgn;  
+  int i,x,y;  
+  **ShowWindow**(hWnd,SW\_HIDE);  
+  **GetWindowRect**(hWnd,&l\_stRC);  
+  x = (l\_stRC.right - l\_stRC.left) / 2;  
+  y = (l\_stRC.bottom - l\_stRC.top) / 2;  
+  for (i = 0; i < l\_stRC.right / 2; i++)  
+  {  
+    l\_hRgn = **CreateRectRgn**(x-i,y-i,x+i,y+i);  
+    **SetWindowRgn**(hWnd,l\_hRgn,TRUE);  
+    **ShowWindow**(hWnd,SW\_SHOW);  
+    **DeleteObject**(l\_hRgn);  
+  }  
+}  
+  
+void \*GetPeOverlay(IN void \*lpPeBuff)  
+{  
+  PIMAGE\_DOS\_HEADER l\_lpstDosHeader;  
+  PIMAGE\_NT\_HEADERS l\_lpstNtHeaders;  
+  PIMAGE\_SECTION\_HEADER l\_lpstSecHeader;  
+  int l\_uSecSize;  
+  
+  l\_lpstDosHeader = (PIMAGE\_DOS\_HEADER)lpPeBuff;  
+  l\_lpstNtHeaders = (PIMAGE\_NT\_HEADERS)((UINT)lpPeBuff + l\_lpstDosHeader->e\_lfanew);  
+  l\_lpstSecHeader = (PIMAGE\_SECTION\_HEADER)((UINT)l\_lpstNtHeaders + sizeof(IMAGE\_NT\_HEADERS));  
+  l\_uSecSize = l\_lpstNtHeaders->FileHeader.NumberOfSections;  
+  l\_lpstSecHeader = (PIMAGE\_SECTION\_HEADER)((UINT)l\_lpstSecHeader + (sizeof(IMAGE\_SECTION\_HEADER) \* (l\_uSecSize-1)));  
+  return (void \*)((UINT)lpPeBuff + (l\_lpstSecHeader->PointerToRawData + l\_lpstSecHeader->SizeOfRawData));  
+}  
+  
+  
+/\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+ \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+ \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*/  
+  
+/\* WriteOverlay.h File \*/  
+  
+#ifndef \_WRITE\_OVERLAY\_  
+  
+#define \_WRITE\_OVERLAY\_  
+  
+#include <windows.h>  
+#include <winnt.h>  
+  
+#include "resource.h"  
+  
+#define CHAR\_MAX 0xff  
+  
+LRESULT CALLBACK MainDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);  
+LRESULT CALLBACK EditsProc(HWND hEdit,UINT uMsg, WPARAM wParam, LPARAM lParam);  
+LRESULT CALLBACK AboutDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);  
+LRESULT CALLBACK StaticProc(HWND hStatic, UINT uMsg, WPARAM wParam, LPARAM lParam);  
+  
+LPOPENFILENAME InitOpenFileName(IN HINSTANCE hInstance,  
+                IN HWND hOwer,  
+                OUT LPOPENFILENAME lpstOFN,  
+                OUT char \*lpszFileNameBuff,  
+                IN int nFileNameBuffSize);  
+  
+BOOL StartWriteOverlay(IN char \*lpszPatchFileName,  
+             IN char \*lpszOverlayFileName);  
+int StringAdd(IN HWND hWnd,IN char \*lpszBuff);  
+HBRUSH DrawStatic(IN HDC hDc, IN HWND hStatic);  
+HANDLE MyCreateFile(IN char \*lpszFileName,UINT uOpenFlag);  
+HANDLE MyCreateMapFile(IN HANDLE hFile);  
+ULONG MyReadFile(IN HANDLE hFile,OUT void \*lpBuff,IN int nNumToRead);  
+ULONG MyWriteFile(IN HANDLE hFile,IN void \*lpBuff,IN int nNumToWrite);  
+void \*MyMapViewOfFile(IN HANDLE hMap);  
+BOOL IsPeFile(IN void \*lpFileModule);  
+BOOL IsFiles(IN HWND hEdit,IN char \*lpszFileName);  
+void AnimateShow(IN HWND hWnd);  
+void \*GetPeOverlay(IN void \*lpPeBuff);  
+  
+HINSTANCE g\_hInstance;  
+LPSTR g\_lpszCmdLine;  
+HCURSOR g\_hHandCur;  
+HWND g\_hDlgMain;  
+HWND g\_hPrintfEdit;  
+BOOL g\_IsStartWrite;  
+HICON g\_hMainIcon;  
+  
+char \*lpszCopyRight =   
+"                  〖软件说明〗\\r\\n\\  
+              添加 EXE 尾部附加数据 No 1.0 \\r\\n\\  
+            『由 zhanshen\[DFCG\]\[RCT\]编写』\\r\\n\\  
+　　本软件为开源免费软件，任何人均可从网上等地方获取到本\\r\\n\\  
+软件的副本及其源码。本软件作者只为测试，任何人均不得用于\\r\\n\\  
+非法之处，否则由此引起的问题一概自负。\\r\\n";  
+  
+#endif  
+本代码的着色效果由 xTiNt 自动完成  
+下载 xTiNt http://211.90.75.84/web/kanaun/download/xTiNt.rar

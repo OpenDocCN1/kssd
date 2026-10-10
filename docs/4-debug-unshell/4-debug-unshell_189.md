@@ -1,0 +1,449 @@
+
+
+# 脱 Armadillo 壳（两种脱法）
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-616.htm`](https://www.pediy.com/kssd/pediy07/pediy7-616.htm)
+
+【破解作者】 Anwil  
+【作者邮箱】 略  
+【作者主页】 略  
+【使用工具】 Ollydbg、PEiD、LordPE、ImportREC 1.6、ResScope 1.94  
+【破解平台】 WinXP  
+【软件名称】 图像格式转换专家 V2.3 Build 20050621  
+【下载地址】 [`www3.skycn.com/soft/21233.html`](http://www3.skycn.com/soft/21233.html)  
+【软件简介】 批量图像格式转换的专门工具，对不同目录下的多个文件同时进行格式转换，支持所有网络常见图像格式间的相互转换，并专门  
+             对图像质量进行了优化，转换后的图像质量明显优于其他同类型软件，绝对保持您珍贵图像的质量。  
+【软件大小】 1999 KB  
+【加壳方式】 Armadillo+X 壳  
+【保护方式】 NAG+时间限制  
+【破解声明】 我是一只小菜鸟，偶得一点心得，愿与大家分享：）  
+\--------------------------------------------------------------------------------  
+【脱壳过程】  
+  
+  
+脱了 Armadillo 壳也有一段时间了，今天终于忍不住也来“班门弄斧”，希望各位不让扔我鸡蛋，就当是抛砖引玉吧，技术不高，多多海涵！  
+  
+  
+设置 Ollydbg 忽略所有的异常选项,用 IsDebug 1.4 插件去掉 Ollydbg 的调试器标志。  
+  
+0065E000 b>  60                            pushad                                ;  载入程序后停在这里  
+0065E001     E8 00000000                   call batchfor.0065E006  
+0065E006     5D                            pop ebp  
+  
+  
+一、由于是单进程的，所以不用使程序把自己当成子进程运行，因此第一步跳过了  
+  
+二、避开 IAT 加密  
+  
+下断：He GetModuleHandleA，F9 运行  
+  
+77E5AD86 k>  837C24 04 00                  cmp dword ptr ss:\[esp+4\],0             ;  断在这，注意看堆栈  
+77E5AD8B     0F84 37010000                 je kernel32.77E5AEC8  
+77E5AD91     FF7424 04                     push dword ptr ss:\[esp+4\]  
+77E5AD95     E8 F8050000                   call kernel32.77E5B392  
+  
+在这里中断八次，然后 Alt+F9 返回程序，判断的时机很容易把握，很多高手都点明了^\_^  
+  
+★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★  
+  
+0012D264     00DA519B    /CALL 到 GetModuleHandleA 来自 00DA5195  
+0012D268     0012D3A0    \\pModule = "kernel32.dll"  
+  
+0012D264     00DA519B    /CALL 到 GetModuleHandleA 来自 00DA5195  
+0012D268     0012D3A0    \\pModule = "user32.dll"  
+  
+0012D264     00DA519B    /CALL 到 GetModuleHandleA 来自 00DA5195  
+0012D268     0012D3A0    \\pModule = "MSVBVM60.DLL"  
+  
+0012CB68     66001BC5    /CALL 到 GetModuleHandleA 来自 66001BBF  
+0012CB6C     6600F4D0    \\pModule = "kernel32.dll"  
+  
+0012CB5C     6600281E    /CALL 到 GetModuleHandleA 来自 66002818  
+0012CB60     6600F4FC    \\pModule = "KERNEL32"  
+  
+0012CB54     660031CE    /CALL 到 GetModuleHandleA 来自 660031C8  
+0012CB58     00000000    \\pModule = NULL  
+  
+0012D264     00DA519B    /CALL 到 GetModuleHandleA 来自 00DA5195  
+0012D268     0012D3A0    \\pModule = "advapi32.dll"  
+  
+0012D3D4     00DA5895    /CALL 到 GetModuleHandleA 来自 00DA588F                  ; 别犹豫了，返回的好时机，GO！  
+0012D3D8     00000000    \\pModule = NULL  
+  
+★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★  
+  
+  
+00DA588B     8B5D 0C                       mov ebx,dword ptr ss:\[ebp+C\]  
+00DA588E     57                            push edi  
+00DA588F     FF15 A450DC00                 call dword ptr ds:\[DC50A4\]              ; kernel32.GetModuleHandleA  
+00DA5895     3945 08                       cmp dword ptr ss:\[ebp+8\],eax            ; //返回这里  
+00DA5898     75 07                         jnz short 00DA58A1  
+00DA589A     BE C073DC00                   mov esi,0DC73C0  
+00DA589F     EB 60                         jmp short 00DA5901  
+00DA58A1     393D A879DC00                 cmp dword ptr ds:\[DC79A8\],edi  
+00DA58A7     B9 A879DC00                   mov ecx,0DC79A8  
+00DA58AC     74 3C                         je short 00DA58EA                       ;  Magic Jump   
+00DA58AE     8B35 80D7DC00                 mov esi,dword ptr ds:\[DCD780\]  
+00DA58B4     A1 8016DD00                   mov eax,dword ptr ds:\[DD1680\]  
+  
+  
+1、找到 Magic Jump ，只要将 je 改为 jmp,就能得到正确的输入表  
+00DA58AC     74 3C                         je short 00DA58EA                       ;  原来的代码  
+改为  
+00DA58AC     EB 3C                         jmp short 00DA58EA                      ;  修改的 Magic Jump  
+  
+2、Ctrl+F 在当前位置查找命令：salc，当看到 jmp、salc、salc 代码连在一起时，OK，这就是 IAT 解密已经完成的地方。   
+  
+00DA61D8     8149 CE 3815A450              or dword ptr ds:\[ecx-32\],50A41538  
+00DA61DF     DC00                          fadd qword ptr ds:\[eax\]  
+00DA61E1     8BF0                          mov esi,eax  
+00DA61E3     EB 03                         jmp short 00DA61E8                      ;  此处下断  
+00DA61E5     D6                            salc  
+00DA61E6     D6                            salc  
+  
+程序在下面会依据原先的代码进行解码,如没有修改原代码，则解码正确。而直接修改 Magic Jump 后改变了原先的代码，导致解码不  
+正确而异常出错！所以我们在 00DA61E3 断下后，应该恢复原先 Magic Jump 的代码，返回原来的地方，则 00DA58AC 处，右键－>“撤销  
+选择”则可。现在解码就不会出错了。  
+  
+  
+三、寻找 OEP---“分岔路口”  
+  
+其实 Armadillo 的壳已经有很多人高手写过了，如果这篇文章也尾随各前辈的思路则显得比较暗淡，所以这文章的重点在于讲解壳中壳，  
+便于大家以后能对 Armadillo 壳有更深的了解。  
+  
+  
+⑴、用内存断点大法直抵 OEP   
+  
+Alt+M 查看内存，在 401000 开始的段上 下内存访问断点，F9 运行。晕，这是什么地方，看来是迷路了，可能是程序加了第二层壳吧，依  
+情势来看是后无退路，只有厚着脸皮往下迈了 :(  
+  
+这里有两种办法可以走出这个“迷宫”：  
+  
+①循序渐进，耐心的往下走  
+  
+  
+00639E63     8807                          mov byte ptr ds:\[edi\],al                ;  断在这里，取消所有断点，开始漫长的长征  
+00639E65     47                            inc edi  
+00639E66     01DB                          add ebx,ebx  
+00639E68     75 07                         jnz short batchfor.00639E71             ;  跳  
+00639E6A     8B1E                          mov ebx,dword ptr ds:\[esi\]  
+00639E6C     83EE FC                       sub esi,-4  
+00639E6F     11DB                          adc ebx,ebx  
+00639E71   ^ 72 ED                         jb short batchfor.00639E60              ;  往回跳，不能让它跳  
+00639E73     B8 01000000                   mov eax,1                               ;  选中此行,按 F4  
+00639E78     01DB                          add ebx,ebx  
+00639E7A     75 07                         jnz short batchfor.00639E83             ;  跳  
+00639E7C     8B1E                          mov ebx,dword ptr ds:\[esi\]  
+00639E7E     83EE FC                       sub esi,-4  
+00639E81     11DB                          adc ebx,ebx  
+00639E83     11C0                          adc eax,eax  
+00639E85     01DB                          add ebx,ebx  
+00639E87     73 0B                         jnb short batchfor.00639E94  
+00639E89     75 19                         jnz short batchfor.00639EA4             ;  跳  
+00639E8B     8B1E                          mov ebx,dword ptr ds:\[esi\]  
+00639E8D     83EE FC                       sub esi,-4  
+00639E90     11DB                          adc ebx,ebx  
+00639E92     72 10                         jb short batchfor.00639EA4  
+00639E94     48                            dec eax  
+00639E95     01DB                          add ebx,ebx  
+00639E97     75 07                         jnz short batchfor.00639EA0  
+00639E99     8B1E                          mov ebx,dword ptr ds:\[esi\]  
+00639E9B     83EE FC                       sub esi,-4  
+00639E9E     11DB                          adc ebx,ebx  
+00639EA0     11C0                          adc eax,eax  
+00639EA2   ^ EB D4                         jmp short batchfor.00639E78  
+00639EA4     31C9                          xor ecx,ecx  
+00639EA6     83E8 03                       sub eax,3  
+00639EA9     72 11                         jb short batchfor.00639EBC               ;  跳  
+00639EAB     C1E0 08                       shl eax,8  
+00639EAE     8A06                          mov al,byte ptr ds:\[esi\]  
+00639EB0     46                            inc esi  
+00639EB1     83F0 FF                       xor eax,FFFFFFFF  
+00639EB4     74 78                         je short batchfor.00639F2E  
+00639EB6     D1F8                          sar eax,1  
+00639EB8     89C5                          mov ebp,eax  
+00639EBA     EB 0B                         jmp short batchfor.00639EC7  
+00639EBC     01DB                          add ebx,ebx  
+00639EBE     75 07                         jnz short batchfor.00639EC7              ;  跳  
+00639EC0     8B1E                          mov ebx,dword ptr ds:\[esi\]  
+00639EC2     83EE FC                       sub esi,-4  
+00639EC5     11DB                          adc ebx,ebx  
+00639EC7     11C9                          adc ecx,ecx  
+00639EC9     01DB                          add ebx,ebx  
+00639ECB     75 07                         jnz short batchfor.00639ED4              ;  跳  
+00639ECD     8B1E                          mov ebx,dword ptr ds:\[esi\]  
+00639ECF     83EE FC                       sub esi,-4  
+00639ED2     11DB                          adc ebx,ebx  
+00639ED4     11C9                          adc ecx,ecx  
+00639ED6     75 20                         jnz short batchfor.00639EF8              ;  跳  
+00639ED8     41                            inc ecx  
+00639ED9     01DB                          add ebx,ebx  
+00639EDB     75 07                         jnz short batchfor.00639EE4  
+00639EDD     8B1E                          mov ebx,dword ptr ds:\[esi\]  
+00639EDF     83EE FC                       sub esi,-4  
+00639EE2     11DB                          adc ebx,ebx  
+00639EE4     11C9                          adc ecx,ecx  
+00639EE6     01DB                          add ebx,ebx  
+00639EE8   ^ 73 EF                         jnb short batchfor.00639ED9  
+00639EEA     75 09                         jnz short batchfor.00639EF5  
+00639EEC     8B1E                          mov ebx,dword ptr ds:\[esi\]  
+00639EEE     83EE FC                       sub esi,-4  
+00639EF1     11DB                          adc ebx,ebx  
+00639EF3   ^ 73 E4                         jnb short batchfor.00639ED9  
+00639EF5     83C1 02                       add ecx,2  
+00639EF8     81FD 00FBFFFF                 cmp ebp,-500  
+00639EFE     83D1 01                       adc ecx,1  
+00639F01     8D142F                        lea edx,dword ptr ds:\[edi+ebp\]  
+00639F04     83FD FC                       cmp ebp,-4  
+00639F07     76 0F                         jbe short batchfor.00639F18  
+00639F09     8A02                          mov al,byte ptr ds:\[edx\]  
+00639F0B     42                            inc edx  
+00639F0C     8807                          mov byte ptr ds:\[edi\],al  
+00639F0E     47                            inc edi  
+00639F0F     49                            dec ecx  
+00639F10   ^ 75 F7                         jnz short batchfor.00639F09                ;  往回跳  
+00639F12   ^ E9 4FFFFFFF                   jmp batchfor.00639E66                      ;  往回跳  
+00639F17     90                            nop  
+00639F18     8B02                          mov eax,dword ptr ds:\[edx\]                 ;  选中此行,按 F4  
+00639F1A     83C2 04                       add edx,4  
+00639F1D     8907                          mov dword ptr ds:\[edi\],eax  
+00639F1F     83C7 04                       add edi,4  
+00639F22     83E9 04                       sub ecx,4  
+00639F25   ^ 77 F1                         ja short batchfor.00639F18                 ;  往回跳  
+00639F27     01CF                          add edi,ecx  
+00639F29   ^ E9 38FFFFFF                   jmp batchfor.00639E66                      ;  往回跳  
+00639F2E     5E                            pop esi  
+00639F2F     89F7                          mov edi,esi                                ;  选中此行,按 F4  
+00639F31     B9 6EC00000                   mov ecx,0C06E  
+00639F36     8A07                          mov al,byte ptr ds:\[edi\]  
+00639F38     47                            inc edi  
+00639F39     2C E8                         sub al,0E8  
+00639F3B     3C 01                         cmp al,1  
+00639F3D   ^ 77 F7                         ja short batchfor.00639F36                 ;  往回跳  
+00639F3F     803F 2C                       cmp byte ptr ds:\[edi\],2C  
+00639F42   ^ 75 F2                         jnz short batchfor.00639F36                ;  往回跳  
+00639F44     8B07                          mov eax,dword ptr ds:\[edi\]                 ;  选中此行,按 F4  
+00639F46     8A5F 04                       mov bl,byte ptr ds:\[edi+4\]  
+00639F49     66:C1E8 08                    shr ax,8  
+00639F4D     C1C0 10                       rol eax,10  
+00639F50     86C4                          xchg ah,al  
+00639F52     29F8                          sub eax,edi  
+00639F54     80EB E8                       sub bl,0E8  
+00639F57     01F0                          add eax,esi  
+00639F59     8907                          mov dword ptr ds:\[edi\],eax  
+00639F5B     83C7 05                       add edi,5  
+00639F5E     89D8                          mov eax,ebx  
+00639F60   ^ E2 D9                         loopd short batchfor.00639F3B               ;  往回跳  
+00639F62     8DBE 00502300                 lea edi,dword ptr ds:\[esi+235000\]           ;  选中此行,按 F4  
+00639F68     8B07                          mov eax,dword ptr ds:\[edi\]  
+00639F6A     09C0                          or eax,eax  
+00639F6C     74 3C                         je short batchfor.00639FAA  
+00639F6E     8B5F 04                       mov ebx,dword ptr ds:\[edi+4\]  
+00639F71     8D8430 4CC02300               lea eax,dword ptr ds:\[eax+esi+23C04C\]  
+00639F78     01F3                          add ebx,esi  
+00639F7A     50                            push eax  
+00639F7B     83C7 08                       add edi,8  
+00639F7E     FF96 50C12300                 call dword ptr ds:\[esi+23C150\]  
+00639F84     95                            xchg eax,ebp  
+00639F85     8A07                          mov al,byte ptr ds:\[edi\]  
+00639F87     47                            inc edi  
+00639F88     08C0                          or al,al  
+00639F8A   ^ 74 DC                         je short batchfor.00639F68  
+00639F8C     89F9                          mov ecx,edi  
+00639F8E     57                            push edi  
+00639F8F     48                            dec eax  
+00639F90     F2:AE                         repne scas byte ptr es:\[edi\]  
+00639F92     55                            push ebp  
+00639F93     FF96 54C12300                 call dword ptr ds:\[esi+23C154\]  
+00639F99     09C0                          or eax,eax  
+00639F9B     74 07                         je short batchfor.00639FA4  
+00639F9D     8903                          mov dword ptr ds:\[ebx\],eax  
+00639F9F     83C3 04                       add ebx,4  
+00639FA2   ^ EB E1                         jmp short batchfor.00639F85                   ;  往回跳  
+00639FA4     FF96 58C12300                 call dword ptr ds:\[esi+23C158\]  
+00639FAA     61                            popad                                         ;  选中此行,直接 F4 下来  
+00639FAB   ^ E9 5893F8FF                   jmp batchfor.005C3308                         ;  这就是 OEP 了，飞向光明之颠  
+  
+  
+虽然里面有很多跳转都是往回跳的，但不能直接在 00639F62 处下断，不然程序跑飞，所以还是一步一个脚印好。  
+  
+  
+②如果你能看懂这是什么特征的壳，那就直接 Ctrl+F 在当前位置查找命令：popad，然后在此处下段，取消所有断点，F9 运行，也可以来  
+到上面的 OEP 处，看来也算公德圆满了。  
+  
+00639FAA     61                            popad                                              
+00639FAB   ^ E9 5893F8FF                   jmp batchfor.005C3308                         ;  抵达 OEP 了  
+  
+  
+⑵、如果你想从一开始就看清这是何种壳的话，可以先去到第一层壳那里，然后再继续第二层壳之旅也未尝不可，而且这种方法对壳了解  
+不深的人都是一种好的解脱办法，又或许这个比那种来得实际也说不定，各取所需咯 :)  
+  
+  
+下断 bp GetCurrentThreadId，F9 运行  
+  
+7C809737 k>  64:A1 18000000             mov eax,dword ptr fs:\[18\]                        ;  断在这里，注意观察堆栈  
+7C80973D     8B40 24                    mov eax,dword ptr ds:\[eax+24\]  
+7C809740     C3                         retn  
+  
+  
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆  
+  
+0012C738    77BB1EEB    /CALL 到 GetCurrentThreadId 来自 MSACM32.77BB1EE5  
+0012C73C    C0000000  
+  
+0012C6BC    77BB1EEB    /CALL 到 GetCurrentThreadId 来自 MSACM32.77BB1EE5  
+0012C6C0    00000000  
+  
+0012CD68    73AD268E    /CALL 到 GetCurrentThreadId 来自 avifil32.73AD2688  
+0012CD6C    73AD4004    avifil32.73AD4004  
+  
+0012F584    00CBCF47    /CALL 到 GetCurrentThreadId 来自 00CBCF41                         ;  返回的时机，GO！  
+0012F588    0012FF04  
+  
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆  
+  
+  
+4 次中断后，取消所有断点，然后 Alt+F9 返回程序  
+  
+  
+00CBCF47     A3 8C16CD00                mov dword ptr ds:\[CD168C\],eax                     ;  停在这里  
+00CBCF4C     E8 5F85FEFF                call 00CA54B0  
+00CBCF51     6A 00                      push 0  
+00CBCF53     E8 51E0FEFF                call 00CAAFA9  
+00CBCF58     59                         pop ecx  
+00CBCF59     E8 074CFFFF                call 00CB1B65  
+00CBCF5E     8BF8                       mov edi,eax  
+00CBCF60     A1 8016CD00                mov eax,dword ptr ds:\[CD1680\]  
+00CBCF65     8B48 60                    mov ecx,dword ptr ds:\[eax+60\]  
+00CBCF68     3348 28                    xor ecx,dword ptr ds:\[eax+28\]  
+00CBCF6B     3348 04                    xor ecx,dword ptr ds:\[eax+4\]  
+00CBCF6E     03F9                       add edi,ecx  
+00CBCF70     8B0E                       mov ecx,dword ptr ds:\[esi\]  
+00CBCF72     85C9                       test ecx,ecx  
+00CBCF74     75 2F                      jnz short 00CBCFA5                                  ;  跳  
+00CBCF76     8B78 60                    mov edi,dword ptr ds:\[eax+60\]  
+00CBCF79     E8 E74BFFFF                call 00CB1B65  
+00CBCF7E     8B0D 8016CD00              mov ecx,dword ptr ds:\[CD1680\]                       ; batchfor.0066E238  
+00CBCF84     FF76 14                    push dword ptr ds:\[esi+14\]  
+00CBCF87     8B51 28                    mov edx,dword ptr ds:\[ecx+28\]  
+00CBCF8A     FF76 10                    push dword ptr ds:\[esi+10\]  
+00CBCF8D     3351 04                    xor edx,dword ptr ds:\[ecx+4\]  
+00CBCF90     FF76 0C                    push dword ptr ds:\[esi+C\]  
+00CBCF93     33D7                       xor edx,edi  
+00CBCF95     03C2                       add eax,edx  
+00CBCF97     8B51 58                    mov edx,dword ptr ds:\[ecx+58\]  
+00CBCF9A     3351 34                    xor edx,dword ptr ds:\[ecx+34\]  
+00CBCF9D     33D7                       xor edx,edi  
+00CBCF9F     2BC2                       sub eax,edx  
+00CBCFA1     FFD0                       call eax  
+00CBCFA3     EB 25                      jmp short 00CBCFCA  
+00CBCFA5     83F9 01                    cmp ecx,1  
+00CBCFA8     75 22                      jnz short 00CBCFCC  
+00CBCFAA     FF76 04                    push dword ptr ds:\[esi+4\]  
+00CBCFAD     FF76 08                    push dword ptr ds:\[esi+8\]  
+00CBCFB0     6A 00                      push 0  
+00CBCFB2     E8 AE4BFFFF                call 00CB1B65  
+00CBCFB7     50                         push eax  
+00CBCFB8     A1 8016CD00                mov eax,dword ptr ds:\[CD1680\]  
+00CBCFBD     8B48 60                    mov ecx,dword ptr ds:\[eax+60\]  
+00CBCFC0     3348 58                    xor ecx,dword ptr ds:\[eax+58\]  
+00CBCFC3     3348 34                    xor ecx,dword ptr ds:\[eax+34\]  
+00CBCFC6     2BF9                       sub edi,ecx  
+00CBCFC8     FFD7                       call edi                                             ;  终于来到第一层的出口,F7 进入  
+00CBCFCA     8BD8                       mov ebx,eax  
+00CBCFCC     5F                         pop edi  
+00CBCFCD     8BC3                       mov eax,ebx  
+00CBCFCF     5E                         pop esi  
+00CBCFD0     5B                         pop ebx  
+00CBCFD1     C3                         retn  
+  
+  
+又是一个新的开始，如果是去旅游的话那就酷毙了。  
+  
+  
+00639E40     60                         pushad                                                ;  停在这里  
+00639E41     BE 00C05700                mov esi,batchfor.0057C000  
+00639E46     8DBE 0050E8FF              lea edi,dword ptr ds:\[esi+FFE85000\]  
+00639E4C     C787 A4301C00 1F000358     mov dword ptr ds:\[edi+1C30A4\],5803001F  
+00639E56     57                         push edi  
+00639E57     83CD FF                    or ebp,FFFFFFFF  
+00639E5A     EB 0E                      jmp short batchfor.00639E6A  
+00639E5C     90                         nop  
+00639E5D     90                         nop  
+00639E5E     90                         nop  
+00639E5F     90                         nop  
+00639E60     8A06                       mov al,byte ptr ds:\[esi\]  
+00639E62     46                         inc esi  
+00639E63     8807                       mov byte ptr ds:\[edi\],al  
+00639E65     47                         inc edi  
+00639E66     01DB                       add ebx,ebx  
+  
+  
+①如果有耐心的人可以一直往下走，单步突破，碍于篇幅关系，我就选择第二种方法来抵达 OEP 吧。  
+  
+  
+②在 00639E40 处按 F8 一次，来到 00639E41，此时看寄存器区域，ESP=0012F554，对，就是使用 ESP 定律，右键--->跟进到数据窗口，  
+在数据窗口上右键--->断点--->硬件访问--->Dword，然后 F9 运行  
+  
+  
+00639FAB   ^\\E9 5893F8FF                jmp batchfor.005C3308                                  ;  停在这里  
+  
+  
+  
+总算是突破所有关卡，OK，F7 进去吧，胜利在悄然无息中降临... ...  
+  
+  
+  
+四、dumper、修复输入表和优化  
+  
+承接上述讲的内容，也就是 jmp batchfor.005C3308 之后的事了，F7 就会来到下面代码。  
+  
+  
+005C3308     55                            push ebp                                             ;  在这儿用 LordPE 纠正 ImageSize  
+                                                                                                     后完全 DUMP 这个进程  
+005C3309     8BEC                          mov ebp,esp  
+005C330B     83C4 F0                       add esp,-10  
+005C330E     B8 282E5C00                   mov eax,batchfor.005C2E28  
+005C3313     E8 8C38E4FF                   call batchfor.00406BA4  
+005C3318     A1 B8415D00                   mov eax,dword ptr ds:\[5D41B8\]  
+005C331D     8B00                          mov eax,dword ptr ds:\[eax\]  
+005C331F     E8 90FEEBFF                   call batchfor.004831B4  
+005C3324     A1 B8415D00                   mov eax,dword ptr ds:\[5D41B8\]  
+005C3329     8B00                          mov eax,dword ptr ds:\[eax\]  
+005C332B     BA 68335C00                   mov edx,batchfor.005C3368  
+005C3330     E8 77FAEBFF                   call batchfor.00482DAC  
+005C3335     8B0D 6C405D00                 mov ecx,dword ptr ds:\[5D406C\]                         ; batchfor.005E1BC4  
+005C333B     A1 B8415D00                   mov eax,dword ptr ds:\[5D41B8\]  
+005C3340     8B00                          mov eax,dword ptr ds:\[eax\]  
+005C3342     8B15 641B5C00                 mov edx,dword ptr ds:\[5C1B64\]                         ; batchfor.005C1BB0  
+005C3348     E8 7FFEEBFF                   call batchfor.004831CC  
+005C334D     A1 B8415D00                   mov eax,dword ptr ds:\[5D41B8\]  
+  
+  
+运行 ImportREC 1.6，选择这个进程。我在这里看到两个进程，选择第二个进程，把 OEP 改为 001C3308，点 IT AutoSearch，函数全部有效。  
+FixDump，正常运行！用 LordPE 删除 adata、pdata 共 2 个区段，然后再用 LordPE 重建 PE，程序就精简了不少。  
+  
+  
+五、破解  
+  
+  
+程序采用了 Armadillo 的注册模块，壳脱了，30 天的时间限制也不存在了。而且这是网上注册的东东，要破解的话也只有放个 C4 把它爆掉吧。  
+关于软件时启动的 NAG 窗口,由于程序是用 Delphi 语言写的，可用 ResScope 打开该程序,点击 RCDDate 展开该栏,你就会看到一个名为"TFRMABOUT"  
+的项,点击就能看到启动时那个 NAG 窗口的内容了,这时点击工具栏上的"H"符号,把它们变为代码形式,将开始的 3 个字节,都 NOP 掉,即填如 90,  
+每个人机子里的代码都不一样,所以要具体问题具体分析,修改后软件启动时的 NAG 就消失了,但会报出错,因为启动时读取 NAG 窗口失败,这时  
+还需要改动一个地方,用 OD 载入软件,Crtl+G 填如 004835D9,你将来到  
+  
+"004835D9     E8 FEFDFFFF                   call 图像格式.004833DC"   
+  
+将其 NOP 掉,OK.此时软件已算是完美破解了.  
+  
+  
+【后记】文章到此告一段落了，感谢帮助我和支持我的朋友，希望我的文章对你有所帮助，那我的目的也就达到了，如果说是意愿应该会  
+        更恰当吧。OK，浪费大家这么多时间，谢谢你看完我的文章。  
+  
+  
+  
+\--------------------------------------------------------------------------------  
+【版权声明】 本文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢! 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

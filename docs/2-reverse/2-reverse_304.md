@@ -1,0 +1,267 @@
+
+
+# LiveDump - 本机动态生成完整内核 dump 文件
+
+> 原文：[`www.pediy.com/kssd/pediy10/63048.html`](https://www.pediy.com/kssd/pediy10/63048.html)
+
+LiveDump by 小喂  
+  
+模仿 livekd 写的一个工具，可以在本机上动态生成完整内核 dump 文件，方便本机内核调试，或者事后调试，可能对于保存当前系统状态也有点用。和 livekd 不同，livedump 生成的是一个完整 dump 文件，而没有采用文件过滤驱动的方式。当前支持 xp 以后的 32 位系统，但我只在 32 位 xpsp2 和 vista 系统上测试通过，使用过程产生的任何问题请自己负责。  
+  
+  
+D:\\WinDBG>livedump d:\\DmpFiles\\live\_vista.dmp  
+  
+LiveDump v1.0 - Generate full kernel mode dump file on a live system  
+xiaoweitech - http://hi.baidu.com/xiaoweitech  
+Copyright (C) 2008 xiaowei  
+Usage: livedump \[dump file name\]  
+  
+  
+start dump ... successed!  
+  
+D:\\WinDBG>kd -z d:\\DmpFiles\\live\_vista.dmp  
+  
+Microsoft (R) Windows Debugger Version 6.8.0004.0 X86  
+Copyright (c) Microsoft Corporation. All rights reserved.  
+  
+  
+Loading Dump File \[d:\\DmpFiles\\live\_vista.dmp\]  
+Kernel Complete Dump File: Full address space is available  
+  
+Comment: 'This dump file is generated by LiveDump (http://hi.baidu.com/xiaoweitech)'  
+Symbol search path is: srv\*E:\\WebSymbols\*http://msdl.microsoft.com/download/symbols  
+Executable search path is:  
+Windows Vista Kernel Version 6000 MP (2 procs) Free x86 compatible  
+Product: WinNt, suite: TerminalServer SingleUserTS  
+Built by: 6000.16584.x86fre.vista\_gdr.071023-1545  
+Kernel base = 0x82000000 PsLoadedModuleList = 0x82111e10  
+Debug session time: Sun Apr 13 21:13:58.005 2008 (GMT+8)  
+System Uptime: 49336 days 0:17:26.005  
+Loading Kernel Symbols  
+........................................................................................................................  
+.....................................  
+Loading User Symbols  
+  
+Loading unloaded module list  
+..........  
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+\*                                                                             \*  
+\*                        Bugcheck Analysis                                    \*  
+\*                                                                             \*  
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+  
+Use !analyze -v to get detailed debugging information.  
+  
+BugCheck 1E, {80000003, df9734b0, 0, 0}  
+  
+\*\*\* ERROR: Module load completed but symbols could not be loaded for LDumpDrv.sys  
+  
+  
+  
+  
+Probably caused by : Unknown\_Image ( LDumpDrv+4b0 )  
+  
+Followup: MachineOwner  
+\---------  
+  
+16.0: kd> vertarget  
+Windows Vista Kernel Version 6000 MP (2 procs) Free x86 compatible  
+Product: WinNt, suite: TerminalServer SingleUserTS  
+Built by: 6000.16584.x86fre.vista\_gdr.071023-1545  
+Kernel base = 0x82000000 PsLoadedModuleList = 0x82111e10  
+Debug session time: Sun Apr 13 21:13:58.005 2008 (GMT+8)  
+System Uptime: 49336 days 0:17:26.005  
+  
+16.0: kd> !process 0 0 explorer.exe  
+PROCESS 862b4d90  SessionId: 1  Cid: 0374    Peb: 7ffd8000  ParentCid: 021c  
+    DirBase: 685ed360  ObjectTable: 9d1817c0  HandleCount: 810.  
+    Image: explorer.exe  
+  
+16.0: kd> !pcr  
+KPCR for Processor 0 at 820f4700:  
+    Major 1 Minor 1  
+        NtTib.ExceptionList: ffffffff  
+            NtTib.StackBase: 00000000  
+           NtTib.StackLimit: 00000000  
+         NtTib.SubSystemTib: 8014f000  
+              NtTib.Version: 03dc94a2  
+          NtTib.UserPointer: 00000001  
+              NtTib.SelfTib: 00000000  
+  
+                    SelfPcr: 820f4700  
+                       Prcb: 820f4820  
+                       Irql: 00000002  
+                        IRR: 00000000  
+                        IDR: ffffffff  
+              InterruptMode: 00000000  
+                        IDT: 81c7f400  
+                        GDT: 81c7f000  
+                        TSS: 8014f000  
+  
+              CurrentThread: 820f8300  
+                 NextThread: 00000000  
+                 IdleThread: 820f8300  
+  
+                  DpcQueue:  
+16.0: kd> !object \\Driver  
+Object: 88a68958  Type: (84057d40) Directory  
+    ObjectHeader: 88a68940 (old version)  
+    HandleCount: 0  PointerCount: 103  
+    Directory Object: 88a07488  Name: Driver  
+  
+    Hash Address  Type          Name  
+    ---- -------  ----          ----  
+     00  86191880 Driver        Beep  
+         85ce0570 Driver        al3uov8c  
+         8541eac8 Driver        KSecDD  
+         84f0d768 Driver        NDIS  
+     01  85d15c28 Driver        mouclass  
+     02  86ab0b08 Driver        CMB8100  
+     03  847280d8 Driver        LDumpDrv  
+         85e81778 Driver        kbdclass  
+         856240d0 Driver        IntcAzAudAddService  
+     04  86191e30 Driver        VgaSave  
+         8604f528 Driver        NDProxy  
+         84e32dd8 Driver        msisadrv  
+         867221b8 Driver        monitor  
+     05  84f07d78 Driver        Ecache  
+         84e3f760 Driver        MountMgr  
+     06  85ca7438 Driver        ohci1394  
+         86376d38 Driver        CMBProtector  
+     08  84eb65b8 Driver        atapi  
+         861604b8 Driver        PEAUTH  
+     09  84eb5ef0 Driver        JRAID  
+         84eb6908 Driver        volmgrx  
+         8405bd28 Driver        PCI\_NTPNP9580  
+     10  84a10030 Driver        USBSTOR  
+         862adcd8 Driver        PSched  
+         861e5158 Driver        RasAcd  
+         85dad318 Driver        VMnetAdapter  
+         85c7cec8 Driver        tunmp  
+         84dbc368 Driver        sptd  
+     11  85ca5f38 Driver        usbuhci  
+         8641bb28 Driver        mouhid  
+         865e5860 Driver        Win32k  
+         86cabb68 Driver        VMnetuserif  
+     12  869c0bf8 Driver        VMnetBridge  
+         85de4d30 Driver        usbhub  
+         85d14f38 Driver        swenum  
+         85d1dcd0 Driver        rdpdr  
+         85b93ad0 Driver        tunnel  
+     13  861ec740 Driver        RDPCDD  
+         85ce6ac0 Driver        RasPppoe  
+         86a378b0 Driver        HTTP  
+     14  85d94030 Driver        TermDD  
+         85be6880 Driver        MTsensor  
+     15  85ceac48 Driver        Rasl2tp  
+         84f01c78 Driver        JGOGO  
+     17  84b5c150 Driver        WUDFRd  
+         85cf1f38 Driver        umbus  
+         85ce5f38 Driver        VPCNetS2  
+     18  862c9cb8 Driver        Smb  
+         861a7f38 Driver        WlanUIG  
+         85d1df38 Driver        PptpMiniport  
+         85cf6760 Driver        Serenum  
+         85b0cb68 Driver        crcdisk  
+         84f0b750 Driver        CLFS  
+         840a3960 Driver        WMIxWDM  
+         840a3f38 Driver        ACPI\_HAL  
+         86b0c680 Driver        secdrv  
+     19  84fda390 Driver        spldr  
+         869557b0 Driver        hcmon  
+     21  8695fe20 Driver        NativeWifiP  
+         862c9838 Driver        netbt  
+         85c449e0 Driver        AtcL001  
+         86b5ed40 Driver        tcpipreg  
+     22  861a8b50 Driver        RDPENCDD  
+         85c990d0 Driver        cdrom  
+         85d14e40 Driver        mssmbios  
+         85cea8d8 Driver        iScsiPrt  
+         84e3f668 Driver        pciide  
+     23  869d8830 Driver        rspndr  
+         863392e8 Driver        tdx  
+     24  84f6ff38 Driver        fvevol  
+         861e5998 Driver        Tcpip  
+         8694ce90 Driver        mpsdrv  
+     25  84fbbab8 Driver        volsnap  
+         862ab030 Driver        nsiproxy  
+         84ebbdd8 Driver        volmgr  
+     26  85c7dcb0 Driver        intelppm  
+     27  869d2030 Driver        lltdio  
+         8645f580 Driver        ZSMC301b  
+         86329578 Driver        Wanarpv6  
+     28  86158150 Driver        Null  
+         85be0758 Driver        usbehci  
+     29  8541e2a0 Driver        disk  
+         862d7200 Driver        CSC  
+         84ebb380 Driver        pci  
+     30  84fda498 Driver        partmgr  
+         85cdc8c8 Driver        Serial  
+         85d1d030 Driver        NdisTapi  
+         85d92ec0 Driver        NdisWan  
+     31  862e3568 Driver        vmm  
+         85c429e0 Driver        HDAudBus  
+         85c85f38 Driver        DXGKrnl  
+     32  840513e0 Driver        ACPI  
+         84dd6710 Driver        Wdf01000  
+         869d4030 Driver        vmx86  
+     33  840a2300 Driver        PnpManager  
+     34  8470c9a0 Driver        PROCEXP111  
+         869da840 Driver        Ndisuio  
+         8633f890 Driver        AFD  
+         85be29e0 Driver        nvlddmkm  
+     35  86409b88 Driver        HidUsb  
+         868aa768 Driver        vstor2  
+     36  85cdcca0 Driver        i8042prt  
+16.0: kd>  
+  
+下面给出 dump 文件头格式给大家参考：  
+  
+typedef struct \_DUMP\_HEADER32 /\* sizeof = 0x1000 \*/  
+{  
+/\* 000 \*/   ULONG       ulSignature;  
+/\* 004 \*/   ULONG       ulValidDump;  
+/\* 008 \*/   ULONG       ulMajorVersion;  
+/\* 00C \*/   ULONG       ulMinorVersion;  
+/\* 010 \*/   ULONG       ulDirectoryTableBase;  
+/\* 014 \*/   ULONG       ulPfnDataBase;  
+/\* 018 \*/   PLIST\_ENTRY PsLoadedModuleList;  
+/\* 01C \*/   PLIST\_ENTRY PsActiveProcessHead;  
+/\* 020 \*/   ULONG       ulMachineImageType;  
+/\* 024 \*/   ULONG       ulNumberProcessors;  
+/\* 028 \*/   ULONG       ulBugCheckCode;  
+/\* 02C \*/   ULONG       ulBugCheckParameter1;  
+/\* 030 \*/   ULONG       ulBugCheckParameter2;  
+/\* 034 \*/   ULONG       ulBugCheckParameter3;  
+/\* 038 \*/   ULONG       ulBugCheckParameter4;  
+/\* 03C \*/   char        szVersionUser\[32\];  
+/\* 05C \*/   BOOLEAN     bPaeEnabled;  
+/\* 05D \*/   UCHAR       uchKdSecondaryVersion;  
+/\* 05E \*/   char        chUnused1\[2\];  
+/\* 060 \*/   ULONG       ulKdDebuggerDataBlock;  
+/\* 064 \*/   PHYSICAL\_MEMORY\_DESCRIPTOR  stPhysMemDesc;  
+/\* 074 \*/   char        chUnused2\[684\];  
+/\* 320 \*/   CONTEXT     stContext;  
+/\* 5EC \*/   char        chUnused3\[484\];  
+/\* 7D0 \*/   EXCEPTION\_RECORD32  stExceptionRecord;  
+/\* 820 \*/   char        szComment\[1896\];  
+/\* F88 \*/   ULONG       ulDumpType;  
+/\* F8C \*/   ULONG       ulMiniDumpFields;  
+/\* F90 \*/   ULONG       ulSecondaryDataState;  
+/\* F94 \*/   ULONG       ulProductType;  
+/\* F98 \*/   ULONG       ulSuiteMask;  
+/\* F9C \*/   ULONG       ulWriterStatus;  
+/\* FA0 \*/   ULONG64     ulFileSize;  
+/\* FA8 \*/   char        chUnused4\[16\];  
+/\* FB8 \*/   ULONG64     ulSystemUptime;  
+/\* FC0 \*/   ULONG64     ulDebugSessionTime;  
+/\* FC8 \*/   char        chUnused5\[56\];  
+} DUMP\_HEADER32, \*PDUMP\_HEADER32;  
+  
+这里还有一篇文章介绍了 dump 文件格式：  
+  
+http://wasm.ru/article.php?article=dmp\_format
+
+上传的附件
+| ![](img/fb8ade91a9e54b7bd6690c3ae5b1d1cc.jpg) || LiveDump.zip  
+ |

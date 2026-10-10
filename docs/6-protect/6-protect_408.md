@@ -1,0 +1,155 @@
+
+
+# 检测 SoftICE
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50325.htm`](https://www.pediy.com/kssd/pediy05/pediy50325.htm)
+
+driversuite2.x 用以前的 MeltICE 方法不能检测到 ICE 存在了:   
+hFile = CreateFile( "\\\\\\\\.\\\\NTICE",...)   
+  
+今天看了下，其实质还是用 CreateFile 来检测的，但其参数要经过计算。   
+例如我的序列号：78228510DD9D   
+内存中的就是 NTICED052.sys 在服务了   
+这样就能检测到：hFile = CreateFile( "\\\\\\\\.\\\\NTICED052",...)   
+这种方法暂称 MeltICE+   
+现在软件防 Sofice 也太疯狂了，逼的 NUMGA 也加入反反跟踪的行列来了。   
+  
+  
+Symbol Loader 要检测到 ICE 是否激活，会提示："SoftICE is active"或"SoftICE is not active"   
+  
+用 bpx createfila 直接可中断在 nmtrans.dll 里，基本流程如下：   
+  
+  
+\* Possible StringData Ref from Data Obj ->"Software\\NuMega\\SoftIce"   
+                                  |   
+:1001F779 6854860710              push 10078654   
+:1001F77E 6802000080              push 80000002   
+  
+\* Reference To: ADVAPI32.RegOpenKeyExA, Ord:0172h   
+                                  |   
+:1001F783 FF1504B00610            Call dword ptr \[1006B004\]   
+:1001F789 85C0                    test eax, eax   
+:1001F78B 7535                    jne 1001F7C2   
+:1001F78D 8B542404                mov edx, dword ptr \[esp+04\]   
+:1001F791 8D4C2408                lea ecx, dword ptr \[esp+08\]   
+:1001F795 51                      push ecx   
+:1001F796 68A4DD1F10              push 101FDDA4   
+:1001F79B 50                      push eax   
+:1001F79C 50                      push eax   
+  
+\* Possible StringData Ref from Data Obj ->"Serial"   
+                                  |   
+:1001F79D 684C860710              push 1007864C   
+:1001F7A2 52                      push edx   
+  
+\* Reference To: ADVAPI32.RegQueryValueExA, Ord:017Bh        // 不言而喻，取安装序列号，我的 78228510DD9D   
+                                  |   
+:1001F7A3 FF1500B00610            Call dword ptr \[1006B000\]   
+:1001F7A9 85C0                    test eax, eax   
+:1001F7AB 7515                    jne 1001F7C2   
+:1001F7AD 8B442404                mov eax, dword ptr \[esp+04\]   
+:1001F7B1 C705A0DD1F1001000000    mov dword ptr \[101FDDA0\], 00000001   
+:1001F7BB 50                      push eax   
+  
+\* Reference To: ADVAPI32.RegCloseKey, Ord:015Bh   
+                                  |   
+:1001F7BC FF1508B00610            Call dword ptr \[1006B008\]   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
+|:1001F76E(C), :1001F78B(C), :1001F7AB(C)   
+|   
+:1001F7C2 68A4DD1F10              push 101FDDA4   
+:1001F7C7 8D4C2410                lea ecx, dword ptr \[esp+10\]   
+  
+\* Possible StringData Ref from Data Obj ->"\\\\.\\NTICE"   
+                                  |   
+:1001F7CB 6840860710              push 10078640   
+:1001F7D0 51                      push ecx    
+:1001F7D1 E83A000000              call 1001F810    // 此处计算   
+  
+{   
+  
+  
+  
+        :1001F8DA 3B742410                cmp esi, dword ptr \[esp+10\]   
+        :1001F8DE 7D22                    jge 1001F902   
+        :1001F8E0 0FBE141E                movsx edx, byte ptr \[esi+ebx\]  //开始指向字串:DD01582287(设为 cName\[i\])    
+        :1001F8E4 52                      push edx                        // cName\[i\]进栈   
+        :1001F8E5 E84D490200              call 10044237   
+              {   
+              :10044237 833DE0A8071001          cmp dword ptr \[1007A8E0\], 00000001   
+              :1004423E 7E11                    jle 10044251      // 跳到 10044251    
+              :10044240 6807010000              push 00000107   
+              :10044245 FF742408                push \[esp+08\]   
+              :10044249 E82CAE0000              call 1004F07A   
+              :1004424E 59                      pop ecx   
+              :1004424F 59                      pop ecx   
+              :10044250 C3                      ret   
+  
+  
+  
+              \* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+              |:1004423E(C)   
+              |   
+              :10044251 8B442404                mov eax, dword ptr \[esp+04\]  //  eax\=cName\[i\]   
+  
+              \* Possible StringData Ref from Data Obj ->"        (((((                "  //一个内置数据表，设为 Table\[i\]   
+                                        ->"  H"   
+                                  |   
+              :10044255 8B0DF4A80710            mov ecx, dword ptr \[1007A8F4\] // 取数据表指针   
+              :1004425B 668B0441                mov ax, word ptr \[ecx+2\*eax\]  //ax=Table\[i+2\*cName\[i\]\]   
+              :1004425F 2507010000              and eax, 00000107            // 求或，值通过 eax 传出   
+              :10044264 C3                      ret   
+  
+  
+  
+              }   
+        :1001F8EA 83C404                  add esp, 00000004   
+        :1001F8ED 85C0                    test eax, eax          //刚才结果是 0？   
+        :1001F8EF 7409                    je 1001F8FA   
+        :1001F8F1 8A041E                  mov al, byte ptr \[esi+ebx\]  // 得到第一个数字 cName\[i\]   
+        :1001F8F4 8807                    mov byte ptr \[edi\], al   
+        :1001F8F6 47                      inc edi                      
+        :1001F8F7 C60700                  mov byte ptr \[edi\], 00   
+  
+        \* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+        |:1001F8EF(C)   
+        |   
+        :1001F8FA 83C602                  add esi, 00000002          // i=i+2   
+        :1001F8FD 83FE08                  cmp esi, 00000008          // 也就是说循环 4 次   
+        :1001F900 7ED8                    jle 1001F8DA                // 取 DD01582287 前四个奇数位：D052（具体要看 call  10044237 的结果）   
+  
+        \* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+        |:1001F8DE(C)   
+        |   
+        :1001F902 8D7C2414                lea edi, dword ptr \[esp+14\]   
+        .........   
+        :1001F922 F3                      repz   
+        :1001F923 A5                      movsd   
+        :1001F924 8BCA                    mov ecx, edx   
+        :1001F926 83E103                  and ecx, 00000003   
+        :1001F929 F3                      repz   
+        :1001F92A A4                      movsb            .\\\\NNTICE 和 D052 合起来=\\\\NNTICED052   
+        :1001F92B 5F                      pop edi   
+        :1001F92C 5E                      pop esi   
+        :1001F92D 5D                      pop ebp   
+        :1001F92E 5B                      pop ebx   
+        :1001F92F 81C404020000            add esp, 00000204   
+        :1001F935 C3                      ret   
+  
+}   
+  
+:1001F7D6 83C40C                  add esp, 0000000C   
+:1001F7D9 8D54240C                lea edx, dword ptr \[esp+0C\]   
+:1001F7DD 6A00                    push 00000000   
+:1001F7DF 6880000000              push 00000080   
+:1001F7E4 6A03                    push 00000003   
+:1001F7E6 6A00                    push 00000000   
+:1001F7E8 6A03                    push 00000003   
+:1001F7EA 6800000080              push 80000000   
+:1001F7EF 52                      push edx              // 经过计算是：\\\\.\\NTICED052   
+:1001F7F0 FFD6                    call esi              // Createfilea   
+:1001F7F2 8BF0                    mov esi, eax   
+:1001F7F4 83FEFF                  cmp esi, FFFFFFFF    // 非-1 说明 softice 激活   
+:1001F7F7 750B                    jne 1001F804   
+:1001F7F9 68010058A6              push A6580001  4dd466d0e1e0cc123afbe504da2462ca

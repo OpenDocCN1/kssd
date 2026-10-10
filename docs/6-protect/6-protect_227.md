@@ -1,0 +1,294 @@
+
+
+# Sparc 平台上的 FlexLM 7.0 用户滤波函数分析
+
+> 原文：[`www.pediy.com/kssd/pediy10/63757.html`](https://www.pediy.com/kssd/pediy10/63757.html)
+
+Sparc 平台上的 FlexLM 7.0 用户滤波函数分析  
+  
+作为一个比较老旧的保护工具，FlexLM 的初级保护已经被分析的差不多了，默认情况下内存中能截到明文的签名，这点很多前辈的文章中都有提到。但本人近日在分析一款 SunOS Sparc 平台下的 FlexLM 7.0 时遇上了 user\_crypt\_filter 机制，这种机制会对签名加以变形运算，导致内存中不会出现明文，给破解的捕获增加了一些难度。后来参考 Nolan Blender 前辈的文章，总算破掉了这个用户滤波函数的保护，在此写出来总结一下供有相同需要的朋友参考与讨论。  
+本文没有提到到具体的软件名称，也不涉及到 Feature、Vendor 与版本号的跟踪捕获，甚至也和抓取 VendorKey 和加密种子等没有关系。另外 Sparc 平台的汇编可能大伙都不熟悉，这儿尽量多加以解释。  
+工具：DDD+GDB、IDA  
+  
+一、按传统方法定位明文比较处。  
+  
+参考 laoqian 的《制作 Flexlm license 总结》的文章，以及 laowanghai 的《LabWindows CVI 8.0》中列出来的详尽 x86 汇编代码，通过在 IDA 中搜索常数 66D8B337，可以定位到几个地方。以下是 laowanghai 的《LabWindows CVI 8.0》文章中列出的部分 x86 的代码供参考：  
+  
+105C9CDB      894D F4                    mov dword ptr ss:\[ebp-C\],ecx  
+105C9CDE    ^ E9 EEFAFFFF                jmp CVI\_1.105C97D1  
+105C9CE3      817D 18 37B3D866           cmp dword ptr ss:\[ebp+18\],66D8B337  
+105C9CEA      0F85 96000000              jnz CVI\_1.105C9D86  
+105C9CF0      33D2                       xor edx,edx  
+……  
+105C9D86      C785 78FEFFFF 08000000     mov dword ptr ss:\[ebp-188\],8  
+105C9D90      817D 18 37B3D866           cmp dword ptr ss:\[ebp+18\],66D8B337  
+105C9D97      75 0F                      jnz short CVI\_1.105C9DA8  
+……  
+105C9EB0      8B95 30FEFFFF              mov edx,dword ptr ss:\[ebp-1D0\]  
+105C9EB6      81E2 FF000000              and edx,0FF  
+105C9EBC      8B85 7CFEFFFF              mov eax,dword ptr ss:\[ebp-184\]  
+105C9EC2      33C9                       xor ecx,ecx  
+105C9EC4      8A88 98358A10              mov cl,byte ptr ds:\[eax+108A3598\]  
+105C9ECA      3BD1                       cmp edx,ecx                     ; 与正确 SIGN 逐字节的比较  
+  
+这里，比较之处前面一个 and edx,0FF 比较的显目，可以作为一个小标志。  
+类似的，在我们对付的 SPARC 平台下的软件，其比较代码也类似：  
+  
+ loc\_3515CC:                             ! CODE XREF: sub\_3508E4+6B0j  
+.text:003515CC                                         ! sub\_3508E4+CE0j  
+.text:003515CC                 ld      \[%fp+arg\_54\], %o5  
+.text:003515D0                 set     0x66D8B337, %o7 ! 绝对是这儿的常数  
+.text:003515D8                 cmp     %o5, %o7  
+.text:003515DC                 be      loc\_3515EC  
+.text:003515E0                 nop  
+……  
+ loc\_351684:                             ! CODE XREF: sub\_3508E4+D00j  
+.text:00351684                 mov     8, %o7          ! 也是这儿的常数  
+.text:00351688                 st      %o7, \[%fp+var\_8\]  
+.text:0035168C                 ld      \[%fp+arg\_54\], %l0  
+.text:00351690                 set     0x66D8B337, %l1  
+.text:00351698                 cmp     %l0, %l1  
+.text:0035169C                 be      loc\_3516AC  
+.text:003516A0                 nop  
+……  
+.text:003517F8 loc\_3517F8:                             ! CODE XREF: sub\_3508E4+EE0j  
+.text:003517F8                 ld      \[%fp+var\_4\_idx\], %o3  
+.text:003517FC                 set     byte\_4DD515, %o4  
+.text:00351804                 ldub    \[%o3+%o4\], %o5  ! ldub 取一位字节，相当于同时做了上面的 and 0xff 了  
+.text:00351808                 ldub    \[%fp+var\_180\_oursign+3\], %o7  
+.text:0035180C                 cmp     %o7, %o5        ! 是这儿的比较  
+.text:00351810                 bne     loc\_351820  
+.text:00351814                 nop  
+.text:00351814  
+  
+由 x86 与 Sparc 的汇编代码对比可以看出，.text:0035180C 处确实是我们传入的伪造签名值（我传的是 1234567890AB）与正确签名值的比较之处，byte\_4DD515 这个地址所指的一片内存区域，应该是我们需要的正确签名。于是在 0035180C 处下断，第一次来到此处时查看 0x4DD515 地址的内容，得到六个字节 EEB53723B248。想当然地拿它放到 license 文件里头一试，很不幸，通不过。  
+  
+于是开始了摸索，在 0035180C 之前下断，逐步来，发现 0035180C 之前有一处很关键的代码：  
+  
+.text:003517CC loc\_3517CC:                             ! CODE XREF: sub\_3508E4+ED8j  
+.text:003517CC                 ld      \[%fp+arg\_44\_job\], %o0  
+.text:003517D0                 ld      \[%o0+0x234\], %g1 ! Job 偏移 234 处是啥？原来是 user\_crypt\_filter 函数地址。  
+.text:003517D4                 ld      \[%fp+var\_4\_idx\], %o1  
+.text:003517D8                 set     byte\_4DD515, %o2  
+.text:003517E0                 add     %o1, %o2, %o1   ! char\*，指向正确的未 filter 的内容  
+.text:003517E4                 ldub    \[%fp+var\_180\_oursign+3\], %o3 ! 我们的 sign 的字符  
+.text:003517E8                 ld      \[%fp+arg\_44\_job\], %o0 ! Job！  
+.text:003517EC                 ld      \[%fp+var\_4\_idx\], %o2 ! Index？  
+.text:003517F0                 call    %g1             ! 3323a0,user\_crypt\_filter，结果放在 o1 指的内容  
+.text:003517F4                 nop  
+  
+那个 call %g1 是对解出的明文密码进行的一次变换。刚才抓到的六个字节 EEB53723B248，其中 EE 是已经经过了第一次变换的结果，变换出来的结果和我们传入的伪造签名的第一个字节 12 不一致，因此出错。如果在 003517F0 之前下断查看 byte\_4DD515 的内容，则可得到未经变换的第一个字节值。抓出的初始的正确签名值是 C1B53723B248，但如果拿这个签名值去 license 文件里头试的话仍然通不过，因为这串签名值还会经过一次变换，这个变换便是臭名昭著的 user\_crypt\_filter：用户滤波函数。  
+  
+二、分析用户滤波函数  
+  
+查 FlexLM 的资料得知，user\_crypt\_filter 是对签名字符进行的进一步可逆变换机制，包括生成时的 user\_crypt\_filter 解码函数和 user\_crypt\_filter\_gen 编码函数。我们的任务，是根据 user\_crypt\_filter 函数的实现，反推出 user\_crypt\_filter\_gen 函数来。  
+  
+从代码中以及从前辈们的破解资料中可得知，user\_crypt\_filter 附近的调用机制基本上是：  
+  
+for (i = 0; i < j; i++) /\* compare user-input and real checksums \*/  
+{  
+  ......  
+  if (user\_crypt\_filter)  
+    (\*user\_crypt\_filter)(job, &x, i, y\[i\]); // 使用了滤波函数进行进一步的对比！  
+      
+  if (x != y\[i\])   
+    return 0;  
+}  
+  
+而网上查到的很多中文文章中的 FlexLM 都是没用 user\_crypt\_filter 的，也就是 user\_crypt\_filter 为 false 而跳过(\*user\_crypt\_filter)指针所指函数的变换，因此下面的 x != y\[i\]便是正确签名字符与我们输入的伪造签名字符的明文比较。而我们碰到的情况是会调用 user\_crypt\_filter 的函数的。  
+  
+user\_crypt\_filter 的函数原型为：  
+user\_crypt\_filter(job, char\* KeySign, int index, char OurSign);  
+  
+其中 job 在函数体内基本无用。KeySign 为传入的未变换的签名的地址（下面称为原始签名），index 为此字符在密文中的位置，如签名为 1234567890AB，则 12 的 index 为 0，34 的为 1，以此类推。  
+  
+user\_crypt\_filter 是逐个处理字符的，它根据未变换的原始签名字符、此字符的位置、以及我们传入的伪造签名字符进行一系列的运算返回一个字符，这个字符必须等于我们传入的伪造签名字符。这么说可能有点绕，换种说法就是：未变换的原始签名字符、此字符的位置、以及变换后的签名字符三者必须符合一定的运算法则，user\_crypt\_filter 函数拿我们传入的伪造签名字符作为验证来和原始签名字符参与运算，如果运算通过，则表示伪造的签名字符是正确的变换后的签名字符，那么就将此正确的签名字符返回供上层代码(x != y\[i\])比较，其实此时已经无需比较了。  
+  
+可以看出，user\_crypt\_filter 函数中不会出现我们需要的正确签名字符，只有当我们传入的伪造签名字符等于正确签名字符时才会验证通过，才会返回正确签名字符。下面我们要搞清楚的是 user\_crypt\_filter 函数究竟对未变换的原始签名字符、此字符的位置、以及我们传入的伪造签名字符三者进行了怎样的变换，从而努力反推出来如何根据未变换的原始签名字符以及此字符的位置计算正确的签名字符。  
+  
+user\_crypt\_filter 函数非常长，从.text:003323A0 到.text:003374B8，反汇编代码有七千多行，很是吓人。不过经过大致浏览，可以看出它是根据传入的 Idx 的范围 0 到 19 有比较重复的 20 大段代码，20 大段里头每大段会对字符进行异或并对其 8 位进行处理，共 20 加 160 处变换，搞明白了它做啥就好办了。  
+  
+首先是将传入的字符异或，比如我们传入的 Idx 是 0 的话：  
+  
+.text:003324E0                 ld      \[$XADqrkBrM9j3y7\_\_num0\], %l0  
+.text:003324E4                 cmp     %l1, %l0  
+.text:003324E8                 bne     loc\_332504  
+.text:003324EC                 nop  
+.text:003324EC  
+.text:003324F0                 ldub    \[%fp+var\_2\_GoodChar\_xor\], %l2  
+.text:003324F4                 sethi   %hi(unk\_496800), %l0  
+.text:003324F8                 ldub    \[$XADqrkBrM9j3y7\_\_x\_0\], %l1 !   
+// 取出 num0 对应的某常量值（x\_0）和 GoodChar 一异或，存入局部变量 GoodChar\_Xor。  
+.text:003324FC                 xor     %l2, %l1, %l0  
+.text:00332500                 stb     %l0, \[%fp+var\_2\_GoodChar\_xor\]  
+  
+根据传入的 Idx 的不同，将未变换的原始签名字符和某一值进行异或，得到临时变量 GoodChar\_xor。  
+  
+然后启用另外一个 Char 变量，这里命名为 TmpChar，用来挨个检查 GoodChar\_xor 的位，比如这儿是检查其中一位：  
+  
+ loc\_332740:                             ! CODE XREF: user\_crypt\_filter+384j  
+.text:00332740                 ld      \[%fp+arg\_4C\_Idx\], %l1  
+.text:00332744                 sethi   %hi(unk\_496800), %l0  
+.text:00332748                 ld      \[$XADqrkBrM9j3y7\_\_num8\], %l0  
+.text:0033274C                 cmp     %l1, %l0  
+.text:00332750                 bne     loc\_3327BC // 如果此字符的 index 是 8，那么检查  
+.text:00332754                 nop  
+.text:00332754  
+.text:00332758                 ldub    \[%fp+var\_2\_GoodChar\_xor\], %l2  
+.text:0033275C                 sethi   %hi(unk\_496800), %l0  
+.text:00332760                 ld      \[$XADqrkBrM9j3y7\_\_bit3\], %l1  
+.text:00332764                 andcc   %l2, %l1, %l0  
+.text:00332768                 be      loc\_332784  // 如果异或后的字符的 bit3 位是 1 则执行下面的，  
+.text:0033276C                 nop  
+.text:0033276C  
+.text:00332770                 ldub    \[%fp+var\_1\_TmpChar\], %l2  
+.text:00332774                 sethi   %hi(unk\_496800), %l0  
+.text:00332778                 ld      \[$XADqrkBrM9j3y7\_\_bit4\], %l1    
+// 如果异或后的字符的 bit3 位是 1，则将临时变量 TmpChar 的 bit4 置为 1，  
+.text:0033277C                 or      %l2, %l1, %l0  
+.text:00332780                 stb     %l0, \[%fp+var\_1\_TmpChar\]  
+.text:00332780  
+.text:00332784  
+.text:00332784 loc\_332784:                             ! CODE XREF: user\_crypt\_filter+3C8j  
+.text:00332784                 ldub    \[%fp+var\_1\_TmpChar\], %l1  
+.text:00332788                 sethi   %hi(unk\_496800), %l0  
+.text:0033278C                 ld      \[$XADqrkBrM9j3y7\_\_bit4\], %l2  
+.text:00332790                 and     %l1, %l2, %l1  
+.text:00332794                 ldub    \[%fp+var\_3\_OurChar\], %l0  
+.text:00332798                 and     %l0, %l2, %l0  
+.text:0033279C                 cmp     %l1, %l0  
+.text:003327A0                 be      loc\_3327BC // 然后检查我们伪造的签名字符的 bit4，和 TmpChar 的 bit4 是否相同。  
+.text:003327A4                 nop  
+.text:003327A4  
+.text:003327A8                 ld      \[%fp+arg\_48\_charX\], %l1  
+.text:003327AC                 ldsb    \[%l1\], %l0  
+.text:003327B0                 btog    -0x3E, %l0 // 在俩 bit 不同的情况下，返回垃圾值 3E  
+.text:003327B4                 ba      locret\_3374B8  
+.text:003327B8                 stb     %l0, \[%l1\]  
+.text:003327B8  
+  
+以上是对 Index 为 8 时的未签名字符 bit3 位的判断检查过程：如果 GoodChar\_xor 的 bit3 是 1，则 TmpChar 的 bit4 也置一，因为 TmpChar 原始为 0，因此 bit4 原始也为 0，所以这一步就是把 GoodChar\_xor 的 bit3 搬移到了 TmpChar 的 bit4 上。  
+然后 TmpChar 的 bit4 和我们传入的伪造签名字符 OurChar 的 bit4 进行比较，相同的话这位检查通过，继续检查下一位，否则返回一个垃圾值-0x3E 用以迷惑俺们。总的来说，这步就是检查异或后的 GoodChar\_xor 的 bit3 是否等于伪造签名字符的 bit4，等的话才通过。  
+  
+参考 Nolan Blender 的文章，这里检查一个 bit 的过程用 C 代码描述如下（这里是 index 为 0 时检查 GoodChar\_xor 的 bit2 与 TmpChar 的 bit5 是否相等的情况）：  
+  
+if (idx == num0)  
+{  
+    if (GoodChar\_xor & bit2)  TmpChar |= bit5;   
+    // 如果 inc\_c 的 2 置位，那么把另外一个 C 的 5 置位，相当于 2 位换到 5 位去  
+    if ((TmpChar & bit5) != (OurChar & bit5)) { \*KeySign = 0xxx; return; // 不等则返回垃圾}  
+    // 其实就是 GoodChar\_xor 的 bit2 要和输入签名字符的 bit5 相等。  
+}  
+  
+以下还有很多类似的检验，对于每一个 index，都要检查 GoodChar\_xor 的 8 个 bit 和 OurChar 的 8 个 bit 是否相同，但这 8 个 bit 并不是顺序上一一对应，而是乱序（permute）了。比如 GoodChar\_xor 的 bit0 应该等于 OurChar 的 bit3、GoodChar\_xor 的 bit2 必须等于 OurChar 的 bit7，等等。  
+  
+由此可知，只要将 GoodChar\_xor 按 user\_crypt\_filter 中特定的 index 处所指明的 bit 置换规则，把各个 bit 换一下，则可得到解密后的明文签名字符。这也就是说，如果我们在代码中找到了针对一个 index 的字符的八条位置换规则，如 GoodChar\_xor 的 bit0 应该等于 OurChar 的 bit3、GoodChar\_xor 的 bit2 应该等于 OurChar 的 bit7 等共八条，那么我们只要新起一个变量 TmpChar，将 GoodChar\_xor 的 bit0 放到变量 TmpChar 的 bit3，GoodChar\_xor 的 bit2 换到 TmpChar 的 bit7，换过 8 个 bit 后，这个 TmpChar 的每一位必然等于解密后的明文签名字符 OurChar。这就是 user\_crypt\_filter 检查运算的逆运算！  
+  
+三、编写逆运算程序  
+  
+逆运算分析出来了，就可以写还原程序了。  
+这儿参考了 Nolan Blender 的思想，将 0 到 19 个 index，每个 index 所对应的 8 位 bit 置换规则写成一个大数组，共一百六十项，从七千多行汇编代码中整理出来相当费力，但所幸只是体力活儿。而且如果是短的签名的话，只要搜集 0 到 5 的 index 所对应的四十八条 bit 置换规则即可。  
+  
+以下代码用 Delphi 实现：  
+  
+type  
+  TShiftVals = array\[0..7\] of Integer;  
+  TPermute = packed record  
+    shiftvals: TShiftVals;  
+  end;  
+  
+PerTab: array\[0..19\] of TPermute = // 搜集得到的位置换规则数组  
+(           // BIT  0 1 2 3 4 5 6 7  
+       (shiftvals: (0,4,5,3,1,2,6,7)), // idx 00 //  
+       (shiftvals: (4,0,5,2,1,3,6,7)), // idx 01 //  
+       (shiftvals: (7,1,3,4,0,5,2,6)), // idx 02 //  
+       (shiftvals: (4,7,3,6,1,5,2,0)), // idx 03 //  
+       (shiftvals: (0,3,7,4,2,5,6,1)), // idx 04 //  
+       (shiftvals: (4,3,5,6,7,0,1,2)), // idx 05 //  
+       (shiftvals: (2,7,4,0,6,5,3,1)), // idx 06 //  
+       (shiftvals: (4,5,1,7,0,3,6,2)), // idx 07 //  
+       (shiftvals: (1,0,5,4,3,6,7,2)), // idx 08 //  
+       (shiftvals: (2,7,5,3,0,6,1,4)), // idx 09 //  
+       (shiftvals: (3,5,7,0,6,4,2,1)), // idx 10 //  
+       (shiftvals: (7,6,5,0,4,3,2,1)), // idx 11 //  
+       (shiftvals: (3,4,5,6,0,2,1,7)), // idx 12 //  
+       (shiftvals: (0,4,6,3,5,2,1,7)), // idx 13 //  
+       (shiftvals: (1,5,0,2,6,3,4,7)), // idx 14 //  
+       (shiftvals: (2,6,5,7,4,3,1,0)), // idx 15 //  
+       (shiftvals: (2,3,0,5,1,7,6,4)), // idx 16 //  
+       (shiftvals: (1,7,4,2,3,0,6,5)), // idx 17 //  
+       (shiftvals: (1,5,2,3,4,7,6,0)), // idx 18 //  
+       (shiftvals: (3,0,6,7,4,5,2,1))  // idx 19 //  
+);  
+  
+如 (shiftvals: (0,4,5,3,1,2,6,7)), // idx 00 //，表示对于 index 为 0 的字符，其 bit0 位置换到 bit0 位（两位可以相同），bit1 置换到 bit4，bit2 置换到 bit5，等等以此类推。  
+  
+另外还有一次异或，此异或的数字也是常数，根据 index 不同而不同，是上文代码中的 x\_0 等形式的变量。总结得出一个异或数组：  
+  
+var  
+  xorvals: array\[0..19\] of Integer =  
+  (  
+    $1E, $16, $3E, $24,  
+    $04, $1E, $1E, $13,  
+    $15, $0C, $2D, $33,  
+    $3D, $21, $26, $2E,  
+    $12, $34, $01, $2B  
+  );  
+  
+然后写一个解密函数与 bit 置换函数（参考了：Nolan Blender 的思想）  
+  
+// 传入计算来的原始的签名字符与位置，返回变换后的正确签名字符  
+function user\_crypt\_filter\_gen(inchar: Char; idx: Integer): Char;  
+var  
+  tmpchr: Char;  
+begin  
+  tmpchr := Chr(Ord(inchar) xor xorvals\[idx\]); // 先异或还原  
+  Result := Permute(tmpchr, PerTab\[idx\].shiftvals); // 再置换位置  
+end;  
+  
+// 将传入字符按大数组表内的规则进行置换位置  
+function permute(inchar: Char; shiftvals: TShiftVals): Char;  
+var  
+  outval: Integer;  
+  i: Integer;  
+  shbit: Integer; // Test bit \*/  
+begin  
+  outval := 0;  
+  shbit := 1;  
+  for i := 0 to 7 do  
+  begin  
+    if ((Ord(inchar) and shbit) <> 0) then  
+    begin  
+      outval := outval or (1 shl (shiftvals\[i\]));  
+    end;  
+    shbit := shbit shl 1;  
+  end;  
+  Result := Chr(outval and $FF);  
+end;  
+  
+然后，利用上面两个写好的函数对抓出的未变换签名值 C1B53723B248 进行运算：  
+  
+procedure TForm1.FormCreate(Sender: TObject);  
+begin  
+  Edit1.Text := IntToHex(Ord(user\_crypt\_filter\_gen(#$C1, 0)), 2)+  
+    IntToHex(Ord(user\_crypt\_filter\_gen(#$B5, 1)), 2) +  
+    IntToHex(Ord(user\_crypt\_filter\_gen(#$37, 2)), 2) +  
+    IntToHex(Ord(user\_crypt\_filter\_gen(#$23, 3)), 2) +  
+    IntToHex(Ord(user\_crypt\_filter\_gen(#$B2, 4)), 2) +  
+    IntToHex(Ord(user\_crypt\_filter\_gen(#$48, 5)), 2);  
+end;  
+  
+运行程序后，Edit1.Text 中得到生成的正确签名值 FB999098AEAA。拿这串签名填入 license 文件中，测试通过。  
+  
+再次跟踪 user\_crypt\_filter 可知，比如对 index 为 0 的情况，传入原始字符 C1 与 index 0，C1 与 1E 异或后的值经过八次位置换得到 FB，和我们传入的 FB 相等，因此通过，返回 FB（只要有一位不等，就会返回垃圾值，外部的比较必然通不过）。user\_crypt\_filter 外部再用返回的 FB 与我们传入的 FB 比较，自然相等，也就通过了。  
+  
+四、总结  
+  
+user\_crypt\_filter 的核心是字符的位置换规则，需要通篇阅读代码以总结出一百六十个位置换规则来，这一点比较的耗体力并且不能出错，否则通不过的情况下再次调试就需要跟入七千多行的 user\_crypt\_filter 以找到出错点，这体力耗费的就不是总结位置换规则所能比的了。我在总结过程中还好没在位置换规则中出错，但搞错了一位 xorvals 中的异或值，事后查起来也耗了一点力气，等到所幸最后还是找出来的时候已经快累趴下了。  
+  
+参考资料：  
+http://www.woodmann.com/crackz/Tutorials/Nbufilt.htm  
+laoqian 的《制作 Flexlm license 总结》的文章  
+laowanghai 的《LabWindows CVI 8.0》  
+其他看雪论坛的精华文章  
+http://www-curri.u-strasbg.fr/documentation/calcul/doc/ProPack/3SP1/docs/doc/lmsgi-9.2.3/flexref/chap21.htm

@@ -1,0 +1,810 @@
+
+
+# 逆向应该知道的~!
+
+> 原文：[`www.pediy.com/kssd/pediy10/92500.html`](https://www.pediy.com/kssd/pediy10/92500.html)
+
+前段时间，发的贴受到很大的争议，所以，为了避免类似的情况，我想说明一下，此贴只适应对逆向有兴趣爱好的朋友，而且是对逆向有浓厚兴趣的初学者，如果，读贴者高人也，可以 JMP 或 RETURN，如果读贴者是学习者，请 CALL。当觉得此贴对你没有任何价值时，或觉得是忽悠的话，请忽略 RETURN，我只写给需要的朋友，请口留吉言，在此，谢过~~！我不想因为我的贴给 PEDIY 带来没必要的麻烦，此贴，也没太多技术含量只是一些方法和思路，并不探讨高深技术，所以初学者只要懂点汇编，应该都很快就能明白，如那些地方说的不明白，只管跟贴询问，我看到自然就回答了，^\_^。  
+  正题开始…………  
+  
+  逆向有个误区，需要说明，如果是需要了解流程，完全没必要这样，只需要看懂代码整体实现，类自行写出类似代码，这个不算是逆向，逆向就是要写出几乎编译结果一样的代码。要做到这个是十分不容易的，编译有着太多的不确定，所以要写出编译结果完全一样的代码，以前的我也觉得不可能，可现在似乎我不这么认为，在我的手里已经有编译结果完全一样的代码，编译结果完全一样代表是逆出原来的代码了吗？答案是否，只能说是接近了原来的代码，但是无法完全复原出原来的代码，这又是个误区。逆向比较忌讳这样的做法：  
+  
+//列如这样，比较复杂点算术函数，由于符点，不太好懂，索性直接嵌入汇编了事，运行结果完全没问题似乎编译结果也是完全一样的，但是，它根本不算什么逆向，只能说是个残废。  
+  
+
+代码:
+
+```
+void     AngleMatrix(float\* unk1,float\* unk2)
+{
+    float   dunk1;
+
+  dunk1 = unk1\[2\]\*\_real\_004A6CBC;
+  float   dunk2=(float)sin((double)dunk1);
+  float   dunk3=(float)cos(dunk1);
+
+  dunk1 = unk1\[1\]\*\_real\_004A6CBC;
+  float   dunk4=(float)sin((double)dunk1);
+  float   dunk5=(float)cos(dunk1);
+
+  dunk1 = unk1\[0\]\*\_real\_004A6CBC;
+  float   dunk6=(float)sin((double)dunk1);
+  float   dunk7=(float)cos(dunk1);
+
+  \*unk2=dunk5\*dunk3;
+  \*(unk2+0x04)=dunk5\*dunk2;
+
+  \_asm{
+    fld   dunk4
+    fchs
+    mov   edx,unk2
+    fstp  dword ptr\[edx+0x20\]
+  }
+
+  \_asm{
+    fld   dunk6
+    fmul  dunk4
+    fmul  dunk3
+    fld   dunk2
+    fchs
+    fmul  dunk7
+    faddp st(1),st
+    mov   eax,unk2
+    fstp  dword ptr\[eax+0x04\]
+    fld   dunk6
+    fmul  dunk4
+    fmul  dunk2
+    fld   dunk7
+    fmul  dunk3
+    faddp st(1),st
+    mov   ecx,unk2
+    fstp  dword ptr\[ecx+0x14\]
+    fld   dunk6
+    fmul  dunk5
+    mov   edx,unk2
+    fstp  dword ptr\[edx+0x24\]
+    fld   dunk7
+    fmul  dunk4
+    fmul  dunk3
+    fld   dunk6
+    fchs 
+    fld   dunk2
+    fchs
+    fmulp st(1),st
+    faddp st(1),st
+    mov   eax,unk2
+    fstp  dword ptr\[eax+0x08\]
+    fld   dunk7
+    fmul  dunk4
+    fmul  dunk2
+    fld   dunk6
+    fchs
+    fmul  dunk3
+    faddp st(1),st
+    mov   ecx,unk2
+    fstp  dword ptr\[ecx+0x18\]
+  }
+  \*(unk2+0x0A)=dunk7\*dunk5;
+  unk2\[0x03\]=0;
+  unk2\[0x07\]=0;
+  unk2\[0x0B\]=0;
+}
+
+//我们为什么不吧它写成这样的呢？这段代码和原来的代码编译出来的结果是完全一样的，但是为什么，我们不去花点精神，去把它写好呢，虽然算术符点有点麻烦，但是整体来看，似乎它还是那么的容易，这样的代码是接近原代码了，但是它并不是原来的代码，原来的代码至少有 X 和 Y 之类的变量名，而我却用 A-Z 类代之。但是这样的代码是不是变的十分好懂了许多，我们可以发现，原代码的书写者很有可能是 C 程序原，在我逆的时候发现了，变量定义与 C++的不同。我们可以根据逆出来的代码分析出写代码的人的水平等等~~！
+
+void    AngleMatrix( float \* fBuffer1, float fBuffer2\[\] )
+{
+  //  
+  float  fA,fB,fC,fD,fE,fF,fG;    //04,08,0C,10,14,18,1C
+  
+  //
+  fA = fBuffer1\[2\] \* 0.01745329f;
+  
+  //
+  fD = sin( fA );
+  fG = cos( fA );
+
+  //
+  fA = fBuffer1\[1\] \* 0.01745329f;
+
+  //
+  fC = sin( fA );
+  fF = cos( fA );
+
+  //
+  fA = fBuffer1\[0\] \* 0.01745329f;
+  
+  //
+  fB = sin( fA );
+  fE = cos( fA );
+
+  //
+  fBuffer2\[0\] = fF \*fG;
+  fBuffer2\[4\] = fF \*fD;
+
+  //
+  fBuffer2\[8\] = -fC;
+
+  fBuffer2\[1\] = fB \* fC \* fG + ( -fD \* fE );
+  fBuffer2\[5\] = fB \* fC \* fD + ( fE \* fG );
+
+  fBuffer2\[9\] = fB \* fF;
+
+  //
+  fBuffer2\[2\] = fE \* fC \* fG + ( -fB \* -fD );
+
+  //
+  fBuffer2\[6\] = fE \* fC \* fD + ( -fB \* fG );
+
+  //
+  fBuffer2\[10\] = fE \* fF;
+
+  //
+  fBuffer2\[3\] = 0;
+  fBuffer2\[7\] = 0;
+  fBuffer2\[11\] = 0;
+}
+
+```
+
+  并没希望读贴者能够看明白这个函数，是做什么用的，只是想让大家明白一个忌讳，就是需要坚持耐心的做完，这样你就会觉得自己确实再进步。\_\_asm 的功用让我们可以偷懒，但是懒惰让我们很难提高，甚至退步。虽然我是异常的懒。^\_^  
+  忌讳第二就是半途而废，做一半太难，就丢下了，需要的是挑战自己，提高自己，不说了，大家自己体会吧。  
+  
+  我们改如何练手逆向呢？建议大家先从简单到难，也就是从 VC 程序开始，最好是纯 API 的程序，避免 MFC 库带来的麻烦，尽量不涉及模板之类的，没有一口气就可以学很多的，需要慢慢来，忌讳三，就是心急。我们可以找个纯 API 的程序，最好带 PDB，而且是 DEBUG 的，建议最后再研究 release。但是这样的代码我们几乎无法找到，所以可以自己写点，来研究，刚开始不要涉及太多的流程，这样会很打击信心，研究的目标是，不段的尝试写出编译结果完全一样的代码，当编译结果完全一样后，再对照原代码，或许发现写出来的代码和原来的代码是那么的接近，几乎差那么几步就能完全一样了。  
+  
+  我们遇到一个程序，需要逆向它首先要判断，它的原代码是用什么语言写的，这个只要仔细的区分就可以发现，毕竟 vc,bcb,delphi,汇编，写的程序都是那么的不同，我们可以很容易断定出，是什么语言，接下来我们需要的是把编译器设置的和写代码的人完全一样，这个是比较难的，需要尝试。  
+  
+//例如：一个程序的入口是这样的，那么，我们可以肯定这个是 WIN32 程序，我们需要的就是这样的程序，来进行研究，看到这样的入口，第一感觉必须是 VC6 版本，至少 VC6 可以编译出同样的效果，VC 每个版本的入口都略有不同，所以大家仔细对比下会发现其中的不同，我就不一一列举。  
+  
+代码:
+
+```
+0046221E >/$  55            push    ebp
+0046221F  |.  8BEC          mov     ebp, esp
+00462221  |.  6A FF         push    -1
+00462223  |.  68 40784B00   push    004B7840
+00462228  |.  68 6C1D4600   push    00461D6C                         ;  SE 处理程序安装
+0046222D  |.  64:A1 0000000>mov     eax, dword ptr fs:\[0\]
+00462233  |.  50            push    eax
+00462234  |.  64:8925 00000>mov     dword ptr fs:\[0\], esp
+0046223B  |.  83EC 58       sub     esp, 58
+0046223E  |.  53            push    ebx
+0046223F  |.  56            push    esi
+00462240  |.  57            push    edi
+00462241  |.  8965 E8       mov     dword ptr \[ebp-18\], esp
+00462244  |.  FF15 0036C70B call    dword ptr \[<&KERNEL32.GetVersion>;  kernel32.GetVersion
+0046224A  |.  33D2          xor     edx, edx
+0046224C  |.  8AD4          mov     dl, ah
+0046224E  |.  8915 F004C70B mov     dword ptr \[BC704F0\], edx
+00462254  |.  8BC8          mov     ecx, eax
+00462256  |.  81E1 FF000000 and     ecx, 0FF
+0046225C  |.  890D EC04C70B mov     dword ptr \[BC704EC\], ecx
+00462262  |.  C1E1 08       shl     ecx, 8
+00462265  |.  03CA          add     ecx, edx
+00462267  |.  890D E804C70B mov     dword ptr \[BC704E8\], ecx
+0046226D  |.  C1E8 10       shr     eax, 10
+00462270  |.  A3 E404C70B   mov     dword ptr \[BC704E4\], eax
+00462275  |.  6A 01         push    1
+00462277  |.  E8 5C500000   call    004672D8
+
+//我们进去 WinMain 函数，会发现开头和结尾的一些信息，
+00415020  /> \\55            push    ebp
+00415021  |.  8BEC          mov     ebp, esp
+00415023  |.  81EC A4010000 sub     esp, 1A4
+00415029  |.  53            push    ebx //\*
+0041502A  |.  56            push    esi //\*
+0041502B  |.  57            push    edi //\*
+0041502C  |.  833D BC7D4C00>cmp     dword ptr \[4C7DBC\], 0
+00415033  |.  75 32         jnz     short 00415067
+
+//这样的开头和结尾能说明什么呢，可以说明很重要的几个地方，
+0041528F  |> \\8B45 EC       mov     eax, dword ptr \[ebp-14\]
+00415292  |>  5F            pop     edi //\*
+00415293  |.  5E            pop     esi //\*
+00415294  |.  5B            pop     ebx //\*
+00415295  |.  8BE5          mov     esp, ebp
+00415297  |.  5D            pop     ebp
+00415298  \\.  C2 1000       retn    10
+
+//从 EBP 与 ESP 区分来看这个代码为，Debug Info 为 Program Database for Edit and Continue 和 Program Database,而 Optimizations 的编译设定只能是 Debug 或 Default,Customize.这样几乎就能确定编译器的大体设置了，再仔细发现会看到，没有栈溢出校验，那么，我们需要设定为 Default 和 Customize.或者把栈溢出校验拿掉，我们发现开头和结尾有“\*”的汇编语句对应，发现应该是 Program Database for Edit and Continue，而不是 Program Database，这样我们就确定了代码的基本定型，可以再根据编译情况在适当的调节，部分编译选项，还有个需要注意的地方就是，编译器起的对应，如果发现程序是 VC6，就选 VC6 做代码逆向不要用 VC2005 什么的，这样编译出的结果会略有不同，造成误判断。编译的设定有很多地方是需要靠很微小的变化去判定，一两个函数不一定能说明什么^\_^。需要靠自己的摸索，才能有自己的经验，才会有自己的知识。我不再具体举例子了。
+
+//当编译器设定结束后，这样就可以写出几乎接近的代码了，切记，编译器的设定和代码要灵活对应不能死死的去硬框。接下来区分 LIB 库，当发现整个代码都对应了，忽然觉得有段代码是异常的怪异，如下面的，
+0040C13D  |.  68 E8030000   push    3E8
+0040C142  |.  68 84104B00   push    004B1084
+0040C147  |.  E8 24370500   call    0045F870
+0040C14C  |.  83C4 08       add     esp, 8
+0040C14F  |.  8985 F0FCFFFF mov     dword ptr \[ebp-310\], eax  ;发现一直为 EBP
+0040C155  |.  83BD F0FCFFFF>cmp     dword ptr \[ebp-310\], 0
+0040C15C  |.  74 19         je      short 0040C177
+0040C15E  |.  8B8D F0FCFFFF mov     ecx, dword ptr \[ebp-310\]
+0040C164  |.  51            push    ecx
+0040C165  |.  68 C02A4B00   push    004B2AC0                         ;  ASCII "Failed initialization of GameGaurd !!! , Error: %d"
+0040C16A  |.  E8 FC51FFFF   call    0040136B
+0040C16F  |.  83C4 08       add     esp, 8
+0040C172  |.  E9 702A0000   jmp     0040EBE7
+
+
+0045F870  /$  8B5424 04     mov     edx, dword ptr \[esp+4\]  ;突然转 ESP
+0045F874  |.  8B4424 08     mov     eax, dword ptr \[esp+8\]
+0045F878  |.  56            push    esi
+0045F879  |.  57            push    edi
+0045F87A  |.  85D2          test    edx, edx
+0045F87C  |.  C705 6403C70B>mov     dword ptr \[BC70364\], 0
+0045F886  |.  A3 6803C70B   mov     dword ptr \[BC70368\], eax
+0045F88B  |.  C705 6C03C70B>mov     dword ptr \[BC7036C\], 0
+0045F895  |.  C605 7003C70B>mov     byte ptr \[BC70370\], 0
+0045F89C  |.  74 51         je      short 0045F8EF
+0045F89E  |.  803A 00       cmp     byte ptr \[edx\], 0
+0045F8A1  |.  74 4C         je      short 0045F8EF
+0045F8A3  |.  8BFA          mov     edi, edx
+0045F8A5  |.  83C9 FF       or      ecx, FFFFFFFF
+0045F8A8  |.  33C0          xor     eax, eax
+0045F8AA  |.  F2:AE         repne   scas byte ptr es:\[edi\]
+0045F8AC  |.  F7D1          not     ecx
+0045F8AE  |.  49            dec     ecx
+0045F8AF  |.  807C11 FE 5C  cmp     byte ptr \[ecx+edx-2\], 5C
+0045F8B4  |.  75 24         jnz     short 0045F8DA
+0045F8B6  |.  8BFA          mov     edi, edx
+0045F8B8  |.  83C9 FF       or      ecx, FFFFFFFF
+0045F8BB  |.  33C0          xor     eax, eax
+0045F8BD  |.  F2:AE         repne   scas byte ptr es:\[edi\]
+0045F8BF  |.  F7D1          not     ecx
+0045F8C1  |.  2BF9          sub     edi, ecx
+0045F8C3  |.  8BD1          mov     edx, ecx
+0045F8C5  |.  8BF7          mov     esi, edi
+0045F8C7  |.  BF 7003C70B   mov     edi, 0BC70370
+0045F8CC  |.  C1E9 02       shr     ecx, 2
+0045F8CF  |.  F3:A5         rep     movs dword ptr es:\[edi\], dword p>
+0045F8D1  |.  8BCA          mov     ecx, edx
+0045F8D3  |.  83E1 03       and     ecx, 3
+0045F8D6  |.  F3:A4         rep     movs byte ptr es:\[edi\], byte ptr>
+0045F8D8  |.  EB 15         jmp     short 0045F8EF
+0045F8DA  |>  6A 5C         push    5C
+0045F8DC  |.  52            push    edx
+0045F8DD  |.  68 1CC34B00   push    004BC31C                         ;  ASCII "%s%c"
+0045F8E2  |.  68 7003C70B   push    0BC70370
+0045F8E7  |.  E8 832A0000   call    0046236F
+0045F8EC  |.  83C4 10       add     esp, 10
+0045F8EF  |>  6A 01         push    1
+0045F8F1  |.  68 10C34B00   push    004BC310                         ;  ASCII "ggauth.dll"
+0045F8F6  |.  E8 75000000   call    0045F970
+0045F8FB  |.  8BF0          mov     esi, eax
+0045F8FD  |.  83C4 08       add     esp, 8
+0045F900  |.  85F6          test    esi, esi
+0045F902  |.  74 0A         je      short 0045F90E
+0045F904  |.  E8 17000000   call    0045F920
+0045F909  |.  8BC6          mov     eax, esi
+0045F90B  |.  5F            pop     edi
+0045F90C  |.  5E            pop     esi
+0045F90D  |.  C3            retn
+0045F90E  |>  5F            pop     edi
+0045F90F  |.  33C0          xor     eax, eax
+0045F911  |.  5E            pop     esi
+0045F912  \\.  C3            retn
+
+```
+
+  
+  我们要立即想到这段是 LIB 而不是程序自己，我们好做相应的工程调整，比如，补加一个 LIB 工程，实现整个程序的接近原代码，  
+  
+  
+  我们对函数的放置位置也要注意，编译结果告诉我们在那的，我们应该放那，例如：  
+  
+0041D9E0  /> \\55            push    ebp  
+0041D9E1  |.  8BEC          mov     ebp, esp  
+0041D9E3  |.  83EC 44       sub     esp, 44  
+0041D9E6  |.  53            push    ebx  
+0041D9E7  |.  56            push    esi  
+0041D9E8  |.  57            push    edi  
+0041D9E9  |.  894D FC       mov     dword ptr \[ebp-4\], ecx  
+0041D9EC  |.  8B45 FC       mov     eax, dword ptr \[ebp-4\]  
+0041D9EF  |.  33C9          xor     ecx, ecx  
+0041D9F1  |.  8A48 7B       mov     cl, byte ptr \[eax+7B\]  
+0041D9F4  |.  83E1 20       and     ecx, 20  
+0041D9F7  |.  83F9 20       cmp     ecx, 20  
+0041D9FA  |.  75 07         jnz     short 0041DA03  
+0041D9FC  |.  B8 04000000   mov     eax, 4  
+0041DA01  |.  EB 02         jmp     short 0041DA05  
+0041DA03  |>  33C0          xor     eax, eax  
+0041DA05  |>  5F            pop     edi  
+0041DA06  |.  5E            pop     esi  
+0041DA07  |.  5B            pop     ebx  
+0041DA08  |.  8BE5          mov     esp, ebp  
+0041DA0A  |.  5D            pop     ebp  
+0041DA0B  \\.  C3            retn  
+  
+函数的下面是：  
+0041DA20  /> \\55            push    ebp  
+0041DA21  |.  8BEC          mov     ebp, esp  
+0041DA23  |.  83EC 44       sub     esp, 44  
+0041DA26  |.  53            push    ebx  
+0041DA27  |.  56            push    esi  
+0041DA28  |.  57            push    edi  
+0041DA29  |.  894D FC       mov     dword ptr \[ebp-4\], ecx  
+0041DA2C  |.  8B45 FC       mov     eax, dword ptr \[ebp-4\]  
+0041DA2F  |.  33C9          xor     ecx, ecx  
+0041DA31  |.  8A48 7B       mov     cl, byte ptr \[eax+7B\]  
+0041DA34  |.  83E1 10       and     ecx, 10  
+0041DA37  |.  83F9 10       cmp     ecx, 10  
+0041DA3A  |.  75 07         jnz     short 0041DA43  
+0041DA3C  |.  B8 04000000   mov     eax, 4  
+0041DA41  |.  EB 02         jmp     short 0041DA45  
+0041DA43  |>  33C0          xor     eax, eax  
+0041DA45  |>  5F            pop     edi  
+0041DA46  |.  5E            pop     esi  
+0041DA47  |.  5B            pop     ebx  
+0041DA48  |.  8BE5          mov     esp, ebp  
+0041DA4A  |.  5D            pop     ebp  
+0041DA4B  \\.  C3            retn  
+  
+  
+我们在写代码的时候，最好不要颠倒，或放错，代码里是：  
+int      CItem::IsExtLifeAdd()  
+{  
+  if( (m\_NewOption & 0x20) == 0x20 )  
+  {  
+    return 4;  
+  }  
+  
+  return 0;  
+}  
+  
+int      CItem::IsExtManaAdd()  
+{  
+  if( ( m\_NewOption & 0x10 ) == 0x10 )  
+  {  
+    return 4;  
+  }  
+  return 0;  
+}  
+  
+最好不要互换，这样会打乱整体布局，编译结果在那，我们应该放那，这个是需要注意的，#include 导入头文件的先后，也会影响到程序的布局，我们每添加一个文件的时候都最好留意一下上面和下面，分别是那部分了，我们是否需要提前保留位置，最好加上注释，否则容易忘记^^。我们的目的是接近原来的代码，所以，原来的问题，我们最好保留，比如忘记 CloseHandle 之类的，但是我们一定要加上注释，方便以后修正或者加上编译处理，来实现。先说这么多，  
+  
+  
+代码:
+
+```
+//----------------------------------------------------------------------------------
+;我随意找了个函数，把我的分析加后面,方便大家参考,我不对代码做解释,我的注释是我怎么分析这么一段看起来还算复杂的函数.
+0043F260   > \\55            push    ebp
+0043F261   .  8BEC          mov     ebp, esp
+0043F263   .  83EC 64       sub     esp, 64  ;确定一下 0x64,这个关系到变量的数量,如果你变量多了,那么一定要仔细看看,那写错了,精简掉冗余.
+0043F266   .  53            push    ebx
+0043F267   .  56            push    esi
+0043F268   .  57            push    edi
+0043F269   .  E9 17030000   jmp     0043F585  ;一个 JMP 直接到函数结尾,写代码的人很有意思,从不用注释,直接返回函数,到是省了不少事,这个函数没必要,分析了吗?不就一个 return 嘛,而且我们没发现 push 所以,这个函数是个 void,函数.但是我们知道后面还有内容需要继续看,但是一定要注意了,我们是研究逆向,不是研究程序.
+0043F26E   >  8B45 F8       mov     eax, dword ptr \[ebp-8\]
+0043F271   .  8B4D F8       mov     ecx, dword ptr \[ebp-8\]
+0043F274   .  83E9 01       sub     ecx, 1
+0043F277   .  894D F8       mov     dword ptr \[ebp-8\], ecx
+0043F27A   .  85C0          test    eax, eax
+0043F27C   .  0F84 F7020000 je      0043F579
+;这里需要注意了,它是一个 for( ; ( m-- ) ; ),但是很有可能也是 while,从概率上讲多半用 for,我们假设就是 for,看到 mov     eax, dword ptr \[ebp-8\]这个前面没 jmp,所以,for 第一项为空最后一项为空,那么它的 sub 只有再第二项实现只有这样了 T\_T,写代码的人还蛮特别的,有点和普通人不大一样.
+0043F282   .  E8 42200200   call    004612C9
+0043F287   .  99            cdq
+0043F288   .  B9 28000000   mov     ecx, 28
+0043F28D   .  F7F9          idiv    ecx
+0043F28F   .  85D2          test    edx, edx  ;取余除法
+0043F291   .  75 1F         jnz     short 0043F2B2
+0043F293   .  C745 F0 0F000>mov     dword ptr \[ebp-10\], 0F
+0043F29A   .  E8 2A200200   call    004612C9
+0043F29F   .  25 FF010080   and     eax, 800001FF
+0043F2A4   .  79 07         jns     short 0043F2AD
+0043F2A6   .  48            dec     eax
+0043F2A7   .  0D 00FEFFFF   or      eax, FFFFFE00
+0043F2AC   .  40            inc     eax
+0043F2AD   >  8945 EC       mov     dword ptr \[ebp-14\], eax  ;取余除法,为什么呢 %0x200,800001FF-80000000 +1 = 0x200,规律^\_^.
+0043F2B0   .  EB 2A         jmp     short 0043F2DC
+0043F2B2   >  E8 12200200   call    004612C9
+0043F2B7   .  25 0F000080   and     eax, 8000000F
+0043F2BC   .  79 05         jns     short 0043F2C3
+0043F2BE   .  48            dec     eax
+0043F2BF   .  83C8 F0       or      eax, FFFFFFF0
+0043F2C2   .  40            inc     eax
+0043F2C3   >  8945 F0       mov     dword ptr \[ebp-10\], eax
+0043F2C6   .  E8 FE1F0200   call    004612C9
+0043F2CB   .  25 FF010080   and     eax, 800001FF
+0043F2D0   .  79 07         jns     short 0043F2D9
+0043F2D2   .  48            dec     eax
+0043F2D3   .  0D 00FEFFFF   or      eax, FFFFFE00
+0043F2D8   .  40            inc     eax
+0043F2D9   >  8945 EC       mov     dword ptr \[ebp-14\], eax
+0043F2DC   >  8B55 08       mov     edx, dword ptr \[ebp+8\]
+0043F2DF   .  33C0          xor     eax, eax
+0043F2E1   .  66:8B82 9C000>mov     ax, word ptr \[edx+9C\]
+0043F2E8   .  3D 13010000   cmp     eax, 113
+0043F2ED   .  75 55         jnz     short 0043F344
+0043F2EF   .  8B4D F0       mov     ecx, dword ptr \[ebp-10\]
+0043F2F2   .  C1E1 09       shl     ecx, 9
+0043F2F5   .  034D EC       add     ecx, dword ptr \[ebp-14\]
+0043F2F8   .  894D E0       mov     dword ptr \[ebp-20\], ecx
+0043F2FB   .  8B55 E0       mov     edx, dword ptr \[ebp-20\]
+0043F2FE   .  6BD2 6C       imul    edx, edx, 6C
+0043F301   .  33C0          xor     eax, eax
+0043F303   .  8A82 BA1C5000 mov     al, byte ptr \[edx+501CBA\]
+0043F309   .  3D FF000000   cmp     eax, 0FF
+0043F30E   .  75 05         jnz     short 0043F315
+0043F310   .^ E9 59FFFFFF   jmp     0043F26E
+0043F315   >  8B4D E0       mov     ecx, dword ptr \[ebp-20\]
+0043F318   .  6BC9 6C       imul    ecx, ecx, 6C
+0043F31B   .  33D2          xor     edx, edx
+0043F31D   .  8A91 BA1C5000 mov     dl, byte ptr \[ecx+501CBA\]
+0043F323   .  85D2          test    edx, edx
+0043F325   .  75 05         jnz     short 0043F32C
+0043F327   .^ E9 42FFFFFF   jmp     0043F26E
+0043F32C   >  8B45 E0       mov     eax, dword ptr \[ebp-20\]
+0043F32F   .  6BC0 6C       imul    eax, eax, 6C
+0043F332   .  33C9          xor     ecx, ecx
+0043F334   .  8A88 BA1C5000 mov     cl, byte ptr \[eax+501CBA\]
+0043F33A   .  83F9 7D       cmp     ecx, 7D
+0043F33D   .  7D 05         jge     short 0043F344
+0043F33F   .^ E9 2AFFFFFF   jmp     0043F26E
+0043F344   >  837D F0 0D    cmp     dword ptr \[ebp-10\], 0D
+0043F348   .  75 0B         jnz     short 0043F355
+0043F34A   .  837D EC 03    cmp     dword ptr \[ebp-14\], 3
+0043F34E   .  75 05         jnz     short 0043F355
+0043F350   .^ E9 19FFFFFF   jmp     0043F26E
+;从下面开始需要注意了,我们发现了,很多 JE,点了一下跳转,会发现 JE 全是 OR,于是组合为
+    if( ( nType == 0x0D && nIndex < 0x08 ) || 
+      nType == 0x0E && ( nIndex == 0x09 || nIndex == 0x0A || nIndex == 0x0D || nIndex == 0x0E ||
+      nIndex == 0x10 || nIndex == 0x11 || nIndex == 0x12 )||
+      ( nType == 0x0C && nIndex == 0x0F ) )
+一定要有灵活性,一发现像这样的有规律的判断,就要联想到一个整体,所以我们把 JE 全按 OR 来,稍微一调整便完全一样了.
+0043F355   >  837D F0 0D    cmp     dword ptr \[ebp-10\], 0D
+0043F359   .  75 06         jnz     short 0043F361
+0043F35B   .  837D EC 08    cmp     dword ptr \[ebp-14\], 8
+0043F35F   .  7C 44         jl      short 0043F3A5
+0043F361   >  837D F0 0E    cmp     dword ptr \[ebp-10\], 0E
+0043F365   .  75 2A         jnz     short 0043F391
+0043F367   .  837D EC 09    cmp     dword ptr \[ebp-14\], 9
+0043F36B   .  74 38         je      short 0043F3A5
+0043F36D   .  837D EC 0A    cmp     dword ptr \[ebp-14\], 0A
+0043F371   .  74 32         je      short 0043F3A5
+0043F373   .  837D EC 0D    cmp     dword ptr \[ebp-14\], 0D
+0043F377   .  74 2C         je      short 0043F3A5
+0043F379   .  837D EC 0E    cmp     dword ptr \[ebp-14\], 0E
+0043F37D   .  74 26         je      short 0043F3A5
+0043F37F   .  837D EC 10    cmp     dword ptr \[ebp-14\], 10
+0043F383   .  74 20         je      short 0043F3A5
+0043F385   .  837D EC 11    cmp     dword ptr \[ebp-14\], 11
+0043F389   .  74 1A         je      short 0043F3A5
+0043F38B   .  837D EC 12    cmp     dword ptr \[ebp-14\], 12
+0043F38F   .  74 14         je      short 0043F3A5
+0043F391   >  837D F0 0C    cmp     dword ptr \[ebp-10\], 0C
+0043F395   .  0F85 BE000000 jnz     0043F459
+0043F39B   .  837D EC 0F    cmp     dword ptr \[ebp-14\], 0F
+0043F39F   .  0F85 B4000000 jnz     0043F459
+0043F3A5   >  E8 1F1F0200   call    004612C9
+0043F3AA   .  25 07000080   and     eax, 80000007
+0043F3AF   .  79 05         jns     short 0043F3B6
+0043F3B1   .  48            dec     eax
+0043F3B2   .  83C8 F8       or      eax, FFFFFFF8
+0043F3B5   .  40            inc     eax
+0043F3B6   >  8945 DC       mov     dword ptr \[ebp-24\], eax
+;我们发现下面的跳转全是\[ebp-10\]和\[ebp-14\],那我们肯定就知道是一个对这两个判断的处理,那么按 JNZ 就很容易写出(AND)的判断:
+      if( nType == 0x0C && nIndex == 0x0F )
+      {
+        nA = 1;
+      }
+      if( nType == 0x0E && nIndex == 0x11 )
+      {
+        nA = 1;
+      }
+      if( nType == 0x0E && nIndex == 0x12 )
+      {
+        nA = 1;
+      }
+
+
+0043F3B9   .  837D F0 0C    cmp     dword ptr \[ebp-10\], 0C
+0043F3BD   .  75 0D         jnz     short 0043F3CC
+0043F3BF   .  837D EC 0F    cmp     dword ptr \[ebp-14\], 0F
+0043F3C3   .  75 07         jnz     short 0043F3CC
+0043F3C5   .  C745 DC 01000>mov     dword ptr \[ebp-24\], 1
+0043F3CC   >  837D F0 0E    cmp     dword ptr \[ebp-10\], 0E
+0043F3D0   .  75 0D         jnz     short 0043F3DF
+0043F3D2   .  837D EC 11    cmp     dword ptr \[ebp-14\], 11
+0043F3D6   .  75 07         jnz     short 0043F3DF
+0043F3D8   .  C745 DC 01000>mov     dword ptr \[ebp-24\], 1
+0043F3DF   >  837D F0 0E    cmp     dword ptr \[ebp-10\], 0E
+0043F3E3   .  75 0D         jnz     short 0043F3F2
+0043F3E5   .  837D EC 12    cmp     dword ptr \[ebp-14\], 12
+0043F3E9   .  75 07         jnz     short 0043F3F2
+0043F3EB   .  C745 DC 01000>mov     dword ptr \[ebp-24\], 1
+0043F3F2   >  837D DC 00    cmp     dword ptr \[ebp-24\], 0
+0043F3F6   .  75 5C         jnz     short 0043F454
+0043F3F8   .  8B55 E4       mov     edx, dword ptr \[ebp-1C\]
+0043F3FB   .  52            push    edx
+0043F3FC   .  8B45 EC       mov     eax, dword ptr \[ebp-14\]
+0043F3FF   .  50            push    eax
+0043F400   .  8B4D F0       mov     ecx, dword ptr \[ebp-10\]
+0043F403   .  51            push    ecx
+0043F404   .  E8 BC29FCFF   call    00401DC5
+0043F409   .  83C4 0C       add     esp, 0C
+0043F40C   .  83F8 01       cmp     eax, 1
+0043F40F   .  75 43         jnz     short 0043F454
+0043F411   .  8B55 E8       mov     edx, dword ptr \[ebp-18\]
+0043F414   .  52            push    edx
+0043F415   .  6A 00         push    0
+0043F417   .  8B45 EC       mov     eax, dword ptr \[ebp-14\]
+0043F41A   .  50            push    eax
+0043F41B   .  8B4D F0       mov     ecx, dword ptr \[ebp-10\]
+0043F41E   .  51            push    ecx
+0043F41F   .  8B55 08       mov     edx, dword ptr \[ebp+8\]
+0043F422   .  52            push    edx
+0043F423   .  E8 CA2EFCFF   call    004022F2
+0043F428   .  83C4 14       add     esp, 14
+0043F42B   .  25 FF000000   and     eax, 0FF
+0043F430   .  3D FF000000   cmp     eax, 0FF
+0043F435   .  74 1D         je      short 0043F454
+0043F437   .  8B45 E8       mov     eax, dword ptr \[ebp-18\]
+0043F43A   .  83C0 01       add     eax, 1
+0043F43D   .  8945 E8       mov     dword ptr \[ebp-18\], eax
+0043F440   .  8B4D F4       mov     ecx, dword ptr \[ebp-C\]
+0043F443   .  83C1 01       add     ecx, 1
+0043F446   .  894D F4       mov     dword ptr \[ebp-C\], ecx
+0043F449   .  837D F4 4B    cmp     dword ptr \[ebp-C\], 4B
+0043F44D   .  7E 05         jle     short 0043F454
+0043F44F   .  E9 25010000   jmp     0043F579
+0043F454   >  E9 1B010000   jmp     0043F574
+;这里的 JMP 直接 JMP 出了 LOOP,那么我们发现第一个要不就 BREAK,要不就 return ,而我们需要注意到第二个为 jmp 循环,那么它肯定是下面没有语句了.所以,我们需要留意 if ... else 或 if ... else if
+0043F459   >  8B55 E4       mov     edx, dword ptr \[ebp-1C\]
+0043F45C   .  52            push    edx
+0043F45D   .  8B45 EC       mov     eax, dword ptr \[ebp-14\]
+0043F460   .  50            push    eax
+0043F461   .  8B4D F0       mov     ecx, dword ptr \[ebp-10\]
+0043F464   .  51            push    ecx
+0043F465   .  E8 3932FCFF   call    004026A3
+0043F46A   .  83C4 0C       add     esp, 0C
+0043F46D   .  8945 FC       mov     dword ptr \[ebp-4\], eax
+0043F470   .  837D FC 00    cmp     dword ptr \[ebp-4\], 0
+0043F474   .  0F8C FA000000 jl      0043F574
+;同上面的分析,直接按(and)or 关系来.
+if( (nType == 0x0D && nIndex == 0x0A) || (nType == 0x0C && nIndex == 0x0B) )
+0043F47A   .  837D F0 0D    cmp     dword ptr \[ebp-10\], 0D
+0043F47E   .  75 06         jnz     short 0043F486
+0043F480   .  837D EC 0A    cmp     dword ptr \[ebp-14\], 0A
+0043F484   .  74 0C         je      short 0043F492
+0043F486   >  837D F0 0C    cmp     dword ptr \[ebp-10\], 0C
+0043F48A   .  75 4E         jnz     short 0043F4DA
+0043F48C   .  837D EC 0B    cmp     dword ptr \[ebp-14\], 0B
+0043F490   .  75 48         jnz     short 0043F4DA
+0043F492   >  8B55 E8       mov     edx, dword ptr \[ebp-18\]
+0043F495   .  52            push    edx
+0043F496   .  6A 00         push    0
+0043F498   .  8B45 EC       mov     eax, dword ptr \[ebp-14\]
+0043F49B   .  50            push    eax
+0043F49C   .  8B4D F0       mov     ecx, dword ptr \[ebp-10\]
+0043F49F   .  51            push    ecx
+0043F4A0   .  8B55 08       mov     edx, dword ptr \[ebp+8\]
+0043F4A3   .  52            push    edx
+0043F4A4   .  E8 492EFCFF   call    004022F2
+0043F4A9   .  83C4 14       add     esp, 14
+0043F4AC   .  25 FF000000   and     eax, 0FF
+0043F4B1   .  3D FF000000   cmp     eax, 0FF
+0043F4B6   .  74 1D         je      short 0043F4D5
+0043F4B8   .  8B45 E8       mov     eax, dword ptr \[ebp-18\]
+0043F4BB   .  83C0 01       add     eax, 1
+0043F4BE   .  8945 E8       mov     dword ptr \[ebp-18\], eax
+0043F4C1   .  8B4D F4       mov     ecx, dword ptr \[ebp-C\]
+0043F4C4   .  83C1 01       add     ecx, 1
+0043F4C7   .  894D F4       mov     dword ptr \[ebp-C\], ecx
+0043F4CA   .  837D F4 4B    cmp     dword ptr \[ebp-C\], 4B
+0043F4CE   .  7E 05         jle     short 0043F4D5
+0043F4D0   .  E9 A4000000   jmp     0043F579
+0043F4D5   >  E9 9A000000   jmp     0043F574
+0043F4DA   >  8B55 FC       mov     edx, dword ptr \[ebp-4\]
+0043F4DD   .  3B55 0C       cmp     edx, dword ptr \[ebp+C\]
+0043F4E0   .  0F8F 8E000000 jg      0043F574
+0043F4E6   .  837D F0 0C    cmp     dword ptr \[ebp-10\], 0C
+0043F4EA   .  75 0D         jnz     short 0043F4F9
+0043F4EC   .  837D EC 0B    cmp     dword ptr \[ebp-14\], 0B
+0043F4F0   .  74 07         je      short 0043F4F9
+0043F4F2   .  C745 FC 00000>mov     dword ptr \[ebp-4\], 0
+0043F4F9   >  837D F0 0C    cmp     dword ptr \[ebp-10\], 0C
+0043F4FD   .  75 08         jnz     short 0043F507
+0043F4FF   .  837D EC 0B    cmp     dword ptr \[ebp-14\], 0B
+0043F503   .  75 02         jnz     short 0043F507
+0043F505   .  EB 0E         jmp     short 0043F515
+0043F507   >  8B45 FC       mov     eax, dword ptr \[ebp-4\]
+0043F50A   .  3B45 0C       cmp     eax, dword ptr \[ebp+C\]
+0043F50D   .  7E 06         jle     short 0043F515
+0043F50F   .  8B4D 0C       mov     ecx, dword ptr \[ebp+C\]
+0043F512   .  894D FC       mov     dword ptr \[ebp-4\], ecx
+;这里也同上:
+0043F515   >  837D F0 04    cmp     dword ptr \[ebp-10\], 4
+0043F519   .  75 06         jnz     short 0043F521
+0043F51B   .  837D EC 07    cmp     dword ptr \[ebp-14\], 7
+0043F51F   .  74 0C         je      short 0043F52D
+0043F521   >  837D F0 04    cmp     dword ptr \[ebp-10\], 4
+0043F525   .  75 0D         jnz     short 0043F534
+0043F527   .  837D EC 0F    cmp     dword ptr \[ebp-14\], 0F
+0043F52B   .  75 07         jnz     short 0043F534
+0043F52D   >  C745 FC 00000>mov     dword ptr \[ebp-4\], 0
+0043F534   >  8B55 E8       mov     edx, dword ptr \[ebp-18\]
+0043F537   .  52            push    edx
+0043F538   .  6A 00         push    0
+0043F53A   .  8B45 EC       mov     eax, dword ptr \[ebp-14\]
+0043F53D   .  50            push    eax
+0043F53E   .  8B4D F0       mov     ecx, dword ptr \[ebp-10\]
+0043F541   .  51            push    ecx
+0043F542   .  8B55 08       mov     edx, dword ptr \[ebp+8\]
+0043F545   .  52            push    edx
+0043F546   .  E8 A72DFCFF   call    004022F2
+0043F54B   .  83C4 14       add     esp, 14
+0043F54E   .  25 FF000000   and     eax, 0FF
+0043F553   .  3D FF000000   cmp     eax, 0FF
+0043F558   .  74 1A         je      short 0043F574
+0043F55A   .  8B45 E8       mov     eax, dword ptr \[ebp-18\]
+0043F55D   .  83C0 01       add     eax, 1
+0043F560   .  8945 E8       mov     dword ptr \[ebp-18\], eax
+0043F563   .  8B4D F4       mov     ecx, dword ptr \[ebp-C\]
+0043F566   .  83C1 01       add     ecx, 1
+0043F569   .  894D F4       mov     dword ptr \[ebp-C\], ecx
+0043F56C   .  837D F4 4B    cmp     dword ptr \[ebp-C\], 4B
+0043F570   .  7E 02         jle     short 0043F574
+0043F572   .  EB 05         jmp     short 0043F579
+0043F574   >^ E9 F5FCFFFF   jmp     0043F26E
+0043F579   >  8B55 08       mov     edx, dword ptr \[ebp+8\]
+0043F57C   .  8A45 E8       mov     al, byte ptr \[ebp-18\]
+0043F57F   .  8882 EC0C0000 mov     byte ptr \[edx+CEC\], al
+0043F585   >  5F            pop     edi
+0043F586   .  5E            pop     esi
+0043F587   .  5B            pop     ebx
+0043F588   .  8BE5          mov     esp, ebp
+0043F58A   .  5D            pop     ebp
+0043F58B   .  C3            retn
+
+代码看完,我们需要注意把改下面没代码的,就下面不要放代码,注意一下流程的位置,于是这段代码写出为:
+void      gObjGiveItemWarehouseSearch( LPOBJECTSTRUCT pObj , int nMaxItemLevel )
+{
+  return ;  //写代码的人很爱用 return 来实现函数的忽略,而不是/\*\*/
+
+  int nRet ,m; //04 //08 
+  int nWCount;
+  int nType , nIndex ; //10 ,14
+  int nWarehouseCount ; //18  //我们可以先放在最前面,方便排列参数,这里的放置位,是有先后顺序的,但是这个也是不确定的,即使在 debug 里也是不确定的,只有在这样的编译模式下才会,例如,有的是,从下往上,谁在最后,谁最小...
+
+  for( ; ( m-- ) ; ) //前面解释过了^^
+  {
+    if( !(rand() % 40) )
+    {
+      nType = 0x0F;
+      nIndex = rand() % 0x200 ;
+    }else{
+      nType = rand() % 0x10;
+      nIndex = rand() % 0x200 ;
+    }
+
+    int nLevel; //1C
+    int nItemCount ; //20
+    if( pObj->Class == 0x0113 )
+    {
+      nItemCount = nType \* 0x200 + nIndex; 
+      if( ItemAttribute\[nItemCount\].\_22ucItemLevel == 0xFF )
+      {
+        continue;
+      }
+      if( !ItemAttribute\[nItemCount\].\_22ucItemLevel )
+      {
+        continue;
+      }
+      if( ItemAttribute\[nItemCount\].\_22ucItemLevel < 0x7D )
+      {
+        continue;
+      }
+    }
+
+    //1303 : 
+    if( nType == 0x0D && nIndex == 0x03 )
+    {
+      continue;
+    }
+
+    int nA; //24
+    //1308 : , 1409 : ,
+    if( ( nType == 0x0D && nIndex < 0x08 ) || 
+      nType == 0x0E && ( nIndex == 0x09 || nIndex == 0x0A || nIndex == 0x0D || nIndex == 0x0E ||
+      nIndex == 0x10 || nIndex == 0x11 || nIndex == 0x12 )||
+      ( nType == 0x0C && nIndex == 0x0F ) )
+    {
+      nA = rand() % 8;
+
+      if( nType == 0x0C && nIndex == 0x0F )
+      {
+        nA = 1;
+      }
+      if( nType == 0x0E && nIndex == 0x11 )
+      {
+        nA = 1;
+      }
+      if( nType == 0x0E && nIndex == 0x12 )
+      {
+        nA = 1;
+      }
+
+      if( nA == 0 )
+      {
+        if( zzzItemLevel( nType , nIndex , nLevel ) == 1 )
+        {
+          if( gObjWarehouseInsertItem( pObj , nType , nIndex , 0 , nWarehouseCount ) != 0xFF )
+          {
+            nWarehouseCount++;
+            nWCount++;
+
+            if( nWCount > 75 )
+            {
+              break ;
+            }
+          }
+        }
+      }
+    }else{
+      nRet = GetLevelItem( nType , nIndex , nLevel );
+
+      if( nRet >= 0 )
+      {
+        if( (nType == 0x0D && nIndex == 0x0A) || (nType == 0x0C && nIndex == 0x0B) )
+        {
+          if( gObjWarehouseInsertItem( pObj , nType , nIndex , 0 , nWarehouseCount ) != 0xFF )
+          {
+            nWarehouseCount++;
+            nWCount++;
+            
+            if( nWCount > 75 )
+            {
+              break ;
+            }
+          }  
+        //需要注意前面提到的 JMP,一定不要放错了哦,这样的 if else if 和 if if 是有很大区别的.这个需要留意前面的 JMP,来确定具体位置
+        }else if( nRet <= nMaxItemLevel ){
+
+          //
+          if( nType == 0x0C && nIndex != 0x0B )
+          {
+            nRet = 0;
+          }
+          if( nType == 0x0C && nIndex == 0x0B )
+          {
+          }else{
+            if( nRet > nMaxItemLevel )
+            {
+              nRet = nMaxItemLevel;
+            }
+          }
+          //这样的逻辑是比较罗嗦的,不要盲目的去试,代码总是有一定实际作用的,看看整体在什么地方,该判断什么了,联系一下,很快就能写出逻辑.
+          //
+          if( (nType == 0x04 && nIndex == 0x07) || (nType == 0x04 && nIndex == 0x0F) )
+          {
+            nRet = 0;
+          }
+
+          if( gObjWarehouseInsertItem( pObj , nType , nIndex , 0 , nWarehouseCount ) != 0xFF )
+          {
+            nWarehouseCount++;
+            nWCount++;
+            
+            if( nWCount > 75 )
+            {
+              break ; //一定要注意是 jmp 到那了,这个最容易被忽略,因为大家一不留意,看错下一行,那么就用 return 了,jmp 的位置直接决定了是 break,还是 return.
+            }
+          }
+        }
+      }
+    }
+    
+    //
+
+  }
+
+  //
+  pObj->WarehouseCount = nWarehouseCount;
+
+
+}
+
+```
+
+  
+发现编译结果是完全一样,大家最容易犯的错就是变量多了,位置错了,导致 EBP 对不上,或超了,没关系慢慢来,这样一个函数,我很快就写完了,找到合适的方法,会很容易,编译后看看再对一下,基本 OK 了.我把留意的地方大致写了一下,希望给大家一个方法,有所帮助~!如果觉得一点用也没,直接忽略好了,再次谢谢大家的支持~~!  
+          -By EasyStudy

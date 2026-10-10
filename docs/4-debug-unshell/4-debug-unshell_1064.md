@@ -1,0 +1,396 @@
+
+
+# 手脱 tElock 0.80 加 用 FixRes.dll 手动修复举列
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-536.htm`](https://www.pediy.com/kssd/pediy07/pediy7-536.htm)
+
+手脱 tElock 0.80 加 用 FixRes.dll 手动修复举例  
+  
+Target:  小牧童 的“万能五笔 2002”破解版（里面还 DIY 了他自己的签名，呵呆了，高呀）  
+ Tools:  OllyDbg1.10，LordPE, ImportRec, PEid0.93  
+    OS:  WinXp  
+  
+用 PEid0.93 查得“万能五笔 2002”是  tElock 0.80 -> tE!  
+  
+用我的偶像 heXer 的脱壳机 脱唔倒 应该是版本不对口  
+  
+于是来手脱一下：  
+（来个废话：以前一直不知怎么动它，看高手是玩得很轻松，怎么这里设断，那里设保留异常，  
+现在，感觉有点不同，不是我技术高了很多，而是心境好了，或许煅炼了一些耐性吧 ）  
+  
+言归正传：  
+  
+好像没有设校验  
+脱 tElock 第一步可以先找 OEP  
+很容易的  
+忽略全部异常，直点运行，你会发现壳留下的“我曾到此一游”的蛛丝马迹 --  
+这时壳的初始代码已经脱光光了，CPU 窗口拉上屋顶，就能看见醒目的  JMP OEP 的字样  
+  
+找到是：423E1C  
+  
+接着找壳解码：  
+  
+通过一点的跟踪，可以很快知道壳在解码后，会搬运代码到原程序的空间，然后释放自己申请的临时块  
+  
+  
+所以中断 VirtualFree 比较方便  
+重来同样忽略所有异常，he VirtualFree  
+点运行  
+中断了，取消断点，这时在返回处会见到有个 41000，查看这个块已经解码了  
+  
+在 GetModuleHandleA 处下断点  
+He GetModuleHandleA  
+点运行  
+中断后，断点取消，返回用户代码空间会来到（Iat 处理）：  
+
+>  
+> 
+> ```
+> 代码:
+> 
+> * * *
+> 
+> 004BEBB2  test eax,eax
+> 004BEBB4  je 004BEEAD
+> 004BEBBA  add eax,edx
+> 004BEBBC  mov ebx,eax
+> 004BEBBE  push eax                         //User32.dll
+> 004BEBBF  call dword ptr ss:\[ebp+409C88\]   //kernel32.GetModuleHandleA   
+> 004BEBC5  test eax,eax                     //返回此处，我们可以向下跟一下很容易就能找到                          
+> 004BEBC7  jnz 004BEC59                           
+> 004BEBCD  push ebx
+> 004BEBCE  call dword ptr ss:\[ebp+409C8C\]
+> 004BEBD4  test eax,eax
+> 004BEBD6  jnz 004BEC59                           
+> 004BEBDC  mov edx,dword ptr ss:\[ebp+409D2E\]
+> 004BEBE2  add dword ptr ss:\[ebp+409D02\],edx
+> 004BEBE8  add dword ptr ss:\[ebp+409D0E\],edx
+> 004BEBEE  push 30
+> 004BEBF0  push dword ptr ss:\[ebp+409D02\]
+> 004BEBF6  push dword ptr ss:\[ebp+409D0E\]
+> 004BEBFC  jmp short 004BEC1E                     
+> 004BEBFE  mov edx,dword ptr ss:\[ebp+409D2E\]
+> 004BEC04  add dword ptr ss:\[ebp+409D02\],edx
+> 004BEC0A  add dword ptr ss:\[ebp+409D06\],edx
+> 004BEC10  push 30
+> 004BEC12  push dword ptr ss:\[ebp+409D02\]
+> 004BEC18  push dword ptr ss:\[ebp+409D06\]
+> 004BEC1E  push 0
+> 004BEC20  call dword ptr ss:\[ebp+409CA4\]
+> 004BEC26  mov eax,dword ptr ss:\[ebp+409C90\]
+> 004BEC2C  mov dword ptr ss:\[esp-4\],eax
+> 004BEC30  popad
+> 004BEC31  push 0
+> 004BEC33  call dword ptr ss:\[esp-20\]
+> 004BEC37  mov edx,dword ptr ss:\[ebp+409D2E\]
+> 004BEC3D  add dword ptr ss:\[ebp+409D02\],edx
+> 004BEC43  add dword ptr ss:\[ebp+409D12\],edx
+> 004BEC49  push 30
+> 004BEC4B  push dword ptr ss:\[ebp+409D02\]
+> 004BEC51  push dword ptr ss:\[ebp+409D12\]
+> 004BEC57  jmp short 004BEC1E                     
+> 004BEC59  mov dword ptr ss:\[ebp+409D16\],eax
+> 004BEC5F  lea eax,dword ptr ss:\[ebp+409810\]
+> 004BEC65  pushad
+> 004BEC66  xor ecx,ecx
+> 004BEC68  sub dh,dh
+> 004BEC6A  mov dl,byte ptr ds:\[ebx\]
+> 004BEC6C  test dl,40
+> 004BEC6F  je short 004BEC74                      
+> 004BEC71  and dl,5F
+> 004BEC74  or dl,dl
+> 004BEC76  je short 004BEC96                      
+> 004BEC78  inc ebx
+> 004BEC79  inc dh
+> 004BEC7B  inc ecx
+> 004BEC7C  cmp dl,byte ptr ds:\[eax+ecx-1\]
+> 004BEC80  je short 004BEC6A                      
+> 004BEC82  cmp dl,byte ptr ds:\[eax+ecx+8\]
+> 004BEC86  je short 004BEC6A                      
+> 004BEC88  cmp dl,byte ptr ds:\[eax+ecx+12\]
+> 004BEC8C  je short 004BEC6A                      
+> 004BEC8E  cmp dl,byte ptr ds:\[eax+ecx+1D\]
+> 004BEC92  je short 004BEC6A                      
+> 004BEC94  jmp short 004BEC66                     
+> 004BEC96  or dh,dh                        //\*\*\*\*\*\*\*\* 关键之一 \*\*\*\*\*\*\*\*//
+> 004BEC98  popad
+> 004BEC99  mov byte ptr ss:\[ebp+4098C0\],0 //这里先置不加密
+> 004BECA0  je short 004BECA9                      
+> 004BECA2  or byte ptr ss:\[ebp+4098C0\],1 //这里加不加密要看上面的判断了
+> 004BECA9  xor eax,eax
+> 004BECAB  mov byte ptr ds:\[ebx\],al
+> 004BECAD  inc ebx
+> 004BECAE  cmp byte ptr ds:\[ebx\],al
+> 004BECB0  jnz short 004BECA9            //循环做一下清洁工                  
+> 004BECB2  and dword ptr ss:\[ebp+409D1A\],0
+> 004BECB9  mov edx,dword ptr ss:\[ebp+409D2E\] //基址
+> 004BECBF  mov eax,dword ptr ds:\[esi\]        //相对于基址的偏移值
+> 004BECC1  test eax,eax
+> 004BECC3  jnz short 004BECD0                     
+> 004BECC5  mov eax,dword ptr ds:\[esi+10\]
+> 004BECC8  test eax,eax
+> 004BECCA  je 004BEC37                            
+> 004BECD0  add eax,edx
+> 004BECD2  add eax,dword ptr ss:\[ebp+409D1A\] //找 API 的地址 = 基址 + 偏移值
+> 004BECD8  mov ebx,dword ptr ds:\[eax\]
+> 004BECDA  mov edi,dword ptr ds:\[esi+10\]
+> 004BECDD  add edi,edx
+> 004BECDF  and byte ptr ss:\[ebp+4098BF\],0FF        //经过一二次的跟踪，不难发现这里也是鸡肶（鸡腿打人牙架软）
+> 004BECE6  je 004BED8F                            //改动改动这里，笨猪跳就是啦，顺便在 OEP 处下个断点先，点运行就很快到终点了
+> 004BECEC  and byte ptr ss:\[ebp+4098C0\],0FF
+> 004BECF3  je 004BED8F                            
+> 004BECF9  mov dword ptr ss:\[ebp+409DF6\],edi    //下面是加密过程，不是很复杂的
+> 004BECFF  mov eax,dword ptr ss:\[ebp+409DEE\]
+> 004BED05  inc eax
+> 004BED06  je 004BED8F                            
+> 004BED0C  dec eax
+> 004BED0D  jnz short 004BED64                     
+> 004BED0F  pushad
+> 004BED10  mov esi,edi
+> 004BED12  sub eax,eax
+> 004BED14  inc eax
+> 004BED15  cmp dword ptr ds:\[edi\],0
+> 004BED18  lea edi,dword ptr ds:\[edi+4\]
+> 004BED1B  jnz short 004BED14                     
+> 004BED1D  dec eax
+> 004BED1E  je short 004BED87                      
+> 004BED20  mov ebx,eax
+> 004BED22  imul eax,eax,10
+> 004BED25  push 4
+> 004BED27  push 1000
+> 004BED2C  push eax
+> 004BED2D  push 0
+> 004BED2F  call dword ptr ss:\[ebp+409C94\] //申请空间加密用 kernel32.VirtualAlloc
+> 004BED35  test eax,eax
+> 004BED37  je short 004BED87                      
+> 004BED39  mov edi,esi
+> 004BED3B  mov ecx,ebx
+> 004BED3D  mov edi,eax
+> 004BED3F  mov dword ptr ss:\[ebp+409DF2\],eax
+> 004BED45  mov ecx,ebx
+> 004BED47  lea ebx,dword ptr ds:\[edi+ecx\*8\]
+> 004BED4A  mov dword ptr ss:\[esp\],ebx
+> 004BED4D  mov ax,25FF
+> 004BED51  stos word ptr es:\[edi\]
+> 004BED53  mov dword ptr ds:\[edi\],ebx
+> 004BED55  add ebx,4
+> 004BED58  add edi,4
+> 004BED5B  loopd short 004BED51                   
+> 004BED5D  popad
+> 004BED5E  mov dword ptr ss:\[ebp+409DEE\],edi
+> 004BED64  mov edi,dword ptr ss:\[ebp+409DEE\]
+> 004BED6A  mov eax,dword ptr ss:\[ebp+409DF6\]
+> 004BED70  add eax,dword ptr ss:\[ebp+409D1A\]
+> 004BED76  mov ecx,dword ptr ss:\[ebp+409DF2\]    //取得加密段的 基址
+> 004BED7C  mov dword ptr ds:\[eax\],ecx           //这里 eax 是写入加密的 api 地址
+> 004BED7E  add dword ptr ss:\[ebp+409DF2\],6
+> 004BED85  jmp short 004BED8F                     
+> 004BED87  or dword ptr ss:\[ebp+409DEE\],FFFFFFFF
+> 004BED8E  popad
+> 004BED8F  add edi,dword ptr ss:\[ebp+409D1A\]
+> 004BED95  test ebx,ebx
+> 004BED97  je 004BEE5C                            
+> 004BED9D  test ebx,80000000
+> 004BEDA3  push 0
+> 004BEDA5  jnz short 004BEDAD                     
+> 004BEDA7  lea ebx,dword ptr ds:\[ebx+edx+2\]
+> 004BEDAB  jmp short 004BEDE9                     
+> 004BEDAD  inc dword ptr ss:\[esp\]
+> 004BEDB0  mov eax,dword ptr ss:\[ebp+409D16\]
+> 004BEDB6  cmp eax,dword ptr ss:\[ebp+409DDE\]
+> 004BEDBC  jnz short 004BEDE9                     
+> 004BEDBE  and ebx,7FFFFFFF
+> 004BEDC4  mov edx,ebx
+> 004BEDC6  lea edx,dword ptr ds:\[edx\*4-4\]
+> 004BEDCD  mov ebx,dword ptr ss:\[ebp+409D16\]
+> 004BEDD3  mov eax,dword ptr ds:\[ebx+3C\]
+> 004BEDD6  mov eax,dword ptr ds:\[eax+ebx+78\]
+> 004BEDDA  add ebx,dword ptr ds:\[eax+ebx+1C\]
+> 004BEDDE  mov eax,dword ptr ds:\[edx+ebx\]
+> 004BEDE1  add eax,dword ptr ss:\[ebp+409D16\]
+> 004BEDE7  jmp short 004BEDFC                     
+> 004BEDE9  and ebx,7FFFFFFF
+> 004BEDEF  push ebx
+> 004BEDF0  push dword ptr ss:\[ebp+409D16\]
+> 004BEDF6  call dword ptr ss:\[ebp+409C84\]    // kernel32.GetProcAddress
+> 004BEDFC  inc eax
+> 004BEDFD  dec eax
+> 004BEDFE  jnz short 004BEE32                     
+> 004BEE00  pop eax
+> 004BEE01  stc
+> 004BEE02  jb 004BEC37                            
+> 004BEE08  inc edi
+> 004BEE09  inc esp
+> 004BEE0A  dec ecx
+> 004BEE0B  xor esi,dword ptr ds:\[edx\]
+> 004BEE0D  inc esp
+> 004BEE0F  dec esp
+> 004BEE10  dec esp
+> 004BEE11  push ebp
+> 004BEE12  push ebx
+> 004BEE13  inc ebp
+> 004BEE14  push edx
+> 004BEE15  xor esi,dword ptr ds:\[edx\]
+> 004BEE17  inc esp
+> 004BEE19  dec esp
+> 004BEE1A  dec esp
+> 004BEE1B  push ebx
+> 004BEE1C  dec eax
+> 004BEE1D  inc ebp
+> 004BEE1E  dec esp
+> 004BEE1F  dec esp
+> 004BEE20  xor esi,dword ptr ds:\[edx\]
+> 004BEE22  inc esp
+> 004BEE24  dec esp
+> 004BEE25  dec esp
+> 004BEE26  dec ebx
+> 004BEE27  inc ebp
+> 004BEE28  push edx
+> 004BEE29  dec esi
+> 004BEE2A  inc ebp
+> 004BEE2B  dec esp
+> 004BEE2C  xor esi,dword ptr ds:\[edx\]
+> 004BEE2E  inc esp
+> 004BEE30  dec esp
+> 004BEE31  dec esp
+> 004BEE32  cmp byte ptr ds:\[eax\],0CC        //是否是 CC
+> 004BEE35  mov dword ptr ds:\[edi\],eax       //\*\*\*\*\*\*\* 写入真正的 API 地址或加密地址 \*\*\*\*\*\*\*
+> 004BEE37  jnz short 004BEE3F                     
+> 004BEE39  cmp byte ptr ds:\[eax+1\],0C3      //是否是 ret
+> 004BEE3D  je short 004BEE3F                      
+> 004BEE3F  pop eax
+> 004BEE40  dec eax
+> 004BEE41  je short 004BEE50                      
+> 004BEE43  inc eax
+> 004BEE44  clc
+> 004BEE45  mov word ptr ds:\[ebx-2\],ax
+> 004BEE49  mov byte ptr ds:\[ebx\],al
+> 004BEE4B  inc ebx
+> 004BEE4C  cmp byte ptr ds:\[ebx\],al
+> 004BEE4E  jnz short 004BEE49                     
+> 004BEE50  add dword ptr ss:\[ebp+409D1A\],4
+> 004BEE57  jmp 004BECB9                           
+> 004BEE5C  add esi,14
+> 004BEE5F  mov edx,dword ptr ss:\[ebp+409D2E\]
+> 004BEE65  jmp 004BEBA4                           
+> 004BEE6A  popad
+> 004BEE6B  retn
+> 
+> * * *
+> 
+> 
+> ```
+
+  
+到达入口后，用 ImportReC 填入 OEP，Get 之后，全部有效，Fixit 就可以投入运行了！  
+  
+//顺便来个脚本吧！  
+//OS:忽略所有异常，OllyDbg1.10，OllySctript0.92  
+var VF  
+var GM  
+var oep  
+mov oep, xxxxxxxx //这里填你 F9 看到的 OEP，一向上拉就能看到的  
+  
+gpa "VirtualFree", "Kernel32.dll"  
+mov VF, $RESULT  
+bphws VF, "x"  
+run  
+cmp eip, VF  
+je err  
+bphwc VF  
+  
+gpa "GetModuleHandleA", "Kernel32.dll"  
+mov GM, $RESULT  
+bphws GM, "x"  
+run  
+cmp eip, GM  
+je err  
+bphwc GM  
+rtu  
+  
+findop eip, #08F661#  
+cmp $RESULT, 0  
+je err  
+mov \[$RESULT\], #32F6#  
+bp oep  
+run  
+cmp eip, oep  
+jne err  
+msg "OK!"  
+ret  
+  
+err:  
+msg "Hit a error!"  
+ret  
+  
+  
+减肥修正资源：  
+  
+另外用 dREAMtHEATER 的 FixRes.dll 的 Demo.exe Dump 出了修复好的资源节，当然是做好了所有裁减工作后才去 Dump 的。好像有人说不会用 Dump 功能，下面简略说一下我的使用过程：  
+  
+在“万能五笔 2002”破解版到达 OEP 处 Dump 出内存后，用 ImportReC 获取 Iat 修复为 Dump\_.exe，运行一下，很正常，复制一个副本待用，暂时不要关闭 ImportReC。  
+  
+有如下 6、7 个节项（770 多 K）如图：Dump\_.jpg：  
+Name                    VOffset     VSize       ROffset     RSize       Flags  
+.text                   00001000    0002B000    00001000    0002B000    C0000040  
+.rdata                  0002C000    00002000    0002C000    00002000    C0000040  
+.data                   0002E000    00057000    0002E000    00057000    C0000040  
+.Share                  00085000    00001000    00085000    00010000    C0000040  
+.rsrc                   00086000    00038000    00086000    00038000    C0000040  
+ nil（壳的）            000BE000    00002000    000BE000    00002000    C0000040  
+.mackt（修复的 Import）  000C0000    00001000    000C0000    00001000    E0000060  
+  
+  
+小小分析（仅个人愚见，不可当真，我这里没有参考未破解版本的原程序）：  
+由于有个 Share 节，而且只有一个 DWORD（-1）内容，用 OD 加载，在那个节下内存访问断点，只中断到那个 Dword 处那么一个 Dword 上，跟变量有关哟，不能草率铲除呵。再看了看它上面的一个节，有不少 00，很想也减一下它，稳当起见，又用 OD 加载一次，在那个段下内存访问断点，中断了好几次，应该是程序在初始化或保存数据，嘿，真是见鬼，接近节末还有写的，看来该节虚拟的大小不能减。粗略浏览了一下资源表，可以发现有些图标资源分散在壳节中，dREAMtHEATER 的 FixRes.dll 当然有用啦，OK，可以动工了。  
+  
+决定采用文件对齐：200，内存对齐：1000  
+  
+拿出你熟悉的 16 进制工具，或者用 LordPE 的分割和合并功能，我这里用 WinHex。  
+加载后，goto 到 85000 偏移处，将后面的部分剪去了（一共剪去了.Share、.rsrc、 nil（壳的）、.mackt），再往上看，减多少随你吧，反正从底部起是连续的 OO 都可以减，可我这里还是采用了对对齐 200，将.data 的偏移大小改为 11400，即从文件偏移 0 处开始保留大小为 3F400 ，改了后要保存。调整了 PE 文件的大小，当然要用 PE 工具如 LordPE 将.data 节的 Offset 大小改过来，要与之对应。  
+  
+接着，.Share 节，我在刚才处理的文件最后粘贴（加了）4 字节 FF（即原来的-1 Dword 内容），你要填 200 的 Offset 大小我也不反对，下面的修复输入表会补回来的，还会有多，不要改 RVA 大小，修正其节的 Offset 大小和节偏移地址。  
+我这里是 .Share    ROffset : 0003F400   RSize : 00000004  
+  
+清除节描述表里面的 .rsrc、 nil（壳的）、.mackt，逐一点擦除即可，一定要，不然下面修复输入表会出错的。  
+  
+到修复输入表了，由于 ImportReC 的在 PE 文件自填 RVA 补 Import 不是很稳定（估计要 1000 对齐的才能 OK），只好另开一个新节 .mackt。  
+  
+点击刚才还没关闭的 ImportReC , 选新增一个节修复选项，点 Fix ，选中上面改好的文件，这时 ImportReC 会因为对齐，给你在上一个节与这个新节之间的文件间隙中自动补充了 00。  
+  
+好了，要修正资源节了。到了 FixRes.dll 出动的时候了，在经过上面的输入表修复后，我们用 LordPE 给它新增一个节，改名为 .rsrc ，意思为资源节，  
+该节如下：  
+VOffset: 0087000 //这个是我们经过上面处理，现在得到新资源表的 RVA  
+  VSize: 0000000  
+ROffset: 0041000  
+  RSize: 0000000  
+  
+启动 FixRes.dll 的 Demo.exe ，选择好上面的修复 “副本”，再选择 Dump 项，给出要 Dump 出 资源文件的文件名，在 NewRVA 处填 87000 ，FileAlgnMent 处填： 200  
+  
+最后，点 Dump Resource 按钮输出修复的资源节。  
+把这个资源节拖入 WinHex ，全选，复制 16 进制节（大小：37400），粘贴到该文件的最后，保存。  
+  
+用 LordPE 加载 该文件，在 .rsrc 节 VSize 处填上 38000 （内存块对齐），RSize 处填上 37400  
+点保存，  
+  
+再选择目录，进入目录表，修正原来 的资源表入口为 RVA: 87000, 大小为: 37400  
+点保存即可，你可以同时删除重定位表描述。  
+  
+最最后，重建一下 PE ，单独启动 LordPE ，选 重建 PE，点选文件，重建就可以运行了。  
+  
+我这里大概减肥修复为 ：481 K （当然可以更优，就留给你办了）  
+如图：Fixed.jpg  
+Name                    VOffset     VSize       ROffset     RSize       Flags  
+.text                   00001000    0002B000    00001000    0002B000    C0000040  
+.rdata                  0002C000    00002000    0002C000    00002000    C0000040  
+.data                   0002E000    00057000    0002E000    00011400    C0000040  
+.Share                  00085000    00001000    0003F400    00000004    C0000040  
+.mackt                  00086000    00001000    00040000    00001000    E0000060  
+.rsrc                   00087000    00038000    00041000    00037400    C0000040  
+  
+当然你还可以优化得更好，就让你去办了！  
+感谢你可以看完到这一行，我的字要打完了，希望对你有所帮助！  
+  
+Written by askformore  
+
+ 4dd466d0e1e0cc123afbe504da2462ca

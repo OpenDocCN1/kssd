@@ -1,0 +1,142 @@
+
+
+# windows 下 32 位汇编语言学习笔记 第四章 第一个窗口程序 1 (消息的使用和入口代码)
+
+> 原文：[`www.pediy.com/kssd/pediy10/88340.html`](https://www.pediy.com/kssd/pediy10/88340.html)
+
+**键盘消息的使用**  
+  
+可以使用 PostMessage 给目标窗口或者控件发送键盘消息，按键消息和字符消息，但是使用 SendMessage 只能发送字符消息，而不能发送按键消息，想想为什么？  
+开始练习按键消息前，必须要先了解 2 个函数:  
+HWND FindWindow(LPCTSTR lpClassName,LPCTSTR lpWindowName);通过 lpClassName 窗口注册类名（就是 WNDCLASS 里的 lpszClassName 名称）或者 lpWindowName 窗口标题名获得窗口句柄。  
+2 个参数随便用一个就可以，不使用的给 NULL。  
+  
+HWND FindWindowEx(HWND,hwndParent,HWND hwndChildAfter,LPCTSTR lpszClass,LPSTSTR lpszWindow);这个函数可以通过窗口句柄和控件类名或者控件标题名获得这个控件的句柄。  
+先通过 FindWindow 得到主窗口句柄，然后通过 FindWindowEx 得到主窗口内某个控件的句柄。  
+  
+下面看看如何通过 PostMessage 给 windows 记事本发送按键消息  
+首先找到记事本  
+szClac  db  'Notepad',0  记事本主窗体的类名，可以通过 Spy++获取  
+szEdit  db  'Edit',0   内容用于写内容的 Edit 控件  
+  
+hwndnote  db    ?  用于保存句柄  
+  
+invoke FindWindow,offser szCalc，NULL    ;找到记事本句柄  
+invoke FindWindowEx,eax,NULL,offset szEdit,0  ;找到 edit 控件的句柄  
+mov hwndnote,eax  
+  
+下面就可以给记事本发送各种键盘消息，比如  
+  
+invoke SendMessage,hwndnote,WM\_KEYDOWN,VK\_1,0    ;发送一个按键消息 1  
+                      
+invoke PostMessage,hwndnote,WM\_KEYDOWN,VK\_2,0  ;发送一个按键消息 2  
+  
+invoke SendMessage,hwndnote,WM\_CHAR,VK\_3,0  ;用 SendMessage 发送一个字符消息 3  
+  
+想象发送后记事本上的的字符顺序是 1,2,3 么？  
+  
+发送一个组合键 Alt+E,就是打开记事本的编辑菜单  
+              
+invoke PostMessage,hWndnd,WM\_SYSKEYDOWN,VK\_MENU,020000001h  ALT 键按下  
+invoke PostMessage,hWndnd,WM\_SYSKEYDOWN,VK\_E,020000001h  E 键按下必须要把第 29 位设置成 1，代表 alt 键已经下  
+invoke PostMessage,hWndnd,WM\_SYSCHAR,VK\_E,020000001h    发送一个系统字符 E  
+invoke PostMessage,hWndnd,WM\_SYSKEYUP,VK\_E,080000001h    E 键放开，必须把 31 位设置成 1，表示这个是系统键  
+invoke PostMessage,hWndnd,WM\_KEYUP,VK\_MENU,080000001h    ALT 键放开，31 位系统键设置成 1  
+  
+这组消息可以通过 SPY++监视记事本的键盘输入状态得到，其实可以精简，只用下面 2 条就可以。  
+invoke PostMessage,hWndnd,WM\_SYSKEYDOWN,VK\_E,020000001h  E 键按下必须要把第 29 位设置成 1，代表 alt 键已经下  
+invoke PostMessage,hWndnd,WM\_SYSKEYUP,VK\_E,080000001h    E 键放开，必须把 31 位设置成 1，表示这个是系统键  
+  
+因为 E 键的 lParam 参数的 29 位置 1，已经说明这个 E 在这里表示系统按键，29 位置 1 表示 ALT 键已经按下。  
+按键弹起的时候，必须把 31 位置 1，表示这是个系统键弹起。否则会当做普通键，并且在记事本里打印出字母 e。  
+  
+现在想出来这组消息后，记事本上会是什么字符么？答案是:321，前面说过 SendMessage 的优先级高于 PostMessage,所以是先打出 3，然后是 1，最后是 2。  
+  
+关于 windows 消息的操作还有很多，这里只举出了最基本的发送键盘消息的方法。理解这些基本的操作是位日后学习使用其他消息操作打下一个好的基础。  
+  
+**鼠标消息的使用**  
+键盘消息只发送给当前拥有输入焦点的窗口，鼠标消息不同，只要鼠标达到，窗口就会收到鼠标消息。当鼠标在窗口显示区域内,鼠标消息的 lParam 参数是鼠标所在窗口的 X,Y 坐标值，当鼠标不在窗口显示区域内，参数 lParam 是桌面的 X,Y 坐标值。  
+显示区域:是指用户能够输出显示信息结果的区域。非显示区域是指：菜单，标题栏，滚动条  
+  
+对于显示区内发送鼠按键消息,wParam 参数指定鼠标按键以及 Shift 和 Ctrl 按键的状态，键值如下:  
+MK\_CONTROL 表示 ctrl 按下 MK\_?BUTTON 表示鼠标 3 个键按下 MK\_SHIFT 表示 shift 按下   
+lParam 参数指定鼠标的坐标值，高位 Y 坐标，低位 X 坐标  
+  
+下面的例子代码是使用键盘的上下左右方向键移动鼠标光标，空格键发送鼠标单击消息。可以把 SendMessage 句柄改成“画图”程序句柄，这样在当前窗口按空格键，将会在画图程序的同样位置画出一个点。  
+  
+\_MoveMouse proc hwnd,wParam,lParam  
+  local @szPos \[128\]:byte  
+  local @stPoint:POINT  
+  local @stRect:RECT  
+    
+  invoke GetCursorPos,addr @stPoint            ;获得当前鼠标屏幕坐标位置  
+  invoke ScreenToClient,hwnd,addr @stPoint          ;将鼠标的屏幕坐标位位置转换成当前窗口内的坐标位置  
+  invoke wsprintf,addr @szPos,offset szMsg,@stPoint.x,@stPoint.y          
+  invoke SetWindowText,hwnd,addr @szPos  
+  mov eax,wParam  
+  .if eax == VK\_LEFT  
+    sub @stPoint.x,1  
+  .elseif eax == VK\_RIGHT  
+    add @stPoint.x,1  
+  .elseif eax == VK\_UP  
+    sub @stPoint.y,1  
+  .elseif eax == VK\_DOWN  
+    add @stPoint.y,1  
+  .elseif eax == VK\_SPACE  
+    mov eax,@stPoint.y  
+    shl eax,16  
+    add eax,@stPoint.x  
+    invoke PostMessage,hwnd,WM\_LBUTTONDOWN,MK\_LBUTTON,eax  
+    invoke PostMessage,hwnd,WM\_LBUTTONUP,0,eax  
+  .endif  
+  invoke ClientToScreen,hwnd,addr @stPoint          ;将当前窗口坐标位置转换成屏幕位置  
+  invoke SetCursorPos,@stPoint.x,@stPoint.y          ;设置光标位置  
+  ret    
+\_MoveMouse endp  
+  
+在窗口的回调函数中加入以下代码:  
+  
+.elseif eax == WM\_KEYDOWN  
+  mov eax,wParam  
+  .if wParam == VK\_LEFT || wParam || VK\_RIGHT || wParam == VK\_UP || wParam == VK\_DOWN || wParam == VK\_SPACE  
+    invoke \_MoveMouse,hWnd,wParam,lParam  
+  .endif  
+  
+对于非显示区鼠标消息和显示区鼠标消息类似，消息后加"NC"代码表示非显示区消息，例如 WM\_NCLBUTTONCLICK   
+参数 wParam 是一些定义在 winuser.h 里以 HT 开头的的非显示区域代码,比如 HTCAPTION 代表标题栏，HTCLOSE，代表窗口右上角的关闭按钮等等。  
+参数 lParam 表示屏幕坐标，不是显示区坐标，同样低位是 X 坐标，高位是 Y 坐标。  
+  
+**  
+纯 C 写的 FirstWindow 和汇编 FirstWindow 的区别**  
+同样的 FirstWindow 程序，我用 C 写了一个，反汇编后比较，发现反汇编结果里多了很多编译器添加的代码。尺寸也大了不少，查了一些资料，发现原来这些编译器添加的代码就是传说中的 CRT,C 语言运行时环境。  
+  
+用 C 写 windows 程序，都知道程序从 winMain 开始执行，实际上在这之前，是有其他的函数来调用 WinMain 的。这个函数就叫做入口函数。  
+入口函数对运行时库和程序运行环境进行初始化，包括堆，I/O,线程等等。入口函数执行完后才回去调用 main 函数正式开始执行程序，WinMain 执行完后，返回到入口函数，由入口函数进行清理工作。  
+  
+这倒也好理解，winMain 之前肯定有些东西执行了什么，比如 winMain 的 4 个参数，hInstance,szCmdLine,iCmdShow 都是从启动函数传给 winMain 的。  
+对于我现在使用的 vs2008 的编译器来说，入口函数的代码位于 srt\\src\\crt0.c 文件里。函数的名称是\_\_tmainCRTStartup。现在看看里面都干了些什么关键：  
+  
+首先定义了个 STARTUPINFO StartupInfo 结构，使用 GetStartupInfo(&StartupInfo)初始化。STARTUPINFO 结构包含一些进程的信息。具体细节可以查看 msdn.  
+紧接着初始化堆    \_heap\_init(1)  
+初始化堆是很重要的，否则不能使用 C++的 new 或 c 的 malloc 来分配内存。  
+然后初始化多线程  \_mtinit()   
+然后初始化 I/O,\_ioinit(),得到命令行参数 GetCommandLineT();得到当前进程进程版本信息  
+  
+最后调用启动函数  
+WinMain((HINSTANCE) & \_\_ImageBase,NULL,lpszCommandLine,StartupInfo.dwFlags & STARTF\_USESHOWWINDOW? StartupInfo.wShowWindow: SW\_SHOWDEFAULT);  
+到这里就可以看见，winMain 的参数是怎么来的了,hInsteance 就是\_\_ImageBase（载入基址),命令行参数也是传进来的，最后的 iCmdShow,参数就是 STRTUPINFO 里的显示方式。  
+  
+就是因为编译时加入了启动函数所以使 C 程序编译出来的可执行文件比汇编程的大了 30 多 K。  
+其实启动函数不是必须的，可以自定义一个自己的启动函数代替默认的启动函数。  
+比如定义一个  
+int WINAPI main()  
+{  
+    HINSTANCE hInstance = GetModuleHandle(NULL);      //得到当前进程的句柄，和汇编一样  
+    LPSTR lpszCmdLine = GetCommandLine();          //获得命令行参数  
+    int r = WinMain(hInstance, NULL, lpszCmdLine, SW\_SHOWDEFAULT);  //调用 WinMain 函数，就开始执行  
+    ExitProcess(r);                //最后结束进程  
+    return r; // this will never be reached.  
+}  
+需要在 link.exe 后加/entry:main /nodefaultlib:msvcrt90.lib 参数，/entry 指定入口点函数， /nodefaultlib 指定不连接运行时库。  
+  
+这样编译连接后，可执行文件尺寸和汇编后的大小一样。反汇编后比较内容也基本差不多。要不说 C 语言执行速度快，编译后的内容和直接用汇编写的程序基本上一样。

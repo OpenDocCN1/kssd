@@ -1,0 +1,1031 @@
+
+
+# Thinstall Virtualization Suite V3.035 主程序脱壳
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-475.htm`](https://www.pediy.com/kssd/pediy09/pediy09-475.htm)
+
+> 【文章标题】: Thinstall Virtualization Suite V3.035 主程序脱壳  
+> 【文章作者】: CxLrb  
+> 【作者邮箱】: cxlrb@yahoo.com.cn  
+> 【作者主页】: http://unpack.blog.sohu.com  
+> 【软件名称】: Thinstall Virtualization Suite V3.035  
+> 【下载地址】: 自己搜索下载  
+> 【保护方式】: 未知  
+> 【使用工具】: OD,Peid, OD overlay 1.0  
+> 【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!  
+> \--------------------------------------------------------------------------------  
+> 【详细过程】  
+>      
+>   高手跳过，菜鸟跟我来，只要有耐心，就一定会成功！以下是脱壳的单步跟踪记录，可参考。  
+>   虽说单步跟踪很累人，但对基础知识的提升有很大帮助。  
+>       
+>     以下未注明之处，都以 F8 步过！  
+>     
+>   未注明之处，便是 F8 步过！  
+>     
+>   OD 入口，一路 F8  
+>     
+>   00401F26 > $  9C            pushfd  
+>   00401F27   .  60            pushad  
+>   00401F28   .  68 5374416C   push    6C417453  
+>   00401F2D   .  68 5468496E   push    6E496854  
+>   00401F32   .  E8 00000000   call    SetupCap.00401F37  
+>   00401F37   $  58            pop     eax  
+>   00401F38   .  BB 371F0000   mov     ebx, 1F37  
+>   00401F3D   .  2BC3          sub     eax, ebx  
+>   00401F3F   .  50            push    eax                              ; /Arg4  
+>   00401F40   .  68 00004000   push    SetupCap.00400000                ; |Arg3 = 00400000  
+>   00401F45   .  68 00280000   push    2800                             ; |Arg2 = 00002800  
+>   00401F4A   .  68 04010000   push    104                              ; |Arg1 = 00000104  
+>   00401F4F   .  E8 BAFEFFFF   call    SetupCap.00401E0E                ; \\SetupCap.00401E0E  
+>   00401F54   .^\\E9 90FFFFFF   jmp     SetupCap.00401EE9  
+>     
+>   00401EE9   > /55            push    ebp  
+>   00401EEA   . |8BEC          mov     ebp, esp  
+>   00401EEC   . |51            push    ecx  
+>   00401EED   . |53            push    ebx  
+>   00401EEE   . |56            push    esi  
+>   00401EEF   . |57            push    edi  
+>   00401EF0   . |E8 A8F1FFFF   call    SetupCap.0040109D                ;这里 F8 跑飞，F7 跟入  
+>     
+>   0040109D   /$  FE0424        inc     byte ptr \[esp\]  
+>   004010A0   \\.  C3            retn                                    ;这里返回到 00401EF6  
+>   004010A1    $  55            push    ebp  
+>   004010A2    .  8BEC          mov     ebp, esp  
+>   004010A4    .  51            push    ecx  
+>   004010A5    .  53            push    ebx  
+>   004010A6    .  56            push    esi  
+>   004010A7    .  57            push    edi  
+>   004010A8    .  E8 F0FFFFFF   call    SetupCap.0040109D  
+>     
+>   00401EF6       6A            db      6A                               ;  CHAR 'j'  
+>   00401EF7       00            db      00  
+>   00401EF8       FF            db      FF  
+>   00401EF9       15            db      15  
+>   00401EFA       30224000      dd      <&KERNEL32.GetModuleHandleA>  
+>   00401EFE       50            db      50                               ;  CHAR 'P'  
+>   00401EFF       E8            db      E8  
+>   00401F00       48            db      48                               ;  CHAR 'H'  
+>   00401F01       F6            db      F6  
+>   00401F02       FF            db      FF  
+>   00401F03       FF            db      FF  
+>   00401F04       59            db      59                               ;  CHAR 'Y'  
+>   00401F05       A1            db      A1  
+>   00401F06       04264000      dd      SetupCap.00402604  
+>   00401F0A       8B            db      8B  
+>     
+>   从模块删除分析  
+>   00401EF6     6A 00           push    0  
+>   00401EF8     FF15 30224000   call    near \[<&KERNEL32.GetModuleHandle>; kernel32.GetModuleHandleA  
+>   00401EFE     50              push    eax  
+>   00401EFF     E8 48F6FFFF     call    SetupCap.0040154C  
+>   00401F04     59              pop     ecx  
+>   00401F05     A1 04264000     mov     eax, \[402604\]  
+>   00401F0A     8B40 10         mov     eax, \[eax+10\]  
+>   00401F0D     0305 00264000   add     eax, \[402600\]  
+>   00401F13     8945 FC         mov     \[ebp-4\], eax  
+>   00401F16     E8 82F1FFFF     call    SetupCap.0040109D                  ;这里 F8 跑飞，F7 跟入  
+>   00401F1B   - E9 8B45FCFF     jmp     003C64AB  
+>   00401F20     E0 5F           loopdne short SetupCap.00401F81  
+>   00401F22     5E              pop     esi  
+>   00401F23     5B              pop     ebx  
+>   00401F24     C9              leave  
+>   00401F25     C3              retn  
+>     
+>     
+>   0040109D     FE0424          inc     byte ptr \[esp\]  
+>   004010A0     C3              retn                                       ;这里返回到 00401F1C  
+>   004010A1     55              push    ebp  
+>   004010A2     8BEC            mov     ebp, esp  
+>   004010A4     51              push    ecx  
+>   004010A5     53              push    ebx  
+>   004010A6     56              push    esi  
+>   004010A7     57              push    edi  
+>     
+>   00401F1C     8B45 FC         mov     eax, \[ebp-4\]  
+>   00401F1F     FFE0            jmp     near eax                           ;跳到 00A9DBEB   
+>   00401F21     5F              pop     edi  
+>   00401F22     5E              pop     esi  
+>   00401F23     5B              pop     ebx  
+>   00401F24     C9              leave  
+>   00401F25     C3              retn  
+>     
+>   00A9DBEB     55              push    ebp  
+>   00A9DBEC     8BEC            mov     ebp, esp  
+>   00A9DBEE     6A FF           push    -1  
+>   00A9DBF0     68 087AAB00     push    0AB7A08  
+>   00A9DBF5     68 0CE1A900     push    0A9E10C  
+>   00A9DBFA     64:A1 00000000  mov     eax, fs:\[0\]  
+>   00A9DC00     50              push    eax  
+>   00A9DC01     64:8925 0000000>mov     fs:\[0\], esp  
+>   00A9DC08     83EC 10         sub     esp, 10  
+>   00A9DC0B     53              push    ebx  
+>   00A9DC0C     56              push    esi  
+>   00A9DC0D     57              push    edi  
+>   00A9DC0E     8965 E8         mov     \[ebp-18\], esp  
+>   00A9DC11     FF15 CC73AB00   call    near \[AB73CC\]                    ; kernel32.GetVersion  
+>   00A9DC17     33D2            xor     edx, edx  
+>   00A9DC19     8AD4            mov     dl, ah  
+>   00A9DC1B     8915 C484B100   mov     \[B184C4\], edx  
+>   00A9DC21     8BC8            mov     ecx, eax  
+>   00A9DC23     81E1 FF000000   and     ecx, 0FF  
+>   00A9DC29     890D C084B100   mov     \[B184C0\], ecx  
+>   00A9DC2F     C1E1 08         shl     ecx, 8  
+>   00A9DC32     03CA            add     ecx, edx  
+>   00A9DC34     890D BC84B100   mov     \[B184BC\], ecx  
+>   00A9DC3A     C1E8 10         shr     eax, 10  
+>   00A9DC3D     A3 B884B100     mov     \[B184B8\], eax  
+>   00A9DC42     6A 00           push    0  
+>   00A9DC44     E8 453C0000     call    00AA188E  
+>   00A9DC49     59              pop     ecx  
+>   00A9DC4A     85C0            test    eax, eax  
+>   00A9DC4C     75 08           jnz     short 00A9DC56  
+>   00A9DC4E     6A 1C           push    1C  
+>   00A9DC50     E8 9A000000     call    00A9DCEF  
+>   00A9DC55     59              pop     ecx  
+>   00A9DC56     8365 FC 00      and     dword ptr \[ebp-4\], 0  
+>   00A9DC5A     E8 0F390000     call    00AA156E  
+>   00A9DC5F     FF15 D874AB00   call    near \[AB74D8\]                    ; kernel32.GetCommandLineA  
+>   00A9DC65     A3 149CB100     mov     \[B19C14\], eax  
+>   00A9DC6A     E8 CD370000     call    00AA143C  
+>   00A9DC6F     A3 A084B100     mov     \[B184A0\], eax  
+>   00A9DC74     E8 76350000     call    00AA11EF  
+>   00A9DC79     E8 B8340000     call    00AA1136  
+>   00A9DC7E     E8 4C090000     call    00A9E5CF  
+>   00A9DC83     A1 D484B100     mov     eax, \[B184D4\]  
+>   00A9DC88     A3 D884B100     mov     \[B184D8\], eax  
+>   00A9DC8D     50              push    eax  
+>   00A9DC8E     FF35 CC84B100   push    dword ptr \[B184CC\]  
+>   00A9DC94     FF35 C884B100   push    dword ptr \[B184C8\]  
+>   00A9DC9A     E8 31A10000     call    00AA7DD0                         ;这里 F8 跑飞，F7 跟入  
+>     
+>   00AA7DD0     55              push    ebp  
+>   00AA7DD1     8BEC            mov     ebp, esp  
+>   00AA7DD3     6A FF           push    -1  
+>   00AA7DD5     68 E05EAB00     push    0AB5EE0                          ; ASCII ""B8,"",A8  
+>   00AA7DDA     64:A1 00000000  mov     eax, fs:\[0\]  
+>   00AA7DE0     50              push    eax  
+>   00AA7DE1     64:8925 0000000>mov     fs:\[0\], esp  
+>   00AA7DE8     51              push    ecx  
+>   00AA7DE9     83EC 0C         sub     esp, 0C  
+>   00AA7DEC     53              push    ebx  
+>   00AA7DED     56              push    esi  
+>   00AA7DEE     57              push    edi  
+>   00AA7DEF     8965 F0         mov     \[ebp-10\], esp  
+>   00AA7DF2     8D45 E8         lea     eax, \[ebp-18\]  
+>   00AA7DF5     A3 4C71B100     mov     \[B1714C\], eax  
+>   00AA7DFA     FFF5            push    ebp  
+>   00AA7DFC     6A 00           push    0  
+>   00AA7DFE     FF15 F474AB00   call    near \[AB74F4\]                    ; kernel32.GetModuleHandleA  
+>   00AA7E04     A3 3488B100     mov     \[B18834\], eax  
+>   00AA7E09     C705 3088B100 0>mov     dword ptr \[B18830\], 1  
+>   00AA7E13     6A 01           push    1  
+>   00AA7E15     E8 76FFFFFF     call    00AA7D90  
+>   00AA7E1A     83C4 04         add     esp, 4  
+>   00AA7E1D     C745 EC 0100000>mov     dword ptr \[ebp-14\], 1  
+>   00AA7E24     C745 FC 0000000>mov     dword ptr \[ebp-4\], 0  
+>   00AA7E2B     E8 D091F2FF     call    009D1000                         ;这里 F8 跑飞，F7 跟入  
+>     
+>     
+>   009D1000     55              push    ebp  
+>   009D1001     8BEC            mov     ebp, esp  
+>   009D1003     83EC 18         sub     esp, 18  
+>   009D1006     C745 EC 0100000>mov     dword ptr \[ebp-14\], 1  
+>   009D100D     6A 00           push    0  
+>   009D100F     FF15 F474AB00   call    near \[AB74F4\]                    ; kernel32.GetModuleHandleA  
+>   009D1015     8945 F0         mov     \[ebp-10\], eax  
+>   009D1018     C745 F4 0100000>mov     dword ptr \[ebp-C\], 1  
+>   009D101F     C745 F8 0000000>mov     dword ptr \[ebp-8\], 0  
+>   009D1026     C745 E8 0100000>mov     dword ptr \[ebp-18\], 1  
+>   009D102D     8D45 E8         lea     eax, \[ebp-18\]  
+>   009D1030     50              push    eax  
+>   009D1031     E8 1A170000     call    009D2750                         ;这里 F8 跑飞，F7 跟入  
+>   009D1036     83C4 04         add     esp, 4  
+>   009D1039     8BE5            mov     esp, ebp  
+>   009D103B     5D              pop     ebp  
+>   009D103C     C3              retn  
+>     
+>     
+>   009D2750     55              push    ebp  
+>   009D2751     8BEC            mov     ebp, esp  
+>   009D2753     6A FF           push    -1  
+>   009D2755     68 1CF0AA00     push    0AAF01C                          ; ASCII ""B8,"",80,"",84,"",AB  
+>   009D275A     64:A1 00000000  mov     eax, fs:\[0\]  
+>   009D2760     50              push    eax  
+>   009D2761     64:8925 0000000>mov     fs:\[0\], esp  
+>   009D2768     81EC D80A0000   sub     esp, 0AD8  
+>   009D276E     53              push    ebx  
+>   009D276F     56              push    esi  
+>   009D2770     57              push    edi  
+>   009D2771     C685 B8FCFFFF 0>mov     byte ptr \[ebp-348\], 0  
+>   009D2778     68 7037AC00     push    0AC3770                          ; ASCII "tcHook.dll"  
+>   009D277D     FF15 F474AB00   call    near \[AB74F4\]                    ; kernel32.GetModuleHandleA  
+>   009D2783     8985 B4FCFFFF   mov     \[ebp-34C\], eax  
+>   009D2789     83BD B4FCFFFF 0>cmp     dword ptr \[ebp-34C\], 0  
+>   009D2790     74 07           je      short 009D2799  
+>   009D2792     C685 B8FCFFFF 0>mov     byte ptr \[ebp-348\], 1  
+>   009D2799     8D8D C4FEFFFF   lea     ecx, \[ebp-13C\]  
+>   009D279F     E8 DC440800     call    00A56C80  
+>   009D27A4     C745 FC 0000000>mov     dword ptr \[ebp-4\], 0  
+>   009D27AB     C685 E4FEFFFF 0>mov     byte ptr \[ebp-11C\], 0  
+>   009D27B2     8B85 E4FEFFFF   mov     eax, \[ebp-11C\]  
+>   009D27B8     25 FF000000     and     eax, 0FF  
+>   009D27BD     85C0            test    eax, eax  
+>   009D27BF     75 59           jnz     short 009D281A  
+>   009D27C1     68 04010000     push    104  
+>   009D27C6     8D8D BCFCFFFF   lea     ecx, \[ebp-344\]  
+>   009D27CC     51              push    ecx  
+>   009D27CD     68 C434AC00     push    0AC34C4                          ; UNICODE "TS\_ORIGIN"  
+>   009D27D2     E8 89920500     call    00A2BA60  
+>   009D27D7     85C0            test    eax, eax  
+>   009D27D9     74 3F           je      short 009D281A                   这里跳转到 009D281A  
+>     
+>     
+>   009D281A     8B8D E4FEFFFF   mov     ecx, \[ebp-11C\]  
+>   009D2820     81E1 FF000000   and     ecx, 0FF  
+>   009D2826     85C9            test    ecx, ecx  
+>   009D2828     75 59           jnz     short 009D2883  
+>   009D282A     68 04010000     push    104  
+>   009D282F     8D95 BCFCFFFF   lea     edx, \[ebp-344\]  
+>   009D2835     52              push    edx  
+>   009D2836     6A 00           push    0  
+>   009D2838     FF15 F474AB00   call    near \[AB74F4\]                    ; kernel32.GetModuleHandleA  
+>   009D283E     50              push    eax  
+>   009D283F     E8 7CB80500     call    00A2E0C0  
+>   009D2844     68 5437AC00     push    0AC3754                          ; UNICODE "Thinstall.lic"  
+>   009D2849     6A 5C           push    5C  
+>   009D284B     8D85 BCFCFFFF   lea     eax, \[ebp-344\]  
+>   009D2851     50              push    eax  
+>   009D2852     E8 CAB90C00     call    00A9E221  
+>   009D2857     83C4 08         add     esp, 8  
+>   009D285A     83C0 02         add     eax, 2  
+>   009D285D     50              push    eax  
+>   009D285E     E8 79BA0C00     call    00A9E2DC  
+>   009D2863     83C4 08         add     esp, 8  
+>   009D2866     8D8D BCFCFFFF   lea     ecx, \[ebp-344\]  
+>   009D286C     51              push    ecx  
+>   009D286D     8D8D C4FEFFFF   lea     ecx, \[ebp-13C\]  
+>   009D2873     E8 A85E0800     call    00A58720  
+>   009D2878     85C0            test    eax, eax  
+>   009D287A     74 07           je      short 009D2883  
+>   009D287C     C685 E4FEFFFF 0>mov     byte ptr \[ebp-11C\], 1  
+>   009D2883     8B95 E4FEFFFF   mov     edx, \[ebp-11C\]  
+>   009D2889     81E2 FF000000   and     edx, 0FF  
+>   009D288F     85D2            test    edx, edx  
+>   009D2891     75 7E           jnz     short 009D2911                   ;这里跳转到 009D2911  
+>     
+>     
+>   009D2911     8B85 E4FEFFFF   mov     eax, \[ebp-11C\]  
+>   009D2917     25 FF000000     and     eax, 0FF  
+>   009D291C     85C0            test    eax, eax  
+>   009D291E     75 37           jnz     short 009D2957  
+>   009D2920     68 04010000     push    104  
+>   009D2925     8D8D BCFCFFFF   lea     ecx, \[ebp-344\]  
+>   009D292B     51              push    ecx  
+>   009D292C     68 C434AC00     push    0AC34C4                          ; UNICODE "TS\_ORIGIN"  
+>   009D2931     E8 2A910500     call    00A2BA60  
+>   009D2936     85C0            test    eax, eax  
+>   009D2938     74 1D           je      short 009D2957  
+>   009D293A     8D95 BCFCFFFF   lea     edx, \[ebp-344\]  
+>   009D2940     52              push    edx  
+>   009D2941     8D8D C4FEFFFF   lea     ecx, \[ebp-13C\]  
+>   009D2947     E8 D45F0800     call    00A58920  
+>   009D294C     85C0            test    eax, eax  
+>   009D294E     74 07           je      short 009D2957  
+>   009D2950     C685 E4FEFFFF 0>mov     byte ptr \[ebp-11C\], 1  
+>   009D2957     8B85 E4FEFFFF   mov     eax, \[ebp-11C\]  
+>   009D295D     25 FF000000     and     eax, 0FF  
+>   009D2962     85C0            test    eax, eax  
+>   009D2964     75 37           jnz     short 009D299D  
+>   009D2966     68 04010000     push    104  
+>   009D296B     8D8D BCFCFFFF   lea     ecx, \[ebp-344\]  
+>   009D2971     51              push    ecx  
+>   009D2972     6A 00           push    0  
+>   009D2974     FF15 F474AB00   call    near \[AB74F4\]                    ; kernel32.GetModuleHandleA  
+>   009D297A     50              push    eax  
+>   009D297B     E8 40B70500     call    00A2E0C0  
+>   009D2980     8D95 BCFCFFFF   lea     edx, \[ebp-344\]  
+>   009D2986     52              push    edx  
+>   009D2987     8D8D C4FEFFFF   lea     ecx, \[ebp-13C\]  
+>   009D298D     E8 8E5F0800     call    00A58920  
+>   009D2992     85C0            test    eax, eax  
+>   009D2994     74 07           je      short 009D299D                   ;这里跳转到 009D299D  
+>     
+>   009D299D     6A 00           push    0  
+>   009D299F     8D8D C4FEFFFF   lea     ecx, \[ebp-13C\]  
+>   009D29A5     E8 465D0800     call    00A586F0  
+>   009D29AA     50              push    eax  
+>   009D29AB     E8 90290700     call    00A45340  
+>   009D29B0     83C4 08         add     esp, 8  
+>   009D29B3     833D A06EAD00 0>cmp     dword ptr \[AD6EA0\], 0  
+>   009D29BA     74 55           je      short 009D2A11                   ;这里跳转到 009D2A11  
+>   009D29BC     8B45 08         mov     eax, \[ebp+8\]  
+>   009D29BF     8378 04 01      cmp     dword ptr \[eax+4\], 1  
+>   009D29C3     75 17           jnz     short 009D29DC  
+>   009D29C5     8B4D 08         mov     ecx, \[ebp+8\]  
+>   009D29C8     51              push    ecx  
+>   009D29C9     FF15 A06EAD00   call    near \[AD6EA0\]  
+>   009D29CF     83C4 04         add     esp, 4  
+>   009D29D2     6A 00           push    0  
+>   009D29D4     FF15 EC74AB00   call    near \[AB74EC\]                    ; kernel32.ExitProcess  
+>   009D29DA     EB 30           jmp     short 009D2A0C  
+>   009D29DC     8B55 08         mov     edx, \[ebp+8\]  
+>   009D29DF     52              push    edx  
+>   009D29E0     FF15 A06EAD00   call    near \[AD6EA0\]  
+>   009D29E6     83C4 04         add     esp, 4  
+>   009D29E9     8985 78F9FFFF   mov     \[ebp-688\], eax  
+>   009D29EF     C745 FC FFFFFFF>mov     dword ptr \[ebp-4\], -1  
+>   009D29F6     8D8D C4FEFFFF   lea     ecx, \[ebp-13C\]  
+>   009D29FC     E8 AF420800     call    00A56CB0  
+>   009D2A01     8B85 78F9FFFF   mov     eax, \[ebp-688\]  
+>   009D2A07     E9 9A070000     jmp     009D31A6  
+>   009D2A0C     E9 26010000     jmp     009D2B37  
+>   009D2A11     833D A46EAD00 0>cmp     dword ptr \[AD6EA4\], 0  
+>   009D2A18     0F84 19010000   je      009D2B37                        ;这里跳转到 009D2B37  
+>     
+>     
+>   009D2B37     6A 00           push    0  
+>   009D2B39     FF15 F474AB00   call    near \[AB74F4\]                    ; kernel32.GetModuleHandleA  
+>   009D2B3F     A3 6C6EAD00     mov     \[AD6E6C\], eax  
+>   009D2B44     8B75 08         mov     esi, \[ebp+8\]  
+>   009D2B47     B9 06000000     mov     ecx, 6  
+>   009D2B4C     BF 806EAD00     mov     edi, 0AD6E80  
+>   009D2B51     F3:A5           rep     movs dword ptr es:\[edi\], dword p>  
+>   009D2B53     833D AC6EAD00 0>cmp     dword ptr \[AD6EAC\], 0  
+>   009D2B5A     75 0A           jnz     short 009D2B66  
+>   009D2B5C     C705 EC6EAD00 0>mov     dword ptr \[AD6EEC\], 0  
+>   009D2B66     C705 444BAC00 1>mov     dword ptr \[AC4B44\], 0A5AA10  
+>   009D2B70     C705 404BAC00 1>mov     dword ptr \[AC4B40\], 0A5AA10  
+>   009D2B7A     C705 484BAC00 7>mov     dword ptr \[AC4B48\], 0A5AB70  
+>   009D2B84     C705 4C4BAC00 0>mov     dword ptr \[AC4B4C\], 0A5AB00  
+>   009D2B8E     833D AC6EAD00 0>cmp     dword ptr \[AD6EAC\], 0  
+>   009D2B95     75 05           jnz     short 009D2B9C  
+>   009D2B97     E8 34250700     call    00A450D0  
+>   009D2B9C     6A 00           push    0  
+>   009D2B9E     68 E436AC00     push    0AC36E4                          ; ASCII "DisableDebugger"  
+>   009D2BA3     E8 D8210700     call    00A44D80  
+>   009D2BA8     83C4 08         add     esp, 8  
+>   009D2BAB     85C0            test    eax, eax  
+>   009D2BAD     75 1B           jnz     short 009D2BCA  
+>   009D2BAF     8D95 E0FEFFFF   lea     edx, \[ebp-120\]  
+>   009D2BB5     52              push    edx  
+>   009D2BB6     8B45 08         mov     eax, \[ebp+8\]  
+>   009D2BB9     50              push    eax  
+>   009D2BBA     E8 21F6FFFF     call    009D21E0  
+>   009D2BBF     83C4 08         add     esp, 8  
+>   009D2BC2     8985 E8FEFFFF   mov     \[ebp-118\], eax  
+>   009D2BC8     EB 0A           jmp     short 009D2BD4  
+>   009D2BCA     C785 E0FEFFFF 0>mov     dword ptr \[ebp-120\], 0  
+>   009D2BD4     83BD E0FEFFFF 0>cmp     dword ptr \[ebp-120\], 0  
+>   009D2BDB     74 29           je      short 009D2C06  
+>   009D2BDD     8B8D E8FEFFFF   mov     ecx, \[ebp-118\]  
+>   009D2BE3     898D 6CF9FFFF   mov     \[ebp-694\], ecx  
+>   009D2BE9     C745 FC FFFFFFF>mov     dword ptr \[ebp-4\], -1  
+>   009D2BF0     8D8D C4FEFFFF   lea     ecx, \[ebp-13C\]  
+>   009D2BF6     E8 B5400800     call    00A56CB0  
+>   009D2BFB     8B85 6CF9FFFF   mov     eax, \[ebp-694\]  
+>   009D2C01     E9 A0050000     jmp     009D31A6  
+>   009D2C06     833D AC6EAD00 0>cmp     dword ptr \[AD6EAC\], 0  
+>   009D2C0D     75 0F           jnz     short 009D2C1E  
+>   009D2C0F     8B55 08         mov     edx, \[ebp+8\]  
+>   009D2C12     8B42 08         mov     eax, \[edx+8\]  
+>   009D2C15     50              push    eax  
+>   009D2C16     E8 95AD0300     call    00A0D9B0  
+>   009D2C1B     83C4 04         add     esp, 4  
+>   009D2C1E     833D AC6EAD00 0>cmp     dword ptr \[AD6EAC\], 0  
+>   009D2C25     0F85 46030000   jnz     009D2F71  
+>   009D2C2B     E8 A0790800     call    00A5A5D0  
+>   009D2C30     E8 DBB30300     call    00A0E010  
+>   009D2C35     8985 ACFCFFFF   mov     \[ebp-354\], eax  
+>   009D2C3B     6A 00           push    0  
+>   009D2C3D     68 80000000     push    80  
+>   009D2C42     6A 03           push    3  
+>   009D2C44     6A 00           push    0  
+>   009D2C46     6A 01           push    1  
+>   009D2C48     68 00000080     push    80000000  
+>   009D2C4D     8B8D ACFCFFFF   mov     ecx, \[ebp-354\]  
+>   009D2C53     51              push    ecx  
+>   009D2C54     E8 B7BB0500     call    00A2E810  
+>   009D2C59     8985 98FAFFFF   mov     \[ebp-568\], eax  
+>   009D2C5F     83BD 98FAFFFF F>cmp     dword ptr \[ebp-568\], -1  
+>   009D2C66     75 23           jnz     short 009D2C8B                        ;这里跳转到 009D2C8B  
+>     
+>     
+>   009D2C8B     8B85 98FAFFFF   mov     eax, \[ebp-568\]  
+>   009D2C91     50              push    eax  
+>   009D2C92     E8 49270700     call    00A453E0  
+>   009D2C97     83C4 04         add     esp, 4  
+>   009D2C9A     E8 910C0200     call    009F3930  
+>   009D2C9F     8B8D DCFEFFFF   mov     ecx, \[ebp-124\]  
+>   009D2CA5     898D 90FAFFFF   mov     \[ebp-570\], ecx  
+>   009D2CAB     83BD 90FAFFFF 0>cmp     dword ptr \[ebp-570\], 0  
+>   009D2CB2     0F84 C0000000   je      009D2D78  
+>   009D2CB8     68 A836AC00     push    0AC36A8                          ; ASCII "Thinstall.drv:"  
+>   009D2CBD     8D8D 7CF9FFFF   lea     ecx, \[ebp-684\]  
+>   009D2CC3     E8 48900400     call    00A1BD10  
+>   009D2CC8     C645 FC 01      mov     byte ptr \[ebp-4\], 1  
+>   009D2CCC     C785 8CFAFFFF 0>mov     dword ptr \[ebp-574\], 0  
+>   009D2CD6     EB 0F           jmp     short 009D2CE7  
+>   009D2CD8     8B95 8CFAFFFF   mov     edx, \[ebp-574\]  
+>   009D2CDE     83C2 01         add     edx, 1  
+>   009D2CE1     8995 8CFAFFFF   mov     \[ebp-574\], edx  
+>   009D2CE7     8B85 8CFAFFFF   mov     eax, \[ebp-574\]  
+>   009D2CED     3B85 90FAFFFF   cmp     eax, \[ebp-570\]  
+>   009D2CF3     73 4A           jnb     short 009D2D3F  
+>   009D2CF5     8B8D 8CFAFFFF   mov     ecx, \[ebp-574\]  
+>   009D2CFB     3B8D DCFEFFFF   cmp     ecx, \[ebp-124\]  
+>   009D2D01     73 15           jnb     short 009D2D18  
+>   009D2D03     8B95 8CFAFFFF   mov     edx, \[ebp-574\]  
+>   009D2D09     8B8495 C8FEFFFF mov     eax, \[ebp+edx\*4-138\]  
+>   009D2D10     8985 38F5FFFF   mov     \[ebp-AC8\], eax  
+>   009D2D16     EB 0A           jmp     short 009D2D22  
+>   009D2D18     C785 38F5FFFF 0>mov     dword ptr \[ebp-AC8\], 0  
+>   009D2D22     8B8D 38F5FFFF   mov     ecx, \[ebp-AC8\]  
+>   009D2D28     51              push    ecx  
+>   009D2D29     68 A036AC00     push    0AC36A0                          ; ASCII " 0x%x"  
+>   009D2D2E     8D95 7CF9FFFF   lea     edx, \[ebp-684\]  
+>   009D2D34     52              push    edx  
+>   009D2D35     E8 769D0400     call    00A1CAB0  
+>   009D2D3A     83C4 0C         add     esp, 0C  
+>   009D2D3D   ^ EB 99           jmp     short 009D2CD8            ;注意，这里往回跳，我们选定下一行  
+>   009D2D3F     6A 0A           push    0A                        ;选中此行，F4 运行到这里                  
+>   009D2D41     6A 01           push    1  
+>   009D2D43     8D8D 7CF9FFFF   lea     ecx, \[ebp-684\]  
+>   009D2D49     E8 82950400     call    00A1C2D0  
+>   009D2D4E     8B85 84F9FFFF   mov     eax, \[ebp-67C\]  
+>   009D2D54     8985 40F5FFFF   mov     \[ebp-AC0\], eax  
+>   009D2D5A     8B8D 40F5FFFF   mov     ecx, \[ebp-AC0\]  
+>   009D2D60     51              push    ecx  
+>   009D2D61     E8 2A090200     call    009F3690  
+>   009D2D66     83C4 04         add     esp, 4  
+>   009D2D69     C645 FC 00      mov     byte ptr \[ebp-4\], 0  
+>   009D2D6D     8D8D 7CF9FFFF   lea     ecx, \[ebp-684\]  
+>   009D2D73     E8 18920400     call    00A1BF90  
+>   009D2D78     E8 53740800     call    00A5A1D0  
+>   009D2D7D     E8 5E6B0800     call    00A598E0  
+>   009D2D82     6A 00           push    0  
+>   009D2D84     68 2835AC00     push    0AC3528                          ; UNICODE ".LicenseMsg"  
+>   009D2D89     E8 52220700     call    00A44FE0  
+>   009D2D8E     83C4 08         add     esp, 8  
+>   009D2D91     85C0            test    eax, eax                         ;关键比较  
+>   009D2D93     75 0D           jnz     short 009D2DA2                   ;关键跳转，不跳就会出错，因此修改为 jmp  
+>   009D2D95     68 5036AC00     push    0AC3650                          ; ASCII "Unable to validate your Thinstall license.",LF,"Please contact Technical Support."  
+>   009D2D9A     E8 21040000     call    009D31C0  
+>   009D2D9F     83C4 04         add     esp, 4  
+>   009D2DA2     68 4C36AC00     push    0AC364C  
+>   009D2DA7     68 2836AC00     push    0AC3628                          ; UNICODE ".ThinstallVersion"  
+>   009D2DAC     E8 2F220700     call    00A44FE0  
+>   009D2DB1     83C4 08         add     esp, 8  
+>   009D2DB4     50              push    eax  
+>   009D2DB5     6A 00           push    0  
+>   009D2DB7     68 0C36AC00     push    0AC360C                          ; UNICODE "SupportLength"  
+>   009D2DBC     E8 1F220700     call    00A44FE0  
+>   009D2DC1     83C4 08         add     esp, 8  
+>   009D2DC4     50              push    eax  
+>   009D2DC5     6A 00           push    0  
+>   009D2DC7     68 E835AC00     push    0AC35E8                          ; UNICODE "SupportStartDate"  
+>   009D2DCC     E8 0F220700     call    00A44FE0  
+>   009D2DD1     83C4 08         add     esp, 8  
+>   009D2DD4     50              push    eax  
+>   009D2DD5     E8 26600800     call    00A58E00  
+>   009D2DDA     83C4 0C         add     esp, 0C  
+>   009D2DDD     85C0            test    eax, eax  
+>   009D2DDF     EB 0D           jmp     short 009D2DEE                   ;这里跳转到 009D2DEE  
+>   009D2DE1     68 9C35AC00     push    0AC359C                          ; ASCII "Your Thinstall runtime license has expired.",LF,"Please contact Thinstall Sales."  
+>   009D2DE6     E8 D5030000     call    009D31C0  
+>   009D2DEB     83C4 04         add     esp, 4  
+>   009D2DEE     8A95 B8FCFFFF   mov     dl, \[ebp-348\]  
+>   009D2DF4     52              push    edx  
+>   009D2DF5     E8 565D0200     call    009F8B50  
+>   009D2DFA     83C4 04         add     esp, 4  
+>   009D2DFD     E8 FEF7FFFF     call    009D2600  
+>   009D2E02     8B85 ACFCFFFF   mov     eax, \[ebp-354\]  
+>   009D2E08     50              push    eax  
+>   009D2E09     8B8D 98FAFFFF   mov     ecx, \[ebp-568\]  
+>   009D2E0F     51              push    ecx  
+>   009D2E10     E8 5B9D0300     call    00A0CB70  
+>   009D2E15     83C4 08         add     esp, 8  
+>   009D2E18     8B95 98FAFFFF   mov     edx, \[ebp-568\]  
+>   009D2E1E     52              push    edx  
+>   009D2E1F     E8 3C390800     call    00A56760  
+>   009D2E24     83C4 04         add     esp, 4  
+>   009D2E27     E8 44A40300     call    00A0D270  
+>   009D2E2C     8D8D 9CFAFFFF   lea     ecx, \[ebp-564\]  
+>   009D2E32     E8 39700400     call    00A19E70  
+>   009D2E37     C645 FC 02      mov     byte ptr \[ebp-4\], 2  
+>   009D2E3B     E8 B0B10300     call    00A0DFF0  
+>   009D2E40     8985 94FAFFFF   mov     \[ebp-56C\], eax  
+>   009D2E46     B9 07000000     mov     ecx, 7  
+>   009D2E4B     BF 8C35AC00     mov     edi, 0AC358C                     ; UNICODE "%drive\_"  
+>   009D2E50     8BB5 94FAFFFF   mov     esi, \[ebp-56C\]  
+>   009D2E56     33C0            xor     eax, eax  
+>   009D2E58     66:F3:A7        repe    cmps word ptr es:\[edi\], word ptr>  
+>   009D2E5B     75 77           jnz     short 009D2ED4                    ;跳转到 009D2ED4   
+>     
+>     
+>   009D2ED4     6A 01           push    1  
+>   009D2ED6     8D8D 9CFAFFFF   lea     ecx, \[ebp-564\]  
+>   009D2EDC     51              push    ecx  
+>   009D2EDD     8B95 94FAFFFF   mov     edx, \[ebp-56C\]  
+>   009D2EE3     52              push    edx  
+>   009D2EE4     E8 FDB10C00     call    00A9E0E6  
+>   009D2EE9     83C4 04         add     esp, 4  
+>   009D2EEC     83C0 01         add     eax, 1  
+>   009D2EEF     50              push    eax  
+>   009D2EF0     8B85 94FAFFFF   mov     eax, \[ebp-56C\]  
+>   009D2EF6     50              push    eax  
+>   009D2EF7     E8 244E0400     call    00A17D20  
+>   009D2EFC     83C4 10         add     esp, 10  
+>   009D2EFF     8B0D C877AB00   mov     ecx, \[AB77C8\]  
+>   009D2F05     51              push    ecx  
+>   009D2F06     6A 00           push    0  
+>   009D2F08     8D95 9CFAFFFF   lea     edx, \[ebp-564\]  
+>   009D2F0E     52              push    edx  
+>   009D2F0F     8D8D 5CF7FFFF   lea     ecx, \[ebp-8A4\]  
+>   009D2F15     E8 66690400     call    00A19880  
+>   009D2F1A     8985 30F5FFFF   mov     \[ebp-AD0\], eax  
+>   009D2F20     8B85 30F5FFFF   mov     eax, \[ebp-AD0\]  
+>   009D2F26     8985 2CF5FFFF   mov     \[ebp-AD4\], eax  
+>   009D2F2C     C645 FC 03      mov     byte ptr \[ebp-4\], 3  
+>   009D2F30     8B8D 2CF5FFFF   mov     ecx, \[ebp-AD4\]  
+>   009D2F36     E8 95710400     call    00A1A0D0  
+>   009D2F3B     50              push    eax  
+>   009D2F3C     B9 806FAD00     mov     ecx, 0AD6F80  
+>   009D2F41     E8 DA090000     call    009D3920  
+>   009D2F46     C645 FC 02      mov     byte ptr \[ebp-4\], 2  
+>   009D2F4A     8D8D 5CF7FFFF   lea     ecx, \[ebp-8A4\]  
+>   009D2F50     E8 6B6F0400     call    00A19EC0  
+>   009D2F55     8B8D 98FAFFFF   mov     ecx, \[ebp-568\]  
+>   009D2F5B     51              push    ecx  
+>   009D2F5C     FF15 B474AB00   call    near \[AB74B4\]                    ; kernel32.CloseHandle  
+>   009D2F62     C645 FC 00      mov     byte ptr \[ebp-4\], 0  
+>   009D2F66     8D8D 9CFAFFFF   lea     ecx, \[ebp-564\]  
+>   009D2F6C     E8 4F6F0400     call    00A19EC0  
+>   009D2F71     8B55 08         mov     edx, \[ebp+8\]  
+>   009D2F74     52              push    edx  
+>   009D2F75     E8 D6E0FFFF     call    009D1050  
+>   009D2F7A     83C4 04         add     esp, 4  
+>   009D2F7D     833D AC6EAD00 0>cmp     dword ptr \[AD6EAC\], 0  
+>   009D2F84     75 5E           jnz     short 009D2FE4  
+>   009D2F86     E8 E5310800     call    00A56170  
+>   009D2F8B     E8 30310800     call    00A560C0  
+>   009D2F90     E8 3B2D0800     call    00A55CD0  
+>   009D2F95     E8 76F90600     call    00A42910  
+>   009D2F9A     E8 A1A80400     call    00A1D840  
+>   009D2F9F     68 A0109D00     push    9D10A0  
+>   009D2FA4     E8 17060000     call    009D35C0  
+>   009D2FA9     83C4 04         add     esp, 4  
+>   009D2FAC     E8 8F480400     call    00A17840  
+>   009D2FB1     E8 CA820800     call    00A5B280  
+>   009D2FB6     E8 75E40000     call    009E1430  
+>   009D2FBB     E8 D0B60100     call    009EE690  
+>   009D2FC0     E8 ABDC0700     call    00A50C70  
+>   009D2FC5     E8 76C20700     call    00A4F240  
+>   009D2FCA     E8 51420700     call    00A47220  
+>   009D2FCF     E8 6C340300     call    00A06440  
+>   009D2FD4     68 7C35AC00     push    0AC357C                          ; ASCII "KERNEL32.DLL"  
+>   009D2FD9     FF15 F474AB00   call    near \[AB74F4\]                    ; kernel32.GetModuleHandleA  
+>   009D2FDF     A3 746EAD00     mov     \[AD6E74\], eax  
+>   009D2FE4     8B45 08         mov     eax, \[ebp+8\]  
+>   009D2FE7     8B48 08         mov     ecx, \[eax+8\]  
+>   009D2FEA     890D 986EAD00   mov     \[AD6E98\], ecx  
+>   009D2FF0     68 04010000     push    104  
+>   009D2FF5     8D95 ECFEFFFF   lea     edx, \[ebp-114\]  
+>   009D2FFB     52              push    edx  
+>   009D2FFC     6A 00           push    0  
+>   009D2FFE     FF15 F474AB00   call    near \[AB74F4\]                    ; kernel32.GetModuleHandleA  
+>   009D3004     50              push    eax  
+>   009D3005     FF15 E874AB00   call    near \[AB74E8\]                    ; kernel32.GetModuleFileNameA  
+>   009D300B     8D85 ECFEFFFF   lea     eax, \[ebp-114\]  
+>   009D3011     50              push    eax  
+>   009D3012     B9 546FAD00     mov     ecx, 0AD6F54  
+>   009D3017     E8 04090000     call    009D3920  
+>   009D301C     68 546FAD00     push    0AD6F54  
+>   009D3021     E8 8AE2FFFF     call    009D12B0  
+>   009D3026     83C4 04         add     esp, 4  
+>   009D3029     E8 E2AF0300     call    00A0E010  
+>   009D302E     8945 F0         mov     \[ebp-10\], eax  
+>   009D3031     837D F0 00      cmp     dword ptr \[ebp-10\], 0  
+>   009D3035     75 0C           jnz     short 009D3043  
+>   009D3037     C785 28F5FFFF 0>mov     dword ptr \[ebp-AD8\], 0  
+>   009D3041     EB 30           jmp     short 009D3073  
+>   009D3043     837D F0 00      cmp     dword ptr \[ebp-10\], 0  
+>   009D3047     74 14           je      short 009D305D  
+>   009D3049     8B4D F0         mov     ecx, \[ebp-10\]  
+>   009D304C     51              push    ecx  
+>   009D304D     E8 94B00C00     call    00A9E0E6  
+>   009D3052     83C4 04         add     esp, 4  
+>   009D3055     8985 24F5FFFF   mov     \[ebp-ADC\], eax  
+>   009D305B     EB 0A           jmp     short 009D3067  
+>   009D305D     C785 24F5FFFF 0>mov     dword ptr \[ebp-ADC\], 0  
+>   009D3067     8B95 24F5FFFF   mov     edx, \[ebp-ADC\]  
+>   009D306D     8995 28F5FFFF   mov     \[ebp-AD8\], edx  
+>   009D3073     8B85 28F5FFFF   mov     eax, \[ebp-AD8\]  
+>   009D3079     50              push    eax  
+>   009D307A     8B4D F0         mov     ecx, \[ebp-10\]  
+>   009D307D     51              push    ecx  
+>   009D307E     B9 D865B100     mov     ecx, 0B165D8  
+>   009D3083     E8 D8750400     call    00A1A660  
+>   009D3088     8B55 F0         mov     edx, \[ebp-10\]  
+>   009D308B     52              push    edx  
+>   009D308C     8D8D 4CF5FFFF   lea     ecx, \[ebp-AB4\]  
+>   009D3092     E8 79690400     call    00A19A10  
+>   009D3097     8985 20F5FFFF   mov     \[ebp-AE0\], eax  
+>   009D309D     8B85 20F5FFFF   mov     eax, \[ebp-AE0\]  
+>   009D30A3     8985 1CF5FFFF   mov     \[ebp-AE4\], eax  
+>   009D30A9     C645 FC 04      mov     byte ptr \[ebp-4\], 4  
+>   009D30AD     8B8D 1CF5FFFF   mov     ecx, \[ebp-AE4\]  
+>   009D30B3     E8 18700400     call    00A1A0D0  
+>   009D30B8     50              push    eax  
+>   009D30B9     B9 1C6FAD00     mov     ecx, 0AD6F1C  
+>   009D30BE     E8 5D080000     call    009D3920  
+>   009D30C3     C645 FC 00      mov     byte ptr \[ebp-4\], 0  
+>   009D30C7     8D8D 4CF5FFFF   lea     ecx, \[ebp-AB4\]  
+>   009D30CD     E8 EE6D0400     call    00A19EC0  
+>   009D30D2     68 1C6FAD00     push    0AD6F1C  
+>   009D30D7     E8 D4E1FFFF     call    009D12B0  
+>   009D30DC     83C4 04         add     esp, 4  
+>   009D30DF     8B0D 546FAD00   mov     ecx, \[AD6F54\]  
+>   009D30E5     51              push    ecx  
+>   009D30E6     6A 00           push    0  
+>   009D30E8     E8 C3130200     call    009F44B0  
+>   009D30ED     83C4 08         add     esp, 8  
+>   009D30F0     83F8 01         cmp     eax, 1  
+>   009D30F3     75 01           jnz     short 009D30F6  
+>   009D30F5     CC              int3  
+>   009D30F6     6A 00           push    0  
+>   009D30F8     68 6835AC00     push    0AC3568                          ; ASCII "TS\_EXECUTE\_EXTERNAL"  
+>   009D30FD     FF15 E074AB00   call    near \[AB74E0\]                    ; kernel32.SetEnvironmentVariableA  
+>   009D3103     8B15 1C6FAD00   mov     edx, \[AD6F1C\]  
+>   009D3109     52              push    edx  
+>   009D310A     E8 01A70400     call    00A1D810  
+>   009D310F     83C4 04         add     esp, 4  
+>   009D3112     A1 1C6FAD00     mov     eax, \[AD6F1C\]  
+>   009D3117     50              push    eax  
+>   009D3118     E8 93E0FFFF     call    009D11B0  
+>   009D311D     83C4 04         add     esp, 4  
+>   009D3120     FF15 D874AB00   call    near \[AB74D8\]                    ; kernel32.GetCommandLineA  
+>   009D3126     50              push    eax  
+>   009D3127     68 5C35AC00     push    0AC355C                          ; ASCII "cmdline=%s",LF  
+>   009D312C     E8 5F050200     call    009F3690  
+>   009D3131     83C4 08         add     esp, 8  
+>   009D3134     833D AC6EAD00 0>cmp     dword ptr \[AD6EAC\], 0  
+>   009D313B     75 05           jnz     short 009D3142  
+>   009D313D     E8 8EA30400     call    00A1D4D0  
+>   009D3142     E8 B9050200     call    009F3700  
+>   009D3147     25 FF000000     and     eax, 0FF  
+>   009D314C     85C0            test    eax, eax  
+>   009D314E     74 2C           je      short 009D317C                 ;这里跳转到 009D317C   
+>     
+>     
+>   009D317C     8B55 08         mov     edx, \[ebp+8\]  
+>   009D317F     52              push    edx  
+>   009D3180     E8 3BE2FFFF     call    009D13C0                       ;这里 F8 跑飞，F7 跟入  
+>     
+>     
+>   009D13C0     55              push    ebp  
+>   009D13C1     8BEC            mov     ebp, esp  
+>   009D13C3     6A FF           push    -1  
+>   009D13C5     68 5BEFAA00     push    0AAEF5B                          ; ASCII ""B8,"",98,"",83,"",AB  
+>   009D13CA     64:A1 00000000  mov     eax, fs:\[0\]  
+>   009D13D0     50              push    eax  
+>   009D13D1     64:8925 0000000>mov     fs:\[0\], esp  
+>   009D13D8     81EC 3C070000   sub     esp, 73C  
+>   009D13DE     53              push    ebx  
+>   009D13DF     56              push    esi  
+>   009D13E0     57              push    edi  
+>   009D13E1     A1 806FAD00     mov     eax, \[AD6F80\]  
+>   009D13E6     50              push    eax  
+>   009D13E7     E8 F4C30400     call    00A1D7E0  
+>   009D13EC     83C4 04         add     esp, 4  
+>   009D13EF     E8 4CC10400     call    00A1D540  
+>   009D13F4     8A8D 14F9FFFF   mov     cl, \[ebp-6EC\]  
+>   009D13FA     884D E0         mov     \[ebp-20\], cl  
+>   009D13FD     C745 E4 0000000>mov     dword ptr \[ebp-1C\], 0  
+>   009D1404     C745 E8 0000000>mov     dword ptr \[ebp-18\], 0  
+>   009D140B     C745 EC 0000000>mov     dword ptr \[ebp-14\], 0  
+>   009D1412     C745 FC 0000000>mov     dword ptr \[ebp-4\], 0  
+>   009D1419     8D55 E0         lea     edx, \[ebp-20\]  
+>   009D141C     52              push    edx  
+>   009D141D     A1 806FAD00     mov     eax, \[AD6F80\]  
+>   009D1422     50              push    eax  
+>   009D1423     8B4D 08         mov     ecx, \[ebp+8\]  
+>   009D1426     8B51 08         mov     edx, \[ecx+8\]  
+>   009D1429     52              push    edx  
+>   009D142A     E8 D1060100     call    009E1B00  
+>   009D142F     83C4 0C         add     esp, 0C  
+>   009D1432     A1 806FAD00     mov     eax, \[AD6F80\]  
+>   009D1437     50              push    eax  
+>   009D1438     8D8D 24F9FFFF   lea     ecx, \[ebp-6DC\]  
+>   009D143E     E8 3D820400     call    00A19680  
+>   009D1443     8985 BCF8FFFF   mov     \[ebp-744\], eax  
+>   009D1449     8B8D BCF8FFFF   mov     ecx, \[ebp-744\]  
+>   009D144F     898D 10F9FFFF   mov     \[ebp-6F0\], ecx  
+>   009D1455     C645 FC 01      mov     byte ptr \[ebp-4\], 1  
+>   009D1459     8B95 10F9FFFF   mov     edx, \[ebp-6F0\]  
+>   009D145F     8B42 08         mov     eax, \[edx+8\]  
+>   009D1462     8985 0CF9FFFF   mov     \[ebp-6F4\], eax  
+>   009D1468     8B8D 0CF9FFFF   mov     ecx, \[ebp-6F4\]  
+>   009D146E     51              push    ecx  
+>   009D146F     E8 FCD70300     call    00A0EC70  
+>   009D1474     83C4 04         add     esp, 4  
+>   009D1477     C645 FC 00      mov     byte ptr \[ebp-4\], 0  
+>   009D147B     8D8D 24F9FFFF   lea     ecx, \[ebp-6DC\]  
+>   009D1481     E8 3A8A0400     call    00A19EC0  
+>   009D1486     833D AC6EAD00 0>cmp     dword ptr \[AD6EAC\], 0  
+>   009D148D     0F85 88020000   jnz     009D171B  
+>   009D1493     E8 98CB0300     call    00A0E030  
+>   009D1498     8945 84         mov     \[ebp-7C\], eax  
+>   009D149B     837D 84 00      cmp     dword ptr \[ebp-7C\], 0  
+>   009D149F     74 5B           je      short 009D14FC  
+>   009D14A1     8D8D 50FDFFFF   lea     ecx, \[ebp-2B0\]  
+>   009D14A7     E8 C4890400     call    00A19E70  
+>   009D14AC     C645 FC 02      mov     byte ptr \[ebp-4\], 2  
+>   009D14B0     6A 01           push    1  
+>   009D14B2     8D95 50FDFFFF   lea     edx, \[ebp-2B0\]  
+>   009D14B8     52              push    edx  
+>   009D14B9     8B45 84         mov     eax, \[ebp-7C\]  
+>   009D14BC     50              push    eax  
+>   009D14BD     E8 24CC0C00     call    00A9E0E6  
+>   009D14C2     83C4 04         add     esp, 4  
+>   009D14C5     83C0 01         add     eax, 1  
+>   009D14C8     50              push    eax  
+>   009D14C9     8B4D 84         mov     ecx, \[ebp-7C\]  
+>   009D14CC     51              push    ecx  
+>   009D14CD     E8 4E680400     call    00A17D20  
+>   009D14D2     83C4 10         add     esp, 10  
+>   009D14D5     8B95 58FDFFFF   mov     edx, \[ebp-2A8\]  
+>   009D14DB     8995 08F9FFFF   mov     \[ebp-6F8\], edx  
+>   009D14E1     8B85 08F9FFFF   mov     eax, \[ebp-6F8\]  
+>   009D14E7     50              push    eax  
+>   009D14E8     E8 B3C10100     call    009ED6A0  
+>   009D14ED     C645 FC 00      mov     byte ptr \[ebp-4\], 0  
+>   009D14F1     8D8D 50FDFFFF   lea     ecx, \[ebp-2B0\]  
+>   009D14F7     E8 C4890400     call    00A19EC0  
+>   009D14FC     8A8D 04F9FFFF   mov     cl, \[ebp-6FC\]  
+>   009D1502     888D 74FFFFFF   mov     \[ebp-8C\], cl  
+>   009D1508     C785 78FFFFFF 0>mov     dword ptr \[ebp-88\], 0  
+>   009D1512     C785 7CFFFFFF 0>mov     dword ptr \[ebp-84\], 0  
+>   009D151C     C745 80 0000000>mov     dword ptr \[ebp-80\], 0  
+>   009D1523     C645 FC 03      mov     byte ptr \[ebp-4\], 3  
+>   009D1527     8A95 20F9FFFF   mov     dl, \[ebp-6E0\]  
+>   009D152D     8895 64FFFFFF   mov     \[ebp-9C\], dl  
+>   009D1533     C785 68FFFFFF 0>mov     dword ptr \[ebp-98\], 0  
+>   009D153D     C785 6CFFFFFF 0>mov     dword ptr \[ebp-94\], 0  
+>   009D1547     C785 70FFFFFF 0>mov     dword ptr \[ebp-90\], 0  
+>   009D1551     C645 FC 04      mov     byte ptr \[ebp-4\], 4  
+>   009D1555     8D85 64FFFFFF   lea     eax, \[ebp-9C\]  
+>   009D155B     50              push    eax  
+>   009D155C     8D8D 74FFFFFF   lea     ecx, \[ebp-8C\]  
+>   009D1562     51              push    ecx  
+>   009D1563     E8 682A0400     call    00A13FD0  
+>   009D1568     83C4 08         add     esp, 8  
+>   009D156B     C785 60FFFFFF 0>mov     dword ptr \[ebp-A0\], 0  
+>   009D1575     83BD 78FFFFFF 0>cmp     dword ptr \[ebp-88\], 0  
+>   009D157C     75 0C           jnz     short 009D158A  
+>   009D157E     C785 B8F8FFFF 0>mov     dword ptr \[ebp-748\], 0  
+>   009D1588     EB 15           jmp     short 009D159F               ;这里跳转到 009D159F  
+>     
+>     
+>   009D159F     8B85 60FFFFFF   mov     eax, \[ebp-A0\]  
+>   009D15A5     3B85 B8F8FFFF   cmp     eax, \[ebp-748\]  
+>   009D15AB     73 6B           jnb     short 009D1618                ;跳转到 009D1618  
+>     
+>     
+>   009D1618     8D85 64FFFFFF   lea     eax, \[ebp-9C\]  
+>   009D161E     50              push    eax  
+>   009D161F     8D8D 74FFFFFF   lea     ecx, \[ebp-8C\]  
+>   009D1625     51              push    ecx  
+>   009D1626     E8 75300400     call    00A146A0  
+>   009D162B     83C4 08         add     esp, 8  
+>   009D162E     C705 EC6EAD00 0>mov     dword ptr \[AD6EEC\], 1  
+>   009D1638     E8 A34F0400     call    00A165E0  
+>   009D163D     E8 5E860200     call    009F9CA0  
+>   009D1642     6A 4B           push    4B  
+>   009D1644     E8 27310400     call    00A14770  
+>   009D1649     83C4 04         add     esp, 4  
+>   009D164C     E8 2FB70300     call    00A0CD80  
+>   009D1651     25 FF000000     and     eax, 0FF  
+>   009D1656     85C0            test    eax, eax  
+>   009D1658     74 18           je      short 009D1672  
+>   009D165A     E8 01B50300     call    00A0CB60  
+>   009D165F     25 FF000000     and     eax, 0FF  
+>   009D1664     85C0            test    eax, eax  
+>   009D1666     74 0A           je      short 009D1672  
+>   009D1668     6A 64           push    64  
+>   009D166A     E8 01310400     call    00A14770  
+>   009D166F     83C4 04         add     esp, 4  
+>   009D1672     E8 09B70300     call    00A0CD80  
+>   009D1677     25 FF000000     and     eax, 0FF  
+>   009D167C     85C0            test    eax, eax  
+>   009D167E     74 0D           je      short 009D168D  
+>   009D1680     68 C8000000     push    0C8  
+>   009D1685     E8 E6300400     call    00A14770  
+>   009D168A     83C4 04         add     esp, 4  
+>   009D168D     C645 FC 03      mov     byte ptr \[ebp-4\], 3  
+>   009D1691     8B95 68FFFFFF   mov     edx, \[ebp-98\]  
+>   009D1697     8995 FCF8FFFF   mov     \[ebp-704\], edx  
+>   009D169D     EB 0F           jmp     short 009D16AE                 ;跳转到 009D16AE  
+>     
+>     
+>   009D16AE     8B8D FCF8FFFF   mov     ecx, \[ebp-704\]  
+>   009D16B4     3B8D 6CFFFFFF   cmp     ecx, \[ebp-94\]  
+>   009D16BA     74 02           je      short 009D16BE  
+>   009D16BC   ^ EB E1           jmp     short 009D169F  
+>   009D16BE     8B95 70FFFFFF   mov     edx, \[ebp-90\]  
+>   009D16C4     2B95 68FFFFFF   sub     edx, \[ebp-98\]  
+>   009D16CA     C1FA 02         sar     edx, 2  
+>   009D16CD     8995 F4F8FFFF   mov     \[ebp-70C\], edx  
+>   009D16D3     8B85 68FFFFFF   mov     eax, \[ebp-98\]  
+>   009D16D9     8985 F8F8FFFF   mov     \[ebp-708\], eax  
+>   009D16DF     8B8D F8F8FFFF   mov     ecx, \[ebp-708\]  
+>   009D16E5     51              push    ecx  
+>   009D16E6     E8 65370100     call    009E4E50  
+>   009D16EB     83C4 04         add     esp, 4  
+>   009D16EE     C785 68FFFFFF 0>mov     dword ptr \[ebp-98\], 0  
+>   009D16F8     C785 6CFFFFFF 0>mov     dword ptr \[ebp-94\], 0  
+>   009D1702     C785 70FFFFFF 0>mov     dword ptr \[ebp-90\], 0  
+>   009D170C     C645 FC 00      mov     byte ptr \[ebp-4\], 0  
+>   009D1710     8D8D 74FFFFFF   lea     ecx, \[ebp-8C\]  
+>   009D1716     E8 A5940200     call    009FABC0  
+>   009D171B     E8 70470300     call    00A05E90  
+>   009D1720     C745 D8 0000000>mov     dword ptr \[ebp-28\], 0  
+>   009D1727     C645 FC 05      mov     byte ptr \[ebp-4\], 5  
+>   009D172B     C745 C8 0000000>mov     dword ptr \[ebp-38\], 0  
+>   009D1732     C745 C0 0000000>mov     dword ptr \[ebp-40\], 0  
+>   009D1739     C745 B0 0000000>mov     dword ptr \[ebp-50\], 0  
+>   009D1740     C745 AC 0000000>mov     dword ptr \[ebp-54\], 0  
+>   009D1747     C745 A8 0000000>mov     dword ptr \[ebp-58\], 0  
+>   009D174E     C745 BC 0100000>mov     dword ptr \[ebp-44\], 1  
+>   009D1755     C745 A4 0000000>mov     dword ptr \[ebp-5C\], 0  
+>   009D175C     C745 A0 0000000>mov     dword ptr \[ebp-60\], 0  
+>   009D1763     C745 B4 0000000>mov     dword ptr \[ebp-4C\], 0  
+>   009D176A     C745 9C 0000000>mov     dword ptr \[ebp-64\], 0  
+>   009D1771     C745 C4 4C33AC0>mov     dword ptr \[ebp-3C\], 0AC334C      ; ASCII ".dll"  
+>   009D1778     C745 CC 0100000>mov     dword ptr \[ebp-34\], 1  
+>   009D177F     C745 D0 0000000>mov     dword ptr \[ebp-30\], 0  
+>   009D1786     C745 B8 0100000>mov     dword ptr \[ebp-48\], 1  
+>   009D178D     C745 A8 0100000>mov     dword ptr \[ebp-58\], 1  
+>   009D1794     C745 BC 0200000>mov     dword ptr \[ebp-44\], 2  
+>   009D179B     C745 A8 0100000>mov     dword ptr \[ebp-58\], 1  
+>   009D17A2     8B55 08         mov     edx, \[ebp+8\]  
+>   009D17A5     837A 04 01      cmp     dword ptr \[edx+4\], 1  
+>   009D17A9     75 07           jnz     short 009D17B2  
+>   009D17AB     C745 A4 0100000>mov     dword ptr \[ebp-5C\], 1  
+>   009D17B2     C745 C4 4433AC0>mov     dword ptr \[ebp-3C\], 0AC3344      ; ASCII ".exe"  
+>   009D17B9     C745 AC 0100000>mov     dword ptr \[ebp-54\], 1  
+>   009D17C0     C745 B0 0100000>mov     dword ptr \[ebp-50\], 1  
+>   009D17C7     8A85 F0F8FFFF   mov     al, \[ebp-710\]  
+>   009D17CD     8845 88         mov     \[ebp-78\], al  
+>   009D17D0     C745 8C 0000000>mov     dword ptr \[ebp-74\], 0  
+>   009D17D7     C745 90 0000000>mov     dword ptr \[ebp-70\], 0  
+>   009D17DE     C745 94 0000000>mov     dword ptr \[ebp-6C\], 0  
+>   009D17E5     C645 FC 06      mov     byte ptr \[ebp-4\], 6  
+>   009D17E9     E8 C2FBFFFF     call    009D13B0  
+>   009D17EE     8D4D 88         lea     ecx, \[ebp-78\]  
+>   009D17F1     51              push    ecx  
+>   009D17F2     8D55 E0         lea     edx, \[ebp-20\]  
+>   009D17F5     52              push    edx  
+>   009D17F6     8D45 D8         lea     eax, \[ebp-28\]  
+>   009D17F9     50              push    eax  
+>   009D17FA     8D4D 9C         lea     ecx, \[ebp-64\]  
+>   009D17FD     51              push    ecx  
+>   009D17FE     6A 01           push    1  
+>   009D1800     8B15 806FAD00   mov     edx, \[AD6F80\]  
+>   009D1806     52              push    edx  
+>   009D1807     E8 54620000     call    009D7A60  
+>   009D180C     83C4 18         add     esp, 18  
+>   009D180F     83F8 02         cmp     eax, 2  
+>   009D1812     75 22           jnz     short 009D1836                 ;跳转到 009D1836  
+>     
+>     
+>   009D1836     8B4D D8         mov     ecx, \[ebp-28\]  
+>   009D1839     8B51 10         mov     edx, \[ecx+10\]  
+>   009D183C     8955 F0         mov     \[ebp-10\], edx  
+>   009D183F     8B45 F0         mov     eax, \[ebp-10\]  
+>   009D1842     50              push    eax  
+>   009D1843     E8 B8040000     call    009D1D00  
+>   009D1848     83C4 04         add     esp, 4  
+>   009D184B     8B4D F0         mov     ecx, \[ebp-10\]  
+>   009D184E     8B51 3C         mov     edx, \[ecx+3C\]  
+>   009D1851     8B45 F0         mov     eax, \[ebp-10\]  
+>   009D1854     8D4C10 04       lea     ecx, \[eax+edx+4\]  
+>   009D1858     894D DC         mov     \[ebp-24\], ecx  
+>   009D185B     8B55 DC         mov     edx, \[ebp-24\]  
+>   009D185E     83C2 14         add     edx, 14  
+>   009D1861     8955 D4         mov     \[ebp-2C\], edx  
+>   009D1864     8B45 D4         mov     eax, \[ebp-2C\]  
+>   009D1867     05 E0000000     add     eax, 0E0  
+>   009D186C     8945 98         mov     \[ebp-68\], eax  
+>   009D186F     C705 EC6EAD00 0>mov     dword ptr \[AD6EEC\], 2  
+>   009D1879     E8 22840200     call    009F9CA0  
+>   009D187E     8D4D E0         lea     ecx, \[ebp-20\]  
+>   009D1881     51              push    ecx  
+>   009D1882     E8 99890200     call    009FA220  
+>   009D1887     83C4 04         add     esp, 4  
+>   009D188A     833D AC6EAD00 0>cmp     dword ptr \[AD6EAC\], 0  
+>   009D1891     75 0C           jnz     short 009D189F  
+>   009D1893     6A 00           push    0  
+>   009D1895     6A 01           push    1  
+>   009D1897     E8 848C0000     call    009DA520  
+>   009D189C     83C4 08         add     esp, 8  
+>   009D189F     C705 EC6EAD00 0>mov     dword ptr \[AD6EEC\], 3  
+>   009D18A9     E8 72760200     call    009F8F20  
+>   009D18AE     25 FF000000     and     eax, 0FF  
+>   009D18B3     85C0            test    eax, eax  
+>   009D18B5     74 0D           je      short 009D18C4  
+>   009D18B7     68 0433AC00     push    0AC3304                          ; UNICODE "Application Launched"  
+>   009D18BC     E8 7F760200     call    009F8F40  
+>   009D18C1     83C4 04         add     esp, 4  
+>   009D18C4     E8 174D0400     call    00A165E0  
+>   009D18C9     8B55 08         mov     edx, \[ebp+8\]  
+>   009D18CC     837A 04 01      cmp     dword ptr \[edx+4\], 1  
+>   009D18D0     0F85 5A010000   jnz     009D1A30  
+>   009D18D6     8B45 D4         mov     eax, \[ebp-2C\]  
+>   009D18D9     8B48 10         mov     ecx, \[eax+10\]  
+>   009D18DC     034D F0         add     ecx, \[ebp-10\]  
+>   009D18DF     898D 44FDFFFF   mov     \[ebp-2BC\], ecx  
+>   009D18E5     8B15 3C5CAC00   mov     edx, \[AC5C3C\]  
+>   009D18EB     8B02            mov     eax, \[edx\]  
+>   009D18ED     25 00004000     and     eax, 400000  
+>   009D18F2     F7D8            neg     eax  
+>   009D18F4     1BC0            sbb     eax, eax  
+>   009D18F6     F7D8            neg     eax  
+>   009D18F8     25 FF000000     and     eax, 0FF  
+>   009D18FD     85C0            test    eax, eax  
+>   009D18FF     74 14           je      short 009D1915                 ;跳转到 009D1915  
+>     
+>     
+>   009D1915     6A 00           push    0  
+>   009D1917     FF15 F474AB00   call    near \[AB74F4\]                    ; kernel32.GetModuleHandleA  
+>   009D191D     8985 3CFDFFFF   mov     \[ebp-2C4\], eax  
+>   009D1923     8B95 3CFDFFFF   mov     edx, \[ebp-2C4\]  
+>   009D1929     8B42 3C         mov     eax, \[edx+3C\]  
+>   009D192C     8B8D 3CFDFFFF   mov     ecx, \[ebp-2C4\]  
+>   009D1932     8D5401 04       lea     edx, \[ecx+eax+4\]  
+>   009D1936     8995 48FDFFFF   mov     \[ebp-2B8\], edx  
+>   009D193C     8B85 48FDFFFF   mov     eax, \[ebp-2B8\]  
+>   009D1942     83C0 14         add     eax, 14  
+>   009D1945     8985 40FDFFFF   mov     \[ebp-2C0\], eax  
+>   009D194B     E8 E0F9FFFF     call    009D1330  
+>   009D1950     8985 38FDFFFF   mov     \[ebp-2C8\], eax  
+>   009D1956     8D05 6C199D00   lea     eax, \[9D196C\]  
+>   009D195C     8B9D 38FDFFFF   mov     ebx, \[ebp-2C8\]  
+>   009D1962     8B8D 44FDFFFF   mov     ecx, \[ebp-2BC\]  
+>   009D1968     50              push    eax  
+>   009D1969     53              push    ebx  
+>   009D196A     FFE1            jmp     near ecx               ;飞向光明之巅  
+>     
+>     
+>   OEP 到了，恭喜发财！  
+>     
+>   00410EF0     55              push    ebp  
+>   00410EF1     8BEC            mov     ebp, esp  
+>   00410EF3     6A FF           push    -1  
+>   00410EF5     68 90304100     push    SetupCap.00413090  
+>   00410EFA     68 82104100     push    SetupCap.00411082                  ; jmp 到 msvcrt.\_except\_handler3  
+>   00410EFF     64:A1 00000000  mov     eax, fs:\[0\]  
+>   00410F05     50              push    eax  
+>   00410F06     64:8925 0000000>mov     fs:\[0\], esp  
+>   00410F0D     83EC 68         sub     esp, 68  
+>   00410F10     53              push    ebx  
+>   00410F11     56              push    esi  
+>   00410F12     57              push    edi  
+>   00410F13     8965 E8         mov     \[ebp-18\], esp  
+>   00410F16     33DB            xor     ebx, ebx  
+>   00410F18     895D FC         mov     \[ebp-4\], ebx  
+>   00410F1B     6A 02           push    2  
+>   00410F1D     FF15 9C234100   call    near \[41239C\]                    ; msvcrt.\_\_set\_app\_type  
+>   00410F23     59              pop     ecx  
+>   00410F24     830D 6CC44100 F>or      dword ptr \[41C46C\], FFFFFFFF  
+>   00410F2B     830D 70C44100 F>or      dword ptr \[41C470\], FFFFFFFF  
+>   00410F32     FF15 98234100   call    near \[412398\]                    ; msvcrt.\_\_p\_\_fmode  
+>     
+>   接下来就是 dump 了，不要选择重建输入表，如图：  
+>   ![`bbs.pediy.com/upload/2006/8/image/dump.png\_330.png`](img/73ddaa09668ab44aee6ac0649a7ec51f.jpg)     
+>   dumped.exe 不用修复输入表，可以正常运行。  
+>   
+>   用 peid 附加 overlay，先用 peid 载入原未脱壳程序，如图：  
+>   ![`bbs.pediy.com/upload/2006/8/image/peid.png`](img/459f95f1064309112192cce1d4d1e242.jpg)   
+>       
+>   调用 overlay1.0 插件，在第二栏中选择脱壳后的文件，点击 按钮，如图：  
+>   ![`bbs.pediy.com/upload/2006/8/image/plugin.png`](img/0b423692c770d77c4aa36775b0124c60.jpg)   
+>     
+> ![`bbs.pediy.com/upload/2006/8/image/overlay1.0.png`](img/15a3d7ad74c7cb2f9cef303d14198322.jpg)   
+>     
+>   这样程序就脱壳结束了。程序并没有破解，破解需要考虑其他几个相关的 exe 文件。  
+>     
+>       
+>   提示：如果你不小心在 F7 的地方按了 F8 跑飞，先别着急着重新调试，在哪个 call 跑飞，就在哪个地方 F2 下断，重新调试时会弹出警告，只要你先 F9 一次，在从查看断点的窗口激活刚才下的断点，然后 F9 便可到达。  
+>     
+>     
+> \--------------------------------------------------------------------------------  
+> 【经验总结】  
+>   此程序考验的不是技术，而是耐性！如果你和我一样不知道简洁方法，就单步跟踪吧！希望这篇文章对你有帮助。  
+>     
+> \--------------------------------------------------------------------------------  
+> 【版权声明】: 转载请注明作者并保持文章的完整, 谢谢!  
+>   
+>                                                        2007 年 03 月 02 日 19:50:37 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

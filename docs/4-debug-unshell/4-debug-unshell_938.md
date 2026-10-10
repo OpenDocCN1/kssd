@@ -1,0 +1,453 @@
+
+
+# C32Asm V0.4.12
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6957.htm`](https://www.pediy.com/kssd/pediy06/pediy6957.htm)
+
+下载地址：  http://www.c32asm.com/download/c32asm.rar   
+升级日期：  2004 年 1 月 17 日   
+软件大小：  2 M   
+软件语言：  中文   
+应用平台：  Win9x/NT/2000/XP   
+     
+【软件简介】：1.hex 编辑功能增加使用文件映射选项，功能用于快速打开大的文件，但是缺点是独占模式也就是打开文件后其他程序不能对这个文件操作,如果你家内存够大而且想在 hex 编辑的时候还可以执行这个文件那么就关掉这个。  2.修正汇编查询器的 bug。  3.hex 编辑功能增加自动适应基址选项,功能用于从 hex 状态切换到汇编状态的时候自动根据 pe 文件的基址填充汇编状态时候的基址（此功能会在第一次切换的时候消耗更多的时间(我的 p42.4 多消耗了 0.01 秒)，自己看着办是否选上)。  4.修正 dump 功能的一些错误，更好的 dump 兼容性，如果发现不能 dump 的文件请在 c32asm 论坛报告出来，我会及时处理的。 5.hex 部分保存备份时候能创建 b00-b99 个备份文件和提示创建备份文件功能(可以在 hex 的通用菜单关闭此功能)。  6.开放了多语言的功能。  7.更改了一下版本命名的方法,加入了编译日期。  8.祝大家新年愉快。   
+           
+【作者声明】：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！   
+           
+【调试环境】：WinXP、Ollydbg1.09、PEiD、LordPE、ImportREC   
+       
+—————————————————————————————————    
+【脱壳过程】：   
+             
+            
+           
+一、寻找 OEP   
+           
+           
+老规矩：用 IsDebug 1.4 插件去掉 Ollydbg 的调试器标志。忽略除了“内存访问异常”之外的所有其他异常选项。   
+           
+              
+00401000     68 01406300         push C32Asm.00634001//进入 OD 后停在这！    
+00401005     E8 01000000         call C32Asm.0040100B   
+0040100A     C3                  retn   
+           
+F9 运行，程序会中断在异常处，Shift+F9 通过异常   
+           
+00FA9CB5     3100                xor dword ptr ds:\[eax\],eax//最后 1 次异常    
+00FA9CB7     64:8F05 00000000    pop dword ptr fs:\[0\]   
+00FA9CBE     58                  pop eax   
+00FA9CBF     833D C4E7FA00 00    cmp dword ptr ds:\[FAE7C4\],0   
+00FA9CC6     74 14               je short 00FA9CDC   
+00FA9CC8     6A 0C               push 0C   
+00FA9CCA     B9 C4E7FA00         mov ecx,0FAE7C4   
+00FA9CCF     8D45 F8             lea eax,dword ptr ss:\[ebp\-8\]   
+00FA9CD2     BA 04000000         mov edx,4   
+00FA9CD7     E8 6075FFFF         call 00FA123C   
+00FA9CDC     FF75 FC             push dword ptr ss:\[ebp\-4\]   
+00FA9CDF     FF75 F8             push dword ptr ss:\[ebp\-8\]   
+00FA9CE2     8B45 F4             mov eax,dword ptr ss:\[ebp\-C\]   
+00FA9CE5     8338 00             cmp dword ptr ds:\[eax\],0   
+00FA9CE8     74 02               je short 00FA9CEC   
+00FA9CEA     FF30                push dword ptr ds:\[eax\]   
+00FA9CEC     FF75 F0             push dword ptr ss:\[ebp\-10\]   
+00FA9CEF     FF75 EC             push dword ptr ss:\[ebp\-14\]   
+00FA9CF2     C3                  retn//此处下断，Shift+F9，断在这！返回 00FCF6B4    
+  
+00FCF6B4     81F7 DF3F8F20       xor edi,208F3FDF   
+00FCF6BA     E8 11000000         call 00FCF6D0   
+           
+用 F7 单步跟踪，Why？因为偶想从中寻找 Stolen Code     
+           
+00FCF7A2     E9 2F000000         jmp 00FCF7D6//此处下断，F9，断在这，跳出循环！    
+00FCF7BF     E9 3EFFFFFF         jmp 00FCF702//循环    
+  
+00FCF881     61                  popad   
+00FCF882     EB 01               jmp short 00FCF885   
+  
+00FCF8E6     896C24 04           mov dword ptr ss:\[esp+4\],ebp ★   
+00FCF902     8BEC                mov ebp,esp ★   
+00FCF911     6A FF               push -1 ★   
+00FCF997     68 CE354000         push 4035CE    
+  
+00FCFA21     890424              mov dword ptr ss:\[esp\],eax ★   
+  
+00FCFAAD     68 A0304A00         push 4A30A0    
+00FCFAB2     68 DC974700         push 4797DC    
+00FCFAB7     896C24 04           mov dword ptr ss:\[esp+4\],ebp ★   
+  
+00FCFBF6     8903                mov dword ptr ds:\[ebx\],eax ★   
+00FCFBF8     58                  pop eax                   ; C32Asm.005044C8   
+00FCFBF9     5B                  pop ebx   
+00FCFBFA     9D                  popfd   
+00FCFBFB     EB 01               jmp short 00FCFBFE   
+  
+00FCFBFE     FF35 69F9FC00       push dword ptr ds:\[FCF969\] ; C32Asm.005044C8   
+00FCFC20     FF7424 04           push dword ptr ss:\[esp+4\]  ; C32Asm.005044C8 ★   
+  
+00FCFD33     B8 084D4400         mov eax,444D08   
+  
+00FCFEE7     8903                mov dword ptr ds:\[ebx\],eax ; C32Asm.004CF5AA   
+00FCFEEF     FF35 5AFCFC00       push dword ptr ds:\[FCFC5A\] ; C32Asm.004CF5AA ★   
+  
+00FCFF02     64:A1 00000000      mov eax,dword ptr fs:\[0\] ★   
+  
+00FCFF20     894424 04           mov dword ptr ss:\[esp+4\],eax ★   
+00FCFF24     F3:                 prefix rep:   
+  
+00FCFF3C     64:8925 00000000    mov dword ptr fs:\[0\],esp ★   
+  
+00FCFF50     83EC 68             sub esp,68 ★   
+  
+00FCFF6B     895C24 04           mov dword ptr ss:\[esp+4\],ebx ★   
+00FCFF6F     F3:                 prefix rep:   
+00FCFF70     EB 02               jmp short 00FCFF74   
+  
+00FCFF92     897424 04           mov dword ptr ss:\[esp+4\],esi ★   
+00FCFF96     F3:                 prefix rep:   
+00FCFF97     EB 02               jmp short 00FCFF9B   
+  
+00FCFFB9     897C24 04           mov dword ptr ss:\[esp+4\],edi ★   
+00FCFFBD     F3:                 prefix rep:   
+00FCFFBE     EB 02               jmp short 00FCFFC2   
+  
+00FCFFD5     8965 E8             mov dword ptr ss:\[ebp\-18\],esp ★   
+00FCFFE5     33DB                xor ebx,ebx ★   
+00FCFFF4     895D FC             mov dword ptr ss:\[ebp\-4\],ebx ★   
+00FD0004     6A 02               push 2 ★   
+00FD0013     FF15 48664E00       call dword ptr ds:\[4E6648\]; msvcrt.\_\_set\_app\_type ★   
+00FD0026     59                  pop ecx ★   
+00FD0034     830D 681C5500 FF    or dword ptr ds:\[551C68\],FFFFFFFF ★   
+00FD0048     830D 6C1C5500 FF    or dword ptr ds:\[551C6C\],FFFFFFFF ★   
+  
+00FD005C     FF15 4C664E00       call dword ptr ds:\[4E664C\]; msvcrt.\_\_p\_\_fmode ★   
+  
+00FD00C8     8908                mov dword ptr ds:\[eax\],ecx ★   
+00FD00D7     FF15 50664E00       call dword ptr ds:\[4E6650\] ; msvcrt.\_\_p\_\_commode ★   
+  
+00FD011E     FF3421              push dword ptr ds:\[ecx\]   
+00FD0135     59                  pop ecx ; C32Asm.00551C48 ★   
+00FD0143     8908                mov dword ptr ds:\[eax\],ecx ★   
+00FD0152     A1 54664E00         mov eax,dword ptr ds:\[4E6654\] ★   
+00FD0164     8B00                mov eax,dword ptr ds:\[eax\] ★   
+00FD0173     A3 641C5500         mov dword ptr ds:\[551C64\],eax ★   
+  
+00FD0185     68 D1F54C00         push 4CF5D1 ★   
+00FD018E     C3                  retn   
+  
+00FD019F     391D 30B65300       cmp dword ptr ds:\[53B630\],ebx ★   
+  
+00FD01A9     9C                  pushfd//结束      
+00FD01AA     EB 01               jmp short 00FD01AD   
+  
+  
+00FD0382     8947 00             mov dword ptr ds:\[edi\],eax ; C32Asm.004CF48A//返回程序的地址    
+00FD0385     58                  pop eax   
+00FD0386     5F                  pop edi   
+00FD0387     9D                  popfd   
+00FD0388     EB 01               jmp short 00FD038B   
+  
+00FD038B     FF35 B401FD00       push dword ptr ds:\[FD01B4\] ; C32Asm.004CF48A   
+00FD0391     68 E0F7FC00         push 0FCF7E0   
+00FD0396     C3                  retn   
+  
+00FCF7E3     51                  push ecx   
+00FCF7E4     57                  push edi   
+00FCF7E5     9C                  pushfd   
+00FCF7E6     FC                  cld   
+00FCF7E7     BF 24F8FC00         mov edi,0FCF824   
+00FCF7EC     B9 5E280000         mov ecx,285E   
+00FCF7F1     F3:AA               rep stos byte ptr es:\[edi\]//清扫战场     
+00FCF7F3     9D                  popfd   
+00FCF7F4     5F                  pop edi   
+00FCF7F5     59                  pop ecx   
+00FCF7F6     C3                  retn  //飞向光明之巅！ 返回至 004CE74A    
+           
+注意以上偶打★的代码，这些代码应该与 Stolen Code 有关！   
+           
+           
+—————————————————————————————————   
+二、补上 OEP 处的 Stolen Code   
+           
+           
+参考以上打★的代码和曾经修复的 C32Asm V0.1114 的代码，偶修复的 Stolen Code 如下：   
+           
+           
+004CF415     55                  push ebp//在这儿用 LordPE 纠正 ImageSize 后完全 DUMP 这个进程    
+004CF416     8BEC                mov ebp,esp   
+004CF418     6A FF               push -1   
+004CF41A     68 C8445000         push C32Asm.005044C8   
+004CF41F     68 AAF54C00         push C32Asm.004CF5AA   
+004CF424     64:A1 00000000      mov eax,dword ptr fs:\[0\]   
+004CF42A     50                  push eax   
+004CF42B     64:8925 00000000    mov dword ptr fs:\[0\],esp   
+004CF432     83EC 68             sub esp,68   
+004CF435     53                  push ebx   
+004CF436     56                  push esi   
+004CF437     57                  push edi   
+004CF438     8965 E8             mov dword ptr ss:\[ebp\-18\],esp   
+004CF43B     33DB                xor ebx,ebx   
+004CF43D     895D FC             mov dword ptr ss:\[ebp\-4\],ebx   
+004CF440     6A 02               push 2   
+004CF442     FF15 48664E00       call dword ptr ds:\[4E6648\]          ; msvcrt.\_\_set\_app\_type   
+004CF448     59                  pop ecx   
+004CF449     830D 681C5500 FF    or dword ptr ds:\[551C68\],FFFFFFFF   
+004CF450     830D 6C1C5500 FF    or dword ptr ds:\[551C6C\],FFFFFFFF   
+004CF457     FF15 4C664E00       call dword ptr ds:\[4E664C\]          ; msvcrt.\_\_p\_\_fmode   
+004CF45D     8B0D 4C1C5500       mov ecx,dword ptr ds:\[551C4C\]   
+004CF463     8908                mov dword ptr ds:\[eax\],ecx   
+004CF465     FF15 50664E00       call dword ptr ds:\[4E6650\]          ; msvcrt.\_\_p\_\_commode   
+004CF46B     8B0D 481C5500       mov ecx,dword ptr ds:\[551C48\]   
+004CF471     8908                mov dword ptr ds:\[eax\],ecx   
+004CF473     A1 54664E00         mov eax,dword ptr ds:\[4E6654\]   
+004CF478     8B00                mov eax,dword ptr ds:\[eax\]   
+004CF47A     A3 641C5500         mov dword ptr ds:\[551C64\],eax   
+004CF47F     E8 4D010000         call C32Asm.004CF5D1   
+004CF484     391D 30B65300       cmp dword ptr ds:\[53B630\],ebx//上面这些字节是补上的 Stolen Code     
+           
+           
+004CF48A     75 0C               jnz short C32Asm.004CF498//从壳中返回到这里    
+004CF48C     68 CEF54C00         push C32Asm.004CF5CE   
+004CF491     FF15 58664E00       call dword ptr ds:\[4E6658\] ; msvcrt.\_\_setusermatherr   
+004CF497     59                  pop ecx   
+004CF498     E8 1F010000         call C32Asm.004CF5BC   
+004CF49D     68 0C415200         push C32Asm.0052410C   
+004CF4A2     68 08415200         push C32Asm.00524108   
+004CF4A7     E8 0A010000         call C32Asm.004CF5B6       ; jmp to msvcrt.\_initterm   
+           
+           
+—————————————————————————————————   
+三、修复输入表   
+       
+       
+运行 ImportREC，选择这个进程。把 OEP 改为 000CF415，RAV=000E5000,Size=00001904， 点 IT AutoSearch，点“Get Import”，用“追踪层次 1”和“ASProtect 1.3 calculated imports”插件修复全部的无效函数，FixDump。   
+           
+            
+—————————————————————————————————   
+四、消除暗桩   
+           
+           
+1、004480D6 处   
+           
+           
+004480D4     51                  push ecx   
+004480D5     50                  push eax//pll love phenix!     
+004480D6     FF15 58835300       call dword ptr ds:\[538358\]//异常 ①    
+004480DC     E8 0D6A0800         call C32Asm.004CEAEE ; jmp to mfc42.#1205\_AfxOleInit   
+           
+跟进这个 004480D6 call dword ptr ds:\[538358\]发现程序复制“pll love phenix”等字符，然后返回   
+           
+00FA56AD     5E                  pop esi   
+00FA56AE     5B                  pop ebx   
+00FA56AF     5D                  pop ebp   
+00FA56B0     C2 0800             retn 8//返回 004480DC    
+  
+Ctrl+F 在程序空间里查找命令：retn 8   随便找一个吧：   
+  
+0040167F     C2 0800             retn 8   
+  
+修改：把\[538358\]处的 FA5660 改为：0040167F   
+  
+00538358  60 56 FA 00 //旧的指针    
+00538358  7F 16 40 00 //新的指针    
+      
+          
+————————————————————————   
+2、00448797 处   
+           
+           
+00448797     FF15 50835300       call dword ptr ds:\[538350\]//这里对 004487A8、0045F798 处解码     
+0044879D     EB 08               jmp short C32Asm.004487A7   
+           
+①、004487A8 处解码：   
+           
+004487A7     E9 01000000         jmp C32Asm.004487AD   
+004487AC     EF                  out dx,eax   
+004487AD     8B4B 78             mov ecx,dword ptr ds:\[ebx+78\]   
+004487B0     51                  push ecx   
+004487B1     8BCF                mov ecx,edi   
+004487B3     E8 96600800         call C32Asm.004CE84E ; jmp to mfc42.#6215\_CWnd::ShowWindow   
+                                 //出现 C32asm 的界面     
+004487B8     8B57 20             mov edx,dword ptr ds:\[edi+20\]   
+004487BB     52                  push edx   
+004487BC     FF15 30674E00       call dword ptr ds:\[4E6730\]          ; USER32.UpdateWindow   
+004487C2     8B47 20             mov eax,dword ptr ds:\[edi+20\]   
+004487C5     50                  push eax   
+004487C6     FF15 2C674E00       call dword ptr ds:\[4E672C\]          ; USER32.BringWindowToTop   
+004487CC     C783 CC090000 01000>mov dword ptr ds:\[ebx+9CC\],1   
+004487D6     EB 04               jmp short C32Asm.004487DC   
+  
+004487DC     FF15 54835300       call dword ptr ds:\[538354\]   
+004487E2     EB 08               jmp short C32Asm.004487EC   
+           
+           
+②、0045F798 处解码：   
+           
+0045F797     E9 01000000         jmp C32Asm.0045F79D   
+0045F79C     228B 3DCCE653       and cl,byte ptr ds:\[ebx+53E6CC3D\]   
+0045F7A2     0033                add byte ptr ds:\[ebx\],dh   
+0045F7A4     C085 FF0F94C0 50    rol byte ptr ss:\[ebp+C0940FFF\],50   
+0045F7AB     E8 E0220100         call C32Asm.00471A90   
+0045F7B0     A1 20D45300         mov eax,dword ptr ds:\[53D420\]   
+0045F7B5     83C4 04             add esp,4   
+0045F7B8     85C0                test eax,eax   
+0045F7BA     75 49               jnz short C32Asm.0045F805   
+0045F7BC     6A 01               push 1   
+0045F7BE     8BCE                mov ecx,esi   
+0045F7C0     FF15 FC504E00       call dword ptr ds:\[4E50FC\]    
+; c32asm\_1.CBCGPToolbarCustomize::EnableUserDefinedToolbars   
+0045F7C6     8B16                mov edx,dword ptr ds:\[esi\]   
+0045F7C8     8BCE                mov ecx,esi   
+0045F7CA     FF92 E0000000       call dword ptr ds:\[edx+E0\]   
+0045F7D0     EB 0A               jmp short C32Asm.0045F7DC   
+0045F7D2     03CA                add ecx,edx   
+0045F7D4     81C9 04000000       or ecx,4   
+0045F7DA     33C0                xor eax,eax   
+0045F7DC     8B06                mov eax,dword ptr ds:\[esi\]   
+0045F7DE     8BCE                mov ecx,esi   
+0045F7E0     FF50 60             call dword ptr ds:\[eax+60\]   
+0045F7E3     EB 0A               jmp short C32Asm.0045F7EF   
+0045F7E5     03CA                add ecx,edx   
+0045F7E7     81C9 04000000       or ecx,4   
+0045F7ED     8BC3                mov eax,ebx   
+0045F7EF     EB 04               jmp short C32Asm.0045F7F5   
+0045F7F1     625E 7C             bound ebx,qword ptr ds:\[esi+7C\]   
+0045F7F4     E5 EB               in eax,0EB   
+0045F7F6     08E7                or bh,ah   
+0045F7F8     CA B9E9             retf 0E9B9   
+           
+修改：   
+  
+①、当然是把解出的这些代码复进到脱壳后的程序啦     
+②、00448797     FF15 50835300       call dword ptr ds:\[538350\]// NOP 掉     
+           
+           
+————————————————————————   
+3、004487DC 处   
+           
+           
+004487DC     FF15 54835300       call dword ptr ds:\[538354\]//清除上面解出的 2 处代码    
+           
+修改：   
+004487DC     FF15 54835300       call dword ptr ds:\[538354\]//当然是 NOP 掉     
+           
+           
+—————————————————————————————————   
+4、文件长度校验   
+           
+           
+00448806     E8 61600800         call C32Asm.004CE86C; jmp to mfc42.#5186\_CFile::Open   
+0044880B     85C0                test eax,eax   
+0044880D     0F84 91000000       je C32Asm.004488A4   
+00448813     8D4D CC             lea ecx,dword ptr ss:\[ebp\-34\]   
+00448816     E8 4B600800         call C32Asm.004CE866 ; jmp to mfc42.#3318\_CFile::GetLength   
+0044881B     8D4D CC             lea ecx,dword ptr ss:\[ebp\-34\]   
+0044881E     8BF0                mov esi,eax   
+00448820     E8 2F600800         call C32Asm.004CE854 ; jmp to mfc42.#1979\_CFile::Close   
+00448825     33C0                xor eax,eax   
+00448827     81FE 60E31600       cmp esi,16E360//原程序 ESI=000C1A00    
+0044882D     0F9CC0              setl al   
+00448830     85C0                test eax,eax   
+00448832     A3 68E85300         mov dword ptr ds:\[53E868\],eax   
+00448837     75 0C               jnz short C32Asm.00448845   
+           
+修改：   
+           
+00448820     E8 2F600800         call <jmp.&mfc42.#1979>   
+00448825     33C0                xor eax,eax   
+00448827     BE 001A0C00         mov esi,0C1A00//呵呵，“骗”两下 pll621 老大     
+0044882C     90                  nop   
+0044882D     B0 01               mov al,1//手动置 1    
+0044882F     90                  nop   
+00448830     85C0                test eax,eax   
+00448832     A3 68E85300         mov dword ptr ds:\[53E868\],eax   
+00448837     75 0C               jnz short dumped\_.00448845   
+           
+           
+————————————————————————   
+5、运行啦       
+           
+           
+73D3B4F3     85C0                test eax,eax   
+73D3B4F5     74 16               je short mfc42.73D3B50D   
+73D3B4F7     8B06                mov eax,dword ptr ds:\[esi\]   
+73D3B4F9     8BCE                mov ecx,esi   
+73D3B4FB     FF50 5C             call dword ptr ds:\[eax+5C\]//RUN   GO GO GO！    
+73D3B4FE     8BD8                mov ebx,eax   
+73D3B500     E8 D2BF0000         call mfc42.#1577\_AfxWinTerm   
+73D3B505     5F                  pop edi   
+73D3B506     8BC3                mov eax,ebx   
+73D3B508     5E                  pop esi   
+73D3B509     5B                  pop ebx   
+73D3B50A     C2 1000             retn 10   
+         
+          
+————————————————————————   
+6、C32ASM.INI   
+    
+    
+复制 C32ASM.INI 文件，重命名为和脱壳后程序相同的文件名.INI，否则没有相应的 INI 文件反汇编后代码不可显示。   
+    
+    
+—————————————————————————————————   
+五、爆破功能限制   
+           
+           
+老妖 担心吓跑偶们，所以大大降低了 C32Asm 的破解难度，即使如此，想爆破也是很麻烦的；为了找到爆破点可真是费了番工夫。不知道 老妖 喝酒回来后会在下个版本中恢复多少变态陷阱，呵呵，太变态偶就不敢玩啦。 8D   
+           
+           
+1、激活灰色菜单   
+           
+           
+00447D33     C786 C8090000 01000>mov dword ptr ds:\[esi+9C8\],1//全局标志     
+  
+修改：   
+00447D33     C786 C8090000 00000>mov dword ptr ds:\[esi+9C8\],0   
+           
+           
+————————————————————————   
+2、去掉“破坏”代码   
+           
+           
+老妖把“自定义”的功能执行代码挪到壳中，然后清除程序中的代码。   
+  
+①、004873D6     F3:A5               rep movs dword ptr es:\[edi\],dword ptr ds:\[esi\]//NOP 掉    
+②、004873E1     F3:A4               rep movs byte ptr es:\[edi\],byte ptr ds:\[esi\]  //NOP 掉    
+③、004874C9     F3:A5               rep movs dword ptr es:\[edi\],dword ptr ds:\[esi\]//NOP 掉    
+④、004874D1     F3:A4               rep movs byte ptr es:\[edi\],byte ptr ds:\[esi\]  //NOP 掉    
+           
+           
+————————————————————————   
+3、去掉入壳的（异常）CALL   
+           
+           
+①、004487DC     FF15 54835300       call dword ptr ds:\[538354\]//NOP 掉    
+②、0045F7FF     FF15 54835300       call dword ptr ds:\[538354\]//NOP 掉    
+③、0045F787     FF15 50835300       call dword ptr ds:\[538350\]//NOP 掉    
+           
+           
+在偶脱壳消除暗桩后爆破以上部分即可实现和注册版同样的功能啦。   
+感谢 pll621 老大！            
+         
+今天是大年三十，祝大家☆☆春节快乐☆☆     
+           
+           
+—————————————————————————————————   
+       
+                                   
+         ,     \_/    
+        /| \_.-~/            \_     ,        青春都一饷   
+       ( /~   /              ~-.\_ |   
+       \`\\  \_/                   ~ )          忍把浮名    
+   \_-~~~-.)  )\_\_/;;,.          \_  //'    
+  /'\_,   --~    ~~~-  ,;;\_\_\_(  (.-~~~-.        换了破解轻狂   
+ \`~ \_( ,\_..-- (     ,;'' /    ~--   /.\_\`    
+  /~~//'   /' \`~         ) /--..\_, )\_  \`~    
+  "  \`~"  "      \`"      /~'\`    \`\\~~      
+                         "     "   "~'  ""   
+  
+       
+     Cracked By jingulong    
+     Cracked By 巢水工作坊——fly \[OCN\]\[FCG\]\[NUKE\]\[DCM\]   
+  
+               2004-01-21  00:00   
+ 4dd466d0e1e0cc123afbe504da2462ca

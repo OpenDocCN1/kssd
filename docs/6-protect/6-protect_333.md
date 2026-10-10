@@ -1,0 +1,2666 @@
+
+
+# \[翻译\]多态变形技术教学\_2
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-786.htm`](https://www.pediy.com/kssd/pediy08/pediy8-786.htm)
+
+   
+
+  
+
+| **多态变形技术教学(2)－高级的方法** ||                   |
+| --- | --- |
+| 文档编号： || S001-F001 |
+| 原作者： || Lord Julus |
+| 译者： || arhat\[ptg\] ||   |
+| 审校： || Kanxue、CCDebuger ||   |
+| 发布时间：  || 2006 年 6 月 1 日 |
+| 原文： || [`vx.netlux.org/lib/static/vdat/tupolyii.htm`](http://vx.netlux.org/lib/static/vdat/tupolyii.htm) |
+| 关键词：  
+ || 多态 译码器 操作码 寻址 |
+|  |
+|   || ![](img/796dce1cf6e1094756704e8c267c47ed.jpg) |
+|  ||  ||  ||  |
+
+ 
+
+  
+
+ 
+
+**目 录**
+
+ \[if supportFields\]><span lang=EN-US><span style='mso-element:field-begin'><span style='mso-spacerun:yes'>&nbsp;TOC<span style='mso-spacerun:yes'>&nbsp; \\\* MERGEFORMAT <span style='mso-element:field-separator'><!\[endif\] 0     序言.......................................................................................................................... \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-begin'> PAGEREF \_Toc137131391 \\h <span style='mso-element:field-separator'><!\[endif\] 3 \[if gte mso 9\]><xml> <w:data>08D0C9EA79F9BACE118C8200AA004BA90B02000000080000000E0000005F0054006F0063003100330037003100330031003300390031000000</w:data> </xml><!\[endif\] \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-end'><!\[endif\] 
+
+1     指令集...................................................................................................................... \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-begin'> PAGEREF \_Toc137131392 \\h <span style='mso-element:field-separator'><!\[endif\] 5 \[if gte mso 9\]><xml> <w:data>08D0C9EA79F9BACE118C8200AA004BA90B02000000080000000E0000005F0054006F0063003100330037003100330031003300390032000000</w:data> </xml><!\[endif\] \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-end'><!\[endif\] 
+
+1.1      操作数长度和地址长度属性............................................................................ \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-begin'> PAGEREF \_Toc137131393 \\h <span style='mso-element:field-separator'><!\[endif\] 5 \[if gte mso 9\]><xml> <w:data>08D0C9EA79F9BACE118C8200AA004BA90B02000000080000000E0000005F0054006F0063003100330037003100330031003300390033000000</w:data> </xml><!\[endif\] \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-end'><!\[endif\] 
+
+1.2      指令格式........................................................................................................ \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-begin'> PAGEREF \_Toc137131394 \\h <span style='mso-element:field-separator'><!\[endif\] 6 \[if gte mso 9\]><xml> <w:data>08D0C9EA79F9BACE118C8200AA004BA90B02000000080000000E0000005F0054006F0063003100330037003100330031003300390034000000</w:data> </xml><!\[endif\] \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-end'><!\[endif\] 
+
+1.3      ModR/M 和 SIB 字节....................................................................................... \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-begin'> PAGEREF \_Toc137131395 \\h <span style='mso-element:field-separator'><!\[endif\] 8 \[if gte mso 9\]><xml> <w:data>08D0C9EA79F9BACE118C8200AA004BA90B02000000080000000E0000005F0054006F0063003100330037003100330031003300390035000000</w:data> </xml><!\[endif\] \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-end'><!\[endif\] 
+
+1.4      操作码.......................................................................................................... \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-begin'> PAGEREF \_Toc137131396 \\h <span style='mso-element:field-separator'><!\[endif\] 15 \[if gte mso 9\]><xml> <w:data>08D0C9EA79F9BACE118C8200AA004BA90B02000000080000000E0000005F0054006F0063003100330037003100330031003300390036000000</w:data> </xml><!\[endif\] \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-end'><!\[endif\] 
+
+1.5      指令............................................................................................................. \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-begin'> PAGEREF \_Toc137131397 \\h <span style='mso-element:field-separator'><!\[endif\] 16 \[if gte mso 9\]><xml> <w:data>08D0C9EA79F9BACE118C8200AA004BA90B02000000080000000E0000005F0054006F0063003100330037003100330031003300390037000000</w:data> </xml><!\[endif\] \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-end'><!\[endif\] 
+
+1.6      操作码表...................................................................................................... \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-begin'> PAGEREF \_Toc137131398 \\h <span style='mso-element:field-separator'><!\[endif\] 18 \[if gte mso 9\]><xml> <w:data>08D0C9EA79F9BACE118C8200AA004BA90B02000000080000000E0000005F0054006F0063003100330037003100330031003300390038000000</w:data> </xml><!\[endif\] \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-end'><!\[endif\] 
+
+1.6.1       主要的缩写词..................................................................................... \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-begin'> PAGEREF \_Toc137131399 \\h <span style='mso-element:field-separator'><!\[endif\] 19 \[if gte mso 9\]><xml> <w:data>08D0C9EA79F9BACE118C8200AA004BA90B02000000080000000E0000005F0054006F0063003100330037003100330031003300390039000000</w:data> </xml><!\[endif\] \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-end'><!\[endif\] 
+
+1.6.2       寻址方法的代码................................................................................. \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-begin'> PAGEREF \_Toc137131400 \\h <span style='mso-element:field-separator'><!\[endif\] 19 \[if gte mso 9\]><xml> <w:data>08D0C9EA79F9BACE118C8200AA004BA90B02000000080000000E0000005F0054006F0063003100330037003100330031003400300030000000</w:data> </xml><!\[endif\] \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-end'><!\[endif\] 
+
+1.6.3       操作数类型的代码.............................................................................. \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-begin'> PAGEREF \_Toc137131401 \\h <span style='mso-element:field-separator'><!\[endif\] 20 \[if gte mso 9\]><xml> <w:data>08D0C9EA79F9BACE118C8200AA004BA90B02000000080000000E0000005F0054006F0063003100330037003100330031003400300031000000</w:data> </xml><!\[endif\] \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-end'><!\[endif\] 
+
+1.6.4       寄存器代码........................................................................................ \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-begin'> PAGEREF \_Toc137131402 \\h <span style='mso-element:field-separator'><!\[endif\] 20 \[if gte mso 9\]><xml> <w:data>08D0C9EA79F9BACE118C8200AA004BA90B02000000080000000E0000005F0054006F0063003100330037003100330031003400300032000000</w:data> </xml><!\[endif\] \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-end'><!\[endif\] 
+
+1.6.5       One-Byte 操作码表.............................................................................. \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-begin'> PAGEREF \_Toc137131403 \\h <span style='mso-element:field-separator'><!\[endif\] 21 \[if gte mso 9\]><xml> <w:data>08D0C9EA79F9BACE118C8200AA004BA90B02000000080000000E0000005F0054006F0063003100330037003100330031003400300033000000</w:data> </xml><!\[endif\] \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-end'><!\[endif\] 
+
+1.6.6       Two-Byte 操作码表（第一个字节是 0FH）.......................................... \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-begin'> PAGEREF \_Toc137131404 \\h <span style='mso-element:field-separator'><!\[endif\] 25 \[if gte mso 9\]><xml> <w:data>08D0C9EA79F9BACE118C8200AA004BA90B02000000080000000E0000005F0054006F0063003100330037003100330031003400300034000000</w:data> </xml><!\[endif\] \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-end'><!\[endif\] 
+
+1.6.7       通过 modR/M 字节的 5,4,3 位确定操作码............................................. \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-begin'> PAGEREF \_Toc137131405 \\h <span style='mso-element:field-separator'><!\[endif\] 29 \[if gte mso 9\]><xml> <w:data>08D0C9EA79F9BACE118C8200AA004BA90B02000000080000000E0000005F0054006F0063003100330037003100330031003400300035000000</w:data> </xml><!\[endif\] \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-end'><!\[endif\] 
+
+1.6.8       条件的定义........................................................................................ \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-begin'> PAGEREF \_Toc137131406 \\h <span style='mso-element:field-separator'><!\[endif\] 29 \[if gte mso 9\]><xml> <w:data>08D0C9EA79F9BACE118C8200AA004BA90B02000000080000000E0000005F0054006F0063003100330037003100330031003400300036000000</w:data> </xml><!\[endif\] \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-end'><!\[endif\] 
+
+2     生成指令................................................................................................................. \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-begin'> PAGEREF \_Toc137131407 \\h <span style='mso-element:field-separator'><!\[endif\] 32 \[if gte mso 9\]><xml> <w:data>08D0C9EA79F9BACE118C8200AA004BA90B02000000080000000E0000005F0054006F0063003100330037003100330031003400300037000000</w:data> </xml><!\[endif\] \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-end'><!\[endif\] 
+
+2.1      随机寄存器选择器........................................................................................ \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-begin'> PAGEREF \_Toc137131408 \\h <span style='mso-element:field-separator'><!\[endif\] 35 \[if gte mso 9\]><xml> <w:data>08D0C9EA79F9BACE118C8200AA004BA90B02000000080000000E0000005F0054006F0063003100330037003100330031003400300038000000</w:data> </xml><!\[endif\] \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-end'><!\[endif\] 
+
+2.2      随机值选择器............................................................................................... \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-begin'> PAGEREF \_Toc137131409 \\h <span style='mso-element:field-separator'><!\[endif\] 37 \[if gte mso 9\]><xml> <w:data>08D0C9EA79F9BACE118C8200AA004BA90B02000000080000000E0000005F0054006F0063003100330037003100330031003400300039000000</w:data> </xml><!\[endif\] \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-end'><!\[endif\] 
+
+2.3      指令生成器................................................................................................... \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-begin'> PAGEREF \_Toc137131410 \\h <span style='mso-element:field-separator'><!\[endif\] 37 \[if gte mso 9\]><xml> <w:data>08D0C9EA79F9BACE118C8200AA004BA90B02000000080000000E0000005F0054006F0063003100330037003100330031003400310030000000</w:data> </xml><!\[endif\] \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-end'><!\[endif\] 
+
+2.4      垃圾生成器................................................................................................... \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-begin'> PAGEREF \_Toc137131411 \\h <span style='mso-element:field-separator'><!\[endif\] 40 \[if gte mso 9\]><xml> <w:data>08D0C9EA79F9BACE118C8200AA004BA90B02000000080000000E0000005F0054006F0063003100330037003100330031003400310031000000</w:data> </xml><!\[endif\] \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-end'><!\[endif\] 
+
+3     转向 32 位............................................................................................................... \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-begin'> PAGEREF \_Toc137131412 \\h <span style='mso-element:field-separator'><!\[endif\] 46 \[if gte mso 9\]><xml> <w:data>08D0C9EA79F9BACE118C8200AA004BA90B02000000080000000E0000005F0054006F0063003100330037003100330031003400310032000000</w:data> </xml><!\[endif\] \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-end'><!\[endif\] 
+
+4     结束语.................................................................................................................... \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-begin'> PAGEREF \_Toc137131413 \\h <span style='mso-element:field-separator'><!\[endif\] 49 \[if gte mso 9\]><xml> <w:data>08D0C9EA79F9BACE118C8200AA004BA90B02000000080000000E0000005F0054006F0063003100330037003100330031003400310033000000</w:data> </xml><!\[endif\] \[if supportFields\]><span lang=EN-US style='mso-no-proof:yes'><span style='mso-element:field-end'><!\[endif\] 
+
+ \[if supportFields\]><span lang=EN-US><span style='mso-element:field-end'><!\[endif\]  
+
+ 
+
+#  0      
+序言
+
+ 
+
+嗨，朋友们… 本文的姊妹篇（29A#2.2\_9<Analysis on the decryptor generation>）放到网上已经一年有余了，我可以大言不惭的说，这篇文章在当时的反响还是蛮不错的，也正因为如此，它上了 29A 病毒杂志的第二期。我在那篇文章结尾，曾大胆预言随着时间的推移，重心将会慢慢转向 32 位 Winodws 编程上来。嗯， 至少现在看来 Windows 的好日子还没有到头，因此，我们认识到――“必须要熟悉”Windows 32 位编程…但问题来了，关于 16 位的知识我们还能依赖多少呢？对硬件来说，答案是 0。尽管如此，微处理器还是大同小异的。你所掌握的 16 位知识仍可适用于 32 位。那么，我们还能用上多少老本呢？答案是“非常多”！
+
+人们在接触 Win32 汇编程序之后可能会有所疑问，可以在 Win32 下完成多态引擎吗？好奇的我开始忙碌了…事实上，到目前为止，我已经完成了你所需要的第 1 个多态引擎。
+
+那么，我打算在这篇文章里说些什么呢？
+
+如果你读过本文的姊妹篇，肯定知道那篇文章中所述的内容还没有过时！因此，本文就不再讨论那些（解密）话题了（搜索我写的加密文章，了解清楚），而是把精力集中在――真正隐藏解密的最好方法――垃圾生成上…在本文中，我将介绍需要使用的指令，也将尽力以通俗易懂的方式描述。我还会谈到构成代码仿真器有那些难点，我会介绍编写 Win32 多态引擎时需要掌握的 Win32 知识…时不待我，开始吧！
+
+ 
+
+ 
+
+\----------------------------------\[  致谢  \]-----------------------------------
+
+ 
+
+在一生中，总有一些人会对我们产生莫大的影响，他们理应得到所有的荣誉…下面是其中的一部分：
+
+ 
+
+          dark avenger, dark fiber, dark angel, darkman, mr.sandman,
+
+        virtual daemon, qark, quantum, b0z0, wild worker, black baron,
+
+        the unforgiven, murkry, shaitan, tatung, jacky qwerty, griyo,
+
+      kid chaos, cicatrix, priest, liquid jesus, metabolis, nowhere man,
+
+           opic, blue skull, hellfire, hellraiser, and many more...
+
+ 
+
+我所掌握的知识只是他们的千分之一…
+
+ 
+
+特别感谢 SLAM 小组！
+
+ 
+
+ 
+
+\-------------------------------\[  免责声明  \]----------------------------------
+
+ 
+
+此文档仅用于学习 Intel(c)公开的信息。不应当用这里揭露的信息危害任何人，作者将不会为滥用这些信息所造成的数据丢失或破坏负任何责任。本文全面介绍 Intel 或 Intel 兼容微处理器生成操作码的方法。
+
+ 
+
+ 
+
+\---------------------------------\[  起源  \]------------------------------------
+
+ 
+
+本文很大一部分内容来自原始的 Intel 386 文档，具体的说，是微处理器指令。我必须对它们详加说明，因为这样一来，你会明白生成所需要的指令是非常简单的一回事。我还从 Intel 手册里引用了一些内容，比如说你肯定认识的、著名的操作码表… 最重要的是，你要知道怎样使用它们，说得更实际一点，你应该知道怎样优化它们？如果你知道，请告诉我…;)) 对我来说，没有什么可以比发现有人理解我所写的文章更令人高兴了…
+
+总的来说，本文分成 2 大部分：指令说明和具体的多态引擎技术。
+
+  
+
+ 
+
+                            .-------------------.
+
+\----------------------------|       PART I      |-----------------------------
+
+                            '-------------------'
+
+ 
+
+#  1      
+指令集
+
+ 
+
+##  1.1  操作数长度和地址长度属性
+
+当 80386 执行指令时，可以用 16 或 32 位的地址访问内存空间。因此，每条使用内存地址的指令都与 16 或 32 位的地址长度属性相关。16 位地址暗示指令使用 16 位的位移，生成 16 位的地址偏移（段相对地址），就像有效地址计算一样。32 位地址暗示使用 32 位的位移，生成 32 位的地址偏移量。同样，访问 word（16 位）或 doubleword（32 位）的指令具有 16 或 32 位的操作数长度属性。
+
+默认的组合，指令前缀，和（保护模式下的程序除外）段描述符里的长度说明位决定了这个属性。
+
+运行在实模式或虚拟 8086 模式里的程序在默认情况下使用 16 位的地址和操作数。
+
+指令的内部编码包括两个以字节为单位的前缀：地址长度前缀――67H，操作数长度前缀――66H。指令的段属性对这些前缀不起作用。下表显示了默认值与前缀混合后可能产生的结果。
+
+隐式使用栈的指令（例如：POP EAX）同样具有 16 或 32 位的栈地址长度属性。带 16 位栈地址长度属性的指令使用 16 位的 SP 栈指针寄存器；带 32 位栈地址长度属性的指令使用 32 位的 ESP 寄存器来构成栈顶的地址。
+
+  
+
+ 
+
+    .-------------------------------------------------------------------.
+
+    | Segment Default D = ...  |   0    0    0    0    1    1    1    1 |
+
+    | Operand-Size Prefix 66H  |   N    N    Y    Y    N    N    Y    Y |
+
+    | Address-Size Prefix 67H  |   N    Y    N    Y    N    Y    N    Y |
+
+    |--------------------------+----------------------------------------|
+
+    | Effective Operand Size   |  16   16   32   32   32   32   16   16 |
+
+    | Effective Address Size   |  16   32   16   32   32   16   32   16 |
+
+    |-------------------------------------------------------------------|
+
+    | Y = Yes, this instruction prefix is present                       |
+
+    | N = No, this instruction prefix is not present                    |
+
+    '-------------------------------------------------------------------'
+
+ 
+
+所以，从根本上说，一条指令肯定会有一个操作数和/或一个地址。我们可以有各种各样的 16 和 32 位组合，也可以不考虑默认值。这些前缀可以出现多次，但只有最后一个起作用。
+
+ 
+
+##  1.2  指令格式
+
+所有的指令编码都是下图显示的、一般指令格式的子集。一条指令的组成部分可以包含：可选的指令前缀，一个或二个主操作码字节，或由 ModR/M 字节和 SIB（Scale Index Base）字节组成的地址说明符，如果需要的话，还可以包含位移量，立即数字段。
+
+较小的编码字节可以在主操作码内定义。这些字段定义操作的方向，位移量的大小，寄存器编码，或符号扩展；编码的字段依操作的类型而定。
+
+许多涉及内存里的操作数的指令在主操作码字节后都有一个寻址形式字节。这个字节被称为 ModR/M 字节，详细说明所使用的寻址形式。ModR/M 字节的某些编码指示第二个寻址字节――SIB 字节，它跟在 ModR/M 字节之后，在完全确定寻址形式时需要它。
+
+寻址形式可以直接在 ModR/M 或 SIB 字节后包括位移量。如果包括位移量，它可以是 8-，16-或 32 位的。
+
+如果指令指定一个立即操作数，立即操作数将总是跟在位移字节后，如果指定的话，立即操作数总是指令的最后一个字段。
+
+下面是被认可的指令前缀编码：
+
+ 
+
+   F3H    REP prefix (仅用于字符串指令)
+
+   F3H    REPE/REPZ prefix (仅用于字符串指令)
+
+   F2H    REPNE/REPNZ prefix (仅用于字符串指令)
+
+   F0H    LOCK prefix
+
+ 
+
+下面是段重叠前缀：
+
+ 
+
+   2EH    CS segment override prefix
+
+   36H    SS segment override prefix
+
+   3EH    DS segment override prefix
+
+   26H    ES segment override prefix
+
+   64H    FS segment override prefix
+
+   65H    GS segment override prefix
+
+   66H    Operand-size override
+
+   67H    Address-size override
+
+ 
+
+ 
+
+      80386 指令格式
+
+ 
+
+   P  .---------------------------------------------------------------.
+
+   R  |  INSTRUCTION  |   ADDRESS-    |    OPERAND-   |   SEGMENT     |
+
+   E  |    PREFIX     |  SIZE PREFIX  |  SIZE PREFIX  |   OVERRIDE    |
+
+   F  |---------------------------------------------------------------|
+
+   I  |     0 OR 1         0 OR 1           0 OR 1         0 OR 1     |
+
+   X  |- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
+
+   E  |                        NUMBER OF BYTES                        |
+
+   S  '---------------------------------------------------------------'
+
+ 
+
+   R  .---------------------------------------------------------------.
+
+   E  |  OPCODE  |  MODR/M   |  SIB  |   DISPLACEMENT   |  IMMEDIATE  |
+
+   Q  |          |           |       |                  |             |
+
+   U  |---------------------------------------------------------------|
+
+   I  |  1 OR 2     0 OR 1    0 OR 1      0,1,2 OR 4       0,1,2 OR 4 |
+
+   R  |- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
+
+   E  |                        NUMBER OF BYTES                        |
+
+   D  '---------------------------------------------------------------'
+
+ 
+
+这也是说，我们的指令最小可以是 1 字节，最大可以是 16 个字节长度。
+
+ 
+
+##  1.3  ModR/M 和 SIB 字节
+
+在许多 80386 指令里，ModR/M 和 SIB 字节跟在操作码字节之后。它们包含如下信息：
+
+ 
+
+  \*  这条指令所使用的索引类型或寄存器号
+
+  \*  所使用的寄存器，或所选指令的详细信息
+
+  \*  基址，变址和比例因子信息
+
+ 
+
+ModR/M 字节分为 3 个字段，包含的信息是：
+
+ 
+
+  \*  mod 字段，占用字节的 2 个最高位，与 r/m 字段结合起来可以形成 32 种不同的组合：8 个寄存器和 24 个索引方式
+
+  \*  Reg 字段，占用 mod 字段之后的 3 个位，指定寄存器号或多于 3 个位以上的操作码信息。Reg 字段的意义由指令的第一个（操作码）字节确定
+
+  \*  r/m 字段，字节的最后 3 位，可以把寄存器指定为操作数的位置，或者和上面所述的字段结合起来形成寻址方式编码的一部分
+
+ 
+
+基址索引和 32 位寻址形式的比例索引需要 SIB 字节。ModR/M 字节的某些编码位指示 SIB 字节的存在。SIB 字节包括如下的字段：
+
+ 
+
+  \*  ss 字段，占用字节中最高的 2 位，指定比例因子
+
+  \*  变址字段，占用 ss 字段后的 3 个位，指定变址寄存器的寄存器号
+
+  \*  基址字段，占用字节最后的 3 个位，指定基址寄存器的寄存器号
+
+ 
+
+ 
+
+ModR/M 和 SIB 字节格式
+
+ 
+
+                                 MODR/M BYTE
+
+ 
+
+                     7    6    5    4    3    2    1    0
+
+                    .------------------------------------.
+
+                    |  MOD   | REG/OPCODE  |     R/M     |
+
+                    '------------------------------------'
+
+ 
+
+                          SIB (SCALE INDEX BASE) BYTE
+
+ 
+
+                     7    6    5    4    3    2    1    0
+
+                    .------------------------------------.
+
+                    |   SS   |    INDEX    |    BASE     |
+
+                    '------------------------------------'
+
+ 
+
+现在让我们认真考虑它们实际的应用吧。下面有 2 个表，利用它们可以任意生成指令。第一行指定所用的寄存器。如果你用 8 位寻址方式，将用 8 位寄存器，16 位寻址用 16 位寄存器，32 位寻址用 32 位寄存器。虽然你用了相同的编码，但实际上，不是你而是处理器解释它们。此后，是 4 个部分 8 种可能的编码寻址方式。第 1 个双编号列包含 MOD 和 R/M 字段，以及此后，如果你在 MOD 和 R/M 字段之后安置 REG 字段，你可以得到的十六进制编码。象往常一样，这将生成 8 种类型\*4 个部分\*8 个寄存器＝256 变体的矩阵。
+
+ 
+
+带 ModR/M 字节的 16 位寻址表
+
+  
+
+ .--------------------------------------------------------------------------.
+
+ | r8(/r)                   | AL  | CL  | DL  | BL  | AH  | CH  | DH  | BH  |
+
+ | r16(/r)                  | AX  | CX  | DX  | BX  | SP  | BP  | SI  | DI  |
+
+ | r32(/r)                  | EAX | ECX | EDX | EBX | ESP | EBP | ESI | EDI |
+
+ | /digit (Opcode)          | 0   | 1   | 2   | 3   | 4   | 5   | 6   | 7   |
+
+ | REG =                    | 000 | 001 | 010 | 011 | 100 | 101 | 110 | 111 |
+
+ |--------------------------+-----------------------------------------------|
+
+ |                | Mod R/M |         ModR/M Values in Hexadecimal          |
+
+ |----------------+---------+-----------------------------------------------|
+
+ | \[BX + SI\]      | 00  000 | 00  | 08  | 10  | 18  | 20  | 28  | 30  | 38  |
+
+ | \[BX + DI\]      | 00  001 | 01  | 09  | 11  | 19  | 21  | 29  | 31  | 39  |
+
+ | \[BP + SI\]      | 00  010 | 02  | 0A  | 12  | 1A  | 22  | 2A  | 32  | 3A  |
+
+ | \[BP + DI\]      | 00  011 | 03  | 0B  | 13  | 1B  | 23  | 2B  | 33  | 3B  |
+
+ | \[SI\]           | 00  100 | 04  | 0C  | 14  | 1C  | 24  | 2C  | 34  | 3C  |
+
+ | \[DI\]           | 00  101 | 05  | 0D  | 15  | 1D  | 25  | 2D  | 35  | 3D  |
+
+ | disp16         | 00  110 | 06  | 0E  | 16  | 1E  | 26  | 2E  | 36  | 3E  |
+
+ | \[BX\]           | 00  111 | 07  | 0F  | 17  | 1F  | 27  | 2F  | 37  | 3F  |
+
+ |----------------+---------+-----+-----+-----+-----+-----+-----+-----+-----|
+
+ | \[BX+SI\]+disp8  | 01  000 | 40  | 48  | 50  | 58  | 60  | 68  | 70  | 78  |
+
+ | \[BX+DI\]+disp8  | 01  001 | 41  | 49  | 51  | 59  | 61  | 69  | 71  | 79  |
+
+ | \[BP+SI\]+disp8  | 01  010 | 42  | 4A  | 52  | 5A  | 62  | 6A  | 72  | 7A  |
+
+ | \[BP+DI\]+disp8  | 01  011 | 43  | 4B  | 53  | 5B  | 63  | 6B  | 73  | 7B  |
+
+ | \[SI\]+disp8     | 01  100 | 44  | 4C  | 54  | 5C  | 64  | 6C  | 74  | 7C  |
+
+ | \[DI\]+disp8     | 01  101 | 45  | 4D  | 55  | 5D  | 65  | 6D  | 75  | 7D  |
+
+ | \[BP\]+disp8     | 01  110 | 46  | 4E  | 56  | 5E  | 66  | 6E  | 76  | 7E  |
+
+ | \[BX\]+disp8     | 01  111 | 47  | 4F  | 57  | 5F  | 67  | 6F  | 77  | 7F  |
+
+ |----------------+---------+-----+-----+-----+-----+-----+-----+-----+-----|
+
+ | \[BX+SI\]+disp16 | 10  000 | 80  | 88  | 90  | 98  | A0  | A8  | B0  | B8  |
+
+ | \[BX+DI\]+disp16 | 10  001 | 81  | 89  | 91  | 99  | A1  | A9  | B1  | B9  |
+
+ | \[BP+SI\]+disp16 | 10  010 | 82  | 8A  | 92  | 9A  | A2  | AA  | B2  | BA  |
+
+ | \[BP+DI\]+disp16 | 10  011 | 83  | 8B  | 93  | 9B  | A3  | AB  | B3  | BB  |
+
+ | \[SI\]+disp16    | 10  100 | 84  | 8C  | 94  | 9C  | A4  | AC  | B4  | BC  |
+
+ | \[DI\]+disp16    | 10  101 | 85  | 8D  | 95  | 9D  | A5  | AD  | B5  | BD  |
+
+ | \[BP\]+disp16    | 10  110 | 86  | 8E  | 96  | 9E  | A6  | AE  | B6  | BE  |
+
+ | \[BX\]+disp16    | 10  111 | 87  | 8F  | 97  | 9F  | A7  | AF  | B7  | BF  |
+
+ |----------------+---------+-----+-----+-----+-----+-----+-----+-----+-----|
+
+ | EAX/AX/AL      | 11  000 | C0  | C8  | D0  | D8  | E0  | E8  | F0  | F8  |
+
+ | ECX/CX/CL      | 11  001 | C1  | C9  | D1  | D9  | E1  | E9  | F1  | F9  |
+
+ | EDX/DX/DL      | 11  010 | C2  | CA  | D2  | DA  | E2  | EA  | F2  | FA  |
+
+ | EBX/BX/BL      | 11  011 | C3  | CB  | D3  | DB  | E3  | EB  | F3  | FB  |
+
+ | ESP/SP/AH      | 11  100 | C4  | CC  | D4  | DC  | E4  | EC  | F4  | FC  |
+
+ | EBP/BP/CH      | 11  101 | C5  | CD  | D5  | DD  | E5  | ED  | F5  | FD  |
+
+ | ESI/SI/DH      | 11  110 | C6  | CE  | D6  | DE  | E6  | EE  | F6  | FE  |
+
+ | EDI/DI/BH      | 11  111 | C7  | CF  | D7  | DF  | E7  | EF  | F7  | FF  |
+
+ '--------------------------------------------------------------------------'
+
+ 
+
+OK，让我们看几个例子：
+
+ 
+
+        MOV BX, \[BX+DI+1234h\]
+
+ 
+
+1234h 告诉我们用的是 disp16，因此，我们需要看 MOD＝10 部分；
+
+\[BX+DI\]告诉我们用的是这部分的第二行；
+
+BX 告诉我们要查看第 4 个 REG 行；
+
+MOV 的操作码是 8B（随后你将会学习相关的内容）
+
+ 
+
+通过这些信息，我们查表可得：99h
+
+因此，MOV BX, \[BX+DI+1234h\]的编码是：
+
+8Bh 99h 34h 12h,
+
+1234h 直接跟在 ModR/M 字节之后，实际上是一个立即数。
+
+ 
+
+ ---------------------------------------------------------------------------
+
+注释：disp8 指示在 ModR/M 字节之后是 8 位位移量，它可用于符号扩展，以及增加变址。Disp16 指示在 ModR/M 字节之后的 16 位位移量,可用于增加索引。对于包含 BP 变址的有效地址，默认的段寄存器是 SS，DS 用于另外的有效地址。
+
+ ---------------------------------------------------------------------------
+
+ 
+
+让我们趁热打铁，看看 32 位的寻址代码：
+
+ 
+
+带 ModR/M 字节的 32 位寻址表
+
+  
+
+ .--------------------------------------------------------------------------.
+
+ | r8(/r)                   | AL  | CL  | DL  | BL  | AH  | CH  | DH  | BH  |
+
+ | r16(/r)                  | AX  | CX  | DX  | BX  | SP  | BP  | SI  | DI  |
+
+ | r32(/r)                  | EAX | ECX | EDX | EBX | ESP | EBP | ESI | EDI |
+
+ | /digit (Opcode)          | 0   | 1   | 2   | 3   | 4   | 5   | 6   | 7   |
+
+ | REG =                    | 000 | 001 | 010 | 011 | 100 | 101 | 110 | 111 |
+
+ |--------------------------+-----------------------------------------------|
+
+ |                | Mod R/M |          ModR/M Values in Hexadecimal         |
+
+ |----------------+---------+-----------------------------------------------|
+
+ | \[EAX\]          | 00  000 | 00  | 08  | 10  | 18  | 20  | 28  | 30  | 38  |
+
+ | \[ECX\]          | 00  001 | 01  | 09  | 11  | 19  | 21  | 29  | 31  | 39  |
+
+ | \[EDX\]          | 00  010 | 02  | 0A  | 12  | 1A  | 22  | 2A  | 32  | 3A  |
+
+ | \[EBX\]          | 00  011 | 03  | 0B  | 13  | 1B  | 23  | 2B  | 33  | 3B  |
+
+ | \[--\] \[--\]      | 00  100 | 04  | 0C  | 14  | 1C  | 24  | 2C  | 34  | 3C  |
+
+ | disp32         | 00  101 | 05  | 0D  | 15  | 1D  | 25  | 2D  | 35  | 3D  |
+
+ | \[ESI\]          | 00  110 | 06  | 0E  | 16  | 1E  | 26  | 2E  | 36  | 3E  |
+
+ | \[EDI\]          | 00  111 | 07  | 0F  | 17  | 1F  | 27  | 2F  | 37  | 3F  |
+
+ |----------------+---------+-----+-----+-----+-----+-----+-----+-----+-----|
+
+ | disp8\[EAX\]     | 01  000 | 40  | 48  | 50  | 58  | 60  | 68  | 70  | 78  |
+
+ | disp8\[ECX\]     | 01  001 | 41  | 49  | 51  | 59  | 61  | 69  | 71  | 79  |
+
+ | disp8\[EDX\]     | 01  010 | 42  | 4A  | 52  | 5A  | 62  | 6A  | 72  | 7A  |
+
+ | disp8\[EPX\];    | 01  011 | 43  | 4B  | 53  | 5B  | 63  | 6B  | 73  | 7B  |
+
+ | disp8\[--\] \[--\] | 01  100 | 44  | 4C  | 54  | 5C  | 64  | 6C  | 74  | 7C  |
+
+ | disp8\[ebp\]     | 01  101 | 45  | 4D  | 55  | 5D  | 65  | 6D  | 75  | 7D  |
+
+ | disp8\[ESI\]     | 01  110 | 46  | 4E  | 56  | 5E  | 66  | 6E  | 76  | 7E  |
+
+ | disp8\[EDI\]     | 01  111 | 47  | 4F  | 57  | 5F  | 67  | 6F  | 77  | 7F  |
+
+ |----------------+---------+-----+-----+-----+-----+-----+-----+-----+-----|
+
+ | disp32\[EAX\]    | 10  000 | 80  | 88  | 90  | 98  | A0  | A8  | B0  | B8  |
+
+ | disp32\[ECX\]    | 10  001 | 81  | 89  | 91  | 99  | A1  | A9  | B1  | B9  |
+
+ | disp32\[EDX\]    | 10  010 | 82  | 8A  | 92  | 9A  | A2  | AA  | B2  | BA  |
+
+ | disp32\[EBX\]    | 10  011 | 83  | 8B  | 93  | 9B  | A3  | AB  | B3  | BB  |
+
+ | disp32\[--\] \[--\]| 10  100 | 84  | 8C  | 94  | 9C  | A4  | AC  | B4  | BC  |
+
+ | disp32\[EBP\]    | 10  101 | 85  | 8D  | 95  | 9D  | A5  | AD  | B5  | BD  |
+
+ | disp32\[ESI\]    | 10  110 | 86  | 8E  | 96  | 9E  | A6  | AE  | B6  | BE  |
+
+ | disp32\[EDI\]    | 10  111 | 87  | 8F  | 97  | 9F  | A7  | AF  | B7  | BF  |
+
+ |----------------+---------+-----+-----+-----+-----+-----+-----+-----+-----|
+
+ | EAX/AX/AL      | 11  000 | C0  | C8  | D0  | D8  | E0  | E8  | F0  | F8  |
+
+ | ECX/CX/CL      | 11  001 | C1  | C9  | D1  | D9  | E1  | E9  | F1  | F9  |
+
+ | EDX/DX/DL      | 11  010 | C2  | CA  | D2  | DA  | E2  | EA  | F2  | FA  |
+
+ | EBX/BX/BL      | 11  011 | C3  | CB  | D3  | DB  | E3  | EB  | F3  | FB  |
+
+ | ESP/SP/AH      | 11  100 | C4  | CC  | D4  | DC  | E4  | EC  | F4  | FC  |
+
+ | EBP/BP/CH      | 11  101 | C5  | CD  | D5  | DD  | E5  | ED  | F5  | FD  |
+
+ | ESI/SI/DH      | 11  110 | C6  | CE  | D6  | DE  | E6  | EE  | F6  | FE  |
+
+ | EDI/DI/BH      | 11  111 | C7  | CF  | D7  | DF  | E7  | EF  | F7  | FF  |
+
+ '--------------------------------------------------------------------------'
+
+ 
+
+让我们看一个例子：
+
+ 
+
+        MOV EBX, \[EBP+12345678h\]
+
+ 
+
+        12345678h = disp32 -> part 3
+
+        EBP+disp32         -> line 6 of part 3
+
+        EBX                -> REG row 4
+
+ 
+
+\==>指令译成代码后 \= 8Bh 9Dh 78h 56h 34h 12h
+
+ 
+
+ ---------------------------------------------------------------------------
+
+注释：\[--\] \[--\]意味着在 ModR/M 字节后是 SIB。Disp8 指示在 SIB 字节之后是 8 位位移量，可用于符号扩展，以及增加变址。Disp32 指示跟在 ModR/M 字节后面的是 32 位移量，可以加到变址。
+
+ ---------------------------------------------------------------------------
+
+ 
+
+带 SIB 字节的 32 位寻址表
+
+  
+
+ 
+
+ .--------------------------------------------------------------------------.
+
+ |    r32                   | EAX | ECX | EDX | EBX | ESP | \[\*\] | ESI | EDI |
+
+ |    Base =                | 0   | 1   | 2   | 3   | 4   | 5   | 6   | 7   |
+
+ |    Base =                | 000 | 001 | 010 | 011 | 100 | 101 | 110 | 111 |
+
+ |--------------------------+-----------------------------------------------|
+
+ |             |  SS Index  |         ModR/M Values in Hexadecimal          |
+
+ |-------------+------------+-----------------------------------------------|
+
+ | \[EAX\]       |   00  000  | 00  | 01  | 02  | 03  | 04  | 05  | 06  | 07  |
+
+ | \[ECX\]       |   00  001  | 08  | 09  | 0A  | 0B  | 0C  | 0D  | 0E  | 0F  |
+
+ | \[EDX\]       |   00  010  | 10  | 11  | 12  | 13  | 14  | 15  | 16  | 17  |
+
+ | \[EBX\]       |   00  011  | 18  | 19  | 1A  | 1B  | 1C  | 1D  | 1E  | 1F  |
+
+ | none        |   00  100  | 20  | 21  | 22  | 23  | 24  | 25  | 26  | 27  |
+
+ | \[EBP\]       |   00  101  | 28  | 29  | 2A  | 2B  | 2C  | 2D  | 2E  | 2F  |
+
+ | \[ESI\]       |   00  110  | 30  | 31  | 32  | 33  | 34  | 35  | 36  | 37  |
+
+ | \[EDI\]       |   00  111  | 38  | 39  | 3A  | 3B  | 3C  | 3D  | 3E  | 3F  |
+
+ |-------------+------------+-----+-----+-----+-----+-----+-----+-----+-----|
+
+ | \[EAX\*2\]     |   01  000  | 40  | 41  | 42  | 43  | 44  | 45  | 46  | 47  |
+
+ | \[ECX\*2\]     |   01  001  | 48  | 49  | 4A  | 4B  | 4C  | 4D  | 4E  | 4F  |
+
+ | \[ECX\*2\]     |   01  010  | 50  | 51  | 52  | 53  | 54  | 55  | 56  | 57  |
+
+ | \[EBX\*2\]     |   01  011  | 58  | 59  | 5A  | 5B  | 5C  | 5D  | 5E  | 5F  |
+
+ | none        |   01  100  | 60  | 61  | 62  | 63  | 64  | 65  | 66  | 67  |
+
+ | \[EBP\*2\]     |   01  101  | 68  | 69  | 6A  | 6B  | 6C  | 6D  | 6E  | 6F  |
+
+ | \[ESI\*2\]     |   01  110  | 70  | 71  | 72  | 73  | 74  | 75  | 76  | 77  |
+
+ | \[EDI\*2\]     |   01  111  | 78  | 79  | 7A  | 7B  | 7C  | 7D  | 7E  | 7F  |
+
+ |-------------+------------+-----+-----+-----+-----+-----+-----+-----+-----|
+
+ | \[EAX\*4\]     |   10  000  | 80  | 81  | 82  | 83  | 84  | 85  | 86  | 87  |
+
+ | \[ECX\*4\]     |   10  001  | 88  | 89  | 8A  | 8B  | 8C  | 8D  | 8E  | 8F  |
+
+ | \[EDX\*4\]     |   10  010  | 90  | 91  | 92  | 93  | 94  | 95  | 96  | 97  |
+
+ | \[EBX\*4\]     |   10  011  | 98  | 89  | 9A  | 9B  | 9C  | 9D  | 9E  | 9F  |
+
+ | none        |   10  100  | A0  | A1  | A2  | A3  | A4  | A5  | A6  | A7  |
+
+ | \[EBP\*4\]     |   10  101  | A8  | A9  | AA  | AB  | AC  | AD  | AE  | AF  |
+
+ | \[ESI\*4\]     |   10  110  | B0  | B1  | B2  | B3  | B4  | B5  | B6  | B7  |
+
+ | \[EDI\*4\]     |   10  111  | B8  | B9  | BA  | BB  | BC  | BD  | BE  | BF  |
+
+ |-------------+------------+-----+-----+-----+-----+-----+-----+-----+-----|
+
+ | \[EAX\*8\]     |   11  000  | C0  | C1  | C2  | C3  | C4  | C5  | C6  | C7  |
+
+ | \[ECX\*8\]     |   11  001  | C8  | C9  | CA  | CB  | CC  | CD  | CE  | CF  |
+
+ | \[EDX\*8\]     |   11  010  | D0  | D1  | D2  | D3  | D4  | D5  | D6  | D7  |
+
+ | \[EBX\*8\]     |   11  011  | D8  | D9  | DA  | DB  | DC  | DD  | DE  | DF  |
+
+ | none        |   11  100  | E0  | E1  | E2  | E3  | E4  | E5  | E6  | E7  |
+
+ | \[EBP\*8\]     |   11  101  | E8  | E9  | EA  | EB  | EC  | ED  | EE  | EF  |
+
+ | \[ESI\*8\]     |   11  110  | F0  | F1  | F2  | F3  | F4  | F5  | F6  | F7  |
+
+ | \[EDI\*8\]     |   11  111  | F8  | F9  | FA  | FB  | FC  | FD  | FE  | FF  |
+
+ '--------------------------------------------------------------------------'
+
+ 
+
+ 
+
+        例子:
+
+ 
+
+                MOV ECX, \[EBX\*4 + EAX + 12345678h\]
+
+ 
+
+                \[EBX\*4\] and ECX gives us 89h (from the SIB table)
+
+                disp32\[EAX\]     gives us 80h (from 32bit addressing table)
+
+ 
+
+       So, we encode: 8Bh 80h 89h 78h 56h 34h 12h
+
+                      |   |   |   |   |   |   |
+
+                      |   |   |   '----------------> immediate value
+
+                      |   |   '--------------------> SIB
+
+                      |   '------------------------> ModR/M byte
+
+                      '----------------------------> Opcode
+
+ 
+
+注意：你可能注意到了，立即数是以反向顺序保存的，首先是较小的，其次是较大的。
+
+ 
+
+ ---------------------------------------------------------------------------
+
+注释：\[\*\] 意味着如果 MOD 是 00，那么 disp32 将不带基址，否则是\[ESP\]。这提供了如下的寻址方式：
+
+ 
+
+              disp32\[index\]      (MOD=00)
+
+              disp8\[EBP\]\[index\]  (MOD=01)
+
+              disp32\[EBP\]\[index\] (MOD=10)
+
+ 
+
+理解这些表非常有必要，尤其是你想在真正的指令之间生成垃圾时就更有必要了。实际上，你甚至不需要定义任何表，而只需知道它们怎样构成的，当你想得到某些结果时，稍微算一下就能得到要用的 Mod/Rm 和 SIB…这很容易，这些表和例子说明了这一点。
+
+ 
+
+##  1.4  操作码
+
+在随后介绍的操作码图里，你会发现某些缩写词可能会引起混淆…为了事先澄清这些混淆，我先引用原始的 Intel(c)缩写词：
+
+ “操作码”列为每种形式的指令给出全部的结果编码。在可能时，给出的是十六进制字节，和它们在内存里的顺序一样。除了十六进制字节以外的条目定义如下：
+
+/digit:（0 到 7 之间的数字）指示指令的 ModR/M 字节只用 r/m（寄存器或内存）操作数。Reg 字段包含准备扩展到指令的操作码的数字。
+
+/r:指示指令的 ModR/M 字节包含寄存器操作数和 r/m 操作数。
+
+cb,  cw,  cd,  cp: 操作码后面跟的是 1-byte (cb), 2-byte (cw), 4-byte (cd) or 6-byte  (cp)数值，用于指定代码偏移量和或许是代码段寄存器的新值。
+
+ib,  iw,  id:跟在操作码之后的立即操作数，ModR/M 字节或比例变址字节。如果操作数是带符号的数值将确定操作码。所有的 word 和 doubleword 首先给出的是低位字节。
+
++rb,  +rw,  +rd: 寄存器代码，从 0 到 7，加到加号左边的十六进制字节形成操作码字节，这些代码分别是：
+
+ 
+
+                         rb         rw         rd
+
+                       AL = 0     AX = 0     EAX = 0
+
+                       CL = 1     CX = 1     ECX = 1
+
+                       DL = 2     DX = 2     EDX = 2
+
+                       BL = 3     BX = 3     EBX = 3
+
+                       AH = 4     SP = 4     ESP = 4
+
+                       CH = 5     BP = 5     EBP = 5
+
+                       DH = 6     SI = 6     ESI = 6
+
+                       BH = 7     DI = 7     EDI = 7
+
+ 
+
+##  1.5  指令
+
+ “指令”列中给出的指令语句的句法就像它在 ASM386 程序中出现的一样。下面是一个列表，列出了在指令语句中使用的操作数符号：
+
+rel8:指令结尾前 128 字节到指令结尾后 127 字节范围内的相对地址。
+
+rel16,  rel32: 组装指令时在同一代码段内的相对地址。rel16 用于操作数长度属性为 16 位的指令；rel32 用于操作数长度属性为 32 位的指令。
+
+ptr16:16,  ptr16:32: 代码段里的 FAR 指针和指令里的明显不一样。16:16 指示指针的值分成两部分。冒号右边的是 16 位的选择子或指向代码段寄存器的值。冒号左边的值对应目的段里的偏移量。当指令的操作数长度属性是 16 位时使用 ptr16:16；当属性为 32 位时使用 ptr16:32。
+
+r8: AL, CL, DL, BL, AH, CH, DH, 或 BH 等 byte 寄存器中的一个。
+
+r16：AX, CX, DX, BX, SP, BP, SI, 或 DI 等 word 寄存器中的一个。
+
+r32：EAX, ECX, EDX, EBX, ESP, EBP, ESI, 或 EDI 等 doubleword 寄存器中的一个。
+
+imm8：直接 byte 值。Imm8 是\-128 到+127 之间的有符号数。当指令中的 imm8 与与 word 或 doubleword 操作数结合时，立即数被符号扩展至 word 或 doubleword 。用立即数的最高位填充 word 的高位字节。
+
+Imm16：操作数长度属性为 16 的指令使用的直接 word 值。它的取值范围是\-32768 至+32767。
+
+Imm32：操作数长度属性是 32 的指令使用的直接 doubleword 值。它的取值范围是+2147483647 至\-2147483648。
+
+r/m8: 单字节操作数，既可能是 byte 寄存器的内容，也可能是来自于内存的 byte。
+
+r/m16: 操作数长度属性是 16 位的指令使用的 word 寄存器或内存操作数。Word 寄存器是: AX, BX, CX, DX, SP,  BP, SI, DI。内存的内容保存在通过有效地址计算得到的地址里。
+
+r/m32: 操作数长度属性是 32 位的指令使用的 doubleword 寄存器或内存操作数。Doubleword 寄存器是: EAX, EBX,  ECX,  EDX, ESP, EBP, ESI, EDI。内存的内容保存在通过有效地址计算得到的地址里。
+
+m8: 以 DS:SI 或 ES:DI 寻址的内存 byte（只有字符串指令使用）。
+
+m16: 以 DS:SI 或 ES:DI 寻址的内存 word（只有字符串指令使用）。
+
+m32: 以 DS:SI 或 ES:DI 寻址的内存 doubleword（只有字符串指令使用）。
+
+m16:16, M16:32: 包含由两个数字组成的 far 指针的内存操作数。冒号左边对应的是指针的段选择子。冒号右边对应的是它的偏移量。
+
+m16  &  32,  m16  & 16, m32 & 32: 由&两边指示位长度的数据对组成的内存操作数。可以使用所有的内存寻址方式。BOUND 指令使用 m16 & 16 和 m32 & 32，由它们指定数组索引上下界的操作数。LIDT 和 LGDT 使用 m16 & 32，用于加载受限字段的 word，加载对应 Global and Interrupt Descriptor Table Registers 的基本字段的 doubleword。
+
+moffs8, moffs16, moffs32:某些 MOV 指令的变体使用的 BYTE, WORD, 或 DWORD 类型的（内存偏移量）单内存变量。真正的地址通过相对于段基址的单偏移量得到。在这样的指令里不使用 ModR/M 字节。Moffs 后的数字指示它的长度，它被指令的地址长度属性所决定。
+
+Sreg：段寄存器。段寄存器的位分配分别是 ES=0, CS=1, SS=2, DS=3, FS=4, GS=5。
+
+ 
+
+##  1.6  操作码表
+
+接下来的 3 个表是原始的 Intel 的 80386 指令集编码，我把它做了一些调整以适应页面大小。你将看到如下的表：
+
+1\. 单字节操作码表。这是一个 16\*16 表。行后面是给出操作码的列，像下面这样：
+
+ 
+
+               0         1         2         3         4
+
+           .-----------------------------------------------........
+
+           |                            ADD
+
+          0|-----------------------------------------------........
+
+           | Eb,Gb  | Ev,Gv  |  Gb,Eb  |  Gv,Ev  |  AL,Ib
+
+           |-----------------------------------------------........
+
+           |                                               :
+
+           :                                               :
+
+ 
+
+      03h means ADD Gv,Ev
+
+      00h means ADD Eb,Gb
+
+ 
+
+（参考下面的简写）
+
+2\. 双字节操作码表。这个表看起来和前一个表非常类似，但是指令的操作码由两个字节组成：第一个是 0Fh（escape），第二个由行和列组合而成。
+
+3\. 组。这是一个 8\*8 的表，它由第二个字节是真正的操作码的指令填充而成，在这里，REG 字段通常在 ModR/M 字节之内。
+
+ 
+
+注释：表 1 与表 2 原是一个表的两部分，分成两部分是为了适合页面大小。建议你把这些表打出来，粘成一个大表。这样一来，你就有一个属于自己的编码表了。
+
+ 
+
+让我们首先查看这些缩写词和表：
+
+ 
+
+###  1.6.1   主要的缩写词
+
+操作数可以用两字符的 Zz 形式表示。第一个字符是大字字母，指定寻址方法；第二字符是小写字母，指定操作数的类型。
+
+ 
+
+ 
+
+###  1.6.2   寻址方法的代码
+
+A 直接地址；指令中不含 ModR/M 字节；操作数的地址直接编进指令；没有基址寄存器，变址寄存器，或能用上的比例因子；例如，far JMP (EA)。
+
+C modR/M 字节的 reg 字段，选用控制寄存器；例如，MOV (0F20, 0F22)。
+
+D modR/M 字节的 reg 字段，选用调试寄存器；例如，MOV (0F21,0F23)。
+
+E modR/M 字节跟在操作码之后，用于指定操作数。操作数既可以是通用寄存器，也可以是内存地址。如果是内存地址，可以用段寄存器加上如下的值来计算地址：基址寄存器，变址寄存器，比例因子，位移量。
+
+F 标志寄存器。
+
+G modR/M 字节的 reg 字段，选用通用寄存器；例如，ADD (00)。
+
+I 立即数。操作数的值被编进指令随后的字节。
+
+J 这条指令包含了加到指令指针寄存器的相对偏移量；例如，JMP short, LOOP。
+
+M modR/M 字节只能引用内存；例如，BOUND, LES, LDS, LSS, LFS, LGS。
+
+O 这条指令中不含 modR/M 字节；操作数的偏移量被当做是 word 或 double word（视地址长度属性而定）编进指令里。不使用基址寄存器，变址寄存器，或比例因子；例如，MOV (A0-A3)。
+
+R modR/M 字节的 mod 字段，只能引用通用寄存器；例如，MOV (0F20\-0F24, 0F26)。
+
+S modR/M 字节的 reg 字段，选用段寄存器；例如，MOV (8C,8E)。
+
+T modR/M 字节的 reg 字段，选用测试寄存器；例如，MOV (0F24,0F26)。
+
+X 通过 DS:SI 的内存寻址；例如，MOVS, COMPS, OUTS, LODS, SCAS。
+
+Y 通过 ES:DI 的内存寻址；例如，MOVS, CMPS, INS, STOS。
+
+ 
+
+ 
+
+###  1.6.3   操作数类型的代码
+
+a 两个 one-word 操作数在内存里，或两个 double-word 操作数在内存里，具体要视操作数长度属性而定（只有 BOUND 使用）。
+
+b byte（与操作数长度属性无关）
+
+c byte 或 word，视操作数长度属性而定。
+
+d Double word（与操作数长度属性无关）
+
+p 32 位或 48 位的指针，视操作数长度属性而定。
+
+s Six-byte 伪描述符
+
+v Word 或 double word，视操作数长度属性而定。
+
+w Word（与操作数长度属性无关）
+
+ 
+
+###  1.6.4   寄存器代码
+
+当操作数是具体的寄存器而被编进操作码时，可以通过它的名字识别寄存器；例如，AX, CL,或 ESI。通过寄存器名可以知道它是 32,16 还是 8 位的。当寄存器的宽度依靠操作数长度属性时，用 eXX 形式作为寄存器的标识符；例如，eAX 表明操作数长度属性是 16 位时使用 AX 寄存器，操作数长度属性是 32 位时使用 EAX 寄存器。
+
+ 
+
+ 
+
+###  1.6.5   One-Byte 操作码表
+
+ 
+
+     0         1         2         3         4         5         6        7
+
+ .---------------------------------------------------------------------------.
+
+ |                            ADD                          |  PUSH  |   POP  |
+
+0|---------------------------------------------------------|        |        |
+
+ | Eb,Gb  | Ev,Gv  |  Gb,Eb  |  Gv,Ev  |  AL,Ib  | eAX,Iv  |   ES   |   ES   |
+
+ |---------------------------------------------------------+--------+--------|
+
+ |                            ADC                          |  PUSH  |   POP  |
+
+1|---------------------------------------------------------|        |        |
+
+ | Eb,Gb  | Ev,Gv  |  Gb,Eb  |  Gv,Ev  |  AL,Ib  | eAX,Iv  |   SS   |   SS   |
+
+ |---------------------------------------------------------+--------+--------|
+
+ |                            AND                          |  SEG   |        |
+
+2|---------------------------------------------------------|        |   DAA  |
+
+ | Eb,Gb  | Ev,Gv  |  Gb,Eb  |  Gv,Ev  |  AL,Ib  | eAX,Iv  |  =ES   |        |
+
+ |---------------------------------------------------------+--------+--------|
+
+ |                            XOR                          |  SEG   |        |
+
+3|---------------------------------------------------------|        |   AAA  |
+
+ | Eb,Gb  | Ev,Gv  |  Gb,Eb  |  Gv,Ev  |  AL,Ib  | eAX,Iv  |  =SS   |        |
+
+ |---------------------------------------------------------------------------|
+
+ |                             INC general register                          |
+
+4|---------------------------------------------------------------------------|
+
+ |  eAX   |  eCX   |   eDX   |   eBX   |   eSP   |   eBP   |  eSI   |  eDI   |
+
+ |---------------------------------------------------------------------------|
+
+ |                             PUSH general register                         |
+
+5|---------------------------------------------------------------------------|
+
+ |  eAX   |  eCX   |   eDX   |   eBX   |   eSP   |   eBP   |  eSI   |  eDI   |
+
+ |--------+--------+---------+---------+---------+---------+--------+--------|
+
+ |        |        |  BOUND  |  ARPL   |   SEG   |   SEG   | Operand| Address|
+
+6| PUSHA  | POPA   |         |         |         |         |        |        |
+
+ |        |        |  Gv,Ma  |  Ew,Rw  |   =FS   |   =GS   |  Size  |  Size  |
+
+ |---------------------------------------------------------------------------|
+
+ |                  Short displacement jump of condition (Jb)                |
+
+7|---------------------------------------------------------------------------|
+
+ |  JO    |  JNO   |   JB    |   JNB   |   JZ    |  JNZ    |   JBE  |  JNBE  |
+
+ |-----------------+---------+---------+-------------------+-----------------|
+
+ | Immediate Grp1  |         |  Grp1   |       TEST        |      XCHG       |
+
+8|-----------------|         |         |-------------------+-----------------|
+
+ | Eb,Ib  | Ev,Iv  |         |  Ev,Iv  |  Eb,Gb  |  Ev,Gv  |  Eb,Gb |  Ev,Gv |
+
+ |--------+------------------------------------------------------------------|
+
+ |        |             XCHG word or double-word register with eAX           |
+
+9|  NOP   |------------------------------------------------------------------|
+
+ |        |  eCX   |   eDX   |   eBX   |   eSP   |   eBP   |  eSI   |  eDI   |
+
+ |-------------------------------------+---------+---------+--------+--------|
+
+ |                MOV                  |  MOVSB  | MOVSW/D | CMPSB  |CMPSW/D |
+
+A|-------------------------------------|         |         |        |        |
+
+ | AL,Ob  | eAX,Ov |  Ob,AL  |  Ov,eAX |  Xb,Yb  |  Xv,Yv  |  Xb,Yb |  Xv,Yv |
+
+ |---------------------------------------------------------------------------|
+
+ |                     MOV immediate byte into byte register                 |
+
+B|---------------------------------------------------------------------------|
+
+ |   AL   |  CL    |   DL    |   BL    |   AH    |   CH    |   DH   |   BH   |
+
+ |-----------------+-------------------+---------+---------+-----------------|
+
+ |   Shift Grp2    |      RET near     |   LES   |   LDS   |       MOV       |
+
+C|-----------------+-------------------|         |         |-----------------|
+
+ | Eb,Ib  | Ev,Iv  |    Iw   |         |  Gv,Mp  |  Gv,Mp  |  Eb,Ib |  Ev,Iv |
+
+ |-------------------------------------+---------+---------+--------+--------|
+
+ |             Shift Grp2              |         |         |        |        |
+
+D|-------------------------------------|   AAM   |   AAD   |        |  XLAT  |
+
+ |  Eb,1  | Ev,1   |  Eb,CL  |  Ev,CL  |         |         |        |        |
+
+ |--------+--------+---------+---------+-------------------+-----------------|
+
+ | LOOPNE | LOOPE  |   LOOP  |  JCXZ   |        IN         |       OUT       |
+
+E|        |        |         |         |-------------------+-----------------|
+
+ |  Jb    |  Jb    |    Jb   |   Jb    |  AL,Ib  | eAX,Ib  |  Ib,AL | Ib,eAX |
+
+ |--------+--------+---------+---------+---------+---------+-----------------|
+
+ |        |        |         |   REP   |         |         |     Unary Grp3  |
+
+F| LOCK   |        |  REPNE  |         |   HLT   |   CMC   |-----------------|
+
+ |        |        |         |  REPE   |         |         |   Eb   |   Ev   |
+
+ '---------------------------------------------------------------------------'
+
+ 
+
+  
+
+ 
+
+      8         9         A         B         C         D         E        F
+
+ .---------------------------------------------------------------------------.
+
+ |                           OR                            |  PUSH  | 2-byte |
+
+0|---------------------------------------------------------|        |        |
+
+ | Eb,Gb |  Ev,Gv  |  Gb,Eb  |  Gv,Ev  |  AL,Ib  | eAX,Iv  |   CS   | escape |
+
+ |---------------------------------------------------------+--------+--------|
+
+ |                          SBB                            |  PUSH  |  POP   |
+
+1|---------------------------------------------------------|        |        |
+
+ | Eb,Gb |  Ev,Gv  |  Gb,Eb  |  Gv,Ev  |  AL,Ib  | eAX,Iv  |   DS   |   DS   |
+
+ |---------------------------------------------------------+--------+--------|
+
+ |                          SUB                            |  SEG   |        |
+
+2|---------------------------------------------------------|        |  DAS   |
+
+ | Eb,Gb |  Ev,Gv  |  Gb,Eb  |  Gv,Ev  |  AL,Ib  | eAX,Iv  |  =CS   |        |
+
+ |---------------------------------------------------------+--------+--------|
+
+ |                          CMP                            |  SEG   |        |
+
+3|---------------------------------------------------------|        |  AAS   |
+
+ | Eb,Gb |  Ev,Gv  |  Gb,Eb  |  Gv,Ev  |  AL,Ib  | eAX,Iv  |  =CS   |        |
+
+ |---------------------------------------------------------------------------|
+
+ |                            DEC general register                           |
+
+4|---------------------------------------------------------------------------|
+
+ |  eAX  |   eCX   |   eDX   |   eBX   |   eSP   |   eBP   |   eSI  |  eDI   |
+
+ |---------------------------------------------------------------------------|
+
+ |                        POP into general register                          |
+
+5|---------------------------------------------------------------------------|
+
+ |  eAX  |   eCX   |   eDX   |   eBX   |   eSP   |   eBP   |  eSI   |  eDI   |
+
+ |-------+---------+---------+---------+---------+---------+--------+--------|
+
+ | PUSH  |  IMUL   |  PUSH   |  IMUL   |  INSB   | INSW/D  | OUTSB  |OUTSW/D |
+
+6|       |         |         |         |         |         |        |        |
+
+ |  Ib   | GvEvIv  |   Ib    | GvEvIv  |  Yb,DX  |  Yb,DX  | Dx,Xb  | DX,Xv  |
+
+ |---------------------------------------------------------------------------|
+
+ |                 Short-displacement jump on condition(Jb)                  |
+
+7|---------------------------------------------------------------------------|
+
+ |  JS   |   JNS   |   JP    |   JNP   |   JL    |  JNL    |  JLE   |  JNLE  |
+
+ |-------------------------------------+---------+---------+--------+--------|
+
+ |               MOV                   |   MOV   |   LEA   |  MOV   |  POP   |
+
+8|-------------------------------------|         |         |        |        |
+
+ | Eb,Gb |  Ev,Gv  |  Gb,Eb  |  Gv,Ev  |  Ew,Sw  |  Gv,M   |  Sw,Ew |   Ev   |
+
+ |-------+---------+---------+---------+---------+---------+--------+--------|
+
+ |       |         |  CALL   |         |  PUSHF  |  POPF   |        |        |
+
+9|  CBW  |   CWD   |         |  WAIT   |         |         |  SAHF  |  LAHF  |
+
+ |       |         |   Ap    |         |   Fv    |   Fv    |        |        |
+
+ |-----------------+---------+---------+---------+---------+--------+--------|
+
+ |      TEST       |  STOSB  | STOSW/D |  LODSB  | LODSW/D | SCASB  |SCASW/D |
+
+A|-----------------|         |         |         |         |        |        |
+
+ | AL,Ib | eAX,Iv  |  Yb,AL  |  Yv,eAX |  AL,Xb  | eAX,Xv  |  AL,Xb |eAX,Xv  |
+
+ |---------------------------------------------------------------------------|
+
+ |      MOV immediate word or double into word or double register            |
+
+B|---------------------------------------------------------------------------|
+
+ |  eAX  |   eCX   |   eDX   |   eBX   |   eSP   |   eBP   |   eSI  |  eDI   |
+
+ |-------+---------+-------------------+---------+---------+--------+--------|
+
+ | ENTER |         |      RET far      |  INT    |  INT    |        |        |
+
+C|       |  LEAVE  |-------------------|         |         |  INTO  |  IRET  |
+
+ | Iw,Ib |         |   Iw    |         |   3     |  Ib     |        |        |
+
+ |---------------------------------------------------------------------------|
+
+ |                                                                           |
+
+D|                ESC(Escape to coprocessor instruction set)                 |
+
+ |                                                                           |
+
+ |---------------------------------------------------------------------------|
+
+ |  CALL |             JNP             |        IN         |       OUT       |
+
+E|       |-----------------------------+-------------------+-----------------|
+
+ |   Av  |   Jv    |   Ap    |   Jb    |  AL,DX  | eAX,DX  | DX,AL  | DX,eAX |
+
+ |-------+---------+---------+---------+---------+---------+--------+--------|
+
+ |       |         |         |         |         |         |INC/DEC |Indirct |
+
+F|  CLC  |   STC   |   CLI   |   STI   |   CLD   |   STD   |        |        |
+
+ |       |         |         |         |         |         |  Grp4  |  Grp5  |
+
+ '---------------------------------------------------------------------------'
+
+ 
+
+  
+
+ 
+
+###  1.6.6   Two-Byte 操作码表（第一个字节是 0FH）
+
+ 
+
+      0         1         2         3         4         5         6        7
+
+ .---------------------------------------------------------------------------.
+
+ |        |        |   LAR   |   LSL   |         |         |        |        |
+
+0|  Grp6  | Grp7   |         |         |         |         |  CLTS  |        |
+
+ |        |        |  Gw,Ew  |  Gv,Ew  |         |         |        |        |
+
+ |--------+--------+---------+---------+---------+---------+--------+--------|
+
+ |        |        |         |         |         |         |        |        |
+
+1|        |        |         |         |         |         |        |        |
+
+ |        |        |         |         |         |         |        |        |
+
+ |--------+--------+---------+---------+---------+---------+--------+--------|
+
+ |   MOV  |  MOV   |   MOV   |   MOV   |   MOV   |         |   MOV  |        |
+
+2|        |        |         |         |         |         |        |        |
+
+ |  Cd,Rd | Dd,Rd  |  Rd,Cd  |  Rd,Dd  |  Td,Rd  |         |  Rd,Td |        |
+
+ |--------+--------+---------+---------+---------+---------+--------+--------|
+
+ |        |        |         |         |         |         |        |        |
+
+3|        |        |         |         |         |         |        |        |
+
+ |        |        |         |         |         |         |        |        |
+
+ |--------+--------+---------+---------+---------+---------+--------+--------|
+
+ |        |        |         |         |         |         |        |        |
+
+4|        |        |         |         |         |         |        |        |
+
+ |        |        |         |         |         |         |        |        |
+
+ |--------+--------+---------+---------+---------+---------+--------+--------|
+
+ |        |        |         |         |         |         |        |        |
+
+5|        |        |         |         |         |         |        |        |
+
+ |        |        |         |         |         |         |        |        |
+
+ |--------+--------+---------+---------+---------+---------+--------+--------|
+
+ |        |        |         |         |         |         |        |        |
+
+6|        |        |         |         |         |         |        |        |
+
+ |        |        |         |         |         |         |        |        |
+
+ |--------+--------+---------+---------+---------+---------+--------+--------|
+
+ |        |        |         |         |         |         |        |        |
+
+7|        |        |         |         |         |         |        |        |
+
+ |        |        |         |         |         |         |        |        |
+
+ |---------------------------------------------------------------------------|
+
+ |                    Long-displacement jump on condition (Jv)               |
+
+8|---------------------------------------------------------------------------|
+
+ |   JO   |  JNO   |   JB    |   JNB   |   JZ    |   JNZ   |   JBE  |  JNBE  |
+
+ |---------------------------------------------------------------------------|
+
+ |                            Byte Set on condition (Eb)                     |
+
+9|---------------------------------------------------------------------------|
+
+ |  SETO  | SETNO  |  SETB   |  SETNB  |  SETZ   |  SETNZ  |  SETBE | SETNBE |
+
+ |--------+--------+---------+---------+---------+---------+--------+--------|
+
+ |  PUSH  |  POP   |         |   BT    |  SHLD   |  SHLD   |        |        |
+
+A|        |        |         |         |         |         |        |        |
+
+ |   FS   |  FS    |         |  Ev,Gv  | EvGvIb  | EvGvCL  |        |        |
+
+ |--------+--------+---------+---------+---------+---------+-----------------|
+
+ |        |        |   LSS   |   BTR   |   LFS   |   LGS   |      MOVZX      |
+
+B|        |        |         |         |         |         |-----------------|
+
+ |        |        |   Mp    |  Ev,Gv  |   Mp    |   Mp    | Gv,Eb  | Gv,Ew  |
+
+ |--------+--------+---------+---------+---------+---------+--------+--------|
+
+ |        |        |         |         |         |         |        |        |
+
+C|        |        |         |         |         |         |        |        |
+
+ |        |        |         |         |         |         |        |        |
+
+ |--------+--------+---------+---------+---------+---------+--------+--------|
+
+ |        |        |         |         |         |         |        |        |
+
+D|        |        |         |         |         |         |        |        |
+
+ |        |        |         |         |         |         |        |        |
+
+ |--------+--------+---------+---------+---------+---------+--------+--------|
+
+ |        |        |         |         |         |         |        |        |
+
+E|        |        |         |         |         |         |        |        |
+
+ |        |        |         |         |         |         |        |        |
+
+ |--------+--------+---------+---------+---------+---------+--------+--------|
+
+ |        |        |         |         |         |         |        |        |
+
+F|        |        |         |         |         |         |        |        |
+
+ |        |        |         |         |         |         |        |        |
+
+ '---------------------------------------------------------------------------'
+
+ 
+
+  
+
+ 
+
+      8         9         A         B         C         D        E        F
+
+ .---------------------------------------------------------------------------.
+
+ |        |        |         |         |         |         |        |        |
+
+0|        |        |         |         |         |         |        |        |
+
+ |        |        |         |         |         |         |        |        |
+
+ |--------+--------+---------+---------+---------+---------+--------+--------|
+
+ |        |        |         |         |         |         |        |        |
+
+1|        |        |         |         |         |         |        |        |
+
+ |        |        |         |         |         |         |        |        |
+
+ |--------+--------+---------+---------+---------+---------+--------+--------|
+
+ |        |        |         |         |         |         |        |        |
+
+2|        |        |         |         |         |         |        |        |
+
+ |        |        |         |         |         |         |        |        |
+
+ |--------+--------+---------+---------+---------+---------+--------+--------|
+
+ |        |        |         |         |         |         |        |        |
+
+3|        |        |         |         |         |         |        |        |
+
+ |        |        |         |         |         |         |        |        |
+
+ |--------+--------+---------+---------+---------+---------+--------+--------|
+
+ |        |        |         |         |         |         |        |        |
+
+4|        |        |         |         |         |         |        |        |
+
+ |        |        |         |         |         |         |        |        |
+
+ |--------+--------+---------+---------+---------+---------+--------+--------|
+
+ |        |        |         |         |         |         |        |        |
+
+5|        |        |         |         |         |         |        |        |
+
+ |        |        |         |         |         |         |        |        |
+
+ |--------+--------+---------+---------+---------+---------+--------+--------|
+
+ |        |        |         |         |         |         |        |        |
+
+6|        |        |         |         |         |         |        |        |
+
+ |        |        |         |         |         |         |        |        |
+
+ |--------+--------+---------+---------+---------+---------+--------+--------|
+
+ |        |        |         |         |         |         |        |        |
+
+7|        |        |         |         |         |         |        |        |
+
+ |        |        |         |         |         |         |        |        |
+
+ |---------------------------------------------------------------------------|
+
+ |               Long-displacement jump on condition (Jv)                    |
+
+8|---------------------------------------------------------------------------|
+
+ |   JS   |  JNS   |   JP    |   JNP   |   JL    |   JNL   |   JLE  |  JNLE  |
+
+ |--------+--------+---------+---------+---------+---------+--------+--------|
+
+ |        |        |         |         |         |         |        |        |
+
+9|  SETS  | SETNS  |  SETP   |  SETNP  |  SETL   |  SETNL  |  SETLE | SETNLE |
+
+ |        |        |         |         |         |         |        |        |
+
+ |--------+--------+---------+---------+---------+---------+--------+--------|
+
+ |  PUSH  |  POP   |         |   BTS   |  SHRD   |  SHRD   |        |  IMUL  |
+
+A|        |        |         |         |         |         |        |        |
+
+ |   GS   |  GS    |         |  Ev,Gv  | EvGvIb  | EvGvCL  |        | Gv,Ev  |
+
+ |--------+--------+---------+---------+---------+---------+-----------------|
+
+ |        |        |  Grp-8  |   BTC   |   BSF   |   BSR   |      MOVSX      |
+
+B|        |        |         |         |         |         |-----------------|
+
+ |        |        |  Ev,Ib  |  Ev,Gv  |  Gv,Ev  |  Gv,Ev  |  Gv,Eb   Gv,Ew  |
+
+ |--------+--------+---------+---------+---------+---------+-----------------|
+
+ |        |        |         |         |         |         |        |        |
+
+C|        |        |         |         |         |         |        |        |
+
+ |        |        |         |         |         |         |        |        | 
+
+ |--------+--------+---------+---------+---------+---------+--------+--------|
+
+ |        |        |         |         |         |         |        |        | 
+
+D|        |        |         |         |         |         |        |        | 
+
+ |        |        |         |         |         |         |        |        | 
+
+ |--------+--------+---------+---------+---------+---------+--------+--------| 
+
+ |        |        |         |         |         |         |        |        | 
+
+E|        |        |         |         |         |         |        |        | 
+
+ |        |        |         |         |         |         |        |        | 
+
+ |--------+--------+---------+---------+---------+---------+--------+--------| 
+
+ |        |        |         |         |         |         |        |        | 
+
+F|        |        |         |         |         |         |        |        | 
+
+ |        |        |         |         |         |         |        |        | 
+
+ '---------------------------------------------------------------------------' 
+
+ 
+
+  
+
+ 
+
+###  1.6.7   通过 modR/M 字节的 5,4,3 位确定操作码
+
+ 
+
+     G                       .-----------------------.
+
+     r                       |  mod  |  nnn  |  R/M  |
+
+     o                       '-----------------------'
+
+     u
+
+     p   000     001     010     011     100     101     110     111
+
+      .---------------------------------------------------------------.
+
+     1|  ADD  |  OR   |  ADC  |  SBB  |  AND  |  SUB  |  XOR  |  CMP  |
+
+      |       |       |       |       |       |       |       |       |
+
+      |-------+-------+-------+-------+-------+-------+-------+-------|
+
+     2|  ROL  |  ROR  |  RCL  |  RCR  |  SHL  |  SHR  |       |  SAR  |
+
+      |       |       |       |       |       |       |       |       |
+
+      |-------+-------+-------+-------+-------+-------+-------+-------|
+
+     3| TEST  |       |  NOT  |  NEG  |  MUL  | IMUL  |  DIV  | IDIV  |
+
+      | Ib/Iv |       |       |       |AL/eAX |AL/eAX |AL/eAX |AL/eAX |
+
+      |-------+-------+-------+-------+-------+-------+-------+-------|
+
+     4|  INC  |  DEC  |       |       |       |       |       |       |
+
+      |  Eb   |  Eb   |       |       |       |       |       |       |
+
+      |-------+-------+-------+-------+-------+-------+-------+-------|
+
+     5|  INC  |  DEC  | CALL  | CALL  |  JMP  |  JMP  | PUSH  |       |
+
+      |  Ev   |  Ev   |  Ev   |  eP   |  Ev   |  Ep   |  Ev   |       |
+
+      |-------+-------+-------+-------+-------+-------+-------+-------|
+
+     6| SLDT  |  STR  | LLDT  |  LTR  | VERR  | VERW  |       |       |
+
+      |  Ew   |  Ew   |  Ew   |  Ew   |  Ew   |  Ew   |       |       |
+
+      |-------+-------+-------+-------+-------+-------+-------+-------|
+
+     7| SGDT  | SIDT  | LGDT  | LIDT  | SMSW  |       | LMSW  |       |
+
+      |  Ms   |  Ms   |  Ms   |   Ms  |  Ew   |       |  Ew   |       |
+
+      |-------+-------+-------+-------+-------+-------+-------+-------|
+
+     8|       |       |       |       |  BT   |  BTS  |  BTR  |  BTC  |
+
+      |       |       |       |       |       |       |       |       |
+
+      '---------------------------------------------------------------'
+
+ 
+
+ 
+
+###  1.6.8   条件的定义
+
+ 
+
+（用于条件指令 Jcond,和 SETcond）
+
+下面的表在生成条件表达式时可能有用：
+
+ 
+
+ .--------------------------------------------------------------------------.
+
+ |                                    | Instr.   |  Condition               |
+
+ | Mnemonic  Meaning                  | Subcode  |  Tested                  |
+
+ |------------------------------------+----------+--------------------------|
+
+ | O         Overflow                 | 0000     |  OF = 1                  |
+
+ |------------------------------------+----------+--------------------------|
+
+ | NO        No overflow              | 0001     |  OF = 0                  |
+
+ |------------------------------------+----------+--------------------------|
+
+ | B         Below                    |          |                          |
+
+ | NAE       Neither above nor equal  | 0010     |  CF = 1                  |
+
+ |------------------------------------+----------+--------------------------|
+
+ | NB        Not below                |          |                          |
+
+ | AE       Above or equal            | 0011     |  CF = 0                  |
+
+ |------------------------------------+----------+--------------------------|
+
+ | E         Equal                    |          |                          |
+
+ | Z         Zero                     | 0100     |  ZF = 1                  |
+
+ |------------------------------------+----------+--------------------------|
+
+ | NE        Not equal                |          |                          |
+
+ | NZ        Not zero                 | 0101     |  ZF = 0                  |
+
+ |------------------------------------+----------+--------------------------|
+
+ | BE        Below or equal           |          |                          |
+
+ | NA        Not above                | 0110     |  (CF or ZF) = 1          |
+
+ |------------------------------------+----------+--------------------------|
+
+ | NBE       Neither below nor equal  |          |                          |
+
+ | NA        Above                    | 0111     |  (CF or ZF) = 0          |
+
+ |------------------------------------+----------+--------------------------|
+
+ | S         Sign                     | 1000     |  SF = 1                  |
+
+ |------------------------------------+----------+--------------------------|
+
+ | NS        No sign                  | 1001     |  SF = 0                  |
+
+ |------------------------------------+----------+--------------------------|
+
+ | P         Parity                   |          |                          |
+
+ | PE        Parity even              | 1010     |  PF = 1                  |
+
+ |------------------------------------+----------+--------------------------|
+
+ | NP        No parity                |          |                          |
+
+ | PO        Parity odd               | 1011     |  PF = 0                  |
+
+ |------------------------------------+----------+--------------------------|
+
+ | L         Less                     |          |                          |
+
+ | NGE       Neither greater nor equal| 1100     |  (SF xor OF) = 1         |
+
+ |------------------------------------+----------+--------------------------|
+
+ | NL        Not less                 |          |                          |
+
+ | GE        Greater or equal         | 1101     |  (SF xor OF) = 0         |
+
+ |------------------------------------+----------+--------------------------|
+
+ | LE        Less or equal            |          |                          |
+
+ | NG        Not greater              | 1110     |  ((SF xor OF) or ZF) = 1 |
+
+ |------------------------------------+----------+--------------------------|
+
+ | NLE       Neither less nor equal   |          |                          |
+
+ | G         Greater                  | 1111     |  ((SF xor OF) or ZF) = 0 |
+
+ '--------------------------------------------------------------------------'
+
+ 
+
+注释：术语"above"和"below"指出两个无符号数之间的关系（不测试 SF 与 OF）。术语"greater"和"less"指出两个有符号数之间的关系（测试 SF 和 OF）。
+
+  
+
+ 
+
+                         .-------------------------.
+
+\-------------------------|         PART II         |--------------------------
+
+                         '-------------------------'
+
+ 
+
+#  2      
+生成指令
+
+ 
+
+Ok，我想我应该知道你现在的感觉…或许很恶心…或许想把保存本文的硬盘都格式化了。不满现状倒不太坏！（并不是说我曾经遇到过这样的事…;-）。我知道或许除了少量的指令名有些意义外，上面的那些表看起来就像一堆狗屎…但是，就像我所说的那样，你应该把这些表合成一张大表并标上缩写词。然后浏览它。不久，你就会发现一些规律…到那时，你就可以生成属于自己的编码了。
+
+我们首先设定一个目标，并根据目标选取我们必须深入的程度：
+
+ 
+
+       1. Complexity: -----> bigger  ----> more instruction types
+
+                      |              |---> privileged instructions
+
+                      |              |---> FPU instructions
+
+                      |              '---> larger decryptors
+
+                      '----> smaller ----> less instruction types
+
+                                     |---> less privileged instructions
+
+                                     |---> no FPU instructions
+
+                                     '---> shorter decryptors
+
+ 
+
+       2. Quickness:  -----> bigger  ----> shorter decryptors
+
+                      |              |---> no FPU instructions
+
+                      |              '---> Less loops and cycles
+
+                      '----> smaller ----> huge decryptors
+
+                                     |---> many FPU instructions
+
+                                     '---> many loops and cycles
+
+ 
+
+ 
+
+在这里，程序设计者做何选择要看他愿意花多大力气以及他有多少时间而定，等等。就个人来说，我喜欢最复杂最慢的译码器。它将生成“已有的”盔甲对抗反汇编、字符串扫描和代码模拟器。这将使你在第二个保护层里（在第二层译码器里）留下真正的盔甲，因为盔甲是一组明确定义的指令，所以，可以通过字符串扫描识别它们。这就是为什么我喜欢那些自我武装的译码器，而很少用那些很容易被发现的技巧。
+
+上面所述使我真正认识到多态的含义：
+
+ 
+
+                               **G A R B A G E**
+
+ 
+
+就像它听起来那样使人讨厌，垃圾（有时候被称为无用数据）是多态译码器的灵魂。最简单的译码器和最蹩脚的加密就像一头大象藏在樱桃树下…大象得到红红的小眼睛，你知道…;-)我们主要讨论垃圾，因为它在多态译码器中是非常重要的。
+
+无论如何，在开始生成垃圾前(;-)，让我们看一看多态引擎的通用框架：
+
+ 
+
+  
+
+ 
+
+             .------------.
+
+             | Poly entry |
+
+             '------------'
+
+             .-v----------------------------.
+
+             |  Choosing random registers   |
+
+             |------------------------------|
+
+             |  Choosing random values      |
+
+             |------------------------------|
+
+             |  Generate garbage          >-+------------------------.
+
+             |---------------------------------------.               |
+
+             |  Mainloop                             |               |
+
+             |        .------------------------------|               |
+
+        .----+--------+-< Generate real instruction  |               |
+
+        |    |        |------------------------------|               |
+
+        |    |        |   Generate garbage         >-+---------------|
+
+        |    |        '------------------------------|               |
+
+        |    |  Loop Mainloop                        |               |
+
+        |    |---------------------------------------'               |
+
+        |    |  Generate garbage          >-+------------------------|
+
+        |    '------------------------------'                        |
+
+        |    .-v---------.                                           |
+
+        |    | Poly exit |                                           |
+
+        |    '-----------'                                           |
+
+        |    .------------------------------.                        |
+
+        '--->|  Instruction generator       |                        |
+
+             '------------------------------'                        |
+
+             .------------------------------.                        |
+
+             |  Garbage generator           |<-----------------------'
+
+             '------------------------------'
+
+ 
+
+ 
+
+因此，我们应该有如下的例程：
+
+ 
+
+         \* 随机寄存器选择器
+
+         \* 随机值选择器
+
+         \* 指令生成器
+
+         \* 垃圾生成器
+
+ 
+
+ 
+
+##  2.1  随机寄存器选择器
+
+Ok，这样看来，你的多态引擎的目标是在每件事之前创建一个译码器。这个通用的译码器如下图所示：
+
+ 
+
+    .-----------------------------------------------------------------------.
+
+    |   Load Key Register with key value                                    |
+
+  I |   Load Pointer Register with an address to the code to decrypt        |
+
+    |   Load Length Register with the code length                           |
+
+    |-----------------------------------------------------------------------|
+
+    | Decrypt\_Loop:                                                         |
+
+    |   Load Code Register with byte/word/dword to decrypt                  |
+
+    |   Apply Decrypt Operation over Code Register with Key Register        |
+
+    |   Store Code Register at the pointer held by Pointer Register         |
+
+ II |   Apply or not math operation over the Key Register                   |
+
+    |   Increment Pointer Register                                          |
+
+    |   Loop decrementing Length Register until it equals 0 to Decrypt\_Loop |
+
+    |   Jump to decrypted code                                              |
+
+    '-----------------------------------------------------------------------'
+
+ 
+
+ 
+
+你可能注意到，我把译码器分成 2 个部分：
+
+（I）加载已用的寄存器。因为多态引擎要把指令全填在这里，并使它们尽可能的小，因此它是非常重要的；你应当避免使用增量处理寄存器或其它的技巧；应该直接寻址（例如，mov preg, 1234h）。
+
+（II）译码器循环
+
+这样看来，我们主要需要操作 4 类寄存器：
+
+ 
+
+                ?Key register      (kreg)
+
+                ?Pointer register  (preg)
+
+                ?Code register     (creg)
+
+                ?Length register   (lreg)
+
+ 
+
+注释：你可以不用寄存器代替 key 寄存器和指针寄存器。而是对 key 改用立即值，对指针用立即寻址方式，直接增加立即值。同样，可以通过直接在代码上应用解密数学运算，跳过代码寄存器。不过，在这篇教学里，我将使用所有的寄存器。
+
+ 
+
+正如我前面所说的，我将试着说明 32 位多态的方法，我将考虑生成 32 位代码的多态引擎。因此，我们可以用任一寄存器表示地址码：\[EAX\],  \[ECX\],等等。不像在 16 位里，你只有较少的选择，像\[DI\], \[BX+DI\],等等。
+
+让我们检验选择随机寄存器的方法。
+
+ 
+
+注释：我将调用"brandom32"过程，它期望的值在 EAX 里，并返回一个 0 至原始 EAX-1 之间的随机值。
+
+这个过程隐含的想法是为寄存器设置代码，首先是真正使用的寄存器和其它的，无用数据（垃圾）寄存器。在那之后，过程应该在它们之间通过几次 2 轮交换来混淆它们：
+
+ 
+
+        used\_registers:
+
+        kreg db 0
+
+        preg db 1
+
+        creg db 2
+
+        lreg db 3
+
+        jrg1 db 5
+
+        jrg2 db 6
+
+        jrg3 db 7
+
+ 
+
+        Choose\_random\_regs proc near  ;
+
+        lea edi, used\_registers       ; point to registers
+
+        lea esi, used\_registers       ; point to registers
+
+        mov edx, esi                  ; save position
+
+        mov ecx, 50h                  ; scramble 50h times
+
+        mangle:                       ;
+
+            mov eax, 8                ;
+
+            call brandom32            ; choose a random nr. between 0-7
+
+            mov ebx, eax              ; in EBX
+
+            mov eax, 8                ;
+
+            call brandom32            ; choose a random nr. between 0-7
+
+            cmp ebx, eax              ; in EAX
+
+            je mangle                 ; if EAX=EBX choose again
+
+            add edi, eax              ; increment first pointer
+
+            add esi, ebx              ; increment second pointer
+
+            mov al, byte ptr \[edi\]    ; and exchange the values
+
+            xchg byte ptr \[esi\], al   ; between them
+
+            mov byte ptr \[edi\], al    ;
+
+            mov edi, edx              ; restore position
+
+            mov esi, edx              ;
+
+            loop mangle               ; and do it 50h times
+
+            ret                       ;
+
+        Choose\_random\_regs endp       ;
+
+ 
+
+在这之后，我们可以用那些确实是随机选择的寄存器。对于填充适当的 ModR/M 寄存器，考虑到被对齐的代码像这样：xxxxxNNN，要填充正确的 ModR/M 寄存器，你需要清理 ModR/M 字节。查看下面的’指令生成器’。
+
+ 
+
+##  2.2  随机值选择器
+
+对多态引擎来说，选择多个随机值并用它们填充真正的指令是非常重要的。
+
+最普通的随机值被用作加密 key。为了有一个强壮的 key，你必须按下面的规则行事，如：
+
+ 
+
+         \* key 开头不要出现 0 填充的情况（类似于 00158A45h）
+
+         \* 不要使用对称的 key（类似于 ABCDDCBAh）
+
+ 
+
+同样，另一种普通的随机值是’递增’key。尽管我在这里引用了递增，但你并不一定总是采用递增/递减 key。你可以选择任一可逆的数学运算。在我的 MOF32 里，每次都是重复使用 XOR，ADD 和 SUB 操作中的一种来改变 key。
+
+最后但并非最不重要的随机值是加密运算。我的 32 位多态引擎使用 3 种加密运算：
+
+ 
+
+         1）无 key 运算：对代码进行 ROR/ROL 运算
+
+         2）双代码运算：把代码与后续的代码做 XOR/ADD/SUB(dword)运算
+
+         3）key 运算：把代码与 key 做 XOR/ADD/SUB 运算
+
+ 
+
+你进行的数学运算越多，加密就越坚固。然而你不要因此而提升译码器本身的复杂性。其它可以使用的有趣的运算是 NOT, NEG, XCHG。
+
+ 
+
+##  2.3  指令生成器
+
+Ok，现在该生成我们的译码器的指令了。这是一个在 mainloop 中被调用的过程，因此，我们需要维护一个计数器。这个计数器指示我们在这个迭代中必须生成哪条指令。让我们看看我打算怎样声明译码器：
+
+ 
+
+        decryptor:
+
+        i1:     <instruction 1>
+
+                db 0FEh
+
+        i2      <instruction 2>
+
+                db 0FEh
+
+        ...
+
+        ...
+
+        in      <instruction n>
+
+                db 0FEh
+
+ 
+
+因此，我们有译码器声明的每一条指令，当然，还有一组简单的寄存器，但是要小心：在声明译码器时不要使用 EAX 或 AX，因为那些操作码是不同的。例如：
+
+ 
+
+        we define                |      will actually become
+
+        -------------------------+--------------------------
+
+        mov ebx, \[ebx\]           |      mov creg, \[preg\]
+
+        mov ebx, 0               |      mov kreg, keyvalue
+
+        etc...                   |
+
+ 
+
+因此，你应该理解：你定义了指令，编译器为你计算正确的操作码并把它们放在那里。现在，你所要做的就是复制每条指令并用它们填充适当的值或寄存器。
+
+在这里，你面临两个选择：一个是填入声明译码器的地方，然后把它复制到目的地，或者你也可以逐字节复制并直接填入目的地。我认为第一个方法更快一些。但需要你有一个指针。让我们假定 ESI 指向译码器的字节。为了使事情更简单，如果你的译码器里指令较少（MOF32 用了 12 条指令译码器），你可以在你的指令生成器程序里选择生成一个“案例”，手动获得每条指令，像下面这样：
+
+ 
+
+        cmp ecx, 1
+
+        je ins1
+
+        cmp ecx, 2
+
+        je ins2
+
+        ...
+
+        jmp over
+
+ 
+
+ ins1: ...
+
+       jmp over
+
+ ins2: ...
+
+       jmp over
+
+       ...
+
+ over:
+
+       ret
+
+ 
+
+你明白 ecx 是计数器。因此，如果我们必须生成指令 nr.3，我们就跳到 ins3。你填入每条指令并不是很容易，这是因为你必须非常清楚那是那种指令并知道填在哪。让我们设想你的第三条指令看起来如同下面声明的：
+
+ 
+
+        mov ebx, 0
+
+ 
+
+你必须把它变成：
+
+ 
+
+        mov kreg, keyvalue
+
+ 
+
+知道你的 kreg 是 EDX，key 值是 12345678h。
+
+ 
+
+        The opcode for MOV EBX, 0         is: BBh 00h 00h 00h 00h
+
+        The opcode for MOV EDX, 12345678h is: BAh 78h 56h 34h 12h
+
+ 
+
+REG 字段是操作码的最后三位（如果不明白，重读第一部分），因此，我们首先跳过它（ESI 指向指令开始处）：
+
+ 
+
+                and byte ptr \[esi\], 00000111b
+
+ 
+
+在那之后我们填充适当的寄存器：
+
+ 
+
+                or byte ptr \[esi\], kreg
+
+ 
+
+现在，我们填充 key 值：
+
+ 
+
+                or dword ptr \[esi+1\], keyvalue
+
+ 
+
+DONE! 我们有了自己的多态指令。我们现在所要做的就是用 lodsb/stosb 或其它方法把它复制到目的地。
+
+当写一个多态引擎时，我推荐你首先写不包含任何垃圾的。一旦你生成了你自己的译码器，并且工作正常，你可以再增加垃圾引擎。
+
+作为对你的帮助，这里是 MOF32 所用的通用译码器：
+
+ 
+
+       decryptor:
+
+       i01:  mov ebx, 0                  ; mov preg, code\_start
+
+             db 0feh                     ;
+
+       i02:  mov ebx, 0                  ; mov kreg, key
+
+             db 0feh                     ;
+
+       i03:  mov ebx, 0                  ; mov lreg, code\_length/8
+
+             db 0feh                     ;
+
+       i04:  mov ebx, dword ptr \[ebx\]    ; mov creg, \[preg\] (mainloop)
+
+             db 0feh                     ;
+
+       i05:  add ebx, ecx                ; <op1> creg, kreg
+
+             db 0feh                     ;
+
+       i06:  ror ebx, 0                  ; <op2> creg, key2
+
+             db 0feh                     ;
+
+       i07:  add ebx, dword ptr \[ebx+4\]  ; <op3> creg, \[preg+4\]
+
+             db 0feh                     ;
+
+       i08:  mov dword ptr \[ebx\], ebx    ; mov \[preg\], creg
+
+             db 0feh                     ;
+
+       i09:  add ebx, keyvalue           ; <op4> kreg, keyvalue
+
+             db 0feh                     ;
+
+       i10:  add ebx, 4                  ; add ebx, 4
+
+             db 0feh                     ;
+
+       i11:  sub ebx, 1                  ; sub lreg, 1
+
+             db 0feh                     ;
+
+       i12:  jnz $                       ; jnz mainloop
+
+             db 0feh, 0ffh               ;
+
+ 
+
+我希望这是非常清楚的，就象我们正在接近的多态译码器的真正盔甲：垃圾…
+
+ 
+
+##  2.4  垃圾生成器
+
+就像我在多态引擎图里说明的那样，在生成第一个真正的指令之前和在每条真正的指令之后调用垃圾生成器。下面是垃圾应该包括的主要的指令类型：
+
+ 
+
+        - <math op> jreg, <reg>/<mem>/<imm>
+
+        - <logical op> jreg, <reg>/<mem>/<imm>
+
+        - <test op> jreg, <reg>/<mem>/<imm>
+
+        - <shift op>
+
+        - jmps and conditional jumps
+
+        - calls
+
+        - unary operations (inc,dec,...)
+
+        - pushad/popad
+
+        - FPU instructions
+
+        - priviledged instructions (smsw, sidt, etc...)
+
+ 
+
+注释：在 pushad 和 popad 之间，寄存器可能被破坏…
+
+ 
+
+Ok，我们现在调用垃圾例程。首先，我们准备生成多少条无用的指令？这可是个哲学问题。依我之见，为了做一个容易的可定制可升级的多态引擎，我建议你生成的无用指令尽量与译码器的真正指令差不多。因此，如果你的译码器有 10 条真正的指令，你至少应该在它们之间生成不少于 10 条的无用指令。我想当我说无用指令时你能明白我的意思，我的意思是一组指令，例如: pushad/mov  eax,  ebx/popad… 当生成垃圾指令时，你将执行一个循环直到计数器为 0。如果你一次生成多条指令（例如 call/jump 组合），你应该把计数器递减 2，否则你会得到太多的垃圾指令。
+
+总之，依我看来，垃圾生成器应当看起来如下：
+
+ 
+
+  
+
+ 
+
+     .-----------------.
+
+     | Garbage routine |
+
+     '-----------------'
+
+       |
+
+  .----+------------------------------------------------------------------.
+
+  | .--v------------------------------------------.                       |
+
+  | |  Choose random number of junk instructions  |                       |
+
+  | '---------------------------------------------'                       |
+
+  |    |                                                                  |
+
+  | .--v-----------------------.                                          |
+
+  | | Garbage generator loop   |                                          |
+
+  | '-^------------------------'                                          |
+
+  |   |          |                                                        |
+
+  |   |       .--v--------------------------------. .-------------------. |
+
+  |   |       | Choose random garbage type        |-> Choose addressing | |
+
+  |   |       '--+-+-+-+-+-+----------------------' '----------+-+-+----' |
+
+  |   |          | | | | | |                                   | | |      |
+
+  |   |          | | | | | '--> Type 1 ---->-<------ mem2reg <-' | |      |
+
+  |   |          | | | | '----> Type 2 ---->|<------ reg2reg <---' |      |
+
+  |   |          | | | '------> Type 3 ---->|<------ etc...  <-----'      |
+
+  |   |          | | '--------> Type 4 ---->|                             |
+
+  |   |          | '----------> Type 5 ---->|                             |
+
+  |   |          '------------> Type 6 ---->|                             |
+
+  |   |                                     |                             |
+
+  |   |       .-----------------------------v---------------------------. |
+
+  |   |       |  Generate the garbage instruction(s)                    | |
+
+  |   |       '---------------------------------------------------------' |
+
+  |   |          |                                                        |
+
+  |   |       .--v------------------------------------------------------. |
+
+  |   |       |  Save addresses if needed                               | |
+
+  |   |       '---------------------------------------------------------' |
+
+  |   |          |                                                        |
+
+  | .------------v-------------.                                          |
+
+  | | Decr. counter until 0    |                                          |
+
+  | '--------------------------'                                          |
+
+  '----+------------------------------------------------------------------'
+
+     .-v--------------------.
+
+     | Garbage routine exit |
+
+     '----------------------'
+
+ 
+
+  
+
+ 
+
+让我们逐个理解它们…
+
+我已经谈到了垃圾指令的数量，但在这点上，你可能有自己的想法，因此，我就不多说了… 我的 MOF32 使用随机数量（4-15）的无用指令。
+
+你的多态引擎必须定义一组非常好的无用指令的类型。看看我的例子：
+
+ 
+
+        1 - mathematical operations
+
+        2 - logical instructions
+
+        3 - unary instructions
+
+        4 - jump
+
+        5 - call
+
+        6 - back call
+
+        7 - pushad/popad
+
+        etc...
+
+ 
+
+你将需要有少量的例程来分别处理这些。
+
+当选择寻址类型时，你必须选择：
+
+ 
+
+        1 - operand size (16 or 32 bit)
+
+        2 - address size (16 or 32 bit)
+
+ 
+
+知道这些，你就知道使用哪个寻址表（查看第一部分的寻址表）。在定位到表之后，你选择真正的寻址类型（不论你用寄存器到寄存器，还是寄存器到内存，在这里不管你有没有变址，有没有位移；所有的选择必须都是随机的）… 在选择完成后，你有 Mod/RM 字节，SIB 字节和最后的立即值。如果需要的话，还可能有操作数和地址大小前缀。在这之后，你必须转到操作码表数组…
+
+这里再重申一遍，你可以选用整个 Intel(c) 386 表或只定义少许操作码。对于最好的多态引擎来说，我认为最好是用整个表。为了这样做，你需要有少许索引定义。让我们看看是怎么做的：
+
+ 
+
+     type1:
+
+        row1, col1, len
+
+        row2, col2, len
+
+        ...
+
+     type2:
+
+        row1, col1, len
+
+        roe2, col2, len
+
+        ...
+
+ 
+
+例如，你有类型一――数学运算（add，sub）。你首先定义 add 指令的行和列和它占用多少单元（核查操作码表）。你的多态引擎将选择一组随机的行/列，并随机的放在行上… 在这之后，你必须做修正。修正暗示着选择正确的内存到寄存器的操作码，而不是寄存器到内存，或立即数到寄存器操作码。
+
+这里，每个必须用它自己的方法编码操作码，应尽可能的灵巧。
+
+有了操作码之后，你所要做的是逐个安置前缀，操作码，Mod/Rm 和 SIB 字节，立即值，并保存指令… 在你所处的地方！你有垃圾指令了！
+
+让我说点其它的东西：你需要有一个特殊的过程，它能生成“一条”随机垃圾指令。那是因为，例如，当生成 PUSHAD/POPAD 指令对时，你必须在 push 和 pop 之间生成更多的无用数据。
+
+在我的第一篇多态教学里，我解释了怎样生成 call 与 jump 结合的 2 种类型。当生成 call 时，我解释了怎样必须保存 call 将完成的地址，以致于你能把 call 编码。嗯，一个大事情是 back-call，与我调用它一样… back-call 有递增已运行指令数的能力。Back-call 看起来像这样：
+
+ 
+
+                 jmp do\_call
+
+        Routine:
+
+                 ...
+
+                 ret
+
+                 ...
+
+                 jmp over\_call
+
+                 ...
+
+        do\_call: call Routine
+
+                 ...
+
+        over\_call:
+
+                 ...
+
+                 call Routine
+
+                 ...
+
+                 call Routine
+
+ 
+
+我猜你应该明白了… 你生成 call/jmp 结构，保存 call 的地址。然后你可能生成而不管有多少对例程的调用，因此像 RET 一样将返回到执行。你应当提防不要构成一个无限循环…
+
+对于 FPU 指令，处理它们是非常容易的（请阅读我的反调试与反模拟器文章），但你要做的是要注意不时地重设 FPU…
+
+  
+
+ 
+
+ 
+
+                              .----------------.
+
+\------------------------------|   EXTRA PART   |-------------------------------
+
+                              '----------------'
+
+ 
+
+#  3      
+转向 32 位
+
+ 
+
+我答应过我将谈一点有关 32 位的具体内容。
+
+就像我已经多次解释一样，我认为多态译码器应当有可以随时可以取用的东西。当我这样说时，我的意思是多态引擎“必须”正确计算任何值与地址，并适当地用它们填充指令。最重要的指令之一是：
+
+ 
+
+        mov preg, code\_start
+
+ 
+
+这条指令把译码器开始工作的地址加载到指针寄存器。它是必须的，因为这是最终正确的地址（意味着你不必用 EBP+，或那些吸引眼球的狗屎）。
+
+如果你读过一些有关 PE 文件格式的文章，你知道在 PE 头部有一些重要的区域，你也知道在 PE 文件的所有区段中存在一个被称为.CODE 或.TEXT 的，它包含了可执行的代码。病毒通常会在这里追加一些内容（有些可能会生成新的区段）。让我们假设，在.CODE 区段的尾部发现加密的病毒。让我们看看为了适当的定位自己，多态引擎必须从 PE 文件中找回什么：
+
+ 
+
+注意：newmapaddress = 被感染文件打开后映射的地址.
+
+ 
+
+首先，我们必须定位 PE 头部：
+
+ 
+
+      mov edi, dword ptr \[newmapaddress\]        ;
+
+      add edi, 03ch                             ; locate the PE header
+
+      mov esi, dword ptr \[edi\]                  ; address
+
+      add esi, dword ptr \[newmapaddress\]        ;
+
+      push esi                                  ; save it
+
+ 
+
+ESI 保存了 PE 头部的地址；现在我们找到原始的进入点：
+
+ 
+
+      add esi, 028h                             ; locate EIP
+
+      mov ebx, \[esi\]                            ; put it in EBX
+
+      mov dword ptr \[eip\], ebx                  ; save it in EIP variable
+
+ 
+
+现在，我们必须定位映像基址（这个地址是当被感染文件载入到内存执行时，被加载的内存地址）：
+
+ 
+
+      add esi, 0Ch                              ; locate imagebase
+
+      add ebx, \[esi\]                            ; add it it EBX
+
+      mov dword ptr \[deltahandle\], ebx          ; and save for alignment
+
+      pop esi                                   ; restore PE address
+
+ 
+
+现在，我们必须定位.CODE 区段的地址。在这里，我给的是最简单的不太安全的方法；为了更好的结果，你最好为.code 区段安排一个搜索例程：
+
+ 
+
+      add esi, 10Ch                             ; locate the pointer to raw
+
+                                                ; data for the .code section.
+
+      mov edi, dword ptr \[esi\]                  ; address
+
+      mov esi, dword ptr \[esi-4\]                ; size of raw data
+
+      add edi, esi                              ; point to end of code
+
+      sub edi, virus\_size                       ; go back to virus start
+
+ 
+
+在这个方法里，你有 EDI，它指向加密病毒开始部分的相对地址。当这个文件载入内存时，它从映像基址开始被映射，那意味着如果做：
+
+ 
+
+      add edi, deltahandle
+
+ 
+
+被感染文件执行时，你有 EDI 保存了病毒加密部分的精确地址。这意味着你必须用 EDI 里的值填充 code\_start。因此，当译码器开始的时候，它将不再需要调整，因为 PREG 正好指向被解密的代码的开始处…太好了，哈？
+
+另一件重要的事情：为了有一个良好的守护引擎，不要使入口点在你病毒的开头出现（因为在那里有 delta\_handle getter 以及到译码器的转移）。而是使新的 EIP 直接指向多态译码器，因为在它里面不需要 Delta handle。在它被解密后，你将在病毒的开头找到 delta handle。
+
+另一个好主意是这样的：.code 区段或诸如此类的、你病毒注入的区段的原始大小比虚拟大小要小一些。这意味着在病毒体之后你有一片真空…Rings any bells?多态引擎通常有影响寄存器的无用指令，但只有译码器的真正的指令通过写入它而影响内存。这使反病毒的家伙可以很容易地找到译码器的指令… 然而，在创建多态译码器上，你可以做一些类似下面的事情：
+
+ 
+
+计算病毒的绝对结束地址 = .code 段相对地址 + 病毒大小 +基址
+
+ 
+
+把这个值保存为'freemem'变量。保存另外被称为'freelength'的变量，其大小等于虚拟大小减去 freemem。现在，当你生成无用的指令时，你可以这样做：
+
+ 
+
+         - 决定生成寄存器到内存的指令
+
+         - 生成 freemen 和 freemem+frlllength 之间的随机数 N
+
+         - 生成 MOV \[N\], reg
+
+ 
+
+There  you are!!你有一条无用指令写入内存… 和这样类似的有很多。你也可以像下面这样：
+
+ 
+
+        mov jreg1, N
+
+        ...
+
+        mov \[jreg1\], reg
+
+ 
+
+现在，最后的指令看起来完全象读 MOV \[preg\], creg 的译码器的真正指令… 这将给试图理解译码器的人带来混乱…
+
+另外与 win32 有关的是，你可以使用类似于 smsw 的特权指令，它现在还没有被任何代码模拟器所效仿。
+
+ 
+
+  
+
+ 
+
+#  4      
+结束语
+
+ 
+
+这篇教学到此为止。我希望它对你有所帮助。如果你发现它有用，请让我知道：
+
+ 
+
+                           lordjulus@geocities.com
+
+ 
+
+来信必复，我会尊重你们的想法。因此，不要羞于表达自己的感想…
+
+希望我的所作所为能对你有所帮助，更希望你能浏览我的 WEB：
+
+ 
+
+                     [`members.tripod.com/~lordjulus`](http://members.tripod.com/%7Elordjulus)
+
+                    [`members.xoom.com/Julus`](http://members.xoom.com/Julus) \[MIRROR\]
+
+ 
+
+.----------------------------------------------------------------------------.
+
+|     LORD JULUS (c) 1998 \[SLAM\] | [`members.tripod.com/~lordjulus`](http://members.tripod.com/%7Elordjulus)      |
+
+'----------------------------------------------------------------------------'
+
+  4dd466d0e1e0cc123afbe504da2462ca

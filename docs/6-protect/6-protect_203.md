@@ -1,0 +1,153 @@
+
+
+# 甘肃省某医药检验管理系统 6.0
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50410.htm`](https://www.pediy.com/kssd/pediy05/pediy50410.htm)
+
+谈谈甘肃省某医药检验管理系统 6.0 的丢狗方法   
+  
+在下仅此交流，觅志同者，请高手勿笑！   
+  
+\----------- PART1 ---------------   
+005E79DD  mov eax, dword ptr \[005E9AF0\]   
+005E79E2  cmp word ptr \[eax\], 27FF        //些处将 27FF MOV 到\[EAX\]   
+005E79E7  jne 005E79F5                    //如果跳走则不提示，但运行还是提示错误   
+005E79E9  mov eax, dword ptr \[005E9B50\]   
+005E79EE  cmp word ptr \[eax\], 28FF        //注意此处的 28FF    
+005E79F3  je 005E79FF   
+005E79F5  mov eax, 005E7B04   
+005E79FA  call 0045B2D8                  //提示没找到加密锁             
+          .   
+          .   
+          .   
+通过寄存器可以得知 EAX 的值是：64AF0E。好我们看看是什么地方改变了它的值！   
+  
+\----------PART2------------------   
+  
+00487DD4  push ebx   
+00487DD5  mov ebx, 0064AF10   
+00487DDA  mov eax, 0000FFFF   
+00487DDF  call 00402E08          //读狗，将读出的数据经处理后送入 AX    
+00487DE4  mov word ptr \[0064AF0E\], ax  //此处写入一值，无狗时不一样   
+00487DEA  mov eax, 0000000A      //读狗前先写入异常数据   
+00487DEF  call 00402E08          //读狗，将读出的数据经处理后送入 AX   
+00487DF4  mov word ptr \[ebx\], ax   
+00487DF7  mov eax, 0000FFFF      //读狗前先写入异常数据    
+00487DFC  call 00402E08          //读狗，将读出的数据经处理后送入 AX    
+00487E01  mov word ptr \[0064AF12\], ax   
+00487E07  mov eax, 0000FFFF      //读狗前先写入异常数据   
+00487E0C  call 00402E08          //读狗，将读出的数据经处理后送入 AX   
+00487E11  mov word ptr \[0064AF14\], ax   
+00487E17  mov eax, 0000FFFF      //读狗前先写入异常数据   
+00487E1C  call 00402E08          //读狗，将读出的数据经处理后送入 AX    
+00487E21  mov word ptr \[0064AF16\], ax   
+00487E27  mov eax, 0064AF18   
+  
+以上的读狗的所有语句我们可以不让它读狗，但要将读狗的正常数据返回给程序，怎么知道这个正常数据呢？   
+根据我们前后推断，应该是“28FF”,那么我们将读狗前写入的异常数据处改为正常的数据，运行程序提示：   
+"有病毒,程序被非法修改!"怎么办？   
+  
+\------------PART3---------------   
+  
+0045C667  push dword ptr fs:\[eax\]   
+0045C66A  mov dword ptr fs:\[eax\], esp   
+0045C66D  mov dword ptr \[005EB874\], 00000008  //此处传入非 8   
+0045C677  cmp dword ptr \[ebp\-04\], 00000000   
+0045C67B  je 0045C799                        JE\-->JMP   
+0045C681  mov dword ptr \[005EB874\], 00000009   
+0045C68B  mov edx, 00000040   
+0045C690  mov eax, dword ptr \[ebp\-04\]   
+0045C693  call 004090CC   
+0045C698  mov esi, eax   
+0045C69A  cmp esi, FFFFFFFF   
+0045C69D  je 0045C799   
+0045C6A3  mov dword ptr \[005EB874\], 00000010 //\*\*\*\*\*\*\*\*\*\*    
+0045C6AD  lea edx, dword ptr \[ebp\-18\]   
+0045C6B0  mov eax, 005E8CB0   
+0045C6B5  mov ecx, 00000008   
+0045C6BA  call 00402A2C   
+0045C6BF  mov al, byte ptr \[005E8CB8\]   
+0045C6C4  mov byte ptr \[ebp\-05\], al   
+0045C6C7  xor ebx, ebx   
+0045C6C9  xor eax, eax   
+0045C6CB  mov dword ptr \[ebp\-10\], eax   
+0045C6CE  mov dword ptr \[ebp\-0C\], eax   
+0045C6D1  xor ecx, ecx   
+0045C6D3  xor edx, edx   
+0045C6D5  mov eax, esi   
+0045C6D7  call 00409188   
+0045C6DC  lea edx, dword ptr \[ebp+FFFE6FE3\]   
+0045C6EC  mov ecx, 00019000   
+0045C6F1  mov eax, esi   
+0045C6F3  call 00409130   
+0045C6F8  mov dword ptr \[ebp\-1C\], eax   
+0045C6FB  mov edi, dword ptr \[ebp\-1C\]   
+0045C6FE  dec edi   
+0045C6FF  test edi, edi   
+0045C701  jl 0045C72B   
+0045C703  inc edi   
+0045C704  lea eax, dword ptr \[ebp+FFFE6FE3\]   
+0045C70A  mov dl, byte ptr \[eax\]   
+0045C70C  xor bl, dl   
+0045C70E  and edx, 000000FF   
+0045C714  mov dword ptr \[ebp+FFFE6FDC\], edx   
+0045C71A  fild dword ptr \[ebp+FFFE6FDC\]   
+0045C720  fadd qword ptr \[ebp\-10\]   
+0045C723  fstp qword ptr \[ebp\-10\]   
+0045C726  wait   
+0045C727  inc eax   
+0045C728  dec edi   
+0045C729  jne 0045C70A   
+0045C72B  cmp dword ptr \[ebp\-1C\], 00019000   
+0045C732  je 0045C6DC   
+0045C734  mov edi, 00000009   
+0045C739  mov eax, 005E8CB0   
+0045C73E  mov dl, byte ptr \[eax\]   
+0045C740  xor bl, dl   
+0045C742  and edx, 000000FF   
+0045C748  mov dword ptr \[ebp+FFFE6FDC\], edx   
+0045C74E  fild dword ptr \[ebp+FFFE6FDC\]   
+0045C754  fsubr qword ptr \[ebp\-10\]   
+0045C757  fstp qword ptr \[ebp\-10\]   
+0045C75A  wait   
+0045C75B  inc eax   
+0045C75C  dec edi   
+0045C75D  jne 0045C73E   
+0045C75F  mov eax, esi   
+0045C761  call 00409194   
+0045C766  cmp bl, byte ptr \[ebp\-05\]   
+0045C769  jne 0045C776   
+0045C76B  fld qword ptr \[ebp\-10\]   
+0045C76E  fcomp qword ptr \[ebp\-18\]   
+0045C771  fstsw ax   
+0045C773  sahf   
+0045C774  je 0045C799   
+0045C776  mov dword ptr \[005EB874\], 00000012  //\*\*\*\*\*\*\*\*\*\*   
+0045C780  mov eax, 0045C7C8   
+0045C785  call 0045B2D8    //"有病毒,程序被非法修改!"    
+0045C78A  call 00403CFC   
+0045C78F  mov eax, 000000FA   
+0045C794  call 00403E28   
+经过上面的修改，程序运行正常，但后来发现打印时提示：“警告：使用盗版软件将造成不可预料的后果”。有狗时并没有此提示,看样子还没找到关键的地方呀......   
+  
+\-------------PART4----------------   
+  
+0050004B  lea edx, dword ptr \[ebp\-28\]   
+0050004E  lea eax, dword ptr \[ebp+FFFFFD48\]   
+00500054  call 00404058   
+00500059  mov edx, dword ptr \[ebp+FFFFFD48\]   
+0050005F  mov eax, dword ptr \[ebx+00001088\]   
+00500065  call 004318B0   
+0050006A  jmp 0050008D   
+0050006C  mov edx, dword ptr \[ebx+00001188\]   
+00500072  mov eax, ebx   
+00500074  call 0044B4B8   
+00500079  mov eax, dword ptr \[005E9A44\]   
+0050007E  cmp byte ptr \[eax\], 00  //这里要继续跟踪使\[EAX\]=0 就正常了   
+00500081  je 0050008D   
+00500083  mov eax, 005001E8   
+00500088  call 0045B2D8          //警告：使用盗版软件将造成不可预料的后果   
+  
+到此就算完了，其实当中还有一步就是新建文件时提示没有找到加密锁，经跟踪发现有两处读狗的地方，直接把它 NOP 就行了，很简单这里就不说了。我刚学这玩意不久，虽有大师指点，但还是没得到精妙之处，不想这几次杀狗还真顺手的。特写出过程与朋友们分享学习成果。还是那句老话，在下真诚希望有志同者教我几招。   
+特别是白银的那个 DM，好坏我们也是半个邻居嘛！到了我这里我请你吃饭哟！   
+                                              青石（QQ：16561922）  4dd466d0e1e0cc123afbe504da2462ca

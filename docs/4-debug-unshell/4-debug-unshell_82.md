@@ -1,0 +1,226 @@
+
+
+# 封神榜挂机加速外挂 2.1
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6925.htm`](https://www.pediy.com/kssd/pediy06/pediy6925.htm)
+
+【破解作者】 stasi\[DCM\]\[BCG\]\[DFCG\]\[FCG\]\[OCN\]\[CZG\]\[D.4s\]  
+【作者邮箱】 stasi@163.com  
+【作者主页】 stasi.7169.com  
+【使用工具】 ollydbg winhex  
+【破解平台】 Win9x/NT/2000/XP  
+【软件名称】 封神榜挂机加速外挂 2.1  
+【下载地址】 www.wgdown.com 祈祷工作室  
+【软件简介】 封神榜变态外挂：需收费用户才能正常使用；  
+             本外挂收费为 300 元/年（提供升级）  
+             200 元/半年（提供升级）  
+【软件大小】 5m  
+【加壳方式】 aspack  
+【破解声明】 我是一只小菜鸟，偶得一点心得，愿与大家分享：）  
+\--------------------------------------------------------------------------------  
+【破解内容】  
+  
+  
+看了 Lenus 刚写的《浅谈脱壳中的附加数据问题（overlay）》一文，大呼过瘾，概念明晰，结构清爽！  
+正好看到论坛里有人给了东西，我就拿来自学了：）  
+  
+ peid ->ASPack 2.12 -> Alexey Solodovnikov \[重叠\]  
+  
+怎么脱壳和文章无关，stripper 或修 api 都可以的  
+  
+运行脱壳后的东西，弹出搭建之星的对话框，说明原有的尾部数据没有被正确读入，要修正的！  
+  
+理论部分可以看《浅弹》，我写就有点垃圾了，可以跳过不看：）  
+00616070     8B45 F8              mov eax,dword ptr ss:\[ebp\-8\]  
+00616073     BA B0616100          mov edx,fsbwg21.006161B0       ; ASCII "FSJM IPD W32"  
+00616078     E8 DBEDDEFF          call fsbwg21.00404E58  
+0061607D     0F85 E4000000        jnz fsbwg21.00616167  
+00616083     8B03                 mov eax,dword ptr ds:\[ebx\]  
+00616085     8B10                 mov edx,dword ptr ds:\[eax\]  
+00616087     FF12                 call dword ptr ds:\[edx\]  
+  
+ds:\[0041CD34\]=004218B4 (fsbwg21.004218B4)  
+  
+00616089     52                   push edx  
+0061608A     50                   push eax  
+0061608B     8B06                 mov eax,dword ptr ds:\[esi\]  
+0061608D     99                   cdq  
+0061608E     290424               sub dword ptr ss:\[esp\],eax      
+  
+eax\=0000000C  
+Stack ss:\[0012FF24\]=000D267F  
+  
+00616091     195424 04            sbb dword ptr ss:\[esp+4\],edx  
+00616095     58                   pop eax  
+00616096     5A                   pop edx  
+00616097     83E8 08              sub eax,8  
+0061609A     83DA 00              sbb edx,0  
+0061609D     52                   push edx  
+0061609E     50                   push eax  
+0061609F     8B03                 mov eax,dword ptr ds:\[ebx\]  
+006160A1     E8 FAB7E0FF          call fsbwg21.004218A0  
+  
+004218A0=fsbwg21.004218A0  
+  
+006160A6     8D55 F0              lea edx,dword ptr ss:\[ebp\-10\]  
+006160A9     8B03                 mov eax,dword ptr ds:\[ebx\]  
+006160AB     B9 04000000          mov ecx,4  
+006160B0     E8 F7B9E0FF          call fsbwg21.00421AAC  
+006160B5     8B45 F0              mov eax,dword ptr ss:\[ebp\-10\]  
+Stack ss:\[0012FF58\]=000D265A  
+  
+006160B8     99                   cdq  
+006160B9     52                   push edx  
+006160BA     50                   push eax  
+006160BB     8B03                 mov eax,dword ptr ds:\[ebx\]  
+006160BD     E8 DEB7E0FF          call fsbwg21.004218A0  
+006160C2     8BD6                 mov edx,esi  
+006160C4     8B03                 mov eax,dword ptr ds:\[ebx\]  
+006160C6     B9 04000000          mov ecx,4  
+006160CB     E8 DCB9E0FF          call fsbwg21.00421AAC  
+006160D0     8B06                 mov eax,dword ptr ds:\[esi\]  
+006160D2     3B45 F0              cmp eax,dword ptr ss:\[ebp\-10\]  
+006160D5     74 37                je short fsbwg21.0061610E  
+006160D7     8D45 F8              lea eax,dword ptr ss:\[ebp\-8\]  
+006160DA     8B16                 mov edx,dword ptr ds:\[esi\]  
+006160DC     E8 B7EFDEFF          call fsbwg21.00405098  
+006160E1     8B55 F8              mov edx,dword ptr ss:\[ebp\-8\]  
+006160E4     8B03                 mov eax,dword ptr ds:\[ebx\]  
+006160E6     8B0E                 mov ecx,dword ptr ds:\[esi\]  
+006160E8     E8 BFB9E0FF          call fsbwg21.00421AAC  
+006160ED     8BD6                 mov edx,esi  
+006160EF     8B03                 mov eax,dword ptr ds:\[ebx\]  
+006160F1     B9 04000000          mov ecx,4  
+006160F6     E8 B1B9E0FF          call fsbwg21.00421AAC  
+006160FB     A1 342E6200          mov eax,dword ptr ds:\[622E34\]  
+00616100     8B00                 mov eax,dword ptr ds:\[eax\]  
+00616102     8B0E                 mov ecx,dword ptr ds:\[esi\]  
+00616104     8B55 F8              mov edx,dword ptr ss:\[ebp\-8\]  
+00616107     8B38                 mov edi,dword ptr ds:\[eax\]  
+00616109     FF57 3C              call dword ptr ds:\[edi+3C\]  
+0061610C   ^ EB B4                jmp short fsbwg21.006160C2  
+0061610E     8D55 E4              lea edx,dword ptr ss:\[ebp\-1C\]  
+00616111     A1 342D6200          mov eax,dword ptr ds:\[622D34\]  
+00616116     8B00                 mov eax,dword ptr ds:\[eax\]  
+00616118     E8 8B15E9FF          call fsbwg21.004A76A8  
+0061611D     8B45 E4              mov eax,dword ptr ss:\[ebp\-1C\]  
+00616120     8D55 E8              lea edx,dword ptr ss:\[ebp\-18\]  
+00616123     E8 4841DFFF          call fsbwg21.0040A270  
+00616128     8B55 E8              mov edx,dword ptr ss:\[ebp\-18\]  
+0061612B     A1 242B6200          mov eax,dword ptr ds:\[622B24\]  
+00616130     E8 6BE9DEFF          call fsbwg21.00404AA0  
+00616135     8D4D DC              lea ecx,dword ptr ss:\[ebp\-24\]  
+00616138     A1 342E6200          mov eax,dword ptr ds:\[622E34\]  
+0061613D     8B00                 mov eax,dword ptr ds:\[eax\]  
+0061613F     33D2                 xor edx,edx  
+00616141     8B18                 mov ebx,dword ptr ds:\[eax\]  
+00616143     FF53 0C              call dword ptr ds:\[ebx+C\]  
+00616146     8B55 DC              mov edx,dword ptr ss:\[ebp\-24\]  
+00616149     8D4D E0              lea ecx,dword ptr ss:\[ebp\-20\]  
+0061614C     A1 242B6200          mov eax,dword ptr ds:\[622B24\]  
+00616151     8B00                 mov eax,dword ptr ds:\[eax\]  
+00616153     E8 740BEBFF          call fsbwg21.004C6CCC  
+00616158     8B55 E0              mov edx,dword ptr ss:\[ebp\-20\]  
+0061615B     8B45 FC              mov eax,dword ptr ss:\[ebp\-4\]  
+0061615E     E8 3DE9DEFF          call fsbwg21.00404AA0  
+00616163     B3 01                mov bl,1  
+00616165     EB 0D                jmp short fsbwg21.00616174  
+00616167     8B03                 mov eax,dword ptr ds:\[ebx\]  
+00616169     E8 8EDADEFF          call fsbwg21.00403BFC  
+0061616E     33C0                 xor eax,eax  
+00616170     8903                 mov dword ptr ds:\[ebx\],eax  
+00616172     33DB                 xor ebx,ebx  
+00616174     33C0                 xor eax,eax  
+00616176     5A                   pop edx  
+00616177     59                   pop ecx  
+00616178     59                   pop ecx  
+00616179     64:8910              mov dword ptr fs:\[eax\],edx  
+0061617C     68 9E616100          push fsbwg21.0061619E  
+00616181     8D45 DC              lea eax,dword ptr ss:\[ebp\-24\]  
+00616184     BA 05000000          mov edx,5  
+00616189     E8 E2E8DEFF          call fsbwg21.00404A70  
+0061618E     8D45 F8              lea eax,dword ptr ss:\[ebp\-8\]  
+00616191     E8 B6E8DEFF          call fsbwg21.00404A4C  
+00616196     C3                   retn  
+00616197   ^ E9 08E2DEFF          jmp fsbwg21.004043A4  
+0061619C   ^ EB E3                jmp short fsbwg21.00616181  
+0061619E     8BC3                 mov eax,ebx  
+006161A0     5F                   pop edi  
+006161A1     5E                   pop esi  
+006161A2     5B                   pop ebx  
+006161A3     8BE5                 mov esp,ebp  
+006161A5     5D                   pop ebp  
+006161A6     C3                   retn  
+  
+看 api 参考：  
+DWORD SetFilePointer(   
+                     HANDLE hFile,                  //在用 CreateFileA 打开后得到的文件句柄  
+                     LONG lDistanceToMove,          //要移动的距离，这个是低 32 位  
+                     PLONG lpDistanceToMoveHigh,    //要移动的距离，这是高 32 位，要注意这是一个指向数据的指针  
+                     DWORD dwMoveMethod             //表示指针开始的位置  
+                     );   
+  
+winhex 里，未脱壳的尾部数据：  
+  
+000d264dh: 4E 3E 4E 3E 0A 4E 3E 4E 3E 00 00 00 00 09 00 00 ; N>N>.N>N>.......  
+000d265dh: 00 2E 5C 66 73 62 2E 49 50 44 00 24 0C 00 5A 26 ; ..\\fsb.IPD.$..Z&  
+000d266dh: 0D 00 20 20 20 20 46 53 4A 4D 20 49 50 44 20 57 ; ..    FSJM IPD W  
+000d267dh: 33 32                                           ; 32  
+  
+000C2400 就对应：DWORD dwMoveMethod  
+000D265A 就是指向长度的偏移地址  
+所以修复的两个要点就是 overlay 的长度和 overlay 的开始地址！  
+  
+要做的就是选中整个 overlay 的数据段，copy 到脱壳文件里。  
+选 000C2400 为段开始，选 000D267E 为段结束，这就是整个 overlay 的数据段，编辑-》复制选块-》正常。  
+  
+winhex 打开脱壳后文件，不需要费心找空白的地方，直接在最后一字节后 paste，因为 winhex 可以自动扩展文件长度。  
+  
+paste 后文件尾部地址和数据情况：  
+  
+00259a4dh: 4E 3E 4E 3E 0A 4E 3E 4E 3E 00 00 00 00 09 00 00 ; N>N>.N>N>.......  
+00259a5dh: 00 2E 5C 66 73 62 2E 49 50 44 00 24 0C 00 5A 26 ; ..\\fsb.IPD.$..Z&  
+00259a6dh: 0D 00 20 20 20 20 46 53 4A 4D 20 49 50 44 20 57 ; ..    FSJM IPD W  
+00259a7dh: 33 32        
+                                     ; 32  
+查看长度地址 09 的偏移量为 00259A5A  
+所以修改 000D265A 为 00259A5A  
+修改 overlay 数据开始地址，修改 000C2400 为 00249800  
+  
+修改后数据情况：  
+00259a4dh: 4E 3E 4E 3E 0A 4E 3E 4E 3E 00 00 00 00 09 00 00 ; N>N>.N>N>.......  
+00259a5dh: 00 2E 5C 66 73 62 2E 49 50 44 00 98 24 00 5A 9A ; ..\\fsb.IPD.?.Z?  
+0259a6dh: 25 00 20 20 20 20 46 53 4A 4D 20 49 50 44 20 57 ; %.    FSJM IPD W  
+00259a7dh: 33 32                                           ; 32  
+保存就 ok 了：）  
+  
+  
+\--------------------------------------------------------------------------------  
+【破解总结】  
+  
+  
+这类 overlay 问题和《浅谈脱壳中的附加数据问题（overlay）》所提到的 overkay 问题好象  
+是同属一个问题的两个类型。本文提到的 overlay 的处理时，是不能运用《浅谈》一文里爆  
+句的方法，因为这里的数据虽然是附加数据，但是文件数据的主体的一部分，缺少这部分数  
+据，文件虽然能运行，但却是没有意义的！所以只能手动修正尾部的 overlay 数据。  
+这种数据产生的原因大概是 dephi 对附加资源的保存过程中产生的，具体流程不太了解：（  
+  
+以下给出这类 dephi 的 overlay 数据手动处理的快捷方法，无须使用 ollydbg，有点机械，如有  
+错误望指出。  
+1）脱掉主文件的壳，修复错误的输入表  
+2）16 进制编辑器打开原文件，查找文本“f2000”把所得的偏移量减去 5 就是原文件里 overlay  
+数据的开始地址，copy 至文件尾部。  
+3）打开脱壳后文件，从文件最后一字节，开始粘贴，并记起始地址为 A.  
+4)再查找文本“FSJM IPD W32”，所得的偏移量减去 C 就是存放起始地址的地方,用地址 A 代替  
+（注意数据的保存方式）  
+5）最后用存放起始地址的地方前最近的“00 00 00 00”后一个字节的偏移量替换存放起始地  
+址后的 4 字节的内容，保存就 ok！  
+  
+其实最好就是把外挂省下的钱给点 xikug，forgot，老罗...写个工具出来，“他们那个都是编程  
+强人，说了少了，他不干，俺啊俺啊...”：）  
+  
+  
+\--------------------------------------------------------------------------------  
+【版权声明】 本文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢!
+
+ 4dd466d0e1e0cc123afbe504da2462ca

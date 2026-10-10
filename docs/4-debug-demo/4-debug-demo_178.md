@@ -1,0 +1,36 @@
+
+
+# 警告（NAG）窗口
+
+> 原文：[`www.pediy.com/kssd/tutorial/chap6-1-2.htm`](https://www.pediy.com/kssd/tutorial/chap6-1-2.htm)
+
+**警告（NAG）窗口**　**【习题】**
+
+　　Nag 的本义是烦人的意思。Nag 窗口是软件设计者用来不时提醒用户购买正式版本的窗口。软件设计者可能认为当用户受不了试用版中的这些烦人的窗口时就会考虑购买正式版本。它可能会在程序启动或退出时弹出来，或者在软件运行的某个时刻随机或定时地弹出来，确实比较烦人。
+
+　　去除警告窗口常用的三种方法是：修改程序的资源、静态分析，动态分析。  
+　　去除警告窗口用资源修改工具是个不错的方法，可以将可执行文件中的警告窗口的属性改成透明、不可见，这样就变相去除了警告窗口。  
+　　如果是动态跟踪调试，只需找到创建此窗口的代码，跳过即可。常用的显示窗口的函数有 MessageBoxA、MessageBoxExA、MessageBeep 、DialogBoxParamA 、ShowWindow、CreateWindowExA 等。然而某些警告窗口用这些断点不管用，就可试试利用消息设断点，一般都应能拦截下来。  
+
+例：利用消息断点拦截警告窗口：
+
+　　切换到 SOFTICE 下命令： HWND   
+　　应看到如下的类似信息：
+
+| **Window-Handle**  || **hQueue**  || **SZ**  || **QOwner**  || **Class-Name**  || **Window-Procedure**  |
+| --- | --- | --- | --- | --- | --- |
+|  0080 (0)   ||  2057   ||  32   ||  MSGSVR32   ||  #32711 (switch\_win)   ||  17EF:00004B6E   |
+|  0084 (1)   ||  2057   ||  32   ||  EXPLORER   ||  shell\_trayWnd   ||  1487:0000016C   |
+|  ...   ||  ...   ||  ...   ||  ...   ||  ...   ||  ...   |
+
+　　在这些列表中查找相关应用程序的窗口句柄。如果 NAG 窗口上有 OK 按钮，在 class name 查找“button”。如果 NAG 窗口上什么都没有，那可试验找出正确的句柄。句柄列表可能非常长，但通常 NAG 窗口的句柄一般在列表的前面。
+
+*注：在这里推荐用 SMU Winspector 工具协助破解 NAG.它能显示你所需要的信息：Window-Handle, Window-Class Name, Window-Text, Parent Window-Handle, Parent-Window Class Name, Parent Window-Text, Module ... *  
+  
+　　一但找到 NAG 窗口的句柄，应用 BMSG 命令在 Windows 的消息上下断点。现在假设 NAG 窗口有 OK 按钮，你己找到正确的句柄（handle），这时下命令：  
+   
+　　BMSG 0084 WM\_DESTROY  
+  
+　　 0084 是 NAG 窗口的句柄（handle）。这条命令是 NAG 窗口从屏幕上消失时，SoftICE 将中断。此时将深入到一些不认识的 API 函数，可按 F12 返回程序。需要指出，跟踪的目的是发现 NAG 窗口在何处初始化（在返回的 CALL 用设断）。NAG 窗口大多用 Created/Destroyed 类似的 CALL，因此如发现这些，就可按需要跟踪下去。
+
+ 4dd466d0e1e0cc123afbe504da2462ca

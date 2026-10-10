@@ -1,0 +1,148 @@
+
+
+# CoDe\_InSiDe's 1st ReverseMe
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6305.htm`](https://www.pediy.com/kssd/pediy06/pediy6305.htm)
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*   
+                      Target CoDe\_InSiDe ReverseMe #1   
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*   
+  
+Author:        CoDe\_InSiDe   
+Protection:   None   
+Needs:        Hiew,WinHex,Some PE knowledge,Most important is Our Brain   
+Level:        ( ) Beginner (X) Intermediate ( ) Advanced ( ) Expert   
+  
+下载（或点击鼠标右键另存为）  
+  
+You Needs:   
+1.  Make a new Section.   
+2.  Don't touch the other 2 Sections (offcourse you may touch the   
+  PE Header ;)   
+3.  You MUST use the allready Imported ExitProcess to quit this   
+  program in a clean way :)   
+4.  Make the Entry Point jump to your Code BUT... after your Code   
+  make it jump to the Original Entry Point and let it quit   
+  in a good way with the Imported ExitProcess ;)   
+5.  In your Code make an Message Box that shows the current Tick   
+  Count...   
+6.  And offcourse do it all Manually, no Tools (You may use HIEW   
+  or something offcourse ;) but no PE Editors or the likes of   
+  that...   
+7.  And i think that's all...   
+  
+  这就是它的要求,我们所要做的就是上面的 7 个部分,Right.好了我们首先增加一个 Section.   
+从我前面写的文章可以知道,Section 的增加方法就是,PE+F8,此处是第一个 Section 的开始地   
+方,我们可以看看已经有几个 Section 了,我们可以从 PE 头偏移 0x6 处得到:   
+  
+00000080   50 45 00 00 4C 01 02 00  00 00 00 00 00 00 00 00   PE..L...........   
+  
+Now We change to:   
+  
+00000080   50 45 00 00 4C 01 03 00  00 00 00 00 00 00 00 00   PE..L...........   
+                             ~~   
+  接下来就是来添加我们的 Section 了,pe+0xF8+0x28+0x28 处就是我们的 Section 的位置了.   
+0x80+0xF8+0x28+0x28=0x1c8,以下是构造好了的 Section:   
+  
+00000170   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................   
+00000180   00 01 00 00 00 20 00 00  00 10 00 00 00 02 00 00   ..... ..........   
+00000190   00 00 00 00 00 00 00 00  00 00 00 00 20 00 00 E0   ............ ..   
+000001A0   00 00 00 00 00 00 00 00  00 01 00 00 00 50 00 00   .............P..   
+000001B0   00 10 00 00 00 03 00 00  00 00 00 00 00 00 00 00   ................   
+000001C0   00 00 00 00 40 00 00 C0  (\*)64 65 6E 67 6B 65 6E 67   ....@..纃 engkeng   
+000001D0   00 02 00 00 00 60 00 00  00 10 00 00 00 04 00 00   .....\`..........   
+000001E0   00 00 00 00 00 00 00 00  00 00 00 00 20 00 00 E0   ............ ..   
+  
+  好了,我们知道了第一个 Section 的开始位置,0x178 处,我们可以得到一些信息,我们将填写   
+自己的 Section,(\*)是我们字节的 Section 的开始地方.   
+  
++0 8byte Name1 ;块名 dengkeng   
++8 dword VirtualSize ;200,That's enough   
++C dword VirtualAddress ;0x6000   
+10 dword SizeOfRawData ;0x1000   
+14 dword PointerToRawData ;我们的从 0x400 开始   
+18 dword PointerToRelocations ;一般为 0x00000000   
+1C dword PointerToLinenumbers ;一般为 0x00000000   
+20 word NumberOfRelocations ;一般为 0x0000   
+22 word NumberOfLinenumbers ;一般为 0x0000   
+24 dword Characteristics -----> ours  is write read execute and code.so it's E0000020   
+  
+  以上就是我们自己的 Section 的一些信息.就是'd'这个字节填充的太难看了!算了!接下来我们就   
+要为程序增加空间,来填充自己的东西.   
+  我们需要重新构造 IID,添加一些我们需要的函数,我们需要在 User32.dll 中的 MessageBoxA,wsprintfA   
+,以及在 Kernel32.dll 中的 GetTickCount,ExitProcess.   
+  所以我们需要有两个 IID 结构来存放我们的信息,以第 3 个全 0 的 IID 结构表示结束.   
+  我们的结构从 offset 0x400 开始,因为第 2 个 Section 结束是在 0x300+0x100 处,我们的是在 0x400 开始.   
+  
+第一个 IID 结构:   
++0 OriginalFirstThunk ;0x00000000   
++4 TimeDateStamp ;0x00000000   
++8 ForwarderChain ;0x00000000   
++C Name1 ;0x00006071         ;这个地方是根据后面推出来的,先不急   
++10 FirstThunk ;0x0000603C   ;这个地方是根据后面推出来的,先不急   
+  
+第二个 IID 结构:   
++0 OriginalFirstThunk ;0x00000000   
++4 TimeDateStamp ;0x00000000   
++8 ForwarderChain ;0x00000000   
++C Name1 ;0x0000609A         ;这个地方是根据后面推出来的,先不急   
++10 FirstThunk ;0x00006048   ;这个地方是根据后面推出来的,先不急   
+  
+Offset      0  1  2  3  4  5  6  7   8  9  A  B  C  D  E  F   
+  
+00000400   (1)00 00 00 00 00 00 00 00  00 00 00 00 71 60 00 00   ............q\`..   
+00000410   3C 60 00 00 (2)00 00 00 00  00 00 00 00 00 00 00 00   <\`..............   
+00000420   9A 60 00 00 48 60 00 00  (3)00 00 00 00 00 00 00 00   歚..H\`..........   
+00000430   00 00 00 00 00 00 00 00  00 00 00 00 54 60 00 00   ............T\`..   
+00000440   63 60 00 00 00 00 00 00  80 60 00 00 8C 60 00 00   c\`......€\`..宍..   
+00000450   00 00 00 00 00 00 47 65  74 54 69 63 6B 43 6F 75   ......GetTickCou   
+00000460   6E 74 00 00 00 45 78 69  74 50 72 6F 63 65 73 73   nt...ExitProcess   
+00000470   00 4B 65 72 6E 65 6C 33  32 2E 64 6C 6C 00 00 00   .Kernel32.dll...   
+00000480   00 00 77 73 70 72 69 6E  74 66 41 00 00 00 4D 65   ..wsprintfA...Me   
+00000490   73 73 61 67 65 42 6F 78  41 00 55 73 65 72 33 32   ssageBoxA.User32   
+000004A0   2E 64 6C 6C 00 00 00 00  00 00 00 00 00 00 00 00   .dll............   
+000004B0   54 68 65 20 54 69 63 6B  43 6F 75 6E 74 20 3A 25   The TickCount :%   
+000004C0   6C 75 00 00 00 00 00 00  00 00 00 00 00 00 00 00   lu..............   
+000004D0   43 72 61 63 6B 00 00 00  00 00 00 00 00 00 00 00   Crack...........   
+000004E0   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................   
+000004F0   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................   
+  
+  好了上面就是我们填写好的结构,下面就来分析一下填充的过程,首先我们需要 3 个 IID 结构,   
+所以我们需要 60 个字节的空间(每个 IID 结构 20 个字节).接下来是填充 FirstThunk 所指向的内容   
+因为我们每个 dll 中有两个函数调用,所以我们需要 12 个字节的空间,最后 4 个字节为空表示结束.   
+所以在 0x43C-0x447 为一处,0x448-0x453 为第二处.接下来在 0x454 就可以填写我们的函数了,   
+记得前面有 Hint,我们可以填充 0.记得字符串要以 0 结尾.我们把所需的函数和 dll 名称填充进去.   
+填充完了以后,我们开始填写 0x43C-0x447,0x448-0x453 处的内容,即指向函数的地址.填写完了   
+以后我们接着填写两个 IID 结构中的 Name1 和 FirstThunk 字段.以上就是填写的分析过程,我们   
+先填写后面的部分在填写前面的部分.   
+  接下来我们填写一些字符在以后的 MessageBox 中显示出来,在 0x4B0 处填写 wsprintfA 所需要的   
+格式,0x4D0 处填写 Title.至于 0x4E0-0x4F0 我们用做缓冲区.我们的代码将在 0x500 处 Write Down.   
+  
+以下用 Hiew 编辑:   
+500   
+Call d,\[40603C\] ;00006054 在 0x43C 处,Call GetTickCount   
+push eax   
+push 4060B0 ;格式化字符串   
+push 4060E0 ;缓冲区   
+call d,\[406048\] ;call wsprintfA   
+push 0   
+push 4060D0 ;Caption   
+push 4060E0   
+push 0   
+call d,\[40604C\] ;call MessageBoxA   
+push 0   
+call d,\[406040\] ;call ExitProcess   
+  
+  接下来我们需要做的就是一些扫尾工作,修改 Import Table 的起始位置和大小,以及程序的入口地址   
+剩下来的工作就留给你了!   
+  
+  我的这个修改不是很完善因为没有满足题目的要求它要用已经有了的 ExitProcess,而我的是自己建   
+的!如果返回到 405000,即它的入口地址,又会出错!如果谁知道请告诉我一下!如果里面的东西不是太清   
+楚请看看介绍 PE 结构的书和我写的其他几篇文章!   
+  
+  
+  
+Made By dengkeng   
+E-mail:shellc0de@sohu.com   
+欢迎转载,请保持文章的完整性   
+ 4dd466d0e1e0cc123afbe504da2462ca

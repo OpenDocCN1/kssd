@@ -1,0 +1,272 @@
+
+
+# 简单对抗某个驱动的反调试
+
+> 原文：[`www.pediy.com/kssd/pediy11/111236.html`](https://www.pediy.com/kssd/pediy11/111236.html)
+
+先声明：  
+1.  本文纯娱乐，本人并不从事制作非法软件的活动…也请读者不要将本文的技术运用到非法领域，否则一切后果自负。  
+2.我是菜鸟![](img/234a76e67df951b6551d305c177a8b78.jpg "扮鬼脸")，都是些基本内容。只是看网上很多人搞，又弄的很麻烦，反正自己前两天玩儿了一小下，索性发出来。在 ring0 搞反反调试似乎已经被某广告鄙视的不行了~所以说我只是娱乐，没有其他目的。我很挫~欢迎批评指正，欢迎交流：[`hi.baidu.com/andriy\_aolala/blog`](http://hi.baidu.com/andriy_aolala/blog)  
+3.  本文参考了一些文章，在文末 一 并感谢  
+  
+不同游戏的保护驱动版本不太一样，我看的是 cf 的版本。先用 ark 初步扫描一下（如果要用 xuetr，要先于 tp 加载,因为它 hook 了 tessafe.sys 同样 hook 的指令，后启动 xuetr 导致直接重启），我用我以前写的一个 ark 扫描了一下。  
+他的 hook 如下：  
+
+代码:
+
+```
+  IAT   kdcom.dll  KdSendPacket    KdRecivePacket
+  Inline NtRead/WriteVirtualMemory KiAttachProcess
+  Call hook  NtOpenThread NtOpenProcess 中的 ObReferenceObjectByPointer
+  此外还有 3 个 Callback，两个系统线程
+
+```
+
+一、首先要解决内核调试的问题，有 Windbg 才好继续。  
+代码:
+
+```
+.text:01001532                 call    ds:KdDisableDebugger
+.text:01001538
+.text:01001538 loc\_1001538:                            ; CODE XREF: .text:01001530j
+.text:01001538                 mov     edx, ds:KdDebuggerEnabled
+.text:0100153E                 xor     ecx, ecx
+.text:01001540                 xor     eax, eax
+.text:01001542                 inc     ecx
+.text:01001543                 inc     eax
+.text:01001544                 lock cmpxchg \[edx\], ecx
+.text:01001548                 test    al, al
+.text:0100154A                 jnz     short loc\_1001532
+.text:0100154C                 retn
+
+```
+
+Ida 里面有这么一段，这不新鲜了，直接注册一个 LoadImageNotify，启动前 IAT hook KdDisableDebugger 和 KdDebuggerEnabled，再 inline hook 掉 TesSafe.sys 里面 hook 掉 KdSendPacket    KdRecivePacket 的函数，跳转回原函数即可。  
+  
+至此我们已经可以通过 WinDbg 调试驱动了。  
+  
+二、放行 OllyIce 和 CE  
+  
+Tp hook 了一大堆，网上写的都是跳来跳去的绕过，但是即使绕过了也有可能过一段时间提示非法软件，原因不明。。总之这么来很费时间。  
+  
+于是我在其 OpenProcess 的 hook 函数里面找到  
+代码:
+
+```
+.text:01001EBD                 call    ds:IoGetCurrentProcess ；得到调用者的 eprocess
+.text:01001EC3                 mov     \[ebp+pEpro\], eax
+.text:01001EC6                 push    \[ebp+pEpro\]     ; pEpro
+.text:01001EC9                 call    EprocessChk  ；非常关键的比对函数
+.text:01001ECE                 movzx   eax, al
+.text:01001ED1                 test    eax, eax
+.text:01001ED3                 jz      short loc\_1001EDA
+.text:01001ED5                 jmp     loc\_1001FC7  ;返回 1 的话 直接放行
+
+.text:01001FC7                 mov     eax, off\_100A090
+.text:01001FCC                 or      ecx, 0FFFFFFFFh
+.text:01001FCF                 lock xadd \[eax\], ecx
+.text:01001FD3                 popf
+.text:01001FD4                 popa
+.text:01001FD5                 mov     esp, ebp
+.text:01001FD7                 pop     ebp
+.text:01001FD8                 jmp     OringinObReferenobjByPointer 跳回去
+
+```
+
+我们看看 EprocessChk 这个函数的伪代码  
+代码:
+
+```
+char \_\_stdcall EprocessChk(PEPROCESS pEpro)
+{
+  unsigned int v1; // ecx@2
+
+  if ( pEpro != (PEPROCESS)dword\_100AFAC )
+  {
+    v1 = 0;
+    if ( !process\_white\_num )
+      return 0;
+    while ( pEpro != (PEPROCESS) process\_white\_list \[v1\] )
+    {
+      ++v1;
+      if ( v1 >= process\_white\_num )
+        return 0;
+    }
+  }
+  return 1;
+}
+
+```
+
+process\_white\_list 是一个全局数组 有 0x20 个位子，里面存放的是诸如 System.exe 之类的系统进程 eprocess。  
+代码:
+
+```
+kd> dd tessafe+EEE0
+ee1c9ee0  863b57c0 8614cb78 86124598 861109d0
+ee1c9ef0  86136da0 860fc3e8 860f6da0 860af510
+ee1c9f00  860afda0 85fbada0 00000000 00000000
+kd> !process 863b57c0
+PROCESS 863b57c0  SessionId: none  Cid: 0004    Peb: 00000000  ParentCid: 0000
+    DirBase: 06c28020  ObjectTable: e1001e10  HandleCount: 240.
+    Image: System
+VadRoot 863b5050 Vads 4 Clone 0 Private 3. Modified 3279. Locked 0.
+
+```
+
+这个函数在其所有 hook 函数里面都存在，对方程序对于系统进程的函数调用是全部放行的。  
+所以，我们就注册一个 CreateProcessNotify 把 OD 和 CE 加到那个白名单里面~~这样就不用绕 hook 了。  
+三、对抗 debug port 清零  
+  不熟悉 debug port 的同学可以去看软件调试，这是 eprocess 中的一个结构，是调试的关键，对方不停清零将导致 OD 像傻子一样，我看过的对抗方法有两种  
+1、  改内核函数 DbgkXXX 系列函数中 debug port 相对于 eprocess 的偏移值 ，这个工作量太大，受不了。  
+2、  V 大发的 重新编译 WRK 改 eprocess 结构。。这个倒是很通用啊~  
+其实对方程序想清零，也要有偏移，在 xp 中，0xbc 是一个特殊的数字，IDA 里面直接 ATL+I …找到了 3~4 处，其中一处就是 tp 程序初始化硬编码。  
+代码:
+
+```
+char \_\_stdcall IniHardCode(int a1)
+{
+  int v1; // eax@3
+
+  if ( dword\_100A050 == 5 )  //这是版本号
+  {
+    if ( !dword\_100A054 )
+    {
+      v1 = a1;
+。。。。。。
+      return 1;
+    }
+    if ( dword\_100A054 == 1 )
+    {
+      v1 = a1;
+      \*(\_DWORD \*)(a1 + 4) = 0xBCu;  //这个值就是 dbgport 的偏移了
+。。。。。。
+
+```
+
+这个函数的参数是一个申请的内存变量地址，保存在全局变量里，我们等其加载完毕后找到这块内存，修改 0xbc 为 0x78(exit time 的值)，之后就让它丫清零去吧。  
+四、最后的疑问  
+1、至此，windbg 可正常使用，OD 可附加可下断，但 tufuzi 在其文章中说他会检查硬件断点，所以要 hook NtGetContextThread，但我下断这里没见有程序调用。。我下完硬件断点也没见对方有什么反抗。。奇怪啊奇怪  
+2、虽然 CE 被加进了白名单，但是会报非法模块，不知其检测机制，驱动里确实找到了教主说的黑名单（名字一遍，特征值一遍），但是两个黑名单自始至终全是零，搞得我以为没有，但是检测函数是实实在在存在的，crc table 也存在。我晕啊。  
+对反调试作者的建议：把你的 CV 多加一点。。别暴露这么多。。  
+最后附上 idb 和  src   
+运行环境：xp sp3  game version:0.5.7  加载顺序： 我们的驱动，对方程序，OD。对方程序加载后 windbg 会掉一下，但马上恢复~  
+感谢前辈的研究~参考资料：  
+[说说某游戏保护驱动中驱动黑名单的具体实现](http://hi.baidu.com/_achillis/blog/item/df5fc7cbdc93c84df31fe776.html) 作者：教主  
+[过掉 DNF 游戏保护](http://bbs.pediy.com/showthread.php?t=97386) 作者：tufuzi  
+附件在这里 ![](img/9b2aec7f3d4bb041b2d419a59832192f.jpg "恐怖!")  
+ts.rar
+
+话说我在调试 DNF 的 TesSafe 时，没发现 intxx 处的例程有什么实质用处~  
+关键数据的传递都还是通过 DeviceIoControl 传递的，不过传递的数据是加密的，加解密函数如下：  
+
+代码:
+
+```
+void DecryptOrEntryptBuffer(BYTE \*Keys, BOOL bEncrypt, BYTE \*bufferToDecrypt, int BufferLen)
+{
+  ULONG i; 
+  
+  if ( BufferLen )
+  {
+    i = 0;
+    if ( BufferLen )
+    {
+      bufferToDecrypt = bufferToDecrypt;
+      do
+      {
+        if ( bEncrypt )
+          bufferToDecrypt\[i\] ^= i;
+        bufferToDecrypt\[i\] ^= Keys\[i & 7\];
+        if ( !bEncrypt )
+          bufferToDecrypt\[i\] ^= i;
+        ++i;
+      }
+      while ( i < BufferLen );
+    }
+  }
+}
+
+```
+
+再贴点其它 code:  
+代码:
+
+```
+#define IOCTL\_GETPROCPATH      0x22E4A0  
+#define IOCTL\_SETTRUSTEDPROCESS       0x22E484  //设置可信程序
+#define IOCTL\_SETPROTECTEDPROCESS  0x22E488  //设置被保护程序
+
+typedef struct \_TRUSTED\_PROCESS\_INFO{
+  ULONG u1;
+  ULONG u2;
+  ULONG u3;
+  ULONG u4;
+  ULONG ProcessCnt;    //offset=0x10
+  DWORD ProcessId\[33\];  //offset=0x14
+  ULONG Key1;    //offset=0x98
+  ULONG Key2;    //offset=0x9C
+}TRUSTED\_PROCESS\_INFO,\*PTRUSTED\_PROCESS\_INFO;  //size=0xA0
+
+typedef struct \_PROTECTED\_PROCESS\_INFO{
+  DWORD PidToProtect;  //offset=0
+  DWORD u1;
+  DWORD u2;
+  DWORD u3;
+  ULONG Key1;  //offset=0x10
+  ULONG Key2;  //offset=0x14
+}PROTECTED\_PROCESS\_INFO,\*PPROTECTED\_PROCESS\_INFO;
+
+/\*
+设置可信任程序，测试不完全正确
+参数说明：
+  InputBuffer  :存放 Pid
+  InputLen  :160
+  OutputBuffer:NULL
+  OutputLen  :0
+\*/
+BOOL SetTrustedProcessInfo(HANDLE hDevice)
+{
+  TRUSTED\_PROCESS\_INFO ProcessInfo;
+  BOOL bRet;
+  DWORD Pid;
+  ULONG Cnt=0;
+  DWORD byteRetned=0;
+  int i=0;
+  char \*szTrustedProcName\[\]={"smss.exe","csrss.exe","winlogon.exe",
+    "services.exe","svchost.exe","alg.exe","lsass.exe"};
+  int TotalCnt=7;
+  ZeroMemory(&ProcessInfo,sizeof(TRUSTED\_PROCESS\_INFO));
+  //下面获取几个进程的 PID 用做测试
+  for (i=0;i<TotalCnt;i++)
+  {
+    Pid=GetProcessIdByName(szTrustedProcName\[i\]);
+    if (Pid)
+    {
+      printf("%s \\t\\tPid=%d\\n",szTrustedProcName\[i\],Pid);
+      ProcessInfo.ProcessId\[Cnt++\]=Pid;
+    }
+  }
+  //开始填充缓冲区
+  ProcessInfo.u1=5;
+  ProcessInfo.u2=1;
+  ProcessInfo.u3=2;
+  ProcessInfo.u4=0;
+  ProcessInfo.ProcessCnt=Cnt;
+  ProcessInfo.Key1=0x12345678;
+  ProcessInfo.Key2=0x11223344;
+  //对缓冲区进行加密，加密的数据内容当然不包括密钥
+  DecryptOrEntryptBuffer((BYTE\*)&ProcessInfo.Key1,TRUE,(BYTE\*)&ProcessInfo,sizeof(TRUSTED\_PROCESS\_INFO)-sizeof(ULONG)\*2);
+  printf("The buffer = 0x%08X\\n",&ProcessInfo);
+  bRet=DeviceIoControl(hDevice,
+    IOCTL\_SETTRUSTEDPROCESS,
+    &ProcessInfo,
+    sizeof(TRUSTED\_PROCESS\_INFO),
+    NULL,
+    0,
+    &byteRetned,
+    NULL);
+  printf("The return value=%d\\n",bRet);
+}
+
+```

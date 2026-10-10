@@ -1,0 +1,384 @@
+
+
+# PEArmor 0.46 静态脱壳机原理及源码
+
+> 原文：[`www.pediy.com/kssd/pediy10/83680.html`](https://www.pediy.com/kssd/pediy10/83680.html)
+
+　　首先感谢天草老师，这些天跟他学习到了不少东西。这个其实是他布置的作业，给大家分享下成果。  
+      PEArmor 这个壳特点:1、aplib 压缩 2、IAT 加密 3、程序 Call 和 Jmp 跳入壳里然后解密执行真 api（不知道密届术语）。壳分两层外壳，第一层解压出第二层外壳，然后跳入第二层外壳去执行（第二层开始处大量花），第二层解压出各个段，接着还原 IAT,再根据加密表把程序代码里的 call 和 jmp 指向外壳，跳向 oep。  
+    首先我找第一层壳的入口，找需要解压二层外壳所需要的相关数据的偏移,解压二层外壳。  
+
+代码:
+
+```
+  //\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+  //搜索特征码，在壳第一层找真正壳代码入口。
+  //\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+  BYTE szPCode1\[\] = "\\x5D\\x81\\xED\\x05\\x00\\x00\\x00\\x8D\\x75\\x3D\\x56";
+  shellstart = searchMem(pPEImage,szPCode1,sizeof(szPCode1));
+  if (shellstart == NULL)
+  {
+    return FALSE;
+  }
+
+BYTE \* FistPackBaseAddr = NULL;
+  DWORD  dwFirstPackSize = 0;   
+  HANDLE hFistPackTempMem = 0;
+//\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+//    解压第二层外壳
+ //\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+     \_\_try
+     {
+       FistPackBaseAddr = shellstart - 0xAF;
+       dwFirstPackSize  = GETDWORD(FistPackBaseAddr + 0x82);
+       hFistPackTempMem = VirtualAlloc(NULL,dwFirstPackSize, MEM\_COMMIT, PAGE\_READWRITE);
+       aP\_depack\_asm((PVOID)(GETDWORD(FistPackBaseAddr+0x7e)+FistPackBaseAddr),(PVOID)hFistPackTempMem);
+     }
+     \_\_except(EXCEPTION\_EXECUTE\_HANDLER)
+     {
+       VirtualFree(hFistPackTempMem,dwFirstPackSize,MEM\_RELEASE);
+       return FALSE;
+     }
+
+//\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+//搜索特征码，在壳第二层找真正壳代码入口（跳过无数花，准确定位，同时也确认是当前版本的壳）。
+//\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+     BYTE szPCode2\[\] = "\\xE8\\x00\\x00\\x00\\x00\\x5A\\x83\\xEA\\x05\\x5D\\xB9\\x03\\x00\\x00\\x00";
+     
+     shellstart2 = searchMem((BYTE \*)hFistPackTempMem,szPCode2,sizeof(szPCode2));
+     
+     if (shellstart2 == NULL)
+     {
+       return FALSE;
+     }
+
+```
+
+      接下来就是要解压 PE 的各个区段的真真数据了。  
+代码:
+
+```
+BOOL CPEArmor046UnPack::unPackEachSection()
+{
+
+     \_\_try
+     {
+       DWORD dwOffset = 0x2ED;
+       while (GETDWORD(shellstart2 + dwOffset)!=0)
+       {
+         DWORD dwCurrentSectionSize = GETDWORD(shellstart2 + dwOffset);
+         HANDLE hEachSectionTempMem = VirtualAlloc(NULL,dwCurrentSectionSize, MEM\_COMMIT, PAGE\_READWRITE);
+         DWORD dwEachSectionPackDataAddr = GETDWORD(shellstart2 + dwOffset + 0x4) + (DWORD)pImage;
+         aP\_depack\_asm((PVOID)(dwEachSectionPackDataAddr),(PVOID)hEachSectionTempMem);
+         memcpy((PVOID)dwEachSectionPackDataAddr,(PVOID)hEachSectionTempMem,dwCurrentSectionSize);
+         VirtualFree(hEachSectionTempMem,dwCurrentSectionSize,MEM\_RELEASE);
+         dwOffset += 0xC;
+       }
+     }
+     
+     \_\_except(EXCEPTION\_EXECUTE\_HANDLER)
+     {
+       return FALSE;
+     }
+     return TRUE;
+}
+
+```
+
+       分析 IAT，找出修复 IAT 需要的数据存入 Vector。  
+代码:
+
+```
+BOOL CPEArmor046UnPack::analyzeImportTable()
+{
+
+        
+  \_\_try{
+    
+    BOOL blApiStrShuffle  = GETDWORD(shellstart2 + 0x2B8) == 1?TRUE:FALSE;
+    
+    
+    if (blApiStrShuffle)  //IAT 加密方式 1
+    {
+      DWORD dwOrgImportaddr  = GETDWORD(shellstart2 + 0x2c0) + (DWORD)shellstart2;
+      while (TRUE)
+      {
+        if (GETDWORD((PDWORD)(dwOrgImportaddr))==0)
+        {
+          break;
+        }
+        STOrgImport stOrgImportDataTemp ;
+        stOrgImportDataTemp.dwThunkTable = GETDWORD((PDWORD)(dwOrgImportaddr));
+        stOrgImportDataTemp.strdllName.assign((char \*)(dwOrgImportaddr+5));
+        stOrgImportDataTemp.dwApiNumber = GETDWORD((PBYTE)(dwOrgImportaddr + 5 + GETBYTE((PBYTE)(dwOrgImportaddr + 4)) + 1));
+        dwOrgImportaddr = dwOrgImportaddr + 5 + GETBYTE(dwOrgImportaddr + 4) +5;
+        BOOL blIsApiOrd = GETBYTE(dwOrgImportaddr)==0?TRUE:FALSE;
+        stOrgImportDataTemp.isOrd = blIsApiOrd;
+        if (blIsApiOrd) //序号
+        {
+          for (int i = 0 ; i < stOrgImportDataTemp.dwApiNumber;i++)
+          {
+            DWORD dwApiOrg = GETDWORD(dwOrgImportaddr+1);
+            stOrgImportDataTemp.vecApiOrd.push\_back(dwApiOrg);
+            dwOrgImportaddr = dwOrgImportaddr + 1 + sizeof(DWORD) + 1;
+          }
+        }
+        else  //APi 名
+        {
+          for (int i = 0 ; i < stOrgImportDataTemp.dwApiNumber;i++)
+          {
+            string strApiName;
+            strApiName.assign((char \*)(dwOrgImportaddr+1));
+            stOrgImportDataTemp.vecApiName.push\_back(strApiName);
+            dwOrgImportaddr = dwOrgImportaddr + 1 + GETBYTE(dwOrgImportaddr)+1;
+          }
+        }
+        
+        vecImport.push\_back(stOrgImportDataTemp);
+        
+      }
+      
+    }
+    else  // IAT 不自定义存储格式的 (IAT 加密方式 2)
+    {
+      DWORD dwDllBase = GETDWORD(shellstart2 + 0x2c0) + (DWORD)pImage;
+      
+      DWORD dwApiOrdOrName = NULL;
+      DWORD dwIatAddr = NULL;
+      while(TRUE)
+      {
+        
+        DWORD dwDllNameAddr = GETDWORD((PBYTE)dwDllBase + 0xc);
+        if (dwDllNameAddr != 0)
+        {
+          
+          dwDllNameAddr = dwDllNameAddr + (DWORD)pImage; //dllname
+          
+          
+          if (GETDWORD(dwDllBase) !=0)
+          {
+            dwApiOrdOrName = GETDWORD(dwDllBase) + (DWORD)pImage;
+            dwIatAddr = GETDWORD(dwDllBase + 0x10)+(DWORD)pImage;
+          }
+          else
+          {
+            dwApiOrdOrName = GETDWORD(dwDllBase + 0x10) + (DWORD)pImage;
+            dwIatAddr = GETDWORD(dwDllBase + 0x10)+(DWORD)pImage;
+          }
+          
+          
+          STOrgImport stOrgImportDataTemp;
+          if (GETDWORD(dwApiOrdOrName) & 0x80000000)
+          {
+            stOrgImportDataTemp.isOrd = TRUE;
+          }
+          else
+          {
+            stOrgImportDataTemp.isOrd = FALSE;
+          }
+          stOrgImportDataTemp.dwThunkTable = dwIatAddr - (DWORD)pImage;
+          stOrgImportDataTemp.strdllName.assign((char \*)dwDllNameAddr);
+          
+          
+          
+          while(TRUE)
+          {
+            if (GETDWORD(dwApiOrdOrName) == 0)
+            {
+              dwDllBase = dwDllBase + 0x14;
+              
+              vecImport.push\_back(stOrgImportDataTemp);
+              break;
+            }
+            else
+            {
+              //处理
+              
+              if ( GETDWORD(dwApiOrdOrName) & 0x80000000 )
+              {
+                DWORD dwOrd = GETDWORD(dwApiOrdOrName) & 0x7fffffff;
+                stOrgImportDataTemp.vecApiOrd.push\_back(dwOrd);
+              }
+              else
+              {
+                DWORD dwApiNameAddr = (GETDWORD(dwApiOrdOrName) + 2 ) + (DWORD)pImage;
+                string strApiName;
+                strApiName.assign((char \*)dwApiNameAddr);
+                stOrgImportDataTemp.vecApiName.push\_back(strApiName);
+              }
+              
+              dwApiOrdOrName = dwApiOrdOrName + 0x4;
+              
+              dwIatAddr = dwIatAddr + 0x4;
+            }
+          }
+          
+          
+        }
+        else
+        {
+          break;
+        }
+      }
+    }
+    }
+    \_\_except(EXCEPTION\_EXECUTE\_HANDLER)
+    {
+      return FALSE;
+    }
+    return TRUE;
+}
+
+```
+
+         根据分析的数据修复 IAT。  
+代码:
+
+```
+BOOL CPEArmor046UnPack::fixImportTable()
+{
+
+  \_\_try{
+    
+    DWORD dwDLLNumber = vecImport.size();
+    BYTE \* NewImportAddrSave = this->addNewImportSectionAddr;
+    BYTE \* temppoint = (BYTE \*)(this->addNewImportSectionAddr+(dwDLLNumber + 1) \* sizeof(IMAGE\_IMPORT\_DESCRIPTOR));
+    for(vector<STOrgImport>::iterator it = vecImport.begin(); it != vecImport.end();++it)
+    {
+      
+      IMAGE\_IMPORT\_DESCRIPTOR STNewIID = {0};
+      string strDllName = it->strdllName;
+      strDllName.copy((char \*)temppoint,strDllName.length(),0);//复制到新增区域
+      // fill IID struct
+      STNewIID.FirstThunk = it->dwThunkTable;
+      STNewIID.Name = (DWORD)(temppoint-pImage);
+      STNewIID.OriginalFirstThunk=0;
+      
+      
+      temppoint += strDllName.length() + 1 + 2; //加三个零
+      
+      PDWORD iat = (PDWORD)(STNewIID.FirstThunk + (DWORD)pImage);
+      
+      //序号方式处理
+      if (it->isOrd)
+      {
+        for(vector<DWORD>::iterator itapi = it->vecApiOrd.begin(); itapi != it->vecApiOrd.end();++itapi)
+        {
+          \*iat = \*itapi | 0x80000000;
+          iat++;
+        }
+      }
+      else //APi 名字方式处理
+      {
+        for(vector<string>::iterator itapi = it->vecApiName.begin(); itapi != it->vecApiName.end();++itapi)
+        {
+          itapi->copy((char \*)temppoint,(\*itapi).length());
+          
+          \*iat = temppoint - 2 - pImage;
+          iat++;
+          temppoint += (\*itapi).length() + 1 + 2;//加三个零
+        }
+        
+      }
+      \*iat = 0;
+      
+      memcpy((PVOID)NewImportAddrSave,(PVOID)&STNewIID,sizeof(IMAGE\_IMPORT\_DESCRIPTOR));
+      NewImportAddrSave += sizeof(IMAGE\_IMPORT\_DESCRIPTOR);
+    }
+    
+    ((PIMAGE\_NT\_HEADERS)pPEImage)->OptionalHeader.DataDirectory\[IMAGE\_DIRECTORY\_ENTRY\_IMPORT\].VirtualAddress = this->addNewImportSectionAddr - pImage;
+  }
+  \_\_except(EXCEPTION\_EXECUTE\_HANDLER)
+  {
+    return FALSE;
+  }
+  return TRUE;
+}
+
+```
+
+        修复壳里的 Call 和 Jmp。按 hying 的说法，这里叫特殊代码处理  
+代码:
+
+```
+BOOL CPEArmor046UnPack::fixSpecialApiEncode()
+{
+
+  
+  \_\_try{
+    
+    DWORD ApiIsEncode = GETDWORD(shellstart2 + 0x2BC);
+    
+    if (ApiIsEncode == 1) //是否特殊代码处理 FF 15 或 FF 25
+    {
+      
+      //修复 Api 
+      
+      DWORD dwDecodeTable =  GETDWORD(shellstart2 + 0x2c4) + (DWORD)shellstart2;
+      while ( (\*(PDWORD)dwDecodeTable) != 0)
+      {
+        DWORD dwDecodeVal = \*(PDWORD)dwDecodeTable;
+        
+        dwDecodeVal = dwDecodeVal  << 1;
+        dwDecodeVal = dwDecodeVal >> 1;
+        
+        if( ( \*((PBYTE)dwDecodeTable+3) ) == 0x80 )
+        {
+          //25ff
+          DWORD dwDecodeIAT = \*(PDWORD)(dwDecodeTable + 4);
+          dwDecodeVal = dwDecodeVal - (DWORD)pe.ImageBase() + (DWORD)pImage;
+          \*((PWORD)(dwDecodeVal - 6)) = 0x25ff;
+          \*((PDWORD)(dwDecodeVal - 4)) = dwDecodeIAT;
+        }
+        else
+        {
+          DWORD dwDecodeIAT = \*(PDWORD)(dwDecodeTable + 4);
+          dwDecodeVal = dwDecodeVal - (DWORD)pe.ImageBase() + (DWORD)pImage;
+          \*((PWORD)(dwDecodeVal - 6)) = 0x15ff;
+          \*((PDWORD)(dwDecodeVal - 4)) = dwDecodeIAT;
+        }
+        dwDecodeTable = dwDecodeTable + 8;
+      }
+      
+    }
+  }
+  \_\_except(EXCEPTION\_EXECUTE\_HANDLER)
+  {
+    return FALSE;
+  }
+  return TRUE;
+}
+
+```
+
+         修复 OEP。  
+代码:
+
+```
+BOOL CPEArmor046UnPack::fixOEP()
+{
+  
+  \_\_try
+  {
+    
+    DWORD oep = GETDWORD(shellstart2 + 0x2C8);
+    \*(PDWORD((DWORD)pPEImage + 0x28)) = oep;
+    
+    fixSpecialApiEncode();
+  }
+  \_\_except(EXCEPTION\_EXECUTE\_HANDLER)
+  {
+    return FALSE;
+  }
+  return TRUE;
+}
+
+```
+
+  
+          最后 dump 就 OK 了。只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教! 
+
+上传的附件
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || PEArmorperfectionUnpackOOP.rar\[解压密码：pediy.com\]  
+ |

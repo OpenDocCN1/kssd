@@ -1,0 +1,169 @@
+
+
+# ArmAdillo+幻影
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6494.htm`](https://www.pediy.com/kssd/pediy06/pediy6494.htm)
+
+破解作者】 mejy【BCG】【DFCG】【FCG】【NUKE】   
+【作者邮箱】 yjychao@sohu.com   
+【作者主页】 mejy.126.com   
+【使用工具】 OD1.09d,W32ASM   
+【破解平台】 Win9x/NT/2000/XP   
+【软件名称】 ARM+幻影 233 的记事本   
+【软件简介】 armadillo 标准方式和幻影 2.33 加壳。幻影在里面。2000 下的记事本   
+【破解声明】 我是一只小菜鸟，偶得一点心得，愿与大家分享：）   
+\--------------------------------------------------------------------------------   
+【破解内容】   
+  
+  
+首先感谢各位大侠的脱文。感谢辉仔、fly 等高人的指点。感谢 jwh51 兄孜孜不倦的教导和帮助。 
+
+下载：[`bbs2.pediy.com/download.php?id=2364`](http://bbs2.pediy.com/download.php?id=2364)  
+脱壳第一步卸载瑞星。留着这个祸害，阻碍我得脱壳进程 50 年。因为每个函数都要他检测，霸道。呵呵。   
+用 OD 载入加好 arm 和幻影的 2000 下的记事本。然后隐藏 OD 的调试标记   
+下断点 BP GetModuleHandleA ，然后 ALT+B 查看断点。双击断点，（这一步是对于那些下 BP GetModuleHandleA+5 无效的同志）来到下面   
+77E6AB06 > 55               PUSH EBP    取消这里的断点   
+77E6AB07   8BEC             MOV EBP,ESP   
+77E6AB09   837D 08 00       CMP DWORD PTR SS:\[EBP+8\],0   
+77E6AB0D   0F84 31F50000    JE KERNEL32.77E7A044   在这里重新社断   
+77E6AB13   FF75 08          PUSH DWORD PTR SS:\[EBP+8\]   
+77E6AB16   E8 9EC8FFFF      CALL KERNEL32.77E673B9   
+然后 F9 运行程序。几次之后绘出现一个错误对话框，点击确定后，接着 Shift+F9 走过异常，并仔细观察堆栈。   
+当堆栈发生一下变化时，   
+0012BC94  /0012BF20   
+0012BC98  |008B799B  返回到 008B799B 来自 KERNEL32.GetModuleHandleA   
+0012BC9C  |0012BDD4  ASCII "kernel32.dll"   
+0012BCA0  |00000000   
+这时就可以 ALT+F9 返回了。有时候加壳方式或者软件不同，不一定会出现这个对话框。这时就要注意堆栈。（在进入幻影空间以前出现错误，是没关系的，到幻影之后就得小心行事）   
+我们返回到下面   
+008B799B   8B0D E0118E00    MOV ECX,DWORD PTR DS:\[8E11E0\]   
+008B79A1   89040E           MOV DWORD PTR DS:\[ESI+ECX\],EAX   
+008B79A4   A1 E0118E00      MOV EAX,DWORD PTR DS:\[8E11E0\]   
+008B79A9   393C06           CMP DWORD PTR DS:\[ESI+EAX\],EDI   
+008B79AC   75 16            JNZ SHORT 008B79C4   
+008B79AE   8D85 B4FEFFFF    LEA EAX,DWORD PTR SS:\[EBP\-14C\]   
+008B79B4   50               PUSH EAX   
+008B79B5   FF15 CC808D00    CALL DWORD PTR DS:\[8D80CC\]               ; KERNEL32.LoadLibraryA   
+008B79BB   8B0D E0118E00    MOV ECX,DWORD PTR DS:\[8E11E0\]   
+008B79C1   89040E           MOV DWORD PTR DS:\[ESI+ECX\],EAX   
+008B79C4   A1 E0118E00      MOV EAX,DWORD PTR DS:\[8E11E0\]   
+008B79C9   393C06           CMP DWORD PTR DS:\[ESI+EAX\],EDI   
+008B79CC   0F84 AD000000    JE 008B7A7F       这里就是呵呵不说了 je――》jmp   
+008B79D2   33C9             XOR ECX,ECX   
+008B79D4   8B03             MOV EAX,DWORD PTR DS:\[EBX\]   
+008B79D6   3938             CMP DWORD PTR DS:\[EAX\],EDI   
+改好后，我们按下 ctrl+s。输入   
+sub edi,ecx   
+call edi   
+然后点击查找来到下面   
+008D45FD   2BF9             SUB EDI,ECX     
+008D45FF   FFD7             CALL EDI         这个 call 就到我们的 OEP 了。在这里设断   
+008D4601   8BD8             MOV EBX,EAX   
+008D4603   5F               POP EDI   
+008D4604   8BC3             MOV EAX,EBX   
+008D4606   5E               POP ESI   
+008D4607   5B               POP EBX   
+008D4608   C3               RETN   
+在 8D45FF 处设断。我们 F9，程序中断在 getModulehandlea 处。我们取消断点，接着 F9 就断在上面的 call 地方了。取消断点。F7 跟进。   
+此时可以 dump 出来用，填一下 OEP，IR 修复一下就可以用幻影脱壳工具脱了。这里不讲了。   
+我们 F7 来到幻影的魔幻世界。这里采用辉仔的方法。按着秒表只要你操作正确，保证 1 分钟脱掉幻影。   
+01010000   EB 20            JMP SHORT NOTEPAD.01010022 程序停在这里   
+01010002   0000             ADD BYTE PTR DS:\[EAX\],AL   
+01010004   40               INC EAX   
+01010005   0000             ADD BYTE PTR DS:\[EAX\],AL   
+01010007   0040 00          ADD BYTE PTR DS:\[EAX\],AL   
+0101000A   0000             ADD BYTE PTR DS:\[EAX\],AL   
+我们在左下角的数据窗口中（转存窗口），按 Ctrl+G 填入 1001000。对于一般的程序填入 401000，我们看到   
+01001000  56 3A 9D E3 A6 89 40 E0 6E 41 4E B1 C5 71 5F 31  V:濄@鄋 AN 迸 q\_1   
+在此处下内存访问断点。这地方也可以用 ALT+M。在该段下内存访问断点。   
+断点下好以后我们 F9，程序断在下面的地方   
+7FF7EBE4   66:3103          XOR WORD PTR DS:\[EBX\],AX  中断在这里   
+7FF7EBE7   7A 03            JPE SHORT 7FF7EBEC   
+7FF7EBE9   7B 01            JPO SHORT 7FF7EBEC   
+7FF7EBEB   75 66            JNZ SHORT 7FF7EC53   
+此时一定要记着清除内存断点，以免不必要的麻烦。   
+现在打开花指令去除器，搜索地址填入 7FF7E000，大小填入 FFFF。选择幻影花指令。确定。呵呵，世界清净多了。走几步来到，很容易看到 ebx 中的值就是 IAT（重要）   
+7FF8030C   039D 32CC4200    ADD EBX,DWORD PTR SS:\[EBP+42CC32\]   
+7FF80312   90               NOP   
+  
+不用走了，我们准备好鼠标滚轮，来到   
+7FF7F1E8   90               NOP     这里将鼠标放在这里，按 F4，为什么，你慢慢走试试，程序会跳到这里，理论吗，问辉仔去。   
+7FF7F1E9   90               NOP   
+然后单步向下会来到   
+7FF7F26F   90               NOP   
+7FF7F270   90               NOP   
+7FF7F271   E8 F40F0000      CALL 7FF8026A   这个 call 跟进去吧，要不然你就会重新来过了   
+7FF7F276   90               NOP   
+F7 跟进上面的 call 别动了，用滚轮向下找吧，其实你单步跟也行，不过没必要，那样浪费时间。找到下面的几个地方我们改好后，直接 F4 到这个函数的返回那里，省事的多   
+7FF80371   8B43 0C          MOV EAX,DWORD PTR DS:\[EBX+C\]  要注意的第一个地方   
+看到这个以后，找到离他最近的一个 POP  EBX 将它的下一条指令 nop 改称   
+mov \[ebx+c\],eax   
+  
+接着向下找   
+7FF8074A   8703          XCHG DWORD PTR DS:\[EBX\],EAX   需注意的第二个地方   
+向下找到 pop ebx   
+将它的下一行改编为   
+mov \[ebx\],eax   
+  
+接着向下找到   
+7FF8086A   8743 10          XCHG DWORD PTR DS:\[EBX+10\],EAX  第三个地方   
+然后找到和他接近的 pop ebx   
+将 pop ebx 的下一行改为 mov \[ebx+10\],eax   
+  
+  
+接着向下翻动找到   
+7FF80A2F   66:8706          XCHG WORD PTR DS:\[ESI\],AX     
+将此处改为 mov ax, \[esi\]   
+向下将   
+7FF80A98   8706             XCHG DWORD PTR DS:\[ESI\],EAX   
+改为       mov eax,\[esi\]   
+改好这么多地方以后，再向下找到下面   
+7FF810C1   90               NOP   
+7FF810C2   90               NOP   
+7FF810C3   C3               RETN 返回的地方，直接 F4 到这里，然后返回   
+7FF810C4   90               NOP   
+中间在调用 loadbairay 函数时，会出现一个对话框，不过没关系。   
+返回到 7FF7F276   90               NOP   
+再次利用滚轮大法   
+找到一处   
+7FF7F5A5   90               NOP   
+7FF7F5A6   8B1B             MOV EBX,DWORD PTR DS:\[EBX\]   
+7FF7F5A8   90               NOP   
+将鼠标定位在 7FF7F5A6 的位置，点击右键，将这一指令 NOP 掉   
+7FF7F5DB   90               NOP   
+7FF7F5DC   8937             MOV DWORD PTR DS:\[EDI\],ESI   
+将这一行改为   
+7FF7F5DC   891F             MOV DWORD PTR DS:\[EDI\],EBX   
+再向下找   
+7FF7F855   90               NOP   
+7FF7F856   8B1B             MOV EBX,DWORD PTR DS:\[EBX\] 同样将这里 NOP 掉   
+将下面不远处的   
+7FF7F89E   8937             MOV DWORD PTR DS:\[EDI\],ESI 改成   
+7FF7F89E   891F             MOV DWORD PTR DS:\[EDI\],EBX   
+下面一切都很轻松了   
+Ctrl+F 查找 jmp eax。可能会找到好几处，注意了到最后一处就行了。找到   
+7FF8AAD3   61               POPAD 在这里下内存访问断点或者硬件断点   
+7FF8AAD4   58               POP EAX   
+7FF8AAD5   83F8 FF          CMP EAX,-1   
+7FF8AAD8   75 05            JNZ SHORT 7FF8AADF   
+7FF8AADA   33C0             XOR EAX,EAX   
+7FF8AADC   C2 0C00          RETN 0C   
+7FF8AADF   FFE0             JMP EAX   
+一切就绪以后呵呵，F9 中断再上面 POPAD 处。慢慢的慢慢的走到 OEP 吧。   
+拿出 lordpe 来，先 correct imagesize。然后 dump 程序，接着利用 LordPE 来修改一下 OEP 和 IAT 就可以了。OEP＝6420，IAT＝6650。程序运行正常，一切 OK。   
+  
+  
+  
+  
+  
+\--------------------------------------------------------------------------------   
+【破解总结】   
+  
+  
+总结一下：用这种方法可以快速脱掉 Arm 或者幻影。这里是结合 notepad 讲的。没有讲理论啦。Fly，jwh51，辉仔以及骨灰 CMM 都给我们菜鸟讲过啦。我试了自己加得几个程序，都没问题，但是有个外挂程序，用这种方法脱的。能在 98，xp 下运行但在 2000 下不能运行。请 FLY，JWH51，SHINEGOOD 等高手帮我看看（看下面的分析）。   
+  
+下面附上我最近的总结，不对的地方欢迎指出。   
+\--------------------------------------------------------------------------------   
+【版权声明】 本文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢!  
+  
+ 4dd466d0e1e0cc123afbe504da2462ca

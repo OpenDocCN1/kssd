@@ -1,0 +1,132 @@
+
+
+# VMP1.7 讲解【破解 vmp 程序的关键点】
+
+> 原文：[`www.pediy.com/kssd/pediy11/106890.html`](https://www.pediy.com/kssd/pediy11/106890.html)
+
+有点标题党,其实贴的是海风月影的帖子 http://bbs.pediy.com/showthread.php?t=82618  
+之后的学习笔记而已.通过分析代码,发觉似乎理解了一点.喜不自禁.  
+故写下来与大家分享一下和日后回顾一下![](img/110d920e4e703968a2a60c986d363163.jpg "尴尬")  
+并感谢大牛们的分析,希望能继续爆料![](img/cb6288ad81b189b02921e98a92da6abe.jpg "124.gif")  
+  
+本笔记所使用的 demo 是由 VMP1.7 加的 notepad.exe 的 EP.  
+主要内容为:分析以 VMP 处,调用 IsDebuggerPresent,判断返回值后走哪条流程..  
+  
+由于 VMP1.7 Handle 垃圾指令太多,故而写了个 OD 小插件 F7 分析 Handle 转义为对应 x86 指令.  
+所以看到的会有点不同了![](img/110d920e4e703968a2a60c986d363163.jpg "尴尬")  
+  
+先上 IsDebuggerPresent 返回 1 的代码,代码乱且多,请看注释的关键代码![](img/234a76e67df951b6551d305c177a8b78.jpg "扮鬼脸")  
+vm\_call\_IsDebuggerPresent  
+call 的返回值为:00000001      **;返回值为 1**  
+vm\_popDword reg\[14\],数据为:00000000  
+vm\_popDword reg\[2C\],数据为:7C800000  
+vm\_popDword reg\[28\],数据为:00000001  **;保存 EAX**  
+vm\_popDword reg\[08\],数据为:0007FF88  
+vm\_popDword reg\[3C\],数据为:7C800000  
+vm\_popDword reg\[04\],数据为:000A0608  
+vm\_popDword reg\[34\],数据为:0000022A  
+vm\_popDword reg\[30\],数据为:0007FF74  
+vm\_popDword reg\[24\],数据为:0007FF98  
+vm\_popDword reg\[0C\],数据为:00000206  
+vm\_popDword reg\[20\],数据为:0103A148  
+vm\_popDword reg\[00\],数据为:4E89BA21  
+vm\_pushDword,数据为:11426946  **;后面的跳转地址 1**  
+vm\_pushDword,数据为:114217BD  **;后面的跳转地址 2**  
+vm\_push\_esp  
+vm\_pushbyte reg\[28\],数据为:01  **;压入 AL 的值**  
+vm\_pushbyte reg\[28\],数据为:01  **;压入 AL 的值**  
+vm\_nna\_byte,数据为:FE  **;第一处 not\_not\_and  (~al) & ~(al)**  
+vm\_popDword reg\[18\],数据为:00000282  
+vm\_push\_esp  
+vm\_check,数据为:00FE  ** ;这个虽然叫 check 指令,但其实就是 mov BYTE ptr ds:\[esp\],BYTE ptr ds:\[esp+4\] ,所以这里也压入的是上面的 NNA 过后的 FE**  
+vm\_nna\_byte,数据为:01  **;第二处 not\_not\_and,由于是残留的,所以相当帖子中说的三次 not\_not\_and 了, 也就是说上面的代码就等价于 test al,al 操作了.**  
+vm\_popDword reg\[00\],数据为:00000202  **;保存 eflags,用它来判断是否该跳转的哈**  
+vm\_popbyte reg\[28\],数据为:01  
+vm\_pushword,数据为:0004  **;两个候选答案,04 00**  
+vm\_pushDword reg\[00\],数据为:00000202  **;然后又压入 eflags**  
+vm\_push\_esp  
+vm\_pushDword,数据为:00000202  ;mov DWORD ptr ds:\[esp\],DWORD ptr ds:\[esp+4\]  
+vm\_nna\_Dword,数据为:FFFFFDFD  **;第一处 NNA,即 (~eflags) & (~eflags)**  
+vm\_popDword reg\[18\],数据为:00000282  
+vm\_pushDword,数据为:FFFFFFBF  **;这个是事先 NNA 过的数据,NOT 一下 FFFFFFBF 就为 40 了**  
+vm\_nna\_Dword,数据为:00000000  **;则这里是第三次了,相当于 test eflags,40  ,也就是判断 ZF 啦**  
+vm\_popDword reg\[20\],数据为:00000246  
+vm\_operation\_Dword \[esp+4\],数据为:00000000  ** ;这里把上面的结果处理了一下,如果为 0,转换后的结果为 0,如果不为 0,就转换为 4 了,两个地址跳表嘛.**  
+vm\_popDword reg\[20\],数据为:00000246  
+vm\_add\_Dword \[esp+4\],\[esp\],数据为:0007F790 **;这里就算下要跳向地址的地址,后面就是取出 0007F790 的内容,然后解密,改变 esi 的值,jump 过去..**  
+vm\_popDword reg\[38\],数据为:00000206  
+vm\_pushDword,数据为:114217BD  
+vm\_popDword reg\[0C\],数据为:114217BD  
+vm\_popDword reg\[20\],数据为:114217BD  
+vm\_popDword reg\[38\],数据为:11426946  
+vm\_pushDword reg\[0C\],数据为:114217BD  
+vm\_push\_esp  
+vm\_pushDword,数据为:114217BD  
+vm\_popDword reg\[18\],数据为:114217BD  
+vm\_pushDword reg\[18\],数据为:114217BD  
+vm\_nna\_Dword,数据为:EEBDE842  
+vm\_popDword reg\[20\],数据为:00000286  
+vm\_pushDword,数据为:EFBEE2A6  
+vm\_nna\_Dword,数据为:10401519  
+vm\_popDword reg\[10\],数据为:00000202  
+vm\_pushDword,数据为:10411D59  
+vm\_pushDword reg\[18\],数据为:114217BD  
+vm\_nna\_Dword,数据为:EEBCE002  
+vm\_popDword reg\[38\],数据为:00000282  
+vm\_nna\_Dword,数据为:01030AE4  **;解密出地址**  
+vm\_popDword reg\[1C\],数据为:00000206  
+vm\_popDword reg\[38\],数据为:01030AE4  
+vm\_pushDword reg\[10\],数据为:00000202  
+vm\_pushDword reg\[20\],数据为:00000286  
+vm\_pushDword reg\[08\],数据为:0007FF88  
+vm\_pushDword reg\[34\],数据为:0000022A  
+vm\_pushDword reg\[2C\],数据为:7C800000  
+vm\_pushDword reg\[24\],数据为:0007FF98  
+vm\_pushDword reg\[30\],数据为:0007FF74,  
+vm\_pushDword reg\[04\],数据为:000A0608  
+vm\_pushDword reg\[00\],数据为:00000202  
+vm\_pushDword reg\[24\],数据为:0007FF98  
+vm\_pushDword reg\[28\],数据为:00000001  
+vm\_pushDword reg\[14\],数据为:00000000  
+vm\_pushDword reg\[38\],数据为:01030AE4  
+vm\_jump,数据为:01030AE4 ;**跳过去,流程改变..**  
+  
+总结下上面的,  
+VMP 跳转之前,会先在栈里存放着两个加密过后的地址数据.  
+一个为条件成立跳的,一个为不成立跳的.  
+经过三次 not\_not\_and al,al 之后,  
+然后再 not\_not\_and eflags,40 来判断 ZF 位是否被置位.  
+也就相当于我们熟悉的两句代码  
+test al,al  
+je xxx  
+  
+好了,就到这里了,然后贴下 IsDebuggerPresent 返回 0 的流程,对照的看看![](img/6821a6175013046370981b6035d43ab4.jpg "使眼色")  
+  
+vm\_call\_IsDebuggerPresent  
+call 的返回值为:00000000  
+vm\_popDword reg\[28\],数据为:00000000  
+vm\_pushDword,数据为:11426946  
+vm\_pushDword,数据为:114217BD  
+vm\_nna\_byte,数据为:FF  
+vm\_nna\_byte,数据为:00  
+vm\_popDword reg\[00\],数据为:00000246  **;保存 eflags,很明显看出 ZF 位是被置位了**  
+vm\_popbyte reg\[28\],数据为:00  
+vm\_pushword,数据为:0004  
+vm\_pushDword reg\[00\],数据为:00000246  
+vm\_push\_esp  
+vm\_pushDword,数据为:00000246  
+vm\_nna\_Dword,数据为:FFFFFDB9  
+vm\_popDword reg\[18\],数据为:00000282  
+vm\_pushDword,数据为:FFFFFFBF  
+vm\_nna\_Dword,数据为:00000040  
+vm\_popDword reg\[20\],数据为:00000202  
+vm\_operation\_Dword \[esp+4\],数据为:00000004  **;这里计算的结果就为 4 了,也就是跳到第二个地址去**  
+vm\_popDword reg\[20\],数据为:00000202  
+vm\_add\_Dword \[esp+4\],\[esp\],数据为:0007F794  ;0007F794  上段代码此处为 0007F790  
+vm\_pushDword,数据为:11426946  **;取出 0007F794 加密后地址数据**  
+vm\_nna\_Dword,数据为:0103741F  **;解密出要跳转的地址**  
+vm\_jump,数据为:0103741F  **;jump**  
+vm\_popDword reg\[2C\],数据为:00000000,pcode 地址为:0103741F  
+Log file closed  
+  
+NOTEPAD.vmp.rar

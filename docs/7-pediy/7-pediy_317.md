@@ -1,0 +1,123 @@
+
+
+# 为记事本添加 Top 功能
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-453.htm`](https://www.pediy.com/kssd/pediy07/pediy7-453.htm)
+
+oHuangKeo at 2005 年 10 月 5 日  
+说明:记事本大家的电脑上都有吧.今天来个 Diy 吧,为记事本添加一个 Top 功能.  
+主要过程:  
+1.找到 NotePad 过程处理子程序地址,加个跳转.  
+2.在代码最下面找一块够用的空白,可以添加我们的代码.  
+3.为了实现可以取消 Top 功能,代码中加了要保存当前状态,代码节属性要改为可写.  
+4.写上代码就 OK 啦.  
+  
+第一步:查找过程子程序处理地址  
+    用 OD 加载记事本,在命令行输入:bp RegisterClassExW (也可能是 RegisterClassExA),然后 F9 运行程序.此时程序会断下.看堆栈框如下:  
+0007FDE4   01004556  /CALL to RegisterClassExW from NOTEPAD.01004550  
+0007FDE8   0007FDF0  \\pWndClassEx = 0007FDF0  
+  
+0007FDF0 就是注册类的结构定义,在堆栈中中查看,就成这样了:  
+0007FDF0   00000030  
+0007FDF4   00000000  
+0007FDF8   01003429  NOTEPAD.01003429  
+0007FDFC   00000000  
+0007FE00   00000000  
+0007FE04   01000000  NOTEPAD.01000000  
+0007FE08   00A10AA7  
+0007FE0C   00010013  
+0007FE10   00000006  
+0007FE14   00000001  
+0007FE18   01009020  UNICODE "Notepad"  
+0007FE1C   017B09D5  
+  
+01003429 就是程序过程处理地址了,好在 CPU 中查看这里.  
+01003429      8BFF          mov     edi, edi  
+0100342B  /.  55            push    ebp  
+0100342C  |.  8BEC          mov     ebp, esp  
+0100342E  |.  51            push    ecx  
+0100342F  |.  51            push    ecx  
+01003430  |.  56            push    esi  
+这里我发现了一个问题,我在 CSDN 上见过人提过."mov edi, edi"有啥用呢?没答案.  
+这里我们要加入一个远距离跳转,需要 5 个字节,算算就把 0100342B 这里改了吧.改成"jmp xxxxxxxx"(这个 xxxxxxxx 和是第二步找到的地址.)  
+push    ebp  
+mov     ebp, esp  
+push    ecx  
+push    ecx  
+这 4 条指令将会被复盖,所以要搬家.先备份下来.  
+  
+第二步:找空白空间  
+    看看代码段的最下面,好大的一个空白.我选择了从 01008750 开始,这个地址代替上面的 xxxxxxxx.  
+这里代码改写成如下:  
+01008750   > \\60            pushad                                   ;  堆栈平横  
+01008751   .  E8 1A000000   call    NOTEPAD.01008770                 ;  用 Call 是方便后面随时改写代码方便.  
+01008756   .  61            popad                                    ;  堆栈平横  
+01008757   .  55            push    ebp                              ;  源代码搬来的  
+01008758   .  8BEC          mov     ebp, esp                         ;  源代码搬来的  
+0100875A   .  51            push    ecx                              ;  源代码搬来的  
+0100875B   .  51            push    ecx                              ;  源代码搬来的  
+0100875C   .^ E9 CFACFFFF   jmp     NOTEPAD.01003430                 ;  跳回原程序啦.  
+01008761      90            nop  
+01008762   .  54 6F 70 00   ascii   "Top",0                          ;  中间要留些空白  
+01008766   .  4E 6F 54 6F 7>ascii   "NoTop",0                        ;  中间留一定的空白是为了要放字符串和变量的  
+                                                                     ;  本想加上没有 Top 时更改菜单为 NoTop.但太麻烦了,算了.  
+0100876C   .  00000000      dd      00000000  
+01008770  /$  8BEC          mov     ebp, esp  
+01008772  |.  83C5 20       add     ebp, 20  
+01008775  |.  8B75 0C       mov     esi, \[arg.2\]                     ;  得过程的第二个参数  
+01008778  |.  83FE 01       cmp     esi, 1                           ;  如果不是 WM\_CREATE 就跳,否则就为主程序添加"Top"菜单.  
+0100877B  |.  75 1A         jnz     short NOTEPAD.01008797  
+0100877D  |.  FF75 08       push    \[arg.1\]                          ; /hWnd  
+01008780  |.  E8 068DD276   call    USER32.GetMenu                   ; \\GetMenu  
+01008785  |.  68 62870001   push    NOTEPAD.01008762                 ; /pItem = "Top"  
+0100878A  |.  68 23010000   push    123                              ; |ItemID = 123 (291.)  
+0100878F  |.  6A 00         push    0                                ; |Flags = MF\_BYCOMMAND|MF\_ENABLED|MF\_STRING  
+01008791  |.  50            push    eax                              ; |hMenu  
+01008792  |.  E8 4893D276   call    USER32.AppendMenuA               ; \\AppendMenuA  
+01008797  |>  81FE 11010000 cmp     esi, 111                         ;  如果不是 WM\_COMMAND 就跳,否则就设置是否程序 Top 啦.  
+0100879D  |.  75 3C         jnz     short NOTEPAD.010087DB  
+0100879F  |.  8B45 10       mov     eax, \[arg.3\]                     ;  获得过程的第三个参数  
+010087A2  |.  66:3D 2301    cmp     ax, 123                          ;  这里比较菜单 ID,如果是 123(123 是上面自定义的,可以更改.)就执行下面的代码,不然就返回.  
+010087A6  |.  75 33         jnz     short NOTEPAD.010087DB  
+010087A8  |.  8B15 6C870001 mov     edx, dword ptr ds:\[100876C\]      ;  把当前状态取出来  
+010087AE  |.  6A 13         push    13                               ;  SWP\_NOACTIVATE or SWP\_NOMOVE or SWP\_NOSIZE  
+010087B0  |.  6A 00         push    0  
+010087B2  |.  6A 00         push    0  
+010087B4  |.  6A 00         push    0  
+010087B6  |.  6A 00         push    0  
+010087B8  |.  83FA 00       cmp     edx, 0                           ;  比较当前是否已 Top,0=NoTop,1=Top  
+010087BB  |.  75 0A         jnz     short NOTEPAD.010087C7  
+010087BD  |.  6A FF         push    -1                               ;  HWND\_TOPMOST  
+010087BF  |.  6A 01         push    1                                ;  更改标志为已 Top  
+010087C1  |.  8F05 6C870001 pop     dword ptr ds:\[100876C\]  
+010087C7  |>  74 0A         je      short NOTEPAD.010087D3  
+010087C9  |.  6A FE         push    -2                               ;  HWND\_NOTOPMOST  
+010087CB  |.  6A 00         push    0                                ;  更改标志为已 NoTop  
+010087CD  |.  8F05 6C870001 pop     dword ptr ds:\[100876C\]  
+010087D3  |>  FF75 08       push    \[arg.1\]                          ; |记事本句柄  
+010087D6  |.  E8 4038D176   call    USER32.SetWindowPos              ; \\SetWindowPos  
+010087DB  \\> \\C3            retn                                     ;  返回原子程序  
+  
+好了,保存到文件.  
+  
+第三步:修改代码段属性  
+    用 PE 相关的功能,把.text 段的属性加上能写的属性.  
+  
+好了,完成,试试吧.  
+
+不错，平时用惯记事本了，这个置顶功能比较实用。  
+楼主程序不能跨平台运行是因为调用 API 时直接调用了，例如直接在 OD 里敲入：  
+call   USER32.GetMenu  
+OD 里的汇编指令就是：call    77D2E33E  
+正确的调用方式是通过记事本的 IAT 调用：call    \[1001264\]  
+  
+另外一些函数 AppendMenuA、SetWindowPos 记事本内没有，必须用其他方法调用。例如常用的一种方法：  
+  
+0100878B      push    0100873C                         ; /pModule = "USER32.dll"  
+01008790      call    \[<&KERNEL32.GetModuleHandleA>\]   ; \\GetModuleHandleA  
+01008796      push    01001344                         ; /ProcNameOrOrdinal = "AppendMenuA"  
+0100879B      push    eax                              ; |hModule  
+0100879C      call    \[<&KERNEL32.GetProcAddress>\]     ; \\GetProcAddress  
+010087A2      call    eax  
+
+ 4dd466d0e1e0cc123afbe504da2462ca

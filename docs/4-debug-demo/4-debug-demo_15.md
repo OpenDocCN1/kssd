@@ -1,0 +1,140 @@
+
+
+# Beginner\_Olly\_Tutorial\_part1
+
+> 原文：[`www.pediy.com/kssd/pediy12/22954.html`](https://www.pediy.com/kssd/pediy12/22954.html)
+
+由于我的英文比较菜，中文也比较菜，所以，大概就是这个意思吧 ^-^ ,不妥之处还请各位高手指正：thinkersj@163.com  
+  
+好了，下面就开始吧 ^-^  
+    Gabri3l Tutorial #1  
+  
+Beginner Tutorial: Serial fishing  
+  
+目标软件：  
+WorldTV7.1  
+[`www.netfor2.com/WorldTV.html`](http://www.netfor2.com/WorldTV.html)  
+(TSJ：由于我下载不了这个程序，所以后面的翻译可能会不太准确)  
+工    具：  
+OD1.09d 、PEID0.92 、W32dasm 、HexWorkshop 4.1  
+保护方式：  
+序列号方式  
+其它信息：  
+    This is a tutorial to introduce the new crackers to serial fishing with Olly , I will take  
+You through the steps that I took in cracking this program , This may help you get a   
+Better idea of how to approach new targets .  
+    这是一篇介绍用 OD 来进行破解得到序列号的教程，我将让你知道我在破解这个程序时的一些思路，这或许能帮你在破解时想出一些好的主意。  
+  
+              Intro  
+              介绍  
+  
+所有的工具都能在线得到：  
+[`home.t-online.de/home/Ollydbg/odbg109d.zip`](http://home.t-online.de/home/Ollydbg/odbg109d.zip)  
+[`peid.has.it/`](http://peid.has.it/)  
+[`protools.cjb.net/`](http://protools.cjb.net/)  
+  Let us first get set up and ready to crack, I like to open the folder with my target in it .In this case c:\\program files\\worldtv\\ and make a quick backup that we can work on without fear of screwing up the file. I named mine worldtv2.exe and I will refer to it as such through the tutorial  
+先做一些预备工作并准备破解，打开目标软件所在的文件夹，我的是在 c:\\program files\\worldtv\\ ，并做一个备份，命名为 worldtv2.exe, 同样在这篇教程中我也会用到它。  
+  
+It has become habit to first examine a target with PEiD to determine the packer or protector .Open up PEiD and drag worldtv2.exe into it , The result:”Microsoft Visual C++5.0”.Surprisingly, the target is not packed or protected, That will make it all the easier to crack.  
+首先用 PEiD 检测目标软件以确定它是否有 packer 或 protector。打开 PEiD 并拖拉 worldtv2.exe(TSJ：也就先前备份的那个)到它的界面，结果为:”Microsoft Visual 5.0”。让人惊讶的是，该软件没有 packed 或 protected，这将使它更易于破解。  
+  
+              Body   
+  
+Knowing that we will not need to unpack the executable lets us do a little examination of the protection scheme. Open up worldtv. It goes directly into the nag screen letting us know that it is not registered. That is important to note because it lets us know that it is checking for a registration key (maybe a keyfile or registry key) before the program even loads. Try putting in a random key. Ah, we get a nice little messagebox telling us “Invalid Registration Code”, Let’s write that little message down and save it. If you have read any previous tutorials you know that it may come in handy. Press Okay and the program quits.  
+已经知道了，我们不需要对可执行文件脱壳。要想知道它的保护方案，还需要进一步检查，运行 worldtv，它直接进入了 nag 窗口以让我们知道这是未经过注册的，这个信息非常重要，因为它让我们了解到程序在刚加载时会检查注册码（有可能是注册文件也有可能是注册码），随便输入一个注册码，Ah, 我们会看到一个信息框以告诉我们“Invalid Registration Code”（无效的注册码）,现在先把这个提示信息给记下来，如果你已经看过以前的教程你就会知道这些信息迟早会派得上用场，最后按 Okay 程序退出。   
+  
+Finding the Bytes:  
+   First we are going to try the easy way. We are going to patch the jump that returns the invalid registration box. Run w32dasm and use it to open up WorldTv.exe. We are opening the original WorldTv.exe file so we can work on the copy that we made. After the file has been disassembled ,we will look for the string from the messagebox. To do this click on the String References button at the top of w32dasm, A new window opens up with a list of all strings found in the file. Scroll down until you find “Invalid Registration Code ” and double click it. You should now be at the following lines:  
+   首先我们要试一下最简单的方法，就是 patch(暴破)跳转指令让它跳过无效的注册框。运行 w32dasm 并打开 WorldTv.exe，这里使用原始的目标软件，因此可以对副本进行修改。在反汇编完成之后，就要开始寻找信息框中的字符串了（TSJ：就是刚才记下来的东西），点击 w32dasm 工具栏上的 “串式数据参考” 按钮，就会弹出一个窗口并列出了所有用在文件中被找到的字符串，向下滚动列表直到你发现”Invalid Registration Code”为止，并双击字符串，就会来到如下位置：  
+   
+Looking at the code we see a test eax, eax followed by a jne 0041b51c  
+从下面这段代码中能看到在 test eax, eax 后面的一条指令是 jne 0041b51c  
+   
+We want to change the jne(jump if not equal) to jmp(jump) that way the program will register when you use any serial. To do this we will need to find where the jne instruction is located in WorldTv.exe. That information is found at the bottom of the w32dasm window. You should see:  
+Line:52558 Pg 657 and 658 of 1734 Code Data @:0041B521 @:Offset 0001A915h in File WorldTv.exe  
+We are interested in the Offset value of 0001A915h , Write this number down; ignore the h at the end it just means that the value is hexadecimal.  
+  
+我们想要将 jne（注：0041b515 处）改为 jmp 就可以使用任何序列号来对程序进行注册了，那么首先我们需要得 jne 指令在 WorldTv.exe 中的位置，你会在 w32dasm 下面的窗口发现这些信息，如下：  
+Line:52558 Pg 657 and 658 of 1734 Code Data @:0041B521 @Offset 0001A915h in File WorldTv.exe  
+让我们感兴趣的是 0001A915h 的偏移值，将它记下来，要忽略末尾的 h，它仅仅只是表示这是一个十六进制的值。  
+  
+Patching the Bytes:   
+Begin by opening up WorldTV2.exe in HexWorkshop. Next press CTRL+G to bring up the Goto dialog box, Goto can also be found under Edit. We now want to type in the offset value that we wrote down, in this case 0001A915. Make sure the Hex option is checked and the Beginning of File option is checked. When you are ready press the Go button.  
+   
+先用 HexWorkshop 将 WorldTv2.exe 打开，再按 CTRL+G 弹出 Goto 对话框，也可以 Edit 菜单的下拉选项中找到，现在输入刚才记下来的偏移值 0001A915，确定 Hex 和 Beginning of File 选项都选中之后，再点击 Go 按钮。  
+This will take us to the location of our jne 0041B54C .Now hopefully from previous tutorials you know that 75 is the opcode for the instruction JNE and 74 is the opcode for instruction JE .In this case rather then jumping bad serials we want the program to jump on ANY serial. We will replace 75 with EB which is the instruction for JMP .  
+  
+现在来到 jne 0041B54C 所在的位置，我们知道 75 是 JNE 指令的机器码，74 是 JE 指令的机器码，在这里，我们想让程序在输入任何序列号的情况下都能够跳转，所以要用 EB (jmp)来取代 75 。（TSJ：下图中的 0001A915 处是 74，但实际上这里应该是 75，可能有错！）  
+   
+更改后为：  
+   
+  
+Save WorldTv2.exe, I have made it a habit of choosing YES when asked if I want to make a backup, Now, find your newly patched WorldTv2.exe and run it.  
+It asks for a serial; give it any one you want, I will use 1234567 .Press Validate Registration and ….Success! Registration Code Accepted. Are we done? No.  
+Close WorldTv2.exe and open it back up again. It is still asking for a serial, Now, we could just put in a serial every time we use it but that is annoying. Instead, we are going to find a real serial.  
+保存 WorldTv2.exe, 并在它询问是否生成备份时选 YES，现在找到最新版的 WorldTv2.exe 并运行它。  
+  它需要序列号，输入任何一个你想得到的，我输入的是 1234567，并点击 验证序列号   
+……成功！Registration Code Accepted. 我们已经完成任务了吗？不！(TSJ：要是结束就奇怪了，OD 还没上场呢！)  
+  关闭 WorldTv2.exe 并重新运行备份，它仍然需要序列号，我们可以在每次使用它的时候给它一个序列号但是这样太烦了。解决办法是，要找到真正的序列号。  
+  
+Finding a Serial:  
+To begin, review what we know about the program so far:  
+1.  It checks for a serial when starting up.  
+2.  After registering with a bogus serial it is unregistered the next time you start it up  
+This means that before the program even completely loads it is checking for the existence of a good serial. We need to find out where that serial is being stored. There are usually two places a serial is stored; the registry and in a file. We are going to start with checking the registry. Start up WorldTv2.exe and put in 1324567 as the serial. Validate the serial and then close WorldTv.  
+  Go to your Start menu and find the Run command, A box will open asking you to “Type the name of a program, folder, etc….”. Type in “regedit”, without the quotes, and press enter. You will now be in the regedit window and see a two pane window with a list of folders in the left pane. Click on the plus sign in front of HKEY\_CURRENT\_USER. It will open, you now have another list of folders.Click the plus sign in front of Software. Scroll down until you find WorldTV and click on the folder. Aha! In the right pane we have a key called RegCode with our bogus key:1234567 stored in it. We now know that WorldTV checks the registry for a serial before loading  
+.  
+首先，回顾一下到目前为止我们对这个程序知道了多少：  
+1：在它每次启动时都会检查序列号  
+2：用一个假的序列号注册之后，下次再启动时它又会变成未注册版的  
+这就是说，程序在每次完整的加载之前都会检测已经存在的正确的序列号，所以我们必须找出这个序列号被保存在哪里。通常有两个地方可用于保存序列号：注册表 和 文件。那我们先来检查一下注册表。运行 WorldTv2.exe 并输入 1234567 作为序列号，验证序列号后关闭软件。   
+  点击“开始”菜单，并选”运行”，此时会打开一个对话框并提示你”输入程序的名称，文件夹，等等……”。我们输入”regedit”, 没有引号，然后按回车。此时你会来到 注册表编辑窗口并看到两个面板窗口，左边的那个是文件夹列表窗口。单击 HKEY\_CURRENT\_USER 前的加号，会展开很多文件夹，单击 Software 前面的加号标记，向下滚动直到看见 WorldTv 并单击该文件夹，Aha!( TSJ：大惊小怪的……) 在右边的面板中我们看一个键项叫做 RegCode 并且我们的假序列号 1234567 就保存在这里，现在我们已经知道了 WorldTv 在加载之前会从注册表中检查序列号。  
+  
+We are going to start by opening Ollydbg. I am using version 1.09d because I found 1.10 will sometimes crash when setting a breakpoint. Using Ollydbg, open the original WorldTV.exe.  
+使用 Ollydbg 打开原始的 WorldTv.exe。我使用的 OD 版本是 1.09，因为我发现 1.10 版的 OD 有时候在设置断点会崩溃。（TSJ：我好像没有遇到过这个问题，建议他使用汉化版!^-^）  
+   
+  
+You should see something similar to the image above. Before pressing the Run key   we want to set some breakpoints first. Right-click in the Code window of Olly and choose Search For, select All Intermodular Calls. This will bring up the Calls window. Sort the calls by Destination. Scroll down until you find RegQueryValueExA. Select it and Right-Click; set a breakpoint on every call to RegQueryValueExA  
+  
+你应该见过一些类似于上面这样的图片，在按 Run 键 （或按 F9）之前，得先设置一些断点，在代码窗口中右键单击，然后选择 Search For（搜索）---- > All Intermodular Calls.(所有模块间的调用)，此时会弹出”模块间的调用窗口”，并根据目的地址排序函数调用，向下滚动直到找到 RegQueryValueExA，选中并右击 然后选择”设置每次调用到 RegQueryValueExA 的断点”。  
+  
+   
+Now press the Run button  . You will first break at  FF15 0C304400 CALL DWORD PTR DS:\[<&ADVAPI32.RegQueryValueExA>\]. If you look at the Register's window on the right side of Olly, you will see EDI is holding the ASCII value "Recordings". This is not the registry key we are looking for so press Run again. We break again on the Recordings registry key so press Run again. We will have to press Run 24 more times before we break here:  
+现在点击运行按钮 （或按 F9），你首先会中断在 FF15 0C304400 CALL DWORD PTR DS:\[<&ADVAPI32.RegQueryValueExA>\].如果你此时查看 OD 右边的寄存器窗口，你就会发现 EDI 保存的是 ASCII 字符串值"Recordings".这个不是我们要找的序列号，所以再次按 Run（或按 F9）按钮，我们又一次中断在 Recordings 处，继续 Run（或按 F9）  
+在我们来到下面的地址之前，已经按了 24 次之多的 Run ,  
+   
+Notice the Value of EAX is ASCII "RegCode". Press Run once more and we are now here:  
+注意 EAX 的值中字符串"RegCode"，按最少一次 Run 我们来到了下面的地方：  
+   
+And ECX now holds the ASCII value "RegCode". We know we are getting close because WorldTV just looked for the registration code. We are now going to step through  the code and pay attention to the Registers.  After a few steps we find that ESI is holding our bogus serial 1234567 and EDI is holding 00000000-00000000-00000000-00000000. This is interesting, however I doubt that a bunch of zeros is the registration code. Stepping through some more, we see that EDI is shortened to -00000000-00000000-00000000. This still does not give us the serial. Continue to step through past where EDI is replaced by "C:\\Program Files\\WorldTV\\Scheduler.txt.tmp". You will find soon after that point that you come to here:  
+  
+并且 ECX 现在也保存着字符串"RegCode".现在我们选择步过 （或按 F8）这些代码，此时应该注意寄存器的值，几步之后，就会发现 ESI 保存着我们的假序列号 1234657 而 EDI 保存着 00000000-00000000-00000000-00000000.这个太有趣了，无论如何我都怀疑一串 0 也会正确的序列号。再有几个单步（或按 F8）我们会发现 EDI 中的值变短了，成了：-00000000-00000000-00000000.这个仍然不是我们想要的序列号。之后 EDI 的值变成了"C:\\Program Files\\WorldTV\\Scheduler.txt.tmp"，继续单步（或按 F8），，  
+你将在不久之后在这里发现要点：  
+    
+Notice that EAX, EBX, and EDX were all zeroed out. Also we see an ASCII value moved into EDI. It is here we are going to start seeing our serial come together. After a little more stepping through we find that we are in a loop. We can see that a serial is being made and can be seen at this address: MOV EDI,WorldTV.004C8950. Rather than stepping through the code line by line we are going to set a breakpoint on MOV EDI,WorldTV.004C8950 and watch our serial come together. Select the line and press F2 to set a breakpoint. Now press the Run button a few times and we can watch our serial build itself  
+注意 EAX, EBX, 和 EDX 都已经变成 0 了，同样一个 ASCII 值(“00”)也被放入了 EDI 中，在这里我们将会看到真正的序列号,在几个单步(或按 F8)之后会发现我们正处在一个循环之中。我们能看到那个序列号正在逐渐形成，并将在这条指令中看到了最终结果：MOV EDI,WorldTV.004C8950.在几个单步之后，我们将要在这里设置一个断点 MOV EDI,WorldTV.004C8950 以监测正确的序列号，来到这条指令所在的行按 F2 设置一个断点，好了，按 Run 按钮(或按 F9)，几次之后，我们注意到序列号已形成了。  
+  
+   
+Paying attention to EDI earlier we know that our serial is either 4 sets of 8 characters or 3 sets of eight characters. As you get near 3 full sets slow down or you will miss the serial. When you only have 2 characters left to go stop pressing the Run button and just step through the code. When you step past the following line REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR DS:\[ESI\] you will see the last two characters of your serial added on.  
+注意 EDI 中的值，便会知道序列号有可能是由 4 段，每段 8 个字符组成的，也有可能是由 3 段，每段 8 个字符组成（TSJ:对比上下图就会发现）。当序列号快要完成时，就要放慢速度了，当还有两个字符时(TSJ:如上图)停止按 Run（F9）改为单步（F8），当你步过这行时 REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR DS:\[ESI\] 你将会发现序列号的最后两个字符也加上了(TSJ:如下图)  
+   
+Go ahead and write this number down. Press Run again to see if there is another set of characters to be added. Nope. Pressing Run again will start you through another loop where a separate serial is calculated (for what? I am not sure because it would not register the program).  
+向前走并把这个序列号记下来，再次按 Run 按钮(或按 F9)检查是否有其它的增加字符的操作，（为什么呢？我不是很确定，或许因为它不可能注册这个程序）。  
+Go ahead and close Ollydbg. Open up the original WorldTv.exe and try registering with the serial we worte down. Registration Code Accpeted, we have successfully registered WorldTV with a real serial. No patching involved!  
+继续向前走一会儿，然后关闭 OD。现在打开原始的程序 WorldTv.exe 并用我们刚才记下来的序列号进行注册。Registration Code Accpeted！！现在，我们已经用正确的序列号注册了 WorldTV 而不是用爆破的！  
+  
+Conclusion:  
+结论：  
+I used this particular program purely as a demonstration for finding a serial using Ollydbg. If like the program and are going to use it please purchase it.  
+我使用这个特殊（TSJ:可能是因为它没有加壳吧）的程序作为示例，并且用 Ollydbg 找到了它的序列号，如果你喜欢这个程序并想使用它，请去购买。  
+  
+Thanks to all the people who take time to write tutorials. Without the teaching’s of others we would all lack knowledge. Thanks to Exetools, Woodmann, and Arteam for being a great place of learning.  
+感谢所有花时间写教程的人们，没有他们的教导我们可能一无所知，感谢：Exetools、Woodmann、Arteam 这都是一些学习的好地方  
+If you have any suggestions, comments or corrections email me: Gabri312003@yahoo.com  
+  
+后话：终于完了，……@#,,这是一篇很好的 OD 入门教程，但是他用的示例程序我没有下到，希望没有因为我糟糕的 E 文水平而使这篇文章晦涩难懂，欢迎指正：thinkersj@163.com  
+  
+
+上传的附件
+| ![](img/67af4f1ef9c98996f43e89e749c7dcf5.jpg) || 初学者指南 1.rar  
+ |

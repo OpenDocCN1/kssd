@@ -1,0 +1,479 @@
+
+
+# 国服游戏封包解密-外挂制作全过程
+
+> 原文：[`www.pediy.com/kssd/pediy12/87610.html`](https://www.pediy.com/kssd/pediy12/87610.html)
+
+\[软件\]国服游戏-路尼亚战记  
+\[工具\]OD，Wep,以及其它的一些文本工具  
+\[目的\]研究游戏保护技术，深论协议级分析。  
+  
+意在抛砖引玉，抵制游戏外挂。我会在每个分析点做出一些保护上的思考。  
+  
+开始正文。  
+  
+一个多月前，有看过一些游戏，DNF，路尼亚战记。他们大概是属于那种靠操作，连招一张地图一张地图那种游戏。DNF 是由腾迅公司代理的，自己做了点不强的小保护，但是还是被别人开发出了外挂。居然还有全屏秒杀怪功能。  
+从朋友那里大概了解了点游戏开发的一些设计思路，就服务器和客户端而言，有强服务器弱客户端，和强客户端，弱服务器。之类的分别。  
+  
+大概 dnf 这样的游戏是属于强客户端这样的游戏，所以才有可能开发出全屏秒杀。二者主要的区别在于，把主要运算是放在服务器端，还是放在客户端。  
+  
+经过我的分析，像路尼亚战记这样的游戏，是属于强服务器的。  
+  
+前边所有的东西------我就不说了，开始分析。  
+  
+  
+首先，注册个帐号，创建角色，然后登陆游戏。OD--附加游戏进程。  
+  
+既然是分析协议，我们就在 send 处下段。  
+  
+  
+在开始讲解之前，首先要明确以下一些事。第一，我们明确的知道，我们的发送包是经过加密处理了的。第二，我们要明确，我们要分析的 send 动作大概是什么，比如说走一步，又比如说要打开一个仓库。  
+  
+对于第二点，我们采用在 send 处，下段，然后在很快的反映时间里，给游戏一个动作。然后观察 send 数据。  
+  
+这里我选择的是打开武器铺，我们发现其打开武器铺的数据长度是 0x0e.  
+  
+  
+71A24288      90            nop  
+71A24289      90            nop  
+71A2428A >    8BFF          mov     edi, edi                         ;  dword ptr \[esp+0x0c\] == 0x0e  
+71A2428C   .  55            push    ebp  
+71A2428D   .  8BEC          mov     ebp, esp  
+71A2428F   .  83EC 10       sub     esp, 10  
+71A24292   .  56            push    esi  
+71A24293   .  57            push    edi  
+71A24294   .  33FF          xor     edi, edi  
+71A24296   .  813D 2840A371>cmp     dword ptr \[71A34028\], 71A29448   ;  入口地址  
+71A242A0   .  0F84 AD730000 je      71A2B653  
+71A242A6   >  8D45 F8       lea     eax, dword ptr \[ebp-8\]  
+71A242A9   .  50            push    eax  
+  
+  
+下条件断点。  
+  
+然后，当我们打开武器铺的时候，程序就会中断在那里。  
+  
+然后，这时候，我们想知道的是，什么时候，其向 send 数据包里，那段内存写入了数据，我们才能回烁跟踪。  
+  
+方法很多，我就不一一说了，就针对这个游戏。谈谈...  
+  
+我们多次打开武器库，观察发现，其每次发送的数据的内存地址都是一个。我们根据这个地方下硬件访问断点就好了。  
+  
+\-------这里，要谈谈游戏保护技术了。我觉得好点的保护，特别是在 send 点这里，send 的数据内存地址，应该尽力保持活跃，跳动。不能一直固定。好象（分析有段时间了，记忆就忘记了），朱仙这点就做的比较好，在 send 数据的时候。内存点会变。  
+  
+但是使用 alloc 和 reallloc 等函数，又难免会被别人在这些关键点的地方下断点。作为一个破解分析者，首先会考虑的是以最高效的方法做出分析。不会把所有的游戏代码，反汇编读完。所以一些关键点，应该考虑离散性高，偶合性高。高的偶合会让分析者迷茫，找不到关键点。高的离散，会让分析者解读不出确实的意义。  
+  
+接下来继续。  
+  
+007332C0    51              push    ecx  
+007332C1    8B4424 0C       mov     eax, dword ptr \[esp+C\]  
+007332C5    85C0            test    eax, eax  
+007332C7    55              push    ebp  
+007332C8    8B6C24 0C       mov     ebp, dword ptr \[esp+C\]  
+007332CC    57              push    edi  
+007332CD    8BF9            mov     edi, ecx  
+007332CF    74 63           je      short 00733334  
+007332D1    53              push    ebx  
+007332D2    894424 18       mov     dword ptr \[esp+18\], eax  
+007332D6    56              push    esi  
+007332D7    EB 07           jmp     short 007332E0  
+007332D9    8DA424 00000000 lea     esp, dword ptr \[esp\]  
+007332E0    8A45 00         mov     al, byte ptr \[ebp\]  
+007332E3    884424 18       mov     byte ptr \[esp+18\], al  
+007332E7    8B47 04         mov     eax, dword ptr \[edi+4\]  
+007332EA    8D48 01         lea     ecx, dword ptr \[eax+1\]  
+007332ED    894424 10       mov     dword ptr \[esp+10\], eax  
+007332F1    04 04           add     al, 4  
+007332F3    894F 04         mov     dword ptr \[edi+4\], ecx  
+007332F6    8D5424 10       lea     edx, dword ptr \[esp+10\]  
+007332FA    8AC8            mov     cl, al  
+007332FC    BE 03000000     mov     esi, 3  
+00733301    8A42 01         mov     al, byte ptr \[edx+1\]  
+00733304    42              inc     edx  
+00733305    B3 49           mov     bl, 49  
+00733307    F6EB            imul    bl  
+00733309    34 15           xor     al, 15  
+0073330B    02C8            add     cl, al  
+0073330D    4E              dec     esi  
+0073330E  ^ 75 F1           jnz     short 00733301  
+00733310    0FB64424 18     movzx   eax, byte ptr \[esp+18\]  
+00733315    0FB6D1          movzx   edx, cl  
+00733318    8B4F 08         mov     ecx, dword ptr \[edi+8\]  
+0073331B    C1E2 08         shl     edx, 8  
+0073331E    03D0            add     edx, eax  
+00733320    8A140A          mov     dl, byte ptr \[edx+ecx\]  
+00733323    8B4424 1C       mov     eax, dword ptr \[esp+1C\]  
+00733327    8855 00         mov     byte ptr \[ebp\], dl  
+0073332A    45              inc     ebp                              ; 这里  
+0073332B    48              dec     eax  
+0073332C    894424 1C       mov     dword ptr \[esp+1C\], eax  
+00733330  ^ 75 AE           jnz     short 007332E0  
+00733332    5E              pop     esi  
+00733333    5B              pop     ebx  
+00733334    5F              pop     edi  
+00733335    5D              pop     ebp  
+00733336    59              pop     ecx  
+00733337    C2 0800         retn    8  
+  
+  
+我们在硬件断点的第二次 F9 条到这里。  
+  
+一般经过 N 次的观察之后，我们会发现。这里其实就是封包的加密函数。  
+  
+这里谈谈经验之谈。通常加密函数，都会和普通函数有所不同。因为从意义上来说，加密函数，主要完成的是数据加密，变换。所以其使用的指令，和其指令的方式会和正常函数有所不同。比如涉及到位操作，byte 操作，会比较多。比如 md5 等，一看就 shl 什么指令就是一篇篇。  
+  
+这里我们再谈谈，保护上的一些东西。--我觉得，位的变换，和其它的东西，不能一步写死到一个函数头，不然，解密者，就会像我做的一样。找到加密 call,分析加密 call 参数，然后分析出具体加密函数。然后就可以自己写封包加密了。  
+  
+这游戏这点做的相当之差。  
+  
+然后一个 ctrl+F9,就来到下边这里。  
+  
+  
+00733340    56              push    esi  
+00733341    8B7424 08       mov     esi, dword ptr \[esp+8\]  
+00733345    8B06            mov     eax, dword ptr \[esi\]  
+00733347    57              push    edi  
+00733348    8BF9            mov     edi, ecx  
+0073334A    8BCE            mov     ecx, esi  
+0073334C    FF50 04         call    dword ptr \[eax+4\]                ; 取长度  
+0073334F    8B16            mov     edx, dword ptr \[esi\]  
+00733351    50              push    eax  
+00733352    8BCE            mov     ecx, esi  
+00733354    FF52 10         call    dword ptr \[edx+10\]               ; 取包明问  
+00733357    50              push    eax  
+00733358    8BCF            mov     ecx, edi  
+0073335A    E8 61FFFFFF     call    007332C0                         ; 堆栈结构依次为-封包明问-长度-解码表地址  
+0073335F    8B06            mov     eax, dword ptr \[esi\]  
+00733361    8BCE            mov     ecx, esi  
+00733363    FF50 04         call    dword ptr \[eax+4\]  
+00733366    5F              pop     edi  
+00733367    5E              pop     esi  
+00733368    C2 0400         retn    4  
+  
+  
+然后就慢慢分析了哈。  
+  
+下边贴出，一个月前，写的针对这个游戏的内挂的一些测试代码。各位可以配合到看，方便理解。  
+  
+  
+  
+#include    "InjectDll.h"  
+  
+//BYTE  nCmd\[0x0e\]={0x0E,0x00,0xe0,0x55,0x91,0x10,0x09,0x00,0x00,0x00,0x00,0x00,0x00,0x00};  
+unsigned long   MyApi = 0;  
+unsigned long   hookApi = 0;  
+DWORD     dwWrite = 0;  
+BYTE      lpResetSend\[0x05\]={0x8B,0XFF,0X55,0X8B,0XEC};//用于恢复 HookSend 的 5 个字节  
+HINSTANCE hws2\_32 = NULL;//ws2\_32 句柄  
+HANDLE    my\_sendhandle;//保存用语发送 send 的句柄  
+  
+  
+int WINAPI DllMain(HANDLE hinstDll, DWORD fdwReason, LPVOID lpvReserved)  
+{  
+   // MessageBox( NULL, "yes", "yes", MB\_OK);  
+    hModule = hinstDll;  
+    DWORD   dwThread;  
+   // UiThread( NULL);  
+   //   
+  
+     
+    switch(fdwReason)  
+    {  
+    case DLL\_PROCESS\_ATTACH:  
+        MessageBox( NULL, "Debug", "Debug", MB\_OK);  
+        CreateThread( NULL, 0,(unsigned long (\_\_stdcall \*)(void \*))UiThread,NULL,0,&dwThread);  
+         
+        break;  
+    case DLL\_THREAD\_ATTACH:  
+        break;  
+    case DLL\_THREAD\_DETACH:  
+        break;  
+    case DLL\_PROCESS\_DETACH:  
+        break;  
+    }  
+     
+    return TRUE;  
+}  
+  
+DWORD    WINAPI   UiThread(LPARAM lParam)  
+{  
+    MSG msg;  
+    HWND hWnd;  
+    hWnd = CreateDialog( (HINSTANCE)hModule, MAKEINTRESOURCE(IDD\_MAIN\_PAGE), NULL, MainProc);  
+    ShowWindow( hWnd, SW\_SHOW);  
+    UpdateWindow( hWnd);  
+    while(GetMessage(&msg,NULL,0,0))  
+    {  
+     TranslateMessage(&msg);  
+     DispatchMessage(&msg);  
+    }  
+    return 0;  
+}  
+  
+int CALLBACK MainProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam)  
+{  
+      
+    BYTE  nCmd\[RUN\_RIGHT\_LEN\]={RUN\_RIGHT};  
+    HINSTANCE hws2\_32;  
+    static  DWORD dwCount\[2\] = {0x58548565,0x00c45878};  
+    static  HANDLE hFile;  
+    BYTE    lpBuffer\[0x2\];  
+    char    szFormat\[7\];  
+    static  DWORD dwWrite = 7;  
+    RtlZeroMemory( lpBuffer,0x2 );  
+    DWORD dwRead;  
+    DWORD lpRead=0;  
+    int     nindex=0;  
+    switch( uMsg)  
+    {  
+    case WM\_COMMAND:  
+        switch(wParam)  
+        {  
+        case IDC\_BTN\_TEST:  
+             
+          //  MessageBox( NULL,"debug","debug",MB\_OK);  
+           GoRight();  
+      //Speck\_Something( "yangzhihao");  
+          
+          
+        /\*  
+                 封包加密 call  
+  
+                 组织然后 send  
+           \*/  
+              
+               
+         //   MessageBox( NULL, "call","call", MB\_OK);  
+              
+            /\*\_\_asm{  
+                    pushad  
+                    push 0x0e  
+                    lea  eax, nCmd  
+                    push eax  
+                    mov  eax,0x23ba078  
+                    mov  ecx,eax  
+                    mov  ebx,0x729a00  
+                    mov  eax,0x0e  
+                    call ebx  
+                    popad  
+                }  
+           
+            hws2\_32 = LoadLibrary( "ws2\_32.dll");  
+            (unsigned long)::GetProcAddress( hws2\_32, "send");  
+            \_\_asm  
+            {  
+                  
+                push 0x00  
+                push 0x0e  
+                lea  ebx, nCmd  
+                push ebx  
+                mov  ebx,my\_sendhandle  
+                push ebx  
+                call eax  
+            }  
+            \*/  
+              
+            break;  
+             case    IDC\_READ\_TABLE:  
+             MessageBox( NULL, "write", "write", MB\_OK);  
+             for( nindex;nindex<0xa7a9;nindex++)  
+              {  
+                  
+                    lpRead = 0x00c45878+nindex;  
+                    ReadProcessMemory( GetCurrentProcess(), (LPVOID)lpRead,lpBuffer, 0x01, &dwRead);  
+                    sprintf( szFormat,"0x%2x",lpBuffer\[0\]);  
+                    WriteFile( hFile, szFormat, dwWrite, &dwRead, 0);  
+  
+              }  
+                  
+            break;  
+             case IDC\_BTN\_HOOK:  
+                  hws2\_32 = LoadLibrary( "ws2\_32.dll");  
+                  hookApi = (unsigned long)::GetProcAddress( hws2\_32, "send");  
+                  MyApi = (unsigned long )GetSendPara;  
+                  \_HOOK\_APIN( MyApi, hookApi);  
+  
+                 break;  
+        default:  
+            break;  
+        }  
+        break;  
+      
+    case WM\_INITDIALOG:  
+        hFile = CreateFile( "c:\\\\MYDebugLog.txt",GENERIC\_READ | GENERIC\_WRITE ,FILE\_SHARE\_READ|FILE\_SHARE\_WRITE,  
+            NULL,OPEN\_ALWAYS ,FILE\_ATTRIBUTE\_NORMAL,0);  
+        break;  
+    case WM\_CLOSE:  
+        EndDialog( hWnd, 0);  
+        break;  
+    default:  
+        DefWindowProc( hWnd, uMsg, wParam, lParam);  
+    }  
+    return 0;  
+}  
+  
+  
+  
+  
+  
+/\*取 send 句柄\*/  
+void    GetSendPara(void)  
+{  
+  
+     \_\_asm  
+     {  
+        /\*首先要堆栈平衡下 因为 VC6 前边会有压栈操作\*/  
+        pop eax  
+        pop eax  
+        pop eax  
+        pop eax  
+         
+        /\*执行判断操作，取 send 的句柄\*/  
+        mov eax, dword ptr \[esp + 0x0c\]  
+        cmp eax,0x0e  
+        jnz JMP\_HOOM  
+        mov eax,dword ptr\[esp+0x04\]  
+        mov my\_sendhandle,eax  
+     }  
+     WriteProcessMemory( GetCurrentProcess(), (void\*)hookApi, lpResetSend, 0x05, &dwWrite);  
+     dwWrite = 0;  
+     \_\_asm  
+     {  
+          
+JMP\_HOOM:  
+        /\*跳会原来的地方\*/  
+        sub ebp,0x04  
+        mov eax,hookApi  
+        mov edi,edi  
+        push ebp  
+        mov  ebp,esp  
+        add eax,5  
+        jmp eax  
+   
+     }  
+     return;  
+}  
+  
+  
+  
+void    Encode( BYTE\* pCmd, int nLen)  
+{  
+       \_\_asm{  
+               pushad  
+               mov  eax,dword ptr\[esp+0x34\]//长度  
+               push eax  
+               mov  eax, dword ptr\[esp+0x34\]//命令明文序列  
+               push eax  
+               mov  eax,0x2fd078 // 硬编码---编码表--和计数表  
+               mov  ecx,eax  
+               mov  ebx,0x729a00//加密 call  
+               mov  eax,dword ptr\[esp+0x08\]//长度  
+               call ebx  
+               popad  
+             }  
+       return;  
+}  
+  
+  
+void    GoRight()  
+{  
+    BYTE lpCmd\[RUN\_RIGHT\_LEN\] = {RUN\_RIGHT};  
+    Encode( lpCmd,RUN\_RIGHT\_LEN);  
+      
+    /\*发送封包\*/  
+    hws2\_32 = LoadLibrary( "ws2\_32.dll");  
+    (unsigned long)::GetProcAddress( hws2\_32, "send");  
+    \_\_asm  
+     {  
+                  
+           push 0x00  
+           push RUN\_RIGHT\_LEN  
+           lea  ebx, lpCmd  
+           push ebx  
+           mov  ebx,my\_sendhandle  
+           push ebx  
+           call eax  
+       }  
+}  
+  
+void    Speck\_Something(char\* pSpeckBuffer)  
+{  
+    //MessageBox( NULL, "speck","speck",MB\_OK);  
+    BYTE  packLen;  
+  int count = 0;  
+  WCHAR  wszSpec\[MAX\_PATH\];  
+  RtlZeroMemory( wszSpec,MAX\_PATH\*2);  
+  
+    count = strlen( pSpeckBuffer);  
+  
+  long nwLong = MultiByteToWideChar( CP\_ACP, 0, pSpeckBuffer, strlen(pSpeckBuffer),  
+                      wszSpec,sizeof(wszSpec));  
+  
+    BYTE    temp\[0x08\]={SPECK\_ONE};  
+    BYTE    \*lpCmd;  
+    lpCmd = new BYTE \[200\] ; //申请一块封包的内存  
+  
+  RtlZeroMemory( lpCmd, 200);  
+      
+    memcpy( lpCmd,temp,0x08);    //com 封包命令  
+    memcpy( lpCmd,(void\*)&count,0x01);  
+    
+  packLen = (BYTE)0x0c+nwLong\*2+2;  //包头 封包整个长度  
+  lpCmd\[0\] = packLen;  
+  lpCmd \[0x0A\] = (BYTE)nwLong+1;//包的 11 个字节 字符串长度  
+  
+  memcpy( (lpCmd+12), wszSpec, nwLong\*2+1);//把字符放入消息  
+  
+  Encode( lpCmd, (int)lpCmd\[0\]);  
+  
+  
+  hws2\_32 = LoadLibrary( "ws2\_32.dll");  
+    (unsigned long)::GetProcAddress( hws2\_32, "send");  
+    \_\_asm  
+     {  
+                  
+        push 0x00  
+        push packLen  
+        lea  ebx, lpCmd  
+        push ebx  
+        mov  ebx,my\_sendhandle  
+        push ebx  
+        call eax  
+     }  
+  
+   // delete \[\] lpCmd;  
+      
+}  
+  
+由于是测试代码，写的相当潦草。这是个 dll 代码，这个代码是注如到游戏进程的。有 hook api 操作。  
+  
+在操作这前，先抓出明文封包动作  
+  
+#ifndef     \_\_COMMON\_H\_  
+#define     \_\_COMMON\_H\_  
+  
+#include    <windows.h>  
+  
+  
+BOOL \_HookApi( unsigned long \_My\_Addr, unsigned long \_Hook\_Addr);  
+  
+  
+/\*command 数据\*/  
+/\*向右走\*/  
+#define RUN\_RIGHT\_LEN   0x0e  
+#define RUN\_RIGHT   0x0e,0x00,0xe0,0x55,0x8d,0xe2,0x00,0x00,0x00,0x00,0x06,0x00,0x00,0x00  
+  
+/\*喊话\*/  
+//喊话封包的长度不固定-首部为封包长度-然后 8 个字节的命令.接着 4 个字节的字符长度.跟到字符串  
+#define SPECK\_ONE   0x00,0x00,0xe0,0x55,0xb9,0x6f,0x00,0x00  
+  
+  
+  
+  
+#endif  
+  
+  
+  
+  
+  
+然后就 xxxx.....

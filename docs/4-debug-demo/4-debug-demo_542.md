@@ -1,0 +1,446 @@
+
+
+# QQ 消息查看器去校验一例
+
+> 原文：[`www.pediy.com/kssd/pediy10/90732.html`](https://www.pediy.com/kssd/pediy10/90732.html)
+
+【作者声明】：没什么技术含量,失误之处敬请诸位大侠赐教  
+【软件名称】: 程序实例见附件([`bbs.pediy.com/showthread.php?t=90732`](http://bbs.pediy.com/showthread.php?t=90732)附件下载)  
+【调试环境】：WinXP sp 2、OD、PEiD、LordPE、ImportREC   
+  
+在天草论坛上看到的求助帖 遂下来看了看 感觉这个程序还有点意思  
+PEiD 查看 显示 ASPack 2.12 -> Alexey Solodovnikov 哈哈 用 esp 定律脱之  
+忽略所有异常  
+  
+0049A001 >  60                   pushad                                                    ；程序入口  
+0049A002    E8 03000000          call QQLog.0049A00A                                       ；f8 单步到这里 命令行下断 hr esp F9 运行  
+0049A007  - E9 EB045D45          jmp 45A6A4F7  
+0049A00C    55                   push ebp  
+0049A00D    C3                   retn  
+  
+0049A3B0   /75 08                jnz short QQLog.0049A3BA                                  ；来到这里 继续单步  
+0049A3B2   |B8 01000000          mov eax,1  
+0049A3B7   |C2 0C00              retn 0C                                               
+0049A3BA   \\68 89794200          push QQLog.00427989                                       ；这里  
+0049A3BF    C3                   retn  
+  
+00427989    E8 1C840000          call QQLog.0042FDAA                                       ；f8 单步   
+0042798E  ^ E9 16FEFFFF          jmp QQLog.004277A9  
+  
+  
+004277A9    6A 60                push 60                                                   ；上面跳到 oep  
+004277AB    68 28854400          push QQLog.00448528  
+004277B0    E8 9B030000          call QQLog.00427B50  
+004277B5    8365 FC 00           and dword ptr ss:\[ebp-4\],0  
+004277B9    8D45 90              lea eax,dword ptr ss:\[ebp-70\]  
+004277BC    50                   push eax  
+004277BD    FF15 1CC14300        call dword ptr ds:\[43C11C\]                                ; kernel32.GetStartupInfoA  
+004277C3    C745 FC FEFFFFFF     mov dword ptr ss:\[ebp-4\],-2  
+004277CA    BF 94000000          mov edi,94  
+004277CF    57                   push edi  
+004277D0    6A 00                push 0  
+004277D2    8B1D 50C24300        mov ebx,dword ptr ds:\[43C250\]                             ; kernel32.GetProcessHeap  
+004277D8    FFD3                 call ebx  
+004277DA    50                   push eax  
+004277DB    FF15 04C14300        call dword ptr ds:\[43C104\]                                ; ntdll.RtlAllocateHeap  
+  
+  
+LoadPE dump 程序 然后 IR 修复 心里窃喜 当我点击运行的时候出现了错误   
+  
+应用程序发生异常 unknown software exception (0x80000003),位置为 0x0040604d  
+要终止程序，请单击“确定”。  
+要调试程序，请单击“取消”。  
+  
+既然错误发生在 0040604d 我们重新加载修复后的程序  ctrl + g 到 0040604d 去 然后下内存访问断点 f9 运行 来到这里  
+00403B4A  |> |8000 0A            |add byte ptr ds:\[eax\],0A                                 ;  \*\*\*\*\*\*\*\* 来到这里    
+00403B4D  |. |83C6 01            |add esi,1                                                ; 单步一下 看到 0040604d 处的指令变成 int3  
+  
+  
+00403B50  |. |83C0 01            |add eax,1  
+00403B53  |. |3BF7               |cmp esi,edi  
+00403B55  |.^\\0F82 46FEFFFF      \\jb dumped\_.004039A1  
+00403B5B  |.  5B                 pop ebx  
+00403B5C  |.  5E                 pop esi  
+00403B5D  |.  5F                 pop edi  
+00403B5E  |.  C3                 retn  
+  
+下面是一段 smc 代码 代码主要作用是从 00406019 开始 1178 的大小内存地址中找 EB 08 7A 64 6B 63 72 79 08 EB 找到之后用 nop 填充 如果没有找到则将  
+其内容加上 A  
+004039A1  |> /85F6               /test esi,esi  
+004039A3  |. |0F85 0D010000      |jnz dumped\_.00403AB6                                      ;  刚开始 esi = 0  
+004039A9  |. |83FF 0A            |cmp edi,0A                                                ;  edi = 1178  
+004039AC  |. |72 5A              |jb short dumped\_.00403A08  
+004039AE  |. |33C9               |xor ecx,ecx  
+004039B0  |. |3810               |cmp byte ptr ds:\[eax\],dl                                  ;  esi = 00406019 刚开始与 90 比较  
+004039B2  |. |75 03              |jnz short dumped\_.004039B7  
+004039B4  |. |8D4E 01            |lea ecx,dword ptr ds:\[esi+1\]  
+004039B7  |> |3850 01            |cmp byte ptr ds:\[eax+1\],dl  
+004039BA  |. |75 03              |jnz short dumped\_.004039BF  
+004039BC  |. |83C1 01            |add ecx,1  
+004039BF  |> |3850 02            |cmp byte ptr ds:\[eax+2\],dl  
+004039C2  |. |75 03              |jnz short dumped\_.004039C7  
+004039C4  |. |83C1 01            |add ecx,1  
+004039C7  |> |3850 03            |cmp byte ptr ds:\[eax+3\],dl  
+004039CA  |. |75 03              |jnz short dumped\_.004039CF  
+004039CC  |. |83C1 01            |add ecx,1  
+004039CF  |> |3850 04            |cmp byte ptr ds:\[eax+4\],dl  
+004039D2  |. |75 03              |jnz short dumped\_.004039D7  
+004039D4  |. |83C1 01            |add ecx,1  
+004039D7  |> |3850 05            |cmp byte ptr ds:\[eax+5\],dl  
+004039DA  |. |75 03              |jnz short dumped\_.004039DF  
+004039DC  |. |83C1 01            |add ecx,1  
+004039DF  |> |3850 06            |cmp byte ptr ds:\[eax+6\],dl  
+004039E2  |. |75 03              |jnz short dumped\_.004039E7  
+004039E4  |. |83C1 01            |add ecx,1  
+004039E7  |> |3850 07            |cmp byte ptr ds:\[eax+7\],dl  
+004039EA  |. |75 03              |jnz short dumped\_.004039EF  
+004039EC  |. |83C1 01            |add ecx,1  
+004039EF  |> |3850 08            |cmp byte ptr ds:\[eax+8\],dl  
+004039F2  |. |75 03              |jnz short dumped\_.004039F7  
+004039F4  |. |83C1 01            |add ecx,1  
+004039F7  |> |3850 09            |cmp byte ptr ds:\[eax+9\],dl  
+004039FA  |. |75 03              |jnz short dumped\_.004039FF  
+004039FC  |. |83C1 01            |add ecx,1  
+004039FF  |> |83F9 0A            |cmp ecx,0A  
+00403A02  |. |0F84 65010000      |je dumped\_.00403B6D  
+00403A08  |> |8A18               |mov bl,byte ptr ds:\[eax\]                                    ;  将 eax 存放的 eb 赋给 bl  
+00403A0A  |. |33C9               |xor ecx,ecx  
+00403A0C  |. |3A1D A4B14400      |cmp bl,byte ptr ds:\[44B1A4\]                                 ;  44b1a4 存放的是 EB 08 7A 64 6B 63 72 79  
+00403A12  |. |75 05              |jnz short dumped\_.00403A19  
+00403A14  |. |B9 01000000        |mov ecx,1  
+00403A19  |> |8A58 01            |mov bl,byte ptr ds:\[eax+1\]  
+00403A1C  |. |3A1D A5B14400      |cmp bl,byte ptr ds:\[44B1A5\]  
+00403A22  |. |75 03              |jnz short dumped\_.00403A27  
+00403A24  |. |83C1 01            |add ecx,1  
+00403A27  |> |8A58 02            |mov bl,byte ptr ds:\[eax+2\]  
+00403A2A  |. |3A1D A6B14400      |cmp bl,byte ptr ds:\[44B1A6\]  
+00403A30  |. |75 03              |jnz short dumped\_.00403A35  
+00403A32  |. |83C1 01            |add ecx,1  
+00403A35  |> |8A58 03            |mov bl,byte ptr ds:\[eax+3\]  
+00403A38  |. |3A1D A7B14400      |cmp bl,byte ptr ds:\[44B1A7\]  
+00403A3E  |. |75 03              |jnz short dumped\_.00403A43  
+00403A40  |. |83C1 01            |add ecx,1  
+00403A43  |> |8A58 04            |mov bl,byte ptr ds:\[eax+4\]  
+00403A46  |. |3A1D A8B14400      |cmp bl,byte ptr ds:\[44B1A8\]  
+00403A4C  |. |75 03              |jnz short dumped\_.00403A51  
+00403A4E  |. |83C1 01            |add ecx,1  
+00403A51  |> |8A58 05            |mov bl,byte ptr ds:\[eax+5\]  
+00403A54  |. |3A1D A9B14400      |cmp bl,byte ptr ds:\[44B1A9\]  
+00403A5A  |. |75 03              |jnz short dumped\_.00403A5F  
+00403A5C  |. |83C1 01            |add ecx,1  
+00403A5F  |> |8A58 06            |mov bl,byte ptr ds:\[eax+6\]  
+00403A62  |. |3A1D AAB14400      |cmp bl,byte ptr ds:\[44B1AA\]  
+00403A68  |. |75 03              |jnz short dumped\_.00403A6D  
+00403A6A  |. |83C1 01            |add ecx,1  
+00403A6D  |> |8A58 07            |mov bl,byte ptr ds:\[eax+7\]  
+00403A70  |. |3A1D ABB14400      |cmp bl,byte ptr ds:\[44B1AB\]  
+00403A76  |. |75 03              |jnz short dumped\_.00403A7B  
+00403A78  |. |83C1 01            |add ecx,1  
+00403A7B  |> |8A58 08            |mov bl,byte ptr ds:\[eax+8\]  
+00403A7E  |. |3A1D ACB14400      |cmp bl,byte ptr ds:\[44B1AC\]  
+00403A84  |. |75 03              |jnz short dumped\_.00403A89  
+00403A86  |. |83C1 01            |add ecx,1  
+00403A89  |> |8A58 09            |mov bl,byte ptr ds:\[eax+9\]  
+00403A8C  |. |3A1D ADB14400      |cmp bl,byte ptr ds:\[44B1AD\]  
+00403A92  |. |75 03              |jnz short dumped\_.00403A97  
+00403A94  |. |83C1 01            |add ecx,1  
+00403A97  |> |83F9 0A            |cmp ecx,0A  
+00403A9A  |. |0F85 AA000000      |jnz dumped\_.00403B4A  
+00403AA0  |. |B9 90909090        |mov ecx,90909090  
+00403AA5  |. |8908               |mov dword ptr ds:\[eax\],ecx                                    ;  将上面的东东用 90 填充  
+00403AA7  |. |8948 04            |mov dword ptr ds:\[eax+4\],ecx  
+00403AAA  |. |66:8948 08         |mov word ptr ds:\[eax+8\],cx  
+00403AAE  |. |83C0 0A            |add eax,0A  
+00403AB1  |. |E9 94000000        |jmp dumped\_.00403B4A  
+00403AB6  |> |8A18               |mov bl,byte ptr ds:\[eax\]                                      ;  第一个字节赋给 bl  
+00403AB8  |. |33C9               |xor ecx,ecx  
+00403ABA  |. |3A1D B4B14400      |cmp bl,byte ptr ds:\[44B1B4\]                                   ;  比较是否是 eb  
+00403AC0  |. |75 05              |jnz short dumped\_.00403AC7  
+00403AC2  |. |B9 01000000        |mov ecx,1  
+00403AC7  |> |8A58 01            |mov bl,byte ptr ds:\[eax+1\]                                    ;  比较下一个字节  
+00403ACA  |. |3A1D B5B14400      |cmp bl,byte ptr ds:\[44B1B5\]                                   ;  是否是 08  
+00403AD0  |. |75 03              |jnz short dumped\_.00403AD5  
+00403AD2  |. |83C1 01            |add ecx,1  
+00403AD5  |> |8A58 02            |mov bl,byte ptr ds:\[eax+2\]  
+00403AD8  |. |3A1D B6B14400      |cmp bl,byte ptr ds:\[44B1B6\]  
+00403ADE  |. |75 03              |jnz short dumped\_.00403AE3  
+00403AE0  |. |83C1 01            |add ecx,1  
+00403AE3  |> |8A58 03            |mov bl,byte ptr ds:\[eax+3\]  
+00403AE6  |. |3A1D B7B14400      |cmp bl,byte ptr ds:\[44B1B7\]  
+00403AEC  |. |75 03              |jnz short dumped\_.00403AF1  
+00403AEE  |. |83C1 01            |add ecx,1  
+00403AF1  |> |8A58 04            |mov bl,byte ptr ds:\[eax+4\]  
+00403AF4  |. |3A1D B8B14400      |cmp bl,byte ptr ds:\[44B1B8\]  
+00403AFA  |. |75 03              |jnz short dumped\_.00403AFF  
+00403AFC  |. |83C1 01            |add ecx,1  
+00403AFF  |> |8A58 05            |mov bl,byte ptr ds:\[eax+5\]  
+00403B02  |. |3A1D B9B14400      |cmp bl,byte ptr ds:\[44B1B9\]  
+00403B08  |. |75 03              |jnz short dumped\_.00403B0D  
+00403B0A  |. |83C1 01            |add ecx,1  
+00403B0D  |> |8A58 06            |mov bl,byte ptr ds:\[eax+6\]  
+00403B10  |. |3A1D BAB14400      |cmp bl,byte ptr ds:\[44B1BA\]  
+00403B16  |. |75 03              |jnz short dumped\_.00403B1B  
+00403B18  |. |83C1 01            |add ecx,1  
+00403B1B  |> |8A58 07            |mov bl,byte ptr ds:\[eax+7\]  
+00403B1E  |. |3A1D BBB14400      |cmp bl,byte ptr ds:\[44B1BB\]  
+00403B24  |. |75 03              |jnz short dumped\_.00403B29  
+00403B26  |. |83C1 01            |add ecx,1  
+00403B29  |> |8A58 08            |mov bl,byte ptr ds:\[eax+8\]  
+00403B2C  |. |3A1D BCB14400      |cmp bl,byte ptr ds:\[44B1BC\]  
+00403B32  |. |75 03              |jnz short dumped\_.00403B37  
+00403B34  |. |83C1 01            |add ecx,1  
+00403B37  |> |8A58 09            |mov bl,byte ptr ds:\[eax+9\]  
+00403B3A  |. |3A1D BDB14400      |cmp bl,byte ptr ds:\[44B1BD\]  
+00403B40  |. |75 03              |jnz short dumped\_.00403B45  
+00403B42  |. |83C1 01            |add ecx,1  
+00403B45  |> |83F9 0A            |cmp ecx,0A                                                    ;  比较是否全部匹配  
+00403B48  |. |74 15              |je short dumped\_.00403B5F  
+00403B4A  |> |8000 0A            |add byte ptr ds:\[eax\],0A                                      ;  \*\*\*\*\*\*\*\* 来到这里    
+00403B4D  |. |83C6 01            |add esi,1  
+00403B50  |. |83C0 01            |add eax,1  
+00403B53  |. |3BF7               |cmp esi,edi  
+00403B55  |.^\\0F82 46FEFFFF      \\jb dumped\_.004039A1  
+00403B5B  |.  5B                 pop ebx  
+00403B5C  |.  5E                 pop esi  
+00403B5D  |.  5F                 pop edi  
+00403B5E  |.  C3                 retn  
+  
+00403B5F  |> \\B9 90909090        mov ecx,90909090                                               ;  匹配的话就将其 nop  
+00403B64  |.  8908               mov dword ptr ds:\[eax\],ecx  
+00403B66  |.  8948 04            mov dword ptr ds:\[eax+4\],ecx  
+00403B69  |.  66:8948 08         mov word ptr ds:\[eax+8\],cx  
+00403B6D  |>  5B                 pop ebx  
+00403B6E  |>  5E                 pop esi  
+00403B6F  |>  5F                 pop edi  
+00403B70  \\>  C3                 retn  
+  
+现在我们就应该思考一下了既然原程序没有出现异常而本程序出现异常，说明加壳的程序必定是跳过了这个异常，ctrl +　g 到 0040604d 往上翻两下  
+ 我们在数据窗口中反汇编，发现  
+  
+00406049   .  85C0          test eax,eax                                                        ;  脱壳之后 eax = 0  
+0040604B   .  75 01         jnz short dumped\_.0040604E  
+0040604D   ?  CC            int3  
+  
+  
+  
+我们在 00406049 处下硬件执行断点，重载修复后的程序，同时打开另一个 od 打开加壳的程序 　先到达 oep 然后 ctrl + g 来到 00406049 处下硬件执行断点  
+f9 运行 来到 00406049 发现 加壳的程序 eax = 1，而脱壳后的程序 eax = 0 一定是哪里影响了这个跳转 现在我们明确了只要跳过 0040604d 就可以了 简单  
+的方法就是修改 0040604b 处的跳转，但是我们前面跟踪发现 0040604b 处的代码已经被 smc 过了，对应的字节都加了 A，这个我们可以在 smc 之前将其给成 jz 这  
+样的话就可以跳过了 具体方法如下：  
+重新加载脱壳后的程序，在数据窗口 ctrl ＋　g 来到 0040604b 处将 6b 改成 6a 这样的话 smc 之后这里就可以跳过 int3 了 改过之后发现 f9 运行还有这样的错误  
+发生在 00406581，同样的代码，为了防止后面也有类似的代码 我们重新加载程序 ctrl + B 搜索 6B F7 C2 找到三处 0040604B，0040657E，00406842 将其修  
+改为：6A F7 C2 这样的话程序就正常运行了  
+  
+程序有校验我们可以跟踪分析是哪个地方改了 eax 的值 经跟踪发现  
+  
+00406044    E8 F7F0FFFF          call QQLog.00405140                                            ；是这个 call 改变了 eax 的值我们可以跟进去看看  
+00406049    85C0                 test eax,eax  
+0040604B    75 01                jnz short QQLog.0040604E  
+  
+我们可以开两个 od 然后对比着跟踪，这样很容易发现关键  
+00405140    55                   push ebp  
+00405141    8BEC                 mov ebp,esp  
+00405143    6A FF                push -1  
+00405145    68 1B994300          push QQLog.0043991B  
+0040514A    64:A1 00000000       mov eax,dword ptr fs:\[0\]  
+00405150    50                   push eax  
+00405151    81EC A4010000        sub esp,1A4  
+00405157    A1 0CC74400          mov eax,dword ptr ds:\[44C70C\]  
+0040515C    33C5                 xor eax,ebp  
+0040515E    8945 E4              mov dword ptr ss:\[ebp-1C\],eax  
+00405161    50                   push eax  
+00405162    8D45 F4              lea eax,dword ptr ss:\[ebp-C\]  
+00405165    64:A3 00000000       mov dword ptr fs:\[0\],eax  
+0040516B    898D 60FEFFFF        mov dword ptr ss:\[ebp-1A0\],ecx  
+00405171    C785 C8FEFFFF 000000>mov dword ptr ss:\[ebp-138\],0  
+0040517B    C745 EC 00000000     mov dword ptr ss:\[ebp-14\],0  
+00405182    B8 A8514000          mov eax,QQLog.004051A8  
+00405187    8985 C8FEFFFF        mov dword ptr ss:\[ebp-138\],eax  
+0040518D    B8 AB534000          mov eax,QQLog.004053AB  
+00405192    8945 EC              mov dword ptr ss:\[ebp-14\],eax  
+00405195    8B45 EC              mov eax,dword ptr ss:\[ebp-14\]  
+00405198    50                   push eax  
+00405199    8B8D C8FEFFFF        mov ecx,dword ptr ss:\[ebp-138\]  
+0040519F    51                   push ecx  
+004051A0    E8 CBE7FFFF          call QQLog.00403970  
+004051A5    83C4 08              add esp,8  
+004051A8    90                   nop  
+004051A9    90                   nop  
+004051AA    90                   nop  
+004051AB    90                   nop  
+004051AC    90                   nop  
+004051AD    90                   nop  
+004051AE    90                   nop  
+004051AF    90                   nop  
+004051B0    90                   nop  
+004051B1    90                   nop  
+004051B2    E8 19EDFFFF          call QQLog.00403ED0  
+004051B7    C785 D0FEFFFF 000000>mov dword ptr ss:\[ebp-130\],0  
+004051C1    C745 E8 00000000     mov dword ptr ss:\[ebp-18\],0  
+004051C8    C685 DCFEFFFF 00     mov byte ptr ss:\[ebp-124\],0  
+004051CF    68 03010000          push 103  
+004051D4    6A 00                push 0  
+004051D6    8D95 DDFEFFFF        lea edx,dword ptr ss:\[ebp-123\]  
+004051DC    52                   push edx  
+004051DD    E8 3E030200          call QQLog.00425520  
+004051E2    83C4 0C              add esp,0C  
+004051E5    68 04010000          push 104  
+004051EA    8D85 DCFEFFFF        lea eax,dword ptr ss:\[ebp-124\]  
+004051F0    50                   push eax  
+004051F1    6A 00                push 0  
+004051F3    FF15 A0C24300        call dword ptr ds:\[43C2A0\]                                       ; kernel32.GetModuleFileNameA  
+004051F9    E8 D2ECFFFF          call QQLog.00403ED0  
+004051FE    8D8D DCFEFFFF        lea ecx,dword ptr ss:\[ebp-124\]  
+00405204    898D 5CFEFFFF        mov dword ptr ss:\[ebp-1A4\],ecx  
+0040520A    8B95 5CFEFFFF        mov edx,dword ptr ss:\[ebp-1A4\]  
+00405210    83C2 01              add edx,1  
+00405213    8995 58FEFFFF        mov dword ptr ss:\[ebp-1A8\],edx  
+00405219    8B85 5CFEFFFF        mov eax,dword ptr ss:\[ebp-1A4\]  
+0040521F    8A08                 mov cl,byte ptr ds:\[eax\]  
+00405221    888D 57FEFFFF        mov byte ptr ss:\[ebp-1A9\],cl  
+00405227    8385 5CFEFFFF 01     add dword ptr ss:\[ebp-1A4\],1  
+0040522E    80BD 57FEFFFF 00     cmp byte ptr ss:\[ebp-1A9\],0  
+00405235  ^ 75 E2                jnz short QQLog.00405219  
+00405237    8B95 5CFEFFFF        mov edx,dword ptr ss:\[ebp-1A4\]  
+0040523D    2B95 58FEFFFF        sub edx,dword ptr ss:\[ebp-1A8\]  
+00405243    8995 50FEFFFF        mov dword ptr ss:\[ebp-1B0\],edx  
+00405249    0F84 45010000        je QQLog.00405394  
+0040524F    6A 00                push 0  
+00405251    68 00000008          push 8000000  
+00405256    6A 03                push 3  
+00405258    6A 00                push 0  
+0040525A    6A 03                push 3  
+0040525C    68 00000080          push 80000000  
+00405261    8D85 DCFEFFFF        lea eax,dword ptr ss:\[ebp-124\]  
+00405267    50                   push eax  
+00405268    FF15 84C24300        call dword ptr ds:\[43C284\]                                       ; kernel32.CreateFileA  
+0040526E    8945 E8              mov dword ptr ss:\[ebp-18\],eax  
+00405271    837D E8 FF           cmp dword ptr ss:\[ebp-18\],-1  
+00405275    0F84 19010000        je QQLog.00405394  
+0040527B    6A 00                push 0  
+0040527D    8B4D E8              mov ecx,dword ptr ss:\[ebp-18\]  
+00405280    51                   push ecx  
+00405281    FF15 88C24300        call dword ptr ds:\[43C288\]                                       ; kernel32.GetFileSize  
+00405287    8945 F0              mov dword ptr ss:\[ebp-10\],eax                                    ; 文件大小存到 00404b37  
+0040528A    8B55 F0              mov edx,dword ptr ss:\[ebp-10\]                                    ; 文件大小给 edx  
+0040528D    83EA 04              sub edx,4  
+00405290    8955 F0              mov dword ptr ss:\[ebp-10\],edx  
+00405293    E8 68ECFFFF          call QQLog.00403F00  
+00405298    837D F0 14           cmp dword ptr ss:\[ebp-10\],14  
+0040529C    0F8E E8000000        jle QQLog.0040538A  
+004052A2    8B45 F0              mov eax,dword ptr ss:\[ebp-10\]  
+004052A5    50                   push eax  
+004052A6    6A 20                push 20  
+004052A8    8D8D BCFEFFFF        lea ecx,dword ptr ss:\[ebp-144\]  
+004052AE    E8 CDFDFFFF          call QQLog.00405080  
+004052B3    C745 FC 00000000     mov dword ptr ss:\[ebp-4\],0  
+004052BA    6A 00                push 0  
+004052BC    8D8D CCFEFFFF        lea ecx,dword ptr ss:\[ebp-134\]  
+004052C2    51                   push ecx  
+004052C3    8B55 F0              mov edx,dword ptr ss:\[ebp-10\]  
+004052C6    52                   push edx  
+004052C7    8B45 F0              mov eax,dword ptr ss:\[ebp-10\]  
+004052CA    50                   push eax  
+004052CB    8D8D BCFEFFFF        lea ecx,dword ptr ss:\[ebp-144\]  
+004052D1    E8 0AC4FFFF          call QQLog.004016E0  
+004052D6    50                   push eax  
+004052D7    8B4D E8              mov ecx,dword ptr ss:\[ebp-18\]  
+004052DA    51                   push ecx  
+004052DB    FF15 8CC24300        call dword ptr ds:\[43C28C\]                                       ; kernel32.ReadFile  
+004052E1    C785 C4FEFFFF 040000>mov dword ptr ss:\[ebp-13C\],4  
+004052EB    6A 00                push 0  
+004052ED    6A 00                push 0  
+004052EF    8B55 F0              mov edx,dword ptr ss:\[ebp-10\]  
+004052F2    52                   push edx  
+004052F3    8B45 E8              mov eax,dword ptr ss:\[ebp-18\]  
+004052F6    50                   push eax  
+004052F7    FF15 90C24300        call dword ptr ds:\[43C290\]                                       ; kernel32.SetFilePointer  
+004052FD    E8 9EEBFFFF          call QQLog.00403EA0  
+00405302    C785 B8FEFFFF 000000>mov dword ptr ss:\[ebp-148\],0  
+0040530C    C785 C0FEFFFF 000000>mov dword ptr ss:\[ebp-140\],0  
+00405316    6A 00                push 0  
+00405318    8D8D C0FEFFFF        lea ecx,dword ptr ss:\[ebp-140\]  
+0040531E    51                   push ecx  
+0040531F    6A 04                push 4  
+00405321    8D95 B8FEFFFF        lea edx,dword ptr ss:\[ebp-148\]  
+00405327    52                   push edx  
+00405328    8B45 E8              mov eax,dword ptr ss:\[ebp-18\]  
+0040532B    50                   push eax  
+0040532C    FF15 8CC24300        call dword ptr ds:\[43C28C\]                                       ; kernel32.ReadFile  
+00405332    6A FF                push -1  
+00405334    8D8D BCFEFFFF        lea ecx,dword ptr ss:\[ebp-144\]  
+0040533A    E8 71F4FFFF          call QQLog.004047B0  
+0040533F    8B4D F0              mov ecx,dword ptr ss:\[ebp-10\]  
+00405342    51                   push ecx  
+00405343    8D95 BCFEFFFF        lea edx,dword ptr ss:\[ebp-144\]  
+00405349    52                   push edx  
+0040534A    8B8D 60FEFFFF        mov ecx,dword ptr ss:\[ebp-1A0\]  
+00405350    E8 9BF2FFFF          call QQLog.004045F0  
+00405355    8985 B4FEFFFF        mov dword ptr ss:\[ebp-14C\],eax  
+0040535B    8B85 B4FEFFFF        mov eax,dword ptr ss:\[ebp-14C\]  
+00405361    3B85 B8FEFFFF        cmp eax,dword ptr ss:\[ebp-148\]  
+00405367    75 0F                jnz short QQLog.00405378                                         ;\*\*\*\*\*\*\*\*\*\*\*\*\*\*这里是关键原程序没有跳   
+  
+00405369    E8 C2EBFFFF          call QQLog.00403F30  
+0040536E    C785 D0FEFFFF 010000>mov dword ptr ss:\[ebp-130\],1  
+00405378    C745 FC FFFFFFFF     mov dword ptr ss:\[ebp-4\],-1  
+0040537F    8D8D BCFEFFFF        lea ecx,dword ptr ss:\[ebp-144\]  
+00405385    E8 16C3FFFF          call QQLog.004016A0  
+0040538A    8B4D E8              mov ecx,dword ptr ss:\[ebp-18\]  
+0040538D    51                   push ecx  
+0040538E    FF15 CCC24300        call dword ptr ds:\[43C2CC\]                                       ; kernel32.CloseHandle  
+00405394    6A 00                push 0  
+00405396    8B8D 60FEFFFF        mov ecx,dword ptr ss:\[ebp-1A0\]  
+0040539C    E8 3D660000          call QQLog.0040B9DE  
+004053A1    90                   nop  
+004053A2    90                   nop  
+004053A3    90                   nop  
+004053A4    90                   nop  
+004053A5    90                   nop  
+004053A6    90                   nop  
+004053A7    90                   nop  
+004053A8    90                   nop  
+004053A9    90                   nop  
+004053AA    90                   nop  
+004053AB    C785 D4FEFFFF 000000>mov dword ptr ss:\[ebp-12C\],0  
+004053B5    C785 D8FEFFFF 000000>mov dword ptr ss:\[ebp-128\],0  
+004053BF    B8 A8514000          mov eax,QQLog.004051A8  
+004053C4    8985 D4FEFFFF        mov dword ptr ss:\[ebp-12C\],eax  
+004053CA    B8 AB534000          mov eax,QQLog.004053AB  
+004053CF    8985 D8FEFFFF        mov dword ptr ss:\[ebp-128\],eax  
+004053D5    8B95 D8FEFFFF        mov edx,dword ptr ss:\[ebp-128\]  
+004053DB    52                   push edx  
+004053DC    8B85 D4FEFFFF        mov eax,dword ptr ss:\[ebp-12C\]  
+004053E2    50                   push eax  
+004053E3    E8 98E7FFFF          call QQLog.00403B80  
+004053E8    83C4 08              add esp,8  
+004053EB    8B85 D0FEFFFF        mov eax,dword ptr ss:\[ebp-130\]                                   ;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+004053F1    8B4D F4              mov ecx,dword ptr ss:\[ebp-C\]  
+004053F4    64:890D 00000000     mov dword ptr fs:\[0\],ecx  
+004053FB    59                   pop ecx  
+004053FC    8B4D E4              mov ecx,dword ptr ss:\[ebp-1C\]  
+004053FF    33CD                 xor ecx,ebp  
+00405401    E8 05010200          call QQLog.0042550B  
+00405406    8BE5                 mov esp,ebp  
+00405408    5D                   pop ebp  
+00405409    C3                   retn  
+  
+00405367    75 0F                jnz short QQLog.00405378                                         ;这里是关键原程序没有跳   
+00405369    E8 C2EBFFFF          call QQLog.00403F30  
+0040536E    C785 D0FEFFFF 010000>mov dword ptr ss:\[ebp-130\],1                                     ;没有跳这里赋值为 1  
+  
+004053EB    8B85 D0FEFFFF        mov eax,dword ptr ss:\[ebp-130\]                                   ；没有跳这里也为 1  
+然后就可以跳过那个异常了   
+  
+我们同样可以发现 00406357 也是 smc 过的同样是对应的字节加上 A 所以我们只需重新加载程序在数据窗口 ctrl + g 来到 00405367 处将 6B 改成 6A 然后保存  
+程序可以运行了  
+  
+  
+  
+总结：  
+这个程序是通过比较脱壳前后文件大小来进行自校验的，另外还用了 smc 技术  
+这里脱壳后有两种方法跳过错误  
+方法 1 ctrl + B 搜索 6B F7 C2 找到三处 0040604B，0040657E，00406842 将其修改为：6A F7 C2  保存文件可以去校验  
+方法 2 ctrl + g 来到 00405367 将其内容 6B 改成 6A 保存文件同样可以达到目的  
+  
+希望像我一样的菜鸟在遇到问题时 多多分析 多多思考 这样才有进步

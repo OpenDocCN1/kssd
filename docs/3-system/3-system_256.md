@@ -1,0 +1,244 @@
+
+
+# 遍历 VISTA/WIN 7 缓存 VACB
+
+> 原文：[`www.pediy.com/kssd/pediy11/119195.html`](https://www.pediy.com/kssd/pediy11/119195.html)
+
+PS:好久没在看雪发东西，这里有我大学的记忆。。。。![](img/110d920e4e703968a2a60c986d363163.jpg "尴尬")![](img/110d920e4e703968a2a60c986d363163.jpg "尴尬")  
+有时候系统缓慢，被占很多缓存，所以想知道哪些文件占据了缓存。缓存的结构在 XP 和 VISTA 下有些区别，为了了解 VISTA 的结构，XP 比较简单就不说了。  
+IDA+WINDBG 开始摸索，下面就是过程和结果。  
+很多文件没缓存，所以为了方便找出缓存的 FILLE\_OBJECT，我选择对 nt!CcMapData 下断  
+kd> bp nt!CcMapData "!fileobj poi(@esp + 4)"  
+kd> g  
+  
+\\$Directory  
+  
+Device Object: 0x86579c08   \\Driver\\volmgr  
+Vpb: 0x8616d0d0  
+Access: Read Write SharedRead SharedWrite SharedDelete   
+  
+Flags: 0x40100  
+Stream File  
+Handle Created  
+  
+FsContext: 0x890740f8 FsContext2: 0x00000000  
+Private Cache Map: 0x873ff0e0  
+CurrentByteOffset: 0  
+Cache Data:  
+Section Object Pointers: 86a1c2c4  
+Shared Cache Map: 873ff008         File Offset: 0 in VACB number 0  
+Vacb: 84b6df10  
+Your data is at: 8ae40000  
+  
+  
+kd> dt \_SECTION\_OBJECT\_POINTERS 86a1c2c4  
+ntdll!\_SECTION\_OBJECT\_POINTERS  
+   +0x000 DataSectionObject : 0x86b8ddb8 Void  
+   +0x004 SharedCacheMap   : 0x873ff008 Void  
+   +0x008 ImageSectionObject : (null)   
+  
+  
+kd> dt \_SHARED\_CACHE\_MAP 0x873ff008 InitialVacbs  
+nt!\_SHARED\_CACHE\_MAP  
+   +0x030 InitialVacbs : \[4\] 0x84b6df10 \_VACB  
+  
+  
+查看 VACB 在什么内核池中：  
+kd> !pool 0x84b6df10  
+Pool page 84b6df10 region is Nonpaged pool  
+\*84b6d000 : large page allocation, Tag is CcVa, size is 0x20000 bytes  
+   Pooltag CcVa : Cache Manager Initial array of Vacbs, Binary : nt!cc  
+  
+  
+可见这个 VACB 是落在 TAG 为 CcVa 的 POOL 中，那是谁分配了这个 POOL  
+  
+  
+kd> ed nt!poolhittag 'aVcC'  
+kd> g  
+Break instruction exception - code 80000003 (first chance)  
+nt!DbgBreakPoint:  
+8186e954 cc              int     3  
+kd> kv  
+ChildEBP RetAddr Args to Child                
+80599b74 818592c9 61566343 00020000 00000000 nt!DbgBreakPoint  
+80599bd0 8190a4cd 00000000 00000000 00020000 nt!ExpAllocateBigPool+0x216  
+80599c30 8181e282 00000000 00020000 61566343 nt!ExAllocatePoolWithTag+0x116  
+80599c4c 81b6c0a0 80599c5c 00000001 00000000 nt!CcAllocateInitializeVacbArray+0x19  
+80599c60 81b6bf8d 8085b010 00010000 00000000 nt!CcInitializeVacbs+0x82  
+80599c98 81b7ca0a 84b34540 84b34218 00000000 nt!CcInitializeCacheManager+0x3b5  
+80599d74 81975af1 80599dc0 819f2a1c 8085b010 nt!Phase1InitializationDiscard+0x8dd  
+80599d7c 819f2a1c 8085b010 3d3a5762 00000000 nt!Phase1Initialization+0xd  
+80599dc0 8184ba3e 81975ae4 8085b010 00000000 nt!PspSystemThreadStartup+0x9d  
+00000000 00000000 00000000 00000000 00000000 nt!KiThreadStartup+0x16  
+  
+  
+上面的栈比较清晰地看到 nt!CcAllocateInitializeVacbArray 创建了 CcVa 的 POOL，第三个参数 61566343 其实就是 CcVa  
+  
+看下 nt!CcAllocateInitializeVacbArray  
+.text:004013A0 014                 call    esi ; KeReleaseQueuedSpinLock(x,x) ; KeReleaseQueuedSpinLock(x,x)  
+.text:004013A2 00C                 push    61566343h       ; Tag  
+.text:004013A7 010                 mov     edi, 20000h  
+.text:004013AC 010                 push    edi             ; NumberOfBytes  
+.text:004013AD 014                 push    0               ; PoolType  
+.text:004013AF 018                 call    \_ExAllocatePoolWithTag@12 ; ExAllocatePoolWithTag(x,x,x)  
+.text:004013B4 00C                 mov     ebx, eax  
+  
+  
+.text:004013C6 00C                 lea     eax, \[ebx+28h\]  
+.text:004013C9 00C                 mov     ecx, 0FFFh  
+.text:004013CE  
+.text:004013CE     loc\_4013CE:                             ; CODE XREF: CcAllocateInitializeVacbArray()+66 j  
+.text:004013CE 00C                 mov     \[eax\], ebx  
+.text:004013D0 00C                 add     eax, 20h @@@@@@@@@@@@@@@重要，VACB 大小是 0X18，但我们需要 0X20 才能访问  
+.text:004013D3 00C                 dec     ecx  
+.text:004013D4 00C                 jnz     short loc\_4013CE  
+.text:004013D6 00C                 jmp     short loc\_4013EE  
+  
+  
+分配的这片内存进行初始化， 每隔 0X20，都会填一个指向该内存的指针  
+  
+kd> !list "-t \_LIST\_ENTRY.Flink -e -x \\"dt \_VACB\_ARRAY\_HEADER @$extret\\" poi(CcVacbArrays)"  
+dt \_VACB\_ARRAY\_HEADER @$extret   
+nt!\_VACB\_ARRAY\_HEADER  
+   +0x000 Links            : \_LIST\_ENTRY \[ 0x819530c8 - 0x819530c8 \]  
+   +0x008 MappingCount     : 0x2e0  
+   +0x00c Reserved         : 0  
+  
+kd> dd 0x819530c8 l2  
+819530c8 84b6d000 84b6d000  
+  
+84b6d000 就是 ExAllocatePoolWithTag（ NonPagedPool,0x20000, 'aVcC') 分配的内存  
+  
+  
+kd> dd 84b6d000 l16  
+/\*84b6d000\*/ 819530c8 819530c8 000002e0 00000000  
+84b6d010 83440000 00000000 00000000 00000000  
+84b6d020 84b6d040 819530b0 /\*84b6d000\*/ 00000000  
+84b6d030 83480000 00000000 00000000 00000000  
+84b6d040 84b6d060 84b6d020 /\*84b6d000\*/ 00000000  
+84b6d050 834c0000 00000000  
+就是上面代码初始化的原因  
+  
+  
+也就是 nt!\_VACB\_ARRAY\_HEADER 的 Links 其实就是指向的内存第一个指针就是 BigPool 的指针  
+  
+目前的话  
+  
+测试下 VACB 在内存的位置  
+  
+kd> bp nt!CcMapData " dt \_SHARED\_CACHE\_MAP poi((poi((poi(@esp + 4) + 0x14)) + 0x4 )) InitialVacbs Vacbs ; g"  
+kd> g  
+nt!\_SHARED\_CACHE\_MAP  
+   +0x030 InitialVacbs : \[4\] (null)   
+   +0x040 Vacbs        : 0x86830df8 -> 0x86824910 \_VACB  
+nt!\_SHARED\_CACHE\_MAP  
+   +0x030 InitialVacbs : \[4\] 0x84b6f8b0 \_VACB  
+   +0x040 Vacbs        : 0x8690bd78 -> 0x84b6f8b0 \_VACB  
+nt!\_SHARED\_CACHE\_MAP  
+   +0x030 InitialVacbs : \[4\] 0x84b6f8b0 \_VACB  
+   +0x040 Vacbs        : 0x8690bd78 -> 0x84b6f8b0 \_VACB  
+nt!\_SHARED\_CACHE\_MAP  
+   +0x030 InitialVacbs : \[4\] (null)   
+   +0x040 Vacbs        : 0x86830df8 -> 0x86824910 \_VACB  
+nt!\_SHARED\_CACHE\_MAP  
+   +0x030 InitialVacbs : \[4\] 0x84b6f910 \_VACB  
+   +0x040 Vacbs        : 0x86a50430 -> 0x84b6f910 \_VACB  
+nt!\_SHARED\_CACHE\_MAP  
+   +0x030 InitialVacbs : \[4\] 0x84b6f910 \_VACB  
+   +0x040 Vacbs        : 0x86a50430 -> 0x84b6f910 \_VACB  
+  
+kd> dt \_VACB 0x84b6f8b0  
+nt!\_VACB  
+   +0x000 BaseAddress      : 0x8ebc0000 Void  
+   +0x004 SharedCacheMap   : 0x8690bd48 \_SHARED\_CACHE\_MAP  
+   +0x008 Overlay          : <unnamed-tag>  
+   +0x010 LruList          : \_LIST\_ENTRY \[ 0x84b715c0 - 0x84b72e60 \]  
+   +0x018 ArrayHead        : 0x84b6d000 \_VACB\_ARRAY\_HEADER  
+  
+  
+kd> .printf"%x\\n",poi(0x86a50430) ；dt \_VACB poi(0x86a50430)   
+84b6f910  
+nt!\_VACB  
+   +0x000 BaseAddress      : 0x8f840000 Void  
+   +0x004 SharedCacheMap   : 0x86a50400 \_SHARED\_CACHE\_MAP  
+   +0x008 Overlay          : <unnamed-tag>  
+   +0x010 LruList          : \_LIST\_ENTRY \[ 0x84b6e060 - 0x84b715c0 \]  
+   +0x018 ArrayHead        : 0x84b6d000 \_VACB\_ARRAY\_HEADER  
+  
+kd> ? 0x84b6f910 - 0x84b6f8b0  
+Evaluate expression: 96 = 00000060  
+  
+  
+kd> ? 0n96 / 0x20  
+Evaluate expression: 3 = 00000003  
+  
+能被整除，俩个 VACB 中间隔了 3 个 VACB  
+  
+  
+目前的话我们知道 CcVa POOL 的地址范围是 84b6d000 - 84b8d000 （ 84b6d000 + 0x20000 ）  
+这个范围内就有我们的 VACB。。。下面是 WINDBG 的脚本  
+$t0 的值可以通过 bp /1 nt!CcMapData "r $t0 = poi(@esp + 4); r $t10 = poi((poi(poi( @$t0 + 0x14 ) + 0x4) + 0x30))   
+  
+; r $t11 = poi((poi(poi( @$t0 + 0x14 ) + 0x4) + 0x40)) ; r $t11 = poi(poi(@$t11)); r @$t10 ; r @$t11 "来获取  
+  
+  
+.expr /s masm;  
+r $t0 = 0x84b6f910; $$第一个 VACB  
+r $t1 = poi(nt!CcVacbArrays);  
+r $t2 = @$t1 + 0x20000;  
+  
+.printf"Hdr = 0x%x, end = 0x%x\\n",@$t1,@$t2 ;  
+  
+.printf"down --->\\n";  
+.for( r $t3 = $t0 ; @$t3 < @$t2 ; r $t3 = @$t3 + 0x20)  
+{  
+        .if( poi(@$t3 + 0x04) == 0 )  
+        {  
+           .printf"VACB = 0x%x NULL SharedCacheMap \\n",@$t3;  
+           .continue  
+         }  
+  
+r $t4 = @$t3;  
+   r $t4 = poi(@$t4 + 0x18);  
+        r $t5 = poi((poi(@$t3 + 0x04) + 0x44 )) + 0x30;   
+  
+         
+.if( @$t4 == $t1)  
+{  
+  
+   .printf"vacb = 0x%x fileobj 0x%x， %msu \\n",@$t3, @$t5-0x30, @$t5;  
+}  
+}  
+  
+.printf"up --->\\n";  
+.for( r $t3 = $t0 ; @$t3 > @$t1 ; r $t3 = @$t3 - 0x20)  
+{  
+        .if( poi(@$t3 + 0x04) == 0 )  
+        {  
+           .printf"VACB = 0x%x NULL SharedCacheMap \\n",@$t3;  
+           .continue  
+         }  
+  
+r $t4 = @$t3;  
+   r $t4 = poi(@$t4 + 0x18);  
+        r $t5 = poi((poi(@$t3 + 0x04) + 0x44 )) + 0x30;   
+  
+  
+.if( @$t4 == $t1 & @$t3 + 0x04 != 0 )  
+{  
+   .printf"vacb = 0x%x fileobj 0x%x ,%msu\\n",@$t3, @$t5-0x30, @$t5;  
+}  
+}  
+  
+  
+输出  
+kd> $$>a<c:\\vacb.txt  
+Current expression evaluator: MASM - Microsoft Assembler expressions  
+Hdr = 0x84b6d000, end = 0x84b8d000  
+down --->  
+vacb = 0x84b6f910 fileobj 0x86a38300 ,\\$Directory  
+vacb = 0x84b6f930 fileobj 0x86838f1f ,<Win32 error 0n30>  
+vacb = 0x84b6f950 fileobj 0x86980450 ,\\$Directory  
+vacb = 0x84b6f970 fileobj 0x85287e70 ,\\$Directory  
+vacb = 0x84b6f990 fileobj 0x85132250 ,\\Windows\\System32\\catroot2\\{127D0A1D-4EF2-11D1-8608-00C04FC295EE}\\catdb  
+vacb = 0x84b6f9b0 fileobj 0x86b1ad00 ,\\$Directory

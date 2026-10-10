@@ -1,0 +1,92 @@
+
+
+# 壳的识别
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6908.htm`](https://www.pediy.com/kssd/pediy06/pediy6908.htm)
+
+前一段时间学习脱壳，写了一段代码希望能帮助大家学习 PE 结构。  
+  
+#include <stdio.h>  
+#include <windows.h>  
+  
+char upx\[\]="\\x40"  
+"\\x60\\xBE\\x00\\x00\\x00\\x00\\x8D\\xBE\\x00\\x00\\x00\\x00\\x57\\x83\\xCD\\xFF"  
+"\\xEB\\x10\\x90\\x90\\x90\\x90\\x90\\x90\\x8A\\x06\\x46\\x88\\x07\\x47\\x01\\xDB"  
+"\\x75\\x07\\x8B\\x1E\\x83\\xEE\\xFC\\x11\\xDB\\x72\\xED\\xB8\\x01\\x00\\x00\\x00"  
+"\\x01\\xDB\\x75\\x07\\x8B\\x1E\\x83\\xEE\\xFC\\x11\\xDB\\x11\\xC0\\x01\\xDB\\x73"  
+;  
+  
+// view shell function  
+  
+int ViewShell(char \*file)  
+{  
+  int  i;  
+  char  \*pBase, flag;  
+  HMODULE  hMod;  
+  IMAGE\_DOS\_HEADER  \*dos\_header;  
+  IMAGE\_NT\_HEADERS  \*pe\_header;  
+  IMAGE\_OPTIONAL\_HEADER  \*pe\_option;  
+  
+  hMod = LoadLibraryEx(file,0,DONT\_RESOLVE\_DLL\_REFERENCES);  
+  if(hMod == NULL)  
+  {  
+    printf("Error LoadLibrary");  
+    return 0;  
+  }  
+  
+  dos\_header = (IMAGE\_DOS\_HEADER \*)hMod;  
+  pe\_header  = (IMAGE\_NT\_HEADERS \*)((char \*)dos\_header+dos\_header->e\_lfanew);  
+  pe\_option  = (IMAGE\_OPTIONAL\_HEADER \*)((char \*)pe\_header + 4 +   
+          sizeof(IMAGE\_FILE\_HEADER));  
+  pBase = (char \*)hMod+pe\_option->AddressOfEntryPoint;  
+    
+  flag = FALSE;  
+  for (i=1;i<=64;i++)  
+  {  
+  
+    if( \*pBase == upx\[i\] || upx\[i\] == 0)  
+    {  
+      printf("%X ",(unsigned char)(\*pBase));  
+      pBase++;  
+      flag = TRUE;    
+    }  
+    else {  
+      flag = FALSE;  
+      printf("\\n#### Not UPX Shell ####\\n");  
+      return 0;  
+    }  
+  }  
+  
+  if (flag)  
+  {  
+    printf("\\n#### UPX Shell ####\\n");  
+  }  
+  
+  FreeLibrary(hMod);  
+  return 0;  
+}  
+  
+int main(int argc,char\* argv\[\])  
+{  
+  HANDLE hFile;  
+  if (argc!=2)  
+  {  
+    printf("Vis 1.0 \\n");  
+    printf("Usage:    Vis <EXE or DLL file>\\n");  
+    return 0;  
+  }  
+    
+  hFile = CreateFile(argv\[1\],GENERIC\_READ,   
+    FILE\_SHARE\_READ, 0, OPEN\_EXISTING,   
+    FILE\_FLAG\_SEQUENTIAL\_SCAN, 0);  
+  if (hFile == INVALID\_HANDLE\_VALUE)  
+  {  
+    puts("File is not exist.");  
+    return 0;  
+  }  
+  CloseHandle(hFile);  
+  ViewShell(argv\[1\]);    
+  return 0;  
+}
+
+ 4dd466d0e1e0cc123afbe504da2462ca

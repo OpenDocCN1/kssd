@@ -1,0 +1,275 @@
+
+
+# JDPack Version 1.01
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6633.htm`](https://www.pediy.com/kssd/pediy06/pediy6633.htm)
+
+JDPack Version 1.01 外壳完全分析笔记  
+  
+  
+【目标程序】   JDPack V1.01 加壳的 Win98 记事本  
+【作    者】   cyclotron\[BCG\]\[DFCG\]\[FCG\]\[OCN\]  
+  
+    用 OllyDBG 载入后如下：  
+  
+0040D000 >PUSHAD  
+0040D001  CALL NOTEPAD.0040D006  
+0040D006  POP EBP  
+0040D007  MOV EDX,EBP  
+0040D009  SUB EBP,NOTEPAD.00402BC6                       ; 取得 delta  
+0040D00F  SUB EDX,DWORD PTR SS:\[EBP+403461\]  
+0040D015  SUB EDX,6  
+0040D01B  MOV DWORD PTR SS:\[EBP+403465\],EDX              ; 取得基地址  
+0040D021  CMP DWORD PTR SS:\[EBP+403469\],0                ; 某重入标志  
+0040D028  JNZ NOTEPAD.0040D3EA  
+0040D02E  MOV DWORD PTR SS:\[EBP+403469\],1                ; 置重入标志  
+0040D038  MOV ECX,788                                    ; 解码长度  
+0040D03D  LEA ESI,DWORD PTR SS:\[EBP+402C18\]              ; 加密代码的起始地址,我这里是 0040D058  
+0040D043  MOV AL,BYTE PTR SS:\[EBP+403460\]  
+0040D049  MOV BL,BYTE PTR DS:\[ESI\]  
+0040D04B  XOR AL,BL                                      ; 简单的异或解密运算  
+0040D04D  MOV BYTE PTR DS:\[ESI\],AL  
+0040D04F  MOV BYTE PTR SS:\[EBP+403460\],BL                ; 保存解密前的代码  
+0040D055  INC ESI  
+0040D056  LOOPD SHORT NOTEPAD.0040D043                   ; 随着循环的进行对下面的代码进行解密  
+0040D058  PUSHFD                                         ; 标志位入栈，这里不能单步通过  
+0040D059  POP EAX  
+0040D05A  TEST AH,1                                      ; 检测单步标志  
+0040D05D  JE SHORT NOTEPAD.0040D066  
+0040D05F  XOR BYTE PTR SS:\[EBP+402FD7\],0FF               ; 发现跟踪企图后将下面的一句关键代码破坏  
+0040D066  MOV ESI,DWORD PTR SS:\[EBP+403201\]              ; 原文件的区块数目  
+0040D06C  MOV EAX,EBP                                    ; delta  
+0040D06E  PUSH ESI  
+0040D06F  PUSH EAX                                       ; 保存偏移量  
+0040D070  MOV ECX,DWORD PTR DS:\[EAX+403209\]              ; 申请空间的大小  
+0040D076  PUSH 4  
+0040D078  PUSH 1000  
+0040D07D  PUSH ECX  
+0040D07E  PUSH 0                                         ; 操作系统指定分配空间的地址  
+0040D080  CALL DWORD PTR SS:\[EBP+4033EC\]                 ; kernel32.VirtualAlloc  
+0040D086  MOV DWORD PTR SS:\[EBP+4031E1\],EAX              ; 保存空间的首地址  
+0040D08C  POP EAX  
+0040D08D  POP ESI  
+0040D08E  PUSH ESI  
+0040D08F  PUSH EAX  
+0040D090  MOV ESI,DWORD PTR DS:\[EAX+403205\]              ; 代码块偏移量  
+0040D096  MOV EDX,DWORD PTR SS:\[EBP+403465\]              ; 映象基地址  
+0040D09C  MOV ECX,DWORD PTR DS:\[EAX+403209\]              ; 解密块的大小  
+0040D0A2  ADD ESI,EDX  
+0040D0A4  PUSHAD  
+0040D0A5  MOV EDI,ESI  
+0040D0A7  XOR EAX,EAX  
+0040D0A9  LODS BYTE PTR DS:\[ESI\]                         ; 载入代码块数据至 al  
+0040D0AA  XOR AL,BYTE PTR SS:\[EBP+402FD7\]                ; 加密代码块的数据  
+0040D0B0  STOS BYTE PTR ES:\[EDI\]                         ; 存回代码块  
+0040D0B1  LOOPD SHORT NOTEPAD.0040D0A9  
+0040D0B3  POPAD  
+0040D0B4  MOV EDI,DWORD PTR SS:\[EBP+4031E1\]              ; 这是前面用 VirtualAlloc 分配的内存空间  
+0040D0BA  REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR DS:\[ESI\]   ; 保存加密后的数据  
+0040D0BC  MOV ESI,DWORD PTR SS:\[EBP+4031E1\]              ; 加密数据的保存位置  
+0040D0C2  MOV EDI,DWORD PTR DS:\[EAX+403205\]              ; 代码块偏移量  
+0040D0C8  ADD EDI,EDX  
+0040D0CA  PUSH EDI  
+0040D0CB  PUSH ESI  
+0040D0CC  CALL NOTEPAD.0040D4BD                          ; 将代码块的数据还原  
+0040D0D1  POP ESI  
+0040D0D2  POP EDI  
+0040D0D3  POP EAX  
+0040D0D4  POP ESI  
+0040D0D5  PUSH ESI  
+0040D0D6  PUSH EAX  
+0040D0D7  MOV ECX,DWORD PTR DS:\[EAX+403209\]              ; 申请空间的大小  
+0040D0DD  MOV ESI,DWORD PTR SS:\[EBP+4031E1\]              ; 动态申请的内存空间  
+0040D0E3  PUSH 4000  
+0040D0E8  PUSH ECX  
+0040D0E9  PUSH ESI  
+0040D0EA  CALL DWORD PTR SS:\[EBP+4033F0\]                 ; kernel32.VirtualFree 释放空间  
+0040D0F0  POP EAX  
+0040D0F1  POP ESI  
+0040D0F2  ADD EAX,8                                      ; delta+8  
+0040D0F5  DEC ESI                                        ; 区块数递减 SI  
+0040D0F6  JNZ NOTEPAD.0040D06E                           ; 上述循环依次对每个 section 进行解码  
+0040D0FC  CMP DWORD PTR SS:\[EBP+4031E9\],0                ; 是否有重定位数据?  
+0040D103  JE NOTEPAD.0040D193  
+0040D109  MOV EDX,DWORD PTR SS:\[EBP+403465\]              ; 当前映象基地址  
+0040D10F  MOV EAX,DWORD PTR SS:\[EBP+4031E5\]              ; 理想映象基地址  
+0040D115  SUB EDX,EAX  
+0040D117  JE SHORT NOTEPAD.0040D193                      ; 是否需要重定位?  
+  
+        ..........  
+        ..........  
+        ..........  
+  
+0040D191  JMP SHORT NOTEPAD.0040D12C  
+0040D193  LEA EBX,DWORD PTR SS:\[EBP+403389\]              ; "user32.dll"  
+0040D199  PUSH EBX  
+0040D19A  CALL DWORD PTR SS:\[EBP+4033E8\]                 ; 调用 kernel32.LoadLibraryA 加载动态链接库  
+0040D1A0  PUSH EAX                                       ; 保存库的句柄  
+0040D1A1  LEA EBX,DWORD PTR SS:\[EBP+403331\]              ; "MessageBoxA"  
+0040D1A7  PUSH EBX  
+0040D1A8  PUSH EAX  
+0040D1A9  CALL DWORD PTR SS:\[EBP+4033E0\]                 ; 调用 kernel32.GetProcAddress 取得函数地址  
+0040D1AF  MOV DWORD PTR SS:\[EBP+4031D5\],EAX              ; 保存到全局变量  
+0040D1B5  POP EAX  
+0040D1B6  LEA EBX,DWORD PTR SS:\[EBP+40333D\]              ; "wsprintfA"  
+0040D1BC  PUSH EBX  
+0040D1BD  PUSH EAX  
+0040D1BE  CALL DWORD PTR SS:\[EBP+4033E0\]                 ; kernel32.GetProcAddress  
+0040D1C4  MOV DWORD PTR SS:\[EBP+4031D9\],EAX  
+0040D1CA  LEA EBX,DWORD PTR SS:\[EBP+4033F8\]              ; "kernel32.dll"  
+0040D1D0  PUSH EBX  
+0040D1D1  CALL DWORD PTR SS:\[EBP+4033E4\]                 ; kernel32.GetModuleHandleA  
+0040D1D7  PUSH EAX  
+0040D1D8  LEA EBX,DWORD PTR SS:\[EBP+403347\]              ; "ExitProcess"  
+0040D1DE  PUSH EBX  
+0040D1DF  PUSH EAX  
+0040D1E0  CALL DWORD PTR SS:\[EBP+4033E0\]                 ; kernel32.GetProcAddress  
+0040D1E6  MOV DWORD PTR SS:\[EBP+4031C5\],EAX  
+0040D1EC  POP EAX  
+0040D1ED  PUSH EAX  
+0040D1EE  LEA EBX,DWORD PTR SS:\[EBP+403361\]              ; "CreateFileA"  
+0040D1F4  PUSH EBX  
+0040D1F5  PUSH EAX  
+0040D1F6  CALL DWORD PTR SS:\[EBP+4033E0\]                 ; kernel32.GetProcAddress  
+0040D1FC  MOV DWORD PTR SS:\[EBP+4031C1\],EAX  
+0040D202  POP EAX  
+0040D203  PUSH EAX  
+0040D204  LEA EBX,DWORD PTR SS:\[EBP+403353\]              ; "GetVersionExA"  
+0040D20A  PUSH EBX  
+0040D20B  PUSH EAX  
+0040D20C  CALL DWORD PTR SS:\[EBP+4033E0\]                 ; kernel32.GetProcAddress  
+0040D212  MOV DWORD PTR SS:\[EBP+4031C9\],EAX  
+0040D218  POP EAX  
+0040D219  PUSH EAX  
+0040D21A  LEA EBX,DWORD PTR SS:\[EBP+40336D\]              ; "VirtualProtect"  
+0040D220  PUSH EBX  
+0040D221  PUSH EAX  
+0040D222  CALL DWORD PTR SS:\[EBP+4033E0\]                 ; kernel32.GetProcAddress  
+0040D228  MOV DWORD PTR SS:\[EBP+4031CD\],EAX  
+0040D22E  POP EAX  
+0040D22F  LEA EBX,DWORD PTR SS:\[EBP+40337C\]              ; "GetTickCount"  
+0040D235  PUSH EBX  
+0040D236  PUSH EAX  
+0040D237  CALL DWORD PTR SS:\[EBP+4033E0\]                 ; kernel32.GetProcAddress  
+0040D23D  MOV DWORD PTR SS:\[EBP+4031D1\],EAX  
+0040D243  LEA EBX,DWORD PTR SS:\[EBP+40346D\]              ; OSVERSIONINFO 结构体的指针  
+0040D249  MOV DWORD PTR DS:\[EBX\],94                      ; OSVERSIONINFO 结构体的大小  
+0040D24F  PUSH EBX  
+0040D250  CALL DWORD PTR SS:\[EBP+4031C9\]                 ; kernel32.GetVersionExA  
+0040D256  LEA EBX,DWORD PTR SS:\[EBP+40346D\]  
+0040D25C  CMP DWORD PTR DS:\[EBX+10\],1                    ; Win98?  
+0040D260  JE SHORT NOTEPAD.0040D276  
+0040D262  CMP DWORD PTR DS:\[EBX+10\],2                    ; WinNT?  
+0040D266  JE SHORT NOTEPAD.0040D26A  
+0040D268  JMP SHORT NOTEPAD.0040D284  
+0040D26A  CALL NOTEPAD.0040D44E                          ; 简单地调用 CreateFile 检测 SoftICE  
+{  
+    0040D44E  PUSH 0  
+    0040D450  PUSH 80  
+    0040D455  PUSH 3  
+    0040D457  PUSH 0  
+    0040D459  PUSH 0  
+    0040D45B  PUSH 80000000  
+    0040D460  LEA EBX,DWORD PTR SS:\[EBP+403394\]  
+    0040D466  PUSH EBX                            ; "\\\\.\\ntice"  
+    0040D467  CALL DWORD PTR SS:\[EBP+4031C1\]      ; 调用 CreateFileA 检测 SoftICE  
+    0040D46D  CMP EAX,-1  
+    0040D470  JE SHORT NOTEPAD.0040D478  
+    0040D472  CALL NOTEPAD.0040D47B  
+    0040D477  RETN  
+    0040D478  XOR EAX,EAX                         ; 未发现调试器  
+    0040D47A  RETN  
+}  
+0040D26F  CMP EAX,-1  
+0040D272  JNZ SHORT NOTEPAD.0040D284  
+0040D274  JMP SHORT NOTEPAD.0040D280  
+0040D276  CALL NOTEPAD.0040D418  
+0040D27B  CMP EAX,-1  
+0040D27E  JNZ SHORT NOTEPAD.0040D284  
+0040D280  POPAD  
+0040D281  XOR EAX,EAX  
+0040D283  RETN  
+0040D284  MOV EDX,DWORD PTR SS:\[EBP+403465\]              ; 映象基地址  
+0040D28A  MOV ESI,DWORD PTR SS:\[EBP+4031F1\]              ; 输入表的偏移量,开始处理输入表  
+0040D290  ADD ESI,EDX  
+0040D292  MOV EAX,DWORD PTR DS:\[ESI+C\]                   ; DllName 指针  
+0040D295  OR EAX,EAX  
+0040D297  JE NOTEPAD.0040D3EA  
+0040D29D  ADD EAX,EDX  
+0040D29F  MOV DWORD PTR SS:\[EBP+4031BD\],EAX              ; 保存 DllName 地指针  
+0040D2A5  MOV EBX,EAX  
+0040D2A7  PUSH EAX  
+0040D2A8  CALL DWORD PTR SS:\[EBP+4033E4\]                 ; kernel32.GetModuleHandleA  
+0040D2AE  OR EAX,EAX                                     ; 是否已经加载?  
+0040D2B0  JNZ SHORT NOTEPAD.0040D307  
+0040D2B2  PUSH EBX  
+0040D2B3  CALL DWORD PTR SS:\[EBP+4033E8\]                 ; 没有加载就调用 kernel32.LoadLibraryA 加载  
+0040D2B9  OR EAX,EAX                                     ; 加载成功?  
+0040D2BB  JNZ SHORT NOTEPAD.0040D307  
+  
+        ..........  
+        ..........  
+        ..........  
+  
+0040D307  MOV DWORD PTR SS:\[EBP+4031F9\],EAX              ; 保存 Dll 的句柄  
+0040D30D  MOV DWORD PTR SS:\[EBP+4031FD\],0                ; IAT 地址表的偏移指针  
+0040D317  MOV EDX,DWORD PTR SS:\[EBP+403465\]              ; 映象基地址  
+0040D31D  MOV EAX,DWORD PTR DS:\[ESI\]                     ; OriginalFirstThunk  
+0040D31F  OR EAX,EAX  
+0040D321  JNZ SHORT NOTEPAD.0040D326  
+0040D323  MOV EAX,DWORD PTR DS:\[ESI+10\]                  ; FirstThunk  
+0040D326  ADD EAX,EDX                                    ; 加上映象基地址  
+0040D328  ADD EAX,DWORD PTR SS:\[EBP+4031FD\]  
+0040D32E  MOV EBX,DWORD PTR DS:\[EAX\]                     ; 引入函数名指针的偏移量形式  
+0040D330  MOV EDI,DWORD PTR DS:\[ESI+10\]                  ; FirstThunk  
+0040D333  ADD EDI,EDX                                    ; 加上映象基地址  
+0040D335  ADD EDI,DWORD PTR SS:\[EBP+4031FD\]  
+0040D33B  TEST EBX,EBX  
+0040D33D  JE NOTEPAD.0040D3DC                            ; 从这里跳出填充 IAT 的循环  
+0040D343  TEST EBX,80000000                              ; 以序数引入?  
+0040D349  JNZ SHORT NOTEPAD.0040D352  
+0040D34B  ADD EBX,EDX                                    ; 加上映象基地址  
+0040D34D  ADD EBX,2                                      ; 跳过序号(hint)域  
+0040D350  JMP SHORT NOTEPAD.0040D367  
+0040D352  AND EBX,7FFFFFFF  
+0040D358  PUSH EBX  
+0040D359  PUSH DWORD PTR SS:\[EBP+4031F9\]  
+0040D35F  CALL DWORD PTR SS:\[EBP+4033E0\]  
+0040D365  JMP SHORT NOTEPAD.0040D37F  
+0040D367  PUSH EBX                                       ; 引入函数名的指针  
+0040D368  PUSH DWORD PTR SS:\[EBP+4031F9\]                 ; Dll 句柄  
+0040D36E  CALL DWORD PTR SS:\[EBP+4033E0\]                 ; kernel32.GetProcAddress  
+0040D374  JMP SHORT NOTEPAD.0040D37A  
+0040D376  MOV BYTE PTR DS:\[EBX\],0                        ; 清空函数名字符串  
+0040D379  INC EBX  
+0040D37A  CMP BYTE PTR DS:\[EBX\],0                        ; 函数名是否结束?  
+0040D37D  JNZ SHORT NOTEPAD.0040D376  
+0040D37F  OR EAX,EAX                                     ; 引入函数地址  
+0040D381  JNZ SHORT NOTEPAD.0040D3CE  
+  
+        ..........  
+        ..........  
+        ..........  
+  
+0040D3CE  MOV DWORD PTR DS:\[EDI\],EAX                     ; 将函数地址装入 FirstThunk 指向的 IAT  
+0040D3D0  ADD DWORD PTR SS:\[EBP+4031FD\],4                ; IAT 地址表的指针递增  
+0040D3D7  JMP NOTEPAD.0040D317  
+0040D3DC  ADD ESI,14                                     ; 下一组 IID  
+0040D3DF  MOV EDX,DWORD PTR SS:\[EBP+403465\]              ; 映象基地址  
+0040D3E5  JMP NOTEPAD.0040D292  
+0040D3EA  PUSH 30  
+0040D3EC  LEA EBX,DWORD PTR SS:\[EBP+40324D\]              ; 字符串"Unregistered JDPack"  
+0040D3F2  PUSH EBX  
+0040D3F3  LEA EBX,DWORD PTR SS:\[EBP+403261\]              ; 字符串"This file PACKED by Unregistered..."  
+0040D3F9  PUSH EBX  
+0040D3FA  PUSH 0  
+0040D3FC  CALL DWORD PTR SS:\[EBP+4031D5\]                 ; user32.MessageBoxA  
+0040D402  MOV EDX,DWORD PTR SS:\[EBP+403465\]              ; 映象基地址  
+0040D408  MOV EAX,DWORD PTR SS:\[EBP+4031ED\]              ; OEP 偏移量  
+0040D40E  ADD EAX,EDX  
+0040D410  MOV DWORD PTR SS:\[ESP+1C\],EAX  
+0040D414  POPAD  
+0040D415  PUSH EAX                                       ; OEP 入栈  
+0040D416  RETN                                           ; 进入原始程序代码
+
+ 4dd466d0e1e0cc123afbe504da2462ca

@@ -1,0 +1,207 @@
+
+
+# 盟军敢死队
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum383.htm`](https://www.pediy.com/kssd/pediy03/forum383.htm)
+
+ 正版“盟军敢死队”密匙光盘加密破解实录   
+  
+        Write By liangs   
+  
+声明：本文不是叫你怎么去盗版，而仅仅是作为一种 Crack 技术交流。   
+使用工具：Trw2000; W32Dasm; UltraEdit   
+  
+好久没写点什么了，只因为最近家里刚刚添了个小 Baby,忙的要死。   
+就把前不久刚刚破解的盟军敢死队光盘加密的记录整理了一下，   
+权且充当一篇文章吧。   
+  
+  在看这篇文章之前，建议大家先好好看看看雪兄整理的“论坛精华 2”   
+中关于 CD-CHECK 的两篇译文，对大家会有很大的帮助，那里面介绍的   
+光盘加密方式很有通用性。   
+  
+  先用资源管理器查看原光盘，发现光盘容量居然有 3.05GB！   
+其中光盘根目录下的 Bbvn.afp，Btbw.afp，Etao.afp，Tbtp.afp   
+等四个文件个个都有 680MB 以上，不用说可能又是 SafeDisk 之类的光盘   
+加密方式。   
+  
+  对付上述光盘加密方式，我们通常都从盘上的那几个 680MB 以上的文件   
+入手，这里是 Tbtp.afp，Bbvn.afp，Btbw.afp，Etao.afp 等四个文件。   
+  
+首先运行 Comandos.exe，再运行 Trw2000，下 bpx GetDriveTypeA 指令，   
+回到游戏中，选择游戏菜单中 New Game 下的 Single Player 选项。   
+  
+\* Reference To: KERNEL32.GetDriveTypeA, Ord:00CEh   
+                                  |   
+:00494A01 8B3514266600            mov esi, dword ptr \[00662614\]   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:00494A8C(C)   
+|   
+:00494A07 8D44240C                lea eax, dword ptr \[esp+0C\]   
+:00494A0B 885C240C                mov byte ptr \[esp+0C\], bl   
+:00494A0F 50                      push eax   
+:00494A10 FFD6                    call esi   
+GetDriveTypeA 指令返回时我们停在这。   
+  
+:00494A12 83F805                  cmp eax, 00000005   
+这条指令是不是很眼熟啊！   
+  
+:00494A15 7570                    jne 00494A87   
+如果没放光盘，将跳走。   
+  
+\* Possible StringData Ref from Data Obj ->"rb"   
+                                  |   
+:00494A17 68900F5F00              push 005F0F90   
+:00494A1C 881D10266000            mov byte ptr \[00602610\], bl   
+  
+\* Possible StringData Ref from Data Obj ->"d:\\TBTP.AFP"   
+  
+大家注意了，看见上面的"d:\\TBTP.AFP"没有，下面的判断就是关于它的。   
+                                  |   
+:00494A22 6810266000              push 00602610   
+:00494A27 881D20266000            mov byte ptr \[00602620\], bl   
+:00494A2D 881D30266000            mov byte ptr \[00602630\], bl   
+:00494A33 881D40266000            mov byte ptr \[00602640\], bl   
+:00494A39 E8D2A81300              call 005CF310   
+检查光盘是否有“TBTP.AFP”这个文件   
+:00494A3E 83C408                  add esp, 00000008   
+:00494A41 8BF8                    mov edi, eax   
+:00494A43 85FF                    test edi, edi   
+:00494A45 750A                    jne 00494A51   
+如果光盘有“TBTP.AFP”这个文件，就跳到下一个地址继续检查   
+  
+:00494A47 C744241000000000        mov \[esp+10\], 00000000   
+:00494A4F EB2E                    jmp 00494A7F   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:00494A45(C)   
+|   
+:00494A51 6A00                    push 00000000   
+:00494A53 6800A08329              push 2983A000   
+保存偏移地址“2983A000”   
+  
+:00494A58 57                      push edi   
+:00494A59 E8C2AD1300              call 005CF820   
+指针指向文件中的偏移地址   
+  
+:00494A5E 83C40C                  add esp, 0000000C   
+:00494A61 57                      push edi   
+:00494A62 E879AD1300              call 005CF7E0   
+取偏移地址处的文件数据   
+  
+:00494A67 83C404                  add esp, 00000004   
+:00494A6A 33C9                    xor ecx, ecx   
+:00494A6C 83F829                  cmp eax, 00000029   
+文件偏移地址“2983A000”处的值是否等于“00000029”   
+  
+:00494A6F 0F94C1                  sete cl   
+:00494A72 894C2410                mov dword ptr \[esp+10\], ecx   
+:00494A76 57                      push edi   
+:00494A77 E8F4A71300              call 005CF270   
+:00494A7C 83C404                  add esp, 00000004   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:00494A4F(U)   
+|   
+:00494A7F 8B442410                mov eax, dword ptr \[esp+10\]   
+:00494A83 85C0                    test eax, eax   
+:00494A85 7514                    jne 00494A9B   
+如果检查条件满足，就跳走。   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:00494A15(C)   
+|   
+:00494A87 FEC3                    inc bl   
+:00494A89 80FB5A                  cmp bl, 5A   
+:00494A8C 0F8E75FFFFFF            jle 00494A07   
+:00494A92 33C0                    xor eax, eax   
+EAX 标志清 0，表示没有放光盘   
+  
+:00494A94 5F                      pop edi   
+:00494A95 5E                      pop esi   
+:00494A96 5B                      pop ebx   
+:00494A97 83C408                  add esp, 00000008   
+:00494A9A C3                      ret   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:00494A85(C)   
+|   
+:00494A9B B801000000              mov eax, 00000001   
+EAX 标志置 1，表示放入了光盘，并通过了“TBTP.AFP”文件的检查。   
+  
+:00494AA0 5F                      pop edi   
+:00494AA1 5E                      pop esi   
+:00494AA2 5B                      pop ebx   
+:00494AA3 83C408                  add esp, 00000008   
+:00494AA6 C3                      ret   
+  
+\-------------------------------------------------------------------   
+  
+从上面的 ret 返回后，我们来到 0044CB04 处，   
+  
+\* Referenced by a CALL at Addresses:   
+|:00447E9C  , :00448015    
+|   
+:0044CAF0 83EC0C                  sub esp, 0000000C   
+:0044CAF3 A1980A5F00              mov eax, dword ptr \[005F0A98\]   
+:0044CAF8 85C0                    test eax, eax   
+:0044CAFA 90                      nop   
+:0044CAFB 53                      push ebx   
+:0044CAFC 56                      push esi   
+:0044CAFD 7413                    je 0044CB12   
+  
+:0044CAFF E8EC7E0400              call 004949F0   
+这就是上面的光盘及“TBTP.AFP”文件检查判断   
+  
+:0044CB04 85C0                    test eax, eax   
+:0044CB06 740A                    je 0044CB12   
+跳就完蛋了！   
+  
+:0044CB08 C705980A5F0000000000    mov dword ptr \[005F0A98\], 00000000   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
+|:0044CAFD(C), :0044CB06(C)   
+  
+下面是光盘上那几个\*.AFP 文件的判别，与上面“TBTP.AFP”文件的   
+分析一样。   
+  
+......部分相同代码略   
+  
+\* Possible StringData Ref from Data Obj ->"rb"   
+                                  |   
+:0044CB59 68900F5F00              push 005F0F90   
+  
+\* Possible StringData Ref from Data Obj ->"d:\\BBVN.AFP"   
+对“BBVN.AFP”文件的检查   
+                                  |   
+:0044CB5E 6820266000              push 00602620   
+:0044CB63 E8A8271800              call 005CF310   
+:0044CB68 83C408                  add esp, 00000008   
+:0044CB6B 8BF0                    mov esi, eax   
+:0044CB6D 85F6                    test esi, esi   
+:0044CB6F 750A                    jne 0044CB7B   
+:0044CB71 C744241000000000        mov \[esp+10\], 00000000   
+:0044CB79 EB2E                    jmp 0044CBA9   
+  
+......部分相同代码略   
+  
+按 F12 返回更上一级 Call,来到如下地址：   
+  
+:00448015 E8D64A0000              call 0044CAF0   
+上面所有的判断都在这个 Call 里面   
+:0044801A 85C0                    test eax, eax   
+:0044801C 7418                    je 00448036   
+  
+我们的目的就是要使，eax=1，使 je 00448036 不跳转，   
+因此，只要将 0044801C 处的 je 00448036 改为 NOP 就可以了。   
+  
+重新运行游戏，New Game 下的 Single Player 选项已经可以玩了，   
+不再需要光盘。不要以为这样就已经破解完了，如果你再试试 Load Game，   
+就会发现还要提示插入光盘，说明还没破解干净。   
+  
+在按下 Load Game 菜单前再下 bpx GetDriveTypeA 指令   
+中断后，我们还是会回到上面的 00494A12 处，   
+按 F12 返回上一级调用，来到 0044CB06 处   
+再按 F12 返回更上一级调用，来到 00447EA3 处   
+只要再将 00447EA3 的跳转都改成 NOP 就可以了，至此，“盟军敢死队”   
+密匙光盘加密就完全破解完了。   4dd466d0e1e0cc123afbe504da2462ca

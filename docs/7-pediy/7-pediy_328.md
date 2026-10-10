@@ -1,0 +1,271 @@
+
+
+# 给 LikecanViewer 添加自动保存壁纸的功能
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-246.htm`](https://www.pediy.com/kssd/pediy09/pediy09-246.htm)
+
+> 【文章标题】: 给 LikecanViewer 添加自动保存壁纸的功能  
+> 【文章作者】: vxworks  
+> 【作者邮箱】: vxworks.os@gmail.com  
+> 【软件名称】: LikecanViewer V20070814 绿色版  
+> 【软件大小】: 000C5000 Bytes  
+> 【下载地址】: 自己搜索下载  
+> 【使用工具】: OllyDbg, LordPE, PEid  
+> 【操作平台】: Win32  
+> 【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!  
+> \--------------------------------------------------------------------------------  
+> 【详细过程】  
+>   
+>     近日在水木社区看到一款小巧别致的桌面软件 LikecanViewer。软件的主要功能是全自动设置桌面壁纸，  
+> 而作为壁纸的所有图片均保存在服务器并通过网络自动下载，提供逾一百万张超高精度绝美图片可选。  
+>   
+>     粗略用了一下，发现壁纸果真精细唯美，于是想把这些壁纸都保存下来。通过在桌面->右键->属性->  
+> 桌面可看到软件其实是在 Windows 目录下生成了一张名为 LikeCanWallpaper 的图片，其格式为 bmp，大小有  
+> 3.5M 之大。我们当然可以保存该图片来达到我们的目的，但这不是本文的初衷。既然通过网络下载，在软件  
+> 目录是不是会存放有这些下载的图片呢。失望的是，查找软件的目录，并没有发现 jpg/bmp 的踪影，唯一  
+> 可疑的目录就是 data 子目录，如下图所示，里面是 20 个 lkp 后缀名的文件，文件名由 32 个字母和数字混合组成。  
+> ![](img/b16dd47905b594b7f93881e47a7c10c7.jpg)  
+> 而查找软件的菜单和按钮，也没有发现软件有提供把当前壁纸保存下来的功能。回头看 data 子目录下的文件，  
+> 每个文件大小只有 300 多 K，与最后的壁纸图 3.5M 相去甚远，猜想下载回来的图片经过压缩或加密，由软件进行  
+> 解压缩或解密，最后设置为壁纸。不管软件是通过什么方式压缩或加密的，最终总会在内存中还原为原始的  
+> 图片格式(JPG/BMP)，因为 Windows 可不认这种私有的图片格式。如果我们在软件最终将还原的图片数据写入  
+> 到壁纸文件之前，将这份数据写入到我们想要保存的文件中，即是完成了让软件自动保存每张壁纸的功能。  
+>   
+>     首先用 PEid 查是否加壳，无壳，Microsoft Visual C++ 7.0 编写。很好很强大 :-)  
+>   
+>     涉及到文件操作，CreateFile 自然是最好的切入点。用 OD 载入，Ctrl+N 找到 CreateFile，右键菜单选择  
+> 在每个参考上设置断点，F9 运行。软件如我们期望的断了下来。  
+>   
+>   004213A0  /$  55            push    ebp  
+>   004213A1  |.  8BEC          mov     ebp, esp  
+>   004213A3  |.  56            push    esi  
+>   004213A4  |.  FF75 20       push    dword ptr \[ebp+20\]               ; /hTemplateFile  
+>   004213A7  |.  8BF1          mov     esi, ecx                         ; |  
+>   004213A9  |.  FF75 18       push    dword ptr \[ebp+18\]               ; |Attributes  
+>   004213AC  |.  FF75 14       push    dword ptr \[ebp+14\]               ; |Mode  
+>   004213AF  |.  FF75 1C       push    dword ptr \[ebp+1C\]               ; |pSecurity  
+>   004213B2  |.  FF75 10       push    dword ptr \[ebp+10\]               ; |ShareMode  
+>   004213B5  |.  FF75 0C       push    dword ptr \[ebp+C\]                ; |Access  
+>   004213B8  |.  FF75 08       push    dword ptr \[ebp+8\]                ; |FileName  
+>   004213BB  |.  FF15 58724700 call    dword ptr \[<&KERNEL32.CreateFile>; \\CreateFileW  
+>   004213C1  |.  83F8 FF       cmp     eax, -1  
+>   004213C4  |.  75 07         jnz     short 004213CD  
+>   004213C6  |.  E8 93ADFEFF   call    0040C15E  
+>   004213CB  |.  EB 04         jmp     short 004213D1  
+>   004213CD  |>  8906          mov     dword ptr \[esi\], eax             ; 这里保存文件句柄  
+>   004213CF  |.  33C0          xor     eax, eax  
+>   004213D1  |>  5E            pop     esi  
+>   004213D2  |.  5D            pop     ebp  
+>   004213D3  \\.  C2 1C00       retn    1C  
+>   
+>     观察堆栈窗口，可以看到 CreateFile 的参数 FileName 并不是我们想要的 LikeCanWallpaper.bmp。  
+> ![](img/27bdb7baae215d4c869600965f71786b.jpg)  
+> 这里需要注意一点，文件名是以 UNICODE 形式存在的。实际上这个软件的字符串都是以 UNICODE 形式存在。  
+>   
+>     继续 F9 多次，在堆栈窗口发现 FileName 变化为：  
+>   
+>   0012C714   001885A0  |FileName = "D:\\Software\\LikecanViewer\\data\\0127e916de3713afef6fed144afbaccf.lkp"  
+>   
+>     终于开始读取 data 子目录下的文件了，那后续操作是不是开始解压缩或解密了呢。我们这里并不关心软件  
+> 是怎么压缩或加密的，不管他，继续 F9 吧。F9 N 次(N > 20 \* 2)，看来软件是把 data 子目录下的 20 个文件都处  
+> 理了一遍，终于看到我们的壁纸文件了，也就是  
+>   
+>   00F4FD70   00198678  |FileName = "C:\\WINDOWS\\LikeCanWallpaper.bmp"  
+>   
+>     到这里开始，我们开始换 F8 前进。返回到 0042410C，发现上面连续 push 了 7 个参数，结合刚才的 004213BB  
+> 处看，实际这里 push 的参数是给 004213BB 处的 CreateFile 函数的。  
+>   
+>   004240F4  |.  53            push    ebx                              ; /Arg7  
+>   004240F5  |.  53            push    ebx                              ; |Arg6  
+>   004240F6  |.  68 80000000   push    80                               ; |Arg5 = 00000080  
+>   004240FB  |.  6A 02         push    2                                ; |Arg4 = 00000002  
+>   004240FD  |.  53            push    ebx                              ; |Arg3  
+>   004240FE  |.  68 00000040   push    40000000                         ; |Arg2 = 40000000  
+>   00424103  |.  50            push    eax                              ; |Arg1  
+>   00424104  |.  8D4D F0       lea     ecx, dword ptr \[ebp-10\]          ; |  
+>   00424107  |.  E8 94D2FFFF   call    004213A0                         ; \\LikeCan.004213A0  
+>   0042410C  |.  85C0          test    eax, eax  
+>   0042410E  |.  7C 25         jl      short 00424135  
+>   
+>     继续 F8 到 00424113，寄存器窗口 ecx 显示为 ASCII"BM6@8"。这不是 bmp 文件的 magic number 吗？  
+>   
+>   00424110  |.  8B45 08       mov     eax, dword ptr \[ebp+8\]  
+>   00424113  |.  8B48 04       mov     ecx, dword ptr \[eax+4\]           ; ASCII "BM6@8"  
+>   00424116  |.  3BCB          cmp     ecx, ebx  
+>   00424118  |.  75 04         jnz     short 0042411E  
+>   0042411A  |.  33C0          xor     eax, eax  
+>   0042411C  |.  EB 05         jmp     short 00424123  
+>   0042411E  |>  8B40 08       mov     eax, dword ptr \[eax+8\]  
+>   00424121  |.  2BC1          sub     eax, ecx  
+>   
+>     下面先来复习一下 BMP 的文件格式。BMP 文件头前两个字节为 BMP 文件类型，对于 Windows 来说固定为"BM"，  
+> 紧接着的 4 个字节为文件大小，这里我们的文件大小为 00384036，换算成十进制大概是 3.5M，看来这里就是  
+> 还原后的 bmp 数据了。  
+>   
+>   02210020  42 4D 36 40 38 00 00 00 00 00 36 00 00 00 28 00  BM6@8.....6...(.  
+>   02210030  00 00 00 05 00 00 C0 03 00 00 01 00 18 00 00 00  .....?......  
+>   02210040  00 00 00 40 38 00 00 00 00 00 00 00 00 00 00 00  ...@8...........  
+>   02210050  00 00 00 00 00 00 FF FF FF FF FF FF FF FF FF FF  ......  
+>   
+>     继续 F8 到 00424123，这里又开始压栈了。  
+>   
+>   00424123  |>  53            push    ebx                              ; /Arg3  /\* NULL \*/  
+>   00424124  |.  50            push    eax                              ; |Arg2  /\* bmp 文件大小 \*/  
+>   00424125  |.  51            push    ecx                              ; |Arg1  /\* bmp 数据地址 \*/  
+>   00424126  |.  8D4D F0       lea     ecx, dword ptr \[ebp-10\]          ; |  
+>   00424129  |.  E8 E2D2FFFF   call    00421410                         ; \\LikeCan.00421410  
+>   0042412E  |.  85C0          test    eax, eax  
+>   00424130  |.  885D 0B       mov     byte ptr \[ebp+B\], bl  
+>   00424133  |.  7D 04         jge     short 00424139  
+>   
+>     F7 跟进到 00421420 的 call，跟上面 004213BB 处的 CreateFile 函数类似，这里实际是调用 WriteFile 函数，  
+> push 的 3 个参数的含义也因此而明确了。  
+>   
+>   00421410  /$  55            push    ebp  
+>   00421411  |.  8BEC          mov     ebp, esp  
+>   00421413  |.  8B45 10       mov     eax, dword ptr \[ebp+10\]  
+>   00421416  |.  85C0          test    eax, eax  
+>   00421418  |.  75 03         jnz     short 0042141D  
+>   0042141A  |.  8D45 10       lea     eax, dword ptr \[ebp+10\]  
+>   0042141D  |>  6A 00         push    0                                ; /pOverlapped = NULL  
+>   0042141F  |.  50            push    eax                              ; |pBytesWritten  
+>   00421420  |.  FF75 0C       push    dword ptr \[ebp+C\]                ; |nBytesToWrite  
+>   00421423  |.  FF75 08       push    dword ptr \[ebp+8\]                ; |Buffer  
+>   00421426  |.  FF31          push    dword ptr \[ecx\]                  ; |hFile  
+>   00421428  |.  FF15 50724700 call    dword ptr \<&KERNEL32.WriteFile>>; \\WriteFile  
+>   0042142E  |.  85C0          test    eax, eax  
+>   00421430  |.  75 07         jnz     short 00421439  
+>   00421432  |.  E8 27ADFEFF   call    0040C15E  
+>   00421437  |.  EB 02         jmp     short 0042143B  
+>   00421439  |>  33C0          xor     eax, eax  
+>   0042143B  |>  5D            pop     ebp  
+>   0042143C  \\.  C2 0C00       retn    0C  
+>   
+>     至此，关键 call 已找到。在 00424123 处我们可以改变软件流程，让其跳到我们的 patch 代码处，处理完毕后  
+> 再跳回原来地址执行。  
+>     
+>     Patch 的思路是在软件目录下新建一个 save 目录，让软件把自动保存的壁纸存放到此目录下，文件名形如：  
+> wallpaper.xxxx.bmp，其中 xxxx 为 4 位 16 进制数。保存壁纸到某个文件明确的 API 流程是：CreateFile() ->   
+> WriteFile() -> CloseHandle()。用 wsprintf 生成保存的文件名。另外，需要部分变量保存相关信息。  
+>   
+>     用 LordPE 查看区段信息，发现.text 段后面尚有部分空白区域。考虑把代码 patch 到该处。  
+> ![  > 另外，直接选择空白的代码段作为存放变量之用，需要将代码段设置为可写，用 LordPE 改之。  > ![](img/ee94ad69a1e4b61921ec3f6ba4950910.jpg)  
+>   
+>     选择 0x00467A00 开始我们的 Patch 代码。  
+>   
+>     首先是我们的变量分配，原有代码 push 的 3 个参数需要保存，选择分别存于 00476A00, 00476A04 和  
+> 00476A08 处。00476A0C 处存放文件名的 xxxx4 位 16 进制数。00476A10 存放我们创建文件的句柄，00476A14 则存放  
+> WriteFile 函数的 pBytesWritten 参数。从 00476A20 开始为我们的文件名字符串"save\\wallpaper.%04x.bmp"，  
+> 注意是 UNICODE 形式。地址 00476A50 开始存放经 wsprintf 处理过的字符串。  
+>   
+>   00476A00  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+>   00476A10  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+>   00476A20  73 00 61 00 76 00 65 00 5C 00 77 00 61 00 6C 00  s.a.v.e.\\.w.a.l.  
+>   00476A30  6C 00 70 00 61 00 70 00 65 00 72 00 2E 00 25 00  l.p.a.p.e.r...%.  
+>   00476A40  30 00 34 00 78 00 2E 00 62 00 6D 00 70 00 00 00  0.4.x...b.m.p...  
+>   00476A50  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+>   00476A60  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+>   00476A70  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+>   
+>     经过计算，变量区正好到 00476A7F 结束，Patch 代码从 00476A80 开始。先跳转到 00476A80  
+>   
+>   00424123     /E9 58290500   jmp     00476A80  
+>   00424128     |90            nop  
+>   00424129  |. |E8 E2D2FFFF   call    00421410                         ; \\LikeCan.00421410  
+>   
+>     然后保存之前的 ecx, eax, ebx 到变量区里  
+>   
+>   00476A80      890D 006A4700 mov     dword ptr \[476A00\], ecx  
+>   00476A86      A3 046A4700   mov     dword ptr \[476A04\], eax  
+>   00476A8B      891D 086A4700 mov     dword ptr \[476A08\], ebx  
+>   
+>     取出 xxxx4 位 16 进制数  
+>   
+>   00476A91      8B1D 0C6A4700 mov     ebx, dword ptr \[476A0C\]  
+>   
+>     调用 wsprintf 函数生成文件名  
+>   
+>   00476A97      53            push    ebx  
+>   00476A98      68 206A4700   push    00476A20                         ;  UNICODE "save\\wallpaper.%04x.bmp"  
+>   00476A9D      68 506A4700   push    00476A50  
+>   00476AA2      FF15 E8734700 call    dword ptr \[<&USER32.wsprintfW>\]  ;  USER32.wsprintfW  
+>   
+>     这里注意 wsprintf 要求调用者平衡堆栈  
+>   
+>   00476AA8      83C4 0C       add     esp, 0C  
+>   
+>     文件名 xxxx 递增 1  
+>   
+>   00476AAB      43            inc     ebx  
+>   00476AAC      891D 0C6A4700 mov     dword ptr \[476A0C\], ebx  
+>   
+>     开始 CreateFile 创建欲保存的文件  
+>   
+>   00476AB2      6A 00         push    0  
+>   00476AB4      68 80000000   push    80  
+>   00476AB9      6A 02         push    2  
+>   00476ABB      6A 00         push    0  
+>   00476ABD      6A 00         push    0  
+>   00476ABF      68 00000040   push    40000000  
+>   00476AC4      68 506A4700   push    00476A50  
+>   00476AC9      FF15 58724700 call    dword ptr \[<&KERNEL32.CreateFile>;  kernel32.CreateFileW  
+>   
+>     创建是否成功，不成功则跳到后面退出 Patch 代码  
+>   
+>   00476ACF      83F8 FF       cmp     eax, -1  
+>   00476AD2      74 2C         je      short 00476B00  
+>   
+>     保存创建文件的句柄      
+>   
+>   00476AD4      A3 106A4700   mov     dword ptr \[476A10\], eax  
+>   
+>     调用 WriteFile 将还原的 bmp 数据写入  
+>   
+>   00476AD9      6A 00         push    0  
+>   00476ADB      68 146A4700   push    00476A14  
+>   00476AE0      FF35 046A4700 push    dword ptr \[476A04\]  
+>   00476AE6      FF35 006A4700 push    dword ptr \[476A00\]  
+>   00476AEC      50            push    eax  
+>   00476AED      FF15 50724700 call    dword ptr \[<&KERNEL32.WriteFile>>;  kernel32.WriteFile  
+>   
+>     调用 CloseHandle 关闭文件句柄  
+>   
+>   00476AF3      FF35 106A4700 push    dword ptr \[476A10\]  
+>   00476AF9      FF15 5C724700 call    dword ptr \[<&KERNEL32.CloseHandl>;  kernel32.CloseHandle  
+>   00476AFF      90            nop  
+>   
+>     还原现场  
+>   
+>   00476B00      8B0D 006A4700 mov     ecx, dword ptr \[476A00\]  
+>   00476B06      A1 046A4700   mov     eax, dword ptr \[476A04\]  
+>   00476B0B      8B1D 086A4700 mov     ebx, dword ptr \[476A08\]  
+>   00476B11      53            push    ebx  
+>   00476B12      50            push    eax  
+>   00476B13      51            push    ecx  
+>   00476B14      8D4D F0       lea     ecx, dword ptr \[ebp-10\]  
+>   
+>     跳回  
+>   
+>   00476B17    ^ E9 0DD6FAFF   jmp     00424129    
+>   
+> \--------------------------------------------------------------------------------  
+> 【经验总结】  
+>   注意到 BMP 文件头的 magic number，结合文件操作的 API，即可迅速找到突破口。  
+>     
+> \--------------------------------------------------------------------------------  
+> 【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!  
+>   
+>                                                        2007 年 08 月 21 日 22:00:00 
+
+> 引用: *最初由 **vxworks**发布* ![查看帖子](img/showthread.php?p=348579#post348579) 【文章标题】: 给 LikecanViewer 添加自动保存壁纸的功能  
+> 【文章作者】: vxworks  
+> 【作者邮箱】: vxworks.os@gmail.com  
+> 【软件名称】: LikecanViewer V20070814 绿色版  
+> 【软件大小】: 000C5000 Bytes  
+> 【下载地址】:... 
+> 
+> 文章不错帮你顶一个  
+> 不过推荐搂主用堆栈来保存变量  
+> 因为用全部变量 会多线程冲突.一旦这段代码被两个线程调用 .后果不可预知![](img/9e827a3de2ad55eed0f95082425861b2.jpg "微笑")p: 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

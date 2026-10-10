@@ -1,0 +1,326 @@
+
+
+# 游戏修改的常用方法之一远程读写内存(asm 源码详注)
+
+> 原文：[`www.pediy.com/kssd/pediy10/66624.html`](https://www.pediy.com/kssd/pediy10/66624.html)
+
+comment \*-----------------------------------------------------------------------  
+　　前几日，几个朋友在局域网中玩红警对战，常因游戏中无钱而使战斗长时间不能结束，  
+有人就想到用游侠修改金钱来作弊，无奈在网络对战中用游侠修改游戏是要暂停游戏的，一  
+人停下大家都停了，作弊就被人发现了。能不能整它个一键锁定，神不知鬼不觉，不被人发  
+现?于是我就编写了这个“傻瓜式 RA2 游戏修改器”。为什么没有去破解游戏或做补钉呢？那  
+样的话别人玩这个机子的 RA2 游戏也能享受作弊待遇了，且钱数不变易被人发现作弊了:)  
+  
+用法：  
+　　①把本程序拷到 RA2 游戏目录中，运行本程序，游戏程序被启动了  
+　　②开始一场战斗，切记，等游戏界面显示的钱数“不变”时，按下数字键盘上的星号键  
+第一遍搜索开始了，也许要好几秒时间，这段时间内你可以点兵派将，但不可使钱数增减。  
+　　③当你听到提示音且鼠标被置于屏幕左上角时，第一遍搜完了。现在赶紧让你的钱数变  
+化，比如建一座电站，最好是钱数再次“不变“时，可以按下数字键盘上的星号键进行第二  
+遍搜索了，这次是极极极的快，鼠标没有被置于左上角，说明找到正确地址并已自动锁定钱  
+数了。什么？钱数在变化没有锁定？非也！五秒之内你用钱了自然要减少挣钱了自然要增加  
+不然旁观者看到钱数不变就知道你作弊了:)，这是不同于游侠的地方，要的就是这个效果。  
+  
+　　当一场战斗终了，要开始下一场战斗时，你只要按一下“-”键，然后重复上述步骤即  
+可。为什么要重新搜索？因为每一盘游戏的金钱数地址都不同。  
+  
+　　本程序在 WinXP/SP2、ra2 之 1.006 英文版（有中国超牛机器人的那个）运行通过且稳定  
+无误。如果是其他版本，只要用十六进制编辑工具搜索数值“008373cch”，改为你想要的  
+地址值即可，共有两处要改。这个地址值是怎么得来的？最简单的方法是用游侠了。有游侠  
+为啥还要用我这个破玩意儿?因为游侠的界面和暂停会让别人发现你作弊的。用游侠搜索到  
+的地址一般有三个，有两个地址值相差４，取较小的那个即可，最大的也是最另类的那个每  
+盘游戏都会变，它才是正直的金钱数保存地址，本程序就是要找到这个变化的地址并锁定数  
+值。  
+  
+　　对于那些弹出游侠界面或暂停后就死掉的游戏，用类似的方法就可以修改了吧？！如果  
+数值地址不是象 ra2 这样有多个，可在游戏中记下几个数值，然后写入一文件中，搜索时从文  
+件中读取数值即可。也可用键盘钩子记录按键，进行无界面动态输入。  
+\*-------------------------------------------------------------------------------  
+  
+.586  
+.model flat,stdcall  
+option casemap:none  
+  
+   include windows.inc  
+   include kernel32.inc  
+   include user32.inc  
+   include psapi.inc  
+     
+   includelib kernel32.lib  
+   includelib user32.lib  
+   includelib psapi.lib  
+  
+ADD\_DATA1    equ 008373cch    ;00883c84h    ;其他版本要改这个地址值  
+;ADD\_DATA2    equ 008373d0h    ;00883c88h    ;这个不用  
+ADD\_DATA3\_START equ 01000000h    ;搜索范围开始地址，可根据需要改动  
+ADD\_DATA3\_END    equ 0f600000h    ;搜索范围结束地址，可根据需要改动  
+MEMSIZE    equ 10000h    ;每次读取数据块的大小，不宜太小  
+  
+.code  
+  
+;------------------------------------------------------------------------  
+;取得游戏进程的句柄。游戏中按下“\*”号键便来到这里  
+;有两种常用的方法：进程快照查找法和当前活动窗口法  
+;------------------------------------------------------------------------  
+\_GetProcessHandle proc  
+  
+comment \*在调试时用这段代码取得游戏进程的句柄为好  
+    LOCAL  info:PROCESSENTRY32  
+    LOCAL  handle:HANDLE  
+      
+    invoke CreateToolhelp32Snapshot,TH32CS\_SNAPPROCESS,0 ;进程快照  
+    mov    handle,eax  
+    mov    info.dwSize,sizeof PROCESSENTRY32  
+    invoke Process32First,handle,addr info  
+    .repeat  
+        mov   eax,@F  
+        invoke lstrcmpi,addr info.szExeFile,eax ;比较是否为我们要找的进程名，不区分大小写  
+        .if !eax  
+            invoke CloseHandle,handle  
+            ;invoke MessageBox,NULL,addr info.szExeFile,NULL,MB\_OK  
+            invoke OpenProcess,PROCESS\_ALL\_ACCESS,FALSE,info.th32ProcessID  
+            jmp EXIT  
+        .endif  
+        invoke Process32Next,handle,addr info  
+    .until !eax  
+    invoke CloseHandle,handle  
+    xor eax,eax  
+EXIT:      
+    ret  
+  
+@@:      
+    db "Game.exe",0  
+    \*通常情况下也可以用下面的方法取得游戏进程的句柄，但要注意……  
+    LOCAL ProcessId  
+    invoke GetForegroundWindow ;你必须确保当前窗口为游戏界面窗口,这样才能正确取得游戏进程 ID  
+    lea    edx,ProcessId  
+    invoke GetWindowThreadProcessId,eax,edx  
+    invoke OpenProcess,PROCESS\_ALL\_ACCESS,FALSE,ProcessId  
+      
+    ret  
+      
+\_GetProcessHandle endp  
+  
+;------------------------------------------------------------------------  
+;第一遍搜索。因是全程搜索，耗时几秒至十多秒（与玩家数多少有关）,WinXP 中  
+;凭经验知道本游戏中钱数地址在 01000000h 至 0F600000 之间，搜此范围以减少用时  
+;------------------------------------------------------------------------  
+\_GetDataAddr proc uses esi edi hProcess:DWORD,num:DWORD,hmem:DWORD  
+    LOCAL N,ListMemSize,pListMem,ReadSize  
+    LOCAL mbi:MEMORY\_BASIC\_INFORMATION  
+  
+    invoke EmptyWorkingSet,hProcess ;减少游戏进程提交内存数，希望能减少搜索量，加快搜索速度  
+    invoke SetProcessWorkingSetSize,hProcess,-1,-1 ;不知是否有效?!愿听高手指导  
+  
+    invoke GlobalLock,hmem ;锁定保存搜索结果的内存  
+    mov  pListMem,eax  
+    invoke GlobalSize,hmem;保存搜索结果的内存大小  
+    mov    ListMemSize,eax  
+    invoke ReadProcessMemory,hProcess,ADD\_DATA1,addr N,sizeof N,NULL ;不用手输入金钱数，从内存读取金钱数  
+    mov edi,N ;保存金钱数，以便后面比较搜索，原理见前文  
+    invoke GlobalAlloc,GMEM\_FIXED,MEMSIZE ;分配内存，为读取数据做准备  
+    mov esi,eax ;保存内存地址  
+    mov ecx,ADD\_DATA3\_START ;设置要搜索的内存地址范围开始处  
+    .repeat ;循环搜索游戏内存  
+@@:        invoke VirtualQueryEx,hProcess,ecx,addr mbi,sizeof MEMORY\_BASIC\_INFORMATION ;返回页面虚拟信息  
+        .if mbi.State == MEM\_COMMIT && mbi.Protect == PAGE\_READWRITE ;已提交且为可读写的区域，加速搜索  
+            mov  ReadSize,MEMSIZE ;每次可读取的数据大小  
+            .repeat ;循环读取该内存区段中的数据  
+                .if  mbi.RegionSize<MEMSIZE ;如果剩下的数据块小于 MEMSIZE  
+                    mov  eax,mbi.RegionSize  
+                    mov  ReadSize,eax ;读剩下的数据大小  
+                .endif  
+                invoke ReadProcessMemory,hProcess,mbi.BaseAddress,esi,ReadSize,addr N ;读游戏数据  
+                xor  ecx,ecx ;ecx 为相对于区段首的偏移地址  
+                .repeat ;在读取的数据块中搜索金钱数的地址  
+                    .if edi\==\[esi+ecx\] ;数值相等，找到了?  
+                        mov eax,num ;地址 num 中记录了搜索结果的个数  
+                        inc dword ptr\[eax\] ;搜索的结果个数加一  
+                        mov eax,dword ptr\[eax\]  
+                        shl eax,2h ;保存结果所需的内存大小  
+                        .if eax\>ListMemSize ;如果搜索到的结果较多，内存用完，要重新分配内存  
+                            push eax  
+                            push ecx  
+                            add  eax,1000h ;追加４Ｋ内存  
+                            invoke GlobalReAlloc,hmem,eax,GMEM\_MOVEABLE ;重新分配内存,原来的数据被复制过来  
+                            invoke GlobalLock,eax  
+                            mov  pListMem,eax ;保存搜索结果的内存首地址  
+                            invoke GlobalSize,hmem  
+                            mov  ListMemSize,eax ;保存搜索结果的内存大小  
+                            pop  ecx  
+                            pop  eax  
+                        .endif  
+                        add  eax,pListMem ;相当于 pListMem\[num\]  
+                        mov  edx,mbi.BaseAddress  
+                        add  edx,ecx ;首地址＋偏移地址＝实际地址  
+                        mov  \[eax\-4h\],edx ;搜索的结果保存起来,pListMem\[num-1\]＝实际地址  
+                    .endif  
+                    add ecx,4h ;金钱数为 DWORD 型数值，考虑到内存对齐，这里是不用担心漏掉的  
+                .until ecx\>=N ;读取的数据块比较完了吗?  
+                mov  eax,ReadSize ;准备再读一次  
+                add  mbi.BaseAddress,eax ;下次从这里开始读  
+                sub  mbi.RegionSize,eax ;下次要读的大小  
+            .until  mbi.RegionSize<=0h ;下次要读的大小为 0 了吗?为 0 则本区段读完，去下一区段  
+        .endif  
+        mov  ecx,mbi.BaseAddress  
+        add  ecx,mbi.RegionSize ;下一区段首地址  
+    .until ecx\>=ADD\_DATA3\_END ;下一区段在搜索范围之外了吗?是则完成第一遍搜索  
+    invoke GlobalFree,esi  
+  
+    ret  
+  
+\_GetDataAddr endp  
+  
+;------------------------------------------------------------------------  
+;第二、三……遍的搜索，在第一次的结果中找，速度极快  
+;第二次按下“\*”键便来到这里，一般只要两遍就可锁定。算法：有用地址向前移  
+;结果个数由 num 返回，如果 num==1 就算找到正确的金钱地址了  
+;------------------------------------------------------------------------  
+\_FindAddrInList proc uses edi esi hProcess:DWORD,num:DWORD,hmem:DWORD  
+    LOCAL Data,N  
+    LOCAL DD1,DD2  
+  
+    invoke ReadProcessMemory,hProcess,ADD\_DATA1,addr DD1,sizeof DD1,NULL ;读取金钱数  
+    invoke GlobalLock,hmem  
+    mov    edi,eax ;前次搜索结果保存的内存首地址  
+    xor    esi,esi ;指针，指向第一个结果  
+    mov    N,esi ;本次搜索到的个数初始化为 0  
+    .repeat ;逐个比较  
+        mov edx,\[edi+esi\*4h\] ;相当于 edx=hmem\[esi\]  
+        invoke ReadProcessMemory,hProcess,edx,addr DD2,sizeof DD2,NULL ;读取数值  
+        mov eax,DD1  
+        .if eax\==DD2 ;等于金钱数吗?等则记录下来  
+            push \[edi+esi\*4h\]  
+            mov eax,N  
+            pop \[edi+eax\*4h\] ;相当于 hmem\[N\]=hmem\[esi\],即把搜索到的结果向 hmem 内存前面移  
+            inc N ;搜索到的个数加一  
+        .endif  
+        mov eax,num  
+        inc esi ;指针指向下一个结果  
+    .until esi\>=\[eax\] ;每个都比较过了吗?是则完成这次搜索  
+    mov    edx,N ;这次搜索到的结果个数  
+    mov    \[eax\],edx ;修改原来的个数  
+    shl    edx,2h ;个数×4＝内存大小  
+  
+    invoke GlobalReAlloc,hmem,edx,GMEM\_MOVEABLE ;释放多余的内存  
+  
+    ret  
+      
+\_FindAddrInList endp  
+  
+;------------------------------------------------------------------------  
+;找到了正确的地址，可以锁定金钱数值了:)，每五秒锁定一次，按“-”键停锁  
+;游戏中钱数看起来有增有减，象未锁定一样，别人不容易发现你作弊  
+;------------------------------------------------------------------------  
+\_WriteProcessData proc uses edi esi hProcess:DWORD,hmem:DWORD  
+    LOCAL DATA,IsRun  
+      
+    mov    esi,2000 ;要锁定的金钱数，别太多，多了是会招贼来偷的:)  
+    mov    DATA,esi  
+    invoke GlobalLock,hmem  
+    mov    edi,\[eax\] ;游戏中真正的保存金钱数的地址  
+    .repeat  
+        .if esi\>=5h ;每五循环锁定一次  
+            xor    esi,esi ;循环次数清 0  
+            invoke WriteProcessMemory,hProcess,edi,addr DATA,sizeof DATA,NULL ;写入钱数  
+        .endif      
+        invoke Sleep,1000 ;定时一秒  
+        inc    esi ;循环次数加一  
+        invoke GetExitCodeProcess,hProcess,addr IsRun ;游戏程序还在运行吗?  
+        invoke GetAsyncKeyState,VK\_SUBTRACT ;按了“-”键吗?  
+    .until eax || IsRun!=STILL\_ACTIVE ;如果游戏退出或按了“-”键则结束循环  
+      
+    ret  
+      
+\_WriteProcessData endp  
+  
+;------------------------------------------------------------------------  
+;把本程序拷入游戏文件夹，运行本程序，游戏被启动，本程序在后台运行，无界面  
+;本程序运行后启动“ra2.exe”，再由“ra2.exe”启动游戏程序，之后“ra2.exe”  
+;无用了，停掉它以节约内存。  
+;------------------------------------------------------------------------  
+\_StartGame proc  
+    LOCAL StartInfo:STARTUPINFO  
+    LOCAL PI:PROCESS\_INFORMATION  
+  
+    invoke RtlZeroMemory,addr StartInfo,sizeof STARTUPINFO  
+    mov StartInfo.cb,sizeof STARTUPINFO  
+    mov ecx,GAME\_NAME  
+    xor edx,edx  
+    invoke CreateProcess,edx,ecx,edx,edx,edx,edx,edx,edx,addr StartInfo,addr PI ;启动游戏  
+    invoke Sleep,10000 ;等 10 秒，游戏程序应该启动了吧?  
+    invoke TerminateProcess,PI.hProcess,0h ;没用了，停掉它  
+    invoke CloseHandle,PI.hProcess ;释放内存  
+  
+    ret  
+GAME\_NAME:  
+    db "ra2.exe",0  
+  
+\_StartGame endp  
+  
+start:  
+MAIN    proc  
+    LOCAL msg:MSG  
+    LOCAL num,hmem,hProcess,MutexName  
+  
+    invoke \_StartGame ;启动游戏  
+    mov eax,"2ar"  
+    mov MutexName,eax  
+    invoke CreateMutex,NULL,TRUE,addr MutexName  
+    invoke GetLastError  
+    .if eax!=ERROR\_ALREADY\_EXISTS ;只让本程序的一个实例运行  
+        invoke RegisterHotKey,NULL,VK\_MULTIPLY,0h,VK\_MULTIPLY ;注册热键“\*”  
+        invoke RegisterHotKey,NULL,VK\_SUBTRACT,0h,VK\_SUBTRACT ;注册热键“-”  
+        invoke RegisterHotKey,NULL,'X',MOD\_CONTROL OR MOD\_ALT,'X' ;注册热键“Ctrl+Alt+X”  
+        invoke GlobalAlloc,GMEM\_MOVEABLE,1000h ;预留内存空间，搜索时用来保存结果  
+        mov hmem,eax ;搜索结果个数的不确定性需要我们用 GlobalReAlloc 来重新分配内存大小  
+        xor eax,eax  
+        mov num,eax ;搜索结果个数初始化为 0  
+        mov hProcess,eax ;始化为 0  
+        .while 1  
+            invoke GetMessage,addr msg,NULL,NULL,NULL ;等待消息  
+            .if msg.message==WM\_HOTKEY ;热键消息  
+                .break .if msg.wParam=='X' ;按了热键“Ctrl+Alt+X”则退出本程序  
+  
+                .if msg.wParam==VK\_SUBTRACT ;按了热键“-”  
+                    mov num,0h ;搜索结果个数置 0，表示从未搜索过  
+                .else ;按了热键“\*”  
+                    .if num==0h ;搜索结果个数为 0 则从未搜索过，进行第一遍搜索  
+                        .if hProcess ;如果在非游戏界面中按了“\*”，这样可避免误操作  
+                            invoke CloseHandle,hProcess ;释放内存  
+                        .endif  
+  
+                        invoke \_GetProcessHandle ;取游戏进程句柄  
+                        mov hProcess,eax  
+                        lea ecx,num ;指针型参数  
+                        invoke \_GetDataAddr,eax,ecx,hmem  
+                    .elseif num>1h ;搜索结果个数非 0 则至少已搜过一遍且未找到正确地址  
+                        invoke \_FindAddrInList,hProcess,addr num,hmem  ;再搜它一遍或几遍  
+                    .endif  
+                  
+                    .if num==1h ;搜索结果为１，说明找到正确地址了  
+                        invoke \_WriteProcessData,hProcess,hmem ;去锁定它!  
+                        .break .if eax\==0 ;如果你没按“-”键，那一定是游戏退出了，咱也退出吧  
+                    .endif                  
+                .endif  
+                invoke MessageBeep,MB\_OK ;发声提示游戏者，按键收到，该做的本程序都做过了  
+                invoke SetCursorPos,9h,9h ;把鼠标置于屏幕左上角，提醒游戏者，第一遍搜索时特别有用  
+                invoke GetCurrentProcess  
+                invoke EmptyWorkingSet,eax ;减少自己的内存占用量，不和游戏争内存  
+            .endif  
+        .endw  
+        invoke UnregisterHotKey,NULL,VK\_MULTIPLY ;以下为退出前的清理工作  
+        invoke UnregisterHotKey,NULL,VK\_SUBTRACT  
+        invoke UnregisterHotKey,NULL,'X'  
+  
+        invoke CloseHandle,hProcess  
+        invoke GlobalUnlock,hmem  
+        invoke GlobalFree,hmem  
+        invoke ExitProcess,NULL  
+    .endif  
+      
+    ret  
+      
+MAIN    endp  
+  
+end start

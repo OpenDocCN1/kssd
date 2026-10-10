@@ -1,0 +1,489 @@
+
+
+# 用驱动实现自己的 ZwOpenProcess ZwReadVirtualMemory ZwWriteVirtualMemory\[菜鸟学习笔记\]
+
+> 原文：[`www.pediy.com/kssd/pediy10/83165.html`](https://www.pediy.com/kssd/pediy10/83165.html)
+
+/\*  
+  
+  jhxxs.C  
+  
+  Author: <your name>  
+  Last Updated: 2006-03-23  
+  
+  This framework is generated by EasySYS 0.3.0  
+  This template file is copying from QuickSYS 0.3.0 written by Chunhua Liu  
+  
+\*/  
+  
+#include "dbghelp.h"  
+#include "jhxxs.h"  
+#include <stdio.h>  
+  
+#include <ntdef.h>  
+#include <ntstatus.h>  
+#include <ntddk.h>  
+//  
+// A structure representing the instance information associated with  
+// a particular device  
+//  
+  
+typedef struct \_DEVICE\_EXTENSION  
+{  
+    ULONG  StateVariable;  
+  
+} DEVICE\_EXTENSION, \*PDEVICE\_EXTENSION;  
+  
+typedef struct \_KAPC\_STATE{  
+        LIST\_ENTRY        ApcListHead\[2\];  
+        PEPROCESS        Process;  
+        UCHAR                KernelApcInProgress;  
+        UCHAR                KernelApcPending;  
+        UCHAR                UserApcPending;  
+}KAPC\_STATE,\*PKAPC\_STATE;  
+  
+NTKERNELAPI void KeStackAttachProcess(IN PEPROCESS Process, OUT PKAPC\_STATE ApcState);  
+  
+  
+NTKERNELAPI void KeUnstackDetachProcess(IN PKAPC\_STATE ApcState);  
+  
+  
+NTKERNELAPI NTSTATUS PsLookupProcessByProcessId(IN ULONG ulProcId,OUT PEPROCESS \* pEProcess);  
+  
+NTKERNELAPI NTSTATUS ObOpenObjectByPointer(  
+    IN PVOID Object,                                              
+    IN ULONG HandleAttributes,                                    
+    IN PACCESS\_STATE PassedAccessState OPTIONAL,                  
+    IN ACCESS\_MASK DesiredAccess OPTIONAL,                        
+    IN POBJECT\_TYPE ObjectType OPTIONAL,                          
+    IN KPROCESSOR\_MODE AccessMode,                                
+    OUT PHANDLE Handle                                            
+        );  
+//  
+// Device driver routine declarations.  
+//  
+  
+NTSTATUS  
+DriverEntry(  
+        IN PDRIVER\_OBJECT                DriverObject,  
+        IN PUNICODE\_STRING                RegistryPath  
+        );  
+  
+NTSTATUS  
+JhxxsDispatchCreate(  
+        IN PDEVICE\_OBJECT                DeviceObject,  
+        IN PIRP                                        Irp  
+        );  
+  
+NTSTATUS  
+JhxxsDispatchClose(  
+        IN PDEVICE\_OBJECT                DeviceObject,  
+        IN PIRP                                        Irp  
+        );  
+  
+NTSTATUS  
+JhxxsDispatchDeviceControl(  
+        IN PDEVICE\_OBJECT                DeviceObject,  
+        IN PIRP                                        Irp  
+        );  
+  
+VOID  
+JhxxsUnload(  
+        IN PDRIVER\_OBJECT                DriverObject  
+        );  
+  
+  
+#ifdef ALLOC\_PRAGMA  
+#pragma alloc\_text(INIT, DriverEntry)  
+#pragma alloc\_text(PAGE, JhxxsDispatchCreate)  
+#pragma alloc\_text(PAGE, JhxxsDispatchClose)  
+#pragma alloc\_text(PAGE, JhxxsDispatchDeviceControl)  
+#pragma alloc\_text(PAGE, JhxxsUnload)  
+#endif // ALLOC\_PRAGMA  
+  
+NTSTATUS  
+MyWriteMemory(IN HANDLE hProcess,OUT PVOID BaseAddress,IN PVOID Pbuff,IN ULONG BufferSize)  
+{  
+PEPROCESS EProcess;   
+KAPC\_STATE ApcState;  
+PVOID writebuffer=NULL;  
+NTSTATUS status;  
+  
+status = ObReferenceObjectByHandle(  
+                  hProcess,  
+                  PROCESS\_VM\_WRITE|PROCESS\_VM\_READ,  
+                  NULL,  
+                  KernelMode,  
+                  &EProcess,  
+                  NULL  
+                  );  
+                    
+if(!NT\_SUCCESS(status))  
+{  
+ObDereferenceObject(EProcess);  
+return STATUS\_UNSUCCESSFUL;  
+}  
+writebuffer = ExAllocatePoolWithTag (NonPagedPool, BufferSize, 'Sys');  
+  
+if(writebuffer==NULL)  
+{  
+ObDereferenceObject(EProcess);  
+ExFreePool (writebuffer);  
+return STATUS\_UNSUCCESSFUL;  
+}  
+\*(ULONG\*)writebuffer=(ULONG)0x1;  
+  
+if (MmIsAddressValid(Pbuff))  
+{  
+   \_\_try  
+   {  
+   ProbeForRead ((CONST PVOID)Pbuff, BufferSize, sizeof(CHAR));  
+   RtlCopyMemory (writebuffer, Pbuff, BufferSize);  
+   }  
+   \_\_except(EXCEPTION\_EXECUTE\_HANDLER)  
+   {  
+   status = STATUS\_UNSUCCESSFUL;  
+   }  
+}  
+else  
+{  
+   status = STATUS\_UNSUCCESSFUL;  
+}  
+  
+if (NT\_SUCCESS(status))  
+{  
+  KeStackAttachProcess (EProcess, &ApcState);  
+  if (MmIsAddressValid(BaseAddress))  
+  {  
+   \_\_try  
+   {  
+   ProbeForWrite ((CONST PVOID)BaseAddress, BufferSize, sizeof(CHAR));  
+   RtlCopyMemory (BaseAddress,writebuffer, BufferSize);  
+   }  
+   \_\_except(EXCEPTION\_EXECUTE\_HANDLER)  
+   {  
+   status = STATUS\_UNSUCCESSFUL;  
+   }  
+  }  
+  else  
+  {  
+   status = STATUS\_UNSUCCESSFUL;  
+  }  
+  KeUnstackDetachProcess (&ApcState);  
+}  
+  
+ObDereferenceObject(EProcess);  
+ExFreePool (writebuffer);  
+return status;  
+}  
+  
+  
+NTSTATUS  
+MyReadMemory(IN HANDLE hProcess,IN PVOID BaseAddress,OUT PVOID Pbuff,IN ULONG BufferSize)  
+{  
+PEPROCESS EProcess;  
+KAPC\_STATE ApcState;  
+PVOID readbuffer=NULL;  
+NTSTATUS status;  
+  
+  
+status = ObReferenceObjectByHandle(  
+                  hProcess,  
+                  PROCESS\_VM\_WRITE|PROCESS\_VM\_READ,  
+                  NULL,  
+                  KernelMode,  
+                  &EProcess,  
+                  NULL  
+                  );  
+  
+  
+if(!NT\_SUCCESS(status))  
+{  
+ObDereferenceObject(EProcess);  
+return STATUS\_UNSUCCESSFUL;  
+}  
+  
+readbuffer = ExAllocatePoolWithTag (NonPagedPool, BufferSize, 'Sys');  
+  
+if(readbuffer==NULL)  
+{  
+ObDereferenceObject(EProcess);  
+ExFreePool (readbuffer);  
+return STATUS\_UNSUCCESSFUL;  
+}  
+\*(ULONG\*)readbuffer=(ULONG)0x1;  
+  
+  
+KeStackAttachProcess (EProcess, &ApcState);  
+if (MmIsAddressValid(BaseAddress))  
+{  
+   \_\_try  
+   {  
+   ProbeForRead ((CONST PVOID)BaseAddress, BufferSize, sizeof(CHAR));  
+   RtlCopyMemory (readbuffer, BaseAddress, BufferSize);  
+   }  
+   \_\_except(EXCEPTION\_EXECUTE\_HANDLER)  
+   {  
+   status = STATUS\_UNSUCCESSFUL;  
+   }  
+}  
+else  
+{  
+  status = STATUS\_UNSUCCESSFUL;  
+}  
+KeUnstackDetachProcess (&ApcState);  
+  
+  
+   if(NT\_SUCCESS(status))  
+   {  
+        if (MmIsAddressValid(Pbuff))  
+        {  
+         \_\_try  
+         {  
+         ProbeForWrite(Pbuff, BufferSize, sizeof(CHAR));  
+         RtlCopyMemory (Pbuff, readbuffer, BufferSize);  
+         }  
+         \_\_except(EXCEPTION\_EXECUTE\_HANDLER)  
+         {  
+         status = STATUS\_UNSUCCESSFUL;  
+         }  
+        }  
+        else  
+        {  
+        status = STATUS\_UNSUCCESSFUL;  
+        }  
+   }  
+  
+  
+  
+ObDereferenceObject(EProcess);  
+ExFreePool (readbuffer);  
+return status;  
+}  
+  
+  
+  
+NTSTATUS MyOpenProcess(ULONG PID, PHANDLE pHandle)  
+{  
+  NTSTATUS  status;  
+  PEPROCESS  EProcess = NULL;  
+  HANDLE    handle = NULL;  
+  UNICODE\_STRING y;  
+  PULONG    PsProcessType;  
+  
+  status = PsLookupProcessByProcessId(PID, &EProcess);  
+  if (NT\_SUCCESS(status))  
+  {  
+    handle = 0;  
+    RtlInitUnicodeString(&y, L"PsProcessType");  
+    PsProcessType = MmGetSystemRoutineAddress(&y);  
+    if (PsProcessType)  
+    {  
+      status = ObOpenObjectByPointer(EProcess, 0, 0, PROCESS\_ALL\_ACCESS, (PVOID)\*PsProcessType, UserMode, &handle);  
+      if (NT\_SUCCESS(status))  
+      {  
+                \*pHandle = handle;  
+      }  
+    }  
+    ObfDereferenceObject(EProcess);  
+  }   
+  return status;  
+}  
+  
+  
+NTSTATUS  
+DriverEntry(  
+        IN PDRIVER\_OBJECT                DriverObject,  
+        IN PUNICODE\_STRING                RegistryPath  
+        )  
+{  
+        NTSTATUS                        status = STATUS\_SUCCESS;      
+    UNICODE\_STRING                ntDeviceName;  
+        UNICODE\_STRING                dosDeviceName;  
+    PDEVICE\_EXTENSION        deviceExtension;  
+        PDEVICE\_OBJECT                deviceObject = NULL;  
+        BOOLEAN                                fSymbolicLink = FALSE;  
+  
+        KdBreakPoint();  
+        RtlInitUnicodeString(&ntDeviceName, JHXXS\_DEVICE\_NAME\_W);  
+    status = IoCreateDevice(  
+                DriverObject,  
+                sizeof(DEVICE\_EXTENSION),  
+                &ntDeviceName,  
+                FILE\_DEVICE\_JHXXS,  
+                0,  
+                TRUE,  
+                &deviceObject  
+                );  
+  
+    if (!NT\_SUCCESS(status))  
+        {  
+                goto \_\_failed;  
+        }  
+  
+        deviceExtension = (PDEVICE\_EXTENSION)deviceObject->DeviceExtension;  
+        RtlInitUnicodeString(&dosDeviceName, JHXXS\_DOS\_DEVICE\_NAME\_W);  
+        status = IoCreateSymbolicLink(&dosDeviceName, &ntDeviceName);  
+    if (!NT\_SUCCESS(status))  
+        {  
+                goto \_\_failed;  
+    }  
+  
+        fSymbolicLink = TRUE;  
+  
+    DriverObject->MajorFunction\[IRP\_MJ\_CREATE\]         = JhxxsDispatchCreate;  
+    DriverObject->MajorFunction\[IRP\_MJ\_CLOSE\]          = JhxxsDispatchClose;  
+    DriverObject->MajorFunction\[IRP\_MJ\_DEVICE\_CONTROL\] = JhxxsDispatchDeviceControl;  
+    DriverObject->DriverUnload                         = JhxxsUnload;  
+  
+    if (NT\_SUCCESS(status))  
+            return status;  
+  
+\_\_failed:  
+        if (fSymbolicLink)  
+                IoDeleteSymbolicLink(&dosDeviceName);  
+        if (deviceObject)  
+                IoDeleteDevice(deviceObject);  
+        return status;  
+}  
+  
+NTSTATUS  
+JhxxsDispatchCreate(  
+        IN PDEVICE\_OBJECT                DeviceObject,  
+        IN PIRP                                        Irp  
+        )  
+{  
+        NTSTATUS status = STATUS\_SUCCESS;  
+  
+        Irp->IoStatus.Information = 0;  
+    Irp->IoStatus.Status = status;  
+    IoCompleteRequest(Irp, IO\_NO\_INCREMENT);  
+  
+    return status;  
+}  
+  
+NTSTATUS  
+JhxxsDispatchClose(  
+        IN PDEVICE\_OBJECT                DeviceObject,  
+        IN PIRP                                        Irp  
+        )  
+{  
+        NTSTATUS status = STATUS\_SUCCESS;  
+    Irp->IoStatus.Information = 0;  
+        Irp->IoStatus.Status = status;  
+    IoCompleteRequest(Irp, IO\_NO\_INCREMENT);  
+  
+    return status;  
+}  
+  
+NTSTATUS  
+JhxxsDispatchDeviceControl(  
+        IN PDEVICE\_OBJECT                DeviceObject,  
+        IN PIRP                                        Irp  
+        )  
+{  
+        NTSTATUS                        status = STATUS\_SUCCESS;  
+    PIO\_STACK\_LOCATION        irpStack;  
+    PDEVICE\_EXTENSION        deviceExtension;  
+        PVOID                                ioBuf;  
+    ULONG                                inBufLength, outBufLength;  
+        ULONG                                ioControlCode;  
+  
+        UCHAR               \*buff =0;  
+        ULONG               OutByteCount =0;  
+  
+        HANDLE              Writehandel;  
+        PVOID               WriteDstAddr;  
+        PVOID               WriteSrcAddr;  
+        ULONG               WriteSize;  
+        NTSTATUS            WriteReturn;  
+  
+        HANDLE              Readhandel;  
+        PVOID               ReadBaseAddr;  
+        PVOID               ReadBuffer;  
+        ULONG               ReadSize;  
+        NTSTATUS            ReadReturn;  
+  
+        ULONG               OpenPid;  
+        PHANDLE             PProcessHandle;  
+        NTSTATUS            OpenReturn;  
+  
+    irpStack = IoGetCurrentIrpStackLocation(Irp);  
+    deviceExtension = (PDEVICE\_EXTENSION)DeviceObject->DeviceExtension;  
+        Irp->IoStatus.Information = 0;  
+        ioBuf = Irp->AssociatedIrp.SystemBuffer;  
+        inBufLength = irpStack->Parameters.DeviceIoControl.InputBufferLength;  
+    outBufLength = irpStack->Parameters.DeviceIoControl.OutputBufferLength;  
+    ioControlCode = irpStack->Parameters.DeviceIoControl.IoControlCode;  
+  
+    switch (ioControlCode)  
+        {  
+        case  0X0022E004:  
+                {  
+                 buff=(UCHAR \*)Irp->AssociatedIrp.SystemBuffer ;  
+                 memmove(&Writehandel,&buff\[0\],4);  
+                 memmove(&WriteDstAddr,&buff\[4\],4);  
+                 memmove(&WriteSrcAddr,&buff\[8\],4);  
+                 memmove(&WriteSize,&buff\[12\],4);  
+  
+                 WriteReturn=MyWriteMemory(Writehandel,WriteDstAddr,WriteSrcAddr,WriteSize);  
+                 memmove(Irp->AssociatedIrp.SystemBuffer,&WriteReturn,4);  
+                 OutByteCount=4;  
+                 break;  
+                }  
+  
+        case  0X0022E008:  
+                {  
+                 buff=(UCHAR \*)Irp->AssociatedIrp.SystemBuffer ;  
+                 memmove(&Readhandel,&buff\[0\],4);  
+                 memmove(&ReadBaseAddr,&buff\[4\],4);  
+                 memmove(&ReadBuffer,&buff\[8\],4);  
+                 memmove(&ReadSize,&buff\[12\],4);  
+  
+                 ReadReturn=MyReadMemory(Readhandel,ReadBaseAddr,ReadBuffer,ReadSize);  
+                 memmove(&buff\[0\],&ReadReturn,4);  
+                 OutByteCount=4;  
+                 break;  
+                }  
+  
+        case  0X0022E000:  
+                {  
+                 OpenReturn = MyOpenProcess(\*(PULONG)ioBuf,ioBuf);  
+                 buff=(UCHAR \*)Irp->AssociatedIrp.SystemBuffer ;  
+                 memmove(&buff\[4\],&OpenReturn,4);  
+                 OutByteCount=8;  
+                 break;  
+                }  
+                  
+        case IOCTL\_JHXXS\_HELLO:  
+                {  
+            break;  
+                }  
+  
+    default:  
+        status = STATUS\_INVALID\_PARAMETER;  
+                break;  
+        }  
+        Irp->IoStatus.Status = status;  
+        Irp->IoStatus.Information = OutByteCount;  
+        IoCompleteRequest(Irp, IO\_NO\_INCREMENT);  
+    return status;  
+}  
+  
+VOID  
+JhxxsUnload(  
+        IN PDRIVER\_OBJECT                DriverObject  
+        )  
+{  
+    UNICODE\_STRING dosDeviceName;  
+        RtlInitUnicodeString(&dosDeviceName, JHXXS\_DOS\_DEVICE\_NAME\_W);  
+    IoDeleteSymbolicLink(&dosDeviceName);  
+        IoDeleteDevice(DriverObject->DeviceObject);  
+}  
+  
+  
+完整可编译代码如下\[驱动由 BC++编写 WINDDK 编译\]
+
+上传的附件
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || jhxxs.rar  
+ |

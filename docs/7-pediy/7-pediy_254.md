@@ -1,0 +1,907 @@
+
+
+# mj1.6
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6752.htm`](https://www.pediy.com/kssd/pediy06/pediy6752.htm)
+
+mj1.6  
+这是一个台球软件，没有注册前只有三个洞可以打，下面我就介绍怎么 diy 出其他三个洞。（感觉和 diy oicq ip 补丁一样）  
+  
+第一步：寻找按键判断  
+在 w32asm 中找到未注册使用此功能 string，然后用 tr 跟踪，发现按键判断如下  
+  
+:00471991 8D4000                  lea eax, dword ptr \[eax+00\]  
+:00471994 E837F7FFFF              call 004710D0 按下小键盘 1 就执行这里 \*原版本无效 没有相应的执行代码，只有一段显示注册后使用此洞的代码  
+:00471999 C3                      ret  
+  
+  
+:0047199A 8BC0                    mov eax, eax  
+:0047199C E85BF7FFFF              call 004710FC 按下小键盘 2  \*原版本无效 没有相应的执行代码，只有一段显示注册后使用此洞的代码  
+:004719A1 C3                      ret  
+  
+  
+:004719A2 8BC0                    mov eax, eax  
+:004719A4 E87FF7FFFF              call 00471128 按下小键盘 3 \*原版本有效  
+:004719A9 C3                      ret  
+  
+  
+:004719AA 8BC0                    mov eax, eax  
+:004719AC E873F5FFFF              call 00470F24 按下小键盘 4 \*原版本有效  
+:004719B1 C3                      ret  
+  
+  
+:004719B2 8BC0                    mov eax, eax  
+:004719B4 E82BF6FFFF              call 00470FE4 按下小键盘 5 \*原版本有效  
+:004719B9 C3                      ret  
+  
+  
+:004719BA 8BC0                    mov eax, eax  
+:004719BC E8E3F6FFFF              call 004710A4 按下小键盘 6  \*原版本无效 没有相应的执行代码，只有一段显示注册后使用此洞的代码  
+:004719C1 C3                      ret  
+  
+\*号为我的注释  
+  
+第二步：分析这些代码的功能  
+首先看:004719A4 E87FF7FFFF              call 00471128 吧这个是打右下洞的相应执行代码  
+如下  
+\* Referenced by a CALL at Addresses:  
+|:004710A4   , :004719A4     
+|  
+:00471128 55                      push ebp  
+:00471129 8BEC                    mov ebp, esp  
+:0047112B 6A00                    push 00000000  
+:0047112D 53                      push ebx  
+:0047112E 56                      push esi  
+:0047112F 8BD8                    mov ebx, eax  
+:00471131 BE6C694700              mov esi, 0047696C  
+:00471136 33C0                    xor eax, eax  
+:00471138 55                      push ebp  
+:00471139 68CB114700              push 004711CB  
+:0047113E 64FF30                  push dword ptr fs:\[eax\]  
+:00471141 648920                  mov dword ptr fs:\[eax\], esp  
+:00471144 8B06                    mov eax, dword ptr \[esi\]  
+:00471146 053C020000              add eax, 0000023C  
+  
+\* Possible StringData Ref from Code Obj ->"右下洞"  
+                                  |  
+:0047114B BAE0114700              mov edx, 004711E0  
+:00471150 E87B29F9FF              call 00403AD0  
+:00471155 B202                    mov dl, 02  
+:00471157 8B06                    mov eax, dword ptr \[esi\]  
+:00471159 E886AEFFFF              call 0046BFE4  
+:0047115E C7831003000000000000    mov dword ptr \[ebx+00000310\], 00000000  
+:00471168 C7831403000000000000    mov dword ptr \[ebx+00000314\], 00000000  
+:00471172 8B06                    mov eax, dword ptr \[esi\]  
+:00471174 FFB030020000            push dword ptr \[eax+00000230\]  
+:0047117A 8B06                    mov eax, dword ptr \[esi\]  
+:0047117C FFB034020000            push dword ptr \[eax+00000234\]  
+:00471182 8B06                    mov eax, dword ptr \[esi\]  
+:00471184 FFB038020000            push dword ptr \[eax+00000238\]  
+:0047118A 8B06                    mov eax, dword ptr \[esi\]  
+:0047118C FFB03C020000            push dword ptr \[eax+0000023C\]  
+:00471192 8B06                    mov eax, dword ptr \[esi\]  
+:00471194 FFB040020000            push dword ptr \[eax+00000240\]  
+:0047119A 8D45FC                  lea eax, dword ptr \[ebp\-04\]  
+:0047119D BA05000000              mov edx, 00000005  
+:004711A2 E8152CF9FF              call 00403DBC  
+:004711A7 8B55FC                  mov edx, dword ptr \[ebp\-04\]  
+:004711AA 8B83FC020000            mov eax, dword ptr \[ebx+000002FC\]  
+:004711B0 E85FA3FBFF              call 0042B514  
+:004711B5 33C0                    xor eax, eax  
+:004711B7 5A                      pop edx  
+:004711B8 59                      pop ecx  
+:004711B9 59                      pop ecx  
+:004711BA 648910                  mov dword ptr fs:\[eax\], edx  
+:004711BD 68D2114700              push 004711D2  
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:004711D0(U)  
+|  
+:004711C2 8D45FC                  lea eax, dword ptr \[ebp\-04\]  
+:004711C5 E8B228F9FF              call 00403A7C  
+:004711CA C3                      ret  
+  
+  
+接下来看:004719AC E873F5FFFF              call 00470F24 这个是打左上洞的相应执行代码  
+如下  
+  
+\* Referenced by a CALL at Addresses:  
+|:00470AD8   , :004710D0   , :004719AC     
+|  
+:00470F24 55                      push ebp  
+:00470F25 8BEC                    mov ebp, esp  
+:00470F27 6A00                    push 00000000  
+:00470F29 53                      push ebx  
+:00470F2A 56                      push esi  
+:00470F2B 8BD8                    mov ebx, eax  
+:00470F2D BE6C694700              mov esi, 0047696C  
+:00470F32 33C0                    xor eax, eax  
+:00470F34 55                      push ebp  
+:00470F35 68C70F4700              push 00470FC7  
+:00470F3A 64FF30                  push dword ptr fs:\[eax\]  
+:00470F3D 648920                  mov dword ptr fs:\[eax\], esp  
+:00470F40 8B06                    mov eax, dword ptr \[esi\]  
+:00470F42 053C020000              add eax, 0000023C  
+  
+\* Possible StringData Ref from Code Obj ->"左上洞"  
+                                  |  
+:00470F47 BADC0F4700              mov edx, 00470FDC  
+:00470F4C E87F2BF9FF              call 00403AD0  
+:00470F51 33D2                    xor edx, edx  
+:00470F53 8B06                    mov eax, dword ptr \[esi\]  
+:00470F55 E88AB0FFFF              call 0046BFE4  
+:00470F5A C7831003000000000000    mov dword ptr \[ebx+00000310\], 00000000  
+:00470F64 C7831403000000000000    mov dword ptr \[ebx+00000314\], 00000000  
+:00470F6E 8B06                    mov eax, dword ptr \[esi\]  
+:00470F70 FFB030020000            push dword ptr \[eax+00000230\]  
+:00470F76 8B06                    mov eax, dword ptr \[esi\]  
+:00470F78 FFB034020000            push dword ptr \[eax+00000234\]  
+:00470F7E 8B06                    mov eax, dword ptr \[esi\]  
+:00470F80 FFB038020000            push dword ptr \[eax+00000238\]  
+:00470F86 8B06                    mov eax, dword ptr \[esi\]  
+:00470F88 FFB03C020000            push dword ptr \[eax+0000023C\]  
+:00470F8E 8B06                    mov eax, dword ptr \[esi\]  
+:00470F90 FFB040020000            push dword ptr \[eax+00000240\]  
+:00470F96 8D45FC                  lea eax, dword ptr \[ebp\-04\]  
+:00470F99 BA05000000              mov edx, 00000005  
+:00470F9E E8192EF9FF              call 00403DBC  
+:00470FA3 8B55FC                  mov edx, dword ptr \[ebp\-04\]  
+:00470FA6 8B83FC020000            mov eax, dword ptr \[ebx+000002FC\]  
+:00470FAC E863A5FBFF              call 0042B514  
+:00470FB1 33C0                    xor eax, eax  
+:00470FB3 5A                      pop edx  
+:00470FB4 59                      pop ecx  
+:00470FB5 59                      pop ecx  
+:00470FB6 648910                  mov dword ptr fs:\[eax\], edx  
+:00470FB9 68CE0F4700              push 00470FCE  
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:00470FCC(U)  
+|  
+:00470FBE 8D45FC                  lea eax, dword ptr \[ebp\-04\]  
+:00470FC1 E8B62AF9FF              call 00403A7C  
+:00470FC6 C3                      ret  
+  
+  
+:00470FC7 E94825F9FF              jmp 00403514  
+:00470FCC EBF0                    jmp 00470FBE  
+:00470FCE 5E                      pop esi  
+:00470FCF 5B                      pop ebx  
+:00470FD0 59                      pop ecx  
+:00470FD1 5D                      pop ebp  
+:00470FD2 C3                      ret  
+  
+  
+比较一下两者的区别就能看到是下面不同  
+左上洞： 右下洞：  
+:00470F51 33D2                    xor edx, edx :00471155 B202                    mov dl, 02  
+还有 3 处不过那里没有什么作用，关键的是上面的代码  
+左上洞 dl 为 0，右下洞 dl 为 02，那么我们看看中上洞（\*原版只提供这几个洞的功能）相应的代码是多少:00471011 B201                    mov dl, 01  
+正如我们所料中上洞为 dl 为 01，这样看来更改 dl 的值就更改了按键的值，用 twr 测试一下果然如此，那么把 dl 改为 03,04,05 等是不是原来无效的键就有效了？  
+用 twr 测试事情并没有如我们所愿，还是只有原来的三个洞。好！这样的话看看是什么地方判断这个 dl  
+在:00470F55 E88AB0FFFF              call 0046BFE4 会把 dl 的值放入\[eax+68\]中  
+:0046BFE4 885068                  mov byte ptr \[eax+68\], dl  
+:0046BFE7 C3                      ret  
+  
+那么就下断点 bpm \[eax+68\]  
+会发现程序在下面有判断  
+:0046AFEF 8A4368                  mov al, byte ptr \[ebx+68\]  
+:0046AFF2 2C01                    sub al, 01  
+:0046AFF4 720B                    jb 0046B001==>dl 为 00 左上洞  
+:0046AFF6 7432                    je 0046B02A==>dl 为 01 中上洞  
+:0046AFF8 FEC8                    dec al  
+:0046AFFA 7478                    je 0046B074==>dl 为 02 右下洞  
+:0046AFFC E9F37A0000              jmp 00472AF4==>调转到辅助功能键的判断  
+这样看来源程序并没有其他三个洞的按键判断  
+好我们在往下分析 jb 0046B001 等代码  
+  
+|jb 0046B001 左上洞:  
+  
+:0046B001 FF7604                  push \[esi+04\]  
+:0046B004 FF36                    push dword ptr \[esi\]  
+:0046B006 FF7614                  push \[esi+14\]  
+:0046B009 FF7610                  push \[esi+10\]  
+:0046B00C 8D542418                lea edx, dword ptr \[esp+18\]  
+:0046B010 8BC3                    mov eax, ebx  
+:0046B012 E8A5C7FFFF              call 004677BC  
+:0046B017 8D742408                lea esi, dword ptr \[esp+08\]  
+:0046B01B 8DBB78010000            lea edi, dword ptr \[ebx+00000178\]  
+:0046B021 B904000000              mov ecx, 00000004  
+:0046B026 F3                      repz  
+:0046B027 A5                      movsd  
+:0046B028 EB72                    jmp 0046B09C  
+  
+je 0046B074 右下洞:  
+:0046B074 FF760C                  push \[esi+0C\]  
+:0046B077 FF7608                  push \[esi+08\]  
+:0046B07A FF761C                  push \[esi+1C\]  
+:0046B07D FF7618                  push \[esi+18\]  
+:0046B080 8D542418                lea edx, dword ptr \[esp+18\]  
+:0046B084 8BC3                    mov eax, ebx  
+:0046B086 E831C7FFFF              call 004677BC  
+:0046B08B 8D742408                lea esi, dword ptr \[esp+08\]  
+:0046B08F 8DBB78010000            lea edi, dword ptr \[ebx+00000178\]  
+:0046B095 B904000000              mov ecx, 00000004  
+:0046B09A F3                      repz  
+:0046B09B A5                      movsd  
+代码很相近都是 push 四个参数然后一个 call 004677BC 由此可见 004677BC 处应该是一个计算是那个洞的函数  
+  
+现在比较左上洞、右下洞的这 4 个参数有什么不同  
+在 trw 的 stack 窗口看到  
+左上洞： 右下洞:  
+00000000 00000000  
+406ac000 407e0666  
+00000000 cccccccd  
+406d0000 4088d0cc  
+  
+我们更改一下参数试试  
+把  
+右下洞: 改为  
+00000000 00000000  
+407e0666 406ac000===>这个原来是左上洞的参数  
+cccccccd cccccccd  
+4088d0cc 4088d0cc  
+测试程序竟然瞄准了右上洞，这是原来软件不提供的功能，看来破解有希望了（大家不要高兴的太早\*路还很长呢）  
+好了回到程序里看看左上洞的参数 406ac000 是由 push \[esi+14\]得来的我们把右下洞的:0046B07A FF761C                  push \[esi+1C\]  
+换成 push \[esi+14\]不就变成了右上洞了么！相应的把左上洞的 push \[esi+14\]换成 push \[esi+1C\]就成了左下洞，中下洞的方法一样哦，  
+  
+ok 我们既然知道了程序是怎么打出 6 个洞的，那么就可以补出其他三个洞的功能：  
+前面说了这么多，现在开始正题 pediy（我要全力贯彻看雪老大的宗旨，把 diy 进行到底）  
+首先把其他的三个按键的判断 diy 出来  
+我们已经知道把 dl 为 0、1、2 就代表左上，中上，右下的洞那么我们加入代表左下，中下，左上的按键代表  
+分别为 03、04、05，原来按下这几个键是显示注册后使用此洞，那么我们更改其显示代码，让其执行分别把 dl 设置  
+成 03、04、05  
+在文章一开始大家可以看到相应的按键判断的 call 地址，我们只要修改 call 的内容让其设置 dl：  
+  
+修改前的代码： 修改后的代码：  
+\* Referenced by a CALL at Address:                              \* Referenced by a CALL at Address:                                   
+:004719BC    这里是原来按键小键盘 6 显示注册后选择此洞            :004719BC                 这里是按键小键盘 6 让其更改 dl 值                                          
+                                                                                                                                  
+                                                                  
+\* Possible StringData Ref from Code Obj ->"注册后选择此洞"         
+                                  |                               
+:004710A4 BAC0104700     mov edx, 004710C0                      :004710A4 E87F000000      call 00471128  \*call 按键小键盘 3 做相应的工作                    
+:004710A9 8B80FC020000   mov eax, dword ptr \[eax+000002FC\]      :004710A9 6652            push dx        \*push bx                   
+:004710AF E860A4FBFF     call 0042B514                          :004710AB B205            mov dl, 05     \*把 dl 设置为 5                    
+:004710B4 C3             ret                                    :004710AD 56              push esi       \*push esi                    
+                                                                :004710AE BE6C694700      mov esi, 0047696C  \*为下面的 call 做参数准备             
+                                                                :004710B3 8B8600000000    mov eax, dword ptr \[esi+00000000\] \*做参数准备   
+:004710B5 000000         BYTE  3 DUP(0)                         :004710B9 E826AFFFFF      call 0046BFE4  \*这里把 dl 值加入到按键标志中去                    
+                                                                :004710BE 5E              pop esi        \*pop esi                    
+                                                                :004710BF 665A            pop dx         \*pop dx                    
+:004710B8 FFFFFFFF       BYTE  4 DUP(0ffh)                      :004710C1 C3              ret            \*ret                    
+                                                                                                                             
+                                                                                                                             
+:004710BC 0E             push cs                                :004710C2 B2E1            mov dl, E1                         
+:004710BD 000000         BYTE  3 DUP(0)                         :004710C4 BAF3D1A1D4      mov edx, D4A1D1F3                  
+                                                                :004710C9 F1              BYTE 0f1h                          
+                                                                :004710CA B4CB            mov ah, CB                                                                          
+:004710C0 D7             xlat                                   :004710CC B6B4            mov dh, B4                         
+:004710C1 A2B2E1BAF3     mov byte ptr \[F3BAE1B2\], al            :004710CE 0000            add byte ptr \[eax\], al             
+:004710C6 D1A1D4F1B4CB   shl dword ptr \[ecx+CBB4F1D4\], 1          
+:004710CC B6B4           mov dh, B4                               
+:004710CE 0000           add byte ptr \[eax\], al                   
+                                                                  
+\* Referenced by a CALL s:                                       \* Referenced by a CALL ss:                                   
+|:00471994                                                      |:00471994                                                   
+|                                                               |                                                            
+                                                                    
+\* Possible StringData Rode Obj ->"注册后选择此洞"                   
+                         |                                          
+:004710D0 BAEC104700     mov edx, 004710EC                       :004710D0 E84FFEFFFF      call 00470F24  \*call 按键小键盘 4 做相应的工作                   
+:004710D5 8B80FC020000   mov eax, dword ptr \[eax+000002FC\]       :004710D5 6652            push dx        \*push dx                   
+:004710DB E834A4FBFF     call 0042B514                           :004710D7 B203            mov dl, 03     \*把 dl 设置为 3                   
+:004710E0 C3             ret                                     :004710D9 56              push esi       \*push esi                   
+                                                                 :004710DA BE6C694700      mov esi, 0047696C \*为下面的 call 做参数准备                
+                                                                 :004710DF 8B06            mov eax, dword ptr \[esi\] \*做参数准备         
+:004710E1 000000         BYTE  3 DUP(0)                          :004710E1 E8FEAEFFFF      call 0046BFE4     \*这里把 dl 值加入到按键标志中去                
+                                                                   :004710E6 5E            pop esi        \*pop esi                   
+                                                                 :004710E7 665A            pop dx         \*pop dx                   
+:004710E4 FFFFFFFF       BYTE  4 DUP(0ffh)                       :004710E9 C3              ret            \*ret                   
+                                                                                                                             
+                                                                                                                             
+:004710E8 0E             push cs                                 :004710EA 0000            BYTE 2 DUP(0)                     
+:004710E9 000000         BYTE  3 DUP(0)                                                                                      
+                                                                                                                             
+                                                                 :004710EC D7              xlat                              
+:004710EC D7             xlat                                    :004710ED A2B2E1BAF3      mov byte ptr \[F3BAE1B2\], al       
+:004710ED A2B2E1BAF3     mov byte ptr \[F3BAE1B2\], al             :004710F2 D1A1D4F1B4CB    shl dword ptr \[ecx+CBB4F1D4\], 1  
+:004710F2 D1A1D4F1B4CB   shl dword ptr \[ecx+CBB4F1D4\], 1         :004710F8 B6B4            mov dh, B4                       
+:004710F8 B6B4           mov dh, B4                              :004710FA 0000            add byte ptr \[eax\], al           
+:004710FA 0000           add byte ptr \[eax\], al                   
+                                                                  
+\* Referenced by a CALL s:                                       \* Referenced by a CALL at Address:                                   
+|:0047199C                                                      |:0047199C                                                           
+|                                                               |                                                                    
+                                                                  
+\* Possible StringData Rode Obj ->"注册后选择此洞"                 
+                         |                                        
+:004710FC BA18114700     mov edx, 00471118                      :004710FC E8E3FEFFFF     call 00470FE4   \*call 按键小键盘 4 做相应的工作                     
+:00471101 8B80FC020000   mov eax, dword ptr \[eax+000002FC\]      :00471101 6652           push dx         \*push dx                   
+:00471107 E808A4FBFF     call 0042B514                          :00471103 B204           mov dl, 04      \*把 dl 设置为 3                     
+:0047110C C3             ret                                    :00471105 56             push esi        \*push esi                     
+                                                                :00471106 BE6C694700     mov esi, 0047696C \*为下面的 call 做参数准备                   
+                                                                :0047110B 8B8600000000   mov eax, dword ptr \[esi+00000000\]  \*做参数准备  
+:0047110D 000000         BYTE  3 DUP(0)                         :00471111 E8CEAEFFFF     call 0046BFE4   \*这里把 dl 值加入到按键标志中去                     
+                                                                :00471116 5E             pop esi         \*pop esi                     
+                                                                :00471117 665A           pop dx          \*pop dx                     
+:00471110 FFFFFFFF       BYTE  4 DUP(0ffh)                      :00471119 C3             ret             \*ret                     
+                                                                                                                              
+                                                                                                                              
+:00471114 0E             push cs                                :0047111A B2E1           mov dl, E1                           
+:00471115 000000         BYTE  3 DUP(0)                         :0047111C BAF3D1A1D4     mov edx, D4A1D1F3                    
+                                                                :00471121 F1             BYTE 0f1h                            
+                                                                :00471122 B4CB           mov ah, CB                           
+:00471118 D7             xlat                                   :00471124 B6B4           mov dh, B4                                               
+:00471119 A2B2E1BAF3     mov byte ptr \[F3BAE1B2\], al            :00471126 0000           add byte ptr \[eax\], al               
+:0047111E D1A1D4F1B4CB   shl dword ptr \[ecx+CBB4F1D4\], 1        
+:00471124 B6B4           mov dh, B4         
+:00471126 0000           add byte ptr \[eax\], al    
+  
+  
+对比可以看所做的相应的修改，我在后面加了注释，为什么一开始要 call 小键盘 3，4 等呢，其实是可以不 call 的，不过这样的话，就需要自己补丁 call 小键盘 3 等  
+相应的工作，这样代码空间就不够了，所以我 call 了其做相应的工作，然后修改 dl 的值。好了我们测试一下，是不是达到我们的要求了，下断点 0046AFEF  
+:0046AFEF 8A4368                  mov al, byte ptr \[ebx+68\]＝＝》看看我们的 al 是不是 3、4、5 啊，果然是的。好！成功了 40％了。  
+:0046AFF2 2C01                    sub al, 01  
+:0046AFF4 720B                    jb 0046B001==>dl 为 00 左上洞  
+:0046AFF6 7432                    je 0046B02A==>dl 为 01 中上洞  
+:0046AFF8 FEC8                    dec al  
+:0046AFFA 7478                    je 0046B074==>dl 为 02 右下洞  
+:0046AFFC E9F37A0000              jmp 00472AF4==>调转到辅助功能键的判断       
+  
+按键代码 diy 出来了、下一步就是 diy 按键的工作代码  
+我们分析一下原来的工作代码，和我们要做的工作  
+|jb 0046B001 左上洞的工作代码  
+  
+:0046B001 FF7604                  push \[esi+04\]＝＝＝push 406d0000 \*我机器是这些值，你们的可能不同，不过没有关系，知道意思就行了  
+:0046B004 FF36                    push dword ptr \[esi\]＝＝＝＝push 00000000  
+:0046B006 FF7614                  push \[esi+14\]======push 406ac000  
+:0046B009 FF7610                  push \[esi+10\]======push 00000000  
+:0046B00C 8D542418                lea edx, dword ptr \[esp+18\]  
+:0046B010 8BC3                    mov eax, ebx  
+:0046B012 E8A5C7FFFF              call 004677BC  
+:0046B017 8D742408                lea esi, dword ptr \[esp+08\]  
+:0046B01B 8DBB78010000            lea edi, dword ptr \[ebx+00000178\]  
+:0046B021 B904000000              mov ecx, 00000004  
+:0046B026 F3                      repz  
+:0046B027 A5                      movsd  
+:0046B028 EB72                    jmp 0046B09C  
+这里 push 了 call 004677BC 的四个参数，需要打那个洞只要修改这些参数就行了，我们在其中再加入其他三个按键的判断就行了。好，看看我是怎么做的吧  
+  
+原来的代码： 更改后的代码：  
+:0046AFEF 8A4368         mov al, byte ptr \[ebx+68\]         :0046AFEF 8A4368      mov al, byte ptr \[ebx+68\]             
+:0046AFF2 2C01           sub al, 01                             :0046AFF2 2C01        sub al, 01                           
+:0046AFF4 720B           jb 0046B001                            :0046AFF4 720B        jb 0046B001                          
+:0046AFF6 7432           je 0046B02A                            :0046AFF6 7432        je 0046B02A                          
+:0046AFF8 FEC8           dec al                                 :0046AFF8 FEC8        dec al                               
+:0046AFFA 7478           je 0046B074                            :0046AFFA 7478        je 0046B074                          
+:0046AFFC E99B000000     jmp 0046B09C                           :0046AFFC E9F37A0000  jmp 00472AF4===>如果按键不为 00、01、02 就跳转到我                         
+                                                                     们自己相应的补丁代码去，当然在代码的最后应该和原来一样 jmp 0046B09C  
+     这样防止出错  
+\* Referenced by a (U)nco or (C)onditional Jump at Address:      \* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
+|:0046AFF4(C)                                                   |:0046AFF4(C), :00472B07(U)                                            
+|                                                               |                                                                      
+:0046B001 FF7604         push \[esi+04\]                          :0046B001 FF7604         push \[esi+04\]                        
+:0046B004 FF36           push dword ptr \[esi\]                   :0046B004 FF36           push dword ptr \[esi\]                 
+:0046B006 FF7614         push \[esi+14\]                          :0046B006 E9067B0000     jmp 00472B11＝>这里跳到我们自己的左上，左下洞                         
+:0046B009 FF7610         push \[esi+10\]                          :0046B00B 90             nop            处理程序上                      
+:0046B00C 8D542418       lea edx, dword ptr \[esp+18\]                                                                       
+:0046B010 8BC3           mov eax, ebx                           \* Referenced by a (U)nconditional or (C)onditional Jump at Address:    
+:0046B012 E8A5C7FFFF     call 004677BC                          |:00472B23(U)                                                          
+:0046B017 8D742408       lea esi, dword ptr \[esp+08\]            |                                                                      
+:0046B01B 8DBB78010000   lea edi, dword ptr \[ebx+00000178\]      :0046B00C 8D542418       lea edx, dword ptr \[esp+18\]          
+:0046B021 B904000000     mov ecx, 00000004                      :0046B010 8BC3           mov eax, ebx                         
+:0046B026 F3             repz                                   :0046B012 E8A5C7FFFF     call 004677BC                        
+:0046B027 A5             movsd                                  :0046B017 8D742408       lea esi, dword ptr \[esp+08\]          
+:0046B028 EB72           jmp 0046B09C                           :0046B01B 8DBB78010000   lea edi, dword ptr \[ebx+00000178\]    
+                                                                :0046B021 B904000000     mov ecx, 00000004                    
+\* Referenced by a (U)nco or (C)onditional Jump at Address:      :0046B026 F3             repz                                 
+|:0046AFF6(C)                                                   :0046B027 A5             movsd                                
+|                                                               :0046B028 EB72           jmp 0046B09C                         
+:0046B02A FF742404       push \[esp+04\]                                                                       
+:0046B02E FF742404       push \[esp+04\]                          \* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
+:0046B032 DB2DA4B94600   fld tbyte ptr \[0046B9A4\]               |:0046AFF6(C), :00472B0C(U)                                            
+:0046B038 DC4B70         fmul qword ptr \[ebx+70\]                |                                                                      
+:0046B03B E86479F9FF     call 004029A4                          :0046B02A FF742404        push \[esp+04\]                        
+:0046B040 89442420       mov dword ptr \[esp+20\], eax            :0046B02E FF742404        push \[esp+04\]                        
+:0046B044 89542424       mov dword ptr \[esp+24\], edx            :0046B032 DB2DA4B94600    fld tbyte ptr \[0046B9A4\]             
+:0046B048 DF6C2420       fild qword ptr \[esp+20\]                :0046B038 DC4B70          fmul qword ptr \[ebx+70\]              
+:0046B04C DC6E10         fsubr qword ptr \[esi+10\]               :0046B03B E86479F9FF      call 004029A4                        
+:0046B04F 83C4F8         add esp, FFFFFFF8                      :0046B040 89442420        mov dword ptr \[esp+20\], eax          
+:0046B052 DD1C24         fstp qword ptr \[esp\]                   :0046B044 89542424        mov dword ptr \[esp+24\], edx          
+:0046B055 9B             wait                                   :0046B048 DF6C2420        fild qword ptr \[esp+20\]              
+:0046B056 8D542418       lea edx, dword ptr \[esp+18\]            :0046B04C DC6E10          fsubr qword ptr \[esi+10\]             
+:0046B05A 8BC3           mov eax, ebx                           :0046B04F 83C4F8          add esp, FFFFFFF8                    
+:0046B05C E85BC7FFFF     call 004677BC                          :0046B052 DD1C24          fstp qword ptr \[esp\]                 
+:0046B061 8D742408       lea esi, dword ptr \[esp+08\]            :0046B055 9B              wait                                 
+:0046B065 8DBB78010000   lea edi, dword ptr \[ebx+00000178\]      :0046B056 E9E47A0000      jmp 00472B3F＝>这里跳到我们自己的中上、中下洞的                         
+:0046B06B B904000000     mov ecx, 00000004                      :0046B05B 90              nop                                处理子程序中  
+:0046B070 F3             repz                                                                       
+:0046B071 A5             movsd                                  \* Referenced by a (U)nconditional or (C)onditional Jump at Address:    
+:0046B072 EB28           jmp 0046B09C                           |:00472B57(U)                                                          
+                                                                |                                                                      
+\* Referenced by a (U)nco or (C)onditional Jump at Address:      :0046B05C E85BC7FFFF      call 004677BC                        
+|:0046AFFA(C)                                                   :0046B061 8D742408        lea esi, dword ptr \[esp+08\]          
+|                                                               :0046B065 8DBB78010000    lea edi, dword ptr \[ebx+00000178\]    
+:0046B074 FF760C         push \[esi+0C\]                          :0046B06B B904000000      mov ecx, 00000004                    
+:0046B077 FF7608         push \[esi+08\]                          :0046B070 F3              repz                                 
+:0046B07A FF761C         push \[esi+1C\]                          :0046B071 A5              movsd                                
+:0046B07D FF7618         push \[esi+18\]                          :0046B072 EB28            jmp 0046B09C                         
+:0046B080 8D542418       lea edx, dword ptr \[esp+18\]                                                                       
+:0046B084 8BC3           mov eax, ebx                           \* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
+:0046B086 E831C7FFFF     call 004677BC                          |:0046AFFA(C), :00472B5C(U)                                            
+:0046B08B 8D742408       lea esi, dword ptr \[esp+08\]            |                                                                      
+:0046B08F 8DBB78010000   lea edi, dword ptr \[ebx+00000178\]      :0046B074 FF760C        push \[esi+0C\]                        
+:0046B095 B904000000     mov ecx, 00000004                      :0046B077 FF7608        push \[esi+08\]                        
+:0046B09A F3             repz                                   :0046B07A E9A97A0000    jmp 00472B28＝>这里跳到我们自己右下、右上的                         
+:0046B09B A5             movsd                                  :0046B07F 90            nop           处理子程序中                       
+                                                                       
+\* Referenced by a (U)nco or (C)onditional Jump at Addresses:    \* Referenced by a (U)nconditional or (C)onditional Jump at Address:    
+|:0046AFFC(U), :0046B0286B072(U)                                |:00472B3A(U)                                                          
+|                                                               |                                                                      
+:0046B09C 8A8388000000   mov al, byte ptr \[ebx+00000088\]        :0046B080 8D542418        lea edx, dword ptr \[esp+18\]          
+:0046B0A2 84C0           test al, al                            :0046B084 8BC3            mov eax, ebx                         
+:0046B0A4 0F84E4040000   je 0046B58E                            :0046B086 E831C7FFFF      call 004677BC                        
+:0046B0AA 2C06           sub al, 06                             :0046B08B 8D742408        lea esi, dword ptr \[esp+08\]          
+:0046B0AC 0F84DC040000   je 0046B58E                            :0046B08F 8DBB78010000    lea edi, dword ptr \[ebx+00000178\]    
+:0046B0B2 33C0           xor eax, eax                           :0046B095 B904000000      mov ecx, 00000004                    
+:0046B0B4 8A8389000000   mov al, byte ptr \[ebx+00000089\]        :0046B09A F3              repz                                 
+:0046B0BA 83F80F         cmp eax, 0000000F                      :0046B09B A5              movsd                                
+:0046B0BD 0F87CB040000   ja 0046B58E                                                                       
+:0046B0C3 FF2485CAB04600 jmp dword ptr \[4\*eax+0046B0CA\]         \* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
+                                                                |:0046B028(U), :0046B072(U), :00472B00(U)                              
+                                                                |                                                                      
+                                                                :0046B09C 8A8388000000    mov al, byte ptr \[ebx+00000088\]      
+                                                                :0046B0A2 84C0            test al, al                          
+                                                                :0046B0A4 0F84E4040000    je 0046B58E                          
+                                                                :0046B0AA 2C06            sub al, 06                           
+                                                                :0046B0AC 0F84DC040000    je 0046B58E                          
+                                                                :0046B0B2 33C0            xor eax, eax                         
+                                                                :0046B0B4 8A8389000000    mov al, byte ptr \[ebx+00000089\]      
+                                                                :0046B0BA 83F80F          cmp eax, 0000000F                    
+                                                                :0046B0BD 0F87CB040000    ja 0046B58E                          
+                                                                :0046B0C3 FF2485CAB04600  jmp dword ptr \[4\*eax+0046B0CA\]  
+  
+为什么跳转这么远呢，因为我们要跳转的那些地方原来是注册判断的地方，我们利用那段空间做放入我们的子程序代码。等一下我会讲怎么知道那里就是注册判断地方，我们现在继续我们的补丁工作  
+  
+补丁的代码如下：  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0046AFFC(U)  
+|这里加入了 al 为 03、04、05 也就是按键为 1、2、6 的判断，因为原来跳转到这里之前 al 已经经过了两次 dec 了，所以 03 就变成 01、04 变成 02、05 变成 03 了  
+:00472AF4 3C01                    cmp al, 01  
+:00472AF6 740F                    je 00472B07 按键为小键盘 1，转到相应的子程序  
+:00472AF8 3C02                    cmp al, 02  
+:00472AFA 7410                    je 00472B0C 按键为小键盘 2，转到相应的子程序  
+:00472AFC 3C03                    cmp al, 03  
+:00472AFE 745C                    je 00472B5C 按键为小键盘 3，转到相应的子程序  
+:00472B00 E99785FFFF              jmp 0046B09C  按照原来的程序里有这个跳转我们这里也加上，防止出错  
+:00472B05 B246                    mov dl, 46  
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:00472AF6(C)  
+|  
+:00472B07 E9F584FFFF              jmp 0046B001 跳到按键 4 的处理子程序中（这个子程序如上面所示，我们已经做过手脚了）  
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:00472AFA(C)  
+|  
+:00472B0C E91985FFFF              jmp 0046B02A 跳到按键 5 的处理子程序中（这个子程序如上面所示，我们已经做过手脚了  
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0046B006(U)  
+|这里是从按键 4（左上）处理子程序跳过来的  
+:00472B11 3C01                    cmp al, 01 判断是否为按键 1（左下）  
+:00472B13 7508                    jne 00472B1D  不是那么就是按键 4（左上）跳转到 push 按键 4 的参数  
+:00472B15 FF761C                  push \[esi+1C\] 这里是 push 按键 1 的参数，  
+:00472B18 E903000000              jmp 00472B20    
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:00472B13(C)  
+|  
+:00472B1D FF7614                  push \[esi+14\] 这里是 push 按键 4 的参数  
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:00472B18(U)  
+|  
+:00472B20 FF7610                  push \[esi+10\]  
+:00472B23 E9E484FFFF              jmp 0046B00C 参数已经 push 好跳回原来子程序  
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0046B07A(U)  
+|这里是从按键 3（右下）处理子程序跳过来的  
+:00472B28 3C03                    cmp al, 03 判断是否为按键 6（右上）  
+:00472B2A 7508                    jne 00472B34 不是那么就是按键 6（右上）跳转到 push 按键 3 的参数  
+:00472B2C FF7614                  push \[esi+14\] 这里是 push 按键 6 的参数，  
+:00472B2F E903000000              jmp 00472B37  
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:00472B2A(C)  
+|  
+:00472B34 FF761C                  push \[esi+1C\] 这里是 push 按键 3 的参数  
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:00472B2F(U)  
+|  
+:00472B37 FF7618                  push \[esi+18\]  
+:00472B3A E94185FFFF              jmp 0046B080 参数已经 push 好跳回原来子程序  
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0046B056(U)  
+|这里是从按键 5（中上）处理子程序跳过来的  
+:00472B3F 8A4368                  mov al, byte ptr \[ebx+68\] （这里因为 al 值有变化，我们只有重新取出原来的没有减过的值）  
+:00472B42 3C04                    cmp al, 04 判断是否为按键 2（中下）  
+:00472B44 750B                    jne 00472B51 不是那么就是按键 2（中下）跳转到 push 按键 5 的参数  
+:00472B46 83C408                  add esp, 00000008 因为跳过来的时候参数堆栈有变化，我们重新调整堆栈  
+:00472B49 FF761C                  push \[esi+1C\] push 按键 2 的参数  
+:00472B4C 6800000000              push 00000000   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:00472B44(C)  
+|  
+:00472B51 8D542418                lea edx, dword ptr \[esp+18\] ＝>恢复原程序的动作  
+:00472B55 8BC3                    mov eax, ebx  
+:00472B57 E90085FFFF              jmp 0046B05C 参数已经 push 好跳回原来子程序  
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:00472AFE(C)  
+|  
+:00472B5C E91385FFFF              jmp 0046B074 跳到按键 3 的处理子程序中（这个子程序如上面所示，我们已经做过手脚了)  
+  
+好了这样的话各个键的按键和处理的功能我们都补丁好了。  
+下面我来讲一下注册判断的问题：  
+首先看程序结构，两个 dll，一个 exe，一个 vxd。  
+其中 hookdll.dll 是跟键盘有关的一个 dll 和注册无关。  
+我们把眼光放在 mj715.dll 中，mjkey（魔镜 715？）从名字上就看出一点眉目。具体是怎么回事，那么我们还是祭出 trw 来看个明白  
+在 was32 里查找 mjkey，然后在用 trw 更踪  
+:00472B5A FF1514694700            call dword ptr \[00476914\]  
+这里是 call mjkey715.dll 中的 mjkey 函数  
+而且之前  
+\* Possible StringData Ref from Code Obj ->"mj715.dll"  
+                                  |  
+:00472AF9 68B42B4700              push 00472BB4  
+  
+\* Reference To: kernel32.LoadLibraryA, Ord:0000h  
+                                  |  
+:00472AFE E8B137F9FF              Call 004062B4  
+:00472B03 A310694700              mov dword ptr \[00476910\], eax  
+:00472B08 833D1069470000          cmp dword ptr \[00476910\], 00000000  
+:00472B0F 750D                    jne 00472B1E  
+  
+\* Possible StringData Ref from Code Obj ->"LoadLibrary Error"  
+                                  |  
+:00472B11 B8C82B4700              mov eax, 00472BC8  
+:00472B16 E8A5B1FDFF              call 0044DCC0  
+:00472B1B 5E                      pop esi  
+:00472B1C 5B                      pop ebx  
+:00472B1D C3                      ret  
+很明显是把 mj715.dll 装载进来  
+我们用 trw 测试一下发现这个子程序是一个 call 过来的，其开始地址是  
+:00472AE0 53                      push ebx  
+好把这个改成:00472AE0 c3          ret  
+再测试一下 ok 没有问题  
+这样 mj715.dll 完全没有用了，将它抛弃掉（当然你好好跟踪 mj715.dll 会发现很多有意思的东西、限于篇幅和而且这个也和我的主题无关，我也就不说了）  
+不过有时候运行会出现除数为零的非法操作。好再跟踪一下发现是如下地址除数为零  
+:00468059 DB401C                  fild dword ptr \[eax+1C\] \[eax+1C\]里面的数为零然后出错。eax+1C 是 00476904  
+我们抓原版来看看，发现原版到这里\[eax+1C\]的数为 ee  
+好，那么我们在来一个补丁  
+:00472AE0 E98C000000              jmp 00472B71＝>把原来的 ret 改为跳到除数为零的补丁处  
+  
+:00472B71 C70504694700EE000000    mov dword ptr \[00476904\], 000000EE＝》把\[eax+1C\]设置为 ee  
+:00472B7B C3                      ret\==>返回  
+现在运行程序，基本正常。  
+  
+我这里想说明的问题是，爆破不是更改几个 jz，jmp 就行的，我们如果弄清楚软件的机制，完全可以 diy 自己的功能。而且还可以作出很多有趣的东西出来。希望  
+这片文章能抛砖引玉，达到教学的目的，我不是教你去破解 mj，作者做软件不容易，至少比你破解它难多了。  
+  
+  
+  
+pll621  
+2002 年 7 月 25 日  
+  
+  
+:004710DF 8B06            mov eax, dword ptr \[esi\] \*做参数准备         
+:004710E1 000000         BYTE  3 DUP(0)                          :004710E1 E8FEAEFFFF      call 0046BFE4     \*这里把 dl 值加入到按键标志中去                
+                                                                   :004710E6 5E            pop esi        \*pop esi                   
+                                                                 :004710E7 665A            pop dx         \*pop dx                   
+:004710E4 FFFFFFFF       BYTE  4 DUP(0ffh)                       :004710E9 C3              ret            \*ret                   
+                                                                                                                             
+                                                                                                                             
+:004710E8 0E             push cs                                 :004710EA 0000            BYTE 2 DUP(0)                     
+:004710E9 000000         BYTE  3 DUP(0)                                                                                      
+                                                                                                                             
+                                                                 :004710EC D7              xlat                              
+:004710EC D7             xlat                                    :004710ED A2B2E1BAF3      mov byte ptr \[F3BAE1B2\], al       
+:004710ED A2B2E1BAF3     mov byte ptr \[F3BAE1B2\], al             :004710F2 D1A1D4F1B4CB    shl dword ptr \[ecx+CBB4F1D4\], 1  
+:004710F2 D1A1D4F1B4CB   shl dword ptr \[ecx+CBB4F1D4\], 1         :004710F8 B6B4            mov dh, B4                       
+:004710F8 B6B4           mov dh, B4                              :004710FA 0000            add byte ptr \[eax\], al           
+:004710FA 0000           add byte ptr \[eax\], al                   
+                                                                  
+\* Referenced by a CALL s:                                       \* Referenced by a CALL at Address:                                   
+|:0047199C                                                      |:0047199C                                                           
+|                                                               |                                                                    
+                                                                  
+\* Possible StringData Rode Obj ->"注册后选择此洞"                 
+                         |                                        
+:004710FC BA18114700     mov edx, 00471118                      :004710FC E8E3FEFFFF     call 00470FE4   \*call 按键小键盘 4 做相应的工作                     
+:00471101 8B80FC020000   mov eax, dword ptr \[eax+000002FC\]      :00471101 6652           push dx         \*push dx                   
+:00471107 E808A4FBFF     call 0042B514                          :00471103 B204           mov dl, 04      \*把 dl 设置为 3                     
+:0047110C C3             ret                                    :00471105 56             push esi        \*push esi                     
+                                                                :00471106 BE6C694700     mov esi, 0047696C \*为下面的 call 做参数准备                   
+                                                                :0047110B 8B8600000000   mov eax, dword ptr \[esi+00000000\]  \*做参数准备  
+:0047110D 000000         BYTE  3 DUP(0)                         :00471111 E8CEAEFFFF     call 0046BFE4   \*这里把 dl 值加入到按键标志中去                     
+                                                                :00471116 5E             pop esi         \*pop esi                     
+                                                                :00471117 665A           pop dx          \*pop dx                     
+:00471110 FFFFFFFF       BYTE  4 DUP(0ffh)                      :00471119 C3             ret             \*ret                     
+                                                                                                                              
+                                                                                                                              
+:00471114 0E             push cs                                :0047111A B2E1           mov dl, E1                           
+:00471115 000000         BYTE  3 DUP(0)                         :0047111C BAF3D1A1D4     mov edx, D4A1D1F3                    
+                                                                :00471121 F1             BYTE 0f1h                            
+                                                                :00471122 B4CB           mov ah, CB                           
+:00471118 D7             xlat                                   :00471124 B6B4           mov dh, B4                                               
+:00471119 A2B2E1BAF3     mov byte ptr \[F3BAE1B2\], al            :00471126 0000           add byte ptr \[eax\], al               
+:0047111E D1A1D4F1B4CB   shl dword ptr \[ecx+CBB4F1D4\], 1        
+:00471124 B6B4           mov dh, B4         
+:00471126 0000           add byte ptr \[eax\], al    
+  
+  
+对比可以看所做的相应的修改，我在后面加了注释，为什么一开始要 call 小键盘 3，4 等呢，其实是可以不 call 的，不过这样的话，就需要自己补丁 call 小键盘 3 等  
+相应的工作，这样代码空间就不够了，所以我 call 了其做相应的工作，然后修改 dl 的值。好了我们测试一下，是不是达到我们的要求了，下断点 0046AFEF  
+:0046AFEF 8A4368                  mov al, byte ptr \[ebx+68\]＝＝》看看我们的 al 是不是 3、4、5 啊，果然是的。好！成功了 40％了。  
+:0046AFF2 2C01                    sub al, 01  
+:0046AFF4 720B                    jb 0046B001==>dl 为 00 左上洞  
+:0046AFF6 7432                    je 0046B02A==>dl 为 01 中上洞  
+:0046AFF8 FEC8                    dec al  
+:0046AFFA 7478                    je 0046B074==>dl 为 02 右下洞  
+:0046AFFC E9F37A0000              jmp 00472AF4==>调转到辅助功能键的判断       
+  
+按键代码 diy 出来了、下一步就是 diy 按键的工作代码  
+我们分析一下原来的工作代码，和我们要做的工作  
+|jb 0046B001 左上洞的工作代码  
+  
+:0046B001 FF7604                  push \[esi+04\]＝＝＝push 406d0000 \*我机器是这些值，你们的可能不同，不过没有关系，知道意思就行了  
+:0046B004 FF36                    push dword ptr \[esi\]＝＝＝＝push 00000000  
+:0046B006 FF7614                  push \[esi+14\]======push 406ac000  
+:0046B009 FF7610                  push \[esi+10\]======push 00000000  
+:0046B00C 8D542418                lea edx, dword ptr \[esp+18\]  
+:0046B010 8BC3                    mov eax, ebx  
+:0046B012 E8A5C7FFFF              call 004677BC  
+:0046B017 8D742408                lea esi, dword ptr \[esp+08\]  
+:0046B01B 8DBB78010000            lea edi, dword ptr \[ebx+00000178\]  
+:0046B021 B904000000              mov ecx, 00000004  
+:0046B026 F3                      repz  
+:0046B027 A5                      movsd  
+:0046B028 EB72                    jmp 0046B09C  
+这里 push 了 call 004677BC 的四个参数，需要打那个洞只要修改这些参数就行了，我们在其中再加入其他三个按键的判断就行了。好，看看我是怎么做的吧  
+  
+原来的代码： 更改后的代码：  
+:0046AFEF 8A4368         mov al, byte ptr \[ebx+68\]         :0046AFEF 8A4368      mov al, byte ptr \[ebx+68\]             
+:0046AFF2 2C01           sub al, 01                             :0046AFF2 2C01        sub al, 01                           
+:0046AFF4 720B           jb 0046B001                            :0046AFF4 720B        jb 0046B001                          
+:0046AFF6 7432           je 0046B02A                            :0046AFF6 7432        je 0046B02A                          
+:0046AFF8 FEC8           dec al                                 :0046AFF8 FEC8        dec al                               
+:0046AFFA 7478           je 0046B074                            :0046AFFA 7478        je 0046B074                          
+:0046AFFC E99B000000     jmp 0046B09C                           :0046AFFC E9F37A0000  jmp 00472AF4===>如果按键不为 00、01、02 就跳转到我                         
+                                                                     们自己相应的补丁代码去，当然在代码的最后应该和原来一样 jmp 0046B09C  
+     这样防止出错  
+\* Referenced by a (U)nco or (C)onditional Jump at Address:      \* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
+|:0046AFF4(C)                                                   |:0046AFF4(C), :00472B07(U)                                            
+|                                                               |                                                                      
+:0046B001 FF7604         push \[esi+04\]                          :0046B001 FF7604         push \[esi+04\]                        
+:0046B004 FF36           push dword ptr \[esi\]                   :0046B004 FF36           push dword ptr \[esi\]                 
+:0046B006 FF7614         push \[esi+14\]                          :0046B006 E9067B0000     jmp 00472B11＝>这里跳到我们自己的左上，左下洞                         
+:0046B009 FF7610         push \[esi+10\]                          :0046B00B 90             nop            处理程序上                      
+:0046B00C 8D542418       lea edx, dword ptr \[esp+18\]                                                                       
+:0046B010 8BC3           mov eax, ebx                           \* Referenced by a (U)nconditional or (C)onditional Jump at Address:    
+:0046B012 E8A5C7FFFF     call 004677BC                          |:00472B23(U)                                                          
+:0046B017 8D742408       lea esi, dword ptr \[esp+08\]            |                                                                      
+:0046B01B 8DBB78010000   lea edi, dword ptr \[ebx+00000178\]      :0046B00C 8D542418       lea edx, dword ptr \[esp+18\]          
+:0046B021 B904000000     mov ecx, 00000004                      :0046B010 8BC3           mov eax, ebx                         
+:0046B026 F3             repz                                   :0046B012 E8A5C7FFFF     call 004677BC                        
+:0046B027 A5             movsd                                  :0046B017 8D742408       lea esi, dword ptr \[esp+08\]          
+:0046B028 EB72           jmp 0046B09C                           :0046B01B 8DBB78010000   lea edi, dword ptr \[ebx+00000178\]    
+                                                                :0046B021 B904000000     mov ecx, 00000004                    
+\* Referenced by a (U)nco or (C)onditional Jump at Address:      :0046B026 F3             repz                                 
+|:0046AFF6(C)                                                   :0046B027 A5             movsd                                
+|                                                               :0046B028 EB72           jmp 0046B09C                         
+:0046B02A FF742404       push \[esp+04\]                                                                       
+:0046B02E FF742404       push \[esp+04\]                          \* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
+:0046B032 DB2DA4B94600   fld tbyte ptr \[0046B9A4\]               |:0046AFF6(C), :00472B0C(U)                                            
+:0046B038 DC4B70         fmul qword ptr \[ebx+70\]                |                                                                      
+:0046B03B E86479F9FF     call 004029A4                          :0046B02A FF742404        push \[esp+04\]                        
+:0046B040 89442420       mov dword ptr \[esp+20\], eax            :0046B02E FF742404        push \[esp+04\]                        
+:0046B044 89542424       mov dword ptr \[esp+24\], edx            :0046B032 DB2DA4B94600    fld tbyte ptr \[0046B9A4\]             
+:0046B048 DF6C2420       fild qword ptr \[esp+20\]                :0046B038 DC4B70          fmul qword ptr \[ebx+70\]              
+:0046B04C DC6E10         fsubr qword ptr \[esi+10\]               :0046B03B E86479F9FF      call 004029A4                        
+:0046B04F 83C4F8         add esp, FFFFFFF8                      :0046B040 89442420        mov dword ptr \[esp+20\], eax          
+:0046B052 DD1C24         fstp qword ptr \[esp\]                   :0046B044 89542424        mov dword ptr \[esp+24\], edx          
+:0046B055 9B             wait                                   :0046B048 DF6C2420        fild qword ptr \[esp+20\]              
+:0046B056 8D542418       lea edx, dword ptr \[esp+18\]            :0046B04C DC6E10          fsubr qword ptr \[esi+10\]             
+:0046B05A 8BC3           mov eax, ebx                           :0046B04F 83C4F8          add esp, FFFFFFF8                    
+:0046B05C E85BC7FFFF     call 004677BC                          :0046B052 DD1C24          fstp qword ptr \[esp\]                 
+:0046B061 8D742408       lea esi, dword ptr \[esp+08\]            :0046B055 9B              wait                                 
+:0046B065 8DBB78010000   lea edi, dword ptr \[ebx+00000178\]      :0046B056 E9E47A0000      jmp 00472B3F＝>这里跳到我们自己的中上、中下洞的                         
+:0046B06B B904000000     mov ecx, 00000004                      :0046B05B 90              nop                                处理子程序中  
+:0046B070 F3             repz                                                                       
+:0046B071 A5             movsd                                  \* Referenced by a (U)nconditional or (C)onditional Jump at Address:    
+:0046B072 EB28           jmp 0046B09C                           |:00472B57(U)                                                          
+                                                                |                                                                      
+\* Referenced by a (U)nco or (C)onditional Jump at Address:      :0046B05C E85BC7FFFF      call 004677BC                        
+|:0046AFFA(C)                                                   :0046B061 8D742408        lea esi, dword ptr \[esp+08\]          
+|                                                               :0046B065 8DBB78010000    lea edi, dword ptr \[ebx+00000178\]    
+:0046B074 FF760C         push \[esi+0C\]                          :0046B06B B904000000      mov ecx, 00000004                    
+:0046B077 FF7608         push \[esi+08\]                          :0046B070 F3              repz                                 
+:0046B07A FF761C         push \[esi+1C\]                          :0046B071 A5              movsd                                
+:0046B07D FF7618         push \[esi+18\]                          :0046B072 EB28            jmp 0046B09C                         
+:0046B080 8D542418       lea edx, dword ptr \[esp+18\]                                                                       
+:0046B084 8BC3           mov eax, ebx                           \* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
+:0046B086 E831C7FFFF     call 004677BC                          |:0046AFFA(C), :00472B5C(U)                                            
+:0046B08B 8D742408       lea esi, dword ptr \[esp+08\]            |                                                                      
+:0046B08F 8DBB78010000   lea edi, dword ptr \[ebx+00000178\]      :0046B074 FF760C        push \[esi+0C\]                        
+:0046B095 B904000000     mov ecx, 00000004                      :0046B077 FF7608        push \[esi+08\]                        
+:0046B09A F3             repz                                   :0046B07A E9A97A0000    jmp 00472B28＝>这里跳到我们自己右下、右上的                         
+:0046B09B A5             movsd                                  :0046B07F 90            nop           处理子程序中                       
+                                                                       
+\* Referenced by a (U)nco or (C)onditional Jump at Addresses:    \* Referenced by a (U)nconditional or (C)onditional Jump at Address:    
+|:0046AFFC(U), :0046B0286B072(U)                                |:00472B3A(U)                                                          
+|                                                               |                                                                      
+:0046B09C 8A8388000000   mov al, byte ptr \[ebx+00000088\]        :0046B080 8D542418        lea edx, dword ptr \[esp+18\]          
+:0046B0A2 84C0           test al, al                            :0046B084 8BC3            mov eax, ebx                         
+:0046B0A4 0F84E4040000   je 0046B58E                            :0046B086 E831C7FFFF      call 004677BC                        
+:0046B0AA 2C06           sub al, 06                             :0046B08B 8D742408        lea esi, dword ptr \[esp+08\]          
+:0046B0AC 0F84DC040000   je 0046B58E                            :0046B08F 8DBB78010000    lea edi, dword ptr \[ebx+00000178\]    
+:0046B0B2 33C0           xor eax, eax                           :0046B095 B904000000      mov ecx, 00000004                    
+:0046B0B4 8A8389000000   mov al, byte ptr \[ebx+00000089\]        :0046B09A F3              repz                                 
+:0046B0BA 83F80F         cmp eax, 0000000F                      :0046B09B A5              movsd                                
+:0046B0BD 0F87CB040000   ja 0046B58E                                                                       
+:0046B0C3 FF2485CAB04600 jmp dword ptr \[4\*eax+0046B0CA\]         \* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
+                                                                |:0046B028(U), :0046B072(U), :00472B00(U)                              
+                                                                |                                                                      
+                                                                :0046B09C 8A8388000000    mov al, byte ptr \[ebx+00000088\]      
+                                                                :0046B0A2 84C0            test al, al                          
+                                                                :0046B0A4 0F84E4040000    je 0046B58E                          
+                                                                :0046B0AA 2C06            sub al, 06                           
+                                                                :0046B0AC 0F84DC040000    je 0046B58E                          
+                                                                :0046B0B2 33C0            xor eax, eax                         
+                                                                :0046B0B4 8A8389000000    mov al, byte ptr \[ebx+00000089\]      
+                                                                :0046B0BA 83F80F          cmp eax, 0000000F                    
+                                                                :0046B0BD 0F87CB040000    ja 0046B58E                          
+                                                                :0046B0C3 FF2485CAB04600  jmp dword ptr \[4\*eax+0046B0CA\]  
+  
+为什么跳转这么远呢，因为我们要跳转的那些地方原来是注册判断的地方，我们利用那段空间做放入我们的子程序代码。等一下我会讲怎么知道那里就是注册判断地方，我们现在继续我们的补丁工作  
+  
+补丁的代码如下：  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0046AFFC(U)  
+|这里加入了 al 为 03、04、05 也就是按键为 1、2、6 的判断，因为原来跳转到这里之前 al 已经经过了两次 dec 了，所以 03 就变成 01、04 变成 02、05 变成 03 了  
+:00472AF4 3C01                    cmp al, 01  
+:00472AF6 740F                    je 00472B07 按键为小键盘 1，转到相应的子程序  
+:00472AF8 3C02                    cmp al, 02  
+:00472AFA 7410                    je 00472B0C 按键为小键盘 2，转到相应的子程序  
+:00472AFC 3C03                    cmp al, 03  
+:00472AFE 745C                    je 00472B5C 按键为小键盘 3，转到相应的子程序  
+:00472B00 E99785FFFF              jmp 0046B09C  按照原来的程序里有这个跳转我们这里也加上，防止出错  
+:00472B05 B246                    mov dl, 46  
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:00472AF6(C)  
+|  
+:00472B07 E9F584FFFF              jmp 0046B001 跳到按键 4 的处理子程序中（这个子程序如上面所示，我们已经做过手脚了）  
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:00472AFA(C)  
+|  
+:00472B0C E91985FFFF              jmp 0046B02A 跳到按键 5 的处理子程序中（这个子程序如上面所示，我们已经做过手脚了  
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0046B006(U)  
+|这里是从按键 4（左上）处理子程序跳过来的  
+:00472B11 3C01                    cmp al, 01 判断是否为按键 1（左下）  
+:00472B13 7508                    jne 00472B1D  不是那么就是按键 4（左上）跳转到 push 按键 4 的参数  
+:00472B15 FF761C                  push \[esi+1C\] 这里是 push 按键 1 的参数，  
+:00472B18 E903000000              jmp 00472B20    
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:00472B13(C)  
+|  
+:00472B1D FF7614                  push \[esi+14\] 这里是 push 按键 4 的参数  
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:00472B18(U)  
+|  
+:00472B20 FF7610                  push \[esi+10\]  
+:00472B23 E9E484FFFF              jmp 0046B00C 参数已经 push 好跳回原来子程序  
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0046B07A(U)  
+|这里是从按键 3（右下）处理子程序跳过来的  
+:00472B28 3C03                    cmp al, 03 判断是否为按键 6（右上）  
+:00472B2A 7508                    jne 00472B34 不是那么就是按键 6（右上）跳转到 push 按键 3 的参数  
+:00472B2C FF7614                  push \[esi+14\] 这里是 push 按键 6 的参数，  
+:00472B2F E903000000              jmp 00472B37  
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:00472B2A(C)  
+|  
+:00472B34 FF761C                  push \[esi+1C\] 这里是 push 按键 3 的参数  
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:00472B2F(U)  
+|  
+:00472B37 FF7618                  push \[esi+18\]  
+:00472B3A E94185FFFF              jmp 0046B080 参数已经 push 好跳回原来子程序  
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0046B056(U)  
+|这里是从按键 5（中上）处理子程序跳过来的  
+:00472B3F 8A4368                  mov al, byte ptr \[ebx+68\] （这里因为 al 值有变化，我们只有重新取出原来的没有减过的值）  
+:00472B42 3C04                    cmp al, 04 判断是否为按键 2（中下）  
+:00472B44 750B                    jne 00472B51 不是那么就是按键 2（中下）跳转到 push 按键 5 的参数  
+:00472B46 83C408                  add esp, 00000008 因为跳过来的时候参数堆栈有变化，我们重新调整堆栈  
+:00472B49 FF761C                  push \[esi+1C\] push 按键 2 的参数  
+:00472B4C 6800000000              push 00000000   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:00472B44(C)  
+|  
+:00472B51 8D542418                lea edx, dword ptr \[esp+18\] ＝>恢复原程序的动作  
+:00472B55 8BC3                    mov eax, ebx  
+:00472B57 E90085FFFF              jmp 0046B05C 参数已经 push 好跳回原来子程序  
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:00472AFE(C)  
+|  
+:00472B5C E91385FFFF              jmp 0046B074 跳到按键 3 的处理子程序中（这个子程序如上面所示，我们已经做过手脚了)  
+  
+好了这样的话各个键的按键和处理的功能我们都补丁好了。  
+下面我来讲一下注册判断的问题：  
+首先看程序结构，两个 dll，一个 exe，一个 vxd。  
+其中 hookdll.dll 是跟键盘有关的一个 dll 和注册无关。  
+我们把眼光放在 mj715.dll 中，mjkey（魔镜 715？）从名字上就看出一点眉目。具体是怎么回事，那么我们还是祭出 trw 来看个明白  
+在 was32 里查找 mjkey，然后在用 trw 更踪  
+:00472B5A FF1514694700            call dword ptr \[00476914\]  
+这里是 call mjkey715.dll 中的 mjkey 函数  
+而且之前  
+\* Possible StringData Ref from Code Obj ->"mj715.dll"  
+                                  |  
+:00472AF9 68B42B4700              push 00472BB4  
+  
+\* Reference To: kernel32.LoadLibraryA, Ord:0000h  
+                                  |  
+:00472AFE E8B137F9FF              Call 004062B4  
+:00472B03 A310694700              mov dword ptr \[00476910\], eax  
+:00472B08 833D1069470000          cmp dword ptr \[00476910\], 00000000  
+:00472B0F 750D                    jne 00472B1E  
+  
+\* Possible StringData Ref from Code Obj ->"LoadLibrary Error"  
+                                  |  
+:00472B11 B8C82B4700              mov eax, 00472BC8  
+:00472B16 E8A5B1FDFF              call 0044DCC0  
+:00472B1B 5E                      pop esi  
+:00472B1C 5B                      pop ebx  
+:00472B1D C3                      ret  
+很明显是把 mj715.dll 装载进来  
+我们用 trw 测试一下发现这个子程序是一个 call 过来的，其开始地址是  
+:00472AE0 53                      push ebx  
+好把这个改成:00472AE0 c3          ret  
+再测试一下 ok 没有问题  
+这样 mj715.dll 完全没有用了，将它抛弃掉（当然你好好跟踪 mj715.dll 会发现很多有意思的东西、限于篇幅和而且这个也和我的主题无关，我也就不说了）  
+不过有时候运行会出现除数为零的非法操作。好再跟踪一下发现是如下地址除数为零  
+:00468059 DB401C                  fild dword ptr \[eax+1C\] \[eax+1C\]里面的数为零然后出错。eax+1C 是 00476904  
+我们抓原版来看看，发现原版到这里\[eax+1C\]的数为 ee  
+好，那么我们在来一个补丁  
+:00472AE0 E98C000000              jmp 00472B71＝>把原来的 ret 改为跳到除数为零的补丁处  
+  
+:00472B71 C70504694700EE000000    mov dword ptr \[00476904\], 000000EE＝》把\[eax+1C\]设置为 ee  
+:00472B7B C3                      ret\==>返回  
+现在运行程序，基本正常。  
+  
+我这里想说明的问题是，爆破不是更改几个 jz，jmp 就行的，我们如果弄清楚软件的机制，完全可以 diy 自己的功能。而且还可以作出很多有趣的东西出来。希望  
+这片文章能抛砖引玉，达到教学的目的，我不是教你去破解 mj，作者做软件不容易，至少比你破解它难多了。  
+  
+  
+  
+pll621  
+2002 年 7 月 25 日   
+
+ 4dd466d0e1e0cc123afbe504da2462ca

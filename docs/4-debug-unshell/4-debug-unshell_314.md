@@ -1,0 +1,125 @@
+
+
+# Offline Explorer Enterprise 2.9.1280
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6768.htm`](https://www.pediy.com/kssd/pediy06/pediy6768.htm)
+
+  
+  
+使用 OllyDbg 对 Offline Explorer Enterprise 2.9.1280 进行手动脱壳.  
+  
+这个软件是由 ASPack 2.11b 加的壳.  
+  
+工具:OllyDbg + LordPE + ImportREC  
+  
+操作系统:Win2000SP4  
+  
+前言:很简单,希望对新手有帮助...........老鸟就不要看了....^\_^  
+  
+1.首先用 Ollydbg 将它载入  
+007E1001 > 60               PUSHAD  <-------停在此处.  
+007E1002   E8 02000000      CALL OE.007E1009  
+007E1007   EB 09            JMP SHORT OE.007E1012  
+007E1009   5D               POP EBP  
+007E100A   55               PUSH EBP  
+007E100B   81ED 39394400    SUB EBP,OE.00443939  
+007E1011   C3               RETN  
+小小心心的按 F8,来到:  
+007E147C   FB               STI  
+007E147D   49               DEC ECX  
+007E147E   BE D11CC4FD      MOV ESI,FDC41CD1  
+007E1483   E8 1C000000      CALL OE.007E14A4  <------------在此处按 F7,进入,否则.......  
+\_\_\_ \_\_\_ \_\_\_ \_\_\_ \_\_\_ \_\_\_ \_\_\_ \_\_\_ \_\_\_ \_\_\_ \_\_\_ \_\_\_ \_\_\_\_ \_\_\_ \_\_\_  
+  
+一路循环啊,长征啊..................碰到过不去的地方,注意使用 F4.  
+\_\_\_ \_\_\_ \_\_\_ \_\_\_ \_\_\_ \_\_\_ \_\_\_ \_\_\_ \_\_\_ \_\_\_\_ \_\_\_ \_\_\_ \_\_\_\_ \_\_\_\_ \_\_   
+  
+来到这里时要注意:  
+  
+007E1151   43               INC EBX  
+007E1152   49               DEC ECX  
+007E1153  ^EB EB            JMP SHORT OE.007E1140        <---跳向 007E1140,不能要它跳  
+007E1155   8B06             MOV EAX,DWORD PTR DS:\[ESI\]   <---选中此行,按 F4  
+007E1157   EB 0A            JMP SHORT OE.007E1163        <---一路向下 F8  
+007E1159   803E 0D          CMP BYTE PTR DS:\[ESI\],0D  
+007E115C  ⁷⁵ F3            JNZ SHORT OE.007E1151  
+007E115E   24 00            AND AL,0  
+007E1160   C1C0 18          ROL EAX,18  
+007E1163   2BC3             SUB EAX,EBX  
+007E1165   8906             MOV DWORD PTR DS:\[ESI\],EAX  
+007E1167   83C3 05          ADD EBX,5  
+007E116A   83C6 04          ADD ESI,4  
+007E116D   83E9 05          SUB ECX,5  
+007E1170  ^EB CE            JMP SHORT OE.007E1140         <---又要跳向 007E1140,不能要它跳  
+007E1172   5B               POP EBX                       <---选中此行,按 F4,接着继续长征.  
+007E1173   5E               POP ESI  
+007E1174   59               POP ECX  
+007E1175   58               POP EAX  
+  
+007E11A6   83C6 08          ADD ESI,8  
+007E11A9   833E 00          CMP DWORD PTR DS:\[ESI\],0  
+007E11AC  ⁰F85 26FFFFFF    JNZ OE.007E10D8                <--不能要它跳,  
+007E11B2   68 00800000      PUSH 8000                      <---选中此行,按 F4,接着继续长征  
+007E11B7   6A 00            PUSH 0  
+007E11B9   FFB5 08404400    PUSH DWORD PTR SS:\[EBP+444008\]  
+007E11BF   FF95 10404400    CALL DWORD PTR SS:\[EBP+444010\]  
+  
+\_\_\_ \_\_\_ \_\_\_ \_\_\_ \_\_\_ \_\_\_ \_\_\_ \_\_\_ \_\_\_ \_\_\_ \_\_\_ \_\_\_ \_\_\_\_ \_\_\_ \_\_\_  
+  
+一路循环啊,长征啊..................碰到过不去的地方,注意使用 F4.  
+\_\_\_ \_\_\_ \_\_\_ \_\_\_ \_\_\_ \_\_\_ \_\_\_ \_\_\_ \_\_\_ \_\_\_\_ \_\_\_ \_\_\_ \_\_\_\_ \_\_\_\_ \_\_   
+  
+来到了这里:  
+  
+007E1380   8907             MOV DWORD PTR DS:\[EDI\],EAX                kernel32.GetCurrentThreadId  
+007E1382   8385 00404400 04 ADD DWORD PTR SS:\[EBP+444000\],4  
+007E1389  ^E9 32FFFFFF      JMP OE.007E12C0                 <--不能要它跳  
+007E138E   8906             MOV DWORD PTR DS:\[ESI\],EAX      <---选中此行,按 F4,接着继续 F8  
+007E1390   8946 0C          MOV DWORD PTR DS:\[ESI+C\],EAX  
+007E1393   8946 10          MOV DWORD PTR DS:\[ESI+10\],EAX  
+007E1396   83C6 14          ADD ESI,14  
+007E1399   8B95 0C4A4400    MOV EDX,DWORD PTR SS:\[EBP+444A0C\]  
+007E139F  ^E9 EBFEFFFF      JMP OE.007E128F                    <--不能要它跳  
+007E13A4   8B85 BD394400    MOV EAX,DWORD PTR SS:\[EBP+4439BD\]  <---选中此行,按 F4,接着继续 F8  
+007E13AA   50               PUSH EAX  
+007E13AB   0385 0C4A4400    ADD EAX,DWORD PTR SS:\[EBP+444A0C\]  
+007E13B1   59               POP ECX  
+007E13B2   0BC9             OR ECX,ECX  
+007E13B4   8985 F63C4400    MOV DWORD PTR SS:\[EBP+443CF6\],EAX  
+007E13BA   61               POPAD  
+007E13BB   75 08            JNZ SHORT OE.007E13C5  <--跳到 007E13C5  
+007E13BD   B8 01000000      MOV EAX,1  
+007E13C2   C2 0C00          RETN 0C  
+007E13C5   68 4C9D7000      PUSH OE.00709D4C        <-------马上就到 OEP 了  
+007E13CA   C3               RETN  
+  
+在 007E13C5 当程序来到这一行时,按两下 F8,就会来到 OEP:  
+  
+00709D4C   55               PUSH EBP           <-------程序的 OEP,在此处使用 LordPE-->DumpFull.  
+00709D4D   8BEC             MOV EBP,ESP  
+00709D4F   B9 06000000      MOV ECX,6  
+00709D54   6A 00            PUSH 0  
+00709D56   6A 00            PUSH 0  
+00709D58   49               DEC ECX  
+00709D59  ⁷⁵ F9            JNZ SHORT OE.00709D54  
+00709D5B   53               PUSH EBX  
+00709D5C   56               PUSH ESI  
+00709D5D   57               PUSH EDI  
+00709D5E   B8 AC957000      MOV EAX,OE.007095AC  
+00709D63   E8 50E9CFFF      CALL OE.004086B8  
+00709D68   8B1D 64B47100    MOV EBX,DWORD PTR DS:\[71B464\]             OE.0071EA1C  
+00709D6E   33C0             XOR EAX,EAX  
+  
+在使用 ImportREC 修复时,在 OEP 那一行填入 00309D4C,点击 IAT AutoSearch,接着 Get Imports,  
+再就是 show invalid,此时会有  
+rva:00322BC8  
+rva:00322BCC  
+这两处没修好......将其 cut 就行了.....最后 Fix Dump  
+  
+到这里就写完了,谢谢你能将它看完........希望对那些不会使用 OllyDbg 的朋友会有帮助...............  
+  
+最近被 ASProtect 新版折磨死了,me 变的特别爱捏软柿子了....................^\_^  
+  
+BTW:Trw2000 老了,别抱着不扔了.................^\_^........试试 OllyDbg 吧.  
+
+ 4dd466d0e1e0cc123afbe504da2462ca

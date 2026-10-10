@@ -1,0 +1,639 @@
+
+
+# Absolute Video Splitter Joiner
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-272.htm`](https://www.pediy.com/kssd/pediy08/pediy8-272.htm)
+
+Absolute Video Splitter Joiner 注册算法分析  
+  
+by lnn1123  
+最进颓废,找软柿子玩玩.  
+用了 RSA,base64  
+  
+;//验证  
+CODE:00506F84 sub\_506F84      proc near               ; DATA XREF: CODE:00506EE0o  
+CODE:00506F84  
+CODE:00506F84 var\_8           = dword ptr -8  
+CODE:00506F84 var\_4           = dword ptr -4  
+CODE:00506F84  
+CODE:00506F84                 push    ebp  
+CODE:00506F85                 mov     ebp, esp  
+CODE:00506F87                 push    0  
+CODE:00506F89                 push    0  
+CODE:00506F8B                 push    ebx  
+CODE:00506F8C                 mov     ebx, eax  
+CODE:00506F8E                 xor     eax, eax  
+CODE:00506F90                 push    ebp  
+CODE:00506F91                 push    offset loc\_507031  
+CODE:00506F96                 push    dword ptr fs:\[eax\]  
+CODE:00506F99                 mov     fs:\[eax\], esp  
+CODE:00506F9C                 lea     edx, \[ebp+var\_4\]  
+CODE:00506F9F                 mov     eax, \[ebx+314h\]  
+CODE:00506FA5                 call    @TControl@GetText$qqrv ; TControl::GetText(void)  
+CODE:00506FAA                 lea     edx, \[ebp+var\_8\]  
+CODE:00506FAD                 mov     eax, \[ebx+318h\]  
+CODE:00506FB3                 call    @TControl@GetText$qqrv ; TControl::GetText(void)  
+CODE:00506FB8                 mov     eax, ds:off\_51647C  
+CODE:00506FBD                 mov     eax, \[eax\]  
+CODE:00506FBF                 mov     ecx, \[ebp+var\_8\]  
+CODE:00506FC2                 mov     edx, \[ebp+var\_4\]  
+CODE:00506FC5                 call    serial\_Check  
+CODE:00506FCA                 test    al, al  
+CODE:00506FCC                 jz      short loc\_506FFE  
+CODE:00506FCE                 mov     eax, ds:off\_51647C  
+CODE:00506FD3                 mov     eax, \[eax\]  
+CODE:00506FD5                 mov     edx, \[ebp+var\_4\]  
+CODE:00506FD8                 call    sub\_511F38  
+CODE:00506FDD                 push    40h  
+CODE:00506FDF                 mov     ecx, offset dword\_507040  
+CODE:00506FE4                 mov     edx, offset unk\_507054  
+CODE:00506FE9                 mov     eax, ds:off\_5166DC  
+CODE:00506FEE                 mov     eax, \[eax\]  
+CODE:00506FF0                 call    @Forms@TApplication@MessageBox$qqrpxct1i ; Forms::TApplication::MessageBox(char \*,char  \*,int)  
+CODE:00506FF5                 mov     eax, ebx  
+CODE:00506FF7                 call    @Forms@TCustomForm@Close$qqrv ; Forms::TCustomForm::Close(void)  
+CODE:00506FFC                 jmp     short loc\_507016  
+CODE:00506FFE ; ----------------------------------------------------------------------------  
+CODE:00506FFE  
+CODE:00506FFE loc\_506FFE:                             ; CODE XREF: sub\_506F84+48j  
+CODE:00506FFE                 push    40h  
+CODE:00507000                 mov     ecx, offset dword\_507088  
+CODE:00507005                 mov     edx, offset unk\_507090  
+CODE:0050700A                 mov     eax, ds:off\_5166DC  
+CODE:0050700F                 mov     eax, \[eax\]  
+CODE:00507011                 call    @Forms@TApplication@MessageBox$qqrpxct1i ; Forms::TApplication::MessageBox(char \*,char  \*,int)  
+CODE:00507016  
+CODE:00507016 loc\_507016:                             ; CODE XREF: sub\_506F84+78j  
+CODE:00507016                 xor     eax, eax  
+CODE:00507018                 pop     edx  
+CODE:00507019                 pop     ecx  
+CODE:0050701A                 pop     ecx  
+CODE:0050701B                 mov     fs:\[eax\], edx  
+CODE:0050701E                 push    offset loc\_507038  
+CODE:00507023  
+CODE:00507023 loc\_507023:                             ; CODE XREF: sub\_506F84+B2j  
+CODE:00507023                 lea     eax, \[ebp+var\_8\]  
+CODE:00507026                 mov     edx, 2  
+CODE:0050702B                 call    @System@@LStrArrayClr$qqrv ; System::\_\_linkproc\_\_ LStrArrayClr(void)  
+CODE:00507030                 retn  
+CODE:00507031 ; ----------------------------------------------------------------------------  
+CODE:00507031  
+CODE:00507031 loc\_507031:                             ; DATA XREF: sub\_506F84+Do  
+CODE:00507031                 jmp     @System@@HandleFinally$qqrv ; System::\_\_linkproc\_\_ HandleFinally(void)  
+CODE:00507036 ; ----------------------------------------------------------------------------  
+CODE:00507036                 jmp     short loc\_507023  
+CODE:00507038 ; ----------------------------------------------------------------------------  
+CODE:00507038  
+CODE:00507038 loc\_507038:                             ; DATA XREF: sub\_506F84+9Ao  
+CODE:00507038                 pop     ebx  
+CODE:00507039                 pop     ecx  
+CODE:0050703A                 pop     ecx  
+CODE:0050703B                 pop     ebp  
+CODE:0050703C                 retn  
+CODE:0050703C sub\_506F84      endp ; sp = -4  
+  
+;///////核心代码  
+CODE:00511BB8 serial\_Check    proc near               ; CODE XREF: sub\_506F84+41p  
+CODE:00511BB8                                         ; sub\_511D48+100p  
+CODE:00511BB8  
+CODE:00511BB8 var\_1C          = dword ptr -1Ch  
+CODE:00511BB8 var\_14          = dword ptr -14h  
+CODE:00511BB8 var\_C           = dword ptr -0Ch  
+CODE:00511BB8 var\_8           = dword ptr -8  
+CODE:00511BB8 var\_4           = dword ptr -4  
+CODE:00511BB8  
+CODE:00511BB8                 push    ebp  
+CODE:00511BB9                 mov     ebp, esp  
+CODE:00511BBB                 add     esp, 0FFFFFFE4h  
+CODE:00511BBE                 push    ebx  
+CODE:00511BBF                 xor     ebx, ebx  
+CODE:00511BC1                 mov     \[ebp+var\_C\], ebx  
+CODE:00511BC4                 mov     \[ebp+var\_8\], ecx  
+CODE:00511BC7                 mov     \[ebp+var\_4\], edx  
+CODE:00511BCA                 mov     eax, \[ebp+var\_4\]  
+CODE:00511BCD                 call    @System@@LStrAddRef$qqrv ; System::\_\_linkproc\_\_ LStrAddRef(void)  
+CODE:00511BD2                 mov     eax, \[ebp+var\_8\]  
+CODE:00511BD5                 call    @System@@LStrAddRef$qqrv ; System::\_\_linkproc\_\_ LStrAddRef(void)  
+CODE:00511BDA                 lea     eax, \[ebp+var\_14\]  
+CODE:00511BDD                 mov     edx, off\_503FCC  
+CODE:00511BE3                 call    sub\_40535C  
+CODE:00511BE8                 lea     eax, \[ebp+var\_1C\]  
+CODE:00511BEB                 mov     edx, off\_503FCC  
+CODE:00511BF1                 call    sub\_40535C  
+CODE:00511BF6                 xor     eax, eax  
+CODE:00511BF8                 push    ebp  
+CODE:00511BF9                 push    offset loc\_511C7A  
+CODE:00511BFE                 push    dword ptr fs:\[eax\]  
+CODE:00511C01                 mov     fs:\[eax\], esp  
+CODE:00511C04                 xor     ebx, ebx  
+CODE:00511C06                 lea     edx, \[ebp+var\_14\]  
+CODE:00511C09                 mov     eax, ds:off\_516304 ; E=0x10001  
+CODE:00511C0E                 call    RSA\_init  
+CODE:00511C13                 lea     edx, \[ebp+var\_1C\]  
+CODE:00511C16                 mov     eax, ds:off\_516308 ; N=24CB2A2F44E2626D8CC02B027  
+CODE:00511C1B                 call    RSA\_init  
+CODE:00511C20                 lea     eax, \[ebp+var\_4\]  
+CODE:00511C23                 push    eax  
+CODE:00511C24                 lea     ecx, \[ebp+var\_1C\]  
+CODE:00511C27                 lea     edx, \[ebp+var\_14\]  
+CODE:00511C2A                 mov     eax, \[ebp+var\_4\]  
+CODE:00511C2D                 call    @RSAEncrypt$qqr10AnsiStringr6TFGIntt2r10AnsiString ; RSAEncrypt(AnsiString,TFGInt  &,TFGInt &,AnsiString &)  
+CODE:00511C32                 lea     edx, \[ebp+var\_C\]  
+CODE:00511C35                 mov     eax, \[ebp+var\_4\]  
+CODE:00511C38                 call    @ConvertBase256to64$qqrx10AnsiStringr10AnsiString ; ConvertBase256to64 (AnsiString,AnsiString &)  
+CODE:00511C3D                 mov     eax, \[ebp+var\_8\]  
+CODE:00511C40                 mov     edx, \[ebp+var\_C\]  
+CODE:00511C43                 call    @System@@LStrCmp$qqrv ; System::\_\_linkproc\_\_ LStrCmp(void)  
+CODE:00511C48                 jnz     short loc\_511C4C  
+CODE:00511C4A                 mov     bl, 1  
+CODE:00511C4C  
+CODE:00511C4C loc\_511C4C:                             ; CODE XREF: serial\_Check+90j  
+CODE:00511C4C                 xor     eax, eax  
+CODE:00511C4E                 pop     edx  
+CODE:00511C4F                 pop     ecx  
+CODE:00511C50                 pop     ecx  
+CODE:00511C51                 mov     fs:\[eax\], edx  
+CODE:00511C54                 push    offset loc\_511C81  
+CODE:00511C59  
+CODE:00511C59 loc\_511C59:                             ; CODE XREF: serial\_Check+C7j  
+CODE:00511C59                 lea     eax, \[ebp+var\_1C\]  
+CODE:00511C5C                 mov     edx, off\_503FCC  
+CODE:00511C62                 mov     ecx, 2  
+CODE:00511C67                 call    sub\_405460  
+CODE:00511C6C                 lea     eax, \[ebp+var\_C\]  
+CODE:00511C6F                 mov     edx, 3  
+CODE:00511C74                 call    @System@@LStrArrayClr$qqrv ; System::\_\_linkproc\_\_ LStrArrayClr(void)  
+CODE:00511C79                 retn  
+CODE:00511C7A ; ----------------------------------------------------------------------------  
+CODE:00511C7A  
+CODE:00511C7A loc\_511C7A:                             ; DATA XREF: serial\_Check+41o  
+CODE:00511C7A                 jmp     @System@@HandleFinally$qqrv ; System::\_\_linkproc\_\_ HandleFinally(void)  
+CODE:00511C7F ; ----------------------------------------------------------------------------  
+CODE:00511C7F                 jmp     short loc\_511C59  
+CODE:00511C81 ; ----------------------------------------------------------------------------  
+CODE:00511C81  
+CODE:00511C81 loc\_511C81:                             ; DATA XREF: serial\_Check+9Co  
+CODE:00511C81                 mov     eax, ebx  
+CODE:00511C83                 pop     ebx  
+CODE:00511C84                 mov     esp, ebp  
+CODE:00511C86                 pop     ebp  
+CODE:00511C87                 retn  
+CODE:00511C87 serial\_Check    endp  
+  
+;///RSA\_Encrypto  
+  
+CODE:00506A48 ; \_\_fastcall RSAEncrypt(AnsiString, TFGInt &, TFGInt &, AnsiString &)  
+CODE:00506A48 @RSAEncrypt$qqr10AnsiStringr6TFGIntt2r10AnsiString proc near  
+CODE:00506A48                                         ; CODE XREF: serial\_Check+75p  
+CODE:00506A48                                         ; sub\_511C88+6Ap  
+CODE:00506A48  
+CODE:00506A48 var\_30          = dword ptr -30h  
+CODE:00506A48 var\_2C          = dword ptr -2Ch  
+CODE:00506A48 var\_28          = dword ptr -28h  
+CODE:00506A48 var\_24          = dword ptr -24h  
+CODE:00506A48 var\_20          = dword ptr -20h  
+CODE:00506A48 var\_18          = dword ptr -18h  
+CODE:00506A48 var\_10          = dword ptr -10h  
+CODE:00506A48 var\_8           = dword ptr -8  
+CODE:00506A48 var\_4           = dword ptr -4  
+CODE:00506A48 arg\_0           = dword ptr  8  
+CODE:00506A48  
+CODE:00506A48                 push    ebp  
+CODE:00506A49                 mov     ebp, esp  
+CODE:00506A4B                 add     esp, 0FFFFFFD0h  
+CODE:00506A4E                 push    ebx  
+CODE:00506A4F                 push    esi  
+CODE:00506A50                 push    edi  
+CODE:00506A51                 xor     ebx, ebx  
+CODE:00506A53                 mov     \[ebp+var\_30\], ebx  
+CODE:00506A56                 mov     \[ebp+var\_24\], ebx  
+CODE:00506A59                 mov     \[ebp+var\_28\], ebx  
+CODE:00506A5C                 mov     \[ebp+var\_2C\], ebx  
+CODE:00506A5F                 mov     edi, ecx  
+CODE:00506A61                 mov     \[ebp+var\_8\], edx  
+CODE:00506A64                 mov     \[ebp+var\_4\], eax  
+CODE:00506A67                 mov     eax, \[ebp+var\_4\]  
+CODE:00506A6A                 call    @System@@LStrAddRef$qqrv ; System::\_\_linkproc\_\_ LStrAddRef(void)  
+CODE:00506A6F                 lea     eax, \[ebp+var\_10\]  
+CODE:00506A72                 mov     edx, off\_503FCC  
+CODE:00506A78                 call    sub\_40535C  
+CODE:00506A7D                 lea     eax, \[ebp+var\_18\]  
+CODE:00506A80                 mov     edx, off\_503FCC  
+CODE:00506A86                 call    sub\_40535C  
+CODE:00506A8B                 lea     eax, \[ebp+var\_20\]  
+CODE:00506A8E                 mov     edx, off\_503FCC  
+CODE:00506A94                 call    sub\_40535C  
+CODE:00506A99                 xor     eax, eax  
+CODE:00506A9B                 push    ebp  
+CODE:00506A9C                 push    offset loc\_506C8F  
+CODE:00506AA1                 push    dword ptr fs:\[eax\]  
+CODE:00506AA4                 mov     fs:\[eax\], esp  
+CODE:00506AA7                 lea     edx, \[ebp+var\_20\]  
+CODE:00506AAA                 mov     eax, offset \_str\_0\_17.Text  
+CODE:00506AAF                 call    sub\_5055F0  
+CODE:00506AB4                 lea     edx, \[ebp+var\_24\]  
+CODE:00506AB7                 mov     eax, edi  
+CODE:00506AB9                 call    sub\_50550C  
+CODE:00506ABE                 mov     eax, \[ebp+var\_24\]  
+CODE:00506AC1                 call    @System@\_16823  ; System::\_16823  
+CODE:00506AC6                 mov     ebx, eax  
+CODE:00506AC8                 lea     edx, \[ebp+var\_24\]  
+CODE:00506ACB                 mov     eax, \[ebp+var\_4\]  
+CODE:00506ACE                 call    unknown\_libname\_660 ; FGint Signatures  
+CODE:00506AD3                 lea     eax, \[ebp+var\_24\]  
+CODE:00506AD6                 mov     ecx, \[ebp+var\_24\]  
+CODE:00506AD9                 mov     edx, offset \_str\_111.Text ; 111 是二进制,十进制是 7,这里就是在注册名前加一个常数 7 计算 RSA  
+CODE:00506ADE                 call    @System@@LStrCat3$qqrv ; System::\_\_linkproc\_\_ LStrCat3(void)  
+CODE:00506AE3                 mov     esi, ebx  
+CODE:00506AE5                 dec     esi  
+CODE:00506AE6                 jmp     short loc\_506AF8  
+CODE:00506AE8 ; ----------------------------------------------------------------------------  
+CODE:00506AE8  
+CODE:00506AE8 loc\_506AE8:                             ; CODE XREF: RSAEncrypt(AnsiString,TFGInt &,TFGInt &,AnsiString &)+BDj  
+CODE:00506AE8                 lea     eax, \[ebp+var\_24\]  
+CODE:00506AEB                 mov     ecx, \[ebp+var\_24\]  
+CODE:00506AEE                 mov     edx, offset \_str\_0\_17.Text  
+CODE:00506AF3                 call    @System@@LStrCat3$qqrv ; System::\_\_linkproc\_\_ LStrCat3(void)  
+CODE:00506AF8  
+CODE:00506AF8 loc\_506AF8:                             ; CODE XREF: RSAEncrypt(AnsiString,TFGInt &,TFGInt &,AnsiString &)+9Ej  
+CODE:00506AF8                 mov     eax, \[ebp+var\_24\]  
+CODE:00506AFB                 call    @System@\_16823  ; System::\_16823  
+CODE:00506B00                 cdq  
+CODE:00506B01                 idiv    esi  
+CODE:00506B03                 test    edx, edx  
+CODE:00506B05                 jnz     short loc\_506AE8  
+CODE:00506B07                 mov     eax, \[ebp+var\_24\]  
+CODE:00506B0A                 call    @System@\_16823  ; System::\_16823  
+CODE:00506B0F                 mov     edx, ebx  
+CODE:00506B11                 dec     edx  
+CODE:00506B12                 mov     ecx, edx  
+CODE:00506B14                 cdq  
+CODE:00506B15                 idiv    ecx  
+CODE:00506B17                 mov     esi, eax  
+CODE:00506B19                 lea     eax, \[ebp+var\_28\]  
+CODE:00506B1C                 call    @System@@LStrClr$qqrr17System@AnsiString ; System::\_\_linkproc\_\_ LStrClr (System::AnsiString &)  
+CODE:00506B21                 test    esi, esi  
+CODE:00506B23                 jle     loc\_506C33  
+CODE:00506B29  
+CODE:00506B29 loc\_506B29:                             ; CODE XREF: RSAEncrypt(AnsiString,TFGInt &,TFGInt &,AnsiString &)+1D1 j  
+CODE:00506B29                 lea     eax, \[ebp+var\_2C\]  
+CODE:00506B2C                 push    eax  
+CODE:00506B2D                 mov     ecx, ebx  
+CODE:00506B2F                 dec     ecx  
+CODE:00506B30                 mov     edx, 1  
+CODE:00506B35                 mov     eax, \[ebp+var\_24\]  
+CODE:00506B38                 call    @System@@LStrCopy$qqrv ; System::\_\_linkproc\_\_ LStrCopy(void)  
+CODE:00506B3D                 jmp     short loc\_506B51  
+CODE:00506B3F ; ----------------------------------------------------------------------------  
+CODE:00506B3F  
+CODE:00506B3F loc\_506B3F:                             ; CODE XREF: RSAEncrypt(AnsiString,TFGInt &,TFGInt &,AnsiString &)+137 j  
+CODE:00506B3F                 lea     eax, \[ebp+var\_2C\]  
+CODE:00506B42                 mov     ecx, 1  
+CODE:00506B47                 mov     edx, 1  
+CODE:00506B4C                 call    sub\_404E0C  
+CODE:00506B51  
+CODE:00506B51 loc\_506B51:                             ; CODE XREF: RSAEncrypt(AnsiString,TFGInt &,TFGInt &,AnsiString &)+F5j  
+CODE:00506B51                 lea     eax, \[ebp+var\_30\]  
+CODE:00506B54                 push    eax  
+CODE:00506B55                 mov     ecx, 1  
+CODE:00506B5A                 mov     edx, 1  
+CODE:00506B5F                 mov     eax, \[ebp+var\_2C\]  
+CODE:00506B62                 call    @System@@LStrCopy$qqrv ; System::\_\_linkproc\_\_ LStrCopy(void)  
+CODE:00506B67                 mov     eax, \[ebp+var\_30\]  
+CODE:00506B6A                 mov     edx, offset \_str\_0\_17.Text  
+CODE:00506B6F                 call    @System@@LStrCmp$qqrv ; System::\_\_linkproc\_\_ LStrCmp(void)  
+CODE:00506B74                 jnz     short loc\_506B81  
+CODE:00506B76                 mov     eax, \[ebp+var\_2C\]  
+CODE:00506B79                 call    @System@\_16823  ; System::\_16823  
+CODE:00506B7E                 dec     eax  
+CODE:00506B7F                 jg      short loc\_506B3F  
+CODE:00506B81  
+CODE:00506B81 loc\_506B81:                             ; CODE XREF: RSAEncrypt(AnsiString,TFGInt &,TFGInt &,AnsiString &)+12C j  
+CODE:00506B81                 lea     edx, \[ebp+var\_10\]  
+CODE:00506B84                 mov     eax, \[ebp+var\_2C\]  
+CODE:00506B87                 call    sub\_5055F0  
+CODE:00506B8C                 mov     ecx, ebx  
+CODE:00506B8E                 dec     ecx  
+CODE:00506B8F                 lea     eax, \[ebp+var\_24\]  
+CODE:00506B92                 mov     edx, 1  
+CODE:00506B97                 call    sub\_404E0C  
+CODE:00506B9C                 mov     eax, \[ebp+var\_2C\]  
+CODE:00506B9F                 mov     edx, offset \_str\_0\_17.Text  
+CODE:00506BA4                 call    @System@@LStrCmp$qqrv ; System::\_\_linkproc\_\_ LStrCmp(void)  
+CODE:00506BA9                 jnz     short loc\_506BB8  
+CODE:00506BAB                 lea     edx, \[ebp+var\_18\]  
+CODE:00506BAE                 lea     eax, \[ebp+var\_20\]  
+CODE:00506BB1                 call    sub\_504F24  
+CODE:00506BB6                 jmp     short loc\_506BC9  
+CODE:00506BB8 ; ----------------------------------------------------------------------------  
+CODE:00506BB8  
+CODE:00506BB8 loc\_506BB8:                             ; CODE XREF: RSAEncrypt(AnsiString,TFGInt &,TFGInt &,AnsiString &)+161 j  
+CODE:00506BB8                 lea     eax, \[ebp+var\_18\]  
+CODE:00506BBB                 push    eax  
+CODE:00506BBC                 mov     ecx, edi  
+CODE:00506BBE                 mov     edx, \[ebp+var\_8\]  
+CODE:00506BC1                 lea     eax, \[ebp+var\_10\]  
+CODE:00506BC4                 call    sub\_506398  
+CODE:00506BC9  
+CODE:00506BC9 loc\_506BC9:                             ; CODE XREF: RSAEncrypt(AnsiString,TFGInt &,TFGInt &,AnsiString &)+16E j  
+CODE:00506BC9                 lea     eax, \[ebp+var\_10\]  
+CODE:00506BCC                 call    @FGIntDestroy$qqrr6TFGInt ; FGIntDestroy(TFGInt &)  
+CODE:00506BD1                 lea     eax, \[ebp+var\_2C\]  
+CODE:00506BD4                 call    @System@@LStrClr$qqrr17System@AnsiString ; System::\_\_linkproc\_\_ LStrClr (System::AnsiString &)  
+CODE:00506BD9                 lea     edx, \[ebp+var\_2C\]  
+CODE:00506BDC                 lea     eax, \[ebp+var\_18\]  
+CODE:00506BDF                 call    sub\_50550C  
+CODE:00506BE4                 jmp     short loc\_506BF6  
+CODE:00506BE6 ; ----------------------------------------------------------------------------  
+CODE:00506BE6  
+CODE:00506BE6 loc\_506BE6:                             ; CODE XREF: RSAEncrypt(AnsiString,TFGInt &,TFGInt &,AnsiString &)+1BB j  
+CODE:00506BE6                 lea     eax, \[ebp+var\_2C\]  
+CODE:00506BE9                 mov     ecx, \[ebp+var\_2C\]  
+CODE:00506BEC                 mov     edx, offset \_str\_0\_17.Text  
+CODE:00506BF1                 call    @System@@LStrCat3$qqrv ; System::\_\_linkproc\_\_ LStrCat3(void)  
+CODE:00506BF6  
+CODE:00506BF6 loc\_506BF6:                             ; CODE XREF: RSAEncrypt(AnsiString,TFGInt &,TFGInt &,AnsiString &)+19C j  
+CODE:00506BF6                 mov     eax, \[ebp+var\_2C\]  
+CODE:00506BF9                 call    @System@\_16823  ; System::\_16823  
+CODE:00506BFE                 cdq  
+CODE:00506BFF                 idiv    ebx  
+CODE:00506C01                 test    edx, edx  
+CODE:00506C03                 jnz     short loc\_506BE6  
+CODE:00506C05                 lea     eax, \[ebp+var\_28\]  
+CODE:00506C08                 mov     edx, \[ebp+var\_2C\]  
+CODE:00506C0B                 call    @System@@LStrCat$qqrv ; System::\_\_linkproc\_\_ LStrCat(void)  
+CODE:00506C10                 lea     eax, \[ebp+var\_18\]  
+CODE:00506C13                 call    @FGIntDestroy$qqrr6TFGInt ; FGIntDestroy(TFGInt &)  
+CODE:00506C18                 dec     esi  
+CODE:00506C19                 jnz     loc\_506B29  
+CODE:00506C1F                 jmp     short loc\_506C33  
+CODE:00506C21 ; ----------------------------------------------------------------------------  
+CODE:00506C21  
+CODE:00506C21 loc\_506C21:                             ; CODE XREF: RSAEncrypt(AnsiString,TFGInt &,TFGInt &,AnsiString &)+1FC j  
+CODE:00506C21                 lea     eax, \[ebp+var\_28\]  
+CODE:00506C24                 mov     ecx, 1  
+CODE:00506C29                 mov     edx, 1  
+CODE:00506C2E                 call    sub\_404E0C  
+CODE:00506C33  
+CODE:00506C33 loc\_506C33:                             ; CODE XREF: RSAEncrypt(AnsiString,TFGInt &,TFGInt &,AnsiString &)+DBj  
+CODE:00506C33                                         ; RSAEncrypt(AnsiString,TFGInt &,TFGInt &,AnsiString &)+1D7j  
+CODE:00506C33                 mov     eax, \[ebp+var\_28\]  
+CODE:00506C36                 cmp     byte ptr \[eax\], 30h  
+CODE:00506C39                 jnz     short loc\_506C46  
+CODE:00506C3B                 mov     eax, \[ebp+var\_28\]  
+CODE:00506C3E                 call    @System@\_16823  ; System::\_16823  
+CODE:00506C43                 dec     eax  
+CODE:00506C44                 jg      short loc\_506C21  
+CODE:00506C46  
+CODE:00506C46 loc\_506C46:                             ; CODE XREF: RSAEncrypt(AnsiString,TFGInt &,TFGInt &,AnsiString &)+1F1 j  
+CODE:00506C46                 mov     edx, \[ebp+arg\_0\]  
+CODE:00506C49                 mov     eax, \[ebp+var\_28\]  
+CODE:00506C4C                 call    @ConvertBase2to256$qqr10AnsiStringr10AnsiString ; ConvertBase2to256 (AnsiString,AnsiString &)  
+CODE:00506C51                 lea     eax, \[ebp+var\_20\]  
+CODE:00506C54                 call    @FGIntDestroy$qqrr6TFGInt ; FGIntDestroy(TFGInt &)  
+CODE:00506C59                 xor     eax, eax  
+CODE:00506C5B                 pop     edx  
+CODE:00506C5C                 pop     ecx  
+CODE:00506C5D                 pop     ecx  
+CODE:00506C5E                 mov     fs:\[eax\], edx  
+CODE:00506C61                 push    offset loc\_506C96  
+CODE:00506C66  
+CODE:00506C66 loc\_506C66:                             ; CODE XREF: RSAEncrypt(AnsiString,TFGInt &,TFGInt &,AnsiString &)+24C j  
+CODE:00506C66                 lea     eax, \[ebp+var\_30\]  
+CODE:00506C69                 mov     edx, 4  
+CODE:00506C6E                 call    @System@@LStrArrayClr$qqrv ; System::\_\_linkproc\_\_ LStrArrayClr(void)  
+CODE:00506C73                 lea     eax, \[ebp+var\_20\]  
+CODE:00506C76                 mov     edx, off\_503FCC  
+CODE:00506C7C                 mov     ecx, 3  
+CODE:00506C81                 call    sub\_405460  
+CODE:00506C86                 lea     eax, \[ebp+var\_4\]  
+CODE:00506C89                 call    @System@@LStrClr$qqrr17System@AnsiString ; System::\_\_linkproc\_\_ LStrClr (System::AnsiString &)  
+CODE:00506C8E                 retn  
+CODE:00506C8F ; ----------------------------------------------------------------------------  
+CODE:00506C8F  
+CODE:00506C8F loc\_506C8F:                             ; DATA XREF: RSAEncrypt(AnsiString,TFGInt &,TFGInt &,AnsiString &)+54o  
+CODE:00506C8F                 jmp     @System@@HandleFinally$qqrv ; System::\_\_linkproc\_\_ HandleFinally(void)  
+CODE:00506C94 ; ----------------------------------------------------------------------------  
+CODE:00506C94                 jmp     short loc\_506C66  
+CODE:00506C96 ; ----------------------------------------------------------------------------  
+CODE:00506C96  
+CODE:00506C96 loc\_506C96:                             ; DATA XREF: RSAEncrypt(AnsiString,TFGInt &,TFGInt &,AnsiString &)+219 o  
+CODE:00506C96                 pop     edi  
+CODE:00506C97                 pop     esi  
+CODE:00506C98                 pop     ebx  
+CODE:00506C99                 mov     esp, ebp  
+CODE:00506C9B                 pop     ebp  
+CODE:00506C9C                 retn    4  
+CODE:00506C9C @RSAEncrypt$qqr10AnsiStringr6TFGIntt2r10AnsiString endp  
+  
+用的是 FGint 库,不过我不熟悉这个库,刚开始带入 E,N 计算 RSA,结果就是不对,后来跟踪发现在注册名前加了一个常数 7 后计算的  
+,还有后面这个什么@ConvertBase256to64$qqrx10AnsiStringr10AnsiString 函数,也应该是库里的,用这个函数加密后的数据和  
+base64 不一样,里面的表也变了,变成这样了"aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ0123456789+=",不会 d  
+elphi,不是直接调用就可以 keygen 了,没办法还得用 asm 写.文章没什么新东西,主要是熟悉了一个 FGint 这个库.  
+  
+  
+keygen asm  
+                 
+invoke \_BigPowMod,big\_serial,big\_e,big\_n,big\_serial               
+invoke \_BigOut,big\_serial,16,addr szserial                         
+invoke strtohex,addr szserial,offset string2                       
+invoke bbb,offset string2,offset outBuffer                      
+invoke BaseEncode,offset outBuffer,offset serial  
+  
+下面是我写的这个@ConvertBase256to64$qqrx10AnsiStringr10AnsiString 函数的汇编代码,代码可能比较垃圾,发现如果函数里  
+局部变量比较大时编译就有问题,所以就用的是全局变量  
+bbb proc source1:dword, destination:dword  
+pushad  
+invoke **lstrlen**,source1  
+mov esi,source1  
+lea edi,Bufferbits  
+lea ebx,btbuffer  
+mov ecx,eax  
+@loop:  
+mov bitslen,0  
+xor eax,eax  
+lodsb  
+push ecx  
+@@:  
+mov ecx,2  
+xor edx,edx  
+div ecx  
+push eax  
+mov eax,edx  
+.if eax\==1  
+  mov eax,031h  
+.else  
+  mov eax,030h  
+.endif      
+stosb  
+inc bitslen  
+pop eax  
+test eax,eax  
+jnz @B  
+mov ecx,8  
+mov eax,offset bitslen  
+movzx eax,byte ptr \[eax\]  
+sub ecx,eax  
+.if ecx  
+@@:  
+    mov eax,30h  
+    stosb  
+    dec ecx  
+    jnz @B  
+.endif   
+mov eax,edi  
+dec eax  
+xor edx,edx  
+aa:  
+mov cl,byte ptr \[eax\]  
+mov \[ebx\],cl  
+dec eax  
+inc ebx  
+inc edx  
+cmp edx,8  
+jnz aa  
+  
+pop ecx  
+dec ecx  
+jnz @loop  
+invoke **lstrcpy**,destination,addr btbuffer  
+invoke **RtlZeroMemory**,offset Bufferbits,1024  
+popad  
+ret  
+bbb endp  
+  
+;//string to hex  
+  
+strtohex proc inbf:DWORD, outbf:DWORD  
+pushad  
+lea edi,RSAbuffer  
+invoke **lstrlen**,inbf  
+mov ecx,eax  
+mov ebx,2  
+xor edx,edx  
+div ebx  
+.if edx  
+  mov eax,030h  
+  stosb  
+  mov esi,inbf  
+@loc:    
+  lodsb  
+  stosb  
+  dec ecx  
+  jnz @loc  
+  lea esi,RSAbuffer  
+  invoke **lstrlen**,offset RSAbuffer  
+  mov ecx,eax  
+.else  
+  mov esi,inbf  
+    
+.endif    
+  mov edi,outbf  
+    
+@@:  
+                     lodsb  
+                     .if eax >= 061h  
+                        sub eax,057h  
+                     .elseif eax >= 041h  
+                        sub eax,037h  
+                     .elseif eax >=030h  
+                        sub eax,030h  
+                     .endif  
+                     shl eax,4  
+                     push eax  
+                     lodsb  
+                     dec ecx                       
+                     mov edx,eax  
+                     .if edx >= 061h  
+                       sub edx,057h  
+                     .elseif edx >= 041h  
+                       sub edx,037h  
+                     .elseif edx >=030h  
+                       sub edx,030h  
+                     .endif  
+                     pop eax  
+                     add eax,edx  
+                     and eax,0ffh  
+                     stosb  
+                     dec ecx                  
+                     jnz @B  
+  
+  
+popad  
+ret  
+strtohex endp  
+;//base256 final  
+  
+BaseEncode  proc  proc  uses ebx edi esi source:DWORD, destination:DWORD  
+      ;pushad  
+      mov esi,source  
+      mov sig,1  
+@@:        
+  invoke **lstrlen**, source  
+      push eax  
+      mov ecx,6  
+      xor edx,edx  
+      div ecx  
+      .if edx  
+         pop eax  
+         .if sig==1  
+            add esi,eax  
+            mov byte ptr \[esi\],030h  
+         .else  
+            add esi,1  
+            mov byte ptr \[esi\],030h  
+         .endif        
+      .endif  
+       mov sig,0     
+       test edx,edx  
+       jnz @B  
+         
+       invoke **lstrlen**,source  
+       push eax  
+       mov ecx,6  
+       xor edx,edx  
+       div ecx  
+       mov edx,eax  
+       pop eax  
+       mov ecx,eax  
+       mov esi,source  
+       lea edi,tt  
+@hhh:      
+       lodsb  
+       sub eax,030h  
+       stosb  
+       dec ecx  
+       jnz @hhh  
+       lea esi,tt  
+       mov edi,destination  
+       mov ecx,edx  
+       xor edx,edx  
+@@:  
+       lodsb  
+       shl eax,5  
+       add edx,eax  
+       lodsb  
+       shl eax,4  
+       add edx,eax  
+       lodsb  
+       shl eax,3  
+       add edx,eax  
+       lodsb  
+       shl eax,2  
+       add edx,eax  
+       lodsb  
+       shl eax,1  
+       add edx,eax  
+       lodsb  
+       shl eax,0  
+       add edx,eax  
+       movzx eax,byte ptr \[base64\_alphabet+edx\]  
+       xor edx,edx  
+       stosb      
+       dec ecx  
+       jnz @B  
+;popad  
+ret  
+BaseEncode  endp 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

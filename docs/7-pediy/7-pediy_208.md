@@ -1,0 +1,730 @@
+
+
+# 逆向初步,增加 XP 记事本功能,使用背景色,文字颜色,下划线,删除线
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-266.htm`](https://www.pediy.com/kssd/pediy08/pediy8-266.htm)
+
+;===============================================修改说明===============================================  
+  
+【软件名称】XP 记事本(Notepad)  
+【下载地址】附件  
+【应用平台】Win9x/NT/2000/XP  
+【软件大小】70K  
+【软件限制】未修改时,不能使用背景色,文字色,下划线,删除线。  
+【保护方式】--------  
+【修 改 者】andy00  
+【修改难度】1/10  
+【修改说明】只是为了熟悉逆向工程，所以使用静态分析。  
+【分析工具】Olldbg,计算器  
+【参考资料】MSDN  
+【软件简介】--------  
+  
+  
+  
+;===============================================增加的功能分析=========================================  
+  
+功能 1   使字体对话框显示颜色,下划线,删除线的选项  
+功能 2   在"查看"菜单下添加"背景色"菜单,点击能够选择颜色  
+功能 3   让编辑框使用文字颜色,文字下划线,文字删除线,背景颜色功能  
+  
+  
+  
+;==========================================步骤 1  增加数据与代码区段===================================  
+  
+    用 OLLDBG 查看数据段,估计数据段的空闲字节数能够保存修改后生成的所有数据,此处选择从 AE00 到结束的空间来保存要用到的变量.添加代码需要比较大的空间,因此添加一个可执行区段(既然为了熟悉 PE 结构就手工添加),添加后在 LordPE 中验证添加成功:  
+  
+SecName VOffset VSize   ROffset RSize   Flags  
+andy00  13000   1000    10400   1000    E0000020  
+  
+因此新加代码放到:13000-10400    (RVA)  
+    新加变量放到:0AE00-0AFFC    (RVA)  
+  
+  
+  
+;=========================================步骤 2  需增加的变量与代码分析==================================  
+  
+  
+;功能 1  使字体对话框显示颜色,下划线,删除线的选项  
+  
+    记事本使用 API 函数 ChooseFont 打开字体对话框,此函数只有一个参数,指向 CHOOSEFONT 结构体的指针,CHOOSEFONT 结构体定义如下  
+  
+typedef struct {  
+    DWORD lStructSize;  
+    HWND hwndOwner;  
+    HDC hDC;  
+    LPLOGFONT lpLogFont;  
+    INT iPointSize;  
+    DWORD Flags;  
+    COLORREF rgbColors;  
+    LPARAM lCustData;  
+    LPCFHOOKPROC lpfnHook;  
+    LPCTSTR lpTemplateName;  
+    HINSTANCE hInstance;  
+    LPTSTR lpszStyle;  
+    WORD nFontType;  
+    INT nSizeMin;  
+    INT nSizeMax;  
+} CHOOSEFONT, \*LPCHOOSEFONT;  
+  
+成员说明:  
+  
+    rgbColors   用来保存用户选择的文字颜色  
+    Flags       用来初始化字体对话框的各选项  
+  
+因此:  
+  
+1   将用户选择的颜色 rgbColors 保存起来,放到 AF94  设为 DWORD(COLOREF) crText     
+2   记事本打开字体对话框时默认没有颜色的,下划线,删除线选项.要增加这些选项.只需要将 Flags|CF\_EFFECT,其中 CF\_EFFECT==0x100  
+  
+  
+  
+  
+;功能 2  在"查看"菜单下添加"背景色"菜单,点击能够选择颜色  
+      
+    直接用 ResHack 在"查看"菜单下添加一个菜单项"背景色(&B)",ID 为 1C  
+      
+    点击菜单打开对话框,需要处理 WM\_COMMAND 消息,并在消息在调用 API 函数 ChooseColor().WM\_COMMAND 消息定义如下  
+      
+    WM\_COMMAND      (==111)  
+  
+        WPARAM wParam  
+        LPARAM lParam;  
+      
+参数说明:  
+  
+    wParam  对于菜单,低字代表菜单 ID,高字为 0  
+    lParam  对于菜单,为 0  
+      
+    API 函数 ChooseColor 打开颜色选择对话框,此函数只有一个参数,指向 CHOOSECOLOR 结构的指针其中 CHOOSECOLOR 结构定义如下  
+  
+typedef struct {  
+    DWORD lStructSize;          //+0  
+    HWND hwndOwner;             //+4  
+    HWND hInstance;             //+8  
+    COLORREF rgbResult;         //+C  
+    COLORREF \*lpCustColors;     //+10  
+    DWORD Flags;                //+14  
+    LPARAM lCustData;           //+18  
+    LPCCHOOKPROC lpfnHook;      //+1C  
+    LPCTSTR lpTemplateName;     //+20  
+} CHOOSECOLOR, \*LPCHOOSECOLOR;    
+  
+1   结构体长度为 24,选用空间 AFA0-AFC0 存放此结构,设为 CHOOSECOLOR     cc  
+2   此结构的一个成员 lpCustColors 指向一个 COLORREF 数组,此处用 AE00 开始的空间保存,设为  COLORREF    crCustomColor\[10\]  
+3   还需要一个变量用来保存用户选择的颜色,此处用 AF98 保存,设为    COLORREF    crBkgnd;  
+  
+  
+  
+  
+;功能 3  将选择的字体颜色和背景颜色应用到编辑框上面  
+      
+    设置文字颜色和背景颜色需要处理编辑框的 WM\_CTLCOLOREDIT 消息,消息定义如下:  
+      
+    WM\_CTLCOLOREDIT     (==133)  
+      
+        WPARAM wParam  
+        LPARAM lParam;  
+  
+参数说明  
+  
+    wParam  编辑框的设备内容句柄.   
+    lParam  编辑框的窗口句柄  
+   
+    每个非 Disable 和非 ReadOnly 的编辑框都可以发送这个消息,但是因为这里只有一个编辑框,所以不需要判断.直接在消息中调用  
+      
+    SetTextColor(wParam,crText)     ;设置文字颜色  
+    SetBkColor  (wParam,crBkgnd)    ;设置背景颜色  
+      
+    此处需要一个画刷,颜色与背景色相同,返回给父窗口用来刷背景.将此画刷在 AF9C,设为 HBRUSH      hBrBkgnd  
+      
+      
+      
+      
+;=========================================步骤 3  功能实现伪代码====================================   
+  
+HWND            hEdit;              ;编辑框句柄,原程序中肯定已保存,因此暂不分配空间  
+COLORREF        crCustomColor\[10\];  ;AE00  
+COLORREF        crText;             ;AF94  
+CHOOSECOLOR     cc;                 ;AFA0-AFC0  
+COLORREF        crBkgnd;            ;AF98  
+HBRUSH          hBrBkgnd;           ;AF9C  
+  
+LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)  
+{  
+    switch (message)   
+    {  
+      
+    case WM\_COMMAND:        //WM\_COMMAND=111              
+      
+        switch (LOWORD(wParam))  
+        {  
+        case IDM\_EDIT\_CHOOSEFONT:       //"字体"菜单  
+              
+            ......  
+            CHOOSEFONT.Flags|=CF\_EFFECT;    //增加颜色,下划线,删除线选项  
+            //..ChooseFont()                  
+            crText=CHOOSEFONT.rgbColor;     //保存选择的颜色  
+              
+            break;  
+              
+        case IDM\_VIEW\_CHOOSECOLOR:      //IDM\_VIEW\_CHOOSECOLOR==1C  "背景色"菜单  
+  
+            cc.lStructSize      =sizeof(cc);    //+0  
+            cc.hwndOwner        =hEdit;         //+4      
+            cc.hInstance        =0;             //+8                  
+            cc.rgbResult        =0x00ff00;      //+C      
+            cc.lpCustColors     =crCustom;      //+10     
+            cc.Flags            =CF\_RGBINIT;    //+14  
+            cc.lCustData        =0;             //+18  
+            cc.lpfnHook         =0;             //+1C  
+            cc.lpTemplateName   =0;             //+20  
+              
+            if(ChooseColor(&cc)==TRUE)  
+            {  
+                DeleteObject(hBrBkgnd);             //删除以前创建的,以免内存泄露  
+                clBkgnd=cc.rgbResult;               //保存背景色  
+                hBrBkgnd=CreateSolidBrush(clBkgnd); //根据选择的颜色创建画刷  
+                  
+                InvalidateRect(hEdit,NULL,TRUE);    //强制更新  
+            }  
+              
+            break;  
+                              
+        default:  
+            return DefWindowProc(hWnd, message, wParam, lParam);  
+        }  
+        break;  
+  
+    case WM\_CTLCOLOREDIT:     
+  
+        SetTextColor((HDC)wParam,clText);   //设置文字色  
+        SetBkColor((HDC)wParam,clBkgnd);    //设置背景色  
+              
+        return (LRESULT)hBrBkgnd;           //返回画刷  
+      
+    case WM\_DESTROY:  
+          
+        DeleteObject(hBrBkgnd);             //删除 GDI 对象,避免内存泄露  
+        //....  
+              
+        PostQuitMessage(0);                 //原有代码,退出程序  
+  
+        break;  
+          
+    //case .......  
+    //case .......  
+      
+    default:  
+        return DefWindowProc(hWnd, message, wParam, lParam);  
+    }  
+    return 0;  
+}  
+  
+  
+  
+;=========================================步骤 4  增加输入函数======================================  
+      
+    从步骤 2,3 分析可知,需要用到的 API 函数  
+      
+    ChooseColorW  
+    CreateSolidBrush  
+    SetTextColor  
+    SetBkColor  
+    DeleteObject  
+    InvalidateRect  
+  
+    用 LordPE 查看记事本的输入表,已输入的函数:  
+      
+    DllName             FunName(函数名)     ThunkRVA(调用偏移)  
+    gdi32.dll           DeleteObject        1224  
+    gdi32.dll           InvalidateRect      1068  
+      
+    输入其余函数(本来用手动输入,但是调用的时候总有问题,因此用 LordPE 输入)  
+      
+    DllName             FunName(函数名)     ThunkRVA(调用偏移)  
+    comdlg32.dll        ChooseColorW        1401C  
+    gdi32.dll           CreateSolidBrush    1405D  
+    gdi32.dll           SetTextColor        14061  
+    gdi32.dll           SetBkColor          14065  
+      
+      
+      
+;=========================================步骤 5  修改记事本代码======================================  
+  
+;====================增加对话框的颜色,下划线,删除线选项.====================  
+  
+    用 OD 打开记事本,查找调用 ChooseFont,来到以下代码.  
+      
+0100308A  |.  C785 B4FDFFFF 410>MOV     \[LOCAL.147\], 01000041                         ; cf.Flags;  
+01003094  |.  89B5 B8FDFFFF     MOV     \[LOCAL.146\], ESI                              ; |cf.rgbColors  
+0100309A  |.  89B5 BCFDFFFF     MOV     \[LOCAL.145\], ESI                              ; |cf.lCustData  
+010030A0  |.  89B5 C0FDFFFF     MOV     \[LOCAL.144\], ESI                              ; |cf.lpfnHook  
+010030A6  |.  89B5 C4FDFFFF     MOV     \[LOCAL.143\], ESI                              ; |cf.lpTemplateName  
+010030AC  |.  89B5 C8FDFFFF     MOV     \[LOCAL.142\], ESI                              ; |cf.hInstance  
+010030B2  |.  89B5 CCFDFFFF     MOV     \[LOCAL.141\], ESI                              ; |cf.lpszStyle  
+010030B8  |.  66:C785 D0FDFFFF >MOV     WORD PTR SS:\[EBP\-230\], 2000                   ; |cf.nFontType  
+010030C1  |.  89B5 D4FDFFFF     MOV     \[LOCAL.139\], ESI                              ; |cf.nSizeMin  
+010030C7  |.  89B5 D8FDFFFF     MOV     \[LOCAL.138\], ESI                              ; |cf.nSizeMax  
+010030CD  |.  FF15 90110001     CALL    DWORD PTR DS:\[<&USER32.ReleaseDC>\]            ;  
+010030D3  |.  8D85 A0FDFFFF     LEA     EAX, \[LOCAL.152\]                              ;   
+010030D9  |.  50                PUSH    EAX                                           ; &cf 参数入栈  
+010030DA  |.  FF15 D0120001     CALL    DWORD PTR DS:\[<&comdlg32.ChooseFontW>\]        ; \\ChooseFont(&cf)  
+;................  
+;................  
+  
+  
+    将 pCHOOSEFONT 的各成员分析出来,可知,Flags 成员在 SS:\[EBP\-24C\],因此这里只需要将 0100308A 改为  
+  
+;更改后的 0100308A  
+  
+0100308A      C785 B4FDFFFF 410>MOV     DWORD PTR SS:\[EBP\-24C\], 01000141              ; 0100041|100  
+                 
+                                                                                      ; 变成 0100141  
+    保存更改到文件,运行更改后的文件,此时出现了颜色等效果选项,但是现在还不能起作用. 如图         
+      
+    ![](img/d29fd01c2aaa9060bf938411a2da32b3.jpg)   
+                   
+                                                                                                        
+;====================保存选择的颜色到 clText(RVA==AF94)========================  
+  
+010030E0  |.  85C0              TEST    EAX, EAX  
+010030E2  |.  0F84 7F020000     JE      01003367  
+0101301F    FF35 84AB0001      PUSH    DWORD PTR DS:\[100AB84\]                         ; 更新这一句跳到自己的保存代码  
+  
+  
+  
+;0101301F 更改为 010030E8,多余字节用 NOP 填充  
+010030E8    - E9 32FF0000       JMP     01013000                                      ; 上一句更改后的代码  
+010030ED      90                NOP                                                   ; 多余字节用 NOP 填充  
+  
+010030EE  |.  8B1D 8C110001     MOV     EBX, DWORD PTR DS:\[<&USER32.SetCursor>\]       ; 自己的代码最后必须跳回此处.  
+;................  
+;................  
+  
+  
+  
+;010030E8 跳到此处,自己的代码  
+  
+01013000    FF35 84AB0001       PUSH    DWORD PTR DS:\[100AB84\]                        ; 还原 0101301F 被修改后的代码  
+01013006    A3 FCAF0001         MOV     DWORD PTR DS:\[100AFFC\], EAX                   ; 保存 EAX 现场  
+0101300B    8B4424 28           MOV     EAX, DWORD PTR SS:\[ESP+28\]                    ; EAX=pCHOOSEFONT.rgbColor  
+                                                                                      ; 保存选择的颜色到 EAX  
+0101300F    A3 94AF0001         MOV     DWORD PTR DS:\[100AF94\], EAX                   ; 保存到 crText(RVA==AF94)  
+01013014    A1 FCAF0001         MOV     EAX, DWORD PTR DS:\[100AFFC\]                   ; 还原 EAX   
+01013019  - E9 D000FFFF         JMP     010030EE                                      ; 跳回原程序处  
+  
+  
+  
+  
+;====================在中处理"背景色"菜单(==1C)的 WM\_COMMAND(==111)消息======================  
+  
+;首先用 RegisterClass(Ex)函数定位 WndProc(主窗口的消息处理函数)  
+  
+    RegisterClassEx 只有一个参数 WNDCLASSEX,此结构体定义如下  
+  
+typedef struct {  
+    UINT cbSize;  
+    UINT style;  
+    WNDPROC lpfnWndProc;  
+    int cbClsExtra;  
+    int cbWndExtra;  
+    HINSTANCE hInstance;  
+    HICON hIcon;  
+    HCURSOR hCursor;  
+    HBRUSH hbrBackground;  
+    LPCTSTR lpszMenuName;  
+    LPCTSTR lpszClassName;  
+    HICON hIconSm;  
+} WNDCLASSEX, \*PWNDCLASSEX  
+      
+      
+    一共 12 个成员,其中第 3 个成员就是窗口的消息处理函数.在堆栈中它们的顺序是反的,应该倒着数,也就是第 10 个成员  
+    在 OD 中用 RegisterClassEx 函数找到以下初始化 WNDCLASSEX 结构体的代码  
+      
+      
+          
+;RegisterClassEx 注册窗口类  
+  
+010044E2  |.  C745 D0 30000000  MOV     \[LOCAL.12\], 30                          ; |成员 cbSize=30  
+010044E9  |.  FF15 1C120001     CALL    DWORD PTR DS:\[<&USER32.GetSystemMetrics>; \\GetSystemMetrics  
+010044EF  |.  F7D8              NEG     EAX  
+010044F1  |.  1BC0              SBB     EAX, EAX  
+010044F3  |.  05 017F0000       ADD     EAX, 7F01  
+010044F8  |.  50                PUSH    EAX                                     ; /RsrcName=EAX  
+010044F9  |.  33FF              XOR     EDI, EDI                                ; |  
+010044FB  |.  57                PUSH    EDI                                     ; |hInst=NULL  
+010044FC  |.  FF15 D8110001     CALL    DWORD PTR DS:\[<&USER32.LoadCursorW>\]    ; \\EAX=LoadCursorW(NULL,RsrcName);  
+01004502  |.  6A 02             PUSH    2                                       ; /RsrcName = 2.  
+01004504  |.  56                PUSH    ESI                                     ; |hInst  
+01004505  |.  8945 EC           MOV     \[LOCAL.5\], EAX                          ; |hCursor=EAX;  
+01004508  |.  FF15 EC110001     CALL    DWORD PTR DS:\[<&USER32.LoadIconW>\]      ; \\EAX=LoadIconW(hInst,RsrcName);  
+0100450E  |.  57                PUSH    EDI                                     ; /Options => LR\_DEFAULTCOLOR  
+0100450F  |.  6A 10             PUSH    10                                      ; |Height = 10 (16.)  
+01004511  |.  6A 10             PUSH    10                                      ; |Width = 10 (16.)  
+01004513  |.  6A 01             PUSH    1                                       ; |Type = IMAGE\_ICON  
+01004515  |.  6A 02             PUSH    2                                       ; |ResourceName = 2  
+01004517  |.  56                PUSH    ESI                                     ; |hInst  
+01004518  |.  8945 E8           MOV     \[LOCAL.6\], EAX                          ; |成员 hIcon(大图标)  
+0100451B  |.  FF15 D4110001     CALL    DWORD PTR DS:\[<&USER32.LoadImageW>\]     ; \\LoadImageW  
+01004521  |.  8945 FC           MOV     \[LOCAL.1\], EAX                          ; 成员 hIconSm(小图标)  
+01004524  |.  8D45 D0           LEA     EAX, \[LOCAL.12\]  
+01004527  |.  50                PUSH    EAX                                     ; /参数 pWndClassEx 入栈  
+01004528  |.  C745 F4 01000000  MOV     \[LOCAL.3\], 1                            ; 成员 lpszMenuName;  
+0100452F  |.  8975 E4           MOV     \[LOCAL.7\], ESI                          ; |hInstance=hInst;  
+01004532  |.  C745 F8 20900001  MOV     \[LOCAL.2\], 01009020                     ; 成员 lpszClassName="Notepad"  
+01004539  |.  C745 D8 29340001  MOV     \[LOCAL.10\], 01003429                    ; |lpfnWndProc=01003429  
+                                                                                ; 窗口处理函数 01003429  
+01004540  |.  C745 F0 06000000  MOV     \[LOCAL.4\], 6                            ; 成员 hbrBackground  
+01004547  |.  897D D4           MOV     \[LOCAL.11\], EDI                         ; 成员 style  
+0100454A  |.  897D DC           MOV     \[LOCAL.9\], EDI                          ; 成员 cbClsExtra;  
+0100454D  |.  897D E0           MOV     \[LOCAL.8\], EDI                          ; |成员 cbWndExtra;  
+01004550  |.  FF15 D0110001     CALL    DWORD PTR DS:\[<&USER32.RegisterClassExW>; \\RegisterClassExW  
+;................  
+;................  
+  
+  
+  
+    由以上代码分析可知 WNDPROC=01003429,来到函数 WNDPROC  
+      
+;WNDPROC  
+  
+01003429      8BFF              MOV     EDI, EDI                                ;  
+0100342B  /.  55                PUSH    EBP                                     ; ESP-4  
+0100342C  |.  8BEC              MOV     EBP, ESP                                ; EBP=ESP  
+0100342E  |.  51                PUSH    ECX                                     ; ESP-4  
+0100342F  |.  51                PUSH    ECX                                     ; ESP-4  
+01003430  |.  56                PUSH    ESI                                     ; ESP-4  
+01003431  |.  8B75 0C           MOV     ESI, DWORD PTR SS:\[EBP+C\]               ; ESI=message  
+01003434  |.  83FE 1C           CMP     ESI, 1C                                   
+01003437  |.  57                PUSH    EDI                                     ; ESP-4  
+01003438  |.  6A 08             PUSH    8  
+0100343A  |.  5A                POP     EDX                                     ; EDX=8;  
+0100343B  |.  0F87 41020000     JA      01003682                                ; if(message>1C) goto 01003682  
+;................                                                               ; WM\_COMAND==111>1C 所以到 01003682  
+;................                                                                 
+                                                                
+                                                                                  
+    理一下堆栈,\[EBP\]=原 EBP,\[EBP+4\]=返回地址,\[EBP+8\]=hWnd,\[EBP+C\]=message,\[EBP+10\]=wParam,\[EBP+14\]=lParam  
+  
+  
+  
+;0100343B 跳到此处  
+  
+01003682  |> \\8B7D 14           MOV     EDI, DWORD PTR SS:\[EBP+14\]              ; EDI=lParam          
+01003685  |.  8BC6              MOV     EAX, ESI                                ; EAX=message  
+01003687  |.  2D 11010000       SUB     EAX, 111                                ; EAX-=111(=WM\_COMMAND)  
+0100368C  |.  0F84 35020000     JE      010038C7                                ; if(eax==WM\_COMMAND) goto 010038C7  
+;................                                                               ; 到 WM\_COMMAND 的处理过程  
+;................      
+                 
+              
+                                                                             
+;0100368C 跳到此处  
+  
+010038C7  |> \\3B3D 38980001     CMP     EDI, DWORD PTR DS:\[1009838\]             ;   
+010038CD  |.  75 4C             JNZ     SHORT 0100391B                          ;  
+;................  
+;................  
+  
+  
+    这里遇到一个条件转移,但是我们并不清楚,1009838 里放着什么,如果点击了"背景色"菜单,这里是跳不是不跳呢?不清楚,所以我们必须弄清楚,这里 DWORD PTR DS:\[1009838\],但是因为 EDI\=lParam,在 WM\_COMMAND 中,对于菜单,lParam==0,对于控件,lParam=控件窗口句柄.因此 DWORD PTR DS:\[1009838\]最有可能是一个句柄,在记事本程序中,要在代码中使用句柄的也许只有编辑框和主窗口了.而且,在主窗口的消息处理函数中,很少用 lParm 与 hWnd 比较的(几乎没有).所以这里假设它为编辑框的句柄.  
+      
+    为了确定,用 CreateWindowEX 函数找到创建编辑框的代码,有两个,其中一个包含了对地址 DWORD PTR DS:\[1009838\]的访问如下  
+  
+;................  
+;................  
+01004771  |.  FF15 E0110001     CALL    DWORD PTR DS:\[<&USER32.CreateWindowExW>>; \\CreateWindowExW  
+01004777  |.  3BC3              CMP     EAX, EBX  
+01004779      A3 38980001       MOV     DWORD PTR DS:\[1009838\], EAX             ;  1009838=hEdit  
+;................  
+;................  
+  
+  
+  
+    很容易看出来,DWORD PTR DS:\[1009838\]保存的就是编辑框句柄 hEdit(也可用查找的方法找到 DWORD PTR DS:\[1009838\])的保存的什么.  
+    回到 010038C7 继续分析,由于对于菜单,lParam 为 0,即 EDI\=0,所以 EDI!=hEdit,程序将跳到 0100391B 继续执行.  
+  
+010038C7  |> \\3B3D 38980001     CMP     EDI, DWORD PTR DS:\[1009838\]             ; lParam!=hEdit  
+010038CD  |.  75 4C             JNZ     SHORT 0100391B                          ; 点击"背景色"菜单,此处必跳  
+;................  
+;................  
+  
+  
+  
+;010038CD 跳到此处  
+  
+0100391B  |> \\57                PUSH    EDI                                     ; /Arg3=lParam  
+0100391C  |.  FF75 10           PUSH    DWORD PTR SS:\[EBP+10\]                   ; |Arg2=wParam  
+0100391F  |.  FF75 08           PUSH    DWORD PTR SS:\[EBP+8\]                    ; |Arg1=hWnd  
+01003922  |.  E8 60F2FFFF       CALL    01002B87                                ; \\非编辑框的 WM\_COMMAND 消息的处理函数  
+;................  
+;................  
+  
+  
+  
+;01003922 处调用此处,非编辑框的 WM\_COMMAND 消息的处理函数 01002B87(hWnd,wParam,lParam)  
+  
+01002B87  /$  8BFF              MOV     EDI, EDI  
+01002B89  |.  55                PUSH    EBP                                     ; ESP-4  
+01002B8A  |.  8BEC              MOV     EBP, ESP                                ; EBP=ESP  
+                                                                                ; \[EBP+4\]=返回地址,\[EBP+8\]=hWnd  
+                                                                                ; \[EBP+C\]=wParam,\[EBP+10\]=lParam  
+01002B8C  |.  81EC 60020000     SUB     ESP, 260                                ; ESP-260;  
+01002B92  |.  A1 04960001       MOV     EAX, DWORD PTR DS:\[1009604\]             ;     
+01002B97  |.  8B55 08           MOV     EDX, DWORD PTR SS:\[EBP+8\]               ; EDX=hWnd  
+01002B9A  |.  53                PUSH    EBX                                     ; ESP-4  
+01002B9B  |.  56                PUSH    ESI                                     ; ESP-4  
+01002B9C  |.  57                PUSH    EDI                                     ; ESP-4  
+01002B9D  |.  8945 FC           MOV     DWORD PTR SS:\[EBP\-4\], EAX               ; localVar1=EAX  
+01002BA0  |.  33F6              XOR     ESI, ESI                      
+01002BA2  |.  33C0              XOR     EAX, EAX                                ; EAX=ESI=0;  
+01002BA4  |.  66:89B5 F4FDFFFF  MOV     WORD PTR SS:\[EBP\-20C\], SI               ; localVar83=0  
+01002BAB  |.  B9 81000000       MOV     ECX, 81                                 ; ECX=81;  
+01002BB0  |.  8DBD F6FDFFFF     LEA     EDI, DWORD PTR SS:\[EBP\-20A\]             ; EDI=&localVar82  
+01002BB6  |.  F3:AB             REP     STOSD                                     
+01002BB8  |.  66:AB             STOSW  
+  
+01002BBA  |.  0FB77D 0C         MOVZX   EDI, WORD PTR SS:\[EBP+C\]                ; EDI=wParam 取得控件/菜单 ID 到 EDI  
+  
+01002BBE  |.  83FF 40           CMP     EDI, 40                                 ; 这里开始比较控件/菜单 ID 了,  
+01002BC1  |.  8995 F0FDFFFF     MOV     DWORD PTR SS:\[EBP\-210\], EDX             ; 所以更改此处跳到自己的代码  
+01002BC7  |.  0F8F F9060000     JG      010032C6                                ; 自己的代码最后必须跳回此处  
+;................  
+;................  
+  
+  
+  
+;01002BBE 与 01002BC1 改为,多余字节以 NOP 填充  
+  
+01002BBE   .- E9 5B040100       JMP     0101301E                                ; 跳到自己的代码处  
+01002BC3      90                NOP  
+01002BC4      90                NOP  
+01002BC5      90                NOP  
+01002BC6      90                NOP                                             ; 多余字节以 NOP 填充  
+  
+  
+              
+;01002BBE 跳到此处,自己的代码,用于响应"背景色"菜单,弹出颜色对话框,保存颜色,创建画刷  
+  
+0101301E    83FF 1C             CMP     EDI, 1C                                 ; 比较控件 ID  
+01013021    0F85 A3000000       JNZ     010130CA                                ; 如果 wParam!=1C(不是"背景色"菜单)  
+01013027    90                  NOP                                             ; 则跳到 010130CA,让给程序处理  
+01013028    A1 38980001         MOV     EAX, DWORD PTR DS:\[1009838\]             ; EAX=hEdit  
+                                                                                ; 以下几行初始化 CHOOSECOLOR 各成员  
+0101302D    A3 A4AF0001         MOV     DWORD PTR DS:\[100AFA4\], EAX             ; /cc.hwndOwner=hEdit  
+01013032    C705 A0AF0001 24000>MOV     DWORD PTR DS:\[100AFA0\], 24              ; |cc.lStructSize=24  
+0101303C    C705 A8AF0001 00000>MOV     DWORD PTR DS:\[100AFA8\], 0               ; |cc.hInstance=NULL  
+01013046    C705 ACAF0001 0000F>MOV     DWORD PTR DS:\[100AFAC\], 0FF0000         ; |cc.rgbResult=蓝色  
+01013050    C705 B0AF0001 00AE0>MOV     DWORD PTR DS:\[100AFB0\], 0100AE00        ; |cc.lpCustColors=0100AE00  
+0101305A    C705 B4AF0001 01000>MOV     DWORD PTR DS:\[100AFB4\], 1               ; |cc.Flags=CC\_RGBINIT  
+01013064    C705 B8AF0001 00000>MOV     DWORD PTR DS:\[100AFB8\], 0               ; |cc.lCustData=0  
+0101306E    C705 BCAF0001 00000>MOV     DWORD PTR DS:\[100AFBC\], 0               ; |cc.lpfnHook=0  
+01013078    C705 C0AF0001 00000>MOV     DWORD PTR DS:\[100AFC0\], 0               ; |cc.lpTemplateName=NULL         
+01013082    50                  PUSH    EAX                                     ; |保存 EAX 现场  
+01013083    68 A0AF0001         PUSH    0100AFA0                                ; |参数&cc 入栈  
+01013088    FF15 1C400101       CALL    DWORD PTR DS:\[<&comdlg32.ChooseColorW>\] ; \\ChooseColorW(&cc)  
+0101308E    09C0                OR      EAX, EAX                  
+01013090    74 37               JE      SHORT 010130C9                          ; if(EAX==0) 说明用户取消或出错  
+                                                                                ; 则不保存选择的颜色,交给程序处理  
+01013092    A1 ACAF0001         MOV     EAX, DWORD PTR DS:\[100AFAC\]               
+01013097    A3 98AF0001         MOV     DWORD PTR DS:\[100AF98\], EAX             ; crBkgnd(RVA=AF98)=cc.rgbResult  
+                                                                                ; 保存颜色到 crBkgnd  
+0101309C    FF35 9CAF0001       PUSH    DWORD PTR DS:\[100AF9C\]                  ; /参数 hBrBkgnd(RVA==AF9C)画刷句柄入栈  
+010130A2    FF15 68100001       CALL    DWORD PTR DS:\[<&GDI32.DeleteObject>\]    ; \\DeleteObject(hBrBkgnd)  
+                                                                                ; 删除原画刷防止内存泄漏  
+010130A8    FF35 98AF0001       PUSH    DWORD PTR DS:\[100AF98\]                  ; /参数 crBkgnd 入栈  
+010130AE    FF15 5D400101       CALL    DWORD PTR DS:\[101405D\]                  ; \\EAX=CreateSolidBrush(crBkgnd)  
+                                                                                ; 根据选择的颜色创建画刷  
+010130B4    A3 9CAF0001         MOV     DWORD PTR DS:\[100AF9C\], EAX             ; 画刷句柄保存到 hBrBkgnd(RVA==AF9C)  
+010130B9    6A 01               PUSH    1                                       ; /   
+010130BB    6A 00               PUSH    0                                       ; |  
+010130BD    FF35 38980001       PUSH    DWORD PTR DS:\[1009838\]                  ; |参数 hEdit 入栈  
+010130C3    FF15 24120001       CALL    DWORD PTR DS:\[<&USER32.InvalidateRect>\] ; \\InvalidateRect(hEdit,NULL,TRUE)  
+                                                                                ; 强制更新编辑框使画刷与背景色生效  
+010130C9    58                  POP     EAX                                     ; 还原 EAX  
+010130CA    83FF 40             CMP     EDI, 40                                 ; 原来的代码  
+010130CD    8995 F0FDFFFF       MOV     DWORD PTR SS:\[EBP\-210\], EDX             ; 原来的代码  
+010130D3  - E9 EBFAFEFF         JMP     01002BC3                                ; 跳回 01002BC7 继续执行.  
+  
+  
+  
+  
+;====================处理 WM\_DESTORY(==2)删除画刷对象以免内存泄漏======================  
+  
+;WNDPROC  
+  
+01003429      8BFF              MOV     EDI, EDI  
+0100342B   .  55                PUSH    EBP  
+0100342C   .  8BEC              MOV     EBP, ESP  
+0100342E   .  51                PUSH    ECX  
+0100342F   .  51                PUSH    ECX  
+01003430   .  56                PUSH    ESI  
+01003431   .  8B75 0C           MOV     ESI, DWORD PTR SS:\[EBP+C\]               ; ESI=message;  
+01003434   .- E9 A7FC0000       JMP     010130E0  
+01003439      90                NOP  
+0100343A   .  5A                POP     EDX  
+0100343B   .  0F87 41020000     JA      01003682  
+01003441   .  0F84 B7010000     JE      010035FE  
+01003447   .  3BF2              CMP     ESI, EDX  
+01003449   .  0F87 ED000000     JA      0100353C  
+0100344F   .  0F84 DB000000     JE      01003530  
+01003455   .  8BC6              MOV     EAX, ESI                                ; EAX=message;    
+01003457   .  48                DEC     EAX                                     ; message--;  
+01003458   .  48                DEC     EAX                                     ; message--;  
+01003459   .  0F84 C7000000     JE      01003526                                ; if(message==WM\_DESTORY) goto 1003526  
+;................                                                                 
+;................  
+  
+01003526   > \\6A 00             PUSH    0                                       ; 修改此句跳到自己的代码  
+01003528   .  FF15 F4110001     CALL    DWORD PTR DS:\[010011F4\]                 ; 此句被修改  
+0100352E   .^ EB 8D             JMP     SHORT 010034BD                          ; 此句被修改  
+;................                                                                 
+;................  
+  
+  
+  
+;修改后的代码 01003526-01003528-0100352E,多余字节用 NOP 填充  
+  
+01003526   >-\\E9 25FC0000       JMP     01013150                                ;  Case 2 of switch 01003457  
+0100352B      90                NOP  
+0100352C      90                NOP  
+0100352D      90                NOP  
+0100352E      90                NOP  
+0100352F      90                NOP  
+01003530   >  FF75 14           PUSH    DWORD PTR SS:\[EBP+14\]  
+;................  
+;................  
+  
+  
+  
+;自己的代码,删除画刷句柄 hBrBkgdn(RVA==AF9C)  
+  
+01013150    FF35 9CAF0001       PUSH    DWORD PTR DS:\[100AF9C\]                  ; hBrBkgnd(RVA==AF9C)入栈  
+01013156    FF15 68100001       CALL    DWORD PTR DS:\[<&GDI32.DeleteObject>\]    ; DeleteObject(hBrBkgnd)删除画刷  
+                                                                                ; 释放内存,防止泄漏  
+0101315C    6A 00               PUSH    0                                       ; 原来的代码  
+0101315E    FF15 F4110001       CALL    DWORD PTR DS:\<&USER32.PostQuitMessage>>; USER32.PostQuitMessage  
+01013164  - E9 5403FFFF         JMP     010034BD                                ; 原来的代码  
+  
+  
+    保存更改到文件,然后运行修改过的程序,点击"背景色"菜单,就能弹出颜色对话框了,但是现在选择的颜色还不能起作用,因为要给编辑框设背景色或者文字色,必须处理 WM\_CTLCOLOREDIT 消息.如图  
+      
+    ![   
+      
+      
+;====================处理 WM\_CTLCOLOREDIT(==133)消息设置颜色画刷======================  
+  
+    因为程序原来是不处理 WM\_CTLCOLOREDIT 的消息的,所以处理 WM\_CTLCOLOREDIT 消息的过程与 WM\_COMMND 及 WM\_DESTORY 稍有不同,必须自己添加判断代码,再次来到 WNDPROC:  
+      
+;WNDPROC  
+  
+01003429      8BFF              MOV     EDI, EDI                                ;  
+0100342B  /.  55                PUSH    EBP                                     ; ESP-4  
+0100342C  |.  8BEC              MOV     EBP, ESP                                ; EBP=ESP  
+0100342E  |.  51                PUSH    ECX                                     ; ESP-4  
+0100342F  |.  51                PUSH    ECX                                     ; ESP-4  
+01003430  |.  56                PUSH    ESI                                     ; ESP-4  
+01003431  |.  8B75 0C           MOV     ESI, DWORD PTR SS:\[EBP+C\]               ; ESI=message  
+  
+01003434  |.  83FE 1C           CMP     ESI, 1C                                 ; =====修改这里跳到自己的代码====  
+01003437  |.  57                PUSH    EDI                                     ; =======此句被修改 ESP-4=========  
+01003438  |.  6A 08             PUSH    8                                       ; =======此句被修改==============  
+  
+0100343A  |.  5A                POP     EDX                                     ; EDX=8;; 如果不是 WM\_CTLCOLOREDIT 消息  
+;................                                                               ; 则最后必须跳回到此处  
+;................                                                               ; 如果是 WM\_CTLCOLOREDIT 消息则最后  
+                                                                                ; 必须返回函数值,结束 WNDPROC,     
+                                                                                ; 而不再顺到这里,原因请见伪代码                                                                   
+  
+;修改后的 01003434-01003437-01003438,多余字节以 NOP 填充  
+  
+01003434   .- E9 A7FC0000       JMP     010130E0  
+01003439      90                NOP  
+;................  
+;................  
+  
+  
+  
+  
+;01003434 跳到此处,自己的代码,判断及处理 WM\_CTLCOLOREDIT 消息  
+  
+010130E0    81FE 33010000       CMP     ESI, 133                                  
+010130E6    75 2B               JNZ     SHORT 01013113                          ; 假如不是 WM\_CTLCOLOREDIT 消息则  
+                                                                                ; 自己不处理,跳回原处,交给程序处理  
+010130E8    50                  PUSH    EAX                                     ; 保存 EAX 现场  
+010130E9    FF35 94AF0001       PUSH    DWORD PTR DS:\[100AF94\]                  ; /参数 crText(RVA==AF94)入栈  
+010130EF    FF75 10             PUSH    DWORD PTR SS:\[EBP+10\]                   ; |参数 wParam 入栈  
+010130F2    FF15 61400101       CALL    DWORD PTR DS:\[1014061\]                  ; \\SetTextColor(wParam,crText)  
+010130F8    FF35 98AF0001       PUSH    DWORD PTR DS:\[100AF98\]                  ; /参数 crBkgnd(RVA==AF98)入栈  
+010130FE    FF75 10             PUSH    DWORD PTR SS:\[EBP+10\]                   ; |参数 wParam 入栈  
+01013101    FF15 65400101       CALL    DWORD PTR DS:\[1014065\]                  ; \\SetBkColor(wParam,crBkgnd)  
+01013107    58                  POP     EAX                                     ; 恢复 EAX  
+01013108    A1 9CAF0001         MOV     EAX, DWORD PTR DS:\[100AF9C\]             ; EAX=hBrBkgnd(RVA==AF9C)准备返回画刷  
+  
+0101310D    5F                  POP     EDI                                       
+0101310E    5E                  POP     ESI                                       
+0101310F    C9                  LEAVE                                             
+01013110    C2 1000             RET     10                                      ; 平衡堆栈并返回画刷(eax),结束 WNDPROC  
+          
+01013113    83FE 1C             CMP     ESI, 1C                                 ; 原来的代码  
+01013116    57                  PUSH    EDI                                     ; 原来的代码  
+01013117    6A 08               PUSH    8                                       ; 原来的代码      
+01013119  - E9 1C03FFFF         JMP     0100343A                                ; 0100343A  
+  
+  
+    保存修改到文件,运行修改过的文件,现在可以设置文字色,背景色了,并且设置可以反应到编辑框了,但是程序刚启动的时候,默认的背景色和文字色都是黑色的,并且在有文字行才有背景色,显示不正常,并且看不到文字  
+      
+    默认背景色是黑色是因为,程序启动的时候开始 WM\_CTLCOLOREDIT 消息中的 SetBkColor 和 SetTextColor 都在起作用了,但是这时候,crText(RVA==AF94)和 crBkgnd(RVA==AF98)在内存中的值都是 00000000,改变它们就能改变默认背景色和文字色.  
+    在有文字的行才有背景色是因为,此时的 hBrBkgnd(RVA==AF9C)是个无效的画刷句柄,程序不能用此画刷画背景,导致显示不正常.  
+所以也需要初始化 hBrBkgnd.  
+  
+    初始化他们的最好地方是编辑框刚被创建还没有显示的时候.再次来到创建编辑框的地方  
+      
+     
+  
+;创建编辑框:  
+      
+01004765  |.  50               PUSH    EAX                                      ; |Style  
+01004766  |.  56               PUSH    ESI                                      ; |WindowName  
+01004767  |.  68 94170001      PUSH    01001794                                 ; |Class="Edit"  
+0100476C  |.  68 00020000      PUSH    200                                      ; |ExtStyle=WS\_EX\_CLIENTEDGE  
+01004771  |.  FF15 E0110001    CALL    DWORD PTR DS:\[<&USER32.CreateWindowExW>\] ; \\CreateWindowExW  
+01004777  |.  3BC3             CMP     EAX, EBX                                 ; 修改此然跳到自己的代码      
+01004779  |.  A3 38980001      MOV     DWORD PTR DS:\[1009838\], EAX              ; 改这一句跳到 0101311E  
+0100477E  |.  0F84 2A020000    JE      010049AE                                 ; 最后必须返回到这里  
+;................  
+;................  
+  
+  
+  
+;修改后的代码 01004777-01004779 修改为  
+  
+01004777   .  90                NOP  
+01004778   .  90                NOP  
+01004779    - E9 A1E90000       JMP     0101311E                                    ; 跳到自己的代码 0101311E  
+  
+  
+  
+;自己的代码初始化 crText,crBkgnd,hBrBkgnd  
+  
+0101311E    A3 38980001         MOV     DWORD PTR DS:\[1009838\], EAX             ; 原来的代码  
+01013123    68 FFFFFF00         PUSH    0FFFFFF                                 ; RGB(FF,FF,FF)白色入栈  
+01013128    FF15 5D400101       CALL    DWORD PTR DS:\[101405D\]                  ; CreateSolidBrush 创建白色画刷  
+0101312E    A3 9CAF0001         MOV     DWORD PTR DS:\[100AF9C\], EAX             ; 画刷句柄保存到 hBrBkgnd(RVA==AF9C)  
+01013133    C705 98AF0001 FFFFF>MOV     DWORD PTR DS:\[100AF98\], 0FFFFFF         ; crBkgnd(RVA==AF98)=白色  
+0101313D    A1 38980001         MOV     EAX, DWORD PTR DS:\[1009838\]             ; 原来的代码  
+01013142    3BC3                CMP     EAX, EBX                                ; 原来的代码  
+01013144  - E9 3516FFFF         JMP     0100477E                                ; 跳回原处交给程序处理  
+  
+  
+   最后的效果：  
+  
+    ![](img/431569a76c76670ec1f2bba289d9eb85.jpg)  
+  
+    =======THE END!=========  
+  
+;===============================================QQ：41086722=========================================  
+  
+欢迎交流 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

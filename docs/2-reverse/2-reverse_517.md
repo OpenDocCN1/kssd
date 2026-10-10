@@ -1,0 +1,792 @@
+
+
+# 偷梁换柱虚函数
+
+> 原文：[`www.pediy.com/kssd/pediy10/71775.html`](https://www.pediy.com/kssd/pediy10/71775.html)
+
+首先声明，高手飘过。内容比较低层次，只是很有趣。  
+![](img/f43c1e514327696dccbb0da997496b2a.jpg "扮鬼脸") ![](img/f43c1e514327696dccbb0da997496b2a.jpg "扮鬼脸") ![](img/f43c1e514327696dccbb0da997496b2a.jpg "扮鬼脸")   
+  
+  
+这几天接触了不少虚函数的概念，公司的软件就是使用了纯虚基类作为接口，派生子类增强软件适用性的。  
+  
+   
+  
+       于是，兴趣浓了起来，所以搞了一套很有趣的东西，和大家分享。希望大家不要扔臭鸡蛋砸了俺的摊子。  
+  
+   
+  
+定义两个类，如下：  
+  
+   
+  
+#include <iostream.h>  
+  
+   
+  
+class A  
+  
+{  
+  
+public:  
+  
+       int iVal1;  
+  
+       int iVal2;  
+  
+       virtual void print1()  
+  
+       {  
+  
+              cout<<"iVal1(A) = "<<iVal1<<endl;  
+  
+       }  
+  
+       virtual void print2()  
+  
+       {  
+  
+              cout<<"iVal2(A) = "<<iVal2<<endl;  
+  
+       }  
+  
+       virtual void print\_all()  
+  
+       {  
+  
+              cout<<"iVal1(A) = "<<iVal1<<"\\t\\t"<<"iVal2(A) = "<<iVal2<<endl;  
+  
+       }  
+  
+       virtual void print\_extern(int ext)  
+  
+       {  
+  
+              cout<<"ext(A) = "<<(ext+0)<<endl;  
+  
+       }  
+  
+};  
+  
+   
+  
+   
+  
+class B  
+  
+{  
+  
+public:  
+  
+       int iVal1;  
+  
+       int iVal2;  
+  
+       virtual void print1()  
+  
+       {  
+  
+              cout<<"iVal1(B) = "<<iVal1<<endl;  
+  
+       }  
+  
+       virtual void print2()  
+  
+       {  
+  
+              cout<<"iVal2(B) = "<<iVal2<<endl;  
+  
+       }  
+  
+       virtual void print\_all()  
+  
+       {  
+  
+              cout<<"iVal1(B) = "<<iVal1<<"\\t\\t"<<"iVal2(B) = "<<iVal2<<endl;  
+  
+       }  
+  
+       virtual void print\_extern(int ext)  
+  
+       {  
+  
+              cout<<"ext(B) = "<<(ext+100)<<endl;  
+  
+       }  
+  
+};  
+  
+   
+  
+       然后实例化，打印一些结果。  
+  
+   
+  
+void main(void)  
+  
+{  
+  
+       A a;  
+  
+       a.iVal1 = 0;  
+  
+       a.iVal2 = 1;  
+  
+   
+  
+       B b;  
+  
+       b.iVal1 = 1000;  
+  
+       b.iVal2 = 1001;  
+  
+   
+  
+       A\* pA = &a;  
+  
+       B\* pB = &b;  
+  
+   
+  
+       load\_hook(pA);  
+  
+   
+  
+       pA->print1();  
+  
+       pA->print2();  
+  
+       pA->print\_all();  
+  
+       pA->print\_extern(-200);  
+  
+   
+  
+       cout<<endl;  
+  
+   
+  
+       pB->print1();  
+  
+       pB->print2();  
+  
+       pB->print\_all();  
+  
+       pB->print\_extern(-200);  
+  
+}  
+  
+   
+  
+打印输出：  
+  
+   
+  
+iVal1(A) = 0  
+  
+iVal2(A) = 1  
+  
+iVal1(A) = 0            iVal2(A) = 1  
+  
+ext(A) = -200  
+  
+   
+  
+iVal1(B) = 1000  
+  
+iVal2(B) = 1001  
+  
+iVal1(B) = 1000         iVal2(B) = 1001  
+  
+ext(B) = -100  
+  
+   
+  
+       大家应该比较熟悉这两个类的内存结构，如图：  
+  
+![](img/30f835eb6927854882bc9ee224b17de5.jpg)  
+  
+类对象（a 或 b）中最前面四个字节为虚表指针，然后就是两个成员变量。  
+  
+   
+  
+这些都不会出乎大家的意料，没有什么值得惊奇的。  
+  
+   
+  
+**Mission 1：对象 a 去调用类 B 的函数**  
+方法：寄存器 ecx 中放入对象 a 的地址，然后找到类 B 相应的函数指针，调用之。  
+  
+   
+  
+代码：  
+  
+   
+  
+void main(void)  
+  
+{  
+  
+       A a;  
+  
+       a.iVal1 = 0;  
+  
+       a.iVal2 = 1;  
+  
+   
+  
+       B b;  
+  
+       b.iVal1 = 1000;  
+  
+       b.iVal2 = 1001;  
+  
+   
+  
+       A\* pA = &a;  
+  
+       B\* pB = &b;  
+  
+   
+  
+       \_asm  
+  
+       {  
+  
+              push eax                              //暂存 eax 寄存器到堆栈中  
+  
+              push ecx                              //暂存 ecx 寄存器到堆栈中  
+  
+              mov eax,dword ptr \[pB\]        //调入 b 对象的地址  
+  
+              mov ecx,dword ptr \[pA\]              //调入 a 对象的地址到 ecx 中，实际上就是引用 a 对象的变量  
+  
+              mov eax,dword ptr \[eax\]              //取得 b 对象的虚表地址（b 对象的第一个元素）  
+  
+              add eax,8                             //虚表地址+8，即 b 对象的第三个函数 B::print\_all()的地址  
+  
+              call dword ptr \[eax\]              //调用类 B 的函数 B::print\_all()，但是实际上传入 a 对象的变量，开始写错了，写成“调用 b 对象的函数 B::print\_all()，但是实际上传入 a 对象的变量”，感谢楼下的兄弟，  
+  
+              pop ecx                                      //从堆栈中弹回 ecx  
+  
+              pop eax                                      //从堆栈中弹回 eax  
+  
+       }  
+  
+}  
+  
+   
+  
+打印输出：  
+  
+   
+  
+iVal1(B) = 0            iVal2(B) = 1  
+  
+   
+  
+**Mission 2：交换对象 a 和对象 b 的所有虚函数**  
+方法：很简单，就是交换两个对象的虚表指针。  
+  
+![](img/a7169d35a4cf78312f702a15c8123aa8.jpg)  
+  
+  
+void main(void)  
+  
+{  
+  
+       A a;  
+  
+       a.iVal1 = 0;  
+  
+       a.iVal2 = 1;  
+  
+   
+  
+       B b;  
+  
+       b.iVal1 = 1000;  
+  
+       b.iVal2 = 1001;  
+  
+   
+  
+       A\* pA = &a;  
+  
+       B\* pB = &b;  
+  
+   
+  
+       \_asm  
+  
+       {  
+  
+              push eax                              //将四个需要使用的寄存器压入堆栈  
+  
+              push ecx  
+  
+              push esi  
+  
+              push edi  
+  
+              mov esi,dword ptr \[pA\]        //取得 a 对象地址  
+  
+              mov edi,dword ptr \[pB\]        //取得 b 对象地址  
+  
+              mov eax,dword ptr \[esi\]        //读取 a 对象虚表地址到 eax 中  
+  
+              mov ecx,dword ptr \[edi\]              //读取 b 对象虚表地址到 ecx 中  
+  
+              mov dword ptr \[edi\],eax              //将 a 对象虚表地址写到 b 中  
+  
+              mov dword ptr \[esi\],ecx        //将 b 对象虚表地址写到 a 中  
+  
+              pop edi  
+  
+              pop esi  
+  
+              pop ecx  
+  
+              pop eax  
+  
+       }  
+  
+   
+  
+       pA->print1();  
+  
+       pA->print2();  
+  
+       pA->print\_all();  
+  
+       pA->print\_extern(-200);  
+  
+   
+  
+       cout<<endl;  
+  
+   
+  
+       pB->print1();  
+  
+       pB->print2();  
+  
+       pB->print\_all();  
+  
+       pB->print\_extern(-200);  
+  
+}  
+  
+   
+  
+打印输出：  
+  
+   
+  
+iVal1(B) = 0  
+  
+iVal2(B) = 1  
+  
+iVal1(B) = 0            iVal2(B) = 1  
+  
+ext(B) = -100  
+  
+   
+  
+iVal1(A) = 1000  
+  
+iVal2(A) = 1001  
+  
+iVal1(A) = 1000         iVal2(A) = 1001  
+  
+ext(A) = -200  
+  
+   
+  
+**Mission 3：交换类 A 和类 B 的第二个和第四个函数**  
+方法：需要修改虚表，交换类 A 和类 B 的第二、四个函数。  
+  
+![](img/02ef5b338b14696cb0bb4a490f49f8cc.jpg)  
+  
+  
+void main(void)  
+  
+{  
+  
+       A a;  
+  
+       a.iVal1 = 0;  
+  
+       a.iVal2 = 1;  
+  
+   
+  
+       B b;  
+  
+       b.iVal1 = 1000;  
+  
+       b.iVal2 = 1001;  
+  
+   
+  
+       A\* pA = &a;  
+  
+       B\* pB = &b;  
+  
+   
+  
+       \_asm  
+  
+       {  
+  
+              push eax                              //压入需要使用的寄存器到堆栈中  
+  
+              push ecx  
+  
+              push esi  
+  
+              push edi  
+  
+              mov esi,dword ptr \[pA\]        //a 对象指针  
+  
+              mov edi,dword ptr \[pB\]        //b 对象指针  
+  
+              mov esi,dword ptr \[esi\]         //a 对象虚表地址  
+  
+              mov edi,dword ptr \[edi\]        //b 对象虚表地址  
+  
+              add esi,4  
+  
+              add edi,4  
+  
+              mov eax,dword ptr \[esi\]        //交换第二个函数地址：print2  
+  
+              mov ecx,dword ptr \[edi\]  
+  
+              mov dword ptr \[edi\],eax  
+  
+              mov dword ptr \[esi\],ecx  
+  
+              add esi,8  
+  
+              add edi,8  
+  
+              mov eax,dword ptr \[esi\]        //交换第四个函数地址：print\_extern  
+  
+              mov ecx,dword ptr \[edi\]  
+  
+              mov dword ptr \[edi\],eax  
+  
+              mov dword ptr \[esi\],ecx  
+  
+              pop edi  
+  
+              pop esi  
+  
+              pop ecx  
+  
+              pop eax  
+  
+       }  
+  
+   
+  
+       pA->print1();  
+  
+       pA->print2();  
+  
+       pA->print\_all();  
+  
+       pA->print\_extern(-200);  
+  
+   
+  
+       cout<<endl;  
+  
+   
+  
+       pB->print1();  
+  
+       pB->print2();  
+  
+       pB->print\_all();  
+  
+       pB->print\_extern(-200);  
+  
+}  
+  
+   
+  
+但是这样还是不行，运行时会产生异常，因为虚表在.rdata 区段，而此区段默认是只读的，所以在代码中添加：  
+  
+   
+  
+#pragma comment(linker,"/SECTION:.rdata,RW")  
+  
+   
+  
+打印输出：  
+  
+   
+  
+iVal1(A) = 0  
+  
+iVal2(B) = 1  
+  
+iVal1(A) = 0            iVal2(A) = 1  
+  
+ext(B) = -100  
+  
+   
+  
+iVal1(B) = 1000  
+  
+iVal2(A) = 1001  
+  
+iVal1(B) = 1000         iVal2(B) = 1001  
+  
+ext(A) = -200  
+  
+   
+  
+**Mission 4：hook 类 A 的第三个函数**  
+方法：比较麻烦，但是也是不难弄的。将类 A 的第三个虚函数指针替换成我们自己定义的地址。  
+  
+![](img/9182d16c475f205d027b8bbf61ba776e.jpg)  
+  
+  
+首先先写两个函数：load\_hook 和 unload\_hook  
+  
+   
+  
+void\* g\_pAddr = 0;  
+  
+int g\_count = 0;  
+  
+   
+  
+void load\_hook(A\* pA)  
+  
+{  
+  
+       \_asm  
+  
+       {  
+  
+              push eax  
+  
+              push ecx  
+  
+              mov eax,dword ptr \[pA\]              //获取对象指针  
+  
+              mov eax,dword ptr \[eax\]              //获取虚表地址  
+  
+              add eax,8                             //获取虚表中类 A 第三个函数指针的地址  
+  
+              mov ecx,dword ptr \[eax\]              //取出类 A 第三个函数指针  
+  
+              mov dword ptr \[g\_pAddr\],ecx      //保存到 g\_pAddr 变量中  
+  
+              mov ecx,offset hook\_proc     //替换为 hook\_proc 指针  
+  
+              mov dword ptr \[eax\],ecx  
+  
+              pop ecx  
+  
+              pop eax  
+  
+              jmp hook\_end  
+  
+       }  
+  
+hook\_proc:  
+  
+       \_asm  
+  
+       {  
+  
+              push ecx  
+  
+       }  
+  
+   
+  
+       g\_count++;  
+  
+       cout<<g\_count<<" time(s) to invoke A::print\_all()"<<endl;//A::print\_all 的记数  
+  
+   
+  
+       \_asm  
+  
+       {  
+  
+              pop ecx  
+  
+              jmp dword ptr \[g\_pAddr\]  
+  
+       }  
+  
+hook\_end:  
+  
+       cout<<"A::print\_all() hooked!"<<endl;  
+  
+}  
+  
+   
+  
+void unload\_hook(A\* pA)  
+  
+{  
+  
+       \_asm  
+  
+       {  
+  
+              push eax  
+  
+              push ecx  
+  
+              mov eax,dword ptr \[pA\]              //获取对象指针  
+  
+              mov eax,dword ptr \[eax\]              //获取虚表地址  
+  
+              add eax,8                             //获取虚表中类 A 第三个函数指针的地址  
+  
+              mov ecx,dword ptr \[g\_pAddr\]      //取出事先保存的 A::print\_all()地址  
+  
+              mov dword ptr \[eax\],ecx  
+  
+              pop ecx  
+  
+              pop eax  
+  
+       }  
+  
+       g\_count = 0;  
+  
+       cout<<"A::print\_all() unhooked!"<<endl;  
+  
+}  
+  
+   
+  
+主程序中：  
+  
+   
+  
+void main(void)  
+  
+{  
+  
+       A a;  
+  
+       a.iVal1 = 0;  
+  
+       a.iVal2 = 1;  
+  
+   
+  
+       B b;  
+  
+       b.iVal1 = 1000;  
+  
+       b.iVal2 = 1001;  
+  
+   
+  
+       A\* pA = &a;  
+  
+       B\* pB = &b;  
+  
+   
+  
+       load\_hook(pA);  
+  
+   
+  
+       pA->print1();  
+  
+       pA->print\_all();  
+  
+       pA->print\_all();  
+  
+       pA->print\_all();  
+  
+   
+  
+       unload\_hook(pA);  
+  
+   
+  
+       pA->print1();  
+  
+       pA->print\_all();  
+  
+       pA->print\_all();  
+  
+       pA->print\_all();  
+  
+}  
+  
+   
+  
+自然，这里也需要添加：  
+  
+   
+  
+#pragma comment(linker,"/SECTION:.rdata,RW")  
+  
+   
+  
+打印输出：  
+  
+   
+  
+A::print\_all() hooked!  
+  
+iVal1(A) = 0  
+  
+1 time(s) to invoke A::print\_all()  
+  
+iVal1(A) = 0            iVal2(A) = 1  
+  
+2 time(s) to invoke A::print\_all()  
+  
+iVal1(A) = 0            iVal2(A) = 1  
+  
+3 time(s) to invoke A::print\_all()  
+  
+iVal1(A) = 0            iVal2(A) = 1  
+  
+A::print\_all() unhooked!  
+  
+iVal1(A) = 0  
+  
+iVal1(A) = 0            iVal2(A) = 1  
+  
+iVal1(A) = 0            iVal2(A) = 1  
+  
+iVal1(A) = 0            iVal2(A) = 1  
+  
+   
+  
+**结论：**  
+  
+一、上面的东西作为大家学习虚函数后的习题更恰当一些。没有什么难度，但是很有意思，呵呵。  
+  
+二、Mission4 中的 hook 还有其他一些办法。  
+  
+三、还有一个 Mission，没有时间做了。  
+  
+Mission5：自己建立一张虚表，将对象的虚表指针指向自建的表，将指定对象的整张虚表 hook 掉。 
+
+上传一下代码  
+:)  
+  
+  
+四个 Mission
+
+上传的附件
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || Mission.rar  
+ |

@@ -1,0 +1,341 @@
+
+
+# 利用特洛依动态库注入的学习总结
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-380.htm`](https://www.pediy.com/kssd/pediy08/pediy8-380.htm)
+
+【文章标题】: 利用特洛依动态库注入的学习总结  
+【文章作者】: rockhard  
+【作者邮箱】: wnh1\[at\]sohu.com  
+【软件名称】: 象棋奇兵 3.0  
+【下载地址】: http://cchess.aa.topzj.com/viewthread.php?tid=177115&fpage=1  
+【加壳方式】: ASPR  
+【保护方式】: 注册码保护  
+【编写语言】: VC  
+【操作平台】: XP+SP2  
+【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!  
+  
+  
+【详细过程】  
+  首先说明的是这个动态库是看雪论坛中一位大牛作品,不是我的.在此表示致敬!让我们也品尝下野猪的味道 :)  
+    
+    
+  可以从 http://cchess.aa.topzj.com/viewthread.php?tid=177115&fpage=1 下载安装程序和破解用的动态库(可能要注册论坛后才能下载).  
+  软件用 ASPR 加壳了.破解手法让人赞叹.将 ws2\_32.dll 拷贝到程序的安装目录就完成了破解工作.不用脱壳,不用打补丁.下面是个人的分析与总结.  
+    
+  一.软件注册算法分析.  
+    
+  这个版本的注册算法不复杂,与先前的 2.3 版本一样.仅仅用到 2048 的 RSA,曾修改过 RSA 的 N,D,E 写过其注册机.  
+  关键的验证算法在 40AA10 处.前面有点小检测,就是判断有没有 key.dat 文件,文件大小是不是介于 0xc8-0x12c 之间(0x40b0fe 处代码)符合条件再进行注册算法的验证，此处略去.  
+    
+    
+  下面这段代码就是取硬盘物理系统号并生成 32 位 ASICC 值.也就是后面提到的程序生成的硬件信息.由于硬盘物理系列号的唯一性,这硬件信息每个电脑也就唯一.  
+  0040AA1F    E8 BC040100     call    0041AEE0  
+  0040AA24    33FF            xor     edi, edi  
+  0040AA26    8D4424 40       lea     eax, \[esp+40\]  
+  0040AA2A    57              push    edi  
+  0040AA2B    50              push    eax  
+  0040AA2C    E8 6F360200     call    0042E0A0  
+  0040AA31    68 00040000     push    400  
+  0040AA36    8D4C24 4C       lea     ecx, \[esp+4C\]  
+  0040AA3A    68 F0605A00     push    005A60F0                         ; ASCII "           Z5FM1251TTOSHIBA MK4026GAX"  
+  0040AA3F    51              push    ecx  
+  0040AA40    E8 AB360200     call    0042E0F0  
+  0040AA45    8D5424 54       lea     edx, \[esp+54\]  
+  0040AA49    52              push    edx  
+  0040AA4A    E8 A1370200     call    0042E1F0  
+  0040AA4F    33C0            xor     eax, eax  
+  0040AA51    894424 34       mov     \[esp+34\], eax  
+  0040AA55    894424 38       mov     \[esp+38\], eax  
+  0040AA59    894424 3C       mov     \[esp+3C\], eax  
+  0040AA5D    894424 40       mov     \[esp+40\], eax  
+  0040AA61    894424 44       mov     \[esp+44\], eax  
+  0040AA65    894424 48       mov     \[esp+48\], eax  
+  0040AA69    894424 4C       mov     \[esp+4C\], eax  
+  0040AA6D    894424 50       mov     \[esp+50\], eax  
+  0040AA71    83C4 18         add     esp, 18  
+  0040AA74    884424 3C       mov     \[esp+3C\], al  
+  0040AA78    33F6            xor     esi, esi  
+  0040AA7A    8D5C24 1C       lea     ebx, \[esp+1C\]  
+  0040AA7E    8BFF            mov     edi, edi  
+  0040AA80    0FB68C34 980000>movzx   ecx, byte ptr \[esp+esi+98\]  
+  0040AA88    51              push    ecx  
+  0040AA89    68 D4A65500     push    0055A6D4                         ; ASCII "%02X"  
+  0040AA8E    53              push    ebx  
+  0040AA8F    E8 479A0400     call    004544DB  
+  0040AA94    83C4 0C         add     esp, 0C  
+  0040AA97    46              inc     esi  
+  0040AA98    83C3 02         add     ebx, 2  
+  0040AA9B    83FE 10         cmp     esi, 10  
+  0040AA9E  ^ 7C E0           jl      short 0040AA80  
+    
+  往下继续:  
+  调用 mirsys 函数.初始化大整数运算库 miracl  
+  0040AAA0    57              push    edi  
+  0040AAA1    6A 64           push    64  
+  0040AAA3    893D 80D15900   mov     \[59D180\], edi  
+  0040AAA9    893D 84D15900   mov     \[59D184\], edi  
+  0040AAAF    E8 3C880300     call    004432F0                         ;mirsys 函数  
+  0040AAB4    57              push    edi  
+    
+    
+  下面的 call    00443120  ,是调用 mirvar 初始化变量 多处调用此函数，初始化变量  
+  0040AAB4    57               push    edi  
+  0040AAB5    C780 34020000 10>mov     dword ptr \[eax+234\], 10  
+  0040AABF    E8 5C860300      call    00443120                       ;mirvar  
+  0040AAC4    57               push    edi  
+  0040AAC5    8BD8             mov     ebx, eax  
+  0040AAC7    E8 54860300      call    00443120                       ;mirvar  
+  0040AACC    57               push    edi  
+  0040AACD    894424 2C        mov     \[esp+2C\], eax  
+  0040AAD1    E8 4A860300      call    00443120                       ;mirvar  
+  0040AAD6    57               push    edi  
+  0040AAD7    894424 28        mov     \[esp+28\], eax  
+  0040AADB    E8 40860300      call    00443120                       ;mirvar  
+    
+  RSA 的 N 出现在:  
+  0040AB22    68 D0A55500      push    0055A5D0       ; ASCII "B80BCBA9EFD...."...  
+  0040AB27    56               push    esi  
+  0040AB28    E8 B3A60300      call    004451E0       ;此处是库函数 cinstr 将串转为大整数 下面还有此函数调用.相同  
+    
+  RSA 的 E 出现在:  
+  0040AB31    68 C8A55500      push    0055A5C8                         ; ASCII "1C883"  
+    
+    
+  0040AB57    57               push    edi  
+  0040AB58    56               push    esi  
+  0040AB59    51               push    ecx  
+  0040AB5A    53               push    ebx  
+  0040AB5B    E8 00A40300      call    00444F60         ;RSA 计算,调用 powmod:(文件 key.dat 中的值) ^ E % N ,  
+                                                        ;key.dat 内容为 0-9,A-F 组成的 256 个字符串  
+  0040AB60    6A 00            push    0  
+  0040AB62    8D9424 BC000000  lea     edx, \[esp+BC\]  
+  0040AB69    52               push    edx              ;!!!!这个地址要注意，上面计算的结果就通过 big\_to\_bytes 转化成串了。该地址记为 string1。  
+  0040AB6A    57               push    edi  
+  0040AB6B    68 00010000      push    100  
+  0040AB70    E8 EB9D0300      call    00444960         ; big\_to\_bytes  
+    
+    
+  这里有必要说一下正确注册时 string1 应该是什么样的一个值。它是由你想要注册的名称（比如无敌棋手）加上下划线'\_'再加上上面所提到的硬件信息  
+  如果此处的硬件信息与上面生成的不一样，说明你把别人的注册文件放到自己的电脑上来了，也不能正正确注册。  
+  只所以要提到这地方，跟后面的特洛依 DLL 有关。如果此时 path 一个串到该地址，符合上面的条件(任意的用户名+'\_' + 当前电脑的硬件信息)，就可以正确注册了。  
+  0040AB96    8D4C24 40       lea     ecx, \[esp+40\]  
+  0040AB9A    51              push    ecx  
+  0040AB9B    8D9424 DC000000 lea     edx, \[esp+DC\]  
+  0040ABA2    52              push    edx  
+  0040ABA3    66:C74424 48 5F>mov     word ptr \[esp+48\], 5F  ;5F，下划线 '\_'的 ascii 值  
+    
+  0040ABAA    E8 77980400     call    00454426           ;从解密的明文中取出用户名（以下划线'\_'做为标记）（这个 CALL 中调用了 RtlGetLastWin32Error,patch 工作就是用到这个函数的）  
+                                                         ;特洛依 DLL 修改了 RtlGetLastWin32Error 地址为其一子函数地址,当调用 RtlGetLastWin32Error 时执行了我们的代码,patch 了 string1.从而让程序认为正确注册了,后话  
+  0040ABAF    83C4 38         add     esp, 38  
+  0040ABB2    85C0            test    eax, eax  
+    
+  下面将分离出来的用户名转存到固定地址 005a69f0 处  
+  0040ABC7    2BCE            sub     ecx, esi                                    ; ecx,用户名长度  
+  0040ABC9    8BF0            mov     esi, eax  
+  0040ABCB    8BC1            mov     eax, ecx  
+  0040ABCD    C1E9 02         shr     ecx, 2                                      ;4 的倍数，先 4 个字节 4 个字节的移，  
+  0040ABD0    BF F0695A00     mov     edi, 005A69F0                               ; ASCII "wwww "  
+  0040ABD5    F3:A5           rep     movs dword ptr es:\[edi\], dword ptr \[esi\]  
+  0040ABD7    8BC8            mov     ecx, eax  
+  0040ABD9    83E1 03         and     ecx, 3                                      ;移 4 的余数  
+  0040ABDC    F3:A4           rep     movs byte ptr es:\[edi\], byte ptr \[esi\]  
+  0040ABDE    8D4C24 10       lea     ecx, \[esp+10\]  
+    
+  0040ABE2    51              push    ecx  
+  0040ABE3    6A 00           push    0  
+  0040ABE5    E8 3C980400     call    00454426  
+  0040ABEA    83C4 08         add     esp, 8  
+  0040ABED    85C0            test    eax, eax                                     ;取得硬件信息  
+  0040ABEF    74 35           je      short 0040AC26  
+    
+    
+  下面类似保存从注册文件中生成的硬件信息并比较与程序生成的是不是一致。如果从注册文件中通过 RSA 运算的硬件信息与先前生成的一致，认为注册成功  
+  0040ABF3   |8D71 01         lea     esi, \[ecx+1\]  
+  0040ABF6   |8A11            mov     dl, \[ecx\]  
+  0040ABF8   |41              inc     ecx  
+  0040ABF9   |84D2            test    dl, dl  
+  0040ABFB  ^|75 F9           jnz     short 0040ABF6  
+  0040ABFD   |2BCE            sub     ecx, esi  
+  0040ABFF   |8BD1            mov     edx, ecx  
+  0040AC01   |C1E9 02         shr     ecx, 2  
+  0040AC04   |8BF0            mov     esi, eax  
+  0040AC06   |BF 846A5A00     mov     edi, 005A6A84                               ; ASCII "E507C88FADD96090C6283299DD8E64C5"  
+  0040AC0B   |F3:A5           rep     movs dword ptr es:\[edi\], dword ptr \[esi\]  
+  0040AC0D   |8BCA            mov     ecx, edx  
+  0040AC0F   |83E1 03         and     ecx, 3  
+  0040AC12   |F3:A4           rep     movs byte ptr es:\[edi\], byte ptr \[esi\]  
+  0040AC14   |B9 08000000     mov     ecx, 8  
+  0040AC19   |BE 846A5A00     mov     esi, 005A6A84                               ; ASCII "E507C88FADD96090C6283299DD8E64C5"  
+  0040AC1E   |BF 546A5A00     mov     edi, 005A6A54                               ; ASCII "E507C88FADD96090C6283299DD8E64C5"  
+  0040AC23   |F3:A5           rep     movs dword ptr es:\[edi\], dword ptr \[esi\]  
+  0040AC25   |A4              movs    byte ptr es:\[edi\], byte ptr \[esi\]  
+  0040AC26   \\B9 08000000     mov     ecx, 8  
+  0040AC2B    8D7C24 1C       lea     edi, \[esp+1C\]  
+  0040AC2F    BE 846A5A00     mov     esi, 005A6A84                               ; ASCII "E507C88FADD96090C6283299DD8E64C5"  
+  0040AC34    33C0            xor     eax, eax  
+  0040AC36    F3:A7           repe    cmps dword ptr es:\[edi\], dword ptr \[esi\]    ;比较由注册文件运算出的硬件信息与先前取硬盘系列号生成的是否一致。  
+  0040AC38    75 0B           jnz     short 0040AC45  
+    
+  如果相等，al＝1（成功的标志），否则跳到 0040AC45,由 040AC47  32C0   xor  al, al 可知不成功返回 0  
+  0040AC3A    B0 01           mov     al, 1       ;置 al 为 1  
+  0040AC3C    5F              pop     edi  
+  0040AC3D    5E              pop     esi  
+  0040AC3E    5B              pop     ebx  
+  0040AC3F    8BE5            mov     esp, ebp  
+  0040AC41    5D              pop     ebp  
+  0040AC42    C2 0400         retn    4  
+    
+  比较不相等的处理:  
+  0040AC45    5F              pop     edi  
+  0040AC46    5E              pop     esi  
+  0040AC47    32C0            xor     al, al       ;置 al 为 0  
+  0040AC49    5B              pop     ebx  
+  0040AC4A    8BE5            mov     esp, ebp  
+  0040AC4C    5D              pop     ebp  
+  0040AC4D    C2 0400         retn    4  
+    
+    
+    
+  大致就是这样。上面说得比较乱。做个总结。  
+  注册机的算法如下：  
+  比如说你要注册的名称为 ABC,你的硬件信息为 1234（实际为 32 个字节，此处假设为 4 个字节） 则生成注册码的算法为:  
+  ABC-->414243  
+  1234-->3031323334  
+  '\_'--->ASCII 值为 5F  
+     
+  进行如下运算 X =( 4142435F3031323334) ^ D  % N  。D 是作者手中的私钥。N 就是上面给出的。  
+  X 转换为串就是 key.dat 中值，也就是注册码了。  
+    
+  验证部分就是上面的算法了。Y= ( X ¹C883) %N   理论上用正确的注册码和对应的硬件信息生成的 Y 值就是 4142435F3031323334 转换为串就是  
+  ABC\_1234 作者以\_ 为标志，分出注册名称与硬件信息部分。然后验证 1234 与当前硬盘物理系列号生成的值是不是一致。一致认为注册成功(一机一码)。  
+    
+    
+  二.特洛依 Dll 的破解原理.  
+    
+  由于程序在载入 DLL 时,首先会尝试从当前的程序文件路径装载,如果没找到,则在系统目录下查找. 利用这个特点,我们可以让程序在调用系统 DLL 中某个函数时先调用自己提供的 DLL 中的同名函数(提供与系统 DLL 相同的名字,函数名也相同,放在程序的目录下面),在完成我们某个目的后,再通过自己的函数取出系统 DLL 该同名函数的地址,跳到该地址执行原函数功能.  
+  下面是特洛依 DLL 的分析.  
+    
+  该 DLL 是通过挂钩 WSAStartup 实现 PATCH 功能的.看看该特洛依 DLL 提供的 WSAStartup 代码:  
+    
+  int \_\_stdcall WSAStartup(WORD wVersionRequested,LPWSADATA lpWSAData)  
+  .text:10001A10                 public WSAStartup  
+  .text:10001A10 WSAStartup      proc near  
+  .text:10001A10                 call    sub\_10001100                   ;一开始就进入 PATCH 代码函数.  
+  .text:10001A15                 push    offset aWsastartup ; "WSAStartup"   
+  .text:10001A1A                 call    sub\_10001140       ;这个 call 主要工作就是通过传入的串,也就是函数名,取到系统提供的  
+                                                            ;ws2\_32.dll 该函数的地址,放到 EAX 中去.  
+  .text:10001A1F                 jmp     eax                ;跳到系统中真正的 WSAStartup 函数.(不能是 CALL,只能是 JMP,跟栈中参数有关)  
+  .text:10001A1F WSAStartup      endp  
+    
+    
+  再看下 10001100 处这个函数的代码:  
+  .text:10001100 sub\_10001100    proc near               ; CODE XREF: WSAStartupp  
+  .text:10001100                 mov     eax, dword\_10008B38            ;一个全局变量,记为 x8B38 吧  
+  .text:10001105                 push    esi  
+  .text:10001106                 inc     eax                            ;将 x8B38 加一  
+  .text:10001107                 mov     esi, 5592D0h                   ;5592d0 是 IAT 中的一个地址,存放 RtlGetLastWin32Error 的地址  
+  .text:1000110C                 cmp     eax, 2                         ;x8B38 变量是不是为 2  
+  .text:1000110F                 mov     dword\_10008B38, eax  
+  .text:10001114                 jnz     short loc\_1000113E             ;不为 2 不 PATCH.  
+    
+  这地方为什么要用一个全局变量,并判断该变量是不是为 2 ?  
+  主要原因是第一次调用这个函数时,壳还没有将代码段解压出来,不是 PATCH 时机.第二次才是时机.  
+    
+  ; 下面这个 cmp 检测是不是要修改的目标程序,只有地址在 040AC2B 处值为 1C247C8D 才是目标程序  
+  ;否则你不小心把这个特洛依 DLL 放在某个文件下下面,而这个文件夹下面有程序正好调用系统的 ws2\_32.dll 就麻烦了.  
+  .text:10001116                 cmp     dword ptr ds:40AC2Bh, 1C247C8Dh   
+  .text:10001120                 jnz     short loc\_1000113E  
+    
+    
+  .text:10001122                 call    sub\_10001040  
+  ;上面的 call 是创建一个 key.dat 文件,并写入 256 个 0,让程序执行到注册算法验证部分.没这文件或大小不对,直接跳到其它地方了.  
+    
+    
+  .text:10001127                 mov     eax, \[esi\]              ; 取 RtlGetLastWin32Error(见.text:10001107 处说明)  
+  .text:10001129                 mov      dword\_10008B34, eax    ;将 RtlGetLastWin32Error 地址放到一个全局变量处,因为做完我们想做的事后,还得真正调用它  
+    
+  .text:1000112E                 mov     dword ptr \[esi\], offset loc\_10001000 ;  
+  上面一句代码就是将原 iat 中 RtlGetLastWin32Error 地址换为地址 10001000 即当程序调用 RtlGetLastWin32Error 时不是调用 RtlGetLastWin32Error,而是跑到 10001000 处.  
+    
+    
+  .text:10001134                 mov     dword ptr ds:5594CCh, offset loc\_10001030 ;   
+  这句代码同上,处理 GetTickCount 地址,既当调用 GetTickCount 时,跑到了 10001030 处  
+  (题外话,用这种方法破解,并不需要处理 GetTickCount 函数的.我当初写 LAODER 是因为有 SLEEP,会被原程序检测到的,不知大牛对此有何看法?)  
+    
+  .text:1000113E loc\_1000113E:                           ; CODE XREF: sub\_10001100+14j  
+  .text:1000113E                                         ; sub\_10001100+20j  
+  .text:1000113E                 pop     esi  
+  .text:1000113F                 retn  
+  .text:1000113F sub\_10001100    endp  
+    
+    
+  下面看看 10001000 处的代码,即调用 RtlGetLastWin32Error 时所要执行的代码:  
+  .text:10001000                 mov     eax, 40ABAFh  
+  .text:10001005                 cmp     \[ebp+4\], eax  
+  .text:10001008                 jnz     short loc\_10001026 ;   
+  这个判断很重要,不是对每次调用 RtlGetLastWin32Error 都要 patch 的.只有 eax 符合上面的条件时才 patch 的.  
+  联想一下前面注册算法分析部分.我们提到 string1,如果提供一个正确的 sting1,就可以让程序认为注册成功.  
+  前面的注册算法分析部分有这么一行:  
+  0040ABAA    E8 77980400     call    00454426           ;从解密的明文中取出用户名（以下划线'\_'做为标记）（这个 CALL 中调用了 RtlGetLastWin32Error,patch 工作就是用到这个函数的）  
+                                                         ;特洛依 DLL 修改了 RtlGetLastWin32Error 地址,当调用 RtlGetLastWin32Error 时执行了我们的代码,patch 了 string1.从而让程序认为正确注册了,后话  
+    
+    
+  这个后话就是指现在了.因为在 454426 这个 call 中,调用了 RtlGetLastWin32Error.刚才的那个判断就是判断 RtlGetLastWin32Error 是不是来自于这个地方.  
+  如果来自于这个对方,就构造该 sting1 串.只在来自于该处的 RtlGetLastWin32Error 才能修改内存  
+  下面的代码就是构造 string1 串了.  
+  .text:1000100A                 pusha  
+  .text:1000100B                 mov     edi, \[ebp+8\]  
+  .text:1000100E                 mov     ecx, 5  
+  .text:10001013                 lea     esi, aZ\_        ; "学习\_"   (也就是用户名+ "\_")  
+  .text:10001019                 rep movsb  
+  .text:1000101B                 lea     esi, \[ebp+5Ch\]  ;ebp+5ch 处是硬件信息  
+  .text:1000101E                 mov     ecx, 20h        ;此处 0x20 是硬件信息的长度,32 个字节  
+  .text:10001023                 rep movsb               ; 移硬件信息。  
+  .text:10001025                 popa  
+  .text:10001026  
+  .text:10001026 loc\_10001026:                           ; CODE XREF: .text:10001008j  
+    
+    
+  跳到真正的 RtlGetLastWin32Error 执行其代码.  
+  .text:10001026                 jmp     dword\_10008B34  ; 上面提到的保存 RtlGetLastWin32Error 的变量  
+    
+    
+    
+  至于为什么要处理 GetTickCount,跟本主题没关系.不多说了.  
+    
+  系统提供的 ws2\_32.dll 还有许多其它导出函数.所有特洛依 DLL 也要提供相应的导出函数.其做法类似上面 WSAStartup 函数.  
+  .text:10001A15                 push    offset aWsastartup ; "WSAStartup"   
+  .text:10001A1A                 call    sub\_10001140       ;这个 call 主要工作就是通过传入的串,也就是函数名,取到系统提供的  
+                                                            ;ws2\_32.dll 该函数的地址,放到 EAX 中去.  
+  .text:10001A1F                 jmp     eax       
+    
+  只是上面的串 WSAStartup 要改为其它导出函数名就行了.  
+    
+  至此这个特洛依 DLL 分析工作就差不多结束了.  
+    
+    
+    
+    
+    
+    
+  
+  
+【经验总结】  
+  写文章真不容易,有些想法大脑清楚,说出来难.还怕有错误误导别人.概括下这个 DLL 大致的流程。我们将用于破解的 ws2\_32.dll 放到程序当前目录下，这样当原程序调用 WSASTartup 函数时就调用了我们提供 DLL 中的 WSASTartup 函数，第一次是壳调用该函数。我们直接调用系统的 WSASTartup。第二次是被加壳程序调用。此时我们将程序 IAT 表项中 RtlGetLastWin32Error 改为自己的函数入口。再调用原来的 WSASTartup.  
+  今后，只要程序中调用到 RtlGetLastWin32Error 时，都必将进入到我们提供的函数入口处，在这个函数中，判断 RtlGetLastWin32Error 是不是来自于注册算法验证的那个地方，是的话修改程序内存地址，达到注册目的，不是仅仅调用系统原来的 RtlGetLastWin32Error  
+    
+  这个方法不只用于系统的 DLL,也可以处理程序自己的 DLL,如果程序调用 A.dll 中的 abc 函数.我们写自己的 A.dll ,将原来的  
+  A.dll 改名为 B.dll,做完想做的事后再 jmp GetProcAddress( LoadLibrary(b.dll),"abc")就是了.  
+    
+  注意的就是要处理好 patch 时机,还有对 patch 目标程序的检验.  
+    
+  对于加壳的程序,选择挂接的函数最好是在壳中没有被调用,而程序中是在 patch 代码执行之前就调用了.这样的函数处理起来  
+  最方便.只要第一次执行到该函数,说明壳已运行完毕,而要 PATCH 的代码还没执行.就你随便 XXXXX 吧...  
+    
+    
+  
+  
+【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢! 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

@@ -1,0 +1,455 @@
+
+
+# forgot 的 unpackme 1.7xxx 的脱壳
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-518.htm`](https://www.pediy.com/kssd/pediy07/pediy7-518.htm)
+
+【脱文作者】 simonzh2000  
+  
+【使用工具】 Ollydbg1.10, LordPE  
+  
+【破解平台】 Win2000 Pro SP4 English  
+  
+【软件名称】 Forgot Protect 1.7x  
+  
+【作者声明】 本笔记只用于学习交流, 初学 Crack，只是感兴趣技术，没有其他目的, 如有不妥之处, 希望作者谅解.  
+              
+             
+  
+用 OD 载入 17x.exe, 不忽略异常, F9,  竟然运行了, 一个异常也没有.  
+  
+再用 TaskMgr 看看, 有二个进程, 看来是个调试壳.  
+  
+跟一下就会发现 forgot 用了 KME?  我们只好慢慢在花中走了.  
+  
+重新来过,  BP CreateProcessA,  F9 ,  断下, 看 Stack  
+  
+  
+003271D0   0032A21A  /CALL to CreateProcessA from 0032A215  
+003271D4   00328F87  |ModuleFileName = "C:\\TEMP\\17x.exe"  
+003271D8   0032A20B  |CommandLine = "X"                        // 调试标志  
+003271DC   00000000  |pProcessSecurity = NULL  
+003271E0   00000000  |pThreadSecurity = NULL  
+003271E4   00000000  |InheritHandles = FALSE  
+003271E8   00000003  |CreationFlags = DEBUG\_PROCESS|DEBUG\_ONLY\_THIS\_PROCESS  
+003271EC   00000000  |pEnvironment = NULL  
+003271F0   00000000  |CurrentDir = NULL  
+003271F4   0032755C  |pStartupInfo = 0032755C  
+003271F8   0032754C  \\pProcessInfo = 0032754C  
+  
+BP WaitForDebugEvent, F9, 断下, 看 Stack  
+  
+003271F0   0032A384  /CALL to WaitForDebugEvent from 0032A37F  
+003271F4   003274EC  |pDebugEvent = 003274EC  
+003271F8   FFFFFFFF  \\Timeout = INFINITE  
+  
+Ctrl+F9 返回, F7 走  
+  
+  
+0032A371    6A FF           PUSH -1                             // Timeout = INFINITE  
+0032A373    8D85 4CFFFFFF   LEA EAX,DWORD PTR SS:\[EBP-B4\]  
+0032A379    50              PUSH EAX                            // pDebugEvnet = 3274EC  
+  
+0032A37A    68 4D9F269F     PUSH 9F269F4D  
+0032A37F    E8 8DD2FFFF     CALL 00327611                       // WaitForDebugEvent 的变形  
+  
+  
+0032A4D3    83BD 4CFFFFFF 0>CMP DWORD PTR SS:\[EBP-B4\],5         // dwDebugEventCode == Exit\_Process\_Debug\_Event?  
+0032A4DA   /0F85 C3020000   JNZ 0032A7A3  
+  
+  
+0032A7A3    83BD 4CFFFFFF 0>CMP DWORD PTR SS:\[EBP-B4\],1         // dwDebugEventCode == Exception\_Debug\_Event?  
+0032A7AA   /0F85 BB0F0000   JNZ 0032B76B  
+  
+0032A8FF    81BD 58FFFFFF 0>CMP DWORD PTR SS:\[EBP-A8\],80000003  // 调试时因代码中 int3 中断  
+0032A909    0F85 B8010000   JNZ 0032AAC7  
+  
+0032A90F    C785 80FCFFFF 0>MOV DWORD PTR SS:\[EBP-380\],10007  
+0032AA68    8D85 80FCFFFF   LEA EAX,DWORD PTR SS:\[EBP-380\]  
+0032AA6E    50              PUSH EAX                           // pContext = 327220  
+0032AA6F    FF75 B0         PUSH DWORD PTR SS:\[EBP-50\]         // hThread  
+  
+0032AA72    68 2FE01DAA     PUSH AA1DE02F  
+0032AA77    E8 95CBFFFF     CALL 00327611                      // GetThreadCount 的变形  
+  
+  
+0032AA7C    8BBD 38FDFFFF   MOV EDI,DWORD PTR SS:\[EBP-2C8\]     // pContext+B9 = cx\_Eip  
+0032AA82    6A 00           PUSH 0                               
+0032AA84    8BC4            MOV EAX,ESP  
+0032AA86    6A 00           PUSH 0                            // pBytesRead = NULL  
+0032AA88    6A 01           PUSH 1                            // BytesToRead = 1  
+0032AA8A    50              PUSH EAX                          // Buffer = 003271F8  
+0032AA8B    57              PUSH EDI                          // pBaseAddress = 77F813B2  
+0032AA8C    FF75 AC         PUSH DWORD PTR SS:\[EBP-54\]        // hProcess  
+  
+0032AA8F    68 61A7009D     PUSH 9D00A761                       
+0032AA94    E8 78CBFFFF     CALL 00327611                     // ReadProcessMemory 的变形  
+  
+0032AA99    58              POP EAX                           // 读到的结果  
+0032AA9A    3C CC           CMP AL,0CC  
+0032AA9C    0F84 7A0B0000   JE 0032B61C  
+  
+0032AAA2    68 02000100     PUSH 10002                        // DBG\_Continue                                             
+0032AAA7    FFB5 54FFFFFF   PUSH DWORD PTR SS:\[EBP-AC\]  
+0032AAAD    FFB5 50FFFFFF   PUSH DWORD PTR SS:\[EBP-B0\]  
+  
+0032AAB3    68 F9C41D54     PUSH 541DC4F9  
+0032AAB8    E8 54CBFFFF     CALL 00327611                     // ContinueDebugEvent 的变形  
+0032AABD  ^\\E9 AFF8FFFF     JMP 0032A371  
+  
+  
+  
+0032AAC7    81BD 58FFFFFF 1>CMP DWORD PTR SS:\[EBP-A8\],C000001E // 还记的 CMPXCHG8B 吗?  
+0032AAD1    74 10           JE SHORT 0032AAE3  
+0032AAD3    81BD 58FFFFFF 1>CMP DWORD PTR SS:\[EBP-A8\],C000001D // 非法指令  
+0032AADD    0F85 390B0000   JNZ 0032B61C  
+  
+0032AAE3    68 9F6F56B6     PUSH B6566F9F  
+...  
+0032AC32    C785 80FCFFFF 0>MOV DWORD PTR SS:\[EBP-380\],10007  
+0032AD8B    8D85 80FCFFFF   LEA EAX,DWORD PTR SS:\[EBP-380\]  
+0032AD91    50              PUSH EAX  
+0032AD92    FF75 B0         PUSH DWORD PTR SS:\[EBP-50\]  
+0032AD95    68 2FE01DAA     PUSH AA1DE02F  
+0032AD9A    E8 72C8FFFF     CALL 00327611                      // GetThreadCount 的变形  
+  
+0032AD9F    81BD 24FDFFFF 4>CMP DWORD PTR SS:\[EBP-2DC\],4045    // pContext+A4 = cx\_EBX  
+0032ADA9    0F85 68080000   JNZ 0032B617  
+0032AEFE    8BBD 38FDFFFF   MOV EDI,DWORD PTR SS:\[EBP-2C8\]  
+0032AF04    83C7 04         ADD EDI,4  
+0032AF07    89BD 38FDFFFF   MOV DWORD PTR SS:\[EBP-2C8\],EDI     // cx\_Eip+4  
+  
+0032B05C    6A 00           PUSH 0                             // pBytesRead = NULL  
+0032B05E    68 9A020000     PUSH 29A                           // BytesToRead = 29A  
+0032B063    8D83 10974000   LEA EAX,DWORD PTR DS:\[EBX+409710\]  
+0032B069    50              PUSH EAX                           // Buffer = 32C3B3  
+0032B06A    57              PUSH EDI                           // pBaseAddress = 异常地址 + 4  
+0032B06B    FF75 AC         PUSH DWORD PTR SS:\[EBP-54\]         // hProcess  
+  
+0032B06E    68 61A7009D     PUSH 9D00A761  
+0032B073    E8 99C5FFFF     CALL 00327611                      // ReadProcessMemory 的变形  
+  
+0032B1C7    E8 97080000     CALL 0032BA63                      // 对读到的数据进行变换, 变态啊, F8 过  
+  
+0032B31B    6A 00           PUSH 0  
+0032B31D    68 9A020000     PUSH 29A                          // BytesToWrite = 29A  
+0032B322    8D83 10974000   LEA EAX,DWORD PTR DS:\[EBX+409710\]  
+0032B328    50              PUSH EAX                          // Buffer = 32C3B3  
+0032B329    57              PUSH EDI  
+0032B32A    FF75 AC         PUSH DWORD PTR SS:\[EBP-54\]  
+  
+0032B32D    68 35BFA0BE     PUSH BEA0BF35  
+0032B332    E8 DAC2FFFF     CALL 00327611                     // WriteProcessMemory 的变形  
+  
+把 32C3B3-32C64C 的数据拷下来  
+  
+FF C3 FF C8 F7 D8 F7 C1 2D F1 68 25 8B D9 01 CB 85 CB 8B DA C1 CB F3 C7 C3 BE 94 83 05 87 D8 0F  
+A5 D3 87 C0 FF CB 3E F7 D3 C7 C3 A1 BC AA 42 36 C1 F0 5B 36 81 E3 26 59 B8 25 85 DB 8B C2 0F AD  
+D3 69 DA 1A 94 75 26 0F AB C8 0F BB C8 B8 79 EE A6 D6 C1 E0 25 C7 C3 75 E0 77 A5 FF C8 F3 F2 C7  
+C0 FA 01 1F 84 87 DB 0F BA E0 EF C7 C3 2C 23 FD FB 0F CB FF C8 2E F7 D3 8B C1 48 FF C0 26 81 DB  
+83 53 1C 35 C7 C3 B5 03 CB FC 0F BC D9 69 DA CD 86 19 74 0F B7 C1 8B D9 0F BA F3 D4 F2 1B DA 26  
+19 CB C7 C3 1C 79 25 F9 0B C2 0F A3 D0 BB 24 A4 92 F9 87 D8 85 D2 2D F2 3E EA 7B FF C8 89 D3 0F  
+BF C2 65 0F AF C2 F7 C0 4C E0 30 34 8B D9 0F BC C1 64 0F AD C8 85 DA 8D 05 9F 35 2D 5C 0F CB 0F  
+B3 CB D3 DB 85 D1 81 D3 0D 7E C6 33 F7 C3 06 A0 65 AA 81 FB 31 51 B9 56 B8 2D 45 73 C0 0F B7 D9  
+0F C1 DB 09 C8 0F AC D0 01 F7 DB 0F C1 DB 69 DA FA D8 F2 ED C1 D0 B4 0F AC D3 CD 0F A4 D3 5E 0F  
+AF D9 B8 8F 81 96 5C 0F BB C8 F2 36 89 D0 0F C1 C3 2E 65 0F AC CB 9B 89 C8 0F AF C2 48 8B D9 8B  
+C1 0F C1 C3 87 C0 0F A4 D0 3A 0F B7 DA 8D 1D 10 25 8E 47 0F A4 CB 78 0F C8 3D B1 16 90 0C 2B C1  
+F7 C0 AE E4 CD 74 F7 DB 0F C1 C3 0F C8 8D 1D 51 ED 77 95 4B F7 C0 EF 5C 21 C3 F7 D3 85 D0 0F CB  
+FF CB 0F C1 C3 D1 F0 8D 1D A5 E9 05 9E 2D E7 30 BE 2C 29 CB 11 D0 0F C8 69 D9 57 E9 29 61 8B C1  
+0F AF C1 0F BD D9 64 23 DA 0F BC DA 0F BA EB 11 64 8B DA FF C0 89 D3 03 C2 0F B3 D3 8B DA 89 CB  
+F7 D3 0F AF D9 09 CB 0F B7 D9 F3 F7 D8 81 EB 31 F2 CB C2 0F A5 C8 36 81 FB E2 55 BE 47 FF C8 8B  
+C1 8B DA C7 C0 1D 5F 71 F0 85 DB 89 C8 F7 C1 03 B1 C2 75 F7 D3 BB E5 3D 38 3B 85 D0 F7 C3 D7 C5  
+BC C6 0F CB 0F B7 DA 0F AD D0 FF C8 D1 EB 0F BA E0 F8 2D F6 73 9D 2E F7 C2 1A F0 16 A2 81 C0 74  
+A6 5D 44 0F C8 0D 42 E5 0D 6F 85 DA C1 EB DA F2 0F AC C8 D6 26 31 CB 0F A4 D0 50 0F BB D3 C7 C0  
+77 66 50 73 8D 05 44 1F 91 63 F7 C1 72 88 DE 6F 85 DA C7 C0 74 EC 7C 90 0F BA E0 02 F7 C0 E7 D5  
+18 26 B8 D1 A7 A9 9E B8 F6 47 14 EC 0F BC C1 0F B7 C2 11 CB D3 F0 F7 D3 C7 C0 8F E3 64 54 25 DF  
+B0 CB 18 81 C3 F7 AB 9D 5F D1 E0 90 90 90 90 90 90 90 90 90 90 90 90 90 90 61  
+  
+0032B486    8D85 80FCFFFF   LEA EAX,DWORD PTR SS:\[EBP-380\]  
+0032B48C    50              PUSH EAX  
+0032B48D    FF75 B0         PUSH DWORD PTR SS:\[EBP-50\]  
+  
+0032B490    68 2FC81DAA     PUSH AA1DC82F  
+0032B495    E8 77C1FFFF     CALL 00327611                      // SetThreadContext 的变形  
+  
+0032B49A    68 9A020000     PUSH 29A  
+0032B49F    57              PUSH EDI  
+0032B4A0    FF75 AC         PUSH DWORD PTR SS:\[EBP-54\]  
+  
+0032B4A3    68 46E8492E     PUSH 2E49E846  
+0032B4A8    E8 64C1FFFF     CALL 00327611                      // FlushInstructionCache 的变形  
+  
+0032B5FC    68 02000100     PUSH 10002                         // DBG\_Continue                              
+0032B601    FFB5 54FFFFFF   PUSH DWORD PTR SS:\[EBP-AC\]  
+0032B607    FFB5 50FFFFFF   PUSH DWORD PTR SS:\[EBP-B0\]  
+0032B60D    68 F9C41D54     PUSH 541DC4F9  
+0032B612    E8 FABFFFFF     CALL 00327611                      // ContinueDebugEvent 的变形  
+0032B617  ^ E9 55EDFFFF     JMP 0032A371  
+  
+0032B61C    68 9F6F56B6     PUSH B6566F9F  
+...  
+0032B76B    68 01000180     PUSH 80010001                      // DBG\_EXCEPTION\_NOT\_HANDLED  
+0032B770    FFB5 54FFFFFF   PUSH DWORD PTR SS:\[EBP-AC\]         // ThreadId  
+0032B776    FFB5 50FFFFFF   PUSH DWORD PTR SS:\[EBP-B0\]         // ProcessId  
+  
+0032B77C    68 F9C41D54     PUSH 541DC4F9  
+0032B781    E8 8BBEFFFF     CALL 00327611                      // ContinueDebugEvent 的变形  
+0032B786  ^\\E9 E6EBFFFF     JMP 0032A371  
+  
+  
+  
+上面就是 父进程需要处理的.  
+  
+重新来过    BP GetCommandLineA, 断下后, F7 走  
+  
+0032860A    803E 58         CMP BYTE PTR DS:\[ESI\],58          // "X"  
+0032860D    0F84 8A410000   JE 0032C79D                       // 强行跳  
+  
+  
+0032C79D    68 9F6F56B6     PUSH B6566F9F                     // F9  
+  
+                                                    
+0032CA40    F0:0FC7C8       LOCK CMPXCHG8B EAX                ; Illegal use of register  
+0032CA44    127D E4         ADC BH,BYTE PTR SS:\[EBP-1C\]  
+0032CA47    0D 1A66EC04     OR EAX,4EC661A  
+  
+  
+把刚才备份的 29Ah 字节写回 32CA44, EIP 改成 32CA44, F9, 接着有 6 次异常,   
+  
+7C59BBED    FF15 6814577C   CALL DWORD PTR DS:\[<&ntdll.RtlRaiseExcep>; ntdll.RtlRaiseException  
+7C59BBF3    5F              POP EDI                                  ; advapi32.7C2DA93A  
+7C59BBF4    5E              POP ESI  
+7C59BBF5    C9              LEAVE  
+7C59BBF6    C2 1000         RETN 10  
+  
+  
+7C59BBF3   Exception 000006EF  
+7C59BBF3   Exception 000006EF  
+7C59BBF3   Exception 000006EF  
+7C59BBF3   Exception 000006EF  
+7C59BBF3   Exception 000006A6  
+7C59BBF3   Exception 000006A6  
+  
+  
+前 5 次 Shift+F9, 最后一次 F7 走, 一会儿就返回到下面  
+  
+00327C90    57              PUSH EDI  
+00327C91    E8 13000000     CALL 00327CA9  
+  
+00327CC4    68 2680ACC8     PUSH C8AC8026  
+00327CC9    E8 43F9FFFF     CALL 00327611                   // LoadLibrary 的变形  
+00327CCE    FF7424 24       PUSH DWORD PTR SS:\[ESP+24\]  
+00327CD2    50              PUSH EAX  
+00327CD3    68 EEEAC01F     PUSH 1FC0EAEE  
+00327CD8    E8 34F9FFFF     CALL 00327611                   // GetProcessAddress 的变形  
+00327CDD    894424 24       MOV DWORD PTR SS:\[ESP+24\],EAX   // advapi32.CloseServiceHandle  
+00327CE1    61              POPAD  
+00327CE2    58              POP EAX  
+00327CE3    870424          XCHG DWORD PTR SS:\[ESP\],EAX  
+00327CE6  - FFE0            JMP EAX                         // advapi32.CloseServiceHandle  
+00327CAE    61              POPAD  
+00327CAF    9D              POPFD  
+00327CB0    C3              RETN  
+  
+  
+00327D76    CD20 8BC48B64   VxDJump 648BC48B               // 直接把 EIP 改到 327DB9, 请看我避开驱动的文章  
+00327D7C    24 08           AND AL,8  
+00327D7E    50              PUSH EAX  
+00327D7F    60              PUSHAD  
+00327D80    56              PUSH ESI  
+00327D81    0F014C24 FE     SIDT FWORD PTR SS:\[ESP-2\]  
+00327D86    5E              POP ESI  
+00327D87    66:8B46 18      MOV AX,WORD PTR DS:\[ESI+18\]  
+00327D8B    66:8B5E 1E      MOV BX,WORD PTR DS:\[ESI+1E\]  
+00327D8F    66:8985 0E51400>MOV WORD PTR SS:\[EBP+40510E\],AX  
+00327D96    66:899D 1051400>MOV WORD PTR SS:\[EBP+405110\],BX  
+00327D9D    33C0            XOR EAX,EAX  
+00327D9F    66:8946 18      MOV WORD PTR DS:\[ESI+18\],AX  
+00327DA3    66:8946 1E      MOV WORD PTR DS:\[ESI+1E\],AX  
+00327DA7    61              POPAD  
+00327DA8    5C              POP ESP  
+00327DA9    8D85 16514000   LEA EAX,DWORD PTR SS:\[EBP+405116\]  
+00327DAF    50              PUSH EAX  
+00327DB0    CF              IRETD  
+  
+00327DB9    FFB5 594A4000   PUSH DWORD PTR SS:\[EBP+404A59\]  
+00327DBF    68 D5B03E72     PUSH 723EB0D5  
+00327DC4    E8 48F8FFFF     CALL 00327611                       // CloseHandle 的变形  
+00327DC9    61              POPAD  
+00327DCA    C3              RETN  
+  
+...  
+  
+0032D466    E8 00000000     CALL 0032D46B  
+0032DC67    56              PUSH ESI                                  
+  
+0032DC68    68 62678DA4     PUSH A48D6762  
+0032DC6D    E8 9F99FFFF     CALL 00327611                       // GetMoudleHandleA 的变形  
+  
+0032E5CD    8B5F 10         MOV EBX,DWORD PTR DS:\[EDI+10\]  
+  
+0032F38C    81E6 92000000   AND ESI,92  
+0032F392    03B5 3BCB4000   ADD ESI,DWORD PTR SS:\[EBP+40CB3B\]  
+0032F398    03B5 FFD24000   ADD ESI,DWORD PTR SS:\[EBP+40D2FF\]   // MM, I WILL SWITCH TO HARDCORE MODE!!!MUHAHAHA.  
+  
+0032F64F    56              PUSH ESI  
+0032F650    68 6524586A     PUSH 6A582465  
+0032F655    E8 B77FFFFF     CALL 00327611                       // VirtualQuery  
+  
+0032F65A    57              PUSH EDI                            // 下面要 VirtualProtect, 修改 EIP 到 0032F7BC  
+0032F65B    6A 01           PUSH 1  
+0032F65D    68 00040000     PUSH 400  
+0032F662    68 9F6F56B6     PUSH B6566F9F  
+0032F667    50              PUSH EAX  
+0032F668    E8 5D000000     CALL 0032F6CA  
+  
+0032F7B1    56              PUSH ESI  
+0032F7B2    68 5A6FDEA9     PUSH A9DE6F5A  
+0032F7B7    E8 557EFFFF     CALL 00327611                      // VirtualProtect  
+  
+00327584   0032F7BC  /CALL to VirtualProtect from 0032F7B7  
+00327588   00412002  |Address = 17x.00412002  
+0032758C   00000400  |Size = 400 (1024.)  
+00327590   00000001  |NewProtect = PAGE\_NOACCESS  
+00327594   00327598  \\pOldProtect = 00327598  
+  
+  
+0032F7BC    83C4 1C         ADD ESP,1C  
+0032F7BF    EB 21           JMP SHORT 0032F7E2  
+0032F931    61              POPAD  
+  
+0032F932    60              PUSHAD                             // 加密 IAT , 修改 EIP 到 32F9BC                  
+0032F933    E8 00000000     CALL 0032F938  
+0032F938    5D              POP EBP  
+0032F939    81ED 95CC4000   SUB EBP,40CC95  
+0032F93F    8B8D FFD24000   MOV ECX,DWORD PTR SS:\[EBP+40D2FF\]  
+0032F945    0349 3C         ADD ECX,DWORD PTR DS:\[ECX+3C\]  
+0032F948    8B41 50         MOV EAX,DWORD PTR DS:\[ECX+50\]  
+0032F94B    0385 FFD24000   ADD EAX,DWORD PTR SS:\[EBP+40D2FF\]  
+0032F951    8B8D FFD24000   MOV ECX,DWORD PTR SS:\[EBP+40D2FF\]  
+0032F957    81C1 00100000   ADD ECX,1000  
+0032F95D    8BBD FFD24000   MOV EDI,DWORD PTR SS:\[EBP+40D2FF\]  
+0032F963    037F 3C         ADD EDI,DWORD PTR DS:\[EDI+3C\]  
+0032F966    8B7F 1C         MOV EDI,DWORD PTR DS:\[EDI+1C\]  
+0032F969    03BD FFD24000   ADD EDI,DWORD PTR SS:\[EBP+40D2FF\]  
+0032F96F    81C7 00100000   ADD EDI,1000  
+0032F975    66:8139 FF25    CMP WORD PTR DS:\[ECX\],25FF  
+0032F97A    74 02           JE SHORT 0032F97E  
+0032F97C    EB 05           JMP SHORT 0032F983  
+0032F97E    3941 02         CMP DWORD PTR DS:\[ECX+2\],EAX  
+0032F981    72 07           JB SHORT 0032F98A  
+0032F983    41              INC ECX  
+0032F984    3BCF            CMP ECX,EDI  
+0032F986  ^ 72 ED           JB SHORT 0032F975  
+0032F988    EB 27           JMP SHORT 0032F9B1  
+0032F98A    8B59 02         MOV EBX,DWORD PTR DS:\[ECX+2\]  
+0032F98D    8B1B            MOV EBX,DWORD PTR DS:\[EBX\]  
+0032F98F    C601 68         MOV BYTE PTR DS:\[ECX\],68  
+0032F992    8959 01         MOV DWORD PTR DS:\[ECX+1\],EBX  
+0032F995    C641 05 C3      MOV BYTE PTR DS:\[ECX+5\],0C3  
+0032F999    83C1 06         ADD ECX,6  
+0032F99C    66:8139 FF25    CMP WORD PTR DS:\[ECX\],25FF  
+0032F9A1    75 04           JNZ SHORT 0032F9A7  
+0032F9A3    3BCF            CMP ECX,EDI  
+0032F9A5  ^ 72 CE           JB SHORT 0032F975  
+0032F9A7    83C1 02         ADD ECX,2  
+0032F9AA    66:8139 FF25    CMP WORD PTR DS:\[ECX\],25FF  
+0032F9AF  ^ 74 D9           JE SHORT 0032F98A  
+0032F9B1    83C1 24         ADD ECX,24  
+0032F9B4    66:8139 FF25    CMP WORD PTR DS:\[ECX\],25FF  
+0032F9B9  ^ 74 CF           JE SHORT 0032F98A  
+0032F9BB    61              POPAD  
+  
+0032F9BC    E8 0A84FFFF     CALL 00327DCB  
+  
+...  
+  
+00327DD2    5D              POP EBP  
+00327DD3    81ED 2E514000   SUB EBP,40512E  
+00327DD9    83BD F3D24000 0>CMP DWORD PTR SS:\[EBP+40D2F3\],0  
+00327DE0    74 33           JE SHORT 00327E15                   ; 强行跳过驱动  
+  
+00327DE2    60              PUSHAD            
+00327DE3    CD20 8BC48B64   VxDJump 648BC48B  
+00327DE9    24 08           AND AL,8  
+00327DEB    50              PUSH EAX  
+00327DEC    60              PUSHAD  
+00327DED    56              PUSH ESI  
+00327DEE    0F014C24 FE     SIDT FWORD PTR SS:\[ESP-2\]  
+00327DF3    5E              POP ESI  
+00327DF4    66:8B85 0E51400>MOV AX,WORD PTR SS:\[EBP+40510E\]  
+00327DFB    66:8B9D 1051400>MOV BX,WORD PTR SS:\[EBP+405110\]  
+00327E02    66:8946 18      MOV WORD PTR DS:\[ESI+18\],AX  
+00327E06    66:895E 1E      MOV WORD PTR DS:\[ESI+1E\],BX  
+00327E0A    61              POPAD  
+00327E0B    5C              POP ESP  
+00327E0C    8D85 71514000   LEA EAX,DWORD PTR SS:\[EBP+405171\]  
+00327E12    50              PUSH EAX  
+00327E13    CF              IRETD  
+00327E14    61              POPAD  
+  
+00327E15    61              POPAD  
+00327E16    C3              RETN  
+  
+...  
+  
+0032FB10    60              PUSHAD  
+0032FB11    8B85 BD890000   MOV EAX,DWORD PTR SS:\[EBP+89BD\]  
+0032FB17    0385 C5890000   ADD EAX,DWORD PTR SS:\[EBP+89C5\]  
+0032FB1D    E8 00000000     CALL 0032FB22  
+  
+0032FDFB    50              PUSH EAX                                 ; 17x.00403A3F  
+0032FDFC    8D78 02         LEA EDI,DWORD PTR DS:\[EAX+2\]  
+0032FDFF    EB 02           JMP SHORT 0032FE03  
+0032FE01    61              POPAD  
+0032FE02    50              PUSH EAX  
+0032FE03    C3              RETN                                    ; to OEP  
+  
+  
+  
+  
+00403A3F    FFD7            CALL EDI                                 ; 17x.00403A41  
+00403A41    58              POP EAX  
+00403A42    90              NOP  
+00403A43    90              NOP  
+00403A44    E8 FD980000     CALL 17x.0040D346                        ; JMP to comdlg32.GetOpenFileNameA  
+00403A49    85C0            TEST EAX,EAX  
+  
+前 5 个字节是 Stolen Code, 看一下 STACK,   
+   
+003275D0   0040F034  17x.0040F034  
+003275D4   004327F9  RETURN to 17x.004327F9  
+                        ;   
+00403A3F                    PUSH 40F034           ;OK  
+  
+再把 40E170-40E1A7 的数据复制到 40E000-40E037,  Dump    
+  
+IAT 只要用 LordPE  改一下  RVA = E120, Size=50  
+
+> 引用:
+> 
+> * * *
+> 
+> *最初由 liuyilin 发布*  
+> **请教：armadillo，copy-II 能用这种思路脱吗？？ **
+> 
+> * * *
+
+  
+  
+调试壳, 运行后有两个进程, 这类壳的大致流程如下:  
+  
+1.父进程 CreatePrcess 创建子进程, 再为子进程做个被调试标志  
+2.子进程在父进程调试下开始运行, 由于标志, 走不同的路线   
+3.父进程 用 WaitForDebugEvent 接受子进程产生的调试事件, 采取响应的措施(比如 ARM 的 CC)  
+4.父进程处理好后, 调用 ContinueDebugEvent 继续子进程的运行, 重复 3, 直到结束  
+  
+要脱这类壳, 关键是用 OD 做父进程, 也就是把双进程转换成单进程  
+  
+1. 被调试标志是如何生成的.   
+   常见的有 Mutex, FileMapping, 标志文件, 命令行参数 等  
+  
+2. 父进程接受子进程产生的调试事件后, 是如何处理的.   
+   常见的有 SetThreadContext, WriteProcessMemory, VirtualProtect 等 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

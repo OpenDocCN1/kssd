@@ -1,0 +1,35 @@
+
+
+# PEiD 的 bug
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-226.htm`](https://www.pediy.com/kssd/pediy09/pediy09-226.htm)
+
+> 试一下编译下面的程序用 PEiD 扫描，然后点 FirstBytes 旁边的 -> 按钮：  
+>   
+>  
+> 
+> 代码:
+> 
+> ```
+> 
+>                         .386
+>                         .model  flat, stdcall
+>                         locals  \_\_
+> 
+>                         .code
+> 
+> start:                  
+>                         db      (200h - 1) dup(0C3h)
+>                         db      00
+> 
+>                         end     start
+> 
+> ```
+> 
+> 这是因为 PEiD 反汇编引擎没有对内存检查，  
+>   
+> 前面 1FFh 个 retn 指令反汇编结束后来到段末尾的 00　字节，  
+>   
+> 00 代表 add ...，一个字节不是完整的指令，反汇编读取下一字节的时候因为没有相应的内存分配，所以非法了。  
+
+ 4dd466d0e1e0cc123afbe504da2462ca

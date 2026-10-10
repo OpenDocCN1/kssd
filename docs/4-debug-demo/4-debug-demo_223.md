@@ -1,0 +1,156 @@
+
+
+# ACDSee 4.0 Trial Version
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50036.htm`](https://www.pediy.com/kssd/pediy05/pediy50036.htm)
+
+《电脑报 2001 年配套光盘软件》-ACDSee 4.0 Trial Version 和 FotoCanvas Lite Trial Version 时间限制破解   
+  
+《电脑报 2001 年配套光盘》附带了不少好软件，但有不少都是未注册版本，有一定限制，前面破了其中一个 DART Karaoke Studio，今天有又破了 ACDSee 4.0 Trial Version。   
+  
+【软件名称】ACDSee   
+【软件版本】4.0   
+【文件大小】11.3M   
+【适用平台】Win9x/Me/NT/2000   
+【软件简介】高性能的看图程序，支持 BMP,GIF,JPG,TGA,TIF 等各种常见的图形文件格式，图片打开速度极快。 你还可以直接用它查看动画 GIF。它还可以为你的每一个目录建立一个相册。   
+【使用工具】TRW2000，任何一款二进制编辑程序（就用配套光盘自带的 UltraEdit 8.20 吧，“没有枪，没有炮，自有《配套光盘》给送到！”^\_^）。   
+  
+（一）ACDSee 4.0 Trial Version 时间限制破解：   
+1、首先安装 ACDSee 4.0 Trial Version，第一次运行会出出现一个提示框，让你做出选择是“购买”还是“试用”，当 30 天试用期过后，就只有选择购买正式版或退出了。所以，只要找到这个提示框产生的 CALL 并去掉或绕过它就破解了。   
+2、运行 TRW2000，载入 ACDSee.exe 文件，然后一路用 F10，直到提示框出现，然后退出，程序就会停在某一个 CALL xxxxxxxx 的下面一行，此时将上面的 CALL xxxxxxxx 一行设断点（F6，F9 结合使用），然后就不用使用 TRW2000 的载入功能了，而是直接运行程序，就会被 TRW2000 拦截在上面的断点处，F8 进入，BC \*，然后又是一路 F10，又找到一个 CALL xxxxxxxx，同样的方法处理，那么最后哪个 CALL xxxxxxxx 是最关键的，就看你的判断能力了，那么它一般在 ACDsee.exe 的程序领空，而不是 MFC42.DLL 或其他文件中。我跟踪的关键代码在下面：   
+  
+:00406BB9 6A00                    push 00000000   
+:00406BBB 8D8C24DC000000          lea ecx, dword ptr \[esp+000000DC\]   
+:00406BC2 E859720000              call 0040DE20（这个 CALL 出现 ACDsee 的 LOGO 图画）   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:00406BB7(C)   
+|   
+:00406BC7 8D442430                lea eax, dword ptr \[esp+30\]   
+:00406BCB B9605F5700              mov ecx, 00575F60   
+:00406BD0 50                      push eax   
+:00406BD1 6A00                    push 00000000   
+:00406BD3 C744243800000000        mov \[esp+38\], 00000000   
+:00406BDB E8E04C0000              call 0040B8C0（这个 CALL 出现提示框）   
+:00406BE0 85C0                    test eax, eax   
+:00406BE2 7532                    jne 00406C16   
+:00406BE4 8D8C24D8000000          lea ecx, dword ptr \[esp+000000D8\]   
+:00406BEB C684243405000002        mov byte ptr \[esp+00000534\], 02   
+:00406BF3 E8A8700000              call 0040DCA0   
+  
+从:00406BDB E8E04C0000              call 0040B8C0 这里往前有很多   
+test xxx, xxx   
+jne xxxxxxxx   
+之类的跳转，试了几个也都不能跳过那个提示框，何不进去看一下！F8 进入出现提示框的那个 call 0040B8C0:   
+:0040B8C0 81ECB0000000            sub esp, 000000B0   
+:0040B8C6 A0005F5700              mov al, byte ptr \[00575F00\]   
+:0040B8CB 56                      push esi   
+:0040B8CC 57                      push edi   
+:0040B8CD 88442418                mov byte ptr \[esp+18\], al   
+  
+…………（省略去一些代码）   
+  
+\* Reference To: License.?IsFullVersion@CLicense@@QAEHXZ, Ord:001Fh   
+                                  |   
+:0040B972 FF1578535400            Call dword ptr \[00545378\]   
+:0040B978 85C0                    test eax, eax   
+:0040B97A 7416                    je 0040B992（此处若不跳转则可绕过那么提示框）   
+:0040B97C 39742408                cmp dword ptr \[esp+08\], esi   
+:0040B980 7510                    jne 0040B992（此处同样也不同跳转）   
+:0040B982 5F                      pop edi   
+  
+\* Possible Reference to String Resource ID=00001: "Clip"   
+                                  |   
+:0040B983 B801000000              mov eax, 00000001   
+:0040B988 5E                      pop esi   
+:0040B989 81C4B0000000            add esp, 000000B0   
+:0040B98F C20800                  ret 0008   
+…………   
+:0040B992 8B9424C0000000          mov edx, dword ptr \[esp+000000C0\]   
+  
+\* Reference To: License.?g\_license@@3VCLicense@@A, Ord:0038h   
+                                  |   
+:0040B999 8B0D74535400            mov ecx, dword ptr \[00545374\]   
+:0040B99F 52                      push edx   
+  
+\* Reference To: License.?ShowNagDlg@CLicense@@QAEHPAH@Z, Ord:0027h   
+                                  |   
+:0040B9A0 FF15C0535400            Call dword ptr \[005453C0\]（这里调用 License.dll 的 ShowNagDlg 函数显示提示框）   
+:0040B9A6 5F                      pop edi   
+:0040B9A7 5E                      pop esi   
+:0040B9A8 81C4B0000000            add esp, 000000B0   
+:0040B9AE C20800                  ret 0008   
+  
+F8 进入:0040B9A0 FF15C0535400            Call dword ptr \[005453C0\]看到下面（License.dll 领空）：   
+:100031F0 81EC1C070000            sub esp, 0000071C   
+:100031F6 53                      push ebx   
+:100031F7 55                      push ebp   
+:100031F8 56                      push esi   
+:100031F9 57                      push edi   
+:100031FA 8BBC2430070000          mov edi, dword ptr \[esp+00000730\]   
+:10003201 8BF1                    mov esi, ecx   
+:10003203 C70700000000            mov dword ptr \[edi\], 00000000   
+\* Reference To: License.?IsFirstRunAfterInstall@CLicense@@QAEHXZ   
+                                  |   
+:10003209 E872FCFFFF              call 10002E80   
+:1000320E 85C0                    test eax, eax（此处若 eax=1 则可跳过提示框）   
+:10003210 8BCE                    mov ecx, esi   
+:10003212 741D                    je 10003231   
+\* Reference To: License.?ShowWelcomeDlg@CLicense@@QAEHXZ   
+                                  |   
+:10003214 E847FDFFFF              call 10002F60   
+:10003219 C70701000000            mov dword ptr \[edi\], 00000001   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
+|:1000334F(C), :100033CF(C)   
+|   
+:1000321F 5F                      pop edi   
+:10003220 5E                      pop esi   
+:10003221 5D                      pop ebp   
+:10003222 B801000000              mov eax, 00000001   
+:10003227 5B                      pop ebx   
+:10003228 81C41C070000            add esp, 0000071C   
+:1000322E C20400                  ret   
+  
+3、程序修改方法：这个版本的 ACDsee 没有加壳，修改比较方便，当然你可以修改 ACDsee.exe 也可以修改 License.dll，但修改 License.dll 后运行程序会提示一些文件被修改，就修改 ACDsee.exe 吧！   
+  
+:0040B97A 7416                    je 0040B992（改为两个 NOP）   
+:0040B97C 39742408                cmp dword ptr \[esp+08\], esi   
+:0040B980 7510                    jne 0040B992（改为两个 NOP）   
+  
+使用 UltraEdit 打开 ACDsee.exe 文件   
+查找：85C07416397424087510   
+修改：85C09090397424089090   
+  
+（二）FotoCanvas Lite Trial Version 破解   
+破解完 ACDsee.exe，发现 FotoCanvas Lite Trial Version 的运行也有时间限制，索性一块破掉！   
+运行程序 FotoCanvasLite.exe，参照上面的方法先找到那个出现提示过期的 CALL   
+:0041AAF3 3BC3                    cmp eax, ebx（这里比较，改为 cmp eax, eax 会怎样，呵呵）   
+:0041AAF5 7414                    je 0041AB0B（这里跳则可绕过过期提示）   
+:0041AAF7 8B4574                  mov eax, dword ptr \[ebp+74\]   
+:0041AAFA 50                      push eax   
+:0041AAFB E860C00100              call 00436B60（出现过期提示）   
+:0041AB00 83C404                  add esp, 00000004   
+:0041AB03 85C0                    test eax, eax   
+:0041AB05 0F84C4020000            je 0041ADCF   
+  
+这里有两种改法，要么将:0041AAF3 3BC3                    cmp eax, ebx   
+改为                  :0041AAF3 3BC0                    cmp eax, eax   
+  
+使用 UltraEdit 打开 FotoCanvasLite.exe 文件   
+查找：3BC374148B4574   
+修改：3BC074148B4574   
+  
+要么将:0041AAF5 7414                    je 0041AB0B   
+改为  :0041AAF5 E911000000              jmp 0041AB0B   
+  
+使用 UltraEdit 打开 FotoCanvasLite.exe 文件   
+查找:3BC374148B4574   
+修改:3BC3E911000000   
+  
+推荐使用第一种改法！   
+  
+  
+  
+esoft2001.51.net   
+2002 年 3 月 28 日  4dd466d0e1e0cc123afbe504da2462ca

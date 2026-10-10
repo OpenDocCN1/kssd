@@ -1,0 +1,234 @@
+
+
+# Winamp 2.81 
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6842.htm`](https://www.pediy.com/kssd/pediy06/pediy6842.htm)
+
+Winamp 标题栏中文乱码原因分析及修正  
+  
+前言：  
+实在是忍受不了 MediaPlayer 对内存庞大的占用率和我的小内存之间的矛盾，同时又找不到 foobat 的 WMA 插件（有知道的兄弟，请给个下载地址，多谢！），于是装上了 Winamp 2.81 简体中文经典怀念版，就是水手汉化的那个（够豪华）。打开一首抒情的歌曲，安抚一下我受伤的心灵——如果连续几天倒霉，先是笔记本电池挂掉、然后是系统瘫痪、接下来是硬盘坏掉（全面瘫痪阿，可怜的国产笔记本，幸好是全球联保的，可是又有什么用呢？刚过了质保期，就全部坏掉，真是牛 x），你就会明白什么叫“受伤”——好久没有用过 Winamp 了，记得上次用还是在 N 年前（怀念我的大奔 133 和那个激情的时代），于是随手点击，熟悉一下功能。汉化过的版本就是好，毕竟中国人还是看中文最舒服——慢着，莫非这么古老的 BUG 还没有被修正么？就是那个滚动标题栏显示中文时乱码的 BUG，一个陈旧的毛病。看着下面时而清晰时而混乱的标题，总觉得不舒服，算了，修复一下这个陈年旧疮吧。  
+  
+分析对象：  
+Nullsoft Winamp 2.81 简体中文经典怀念版  
+水手汉化 豪华版  
+  
+故障分析：  
+从显示的乱码时常清晰时常混乱就能很明白的想出来，乱码的原因就是可谓“经典”的“半个汉字”，大部分不支持中文的软件都是因为这个。在 Ascll 码中，每个英文用一个 byte 来记录，而在 GB 码中，每一个汉字用一个 word 来记录。没有经过改造的程序，在处理英文汉字混排的字符串时，如果删除一个汉字的话，每次只能删除这个汉字 GB 码的低 8 位，这时，乱码就产生了。只要我们能正确的在英文汉字混排的字符串分辨出汉字和英语，然后针对处理，问题就解决了。  
+  
+代码分析：  
+要操刀修改，首先就要找到修改的位置。600 多 k 的 Winamp 也不算小，蛮力去找自然是大海捞针。且先对其工作流程作一分析。要实现滚动标题栏其实很简单，取得要显示的字符串，把它的长度按需要处理一下（不同的时间起始位置不同），然后用 SetWindowTextA 显示出来即可。也就是说，Winamp 也有可能是用上面的方法来实现的。  
+经过检测，Winamp 没有加壳（其实这样的软件也没有必要加壳:)）。打开 W32Dasm 载入 Winamp，选择“查找”-〉“查找文本”，输入 SetWindowTextA 进行查找。在经历的 N 多个“查找下一个”后，在 0x42EE60 停下了，这是一段可疑的代码（由此可见，正确的分析是很重要的，尤其在没有任何线索的时候。当然，运气同样很重要：））。向上找，找到这一段子程序的起始位置，Copy 下来分析：  
+  
+  
+\* Referenced by a CALL at Address:  
+|:0041D2A1     
+|  
+:0042ED10 55                      push ebp  
+:0042ED11 8BEC                    mov ebp, esp  
+:0042ED13 B800100000              mov eax, 00001000  
+:0042ED18 E8D3DF0000              call 0043CCF0  
+:0042ED1D A000874400              mov al, byte ptr \[00448700\]  
+:0042ED22 56                      push esi  
+:0042ED23 57                      push edi  
+:0042ED24 888500F0FFFF            mov byte ptr \[ebp+FFFFF000\], al  
+:0042ED2A B9FF030000              mov ecx, 000003FF  
+:0042ED2F 33C0                    xor eax, eax  
+:0042ED31 8DBD01F0FFFF            lea edi, dword ptr \[ebp+FFFFF001\]  
+:0042ED37 BEC0384500              mov esi, 004538C0                      ;在这个地方放的是完整的标题  
+:0042ED3C F3                      repz                                   ;清空缓冲区  
+:0042ED3D AB                      stosd  
+:0042ED3E 66AB                    stosw  
+:0042ED40 56                      push esi  
+:0042ED41 AA                      stosb  
+  
+\* Reference To: MSVCRT.strlen, Ord:02BEh  
+                                  |  
+:0042ED42 E8F7DF0000              Call 0043CD3E                           ;算一下标题有多少个字  
+:0042ED47 59                      pop ecx  
+:0042ED48 8B0D48124500            mov ecx, dword ptr \[00451248\]           ;这个就是循环用的计数器地址  
+:0042ED4E 3BC8                    cmp ecx, eax                            ;到头了，就重新再来吧。走马灯效果的实现。  
+:0042ED50 7D57                    jge 0042EDA9  
+:0042ED52 8D81C0384500            lea eax, dword ptr \[ecx+004538C0\]  
+:0042ED58 50                      push eax  
+:0042ED59 8D8500F0FFFF            lea eax, dword ptr \[ebp+FFFFF000\]  
+:0042ED5F 50                      push eax  
+  
+\* Reference To: MSVCRT.strcpy, Ord:02BAh  
+                                  |  
+:0042ED60 E87DDF0000              Call 0043CCE2                          ;按照计数器指定的偏移，把要显示的字符串移到缓冲区  
+:0042ED65 8D8500F0FFFF            lea eax, dword ptr \[ebp+FFFFF000\]  
+  
+\* Possible StringData Ref from Data Obj ->" \*\*\* "                        ;熟悉的东西:)  
+                                  |  
+:0042ED6B 686C644400              push 0044646C  
+:0042ED70 50                      push eax  
+  
+\* Reference To: MSVCRT.strcat, Ord:02B6h  
+                                  |  
+:0042ED71 E872DF0000              Call 0043CCE8  
+:0042ED76 83C410                  add esp, 00000010  
+:0042ED79 8D8500F0FFFF            lea eax, dword ptr \[ebp+FFFFF000\]  
+:0042ED7F FF3548124500            push dword ptr \[00451248\]  
+:0042ED85 56                      push esi  
+:0042ED86 50                      push eax  
+  
+\* Reference To: MSVCRT.strlen, Ord:02BEh  
+                                  |  
+:0042ED87 E8B2DF0000              Call 0043CD3E  
+:0042ED8C 59                      pop ecx  
+:0042ED8D 8D840500F0FFFF          lea eax, dword ptr \[ebp+eax\-00001000\]  ;继续塞字符  
+:0042ED94 50                      push eax  
+  
+\* Reference To: MSVCRT.strncpy, Ord:02C1h  
+                                  |  
+:0042ED95 FF1558E24300            Call dword ptr \[0043E258\]  
+:0042ED9B 83C40C                  add esp, 0000000C  
+:0042ED9E FF0548124500            inc dword ptr \[00451248\]                ;重点到了！每次不判断当前字符的类型，就简单的把计数器加一，“半个汉字”自然就产生了  
+:0042EDA4 E984000000              jmp 0042EE2D  
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0042ED50(C)                                                             ;这个子程序是用作字符全部显示完成后重新开始的，没有什么问题。  
+|  
+:0042EDA9 56                      push esi  
+  
+\* Reference To: MSVCRT.strlen, Ord:02BEh  
+                                  |  
+:0042EDAA E88FDF0000              Call 0043CD3E  
+:0042EDAF 8B0D48124500            mov ecx, dword ptr \[00451248\]  
+:0042EDB5 8D896C644400            lea ecx, dword ptr \[ecx+0044646C\]  
+:0042EDBB 2BC8                    sub ecx, eax  
+:0042EDBD 8D8500F0FFFF            lea eax, dword ptr \[ebp+FFFFF000\]  
+:0042EDC3 51                      push ecx  
+:0042EDC4 50                      push eax  
+  
+\* Reference To: MSVCRT.strcpy, Ord:02BAh  
+                                  |  
+:0042EDC5 E818DF0000              Call 0043CCE2  
+:0042EDCA 8D8500F0FFFF            lea eax, dword ptr \[ebp+FFFFF000\]  
+:0042EDD0 56                      push esi  
+:0042EDD1 50                      push eax  
+  
+\* Reference To: MSVCRT.strcat, Ord:02B6h  
+                                  |  
+:0042EDD2 E811DF0000              Call 0043CCE8  
+:0042EDD7 56                      push esi  
+  
+\* Reference To: MSVCRT.strlen, Ord:02BEh  
+                                  |  
+:0042EDD8 E861DF0000              Call 0043CD3E  
+:0042EDDD 83C418                  add esp, 00000018  
+:0042EDE0 6A03                    push 00000003  
+:0042EDE2 59                      pop ecx  
+:0042EDE3 2B0D48124500            sub ecx, dword ptr \[00451248\]  
+:0042EDE9 03C1                    add eax, ecx  
+:0042EDEB 50                      push eax  
+:0042EDEC 8D8500F0FFFF            lea eax, dword ptr \[ebp+FFFFF000\]  
+  
+\* Possible StringData Ref from Data Obj ->" \*\*\* "  
+                                  |  
+:0042EDF2 686C644400              push 0044646C  
+:0042EDF7 50                      push eax  
+  
+\* Reference To: MSVCRT.strlen, Ord:02BEh  
+                                  |  
+:0042EDF8 E841DF0000              Call 0043CD3E  
+:0042EDFD 59                      pop ecx  
+:0042EDFE 8D840500F0FFFF          lea eax, dword ptr \[ebp+eax\-00001000\]  
+:0042EE05 50                      push eax  
+  
+\* Reference To: MSVCRT.strncpy, Ord:02C1h  
+                                  |  
+:0042EE06 FF1558E24300            Call dword ptr \[0043E258\]  
+:0042EE0C FF0548124500            inc dword ptr \[00451248\]                    ;个人感觉没有必要处理这个地方。  
+:0042EE12 56                      push esi  
+  
+\* Reference To: MSVCRT.strlen, Ord:02BEh  
+                                  |  
+:0042EE13 E826DF0000              Call 0043CD3E  
+:0042EE18 83C003                  add eax, 00000003  
+:0042EE1B 83C410                  add esp, 00000010  
+:0042EE1E 390548124500            cmp dword ptr \[00451248\], eax  
+:0042EE24 7C07                    jl 0042EE2D  
+:0042EE26 83254812450000          and dword ptr \[00451248\], 00000000  
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
+|:0042EDA4(U), :0042EE24(C)  
+|  
+  
+\* Reference To: USER32.GetWindowLongA, Ord:0156h  
+                                  |  
+:0042EE2D 8B35B8E34300            mov esi, dword ptr \[0043E3B8\]  
+:0042EE33 6AF0                    push FFFFFFF0  
+:0042EE35 FF3520334500            push dword ptr \[00453320\]  
+:0042EE3B FFD6                    call esi  
+  
+\* Reference To: USER32.SetWindowLongA, Ord:0258h  
+                                  |  
+:0042EE3D 8B3D50E34300            mov edi, dword ptr \[0043E350\]  
+:0042EE43 25FFFF3FFF              and eax, FF3FFFFF  
+:0042EE48 50                      push eax  
+:0042EE49 6AF0                    push FFFFFFF0  
+:0042EE4B FF3520334500            push dword ptr \[00453320\]  
+:0042EE51 FFD7                    call edi  
+:0042EE53 8D8500F0FFFF            lea eax, dword ptr \[ebp+FFFFF000\]  
+:0042EE59 50                      push eax  
+:0042EE5A FF3520334500            push dword ptr \[00453320\]  
+  
+\* Reference To: USER32.SetWindowTextA, Ord:025Eh                                 ;嘿嘿，终于显示出来了;)  
+                                  |  
+:0042EE60 FF15E0E34300            Call dword ptr \[0043E3E0\]  
+:0042EE66 6AF0                    push FFFFFFF0  
+:0042EE68 FF3520334500            push dword ptr \[00453320\]  
+:0042EE6E FFD6                    call esi  
+:0042EE70 0D0000C000              or eax, 00C00000  
+:0042EE75 50                      push eax  
+:0042EE76 6AF0                    push FFFFFFF0  
+:0042EE78 FF3520334500            push dword ptr \[00453320\]  
+:0042EE7E FFD7                    call edi  
+:0042EE80 5F                      pop edi  
+:0042EE81 5E                      pop esi  
+:0042EE82 C9                      leave  
+:0042EE83 C3                      ret  
+  
+经过分析，发现从 0x0042ED10 到 0x0042EE60 的这段代码就是实现滚动标题效果的核心代码。其中 0x004538C0 放置的是完整的字符串，0x00451248 放置的是显示位置计数器值，0x006DA9EC 放置的是将要显示出来的字符串。由于 0x0042ED9E 处没有对当前字符进行类型分析，简单的移动 1 次计数器，导致了汉字显示乱码。为了证实刚才的分析，打开 TRW 载入 Winamp，下断点 BP 0042ED10，把 0x0042ED9E 处的代码都改为 nop。然后继续执行，发现标题栏已经不再继续滚动。证明上面的分析正确。  
+  
+修改代码：  
+经过上面分析，只要正确的判断当前字符的类型并做出相应的处理即可。问题是怎么区分英文和汉字。记得可以显示的英文 Ascll 码到 0x80 为止。查了一下资料，GB code 的内码的两个字节都是从 A0H - FEH 之间的。这样的话，代码基本上就可以写出来了：  
+  
+mov ecx,dword ptr \[00451248\]  
+lea eax,dword ptr \[ecx+004538C0\]  
+cmp byte ptr \[eax\],A0  
+jb 1  
+inc dword ptr \[00451248\]  
+1:  
+inc dword ptr \[00451248\]    
+retn  
+  
+由于个人比较懒的原因，这里对汉字的判断作了简化处理，只要小于 A0 的字符都认为是英文，反之则是中文。一般情况下，这样都是可以正常现实的，当然 BIG5 码除外。关于 BIG5 码的判断标准如下：“BIG code 的内码的第一个字节是 80H - FFH，第二个字节是 00H - FFH”有兴趣的朋友可以自行修改。  
+下面的问题就是找一块能够放下代码的空间。感觉 Winamp 是用 VC++编写的，Language2000 证实了这一点。由于代码作了优化处理，所以基本上没有什么缝隙，所以只有从.text 节末端寻找可以利用的空间。根据 VirtualSize、SizeOfRawData 和 PointerToRawData 计算出在文件 0x0003C8E0 偏移（RVA：0x0043D4E0）后即为空闲空间。我们就把代码放在这个地方。opcode 如下：  
+  
+8B0D481245008D81C03845008038A07206FF0548124500FF0548124500C3  
+  
+然后修改 0x004538C0（文件偏移 0x0002E19E）处的代码：  
+  
+call 0043D4E0  
+nop                   ;占位  
+  
+opcode 如下：E83DE7000090  
+  
+再做些收尾工作，修改.text 的实际尺寸。这样就基本上已经完工了。  
+下面再测试一下，打开 Winamp，随着悠扬的乐曲传出，我们发现，滚动标题栏终于可以正确显示中文了:)  
+  
+后记：  
+希望上文能把我要说的表达出来。如果有描述不清晰的地方或有错误，请与我联系：coffin13@183.ha.cn。  
+匆忙之作，加上我水平又菜，不免错误百出，望高手予以指正。在此先谢过了。  
+  
+  
+  
+  
+  
+monkeycz  
+2004 年 12 月 12 日凌晨
+
+ 4dd466d0e1e0cc123afbe504da2462ca

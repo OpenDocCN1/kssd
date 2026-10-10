@@ -1,0 +1,111 @@
+
+
+# D 命令
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum1201.htm`](https://www.pediy.com/kssd/pediy03/forum1201.htm)
+
+谈谈 softice 中 d 的用法   
+  
+所有的 cracker 都使用过 softice 中 d 的功能，比如 d eax 来看 eax 指向的内存中是什么。   
+  
+不过，有些人可能不知道 d 的功能远不止此。   
+  
+如果需要看看 eax 指向的内存中其地址指向的内存地址你会怎么做？比如 eax＝493576，你 d 493576，发现那里的内存是 1A22D23，于是你再 d 1A22D23，发现里面放的是你的注册名，那么，如何一次性地指向 1A22D23 呢？   
+  
+无论在 softice 或者 trw2000 中，都可以使用 d \*eax 这个命令，注意前面的\*，就是它，使得 softice 一下子就知道你需要指向 eax 内存处指向的地方。   
+  
+此外，对于浮点运算很多 cracker 很头疼。下面我举个例子如何使用 d 来简化我们的工作。   
+  
+让我们来看看 Trojan Remover 4.2.9 吧。在其注册中有这么一段：   
+  
+016F:004B0531  LEA      EAX,\[EBP\-18\]   
+016F:004B0534  MOV      EDI,EBX   
+016F:004B0536  MOV      EDX,\[EBP\-04\]   
+016F:004B0539  MOV      DL,\[EDX+EDI\-01\]      <------ 序列号的第一个字符   
+016F:004B053D  CALL    \`VCL30!System.@LStrFromChar@001FB870\`   
+016F:004B0542  MOV      EAX,\[EBP\-18\]   
+016F:004B0545  CALL    \`VCL30!SysUtils.StrToInt@0F6FDFF6\`   
+016F:004B054A  CMP      EAX,BYTE +02            
+016F:004B054D  JNL      004B0593              <------ >=2   
+016F:004B054F  LEA      EAX,\[EBP\-18\]          <------ <2   
+016F:004B0552  MOV      EDX,\[EBP\-04\]   
+016F:004B0555  MOV      DL,\[EDX+EDI\-01\]   
+016F:004B0559  CALL    \`VCL30!System.@LStrFromChar@001FB870\`   
+016F:004B055E  MOV      EAX,\[EBP\-18\]   
+016F:004B0561  CALL    \`VCL30!SysUtils.StrToInt@0F6FDFF6\`   
+016F:004B0566  ADD      EAX,BYTE +03   
+016F:004B0569  JNO      004B0570   
+016F:004B056B  CALL    \`VCL30!System.@IntOver@51F89FF7\`   
+016F:004B0570  IMUL    EAX,EAX,BYTE +51      <------ x51H 放到 eax 里   
+016F:004B0573  JNO      004B057A   
+016F:004B0575  CALL    \`VCL30!System.@IntOver@51F89FF7\`   
+016F:004B057A  MOV      EDI,EAX   
+016F:004B057C  LEA      EDX,\[EBP\-18\]   
+016F:004B057F  MOV      EAX,EDI   
+016F:004B0581  CALL    \`VCL30!SysUtils.IntToStr@0F6FDFF6\`   
+016F:004B0586  MOV      EDX,\[EBP\-18\]   
+016F:004B0589  LEA      EAX,\[EBP\-08\]   
+016F:004B058C  CALL    \`VCL30!System.@LStrCat@51F89FF7\`   
+016F:004B0591  JMP      SHORT 004B05CB   
+016F:004B0593  LEA      EAX,\[EBP\-18\]   
+016F:004B0596  MOV      EDX,\[EBP\-04\]   
+016F:004B0599  MOV      DL,\[EDX+EDI\-01\]   
+016F:004B059D  CALL    \`VCL30!System.@LStrFromChar@001FB870\`   
+016F:004B05A2  MOV      EAX,\[EBP\-18\]   
+016F:004B05A5  CALL    \`VCL30!SysUtils.StrToInt@0F6FDFF6\`   
+016F:004B05AA  IMUL    EAX,EAX,BYTE +2F   
+016F:004B05AD  JNO      004B05B4   
+016F:004B05AF  CALL    \`VCL30!System.@IntOver@51F89FF7\`   
+016F:004B05B4  MOV      EDI,EAX   
+016F:004B05B6  LEA      EDX,\[EBP\-18\]   
+016F:004B05B9  MOV      EAX,EDI   
+016F:004B05BB  CALL    \`VCL30!SysUtils.IntToStr@0F6FDFF6\`   
+016F:004B05C0  MOV      EDX,\[EBP\-18\]   
+016F:004B05C3  LEA      EAX,\[EBP\-08\]   
+016F:004B05C6  CALL    \`VCL30!System.@LStrCat@51F89FF7\`   
+016F:004B05CB  INC      EBX   
+016F:004B05CC  DEC      ESI   
+016F:004B05CD  JNZ      NEAR 004B0531   
+016F:004B05D3  MOV      EAX,\[EBP\-08\]   
+016F:004B05D6  CALL    \`VCL30!SysUtils.StrToFloat@044134E0\`   
+016F:004B05DB  FSTP    TWORD \[EBP\-12\]      <---------- 记着打开 softice 的浮点窗口   
+016F:004B05DE  WAIT      
+016F:004B05DF  FLD      TWORD \[EBP\-12\]   
+016F:004B05E2  FLD      TWORD \[004B0674\]   
+016F:004B05E8  FMULP    ST1   
+016F:004B05EA  FLD      TWORD \[004B0680\]   
+016F:004B05F0  FSUBP    ST1   
+016F:004B05F2  FSTP    TWORD \[EBP\-12\]   
+016F:004B05F5  WAIT      
+016F:004B05F6  JMP      SHORT 004B0612   
+016F:004B05F8  MOV      EAX,\[EBP\-04\]   
+016F:004B05FB  CALL    \`VCL30!SysUtils.StrToInt@0F6FDFF6\`   
+016F:004B0600  MOV      \[EBP\-1C\],EAX   
+  
+我们在 4B05DB 处打开了浮点窗口（用 wf 命令），这条命令会将浮点栈 ST0 的数字保存到了 EBP-12 处，先记下浮点栈里显示的数字，然后 F8 单步到 4B05DE，我们先用 d ebp-12 看看，看见一堆的 byte，相信我们中很多人记不住浮点格式吧，就算记住了你会去计算它一下吗？显然不会！那怎么办？盲人摸象？不！我们来试试 dt ebp-12。看到什么了？就是刚才从浮点栈里保存去的数字！   
+  
+这是怎么一回事？看看这一段解释（摘自 Softice4 命令中文解说，太平洋软件资讯站）：   
+  
+命令: D   
+作用: 显示某内存区域的内容   
+语法: D\[size\] \[address \[l length\]\]   
+用法:            
+size: B 字节; W 字; D 双字; S 短实型; L 长实型;   
+      T 10b 长实型   
+D  命令在所指定的内存区域开始显示指定长度的内存   
+单元内容. 格式将根据 size 来变.对于双字类型, 将分   
+两种情况:   
+  
+1.如果指定地址为 32 位的段, 格式为 32bytes 的 16 进制   
+  值(即 8 位 16 进制值)   
+2.如果指定地址为 16 位的段, 则格式为 16:16 指针的形   
+  式(即 4:4 位 16 进制值)   
+  
+如果没有指定地址,D 命令将继上次命令后的地址开始   
+显示.如果数据窗口可见,则结果在数据窗口中显示,否   
+则显示在命令窗口中.但若用了参数 L 和长度, 则结果   
+不论数据窗口可见还是不可见,都显示在命令窗口中.   
+  
+点评: 无   
+  
+有些意思吧？  4dd466d0e1e0cc123afbe504da2462ca

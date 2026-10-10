@@ -1,0 +1,133 @@
+
+
+# NASM-Win32 汇编学习二--消息框
+
+> 原文：[`www.pediy.com/kssd/pediy10/100792.html`](https://www.pediy.com/kssd/pediy10/100792.html)
+
+在本课中，我们将用汇编语言写一个 Windows 程序，程序运行时将弹出一个消息框并显示“Hello!Win32 Nasm!”。  
+  
+理论：  
+      
+    Windows 为编写应用程序提供了大量的资源。其中最重要的是 Windows API（Application Programming Interface）。Windows API 是一大组功能强大的函数，它们本身驻扎在 Windows 中供人们随时调用。这些函数的大部分被包含在几个动态链接库（DLL）中，譬如：kernel32.dll、user32.dll 和 gdi32.dll。kernel32.dll 中的函数主要处理内存管理和进程调度;user32.dll 中的函数主要控制用户界面；gdi32.dll 中的函数则负责图形方面的操作。除了上面的三个动态链接库，你还可以调用包含在其他动态链接库中的函数，当然你必须要有关于这些函数的足够的资料。  
+  
+    动态链接库，顾名思义，这些 API 的代码本身并不包含在 Windows 可执行文件中，而是当要使用时才被加载。为了让应用程序在运行时能找到这些函数，就必须事先把有关的重定位信息嵌入到应用程序的可执行文件中。这些信息存在于引入库中，由链接器把相关信息从引入库中找出插入到可执行文件中。你必须指定正确的引入库，因为只有正确的引入库才会有正确的重定位信息。  
+  
+    当应用程序被加载时 Windows 会检查这些信息，这些信息包括动态链接库的名字和其中被调用的函数的名字。若检查到这样的信息，Windows 就会加载相应的动态链接库，并且重定位调用的函数语句的入口地址，以便在调用函数时控制权能转移到函数内部。  
+  
+    如果从和字符集的相关性来分，API 共有两类：一类是处理 ANSI 字符集的，另一类是处理 UNICODE 字符集的。前一类函数名字的尾部带一个“A”字符，处理 UNICODE 的则带一个“W”字符。我们比较熟悉的 ANSI 字符串是以 NULL 结尾的一串字符数组，每一个 ANSI 字符是一个 byte 宽。对于欧洲语言体系，ANSI 字符集已经足够了，但对于有成千上万个唯一字符的几种东西语言体系来说就只有用 UNICODE 字符集了。每一个 UNICODE 字符占有两个 byte 宽，这样一来就可以在一个字符串中使用 65536 个不同字符了。  
+  
+    这也是为什么引进 UNICODE 的原因。在大多数情况下我们都可以用一个包含头文件，在其中定义一个宏，然后在实际调用函数时，函数名后不需要加后缀“A”或“W”。  
+  
+如：在头文件中定义函数 foo()  
+%ifdef UNICODE   
+%define foo() fooW()  
+%else  
+%define foo() fooA()  
+%endif  
+  
+    先给出一个 nasmx 框架程序，然后再向里面加东西。  
+  
+%include '..\\inc\\nasmx.inc'    ;因为我的源程序存放在 nasmx 目录下，该头文件使 nasm 支持高级特性  
+  
+  
+entry    start  
+  
+\[section .text\]  
+proc     start  
+  
+endproc  
+  
+\[section .data\]  
+  
+    应用程序是从 entry 指定的程序的入口点 start 处开始执行的（start 入口点指向代码段中名为 start 的程序段）。然后程序逐条语句执行，直到遇到 jmp，jne,je 等跳转指令。这些跳转指令把执行权转移到其他语句上，若程序要退出 Windows 则必须调用函数 ExitProcess。函数原型如下：  
+  
+ExitProcess proto uExitCode:DWORD  
+  
+    函数原型会告诉编译器函数的属性，这样在编译和链接的时候，编译器就会做相关的类型检查。函数的原型定义如下：  
+  
+FunctionName PROTO \[ParameterName\]:DataType,\[ParameterName\]:DataType,...  
+    简言之，就是在函数名后加伪指令 PROTO，再跟一串逗号相隔的数据类型链表。在前面的 ExitProcess 定义中，该函数有一个 DWORD 类型的参数。当你使用高级调用语句 invoke 时，使用函数原型定义特别有用，你可以简单地认为 invoke 是一个有参数类型检查的调用语句。譬如，假设你这样写：  
+  
+call ExitProcess  
+  
+    若你事先没把一个 DWORD 类型参数压入堆栈，编译器和链接器不会报错，但毫无疑问，在你的程序运行时将引起崩溃。但是，当你这样写：  
+  
+invoke ExitProcess  
+  
+    编译连接时会进行类型检查，并提示错误。所以我建议你用 invoke 伪指令而不是 call 去调用一个函数。  
+  
+invoke 的语法如下：  
+  
+invoke expression \[,argument\] \[,argument\] \[,...\]  
+  
+    expression 既可以是一个函数名也可以是一个函数指针。参数由逗号隔开，并在参数前用“byte”、“word”、“dword”等指定参数长度。在 nasmx 中全部的 API 引用都放在头文件中，这些头文件在 nasmx 安装目录下的/inc 目录下。在 nasmx-2009-01-12 版本下，/inc 目录中有 2 个目录分别是 win32 和 xbox，里面是开发 win32 和 xbox 所需头文件，在/inc 目录下还有一个 nasmx.inc 头文件，该文件是 nasmx 用宏实现的高级特性支持头文件，如果想在源文件中使用 invoke，if/elsif/else/endif，do/while，do/until，switch/case，proc/endproc 等高级特性就要在源程序开头处引用该头文件。nasmx-2009-01-12 可以在这里下载：http://www.asmcommunity.net/projects/nasmx/  ，以后的学习我都是以 nasmx 为基础的。  
+  
+    好，我们现在加到 ExitProcess 函数，参数 uExitCode 是你希望当你的应用程序结束时传递给 Windows 的。你可以这样写：  
+  
+invoke ExitProcess, dword NULL  
+  
+    把这一行放到 proc start 标识符下，这个应用程序就会立即退出 Windows。  
+  
+%include '..\\inc\\nasmx.inc'    ;因为我的源程序存放在 nasmx 目录下，该头文件使 nasm 支持高级特性  
+%include '..\\inc\\win32\\windows.inc'  
+%include '..\\inc\\win32\\kernel32.inc'  
+  
+entry    start  
+  
+\[section .text\]  
+proc     start  
+  invoke ExitProcess, dword NULL  
+endproc  
+  
+\[section .data\]  
+  
+    应用程序从 windows.inc 中得到相关变量结构体的定义，还需要从其他的头文件中得到函数原型的声明。ExitProcess 函数在 kernel.dll 中，所以需要包含头文件 kernel.inc。将上面的程序保存，取名为 test1.asm。  
+  
+    下面我们来编译这个程序吧！先把 nasmx 下的“/bin”目录加入到 PATH 环境变量中，然后在命令行下输入：  
+  
+nasm -fwin32 test1.asm -o test1.obj  
+  
+    -fwin32：nasm 提供多种目标文件格式，在 win32 汇编中，nasm 提供 2 种目标格式，一个是 OMF 格式，nasm 编译命令为-fobj;第二个是微软提供的一种 COFF（Common Object File Formt：能用目标文件格式）格式的一种变体，命令为-fwin32。  
+    -o：指定输出目标文件名  
+    编译成功后会生成一个名为 test1.obj 的目标文件。  
+  
+    接下来我们链接这个程序。  
+  
+golink /entry \_main test1.obj kernel32.dll  
+  
+    当前 nasmx 提供的链接器为 golink。  
+    /entry \_main：设置程序入口点指向\_main。  
+    test1.obj：链接 test1.obj 文件。  
+    kernel32.dll：指明链接时需要的库文件，多个库文件用空格分隔。  
+  
+    生成了可执行文件 test1.exe。链接器的工作就是根据引入库往目标文件中加入重定位信息，最后产生可执行文件。这个文件只调用了 ExitProcess 函数，所以运行后屏幕上什么都没有。但是它却是一个真正的 Windows 程序，它的大小有 1,536 bytes。  
+  
+    下面我们调用一个消息框。该函数的原型如下：  
+  
+MessageBox PROTO hwnd: DWORD, lpText: DWORD, lpCaption: DWORD, uType:DWORD  
+  
+    hwnd：是父窗口的句柄。句柄代表你引用的窗口的一个地址指针。它的值对你编 Windows 程序并不重要（如果你想成为高手则是必须的），你只要知道它代表一个窗口。当你要对窗口做任何操作时，必须要引用该 窗口的指针。  
+    lpText：是指向你要显示的文本的指针。指向文本串的指针事实上就是文本串的首地址。  
+    lpCaption：是指向你要显示的对话框的标题文本串指针。  
+    uType：是显示在消息框窗口上的小图标的类型。  
+  
+下面是完整的源程序：  
+  
+%include '..\\inc\\nasmx.inc'      
+%include '..\\inc\\win32\\windows.inc'  
+%include '..\\inc\\win32\\kernel32.inc'  
+%include '..\\inc\\win32\\user32.inc'  
+  
+entry    start  
+  
+\[section .text\]  
+proc     start  
+  invoke MessageBoxA, dword NULL, dword szText, dword szCaption, dword MB\_OK  
+  invoke ExitProcess, dword NULL  
+endproc  
+  
+\[section .data\]  
+  szCaption  db  "Win32-Nasm NO.2",0x0  
+  szText    db  "Hello!Win32 Nasm!",0x0  
+  
+    编译链接上面的程序，得到可执行文件。运行，窗口上弹出了一个消息框，上面有一行字“Hello!Win32 Nasm!”哈哈，兴奋吧？我们用汇编写出了一个小程序！注意：这里我们使用的是 MessageBoxA，还记得上面说的“A”和“W”的区别吧？由于 nasm 中是直接取全局变量的地址，所以在 invoke 时直接写上变量名就可以了。当然，nasmx 中定义了一个无值的 offset 宏，可以加在 dword 的后面：dword offset szText。

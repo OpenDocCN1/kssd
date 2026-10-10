@@ -1,0 +1,118 @@
+
+
+# 深入浅出指令编码之二：指令格式(3)
+
+> 原文：[`www.pediy.com/kssd/pediy10/77757.html`](https://www.pediy.com/kssd/pediy10/77757.html)
+
+**二、  增强指令功能**  
+一些 Prefix 对 Opcode 进行补充，增强指令的功能，优化指令执行，看下面这段 c 代码：  
+
+引用: char \*move\_char(char \*d, char \*s, unsigned count)  
+{  
+　　　　char \*p = d;  
+　　　　while (count--)  
+　　　　　　　　\*d++ = \*s++;  
+  
+　　　　return p;  
+} 
+
+这是典型的、经典的字符串复制 c 代码，对应以下类似的汇编代码：  
+
+引用: move\_char:  
+        push ebp  
+        mov ebp, esp  
+        sub esp, 0xc  
+        mov eax, \[ebp+8\]  
+        mov edi, eax  
+        mov esi, \[ebp+0xc\]  
+        mov ecx, dword ptr \[ebp+0x10\]  
+  
+move\_loop:  
+        mov al, byte ptr \[esi\]  
+        mov byte ptr \[edi\], al  
+        inc esi  
+        inc edi  
+        dec ecx  
+        test ecx,ecx  
+        jnz move\_loop  
+  
+        mov esp, ebp  
+        pop ebp  
+        ret 
+
+上面的代码性能低下，是很死板的实现，优化的空间巨大。  
+x86 为串提供了相应的串操作指令（ins,outs,lods,stos,scas,cmps），对这些串指令提供 prefix 来增强和优化这些指令：  
+● F3： rep prefix 或 repe prefix  
+● F2： repne prefix  
+  
+  
+**1、rep prefix**  
+重复进行串操作，仅应用于 ins,outs,movs,lods,stos 这些不改变标志位的串指令，结束条件是 ECX 为 0。  
+使用串操作及 rep prefix 上面的汇编代码可简单如下：  
+move\_char:  
+… …  
+mov eax, \[ebp+8\]  
+mov edi, eax  
+mov esi, \[ebp+0xc\]  
+mov ecx, \[ebp+0x10\]  
+rep movsb… …  
+  
+rep movsb 的操作原理和上面的 C 代码一致，下面是伪码：  
+
+引用: while (ecx != 0) {  
+    c = ds:\[esi\];  
+    es:\[edi\] = c;  
+    esi = esi + 1  
+    edi = edi + 1  
+    ecx = ecx  1;  
+} 
+
+**2、repe prefix**  
+F3 的另个 prefix 意思是 repe/repz，用于改变标志位的串操作：scas,cmps　意思是当相等并且循环次数（ecx）不为 0 时进行重复操作。  
+结束条件是 ecx 为 0 或者 ZF 标志位为 0，或者说是循环条件是（ecx 不为 0,并且 ZF 标志位为 1）  
+常见运用一些跳过字符的逻辑上，如下面 C 代码，用于截除串前面空格  
+
+引用: char \*trim(char \*s)  
+{  
+　　　　while (\*s && \*s == ‘ ‘) s++;  
+　　　　return s;  
+} 
+
+而用伪码表示为：  
+
+引用: While (ecx != 0 and ZF = 1) {  
+　　　　Ecx = ecx  1;  
+　　　　cmps  
+} 
+
+rep 与 repe/repz 是相同的 prefix，作用不用体现在对串指操作上：  
+movsb 的 opcode 是 A4，scasb 的 opcode 是 AE，对于下面的 encode：  
+F3 A4：这时 F3 prefix 是 REP  
+F3 AE：这时 F3 prefix 是 REPZ  
+  
+  
+**3、  repne/repnz　prefix**  
+F2：这个 prefix 是 repne/repnz，意思是循环次数(ecx)不为 0 并且 ZF=0 时重复操作。结束条件是：ecx＝0 或者 ZF=1，同样也是用于改变标志位的串操作 scas 和 cmps  
+常见一些查找字符的逻辑上，如下面 C 代码：  
+
+引用: char \*get\_c(char \*s, char c)  
+{  
+　　　　while (\*s && \*s != c) s++;  
+　　　　return s;  
+} 
+
+而用伪码表示为：  
+
+引用: While (ecx !=0 and ZF != 1) {  
+　　　　Ecx = ecx  1;  
+　　　　cmps  
+} 
+
+  
+**三、  附加功能（LOCK）**  
+对于写内存的一些指令增加了锁地址总线的功能，这些写内存的指令如常见的 mov，add 等指令，通过 Lock prefix 来实现这功能，使用 Lock prefix 将会使 processor 产生 LOCK#　信号锁地址总线  
+F0：LOCK prefix 仅作用于写内存操作的指令上，也就是说：目标操作数为内存的指令。  
+  
+  
+到此 x86 prefix　讲解完毕  
+下一篇幅继续讲解 x64 prefix ------- REX prefix，因内容较多故单独讲解

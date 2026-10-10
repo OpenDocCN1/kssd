@@ -1,0 +1,103 @@
+
+
+# ShellProtect
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6734.htm`](https://www.pediy.com/kssd/pediy06/pediy6734.htm)
+
+【破解作者】 clide2000  
+【使用工具】 OD,LordPE,ImportREC16  
+【破解平台】 Win9x/NT/2000/XP  
+【软件名称】 unpackit.exe  
+【软件简介】 专门练习脱 ShellProtect 壳的目标文件  
+【加壳方式】 ShellProtect   
+【原文链接】[`bbs.pediy.com/showthread.php?s=&threadid=6859 `](http://bbs.pediy.com/showthread.php?s=&threadid=6859)  
+【破解声明】 我是一只小菜鸟，偶得一点心得，愿与大家分享：）  
+\--------------------------------------------------------------------------------  
+【破解内容】  
+  
+  
+  
+OD 载入后停在,设置忽略所有的异常.F8 单步执行,当执行到 00405002 一行处时,观察当前堆栈  
+00405000 >  90                nop  
+00405001    60                pushad                   
+00405002    68 0E204000       push Unpackit.0040200E  ;执行完这句后,看看堆栈  
+00405007    E8 23010000       call Unpackit.0040512F  
+0040500C    FFE0              jmp eax  
+0040500E    81EC 00010000     sub esp, 100  
+00405014    8BEC              mov ebp, esp  
+00405016    EB 01             jmp short Unpackit.00405019  
+00405018    E8 8B9D2001       call 0160EDA8  
+0040501D    0000              add byte ptr ds:\[eax\], al  
+0040501F    4B                dec ebx  
+00405020    EB 01             jmp short Unpackit.00405023  
+00405022    E8 53E83103       call 0372387A  
+00405027    0000              add byte ptr ds:\[eax\], al  
+  
+行到 00405002 一行处时时堆栈内容如下:  
+0012FFA4   FFFFFFFF  
+0012FFA8   77F5166A  RETURN to ntdll.77F5166A from ntdll.77F78C4E  
+0012FFAC   0012FFF0  
+0012FFB0   0012FFC4    ;看这里,可以用 Esp 定律了  
+0012FFB4   7FFDF000  
+0012FFB8   7FFE0304  
+0012FFBC   0012FFB0  
+0012FFC0   00000000  
+  
+在命令行下 hr 12ffb0 硬件断点,F9 运行  
+中断在  
+0040511F   /EB 01             jmp short Unpackit.00405122  ;中断在此,F8 后,来到 00405122  
+00405121   |E8 E97F0300       call 0043D10F  
+00405126    006A 00           add byte ptr ds:\[edx\], ch  
+00405129    FF95 A7000000     call dword ptr ss:\[ebp+A7\]  
+0040512F    EB 01             jmp short Unpackit.00405132  
+00405131    E8 C8000000       call Unpackit.004051FE  
+00405136    E8 00000000       call Unpackit.0040513B  
+0040513B    58                pop eax  
+0040513C    2D 3B214000       sub eax, Unpackit.0040213B  
+00405141    EB 01             jmp short Unpackit.00405144  
+00405143    E8 034508C9       call C948964B  
+00405148    C2 0400           retn 4  
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+从 0040511F 跳到这里  
+00405122   /E9 7F030000       jmp Unpackit.004054A6  ;断续按一下 F8,跳到 004054A6  
+00405127   |6A 00             push 0  
+00405129   |FF95 A7000000     call dword ptr ss:\[ebp+A7\]  
+0040512F   |EB 01             jmp short Unpackit.00405132  
+00405131   |E8 C8000000       call Unpackit.004051FE  
+00405136   |E8 00000000       call Unpackit.0040513B  
+0040513B   |58                pop eax  
+0040513C   |2D 3B214000       sub eax, Unpackit.0040213B  
+00405141   |EB 01             jmp short Unpackit.00405144  
+00405143   |E8 034508C9       call C948964B  
+00405148   |C2 0400           retn 4  
+  
+  
+从 00405122 又跳到了这  
+004054A6    68 E0164000       push Unpackit.004016E0     ;将 OEP 压入堆栈  
+004054AB    C3                retn                       ;跳到 OEP  
+  
+最终来到 OEP 处:  
+004016E0  /.  55              push ebp  
+004016E1  |.  8BEC            mov ebp, esp  
+004016E3  |.  6A FF           push -1  
+004016E5  |.  68 F8244000     push Unpackit.004024F8  
+004016EA  |.  68 66184000     push <jmp.&MSVCRT.\_except\_handler3>;  SE handler installation  
+004016EF  |.  64:A1 00000000  mov eax, dword ptr fs:\[0\]  
+004016F5  |.  50              push eax  
+004016F6  |.  64:8925 0000000>mov dword ptr fs:\[0\], esp  
+004016FD  |.  83EC 68         sub esp, 68  
+00401700  |.  53              push ebx  
+00401701  |.  56              push esi  
+00401702  |.  57              push edi  
+00401703  |.  8965 E8         mov dword ptr ss:\[ebp\-18\], esp  
+00401706  |.  33DB            xor ebx, ebx  
+00401708  |.  895D FC         mov dword ptr ss:\[ebp\-4\], ebx  
+0040170B  |.  6A 02           push 2  
+0040170D  |.  FF15 90214000   call dword ptr ds:\[<&MSVCRT.\_\_set\_>;  MSVCRT.\_\_set\_app\_type  
+00401713  |.  59              pop ecx  
+  
+此时用 LorPE 在 004016E0 此 OEP 处 dump 出程序.然后用 ImportREC16 加载当前这个进程,OEP 输入 16e0,点"IAT AutoSearch"按钮,会找到全部 API 调用,最后修复 dump 出和程序.成功运行  
+\--------------------------------------------------------------------------------  
+【版权声明】 本文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢! 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

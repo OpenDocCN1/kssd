@@ -1,0 +1,336 @@
+
+
+# "一 UPX 壳程序脱壳后的迷惑问题" 详解(高手莫入)
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-580.htm`](https://www.pediy.com/kssd/pediy08/pediy8-580.htm)
+
+"一 UPX 壳程序脱壳后的迷惑问题" 详解  
+  
+【作者声明】：初学 Crack，只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！  
+  
+【破解作者】：blackeyes  
+  
+  
+  
+【破解过程】：  
+  
+  
+ 只是本人一只菜鸟, 在此将调试的过程及思路写出来, 是想让和我一样的菜鸟来分享一下, 高手莫笑.  
+  
+  
+1. 脱壳 + 补上附加数据  
+  
+用 PEiD 查壳: UPX, 手动脱壳没有任何难度, 在此略过.   
+  
+程序有附加数据, 直接运行脱壳后的程序, 有错.   
+  
+下面将原程序叫 sw.exe, 脱壳后的程序叫 new.exe  
+  
+这是刚脱壳修复后的一些大小:  
+  
+                    sw.exe                     new.exe  
+\----------------------------------------------------------  
+OEP                 00476760                   004411E8  
+PE size             2A600                      7B000  
+file size           4CD0D                      7B000  
+附加数据大小        2270D                      0  
+  
+  
+将附加数据从 sw.exe 的文件尾 COPY 到 new.exe 的 文件尾, 变成这样:  
+  
+                    sw.exe                     new.exe  
+\----------------------------------------------------------  
+OEP                 00476760                   004411E8  
+PE size             2A600                      7B000  
+file size           4CD0D                      9E70D  
+附加数据大小        2270D                      2270D  
+  
+即脱壳后, 文件变大了: 7B000 - 2A600 = 50A00  
+  
+  
+再运行 new.exe 还是有错.  
+  
+  
+2. ollydbg 跟踪 + 修复附加数据  
+  
+用 OD 载入 sw.exe, 先 bp CreateFileA 下断, 再 F9 运行,   
+  
+断在 KERNEL32.CreateFileA, 这时看右下 STACK Window :  
+  
+0011E66C   004499C5  /CALL to CreateFileA from new.004499BF  
+0011E670   0012E730  |FileName = "C:\\Temp\\new.exe"  
+0011E674   80000000  |Access = GENERIC\_READ  
+0011E678   00000003  |ShareMode = FILE\_SHARE\_READ|FILE\_SHARE\_WRITE  
+0011E67C   0011E698  |pSecurity = 0011E698  
+0011E680   00000003  |Mode = OPEN\_EXISTING  
+0011E684   00000080  |Attributes = NORMAL  
+0011E688   00000000  \\hTemplateFile = NULL  
+  
+再 Alt-F9 返回, 返回到 004499C5, FileHandle = 000000FC  
+  
+004499BC   FF75 08             PUSH DWORD PTR SS:\[EBP+8\]  
+004499BF   FF15 B8DA4600       CALL DWORD PTR DS:\[46DAB8\]               ; KERNEL32.CreateFileA  
+004499C5   8BF0                MOV ESI,EAX                              ; 返回这, EAX=000000FC  
+  
+由于我们下面要跟踪程序对 sw.exe 的读的操作情况, 再设两个断点  
+  
+  bp SetFilePointer  
+  bp ReadFile  
+  
+然后 F9 运行,   
+  
+断在 KERNEL32.SetFilePointer, 看右下, 文件指针 到 FILE\_END - 12:  
+  
+0011E6A8   00443E51  /CALL to SetFilePointer from new.00443E4B  
+0011E6AC   000000FC  |hFile = 000000FC (window)  
+0011E6B0   FFFFFFF4  |OffsetLo = FFFFFFF4 (-12.)  
+0011E6B4   00000000  |pOffsetHi = NULL  
+0011E6B8   00000002  \\Origin = FILE\_END  
+  
+再 Alt-F9 返回, 返回到 00443E51  
+  
+00443E40   FF7424 14           PUSH DWORD PTR SS:\[ESP+14\]  
+00443E44   6A 00               PUSH 0  
+00443E46   FF7424 18           PUSH DWORD PTR SS:\[ESP+18\]  
+00443E4A   50                  PUSH EAX  
+00443E4B   FF15 B4DA4600       CALL DWORD PTR DS:\[46DAB4\]               ; KERNEL32.SetFilePointer  
+00443E51   8BF8                MOV EDI,EAX                              ; return here  
+  
+F9 运行, 断在 KERNEL32.ReadFile, 看右下, 要读 1000(4096) bytes:  
+  
+0011E664   0044428D  /CALL to ReadFile from new.00444287  
+0011E668   000000FC  |hFile = 000000FC (window)  
+0011E66C   00D8C6D8  |Buffer = 00D8C6D8  
+0011E670   00001000  |BytesToRead = 1000 (4096.)  
+0011E674   0011E688  |pBytesRead = 0011E688  
+0011E678   00000000  \\pOverlapped = NULL  
+  
+再 Alt-F9 返回, 返回到 0044428D, 实际上读的数据为 0C bytes, 位于 00D8C6D8  
+  
+0044427E    8B07            MOV EAX,DWORD PTR DS:\[EDI\]  
+00444280    FF75 10         PUSH DWORD PTR SS:\[EBP+10\]  
+00444283    52              PUSH EDX  
+00444284    FF3430          PUSH DWORD PTR DS:\[EAX+ESI\]  
+00444287    FF15 B0DA4600   CALL DWORD PTR DS:\[<&kernel32.ReadFile>\] ; KERNEL32.ReadFile  
+0044428D    85C0            TEST EAX,EAX  
+  
+这是读到的数据, 共 0C(12)  bytes:  
+  
+00D8C6D8  20 11 A8 AA AA 0C A8 AA 2F EF C7 5B 0D F0 AD BA   ......./..\[....  
+  
+我们要看这些数据要怎么处理, 在数据窗中对 00D8C6D8-00D8C6E3 的 0C bytes 下 memory access 断点:  
+  
+F9 运行, 先断在 0044418A:  
+  
+0044418A    0FB601          MOVZX EAX,BYTE PTR DS:\[ECX\]                 ; EAX = 20  
+0044418D    41              INC ECX  
+0044418E    890E            MOV DWORD PTR DS:\[ESI\],ECX                  ; ESI = 456800  
+00444190    5E              POP ESI  
+00444191    C3              RETN                                        ; return 43F94E  
+  
+F8 单步几下,  
+0043F949    E8 7E470000     CALL SW.004440CC  
+0043F94E    83F8 FF         CMP EAX,-1                                  ; 上面返回这  
+0043F951    59              POP ECX  
+0043F952    74 28           JE SHORT SW.0043F97C  
+0043F954    8803            MOV BYTE PTR DS:\[EBX\],AL                    ; 20 ==> \[12E844\]  
+  
+F9 运行, 接着又断在 0043E500:  
+  
+0043E500    8A06            MOV AL,BYTE PTR DS:\[ESI\]                    ; 11  
+0043E502    8807            MOV BYTE PTR DS:\[EDI\],AL                    ;    ==> \[12E845\]  
+0043E504    8A46 01         MOV AL,BYTE PTR DS:\[ESI+1\]                  ; A8  
+0043E507    8847 01         MOV BYTE PTR DS:\[EDI+1\],AL                  ;    ==> \[12E846\]  
+0043E50A    8A46 02         MOV AL,BYTE PTR DS:\[ESI+2\]                  ; AA  
+0043E50D    8847 02         MOV BYTE PTR DS:\[EDI+2\],AL                  ;    ==> \[12E847\]  
+0043E510    8B45 08         MOV EAX,DWORD PTR SS:\[EBP+8\]  
+0043E513    5E              POP ESI  
+0043E514    5F              POP EDI  
+0043E515    C9              LEAVE  
+0043E516    C3              RETN  
+  
+  
+F8 单步步过 0043E50D 后, 我们看到, 前 4 个 bytes: 20 11 A8 AA, 已经在 \[12E844\] 中,  
+  
+这时对 12E844 下硬件 access 断点, F9 运行, 断在 0043D50F  
+  
+看看下面的 CODE, 即将 AAA81120 解密成 0002BB8A,  
+  
+同理, 很快就可以跟到中间的 4 bytes 与最后的 4 个 bytes 分别在下面解密:  
+  
+@0043D51E:    AAA80CAA xor AAAAAAAA = 0002A600  
+@0043D52D:    5BC7EF2F xor AAAAAAAA = F16D4585  
+  
+所以下面的一段 CODE 很关键, 从 0043D52D 起就可以 F8 单步跟一下, 看看程序都在干什么,  
+  
+其中 0043D536 处的  CALL SW.0043F774  和 0043D56E 处的  CALL SW.0043F871  
+  
+最终都会 CALL KERNEL32.ReadFile(), 这个要稍微注意一下.  
+  
+很明显, 这段 CODE 是一个循环, 从 sw.exe 文件的开头连续读出数据, 进行计算, 最后  
+  
+在 0043D58D 循环结束, 然后在 0043D595 有一个比较.  
+  
+0043D4F2   E8 7D220000         CALL SW.0043F774  
+0043D4F7   FF36                PUSH DWORD PTR DS:\[ESI\]  
+0043D4F9   8D45 FC             LEA EAX,DWORD PTR SS:\[EBP-4\]  
+0043D4FC   53                  PUSH EBX  
+0043D4FD   6A 04               PUSH 4  
+0043D4FF   50                  PUSH EAX  
+0043D500   E8 6C230000         CALL SW.0043F871  
+0043D505   FF36                PUSH DWORD PTR DS:\[ESI\]  
+0043D507   8D5E 04             LEA EBX,DWORD PTR DS:\[ESI+4\]  
+0043D50A   BF AAAAAAAA         MOV EDI,AAAAAAAA                         ; \*\*\*\*\*\*  
+0043D50F   317D FC             XOR DWORD PTR SS:\[EBP-4\],EDI             ; \*\*\* AAA81120 xor AAAAAAAA = 0002BB8A \*\*\*  
+0043D512   6A 01               PUSH 1  
+0043D514   6A 04               PUSH 4  
+0043D516   53                  PUSH EBX  
+0043D517   E8 55230000         CALL SW.0043F871  
+0043D51C   FF36                PUSH DWORD PTR DS:\[ESI\]  
+0043D51E   313B                XOR DWORD PTR DS:\[EBX\],EDI               ; \*\*\* AAA80CAA xor AAAAAAAA = 0002A600 \*\*\*  
+0043D520   8D45 F4             LEA EAX,DWORD PTR SS:\[EBP-C\]  
+0043D523   6A 01               PUSH 1  
+0043D525   6A 04               PUSH 4  
+0043D527   50                  PUSH EAX  
+0043D528   E8 44230000         CALL SW.0043F871  
+0043D52D   317D F4             XOR DWORD PTR SS:\[EBP-C\],EDI             ; \*\*\* 5BC7EF2F xor AAAAAAAA = F16D4585 \*\*\*  
+0043D530   33FF                XOR EDI,EDI  
+0043D532   57                  PUSH EDI  
+0043D533   57                  PUSH EDI  
+0043D534   FF36                PUSH DWORD PTR DS:\[ESI\]  
+0043D536   E8 39220000         CALL SW.0043F774                         ; 这个 CALL 会最终 CALL ReadFile()  
+0043D53B   8B45 FC             MOV EAX,DWORD PTR SS:\[EBP-4\]             ; 数据 total size = 0002BB8A  
+0043D53E   83C4 48             ADD ESP,48  
+0043D541   85C0                TEST EAX,EAX  
+0043D543   7E 4A               JLE SHORT SW.0043D58F  
+  
+0043D545   8D8F 00000100       LEA ECX,DWORD PTR DS:\[EDI+10000\]         ; 这儿是循环开始  
+0043D54B   3BC8                CMP ECX,EAX  
+0043D54D   7E 07               JLE SHORT SW.0043D556  
+0043D54F   2BC7                SUB EAX,EDI  
+0043D551   8945 0C             MOV DWORD PTR SS:\[EBP+C\],EAX  
+0043D554   EB 07               JMP SHORT SW.0043D55D  
+0043D556   C745 0C 00000100    MOV DWORD PTR SS:\[EBP+C\],10000           ; UNICODE "ALLUSERSPROFILE=C:\\Documents and Settings\\All Users"  
+0043D55D   FF36                PUSH DWORD PTR DS:\[ESI\]  
+0043D55F   037D 0C             ADD EDI,DWORD PTR SS:\[EBP+C\]  
+0043D562   8D85 E8FEFEFF       LEA EAX,DWORD PTR SS:\[EBP+FFFEFEE8\]  
+0043D568   FF75 0C             PUSH DWORD PTR SS:\[EBP+C\]  
+0043D56B   6A 01               PUSH 1  
+0043D56D   50                  PUSH EAX  
+0043D56E   E8 FE220000         CALL SW.0043F871                         ; 这个 CALL 会最终 CALL ReadFile()  
+0043D573   83C4 10             ADD ESP,10  
+0043D576   8D85 E8FEFEFF       LEA EAX,DWORD PTR SS:\[EBP+FFFEFEE8\]  
+0043D57C   8D4D F0             LEA ECX,DWORD PTR SS:\[EBP-10\]  
+0043D57F   FF75 0C             PUSH DWORD PTR SS:\[EBP+C\]  
+0043D582   50                  PUSH EAX  
+0043D583   E8 25060000         CALL SW.0043DBAD                         ; 计算 CRC  
+0043D588   8B45 FC             MOV EAX,DWORD PTR SS:\[EBP-4\]  
+0043D58B   3BF8                CMP EDI,EAX                              ; 已经计算到 0002BB8A 了吗?  
+0043D58D  ⁷C B6               JL SHORT SW.0043D545                     ; 没有就循环  
+  
+0043D58F   8B45 F4             MOV EAX,DWORD PTR SS:\[EBP-C\]             ; F16D4585  
+0043D592   3B45 F0             CMP EAX,DWORD PTR SS:\[EBP-10\]            ; 1C3B0A28 = AAAAAAAA xor B5695605  
+0043D595   74 05               JE SHORT SW.0043D59C                     ; \*\* 要跳 \*\*\*  
+  
+刚开始从文件尾读出 0C(12) bytes 的数据解密得到 3 个 DWORD, 我们把它们分别叫 X,Y,Z  
+  
+跟完这段 CODE, 我们知道其中 X 是一长度, 表示从 sw.exe 的开始读出 X bytes 的数据, 算出一个结果 U, 放在\[EBP-10\]中,   
+  
+而 Z 是一个校验值, 放在\[EBP-0C\]中, 最后 U 应该 等于 Z. 这一点可以用两个 OD, 同时跟 sw.exe 和 new.exe, 很容易就  
+  
+可以发现.  
+  
+(跟 sw.exe), 从 0043D595 跳过后, F9 运行, 会断在 KERNEL32.SetFilePointer  
+  
+看右下 STACK 窗, 文件指针从 FILE\_BEGIN 移动到 2A600, 这是附加数据的开始  
+  
+0011E6A8   00443E51  /CALL to SetFilePointer from SW.00443E4B  
+0011E6AC   000000FC  |hFile = 000000FC (window)  
+0011E6B0   0002A600  |OffsetLo = 2A600 (173568.)  
+0011E6B4   00000000  |pOffsetHi = NULL  
+0011E6B8   00000000  \\Origin = FILE\_BEGIN  
+  
+注意, 它是从 FILE\_BEGIN 移动到 2A600, 而不是从文件尾向前移动!!! 所以脱壳后,   
+  
+读 new.exe 时,应将文件指针从 FILE\_BEGIN 移动到 7B000, 否则从 sw.exe 和从 new.exe  
+   
+读出的数据将不一样. 而且移动的偏移量就是解密后的第二个 DWORD, 即前边说的 Y  
+  
+再跟, 就可以发现程序对 sw.exe 有很多的读, 都是在附加数据中,   
+  
+0011E664   0044428D  /CALL to ReadFile from SW.00444287  
+0011E668   000000FC  |hFile = 000000FC (window)  
+0011E66C   00D8C6C8  |Buffer = 00D8C6C8  
+0011E670   00000200  |BytesToRead = 200 (512.)  
+0011E674   0011E688  |pBytesRead = 0011E688  
+0011E678   00000000  \\pOverlapped = NULL  
+  
+0011E668   00443E51  /CALL to SetFilePointer from SW.00443E4B  
+0011E66C   000000FC  |hFile = 000000FC (window)  
+0011E670   00000000  |OffsetLo = 0  
+0011E674   00000000  |pOffsetHi = NULL  
+0011E678   00000001  \\Origin = FILE\_CURRENT  
+  
+我们要保证的是脱壳后的程序对 new.exe 读的是相同位置的数据, 即从文件尾起定位的话, offset  
+  
+是一样的, 但从文件头起定位的话, offset 要不一样, 即文件大了多少, offset 就应该大多少.  
+  
+附加数据的最后 0C bytes 应该这样修复:  
+  
+sw.exe 的 最后 0C bytes:  
+  
+   20 11 A8 AA-AA 0C A8 AA-2F EF C7 5B   
+  
+解密(XOR AA)后, 为:  
+  
+  8A BB 02 00-00 A6 02 00-85 45 6D F1  
+    
+即 size=0002BB8A, offset=0002A600, crc=F16D4585  
+  
+由于脱壳后, 文件 new.exe 变大了 50A00, 所以 size = 0007C58A, offset= 0007B000, CRC = .....  
+  
+加密(XOR AA)后, 为:  
+  
+  20 6F AD AA-AA 1A AD AA-xx xx xx xx  
+  
+将 new.exe 的最 0C bytes 改成上面的值,  其中 CRC 部分, 可以先随便填一个值, 然后 用 OD 在 0043D592, 就  
+  
+可以看到 new.exe 的 CRC 值, 再将看到的 CRC XOR AAAAAAAA, 重新填回 new.exe, 然后直接运行 new.exe,   
+  
+可以发现已经没有问题了.  
+  
+3. 总结:  
+  
+  1.) 对有附加数据的程序脱壳, 要先脱壳, 修复 IAT, 再补上附加数据,  
+  
+  2.) 补上的附加数据大小应该和原程序的附加数据大小一样,  
+  
+  3.) 附加数据大小可以这样计算: 文件大小 - (EXE 的最后一个段的 Raw\_Offset + Raw\_Size),   
+     
+      其中的 Raw\_Offset 和 Raw\_Size  可从任何的 EXE 编辑器中看到.  
+  
+  4.) 如果简单补上附加数据不行的话, 要调试, 主要的断点 就是 SetFilePointer 和 ReadFile.  
+  
+  5.) 然后就是监视读到的数据都干了些什么, 主要是下 memory 断点. 
+
+请问  
+sw.exe 读 2A600  new.exe 应读 7B000 是怎么修复的？  
+文章中只对附加数据的最后 0C bytes 进行了修复！  
+  
+多谢 
+
+sw.exe 的 最后 0C bytes:  
+  
+   20 11 A8 AA-AA 0C A8 AA-2F EF C7 5B   
+  
+解密(XOR AA)后, 为:  
+  
+  8A BB 02 00-00 A6 02 00-85 45 6D F1  
+    
+即 size=0002BB8A, offset=0002A600, crc=F16D4585  
+  
+由于脱壳后, 文件 new.exe 变大了 50A00, 所以 size = 0007C58A, offset= 0007B000, CRC = .....  
+  
+加密(XOR AA)后, 为:  
+  
+  20 6F AD AA-AA 1A AD AA-xx xx xx xx

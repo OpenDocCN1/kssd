@@ -1,0 +1,147 @@
+
+
+# QQ 对战平台挤房改造
+
+> 原文：[`www.pediy.com/kssd/pediy11/105945.html`](https://www.pediy.com/kssd/pediy11/105945.html)
+
+【文章标题】: 改造 QQ 对战平台功能  
+【文章作者】: wxxw  
+【软件名称】: QQ 对战平台  
+【保护方式】: 无壳  
+【编写语言】: Microsoft Visual C++ 6.0   
+【使用工具】: PEID 0.95  Olldbg1.10   lordpe  
+【操作平台】: XP sp3  
+【软件介绍】: 不用介绍了吧  
+【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!  
+\--------------------------------------------------------------------------------  
+【详细过程】  
+    受 stalker 的帖子 [`bbs.pediy.com/showthread.php?t=104655`](http://bbs.pediy.com/showthread.php?t=104655) 的影响，也想弄弄 qq 对战平台，因为我是网通线路，平常还打打 CS，而广东网通区只有一个，且只有两个房间，经常人满为患，所以想想怎么弄来代替手动挤房间  
+  
+首先猜想下进房间的过程，当我们点击房间或右键菜单，程序向服务器发送进房间请求，根据服务器返回信息开始分支，如果满，则跳去弹出人满对话框，如果不满，发送获取房间数据请求（比如在线玩家，服务器等），并初始化房间对话框并显示。  
+  
+好了，现在设想下如何改造，我们想在服务器返回信息为人满时直接跳转到发送进房间请求代码或者改代码为发送右键菜单的 WM\_COMMAND 消息  
+  
+设想好了开始动工，用 od 载入运行，下 WM\_COMMAND 消息断点,然后在房间上点击右键菜单“进入房间”，断下来来到消息处理函数 00437613,单步到  
+
+代码:
+
+```
+004377CE  |> \\FF75 14       PUSH DWORD PTR SS:\[EBP+14\]               ; /lParam; Default case of switch 00437734
+004377D1  |.  FF75 10       PUSH DWORD PTR SS:\[EBP+10\]               ; |wParam
+004377D4  |.  53            PUSH EBX                                 ; |Message
+004377D5  |.  57            PUSH EDI                                 ; |hWnd
+004377D6  |.  FF76 04       PUSH DWORD PTR DS:\[ESI+4\]                ; |PrevProc
+004377D9  |>  FF15 BC4A4400 CALL DWORD PTR DS:\[<&USER32.CallWindowPr>; \\CallWindowProcA
+
+```
+
+才发现该消息是在 MFC42 里处理的，堆栈数据如下：  
+0012FDAC   6BCB136F  |PrevProc = MFC42.#?AfxWndProcBase@@YGJPAUHWND\_\_@@IIJ@Z\_1579  
+0012FDB0   0036030A  |hWnd = 0036030A (class='Afx:400000:3',parent=002F02B8)  
+0012FDB4   00000111  |Message = WM\_COMMAND  
+0012FDB8   000007D6  |Notify = MENU/BN\_CLICKED... ID = 2006.  
+0012FDBC   00000000  \\hControl = NULL  
+参看 szdbg 对 MFC 消息深入研究的牛贴 [`bbs.pediy.com/showthread.php?t=54150`](http://bbs.pediy.com/showthread.php?t=54150)  
+选择 MFC42.DLL 模块，进入函数 OnCmdMsg:CCmdTarget,  
+6BC8DA3B    E8 1EBFFFFF     CALL MFC42.#?AfxFindMessageEntry@@YGPBUA>  
+6BC8DA40    85C0            TEST EAX,EAX  
+6BC8DA42    75 04           JNZ SHORT MFC42.6BC8DA48  
+6BC8DA44    FF16            CALL DWORD PTR DS:\[ESI\]  
+6BC8DA46  ^ EB E3           JMP SHORT MFC42.6BC8DA2B  
+6BC8DA48    FF75 14         PUSH DWORD PTR SS:\[EBP+14\]  
+6BC8DA4B    FF70 10         PUSH DWORD PTR DS:\[EAX+10\]  
+6BC8DA4E    FF75 10         PUSH DWORD PTR SS:\[EBP+10\]  
+6BC8DA51    FF70 14         PUSH DWORD PTR DS:\[EAX+14\]               ; QQBattle.00414470  
+6BC8DA54    FF75 0C         PUSH DWORD PTR SS:\[EBP+C\]  
+6BC8DA57    FF75 08         PUSH DWORD PTR SS:\[EBP+8\]  
+6BC8DA5A    57              PUSH EDI  
+6BC8DA5B    E8 F5FDFFFF     CALL MFC42.?\_AfxDispatchCmdMsg@@YGHPAVCC>  
+在 6BC8DA51 下断，断下来，得到用户的处理代码 QQBattle.00414470，在 00414470 单步跟踪，可事情并不象我猜想的那样，一直执行到返回，没看到我想要的分支处理，也没看到人满对话框的出现，流程搞不清楚，陷入僵局，看来得换个思路了，猛然想到人满时它会弹出消息框，既然中间过程搞不清楚，那可以对最后弹出消息框的代码动动手脚，将它改为 SendMessage 不就行了？于是对 MFC.AfxMessageBox 和 USER32.Messagebox 下断，测试找到弹出的两个消息框代码分别如下：  
+gamelogcore.dll  
+代码:
+
+```
+00D58710    6A 00                  PUSH 0
+00D58712    6A 00                  PUSH 0
+00D58714    68 4C03DB00            PUSH GameLogC.00DB034C
+00D58719    E8 C0020300            CALL <JMP.&MFC42.#?AfxMessageBox@@YGHPBD>
+00D5871E   /EB 07                  JMP SHORT GameLogC.00D58727
+
+```
+
+battleroom.dll  
+代码:
+
+```
+035139F0    8B4424 08              MOV EAX,DWORD PTR SS:\[ESP+8\]
+035139F4    8B5424 04              MOV EDX,DWORD PTR SS:\[ESP+4\]
+035139F8    6A 00                  PUSH 0
+035139FA    50                     PUSH EAX
+035139FB    8B41 20                MOV EAX,DWORD PTR DS:\[ECX+20\]
+035139FE    52                     PUSH EDX
+035139FF    50                     PUSH EAX
+03513A00    FF15 08095503          CALL DWORD PTR DS:\[<&USER32.MessageBoxA>>; USER32.MessageBoxA
+03513A06    33C0                   XOR EAX,EAX
+03513A08    C2 2800                RETN 28
+
+```
+
+大家可能看到的地址不一样，因为每次 dll 加载基址不同  
+本来想将第一个消息框改成 sleep 函数，可是发现输入表里没这个函数，所以直接跳过算了，将代码改为  
+代码:
+
+```
+00D58710   /EB 15                  JMP SHORT GameLogC.00D58727
+
+```
+
+更改第二个消息框如下  
+代码:
+
+```
+028839F0   /E9 C1B60300     JMP BattleRo.028BF0B6
+......
+02883A00   |FF15 10098C02   CALL DWORD PTR DS:\[<&USER32.SendMessageA>; USER32.SendMessageA
+02883A06   |33C0            XOR EAX,EAX
+02883A08   |C2 2800         RETN 28
+.....
+028BF0B6    6A 00           PUSH 0
+028BF0B8    68 D6070000     PUSH 7D6                    ；右键菜单“进入房间”的 ID
+028BF0BD    68 11010000     PUSH 111                     ；WM\_COMMAND
+028BF0C2    FF35 F04F4500   PUSH DWORD PTR DS:\[454FF0\]
+028BF0C8  ^ E9 3349FCFF     JMP BattleRo.02883A00
+
+```
+
+这里需要说明的是 454FF0 里我放的是窗口句柄，为什么不直接用原来 MessageBox 的 HWND 参数呢，因为测试发现它的 HWND 参数不同我右键菜单时 WM\_COMMAND 消息里的 HWND，所以还需更改下 qqbattlezone.exe，在消息处理函数中添加保存窗口句柄代码如下：  
+代码:
+
+```
+004377CE   > \\E9 CFC60000   JMP QQBattle.00443EA2                    ;  Default case of switch 00437734
+004377D3      90            NOP                                      ; |
+004377D4   .  53            PUSH EBX                                 ; |Message
+004377D5   .  57            PUSH EDI                                 ; |hWnd
+004377D6   .  FF76 04       PUSH DWORD PTR DS:\[ESI+4\]                ; |PrevProc
+004377D9   >  FF15 BC4A4400 CALL DWORD PTR DS:\[<&USER32.CallWindowPr>; \\CallWindowProcA
+004377DF   .  EB 3F         JMP SHORT QQBattle.00437820
+.............
+00443EA2   > \\FF75 14       PUSH DWORD PTR SS:\[EBP+14\]               ; /lParam
+00443EA5   .  FF75 10       PUSH DWORD PTR SS:\[EBP+10\]               ; |wParam
+00443EA8   .  53            PUSH EBX                                 ; |Message
+00443EA9   .  57            PUSH EDI                                 ; |hWnd
+00443EAA   .  893D F04F4500 MOV DWORD PTR DS:\[454FF0\],EDI            ; 保存窗口句柄
+00443EB0   .  FF76 04       PUSH DWORD PTR DS:\[ESI+4\]                ; |PrevProc
+00443EB3   .  FF15 BC4A4400 CALL DWORD PTR DS:\<&USER32.CallWindowPr>; \\CallWindowProcA
+00443EB9   .^ E9 6239FFFF   JMP QQBattle.00437820
+
+```
+
+呵呵，大功告成，测试了一下，只要在房间上点右键“进入房间”，就会出现一进度条，不停的在重试进入，现在可以去泡杯茶，回来发现已经在房间里了  
+  
+ps:不足之处是只能在房间上用右键菜单的方式才有效，直接点击房间还不行，因为我是基于右键菜单来分析和更改的  
+  
+【总结】  
+ 我们都习惯于从头开始完整分析某个过程，实际上可以先考虑整个过程中是否有可供利用的突破口，往往会事半功倍，当然这样可能对提高自己的分析能力无益哈  
+  
+![   --------------------------------------------------------------------------------  【版权声明】: 看雪论坛首发，转载请注明作者并保持文章的完整, 谢谢!   --------------------------------------------------------------------------------上传的附件| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) || QQBattleZone.rar  
+ |

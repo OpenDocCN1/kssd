@@ -1,0 +1,212 @@
+
+
+# 一个基于数字签名的 KeygenMe（已增加注册机算法）
+
+> 原文：[`www.pediy.com/kssd/pediy10/101021.html`](https://www.pediy.com/kssd/pediy10/101021.html)
+
+名字 : 基于数字签名的 KeygenMe  
+难度 : 初级  
+信息 : 无壳、无花、无码、不防爆  
+描述 : 这是一个基于离散对数的无散列函数和消息冗余数字签名算法的 KeygenMe  
+（此签名算法是与 rockinuk 版主共同讨论获得）  
+一般情况下，为了不被做出注册机都会用 RSA、ElGamal 等公钥算法，  
+不过这些算法太简单了一跟踪 patch 掉公钥就狗屁了~~~  
+目前来说签名算法种类繁多，随便选个用来做注册算法，破解时 patch 公钥的方法就不那么好用了。  
+因为在理解了算法的基础上且获得逆算法的情况下 patch 公钥才可行。  
+这个 KeygenMe 就是用签名算法来防止做出注册机的示例，程序要在没有私钥的情况下作出注册机是不太可能的：  
+1、很多针对这类签名算法的攻击即使可以伪造有效签名也不能计算任意签名，从而做不出注册机。  
+2、算法中涉及到多个公钥（如：y1、y2），甚至可以设计成多个公钥和私钥的情况。  
+   反汇编得到的只是它的验证算法（相当于验证不定方程组的特定解），所以要写出解算法是不容易的。  
+  
+（为了便于理解程序很多地方都没有优化）  
+下面是注册机主函数：  
+/\*-------------------------------------------------------------\*/  
+/\*        － 注册机算法主函数                                \*/  
+/\*-------------------------------------------------------------\*/  
+BOOL GenRegCode( HWND hWnd)   
+{  
+  unsigned long  len=0,time\_ch=0;  
+  int i=0,j=0,i\_16=16;  
+  SYSTEMTIME systm;  
+  big p,y1,y2,g,m,temp,ii,temp1,temp2,bigName,r,s,t,x,k,x\_inv;  
+  miracl \*mip=mirsys(2048,16);  
+  
+  TCHAR szName\[MAXINPUTLEN\]={0};  
+  TCHAR szSerial\[MAXINPUTLEN\]={0};  
+  
+  len=**GetDlgItemText**(hWnd, IDC\_TXT0, szName, sizeof(szName)/sizeof(TCHAR)+1); // 取姓名  
+  if (strlen(szName)<6)  
+  {  
+    **SetDlgItemText**(hWnd, IDC\_TXT0, "用户名要求 6 位以上");  
+    return FALSE;  
+  }  
+    
+// MIRACL 大数运算库运算   
+//===================================================================================  
+  
+         
+  mip->IOBASE=16;                                // 16 进制模式  
+  g=mirvar(0);                                   // MIRACL 的大数类型  
+  p=mirvar(0);  
+  y1=mirvar(0);  
+  y2=mirvar(0);  
+  temp=mirvar(0);  
+  temp1=mirvar(0);  
+  temp2=mirvar(0);  
+  ii=mirvar(0);  
+  m=mirvar(0);  
+  r=mirvar(0);  
+  s=mirvar(0);  
+  t=mirvar(0);  
+  bigName=mirvar(0);  
+  x=mirvar(0);  
+  k=mirvar(0);  
+  x\_inv=mirvar(0);  
+  
+  
+  cinstr(p,"C7BE40C0925F840E2AD74967C77B449212A086785DD906189EE7B017CBEC9DAE429C1F9716983286555E652DFE671F2A499BF97040EA833080C5E973C09F5D61E4AFC0E919C9842C92536D2A79A785D3D3DD17285270A2E5C6595DB5AC29E44CC23820A7FC625D543756D4289D2F5E5C756919BD4AF6B577975D6B91C28FCDF3");  
+  cinstr(y1,"6FA878EDB7502A4831896C0B6D86B7EC8F8D02F2A0850DC91527FB5BB4139D23E47A0E3320322573EDDB73D40477D9CE1BD7039E75B710844DECC5ABBEC9F5DD6FB85A0DF6C84CF15148C2B4DA0B842F9834D4633223633D05111C3BDB2D94C615BA24D09DC0F107D4183410DC5255F206BFF113D5642E4E3EDDC67942A9D02F");  
+  cinstr(y2,"B79743EEB4299D82C231BF5A1EB6535B59DCE35ABF52E8A33A7E6A83CFB0AB78EB8DFBF4AE7A2535B7DC3922FC9F53C694E0B84FDEEE6EFA337E4D9ED904D40C6F0D349A9E1573D64E72E8B92E48C2A0F781D1ADAA03250A396FC758769EE600230990C4971F222DD3A347184388ADC7BB9810DA70EE9FDA33E829843D14DC4A");                                   
+  cinstr(g,"2AA12361098628D6E92AC9A75AF621A7633290A30DA48A6884B47963EFD8C3D3A7C02EA34719807484827841B8E8E9815FBC3DF9A131B07A76787CE1246F143F752185B7AFF8C5032458C9AAC5B5A46CB9C7B1EF002A61100BA0382C39CB13FA5CA140EFD96EA7F9CA94F83DD2766AC45C5D006838E43E5A91AC7A7E63467B2");   
+  cinstr(x,"7940B690E8CF6324681E982AE316E1E9C7B56B80FBC280E36C2FE981C7B7AA53CE27D0B0E38C3207DCCC86633E9F71E72BC529397C5EEB315F16C12E14751497F1950F4F0AB97C5956D02B98F43176DC49E7677B4DDF2CCC1D5CF9F55124D5F200AF585789C7F2CE13A979BB95C8AA8825D8D3B875AD6A4EE4FB014D26D896F3");  
+  cinstr(x\_inv,"70B695769F019679D82B39526267CB17ACD305B4EF13DD0F4A497B204340F40F86E7D230C12FB501C56308B5567067A1A2BB16C59CF3D606F51B75FC2869493964BC8FC8ABD254D81B4E871089BB8632FFB2E3FFDB3558AB87C9B6EB2D08C1171996B60BCE33C2ABF37D86F4121FABBBEA204F89A20C4918607743596ACD07A3");  
+  cinstr(ii,"1");  
+// 初始化完成  
+//m 的结构---------|----------|--------|  
+//256------------200--------100-------0  
+//------time------|-randomly-|-szName-|  
+  bytes\_to\_big(len,szName,bigName);                    // 将姓名转换成大数  
+  copy(bigName,m);                  // m=bigName  
+  **GetSystemTime**(&systm);  
+  time\_ch=systm.wYear;  
+  if((time\_ch<=2000)||(time\_ch>=2100)) goto end;  
+  time\_ch=(time\_ch-2000)\*31536000;  
+  time\_ch=time\_ch+systm.wMonth\*2592000;  
+  time\_ch=time\_ch+systm.wDay\*86400;  
+  time\_ch=time\_ch+systm.wHour\*3600;  
+  time\_ch=time\_ch+systm.wMinute\*60;  
+  time\_ch=time\_ch+systm.wSecond+31536000;                   // i 为 2000 年到现在的秒数+一年  
+//\_asm int 3  
+  lgconv(time\_ch,temp);                               // 将 long i 转为 big temp  
+  i=200;  
+  expint(i\_16,i,temp1);  
+  multiply(temp1,temp,temp2);                   // temp2 为准备加入 m 的时间截                   
+  add(temp2,m,m);                               // m=时间截……bigName  
+// 时间截计算完成  
+// temp,temp1,temp2 可释放  
+  zero(temp);  
+  zero(temp1);  
+  zero(temp2);  
+  i=4;  
+  expint(i\_16,i,temp);              // temp 为两字节 即 int  
+  for(j=0;j<25;j++)  
+  {  
+    \_asm   
+    {  
+      push eax  
+      push edx  
+      rdtsc  
+      mov i,eax  
+      pop edx  
+      pop eax  
+    }  
+    irand(i);  
+    convert(brand(),temp1);            // 将 int brand 转为 big temp1  
+    add(temp2,temp1,temp2);            // temp2 用来存储随机数  
+    multiply(temp2,temp,temp2);          // temp2 右移两个字节，用来存储随机数  
+  }  
+  i=100;  
+  expint(i\_16,i,temp);              // temp 为 100 位 16 进制  
+  powmod(temp2,ii,temp,temp1);          // 保证 temp1 不超过 100 位  
+  multiply(temp1,temp,temp2);                   // temp2 为准备加入 m 的随机数                   
+  add(temp2,m,m);                               // m=时间截|随机数|bigName  
+// m 连接完成  
+  zero(temp);  
+  zero(temp1);  
+  zero(temp2);  
+  i=4;  
+  expint(i\_16,i,temp);              // temp 为两字节 即 int  
+  for(j=0;j<64;j++)                // 256 位 16 进制  
+  {  
+    \_asm   
+    {  
+      push eax  
+      push edx  
+      rdtsc  
+      mov i,eax  
+      pop edx  
+      pop eax  
+    }  
+    irand(i);  
+    convert(brand(),temp1);            // 将 int brand 转为 big temp1  
+    add(temp2,temp1,temp2);            // temp2 用来存储随机数  
+    multiply(temp2,temp,temp2);          // temp2 右移两个字节，用来存储随机数  
+  }  
+  subtract(p,ii,temp);              // 计算 p-1  
+  powmod(temp2,ii,temp,k);            // 先求 mod p-1 防止溢出  
+// k 计算完成，可释放 temp  
+  powmod(y2,m,p,s);                              // s=y2^m mod p  
+  subtract(p,ii,temp);  
+  subtract(temp,k,temp);                         // k 必须小于 p-1，不然可能为负  
+  powmod2(y1,temp,m,ii,p,temp1);                 // temp1=m\*y1^(-k) mod p  
+  add(s,temp1,temp2);  
+  powmod(temp2,ii,p,r);                          // r=temp2 mod p  
+// r 计算完成，temp,temp1,temp2 可释放  
+// powmod2 中 p 要求是奇数，而 powmod 没此限制  
+  multiply(x\_inv,s,temp);  
+  subtract(p,ii,temp1);  
+  powmod(temp,ii,temp1,temp);            // temp=x\_inv\*s mod p-1  
+  add(k,temp1,temp2);  
+  add(temp2,temp1,temp2);              // temp2=k+2(p-1)  
+  subtract(temp2,temp,temp2);  
+  subtract(temp2,r,temp2);            // temp2=k+2(p-1)-r-x\_inv\*s mod p-1  
+  powmod(temp2,ii,temp1,temp2);                   // temp2=temp2 mod p-1  
+  multiply(temp2,x\_inv,temp2);  
+  powmod(temp2,ii,temp1,t);  
+// t 计算完成，temp,temp1,temp2 可释放  
+  i=256;  
+  copy(t,temp);                                  // temp=t  
+  expint(i\_16,i,temp1);  
+  multiply(temp1,s,temp2);  
+  add(temp2,temp,temp);                          // temp=s 连接 t  
+  i=512;  
+  expint(i\_16,i,temp1);  
+  multiply(temp1,r,temp2);  
+  add(temp2,temp,temp);                          // temp=rst 的链接  
+  cotstr(temp,szSerial);                         // 将 temp 的 16 进制串输出  
+  **SetDlgItemText**(hWnd, IDC\_TXT1,szSerial);       // 显示正确的序列号  
+end:  
+     mirkill(p);  
+  mirkill(y1);  
+  mirkill(y2);  
+  mirkill(m);  
+  mirkill(g);  
+  mirkill(ii);  
+  mirkill(temp);  
+  mirkill(temp1);  
+  mirkill(temp2);  
+  mirkill(r);  
+  mirkill(s);  
+  mirkill(t);  
+  mirkill(bigName);  
+  mirkill(x);  
+  mirkill(k);  
+  mirkill(x\_inv);  
+  mirexit();  
+  
+  return TRUE;  
+}  
+  
+  
+（序列号带有时间截）  
+pediy-2009  
+  
+242B2507681E0A99EAF7EAFE84A0E12BB25BBFED30668AE5AC98CC71FC313AD56CBF47B5C79C35E492E8F70B80661632E6EC7E1619C8128CB877316ABEF5295B109D58B1EF94DCB364D4A4AD3015755D77630E13BF7B57B1FA045A3C44E032D93D014C70FAC6A8CE955843640DAA88148ADF8F4F9934FA82E04E414EC8DE2C122719E9A3071762438C0A29D3A664AFD649179455F72FDB04DAC751E2439B8B638CC4F450FA6BB191CB7F04CDD9DDE4C5EDFF941256B3011AEB75063A985817B3D26EAE3499B927B50A3CD2B180B9164E22C8908115FF38A1DAA81FC1A96057BF249BC466BF8DB5303799D30E9A39CF724870FF06A2AC0DC0DBD8EC4C7993D19B444FFD9C124917155AF8822763B6E67FFAFC15C3D9C07C64F6FFEA19F3CDBD0BCFC268CC002B4DC0F0E1BE19A1F10C939ADDFBDBEE68071BF12A4E9C1E065C71A84A85B6C617FF9A49F7D7FB927DD518ECED45C6854AB38443C8BF20CE2429D1CEE1F1BB0B8393AF11CC98F33D7DF55E0A99A4C9F09E8E2986B5413A4E896ABD  
+  
+已增加算法下载(WORD)
+
+上传的附件
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || 点击下载算法.rar  
+ |
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || KeyGenMe.rar  
+ |

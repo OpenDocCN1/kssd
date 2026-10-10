@@ -1,0 +1,807 @@
+
+
+# 一个小软件的注册算法研究（MD5 算法）
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-496.htm`](https://www.pediy.com/kssd/pediy08/pediy8-496.htm)
+
+【文章标题】: 一个小软件的注册算法研究（MD5 算法）  
+【文章作者】: 8713007  
+【软件名称】: delphi 写的小软件  
+【软件大小】: 389k  
+【下载地址】: 自己搜索下载  
+【加壳方式】: 无壳  
+【保护方式】: MD5 算法  
+【编写语言】: delphi6  
+【使用工具】: OD  
+【操作平台】: win2000  
+【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!  
+\--------------------------------------------------------------------------------  
+【详细过程】  
+  利用 OD 载入，F9 运行，输入系列号：sdlingying；注册码：1234567890，点击注册，出现注册失败，利用 OD 查找所有参考字  
+  符串，在其上的 004543E0 处下断。再次点击注册，程序被断下：  
+  004543E0  /.  55      push    ebp               ;  断在这里  
+  004543E1  |.  8BEC    mov     ebp, esp  
+  004543E3  |.  6A 00   push    0  
+  004543E5  |.  6A 00   push    0  
+  004543E7  |.  6A 00   push    0  
+  004543E9  |.  53      push    ebx  
+  004543EA  |.  8BD8    mov     ebx, eax  
+  004543EC  |.  33C0    xor     eax, eax  
+  004543EE  |.  55      push    ebp  
+  004543EF  |.  68 6944>push    00454469  
+  004543F4  |.  64:FF30 push    dword ptr fs:\[eax>  
+  004543F7  |.  64:8920 mov     fs:\[eax\], esp  
+  004543FA  |.  8D55 F8 lea     edx, \[ebp-8\]  
+  004543FD  |.  8B83 F8>mov     eax, \[ebx+2F8\]  
+  00454403  |.  E8 40E6>call    00432A48          ;  取得系列号  
+  00454408  |.  8B45 F8 mov     eax, \[ebp-8\]      ;  系列号入 eax  
+  0045440B  |.  8D55 FC lea     edx, \[ebp-4\]  
+  0045440E  |.  E8 71FF>call    00454384          ;  关键算法 F7 跟进  
+  00454413  |.  8B45 FC mov     eax, \[ebp-4\]  
+  00454416  |.  50      push    eax  
+  00454417  |.  8D55 F4 lea     edx, \[ebp-C\]  
+  0045441A  |.  8B83 FC>mov     eax, \[ebx+2FC\]  
+  00454420  |.  E8 23E6>call    00432A48  
+  00454425  |.  8B55 F4 mov     edx, \[ebp-C\]  
+  00454428  |.  58      pop     eax  
+  00454429  |.  E8 1602>call    00404644  
+  0045442E  |.  75 0C   jnz     short 0045443C  
+    
+  //////////////////////////////////////////////////////////////////F7 跟进  
+    
+    
+  00454384  /$  55      push    ebp               ;  跟进后来到这里  
+  00454385  |.  8BEC    mov     ebp, esp  
+  00454387  |.  83C4 EC add     esp, -14  
+  0045438A  |.  53      push    ebx  
+  0045438B  |.  8BDA    mov     ebx, edx  
+  0045438D  |.  8945 FC mov     \[ebp-4\], eax  
+  00454390  |.  8B45 FC mov     eax, \[ebp-4\]      ;  系列号入 eax  
+  00454393  |.  E8 5003>call    004046E8  
+  00454398  |.  33C0    xor     eax, eax  
+  0045439A  |.  55      push    ebp  
+  0045439B  |.  68 D143>push    004543D1  
+  004543A0  |.  64:FF30 push    dword ptr fs:\[eax>  
+  004543A3  |.  64:8920 mov     fs:\[eax\], esp  
+  004543A6  |.  8D55 EC lea     edx, \[ebp-14\]  
+  004543A9  |.  8B45 FC mov     eax, \[ebp-4\]  
+  004543AC  |.  E8 B3FE>call    00454264          ;  算法 callF7 跟进  
+  004543B1  |.  8D45 EC lea     eax, \[ebp-14\]        明码  
+  004543B4  |.  8BD3    mov     edx, ebx  
+  004543B6  |.  E8 1DFF>call    004542D8            取得注册码  
+  004543BB  |.  33C0    xor     eax, eax  
+  004543BD  |.  5A      pop     edx  
+  004543BE  |.  59      pop     ecx  
+  004543BF  |.  59      pop     ecx  
+  004543C0  |.  64:8910 mov     fs:\[eax\], edx  
+  004543C3  |.  68 D843>push    004543D8  
+  004543C8  |>  8D45 FC lea     eax, \[ebp-4\]  
+  004543CB  |.  E8 78FE>call    00404248  
+  004543D0  \\.  C3      retn  
+    
+  //////////////////////////////////////////////F7 跟进 call 00454264  
+  00454264  /$  55      push    ebp  
+  00454265  |.  8BEC    mov     ebp, esp  
+  00454267  |.  83C4 A4 add     esp, -5C  
+  0045426A  |.  53      push    ebx  
+  0045426B  |.  8BDA    mov     ebx, edx  
+  0045426D  |.  8945 FC mov     \[ebp-4\], eax  
+  00454270  |.  8B45 FC mov     eax, \[ebp-4\]  
+  00454273  |.  E8 7004>call    004046E8  
+  00454278  |.  33C0    xor     eax, eax  
+  0045427A  |.  55      push    ebp  
+  0045427B  |.  68 CA42>push    004542CA  
+  00454280  |.  64:FF30 push    dword ptr fs:\[eax>  
+  00454283  |.  64:8920 mov     fs:\[eax\], esp  
+  00454286  |.  8D45 A4 lea     eax, \[ebp-5C\]  
+  00454289  |.  E8 AEFE>call    0045413C          ;  初始化变量 F7 跟进  
+  0045428E  |.  8B45 FC mov     eax, \[ebp-4\]      ;  系列号入 EAX  
+  00454291  |.  E8 6A02>call    00404500          ;  取系列号的位数  
+  00454296  |.  50      push    eax  
+  00454297  |.  8B45 FC mov     eax, \[ebp-4\]  
+  0045429A  |.  E8 5904>call    004046F8  
+  0045429F  |.  8BD0    mov     edx, eax  
+  004542A1  |.  8D45 A4 lea     eax, \[ebp-5C\]  
+  004542A4  |.  59      pop     ecx  
+  004542A5  |.  E8 C6FE>call    00454170          ;  把系列号字符转 16 进制数存入堆栈  
+  004542AA  |.  8BD3    mov     edx, ebx  
+  004542AC  |.  8D45 A4 lea     eax, \[ebp-5C\]     ;  \[EBP-5C\]4 个常数地址  
+  004542AF  |.  E8 3CFF>call    004541F0          ;  算法 call F7 跟进  
+  004542B4  |.  33C0    xor     eax, eax  
+  004542B6  |.  5A      pop     edx  
+  004542B7  |.  59      pop     ecx  
+  004542B8  |.  59      pop     ecx  
+  004542B9  |.  64:8910 mov     fs:\[eax\], edx  
+  004542BC  |.  68 D142>push    004542D1  
+  004542C1  |>  8D45 FC lea     eax, \[ebp-4\]  
+  004542C4  |.  E8 7FFF>call    00404248  
+  004542C9  \\.  C3      retn  
+    
+  /////////////////////////////////////////////////////////////////////////////////F7 跟进 call 0045413C   
+  0045413C  /$  C700 01>mov     dword ptr \[eax\], >;  设为 A  
+  00454142  |.  C740 04>mov     dword ptr \[eax+4\]>;  设为 B  
+  00454149  |.  C740 08>mov     dword ptr \[eax+8\]>;  设为 C  
+  00454150  |.  C740 0C>mov     dword ptr \[eax+C\]>;  设为 D  
+  00454157  |.  33D2    xor     edx, edx  
+  00454159  |.  8950 10 mov     \[eax+10\], edx     ;  堆栈空出空间  
+  0045415C  |.  33D2    xor     edx, edx  
+  0045415E  |.  8950 14 mov     \[eax+14\], edx     ;  堆栈空出空间  
+  00454161  |.  83C0 18 add     eax, 18  
+  00454164  |.  BA 4000>mov     edx, 40  
+  00454169  |.  E8 B22E>call    00407020  
+  0045416E  \\.  C3      retn                      ;  返回到 0045428e  
+    
+  ////////////////////////////////////////////////////////////////////////////F7 跟进 call 004541F0  
+    
+  004541F0  /$  53      push    ebx  
+  004541F1  |.  56      push    esi  
+  004541F2  |.  83C4 F8 add     esp, -8  
+  004541F5  |.  8BF2    mov     esi, edx  
+  004541F7  |.  8BD8    mov     ebx, eax  
+  004541F9  |.  8BD4    mov     edx, esp  
+  004541FB  |.  8D43 10 lea     eax, \[ebx+10\]  
+  004541FE  |.  B9 0200>mov     ecx, 2  
+  00454203  |.  E8 C8F7>call    004539D0  
+  00454208  |.  8B43 10 mov     eax, \[ebx+10\]     ;  \[EBX+10\]=50  
+  0045420B  |.  C1E8 03 shr     eax, 3            ;  eax=50 shr 3  
+  0045420E  |.  83E0 3F and     eax, 3F           ;  eax=eax and 3f  
+  00454211  |.  83F8 38 cmp     eax, 38  
+  00454214  |.  73 0B   jnb     short 00454221  
+  00454216  |.  BA 3800>mov     edx, 38  
+  0045421B  |.  2BD0    sub     edx, eax  
+  0045421D  |.  8BC2    mov     eax, edx  
+  0045421F  |.  EB 09   jmp     short 0045422A  
+  00454221  |>  BA 7800>mov     edx, 78  
+  00454226  |.  2BD0    sub     edx, eax  
+  00454228  |.  8BC2    mov     eax, edx  
+  0045422A  |>  BA 445C>mov     edx, 00455C44  
+  0045422F  |.  8BCB    mov     ecx, ebx  
+  00454231  |.  91      xchg    eax, ecx  
+  00454232  |.  E8 39FF>call    00454170  
+  00454237  |.  8BD4    mov     edx, esp  
+  00454239  |.  8BC3    mov     eax, ebx  
+  0045423B  |.  B9 0800>mov     ecx, 8  
+  00454240  |.  E8 2BFF>call    00454170          ;  算法 call,F7 跟进  
+  00454245  |.  8BD6    mov     edx, esi  
+  00454247  |.  8BC3    mov     eax, ebx  
+  00454249  |.  B9 0400>mov     ecx, 4  
+  0045424E  |.  E8 7DF7>call    004539D0  
+  00454253  |.  8BC3    mov     eax, ebx  
+  00454255  |.  BA 5800>mov     edx, 58  
+  0045425A  |.  E8 C12D>call    00407020  
+  0045425F  |.  59      pop     ecx  
+  00454260  |.  5A      pop     edx  
+  00454261  |.  5E      pop     esi  
+  00454262  |.  5B      pop     ebx  
+  00454263  \\.  C3      retn  
+    
+  ///////////////////////////////////////////,F7 跟进 call 00454170   
+  00454170  /$  53      push    ebx  
+  00454171  |.  56      push    esi  
+  00454172  |.  57      push    edi  
+  00454173  |.  55      push    ebp  
+  00454174  |.  8BF9    mov     edi, ecx  
+  00454176  |.  8BEA    mov     ebp, edx  
+  00454178  |.  8BF0    mov     esi, eax  
+  0045417A  |.  8B46 10 mov     eax, \[esi+10\]  
+  0045417D  |.  C1E8 03 shr     eax, 3  
+  00454180  |.  83E0 3F and     eax, 3F  
+  00454183  |.  8BD7    mov     edx, edi  
+  00454185  |.  C1E2 03 shl     edx, 3  
+  00454188  |.  0156 10 add     \[esi+10\], edx  
+  0045418B  |.  3B56 10 cmp     edx, \[esi+10\]  
+  0045418E  |.  76 03   jbe     short 00454193  
+  00454190  |.  FF46 14 inc     dword ptr \[esi+14>  
+  00454193  |>  8BD7    mov     edx, edi  
+  00454195  |.  C1EA 1D shr     edx, 1D  
+  00454198  |.  0156 14 add     \[esi+14\], edx  
+  0045419B  |.  BB 4000>mov     ebx, 40  
+  004541A0  |.  2BD8    sub     ebx, eax  
+  004541A2  |.  3BDF    cmp     ebx, edi  
+  004541A4  |.  77 32   ja      short 004541D8  
+  004541A6  |.  8D4406 >lea     eax, \[esi+eax+18\]  
+  004541AA  |.  8BCB    mov     ecx, ebx  
+  004541AC  |.  8BD5    mov     edx, ebp  
+  004541AE  |.  E8 652E>call    00407018  
+  004541B3  |.  8BD6    mov     edx, esi  
+  004541B5  |.  8D46 18 lea     eax, \[esi+18\]  
+  004541B8  |.  E8 4FF8>call    00453A0C          ;  算法 call, F7 跟进  
+  004541BD  |.  EB 0E   jmp     short 004541CD    ;  算法完后返回到此  
+    
+  /////////////////////////////////////////////////////////////// F7 跟进 call 00453A0C  
+  00453A0C  /$  53      push    ebx  
+  00453A0D  |.  56      push    esi  
+  00453A0E  |.  57      push    edi  
+  00453A0F  |.  55      push    ebp  
+  00453A10  |.  83C4 A8 add     esp, -58  
+  00453A13  |.  895424 >mov     \[esp+4\], edx  
+  00453A17  |.  890424  mov     \[esp\], eax  
+  00453A1A  |.  8D5C24 >lea     ebx, \[esp+8\]  
+  00453A1E  |.  8D7424 >lea     esi, \[esp+C\]  
+  00453A22  |.  8D7C24 >lea     edi, \[esp+10\]  
+  00453A26  |.  8D6C24 >lea     ebp, \[esp+14\]  
+  00453A2A  |.  8D5424 >lea     edx, \[esp+18\]  
+  00453A2E  |.  B9 4000>mov     ecx, 40  
+  00453A33  |.  8B0424  mov     eax, \[esp\]  
+  00453A36  |.  E8 5DFF>call    00453998  
+  00453A3B  |.  8B4424 >mov     eax, \[esp+4\]  
+  00453A3F  |.  8B00    mov     eax, \[eax\]        ;  \[EAX\]=A  
+  00453A41  |.  8903    mov     \[ebx\], eax  
+  00453A43  |.  8B4424 >mov     eax, \[esp+4\]  
+  00453A47  |.  8B40 04 mov     eax, \[eax+4\]      ;  EAX+4\]=B  
+  00453A4A  |.  8906    mov     \[esi\], eax  
+  00453A4C  |.  8B4424 >mov     eax, \[esp+4\]  
+  00453A50  |.  8B40 08 mov     eax, \[eax+8\]      ;  \[EAX+8\]=C  
+  00453A53  |.  8907    mov     \[edi\], eax  
+  00453A55  |.  8B4424 >mov     eax, \[esp+4\]  
+  00453A59  |.  8B40 0C mov     eax, \[eax+C\]      ;  \[EAX+C\]=D  
+  00453A5C  |.  8945 00 mov     \[ebp\], eax  
+  00453A5F  |.  8B45 00 mov     eax, \[ebp\]  
+  00453A62  |.  50      push    eax               ; /D 压栈  
+  00453A63  |.  8B4424 >mov     eax, \[esp+1C\]     ; |\[ESP+1C\]=用户名前 4 位 16 进制数  
+  00453A67  |.  50      push    eax               ; |Arg3=696C6473  
+  00453A68  |.  6A 07   push    7                 ; |Arg2 = 00000007  
+  00453A6A  |.  68 78A4>push    D76AA478          ; |Arg1 = D76AA478  
+  00453A6F  |.  8BC3    mov     eax, ebx          ; |  
+  00453A71  |.  8B0F    mov     ecx, \[edi\]        ; |\[EDI\]=C  
+  00453A73  |.  8B16    mov     edx, \[esi\]        ; |\[ESI\]=B  
+  00453A75  |.  E8 4EFE>call    004538C8          ; \\MD5 第 1 次数据处理  F7 跟进  
+  00453A7A  |.  8B07    mov     eax, \[edi\]        ;  Md5 第一次处理完成后继续处理  
+  00453A7C  |.  50      push    eax               ; /Arg4  
+  00453A7D  |.  8B4424 >mov     eax, \[esp+20\]     ; |  
+  00453A81  |.  50      push    eax               ; |Arg3  
+  00453A82  |.  6A 0C   push    0C                ; |Arg2 = 0000000C  
+  00453A84  |.  68 56B7>push    E8C7B756          ; |Arg1 = E8C7B756  
+  00453A89  |.  8BC5    mov     eax, ebp          ; |  
+  00453A8B  |.  8B0E    mov     ecx, \[esi\]        ; |  
+  00453A8D  |.  8B13    mov     edx, \[ebx\]        ; |  
+  00453A8F  |.  E8 34FE>call    004538C8          ; \\MD5 第 2 次数据处理  
+  00453A94  |.  8B06    mov     eax, \[esi\]  
+  00453A96  |.  50      push    eax               ; /Arg4  
+  00453A97  |.  8B4424 >mov     eax, \[esp+24\]     ; |  
+  00453A9B  |.  50      push    eax               ; |Arg3  
+  00453A9C  |.  6A 11   push    11                ; |Arg2 = 00000011  
+  00453A9E  |.  68 DB70>push    242070DB          ; |Arg1 = 242070DB  
+  00453AA3  |.  8BC7    mov     eax, edi          ; |  
+  00453AA5  |.  8B0B    mov     ecx, \[ebx\]        ; |  
+  00453AA7  |.  8B55 00 mov     edx, \[ebp\]        ; |  
+  00453AAA  |.  E8 19FE>call    004538C8          ; \\MD5.第 3 次数据处理  
+  00453AAF  |.  8B03    mov     eax, \[ebx\]  
+  00453AB1  |.  50      push    eax               ; /Arg4  
+  00453AB2  |.  8B4424 >mov     eax, \[esp+28\]     ; |  
+  00453AB6  |.  50      push    eax               ; |Arg3  
+  00453AB7  |.  6A 16   push    16                ; |Arg2 = 00000016  
+  00453AB9  |.  68 EECE>push    C1BDCEEE          ; |Arg1 = C1BDCEEE  
+  00453ABE  |.  8BC6    mov     eax, esi          ; |  
+  00453AC0  |.  8B4D 00 mov     ecx, \[ebp\]        ; |  
+  00453AC3  |.  8B17    mov     edx, \[edi\]        ; |  
+  00453AC5  |.  E8 FEFD>call    004538C8          ; \\MD5.第 4 次数据处理  
+  //////////////////////////////////////////////////////////////// F7 跟进 call    004538C8   
+    
+  004538C8  /$  55      push    ebp  
+  004538C9  |.  8BEC    mov     ebp, esp  
+  004538CB  |.  53      push    ebx  
+  004538CC  |.  56      push    esi  
+  004538CD  |.  57      push    edi  
+  004538CE  |.  8BF9    mov     edi, ecx  
+  004538D0  |.  8BF2    mov     esi, edx  
+  004538D2  |.  8BD8    mov     ebx, eax  
+  004538D4  |.  8B4D 14 mov     ecx, \[ebp+14\]  
+  004538D7  |.  8BD7    mov     edx, edi  
+  004538D9  |.  8BC6    mov     eax, esi  
+  004538DB  |.  E8 9CFF>call    0045387C          ;  关键 call F7 跟进  
+  004538E0  |.  0345 10 add     eax, \[ebp+10\]     ;  EAX=C+696c6473=02274171  
+  004538E3  |.  0345 08 add     eax, \[ebp+8\]      ;  EAX=2274171+D76AA478=D991E5E9  
+  004538E6  |.  0103    add     \[ebx\], eax  
+  004538E8  |.  8BC3    mov     eax, ebx  
+  004538EA  |.  8A55 0C mov     dl, \[ebp+C\]       ;  7 入 dl  
+  004538ED  |.  E8 B6FF>call    004538A8          ;  关键 call F7 进入  
+  004538F2  |.  0133    add     \[ebx\], esi        ;  \[ebx\]=6B847520 and esi(=EFCDAB89)  
+  004538F4  |.  5F      pop     edi  
+  004538F5  |.  5E      pop     esi  
+  004538F6  |.  5B      pop     ebx  
+  004538F7  |.  5D      pop     ebp  
+  004538F8  \\.  C2 1000 retn    10  
+    
+  ///////////////////////////////////////////////////////// F7 跟进 call    0045387C   
+  0045387C  /$  23D0    and     edx, eax          ;  EDX=C and  EAX=B  =88888888  
+  0045387E  |.  F7D0    not     eax               ;  eax 取反=D  
+  00453880  |.  23C8    and     ecx, eax          ;  ECX=D and D =10325476  
+  00453882  |.  0BD1    or      edx, ecx          ;  EDX=88888888 or D =98BADCFE  
+  00453884  |.  8BC2    mov     eax, edx  
+  00453886  \\.  C3      retn                      ;  返回  
+    
+  ///////////////////////////////////////////////////F7 进入 call    004538A8   
+  004538A8  /$  53      push    ebx  
+  004538A9  |.  33C9    xor     ecx, ecx  
+  004538AB  |.  8ACA    mov     cl, dl  
+  004538AD  |.  51      push    ecx  
+  004538AE  |.  B9 2000>mov     ecx, 20           ;  20 入 ecx  
+  004538B3  |.  5B      pop     ebx  
+  004538B4  |.  2BCB    sub     ecx, ebx          ;  ecx=20-7  
+  004538B6  |.  8B18    mov     ebx, \[eax\]        ;  \[eax\]=40d708EA 入 ebx  
+  004538B8  |.  D3EB    shr     ebx, cl           ;  ebx shr 19  =20  
+  004538BA  |.  8BCA    mov     ecx, edx  
+  004538BC  |.  8B10    mov     edx, \[eax\]        ;  \[eax\]=40d708EA 入 edx  
+  004538BE  |.  D3E2    shl     edx, cl           ;  edx shl 19=6B847500  
+  004538C0  |.  0BDA    or      ebx, edx          ;  ebx or edx=6B847520  
+  004538C2  |.  8918    mov     \[eax\], ebx        ;  保存 EBX 在 0012f474  
+  004538C4  |.  5B      pop     ebx  
+  004538C5  \\.  C3      retn                      ;  处理完成后返回  
+    
+  //////////////////////////////////////////////////////////////////  
+  中间省略第 3-63 次数据处理代码  
+  //////////////////////////////////////////////////////  
+  004540F6  |.  50      push    eax               ; /Arg4  
+  004540F7  |.  8B4424 >mov     eax, \[esp+40\]     ; |  
+  004540FB  |.  50      push    eax               ; |Arg3  
+  004540FC  |.  6A 15   push    15                ; |Arg2 = 00000015  
+  004540FE  |.  68 91D3>push    EB86D391          ; |Arg1 = EB86D391  
+  00454103  |.  8BC6    mov     eax, esi          ; |  
+  00454105  |.  8B4D 00 mov     ecx, \[ebp\]        ; |  
+  00454108  |.  8B17    mov     edx, \[edi\]        ; |  
+  0045410A  |.  E8 55F8>call    00453964          ; \\MD5 第 64 次处理数据  
+  0045410F  |.  8B4424 >mov     eax, \[esp+4\]  
+  00454113  |.  8B13    mov     edx, \[ebx\]        ;  \[ebx\]=C00613E4  
+  00454115  |.  0110    add     \[eax\], edx        ;  \[EAX\]=A+C00613E4  
+  00454117  |.  8B4424 >mov     eax, \[esp+4\]  
+  0045411B  |.  8B16    mov     edx, \[esi\]  
+  0045411D  |.  0150 04 add     \[eax+4\], edx      ;  \[EAX+4\]=B+1E8D7FB6  
+  00454120  |.  8B4424 >mov     eax, \[esp+4\]  
+  00454124  |.  8B17    mov     edx, \[edi\]  
+  00454126  |.  0150 08 add     \[eax+8\], edx      ;  \[EAX+8\]=C+8D829167  
+  00454129  |.  8B4424 >mov     eax, \[esp+4\]  
+  0045412D  |.  8B55 00 mov     edx, \[ebp\]  
+  00454130  |.  0150 0C add     \[eax+C\], edx      ;  \[EAX+C\]=D+B0F6BF65  
+  00454133  |.  83C4 58 add     esp, 58           ;  到此 MD5 加密的 4 组数(32 个)计算完成  
+  00454136  |.  5D      pop     ebp  
+  00454137  |.  5F      pop     edi  
+  00454138  |.  5E      pop     esi  
+  00454139  |.  5B      pop     ebx  
+  0045413A  \\.  C3      ret                         返回到 004541BD (MD5.004541BD)  
+  ///////////////////////////////////////////////////////////////////  
+  004541BD  |. /EB 0E   jmp     short 004541CD                                 ;  算法完后返回到此  
+  004541BF  |> |8BD6    /mov     edx, esi  
+  004541C1  |. |8D441D >|lea     eax, \[ebp+ebx\]  
+  004541C5  |. |E8 42F8>|call    00453A0C  
+  004541CA  |. |83C3 40 |add     ebx, 40  
+  004541CD  |> \\8D43 3F  lea     eax, \[ebx+3F\]  
+  004541D0  |.  3BF8    |cmp     edi, eax  
+  004541D2  |.^ 77 EB   \\ja      short 004541BF  
+  004541D4  |.  33C0    xor     eax, eax  
+  004541D6  |.  EB 02   jmp     short 004541DA  
+  004541D8  |>  33DB    xor     ebx, ebx  
+  004541DA  |>  8D4406 >lea     eax, \[esi+eax+18\]  
+  004541DE  |.  8BCF    mov     ecx, edi  
+  004541E0  |.  2BCB    sub     ecx, ebx  
+  004541E2  |.  8D541D >lea     edx, \[ebp+ebx\]  
+  004541E6  |.  E8 2D2E>call    00407018  
+  004541EB  |.  5D      pop     ebp  
+  004541EC  |.  5F      pop     edi  
+  004541ED  |.  5E      pop     esi  
+  004541EE  |.  5B      pop     ebx  
+  004541EF  \\.  C3      retn        返回到 00454245 (MD5.00454245)  
+    
+  ////////////////////////////////////////////////////  
+    
+  00454245  |.  8BD6    mov     edx, esi  
+  00454247  |.  8BC3    mov     eax, ebx  
+  00454249  |.  B9 0400>mov     ecx, 4  
+  0045424E  |.  E8 7DF7>call    004539D0                                       ;  查表运算 F7 跟进  
+  00454253  |.  8BC3    mov     eax, ebx  
+  00454255  |.  BA 5800>mov     edx, 58  
+  0045425A  |.  E8 C12D>call    00407020  
+  0045425F  |.  59      pop     ecx  
+  00454260  |.  5A      pop     edx  
+  00454261  |.  5E      pop     esi  
+  00454262  |.  5B      pop     ebx  
+  00454263  \\.  C3      retn  
+    
+  /////////////////////////////////////////F7 跟进 call    004539D0   
+  004539DB  |> /8A0E    /mov     cl, \[esi\]                  ;  取 1 位 MD5 加密的数  
+  004539DD  |. |80E1 FF |and     cl, 0FF  
+  004539E0  |. |8808    |mov     \[eax\], cl  
+  004539E2  |. |40      |inc     eax  
+  004539E3  |. |8B0E    |mov     ecx, \[esi\]                 ;  每次取 4 位 MD5 加密的数  
+  004539E5  |. |C1E9 08 |shr     ecx, 8                     ;  逻辑右 8 位  
+  004539E8  |. |80E1 FF |and     cl, 0FF                    ;  保留第二位  
+  004539EB  |. |8808    |mov     \[eax\], cl  
+  004539ED  |. |40      |inc     eax  
+  004539EE  |. |8B0E    |mov     ecx, \[esi\]  
+  004539F0  |. |C1E9 10 |shr     ecx, 10  
+  004539F3  |. |80E1 FF |and     cl, 0FF  
+  004539F6  |. |8808    |mov     \[eax\], cl  
+  004539F8  |. |40      |inc     eax  
+  004539F9  |. |8B0E    |mov     ecx, \[esi\]  
+  004539FB  |. |C1E9 18 |shr     ecx, 18  
+  004539FE  |. |80E1 FF |and     cl, 0FF  
+  00453A01  |. |8808    |mov     \[eax\], cl  
+  00453A03  |. |40      |inc     eax  
+  00453A04  |. |83C6 04 |add     esi, 4  
+  00453A07  |. |4A      |dec     edx  
+  00453A08  |.^\\75 D1   \\jnz     short 004539DB             ;  循环  
+  00453A0A  |>  5E      pop     esi  
+  00453A0B  \\.  C3      retn                                ;  返回到 00454253 (MD5.00454253)  
+    
+  /////////////////////////  
+  Md5 算法到此完成  
+  我的用户名：sdlingying  
+  　　注册码：e5364b273f2b5b0e656e3d26db1329c1  
+  ////////////////////////////////////////////////////  
+  附 MD5 算法的 delphi 原码////////  
+  unit Unit1;  
+    
+  interface  
+    
+  uses  
+    Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,  
+    Dialogs, StdCtrls;  
+    
+  type  
+    TForm1 = class(TForm)  
+      Label1: TLabel;  
+      Label2: TLabel;  
+      Edit1: TEdit;  
+      Edit2: TEdit;  
+      Label3: TLabel;  
+      Button1: TButton;  
+      Button2: TButton;  
+      procedure Button1Click(Sender: TObject);  
+      procedure Button2Click(Sender: TObject);  
+    private  
+      { Private declarations }  
+    public  
+      { Public declarations }  
+    end;  
+    
+  type  
+    MD5Count = array\[0..1\] of DWORD;  
+    MD5State = array\[0..3\] of DWORD;  
+    MD5Block = array\[0..15\] of DWORD;  
+    MD5CBits = array\[0..7\] of Byte;  
+    MD5Digest = array\[0..15\] of Byte;  
+    MD5Buffer = array\[0..63\] of Byte;  
+    MD5Context = record  
+      State: MD5State;  
+      Count: MD5Count;  
+      Buffer: MD5Buffer;  
+    end;  
+    
+  procedure MD5Init(var Context: MD5Context);  
+  procedure MD5Update(var Context: MD5Context; Input: pChar; Length: longword);  
+  procedure MD5Final(var Context: MD5Context; var Digest: MD5Digest);  
+    
+  function MD5String(M: string): MD5Digest;  
+  function MD5File(N: string): MD5Digest;  
+  function MD5Print(D: MD5Digest): string;  
+  function MD5Match(D1, D2: MD5Digest): Boolean;  
+    
+  function RivestStr(Str: string): string;  
+  function RivestFile(FileName: string): string;  
+    
+    
+  var  
+    Form1: TForm1;  
+    PADDING: MD5Buffer = (  
+      $80, $00, $00, $00, $00, $00, $00, $00,  
+      $00, $00, $00, $00, $00, $00, $00, $00,  
+      $00, $00, $00, $00, $00, $00, $00, $00,  
+      $00, $00, $00, $00, $00, $00, $00, $00,  
+      $00, $00, $00, $00, $00, $00, $00, $00,  
+      $00, $00, $00, $00, $00, $00, $00, $00,  
+      $00, $00, $00, $00, $00, $00, $00, $00,  
+      $00, $00, $00, $00, $00, $00, $00, $00);  
+    
+    
+  implementation  
+    
+  {$R \*.dfm}  
+    
+  function F(x, y, z: DWORD): DWORD;  
+  begin  
+    Result := (x and y) or ((not x) and z);  
+  end;  
+    
+  function G(x, y, z: DWORD): DWORD;  
+  begin  
+    Result := (x and z) or (y and (not z));  
+  end;  
+    
+  function H(x, y, z: DWORD): DWORD;  
+  begin  
+    Result := x xor y xor z;  
+  end;  
+    
+  function I(x, y, z: DWORD): DWORD;  
+  begin  
+    Result := y xor (x or (not z));  
+  end;  
+    
+  procedure rot(var x: DWORD; n: BYTE);  
+  begin  
+    x := (x shl n) or (x shr (32 - n));  
+  end;  
+    
+  procedure FF(var a: DWORD; b, c, d, x: DWORD; s: BYTE; ac: DWORD);  
+  begin  
+    inc(a, F(b, c, d) + x + ac);  
+    rot(a, s);  
+    inc(a, b);  
+  end;  
+    
+  procedure GG(var a: DWORD; b, c, d, x: DWORD; s: BYTE; ac: DWORD);  
+  begin  
+    inc(a, G(b, c, d) + x + ac);  
+    rot(a, s);  
+    inc(a, b);  
+  end;  
+    
+  procedure HH(var a: DWORD; b, c, d, x: DWORD; s: BYTE; ac: DWORD);  
+  begin  
+    inc(a, H(b, c, d) + x + ac);  
+    rot(a, s);  
+    inc(a, b);  
+  end;  
+    
+  procedure II(var a: DWORD; b, c, d, x: DWORD; s: BYTE; ac: DWORD);  
+  begin  
+    inc(a, I(b, c, d) + x + ac);  
+    rot(a, s);  
+    inc(a, b);  
+  end;  
+    
+  procedure Encode(Source, Target: pointer; Count: longword);  
+  var  
+    S: PByte;  
+    T: PDWORD;  
+    I: longword;  
+  begin  
+    S := Source;  
+    T := Target;  
+    for I := 1 to Count div 4 do begin  
+      T^ := S^;  
+      inc(S);  
+      T^ := T^ or (S^ shl 8);  
+      inc(S);  
+      T^ := T^ or (S^ shl 16);  
+      inc(S);  
+      T^ := T^ or (S^ shl 24);  
+      inc(S);  
+      inc(T);  
+    end;  
+  end;  
+    
+  procedure Decode(Source, Target: pointer; Count: longword);  
+  var  
+    S: PDWORD;  
+    T: PByte;  
+    I: longword;  
+  begin  
+    S := Source;  
+    T := Target;  
+    for I := 1 to Count do begin  
+      T^ := S^ and $ff;  
+      inc(T);  
+      T^ := (S^ shr 8) and $ff;  
+      inc(T);  
+      T^ := (S^ shr 16) and $ff;  
+      inc(T);  
+      T^ := (S^ shr 24) and $ff;  
+      inc(T);  
+      inc(S);  
+    end;  
+  end;  
+    
+  procedure Transform(Buffer: pointer; var State: MD5State);  
+  var  
+    a, b, c, d: DWORD;  
+    Block: MD5Block;  
+  begin  
+    Encode(Buffer, @Block, 64);  
+    a := State\[0\];  
+    b := State\[1\];  
+    c := State\[2\];  
+    d := State\[3\];  
+    FF (a, b, c, d, Block\[ 0\],  7, $d76aa478);  
+    FF (d, a, b, c, Block\[ 1\], 12, $e8c7b756);  
+    FF (c, d, a, b, Block\[ 2\], 17, $242070db);  
+    FF (b, c, d, a, Block\[ 3\], 22, $c1bdceee);  
+    FF (a, b, c, d, Block\[ 4\],  7, $f57c0faf);  
+    FF (d, a, b, c, Block\[ 5\], 12, $4787c62a);  
+    FF (c, d, a, b, Block\[ 6\], 17, $a8304613);  
+    FF (b, c, d, a, Block\[ 7\], 22, $fd469501);  
+    FF (a, b, c, d, Block\[ 8\],  7, $698098d8);  
+    FF (d, a, b, c, Block\[ 9\], 12, $8b44f7af);  
+    FF (c, d, a, b, Block\[10\], 17, $ffff5bb1);  
+    FF (b, c, d, a, Block\[11\], 22, $895cd7be);  
+    FF (a, b, c, d, Block\[12\],  7, $6b901122);  
+    FF (d, a, b, c, Block\[13\], 12, $fd987193);  
+    FF (c, d, a, b, Block\[14\], 17, $a679438e);  
+    FF (b, c, d, a, Block\[15\], 22, $49b40821);  
+    GG (a, b, c, d, Block\[ 1\],  5, $f61e2562);  
+    GG (d, a, b, c, Block\[ 6\],  9, $c040b340);  
+    GG (c, d, a, b, Block\[11\], 14, $265e5a51);  
+    GG (b, c, d, a, Block\[ 0\], 20, $e9b6c7aa);  
+    GG (a, b, c, d, Block\[ 5\],  5, $d62f105d);  
+    GG (d, a, b, c, Block\[10\],  9,  $2441453);  
+    GG (c, d, a, b, Block\[15\], 14, $d8a1e681);  
+    GG (b, c, d, a, Block\[ 4\], 20, $e7d3fbc8);  
+    GG (a, b, c, d, Block\[ 9\],  5, $21e1cde6);  
+    GG (d, a, b, c, Block\[14\],  9, $c33707d6);  
+    GG (c, d, a, b, Block\[ 3\], 14, $f4d50d87);  
+    GG (b, c, d, a, Block\[ 8\], 20, $455a14ed);  
+    GG (a, b, c, d, Block\[13\],  5, $a9e3e905);  
+    GG (d, a, b, c, Block\[ 2\],  9, $fcefa3f8);  
+    GG (c, d, a, b, Block\[ 7\], 14, $676f02d9);  
+    GG (b, c, d, a, Block\[12\], 20, $8d2a4c8a);  
+    HH (a, b, c, d, Block\[ 5\],  4, $fffa3942);  
+    HH (d, a, b, c, Block\[ 8\], 11, $8771f681);  
+    HH (c, d, a, b, Block\[11\], 16, $6d9d6122);  
+    HH (b, c, d, a, Block\[14\], 23, $fde5380c);  
+    HH (a, b, c, d, Block\[ 1\],  4, $a4beea44);  
+    HH (d, a, b, c, Block\[ 4\], 11, $4bdecfa9);  
+    HH (c, d, a, b, Block\[ 7\], 16, $f6bb4b60);  
+    HH (b, c, d, a, Block\[10\], 23, $bebfbc70);  
+    HH (a, b, c, d, Block\[13\],  4, $289b7ec6);  
+    HH (d, a, b, c, Block\[ 0\], 11, $eaa127fa);  
+    HH (c, d, a, b, Block\[ 3\], 16, $d4ef3085);  
+    HH (b, c, d, a, Block\[ 6\], 23,  $4881d05);  
+    HH (a, b, c, d, Block\[ 9\],  4, $d9d4d039);  
+    HH (d, a, b, c, Block\[12\], 11, $e6db99e5);  
+    HH (c, d, a, b, Block\[15\], 16, $1fa27cf8);  
+    HH (b, c, d, a, Block\[ 2\], 23, $c4ac5665);  
+    II (a, b, c, d, Block\[ 0\],  6, $f4292244);  
+    II (d, a, b, c, Block\[ 7\], 10, $432aff97);  
+    II (c, d, a, b, Block\[14\], 15, $ab9423a7);  
+    II (b, c, d, a, Block\[ 5\], 21, $fc93a039);  
+    II (a, b, c, d, Block\[12\],  6, $655b59c3);  
+    II (d, a, b, c, Block\[ 3\], 10, $8f0ccc92);  
+    II (c, d, a, b, Block\[10\], 15, $ffeff47d);  
+    II (b, c, d, a, Block\[ 1\], 21, $85845dd1);  
+    II (a, b, c, d, Block\[ 8\],  6, $6fa87e4f);  
+    II (d, a, b, c, Block\[15\], 10, $fe2ce6e0);  
+    II (c, d, a, b, Block\[ 6\], 15, $a3014314);  
+    II (b, c, d, a, Block\[13\], 21, $4e0811a1);  
+    II (a, b, c, d, Block\[ 4\],  6, $f7537e82);  
+    II (d, a, b, c, Block\[11\], 10, $bd3af235);  
+    II (c, d, a, b, Block\[ 2\], 15, $2ad7d2bb);  
+    II (b, c, d, a, Block\[ 9\], 21, $eb86d391);  
+    inc(State\[0\], a);  
+    inc(State\[1\], b);  
+    inc(State\[2\], c);  
+    inc(State\[3\], d);  
+  end;  
+    
+  procedure MD5Init(var Context: MD5Context);  
+  begin  
+    with Context do begin  
+      State\[0\] := $67452301;  
+      State\[1\] := $efcdab89;  
+      State\[2\] := $98badcfe;  
+      State\[3\] := $10325476;  
+      Count\[0\] := 0;  
+      Count\[1\] := 0;  
+      ZeroMemory(@Buffer, SizeOf(MD5Buffer));  
+    end;  
+  end;  
+    
+  procedure MD5Update(var Context: MD5Context; Input: pChar; Length: longword);  
+  var  
+    Index: longword;  
+    PartLen: longword;  
+    I: longword;  
+  begin  
+    with Context do begin  
+      Index := (Count\[0\] shr 3) and $3f;  
+      inc(Count\[0\], Length shl 3);  
+      if Count\[0\] < (Length shl 3) then inc(Count\[1\]);  
+      inc(Count\[1\], Length shr 29);  
+    end;  
+    PartLen := 64 - Index;  
+    if Length >= PartLen then begin  
+      CopyMemory(@Context.Buffer\[Index\], Input, PartLen);  
+      Transform(@Context.Buffer, Context.State);  
+      I := PartLen;  
+      while I + 63 < Length do begin  
+        Transform(@Input\[I\], Context.State);  
+        inc(I, 64);  
+      end;  
+      Index := 0;  
+    end else I := 0;  
+    CopyMemory(@Context.Buffer\[Index\], @Input\[I\], Length - I);  
+  end;  
+    
+  procedure MD5Final(var Context: MD5Context; var Digest: MD5Digest);  
+  var  
+    Bits: MD5CBits;  
+    Index: longword;  
+    PadLen: longword;  
+  begin  
+    Decode(@Context.Count, @Bits, 2);  
+    Index := (Context.Count\[0\] shr 3) and $3f;  
+    if Index < 56 then PadLen := 56 - Index else PadLen := 120 - Index;  
+    MD5Update(Context, @PADDING, PadLen);  
+    MD5Update(Context, @Bits, 8);  
+    Decode(@Context.State, @Digest, 4);  
+    ZeroMemory(@Context, SizeOf(MD5Context));  
+  end;  
+    
+  function MD5String(M: string): MD5Digest;  
+  var  
+    Context: MD5Context;  
+  begin  
+    MD5Init(Context);  
+    MD5Update(Context, pChar(M), length(M));  
+    MD5Final(Context, Result);  
+  end;  
+    
+  function MD5File(N: string): MD5Digest;  
+  var  
+    FileHandle: THandle;  
+    MapHandle: THandle;  
+    ViewPointer: pointer;  
+    Context: MD5Context;  
+  begin  
+    MD5Init(Context);  
+    FileHandle := CreateFile(pChar(N), GENERIC\_READ, FILE\_SHARE\_READ or FILE\_SHARE\_WRITE,  
+      nil, OPEN\_EXISTING, FILE\_ATTRIBUTE\_NORMAL or FILE\_FLAG\_SEQUENTIAL\_SCAN, 0);  
+    if FileHandle <> INVALID\_HANDLE\_VALUE then try  
+      MapHandle := CreateFileMapping(FileHandle, nil, PAGE\_READONLY, 0, 0, nil);  
+      if MapHandle <> 0 then try  
+        ViewPointer := MapViewOfFile(MapHandle, FILE\_MAP\_READ, 0, 0, 0);  
+        if ViewPointer <> nil then try  
+          MD5Update(Context, ViewPointer, GetFileSize(FileHandle, nil));  
+        finally  
+          UnmapViewOfFile(ViewPointer);  
+        end;  
+      finally  
+        CloseHandle(MapHandle);  
+      end;  
+    finally  
+      CloseHandle(FileHandle);  
+    end;  
+    MD5Final(Context, Result);  
+  end;  
+    
+  function MD5Print(D: MD5Digest): string;  
+  var  
+    I: byte;  
+  const  
+    Digits: array\[0..15\] of char =  
+      ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f');  
+  begin  
+    Result := '';  
+    for I := 0 to 15 do Result := Result + Digits\[(D\[I\] shr 4) and $0f\] + Digits\[D\[I\] and $0f\];  
+  end;  
+    
+  function MD5Match(D1, D2: MD5Digest): boolean;  
+  var  
+    I: byte;  
+  begin  
+    I := 0;  
+    Result := TRUE;  
+    while Result and (I < 16) do begin  
+      Result := D1\[I\] = D2\[I\];  
+      inc(I);  
+    end;  
+  end;  
+    
+  function RivestStr(Str: string): string;  
+  begin  
+    Result := MD5Print(MD5String(Str));  
+  end;  
+    
+  function RivestFile(FileName: string): string;  
+  begin  
+    Result := MD5Print(MD5File(FileName));  
+  end;  
+    
+    
+    
+    
+\--------------------------------------------------------------------------------  
+【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!  
+  
+                                                       2006 年 12 月 12 日 20:42:22 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

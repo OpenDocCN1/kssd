@@ -1,0 +1,268 @@
+
+
+# 从逆向工程的角度来看 C++ (一)
+
+> 原文：[`www.pediy.com/kssd/pediy10/87586.html`](https://www.pediy.com/kssd/pediy10/87586.html)
+
+前话:  
+  
+大家好， 这是我为了巩固对 C++的逆向而进行的一系列学习笔记。  
+大家都清楚，现在好多软件都是 C++编写的，而 C++相对于 C 来说还是有不少新特性的。  
+虽说部分特性仅仅是为编译器服务的，但是：还是有部分的特性会最终反映到软件的机器码中的。   
+所以我们对 C++语言编译后的 PE 进行逆向分析，不仅可以帮助我们更好地理解及分析 C++编写的软件，而且对于我们对 C++这门语言的更深层次理解更是起到了相当彻底的作用。  
+  
+C++相对于 C 的新特性，主要目的是：为了使程序员更加高效快捷安全的编码及开发软件。  
+对于这些新特性，我个人将其分为两部分：一部分是专门为编译器服务的，它不会影响最终的 Native Code 的结构；而另一部分严格来说也是为编译器服务，不过最重要的是它会影响最终的 Native Code 的结构。  
+  
+打个比方：  
+C++中全局函数的重载：这个东西完全就是为编译器服务的，在最终的反汇编代码中，你根本看不出来它使用了 C++的重载这一面向对象的特性，因为它实际上就是两个不同的函数；  
+再比如类对象: 当你在反汇编代码中看到某些 call 在调用前都会有个 ecx 作为参数传进去（这里 IDE 假定为 VC，因为 Borland 不是用 ecx 而是通过堆栈来传递 this 指针的），而在 call 内部经常有对 ecx 的类似“mov edx，ecx  ；  mov  R/M,dword ptr\[edx+4\*N\] ”时, 我想如果你对 C++的逆向分析的比较透彻，你会马上发现这是再传递类对象的 this 指针，并对类成员取值等等。 另外虚函数在反汇编代码中的表现形式也是很有特点的（以后会详细介绍的）。  
+  
+  
+上面嗦了这么多，无非是要说明这样一个道理： 就像 C 语言的枚举在反汇编的代码中消失的无影无踪，而结构体成员存取值在反汇编中却表现的这么明显。 说白了一个式子：asm-->C-->C++ .  
+  
+（我发现我好嗦啊，各位别拍砖啊![](img/e71d9210a215d5b66755d038631e0c83.jpg "恐怖!")）  
+  
+实验平台及工具: XP SP3, VC SP6(默认 Debug，Release 修改为最小大小优化)， OD 等。   
+  
+P.S  整个系列的文章对于高手来说肯定是没有任何技术含量的，发到这里只是为了可以帮助新手更快的入门。  
+     另外限于我的水平，整个系列中肯定会有认识不到位的地方或者认识错误的地方，欢迎各位拍砖。  
+  
+\------------------------------------------------------------------------------------------------  
+进入本次正题：  
+  
+                           (一) \[  C++ 之 数据类型  \]  
+  
+来 CPP 源码:  
+  
+#include <stdio.h>  
+#pragma pack(1)  
+struct F  
+{  
+  char a;   
+  int  b;  
+  void fuck();  
+};  
+#pragma pack()  
+struct B  
+{  
+  int a;   
+  int b;  
+  int c;  
+  void  add(int,int);  
+  void f(int);  
+};  
+  
+void B::add(int a,int b)  
+{  
+  c = a + b ;  
+}  
+void B::f(int x)  
+{  
+  a += x;  
+}  
+  
+void F::fuck()  
+{  
+  this->a = 'J' ;  
+  this->b++;  
+}  
+  
+enum EE  
+{  
+  red  =3,  
+  blue ,  
+  green,  
+  yellow,   
+};  
+  
+int main(int argc, char\* argv\[\])  
+{  
+  
+  B sb; F sf; EE ee;  
+  sb.a = 3;sb.b = 4;sb.c = 5;  
+  sf.a = 'X' ; sf.b = 0x9999;  
+  sf.b = green;          
+  
+  \_\_asm int 3      //跟 failwest 学的, 呵呵, 感觉不错.  
+  printf("%d   ",sizeof(sb));  
+  printf("%d   ",sizeof(sf));  
+  printf("%d   ",sizeof(ee));  
+  sb.add(sb.a,sb.b);  
+  sb.f(4);  
+  sf.fuck();  
+  
+  return 0;  
+}  
+  
+结构体 B ,F 两种抽象数据类型, 默认的话, 其结构体大小为数据成员个数乘以 4 .  
+(如果定义了对齐粒度的话就另当别论).函数不会算到大小里面去(后面的虚函数  
+除外), 对于一般的结构体, 都是当成一个内存块来处理的. 对于 B, F 这种抽象数据  
+类型, 一般都是将 ecx 保存其指针(以后到了类就是 this 了).  
+  
+下面看反汇编调试过程吧.  
+00401030    55              push ebp  
+00401031    8BEC            mov ebp,esp  
+00401033    83EC 14         sub esp,14  
+00401036    C745 EC 0300000>mov dword ptr ss:\[ebp-14\],3              ; 从这 5 行可以看出,在栈里面是按局部变量从小到大排的  
+0040103D    C745 F0 0400000>mov dword ptr ss:\[ebp-10\],4  
+00401044    C745 F4 0500000>mov dword ptr ss:\[ebp-C\],5  
+0040104B    C645 F8 58      mov byte ptr ss:\[ebp-8\],58               ; 这里从 8 开始一个 char  
+0040104F    C745 F9 9999000>mov dword ptr ss:\[ebp-7\],9999            ; 从 7 开始, 保持和上面的紧挨着.  
+00401056    90              nop  
+00401057    6A 0C           push 0C                                  ; 默认自然对齐为 4 字节, 总共 12 字节  
+00401059    68 30704000     push lesson1.00407030                    ; ASCII "%d   "  
+0040105E    E8 3D000000     call lesson1.004010A0                    ; 这里是 printf, 不知为啥不自己显示出来  
+00401063    6A 05           push 5                                   ; 这里重设了对齐粒度,于是为 5  
+00401065    68 30704000     push lesson1.00407030                    ; ASCII "%d   "  
+0040106A    E8 31000000     call lesson1.004010A0                    ; printf  
+0040106F    8B45 F0         mov eax,dword ptr ss:\[ebp-10\]            ; sb.b  
+00401072    8B4D EC         mov ecx,dword ptr ss:\[ebp-14\]            ; sb.a  
+00401075    83C4 10         add esp,10                               ; 两次的放一起平衡 esp.  
+00401078    50              push eax  
+00401079    51              push ecx  
+0040107A    8D4D EC         lea ecx,dword ptr ss:\[ebp-14\]            ; sb 的地址.  相当于寄存器传参.  
+0040107D    E8 7EFFFFFF     call lesson1.00401000                    ; sb.add(sb.a,sb.b);  
+00401082    6A 04           push 4  
+00401084    8D4D EC         lea ecx,dword ptr ss:\[ebp-14\]            ; sb 的地址.  
+00401087    E8 84FFFFFF     call lesson1.00401010                    ; sb.f(4);  
+0040108C    8D4D F8         lea ecx,dword ptr ss:\[ebp-8\]             ; sf 的地址  
+0040108F    E8 8CFFFFFF     call lesson1.00401020                    ; sf.fuck  
+00401094    33C0            xor eax,eax  
+00401096    8BE5            mov esp,ebp  
+00401098    5D              pop ebp  
+00401099    C3              retn  
+  
+//  
+00401000    8B4424 08       mov eax,dword ptr ss:\[esp+8\]             ; 这里没压 ebp, 所以为参数 2 : sb.b  
+00401004    8B5424 04       mov edx,dword ptr ss:\[esp+4\]             ; 参数一: sb.a  
+00401008    03D0            add edx,eax  
+0040100A    8951 08         mov dword ptr ds:\[ecx+8\],edx             ; 这里 ecx 就定位了那个 sb 结构体了.  
+0040100D    C2 0800         retn 8  
+  
+枚举类型就很简单了, 跟 BOOL 一样了, sizeof 就是 4 了, 然后使用中就直接被编译器换成了  
+数值了,比如 EE ee = red;  直接就是 mov dword ptr \[ebp  index \* 4\] , 3 ; 另外还有联合体，像枚举联合体这些东西在反汇编代码中根本都看不到影子的，这些并不花哨的“花哨”东西（别绕住了啊，哈哈）在反汇编中消失的无影无踪了。 所以我就不做多介绍了。  
+  
+因为这是系列之（一），就不介绍太多内容，在余下的分节我们慢慢来了解。 那么今次就到这里吧。 
+
+把局部类变成全局类，再看看代码，加深理解  
+  
+#include <stdio.h>  
+#pragma pack(1)  
+struct F  
+{  
+  char a;   
+  int  b;  
+  void fuck();  
+};  
+#pragma pack()  
+struct B  
+{  
+  int a;   
+  int b;  
+  int c;  
+  void  add(int,int);  
+  void f(int);  
+};  
+  
+void B::add(int a,int b)  
+{  
+  c = a + b ;  
+}  
+void B::f(int x)  
+{  
+  a += x;  
+}  
+  
+void F::fuck()  
+{  
+  this->a = 'J' ;  
+  this->b++;  
+}  
+  
+enum EE  
+{  
+  red  =3,  
+  blue ,  
+  green,  
+  yellow,   
+};  
+   
+  
+ B sb; F sf; EE ee;    //把局部类变成全局类，再看看代码，加深理解  
+  
+  
+int main(int argc, char\* argv\[\])  
+{  
+  sb.a = 3;sb.b = 4;sb.c = 5;  
+  sf.a = 'X' ; sf.b = 0x9999;  
+  sf.b = green;          
+  
+  
+  \_\_asm int 3      //跟 failwest 学的, 呵呵, 感觉不错.  
+  printf("%d   ",sizeof(sb));  
+  printf("%d   ",sizeof(sf));  
+  printf("%d   ",sizeof(ee));  
+  sb.add(sb.a,sb.b);  
+  sb.f(4);  
+  sf.fuck();  
+  
+  return 0;  
+}  
+  
+  
+  
+00401030    C705 E0984000 0>mov     dword ptr \[4098E0\], 3  //全局类的成员赋值  
+0040103A    C705 E4984000 0>mov     dword ptr \[4098E4\], 4  
+00401044    C705 E8984000 0>mov     dword ptr \[4098E8\], 5  
+0040104E    C605 F0984000 5>mov     byte ptr \[4098F0\], 58  
+00401055    C705 F1984000 0>mov     dword ptr \[4098F1\], 5  
+0040105F    CC              int3  
+00401060    6A 0C           push    0C  
+00401062    68 30704000     push    00407030                         ; ASCII "%d   "  
+00401067    E8 54000000     call    004010C0  
+0040106C    6A 05           push    5  
+0040106E    68 30704000     push    00407030                         ; ASCII "%d   "  
+00401073    E8 48000000     call    004010C0  
+00401078    6A 04           push    4  
+0040107A    68 30704000     push    00407030                         ; ASCII "%d   "  
+0040107F    E8 3C000000     call    004010C0  
+00401084    A1 E4984000     mov     eax, \[4098E4\]    //全局类取值  
+00401089    8B0D E0984000   mov     ecx, \[4098E0\]  
+0040108F    83C4 18         add     esp, 18  
+00401092    50              push    eax  
+00401093    51              push    ecx                              ; test.004070B8  
+00401094    B9 E0984000     mov     ecx, 004098E0    //全局类地址  
+00401099    E8 62FFFFFF     call    00401000  
+0040109E    6A 04           push    4  
+004010A0    B9 E0984000     mov     ecx, 004098E0  
+004010A5    E8 66FFFFFF     call    00401010  
+004010AA    B9 F0984000     mov     ecx, 004098F0  
+004010AF    E8 6CFFFFFF     call    00401020  
+004010B4    33C0            xor     eax, eax  
+004010B6    C3              retn 
+
+LZ 这样的方法只适用 debug,release 不是这样的的,所有的变量是需要的时候才初始化,不需要的根本就不编译进去,这个取决主 MAIN 代码  
+  
+还有一看这样的就确定 ECX 是 this 指针  
+00401082    6A 04           push 4  
+00401084    8D4D EC         lea ecx,dword ptr ss:\[ebp-14\]            ; sb 的地址.  
+00401087    E8 84FFFFFF     call lesson1.00401010                    ; sb.f(4);  
+  
+至于何时用 mov 何时用 lea,LZ 自己探索好了,我不说了~~^\_^  
+  
+00401036    C745 EC 0300000>mov dword ptr ss:\[ebp-14\],3              ; 从这 5 行可以看出,在栈里面是按局部变量从小到大排的  
+0040103D    C745 F0 0400000>mov dword ptr ss:\[ebp-10\],4  
+00401044    C745 F4 0500000>mov dword ptr ss:\[ebp-C\],5  
+0040104B    C645 F8 58      mov byte ptr ss:\[ebp-8\],58               ; 这里从 8 开始一个 char  
+  
+LZ 这个排序不一定的,有的时候会变一下的~!在 debug 中多半都会这样,但在 release 中不一定,debug 也不一定的~!  
+  
+LZ 的贴不错,希望继续,我已经学习完了~~!  
+LZ 的一个地方是错的 asm->c->c++,这个是不对的~~!  
+asm->c++  
+asm->delphi  
+asm->c  
+这个是根据原代码来确定的,不一定非要先 C.  
+  
+![](img/c72cb8eba397ac67dda6e1ac58a9b627.jpg "微笑")

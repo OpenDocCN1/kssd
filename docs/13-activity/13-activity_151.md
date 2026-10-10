@@ -1,0 +1,248 @@
+
+
+# 2 题第 4 题。。我的方法。。
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-270.htm`](https://www.pediy.com/kssd/pediy09/pediy09-270.htm)
+
+> //标志减 7 就是函数头  
+> BYTE DecodeFlag\[16\] = {0x8B, 0xFA, 0x83, 0xC9, 0xFF, 0x33, 0xC0, 0x33, 0xF6, 0xF2, 0xAE, 0xF7, 0xD1, 0x49, 0x8B, 0xE9};  
+>   
+> //搜索数据  
+> BYTE\* SearchData(BYTE\* dataall,int alllen,BYTE\* data,int len)  
+> {  
+>   
+>   for(int i = 0; i < alllen; i++)  
+>   {  
+>     if( !memcmp(dataall+i,data,len) )  
+>       return dataall+i;  
+>   }  
+>   return NULL;  
+> }  
+> HANDLE handle;  
+>   
+> DWORD VirtualBaseAddr;  
+> DWORD FuncAddr;  
+>   
+> BYTE reg\_al;  
+> BYTE reg\_bl;  
+> BYTE reg\_cl;  
+> BYTE reg\_dl;  
+> //list<t\_disasm> dalist;  
+> CLink dalist;  
+> void Write(char\* data)  
+> {  
+>   SetFilePointer(handle,0,NULL,FILE\_END);  
+>   int filelen = strlen(data);  
+>   data\[filelen++\] = '\\r';  
+>   data\[filelen++\] = '\\n';  
+>   DWORD dw;  
+>   WriteFile(handle,data,filelen,&dw,NULL);  
+>   dw = GetLastError();  
+> }  
+> static char espdata\[0x1000000\];  
+> static DWORD espdataaddr;  
+> static DWORD tmpesp;  
+> static DWORD codeaddr;  
+> static DWORD endesp;//ESP 尾步  
+> static BYTE gotoretcode\[5\] = {0xE9,0x00,0x00,0x00,0x00};  
+> static DWORD dwoffset = 0;  
+> char \*codedata = new char\[102400\];  
+>   
+> //执行代码  
+> void ExecuteCode(BYTE\* code,int len)  
+> {  
+>   memset(espdata,0,0x1000000);  
+>   static DWORD dw;  
+>   VirtualProtect(espdata,0x1000000,PAGE\_READWRITE | PAGE\_EXECUTE,&dw);  
+>   espdataaddr = (DWORD)espdata + 0x0500000;  
+>   codeaddr = (DWORD)code;  
+>   //\_\_asm \_emit 0xCC  
+>   \_asm  
+>   {  
+>     pushad  
+>     mov eax,\_Exec\_End  
+>     sub eax,codeaddr  
+>     sub eax,len  
+>     sub eax,5  
+>     mov dwoffset,eax  
+>     popad  
+>   }  
+>   \*(DWORD\*)&gotoretcode\[1\] = dwoffset;  
+>   memcpy(code+len,gotoretcode,5);  
+>   \_asm  
+>   {  
+>     pushad  
+>     mov tmpesp,esp  
+>     mov esp,espdataaddr  
+>     mov al,reg\_al  
+>     mov bl,reg\_bl  
+>     mov cl,reg\_cl  
+>     mov dl,reg\_dl  
+>     jmp codeaddr  
+> \_Exec\_End:  
+>     mov endesp,esp  
+>     mov esp,tmpesp  
+>     popad  
+>   }  
+>   static char\* data;  
+>   data = (char\*)\*(DWORD\*)endesp;  
+>   Write(data);  
+> }  
+>   
+> void InsetList(t\_disasm \*da)  
+> {  
+>   //dalist.push\_back(\*da);  
+>   t\_disasm\* t\_da = new t\_disasm;  
+>   if( !t\_da )  
+>   {  
+>     MsgBox("错误!");  
+>     return;  
+>   }  
+>   memcpy(t\_da,da,sizeof(t\_disasm));  
+>   dalist.AddTail(t\_da);  
+> }  
+> void ClearList()  
+> {  
+>   dalist.RemoveAll();  
+> }  
+>   
+>   
+> //识别代码  
+> void IdentifyCode(t\_disasm \*da)  
+> {  
+>   if( !strcmp(da->vm\_name,"VMOV\_REG08\_IMM32") )  
+>   {  
+>     switch(da->reg\[0\])  
+>     {  
+>     case REG\_EAX:  
+>       reg\_al = da->immconst;  
+>       break;  
+>     case REG\_EBX:  
+>       reg\_bl = da->immconst;  
+>     case REG\_ECX:  
+>       reg\_bl = da->immconst;  
+>     case REG\_EDX:  
+>       reg\_dl = da->immconst;  
+>     }  
+>   }  
+>   if( !strcmp(da->vm\_name,"VXOR\_REG08\_REG08") )  
+>   {  
+>     switch(da->reg\[0\])  
+>     {  
+>     case REG\_EAX:  
+>       reg\_al = 0;  
+>       break;  
+>     case REG\_EBX:  
+>       reg\_bl = 0;  
+>     case REG\_ECX:  
+>       reg\_bl = 0;  
+>     case REG\_EDX:  
+>       reg\_dl = 0;  
+>     }  
+>   }  
+>   if( da->cmdtype == C\_CAL )//如果是 CALL  
+>   {  
+>     if( da->jmpconst == FuncAddr )//如果是调用解密函数  
+>     {  
+>       memset(codedata,0,102400);  
+>       char\* pcode = codedata;  
+>       //list<t\_disasm>::iterator itr = dalist.begin();  
+>       //for(itr = dalist.begin(); itr != dalist.end(); ++itr)  
+>       //{  
+>       //  t\_disasm t\_da = \*itr;  
+>       //  memcpy(pcode,t\_da.hexcode,t\_da.codelen);  
+>       //  pcode += t\_da.codelen;  
+>       //}  
+>       T\_Link\* link = dalist.GetLink();  
+>       while(link)  
+>       {  
+>         t\_disasm\* t\_da = (t\_disasm\*)link->data;  
+>         memcpy(pcode,t\_da->hexcode,t\_da->codelen);  
+>         pcode += t\_da->codelen;  
+>         link = dalist.GetNext();  
+>       }  
+>       char calltext\[16\];  
+>       t\_asmmodel t\_asm;  
+>       sprintf(calltext,"call %08X",(DWORD)Uncode);  
+>       char errtext\[255\];  
+>       int len = Assemble(calltext,(ulong)pcode,&t\_asm,0,0,errtext);  
+>       memcpy(pcode,t\_asm.code,len);pcode += len;  
+>       ExecuteCode((BYTE\*)codedata,pcode-codedata);  
+>   
+>       ClearList();  
+>     }  
+>     else//否则清除链表  
+>     {  
+>       ClearList();  
+>     }  
+>   }  
+>   else if( da->cmdtype == C\_RET )//遇到返回清除  
+>   {  
+>     ClearList();  
+>   }  
+>   else//否则添加到链表  
+>   {  
+>     InsetList(da);  
+>   }  
+> }  
+>   
+> int \_tmain(int argc, \_TCHAR\* argv\[\])  
+> {  
+>   CPEStructure PEStructure;  
+>   
+>   if( argc < 2 )  
+>   {  
+>     delete\[\] codedata;codedata = NULL;  
+>     printf("请输入分析参数如 - VParse.exe StrDiggerMe.exe\\n");  
+>     system("pause");  
+>     return 0;  
+>   }  
+>   if( !PEStructure.OpenFileName(argv\[1\]) )  
+>   {  
+>     delete\[\] codedata;codedata = NULL;  
+>     printf("请返回");  
+>     system("pause");  
+>     return 0;  
+>   }  
+>   
+>   handle = CreateFile("out.txt",GENERIC\_READ | GENERIC\_WRITE, 0, NULL, OPEN\_ALWAYS, FILE\_ATTRIBUTE\_NORMAL,0);     
+>   if( handle == INVALID\_HANDLE\_VALUE )  
+>   {  
+>     DWORD dw = GetLastError();  
+>     MsgBox("打开文件失败!");  
+>     return 0;  
+>   }  
+>   
+>   //得到入口点所在索引  
+>   int OEPidx = PEStructure.FindSectionIndex(PEStructure.image\_nt\_headers.OptionalHeader.AddressOfEntryPoint);  
+>   BYTE\* pcode = SearchData((BYTE\*)PEStructure.image\_section\[OEPidx\],PEStructure.image\_section\_header\[OEPidx\].SizeOfRawData,(BYTE\*)DecodeFlag,16);  
+>   if(!pcode)  
+>   {  
+>     delete\[\] codedata;codedata = NULL;  
+>     printf("没找到解码标志");  
+>     system("pause");  
+>     return 0;  
+>   }  
+>   pcode-=7;  
+>   VirtualBaseAddr = PEStructure.image\_nt\_headers.OptionalHeader.ImageBase + PEStructure.image\_section\_header\[OEPidx\].VirtualAddress;  
+>   FuncAddr = VirtualBaseAddr + (DWORD)(pcode - (BYTE\*)PEStructure.image\_section\[OEPidx\]);  
+>   int   Segment\_Len = PEStructure.image\_section\_header\[OEPidx\].SizeOfRawData;//段长度  
+>   char\* paddr = PEStructure.image\_section\[OEPidx\];  
+>   int   Segment\_End = VirtualBaseAddr + Segment\_Len;  
+>   DWORD StepVirtualAddr = VirtualBaseAddr;  
+>   while( StepVirtualAddr < Segment\_End )  
+>   {  
+>     t\_disasm da;  
+>     int len = Disasm(paddr,16,StepVirtualAddr,&da,DISASM\_CODE);  
+>   
+>     IdentifyCode(&da);  
+>   
+>     StepVirtualAddr += len;  
+>     paddr += len;  
+>   }  
+>   delete\[\] codedata;codedata = NULL;  
+>   CloseHandle(handle);  
+>   return 0;  
+> } 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

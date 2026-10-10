@@ -1,0 +1,146 @@
+
+
+# JDPack V1.X / JDProtect V0.9 UnPacK Script
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-663.htm`](https://www.pediy.com/kssd/pediy07/pediy7-663.htm)
+
+**JDPack V1.X / JDProtect V0.9 UnPacK Script**  
+  
+  
+//////////////////////////////////////////////////  
+//  FileName    :  JDProtect.V0.9/JDPack.V1.X.osc  
+//  Comment     :  JDPack V1.X / JDProtect V0.9 UnPacK Script  
+//  Environment :  WinXP SP2,OllyDbg V1.10,OllyScript V0.92  
+//  Author      :  fly  
+//  WebSite     :  http://fly2004.163.cn.com  
+//  Date        :  2005-10-22 15:30  
+//////////////////////////////////////////////////  
+#log  
+dbh  
+  
+  
+var Temp  
+var ImageBase  
+var PE  
+var e\_lfanew  
+var PE\_Signature  
+var ImportTableRVA  
+var ->>ImportTableRVA  
+var ImportTableSize  
+var ->>EP  
+var OEPRVA  
+  
+  
+//GetPEInformation————————————————————————————————  
+  
+mov Temp,eax  
+exec  
+push 0  
+call GetModuleHandleA  
+ende  
+mov ImageBase,eax  
+mov eax,Temp  
+log ImageBase  
+mov Temp,ImageBase  
+  
+add Temp,3C  
+mov e\_lfanew,\[Temp\]  
+log e\_lfanew  
+  
+mov Temp,e\_lfanew  
+add Temp,ImageBase  
+mov PE\_Signature,Temp  
+log PE\_Signature  
+  
+add Temp,28  
+mov ->>EP,Temp  
+log ->>EP  
+  
+add Temp,58  
+mov ->>ImportTableRVA,Temp  
+log ->>ImportTableRVA  
+//mov ImportTableRVA,\[->ImportTableRVA\]  
+  
+add Temp,4  
+mov ImportTableSize,\[Temp\]  
+log ImportTableSize  
+  
+  
+//ImportTableRVA————————————————————————————————  
+  
+find eip, #E2EB#  
+cmp $RESULT, 0  
+je NoFind  
+add $RESULT,2  
+log $RESULT  
+  
+go $RESULT  
+  
+find eip, #03F28B460C0BC0#  
+cmp $RESULT, 0  
+je NoFind  
+  
+eob GetImportTableRVA  
+bp $RESULT  
+esto  
+GoOn:  
+esto  
+  
+GetImportTableRVA:  
+cmp eip,$RESULT  
+jne GoOn  
+bc $RESULT  
+  
+mov ImportTableRVA,esi  
+log ImportTableRVA  
+mov \[->>ImportTableRVA\],ImportTableRVA  
+  
+  
+//OEP————————————————————————————————  
+  
+sti  
+sti  
+asm eip, "xor eax, eax"  
+sti  
+sti  
+find eip, #03C28944241C#  
+cmp $RESULT, 0  
+je NoFind  
+  
+eob OEP  
+bp $RESULT  
+esto  
+OEP:  
+bc $RESULT  
+  
+log eax  
+mov OEPRVA,eax  
+log OEPRVA  
+mov \[->>EP\],OEPRVA  
+  
+find eip, #6150C3#  
+cmp $RESULT, 0  
+je NoFind  
+add $RESULT,2  
+eob OK  
+bp $RESULT  
+esto  
+OK:  
+bc $RESULT  
+sti  
+  
+dpe "C:\\UnPacKed.eXe", eip  
+MSG "Dumped File ——>  C:\\UnPacKed.eXe   "  
+  
+  
+//GameOver————————————————————————————————  
+  
+cmt eip, "This is the OEP! Found by fly"  
+MSG "OK, Already Fixed OEP and ImportTable !  Good Luck   "  
+ret  
+  
+NoFind:  
+MSG "Error! Maybe It's not JDPack V1.X / JDProtect V0.9   "   
+ret 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

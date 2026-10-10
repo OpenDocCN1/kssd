@@ -1,0 +1,1861 @@
+
+
+# 宝宝要出生了!就要做爸爸了!很是高兴,好久没有什么贡献了,发点以前的分析吧!
+
+> 原文：[`www.pediy.com/kssd/pediy10/78884.html`](https://www.pediy.com/kssd/pediy10/78884.html)
+
+这个外挂在以前论坛中曾经有人讨论过,不过当时由于他们还在卖钱我就没有发布出来!  
+现在估计他们已经更新了很多版本了所以发出来大家共同研究一下!  
+顺便跟大家已经高兴一下,宝宝明天就要出生了!  
+在这里要对  nzinzi  说声谢谢,如果没有他当时的提醒估计详细分析出来还需要更多的时间!  
+  
+小弟姓李,宝宝还没有名字哪位大哥给起个名字啊!  
+  
+极品脱机外挂服务器验证分析:  
+  
+MARS 算法的位置:  
+  
+NEW 410B03  
+    410BF2  
+OLD 40EF83  
+    40F072  
+////////////////////////////////////登陆时的验证/////////////////////////////////////  
+//登陆时一共验证 2 次,一次是时间一次是版本.  
+.text:0041E761                 cmp     eax, edx  
+.text:0041E763                 mov     \[ebp+274h\], ecx  
+.text:0041E769                 jz      loc\_41EECB  
+.text:0041E76F                 push    offset aK\_\_\_\_\_\_ ; "开始登陆游戏......"  
+.text:0041E774                 push    1  
+.text:0041E776                 mov     ecx, 59DDC8h  
+.text:0041E77B                 call    sub\_4177D0  
+.text:0041E780                 mov     ebx, ds:Sleep  
+.text:0041E786                 push    64h             ; dwMilliseconds  
+.text:0041E788                 call    ebx ; Sleep  
+.text:0041E78A                 xor     esi, esi  
+.text:0041E78C  
+.text:0041E78C loc\_41E78C:                             ; CODE XREF: sub\_41E480+327j  
+.text:0041E78C                 push    0  
+.text:0041E78E                 push    ebp  
+.text:0041E78F                 call    sub\_41E1D0      ; 登陆游戏的连接函数  
+.text:0041E794                 mov     al, \[ebp+14Ah\]  
+.text:0041E79A                 add     esp, 8  
+.text:0041E79D                 cmp     al, 1  
+.text:0041E79F                 jz      short loc\_41E7B7  
+.text:0041E7A1                 add     esi, 2  
+.text:0041E7A4                 cmp     esi, 5  
+.text:0041E7A7                 jl      short loc\_41E78C  
+.text:0041E7A9                 cmp     al, 1  
+.text:0041E7AB                 jz      short loc\_41E7B7  
+.text:0041E7AD                 push    offset unk\_591464  
+.text:0041E7B2                 jmp     loc\_41F3B3  
+.text:0041E7B7 ; ----------------------------------------------------------------------------  
+.text:0041E7B7  
+.text:0041E7B7 loc\_41E7B7:                             ; CODE XREF: sub\_41E480+31Fj  
+.text:0041E7B7                                         ; sub\_41E480+32Bj  
+.text:0041E7B7                 push    1F4h            ; dwMilliseconds  
+.text:0041E7BC                 mov     byte ptr \[ebp+14Dh\], 1  
+.text:0041E7C3                 call    ebx ; Sleep  
+.text:0041E7C5                 push    ebp  
+.text:0041E7C6                 call    sub\_41E0E0  
+.text:0041E7CB                 add     esp, 4  
+.text:0041E7CE                 call    edi ; GetTickCount  
+.text:0041E7D0                 mov     esi, eax  
+.text:0041E7D2                 call    edi ; GetTickCount  
+.text:0041E7D4                 sub     eax, esi  
+.text:0041E7D6                 cmp     eax, 1F40h  
+.text:0041E7DB                 jnb     short loc\_41E7F5  
+.text:0041E7DD  
+.text:0041E7DD loc\_41E7DD:                             ; CODE XREF: sub\_41E480+373j  
+.text:0041E7DD                 push    64h             ; dwMilliseconds  
+.text:0041E7DF                 call    ebx ; Sleep  
+.text:0041E7E1                 cmp     byte ptr \[ebp+14Fh\], 1  
+.text:0041E7E8                 jz      short loc\_41E808  
+.text:0041E7EA                 call    edi ; GetTickCount  
+.text:0041E7EC                 sub     eax, esi  
+.text:0041E7EE                 cmp     eax, 1F40h  
+.text:0041E7F3                 jb      short loc\_41E7DD  
+.text:0041E7F5  
+.text:0041E7F5 loc\_41E7F5:                             ; CODE XREF: sub\_41E480+35Bj  
+.text:0041E7F5                 cmp     byte ptr \[ebp+14Fh\], 1  
+.text:0041E7FC                 jz      short loc\_41E808  
+.text:0041E7FE                 push    offset unk\_591450  
+.text:0041E803                 jmp     loc\_41F3B3  
+.text:0041E808 ; ----------------------------------------------------------------------------  
+.text:0041E808  
+.text:0041E808 loc\_41E808:                             ; CODE XREF: sub\_41E480+368j  
+.text:0041E808                                         ; sub\_41E480+37Cj  
+.text:0041E808                 push    ebp  
+.text:0041E809                 call    sub\_41E0B0  
+.text:0041E80E                 add     esp, 4  
+.text:0041E811                 call    edi ; GetTickCount  
+.text:0041E813                 mov     esi, eax  
+.text:0041E815                 call    edi ; GetTickCount  
+.text:0041E817                 sub     eax, esi  
+.text:0041E819                 cmp     eax, 1F40h  
+.text:0041E81E                 jnb     short loc\_41E838  
+.text:0041E820  
+.text:0041E820 loc\_41E820:                             ; CODE XREF: sub\_41E480+3B6j  
+.text:0041E820                 push    64h             ; dwMilliseconds  
+.text:0041E822                 call    ebx ; Sleep  
+.text:0041E824                 cmp     byte ptr \[ebp+150h\], 1  
+.text:0041E82B                 jz      short loc\_41E84B  
+.text:0041E82D                 call    edi ; GetTickCount  
+.text:0041E82F                 sub     eax, esi  
+.text:0041E831                 cmp     eax, 1F40h  
+.text:0041E836                 jb      short loc\_41E820  
+.text:0041E838  
+.text:0041E838 loc\_41E838:                             ; CODE XREF: sub\_41E480+39Ej  
+.text:0041E838                 cmp     byte ptr \[ebp+150h\], 1  
+.text:0041E83F                 jz      short loc\_41E84B  
+.text:0041E841                 push    offset unk\_59143C  
+.text:0041E846                 jmp     loc\_41F3B3  
+.text:0041E84B ; ----------------------------------------------------------------------------  
+.text:0041E84B  
+.text:0041E84B loc\_41E84B:                             ; CODE XREF: sub\_41E480+3ABj  
+.text:0041E84B                                         ; sub\_41E480+3BFj  
+.text:0041E84B                 push    ebp  
+.text:0041E84C                 call    sub\_41DF30  
+.text:0041E851                 add     esp, 4  
+.text:0041E854                 call    edi ; GetTickCount  
+.text:0041E856                 mov     esi, eax  
+.text:0041E858                 call    edi ; GetTickCount  
+.text:0041E85A                 sub     eax, esi  
+.text:0041E85C                 cmp     eax, 1F40h  
+.text:0041E861                 jnb     short loc\_41E87C  
+.text:0041E863  
+.text:0041E863 loc\_41E863:                             ; CODE XREF: sub\_41E480+3FAj  
+.text:0041E863                 push    64h             ; dwMilliseconds  
+.text:0041E865                 call    ebx ; Sleep  
+.text:0041E867                 mov     al, \[ebp+151h\]  
+.text:0041E86D                 test    al, al  
+.text:0041E86F                 jnz     short loc\_41E87C  
+.text:0041E871                 call    edi ; GetTickCount  
+.text:0041E873                 sub     eax, esi  
+.text:0041E875                 cmp     eax, 1F40h  
+.text:0041E87A                 jb      short loc\_41E863  
+.text:0041E87C  
+.text:0041E87C loc\_41E87C:                             ; CODE XREF: sub\_41E480+3E1j  
+.text:0041E87C                                         ; sub\_41E480+3EFj  
+.text:0041E87C                 mov     al, \[ebp+151h\]  
+.text:0041E882                 cmp     al, 2  
+.text:0041E884                 jnz     short loc\_41E890  
+.text:0041E886                 push    offset unk\_591408  
+.text:0041E88B                 jmp     loc\_41F3B3  
+.text:0041E890 ; ----------------------------------------------------------------------------  
+.text:0041E890  
+.text:0041E890 loc\_41E890:                             ; CODE XREF: sub\_41E480+404j  
+.text:0041E890                 cmp     al, 3  
+.text:0041E892                 jnz     short loc\_41E89E  
+.text:0041E894                 push    offset unk\_5913D8  
+.text:0041E899                 jmp     loc\_41F3B3  
+.text:0041E89E ; ----------------------------------------------------------------------------  
+.text:0041E89E  
+.text:0041E89E loc\_41E89E:                             ; CODE XREF: sub\_41E480+412j  
+.text:0041E89E                 cmp     al, 4  
+.text:0041E8A0                 jnz     short loc\_41E8AC  
+.text:0041E8A2                 push    offset unk\_5913A4  
+.text:0041E8A7                 jmp     loc\_41F3B3  
+.text:0041E8AC ; ----------------------------------------------------------------------------  
+.text:0041E8AC  
+.text:0041E8AC loc\_41E8AC:                             ; CODE XREF: sub\_41E480+420j  
+.text:0041E8AC                 cmp     al, 6  
+.text:0041E8AE                 jnz     short loc\_41E8DC  
+.text:0041E8B0                 push    offset unk\_59136C  
+.text:0041E8B5                 push    1  
+.text:0041E8B7                 mov     ecx, 59DDC8h  
+.text:0041E8BC                 call    sub\_4177D0  
+.text:0041E8C1                 push    0EA60h          ; dwMilliseconds  
+.text:0041E8C6                 mov     dword ptr \[ebp+144h\], 9  
+.text:0041E8D0                 mov     byte ptr \[esp+4DC8h+var\_4DB4\], 0  
+.text:0041E8D5                 call    ebx ; Sleep  
+.text:0041E8D7                 jmp     loc\_41F3BF  
+.text:0041E8DC ; ----------------------------------------------------------------------------  
+.text:0041E8DC  
+.text:0041E8DC loc\_41E8DC:                             ; CODE XREF: sub\_41E480+42Ej  
+.text:0041E8DC                 cmp     al, 1  
+.text:0041E8DE                 jz      short loc\_41E8EA  
+.text:0041E8E0                 push    offset a4Z      ; "4 账号登陆失败!"  
+.text:0041E8E5                 jmp     loc\_41F3B3  
+.text:0041E8EA ; ----------------------------------------------------------------------------  
+.text:0041E8EA  
+.text:0041E8EA loc\_41E8EA:                             ; CODE XREF: sub\_41E480+45Ej  
+.text:0041E8EA                 mov     al, \[ebp+142h\]  
+.text:0041E8F0                 test    al, al  
+.text:0041E8F2                 jnz     loc\_41EB1A  
+.text:0041E8F8                 mov     ecx, 10h  
+.text:0041E8FD                 xor     eax, eax  
+.text:0041E8FF                 lea     edi, \[esp+4DC4h+var\_4D88\]  
+.text:0041E903                 push    eax             ; time\_t \*  
+.text:0041E904                 rep stosd               ; 外挂验证\_ 登陆  
+.text:0041E906                 call    \_time           ; 生成加密用的种子  
+.text:0041E90B                 push    eax             ; unsigned int  
+.text:0041E90C                 call    \_srand  
+.text:0041E911                 call    \_rand           ; 随机函数  
+.text:0041E916                 mov     esi, eax  
+.text:0041E918                 shl     esi, 10h  
+.text:0041E91B                 sub     esi, eax  
+.text:0041E91D                 call    \_rand           ; 随机函数  
+.text:0041E922                 mov     edx, \[ebp+0\]  
+.text:0041E925                 add     esi, eax  
+.text:0041E927                 dec     edx  
+.text:0041E928                 mov     \[esp+4DCCh+var\_4D88\], esi  
+.text:0041E92C                 push    edx  
+.text:0041E92D                 mov     \[esp+4DD0h+var\_4D80\], 53h  
+.text:0041E934                 mov     \[esp+4DD0h+var\_4D7C\], 1  
+.text:0041E93B                 call    sub\_434D10  
+.text:0041E940                 mov     \[esp+4DD0h+var\_4D7A\], ax  
+.text:0041E945                 lea     edi, \[ebp+2Ch\]  
+.text:0041E948                 or      ecx, 0FFFFFFFFh  
+.text:0041E94B                 xor     eax, eax  
+.text:0041E94D                 add     esp, 0Ch  
+.text:0041E950                 lea     edx, \[esp+4DC4h+var\_4D78\]  
+.text:0041E954                 repne scasb  
+.text:0041E956                 not     ecx  
+.text:0041E958                 sub     edi, ecx  
+.text:0041E95A                 mov     \[esp+4DC4h+var\_4D7E\], 64h  
+.text:0041E961                 mov     eax, ecx  
+.text:0041E963                 mov     esi, edi  
+.text:0041E965                 mov     edi, edx  
+.text:0041E967                 lea     edx, \[esp+4DC4h+var\_4D6C\]  
+.text:0041E96B                 shr     ecx, 2  
+.text:0041E96E                 rep movsd  
+.text:0041E970                 mov     ecx, eax  
+.text:0041E972                 xor     eax, eax  
+.text:0041E974                 and     ecx, 3  
+.text:0041E977                 rep movsb  
+.text:0041E979                 mov     edi, offset pszPath  
+.text:0041E97E                 or      ecx, 0FFFFFFFFh  
+.text:0041E981                 repne scasb  
+.text:0041E983                 not     ecx  
+.text:0041E985                 sub     edi, ecx  
+.text:0041E987                 mov     eax, ecx  
+.text:0041E989                 mov     esi, edi  
+.text:0041E98B                 mov     edi, edx  
+.text:0041E98D                 lea     edx, \[esp+4DC4h+var\_4D60\]  
+.text:0041E991                 shr     ecx, 2  
+.text:0041E994                 rep movsd  
+.text:0041E996                 mov     ecx, eax  
+.text:0041E998                 xor     eax, eax  
+.text:0041E99A                 and     ecx, 3  
+.text:0041E99D                 rep movsb  
+.text:0041E99F                 mov     edi, offset pszPath  
+.text:0041E9A4                 or      ecx, 0FFFFFFFFh  
+.text:0041E9A7                 repne scasb  
+.text:0041E9A9                 not     ecx  
+.text:0041E9AB                 sub     edi, ecx  
+.text:0041E9AD                 mov     eax, ecx  
+.text:0041E9AF                 mov     esi, edi  
+.text:0041E9B1                 mov     edi, edx  
+.text:0041E9B3                 shr     ecx, 2  
+.text:0041E9B6                 rep movsd  
+.text:0041E9B8                 mov     ecx, eax  
+.text:0041E9BA                 and     ecx, 3  
+.text:0041E9BD                 rep movsb  
+.text:0041E9BF                 call    \_rand           ; 随机函数  
+.text:0041E9C4                 mov     esi, eax  
+.text:0041E9C6                 shl     esi, 10h  
+.text:0041E9C9                 sub     esi, eax  
+.text:0041E9CB                 call    \_rand           ; 随机函数  
+.text:0041E9D0                 add     esi, eax  
+.text:0041E9D2                 mov     eax, dword ptr pszPath+8E0h  
+.text:0041E9D7                 test    eax, eax  
+.text:0041E9D9                 mov     \[esp+4DC4h+var\_4D84\], esi  
+.text:0041E9DD                 jnz     short loc\_41E9E9  
+.text:0041E9DF                 call    sub\_435BA0  
+.text:0041E9E4                 mov     dword ptr pszPath+8E0h, eax  
+.text:0041E9E9  
+.text:0041E9E9 loc\_41E9E9:                             ; CODE XREF: sub\_41E480+55Dj  
+.text:0041E9E9                 mov     ecx, dword ptr pszPath+8A0h  
+.text:0041E9EF                 mov     \[esp+4DC4h+var\_4D54\], eax  
+.text:0041E9F3                 add     ecx, 6864h  
+.text:0041E9F9                 call    sub\_411570  
+.text:0041E9FE                 mov     edx, dword ptr pszPath+8A0h  
+.text:0041EA04                 lea     ecx, \[edx+6864h\]  
+.text:0041EA0A                 call    sub\_411590  
+.text:0041EA0F                 mov     eax, dword ptr pszPath+8A0h  
+.text:0041EA14                 lea     ecx, \[eax+6864h\]  
+.text:0041EA1A                 call    sub\_4115B0  
+.text:0041EA1F                 mov     ecx, dword ptr pszPath+8A0h  
+.text:0041EA25                 mov     esi, eax  
+.text:0041EA27                 add     ecx, 6864h  
+.text:0041EA2D                 call    sub\_4115C0  
+.text:0041EA32                 mov     edi, eax  
+.text:0041EA34                 lea     edx, \[esp+4DC4h+var\_4A1C\]  
+.text:0041EA3B                 push    22A1h  
+.text:0041EA40                 lea     eax, \[esp+4DC8h+var\_4A9C\]  
+.text:0041EA47                 push    edx                        ;0484B4F0  
+.text:0041EA48                 push    eax                        ;0484B470  
+.text:0041EA49                 lea     ecx, \[esp+4DD0h+var\_4D88\]  
+.text:0041EA4D                 push    esi                        ;空白区域          026AFDCC  
+.text:0041EA4E                 push    ecx                        ;数据包内容(未加密)0484B184  
+  
+0539B184  00 00 11 11 00 00 11 11 53 00 64 00 01 00 4C 00  ....S.d..L.  
+0539B194  70 6F 77 65 72 62 6F 79 35 34 00 00 00 00 00 00  powerboy54......  
+上面产生 KEY\_1,KEY\_2  
+  
+KEY\_1,KEY\_2,(KEY\_1+KEY\_2),(KEY\_1-KEY\_2)                                    ;组成加密用的 KEY  
+00 00 11 11 00 00 11 11 00 00 22 22 00 00 00 00  
+  
+Init\_key(KEY 长度 4)  
+0059D68C  C6 B5 35 06 53 6C C5 D6 93 27 FB DB D7 6C 15 37  频 5Sl 胖?7  
+0059D69C  FD 8E C1 15 7F E7 CA 37 DF F2 5E E6 51 54 76 59  ?缡 7 唑^TvY  
+0059D6AC  A1 F2 94 72 2F 55 97 DA 73 74 C9 C1 ED DA E4 89  ◎/Ust 闪碲  
+0059D6BC  D2 5E 31 A5 44 66 4C 0F 4C 8C 99 84 00 00 00 00  1fLL?...  
+  
+  
+05399F78  53 00 64 00 01 00 4C 00 70 6F 77 65 72 62 6F 79  S.d..L.powerboy  
+05399F88  35 34 00 00 00 00 00 00 00 00 00 00 00 00 00 00  54..............  
+05399F98  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+05399FA8  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+  
+每 16 个数据进行一次加密处理  
+05399EF8  75 62 E4 70 69 73 19 42 47 8C 35 A4 0C 72 F9 EB  ubisBG??r  
+05399F08  6F D1 D4 58 DA 50 19 02 62 22 B6 EE 03 05 DA 5E  o 言 Xb"额  
+05399F18  BC 19 2F 2D 80 83 7B 79 42 6C 1D 6E 41 ED D8 9C  ?/-yBlnA 碡  
+05399F28  BC 19 2F 2D 80 83 7B 79 42 6C 1D 6E 41 ED D8 9C  ?/-yBlnA 碡  
+  
+用下面的数据做 KEY  
+0059D68C  ED 8E 96 12 AC 47 0D 31 93 ED 1A 9E DA 82 9D 3E  //固定的数据  
+  
+ED 8E 96 12 AC 47 0D 31 93 ED 1A 9E DA 82 9D 3E  
+  
+Init\_key(KEY 长度 4)  
+0059D68C  04 80 CD 69 4B 92 B1 37 DD 15 35 AC 88 33 40 9F  K7?53@  
+0059D69C  AB E2 67 9D AD 3A 52 8A 99 AC F2 25 32 95 71 6C  g:R%2l  
+0059D6AC  05 57 C0 99 1C 66 8C 09 D2 93 89 FD 47 C4 BE 74  Wf?G 木 t  
+0059D6BC  93 ED C7 8E 87 21 7A 1A 5F 1B BE 73 00 00 00 00  ?z\_....  
+  
+Encr  
+05399EF0  00 00 11 11 00 00 11 11 75 62 E4 70 69 73 19 42  ....ubisB  
+05399F00  47 8C 35 A4 0C 72 F9 EB 6F D1 D4 58 DA 50 19 02  G??ro 言 X  
+05399F10  62 22 B6 EE 03 05 DA 5E BC 19 2F 2D 80 83 7B 79  b"额?/-y  
+05399F20  42 6C 1D 6E 41 ED D8 9C BC 19 2F 2D 80 83 7B 79  BlnA 碡/-y  
+05399F30  42 6C 1D 6E 41 ED D8 9C 00 00 00 00 00 00 00 00  BlnA 碡?.......  
+  
+每 16 个数据进行一次加密处理  
+  
+0539A0B0  CC 78 9E 30 35 0D 79 87 67 89 1B AD A2 DD 65 D2  ?5.y?  
+0539A0C0  13 AD 21 A7 17 31 70 CA DF 42 90 B2 1F DB 52 C7  ??1p 蔬 B  
+0539A0D0  B8 A5 2E 9C 7D 82 F3 0F 3A 0F C5 4E 21 D2 A0 45  弗.:!E  
+0539A0E0  A4 6C 12 3B AE 1D 9A 72 5C 9C 7D 4F 6F 40 04 35  ;?\\Oo@5  
+0539A0F0  DE 48 50 FD 9C 10 D8 60 9F DD AF 71 64 FA 5A E1  Pd  
+  
+第一部分验证的流程已经清楚:  
+1.通过文件大小和时间+随机数产生 2 个 KEY(KEY\_1,KEY\_2)  
+2.还有一个是固定的 KEY(ED 8E 96 12 AC 47 0D 31 93 ED 1A 9E DA 82 9D 3E)  
+3.用 KEY\_1,KEY\_2,(KEY\_1+KEY\_2),(KEY\_1-KEY\_2) ;填充加密用的 KEY 缓冲区 BUFF\_1  
+  例如:\[00 00 11 11\]\[00 00 11 11\]\[00 00 22 22\]\[00 00 00 00\]  
+4.BUFF\_1=Init(00 00 11 11 00 00 11 11 00 00 22 22 00 00 00 00)  
+  之后对数据包 1 进行加密  
+5.EN(SEND\[1\]);一次加密 16 个数据一共加密 4 轮共 64 个数据  
+6.BUFF\_2=Init(ED 8E 96 12 AC 47 0D 31 93 ED 1A 9E DA 82 9D 3E)  
+7.EN(KEY\_1 和 KEY\_2+EN(SEND\[1\]));这次把 KEY\_1 和 KEY\_2 和 EN(SEND\[1\])一起加密.  
+8.把加密后的数据发送出去.  
+  
+服务器端接收到数据先用固定的 KEY 对数据包进行解密,然后就可以得到 KEY\_1 和 KEY\_2  
+然后用 KEY\_1,KEY\_2,(KEY\_1+KEY\_2),(KEY\_1-KEY\_2)对剩下的数据进行解密就可以得到原始的数据了!  
+服务器根据得到的数据进行判断然后返回一个数据包用 KEY\_1 和 KEY\_2 进行加密  
+收到  
+0539A130  26 F3 2E 26 06 79 88 AB 7A 19 4E C5 E7 A1 2C 4A  &?&yzN 喷?J  
+0539A140  7D 20 71 5F B1 D6 D3 AA DE 30 4F DD 66 AD 41 74  } q\_ 敝营?Ot  
+0539A150  F0 48 D7 B6 78 26 FD BE 81 89 75 52 A4 91 FC DC  锥 x&uR  
+0539A160  26 29 DA 68 FE AF 8B 08 67 2C CC A6 56 CC D1 39  &)?g,苔 V 萄 9  
+0539A170  37 C2 11 DC 5E 1B 59 4A 84 F5 C0 D1 69 47 21 95  7?YJ 姥 iG!  
+外挂端收到服务器返回的数据后之间用 KEY\_1 和 KEY\_2 对其进行解密.  
+得到的数据在读取数据中的前 8 为做为 KEY 在对剩余的数据进行一次解密步骤类似上面的运算!  
+就得到了可以直接使用的数据了!  
+  
+026BFDCC   77 F6 AB 19 C2 58 AD 03 64 00 64 00 03 00 02 00  w 霁?d.d...  
+026BFDDC   8F 00 00 00 01 00 4C 00 BB B6 D3 AD CA D4 D3 C3  ?...L.欢迎试用  
+026BFDEC   21 00 00 00 70 6F 77 65 72 62 6F 79 35 34 00 00  !...powerboy54..  
+026BFDFC   00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+  
+  
+  
+  
+.text:0041EA4F                 call    sub\_4358B0      ; 外挂服务器验证\_1  
+.text:0041EA54                 add     esp, 14h  
+.text:0041EA57                 test    eax, eax  
+.text:0041EA59                 jnz     loc\_41ED12  
+.text:0041EA5F                 mov     edx, \[esi+4\]  
+.text:0041EA62                 mov     eax, \[esi\]  
+.text:0041EA64                 mov     ecx, \[esi+10h\]  
+.text:0041EA67                 push    edx  
+.text:0041EA68                 push    eax  
+.text:0041EA69                 lea     edx, \[esp+4DCCh+var\_4A1C\]  
+.text:0041EA70                 push    ecx  
+.text:0041EA71                 push    edx  
+.text:0041EA72                 push    edi  
+.text:0041EA73                 call    sub\_435560  
+.text:0041EA78                 add     esp, 14h  
+.text:0041EA7B                 cmp     word ptr \[esi+0Ah\], 6Fh  
+.text:0041EA80                 jle     short loc\_41EA8C  
+.text:0041EA82                 push    offset unk\_591334  
+.text:0041EA87                 jmp     loc\_41ECFC  
+.text:0041EA8C ; ----------------------------------------------------------------------------  
+.text:0041EA8C  
+.text:0041EA8C loc\_41EA8C:                             ; CODE XREF: sub\_41E480+600j  
+.text:0041EA8C                 mov     ax, \[esi+0Ch\]  
+.text:0041EA90                 cmp     ax, 9  
+.text:0041EA94                 jnz     short loc\_41EABE  
+.text:0041EA96                 mov     ecx, 10h  
+.text:0041EA9B                 xor     eax, eax  
+.text:0041EA9D                 lea     edi, \[esp+4DC4h+var\_4A9C\]  
+.text:0041EAA4                 push    offset unk\_591300  
+.text:0041EAA9                 rep stosd  
+.text:0041EAAB                 mov     ecx, 200h  
+.text:0041EAB0                 lea     edi, \[esp+4DC8h+var\_4A1C\]  
+.text:0041EAB7                 rep stosd  
+.text:0041EAB9                 jmp     loc\_41ECFC  
+.text:0041EABE ; ----------------------------------------------------------------------------  
+.text:0041EABE  
+.text:0041EABE loc\_41EABE:                             ; CODE XREF: sub\_41E480+614j  
+.text:0041EABE                 cmp     ax, 3  
+.text:0041EAC2                 jnz     loc\_41ECF7  
+.text:0041EAC8                 add     esi, 18h  
+.text:0041EACB                 lea     eax, \[esp+4DC4h+var\_4C04\]  
+.text:0041EAD2                 push    esi  
+.text:0041EAD3                 push    offset aSBgZGS  ; "及时雨会员号。有效期：%s"  
+.text:0041EAD8                 push    eax  
+.text:0041EAD9                 call    \_sprintf  
+.text:0041EADE                 add     esp, 0Ch  
+.text:0041EAE1                 lea     ecx, \[esp+4DC4h+var\_4C04\]  
+.text:0041EAE8                 push    ecx  
+.text:0041EAE9                 push    1  
+.text:0041EAEB                 mov     ecx, 59DDC8h  
+.text:0041EAF0                 call    sub\_4177D0  
+.text:0041EAF5                 mov     ecx, 10h  
+.text:0041EAFA                 xor     eax, eax  
+.text:0041EAFC                 lea     edi, \[esp+4DC4h+var\_4A9C\]  
+.text:0041EB03                 mov     byte ptr \[ebp+142h\], 1  
+.text:0041EB0A                 rep stosd  
+.text:0041EB0C                 mov     ecx, 200h  
+.text:0041EB11                 lea     edi, \[esp+4DC4h+var\_4A1C\]  
+.text:0041EB18                 rep stosd  
+.text:0041EB1A  
+.text:0041EB1A loc\_41EB1A:                             ; CODE XREF: sub\_41E480+472j  
+.text:0041EB1A                 cmp     dword ptr \[ebp+274h\], 1  
+.text:0041EB21                 jnz     loc\_41ED8A  
+.text:0041EB27                 mov     ecx, 37h  
+.text:0041EB2C                 xor     eax, eax  
+.text:0041EB2E                 lea     edi, \[esp+4DC4h+var\_4D48\]  
+.text:0041EB32                 push    eax             ; time\_t \*  
+.text:0041EB33                 rep stosd  
+.text:0041EB35                 mov     ecx, 1Ah  
+.text:0041EB3A                 lea     edi, \[esp+4DC8h+var\_4B04\]  
+.text:0041EB41                 rep stosd  
+.text:0041EB43                 call    \_time           ; 生成加密用的种子  
+.text:0041EB48                 push    eax             ; unsigned int  
+.text:0041EB49                 call    \_srand  
+.text:0041EB4E                 add     esp, 8  
+.text:0041EB51                 call    \_rand           ; 随机函数  
+.text:0041EB56                 mov     esi, eax  
+.text:0041EB58                 shl     esi, 10h  
+.text:0041EB5B                 sub     esi, eax  
+.text:0041EB5D                 call    \_rand           ; 随机函数  
+.text:0041EB62                 add     esi, eax  
+.text:0041EB64                 mov     \[esp+4DC4h+var\_4D48\], esi  
+.text:0041EB68                 call    \_rand           ; 随机函数  
+.text:0041EB6D                 mov     esi, eax  
+.text:0041EB6F                 shl     esi, 10h  
+.text:0041EB72                 sub     esi, eax  
+.text:0041EB74                 call    \_rand           ; 随机函数  
+.text:0041EB79                 add     esi, eax  
+.text:0041EB7B                 mov     \[esp+4DC4h+var\_4D40\], 64h  
+.text:0041EB85                 mov     \[esp+4DC4h+var\_4D44\], esi  
+.text:0041EB8C                 call    ds:GetTickCount  
+.text:0041EB92                 mov     edx, \[ebp+0\]  
+.text:0041EB95                 mov     \[esp+4DC4h+var\_4D3C\], eax  
+.text:0041EB9C                 dec     edx  
+.text:0041EB9D                 push    edx  
+.text:0041EB9E                 call    sub\_434D10  
+.text:0041EBA3                 mov     \[esp+4DC8h+var\_4D3E\], ax  
+.text:0041EBAB                 lea     edi, \[ebp+2Ch\]  
+.text:0041EBAE                 or      ecx, 0FFFFFFFFh  
+.text:0041EBB1                 xor     eax, eax  
+.text:0041EBB3                 repne scasb  
+.text:0041EBB5                 not     ecx  
+.text:0041EBB7                 sub     edi, ecx  
+.text:0041EBB9                 lea     edx, \[esp+4DC8h+var\_4D38\]  
+.text:0041EBC0                 mov     eax, ecx  
+.text:0041EBC2                 mov     esi, edi  
+.text:0041EBC4                 mov     edi, edx  
+.text:0041EBC6                 lea     edx, \[esp+4DC8h+var\_4D2C\]  
+.text:0041EBCD                 shr     ecx, 2  
+.text:0041EBD0                 rep movsd  
+.text:0041EBD2                 mov     ecx, eax  
+.text:0041EBD4                 xor     eax, eax  
+.text:0041EBD6                 and     ecx, 3  
+.text:0041EBD9                 lea     ebx, \[ebp+278h\]  
+.text:0041EBDF                 rep movsb  
+.text:0041EBE1                 lea     edi, \[ebp+4Ch\]  
+.text:0041EBE4                 or      ecx, 0FFFFFFFFh  
+.text:0041EBE7                 repne scasb  
+.text:0041EBE9                 not     ecx  
+.text:0041EBEB                 sub     edi, ecx  
+.text:0041EBED                 mov     eax, ecx  
+.text:0041EBEF                 mov     esi, edi  
+.text:0041EBF1                 mov     edi, edx  
+.text:0041EBF3                 shr     ecx, 2  
+.text:0041EBF6                 rep movsd  
+.text:0041EBF8                 mov     ecx, eax  
+.text:0041EBFA                 and     ecx, 3  
+.text:0041EBFD                 rep movsb  
+.text:0041EBFF                 mov     ecx, 10h  
+.text:0041EC04                 mov     esi, ebx  
+.text:0041EC06                 lea     edi, \[esp+4DC8h+var\_4D0C\]  
+.text:0041EC0D                 rep movsd  
+.text:0041EC0F                 lea     esi, \[ebp+2F8h\]  
+.text:0041EC15                 mov     ecx, 10h  
+.text:0041EC1A                 lea     edi, \[esp+4DC8h+var\_4CBC\]  
+.text:0041EC21                 rep movsd  
+.text:0041EC23                 lea     ecx, \[ebp+378h\]  
+.text:0041EC29                 mov     edx, \[ebp+378h\]  
+.text:0041EC2F                 mov     \[esp+4DC8h+var\_4D1C\], edx  
+.text:0041EC36                 mov     eax, \[ecx+4\]  
+.text:0041EC39                 mov     \[esp+4DC8h+var\_4D18\], eax  
+.text:0041EC40                 mov     edx, \[ecx+8\]  
+.text:0041EC43                 mov     \[esp+4DC8h+var\_4D14\], edx  
+.text:0041EC4A                 mov     eax, \[ecx+0Ch\]  
+.text:0041EC4D                 mov     \[esp+4DC8h+var\_4D10\], eax  
+.text:0041EC54                 mov     ecx, 20h  
+.text:0041EC59                 xor     eax, eax  
+.text:0041EC5B                 lea     edi, \[esp+4DC8h+var\_4A9C\]  
+.text:0041EC62                 rep stosd  
+.text:0041EC64                 lea     ecx, \[esp+4DC8h+var\_4A1C\]  
+.text:0041EC6B                 push    22A6h  
+.text:0041EC70                 lea     edx, \[esp+4DCCh+var\_4A9C\]  
+.text:0041EC77                 push    ecx  
+.text:0041EC78                 lea     eax, \[esp+4DD0h+var\_4B04\]  
+.text:0041EC7F                 push    edx  
+.text:0041EC80                 lea     ecx, \[esp+4DD4h+var\_4D48\]  
+.text:0041EC87                 push    eax  
+.text:0041EC88                 push    ecx  
+.text:0041EC89                 call    sub\_435A80      ; 外挂验证函数\_2  
+.text:0041EC8E                 add     esp, 18h  
+.text:0041EC91                 test    eax, eax  
+.text:0041EC93                 jnz     loc\_41ED34  
+.text:0041EC99                 mov     edx, \[esp+4DC4h+var\_4D44\]  
+.text:0041ECA0                 mov     eax, \[esp+4DC4h+var\_4D48\]  
+.text:0041ECA4                 push    edx  
+.text:0041ECA5                 lea     ecx, \[esp+4DC8h+var\_4A9C\]  
+.text:0041ECAC                 push    eax  
+.text:0041ECAD                 lea     edx, \[esp+4DCCh+var\_4B04\]  
+.text:0041ECB4                 push    ecx  
+.text:0041ECB5                 push    edx  
+.text:0041ECB6                 call    sub\_435490  
+.text:0041ECBB                 add     esp, 10h  
+.text:0041ECBE                 cmp     \[esp+4DC4h+var\_4AFC\], 3  
+.text:0041ECC7                 jnz     loc\_41EDB0  
+.text:0041ECCD                 mov     ecx, 19h  
+.text:0041ECD2                 xor     eax, eax  
+.text:0041ECD4                 mov     edi, ebx  
+.text:0041ECD6                 lea     esi, \[esp+4DC4h+var\_4AEC\]  
+.text:0041ECDD                 rep stosd  
+.text:0041ECDF                 mov     eax, \[esp+4DC4h+var\_4AF0\]  
+.text:0041ECE6                 mov     ecx, 10h  
+.text:0041ECEB                 mov     edi, ebx  
+.text:0041ECED                 mov     \[ebp+388h\], eax  
+.text:0041ECF3                 rep movsd  
+.text:0041ECF5                 jmp     short loc\_41ED3B  
+.text:0041ECF7 ; ----------------------------------------------------------------------------  
+.text:0041ECF7  
+.text:0041ECF7 loc\_41ECF7:                             ; CODE XREF: sub\_41E480+642j  
+.text:0041ECF7                 push    offset aSI2\_50C ; "非会员账号无法使用 2.50 以上版本!!!"  
+.text:0041ECFC  
+.text:0041ECFC loc\_41ECFC:                             ; CODE XREF: sub\_41E480+607j  
+.text:0041ECFC                                         ; sub\_41E480+639j  
+.text:0041ECFC                 push    1  
+.text:0041ECFE                 mov     ecx, 59DDC8h  
+.text:0041ED03                 call    sub\_4177D0  
+.text:0041ED08                 mov     byte ptr \[esp+4DC4h+var\_4DB4\], 2  
+.text:0041ED0D                 jmp     loc\_41F3BF  
+.text:0041ED12 ; ----------------------------------------------------------------------------  
+.text:0041ED12  
+.text:0041ED12 loc\_41ED12:                             ; CODE XREF: sub\_41E480+5D9j  
+.text:0041ED12                 push    offset unk\_591298  
+.text:0041ED17                 push    1  
+.text:0041ED19                 mov     ecx, 59DDC8h  
+.text:0041ED1E                 mov     byte ptr \[esp+4DCCh+var\_4DB4\], 0  
+.text:0041ED23                 call    sub\_4177D0  
+.text:0041ED28                 push    2710h           ; dwMilliseconds  
+.text:0041ED2D                 call    ebx ; Sleep  
+.text:0041ED2F                 jmp     loc\_41F3BF  
+.text:0041ED34 ; ----------------------------------------------------------------------------  
+.text:0041ED34  
+.text:0041ED34 loc\_41ED34:                             ; CODE XREF: sub\_41E480+813j  
+.text:0041ED34                 push    offset aZ       ; "登陆失败!!!"  
+.text:0041ED39                 jmp     short loc\_41EDA4  
+.text:0041ED3B ; ----------------------------------------------------------------------------  
+.text:0041ED3B  
+.text:0041ED3B loc\_41ED3B:                             ; CODE XREF: sub\_41E480+875j  
+.text:0041ED3B                 cmp     dword ptr \[ebp+274h\], 1  
+.text:0041ED42                 jnz     short loc\_41ED8A  
+.text:0041ED44                 push    ebp  
+.text:0041ED45                 mov     byte ptr \[ebp+151h\], 0  
+.text:0041ED4C                 call    sub\_41DFF0  
+.text:0041ED51                 mov     esi, ds:GetTickCount  
+.text:0041ED57                 add     esp, 4  
+.text:0041ED5A                 call    esi ; GetTickCount  
+.text:0041ED5C                 mov     edi, eax  
+.text:0041ED5E                 call    esi ; GetTickCount  
+.text:0041ED60                 mov     ebx, ds:Sleep  
+.text:0041ED66                 sub     eax, edi  
+.text:0041ED68                 cmp     eax, 4650h  
+.text:0041ED6D                 jnb     short loc\_41ED96  
+.text:0041ED6F  
+.text:0041ED6F loc\_41ED6F:                             ; CODE XREF: sub\_41E480+906j  
+.text:0041ED6F                 push    64h             ; dwMilliseconds  
+.text:0041ED71                 call    ebx ; Sleep  
+.text:0041ED73                 mov     al, \[ebp+151h\]  
+.text:0041ED79                 test    al, al  
+.text:0041ED7B                 jnz     short loc\_41ED96  
+.text:0041ED7D                 call    esi ; GetTickCount  
+.text:0041ED7F                 sub     eax, edi  
+.text:0041ED81                 cmp     eax, 4650h  
+.text:0041ED86                 jb      short loc\_41ED6F  
+.text:0041ED88                 jmp     short loc\_41ED96  
+.text:0041ED8A ; ----------------------------------------------------------------------------  
+.text:0041ED8A  
+.text:0041ED8A loc\_41ED8A:                             ; CODE XREF: sub\_41E480+6A1j  
+.text:0041ED8A                                         ; sub\_41E480+8C2j  
+.text:0041ED8A                 mov     ebx, ds:Sleep  
+.text:0041ED90                 mov     esi, ds:GetTickCount  
+.text:0041ED96  
+.text:0041ED96 loc\_41ED96:                             ; CODE XREF: sub\_41E480+8EDj  
+.text:0041ED96                                         ; sub\_41E480+8FBj ...  
+.text:0041ED96                 cmp     byte ptr \[ebp+151h\], 7  
+.text:0041ED9D                 jnz     short loc\_41EDC4  
+.text:0041ED9F                 push    offset unk\_591270  
+.text:0041EDA4  
+.text:0041EDA4 loc\_41EDA4:                             ; CODE XREF: sub\_41E480+8B9j  
+.text:0041EDA4                 push    1  
+.text:0041EDA6                 mov     ecx, 59DDC8h  
+.text:0041EDAB                 call    sub\_4177D0  
+.text:0041EDB0  
+.text:0041EDB0 loc\_41EDB0:                             ; CODE XREF: sub\_41E480+847j  
+.text:0041EDB0                 mov     dword ptr \[ebp+144h\], 9  
+.text:0041EDBA                 mov     byte ptr \[esp+4DC4h+var\_4DB4\], 0  
+.text:0041EDBF                 jmp     loc\_41F3BF  
+.text:0041EDC4 ; ----------------------------------------------------------------------------  
+.text:0041EDC4  
+.text:0041EDC4 loc\_41EDC4:                             ; CODE XREF: sub\_41E480+91Dj  
+.text:0041EDC4                 lea     ecx, \[esp+4DC4h+SystemTime\]  
+.text:0041EDC8                 push    ecx             ; lpSystemTime  
+.text:0041EDC9                 call    ds:GetLocalTime  
+.text:0041EDCF                 mov     edx, dword ptr \[esp+4DC4h+SystemTime.wSecond\]  
+.text:0041EDD3                 mov     eax, \[esp+1Eh\]  
+.text:0041EDD7                 mov     ecx, dword ptr \[esp+4DC4h+SystemTime.wHour\]  
+.text:0041EDDB                 and     edx, 0FFFFh  
+.text:0041EDE1                 and     eax, 0FFFFh  
+.text:0041EDE6                 push    edx  
+.text:0041EDE7                 mov     edx, \[esp+1Eh\]  
+.text:0041EDEB                 push    eax  
+.text:0041EDEC                 mov     eax, dword ptr \[esp+4DCCh+SystemTime.wMonth\]  
+.text:0041EDF0                 and     ecx, 0FFFFh  
+.text:0041EDF6                 and     edx, 0FFFFh  
+.text:0041EDFC                 push    ecx  
+.text:0041EDFD                 and     eax, 0FFFFh  
+.text:0041EE02                 push    edx  
+.text:0041EE03                 push    eax  
+.text:0041EE04                 lea     ecx, \[esp+4DD8h+var\_4C04\]  
+.text:0041EE0B                 push    offset unk\_591230  
+.text:0041EE10                 push    ecx  
+.text:0041EE11                 call    \_sprintf  
+///////////////////////////////挂机开始时和切换地图的 2 次验证//////////////////////////////////////  
+//挂机开始的时候进行一次验证!在每次切换地图的时候也进行一次验证!  
+  
+.text:00408160 sub\_408160      proc near               ; CODE XREF: sub\_404990+150p  
+.text:00408160                                         ; sub\_406EE0+195p ...  
+.text:00408160  
+.text:00408160 var\_E0          = dword ptr -0E0h  
+.text:00408160 var\_DC          = dword ptr -0DCh  
+.text:00408160 var\_D8          = dword ptr -0D8h  
+.text:00408160 var\_D4          = dword ptr -0D4h  
+.text:00408160 var\_D0          = dword ptr -0D0h  
+.text:00408160 var\_CC          = dword ptr -0CCh  
+.text:00408160 var\_C8          = dword ptr -0C8h  
+.text:00408160 var\_C4          = dword ptr -0C4h  
+.text:00408160 var\_C0          = dword ptr -0C0h  
+.text:00408160 var\_80          = dword ptr -80h  
+.text:00408160 arg\_0           = dword ptr  4  
+.text:00408160 arg\_4           = dword ptr  8  
+.text:00408160 arg\_8           = dword ptr  0Ch  
+.text:00408160  
+.text:00408160                 sub     esp, 0E0h  
+.text:00408166                 push    ebx  
+.text:00408167                 push    ebp  
+.text:00408168                 mov     ebp, \[esp+0E8h+arg\_0\]  
+.text:0040816F                 push    esi  
+.text:00408170                 push    edi  
+.text:00408171  
+.text:00408171 loc\_408171:                             ; CODE XREF: sub\_408160+7Ej  
+.text:00408171                                         ; sub\_408160+B4j ...  
+.text:00408171                 mov     eax, \[esp+0F0h+arg\_4\]  
+.text:00408178                 push    eax  
+.text:00408179                 push    ebp  
+.text:0040817A                 call    sub\_40D7D0  
+.text:0040817F                 add     esp, 8  
+.text:00408182                 test    eax, eax  
+.text:00408184                 jnz     loc\_4088B5  
+.text:0040818A                 mov     ecx, dword ptr pszPath+8A0h  
+.text:00408190                 add     ecx, 6864h  
+.text:00408196                 call    sub\_4115E0  
+.text:0040819B                 mov     ebx, eax  
+.text:0040819D                 mov     eax, \[esp+0F0h+arg\_8\]  
+.text:004081A4                 cmp     ebx, eax  
+.text:004081A6                 mov     \[esp+0F0h+var\_DC\], ebx  
+.text:004081AA                 jz      loc\_4088B5  
+.text:004081B0                 lea     edx, \[esp+0F0h+var\_C8\]  
+.text:004081B4                 push    edx  
+.text:004081B5                 push    eax  
+.text:004081B6                 push    ebx  
+.text:004081B7                 push    ebp  
+.text:004081B8                 call    sub\_415CA0      ; 地图\_ 外挂验证\_1  
+  
+送出的数据包加密之前:  
+037FFC84  11 11 00 00 11 11 00 00 64 00 04 00 00 00 4C 00  ....d....L.  
+037FFC94  70 6F 77 65 72 62 6F 79 35 34 00 00 00 00 00 00  powerboy54......  
+037FFCA4  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+037FFCB4  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+  
+两次加密的 KEY  
+037FE9F0  AC 47 0D 31 93 ED 1A 9E DA 82 9D 3E 00 00 00 00  .1>....  
+037FEA00  11 11 00 00 11 11 00 00 22 22 00 00 00 00 00 00  ....""......  
+  
+用 11110000 生成 KEY 缓冲区  
+0059D68C   7B 9E F4 2B EE F7 7C 18 BA 36 11 76 65 03 83 CB  {+铟|?ve  
+0059D69C   16 C1 6C 3C 3B 11 E5 4A BC 3E 0A E5 13 4E 34 AB  <;?.?N4  
+0059D6AC   15 89 C7 6E F8 15 A8 52 99 A3 38 A4 B1 60 D2 4D  n?8け\`  
+0059D6BC   47 A0 57 84 DE 5F D9 B2 4C 2A 4F B4 00 00 00 00  G\_ 俨 L\*O?...  
+  
+数据包的组成有挂机地图的代号,序号和用户名等组成!  
+037FFC84  11 11 00 00 11 11 00 00 64 00 04 00 00 00 4C 00  ....d....L.  
+037FFC94  70 6F 77 65 72 62 6F 79 35 34 00 00 00 00 00 00  powerboy54......  
+037FFCA4  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+037FFCB4  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+  
+037FEA1C   49 32 66 3F C1 87 1C 33 86 CB 8C E2 80 31 E8 43  I2f?31  
+037FEA2C   2C A2 E4 3D 41 53 90 43 CF 05 7A 2D A6 8C 8E C1  ,=AS?z-  
+037FEA3C   4B 0B 9A E7 84 11 0A 7C 24 C4 3B ED 86 5F 41 8D  K?.|$?\_A  
+037FEA4C   4B 0B 9A E7 84 11 0A 7C 24 C4 3B ED 86 5F 41 8D  K?.|$?\_A  
+  
+固定的 KEY  
+037FE9EC   ED 8E 96 12 AC 47 0D 31 93 ED 1A 9E DA 82 9D 3E  ?.1>  
+  
+生成 KEY 缓冲区  
+0059D68C   04 80 CD 69 4B 92 B1 37 DD 15 35 AC 88 33 40 9F  K7?53@  
+0059D69C   AB E2 67 9D AD 3A 52 8A 99 AC F2 25 32 95 71 6C  g:R%2l  
+0059D6AC   05 57 C0 99 1C 66 8C 09 D2 93 89 FD 47 C4 BE 74  Wf?G 木 t  
+0059D6BC   93 ED C7 8E 87 21 7A 1A 5F 1B BE 73 00 00 00 00  ?z\_....  
+  
+对下面数据进行加密  
+037FEA14   11 11 00 00 11 11 00 00 49 32 66 3F C1 87 1C 33  ....I2f?3  
+037FEA24   86 CB 8C E2 80 31 E8 43 2C A2 E4 3D 41 53 90 43  1,=AS  
+037FEA34   CF 05 7A 2D A6 8C 8E C1 4B 0B 9A E7 84 11 0A 7C  ?z-K?.|  
+037FEA44   24 C4 3B ED 86 5F 41 8D 4B 0B 9A E7 84 11 0A 7C  $?\_A?.|  
+037FEA54   24 C4 3B ED 86 5F 41 8D 00 00 00 00 00 00 00 00  $?\_A?.......  
+  
+用 KEY 缓冲区加密数据  
+  
+037FEBD4   5A 87 57 B6 D8 9F 1C DB D7 1F E0 F5 21 CB 49 CC  Z 敦?圩圊!  
+037FEBE4   3D 4A 64 08 9D BB A0 13 C5 8F 90 E2 2D 50 5C 06  =Jd?-P\\  
+037FEBF4   EA 99 52 43 5C 2B 91 CC 1A 5F 5C B3 D4 49 88 7A  RC\\+\_\\吃 I  
+037FEC04   04 F3 8A F7 03 5B 70 C7 7E 95 F9 10 98 03 25 AB  ?\[p?%  
+037FEC14   11 70 5A 99 0A 70 03 C7 CE 8F 60 C0 A8 E6 18 34  pZ?p 俏括?4  
+  
+收到  
+  
+037FEC54   2A 36 2A BC 5A B1 93 0B CB C3 AB B9 C1 01 78 43  \*6\*嗣?xC  
+037FEC64   96 FF AD AE C1 F2 67 AA 4B 7A A4 51 1B 19 FA 13  ?硫 gz?  
+037FEC74   40 C6 E7 19 59 9F 0D 57 7C 8D 6A 79 F7 79 F4 3D  @歧 Y?W|y?  
+037FEC84   67 C2 07 A1 30 0F 34 CD 4D 25 71 A2 C5 5A DA AF  g??4%q⑴Z 诏  
+037FEC94   F2 C5 78 9C 86 FF 39 CB C7 53 08 74 A0 64 6C 19  蚺 x9 饲 Stl  
+  
+用  
+037FE894   11 11 00 00 11 11 00 00 22 22 00 00 00 00 00 00  ....""......  
+做解密缓冲区处理  
+  
+037FE9B0   11 11 00 00 11 11 00 00 22 22 00 00 00 00 00 00  ....""......  
+037FE9C0   73 72 63 63 62 63 63 63 40 41 63 63 40 41 63 63  srccbccc@Acc@Acc  
+037FE9D0   F2 89 98 6A 90 EA FB 09 D0 AB 98 6A 90 EA FB 09  ?蝎?  
+037FE9E0   71 86 99 0A E1 6C 62 03 31 C7 FA 69 A1 2D 01 60  q.b1 曲 i?\`  
+037FE9F0   A1 FA 49 38 40 96 2B 3B 71 51 D1 52 D0 7C D0 32  →I8@?;qQ?  
+037FEA00   A1 8A 6A 48 E1 1C 41 73 90 4D 90 21 40 31 40 13  jH?As?@1@  
+037FEA10   46 83 17 41 A7 9F 56 32 37 D2 C6 13 77 E3 86 00  F?AV27 移 w.  
+037FEA20   17 C7 74 B4 B0 58 22 86 87 8A E4 95 F0 69 62 95  窗 X"ib  
+  
+解密之后得  
+037FE8A8   2F 62 A8 7E 63 35 64 66 28 38 A3 83 10 7D 44 C4  /bc5df(8}D  
+037FE8B8   90 C5 5A 9F 0D 40 FF AA 87 F7 C3 46 93 21 6A 04  Z?@髅 F?j  
+037FE8C8   08 95 DD 0D 33 D9 AA 97 5B 55 D1 CA 25 9E 45 80  .3 侏 U 咽%  
+037FE8D8   F6 FA 08 67 70 06 A3 E5 24 32 42 E2 2C 67 C3 90  鳅 gpｅ$2B?g  
+037FE8E8   7D 72 A6 23 2C 82 E5 09 C0 3C 0C 3E 3E AE 8C D7  }r?,.?.>>  
+  
+037FE9A4                                       2F 62 A8 7E              /b  
+037FE9B4   63 35 64 66 92 97 0C E5 CC 2C 44 18 5F 79 05 35  c5df.逄,D\_y5  
+037FE9C4   3C 4C 61 53 AE DB 6D B6 62 F7 29 AE 35 DC E1 9F  <LaSm??茚  
+037FE9D4   09 90 80 CC A7 4B ED 7A C5 BC C4 D4 54 C0 A9 39  .抬 K 偶脑 T 扩 9  
+037FE9E4   5D 50 29 F5 FA 1B C4 8F 3F A7 00 5B 00 A3 90 4C  \]P)斛??\[.L  
+037FE9F4   5D F3 B9 B9 A7 E8 7D 36 98 4F 7D 6D 94 5C AC 0A  \]蠊恭 6}m?  
+037FEA04   C9 AF 15 B3 6E 47 68 85 F6 08 15 E8 84 05 37 48  莎 Gh7H  
+037FEA14   4D AA 22 FB 23 ED 4A 7E D5 E5 5F 96 1D CA A7 4B  M??~斟\_?失 K  
+037FEA24   50 60 85 B0 73 8D CF CE A6 68 90 58 D8 AA CD 6F  P\`s 桅 h 鬲  
+037FEA34   88 CA 48 DF FB 47 87 11 5D 2F 17 49 D6 5A F6 23  H 啕 G?\]/I?  
+037FEA44   5E 90 BE FC A5 D7 39 ED F8 F8 2E A4 A1 6B BF 62  ^?眸?ぁk  
+037FEA54   FF FB 01 9E 5A 2C 38 73 A2 D4 16 D7              ?,8s⒃?...  
+解密之后得  
+037FE930   52 04 7B B2 63 5A 91 D2 99 A1 A8 03 EA 08 D9 42  R{Z??  
+037FE940   AB 48 B1 4D 1A C9 31 B3 83 BD 2A 1A 9D 10 16 B4  ???  
+037FE950   E0 BE 60 87 10 EE BD CD 2B C6 0F 79 41 31 8A EC  嗑\`?罱??yA1  
+037FE960   EA A7 05 91 13 8F 5A 14 7A 26 C2 35 90 66 3C C9  戋?z&?<  
+037FE970   3C A1 F4 D1 A7 6D 07 50 40 3F 2C D7 89 AD BB A1  <◆学 mP@?,  
+  
+\===================================================================================  
+04CCEC54   8A DE 1C DB 5B E7 91 57 86 8E 0B B3 75 13 AB 90  W  
+04CCEC64   7D 2D 53 39 41 65 5C 17 41 A6 C5 9C 49 38 72 73  }-S9Ae\\Aε8rs  
+04CCEC74   95 9C 9A FD C6 DF 82 FD 11 DE 19 18 AA E9 31 39  七?19  
+04CCEC84   78 A8 1F E0 5A 73 9D E1 13 76 89 35 41 03 72 7A  x?sv?Arz  
+04CCEC94   2A 3E D9 7F CC AA 79 E1 42 7B B2 58 E5 19 0B 44  \*>?酞 y{?D  
+  
+ecx  
+04CCE9B0   11 11 00 00 11 11 00 00 22 22 00 00 00 00 00 00  ....""......  
+04CCE9C0   73 72 63 63 62 63 63 63 40 41 63 63 40 41 63 63  srccbccc@Acc@Acc  
+04CCE9D0   F2 89 98 6A 90 EA FB 09 D0 AB 98 6A 90 EA FB 09  ?蝎?  
+04CCE9E0   71 86 99 0A E1 6C 62 03 31 C7 FA 69 A1 2D 01 60  q.b1 曲 i?\`  
+04CCE9F0   A1 FA 49 38 40 96 2B 3B 71 51 D1 52 D0 7C D0 32  →I8@?;qQ?  
+04CCEA00   A1 8A 6A 48 E1 1C 41 73 90 4D 90 21 40 31 40 13  jH?As?@1@  
+04CCEA10   46 83 17 41 A7 9F 56 32 37 D2 C6 13 77 E3 86 00  F?AV27 移 w.  
+04CCEA20   17 C7 74 B4 B0 58 22 86 87 8A E4 95 F0 69 62 95  窗 X"ib  
+  
+04CCEAB0   11 11 00 00 11 11 00 00 22 22 00 00 00 00 00 00  ....""......  
+04CCEAC0   38 1D 2A 0E 6D 6A 6E 68 C7 84 E6 A4 C7 84 E6 A4  8\*mjnh 妞妞  
+04CCEAD0   1A A7 79 4D 77 CD 17 25 B0 49 F1 81 77 CD 17 25  Mw?%w?%  
+04CCEAE0   60 D7 40 93 17 1A 57 B6 A7 53 A6 37 D0 9E B1 12  \`?W 锭 S??  
+04CCEAF0   FB C3 47 55 EC D9 10 E3 4B 8A B6 D4 9B 14 07 C6  GU 熨  
+04CCEB00   B7 35 6E E5 5B EC 7E 06 10 66 C8 D2 8B 72 CF 14  ?nf 纫?  
+04CCEB10   EF F2 83 0D B4 1E FD 0B A4 78 35 D9 2F 0A FA CD  矧???5?.  
+04CCEB20   AB FD E8 AE 1F E3 15 A5 BB 9B 20 7C 94 91 DA B1  璁?セ?|诒  
+04CCEB30   C8 24 32 BB D7 C7 27 1E 6C 5C 07 62 F8 CD DD D3  ?2 蛔?l\\b 萦  
+04CCEB40   8B E3 53 E3 5C 24 74 FD 30 78 73 9F C8 B5 AE 4C  S$t?xs 诞 L  
+  
+04CCE8A8   68 6B B9 77 6B 2B 2B CC 45 18 F9 3B 97 CF 59 88  hkk++?Y  
+04CCE8B8   83 1A 74 AC 03 5F 1B 1F EB DD 67 2D B5 CD 44 D0  ?t?\_ 胼 g-低 D  
+04CCE8D8   51 9C 92 8C A6 E2 55 56 1A 09 1F F3 00 85 35 26  QV.??&  
+04CCE8E8   0C AF 8B 10 EC DD DC C9 A6 24 2C 48 FE 16 D2 56  .燧苌?,H?  
+  
+  
+04CCE9B0   68 6B B9 77 6B 2B 2B CC D3 96 E4 43 FD 3F 8E AB  hkk++逃 C?  
+04CCE9C0   1C 72 DB 23 77 59 F0 EF A4 CF 14 AC 59 F0 9A 07  r?wY 痫は  
+04CCE9D0   92 CA 1E E8 E5 93 EE 07 41 5C FA AB 18 AC 60 AC  桢 A\\  
+04CCE9E0   07 1A 8F 45 E2 89 61 42 A3 D5 9B E9 BB 79 FB 45  aBＵ  
+04CCE9F0   B9 15 E1 AF 5B 9C 80 ED F8 49 1B 04 43 30 E0 41  ?岑\[眸 IC0  
+04CCEA00   AD F4 62 B5 F6 68 E2 58 0E 21 F9 5C 4D 11 19 1D  b 钓 h!M  
+04CCEA10   0F 20 C6 56 F9 48 24 0E F7 69 DD 52 BA 78 C4 4F   $  
+04CCEA20   F3 3C 42 A2 0A 74 66 AC FD 1D BB FE 47 65 7F B1  ?B?tf 箕 Ge  
+04CCEA30   3E EE 8A 02 34 9A EC AE C9 87 57 50 8E E2 28 E1  >4P(  
+04CCEA40   BD DA 72 1B 89 40 9E B5 40 C7 C9 E5 CE 25 E1 04  节 r@巧逦%?  
+04CCEA50   B4 22 80 90 3D 62 1E 25 7D A5 D7 C0 B3 80 36 C4  ??b%}プ莱 6  
+  
+  
+04CCE930   AE 66 6D 85 36 6B 2F 3F B2 8B 5E F8 D1 1F 18 12  m?k/?^  
+04CCE940   E7 37 AE 69 E2 2C D4 6F C3 38 52 0E 5A 54 24 CE  ???RZT$  
+04CCE950   E0 95 A1 49 07 AA C5 67 47 35 53 B7 C3 81 D6 4C  gG5S 访 L  
+04CCE960   AD 30 6E BD 0F 95 98 0A C7 D8 05 3D 11 BB D5 1C  ?n?.秦=徽  
+04CCE970   BE AA 1F D3 CC 79 95 6B D8 4F 5F 50 21 F9 EE 5D  惊犹 y\_P!\]  
+  
+04CCE928   68 6B B9 77 6B 2B 2B CC AE 66 6D 85 36 6B 2F 3F  hkk++坍 fm?k/?  
+04CCE938   B2 8B 5E F8 D1 1F 18 12 E7 37 AE 69 E2 2C D4 6F  ^??  
+           ^^^^^^^^^^^  
+04CCE948   C3 38 52 0E 5A 54 24 CE E0 95 A1 49 07 AA C5 67  ?RZT$梧 Ig  
+04CCE958   47 35 53 B7 C3 81 D6 4C AD 30 6E BD 0F 95 98 0A  G5S 访 L?n?.  
+04CCE968   C7 D8 05 3D 11 BB D5 1C BE AA 1F D3 CC 79 95 6B  秦=徽惊犹 y  
+04CCE978   D8 4F 5F 50 21 F9 EE 5D 00 00 00 00 00 00 00 00  \_P!\]........  
+  
+  
+04BFEC54   4A 6A B0 47 30 8F 96 69 6C 15 B3 D6 DA EC 3E E1  Jj0il 持陟>  
+04BFEC64   12 84 23 10 A5 DD E9 DC 35 74 F2 14 71 64 2D 90  ?ポ檐 5t?qd-  
+04BFEC74   23 4B 50 C8 B5 69 84 E8 00 A8 67 39 AC 34 A5 2A  #KP 鹊 i.9??  
+04BFEC84   B8 3E FE 20 B0 10 E9 74 FB E6 05 89 08 27 7E 2D  ????'~-  
+04BFEC94   57 BA CB F9 DA EC AF 9A AB E2 2B A0 68 EF 5E BC  W 核殳?  
+  
+收到的数据包解密之后得到:  
+04BFFCC4   07 2B 00 00 CF 20 00 00 46 01 24 00 03 00 00 00  +..?..F$....  
+04BFFCD4   00 00 00 00 04 00 01 00 00 00 00 00 00 00 00 00  ..............  
+04BFFCE4   00 00 00 00 70 6F 77 65 72 62 6F 79 35 34 00 00  ....powerboy54..  
+04BFFCF4   00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+  
+其中包括挂机的地图代号,序号+过门的坐标+03 表示是正式的会员  
+04C0FCC4   1F 3A 00 00 33 26 00 00 46 01 24 00 03 00 00 00  :..3&..F$....  
+04C0FCD4   00 00 00 00 04 00 01 00 00 00 00 00 00 00 00 00  ..............  
+04C0FCE4   00 00 00 00 70 6F 77 65 72 62 6F 79 35 34 00 00  ....powerboy54..  
+04C0FCF4   00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+  
+04C0FE0C=0000   
+04C0FCCE=0024    
+04C0FCCC=0146  
+04C0FCDA=0001  
+  
+  
+0059D6C8   00 00 04 00 04 00 46 01 24 00 01 00 01 00 00 00  ....F$.....  
+  
+0467FE40   04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ...............  
+  
+.text:00415E4B                 mov     cx, word ptr \[esp+18Ch+arg\_4\]   ;CX=0000  
+.text:00415E53                 shl     eax, 1  
+.text:00415E55                 pop     esi  
+.text:00415E56                 mov     \[eax+59D6C8h\], cx               ;  
+.text:00415E5D                 mov     cx, \[esp+188h+var\_136\]          ;CX=0024  0021  过门的 x 坐标  
+.text:00415E62                 mov     \[eax+59D6CAh\], bp               ;BP=0004  000C  
+.text:00415E69                 mov     \[eax+59D6CCh\], dx               ;DX=0004  000C  
+.text:00415E70                 mov     dx, \[esp+188h+var\_138\]          ;DX=0146  0093  过门的 y 坐标  
+.text:00415E75                 pop     ebp  
+.text:00415E76                 mov     \[eax+59D6CEh\], dx               ;  
+.text:00415E7D                 mov     dx, \[esp+184h+var\_12A\]          ;DX=0001  0001  
+.text:00415E82                 mov     \[eax+59D6D0h\], cx               ;  
+.text:00415E89                 mov     ecx, \[esp+184h+arg\_C\]  
+.text:00415E90                 mov     \[eax+59D6D2h\], dx  
+.text:00415E97                 mov     word ptr \[eax+59D6D4h\], 1  
+.text:00415EA0                 movsx   eax, word ptr \[eax+59D6CCh\]  
+.text:00415EA7                 mov     \[ecx\], eax  
+.text:00415EA9                 mov     al, 1  
+.text:00415EAB                 pop     ebx  
+.text:00415EAC                 add     esp, 180h  
+.text:00415EB2                 retn  
+  
+地图标号 12=$C D003  
+0456FCC4   68 48 00 00 7B 56 00 00 93 00 21 00 03 00 00 00  hH..{V..?!....  
+0456FCD4   00 00 00 00 0C 00 01 00 00 00 00 00 00 00 00 00  ...............  
+0456FCE4   00 00 00 00 70 6F 77 65 72 62 6F 79 35 34 00 00  ....powerboy54..  
+0456FCF4   00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+  
+地图标号 10=$A D001  
+0456FCC4   F5 52 00 00 DF 78 00 00 93 00 21 00 03 00 00 00  ....?!....  
+0456FCD4   00 00 00 00 0A 00 01 00 00 00 00 00 00 00 00 00  ...............  
+0456FCE4   00 00 00 00 70 6F 77 65 72 62 6F 79 35 34 00 00  ....powerboy54..  
+0456FCF4   00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+  
+地图标号 13=$D E001  
+0456FCC4   64 55 00 00 30 4C 00 00 93 00 21 00 03 00 00 00  dU..0L..?!....  
+0456FCD4   00 00 00 00 0D 00 01 00 00 00 00 00 00 00 00 00  ...............  
+0456FCE4   00 00 00 00 70 6F 77 65 72 62 6F 79 35 34 00 00  ....powerboy54..  
+0456FCF4   00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+  
+  
+0456FCC4   E9 56 00 00 85 50 00 00 1E 00 48 01 03 00 00 00  .....H...  
+0456FCD4   00 00 00 00 0D 00 01 00 00 00 00 00 00 00 00 00  ...............  
+0456FCE4   00 00 00 00 70 6F 77 65 72 62 6F 79 35 34 00 00  ....powerboy54..  
+0456FCF4   00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+  
+  
+地图标号 6= 11  
+04C0FCC4   41 66 00 00 A2 1D 00 00 00 00 00 00 03 00 00 00  Af..?.........  
+04C0FCD4   00 00 00 00 06 00 97 03 00 00 00 00 00 00 00 00  .....?........  
+04C0FCE4   00 00 00 00 70 6F 77 65 72 62 6F 79 35 34 00 00  ....powerboy54..  
+04C0FCF4   00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+  
+  
+  
+0059D6C8   00 00 0C 00 0C 00 46 01 24 00 01 00 01 00 04 00  ......F$....  
+  
+0059D6C8   00 00 06 00 06 00 00 00 00 00 97 03 01 00 00 00  ........?...  
+  
+服务器返回的数据包解密之后得到  
+0456FCC4   78 03 00 00 7C 31 00 00 46 01 24 00 03 00 00 00  x..|1..F$....  
+0456FCD4   00 00 00 00 04 00 01 00 00 00 00 00 00 00 00 00  ..............  
+0456FCE4   00 00 00 00 70 6F 77 65 72 62 6F 79 35 34 00 00  ....powerboy54..  
+0456FCF4   00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+从数据包中分离出的数据  
+0059D6C8   00 00 04 00 04 00 46 01 24 00 01 00 01 00 00 00  ....F$.....  
+  
+  
+对分离的数据进行处理  
+  
+004160E1    0FBF88 CED65900 movsx ecx,word ptr ds:\[eax+59D6CE\]  
+004160E8    890A            mov dword ptr ds:\[edx\],ecx  
+004160EA    8B9424 94010000 mov edx,dword ptr ss:\[esp+194\]  
+004160F1    0FBF88 D0D65900 movsx ecx,word ptr ds:\[eax+59D6D0\]  
+004160F8    890A            mov dword ptr ds:\[edx\],ecx  
+004160FA    8B8C24 98010000 mov ecx,dword ptr ss:\[esp+198\]  
+00416101    0FBF80 D2D65900 movsx eax,word ptr ds:\[eax+59D6D2\]  
+00416108    8901            mov dword ptr ds:\[ecx\],eax  
+0041610A    B0 01           mov al,1  
+0041610C    5B              pop ebx  
+0041610D    81C4 80010000   add esp,180  
+00416113    C3              retn  
+  
+他每次过门都是计算出下一过门点的坐标。所以，你要会计算坐标点才行的.  
+这里面是一个非常大的算法。即你要知道所有的地图、地图的连接情况、还有每个过门的具体坐标。  
+  
+  
+半兽人洞穴一层  
+04C6FCC4   44 4B 00 00 0B 2B 00 00 93 00 21 00 03 00 00 00  DK..+..?!....  
+04C6FCD4   00 00 00 00 0A 00 01 00 00 00 00 00 00 00 00 00  ...............  
+04C6FCE4   00 00 00 00 70 6F 77 65 72 62 6F 79 35 34 00 00  ....powerboy54..  
+04C6FCF4   00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+这段数据就是驱动外挂挂机的有用数据:  
+0059D6C8   00 00 0A 00 0A 00 93 00 21 00 01 00 01 00 00 00  ......?!.....  
+  
+  
+地图序号:10  
+地图代号:D001  
+过门坐标:147,33  
+  
+  
+半兽人洞穴二层  
+054EFCC4   BE 4F 00 00 1E 3C 00 00 1E 00 48 01 03 00 00 00  ..<...H...  
+054EFCD4   00 00 00 00 0B 00 01 00 00 00 00 00 00 00 00 00  ..............  
+054EFCE4   00 00 00 00 70 6F 77 65 72 62 6F 79 35 34 00 00  ....powerboy54..  
+054EFCF4   00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+  
+地图序号:11  
+地图代号:D002  
+过门坐标:30,328  
+  
+0059D6C8   0A 00 0B 00 0B 00 1E 00 48 01 01 00 01 00 00 00  .....H....  
+           ^^ ^^途径的地图序号  
+                 ^^ ^^挂机地图的序号  
+                       ^^ ^^服务器返回的挂机地图的序号   
+                             ^^ ^^ 过门的 X 坐标          
+                                   ^^ ^^过门的 Y 坐标  
+                                         ^^ ^^返回的经过几个地图数量 01  
+                                               ^^ ^^这个 01 是固定数据  
+  
+地图序号:4  
+地图代号:1  
+沃玛森林(327,36)  
+  
+0472FCC4   20 6F 00 00 4B 49 00 00 46 01 24 00 03 00 00 00   o..KI..F$....  
+0472FCD4   00 00 00 00 04 00 01 00 00 00 00 00 00 00 00 00  ..............  
+0472FCE4   00 00 00 00 70 6F 77 65 72 62 6F 79 35 34 00 00  ....powerboy54..  
+0472FCF4   00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+  
+//最后从数据包中提取出下面的数据来支持挂机!  
+0059D6C8   00 00 04 00 04 00 46 01 24 00 01 00 01 00 00 00  ....F$.....  
+  
+  
+0059D6C8   00 00 0A 00 70 6F 93 00 21 00 01 00 01 00 00 00  ....po?!.....  
+  
+  
+  
+.text:004081BD                 add     esp, 10h  
+.text:004081C0                 test    al, al  
+.text:004081C2                 jnz     short loc\_4081E0  
+.text:004081C4                 push    offset aIQI1bg  ; "无法到达指定地图 1。"  
+.text:004081C9                 push    3  
+.text:004081CB                 call    nullsub\_5  
+.text:004081D0                 add     esp, 8  
+.text:004081D3                 push    1388h           ; dwMilliseconds  
+.text:004081D8                 call    ds:Sleep  
+.text:004081DE                 jmp     short loc\_408171  
+.text:004081E0 ; ----------------------------------------------------------------------------  
+.text:004081E0  
+.text:004081E0 loc\_4081E0:                             ; CODE XREF: sub\_408160+62j  
+.text:004081E0                 cmp     \[esp+0F0h+var\_C8\], 0FFFFFFFFh  
+.text:004081E5                 jnz     short loc\_408219  
+.text:004081E7                 push    offset aA\_1     ; "使用地牢逃脱卷"  
+.text:004081EC                 push    1  
+.text:004081EE                 mov     ecx, 59DDC8h  
+.text:004081F3                 call    sub\_4177D0  
+.text:004081F8                 mov     eax, dword ptr pszPath+8A0h  
+.text:004081FD                 push    offset unk\_58B4DC  
+.text:00408202                 push    offset aA       ; "地牢逃脱卷"  
+.text:00408207                 push    0FFFFFFFFh  
+.text:00408209                 lea     ecx, \[eax+6864h\]  
+.text:0040820F                 call    sub\_4123D0  
+.text:00408214                 jmp     loc\_408171  
+.text:00408219 ; ----------------------------------------------------------------------------  
+.text:00408219  
+.text:00408219 loc\_408219:                             ; CODE XREF: sub\_408160+85j  
+.text:00408219                 mov     \[esp+0F0h+var\_E0\], 1  
+.text:00408221  
+.text:00408221 loc\_408221:                             ; CODE XREF: sub\_408160+1F7j  
+.text:00408221                                         ; sub\_408160+476j ...  
+.text:00408221                 mov     esi, ds:Sleep  
+.text:00408227                 push    0C8h            ; dwMilliseconds  
+.text:0040822C                 call    esi ; Sleep  
+.text:0040822E                 mov     ecx, \[esp+0F0h+arg\_4\]  
+.text:00408235                 push    ecx  
+.text:00408236                 push    ebp  
+.text:00408237                 call    sub\_40D7D0  
+.text:0040823C                 add     esp, 8  
+.text:0040823F                 test    eax, eax  
+.text:00408241                 jnz     loc\_40881F  
+.text:00408247                 mov     edx, dword ptr pszPath+8A0h  
+.text:0040824D                 lea     ecx, \[edx+6864h\]  
+.text:00408253                 call    sub\_4115E0  
+.text:00408258                 cmp     eax, ebx  
+.text:0040825A                 jnz     loc\_40881F  
+.text:00408260                 mov     eax, \[esp+0F0h+var\_E0\]  
+.text:00408264                 lea     ecx, \[esp+0F0h+var\_D8\]  
+.text:00408268                 push    eax  
+.text:00408269                 lea     edx, \[esp+0F4h+var\_D0\]  
+.text:0040826D                 push    ecx  
+.text:0040826E                 mov     ecx, \[esp+0F8h+var\_C8\]  
+.text:00408272                 lea     eax, \[esp+0F8h+var\_CC\]  
+.text:00408276                 push    edx  
+.text:00408277                 push    eax  
+.text:00408278                 push    ecx  
+.text:00408279                 push    ebx  
+.text:0040827A                 call    sub\_415EC0      ; 地图\_ 外挂验证\_2  
+.text:0040827F                 add     esp, 18h  
+.text:00408282                 test    al, al  
+.text:00408284                 jz      loc\_4087B0  
+.text:0040828A                 mov     esi, \[esp+0F0h+var\_CC\]  
+.text:0040828E                 mov     ecx, \[esp+0F0h+var\_D0\]  
+.text:00408292                 cmp     esi, 0FFFFFFFFh  
+.text:00408295                 jnz     short loc\_4082A0  
+.text:00408297                 cmp     ecx, 0FFFFFFFFh  
+.text:0040829A                 jz      loc\_40881F  
+.text:004082A0  
+.text:004082A0 loc\_4082A0:                             ; CODE XREF: sub\_408160+135j  
+.text:004082A0                 mov     edi, \[esp+0F0h+var\_D8\]  
+.text:004082A4                 cmp     edi, 58h  
+.text:004082A7                 jz      loc\_4087C8  
+.text:004082AD                 cmp     edi, 399h  
+.text:004082B3                 jnz     short loc\_4082EB  
+.text:004082B5                 cmp     word ptr \[ebp+3F6h\], 2Dh  
+.text:004082BD                 jge     short loc\_4082EB  
+.text:004082BF                 mov     edx, dword ptr pszPath+8A0h  
+.text:004082C5                 push    0  
+.text:004082C7                 push    offset aD\_1     ; "幻境凭证"  
+.text:004082CC                 lea     ecx, \[edx+6864h\]  
+.text:004082D2                 call    sub\_411A40  
+.text:004082D7                 test    eax, eax  
+.text:004082D9                 jz      loc\_4087D3  
+.text:004082DF                 mov     edi, \[esp+0F0h+var\_D8\]  
+.text:004082E3                 mov     ecx, \[esp+0F0h+var\_D0\]  
+.text:004082E7                 mov     esi, \[esp+0F0h+var\_CC\]  
+.text:004082EB  
+.text:004082EB loc\_4082EB:                             ; CODE XREF: sub\_408160+153j  
+.text:004082EB                                         ; sub\_408160+15Dj  
+.text:004082EB                 mov     eax, 51EB851Fh  
+.text:004082F0                 imul    edi  
+.text:004082F2                 sar     edx, 5  
+.text:004082F5                 mov     eax, edx  
+.text:004082F7                 shr     eax, 1Fh  
+.text:004082FA                 add     edx, eax  
+.text:004082FC                 cmp     edx, 9  
+.text:004082FF                 jnz     loc\_4085DB  
+//////////////////////////////////////////////////////////////////////////////////////////////////  
+  
+.text:00415CA0  
+.text:00415CA0 ; \*\*\*\*\*\*\*\*\*\*\*\*\*\* S U B R O U T I N E \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+.text:00415CA0  
+.text:00415CA0 ; 地图\_ 外挂验证\_1  
+.text:00415CA0  
+.text:00415CA0 sub\_415CA0      proc near               ; CODE XREF: sub\_408160+58p  
+.text:00415CA0  
+.text:00415CA0 var\_180         = dword ptr -180h  
+.text:00415CA0 var\_17C         = dword ptr -17Ch  
+.text:00415CA0 var\_178         = word ptr -178h  
+.text:00415CA0 var\_176         = word ptr -176h  
+.text:00415CA0 var\_174         = word ptr -174h  
+.text:00415CA0 var\_172         = word ptr -172h  
+.text:00415CA0 var\_170         = dword ptr -170h  
+.text:00415CA0 var\_140         = dword ptr -140h  
+.text:00415CA0 var\_138         = word ptr -138h  
+.text:00415CA0 var\_136         = word ptr -136h  
+.text:00415CA0 var\_12C         = word ptr -12Ch  
+.text:00415CA0 var\_12A         = word ptr -12Ah  
+.text:00415CA0 var\_100         = dword ptr -100h  
+.text:00415CA0 var\_80          = dword ptr -80h  
+.text:00415CA0 arg\_4           = dword ptr  8  
+.text:00415CA0 arg\_8           = dword ptr  0Ch  
+.text:00415CA0 arg\_C           = dword ptr  10h  
+.text:00415CA0  
+.text:00415CA0                 sub     esp, 180h  
+.text:00415CA6                 push    ebx  
+.text:00415CA7                 push    ebp  
+.text:00415CA8                 push    esi  
+.text:00415CA9                 mov     esi, \[esp+18Ch+arg\_4\]  
+.text:00415CB0                 push    edi  
+.text:00415CB1                 push    esi  
+.text:00415CB2                 call    sub\_415C80  
+.text:00415CB7                 add     esp, 4  
+.text:00415CBA                 test    al, al  
+.text:00415CBC                 jz      loc\_415EB3  
+.text:00415CC2                 mov     ebp, \[esp+190h+arg\_8\]  
+.text:00415CC9                 push    ebp  
+.text:00415CCA                 call    sub\_415C80  
+.text:00415CCF                 add     esp, 4  
+.text:00415CD2                 test    al, al  
+.text:00415CD4                 jz      loc\_415EB3  
+.text:00415CDA                 mov     edx, \[esp+190h+arg\_C\]  
+.text:00415CE1                 xor     ecx, ecx  
+.text:00415CE3                 mov     eax, 59D6CAh  
+.text:00415CE8                 mov     dword ptr \[edx\], 0FFFFFFFFh  
+.text:00415CEE  
+.text:00415CEE loc\_415CEE:                             ; CODE XREF: sub\_415CA0+6Aj  
+.text:00415CEE                 movsx   edi, word ptr \[eax-2\]  
+.text:00415CF2                 cmp     edi, esi  
+.text:00415CF4                 jnz     short loc\_415D01  
+.text:00415CF6                 movsx   edi, word ptr \[eax\]  
+.text:00415CF9                 cmp     edi, ebp  
+.text:00415CFB                 jz      loc\_415DF8  
+.text:00415D01  
+.text:00415D01 loc\_415D01:                             ; CODE XREF: sub\_415CA0+54j  
+.text:00415D01                 add     eax, 0Eh  
+.text:00415D04                 inc     ecx  
+.text:00415D05                 cmp     eax, 59DDCAh  
+.text:00415D0A                 jl      short loc\_415CEE  
+.text:00415D0C                 mov     edx, dword ptr pszPath+8A0h  
+.text:00415D12                 lea     ecx, \[edx+6864h\]  
+.text:00415D18                 call    sub\_4115B0  
+.text:00415D1D                 mov     ebx, eax  
+.text:00415D1F                 mov     ecx, 10h  
+.text:00415D24                 xor     eax, eax  
+.text:00415D26                 lea     edi, \[esp+190h+var\_180\]  
+.text:00415D2A                 rep stosd  
+.text:00415D2C                 push    eax             ; time\_t \*  
+.text:00415D2D                 call    \_time           ; 生成加密用的种子  
+.text:00415D32                 push    eax             ; unsigned int  
+.text:00415D33                 call    \_srand  
+.text:00415D38                 call    \_rand           ; 随机函数  
+.text:00415D3D                 mov     \[esp+198h+var\_180\], eax  
+.text:00415D41                 call    \_rand           ; 随机函数  
+.text:00415D46                 mov     \[esp+198h+var\_17C\], eax  
+.text:00415D4A                 mov     \[esp+198h+var\_178\], 64h  
+.text:00415D51                 mov     \[esp+198h+var\_174\], si  
+.text:00415D56                 mov     \[esp+198h+var\_176\], bp  
+.text:00415D5B                 mov     ax, \[ebx+16h\]  
+.text:00415D5F                 lea     edi, \[ebx+24h\]  
+.text:00415D62                 mov     \[esp+198h+var\_172\], ax  
+.text:00415D67                 or      ecx, 0FFFFFFFFh  
+.text:00415D6A                 xor     eax, eax  
+.text:00415D6C                 lea     edx, \[esp+198h+var\_170\]  
+.text:00415D70                 repne scasb  
+.text:00415D72                 not     ecx  
+.text:00415D74                 sub     edi, ecx  
+.text:00415D76                 push    22A1h  
+.text:00415D7B                 mov     eax, ecx  
+.text:00415D7D                 mov     esi, edi  
+.text:00415D7F                 mov     edi, edx  
+.text:00415D81                 lea     edx, \[esp+19Ch+var\_100\]  
+.text:00415D88                 shr     ecx, 2  
+.text:00415D8B                 rep movsd  
+.text:00415D8D                 mov     ecx, eax  
+.text:00415D8F                 lea     eax, \[esp+19Ch+var\_140\]  
+.text:00415D93                 and     ecx, 3  
+.text:00415D96                 rep movsb  
+.text:00415D98                 lea     ecx, \[esp+19Ch+var\_80\]  
+.text:00415D9F                 push    ecx  
+.text:00415DA0                 push    edx  
+.text:00415DA1                 lea     ecx, \[esp+1A4h+var\_180\]  
+.text:00415DA5                 push    eax  
+.text:00415DA6                 push    ecx  
+.text:00415DA7                 call    sub\_4358B0      ; 外挂服务器验证\_1  
+.text:00415DAC                 add     esp, 1Ch  
+.text:00415DAF                 test    eax, eax  
+.text:00415DB1                 jnz     loc\_415EB3  
+.text:00415DB7                 mov     edx, \[ebx+4\]  
+.text:00415DBA                 mov     eax, \[ebx\]  
+.text:00415DBC                 push    edx  
+.text:00415DBD                 lea     ecx, \[esp+194h+var\_100\]  
+.text:00415DC4                 push    eax  
+.text:00415DC5                 lea     edx, \[esp+198h+var\_140\]  
+.text:00415DC9                 push    ecx  
+.text:00415DCA                 push    edx  
+.text:00415DCB                 call    sub\_435360  
+.text:00415DD0                 mov     dx, \[esp+1A0h+var\_12C\]  
+.text:00415DD5                 add     esp, 10h  
+.text:00415DD8                 cmp     dx, 0FFFFh  
+.text:00415DDC                 jnz     short loc\_415E18  
+.text:00415DDE                 mov     eax, \[esp+190h+arg\_C\]  
+.text:00415DE5                 pop     edi  
+.text:00415DE6                 pop     esi  
+.text:00415DE7                 pop     ebp  
+.text:00415DE8                 mov     dword ptr \[eax\], 0FFFFFFFFh  
+.text:00415DEE                 mov     al, 1  
+.text:00415DF0                 pop     ebx  
+.text:00415DF1                 add     esp, 180h  
+.text:00415DF7                 retn  
+.text:00415DF8 ; ----------------------------------------------------------------------------  
+.text:00415DF8  
+.text:00415DF8 loc\_415DF8:                             ; CODE XREF: sub\_415CA0+5Bj  
+.text:00415DF8                 lea     eax, ds:0\[ecx\*8\]  
+.text:00415DFF                 pop     edi  
+.text:00415E00                 sub     eax, ecx  
+.text:00415E02                 pop     esi  
+.text:00415E03                 pop     ebp  
+.text:00415E04                 pop     ebx  
+.text:00415E05                 movsx   ecx, word ptr pszPath+8Ch\[eax\*2\]  
+.text:00415E0D                 mov     \[edx\], ecx  
+.text:00415E0F                 mov     al, 1  
+.text:00415E11                 add     esp, 180h  
+.text:00415E17                 retn  
+.text:00415E18 ; ----------------------------------------------------------------------------  
+.text:00415E18  
+.text:00415E18 loc\_415E18:                             ; CODE XREF: sub\_415CA0+13Cj  
+.text:00415E18                 xor     ecx, ecx  
+.text:00415E1A                 mov     eax, 59D6CAh  
+.text:00415E1F  
+.text:00415E1F loc\_415E1F:                             ; CODE XREF: sub\_415CA0+195j  
+.text:00415E1F                 cmp     word ptr \[eax-2\], 0  
+.text:00415E24                 jnz     short loc\_415E2C  
+.text:00415E26                 cmp     word ptr \[eax\], 0  
+.text:00415E2A                 jz      short loc\_415E37  
+.text:00415E2C  
+.text:00415E2C loc\_415E2C:                             ; CODE XREF: sub\_415CA0+184j  
+.text:00415E2C                 add     eax, 0Eh  
+.text:00415E2F                 inc     ecx  
+.text:00415E30                 cmp     eax, 59DDCAh  
+.text:00415E35                 jl      short loc\_415E1F  
+.text:00415E37  
+.text:00415E37 loc\_415E37:                             ; CODE XREF: sub\_415CA0+18Aj  
+.text:00415E37                 cmp     ecx, 80h  
+.text:00415E3D                 jnz     short loc\_415E41  
+.text:00415E3F                 xor     ecx, ecx  
+.text:00415E41  
+.text:00415E41 loc\_415E41:                             ; CODE XREF: sub\_415CA0+19Dj  
+.text:00415E41                 lea     eax, ds:0\[ecx\*8\]  
+.text:00415E48                 pop     edi  
+.text:00415E49                 sub     eax, ecx  
+.text:00415E4B                 mov     cx, word ptr \[esp+18Ch+arg\_4\]  
+.text:00415E53                 shl     eax, 1  
+.text:00415E55                 pop     esi  
+.text:00415E56                 mov     \[eax+59D6C8h\], cx  
+.text:00415E5D                 mov     cx, \[esp+188h+var\_136\]  
+.text:00415E62                 mov     \[eax+59D6CAh\], bp  
+.text:00415E69                 mov     \[eax+59D6CCh\], dx  
+.text:00415E70                 mov     dx, \[esp+188h+var\_138\]  
+.text:00415E75                 pop     ebp  
+.text:00415E76                 mov     \[eax+59D6CEh\], dx  
+.text:00415E7D                 mov     dx, \[esp+184h+var\_12A\]  
+.text:00415E82                 mov     \[eax+59D6D0h\], cx  
+.text:00415E89                 mov     ecx, \[esp+184h+arg\_C\]  
+.text:00415E90                 mov     \[eax+59D6D2h\], dx  
+.text:00415E97                 mov     word ptr \[eax+59D6D4h\], 1  
+.text:00415EA0                 movsx   eax, word ptr \[eax+59D6CCh\]  
+.text:00415EA7                 mov     \[ecx\], eax  
+.text:00415EA9                 mov     al, 1  
+.text:00415EAB                 pop     ebx  
+.text:00415EAC                 add     esp, 180h  
+.text:00415EB2                 retn  
+.text:00415EB3 ; ----------------------------------------------------------------------------  
+.text:00415EB3  
+.text:00415EB3 loc\_415EB3:                             ; CODE XREF: sub\_415CA0+1Cj  
+.text:00415EB3                                         ; sub\_415CA0+34j ...  
+.text:00415EB3                 pop     edi  
+.text:00415EB4                 pop     esi  
+.text:00415EB5                 pop     ebp  
+.text:00415EB6                 xor     al, al  
+.text:00415EB8                 pop     ebx  
+.text:00415EB9                 add     esp, 180h  
+.text:00415EBF                 retn  
+.text:00415EBF sub\_415CA0      endp  
+.text:00415EBF  
+.text:00415EC0  
+.text:00415EC0 ; \*\*\*\*\*\*\*\*\*\*\*\*\*\* S U B R O U T I N E \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+.text:00415EC0  
+.text:00415EC0 ; 地图\_ 外挂验证\_2  
+.text:00415EC0  
+.text:00415EC0 sub\_415EC0      proc near               ; CODE XREF: sub\_408160+11Ap  
+.text:00415EC0  
+.text:00415EC0 var\_180         = dword ptr -180h  
+.text:00415EC0 var\_17C         = dword ptr -17Ch  
+.text:00415EC0 var\_178         = word ptr -178h  
+.text:00415EC0 var\_176         = word ptr -176h  
+.text:00415EC0 var\_174         = word ptr -174h  
+.text:00415EC0 var\_172         = word ptr -172h  
+.text:00415EC0 var\_170         = dword ptr -170h  
+.text:00415EC0 var\_140         = dword ptr -140h  
+.text:00415EC0 var\_138         = word ptr -138h  
+.text:00415EC0 var\_136         = word ptr -136h  
+.text:00415EC0 var\_12A         = word ptr -12Ah  
+.text:00415EC0 var\_100         = dword ptr -100h  
+.text:00415EC0 var\_80          = dword ptr -80h  
+.text:00415EC0 arg\_0           = dword ptr  4  
+.text:00415EC0 arg\_4           = dword ptr  8  
+.text:00415EC0 arg\_8           = dword ptr  0Ch  
+.text:00415EC0 arg\_C           = dword ptr  10h  
+.text:00415EC0 arg\_10          = dword ptr  14h  
+.text:00415EC0 arg\_14          = dword ptr  18h  
+.text:00415EC0  
+.text:00415EC0                 sub     esp, 180h  
+.text:00415EC6                 push    ebx  
+.text:00415EC7                 push    ebp  
+.text:00415EC8                 push    esi  
+.text:00415EC9                 push    edi  
+.text:00415ECA                 mov     edi, \[esp+190h+arg\_0\]  
+.text:00415ED1                 push    edi  
+.text:00415ED2                 call    sub\_415C80  
+.text:00415ED7                 add     esp, 4  
+.text:00415EDA                 test    al, al  
+.text:00415EDC                 jz      loc\_416114  
+.text:00415EE2                 mov     esi, \[esp+190h+arg\_4\]  
+.text:00415EE9                 push    esi  
+.text:00415EEA                 call    sub\_415C80  
+.text:00415EEF                 add     esp, 4  
+.text:00415EF2                 test    al, al  
+.text:00415EF4                 jz      loc\_416114  
+.text:00415EFA                 mov     ebp, \[esp+190h+arg\_14\]  
+.text:00415F01                 xor     ecx, ecx  
+.text:00415F03                 mov     eax, 59D6CCh  
+.text:00415F08  
+.text:00415F08 loc\_415F08:                             ; CODE XREF: sub\_415EC0+6Cj  
+.text:00415F08                 movsx   edx, word ptr \[eax-4\]  
+.text:00415F0C                 cmp     edx, edi  
+.text:00415F0E                 jnz     short loc\_415F23  
+.text:00415F10                 movsx   edx, word ptr \[eax\]  
+.text:00415F13                 cmp     edx, esi  
+.text:00415F15                 jnz     short loc\_415F23  
+.text:00415F17                 movsx   edx, word ptr \[eax+8\]  
+.text:00415F1B                 cmp     edx, ebp  
+.text:00415F1D                 jz      loc\_4160CC  
+.text:00415F23  
+.text:00415F23 loc\_415F23:                             ; CODE XREF: sub\_415EC0+4Ej  
+.text:00415F23                                         ; sub\_415EC0+55j  
+.text:00415F23                 add     eax, 0Eh  
+.text:00415F26                 inc     ecx  
+.text:00415F27                 cmp     eax, 59DDCCh  
+.text:00415F2C                 jl      short loc\_415F08  
+.text:00415F2E                 mov     edx, dword ptr pszPath+8A0h  
+.text:00415F34                 lea     ecx, \[edx+6864h\]  
+.text:00415F3A                 call    sub\_4115B0  
+.text:00415F3F                 mov     ebx, eax  
+.text:00415F41                 mov     ecx, 10h  
+.text:00415F46                 xor     eax, eax  
+.text:00415F48                 lea     edi, \[esp+190h+var\_180\]  
+.text:00415F4C                 rep stosd  
+.text:00415F4E                 push    eax             ; time\_t \*  
+.text:00415F4F                 call    \_time           ; 生成加密用的种子  
+.text:00415F54                 push    eax             ; unsigned int  
+.text:00415F55                 call    \_srand  
+.text:00415F5A                 call    \_rand           ; 随机函数  
+.text:00415F5F                 mov     \[esp+198h+var\_180\], eax  
+.text:00415F63                 call    \_rand           ; 随机函数  
+.text:00415F68                 mov     \[esp+198h+var\_17C\], eax  
+.text:00415F6C                 lea     eax, \[ebp+ebp\*4+0\]  
+.text:00415F70                 mov     dx, word ptr \[esp+198h+arg\_0\]  
+.text:00415F78                 mov     \[esp+198h+var\_176\], si  
+.text:00415F7D                 lea     eax, \[eax+eax\*4\]  
+.text:00415F80                 mov     \[esp+198h+var\_174\], dx  
+.text:00415F85                 lea     edi, \[ebx+24h\]  
+.text:00415F88                 lea     edx, \[esp+198h+var\_170\]  
+.text:00415F8C                 lea     eax, \[eax+eax\*4\]  
+.text:00415F8F                 push    22A1h  
+.text:00415F94                 lea     ecx, ds:65h\[eax\*8\]  
+.text:00415F9B                 mov     \[esp+19Ch+var\_178\], cx  
+.text:00415FA0                 mov     ax, \[ebx+16h\]  
+.text:00415FA4                 mov     \[esp+19Ch+var\_172\], ax  
+.text:00415FA9                 or      ecx, 0FFFFFFFFh  
+.text:00415FAC                 xor     eax, eax  
+.text:00415FAE                 repne scasb  
+.text:00415FB0                 not     ecx  
+.text:00415FB2                 sub     edi, ecx  
+.text:00415FB4                 mov     eax, ecx  
+.text:00415FB6                 mov     esi, edi  
+.text:00415FB8                 mov     edi, edx  
+.text:00415FBA                 lea     edx, \[esp+19Ch+var\_100\]  
+.text:00415FC1                 shr     ecx, 2  
+.text:00415FC4                 rep movsd  
+.text:00415FC6                 mov     ecx, eax  
+.text:00415FC8                 lea     eax, \[esp+19Ch+var\_140\]  
+.text:00415FCC                 and     ecx, 3  
+.text:00415FCF                 rep movsb  
+.text:00415FD1                 lea     ecx, \[esp+19Ch+var\_80\]  
+.text:00415FD8                 push    ecx  
+.text:00415FD9                 push    edx  
+.text:00415FDA                 lea     ecx, \[esp+1A4h+var\_180\]  
+.text:00415FDE                 push    eax  
+.text:00415FDF                 push    ecx  
+.text:00415FE0                 call    sub\_4358B0      ; 外挂服务器验证\_1  
+.text:00415FE5                 add     esp, 1Ch  
+.text:00415FE8                 test    eax, eax  
+.text:00415FEA                 jnz     loc\_416114  
+.text:00415FF0                 mov     edx, \[ebx+4\]  
+.text:00415FF3                 mov     eax, \[ebx\]  
+.text:00415FF5                 push    edx  
+.text:00415FF6                 lea     ecx, \[esp+194h+var\_100\]  
+.text:00415FFD                 push    eax  
+.text:00415FFE                 lea     edx, \[esp+198h+var\_140\]  
+.text:00416002                 push    ecx  
+.text:00416003                 push    edx  
+.text:00416004                 call    sub\_435360  
+.text:00416009                 add     esp, 10h  
+.text:0041600C                 xor     ecx, ecx  
+.text:0041600E                 mov     eax, 59D6CAh  
+.text:00416013  
+.text:00416013 loc\_416013:                             ; CODE XREF: sub\_415EC0+169j  
+.text:00416013                 cmp     word ptr \[eax-2\], 0  
+.text:00416018                 jnz     short loc\_416020  
+.text:0041601A                 cmp     word ptr \[eax\], 0  
+.text:0041601E                 jz      short loc\_41602B  
+.text:00416020  
+.text:00416020 loc\_416020:                             ; CODE XREF: sub\_415EC0+158j  
+.text:00416020                 add     eax, 0Eh  
+.text:00416023                 inc     ecx  
+.text:00416024                 cmp     eax, 59DDCAh  
+.text:00416029                 jl      short loc\_416013  
+.text:0041602B  
+.text:0041602B loc\_41602B:                             ; CODE XREF: sub\_415EC0+15Ej  
+.text:0041602B                 cmp     ecx, 80h  
+.text:00416031                 jnz     short loc\_416035  
+.text:00416033                 xor     ecx, ecx  
+.text:00416035  
+.text:00416035 loc\_416035:                             ; CODE XREF: sub\_415EC0+171j  
+.text:00416035                 lea     eax, ds:0\[ecx\*8\]  
+.text:0041603C                 mov     dx, \[esp+190h+var\_138\]  
+.text:00416041                 sub     eax, ecx  
+.text:00416043                 mov     cx, word ptr \[esp+190h+arg\_0\]  
+.text:0041604B                 shl     eax, 1  
+.text:0041604D                 pop     edi  
+.text:0041604E                 pop     esi  
+.text:0041604F                 mov     \[eax+59D6C8h\], cx  
+.text:00416056                 mov     ecx, \[esp+188h+arg\_4\]  
+.text:0041605D                 mov     \[eax+59D6CAh\], cx  
+.text:00416064                 mov     \[eax+59D6CCh\], cx  
+.text:0041606B                 mov     cx, \[esp+188h+var\_136\]  
+.text:00416070                 mov     \[eax+59D6CEh\], dx  
+.text:00416077                 mov     dx, \[esp+188h+var\_12A\]  
+.text:0041607C                 mov     \[eax+59D6D0h\], cx  
+.text:00416083                 mov     \[eax+59D6D2h\], dx  
+.text:0041608A                 mov     edx, \[esp+188h+arg\_8\]  
+.text:00416091                 mov     \[eax+59D6D4h\], bp  
+.text:00416098                 pop     ebp  
+.text:00416099                 movsx   ecx, word ptr \[eax+59D6CEh\]  
+.text:004160A0                 mov     \[edx\], ecx  
+.text:004160A2                 mov     edx, \[esp+184h+arg\_C\]  
+.text:004160A9                 movsx   ecx, word ptr \[eax+59D6D0h\]  
+.text:004160B0                 mov     \[edx\], ecx  
+.text:004160B2                 mov     ecx, \[esp+184h+arg\_10\]  
+.text:004160B9                 movsx   eax, word ptr \[eax+59D6D2h\]  
+.text:004160C0                 mov     \[ecx\], eax  
+.text:004160C2                 mov     al, 1  
+.text:004160C4                 pop     ebx  
+.text:004160C5                 add     esp, 180h  
+.text:004160CB                 retn  
+.text:004160CC ; ----------------------------------------------------------------------------  
+.text:004160CC  
+.text:004160CC loc\_4160CC:                             ; CODE XREF: sub\_415EC0+5Dj  
+.text:004160CC                 lea     eax, ds:0\[ecx\*8\]  
+.text:004160D3                 mov     edx, \[esp+190h+arg\_8\]  
+.text:004160DA                 sub     eax, ecx  
+.text:004160DC                 pop     edi  
+.text:004160DD                 shl     eax, 1  
+.text:004160DF                 pop     esi  
+.text:004160E0                 pop     ebp  
+.text:004160E1                 movsx   ecx, word ptr \[eax+59D6CEh\]  
+.text:004160E8                 mov     \[edx\], ecx  
+.text:004160EA                 mov     edx, \[esp+184h+arg\_C\]  
+.text:004160F1                 movsx   ecx, word ptr \[eax+59D6D0h\]  
+.text:004160F8                 mov     \[edx\], ecx  
+.text:004160FA                 mov     ecx, \[esp+184h+arg\_10\]  
+.text:00416101                 movsx   eax, word ptr \[eax+59D6D2h\]  
+.text:00416108                 mov     \[ecx\], eax  
+.text:0041610A                 mov     al, 1  
+.text:0041610C                 pop     ebx  
+.text:0041610D                 add     esp, 180h  
+.text:00416113                 retn  
+.text:00416114 ; ----------------------------------------------------------------------------  
+.text:00416114  
+.text:00416114 loc\_416114:                             ; CODE XREF: sub\_415EC0+1Cj  
+.text:00416114                                         ; sub\_415EC0+34j ...  
+.text:00416114                 pop     edi  
+.text:00416115                 pop     esi  
+.text:00416116                 pop     ebp  
+.text:00416117                 xor     al, al  
+.text:00416119                 pop     ebx  
+.text:0041611A                 add     esp, 180h  
+.text:00416120                 retn  
+.text:00416120 sub\_415EC0      endp  
+////////////////////////////////////////////////////////////////////////////////////////////////////  
+利用漏洞写外挂的认证服务器  
+.text:004428A7                 shr     eax, 10h  
+.text:004428AA   25FF7F0000    and     eax, 7FFFh  
+                 B811110000    MOV     EAX,1111  
+.text:004428AF                 retn  
+.text:004428AF \_rand           endp  
+这样做是为了使分析更容易一点!  
+\---------------------------------------------------------------------------------------------------  
+00435481    F3:A5           rep movs dword ptr es:\[edi\],dword ptr ds:\[esi\]  
+这里是把解密之后的数据挪动到使用的地方!EDI 中最终保存者我们要分析的数据  
+\---------------------------------------------------------------------------------------------------  
+返回的数据包进行分离把有关挂机的有用数据分离出来进行保存(59D6C8)  
+.text:00415E4B                 mov     cx, word ptr \[esp+18Ch+arg\_4\]   ;CX=0000  
+.text:00415E53                 shl     eax, 1  
+.text:00415E55                 pop     esi  
+.text:00415E56                 mov     \[eax+59D6C8h\], cx               ;这里是数据的开始地址  
+.text:00415E5D                 mov     cx, \[esp+188h+var\_136\]          ;CX=0024  0021  过门的 x 坐标  
+.text:00415E62                 mov     \[eax+59D6CAh\], bp               ;BP=0004  000C  
+.text:00415E69                 mov     \[eax+59D6CCh\], dx               ;DX=0004  000C  
+.text:00415E70                 mov     dx, \[esp+188h+var\_138\]          ;DX=0146  0093  过门的 y 坐标  
+.text:00415E75                 pop     ebp  
+.text:00415E76                 mov     \[eax+59D6CEh\], dx               ;  
+.text:00415E7D                 mov     dx, \[esp+184h+var\_12A\]          ;DX=0001  0001  
+.text:00415E82                 mov     \[eax+59D6D0h\], cx               ;  
+.text:00415E89                 mov     ecx, \[esp+184h+arg\_C\]  
+.text:00415E90                 mov     \[eax+59D6D2h\], dx  
+.text:00415E97                 mov     word ptr \[eax+59D6D4h\], 1  
+.text:00415EA0                 movsx   eax, word ptr \[eax+59D6CCh\]  
+.text:00415EA7                 mov     \[ecx\], eax  
+.text:00415EA9                 mov     al, 1  
+.text:00415EAB                 pop     ebx  
+.text:00415EAC                 add     esp, 180h  
+.text:00415EB2                 retn  
+\---------------------------------------------------------------------------------------------------  
+坐标数据进一步参与挂机的运算!  
+004160E1    0FBF88 CED65900 movsx ecx,word ptr ds:\[eax+59D6CE\]  
+004160E8    890A            mov dword ptr ds:\[edx\],ecx  
+004160EA    8B9424 94010000 mov edx,dword ptr ss:\[esp+194\]  
+004160F1    0FBF88 D0D65900 movsx ecx,word ptr ds:\[eax+59D6D0\]  
+004160F8    890A            mov dword ptr ds:\[edx\],ecx  
+004160FA    8B8C24 98010000 mov ecx,dword ptr ss:\[esp+198\]  
+00416101    0FBF80 D2D65900 movsx eax,word ptr ds:\[eax+59D6D2\]  
+00416108    8901            mov dword ptr ds:\[ecx\],eax  
+0041610A    B0 01           mov al,1  
+0041610C    5B              pop ebx  
+0041610D    81C4 80010000   add esp,180  
+00416113    C3              retn  
+这里需要对 EDX 的地址设置内存访问断点进行数据处理追踪!  
+0040828A    8B7424 24                 mov esi,dword ptr ss:\[esp+24\]  
+0040828E    8B4C24 20                 mov ecx,dword ptr ss:\[esp+20\]  
+00408292    83FE FF                   cmp esi,-1  
+00408295    75 09                     jnz short pj.004082A0  
+  
+00408648    8B4C24 20                 mov ecx,dword ptr ss:\[esp+20\]  
+0040864C    8B5424 24                 mov edx,dword ptr ss:\[esp+24\]  
+00408650    6A 00                     push 0  
+00408652    6A 00                     push 0  
+00408654    6A 00                     push 0  
+00408656    51                        push ecx  
+00408657    52                        push edx  
+00408658    53                        push ebx  
+00408659    56                        push esi  
+0040865A    55                        push ebp  
+0040865B    E8 10040000               call pj.00408A70  
+00408660    83C4 20                   add esp,20  
+00408663    56                        push esi  
+00408664    55                        push ebp  
+00408665    E8 66510000               call pj.0040D7D0  
+0040866A    83C4 08                   add esp,8  
+0040866D    85C0                      test eax,eax  
+0040866F    0F85 AA010000             jnz pj.0040881F  
+  
+\===================================================================================================  
+登陆部分的明文修改...  
+  
+\--------------------------------------发送明文-------------------------------------------  
+00435913    8B9C24 94100000           mov ebx,dword ptr ss:\[esp+1094\]  
+0043591A    8D4424 10                 lea eax,dword ptr ss:\[esp+10\]  
+0043591E    53                        push ebx                       ;这里的数据还没有加密  
+0043591F    50                        push eax  
+00435920    E8 DBFCFFFF               call pj.00435600               ;加密函数  
+00435925    8B15 BC845900             mov edx,dword ptr ds:\[5984BC\]  
+0043592B    6A00                      push 0  
+0043592D    8D4C241C                  lea ecx,dword ptr ss:\[esp+1C\]  
+00435931    6A50                      push 50  
+00435933    51                        push ecx  
+00435934    52                        push edx  
+00435935    E8 06F2FFFF               call pj.00434B40               ;发送函数  
+0043593A    83C4 18                   add esp,18  
+0043593D    83F8 50                   cmp eax,50  
+00435940    74 1C                     je short pj.0043595E  
+  
+6A008D4C241C6A505152  //3.60  
+6A008D4C241C6A505352  //pj  
+  
+00435913    8B9C24 94100000           mov ebx,dword ptr ss:\[esp+1094\]  
+0043591A    8D4424 10                 lea eax,dword ptr ss:\[esp+10\]  
+0043591E    53                        push ebx  
+0043591F    50                        push eax  
+00435920    E8 DBFCFFFF               call mw.00435600  
+00435925    8B15 BC845900             mov edx,dword ptr ds:\[5984BC\]  
+0043592B    6A00                      push 0  
+0043592D    8D4C241C                  lea ecx,dword ptr ss:\[esp+1C\]  
+00435931    6A50                      push 50                         
+00435933    53                        push ebx                       ;这里的数据是没有加密之前的!  
+00435934    52                        push edx  
+00435935    E8 06F2FFFF               call pj.00434B40               ;发送函数  
+0043593A    83C4 18                   add esp,18  
+0043593D    83F8 50                   cmp eax,50  
+00435940    74 1C                     je short pj.0043595E  
+  
+  
+\----------------------------------------接收明文(登陆)-------------------------------------------  
+  
+  
+  
+004359CB    8B5304                    mov edx,dword ptr ds:\[ebx+4\]  
+004359CE    8B03                      mov eax,dword ptr ds:\[ebx\]  
+004359D0    8BB42498100000            mov esi,dword ptr ss:\[esp+1098\]                  ;解密之后的数据放置在 ESI 中  
+004359D7    52                        push edx  
+004359D8    8D8C2494000000            lea ecx,dword ptr ss:\[esp+94\]  
+004359DF    50                        push eax  
+004359E0    51                        push ecx  
+004359E1    56                        push esi  
+004359E2    E879F9FFFF                call pj.00435360                                 ;解密函数  
+004359E7    8B4610                    mov eax,dword ptr ds:\[esi+10\]                    ;需要把解密之后的数据地址放在 ESI 中  
+004359EA    83C410                    add esp,10  
+004359ED    85C0                      test eax,eax  
+004359EF    76 5A                     jbe short pj.00435A4B  
+  
+8B53048B038BB42498100000528D8C2494000000505156E879F9FFFF8B461083C410   //3.60  
+B9140000008BB4249810000083EF508BD78BFE8BF2F3A583EF508BF78B4610909090   //pj  
+  
+004359CB    B914000000                mov ecx,14  
+004359D0    8BB42498100000            mov esi,dword ptr ss:\[esp+1098\]  
+004359D7    83EF50                    sub edi,50  
+004359DA    8BD7                      mov edx,edi  
+004359DC    8BFE                      mov edi,esi  
+004359DE    8BF2                      mov esi,edx  
+004359E0    F3:A5                     rep movs dword ptr es:\[edi\],dword ptr ds:\[esi\]  
+004359E2    83EF50                    sub edi,50  
+004359E5    8BF7                      mov esi,edi  
+004359E7    8B4610                    mov eax,dword ptr ds:\[esi+10\]  
+004359EA    90                        nop  
+004359EB    90                        nop  
+004359EC    90                        nop  
+004359ED    85C0                      test eax,eax  
+004359EF    76 5A                     jbe short mw.00435A4B  
+  
+  
+\----------------------------------------接收明文(地图)-------------------------------------------  
+  
+  
+00415DB7    8B5304                    mov edx,dword ptr ds:\[ebx+4\]  
+00415DBA    8B03                      mov eax,dword ptr ds:\[ebx\]  
+00415DBC    52                        push edx  
+00415DBD    8D8C2494000000            lea ecx,dword ptr ss:\[esp+94\]   ;需要解密的数据 BUFF  
+00415DC4    50                        push eax  
+00415DC5    8D542458                  lea edx,dword ptr ss:\[esp+58\]   ;解密之后数据的 BUFF  
+00415DC9    51                        push ecx  
+00415DCA    52                        push edx  
+00415DCB    E890F50100                call mw.00435360                ;解密  
+00415DD0    668B5424 74               mov dx,word ptr ss:\[esp+74\]     ;这里有修改  
+00415DD5    83C410                    add esp,10  
+00415DD8    6683FA FF                 cmp dx,0FFFF  
+00415DDC    753A                      jnz short mw.00415E18  
+  
+                                          50FC                       //3.65  
+8B53048B03528D8C2494000000508D5424585152E890F50100668B54247483C410   //3.60  
+B9140000008DB424900000008D7C2450F3A583EF5090909090668B542464909090   //pj  
+  
+00415DB7    B914000000                mov ecx,14  
+00415DBC    8DB42490000000            lea esi,dword ptr ss:\[esp+90\]  
+00415DC3    8D7C2450                  lea edi,dword ptr ss:\[esp+50\]  
+00415DC7    F3A5                      rep movs dword ptr es:\[edi\],dword ptr ds:\[esi\]  
+00415DC9    83EF50                    sub edi,50  
+00415DCC    90                        nop  
+00415DCD    90                        nop  
+00415DCE    90                        nop  
+00415DCF    90                        nop  
+00415DD0    668B542464                mov dx,word ptr ss:\[esp+64\]      ;平衡堆栈  
+00415DD5    90                        nop  
+00415DD6    90                        nop  
+00415DD7    90                        nop  
+00415DD8    66:83FA FF                cmp dx,0FFFF  
+00415DDC    75 3A                     jnz short mw.00415E18  
+  
+  
+\----------------------------------------------------------------------------------------------  
+  
+登陆验证部分明文...  
+026AFDCC   77 F6 AB 19 C2 58 AD 03 64 00 64 00 03 00 02 00  w 霁?d.d...  
+026AFDDC   8F 00 00 00 01 00 4C 00 00 00 00 00 00 00 00 00  ?...L.........  
+026AFDEC   00 00 00 00 70 6F 77 65 72 62 6F 79 35 34 00 00  ....powerboy54..  
+026AFDFC   00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+026AFE0C   00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+  
+登陆时固定的数据包...  
+00000000  85 08 44 4D D9 C6 38 9F 72 FA B0 3D 3D 88 66 BB    ..DM..8.r..==.f.  
+00000010  90 F4 1B 9F EE 49 4D 38 6F 25 2A 86 43 CF 8C CD    .....IM8o%\*.C...  
+00000020  C6 43 BD 9D FB 28 C9 6B 0B 1E D7 73 0B 02 CF ED    .C...(.k...s....  
+00000030  7B 46 66 EA 98 ED 98 05 E1 BE 19 03 89 7E 5B 7A    {Ff..........~\[z  
+00000040  27 AD 56 B8 E0 F0 F6 9B 72 8F 67 D3 D6 9A 0D 09    '.V.....r.g.....  
+00000050  5B F0 2A AC 77 0D 41 29 C2 B1 7F 56 3A BE 26 55    \[.\*.w.A)...V:.&U  
+00000060  C1 A0 A0 2B 87 EC E6 4A C9 B3 AB AF C5 38 53 43    ...+...J.....8SC  
+00000070  D2 50 3C 06 22 E0 F3 00 D7 62 C0 C8 5A CF F9 01    .P<."....b..Z...  
+00000080  52 89 76 0D F7 E6 9A 3D 97 DA 1B B0 7D 19 77 97    R.v....=....}.w.  
+  
+ $85,$08,$44,$4D,$D9,$C6,$38,$9F,$72,$FA,$B0,$3D,$3D,$88,$66,$BB  
+,$90,$F4,$1B,$9F,$EE,$49,$4D,$38,$6F,$25,$2A,$86,$43,$CF,$8C,$CD  
+,$C6,$43,$BD,$9D,$FB,$28,$C9,$6B,$0B,$1E,$D7,$73,$0B,$02,$CF,$ED  
+,$7B,$46,$66,$EA,$98,$ED,$98,$05,$E1,$BE,$19,$03,$89,$7E,$5B,$7A  
+,$27,$AD,$56,$B8,$E0,$F0,$F6,$9B,$72,$8F,$67,$D3,$D6,$9A,$0D,$09  
+,$5B,$F0,$2A,$AC,$77,$0D,$41,$29,$C2,$B1,$7F,$56,$3A,$BE,$26,$55  
+,$C1,$A0,$A0,$2B,$87,$EC,$E6,$4A,$C9,$B3,$AB,$AF,$C5,$38,$53,$43  
+,$D2,$50,$3C,$06,$22,$E0,$F3,$00,$D7,$62,$C0,$C8,$5A,$CF,$F9,$01  
+,$52,$89,$76,$0D,$F7,$E6,$9A,$3D,$97,$DA,$1B,$B0,$7D,$19,$77,$97  
+  
+地图验证部分明文...  
+0484FCCC   11 11 00 00 11 11 00 00 93 00 21 00 03 00 00 00  ....?!....  
+0484FCDC   00 00 00 00 0A 00 01 00 00 00 00 00 00 00 00 00  ...............  
+0484FCEC   00 00 00 00 70 6F 77 65 72 62 6F 79 35 34 00 00  ....powerboy54..  
+0484FCFC   00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+0484FD0C   00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+  
+  
+挂机数据:  
+  
+\[0-->D001\]  
+X=147  
+Y=33  
+\[D001-->0\]  
+X=149  
+Y=364  
+\[0-->D002\]  
+X=147  
+Y=33  
+\[0-->D003\]  
+X=147  
+Y=33  
+\[D001-->D002\]  
+X=30  
+Y=328  
+\[D001-->D003\]  
+X=30  
+Y=328  
+\[D002-->D001\]  
+X=34  
+Y=322  
+\[D002-->D003\]  
+X=117  
+Y=95  
+\[D003-->D002\]  
+X=106  
+Y=82  
+\[D002-->DM001\]  
+X=191  
+Y=230  
+\[DM001-->D002\]  
+X=6  
+Y=10  
+  
+地图 0-->地图 1-->地图 2-->地图 3  
+  
+地图 0-->地图 1\\  
+地图 0-->地图 2 |坐标相同  
+地图 0-->地图 3/  
+  
+地图 1-->地图 2\\  
+地图 1-->地图 3/坐标相同  
+  
+地图 2-->地图 3  
+  
+坐标就是这样标注的!  
+坐标的代号根据 MapNo.ini 这个文件来查询,然后在 DOOR.ini 这个文件里面以上面的格式进行标注过门坐标!  
+  
+\---------------------------------------------------------------------------------------------------  
+用下面的数据替换上面的数据!  
+  
+6A008D4C241C6A505152                                                   //3.60    
+6A008D4C241C6A505352                                                   //pj  
+\------------------------------------------------------------------------------  
+8B53048B038BB42498100000528D8C2494000000505156E879F9FFFF8B461083C410   //3.60  
+B9140000008BB4249810000083EF508BD78BFE8BF2F3A583EF508BF78B4610909090   //pj  
+\------------------------------------------------------------------------------  
+                                          50FC                         //3.65  
+8B53048B03528D8C2494000000508D5424585152E890F50100668B54247483C410     //3.60  
+B9140000008DB424900000008D7C2450F3A583EF5090909090668B542464909090     //pj  
+\------------------------------------------------------------------------------  
+用资源修改工具修改下面的数据!  
+  
+202.101.43.223  PORT:8865                   ;极品  IP  
+61.152.144.11-->127.0.0.1                   ;及时雨 IP 这里修改是为了本地认证  
+http://s.mir666.com/tj/jsy.htm              ;这里修改是为了去掉广告  
+  
+经过这样的修改之后新版本的程序就可以直接利用现有的服务器进行挂机了!  
+\===================================================================================================  
+OVER!!!!!!

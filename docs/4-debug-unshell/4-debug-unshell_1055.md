@@ -1,0 +1,116 @@
+
+
+# tElock 0.98 加壳的 DLL 脱壳 
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue401.htm`](https://www.pediy.com/kssd/pediy04/kanxue401.htm)
+
+前言：   
+早在 2000 年 10 月就脱过用 tElock 0.98 加壳的 NotePad，并好像在看雪论坛写过脱壳简要。   
+最近有网友问 tElock 0.98 加壳的 DLL 脱壳问题。整理出一篇文章，希望对你有帮助。   
+Liotta\[BCG\]   
+  
+目标：   
+超星浏览器 3.6.0.1210 所带的 pdg2.dll（先用 upx -d 解压，然后用 tElock 0.98 加壳）   
+  
+scouting... E:\\Program Files\\SSREADER36\\pdg2.dll - 256000 bytes big   
+Entry Point:0007EBD6(offset0003DBD6)E9 25 E4 FF FF 00 00 00   
+Image Base:10000000Base of Code:00001000   
+Base of Date:0005A000Size of Image:00080000   
+Number of Sections:0006   
+  
+工具:   
+SoftICE+ICEDump   
+PEditor+WinHex   
+  
+正文：   
+  
+一，如何中断在 pdg2.dll 文件领空？以下是一些准备工作：   
+用 PEditor 打开 pdg2.dll 文件，然后单击 FLC，输入 Entry Point:0007EBD6 得到 Offset\[hex\]为 3DBD6。   
+然后，用 WinHex 打开 pdg2.dll 文件，定位到 Offset3DBD6，记下此处字节的原值 E9 并改为 CC，再 Ctrl-D 中   
+断进入 SoftICE，设断点 bpint 3。   
+  
+二，开始跟踪。   
+如何对付 tElock 保护的反跟踪代码就不说了，请参照以前的相关文章《Flashfxp 1.4 脱壳》。   
+运行 SSReader.EXE 并中断在 pdg2.dll 领空，改 1007EBD6 处字节为原值 E9 再继续。   
+  
+017F:1007EBD6  CC                  INT       3 首先中断在这里，改 CC 为原来的 E9   
+……   
+:u eip l 09   
+017F:1007EBD6  E925E4FFFF          JMP       1007D000   
+017F:1007EBDB  0000                ADD       \[EAX\],AL   
+017F:1007EBDD  0008                ADD       \[EAX\],CL   
+……   
+消除断点 bpint 3   
+再 BPX GetModuleHandleA   
+为何要用这个函数中断呢？因为用 tElock 0.98 加壳后的文件只有这一个输入函数，用 PEditor 看看就知！   
+函数 GetModuleHandleA 中断，按 F12 返回。   
+  
+:u 1007e210 l eip - 1007e210   
+017F:1007E210  8B9562D34000        MOV       EDX,\[EBP+0040D362\]   
+017F:1007E216  8BB552D34000        MOV       ESI,\[EBP+0040D352\]   
+017F:1007E21C  85F6                TEST      ESI,ESI   
+<--首次调用时的 ESI 就是 Import Tabler 的 RVA，记下该值 0005D720。   
+  
+017F:1007E21E  0F8406040000        JZ        1007E62A   
+017F:1007E224  03F2                ADD       ESI,EDX   
+<-- EDX 的值就是 Image Base   
+  
+017F:1007E226  83A552D4400000      AND       DWORD PTR \[EBP+0040D452\],00   
+017F:1007E22D  8B460C              MOV       EAX,\[ESI+0C\]   
+017F:1007E230  83660C00            AND       DWORD PTR \[ESI+0C\],00   
+<--开始把 Name 清 00，要 DUMP 出有效的文件就要想想办法。   
+  
+017F:1007E234  85C0                TEST      EAX,EAX   
+017F:1007E236  0F84EE030000        JZ        1007E62A   
+017F:1007E23C  03C2                ADD       EAX,EDX   
+017F:1007E23E  8BD8                MOV       EBX,EAX   
+017F:1007E240  50                  PUSH      EAX   
+017F:1007E241  FF95D0D24000        CALL      \[EBP+0040D2D0\]   
+  
+:u eip l 1007e270-eip   
+017F:1007E247  85C0                TEST      EAX,EAX   
+<--GetModuleHandleA 中断，按 F12 返回到此处。   
+  
+017F:1007E249  0F85BA000000        JNZ       1007E309   
+017F:1007E24F  53                  PUSH      EBX   
+017F:1007E250  FF95E4BA4000        CALL      \[EBP+0040BAE4\]   
+017F:1007E256  85C0                TEST      EAX,EAX   
+017F:1007E258  0F85AB000000        JNZ       1007E309   
+017F:1007E25E  8B9562D34000        MOV       EDX,\[EBP+0040D362\]   
+017F:1007E264  01952AD34000        ADD       \[EBP+0040D32A\],EDX   
+017F:1007E26A  019536D34000        ADD       \[EBP+0040D336\],EDX   
+……   
+017F:1007E6C6  MOV       EDI,\[EBP+0040D362\]   
+017F:1007E6CC  ADD       EDI,\[EDI+3C\]   
+017F:1007E6CF  OR        \[EDI+06\],SP<--此处改了 Number of Sections 的值   
+017F:1007E6D3  SHR       ESI,00   
+017F:1007E6D6  CLC   
+……   
+然后用/tracex 10000000 eip-8 指令追踪到 pdg2.dll 的 OEP 为 100330E4   
+  
+:u eip l 100330f7 - eip   
+017F:100330E4  55                  PUSH      EBP   
+017F:100330E5  8BEC                MOV       EBP,ESP   
+017F:100330E7  53                  PUSH      EBX   
+……   
+  
+三，如何 DUMP 出 pdg2.dll 文件呢？经过以上追踪应该很清楚了！   
+  
+中断在 DLL 文件入口点，改 CC 为原来的 E9   
+bpx readfile（主要是用以跳过反跟踪代码，直接 G 1007E21E 不行）   
+F5   
+中断按 F12 返回   
+BD \*   
+G 1007E21E   
+R FL Z   
+G 1007E6CF   
+跳过 NumberOfSections 的修改   
+G 100330E4   
+/dump 10000000 00080000 C:\\pdg2.dll   
+然后挂起并杀掉 SSReader.EXE 这个进程。   
+用 PEditor 打开 Dump 文件，dumpfixer(RS=VS & RO=VO)   
+再修改 Entry Point 的值为 000330E4、Import Tabler 的 RVA 的值为 0005D720   
+可不要忘了把修复好的 pdg2.dll 复制到超星浏览器主目录中测试哦。   
+OK！ 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

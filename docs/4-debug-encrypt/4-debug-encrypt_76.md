@@ -1,0 +1,385 @@
+
+
+# IP 查看器 V6.1
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6324.htm`](https://www.pediy.com/kssd/pediy06/pediy6324.htm)
+
+IP 查看器 V6.1 版的算法浅析-----MD5   
+破解申明：只为技术而破解   
+破解作者：mejy\[BCG\]\[FCG\]   
+在此感谢：   
+我第一次贴出后给我提示的朋友，本文通过具体实例介绍了 MD5 算法的过程!   
+前言：算法具烦，如果你对算法没兴趣，还是看别的文章把。作者在注册页上写着“注册光荣，破解可耻”呵呵！破他！费了我 10 页草稿纸   
+第一步：查壳。破解第一步（脱壳高手例外）如果有壳的话，当然先要脱壳了。用 FI301 检测为 UPX 的壳。我等菜鸟还是用通用工具吧。用 File Scanner 脱啦。你要是嫌 dos 操作麻烦的话，设置一下系统环境变量，只要进入文件所在目录就可以用 fs 命令拉。怎么设环境变量不再本文讨论范围之内：）   
+三部曲:    fs –u ip.exe          fs\-rn –spl  ip.exe              fs –c ip.exe   
+第二步： 成功脱壳后。在看什么语言编写。答：delphi 作品也。DeDe 出场，反汇编之。我个人喜欢用 DELPHI6.0 直接看它的汇编代码。所以输出工程拉。。。然后将 delphi 打开载入 ip.dpr 工程。选择 TrForm 窗体。（当然也可直接在 DeDe 中进行）。双击”确定”来到   
+procedure TrForm.Button1Click(Sender : TObject);   
+begin   
+004694D8   55                     push    ebp   
+004694D9   8BEC                   mov     ebp, esp   
+004694DB   B908000000             mov     ecx, $00000008   
+……………………………这也是我们下断点的地方   
+第三步 OD 载入啦：别急着 F9 先设好断点先，然后 F9 运行程序输入   
+试练吗：#mejy\[BCG\]\[FCG\]tsinghua1234567890987654321   呵呵为什么这么多位，既然作者说要用剪切和粘贴，那就说明注册码很长拉。为什么要用#开头呢？作者的规定啦。因为程序的用户名和注册码在同一个 EDIT 控件中输入的。所以作者以第一个字符是否为”#”标示是注册码还是用户名的。   
+试练用户名：mejy\[BCG\]\[FCG\]  第一个字符不要为”#”，要不然你会永远在输入注册码   
+004694DB   . B9 08000000    MOV ECX,8    设断   
+。。。。。。。。。。。。   
+004694FD   . 50             PUSH EAX  这儿 eax\=32(十进制)   
+004694FE   . 8D55 E4        LEA EDX,DWORD PTR SS:\[EBP\-1C\]   
+00469501   . 8B45 FC        MOV EAX,DWORD PTR SS:\[EBP\-4\]   
+00469504   . 8B80 04030000  MOV EAX,DWORD PTR DS:\[EAX+304\]   
+0046950A   . E8 8DD3FDFF    CALL ip.0044689C   
+0046950F   . 8B45 E4        MOV EAX,DWORD PTR SS:\[EBP\-1C\]  试练码入栈   
+eax 中存的就是  ASCII "#mejy\[BCG\]\[FCG\]tsinghua123456789" 可见试练码输太长也没有意义，它只取了前 32 位   
+00469512   . B9 01000000    MOV ECX,1   
+00469517   . BA 01000000    MOV EDX,1      
+0046951C   . E8 33B9F9FF    CALL ip.00404E54   
+00469521   . C645 EB 00     MOV BYTE PTR SS:\[EBP\-15\],0   
+00469525   . 8B45 F8        MOV EAX,DWORD PTR SS:\[EBP\-8\]   
+00469528   . BA 5C994600    MOV EDX,ip.0046995C   
+0046952D   . E8 0EB8F9FF    CALL ip.00404D40   //跟进这个 call 就知道为什么注册码第一位要为”#”    
+  
+此 call 中的关键代码：   
+00404D40   53               PUSH EBX   
+。。。。。。。。。。省略 n 行   
+00404D95   8B0E             MOV ECX,DWORD PTR DS:\[ESI\]   
+00404D97   8B1F             MOV EBX,DWORD PTR DS:\[EDI\]   
+00404D99   38D9             CMP CL,BL   关键比较是否为”#” 如果你的注册首个字符不是”#”,那就重新来过吧！   
+00404D9B   75 41            JNZ SHORT ip.00404DDE      以下省略 n 行   
+00404DE1   C3               RETN   // End Of  Call    
+续主程序代码   
+00469532   . 0F85 E4000000  JNZ ip.0046961C 不是”#”跳走玩完   
+F8 继续往下来到   
+00469548   . E8 4FD3FDFF    CALL ip.0044689C   
+0046954D   . 8B45 E0        MOV EAX,DWORD PTR SS:\[EBP\-20\]   
+00469550   . B9 10000000    MOV ECX,10    16（十进制）入栈   
+00469555   . BA 02000000    MOV EDX,2    十进制 2 入栈   
+0046955A   . E8 F5B8F9FF    CALL ip.00404E54   
+不用跟进了吧，很明显他要干嘛拉 从试练码的第 2 位开始取后面的 16 个字符呸不信跟进去看看   0012F0DC  00CE07EC  ASCII "mejy\[BCG\]\[FCG\]ts"   
+0046955F   . 8B45 F8        MOV EAX,DWORD PTR SS:\[EBP\-8\]   
+EAX\=  0012F150  00CE07EC  ASCII "mejy\[BCG\]\[FCG\]ts"   
+00469562   . E8 8DB6F9FF    CALL ip.00404BF4   
+00469567   . 83F8 10        CMP EAX,10   干什么想想看？嗬嗬   
+0046956A   . 75 72          JNZ SHORT ip.004695DE   
+至此别管下面了，你可以跟着看看，直接 F9 把加快速度   
+此时请打开注册表编辑器 HEKY\_LOVAL\_MACHINESOFTWAREBETTERWORKSHOPIP   
+可以看见他将上面输入的注册码保存在此键下的 k2 值之中。后面从这取出然后和根据用户名计算的注册码进行比较   
+程序提示“第一次输入注册码完成，请输入用户名”你要第一个字符不是“#”提示错误了   
+下面输入用户名：mejy\[BCG\]\[FCG\]点确定程序用中断在下面   
+004694DB   . B9 08000000    MOV ECX,8   
+。。。。。。。。。   
+0046950F   . 8B45 E4        MOV EAX,DWORD PTR SS:\[EBP\-1C\]   
+00469512   . B9 01000000    MOV ECX,1   
+00469517   . BA 01000000    MOV EDX,1   
+0046951C   . E8 33B9F9FF    CALL ip.00404E54   
+00469521   . C645 EB 00     MOV BYTE PTR SS:\[EBP\-15\],0   
+00469525   . 8B45 F8        MOV EAX,DWORD PTR SS:\[EBP\-8\]   
+00469528   . BA 5C994600    MOV EDX,ip.0046995C   
+0046952D   . E8 0EB8F9FF    CALL ip.00404D40   
+00469532   . 0F85 E4000000  JNZ ip.0046961C  第二次一定要跳   
+跳到这里：   
+0046961C   > 8D45 EC        LEA EAX,DWORD PTR SS:\[EBP\-14\] 省略 n 行代码   
+00469649   . E8 1A47FCFF    CALL ip.0042DD68   
+0046964E   . BA 68994600    MOV EDX,ip.00469968   ;     
+ASCII "softwareetterworkshopip"     打开注册表   
+00469653   . 33C9           XOR ECX,ECX   
+00469655   . 8B45 F0        MOV EAX,DWORD PTR SS:\[EBP\-10\]   
+00469658   . E8 6F47FCFF    CALL ip.0042DDCC   
+0046965D   . 84C0           TEST AL,AL   
+0046965F   . 74 10          JE SHORT ip.00469671   
+00469661   . 8D4D EC        LEA ECX,DWORD PTR SS:\[EBP\-14\]   
+00469664   . BA 8C994600    MOV EDX,ip.0046998C        ;  ASCII "k2"          
+00469669   . 8B45 F0        MOV EAX,DWORD PTR SS:\[EBP\-10\]   
+0046966C   . E8 2349FCFF    CALL ip.0042DF94  这个 call 的作用是取注册表键值   
+00469671   > 33C0           XOR EAX,EAX   
+省略。。。。。。。。。。。。。。。   
+0046969D   . 84C0           TEST AL,AL   
+0046969F   . 0F84 36020000  JE ip.004698DB   
+004696A5   . 8B45 EC        MOV EAX,DWORD PTR SS:\[EBP\-14\]   
+004696A8   . E8 47B5F9FF    CALL ip.00404BF4   取长度   
+004696AD   . 83F8 10        CMP EAX,10  比较   
+004696B0   . 0F85 E4010000  JNZ ip.0046989A   
+004696B6   . 8D55 F8        LEA EDX,DWORD PTR SS:\[EBP\-8\]   处理用户名了   
+004696B9   . 8B45 FC        MOV EAX,DWORD PTR SS:\[EBP\-4\]   
+004696BC   . 8B80 04030000  MOV EAX,DWORD PTR DS:\[EAX+304\]   
+004696C2   . E8 D5D1FDFF    CALL ip.0044689C   取用户名   
+004696C7   . 837D F8 00     CMP DWORD PTR SS:\[EBP\-8\],0  用户名长度是否为 0   
+004696CB   . 74 42          JE SHORT ip.0046970F   
+004696CD   . 8D45 DC        LEA EAX,DWORD PTR SS:\[EBP\-24\]   
+004696D0   . 50             PUSH EAX   
+004696D1   . 8D45 D4        LEA EAX,DWORD PTR SS:\[EBP\-2C\]   
+004696D4   . 8B4D F8       MOV ECX,DWORD PTR SS:\[EBP\-8\]  堆栈中存的是用户名   
+004696D7   . BA D8994600    MOV EDX,ip.004699D8      ;  ASCII "ip"  注意这儿有一个常量”ip”,看看他有什么作用   
+004696DC   . E8 5FB5F9FF    CALL ip.00404C40   
+004696E1   . 8B45 D4        MOV EAX,DWORD PTR SS:\[EBP\-2C\]   
+004696E4   . 8D55 D8        LEA EDX,DWORD PTR SS:\[EBP\-28\]  F8 来到这你会发现   
+0012F12C  00CDAACC  ASCII "ipmejy\[BCG\]\[FCG\]"   
+已经将他和用户名连接起来了  下面应该对他进行运算了，所以下面这个 Call 必根   
+004696E7   . E8 00FBFFFF    CALL ip.004691EC  \*\*\*\*\*\*\*\*\*\*\*\* 请看 call 吧，呆会再回来\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*   
+004696EC   . 8B45 D8        MOV EAX,DWORD PTR SS:\[EBP\-28\]  经过一番运算最后   
+0012F130  00CE3C24  ASCII "1618f5e276de379ff9939bce6f0429ad"   
+004696EF   . B9 10000000    MOV ECX,10   16 如站   
+004696F4   . BA 01000000    MOV EDX,1   
+004696F9   . E8 56B7F9FF    CALL ip.00404E54  从第一位开始取前 16 位   
+0012F134  00CE3C54  ASCII "1618f5e276de379f"   
+004696FE   . 8B55 DC        MOV EDX,DWORD PTR SS:\[EBP\-24\]   
+00469701   . 8B45 EC   MOV EAX,DWORD PTR SS:\[EBP\-14\] 取上面的保存的试练码   
+00469704   . E8 37B6F9FF    CALL ip.00404D40  比较   
+00469709     75 04          JNZ SHORT ip.0046970F 关键跳转 跳就失败   
+来到下面   
+00469775   > 8D45 D0        LEA EAX,DWORD PTR SS:\[EBP\-30\]   
+00469778   . 50             PUSH EAX   
+00469779   . 8B45 F8        MOV EAX,DWORD PTR SS:\[EBP\-8\]   
+0046977 0FB64418 FF  MOVZX EAX,BYTE PTR DS:\[EAX+EBX\-1\]依次取用户名各位字符   
+00469781   . 50             PUSH EAX  每一位的 ASCII 码   
+00469782   . B8 FF000000    MOV EAX,0FF    
+00469787   . 5A             POP EDX   
+00469788   . 2BC2           SUB EAX,EDX 减   
+0046978A   . 05 E8030000    ADD EAX,3E8  加   
+0046978F   . 8D55 CC        LEA EDX,DWORD PTR SS:\[EBP\-34\]   
+00469792   . E8 C1F2F9FF    CALL ip.00408A58  这个 call 将数字转化为字符串   
+00469797   . 8B45 CC        MOV EAX,DWORD PTR SS:\[EBP\-34\]   
+0046979A   . B9 03000000    MOV ECX,3   
+0046979F   . BA 02000000    MOV EDX,2   
+004697A4  . E8 ABB6F9FF   CALL ip.00404E54     
+从第二位开始取字符串舍去上面字串的第一个字符   
+004697A9   . 8B55 D0        MOV EDX,DWORD PTR SS:\[EBP\-30\]   
+004697AC   . 8D45 F4        LEA EAX,DWORD PTR SS:\[EBP\-C\]   
+004697AF   . E8 48B4F9FF    CALL ip.00404BFC   
+004697B4   . 43             INC EBX   
+004697B5   . 4E             DEC ESI  判断是否计算完毕   
+004697B6   .⁷⁵ BD          JNZ SHORT ip.00469775   
+004697B8   > 8D45 F4        LEA EAX,DWORD PTR SS:\[EBP\-C\]   
+004697BB   . BA E4994600    MOV EDX,ip.004699E4              ;  ASCII "759"   
+004697C0   . E8 37B4F9FF    CALL ip.00404BFC 将“759”连到上面的字串后   
+004697C5   . 8B45 F8        MOV EAX,DWORD PTR SS:\[EBP\-8\]   
+004697C8   . E8 27B4F9FF    CALL ip.00404BF4   
+004697CD   . 8BD8           MOV EBX,EAX   
+004697CF   . 83C3 02        ADD EBX,2   
+004697D2   . 83FB 20        CMP EBX,20   
+004697D5   . 7F 42          JG SHORT ip.00469819   
+004697D7   > 8D83 F8020000  LEA EAX,DWORD PTR DS:\[EBX+2F8\]   
+004697DD   . E8 4E99F9FF    CALL ip.00403130   
+004697E2   . 8BF0           MOV ESI,EAX   
+004697E4   . 8D45 C8        LEA EAX,DWORD PTR SS:\[EBP\-38\]   
+004697E7   . 50             PUSH EAX   
+004697E8   . 8D55 C4        LEA EDX,DWORD PTR SS:\[EBP\-3C\]   
+004697EB   . 8D86 E8030000  LEA EAX,DWORD PTR DS:\[ESI+3E8\]   
+004697F1   . E8 62F2F9FF    CALL ip.00408A58   
+004697F6   . 8B45 C4        MOV EAX,DWORD PTR SS:\[EBP\-3C\]   
+004697F9   . B9 03000000    MOV ECX,3   
+004697FE   . BA 02000000    MOV EDX,2   
+00469803   . E8 4CB6F9FF    CALL ip.00404E54   
+00469808   . 8B55 C8        MOV EDX,DWORD PTR SS:\[EBP\-38\]   
+0046980B   . 8D45 F4        LEA EAX,DWORD PTR SS:\[EBP\-C\]   
+0046980E   . E8 E9B3F9FF    CALL ip.00404BFC   将”000”连到字串后面   
+00469813   . 43             INC EBX   
+00469814   . 83FB 21        CMP EBX,21  比较长度小于继续跳到 4697D7   
+00469817   .⁷⁵ BE          JNZ SHORT ip.004697D7   
+经计算后（计算很简单不分析了为什么呢？因为这儿于注册码无关迷惑破解者的）   
+"146154149134164189188184162164185188184162759000024669157212524249126291334064373055663047231726"   
+00469819   > 8D45 F8        LEA EAX,DWORD PTR SS:\[EBP\-8\]   
+0046981C   . E8 13B1F9FF    CALL ip.00404934   
+00469821   . 8B45 F4        MOV EAX,DWORD PTR SS:\[EBP\-C\]   
+00469824   . E8 CBB3F9FF    CALL ip.00404BF4   
+00469829   . 8BD8           MOV EBX,EAX   
+0046982B   . 83FB 01        CMP EBX,1   
+0046982E   . 7C 1F          JL SHORT ip.0046984F   
+00469830   > 8D45 C0        LEA EAX,DWORD PTR SS:\[EBP\-40\] 对上面的字符串逆序   
+00469833   . 8B55 F4        MOV EDX,DWORD PTR SS:\[EBP\-C\]   
+00469836   . 8A541A FF      MOV DL,BYTE PTR DS:\[EDX+EBX\-1\]   
+0046983A   . E8 DDB2F9FF    CALL ip.00404B1C   
+0046983F   . 8B55 C0        MOV EDX,DWORD PTR SS:\[EBP\-40\]   
+00469842   . 8D45 F8        LEA EAX,DWORD PTR SS:\[EBP\-8\]   
+00469845   . E8 B2B3F9FF    CALL ip.00404BFC   
+0046984A   . 4B             DEC EBX   
+0046984B   . 85DB           TEST EBX,EBX   
+0046984D   .⁷⁵ E1          JNZ SHORT ip.00469830   
+0046984F   > 8B4D F8        MOV ECX,DWORD PTR SS:\[EBP\-8\]   
+结果为   
+"627132740366550373460433192621942425212751966420000957261481881581461261481881981461431941451641"   
+00469852   . BA F0994600    MOV EDX,ip.004699F0          ;  ASCII "k1"    
+将它写入注册表   
+00469857   . 8B45 F0        MOV EAX,DWORD PTR SS:\[EBP\-10\]   
+0046985A   . E8 0947FCFF    CALL ip.0042DF68   
+0046985F   > 33C0           XOR EAX,EAX   
+00469861   . 5A             POP EDX   
+00469862   . 59             POP ECX   
+00469863   . 59             POP ECX   
+  
+上面的 CALL   慢慢的  经过一番寻找来到这里   
+004690C6  |> 8D5434 08      LEA EDX,DWORD PTR SS:\[ESP+ESI+8\]   
+004690CA  |. 8D43 1C        LEA EAX,DWORD PTR DS:\[EBX+1C\]   
+004690CD  |. B9 40000000    MOV ECX,40   
+004690D2  |. E8 85E2F9FF    CALL ip.0040735C   
+004690D7  |. 8BC3           MOV EAX,EBX   
+004690D9  |. E8 56F6FFFF    CALL ip.00468734  这个 call 中藏着让你害怕的宝宝跟进   
+004690DE  |. 83C6 40        ADD ESI,40   
+004690E1  |. 3B73 18        CMP ESI,DWORD PTR DS:\[EBX+18\]   
+004690E4  |.⁷⁵ E0          JNZ SHORT ip.004690C6   
+004690E6  |. 81C4 4C100000  ADD ESP,104C   
+004690EC  |. 5E             POP ESI   
+004690ED  |. 5B             POP EBX   
+004690EE  . C3             RETN   
+  
+大家来看看，注册码算法呀！ 也是关键   
+00468620  /$ C740 5C 012345>MOV DWORD PTR DS:\[EAX+5C\],67452301   
+00468627  |. C740 60 89ABCD>MOV DWORD PTR DS:\[EAX+60\],EFCDAB89   
+0046862E  |. C740 64 FEDCBA>MOV DWORD PTR DS:\[EAX+64\],98BADCFE   
+00468635  |. C740 68 765432>MOV DWORD PTR DS:\[EAX+68\],10325476   
+0046863C  . C3             RETN   
+程序固定我们把这当成一个数组   //典型的 MD5 算法标志   
+a\[0\]= 67452301   地址为 EAX+5C 后面 00468735 这儿变了一下 地址为: EBX+5C   
+,a\[1\]= EFCDAB89,                                                EBX+60   
+a\[2\]= 98BADCFE,                                                EBX+64   
+a\[3\]= 10325476                                                   EBX+68   
+00CE3B58  00000040   
+00CE3B5C  656D7069   
+00CE3B60  425B796A   
+00CE3B64  5B5D4743   
+00CE3B68  5D474346   
+00CE3B6C  00000080   
+设这个数组为 b\[\];下面函数的第三个参数 他是输入的用户名的十六进制字符   
+下面就要对他进行很多变换，  上面的 call   
+00468734  /$ 53             PUSH EBX   
+00468735  |. 8BD8           MOV EBX,EAX   
+00468737  |. 8B43 5C        MOV EAX,DWORD PTR DS:\[EBX+5C\]   
+0046873A  |. 8943 6C        MOV DWORD PTR DS:\[EBX+6C\],EAX   
+0046873D  |. 8B43 60        MOV EAX,DWORD PTR DS:\[EBX+60\]   
+00468740  |. 8943 70        MOV DWORD PTR DS:\[EBX+70\],EAX   
+00468743  |. 8B43 64        MOV EAX,DWORD PTR DS:\[EBX+64\]   
+00468746  |. 8943 74        MOV DWORD PTR DS:\[EBX+74\],EAX   
+00468749  |. 8B43 68        MOV EAX,DWORD PTR DS:\[EBX+68\]   
+0046874C  |. 8943 78        MOV DWORD PTR DS:\[EBX+78\],EAX   
+0046874F  |. 8D43 64        LEA EAX,DWORD PTR DS:\[EBX+64\]   
+00468752  |. 50             PUSH EAX                                 ; /Arg5   
+00468753  |. 8D43 68        LEA EAX,DWORD PTR DS:\[EBX+68\]            ; |   
+00468756  |. 50             PUSH EAX                                 ; |Arg4   
+00468757  |. 8D43 1C        LEA EAX,DWORD PTR DS:\[EBX+1C\]            ; |   
+0046875A  |. 50             PUSH EAX                                 ; |Arg3   
+0046875B  |. 6A 07          PUSH 7                                   ; |Arg2 = 00000007   
+0046875D  |. 68 78A46AD7    PUSH D76AA478                            ; |Arg1 = D76AA478   
+00468762  |. 8D4B 60        LEA ECX,DWORD PTR DS:\[EBX+60\]            ; |   
+00468765  |. 8D53 5C        LEA EDX,DWORD PTR DS:\[EBX+5C\]            ; |   
+00468768  |. 8BC3           MOV EAX,EBX                              ; |   
+0046876A  |. E8 D1FEFFFF    CALL ip.00468640                         ; ip.00468640   
+ 中间省略 n 个类似的函数。。。。。。。。。。如果写注册机的话你会晕死   
+这个下面表示为 edx 每个函数经过计算改变的就是这个之   
+00468F48  |. 8BC3           MOV EAX,EBX                              ; |   
+00468F4A  |. E8 A9F7FFFF    CALL ip.004686F8          ; ip.004686F8   
+这个 call 是计算的关键跟进   
+这个函数有 5 个参数 i 开始时为 7   
+第一个函数的(a\[2\], a\[3\],  b\[0\] , i , \*\*\*\*\*\*\*\*\* ) 其中该函数第一和第二个参数随着 i=7   
+第二个函数的(a\[1\], a\[2\],  b\[1\], i+=5, \*\*\*\*\*\*\*\*\*)   
+第三个函数的(a\[0\] , a\[1\],  b\[2\], i+=5,\*\*\*\*\*\*\*\*\*)   
+第四个函数的(a\[3\],  a\[0\], b\[3\] ,i+=5, \*\*\*\*\*\*\*\* )  i=7   
+然后开始循环了但是第五个参数每次都不一样，怎么做到这一点，有待研究！   
+一共循环了 4 次   
+开始做下一个循环   
+下一组循环第四个参数和上面的循环不同，初始 i=5 ，每次 i+=4; 同样循环四次   
+然后做下一组循环 同样每次的 b 都有改变 初始时 i=4; i+=7,i+=5，i+=7  同样循环 4 次   
+然后做下一组循环，同样       初始时 i=6,  i+=4;i+=5, i+=4 继续循环 4 次 注意 i 的值   
+(因为这些函数实在太长了我在 WORD 里贴了，足足 30 页)   
+00468F4F  |. 8B43 6C        MOV EAX,DWORD PTR DS:\[EBX+6C\]   
+00468F52  |. 0143 5C        ADD DWORD PTR DS:\[EBX+5C\],EAX   
+00468F55  |. 8B43 70        MOV EAX,DWORD PTR DS:\[EBX+70\]   
+00468F58  |. 0143 60        ADD DWORD PTR DS:\[EBX+60\],EAX   
+00468F5B  |. 8B43 74        MOV EAX,DWORD PTR DS:\[EBX+74\]   
+00468F5E  |. 0143 64        ADD DWORD PTR DS:\[EBX+64\],EAX   
+00468F61  |. 8B43 78        MOV EAX,DWORD PTR DS:\[EBX+78\]   
+00468F64  |. 0143 68        ADD DWORD PTR DS:\[EBX+68\],EAX   
+00468F67  |. 8D43 1C        LEA EAX,DWORD PTR DS:\[EBX+1C\]   
+00468F6A  |. 33C9           XOR ECX,ECX   
+00468F6C  |. BA 40000000    MOV EDX,40   
+00468F71  |. E8 9AA1F9FF    CALL ip.00403110   
+00468F76  |. 5B             POP EBX   
+00468F77  . C3             RETN   
+我们把上面的函数参数表示为 K1,K2 ,K3 ,K4 ,K5  K1 和 K2 每次去的是数组 a 中的两个   
+那么剩下的两个我们表示为 ecx,和 edx    
+上面的 call   
+00468640  /$ 55             PUSH EBP   入栈据我估计他使用递归的很佩服作者   
+00468641  |. 8BEC           MOV EBP,ESP   
+00468643  |. 53             PUSH EBX   
+00468644  |. 56             PUSH ESI   
+00468645  |. 8BF1           MOV ESI,ECX  保存上面窜来的 ecx 设为 M   
+00468647  |. 8BDA           MOV EBX,EDX  保存上面传来的 edx 摄为 N   
+00468649  |. 8B06           MOV EAX,DWORD PTR DS:\[ESI\]    
+ 设 TEMP1=（eax=esi\=ecx）=M   
+0046864B  |. 8B55 18        MOV EDX,DWORD PTR SS:\[EBP+18\]   
+设 TEMP2=K1 函数的第一个参数   
+0046864E  |. 2302           AND EAX,DWORD PTR DS:\[EDX\]   
+ TEMP1=TEMP2 AND TEMP2     (与运算)   
+00468650  |. 8B16           MOV EDX,DWORD PTR DS:\[ESI\]   
+TEMP2=ecx   
+00468652  |. F7D2           NOT EDX   TEMP2=~TEMP2 求反   
+00468654  |. 8B4D 14        MOV ECX,DWORD PTR SS:\[EBP+14\]   函数的第二个参数   
+00468657  |. 2311           AND EDX,DWORD PTR DS:\[ECX\]    
+TEMP2=TEMP2 AND K2  (与运算)   
+00468659  |. 0BC2           OR EAX,EDX   
+TEMP1=TEMP1 | TEMP2   或运算    
+0046865B  |. 0303           ADD EAX,DWORD PTR DS:\[EBX\]   
+TEMP1+=N   
+0046865D  |. 8B55 10        MOV EDX,DWORD PTR SS:\[EBP+10\]   
+这是第三个参数 对 c++中函数参数传递不清楚地这下该明白了吧 K3   
+00468660  |. 0302           ADD EAX,DWORD PTR DS:\[EDX\]   
+TEMP1+=K3   
+00468662  |. 0345 08        ADD EAX,DWORD PTR SS:\[EBP+8\]   
+第五个参数 K5    TEMP1+=K5;   
+00468665  |. 8903           MOV DWORD PTR DS:\[EBX\],EAX   
+N=TEMP1;   
+00468667  |. 8B03           MOV EAX,DWORD PTR DS:\[EBX\]   
+00468669  |. 8A55 0C        MOV DL,BYTE PTR SS:\[EBP+C\]   
+第四个参数 K4 ,移位   
+0046866C  |. E8 8FFFFFFF   CALL ip.00468600 这个 call 的作用是 TEMP1 循环左移 K4 位   
+TEMP1<<K4;   
+00468671  |. 8903           MOV DWORD PTR DS:\[EBX\],EAX   
+N=TEMP1   
+00468673  |. 8B06           MOV EAX,DWORD PTR DS:\[ESI\]  TEMP1=M   
+00468675  |. 0103           ADD DWORD PTR DS:\[EBX\],EAX  N+=TEMP1;   
+00468677  |. 5E             POP ESI   
+00468678  |. 5B             POP EBX   
+00468679  |. 5D             POP EBP   
+0046867A  . C2 1400        RETN 14   
+注意每次改变的不是函数中传过来的参数而是 N 得值，仔细观察内存窗口   
+上面的 call   
+00468600  /$ 55             PUSH EBP   
+00468601  |. 8BEC           MOV EBP,ESP   
+00468603  |. 83C4 F4        ADD ESP,-0C   
+00468606  |. 8855 FF        MOV BYTE PTR SS:\[EBP\-1\],DL   
+00468609  |. 8945 F8        MOV DWORD PTR SS:\[EBP\-8\],EAX   
+0046860C  |. 8D55 F4        LEA EDX,DWORD PTR SS:\[EBP\-C\]   
+0046860F  |. 8A4D FF        MOV CL,BYTE PTR SS:\[EBP\-1\]   
+00468612  |. 8B45 F8        MOV EAX,DWORD PTR SS:\[EBP\-8\]   
+00468615  |. D3C0           ROL EAX,CL  循环左移   
+00468617  |. 8945 F4        MOV DWORD PTR SS:\[EBP\-C\],EAX   
+0046861A  |. 8B02           MOV EAX,DWORD PTR DS:\[EDX\]   
+0046861C  |. 8BE5           MOV ESP,EBP   
+0046861E  |. 5D             POP EBP   
+0046861F  . C3             RETN   
+经过上面的 n 个函数后  我们数组中的值是   
+00CE3B9C  E2F51816       
+00CE3BA0  9F37DE76   
+00CE3BA4  CE9B93F9   
+00CE3BA8  AD29046F   
+别急噩梦还没结束  F8 单步执行到这里 ，怎么知道的，呵呵慢慢式来的   
+00469253  |> 8D4D E0        LEA ECX,DWORD PTR SS:\[EBP\-20\]   
+00469256  |. 33C0           XOR EAX,EAX   
+00469258  |. 8A03           MOV AL,BYTE PTR DS:\[EBX\]   
+0046925A  |. BA 02000000    MOV EDX,2   
+0046925F  |. E8 08F9F9FF    CALL ip.00408B6C     
+00469264  |. 8B55 E0        MOV EDX,DWORD PTR SS:\[EBP\-20\]   
+00469267  |. 8D45 F4        LEA EAX,DWORD PTR SS:\[EBP\-C\]   
+0046926A  |. E8 8DB9F9FF    CALL ip.00404BFC   
+0046926F  |. 43             INC EBX   
+00469270  |. 4E             DEC ESI   
+00469271  |.⁷⁵ E0          JNZ SHORT ip.00469253   循环   
+00469273  |. 8B55 F8        MOV EDX,DWORD PTR SS:\[EBP\-8\]   
+这个循环的作用是将上面的数组转化为字符串形 只有两个 call 我不贴代码了。   
+转化的结果为 0012F0EC  00CE3BF4  ASCII "1618F5E276DE379FF9939BCE6F0429AD"   
+总结一下吧：我想没人愿意写这个软件的破解思路把！也没人愿意写他的注册机，我从早上 8 点分析到下午 5 点，加上这篇文章。赫赫作者的算法很麻烦，谁写个注册机气气作者。作者写了这么多算法好像只要爆破一个点，就行了。失败把！   
+注册码：就是取上面字串的前 16 位 1618f5e276de379f  在前面加#   
+一个可用的注册码 ：#1618f5e276de379f 用户名 mejy\[BCG\]\[FCG\]   
+算法实在太烦写得不好，不好意思。写不出注册机 
+
+  
+ 4dd466d0e1e0cc123afbe504da2462ca

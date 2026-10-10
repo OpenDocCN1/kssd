@@ -1,0 +1,46 @@
+
+
+# WinDbg 动态内存补丁脚本示例
+
+> 原文：[`www.pediy.com/kssd/pediy11/106413.html`](https://www.pediy.com/kssd/pediy11/106413.html)
+
+我的 MSN 升到 2009 后，一直有问题，时断时连。根本原因是公司防火墙屏蔽了 7001 端口，而 MSN 当无法收到 echo.edge.messenger.live.com 就认为网络有问题，会中断现有的连接（H  
+TTP 代理），重新连接。  
+  
+查了一下，在文件 PresenceIM.dll 中修改如下两处：  
+跳转点一、  
+.text:5F140800 83 7E 7C 0A                             cmp     dword ptr \[esi+7Ch\], 0Ah  
+.text:5F140804 75 12                                   jnz     short loc\_5F140818  --> nop 掉  
+.text:5F140806 53                                      push    ebx             ; lParam  
+.text:5F140807 53                                      push    ebx             ; wParam  
+.text:5F140808 68 00 05 00 00                          push    500h            ; Msg  
+.text:5F14080D FF 76 04                                push    dword ptr \[esi+4\] ; hWnd  
+.text:5F140810 FF 15 9C 13 10 5F                       call    ds:PostMessageW  
+  
+跳转点二、  
+.text:5F1407E5 74 19                                   jz      short loc\_5F140800  --> jmp  
+.text:5F1407E7 38 9E 88 00 00 00                       cmp     \[esi+88h\], bl  
+.text:5F1407ED C7 45 FC 0D 03 00 81                    mov     \[ebp+var\_4\], 8100030Dh  
+.text:5F1407F4 75 0A                                   jnz     short loc\_5F140800  
+  
+但很明显，我的如上处理不够好，如果直接在文件里修改的话，有时候 MSN 启动的时候还是连不上。不想花太多时间了，就用 WinDbg 在 MSN 跑起来以后，动态在内存里改一下。  
+  
+两个文件，一个是启动 WinDbg 的批处理文件 patchmsn.bat，内容只有一行：  
+
+代码:
+
+```
+"C:\\Program Files\\Debugging Tools for Windows\\windbg.exe" -pn msnmsgr.exe -c "$$>< E:\\Program\\WinDBGScript\\MSN.txt"
+
+```
+
+然后是 WinDbg 脚本文件 MSN.txt，4 行:  
+代码:
+
+```
+ew 5F140804 9090
+eb 5F1407E5 eb
+.detach
+q
+
+```

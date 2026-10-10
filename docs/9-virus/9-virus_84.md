@@ -1,0 +1,328 @@
+
+
+# 计算机病毒对消息钩子的利用与对抗
+
+> 原文：[`www.pediy.com/kssd/pediy12/141059.html`](https://www.pediy.com/kssd/pediy12/141059.html)
+
+**一、消息钩子的概念**  
+    1、基本概念  
+   Windows 应用程序是基于消息驱动的，任何线程只要注册窗口类都会有一个消息队列用于接收用户输入的消息和系统消息。为了拦截消息，Windows 提出了钩子的概念。钩子（Hook）是 Windows 消息处理机制中的一个监视点，钩子提供一个回调函数。当在某个程序中安装钩子后，它将监视该程序的消息，在指定消息还没到达窗口之前钩子程序先捕获这个消息。这样就有机会对此消息进行过滤，或者对 Windows 消息实现监控。  
+    2、分类  
+    消息钩子分为局部钩子和全局钩子。局部钩子是指仅拦截指定一个进程的指定消息，全局钩子将拦截系统中所有进程的指定消息。  
+    3、实现步骤  
+    使用钩子技术拦截消息通常分为如下几个步骤：
+
+*       设置钩子回调函数；（拦截到消息后所调用的函数）
+*       安装钩子；（使用 SetWindowsHookEx 函数）
+*       卸载钩子。（使用 UnhookWindowsHookEx 函数）
+
+    4、功能  
+    利用消息钩子可以实现特效界面、同步消息、监控消息、自启动等功效。  
+  
+**二、病毒对消息钩子技术的利用**  
+    计算机病毒经常利用消息钩子实现两种功能：  
+    1、监控用户按键，盗取用户信息。  
+    这样的病毒会启动一个常驻内存的 EXE 病毒进程，然后安装一个全局键盘消息钩子，钩子回调函数位于病毒进程中，这样系统中任何有按键操作的进程，其按键详细信息都会被病毒进程拦截记录。  
+    2、自启动  
+    这样的病毒会将钩子回调函数放在一个 DLL 文件中，然后安装一个全局消息（容易触发的消息，如 WH\_CBT、WH\_GETMESSAGE 等）钩子，这样凡响应该消息的进程都会自动加载病毒的 DLL，病毒也就跟着自动运行了。  
+  
+**三、消息钩子病毒的对抗技术（重点）**  
+    1、对抗技术原理  
+    对付消息钩子病毒方法很简单，只要将病毒安装的钩子卸载掉即可。（注意：对于系统中许多进程已经因为全局钩子而加载了病毒 DLL 的情况，并不需要去卸载这些 DLL，只要安装的消息钩子被卸载那么对应的 DLL 也都会被在这些进程中自动卸载。）卸载钩子有两种方法：  
+    (1)、结束掉安装钩子的进程  
+    将设置钩子的进程结束，进程在退出之前会自行卸载掉该进程安装的所有消息钩子。这种方法很适合对付监控用户按键的病毒。  
+    (2)、获得消息钩子句柄，然后调用 UnhookWindowsHookEx 函数即可将消息钩子卸载。  
+    如果病毒单独启动了一个病毒进程安装了一个全局消息钩子，然后就常驻内存。这时我们将这个病毒进程结束掉即可。但是如果病毒在系统进程中注入代码而安装的钩子，这样钩子句柄就位于系统进程中，我们不可以结束系统进程，这时就只能获取这个消息钩子句柄，然后调用函数卸载。  
+    2、对抗技术实现细节  
+    对于结束掉安装钩子进程从而卸载病毒消息钩子的方法很容易实现，只要找到病毒进程结束即可。而对于获取病毒消息钩子句柄，然后调用函数卸载钩子的方法比较复杂，也是本文重点讨论的内容，将在下一个标题中详细介绍。  
+  
+**四、查找病毒消息钩子句柄然后卸载的方法实现（重点、难点）**  
+    1、实现原理分析  
+    系统会将所有安装的钩子句柄保存在内核中，要查找病毒安装的消息钩子句柄，我们要枚举所有的消息钩子句柄。如何枚举稍后讲解，还要解决一个问题，就是在枚举过程中，我们怎么知道哪个句柄是病毒安装的呢？  
+    通过分析病毒样本我们通常可以得到病毒安装钩子就是为了令其他合法进程加载病毒 DLL，所以它会将钩子回调函数写在该 DLL 中。在枚举消息钩子句柄时，同时也可以得到该句柄所对应的回调函数所属的 DLL 模块，根据这个 DLL 模块是不是病毒的 DLL 模块即可找到病毒的消息钩子句柄，最后将其卸载即可。  
+    关于如何枚举系统消息钩子句柄，对于不同的操作系统方法大不相同，这里介绍一种用户层读内存的方法，此方法仅在 2000/XP 系统下可用。  
+    在 2000/XP 系统下有一个 Windows 用户界面相关的应用程序接口 User32.dll。它用于包括 Windows 窗口处理，基本用户界面等特性，如创建窗口和发送消息。当它被加载到内存后，它保存了所有 Windows 窗口、消息相关的句柄，其中就包括消息钩子句柄。这些句柄被保存在一块共享内存段中，通常称为 R3 层的 GUI TABLE。所以只要我们找到 GUI TABLE，然后在其中的句柄中筛选出消息钩子句柄。GUI TABLE 这块内存段可以被所有进程空间访问。GUI TABLE 被定义成如下结构：  
+typedef struct tagSHAREDINFO {  
+  struct tagSERVERINFO \*pServerInfo;  //指向 tagSERVERINFO 结构的指针  
+  struct \_HANDLEENTRY \*pHandleEntry;  // 指向句柄表  
+  struct tagDISPLAYINFO \*pDispInfo;  //指向 tagDISPLAYINFO 结构的指针  
+  ULONG ulSharedDelta;  
+  LPWSTR pszDllList;  
+} SHAREDINFO, \*PSHAREDINFO;  
+    tagSHAREDINFO 结构体的第一个成员 pServerInfo 所指向的 tagSERVERINFO 结构体定义如下。  
+typedef struct tagSERVERINFO {      
+    short wRIPFlags ;                
+    short wSRVIFlags ;              
+    short wRIPPID ;                
+    short wRIPError ;          
+    ULONG cHandleEntries;          //句柄表中句柄的个数  
+}SERVERINFO,\*PSERVERINFO;  
+    可以看出通过 tagSERVERINFO 结构的 cHandleEntries 成员即可得到 tagSHAREDINFO 结构的 pHandleEntry 成员所指向的句柄表中的句柄数。  
+    tagSHAREDINFO 结构体的第二个成员 pHandleEntry 是指向\_HANDLEENTRY 结构体数组起始地址的指针，该数组的一个成员对应一个句柄。句柄结构体\_HANDLEENTRY 定义如下。  
+typedef struct \_HANDLEENTRY{  
+    PVOID  pObject;            //指向句柄所对应的内核对象  
+    ULONG  pOwner;           
+      BYTE  bType;               //句柄的类型  
+    BYTE  bFlags;         
+    short  wUniq;        
+}HANDLEENTRY,\*PHANDLEENTRY;  
+    \_HANDLEENTRY 结构体成员 bType 是句柄的类型，通过该变量的判断可以筛选消息钩子句柄。User32 中保存的句柄类型通常有如下种类。  
+typedef enum  \_HANDLE\_TYPE  
+{  
+        TYPE\_FREE = 0,  
+        TYPE\_WINDOW = 1 ,  
+        TYPE\_MENU = 2,                     //菜单句柄  
+     TYPE\_CURSOR = 3,                   //光标句柄  
+     TYPE\_SETWINDOWPOS = 4,  
+        TYPE\_HOOK = 5,                     //消息钩子句柄  
+     TYPE\_CLIPDATA = 6  ,              
+        TYPE\_CALLPROC = 7,  
+        TYPE\_ACCELTABLE = 8,  
+        TYPE\_DDEACCESS = 9,  
+        TYPE\_DDECONV = 10,  
+        TYPE\_DDEXACT = 11,            
+        TYPE\_MONITOR = 12,  
+        TYPE\_KBDLAYOUT = 13   ,            
+        TYPE\_KBDFILE = 14    ,              
+        TYPE\_WINEVENTHOOK = 15  ,         
+        TYPE\_TIMER = 16,  
+        TYPE\_INPUTCONTEXT = 17  ,         
+        TYPE\_CTYPES = 18         ,          
+        TYPE\_GENERIC = 255               
+}HANDLE\_TYPE;  
+    \_HANDLEENTRY 结构体的成员 pObject 是指向句柄对应的内核对象的指针。  
+    这样只要通过 pObject 就可以得到句柄的详细信息（其中包括创建进程，线程、回调函数等信息），通过 bType 就可以的值句柄的类型。  
+\_HANDLEENTRY 结构体的其他成员可以忽略不看。  
+（知识要点补充：如何在用户层程序中读取内核内存）  
+    需要注意的是，pObject 指针指向的是内核内存，不可以在用户层直接访问内核内存。后面还有些地方也同样是内核内存，需要加以注意。应该把内核内存的数据读取到用户层内存才可以访问。且不可以直接访问，毕竟不是在驱动中。  
+    在用户层读取内核内存使用 ZwSystemDebugControl 函数，它是一个 Native API。其原型如下。  
+NTSYSAPI  
+NTSTATUS  
+NTAPI  
+ZwSystemDebugControl(  
+    IN DEBUG\_CONTROL\_CODE ControlCode,//控制代码  
+   IN PVOID InputBuffer OPTIONAL,    //输入内存  
+   IN ULONG InputBufferLength,    //输入内存长度  
+   OUT PVOID OutputBuffer OPTIONAL,  //输出内存  
+   IN ULONG OutputBufferLength,    //输出内存长度  
+   OUT PULONG ReturnLength OPTIONAL  //实际输出的长度);  
+ZwSystemDebugControl 函数可以用于读/写内核空间、读/写 MSR、读/写物理内存、读/写 IO 端口、读/写总线数据、KdVersionBlock 等。由第一个参数 ControlCode 控制其功能，可以取如下枚举值。  
+    typedef enum \_SYSDBG\_COMMAND {      
+    //以下 5 个在 Windows NT 各个版本上都有  
+    SysDbgGetTraceInformation = 1,  
+      SysDbgSetInternalBreakpoint = 2,  
+      SysDbgSetSpecialCall = 3,  
+      SysDbgClearSpecialCalls = 4,  
+      SysDbgQuerySpecialCalls = 5,  
+    // 以下是 NT 5.1 新增的  
+    SysDbgDbgBreakPointWithStatus = 6,  
+    //获取 KdVersionBlock  
+      SysDbgSysGetVersion = 7,  
+    //从内核空间复制到用户空间，或者从用户空间复制到用户空间  
+    //但是不能从用户空间复制到内核空间  
+    SysDbgCopyMemoryChunks\_0 = 8,  
+   //SysDbgReadVirtualMemory = 8,  
+    //从用户空间复制到内核空间，或者从用户空间复制到用户空间  
+    //但是不能从内核空间复制到用户空间  
+    SysDbgCopyMemoryChunks\_1 = 9,  
+    //SysDbgWriteVirtualMemory = 9,  
+    //从物理地址复制到用户空间，不能写到内核空间  
+    SysDbgCopyMemoryChunks\_2 = 10,  
+    //SysDbgReadVirtualMemory = 10,  
+    //从用户空间复制到物理地址，不能读取内核空间  
+    SysDbgCopyMemoryChunks\_3 = 11,  
+    //SysDbgWriteVirtualMemory = 11,  
+    //读/写处理器相关控制块  
+    SysDbgSysReadControlSpace = 12,  
+    SysDbgSysWriteControlSpace = 13,  
+    //读/写端口  
+    SysDbgSysReadIoSpace = 14,  
+      SysDbgSysWriteIoSpace = 15,  
+    //分别调用 RDMSR@4 和\_WRMSR@12  
+      SysDbgSysReadMsr = 16,  
+      SysDbgSysWriteMsr = 17,  
+    //读/写总线数据  
+    SysDbgSysReadBusData = 18,  
+      SysDbgSysWriteBusData = 19,  
+      SysDbgSysCheckLowMemory = 20,  
+// 以下是 NT 5.2 新增的  
+    //分别调用\_KdEnableDebugger@0 和\_KdDisableDebugger@0  
+      SysDbgEnableDebugger = 21,  
+      SysDbgDisableDebugger = 22,     
+    //获取和设置一些调试相关的变量  
+    SysDbgGetAutoEnableOnEvent = 23,  
+      SysDbgSetAutoEnableOnEvent = 24,  
+      SysDbgGetPitchDebugger = 25,  
+      SysDbgSetDbgPrintBufferSize = 26,  
+      SysDbgGetIgnoreUmExceptions = 27,  
+      SysDbgSetIgnoreUmExceptions = 28   
+    } SYSDBG\_COMMAND, \*PSYSDBG\_COMMAND;  
+    我们这里要读取内核内存，所以参数 ControlCode 应取值为 SysDbgReadVirtualMemory。  
+当 ControlCode 取值为 SysDbgReadVirtualMemory 时，ZwSystemDebugControl 函数的第 4 个参数和第 5 个参数被忽略，使用时传入 0 即可。第二个参数 InputBuffer 是一个指向结构体\_MEMORY\_CHUNKS 的指针，该结构体定义如下。  
+typedef struct \_MEMORY\_CHUNKS {  
+    ULONG Address;      //内核内存地址指针(要读的数据)  
+    PVOID Data;         //用户层内存地址指针(存放读出的数据)  
+    ULONG Length;      //读取的长度  
+}MEMORY\_CHUNKS, \*PMEMORY\_CHUNKS;  
+第三个参数 InputBufferLength 是\_MEMORY\_CHUNKS 结构体的大小。使用 sizeof 运算符得到即可。  
+SysDbgReadVirtualMemory 函数执行成功将返回 0。否则返回错误代码。  
+为了方便使用，我们可以封装一个读取内核内存的函数 GetKernelMemory，实现如下：  
+#define SysDbgReadVirtualMemory 8  
+//定义 ZwSystemDebugControl 函数指针类型  
+typedef DWORD (WINAPI \*ZWSYSTEMDEBUGCONTROL)(DWORD,PVOID,  
+DWORD,PVOID,DWORD,PVOID);  
+BOOL GetKernelMemory(PVOID pKernelAddr, PBYTE pBuffer, ULONG uLength)   
+{    
+    MEMORY\_CHUNKS mc ;   
+    ULONG uReaded = 0;  
+    mc.Address=(ULONG)pKernelAddr;  //内核内存地址  
+    mc.pData = pBuffer;//用户层内存地址  
+    mc.Length = uLength;       //读取内存的长度    
+    ULONG st  = -1 ;  
+  //获得 ZwSystemDebugControl 函数地址  
+  ZWSYSTEMDEBUGCONTROL ZwSystemDebugControl = (ZWSYSTEMDEBUGCONTROL) GetProcAddress(  
+    GetModuleHandle("ntdll.dll"), "ZwSystemDebugControl");  
+  //读取内核内存数据到用户层  
+    st = ZwSystemDebugControl(SysDbgReadVirtualMemory, &mc, sizeof(mc), 0, 0, &uReaded);  
+    return st == 0;  
+}  
+  
+  
+    对于不同类型的句柄，其内核对象所属内存对应的结构体不同，对于消息钩子句柄，它的内核对象所属内存对应的结构体实际上是\_HOOK\_INFO 类型，其定义如下。  
+typedef struct \_HOOK\_INFO  
+{  
+  HANDLE hHandle; //钩子的句柄  
+  DWORD Unknown1;  
+  PVOID Win32Thread; //一个指向 win32k!\_W32THREAD 结构体的指针  
+  PVOID Unknown2;  
+  PVOID SelfHook; //指向结构体的首地址  
+  PVOID NextHook; //指向下一个钩子结构体  
+  int iHookType; //钩子的类型。  
+  DWORD OffPfn; //钩子函数的地址偏移，相对于所在模块的偏移  
+  int iHookFlags; //钩子标志  
+  int iMod; //钩子函数做在模块的索引号码，利用它可以得到模块基址  
+  PVOID Win32ThreadHooked; //被钩的线程结构指针  
+} HOOK\_INFO,\*PHOOK\_INFO;  
+由上可以看出，得到钩子内核对象数据后，该数据对应 HOOK\_INFO 结构体信息。其中：  
+hHandle 是钩子句柄，使用它就可以卸载钩子。  
+iHookType 是钩子的类型，消息钩子类型定义如下。  
+typedef enum  \_HOOK\_TYPE{  
+        MY\_WH\_MSGFILTER = -1,  
+        MY\_WH\_JOURNALRECORD = 0,  
+        MY\_WH\_JOURNALPLAYBACK = 1,  
+        MY\_WH\_KEYBOARD = 2,  
+        MY\_WH\_GETMESSAGE = 3,  
+        MY\_WH\_CALLWNDPROC = 4,  
+        MY\_WH\_CBT = 5,  
+        MY\_WH\_SYSMSGFILTER = 6,  
+        MY\_WH\_MOUSE = 7,  
+        MY\_WH\_HARDWARE = 8,  
+        MY\_WH\_DEBUG = 9,  
+        MY\_WH\_SHELL = 10,  
+        MY\_WH\_FOREGROUNDIDLE = 11,  
+        MY\_WH\_CALLWNDPROCRET = 12,  
+        MY\_WH\_KEYBOARD\_LL = 13,  
+        MY\_WH\_MOUSE\_LL = 14  
+}HOOK\_TYPE;  
+    OffPfn 是钩子回调函数的偏移地址，该偏移地址是相对于钩子函数所在模块基址的偏移。  
+   Win32Thread 是指向\_W32THREAD 结构体的指针，通过这个结构体可以获得钩子所在进程 ID 和线程 ID。该结构体定义如下。  
+typedef struct \_W32THREAD  
+{  
+    PVOID    pEThread ;    //该指针用以获得进程 ID 和线程 ID  
+    ULONG   RefCount ;  
+    ULONG  ptlW32 ;  
+    ULONG  pgdiDcattr ;  
+    ULONG   pgdiBrushAttr ;  
+    ULONG   pUMPDObjs ;  
+    ULONG    pUMPDHeap ;  
+    ULONG    dwEngAcquireCount ;  
+    ULONG    pSemTable ;  
+    ULONG    pUMPDObj ;  
+    PVOID ptl;  
+    PVOID ppi;            //该指针用以获得模块基址  
+}W32THREAD, \*PW32THREAD;  
+    \_W32THREAD 结构体第一个参数 pEThread 指向的内存偏移 0x01EC 处分别保存着进程 ID 和线程 ID。注意 pEThread 指针指向的内存是内核内存。  
+   \_W32THREAD 结构体最后一个参数 ppi 指向的内存偏移 0xA8 处是所有模块基址的地址表，   \_HOOK\_INFO 结构体的 iMod 成员就标识了本钩子所属模块基址在此地址表中的位置。（每个地址占 4 个字节）所以通常使用 ppi+0xa8+iMod\*4 定位模块基址的地址。注意 ppi 指向的内存是内核内存。  
+    2、实现细节  
+    首先编写程序枚举消息钩子句柄，需要得到 GUI TABLE，它的地址实际上存储于 User32.dll 的一个全局变量中，该模块导出的函数 UserRegisterWowHandlers 将返回该全局变量的值。所以我们只要调用这个函数就能够得到 GUI TABLE。然而 UserRegisterWowHandlers 是一个未公开的函数，不确定它的函数原型，需要反汇编猜出它的原型。笔者反汇编后得到的原型如下。  
+typedef PSHAREDINFO (\_\_stdcall \*USERREGISTERWOWHANDLERS) (PBYTE ,PBYTE );  
+仅知道它两个参数是两个指针，但是不知道它的两个参数的含义，所以我们无法构造出合理的参数。如果随便构造参数传进去又会导致 user32.dll 模块发生错误。所以通过调用这个函数接收其返回值的方法就不能用了。再次反汇编该函数的实现可以看出，在不同操作系统下该函数的最后三行代码如下。  
+2K 系统:(5.0.2195.7032)   
+:77E3565D B880D2E477 mov eax, 77E4D280   
+:77E35662 C20800 ret 0008   
+XP 系统:(5.1.2600.2180)   
+:77D535F5 B88000D777 mov eax, 77D70080   
+:77D535FA 5D pop ebp   
+:77D535FB C20800 ret 0008   
+2003 系统:(5.2.3790.1830)   
+:77E514D9 B8C024E777 mov eax, 77E724C0   
+:77E514DE C9 leave   
+:77E514DF C2080000 ret 0008  
+可以看到共同点，该函数的倒数第三行代码就是将保存 GUI TABLE 指针的全局变量值赋值给寄存器 EAX，只要我们想办法搜索到这个值即可。能够看出无论是哪个版本的函数实现中，都有 C20800 代码，含义是 ret 0008。我们可以自 UserRegisterWowHandlers 函数的入口地址开始一直搜索到 C20800，找到它以后再向前搜索 B8 指令，搜到以后 B8 指令后面的四个字节数据就是我们需要的数据。代码如下。  
+//获得 UserRegisterWowHandlers 函数的入口地址  
+DWORD UserRegisterWowHandlers = (DWORD) GetProcAddress(LoadLibrary("user32.dll"), "UserRegisterWowHandlers");  
+PSHAREDINFO pGUITable;  //保存 GUITable 地址的指针  
+for(DWORD i=UserRegisterWowHandlers; i<UserRegisterWowHandlers+1000; i++)  
+{  
+  if((\*(USHORT\*)i==0x08c2)&&\*(BYTE \*)(i+2)== 0x00)  
+  {     //已找到 ret 0008 指令，然后往回搜索 B8  
+    for (int j=i; j>UserRegisterWowHandlers; j--)  
+    {   //找到 B8 它后面四个字节保存的数值即为 GUITable 地址  
+      if (\*(BYTE \*)j == 0xB8)            
+      {  
+        pGUITable = (PSHAREDINFO)\*(DWORD \*)(j+1);  
+        break;  
+      }  
+    }break;  
+  }  
+}  
+    得到 SHAREDINFO 结构指针后，它的成员 pServerInfo 的成员 cHandleEntries 就是句柄的总个数，然后循环遍历每一个句柄，找到属于指定模块的消息钩子句柄。代码如下。  
+int iHandleCount = pGUITable->pServerInfo->cHandleEntries;  
+HOOK\_INFO HookInfo;  
+DWORD dwModuleBase;  
+struct TINFO   
+{  
+  DWORD dwProcessID;  
+  DWORD dwThreadID;  
+};  
+char cModuleName\[256\] = {0};  
+for (i=0; i<iHandleCount; i++)  
+{              //判断句柄类型是否为消息钩子句柄  
+  if (pGUITable->pHandleEntry\[i\].bType == TYPE\_HOOK)  
+  {  
+    DWORD dwValue = (DWORD)pGUITable->pHandleEntry\[i\].pObject;  
+    //获得消息钩子内核对象数据  
+    GetKernelMemory(pGUITable->pHandleEntry\[i\].pObject, (BYTE \*)&HookInfo, sizeof(HookInfo));  
+    W32THREAD w32thd;  
+    if( GetKernelMemory(HookInfo.pWin32Thread,(BYTE \*)&w32thd , sizeof(w32thd)) )   
+    {  //获取钩子函数所在模块的基址  
+      if (!GetKernelMemory((PVOID)((ULONG)w32thd.ppi+0xA8+4\*HookInfo.iMod),  
+        (BYTE \*)&dwModuleBase,   sizeof(dwModuleBase)))  
+      {  
+        continue;  
+      }  
+      TINFO tInfo;  
+      //获取钩子所属进程 ID 和线程 ID  
+      if (!GetKernelMemory((PVOID)((ULONG)w32thd.pEThread+0x1ec),  
+        (BYTE \*)&tInfo,   sizeof(tInfo)))  
+      {  
+        continue;  
+      }  
+      HANDLE hProcess = OpenProcess(PROCESS\_ALL\_ACCESS, FALSE, tInfo.dwProcessID);  
+      if (hProcess == INVALID\_HANDLE\_VALUE)  
+      {  
+        continue;  
+      }  
+      //根据模块基址,获取钩子函数所属模块的名称  
+      if (GetModuleFileNameEx(hProcess, (HMODULE)dwModuleBase, cModuleName, 256))  
+      {  
+        OutputDebugString(cModuleName);  
+        OutputDebugString("\\r\\n");  
+      }      
+    }   
+  }  
+}  
+  
+    利用上面的代码就可以找到所属病毒 DLL 的消息钩子句柄，然后调用 UnhookWindowsHookEx 函数卸载这个消息钩子就 OK 了。  
+  
+    文章写完了，写点题外话。上述文章内容大部分摘自王倍昌的《计算机病毒揭秘与对抗》一书，该书已于 2011 年 10 月 1 日出版。该书揭秘了 Windows 系统下计算机病毒常用的技术和对抗技术。如：隐藏注入技术、SPI 网络劫持技术、DLL 劫持技术、浏览器绑架技术、服务劫持技术、感染型病毒技术、加壳实现与静态脱壳技术、反病毒虚拟机技术、主动防御技术等。欢迎阅读此书，并提出宝贵意见。关于此书的更多内容请查看[www.safe163.com](http://www.safe163.com)网站。

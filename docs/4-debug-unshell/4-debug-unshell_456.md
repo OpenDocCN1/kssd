@@ -1,0 +1,447 @@
+
+
+# ASProtect V1.23RC4 加壳的 DLL 
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6648.htm`](https://www.pediy.com/kssd/pediy06/pediy6648.htm)
+
+                         
+             
+               
+【作者声明】：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！  
+           
+【调试环境】：WinXP、Ollydbg1.10、WinHex、LordPE、DLL\_Loader、ImportREC 1.42+ 
+
+【实例下载】：点击此处下载（或鼠标右键另存为）  
+               
+—————————————————————————————————   
+【脱壳过程】：  
+            
+           
+          
+DLL 脱壳方面的资料坛子上不多，于是我抽空写上几篇，聊作游戏。  
+这篇东东其实是《解密与解密》第 2 版中关于 ASProtect 的 DLL 脱壳教程的翻版啦。  
+但是我补充了手动寻找 ASProtect V1.23RC4 加壳 DLL 的重定位表地址的过程。  
+               
+—————————————————————————————————   
+一、ASProtect V1.23RC4 加壳 DLL 的 OEP 很容易找  
+               
+               
+设置 Ollydbg 忽略所有的异常选项。老规矩：用 IsDebug 1.4 插件去掉 Ollydbg 的调试器标志。  
+               
+
+> ```
+> 代码:
+> 003B7001     60                  pushad//进入 OD 后停在这
+> 003B7002     E8 03000000         call EdrLib.003B700A
+> 003B700A     5D                  pop ebp
+> 003B700B     45                  inc ebp
+> 003B700C     55                  push ebp
+> 003B700D     C3                  retn
+> 
+> ```
+> 
+>   
+
+  
+               
+使用《加密与解密》第 2 版提及的方法吧。其实用以前的不忽略内存异常的方法也方便找 DLL 的 OEP。  
+我们在外壳入口 003B7001 处下断，F9 运行，DLL 被成功加载。  
+现在我们关闭 Ollydbg 的 loaddll.exe 窗口，DLL 卸载时会再次中断在外壳入口处！可以跟下去走到 OEP 了。  
+               
+
+> ```
+> 代码:
+> 003B7008     EB 04               jmp short EdrLib.003B700E
+> 003B700E     E8 01000000         call EdrLib.003B7014
+>              
+> 003B7014     5D                  pop ebp
+> 003B7015     BB EDFFFFFF         mov ebx,-13
+> 003B701A     03DD                add ebx,ebp
+> 003B701C     81EB 00700000       sub ebx,7000
+> 003B7022     807D 4D 01          cmp byte ptr ss:\[ebp+4D\],1
+> 003B7026     75 0C               jnz short EdrLib.003B7034
+> 003B7028     8B7424 28           mov esi,dword ptr ss:\[esp+28\]
+> 003B702C     83FE 01             cmp esi,1
+> 003B702F     895D 4E             mov dword ptr ss:\[ebp+4E\],ebx
+> 003B7032     75 31               jnz short EdrLib.003B7065//DLL 卸载时这里会跳转！
+>              
+> 003B7065     B8 C9110000         mov eax,11C9//OEP 偏移值
+> 003B706A     50                  push eax
+> 003B706B     50                  push eax
+> 003B706C     0345 4E             add eax,dword ptr ss:\[ebp+4E\]
+> 003B706F     5B                  pop ebx
+> 003B7070     85C0                test eax,eax
+> 003B7072     74 1C               je short EdrLib.003B7090
+> 003B7074     EB 01               jmp short EdrLib.003B7077
+> 003B7077     81FB F8C0A523       cmp ebx,23A5C0F8
+> 003B707D     74 35               je short EdrLib.003B70B4
+> 003B707F     33D2                xor edx,edx
+> 003B7081     56                  push esi
+> 003B7082     6A 00               push 0
+> 003B7084     56                  push esi
+> 003B7085     FF75 4E             push dword ptr ss:\[ebp+4E\]
+> 003B7088     FFD0                call eax; EdrLib.003B11C9//飞向光明之巅！ ^O^
+> 
+> ```
+> 
+>   
+
+  
+               
+下面我们借搞定重定位地址的时机，按照 EXE 的脱壳方法再找一次 OEP。  
+               
+               
+—————————————————————————————————  
+二、寻找重定位表地址  
+               
+               
+ASProtect 壳没有加密重定位表，这样使得其脱壳在重定位表方面设置比 UPX 加壳的 DLL 要简单。  
+               
+再次用 Ollydbg 载入 EdrLib.dll，下断：BP GetModuleHandleA  
+当我们在 GetModuleHandleA 处中断 2 次后，就可以 Alt+F9 返回了。  
+               
+
+> ```
+> 代码:
+> 008AC4A6     FF95 EC314400       call dword ptr ss:\[ebp+4431EC\]
+> 008AC4AC     85C0                test eax,eax//返回这里
+> 008AC4AE     75 07               jnz short 008AC4B7
+> 008AC4B0     53                  push ebx
+> 008AC4B1     FF95 F0314400       call dword ptr ss:\[ebp+4431F0\]
+> 008AC4B7     8985 4D294400       mov dword ptr ss:\[ebp+44294D\],eax
+> 008AC4BD     C785 51294400 00000>mov dword ptr ss:\[ebp+442951\],0
+> 008AC4C7     8B95 D8304400       mov edx,dword ptr ss:\[ebp+4430D8\]
+> 008AC4CD     8B06                mov eax,dword ptr ds:\[esi\]
+> 008AC4CF     85C0                test eax,eax
+> 008AC4D1     75 03               jnz short 008AC4D6
+> 008AC4D3     8B46 10             mov eax,dword ptr ds:\[esi+10\]
+> 008AC4D6     03C2                add eax,edx
+> 008AC4D8     0385 51294400       add eax,dword ptr ss:\[ebp+442951\]
+> 008AC4DE     8B18                mov ebx,dword ptr ds:\[eax\]
+> 008AC4E0     8B7E 10             mov edi,dword ptr ds:\[esi+10\]
+> 008AC4E3     03FA                add edi,edx
+> 008AC4E5     03BD 51294400       add edi,dword ptr ss:\[ebp+442951\]
+> 008AC4EB     85DB                test ebx,ebx
+> 008AC4ED     0F84 A2000000       je 008AC595
+> 008AC4F3     F7C3 00000080       test ebx,80000000
+> 008AC4F9     75 04               jnz short 008AC4FF
+> 008AC4FB     03DA                add ebx,edx
+> 008AC4FD     43                  inc ebx
+> 008AC4FE     43                  inc ebx
+> 008AC4FF     53                  push ebx
+> 008AC500     81E3 FFFFFF7F       and ebx,7FFFFFFF
+> 008AC506     53                  push ebx
+> 008AC507     FFB5 4D294400       push dword ptr ss:\[ebp+44294D\]
+> 008AC50D     FF95 E8314400       call dword ptr ss:\[ebp+4431E8\]
+> 008AC513     85C0                test eax,eax
+> 008AC515     5B                  pop ebx
+> 008AC516     75 6F               jnz short 008AC587
+> 008AC518     F7C3 00000080       test ebx,80000000
+> 008AC51E     75 19               jnz short 008AC539
+> 008AC520     57                  push edi
+> 008AC521     8B46 0C             mov eax,dword ptr ds:\[esi+C\]
+> 008AC524     0385 D8304400       add eax,dword ptr ss:\[ebp+4430D8\]
+> 008AC52A     50                  push eax
+> 008AC52B     53                  push ebx
+> 008AC52C     8D85 53314400       lea eax,dword ptr ss:\[ebp+443153\]
+> 008AC532     50                  push eax
+> 008AC533     57                  push edi
+> 008AC534     E9 99000000         jmp 008AC5D2
+> 008AC539     81E3 FFFFFF7F       and ebx,7FFFFFFF
+> 008AC53F     8B85 DC304400       mov eax,dword ptr ss:\[ebp+4430DC\]
+> 008AC545     3985 4D294400       cmp dword ptr ss:\[ebp+44294D\],eax
+> 008AC54B     75 24               jnz short 008AC571
+> 008AC54D     57                  push edi
+> 008AC54E     8BD3                mov edx,ebx
+> 008AC550     4A                  dec edx
+> 008AC551     C1E2 02             shl edx,2
+> 008AC554     8B9D 4D294400       mov ebx,dword ptr ss:\[ebp+44294D\]
+> 008AC55A     8B7B 3C             mov edi,dword ptr ds:\[ebx+3C\]
+> 008AC55D     8B7C3B 78           mov edi,dword ptr ds:\[ebx+edi+78\]
+> 008AC561     035C3B 1C           add ebx,dword ptr ds:\[ebx+edi+1C\]
+> 008AC565     8B0413              mov eax,dword ptr ds:\[ebx+edx\]
+> 008AC568     0385 4D294400       add eax,dword ptr ss:\[ebp+44294D\]
+> 008AC56E     5F                  pop edi
+> 008AC56F     EB 16               jmp short 008AC587
+> 008AC571     57                  push edi
+> 008AC572     8B46 0C             mov eax,dword ptr ds:\[esi+C\]
+> 008AC575     0385 D8304400       add eax,dword ptr ss:\[ebp+4430D8\]
+> 008AC57B     50                  push eax
+> 008AC57C     53                  push ebx
+> 008AC57D     8D85 A4314400       lea eax,dword ptr ss:\[ebp+4431A4\]
+> 008AC583     50                  push eax
+> 008AC584     57                  push edi
+> 008AC585     EB 4B               jmp short 008AC5D2
+> 008AC587     8907                mov dword ptr ds:\[edi\],eax
+> 008AC589     8385 51294400 04    add dword ptr ss:\[ebp+442951\],4
+> 008AC590     E9 32FFFFFF         jmp 008AC4C7
+> 008AC595     8906                mov dword ptr ds:\[esi\],eax
+> 008AC597     8946 0C             mov dword ptr ds:\[esi+C\],eax
+> 008AC59A     8946 10             mov dword ptr ds:\[esi+10\],eax
+> 008AC59D     83C6 14             add esi,14
+> 008AC5A0     8B95 D8304400       mov edx,dword ptr ss:\[ebp+4430D8\]
+> 008AC5A6     E9 EBFEFFFF         jmp 008AC496
+> 008AC5AB     8B85 652A4400       mov eax,dword ptr ss:\[ebp+442A65\]
+> 008AC5B1     50                  push eax
+> 008AC5B2     0385 D8304400       add eax,dword ptr ss:\[ebp+4430D8\]
+> 008AC5B8     5B                  pop ebx
+> 008AC5B9     0BDB                or ebx,ebx
+> 008AC5BB     8985 112F4400       mov dword ptr ss:\[ebp+442F11\],eax
+> 008AC5C1     61                  popad
+> 008AC5C2     75 08               jnz short 008AC5CC
+> 008AC5C4     B8 01000000         mov eax,1
+> 008AC5C9     C2 0C00             retn 0C
+> 008AC5CC     68 805A8A00         push 8A5A80
+> 008AC5D1     C3                  retn
+> 
+> ```
+> 
+>   
+
+  
+               
+上面这段代码解开了 ASProtect 壳的代码，可以看作是 ASProtect 的一个特征吧。为了以后留个参考资料，所以把这段代码全部贴了出来。  
+               
+提供一个简便寻找 ASProtect V1.23RC4 加壳 DLL 的重定位处理代码段的方法！  
+当我们返回 008AC4AC 处时，Ctrl+S 在“整个段块”搜索命令序列：  
+
+> ```
+> 代码:
+> mov dx,word ptr ds:\[ebx\]
+> movzx eax,dx
+> shr eax,0C
+> sub ax,1
+> 
+> ```
+> 
+>   
+
+  
+找到在 008A36FF 处！我们在其上的 008A36CA 处下断，F9 运行，断下  
+               
+
+> ```
+> 代码:
+> 008A36CA     8B00                mov eax,dword ptr ds:\[eax\]
+> 008A36CC     8B40 10             mov eax,dword ptr ds:\[eax+10\]
+> //\[eax+10\]＝\[003B781D\]=00006000  ★ 这个 00006000 就是重定位表的 RVA！
+> 008A36CF     8B4C24 04           mov ecx,dword ptr ss:\[esp+4\]
+> 008A36D3     2BCA                sub ecx,edx
+> //这里其实就是检测与映像基址是否相符。不符则重定位处理！★
+> 008A36D5     890C24              mov dword ptr ss:\[esp\],ecx
+> 008A36D8     833C24 00           cmp dword ptr ss:\[esp\],0
+> 008A36DC     74 5F               je short 008A373D
+> //可以在这里改标志位 Z=1，使其跳转，这样脱壳后就不需要修改基址了。
+> 008A36DE     8B5C24 04           mov ebx,dword ptr ss:\[esp+4\]
+> 008A36E2     03D8                add ebx,eax
+> 008A36E4     EB 51               jmp short 008A3737
+> 008A36E6     8D43 04             lea eax,dword ptr ds:\[ebx+4\]
+> 008A36E9     8B00                mov eax,dword ptr ds:\[eax\]
+> 008A36EB     83E8 08             sub eax,8
+> 008A36EE     D1E8                shr eax,1
+> 008A36F0     8BFA                mov edi,edx
+> 008A36F2     037C24 04           add edi,dword ptr ss:\[esp+4\]
+> 008A36F6     83C3 08             add ebx,8
+> 008A36F9     8BF0                mov esi,eax
+> 008A36FB     85F6                test esi,esi
+> 008A36FD     76 38               jbe short 008A3737
+> 008A36FF     66:8B13             mov dx,word ptr ds:\[ebx\]
+> //找到这里
+> 008A3702     0FB7C2              movzx eax,dx
+> 008A3705     C1E8 0C             shr eax,0C
+> 008A3708     66:83E8 01          sub ax,1
+> 008A370C     72 23               jb short 008A3731
+> 008A370E     66:83E8 02          sub ax,2
+> 008A3712     74 02               je short 008A3716
+> 008A3714     EB 11               jmp short 008A3727
+> 008A3716     66:81E2 FF0F        and dx,0FFF
+> 008A371B     0FB7C2              movzx eax,dx
+> 008A371E     03C7                add eax,edi
+> 008A3720     8B1424              mov edx,dword ptr ss:\[esp\]
+> 008A3723     0110                add dword ptr ds:\[eax\],edx
+> 008A3725     EB 0A               jmp short 008A3731
+> 008A3727     68 60378A00         push 8A3760
+> 008A372C     E8 BBEEFFFF         call 008A25EC
+> 008A3731     83C3 02             add ebx,2
+> 008A3734     4E                  dec esi
+> 008A3735     75 C8               jnz short 008A36FF
+> 008A3737     8B13                mov edx,dword ptr ds:\[ebx\]
+> 008A3739     85D2                test edx,edx
+> 008A373B     75 A9               jnz short 008A36E6//循环处理，处理结束则不再跳转
+> 008A373D     803D A07E8A00 00    cmp byte ptr ds:\[8A7EA0\],0
+> //EBX=003B63B0      ★结束地址
+> 008A3744     74 0B               je short 008A3751
+> 
+> ```
+> 
+>   
+
+  
+               
+得到重定位表信息：  
+RVA=00006000，大小＝003B63B0－003B6000＝000003B0  
+               
+               
+—————————————————————————————————  
+三、按照 EXE 的脱壳方法再找一次 OEP，Dump  
+               
+               
+现在我们设置 Ollydbg 忽略除了“内存访问异常”之外的所有其它异常选项。  
+Shift+F9 运行几次，来到 ASProtect 壳最后一次典型异常处。  
+               
+
+> ```
+> 代码:
+> 008A39EC     3100                xor dword ptr ds:\[eax\],eax//ASProtect 壳最后一次典型异常处
+> 008A39EE     64:8F05 00000000    pop dword ptr fs:\[0\]
+> 008A39F5     58                  pop eax
+> 008A39F6     833D B07E8A00 00    cmp dword ptr ds:\[8A7EB0\],0
+> 008A39FD     74 14               je short 008A3A13
+> 008A39FF     6A 0C               push 0C
+> 008A3A01     B9 B07E8A00         mov ecx,8A7EB0
+> 008A3A06     8D45 F8             lea eax,dword ptr ss:\[ebp\-8\]
+> 008A3A09     BA 04000000         mov edx,4
+> 008A3A0E     E8 2DD1FFFF         call 008A0B40
+> 008A3A13     FF75 FC             push dword ptr ss:\[ebp\-4\]
+> 008A3A16     FF75 F8             push dword ptr ss:\[ebp\-8\]
+> 008A3A19     8B45 F4             mov eax,dword ptr ss:\[ebp\-C\]
+> 008A3A1C     8338 00             cmp dword ptr ds:\[eax\],0
+> 008A3A1F     74 02               je short 008A3A23
+> 008A3A21     FF30                push dword ptr ds:\[eax\]
+> 008A3A23     FF75 F0             push dword ptr ss:\[ebp\-10\]
+> 008A3A26     FF75 EC             push dword ptr ss:\[ebp\-14\]
+> 008A3A29     C3                  retn//此处下断，Shift+F9 运行，断下
+> 
+> ```
+> 
+>   
+
+  
+               
+此时 ESP=0006F880,看看堆栈：  
+
+> ```
+> 代码:
+> 0006F880    008B3B90
+> 0006F884    003B0000
+> 0006F888    003B7066
+> 0006F88C    45A01122 //注意这里 ★
+> 
+> ```
+> 
+>   
+
+  
+               
+选中 0006F88C 转存处的 4 个字节，下“硬件访问－>Word”断点。F9 运行，中断下来  
+               
+
+> ```
+> 代码:
+> 008B3C75     05 A70060BA         add eax,BA6000A7//中断在这里
+> 008B3C7A     5C                  pop esp
+> 008B3C7B     0BC9                or ecx,ecx
+> 008B3C7D     74 02               je short 008B3C81
+> 008B3C7F     8901                mov dword ptr ds:\[ecx\],eax
+> 008B3C81     03C3                add eax,ebx
+> 008B3C83     894424 1C           mov dword ptr ss:\[esp+1C\],eax
+> 008B3C87     61                  popad
+> 008B3C88     FFE0                jmp eax; EdrLib.003B11C9//飞向光明之巅！ ^O^
+> 
+> ```
+> 
+>   
+
+  
+               
+            
+
+> ```
+> 代码:   
+> 003B11C9     55                  push ebp//OEP ★
+> 003B11CA     8BEC                mov ebp,esp
+> 003B11CC     53                  push ebx
+> 003B11CD     8B5D 08             mov ebx,dword ptr ss:\[ebp+8\]
+> 003B11D0     56                  push esi
+> 003B11D1     8B75 0C             mov esi,dword ptr ss:\[ebp+C\]
+> 003B11D4     57                  push edi
+> 003B11D5     8B7D 10             mov edi,dword ptr ss:\[ebp+10\]
+> 003B11D8     85F6                test esi,esi
+> 003B11DA     75 09               jnz short EdrLib.003B11E5
+> 
+> ```
+> 
+>   
+
+  
+                            
+用 LordPE 选中 Ollydbg 的 loaddll.exe 的进程，在下面的列表里选择 EdrLib.dll，然后完整脱壳，得到 dumped.dll。  
+所以书上说：“从某种意义上来讲，ASProtect V1.23RC4 加壳的 DLL 比 EXE 要容易处理些”。  
+               
+               
+—————————————————————————————————  
+四、输入表  
+               
+                          
+随便从程序找一个 API 调用，如：  
+003B109F     FF15 00403B00       call dword ptr ds:\[3B4000\]; GetTextExtentPoint32W  
+               
+在转存中跟随 3B4000，上下看到许多函数地址，很明显的可以找到 IAT 开始和结束的地址：  
+                        
+
+> ```
+> 代码:  
+> 003B4000  1D 51 C4 77 1C 3A C4 77 3E E7 C4 77 CC D2 C4 77   .Q.w.:.w>..w...w
+> 003B40C0  70 07 8B 00 80 07 8B 00 00 00 00 00 00 00 00 00   p...............
+> 
+> ```
+> 
+>   
+
+  
+                   
+开始地址＝003B4000  
+结束地址＝003B40C9  
+                            
+如果用 ImportREC 的插件来修复在 Ollydbg 中运行的 DLL 会导致 ImportREC 失去响应，所以我们用 DLL\_Loader.exe 加载这个 DLL，然后运行 ImportREC 1.42+来修复。注意：去掉 ImportREC 的“使用来自磁盘的 PE 部首”的选项！  
+                            
+选中 DLL\_Loader.exe 的进程，然后点“选取 DLL”，选择 EdrLib.dll，填入 RVA＝00004000、大小＝000000C8 ，点“Get Import”，用“追踪层次 1”和“ASProtect 1.3 calculated imports”插件全部修复无效函数。  
+注意，插件把一个函数认错了：  
+00004020  kernel32.dll  0130  GetCurrentProcess//应为：GetVersion  
+修改这个函数为 GetVersion，改 OEP=000011C9，FixDump！  
+               
+               
+—————————————————————————————————  
+五、PE 修正  
+               
+               
+用 LordPE 修正 dumped\_.dll 的重定位表 RVA=00006000、大小＝000003B0，保存之。  
+再用 LordPE 修正 dumped\_.dll 的基址为 003B0000，OK，脱壳完成啦。  
+如果在 008A36DC 处跳过了重定位处理，则不需要修改基址。                 
+              
+               
+—————————————————————————————————      
+
+> ```
+> 代码:                             
+>          ,     \_/ 
+>         /| \_.-~/            \\\_     ,        青春都一晌
+>        ( /~   /              \\~-.\_ |\\
+>        \`\\\\  \_/                \\   ~\\           忍把浮名 
+>    \_-~~~-.)  \_\_/;;,.          \\\_  //'
+>   /'\_,\\   --~   \\ ~~~-  ,;;\\\_\_\_(  (.-~~~-.        换了破解轻狂
+>  \`~ \_( ,\_..--\\ (     ,;'' /    ~--   /.\_\`\\ 
+>   /~~//'   /' \`~\\         ![](img/e45fac309594d4f9580d902b0ed40a73.jpg) /--..\_, ![](img/e45fac309594d4f9580d902b0ed40a73.jpg)\_  \`~
+>   "  \`~"  "      \`"      /~'\`\\    \`\\\\~~\\   
+>                          "     "   "~'  ""
+> 
+> ```
+> 
+>   
+
+  
+      
+  
+     Cracked By 巢水工作坊——fly \[OCN\]\[FCG\]\[NUKE\]\[DCM\]  
+  
+                2004-06-01  19:00  4dd466d0e1e0cc123afbe504da2462ca

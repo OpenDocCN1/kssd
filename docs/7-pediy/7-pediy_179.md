@@ -1,0 +1,87 @@
+
+
+# 注入静态文件------------修改引入表
+
+> 原文：[`www.pediy.com/kssd/pediy10/98062.html`](https://www.pediy.com/kssd/pediy10/98062.html)
+
+本文通过对引入表的修改，达到修改引入函数的调用流程。同时也可以在静态修改相关地址后，删除相关导入库，达到隐藏导入函数的目的。  
+相关工具：RadAsm,OllyICE,WinHex,Stud\_PE  
+**1.静态引入库函数的调用方法**  
+    CALL XXXX  
+XXXX：JMP \[AAAA\] 也可以直接 CALL \[AAAA\]  
+不管采用哪种方式，它们都得读取地址 AAAA 处的数据，如果修改 AAAA 地址处的数据就可以达到转移函数流程的功能。怎样去查找这个地址呢，这就得熟悉与导入表相关的数据结构。  
+typedef struct \_IMAGE\_IMPORT\_DESCRIPTOR {  
+    union {  
+        DWORD   Characteristics;        // 0 for terminating null import descriptor  
+        DWORD OriginalFirstThunk;   
+       };  
+ DWORD TimeDateStamp;                                                    
+  DWORD   ForwarderChain;       
+  DWORD   Name;  
+    DWORD   FirstThunk; // RVA to IAT (if bound this IAT has actual addresses)  
+} IMAGE\_IMPORT\_DESCRIPTOR;  
+typedef struct \_IMAGE\_THUNK\_DATA32 {  
+    union {  
+        PBYTE  ForwarderString;  
+        PDWORD Function;  
+        DWORD Ordinal;  
+        PIMAGE\_IMPORT\_BY\_NAME  AddressOfData;  
+    } u1;  
+} IMAGE\_THUNK\_DATA32;  
+  
+  在第一个数据结构中，我们只关心 FirstThunk 这个数据，它是指向一个 IMAGE\_THUNK\_DATA 数组的 RVA。在 Windows 加载可执行文件的过程中，windows 会将这个数据替换成相关函数的绝对地址。在没有替换之前，IMAGE\_THUNK\_DATA 数组的每一项是指向相关函数名的 RVA（如果函数通过序号引入，就不是这样）。通过定位要替换的函数，然后修改数组内容，就可以达到目的。  
+**2.添加一个段**  
+  修改的地址应该指向什么地方呢，当然是我所添加的代码。为了防止添加代码对原文件的影响，这里添加了一个新的段。  
+typedef struct \_IMAGE\_SECTION\_HEADER {  
+    BYTE    Name\[IMAGE\_SIZEOF\_SHORT\_NAME\];段名 8 个字节  
+    union {  
+            DWORD   PhysicalAddress;  
+            DWORD   VirtualSize;对齐前的长度  
+    } Misc;  
+    DWORD   VirtualAddress;段的 RVA  
+    DWORD   SizeOfRawData;对齐后在磁盘文件的大小  
+    DWORD   PointerToRawData;该段在磁盘文件中的偏移  
+    DWORD   PointerToRelocations;  
+    DWORD   PointerToLinenumbers;  
+    WORD    NumberOfRelocations;  
+    WORD    NumberOfLinenumbers;  
+    DWORD   Characteristics;  
+} IMAGE\_SECTION\_HEADER, \*PIMAGE\_SECTION\_HEADER;  
+  上面 IMAGE\_SECTION\_HEADER 这个数据结构，加黑体项都是一定要设置的，注意数据对齐，磁盘文件 200H，内存文件 1000H。设置好新段的数据后，还要修改 FileHeader.NumberOfSections 以及 OptionalHeader.SizeOfImage。特别是 SizeOfImage 的数值，计算不正确会死的很惨。具体的添加过程看代码吧。  
+**3.函数地址的动态获取和调用**  
+labelstart:  
+  MOV EBX,7C800000H;直接取 kernel32.dll 的地址 硬编码   
+  ;CALL GetAddr,EBX,0AADF0F1H;取 LoadLibraryA 的地址  
+  PUSH 0AADF0F1H  
+  PUSH EBX  
+label1:  CALL label1;调用自身 将来会被替换 E8 FFFFFFFBH ;label1-labelstart+Sec  
+  ;;调用 LoadLibraryA("USER32.dll")  
+  PUSH 00006C6CH;0 0 l l  
+  PUSH 642E3233H;d . 2 3  
+  PUSH 52455355H;R E S U  
+  MOV  EBX,ESP  
+  PUSH EBX  
+  CALL EAX  
+  ADD ESP,0CH  
+  ;;;;;;;;;;;;;  
+  ;;GetAddr,EBX,078A5C51H ;MessageBoxA  
+  PUSH 078A5C51H  
+  PUSH EAX  
+label2:  CALL label2   ;E8 FFFFFFFB  
+  JMP EAX;-------》这里就去了 MessageBoxA 了  
+  NOP  
+  NOP  
+labelend:  
+  NOP  
+上面这段代码是要写入新段的，而且在 CALL label1 和 CALL label2 这两处的代码在写入文件后是要修改成 GetAddr 地址的。GetAddr 这个函数就是用来获取函数地址的，它也会被写入到新段。  
+**4.代码的写入及函数调用重定位**  
+在实例中，写入了一个函数和一段函数调用代码。代码的写入，最重要的就是计算添加代码的长度，这个只需要在一段代码的收尾添加两个标号就可以了。函数在执行文件中，写入新的执行文件后，如果要调用的话就得重新计算相对偏移地址。  
+函数相对地址调用：CALL XXXX，XXXX 为调用处代码相对于函数的距离。这条指令的长度为 5BYTE，相对地址是有正负的，而且调用处指令的长度一定得加上或减去才行。  
+大家看代码吧，代码写的很乱。不知道这种程序能干什么，哎.............![](img/e71d9210a215d5b66755d038631e0c83.jpg "恐怖!")![](img/e71d9210a215d5b66755d038631e0c83.jpg "恐怖!")  
+排版有问题，请看附件中的 word 文档![](img/9d43c9aee695f95b024aafd1b69ffa5a.jpg "伤心")
+
+上传的附件
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || 附件.rar  
+ |
+|   
+ ||  |

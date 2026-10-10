@@ -1,0 +1,115 @@
+
+
+# 改造系统日期与时间功能
+
+> 原文：[`www.pediy.com/kssd/pediy11/105524.html`](https://www.pediy.com/kssd/pediy11/105524.html)
+
+【文章标题】: 改造系统日期与时间功能  
+【文章作者】: wxxw  
+【软件名称】: 系统自带  
+【保护方式】: 无壳  
+【编写语言】: Microsoft Visual C++ 7.0 Method2  
+【使用工具】: PEID 0.95  Olldbg1.10  resscope lordpe  
+【操作平台】: XP sp3  
+【软件介绍】: 不用介绍了吧  
+【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!  
+\--------------------------------------------------------------------------------  
+【详细过程】  
+    双击系统托盘区的时钟，会弹出系统日期与时间的对话框，遗憾的是它没有农历功能，于是想改造下，因为自己还不会编写农历功能，所以找到一现成文件 calendar.htm,想在对话框里添加按钮，点击弹出此页面查看，设想好了，开始动工  
+首先查看这个对话框，是由如下命令产生的：  
+ "C:\\WINDOWS\\system32\\rundll32.exe" /d C:\\WINDOWS\\system32\\shell32.dll,Control\_RunDLL timedate.cpl  
+大家可以搜索下控制面板和 CPL 文件的信息，下面只是简单的介绍  
+
+代码:
+
+```
+ CPL 文件是个特殊的 DLL 文件，它只有一个输出函数 CPlApplet();具 有 以 下 原 型： 
+         typedef LONG (APIENTRY \*APPLET\_PROC)(HWND hwndCpl, UINT msg,
+                                        LONG lParam1,LONG lParam2);
+其中接受处理的消息 msg 有如下类
+ CPL\_DYNAMIC\_RES equ 0
+ CPL\_INIT equ 1
+ CPL\_GETCOUNT equ 2
+ CPL\_INQUIRE equ 3
+ CPL\_SELECT equ 4
+ CPL\_DBLCLK equ 5
+ CPL\_STOP equ 6
+ CPL\_EXIT equ 7
+ CPL\_NEWINQUIRE   equ 8
+ CPL\_STARTWPARMSA equ 9
+ CPL\_STARTWPARMSW equ 10
+
+```
+
+我们的目标就是更改 timedate.cpl 文件了，因为有系统文件还原保护，所以先复制一份改名为 aaa.cpl,用资源编辑工具将对话框 10（注意：对话框 1 和 10 是相同的，试验改 10 才有效）添加一按钮“农历”,ID 为 104（68h)  
+用 od 载入 rundll32.exe，参数为 shell32.dll,Control\_RunDLL aaa.cpl,F9 运行后下消息断点，来到对话框的消息处理函数 aaa.583f495c,可以设条件断点\[esp+8\]==111 && \[esp+10\]==68,按下按钮断下来，单步来到处理 WM\_COMMAND 的代码  
+代码:
+
+```
+583F4DB6    8B5D 10         MOV EBX,DWORD PTR SS:\[EBP+10\]      ;\[ebp+10\]为 wparam,低位为 ID
+583F4DB9    0FB7C3          MOVZX EAX,BX
+583F4DBC    3D BD020000     CMP EAX,2BD
+583F4DC1    8945 0C         MOV DWORD PTR SS:\[EBP+C\],EAX
+583F4DC4    0F8C 81530000   JL aaa.583F51C0
+583F4DCA    8B3D D4113F58   MOV EDI,DWORD PTR DS:\[<&USER32.SendMessageW>\]    ; USER32.SendMessageW
+583F4DD0    33F6            XOR ESI,ESI
+583F4DD2    3D BF020000     CMP EAX,2BF
+583F4DD7    0F8E D3010000   JLE aaa.583F4FB0
+
+```
+
+改为  
+代码:
+
+```
+......
+583F4DC4    0F8C 81530000   JL aaa.583FA14B
+.....
+
+```
+
+在 583FA14B 添加如下代码  
+583FA14B    83F8 68         CMP EAX,68                            比较 ID 是否为“农历”按钮  
+583FA14E  ^ 0F85 6CB0FFFF   JNZ aaa.583F51C0  
+583FA154    60              PUSHAD  
+583FA155    6A 05           PUSH 5                             
+583FA157    6A 00           PUSH 0  
+583FA159    6A 00           PUSH 0  
+583FA15B    E8 1B000000     CALL aaa.583FA17B; 压入 unicode 字符“calendar.htm"的地址 583FA160  
+583FA160    6300            ARPL WORD PTR DS:\[EAX\],AX             
+583FA162    61              POPAD  
+583FA163    006C00 65       ADD BYTE PTR DS:\[EAX+EAX+65\],CH  
+583FA167    006E 00         ADD BYTE PTR DS:\[ESI\],CH  
+583FA16A    64:0061 00      ADD BYTE PTR FS:\[ECX\],AH  
+583FA16E    72 00           JB SHORT aaa.583FA170  
+583FA170    2E:0068 00      ADD BYTE PTR CS:\[EAX\],CH  
+583FA174    74 00           JE SHORT aaa.583FA176  
+583FA176    6D              INS DWORD PTR ES:\[EDI\],DX                        ; I/O 命令  
+583FA177    0000            ADD BYTE PTR DS:\[EAX\],AL  
+583FA179    0000            ADD BYTE PTR DS:\[EAX\],AL  
+583FA17B    6A 00           PUSH 0  
+583FA17D    6A 00           PUSH 0  
+583FA17F    8B4424 08       MOV EAX,DWORD PTR SS:\[ESP+8\]  
+583FA183    FF90 3C70FFFF   CALL DWORD PTR DS:\[EAX+FFFF703C\] ;shell32.ShellExecuteW,这里直接用上面字符串的地址做重定位  
+583FA189    61              POPAD  
+583FA18A  ^ E9 31B0FFFF     JMP aaa.583F51C0  
+  
+至此改造完毕，将附件解压到 c:\\windows\\system32 下  
+还得写个批处理  
+copy c:\\windows\\system32\\timedate.cpl c:\\windows\\system32\\timedate.cpl.bak  
+copy c:\\windows\\system32\\aaa.cpl c:\\windows\\system32\\timedate.cpl  
+copy c:\\windows\\system32\\timedate.cpl c:\\windows\\system32\\dllcache\\timedate.cpl  
+attrib c:\\windows\\system32\\timedate.cpl +h +r +s  
+attrib c:\\windows\\system32\\dllcache\\timedate.cpl +h +r +s  
+这样 timedate.cpl 文件就被替换了，呵呵，现在试一下吧,good luck!  
+  
+  
+  
+  
+ --------------------------------------------------------------------------------  
+【版权声明】: 看雪论坛首发，转载请注明作者并保持文章的完整, 谢谢!  
+ --------------------------------------------------------------------------------
+
+上传的附件
+| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) || aaa.rar  
+ |

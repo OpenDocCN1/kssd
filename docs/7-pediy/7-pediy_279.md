@@ -1,0 +1,103 @@
+
+
+# 给 winamp 添加透明效果
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6400.htm`](https://www.pediy.com/kssd/pediy06/pediy6400.htm)
+
+今天给 winamp 设置了打开时候自动变透明,这里简单写一下过程。   
+献给天下所有菜鸟   
+  
+1.先用 vc 自己实现一段让窗口变透明的代码，最好不要牵扯这段代码之外的变量(能搞清   
+  楚这些咚咚的人除外。。)，(代码网上很多，也可以见后面附一)   
+2.然后反汇编这段代码   
+3.把代码里 api 调用指针都改成目标程序里的指针(我的目标是 winamp，里面常见的 api 都   
+  用到了，大大的方便了我)   
+4.把字符串写到一个空闲的位置，也修改一下汇编代码里的便宜量(如果不知道怎么计算   
+  ，可以用 ollydbg 的汇编功能，我就是这么干的)   
+5.找个程序肯定执行到的位置(注意不要处于某个循环内，否则。。)，jmp 到我们的代码   
+6.整理一下这段代码，即前后 pushad,popad 一下，保护现场，安全第一，然后 popad 后再   
+  加上 jmp 覆盖的指令，再之后就 jmp 回去好了   
+7.修改，存盘。回头看看，也没啥技术可言，就是拷了一段代码。。   
+  
+  
+  
+附一:透明代码(省略了空指针检查什么的,所以在 win9x 里会直接非法操作)   
+//------------------------------------------------------------------------    
+HWND pthis;   
+pthis=::FindWindow(NULL,"窗口名称");// 我要改的是"Winamp 5.0rc666"   
+SetWindowLong(pthis,GWL\_EXSTYLE,GetWindowLong(pthis,GWL\_EXSTYLE)⁰x80000);   
+HINSTANCE hInst = LoadLibrary("User32.DLL");   
+typedef BOOL (WINAPI \*MYFUNC)(HWND,COLORREF,BYTE,DWORD);   
+MYFUNC fun = NULL;   
+fun=(MYFUNC)GetProcAddress(hInst, "SetLayeredWindowAttributes");   
+fun(pthis,0,128,2);// 128/255=透明度   
+FreeLibrary(hInst);   
+  
+  
+  
+附二:添加跳转   
+//------------------------------------------------------------------------    
+我们在这里添加跳转(说句实话加在这里是不对的,如果没有 plugin 目录,是不会执行到这   
+个位置,懒的改了)   
+00426890 83C4 04            ADD ESP,4   
+00426893 5F                 POP EDI   
+00426894 5E                 POP ESI   
+00426895 5D                 POP EBP   
+00426896 5B                 POP EBX   
+00426897 81C4 4C020000      ADD ESP,24C   
+更改以后成为这样   
+00426890 E9 F09D0200        JMP 00450685   
+00426895 5D                 POP EBP   
+00426896 5B                 POP EBX   
+00426897 81C4 4C020000      ADD ESP,24C   
+  
+  
+  
+附三:整理要添加的代码(vc 反汇编结果)   
+//------------------------------------------------------------------------    
+注意加号开头的地方,指针或偏移量是要改的,不会计算的话就找 ollydbg : )   
+此处添加  60                pushad   
+  HWND pthis;   
+  pthis=::FindWindow(NULL,"wintrans");   
++00401132 68 98244000       push        offset string "wintrans" (402498h)    
+ 00401137 6A 00             push        0       
++00401139 FF15 B4224000     call        dword ptr \[\_\_imp\_\_FindWindowA@8\]    
+ 0040113F 8B F0             mov         esi,eax    
+  SetWindowLong(pthis,GWL\_EXSTYLE,GetWindowLong(pthis,GWL\_EXSTYLE)⁰x80000);   
+ 00401141 6A EC             push        0FFFFFFECh    
+ 00401143 56                push        esi     
++00401144 FF15 C0224000     call        dword ptr \[\_\_imp\_\_GetWindowLongA@8\]    
+ 0040114A 35 00000800       xor         eax,80000h    
+ 0040114F 50                push        eax     
+ 00401150 6A EC             push        0FFFFFFECh    
+ 00401152 56                push        esi     
++00401153 FF15 C4224000     call        dword ptr \[\_\_imp\_\_SetWindowLongA@12\]    
+  HINSTANCE hInst = LoadLibrary("User32.DLL");   
++00401159 68 8C244000       push        offset string "User32.DLL" (40248Ch)    
++0040115E FF15 14204000     call        dword ptr \[\_\_imp\_\_LoadLibraryA@4\]    
+ 00401164 8B F8             mov         edi,eax    
+  typedef BOOL (WINAPI \*MYFUNC)(HWND,COLORREF,BYTE,DWORD);   
+  MYFUNC fun = NULL;   
+  fun=(MYFUNC)GetProcAddress(hInst, "SetLayeredWindowAttributes");   
++00401166 68 70244000       push        offset string "SetLayeredWindowAttributes"   
+ 0040116B 57                push        edi     
++0040116C FF15 10204000     call        dword ptr \[\_\_imp\_\_GetProcAddress@8\]    
+  fun(pthis,0,128,2);   
+ 00401172 6A 02             push        2       
+ 00401174 68 80000000       push        80h     
+ 00401179 6A 00             push        0       
+ 0040117B 56                push        esi     
+ 0040117C FF D0             call        eax     
+  FreeLibrary(hInst);   
+ 0040117E 57                push        edi     
++0040117F FF15 0C204000     call        dword ptr \[\_\_imp\_\_FreeLibrary@4\]    
+ 00401185 5F                pop         edi     
+ 00401186 5E                pop         esi     
+此处添加  61                popad   
+补充我们添加 jmp 时覆盖的指令   
+          83C4 04           ADD ESP,4   
+          5F                POP EDI   
+          5E                POP ESI   
+然后 jmp 回去   
++         E9 AB61FDFF       JMP 00426895   
+ 4dd466d0e1e0cc123afbe504da2462ca

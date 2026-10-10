@@ -1,0 +1,94 @@
+
+
+# QuickCHM2.49
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50404.htm`](https://www.pediy.com/kssd/pediy05/pediy50404.htm)
+
+一种获得文件大小的巧妙方法(谈 QuickCHM2.49 的自校验方法)   
+  
+作者：lzrlzr   
+时间：2003 年 2 月 9 日   
+信箱：lzrlzr\_crack@163.com   
+主文件 QuickCHM.exe 大小：1.35MB (1425920 字节)   
+  
+QuickCHM 2.49 的破解有很多方法，并不太难(已经有很多注册机了)，但它的自校验方法，简单巧妙，却令人感到有趣，可见作者的一番用心。   
+QuickCHM.exe 是用 ASPACK 2.1 压缩过的程序，软件脱壳后，运行时程序的主窗口一闪而过，程序自动退出,这是程序的自校验启动了。   
+  
+下面这是我得到的程序自校验的关键部分：   
+  
+0167:004FC2A2  E80D09FAFF          CALL      0049CBB4   
+0167:004FC2A7  8B9564FEFFFF        MOV      EDX,\[EBP\-019C\]   
+0167:004FC2AD  8B45F8              MOV      EAX,\[EBP\-08\]   
+0167:004FC2B0  E8AF22F2FF          CALL      0041E564   
+0167:004FC2B5  8B45F8              MOV      EAX,\[EBP\-08\]   
+0167:004FC2B8  8B10                MOV      EDX,\[EAX\]   
+0167:004FC2BA  FF12                CALL      \[EDX\]==========(1)====这个调用返回来的是文件大小，   
+0167:004FC2BC  83FA00              CMP      EDX,00                为了知道软件是如何得到文件   
+0167:004FC2BF  7509                JNZ      004FC2CA              大小的，在此跟进   
+0167:004FC2C1  3D20A10700          CMP      EAX,0007A120==========EAX 中存放的是真正的文件大小。   
+0167:004FC2C6  7610                JBE      004FC2D8              7A120H 十进制是 500000，文件大   
+0167:004FC2C8  EB02                JMP      004FC2CC              小低于或等于/不高于 500000 时，   
+0167:004FC2CA  7E0C                JLE      004FC2D8              自校验通过，如果大于 500000 时，   
+0167:004FC2CC  A1405E5000          MOV      EAX,\[00505E40\]        程序会自动退出。   
+0167:004FC2D1  8B00                MOV      EAX,\[EAX\]   
+0167:004FC2D3  E8B803FAFF          CALL      0049C690   
+  
+  
+跟进(1)后，来到这里：   
+  
+0167:004098DC  55                  PUSH      EBP   
+0167:004098DD  8BEC                MOV      EBP,ESP   
+0167:004098DF  83C4F8              ADD      ESP,-08   
+0167:004098E2  53                  PUSH      EBX   
+0167:004098E3  56                  PUSH      ESI   
+0167:004098E4  8BF2                MOV      ESI,EDX   
+0167:004098E6  8BD8                MOV      EBX,EAX   
+0167:004098E8  8B4508              MOV      EAX,\[EBP+08\]   
+0167:004098EB  8945F8              MOV      \[EBP\-08\],EAX   
+0167:004098EE  8B450C              MOV      EAX,\[EBP+0C\]   
+0167:004098F1  8945FC              MOV      \[EBP\-04\],EAX   
+0167:004098F4  56                  PUSH      ESI\==========ESI 的值是 00000002H   
+0167:004098F5  8D45FC              LEA      EAX,\[EBP\-04\]   
+0167:004098F8  50                  PUSH      EAX\==========EAX 的值是 007AF9CC   
+0167:004098F9  8B45F8              MOV      EAX,\[EBP\-08\]   
+0167:004098FC  50                  PUSH      EAX\==========EAX 的值是 00000000   
+0167:004098FD  53                  PUSH      EBX\==========EAX 的值是 00000080 (文件句柄)   
+0167:004098FE  E82DD9FFFF          CALL      KERNEL32!SetFilePointer  函数共有四个参数。   
+0167:00409903  8945F8              MOV      \[EBP\-08\],EAX\===========EAX 中存放的是真正的文件大小   
+0167:00409906  8B45F8              MOV      EAX,\[EBP\-08\]          这里是 15C200H (1425920)   
+0167:00409909  8B55FC              MOV      EDX,\[EBP\-04\]   
+0167:0040990C  5E                  POP      ESI   
+0167:0040990D  5B                  POP      EBX   
+0167:0040990E  59                  POP      ECX   
+0167:0040990F  59                  POP      ECX   
+0167:00409910  5D                  POP      EBP   
+0167:00409911  C20800              RET      0008   
+  
+  
+查 api 手册得到：   
+  
+DWORD SetFilePointer(  //功能：在一个文件中设置当前的读写位置   
+  
+    HANDLE  hFile,    //  Long，系统文件句柄   
+    LONG    lDistanceToMove,    //  Long，字节偏移量   
+    PLONG  lpDistanceToMoveHigh,    //  Long，指定一个长整数变量，其中包含了要使用的一个高双字偏移。可设为零    
+    DWORD  dwMoveMethod     // Long，下述常数之一   
+  );   
+  
+dwMoveMethod 常数:   
+FILE\_BEGIN    = 0  lOffset 将新位置设为从文件起始处开始算的起的一个偏移   
+FILE\_CURRENT  = 1  lOffset 将新位置设为从当前位置开始计算的一个偏移   
+FILE\_END      = 2  lOffset 将新位置设为从文件尾开始计算的一个偏移   
+  
+  
+函数返回值 ：Long，返回一个新位置，它采用从文件起始处开始算起的一个字节偏移量。   
+  
+总结：   
+  
+看到这里，相信大家已经明白了这种方法的原理，就是用 SetFilePointer 函数把文件指针移到文件最后，   
+这时 EAX 中返回的就是文件大小，再和一个数去比较，比较结果就是自校验成功与否的标志。   
+  
+在这个软件中，作者从文件尾移动 0 偏移，返回结果就是从文件起始处开始算起到文件尾的偏移值，   
+就是文件大小。   
+  
+其实，破解这个软件是不需要脱壳的，破解它的自校验也是没有必要的，但是，这一种方法是我们应该学习的。  4dd466d0e1e0cc123afbe504da2462ca

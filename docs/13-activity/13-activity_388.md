@@ -1,0 +1,624 @@
+
+
+# 第二阶段第一题 VM 代码还原，附虚拟机代码翻译工具
+
+> 原文：[`www.pediy.com/kssd/pediy11/123978.html`](https://www.pediy.com/kssd/pediy11/123978.html)
+
+虚拟机命令列表：  
+  
+
+代码:
+
+```
+0040D8D0  00401380        00 = vm\_ret
+0040D8D4  004013C0        01 = vm\_mov vm\_ELF,ELF
+0040D8D8  004013D0        02 = vm\_mov ELF,vm\_ELF
+0040D8DC  004013E0        03 = vm\_mov vm\_reg\[op1\],vm\_tmp\[op2\]
+0040D8E0  00401430        04 = vm\_mov vm\_tmp\[op1\],vm\_reg\[op2\]
+0040D8E4  00401480        05 = vm\_mov vm\_tmp\[op1\],vm\_tmp\[op2\]
+0040D8E8  004014D0        06 = vm\_mov vm\_tmp\[op1\],op2
+0040D8EC  00401520        07 = vm\_mov \[vm\_tmp\[op1\]\],vm\_tmp\[op2\]
+0040D8F0  00401580        08 = vm\_mov vm\_tmp\[op1\],\[vm\_tmp\[op2\]\]
+0040D8F4  004015E0        09 = vm\_add vm\_tmp\[0\],vm\_tmp\[1\]
+0040D8F8  004015F0        0A = vm\_sub vm\_tmp\[0\],vm\_tmp\[1\]
+0040D8FC  00401600        0B = vm\_mul vm\_tmp\[0\],vm\_tmp\[1\]
+0040D900  00401640        0C = vm\_div vm\_tmp\[0\],vm\_tmp\[1\]
+0040D904  00401690        0D = vm\_test\_ELF op1     op1==0:JMP,1:JZ,2:JNZ,3:JL,4:JBE,4+:NO
+0040D908  00401720        0E = vm\_jmp\_by\_FLAG op1
+0040D90C  00401780        0F = vm\_addf vm\_tmp\[0\],vm\_tmp\[1\]    set vm\_ELF
+0040D910  004017F0        10 = vm\_subf vm\_tmp\[0\],vm\_tmp\[1\]    set vm\_ELF
+0040D914  00401860        11 = vm\_mulf vm\_tmp\[0\],vm\_tmp\[1\]    set vm\_ELF
+0040D918  00401920        12 = vm\_divf vm\_tmp\[0\],vm\_tmp\[1\]    set vm\_ELF
+0040D91C  004019E0        13 = vm\_testf vm\_tmp\[0\],vm\_tmp\[1\]    set vm\_ELF
+0040D920  00401A40        14 = vm\_andf vm\_tmp\[0\],vm\_tmp\[1\]    set vm\_ELF
+0040D924  00401AF0        15 = vm\_xorf vm\_tmp\[0\],vm\_tmp\[1\]    set vm\_ELF
+0040D928  00401BA0        16 = vm\_orf vm\_tmp\[0\],vm\_tmp\[1\]    set vm\_ELF
+0040D92C  00401C50        17 = vm\_notf vm\_tmp\[0\]    set vm\_ELF
+0040D930  00401CF0        18 = vm\_shrf vm\_tmp\[0\],vm\_tmp\[1\]    set vm\_ELF
+0040D934  00401DA0        19 = vm\_sarf vm\_tmp\[0\],vm\_tmp\[1\]    set vm\_ELF
+0040D938  00401E50        1A = vm\_shlf vm\_tmp\[0\],vm\_tmp\[1\]    set vm\_ELF
+0040D93C  00401E50        1B = vm\_shlf vm\_tmp\[0\],vm\_tmp\[1\]    set vm\_ELF
+0040D940  00401F00        1C = nop
+0040D944  00401F00        1D = nop
+
+```
+
+  
+VM ENGINE 1:  
+ENTRY: 40111E  
+VM CMD: 40CDD0  
+VM CMD len: 4A0  
+  
+代码:
+
+```
+0040CDD0  01 00 00 00 00 00 00 00 00 00 00 00  vm\_mov vm\_ELF,ELF
+0040CDE0  04 00 00 00 00 00 00 00 04 00 00 00  vm\_mov vm\_tmp\[0\],ESP
+0040CDF0  06 00 00 00 01 00 00 00 FC FF FF FF  vm\_mov vm\_tmp\[1\],-4
+0040CE00  09 00 00 00 00 00 00 00 00 00 00 00  vm\_add vm\_tmp\[0\],vm\_tmp\[1\]
+0040CE10  03 00 00 00 04 00 00 00 00 00 00 00  vm\_mov ESP,vm\_tmp\[0\]
+0040CE20  04 00 00 00 01 00 00 00 02 00 00 00  vm\_mov vm\_tmp\[1\],ESI
+0040CE30  07 00 00 00 00 00 00 00 01 00 00 00  vm\_mov \[vm\_tmp\[0\]\],vm\_tmp\[1\]
+push esi
+
+0040CE40  04 00 00 00 00 00 00 00 06 00 00 00  vm\_mov vm\_tmp\[0\],EDX
+0040CE50  04 00 00 00 01 00 00 00 06 00 00 00  vm\_mov vm\_tmp\[1\],EDX
+0040CE60  15 00 00 00 00 00 00 00 00 00 00 00  vm\_xorf vm\_tmp\[0\],vm\_tmp\[1\]
+0040CE70  02 00 00 00 00 00 00 00 00 00 00 00  vm\_mov ELF,vm\_ELF
+0040CE80  03 00 00 00 06 00 00 00 00 00 00 00  vm\_mov EDX,vm\_tmp\[0\]
+xor edx,edx
+
+0040CE90  06 00 00 00 00 00 00 00 E0 EC 40 00  vm\_mov vm\_tmp\[0\],0040ECE0
+0040CEA0  03 00 00 00 07 00 00 00 00 00 00 00  vm\_mov ECX,vm\_tmp\[0\]
+mov ecx,0040ECE0
+
+0040CEB0  04 00 00 00 00 00 00 00 06 00 00 00  vm\_mov vm\_tmp\[0\],EDX
+0040CEC0  03 00 00 00 08 00 00 00 00 00 00 00  vm\_mov EAX,vm\_tmp\[0\]
+mov eax,edx
+
+0040CED0  06 00 00 00 00 00 00 00 08 00 00 00  vm\_mov vm\_tmp\[0\],8
+0040CEE0  03 00 00 00 02 00 00 00 00 00 00 00  vm\_mov ESI,vm\_tmp\[0\]
+mov esi,8
+
+0040CEF0  04 00 00 00 00 00 00 00 08 00 00 00  vm\_mov vm\_tmp\[0\],EAX
+0040CF00  06 00 00 00 01 00 00 00 01 00 00 00  vm\_mov vm\_tmp\[1\],1
+0040CF10  13 00 02 00 00 00 00 00 00 00 00 00  vm\_testf byte vm\_tmp\[0\],byte vm\_tmp\[1\]
+test al,1
+
+0040CF20  0D 00 00 00 01 00 00 00 00 00 00 00  vm\_test\_ELF 1
+0040CF30  0E 00 00 00 0A 00 00 00 00 00 00 00  vm\_jmp\_by\_FLAG +0A:0040CFE0
+jz 0040CFE0
+
+0040CF40  04 00 00 00 00 00 00 00 08 00 00 00  vm\_mov vm\_tmp\[0\],EAX
+0040CF50  06 00 00 00 01 00 00 00 01 00 00 00  vm\_mov vm\_tmp\[1\],1
+0040CF60  18 00 00 00 00 00 00 00 00 00 00 00  vm\_shrf vm\_tmp\[0\],vm\_tmp\[1\]
+0040CF70  03 00 00 00 08 00 00 00 00 00 00 00  vm\_mov EAX,vm\_tmp\[0\]
+shr eax,1
+
+0040CF80  04 00 00 00 00 00 00 00 08 00 00 00  vm\_mov vm\_tmp\[0\],EAX
+0040CF90  06 00 00 00 01 00 00 00 20 83 B0 ED  vm\_mov vm\_tmp\[1\],EDB08320
+0040CFA0  15 00 00 00 00 00 00 00 00 00 00 00  vm\_xorf vm\_tmp\[0\],vm\_tmp\[1\]
+0040CFB0  03 00 00 00 08 00 00 00 00 00 00 00  vm\_mov EAX,vm\_tmp\[0\]
+xor eax,EDB08320
+
+0040CFC0  0D 00 00 00 00 00 00 00 00 00 00 00  vm\_test\_ELF 0
+0040CFD0  0E 00 00 00 04 00 00 00 00 00 00 00  vm\_jmp\_by\_FLAG +04:0040D020
+jmp 0040D020
+
+0040CFE0  04 00 00 00 00 00 00 00 08 00 00 00  vm\_mov vm\_tmp\[0\],EAX
+0040CFF0  06 00 00 00 01 00 00 00 01 00 00 00  vm\_mov vm\_tmp\[1\],1
+0040D000  18 00 00 00 00 00 00 00 00 00 00 00  vm\_shrf vm\_tmp\[0\],vm\_tmp\[1\]
+0040D010  03 00 00 00 08 00 00 00 00 00 00 00  vm\_mov EAX,vm\_tmp\[0\]
+shr eax,1
+
+0040D020  04 00 00 00 00 00 00 00 02 00 00 00  vm\_mov vm\_tmp\[0\],ESI
+0040D030  06 00 00 00 01 00 00 00 01 00 00 00  vm\_mov vm\_tmp\[1\],1
+0040D040  10 00 00 00 00 00 00 00 00 00 00 00  vm\_subf vm\_tmp\[0\],vm\_tmp\[1\]
+0040D050  03 00 00 00 02 00 00 00 00 00 00 00  vm\_mov ESI,vm\_tmp\[0\]
+dec esi
+
+0040D060  0D 00 00 00 02 00 00 00 00 00 00 00  vm\_test\_ELF 2
+0040D070  0E 00 00 00 E7 FF FF FF 00 00 00 00  vm\_jmp\_by\_FLAG FFFFFFE7:0040CEF0
+jnz 0040CEF0
+
+0040D080  04 00 00 00 01 00 00 00 08 00 00 00  vm\_mov vm\_tmp\[1\],EAX
+0040D090  04 00 00 00 00 00 00 00 07 00 00 00  vm\_mov vm\_tmp\[0\],ECX
+0040D0A0  07 00 00 00 00 00 00 00 01 00 00 00  vm\_mov \[vm\_tmp\[0\]\],vm\_tmp\[1\]
+mov \[ecx\],eax
+
+0040D0B0  04 00 00 00 00 00 00 00 07 00 00 00  vm\_mov vm\_tmp\[0\],ECX
+0040D0C0  06 00 00 00 01 00 00 00 04 00 00 00  vm\_mov vm\_tmp\[1\],4
+0040D0D0  0F 00 00 00 00 00 00 00 00 00 00 00  vm\_addf vm\_tmp\[0\],vm\_tmp\[1\]
+0040D0E0  03 00 00 00 07 00 00 00 00 00 00 00  vm\_mov ECX,vm\_tmp\[0\]
+add ecx,4
+
+0040D0F0  04 00 00 00 00 00 00 00 06 00 00 00  vm\_mov vm\_tmp\[0\],EDX
+0040D100  06 00 00 00 01 00 00 00 01 00 00 00  vm\_mov vm\_tmp\[1\],1
+0040D110  0F 00 00 00 00 00 00 00 00 00 00 00  vm\_addf vm\_tmp\[0\],vm\_tmp\[1\]
+0040D120  03 00 00 00 06 00 00 00 00 00 00 00  vm\_mov EDX,vm\_tmp\[0\]
+add edx,1
+
+0040D130  04 00 00 00 00 00 00 00 07 00 00 00  vm\_mov vm\_tmp\[0\],ECX
+0040D140  06 00 00 00 01 00 00 00 E0 F0 40 00  vm\_mov vm\_tmp\[1\],0040F0E0
+0040D150  10 00 00 00 00 00 00 00 00 00 00 00  vm\_subf vm\_tmp\[0\],vm\_tmp\[1\]
+cmp ecx,0040F0E0
+
+0040D160  0D 00 00 00 03 00 00 00 00 00 00 00  vm\_test\_ELF 3
+0040D170  0E 00 00 00 D3 FF FF FF 00 00 00 00  vm\_jmp\_by\_FLAG FFFFFFD3:0040CEB0
+jl 0040CEB0
+
+0040D180  04 00 00 00 00 00 00 00 04 00 00 00  vm\_mov vm\_tmp\[0\],ESP
+0040D190  08 00 00 00 01 00 00 00 00 00 00 00  vm\_mov vm\_tmp\[1\],\[vm\_tmp\[0\]\]
+0040D1A0  03 00 00 00 02 00 00 00 01 00 00 00  vm\_mov ESI,vm\_tmp\[1\]
+0040D1B0  04 00 00 00 00 00 00 00 04 00 00 00  vm\_mov vm\_tmp\[0\],ESP
+0040D1C0  06 00 00 00 01 00 00 00 04 00 00 00  vm\_mov vm\_tmp\[1\],4
+0040D1D0  09 00 00 00 00 00 00 00 00 00 00 00  vm\_add vm\_tmp\[0\],vm\_tmp\[1\]
+0040D1E0  03 00 00 00 04 00 00 00 00 00 00 00  vm\_mov ESP,vm\_tmp\[0\]
+pop esi
+
+0040D1F0  04 00 00 00 00 00 00 00 04 00 00 00  vm\_mov vm\_tmp\[0\],ESP
+0040D200  08 00 00 00 07 00 00 00 00 00 00 00  vm\_mov vm\_tmp\[7\],\[vm\_tmp\[0\]\]
+0040D210  04 00 00 00 00 00 00 00 04 00 00 00  vm\_mov vm\_tmp\[0\],ESP
+0040D220  06 00 00 00 01 00 00 00 04 00 00 00  vm\_mov vm\_tmp\[1\],4
+0040D230  09 00 00 00 00 00 00 00 00 00 00 00  vm\_add vm\_tmp\[0\],vm\_tmp\[1\]
+0040D240  03 00 00 00 04 00 00 00 00 00 00 00  vm\_mov ESP,vm\_tmp\[0\]
+pop vm\_ret\_addr
+
+0040D250  02 00 00 00 00 00 00 00 00 00 00 00  vm\_mov ELF,vm\_ELF
+0040D260  00 00 00 00 00 00 00 00 00 00 00 00  vm\_ret
+ret
+
+```
+
+总结汇编代码为：  
+  
+代码:
+
+```
+push esi
+xor edx,edx
+mov ecx,0040ECE0
+0040CEB0:
+mov eax,edx
+mov esi,8
+0040CEF0:
+test al,1
+jz 0040CFE0
+shr eax,1
+xor eax,EDB08320
+jmp 0040D020
+0040CFE0:
+shr eax,1
+0040D020:
+dec esi
+jnz 0040CEF0
+mov \[ecx\],eax
+add ecx,4
+add edx,1
+cmp ecx,0040F0E0
+jl 0040CEB0
+pop esi
+pop vm\_ret\_addr
+ret
+
+```
+
+VM ENGINE 2:  
+ENTRY: 401126  
+VM CMD: 40D948  
+VM CMD len: 240  
+  
+代码:
+
+```
+0040D948  01 00 00 00 00 00 00 00 00 00 00 00   vm\_mov vm\_ELF,ELF
+0040D958  04 00 00 00 00 00 00 00 04 00 00 00   vm\_mov vm\_tmp\[0\],ESP
+0040D968  06 00 00 00 01 00 00 00 FC FF FF FF   vm\_mov vm\_tmp\[1\],FFFFFFFC
+0040D978  09 00 00 00 00 00 00 00 00 00 00 00   vm\_add vm\_tmp\[0\],vm\_tmp\[1\]
+0040D988  03 00 00 00 04 00 00 00 00 00 00 00   vm\_mov ESP,vm\_tmp\[0\]
+0040D998  04 00 00 00 01 00 00 00 02 00 00 00   vm\_mov vm\_tmp\[1\],ESI
+0040D9A8  07 00 00 00 00 00 00 00 01 00 00 00   vm\_mov \[vm\_tmp\[0\]\],vm\_tmp\[1\]
+push esi
+
+0040D9B8  04 00 00 00 00 00 00 00 03 00 00 00   vm\_mov vm\_tmp\[0\],EBP
+0040D9C8  06 00 00 00 01 00 00 00 30 00 00 00   vm\_mov vm\_tmp\[1\],00000030
+0040D9D8  0A 00 00 00 00 00 00 00 00 00 00 00   vm\_sub vm\_tmp\[0\],vm\_tmp\[1\]
+0040D9E8  08 00 00 00 00 00 00 00 00 00 00 00   vm\_mov vm\_tmp\[0\],\[vm\_tmp\[0\]\]
+0040D9F8  03 00 00 00 02 00 00 00 00 00 00 00   vm\_mov ESI,vm\_tmp\[0\]
+mov esi,\[ebp-30\]
+
+0040DA08  04 00 00 00 00 00 00 00 02 00 00 00   vm\_mov vm\_tmp\[0\],ESI
+0040DA18  06 00 00 00 01 00 00 00 08 00 00 00   vm\_mov vm\_tmp\[1\],00000008
+0040DA28  09 00 00 00 00 00 00 00 00 00 00 00   vm\_add vm\_tmp\[0\],vm\_tmp\[1\]
+0040DA38  08 00 00 00 00 00 00 00 00 00 00 00   vm\_mov vm\_tmp\[0\],\[vm\_tmp\[0\]\]
+0040DA48  03 00 00 00 08 00 00 00 00 00 00 00   vm\_mov EAX,vm\_tmp\[0\]
+mov eax,\[esi+8\]
+
+0040DA58  04 00 00 00 00 00 00 00 04 00 00 00   vm\_mov vm\_tmp\[0\],ESP
+0040DA68  06 00 00 00 01 00 00 00 FC FF FF FF   vm\_mov vm\_tmp\[1\],FFFFFFFC
+0040DA78  09 00 00 00 00 00 00 00 00 00 00 00   vm\_add vm\_tmp\[0\],vm\_tmp\[1\]
+0040DA88  03 00 00 00 04 00 00 00 00 00 00 00   vm\_mov ESP,vm\_tmp\[0\]
+0040DA98  04 00 00 00 01 00 00 00 08 00 00 00   vm\_mov vm\_tmp\[1\],EAX
+0040DAA8  07 00 00 00 00 00 00 00 01 00 00 00   vm\_mov \[vm\_tmp\[0\]\],vm\_tmp\[1\]
+push eax
+
+0040DAB8  04 00 00 00 00 00 00 00 02 00 00 00   vm\_mov vm\_tmp\[0\],ESI
+0040DAC8  03 00 00 00 08 00 00 00 00 00 00 00   vm\_mov EAX,vm\_tmp\[0\]
+mov eax,esi
+
+0040DAD8  04 00 00 00 00 00 00 00 08 00 00 00   vm\_mov vm\_tmp\[0\],EAX
+0040DAE8  06 00 00 00 01 00 00 00 10 00 00 00   vm\_mov vm\_tmp\[1\],00000010
+0040DAF8  0F 00 00 00 00 00 00 00 00 00 00 00   vm\_addf vm\_tmp\[0\],vm\_tmp\[1\]
+0040DB08  03 00 00 00 08 00 00 00 00 00 00 00   vm\_mov EAX,vm\_tmp\[0\]
+add eax,10
+
+0040DB18  04 00 00 00 00 00 00 00 04 00 00 00   vm\_mov vm\_tmp\[0\],ESP
+0040DB28  06 00 00 00 01 00 00 00 FC FF FF FF   vm\_mov vm\_tmp\[1\],FFFFFFFC
+0040DB38  09 00 00 00 00 00 00 00 00 00 00 00   vm\_add vm\_tmp\[0\],vm\_tmp\[1\]
+0040DB48  03 00 00 00 04 00 00 00 00 00 00 00   vm\_mov ESP,vm\_tmp\[0\]
+0040DB58  04 00 00 00 01 00 00 00 08 00 00 00   vm\_mov vm\_tmp\[1\],EAX
+0040DB68  07 00 00 00 00 00 00 00 01 00 00 00   vm\_mov \[vm\_tmp\[0\]\],vm\_tmp\[1\]
+push eax
+
+0040DB78  02 00 00 00 00 00 00 00 00 00 00 00   vm\_mov ELF,vm\_ELF
+
+```
+
+总结汇编代码为：  
+  
+代码:
+
+```
+push esi
+mov esi,\[ebp-30\]
+mov eax,\[esi+8\]
+push eax
+mov eax,esi
+add eax,10
+push eax
+
+```
+
+VM ENGINE 3:  
+ENTRY:401160  
+VM CMD:40D270  
+VM CMD len:660  
+  
+代码:
+
+```
+0040D270  01 00 00 00 00 00 00 00 00 00 00 00  vm\_mov vm\_ELF,ELF
+0040D280  04 00 00 00 00 00 00 00 04 00 00 00  vm\_mov vm\_tmp\[0\],ESP
+0040D290  06 00 00 00 01 00 00 00 FC FF FF FF  vm\_mov vm\_tmp\[1\],FFFFFFFC
+0040D2A0  09 00 00 00 00 00 00 00 00 00 00 00  vm\_add vm\_tmp\[0\],vm\_tmp\[1\]
+0040D2B0  03 00 00 00 04 00 00 00 00 00 00 00  vm\_mov ESP,vm\_tmp\[0\]
+0040D2C0  04 00 00 00 01 00 00 00 02 00 00 00  vm\_mov vm\_tmp\[1\],ESI
+0040D2D0  07 00 00 00 00 00 00 00 01 00 00 00  vm\_mov \[vm\_tmp\[0\]\],vm\_tmp\[1\]
+push esi
+
+0040D2E0  04 00 00 00 00 00 00 00 04 00 00 00  vm\_mov vm\_tmp\[0\],ESP
+0040D2F0  06 00 00 00 01 00 00 00 0C 00 00 00  vm\_mov vm\_tmp\[1\],C
+0040D300  09 00 00 00 00 00 00 00 00 00 00 00  vm\_add vm\_tmp\[0\],vm\_tmp\[1\]
+0040D310  08 00 00 00 00 00 00 00 00 00 00 00  vm\_mov vm\_tmp\[0\],\[vm\_tmp\[0\]\]
+0040D320  03 00 00 00 02 00 00 00 00 00 00 00  vm\_mov ESI,vm\_tmp\[0\]
+mov esi,\[esp+C\]
+
+0040D330  04 00 00 00 00 00 00 00 08 00 00 00  vm\_mov vm\_tmp\[0\],EAX
+0040D340  06 00 00 00 01 00 00 00 FF FF FF FF  vm\_mov vm\_tmp\[1\],FFFFFFFF
+0040D350  16 00 00 00 00 00 00 00 00 00 00 00  vm\_orf vm\_tmp\[0\],vm\_tmp\[1\]
+0040D360  03 00 00 00 08 00 00 00 00 00 00 00  vm\_mov EAX,vm\_tmp\[0\]
+or eax,FFFFFFFF
+
+0040D370  04 00 00 00 00 00 00 00 02 00 00 00  vm\_mov vm\_tmp\[0\],ESI
+0040D380  04 00 00 00 01 00 00 00 02 00 00 00  vm\_mov vm\_tmp\[1\],ESI
+0040D390  13 00 00 00 00 00 00 00 00 00 00 00  vm\_testf vm\_tmp\[0\],vm\_tmp\[1\]
+test esi,esi
+
+0040D3A0  0D 00 00 00 04 00 00 00 00 00 00 00  vm\_test\_ELF 4
+0040D3B0  0E 00 00 00 3F 00 00 00 00 00 00 00  vm\_jmp\_by\_FLAG +3F:0040D7B0
+jbe 0040D7B0
+
+0040D3C0  04 00 00 00 00 00 00 00 04 00 00 00  vm\_mov vm\_tmp\[0\],ESP
+0040D3D0  06 00 00 00 01 00 00 00 08 00 00 00  vm\_mov vm\_tmp\[1\],8
+0040D3E0  09 00 00 00 00 00 00 00 00 00 00 00  vm\_add vm\_tmp\[0\],vm\_tmp\[1\]
+0040D3F0  08 00 00 00 00 00 00 00 00 00 00 00  vm\_mov vm\_tmp\[0\],\[vm\_tmp\[0\]\]
+0040D400  03 00 00 00 07 00 00 00 00 00 00 00  vm\_mov ECX,vm\_tmp\[0\]
+mov ecx,\[esp+8\]
+
+0040D410  04 00 00 00 00 00 00 00 04 00 00 00  vm\_mov vm\_tmp\[0\],ESP
+0040D420  06 00 00 00 01 00 00 00 FC FF FF FF  vm\_mov vm\_tmp\[1\],FFFFFFFC
+0040D430  09 00 00 00 00 00 00 00 00 00 00 00  vm\_add vm\_tmp\[0\],vm\_tmp\[1\]
+0040D440  03 00 00 00 04 00 00 00 00 00 00 00  vm\_mov ESP,vm\_tmp\[0\]
+0040D450  04 00 00 00 01 00 00 00 05 00 00 00  vm\_mov vm\_tmp\[1\],EBX
+0040D460  07 00 00 00 00 00 00 00 01 00 00 00  vm\_mov \[vm\_tmp\[0\]\],vm\_tmp\[1\]
+push ebx
+
+0040D470  04 00 00 00 00 00 00 00 08 00 00 00  vm\_mov vm\_tmp\[0\],EAX
+0040D480  03 00 00 00 06 00 00 00 00 00 00 00  vm\_mov EDX,vm\_tmp\[0\]
+mov edx,eax
+
+0040D490  04 00 00 00 00 00 00 00 05 00 00 00  vm\_mov vm\_tmp\[0\],EBX
+0040D4A0  04 00 00 00 01 00 00 00 05 00 00 00  vm\_mov vm\_tmp\[1\],EBX
+0040D4B0  15 00 00 00 00 00 00 00 00 00 00 00  vm\_xorf vm\_tmp\[0\],vm\_tmp\[1\]
+0040D4C0  02 00 00 00 00 00 00 00 00 00 00 00  vm\_mov ELF,vm\_ELF
+0040D4D0  03 00 00 00 05 00 00 00 00 00 00 00  vm\_mov EBX,vm\_tmp\[0\]
+xor ebx,ebx
+
+0040D4E0  04 00 00 00 00 00 00 00 07 00 00 00  vm\_mov vm\_tmp\[0\],ECX
+0040D4F0  08 00 02 00 00 00 00 00 00 00 00 00  vm\_mov byte vm\_tmp\[0\],byte \[vm\_tmp\[0\]\]
+0040D500  03 00 02 00 05 00 00 00 00 00 00 00  vm\_mov byte EBX,byte vm\_tmp\[0\]
+mov ebx,byte ptr \[ecx\]
+
+0040D510  04 00 00 00 00 00 00 00 06 00 00 00  vm\_mov vm\_tmp\[0\],EDX
+0040D520  06 00 00 00 01 00 00 00 FF 00 00 00  vm\_mov vm\_tmp\[1\],000000FF
+0040D530  14 00 00 00 00 00 00 00 00 00 00 00  vm\_andf vm\_tmp\[0\],vm\_tmp\[1\]
+0040D540  03 00 00 00 06 00 00 00 00 00 00 00  vm\_mov EDX,vm\_tmp\[0\]
+and edx,FF
+
+0040D550  04 00 00 00 00 00 00 00 06 00 00 00  vm\_mov vm\_tmp\[0\],EDX
+0040D560  04 00 00 00 01 00 00 00 05 00 00 00  vm\_mov vm\_tmp\[1\],EBX
+0040D570  15 00 00 00 00 00 00 00 00 00 00 00  vm\_xorf vm\_tmp\[0\],vm\_tmp\[1\]
+0040D580  02 00 00 00 00 00 00 00 00 00 00 00  vm\_mov ELF,vm\_ELF
+0040D590  03 00 00 00 06 00 00 00 00 00 00 00  vm\_mov EDX,vm\_tmp\[0\]
+xor edx,ebx
+
+0040D5A0  04 00 00 00 00 00 00 00 08 00 00 00  vm\_mov vm\_tmp\[0\],EAX
+0040D5B0  06 00 00 00 01 00 00 00 08 00 00 00  vm\_mov vm\_tmp\[1\],8
+0040D5C0  18 00 00 00 00 00 00 00 00 00 00 00  vm\_shrf vm\_tmp\[0\],vm\_tmp\[1\]
+0040D5D0  03 00 00 00 08 00 00 00 00 00 00 00  vm\_mov EAX,vm\_tmp\[0\]
+shr eax,8
+
+0040D5E0  04 00 00 00 00 00 00 00 06 00 00 00  vm\_mov vm\_tmp\[0\],EDX
+0040D5F0  06 00 00 00 01 00 00 00 04 00 00 00  vm\_mov vm\_tmp\[1\],4
+0040D600  0B 00 00 00 00 00 00 00 00 00 00 00  vm\_mul vm\_tmp\[0\],vm\_tmp\[1\]
+0040D610  06 00 00 00 01 00 00 00 E0 EC 40 00  vm\_mov vm\_tmp\[1\],0040ECE0
+0040D620  09 00 00 00 00 00 00 00 00 00 00 00  vm\_add vm\_tmp\[0\],vm\_tmp\[1\]
+0040D630  08 00 00 00 00 00 00 00 00 00 00 00  vm\_mov vm\_tmp\[0\],\[vm\_tmp\[0\]\]
+0040D640  03 00 00 00 06 00 00 00 00 00 00 00  vm\_mov EDX,vm\_tmp\[0\]
+mov edx,\[0040ECE0+edx\*4\]
+
+0040D650  04 00 00 00 00 00 00 00 08 00 00 00  vm\_mov vm\_tmp\[0\],EAX
+0040D660  04 00 00 00 01 00 00 00 06 00 00 00  vm\_mov vm\_tmp\[1\],EDX
+0040D670  16 00 00 00 00 00 00 00 00 00 00 00  vm\_orf vm\_tmp\[0\],vm\_tmp\[1\]
+0040D680  02 00 00 00 00 00 00 00 00 00 00 00  vm\_mov ELF,vm\_ELF
+0040D690  03 00 00 00 08 00 00 00 00 00 00 00  vm\_mov EAX,vm\_tmp\[0\]
+or eax,edx
+
+0040D6A0  04 00 00 00 00 00 00 00 07 00 00 00  vm\_mov vm\_tmp\[0\],ECX
+0040D6B0  06 00 00 00 01 00 00 00 01 00 00 00  vm\_mov vm\_tmp\[1\],1
+0040D6C0  0F 00 00 00 00 00 00 00 00 00 00 00  vm\_addf vm\_tmp\[0\],vm\_tmp\[1\]
+0040D6D0  03 00 00 00 07 00 00 00 00 00 00 00  vm\_mov ECX,vm\_tmp\[0\]
+inc ecx
+
+0040D6E0  04 00 00 00 00 00 00 00 02 00 00 00  vm\_mov vm\_tmp\[0\],ESI
+0040D6F0  06 00 00 00 01 00 00 00 01 00 00 00  vm\_mov vm\_tmp\[1\],1
+0040D700  10 00 00 00 00 00 00 00 00 00 00 00  vm\_subf vm\_tmp\[0\],vm\_tmp\[1\]
+0040D710  03 00 00 00 02 00 00 00 00 00 00 00  vm\_mov ESI,vm\_tmp\[0\]
+dec esi
+
+0040D720  0D 00 00 00 02 00 00 00 00 00 00 00  vm\_test\_ELF 2
+0040D730  0E 00 00 00 D3 FF FF FF 00 00 00 00  vm\_jmp\_by\_FLAG FFFFFFD3:0040D470
+jnz 0040D470
+
+0040D740  04 00 00 00 00 00 00 00 04 00 00 00  vm\_mov vm\_tmp\[0\],ESP
+0040D750  08 00 00 00 01 00 00 00 00 00 00 00  vm\_mov vm\_tmp\[1\],\[vm\_tmp\[0\]\]
+0040D760  03 00 00 00 05 00 00 00 01 00 00 00  vm\_mov EBX,vm\_tmp\[1\]
+0040D770  04 00 00 00 00 00 00 00 04 00 00 00  vm\_mov vm\_tmp\[0\],ESP
+0040D780  06 00 00 00 01 00 00 00 04 00 00 00  vm\_mov vm\_tmp\[1\],4
+0040D790  09 00 00 00 00 00 00 00 00 00 00 00  vm\_add vm\_tmp\[0\],vm\_tmp\[1\]
+0040D7A0  03 00 00 00 04 00 00 00 00 00 00 00  vm\_mov ESP,vm\_tmp\[0\]
+pop ebx
+
+0040D7B0  04 00 00 00 00 00 00 00 08 00 00 00  vm\_mov vm\_tmp\[0\],EAX
+0040D7C0  17 00 00 00 00 00 00 00 00 00 00 00  vm\_notf vm\_tmp\[0\]
+0040D7D0  03 00 00 00 08 00 00 00 00 00 00 00  vm\_mov EAX,vm\_tmp\[0\]
+not eax
+
+0040D7E0  04 00 00 00 00 00 00 00 04 00 00 00  vm\_mov vm\_tmp\[0\],ESP
+0040D7F0  08 00 00 00 01 00 00 00 00 00 00 00  vm\_mov vm\_tmp\[1\],\[vm\_tmp\[0\]\]
+0040D800  03 00 00 00 02 00 00 00 01 00 00 00  vm\_mov ESI,vm\_tmp\[1\]
+0040D810  04 00 00 00 00 00 00 00 04 00 00 00  vm\_mov vm\_tmp\[0\],ESP
+0040D820  06 00 00 00 01 00 00 00 04 00 00 00  vm\_mov vm\_tmp\[1\],4
+0040D830  09 00 00 00 00 00 00 00 00 00 00 00  vm\_add vm\_tmp\[0\],vm\_tmp\[1\]
+0040D840  03 00 00 00 04 00 00 00 00 00 00 00  vm\_mov ESP,vm\_tmp\[0\]
+pop esi
+
+0040D850  04 00 00 00 00 00 00 00 04 00 00 00  vm\_mov vm\_tmp\[0\],ESP
+0040D860  08 00 00 00 07 00 00 00 00 00 00 00  vm\_mov vm\_tmp\[7\],\[vm\_tmp\[0\]\]
+0040D870  04 00 00 00 00 00 00 00 04 00 00 00  vm\_mov vm\_tmp\[0\],ESP
+0040D880  06 00 00 00 01 00 00 00 04 00 00 00  vm\_mov vm\_tmp\[1\],4
+0040D890  09 00 00 00 00 00 00 00 00 00 00 00  vm\_add vm\_tmp\[0\],vm\_tmp\[1\]
+0040D8A0  03 00 00 00 04 00 00 00 00 00 00 00  vm\_mov ESP,vm\_tmp\[0\]
+pop vm\_ret\_addr
+
+0040D8B0  02 00 00 00 00 00 00 00 00 00 00 00  vm\_mov ELF,vm\_ELF
+0040D8C0  00 00 00 00 00 00 00 00 00 00 00 00  vm\_ret
+ret
+
+```
+
+总结汇编代码为：  
+  
+代码:
+
+```
+push esi
+mov esi,\[esp+C\]
+or eax,FFFFFFFF
+test esi,esi
+jbe 0040D7B0
+mov ecx,\[esp+8\]
+push ebx
+0040D470:
+mov edx,eax
+xor ebx,ebx
+mov ebx,byte ptr \[ecx\]
+and edx,FF
+xor edx,ebx
+shr eax,8
+mov edx,\[0040ECE0+edx\*4\]
+or eax,edx
+inc ecx
+dec esi
+jnz 0040D470
+pop ebx
+0040D7B0:
+not eax
+pop esi
+pop vm\_ret\_addr
+ret
+
+```
+
+VM ENGINE 4:  
+ENTRY:401168  
+VM CMD:40DB88  
+VM CMD len:1A0  
+  
+代码:
+
+```
+0040DB88  01 00 00 00 00 00 00 00 00 00 00 00  vm\_mov vm\_ELF,ELF
+0040DB98  04 00 00 00 00 00 00 00 04 00 00 00  vm\_mov vm\_tmp\[0\],ESP
+0040DBA8  06 00 00 00 01 00 00 00 08 00 00 00  vm\_mov vm\_tmp\[1\],8
+0040DBB8  0F 00 00 00 00 00 00 00 00 00 00 00  vm\_addf vm\_tmp\[0\],vm\_tmp\[1\]
+0040DBC8  03 00 00 00 04 00 00 00 00 00 00 00  vm\_mov ESP,vm\_tmp\[0\]
+add esp,8
+
+0040DBD8  04 00 00 00 00 00 00 00 02 00 00 00  vm\_mov vm\_tmp\[0\],ESI
+0040DBE8  06 00 00 00 01 00 00 00 0C 00 00 00  vm\_mov vm\_tmp\[1\],C
+0040DBF8  09 00 00 00 00 00 00 00 00 00 00 00  vm\_add vm\_tmp\[0\],vm\_tmp\[1\]
+0040DC08  08 00 00 00 01 00 00 00 00 00 00 00  vm\_mov vm\_tmp\[1\],\[vm\_tmp\[0\]\]
+0040DC18  04 00 00 00 00 00 00 00 08 00 00 00  vm\_mov vm\_tmp\[0\],EAX
+0040DC28  10 00 00 00 00 00 00 00 00 00 00 00  vm\_subf vm\_tmp\[0\],vm\_tmp\[1\]
+sub eax,\[esi+C\]
+
+0040DC38  0D 00 00 00 02 00 00 00 00 00 00 00  vm\_test\_ELF 2
+0040DC48  0E 00 00 00 05 00 00 00 00 00 00 00  vm\_jmp\_by\_FLAG +5:0040DCA8
+jnz 0040DCA8
+
+0040DC58  04 00 00 00 00 00 00 00 03 00 00 00  vm\_mov vm\_tmp\[0\],EBP
+0040DC68  06 00 00 00 01 00 00 00 2C 00 00 00  vm\_mov vm\_tmp\[1\],0000002C
+0040DC78  0A 00 00 00 00 00 00 00 00 00 00 00  vm\_sub vm\_tmp\[0\],vm\_tmp\[1\]
+0040DC88  06 00 00 00 01 00 00 00 01 00 00 00  vm\_mov vm\_tmp\[1\],1
+0040DC98  07 00 00 00 00 00 00 00 01 00 00 00  vm\_mov \[vm\_tmp\[0\]\],vm\_tmp\[1\]
+mov \[ebp-2C\],1
+
+0040DCA8  04 00 00 00 00 00 00 00 04 00 00 00  vm\_mov vm\_tmp\[0\],ESP
+0040DCB8  08 00 00 00 01 00 00 00 00 00 00 00  vm\_mov vm\_tmp\[1\],\[vm\_tmp\[0\]\]
+0040DCC8  03 00 00 00 02 00 00 00 01 00 00 00  vm\_mov ESI,vm\_tmp\[1\]
+0040DCD8  04 00 00 00 00 00 00 00 04 00 00 00  vm\_mov vm\_tmp\[0\],ESP
+0040DCE8  06 00 00 00 01 00 00 00 04 00 00 00  vm\_mov vm\_tmp\[1\],4
+0040DCF8  09 00 00 00 00 00 00 00 00 00 00 00  vm\_add vm\_tmp\[0\],vm\_tmp\[1\]
+0040DD08  03 00 00 00 04 00 00 00 00 00 00 00  vm\_mov ESP,vm\_tmp\[0\]
+pop esi
+
+0040DD18  02 00 00 00 00 00 00 00 00 00 00 00  vm\_mov ELF,vm\_ELF
+
+```
+
+总结汇编代码为：  
+  
+代码:
+
+```
+add esp,8
+sub eax,\[esi+C\]
+jnz 0040DCA8
+mov \[ebp-2C\],1
+0040DCA8:
+pop esi
+
+```
+
+  
+下面是还原出来的汇编代码，已经修正题目中的二处考点，可以直接 PATCH 到虚拟机入口位置：  
+  
+代码:
+
+```
+00408D50  /$  56            push    esi                               ; vm 1
+00408D51  |.  33D2          xor     edx, edx
+00408D53  |.  B9 E0EC4000   mov     ecx, 0040ECE0
+00408D58  |>  8BC2          /mov     eax, edx
+00408D5A  |.  BE 08000000   |mov     esi, 8
+00408D5F  |>  A8 01         |/test    al, 1
+00408D61  |.  74 09         ||je      short 00408D6C
+00408D63  |.  D1E8          ||shr     eax, 1
+00408D65  |.  35 2083B0ED   ||xor     eax, EDB08320
+00408D6A  |.  EB 02         ||jmp     short 00408D6E
+00408D6C  |>  D1E8          ||shr     eax, 1
+00408D6E  |>  4E            ||dec     esi
+00408D6F  |.^ 75 EE         |\\jnz     short 00408D5F
+00408D71  |.  8901          |mov     dword ptr \[ecx\], eax
+00408D73  |.  83C1 04       |add     ecx, 4
+00408D76  |.  42            |inc     edx
+00408D77  |.  81F9 E0F04000 |cmp     ecx, 0040F0E0
+00408D7D  |.^ 7C D9         \\jl      short 00408D58
+00408D7F  |.  5E            pop     esi
+00408D80  \\.  C3            retn
+00408D81      90            nop
+00408D82      90            nop
+00408D83      90            nop
+00408D84      90            nop
+00408D85      90            nop
+00408D86      90            nop
+00408D87      90            nop
+00408D88      90            nop
+00408D89      90            nop
+00408D8A      90            nop
+00408D8B      90            nop
+00408D8C      90            nop
+00408D8D      90            nop
+00408D8E      90            nop
+00408D8F      90            nop
+00408D90   $  56            push    esi                               ; vm 2
+00408D91   .  8B75 D0       mov     esi, dword ptr \[ebp-30\]
+00408D94   .  8B46 08       mov     eax, dword ptr \[esi+8\]
+00408D97   .  3B45 E0       cmp     eax, dword ptr \[ebp-20\]           ; 这二句是我加的长度校验，对应考点 2
+00408D9A   .  77 1B         ja      short 00408DB7                    ; 这二句是我加的长度校验，对应考点 2
+00408D9C   .  50            push    eax
+00408D9D   .  8BC6          mov     eax, esi
+00408D9F   .  83C0 10       add     eax, 10
+00408DA2   .  50            push    eax
+00408DA3   .  E8 18000000   call    00408DC0                          ; call vm 3
+00408DA8   .  83C4 08       add     esp, 8                            ; vm 4
+00408DAB   .  2B46 0C       sub     eax, dword ptr \[esi+C\]
+00408DAE   .  75 07         jnz     short 00408DB7
+00408DB0   .  C745 D4 01000>mov     dword ptr \[ebp-2C\], 1
+00408DB7   >  5E            pop     esi
+00408DB8   .^ E9 E583FFFF   jmp     004011A2
+00408DBD      90            nop
+00408DBE      90            nop
+00408DBF      90            nop
+00408DC0  /$  56            push    esi                               ; vm 3
+00408DC1  |.  8B7424 0C     mov     esi, dword ptr \[esp+C\]
+00408DC5  |.  83C8 FF       or      eax, FFFFFFFF
+00408DC8  |.  85F6          test    esi, esi
+00408DCA  |.  74 04         je      short 00408DD0
+00408DCC  |.  8B4C24 08     mov     ecx, dword ptr \[esp+8\]
+00408DD0  |>  53            push    ebx
+00408DD1  |>  8BD0          /mov     edx, eax
+00408DD3  |.  33DB          |xor     ebx, ebx
+00408DD5  |.  0FB619        |movzx   ebx, byte ptr \[ecx\]
+00408DD8  |.  81E2 FF000000 |and     edx, 0FF
+00408DDE  |.  33D3          |xor     edx, ebx
+00408DE0  |.  C1E8 08       |shr     eax, 8
+00408DE3  |.  8B1495 E0EC40>|mov     edx, dword ptr \[edx\*4+40ECE0\]
+00408DEA  |.  33C2          |xor     eax, edx                         ; 这一处修改对应考点 1
+00408DEC  |.  41            |inc     ecx
+00408DED  |.  4E            |dec     esi
+00408DEE  |.^ 75 E1         \\jnz     short 00408DD1
+00408DF0  |.  5B            pop     ebx
+00408DF1  |.  F7D0          not     eax
+00408DF3  |.  5E            pop     esi
+00408DF4  \\.  C3            retn
+
+```
+
+  
+附件是 VB6 写的虚拟机代码翻译工具（含源码），使用方法是把 OD 的 DUMP 窗口 16 进制显示直接复制到工具中，点击按钮即可
+
+上传的附件
+| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) || VMTranslater.rar  
+ |

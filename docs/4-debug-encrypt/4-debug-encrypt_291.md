@@ -1,0 +1,23 @@
+
+
+# 自己写的一些加密算法实现
+
+> 原文：[`www.pediy.com/kssd/pediy10/75061.html`](https://www.pediy.com/kssd/pediy10/75061.html)
+
+包括了单项散列 MD5,SHA-160,RIPEMD-160  
+         公开密钥得有：RSA,EIGAMAL 签名，DSA 签名。  
+      对称加密：RC5,TEA,IDEA,BLOWFISH  
+    写得比较粗糙一些。其中对称加密，使用了 cbc 分组方式连接。单项散列和对称加密都没有考虑明文过长，需要分组的情况（注册机一般也用不到吧）。exe 是生成的，用 vs2005 编的生成，好像用到大数库的那几个在没装 vs 的机子上用不了。src 是源代码。miraclVS2005 是我自己重新生成的 miracl 大数库 lib。  
+  
+      注意：我没写注释。。以后有时间了再补上吧。另外有机会在实现 DES,AES,CAST 128.这几个的密钥生成太复杂了。。  
+  
+      附大数库 mircal 下载地址：  
+         ftp://ftp.computing.dcu.ie/pub/crypto/miracl.zip
+
+上传的附件
+|   
+ |
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || src.rar  
+ |
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || miraclVS2005.rar  
+ |

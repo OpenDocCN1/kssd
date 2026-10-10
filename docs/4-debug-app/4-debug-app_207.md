@@ -1,0 +1,241 @@
+
+
+# 分享下生化危机 3 加密 bio3.ini 文件的加密算法
+
+> 原文：[`www.pediy.com/kssd/pediy12/133531.html`](https://www.pediy.com/kssd/pediy12/133531.html)
+
+生化危机 3 游戏太老了，这个不是我们关心的，关键是它的加密算法。最近没什么事，把它从电脑中翻出来练练头脑。  
+   先介绍下下吧，在 bio3.ini 文件中有如下键值：  
+\[Data\]  
+Data00=492e28000f31dbb1396c  
+Data20=a32bc5fe911f2324718e  
+Data21=e227d5fe911f35c0f7cb  
+Data22=702fc5fe911fd209215d  
+Data23=552f95fe811f8c8a0f7c  
+Data01=7721c5fe911f42fbe15a  
+Data02=5b23c5fe911f226f1176  
+Data03=0325c5fe911f1356012e  
+Data04=a32bc5fe911fa324f18e  
+Data24=1f2fc5fe911f228d4132  
+Data25=8b2dc5fe911f2a9388a6  
+Data26=b229c5fe911f42bf619f  
+Data27=c023d5fe911fd6e7f4e9  
+Data10=a055c3d658c78d717f8d  
+    这些数据都是加密的，这些加密值加密前都是些 DWORD。你知道加密前都是些什么数吗？  
+   游戏的加密算法特点：  
+   一、可以加密任意一个小于 0x80000000 的数；  
+   二、密文固定长 20 个字节；  
+   三、相同原文加密后密文不一样；  
+   四、密文有校验和；  
+  
+怎样跟踪游戏的加密代码呢？  
+   一、我们就用“拥兵模式”游戏吧，进入买武器界面，没钱买？没关系，直接选“EXIT”退到主界面，但在这之前对 WritePrivateProfileString 下断；  
+   二、断下来后，找找看是哪些代码对该函数的第三值参数写入，方法你会的；  
+   三、“拥兵模式”在 0x004062A0 就是它的加密函数；  
+   四、该函数有三个参数：1、返回值；2、待加密数；3、位移次数  
+  
+下面贴出汇编代码及 C 伪代码：  
+   sub     esp, 10     ;分配局部变量，不用说  
+//我们也生成几个局部变量吧  
+  unsigned char thekey\[11\] = {0};  
+  unsigned char returnkey\[21\] = {0};  
+  DWORD  theChecksum = 0;  //校验和  
+//还有一个全局变量  
+DWORD  CalcNumValue = 0;  //计算出的密文值  
+  
+//生成随机数  
+004062A3  |.  53            push    ebx  
+004062A4  |.  56            push    esi  
+004062A5  |.  57            push    edi  
+004062A6  |.  FF15 C0B25000 call    dword ptr \[<&WINMM.timeGetTime>\] ;  WINMM.timeGetTime  
+004062AC  |.  8BD8          mov     ebx, eax  
+  
+DWORD  myRand = ::GetTickCount();  
+  
+//处理随机数  
+004062AE  |.  8D4C24 0C     lea     ecx, dword ptr \[esp+C\]  
+004062B2  |.  C1EB 03       shr     ebx, 3  
+004062B5  |.  81E3 FFFF0000 and     ebx, 0FFFF  
+  
+myRand = (myRand >> 3) & 0xffff;  
+  
+//赋值到全局量中(全局变量是个 DWORD 类型)  
+004062BB  |.  53            push    ebx  
+004062BC  |.  E8 4F920100   call    bio3 拥兵.0041F510  
+  
+CalcNumValue =   myRand;  
+  
+//第一次运算(tempkey 也是个 DWORD 类型)  
+004062C1  |.  8D4C24 0C     lea     ecx, dword ptr \[esp+C\]  
+004062C5  |.  E8 56920100   call    bio3 拥兵.0041F520   
+  
+tempkey = Calc41F520(CalcNumValue);  
+以下是 Calc41F520 函数  
+DWORD CMy3Dlg::Calc41F520(DWORD  kk)  
+{  
+  DWORD  aa = 0;  
+  aa = 0x5D588B65 \* kk + 0x8000000B;  
+  CalcNumValue = aa;  
+  return aa >> 16;  
+}  
+  
+//处理位移次数、位移及生成第一位密文等  
+004062CA  |.  8B4424 28     mov     eax, dword ptr \[esp+28\]  
+004062CE  |.  25 0F000080   and     eax, 8000000F  
+004062D3  |.  79 05         jns     short bio3 拥兵.004062DA  
+004062D5  |.  48            dec     eax  
+004062D6  |.  83C8 F0       or      eax, FFFFFFF0  
+004062D9  |.  40            inc     eax  
+004062DA  |>  B9 0F000000   mov     ecx, 0F  
+004062DF  |.  BA A0630000   mov     edx, 63A0  
+004062E4  |.  2BC8          sub     ecx, eax  
+004062E6  |.  BE A0630000   mov     esi, 63A0  
+004062EB  |.  D3FA          sar     edx, cl  
+004062ED  |.  8BC8          mov     ecx, eax  
+004062EF  |.  C64424 11 00  mov     byte ptr \[esp+11\], 0             ;  1 位，校验和  
+004062F4  |.  D3E6          shl     esi, cl  
+004062F6  |.  8D4C24 0C     lea     ecx, dword ptr \[esp+C\]  
+004062FA  |.  33D6          xor     edx, esi  
+004062FC  |.  81E2 FFFF0000 and     edx, 0FFFF  
+00406302  |.  33DA          xor     ebx, edx  
+00406304  |.  885C24 10     mov     byte ptr \[esp+10\], bl            ;  0 位  
+  
+calcnum &= 0x8000000f;  
+  if(calcnum < 0)  
+  {  
+    calcnum -= 1;  
+    calcnum |= 0xfffffff0;  
+    calcnum += 1;  
+  }  
+  tempkey = (myRand ^ (0x63A0 << calcnum) ^(0x63A0 >> (15- calcnum))) & 0xffff;  
+  DWORD  tempkey2 = tempkey;  
+                thekey\[1\] = 0;  
+  thekey\[0\] = tempkey & 0x000000ff;  
+  
+//第二次运算，生成第三位密文  
+00406308  |.  E8 13920100   call    bio3 拥兵.0041F520                  ;  第二次加密  
+0040630D  |.  8B4C24 24     mov     ecx, dword ptr \[esp+24\]          ;  处理待加密数的高位  
+00406311  |.  C1F9 08       sar     ecx, 8  
+00406314  |.  32C1          xor     al, cl  
+00406316  |.  8D4C24 0C     lea     ecx, dword ptr \[esp+C\]  
+0040631A  |.  884424 12     mov     byte ptr \[esp+12\], al            ;  2 位  
+  
+tempkey = Calc41F520(CalcNumValue);  
+thekey\[2\] = ((DecValue >> 0x08) ^ tempkey) & 0x000000ff;  
+  
+//第三次运算，继续生成  
+0040631E  |.  E8 FD910100   call    bio3 拥兵.0041F520                  ;  第三次加密  
+00406323  |.  8B5424 24     mov     edx, dword ptr \[esp+24\]  
+00406327  |.  8D4C24 0C     lea     ecx, dword ptr \[esp+C\]  
+0040632B  |.  C1FA 18       sar     edx, 18  
+0040632E  |.  32C2          xor     al, dl  
+00406330  |.  C64424 14 00  mov     byte ptr \[esp+14\], 0             ;  4 位，校验和  
+00406335  |.  884424 13     mov     byte ptr \[esp+13\], al            ;  3 位  
+  
+tempkey = Calc41F520(CalcNumValue);  
+thekey\[3\] = ((DecValue >> 0x18) ^ tempkey) & 0x000000ff;  
+thekey\[4\] = 0;  
+  
+//第四次运算，生成吧生成  
+00406339  |.  E8 E2910100   call    bio3 拥兵.0041F520                  ;  第四次加密  
+0040633E  |.  8B4C24 24     mov     ecx, dword ptr \[esp+24\]  
+00406342  |.  C64424 16 00  mov     byte ptr \[esp+16\], 0             ;  6 位，校验和  
+00406347  |.  C1F9 10       sar     ecx, 10  
+0040634A  |.  32C1          xor     al, cl  
+0040634C  |.  8D4C24 0C     lea     ecx, dword ptr \[esp+C\]  
+00406350  |.  C1FB 08       sar     ebx, 8  
+00406353  |.  884424 15     mov     byte ptr \[esp+15\], al  
+00406357  |.  885C24 17     mov     byte ptr \[esp+17\], bl  
+  
+tempkey = Calc41F520(CalcNumValue);  
+thekey\[6\] = 0;  
+thekey\[5\] = ((DecValue >> 0x10) ^ tempkey) & 0x000000ff;  
+thekey\[7\] = (tempkey2 >> 0x08);  
+  
+//第五次运算，生成最后的值  
+0040635B  |.  E8 C0910100   call    bio3 拥兵.0041F520                  ;  第五次加密  
+00406360  |.  8A4C24 24     mov     cl, byte ptr \[esp+24\]  
+00406364  |.  33F6          xor     esi, esi  
+00406366  |.  32C1          xor     al, cl  
+00406368  |.  C64424 19 00  mov     byte ptr \[esp+19\], 0  
+0040636D  |.  884424 18     mov     byte ptr \[esp+18\], al  
+  
+tempkey = Calc41F520(CalcNumValue);  
+thekey\[9\] = 0;  
+thekey\[8\] = ((DecValue & 0x000000ff) ^ tempkey) & 0x000000ff;  
+  
+到此密文主要值生成完毕，thekey 字串中为空的是校验值，还没填充。  
+  
+//计算校验和  
+00406371  |.  B8 D2508B2D   mov     eax, 2D8B50D2  
+00406376  |.  33C9          xor     ecx, ecx  
+00406378  |>  33D2          /xor     edx, edx  
+0040637A  |.  8A5434 10     |mov     dl, byte ptr \[esp+esi+10\]  
+0040637E  |.  D3E2          |shl     edx, cl  
+00406380  |.  83C1 03       |add     ecx, 3  
+00406383  |.  33C2          |xor     eax, edx  
+00406385  |.  46            |inc     esi  
+00406386  |.  83F9 1E       |cmp     ecx, 1E  
+00406389  |.^ 7C ED         \\jl      short bio3 拥兵.00406378  
+  
+//计算校验和  
+theChecksum = 0x2D8B50D2;  
+for(i=0;i<10;i++)  
+{  
+   theChecksum ^= thekey\[i\] << (i\*3);  
+}  
+  
+//填充校验和  
+0040638B  |.  8BC8          mov     ecx, eax                         ;  以下几句填充校验和  
+0040638D  |.  8B7424 20     mov     esi, dword ptr \[esp+20\]  
+00406391  |.  C1E9 10       shr     ecx, 10  
+00406394  |.  884C24 11     mov     byte ptr \[esp+11\], cl  
+00406398  |.  8BC8          mov     ecx, eax  
+0040639A  |.  8BD0          mov     edx, eax  
+0040639C  |.  884424 19     mov     byte ptr \[esp+19\], al  
+004063A0  |.  C1E9 18       shr     ecx, 18  
+004063A3  |.  C1EA 08       shr     edx, 8  
+004063A6  |.  884C24 16     mov     byte ptr \[esp+16\], cl  
+004063AA  |.  885424 14     mov     byte ptr \[esp+14\], dl  
+  
+thekey\[1\] = (theChecksum >> 0x10) & 0x000000ff;  //第一个校验和  
+thekey\[9\] = theChecksum  & 0x000000ff;    //第二个校验和  
+thekey\[6\] = (theChecksum >> 0x18) & 0x000000ff;  //第三个校验和  
+thekey\[4\] = (theChecksum >> 0x08) & 0x000000ff;  //第四个校验和  
+  
+此时密文已生成，但长度为 10 字节，下面就是转换为可显示字符，扩充长度  
+004063B0  |> /8B3D 00535100 /mov     edi, dword ptr \[515300\]         ;  对密文显示处理  
+004063B6  |. |33C0          |xor     eax, eax  
+004063B8  |. |8A440C 10     |mov     al, byte ptr \[esp+ecx+10\]  
+004063BC  |. |83C6 02       |add     esi, 2  
+004063BF  |. |8BD0          |mov     edx, eax  
+004063C1  |. |83E2 0F       |and     edx, 0F  
+004063C4  |. |C1E8 04       |shr     eax, 4  
+004063C7  |. |8A143A        |mov     dl, byte ptr \[edx+edi\]  
+004063CA  |. |41            |inc     ecx  
+004063CB  |. |8856 FE       |mov     byte ptr \[esi-2\], dl  
+004063CE  |. |8B15 00535100 |mov     edx, dword ptr \[515300\]         ;  bio3 拥兵.00515304  
+004063D4  |. |83F9 0A       |cmp     ecx, 0A  
+004063D7  |. |8A0410        |mov     al, byte ptr \[eax+edx\]  
+004063DA  |. |8846 FF       |mov     byte ptr \[esi-1\], al  
+004063DD  |.^\\7C D1         \\jl      short bio3 拥兵.004063B0  
+  
+//显示密文处理  
+unsigned char showkey\[\]="0123456789abcdef";  
+for(i=0,j=0;i<9,j<19;i++,j+=2)  
+{  
+  returnkey\[j\] = showkey\[thekey\[i\] & 0x0000000f\];  
+  returnkey\[j+1\] = showkey\[(thekey\[i\]>>0x04) & 0x0000000f\];  
+}  
+到些加密完成，unsigned char 类型的 returnkey 字串就是加密好的密文了。  
+  
+顺便说下，bio3.ini 文件中  
+Data00=是总奖金额，最大数据 0x7fffffff，加密时位移值 0x00  
+Data01=是无限自动步枪，值为 8，加密时位移值 0x01  
+Data02=是无限机关枪，值为 7，加密时位移值 0x02  
+Data03=是无限 RPG，值为 6，加密时位移值 0x03  
+Data04=是无限弹药，值为 9，加密时位移值 0x04  
+Data10=未知，值 1-10，加密时位移值 0x0a  
+  
+Data16-Data27=分别是拥兵模式中三个主角的  
+时间、等级、奖金等![](img/755d44573ea0045d4eb19f2164c82d4e.jpg "扮鬼脸")

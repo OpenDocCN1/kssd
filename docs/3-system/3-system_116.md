@@ -1,0 +1,614 @@
+
+
+# 【翻译】翻译 Load a Dll From Memory!
+
+> 原文：[`www.pediy.com/kssd/pediy10/104054.html`](https://www.pediy.com/kssd/pediy10/104054.html)
+
+前一段为了脱 molebox 打包的文件，拜读了论坛上的一些关于 molbox 的文章。了解到 molebox 是把 dll 解压到硬盘临时文件后再载入 的.当时考虑 molebox 这么做可能是出于平台兼容的问题或这个过程太复杂的缘故，所以避免采用从内存中加载 dll 的. 前几天看到了有位兄弟推荐了这篇文章，所以看了下，了解了下内存加载 dll 的原理，顺便把它翻译了一下。文章写的相对比较简单，所以大家可以找篇介绍 PE 文件的文章对照着看。我也是初次翻译文章，如有错误之处，还望各位见谅并雅正。 
+
+**Load a Dll From Memory!**  
+
+## 前言
+
+本篇指南是讲解如何不借助文件系统的帮助来加载内存中载入 DLL 的技术。
+
+作者：Joachim Bauch
+
+联系方式: mail◎joachim-bauch.de
+
+版权：Creative Commons License(by-sa)
+
+## 内容提纲
+
+*   简介
+*   PE 文件格式
+
+*   DOS header /DOS stub 格式
+*   PE header 格式
+*   Section header 格式
+
+*   加载 library
+*   分配内存空间
+*   拷贝 Section 内容到目标位置
+*   基址重定位
+*   内存访问权限设置
+*   通知 library 被进程加载
+*   调用导出函数
+*   释放 library
+*   MemoryModule 工具包
+*   下载地址
+*   已知的问题
+*   License
+*   移植版本
+*   版权声明
+
+## 简介
+
+Windows 平台提供的加载 library 的 API（LoadLibarary, LoadLibraryEx）只能加载文件系统中的 Library. 没有体哦那个从内存中加载 Dll 的功能。但是，有些情况下又需要这样的功能。譬如，你不想在发布包中包含很多文件，又或者你想给那些逆向工作者一些苦头吃。这时一个常见的做法是先把 dll 文件写到一个临时文件中，然后从临时文件中导入它。当程序终止时把临时文件删除。
+
+## PE 文件格式
+
+绝大多数包含执行代码的二进制文件（.exe、 .dll、 .sys）都有相同的文件格式。这种文件格式包括下面几个部分：
+
+| DOS headerDOS stub |
+| --- |
+| PE header |
+| Section header |
+| Section 1 |
+| Section 2 |
+| … |
+| Section n |
+
+下面将简单描述各个组成部分。（注：在头文件 winnt.h 中可以找到下面要介绍的所有数据结构）
+
+### DOS header /DOS stub 格式
+
+DOS 格式部分有两部分组成。分别是 DOS header 和 DOS stub
+
+DOS 头部存在的作用仅仅是为了向后兼容的目的。跟在 DOS header 后面的是 DOS Stub 数据，DOS stub 用来显示一条错误信息来告诉用户该文件不能在 DOS 模式下运行。
+
+微软对 DOS Header 的声明如下：
+
+typedef struct \_IMAGE\_DOS\_HEADER {// DOS .EXE header
+
+WORDe\_magic;// Magic number
+
+WORDe\_cblp;// Bytes on last page of file
+
+WORDe\_cp;// Pages in file
+
+WORDe\_crlc;// Relocations
+
+WORDe\_cparhdr;// Size of header in paragraphs
+
+WORDe\_minalloc;// Minimum extra paragraphs needed
+
+WORDe\_maxalloc;// Maximum extra paragraphs needed
+
+WORDe\_ss;// Initial (relative) SS value
+
+WORDe\_sp;// Initial SP value
+
+WORDe\_csum;// Checksum
+
+WORDe\_ip;// Initial IP value
+
+WORDe\_cs;// Initial (relative) CS value
+
+WORDe\_lfarlc;// File address of relocation table
+
+WORDe\_ovno;// Overlay number
+
+WORDe\_res\[4\];// Reserved words
+
+WORDe\_oemid;// OEM identifier (for e\_oeminfo)
+
+WORDe\_oeminfo;// OEM information; e\_oemid specific
+
+WORDe\_res2\[10\];// Reserved words
+
+LONGe\_lfanew;// File address of new exe header
+
+} IMAGE\_DOS\_HEADER, \*PIMAGE\_DOS\_HEADER;
+
+### PE header 格式
+
+PE Header 用来描述和 section 相关的信息。可执行文件用 section 来保存执行代码和数据，以及从其他模块导入的函数的信息和本模块导出的函数信息等。
+
+PE Header 的定义如下：
+
+typedef struct \_IMAGE\_NT\_HEADERS {
+
+DWORD Signature;
+
+IMAGE\_FILE\_HEADER FileHeader;
+
+IMAGE\_OPTIONAL\_HEADER32 OptionalHeader;
+
+} IMAGE\_NT\_HEADERS32, \*PIMAGE\_NT\_HEADERS32;
+
+ 
+
+FileHeader 字段描述了文件的物理格式，如目录信息、Symbols 的信息等。
+
+ 
+
+typedef struct \_IMAGE\_FILE\_HEADER {
+
+WORDMachine;
+
+WORDNumberOfSections;
+
+DWORDTimeDateStamp;
+
+DWORDPointerToSymbolTable;
+
+DWORDNumberOfSymbols;
+
+WORDSizeOfOptionalHeader;
+
+WORDCharacteristics;
+
+} IMAGE\_FILE\_HEADER, \*PIMAGE\_FILE\_HEADER;
+
+字段 OptionalHeader 保存模块的逻辑信息，这些信息包括需要的操作系统版本，需要的内存大小和入口点信息。
+
+typedef struct \_IMAGE\_OPTIONAL\_HEADER {
+
+//
+
+// Standard fields.
+
+//
+
+ 
+
+WORDMagic;
+
+BYTEMajorLinkerVersion;
+
+BYTEMinorLinkerVersion;
+
+DWORDSizeOfCode;
+
+DWORDSizeOfInitializedData;
+
+DWORDSizeOfUninitializedData;
+
+DWORDAddressOfEntryPoint;
+
+DWORDBaseOfCode;
+
+DWORDBaseOfData;
+
+ 
+
+//
+
+// NT additional fields.
+
+//
+
+ 
+
+DWORDImageBase;
+
+DWORDSectionAlignment;
+
+DWORDFileAlignment;
+
+WORDMajorOperatingSystemVersion;
+
+WORDMinorOperatingSystemVersion;
+
+WORDMajorImageVersion;
+
+WORDMinorImageVersion;
+
+WORDMajorSubsystemVersion;
+
+WORDMinorSubsystemVersion;
+
+DWORDWin32VersionValue;
+
+DWORDSizeOfImage;
+
+DWORDSizeOfHeaders;
+
+DWORDCheckSum;
+
+WORDSubsystem;
+
+WORDDllCharacteristics;
+
+DWORDSizeOfStackReserve;
+
+DWORDSizeOfStackCommit;
+
+DWORDSizeOfHeapReserve;
+
+DWORDSizeOfHeapCommit;
+
+DWORDLoaderFlags;
+
+DWORDNumberOfRvaAndSizes;
+
+IMAGE\_DATA\_DIRECTORY DataDirectory\[IMAGE\_NUMBEROF\_DIRECTORY\_ENTRIES\];
+
+} IMAGE\_OPTIONAL\_HEADER32, \*PIMAGE\_OPTIONAL\_HEADER32;
+
+ 
+
+字段 DataDirectory 保存着模块中定义的（IMAGE\_NUMBEROF\_DIRECTORY\_ENTRIES）
+
+个逻辑项(Conpontents)的入口:
+
+| Index || Desription |
+| --- | --- |
+| 0 || 导出函数块 |
+| 1 || 导入函数块 |
+| 2 || 资源块 |
+| 4 || 异常信息块 |
+| 5 || 基地址重定位表块 |
+| 6 || 调试信息块 |
+| 7 || 架构(Architecture)特定的数据块 |
+| 8 || 全局指针块 |
+| 9 || 线程本地存储块 |
+| 10 || 载入配置块 |
+| 11 || Bound imports |
+| 12 || 导入地址表块 |
+| 13 || 延迟加载导入块 |
+| 14 || COM 运行时描述块 |
+|   ||   |
+
+对于只是加载 DLL 的任务来说，我们仅仅用到导入块和基地址重定位表块。不过为了调用导出的函数，我们还需要用到导出函数块。
+
+### Section header 格式
+
+这一部分数据保存在 PE header 部分的 OPtionalHeader 字段后面。为了方便定位 section header 的位置，微软提供了一个宏定义 IMAGE\_FIRST\_SECTION，它的值等于 SectionHeader 的开始地址相对于 PE Header 基地址的位移。
+
+Section header 实际上是一个存储着文件中每一个 Section 的信息的列表：
+
+typedef struct \_IMAGE\_SECTION\_HEADER {
+
+BYTEName\[IMAGE\_SIZEOF\_SHORT\_NAME\];
+
+union {
+
+DWORDPhysicalAddress;
+
+DWORDVirtualSize;
+
+} Misc;
+
+DWORDVirtualAddress;
+
+DWORDSizeOfRawData;
+
+DWORDPointerToRawData;
+
+DWORDPointerToRelocations;
+
+DWORDPointerToLinenumbers;
+
+WORDNumberOfRelocations;
+
+WORDNumberOfLinenumbers;
+
+DWORDCharacteristics;
+
+} IMAGE\_SECTION\_HEADER, \*PIMAGE\_SECTION\_HEADER;
+
+而一个 Section 中可以包含代码，数据，重定位信息，资源，导出导入函数等信息。
+
+## 加载 Library
+
+为了模拟 PE loader 的过程，我们首先必须弄清楚从把文件读入内存中开始到准备好可以被程序使用为止，都需要执行那些步骤。
+
+当我们调用 LoadLibrary 时，Windows 主要做了了以下工作：
+
+*   打开指定的文件并检查 DOS 和 PE 头部。
+*   在 PEHeader.OptionalHeader.ImageBase 处分配 PEHeader.Optionalheader.SizeOfImage 个字节的内存。
+*   分析 section header,从 IMAGE\_SECTION\_HEADER 结构中的 VirtualAddress 属性中获取每个 section 的开始地址相对与 ImageBase 的位移。把 section 中的内容拷贝到正确的位置。
+*   如果分配的地址不同于 ImageBase, 代码和数据块中的参数必须做相应的调整。这一步就是传说中的 relocation.
+*   Library 中用到的导入信息也必须通过加载相应的模块来解决。
+*   各个 section 对应的内存区必须根据各个 Section 的特征来进行访问限制。这时那些标记为可以丢弃的 section 占用的内存可以被释放。这些 section 通常保存都是导入时需要用到的临时数据（例如基地址重定位信息）的。
+*   现在 library 已经被成功的加载了，现在可以使用 Dll\_PROCESS\_ATTACH 标志来调用 library 的入口函数通知 library 正在被进程加载。
+
+下面我们将详细的描述各个步骤。
+
+#### 分配内存
+
+为了利用 window 提供了设置内存块访问限制的功能，必须使用 VirtualAlloc 来预订（或分配）library 需要的所有内存。因为我们需要约束对这些内存的访问。例如我们应该阻止对代码区和常量区的写操作。
+
+OptionalHeader 中保存有 Library 需要的内存块的大小。如果可能，我们必须预订 ImageBase 中指定的内存。
+
+Memory = VirtualAlloc((LPVOID)(PEHeader->OptionalHeader.ImageBase),
+
+PEHeader->OptionalHeader.SizeOfImage,
+
+MEM\_RESERVE, PAGE\_READWRITE);
+
+如果预订到的地址不是 ImageBase 中指定的地址，那么必须执行后面描述的基地址重定位步骤。
+
+### 拷贝 Section 的内容
+
+分配内存以后，就可以把 section 中的内容拷贝到系统中了。这时需要通过分析 Section Header 中的数据来找到 section 部分的数据在文件中的位置和在内存中的目标位置。
+
+在数据拷贝之前，需要先提交要使用的内存块。
+
+Dest = VirtualAlloc(baseAddress + section->VirtualAddress,
+
+Section->SizeOfRawData,
+
+MEM\_COMMIT,
+
+PAGE\_READWRITE);
+
+对于没有在文件中保存数据（如保存运行中用到的参数的 section）的区块，SizeOfRawData 字段的值为 0.这时你可以用 OptionalHeader 字段中的 SizeOfInitializedData 或 SizeOfUninitializedData 字段。具体选用那个字段取决于 section 的 Characteristics 字段中 IMAGE\_SCN\_CNT\_INITIALIZED\_DATA 和 IMAGE\_SCN\_CNT\_UNINITIALIZED\_DATA 标志位的值。
+
+### 基地址重定位
+
+Library 中的代码/数据 section 中的用到的所有内存地址都以一种相对于基地址位移的方式进行保存。而基地址则保存在 OptionalHeader 的 ImageBase 字段中。如果 library 不能被加载到指定的基地址，那么这些内存地址的地址都必须进行调整，术语称之为重定位。PE 文件中的基地址重定位表保存这些需要重定位的内存地址。我们可以在 OptionalHeader 的 DataDirectory 字段中保存的第 5 个字典入口处找到基地址重定位表。
+
+这个表由一系列的 IMAGE\_BASE\_RELOCATION 数据结构组成。
+
+typedef struct \_IMAGE\_BASE\_RELOCATION {
+
+DWORDVirtualAddress;
+
+DWORDSizeOfBlock;
+
+//WORDTypeOffset\[1\];
+
+} IMAGE\_BASE\_RELOCATION;
+
+重定位表包含（SizeOfBlock – IMAGE\_SIZEOF\_BASE\_RELOCATION）/ 2 个项，每个项由 16 位 bit 组成。其中高 4 位 bit 定义了重定位的类型，低 12 位定义了相对于 VirtualAddress 的位移。
+
+在 DLL 文件中仅有以下类型有效
+
+IMAGE\_REL\_BASED\_ABSOLUTE
+
+没有重定位操作，仅用作填充
+
+IMAGE\_REL\_BASED\_HIGHLOW
+
+用分配到的地址与 ImageBase 的差值再加上 offset 处的 32 位地址的和作为重定位后的地址。.
+
+### 处理导入信息
+
+OptionalHeader 中 DataDirectory 字段中的第一个(基于 0 开始)选项(entry)中包含了一组 library 列表，保存着本 library 需要用到的所有 library.列表中的选项的格式定义如下：
+
+typedef struct \_IMAGE\_IMPORT\_DESCRIPTOR {
+
+union {
+
+DWORDCharacteristics;// 0 for terminating null import descriptor
+
+DWORDOriginalFirstThunk;// RVA to original unbound IAT (PIMAGE\_THUNK\_DATA)
+
+};
+
+DWORDTimeDateStamp;// 0 if not bound,
+
+// -1 if bound, and real date\\time stamp
+
+//in IMAGE\_DIRECTORY\_ENTRY\_BOUND\_IMPORT (new BIND)
+
+// O.W. date/time stamp of DLL bound to (Old BIND)
+
+ 
+
+DWORDForwarderChain;// -1 if no forwarders
+
+DWORDName;
+
+DWORDFirstThunk;// RVA to IAT (if bound this IAT has actual addresses)
+
+} IMAGE\_IMPORT\_DESCRIPTOR;
+
+Name 项保存着引用到的 library 名字（如 kernel32.dll）的 C 字符串指针。OriginalFirstThunk 项为一个列表指针，指向需要从外部导入的函数名的列表。FirstThunk 项保存的也是一个列表指针。给指针指向一系列函数地址，这些地址需要用引用的函数的地址来填充。
+
+处理导入函数时，需要并行的访问这两个表，导入第一个表中函数名指定的函数，同时把返回地址保存在第二个列表相应的位置上。
+
+nameRef = (DWORD\*)(baseAddress + importDesc->OriginalFirstThunk);
+
+symbolRef = (DWORD \*)(baseAddress + importDest->FirstThunk);
+
+for( ; \*nameRef; nameRef++, symbolRef++){
+
+PIMAGE\_IMPORT\_BY\_NAME thunkData = 
+
+(PIMAGE\_IMPORT\_BY\_NAME)(codeBase + \*nameRef);
+
+\*symbolRef = (DWORD)GetProcAddress(handle, (LPCSTR)&thunkData->Name);
+
+if(\*funcRef == 0){
+
+handleImportError():
+
+return;
+
+}
+
+}
+
+ 
+
+### 内存访问权限设置
+
+每一个 section 的 Characteristics 字段中保存有该 section 的访问许可权限。访问权限可以是下列值中的一个或它们的组合。
+
+IMAGE\_SCN\_MEN\_EXCEUTE
+
+表示该 section 中包含的数据是可执行的代码
+
+IMAGE\_SCN\_MEN\_READ
+
+表示该 section 中的数据是只读的
+
+IMAGE\_SCN\_MEN\_WRITE
+
+表示该 section 中的数据是可写的。
+
+section 中的权限最后会被映射到下列内存权限值中的一个
+
+PAGE\_NOACCESS
+
+PAGE\_WRITECOPY
+
+PAGE\_READONLY
+
+PAGE\_READWRITE
+
+PAGE\_EXECUTE
+
+PAGE\_EXECUTE\_WRITECOPY
+
+PAGE\_EXECUTE\_READ
+
+PAGE\_EXECUTE\_READWRITE
+
+现在我们可以用 ViretualProtect 函数来给内存加上访问限制。加上限制后，当以不被许可的方式访问内存时 windows 将会抛出一个异常。
+
+除了前面提到的 3 中权限外，下面两种权限也可以被加到 section 中
+
+IMAGE\_SCN\_MEN\_DISCARDABLE
+
+该 section 中的内容在完成导入后可以丢弃。通常为重定位表 section 设置这个标识。
+
+IMAGE\_SCN\_MEN\_NOT\_CACHED
+
+如果 section 中设置这个标识，那么 windows 将不会对该 section 的内存数据进行缓存。同时会额外给 section 占用的内存指定 PAGE\_NOCACHE 保护权限
+
+### 通知 library 被进程加载
+
+加载的最后一步是调用 DLL 的入口点函数(入口点函数由 AddressOfEntryPoint 指定), 通知 library 它应经被加载到一个进程中了。
+
+入口点函数的定义如下：
+
+typedef BOOL (WINAPI \* DllEntryProc)(HINSTANCE hinstDll, DWORD fdwReason, LPVOID lpReserved);
+
+所以我们最后要执行的代码就是:
+
+DllEntryProc entry = (DllEntryProc)(baseAddress 
+
+\+ PEHeader->OptionalHeader.AddressOfEntryPoint);
+
+(\*entry)((HINSTANCE)baseAddress, DLL\_PROCESS\_ATTACH, 0);
+
+以后我们就可以像使用其他正常加载的 library 一样使用该 library 中的导出函数了。
+
+### 调用导出函数
+
+为了调用 library 中的导出函数，我们需要找出要调用的函数名对应到 symbol 的入口点。
+
+OptionalHeader 中的 DataDirectory 字段中的第 0 项中保存指向导出函数的信息记录的指针。
+
+导出函数记录的定义如下：
+
+typedef struct \_IMAGE\_EXPORT\_DIRECTORY {
+
+DWORDCharacteristics;
+
+DWORDTimeDateStamp;
+
+WORDMajorVersion;
+
+WORDMinorVersion;
+
+DWORDName;
+
+DWORDBase;
+
+DWORDNumberOfFunctions;
+
+DWORDNumberOfNames;
+
+DWORDAddressOfFunctions;// RVA from base of image
+
+DWORDAddressOfNames;// RVA from base of image
+
+DWORDAddressOfNameOrdinals;// RVA from base of image
+
+} IMAGE\_EXPORT\_DIRECTORY, \*PIMAGE\_EXPORT\_DIRECTORY;
+
+第一步要找出函数名在导出 Symbols 中的 ordinal number.因此我们要同时顺序的遍历 AddressOfNames 数组和 AddressOfNameOrDinals 数组直到找到要调用的函数名,同时也找到了函数对应的 ordinal number。
+
+AddressOfFunctions 数组中的第 ordinal number 个元素中保存的就是我们要调用的函数地址。
+
+ 
+
+### 释放 library
+
+要释放自定义加载的 libiary，仅需执行一下步骤:
+
+1\. 用下面的方式调用入口点函数
+
+DllEntryProc entry = (DllEntryProc)(baseAddress 
+
+\+ PEHeader->OptionalHeader.AddressOfEntryPoint);
+
+(\*entry)((HINSTANCE)baseAddress, 
+
+DLL\_PROCESS\_DETACH
+
+/\* 原文中本处使用的是 DLL\_PROCESS\_ATTACH 估计为笔误\*/
+
+, 0);
+
+2\. 释放加载的 library.
+
+3\. 释放分配的内存
+
+## MemoryModule 工具包
+
+MemoryModule 是一个用来从内存中载入 DLL 的 C 语言工具包。
+
+它的接口非常类似 Windows 提供的载入 library 的 API 接口
+
+typedef void \*HMEMORYMODULE;
+
+HMEMORYMODULE MemoryLoadLibrary(const void \*(;
+
+FARPROC MemoryGetProcAddress(HMEMORYMODULE, const char\* );
+
+void MenoryFreeLibrary(HMEMORYMODULE);
+
+### 下载位置
+
+你总是可以从 Subversion 服务器 http://fancycode.com/viewcvs/MemofyModule/trunk/下载最新的版本。
+
+下面是已经发布的版本中的下载地址：
+
+version 0.02(使用 Mozilla 许可证发布版)
+
+http://www.joachim-bauch.de/tutorials/downloads/MemoryModule-0.0.2.zip
+
+Version 0.01(第一次公开发布版)
+
+http://www.joachim-bauch.de/tutorials/downloads/MemoryModule-0.0.1.zip
+
+### 已知的问题
+
+所有分配的内存都是使用 PAGE\_READWRITE 模式提交的，而没有使用 Section 中设置的权限，我不肯定这一决定在所有的情况下都正确。
+
+### License
+
+Since version 0.0.2, the MemoryModule library is released under the Mozilla Public License(MPL).Version 0.0.1 has been released under the Lesser General Public License(LGPL).
+
+It is provided as-is without ANY warranty. You may use it at your own risk.
+
+以上授权文件不做翻译，以免误导大家。我已经尽可能的保证了上面的话和原文一致。但是建议此部分读者最好阅读原版。
+
+### 版本移植
+
+Thomas heller 把 MemoryModule 增加到 py2exe 中用来创建可以被 Python 脚本执行的单一文件。
+
+Martin Offenwanger 把 MemoryModule 移植到了 Delphi 平台，你可以访问下面的地址下载。
+
+http://www.dsplayer.de/open\_source\_projects/BTMemoryModule.zip
+
+### 版权声明
+
+MemoryModule Library 和本指南版权所有(c)2004-2006 Joachim Bauch.

@@ -1,0 +1,170 @@
+
+
+# ASPack 脱壳详细分析
+
+> 原文：[`www.pediy.com/kssd/pediy10/96870.html`](https://www.pediy.com/kssd/pediy10/96870.html)
+
+【文章标题】: ASPack 脱壳详细分析  
+【文章作者】: index09  
+【作者邮箱】: cradiator@gmail.com  
+【作者主页】: http://hi.baidu.com/index09  
+【软件名称】: OD + ASPack  
+\--------------------------------------------------------------------------------  
+【详细过程】  
+  上次简单分析了 UPX 的解压过程。这次我们再分析一个简单的压缩壳 ASPack。  
+  使用 ASPack 压缩记事本，然后调试开始。  
+    
+  用 OD 载入后  
+  01013001 >  60              PUSHAD                                             ; ////////////////////////////////////  
+  01013002    E8 03000000     CALL NOTEPAD.0101300A  
+  01013007  - E9 EB045D45     JMP 465E34F7  
+  0101300C    55              PUSH EBP                                           ; 花指令 在 1013015 设置断点就可以通过  
+  0101300D    C3              RETN                                               ; 隐含了 call 和 pop 代码重定位指令  
+  0101300E    E8 01000000     CALL NOTEPAD.01013014  
+  01013013    EB 5D           JMP SHORT NOTEPAD.01013072  
+  01013015    BB EDFFFFFF     MOV EBX,-13  
+  0101301A    03DD            ADD EBX,EBP                                        ; ebx 是用于代码重定位的指针  
+  0101301C    81EB 00300100   SUB EBX,13000                                      ; ......................................  
+  这段代码中的 JMP 是一个花指令，不过使用 F7 F8 就很容易了解其中隐含的指令。  
+  这段指令的作用是使用 CALL 和 POP 获得重定位指针。  
+    
+    
+  01013022    83BD 7D040000 0>CMP DWORD PTR SS:\[EBP+47D\],0  
+  01013029    899D 7D040000   MOV DWORD PTR SS:\[EBP+47D\],EBX                     ; \[ebp+47D\] = 重定位指针  
+  0101302F    0F85 C0030000   JNZ NOTEPAD.010133F5                               ; never jmp  
+  01013035    8D85 89040000   LEA EAX,DWORD PTR SS:\[EBP+489\]                     ; eax = kernel32.dll  
+  0101303B    50              PUSH EAX  
+  0101303C    FF95 090F0000   CALL DWORD PTR SS:\[EBP+F09\]                        ; getmodulehandle  
+  01013042    8985 81040000   MOV DWORD PTR SS:\[EBP+481\],EAX                     ; \[ebp+481\] = kernel32 handle  
+  01013048    8BF0            MOV ESI,EAX                                        ; esi = kernel32 handle  
+  0101304A    8D7D 51         LEA EDI,DWORD PTR SS:\[EBP+51\]                      ; ////////////////////////////////////  
+  这段代码提供了 Kernel32.dll 的句柄，并存入\[ebp+418\]中  
+    
+    
+  
+  
+  0101304D    57              PUSH EDI                                           ; function name  
+  0101304E    56              PUSH ESI                                           ; kernel32 handle  
+  0101304F    FF95 050F0000   CALL DWORD PTR SS:\[EBP+F05\]                        ; getprocaddress  
+  01013055    AB              STOS DWORD PTR ES:\[EDI\]                            ; \[ebp+51\] = virtualalloc  
+  01013056    B0 00           MOV AL,0  
+  01013058    AE              SCAS BYTE PTR ES:\[EDI\]                             ; 这个循环，获取了 VirtualAlloc  VirtualFree  
+  01013059  ^ 75 FD           JNZ SHORT NOTEPAD.01013058                         ; VirtualProtect 三个函数的地址  
+  0101305B    3807            CMP BYTE PTR DS:\[EDI\],AL                           ; 分别放在\[ebp+51\] \[ebp+5E\] \[ebp+6A\]  
+  0101305D  ^ 75 EE           JNZ SHORT NOTEPAD.0101304D                         ; ....................................  
+  到达这里代码使用 GetProcAddress 函数，获得了 VirtualAlloc、VirtualFree 和 VirtualProtect 三个函数地址。  
+  并且把它们分别存放在\[ebp+51\]、\[ebp+5E\]、\[ebp+6A\]中。  
+  这三个函数是解压缩时必须用到的。  
+    
+    
+  0101305D  ^\\75 EE           JNZ SHORT NOTEPAD.0101304D                         ; ....................................  
+  0101305F    8D45 7A         LEA EAX,DWORD PTR SS:\[EBP+7A\]  
+  01013062    FFE0            JMP EAX                                            ; 跳到下面~~~~~~~~~~~~  
+  01013064  ^ E1 9A           LOOPDE SHORT NOTEPAD.01013000  
+  01013066    807C75 61 6C    CMP BYTE PTR SS:\[EBP+ESI\*2+61\],6C  
+  0101306B    41              INC ECX  
+  0101306C    6C              INS BYTE PTR ES:\[EDI\],DX                           ; I/O 命令  
+  0101306D    6C              INS BYTE PTR ES:\[EDI\],DX                           ; I/O 命令  
+  0101306E    6F              OUTS DX,DWORD PTR ES:\[EDI\]                         ; I/O 命令  
+  0101306F    6300            ARPL WORD PTR DS:\[EAX\],AX  
+  01013071  ^ 74 9B           JE SHORT NOTEPAD.0101300E  
+  01013073    807C75 61 6C    CMP BYTE PTR SS:\[EBP+ESI\*2+61\],6C  
+  01013078    46              INC ESI  
+  01013079    72 65           JB SHORT NOTEPAD.010130E0  
+  0101307B    65:00D4         ADD AH,DL                                          ; 多余的前缀  
+  0101307E    1A80 7C75616C   SBB AL,BYTE PTR DS:\[EAX+6C61757C\]  
+  01013084    50              PUSH EAX  
+  01013085    72 6F           JB SHORT NOTEPAD.010130F6  
+  01013087    74 65           JE SHORT NOTEPAD.010130EE  
+  01013089    637400 00       ARPL WORD PTR DS:\[EAX+EAX\],SI  
+  这是一大段花指令，不过貌似没做好。完全没有达到混淆汇编器的效果。通过 JMP EAX 直接跳到下面的解压代码。  
+    
+    
+  0101308D    8B9D 8D050000   MOV EBX,DWORD PTR SS:\[EBP+58D\]                     ; 跳到这里~~~~~~~~~~~~~  ebx = \[ebp+58D\] ???  
+  01013093    0BDB            OR EBX,EBX  
+  01013095    74 0A           JE SHORT NOTEPAD.010130A1                          ; always jmp  
+  01013097    8B03            MOV EAX,DWORD PTR DS:\[EBX\]  
+  01013099    8785 91050000   XCHG DWORD PTR SS:\[EBP+591\],EAX  
+  0101309F    8903            MOV DWORD PTR DS:\[EBX\],EAX  
+  010130A1    8DB5 BD050000   LEA ESI,DWORD PTR SS:\[EBP+5BD\]                     ; esi = ebp+5BD  point to RAV   RAWSIZE  
+  010130A7    833E 00         CMP DWORD PTR DS:\[ESI\],0  
+  010130AA    0F84 15010000   JE NOTEPAD.010131C5                                ; never jmp  
+  010130B0    6A 04           PUSH 4                                             ; PAGE\_READWRITE  
+  010130B2    68 00100000     PUSH 1000                                          ; MEM\_COMMIT  
+  010130B7    68 00180000     PUSH 1800                                          ; size  
+  010130BC    6A 00           PUSH 0                                             ; addr  
+  010130BE    FF55 51         CALL DWORD PTR SS:\[EBP+51\]                         ; virtualalloc  
+    
+  .......  
+    
+  0101325C   /74 11           JE SHORT NOTEPAD.0101326F  
+  0101325E   |03F2            ADD ESI,EDX  
+  01013260   |AD              LODS DWORD PTR DS:\[ESI\]  
+  01013261   |0BC0            OR EAX,EAX  
+  01013263   |74 0A           JE SHORT NOTEPAD.0101326F  
+  01013265   |03C2            ADD EAX,EDX  
+  01013267   |8BF8            MOV EDI,EAX  
+  01013269   |66:AD           LODS WORD PTR DS:\[ESI\]  
+  0101326B   |66:AB           STOS WORD PTR ES:\[EDI\]  
+  0101326D  ^|EB F1           JMP SHORT NOTEPAD.01013260  
+  这便是 ASPack 的解压指令了。  
+  这里 \[ebp+5BD\] 是一个很关键的内存区域，这里面存储了一个结构数组  
+  struct{  
+      DWORD dwSecRav;          //原程序段的 RVA  
+      DWORD dwSecRawSize;      //源程序各段的 RawSize  
+  }  
+  解压过程大致如下：  
+  1. 然后程序分配了 0x1800 的解压缓冲空间。  
+  2. 并且为每个段分配 dwSecRawSize 大的缓冲空间。  
+  3. 010130F6    E8 2D050000     CALL NOTEPAD.01013628   将部分数据释放到为每个段分配的缓冲中  
+  4. 使用缓冲中的数据与对应的段进行运算完成解压过程  
+    
+    
+  继续往下面看便是填充 IAT 的代码了  
+  0101326F    BE 04760000     MOV ESI,7604                                       ; /////////////////////填写 IAT//////////////////  
+  01013274    8B95 7D040000   MOV EDX,DWORD PTR SS:\[EBP+47D\]                     ; edx = 重定位指针  
+  0101327A    03F2            ADD ESI,EDX                                        ; esi 指向结构 IMAGE\_IMPORT\_DIRECTORY  
+  0101327C    8B46 0C         MOV EAX,DWORD PTR DS:\[ESI+C\]  
+  0101327F    85C0            TEST EAX,EAX  
+  01013281    0F84 0D010000   JE NOTEPAD.01013394                                ; 这里跳走说明 IAT 全部填写完成  
+  01013287    03C2            ADD EAX,EDX  
+  01013289    8BD8            MOV EBX,EAX  
+  0101328B    50              PUSH EAX                                           ; eax = lib name  
+  0101328C    FF95 090F0000   CALL DWORD PTR SS:\[EBP+F09\]                        ; GetModuleHandle  
+  01013292    85C0            TEST EAX,EAX  
+  01013294    75 07           JNZ SHORT NOTEPAD.0101329D  
+  01013296    53              PUSH EBX  
+  01013297    FF95 0D0F0000   CALL DWORD PTR SS:\[EBP+F0D\]                        ; LoadLibrary??  
+  0101329D    8985 A1050000   MOV DWORD PTR SS:\[EBP+5A1\],EAX                     ; \[ebp+5A1\] = lib handle  
+    
+  .....  
+    
+  01013379  ^\\E9 2FFFFFFF     JMP NOTEPAD.010132AD                               ; 跳到读取下一个函数  
+  0101337E    8906            MOV DWORD PTR DS:\[ESI\],EAX  
+  01013380    8946 0C         MOV DWORD PTR DS:\[ESI+C\],EAX  
+  01013383    8946 10         MOV DWORD PTR DS:\[ESI+10\],EAX  
+  01013386    83C6 14         ADD ESI,14  
+  01013389    8B95 7D040000   MOV EDX,DWORD PTR SS:\[EBP+47D\]  
+  0101338F  ^ E9 E8FEFFFF     JMP NOTEPAD.0101327C                               ; ...............................................  
+  步骤基本如下：  
+  1. esi 指向源程序的 IMAGE\_IMPORT\_DIRECTORY  
+  2. 使用 GetModuleHandle 或 LoadLibrary 获得 DLL 的 handle  
+  3. 最后程序破坏了 IMAGE\_IMPORT\_DIRECTORY 的 OriginFirstThunk 等信息，应该是用来防止 Dump 的。不过这基本没有用处。  
+    
+    
+  之后是对文件头的一些修改，因为牵扯到 DOS 头部，有些东西还没弄明白。  
+  然后便是  
+  0101340A    61              POPAD  
+  0101340B    75 08           JNZ SHORT NOTEPAD.01013415                         ; jmp to OEP  
+  这两句恢复了寄存器数据，并且 JMP 到 OEP  
+    
+  至此解压完毕，从刚才的过程中我们可以获得 IAT 的首地址等信息来修复 IAT。  
+    
+ 老规矩，放上加壳和未加壳的 Notepad，UDD 调试文件。  
+ 简单说明一下 UDD 的使用方法。  
+ 用 WinHex 等 32 位编辑器打开 UDD 文件，可以看到里面包含了调试文件的路径。  
+ 把它们改成你调试的 Notepad 的路径，然后把 UDD 文件考到 OD 的 UDD 目录就 OK 啦~~  
+\--------------------------------------------------------------------------------  
+【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!  
+  
+                                                       2009 年 08 月 31 日 23:52:52

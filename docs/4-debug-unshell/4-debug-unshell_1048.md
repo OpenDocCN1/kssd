@@ -1,0 +1,300 @@
+
+
+# tElock V0.99
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6260.htm`](https://www.pediy.com/kssd/pediy06/pediy6260.htm)
+
+tElock V0.99 脱壳——WinHex V11.0 SR4 Keygen   
+    
+  
+    
+【作者声明】：初学 Crack，只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！   
+  
+【调试环境】：WinXP、Ollydbg1.09、PEiD、LordPE、ImportREC   
+  
+—————————————————————————————————    
+【脱壳过程】：   
+             
+            
+忘记从哪下载的了。是 mac \[TMG\]发布的 WinHex.v11.0-SR4 注册机，加了 tElock V0.99 壳。   
+调试某个壳很是麻烦，于是想换换心情，找这个 tElock V0.99 调节一下。   
+  
+主要是学习了《精华 5》里 jwh51 大侠的《用 OLLYDBG 快速脱 tElock V0.98 的壳》   
+感觉 tElock V0.99 和 tElock V0.98 大体差不多。这次偶是手动用 Ollydbg 跟踪到 OEP 的。  :-)   
+  
+—————————————————————————————————   
+         
+调试前先设置一下 Ollydbg。打开：Ollydbg——>选项——>调试设置——>异常     
+把“忽略在 KERNEL32 中的内存访问异常”、“INT3 中断”、“单步中断” 这 3 个选项选上。   
+  
+用 Ollydbg 手动脱壳,老规矩：载入后弹出“是压缩代码——要继续进行分析吗？”，点“否”。   
+  
+  
+00429BEE k>^E9 0DE4FFFF          jmp kg\_winh.00428000   
+                                  ====>进入 OD 后断在这！   
+  
+F9 运行，程序会在异常处中断。   
+  
+004280A7     F7F3                 div ebx   
+                                  ====>第 1 次异常   
+  
+Shift+F9 通过异常，4 次程序运行。   
+  
+00429709     0000                 add byte ptr ds:\[eax\],al   
+0042970B     0000                 add byte ptr ds:\[eax\],al   
+0042970D     0000                 add byte ptr ds:\[eax\],al   
+0042970F     0000                 add byte ptr ds:\[eax\],al   
+  
+向上找！一直把 滚动条 上拉到顶：   
+  
+00428000   - E9 B5DEFDFF          jmp kg\_winh.00405EBA   
+00428005     0000                 add byte ptr ds:\[eax\],al   
+00428007     0000                 add byte ptr ds:\[eax\],al   
+00428009     0000                 add byte ptr ds:\[eax\],al   
+  
+这唯一特别的一行看到了吧，00405EBA——就是这个东东的 OEP！   
+  
+————————————————————————   
+好了，Try Again，按 4-2=2 次 Shift+F9，停下来。   
+  
+  
+00428AB5     66:F7F3              div bx   
+                                  ====>第 2 次异常   
+  
+这时 CTR+F 在“整个区段”查找命令：AND  DWORD PTR \[ESI+0C\],00   
+  
+00429228     8B95 82D34000        mov edx,dword ptr ss:\[ebp+40D382\]   
+0042922E     8BB5 72D34000        mov esi,dword ptr ss:\[ebp+40D372\]   
+00429234     85F6                 test esi,esi   
+                                  ====>F2 此处下断！   
+  
+00429236     0F84 06040000        je kg\_winh.00429642   
+0042923C     03F2                 add esi,edx   
+0042923E     83A5 72D44000 00     and dword ptr ss:\[ebp+40D472\],0   
+00429245     8B46 0C              mov eax,dword ptr ds:\[esi+C\]   
+00429248     8366 0C 00           and dword ptr ds:\[esi+C\],0   
+                                  ====>找到这里！   
+0042924C     85C0                 test eax,eax   
+0042924E     0F84 EE030000        je kg\_winh.00429642   
+  
+  
+在 00429234 下断，按 Shift+F9 断了下来，看看 esi 的值：000071DC,这就是 IT 的位置了，然后 D 004071DC,看见 IT，大小 0040789C - 004071DC=6C0 这时可以按 jwh51 的方法用 LordPE 部分脱壳。位置：004071DC，大小:6C0   
+  
+但是偶继续跟踪，因为 ImportREC 现在有 tElock V0.98 的插件。试试手动找 OEP 吧  :-)   
+  
+————————————————————————   
+Shift+F9 来到第 3 次异常处：   
+  
+  
+00429709     8DC0                 lea eax,eax     
+                                  ====>第 3 次异常   
+  
+00429717     8B6424 08            mov esp,dword ptr ss:\[esp+8\]   
+                                  ====>堆栈区的第二条地址  设断  Shift+F9 断在此处   
+0042971B     33C0                 xor eax,eax   
+0042971D     FF6424 08            jmp dword ptr ss:\[esp+8\]   
+  
+0042972C     64:8F00              pop dword ptr fs:\[eax\]   
+0042972F     58                   pop eax   
+00429730     EB 02                jmp short kg\_winh.00429734   
+  
+00429734     58                   pop eax      
+00429735     5D                   pop ebp   
+00429736     0BE4                 or esp,esp   
+00429738     75 01                jnz short kg\_winh.0042973B   
+  
+0042973B     90                   nop   
+0042973C     E8 7D000000          call kg\_winh.004297BE   
+  
+004297BE    /EB 01                jmp short kg\_winh.004297C1   
+  
+004297C1     F8                   clc   
+004297C2     60                   pushad   
+004297C3     E8 06000000          call kg\_winh.004297CE   
+  
+004297CE     2BDB                 sub ebx,ebx   
+004297D0     64:FF33              push dword ptr fs:\[ebx\]   
+004297D3     64:8923              mov dword ptr fs:\[ebx\],esp   
+004297D6     F1                   int1   
+                                  ====>异常！注意这里看看堆栈区的第二条地址！   
+  
+004297C8     8B6424 08            mov esp,dword ptr ss:\[esp+8\]   
+                                  ====>堆栈区的第二条地址  设断  Shift+F9 断在此处   
+004297CC     EB 0D                jmp short kg\_winh.004297DB   
+  
+004297DB    /EB 02                jmp short kg\_winh.004297DF   
+  
+004297DF     33C6                 xor eax,esi   
+004297E1     F9                   stc   
+004297E2     33C9                 xor ecx,ecx   
+004297E4     64:8F01              pop dword ptr fs:\[ecx\]   
+004297E7     59                   pop ecx   
+004297E8     0BE4                 or esp,esp   
+004297EA     75 01                jnz short kg\_winh.004297ED   
+  
+004297ED     83D8 2B              sbb eax,2B   
+004297F0     60                   pushad   
+004297F1     E8 06000000          call kg\_winh.004297FC   
+  
+004297FC     64:67:FF36 0000      push dword ptr fs:\[0\]   
+00429802     64:67:8926 0000      mov dword ptr fs:\[0\],esp   
+00429808     9C                   pushfd   
+                                  ====>异常！注意这里看看堆栈区的第二条地址！   
+  
+004297F6     8B6424 08            mov esp,dword ptr ss:\[esp+8\]   
+                                  ====>堆栈区的第二条地址  设断  F9 断在此处   
+004297FA     EB 1A                jmp short kg\_winh.00429816   
+  
+00429816     64:67:8F06 0000      pop dword ptr fs:\[0\]   
+0042981C     58                   pop eax   
+0042981D     61                   popad   
+0042981E     EB 01                jmp short kg\_winh.00429821   
+  
+00429821     83C8 05              or eax,5   
+00429824     E8 00000000          call kg\_winh.00429829   
+00429829    /EB 01                jmp short kg\_winh.0042982C   
+  
+0042982C     83F0 1D              xor eax,1D   
+0042982F     8B0C24               mov ecx,dword ptr ss:\[esp\]   
+00429832     58                   pop eax   
+00429833     81E9 B8144100        sub ecx,kg\_winh.004114B8    
+00429839     0BE4                 or esp,esp   
+0042983B     75 01                jnz short kg\_winh.0042983E   
+  
+0042983E     F9                   stc   
+0042983F     03C1                 add eax,ecx   
+00429841     33D2                 xor edx,edx   
+00429843     81F2 51C886C7        xor edx,C786C851   
+00429849     81C2 7F4BBA38        add edx,38BA4B7F   
+0042984F     0BE4                 or esp,esp   
+00429851     75 01                jnz short kg\_winh.00429854   
+  
+00429854     C1D0 F0              rcl eax,0F0    
+00429857     03D1                 add edx,ecx   
+00429859     33F6                 xor esi,esi   
+0042985B     81F6 88CF5E1A        xor esi,1A5ECF88   
+00429861     81C6 9530A1E5        add esi,E5A13095   
+00429867     EB 01                jmp short kg\_winh.0042986A   
+  
+0042986A     8BC4                 mov eax,esp   
+0042986C     40                   inc eax   
+0042986D     BF 0092ED10          mov edi,10ED9200   
+00429872     EB 02                jmp short kg\_winh.00429876   
+  
+00429876     33C4                 xor eax,esp   
+00429878     F9                   stc   
+00429879     6BFF 71              imul edi,edi,71   
+0042987C     313A                 xor dword ptr ds:\[edx\],edi   
+0042987E     C1C7 05              rol edi,5   
+00429881     F9                   stc   
+00429882     83D7 29              adc edi,29   
+00429885     42                   inc edx   
+00429886     42                   inc edx   
+00429887     42                   inc edx   
+00429888     42                   inc edx   
+00429889     EB 02                jmp short kg\_winh.0042988D   
+  
+0042988D     13C2                 adc eax,edx     
+0042988F     40                   inc eax   
+00429890     8BC7                 mov eax,edi   
+00429892     05 0DA27C31          add eax,317CA20D   
+00429897     97                   xchg eax,edi   
+00429898     EB 01                jmp short kg\_winh.0042989B   
+  
+0042989B     98                   cwde   
+0042989C     83EE 01              sub esi,1   
+0042989F     85E4                 test esp,esp   
+004298A1     79 03                jns short kg\_winh.004298A6   
+004298A6     F8                   clc   
+004298A7     51                   push ecx   
+004298A8     8BCE                 mov ecx,esi   
+004298AA     E3 03                jecxz short kg\_winh.004298AF   
+004298AC     59                   pop ecx   
+004298AD   ^ EB C9                jmp short kg\_winh.00429878   
+                                  ====>注意这个循环！向上找发现 004298AA 可以跳过！   
+004298AF     59                   pop ecx   
+                                  ====>此处下断，F9，断在这！ :-)   跳出循环！   
+004298B0     0BE4                 or esp,esp   
+004298B2     75 01                jnz short kg\_winh.004298B5   
+  
+004298B5     61                   popad   
+004298B6     0BE4                 or esp,esp   
+004298B8     75 01                jnz short kg\_winh.004298BB   
+  
+004298BB     33C4                 xor eax,esp   
+004298BD     F8                   clc   
+004298BE     C3                   retn   
+                                  ====>返回到 00429741   
+  
+00429741     8B9D A2D34000        mov ebx,dword ptr ss:\[ebp+40D3A2\]   
+00429747     33F6                 xor esi,esi   
+00429749     F7D3                 not ebx   
+0042974B     0BF3                 or esi,ebx   
+0042974D     75 08                jnz short kg\_winh.00429757   
+  
+00429757     039D 82D34000        add ebx,dword ptr ss:\[ebp+40D382\]    
+                                  ====>EBX\=00005EBA + 00400000=00405EBA   这就是 OEP 值  :-)   
+  
+0042975D     895C24 F0            mov dword ptr ss:\[esp\-10\],ebx   
+00429761     8DBD A4D24000        lea edi,dword ptr ss:\[ebp+40D2A4\]   
+00429767     33C0                 xor eax,eax   
+00429769     B9 9E030000          mov ecx,39E   
+0042976E     F3:AA                rep stos byte ptr es:\[edi\]   
+00429770     8DBD A2B64000        lea edi,dword ptr ss:\[ebp+40B6A2\]   
+00429776     B9 70170000          mov ecx,1770   
+0042977B     F3:AA                rep stos byte ptr es:\[edi\]   
+0042977D     66:AB                stos word ptr es:\[edi\]   
+0042977F     8DBD A2B64000        lea edi,dword ptr ss:\[ebp+40B6A2\]   
+00429785     85F6                 test esi,esi   
+00429787     75 08                jnz short kg\_winh.00429791   
+  
+00429791     C607 E9              mov byte ptr ds:\[edi\],0E9   
+00429794     47                   inc edi   
+00429795     2BDF                 sub ebx,edi   
+00429797     83EB 04              sub ebx,4   
+0042979A     891F                 mov dword ptr ds:\[edi\],ebx   
+0042979C     8DBD 12CE4000        lea edi,dword ptr ss:\[ebp+40CE12\]   
+004297A2     B9 2C000000          mov ecx,2C   
+004297A7     F3:AA                rep stos byte ptr es:\[edi\]   
+004297A9     66:AB                stos word ptr es:\[edi\]   
+004297AB     EB 02                jmp short kg\_winh.004297AF   
+  
+004297AF     61                   popad   
+004297B0     FF6424 D0            jmp dword ptr ss:\[esp\-30\]   
+                                  ====>飞向光明之巅！ 跳至 00405EBA   
+  
+  
+————————————————————————   
+00405EBA     55                   push ebp   
+                                  ====>在这儿用 LordPE 完全 DUMP 这个进程   
+  
+00405EBB     8BEC                 mov ebp,esp   
+00405EBD     6A FF                push -1   
+00405EBF     68 D0714000          push kg\_winh.004071D0   
+00405EC4     68 4E604000          push kg\_winh.0040604E   
+  
+————————————————————————   
+  
+运行 ImportREC，选择这个进程。把 OEP 改为 00005EBA， 点 IT AutoSearch，点“Get Import”，用“tElock V0.98”的插件追踪，CUT 掉 3 个无效的部分， FixDump，正常运行！123K ->176K 用 LordPE 重建 PE 后是 129K。   
+  
+  
+—————————————————————————————————   
+       
+                                   
+         ,     \_/    
+        /| \_.-~/            \_     ,        青春都一饷   
+       ( /~   /              ~-.\_ |   
+       \`\\  \_/                   ~ )          忍把浮名    
+   \_-~~~-.)  )\_\_/;;,.          \_  //'    
+  /'\_,   --~    ~~~-  ,;;\_\_\_(  (.-~~~-.        换了破解轻狂   
+ \`~ \_( ,\_..-- (     ,;'' /    ~--   /.\_\`    
+  /~~//'   /' \`~         ) /--..\_, )\_  \`~    
+  "  \`~"  "      \`"      /~'\`    \`\\~~      
+                         "     "   "~'  ""   
+  
+       
+  
+            Cracked By 巢水工作坊——fly \[OCN\]\[FCG\]   
+  
+                   2003-10-07  19:05  
+ 4dd466d0e1e0cc123afbe504da2462ca

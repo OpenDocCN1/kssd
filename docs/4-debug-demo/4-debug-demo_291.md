@@ -1,0 +1,242 @@
+
+
+# Windows Lotto Pro 2000 V5.39
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum771.htm`](https://www.pediy.com/kssd/pediy03/forum771.htm)
+
+Windows Lotto Pro 2000 V5.39 之暴力破解   
+  
+下载地址：ftp://datasol.intnet.net/pub/lotpro32.exe   
+软件说明：好像是国外的一个彩票软件，限制是时间限制和 NAG 屏，以及功能限制。   
+        本次破解只讨论破解前两个限制，功能限制不在讨论之列。本软件用 shrink   
+        加壳。   
+工具：trw2k,bw2k02,wdasm893,ultraedit   
+  
+过程：   
+  
+1、脱壳   
+先执行 bw2k02，点 track，运行 lotpro32.exe，发现入口值为 6301f4（感谢 D.boy 给我们   
+做出如此好的工具）。用 TRW 载入程式，设断 bpx 6301f4，运行后，在此处中断，下指令 pedump   
+（感谢刘涛涛和朱南灏作出如此棒的工具），至此脱壳成功，运行无误。   
+  
+2、用 wdasm893 反编译，不要指望能完全反完，不过一部分亦足矣。   
+查看字串框，发现下面一段"Thank you for continuing to use "，呵呵，这不正是 NAG 屏上的话么？双点该串，来到调用空间。上下翻动看看，还有几个相似的。于是可以断定此处为判断时间限制的关键之处。下面是该段程序：   
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:00624C05(C)   
+|   
+:00624C7B 80EB01                  sub bl, 01   
+:00624C7E 721D                    jb 00624C9D    \*\*不能跳\*\*   
+:00624C80 0F8496000000            je 00624D1C    \*\*不能跳\*\*   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:00624C11(C)   
+|   
+:00624C86 80EB02                  sub bl, 02   
+:00624C89 0F84A3000000            je 00624D32    \*\*不能跳\*\*   
+:00624C8F 80EB03                  sub bl, 03   
+:00624C92 0F84B0000000            je 00624D48    \*\*不能跳\*\*   
+:00624C98 E9BF000000              jmp 00624D5C   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:00624C7E(C)   
+|   
+:00624C9D 8B87A4030000            mov eax, dword ptr \[edi+000003A4\]   
+:00624CA3 E800E5E8FF              call 004B31A8   
+:00624CA8 83F80F                  cmp eax, 0000000F   
+:00624CAB 7534                    jne 00624CE1   
+  
+\* Possible StringData Ref from Code Obj ->"Thank you for your interest in "   
+                                        ->"Windows Lotto Pro 2000. You have "   
+                                        ->"been granted a license to use "   
+                                        ->"this program for evaluation. Your "   
+                                        ->"evaluation period will expire "   
+                                        ->"in "   
+                                  |   
+:00624CAD 68444E6200              push 00624E44   
+:00624CB2 8B87A4030000            mov eax, dword ptr \[edi+000003A4\]   
+:00624CB8 E8EBE4E8FF              call 004B31A8   
+:00624CBD 8D55F4                  lea edx, dword ptr \[ebp\-0C\]   
+:00624CC0 E8075ADEFF              call 0040A6CC   
+:00624CC5 FF75F4                  push \[ebp\-0C\]   
+  
+\* Possible StringData Ref from Code Obj ->" days. "   
+                                  |   
+:00624CC8 68F04E6200              push 00624EF0   
+  
+\* Possible StringData Ref from Code Obj ->"Click on the Register Now button "   
+                                        ->"below for registration benefits "   
+                                        ->"and information on how to register."   
+                                  |   
+:00624CCD 68004F6200              push 00624F00   
+:00624CD2 8D45FC                  lea eax, dword ptr \[ebp\-04\]   
+:00624CD5 BA04000000              mov edx, 00000004   
+:00624CDA E80DF5DDFF              call 004041EC   
+:00624CDF EB32                    jmp 00624D13   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:00624CAB(C)   
+|   
+  
+\* Possible StringData Ref from Code Obj ->"Thank you for continuing to use "   
+                                        ->"Windows Lotto Pro 2000. You have "   
+                                        ->"been granted a license to use "   
+                                        ->"this program for evaluation. Your "   
+                                        ->"evaluation period will expire "   
+                                        ->"in "   
+                                  |   
+:00624CE1 68704F6200              push 00624F70   
+:00624CE6 8B87A4030000            mov eax, dword ptr \[edi+000003A4\]   
+:00624CEC E8B7E4E8FF              call 004B31A8   
+:00624CF1 8D55F0                  lea edx, dword ptr \[ebp\-10\]   
+:00624CF4 E8D359DEFF              call 0040A6CC   
+:00624CF9 FF75F0                  push \[ebp\-10\]   
+  
+\* Possible StringData Ref from Code Obj ->" days. "   
+                                  |   
+:00624CFC 68F04E6200              push 00624EF0   
+  
+\* Possible StringData Ref from Code Obj ->"Click on the Register Now button "   
+                                        ->"below for registration benefits "   
+                                        ->"and information on how to register."   
+                                  |   
+:00624D01 68004F6200              push 00624F00   
+:00624D06 8D45FC                  lea eax, dword ptr \[ebp\-04\]   
+:00624D09 BA04000000              mov edx, 00000004   
+:00624D0E E8D9F4DDFF              call 004041EC   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:00624CDF(U)   
+|   
+:00624D13 C687680E000000          mov byte ptr \[edi+00000E68\], 00   
+:00624D1A EB40                    jmp 00624D5C   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:00624C80(C)   
+|   
+:00624D1C 8D45FC                  lea eax, dword ptr \[ebp\-04\]   
+  
+\* Possible StringData Ref from Code Obj ->"The evaluation period for Windows "   
+                                        ->"Lotto Pro 2000 has expired. Click "   
+                                        ->"on the Register Now button below "   
+                                        ->"for registration benefits and "   
+                                        ->"information on how to register."   
+                                  |   
+:00624D1F BA1C506200              mov edx, 0062501C   
+:00624D24 E81BF2DDFF              call 00403F44   
+:00624D29 C687680E000001          mov byte ptr \[edi+00000E68\], 01   
+:00624D30 EB2A                    jmp 00624D5C   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:00624C89(C)   
+|   
+:00624D32 8D45FC                  lea eax, dword ptr \[ebp\-04\]   
+  
+\* Possible StringData Ref from Code Obj ->"The evaluation period for Windows "   
+                                        ->"Lotto Pro 2000 has expired. Click "   
+                                        ->"on the Register Now button below "   
+                                        ->"for registration benefits and "   
+                                        ->"information on how register."   
+                                  |   
+:00624D35 BAC8506200              mov edx, 006250C8   
+:00624D3A E805F2DDFF              call 00403F44   
+:00624D3F C687680E000001          mov byte ptr \[edi+00000E68\], 01   
+:00624D46 EB14                    jmp 00624D5C   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:00624C92(C)   
+|   
+:00624D48 8D45FC                  lea eax, dword ptr \[ebp\-04\]   
+  
+\* Possible StringData Ref from Code Obj ->"The evaluation period for Windows "   
+                                        ->"Lotto Pro 2000 has expired. Click "   
+                                        ->"on the Register Now button below "   
+                                        ->"for registration benefits and "   
+                                        ->"information on how to register."   
+                                  |   
+:00624D4B BA1C506200              mov edx, 0062501C   
+:00624D50 E8EFF1DDFF              call 00403F44   
+:00624D55 C687680E000001          mov byte ptr \[edi+00000E68\], 01   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
+|:00624C98(U), :00624D1A(U), :00624D30(U), :00624D46(U)   
+|   
+:00624D5C 8B0DBC456300            mov ecx, dword ptr \[006345BC\]   
+:00624D62 8B09                    mov ecx, dword ptr \[ecx\]   
+:00624D64 B201                    mov dl, 01   
+  
+把上面标志不能跳的地方 NOP 掉，该程式的时间限制便去掉了。   
+随便说一句，在字串框内也有关于功能限制的语句，看一下其跳转应该也可以改掉的，   
+  
+3、NAG 屏的破除，这里用的是 SMC 的技巧。   
+因为虽然已经脱壳，但里面还是有很多花指令的，跳来跳去的很烦，且很难定位到哪一个 CALL 是显 NAG 屏，也很难找到其跳转处，只是在 shink 段内打转。于是便想到用 SMC 去掉它。   
+（1）先用 TRW 追 NAG 屏，经过一层层的追踪，将会发现 455c84 处一过会显 NAG 屏。   
+:00455C84 E83BFEFFFF              call 00455AC4   
+追进去，里面很简单：   
+:00455AC4 53                      push ebx   
+:00455AC5 8BD8                    mov ebx, eax   
+:00455AC7 B201                    mov dl, 01   
+:00455AC9 8BC3                    mov eax, ebx   
+:00455ACB E824CEFFFF              call 004528F4  \*\*若执行 CALL，则 NAG 屏出现，所以应暂时跳过\*\*   
+:00455AD0 8BC3                    mov eax, ebx   
+:00455AD2 E8DD3FFEFF              call 00439AB4  \*\*此 CALL 一定要执行，否则程式窗口不全\*\*   
+:00455AD7 5B                      pop ebx   
+:00455AD8 C3                      ret   
+  
+但程序跳出来后，会陷入循环检测中（因要求试用要点按钮的，NAG 屏虽未出现但程式认为已以有了）。下面是循环检测段：   
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:00455CF9(C)   
+|   
+:00455CB9 8B03                    mov eax, dword ptr \[ebx\]   
+:00455CBB E8042F0000              call 00458BC4   
+:00455CC0 8B03                    mov eax, dword ptr \[ebx\]   
+:00455CC2 80B88C00000000          cmp byte ptr \[eax+0000008C\], 00   
+:00455CC9 740F                    je 00455CDA   
+:00455CCB 8B45FC                  mov eax, dword ptr \[ebp\-04\]   
+:00455CCE C7803402000002000000    mov dword ptr \[ebx+00000234\], 00000002   
+:00455CD8 EB14                    jmp 00455CEE   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:00455CC9(C)   
+|   
+:00455CDA 8B45FC                  mov eax, dword ptr \[ebp\-04\]   
+:00455CDD 83B83402000000          cmp dword ptr \[eax+00000234\], 00000000   
+:00455CE4 7408                    je 00455CEE   
+:00455CE6 8B45FC                  mov eax, dword ptr \[ebp\-04\]   
+:00455CE9 E826FDFFFF              call 00455A14   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
+|:00455CD8(U), :00455CE4(C)   
+|   
+:00455CEE 8B45FC                  mov eax, dword ptr \[ebp\-04\]   
+:00455CF1 8B8034020000            mov eax, dword ptr \[eax+00000234\]   
+:00455CF7 85C0                    test eax, eax   
+:00455CF9 74BE                    je 00455CB9  \*\*暂时将此处 NOP 掉即可\*\*   
+:00455CFB 8945F8                  mov \[ebp\-08\],eax   
+  
+经测试可知，只要将 455cf9 处的跳转 NOP 掉即可进入主程式。但此处不能永久改变，否则程式里面的许多窗体将不能显示了（因此处是公共 CALL，给窗体一个关闭信号）。   
+至此打补丁的地方都找到了。   
+  
+（2）先用 topo 给程式增加一段可写空间，应该增加一段新的（大小可设为 50），而不要在存在的空间里面写，因为 shrink 好像还要用到。   
+  
+1）:00455ACB E824CEFFFF  call 004528F4  改为 e930753700  jmp 7cd000（跳到补丁处）   
+恢复 455acb 原先的值，以使以后的程式正常执行。   
+7cd000: nop   
+7cd001:c705cb5a4500e824ceff        mov dword\[455acb\],ffce24e8   
+7cd00b:c605cf5a4500ff              mov byte\[455acf\],ff   
+7cd012:e9bb8ac8ff                  jmp 455ad2   
+  
+2):00455CF9 74BE      je 00455CB9  改为 e919733700  jmp 7cd017（跳到补丁处）   
+恢复 455cf9 处的代码，以使以后的程式正常执行。   
+7cd017:c705f95c450074be8945        mov dword\[455cf9\],4589be74   
+7cd021:c605fd5c4500f8              mov byte\[455cfd\],f8   
+7cd028:e9ce8cc8ff                  jmp 455cfb   
+  
+OK,至此程序的两个限制完全除掉。   
+  
+该篇破的虽说有点难看，但里面提到 bw2k02 与 TRW 配合脱壳的方法、wdasm893 破解的方法、smc 方法相信对初学者还是有一定借鉴价值的。   
+  
+注：该程式可完全用 smc 方法破掉，只是稍复杂一些罢了。   
+  
+\===========<完>==============   
+  
+                                          <Cracked by KanKer>  4dd466d0e1e0cc123afbe504da2462ca

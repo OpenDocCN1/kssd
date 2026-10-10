@@ -1,0 +1,91 @@
+
+
+# 方便的 windbg 命令 - !list
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-132.htm`](https://www.pediy.com/kssd/pediy09/pediy09-132.htm)
+
+> Windows 内部的各种结构通常都会由双向链表串起来，用 !list 命令查看这些结构非常方便。  
+>   
+> 比如查看系统中的所有进程：  
+>   
+> lkd> !list -t nt!\_LIST\_ENTRY.Flink -x "dt nt!\_EPROCESS UniqueProcessId ImageFileName @@(#CONTAINING\_RECORD(@$extret, nt!\_EPROCESS, ActiveProcessLinks))" poi(nt!PsActiveProcessHead)  
+>   
+>    +0x084 UniqueProcessId : 0x00000004   
+>    +0x174 ImageFileName   : \[16\]  "System"  
+>   
+>    +0x084 UniqueProcessId : 0x00000270   
+>    +0x174 ImageFileName   : \[16\]  "SMSS.EXE"  
+>   
+>    +0x084 UniqueProcessId : 0x000002ac   
+>    +0x174 ImageFileName   : \[16\]  "CSRSS.EXE"  
+>   
+>    +0x084 UniqueProcessId : 0x000002c4   
+>    +0x174 ImageFileName   : \[16\]  "WINLOGON.EXE"  
+>   
+>    +0x084 UniqueProcessId : 0x000002f0   
+>    +0x174 ImageFileName   : \[16\]  "SERVICES.EXE"  
+>   
+>    +0x084 UniqueProcessId : 0x00000314   
+>    +0x174 ImageFileName   : \[16\]  "LSASS.EXE"  
+>   
+>    +0x084 UniqueProcessId : 0x000003a4   
+>    +0x174 ImageFileName   : \[16\]  "SVCHOST.EXE"  
+>   
+>    +0x084 UniqueProcessId : 0x000003f8   
+>    +0x174 ImageFileName   : \[16\]  "SVCHOST.EXE"  
+>   
+>    +0x084 UniqueProcessId : 0x000005ec   
+>    +0x174 ImageFileName   : \[16\]  "SVCHOST.EXE"  
+>   
+>    +0x084 UniqueProcessId : 0x00000658   
+>    +0x174 ImageFileName   : \[16\]  "SVCHOST.EXE"  
+>   
+>    +0x084 UniqueProcessId : 0x000006f0   
+>    +0x174 ImageFileName   : \[16\]  "SVCHOST.EXE"  
+>   
+>    +0x084 UniqueProcessId : 0x000000c8   
+>    +0x174 ImageFileName   : \[16\]  "SPOOLSV.EXE"  
+>   
+>    +0x084 UniqueProcessId : 0x00000298   
+>    +0x174 ImageFileName   : \[16\]  "MDM.EXE"  
+>   
+>    +0x084 UniqueProcessId : 0x00000484   
+>    +0x174 ImageFileName   : \[16\]  "WGATRAY.EXE"  
+>   
+>    +0x084 UniqueProcessId : 0x00000494   
+>    +0x174 ImageFileName   : \[16\]  "EXPLORER.EXE"  
+>   
+>    +0x084 UniqueProcessId : 0x0000056c   
+>    +0x174 ImageFileName   : \[16\]  "SVCHOST.EXE"  
+>   
+>    +0x084 UniqueProcessId : 0x000005d4   
+>    +0x174 ImageFileName   : \[16\]  "vmware-authd.ex"  
+>   
+>    +0x084 UniqueProcessId : 0x000006b0   
+>    +0x174 ImageFileName   : \[16\]  "VMOUNT2.EXE"  
+>   
+>    +0x084 UniqueProcessId : 0x00000700   
+>    +0x174 ImageFileName   : \[16\]  "VMNAT.EXE"  
+>   
+>    +0x084 UniqueProcessId : 0x000007a8   
+>    +0x174 ImageFileName   : \[16\]  "VMNETDHCP.EXE"  
+>   
+>    +0x084 UniqueProcessId : 0x00000448   
+>    +0x174 ImageFileName   : \[16\]  "HKCMD.EXE"  
+>   
+>    +0x084 UniqueProcessId : 0x000004dc   
+>    +0x174 ImageFileName   : \[16\]  "IGFXPERS.EXE"  
+>   
+>    +0x084 UniqueProcessId : 0x00000578   
+>    +0x174 ImageFileName   : \[16\]  "SOUNDMAN.EXE"  
+>   
+>    +0x084 UniqueProcessId : 0x00000590   
+>    +0x174 ImageFileName   : \[16\]  "daemon.exe"  
+>    
+>    ......  
+>   
+> 如果需要执行多条命令，则把每条命令用分号隔开，把 !list 命令的整个参数用双引号括起来。  
+>   
+> ![](img/768c8e05987a6949d1bb5f7378212ee0.jpg "狂笑")
+
+ 4dd466d0e1e0cc123afbe504da2462ca

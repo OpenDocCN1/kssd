@@ -1,0 +1,362 @@
+
+
+# ASProtect V1.23 RC1
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6259.htm`](https://www.pediy.com/kssd/pediy06/pediy6259.htm)
+
+ASProtect V1.23 RC1 脱壳——飞速的 unpackme4all.exe   
+    
+         
+    
+  
+【作者声明】：初学 Crack，只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！   
+  
+【调试环境】：WinXP、Ollydbg1.09、PEiD、LordPE、Import REConstructor v1.6 FINAL   
+  
+—————————————————————————————————    
+【脱壳过程】：   
+             
+  
+隐藏 Ollydbg，设置不忽略所有的异常。有时会莫名其妙的 OVER，没办法啦，Try Again 吧 :-(   
+用 Ollydbg 手动脱壳,老规矩：载入后弹出“是压缩代码——要继续进行分析吗？”，点“否”。   
+  
+0048C060     EB 00                jmp short UNPACKME.0048C062   
+                                  ====>进入 OD 后断在这！   
+  
+F9 运行，注意下面 3 个地方：   
+  
+0048C188     CC                   int3   
+0048C189     8BEF                 mov ebp,edi   
+  
+0048C766     CD 68                int 68   
+                                  ====>异常   
+  
+0048C7F2     0000                 add byte ptr ds:\[eax\],al   
+                                  ====>异常   
+  
+————————————————————————   
+Shift+F9 运行，会弹出“入口点预警”的对话框。注意啦！偶开始战斗啦 :-)   
+  
+  
+003F335C     3100                 xor dword ptr ds:\[eax\],eax   
+                                  ====>第 1 次异常   
+  
+Shift+F9 通过异常，16 次程序运行。好了，Try Again，按 15 次 Shift+F9，停下来。   
+  
+003F2CD1     3100                 xor dword ptr ds:\[eax\],eax   
+                                  ====>第 15 次异常   
+  
+003F2CD3     64:8F05 00000000     pop dword ptr fs:\[0\]   
+003F2CDA     58                   pop eax   
+003F2CDB     833D 7C6D3F00 00     cmp dword ptr ds:\[3F6D7C\],0   
+003F2CE2     74 14                je short 003F2CF8   
+003F2CE4     6A 0C                push 0C   
+003F2CE6     B9 7C6D3F00          mov ecx,3F6D7C   
+003F2CEB     8D45 F8              lea eax,dword ptr ss:\[ebp\-8\]   
+003F2CEE     BA 04000000          mov edx,4   
+003F2CF3     E8 54E1FFFF          call 003F0E4C   
+003F2CF8     FF75 FC              push dword ptr ss:\[ebp\-4\]   
+003F2CFB     FF75 F8              push dword ptr ss:\[ebp\-8\]   
+003F2CFE     8B45 F4              mov eax,dword ptr ss:\[ebp\-C\]   
+003F2D01     8338 00              cmp dword ptr ds:\[eax\],0   
+003F2D04     74 02                je short 003F2D08   
+003F2D06     FF30                 push dword ptr ds:\[eax\]   
+003F2D08     FF75 F0              push dword ptr ss:\[ebp\-10\]   
+003F2D0B     FF75 EC              push dword ptr ss:\[ebp\-14\]   
+003F2D0E     C3                   retn   
+                                  ====>不看堆栈区的第二条地址啦。直接在这下断！   
+                                  ====>Shift+F9 断在这！返回到 009737D0   
+  
+  
+————————————————————————   
+注：用 F7 走，省略的地方没什么大跳转，小循环用 F4 跳出即可。   
+下面就不好跟了：小心   
+  
+  
+009737D0     E9 42080000          jmp 00974017   
+  
+00974017     66:8BC2              mov ax,dx   
+  …… ……  省 略  …… ……   
+0097402F     E8 0E000000          call 00974042   
+  
+00974042     5A                   pop edx    
+  …… ……  省 略  …… ……   
+009740B0     E8 0E000000          call 009740C3   
+  
+  
+009740C3     0FB6F3               movzx esi,bl   
+  …… ……  省 略  …… ……   
+00974101     E9 08000000          jmp 0097410E   
+  
+0097410E     BB 28D7DC48          mov ebx,48DCD728   
+  …… ……  省 略  …… ……   
+00974146     E9 0D000000          jmp 00974158   
+  
+00974158     0F85 15000000        jnz 00974173   
+  
+00974173     FE0F                 dec byte ptr ds:\[edi\]   
+00974181     0F85 9EFFFFFF        jnz 00974125   
+                                  ====>F4 下去   
+00974187     8BD9                 mov ebx,ecx   
+00974189     BD F115D591          mov ebp,91D515F1   
+0097418E     F607 80              test byte ptr ds:\[edi\],80   
+00974191     0F8D 00000000        jge 00974197   
+00974197     0F85 57000000        jnz 009741F4   
+  
+009741F4     F647 01 80           test byte ptr ds:\[edi+1\],80   
+009741F8     0FB6DB               movzx ebx,bl   
+009741FB     0F85 0B000000        jnz 0097420C   
+  
+0097420C     0FBAED F8            bts ebp,0F8   
+  …… ……  省 略  …… ……   
+00974277     0F85 26000000        jnz 009742A3   
+  
+009742A3     BB 8CE1311E          mov ebx,1E31E18C   
+  …… ……  省 略  …… ……   
+009742BE     0F85 0C000000        jnz 009742D0   
+  
+009742F9     0F85 3A000000        jnz 00974339   
+  
+00974339     BB 2186F335          mov ebx,35F38621   
+  …… ……  省 略  …… ……   
+00974371     0F85 12000000        jnz 00974389   
+  
+00974389     BB F46DC218          mov ebx,18C26DF4   
+  …… ……  省 略  …… ……   
+0097439E     E8 12000000          call 009743B5   
+  
+009743B6     0F85 0F000000        jnz 009743CB   
+  
+009743CB     BD FAD75FDF          mov ebp,DF5FD7FA   
+  …… ……  省 略  …… ……   
+009743FA     0F85 17000000        jnz 00974417   
+  
+00974417     6A 98                push -68   
+  …… ……  省 略  …… ……   
+0097445F     E8 0E000000          call 00974472   
+  
+00974472     5A                   pop edx     
+  
+00974479     0F85 A6FCFFFF        jnz 00974125   
+                                  ====>F4 下去   
+0097447F     66:2BD9              sub bx,cx   
+  …… ……  省 略  …… ……   
+009744A7    /E9 12000000          jmp 009744BE   
+  
+009744BE   ^FFE3                 jmp ebx   
+                                  ====>跳至 009737D5   
+  
+009737D5     0FB6D9               movzx ebx,cl   
+009737D8     E8 00000000          call 009737DD   
+009737DD     59                   pop ecx   
+  …… ……  省 略  …… ……   
+0097384A    /E9 16000000          jmp 00973865   
+  
+00973865     81FF E9473D0D        cmp edi,0D3D47E9   
+0097386B     8BEC                 mov ebp,esp   
+0097386D     0FB7D9               movzx ebx,cx   
+00973870   ^ 0F85 B9FFFFFF        jnz 0097382F   
+                                  ====>F4 下去   
+00973876     1AF9                 sbb bh,cl   
+00973878     90                   nop   
+00973879     90                   nop   
+0097387A     90                   nop   
+0097387B     90                   nop   
+0097387C     90                   nop   
+0097387D     0FBFD0               movsx edx,ax   
+00973880     E8 05000000          call 0097388A   
+  
+0097388A     BE 01DD4A3C          mov esi,3C4ADD01   
+0097388F     5F                   pop edi   
+00973890     BE 8369E717          mov esi,17E76983   
+00973895     81C7 8D070000        add edi,78D   
+0097389B     E8 13000000          call 009738B3   
+  
+009738B3     58                   pop eax      
+  …… ……  省 略  …… ……   
+009738F2     0F85 BEFFFFFF        jnz 009738B6   
+                                  ====>F4 下去   
+009738F8     E8 12000000          call 0097390F   
+  
+0097390F     81C2 0521A668        add edx,68A62105   
+00973915     58                   pop eax   
+00973916     81C1 D039B12A        add ecx,2AB139D0   
+0097391C     B9 EFC75637          mov ecx,3756C7EF   
+00973921     E8 11000000          call 00973937   
+  
+00973950    /0F83 07000000        jnb 0097395D   
+  
+00973980     E8 0A000000          call 0097398F   
+  
+0097398F     66:8BCE              mov cx,si   
+00973992     59                   pop ecx   
+00973993     81E8 1E406947        sub eax,4769401E   
+00973999     E9 09000000          jmp 009739A7   
+  
+009739A7     66:81C7 576E         add di,6E57   
+009739AC     0FBFF8               movsx edi,ax   
+009739AF     81C0 FFA08D2E        add eax,2E8DA0FF   
+009739B5     8BF0                 mov esi,eax   
+009739B7     50                   push eax   
+009739B8     E8 0C000000          call 009739C9   
+  
+009739C9     E8 0B000000          call 009739D9   
+  
+009739D9     59                   pop ecx       
+009739DA     B9 27494329          mov ecx,29434927   
+009739DF     81F6 BE75C81F        xor esi,1FC875BE   
+009739E5     59                   pop ecx   
+009739E6     E9 0F000000          jmp 009739FA   
+  
+00973A3E   ^F85 37FFFFFF        jnz 0097397B   
+                                  ====>F4 下去   
+00973A44     8BF2                 mov esi,edx   
+00973A46     8BC3                 mov eax,ebx   
+00973A48     E8 0C000000          call 00973A59   
+  
+00973A71     E8 0B000000          call 00973A81   
+  
+00973AB0    /0F82 12000000        jb 00973AC8   
+  
+00973AC8     81E9 7911514E        sub ecx,4E511179   
+00973ACE     81C1 BE7E6D48        add ecx,486D7EBE   
+00973AD4     80D4 C0              adc ah,0C0   
+00973AD7     51                   push ecx   
+00973AD8     0FB7F2               movzx esi,dx   
+00973ADB     8F0413               pop dword ptr ds:\[ebx+edx\]   
+00973ADE     8BF7                 mov esi,edi   
+00973AE0     0F80 0A000000        jo 00973AF0   
+00973AE6     E9 05000000          jmp 00973AF0   
+  
+00973AF0     83EA 04              sub edx,4   
+00973AF3     81C7 87F3F654        add edi,54F6F387   
+00973AF9     81FA F0FAFFFF        cmp edx,-510   
+00973AFF   ^ 0F85 A2FFFFFF        jnz 00973AA7   
+                                  ====>F4 下去   
+00973B05     8AC3                 mov al,bl   
+00973B07     81DB F1D79456        sbb ebx,5694D7F1   
+00973B0D     E8 0B000000          call 00973B1D   
+  
+00973B61    /E9 0D000000          jmp 00973B73   
+  
+00973B84   ^F85 B5FFFFFF        jnz 00973B3F   
+                                  ====>F4 下去   
+00973B8A     66:B8 E728           mov ax,28E7   
+00973B8E     52                   push edx   
+00973B8F     8AC1                 mov al,cl   
+00973B91     58                   pop eax   
+00973B92     81F0 905F9C53        xor eax,539C5F90   
+00973B98     E8 0E000000          call 00973BAB   
+  
+00973BCA    /E9 0B000000          jmp 00973BDA   
+  
+00973C2A     E8 13000000          call 00973C42   
+  
+00973C5E   ^F85 76FFFFFF        jnz 00973BDA   
+                                  ====>F4 下去   
+00973C64    /0F82 16000000        jb 00973C80   
+00973C6A    |E9 11000000          jmp 00973C80   
+  
+00973C87     E8 0A000000          call 00973C96   
+  
+00973CCF    /E9 0D000000          jmp 00973CE1   
+  
+00973CF1    /E9 0F000000          jmp 00973D05   
+  
+00973D0C    /0F85 0C000000        jnz 00973D1E   
+                                  ====>跳   
+00973D12    |E9 1B000000          jmp 00973D32   
+                                  ====>此处下断，F9，断在这！ :-)   跳出循环！   
+00973D21   ^E9 80FFFFFF          jmp 00973CA6   
+                                  ====>跳   注意这个循环！向上找发现 00973D12 可以跳过！   
+  
+00973D32     8BDA                 mov ebx,edx   
+00973D34     E8 11000000          call 00973D4A   
+  
+00973DA5     E8 11000000          call 00973DBB   
+  
+00973DD2    /0F85 26000000        jnz 00973DFE   
+                                  ====>跳   
+00973DD8    |E9 0D000000          jmp 00973DEA   
+                                  ====>此处下断，F9，断在这！ :-)   跳 00973DEA   
+00973DEA    /E9 24000000          jmp 00973E13   
+                                  ====>这里跳出下面的循环！:-)   
+00973E07   ^E9 5FFFFFFF          jmp 00973D6B   
+                                  ====>跳   注意这个循环！向上找发现可以在 00973DD8 下断！   
+  
+00973E13     E8 11000000          call 00973E29   
+  
+00973E2D    /0F8E 0D000000        jle 00973E40   
+  
+00973E73     E8 0F000000          call 00973E87   
+  
+00973E92     E8 05000000          call 00973E9C   
+  
+00973EE0    /0F85 11000000        jnz 00973EF7   
+                                  ====>跳   
+00973EE6     66:8BF9              mov di,cx   
+00973EE9     E9 14000000          jmp 00973F02   
+                                  ====>此处下断，F9，断在这！ :-)   跳出循环！   
+00973EF7   ^E9 5AFFFFFF          jmp 00973E56   
+                                  ====>跳   注意这个循环！向上找发现可以在 00973EE9 下断！   
+  
+00973F02    /E9 12000000          jmp 00973F19   
+  
+00973F19     E8 05000000          call 00973F23   
+  
+00973F39     E8 0C000000          call 00973F4A   
+  
+00973F91     E8 0C000000          call 00973FA2   
+  
+00973FA8     E8 12000000          call 00973FBF   
+  
+00973FC7    /0F85 21000000        jnz 00973FEE   
+                                  ====>跳   
+00973FD7    /E9 2A000000          jmp 00974006   
+                                  ====>此处下断，F9，断在这！ :-)   跳出循环！   
+00973FF1   ^E9 57FFFFFF          jmp 00973F4D   
+                                  ====>跳   注意这个循环！向上找发现可以在 00973FD7 下断！   
+  
+  
+00974006     5B                   pop ebx        ; unpackme.00400000   
+00974007     58                   pop eax   
+00974008     05 F0C81504          add eax,415C8F0   
+0097400D     5C                   pop esp   
+0097400E     03C3                 add eax,ebx   
+                                  ====>EAX\=00052354 + 00400000=00452354   这就是 OEP 值  :-)   
+00974010     894424 1C            mov dword ptr ss:\[esp+1C\],eax   
+00974014     61                   popad   
+00974015     FFE0                 jmp eax   
+                                  ====>飞向光明之巅！OEP=EAX\=00452354   
+                                  ====>就在这儿用 LordPE 纠正 ImageSize 后完全 DUMP 这个进程   
+  
+  
+———————————————————————   
+  
+运行 ImportREC，选择这个进程。把 OEP 改为 00052354，点 IT AutoSearch，点“Get Import”，用插件手动修复即可。FixDump，正常运行！  258K ->576K，简单优化后是 492K   
+    
+用 PEID 看脱壳后的程序：Borland Delphi 6.0；可以跨平台运行。呵呵，应该是成功了。   
+  
+压缩包里的是 ☆修复好的输入表☆，仅供参考。 :-)   
+  
+  
+—————————————————————————————————   
+       
+                                   
+         ,     \_/    
+        /| \_.-~/            \_     ,        青春都一饷   
+       ( /~   /              ~-.\_ |   
+       \`\\  \_/                   ~ )          忍把浮名    
+   \_-~~~-.)  )\_\_/;;,.          \_  //'    
+  /'\_,   --~    ~~~-  ,;;\_\_\_(  (.-~~~-.        换了破解轻狂   
+ \`~ \_( ,\_..-- (     ,;'' /    ~--   /.\_\`    
+  /~~//'   /' \`~         ) /--..\_, )\_  \`~    
+  "  \`~"  "      \`"      /~'\`    \`\\~~      
+                         "     "   "~'  ""   
+  
+       
+  
+               Cracked By 巢水工作坊——fly \[OCN\]\[FCG\]   
+  
+                       2003-10-06  15:00  
+ 4dd466d0e1e0cc123afbe504da2462ca

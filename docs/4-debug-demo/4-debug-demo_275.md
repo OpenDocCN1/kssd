@@ -1,0 +1,91 @@
+
+
+# The Cleaner
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum973.htm`](https://www.pediy.com/kssd/pediy03/forum973.htm)
+
+软件名称：The Cleaner   
+整理日期：2001.5.8   
+最新版本：3.2 Build 3213 Database 3217   
+文件大小：1825KB   
+软件授权：共享软件   
+使用平台：Win9x/Me/NT/2000   
+发布公司：Home Page   
+软件简介：   
+　　一个专门检测和清除侵入您系统中的特洛伊木马的专业程序, 内置 3093 个木马标识。可在线升级版本和病毒数据库, 操作简单, 功能强大! 查杀的各类特洛伊木马种类最多，几乎所有较出名的这里都有，如 Netspy、BO、Netbus、 Girlfriend、Happy99、BackDoor 以及它们的一些不同版本。还有很多种我们大多数网友听都没听过，有了它我们可以将电脑“清洁”得干干净净，放心大胆地上网。将毒数据库 cleaner.cdb 复制到 The Cleaner 的安装目录下，就可以完成升级了。   
+下载地址：http://www.inhua.com/down/cleaner3.exe   
+汉化补丁下载：http://software.wx88.net/down/TheCleaner3213-HB-SPH.exe   
+  
+使用工具：FI 2.40 、W32DASM、pdump32、HIEW      
+          以上工具均可在看雪老师的破解工具中找到   
+步骤如下：   
+1、FI 查看为 UPX 压缩，用 PDUMP32 打开 cleaner.exe   
+      (1)选择 unpack   
+        出现对话框后先择里面的 UPX 点 OK 按钮、打开 cleaner.exe   
+        等待软件完全运行后点击 PDUMP32 的确定按钮        
+        这时程序自动完成脱壳工作，出现提示框后，键入 test.exe 保存；   
+        到此脱壳完成  ^\_^  用 FI 查看 test.exe 为 DELPHI 格式，嘻嘻 DELPHI 真          的不错   
+2、用 W32DASM 打开 test.exe 反汇编，成功后在串式参考中查找“你的 30 天评估时间已到期了！”（没办法英文太菜了）找到如下内容：   
+\=======================================================================   
+:00496947 763C                    jbe 00496985          ====>改为 9090   
+          ~~~~                  
+          NOP NOP   
+:00496949 8D45FC                  lea eax, dword ptr \[ebp\-04\]   
+:0049694C 50                      push eax   
+:0049694D 8D55F8                  lea edx, dword ptr \[ebp\-08\]   
+:00496950 8BB3EC010000            mov esi, dword ptr \[ebx+000001EC\]   
+:00496956 8BC6                    mov eax, esi   
+:00496958 E877A6F8FF              call 00420FD4   
+:0049695D 8B45F8                  mov eax, dword ptr \[ebp\-08\]   
+:00496960 33D2                    xor edx, edx   
+:00496962 8A9314020000            mov dl, byte ptr \[ebx+00000214\]   
+:00496968 8955F0                  mov dword ptr \[ebp\-10\], edx   
+:0049696B C645F400                mov \[ebp\-0C\], 00   
+:0049696F 8D55F0                  lea edx, dword ptr \[ebp\-10\]   
+:00496972 33C9                    xor ecx, ecx   
+:00496974 E8771FF7FF              call 004088F0   
+:00496979 8B55FC                  mov edx, dword ptr \[ebp\-04\]   
+:0049697C 8BC6                    mov eax, esi   
+:0049697E E881A6F8FF              call 00421004   
+:00496983 EB10                    jmp 00496995   
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+|:00496947(C)   
+|   
+  
+\* Possible StringData Ref from Data Obj ->"    你的 30 天评估时间已到期了！ "   
+                                        ->"  "   
+                                  |   
+:00496985 BA306A4900              mov edx, 00496A30   
+:0049698A 8B83EC010000            mov eax, dword ptr \[ebx+000001EC\]   
+:00496990 E86FA6F8FF              call 00421004   
+  
+  
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*向上查找可又跳过的地址:00496947 763C  jbe 00496985 =======================================================================   
+下面的你看着改吧，我就不多说了   
+:004AB3BE E879500000              call 004B043C   
+:004AB3C3 84C0                    test al, al          
+:004AB3C5 754C                    jne 004AB413      
+:004AB3C7 8B45FC                  mov eax, dword ptr \[ebp\-04\]   
+:004AB3CA 056CB35101              add eax, 0151B36C   
+  
+\* Possible StringData Ref from Data Obj ->"\*\*\*未注册的共享软件\*\*\*"   
+                                  |   
+:004AB3CF BA54BB4A00              mov edx, 004ABB54   
+:004AB3D4 E83B87F5FF              call 00403B14   
+:004AB3D9 8B0D18504B00            mov ecx, dword ptr \[004B5018\]   
+:004AB3DF A1D84F4B00              mov eax, dword ptr \[004B4FD8\]   
+:004AB3E4 8B00                    mov eax, dword ptr \[eax\]   
+\=======================================================================   
+  
+用 TRW2000 也可以非常方便的找到注册码，但由于找不到注册算法写不出注册机，就算了。如果谁能够找到，请指导一下。我会很虚心的求教的    
+  
+^\_^ 
+
+除了把:004AB3C5 754C  jne 004AB413 改外，还可加上 004633C0 JE   
+  
+004933D9 改为 JNE。再输入任意 19 位注册码都有效。   
+  
+  
+  
+                                    --MAUIboy2001\[BCG\]  4dd466d0e1e0cc123afbe504da2462ca

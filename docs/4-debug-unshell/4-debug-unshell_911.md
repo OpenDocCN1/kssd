@@ -1,0 +1,1032 @@
+
+
+# PesPin 1.0
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6700.htm`](https://www.pediy.com/kssd/pediy06/pediy6700.htm)
+
+【目    标】: PeSpin 1.0 主程序  
+【工    具】:Olydbg1.1  
+【任    务】:抓它的衣服个光光.哈哈  
+【操作平台】:WINXP pro sp1   
+【作    者】:loveboom\[DFCG\]\[FCG\]\[US\]  
+【相关链接】: [`pespin.w.interia.pl/`](http://pespin.w.interia.pl/)(作者的官方站点)  
+【简要说明】:不知不觉就过了这么久了，很久没写什么文章。看到别的朋友们在不断的进步，我都感觉自己是不是真的老了哦:-).写这篇文章也算是给大家中秋节的一个礼物吧，祝大家中秋快乐!身体健康!工作顺利!!  
+【详细过程】:  
+设置没什么特别，因为这次想稍微看细一点，所以是慢慢的来跟。打开全部的异常就行了。  
+00410087 >  90              NOP                                      ; EP,壳入口,是垃圾代码，所以我直接 nop 掉它了  
+00410088    90              NOP  
+00410089    90              NOP  
+0041008A    60              PUSHAD  
+0041008B    E8 00000000     CALL 00410090  
+00410090    8B1C24          MOV EBX,DWORD PTR SS:\[ESP\]               ; 这里就就是 pop ebx  
+00410093    83C3 12         ADD EBX,12  
+00410096    812B E8B10600   SUB DWORD PTR DS:\[EBX\],6B1E8             ; 这里开始就动态改变代码  
+0041009C    FE4B FD         DEC BYTE PTR DS:\[EBX\-3\]  
+0041009F    812C24 E02A4000 SUB DWORD PTR SS:\[ESP\],00402AE0  
+004100A6    DC9E 83B17501   FCOMP QWORD PTR DS:\[ESI+175B183\]  
+004100AC    90              NOP  
+004100AD    8173 04 D77AF72>XOR DWORD PTR DS:\[EBX+4\],2FF77AD7        ; 又是动态生成代码  
+004100B4    8173 19 770043B>XOR DWORD PTR DS:\[EBX+19\],B7430077  
+004100BB    81C3 28000000   ADD EBX,28  
+004100C1    F9              STC                                      ; 设置 C 标志  
+004100C2    FFE3            JMP EBX  
+004100C4    C9              LEAVE  
+004100C5    C2 0800         RETN 8  
+004100C8    90              NOP  
+004100C9    90              NOP  
+004100CA    72 01           JB SHORT 004100CD                        ; 其实就是 jmp xxx,因为上面已经设置了 C 标志  
+004100CC    90              NOP  
+004100CD    5D              POP EBP  
+004100CE    33C9            XOR ECX,ECX  
+004100D0    41              INC ECX  
+004100D1    E2 17           LOOPD SHORT 004100EA  
+004100D3   /EB 07           JMP SHORT 004100DC  
+004100D5   |90              NOP  
+004100D6   |EB 01           JMP SHORT 004100D9  
+004100D8   |90              NOP  
+004100D9   |EB 0D           JMP SHORT 004100E8  
+004100DB   |90              NOP  
+004100DC   \\E8 01000000     CALL 004100E2  
+004100E1    90              NOP  
+004100E2    5A              POP EDX  
+004100E3    83EA 0B         SUB EDX,0B  
+004100E6    FFE2            JMP EDX                                  ; 这个壳里好多这样的东西哦  
+004100F1    8B95 D2424000   MOV EDX,DWORD PTR SS:\[EBP+4042D2\]        ; \[EBP+4042D2\]=4042d2+d5b0 处存放的就是程序的 IMGBASE  
+004100F7    8B42 3C         MOV EAX,DWORD PTR DS:\[EDX+3C\]            ; 这里不就是取 PE 所以在的地方+3C  
+004100FA    03C2            ADD EAX,EDX                              ; 相加后就是 PE 文件的开始处了  
+004100FC    8985 DC424000   MOV DWORD PTR SS:\[EBP+4042DC\],EAX        ; PE 文件开始处 4000D0 处入\[EBP+4042DC\]处  
+00410102    EB 02           JMP SHORT 00410106  
+00410104    90              NOP  
+00410105    90              NOP  
+00410106    F9              STC                                      ; 这里也是明显的变形 jmp  
+00410107    72 08           JB SHORT 00410111  
+00410109    73 0E           JNB SHORT 00410119  
+0041010B    F9              STC  
+0041010C    830424 17       ADD DWORD PTR SS:\[ESP\],17  
+00410110    C3              RETN  
+00410111    E8 04000000     CALL 0041011A  
+00410116    90              NOP  
+00410117    F5              CMC  
+00410118    73 11           JNB SHORT 0041012B                       ; 又是一堆垃圾代码  
+0041011A    EB 06           JMP SHORT 00410122  
+0041011C    90              NOP  
+0041011D  ^ 72 ED           JB SHORT 0041010C  
+0041011F    1F              POP DS                                   ; Modification of segment register  
+00410120    EB 07           JMP SHORT 00410129  
+00410122    F5              CMC                                      ; 这里也就是清除 c 标志，所以下面也不会跳(实际是取反)  
+00410123    72 0E           JB SHORT 00410133  
+00410125    F5              CMC                                      ; 再次取反，这次下面就会跳了  
+00410126  ^ 72 F8           JB SHORT 00410120  
+00410128    90              NOP  
+00410129  ^ EB EC           JMP SHORT 00410117  
+0041012B    830424 07       ADD DWORD PTR SS:\[ESP\],7  
+0041012F    F5              CMC  
+00410130    FF3424          PUSH DWORD PTR SS:\[ESP\]                  ; PESpin.0041011D  
+00410133    C3              RETN  
+  
+00410134    41              INC ECX  
+00410135    C1E1 07         SHL ECX,7  
+00410138    8B0C01          MOV ECX,DWORD PTR DS:\[ECX+EAX\]           ; 取 code 段的 start address  
+0041013B    03CA            ADD ECX,EDX                              ; ecx 就是保存 CODE 段的开始 RVA  
+……  
+0041014E    8B59 10         MOV EBX,DWORD PTR DS:\[ECX+10\]  
+00410151    03DA            ADD EBX,EDX  
+00410153    8B1B            MOV EBX,DWORD PTR DS:\[EBX\]  
+00410155    899D F0424000   MOV DWORD PTR SS:\[EBP+4042F0\],EBX        ; \[EBP+4042F0\]存放 MessageBox 的地址?  
+0041015B    53              PUSH EBX  
+0041015C    8F85 94414000   POP DWORD PTR SS:\[EBP+404194\]            ; \[EBP+404194\]存放 MessageBox 的地址?  
+00410162    BB E1000000     MOV EBX,0E1  
+00410167    B9 8C0B0000     MOV ECX,0B8C                             ; 传入要解压的 SIZE  
+0041016C    8DBD 80434000   LEA EDI,DWORD PTR SS:\[EBP+404380\]  
+00410172    4F              DEC EDI  
+00410173    EB 01           JMP SHORT 00410176  
+00410175    90              NOP  
+00410176    301C39          XOR BYTE PTR DS:\[ECX+EDI\],BL             ; 从 4124BB 处开始解压大小为 0b8c 的代码,是向上解压  
+00410179    FECB            DEC BL  
+0041017B  ^ E2 F9           LOOPD SHORT 00410176  
+……  
+00410180    68 CB000000     PUSH 0CB  
+00410185    59              POP ECX                                  ; mov ecx,0cb  
+00410186    8DBD 404E4000   LEA EDI,DWORD PTR SS:\[EBP+404E40\]        ; 把刚才解压后的起始地址 41192F 传人 EDI  
+……  
+0041019D    C00C39 02       ROR BYTE PTR DS:\[ECX+EDI\],2              ; 41192f+0CB=4124bb(上面的结束地址)处的值 ror 2  
+004101A1  ^ E2 FA           LOOPD SHORT 0041019D                     ; 这里再次从 4124BB 处解压大小为 0CB 的代码  
+……  
+004101A1  ^\\E2 FA           LOOPD SHORT 0041019D                       ; 这里再次从 4124BB 处解压大小为 0CB 的代码  
+004101A3    E8 02000000     CALL 004101AA                              ; 到这里还是只解压壳的部分代码  
+004101A8    90              NOP  
+004101A9    90              NOP  
+004101AA    5A              POP EDX                                    ; mov edx,401A8  
+004101AB    8D85 FD685600   LEA EAX,DWORD PTR SS:\[EBP+5668FD\]          ; \[EBP+5668FD\]=D5B0+5668FD=573EAD 地址入 eax 中  
+004101B1    BB 54130B00     MOV EBX,0B1354  
+004101B6    D1E3            SHL EBX,1  
+004101B8    2BC3            SUB EAX,EBX  
+004101BA    FFE0            JMP EAX                                    ; PESpin.00411805  
+……  
+00411820    66:813F 4D5A    CMP WORD PTR DS:\[EDI\],5A4D                 ; 这里通过循环找 kernel32.dll 的 KERNEL BASE(77e410000)  
+00411825    75 11           JNZ SHORT 00411838                         ; 如果找到了就不跳  
+00411827    0FB757 3C       MOVZX EDX,WORD PTR DS:\[EDI+3C\]  
+0041182B    66:F7C2 00F8    TEST DX,0F800                              ; 比较 KERBASE+3C 处是不是 0f800  
+00411830    75 06           JNZ SHORT 00411838                         ; 如果不是就跳,这里没有跳  
+00411832    3B7C3A 34       CMP EDI,DWORD PTR DS:\[EDX+EDI+34\]  
+00411836    74 08           JE SHORT 00411840                          ; 这里再次判断 KERNEL32.DLL 的 imgbase 对不对  
+00411838    81EF 00000100   SUB EDI,10000                              ; UNICODE "ALLUSERSPROFILE=D:\\Documents and Settings\\All Users"  
+0041183E  ^ EB E0           JMP SHORT 00411820  
+00411840    97              XCHG EAX,EDI                               ; 如果找到就把 EAX 和 edi 的值互换一下  
+00411857    50              PUSH EAX                                   ; push KERNEL BASE  
+00411858    8785 F4424000   XCHG DWORD PTR SS:\[EBP+4042F4\],EAX         ; 把 KERNEL BASE 保存到\[EBP+4042F4\]=4118A4 处.  
+0041185E    016C24 04       ADD DWORD PTR SS:\[ESP+4\],EBP  
+00411862    8D85 FB9883EB   LEA EAX,DWORD PTR SS:\[EBP+EB8398FB\]  
+00411868    8D80 BDAABC14   LEA EAX,DWORD PTR DS:\[EAX+14BCAABD\]        ; 411968  
+0041186E    EB 01           JMP SHORT 00411871  
+00411870    90              NOP  
+00411871    FFD0            CALL EAX                                   ; 这里也就是 CALL 411968，这里进去就是通过循环的方法来获取 KERNEL32.DLL 的输出表来找到所要用到的输出函数。  
+我们进去看看:  
+0041196E    8BF0            MOV ESI,EAX  
+00411970    0340 3C         ADD EAX,DWORD PTR DS:\[EAX+3C\]            ; e\_lfanew  
+00411973    8B40 78         MOV EAX,DWORD PTR DS:\[EAX+78\]            ; RVA Export Table  
+00411976    03C6            ADD EAX,ESI                              ; 输出表的位置的 RVA=6D040  
+00411978    FF70 20         PUSH DWORD PTR DS:\[EAX+20\]               ; 定位 AddressofName=6DF20  
+0041197B    5B              POP EBX  
+0041197C    03DE            ADD EBX,ESI  
+0041197E    FF70 18         PUSH DWORD PTR DS:\[EAX+18\]               ; NumberofNames ==03AE  
+00411981    8F85 46444000   POP DWORD PTR SS:\[EBP+404446\]            ; MOV \[ebp+404446\],03AE(4119F6)  
+00411987    FF70 24         PUSH DWORD PTR DS:\[EAX+24\]               ; AddressOfNameOrdianls=6EDD8  
+0041198A    5A              POP EDX                                  ; mov edx,addressofnameordinals  
+0041198B    03D6            ADD EDX,ESI                              ; 转换成 VA  
+0041198D    FF70 1C         PUSH DWORD PTR DS:\[EAX+1C\]               ; AddressOfFunctions=6D068  
+00411990    59              POP ECX                                  ; mov ecx,AddressOfFunctions  
+00411991    03CE            ADD ECX,ESI  
+00411993    898D 36444000   MOV DWORD PTR SS:\[EBP+404436\],ECX        ; 保存 AddressOfFunctions 到\[EBP+404436\]处  
+00411999    83EF 05         SUB EDI,5  
+0041199C    83C7 05         ADD EDI,5  
+0041199F    833F 00         CMP DWORD PTR DS:\[EDI\],0                 ; 如果取完了就跳  
+004119A2    74 71           JE SHORT 00411A15  
+004119A4    8A07            MOV AL,BYTE PTR DS:\[EDI\]  
+004119A6    8885 1D444000   MOV BYTE PTR SS:\[EBP+40441D\],AL  
+004119AC    FF77 01         PUSH DWORD PTR DS:\[EDI+1\]  
+……  
+004119C6    8B3B            MOV EDI,DWORD PTR DS:\[EBX\]               ; AddressOfNames 保存到 EDI 中  
+004119C8    03FE            ADD EDI,ESI  
+……  
+00411A00    5B              POP EBX  
+00411A01    0BC0            OR EAX,EAX                               ; 判断取出的结果是为为空，如果为空就跳  
+00411A03    74 12           JE SHORT 00411A17  
+00411A05    EB 01           JMP SHORT 00411A08  
+00411A07    90              NOP  
+00411A08    8038 CC         CMP BYTE PTR DS:\[EAX\],0CC                ; 判断我们有没有在相关 api 处下 cc 断点  
+00411A0B    75 03           JNZ SHORT 00411A10  
+00411A0D    8028 00         SUB BYTE PTR DS:\[EAX\],0                  ; 如果发现你在相关的 API 处下断了，就把应该放的 API 地址给清 0  
+00411A10    8947 01         MOV DWORD PTR DS:\[EDI+1\],EAX             ; 如果没有就从 4118b4 处开始写入相关的 AP  
+00411A13  ^ EB 87           JMP SHORT 0041199C  
+00411A15    0BC0            OR EAX,EAX  
+00411A17    EB 01           JMP SHORT 00411A1A                       ; 取完后返回去了  
+00411A19    90              NOP  
+00411A1A    C3              RETN  
+这里取了这么几个 API：  
+kernel32.LoadLibraryA  
+kernel32.ExitProcess  
+kernel32.GetProcAddress  
+kernel32.VirtualProtect  
+kernel32.CloseHandle  
+kernel32.VirtualAlloc  
+kernel32.VirtualFree  
+kernel32.CreateFileA  
+kernel32.ReadFile  
+kernel32.GetTickCount  
+kernel32.GetModuleHandleA  
+kernel32.CreateThread  
+kernel32.Sleep  
+kernel32.GetCurrentProcessId  
+kernel32.OpenProcess  
+kernel32.TerminateProcess  
+kernel32.GetFileSize  
+kernel32.GetModuleFileNameA  
+……  
+00411F25    301F            XOR BYTE PTR DS:\[EDI\],BL                   ; 从 4102C4 处开始向下解压大小为 421 的代码  
+00411F27    47              INC EDI  
+00411F28  ^ E2 F1           LOOPD SHORT 00411F1B  
+00411F2A    830424 05       ADD DWORD PTR SS:\[ESP\],5  
+00411F2E    C3              RETN                                       ; 解压后跳去解压后的地址 4102c4  
+……  
+004102F7    53              PUSH EBX                                   ; 这里准备异常,EBX 就是完全地方  
+004102F8    50              PUSH EAX  
+……  
+00410301    B9 13000000     MOV ECX,13  
+00410306    E8 00000000     CALL 0041030B  
+0041030B    5F              POP EDI  
+0041030C    83EF 0A         SUB EDI,0A  
+0041030F    BE 54194100     MOV ESI,00411954  
+00410314    F3:A4           REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR DS:\[ESI\]      ; 把 411954 处的代码复制 13 个到 410301 开始的地方  
+…….  
+00410334    5B              POP EBX                                  ; mov ebx,410334  
+00410335    81C3 1E000000   ADD EBX,1E                               ; ebx=410334+1e  
+0041033B    8DB5 502A4000   LEA ESI,DWORD PTR SS:\[EBP+402A50\]        ; mov esi,410000  
+00410341    68 FF000000     PUSH 0FF  
+00410346    56              PUSH ESI  
+00410347    6A 00           PUSH 0  
+00410349    53              PUSH EBX                                 ; push 410351  
+0041034A    FFA5 59434000   JMP DWORD PTR SS:\[EBP+404359\]            ; GetModuleFileNameA  
+这里也就是:  
+0012FF94   00410351  /CALL to GetModuleFileNameA  
+0012FF98   00000000  |hModule = NULL  
+0012FF9C   00410000  |PathBuffer = PESpin.00410000  
+0012FFA0   000000FF  \\BufSize = FF (255.)  
+410000 处存放 path,取出程序的完整路径和程序名，结果存放在 410000 处。  
+00410358    81C3 22000000   ADD EBX,22                               ; 比较有意思壳调用 API 的都用这种方式，这里运算后的值就是等下要返回的地址  
+0041035E    6A 00           PUSH 0  
+00410360    68 80000000     PUSH 80  
+00410365    6A 03           PUSH 3  
+00410367    6A 00           PUSH 0  
+00410369    6A 01           PUSH 1  
+0041036B    68 00000080     PUSH 80000000  
+00410370    56              PUSH ESI  
+00410371    53              PUSH EBX  
+00410372  - FFA5 27434000   JMP DWORD PTR SS:\[EBP+404327\]            ; CreateFileA  
+我这里是这样的:  
+0012FF84   00410378  /CALL to CreateFileA  
+0012FF88   00410000  |FileName = "G:\\ctools\\加壳\\PesPin1.0\\PESpin.exe"  
+0012FF8C   80000000  |Access = GENERIC\_READ  
+0012FF90   00000001  |ShareMode = FILE\_SHARE\_READ  
+0012FF94   00000000  |pSecurity = NULL  
+0012FF98   00000003  |Mode = OPEN\_EXISTING  
+0012FF9C   00000080  |Attributes = NORMAL  
+0012FFA0   00000000  \\hTemplateFile = NULL  
+00410378    E8 01000000     CALL 0041037E  
+0041037D    90              NOP  
+0041037E    5A              POP EDX  
+0041037F    81C2 1A000000   ADD EDX,1A                               ; 这里又来了,又是用这种方法来调用 API  
+00410385    8985 2C4F4000   MOV DWORD PTR SS:\[EBP+404F2C\],EAX        ; 把 CreateFileA 后返回的值传入\[EBP+4042C\]处  
+0041038B    93              XCHG EAX,EBX  
+0041038C    6A 00           PUSH 0  
+0041038E    53              PUSH EBX                                 ; push 文件的句柄  
+0041038F    52              PUSH EDX                                 ; 这里是要返回的地址  
+00410390  - FFA5 54434000   JMP DWORD PTR SS:\[EBP+404354\]            ; GetFileSize  
+  
+0012FF98   00410397  /CALL to **GetFileSize**  
+0012FF9C   00000038  |hFile = 00000038 (window)  
+0012FFA0   00000000  \\pFileSizeHigh = NULL  
+  
+00410397    E8 01000000     CALL 0041039D  
+0041039C    90              NOP  
+0041039D    5A              POP EDX  
+0041039E    81C2 23000000   ADD EDX,23                               ; CALL API 后要返回的地址,4103bf  
+004103A4    8BD8            MOV EBX,EAX                              ; 文件大小入 EBX 中  
+004103A6    53              PUSH EBX  
+004103A7    8F85 384F4000   POP DWORD PTR SS:\[EBP+404F38\]            ; 也就把文件大小 B600 存入\[EBP+404F38\]中  
+004103AD    6A 04           PUSH 4  
+004103AF    68 00300000     PUSH 3000  
+004103B4    50              PUSH EAX  
+004103B5    6A 00           PUSH 0  
+004103B7    52              PUSH EDX  
+004103B8    FFA5 1D434000   JMP DWORD PTR SS:\[EBP+40431D\]            ; 这里开始分配一个文件大小的空间  
+  
+0012FF90   004103BF  /CALL to **VirtualAlloc**  
+0012FF94   00000000  |Address = NULL  
+0012FF98   0000B600  |Size = B600 (46592.)  
+0012FF9C   00003000  |AllocationType = MEM\_COMMIT|MEM\_RESERVE  
+0012FFA0   00000004  \\Protect = PAGE\_READWRITE  
+申请返回的地址是:003E0000.  
+004103BF    50              PUSH EAX  
+004103C0    8F85 D8424000   POP DWORD PTR SS:\[EBP+4042D8\]            ; \[EBP+4042D8\]处保存申请后的地址 003E0000  
+004103C6    8D8D 384F4000   LEA ECX,DWORD PTR SS:\[EBP+404F38\]        ; 把文件大小的地址传入 ecx 中  
+004103CC    E8 01000000     CALL 004103D2  
+004103D1    90              NOP  
+004103D2    5A              POP EDX  
+004103D3    81C2 1C000000   ADD EDX,1C                               ; CALL API 后要返回的地址 4103ED  
+004103D9    6A 00           PUSH 0                                   ; 这里开始通过 ReadFile 把文件读入刚才申请的地址 003e0000 处  
+004103DB    51              PUSH ECX  
+004103DC    53              PUSH EBX  
+004103DD    50              PUSH EAX  
+004103DE    FFB5 2C4F4000   PUSH DWORD PTR SS:\[EBP+404F2C\]  
+004103E4    52              PUSH EDX  
+004103E5    FFA5 2C434000   JMP DWORD PTR SS:\[EBP+40432C\]            ; ReadFile  
+  
+   
+004103ED    E8 01000000     CALL 004103F3  
+004103F2    90              NOP  
+004103F3    5A              POP EDX  
+004103F4    81C2 16000000   ADD EDX,16  
+004103FA    FFB5 2C4F4000   PUSH DWORD PTR SS:\[EBP+404F2C\]           ; push 文件号  
+00410400    52              PUSH EDX                                 ; push 要返回的地址 410408  
+00410401  - FFA5 18434000   JMP DWORD PTR SS:\[EBP+404318\]            ; 操作完成就 CloseHandle 了  
+00410407    90              NOP  
+00410408    FFB5 384F4000   PUSH DWORD PTR SS:\[EBP+404F38\]            ; 文件大小入 ecx 了  
+0041040E    59              POP ECX  
+0041040F    81E9 111B0000   SUB ECX,1B11                              ; 用文件大小 b600-1b11=9AEF  
+00410415    8DBD D8424000   LEA EDI,DWORD PTR SS:\[EBP+4042D8\]  
+0041041B    8B3F            MOV EDI,DWORD PTR DS:\[EDI\]                ; 申请的地址 3E0000 入 edi 中  
+0041041D    8D85 0B616038   LEA EAX,DWORD PTR SS:\[EBP+3860610B\]  
+00410423    0BC0            OR EAX,EAX  
+00410425    75 19           JNZ SHORT 00410440                        ; 这里实际也是一个 jmp 来的  
+00410447    2985 404F4000   SUB DWORD PTR SS:\[EBP+404F40\],EAX         ; 保存 hash 值 58873d42?? \[EBP+404F40\]= 58873d42  
+0041044D    E8 01000000     CALL 00410453  
+00410452    90              NOP  
+00410453    5A              POP EDX  
+00410454    81C2 1C000000   ADD EDX,1C  
+0041045A    68 00800000     PUSH 8000  
+0041045F    6A 00           PUSH 0  
+00410461    FFB5 D8424000   PUSH DWORD PTR SS:\[EBP+4042D8\]            ; push 003E0000  
+00410467    52              PUSH EDX                                  ; push 返回地址 41046E  
+00410468    FFA5 22434000   JMP DWORD PTR SS:\[EBP+404322\]             ; 这里释放刚才申请的空间 003E0000  
+0041046E    BB 380D581C     MOV EBX,1C580D38                          ; 前的取出文件操作的只是为了得到一个 hash 值??  
+……  
+00410492    64:8920         MOV DWORD PTR FS:\[EAX\],ESP               ; 有意思，这里的异常，是通过 call 的那个 esp 值+ebp 的  
+00410495    C1EB 02         SHR EBX,2                                ; 上面其实就是设置 SEH 句柄为 4104ba  
+…….  
+004104BA    8B4424 04       MOV EAX,DWORD PTR SS:\[ESP+4\]             ; 这里几个是什么作用我也不知道;-(  
+004104BE    8B4C24 0C       MOV ECX,DWORD PTR SS:\[ESP+C\]  
+004104C2    8B00            MOV EAX,DWORD PTR DS:\[EAX\]  
+004104C4    35 5B011238     XOR EAX,3812015B  
+004104C9    3D 5E0112F8     CMP EAX,F812015E  
+004104CE    75 0F           JNZ SHORT 004104DF                       ; 这里不相等  
+004104D0    8181 B8000000 B>ADD DWORD PTR DS:\[ECX+B8\],18BF  
+004104DA    EB 27           JMP SHORT 00410503  
+004104DC    EB 01           JMP SHORT 004104DF  
+004104DE    90              NOP  
+004104DF    3D 460112F8     CMP EAX,F8120146                         ; EAX==F81201CF  
+004104E4    75 0C           JNZ SHORT 004104F2  
+004104E6    8181 B8000000 7>ADD DWORD PTR DS:\[ECX+B8\],172  
+004104F0    EB 11           JMP SHORT 00410503  
+004104F2    3D CF0112F8     CMP EAX,F81201CF  
+004104F7    75 0A           JNZ SHORT 00410503  
+004104F9    8181 B8000000 9>ADD DWORD PTR DS:\[ECX+B8\],1490  
+00410503    33C0            XOR EAX,EAX  
+00410505    C3              RETN  
+这里再回到 411931 处  
+……  
+00411942    803B CC         CMP BYTE PTR DS:\[EBX\],0CC                ; 这里判断 4104a4 处有没有下断点  
+00411945    75 0B           JNZ SHORT 00411952                       ; 如果没有就跳  
+00411947    81E4 FFFF0000   AND ESP,0FFFF  
+0041194D    E8 1A000000     CALL 0041196C  
+00411952  ^ FFE3            JMP EBX                                  ; 跳回去继续执行  
+……  
+00410549    90              NOP  
+0041054A    51              PUSH ECX                                 ; push 要解压的 section 值，ECX==4  
+0041054B    0FA3C3          BT EBX,EAX                               ; 如果 ebx 内容为空就 c 标志为 0，否则 CF=1,我们这里 EBX=7  
+0041054E    73 24           JNB SHORT 00410574                       ; 如果段不需要解压就跳  
+00410550    52              PUSH EDX                                 ; 这里开始解压各个 section 的数据  
+00410551    8B7A 0C         MOV EDI,DWORD PTR DS:\[EDX+C\]             ; 第一次的结果:  
+00410554    03BD D2424000   ADD EDI,DWORD PTR SS:\[EBP+4042D2\]        ; 传入要写起始的地址 401000  
+0041055A    8B4A 10         MOV ECX,DWORD PTR DS:\[EDX+10\]            ; 传入要写的代码 SIZE==5200 也就是解压.text 段的大小  
+0041055D    8B95 404F4000   MOV EDX,DWORD PTR SS:\[EBP+404F40\]        ; 这里取出上面 hash 的值,传入 edx 中  
+00410563    D1EA            SHR EDX,1  
+00410565    72 06           JB SHORT 0041056D  
+00410567    81F2 32AF43ED   XOR EDX,ED43AF32  
+0041056D    3017            XOR BYTE PTR DS:\[EDI\],DL  
+0041056F    47              INC EDI  
+00410570    49              DEC ECX  
+00410571  ^ E2 F0           LOOPD SHORT 00410563                     ; 这里循环进行解压代码  
+00410573    5A              POP EDX                                  ; 如果解压到前一个 section,的话，就指向下一个 section  
+00410574    40              INC EAX  
+00410575    83C2 28         ADD EDX,28  
+00410578    59              POP ECX  
+00410579    EB 01           JMP SHORT 0041057C  
+0041057B    40              INC EAX  
+0041057C  ^ E2 CC           LOOPD SHORT 0041054A                     ; 这时循环回去  
+0041057E    838D 3A4E4000 0>OR DWORD PTR SS:\[EBP+404E3A\],0  
+00410585    74 0D           JE SHORT 00410594  
+00410587    8D85 DA4B4000   LEA EAX,DWORD PTR SS:\[EBP+404BDA\]  
+0041058D    2D D1030000     SUB EAX,3D1  
+00410592    FFD0            CALL EAX  
+00410594    68 19010000     PUSH 119  
+00410599    59              POP ECX  
+0041059A    8DBD BC4A4000   LEA EDI,DWORD PTR SS:\[EBP+404ABC\]        ; 从 41206c 处解压大小为 119 的代码  
+004105A0    BA E9909E01     MOV EDX,19E90E9  
+004105A5    D1EA            SHR EDX,1  
+004105A7    73 06           JNB SHORT 004105AF  
+004105A9    81F2 32AF43ED   XOR EDX,ED43AF32  
+004105AF    3017            XOR BYTE PTR DS:\[EDI\],DL  
+004105B1    47              INC EDI                                  ; PESpin.00412070  
+004105B2  ^ E2 F1           LOOPD SHORT 004105A5                     ; 如果没有解压完成就跳回去解压  
+004105B4    8D85 5C888D65   LEA EAX,DWORD PTR SS:\[EBP+658D885C\]  
+……  
+004105BF    D1E3            SHL EBX,1  
+004105C1    2BC3            SUB EAX,EBX  
+004105C3    50              PUSH EAX                                 ; 跳去已经解压的地方 41206c  
+004105C4    C3              RETN  
+……  
+0041206C   /EB 01           JMP SHORT 0041206F                       ; 解压一段运行一段  
+0041206E   |90              NOP  
+0041206F   \\8DBD 15304000   LEA EDI,DWORD PTR SS:\[EBP+403015\]        ; 又要解压代码了,开始解压地址 4105c5  
+00412075    B9 20010000     MOV ECX,120                              ; 要解压的代码大小为 120  
+……  
+004120A4   /EB 01           JMP SHORT 004120A7  
+004120A6   |90              NOP  
+004120A7   \\0AC0            OR AL,AL  
+004120A9    AA              STOS BYTE PTR ES:\[EDI\]  
+004120AA  ^ E2 D7           LOOPD SHORT 00412083                     ; 感觉这里自己像是 yoda's cryptor  
+解压完后进入第三个异常.  
+…….  
+00412132    64:8923         MOV DWORD PTR FS:\[EBX\],ESP  
+00412135    FB              STI                                      ; 到了第三个异常  
+……  
+004120AA  ^\\E2 D7           LOOPD SHORT 00412083                     ; 感觉这里自己像是 yoda's cryptor  
+004120AC    55              PUSH EBP  
+004120AD    9C              PUSHFD  
+004120AE    E8 77000000     CALL 0041212A  
+004120B3    90              NOP  
+004120B4    8B5424 08       MOV EDX,DWORD PTR SS:\[ESP+8\]             ; 直接在这里下断就行了  
+004120B4    8B5424 08       MOV EDX,DWORD PTR SS:\[ESP+8\]             ; 直接在这里下断就行了  
+004120B8    8B4424 0C       MOV EAX,DWORD PTR SS:\[ESP+C\]  
+004120BC    8142 04 3500000>ADD DWORD PTR DS:\[EDX+4\],35              ; 注意这里，作者的异常都用这一招的,在目标地址里的那个值处下断  
+004120C3    81CA 29242123   OR EDX,23212429  
+004120C9    2BC9            SUB ECX,ECX  
+004120CB    2148 04         AND DWORD PTR DS:\[EAX+4\],ECX             ; 清除断点  
+004120CE    2148 08         AND DWORD PTR DS:\[EAX+8\],ECX  
+004120D1    2148 0C         AND DWORD PTR DS:\[EAX+C\],ECX  
+004120D4    2148 10         AND DWORD PTR DS:\[EAX+10\],ECX  
+004120D7    8160 14 F00FFFF>AND DWORD PTR DS:\[EAX+14\],FFFF0FF0  
+004120DE    C740 18 5501000>MOV DWORD PTR DS:\[EAX+18\],155  
+004120E5    33C0            XOR EAX,EAX  
+004120E7    C3              RETN  
+……  
+004120E9    8B5424 08       MOV EDX,DWORD PTR SS:\[ESP+8\]  
+004120ED    8142 04 1B00000>ADD DWORD PTR DS:\[EDX+4\],1B              ; 这里又异常了,看来作者也等不及了,哈哈  
+004120F4    EB 01           JMP SHORT 004120F7  
+……  
+00412142    8DBD 35314000   LEA EDI,DWORD PTR SS:\[EBP+403135\]        ; EDI=4106E5  
+00412148    B9 240C0000     MOV ECX,0C24                             ; 又准备从 4106E5 处解压代码,大小为 0C24  
+……  
+0041217C    AA              STOS BYTE PTR ES:\[EDI\]  
+0041217D  ^ E2 D7           LOOPD SHORT 00412156                     ; 如果没有解压完就跳回去  
+……  
+004105E1    68 07000000     PUSH 7  
+004105E6    5B              POP EBX                                  ; mov ebx,7  
+……  
+004105E7    25 25382C37     AND EAX,372C3825  
+又回来解密一层  
+00411D55    64:8923         MOV DWORD PTR FS:\[EBX\],ESP  
+00411D58    83E0 00         AND EAX,0  
+00411D5B    64:3343 30      XOR EAX,DWORD PTR FS:\[EBX+30\]            ; 晕哦，作者这里连来几个异常  
+一堆垃圾过后到第七个异常处  
+……  
+004104CE   /75 0F           JNZ SHORT 004104DF                       ; 这里不相等  
+004104D0   |8181 B8000000 B>ADD DWORD PTR DS:\[ECX+B8\],18BF           ; 这里再次改东西  
+记住改后的地址，然后在那个地址处下断:  
+00411F81    2BC0            SUB EAX,EAX  
+00411F83    90              NOP  
+00411F84    90              NOP  
+00411F85    90              NOP  
+00411F86    90              NOP  
+00411F87    90              NOP  
+00411F88    90              NOP  
+00411F89    90              NOP  
+00411F8A    90              NOP  
+00411F8B    90              NOP  
+00411F8C    64:8F00         POP DWORD PTR FS:\[EAX\]  
+00411F8F    58              POP EAX  
+00411F90    5D              POP EBP  
+00411F91    8D85 35314000   LEA EAX,DWORD PTR SS:\[EBP+403135\]        ; mov EAX,4106E5  
+00411F97    68 240C0000     PUSH 0C24  
+00411F9C    59              POP ECX                                  ; mov ECX,0C24  
+00411F9D    68 9952B30E     PUSH 0EB35299  
+00411FA2    5A              POP EDX  
+00411FA3    D1EA            SHR EDX,1  
+00411FA5    73 06           JNB SHORT 00411FAD  
+00411FA7    81F2 32AF43ED   XOR EDX,ED43AF32                         ; 从 4106E5 处解压代码大小为 0c24  
+00411FAD    3010            XOR BYTE PTR DS:\[EAX\],DL                 ; 这里又解压一层代码,tnnd 压的还真多  
+00411FAF    40              INC EAX  
+00411FB0  ^ E2 F1           LOOPD SHORT 00411FA3  
+00411FB2    2D 240C0000     SUB EAX,0C24  
+00411FB7    FFE0            JMP EAX                                  ; 解压完后跳回去执行解压后的代码  
+现在我会可以总结一下，在第七次异常后按 CTRL+S 找  
+SUB EAX,0C24  
+JMP EAX  
+处下断就是了.  
+……  
+下慢慢跟，注意，过那 jmp eax 后就不要去除垃圾代码了，要不会异常的.  
+004122D6    B9 522D0000     MOV ECX,2D52                             ; 传入将要 VirutalAlloc 的 size 2D52  
+004122DB    8BD1            MOV EDX,ECX  
+004122DD    EB 07           JMP SHORT 004122E6  
+   
+004122FA    96              XCHG EAX,ESI                             ; 分配出来的空间就是 3E0000，把分配好的地址入 esi 中  
+004122FB    5A              POP EDX                                  ; 把要分配的大小 2d52 入 edx 中  
+004122FC    BF F0D30000     MOV EDI,0D3F0  
+00412301    81C7 00004000   ADD EDI,00400000  
+00412307    56              PUSH ESI                                 ; push 3E0000  
+00412308    57              PUSH EDI                                 ; push 40D3F0  
+00412309    E8 83E7FFFF     CALL 00410A91                            ; 解压代码到刚才分配的空间里,这就是真正的 Depack 了,aplib v0.36 的解压代码.  
+0041230E    91              XCHG EAX,ECX                             ; 把解压的大小传入 ecx，用于下面的复制代码  
+0041230F    F3:A4           REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR DS:\[>  
+00412311    5F              POP EDI                                  ; 操作完毕还原 edi 和 esi 的值  
+00412312    5E              POP ESI  
+00412313    EB 01           JMP SHORT 00412316  
+00412315    90              NOP  
+00412316    68 00400000     PUSH 4000  
+0041231B    52              PUSH EDX  
+0041231C    56              PUSH ESI  
+0041231D    FF95 22434000   CALL DWORD PTR SS:\[EBP+404322\]           ; 解压代码完毕后，再次释放刚申请的空间  
+00412323    EB 01           JMP SHORT 00412326  
+00412325    90              NOP  
+  
+   
+  
+00412335    8338 00         CMP DWORD PTR DS:\[EAX\],0                 ; 判断 412370 里面有没有东西，没有就跳  
+00412338    0F84 95000000   JE 004123D3  
+0041233E    B9 C09D0000     MOV ECX,9DC0                             ; push size 9dc0  
+00412343    6A 04           PUSH 4  
+00412345    68 00300000     PUSH 3000  
+0041234A    51              PUSH ECX  
+0041234B    6A 00           PUSH 0                                   ; 准备再次申请空间  
+0041234D    FF95 1D434000   CALL DWORD PTR SS:\[EBP+40431D\]           ; VirtualAlloc  
+  
+0012FF8C   00412353  /CALL to **VirtualAlloc** from PESpin.0041234D  
+0012FF90   00000000  |Address = NULL  
+0012FF94   00009DC0  |Size = 9DC0 (40384.)  
+0012FF98   00003000  |AllocationType = MEM\_COMMIT|MEM\_RESERVE  
+0012FF9C   00000004  \\Protect = PAGE\_READWRITE  
+……  
+0041238A    03BD D2424000   ADD EDI,DWORD PTR SS:\[EBP+4042D2\]        ; 晕哦，又脱一层马甲:-)  
+00412390    BE 00009000     MOV ESI,900000  
+00412395    56              PUSH ESI  
+00412396    57              PUSH EDI  
+00412397    E8 F5E6FFFF     CALL 00410A91                            ; 这里又进行 apLib 解压代码.  
+004123B6    8B8D 8F4D4000   MOV ECX,DWORD PTR SS:\[EBP+404D8F\]        ; 解压完毕，再次释放刚才的空间 900000  
+004123BC    8B85 E14D4000   MOV EAX,DWORD PTR SS:\[EBP+404DE1\]  
+004123C2    0BC0            OR EAX,EAX  
+004123C4    74 0D           JE SHORT 004123D3  
+004123C6    68 00400000     PUSH 4000  
+004123CB    51              PUSH ECX                                 ; push size  
+004123CC    56              PUSH ESI                                 ; push address  
+004123CD    FF95 22434000   CALL DWORD PTR SS:\[EBP+404322\]           ; kernel32.VirtualFree  
+……  
+0012FF90   004123D3  /CALL to **VirtualFree** from PESpin.004123CD  
+0012FF94   00900000  |Address = 00900000  
+0012FF98   00009DC0  |Size = 9DC0 (40384.)  
+0012FF9C   00004000  \\FreeType = MEM\_DECOMMIT  
+……  
+0012FF88   00411C71  /CALL to **VirtualProtect** from PESpin.00411C6E  
+0012FF8C   004001C8  |Address = PESpin.004001C8  
+0012FF90   0000025C  |Size = 25C (604.)  
+0012FF94   00000040  |NewProtect = PAGE\_EXECUTE\_READWRITE  
+0012FF98   004124D8  \\pOldProtect = PESpin.004124D8  
+通过 VirtualProtect 来把段改为可以读写执行的属性.  
+00411C9D    C643 02 C3      MOV BYTE PTR DS:\[EBX+2\],0C3  
+00411CA1    53              PUSH EBX  
+再小心一点到最后一个异常:  
+0012FF94   0012FFE0  Pointer to next SEH record  
+0012FF98   00411CD6  SE handler  
+在 411cd6 处下断:  
+00411CD6    2BDB            SUB EBX,EBX  
+00411CD8    8B6424 08       MOV ESP,DWORD PTR SS:\[ESP+8\]  
+00411CDC    64:8F03         POP DWORD PTR FS:\[EBX\]  
+……  
+00411D0F    B9 2E000000     MOV ECX,2E  
+00411D14    FF1401          CALL DWORD PTR DS:\[ECX+EAX\]              ; 这里用 GetTickCount 不知道起什么作用来的  
+00411D23    59              POP ECX                                  ; mov ECX,87  
+00411D24    66:35 4C50      XOR AX,504C  
+00411D28    66:05 8911      ADD AX,1189  
+00411D2C    AA              STOS BYTE PTR ES:\[EDI\]                   ; 到了这里还要解压代码  
+……  
+00410D3A    8000 81         ADD BYTE PTR DS:\[EAX\],81  
+00410D3D    E9 0F000000     JMP 00410D51                             ; 如果加壳时选择了检测测试器的话，这里会跳去一个 int3 处  
+00410D42    C9              LEAVE  
+00410D43    E8 76000000     CALL 00410DBE  
+00410D48    0BC0            OR EAX,EAX                               ; PesPin 到现在还不检测 OD 的存在，不知道为什么  
+00410D4A  ^ 74 ED           JE SHORT 00410D39                        ; 只是用了两个 int3 来检测 SICE 而已  
+00410D4C  - E9 7217FF35     JMP 364024C3  
+00410D51    EB 01           JMP SHORT 00410D54                       ; 加了或没加检测调试器都一定会来这里的.  
+00410D53    90              NOP  
+……  
+00410D54    68 B95734E1     PUSH E13457B9                            ; 这里作者还要来骗一下我们  
+00410D59    EB 01           JMP SHORT 00410D5C  
+00410D5B    90              NOP  
+00410D5C    59              POP ECX                                  ; 这里 mov ECX,E1345789  
+00410D5D    90              NOP  
+……  
+00410D6E    81E9 B95734E1   SUB ECX,E13457B9                         ; 这里又减回去，不就是白做了嘛.  
+00410D74    0BC9            OR ECX,ECX  
+00410D76    EB 01           JMP SHORT 00410D79  
+……  
+00410D79    9C              PUSHFD  
+00410D7A    C12C24 06       SHR DWORD PTR SS:\[ESP\],6  
+00410D7E    832424 01       AND DWORD PTR SS:\[ESP\],1  
+00410D82    50              PUSH EAX  
+00410D83    52              PUSH EDX  
+00410D84    B8 066F7579     MOV EAX,79756F06  
+00410D89    05 51918A86     ADD EAX,868A9151  
+00410D8E    F76424 08       MUL DWORD PTR SS:\[ESP+8\]                 ; 又是垃圾代码来的  
+00410D92    8D8428 F9374000 LEA EAX,DWORD PTR DS:\[EAX+EBP+4037F9\]  
+00410D99    894424 08       MOV DWORD PTR SS:\[ESP+8\],EAX  
+00410D9D    5A              POP EDX  
+00410D9E    58              POP EAX  
+00410D9F    8D6424 04       LEA ESP,DWORD PTR SS:\[ESP+4\]             ; 这里我就有点搞不懂了，直接用 jmp \[esp\]不行吗?最多后面加一个 add esp,4  
+00410DA3    FF6424 FC       JMP DWORD PTR SS:\[ESP\-4\]                 ; 这不是浪费代码吗?  
+……  
+00410E09   .  F685 3E4E4000 0>TEST BYTE PTR SS:\[EBP+404E3E\],1  
+00410E10   .  74 40           JE SHORT 00410E52  
+00410E12   .  BB 3C080000     MOV EBX,83C  
+00410E17   .  0BDB            OR EBX,EBX                                ;如果是 VB 的程序的话，壳就是 mov ebx,0 了  
+00410E19   .  74 37           JE SHORT 00410E52                        ;  这里就是 jmp 来的，因为上面赋值了，所以这里不可能跳的  
+00410E1B   .  2BC0            SUB EAX,EAX                              ;  eax 清 0  
+00410E1D   .  2185 E0424000   AND DWORD PTR SS:\[EBP+4042E0\],EAX  
+00410E23   .  E8 01000000     CALL 00410E29  
+00410E28   .  90              NOP  
+00410E29   $  59              POP ECX                                  ;  MOV ECX,410E28  
+00410E2A   .  6A 40           PUSH 40  
+00410E2C   .  68 00300000     PUSH 3000  
+00410E31   .  53              PUSH EBX                                 ;  PUSH SIZE 83C  
+00410E32   .  50              PUSH EAX  
+00410E33   .  8D6424 FC       LEA ESP,DWORD PTR SS:\[ESP\-4\]  
+00410E37   .  81C1 23000000   ADD ECX,23  
+00410E3D   .  890C24          MOV DWORD PTR SS:\[ESP\],ECX               ;  PUSH ECX,也就是 push 要返回的地址  
+00410E40   .- FFA5 1D434000   JMP DWORD PTR SS:\[EBP+40431D\]            ;  VirtualAlloc 申请一个内存空间  
+  
+0012FF90   00410E4B  /CALL to **VirtualAlloc**  
+0012FF94   00000000  |Address = NULL  
+0012FF98   0000083C  |Size = 83C (2108.)  
+0012FF9C   00003000  |AllocationType = MEM\_COMMIT|MEM\_RESERVE  
+0012FFA0   00000040  \\Protect = PAGE\_EXECUTE\_READWRITE  
+……  
+00410E4B      50              PUSH EAX                                 ;  申请到的空间 900000 入栈  
+00410E4C      8F85 D8424000   POP DWORD PTR SS:\[EBP+4042D8\]            ;  MOV \[EBP+4042D8\],900000  
+00410E52      90              NOP                                      ;  MOV 410E19,900000  
+……  
+00410E66   .  E8 01000000     CALL 00410E6C  
+00410E6B   .  90              NOP  
+00410E6C   $  83C4 04         ADD ESP,4  
+00410E6F   .  8BB5 393B4000   MOV ESI,DWORD PTR SS:\[EBP+403B39\]        ;  输入表 RVA 起始地址  
+00410E75   .  03B5 D2424000   ADD ESI,DWORD PTR SS:\[EBP+4042D2\]        ;  转换为 VA==40A160  
+00410E7B   .  90              NOP  
+……  
+00410E8C   .  3BB5 D2424000   CMP ESI,DWORD PTR SS:\[EBP+4042D2\]        ;  判断输入表的起始地址和 ImageBase 是否相等  
+00410E92   .  90              NOP  
+00410E93   .  90              NOP  
+00410E94   .  90              NOP  
+00410E9E   .  75 0F           JNZ SHORT 00410EAF                       ;  如果不相等则跳  
+00410EA0   .  90              NOP  
+00410EAF   >  817E 10 C8FB000>CMP DWORD PTR DS:\[ESI+10\],0FBC8          ;  比较 ThunkRVA(A028)是否为 0FBC8  
+00410EB6   . |9C              PUSHFD  
+00410EB7   . |EB 01           JMP SHORT 00410EBA  
+00410EB9     |90              NOP  
+00410EBA   > |C12C24 06       SHR DWORD PTR SS:\[ESP\],6  
+00410EBE   . |832424 01       AND DWORD PTR SS:\[ESP\],1  
+00410EC2   . |50              PUSH EAX                                 ;  保护好 EAX  
+00410EC3   . |52              PUSH EDX  
+00410EC4   . |B8 9C7791BE     MOV EAX,BE91779C  
+00410EC9   . |05 798A6E41     ADD EAX,416E8A79  
+00410ECE   . |F76424 08       MUL DWORD PTR SS:\[ESP+8\]  
+00410ED2   . |8D8428 38394000 LEA EAX,DWORD PTR DS:\[EAX+EBP+403938\]  
+00410ED9   . |894424 08       MOV DWORD PTR SS:\[ESP+8\],EAX             ;  将要跳去的地方 410EE8  
+00410EDD   . |5A              POP EDX  
+00410EDE   . |58              POP EAX                                  ;  还原现场  
+00410EDF      8D6424 04       LEA ESP,DWORD PTR SS:\[ESP+4\]             ;  又来让我们的 CPU 加负担了:-)  
+00410EE3   .  FF6424 FC       JMP DWORD PTR SS:\[ESP\-4\]                 ;  jmp 410EE8  
+00410EE7      90              NOP  
+00410EE8   .  8B5E 0C         MOV EBX,DWORD PTR DS:\[ESI+C\]             ;  定位输入表的 NAME==A4C4  
+00410EEB   .  039D D2424000   ADD EBX,DWORD PTR SS:\[EBP+4042D2\]        ;  转换成 VA==40A4C4  
+00410EF1   .  8BFB            MOV EDI,EBX                              ;  把 Name 入 EDI 中  
+00410EF3   .  E8 6B0F0000     CALL 00411E63                            ;  取出 NAME 来，我们可以进去看看  
+00411E63  /$  57              PUSH EDI                                 ;  保护 EDI(Name 的值)  
+00411E64  |>  800F 00         /OR BYTE PTR DS:\[EDI\],0                  ;  如果取完了 Name 就返回  
+00411E67  |.  74 16           |JE SHORT 00411E7F  
+00411E69  |.  90              |NOP  
+00411E6A  |.  90              |NOP  
+00411E6B  |.  90              |NOP  
+00411E6C  |.  90              |NOP  
+00411E6D  |.  90              |NOP  
+00411E6E  |.  90              |NOP  
+00411E6F  |.  90              |NOP  
+00411E70  |.  90              |NOP  
+00411E71  |.  90              |NOP  
+00411E72  |.  90              |NOP  
+00411E73  |.  90              |NOP  
+00411E74  |.  90              |NOP  
+00411E75  |.  90              |NOP  
+00411E76  |.  90              |NOP  
+00411E77  |.  90              |NOP  
+00411E78  |.  90              |NOP  
+00411E79  |.  90              |NOP  
+00411E7A  |.  F617            |NOT BYTE PTR DS:\[EDI\]                   ;  NAMAE 就是通过取反来还原 NAME  
+00411E7C  |.  47              |INC EDI  
+00411E7D  |.^ EB E5           \\JMP SHORT 00411E64  
+00411E7F  |>  5F              POP EDI                                  ;  恢复现场  
+00411E80  \\.  C3              RETN  
+  
+00410EF8    E8 01000000       CALL 00410EFE  
+00410EFD    90                NOP  
+00410EFE    58                POP EAX                                  ; MOV EAX,410EFD  
+00410EFF    53                PUSH EBX                                 ; push NAME  
+00410F00    50                PUSH EAX  
+00410F01    FFB5 04434000     PUSH DWORD PTR SS:\[EBP+404304\]           ; push LoadLibraryA  
+00410F07    814424 04 1400000>ADD DWORD PTR SS:\[ESP+4\],14              ; push 返回地址 410EFD+14=410F11  
+00410F0F    C3                RETN  
+00410F10    90                NOP  
+00410F11    85C0              TEST EAX,EAX                             ; 这是个人觉得应该是 BUG 来的吧，怎么不先 GetModuleHandleA 先呢  
+00410F13    0F84 31080000     JE 0041174A                              ; 如果载入失败就去出错的地方  
+00410F19    E8 01000000       CALL 00410F1F  
+00410F1E    90                NOP  
+00410F1F    59                POP ECX                                  ; MOV ECX,EIP-1  
+00410F20    50                PUSH EAX                                 ; PUSH hmodule  
+00410F21    51                PUSH ECX  
+00410F22    55                PUSH EBP  
+00410F23    810424 AE324000   ADD DWORD PTR SS:\[ESP\],004032AE          ; push 41085E  
+00410F2A    814424 04 2200000>ADD DWORD PTR SS:\[ESP+4\],22              ; 先进 41085E 然后返回到 410F40 处  
+00410F32    C3                RETN                                     ; 返回 41085E 处,进去后获取相关 DLL 的输出表信息  
+……  
+00410862    5A                POP EDX                                  ; 把 hmodule 入 edx 中  
+00410863    41                INC ECX  
+00410864    51                PUSH ECX                                 ; push 410F41 这里改变后就是返回到 410F41 了  
+00410865    57                PUSH EDI                                 ; push Name  
+00410866    53                PUSH EBX  
+00410867    8995 31334000     MOV DWORD PTR SS:\[EBP+403331\],EDX        ; 把 hmodule 保存到\[EBP+403331\]==4108E1 处  
+0041086D    8BDA              MOV EBX,EDX  
+0041086F    0352 3C           ADD EDX,DWORD PTR DS:\[EDX+3C\]            ; 定位 e\_lfnew(定位 pe 头)  
+00410872    FF72 7C           PUSH DWORD PTR DS:\[EDX+7C\]  
+00410875    8F85 29334000     POP DWORD PTR SS:\[EBP+403329\]            ; 输出表的 size 入\EBP+403329\处  
+0041087B    8B52 78           MOV EDX,DWORD PTR DS:\[EDX+78\]            ; 定位输出表  
+0041087E    03D3              ADD EDX,EBX                              ; 把输出表转换成 VA  
+00410880    52                PUSH EDX  
+00410881    8F85 25334000     POP DWORD PTR SS:\[EBP+403325\]            ; 输出表起始地址入\EBP+403325\  
+004108C3    FF72 10           PUSH DWORD PTR DS:\[EDX+10\]               ; nBase  
+004108C6    8F85 53334000     POP DWORD PTR SS:\[EBP+403353\]            ; 输出表的 Base  入\EBP+403353\  
+004108CC    EB 01             JMP SHORT 004108CF                       ; 获取完毕回去操作  
+第一次是 KERNEL32.DLL 函数  
+输出表的 SIZE 00006B39 入\EBP+403329\  
+输出表起始地址 77EAD040 入\EBP+403325\  
+输出表的 NumberOfNames 03AE 入\EBP+4033E8\  
+输出表的 AddressOfFunctions 77EAD068 入\EBP+403339\  
+输出表的 AddressOfNamesOrdinals 77EAEDD8 入\EBP+40332D\  
+输出表的 Base 1 入\EBP+403353\  
+  
+00410F41    2BD2              SUB EDX,EDX                              ; 清除 EDX，这样的方式不会改变标志的  
+……  
+00410F70    800B 00           OR BYTE PTR DS:\[EBX\],0                   ; 取完那个 DLL 后就把函数再给清除掉  
+00410F73    74 0D             JE SHORT 00410F82                        ; 如果清完了就跳  
+00410F75    8813              MOV BYTE PTR DS:\[EBX\],DL  
+00410F77    C1C2 04           ROL EDX,4  
+00410F7A    90                NOP  
+00410F7B    90                NOP  
+00410F7C    90                NOP  
+00410F7D    43                INC EBX  
+00410F7E  ^ FF6424 FC         JMP DWORD PTR SS:\[ESP\-4\]                 ; 这里跳回去直到函数名已经清除完了  
+……  
+00410F83    8B56 10           MOV EDX,DWORD PTR DS:\[ESI+10\]            ; 把 ThunkRVA 入 EDX 中，并转成 VA  
+00410F86    0395 D2424000     ADD EDX,DWORD PTR SS:\[EBP+4042D2\]  
+00410F8C    830A 00           OR DWORD PTR DS:\[EDX\],0                  ; 判断有没有操作完相关的 API，操作完了就跳  
+00410F8F    0F84 32010000     JE 004110C7  
+00410F95    90                NOP  
+00410F96    90                NOP  
+……  
+00410FB6    0385 D2424000     ADD EAX,DWORD PTR SS:\[EBP+4042D2\]        ; TunkValue 转换成 VA  
+00410FBC    97                XCHG EAX,EDI                             ; ThunkVlue 入 edi,  
+00410FBD    68 7AF3D0F9       PUSH F9D0F37A  
+00410FC2    012C24            ADD DWORD PTR SS:\[ESP\],EBP  
+00410FC5    810424 B4466F06   ADD DWORD PTR SS:\[ESP\],66F46B4  
+00410FCC    68 D476630F       PUSH 0F6376D4  
+00410FD1    812C24 9643230F   SUB DWORD PTR SS:\[ESP\],0F234396  
+00410FD8    012C24            ADD DWORD PTR SS:\[ESP\],EBP  
+00410FDB    C3                RETN                                     ; 跳去填充 API 函数里,相当于我们的 GetProcAddress  
+进入后发现和以前的版本没什么很大的变化.  
+……  
+004108F8    0BFF              OR EDI,EDI                               ; 判断 ThunkValue 是不是为空，不是则跳  
+004108FA    75 19             JNZ SHORT 00410915  
+……  
+00410921    8B9D 35334000     MOV EBX,DWORD PTR SS:\[EBP+403335\]        ; 输出表的 AddresOfNames 入 EBX  
+00410927    8A47 FF           MOV AL,BYTE PTR DS:\[EDI\-1\]  
+……  
+00410959    8B3B              MOV EDI,DWORD PTR DS:\[EBX\]               ; 循环搜索相关 DLL 的输出表  
+0041095B    03BD 31334000     ADD EDI,DWORD PTR SS:\[EBP+403331\]        ; 取出的输出表转换成 VA  
+…….  
+00410964   /75 2C           JNZ SHORT 00410992  
+00410966   |E8 B0100000     CALL 00411A1B  
+0041096B   |3D F7DEBCA1     CMP EAX,A1BCDEF7  
+00410970   |75 20           JNZ SHORT 00410992  
+00410972   |8B85 2D334000   MOV EAX,DWORD PTR SS:\[EBP+40332D\]        ; 循环得到程序所要的 API，找到后到这里  
+00410978   |D1E1            SHL ECX,1  
+0041097A   |03C1            ADD EAX,ECX  
+0041097C   |0FB700          MOVZX EAX,WORD PTR DS:\[EAX\]  
+0041097F   |C1E0 02         SHL EAX,2  
+00410982   |0385 39334000   ADD EAX,DWORD PTR SS:\[EBP+403339\]  
+00410988   |8B00            MOV EAX,DWORD PTR DS:\[EAX\]  
+0041098A   |0385 31334000   ADD EAX,DWORD PTR SS:\[EBP+403331\]        ; 把 API 地址转换成 VA  
+00410990   |EB 10           JMP SHORT 004109A2  
+004109A2    8BBD 25334000   MOV EDI,DWORD PTR SS:\[EBP+403325\]  
+004109A8    3BC7            CMP EAX,EDI                              ; EAX 就是取出的 API 了  
+004109AA    76 35           JBE SHORT 004109E1                       ; 这里要跳了，要不然，壳还要"照顾"的  
+这里改成:  
+004109AA   /EB 35           JMP SHORT 004109E1          
+……..  
+004109E3    90              NOP  
+004109E4    894424 1C       MOV DWORD PTR SS:\[ESP+1C\],EAX            ; 这里又我们通过跟踪知道改成 mov ss:\[edx\],eax 就是传入正确的 API  
+所以这里改成:  
+004109E4    36:8902         MOV DWORD PTR SS:\[EDX\],EAX              
+004109E7    90              NOP  
+  
+004109E8    61              POPAD  
+004109E9    FF0424          INC DWORD PTR SS:\[ESP\]                   ; 把上面要返回的地址+1(410FDF)  
+004109EC    0BC0            OR EAX,EAX  
+……  
+00411085    90              NOP  
+00411086    E8 ECF6FFFF     CALL 00410777  
+0041108B    0BE4            OR ESP,ESP  
+0041108D    90              NOP  
+0041108E    90              NOP  
+0041108F    90              NOP  
+0041109C    E8 51F9FFFF     CALL 004109F2                            ; 这里进去将再改填充 API  
+004110A1    90              NOP  
+跟进看看:  
+……  
+00410A0B    90              NOP  
+00410A0C    BF 96844000     MOV EDI,00408496                         ; 传入 Address  
+00410A11    EB 01           JMP SHORT 00410A14  
+00410A13    90              NOP  
+00410A14    B9 86010000     MOV ECX,186                              ; 传入 size  
+…….  
+00410A29    90              NOP  
+00410A2A    3917            CMP DWORD PTR DS:\[EDI\],EDX  
+00410A2C    74 0D           JE SHORT 00410A3B  
+00410A2E    47              INC EDI  
+00410A2F    EB 01           JMP SHORT 00410A32  
+00410A31    90              NOP  
+00410A32  ^ E2 F6           LOOPD SHORT 00410A2A  
+00410A34    EB 01           JMP SHORT 00410A37  
+00410A36    90              NOP  
+00410A37    8902            MOV DWORD PTR DS:\[EDX\],EAX               ; 这里又想破坏输入表,也 nop 掉  
+00410A39    EB 4E           JMP SHORT 00410A89  
+00410A3B    90              NOP  
+……  
+00410A5A    90              NOP  
+00410A5B    807F FF EA      CMP BYTE PTR DS:\[EDI\-1\],0EA  
+00410A5F  ^ 75 D6           JNZ SHORT 00410A37  
+00410A61    90              NOP                                      ; 这里要改成这样子,传入 FF25  
+00410A62    90              NOP  
+00410A63    90              NOP  
+00410A64    90              NOP  
+00410A65    90              NOP                                      ; 因为加壳的时候壳把 FF25 改成了 FFEA  
+00410A66    90              NOP  
+00410A67    90              NOP  
+00410A68    90              NOP  
+00410A69    90              NOP  
+00410A6A    FE4F FF         DEC BYTE PTR DS:\[EDI\-1\]                  ; 这里开始 nop 掉  
+00410A6D    83C7 04         ADD EDI,4  
+00410A70    2BC7            SUB EAX,EDI  
+00410A72    8947 FC         MOV DWORD PTR DS:\[EDI\-4\],EAX  
+00410A75    EB 12           JMP SHORT 00410A89  
+改好后:  
+00410A5A    90              NOP  
+00410A5B    807F FF EA      CMP BYTE PTR DS:\[EDI\-1\],0EA  
+00410A5F  ^ 75 D6           JNZ SHORT 00410A37  
+00410A61    66:C747 FE FF25 MOV WORD PTR DS:\[EDI\-2\],25FF             ; 这里要改成这样子,传入 FF25  
+00410A67    90              NOP  
+00410A68    90              NOP  
+00410A69    90              NOP  
+00410A6A    90              NOP                                      ; 这里开始 nop 掉  
+00410A6B    90              NOP  
+00410A6C    90              NOP  
+00410A6D    90              NOP  
+00410A6E    90              NOP  
+00410A6F    90              NOP  
+00410A70    90              NOP  
+00410A71    90              NOP  
+00410A72    90              NOP  
+00410A73    90              NOP  
+00410A74    90              NOP  
+00410A75    EB 12           JMP SHORT 00410A89  
+……  
+00410A83    90              NOP  
+00410A84    8907            MOV DWORD PTR DS:\[EDI\],EAX               ; 这里也是破坏输入表的，清除之  
+00410A86    EB 01           JMP SHORT 00410A89  
+好了，输入表处理完毕，进入下一个环节，还原壳所抽的代码.  
+……  
+0041114B    90               NOP  
+0041114C    90               NOP  
+0041114D    F3:              PREFIX REP:                              ; 通过 RDTSC 检测反跟踪，这是最后一个反跟踪了  
+0041114E    0F31             RDTSC  
+00411150    50               PUSH EAX  
+00411151    F3:              PREFIX REP:                              ; Superfluous prefix  
+00411152    0F31             RDTSC  
+00411154    EB 01            JMP SHORT 00411157  
+00411156    90               NOP  
+……  
+00411191    8D6424 04        LEA ESP,DWORD PTR SS:\[ESP+4\]  
+00411195    FF6424 FC        JMP DWORD PTR SS:\[ESP\-4\]                 ; 如果没发现就去正常执行程序处  
+00411199    90               NOP  
+0041119A    2200             AND AL,BYTE PTR DS:\[EAX\]  
+0041119C    0000             ADD BYTE PTR DS:\[EAX\],AL  
+0041119E    85C0             TEST EAX,EAX  
+004111A0    75 1F            JNZ SHORT 004111C1  
+004111A2    74 34            JE SHORT 004111D8  
+004111A4    F8               CLC  
+004111A5    83C9 FF          OR ECX,FFFFFFFF                          ; 发现的话到这里就挂  
+004111A8    F3:AB            REP STOS DWORD PTR ES:\[EDI\]  
+004111AA    E8 1C000000      CALL 004111CB  
+……  
+004111CE    90               NOP  
+004111CF    90               NOP  
+004111D0    B8 7B4D5F0E      MOV EAX,0E5F4D7B                         ; 如果没有发现跟踪的话就跳到这里  
+004111D5    90               NOP  
+……  
+004111FB   /74 45            JE SHORT 00411242  
+004111FD   |BE F4244100      MOV ESI,004124F4  
+00411202   |B9 5C020000      MOV ECX,25C                              ; 传入 SIZE 也就是壳所抽的代码的大小  
+00411207   |51               PUSH ECX  
+00411208   |B0 3C            MOV AL,3C  
+0041120A   |304431 FF        XOR BYTE PTR DS:\[ECX+ESI\-1\],AL           ; 还原壳所抽的代码,这个不是程序的入口那一点哦  
+0041120E   |90               NOP  
+0041120F   |90               NOP  
+00411210   |90               NOP  
+00411211   |90               NOP  
+00411212   |90               NOP  
+00411213   |90               NOP  
+00411214   |90               NOP  
+00411215   |90               NOP  
+00411216   |90               NOP  
+00411217   |90               NOP  
+00411218   |90               NOP  
+00411219   |90               NOP  
+0041121A   |004C31 FF        ADD BYTE PTR DS:\[ECX+ESI\-1\],CL  
+0041121E  ^|E2 EA            LOOPD SHORT 0041120A  
+……  
+00411231    90               NOP  
+00411232    BF C8014000      MOV EDI,004001C8                         ; 这里处理壳所抽的代码,俺是在这里动的手脚,具体怎么改我就不讲，以免卖弄之嫌(看看我已经脱好的就怎么怎么改的).  
+00411237    90               NOP  
+00411238    90               NOP  
+00411239    90               NOP  
+0041123A    90               NOP  
+0041123B    90               NOP  
+0041123C    90               NOP  
+0041123D    90               NOP  
+0041123E    90               NOP  
+0041123F    90               NOP  
+00411240    F3:A4            REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR DS:\[>; 把代码放到 PE HEADER 部分，够狠  
+……  
+00411279    61               POPAD                                    ; 解压完毕，执行程序代码  
+0041127A    BA 0F5C8CCE      MOV EDX,CE8C5C0F                         ; 终于着陆了;-)  
+0041127F    EB 01            JMP SHORT 00411282  
+00411281    90               NOP  
+00411282    81F2 753DE58A    XOR EDX,8AE53D75  
+  
+看看程序里面的东西,哈哈，抽的不错嘛，于是乎，动手乱写一下修复脚本.  
+……  
+var addr  
+var addrl  
+var addrt  
+var addrt1  
+var addr40  
+var addrt2  
+  
+start:  
+  mov addr,4101c6        //写的比较乱，但愿你能看懂:-)  
+  
+  
+lbl1:                //修复代码一  
+  cmp addr,410430  
+  jae lbl2  
+  find addr,#E9#  
+  mov addr,$RESULT  
+  mov addrt,addr  
+  mov addrt1,addr  
+  mov addr40,addr  
+  sub addr40,10000  
+  add addr40,5  
+  dec addrt          
+  inc addrt1  
+  mov addrt1,\[addrt1\]  
+  add addr40,addrt1  
+  mov addrl,addr40  
+  add addrt,5  
+  sub addrt,addrl  
+  mov addrt2,FFFFFFFF  
+  sub addrt2,addrt  
+  inc addr  
+  mov \[addr\],addrt2  
+ jmp lbl1  
+  
+lbl2:                //修复代码二  
+  repl 401000,#E8??81FFFF#,#E8??810000#,8b24  
+  repl 401000,#E9??81FFFF#,#E9??810000#,8b24  
+  
+  repl 401000,#E8??82FFFF#,#E8??820000#,8b24  
+  repl 401000,#E9??82FFFF#,#E9??820000#,8b24  
+  
+  repl 401000,#E8??83FFFF#,#E8??830000#,8b24  
+  repl 401000,#E9??83FFFF#,#E9??830000#,8b24  
+  ret  
+ ret  
+好了，现在到了最后一步了，把 jmp 表全部下一个地址，也就是这样子.  
+00408495      90            NOP  
+00408496   $- FF25 88A04000 JMP DWORD PTR DS:\[<&kernel32.CloseHandle>;  kernel32.CloseHandle  
+0040849C   $- FF25 78A04000 JMP DWORD PTR DS:\[<&kernel32.CopyFileA>\] ;  kernel32.CopyFileA  
+好了，现在 dump 再用 import REC 修复一下输入表就行了。至于 stolencode 可以找也可以不用，这么简单的几行，我自己就不再补上去(要补也简单，看一眼就知道怎么改).  
+OK，壳到此脱完了，谢谢你能够坚持把文章看完!  
+BTW:自己脱了后，看了一下 FLY 的已脱程序，感触很深的，他真是头大牛来的!努力向他学习才行.  
+因时间比较紧，发了几天的时间才写完了这篇文章.文章不足之处还请指正.  
+  
+  
+Greetz:  
+  
+Fly,Jingulong,yock,tDasm,David,ahao,vcasm,UFO(brother),alan(sister),heXpe,hexer, all of my friends and you!  
+                              
+Welcome to:  
+\----====China Decrytpion Fans Cracking Group====----  
+[`www.chinadfcg.com`](http://www.chinadfcg.com)  
+\----====**Free** Cracking Group====----  
+[`www.fcgchina.com`](http://www.fcgchina.com)  
+\----====Unpacking Sage(China Unpacking Group)====----  
+  
+                            By loveboom\[DFCG\]\[FCG\]  
+                            Email:bmd2chen#tom.com
+
+ 4dd466d0e1e0cc123afbe504da2462ca

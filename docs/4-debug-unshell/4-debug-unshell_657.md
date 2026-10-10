@@ -1,0 +1,344 @@
+
+
+# Execryptor 2.x 二次加密，无 KEY 脱壳。
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-634.htm`](https://www.pediy.com/kssd/pediy08/pediy8-634.htm)
+
+首先感谢 shoooo,forgot,fly 的指点。  
+  
+本来的试练品是一个 XX 的 XX 服务端,体积有点大,无法上传,有需要的请留言.  
+可以用附件中的 abest 写的一个专门用来练习脱壳的小程序代替(因为不是二次加密所以 IAT 需要修复).  
+http://www.cracking.com.cn/dispbbs.asp?boardid=4&id=827&star=1#827  
+  
+下面的过程是按脱服务端的过程写的.  
+已知:  
+1.这个是 2 次加密的,不会用 SDK.  
+2.VC 编译的  
+  
+step0.抹掉 TLS 表  
+用 lord-PE 把数据目录(Directories)中 TLS 一项全部置 0,然后 save.  
+注意:不能把 TLS CALLBACK ADDRESS 和 TLS CALLBACK INDEX 置 0 !!!!(why?I Don't Know)  
+  
+BTW:这个"秘密"是 forgot 广播的.  
+  
+step1.  
+经过 step0 后,就不用设置让 OD 停在系统断点了(设置停在 EP).而且 TLS 中的"飞刀"也不用管了.但是还需要一个"核武器"----advencedolly 插件.加上这个插件,EXEC 的 anti 可以全过.  
+  
+但是,本次脱壳用 hideOD 就可以了,因为我们没有 KEY,无法跑到后面,也不需要跑到后面.所以很多 anti 是没有用的.  
+  
+step2.  
+步骤其实很简单,经过上面的准备后.用 OD 载入,忽略所有异常:  
+  
+0BB8CE4E >  E8 F7FEFFFF     call    0BB8CD4A  
+0BB8CE53    05 07480000     add     eax, 4807  
+0BB8CE58    FFE0            jmp     eax  
+0BB8CE5A    E8 EBFEFFFF     call    0BB8CD4A  
+0BB8CE5F    05 9F6A0000     add     eax, 6A9F  
+0BB8CE64    FFE0            jmp     eax  
+0BB8CE66    E8 04000000     call    0BB8CE6F  
+0BB8CE6B    FFFF            ???                                      ; 未知命令  
+0BB8CE6D    FFFF            ???                                      ; 未知命令  
+0BB8CE6F    5E              pop     esi  
+0BB8CE70    C3              retn  
+  
+  
+  
+然后  
+1.HE GetProcAddress  
+2.F9  
+3.HD GetProcAddress  
+4.alt+f9  
+现在我们到了填充 IAT 的地方了:  
+  
+  
+0BB8CBE7    55              push    ebp  
+0BB8CBE8    8BEC            mov     ebp, esp  
+0BB8CBEA    83C4 F4         add     esp, -0C  
+0BB8CBED    56              push    esi  
+0BB8CBEE    57              push    edi  
+0BB8CBEF    53              push    ebx  
+0BB8CBF0    BE 00F0AD0A     mov     esi, 0AADF000  
+0BB8CBF5    B8 00004000     mov     eax, 00400000  
+0BB8CBFA    8945 FC         mov     dword ptr ss:\[ebp-4\], eax  
+0BB8CBFD    89C2            mov     edx, eax  
+0BB8CBFF    8B46 0C         mov     eax, dword ptr ds:\[esi+C\]  
+0BB8CC02    09C0            or      eax, eax  
+0BB8CC04    0F84 8E000000   je      0BB8CC98  
+0BB8CC0A    01D0            add     eax, edx  
+0BB8CC0C    89C3            mov     ebx, eax  
+0BB8CC0E    50              push    eax  
+0BB8CC0F    FF15 B480AA0B   call    dword ptr ds:\[<&kernel32.GetModu>; kernel32.GetModuleHandleA  
+0BB8CC15    09C0            or      eax, eax  
+0BB8CC17    0F85 0F000000   jnz     0BB8CC2C  
+0BB8CC1D    53              push    ebx  
+0BB8CC1E    FF15 B880AA0B   call    dword ptr ds:\[<&kernel32.LoadLib>; kernel32.LoadLibraryA  
+0BB8CC24    09C0            or      eax, eax  
+0BB8CC26    0F84 64000000   je      0BB8CC90  
+0BB8CC2C    8945 F8         mov     dword ptr ss:\[ebp-8\], eax  
+0BB8CC2F    6A 00           push    0  
+0BB8CC31    8F45 F4         pop     dword ptr ss:\[ebp-C\]  
+0BB8CC34    8B06            mov     eax, dword ptr ds:\[esi\]  
+0BB8CC36    09C0            or      eax, eax  
+0BB8CC38    8B55 FC         mov     edx, dword ptr ss:\[ebp-4\]  
+0BB8CC3B    0F85 03000000   jnz     0BB8CC44  
+0BB8CC41    8B46 10         mov     eax, dword ptr ds:\[esi+10\]  
+0BB8CC44    01D0            add     eax, edx  
+0BB8CC46    0345 F4         add     eax, dword ptr ss:\[ebp-C\]  
+0BB8CC49    8B18            mov     ebx, dword ptr ds:\[eax\]  
+0BB8CC4B    8B7E 10         mov     edi, dword ptr ds:\[esi+10\]  
+0BB8CC4E    01D7            add     edi, edx  
+0BB8CC50    037D F4         add     edi, dword ptr ss:\[ebp-C\]  
+0BB8CC53    09DB            or      ebx, ebx  
+0BB8CC55    0F84 E2000000   je      0BB8CD3D  
+0BB8CC5B    F7C3 00000080   test    ebx, 80000000  
+0BB8CC61    0F85 04000000   jnz     0BB8CC6B  
+0BB8CC67    8D5C13 02       lea     ebx, dword ptr ds:\[ebx+edx+2\]  
+0BB8CC6B    81E3 FFFFFF7F   and     ebx, 7FFFFFFF  
+0BB8CC71    53              push    ebx  
+0BB8CC72    FF75 F8         push    dword ptr ss:\[ebp-8\]  
+0BB8CC75    FF15 BC80AA0B   call    dword ptr ds:\[<&kernel32.GetProc>; kernel32.GetProcAddress  
+0BB8CC7B    09C0            or      eax, eax                         ; WS2\_32.send      //我们现在停在这里  
+0BB8CC7D    0F84 0D000000   je      0BB8CC90  
+0BB8CC83    8907            mov     dword ptr ds:\[edi\], eax  
+0BB8CC85    8345 F4 04      add     dword ptr ss:\[ebp-C\], 4  
+0BB8CC89  ^ E9 A6FFFFFF     jmp     0BB8CC34  
+0BB8CC8E    0000            add     byte ptr ds:\[eax\], al  
+0BB8CC90    53              push    ebx  
+0BB8CC91    89D8            mov     eax, ebx  
+0BB8CC93    E8 07000000     call    0BB8CC9F  
+0BB8CC98    5B              pop     ebx                  //走到这里后 IAT 就填充完毕了,在这里 F4  
+0BB8CC99    5F              pop     edi  
+0BB8CC9A    5E              pop     esi  
+0BB8CC9B    8BE5            mov     esp, ebp  
+0BB8CC9D    5D              pop     ebp  
+0BB8CC9E    C3              retn                        
+  
+  
+观察上面代码发现,者个函数就是填充 IAT 的函数,退出这个函数后 IAT 就处理完了.所以在 0BB8CC98 上 F4 走完这个函数.  
+  
+BTW:论坛上看到过几位牛人讨论无 KEY 脱 exec,再出来注册框之前,所有东西都解码完毕了.  
+  
+我想一般的壳填充 IAT 都是最后一步,于是我就去看看代码段是否解码完了.果然全部代码都解出来了.  
+  
+step3.修复 stolen code  
+  
+再次感谢 shoooo,forgot 的指点.  
+  
+因为 IAT 已经填充完,而且没有加密.根据 VC 的启动代码都会 call GetVersion,所以根据 IAT 反查出 Call GetVersion 的地址:  
+  
+  
+00529265  - E9 E4ED5E0A     jmp     0AB1804E  
+0052926A    8BC2            mov     eax, edx  
+0052926C    5A              pop     edx  
+0052926D  - E9 8EDD5B0A     jmp     0AAE7000  
+00529272    C1FC 56         sar     esp, 56  
+00529275    BE 948B56E8     mov     esi, E8568B94  
+0052927A    50              push    eax  
+0052927B    64:8925 0000000>mov     dword ptr fs:\[0\], esp  
+00529282    83EC 58         sub     esp, 58  
+00529285    53              push    ebx  
+00529286    56              push    esi  
+00529287    57              push    edi  
+00529288    8965 E8         mov     dword ptr ss:\[ebp-18\], esp  
+0052928B    FF15 34FDAD0A   call    dword ptr ds:\[AADFD34\]           ; kernel32.GetVersion       //See?See!  
+00529291    33D2            xor     edx, edx  
+00529293    8AD4            mov     dl, ah  
+  
+根据 VC 的 OEP 的特称,可以断定 00529265 是 OEP.  
+但是被 stolen 了 5 行  
+应该是  
+push ebp  
+mov ebp,esp  
+push -1  
+push imm32  
+push imm32  
+...........  
+  
+关键就是这两个 imm32 是多少.如果有 KEY 可以让程序跑起来断在后在,通过堆栈的值来修复这两个数.但问题是,我们没有 KEY,程序无法运行.  
+  
+我请教了 forgot,问这两个 imm32 有没有办法找出来.他说这是 VC 的机制,是个 xxx 表.由于我愚钝,似懂非懂.后来遇上了 shoooo.shoooo 说这就是 VC 封装的 SEH.想弄清楚就自己写个  
+  
+\_\_try,\_\_except 来看看.  
+  
+于是豁然开朗~  
+  
+我大体说一下怎么找这两 imm32(为什么这样找?自己写个\_\_try,\_\_except 看看就明白了,还有就是看看 Crt.c 或者 crt0.c 的源码.)  
+  
+先纪录两个地址:  
+  
+00529265  - E9 E4ED5E0A     jmp     0AB1804E  
+0052926A    8BC2            mov     eax, edx  
+0052926C    5A              pop     edx  
+0052926D  - E9 8EDD5B0A     jmp     0AAE7000  
+00529272    C1FC 56         sar     esp, 56  
+00529275    BE 948B56E8     mov     esi, E8568B94  
+0052927A    50              push    eax  
+0052927B    64:8925 0000000>mov     dword ptr fs:\[0\], esp  
+00529282    83EC 58         sub     esp, 58  
+00529285    53              push    ebx  
+00529286    56              push    esi  
+00529287    57              push    edi  
+00529288    8965 E8         mov     dword ptr ss:\[ebp-18\], esp  
+0052928B    FF15 34FDAD0A   call    dword ptr ds:\[AADFD34\]           ; kernel32.GetVersion  
+00529291    33D2            xor     edx, edx  
+00529293    8AD4            mov     dl, ah  
+00529295    8915 D0C7AD0A   mov     dword ptr ds:\[AADC7D0\], edx  
+0052929B    8BC8            mov     ecx, eax  
+0052929D    81E1 FF000000   and     ecx, 0FF  
+005292A3    890D CCC7AD0A   mov     dword ptr ds:\[AADC7CC\], ecx  
+005292A9    C1E1 08         shl     ecx, 8  
+005292AC    03CA            add     ecx, edx  
+005292AE    890D C8C7AD0A   mov     dword ptr ds:\[AADC7C8\], ecx  
+005292B4    C1E8 10         shr     eax, 10  
+005292B7    A3 C4C7AD0A     mov     dword ptr ds:\[AADC7C4\], eax  
+005292BC    6A 01           push    1  
+005292BE    E8 7E560000     call    0052E941  
+005292C3    59              pop     ecx  
+005292C4    85C0            test    eax, eax  
+005292C6    75 08           jnz     short 005292D0  
+005292C8    6A 1C           push    1C  
+005292CA    E8 C3000000     call    00529392  
+005292CF    59              pop     ecx  
+005292D0    E8 DD1A0000     call    0052ADB2  
+005292D5    85C0            test    eax, eax  
+005292D7    75 08           jnz     short 005292E1  
+005292D9    6A 10           push    10  
+005292DB    E8 B2000000     call    00529392  
+005292E0    59              pop     ecx  
+005292E1    33F6            xor     esi, esi  
+005292E3    8975 FC         mov     dword ptr ss:\[ebp-4\], esi  
+005292E6    E8 52850000     call    0053183D  
+005292EB    FF15 0CFEAD0A   call    dword ptr ds:\[AADFE0C\]           ; kernel32.GetCommandLineA  
+005292F1    A3 84E7AD0A     mov     dword ptr ds:\[AADE784\], eax  
+005292F6    E8 10840000     call    0053170B  
+005292FB    A3 B4C7AD0A     mov     dword ptr ds:\[AADC7B4\], eax  
+00529300    E8 B9810000     call    005314BE  
+00529305    E8 FB800000     call    00531405  
+0052930A    E8 41050000     call    00529850  
+0052930F    8975 D0         mov     dword ptr ss:\[ebp-30\], esi  
+00529312    8D45 A4         lea     eax, dword ptr ss:\[ebp-5C\]  
+00529315    50              push    eax  
+00529316    FF15 08FEAD0A   call    dword ptr ds:\[AADFE08\]           ; kernel32.GetStartupInfoA  
+0052931C    E8 8C800000     call    005313AD  
+00529321    8945 9C         mov     dword ptr ss:\[ebp-64\], eax  
+00529324    F645 D0 01      test    byte ptr ss:\[ebp-30\], 1  
+00529328    74 06           je      short 00529330  
+0052932A    0FB745 D4       movzx   eax, word ptr ss:\[ebp-2C\]  
+0052932E    EB 03           jmp     short 00529333  
+00529330    6A 0A           push    0A  
+00529332    58              pop     eax  
+00529333    50              push    eax  
+00529334    FF75 9C         push    dword ptr ss:\[ebp-64\]  
+00529337    56              push    esi  
+00529338    56              push    esi  
+00529339    FF15 50FDAD0A   call    dword ptr ds:\[AADFD50\]           ; kernel32.GetModuleHandleA  
+0052933F    50              push    eax  
+00529340    E8 4E8AEDFF     call    00401D93                         ////这个就是 Call WinMain  
+00529345    8945 A0         mov     dword ptr ss:\[ebp-60\], eax  
+00529348    50              push    eax  
+00529349    E8 2F050000     call    0052987D  
+0052934E    8B45 EC         mov     eax, dword ptr ss:\[ebp-14\]         //这一行  
+00529351    8B08            mov     ecx, dword ptr ds:\[eax\]  
+00529353    8B09            mov     ecx, dword ptr ds:\[ecx\]  
+00529355    894D 98         mov     dword ptr ss:\[ebp-68\], ecx  
+00529358    50              push    eax  
+00529359    51              push    ecx  
+0052935A    E8 89400000     call    0052D3E8  
+0052935F    59              pop     ecx  
+00529360    59              pop     ecx  
+00529361    C3              retn  
+00529362    8B65 E8         mov     esp, dword ptr ss:\[ebp-18\]    //还有这一行  
+00529365    FF75 98         push    dword ptr ss:\[ebp-68\]  
+00529368    E8 21050000     call    0052988E  
+0052936D    833D BCC7AD0A 0>cmp     dword ptr ds:\[AADC7BC\], 1  
+00529374    75 05           jnz     short 0052937B  
+00529376    E8 D2860000     call    00531A4D  
+0052937B    FF7424 04       push    dword ptr ss:\[esp+4\]  
+0052937F    E8 02870000     call    00531A86  
+00529384    68 FF000000     push    0FF  
+00529389    FF15 CC566200   call    dword ptr ds:\[6256CC\]            ; GameServ.0052988E  
+0052938F    59              pop     ecx  
+00529390    59              pop     ecx  
+00529391    C3              retn  
+00529392    833D BCC7AD0A 0>cmp     dword ptr ds:\[AADC7BC\], 1  
+00529399    75 05           jnz     short 005293A0  
+0052939B    E8 AD860000     call    00531A4D  
+005293A0    FF7424 04       push    dword ptr ss:\[esp+4\]  
+005293A4    E8 DD860000     call    00531A86  
+005293A9    59              pop     ecx  
+005293AA    68 FF000000     push    0FF  
+005293AF    FF15 10FEAD0A   call    dword ptr ds:\[AADFE10\]           ; kernel32.ExitProcess  
+005293B5    C3              retn  
+  
+得到两个地址:  
+0052934E      
+00529362      
+  
+然后到数据窗口转到 data 段,搜索 2 进制字串:  
+FF FF FF FF 4e 93 52 00 62 93 52 00  
+  
+找一个:  
+  
+00615E68  FF FF FF FF 4E 93 52 00 62 93 52 00 80 90 61 00  N 揜.b 揜.€恆.  
+00615E78  DF 93 52 00 00 00 00 00 63 73 6D E0 01 00 00 00  邠 R.....csm?...  
+00615E88  00 00 00 00 00 00 00 00 03 00 00 00 20 05 93 19  ........... ?  
+00615E98  00 00 00 00 00 00 00 00 48 3A 6D 6D 3A 73 73 00  ........H:mm:ss.  
+  
+这个存放这个 2 进制字串的地址就是第一个 imm32  
+  
+于是我们知道了第一个 imm32 是 00615E68  
+  
+第二个就简单了,是 SEH\_HANDLE 函数的地址,这个有个明显的标记  
+  
+在代码段搜索 2 进制字串:"VC20XC00"  
+  
+找到一个:  
+  
+00526CCC   .  56 43 32 30 5>ascii   "VC20XC00"  
+00526CD4  /$  55            push    ebp                              ;  结构异常处理程序  
+00526CD5  |.  8BEC          mov     ebp, esp  
+00526CD7  |.  83EC 08       sub     esp, 8  
+00526CDA  |.  53            push    ebx  
+00526CDB  |.  56            push    esi  
+00526CDC  |.  57            push    edi  
+00526CDD  |.  55            push    ebp  
+00526CDE  |.  FC            cld  
+  
+于是第二个 imm32 就是 00526CD4  
+  
+现在我们就能修复 stolen code 了  
+  
+修复后  
+  
+004010C0 >/$  55            push    ebp  
+004010C1  |.  8BEC          mov     ebp, esp  
+004010C3  |.  6A FF         push    -1  
+004010C5  |.  68 40014200   push    00615E68  
+004010CA  |.  68 A42C4000   push    00526CD4                        ;  SE 处理程序安装  
+004010CF  |.  64:A1 0000000>mov     eax, dword ptr fs:\[0\]  
+004010D5  |.  50            push    eax  
+004010D6  |.  64:8925 00000>mov     dword ptr fs:\[0\], esp  
+00529282   .  83EC 58       sub     esp, 58  
+004010E0  |.  53            push    ebx  
+004010E1  |.  56            push    esi  
+004010E2  |.  57            push    edi  
+004010E3  |.  8965 E8       mov     dword ptr ss:\[ebp-18\], esp  
+004010E6  |.  FF15 94514200 call    dword ptr ds:\[<&KERNEL32.GetVers>;  kernel32.GetVersion  
+  
+现在用 lordPE,先 correct ImageSize,然后 dump full.(这个文件巨大有 100 多 MB).  
+  
+把 dump.exe 用 PE-TOOL 把最后 3 个区段砍掉(壳加上去的),然后用 LordPE rebuildPE(注意不要 rebuild ImportTable).  
+之后文件小多了,但是还是有 10+MB  
+  
+  
+step4. 修复导入表  
+  
+这步就不说了,因为 IAT 完好无损.  
+  
+step5.  
+over.  
+  
+谢谢你的阅读.  
+iSaiAh.nET 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

@@ -1,0 +1,220 @@
+
+
+# 刀剑封魔录
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50434.htm`](https://www.pediy.com/kssd/pediy05/pediy50434.htm)
+
+呵呵！我的第二篇破文。  
+近日买了个刀剑封魔录（类似 Diablo 2 的游戏）D 版单碟的。安装完游戏，取出光盘，然后执行，提示要放光盘。用 W32dsm89 将 ComeOn.exe 反汇编，查找 GetDriveTypeA，来到：  
+1。  
+\* Reference To: KERNEL32.GetDriveTypeA, Ord:0104h  
+                                 |  
+:004CE183 FF1564825200            Call dword ptr \[00528264\]  
+:004CE189 83F805                  cmp eax, 00000005       <<-----这是什么!!!不用说了吧。  
+:004CE18C 7517                    jne 004CE1A5            <<-----不等于则跳  
+:004CE18E 8B4500                  mov eax, dword ptr \[ebp+00\]  
+:004CE191 83F80A                  cmp eax, 0000000A  
+:004CE194 7D0F                    jge 004CE1A5  
+:004CE196 8A4C2410                mov cl, byte ptr \[esp+10\]  
+:004CE19A 884C2804                mov byte ptr \[eax+ebp+04\], cl  
+:004CE19E 8B4500                  mov eax, dword ptr \[ebp+00\]  
+:004CE1A1 40                      inc eax  
+:004CE1A2 894500                  mov dword ptr \[ebp+00\], eax
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
+|:004CE18C(C), :004CE194(C)  
+|  
+:004CE1A5 33D2                    xor edx, edx  
+:004CE1A7 43                      inc ebx  
+:004CE1A8 6689542410              mov word ptr \[esp+10\], dx  
+:004CE1AD 83FB1A                  cmp ebx, 0000001A  
+:004CE1B0 88542412                mov byte ptr \[esp+12\], dl  
+:004CE1B4 7E92                    jle 004CE148  
+:004CE1B6 5F                      pop edi  
+:004CE1B7 5E                      pop esi  
+:004CE1B8 5D                      pop ebp  
+:004CE1B9 5B                      pop ebx  
+:004CE1BA 59                      pop ecx  
+:004CE1BB C3                      ret
+
+ 将 :004CE189 83F805           改为   :004CE189 83F803  
+    :004CE18C 7517                    :004CE18C 7517  
+ 再把 C 盘的卷标改为 DAOJIAN3 即可。
+
+  
+2。  
+查找 KERNEL32.GetVolumeInformationA，结果改了一通也没有。于是用 trw 加载，下 bpx GetVolumeInformationA,按两下 F12 来到 ComeOn.exe 领空：
+
+\* Reference To: KERNEL32.GetVolumeInformationA, Ord:0177h  
+                                 |  
+:004CE810 8B2D60825200            mov ebp, dword ptr \[00528260\]
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:004CE8C7(C)  
+|  
+:004CE816 8B1588695400            mov edx, dword ptr \[00546988\]  
+:004CE81C 8954240C                mov dword ptr \[esp+0C\], edx  
+:004CE820 0FBE443C14              movsx eax, byte ptr \[esp+edi+14\]  
+:004CE825 50                      push eax  
+:004CE826 8D4C2410                lea ecx, dword ptr \[esp+10\]
+
+\* Possible StringData Ref from Data Obj ->"%c:"        首先检查 c:\\  
+                                 |  
+:004CE82A 687C5E5400              push 00545E7C  
+:004CE82F 51                      push ecx  
+:004CE830 C784244002000000000000  mov dword ptr \[esp+00000240\], 00000000  
+:004CE83B E88EAD0400              call 005195CE  
+:004CE840 83C40C                  add esp, 0000000C  
+:004CE843 8D94242C010000          lea edx, dword ptr \[esp+0000012C\]  
+:004CE84A 8D442428                lea eax, dword ptr \[esp+28\]  
+:004CE84E 8D4C2424                lea ecx, dword ptr \[esp+24\]  
+:004CE852 6800010000              push 00000100  
+:004CE857 52                      push edx  
+:004CE858 50                      push eax  
+:004CE859 8D54242C                lea edx, dword ptr \[esp+2C\]  
+:004CE85D 51                      push ecx  
+:004CE85E 8B4C241C                mov ecx, dword ptr \[esp+1C\]  
+:004CE862 52                      push edx  
+:004CE863 8D442440                lea eax, dword ptr \[esp+40\]  
+:004CE867 6800010000              push 00000100  
+:004CE86C 50                      push eax  
+:004CE86D 51                      push ecx  
+:004CE86E FFD5                    call ebp  
+:004CE870 85C0                    test eax, eax  
+:004CE872 7438                    je 004CE8AC  
+:004CE874 8B84243C020000          mov eax, dword ptr \[esp+0000023C\]  
+:004CE87B 8D74242C                lea esi, dword ptr \[esp+2C\]
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:004CE89D(C)  
+|  
+:004CE87F 8A10                    mov dl, byte ptr \[eax\]  
+:004CE881 8ACA                    mov cl, dl  
+:004CE883 3A16                    cmp dl, byte ptr \[esi\]  
+:004CE885 751C                    jne 004CE8A3  
+:004CE887 84C9                    test cl, cl  
+:004CE889 7414                    je 004CE89F          <<----关键的一跳，必须跳  
+:004CE88B 8A5001                  mov dl, byte ptr \[eax+01\]  
+:004CE88E 8ACA                    mov cl, dl  
+:004CE890 3A5601                  cmp dl, byte ptr \[esi+01\]  
+:004CE893 750E                    jne 004CE8A3  
+:004CE895 83C002                  add eax, 00000002  
+:004CE898 83C602                  add esi, 00000002  
+:004CE89B 84C9                    test cl, cl  
+:004CE89D 75E0                    jne 004CE87F         <<----又跳回!跳几次就玩完 
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:004CE889(C)  
+|  
+:004CE89F 33C0                    xor eax, eax  
+:004CE8A1 EB05                    jmp 004CE8A8       <----无条件跳，跳向游戏可以运行的地方! 
+
+  
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
+|:004CE885(C), :004CE893(C)  
+|  
+:004CE8A3 1BC0                    sbb eax, eax  
+:004CE8A5 83D8FF                  sbb eax, FFFFFFFF
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:004CE8A1(U)  
+|  
+:004CE8A8 85C0                    test eax, eax  
+:004CE8AA 743B                    je 004CE8E7      <---关键的必须跳，跳向游戏可以运行的地方
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:004CE872(C)  
+|  
+:004CE8AC 8D4C240C                lea ecx, dword ptr \[esp+0C\]  
+:004CE8B0 C7842434020000FFFFFFFF  mov dword ptr \[esp+00000234\], FFFFFFFF  
+:004CE8BB E844ED0400              call 0051D604  
+:004CE8C0 8B442410                mov eax, dword ptr \[esp+10\]  
+:004CE8C4 47                      inc edi  
+:004CE8C5 3BF8                    cmp edi, eax  
+:004CE8C7 0F8C49FFFFFF            jl 004CE816       
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:004CE80A(C)  
+|  
+:004CE8CD 33C0                    xor eax, eax
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:004CE900(U)  
+|  
+:004CE8CF 8B8C242C020000          mov ecx, dword ptr \[esp+0000022C\]  
+:004CE8D6 5F                      pop edi  
+:004CE8D7 5E                      pop esi  
+:004CE8D8 5D                      pop ebp  
+:004CE8D9 64890D00000000          mov dword ptr fs:\[00000000\], ecx  
+:004CE8E0 81C42C020000            add esp, 0000022C  
+:004CE8E6 C3                      ret           <<<----光标停在这。
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:004CE8AA(C)  
+|  
+:004CE8E7 8D4C240C                lea ecx, dword ptr \[esp+0C\]    <<----游戏可以运行的地方!  
+:004CE8EB C7842434020000FFFFFFFF  mov dword ptr \[esp+00000234\], FFFFFFFF  
+:004CE8F6 E809ED0400              call 0051D604  
+:004CE8FB B801000000              mov eax, 00000001  
+:004CE900 EBCD                    jmp 004CE8CF  
+:004CE902 90                      nop  
+:004CE903 90                      nop  
+:004CE904 90                      nop  
+:004CE905 90                      nop  
+:004CE906 90                      nop  
+:004CE907 90                      nop  
+:004CE908 90                      nop  
+:004CE909 90                      nop  
+:004CE90A 90                      nop  
+:004CE90B 90                      nop  
+:004CE90C 90                      nop  
+:004CE90D 90                      nop  
+:004CE90E 90                      nop  
+:004CE90F 90                      nop
+
+  
+按一下 F10，来到：
+
+\* Possible StringData Ref from Data Obj ->"DAOJIAN3"     
+                               
+:0040539E 68DC4F5400              push 00544FDC  
+:004053A3 E818940C00              call 004CE7C0  
+:004053A8 83C404                  add esp, 00000004 <<<-----光标停在此  
+:004053AB 85C0                    test eax, eax      <<-----卷标判断，（我猜）  
+:004053AD 7520                    jne 004053CF       <<-----关键的地方,跳则玩完。  
+:004053AF 53                      push ebx  
+:004053B0 53                      push ebx  
+:004053B1 6A01                    push 00000001  
+:004053B3 6840010000              push 00000140  
+:004053B8 B9A8035600              mov ecx, 005603A8  
+:004053BD E8DEB50C00              call 004D09A0       
+:004053C2 50                      push eax  
+:004053C3 E8499C1100              call 0051F011     <<-----过了这个 call 就弹出提示框  
+:004053C8 33C0                    xor eax, eax  
+:004053CA E9BD090000              jmp 00405D8C
+
+  
+ :004053AB 85C0          改为       :004053AB 85C0  
+ :004053AD 7520                     :004053AD 7420  
+成功！
+
+3。尝试别的地方。在串式参考中发现字符串：“DAOJIAN3”（这是什么？放了光盘就知道）  
+\* Possible StringData Ref from Data Obj ->"DAOJIAN3"
+
+:0040539E 68DC4F5400              push 00544FDC  
+:004053A3 E818940C00              call 004CE7C0  
+:004053A8 83C404                  add esp, 00000004   
+:004053AB 85C0                    test eax, eax       
+:004053AD 7520                    jne 004053CF       
+:004053AF 53                      push ebx  
+:004053B0 53                      push ebx  
+:004053B1 6A01                    push 00000001  
+:004053B3 6840010000              push 00000140  
+:004053B8 B9A8035600              mov ecx, 005603A8  
+:004053BD E8DEB50C00              call 004D09A0       
+:004053C2 50                      push eax  
+:004053C3 E8499C1100              call 0051F011       
+:004053C8 33C0                    xor eax, eax  
+:004053CA E9BD090000              jmp 00405D8C
+
+异途同归。  4dd466d0e1e0cc123afbe504da2462ca

@@ -1,0 +1,392 @@
+
+
+# 仙剑加壳器
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6457.htm`](https://www.pediy.com/kssd/pediy06/pediy6457.htm)
+
+play.exe linson 的仙剑加壳器跟踪分析   
+kongfoo/2004.3.21-22   
+  
+工具：OD,winXP   
+  
+　　壳一开始就用 f00fc7c8 lock cmpxchg8b eax 产生异常，再在异常处理   
+内部解码将要执行的代码。   
+　　将 lock cmpxchg8b eax 改成 lock fcomp eax，同样的异常，再用 shift+f9   
+跳过异常即可正常解码。   
+　　或者用 UE 打开 OD，找 7476F6858DFAFFFF，把 74 改成 eb，让 OD 不提示 Dangerous command   
+可以直接用 shift+f9，我用的是后一种方法，治本:)    
+  
+004742F0    F0:0FC7C8       LOCK CMPXCHG8B EAX                       ; Illegal use of register   
+004742F4    EB 02           JMP SHORT Play.004742F8  ==在这下断，shift+f9 后运行几十秒后停下   
+004742F6    CD 20           INT 20   
+004742F8    66:8CD8         MOV AX,DS    ==解码后的代码   
+004742FB    66:A9 0400      TEST AX,4   
+004742FF    75 0A           JNZ SHORT Play.0047430B   
+00474301    C785 572BC43B 1>MOV DWORD PTR SS:\[EBP+3BC42B57\],FA8A5A1A   
+  
+00474346    50              PUSH EAX                                 ; Play.00474BF0   
+00474347    64:FF33         PUSH DWORD PTR FS:\[EBX\]   
+0047434A    64:8923         MOV DWORD PTR FS:\[EBX\],ESP   
+0047434D    BD 4B484342     MOV EBP,4243484B   
+00474352    66:B8 0400      MOV AX,4   
+00474356    EB 02           JMP SHORT Play.0047435A   
+00474358    CD 20           INT 20   
+0047435A    CC              INT3   
+  
+00474BF0    55              PUSH EBP   
+00474BF1    8BEC            MOV EBP,ESP   
+00474BF3    57              PUSH EDI   
+00474BF4    8B45 10         MOV EAX,DWORD PTR SS:\[EBP+10\]   
+00474BF7    8BB8 9C000000   MOV EDI,DWORD PTR DS:\[EAX+9C\]   
+00474BFD    FFB7 CB2C4000   PUSH DWORD PTR DS:\[EDI+402CCB\]           ; Play.0047435B  ==改 EIP 到 47435b，也就是 int3 后一行   
+00474C03    8F80 B8000000   POP DWORD PTR DS:\[EAX+B8\]   
+00474C09    89B8 B4000000   MOV DWORD PTR DS:\[EAX+B4\],EDI   
+00474C0F    C780 B0000000 0>MOV DWORD PTR DS:\[EAX+B0\],4   
+00474C19    B8 00000000     MOV EAX,0   
+00474C1E    5F              POP EDI   
+00474C1F    C9              LEAVE   
+00474C20    C3              RETN   
+  
+　　接着是载入壳要用的 API 了，呵呵，yoda 的源码流程。   
+004743E6    8D85 FD2C4000   LEA EAX,DWORD PTR SS:\[EBP+402CFD\]  ==取 API 名   
+004743EC    FFD7            CALL EDI   
+004743EE    8985 0C2D4000   MOV DWORD PTR SS:\[EBP+402D0C\],EAX   
+  
+　　API 名全在一个地方，先去看看要用什么 API，好有个心理准备:D   
+有 2 个 ntdll 的函数，NtQuerySystemInformation 和 ZwQueryInformationProcess   
+比较特别:o    
+  
+004744CB    F785 4B2B4000 0>TEST DWORD PTR SS:\[EBP+402B4B\],1   
+004744D5    74 56           JE SHORT Play.0047452D    ==这里改 jmp 的话就可以跳过下面的异常   
+  
+　　又来异常：   
+004744E8    8D85 122B4000   LEA EAX,DWORD PTR SS:\[EBP+402B12\]   
+004744EE    50              PUSH EAX                            ==474c21   
+004744EF    64:FF33         PUSH DWORD PTR FS:\[EBX\]   
+004744F2    64:8923         MOV DWORD PTR FS:\[EBX\],ESP   
+004744F5    8BFD            MOV EDI,EBP   
+004744F7    B8 00440000     MOV EAX,4400   
+004744FC   /7C 03           JL SHORT Play.00474501   
+004744FE   |EB 03           JMP SHORT Play.00474503   
+00474500   |C7              ???                                      ; Unknown command   
+00474501  ⁷⁴ FB           JE SHORT Play.004744FE   
+00474503    CD 68           INT 68   
+00474505    33DB            XOR EBX,EBX   
+  
+00474C21    55              PUSH EBP   
+00474C22    8BEC            MOV EBP,ESP   
+00474C24    57              PUSH EDI   
+00474C25    8B45 10         MOV EAX,DWORD PTR SS:\[EBP+10\]   
+00474C28    8BB8 9C000000   MOV EDI,DWORD PTR DS:\[EAX+9C\]   
+00474C2E    FFB7 CB2C4000   PUSH DWORD PTR DS:\[EDI+402CCB\]           ; Play.00474505  ==int68 后一行   
+00474C34    8F80 B8000000   POP DWORD PTR DS:\[EAX+B8\]   
+00474C3A    89B8 B4000000   MOV DWORD PTR DS:\[EAX+B4\],EDI   
+00474C40    C780 9C000000 0>MOV DWORD PTR DS:\[EAX+9C\],0   
+00474C4A    B8 00000000     MOV EAX,0   
+00474C4F    5F              POP EDI   
+00474C50    C9              LEAVE   
+00474C51    C3              RETN   
+  
+0047452D    60              PUSHAD   
+0047452E    8BB5 3C2E4000   MOV ESI,DWORD PTR SS:\[EBP+402E3C\] ==ZwQueryInformationProcess   
+00474534    85F6            TEST ESI,ESI   
+00474536    74 1C           JE SHORT Play.00474554  ==兼容性检查，改这个跳转就可以直接跳过用 ZwQueryInformationProcess 的检查   
+00474536   /74 1C           JE SHORT Play.00474554   
+00474538   |6A 00           PUSH 0   
+0047453A   |8BC4            MOV EAX,ESP   
+0047453C   |6A 00           PUSH 0   
+0047453E   |6A 04           PUSH 4   
+00474540   |50              PUSH EAX   
+00474541   |6A 07           PUSH 7   
+00474543   |FF95 E22D4000   CALL DWORD PTR SS:\[EBP+402DE2\]           ; kernel32.GetCurrentProcess   
+00474549   |50              PUSH EAX   
+0047454A   |FFD6            CALL ESI                                 ; ntdll.ZwQueryInformationProcess   
+0047454C   |58              POP EAX   
+0047454D   |0BC0            OR EAX,EAX   
+0047454F   |74 03           JE SHORT Play.00474554  ==不跳 OVER   
+00474551   |61              POPAD   
+00474552   |61              POPAD   
+00474553   |C3              RETN   
+00474554   61              POPAD   
+  
+00474555    F785 4B2B4000 1>TEST DWORD PTR SS:\[EBP+402B4B\],10   
+0047455F    74 37           JE SHORT Play.00474598   
+00474561    64:FF35 3000000>PUSH DWORD PTR FS:\[30\]   
+00474568    58              POP EAX   
+00474569    85C0            TEST EAX,EAX   
+0047456B    78 0F           JS SHORT Play.0047457C           ==检查系统是否是 NT 系统   
+0047456D    8B40 0C         MOV EAX,DWORD PTR DS:\[EAX+C\]   
+00474570    8B40 0C         MOV EAX,DWORD PTR DS:\[EAX+C\]   
+00474573    C740 20 0010000>MOV DWORD PTR DS:\[EAX+20\],1000   ==改 ImageSize 为 1000   
+0047457A    EB 1C           JMP SHORT Play.00474598   
+0047457C    6A 00           PUSH 0                             ==不是 NT 系统用另外的方法改 ImageSize 为 1000   
+0047457E    FF95 F92C4000   CALL DWORD PTR SS:\[EBP+402CF9\]   
+00474584    85D2            TEST EDX,EDX   
+00474586    79 10           JNS SHORT Play.00474598   
+00474588    837A 08 FF      CMP DWORD PTR DS:\[EDX+8\],-1   
+0047458C    75 0A           JNZ SHORT Play.00474598   
+0047458E    8B52 04         MOV EDX,DWORD PTR DS:\[EDX+4\]   
+00474591    C742 50 0010000>MOV DWORD PTR DS:\[EDX+50\],1000   
+00474598    8BBD 432B4000   MOV EDI,DWORD PTR SS:\[EBP+402B43\]  ==改完   
+  
+　　到下面开始 anti 了。   
+00474670    8D85 A22D4000   LEA EAX,DWORD PTR SS:\[EBP+402DA2\]   
+00474676    50              PUSH EAX   
+00474677    FFB5 E42C4000   PUSH DWORD PTR SS:\[EBP+402CE4\]   
+0047467D    FF95 D32C4000   CALL DWORD PTR SS:\[EBP+402CD3\]   
+00474683    85C0            TEST EAX,EAX   
+00474685    74 08           JE SHORT Play.0047468F   
+00474687    FFD0            CALL EAX                                 ; kernel32.IsDebuggerPresent   
+  
+  
+0047468F    F785 4B2B4000 4>TEST DWORD PTR SS:\[EBP+402B4B\],40   
+00474699    75 0E           JNZ SHORT Play.004746A9              
+0047469B    8B85 432B4000   MOV EAX,DWORD PTR SS:\[EBP+402B43\]   
+004746A1    33DB            XOR EBX,EBX   
+004746A3    43              INC EBX   
+004746A4    E8 08000000     CALL Play.004746B1              ==IAT 处理，第 1 次，包括清空 IAT RVA/IAT Size   
+004746A9    8D85 78264000   LEA EAX,DWORD PTR SS:\[EBP+402678\]   
+004746AF    50              PUSH EAX   
+004746B0    C3              RETN   
+004746B1    8BF8            MOV EDI,EAX   
+004746B3    037F 3C         ADD EDI,DWORD PTR DS:\[EDI+3C\]   
+004746B6    8BF7            MOV ESI,EDI   
+004746B8    81C6 F8000000   ADD ESI,0F8   
+004746BE    33D2            XOR EDX,EDX   
+004746C0    813E 72737263   CMP DWORD PTR DS:\[ESI\],63727372   
+004746C6    75 05           JNZ SHORT Play.004746CD   
+004746C8    E9 AB000000     JMP Play.00474778   
+004746CD    813E 2E727372   CMP DWORD PTR DS:\[ESI\],7273722E   
+004746D3    75 05           JNZ SHORT Play.004746DA   
+004746D5    E9 9E000000     JMP Play.00474778   
+004746DA    813E 72656C6F   CMP DWORD PTR DS:\[ESI\],6F6C6572   
+004746E0    75 05           JNZ SHORT Play.004746E7   
+004746E2    E9 91000000     JMP Play.00474778   
+004746E7    813E 2E72656C   CMP DWORD PTR DS:\[ESI\],6C65722E   
+004746ED    75 05           JNZ SHORT Play.004746F4   
+004746EF    E9 84000000     JMP Play.00474778   
+004746F4    813E 2E656461   CMP DWORD PTR DS:\[ESI\],6164652E   
+004746FA    75 02           JNZ SHORT Play.004746FE   
+004746FC    EB 7A           JMP SHORT Play.00474778   
+004746FE    833E 00         CMP DWORD PTR DS:\[ESI\],0   
+00474701    75 02           JNZ SHORT Play.00474705   
+00474703    EB 73           JMP SHORT Play.00474778   
+00474705    837E 14 00      CMP DWORD PTR DS:\[ESI+14\],0   
+00474709    74 06           JE SHORT Play.00474711   
+0047470B    837E 10 00      CMP DWORD PTR DS:\[ESI+10\],0   
+0047470F    75 02           JNZ SHORT Play.00474713   
+00474711    EB 65           JMP SHORT Play.00474778   
+00474713    8136 13088919   XOR DWORD PTR DS:\[ESI\],19890813   
+00474719    8176 04 1308891>XOR DWORD PTR DS:\[ESI+4\],19890813   
+00474720    60              PUSHAD   
+00474721    8B4E 10         MOV ECX,DWORD PTR DS:\[ESI+10\]   
+00474724    0BDB            OR EBX,EBX   
+00474726    75 0C           JNZ SHORT Play.00474734   
+00474728    8B76 14         MOV ESI,DWORD PTR DS:\[ESI+14\]   
+0047472B    03F0            ADD ESI,EAX   
+0047472D    E8 1BF6FFFF     CALL Play.00473D4D   
+00474732    EB 0A           JMP SHORT Play.0047473E   
+00474734    8B76 0C         MOV ESI,DWORD PTR DS:\[ESI+C\]   
+00474737    03F0            ADD ESI,EAX   
+00474739    E8 02000000     CALL Play.00474740   
+0047473E    EB 37           JMP SHORT Play.00474777   
+00474740    8BFE            MOV EDI,ESI   
+00474742    AC              LODS BYTE PTR DS:\[ESI\]   
+00474743    90              NOP   
+00474744    F9              STC   
+00474745    34 28           XOR AL,28   
+00474747    90              NOP   
+00474748    F8              CLC   
+00474749    02C1            ADD AL,CL   
+0047474B    FEC8            DEC AL   
+0047474D    F8              CLC   
+0047474E    04 E6           ADD AL,0E6   
+00474750    EB 01           JMP SHORT Play.00474753   
+00474752  - E9 046AC0C0     JMP C107B15B   
+00474757    46              INC ESI   
+00474758    34 78           XOR AL,78   
+0047475A    90              NOP   
+0047475B    EB 01           JMP SHORT Play.0047475E   
+0047475D    C2 FEC8         RETN 0C8FE   
+00474760    F9              STC   
+00474761    F8              CLC   
+00474762    EB 01           JMP SHORT Play.00474765   
+00474764  - E9 EB01E8C0     JMP C12F4954   
+00474769    C8 9402C1       ENTER 294,0C1   
+0047476D    90              NOP   
+0047476E    02C1            ADD AL,CL   
+00474770    C0C0 2F         ROL AL,2F                                ; Shift constant out of range 1..31   
+00474773    AA              STOS BYTE PTR ES:\[EDI\]   
+00474774  ^ E2 CC           LOOPD SHORT Play.00474742   
+00474776    C3              RETN   
+00474777    61              POPAD   
+00474778    83C6 28         ADD ESI,28   
+0047477B    42              INC EDX   
+0047477C    66:3B57 06      CMP DX,WORD PTR DS:\[EDI+6\]   
+00474780  ^ 0F85 3AFFFFFF   JNZ Play.004746C0   
+00474786    C3              RETN   
+  
+  
+004747C5    F785 4B2B4000 2>TEST DWORD PTR SS:\[EBP+402B4B\],20   
+004747CF    74 47           JE SHORT Play.00474818   
+004747D1    60              PUSHAD                            ==检查第 1 次 IAT 处理   
+004747D2    8DBD 5C2E4000   LEA EDI,DWORD PTR SS:\[EBP+402E5C\]   
+004747D8    33C9            XOR ECX,ECX   
+004747DA    EB 17           JMP SHORT Play.004747F3   
+004747DC    8B56 04         MOV EDX,DWORD PTR DS:\[ESI+4\]   
+004747DF    0395 432B4000   ADD EDX,DWORD PTR SS:\[EBP+402B43\]   
+004747E5    EB 04           JMP SHORT Play.004747EB   
+004747E7    41              INC ECX   
+004747E8    83C2 04         ADD EDX,4   
+004747EB    833A 00         CMP DWORD PTR DS:\[EDX\],0   
+004747EE  ^ 75 F7           JNZ SHORT Play.004747E7   
+004747F0    83C6 0C         ADD ESI,0C   
+004747F3    837E 04 00      CMP DWORD PTR DS:\[ESI+4\],0   
+004747F7  ^ 75 E3           JNZ SHORT Play.004747DC   
+004747F9    2BD2            SUB EDX,EDX   
+004747FB    B8 0D000000     MOV EAX,0D   
+00474800    F7E1            MUL ECX   
+00474802    50              PUSH EAX   
+00474803    6A 00           PUSH 0   
+00474805    FF95 432D4000   CALL DWORD PTR SS:\[EBP+402D43\]           ; kernel32.GlobalAlloc  ==申请空间，用来第 2 次处理 IAT   
+0047480B    0BC0            OR EAX,EAX   
+0047480D    75 03           JNZ SHORT Play.00474812   
+0047480F    58              POP EAX   
+00474810    61              POPAD   
+00474811    C3              RETN   
+00474812    8907            MOV DWORD PTR DS:\[EDI\],EAX   
+00474814    8947 04         MOV DWORD PTR DS:\[EDI+4\],EAX   
+00474817    61              POPAD   
+00474818    E9 58010000     JMP Play.00474975   
+  
+  
+00474975    837E 04 00      CMP DWORD PTR DS:\[ESI+4\],0   
+00474979  ^ 0F85 9EFEFFFF   JNZ Play.0047481D                 ==解密文件，IAT 第 2 次处理也完了   
+0047497F    33C0            XOR EAX,EAX   
+00474981    40              INC EAX   
+00474982    48              DEC EAX   
+00474983    74 02           JE SHORT Play.00474987   
+00474985    61              POPAD   
+00474986    C3              RETN   
+  
+474979 跳回：   
+0047481D    8B1E            MOV EBX,DWORD PTR DS:\[ESI\]   
+0047481F    039D 432B4000   ADD EBX,DWORD PTR SS:\[EBP+402B43\]   
+00474825    8BC3            MOV EAX,EBX   
+00474827    E8 08000000     CALL Play.00474834  ==解码 dll 字串   
+  
+跟着载入 dll:   
+00474847    53              PUSH EBX   
+00474848    FF95 CF2C4000   CALL DWORD PTR SS:\[EBP+402CCF\]           ; kernel32.LoadLibraryA   
+  
+壳根据 api/dll 字串自己取 API 地址，再放到 IAT：   
+004748D7    8902            MOV DWORD PTR DS:\[EDX\],EAX  ==edx\=401328 eax\=API 地址   
+004748D9    EB 1D           JMP SHORT Play.004748F8   
+  
+004748F8    F785 4B2B4000 2>TEST DWORD PTR SS:\[EBP+402B4B\],20   
+00474902    7C 03           JL SHORT Play.00474907  ==   
+00474904    EB 03           JMP SHORT Play.00474909 ==    
+00474906    CC              INT3                    == 花指令   
+00474907  ^ 74 FB           JE SHORT Play.00474904  ==/   
+00474909    74 58           JE SHORT Play.00474963  ==Magic Jump，改成 jmp 就跳过 IAT 处理    
+0047490B    EB 03           JMP SHORT Play.00474910   
+  
+  
+00474987    F785 4B2B4000 1>TEST DWORD PTR SS:\[EBP+402B4B\],10   
+00474991    74 0D           JE SHORT Play.004749A0             ==呵呵，又检查这个标志   
+00474993    8B85 432B4000   MOV EAX,DWORD PTR SS:\[EBP+402B43\]   
+00474999    0340 3C         ADD EAX,DWORD PTR DS:\[EAX+3C\]   
+0047499C    66:0960 06      OR WORD PTR DS:\[EAX+6\],SP   
+004749A0    8D4424 1C       LEA EAX,DWORD PTR SS:\[ESP+1C\]   
+004749A4    FFB5 432B4000   PUSH DWORD PTR SS:\[EBP+402B43\]   
+004749AA    8F00            POP DWORD PTR DS:\[EAX\]   
+004749AC    8B9D 472B4000   MOV EBX,DWORD PTR SS:\[EBP+402B47\]   
+004749B2    0118            ADD DWORD PTR DS:\[EAX\],EBX   
+004749B4    C108 07         ROR DWORD PTR DS:\[EAX\],7           ==eax\=403221,yoda 的壳对 OEP 的处理就是 ror oep,7 :P   
+004749B7    F785 4B2B4000 0>TEST DWORD PTR SS:\[EBP+402B4B\],2   
+004749C1    74 19           JE SHORT Play.004749DC   
+004749C3    60              PUSHAD   
+004749C4    8B85 432B4000   MOV EAX,DWORD PTR SS:\[EBP+402B43\]   
+004749CA    0340 3C         ADD EAX,DWORD PTR DS:\[EAX+3C\]   
+004749CD    8B48 54         MOV ECX,DWORD PTR DS:\[EAX+54\]   
+004749D0    8BBD 432B4000   MOV EDI,DWORD PTR SS:\[EBP+402B43\]   
+004749D6    32C0            XOR AL,AL   
+004749D8    AA              STOS BYTE PTR ES:\[EDI\]   
+004749D9  ^ E2 FD           LOOPD SHORT Play.004749D8   
+004749DB    61              POPAD   
+004749DC    60              PUSHAD   
+004749DD    83BD 572B4000 0>CMP DWORD PTR SS:\[EBP+402B57\],0   
+004749E4    74 15           JE SHORT Play.004749FB   
+004749E6    64:FF35 3000000>PUSH DWORD PTR FS:\[30\]   
+004749ED    58              POP EAX   
+004749EE    0FB658 02       MOVZX EBX,BYTE PTR DS:\[EAX+2\]   
+004749F2    84DB            TEST BL,BL   
+004749F4    74 2E           JE SHORT Play.00474A24   ==用和 IsDebuggerPresent 一样效果的检查是否有调度器，不跳 OVER   
+004749F6    61              POPAD   
+004749F7    61              POPAD   
+004749F8    C3              RETN   
+004749F9    EB 29           JMP SHORT Play.00474A24   
+  
+00474A24    61              POPAD   
+00474A25    8D85 511F4000   LEA EAX,DWORD PTR SS:\[EBP+401F51\]   
+00474A2B    B9 170A0000     MOV ECX,0A17   
+00474A30    EB 02           JMP SHORT Play.00474A34   
+00474A32    CD 20           INT 20   
+00474A34    E8 12FCFFFF     CALL Play.0047464B   
+00474A39   /EB 02           JMP SHORT Play.00474A3D     ==花指令来了。。。   
+  
+00474A3D    8B9D 532B4000      MOV EBX,DWORD PTR SS:\[EBP+402B53\]  ==474c62   
+00474A43    33C3               XOR EAX,EBX   
+00474A45    74 0E              JE SHORT Play.00474A55     ==不跳 OVER   
+00474A47    EB 03              JMP SHORT Play.00474A4C   
+  
+　　接着一段解码。   
+00474A75  ^E2 ED              LOOPD SHORT Play.00474A64  ==解码   
+00474A77    EB 03              JMP SHORT Play.00474A7C   
+    
+00474A8B   /0F84 E1000000      JE Play.00474B72       ==跳过 IAT 第 2 次处理   
+00474A91   |8B4424 3C          MOV EAX,DWORD PTR SS:\[ESP+3C\]   
+00474A95   |C1C0 07            ROL EAX,7   
+00474A98   |8BF0               MOV ESI,EAX                
+00474A9A   |66:8B06            MOV AX,WORD PTR DS:\[ESI\]     
+00474A9D   |3C 50              CMP AL,50   
+00474A9F   /72 07              JB SHORT Play.00474AA8   
+00474AA1   |3C 57              CMP AL,57   
+00474AA3   |77 03              JA SHORT Play.00474AA8   
+00474AA5   |46                 INC ESI   
+00474AA6  ^|EB F2              JMP SHORT Play.00474A9A   
+00474AA8   3C 6A              CMP AL,6A   
+00474AAA    75 04              JNZ SHORT Play.00474AB0   
+00474AAC    46                 INC ESI   
+00474AAD    46                 INC ESI   
+00474AAE  ^ EB EA              JMP SHORT Play.00474A9A   
+....很长一大段.....   
+  
+00474B77    8DBD 511F4000      LEA EDI,DWORD PTR SS:\[EBP+401F51\]   
+00474B7D    B9 130B0000        MOV ECX,0B13   
+00474B82    AA                 STOS BYTE PTR ES:\[EDI\]   
+00474B83  ^ E2 FD              LOOPD SHORT Play.00474B82   ==用 FF 填充壳代码，打扫战场了   
+00474B85    8DBD D52A4000      LEA EDI,DWORD PTR SS:\[EBP+402AD5\]   
+00474B8B    B9 6B030000        MOV ECX,36B   
+00474B90    AA                 STOS BYTE PTR ES:\[EDI\]   
+00474B91  ^ E2 FD              LOOPD SHORT Play.00474B90   ==填充放数据的地方   
+  
+00474BA8  - FF6424 D0          JMP DWORD PTR SS:\[ESP\-30\]                ; Play.00403221  ==直接跳去 OEP   
+  
+00403221    6A 00              PUSH 0   
+00403223    E8 42000000        CALL Play.0040326A   
+00403228    A3 00104000        MOV DWORD PTR DS:\[401000\],EAX   
+0040322D    6A 00              PUSH 0   
+0040322F    68 6F2F4000        PUSH Play.00402F6F   
+00403234    6A 00              PUSH 0   
+00403236    6A 64              PUSH 64   
+00403238    50                 PUSH EAX   
+00403239    E8 74000000        CALL Play.004032B2   
+0040323E    6A 00              PUSH 0   
+00403240    E8 19000000        CALL Play.0040325E   
+  
+　　第 1 次跟时跟到 OEP，但用 ImportREC 找不到 IAT，跟着把 474A8B 处的跳转改掉   
+再用 ImportREC 的 IATAutoSearch 就可以找到 IAT RVA:1324, Size:9c。接着再跟时   
+就一直看着 401324，才找到 Magic Jump 的。惭愧惭愧   
+  
+ 4dd466d0e1e0cc123afbe504da2462ca

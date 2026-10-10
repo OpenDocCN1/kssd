@@ -1,0 +1,222 @@
+
+
+# 菜鸟脱壳必备 常用语言的入口特征
+
+> 原文：[`www.pediy.com/kssd/pediy10/88570.html`](https://www.pediy.com/kssd/pediy10/88570.html)
+
+Vc++ 6.0-------------------------------------------------------------------------1  
+00406684 >/$  55            PUSH EBP  
+00406685  |.  8BEC          MOV EBP,ESP  
+00406687  |.  6A FF         PUSH -1  
+00406689  |.  68 F07A4000   PUSH winmd5.00407AF0  
+0040668E  |.  68 E8674000   PUSH <JMP.&MSVCRT.\_except\_handler3>      ;SE 处理程序安装  
+00406693  |.  64:A1 0000000>MOV EAX,DWORD PTR FS:\[0\]  
+00406699  |.  50            PUSH EAX  
+0040669A  |.  64:8925 00000>MOV DWORD PTR FS:\[0\],ESP  
+004066A1  |.  83EC 68       SUB ESP,68  
+004066A4  |.  53            PUSH EBX  
+004066A5  |.  56            PUSH ESI  
+004066A6  |.  57            PUSH EDI  
+004066A7  |.  8965 E8       MOV DWORD PTR SS:\[EBP-18\],ESP  
+004066AA  |.  33DB          XOR EBX,EBX  
+004066AC  |.  895D FC       MOV DWORD PTR SS:\[EBP-4\],EBX  
+004066AF  |.  6A 02         PUSH 2  
+004066B1  |.  FF15 54734000 CALL DWORD PTR DS:\[<&MSVCRT.\_\_set\_app\_ty>;  msvcrt.\_\_set\_app\_type  
+004066B7  |.  59            POP ECX  
+004066B8  |.  830D 78A34000>OR DWORD PTR DS:\[40A378\],FFFFFFFF  
+  
+\---------------------------------------------------------------------------------2  
+004171D6 >/$  55            PUSH EBP  
+004171D7  |.  8BEC          MOV EBP,ESP  
+004171D9  |.  6A FF         PUSH -1  
+004171DB  |.  68 60B44100   PUSH Urlegal1.0041B460  
+004171E0  |.  68 3A734100   PUSH <JMP.&MSVCRT.\_except\_handler3>      ;  SE 处理程序安装  
+004171E5  |.  64:A1 0000000>MOV EAX,DWORD PTR FS:\[0\]  
+004171EB  |.  50            PUSH EAX  
+004171EC  |.  64:8925 00000>MOV DWORD PTR FS:\[0\],ESP  
+004171F3  |.  83EC 68       SUB ESP,68  
+004171F6  |.  53            PUSH EBX  
+004171F7  |.  56            PUSH ESI  
+004171F8  |.  57            PUSH EDI  
+004171F9  |.  8965 E8       MOV DWORD PTR SS:\[EBP-18\],ESP  
+004171FC  |.  33DB          XOR EBX,EBX  
+004171FE  |.  895D FC       MOV DWORD PTR SS:\[EBP-4\],EBX  
+\---------------------------------------------------------------------------------2  
+00401245 > $  55            PUSH EBP  
+00401246   .  8BEC          MOV EBP,ESP  
+00401248   .  6A FF         PUSH -1  
+0040124A   .  68 60144000   PUSH Msdev.00401460  
+0040124F   .  68 AD174000   PUSH <JMP.&MSVCRT.\_except\_handler3>      ;  SE 处理程序安装  
+00401254   .  64:A1 0000000>MOV EAX,DWORD PTR FS:\[0\]  
+0040125A   .  50            PUSH EAX  
+0040125B   .  64:8925 00000>MOV DWORD PTR FS:\[0\],ESP  
+00401262   .  83EC 68       SUB ESP,68  
+00401265   .  53            PUSH EBX  
+00401266   .  56            PUSH ESI  
+00401267   .  57            PUSH EDI  
+00401268   .  8965 E8       MOV DWORD PTR SS:\[EBP-18\],ESP  
+0040126B   .  33DB          XOR EBX,EBX  
+  
+易语言\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+  
+004342F4 >/$  55            PUSH EBP  
+004342F5  |.  8BEC          MOV EBP,ESP  
+004342F7  |.  6A FF         PUSH -1  
+004342F9  |.  68 68734400   PUSH QQMusicU.00447368  
+004342FE  |.  68 80444300   PUSH <JMP.&MSVCRT.\_except\_handler3>      ;  SE 处理程序安装  
+00434303  |.  64:A1 0000000>MOV EAX,DWORD PTR FS:\[0\]  
+00434309  |.  50            PUSH EAX  
+0043430A  |.  64:8925 00000>MOV DWORD PTR FS:\[0\],ESP  
+00434311  |.  83EC 68       SUB ESP,68  
+00434314  |.  53            PUSH EBX  
+00434315  |.  56            PUSH ESI  
+00434316  |.  57            PUSH EDI  
+00434317  |.  8965 E8       MOV DWORD PTR SS:\[EBP-18\],ESP  
+0043431A  |.  33DB          XOR EBX,EBX  
+0043431C  |.  895D FC       MOV DWORD PTR SS:\[EBP-4\],EBX  
+0043431F  |.  6A 02         PUSH 2  
+00434321  |.  FF15 7C174400 CALL DWORD PTR DS:\[<&MSVCRT.\_\_set\_app\_ty>;  msvcrt.\_\_set\_app\_type  
+00434327  |.  59            POP ECX  
+  
+  
+Microsoft Visual C++ 7.0 \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+0046E291 > $  6A 60         PUSH 60  
+0046E293   .  68 400E4800   PUSH dumped.00480E40  
+0046E298   .  E8 5B110000   CALL dumped.0046F3F8  
+0046E29D   .  BF 94000000   MOV EDI,94  
+0046E2A2   .  8BC7          MOV EAX,EDI  
+0046E2A4   .  E8 B7E7FFFF   CALL dumped.0046CA60  
+0046E2A9   .  8965 E8       MOV DWORD PTR SS:\[EBP-18\],ESP  
+0046E2AC   .  8BF4          MOV ESI,ESP  
+0046E2AE   .  893E          MOV DWORD PTR DS:\[ESI\],EDI  
+0046E2B0   .  56            PUSH ESI                                 ; /pVersionInformation  
+0046E2B1   .  FF15 78B24700 CALL DWORD PTR DS:\[<&KERNEL32.GetVersion>; \\GetVersionExA  
+0046E2B7   .  8B4E 10       MOV ECX,DWORD PTR DS:\[ESI+10\]  
+0046E2BA   .  890D 14554A00 MOV DWORD PTR DS:\[4A5514\],ECX  
+0046E2C0   .  8B46 04       MOV EAX,DWORD PTR DS:\[ESI+4\]  
+0046E2C3   .  A3 20554A00   MOV DWORD PTR DS:\[4A5520\],EAX  
+0046E2C8   .  8B56 08       MOV EDX,DWORD PTR DS:\[ESI+8\]  
+0046E2CB   .  8915 24554A00 MOV DWORD PTR DS:\[4A5524\],EDX  
+0046E2D1   .  8B76 0C       MOV ESI,DWORD PTR DS:\[ESI+C\]  
+0046E2D4   .  81E6 FF7F0000 AND ESI,7FFF  
+0046E2DA   .  8935 18554A00 MOV DWORD PTR DS:\[4A5518\],ESI  
+0046E2E0   .  83F9 02       CMP ECX,2  
+0046E2E3   .  74 0C         JE SHORT dumped.0046E2F1  
+0046E2E5   .  81CE 00800000 OR ESI,8000  
+  
+  
+  
+Microsoft Visual C++ 7.0 \[Overlay\]\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*8  
+  
+004411BC > $  6A 60         PUSH 60  
+004411BE   .  68 B85C4A00   PUSH Ghost 镜?004A5CB8  
+004411C3   .  E8 D03C0000   CALL Ghost 镜?00444E98  
+004411C8   .  BF 94000000   MOV EDI,94  
+004411CD   .  8BC7          MOV EAX,EDI  
+004411CF   .  E8 9CE7FFFF   CALL Ghost 镜?0043F970  
+004411D4   .  8965 E8       MOV DWORD PTR SS:\[EBP-18\],ESP  
+004411D7   .  8BF4          MOV ESI,ESP  
+004411D9   .  893E          MOV DWORD PTR DS:\[ESI\],EDI  
+004411DB   .  56            PUSH ESI                                 ; /pVersionInformation  
+004411DC   .  FF15 34844900 CALL DWORD PTR DS:\[<&KERNEL32.GetVersion>; \\GetVersionExA  
+004411E2   .  8B4E 10       MOV ECX,DWORD PTR DS:\[ESI+10\]  
+004411E5   .  890D A8D04C00 MOV DWORD PTR DS:\[4CD0A8\],ECX  
+004411EB   .  8B46 04       MOV EAX,DWORD PTR DS:\[ESI+4\]  
+004411EE   .  A3 B4D04C00   MOV DWORD PTR DS:\[4CD0B4\],EAX  
+  
+  
+  
+  
+  
+  
+Microsoft Visual Basic 5.0 / 6.0\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+  
+  
+004012F4 > $  68 8C1E4000   PUSH CrackMe.00401E8C                    ;  vb5!6&vb6chs.dll  
+004012F9   .  E8 F0FFFFFF   CALL <JMP.&MSVBVM60.#100>  
+004012FE   .  0000          ADD BYTE PTR DS:\[EAX\],AL  
+00401300   .  0000          ADD BYTE PTR DS:\[EAX\],AL  
+00401302   .  0000          ADD BYTE PTR DS:\[EAX\],AL  
+00401304   .  3000          XOR BYTE PTR DS:\[EAX\],AL  
+00401306   .  0000          ADD BYTE PTR DS:\[EAX\],AL  
+00401308   .  3800          CMP BYTE PTR DS:\[EAX\],AL  
+0040130A   .  0000          ADD BYTE PTR DS:\[EAX\],AL  
+0040130C   .  0000          ADD BYTE PTR DS:\[EAX\],AL  
+0040130E   .  0000          ADD BYTE PTR DS:\[EAX\],AL  
+00401310   .  65:4D         DEC EBP                                  ;  多余的前缀  
+00401312   .  27            DAA  
+00401313   .  80F4 D7       XOR AH,0D7  
+  
+  
+004026C8 > $  68 BCDF4000   PUSH CHMExplo.0040DFBC                   ;  ASCII "VB5!6&vb6chs.dll"  
+004026CD   .  E8 EEFFFFFF   CALL <JMP.&MSVBVM60.ThunRTMain>  
+004026D2   .  0000          ADD BYTE PTR DS:\[EAX\],AL  
+004026D4   .  70 00         JO SHORT CHMExplo.004026D6  
+004026D6   >  0000          ADD BYTE PTR DS:\[EAX\],AL  
+004026D8   .  3000          XOR BYTE PTR DS:\[EAX\],AL  
+004026DA   .  0000          ADD BYTE PTR DS:\[EAX\],AL  
+004026DC   .  68 00000040   PUSH 40000000  
+004026E1   .  0000          ADD BYTE PTR DS:\[EAX\],AL  
+004026E3   .  0008          ADD BYTE PTR DS:\[EAX\],CL  
+004026E5      F7            DB F7  
+  
+  
+  
+  
+\---------------------------------------------------------------------------------  
+  
+  
+004034A0 > $  68 E8364000   PUSH Icopwork.004036E8                   ;  ASCII "VB5!6&vb6chs.dll"  
+004034A5   .  E8 EEFFFFFF   CALL <JMP.&MSVBVM60.#100>  
+004034AA   .  0000          ADD BYTE PTR DS:\[EAX\],AL  
+004034AC   .  0000          ADD BYTE PTR DS:\[EAX\],AL  
+004034AE   .  0000          ADD BYTE PTR DS:\[EAX\],AL  
+004034B0   .  3000          XOR BYTE PTR DS:\[EAX\],AL  
+004034B2   .  0000          ADD BYTE PTR DS:\[EAX\],AL  
+004034B4   .  40            INC EAX  
+004034B5   .  0000          ADD BYTE PTR DS:\[EAX\],AL  
+004034B7   .  0000          ADD BYTE PTR DS:\[EAX\],AL  
+004034B9   .  0000          ADD BYTE PTR DS:\[EAX\],AL  
+004034BB   .  00D3          ADD BL,DL  
+004034BD   .  BE D038EF0D   MOV ESI,0DEF38D0  
+004034C2   .  DA11          FICOM DWORD PTR DS:\[ECX\]  
+004034C4   .  B2 89         MOV DL,89  
+004034C6   .  D0DD          RCR CH,1  
+004034C8   .  139407 010000>ADC EDX,DWORD PTR DS:\[EDI+EAX+1\]  
+  
+  
+  
+Borland Delphi 6.0 - 7.0 \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+  
+  
+  
+00451BB8 > $  55            PUSH EBP  
+00451BB9   .  8BEC          MOV EBP,ESP  
+00451BBB   .  83C4 F0       ADD ESP,-10  
+00451BBE   .  B8 D0194500   MOV EAX,Project1.004519D0  
+00451BC3   .  E8 0040FBFF   CALL Project1.00405BC8  
+00451BC8   .  A1 3C304500   MOV EAX,DWORD PTR DS:\[45303C\]  
+00451BCD   .  8B00          MOV EAX,DWORD PTR DS:\[EAX\]  
+00451BCF   .  E8 54E4FFFF   CALL Project1.00450028  
+00451BD4   .  A1 3C304500   MOV EAX,DWORD PTR DS:\[45303C\]  
+00451BD9   .  8B00          MOV EAX,DWORD PTR DS:\[EAX\]  
+00451BDB   .  BA 181C4500   MOV EDX,Project1.00451C18  
+00451BE0   .  E8 53E0FFFF   CALL Project1.0044FC38  
+00451BE5   .  8B0D 1C314500 MOV ECX,DWORD PTR DS:\[45311C\]            ;  Project1.00454BD4  
+  
+  
+  
+一般 Win32 汇编的入口\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*8  
+00401000 >/$  6A 00         PUSH 0                                   ; /pModule = NULL  
+00401002  |.  E8 B7060000   CALL <JMP.&kernel32.GetModuleHandleA>    ; \\GetModuleHandleA  
+  
+  
+  
+  
+  
+  
+  
+  
+只求            抛砖引玉  
+  
+大家多讨论

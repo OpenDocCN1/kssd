@@ -1,0 +1,85 @@
+
+
+# CSC4.0 高中版本
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue128.htm`](https://www.pediy.com/kssd/pediy04/kanxue128.htm)
+
+应 CrackerABC 的要求破解<CSC4.0 高中版本>,到电脑市场买了一套 D 版本,回家安装一看,居然不能用.   
+看来还得自己动手,自立更生啊.   
+主文件   
+csc40gz.exe(主文件)   
+xtxl.exe(自测题调用主文件),关键是它了.   
+csc9x.vxd   
+工具:w32dasm,softice4.05+frogice,winhex   
+以下是 csc40gz.exe 的主要代码   
+\====================================================================   
+:00401351 8A442424                mov al, byte ptr \[esp+24\]   
+:00401355 83E103                  and ecx, 00000003   
+:00401358 89542438                mov dword ptr \[esp+38\], edx   
+:0040135C 668B1550E44400          mov dx, word ptr \[0044E450\]   
+:00401363 8844243C                mov byte ptr \[esp+3C\], al   
+:00401367 F3                      repz   
+:00401368 A4                      movsb   
+:00401369 8B4C241C                mov ecx, dword ptr \[esp+1C\]   
+:0040136D B8ECAA4400              mov eax, 0044AAEC   
+:00401372 894C2434                mov dword ptr \[esp+34\], ecx   
+:00401376 8D4C2434                lea ecx, dword ptr \[esp+34\]   
+:0040137A 51                      push ecx   
+:0040137B 52                      push edx   
+:0040137C FFD0                    call eax   
+:0040137E 83C408                  add esp, 00000008   
+:00401381 663BC3                  cmp ax, bx   
+:00401384 89442418                mov dword ptr \[esp+18\], eax   
+:00401388 EB6A                    jmp 004013F4------------------->这里是我改的,如果不跳就 OVER   
+\* Reference To: USER32.MessageBoxA, Ord:01BEh   
+                                  |   
+:0040138A 8B35C8E44300            mov esi, dword ptr \[0043E4C8\]   
+:00401390 6A10                    push 00000010   
+  
+\* Possible StringData Ref from Data Obj ->"科利华电脑家庭教师高中 4.0 版"   
+                                  |   
+:00401392 68ECA14400              push 0044A1EC   
+  
+\* Possible StringData Ref from Data Obj ->"加密锁未找到！"   
+                                  |   
+:00401397 68C8A14400              push 0044A1C8   
+:0040139C 6A00                    push 00000000   
+:0040139E FFD6                    call esi   
+:004013A0 A148E44400              mov eax, dword ptr \[0044E448\]   
+:004013A5 8D4C2414                lea ecx, dword ptr \[esp+14\]   
+:004013A9 6A00                    push 00000000   
+:004013AB 51                      push ecx   
+:004013AC 8D542420                lea edx, dword ptr \[esp+20\]   
+:004013B0 6A02                    push 00000002   
+:004013B2 52                      push edx   
+:004013B3 6A04                    push 00000004   
+:004013B5 6860E44400              push 0044E460   
+:004013BA 6801E410A4              push A410E401   
+:004013BF 50                      push eax   
+:004013C0 891D70E44400            mov dword ptr \[0044E470\], ebx   
+:004013C6 891D74E44400            mov dword ptr \[0044E474\], ebx   
+:004013CC C70578E4440002000000    mov dword ptr \[0044E478\], 00000002   
+:004013D6 FFD5                    call ebp   
+:004013D8 85C0                    test eax, eax   
+:004013DA 0F8593020000            jne 00401673   
+:004013E0 6A10                    push 00000010   
+\===================================================================================   
+相同类似的代码地址如下:   
+004038D5  0040900C 0040F1A1  00401397   
+这些是程序运行中的检测狗的地方.很简单的哦.就不用我多说了.   
+\====================================================================================   
+下面是 xtxl.exe   
+这个主文件被加了狗壳,没法子,借助 CrackerABC 的力量(有狗哦),脱了它,用 GetVersion 断点找到 OEP   
+00430687,用 PRODUMP1.62 脱掉外壳.回家运行一下,自然没有问题了.   
+这个文件要说明的是,该文件使用的反跟踪技巧,倒不是说会非法操作.而是让你无法单步得到读狗的   
+操作,没狗有点难办.   
+  
+  
+  
+唉,这是一个借助有狗的情况下脱了壳.   
+  
+  
+  
+新疆\[BCG\]&shou\_xin\[CCG\]   
+  
+2001.10.12  4dd466d0e1e0cc123afbe504da2462ca

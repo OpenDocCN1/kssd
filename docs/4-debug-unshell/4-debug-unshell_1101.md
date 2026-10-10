@@ -1,0 +1,331 @@
+
+
+# Themida Logo 显示分析
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-553.htm`](https://www.pediy.com/kssd/pediy08/pediy8-553.htm)
+
+作者:      KernelKiller  
+目标:     分析 Themida 如何显示 Logo 窗口  
+系统平台: Windows 2000 Server  
+软件    : Themida Demo 1.0.0.5 driver version  
+日期    : 2006-05-01  
+  
+  
+声明:  
+   本文只是技术探讨。  
+  
+为了不浪费大家宝贵时间，直接进入正题，省略加壳后分析的 Logo 代码，直接来到主程序内代码。  
+  
+  
+//创建一个线程 显示 Logo 窗口  
+\_\_\_:0057C98F Themida\_Show\_Logo proc near             ; CODE XREF: \_\_\_:0057B145p  
+\_\_\_:0057C98F                                         ; \_\_\_:0057B2A5p  
+\_\_\_:0057C98F                                         ; DATA XREF: ...  
+\_\_\_:0057C98F                 mov     ss:dword\_57C687\[ebp\], esi  
+\_\_\_:0057C995                 lea     eax, Themida\_Show\_Logo\[ebp\]  
+\_\_\_:0057C99B                 push    eax  
+\_\_\_:0057C99C                 push    0  
+\_\_\_:0057C99E                 push    0  
+\_\_\_:0057C9A0                 lea     eax, Themida\_Show\_Logo\_Fun\[ebp\]  
+\_\_\_:0057C9A6                 push    eax  
+\_\_\_:0057C9A7                 push    0  
+\_\_\_:0057C9A9                 push    0  
+\_\_\_:0057C9AB                 call    ss:Themida\_Call\_CreateThread\[ebp\]  
+\_\_\_:0057C9B1                 lea     ebx, loc\_580539\[ebp\]  
+\_\_\_:0057C9B7                 call    ebx  
+\_\_\_:0057C9B9                 push    28h  
+\_\_\_:0057C9BB                 call    ss:Themida\_Call\_Sleep\[ebp\]  
+\_\_\_:0057C9C1                 retn  
+\_\_\_:0057C9C1 Themida\_Show\_Logo endp  
+  
+//主显示 Logo 功能.  
+\_\_\_:0057C9C2 Themida\_Show\_Logo\_Fun:                  ; DATA XREF: Themida\_Show\_Logo+11r  
+\_\_\_:0057C9C2                 call    $+5  
+\_\_\_:0057C9C7                 pop     ebp  
+\_\_\_:0057C9C8                 sub     ebp, 57C9C7h  
+\_\_\_:0057C9CE                 inc     ss:dword\_58B7BC\[ebp\]  
+\_\_\_:0057C9D4                 mov     esi, ss:dword\_57C687\[ebp\]  
+\_\_\_:0057C9DA                 push    ebp  
+\_\_\_:0057C9DB                 mov     ebp, esp  
+\_\_\_:0057C9DD                 add     esp, 0FFFFFFB4h  
+\_\_\_:0057C9E0                 call    $+5  
+\_\_\_:0057C9E5  
+\_\_\_:0057C9E5 loc\_57C9E5:                             ; DATA XREF: \_\_\_:0057C9E6o  
+\_\_\_:0057C9E5                 pop     edx  
+\_\_\_:0057C9E6                 sub     edx, offset loc\_57C9E5  
+\_\_\_:0057C9EC                 mov     dword\_57B5B9\[edx\], esi  
+\_\_\_:0057C9F2                 call    sub\_57CD95  
+\_\_\_:0057C9F7                 lea     ebx, dword\_57B5CF\[edx\]  
+\_\_\_:0057C9FD                 mov     eax, \[ebx+4\]  
+\_\_\_:0057CA00                 mov     eax, \[ebx+8\]  
+\_\_\_:0057CA03                 mov     dword ptr \[ebp\-30h\], 30h  
+\_\_\_:0057CA0A                 mov     dword ptr \[ebp\-2Ch\], 3  
+\_\_\_:0057CA11                 lea     eax, WindowsProc\[edx\]  
+\_\_\_:0057CA17                 mov     \[ebp\-28h\], eax  
+\_\_\_:0057CA1A                 mov     dword ptr \[ebp\-24h\], 0  
+\_\_\_:0057CA21                 mov     dword ptr \[ebp\-20h\], 0  
+\_\_\_:0057CA28                 push    dword\_58A78C\[edx\]  
+\_\_\_:0057CA2E                 pop     dword ptr \[ebp\-1Ch\]  
+\_\_\_:0057CA31                 mov     dword ptr \[ebp\-10h\], 6  
+\_\_\_:0057CA38                 mov     dword ptr \[ebp\-0Ch\], 0  
+\_\_\_:0057CA3F                 lea     eax, unk\_57B548\[edx\]  
+\_\_\_:0057CA45                 mov     \[ebp\-8\], eax  
+\_\_\_:0057CA48                 mov     dword ptr \[ebp\-18h\], 0  
+\_\_\_:0057CA4F                 mov     dword ptr \[ebp\-4\], 0  
+\_\_\_:0057CA56                 push    edx  
+\_\_\_:0057CA57                 push    7F89h  
+\_\_\_:0057CA5C                 push    0  
+\_\_\_:0057CA5E                 call    dword\_57B59D\[edx\]  
+\_\_\_:0057CA64                 pop     edx  
+\_\_\_:0057CA65                 mov     \[ebp\-14h\], eax  
+\_\_\_:0057CA68                 push    edx  
+\_\_\_:0057CA69                 lea     eax, \[ebp\-30h\]  
+\_\_\_:0057CA6C                 push    eax  
+\_\_\_:0057CA6D                 call    dword\_57B559\[edx\]  
+\_\_\_:0057CA73                 pop     edx  
+\_\_\_:0057CA74                 push    edx  
+\_\_\_:0057CA75                 lea     ebx, dword\_57B5CF\[edx\]  
+\_\_\_:0057CA7B                 push    0  
+\_\_\_:0057CA7D                 push    dword\_58A78C\[edx\]  
+\_\_\_:0057CA83                 push    0  
+\_\_\_:0057CA85                 push    0  
+\_\_\_:0057CA87                 push    dword ptr \[ebx+8\]  
+\_\_\_:0057CA8A                 push    dword ptr \[ebx+4\]  
+\_\_\_:0057CA8D                 push    80000000h  
+\_\_\_:0057CA92                 push    80000000h  
+\_\_\_:0057CA97                 push    80000000h  
+\_\_\_:0057CA9C                 push    0  
+\_\_\_:0057CA9E                 lea     eax, unk\_57B548\[edx\]  
+\_\_\_:0057CAA4                 push    eax  
+\_\_\_:0057CAA5                 push    0  
+\_\_\_:0057CAA7                 call    Themida\_Call\_CreateWindows\[edx\]  
+\_\_\_:0057CAAD                 pop     edx  
+\_\_\_:0057CAAE                 mov     hLogoWindows\[edx\], eax  
+\_\_\_:0057CAB4                 push    edx  
+\_\_\_:0057CAB5                 push    hLogoWindows\[edx\]  
+\_\_\_:0057CABB                 call    dword\_57B555\[edx\]  
+\_\_\_:0057CAC1                 pop     edx  
+\_\_\_:0057CAC2                 mov     dword\_57B5BD\[edx\], eax  
+\_\_\_:0057CAC8                 push    dword\_57B5BD\[edx\]  
+\_\_\_:0057CACE                 call    sub\_57CDB8  
+\_\_\_:0057CAD3                 push    edx  
+\_\_\_:0057CAD4                 push    1  
+\_\_\_:0057CAD6                 push    hLogoWindows\[edx\]  
+\_\_\_:0057CADC                 call    Themida\_Call\_ShowWindows\[edx\]  
+\_\_\_:0057CAE2                 pop     edx  
+\_\_\_:0057CAE3                 push    edx  
+\_\_\_:0057CAE4                 push    hLogoWindows\[edx\]  
+\_\_\_:0057CAEA                 call    Themida\_Call\_UpdateWindow\[edx\]  
+\_\_\_:0057CAF0                 pop     edx  
+\_\_\_:0057CAF1  
+\_\_\_:0057CAF1 loc\_57CAF1:                             ; CODE XREF: \_\_\_:0057CB1Fj  
+\_\_\_:0057CAF1                 push    edx  
+\_\_\_:0057CAF2                 push    0  
+\_\_\_:0057CAF4                 push    0  
+\_\_\_:0057CAF6                 push    0  
+\_\_\_:0057CAF8                 lea     eax, \[ebp\-4Ch\]  
+\_\_\_:0057CAFB                 push    eax  
+\_\_\_:0057CAFC                 call    dword\_57B569\[edx\]  
+\_\_\_:0057CB02                 pop     edx  
+\_\_\_:0057CB03                 or      eax, eax  
+\_\_\_:0057CB05                 jz      short loc\_57CB21  
+\_\_\_:0057CB07                 push    edx  
+\_\_\_:0057CB08                 lea     eax, \[ebp\-4Ch\]  
+\_\_\_:0057CB0B                 push    eax  
+\_\_\_:0057CB0C                 call    dword\_57B56D\[edx\]  
+\_\_\_:0057CB12                 pop     edx  
+\_\_\_:0057CB13                 push    edx  
+\_\_\_:0057CB14                 lea     eax, \[ebp\-4Ch\]  
+\_\_\_:0057CB17                 push    eax  
+\_\_\_:0057CB18                 call    dword\_57B571\[edx\]  
+\_\_\_:0057CB1E                 pop     edx  
+\_\_\_:0057CB1F                 jmp     short loc\_57CAF1  
+\_\_\_:0057CB21 ; 哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪?  
+\_\_\_:0057CB21  
+\_\_\_:0057CB21 loc\_57CB21:                             ; CODE XREF: \_\_\_:0057CB05j  
+\_\_\_:0057CB21                 push    edx  
+\_\_\_:0057CB22                 push    dword\_57B5BD\[edx\]  
+\_\_\_:0057CB28                 push    hLogoWindows\[edx\]  
+\_\_\_:0057CB2E                 call    dword\_57B575\[edx\]  
+\_\_\_:0057CB34                 pop     edx  
+\_\_\_:0057CB35                 mov     ebp, edx  
+\_\_\_:0057CB37                 dec     dword\_58B7BC\[edx\]  
+\_\_\_:0057CB3D                 mov     byte ptr dword\_58C4EC\[edx\], 45h  
+\_\_\_:0057CB44                 push    0DA6038C2h  
+\_\_\_:0057CB49                 push    dword\_58AA90\[edx\]  
+\_\_\_:0057CB4F                 lea     eax, loc\_57FAE9\[edx\]  
+\_\_\_:0057CB55                 call    eax  
+\_\_\_:0057CB57                 push    0  
+\_\_\_:0057CB59                 call    eax  
+\_\_\_:0057CB5B  
+\_\_\_:0057CB5B WindowsProc:                            ; DATA XREF: \_\_\_:0057CA11r  
+\_\_\_:0057CB5B                 push    ebp  
+\_\_\_:0057CB5C                 mov     ebp, esp  
+\_\_\_:0057CB5E                 add     esp, 0FFFFFFB4h  
+\_\_\_:0057CB61                 push    edx  
+\_\_\_:0057CB62                 call    $+5  
+\_\_\_:0057CB67  
+\_\_\_:0057CB67 loc\_57CB67:                             ; DATA XREF: \_\_\_:0057CB68o  
+\_\_\_:0057CB67                 pop     edx  
+\_\_\_:0057CB68                 sub     edx, offset loc\_57CB67  
+\_\_\_:0057CB6E                 cmp     dword ptr \[ebp+0Ch\], 2  
+\_\_\_:0057CB72                 jnz     short Local\_1  
+\_\_\_:0057CB74                 push    edx  
+\_\_\_:0057CB75                 mov     Themida\_Exit\_Logo\_Flag\[edx\], 1  
+\_\_\_:0057CB7F                 push    0  
+\_\_\_:0057CB81                 call    dword\_57B579\[edx\]  
+\_\_\_:0057CB87                 pop     edx  
+\_\_\_:0057CB88                 jmp     Exit  
+\_\_\_:0057CB8D ; 哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪?  
+\_\_\_:0057CB8D  
+\_\_\_:0057CB8D Local\_1:                                ; CODE XREF: \_\_\_:0057CB72j  
+\_\_\_:0057CB8D                 cmp     dword ptr \[ebp+0Ch\], WM\_LBUTTONDOWN  
+\_\_\_:0057CB94                 jnz     short Local\_2   //鼠标按下  
+\_\_\_:0057CB96                 mov     Themida\_Exit\_Logo\_Flag\[edx\], 1  
+\_\_\_:0057CBA0                 jmp     Exit  
+\_\_\_:0057CBA5 ; 哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪?  
+\_\_\_:0057CBA5  
+\_\_\_:0057CBA5 Local\_2:                                ; CODE XREF: \_\_\_:0057CB94j  
+\_\_\_:0057CBA5                 cmp     dword ptr \[ebp+0Ch\], 1  
+\_\_\_:0057CBA9                 jnz     short Local\_3  
+\_\_\_:0057CBAB                 push    edx  
+\_\_\_:0057CBAC                 lea     eax, \[ebp\-3Ch\]  
+\_\_\_:0057CBAF                 push    eax  
+\_\_\_:0057CBB0                 push    dword ptr \[ebp+8\]  
+\_\_\_:0057CBB3                 call    dword\_57B57D\[edx\]  
+\_\_\_:0057CBB9                 pop     edx  
+\_\_\_:0057CBBA                 push    edx  
+\_\_\_:0057CBBB                 call    dword\_57B581\[edx\]  
+\_\_\_:0057CBC1                 pop     edx  
+\_\_\_:0057CBC2                 mov     ecx, eax  
+\_\_\_:0057CBC4                 push    edx  
+\_\_\_:0057CBC5                 lea     eax, \[ebp\-4Ch\]  
+\_\_\_:0057CBC8                 push    eax  
+\_\_\_:0057CBC9                 push    ecx  
+\_\_\_:0057CBCA                 call    dword\_57B57D\[edx\]  
+\_\_\_:0057CBD0                 pop     edx  
+\_\_\_:0057CBD1                 push    edx  
+\_\_\_:0057CBD2                 push    0  
+\_\_\_:0057CBD4                 mov     eax, \[ebp\-30h\]  
+\_\_\_:0057CBD7                 sub     eax, \[ebp\-38h\]  
+\_\_\_:0057CBDA                 mov     \[ebp\-28h\], eax  
+\_\_\_:0057CBDD                 push    eax  
+\_\_\_:0057CBDE                 mov     eax, \[ebp\-34h\]  
+\_\_\_:0057CBE1                 sub     eax, \[ebp\-3Ch\]  
+\_\_\_:0057CBE4                 mov     \[ebp\-2Ch\], eax  
+\_\_\_:0057CBE7                 push    eax  
+\_\_\_:0057CBE8                 mov     eax, \[ebp\-40h\]  
+\_\_\_:0057CBEB                 sub     eax, \[ebp\-28h\]  
+\_\_\_:0057CBEE                 shr     eax, 1  
+\_\_\_:0057CBF0                 push    eax  
+\_\_\_:0057CBF1                 mov     eax, \[ebp\-44h\]  
+\_\_\_:0057CBF4                 sub     eax, \[ebp\-2Ch\]  
+\_\_\_:0057CBF7                 shr     eax, 1  
+\_\_\_:0057CBF9                 push    eax  
+\_\_\_:0057CBFA                 push    dword ptr \[ebp+8\]  
+\_\_\_:0057CBFD                 call    dword\_57B585\[edx\]  
+\_\_\_:0057CC03                 pop     edx  
+\_\_\_:0057CC04                 jmp     short Exit  
+\_\_\_:0057CC06 ; 哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪?  
+\_\_\_:0057CC06  
+\_\_\_:0057CC06 Local\_3:                                ; CODE XREF: \_\_\_:0057CBA9j  
+\_\_\_:0057CC06                 cmp     dword ptr \[ebp+0Ch\], 0Fh  
+\_\_\_:0057CC0A                 jnz     short RetSysMessage  
+\_\_\_:0057CC0C                 push    edx  
+\_\_\_:0057CC0D                 lea     eax, dword\_57C643\[edx\]  
+\_\_\_:0057CC13                 push    eax  
+\_\_\_:0057CC14                 push    dword ptr \[ebp+8\]  
+\_\_\_:0057CC17                 call    dword\_57B589\[edx\]  
+\_\_\_:0057CC1D                 pop     edx  
+\_\_\_:0057CC1E                 push    edx  
+\_\_\_:0057CC1F                 push    0CC0020h  
+\_\_\_:0057CC24                 push    0  
+\_\_\_:0057CC26                 push    0  
+\_\_\_:0057CC28                 push    dword\_57B60B\[edx\]  
+\_\_\_:0057CC2E                 push    dword\_57B5FB\[edx\]  
+\_\_\_:0057CC34                 push    dword\_57B5F7\[edx\]  
+\_\_\_:0057CC3A                 push    0  
+\_\_\_:0057CC3C                 push    0  
+\_\_\_:0057CC3E                 push    dword\_57B5BD\[edx\]  
+\_\_\_:0057CC44                 call    dword\_57B58D\[edx\]  
+\_\_\_:0057CC4A                 pop     edx  
+\_\_\_:0057CC4B                 push    edx  
+\_\_\_:0057CC4C                 lea     eax, dword\_57C643\[edx\]  
+\_\_\_:0057CC52                 push    eax  
+\_\_\_:0057CC53                 push    dword ptr \[ebp+8\]  
+\_\_\_:0057CC56                 call    dword\_57B591\[edx\]  
+\_\_\_:0057CC5C                 pop     edx  
+\_\_\_:0057CC5D                 jmp     short Exit  
+\_\_\_:0057CC5F ; 哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪?  
+\_\_\_:0057CC5F  
+\_\_\_:0057CC5F RetSysMessage:                          ; CODE XREF: \_\_\_:0057CC0Aj  
+\_\_\_:0057CC5F                 push    edx  
+\_\_\_:0057CC60                 push    dword ptr \[ebp+14h\]  
+\_\_\_:0057CC63                 push    dword ptr \[ebp+10h\]  
+\_\_\_:0057CC66                 push    dword ptr \[ebp+0Ch\]  
+\_\_\_:0057CC69                 push    dword ptr \[ebp+8\]  
+\_\_\_:0057CC6C                 call    dword\_57B595\[edx\]  
+\_\_\_:0057CC72                 pop     edx  
+\_\_\_:0057CC73                 pop     edx  
+\_\_\_:0057CC74                 leave  
+\_\_\_:0057CC75                 retn    10h  
+\_\_\_:0057CC78 ; 哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪?  
+\_\_\_:0057CC78  
+\_\_\_:0057CC78 Exit:                                   ; CODE XREF: \_\_\_:0057CB88j  
+\_\_\_:0057CC78                                         ; \_\_\_:0057CBA0j ...  
+\_\_\_:0057CC78                 pop     edx  
+\_\_\_:0057CC79                 xor     eax, eax  
+\_\_\_:0057CC7B                 leave  
+\_\_\_:0057CC7C                 retn    10h  
+  
+  
+//等待退出 Logo  
+\_\_\_:0057B3BD loc\_57B3BD:                             ; DATA XREF: sub\_57B473+Do  
+\_\_\_:0057B3BD                                         ; sub\_57B473+56o ...  
+\_\_\_:0057B3BD                 mov     eax, 0  
+\_\_\_:0057B3C2                 push    eax  
+\_\_\_:0057B3C3                 cmp     eax, 2  
+\_\_\_:0057B3C6                 jnz     short loc\_57B3DB  
+\_\_\_:0057B3C8                 jmp     short loc\_57B3D2  
+\_\_\_:0057B3CA ; 哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪?  
+\_\_\_:0057B3CA  
+\_\_\_:0057B3CA Themida\_Loop\_Wati\_Logo\_Exit:            ; CODE XREF: \_\_\_:0057B3D9j  
+\_\_\_:0057B3CA                 push    50  
+\_\_\_:0057B3CC                 call    ss:Themida\_Call\_Sleep\[ebp\]  
+\_\_\_:0057B3D2  
+\_\_\_:0057B3D2 loc\_57B3D2:                             ; CODE XREF: \_\_\_:0057B3C8j  
+\_\_\_:0057B3D2                 cmp     ss:Themida\_Exit\_Logo\_Flag\[ebp\], 0  
+\_\_\_:0057B3D9                 jz      short Themida\_Loop\_Wati\_Logo\_Exit  
+  
+  
+显示 Logo 过程是这样： 等待->创建 Logo->等待用户鼠标点击->结束 Logo->退出等待->继续...  
+  
+crack  
+  
+code->call Themida\_Show\_Logo  
+  
+crack->  
+    nop  
+    nop  
+    nop  
+  
+///////////////////////////////  
+  
+code->  
+  
+Themida\_Loop\_Wati\_Logo\_Exit:  
+    push    50  
+    call    ss:Themida\_Call\_Sleep\[ebp\]  
+loc\_57B3D2:  
+    cmp     ss:Themida\_Exit\_Logo\_Flag\[ebp\], 0  
+    jz      short Themida\_Loop\_Wati\_Logo\_Exit  
+  
+  
+crack->   
+    nop  
+        ...  
+  
+  
+全文完. 
+
+ 4dd466d0e1e0cc123afbe504da2462ca

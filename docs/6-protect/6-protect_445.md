@@ -1,0 +1,90 @@
+
+
+# 检测虚拟机代码(MASM)
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-633.htm`](https://www.pediy.com/kssd/pediy09/pediy09-633.htm)
+
+> 检测虚拟机的代码  
+> 
+> 引用:
+> 
+> | 
+> 
+> * * *
+> 
+> .386  
+> .model flat, stdcall  
+> option casemap:none  
+>   
+> ; VMware hessam salehi (kernex)  
+> ; HKEY\_LOCAL\_MACHINE\\software\\VMWare, Inc.\\VMware tools  
+>    ; include .inc  
+>    include  \\MASM32\\include\\windows.inc  
+>    include  \\MASM32\\include\\user32.inc  
+>    include  \\MASM32\\include\\kernel32.inc  
+>    include  \\MASM32\\include\\advapi32.inc  
+>    ; include .lib  
+>    includelib  \\MASM32\\lib\\user32.lib  
+>    includelib  \\MASM32\\lib\\kernel32.lib  
+>    includelib  \\MASM32\\lib\\advapi32.lib  
+>   
+> .data  
+> MsgCaption      db “VMware Detector 1.0″,0  
+> Msgare          db “you are in a vmware !!”,0  
+> Msgnot  db “you are not in a vmware !!”,0  
+> szTestKey       db “software\\VMWare, Inc.\\VMware tools”,0  
+> hKey  db “InstallPath”,0  
+> .code  
+> start:  
+>  INVOKE     RegOpenKeyEx, HKEY\_LOCAL\_MACHINE, addr szTestKey, 0,\\  
+>                  KEY\_WRITE or KEY\_READ, addr hKey  
+>       .if eax == ERROR\_SUCCESS  
+>   invoke MessageBox, NULL,addr Msgare, addr MsgCaption, MB\_OK  
+>       .else  
+>   invoke MessageBox, NULL,addr Msgnot, addr MsgCaption, MB\_OK  
+>       .endif  
+>  invoke ExitProcess,NULL  
+> end start  
+> 
+> * * *
+> 
+>  |
+> | --- |
+> 
+> 引用:
+> 
+> | 
+> 
+> * * *
+> 
+> start:  
+>   PUSH EBP  
+>   MOV EBP,ESP  
+>        try\_again:  
+>        …..  
+>    rdtsc             
+>  mov ebx,eax  
+>  rdtsc  
+>  sub eax,ebx  
+>   push eax  
+>  cmp eax,1       ; infrequent some CPUs return the value 1,  
+>  jz try\_again   ; which seems to be a bug! in this case we try again.  
+>  Invoke printf, ADDR print\_result,eax   
+>   pop eax  
+>  cmp eax,0200h  
+>  jb no\_vm  
+>  Invoke printf, ADDR print\_vm ; you ARE in a VM  
+>  jmp finish  
+> no\_vm:  
+>  Invoke printf, ADDR print\_novm ; You are NOT in a VM  
+> finish:  
+>   MOV ESP,EBP  
+>   POP EBP  
+>   RETN  
+> 
+> * * *
+> 
+>  |
+> | --- |
+
+ 4dd466d0e1e0cc123afbe504da2462ca

@@ -1,0 +1,444 @@
+
+
+# philips.exe
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6351.htm`](https://www.pediy.com/kssd/pediy06/pediy6351.htm)
+
+脱 2 层未知变形壳 —— philips.exe   
+    
+    
+    
+相关页面：  http://tongtian.net/pediybbs/viewtopic.php?p=9289#    
+软件大小：  270 KB   
+  
+  
+【软件简介】：Philips Az@lis/Ozeo/Xenium/    Fisio Service Tool - V2.3   
+  
+【作者声明】：初学 Crack，只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！   
+  
+【调试环境】：Win98、Ollydbg1.09、PEiD、C32ASM、ImportREC   
+  
+—————————————————————————————————    
+【脱壳过程】：   
+             
+            
+            
+因为原程序只能在 Win98 下运行，所以只好在 98 下脱壳了。不清楚所加的壳名字。:-(   
+  
+用 Ollydbg 手动脱壳,老规矩：载入后弹出“是压缩代码——要继续进行分析吗？”，点“否”。   
+  
+  
+00925000     60                   pushad   
+                                  ====>进入 OD 后断在这！   
+00925001     F4                   hlt   
+00925002     E9 3D040000          jmp PHILIPS.00925444   
+  
+00925444     BB 136BB6DF          mov ebx,DFB66B13   
+00925449     66:8BEF              mov bp,di   
+0092544C     66:8BF0              mov si,ax   
+0092544F     E8 14000000          call PHILIPS.00925468   
+00925454     A7                   cmps dword ptr ds:\[esi\],dword ptr es:\[edi\]   
+00925455     15 FF5841B0          adc eax,B04158FF   
+0092545A     808D 73BADA4A A9     or byte ptr ss:\[ebp+4ADABA73\],0A9   
+00925461     FC                   cld   
+00925462     5B                   pop ebx   
+00925463     B8 0F3E0CF6          mov eax,F60C3E0F   
+00925468     80CA A1              or dl,0A1   
+0092546B     E9 14000000          jmp PHILIPS.00925484   
+  
+00925484     E9 1C000000          jmp PHILIPS.009254A5   
+  
+009254A5     5F                   pop edi   
+009254A6     E9 1C000000          jmp PHILIPS.009254C7   
+  
+009254C7     0FBFCE               movsx ecx,si   
+009254CA     0FBFD1               movsx edx,cx   
+009254CD     66:8BE8              mov bp,ax   
+009254D0     81C7 2AB51AAC        add edi,AC1AB52A   
+009254D6     E9 14000000          jmp PHILIPS.009254EF   
+  
+009254EF     66:8BF0              mov si,ax   
+009254F2     B5 A9                mov ch,0A9   
+009254F4     81E5 E9CD3E23        and ebp,233ECDE9   
+009254FA     B9 C326B174          mov ecx,74B126C3   
+009254FF     80B7 C14AE553 31     xor byte ptr ds:\[edi+53E54AC1\],31   
+00925506     81E5 A340ECBC        and ebp,BCEC40A3   
+0092550C     0FBFCD               movsx ecx,bp   
+0092550F     0FBFEE               movsx ebp,si   
+00925512     43                   inc ebx   
+00925513     BA 3F579FDC          mov edx,DC9F573F   
+00925518     E9 1C000000          jmp PHILIPS.00925539   
+  
+00925539     81EF 01000000        sub edi,1   
+0092553F     E9 1C000000          jmp PHILIPS.00925560   
+  
+00925560     81D9 B13BC93A        sbb ecx,3AC93BB1   
+00925566     8BF3                 mov esi,ebx   
+00925568     66:8BEA              mov bp,dx   
+0092556B     E9 1C000000          jmp PHILIPS.0092558C   
+  
+0092558C     66:8BEB              mov bp,bx   
+0092558F     81FE 4C6FB6DF        cmp esi,DFB66F4C   
+00925595     0F85 5FFFFFFF        jnz PHILIPS.009254FA   
+                                  ====>F4 下去   
+0092559B     80E9 33              sub cl,33   
+0092559E     E9 98FEFFFF          jmp PHILIPS.0092543B   
+  
+0092543B     E9 C7FBFFFF          jmp PHILIPS.00925007   
+  
+00925007     E8 24040000          call PHILIPS.00925430   
+0092500C     EB 00                jmp short PHILIPS.0092500E   
+  
+0092500E     BB 30394400          mov ebx,PHILIPS.00443930   
+00925013     03DD                 add ebx,ebp   
+00925015     2B9D D03F4400        sub ebx,dword ptr ss:\[ebp+443FD0\]   
+0092501B     83BD FC494400 00     cmp dword ptr ss:\[ebp+4449FC\],0   
+00925022     899D FC494400        mov dword ptr ss:\[ebp+4449FC\],ebx   
+00925028     0F85 66030000        jnz PHILIPS.00925394   
+0092502E     C785 33394400 000000>mov dword ptr ss:\[ebp+443933\],0   
+00925038     8D85 044A4400        lea eax,dword ptr ss:\[ebp+444A04\]   
+0092503E     50                   push eax   
+0092503F     FF95 004B4400        call dword ptr ss:\[ebp+444B00\]   
+00925045     8985 004A4400        mov dword ptr ss:\[ebp+444A00\],eax   
+0092504B     8BF8                 mov edi,eax   
+0092504D     8D9D 114A4400        lea ebx,dword ptr ss:\[ebp+444A11\]   
+00925053     53                   push ebx   
+00925054     50                   push eax   
+00925055     FF95 FC4A4400        call dword ptr ss:\[ebp+444AFC\]   
+0092505B     8985 FC3F4400        mov dword ptr ss:\[ebp+443FFC\],eax   
+00925061     8D9D 1E4A4400        lea ebx,dword ptr ss:\[ebp+444A1E\]   
+00925067     53                   push ebx   
+00925068     57                   push edi   
+00925069     FF95 FC4A4400        call dword ptr ss:\[ebp+444AFC\]   
+0092506F     8985 00404400        mov dword ptr ss:\[ebp+444000\],eax   
+00925075     8D85 B5394400        lea eax,dword ptr ss:\[ebp+4439B5\]   
+0092507B     FFE0                 jmp eax                         ; PHILIPS.00925085   
+  
+00925085     8B9D D83F4400        mov ebx,dword ptr ss:\[ebp+443FD8\]   
+0092508B     0BDB                 or ebx,ebx   
+0092508D     74 0A                je short PHILIPS.00925099   
+  
+00925099     8DB5 19404400        lea esi,dword ptr ss:\[ebp+444019\]   
+0092509F     833E 00              cmp dword ptr ds:\[esi\],0   
+009250A2     0F84 1F010000        je PHILIPS.009251C7   
+009250A8     8DB5 19404400        lea esi,dword ptr ss:\[ebp+444019\]   
+009250AE     6A 04                push 4   
+009250B0     68 00100000          push 1000   
+009250B5     68 00180000          push 1800   
+009250BA     6A 00                push 0   
+009250BC     FF95 FC3F4400        call dword ptr ss:\[ebp+443FFC\]   
+009250C2     8985 F83F4400        mov dword ptr ss:\[ebp+443FF8\],eax   
+009250C8     8B46 04              mov eax,dword ptr ds:\[esi+4\]   
+009250CB     05 0E010000          add eax,10E   
+009250D0     6A 04                push 4   
+009250D2     68 00100000          push 1000   
+009250D7     50                   push eax   
+009250D8     6A 00                push 0   
+009250DA     FF95 FC3F4400        call dword ptr ss:\[ebp+443FFC\]   
+009250E0     8985 F43F4400        mov dword ptr ss:\[ebp+443FF4\],eax   
+009250E6     56                   push esi   
+009250E7     8B1E                 mov ebx,dword ptr ds:\[esi\]   
+009250E9     039D FC494400        add ebx,dword ptr ss:\[ebp+4449FC\]   
+009250EF     FFB5 F83F4400        push dword ptr ss:\[ebp+443FF8\]   
+009250F5     FF76 04              push dword ptr ds:\[esi+4\]   
+009250F8     50                   push eax   
+009250F9     53                   push ebx   
+009250FA     E8 DA060000          call PHILIPS.009257D9   
+009250FF     80BD 10404400 00     cmp byte ptr ss:\[ebp+444010\],0   
+00925106     75 5E                jnz short PHILIPS.00925166   
+00925108     FE85 10404400        inc byte ptr ss:\[ebp+444010\]   
+0092510E     8B3E                 mov edi,dword ptr ds:\[esi\]   
+00925110     03BD FC494400        add edi,dword ptr ss:\[ebp+4449FC\]   
+00925116     FF37                 push dword ptr ds:\[edi\]   
+00925118     C607 C3              mov byte ptr ds:\[edi\],0C3   
+0092511B     FFD7                 call edi   
+0092511D     8F07                 pop dword ptr ds:\[edi\]   
+0092511F     50                   push eax   
+00925120     51                   push ecx   
+00925121     56                   push esi   
+00925122     53                   push ebx   
+00925123     8BC8                 mov ecx,eax   
+00925125     83E9 06              sub ecx,6   
+00925128     8BB5 F43F4400        mov esi,dword ptr ss:\[ebp+443FF4\]   
+0092512E     33DB                 xor ebx,ebx   
+00925130     0BC9                 or ecx,ecx   
+00925132     74 2E                je short PHILIPS.00925162   
+00925136     AC                   lods byte ptr ds:\[esi\]   
+00925137     3C E8                cmp al,0E8   
+00925139     74 0A                je short PHILIPS.00925145   
+0092513B     EB 00                jmp short PHILIPS.0092513D   
+0092513D     3C E9                cmp al,0E9   
+0092513F     74 04                je short PHILIPS.00925145   
+00925141     43                   inc ebx   
+00925142     49                   dec ecx   
+00925143     EB EB                jmp short PHILIPS.00925130   
+00925145     8B06                 mov eax,dword ptr ds:\[esi\]   
+00925147     EB 0A                jmp short PHILIPS.00925153   
+00925149     803E 0D              cmp byte ptr ds:\[esi\],0D   
+0092514C     75 F3                jnz short PHILIPS.00925141   
+0092514E     24 00                and al,0   
+00925150     C1C0 18              rol eax,18   
+00925153     2BC3                 sub eax,ebx   
+00925155     8906                 mov dword ptr ds:\[esi\],eax   
+00925157     83C3 05              add ebx,5   
+0092515A     83C6 04              add esi,4   
+0092515D     83E9 05              sub ecx,5   
+00925160     EB CE                jmp short PHILIPS.00925130   
+00925162     5B                   pop ebx                      
+                                  ====>此处下断，F9 拦下。跳出上面的循环！   
+  
+00925163     5E                   pop esi   
+00925164     59                   pop ecx   
+00925165     58                   pop eax   
+00925166     8BC8                 mov ecx,eax   
+00925168     8B3E                 mov edi,dword ptr ds:\[esi\]   
+0092516A     03BD FC494400        add edi,dword ptr ss:\[ebp+4449FC\]   
+00925170     8BB5 F43F4400        mov esi,dword ptr ss:\[ebp+443FF4\]   
+00925176     C1F9 02              sar ecx,2   
+00925179     F3:A5                rep movs dword ptr es:\[edi\],dword ptr ds:\[esi\]   
+0092517B     8BC8                 mov ecx,eax   
+0092517D     83E1 03              and ecx,3   
+00925180     F3:A4                rep movs byte ptr es:\[edi\],byte ptr ds:\[esi\]   
+00925182     5E                   pop esi   
+00925183     68 00800000          push 8000   
+00925188     6A 00                push 0   
+0092518A     FFB5 F43F4400        push dword ptr ss:\[ebp+443FF4\]   
+00925190     FF95 00404400        call dword ptr ss:\[ebp+444000\]   
+00925196     83C6 08              add esi,8   
+00925199     833E 00              cmp dword ptr ds:\[esi\],0   
+0092519C     0F85 26FFFFFF        jnz PHILIPS.009250C8   
+009251A2     68 00800000          push 8000   
+009251A7     6A 00                push 0   
+009251A9     FFB5 F83F4400        push dword ptr ss:\[ebp+443FF8\]   
+009251AF     FF95 00404400        call dword ptr ss:\[ebp+444000\]   
+009251B5     8B9D D83F4400        mov ebx,dword ptr ss:\[ebp+443FD8\]   
+009251BB     0BDB                 or ebx,ebx   
+009251BD     74 08                je short PHILIPS.009251C7   
+009251BF     8B03                 mov eax,dword ptr ds:\[ebx\]   
+009251C1     8785 DC3F4400        xchg dword ptr ss:\[ebp+443FDC\],eax   
+009251C7     8B95 FC494400        mov edx,dword ptr ss:\[ebp+4449FC\]   
+009251CD     8B85 D43F4400        mov eax,dword ptr ss:\[ebp+443FD4\]   
+009251D3     2BD0                 sub edx,eax   
+009251D5     74 79                je short PHILIPS.00925250   
+                                  ====>此处下断，F9 拦下   
+  
+00925250     8B95 FC494400        mov edx,dword ptr ss:\[ebp+4449FC\]   
+00925256     8BB5 E83F4400        mov esi,dword ptr ss:\[ebp+443FE8\]   
+0092525C     0BF6                 or esi,esi   
+0092525E     74 11                je short PHILIPS.00925271   
+  
+00925271     8BB5 B1394400        mov esi,dword ptr ss:\[ebp+4439B1\]   
+00925277     8B95 FC494400        mov edx,dword ptr ss:\[ebp+4449FC\]   
+0092527D     03F2                 add esi,edx                          
+0092527F     8B46 0C              mov eax,dword ptr ds:\[esi+C\]   
+00925282     85C0                 test eax,eax   
+00925284     0F84 0A010000        je PHILIPS.00925394   
+0092528A     03C2                 add eax,edx   
+0092528C     8BD8                 mov ebx,eax   
+0092528E     50                   push eax   
+0092528F     FF95 004B4400        call dword ptr ss:\[ebp+444B00\]   
+00925295     85C0                 test eax,eax   
+00925297     75 07                jnz short PHILIPS.009252A0   
+  
+009252A0     8985 EC3F4400        mov dword ptr ss:\[ebp+443FEC\],eax      
+009252A6     C785 F03F4400 000000>mov dword ptr ss:\[ebp+443FF0\],0   
+009252B0     8B95 FC494400        mov edx,dword ptr ss:\[ebp+4449FC\]   
+009252B6     8B06                 mov eax,dword ptr ds:\[esi\]   
+009252B8     85C0                 test eax,eax   
+009252BA     75 03                jnz short PHILIPS.009252BF   
+009252BC     8B46 10              mov eax,dword ptr ds:\[esi+10\]   
+009252BF     03C2                 add eax,edx                           
+009252C1     0385 F03F4400        add eax,dword ptr ss:\[ebp+443FF0\]   
+009252C7     8B18                 mov ebx,dword ptr ds:\[eax\]   
+009252C9     8B7E 10              mov edi,dword ptr ds:\[esi+10\]   
+009252CC     03FA                 add edi,edx   
+009252CE     03BD F03F4400        add edi,dword ptr ss:\[ebp+443FF0\]   
+009252D4     85DB                 test ebx,ebx   
+009252D6     0F84 A2000000        je PHILIPS.0092537E   
+009252DC     F7C3 00000080        test ebx,80000000   
+009252E2     75 04                jnz short PHILIPS.009252E8   
+009252E4     03DA                 add ebx,edx   
+009252E6     43                   inc ebx   
+009252E7     43                   inc ebx   
+009252E8     53                   push ebx   
+009252E9     81E3 FFFFFF7F        and ebx,7FFFFFFF   
+009252EF     53                   push ebx   
+009252F0     FFB5 EC3F4400        push dword ptr ss:\[ebp+443FEC\]   
+009252F6     FF95 FC4A4400        call dword ptr ss:\[ebp+444AFC\]   
+009252FC     85C0                 test eax,eax   
+009252FE     5B                   pop ebx   
+009252FF     75 6F                jnz short PHILIPS.00925370   
+  
+00925370     8907                 mov dword ptr ds:\[edi\],eax   
+00925372     8385 F03F4400 04     add dword ptr ss:\[ebp+443FF0\],4   
+00925379     E9 32FFFFFF          jmp PHILIPS.009252B0   
+0092537E     8906                 mov dword ptr ds:\[esi\],eax   
+00925380     8946 0C              mov dword ptr ds:\[esi+C\],eax   
+00925383     8946 10              mov dword ptr ds:\[esi+10\],eax   
+00925386     83C6 14              add esi,14   
+00925389     8B95 FC494400        mov edx,dword ptr ss:\[ebp+4449FC\]   
+0092538F     E9 EBFEFFFF          jmp PHILIPS.0092527F   
+00925394     8B85 AD394400        mov eax,dword ptr ss:\[ebp+4439AD\]   
+                                  ====>此处下断，F9 拦下。跳出上面的循环！   
+  
+0092539A     50                   push eax   
+                                  ====>EAX\=00524000   
+0092539B     0385 FC494400        add eax,dword ptr ss:\[ebp+4449FC\]   
+                                  ====>EAX\=00524000 + 00400000=00924000   第 2 层壳的入口   
+009253A1     59                   pop ecx   
+009253A2     0BC9                 or ecx,ecx   
+009253A4     8985 E63C4400        mov dword ptr ss:\[ebp+443CE6\],eax   
+009253AA     61                   popad   
+009253AB     75 08                jnz short PHILIPS.009253B5   
+  
+009253B5     68 00409200          push PHILIPS.00924000   
+009253BA     C3                   retn   
+                                  ====>返回第 2 层壳的入口   
+  
+  
+————————————————————————   
+偶们进入第 2 层壳  :-)   
+  
+  
+00924000     55                   push ebp   
+00924001     53                   push ebx   
+00924002     33DB                 xor ebx,ebx   
+00924004     8BE8                 mov ebp,eax   
+00924006     E9 5D000000          jmp PHILIPS.00924068   
+  
+00924068     E8 00000000          call PHILIPS.0092406D   
+0092406D     58                   pop eax   
+0092406E     2D 6D000000          sub eax,6D   
+00924073     8BE8                 mov ebp,eax   
+00924075     50                   push eax   
+00924076     60                   pushad   
+00924077     FD                   std   
+00924078     2E:2B85 73020000     sub eax,dword ptr cs:\[ebp+273\]   
+0092407F     8BF0                 mov esi,eax   
+00924081     2E:03B5 7F020000     add esi,dword ptr cs:\[ebp+27F\]   
+00924088     8BF8                 mov edi,eax   
+0092408A     2E:03BD 77020000     add edi,dword ptr cs:\[ebp+277\]   
+00924091     2E:8B8D 7B020000     mov ecx,dword ptr cs:\[ebp+27B\]   
+00924098     F3:A5                rep movs dword ptr es:\[edi\],dword ptr ds:\[esi\]   
+0092409A     8BF7                 mov esi,edi   
+0092409C     83C6 04              add esi,4   
+0092409F     8BF8                 mov edi,eax   
+009240A1     FC                   cld   
+009240A2     AD                   lods dword ptr ds:\[esi\]   
+009240A3     8BE8                 mov ebp,eax   
+009240A5     B3 20                mov bl,20   
+009240A7     EB 37                jmp short PHILIPS.009240E0   
+  
+009240E0     D1E5                 shl ebp,1   
+009240E2     66:4B                dec bx   
+009240E4     77 F9                ja short PHILIPS.009240DF   
+009240E6     74 F0                je short PHILIPS.009240D8   
+009240E8     B1 02                mov cl,2   
+009240EA     E8 BAFFFFFF          call PHILIPS.009240A9   
+009240EF     3C 03                cmp al,3   
+009240F1     72 44                jb short PHILIPS.00924137   
+                                  ====>F4 到这！   
+  
+00924137     3C 01                cmp al,1   
+00924139     9C                   pushfd   
+0092413A     B1 03                mov cl,3   
+0092413C     E8 68FFFFFF          call PHILIPS.009240A9   
+00924141     3C 03                cmp al,3   
+00924143     77 0F                ja short PHILIPS.00924154   
+00924145     74 04                je short PHILIPS.0092414B   
+00924147     04 05                add al,5   
+00924149     EB 3B                jmp short PHILIPS.00924186   
+                                  ====>F4 到这！   
+  
+0092417A     E9 9E000000          jmp PHILIPS.0092421D   
+                                  ====>此处下断，F9 拦下。跳出下面的循环！   
+  
+00924186     8AC8                 mov cl,al   
+00924188     66:BA 0100           mov dx,1   
+0092418C     66:D3E2              shl dx,cl   
+0092418F     66:83EA 1F           sub dx,1F   
+00924193     E8 11FFFFFF          call PHILIPS.009240A9   
+00924198     66:03C2              add ax,dx   
+0092419B     8BD7                 mov edx,edi   
+0092419D     0FB7C0               movzx eax,ax   
+009241A0     2BD0                 sub edx,eax   
+009241A2     9D                   popfd   
+009241A3     72 0A                jb short PHILIPS.009241AF   
+009241A5     66:B9 0300           mov cx,3   
+009241A9     74 67                je short PHILIPS.00924212   
+  
+00924212     87F2                 xchg edx,esi   
+00924214     F3:A4                rep movs byte ptr es:\[edi\],byte ptr ds:\[esi\]   
+00924216     8BF2                 mov esi,edx   
+00924218     E9 C3FEFFFF          jmp PHILIPS.009240E0   
+                                  ====>向上找发现 0092417A 处可以跳出循环！   
+  
+0092421D     61                   popad   
+0092421E     5D                   pop ebp   
+0092421F     55                   push ebp   
+00924220     60                   pushad   
+00924221     8BC5                 mov eax,ebp   
+00924223     3E:8B8D 6B020000     mov ecx,dword ptr ds:\[ebp+26B\]   
+0092422A     BB 87020000          mov ebx,287   
+0092422F     03D8                 add ebx,eax   
+00924231     3E:2B85 6F020000     sub eax,dword ptr ds:\[ebp+26F\]   
+00924238     03C8                 add ecx,eax   
+0092423A     8B33                 mov esi,dword ptr ds:\[ebx\]   
+0092423C     83C3 04              add ebx,4   
+0092423F     83FE 00              cmp esi,0   
+00924242     74 12                je short PHILIPS.00924256   
+  
+00924256     61                   popad   
+00924257     58                   pop eax   
+00924258     2E:0385 67020000     add eax,dword ptr cs:\[ebp+267\]   
+0092425F     05 6B020000          add eax,26B   
+00924264     5D                   pop ebp   
+00924265     5B                   pop ebx   
+00924266     E9 C544B5FF          jmp PHILIPS.00478730   
+                                  ====>飞向光明之巅！   
+  
+  
+———————————————————————   
+  
+  
+00478730     55                   push ebp   
+                                  ====>在这儿用 C32ASM 完全 DUMP 这个进程   
+00478731     8BEC                 mov ebp,esp   
+00478733     83C4 F0              add esp,-10   
+00478736     B8 40854700          mov eax,PHILIPS.00478540   
+0047873B     E8 A4DFF8FF          call PHILIPS.004066E4   
+00478740     A1 74C74700          mov eax,dword ptr ds:\[47C774\]   
+00478745     8B00                 mov eax,dword ptr ds:\[eax\]   
+00478747     E8 C034FEFF          call PHILIPS.0045BC0C   
+  
+  
+晕倒，偶第一次在笔记中提到 C32ASM 居然是用其来脱壳！因为变形壳动了手脚，LordPE 无法 DUMP 进程，所以就试试 C32ASM 的脱壳功能，真牛，DUMP 成功！工具 ->进程编辑 ->Dump Sever      
+  
+强烈建议 pll621 大侠把这个功能模块“独立”出来！！ 呵呵  :-)   
+  
+  
+———————————————————————   
+  
+重新运行，运行 ImportREC，选择这个进程。把 OEP 改为 00078730，点 IT AutoSearch，点“Get Import”，FixDump，正常运行！  277K ->5.16M   巨大  用 FileScan 优化后是 570K   程序是 Delphi 编写。   
+  
+     
+—————————————————————————————————   
+       
+                                   
+         ,     \_/    
+        /| \_.-~/            \_     ,        青春都一饷   
+       ( /~   /              ~-.\_ |   
+       \`\\  \_/                   ~ )          忍把浮名    
+   \_-~~~-.)  )\_\_/;;,.          \_  //'    
+  /'\_,   --~    ~~~-  ,;;\_\_\_(  (.-~~~-.        换了破解轻狂   
+ \`~ \_( ,\_..-- (     ,;'' /    ~--   /.\_\`    
+  /~~//'   /' \`~         ) /--..\_, )\_  \`~    
+  "  \`~"  "      \`"      /~'\`    \`\\~~      
+                         "     "   "~'  ""   
+  
+       
+  
+           Cracked By 巢水工作坊——fly \[OCN\]\[FCG\]\[NUKE\]   
+  
+                      2003-11-21  21:04  
+ 4dd466d0e1e0cc123afbe504da2462ca
