@@ -1,0 +1,18 @@
+
+# Foxit Reader Stack Overflow Exploit Egghunter Edition
+
+> 原文：[`www.pediy.com/kssd/pediy12/136154.html`](https://www.pediy.com/kssd/pediy12/136154.html)
+
+标题: 【翻译】Foxit Reader Stack Overflow Exploit Egghunter Edition
+作者: Nerin
+时间: 2011 年 6 月 27 日
+链接: http://bbs.pediy.com/showthread.php?t=136154
+
+exploit-db 上看到的一篇不错的文章，翻译过来大家一起学习下。第一次弄翻译的东西，不到位的地方，大家多多包涵。![](img/906f120cfe711ccbc8463fd6eb86eee9.jpg "尴尬")
+
+原文的地址在这里，大家可以比对着看：
+[`www.exploit-db.com/foxit-read...oit-egghunter/`](http://www.exploit-db.com/foxit-reader-stack-overflow-exploit-egghunter/)
+
+上传的附件
+
+| ![](img/aabdec8de01ec04d2bc68959c61abb93.jpg) || Foxit Reader Stack Overflow Exploit Egghunter Edition.pdf |

