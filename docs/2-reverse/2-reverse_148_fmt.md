@@ -1,0 +1,129 @@
+
+# 藏好自己的 OllyDbg
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-647.htm`](https://www.pediy.com/kssd/pediy07/pediy7-647.htm)
+
+`OllyDbg` 的检测方法多如繁星，即使悉数了解并掌握破解技巧也需要耗费一定的时间。
+
+因此可以制作一个 `DLL`（比如写一个插件）借助 `API Hook` 来完成自动隐藏工作。
+
+这篇教程中我不打算介绍如何进行 `Hook API`，`Google` 会比我讲的详细 :)
+
+我们的 `DLL` 面临着这些问题：
+
+## 1) 躲避字符串解析漏洞
+
+某天你拿到一个程序载入运行，`OllyDbg` 连续三次非法后伤逝……
+
+基本可以估计这个程序钻了这个漏洞。`OllyDbg` 使用了格式化字符输出调试信息，
+
+如果调试信息里带有格式控制字符譬如“`%s%s%s`”，在字符输出之前就会死于非命。
+
+利用代码：
+
+```
+@pushsz "%s%s%s%s%s"
+call OutputDebugStringA
+```
+
+要避免也很简单，只要钩住这个函数过滤掉对它的调用即可。想做的锦上添花可重定向输出到一个 `watch` 窗口中。
+
+## 2) GetProcessHeap 后门
+
+自从某人从 `ASProtect` 早期版本得到启发，发现 `M$` 的此内存初值后门，这个漏洞也（将会）有不少人用。
+
+利用代码：
+
+```
+call GetProcessHeap
+mov eax, [eax+0Ch]
+test eax, 40h
+je no_debugger
+```
+
+我很抱歉，关于原因的事情你得问微软去了，谁叫你用 `Windows` 呢 ;-)
+
+解决它要彻底些，不能用 `Hook`，因为不一定非通过这个函数读取 `Heap`，`PEB` 也可以。
+
+看看 `GetProcessHeap`：
+
+```
+7C80AA49 > 64:A1 18000000 mov eax, fs:[18]
+7C80AA4F 8B40 30 mov eax, [eax+30]
+7C80AA52 8B40 18 mov eax, [eax+18]
+7C80AA55 C3 retn
+```
+
+剩下的不用多费唇舌了吧。
+
+## 3) 卑鄙的 native API
+
+看雪精华里 `blowfish` 详细介绍过 `ZwSetInformationThread` 等 `API`，最好统统 `Hook`。
+
+## 4) MeltICE
+
+如果你用监视器，就像 `RegMon` 等，需要照顾一下这里。
+
+如果发现 `CreateFileA/W` 中的文件名开头是 `\\.\` 决不能手软，截留返回 0。
+
+这些通常是要进行 `MeltICE` 探测的。不过有些注册程序要读取硬盘序列号也会打开类似上面的文件名，
+
+所以还是建议你准备一份常用 `MeltICE` 名表，对比拦截，比较稳妥。
+
+## 5) IsDebuggerPresent
+
+这个函数你一定用过。
+
+```
+7C812E03 > 64:A1 18000000 mov eax, fs:[18]
+7C812E09 8B40 30 mov eax, [eax+30]
+7C812E0C 0FB640 02 movzx eax, byte ptr [eax+2]
+7C812E10 C3 retn
+```
+
+修改掉标志就行了。
+
+## 6) 进程检测
+
+查阅一下 `Process32Next` 的帮助，如果发现它正探测你的调试器，把这个结构指向 `Explorer` 的或者直接跳到下一个。
+
+现在可以不用把调试器改成丑陋的 `eXpLoReR.eXe`
+
+## 7) 模块检测
+
+看来 `DBGHELP.DLL` 不太受欢迎，有些程序调用 `Module32Next` 检测到别人加载此模块就会大发雷霆……
+
+## 8) UnhandledExceptionHandler
+
+明明没有 `SEH` 处理程序缺能在没有调试器的时候运行，怎么也过不去怎么办？
+
+看看 `simonzh2000` 《`SetUnhandledExceptionFilter` 的讨论》。
+
+如果你上面处理了 `native API` 事实上这里不会再有问题。
+
+## 9) BlockInput
+
+最近在某个壳里看到这个函数：
+
+```
+push TRUE/FALSE
+call BlockInput
+```
+
+就可以控制你的鼠标键盘是否能动了，按 `Ctrl+Alt+Del` 可以解，
+
+不过谁也不想一按 `F9` 什么都不动了（做个绘图覆盖在调试器上面制造假死）
+
+脑袋缺筋的可能会重启……
+
+类似的还有 `EnableWindow`，不能让它肆意操作你的调试窗口。
+
+## 10) 待你补充
+
+我一时想不出更多阴招了。
+
+`forgot/iPB/Saga`(他们死活不支持改名，又反对 `uS`，就用 `Saga` 吧)
+
+`2005-8-20`
+
+`4dd466d0e1e0cc123afbe504da2462ca`
