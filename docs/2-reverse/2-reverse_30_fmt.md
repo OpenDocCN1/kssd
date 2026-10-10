@@ -1,0 +1,20 @@
+
+# OllyDBG 技巧
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6502.htm`](https://www.pediy.com/kssd/pediy06/pediy6502.htm)
+
+`kongfoo/2004.4.26`
+
+### 1) `ctrl+(小键盘)\*`
+
+改 `EIP` 到选定行。程序把代码搬到动态申请的内存中执行，要把这些代码移回程序空间，这时就可以用 `ctrl+\*` 把 `EIP` 改去移动代码。有时候写代码时会有错，不要紧，不用 `restart`，改 `EIP` 回去重新执行。
+
+### 2) `binary copy/paste`
+
+代码写好了，但下次要用，又重写？用 `binary copy` 把代码放到 `notepad`，下次用时再 `binary paste`，一劳永逸。
+
+### 3) `Log`
+
+就是工具栏第一个按钮。壳运行后点一点这个按钮看看？最后一次异常的地址一目了然。
+
+`4dd466d0e1e0cc123afbe504da2462ca`
