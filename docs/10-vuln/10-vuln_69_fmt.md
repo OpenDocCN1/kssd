@@ -1,0 +1,16 @@
+
+# 《The Shellcoder's handbook》第十七章_Instrumented Investigation:手工的方法
+
+> 原文：[`www.pediy.com/kssd/pediy12/39775.html`](https://www.pediy.com/kssd/pediy12/39775.html)
+
+## 17 Instrumented Investigation: 手工的方法
+
+我们在前面花了大量的篇幅介绍 Fuzzing，你可能会因此认为，在漏洞猎人的世界里不再需要手工调查了。但通过本章的学习，你会认识到这种想法是不正确的，在安全研究领域里，手工调查一直占有一席之地，并且到现在又有了长足的发展。我们将从讨论手工调查开始，接着审视手工调查的思维过程，并介绍发现漏洞背后的故事。沿着这个思路，我们将阐述输入验证，以及绕过输入验证的方法。因为输入验证常常防碍我们的研究过程，对它稍深入的理解，将使我们的攻击更加有力，并增加对防御技术的理解。
+
+终于在除夕之夜完成了这一章，可能还有错误，请指正。
+
+祝大家新春愉快！也祝愿看雪软件安全论坛越来越红火！
+
+上传的附件
+
+| ![](img/67af4f1ef9c98996f43e89e749c7dcf5.jpg) | | 17.instrumented investigation- 手工的方法.rar |
