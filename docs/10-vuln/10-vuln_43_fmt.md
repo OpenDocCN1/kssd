@@ -1,0 +1,224 @@
+
+# 漏洞利用学习笔记之二：格式化字符串
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-143.htm`](https://www.pediy.com/kssd/pediy09/pediy09-143.htm)
+
+> 　　格式化字符串的问题可以称得上是 C 语言的“家丑”之一，因为它是伴随着 C 语言标准库中的格式化输入/输出函数而来的，而与 C 语言同时代的其他主要语言 如 BASIC，Pascal 等，都不会以这种风格来进行输入/输出操作。
+>   
+> 　　本来，一种计算机语言有所欠缺，并不是什么大不了的事情。但是当这种语言被用来编写当今世界上所有主流操作系统，以及为数众多的大型应用软件时，它的这一缺陷就成为不可忽视的问题了。
+>   
+> 　　那么究竟什么是格式化字符串问题呢？大多数 C 语言教材的入门章节都会有一个“Hello, world!”或者类似的示例程序，出现在大家眼前的第一个函数便是 `printf`，问题也就出在它这类函数身上。我们就从它开始谈起。
+>   
+> 　　`printf` 的参数由一个格式化字符串和一个可变数目参数列表组成：
+>
+> ```
+> int printf(const char *szFormat, va_arg argumentlist);
+> ```
+>
+> 格式化字符串 `szFormat` 中的大部分字符都会按照原样输出，只是在碰到以'%'打头的格式指示符时会到后面的参数表 `argumentlist` 中取一个参数，将其按指定格式转换成字符序列并取代格式指示符本身；再碰到一个格式指示符，再取一个参数，再转换一次；如此继续下去，直到不再碰到新的格式指示符为止。
+>   
+> 　　由于 `argumentlist` 声明成数目不定，`printf` 的函数体无从知道每次调用时，调用者给它提供了几个参数，因而它判断参数数目时是以对 `szFormat` 的分析结果为准的，也就是说，`szFormat` 中有多少个格式指示符，它就期待本次调用有多少个参数。
+>   
+> 　　但从调用者的角度来说，既然参数数目可变，对于同一个格式化字符串，提供多少个参数都是合法的。事实上，问题就出在，C 语言中并没有这样一种检查机制，来保证 `szFormat` 中的格式指示符数目与 `argumentlist` 中的参数数目，两者的一致性。
+>   
+> 　　在提供的参数数目多于格式指示符数目的情形，大不了多余的参数被忽略，还不至于造成什么后果。但如果少提供了参数，当 `argumentlist` 中的实参已被用尽时，`printf` 并不会意识到这一点，只要 `szFormat` 中还有剩余的格式指示符，它就继续往下一个存储单元中取东西出来格式化。此时的运行结果，许多 C 语言的参考资料上都说是“未定义”，这“未定义”三字中包含着诸多的不安全因素。
+>   
+> 　　我们来看一个具体的例子。
+
+```
+;=========演示格式化串的问题例子，由 MASM 编写==================
+                .386
+                .model      flat, stdcall
+                option      casemap: none
+                       
+                include     windows.inc
+                include     user32.inc
+                includelib  user32.lib
+                                                
+                .data
+                      
+
+szMess                  db          128 dup (0)
+
+                .const
+                      
+
+szMessCap              db          'message', 0
+szFmtStr               db          '%x', 0
+
+                .code
+                      
+
+_NothingMuch           proc
+                local       loc_dwA: dword
+                      
+
+                mov         loc_dwA, 12387645h
+                invoke      wsprintf, offset szMess, offset szFmtStr  ;%x = ???
+                invoke      MessageBox, NULL, offset szMess, offset szMessCap, MB_OK
+  
+                ret
+
+_NothingMuch           endp
+
+START:
+
+                call        _NothingMuch
+                ret
+                      
+
+                end         START
+;=========演示格式化串的问题例子，由 MASM 编写==================
+```
+
+在这个例子中，代替 `printf`，我们用了 `wsprintf`，它相当于是前者在 Win32 环境中的某种“本地化”。
+
+注意调用 `wsprintf` 一句，我们给它提供的格式化串 `szFmtStr` 中有一个格式指示符`"%x"`，理应给这个`"%x"`提供一个参数，但现在我们故意将它省略。为了说明这样做造成的结果，在 `wsprintf` 的入口处设置断点，就可以看到此时栈的情况，如下图所示：
+
+![](img/563502744bc3052bd4a7a4161d18cb17.jpg)
+
+`wsprintf` 函数在所提供的格式化串中发现了格式指示符`"%x"`，它就期待着参数 `offset szFmtStr` 的下一个存储单元应该是为这个`"%x"`所准备的参数，但现在这个参数我们并没有提供给它，结果就是，它把主调函数 `_NothingMuch` 中的局部变量 `loc_dwA` 当成了`"%x"`的参数，将 `loc_dwA` 的内容格式化后写到了 `szMess` 中！根据之前对 `loc_dwA` 所赋的值，可以预计输出结果应该是字符串`"12387645"`，这个结果可以自行验证一下。
+
+不难想像，如果格式化字符串中再多来几个`"%x"`，我们还可以继续访问到过程 `_NothingMuch` 结束后的返回地址，甚至于整个程序结束后返回到系统核心 dll 的地址！格式化字符串就是这么“牛”，如果它能被人操纵的话，很容易引起信息泄露之类的问题。
+
+如果说上面的`"%x"`格式符被误用造成的只是信息泄露，还不至于对软件运行构成什么威胁的话，下面来看一个更猛的格式符：`"%s"`，这个就很有来头了，当前最流行的应用层调试器 `OllyDBG`，想必大家都在使用它吧，现在大家手头的版本都是经过了无数次改良，修正了诸多漏洞，这些漏洞中就包括一个输出调试字符串`"%s%s%s"`的问题，可见在改良之前，象 `OllyDBG` 这么功能强大的调试器也经不起`"%s"`的折腾。
+
+这究竟是怎么回事呢？当使用`"%s"`格式符时，`printf` 函数会把取来的参数数值解释为字符指针，而去取出这个指针所指向的内存片段，作为字符串输出。这就出现一个问题了，不是任何数值解释成的指针都可以被访问。譬如在 Win32 的平坦内存模式里，象 `0x00000000`（NULL）这类的指针值就没有办法访问，一旦访问，就会引起“访问违例”异常。看，调试器进程中出现异常，它就会被 Windows 崩掉，被调试程序就偷着乐了。
+
+下面就来模拟这种情况，看这个例子：
+
+```
+;===========受控格式串的不安全性例子，由 MASM 编写====================
+                .386
+                .model      flat, stdcall
+                option      casemap: none
+                      
+
+                include     windows.inc
+                include     kernel32.inc
+                include     user32.inc
+                includelib  kernel32.lib
+                includelib  user32.lib
+                      
+
+DLG_MAIN                equ         1000
+EDIT_1                  equ         1002
+ID_BTN1                 equ         1003
+                      
+
+                .data
+                      
+
+hDlgMain               dd          ?
+szUserName             db          96   dup (0)
+szBuff                 db          100  dup (0)
+szMess                 db          200  dup (0)
+
+                .const
+
+szHello                db          'Hello, ', 0
+szMessCap              db          'message', 0
+szTest                 db          'Test', 0
+
+                .code
+                      
+
+_PrintGreetings        proc
+                local       loc_dwTemp1, loc_dwTemp2
+
+                mov         loc_dwTemp1, 1
+                mov         loc_dwTemp2, offset szTest
+        invoke      GetDlgItemText, hDlgMain, EDIT_1, offset szUserName, 80
+        invoke      lstrcpy, offset szBuff, offset szHello
+        invoke      lstrcat, offset szBuff, offset szUserName
+        invoke      wsprintf, offset szMess, offset szBuff
+        invoke      MessageBox, hDlgMain, offset szMess, offset szMessCap, \
+                                                MB_ICONINFORMATION
+  
+        ret
+
+_PrintGreetings        endp
+
+_TheDialogProc         proc        uses ebx esi edi _hWnd, _uMsg, _wParam, _lParam
+                local       loc_hTemp
+
+        mov         eax, _uMsg
+        .if         eax == WM_COMMAND
+                          
+                        mov      eax, _wParam
+                        cmp      eax, ID_BTN1
+                        jne      @F
+                        call     _PrintGreetings
+                        invoke   SendMessage, _hWnd, WM_CLOSE, 0, 0
+                    @@:
+                          
+        .elseif     eax == WM_INITDIALOG
+                  
+                    push     _hWnd
+                    pop      hDlgMain
+                    invoke   GetDlgItem, _hWnd, EDIT_1
+                    mov      loc_hTemp, eax
+                    invoke   SetFocus, loc_hTemp
+                    invoke   SendMessage, loc_hTemp, EM_LIMITTEXT, 80, 0
+  
+        .elseif     eax == WM_CLOSE
+  
+                        invoke   EndDialog, _hWnd, 0
+                                  
+
+        .endif
+
+                xor         eax, eax
+        ret
+
+_TheDialogProc         endp
+
+START:
+                invoke      GetModuleHandle, NULL
+                invoke      DialogBoxParam, eax, DLG_MAIN, NULL, \
+                                                    offset _TheDialogProc, NULL
+                ret
+                      
+
+                end         START
+```
+
+
+
+# 受控格式串的不安全性例子，由 MASM 编写
+
+资源脚本如下：
+
+``` 
+//=================================================================
+#define IDD_DLG1 1000
+#define IDC_STC1 1001
+#define IDC_EDT1 1002
+#define IDC_BTN1 1003
+IDD_DLG1 DIALOGEX 6,6,331,33
+CAPTION "IDD_DLG"
+FONT 8,"MS Sans Serif",0,0
+STYLE 0x10CF0000
+BEGIN
+  CONTROL "Enter Your Name:",IDC_STC1,"Static",0x50000000,8,9,78,12
+  CONTROL "",IDC_EDT1,"Edit",0x50010000,100,7,144,15,0x00000200
+  CONTROL "OK",IDC_BTN1,"Button",0x50010001,254,7,66,15
+END
+//=================================================================
+```
+
+我们现在就扮演“被调试程序”的角色，向这个程序输入字符串。首先随便输入一些常见的字符串譬如"John"，"Bob"之类的，程序的输出也相应地是"Hello, John"，"Hello, Bob"等等。但是输入`"%s%s"`，看看结果是什么：
+
+![](img/dd23270d7c74dbeb439b42624fd4286f.jpg)
+
+程序崩掉了吧！作为验证，我们输入格式串"`a1=%x  a2=%x`"看看结果：
+
+![](img/84f77f65149df15703c9ca0a72ebb4ee.jpg)
+
+这是怎么一回事呢？实际上，由于 `wsprintf` 的格式串参数中出现了格式指示符，而又没有给它们提供对应的参数，如前所述，`wsprintf` 就把 `_PrintGreetings` 过程中的两个局部变量分析成参数，拿出来格式化了。这两个局部变量在进入函数时已被赋值，因此，上图中的 `402044` 就是 `offset szTest`，而 `1` 就是给 `loc_dwTemp1` 所赋的那个 `1`！如果输入的格式符是`"%s%s"`的话，数值 `1` 就会被解释成字符指针，而访问 `0x00000001` 地址处的内存，当然会出错了！看完这出戏，大家想必对于当年 OllyDBG 的“千里长堤”是怎样崩溃在几只小小格式符“蝼蚁”身上的过程，有所了解了吧。
+
+也许这个例子显得过于做作了些，不那么自然，然而这其中包含的道理却是相当简明的：使用格式化输入/输出时，作为格式字符串的实参应尽量避免用来接纳可变的数据。譬如要输出一个字符串 `str`，形式 `printf("%s", str)` 是相对安全的，而 `printf(str)` 就不好了，万一 `str` 中掺杂了格式指示符，后面这种形式就会出问题。上面这个例子之所以会有毛病，原因正是由于受输入影响的字符串 `szBuff` 被用来做了格式化串引起的。
+
+ＰＳ：本来想打算在上面这个例子中挂一个异常处理程序，这样就能更好地演示如何利用格式化串漏洞，可惜怎么挂都没有预期效果；`printf` 系列函数本来还有一个格式指示符`"%n"`甚至可以反过来向内存写入数据，可惜这个格式符在 VC 里又被无效化了，所以有些我认为比较关键的东西都没有写进去，哎，Win32 平台在某些方面就是不如 Linux 好啊。
+
+4dd466d0e1e0cc123afbe504da2462ca
