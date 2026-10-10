@@ -1,0 +1,196 @@
+
+# 皮皮播放器进程 `jfCacheMgr.exe` 溢出(0day)
+
+> 原文：[`www.pediy.com/kssd/pediy12/130957.html`](https://www.pediy.com/kssd/pediy12/130957.html)
+
+最近在分析皮皮播放器的时候，发现皮皮播放器的负责通讯的进程中的 `jfCacheMgr.exe` 中存在一处溢出。
+
+具体在函数 `sub_435F40()` 中。
+
+代码:
+
+
+
+```
+......
+  memset(DstBuf, 0, 0x800u);                    // 我们可以看到 DstBuf 这里是 0x800 的大小
+  v5 = fread(DstBuf, 1u, 0x800u, v3);           //将文件内容读入 DstBuf 中。最大为 0x800
+  fclose(v4);
+  if ( ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::Find(&v261, ".jia", 0) == -1 )//如果在打开的文件名中找不到.jia 字符串，则执行如下代码
+  {
+  。。。。。。
+    return 0;
+  }                                             // 主要判断文件名中是否含有.jia
+
+  if ( (signed int)v5 < 10 || v5 >= 0x800 )     // v5 如果读到的内容小于 10 或者大于 0x800,退出
+  {
+LABEL\_298:
+    v242 = (const CHAR \*)ATL::CSimpleStringT<char\_1>::operator char\_const\_\_(&v261);
+    DeleteFileA(v242);
+    goto LABEL\_299;
+  }
+
+  if ( !strncmp(DstBuf, "/sysoptions", 0xBu) )  // 如果数据中有/sysoptions 选项
+  {
+    Time = time64(0);
+    v7 = sub\_4082D0(&Time, (int)&v302, "%A, %B %d, %Y");
+    LOBYTE(v344) = 8;
+    v8 = ATL::CSimpleStringT<char\_1>::operator char\_const\_\_(v7);
+    std::basic\_string<char\_std::char\_traits<char>\_std::allocator<char>>::basic\_string<char\_std::char\_traits<char>\_std::allocator<char>>(
+      &v324,
+      v8);
+    LOBYTE(v344) = 10;
+    ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::\_CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>(&v302);
+    v287 = &v252;
+    std::basic\_string<char\_std::char\_traits<char>\_std::allocator<char>>::basic\_string<char\_std::char\_traits<char>\_std::allocator<char>>(
+      &v252,
+      &v324);
+    sub\_49D070(&v325, v252);
+    LOBYTE(v344) = 11;
+    if ( strncmp(&Str1, "/p", 2u) )
+    {
+      \*((\_DWORD \*)v283 + 43) = 0;
+      v258 = &Str1;
+    }
+    else
+    {
+      ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::operator\_(&v278, v341);
+      v9 = (const char \*)ATL::CSimpleStringT<char\_1>::operator char\_const\_\_(&v278);
+      \*((\_DWORD \*)v283 + 43) = atoi(v9);
+      v258 = (char \*)&v341 + 2;
+    }
+    ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::operator\_(&v278, v258);
+    v258 = (const char \*)std::basic\_string<char\_std::char\_traits<char>\_std::allocator<char>>::c\_str(&v325);
+    if ( !ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::Compare(&v278) && dword\_4CA0D8 )
+    {
+      v258 = (const char \*)32773;
+      \*((\_DWORD \*)dword\_4CA0D8 + 96) = 1;
+      sub\_40E5B0(v258);
+    }
+    v10 = (const CHAR \*)ATL::CSimpleStringT<char\_1>::operator char\_const\_\_(&v261);
+    DeleteFileA(v10);
+    LOBYTE(v344) = 10;
+    std::basic\_string<char\_std::char\_traits<char>\_std::allocator<char>>::\_basic\_string<char\_std::char\_traits<char>\_std::allocator<char>>(&v325);
+    LOBYTE(v344) = 6;
+    std::basic\_string<char\_std::char\_traits<char>\_std::allocator<char>>::\_basic\_string<char\_std::char\_traits<char>\_std::allocator<char>>(&v324);
+    goto LABEL\_299;
+  }
+  if ( !strncmp(DstBuf, "/hotkeyopt", 0xAu) )   // 如果数据中有/hotkeyopt 选项
+  {
+    sub\_409FA0(&v316);
+    v11 = sub\_4082D0((\_\_time64\_t \*)&v316, (int)&v304, "%A, %B %d, %Y");
+    LOBYTE(v344) = 12;
+    v12 = ATL::CSimpleStringT<char\_1>::operator char\_const\_\_(v11);
+    std::basic\_string<char\_std::char\_traits<char>\_std::allocator<char>>::basic\_string<char\_std::char\_traits<char>\_std::allocator<char>>(
+      &v327,
+      v12);
+    LOBYTE(v344) = 14;
+    ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::\_CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>(&v304);
+    v287 = &v252;
+    std::basic\_string<char\_std::char\_traits<char>\_std::allocator<char>>::basic\_string<char\_std::char\_traits<char>\_std::allocator<char>>(
+      &v252,
+      &v327);
+    sub\_49D070(&v326, v252);
+    LOBYTE(v344) = 15;
+    if ( (unsigned \_\_int8)std::operator\_\_<char\_std::char\_traits<char>\_std::allocator<char>>(&v326, &v339)
+      && dword\_4CA0D8 )
+    {
+      v258 = (const char \*)32777;
+      \*((\_DWORD \*)dword\_4CA0D8 + 96) = 1;
+      sub\_40E5B0(v258);
+    }
+    v13 = (const CHAR \*)ATL::CSimpleStringT<char\_1>::operator char\_const\_\_(&v261);
+    DeleteFileA(v13);
+    LOBYTE(v344) = 14;
+    std::basic\_string<char\_std::char\_traits<char>\_std::allocator<char>>::\_basic\_string<char\_std::char\_traits<char>\_std::allocator<char>>(&v326);
+    LOBYTE(v344) = 6;
+    std::basic\_string<char\_std::char\_traits<char>\_std::allocator<char>>::\_basic\_string<char\_std::char\_traits<char>\_std::allocator<char>>(&v327);
+    goto LABEL\_299;
+  }
+  if ( strncmp(DstBuf, "/uninstall", 0xAu) )    // 如果数据中没有/unistall 选项
+  {
+    v258 = (const char \*)ATL::CSimpleStringT<char\_1>::GetLength(&unk\_4CA174);
+    v14 = (const char \*)ATL::CSimpleStringT<char\_1>::operator char\_const\_\_(&unk\_4CA174);
+    if ( strnicmp(DstBuf, v14, (size\_t)v258) )  // 如果没有这个字符串
+    {
+      v258 = (const char \*)ATL::CSimpleStringT<char\_1>::GetLength(&unk\_4CA178);
+      v15 = (const char \*)ATL::CSimpleStringT<char\_1>::operator char\_const\_\_(&unk\_4CA178);
+      if ( strnicmp(DstBuf, v15, (size\_t)v258) )
+        goto LABEL\_298;
+    }
+    if ( dword\_4C9E50 != 4 )
+    {
+      CStringList::AddTail(&v313, &v261);
+      goto LABEL\_299;
+    }
+    v16 = (const CHAR \*)ATL::CSimpleStringT<char\_1>::operator char\_const\_\_(&v261);
+    DeleteFileA(v16);                           // 删除 v261,这个文件
+    v17 = 0;
+    sub\_4102F0(\*((\_DWORD \*)v283 + 8), 1, 0);    // init the player
+    v18 = 0;
+    v292 = 0;
+    v287 = (int \*)3;
+    v293 = 0;
+    ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>(&v264);
+    ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>(&v263);
+    ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>(&v282);
+    ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>(&v286);
+    ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>(&v281);
+    ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>(&v284);
+    ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>(&v285);
+    ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>(&v269);
+    ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>(&v270);
+    ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>(&v276);
+    ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>(&v266);
+    ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>(&v265);
+    ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>(&v271);
+    ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>(&v274);
+    ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>(&v272);
+    ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>(&v279);
+    ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>(&v275);
+    ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>(&v277);
+    ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>(&v280);
+    ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>(&v268);
+    ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>(&v267);
+    LOBYTE(v344) = 36;
+    ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::operator\_(&v268, "1");
+    ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::operator\_(&v267, "1");
+    ((void (\_\_thiscall \*)(char \*))std::basic\_string<char\_std::char\_traits<char>\_std::allocator<char>>::basic\_string<char\_std::char\_traits<char>\_std::allocator<char>>)(&v321);
+    LOBYTE(v344) = 37;
+    v298 = 0;
+    v19 = strstr(DstBuf, "|info=");             // 看 DstBuf 中是否有这个字符串，如果有则返回其指针
+    if ( v19 )
+    {
+      ((void (\_\_thiscall \*)(char \*))std::basic\_string<char\_std::char\_traits<char>\_std::allocator<char>>::basic\_string<char\_std::char\_traits<char>\_std::allocator<char>>)(&v322);
+      LOBYTE(v344) = 38;
+      ((void (\_\_thiscall \*)(char \*))std::basic\_string<char\_std::char\_traits<char>\_std::allocator<char>>::basic\_string<char\_std::char\_traits<char>\_std::allocator<char>>)(&v323);
+      memset(Source, 0, 0x104u);                // source 的大小为 0x104
+      LOBYTE(v344) = 39;
+      v20 = strchr(v19 + 6, 124);               // 在 DstBuf 中从"|info="后开始找'|'这个符号，如果找到
+      hWnd = v20;
+      if ( v20 )                                
+      {
+        //如果找到|这个符号，就把'|'到"|info="中间的内容拷贝到 Source 这个缓冲区中，
+前面我们知道这个缓冲区的大小为 0x104,而 DstBuf 最大可以为 0x800,
+所以我们可以构造超长的文件内容，从而产生溢出。
+譬如我们构造 ppfilm://aaaaa|info=aaaaa(大于 0x104 个 a)|bbb,则可产生溢出。        
+       memcpy(Source, v19 + 6, v20 - v19 - 6); // 
+        std::basic\_string<char\_std::char\_traits<char>\_std::allocator<char>>::operator\_(&v322, Source);
+        memset(Source, 0, 0x104u);
+        strncpy(Source, hWnd, 0x103u);
+      }
+      else
+      {
+        std::basic\_string<char\_std::char\_traits<char>\_std::allocator<char>>::operator\_(&v322, v19 + 6);
+      }
+```
+
+
+
+这个是拿 `IDA` 看出来的，它读取的是 `pipi\config\candel12953414392524453.jias` 这个文件，由于暂时还不知道如何让 `jfCcheMgr.exe` 读这个文件，所以暂时还没找到利用的方法。
+
+如果哪位有兴趣，可以研究研究。
+
+另，由于这个需要手动改文件，构造文件，所以，危害性不是很大，所以发了出来。
+
+如果哪位高人研究明白怎么利用了，可以跟帖说下，共同学习，头疼！！

