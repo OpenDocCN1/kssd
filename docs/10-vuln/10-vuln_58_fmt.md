@@ -1,0 +1,16 @@
+
+# 《The Shellcoder's handbook》第六章\_Windows 的广阔原野
+
+> 原文：[`www.pediy.com/kssd/pediy12/35847.html`](https://www.pediy.com/kssd/pediy12/35847.html)
+
+## Windows 的广阔原野
+
+在学习了前面的内容之后，我们现在来学习一个崭新的操作系统—Windows。本章主要从经验丰富的 Win32 黑客的角度来阐述 Windows 问题，同时使 Unix 黑客对 Win32 有较好的理解。结束本章学习后，你应该可以编写简单的 Windows 破解；并在尝试一些复杂的破解时，避免出现常见的错误。
+
+在本章，你还可以学习怎样使用常见的 Windows 调试工具。沿着这条路，你将进一步学习 Windows 安全、编程模型、Distributed Component Object Model `DCOM`、和 Portable Executable-Common File Format `PE-COFF` 的基础知识。简而言之，本章包含的内容是老黑客多年经验的结晶，当你准备攻击 Windows 平台时，你会深深喜欢上这些内容。
+
+。。。
+
+上传的附件
+
+| ![](img/67af4f1ef9c98996f43e89e749c7dcf5.jpg) || 6.windows 的广阔原野.rar |

@@ -1,0 +1,90 @@
+
+# 回答坛友：AntBean 的问题
+
+> 原文：[`www.pediy.com/kssd/pediy12/126059.html`](https://www.pediy.com/kssd/pediy12/126059.html)
+
+[ 【求助】怎样调试 POC](http://bbs.pediy.com/showthread.php?t=125810)
+
+他想知道在发生崩溃时的堆栈情况，问题是有没有好的调试方法。
+
+在这里我使用 `windbg` 进行附加调试
+
+以下是简单的调试经过：
+
+1. 附加 `WPS_XLS` 进程。
+
+打开 `WPS` 表格,进程名是 `et.exe`,打开 `windbg`，`F6` 附加 `et.exe`，
+
+`F5` 运行，若有"ret"信息，不用管，`F5` 继续运行。
+
+2. 把 `poc.xls` 拖到 `WPS` 表格窗口中
+
+程序会在报错的地方断下来，如下：
+
+```
+4d442de7 52              push    edx
+4d442de8 ff752c          push    dword ptr \[ebp+2Ch\]
+4d442deb 51              push    ecx
+4d442dec ff5018          call    dword ptr \[eax+18h\]
+4d442def 8b4524          mov     eax,dword ptr \[ebp+24h\]
+4d442df2 8b08            mov     ecx,dword ptr \[eax\]  ds:0023:00000000=????????
+4d442df4 8d5544          lea     edx,\[ebp+44h\]
+```
+
+寄存器相关信息如下：
+
+```
+eax=00000000 ebx=00000000 ecx=023430d0 edx=0012e930 esi=0012eb10 edi=0475ad68
+eip=4d442df2 esp=0012e870 ebp=0012e90c iopl=0         nv up ei ng nz na pe nc
+cs=001b  ss=0023  ds=0023  es=0023  fs=003b  gs=0000             efl=00200286
+etxrw!CreateETObject+0x2f25b:
+4d442df2 8b08            mov     ecx,dword ptr \[eax\]  ds:0023:00000000=????????
+```
+
+以上可以看出`[ebp+24]`=`eax`=0x0,自然在执行 `mov ecx,dword ptr[eax]`时，程序要报错。
+
+3. 查看`[ebp+24]`是如何被修改的
+
+通过 `windbg` 可以查看程序报错之前的堆栈调用关系，命令为 `K`，如下：
+
+```
+0:000> k
+ChildEBP RetAddr  
+WARNING: Stack unwind information not available. Following frames may be wrong.
+0012e90c 0012eb10 etxrw!CreateETObject+0x2f25b
+0012e978 4d443290 0x12eb10
+0012e9b4 4d42bb0d etxrw!CreateETObject+0x2f6f9
+0012e9c4 4d42d117 etxrw!CreateETObject+0x17f76
+0012e9fc 4d41dad0 etxrw!CreateETObject+0x19580
+0012eb80 4d40ea82 etxrw!CreateETObject+0x9f39
+0012ebc8 4d40ed61 etxrw+0xea82
+0012ec00 4ce167d8 etxrw+0xed61
+0012ec50 4ce16b94 etpst!CreateETObject+0x53f8
+00000000 00000000 etpst!OpenExcelFile+0x2c4
+```
+
+在函数 `etxrw!CreateETObject+0x2f6f4`(位于 `etxrw!CreateETObject+0x2f6f9` 上一步操作)处下断点
+
+```
+bu etxrw!CreateETObject+0x2f6f4
+```
+,重新打开附加程序
+
+会进行如下操作
+
+```
+4d442bc5 33db            xor     ebx,ebx     //EBX 异或
+4d442bc7 895dfc          mov     dword ptr \[ebp-4\],ebx
+4d442bca 895d40          mov     dword ptr \[ebp+40h\],ebx
+4d442bcd 895d38          mov     dword ptr \[ebp+38h\],ebx
+4d442bd0 895d3c          mov     dword ptr \[ebp+3Ch\],ebx
+4d442bd3 895d28          mov     dword ptr \[ebp+28h\],ebx
+4d442bd6 895d30          mov     dword ptr \[ebp+30h\],ebx
+4d442bd9 895d34          mov     dword ptr \[ebp+34h\],ebx
+4d442bdc 895d24          mov     dword ptr \[ebp+24h\],ebx  //对\[ebp+24\]进行写操作
+4d442bdf 33c0            xor     eax,eax
+```
+
+从以上代码就可以看出，`[ebp+24]`的值是如何得到的。。。。。。
+
+呵呵，剩下就，你就可以自己分析了。。。我比较好奇 `poc` 是如何构造的。能否告知一二呢？

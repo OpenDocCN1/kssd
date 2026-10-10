@@ -1,0 +1,16 @@
+
+# 《The Shellcoder's handbook》第二章 栈溢出
+
+> 原文：[`www.pediy.com/kssd/pediy12/33986.html`](https://www.pediy.com/kssd/pediy12/33986.html)
+
+## 栈溢出
+
+从历史上看，栈溢出一直是最流行，也是最容易理解的安全问题之一。迄今为止，即使没有上百篇，至少也有几十篇文章讨论过流行的栈溢出技术，其中比较知名的可能是写于 1996 年的“Smashing the Stack for Fun and Profit。” Aleph One 在这篇文章中第一次简洁明了的阐述了缓冲区溢出的原理，以及怎样利用它们。建议你读一下发表在 Phrack 杂志上的原文，在 www.wiley.com/compbooks/koziol 也可以找到这篇文章。
+
+虽然 Aleph One 写了“Smashing the Stack for Fun and Profit”，但栈溢出并不是他发现的，在这篇文章发表的十年前或更长一段时间前，栈溢出及其利用方法已经四处流传了。从理论上讲，栈溢出是伴随 C 语言的出现而出现的，也是最公开的漏洞之一，但遗憾的是，在如今流行的软件中，仍然可以看到栈溢出的身影。不信？翻开你的安全新闻列表，应该还可以看到和本章描述类似的栈溢出漏洞。
+
+...
+
+上传的附件
+
+| ![](img/67af4f1ef9c98996f43e89e749c7dcf5.jpg) || 2.栈溢出.rar |
