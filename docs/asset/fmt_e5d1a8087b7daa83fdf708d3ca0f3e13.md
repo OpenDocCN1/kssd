@@ -1,0 +1,349 @@
+
+```
+代码:
+00546000   nop
+00546001   nop
+00546002   nop
+00546003   nop
+00546004   nop
+00546005   nop
+00546006   nop
+00546007   nop
+00546008   nop
+00546009   nop
+0054600A   nop
+0054600B   push ebp                         ; // 激活启动 计算器 功能
+0054600C   mov ebp,esp
+0054600E   pushad
+0054600F   add esp,-120
+00546015   push 104
+0054601A   lea eax,dword ptr ss:[esp+4]
+0054601E   push eax
+0054601F   call 004AF0EA                    ; <jmp.&KERNEL32.GetWindowsDirectoryA>
+00546024   add eax,esp
+00546026   inc eax
+00546027   mov dword ptr ds:[eax],636C6143
+0054602D   mov dword ptr ds:[eax+4],6578652>
+00546034   mov byte ptr ds:[eax+8],0
+00546038   mov ebx,esp
+0054603A   push 0
+0054603C   push ebx
+0054603D   push 0
+0054603F   push eax
+00546040   push 4B917A                      ; ASCII "open"
+00546045   mov eax,dword ptr ss:[ebp+8]
+00546048   push eax
+00546049   call 004AF342                    ; <jmp.&SHELL32.ShellExecuteA>
+0054604E   add esp,120
+00546054   popad
+00546055   mov esp,ebp
+00546057   pop ebp
+00546058   jmp 00434212                     ; // 返回执行结束的应该到达的地方
+0054605D   nop
+0054605E   cmp dx,9CE                       ; // 来自： 433A1F 的 sub edx,9C7
+00546063   je short 0054600B                ; // ID 相等 则跳往 执行 计算器
+00546065   sub eax,9CD
+0054606A   je 005461E0                       ; // 自定义工具菜单 ID
+00546070   cmp eax,0B
+00546073   ja short 0054607E                ; // 是否 新添加菜单的  ID
+00546075   cmp eax,2
+00546078   jnb 005461A8                     ; NEWHAND.005461A8
+0054607E   sub edx,9C7
+00546084   jmp 00433A25                     ; // 返回原来的 消息检测队列
+00546089   nop
+0054608A   nop
+0054608B   nop
+0054608C   nop
+0054608D   nop
+0054608E   nop
+0054608F   nop
+00546090   nop
+00546091   nop
+00546092   nop
+00546093   nop
+00546094   push ebx                         ; // 初始化“工具”菜单
+00546095   push ebp
+00546096   mov ebp,esp
+00546098   xor ebx,ebx
+0054609A   push 0                           ; // 为重建菜单准备
+0054609C   lea eax,dword ptr ds:[ebx+9CF]
+005460A2   push eax
+005460A3   mov edx,dword ptr ss:[ebp+4]
+005460A6   push edx
+005460A7   call 004AF55E                    ; <jmp.&USER32.RemoveMenu>
+005460AC   inc ebx
+005460AD   cmp ebx,0A
+005460B0   jl short 0054609A                ; NEWHAND.0054609A
+005460B2   xor ebx,ebx
+005460B4   xor edi,edi
+005460B6   push 4D53A4                      ; // Ollydbg.ini 路径
+005460BB   push 100                         ; // 定义缓冲区大小
+005460C0   push dword ptr ds:[546E14]       ; // 缓冲区，用于读取所对应的数据
+005460C6   push 4C1700
+005460CB   push dword ptr ds:[546E10]       ; NEWHAND.00546E08
+005460D1   push 546E00                      ; ASCII "Tools"
+005460D6   call 004AF08A                    ; <jmp.&KERNEL32.GetPrivateProfileStringA>
+005460DB   cmp eax,0
+005460DE   je short 0054614C                ; NEWHAND.0054614C
+005460E0   mov eax,dword ptr ds:[546E14]
+005460E5   mov esi,eax
+005460E7   push 0
+005460E9   push 80
+005460EE   push 3
+005460F0   push 0
+005460F2   push 3
+005460F4   push 0
+005460F6   push eax
+005460F7   call 004AEFCA                    ; <jmp.&KERNEL32.CreateFileA>
+005460FC   xor ebx,ebx
+005460FE   cmp eax,-1
+00546101   je short 0054610A                ; // 检测文件的存在有效性
+00546103   inc ebx
+00546104   push eax
+00546105   call 004AEFB8                    ; <jmp.&KERNEL32.CloseHandle>
+0054610A   cmp bl,1
+0054610D   je short 00546117                ; NEWHAND.00546117
+0054610F   mov eax,dword ptr ds:[546E14]
+00546114   mov byte ptr ds:[eax],0
+00546117   cmp byte ptr ds:[esi],0
+0054611A   je short 0054614C                ; NEWHAND.0054614C
+0054611C   inc esi
+0054611D   cmp byte ptr ds:[esi],0
+00546120   jnz short 0054611C               ; NEWHAND.0054611C
+00546122   dec esi
+00546123   cmp byte ptr ds:[esi],5C
+00546126   je short 0054612A                ; NEWHAND.0054612A
+00546128   jmp short 00546122               ; NEWHAND.00546122
+0054612A   mov byte ptr ds:[esi],0
+0054612D   inc esi
+0054612E   nop
+0054612F   nop
+00546130   nop
+00546131   nop
+00546132   nop
+00546133   nop
+00546134   nop
+00546135   nop
+00546136   nop
+00546137   nop
+00546138   nop
+00546139   push esi
+0054613A   lea eax,dword ptr ds:[edi+9CF]   ; // 根据消息 ID 偏移量进行计算
+00546140   push eax
+00546141   push 0
+00546143   mov ecx,dword ptr ss:[ebp+4]
+00546146   push ecx
+00546147   call 004AF34E                    ; <jmp.&USER32.AppendMenuA>
+0054614C   inc edi
+0054614D   add byte ptr ds:[546E0D],1       ; // 调整 Key
+00546154   nop
+00546155   nop
+00546156   nop
+00546157   nop
+00546158   nop
+00546159   nop
+0054615A   add dword ptr ds:[546E14],100    ; // 调整对应的缓冲区指针
+00546164   cmp edi,0A
+00546167   jl 005460B6                      ; // 10 个为限
+0054616D   mov esp,ebp
+0054616F   pop ebp
+00546170   pop ecx
+00546171   call 00546370                    ; // 还原初始变量值（全局）
+00546176   jmp 00434247                     ; // 返回循环点
+0054617B   nop
+0054617C   nop
+0054617D   nop
+0054617E   nop
+0054617F   nop
+00546180   nop
+00546181   nop
+00546182   nop
+00546183   nop
+00546184   nop
+00546185   nop
+00546186   cmp ax,9CD                       ; // 来自 43359C 的 jne 434247
+0054618A   jnz 00434247                     ; NEWHAND.00434247
+00546190   call 00546370                    ; // 还原初始变量值（全局）
+00546195   mov edi,546400
+0054619A   mov ecx,0A00
+0054619F   xor eax,eax
+005461A1   rep stos byte ptr es:[edi]
+005461A3   jmp 00546094                     ; NEWHAND.00546094
+005461A8   sub al,2                         ; // 执行 exe 工具
+005461AA   imul ebx,eax,100
+005461B0   add ebx,dword ptr ds:[546E14]    ; NEWHAND.00546400
+005461B6   mov ecx,ebx
+005461B8   inc ecx
+005461B9   cmp byte ptr ds:[ecx],0
+005461BC   jnz short 005461B8               ; NEWHAND.005461B8
+005461BE   inc ecx
+005461BF   nop
+005461C0   push 0
+005461C2   push ebx
+005461C3   push 0
+005461C5   push ecx
+005461C6   push 4B917A                      ; ASCII "open"
+005461CB   mov eax,dword ptr ss:[ebp+8]
+005461CE   push eax
+005461CF   call 004AF342                    ; <jmp.&SHELL32.ShellExecuteA>
+005461D4   jmp 00434212                     ; NEWHAND.00434212
+005461D9   nop
+005461DA   nop
+005461DB   nop
+005461DC   nop
+005461DD   nop
+005461DE   nop
+005461DF   nop
+005461E0   push 434212                      ; // 压入返回地址
+005461E5   push 0
+005461E7   mov eax,dword ptr ds:[4D3B80]
+005461EC   push 440C3C
+005461F1   push eax
+005461F2   mov edx,dword ptr ds:[4D3B78]
+005461F8   push 4B8FDA                      ; ASCII "DIA_CFG_TOOLMENU"
+005461FD   push edx
+005461FE   call 004AF3C6                    ; <jmp.&USER32.DialogBoxParamA>
+00546203   retn
+00546204   nop
+00546205   nop
+00546206   cmp dx,0E76                      ; // 来自 440CD2 的 cmp dx,0e76
+0054620B   jnz short 0054620E               ; NEWHAND.0054620E
+0054620D   retn
+0054620E   cmp dx,22B8
+00546213   je 0054630E                      ; // 是否点击了 DIY 的 “确定”按钮
+00546219   sub eax,2328
+0054621E   cmp eax,0A
+00546221   ja short 00546298                ; NEWHAND.00546298
+00546223   cmp eax,1
+00546226   jb short 00546298                ; NEWHAND.00546298
+00546228   nop                              ; // 是否点击了 DIY 的 “更改”按钮
+00546229   nop
+0054622A   pushad
+0054622B   push eax
+0054622C   push 546E20                      ; // 结构
+00546231   call 004AF268                    ; <jmp.&COMDLG32.GetOpenFileNameA>
+00546236   test eax,eax
+00546238   jnz short 0054623F               ; NEWHAND.0054623F
+0054623A   pop eax
+0054623B   jmp short 00546297               ; // 没有选择则不登记，直接回到 消息队列
+0054623D   nop
+0054623E   nop
+0054623F   push 2030
+00546244   push 546E9F                      ; // 标题
+00546249   push 546EAA                      ; // 提示 更改信息
+0054624E   mov eax,dword ptr ds:[4D3B7C]
+00546253   push eax
+00546254   call 004AF516                    ; <jmp.&USER32.MessageBoxA>
+00546259   pop eax
+0054625A   nop
+0054625B   nop
+0054625C   dec eax                          ; // ***这里不即时登记 “更新”也是可以的
+0054625D   add al,30                        ; // 计算所对应的 工具序列
+0054625F   mov byte ptr ds:[546E0D],al
+00546264   push 4D53A4
+00546269   push dword ptr ds:[546E18]       ; NEWHAND.00546F00
+0054626F   push dword ptr ds:[546E10]       ; // ***登记所选择的
+00546275   push 546E00                      ; ASCII "Tools"
+0054627A   call 004AF21C                    ; <jmp.&KERNEL32.WritePrivateProfileStringA>
+0054627F   popad
+00546280   pushad
+00546281   lea ecx,dword ptr ds:[eax+2350]  ; // 对应的 Edit 控件 id
+00546287   mov eax,dword ptr ds:[546E18]    ; // 对应的工具路径
+0054628C   mov edx,dword ptr ss:[ebp+8]     ; // 窗口句柄
+0054628F   push eax
+00546290   push ecx
+00546291   push edx
+00546292   call 004AF58E                    ; // 更新对应的 Edit 控件内容
+00546297   popad
+00546298   mov al,1
+0054629A   test al,al
+0054629C   retn
+0054629D   nop
+0054629E   nop
+0054629F   nop
+005462A0   nop
+005462A1   nop
+005462A2   nop
+005462A3   pushad                           ; // 初始化对话框 Edit 控件 的内容
+005462A4   xor edi,edi
+005462A6   lea eax,dword ptr ds:[edi+30]
+005462A9   mov byte ptr ds:[546E0D],al
+005462AE   push 4D53A4
+005462B3   push 100
+005462B8   push dword ptr ds:[546E14]       ; // 缓冲区读取所对应的数据
+005462BE   push 4C1700
+005462C3   push dword ptr ds:[546E10]       ; NEWHAND.00546E08
+005462C9   push 546E00                      ; ASCII "Tools"
+005462CE   call 004AF08A                    ; <jmp.&KERNEL32.GetPrivateProfileStringA>
+005462D3   cmp al,0
+005462D5   je short 005462ED                ; // 为 0 不进行刷新数据
+005462D7   lea ecx,dword ptr ds:[edi+2351]
+005462DD   mov eax,dword ptr ds:[546E14]
+005462E2   mov edx,dword ptr ss:[ebp+8]
+005462E5   push eax                         ; // 下面是读取并设置各工具菜单路径
+005462E6   push ecx
+005462E7   push edx
+005462E8   call 004AF58E                    ; <jmp.&USER32.SetDlgItemTextA>
+005462ED   inc edi
+005462EE   add dword ptr ds:[546E14],100    ; // 调整对应的缓冲区指针
+005462F8   cmp edi,0A
+005462FB   jl short 005462A6                ; // 10 个为限
+005462FD   popad
+005462FE   retn
+005462FF   nop
+00546300   nop
+00546301   nop
+00546302   nop
+00546303   nop
+00546304   nop
+00546305   nop
+00546306   nop
+00546307   nop
+00546308   nop
+00546309   nop
+0054630A   nop
+0054630B   nop
+0054630C   nop
+0054630D   nop
+0054630E   pushad                           ; // 点按了“确定”按钮，登记所有对应的内容
+0054630F   xor edi,edi
+00546311   lea eax,dword ptr ds:[edi+30]
+00546314   mov byte ptr ds:[546E0D],al
+00546319   lea ecx,dword ptr ds:[edi+2351]
+0054631F   mov eax,dword ptr ds:[546E18]
+00546324   mov edx,dword ptr ss:[ebp+8]
+00546327   push 100
+0054632C   push eax
+0054632D   push ecx
+0054632E   push edx
+0054632F   call 004AF45C                    ; <jmp.&USER32.GetDlgItemTextA>
+00546334   push 4D53A4
+00546339   push dword ptr ds:[546E18]       ; NEWHAND.00546F00
+0054633F   push dword ptr ds:[546E10]       ; NEWHAND.00546E08
+00546345   push 546E00                      ; ASCII "Tools"
+0054634A   call 004AF21C                    ; <jmp.&KERNEL32.WritePrivateProfileStringA>
+0054634F   inc edi
+00546350   cmp edi,0A
+00546353   jl short 00546311                ; NEWHAND.00546311
+00546355   popad
+00546356   pop eax
+00546357   jmp 00440CC5                     ; // 返回到 点击“确定”按钮应该返回的地方
+0054635C   nop
+0054635D   nop
+0054635E   nop
+0054635F   nop
+00546360   cmp al,1
+00546362   jnz 005462A0                     ; // 由于借用别的 Dia 的事件，当它初始失败，al 为 0，就是应该属于我们的初始化
+00546368   retn
+00546369   nop
+0054636A   nop
+0054636B   nop
+0054636C   nop
+0054636D   nop
+0054636E   nop
+0054636F   nop
+00546370   mov byte ptr ds:[546E0D],30      ; // 还原变量初值
+00546377   mov dword ptr ds:[546E14],546400
+00546381   retn
+00546382   nop
+```
