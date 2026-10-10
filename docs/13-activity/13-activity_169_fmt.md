@@ -1,0 +1,70 @@
+
+# 【代码之美】题 1 提交------新思路
+
+> 原文：[`www.pediy.com/kssd/pediy10/77135.html`](https://www.pediy.com/kssd/pediy10/77135.html)
+
+花了很多时间想这个，终于给我弄出来了。思路如下：从右起扫描每一个数字，该数字右边的数字为 `numR`，去掉右边后的数字为 `numL`，每一个数字在当前位或更低位出现的次数收到当前数字的大小，`numR` 和 `numL/10` 的影响，可以根据他们计算出来。我思路也不是十分清晰，所以弄了很久，表达不清楚具体怎么算，看代码吧。另外 `0` 的出现次数要另外多加处理，我原来的就是其他数字的出现次数都算正确，就是 `0` 出现问题，今天早上一起来早餐没吃就弄，到现在终于弄出来了。测试过多组数据，如果有谁发现我的程序有问题请指正！
+
+## 代码
+
+```c
+#include<stdio.h>
+
+unsigned a[10]={0,0,0,0,0,0,0,0,0,0};  // 确保范围
+void CountEachNum(unsigned num)
+{
+  unsigned numR,numL,temp,i;
+  unsigned flag=1;
+  numL=num;
+  while(numL!=0)
+  {
+    numR=num%flag;
+    temp=10*flag;
+    temp=(num%temp)/flag;
+    a[temp]=a[temp]+numR+1;
+    if(temp==0)
+      a[temp]=a[temp]-flag;
+
+    for(i=1;i<temp;i++)
+      a[i]=a[i]+flag;
+    for(i=0;i<10;i++)
+      a[i]=a[i]+(numL/10)*flag;    
+    flag=10*flag;
+    numL=num/flag;
+  }
+}
+
+void main()
+{
+  FILE *fin,*fout;
+  unsigned i,j,k,n,num; 
+  if((fin=fopen("in.txt","r"))==NULL)
+  {
+    printf("Open in.txt ERROR");
+    return ;
+  }
+  if((fout=fopen("out.txt","w"))==NULL)
+  {
+    printf("Open out.txt ERROR");
+    return ;
+  }
+  fscanf(fin,"%u",&n);
+  for(j=0;j<n;j++)
+  {
+    fscanf(fin,"%u",&num);
+    CountEachNum(num);    
+    for(i=0;i<10;i++)
+      fprintf(fout,"%u  ",a[i]);
+    fprintf(fout,"\\n");
+    for(k=0;k<10;k++)  // 清空全局数组
+      a[k]=0;
+  }
+  fclose(fin);
+  fclose(fout);
+}
+```
+
+上传的附件
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || test.rar |
+
