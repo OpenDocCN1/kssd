@@ -1,0 +1,288 @@
+
+# 金山 2007 逆向分析挑战赛第一阶段第二题详解
+
+> 原文：[`www.pediy.com/kssd/pediy12/144608.html`](https://www.pediy.com/kssd/pediy12/144608.html)
+
+\-----------------------------------------  
+
+题目：  
+
+一、将`_text`,`_rdata`,`_data` 合并成一个 EXE 文件，重建一个 PE 头  
+
+二、在第一步的基础上加入一个菜单  
+
+三、加入点击菜单调用 `MessageBox`  
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+因为最终结果是一个用 `WIN32API`（非 MFC）编写窗口程序，所以建议用汇编一个差不多的程序，做为比较。
+
+## 一、合成 PE 文件
+
+1、从名字上看`_text`,`_rdata`,`_data` 分别应该是代码段，只读数据段（输入表之类）和可读写数据段。所以用 `WINHEX` 按顺序加上 PE 头后，复制粘贴就可以了。
+
+`WINHEX` 也用一个合成文件的功能。这时记做 `1.exe`。
+
+2、修改 PE 头数据。用 `STUD_PE` 打开 `1.exe`，先修改“区段数目”，后区段的偏移和大小。这里题目没有规定文件大小，所以 PE 头大小最好为 `0X1000`。分析如下：
+
+DOS 和 PE 头-`0X0000`-->┌┈┈┈┈┐  
+
+                   │        │  
+
+                   │ 0X1000 │  
+
+`.text`---`0X1000`---->├────┤  
+
+                   │        │  
+
+                   │ 0X6000 │  
+
+`.rdata`--`0X7000`---->├────┤  
+
+                   │        │   
+
+                   │ 0X1000 │   
+
+`.data`---`0X8000`---->├────┤  
+
+                   │        │  
+
+                   │ 0X3000 │  
+
+`.rsrc`---`0XB000`---->├────┤<---未加资源段时这里是文件结尾  
+
+                   │        │  
+
+                   │ 0X0200 │  
+
+文件尾--`0XB200`---->└────┘  
+
+根据以上图表得如下:
+
+No  | 名称      | 虚拟大小   | 虚拟偏移量 | 原始大小   | 原始偏移量 | 特性       |  
+
+01  | `.text`     | 00006000   | 00001000   | 00006000   | 00001000   | E0000020   |  
+
+02  | `.rdata`    | 00001000   | 00007000   | 00001000   | 00007000   | C0000040   |  
+
+03  | `.data`     | 00003000   | 00008000   | 00003000   | 00008000   | C0000040   |  
+
+04  | `.rsrc`     | 00000200   | 0000B000   | 00000200   | 0000B000   | 40000040   |  
+
+注： `.rsrc` 段为加入菜单时才加入的，合成 PE 文件可以不看
+
+根据文件的大小修改“镜像大小”。保存后，重新用 `STUD_PE` 载入，看它的提示，一般会提示“资源表”和“输入表”错误，“资源表”错误会让 PE 加载器无法
+
+识别 PE 文件，所以先把“数据目录：`IMAGE_DIR_ENTRY_RESOURCE`”改成 0。“输入表”错误只会至程序运行错误。
+
+现在分析`.rdata` 段，找到输入表的正确地址和大小。输入表是什么东西呢？
+
+输入表的地址是:
+
+`IMAGE_OPTIONAL_HEADER.DataDirectory[1].VirtualAddress`
+
+输入表的大小是：
+
+`IMAGE_OPTIONAL_HEADER.DataDirectory[1].Size`
+
+`VirtualAddress` 里存的是一个指向 `IMAGE_IMPORT_DESCRIPTOR` 数组的指针，该数组以一个全是 0 的 `IMAGE_IMPORT_DESCRIPTOR` 结构结束。
+
+`IMAGE_IMPORT_DESCRIPTOR` 结构的大小为 `0x14`，所以输入 DLL 的个数等于输入表大小除以 `0x14` 后得的商再减 1。
+
+```c
+typedef struct _IMAGE_IMPORT_DESCRIPTOR {
+    union {
+        DWORD   Characteristics;            // 0 for terminating null import descriptor
+        DWORD   OriginalFirstThunk;         // RVA to original unbound IAT (PIMAGE_THUNK_DATA)
+    };
+    DWORD   TimeDateStamp;                  // 0 if not bound,
+                                            // -1 if bound, and real date\time stamp
+                                            //     in IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT (new BIND)
+                                            // O.W. date/time stamp of DLL bound to (Old BIND)
+    DWORD   ForwarderChain;                 // -1 if no forwarders
+    DWORD   Name;
+    DWORD   FirstThunk;                     // RVA to IAT (if bound this IAT has actual addresses)
+} IMAGE_IMPORT_DESCRIPTOR;
+```
+
+`IMAGE_IMPORT_DESCRIPTOR` 结构主要看最后两个变量,`DWORD`  `Name` 为指向 DLL 名字的指针,`DWORD`  `FirstThunk` 指向一个数组,数组里存有该 DLL 函数名的指针。
+
+分析正常 EXE 文件的输入表后发现，输入表一般是在调用函数名字的前面，用 `WINHEX` 打开 `1.exe`，看地址 `0x77A0` 的地方,这里全是一些函数名,如:`lstrcpyA` 和系统
+
+,所以输入表应该在这 `0x77A0` 的前面(注意与正常文件对比),还有就是注意看 DLL 的名字，如：`user32.dll` 的位置是 `0x788A`，那么我们从 `0x7000` 的地方开始找 `0x8A`
+
+，找到后看看 `0x8A` 前面是不是 `0x78`，这样就容易多了。在这里应该是 `0x7618`,大小为 `0x50`。
+
+现在就差程序的“入口点”了，用 `PEID` 打开 `1.exe` 应该显示为 VC6 写的，这样我们就找一个 VC6 写的程序来看看它的入口，这是一个正常 VC6 程序的入口：
+
+```
+math.<Mod>/$  55            push    ebp
+00409657  |.  8BEC          mov     ebp, esp
+00409659  |.  6A FF         push    -1
+0040965B  |.  68 F8474200   push    004247F8
+00409660  |.  68 20CD4000   push    0040CD20                         ;  SE 处理程序安装
+00409665  |.  64:A1 0000000>mov     eax, dword ptr fs:[0]
+0040966B  |.  50            push    eax
+0040966C  |.  64:8925 00000>mov     dword ptr fs:[0], esp
+00409673  |.  83EC 58       sub     esp, 58
+00409676  |.  53            push    ebx
+00409677  |.  56            push    esi
+00409678  |.  57            push    edi
+00409679  |.  8965 E8       mov     dword ptr ss:[ebp-18], esp
+0040967C  |.  FF15 14224200 call    dword ptr ds:[<&KERNEL32.GetVers>;  kernel32.GetVersion
+math.<Mod>/$  55            push    ebp
+00409657  |.  8BEC          mov     ebp, esp
+```
+
+这句是每个函数都有的，不看它，看这里
+
+```
+00409659  |.  6A FF         push    -1
+0040965B  |.  68 F8474200   push    004247F8
+00409660  |.  68 20CD4000   push    0040CD20                         ;  SE 处理程序安装
+```
+
+三个 `PUSH` 在函数里可不多呀，所在用 `WINHEX` 打开 `1.EXE`，从 `0X1000` 开始找 `0X6A FF 68`,会停在地址 `0X152A`，看看前 `0X1527` 的地方，就是 `0X55 8B EC`，所以这里应
+
+该就是入口。修改完后一个 PE 格式的可执行文件就合成成功了。
+
+## 二、加入菜单
+
+刚才合成的程序是没有资源段的，所以要给它加入一个资源，里面只要有一个菜单就行了。资源文件这样写
+
+```c
+#include    <resource.h>
+#define pediy.com       0x30
+#define  IDM_ABOUT  0x20
+
+pediy.com  MENU
+BEGIN
+  popup  "HELP"
+  BEGIN
+    menuitem "ABOUT",IDM_ABOUT
+  END
+END
+```
+
+但程序是怎样把菜单加载到窗口里的呢？这里有几种方法：
+
+1、用 `LoadMenu` 加载菜单并取得句柄后，设置 `CreateWindow.hMenu` 等于该句柄,但看看输入表,没有 `LoadMenu` 函数,所以用这种方法的话又要改输入表,太麻烦。
+
+2、在写资源文件（`.RC`）的时候菜单名设置一个编号，在 `RegisterClass` 之前设置 `WNDCLASS.lpszMenuName` 等于这个编号或菜单名。
+
+这里可先看看代码，看看它是怎样设置 `WNDCLASS.lpszMenuName` 的，用 `OD` 打开 `1.EXE`，下断点在 `40125A`，运行程序，停下后看 `ESP`（我这是 `12FEAC`），它是一个指
+
+向 `WNDCLASS` 的指针，在内存窗口找到这个地址：
+
+```
+0012FEAC  03 00 00 00 D5 12 40 00 00 00 00 00 00 00 00 00  .@....
+0012FEBC  00 00 40 00 27 00 01 00 03 00 01 00 10 00 90 01  .@'
+0012FECC  F0 FE 12 00 A0 80 40 00                         肠@
+```
+
+`WNDCLASS` 结构有 10 个成员，第 9 个就是菜单，所以 `12FEAC+（4*（9-1））=12FECC=》0012FECC  F0 FE 12 00`。看看 `12FEF0` 是什么，原来是一个字串`"pediy.com"`
+
+，所以我用第 2 种方法，写资源时把菜单名写成`"pediy.com"`就不用改代码了。把资源写好后，生成 EXE,用 `WINHEX` 剥离`.RSRC` 段，粘贴到 `1.EXE` 后，再用 `STUD_PE` 改
+
+一改段数据和“镜像大小”就可以了。
+
+## 三、加入提示窗口
+
+先看看正常的菜单是怎样响应单击事件的。单击菜单后，会由 `WM_COMMAND`（`0X111`）消息处理，它的 `wParam` 参数就是被单击控件的 ID，如果这个 ID 下有处理函数
+
+就处理，没有就返回，我们要做的就是增加这个处理函数。
+
+用 `OD` 打开 `1.EXE`，找到消息循环：
+
+```
+0040120B  |.  57            push    edi                              ; /RsrcName => IDI_APPLICATION
+0040120C  |.  56            push    esi                              ; |hInst => NULL
+0040120D  |.  891D ACAB4000 mov     dword ptr ds:[40ABAC], ebx       ; |
+00401213  |.  C745 B0 03000>mov     dword ptr ss:[ebp-50], 3         ; |
+0040121A  |.  C745 B4 D5124>mov     dword ptr ss:[ebp-4C], 004012D5  ; |<========================这里面就是设置消息循环的地方
+00401221  |.  8975 B8       mov     dword ptr ss:[ebp-48], esi       ; |
+00401224  |.  8975 BC       mov     dword ptr ss:[ebp-44], esi       ; |
+00401227  |.  895D C0       mov     dword ptr ss:[ebp-40], ebx       ; |
+0040122A  |.  FF15 04714000 call    dword ptr ds:[<&USER32.LoadIconA>; \\LoadIconA
+00401230  |.  57            push    edi                              ; /RsrcName => IDC_ARROW
+00401231  |.  56            push    esi                              ; |hInst => NULL
+00401232  |.  8945 C4       mov     dword ptr ss:[ebp-3C], eax       ; |
+00401235  |.  FF15 08714000 call    dword ptr ds:[<&USER32.LoadCurso>; \\LoadCursorA
+0040123B  |.  56            push    esi                              ; /ObjType => WHITE_BRUSH
+0040123C  |.  8945 C8       mov     dword ptr ss:[ebp-38], eax       ; |
+0040123F  |.  FF15 18704000 call    dword ptr ds:[<&GDI32.GetStockOb>; \\GetStockObject
+00401245  |.  8945 CC       mov     dword ptr ss:[ebp-34], eax
+00401248  |.  8D45 F4       lea     eax, dword ptr ss:[ebp-C]
+0040124B  |.  8945 D0       mov     dword ptr ss:[ebp-30], eax
+0040124E  |.  8D45 B0       lea     eax, dword ptr ss:[ebp-50]
+00401251  |.  BF A0804000   mov     edi, 004080A0                    ;  ASCII "pediy.com"
+00401256  |.  50            push    eax                              ; /pWndClass
+00401257  |.  897D D4       mov     dword ptr ss:[ebp-2C], edi       ; |
+0040125A  |.  FF15 0C714000 call    dword ptr ds:[<&USER32.RegisterC>; \\RegisterClassA
+```
+
+来到消息循环，发现没有 `WM_COMMAND`：
+
+
+
+### 原始汇编代码
+
+```
+004012D5  /.  55            push    ebp
+004012D6  |.  8BEC          mov     ebp, esp
+004012D8  |.  83EC 40       sub     esp, 40
+004012DB  |.  8B45 0C       mov     eax, dword ptr ss:[ebp+C]
+004012DE  |.  48            dec     eax                          ;  Switch (cases 2..F)
+004012DF  |.  48            dec     eax
+004012E0  |.  74 68         je      short 0040134A
+004012E2  |.  83E8 03       sub     eax, 3
+004012E5  |.  74 4D         je      short 00401334
+004012E7  |.  83E8 0A       sub     eax, 0A
+004012EA  |.  74 14         je      short 00401300
+004012EC  |.  FF75 14       push    dword ptr ss:[ebp+14]            ; /lParam; Default case of switch 004012DE
+004012EF  |.  FF75 10       push    dword ptr ss:[ebp+10]            ; |wParam
+004012F2  |.  FF75 0C       push    dword ptr ss:[ebp+C]             ; |Message
+004012F5  |.  FF75 08       push    dword ptr ss:[ebp+8]             ; |hWnd
+004012F8  |.  FF15 F4704000 call    dword ptr ds:[<&USER32.DefWindow>; \\DefWindowProcA
+004012FE  |.  EB 54         jmp     short 00401354
+```
+
+注意看有三个 `JE`，`JE` 前面是 `SUB` 和 `DEC` 命令，不是平时的 `CMP` 命令，有猫腻。`CMP` 是不保存结果的，但 `SUB` 和 `DEC` 是保存结果的，所以可以写成这样：
+
+```
+CMP EAX,2
+je      short 0040134A
+CMP EAX,2+3
+je      short 00401334
+CMP EAX,2+3+A
+je      short 00401300
+```
+
+所以就要在这些比较之前用"跳出跳回法”写入 `WM_COMMAND` 消息处理。问题又来了，输入表里面没有 `MessageBox` 怎么办。我是用风险比较大的方法，就是绝对地址，因为大多数程序在加载 `USER32.DLL` 等函数的时候，它的分配的空间 90%都是一样的，所以直接使用 `USER32.DLL` 的空间加上 `MessageBox` 函数的偏移就可以了。
+
+至于字串，可以在数据段加入，注意换行符为 `0X0A`。最终如下：
+
+```
+004012D5   .  55            push    ebp
+004012D6   .  8BEC          mov     ebp, esp
+004012D8   .  83EC 40       sub     esp, 40
+004012DB   .  E9 A0580000   jmp     00406B80        《=====跳出
+00406B80   > \\8B45 0C       mov     eax, dword ptr ss:[ebp+C]
+00406B83   .  3D 11010000   cmp     eax, 111                         ;  Switch (cases 2..111)
+00406B88   .  74 0D         je      short 00406B97
+00406B8A   .  48            dec     eax
+00406B8B   .  48            dec     eax
+00406B8C   .^ 0F84 B8A7FFFF je      0040134A
+00406B92   .^ E9 4BA7FFFF   jmp     004012E2         《=====跳回
+00406B97   >  6A 40         push    40                               ;  Case 111 of switch 00406B83
+00406B99   .  68 8C804000   push    0040808C                         ;  ASCII "pediy"
+00406B9E   .  68 50804000   push    00408050
+00406BA3   .  6A 00         push    0
+00406BA5   .  E8 06000000   call    00406BB0
+00406BAA   .^ E9 A3A7FFFF   jmp     00401352
+00406BAF      00            db      00
+00406BB0   $- FF25 B86B4000 jmp     dword ptr ds:[406BB8]            ;  user32.7696EA11
+00406BB6      00            db      00
+00406BB7      00            db      00
+00406BB8   .  11EA9676      dd      user32.7696EA11
+```
