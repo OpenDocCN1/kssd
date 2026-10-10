@@ -1,4 +1,4 @@
-+   [2-reverse](README.md)
++   [第2篇 逆向篇](README.md)
 +   [KSSD 第 2 篇 逆向篇](2-reverse_1.md)
 +   [文件类型分析](2-reverse_10.md)
 +   [ASProtect 1.3B Stolen code Finder](2-reverse_100.md)

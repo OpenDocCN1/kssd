@@ -1,4 +1,4 @@
-+   [7-pediy](README.md)
++   [第7篇 PEDIY篇](README.md)
 +   [KSSD 第 7 篇 PEDIY 篇](7-pediy_1.md)
 +   [BlindWrite Suite v5.1.5.132](7-pediy_10.md)
 +   [Mass Downloader v2.2.223 SR1](7-pediy_100.md)

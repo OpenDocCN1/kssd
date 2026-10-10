@@ -1,4 +1,4 @@
-+   [6-protect](README.md)
++   [第6篇 保护篇](README.md)
 +   [KSSD 第 6 篇 保护篇](6-protect_1.md)
 +   [【看雪读书月】【学习心得】软件加密保护演示](6-protect_10.md)
 +   [硬件加密](6-protect_100.md)

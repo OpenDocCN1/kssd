@@ -1,4 +1,4 @@
-+   [4-debug-demo](README.md)
++   [第4篇 调试篇：演示版保护技术](README.md)
 +   [KSSD 第 4 篇 调试篇：演示版保护技术](4-debug-demo_1.md)
 +   [爆破软件](4-debug-demo_10.md)
 +   [开机小精灵 2.11](4-debug-demo_100.md)

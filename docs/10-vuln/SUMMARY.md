@@ -1,4 +1,4 @@
-+   [10-vuln](README.md)
++   [第10篇 漏洞分析篇](README.md)
 +   [KSSD 第 10 篇 漏洞分析篇](10-vuln_1.md)
 +   [Perl 黑客编程](10-vuln_10.md)
 +   [flash 漏洞所用 shellcode 的分析](10-vuln_100.md)

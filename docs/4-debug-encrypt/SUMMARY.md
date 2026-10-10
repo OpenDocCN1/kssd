@@ -1,4 +1,4 @@
-+   [4-debug-encrypt](README.md)
++   [第4篇 调试篇：加密算法](README.md)
 +   [KSSD 第 4 篇 调试篇：加密算法](4-debug-encrypt_1.md)
 +   [密码学入门系列](4-debug-encrypt_10.md)
 +   [.NET 中 RAS 加解密和签名与验证的 c#实现代码讲解，及实现程序提供，源码自己 Reflector。](4-debug-encrypt_100.md)

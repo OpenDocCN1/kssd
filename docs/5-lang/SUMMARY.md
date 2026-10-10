@@ -1,4 +1,4 @@
-+   [5-lang](README.md)
++   [第5篇 语言篇](README.md)
 +   [KSSD 第 5 篇 语言篇](5-lang_1.md)
 +   [.net 程序保护方式大观](5-lang_10.md)
 +   [winxp 总管](5-lang_100.md)

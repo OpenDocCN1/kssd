@@ -1,4 +1,4 @@
-+   [4-debug-app](README.md)
++   [第4篇 调试篇：调试应用](README.md)
 +   [KSSD 第 4 篇 调试篇：调试应用](4-debug-app_1.md)
 +   [Uninstall Manager 4.30 破解+加密字串汉化](4-debug-app_10.md)
 +   [\====协议分析====](4-debug-app_100.md)

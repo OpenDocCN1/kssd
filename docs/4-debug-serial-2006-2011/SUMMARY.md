@@ -1,4 +1,4 @@
-+   [4-debug-serial-2006-2011](README.md)
++   [第4篇 调试篇：序列号保护实例分析 2006-2011](README.md)
 +   [KSSD 第 4 篇 调试篇：序列号保护实例分析 2006-2011](4-debug-serial-2006-2011_1.md)
 +   [Alligator Flash Designer 5](4-debug-serial-2006-2011_10.md)
 +   [OpenVideoConverter v3.01](4-debug-serial-2006-2011_100.md)

@@ -1,4 +1,4 @@
-+   [8-prog](README.md)
++   [第8篇 编程篇](README.md)
 +   [KSSD 第 8 篇 编程篇](8-prog_1.md)
 +   [RadASM](8-prog_10.md)
 +   [使用 TASM 编译 COFF 格式和连接](8-prog_100.md)
