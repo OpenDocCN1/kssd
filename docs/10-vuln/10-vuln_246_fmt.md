@@ -1,0 +1,90 @@
+
+# 皮皮播放器超长 URL 溢出漏洞(0day)
+
+> 原文：[`www.pediy.com/kssd/pediy12/130956.html`](https://www.pediy.com/kssd/pediy12/130956.html)
+
+http://www.wooyun.org/bugs/wooyun-2010-01630
+
+皮皮播放器是一款现在比较流行的网络电视播放软件，
+最近在分析皮皮播放器这个软件的时候，发现这个漏洞。
+皮皮播放器在处理用户输入的 URL 的时候，未对其长度进行检测，从而造成溢出。
+主要在 `PIPIPlayer.exe` 这个程序中
+下面分析相关代码：
+
+在
+
+代码:
+
+```
+在 sub\_430c20 函数中
+。。。。。。
+//用户输入 URL 后，会执行到这里
+    case 32780:
+      v9 = \*(\_DWORD \*)(wParam + 4096);
+      v22 = 0;
+      v21 = v9;
+      \*(\_DWORD \*)(wParam + 6344) = 1;
+      sub\_40D480(v21, v22);
+      v42 = 5;
+      if ( CDialog::DoModal(&v31) == 1
+        && ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::Find(&v32, "://", 0) > 0 ) //判断输入的 URL 中是否有://字符串
+      {
+        v10 = (const char \*)ATL::CSimpleStringT<char\_1>::operator char\_const\_\_(&v32);
+        if ( strnicmp(v10, "ppfilm://", 9u)     //判断输入的 URL 中是否有 ppfilm 字符串
+          && (v11 = (const char \*)ATL::CSimpleStringT<char\_1>::operator char\_const\_\_(&v32), strnicmp(v11, "pvod://", 7u)) )//判断输入的 URL 中是否有 pvod://字符串
+        {
+          v22 = 0;
+          v21 = v12;
+          v29 = &v21;
+          ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>(
+            &v21,
+            &Default);
+          v20 = v13;
+          v28 = &v20;
+          LOBYTE(v42) = 6;
+          ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>(
+            &v20,
+            &Default);
+          v18 = v14;
+          \*(\_DWORD \*)&Drive = &v18;
+          v41 = 7;
+          ATL::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>::CStringT<char\_StrTraitMFC\_DLL<char\_ATL::ChTraitsCRT<char>>>(&v18);
+          LOBYTE(v42) = 5;
+          sub\_4304F0(v3, v19, v20, v21, v22);
+        }
+        else
+        {
+          CommandLine = 0;
+          memset(&v34, 0, 0x1FCu);
+          v35 = 0;
+          v36 = 0;
+          //通过这个函数，将输入的 URL 和路径一起拼成 jfCacheMgr.exe 的参数，然后并执行 jfCacheMgr.exe 这个进程。
+          sprintf(&CommandLine, "%s%s \\"%s\\"", dword\_48AF30, "jfCacheMgr.exe", v32); //最后把结果放到 CommandLine 中，由于未对输入的 URL 的长度进行检测，从而造成溢出。
+          memset(&StartupInfo, 0, sizeof(StartupInfo));
+          ProcessInformation.hProcess = 0;
+          ProcessInformation.hThread = 0;
+          ProcessInformation.dwProcessId = 0;
+          ProcessInformation.dwThreadId = 0;
+          StartupInfo.cb = 68;
+          CreateProcessA(0, &CommandLine, 0, 0, 0, 0, 0, 0, &StartupInfo, &ProcessInformation);
+          if ( ProcessInformation.hThread )
+            CloseHandle(ProcessInformation.hThread);
+          if ( (\_DWORD)ProcessInformation.hProcess )
+            CloseHandle(ProcessInformation.hProcess);
+        }
+      }
+。。。。。。
+
+```
+
+大家测试的时候，构造：
+
+`"ppfilm://AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"`
+
+即可让它崩溃
+
+由于该程序编译时候采用 `/gs` 选项进行编译，所以利用的时候，得想办法绕过栈 cookie 的检测。
+原本想覆盖 SEH 链，发现不可行。
+现在也没有好的方法利用，
+大家要是有什么好的方法，
+可以一起来讨论学习：）![](img/755d44573ea0045d4eb19f2164c82d4e.jpg "扮鬼脸")![](img/755d44573ea0045d4eb19f2164c82d4e.jpg "扮鬼脸")![](img/755d44573ea0045d4eb19f2164c82d4e.jpg "扮鬼脸")
