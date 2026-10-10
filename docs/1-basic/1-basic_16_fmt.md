@@ -1,0 +1,2145 @@
+
+# paul hsieh- 几个经典汇编段子的实验 (gcd/转化大小写等)
+
+> 原文：[`www.pediy.com/kssd/pediy12/133162.html`](https://www.pediy.com/kssd/pediy12/133162.html)
+
+## 前言
+
+我正在学习一个 delphi 程序的逆向，在一大串字符串处理库函数中总碰到调用一个奇怪的函数，这个函数里的特点是有 `0x80808080`、`0x7B7B7B7B`、`0x80808080`、`0x66666666u` 这 4 个数，而且计算方式非常奇怪。就像处理数组一样的循环。因为碰到了很多次，就想分析下功能，本着懒人勤 google 的精神，找到了这篇文章，看完后大呼过瘾，然后非常失望的发现 delphi 库文件里的这种写法还是没看懂。就想翻译过来深入理解下，助人助己 `/:^\]`
+
+因为我主要是翻译这文章结尾的部分，前面的只能算流水席一样的边看边翻译过来，希望各路大牛看到有翻译问题的地方不吝赐教。有处理过类似问题的朋友也请说说你的经验，交流为主。
+
+## Assembly Language Lab
+
+Copyright 1998-2004 by `Paul Hsieh`
+
+这个页面的主要目的是给已经对汇编和 c 语言有一些了解的人们准备的，目的是让有基础的你们看到为什么会需要用汇编在 c 代码里直写代码。原因就是，当然是在我的观点里，太多太多不在这儿的程序员们，他们就根本不了解我们手写汇编能够创造出些什么东西来。我希望对这个不对劲的情况做点什么。如果你有其他的相关例子，或者什么信息(挑战)等等相关到这个页面内容的，不用犹豫，快 mail 给我 `http://www.azillionmonkeys.com/qed/mailme.html`
+
+### update
+
+5.1 修正了一些翻译的意思错误`/:^S` ，修正部分在文章结尾的 "64 bit int 的问题"和"63 bit 原子计数器 "里。
+
+## 1.GCD (最大公约数)
+
+在 asm X86 计算机上,`Jon Kirwan` 曾经像游戏对抗一样统计过各种编译器对这个函数的优化输出结果。这个 c 语言实现的这个"最大公约数"函数:
+
+```
+unsigned int gcd (unsigned int a, unsigned int b)
+{
+    if (a == 0 &&b == 0)
+        b = 1;
+    else if (b == 0)
+        b = a;
+    else if (a != 0)
+        while (a != b)
+            if (a <b)
+                b -= a;
+            else
+                a -= b;
+    return b;
+}
+```
+
+在这儿列出来我最喜欢的 c 编译器的结果，它带着 `/os/s` 选项(optimize size,优化大小;关闭堆栈(stack)环境保护;其他的优化选项在这个例子上没什么作用)，来和一个人类汇编代码选手的作品比比。
+
+这是编译器选手的:
+
+```
+; WATCOM C/C++ v10.0a output
+gcd:   mov     ebx,eax
+       mov     eax,edx
+       test    ebx,ebx
+       jne     L1
+       test    edx,edx
+       jne     L1
+       mov     eax,1
+       ret
+L1:    test    eax,eax
+       jne     L2
+       mov     eax,ebx
+       ret
+L2:    test    ebx,ebx
+       je      L5
+L3;    cmp     ebx,eax
+       je      L5
+       jae     L4
+       sub     eax,ebx
+       jmp     L3
+L4:    sub     ebx,eax
+       jmp     L3
+L5:    ret
+```
+
+这是人类选手的:
+
+```
+; Author: Paul Hsieh
+gcd:   neg     eax
+       je      L3
+L1:    neg     eax
+       xchg    eax,edx
+L2:    sub     eax,edx
+       jg      L2
+       jne     L1
+L3:    add     eax,edx
+       jne     L4
+       inc     eax
+L4:    ret
+```
+
+一个尤其突出的劣势是这个编译器不大确定怎么分配寄存器。但更明显的是一比起人类选手，它还忘掉了其他一大堆的优化。不论速度还是代码大小都显得没点点可比性。当然了，作为一个人类选手，我有巨大的一大大坨坨优势，很明显我可以看到这里面的数学逻辑关系，但所有的 C 编译器都不行。
+
+即使 `xchg` 不算一个特别特别快的 intel 指令，它的出现还是使代码变得非常紧凑，而且还可能在性能上让整个函数需要的时间一个 CPU 周期还短。代码可以看得到的主要流程就是能够在一个指令预读取缓冲里保存下来(16bytes 大小)。
+
+上面的情况里，我想到的可能性里有一个虽然，讨论上面的算法实际所产生的性能是没意思而且不用试的，CPU 对跳转目标的错误预测产生的性能惩罚才是这里面占用时间最多的部分，不是代码。
+
+这个是作者从最老时候的文章起，后来更新的部分，之后这样的部分都用"update:"代替标识 1:
+
+随着现代 CPUs 们的来临，像 Alpha, Pentium-II, Athlon 们都拥有了更长的指令缓冲流水线，换句话说它里面缓冲的跳转们更多了，为了修正错误的跳转预测以避开性能惩罚。(这个 bad branch misprediction 有专业术语，在深入理解计算机系统里有写，叫分支误预测)我们可以用 `min()`和 `max()`来减掉代码包含的大部分 `if ()`语句:
+
+```
+x = min(a,b);
+y = max(a,b);
+while( y!= 0 ) {
+    x = min(x,y-x);     // min(x,y-x)
+    y -= x;             // (y-x)+(x) - min(x,y-x)
+}
+```
+
+然后，在一个 32 位的机子上面，
+
+`min(x,y) = y+((x-y)>>31)&(x-y)`
+
+这样再经过适当的语句替换，我们得到了:
+
+```
+int gcd(int x, int y) {
+int t;
+    y += x;
+    if(y==0)
+        y=1;
+    else do {
+        x += x;
+        t = y-x;            // (y-x) - (x)
+        x >>= 1;
+        x += (t>>31)&t;     // min(y-x,x)
+        y -= x;             // (y-x)+(x)-min(x,y-x) == max(x,y-x)
+    } while(x!=0);
+    return y;
+}
+```
+
+然后我们再用这个算法来玩一下编译器 vs 人类选手的游戏
+
+编译器选手:
+
+```
+; WATCOM C/C++ v10.0a output
+gcd: add     edx,eax
+     jne     L1
+     mov     eax,1
+     jmp     L2
+L1:  mov     ebx,edx  ; 1 dep: edx
+     add     eax,eax  ; 1
+     sub     ebx,eax  ; 2 dep: eax
+     mov     ecx,ebx  ; 3 dep: ebx
+     sar     ecx,1fH  ; 4 dep: ecx
+     sar     eax,1    ; 4/5 shifters
+     and     ebx,ecx  ; 5 dep: ecx
+     add     eax,ebx  ; 6 dep: ebx
+     sub     edx,eax  ; 7 dep: eax
+     test    eax,eax  ; 7
+     jne     L1       ; 7
+     mov     eax,edx
+L2:
+```
+
+人类选手:
+
+```
+; Author: Paul Hsieh
+gcd: add     edx,eax
+     jne     L1
+     mov     eax,1
+     jmp     L2
+L1:  mov     ebx,edx  ; 1 dep: edx
+     add     eax,eax  ; 1
+     sub     ebx,eax  ; 2 dep: eax
+     shr     eax,1    ; 2
+     mov     ecx,ebx  ; 3 dep: ebx
+     sar     ebx,1fH  ; 3
+     and     ebx,ecx  ; 4 dep: ecx
+     add     eax,ebx  ; 5 dep: ebx
+     sub     edx,eax  ; 6 dep: eax
+     test    eax,eax  ; 6
+     jne     L1       ; 6
+     mov     eax,edx
+L2:
+```
+
+看样子，人类选手 vs 编译器的 asm 依然是领先的，但是理论上，一个足够好的编译器，在分解了数学运算后，是能够得到和人类选手相当的结果的。不像第一轮，这个函数的性能是值得试验试验的
+
+### update 补充 2
+
+算法的改进:
+
+`Michael Abrash` 的作品"The Zen of Code Optimization"里说到，单纯的减法运算速度相对而言太慢了(这个说法我实际测试后发现不太对)。而且我还得到一些朋友们的反馈信息，说是对于一些特殊的大数，除相对其他算法而言速度还更快。还有，在怎么处理 gcd 这块冰激凌上还有一块冰，这个新东西来自"Handbook of Applied Cryptography" (ISBN `0-8493-8523-7`)，他们给出了一个"除以 2 的倍数"的算法，看样子这算是一个折中的解决办法(只是它也是会会受分支误预测的影响)。我需要再研究研究这个，也许会修改这地方记录的结果。当然，你们分析的发过来我也很是欢迎的。
+
+### update 补充 3
+
+这是一段为了 gcd 这段文章完整性而说的，我介绍下我找了这么多外部文章，我找到了的这个算法是什么样的。我用了一个经典的算法，不用减、不用除，我们在算法里把二个数先(尽可能的)除以，较小的一个数所能除出整数商的最大的二的乘方，当我们得到尽可能小的 a 和 b 二个数时，我们查一个表就可以得到他们的 gcd 了。(那个表没列在这儿的代码里)。
+
+```
+#define SLIM (64)
+static unsigned smallGcds[SLIM][SLIM];
+static unsigned uintGcd (unsigned a, unsigned b) {
+unsigned c, d;
+    /* Divide out low powers of 2 if we can (to decrease a, b) */
+    d = 1;
+    while (((a|b) & 1) == 0) {
+        a >>= 1;
+        b >>= 1;
+        d <<= 1;
+    }
+    goto start;
+    do {
+        /* Find largest 2^t*b, less than a */
+        c = b;
+        do { c += c; } while (c <= a);
+        /* a -= 2^t*b */
+        a -= (c >> 1);
+        start:;
+        /* Make sure a > b, and b != 0 */
+        if (a < b) {
+            if (a == 0) return d * b;
+            c = a; a = b; b = c;
+        }
+    } while (a >= SLIM);
+```
+
+
+
+/* Return with precalculated small gcds */
+
+```
+return d * smallGcds[a][b];
+```
+
+很明显，有些特殊的参数需要先检查下（`a = 0`, `b = 0` 会把这段代码弄进一个无限循环里）。
+
+我相信这个代码还有些改进空间，可以在查询表的过程中，把每个操作数的几个 `bits` 用在一次查询里（上面的代码查询的二级表分别查询了 `a` 和 `b` 在表的位置，这句话我很困惑,原文-----），这样变成一个线性数组的查询，也就可以把几步代码优化成一句。所以我会在解决算法上的这个问题前，先在汇编上避开对这个的优化。
+
+原文------: `believe that it might be possible to improve upon this by performing table look ups on several bits of each operand at once which could give prime linear factors which could be used to reduce the operands by several steps in one shot.`
+
+### Update 4
+
+有几位读者的建议引起了我的注意，第一个是来自 `Pat D` (`http://groups.google.com/groups?hl=en&lr=&ie=UTF-8&oe=UTF-8&c2coff=1&safe=off&selm=81rg79%245lg%242%40autumn.news.rcn.net`) 的:
+
+!!!!ASM CODE!!!!!!!!!!!!!!!
+
+```asm
+; int gcdAsm(int a, int b)
+
+; computes gcd(a,b) according to:
+; 1. a even, b   even: gcd(a,b) = 2 * gcd(a/2,b/2),
+;    and remember how often this happened
+; 2. a even, b uneven: gcd(a,b) = gcd(a/2,b)
+; 3. a uneven, b   even: gcd(a,b) = gcd(a,b/2)
+; 4. a uneven, b uneven: a>b ? a -= b : b -= a,
+;    i.e. gcd(a,b) = gcd(min(a,b),max(a,b) - min(a,b))
+; do 1., repeat 2. - 4. until a = 0 or b = 0
+; return (a + b) corrected by the remembered value from 1.
+
+BITS 32
+GLOBAL _gcdAsm
+SECTION .text
+
+_gcdAsm:
+    push ebp
+    mov ebp,esp
+    push ebx
+    push ecx
+    push edx
+    push edi
+    mov eax,[ebp + 8]   ; eax = a (0 <= a <= 2³¹ - 1)
+    mov ebx,[ebp + 12]  ; ebx = b (0 <= b <= 2³¹ - 1)
+    ; by definition: gcd(a,0) = a, gcd(0,b) = b, gcd(0,0) = 1 !
+    mov ecx,eax
+    or ecx,ebx
+    bsf ecx,ecx         ; greatest common power of 2 of a and b
+    jnz notBoth0
+    mov eax,1           ; if a = 0 and b = 0, return 1
+    jmp done
+notBoth0:
+    mov edi,ecx
+    test eax,eax
+    jnz aNot0
+    mov eax,ebx         ; if a = 0, return b
+    jmp done
+aNot0:
+    test ebx,ebx
+    jz done             ; if b = 0, return a
+    bsf ecx,eax         ; "simplify" a as much as possible
+    shr eax,cl
+    bsf ecx,ebx         ; "simplify" b as much as possible
+    shr ebx,cl
+mainLoop:
+    mov ecx,ebx
+    sub ecx,eax         ; b - a
+    sbb edx,edx         ; edx = 0 if b >= a or -1 if a > b
+    and ecx,edx         ; ecx = 0 if b >= a or b - a if a > b
+    add eax,ecx         ; a-new = min(a,b)
+    sub ebx,ecx         ; b-new = max(a,b)
+    sub ebx,eax         ; the difference is >= 0
+    bsf ecx,eax         ; "simplify" as much as possible by 2
+    shr eax,cl
+    bsf ecx,ebx         ; "simplify" as much as possible by 2
+    shr ebx,cl
+    jnz mainLoop        ; keep looping until ebx = 0
+    mov ecx,edi         ; shift back with common power of 2
+    shl eax,cl
+done:
+    pop edi
+    pop edx
+    pop ecx
+    pop ebx
+    mov esp,ebp
+    pop ebp
+    ret                 ; eax = gcd(a,b)
+```
+
+第二个是来自 `Ville Miettinen`，他是工作在(或以前工作在) `hybrid graphics` (`http://www.hybrid.fi/`) 的，他的代码使用到了 `cmovCC` 指令:
+
+!!!!!!!ASM CODE!!!!!!!!!!!!!!!
+
+```asm
+/*---------------------------------------------------/*!
+ * brief   Computes GCD of two 32-bit unsigned integers
+ * param   x First unsigned integer
+ * param   y Second unsigned integer
+ * return  gcd(x,y)
+ * note    gcd(x,0) -> x, gcd(0,y) -> y
+ * note    Implemented in x86 assembler (PentiumPro and  
+ *         above only as cmov instructions are used)
+ * note    Send all comments/whines to wili@hybrid.fi
+ * todo    [wili 021026] Implement another version that  
+ *         uses sbb trickery rather than cmov  
+ *         instructions
+ *-----------------------------------------------------*/
+```
+
+
+
+#pragma warning(disable:4035) // no missing return value
+
+inline unsigned int gcd (Uint32 x, Uint32 y) {
+  __asm {
+    mov   ecx, dword ptr [y]
+    mov   edx, dword ptr [x]
+    test  ecx, ecx
+    mov   eax, edx
+    je    done               ;// if (y = 0) -> return x
+    test  eax, eax
+    mov   eax, ecx
+    je    done               ;// if (x = 0) -> return y
+    push  edi
+    bsf   ebx, eax           ;// ebx = trailingZeroes(y)
+    bsf   ecx, edx           ;// ecx = trailingZeroes(x)
+    cmp   ebx, ecx
+    mov   edi, ecx
+    cmovl edi, ebx           ;// edi = min(ebx,ecx)
+    shr   edx, cl            ;// x >>= trailingzeroes(x)
+    mov   ecx, ebx
+    shr   eax, cl            ;// y >>= trailingzeroes(y)
+    align 8
+  mainloop:                  ;// for (;;)
+    cmp   eax, edx
+    mov   ecx, eax
+    je    skiploop           ;// if (x == y) -> break
+    cmovb eax, edx
+    cmovb edx, ecx           ;// if (y > x) swap(x,y)
+    sub   eax, edx           ;// x -= y
+    bsf   ecx, eax
+    shr   eax, cl            ;// x >>= trailingzeroes(x)
+    jmp   mainloop
+    align 8
+  skiploop:
+    mov   ecx, edi
+    shl   eax, cl            ;// return x<<finalShiftLeft
+    pop   edi
+  done:                      ;// return value in eax
+  }
+}
+
+#pragma warning(default:4035)
+
+/*---------------------------------------------------//*!
+ * brief   Computes GCD of two 32-bit unsigned integers
+ * param   x First unsigned integer
+ * param   y Second unsigned integer
+ * return  gcd(x,y)
+ * note    gcd(x,0) -> x, gcd(0,y) -> y
+ * note    Implemented in x86 assembler (PentiumPro and
+ *         above only as cmov instructions are used)
+ * note    Send all comments/whines to wili@hybrid.fi
+ * todo    [wili 021026] Implement another version that
+ *         uses sbb trickery rather than cmov
+ *         instructions
+ *-----------------------------------------------------*/
+
+#pragma warning(disable:4035) // no missing return value
+
+inline unsigned int gcd (Uint32 x, Uint32 y) {
+  __asm {
+    mov   ecx, dword ptr [y]
+    mov   edx, dword ptr [x]
+    test  ecx, ecx
+    mov   eax, edx
+    je    done               ;// if (y = 0) -> return x
+    test  eax, eax
+    mov   eax, ecx
+    je    done               ;// if (x = 0) -> return y
+    push  edi
+    bsf   ebx, eax           ;// ebx = trailingZeroes(y)
+    bsf   ecx, edx           ;// ecx = trailingZeroes(x)
+    cmp   ebx, ecx
+    mov   edi, ecx
+    cmovl edi, ebx           ;// edi = min(ebx,ecx)
+    shr   edx, cl            ;// x >>= trailingzeroes(x)
+    mov   ecx, ebx
+    shr   eax, cl            ;// y >>= trailingzeroes(y)
+    align 8
+  mainloop:                  ;// for (;;)
+    cmp   eax, edx
+    mov   ecx, eax
+    je    skiploop           ;// if (x == y) -> break
+    cmovb eax, edx
+    cmovb edx, ecx           ;// if (y > x) swap(x,y)
+    sub   eax, edx           ;// x -= y
+    bsf   ecx, eax
+    shr   eax, cl            ;// x >>= trailingzeroes(x)
+    jmp   mainloop
+    align 8
+  skiploop:
+    mov   ecx, edi
+    shl   eax, cl            ;// return x<<finalShiftLeft
+    pop   edi
+  done:                      ;// return value in eax
+  }
+}
+
+#pragma warning(default:4035)
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+|||||||||||||||||||||||||||||||||||||||||
+
+2.搜索对齐了的结构中非零的元素
+
+假设，假设我们想在一个数组结构中查找它是否有一个特殊的项里面存着的是空的对象。就是说，假设我们需要写这样一个函数出来:
+
+!!!!!C CODE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+```
+unsigned int existnzkey (struct foobar * table, unsigned int tablelength)
+{
+    int i;
+    for(i=0;i<tablelength;i++)
+        if( table[i].key !=0 ) return table[i].key;
+    return 0;
+}
+```
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+显而易见的，要直接从汇编层次分析它的话，这个代码需要改进的问题实在是太多了。我们先透过一些创造力，一些可以在我的代码优化文章里找到的标准技巧处理下它:
+
+!!!!C CODE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+```
+static unsigned int existnzkey (unsigned int tablelength, struct foobar * table)
+{
+    int i,c,d;
+    d=i=0;
+    c=tablelength;
+    goto Start;
+    do {
+        d = table[i].key;
+        if( d !=0 ) return d;
+        i++;
+        c--;
+Start:;
+    } while( c!=0 );
+    return d;
+}
+```
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+这个新代码看起来更长了，而且看起来增加了一些不必要复杂流程，但实际上这样帮助编译器把变量和寄存器映射起来。这年头可能很多注释会说 goto 和 labels 是糟糕的习惯，因为编译器会给 goto 关掉优化或者什么什么的原因，不过呢，我的编译器看起来不吃这一套说法，这也是为什么我用起了 goto。
+
+假设我们的结构是这样:
+
+```
+struct foobar {
+    unsigned int key;
+    void * content;
+};
+```
+
+然后这个是编译器 vs 我手工汇编的情况
+
+!!!!!!ASM CODE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+```
+; compiler
+    xor     eax,eax
+    test    ecx,ecx
+    je      L2
+L1: mov     eax,[esi]   ; 1 U -
+    test    eax,eax     ; 2 U
+    jne     L2          ; 2   V
+    add     esi,8       ; 3 U
+    dec     ecx         ; 3 V
+    jne     L1          ; 5 - V +1brt
+L2:
+```
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+!!!!!!!!!ASM CODE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+```
+; by Pisen Chiang and Paul Hsieh
+    xor     eax,eax
+    test    ecx,ecx
+    je      L2
+    sub     esi,8
+L1: add     esi,8       ; 1 U
+    sub     ecx,1       ; 1   V
+    sbb     eax,eax     ; 2 U -
+    or      eax,[esi]   ; 3 U
+    jz      L1          ; 4   V +1brt
+    mov     eax,[esi]
+L2:
+```
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+编译器终于取得了一点优势，它在代码大小上赢了一次，不过我的代码要快很多，因为我避过了一个额外的 test，还在循环里避过了一个跳转。就像注释里说的，我的代码在每个循环里降低一个 CPU 时钟的占用(奔腾 CPU 上)。
+
+再深入些？唔，也不要太深入了。要不然就成了学术上面的研究了(而非实际应用的)。这个流程真正的问题所在是，我们访问的是一个对齐了的结构里面的一部分元素。如果这个数组的大小非常大，那我们就因为把结构里其他的元素抛弃掉而输掉了性能(CPU 的 cache 中只能储存连贯的一串数据)。把结构分开，把数组中的所有结构的所有元素都带上 locality of reference(本地引用 ?:所有的元素都要在循环里有 读或写的操作访问到它)，然后会比上面这一串优化还改观更多的性能。但是即便在那种情况下，我也认为大部分编译器会用一个性能随便的 repz scasd 就打发掉你想要有的代码优化(原话---)
+
+原话-----But even in that situation I don't think most compilers will use a repz scasd.
+
+总结下我们在这儿的成果，如果说你要处理的是一个结构很糟糕的数组(就像是 MS D3D API 用的顶点缓冲数组)，上面的代码还是很有用的。
+
+3. 63 bits 的 LFSR
+
+下面的是一个标准的 CRC(cyclic redundancy check computing 循环冗余校验计算)。它基本可以确定就是一个迭代性处理随机不确定的 63bits 输入的函数，然后返回 63bits。这个算法可以用来高速度(安全性不行的)加密，随机数产生，数据完整性效验，或者就当做一个 hash 函数。
+
+!!!!!!!!!C CODE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+```
+typedef unsigned long UINT;
+void TestC(UINT &b0, UINT &b1)
+{
+```
+
+
+
+`UINT` `L1`, `L2`, `L3`;
+
+`UINT` `H1`, `H2`;
+
+// `x` = (`x>>31`)^(`x>>30`)^(`x<<32`) (mod `2⁶³`)
+
+```
+L1 = (b1<<1)|(b0>>31);
+
+L2 = (b1<<2)|(b0>>30);
+
+H1 = (b1>>31);
+
+H2 = (b1>>30);
+
+b1 = H1^H2^b0 &0x7FFFFFFF;
+
+b0 = L1^L2;
+}
+```
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+这儿，我是通过一对 32bits 的变量来操作 63/64bits 的对象的。(我的编译器不支持纯天然的 64bits `int` 类型)
+
+!!!!!!!!!!ASM CODE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+```asm
+; compiler 编译器
+
+lea esi,[edx*2]     ; 1 U -
+shr ebx,31          ; 2 U -
+or  esi,ebx         ; 3 U -
+mov ebx,eax         ; 4 U -
+lea ecx,[edx*4]     ; 5 U
+shr ebx,30          ; 5 V
+or  ebx,ecx         ; 7 U - +agi
+mov ecx,edx         ; 8 U -
+shr ecx,31          ; 9 U -
+shr edx,30          ;10 U -
+xor edx,ecx         ;11 U -
+xor edx,eax         ;12 U -
+mov eax,esi         ;13 U
+and edx,07FFFFFFFh  ;13 V
+xor eax,ebx         ;14 U
+```
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+手写的 asm:
+
+!!!!!!!!!!ASM CODE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+```asm
+; by Paul Hsieh and Pisen Chiang
+
+mov esi,edx         ; 1 U
+xor cl,cl           ; 1 V
+shld edx,eax,1      ; 5 NP  +4c*
+shld esi,eax,2      ; 9 NP  +4c
+adc  cl,0           ;10 U
+xor  edx,esi        ;10 V
+xchg eax,edx        ;12 NP  +2c
+xor  dl,cl          ;13 U
+```
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+这二个的占用的时钟数是很相当接近的(在奔腾 MMX 上的结果，事实上就是 MMX 预处理的过程把结果给拉进了，第一个 `shld` 指令需要花费一个额外的时钟用来解析特殊的 mmx 指令)，这个出人意料的结果很大一部分是因为慢腾腾的 `shld` 指令。而在奔腾 Pro/II, K6 和 6x86MX 处理器上, `shld` 指令是可以很明显的提高代码大小和代码速度上的性能的。
+
+接下来这个，下面所做的优化，是完全针对奔腾处理器的:
+
+!!!!!!ASM CODE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+```asm
+; by hand for Pentiums
+
+mov esi,edx         ; 1 U
+xor cl,cl           ; 1 V
+shl esi,2           ; 2 U
+mov ebx,eax         ; 2 V
+adc  cl,0           ; 3 U
+lea  edx,[edx*2]    ; 3 V
+shr  ebx,30         ; 4 U
+xor  edx,esi        ; 4 V
+xor  edx,ebx        ; 5 U
+xor  al,cl          ; 5 V
+shr  ebx,1          ; 6 U -
+xchg eax,edx        ; 8 NP  +2c
+xor  eax,ebx        ; 9 U
+```
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+### 4.快速的泡沫排序
+
+Core Designs(古墓丽影的公司)的 Andrew Howe 发给了我一个超精短的排序代码。原始代码是在 WATCOM C/C++下写的，我把它的主要部分再给剥离了出来，现在你看到的就是这段代码的最佳状态：
+
+!!!!!!!!!ASM CODE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+```asm
+; by Andrew Howe
+
+outerloop:  lea ebx,[edi+ecx*4]
+            mov eax,[edi]
+
+cmploop:    sub ebx,4
+            cmp eax,[ebx]
+            jle notyet
+            xchg eax,[ebx]
+
+notyet:     cmp ebx,edi
+            jnz cmploop
+            stosd
+            loop outerloop
+```
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+注意代码里对 `xchg`，`stosd` 和 `loop` 的使用，这几个是你永远在 c 编译器里看不到的指令。我不会花额外的时间去探讨这个流程的时间性能。要是留心的话，会发现在有一些程序里，泡沫排序比其他一个支线很多麻烦很多的排序算法要合适的多。例如，3D 程序需要 z 轴-排序，考虑到时间地点的问题，这个上面总需要维护一个最大值的排序结果，这样就适合来点泡沫了。(从这个出发点延伸出来的另一个有趣的话题可以到这儿看 <<Sorting with less than all the facts>> http://www.azillionmonkeys.com/qed/case5.html)
+
+### 5.一个速度更快的 strlen()代码
+
+在最近，有人给我写了一个留言，说是 `strlen()` 是一个平时要用到很多次的函数，多到足够引起兴趣给它写一个性能优化的替代函数了。那么首先，不把它考虑到太难的方向，我不觉得有什么方法可以从算法的根本上改进它的性能。我在这点上是对的，不过在算法最底部基础的地方看看，可以改进性能的方法还是很丰富的。首先，算法的根本是按字节搜索 0 的，这样的话有一个标准性的改进方向是 c 编译器版本的会错过减少预载入到 cache 数据数量的机会:
+
+!!!!!!!!!!!ASM CODE!!!!!!!!!!!!!!!
+
+```asm
+; compiler
+
+    mov edx,ebx
+    cmp byte ptr [ebx],0
+    je  l2
+l1: mov ah,[ebx+1]       ; U
+    inc ebx              ; V
+    test ah,ah           ; U
+    jne  l1              ; V +1brt
+l2: sub ebx,edx
+```
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+人手汇编
+
+!!!!!!!!!ASM CODE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+```asm
+; by Paul Hsieh
+
+    lea ecx,[ebx-1]
+l1: inc ecx
+    test ecx,3
+    jz  l2
+    cmp byte ptr [ecx],0
+    jne l1
+    jmp l6
+l2: mov eax,[ecx]        ; U
+    add ecx,4           ; V
+    test al,al          ; U
+    jz  l5              ; V
+    test ah,ah          ; U
+    jz  l4              ; V
+    test eax,0ff0000h   ; U
+    jz  l3              ; V
+    test eax,0ff000000h ; U
+    jnz l2              ; V +1brt
+    inc ecx
+l3: inc ecx
+l4: inc ecx
+l5: sub ecx,4
+l6: sub ecx,ebx
+```
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+这就是了。我牺牲了代码大小，来换取时间性能，通过从本质上把循环展开 4 次，如果输入的字符串足够的长(这种情况下性能就是个需要注意的东西了，测试是在奔腾 CPU 上的),每个字节需要执行的 asm 代码是 1.5 个时钟，c 的每字节则需要 3 个时钟。但当字符串不够长的时候，过多的跳转指令产生的分支误预测会使它比编译器的那个占点劣势。
+
+update 补充:
+
+在讨论 Sprite(图像里的一个东西)的数据复制时，我意识到有一种显著改善 32-bit X86 上分支误预测影响力的方法(P-II 和 athlon 上)
+
+!!!!!!!!!!ASM CODE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+```asm
+; by Paul Hsieh
+
+    lea ecx,[ebx-1]
+l1: inc ecx              ;当有单个字节不等于 0 时，到这儿增加 1
+    test ecx,3
+    jnz l3
+l2: mov edx,[ecx]        ; U
+    mov eax,07F7F7F7Fh   ; V
+    and eax,edx          ; U 把每个字节 0x7f 以下的数字留下来，0 当然还是 0
+    add ecx,4            ; V ~~~~按 4 作为比较是否为 0 的跨步~~~
+    add eax,07F7F7F7Fh   ; U 增加 0x7f。
+    or  eax,edx          ; U 或上原字节。直观看是处理 0x81 和比 0x81 大的情况，但到这儿其实是让所有非 0 字节至少等于 0x80 或更大
+    and eax,080808080h   ; U 到现在，这个字节除了是 0 之外，所有的其他的大小都会被变成 0x80。
+    cmp eax,080808080h   ; U 和 0x80 判断即站点是否为 0
+    je  l2               ; V +1brt
+    sub ecx,4
+l3: cmp byte ptr [ecx],0
+    jne l1
+    sub ecx,ebx
+```
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+我认为这个代码在 32 bit X86 上通常都会提供更好的性能，它减少了很多的跳转。16 bits 的 X86CPU 很明显的可以用一个类似的代码,但很明显它也会比 32bits 的处理速度慢一倍。(还有，我真的开始喜欢这种 mask 技巧了!快看看下一个例子)还有，谢谢 ZiBin Yang (杨子斌 ?)指出来的我的代码里的一个错误。
+
+这儿是 C 版本的相同功能的代码：
+
+!!!!!!!C CODE!!!!!!!!!!!!!!!
+
+```c
+int fstrlen(char *s) {
+    char *p;
+    int d;
+    #define M1 (0x7f7f7f7f)
+    #define M2 (0x80808080)
+    #define SW (sizeof(int)/sizeof(char))
+
+        p=s-1;
+        do {
+            p++;
+            if( (((int)p)&(SW-1))==0 ) {
+                do {
+                    d = *((int *)p);
+                    p += SW;
+                    d = (((d&M1)+M1)|d)&M2;
+                } while( d==M2 );
+                p -= SW;
+            }
+        } while( *p!=0 );
+        return p-s;
+}
+```
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+它会编译成很大一篇幅的相同功能的代码(在 P6 上它应该也有相同的性能表现)，但它有一个小问题。它不能适应不同大小的 int 类型(`0x7f7f7f7f` 和 `0x80808080` 会被截断，或者不够用，也会把指针 `p` 指到一个无法确定位置的地方)，而且 C 版本的它也没一点点比 asm 版本的容易理解。
+
+注意，虽然读取时候读取对齐的数据不是必须的，在现代 X86 上它还是会有一些影响，不对齐地址的读取可能造成内存读取失误。这个失误在读取到字符串结尾的时候就可能出现，但我们上面的代码没考虑这些，还是假设你的内存是安装 DWORD(32bits)大小对齐申请的。
+
+update 补充:
+
+Ryan Mack 发来了一个 MMX 版本的 strlen:
+
+!!!!!!!!!ASM CODE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+```asm
+; MMX version by Ryan Mack
+```
+
+
+
+; Roughly 13 + 3n + BRANCH clocks on a P-II
+
+```const unsigned __int64 STRINGTBL[8] = {0, 0xff,
+        0xffff, 0xffffff, 0xffffffff, 0xffffffffff,
+        0xffffffffffff, 0xffffffffffffff}
+```
+
+/* ... */
+
+```pxor     mm1, mm1
+mov      ecx, eax
+mov      edx, eax
+and      ecx, -8
+and      eax, 7
+movq     mm0, [ecx]
+por      mm0, [STRINGTBL+eax*8]
+```
+
+MAIN:
+```add      ecx, 8
+pcmpeqb  mm0, mm1
+packsswb mm0, mm0
+movd     eax, mm0
+movq     mm0, [ecx]
+test     eax, eax
+jz       MAIN
+bsf      eax, eax
+shr      eax, 2
+lea      ecx, [ecx+eax-8]
+sub      ecx, edx
+```
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+每个循环都不再依赖于其他的循环了，在现在的 CPU 指令里不能这样做，原因只是没有相应的 CPU 指令。这段代码在 P-II 上执行的话，我们拥有 6 个 ALU 单元和 1 个负载缓冲(`load microop`?)，这使得 8 bytes 只需要 3 时钟就可以比较完。在一个 AMD 处理器上，有 7 个 risc 指令单元(`riscops???` 不确定!)，在 `athlon` 上它也可以 3 时钟处理 8 字节，在 K6 上则是 4 时钟 8 字节的速度。
+
+`athlon` 上的性能测试机制显示(忽略掉分支误预测的影响)，对于一个超长字符串而言，这个每次可以处理 64 bits 的版本对比 32 版本的代码提高了 55%的速度(比 WATCOM clib 里的 `strlen` 还快 22%)。物理如何，对于超短字符串(少于 8 字节)，64bits 版本的对比 32bit 版本的就要慢上 3 倍，但和 WATCOM 的 clib 中的 `strlen` 在相同短字符串的情况下还是一样快的。但需要关心一下的是，如果你的字符串够短，分支误预测(我的测试里没计算它的影响)将相对其他情况里的占用多很多的执行时间。当然任何情况下，如果你想用这些 `strlen` 了，你应该做一下具体情况里的性能测试，以确定哪个适合你。
+
+### Update 补充
+
+`Norbert Juffa` 给我写了消息，教给我一个古老的技巧，比起我的还可以有极大的改善(爽罢，rock rock 起来，我们继续看
+
+/:^) :
+
+---------quote--
+
+After a few minutes of research it turns out that the original null byte detection by Alan Mycroft is superior to the formula given on your website as it has shorter dependency chains. On a PIII, strcpy() performance jumped almost 20% from substituting one for the other. Mycroft's macro is
+
+结果几分钟的研究，发现最原始的 null 字节检测(`Alan Mycroft` 写的)比你的网站上的公式要强大很多，它有短得多的运算步骤。在 P-III 上，`strcpy()` 的性能提高了接近 20%。 `Mycroft` 的宏是：
+
+```#define has_nullbyte_(x) ((x - 0x01010101) & ~x & 0x80808080)
+```
+
+I rendered this as:
+
+我把它翻译成汇编了:
+
+```mov edx, eax
+not eax
+sub edx, 0x01010101
+and eax, 0x80808080
+and eax, edx
+; cycle 1
+; cycle 2
+; cycle 3
+```
+BTW, one of Mycroft's original posts about this macro can be found at Deja. The post is dated 1987-04-27!
+
+另外， `Mycroft` 的一个最早的关于这个宏的帖子可以在 deja 上找到，发表日期是 1987-04-27!
+
+-----------------------------------
+
+我去做了一点搜索工作，然后非常的没错，你可以在 google groups 上找到一个很老的帖子(http://groups.google.com/groups?hl=en&lr=&ie=UTF-8&oe=UTF-8&safe=off&frame=right&rnum=41&thl=1999517941,1999517790,1999517863,1999514445,1999512411,1999511988,1999510624,1999510104,1999509023,1999515705,1999515112,0&seekm=4605%40utcsri.UUCP#link43)，这儿就是上面最新 `strlen()` 的 C 语言实现:
+
+!!!!!!!!!!C CODE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+```#define hasNulByte(x) ((x - 0x01010101) & ~x & 0x80808080)
+#define SW (sizeof (int) / sizeof (char))
+int xstrlen (const char *s) {
+const char *p;
+int d;
+    p = s - 1;
+    do {
+        p++;
+        if ((((int) p) & (SW - 1)) == 0) {
+            do {
+                d  = *((int *) p);
+                p += SW;
+            } while (!hasNulByte (d));
+            p -= SW;
+        }
+    } while (*p != 0);
+    return p - s;
+}
+```
+
+```#define hasNulByte(x) ((x - 0x01010101) & ~x & 0x80808080)
+#define SW (sizeof (int) / sizeof (char))
+int xstrlen (const char *s) {
+const char *p;
+int d;
+    p = s - 1;
+    do {
+        p++;
+        if ((((int) p) & (SW - 1)) == 0) {
+            do {
+                d  = *((int *) p);
+                p += SW;
+            } while (!hasNulByte (d));
+            p -= SW;
+        }
+    } while (*p != 0);
+    return p - s;
+}
+```
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+和其他的 `strlen` 方法比起来，在 `athlon` 上这个完全是求 32 字节字符串长度最快的方法了，字节更长时 MMX 的方法有优势。这个函数的性能比起绝多数库里的 `strlen`，都是占有绝多数优势的。
+
+### 6.Sprite 的数据复制
+
+一个程序员(游戏程序员)常见的需求是，渲染 sprite 图像时怎么写出来一个高性能的 sprite 图像块传输函数(`blitter`, `BLIT` `BLock` `Image` `TransfER`)。最近一个在 rec.games.programmer 的讨论里，提问者的需要是把一个数组的像素一直复制到目标位置直到碰到像素值为 0 的情况。一开始时候的代码看起来类似于:
+
+!!!!!!!C CODE!!!!!!!!!!!!!!!!
+```char * scrptr;
+char * destptr;
+/* ... */
+/* copy scanline except where transparent. */
+for(x=x0;x<xl;x++) {
+    if( srcptr[x]!=0 ) destptr[x]=srcptr[x];
+}
+```
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+当然，一开始的这个代码有好几个性能问题在它里面，(1)它有一个在实际中总要判断出错的分支预测，然后(2)读取内存的方式是每次读取一个内存，这样是对内存带宽极大的浪费，同样也增加了循环的次数。
+
+也能换个角度看，如果说要写入目标内存是"Write Combine"(合并写入)和"write mask"类型的(写入 mask，作用于 rgb 和 xyzw 参考 http://msdn.microsoft.com/en-us/library/bb219870(v=vs.85).aspx)，那代码执行的瓶颈就是在写入上而不是分支误预测和内存读取上，这样的代码也是一种好事(同步)。(这种情况是可以发生的，当要写入的内存是显存，或者 CPU 是被超频了的)
+
+无论如何，只要说读取到的内存不是性能的瓶颈(系统内存)，那每次读 4 字节，然后用上 mask 的是否为 0 判断方式就不是一个坏方案了，这样提供了一个你不需要写跳转的代码方案了。(不优化跳转的话，也就没什么特别大的优化方向了)。回复者里 Russ Williams 直接拿出来一个使用了 `carry flag` (`CF eflag`)方案了(在奔腾 CPU 上有优化效果):
+
+!!!!!!!!!ASM CODE!!!!!!!!!!!!!!!!!!!!!!
+```; by Russ Williams
+pushad
+mov esi,[pbSrc]
+mov ecx,[w]
+shr ecx,2
+mov edi,[pbDest]
+sub edi,esi
+looptop:
+xor ebx,ebx
+mov eax,[esi]
+add esi,4
+mov edx,eax
+ror edx,16
+add al,255              ; cf =  1 if al!=0 or 0 if al==0
+sbb bl,0                ; bl = -1 if al!=0 or 0 if al==0
+add ah,255
+sbb bh,0
+mov eax,edx
+shl ebx,16
+add al,255
+sbb bl,0
+add ah,255
+sbb bh,0
+mov eax,[edi]
+ror edx,16
+and eax,ebx             ; dest &bg.mask  (P6: PRS)
+or  eax,edx             ; merge with src
+dec ecx
+mov [edi+esi],eax
+jnz looptop
+popad
+```
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+上面的代码在奔腾 CPU 上优化效果明显，而且也已经是超出了 C 编译器的能力范围(对 `CF eflag` 的使用)。但是， P-II 不喜欢操作部分的寄存器(如 `al`, `dl`)，它占用了显然更多的 CPU，一个指令 7 个时钟。这样经过了再一些讨论后，Christer Ericson 回复说找到了这样一个技巧:
+
+`(((D &0x7F7F7F7F) + 0x7F7F7F7F) | D) &0x80808080`
+
+上面的式子可以制造出一个在最高位标示出每个字节属性的 mask;00 指明这是一个值为 0 的字节，0x80 指明这是一个值非 0 的字节。通过再进一步的技巧，你可以把这个结果改变成 00 代表 0，然后 0xff 代表非 0 的 mask，而这样的 mask 正是我们所渴望得到的标示串。这是 asm 代码:
+
+!!!!!!!!!!ASM CODE!!!!!!!!!!!!!!!!!!!!!
+```; by Paul Hsieh
+sub esi,edi
+looptop:
+mov eax,[esi+edi]       ; read sprite source bits
+mov ebx,7f7f7f7fh
+and ebx,eax
+add ebx,7f7f7f7fh
+or  ebx,eax             ; 80808080 bits have non-zero status of bytes.
+and ebx,80808080h
+shr ebx,7               ; move to 01010101 bits.
+add ebx,7f7f7f7fh       ; 80==on or 7f==off values in each byte.
+and ebx,7f7f7f7fh       ; 00==on or 7f==off masks.
+lea eax,[ebx+ebx]       ; eax has 00==on or fe==off masks.  (P5: AGI stall)
+or  eax,ebx             ; eax has 00==on or ff==off masks.
+mov ebx,eax
+not ebx                 ; ebx has 00==off or ff==on masks.
+and eax,[edi]           ; background bits
+```
+
+
+
+`or eax,[esi+edi]`      ; merge with sprite bits for final result  
+
+`mov [edi],eax`           ; draw!  
+
+`add edi,4`  
+
+`dec ecx`  
+
+`jnz looptop`  
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  
+
+当然是，上面的循环代码不是特别适合奔腾 CPU，特别是当整个代码里操作的数据都互相有依存关系时(intel 的 CPU 有多条指令线，当指令之间不依赖上一条指令对数据的操作结果时，P-22 可以同时执行完 20 或更多条的指令!)，而且那儿有一个 AGL 暂停 (AGL stall?)。这些个问题可以透过展开一次的循环，然后用标准的 `add` 指令代替 `lea`(edx 和 ebx 寄存器在这儿还空着)执行来完成。
+
+但不管怎么样， P-II 它自己将试着"自然的"展开这个循环到缓冲中(也就是在循环里不用读、解析指令等)，然后还会试着不受 AGI 暂停的影响，这样的话，上面少掉的流程使得我们从不需要手动详细维护控制这个循环上占到一些性能的便宜(当然这二个性能上的问题还可能直接就不出现)。但是,这个循环的指令是 22 个微指令(比 P-II 的缓冲大 2 个指令)，它不能被完全展开的。
+
+K6 的 CPU 也只能部分的展开这个循环，原因是这个循环它需要的解码时钟比 6 个更多。
+
+事实上，C 编译器对上面这个代码会感到挺头疼(还有其他看起来类似的代码)。我也不大确定你怎么样才可以说服你的 C 编译器上面代码里面的循环需要展开一次。
+
+update 补充:
+
+经过一些思考后，很明显的上面的算法可以，而且应该利用 MMX 和一些新的 SSE 指令(`movntq`)来再提高一下性能。我可能会过阵子写下这个代码。
+
+另外还有一个好主意， Terje Mathisen 提出的，就是利用 P-II 的合并写入功能，来做到最小的分支误预测性能损耗。具体的办法就是用一个 mask 来从两个目标地址中选出要写入的那个。
+
+!!!!!!!!!!ASM CODE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+```
+; Idea from Terje Mathisen, implemented by Sean T. Barrett
+sub esi,edi
+mov edx,temp
+sub edx,edi            ; edx = (temp-edi)
+...
+loop:
+mov al,[esi+edi]       ; al=src
+cmp al,1               ; cf  =  1 if src==0,         0 if src!=0
+sbb ebx,ebx            ; ebx = -1 if src==0,         0 if src!=0
+and ebx,edx            ; ebx = (temp-edi) if src==0, 0 if src!=0
+mov [ebx+edi],al       ; store to dest (edi) or garbage (temp)
+inc edi
+dec ecx
+jnz loop               ; well predicted branch
+```
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+当然，temp 这个不是说必须引用系统变量，而只是代表一个参数的意思。外部的循环比较复杂，但在理想的情况中，这个可以更好的利用 P-II 的芯片功能，避开分支误预测的损耗。这儿 CF eflag 技巧的使用也还是超出的 C 编译器的能力范围。(再当然，这个循环应该再展开一点，以提高些性能)
+
+就像上面之前列出的关键搜索问题，所有的这些都有点学术性。对大部分的那些渲染过一次然后一次又一次使用的 sprites，源图像和固定的像素通常在很长的时间里都使用到。因此使用个备用的编码，使得图像传输的预处理变成预读取保存了的常量这样的执行过程，(transparency versus non-transparency run)在性能的改进上更有效果。图像块传输归根到底就是给一个指针赋值一个常量，让图像传输固定的颜色值就更直接，直接不需要对源图像做处理了。(原文----)
+
+原文----:However, like the key scan problem listed above, all this may be academic. For most sprites that are rendered once and used over and over again, transparencies and solid source pixels are usually in long runs. So using an alternate encoding which give transparency versus non-transparency runs will usually be more efficient. Blitting transparency would come down to adding a constant to the pointers, and the blitting solid colors would be immediate without required examination of the source.
+
+update 补充:
+
+Paolo Bonzini 写了一个更有优化效果的内部循环。优化的方法是，把 mask 用来 xor，从复制源 xor 一个值出来，再 xor 给复制的目标
+
+!!!!!!!!!!ASM CODE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+```
+; by Paolo Bonzini
+mov eax, [esi+edi] ; read sprite source
+mov ebx, [edi]     ; source
+mov ecx, eax
+and ecx, 7f7f7f7fh
+add ecx, 7f7f7f7fh ; set bit 7 set if bits 6-0 nonzero
+or  ecx, eax       ; set bit 7 if byte nonzero
+and ecx, 80808080h ; 80 == on or 00 == off
+xor eax, ebx       ; eax = dest ^ source
+shr ecx, 7         ; 01010101 bits set if byte nonzero
+add ecx, 7f7f7f7fh ; 80 == on or 7f == off
+xor ecx, 7f7f7f7fh ; ff == on or 00 == off
+and eax, ecx       ; d^s== on or 00 == off
+xor ebx, eax       ; set to source if on
+mov [edi], ebx     ; set to source if on
+; by Paolo Bonzini
+mov eax, [esi+edi] ; read sprite source
+mov ebx, [edi]     ; source
+mov ecx, eax
+and ecx, 7f7f7f7fh
+add ecx, 7f7f7f7fh ; set bit 7 set if bits 6-0 nonzero
+or  ecx, eax       ; set bit 7 if byte nonzero
+and ecx, 80808080h ; 80 == on or 00 == off
+xor eax, ebx       ; eax = dest ^ source
+shr ecx, 7         ; 01010101 bits set if byte nonzero
+add ecx, 7f7f7f7fh ; 80 == on or 7f == off
+xor ecx, 7f7f7f7fh ; ff == on or 00 == off
+and eax, ecx       ; d^s== on or 00 == off
+xor ebx, eax       ; set to source if on
+mov [edi], ebx     ; set to source if on
+```
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+另外，Paolo 也发布了一个精挑细作的 MMX 代码
+
+!!!!!!!!!ASM CODE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+```
+movq    mm1, [esi+edi]
+pxor    mm0, mm0
+movq    mm2, [edi]
+pcmpeqb mm0, mm1       ; mm0 = 0 if on, ff if off
+pand    mm2, mm0       ; mm2 = 0 if on, d if off
+por     mm2, mm1       ; mm2 = s if on, d if off
+movq    [edi], mm2
+movq    mm1, [esi+edi]
+pxor    mm0, mm0
+movq    mm2, [edi]
+pcmpeqb mm0, mm1       ; mm0 = 0 if on, ff if off
+pand    mm2, mm0       ; mm2 = 0 if on, d if off
+por     mm2, mm1       ; mm2 = s if on, d if off
+movq    [edi], mm2
+```
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+## 7. MMX 时间到了
+
+在 `sandpile(http://www.sandpile.org/)` 上面 DS 问道，怎么提高这个的性能:
+
+--------Quote------------------------------
+```
+An MMX 64bit reg has useful values only at byte7 and byte3 (AXXXBXXX, where A/B-useful, X-useless). I want to copy byte7 to byte6, byte5, byte4; and copy byte3 to byte2, byte1, byte0.
+```
+一个 64bits 的 MMX 寄存器，它只有 byte7 和 byte3 是需要的(AXXXBXXX,A/B-有用，X-没用)。想的结果是复制 byte 7-> byte6,byte5,byte4;并同时复制 byte3->byte2,byte1,byte0。
+--------------------------------------
+
+我考虑了二个方法:
+
+`psrld     mm0, 24`                     ; 0 0 0 A 0 0 0 B
+`packssdw  mm0, mm0`                    ; 0 A 0 B 0 A 0 B
+`punpckhwd mm0, mm0`                    ; 0 A 0 A 0 B 0 B
+`pmullw    mm0, Const_0101010101010101` ; A A A A B B B B
+
+或者
+
+`psrld     mm0, 24`  ; 0 0 0 A 0 0 0 B
+`packssdw  mm0, mm0` ; 0 A 0 B 0 A 0 B
+`packuswb  mm0, mm0` ; A B A B A B A B
+`punpcklbw mm0, mm0` ; A A B B A A B B
+`punpcklbw mm0, mm0` ; A A A A B B B B
+
+第一个的指令更少，而且在 Athlon CPU 上所计算需要的时钟周期更段。第二个的指令更多，但计算需要的时钟周期更短,这个堆 K6,Cyrix 还有 P55C CPU 都是有利的。但对 P6 的 CPU 我就不确定哪个更有优势了。
+
+然后当然的，我们一进入到 MMX 的境界，可怜兮兮的 C 编译器就真的是一点点类似的优化也无能为力了。
+
+## 8. 一般性的位移
+
+Norbert Juffa 在学习 Compaq Visual Fortran 编译器的过程里，考虑了对一般性的位移的优化。在 Fortran 语言里面，一个一般性的位移总是向左位移的，但它可能会产生一个负数值的位移数量，意味着向右位移，还有，fortran 里位移的数量要小于 word 能包含的最多的 bit 数量(往哪个方向的位移都得小于这个)。我开始做优化的算法如下:
+
+!!!!!!!!!!C CODE!!!!!!!!!!!!!!!!!!!!!!!!
+```
+unsigned long gensh(unsigned long v, int x) {
+int a, b;
+    a = (v << x) & -(((unsigned int)x) < 32);
+    x = -x;
+    b = (v >> x) & -(((unsigned int)x) < 32);
+    return a|b;
+}
+
+unsigned long gensh(unsigned long v, int x) {
+int a, b;
+    a = (v << x) & -(((unsigned int)x) < 32);
+    x = -x;
+    b = (v >> x) & -(((unsigned int)x) < 32);
+    return a|b;
+}
+```
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+ANSI C 标准，要求我们在右移里必须用 `unsigned int` 类型，因为接触到"C 标准定义的"符号位的位移可能会产生一个未知的错误.这也是我在这儿提起这个的原因。
+
+现在开始比拼汇编功底，这次把 MS VC++ 也参与进来了:
+
+!!!!!!!ASM CODE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+```
+; by Paul Hsieh
+mov ebx, eax ; 1
+shl eax, cl  ; 1
+cmp ecx, 32  ; 1
+sbb edx, edx ; 2 dep: CF
+neg ecx      ; 2 issue
+and eax, edx ; 3 dep: edx
+cmp ecx, 32  ; 3 dep: ecx
+sbb edx, edx ; 4 dep: CF
+shr ebx, cl  ; 3 dep: ecx
+and ebx, edx ; 5 dep: edx
+or  eax, ebx ; 6 dep:
+; by Paul Hsieh
+```
+
+
+
+`mov ebx, eax ; 1`
+
+`shl eax, cl  ; 1`
+
+`cmp ecx, 32  ; 1`
+
+`sbb edx, edx ; 2 dep: CF`
+
+`neg ecx      ; 2 issue`
+
+`and eax, edx ; 3 dep: edx`
+
+`cmp ecx, 32  ; 3 dep: ecx`
+
+`sbb edx, edx ; 4 dep: CF`
+
+`shr ebx, cl  ; 3 dep: ecx`
+
+`and ebx, edx ; 5 dep: edx`
+
+`or  eax, ebx ; 6 dep:`
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!ASM CODE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+`; Microsoft Visual C++`
+
+`cmp ecx, 32  ; 1`
+
+`mov esi, eax ; 1`
+
+`sbb edx, edx ; 2 dep: CF`
+
+`shl esi, cl  ; 2 dep: esi`
+
+`neg edx      ; 3 dep: edx ??`
+
+`neg edx      ; 4 dep: edx ??`
+
+`neg ecx      ; 1`
+
+`and edx, esi ; 5 dep: edx`
+
+`cmp ecx, 32  ; 2 dep: ecx`
+
+`sbb esi, esi ; 3 dep: CF`
+
+`sar eax, cl  ; 3 issue (ANSI)`
+
+`neg esi      ; 4 dep: esi ??`
+
+`neg esi      ; 5 dep: esi ??`
+
+`and eax, esi ; 6 dep: esi`
+
+`or  eax, edx ; 7 dep:`
+
+`; Microsoft Visual C++`
+
+`cmp ecx, 32  ; 1`
+
+`mov esi, eax ; 1`
+
+`sbb edx, edx ; 2 dep: CF`
+
+`shl esi, cl  ; 2 dep: esi`
+
+`neg edx      ; 3 dep: edx ??`
+
+`neg edx      ; 4 dep: edx ??`
+
+`neg ecx      ; 1`
+
+`and edx, esi ; 5 dep: edx`
+
+`cmp ecx, 32  ; 2 dep: ecx`
+
+`sbb esi, esi ; 3 dep: CF`
+
+`sar eax, cl  ; 3 issue (ANSI)`
+
+`neg esi      ; 4 dep: esi ??`
+
+`neg esi      ; 5 dep: esi ??`
+
+`and eax, esi ; 6 dep: esi`
+
+`or  eax, edx ; 7 dep:`
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!ASM CODE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+`; WATCOM C/C++`
+
+`cmp  edx, 32  ; 1`
+
+`setb cl       ; 2 dep: CF`
+
+`mov  ebx, ecx ; 4 dep: ecx, size`
+
+`mov  esi, eax ; 1`
+
+`and  ebx, 255 ; 5 dep: ebx`
+
+`mov  cl, dl   ; 1 rename cl`
+
+`neg  ebx      ; 6 dep: ebx`
+
+`shl  esi, cl  ; 2 dep: esi,cl`
+
+`neg  edx      ; 2 issue`
+
+`mov  ecx, esi ; 3 dep: esi`
+
+`and  ebx, esi ; 7 dep: ebx`
+
+`cmp  edx, 32  ; 3 dep: edx`
+
+`setb dh       ; 4 dep: CF`
+
+`xor  ecx, esi ; 4 dep: ecx ??`
+
+`mov  cl, dh   ; 5 dep: dh`
+
+`mov  esi, ecx ; 7 dep: ecx, size`
+
+`mov  cl, dl   ; 3 dep: edx`
+
+`neg  esi      ; 8 dep: esi`
+
+`sar  eax, cl  ; 5 issue (ANSI)`
+
+`and  eax, esi ; 9 dep: esi`
+
+`or   eax, ebx ; 10 dep:`
+
+`; WATCOM C/C++`
+
+`cmp  edx, 32  ; 1`
+
+`setb cl       ; 2 dep: CF`
+
+`mov  ebx, ecx ; 4 dep: ecx, size`
+
+`mov  esi, eax ; 1`
+
+`and  ebx, 255 ; 5 dep: ebx`
+
+`mov  cl, dl   ; 1 rename cl`
+
+`neg  ebx      ; 6 dep: ebx`
+
+`shl  esi, cl  ; 2 dep: esi,cl`
+
+`neg  edx      ; 2 issue`
+
+`mov  ecx, esi ; 3 dep: esi`
+
+`and  ebx, esi ; 7 dep: ebx`
+
+`cmp  edx, 32  ; 3 dep: edx`
+
+`setb dh       ; 4 dep: CF`
+
+`xor  ecx, esi ; 4 dep: ecx ??`
+
+`mov  cl, dh   ; 5 dep: dh`
+
+`mov  esi, ecx ; 7 dep: ecx, size`
+
+`mov  cl, dl   ; 3 dep: edx`
+
+`neg  esi      ; 8 dep: esi`
+
+`sar  eax, cl  ; 5 issue (ANSI)`
+
+`and  eax, esi ; 9 dep: esi`
+
+`or   eax, ebx ; 10 dep:`
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+从 asm 旁边的注释可以看到三段 asm 各自的时钟占用(athlon x86 的 CPU)。看的时候还应该注意每个指令序列会引起的指令执行暂停的问题。暂停的情况就像这样，一个 X86 处理器的 4 条指令解码流水线都去解码了，但之后一个突发情况让它们解码出来的可能要执行的代码不被执行，然后就得重新来过了。从所有的情况看，MSVC++看起来在最终性能优化上做的相等不错，但它还是不能简化 `neg reg` 这个指令。标准的 asm 开发过程中，寄存器重分配会把指令之间的数据依赖分散掉(在 `mov esi, eax` 之后，这二个寄存器就是一样的，而且可以在后面的代码里交换对他们的使用，操作它们二个的指令就可以放在相邻的地方)，MSVC++在这个上面没有做优化。WATCOM C/C++在寄存器大小的配对上面碰到困难了，标准的 `sub reg8, reg32` 技巧也没用上。
+
+### 9. 64bits BCD 数字的加法
+
+`Norbert Juffa` 给了我一些不可想见的成功的 64bits BCD 数字的加法代码:
+
+!!!!!!!!ASM CODE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+```asm
+; by Norbert Juffa
+  mov   eax, dword ptr [x]   ; x (lo)
+  mov   ebx, dword ptr [y]   ; y (lo)
+  mov   edx, dword ptr [x+4] ; x (hi)
+  mov   ecx, dword ptr [y+4] ; y (hi)
+  ; here: EDX:EAX = augend, ECX:EBX = addend
+  mov   esi, eax             ; x
+  lea   edi, [eax+66666666h] ; x + 0x66666666
+  xor   esi, ebx             ; x ^ y
+  add   eax, ebx             ; x + y
+  shr   esi, 1               ; t1 = (x ^ y) >> 1
+  add   edi, ebx             ; x + y + 0x66666666
+  sbb   ebx, ebx             ; capture carry
+  rcr   edi, 1               ; t2 = (x + y + 0x66666666) >> 1
+  xor   esi, edi             ; t1 ^ t2
+  and   esi, 88888888h       ; t3 = (t1 ^ t2) & 0x88888888
+  add   eax, esi             ; x + y + t3
+  shr   esi, 2               ; t3 >> 2
+  sub   eax, esi             ; x + y + t3 - (t3 >> 2)
+  sub   edx, ebx             ; propagate carry
+  mov   esi, edx             ; x
+  lea   edi, [edx+66666666h] ; x + 0x66666666
+  xor   esi, ecx             ; x ^ y
+  add   edx, ecx             ; x + y
+  shr   esi, 1               ; t1 = (x ^ y) >> 1
+  add   edi, ecx             ; x + y + 0x66666666
+;;sbb   esi, esi             ; capture carry
+  rcr   edi, 1               ; t2 = (x + y + 0x66666666) >> 1
+  xor   esi, edi             ; t1 ^ t2
+  and   esi, 88888888h       ; t3 = (t1 ^ t2) & 0x88888888
+  add   edx, esi             ; x + y + t3
+  shr   esi, 2               ; t3 >> 2
+  sub   edx, esi             ; x + y + t3 - (t3 >> 2)
+  ; here EDX:EAX = sum
+  mov   edi, z
+  mov   [edi], eax
+  mov   [edi+4], edx
+```
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+对 Carry Flag 的利用和对 `rcr` 指令的引入，再次说明 c 编程工具们在很多汇编轻易可以做到的优化上的无能为力。
+
+你可以在这儿找到 BCD 算数的说明: `http://www.cs.uiowa.edu/~jones/bcd/index.html`
+
+### 10. 像素 bashing
+
+"Gordy"在实现一个 软件实现图像库(`http://gfody.com/`)，然后在 USENET 上就很多常用 pixel bashing 流程的优化提出了问题。这儿是一些我提供的解决方案。
+
+第一个是按特殊顺序压缩 4bits 像素到一个像素的 MMX 函数。这个转化过程就是简单的从每 4 个像素的最低处取出需要的那个。原始 4 个像素的 qword 是: 21436587 (别问我为什么这样那样-这是 Gordy 的库)。我们可以假设这 4 个像素是被 mask 了的(例如，其他不用的 bit 都被设置为 0 了)
+
+!!!!!!!!ASM CODE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+```asm
+MagicConst dd 48124812h,48124812h
+;....
+    movq     mm7, MagicConst
+    pcmpeqb  mm6, mm6        ; 1111111111111111
+    psllw    mm6, 12         ; 1111000000000000
+@quads:
+    movq     mm0, [esi]      ; 0006000500080007
+    movq     mm1, mm6        ; XXXX000000000000
+    pmullw   mm0, mm7        ; 8765705800870070
+    pand     mm1, mm0        ; 8765000000000000
+    psrld    mm0, 28         ; 0000000000004321
+    psrlw    mm1, 8          ; 0000000087650000
+    por      mm0, mm1        ; 0000000087654321
+    packuswb mm0, mm0        ; [?B?A?B?A]
+    packuswb mm0, mm0        ; [BABABABA]
+    movd     eax, mm0
+    mov      [edi],ax
+    add      esi, 8
+    add      edi, 2
+    dec      ecx
+    jnz      @quads
+```
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+因为这些个 bits 都是孤立的，一序列的 shift 和或操作可以用一系列的 shift 和 add 操作代替。但一序列的 shift 和 add 又可以合并进单单一个的乘。(/:^\] )透过一序列的虚拟检测，可以发现这个乘对我们的性能而言是一个好交易，它在现在的 X86 CPU 上还是一个完全适应 CPU 流水线的质量，这个循环里的很多质量，都应该可以并行的同步在 CPU 中执行(指令间没有数据依存)。这个方案处理 64 个源字节只用了可以接受的几个时钟-它的性能看上去就不像任何 c 写的公式能接近的。
+
+第二个，这是给平均分布而且有规律的字节流设计(averaging streams of bytes together (and rounding down.))。Gordy 找的是一个给 per-K6-2 MMX/3DNow!的解决方案(这个 CPU 的指令集里没有 `pavgusb` 和 `pavb`)，也就是一个很古怪的，要用 int 实现的方案。这是我通过的 int 方案:
+
+!!!!!!!!!!!!ASM CODE!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+```asm
+; Integer Solution by Paul Hsieh
+LTop:
+```
+
+
+
+### 非饱和加法
+
+```asm
+mov     eax, [esi]
+mov     ebx, [edx]
+mov     ebp, eax
+and     eax, ebx
+xor     ebx, ebp
+shr     ebx, 1
+and     ebx, 7F7F7F7Fh
+add     eax, ebx
+mov     [edi], eax
+dec     ecx
+jnz     LTop
+```
+
+### ASM CODE
+
+```asm
+; 这是 MMX Solution by Paul Hsieh
+LTop:
+movq    mm0, [esi]
+movq    mm1, [edx]
+movq    mm2, mm0
+pand    mm0, mm1
+pxor    mm1, mm2
+psrlb   mm1, 1
+paddb   mm0, mm1
+movq    [edi], mm0
+dec     ecx
+jnz     LTop
+```
+
+这二个方案用的下面的这个发现
+-------quote-----------------------
+`A + B = (A and B) * 2 + (A xor B)`
+`And therefore:`
+`(A + B)/2 = (A and B) + (A xor B)/2`
+------------------------------
+
+对于 `int` 而言，原样的 `A + B` 可能会引起数值溢出。但 `(A and B) + (A xor B)/2` 就不会了。
+
+第三个 `pixel bashing` 的函数是一个饱和加(当溢出时，把被塞饱饱的数字返回来，比方 `32bits` 的 `int` 溢出了 `0xffffffff`)。用 `MMX` 的指令实现的话，这只是一个琐碎的只需要一个 `paddusb` 的小程序(`Gordy` 指出这个指令了)。但用 `int` 实现的函数呢？我来用下面的函数实现了 `int` 的饱和加：
+
+### ASM CODE
+
+```asm
+; Integer solution by Paul Hsieh
+mov eax, [esi]      ; src0
+mov ebx, [edi]      ; src1
+mov ecx, eax
+mov edx, ebx
+and ecx, ebx        ; first bit carry
+xor edx, eax        ; first bit add (mod 2)
+and eax, 0xFEFEFEFE
+and ebx, 0xFEFEFEFE
+add eax, ebx        ; Add top 7 bits (A&0xFE)+(B&0xFE)
+sar eax, 1          ; >>= 1 to capture carry bits
+and ecx, 0x01010101 ; Is there a carry to the second bit?
+add eax, ecx        ; (...)>>1
+mov ecx, eax
+and edx, 0x01010101 ; first bit
+and eax, 0x7F7F7F7F
+shr ecx, 7
+shl eax, 1          ; (...)&0xFE
+and ecx, 0x01010101 ; overflows
+or  eax, edx        ; ((...)&0xFE) + (((A&0x01)+(B&0x01))&1)
+xor ecx, 0x81818181 ; blockers
+sub ecx, 0x01010101 ; 0->80, 1->7F
+and ecx, 0x7F7F7F7F ; 0->00, 1->7F
+or  eax, ecx
+shl ecx, 1
+or  eax, ecx
+```
+
+现在，我们要把低位的 `bits` 们分开，以确定我们可以用 `8bits` 大小的空间提高一个并行同时实现的数个加法。
+-------quote-----------------------
+`A = (A&0xFE) + (A&0x01)`
+`B = (B&0xFE) + (B&0x01)`
+`So`
+`A + B  = ((A&0xFE)+(B&0xFE)) + ((A&0x01)+(B&0x01))`
+`= ((A&0xFE)+(B&0xFE)) + ((A&B&0x01)*2 + ((A xor B)&0x01))`
+------------------------------
+
+`carry flag` 溢出到 `9th bit` 的标志，被转换成一个 `0x00` 或 `0x7f mask` 了。用一个 `or mask` 进目标的操作，在左移一位，这样就和有 `carry flag` 时的 `adc/sbb` 有相同的作用了。
+
+然后现在呢，当 `carry flag` 要被第一个 `add` 扑捉到并且用掉了，`c` 编译器又不能复述出来我们的这段代码了
+
+### update 补充
+
+`Oliver Weichhold` 在 `comp.lang.asm.x86` 问了一个很有趣的问题：
+
+----Quote--------------------------
+`I need to convert a color value (actually a texel fetched from a A4R4G4B4 texture) to a A15R15G15B15 color value held in an MMX register.`
+`我需要把一个颜色值(事实上是从一个 A4R4G4B4 texture 上牵引出来的一个像素)，到一个 A15R15G15B15 颜色里，结果保存到 MMX 寄存器里`
+------------------------------
+
+看到这个问题的本能反应一般都是用多个 `shift` 位移和 `mask` 来实现，但这个真的是完全没必要的。考虑一下，在需要映射它们之间的关系时你不会真的想把 `16` 个独立 `bits` 的输入随便的填充到输出里面吧。
+
+是时候找出来"查表法"了，然后的确的，你可以看到一个非常精彩简单的代码了：
+
+### ASM CODE
+
+```asm
+movzx     eax, word ptr input_A4R4G4B4
+movzx     ebx, al
+shr       eax, 8
+movd      mm0, dword ptr Table_G4B4_to_G15B15 [ebx*4]
+movd      mm1, dword ptr Table_A4R4_to_A15R15 [eax*4]
+punpckldq mm0, mm1
+```
+
+这个表用一些简单的 `c` 代码就可以初始化好。
+
+### 11. 转化字符串成大写
+
+`// /;^\] 这个就是我搜索这篇文章出来的原因。我也最后总结下学习下的一点点成果，嗦下自己的 note。`
+
+在传统的智慧里，会说转化 `ASCII` 字符串到大写会需要一个查一个表，每一个每一种字节都需要表。可是性能的问题来了，`X86` 处理器想要的是 `32(或 16) bits` 的寄存器，那这下这些那样的 `byte->dword(或者 word)` 的转化就会扭着 `CPU` 的性子发生了。这对 `AMD` 来说，就像被罚站了一样，对 `intel` 的也像罚抄汉字成语一样。
+
+那我们的改进型算法在哪呢？唔，我们可以用 `SIMD(Single instruction, multiple data 一条指令，多条数据，这儿意指我们自创的高级 CPU 指令)` 来减轻运算压力得到想要的性能来，那首先我们需要把数字范围 `[61h, 7Ah]` 到 `[41h, 5Ah]` 的转化方法的流程也转化转化。而我进行转化的关键就在于 `ASCII` 的码只定义在 `[00h, 7Fh]` 之间，然后可以通过往后转转(转 `5` 到 `[66-7f]`)这个范围里的数字得到在一个特殊范围的数字，再 `masking` 一下(确定得到的还是 `[00h, 7Fh]` 之间)，得到的数往后再转转(转 `1a`，之前 `66-7f` 范围的得到 `80-99` 之间的数字)，这样把得到的数字右移 `2` 位(`0x80>>2== 0x20`)又和 `mask 0x20 and` 下，这样就只有 `61-7a` 之间的数字才能 `0x20` 的结果。恰好是大写和小写的差距。 `/:^\]`
+
+### ASM CODE
+
+```asm
+; Integer SIMD uppercase(string) by Paul Hsieh
+mov  eax, src[esi]
+mov  ebx, 7f7f7f7fh
+mov  edx, 7f7f7f7fh
+and  ebx, eax        ; 61-7a | 00-60,7b-7f
+add  ebx, 05050505h  ; 66-7f | 05-65,80-84
+and  ebx, edx        ; 66-7f | 00-65
+add  ebx, 1a1a1a1ah  ; 80-99 | 1a-7f
+shr  ebx, 2
+and  ebx, 20202020h  ;    20 | 00
+sub  eax, ebx        ; 41-5a | 00-60,7b-7f
+```
+
+这个函数可以算是现代 `C` 编译器所能达到的最好效果了。粗看了一下，这个函数应该很好转换为 `MMX` 版本的。
+
+### update 补充
+
+其实我们还需要支持非 `ASCII` 码(例如, `[80h, FFh]` 之间的数)。解决掉这个问题的还有一个额外奖励的，可以处理这样范围的 `upper` 也可以处理 `UTF-8` 编码的 `unicode` 了(`http://www.azillionmonkeys.com/qed/unicode.html` 魔兽争霸的 `encode`，熟悉吧 `/:^\]` 应该打个广告，喜欢游戏的可以试试横扫千军，我最近在想办法做他的汉化)。但这个就是一个小改变，只是很不幸的，这个改进让主循环占用了更多的一个时钟。
+
+### ASM CODE
+
+```asm
+; Integer SIMD uppercase(string) on UTF-8 data by Paul Hsieh
+    mov  eax, src[esi]
+    mov  ebx, 0x7f7f7f7f
+    mov  edx, 0x7f7f7f7f
+    and  ebx, eax          ; 61-7a | 00-60,7b-7f
+    mov  ecx, eax
+    add  ebx, 0x05050505   ; 66-7f | 05-65,80-84
+    not  ecx               ; flip top bits
+    and  ebx, edx          ; 66-7f | 00-65
+    add  ebx, 0x1a1a1a1a   ; 80-99 | 1a-7f
+    and  ebx, ecx          ; turn off top bit for non-ASCII
+    shr  ebx, 2
+    and  ebx, 0x20202020   ; 20 | 00
+    sub  eax, ebx
+```
+
+### update 补充
+
+`Norbert Juffa` 提示我说，`Sun` 开源的 `Solaris` 的源代码，他们在一些 `C` 字符串函数中使用了这个机器，包括大小写检测，`tolower` 的例子，源代码可以在这儿看到: `http://cvs.opensolaris.org/source/xref/usr/src/lib/libc/sparcv9/gen/` (已失效)
+
+### update 补充
+
+我重新设计了一个更先进的函数，可以处理所有的 `UTF-8` 范围的 `Uppercase`。而且这个版本的对指令之间的数据依存进行的处理，提高了并行执行的能力，也就应该执行的更快了。
+
+### ASM CODE
+
+```asm
+    ; Integer SIMD uppercase(string) on UTF-8 data v2 by Paul Hsieh
+    mov  eax, src[esi]
+    mov  ebx, 0x80808080
+    mov  edx, eax          ; src
+    or   ebx, eax          ; (0x80808080 | src)
+    mov  ecx, ebx
+    sub  ebx, 0x7b7b7b7b   ; (0x80808080 | src) - 0x7b7b7b7b
+    sub  ecx, 0x61616161   ; c = (0x80808080 | src) - 0x61616161
+    not  ebx               ; d = ~((0x80808080 | src) - 0x7b7b7b7b)
+    not  edx               ; ~src
+    and  ebx, ecx          ; c & d
+    and  edx, 0x80808080   ; ~src & 0x80808080
+    and  ebx, edx          ; e = (c & d) & (~src & 0x80808080)
+    shr  ebx, 2            ; e >> 2
+    sub  eax, ebx          ; src - (e >> 2);
+```
+
+还有一个 `C` 版本的代码，看着也很不错的：
+
+### ASM CODE
+
+```asm
+    ; Integer SIMD uppercase(string) on UTF-8 data v2 by Paul Hsieh
+    uint32_t upperCaseSIMD (uint32_t x) {
+    uint32_t b = 0x80808080ul | x;
+    uint32_t c =   b - 0x61616161ul;
+    uint32_t d = ~(b - 0x7b7b7b7bul);
+```
+
+
+
+`uint32_t e = (c & d) & (~x & 0x80808080ul);`
+
+``` 
+return x - (e >> 2); 
+}
+```
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+//这儿写的太帅了。我看明白这儿的，也看明白的 delphi 的转化，见结尾的附录。 /:\]
+
+## 12.移动比特位
+
+`Norbert Juffa` 在继续他学习 `Compaq Visual Fortran` 编译器的历程(这个很快要变成 `Intel Fortran compiler` 了)。这次要看看 `MVBITS` 这个指令。关于这个函数的描述就在这儿:
+
+-------Quote------
+
+`MVBITS (FROM, FROMPOS, LEN, TO, TOPOS)`
+
+Description: Copies a sequence of bits (a bit field) from one location to another.
+
+Class: Elemental subroutine
+
+Arguments: There are five arguments:
+
+`FROM`
+
+Can be of any integer type. It represents the location from which a bit field is transferred.
+
+`FROMPOS`
+
+Can be of any integer type; it must not be negative. It identifies the first bit position in the field transferred from `FROM`. `FROMPOS + LEN` must be less than or equal to `BIT_SIZE (FROM)`.
+
+`LEN`
+
+Can be of any integer type; it must not be negative. It identifies the length of the field transferred from `FROM`.
+
+`TO`
+
+Can be of any integer type, but must have the same kind parameter as `FROM`. It represents the location to which a bit field is transferred. `TO` is set by copying the sequence of bits of length `LEN`, starting at position `FROMPOS` of `FROM` to position `TOPOS` of `TO`. No other bits of `TO` are altered. On return, the `LEN` bits of `TO` (starting at `TOPOS`) are equal to the value that `LEN` bits of `FROM` (starting at `FROMPOS`) had on entry.
+
+`TOPOS`
+
+Can be of any integer type; it must not be negative. It identifies the starting position (within `TO`) for the bits being transferred. `TOPOS + LEN` must be less than or equal to `BIT_SIZE (TO)`.
+
+------------------------------
+
+!!!!!!!ASM CODE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+; Solution by Norbert Juffa
+
+``` 
+mov ecx, [LEN]    ; len
+mov eax, [FROM]   ; from
+cmp ecx, 32       ; (len < 32) ? CY : NC
+sbb edx, edx      ; (len < 32) ? ~0 : 0
+shl edx, cl       ; (len < 32) ? ((~0) << len) : 0
+mov ecx, [FROMPOS]; frompos
+not edx           ; mask = (len < 32) ? ~((~0) << len) : ~0
+shr eax, cl       ; from >> frompos
+mov ecx, [TOPOS]  ; topos
+and eax, edx      ; (from >> frompos) & mask
+shl edx, cl       ; mask << topos
+shl eax, cl       ; bits << topos
+not edx           ; ~(mask << topos)
+and edx, [TO]     ; to & ~(mask << topos)
+or  eax, edx      ; to=(to&~(mask<<topos)|((from>>frompos)&mask)
+```
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+## 13.寄存器的滑动 ，位移寄存器
+
+`Norbert Juffa`,在研究一些 64bits 的位移代码(针对的是 32bits 的 X86 寄存器)，简化的要解决的问题描述是:
+
+--------Quote------
+
+``` 
+if (ECX == 0) {
+    EAX = EDX
+    EDX = 0
+} else /* ECX == 0xFFFFFFFF */
+{
+    EAX = EAX
+    EDX = EDX
+}
+```
+------------------------------
+
+先假设 ecx 不是 0，就是 0xffffffff。就在我们都没考虑全问题走进了错误的思路石化，`Norbert hit` 提供出来了正确的思路：
+
+!!!!!!!!!ASM CODE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+; Solution by Norbert Juffa
+
+``` 
+sub eax, edx    ; a - d
+and eax, ecx    ; c ? a - d : 0
+add eax, edx    ; c ? a : d
+and edx, ecx    ; c ? d : 0
+```
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+不管怎么样的，`Norbert` 又写了一个简单的根本于跳转指令的方案，在 CPU 支持这个指令的新 CPU 上还用到了 `cmovcc` 来简化：
+
+!!!!!!ASM CODE!!!!!!!!!!!!!!!
+
+; Solution by Norbert Juffa
+
+``` 
+__declspec (naked) __int64 __stdcall
+MYLSHIFT64 (const __int64 *i, const int *sh)
+{
+  __asm {
+    mov     ecx, [esp+8] ; &sh
+    mov     eax, [esp+4] ; &i
+    mov     ecx, [ecx]   ; sh
+    mov     edx, [eax+4] ; i_hi
+    mov     eax, [eax]   ; i_lo
+    shld    edx, eax, cl ; sll (i,sh & 0x1f)
+    shl     eax, cl      ;
+#if (CPU == i386)      
+    test    ecx, 32      ; sh >= 32 ?
+    jz      $lshift_done ; nope, done
+    mov     edx, eax     ; sll (i,32)
+    xor     eax, eax     ;  
+  $lshift_done:
+    cmp     ecx, 64      ; (sh>=64)||(sh<0)
+    sbb     ecx, ecx     ; (sh>=64)||(sh<0) ? 0 : 0xffffffff
+    and     eax, ecx     ; (sh>=64)||(sh<0) ? 0 : sll (i,sh)
+    and     edx, ecx     ;
+#else /* Athlon, P6+ */
+    test    ecx, -64     ; (sh>=64)||(sh<0) ? NZ : ZR
+    ror     ecx, 6       ; (64>sh>=32) ? CY : NC(ZF safe)
+    mov     ecx, 0       ; 0
+    cmovc   edx, eax     ; i=(64>sh>=32) ? sll(i,32) : i
+    cmovc   eax, ecx     ;  
+    cmovnz  edx, ecx     ; (sh>=64)||(sh<0) ? 0 : sll (i,sh)
+    cmovnz  eax, ecx     ;  
+#endif
+    ret     8            ; pop two DWORD parms and ret
+  }
+}
+```
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+`shld`, `cmovcc`, 还有 `ror`，这些可不会从任何编译器的输出里找到的。
+
+## 14. 64 bit int 的问题
+
+`Phil Carmody`(一个很出名的搜索素数的黑客)，在 `alt.lang.asm` 发表了如下的问题:
+
+--------quote------
+
+I've got 2 64-bit (never above 2⁴⁰, for reference) integers, and in C, I'm doing:
+
+/* multiply tpow (in 1..p-1) by 2, modulo p */
+
+`tpow <<= 1;`
+
+`if (tpow > p) { tpow -= p; }`
+
+Now the compiler turns the shift into a shl and a shld, which I don't have an issue with. However, the if statement is rendered using cmps and jumps, which, as the value is utterly unpredictable, causes me to take a bit of a performance hit.
+
+What is the suggested 64-bit branchless bit-twiddle to do the above? I know the 32-bit equivalent is some funky combination of subs, sbbs, ands, and other stuff, does it convert to 64-bits? Is there a cmovcc version even?
+
+我现在有这样一个需要，二个大小为 64bits 的数(不会比 2⁴⁰ 大)，在 C 语言里，我要做这样的计算：
+
+/* multiply tpow (in 1..p-1) by 2, modulo p */
+
+`tpow <<= 1;`
+
+`if (tpow > p) { tpow -= p; }`
+
+编译器把这个给编译成了 shift 用 `shl` 和 `shld` 实现的，这个是没问题的。但是，if 语句却是用 `cmp` 和 `jumps` 来实现的，然后输入的值又是完全不可估计的，这样就使得就需要在性能上做些改进了。
+
+------------------------------
+
+这是我对此题的回复:
+
+------------------------------
+
+Well, it sounds like you want something like:
+
+唔，听起来你想要的是这样的算法：
+
+`tpow <<= 1;`
+
+`tpow -= p & -(tpow > p);`
+
+Now, so how do we do `-(tpow > p)` in a totally predicate manner? Lets see this is the same as `-(p - tpow < 0)`, so we want to perform a 64 bit subtract of tpow from p and just capture the carry, then use it as the mask and it against p then subtract from tpow.
+
+这样呢，关键就成了我们怎么实现`-(tpow > p)`的判断。我们可以把它等价的看成是 `-(p - tpow < 0)`，然后问题就变成了怎么实现一个 64 bit 的 `p - tpow`。我们可以捕捉住 64bits 低 32 位减时产生的 carry flag，然后把它作为特殊的补偿运算，用在高 32bits 的 p 和 tpow 的减法里
+
+``` 
+mov esi, tpow[0]
+mov edi, tpow[4]
+add esi, esi
+adc edi, edi ; tpow << 1; -- Don't use SHLD.
+mov eax, p[0]
+mov edx, p[4]
+sub eax, esi
+sbb edx, edi ; p - tpow
+sbb ebx, ebx ; -(p - tpow < 0)
+mov eax, negp[0]
+mov edx, negp[4]
+and eax, ebx
+and edx, ebx ; p & -(p - tpow < 0)
+sub esi, eax
+sbb edi, edx ; tpow - (p & -(p - tpow < 0))
+mov tpow[0], esi
+mov tpow[4], edi ; tpow -= p & -(p - tpow < 0)
+```
+
+Voila! Ok, I think `cmovCC` should be even easier. Your code is equivalent to:
+
+`tpow <<= 1;`
+
+
+
+`tpow = (tpow - p >= 0) ? tpow - p : tpow;`
+
+So we will just compute `tpow - p`, capture the CF flag, then conditionally overwrite `tpow`:
+
+所以我们只需要计算出来 `tpow - p`，然后根据捕捉到的 CF eflag 条件性的看怎样覆盖 tpow 就好了:
+
+```
+mov esi, tpow[0]
+mov edi, tpow[4]
+add esi, esi
+adc edi, edi ; tpow << 1; -- Don't use SHLD.
+mov eax, esi
+mov edx, edi ; Annoying dependency.
+sub eax, p[0]
+sbb edx, p[4] ; tpow - p
+cmovnb esi, eax
+cmovnb edi, edx ; (tpow - p >= 0) ? tpow - p : tpow
+mov tpow[0], esi
+mov tpow[4], edi ; tpow = (tpow - p >= 0) ? tpow - p : tpow
+```
+
+------------------------------
+
+# 15. 63 bit 原子计数器 (不会因为被线程抢着用所破坏内容的计数器)
+
+在 `comp.lang.asm` 里， `Matt Taylor` 发帖说他在搜索一个用 32bit 代码实现的"无锁的 63-bit 计数器"(要是使用 AMD 的新 AMD64 指令集的话，可以让这个问题很容易解决，但 Matt 限制只能用 32bit 的)。例如是，用一个内存位置，还有可以在多个处理器的环境里面实现原子级别加以及读取的代码序列。有一个问题是，大部分在 CPU 里进行的内存操作都是分开进行的，这样 ALU+内存操作指令组成的序列就不能是原子自己的-不过这问题能用 `lock` 前缀来解决。真正的问题是不可能让二个分开的 32bit 的内存操作变成一个真正的原子操作。
+
+首先我们花点点时间看一个不能达到要求的例子：
+
+```
+mov eax, 1
+lock add [counter], eax ; [[1]]
+mov eax, 0
+lock adc [counter+4], eax ; [[2]]
+mov eax, 1
+lock add [counter], eax ; [[1]]
+mov eax, 0
+lock adc [counter+4], eax ; [[2]]
+```
+
+问题是出在 `[[1]]` 和 `[[2]]` 二个 `lock` 之间的部分，你的线程想访问 `counter` 时可能被另一个想执行同一片代码的捷足先得了。这意味着任何时钟里，`counter` 里的 64bit 值都可能被变成不准确的,而且可能是经常这样。这就是所谓的竞争状态。也有数之不尽的错误的修复这段代码的方案，列出来是可以组成加强连的了，它们都是有一些分析之后才能发现的缺点。我直接避过这些问题，你可以在大学的操作系统课程里学到它们。
+
+那让我们开始介绍二个简单有效的碎屑一样的解决方案。第一个是使用 AMD64 指令的代码:
+
+```
+; Eighth generation (64bit) x86 code.
+mov rax, 1
+lock xadd [counter], rax
+inc rax
+; Eighth generation (64bit) x86 code.
+mov rax, 1
+lock xadd [counter], rax
+inc rax
+```
+
+那么，这句话就是我们想要拼出来的-我们想要 inc 一下，然后返回 inc 后的值，当然还要同时保护好当前的整个环境。我们现在需要对 64bit 做的就是这个，只是我们要回到正题，我们需要一个通用的实现这样 inc 计数器的方法。当然了，AMD64 是一个新指令，想让上面这种方法可以在大部分机器上都可以用，还需要些时间的。(这话是 2004 年时候说的了)
+
+然后，我们开始用奔腾 PRO 的指令集干活，即便是 32bit 的 X86，也有一个访问 64bit 的指令:`CMPXCHG8B`
+
+```
+retry: mov eax, dword ptr [counter] ; [[1]]
+mov edx, dword ptr [counter+4] ; [[2]]
+mov ebx, eax
+mov ecx, edx
+add ebx, 1
+adc ecx, 0
+lock cmpxchg8b qword ptr [counter] ; [[3]]
+jnz retry
+retry: mov eax, dword ptr [counter] ; [[1]]
+mov edx, dword ptr [counter+4] ; [[2]]
+mov ebx, eax
+mov ecx, edx
+add ebx, 1
+adc ecx, 0
+lock cmpxchg8b qword ptr [counter] ; [[3]]
+jnz retry
+```
+
+这样的话，我们的解决方案就成了投机的希望 `couter` 在 `[[1]]` 到 `[[3]]` 之间都不会被可恶的线程们碰到。`CMPXCHG8B` 指令允许我们在 inc `counter` 之前确认没其他线程乱碰。但要是这里面有任何的不对(包括 `[[1]]` 和 `[[2]]` 之间因为干预 inc 的代码出的问题)，我们就把自己扔回到再等到可以 inc 的地方，重试一下。
+
+很明显的可以看到，就连象牙塔里的理论都对我们这样的假设皱起来纹了。没任何可以保证其他线程对 `counter` 的访问会最终结束，它们可能让我们自己的线程在这个地方重试上很一段时间。事实上，`matt` 在一个 benchmark (大意就是一个真正有多 CPU 和多线程的东西) 上测试了，他发现这个代码的性能非常领人不满意-然后这个方法也被考虑到实际情况掉了。
+
+"63bit 计数器"的实现方法透过这样的方法做到了，用一 bit 的某种标识，来指示出一个 wrap around (旋转的锁 /: ^) 正锁着 `counter`。我们可以假设大部分情况下，inc 操作最左只好影响 30bits，然后我们想要实现 counter，就操作这个 counter 里的特殊的 warp around 位好了。因着 Terje Mathisen 和 Matt Taylor 给予的一些帮助，我用下面的代码实现了这个 64 bits 计数器的需要(最根本的指令是 XDD，80486 处理器上就已经支持了):
+
+```
+; by Paul Hsieh, Matt Taylor and Terje Mathisen
+incrementCounterAndRead:
+mov eax, 1
+;;cli
+mov edx, [counter+4] ; [[1]]
+lock xadd [counter], eax
+cmp eax, 07FFFFFFFh
+jne incrDone
+inc edx
+mov [counter+4], edx ; [[2]]
+mov ebx, 080000000h
+lock add [counter], ebx ; [[3]]
+;;sti
+jmp readDone
+incrDone:
+;;sti
+jb noLockBit
+retry:
+cmp edx, [counter+4] ; Early correction.
+jne topIsUpToDate
+mov ebx, [counter]
+cmp ebx, 07FFFFFFFh
+ja retry ; Wait for "lock bit" to reset.
+topIsUpToDate:
+mov edx, [counter+4]
+jmp readDone
+noLockBit:
+mov ebx, [counter+4]
+cmp edx, ebx
+je readDone
+cmp eax, 040000000h ; bit 30 on -> before wrap.
+jae readDone
+mov edx, ebx ; after wrap.
+readDone:
+lea eax, [2*eax+1] ; previous low + 1.
+shrd eax, edx, 1
+shr edx, 1
+; by Paul Hsieh, Matt Taylor and Terje Mathisen
+incrementCounterAndRead:
+mov eax, 1
+;;cli
+mov edx, [counter+4] ; [[1]]
+lock xadd [counter], eax
+cmp eax, 07FFFFFFFh
+jne incrDone
+inc edx
+mov [counter+4], edx ; [[2]]
+mov ebx, 080000000h
+lock add [counter], ebx ; [[3]]
+;;sti
+jmp readDone
+incrDone:
+;;sti
+jb noLockBit
+retry:
+cmp edx, [counter+4] ; Early correction.
+jne topIsUpToDate
+mov ebx, [counter]
+cmp ebx, 07FFFFFFFh
+ja retry ; Wait for "lock bit" to reset.
+topIsUpToDate:
+mov edx, [counter+4]
+jmp readDone
+noLockBit:
+mov ebx, [counter+4]
+cmp edx, ebx
+je readDone
+cmp eax, 040000000h ; bit 30 on -> before wrap.
+jae readDone
+mov edx, ebx ; after wrap.
+readDone:
+lea eax, [2*eax+1] ; previous low + 1.
+shrd eax, edx, 1
+shr edx, 1
+```
+
+//这儿的翻译可能有错，和原文对照的列出来，希望不会因为我的错误翻译误导你。 /:^]
+
+`The general idea is that the bottom 31 bits are just the bottom 31 bits of the lock, the 31st bit indicates a wrap has occurred, and the 30th bit can also indicate to us whether any noticed discrepancy in the high 32 bits was due to a wrap or not.`
+
+大概的想法就是，低处的 31bits 们就是用第 31bit 来 lock 的，第 30 个 bit 也用来提醒我们高 32 bit 的变化是不是因为一个拥有 wrap(锁)的线程 (?)
+
+`With the assumption that no more than 30 bits of (about a billion) increments will happen during a contention we're no longer in anything resembling sound theoretical territory. For example, there is an obvious race condition between [[1]] and [[2]] if, in fact, there were 4.3 billion increments from other threads in between the two operations due to a preemption. Nevertheless, having a billion threads take action between a few instructions is not a realistic scenario, so in practice this should work fairly well.`
+
+除了假设之外，我们没有别的扎实的理论可以说明 inc 最大不会超过 30 bits(大概 10 7374 1824)。例如，可能在 `[[1]]` 和 `[[2]]` 之间会有一个很明显的竞争关系发生，这样的一个抢占的情况，是可能会导致计数器被增加 43 0000 0000 的。但还是可以说个不过，不过有 1 亿个线程同时抢占执行这一小片指令，不是一个很现实的情况，这样算的话，这段代码还是应该可以很好的完成它的计数器工作的。
+
+
+
+Atomic primitives like this are always tricky, so it pays to try to see why it works. (Said in another way, you should not trust this code, or anyone else's, unless you understand how it works.)
+
+基于原子的操作，就像这个例子，一般都是技巧性的，这样你就需要花精力去理解为什么它可以完成介绍里说的原子性质的操作。(换句话说，你不应该相信这段代码的，任何人的也不行，一个例子就是 windows 的原子操作，当然除非你理解过它为什么可以做到那样的情况)
+
+Ok, so by using `XADD` on the lower 32 bits, there isn't really a possibility that the lower 31 bits will go wrong. And when the 31 bit wrap occurs, the exact thread where the wrap occurs will be the sole thread that tries to correct the high word. When the high word is incorrect, its exactly one less than the correct value and the "lock bit" (bit 31 of the low word) will be set. So it can be seen that the incrementing action keeps the bits in a well defined and deterministic state.
+
+好了，我们的实现方法就是在低 32bits 使用 `XADD` 指令，而那儿不会真的有一种可能性让低 31 bits 被错误的使用。当 31bit 的 wrap 锁出现时，当前在这儿执行的线程就会变成唯一一个改变计数器高位 32 bits 们的线程。当高位 32 bits 不对劲的时候，事实上它是正好比现有的值小 1，然后'锁定标识'(31 bit)就会被设置。利用这种机制，一下一下的 inc 操作里面就可以保证 bit 们是在一个明确和可以预知的状态里。
+
+The specific case of the wrapping locker's read is taken care of precisely, so let us assume that we are one of the other threads. When reading, if the high half is consistent with the low half (i.e., by sandwiching the low half read between two high half reads) and there is no lock bit set, then we are set. If there is an inconsistency its because some other thread has wrapped. We can then examine our own bit 30 to see whether we are supposed to be post or pre wrap which tells us whether we should take the later or earlier high half read respectively.
+
+读取 wrap 锁的情况就是需要小心翼翼管管的情况，先让我们假设自己是一个其他的线程。当读取的时候，如果高一半 32bits 和低一半是相同的 (例如，情况更好就是夹在有一个读低 bits 同时有二个读高 bits 的时候)，而且 31 锁 bit 还没设置，这样我们这个其他线程就把 lock 给设置了。如果这二个不一致，那就是因为其他线程已经把给锁了。我们可以测试我们自己的 30bit 位的值，来确定我们应该是在 wrap 之后，还是之前，是等会儿还是现在读取高 bits 的值(这是分开的二种情况 ?)。
+
+Finally if the lock bit is set, we know that we are post-increment, and we just wait until either the lock has been cleared or the high half changes then just reread the high half.
+
+最后呢，如果 lock 31-bit 已经被设置了，我们知道我们是在 warp 之后，那就要一直等，直到 lock 31-bit 被清空了。或者 hign 一半的 bits 被改变了，就需要重新读取高 bits。
+
+The commented out `CLI` and `STI` instructions show where these instruction can and should go to try to reduce the exposed region of uncertainty in the lock value (leading other threads to spin). On a single processor system they are sufficient to prevent any contention, and in multiprocessor systems it would give a kind of guarantee about the amount of time the counter would not be in a trivial state. But of course you require ring 0 access to execute these instructions, and they are not required for functional correctness.
+
+被 `CLI` 和 `STI` 指令包围起来的范围，显示出来不应该在执行时候暴漏给其他线程碰触的指令范围，也就是 lock 值要改变，不能确定 lock 的几句指令里(这种情况会让其他线程自旋等待当前线程的执行)。在一个单 CPU 系统上，所有的其他线程都为了避免问题而被暂停了，而在一个多 CPU 的系统上，这一片指令区域给了一小片的时间，在这片时间里 counter 会为当前的线程保护起来。但当然你需要 ring 0 的代码权限来执行这二个指令。最后，它们对我们这个 64 bits 原子计数器的函数不是必须的。
+
+And in C? Not a player I'm afraid. Even with OS support, the language cannot compete with this kind of low level access.
+
+还有用 C 写一下这个？唔，不行的我不玩了(我也不玩了，累死了翻译了 4、5 个小时，以后再查语病之类的问题),C 语言没有办法完成这么低层次的访问的。
+
+## 附录
+
+### 1. 这是 delphi 里的 lowercase 和 uppercase:
+
+```c
+unsigned int lowerCaseSIMD_2 (unsigned int x) {
+  int a= x | 0x80808080;
+  int b= a- 0x7B7B7B7B;
+  int c= (b | 0x80808080)- 0x66666666u;//0x80808080- 0x66666666u= 0x1a1a1a1a
+  int d= (x ^ a) & c;//这个是不一样的地方，
+  return x- (d>> 2);
+}
+```
+
+```c
+unsigned int upperCaseSIMD_2 (unsigned int x) {
+  int a= x | 0x80808080;
+  int b= a- 0x5B5B5B5B;
+  int c= (b | 0x80808080)- 0x66666666u;
+  int d= (x ^ a) & c;
+  return x+ (d>> 2);
+}
+```
+
+其中的代码关键和上面的代码思路是一样的，都是计算一个大小写之间相差的 `0x20` 或者不符合条件计算 `0x0` 出来，用来直接+/-得到新的字符串
+
+`int a= x | 0x80808080;`
+
+`x^ a` 能得到的就肯定是 `0x80` 或 `0x0` 了，再右移 2 位，即除以 4 就得到了 `0x20` 了。
+
+`int b= (x | 0x80808080)- 0x7B7B7B7B;`
+
+正常的 a 里的字节都是比 `0x7b` 小的，可以认为正常的 b 的运算过程就是 + `0x80808080`- `0x7B7B7B7B`。`0x80` 里的 1 是二进制里 `0~0xff` 之间最高的那个 bit，因此想要比 `0x80` 大，肯定要包含 `0x80` 的位。所以比 `0x80` 大的，都会被不加 `0x80` 就直接减去 `0x7b`
+
+`int c= (b | 0x80808080)- 0x66666666u;`
+
+在 `x+ 0x80808080- 0x7B7B7B7B` 得到了 b 之后，之前就比 `0x7b` 小的 x 得到的 b 肯定比 `0x80808080` 小(意思就是最早在 x 里的对应位置的字节比 `0x7b` 小, `0x7a=='z'`)，那这儿运算过程就会是 `b+ 0x80808080- 0x61616161- 0x05050505;` 也就是 `b+ 0x1a1a1a1a`，注意这个 `0x1a1a1a1a` 里的 `0x1a`，就是十进制的 26。
+
+为了让此处的 c 里的字节能得到比 `0x80` 大或等于的一个结果，b 中的字节得是一个比 `0x66` 大或等于的数,而之前的 `0x80- 0x7b==0x5`，给原始的 x 里面的字节增加了 5，这样就是说原始的 x 里的字节得是 `0x66- 0x5==0x61` 或者更大。也就是说计算出来的 c 里面的数， `0x61<=x`，并且 `x<0x7b` 的字节才能得到比 `0x80` 大的。
+
+得到的 b 是比 `0x80808080` 大的，就直接减去 `0x61616161`，此处 b 里可能得到的最大的数是 `0x84848484`，减去 `0x61616161` 后还是比 `0x80808080` 小的，也就是最高位还是为 0 的。
+
+`(x ^ a) & c;`
+
+由上面的计算可以知道，只有 `0x61<=x`，并且 `x<0x7b` 的时候才能得到最高位 `0x80` 位是 1 的。再和上 `x^ a` 得到的 `0x80` 或 `0x0`，得到的就是 4 个 BOOL 字节了，为 `0x80` 则原字节在 `0x60` 和 `0x7b` 之间,为 0 则不在。
+
+这样右移 2 位，得到了 `0x20` 或 `0x0` 就可以用来减在原始字节上，以得到需要的转换了大写后的数字了。
+
+转换为小写的和上面的思路一样，因为最终需要得到的还是 `0x20`，只是需要做的是加而非减 `0x20`。但 `0x5B` 和 `0x80` 相差 `0x25`，求 c 时的,`0x66- 0x25==0x41`，范围变成 `0x40~0x5b` 之间了，这样就可以只有在是大写字母的时候算出来 `0x80>>2=0x20` 的结果了。
+
+### 2. 其他一些相关的链接:
+
+`/http://code.google.com/p/stringencoders/wiki/PerformanceAscii`
+
+`/http://stevecolwell.com/innerlps.html`
+
+### 3. 原文章
+
+`paul hsieh'assembly lab.rar`
+
+在线的：
+
+`/http://www.azillionmonkeys.com/qed/asmexample.html`
