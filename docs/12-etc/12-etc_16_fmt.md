@@ -1,0 +1,1747 @@
+
+# 发个老掉牙的 bitlok 脱壳程序（dos 下的）
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-585.htm`](https://www.pediy.com/kssd/pediy07/pediy7-585.htm)
+
+在恢复一个崩溃的移动硬盘时发现 10 年前自己写的烂程序，发出来权当纪念。
+
+```
+;\[~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\]
+;\[ ＢＩＴＬＯＫ系列通用解密软件ＢＩＴＦＲＥＥ  Ｖ２.０ \]
+;\[ １９９５年６月９日１１时１９分第一版                \]
+;\[\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\]
+
+Mark0          EQU  0c0d7h            ;BITLOK 之标志 '雷'
+Mark1          EQU  0d5c5h            ;HARD DISK SIGN ?
+@Offset3_L     EQU  52h               ;
+@Offset3_H     EQU  54h               ;
+@Relocations   EQU  56h               ;
+@Head_Size     EQU  58H               ;
+@Locker_Size_L EQU  5AH               ;
+@Locker_Size_H EQU  5CH               ;
+@Ss0           EQU  5EH               ;
+@Sp0           EQU  60H               ;
+@Key1          EQU  62H               ;
+@Ip0           EQU  64H               ;
+@Cs0           EQU  66H               ;
+@Relocation_Table_Entry EQU 68H       ;
+@Key2          EQU  6AH               ;
+@Code_Size_L   EQU  6CH               ;
+@Code_Size_H   EQU  6EH               ;
+@Scheme        EQU  107H              ;
+@Mark          EQU  10EH
+;-------------------------------------;--
+stack segment stack                   ;
+stack ends                            ;
+;-------------------------------------;--
+data segment                          ;
+data ends                             ;
+;-------------------------------------;--
+code segment                          ;
+    assume cs:code,ds:code,es:code    ;
+    org 100h                          ;
+start:jmp init                        ;
+;--------------DATA AREA--------------;----
+                                      ;
+CMD_LINE DB 80h dup(0)                ;命令行参数缓冲区
+OVL_FILE db "@@@@@@@@.OVL",0
+Scheme db 0                           ;
+_PSP   dw 0                           ;
+Argv1  dw 0                           ;参数 1 的指针
+Argv2  dw 0                           ;    2
+Argv3  dw 0                           ;    3
+Buffer db 110h dup(0)                 ;
+;----------------------------------------------------------------
+Versions dw 18                        ;目前可处理的 BITLOK 版本数
+;-------------------;---------------------------------------------
+; 1                 ;
+BITLOK12 dw 2a89h   ;加密头长
+         db 1, 7    ;BITLOK 1.2 Revision 1.71 (10/24/93,11/02/93)
+                    ;6 种算法 : mov bl,schemesign
+                    ;          xor bl,93h
+;-------------------;---------------------------------------------
+; 2                 ;
+BITSHELL dw 24b7h   ;
+         db 2, 15h  ;BITSHELL 2.0 (08/16/94)
+                    ;20 种算法 : mov bl,schemesign
+                    ;           xor bl,93h
+                    ;           del bl
+                    ;           shr bl,1
+;-------------------;---------------------------------------------
+; 3                 ;
+BITSHELL201 dw 264eh;BITSHELL 2.01 ? USED BY CHDict.EXE (1/95?)
+            db 2,15h;20 种算法 : mov bl,schemesign
+                    ;           xor bl,93h
+                    ;           del bl
+                    ;           shr bl,1
+;-------------------;---------------------------------------------
+; 4                 ;
+BITLOK20 dw 2b14h   ;
+         db 2, 15h  ;BITLOK 2.0   (08/17/94) (8/29/94)
+                    ;20 种算法 : mov bl,schemesign
+                    ;           xor bl,93h
+                    ;           del bl
+                    ;           shr bl,1
+;-------------------;---------------------------------------------
+                    ;
+;-------------------;---------------------------------------------
+; 5                 ;
+BITLOK10 dw 1a2ah   ;(02/19/93)
+         db 0,16h   ;BITLOK 1.0? Used BY RCOPY03.EXE as shell
+                    ;无算法标志,1 种算法,RCOPY03.EXE 最外壳采用的
+;-------------------;---------------------------------------------
+; 6                 ;
+BITLOK10? dw 1a28h  ;(05/21/93) ? used by ui.exe (UNIMG.ExE) as shell
+          db 0,16h  ;>1995.6.16 added<
+;-------------------;---------------------------------------------
+; 7                 ;
+BITLOKUN1 dw 2eb3h  ;
+         db 1,0dh   ;BITLOK Unknow Version (07/03/94) 1.5?
+                    ;12 种算法 : mov bl,schemesign
+                    ;           xor bl,93h
+;-------------------;---------------------------------------------
+; 8                 ;
+BITLOKUN2 dw 2ecbh  ;Used By Gwsexe.exe        <1995.6.10 added>
+         db 1,0dh   ;BITLOK Unknow Version    maybe 1.5 or 1.6
+                    ;12 种算法 : mov bl,schemesign
+                    ;           xor bl,93h
+;-------------------;---------------------------------------------
+; 9                 ;
+BITLOKUN3 dw 2f25h  ;Used By ShuLin English CAI (2/28/94)
+           db 1,0dh ; ?
+                    ;
+                    ;                           <1995.6.14 added>
+;-------------------;---------------------------------------------
+; 10                ;
+BITLOKUN4 dw 25d5h  ;Used by filer.exe Of ZRMNT 2.0 (10/12/94)
+          db 2,15h  ;                           <1995.7.4 added>
+;-------------------;---------------------------------------------
+; 11                ;
+BITLOKUN5 dw 30f2h  ;Used by wps.exe of ZRMNT 2.0
+          db 0,16h  ;                           <1995.7.4 added>
+;-------------------;---------------------------------------------
+; 12                ;Bitlock 2.01                   (11/24/94)
+BITLOK201 dw 2c32h  ;Used by wps.exe of spdos nt 1.2 (12/07/94)
+          db 2,15h  ;                           <1995.7.4 added>
+;-------------------;----------------------------------------------
+; 13                ;
+BITLOKUN7 dw 20bfh  ;Used by install.exe of spdos nt 1.2 (11/  /93)
+          db 1,7    ;                           <1995.7.4 added>
+;-------------------;----------------------------------------------
+; 14                ;
+BITLOKUN8 dw 23e6h  ;Used by install.exp of spdos nt 1.2 (11/24/94)
+          db 2,15h  ;                           <1995.7.5 added>
+;-------------------;----------------------------------------------
+; 15                ;install.ovl of vcor ver 1.0  (02/23/95)
+BITLOKUN9 dw 265ah  ;used by blinst.exe of Magic Key
+          db 2,15h  ;                           <1995.07.29 added>
+;-------------------;----------------------------------------------
+;16                 ;                           (01/16/95)
+BITLOKUNA dw 2cabh  ;used by unall.exe of Unall 95 V4.0
+          db 2,15h  ;                           <1995.09.18 added>
+;-------------------;----------------------------------------------
+;17                 ;                           (02/28/95)
+BITLOKUNB dw 2cb7h  ;used by vcor2.ovl of vcor v1.0
+          db 2,15h  ;                           <1995.09.19 added>
+;-------------------;----------------------------------------------
+;18                 ;                           (02/01/96)
+BITLOKUNC dw 2ce3h  ;used by game.exe of Zhong-guan-chun v1.0
+          db 2,15h  ;                           <1996.05.05 added>
+;-------------------;----------------------------------------------
+;Waiting For New Version
+;------------------------------------------------------------------
+;BITLOK 1.3 Has Different SRTUCT
+;------------------------------------------------------------------
+Case1          db 2          ;
+Case2          dw 16h        ;  18
+;------------------------------------------------------------------
+SchemeSign   db 0ffh
+Force        db 00h
+Handle1       dw 0
+Handle2       dw 0
+Head_Size     dw 0
+Offset3_L     dw 0
+Offset3_H     dw 0
+Offset2_L     dw 0
+Offset2_H     dw 0
+```
+
+
+
+# 变量定义
+
+```asm
+Relocations		dw	0  
+Relocation_Table_Entry	dw	0  
+Code_Size_L		dw	0  
+Code_Size_H		dw	0  
+Locker_Size_L	dw	0  
+Locker_Size_h	dw	0  
+Ss0			dw	0  
+Sp0			dw	0  
+Cs0			dw	0  
+Ip0			dw	0  
+Key1			dw	0  
+Key2			dw	0
+```
+
+# 代码段
+
+```asm
+;-----------------------------------------------------------------
+init:
+   mov	_psp,es
+   ;-----added 950629
+   push	cs
+   pop	ds
+   lea	dx,Version_MSG
+   mov	ah,9
+   int	21h
+   ;--------
+   cld
+   xor	bx,bx
+   xor	dx,dx
+   mov	ds,_psp
+   mov si,80h
+   xor	ah,ah
+   lodsb
+   inc	ax
+   mov	cx,ax                        ;CMD_LINE Length (include \\r);
+   push	cs
+   pop	es
+   lea	di,CMD_LINE                  ;BUFF
+   xor	ax,ax
+;-----------------------------------------------------------------
+
+Processing label near
+   call	NextChar
+   ja	NotQuote
+;------------------------------------
+InString label near
+   jb	BuildArgv
+   call	NextChar
+   ja	InString
+;------------------------------------
+NotQuote label near
+   cmp	al,' '
+   je	EndArgument
+   cmp	al,13
+   je	EndArgument
+   cmp	al,9
+   jne	Processing
+;-----------------------------------
+EndArgument label near
+   xor	al,al
+;------------------------------
+   push	bx
+;   push	dx
+;   dec	dx
+   shl	bx,1
+   mov	word ptr cs:Argv2[bx],dx
+;   pop	dx
+   pop	bx
+;-------------------------------
+   jmp	short Processing
+NextChar proc near
+   or	ax,ax
+   jz	NextChar0
+   inc	dx
+   stosb
+   or	al,al
+   jnz	NextChar0
+   inc	bx
+NextChar0 label near
+   xchg	ah,al
+   xor	al,al
+   stc
+   jcxz	NextChar2
+   lodsb
+   dec	cx
+   sub	al,'"'
+   jz	NextChar2
+   add	al,'"'
+   cmp	al,''
+   jnz	NextChar1
+   cmp	byte ptr ds:[si],'"'
+   jne	NextChar1
+   lodsb
+   dec	cx
+NextChar1 label near
+   or	si,si
+NextChar2 label near
+   ret
+NextChar endp
+;-------------------------------------------------
+BuildArgv label near
+    push	cs
+    pop	ds
+    push	cs
+    pop	es
+;   mov	ds:_Argc,bx
+    push	bx
+    mov	cx,bx
+;---added 95.6.29
+    jcxz	Test_argu
+;-----
+    mov	dx,cx
+    lea	bx,CMD_LINE
+    lea	si,Argv1
+    mov	di,si
+@@1 label near
+    lodsw
+    add	ax,bx
+    cmp	dx,cx
+    jz	@1st
+    inc	ax
+@1st label near
+    stosw
+    loop	@@1
+;------------------------------------
+    pop	bx
+    cmp	bx,3
+    jb	Test_argu
+   ;lea	si,Argv3
+    mov	si,cs:argv3
+    lodsb
+;------------------
+   cmp	al,'T'      ;	to try !
+   jz	Forced            ;	I want make it can unlock some unknowe version bitlok
+   cmp	al,'t'
+   jz	Forced       ;add 1995,9,20
+;------------------
+    cmp	al,'0'
+    jb	Continue
+    cmp	al,'K'
+    ja	Continue
+    cmp	al,'9'
+    jbe	Ten
+    cmp	al,'A'
+    jb	Continue
+Hex:
+    sub	al,'A'-0ah
+    jmp	Set_Scheme
+Ten:
+    sub	al,'0'
+Set_Scheme:
+    mov	byte ptr ds:SchemeSign,al
+    jmp	short Continue
+Test_argu label near
+    cmp	bx,2
+    jnb	Continue
+;---------------------------
+    lea	dx,Useage_Msg
+Quit label near
+    mov	ah,9
+    int	21h
+    mov	ah,4ch
+    int	21h
+;------------------------------------------------------
+;------------------------------------------------------
+Forced:
+    lea	dx,Forced_MSG            ;add 19950920
+    mov	ah,9
+    int	21h
+    mov	byte ptr cs:Force,1
+;---------------------------------
+Continue label near
+;--------added 950629
+    lea	dx,Processing_MSG
+    mov	ah,9
+    int	21h
+;--------
+    mov	dx,ds:Argv1
+    mov	ax,3d00h
+    int	21h
+    jnb	@@2
+    lea	dx,Err1_MSG
+    jmp	Quit
+@@2 label near
+    mov	ds:handle1,ax
+    mov	dx,ds:Argv2
+    mov	ax,3c00h
+    int	21h
+    jnb	@@3
+    lea	dx,Err2_MSG
+    jmp	Quit
+@@3 label near
+    mov	ds:handle2,ax
+    lea	dx,Buffer
+    mov	bx,ds:handle1
+    mov	ah,3fh
+    mov	cx,20h
+    int	21h
+    jnb	@@4
+    lea	dx,Err3_MSG
+    jmp	Quit
+@@4 label near
+    mov	dx,word ptr ds:Buffer+8h
+    mov	cl,4
+    shl	dx,cl
+    mov	ds:Head_Size,dx
+  ;push	dx
+    xor	cx,cx
+    mov	ax,4200h
+    int	21h
+    mov	ah,3fh
+    mov	cx,110h
+    lea	dx,buffer
+    int	21h
+    jnb	@@5
+    lea	dx,Err3_MSG
+    jmp	Quit
+@@5 label near
+    cmp	word ptr ds:Buffer[@Mark],Mark0
+    jz	@@6
+    cmp	word ptr ds:Buffer[@Mark],Mark1
+    jz	@@6
+    lea	dx,Err4_MSG
+    jmp	Quit
+@@6 label near
+    mov	ax,word ptr ds:Buffer[@Offset3_L]
+    mov	word ptr ds:Offset3_L,ax
+    mov	ax,word ptr ds:Buffer[@Offset3_H]
+    mov	ds:Offset3_H,ax
+    mov	ax,word ptr ds:Buffer[@Locker_Size_L]
+    mov	ds:Locker_Size_L,ax
+    mov	ax,word ptr ds:Buffer[@Locker_Size_H]
+    mov	word ptr ds:Locker_Size_H,ax
+    mov	ax,word ptr ds:Buffer[@Code_Size_L]
+    mov	ds:Code_Size_L,ax
+    mov	ax,word ptr ds:Buffer[@Code_Size_H]
+    mov	ds:Code_size_H,ax
+    mov	ax,word ptr ds:Buffer[@Relocations]
+    mov	ds:Relocations,ax
+    mov	ax,word ptr ds:Buffer[@Relocation_Table_Entry]
+    mov	ds:Relocation_Table_Entry,ax
+    mov	ax,word ptr ds:Buffer[@Ss0]
+    mov	ds:Ss0,ax
+    mov	ax,word ptr ds:Buffer[@Sp0]
+    mov	ds:Sp0,ax
+    mov	ax,word ptr ds:Buffer[@Cs0]
+    mov	ds:Cs0,ax
+    mov	ax,word ptr ds:Buffer[@Ip0]
+    mov	ds:Ip0,ax
+    mov	ax,word ptr ds:Buffer[@Key1]
+    mov	ds:Key1,ax
+    mov	ax,word ptr ds:Buffer[@Key2]
+    mov	ds:Key2,ax
+    mov	al,byte ptr ds:Buffer[@Scheme]
+    mov	ds:Scheme,al
+    cmp	byte ptr ds:SchemeSign,0ffh       ;Check if defined scheme
+    jnz	@@A
+;-----------------------------------------------------------------------
+    cmp	byte ptr ds:Force,1
+    jz	@@A
+;-----------------------------------------------------------------------
+    cmp	ds:Locker_Size_H,0                 ;Check if the defined version of bitlok
+    jz	@@7                                 ;if not show massage and quit
+    @Err5:                                 ;else set mode and schemes
+    lea	dx,Err5_MSG                        
+    jmp	Quit                               
+@@7 label near                            
+    mov	cx,ds:Versions                     
+    lea	si,BITLOK12                        
+@@8 label near                            
+    lodsw                               
+    cmp	ds:Locker_Size_L,ax                
+    jz	@@9                                
+    inc	si                                
+    inc	si                                
+    loop	@@8                               
+    jcxz	@Err5                             
+@@9 label near                            
+    xor	ah,ah                              
+    lodsb                               
+    mov	byte ptr ds:Case1,al              
+    lodsb                               
+    mov	byte ptr ds:Case2,al              
+@@A label near                            
+    lea	dx,Proc_LNG
+    add	dx,100h
+    cli
+    mov	ax,cs
+    mov	ss,ax
+    mov	sp,dx
+    sti
+    add	dx,100h
+    mov	cl,4
+    shr	dx,cl
+    mov	ax,cs
+    add	ax,dx
+    mov	ds,ax
+    mov	es,ax
+    xor	si,si
+    xor	di,di
+    xor	dx,dx
+    xor	cx,cx
+    mov	ax,4200h
+    mov	bx,cs:Handle1
+    int	21h
+    mov	cx,cs:Head_Size
+    xor	dx,dx
+    mov	ah,3fh
+    int	21h
+    cmp	word ptr cs:relocations,0
+    jz	@@10
+    mov	bx,cs:Key1
+    mov	cx,cs:Relocations
+    shl	cx,1
+    shl	cx,1
+    mov	si,word ptr cs:Relocation_table_entry
+    call	Unlock_Process
+```
+
+
+
+```
+@@10 label near
+
+    mov ax,word ptr cs:Relocations
+    mov ds:6h,ax
+    mov ax,word ptr cs:Ss0
+    mov ds:0eh,ax
+    mov ax,word ptr cs:Sp0
+    mov ds:10h,ax
+    mov ax,word ptr cs:Ip0
+    mov ds:14h,ax
+    mov ax,word ptr cs:Cs0
+    mov ds:16h,ax
+
+    ;--------------------
+    mov ax,word ptr cs:Code_Size_L
+    mov dx,word ptr cs:Code_Size_H
+    add ax,cs:Head_Size
+    adc dx,0
+    mov cs:Offset2_L,ax
+    mov cs:Offset2_H,dx
+    mov cx,200h
+    div cx
+    or dx,dx
+    jz @@11
+    inc ax
+@@11 label near
+    mov ds:02h,dx
+    mov ds:04h,ax
+    xor dx,dx
+    mov cx,cs:Head_size
+    call write
+    mov cx,cs:Code_size_L
+    mov dx,cs:Code_size_H
+    push cx
+    push dx
+    call read
+    mov bx,cs:handle1      ;;;;
+    mov dx,cs:Offset3_L
+    mov cx,cs:Offset3_H
+    mov ax,4200h
+    int 21h
+    mov cx,cs:Locker_Size_L
+    mov dx,cs:Locker_Size_H
+    ;push cx
+    ;push dx
+    call read
+    xor dx,dx
+    xor si,si
+    call decode
+    pop  dx
+    pop cx
+    call write
+
+;-----------------------------------------------------------------
+;   处理 OVL
+;------------
+    mov bx,cs:handle1
+    mov dx,cs:Offset2_L
+    mov cx,cs:Offset2_H
+    mov ax,4200h
+    int 21h
+    mov cx,cs:Offset3_L
+    mov dx,cs:Offset3_H
+    sub cx,cs:Offset2_L
+    sbb dx,cs:Offset2_H
+    or dx,dx
+    jnz @@12
+    jcxz @@13
+@@12 label near
+    push cx
+    push dx
+    call read
+    pop dx
+    pop cx
+    call write
+@@13 label near
+   ; mov bx,cs:Handle2
+   ; mov ah,3eh
+   ; int 21h
+;----------Do with App_OVL added 950629
+    mov ax,4202h
+    xor cx,cx
+    xor dx,dx
+    mov bx,cs:Handle1
+    int 21h
+    push ax    ;L
+    push dx    ;H
+    mov ax,cs:Offset3_L
+    mov dx,cs:Offset3_H
+    add ax,cs:Locker_Size_L
+    adc dx,cs:Locker_Size_H
+    pop bx     ;H
+    pop cx     ;L
+    cmp dx,bx
+    ;cmp ax,cx
+    jnz @nomatch
+    cmp ax,cx
+    ;cmp dx,bx
+    jnz @nomatch
+    jmp @match
+@nomatch:
+    push bx    ;H
+    push cx    ;L
+    mov cx,ax
+    xchg cx,dx
+    mov ax,4200h
+    mov bx,cs:Handle1
+    int 21h
+    pop cx     ;L
+    pop bx     ;H
+    sub cx,ax
+    sbb bx,dx
+    mov dx,bx   ;H
+    ;;;;;
+    push cx
+    push dx
+    call read
+    mov bx,cs:Handle2
+    mov ah,3eh
+    int 21h
+    mov ax,3c00h
+    xor cx,cx
+    push ds
+    push cs
+    pop ds
+    lea dx,OVL_FILE
+    int 21h
+    mov ds:handle2,ax
+    mov ah,9
+    lea dx,APP_OVL_MSG
+    int 21h
+    pop ds
+    pop dx
+    pop cx
+    call write
+@match:
+;---------------------
+    mov bx,cs:Handle1
+    mov ah,3eh
+    int 21h
+    ;----added 950629
+    push cs
+    pop ds
+    lea dx,OK_MSG
+    mov ah,9
+    int 21h
+    ;-----
+    mov ah,4ch
+    int 21h
+
+;-----------------------------------------------------
+UnLocking       db      0,0                     ;
+Schem_0         dw      offset Unlock0          ;
+Schem_1         dw      offset Unlock1          ;
+Schem_2         dw      offset Unlock2          ;
+Schem_3         dw      offset Unlock3          ;
+Schem_4         dw      offset Unlock           ;
+Schem_5         dw      offset Unlock5          ;
+Schem_6         dw      offset Unlock6          ;
+Schem_7         dw      offset Unlock7          ;
+Schem_8         dw      offset Unlock8          ;
+Schem_9         dw      offset Unlock9          ;
+Schem_A         dw      offset UnlockA          ;
+Schem_B         dw      offset UnlockB          ;
+Schem_C         dw      offset UnlockC          ;
+Schem_D         dw      offset UnlockD          ;
+Schem_E         dw      offset UnlockE          ;
+Schem_F         dw      offset UnlockF          ;
+Schem_10        dw      offset Unlock10         ;
+Schem_11        dw      offset Unlock11         ;
+Schem_12        dw      offset Unlock12         ;
+Schem_13        dw      offset Unlock13         ;
+Schem_14        dw      offset Unlock14         ;
+Schem_FF        dw      offset UnlockFF         ;
+;-----------------------------------------------;
+;------Special For Rcopy03 Used BitLok----------;
+UnlockFF      proc near
+              push ax
+              push bx
+              push cx
+              push dx
+              shr cx,1
+              dec cx
+              xor ds:[si],bx
+              xor dx,dx
+UnlockFF_0:
+              lodsw
+              push cx
+              inc dx
+              mov cl,dl
+              and cl,0fh
+              xor ds:[si],bx
+              rol word ptr ds:[si],cl
+              xor ds:[si],dx
+              pop cx
+              xor ds:[si],ax
+              loop UnlockFF_0
+              pop dx
+              pop cx
+              pop bx
+              pop ax
+              ret
+UnlockFF      endp
+;------------------------------------------------
+; UnLock Schem 0                                ;
+UnLock0         proc near                       ;
+                jmp     UnLock                  ;
+                retn                            ;
+UnLock0         endp
+;
+UnLock1         proc near
+                shr     cx,1                    ;
+                dec     cx                      ;
+                jcxz    Unlock1_2               ;
+                push    ax                      ;
+                push    di                      ;
+                push    es                      ;
+                push    ds                      ;
+                pop     es                      ;
+                mov     ax,cx                   ;
+                shl     ax,1                    ;
+                mov     di,si                   ;
+                add     di,ax                   ;
+Unlock1_0:      lodsb                           ;
+                mov     ah,byte ptr [di]        ;
+                xor     ax,bx                   ;
+                push    cx                      ;
+                and     cx,3fh                  ;
+                cmp     cx,29h                  ;
+                pop     cx                      ;
+                jne     short Unlock1_1         ;
+                xor     ax,1997h                ;
+Unlock1_1:      stosb                           ;
+                dec     di                      ;
+                dec     di                      ;
+                mov     byte ptr [si-01],ah     ;
+                loop    Unlock1_0               ;
+                pop     es                      ;
+                pop     di                      ;
+                pop     ax                      ;
+Unlock1_2:      retn                            ;
+UnLock1         endp
+;
+UnLock2         proc near
+                shr     cx,1                    ;
+                dec     cx                      ;
+                push    ax                      ;
+                push    dx                      ;
+                push    bp                      ;
+                xor     bp,bp                   ;
+                xor     word ptr [si],bx        ;
+Unlock2_0:      lodsw                           ;
+                push    cx                      ;
+                inc     bp                      ;
+                mov     cx,bp                   ;
+                and     cx,0fh                  ;
+                mov     dx,word ptr [si]        ;
+                xor     dx,bx                   ;
+                rol     dx,cl                   ;
+```
+
+
+
+```
+                xor     dx,bp                   ;
+                xor     ax,word ptr cs:KEY2     ; !!!
+                xor     dx,ax                   ;
+                xchg    dh,dl                   ;
+                mov     word ptr [si],dx        ;
+                pop     cx                      ;
+                loop    Unlock2_0               ;
+                pop     bp                      ;
+                pop     dx                      ;
+                pop     ax                      ;
+                retn                            ;
+UnLock2         endp
+
+;
+UnLock3         proc near
+                jmp     Unlock3_start           ;
+;------------------------------------------------
+UL3_Buf1        db      09,0ch,03,06,0bh,0fh     ; 19e1
+                db      08,01,07,05,04,0ah       ;
+                db      02,0eh,0dh,00,08,06      ;
+                db      04,00,09,07,02,0ah       ;
+                db      0dh,01,0fh,0bh,05,0ch    ;
+                db      03,0eh,04,09,03,0fh      ;
+                db      01,0bh,02,0ch,07,00      ;
+                db      05,0ah,06,0eh,0dh,08     ;
+                db      04,0ah,0fh,0dh,0bh,05    ;
+                db      0eh,0ch,09,06,00,07      ;
+                db      03,02,08,01,02,06        ;
+                db      05,0dh,04,0ah,03,08      ;
+                db      01,0eh,07,09,0ch,00      ;
+                db      0bh,0fh,02,0dh,08,00     ;
+                db      0ah,09,03,05,04,0eh      ;
+                db      0bh,07,0ch,06,0fh,01     ;
+                db      03,05,06,01,0fh,09       ;
+                db      07,0ch,0bh,02,0ah,0dh    ;
+                db      04,0eh,00,08,0ah,0dh     ;
+                db      07,0eh,08,02,01,09       ;
+                db      04,0ch,0fh,06,0bh,03     ;
+                db      05,00,00,00,00,40h       ;
+                db      02,00,01,00,00,01        ;
+                db      10h,00,00,04,80h,00      ;
+                db      08,00,00,10h,04,00       ;
+                db      00,02,00,20h,40h,00      ;
+                db      00,80h,00,08,20h,00      ;
+UL3_Buf2        db      07,0ah,0ch,09,0dh,05    ;
+                db      00,04,03,01,0fh,08       ;
+                db      0bh,02,0eh,06,08,09      ;
+                db      02,0ah,07,0bh,03,0eh     ;
+                db      05,06,00,0dh,0ch,04      ;
+                db      0fh,01,08,01,05,0ch      ;
+                db      0bh,04,0dh,03,06,02      ;
+                db      0ah,0eh,00,09,07,0fh     ;
+                db      06,02,04,08,00,0fh       ;
+                db      0bh,0eh,09,01,05,03      ;
+                db      0dh,07,0ch,0ah,08,0dh    ;
+                db      0ch,00,07,01,09,0bh      ;
+                db      03,0eh,04,02,05,0fh      ;
+                db      06,0ah,07,0bh,0ah,0ch    ;
+                db      02,04,09,0eh,03,08       ;
+                db      01,0fh,00,05,06,0dh      ;
+                db      09,07,0bh,02,04,05       ;
+                db      08,03,00,01,0dh,0ch      ;
+                db      0eh,06,0ah,0fh,0ch,05    ;
+                db      0bh,09,06,0dh,0fh,07     ;
+                db      02,01,0ah,04,08,0eh      ;
+                db      00,03                    ;
+UL3_AX          dw      00                       ;
+UL3_CX          dw      00                       ;
+UL3_BH          db      00                       ;
+UL3_BL          db      00                       ;
+;------------------------------------------------
+Unlock3_start:  push    ds                      ;
+                pop     es                      ;
+                mov     di,si                   ;
+                push    cs                      ;
+                pop     ds                      ;
+                mov     word ptr cs:UL3_CX,cx   ;
+                mov     word ptr cs:UL3_BH,bx   ;
+                shr     word ptr cs:UL3_CX,1    ;
+                mov     al,byte ptr cs:UL3_BL   ;
+                mov     ah,al                   ;
+                mov     word ptr cs:UL3_AX,ax   ;
+                mov     ch,byte ptr cs:UL3_BH   ;
+                mov     cl,04                   ;
+                mov     bh,00                   ;
+Unlock3_0:      mov     dx,word ptr es:[di]     ;
+                mov     si, offset UL3_Buf1
+                mov     al,10h                  ;
+Unlock3_1:      mov     bl,dl                   ;
+                and     bl,0fh                  ;
+                test    al,ch                   ;
+                je      short Unlock3_2         ;
+                add     bl,10h                  ;
+Unlock3_2:      and     dl,0f0h                 ;
+                or      dl,byte ptr [bx+si]     ;
+                add     si,20h                  ;
+                ror     dx,cl                   ;
+                shl     al,1                    ;
+                jne     short Unlock3_1         ;
+                mov     ah,00                   ;
+Unlock3_3:      add     si,02                   ;
+                shr     dx,1                    ;
+                jnb     short Unlock3_4         ;
+                or      ax,word ptr [si]        ;
+Unlock3_4:      jne     short Unlock3_3         ;
+                mov     si,offset UL3_Buf2
+                mov     dh,08                   ;
+Unlock3_5:      mov     bl,al                   ;
+                and     bl,0fh                  ;
+                test    ch,dh                   ;
+                je      short Unlock3_6         ;
+                add     bl,10h                  ;
+Unlock3_6:      and     al,0f0h                 ;
+                or      al,byte ptr [bx+si]     ;
+                add     si,20h                  ;
+                ror     ax,cl                   ;
+                shr     dh,1                    ;
+                jne     short Unlock3_5         ;
+                sub     ax,word ptr cs:UL3_CX   ;
+                sub     ax,word ptr cs:UL3_AX   ;
+                mov     dx,word ptr es:[di]     ;
+                mov     word ptr cs:UL3_AX,dx   ;
+                stosw                           ;
+                dec     word ptr cs:UL3_CX      ;
+                jne     short Unlock3_0         ;
+                retn                            ;
+UnLock3         endp
+
+;
+UnLock          proc near
+                push    ds                      ;
+                pop     es                      ;
+                mov     di,si                   ;
+                xor     dx,dx                   ;
+Unlock_0:       xor     ah,ah                   ;
+Unlock_1:       push    bx                      ;
+                push    cx                      ;
+                push    dx                      ;
+                mov     cl,04                   ;
+                rol     dx,cl                   ;
+                lodsb                           ;
+                sub     al,dl                   ;
+                mov     cl,ah                   ;
+                shr     bx,cl                   ;
+                xor     al,bl                   ;
+                stosb                           ;
+                pop     dx                      ;
+                pop     cx                      ;
+                pop     bx                      ;
+                inc     ah                      ;
+                dec     cx                      ;
+                je      short Unlock_2          ;
+                cmp     ah,08                   ;
+                jne     short Unlock_1          ;
+```
+
+
+
+```
+                inc     dx                      ;
+                cmp     cx,00                   ;
+                jne     short Unlock_0          ;
+Unlock_2:       retn                            ;
+                                                ;    ;\*
+;-----------------------------------------------------
+UnLockD:        xor     bx,0521h                ;
+                jmp     short UnLock            ;
+UnLockE:        xor     bx,0586h                ;
+                jmp     short UnLock            ;
+UnLockF:        xor     bx,05ebh                ;
+                jmp     short UnLock            ;
+UnLock10:       xor     bx,0650h                ;
+                jmp     short UnLock            ;
+UnLock11:       xor     bx,06b5h                ;
+                jmp     short UnLock            ;
+UnLock12:       xor     bx,071ah                ;
+                jmp     short UnLock            ;
+UnLock13:       xor     bx,077fh                ;
+                jmp     short UnLock            ;
+UnLock14:       xor     bx,07e4h                ;
+                jmp     short UnLock            ;
+;UnLock          endp
+;
+UnLock5         proc near
+                push    ds                      ;
+                pop     es                      ;
+                cld                             ;
+                mov     di,si                   ;
+                mov     bp,0000h                ;
+Unlock5_0:      push    cx                      ;
+                mov     dx,bx                   ;
+                add     dh,dl                   ;
+                mov     ax,dx                   ;
+                mul     ah                      ;
+                mov     bx,ax                   ;
+                lodsb                           ;
+                xor     ah,ah                   ;
+                add     bx,ax                   ;
+                add     bx,bp                   ;
+                sub     al,dl                   ;
+                mov     cl,dl                   ;
+                ror     al,cl                   ;
+                xor     al,dh                   ;
+                stosb                           ;
+                pop     cx                      ;
+                inc     bp                      ;
+                loop    Unlock5_0               ;
+                retn                            ;
+UnLock5         endp
+;--------------------------------------
+UnLock6         proc near
+                mov     ax,bx                   ;
+                push    ds                      ;
+                pop     es                      ;
+                mov     di,si                   ;
+                push    word ptr cs:Unlock6_0   ;
+                pop     bx                      ;
+                push    word ptr cs:Unlock6_2   ;
+                pop     dx                      ;
+                push    word ptr cs:Unlock6_3   ;
+                pop     si                      ;
+                push    word ptr cs:Unlock6_4   ;
+                pop     bp                      ;
+                mov     word ptr cs:UL6_SP,sp   ;
+Unlock6_0:      xchg    bx,sp                   ;
+                xor     bx,bx                   ;
+                xor     dx,ax                   ;
+                xor     sp,ax                   ;
+                xor     bp,ax                   ;
+                xor     si,ax                   ;
+Unlock6_1:      ror     byte ptr es:[di],1      ;
+                rol     ax,1                    ;
+                ror     ax,1                    ;
+                rcr     dx,1                    ;
+                rcr     sp,1                    ;
+                rcr     si,1                    ;
+                rcr     bp,1                    ;
+Unlock6_2:      rcr     ax,1                    ;
+                inc     bx                      ;
+Unlock6_3       equ     $+01h                   ;
+                xor     byte ptr es:[di],al     ;
+                inc     di                      ;
+                cmp     bx,47h                  ;
+                jne     short Unlock6_5         ;
+                xor     dx,ax                   ;
+Unlock6_4:      xor     sp,dx                   ;
+                xor     si,sp                   ;
+                xor     bp,si                   ;
+                xor     ax,bp                   ;
+                mov     bl,bh                   ;
+Unlock6_5:      loop    Unlock6_1               ;
+                mov     sp,word ptr cs:UL6_SP   ;
+                sti                             ;
+                retn                            ;
+;------------------------------------------------
+UL6_SP          db      00,00                   ;
+                                                ;
+;------------------------------------------------
+UnLock6         endp
+;
+UnLock7         proc near
+                jmp     short UnLock7_Start     ;
+                nop                             ;
+;------------------------------------------------
+UL7_BUFF0       db      0bh,03,05,00,0fh,0ch      ;
+                db      0eh,0ah,06,08,04,02       ;
+                db      07,0dh,09,01            ;
+UL7_BUFF        db      16d dup (00h)           ;
+UL7_CX          dw      00                      ;
+UL7_BX          db      00                      ;
+d07ca5          db      00                      ;
+;------------------------------------------------
+UnLock7_Start:  cld                             ;
+                mov     word ptr cs:UL7_CX,cx   ;
+                mov     word ptr cs:UL7_BX,bx   ;
+                push    ds                      ;
+                push    si                      ;
+                push    cs                      ;
+                pop     ds                      ;
+                push    cs                      ;
+                pop     es                      ;
+                mov     si,offset UL7_BUFF0     ;
+                mov     di,offset UL7_BUFF      ;
+                mov     cx,0008h                ;
+                repz    movsw                   ;
+                pop     di                      ;
+                pop     es                      ;
+                mov     si,di                   ;
+                mov     bx,word ptr cs:UL7_CX   ;
+                mov     ah,byte ptr es:[bx+di-01] ;
+                add     ah,byte ptr cs:d07ca5   ;
+                mov     cx,word ptr cs:UL7_CX   ;
+                dec     cx                      ;
+Unlock7_0:      mov     al,byte ptr es:[di]     ;
+                xor     al,ah                   ;
+                stosb                           ;
+                loop    Unlock7_0               ;
+                mov     di,si                   ;
+                mov     cx,word ptr cs:UL7_CX   ;
+Unlock7_1:      mov     al,byte ptr es:[di]     ;
+                mov     ah,al                   ;
+                and     al,6ah                  ;
+                test    ah,80h                  ;
+                je      short Unlock7_2         ;
+                or      al,04                   ;
+Unlock7_2:      test    ah,04                   ;
+                je      short Unlock7_3         ;
+                or      al,80h                  ;
+Unlock7_3:      test    ah,10h                  ;
+                je      short Unlock7_4         ;
+                or      al,01                   ;
+Unlock7_4:      test    ah,01                   ;
+                je      short Unlock7_5         ;
+```
+
+
+
+```assembly
+or      al,10h          ;
+Unlock7_5:      stosb           ;
+                loop    Unlock7_1       ;
+                mov     di,si           ;
+                mov     cx,word ptr cs:UL7_CX   ;
+Unlock7_6:      mov     al,byte ptr es:[di]     ;
+                mov     ah,al           ;
+                shr     ah,1            ;
+                shr     ah,1            ;
+                shr     ah,1            ;
+                shr     ah,1            ;
+                mov     bx,0000h        ;
+Unlock7_7:      cmp     ah,byte ptr cs:UL7_BUFF[bx] ;
+                je      short Unlock7_8         ;
+                inc     bx              ;
+                jmp     short Unlock7_7         ;
+Unlock7_8:      xchg    ah,byte ptr cs:UL7_BUFF ;
+                mov     byte ptr cs:UL7_BUFF[bx],ah ;
+                shl     bl,1            ;
+                shl     bl,1            ;
+                shl     bl,1            ;
+                shl     bl,1            ;
+                and     al,0fh          ;
+                or      al,bl           ;
+                mov     ah,al           ;
+                and     ah,0fh          ;
+                mov     bx,0000h        ;
+Unlock7_9:      cmp     ah,byte ptr cs:UL7_BUFF[bx] ;
+                je      short Unlock7_A         ;
+                inc     bx              ;
+                jmp     short Unlock7_9         ;
+Unlock7_A:      xchg    ah,byte ptr cs:UL7_BUFF ;
+                mov     byte ptr cs:UL7_BUFF[bx],ah ;
+                and     al,0f0h         ;
+                or      al,bl           ;
+                stosb           ;
+                loop    Unlock7_6       ;
+                mov     di,si           ;
+                mov     bl,byte ptr cs:UL7_BX   ;
+                mov     cx,word ptr cs:UL7_CX   ;
+Unlock7_B:      mov     al,byte ptr es:[di]     ;
+                sub     al,bl           ;
+                xor     al,ch           ;
+                xor     al,cl           ;
+                stosb           ;
+                loop    Unlock7_B       ;
+                retn            ;
+UnLock7         endp
+
+;
+UnLock8         proc near
+                push    ds              ;
+                push    bp              ;
+                push    ds              ;
+                pop     es              ;
+                mov     bp,cx           ;
+                push    bp              ;
+                push    bx              ;
+                push    si              ;
+                mov     di,si           ;
+                mov     cx,bx           ;
+                xor     dx,dx           ;
+Unlock8_0:      lodsb           ;
+                xor     al,cl           ;
+                push    dx              ;
+                mov     dh,al           ;
+                and     dh,0f0h         ;
+                shr     dh,1            ;
+                shr     dh,1            ;
+                shr     dh,1            ;
+                shr     dh,1            ;
+                mov     dl,dh           ;
+                mov     dh,al           ;
+                and     dh,0fh          ;
+                shl     dh,1            ;
+                shl     dh,1            ;
+                shl     dh,1            ;
+                shl     dh,1            ;
+                add     dl,dh           ;
+                mov     al,dl           ;
+                pop     dx              ;
+                push    dx              ;
+                mov     dh,dl           ;
+                and     dh,0f0h         ;
+                shr     dh,1            ;
+                shr     dh,1            ;
+                shr     dh,1            ;
+                shr     dh,1            ;
+                mov     ah,dh           ;
+                mov     dh,dl           ;
+                and     dh,0fh          ;
+                shl     dh,1            ;
+                shl     dh,1            ;
+                shl     dh,1            ;
+                shl     dh,1            ;
+                add     ah,dh           ;
+                mov     dl,ah           ;
+                xor     dl,cl           ;
+                sub     al,dl           ;
+                pop     dx              ;
+                xor     al,cl           ;
+                stosb           ;
+                shr     cx,1            ;
+                inc     dx              ;
+                push    dx              ;
+                and     dl,0fh          ;
+                cmp     dl,00           ;
+                pop     dx              ;
+                jne     short Unlock8_1         ;
+                mov     cx,bx           ;
+Unlock8_1:      cmp     dx,bp           ;
+                jne     short Unlock8_0         ;
+                pop     si              ;
+                pop     bx              ;
+                pop     bp              ;
+                mov     cx,bp           ;
+                shr     cx,1            ;
+                dec     bp              ;
+                mov     di,si           ;
+                add     di,bp           ;
+                mov     bp,0000h        ;
+Unlock8_2:      push    cx              ;
+                xor     dx,dx           ;
+                mov     dl,bl           ;
+                mov     ax,bp           ;
+                sub     dx,ax           ;
+                mov     al,ah           ;
+                xor     ah,ah           ;
+                sub     dx,ax           ;
+                mov     al,byte ptr [si]    ;
+                mov     dh,dl           ;
+                and     dh,0fh          ;
+                mov     ah,al           ;
+                sub     ah,dh           ;
+                mov     dh,ah           ;
+                and     ah,0fh          ;
+                mov     byte ptr [si],ah    ;
+                mov     ah,dh           ;
+                mov     cx,0004h        ;
+                shr     ah,cl           ;
+                shr     dl,cl           ;
+                xor     ah,dl           ;
+                push    ax              ;
+                xor     dx,dx           ;
+                mov     dl,bh           ;
+                mov     ax,bp           ;
+                add     dx,ax           ;
+                mov     al,ah           ;
+                xor     ah,ah           ;
+                add     dx,ax           ;
+                mov     al,byte ptr [di]    ;
+                mov     dh,dl           ;
+```
+
+
+
+### UnLock8
+
+```
+and dh,0f0h    ;
+mov ah,al      ;
+sub ah,dh      ;
+mov dh,ah      ;
+and ah,0f0h    ;
+mov byte ptr [di],ah    ;
+mov ah,dh      ;
+and ah,0fh     ;
+and dl,0fh     ;
+xor ah,dl      ;
+mov cx,0004h   ;
+shl ah,cl      ;
+add byte ptr [si],ah    ;
+pop ax         ;
+add byte ptr [di],ah    ;
+xchg bl,bh     ;
+dec di         ;
+inc si         ;
+inc bp         ;
+pop cx         ;
+cmp bp,cx      ;
+jne short Unlock8_2    ;
+pop bp         ;
+pop ds         ;
+retn           ;
+UnLock8 endp
+```
+
+### UnLock9
+
+```
+;<07e6f> *
+UnLock9 proc near
+jmp short UnLock9_start    ;
+```
+
+#### S41_AX / S41_BX
+```
+S41_AX dw 00      ;
+S41_BX dw 00      ;
+```
+
+#### s41 proc near
+```
+s41 proc near
+push bx      ;
+push cx      ;
+push dx      ;
+mov ax,word ptr cs:S41_AX   ;
+mov bx,word ptr cs:S41_BX   ;
+mov cx,ax   ;
+mov dx,8405h    ;
+mul dx     ;
+shl cx,1    ;
+shl cx,1    ;
+shl cx,1    ;
+add ch,cl   ;
+add dx,cx   ;
+add dx,bx   ;
+shl bx,1    ;
+shl bx,1    ;
+add dx,bx   ;
+add dh,bl   ;
+mov cl,05   ;
+shl bx,cl   ;
+add dh,bl   ;
+add ax,0001h    ;
+adc dx,00   ;
+mov word ptr cs:S41_AX,ax   ;
+mov word ptr cs:S41_BX,dx   ;
+xor ax,dx   ;
+pop dx      ;
+pop cx      ;
+pop bx      ;
+retn        ;
+s41 endp    ;
+```
+
+#### UnLock9_start
+```
+UnLock9_start:
+push ds      ;
+push si      ;
+push bx      ;
+push cx      ;
+ror bx,1     ;
+mov word ptr cs:S41_AX,bx   ;
+mov word ptr cs:S41_BX,bx   ;
+mov bx,cx   ;
+and bx,-02    ;
+mov bx,word ptr [bx+si-02]  ;
+shr cx,1     ;
+dec cx       ;
+Unlock9_0: call s41         ;
+xor ax,bx    ;
+add ax,cx    ;
+mov bx,word ptr [si]    ;
+xor word ptr [si],ax     ;
+add si,02    ;
+loop Unlock9_0  ;
+pop cx       ;
+pop bx       ;
+pop si       ;
+pop ds       ;
+rol bx,1     ;
+mov word ptr cs:S41_AX,bx   ;
+mov word ptr cs:S41_BX,bx   ;
+mov bx,0000h    ;
+shr cx,1     ;
+Unlock9_1: call s41         ;
+xor ax,bx    ;
+xor ax,cx    ;
+mov bx,word ptr [si]    ;
+xor word ptr [si],ax     ;
+add si,02    ;
+loop Unlock9_1  ;
+retn        ;
+UnLock9 endp
+```
+
+### UnLockA
+
+```
+;<07f09> *
+UnLockA proc near
+push ds      ;
+pop es       ;
+push si      ;
+pop di       ;
+mov ax,bx    ;
+cmp cx,02    ;
+jb short UnlockA_2   ;
+push bp      ;
+mov bp,cx    ;
+shr cx,1     ;
+mov word ptr cs:ULA_CX,cx   ;
+call s42     ;
+mov si,di    ;
+UnlockA_0: call s43         ;
+xor dx,dx    ;
+div bp       ;
+mov di,dx    ;
+add di,si    ;
+mov al,byte ptr es:[di]   ;
+xor al,93h    ;
+lea bx,word ptr [bp-01]   ;
+sub bx,dx    ;
+cmp bx,dx    ;
+je short UnlockA_1   ;
+xchg al,byte ptr es:[bx+si] ;
+xor al,67h    ;
+mov byte ptr es:[di],al   ;
+UnlockA_1: dec word ptr cs:ULA_CX  ;
+jne short UnlockA_0   ;
+pop bp       ;
+UnlockA_2: retn        ;
+```
+
+#### ULA_CX / ULA_AX
+```
+ULA_CX db 00,00     ;
+ULA_AX dw 00        ;
+```
+
+#### s42 proc near
+```
+s42 proc near
+mov word ptr cs:ULA_AX,ax   ;
+retn        ;
+s42 endp
+```
+
+#### s43 proc near
+```
+s43 proc near
+mov ax,word ptr cs:ULA_AX   ;
+mov dx,ax   ;
+mov cl,06   ;
+shl ax,cl   ;
+sub ax,dx   ;
+sub ax,dx   ;
+sub ax,dx   ;
+add ax,0159h    ;
+mov word ptr cs:ULA_AX,ax   ;
+and ax,37ffh   ;
+```
+
+
+
+### `s43` `endp`
+
+### `UnlockA` `endp`
+
+### `UnLockB` `proc` `near`
+```asm
+push    es                      ;
+push    bp                      ;
+mov     dx,bx                   ;
+mov     bx,cx                   ;
+dec     bx                      ;
+add     dx,bx                   ;
+push    ds                      ;
+pop     es                      ;
+push    si                      ;
+pop     di                      ;
+mov     bp,si                   ;
+cld                             ;
+shr     cx,1                    ;
+pushf                           ;
+UnlockB_0:      push    cx                      ;
+mov     cx,dx                   ;
+lod sb                          ;
+xchg    bp,si                   ;
+mov     ah,byte ptr [bx+si]     ;
+mov     dx,ax                   ;
+xchg    dh,dl                   ;
+rol     dx,1                    ;
+rol     dx,1                    ;
+add     dx,bx                   ;
+sub     ah,cl                   ;
+xor     ah,ch                   ;
+mov     byte ptr [bx+si],ah     ;
+xchg    bp,si                   ;
+sub     al,ch                   ;
+xor     al,cl                   ;
+stosb                           ;
+dec     bx                      ;
+pop     cx                      ;
+loop    UnlockB_0               ;
+popf                            ;
+jnb     short UnlockB_1         ;
+lod sb                          ;
+sub     al,bh                   ;
+xor     al,dh                   ;
+xor     al,dl                   ;
+stosb                           ;
+UnlockB_1:      pop     bp                      ;
+pop     es                      ;
+retn                            ;
+```
+`UnLockB` `endp`
+
+### `UnLockC` `proc` `near`
+```asm
+push    si                      ;
+push    di                      ;
+mov     di,1997h                ;
+shr     cx,1                    ;
+jcxz    UnlockC_17
+UnlockC_0:      lodsw                           ;
+mov     dx,bx                   ;
+rol     bx,1                    ;
+jnb     short UnlockC_1         ;
+xor     ax,di                   ;
+UnlockC_1:      rol     bx,1                    ;
+jnb     short UnlockC_2         ;
+add     ax,dx                   ;
+UnlockC_2:      rol     bx,1                    ;
+jnb     short UnlockC_3
+not     ax                      ;
+UnlockC_3:      rol     bx,1                    ;
+jnb     short UnlockC_4
+sub     ax,dx                   ;
+UnlockC_4:      rol     bx,1                    ;
+jnb     short UnlockC_5
+ror     ax,1                    ;
+UnlockC_5:      rol     bx,1                    ;
+jnb     short UnlockC_6
+inc     ax                      ;
+UnlockC_6:      rol     bx,1                    ;
+jnb     short UnlockC_7
+rol     ax,1                    ;
+UnlockC_7:      rol     bx,1                    ;
+jnb     short UnlockC_8
+dec     ax                      ;
+UnlockC_8:      rol     bx,1                    ;
+jnb     short UnlockC_9
+xor     ax,di                   ;
+UnlockC_9:      rol     bx,1                    ;
+jnb     short UnlockC_10
+add     ax,dx                   ;
+UnlockC_10:     rol     bx,1                    ;
+jnb     short UnlockC_11
+not     ax                      ;
+UnlockC_11:     rol     bx,1                    ;
+jnb     short UnlockC_12
+sub     ax,dx                   ;
+UnlockC_12:     rol     bx,1                    ;
+jnb     short UnlockC_13
+ror     ax,1                    ;
+UnlockC_13:     rol     bx,1                    ;
+jnb     short UnlockC_14
+inc     ax                      ;
+UnlockC_14:     rol     bx,1                    ;
+jnb     short UnlockC_15
+rol     ax,1                    ;
+UnlockC_15:     rol     bx,1                    ;
+jnb     short UnlockC_16
+dec     ax                      ;
+UnlockC_16:     inc     bx                      ;
+ror     bx,1                    ;
+xor     ax,bx                   ;
+mov     word ptr [si-02],ax     ;
+loop    UnlockC_0               ;
+UnlockC_17:     pop     di                      ;
+pop     si                      ;
+retn                            ;
+```
+`UnLockC` `endp`
+
+### `UnLock_process` `proc` `near`
+```asm
+cli                             ;
+cld                             ;
+push    ds                      ;
+push    es                      ;
+push    si                      ;
+push    di                      ;
+push    bp                      ;
+push    bx                      ;
+xor     bx,bx                   ;
+;--------------------------------------Special version
+cmp byte ptr cs:case1,0
+jnz NotSpecial
+mov     bl,15h
+jmp Bit12
+;---------------------------------------
+NotSpecial:
+mov     bl,byte ptr cs:SchemeSign
+cmp     bl,0ffh
+jnz     ULP_0
+;---------------------------------------
+mov     bl,byte ptr cs:Scheme   ;
+xor     bl,93h                  ;
+cmp     byte ptr cs:case1,01
+jz      Bit12
+dec     bl                      ;
+shr     bl,1                    ;
+Bit12:
+cmp     bx,cs:case2             ;
+jb      short ULP_0             ;
+xor     bx,bx                   ;
+ULP_0:          shl     bx,1                    ;
+mov     bx,word ptr cs:Schem_0[bx] ;
+mov     word ptr cs:UnLocking,bx ;
+pop     bx                      ;
+call    word ptr cs:UnLocking   ;
+pop     bp                      ;
+pop     di                      ;
+pop     si                      ;
+pop     es                      ;
+pop     ds                      ;
+retn                            ;
+```
+
+
+
+`UnLock_process`             endp  
+;-----------------------------------------------------------------  
+;  
+`Decode`          proc near  
+                push    ds                      ;  
+                push    si                      ;  
+                mov     byte ptr cs:`Finish`,00   ;  
+`Decode_0`:  
+                cmp     word ptr cs:`Code_Size_H`,00   ;  
+                ja      short `Decode_1`          ;  
+                cmp     word ptr cs:`Code_Size_L`,8000h  
+                ja      short `Decode_1`          ;  
+                mov     cx,word ptr cs:`Code_Size_L`   ;  
+                mov     byte ptr cs:`Finish`,01   ;  
+                nop                             ;  
+                jmp     short `Decode_2`          ;  
+`Decode_1`:       mov     cx,8000h                ;  
+                sub     word ptr cs:`Code_Size_L`,cx   ;  
+                sbb     word ptr cs:`Code_Size_H`,00   ;  
+`Decode_2`:       xor     si,si                   ;  
+                mov     bx,word ptr cs:`KEY1`     ;!!!  
+            ;    push cx  
+                call    `UnLock_process`          ;  
+            ;    pop cx  
+            ;    call write  
+                mov     ax,ds                   ;  
+                add     ax,0800h                ;  
+                mov     ds,ax                   ;  
+                cmp     byte ptr cs:`Finish`,01   ;  
+                jne     short `Decode_0`          ;  
+                pop     si                      ;  
+                pop     ds                      ;  
+                retn                            ;  
+;------------------------------------------------  
+`Finish`          db      00                      ;  
+;------------------------------------------------  
+`Decode`             endp  
+;-------------------------------------------------------------------------  
+
+```
+Read proc near
+     push bx
+     mov bx,cs:handle1
+     push ds
+@read:
+     push cx
+     push dx
+     or dx,dx
+     jnz @read0
+     cmp cx,0
+     jz @read2
+     cmp cx,8000h
+     jnb @read0
+     jmp @read1
+@read0:
+     mov cx,8000h
+@read1:
+     xor dx,dx
+     mov ah,3fh
+     int 21h
+     pop dx
+     pop cx
+     sub cx,8000h
+     sbb dx,0
+     js  @read2
+     mov ax,ds
+     add ax,800h
+     mov ds,ax
+     jmp @read
+@read2:
+     pop ds
+     pop bx
+     ret
+Read endp
+```
+
+;-----------------------------------------------------  
+
+```
+Write proc near
+     push bx
+     mov bx,cs:handle2
+     push ds
+@write:
+     push cx
+     push dx
+     or dx,dx
+     jnz @write0
+     cmp cx,0
+     jz @write2
+     cmp cx,8000h
+     jnb @write0
+     jmp @write1
+@write0:
+     mov cx,8000h
+@write1:
+     xor dx,dx
+     mov ah,40h
+     int 21h
+     pop dx
+     pop cx
+     sub cx,8000h
+     sbb dx,0
+     js  @write2
+     mov ax,ds
+     add ax,800h
+     mov ds,ax
+     jmp @write
+@write2:
+     pop ds
+     pop bx
+     ret
+write endp
+```
+
+`Version_MSG` db 0ah,0dh,"捱哌哌哌哌哌哌哌哌哌哌哌哌哌哌哌哌哌哌哌哌哌哌哌哌哌?  
+            db 0ah,0dh,"?   BitFree - BITLOK Locked Program UnLock Tool    ?  
+            db 0ah,0dh,"?                                                  ?  
+            db 0ah,0dh,"?    CopyRight (C) 1995 TeamWork SoftWare Group    ?  
+            db 0ah,0dh,"?                                                  ?  
+            db 0ah,0dh,"?         Personal Version 2.02@ 1996.05.05        ?  
+            db 0ah,0dh,"?                 release  0.18                    ?  
+            db 0ah,0dh,"捃苘苘苘苘苘苘苘苘苘苘苘苘苘苘苘苘苘苘苘苘苘苘苘苘苘?,0ah,0dh,24h  
+
+`Processing_MSG` db 0ah,0dh,07," - Now Processing . . .                        ",0ah,0dh,24h  
+
+`Forced_MSG`     db 0ah,0dh,07," - Forced To Be Mode 2 Include 20 Schemes (Maybe Not Correct,But Try ...)! ",24h  
+
+`OK_MSG`         db  " - UnLock Finished ! Please Test OutPutFile(s)           ",0ah,0dh,24h  
+
+`APP_OVL_MSG`    db " - Creating APP_OVL_FILE : @@@@@@@@.OVL                   ",0ah,0dh,24h  
+
+`Useage_MSG` db 0ah,0dh,07,07," - Usage : BITFREE  LockedFile  OutPutFile  \[ Scheme \] "  
+           db       0ah,0dh," -       : Scheme = 0 .. A .. K -> Scheme 0 ..10 .. 20 "  
+           db       0ah,0dh," -       :       .or.  T  Forced be Bitlok v2.00-v2.01 ",0ah,0dh,24h  
+
+`Err1_MSG` db 0ah,0dh,07,07," - Error Open Source_File !",0ah,0dh,24h  
+
+`Err2_MSG` db 0ah,0dh,07,07," - Error Creat OutPut_File !",0ah,0dh,24h  
+
+`Err3_MSG` db 0ah,0dh,07,07," - Error Read Source_File !",0ah,0dh,24h  
+
+`Err4_MSG` db 0ah,0dh,07,07," - Error : Not A BITLOKED FILE !!!",0ah,0dh,24h  
+
+`Err5_MSG` db 0ah,0dh,07,07," - Error : Unknow Version Of BITLOK , Call With Me !",0ah,0dh,24h  
+
+`Proc_LNG` db 0  
+
+code ends  
+
+     end start 
+
+4dd466d0e1e0cc123afbe504da2462ca
