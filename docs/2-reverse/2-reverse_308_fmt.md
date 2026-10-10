@@ -1,0 +1,273 @@
+
+# 消息万能断点
+
+> 原文：[`www.pediy.com/kssd/pediy10/98274.html`](https://www.pediy.com/kssd/pediy10/98274.html)
+
+既然 `window` 是基于消息的系统，我们就来研究一下应用程序的消息处理，就拿最简单的窗口程序来试验下吧。
+
+下面是 Iczelion 写的创建简单窗口的例程：
+
+```
+.386
+
+.model flat,stdcall
+
+option casemap:none
+
+include windows.inc
+
+include user32.inc
+
+includelib user32.lib ; calls to functions in user32.lib and kernel32.lib
+
+include kernel32.inc
+
+includelib kernel32.lib
+
+WinMain proto :DWORD,:DWORD,:DWORD,:DWORD
+
+.DATA ; initialized data
+
+ClassName db "SimpleWinClass",0 ; the name of our window class
+
+AppName db "Our First Window",0 ; the name of our window
+
+.DATA? ; Uninitialized data
+
+hInstance HINSTANCE ? ; Instance handle of our program
+
+CommandLine LPSTR ?
+
+.CODE ; Here begins our code
+
+start:
+
+invoke GetModuleHandle, NULL ; get the instance handle of our program.
+; Under Win32, hmodule==hinstance
+mov hInstance,eax
+
+invoke GetCommandLine ; get the command line. You don't have to call this function IF
+; your program doesn't process the command line.
+mov CommandLine,eax
+
+invoke WinMain, hInstance,NULL,CommandLine, SW_SHOWDEFAULT ; call the main function
+invoke ExitProcess, eax ; quit our program. The exit code is returned in eax from WinMain.
+
+WinMain proc hInst:HINSTANCE,hPrevInst:HINSTANCE,CmdLine:LPSTR,CmdShow:DWORD
+LOCAL wc:WNDCLASSEX ; create local variables on stack
+LOCAL msg:MSG
+LOCAL hwnd:HWND
+mov wc.cbSize,SIZEOF WNDCLASSEX ; fill values in members of wc
+mov wc.style, CS_HREDRAW or CS_VREDRAW
+mov wc.lpfnWndProc, OFFSET WndProc
+mov wc.cbClsExtra,NULL
+mov wc.cbWndExtra,NULL
+push hInstance
+pop wc.hInstance
+mov wc.hbrBackground,COLOR_WINDOW+1
+mov wc.lpszMenuName,NULL
+mov wc.lpszClassName,OFFSET ClassName
+invoke LoadIcon,NULL,IDI_APPLICATION
+mov wc.hIcon,eax
+mov wc.hIconSm,eax
+invoke LoadCursor,NULL,IDC_ARROW
+mov wc.hCursor,eax
+invoke RegisterClassEx, addr wc ; register our window class
+invoke CreateWindowEx,NULL,\
+ADDR ClassName,\
+ADDR AppName,\
+WS_OVERLAPPEDWINDOW,\
+CW_USEDEFAULT,\
+CW_USEDEFAULT,\
+CW_USEDEFAULT,\
+CW_USEDEFAULT,\
+NULL,\
+NULL,\
+hInst,\
+NULL
+mov hwnd,eax
+invoke ShowWindow, hwnd,CmdShow ; display our window on desktop
+invoke UpdateWindow, hwnd ; refresh the client area
+.WHILE TRUE ; Enter message loop
+invoke GetMessage, ADDR msg,NULL,0,0
+.BREAK .IF (!eax)
+invoke TranslateMessage, ADDR msg
+invoke DispatchMessage, ADDR msg
+.ENDW
+mov eax,msg.wParam
+; return exit code in eax
+ret
+
+WinMain endp
+
+WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
+.IF uMsg==WM_DESTROY ; if the user closes our window
+invoke PostQuitMessage,NULL ; quit our application
+.ELSE
+invoke DefWindowProc,hWnd,uMsg,wParam,lParam ; Default message processing
+ret
+.ENDIF
+xor eax,eax
+ret
+
+WndProc endp
+
+end start
+```
+
+刚开始我想原来消息处理就这么简单啊，构建一个消息循环，用 `GetMessage` 获取所有消息，用 `DispatchMessage` 分发消息给窗口过程，是这样吗？
+
+先做第一个试验，将 `invoke GetMessage, ADDR msg,NULL,0,0` 改成 `invoke GetMessage, ADDR msg,hwnd,0,0`，你会发现当你关闭窗口时，程序还在进程列表里并没退出，why？这是因为现在只能接受窗口句柄为 `hwnd` 的消息，关闭窗口时，收到消息 `WM_DESTROY` 后窗口过程里调用 `PostQuitMessage` 发送的 `WM_QUIT` 消息是给应用程序的，不是给窗口的，所以 `GetMessage` 是收不到此消息的。将 `invoke GetMessage` 语句改回来。
+
+现在第二个试验，用 `od` 载入，在
+
+```
+0040110B >|. E8 42000000 |CALL <JMP.&user32.DispatchMessageA> ; \DispatchMessageA
+```
+
+下个条件断点 `[[esp]+4]==WM_DESTORY`，当我们关闭窗口时，程序并没有像我们想象的那样被断下来，而是直接退出了，why?我们改一下断点，在窗口过程的入口点 `00401119` 下个条件断点 `[esp+8]==WM_DESTROY`，
+
+```
+00401119 >/. 55 PUSH EBP
+0040111A |. 8BEC MOV EBP,ESP
+0040111C |. 837D 0C 02 CMP DWORD PTR SS:[EBP+C],2
+00401120 |. 75 09 JNZ SHORT trial.0040112B
+00401122 |. 6A 00 PUSH 0 ; /ExitCode = 0
+00401124 |. E8 41000000 CALL <JMP.&user32.PostQuitMessage> ; \PostQuitMessage
+```
+
+再试试，这次被顺利断下来了，好了，现在我们开始怀疑，`WM_DESTROY` 消息好像并不是通过我们设计的消息循环而来到窗口过程的，那它是怎么来到我们的窗口过程的呢，难道跟我们前面在系统里注册了窗口类有关?(因为定义了窗口过程 `mov wc.lpfnWndProc, OFFSET WndProc`)，当我们把下面几个地方也下断点重新运行时，结果让我们大吃一惊：
+
+```
+004010D0 |. E8 71000000 CALL <JMP.&user32.CreateWindowExA> ; \CreateWindowExA
+004010DE |. E8 93000000 CALL <JMP.&user32.ShowWindow> ; \ShowWindow
+004010E6 |. E8 97000000 CALL <JMP.&user32.UpdateWindow> ; \UpdateWindow
+004010F5 |. E8 5E000000 |CALL <JMP.&user32.GetMessageA> ; \GetMessageA
+0040110B |. E8 42000000 |CALL <JMP.&user32.DispatchMessageA> ; \DispatchMessageA
+```
+
+在调用 `CreateWindowExA` 函数里就已经使用了我们的窗口过程，处理的消息码为 `24h`，`81h`，`83h`，`01h` (`01h` 为 `WM_CREATE`)
+
+`ShowWindow` 也调用了我们的窗口过程，处理了消息 `18h`,`46h`,`1c`,`86h`,`0dh`,`06h`,`281h`,`282h`,`7h`,`85h`,`0d`,`14h`,`47h`,`05h`,`03h`
+
+`UpdateWindow` 也调用了我们的窗口过程，处理了消息 `0fh`
+
+`GetMessageA` 也调用了我们的窗口过程，处理了消息 `7fh`,`7fh`,`7fh`，这个可不是它返回后由 `DispatchMessageA` 分发给窗口过程的，而是它自己函数内部就调用了
+
+有兴趣还可以试下，先将程序跑起来，将 `od` 窗口缩小点，让我们能看到程序窗口，然后在 `GetMessageA` 的返回处 `004010FA` 和窗口过程入口 `00401119` 下断点
+
+```
+004010F5 |. E8 5E000000 |CALL <JMP.&user32.GetMessageA> ; \GetMessageA
+004010FA |. 0BC0 |OR EAX,EAX
+```
+
+然后将鼠标移向程序窗口，这时被断在 `00401119`，处理了消息 `84h`，`20h`，然后才轮到我们的 `GetMessageA` 返回一个 `200h`（`WM_MOUSEMOVE`）的消息，再由 `DispatchMessageA` 交给 `00401119`
+
+从上面的实验可以看出，是系统一直在管理着我们的消息处理，很多内部消息它是直接调用了我们的窗口过程函数，而交给 `GetMessageA` 带回的只是很少一部分消息，类似鼠标移动，按键，键盘等，经我试验，像恢复窗口显示时标题栏，最小化，最大化，关闭按钮，以及窗口的边框显示都是由系统自己调用我们窗口过程完成的，而交给 `GetMessageA` 带回的 `WM_PAINT` 消息也仅仅是用来显示客户区而已。
+
+好了，现在进入我们的重点，虽然我们设计的消息循环只是处理很小一部分消息而已，但所有的消息都是由我们的窗口过程处理的，观察堆栈发现，不管是由系统调用也好，还是由我们的 `DispatchMessageA` 分发来的好，我们的窗口过程结束都返回到 `77d18734`
+
+```
+0012FDEC 77D18734 返回到 user32.77D18734
+```
+
+好了，我们就去那里看看吧，看到什么没
+
+```
+77D1870C 55 PUSH EBP
+77D1870D 8BEC MOV EBP,ESP
+77D1870F 56 PUSH ESI
+77D18710 57 PUSH EDI
+77D18711 53 PUSH EBX
+77D18712 68 CDABBADC PUSH DCBAABCD
+77D18717 56 PUSH ESI
+77D18718 FF75 18 PUSH DWORD PTR SS:[EBP+18]
+77D1871B FF75 14 PUSH DWORD PTR SS:[EBP+14]
+77D1871E FF75 10 PUSH DWORD PTR SS:[EBP+10]
+77D18721 FF75 0C PUSH DWORD PTR SS:[EBP+C]
+77D18724 64:A1 18000000 MOV EAX,DWORD PTR FS:[18]
+77D1872A 8088 B40F0000 0>OR BYTE PTR DS:[EAX+FB4],1
+77D18731 FF55 08 CALL DWORD PTR SS:[EBP+8] ; [EBP+8] 这里就是我们的窗口过程函数，可能有些系统显示的是 CALL DWORD PTR [EBX+X] 但实质是一样的
+77D18734 64:8B0D 1800000>MOV ECX,DWORD PTR FS:[18]
+```
+
+让我们重载程序，在 `77D1870C` 下个断点，观察堆栈发现什么没，所有的消息处理都经过这里，这里才是系统真正的底层消息处理函数，其中 `[esp+4]` 里放的是窗口过程函数的地址，比如这里的 `00401119`，`[esp+8]` 为窗口句柄，`[esp+c]` 为消息码，`77D1870C` 就是我们的万能消息断点了，经快雪时晴兄指点这个地址是个 `user32` 内部函数，名为 `user32.InternalCallWinProc`，而且在不同系统下不是个定值，例如他的为 `7E41870C`。在此感谢快雪时晴，至于怎么找到自己系统的万能断点地址详看下面快雪时晴兄的回帖
+
+
+
+要想找到窗口过程函数，中断后`[esp+4]`就是，如果想看对特定消息的处理，在这个断点加个条件，比如菜单，按钮的`WM_COMMAND`，`[esp+c]==WM_COMMAND`，也许有人会说，那如果是新控件，又不知道消息码怎么办，比如列表视图里鼠标点击选中一项，我们可以直接下条件断点，`[esp+c]==WM_LBUTTONDOWN`，触发消息被断下来了吧，比如我这里
+
+```
+0012FE00   77D18816  返回到 user32.77D18816 来自 user32.77D1870C
+0012FE04   5D176E16  返回到 COMCTL32.5D176E16
+```
+
+可以看出是子控件自己处理了消息(子控件也是窗口，有自己的窗口过程函数），并且最后会向父窗口发送转化后的消息这里如果想直接到我们程序的窗口处理函数，直接在内存`.text`下断就可以了，如果想了解系统是怎么把消息处理转到我们的函数，这时将条件断点改为直接断点，按`F9`，会发现依次调用了
+
+```
+0012FB5C   77D18816  返回到 user32.77D18816 来自 user32.77D1870C
+0012FB60   5D177512  COMCTL32.5D177512        子控件的窗口过程函数
+0012FB64   00060D4A                                             消息信息
+0012FB68   00000407
+
+0012FA8C   77D18816  返回到 user32.77D18816 来自 user32.77D1870C
+0012FA90   5D176E16  返回到 COMCTL32.5D176E16
+0012FA94   00390C24
+0012FA98   00000215
+
+0012F9F8   77D23CE4  返回到 user32.77D23CE4 来自 user32.77D1870C
+0012F9FC   0040113D  返回到 import.0040113D 来自 <JMP.&comctl32.InitCommonControls>
+0012FA00   00070CC0
+0012FA04   0000004E
+```
+
+哈哈，终于来到我们的`0040113D`
+
+2009.12.12
+
+确定断点位置新方法,首先需要加载微软符号库，详见海风大大的帖子`http://bbs.pediy.com/showthread.php?t=96856`
+
+然后就可以用`bp _InternalCallWinProc@20`即可
+
+> 引用: *最初由 **wxxw**发布* ![查看帖子](http://bbs.pediy.com/showthread.php?p=690170#post690170) 既然 `window` 是基于消息的系统，我们就来研究一下应用程序的消息处理，就拿最简单的窗口程序来试验下吧
+
+...
+
+楼主思路很不错，消息断点一直是个弱区，经试验，修正一下`LZ`的提法：
+
+那个`77D1870C`在不同系统下不是个定值，例如我的为`7E41870C`。
+
+其实这个地址是个`user32`内部函数，
+
+`user32.InternalCallWinProc`
+
+`Names in user32, item 1914`
+
+- `Address=7E41870C`
+- `Section=.text`
+- `Type=Library<----只在启用了 Symbol 时才可见`
+- `Name=InternalCallWinProc`
+
+```
+7E41870C > 55               PUSH EBP
+7E41870D   8BEC             MOV EBP,ESP
+7E41870F   56               PUSH ESI                    ; user32.DefWindowProcW
+7E418710   57               PUSH EDI
+7E418711   53               PUSH EBX
+7E418712   68 CDABBADC      PUSH DCBAABCD
+7E418717   56               PUSH ESI                    ; user32.DefWindowProcW
+7E418718   FF75 18          PUSH DWORD PTR SS:[EBP+18]
+7E41871B   FF75 14          PUSH DWORD PTR SS:[EBP+14]
+7E41871E   FF75 10          PUSH DWORD PTR SS:[EBP+10]
+7E418721   FF75 0C          PUSH DWORD PTR SS:[EBP+C]          ; user32.DefWindowProcW
+```
+
+因此在运用的时候，可先通过在`user32`空间搜索二进制：
+
+```
+55 8B EC 56 57 53 68 CD AB BA DC 56 FF 75 18 FF 75 14 FF 75 10 FF 75 0C
+```
+
+获得该万能地址。
+
+另外提醒一点，千万要下条件断点！
