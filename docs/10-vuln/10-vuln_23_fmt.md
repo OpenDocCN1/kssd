@@ -1,0 +1,10 @@
+
+# JavaScript 中的堆风水，中英文对照版
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-729.htm`](https://www.pediy.com/kssd/pediy09/pediy09-729.htm)
+
+`4dd466d0e1e0cc123afbe504da2462ca`
+
+| ![文件类型: doc](img/8c0a432b6606ffaf8f158b75a7a75dd5.jpg) || Heap Feng Shui in JavaScript\_en\_cn.doc  ||   |
+
+| --- | --- | --- |
