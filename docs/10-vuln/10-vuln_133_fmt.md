@@ -1,0 +1,303 @@
+
+# 逆向 ms06-040(纯属练手学习恳求大牛别笑)
+
+> 原文：[`www.pediy.com/kssd/pediy11/107451.html`](https://www.pediy.com/kssd/pediy11/107451.html)
+
+最近一直在学习汇编和逆向因为我汇编基础极差(只看过几天 IBM 汇编,正在对自己失去信心..)
+所以为了继续学习给自己点动力,就试着在 0 基础的状态下做了 failwest 兄<【技术专题】软件漏洞分析入门 > 教程中给的一个实验 ms06-040 漏洞..
+因为上面所说的情况导致对这个简单的函数 `NetpwPathCanonicalize` 的逆向困难重重..
+总共花了整整 10 个小时左右.才完全弄明白到底这个函数做了什么..
+嘿嘿这可是我的第一次逆向..期间的苦与乐自己最清楚..觉得对汇编和逆向有了更进一步的理解 嘿嘿  
+感谢: failwest 兄的 <【技术专题】软件漏洞分析入门 >  
+推荐跟我一样的新手看看哦:[`bbs.pediy.com/showthread.php?...id=phpforce\_42`](http://bbs.pediy.com/showthread.php?t=56445&prefixid=phpforce_42)
+目的:希望所有在学习逆向或者汇编的同学遇到困难的时候一定不要放弃.因为等待你的就是你的梦.它离你很近很近..
+用到的工具:`IDA`(静态反汇编工具),`ollydbg`(动态调试工具),和微软系统自带计算器(嘿 16 进制的运算我经常算混成 10 进制的)
+以上废话可不看,目的在于抒发小菜激动的心情 下面进入正题..
+
+## 代码:
+
+
+
+``` 
+;NetpwPathCanonicalize 函数
+
+.text:7517F7E2  ; =============== S U B R O U T I N E =======================================
+.text:7517F7E2
+.text:7517F7E2  ; Str            是第一个参数 一个指向 unicode 字符串的指针(用来生成路径的第二部分)
+.text:7517F7E2  ; lpWideCharStr  是第二个参数 用于接收格式化后的字符串
+.text:7517F7E2  ; arg_8          是第三个参数 用来指明参数 2 所指定的 buffer 大小
+.text:7517F7E2  ; Source         是第四个参数 一个指向 unicode 字符串的指针(用来生成路径的第一部分)
+.text:7517F7E2  ; arg_10         是第五个参数 一个无用指针
+.text:7517F7E2  ; arg_14         标志位必须为 0
+.text:7517F7E2  ; Attributes: bp-based frame
+.text:7517F7E2
+.text:7517F7E2  ; int __stdcall NetpwPathCanonicalize(wchar_t *lpWideCharStr, int, int, wchar_t *Source, int, int)
+.text:7517F7E2                  public NetpwPathCanonicalize
+.text:7517F7E2 NetpwPathCanonicalize proc near         ; CODE XREF: I_NetPathCanonicalize:loc_7517FB38p
+.text:7517F7E2                                         ; NetpwPathCompare+96p ...
+.text:7517F7E2
+.text:7517F7E2 Str             = dword ptr  8
+.text:7517F7E2 lpWideCharStr   = dword ptr  0Ch
+.text:7517F7E2 arg_8           = dword ptr  10h
+.text:7517F7E2 Source          = dword ptr  14h
+.text:7517F7E2 arg_10          = dword ptr  18h
+.text:7517F7E2 arg_14          = dword ptr  1Ch
+.text:7517F7E2
+.text:7517F7E2                  push    ebp
+.text:7517F7E3                  mov     ebp, esp
+.text:7517F7E5                  push    ebx
+.text:7517F7E6                  mov     ebx, [ebp+Source]
+.text:7517F7E9                  push    esi
+.text:7517F7EA                  push    edi
+.text:7517F7EB                  xor     edi, edi
+.text:7517F7ED                  cmp     ebx, edi        ; 判断 4 号参数是否等于 0
+.text:7517F7EF                  jz      short loc_7517F7FA
+.text:7517F7F1                  cmp     [ebx], di       ; 4 号参数 字符串指针所指的地址不等于 0 的话
+.text:7517F7F4                  jz      short loc_7517F7FA
+.text:7517F7F6                  xor     esi, esi        ; 4 号参数 字符串指针所指的地址中第一个字符不等于 0 的话
+.text:7517F7F8                  jmp     short loc_7517F7FD
+.text:7517F7FA ; ---------------------------------------------------------------------------
+.text:7517F7FA
+.text:7517F7FA loc_7517F7FA:                           ; CODE XREF: NetpwPathCanonicalize+Dj
+.text:7517F7FA                                         ; NetpwPathCanonicalize+12j
+.text:7517F7FA                  push    1               ; 如果 4 号参数一个字符串指针等于 0 或者此指针指向的字符串等于 0 的话
+.text:7517F7FC                  pop     esi
+.text:7517F7FD
+.text:7517F7FD loc_7517F7FD:                           ; CODE XREF: NetpwPathCanonicalize+16j
+.text:7517F7FD                  mov     eax, [ebp+arg_10]
+.text:7517F800                  test    [ebp+arg_14], 7FFFFFFEh
+.text:7517F807                  mov     eax, [eax]
+.text:7517F809                  mov     [ebp+Source], eax ; 将参数 4 里的指针改为 参数 5 里的指针
+.text:7517F80C                  jz      short loc_7517F813
+.text:7517F80E                  push    57h
+.text:7517F810                  pop     eax
+.text:7517F811                  jmp     short loc_7517F869
+.text:7517F813 ; ---------------------------------------------------------------------------
+.text:7517F813
+.text:7517F813 loc_7517F813:                           ; CODE XREF: NetpwPathCanonicalize+2Aj
+.text:7517F813                  cmp     eax, edi        ; 判断参数 5 里的指针是否等于 0
+.text:7517F815                  jnz     short loc_7517F828
+.text:7517F817                  lea     eax, [ebp+Source] ; 如果参数 5 等于 0
+.text:7517F81A                  push    edi             ; int
+.text:7517F81B                  push    eax             ; int
+.text:7517F81C                  push    [ebp+Str]       ; lpWideCharStr
+.text:7517F81F                  call    NetpwPathType   ;对字符串做检查的函数
+.text:7517F824                  cmp     eax, edi
+.text:7517F826                  jnz     short loc_7517F869
+.text:7517F828
+.text:7517F828 loc_7517F828:                           ; CODE XREF: NetpwPathCanonicalize+33j
+.text:7517F828                  cmp     esi, edi        ; 如果参数 5 里的指针不等于 0
+.text:7517F828                                         ; 判断 esi 是否等于 0
+.text:7517F82A                  jnz     short loc_7517F83B ; 存储路径的指针是否为 0
+.text:7517F82C                  lea     eax, [ebp+arg_14] ; 如果 esi 等于 0
+.text:7517F82F                  push    edi             ; int
+.text:7517F830                  push    eax             ; int
+.text:7517F831                  push    ebx             ; lpWideCharStr
+.text:7517F832                  call    NetpwPathType   ; 将 edi=0,eax=0,和参数 4 合成路径的第一部分入栈,调用函数
+.text:7517F837                  cmp     eax, edi        ; 判断路径的第一部分 参数 4 的长度不能大于 103
+.text:7517F839                  jnz     short loc_7517F869 ; eax 不等于 edi 跳转 退出函数
+.text:7517F83B
+.text:7517F83B loc_7517F83B:                           ; CODE XREF: NetpwPathCanonicalize+48j
+.text:7517F83B                  cmp     [ebp+arg_8], edi ; 如果 esi 不等于 0
+.text:7517F83B                                         ;
+.text:7517F83E                  jnz     short loc_7517F847 ; 不等于 0
+.text:7517F840                  mov     eax, 84Bh
+.text:7517F845                  jmp     short loc_7517F869
+.text:7517F847 ; ---------------------------------------------------------------------------
+.text:7517F847
+.text:7517F847 loc_7517F847:                           ; CODE XREF: NetpwPathCanonicalize+5Cj
+.text:7517F847                  mov     esi, [ebp+lpWideCharStr] ; 不等于 0
+.text:7517F84A                  push    edi             ; int  0
+.text:7517F84B                  push    [ebp+arg_8]     ; int   存储路径 buffer 的大小 440
+.text:7517F84E                  mov     [esi], di
+.text:7517F851                  push    esi             ; 接收合成后路径的地址
+.text:7517F852                  push    [ebp+Str]       ; Str    指向合成路径第二部分字符串的指针
+.text:7517F855                  push    ebx             ; Source    指向合成路径第一部分字符串的指针
+.text:7517F856                  call    sub_7517FC68    ; CanonicalizePathName<--生成新路径的函数  漏洞就出现在此函数中
+.text:7517F85B                  cmp     eax, edi
+.text:7517F85D                  jnz     short loc_7517F869
+.text:7517F85F                  push    edi             ; int
+.text:7517F860                  push    [ebp+arg_10]    ; int
+.text:7517F863                  push    esi             ; lpWideCharStr
+.text:7517F864                  call    NetpwPathType   ; 对字符串做检查的函数
+.text:7517F869
+.text:7517F869 loc_7517F869:                           ; CODE XREF: NetpwPathCanonicalize+2Fj
+.text:7517F869                                         ; NetpwPathCanonicalize+44j ...
+.text:7517F869                  pop     edi
+.text:7517F86A                  pop     esi
+.text:7517F86B                  pop     ebx
+.text:7517F86C                  pop     ebp
+.text:7517F86D                  retn    18h
+.text:7517F86D NetpwPathCanonicalize endp
+```
+
+;CanonicalizePathName 函数
+
+```
+.text:7517FC68  ; =============== S U B R O U T I N E ========================================
+.text:7517FC68 ;CanonicalizePathName 函数
+.text:7517FC68 ; 生成新路径
+.text:7517FC68 ; Source 参数 1  合成路径第一段
+.text:7517FC68 ; str    参数 2  合成路径第二段
+.text:7517FC68 ; arg_8  参数 3  接收合成后路径的地址
+.text:7517FC68 ; arg_c  参数 4  存放合成后路径的 buffer 的大小  440
+.text:7517FC68 ; arg_10 参数 5  0
+.text:7517FC68 ; Attributes: bp-based frame
+.text:7517FC68
+.text:7517FC68 ; int __stdcall sub_7517FC68(wchar_t *Source, wchar_t *Str, int, int, int)
+.text:7517FC68 sub_7517FC68    proc near               ; CODE XREF: NetpwPathCanonicalize+74p
+.text:7517FC68
+.text:7517FC68 var_416         = word ptr -416h
+.text:7517FC68 Dest            = word ptr -414h
+.text:7517FC68 Source          = dword ptr  8
+.text:7517FC68 Str             = dword ptr  0Ch
+.text:7517FC68 arg_8           = dword ptr  10h
+.text:7517FC68 arg_C           = dword ptr  14h
+.text:7517FC68 arg_10          = dword ptr  18h
+.text:7517FC68
+.text:7517FC68                  push    ebp
+.text:7517FC69                  mov     ebp, esp
+.text:7517FC6B                  sub     esp, 414h       ; 抬高堆栈 414 字节
+.text:7517FC71                  push    ebx
+.text:7517FC72                  push    esi
+.text:7517FC73                  xor     esi, esi        ; esi 清 0
+.text:7517FC75                  push    edi
+.text:7517FC76                  cmp     [ebp+Source], esi ; 判断第一段字符串地址是否为 0
+.text:7517FC79                  mov     edi, ds:__imp_wcslen
+.text:7517FC7F                  mov     ebx, 411h
+.text:7517FC84                  jz      short loc_7517FCED ; 当第一段字符串地址等于 0 时转移
+.text:7517FC86                  push    [ebp+Source]    ; Str  第一段字符串地址入栈
+.text:7517FC89                  call    edi ; __imp_wcslen ; 判断长度并把长度存入 eax 寄存器中
+.text:7517FC8B                  mov     esi, eax        ; 将第一段字符串的长度存入 esi
+.text:7517FC8D                  pop     ecx
+.text:7517FC8E                  test    esi, esi
+.text:7517FC90                  jz      short loc_7517FCF4 ; 判断第一段字符串的长度为 0 的时候跳转
+.text:7517FC92                  cmp     esi, ebx        ; 判断 1 号串的长度大于等于 411 字节的时候跳转
+.text:7517FC94                  ja      loc_7517FD3E    ; 字符串大于等于限制长度的时候
+.text:7517FC9A                  push    [ebp+Source]    ; Source 第一段字符串地址入栈
+.text:7517FC9D                  lea     eax, [ebp+Dest] ; 要存放第一段字符串的缓冲区的地址   414 字节大小
+.text:7517FCA3                  push    eax             ; Dest
+.text:7517FCA4                  call    ds:__imp_wcscpy ; unicode 复制函数 将参数 2 里的字符串拷贝到参数 1 所指向的缓冲区中
+.text:7517FCAA                  mov     ax, [ebp+esi*2+var_416] ; ax 等于存放路径缓冲区中第一段字符串的最后一个字符
+.text:7517FCB2                  pop     ecx
+.text:7517FCB3                  cmp     ax, 5Ch         ; 将最后一个字符与 5ch('\\')比较
+.text:7517FCB7                  pop     ecx
+.text:7517FCB8                  jz      short loc_7517FCD5 ; 相等跳转
+.text:7517FCBA                  cmp     ax, 2Fh         ; 将最后一个字符与 2fh('/')比较
+.text:7517FCBE                  jz      short loc_7517FCD5 ; 相等跳转
+.text:7517FCC0                  lea     eax, [ebp+Dest] ; 获取存放路径的缓冲区地址
+.text:7517FCC6                  push    offset asc_751717B8 ; 一个 unicode 的'\\'字符数据地址入栈
+.text:7517FCCB                  push    eax             ; Dest  放路径的缓冲区地址  入栈
+.text:7517FCCC                  call    ds:__imp_wcscat ; 将 unicode 字符'\\'追加到第一段路径字符串结尾
+.text:7517FCD2                  pop     ecx
+.text:7517FCD3                  inc     esi             ; esi 为路径第一部分的字符串长度加 1
+.text:7517FCD4                  pop     ecx
+.text:7517FCD5
+.text:7517FCD5 loc_7517FCD5:                           ; CODE XREF: sub_7517FC68+50j
+.text:7517FCD5                                         ; sub_7517FC68+56j
+.text:7517FCD5                  mov     eax, [ebp+Str]  ;
+.text:7517FCD5                                         ; eax 等于参数 2 合成路径的第二段的地址
+.text:7517FCD8                  mov     ax, [eax]       ; 获取合成路径第二段的第一个字
+.text:7517FCDB                  cmp     ax, 5Ch         ; 与 '\\'(5ch) 比较
+.text:7517FCDF                  jz      short loc_7517FCE7 ; 合成路径的第二段字符串的第一个字符如果是'\\'(5c)的话就跳转
+.text:7517FCE1                  cmp     ax, 2Fh         ; 否则判断第二段字符串的第一个字符是不是'/'(2fh)
+.text:7517FCE5                  jnz     short loc_7517FCF4 ; 不是的话跳转
+.text:7517FCE7
+.text:7517FCE7 loc_7517FCE7:                           ; CODE XREF: sub_7517FC68+77j
+.text:7517FCE7                  add     [ebp+Str], 2    ;
+.text:7517FCE7                                         ; 如果第二段字符穿的第一个字符为'\\'或'/'的话就在地址中去掉此字符的长度
+.text:7517FCEB                  jmp     short loc_7517FCF4
+.text:7517FCED ; ---------------------------------------------------------------------------
+.text:7517FCED
+.text:7517FCED loc_7517FCED:                           ; CODE XREF: sub_7517FC68+1Cj
+.text:7517FCED                  mov     [ebp+Dest], si
+.text:7517FCF4
+.text:7517FCF4 loc_7517FCF4:                           ; CODE XREF: sub_7517FC68+28j
+.text:7517FCF4                                         ; sub_7517FC68+7Dj ...
+.text:7517FCF4                  push    [ebp+Str]       ; Str
+.text:7517FCF4                                         ; 第二段字符串地址入栈
+.text:7517FCF7                  call    edi ; __imp_wcslen ; 获取第二段字符串的长度 并保存到 eax 中
+.text:7517FCF9                  add     eax, esi        ; 将两段字符串的总长度保存到 eax 中 第一段长度为 8 第二段长度为 209
+.text:7517FCFB                  pop     ecx             ; ecx 是第二段字符串的地址
+.text:7517FCFC                  cmp     eax, ebx        ; 判断总长度是否大于等于 411 漏洞出现原因(因为获取参数长度的时候一按 unicode 获取的就是字符个数,而做限制的时候应按 411 字节,但这个按 411 字符数所以存在漏洞)
+.text:7517FCFE                  ja      short loc_7517FD3E ; 字符串大于等于限制长度的时候
+.text:7517FD00                  push    [ebp+Str]       ; Source 参数 2 路径第二段地址入栈
+.text:7517FD03                  lea     eax, [ebp+Dest] ; 获取存储 路径的 buffer 地址 大小 414 字节
+.text:7517FD09                  push    eax             ; Dest
+.text:7517FD0A                  call    ds:__imp_wcscat ; 将路径第二段附加到 buffer 中的最后位置  (第一段字符串:8+'\\':1+第二段字符串:209)=212=424 字节
+.text:7517FD10                  pop     ecx
+.text:7517FD11                  lea     eax, [ebp+Dest]
+.text:7517FD17                  pop     ecx
+.text:7517FD18                  push    eax
+.text:7517FD19                  call    sub_7518AE95    ; 将缓冲区中合成后的字符串里的'/'字符替换成'\\' 然后返回
+.text:7517FD1E                  lea     eax, [ebp+Dest]
+.text:7517FD24                  push    eax             ; Str  存放路径的 buffer 地址入栈
+.text:7517FD25                  call    sub_7518AEB3    ; 没理解上去是干什么的..
+.text:7517FD2A                  test    eax, eax
+.text:7517FD2C                  jnz     short loc_7517FD43
+.text:7517FD2E                  lea     eax, [ebp+Dest]
+.text:7517FD34                  push    eax
+.text:7517FD35                  call    sub_7518AFE2
+.text:7517FD3A                  test    eax, eax
+.text:7517FD3C                  jnz     short loc_7517FD43
+.text:7517FD3E
+.text:7517FD3E loc_7517FD3E:                           ; CODE XREF: sub_7517FC68+2Cj
+.text:7517FD3E                                         ; sub_7517FC68+96j
+.text:7517FD3E                  push    7Bh             ; 字符串大于等于限制长度的时候
+.text:7517FD40                  pop     eax
+.text:7517FD41                  jmp     short loc_7517FD7A
+.text:7517FD43 ; ---------------------------------------------------------------------------
+.text:7517FD43
+.text:7517FD43 loc_7517FD43:                           ; CODE XREF: sub_7517FC68+C4j
+.text:7517FD43                                         ; sub_7517FC68+D4j
+.text:7517FD43                  lea     eax, [ebp+Dest]
+.text:7517FD49                  push    eax             ; Str
+.text:7517FD4A                  call    edi ; __imp_wcslen
+.text:7517FD4C                  lea     eax, [eax+eax+2] ; 获取总字节数 424 字节
+.text:7517FD50                  pop     ecx
+.text:7517FD51                  cmp     eax, [ebp+arg_C] ; 将总字节 424 与参数 buffer 的大小 440 比较
+.text:7517FD54                  jbe     short loc_7517FD66 ; 小于等于转移
+.text:7517FD56                  mov     ecx, [ebp+arg_10]
+.text:7517FD59                  test    ecx, ecx
+.text:7517FD5B                  jz      short loc_7517FD5F
+.text:7517FD5D                  mov     [ecx], eax
+.text:7517FD5F
+.text:7517FD5F loc_7517FD5F:                           ; CODE XREF: sub_7517FC68+F3j
+.text:7517FD5F                  mov     eax, 84Bh
+.text:7517FD64                  jmp     short loc_7517FD7A
+.text:7517FD66 ; ---------------------------------------------------------------------------
+.text:7517FD66
+.text:7517FD66 loc_7517FD66:                           ; CODE XREF: sub_7517FC68+ECj
+.text:7517FD66                  lea     eax, [ebp+Dest]
+.text:7517FD6C                  push    eax             ; Source
+.text:7517FD6D                  push    [ebp+arg_8]     ; Dest
+.text:7517FD70                  call    ds:__imp_wcscpy ; 将局部 buffer 中的合成后路径的字符串 拷贝到 参数中指定的 buffer 中
+.text:7517FD76                  pop     ecx
+.text:7517FD77                  xor     eax, eax
+.text:7517FD79                  pop     ecx
+.text:7517FD7A
+.text:7517FD7A loc_7517FD7A:                           ; CODE XREF: sub_7517FC68+D9j
+.text:7517FD7A                                         ; sub_7517FC68+FCj
+.text:7517FD7A                  pop     edi
+.text:7517FD7B                  pop     esi
+.text:7517FD7C                  pop     ebx
+.text:7517FD7D                  leave
+.text:7517FD7E                  retn    14h             ; 缓冲区的返回地址被覆盖为第二个字符串中第 408,409,410,411 个字符
+.text:7517FD7E sub_7517FC68    endp
+```
+
+
+
+# 溢出前的堆栈
+
+成功溢出后的堆栈
+
+注意返回地址已经被改为 `71717171`
+
+## 对这个函数的逆向
+
+暂时我只是了解了这个漏洞.. 下一步准备写一个简单的 `shellcode`.. 增加一下汇编的编程能力
+
+经历了这么长的时间发现有些体力不支..
+
+可能有些语言组织的不好希望不要见怪..![](img/45dd044a2743704cbb333715eae4a5f6.jpg "狂笑")
