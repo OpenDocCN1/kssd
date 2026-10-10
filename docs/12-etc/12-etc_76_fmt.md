@@ -1,0 +1,68 @@
+
+# \[操作系统\]Windows Mobile 系统介绍\[MASSADA0018\]
+
+> 原文：[`www.pediy.com/kssd/pediy10/83597.html`](https://www.pediy.com/kssd/pediy10/83597.html)
+
+智能手机操作系统 - Windows Mobile
+
+上一篇文章简单介绍了智能手机的 CPU 系统，这一篇重点介绍目前比较流行的智能手机操作系统:Windows Mobile。
+
+## Windows Mobile 基本信息
+
+Windows Mobile 是 Microsoft 用于 Pocket PC 和 Smartphone 的软件平台。Windows Mobile 将人们熟悉的 Windows 桌面扩展到了个人设备中。
+
+Windows Mobile 是微软为手持设备推出的“移动版 Windows”，使用 Windows Mobile 操作系统的设备主要有手机、PDA、随身音乐播放器等。Windows Mobile 6.0 有三种，分别是 Windows Mobile Standard、Windows Mobile Professional，Windows Mobile Classic。
+
+Windows Mobile Classic 主要针对 PDA。Windows Mobile Standard 对应于 Smartphone。而 Windows Mobile Professional 则针对更高端的 Pocket PC Phone。
+
+目前最新的版本是 Windows Mobile 6.5。
+
+## Windows Mobile 硬件配置
+
+Windows Mobile 掌上电脑和手机的主流硬件配置一般为：CPU: 195-624 Mhz, 主要芯片厂商：Intel, Texas Instruments, Samsung, Qualcomm 等，内存：64-128MB RAM（用于程序运行），128-256MB ROM（用于第三方程序及用户文件储存），显示屏：240x320 或 480x640，6.5 万色，2.4-3.5 英寸，扩充卡：Micro SD 或 SD，SDHC，高端机型内置 WiFi 无线网络接收模块，GPS 卫星接收模块，FM 收音机接收模块，3G 或 3.5G 高速网络，另配有蓝牙及用于和电脑同步用的 USB 接口。
+
+## Windows Mobile 主要版本
+
+2005 年 9 月 5 日微软推出 Windows Mobile 5.0，内部名称 Magneto，基于 Windows CE 5.0，主要更新：改进的存储系统，电池在完全耗尽后仍能保留第三方程序和用户文件，内置部分.NET Compact Framework 2.0，加入 Power Point 软件，Word 和 Excel 支持图片式统计图形，虚拟 GPS 端口，可自动指定 GPS 程序的接入，简化了蓝牙和 WiFi 的设置，Windows Media Player 版本提高到 10.0。
+
+2007 年 2 月 12 日微软在巴塞罗那推出 Windows Mobile 6.0，内部名称 Crossbow，内核为 Windows CE 5.2，其操作界面和 Windows Vista 相似，分三个版本：
+1. Windows Mobile Classik，传统掌上电脑，PDA
+2. Windows Mobile Standard，即智能手机, Smart Phone
+3. Windows Mobile Professional，掌上电脑型智能手机
+
+重要更新：1，支持 IP 电话，2，改善了搜索功能，通过 Exchange 2007 进行网上搜索，3，支持 HTML 邮件，4，支持 Exchange 2007 地址簿，5，内置网上升级，6，兼容 Windows Mobile 5.0，预装.NET Compact Framework 2.0 SP2，7，预装 Windows Live。
+
+2008 年 4 月微软推出 Windows Mobile 6.1，内核仍为 Windows CE 5.2。
+
+主要新特性：1，将短信改为类似于 Messenger 的聊天界面。2，改善了 Internet Explorer，加入缩放，Adobe Flash 视频，Silverlight，H.264 视频等。3，增加了文字输入选项。4，增加了文字的复制和粘贴。5，大大简化了蓝牙和 WiFi 的设置。
+
+北京时间 2009 年 2 月 16 日晚，在当天西班牙举行的世界移动大会上，微软联合宏达电、LG 和 Orange 等主要手机合作伙伴，推出了基于微软新一代手机系统 Windows Mobile 6.5 的数款手机。
+
+此次推出的微软手机拥有新的用户界面和更为丰富的浏览体验，并推出了“My Phone”和“Windows 市场”(Windows Marketplace)两项新服务。前者可以实现用户短信、图片、视频、联系人等的网络同步；后者是微软推出的新网店，旨在为用户通过手机和网络提供手机应用软件。
+
+同时微软在巴塞罗那大会上宣布，Windows mobile 6.5 以后的名字不再使用，而是统一使用 Windows Phones。
+
+## Windows Mobile 的优点
+
+01、技术实力强大支持的企业多
+Windows Mobile 有微软做后盾技术实力很强，系统稳定性，不同版本之间的兼容性都做的很好。支持 Windows Mobile 的企业有很多如 HP，摩托罗拉、三星、HTC、多普达、夏新、联想等公司都有基于 Windows Mobile 的产品生产线。
+
+02、同桌面 Windows 平台相似使用学习简单
+使用学习简单是 Windows Mobile 的重要特点。因为无论是界面还是操作，Windows Mobile 都和桌面 Windows 平台相似。无论你是使用 API,MFC 还是.NET 平台开发都可以找到同桌面平台相似的函数和类库。微软为了使 Windows Mobile 同桌面平台兼容，甚至函数参数个数类型都和桌面平台尽可能的一致。有些 Windows Mobile 还不支持的功能对应参数就设为 NULL。所以对桌面平台开发有一定经验的开发人员，很容易转入这个平台开发。
+
+03、预装软件丰富，内置 Office Word, Excel, Power Point，可浏览甚至编辑办公文档，内置 Internet Explorer，Media Player。这些软件提供了丰富的办公、上网、娱乐功能。同桌面系统一样使用方便。
+
+04、电脑同步非常便捷，完全兼容 Outlook, Office Word, Excel 等。
+用户可以安装 PC 平台的 Active Sync 软件。只要安装配置一次，以后每次将手机接入 PC 可以很方便的实现 PC 和手机的数据同步交换。
+
+05、多媒体功能强大，可播放几乎任何主流格式的音视频文件。
+WM 提供了嵌入式平台的 Media Player 可以播放各种主流格式的音视频文件。
+
+06、极为丰富的第三方软件，特别是词典，卫星导航软件均可运行。
+由于支持 Windows Mobile 的软硬件厂商很多，提供了丰富的第三方软件。用户可以从网络上方便的下载各种需要的软件。
+
+学习 Windows Mobile 所需要的材料和工具请看:
+
+Windows CE 黑客必备工具总结（献给想进入 Windows CE 平台底层研发的朋友们）
+
+`http://bbs.pediy.com/showthread.php?t=79606`
