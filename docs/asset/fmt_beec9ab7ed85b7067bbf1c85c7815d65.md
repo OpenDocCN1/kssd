@@ -1,0 +1,62 @@
+
+### 原始汇编代码
+
+```
+004012D5  /.  55            push    ebp
+004012D6  |.  8BEC          mov     ebp, esp
+004012D8  |.  83EC 40       sub     esp, 40
+004012DB  |.  8B45 0C       mov     eax, dword ptr ss:[ebp+C]
+004012DE  |.  48            dec     eax                          ;  Switch (cases 2..F)
+004012DF  |.  48            dec     eax
+004012E0  |.  74 68         je      short 0040134A
+004012E2  |.  83E8 03       sub     eax, 3
+004012E5  |.  74 4D         je      short 00401334
+004012E7  |.  83E8 0A       sub     eax, 0A
+004012EA  |.  74 14         je      short 00401300
+004012EC  |.  FF75 14       push    dword ptr ss:[ebp+14]            ; /lParam; Default case of switch 004012DE
+004012EF  |.  FF75 10       push    dword ptr ss:[ebp+10]            ; |wParam
+004012F2  |.  FF75 0C       push    dword ptr ss:[ebp+C]             ; |Message
+004012F5  |.  FF75 08       push    dword ptr ss:[ebp+8]             ; |hWnd
+004012F8  |.  FF15 F4704000 call    dword ptr ds:[<&USER32.DefWindow>; \\DefWindowProcA
+004012FE  |.  EB 54         jmp     short 00401354
+```
+
+注意看有三个 `JE`，`JE` 前面是 `SUB` 和 `DEC` 命令，不是平时的 `CMP` 命令，有猫腻。`CMP` 是不保存结果的，但 `SUB` 和 `DEC` 是保存结果的，所以可以写成这样：
+
+```
+CMP EAX,2
+je      short 0040134A
+CMP EAX,2+3
+je      short 00401334
+CMP EAX,2+3+A
+je      short 00401300
+```
+
+所以就要在这些比较之前用"跳出跳回法”写入 `WM_COMMAND` 消息处理。问题又来了，输入表里面没有 `MessageBox` 怎么办。我是用风险比较大的方法，就是绝对地址，因为大多数程序在加载 `USER32.DLL` 等函数的时候，它的分配的空间 90%都是一样的，所以直接使用 `USER32.DLL` 的空间加上 `MessageBox` 函数的偏移就可以了。
+
+至于字串，可以在数据段加入，注意换行符为 `0X0A`。最终如下：
+
+```
+004012D5   .  55            push    ebp
+004012D6   .  8BEC          mov     ebp, esp
+004012D8   .  83EC 40       sub     esp, 40
+004012DB   .  E9 A0580000   jmp     00406B80        《=====跳出
+00406B80   > \\8B45 0C       mov     eax, dword ptr ss:[ebp+C]
+00406B83   .  3D 11010000   cmp     eax, 111                         ;  Switch (cases 2..111)
+00406B88   .  74 0D         je      short 00406B97
+00406B8A   .  48            dec     eax
+00406B8B   .  48            dec     eax
+00406B8C   .^ 0F84 B8A7FFFF je      0040134A
+00406B92   .^ E9 4BA7FFFF   jmp     004012E2         《=====跳回
+00406B97   >  6A 40         push    40                               ;  Case 111 of switch 00406B83
+00406B99   .  68 8C804000   push    0040808C                         ;  ASCII "pediy"
+00406B9E   .  68 50804000   push    00408050
+00406BA3   .  6A 00         push    0
+00406BA5   .  E8 06000000   call    00406BB0
+00406BAA   .^ E9 A3A7FFFF   jmp     00401352
+00406BAF      00            db      00
+00406BB0   $- FF25 B86B4000 jmp     dword ptr ds:[406BB8]            ;  user32.7696EA11
+00406BB6      00            db      00
+00406BB7      00            db      00
+00406BB8   .  11EA9676      dd      user32.7696EA11
+```
