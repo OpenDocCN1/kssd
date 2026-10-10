@@ -1,0 +1,54 @@
+
+# shelllcode 跳转回原始 OEP 的两种方法
+
+> 原文：[`www.pediy.com/kssd/pediy11/107783.html`](https://www.pediy.com/kssd/pediy11/107783.html)
+
+## 几种跳转指令和对应的机器码
+
+`0xE8` `CALL` 后面的四个字节是地址  
+`0xE9` `JMP` 后面的四个字节是偏移  
+`0xEB` `JMP` 后面的二个字节是偏移  
+`0xFF15` `CALL` 后面的四个字节是存放地址的地址  
+`0xFF25` `JMP` 后面的四个字节是存放地址的地址  
+`0x68` `PUSH` 后面的四个字节入栈  
+`0x6A` `PUSH` 后面的一个字节入栈
+
+## shellcode 跳转回原始 OEP 方法一
+
+大部分人比较喜欢直接 `jmp` 跳转到原始 `oep`，这时候一般都用 `e9` 跳转，`e9` 后面的四个字节是一个偏移地址。
+
+计算公式： 偏移地址 = 目的地址 - 跳转基地址(`jmp` 的下一条指令的地址)
+
+也就是 原始 `OEP` - `jmp` 的下一条指令的地址
+
+```
+db 0e9h        ;这是 jmp
+```
+
+`OEPOffs:`
+
+```
+dd ?        ;这里是 4 个字节 未初始化
+```
+
+偏移地址 = 原始 `OEP` - (`offset OEPOffs` + 4) 为什么+4 因为 `OEPOffs` 标号向后偏移 4 个字节 才是 `jmp` 的下一条指令地址 也就是跳转基地址
+
+## shellcode 跳转回原始 OEP 方法二
+
+有些人用 `push oep` 然后 `jmp dword ptr [esp]` 的方法跳回原始 `oep`，这时候 `shellcode` 要这样写：
+
+```
+db 68h
+```
+
+`OEP:`
+
+```
+dd ?
+```
+
+```
+jmp dword ptr [esp]
+```
+
+`68h` 是 `push` 后面四个字节的意思 `dd ?` 声明了四个字节，然后通过 `OEP` 标号，定位到这个位置，然后把原始 `OEP` 写进去就可以了

