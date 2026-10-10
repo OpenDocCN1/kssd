@@ -1,0 +1,568 @@
+
+# RealPlayer 6.0.10 到 6.0.14 整数溢出分析
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-327.htm`](https://www.pediy.com/kssd/pediy09/pediy09-327.htm)
+
+> RealPlayer 6.0.10 到 6.0.14 整数溢出分析
+
+今天早上茄子就告诉我 `cnbeta` 被挂马了，使用最近出现的各种漏洞。
+
+其中比较有意思的是，一个脚本中使用没有见过的 `realplayer` 溢出。![](img/d40b5575a143b1b5e17e7f31e3f35d26.jpg "恐怖!")
+
+先从 `realplayer` 目录 `rpplugins\\ierpplug.dll` 中的 `IIERPCtl.Import` 开始讲起，
+
+下面是其声明
+
+`HRESULT Import(`
+`                        [in] BSTR file,`
+`                        [in, optional, defaultvalue("")] BSTR playlist,`
+`                        [in, optional, defaultvalue("")] BSTR clipInfo,`
+`                        [in, optional, defaultvalue(0)] long bPlayFile,`
+`                        [in, optional, defaultvalue(0)] long bCopyToMyMusic,`
+`                        [out, retval] long* pVal);`
+
+代码:
+
+```
+.text:65E91640  ; int __stdcall IIERPCtl_Import(int,int This,int file,int playlist,int clipInfo,int bPlayFile,int bCopyToMyMusic)
+.text:65E91640 IIERPCtl_Import proc near               ; DATA XREF: .rdata:65EB545Co
+.text:65E91640                                         ; .rdata:65EB54E4o
+.text:65E91640
+.text:65E91640 var_C           = dword ptr -0Ch
+.text:65E91640 This            = dword ptr  0Ch
+.text:65E91640 file            = dword ptr  10h
+.text:65E91640 playlist        = dword ptr  14h
+.text:65E91640 clipInfo        = dword ptr  18h
+.text:65E91640 bPlayFile       = dword ptr  1Ch
+.text:65E91640 bCopyToMyMusic  = dword ptr  20h
+.text:65E91640                  push    ebp
+.text:65E91641                  mov     ebp, esp
+.text:65E91643                  push    ebx
+.text:65E91644                  mov     ebx, [ebp+playlist] ;关键参数
+.text:65E91647                  push    esi
+.text:65E91648                  push    edi
+.text:65E91649                  test    ebx, ebx
+.text:65E9164B                  jnz     short loc_65E91652
+.text:65E9164B
+.text:65E9164D                  mov     [ebp+playlist], ebx
+.text:65E91650                  jmp     short loc_65E91684
+.text:65E91650
+.text:65E91652 ; ---------------------------------------------------------------------------
+.text:65E91652
+.text:65E91652 loc_65E91652:                           ; CODE XREF: IIERPCtl_Import+Bj
+.text:65E91652                  push    ebx             ; lpString
+.text:65E91653                  call    ds:lstrlenW
+.text:65E91659                  lea     edi, [eax+eax+2]
+.text:65E9165D                  mov     eax, edi
+.text:65E9165F                  add     eax, 3
+.text:65E91662                  and     al, 0FCh
+.text:65E91664                  call    __alloca_probe
+.text:65E91664
+.text:65E91669                  mov     esi, esp
+.text:65E9166B                  push    0
+.text:65E9166D                  push    0
+.text:65E9166F                  push    edi
+.text:65E91670                  push    esi
+.text:65E91671                  push    0FFFFFFFFh
+.text:65E91673                  push    ebx
+.text:65E91674                  push    0
+.text:65E91676                  push    0
+.text:65E91678                  mov     byte ptr [esi], 0
+.text:65E9167B                  call    ds:WideCharToMultiByte
+.text:65E91681                  mov     [ebp+playlist], esi
+.text:65E91681
+.text:65E91684
+.text:65E91684 loc_65E91684:                           ; CODE XREF: IIERPCtl_Import+10j
+.text:65E91684                  mov     ebx, [ebp+file]
+.text:65E91687                  test    ebx, ebx
+.text:65E91689                  jnz     short loc_65E91690
+.text:65E91689
+.text:65E9168B                  mov     [ebp+file], ebx
+.text:65E9168E                  jmp     short loc_65E916C2
+.text:65E9168E
+.text:65E91690 ; ---------------------------------------------------------------------------
+.text:65E91690
+.text:65E91690 loc_65E91690:                           ; CODE XREF: IIERPCtl_Import+49j
+.text:65E91690                  push    ebx             ; lpString
+.text:65E91691                  call    ds:lstrlenW
+.text:65E91697                  lea     edi, [eax+eax+2]
+.text:65E9169B                  mov     eax, edi
+.text:65E9169D                  add     eax, 3
+.text:65E916A0                  and     al, 0FCh
+.text:65E916A2                  call    __alloca_probe
+.text:65E916A2
+.text:65E916A7                  mov     esi, esp
+.text:65E916A9                  push    0
+.text:65E916AB                  push    0
+.text:65E916AD                  push    edi
+.text:65E916AE                  push    esi
+.text:65E916AF                  push    0FFFFFFFFh
+.text:65E916B1                  push    ebx
+.text:65E916B2                  push    0
+.text:65E916B4                  push    0
+.text:65E916B6                  mov     byte ptr [esi], 0
+.text:65E916B9                  call    ds:WideCharToMultiByte
+.text:65E916BF                  mov     [ebp+file], esi
+.text:65E916BF
+.text:65E916C2
+.text:65E916C2 loc_65E916C2:                           ; CODE XREF: IIERPCtl_Import+4Ej
+.text:65E916C2                  mov     ebx, [ebp+This]
+.text:65E916C5                  test    ebx, ebx
+.text:65E916C7                  jnz     short loc_65E916CD
+.text:65E916C7
+.text:65E916C9                  xor     esi, esi
+.text:65E916CB                  jmp     short loc_65E916FC
+.text:65E916CB
+.text:65E916CD ; ---------------------------------------------------------------------------
+.text:65E916CD
+.text:65E916CD loc_65E916CD:                           ; CODE XREF: IIERPCtl_Import+87j
+.text:65E916CD                  push    ebx             ; lpString
+.text:65E916CE                  call    ds:lstrlenW
+.text:65E916D4                  lea     edi, [eax+eax+2]
+.text:65E916D8                  mov     eax, edi
+.text:65E916DA                  add     eax, 3
+.text:65E916DD                  and     al, 0FCh
+.text:65E916DF                  call    __alloca_probe
+.text:65E916DF
+.text:65E916E4                  mov     esi, esp
+.text:65E916E6                  push    0
+.text:65E916E8                  push    0
+.text:65E916EA                  push    edi
+.text:65E916EB                  push    esi
+.text:65E916EC                  push    0FFFFFFFFh
+.text:65E916EE                  push    ebx
+.text:65E916EF                  push    0
+.text:65E916F1                  push    0
+.text:65E916F3                  mov     byte ptr [esi], 0
+.text:65E916F6                  call    ds:WideCharToMultiByte
+.text:65E916F6
+.text:65E916FC
+.text:65E916FC loc_65E916FC:                           ; CODE XREF: IIERPCtl_Import+8Bj
+.text:65E916FC                  mov     eax, [ebp+bCopyToMyMusic]
+.text:65E916FF                  mov     ecx, [ebp+bPlayFile]
+.text:65E91702                  mov     edx, [ebp+clipInfo]
+.text:65E91705                  push    eax             ; int
+.text:65E91706                  mov     eax, [ebp+playlist]
+.text:65E91709                  push    ecx             ; int
+.text:65E9170A                  mov     ecx, [ebp+file]
+.text:65E9170D                  push    edx             ; int
+.text:65E9170E                  push    eax             ; int
+.text:65E9170F                  push    ecx             ; file
+.text:65E91710                  push    esi             ; lpString
+.text:65E91711                  call    sub_65E9C860   ;进入
+```
+
+代码:
+
+
+
+``` 
+`65E9C860` ; int __cdecl sub_65E9C860(LPCSTR lpString,int file,int,int,int,int)   .text:65E9C860 sub_65E9C860    proc near               ; CODE XREF: IIERPCtl_Import+D1p
+.text:65E9C860
+.text:65E9C860 var_3C          = dword ptr -3Ch
+.text:65E9C860 var_38          = dword ptr -38h
+.text:65E9C860 var_34          = dword ptr -34h
+.text:65E9C860 var_30          = dword ptr -30h
+.text:65E9C860 var_2C          = dword ptr -2Ch
+.text:65E9C860 var_28          = dword ptr -28h
+.text:65E9C860 var_24          = dword ptr -24h
+.text:65E9C860 var_20          = dword ptr -20h
+.text:65E9C860 var_1C          = dword ptr -1Ch
+.text:65E9C860 var_18          = dword ptr -18h
+.text:65E9C860 var_10          = dword ptr -10h
+.text:65E9C860 hWnd            = dword ptr -0Ch
+.text:65E9C860 var_8           = dword ptr -8
+.text:65E9C860 var_4           = dword ptr -4
+.text:65E9C860 lpString        = dword ptr  8
+.text:65E9C860 file            = dword ptr  0Ch
+.text:65E9C860 arg_8           = dword ptr  10h
+.text:65E9C860 arg_C           = dword ptr  14h
+.text:65E9C860 arg_10          = dword ptr  18h
+.text:65E9C860 arg_14          = dword ptr  1Ch
+
+.text:65E9C860                  push    ebp
+.text:65E9C861                  mov     ebp, esp
+.text:65E9C863                  sub     esp, 3Ch
+.text:65E9C866                  lea     eax, [ebp+var_8]
+.text:65E9C869                  push    esi
+.text:65E9C86A                  xor     esi, esi
+.text:65E9C86C                  push    eax             ; int
+.text:65E9C86D                  push    1               ; hWnd
+.text:65E9C86F                  mov     [ebp+var_8], esi
+.text:65E9C872                  call    sub_65E9DE90    ; 检测 realplayer 运行中吗，如果则将其起动
+.text:65E9C872
+                ....
+.text:65E9C8CE
+.text:65E9C8D3
+.text:65E9C8D3 loc_65E9C8D3:                           ; CODE XREF: sub_65E9C860+7Dj
+.text:65E9C8D3                  mov     edx, [eax]
+.text:65E9C8D5                  add     eax, 8
+.text:65E9C8D8                  dec     ecx
+.text:65E9C8D9                  lea     esi, [esi+edx+7]
+.text:65E9C8DD                  jnz     short loc_65E9C8D3
+.text:65E9C8DD
+
+.text:65E9C8DF                  push    ebx
+.text:65E9C8E0                  push    edi
+.text:65E9C8E1                  lea     edi, [esi+0Bh]
+.text:65E9C8E4                  push    edi
+.text:65E9C8E5                  call    operator new(uint)
+.text:65E9C8E5
+.text:65E9C8EA                  mov     ecx, edi
+.text:65E9C8EC                  mov     edx, eax
+.text:65E9C8EE                  mov     ebx, ecx
+.text:65E9C8F0                  xor     eax, eax
+.text:65E9C8F2                  mov     edi, edx
+.text:65E9C8F4                  add     esp, 4
+.text:65E9C8F7                  shr     ecx, 2
+.text:65E9C8FA                  rep stosd
+.text:65E9C8FC                  mov     ecx, ebx
+.text:65E9C8FE                  mov     [ebp+var_10], edx
+.text:65E9C901                  and     ecx, 3
+.text:65E9C904                  mov     [ebp+lpString], 5
+.text:65E9C90B                  rep stosb
+.text:65E9C90D                  mov     dword ptr [edx], 5
+.text:65E9C913                  mov     [edx+4], esi
+.text:65E9C916                  lea     eax, [edx+8]
+.text:65E9C919                  lea     edx, [ebp+var_38]
+.text:65E9C919
+
+.text:65E9C91C
+.text:65E9C91C loc_65E9C91C:                           ; CODE XREF: sub_65E9C860+E4j
+.text:65E9C91C                  mov     ecx, [edx]
+.text:65E9C91E                  mov     esi, [edx-4]
+.text:65E9C921                  mov     [eax], ecx
+.text:65E9C923                  mov     ebx, ecx
+.text:65E9C925                  lea     edi, [eax+4]
+.text:65E9C928                  add     edx, 8
+.text:65E9C92B                  shr     ecx, 2
+.text:65E9C92E                  rep movsd
+.text:65E9C930                  mov     ecx, ebx
+.text:65E9C932                  and     ecx, 3
+.text:65E9C935                  rep movsb
+.text:65E9C937                  mov     ecx, [eax]
+.text:65E9C939                  lea     eax, [eax+ecx+4]
+.text:65E9C93D                  mov     ecx, [ebp+lpString]
+.text:65E9C940                  dec     ecx
+.text:65E9C941                  mov     [ebp+lpString], ecx
+.text:65E9C944                  jnz     short loc_65E9C91C
+.text:65E9C944
+
+.text:65E9C946                  mov     ebx, [ebp+var_10]
+.text:65E9C949                  mov     edi, [ebp+hWnd]
+.text:65E9C94C                  push    ebx             ; int
+.text:65E9C94D                  push    edi             ; hWnd
+.text:65E9C94E                  call    sub_65E9E060    ;!!此处很重要了，这个进程将通过 WM_COPYDATA 向 realplayer 传送数据，包括 playlist
+.text:65E9C94E
+          ...
+.text:65E9C9A0                  mov     eax, esi
+.text:65E9C9A2                  pop     edi
+.text:65E9C9A3                  pop     ebx
+.text:65E9C9A4                  pop     esi
+.text:65E9C9A5                  mov     esp, ebp
+.text:65E9C9A7                  pop     ebp
+.text:65E9C9A8                  retn
+.text:65E9C9A8
+```
+
+下面转入 `plugins\MPAMedia.dll`, 这里会处理 `rpplugins\ierpplug.dll` 传过来的数据
+
+代码:
+
+``` 
+`:65E9E060` ; int __cdecl sub_65E9E060(HWND hWnd,int)
+.text:65E9E060 sub_65E9E060    proc near               ; CODE XREF: sub_65E9C4C0+10Ap
+.text:65E9E060                                         ; sub_65E9C5F0+101p
+.text:65E9E060                                         ; sub_65E9C720+2Ap
+.text:65E9E060                                         ; sub_65E9C770+C3p
+.text:65E9E060                                         ; sub_65E9C860+EEp
+.text:65E9E060                                         ; sub_65E9C9B0+78p
+.text:65E9E060
+.text:65E9E060 lParam          = dword ptr -0Ch
+.text:65E9E060 var_8           = dword ptr -8
+.text:65E9E060 var_4           = dword ptr -4
+.text:65E9E060 hWnd            = dword ptr  8
+.text:65E9E060 arg_4           = dword ptr  0Ch
+
+.text:65E9E060                  push    ebp
+.text:65E9E061                  mov     ebp, esp
+.text:65E9E063                  sub     esp, 0Ch
+.text:65E9E066                  xor     eax, eax
+.text:65E9E068                  lea     edx, [ebp+lParam]
+.text:65E9E06B                  mov     [ebp+var_8], eax
+.text:65E9E06E                  push    edx             ; lParam
+.text:65E9E06F                  mov     [ebp+var_4], eax
+.text:65E9E072                  mov     eax, [ebp+arg_4]
+.text:65E9E075                  mov     [ebp+var_4], eax
+.text:65E9E078                  push    0               ; wParam
+.text:65E9E07A                  mov     ecx, [eax+4]
+.text:65E9E07D                  mov     eax, [ebp+hWnd]
+.text:65E9E080                  add     ecx, 0Bh
+.text:65E9E083                  push    WM_COPYDATA     ; Msg
+.text:65E9E085                  push    eax             ; hWnd
+.text:65E9E086                  mov     [ebp+lParam], 0
+.text:65E9E08D                  mov     [ebp+var_8], ecx
+.text:65E9E090                  call    ds:SendMessageA    ; 发生消息给 realplayer, 将数据传给他
+.text:65E9E096                  neg     eax
+.text:65E9E098                  sbb     eax, eax
+.text:65E9E09A                  neg     eax
+.text:65E9E09C                  mov     esp, ebp
+.text:65E9E09E                  pop     ebp
+.text:65E9E09F                  retn
+```
+
+
+
+`6179D7D0` `sub_6179D7D0` `proc near` ; CODE XREF: `sub_61785500+A9p` .text:`6179D7D0` ; `sub_617865D0+40p` .text:`6179D7D0` ; `sub_61786660+40p` .text:`6179D7D0` ; `sub_61789080+3Ap` .text:`6179D7D0` ; `sub_6178E290+D3p` .text:`6179D7D0` ; `sub_6178E450+D3p` ... .text:`6179D7D0`
+.text:`6179D7D0` `arg_0` = dword ptr 8
+.text:`6179D7D0` `arg_4` = dword ptr 0Ch
+.text:`6179D7D0`
+.text:`6179D7D0` push ebp
+.text:`6179D7D1` mov ebp, esp
+.text:`6179D7D3` push esi
+.text:`6179D7D4` mov esi, [ebp+arg_0]
+.text:`6179D7D7` test esi, esi
+.text:`6179D7D9` jz short loc_6179D801
+.text:`6179D7D9`
+.text:`6179D7DB` mov edx, [ebp+arg_4]
+.text:`6179D7DE` test edx, edx
+.text:`6179D7E0` jz short loc_6179D801
+.text:`6179D7E0`
+.text:`6179D7E2` push edi
+.text:`6179D7E3` mov edi, edx
+.text:`6179D7E5` or ecx, 0FFFFFFFFh
+.text:`6179D7E8` xor eax, eax
+.text:`6179D7EA` repne scasb
+.text:`6179D7EC` not ecx
+.text:`6179D7EE` dec ecx
+.text:`6179D7EF` push ecx ; 测字符串长度
+.text:`6179D7F0` push edx
+.text:`6179D7F1` push esi
+.text:`6179D7F2` call funnly ; 进去
+.text:`6179D7F2`
+.text:`6179D7F7` add esp, 0Ch
+.text:`6179D7FA` movsx eax, ax
+.text:`6179D7FD` pop edi
+.text:`6179D7FE` pop esi
+.text:`6179D7FF` pop ebp
+.text:`6179D800` retn
+.text:`6179D800`
+.text:`6179D801` ; ---------------------------------------------------------------------------
+.text:`6179D801`
+.text:`6179D801` loc_6179D801: ; CODE XREF: `sub_6179D7D0+9j` .text:`6179D801` ; `sub_6179D7D0+10j`
+.text:`6179D801` push 16086h
+.text:`6179D806` push 0FFFFFC59h
+.text:`6179D80B` push 0
+.text:`6179D80D` call `sub_617986A0`
+.text:`6179D80D`
+.text:`6179D812` add esp, 0Ch
+.text:`6179D815` pop esi
+.text:`6179D816` pop ebp
+.text:`6179D817` retn
+.text:`6179D817`
+.text:`6179D817` `sub_6179D7D0` endp
+
+代码:
+
+
+
+```
+.text:6179DF10 funnly          proc near               ; CODE XREF: sub_6179D7D0+22p
+.text:6179DF10
+.text:6179DF10 var_F4          = dword ptr -0F4h
+.text:6179DF10 var_4           = dword ptr -4
+.text:6179DF10 arg_0           = dword ptr  8
+.text:6179DF10 arg_4           = dword ptr  0Ch
+.text:6179DF10 strLength       = word ptr  10h
+.text:6179DF10
+
+.text:6179DF10                  push    ebp
+.text:6179DF11                  mov     ebp, esp
+.text:6179DF13                  sub     esp, 0F4h
+.text:6179DF19                  push    ebx
+.text:6179DF1A                  push    esi
+.text:6179DF1B                  push    edi
+.text:6179DF1C                  mov     edi, [ebp+arg_0]
+.text:6179DF1F                  test    edi, edi
+.text:6179DF21                  jz      loc_6179E09F
+.text:6179DF21
+
+.text:6179DF27                  mov     eax, [ebp+arg_4]
+.text:6179DF2A                  test    eax, eax
+.text:6179DF2C                  jz      loc_6179E09F
+.text:6179DF2C
+
+.text:6179DF32                  mov     eax, [edi+4Dh]
+.text:6179DF35                  test    eax, eax
+.text:6179DF37                  jnz     short loc_6179DF44
+.text:6179DF37
+
+.text:6179DF39                  pop     edi
+.text:6179DF3A                  pop     esi
+.text:6179DF3B                  mov     ax, 0FC72h
+.text:6179DF3F                  pop     ebx
+.text:6179DF40                  mov     esp, ebp
+.text:6179DF42                  pop     ebp
+.text:6179DF43                  retn
+.text:6179DF43
+
+.text:6179DF44 ; ---------------------------------------------------------------------------
+.text:6179DF44
+.text:6179DF44 loc_6179DF44:                           ; CODE XREF: funnly+27j
+.text:6179DF44                  mov     ecx, [eax+12Eh]
+.text:6179DF4A                  test    ecx, ecx
+.text:6179DF4C                  jge     short loc_6179DF59
+.text:6179DF4C
+
+.text:6179DF4E                  pop     edi
+.text:6179DF4F                  pop     esi
+.text:6179DF50                  or      ax, 0FFFFh
+.text:6179DF54                  pop     ebx
+.text:6179DF55                  mov     esp, ebp
+.text:6179DF57                  pop     ebp
+.text:6179DF58                  retn
+.text:6179DF58
+
+.text:6179DF59 ; ---------------------------------------------------------------------------
+.text:6179DF59
+.text:6179DF59 loc_6179DF59:                           ; CODE XREF: funnly+3Cj
+.text:6179DF59                  push    edi
+.text:6179DF5A                  call    sub_6179E620
+.text:6179DF5A
+.text:6179DF5F                  mov     esi, eax
+.text:6179DF61                  add     esp, 4
+.text:6179DF64                  test    esi, esi
+.text:6179DF66                  mov     [ebp+var_4], esi
+.text:6179DF69                  jnz     short loc_6179DF76
+.text:6179DF69
+
+.text:6179DF6B                  pop     edi
+.text:6179DF6C                  pop     esi
+.text:6179DF6D                  mov     ax, 50h
+.text:6179DF71                  pop     ebx
+.text:6179DF72                  mov     esp, ebp
+.text:6179DF74                  pop     ebp
+.text:6179DF75                  retn
+.text:6179DF75
+
+.text:6179DF76 ; ---------------------------------------------------------------------------
+.text:6179DF76
+.text:6179DF76 loc_6179DF76:                           ; CODE XREF: funnly+59j
+.text:6179DF76                  push    1
+.text:6179DF78                  push    0
+.text:6179DF7A                  push    edi
+.text:6179DF7B                  call    sub_61798210
+.text:6179DF7B
+.text:6179DF80                  add     esp, 0Ch
+.text:6179DF83                  test    eax, eax
+.text:6179DF85                  jnz     loc_6179E0B3
+.text:6179DF85
+
+.text:6179DF8B                  mov     eax, [edi+69h]
+.text:6179DF8E                  mov     esi, [esi+0Ch]
+.text:6179DF91                  movsx   ebx, [ebp+strLength] ; 取出字符串长度，由于长度是 unsigned short 类型，此处调整为 int 类型。
+.text:6179DF91                                   ; 如果 strLength >= 0x8000, 由此导致整数溢出, 后面将用此进行内存拷贝操作
+.text:6179DF95                  mov     eax, [eax+190h]
+.text:6179DF9B                  cmp     eax, 1Eh
+.text:6179DF9E                  jnz     short loc_6179DFEC
+.text:6179DF9E
+
+.text:6179DFA0                  test    ebx, ebx
+.text:6179DFA2                  jnz     short loc_6179DFCB
+.text:6179DFA2
+.text:6179DFF2                  add     esp, 4
+.text:6179DFF5                  cmp     eax, 43h
+.text:6179DFF8                  jnz     short loc_6179E007
+.text:6179DFF8
+
+.text:6179DFFA                  movsx   eax, word ptr [esi+0F6h]
+.text:6179E001                  cmp     ebx, eax
+.text:6179E003                  jle     short loc_6179E007
+.text:6179E003
+
+.text:6179E005                  mov     ebx, eax
+.text:6179E005
+.text:6179E007
+.text:6179E007 loc_6179E007:                           ; CODE XREF: funnly+E8j
+.text:6179E007                                   ; funnly+F3j
+.text:6179E007                  mov     ecx, [ebp+arg_4]
+.text:6179E00A                  push    ebx
+.text:6179E00B                  lea     edx, [ebp+var_F4]
+.text:6179E011                  push    ecx
+.text:6179E012                  push    edx
+.text:6179E013                  push    esi
+.text:6179E014                  call    funlly2      ; 进去
+.text:6179E014
+.text:6179E019                  push    esi
+.text:6179E01A                  mov     ebx, eax
+.text:6179E01C                  call    sub_617B3C00
+.text:6179E01C
+.text:6179E0B3
+.text:6179E0B3 loc_6179E0B3:                           ; CODE XREF: funnly+75j
+.text:6179E0B3                  pop     edi
+.text:6179E0B4                  pop     esi
+.text:6179E0B5                  pop     ebx
+.text:6179E0B6                  mov     esp, ebp
+.text:6179E0B8                  pop     ebp
+.text:6179E0B9                  retn
+.text:6179E0B9
+.text:6179E0B9 funnly          endp
+.text:6179E0B9
+```
+
+
+
+```
+.text:6179D750 funlly2         proc near               ; CODE XREF: sub_6179DD30+75p
+.text:6179D750                                 ; funnly+104p
+.text:6179D750
+.text:6179D750 arg_0           = dword ptr  8
+.text:6179D750 arg_4           = dword ptr  0Ch
+.text:6179D750 arg_8           = dword ptr  10h
+.text:6179D750 arg_C           = dword ptr  14h
+.text:6179D750
+
+.text:6179D750                  push    ebp
+.text:6179D751                  mov     ebp, esp
+.text:6179D753                  push    ebx
+.text:6179D754                  push    esi
+.text:6179D755                  mov     esi, [ebp+arg_0] ...
+.text:6179D79F
+
+.text:6179D7A0
+
+.text:6179D7A0 loc_6179D7A0:                    ; CODE XREF: funlly2+1Bj
+.text:6179D7A0                                 ; funlly2+2Dj
+.text:6179D7A0                  mov     edx, [ebp+arg_C]
+.text:6179D7A3                  mov     eax, [ebp+arg_8]
+.text:6179D7A6                  lea     ecx, [ebp+arg_C]
+.text:6179D7A9                  push    ecx
+.text:6179D7AA                  mov     ecx, [esi+128h]
+.text:6179D7B0                  shl     ecx, 5
+.text:6179D7B3                  push    edx
+.text:6179D7B4                  push    eax          ; eax >= 0xF0000000 是一个很大的整数，由于堆栈就那么很短一片，直接导致堆栈溢出。
+                                             ; 出现内存访问异常，系统堆栈中找 seh 处理程序，从而获取执行机会
+.text:6179D7B5                  lea     edx, dword_617D1E58[ecx]
+.text:6179D7BB                  push    edi
+.text:6179D7BC                  push    edx
+.text:6179D7BD                  call    dword ptr [esi+2Fh] ; memcpy 导致堆栈溢出
+.text:6179D7C0                  mov     eax, [ebp+arg_C]
+.text:6179D7C3                  add     esp, 14h
+.text:6179D7C6                  add     eax, ebx
+.text:6179D7C8                  pop     edi
+.text:6179D7C9                  pop     esi
+.text:6179D7CA                  pop     ebx
+.text:6179D7CB                  pop     ebp
+.text:6179D7CC                  retn
+.text:6179D7CC
+
+.text:6179D7CC funlly2         endp
+```
+
+---
+
+具体利用代码就不放了(发现最近的 `pps` 漏洞测试代码，也被人利用了)，最后感谢茄子大牛。:)
+
+任何后果自己负责。
+
+`4dd466d0e1e0cc123afbe504da2462ca`

