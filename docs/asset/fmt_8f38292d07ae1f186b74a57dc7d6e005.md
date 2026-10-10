@@ -1,0 +1,27 @@
+
+# \[WM 系统开发\]枚举当前可用 SD 卡目录\[MASSADA0012\]
+
+> 原文：[`www.pediy.com/kssd/pediy10/79978.html`](https://www.pediy.com/kssd/pediy10/79978.html)
+
+在 WM 中 SD 卡是重要的存储设备相当于 PC 系统的硬盘。用户有大量数据和程序保存在其中。SD 卡一般以目录形式出现在根目录下，用户可以方便的访问比如模拟器上一般为`\Storage Card`目录。但是在真实系统中 SD 卡对应的目录名不是固定的。比如我见过`\SDMMC`或者`\存储卡`等等。
+甚至在模拟器上如果在设置 SD 卡共享目录前已经存在`\Storage Card`目录则系统会将 SD 卡目录自动设置为`\Storage Card2`。因此我们的程序不能固定使用`\Storage Card`作为 SD 卡的目录名。WM 中有一组特殊的 API 可以解决这个问题。
+
+## 头文件与库
+
+头文件：`projects.h`
+
+Lib 库：`note_prj.lib`
+
+## API 说明
+
+`FindFirstFlashCard()`:获取第一个可用的 SD 卡信息，使用 `WIN32_FIND_DATA` 结构体保存这些信息。返回查找句柄。
+
+`FindNextFlashCard()`:使用查找句柄和 `WIN32_FIND_DATA` 查找下一个可用的 SD 卡信息，返回 BOOL 类型的查找结果。
+
+`FindClose()`:关闭查找句柄。
+
+示例程序枚举所有可用 SD 卡信息，并用弹出对话框显示 SD 卡目录名。
+
+上传的附件
+
+![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || EnumFlashCard.rar
