@@ -1,0 +1,204 @@
+
+# 在 WM6 下实现对电话进程通话状态窗口的截获以及 Subclass Hook
+
+> 原文：[`www.pediy.com/kssd/pediy10/85522.html`](https://www.pediy.com/kssd/pediy10/85522.html)
+
+首先感谢加百力和 Yonsm 对我前一个帖子的解答，没有他俩我现在大概还没思绪呢。
+
+以及感谢今天下午 MobileSide 开发群里的山夕兄的帮助。
+
+（如果可以，给我帖子加个精华吧@@ *^_^*）
+
+解决的关键如下图所示，这是微软搞的一个小陷阱，偷懒一点不抓完控件都不知道你该找那个窗口的 Handle……
+
+![`att.pdafans.com/month_0904/09040516226abef7da6889068f.jpg`](img/ffe069feacc4b314fc91dba2297e915c.jpg)
+
+分别对应关系：
+
+1. 拨号
+
+![`att.pdafans.com/month_0904/09040516238fd3fe44620118f6.jpg`](img/4a5ef151c35bbdd38114d25c10c33284.jpg)
+
+2. 通话中（本文主角）
+
+![`att.pdafans.com/month_0904/09040516222573459aeaeba404.jpg`](img/4a66f0247bf51e017de2bee5f33d2297.jpg)
+
+3. 通话结束
+
+![`att.pdafans.com/month_0904/0904051622906ba99457cce6fa.jpg`](img/3305948ec47586c14099162581d9ce85.jpg)
+
+这 3 个窗口里的类名控件名全都一样，唯一不同的就是那些按钮的文本名，还有通话状态窗口和通话结束窗口是动态切换的，也就是平时状态下你只能看到通话结束窗口，而通话的时候通话结束窗口是被干掉了一堆 `MS_PHONE_BUTTON` 按钮控件的。
+
+“打开扬声器”按钮的标识是 `IDC_SPEAKER`（分析 `CProg` 就知道），用 `GetDlgCtrlID` 可以获得其 ID 为 23016
+
+`#define IDC_SPEAKER 23016`
+
+然后我们要获得发往这个窗口和指定按钮的消息，所以要对其 Subclass 子类化，WINCE 没有 `SetWindowsHook` 等相关函数，只能用 `SetWindowLong` 来实现。
+
+不说废话了，还是贴代码省事，今天忙一天又搞 `Dll Injection` 又搞回来又搞回去最后发现还是搞回来就行，累死我了……
+
+代码演示了对“打开扬声器”按钮和“打开扬声器”菜单进行控制，代码里的一些 ID 来自实际分析，非官方标准声明。
+
+代码:
+
+```
+#define IDM\_SPEAKER 21426
+#define IDC\_SPEAKER 23016
+
+unsigned int timerID;
+static WNDPROC s\_OldWndProc = NULL;
+static WNDPROC s\_OldSpkBtnProc = NULL;
+HANDLE s\_hExit = NULL;
+HWND lpSpeakerPhoneBtn=NULL;
+
+LRESULT CALLBACK NewSpkBtnProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+  if(timerID!=0){
+    KillTimer(NULL,timerID);
+    timerID=0;
+  }
+  switch (uMsg)
+  {
+  case WM\_LBUTTONDOWN:
+    {
+      SetSpeakerPhone();
+      break;
+    }
+  }
+  return CallWindowProc(s\_OldSpkBtnProc, hwnd, uMsg, wParam, lParam);
+}
+
+LRESULT CALLBACK NewWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+  if(timerID!=0){
+    KillTimer(NULL,timerID);
+    timerID=0;
+  }
+  switch (uMsg)
+  {
+  case WM\_COMMAND:
+    {
+      //SetWindowText(lpCallStatWin,TEXT("WM\_COMMAND"));
+      if(LOWORD(wParam)==IDM\_SPEAKER) SetSpeakerPhone();
+      break;
+    }
+  case WM\_SIZE:
+    {
+      if(wParam==SIZE\_MINIMIZED) \_debug(L"SIZE\_MINIMIZED");
+      \_debug(L"WM\_SIZE:wParam:%08x,lParam:%08x",wParam,lParam);
+      break;
+    }
+  case WM\_SYSCOMMAND:
+    {
+      \_debug(L"SYSCOMMAND");
+      break;
+    }
+  case WM\_ACTIVATE:
+    {
+      \_debug(L"WM\_ACTIVATE:wParam:%08x,lParam:%08x",wParam,lParam);
+      break;
+    }
+  case WM\_KILLFOCUS:
+    {
+      \_debug(L"WM\_KILLFOCUS:wParam:%08x,lParam:%08x",wParam,lParam);
+      break;
+    }
+  case WM\_DESTROY:
+    {
+      if (s\_hExit)
+      {
+        //\_debug(L"Posting exit msg...");
+        SetEvent(s\_hExit);
+      }
+      break;
+    }
+  }
+  return CallWindowProc(s\_OldWndProc, hwnd, uMsg, wParam, lParam);
+}
+
+int SetHook(HWND lpHookHwnd){
+  s\_hExit = CreateEvent(NULL, FALSE, FALSE, NULL);
+
+  if (lpHookHwnd!=NULL)
+  {
+    lpCallStatWin=lpHookHwnd;
+    s\_OldWndProc = (WNDPROC)GetWindowLong(lpHookHwnd, GWL\_WNDPROC);
+    SetWindowLong(lpHookHwnd, GWL\_WNDPROC, (DWORD)NewWndProc);
+    s\_OldSpkBtnProc = (WNDPROC)GetWindowLong(lpSpeakerPhoneBtn, GWL\_WNDPROC);
+    SetWindowLong(lpSpeakerPhoneBtn, GWL\_WNDPROC, (DWORD)NewSpkBtnProc);
+    WaitForSingleObject(s\_hExit, INFINITE);
+    SetWindowLong(lpHookHwnd, GWL\_WNDPROC, (DWORD)s\_OldWndProc);
+    SetWindowLong(lpSpeakerPhoneBtn, GWL\_WNDPROC, (DWORD)s\_OldSpkBtnProc);
+  }
+  return 0;
+}
+
+HWND FindPhoneHandle(){
+  HWND lpNextWindow = NULL;
+  HWND lpForeground = NULL;
+  TCHAR lpClassName\[64\];
+  int lpControlID;
+  //LPWSTR lpControlText;
+  //LPSTR test;
+
+  lpForeground =GetForegroundWindow();
+
+  if(lpForeground==NULL) return 0;
+
+  lpNextWindow = GetWindow(lpForeground, GW\_CHILD);
+  lpNextWindow = GetWindow(lpNextWindow, GW\_HWNDFIRST);
+
+  while(lpNextWindow!=0){
+    GetClassName( lpNextWindow,lpClassName,64);
+    //\_debug(L"Main Handle:%d,ClassName:%s",lpForeground,lpClassName);
+    if(!\_tcscmp(lpClassName,TEXT("MS\_PHONE\_BUTTON"))){
+      //确认是电话界面里的按钮，开始判断 IDC\_SPEAKER
+      lpControlID=GetDlgCtrlID(lpNextWindow);
+      if(lpControlID==IDC\_SPEAKER){
+        //\_debug(L" Speaker found");
+        lpSpeakerPhoneBtn=lpNextWindow;
+        HWND lpRealHandle=GetParent(lpNextWindow);
+        //\_debug(L" ParentHandle:%d,lpForeground:%d",lpRealHandle,lpForeground);
+        if(lpRealHandle!=NULL){
+          return lpRealHandle;
+        }
+        return lpForeground;
+      }
+    }
+    lpNextWindow = GetWindow(lpNextWindow, GW\_HWNDNEXT);
+  }
+  return 0;
+}
+
+void CALLBACK TimeProc(HWND hwnd,       
+             UINT message,     
+             UINT idTimer,     
+             DWORD dwTime)   
+{
+  HWND lpCallStatusWindow;
+  lpCallStatusWindow=FindPhoneHandle();
+  if(lpCallStatusWindow!=0){
+    SetHook(lpCallStatusWindow);
+  }
+}
+
+int WINAPI WinMain(HINSTANCE hInstance,
+           HINSTANCE hPrevInstance,
+           LPTSTR    lpCmdLine,
+           int       nCmdShow)
+{
+  //NOTIFICATIONCONDITION condition;
+
+  timerID = SetTimer(NULL,1,1000,TimeProc);         
+  MSG msg;         
+  while(GetMessage(&msg,0,0,0))         
+  {         
+    //收到 wm\_timer 消息，处理它 
+    //\_debug(L"msg.message:%d",msg.message);
+    if(msg.message==WM\_TIMER){
+      DispatchMessage(&msg);
+    }
+  }
+  return 0;
+}
+```
