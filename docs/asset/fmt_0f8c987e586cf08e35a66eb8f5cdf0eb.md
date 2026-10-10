@@ -1,0 +1,10 @@
+
+# Exploit 编写系列教程第二篇: 栈溢出跳至 shellcode
+
+> 原文：[`www.pediy.com/kssd/pediy12/101704.html`](https://www.pediy.com/kssd/pediy12/101704.html)
+
+第二篇原本可以早点发出来的，但没想到今天发烧啊，由于只剩下一点尚未翻译，因此晚上还是坚持把它翻译完了，现在发出来给大家！
+
+上传的附件
+
+| ![](img/aabdec8de01ec04d2bc68959c61abb93.jpg) || Exploit 编写系列教程第二篇-跳至 shellcod.pdf |
