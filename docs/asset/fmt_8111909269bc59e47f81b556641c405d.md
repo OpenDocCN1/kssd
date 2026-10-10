@@ -1,0 +1,12 @@
+
+# SAP 溢出研究
+
+> 原文：[`www.pediy.com/kssd/pediy11/124051.html`](https://www.pediy.com/kssd/pediy11/124051.html)
+
+![](img/234a76e67df951b6551d305c177a8b78.jpg "扮鬼脸")一直都在论坛索取，今天贡献出自己的一份力量。
+对于一个软件的漏洞详细分析，并附上 poc 代码！！
+谢谢！！！
+上传的附件
+
+| ![](img/58e0728fcb44eb7297cf87d68539ed4e.jpg) || SAP 溢出研究.doc |
+| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) || SAP.rar |
