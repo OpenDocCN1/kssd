@@ -1,0 +1,155 @@
+
+# ARM 反汇编笔记贴
+
+> 原文：[`www.pediy.com/kssd/pediy12/129004.html`](https://www.pediy.com/kssd/pediy12/129004.html)
+
+占个位置,记录反汇编的学习笔记.
+
+--------------------------- 第一條 ---------------------------
+
+最快的学习,莫过于对着代码找,那么,从 google 上下载了 `os_monitor` 的 `apk` 和源代码
+
+把 `apk` 改 `zip` 解压,然后到 `\lib\armeabi` 找到 `libosmonitor.so`,用 `IDA` 打开呗.
+
+打开源代码的 `jni` 文件夹,随便找一个函数,我找的是 `JNI_OnUnload`:
+
+```
+void JNI_OnUnload(JavaVM* vm, void* reserved)
+{
+  JNIEnv *env;
+  jclass cls;
+
+  if ((*vm)->GetEnv(vm, (void **) &env, JNI_VERSION_1_4))
+    return;
+
+  cls = (*env)->FindClass(env, classPathName);
+  (*env)->UnregisterNatives(env, cls);
+
+  return;
+}
+```
+
+到 `IDA` 里翻出这个函数:
+
+```
+> JNI_OnUnload; var_C = -0xC <
+PUSH   {R4,LR}
+LDR    R3, [R0]
+LDR    R4, =loc_8E66
+SUB    SP, SP, #8
+LDR    R3, [R3,#0x18]
+ADD    R1, SP, #0x10+var_C
+LDR    R2, =0x10004
+ADD    R4, PC
+BLX    R3
+CMP    R0, #0
+BNE    loc_4858
+LDR    R0, [SP,#0x10+var_C]
+LDR    R2, =0xFFFFFF34
+LDR    R3, [R0]
+LDR    R1, [R4,R2]
+LDR    R3, [R3,#0x18]
+BLX    R3
+ADDS   R1, R0, #0
+LDR    R0, [SP,#0x10+var_C]
+MOVLS  R3, 0x360
+LDR    R2, [R0]
+LDR    R3, [R2,R3]
+BLX    R3
+loc_4858:
+ADD    SP, SP, #8
+POP    {R4,PC}
+; End of function JNI_OnUnload
+```
+
+1. `PUSH   {R4,LR}` 这句肯定是保护现场的
+
+2. `LDR    R3, [R0]`
+
+上来就是寄存器操作,参数哪去了呢?于是看了几个函数,对比一下比较容易得到是寄存器传参数的.
+
+`R0` 为第一个参数,`R1` 为第二个,依次类推...
+
+这里就是 `R3=*R0`;
+
+3. `R4, =loc_8E66` (未知,可能是某部分全局变量块的偏移)
+
+4. `SUB    SP, SP, #8`
+
+类似于 C 里申明局部变量的方法,四字节对齐,那就是两个变量啦...
+
+`JNIEnv *env;`
+
+`jclass cls;`
+
+5. `LDR    R3, [R3,#0x18]`
+
+这个自然让人想到 C++里对 class 的反汇编,`R3->0x18`,`R3=*R0`,`R0` 是第一个参数 `vm`
+
+对照后,有 `R3` 现在为 `(*vm)->GetEnv(...)`
+
+6. `ADD    R1, SP, #0x10+var_C`
+
+`R1=SP+0x10-0x0c=SP+4`
+
+取第一个局部变量的地址,应该是 `&env`
+
+7. `LDR    R2, =0x10004` 一个常数,`JNI_VERSION` 咯
+
+8. `ADD    R4, PC` (未知,应该是计算出某全局变量块的绝对偏移)
+
+7. `BLX    R3`
+
+这里就是 call 了,`R3` 现在指着 `(*vm)->GetEnv(...)` 呢...
+
+参数是什么呢?`R0` 现在是 `vm`,`R1` 现在是 `&env`,`R2` 现在是 `0x10004`,`R4` 现在是 `[pointer]`
+
+对照一下上面的代码,应该是运行
+
+`(*vm)->GetEnv(vm, (void **) &env, JNI_VERSION_1_4)`
+
+得到的值返回给 `R0`
+
+8. `CMP    R0, #0`
+
+`BNE    loc_4858`
+
+如果 `R0≠0`,那么跳转到 `loc_4858`
+
+9. `LDR    R0, [SP,#0x10+var_C]` ; `R0=env`
+
+`LDR    R2, =0xFFFFFF34` ; `R2 = 0xFFFFFF34;` 应该看成个负数
+
+`LDR    R3, [R0]` ; `R3=*env;`
+
+`LDR    R1, [R4,R2]` ; `R1=*(R4+R2);` 得到了一个全局变量的值,对应 `classPathName`
+
+`LDR    R3, [R3,#0x18]` ; `R3=(*env)->FindClass(...)`
+
+`BLX    R3` ; `R0 = (*env)->FindClass([R0]env, [R1]classPathName)`
+
+`ADDS   R1, R0, #0` ; `[R1]cls = R0;`
+
+10. `LDR    R0, [SP,#0x10+var_C]; R0 = env;`
+
+`MOVLS  R3, 0x360` ; `if(R1<=0) R3=0x360;`
+
+(LS 标志) `LS - C clear or Z set (unsigned lower or same)` 带符号的小或相等
+
+`LDR    R2, [R0]` ; `R2=*env;`
+
+`LDR    R3, [R2,R3]` ; `R3=(*env)->UnregisterNatives(...)`
+
+`BLX    R3` ; `R0 = (*env)->UnregisterNatives([R0]env,[R1]cls);`
+
+`loc_4858:`
+
+11. `ADD    SP, SP, #8` 平衡堆栈
+
+`POP    {R4,PC}` 还原, `return;`
+
+这样简单的函数就可以很容易按这种方法分析了;
+
+后面的笔记再慢慢补充吧...
+
+欢迎大家也分享笔记^_^

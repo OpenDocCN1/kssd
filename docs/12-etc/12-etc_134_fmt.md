@@ -1,0 +1,941 @@
+
+# init 进程创建过程基于 0.12 内核
+
+> 原文：[`www.pediy.com/kssd/pediy12/137621.html`](https://www.pediy.com/kssd/pediy12/137621.html)
+
+求职没收到一个电话，真悲剧。算了还是先写点东西吧，本来赵炯博士的书已经非常 perfect 了，我算是从中剽窃吧，写到晚上四点，没绘图，没条理，高手就点吐掉口水吧。上传文本出现笑脸，格式也变了，最后有 doc 可下载。内容是关于任务 0、1 的执行流程，时钟中断，信号处理，任务调度等。
+
+## 0. 说明
+
+本文 C 代码和 AT&T 格式汇编均摘自 linux-0.12 内核，Intel 格式汇编摘自 bochs。
+
+## 1. 从开机到任务 0 执行
+
+`bootsect.S`--->`setup.S`--->`head.s`--->`main.c`
+
+1）`bootsect.S`: 引导代码，将 `setup` 代码和 `system` 模块加载到内存指定位置处。
+
+2）`setup.S` : 读取时钟、硬盘参数表等信息，`main` 函数会用到。
+
+3）`head.s` : 内核模块（`system`）最先执行的代码，主要设置 `page directory table` 和四个 `page tables`，映射整个物理内存（`high effective physical memory = 16M`），供内核代码和任务 0 使用；并设置 `main` 函数。
+
+```
+00005400: ( push 0x00000000 ; 6a00 : main 函数三个参数
+00005402: ( push 0x00000000 ; 6a00
+00005404: ( push 0x00000000 ; 6a00
+00005406: ( push 0x00005412 ; 6812540000
+0000540b: ( push 0x000066b0 ; 68b0660000 : main 地址
+00005410: ( jmp .+62 ; eb3e : 页目录、页表设置
+00005412: ( jmp .-2 ; ebfe
+```
+
+4）`main`
+
+`sched_init();`：任务 0 设置，并 `clear NT` 标志，`move_to_user_mode` 有用
+`buffer_init(buffer_memory_end);`
+`hd_init();`
+`floppy_init();`
+`sti();`
+`move_to_user_mode();`：内核初始化完毕后移动到任务 0 执行
+`if (!fork())`：任务 1 创建
+`init();` : 任务 1 执行文件系统加载等操作
+
+`for(;;)`：任务 0 执行任务切换操作
+`__asm__("int $0x80"::"a" (__NR_pause):"ax");`
+
+Tips：
+
+○1`fork` 对子进程返回 0，因为 `copy_process` 时设置新任务的 `eax=0`，见下文。
+
+○2`kernel/sched.c` 中定义:
+
+```
+long user_stack [ PAGE_SIZE>>2 ];
+struct {
+  long * a;
+  short b;
+} stack_start = { & user_stack [PAGE_SIZE>>2] , 0x10 };
+_stack_start: 0x222bc (见 System.map)
+```
+
+`head.s` 开始执行时，将 `user_stack` 用做内核初始化堆栈，并在切换到任务 0 时，用作任务 0 的 `user stack`：
+
+```
+00000000: ( mov eax, 0x00000010 ; b810000000
+00000005: ( mov ds, ax ; 8ed8
+00000007: ( mov es, ax ; 8ec0
+00000009: ( mov fs, ax ; 8ee0
+0000000b: ( mov gs, ax ; 8ee8
+0000000d: ( lss esp, ds:0x222bc ; 0fb225bc220200 : esp-_stack_start
+00000014: ( call .+86 ; e856000000 : 设置 idt
+00000019: ( call .+129 ; e881000000 : 设置 gdt
+0000001e: ( mov eax, 0x00000010 ; b810000000
+00000023: ( mov ds, ax ; 8ed8
+00000025: ( mov es, ax ; 8ec0
+00000027: ( mov fs, ax ; 8ee0
+00000029: ( mov gs, ax ; 8ee8
+0000002b: ( lss esp, ds:0x222bc ; 0fb225bc220200
+```
+
+`move_to_user_mode:`
+
+```
+00006825: ( mov eax, esp ; 89e0 : 内核堆栈将用作任务 0 user stack
+00006827: ( push 0x00000017 ; 6a17 : 任务 0 的 ss:esp
+00006829: ( push eax ; 50
+0000682a: ( pushfd ; 9c
+0000682b: ( push 0x0000000f ; 6a0f : 任务 0 的 cs:eip
+0000682d: ( push 0x00006833 ; 6833680000
+00006832: ( iretd ; cf : 模拟中断返回，切换到任务 0
+00006833: ( mov eax, 0x00000017 ; b817000000
+00006838: ( mov ds, ax ; 8ed8
+0000683a: ( mov es, ax ; 8ec0
+0000683c: ( mov fs, ax ; 8ee0
+0000683e: ( mov gs, ax ; 8ee8
+00006840: ( add esp, 0x0000000c ; 83c40c
+```
+
+Tips：
+
+○1`iretd` 执行时，`eflags= 0x00000206: id vip vif ac vm rf nt IOPL=0 of df IF tf sf zf af PF cf`，`nt` 标准已复位；
+
+## 2. 任务 0 到任务 1
+
+`fork`：
+
+(1) `main.c` 中定义：
+
+`static inline _syscall0(int,fork)`
+
+Tips：
+
+○1`main.c` 将 `fork` 定义为 `inline`，因为创建进程时，任务 0、1 共用 `page directory`、`page tables`，任务 1 置位 `page entry` 的 `r/w`，任务 0 对应的 `page entry` 无变化。所以在对堆栈进行写操作时，任务 1 必须先运行，以免弄乱堆栈。见上面的 `main` 中任务 0 执行 `pause` 系统调用，详见后文分析。
+
+(2) `include/unistd.h` 中定义：
+
+```
+#define _syscall0(type,name) \
+type name(void) \
+{ \
+long __res; \
+__asm__ volatile ("int $0x80" \
+        : "=a" (__res) \
+        : "0" (__NR_##name)); \
+if (__res >= 0) \
+        return (type) __res; \
+errno = -__res; \
+return -1; \
+}
+```
+
+对应汇编为：
+
+```
+00006843: ( mov eax, 0x00000002 ; b802000000
+00006848: ( int 0x80 ; cd80 : fork 系统调用（eax=0x2）
+0000684a: ( mov edx, eax ; 89c2 : eax 返回 PID，对子进程为 0
+0000684c: ( test edx, edx ; 85d2
+0000684e: ( jnl .+13 ; 7d0d
+00006850: ( neg edx ; f7da
+00006852: ( mov dword ptr ds:0x38ea8, edx ; 8915a88e0300
+00006858: ( mov edx, 0xffffffff ; baffffffff
+0000685d: ( test edx, edx ; 85d2
+0000685f: ( jnz .+5 ; 7505
+```
+
+执行 `fork` 系统调用前堆栈：
+
+```
+| STACK 0x00038604 [0x00000000]
+| STACK 0x00038608 [0x00000050]
+```
+
+
+
+| STACK 0x0003860c \[0x000001cb\]
+
+| STACK 0x00038610 \[0x00005412\]
+
+| STACK 0x00038614 \[0x00000000\]
+
+| STACK 0x00038618 \[0x00000000\]
+
+| STACK 0x0003861c \[0x00000000\]
+
+fork 进入后堆栈：
+
+| STACK 0x00022194 \[0x0000684a\]  ： eip (user space)
+
+| STACK 0x00022198 \[0x0000000f\]  ： cs (user space)
+
+| STACK 0x0002219c \[0x00000212\]  :   eflags
+
+| STACK 0x000221a0 \[0x00038604\]  :   esp (user space)
+
+| STACK 0x000221a4 \[0x00000017\]  :   ss (user space)
+
+### Tips
+
+○1 系统调用接口（`_system_call`）
+
+```asm
+.align 2
+
+_system_call:
+  push %ds  ：保存段寄存器
+  push %es
+  push %fs
+  pushl %eax    # save the orig_eax ：系统调用号，此处为 0x2
+  pushl %edx    : edx、ecx、ebx 用做系统调用执行函数的参数，参考上面的_syscall0（无参数）
+  pushl %ecx    # push %ebx,%ecx,%edx as parameters
+  pushl %ebx    # to the system call
+  movl $0x10,%edx    # set up ds,es to kernel space ：linus 将 gdt 表 1-内核代码段，2-内核数据段，0-不用
+  mov %dx,%ds
+  mov %dx,%es
+  movl $0x17,%edx    # fs points to local data space ：fs 用于 user space/kernel space 交换数据；ldt 表 2-用户空间数据段，1-用户空间代码段，0-不用
+  mov %dx,%fs
+  cmpl _NR_syscalls,%eax  ：linux/sys.h 中定义 int NR_syscalls = sizeof(sys_call_table)/sizeof(fn_ptr);
+  jae bad_sys_call
+  call _sys_call_table(,%eax,4)  ：调用 system routine，此处为_sys_fork
+  pushl %eax  ：系统调用返回值，此处为 PID，对任务 0 是 1，对任务 1 是 0，因为_sys_fork 调用 copy_process 时设置任务 1 的 eax=0，见下文
+2:  ：重新调度任务，因为内核在执行 move_to_user_mode 前，已开启中断允许标志（见 sti());  时钟中断处理程序会递减当前任务（current）的运行时间片，并根据 current 的运行级别（cpl）决定是否抢占任务，见后文
+  movl _current,%eax
+  cmpl $0,state(%eax)    # state ：state 表示任务运行状态（RUNNING/INTERRUPTIBLE/UNINTERRUPTIBLE/ZOMBIE/STOPPED， 见 linux/sched.h）
+  jne reschedule
+  cmpl $0,counter(%eax)    # counter ：时间片，初始时为任务的 priority
+  je reschedule
+ret_from_sys_call:  ：下面代码到标号 3 之间，用于处理 current 的 signals；进程在内核(cpl=0,ss=0x10)发生中断时不捕获信号；do_signal 用于信号前预处理，把对应信号处理函数和恢复函数保存在 user space stack 中（所以用户可定义自己的信号处理函数），_system_call 执行后，先执行信号处理，再执行发生系统调用后的一条指令，详见后文
+  movl _current,%eax
+  cmpl _task,%eax      # task[0] cannot have signals ：任务 0 是不捕获任何信号的，参考后文 schedule 说明
+  je 3f
+  cmpw $0x0f,CS(%esp)    # was old code segment supervisor ? ：内核中断不捕获信号
+  jne 3f
+  cmpw $0x17,OLDSS(%esp)    # was stack segment = 0x17 ?
+  jne 3f
+  movl signal(%eax),%ebx  ：信号标识码（bit(x) = (1<<(signal+1))）
+  movl blocked(%eax),%ecx ：信号阻塞标识码
+  notl %ecx
+  andl %ebx,%ecx
+  bsfl %ecx,%ecx
+  je 3f
+  btrl %ecx,%ebx
+  movl %ebx,signal(%eax)
+  incl %ecx
+  pushl %ecx
+  call _do_signal  ：信号预处理，见后文
+  popl %ecx
+  testl %eax, %eax
+  jne 2b    # see if we need to switch tasks, or do more signals ：是否还有可捕获信号
+3:  popl %eax
+  popl %ebx
+  popl %ecx
+  popl %edx
+  addl $4, %esp  # skip orig_eax
+  pop %fs
+  pop %es
+  pop %ds
+  iret
+```
+
+`_system_call`  for fork  (1)：
+
+```
+00007984: (                   push ds                   ; 1e
+00007985: (                   push es                   ; 06
+00007986: (                   push fs                   ; 0fa0
+00007988: (                   push eax                  ; 50 ：_NR_FORK(0x2)
+00007989: (                   push edx                  ; 52
+0000798a: (                   push ecx                  ; 51
+0000798b: (                   push ebx                  ; 53
+0000798c: (                   mov edx, 0x00000010       ; ba10000000
+00007991: (                   mov ds, dx                ; 8eda
+00007993: (                   mov es, dx                ; 8ec2
+00007995: (                   mov edx, 0x00000017       ; ba17000000
+0000799a: (                   mov fs, dx                ; 8ee2
+0000799c: (                   cmp eax, dword ptr ds:0x211a4 ; 3b05a4110200 ：_NR_syscalls: 0x211a4（System.map）
+000079a2: (                   jnb .-48                  ; 73d0
+000079a4: (                   call dword ptr ds:[eax*4+135240] ; ff148548100200 ：call sys_call_table[NR_FORK]，即_sys_fork；135240 == 0x21048； _sys_call_table: 0x21048(System.map)
+000079ab: (                   push eax                  ; 50 ：见下文 copy_process
+```
+
+`_sys_fork`:
+
+```
+00007abc: (                   call .+8375               ; e8b7200000 ：find_empty_process
+00007ac1: (                   test eax, eax             ; 85c0
+00007ac3: (                   js .+14                   ; 780e
+00007ac5: (                   push gs                   ; 0fa8
+00007ac7: (                   push esi                  ; 56
+00007ac8: (                   push edi                  ; 57
+00007ac9: (                   push ebp                  ; 55
+00007aca: (                   push eax                  ; 50
+00007acb: (                   call .+7284               ; e8741c0000 ：copy_process，创建子进程主要代码
+00007ad0: (                   add esp, 0x00000014       ; 83c414
+00007ad3: (                   ret                       ; c3
+```
+
+find_empty_process:
+
+主要确定全局唯一进程号，并判断系统是否还可以创建进程。
+
+```c
+int find_empty_process(void)
+{
+        int i;
+        repeat:
+                if ((++last_pid)<0) last_pid=1;  ：PID (1 for task 1)
+                for(i=0 ; i<NR_TASKS ; i++)
+                        if (task[i] && ((task[i]->pid == last_pid) ||
+                                        (task[i]->pgrp == last_pid)))
+                                goto repeat;
+        for(i=1 ; i<NR_TASKS ; i++)  ：进程队列是否已满
+                if (!task[i])
+                        return i;  任务队列索引(eax)
+        return -EAGAIN;
+}
+```
+
+copy_process:
+
+声明：
+
+```c
+int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,
+    long ebx,long ecx,long edx, long orig_eax,
+    long fs,long es,long ds,
+    long eip,long cs,long eflags,long esp,long ss)
+```
+
+进入前的堆栈：
+
+| STACK 0x00022160 \[0x00000001\]  :index of tasks table (task 1)
+
+| STACK 0x00022164 \[0x0003860c\]
+
+| STACK 0x00022168 \[0x00000ffc\]
+
+| STACK 0x0002216c \[0x000e0000\]
+
+| STACK 0x00022170 \[0x00000017\]
+
+| STACK 0x00022174 \[0x000079ab\]  : eip(instruction after sys_fork)
+
+| STACK 0x00022178 \[0x00000000\]
+
+| STACK 0x0002217c \[0x00056800\]
+
+| STACK 0x00022180 \[0x00000021\]
+
+| STACK 0x00022184 \[0x00000002\]  : NR_FORK
+
+| STACK 0x00022188 \[0x00000017\]  :_system_call put
+
+| STACK 0x0002218c \[0x00000017\]
+
+| STACK 0x00022190 \[0x00000017\]
+
+
+
+| `STACK` `0x00022194` [`0x0000684a`] `:eip` (instruction after fork `_system_` call)
+| `STACK` `0x00022198` [`0x0000000f`] `:cs` (user cs of task 0)
+| `STACK` `0x0002219c` [`0x00000212`] `:eflags`
+| `STACK` `0x000221a0` [`0x00038604`] `:esp` (user stack of task 0)
+| `STACK` `0x000221a4` [`0x00000017`] `:ss` (user stack of task 0)
+
+## `copy_process` 函数体
+
+```c
+{
+  struct task_struct *p;
+  int i;
+  struct file *f;
+  p = (struct task_struct *) get_free_page();  ：在 main memory 中存放 process descriptor，其中 kernel stack start top position 位于其所在 page 下一位置
+  if (!p)
+    return -EAGAIN;
+  task[nr] = p;
+  *p = *current;  /* NOTE! this doesn't copy the supervisor stack */
+              ：以下重新设置子进程的相关值
+  p->state = TASK_UNINTERRUPTIBLE; ：参考下文进程创建成功后设置其为已就绪状态
+  p->pid = last_pid;  ：见上文 find_empty_process
+  p->counter = p->priority; ：初始化时间片，覆盖 parent 的 counter
+  p->signal = 0;  ：no signal
+  p->alarm = 0;  : no blocked mask
+  p->leader = 0;    /* process leadership doesn't inherit */
+  p->utime = p->stime = 0;
+  p->cutime = p->cstime = 0;
+  p->start_time = jiffies; :进程创建时间，当前系统滴答值
+```
+
+--------------------------------------------------任务状态段---------------------------------------------------------------
+
+```c
+  p->tss.back_link = 0; ：back link field 字段，用于任务门切换后根据 NT 标志返回前一任务
+  p->tss.esp0 = PAGE_SIZE + (long) p; ：进程创建后，内核堆栈是不变的，即任务切换时不被 cpu 保存
+  p->tss.ss0 = 0x10;
+  p->tss.eip = eip;  ：子进程 eip，此处为 0x0000684a
+  p->tss.eflags = eflags;
+  p->tss.eax = 0;  ：子进程返回的 PID，上文中子进程 fork 返回 0 的原因
+  p->tss.ecx = ecx;
+  p->tss.edx = edx;
+  p->tss.ebx = ebx;
+  p->tss.esp = esp;
+  p->tss.ebp = ebp;
+  p->tss.esi = esi;
+  p->tss.edi = edi;
+  p->tss.es = es & 0xffff;
+  p->tss.cs = cs & 0xffff;
+  p->tss.ss = ss & 0xffff;
+  p->tss.ds = ds & 0xffff;
+  p->tss.fs = fs & 0xffff;
+  p->tss.gs = gs & 0xffff;
+  p->tss.ldt = _LDT(nr); ：gdt 中 ldt 索引，每个任务在 gdt 中占两项（tss,ldt），任务 0（tss=4,ldt=5）,任务 1（tss=6,ldt=7）
+  p->tss.trace_bitmap = 0x80000000;  ：i/o 位图
+```
+
+--------------------------------------------------任务状态段---------------------------------------------------------------
+
+```c
+  if (last_task_used_math == current)：保存数学协处理器状态，见下文
+    __asm__("clts ; fnsave %0 ; frstor %0"::"m" (p->tss.i387));
+  if (copy_mem(nr,p)) { ：复制 parent 的 page directory, page tables，见下文
+    task[nr] = NULL;
+    free_page((long) p);
+    return -EAGAIN;
+  }
+  for (i=0; i<NR_OPEN;i++) ：文件句柄，因为继承了 parent
+    if (f=p->filp[i])
+      f->f_count++;
+  if (current->pwd) ：当前目录 i 节点（i_node 用于描述目录与文件，见文件系统代码）
+    current->pwd->i_count++;
+  if (current->root) ：当前根目录 i_node
+    current->root->i_count++;
+  if (current->executable) ：当前执行文件 i_node
+    current->executable->i_count++;
+  if (current->library) :当前库文件 i_node, 库文件加载在逻辑地址开始的 60M 处
+    current->library->i_count++;
+  set_tss_desc(gdt+(nr<<1)+FIRST_TSS_ENTRY,&(p->tss)); ：设置 gdt，见上文 p->tss.ldt = _LDT(nr);
+  set_ldt_desc(gdt+(nr<<1)+FIRST_LDT_ENTRY,&(p->ldt));
+  p->p_pptr = current; ：以下指针用于 task tree
+  p->p_cptr = 0;
+  p->p_ysptr = 0;
+  p->p_osptr = current->p_cptr;
+  if (p->p_osptr)
+    p->p_osptr->p_ysptr = p;
+  current->p_cptr = p;
+  p->state = TASK_RUNNING;  /* do this last, just in case */ ：置为就绪状态
+  return last_pid;
+}
+```
+
+### `copy_process` 中数学协处理器状态保存（task 0--->task 1）
+
+`_current`: `0x221b4` (System.map)
+`_last_task_used_math`: `0x221b8`
+
+```
+<bochs:82> x /xw ds:0x221b4
+[bochs]:
+0x000221b4 <bogus+       0>:  0x000211a8
+<bochs:83> x /xw ds:0x221b8
+[bochs]:
+0x000221b8 <bogus+       0>:  0x00000000
+```
+
+```
+000098fb: (                   mov eax, dword ptr ds:0x221b4 ; a1b4210200
+00009900: (                   cmp eax, dword ptr ds:0x221b8 ; 3b05b8210200
+00009906: (                   jnz .+14                  ; 750e ：可知 current != last_task_used_math (current=task 0)
+00009908: (                   clts                      ; 0f06
+0000990a: (                   fnsave ds:[ebx+1072]      ; ddb330040000
+00009910: (                   frstor ds:[ebx+1072]      ; dda330040000
+```
+
+## `copy_memory`
+
+设置 `ldt` of child task, parent/ child 共用 page directory, page tables，参考 `copy_page_tables`。
+
+### `copy_page_tables`
+
+```c
+int copy_mem(int nr,struct task_struct * p)
+{
+        unsigned long old_data_base,new_data_base,data_limit;
+        unsigned long old_code_base,new_code_base,code_limit;
+        code_limit=get_limit(0x0f);
+        data_limit=get_limit(0x17);
+        old_code_base = get_base(current->ldt[1]);
+        old_data_base = get_base(current->ldt[2]);
+        if (old_data_base != old_code_base)
+                panic("We don't support separate I&D");
+        if (data_limit < code_limit)
+                panic("Bad data_limit");
+        new_data_base = new_code_base = nr * TASK_SIZE;
+        p->start_code = new_code_base;
+        set_base(p->ldt[1],new_code_base);
+        set_base(p->ldt[2],new_data_base);
+        if (copy_page_tables(old_data_base,new_data_base,data_limit)) { ：linus said this is most complicated code in memory management
+                free_page_tables(new_data_base,data_limit);
+                return -ENOMEM;
+        }
+        return 0;
+}
+```
+
+此处我们主要关注 task 0--->task 1
+
+```c
+int copy_page_tables(unsigned long from,unsigned long to,long size)
+{
+  unsigned long * from_page_table;
+  unsigned long * to_page_table;
+  unsigned long this_page;
+  unsigned long * from_dir, * to_dir;
+  unsigned long new_page;
+  unsigned long nr;
+  if ((from&0x3fffff) || (to&0x3fffff))
+    panic("copy_page_tables called with wrong alignment");
+  from_dir = (unsigned long *) ((from>>20) & 0xffc); /* _pg_dir = 0 */ ：base address of page directory，见下文
+  to_dir = (unsigned long *) ((to>>20) & 0xffc); ：from（to）都是逻辑地址，22-31（index of page directory）,12-21(index of page table), 0-11(offset address to physical page)
+  size = ((unsigned) (size+0x3fffff)) >> 22;
+  for( ; size-->0 ; from_dir++,to_dir++) {
+    if (1 & *to_dir) ：
+      panic("copy_page_tables: already exist");
+    if (!(1 & *from_dir))
+      continue;
+    from_page_table = (unsigned long *) (0xfffff000 & *from_dir);
+    if (!(to_page_table = (unsigned long *) get_free_page())) ：存放 page table entries
+      return -1;  /* Out of memory, see freeing */
+    *to_dir = ((unsigned long) to_page_table) | 7; ：set page table = to_page_table | 111(2), present、user task can write
+    nr = (from==0)?0xA0:1024; ：Note! 此时 form=0，所以 task 1 只复制 0xA0 个 pages
+    for ( ; nr-- > 0 ; from_page_table++,to_page_table++) {
+      this_page = *from_page_table;
+      if (!this_page)
+        continue;
+      if (!(1 & this_page)) { ：说明被复制页面在交换设备中，（task0 不会出现，task 0 在内核代码中）
+        if (!(new_page = get_free_page())) ：申请页面，下文读出交换设备
+          return -1;
+        read_swap_page(this_page>>1, (char *) new_page);
+        *to_page_table = this_page; ：目标页面依然存于设备文件
+        *from_page_table = new_page | (PAGE_DIRTY | 7); ：被复制页面已交换进 main ram
+        continue;
+      }
+      this_page &= ~2;
+```
+
+
+
+`*to_page_table` = `this_page`;：否则目标页面写保护，（task 1 执行写时复制机制， task 0 页面属性无变化， 所以 task 1 创建后要在 task 0 执行写操作前执行，以免弄乱堆栈）
+
+`if (this_page > LOW_MEM)` {：用于用户进程（task 0 位于 0640kb）
+`*from_page_table` = `this_page`;
+`this_page` -= `LOW_MEM`;
+`this_page` >>= 12;
+`mem_map`[`this_page`]++;
+
+}
+}
+
+`invalidate()`;：刷新页高速缓冲
+`return 0`;
+}
+
+`_page_dir`:
+
+参考前面 `head.s` 将 `main` 入栈后，执行 `jmp +62`，在物理地址 `0X00000000` 开始设置 `page directory`, `page tables`.
+
+`.text`
+
+`.globl _idt,_gdt,_pg_dir,_tmp_floppy_area`
+
+`_pg_dir`:：`_pg_dir` 起始地址，位于 0x0000, size of every page is 4k
+`startup_32`:
+
+`.org 0x1000`  :address of first page table
+`pg0`:
+
+`.org 0x2000`  :second
+`pg1`:
+
+`.org 0x3000`  :third
+`pg2`:
+
+`.org 0x4000`  :fourth
+`pg3`:
+
+`.org 0x5000`  :fifth
+`.align 2`
+
+`setup_paging`:
+```
+movl $1024*5,%ecx               /* 5 pages - pg_dir+4 page tables */
+xorl %eax,%eax
+xorl %edi,%edi                  /* pg_dir is at 0x000 */
+cld;rep;stosl
+movl $pg0+7,_pg_dir             /* set present bit/user r/w */
+movl $pg1+7,_pg_dir+4           /*  --------- "  " --------- */
+movl $pg2+7,_pg_dir+8           /*  --------- "  " --------- */
+movl $pg3+7,_pg_dir+12          /*  --------- "  " --------- */
+movl $pg3+4092,%edi
+movl $0xfff007,%eax             /*  16Mb - 4096 + 7 (r/w user,p) */
+std
+1:      stosl                   /* fill pages backwards - more efficient :-) */
+        subl $0x1000,%eax
+        jge 1b
+        xorl %eax,%eax          /* pg_dir is at 0x0000 */
+        movl %eax,%cr3          /* cr3 - page directory start */
+        movl %cr0,%eax
+        orl $0x80000000,%eax
+        movl %eax,%cr0          /* set paging (PG) bit */
+        ret                     /* this also flushes prefetch-queue */
+```
+
+`_system_call` for `fork` (2)：
+`000079ab:` ( push eax ; 50 ：PID of task 1
+`000079ac:` ( mov eax, dword ptr ds:`0x221b4` ; a1b4210200 : task 0 Is RUNNING?
+`000079b1:` ( cmp dword ptr ds:[eax], `0x00000000` ; 83780000
+`000079b5:` ( jnz .-63 ; 75c1
+`000079b7:` ( cmp dword ptr ds:[eax+4], `0x00000000` ; 83780400 : counter out?
+`000079bb:` ( jz .-69 ; 74bb
+
+此后 `task 1` 创建成功，`task 0` 返回 `PID of task 1`：
+`<bochs:158>` ? eax
+`0x1 1`
+
+检测 `task 0` 的状态与时间片，判断是否需要切换任务（因为 `main` 调用 `sched_init` 中开启了时钟中断）。
+
+`sched_init`:
+```
+outb_p(0x36,0x43);              /* binary, mode 3, LSB/MSB, ch 0 */
+outb_p(LATCH & 0xff , 0x40);    /* LSB */
+outb(LATCH >> 8 , 0x40);       /* MSB */
+set_intr_gate(0x20,&timer_interrupt); ：idt 中时钟中断
+outb(inb_p(0x21)&~0x01,0x21); ：设置时钟中断允许标志
+```
+
+`_timer_interrupt`:
+`.align 2`
+`_timer_interrupt`:
+```
+push %ds                # save ds,es and put kernel data space
+push %es                # into them. %fs is used by _system_call
+push %fs
+pushl $-1               # fill in -1 for orig_eax ：对应 _system_call 为系统调用号
+pushl %edx              # we save %eax,%ecx,%edx as gcc doesn't
+pushl %ecx              # save those across function calls. %ebx
+pushl %ebx              # is saved as we use that in ret_sys_call
+pushl %eax
+movl $0x10,%eax
+mov %ax,%ds
+mov %ax,%es
+movl $0x17,%eax
+mov %ax,%fs
+incl _jiffies
+movb $0x20,%al          # EOI to interrupt controller #1
+outb %al,$0x20
+movl CS(%esp),%eax
+andl $3,%eax            # %eax is CPL (0 or 3, 0=supervisor)
+pushl %eax
+call _do_timer          # 'do_timer(long CPL)' does everything from
+addl $4,%esp            # task switching to accounting ...
+jmp ret_from_sys_call
+```
+
+`do_timer`:
+```
+if (cpl)
+    current->utime++; ：user space time
+else
+current->stime++; ：kernel space time
+if ((--current->counter)>0) return; ：时间片递减，若发生中断时，当前进程 counter>=2，不切换任务
+current->counter=0;
+if (!cpl) return; ：进程处于内核时不被抢占
+schedule();
+```
+
+`_system_call` for `fork` (3)：
+进程唯一捕获信号的地方，`task[0]`忽略信号的处理。参见下文 `do_signal`
+
+`<bochs:163>` x /xw ds:`0x221b4`
+[bochs]:
+`0x000221b4 <bogus+ 0>:  0x000211a8`
+
+`<bochs:164>` x /xw ds:`0x221bc`
+[bochs]:
+`0x000221bc <bogus+ 0>:  0x000211a8`
+
+`000079bd:` ( mov eax, dword ptr ds:`0x221b4` ; a1b4210200 ：`_current`: 0x221b4
+`000079c2:` ( cmp eax, dword ptr ds:`0x221bc` ; 3b05bc210200 ：`_task`: 0x221bc
+`000079c8:` ( jz .+52 ; 7434 ：由上可知，将执行 0x000079fe 处指令
+`000079ca:` ( cmp word ptr ss:[esp+36], 0x000f ; 66837c24240f
+`000079d0:` ( jnz .+44 ; 752c
+`000079d2:` ( cmp word ptr ss:[esp+48], 0x0017 ; 66837c243017
+`000079d8:` ( jnz .+36 ; 7524
+`000079da:` ( mov ebx, dword ptr ds:[eax+12] ; 8b580c
+`000079dd:` ( mov ecx, dword ptr ds:[eax+528] ; 8b8810020000
+`000079e3:` ( not ecx ; f7d1
+`000079e5:` ( and ecx, ebx ; 21d9
+`000079e7:` ( bsf ecx, ecx ; 0fbcc9
+`000079ea:` ( jz .+18 ; 7412
+`000079ec:` ( btr ebx, ecx ; 0fb3cb
+`000079ef:` ( mov dword ptr ds:[eax+12], ebx ; 89580c
+`000079f2:` ( inc ecx ; 41
+`000079f3:` ( push ecx ; 51
+`000079f4:` ( call .+18019 ; e863460000
+`000079f9:` ( pop ecx ; 59
+`000079fa:` ( test eax, eax ; 85c0
+`000079fc:` ( jnz .-82 ; 75ae
+
+Tips:
+○1 `do_signal`:
+`do_signal` 将信号处理函数置于 `user stack`, 此处 `task 0` 不捕获信号
+```
+int do_signal(long signr,long eax,long ebx, long ecx, long edx, long orig_eax,
+  long fs, long es, long ds,
+  long eip, long cs, long eflags,
+  unsigned long * esp, long ss)
+```
+`_system_call` for `fork` (4)：
+
+
+
+```
+000079fe: (                   pop eax                   ; 58
+000079ff: (                   pop ebx                   ; 5b
+00007a00: (                   pop ecx                   ; 59
+00007a01: (                   pop edx                   ; 5a
+00007a02: (                   add esp, 0x00000004       ; 83c404
+00007a05: (                   pop fs                    ; 0fa1
+00007a07: (                   pop es                    ; 07
+00007a08: (                   pop ds                    ; 1f
+00007a09: (                   iretd                      ; cf
+```
+
+系统调用中断前后段寄存器变化为：
+
+`es`:0x0010, `dh`=0x00c09300, `dl`=0x00000fff, `valid`=1
+
+Data segment, base=0x00000000, limit=0x00ffffff, Read/Write, Accessed
+
+`cs`:0x0008, `dh`=0x00c09b00, `dl`=0x00000fff, `valid`=1
+
+Code segment, base=0x00000000, limit=0x00ffffff, Execute/Read, Accessed, 32-bit
+
+`ss`:0x0010, `dh`=0x00c09300, `dl`=0x00000fff, `valid`=7
+
+Data segment, base=0x00000000, limit=0x00ffffff, Read/Write, Accessed
+
+`ds`:0x0010, `dh`=0x00c09300, `dl`=0x00000fff, `valid`=7
+
+Data segment, base=0x00000000, limit=0x00ffffff, Read/Write, Accessed
+
+`fs`:0x0017, `dh`=0x00c0f300, `dl`=0x0000009f, `valid`=1
+
+Data segment, base=0x00000000, limit=0x0009ffff, Read/Write, Accessed
+
+`gs`:0x0017, `dh`=0x00c0f300, `dl`=0x0000009f, `valid`=1
+
+Data segment, base=0x00000000, limit=0x0009ffff, Read/Write, Accessed
+
+`es`:0x0017, `dh`=0x00c0f300, `dl`=0x0000009f, `valid`=1
+
+Data segment, base=0x00000000, limit=0x0009ffff, Read/Write, Accessed
+
+`cs`:0x000f, `dh`=0x00c0fb00, `dl`=0x0000009f, `valid`=1
+
+Code segment, base=0x00000000, limit=0x0009ffff, Execute/Read, Accessed, 32-bit
+
+`ss`:0x0017, `dh`=0x00c0f300, `dl`=0x0000009f, `valid`=1
+
+Data segment, base=0x00000000, limit=0x0009ffff, Read/Write, Accessed
+
+`ds`:0x0017, `dh`=0x00c0f300, `dl`=0x0000009f, `valid`=1
+
+Data segment, base=0x00000000, limit=0x0009ffff, Read/Write, Accessed
+
+`fs`:0x0017, `dh`=0x00c0f300, `dl`=0x0000009f, `valid`=1
+
+Data segment, base=0x00000000, limit=0x0009ffff, Read/Write, Accessed
+
+`gs`:0x0017, `dh`=0x00c0f300, `dl`=0x0000009f, `valid`=1
+
+Data segment, base=0x00000000, limit=0x0009ffff, Read/Write, Accessed
+
+此后，`task 0` 调用 `pause` 系统调用，切换到 `task 1` 上运行。(Note! `task 0` 与 `task 1` 此时共用 `user stack`, `task 1` 运行前，`task 0` 不能对 `ss：esp` 执行写操作)
+
+```
+00006866: (                   mov eax, 0x0000001d       ; b81d000000
+0000686b: (                   int 0x80                  ; cd80 ：见下文 sys_pause
+0000686d: (                   jmp .-9                   ; ebf7
+```
+
+`sys_pause`:
+
+```
+int sys_pause(void)
+{
+        current->state = TASK_INTERRUPTIBLE; ：task 0 不起作用
+        schedule();
+        return 0;
+}
+```
+
+`schedule`:
+
+```
+void schedule(void)
+{
+  int i,next,c;
+  struct task_struct ** p;
+/* check alarm, wake up any interruptible tasks that have got a signal */
+  for(p = &LAST_TASK ; p > &FIRST_TASK ; --p) ：从 task 1 起
+    if (*p) {
+      if ((*p)->timeout && (*p)->timeout < jiffies) { ：超时且可中断则置为就绪态
+        (*p)->timeout = 0;
+        if ((*p)->state == TASK_INTERRUPTIBLE)
+          (*p)->state = TASK_RUNNING;
+      }
+      if ((*p)->alarm && (*p)->alarm < jiffies) { ：系统向其发送 ALARM signal
+        (*p)->signal |= (1<<(SIGALRM-1));
+        (*p)->alarm = 0;
+      }
+      if (((*p)->signal & ~(_BLOCKABLE & (*p)->blocked)) && ：除屏蔽信号外还有信号，且处于可中断状态，则置为就绪态
+      (*p)->state==TASK_INTERRUPTIBLE)
+        (*p)->state=TASK_RUNNING;
+    }
+/* this is the scheduler proper: */
+  while (1) {
+    c = -1;
+    next = 0;
+    i = NR_TASKS;
+    p = &task[NR_TASKS];
+    while (--i) { ：到 task 1，选取时间片最大者；若有 task 0 外其它任务，且都 counter=0，则重设 counter
+      if (!*--p)
+        continue;
+      if ((*p)->state == TASK_RUNNING && (*p)->counter > c)
+        c = (*p)->counter, next = i;
+    }
+    if (c) break;
+    for(p = &LAST_TASK ; p > &FIRST_TASK ; --p)
+      if (*p)
+        (*p)->counter = ((*p)->counter >> 1) +
+            (*p)->priority;
+  }
+  switch_to(next);
+}
+```
+
+`switch_to`:
+
+```
+#define switch_to(n) {\
+struct {long a,b;} __tmp; \
+__asm__("cmpl %%ecx,_current\n\t" \
+        "je 1f\n\t" \
+        "movw %%dx,%1\n\t" \
+        "xchgl %%ecx,_current\n\t" \
+        "ljmp %0\n\t" \ : 至此，task 0 切换到 task 1 执行，task 0 被切换回后执 cmpl 指令
+        "cmpl %%ecx,_last_task_used_math\n\t" \
+        "jne 1f\n\t" \
+        "clts\n" \
+        "1:" \
+        ::"m" (\&__tmp.a),"m" (\&__tmp.b), \
+        "d" (\_TSS(n)),"c" ((long) task[n])); \
+}
+```
+
+```
+00006f2b: (                   mov word ptr ss:[ebp-4], dx ; 668955fc
+00006f2f: (                   xchg dword ptr ds:0x221b4, ecx ; 870db4210200
+00006f35: (                   jmp far ss:[ebp-8]        ; ff6df8 ：任务切换在此
+00006f38: (                   cmp dword ptr ds:0x221b8, ecx ; 390db8210200
+00006f3e: (                   jnz .+2                   ; 7502
+00006f40: (                   clts                      ; 0f06
+```
+
+Task 0 此时位于 kernel space
+
+`<bochs:3> sreg`
+
+`es`:0x0010, `dh`=0x00c09300, `dl`=0x00000fff, `valid`=1
+
+Data segment, base=0x00000000, limit=0x00ffffff, Read/Write, Accessed
+
+`cs`:0x0008, `dh`=0x00c09b00, `dl`=0x00000fff, `valid`=1
+
+Code segment, base=0x00000000, limit=0x00ffffff, Execute/Read, Accessed, 32-bit
+
+`ss`:0x0010, `dh`=0x00c09300, `dl`=0x00000fff, `valid`=7
+
+Data segment, base=0x00000000, limit=0x00ffffff, Read/Write, Accessed
+
+`ds`:0x0010, `dh`=0x00c09300, `dl`=0x00000fff, `valid`=7
+
+Data segment, base=0x00000000, limit=0x00ffffff, Read/Write, Accessed
+
+`fs`:0x0017, `dh`=0x00c0f300, `dl`=0x0000009f, `valid`=1
+
+Data segment, base=0x00000000, limit=0x0009ffff, Read/Write, Accessed
+
+`gs`:0x0017, `dh`=0x00c0f300, `dl`=0x0000009f, `valid`=1
+
+Data segment, base=0x00000000, limit=0x0009ffff, Read/Write, Accessed
+
+`ldtr`:0x0028, `dh`=0x00008202, `dl`=0x15580068, `valid`=1
+
+`tr`:0x0020, `dh`=0x00008b02, `dl`=0x15700068, `valid`=1
+
+`gdtr`:base=0x00005cb8, limit=0x7ff
+
+`idtr`:base=0x000054b8, limit=0x7ff
+
+`<bochs:4> u`
+
+```
+00006f35: (                   jmp far ss:[ebp-8]        ; ff6df8
+```
+
+`<bochs:5> s`
+
+Next at t=52090203
+
+`(0) [0x0000684a] 000f:0000684a (unk. ctxt): mov edx, eax              ; 89c2`
+
+切换至 task 1
+
+`<bochs:6> sreg`
+
+`es`:0x0017, `dh`=0x04c0f300, `dl`=0x0000009f, `valid`=1
+
+Data segment, base=0x04000000, limit=0x0009ffff, Read/Write, Accessed
+
+`cs`:0x000f, `dh`=0x04c0fb00, `dl`=0x0000009f, `valid`=1
+
+Code segment, base=0x04000000, limit=0x0009ffff, Execute/Read, Accessed, 32-bit
+
+`ss`:0x0017, `dh`=0x04c0f300, `dl`=0x0000009f, `valid`=1
+
+Data segment, base=0x04000000, limit=0x0009ffff, Read/Write, Accessed
+
+`ds`:0x0017, `dh`=0x04c0f300, `dl`=0x0000009f, `valid`=1
+
+Data segment, base=0x04000000, limit=0x0009ffff, Read/Write, Accessed
+
+`fs`:0x0017, `dh`=0x04c0f300, `dl`=0x0000009f, `valid`=1
+
+
+
+`Data segment`, `base`=0x04000000, `limit`=0x0009ffff, `Read/Write`, `Accessed`
+
+`gs`:0x0017, `dh`=0x04c0f300, `dl`=0x0000009f, `valid`=1
+
+`Data segment`, `base`=0x04000000, `limit`=0x0009ffff, `Read/Write`, `Accessed`
+
+`ldtr`:0x0038, `dh`=0x000082ff, `dl`=0xf3b00068, `valid`=1
+
+`tr`:0x0030, `dh`=0x00008bff, `dl`=0xf3c80068, `valid`=1
+
+task 1 开始执行。
+
+上传的附件
+
+| ![](img/b7e61e3627e1e92d7b948dd8fdd24fa6.jpg) || init 进程创建过程基于 0.12 内核.doc |
