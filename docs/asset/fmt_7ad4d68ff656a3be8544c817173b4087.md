@@ -1,0 +1,42 @@
+
+# morphine 1.2
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6467.htm`](https://www.pediy.com/kssd/pediy06/pediy6467.htm)
+
+有看过的兄弟就试试.
+
+```
+/*
+//////////////////////////////////////////////////
+// morphine 1.2 OEP Finder v0.1
+// Author: loveboom
+// Email : bmd2chen@tom.com
+// OS : Win2kADV sp2,OllyDbg 1.1b,OllyScript v0.62
+// Date : 2004-3-26
+// Config: N/A
+// Note :If you have one or more question
+// email me please,thank you!
+// //////////////////////////////////////////////////
+// */
+```
+
+```
+gpa "LoadLibraryA","kernel32.dll"
+bp $RESULT
+run
+lbl1:
+bc $RESULT
+rtu
+eob lbl2
+findop eip,#FFD7#
+bphws $RESULT,"x"
+run
+lbl2:
+bphwc $RESULT
+sti
+cmt eip,"OEP founder!"
+msg "Scrtipt by loveboom[DFCG],Thank you for using my script!"
+ret
+```
+
+4dd466d0e1e0cc123afbe504da2462ca
