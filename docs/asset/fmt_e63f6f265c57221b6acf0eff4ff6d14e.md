@@ -1,0 +1,93 @@
+
+# Adobe flash 漏洞之 CVE-2009-1862 初探 --基础知识篇
+
+> 原文：[`www.pediy.com/kssd/pediy10/101342.html`](https://www.pediy.com/kssd/pediy10/101342.html)
+
+最近一直比较忙，在论坛上看到 NNpig 兄弟发 exploit 已经有一周多了，今天早上才抽出点时间跟了一下，大体的了解了原理。里面也有好多问题没有空来深入研究了，先发出来供大家参考，或者哪个兄弟想详细探讨或者有什么疑问可以联系我共同研究。
+
+下面从拿到一个 POC 或者 exploit 如何来进一步的研究漏洞原理的过程进行一个探讨，仅为个人习惯供参考。
+
+## 1.依据文件格式，定位 shellcode
+
+一般情况下我们能拿到的可能就是 poc 或者一个捆绑了 exe 的 exploit 文件，如果想仔细分析下这个漏洞的原理或者想自己写一个生成器该如何下手呢？
+
+当然作为后者来讲，就比较简单了一般情况下 exploit 文件里面的 shellcode 都是现成的，只需要自己定位出 shellcode，分析一下 shellcode 运行的逻辑，就可以构造一个捆绑自己 exe 的 exploit 文件出来，当然这个时候写生成器已经是举手之劳了。这里我就不讨论这个套路了。
+
+对于分析漏洞原理这里来讲前面说的就只能作为第一步了，下面我就讲讲我的定位 exploit 的 shellcode 位置的方法：
+
+### （1）观察：
+
+一般有经验的样本分析者，可能利用 `ue` 等简单的 16 进制文本编辑器就可以用肉眼很快的定位出来 shellcode 的位置，当然，这个需要有丰富的经验，包括对文件二进制格式的研究等各个方面了。
+
+因为这个是 PDF 的文件，前面我有文章讲解了下 pdf 文件的基本结构，通过基本的文件结构我们就可以看出来，这个 pdf 文件一共有 20 个 OBJ，当然数据量比较大也最引人注目的就是第 8 个 OBJ 了，它是一个 swf 对象，即 flash 对象，那么基本上立刻就可以联想到今年 7 月份的 Adobe flashplayer 那个漏洞了，展示下漏洞公告：
+
+引用: Adobe：Flash Player 等软件出现高危漏洞
+
+2009-07-24 09:15
+
+Adobe 今日警告广大用户，当前版本的 Flash Player（9.0 和 10.0 版本）和 Adobe Reader/Acrobat 9.x 的 `authplay.dll` 中存在一个危急的安全漏洞（CVE-2009-1862），Flash 中的该漏洞影响 Windows、Mac 和 Linux 系统用户，Adobe Reader/Acrobat 中的该漏洞影响 Windows、Mac 和 Unix 用户。
+
+此次发现的这一高危漏洞会导致系统崩溃，也有可能会被黑客利用进行远程代码攻击，目前已经有报道称 Windows 上的 Adobe Reader 9 受到该漏洞的攻击，Adobe 表示正在开发补丁解决这个问题。
+
+在 Adobe Reader/Acrobat 9.x 中删除、重命名或迁移 `authplay.dll` 文件可以减轻受攻击的可能，不过这样做会致使打开包含 SWF 内容的 PDF 文件时出现崩溃或错误信息的几率增大。
+
+根据产品的不同 `authplay.dll` 文件的位置也不同，Windows 系统 Adobe Reader/Acrobat 9.x 中其位置通常为 `C:\\Program Files\\Adobe\\Reader 9.0\\Reader\\authplay.dll` 和 `C:\\Program Files\\Adobe\\Acrobat 9.0\\Acrobat\\authplay.dll`，建议 Windows Vista 用户可以考虑开启 UAC 降低受攻击的风险；Flash Player 用户在打开网站时应当小心谨慎。
+
+从数据的本身规律来看如图：
+
+![](img/3a4083968ed1ca78685d2dafdf9f69c0.jpg)
+
+这个 obj 里面分的数据为四个部分，第一部分就是 `FWS` 的 flash 文件头；第二部分是一些杂乱的数据；第三部分，就是很有规律的从 1-z 的数据；
+
+![](img/822b6cfc92fa29e9f9476c75905f8778.jpg)
+
+另外一个部分就是很扎眼的 `AAAAAAAA`....；
+
+![](img/f9a2e82e7d9d243b6b7fd6f5956a7166.jpg)
+
+很有规律的数据我们可以略过，shellcode 基本不会是这样的；`AAAAAAAAA`....可能是填充数据用，那么最有可能的就是第二部分那些杂乱的数据了，用 `C32ASM` 的话可以从 处开始反汇编看看代码很幸运的是我们在 处找到了如下代码：
+
+```
+00000F59:  33C9                       XOR     ECX,ECX
+00000F5B:  66:B9 5901                 MOV     CX,159
+00000F5F:  83C2 17                    ADD     EDX,17
+00000F62:  8BFA                       MOV     EDI,EDX
+00000F64:  8BF7                       MOV     ESI,EDI
+00000F66:  56                         PUSH    ESI
+00000F67:  AC                         LODS    BYTE PTR [ESI]
+00000F68:  C0C0 04                    ROL     AL,4
+00000F6B:  AA                         STOS    BYTE PTR ES:[EDI]
+00000F6C:  49                         DEC     ECX
+00000F6D:  75 F8                      JNZ     SHORT 00000F67
+00000F6F:  C3                         RETN
+00000F70:  55                         PUSH    EBP
+00000F71:  B8 CE38CEC5                MOV     EAX,C5CE38CE
+00000F76:  35 65757C54                XOR     EAX,547C7565
+00000F7B:  0F11                       ???
+00000F7D:  0000                       ADD     [EAX],AL
+00000F7F:  009E 5E000000              ADD     [ESI+5E],BL
+00000F85:  F8                         CLC
+00000F86:  54                         PUSH    ESP
+00000F87:  CF                         IRETD
+00000F88:  46                         INC     ESI
+00000F89:  1A03                       SBB     AL,[EBX]
+00000F8B:  0000                       ADD     [EAX],AL
+00000F8D:  00B8 04C0B807              ADD     [EAX+7B8C004],BH
+00000F93:  C1DA B8                    RCR     EDX,B8
+00000F96:  8580 98D5CEB8              TEST    [EAX+B8CED598],EAX
+00000F9C:  D4 0F                      AAM     F
+```
+
+出现了 `XOR ECX,ECX` 和惊人的 `RETN` 基本上可以判断这里是 shellcode 的前半部分，负责对后半部分进行解密。
+
+### （2）验证：
+
+既然通过上面的观察基本上可以知道这里是 shellcode，我们还需要进一步的进行验证。这里主要以 `OD` 为调试器进行讲解：
+
+当然，如果你有 `SoftICE` 的话可以在这里填入 `CCCC`，然后，在对应环境下打开 exploit 文件，就弹出窗口了。不过千万不要在非调试器环境下这样试，因为 `INT 3` 会让你的系统挂起，那样就不太好办了，只能重启了。
+
+用 `OD` 来验证也是同样的道理，给 shellcode 造成一个异常，然后 `OD` 就会断到那里，不过这个是要在你刚才找到的点是正确的前提下。
+
+断在了 shellcode 的入口处，那么我们就可以把刚才改的异常的地方改回原样，然后就可以完整的看到 shellcode 是如何运行的，也可以清楚的看到 shellcode 的真面目了：
+
+代码:
