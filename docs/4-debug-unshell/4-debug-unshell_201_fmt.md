@@ -1,0 +1,454 @@
+
+# iRider.exe 2.20BETA
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6672.htm`](https://www.pediy.com/kssd/pediy06/pediy6672.htm)
+
+`Armadillo` 1.xx - 2.xx 这个版本的壳大概已经不多见了吧，下载了各国外的软件居然是用它加壳的，正好让我这个菜鸟练练。我这次脱壳是参看了 `leo_cyl1` 的“`Armadillo` 2.52 加壳原理分析和改进的脱壳方法”一文，`fly` 兄的“壹次脱壳法——`Armadillo` 双进程标准壳 快速脱壳”一文，`weiyi75` 兄的“爱的中体验之 `Armadillo`3.x 双进程之 `Mr.Captor`”一文（初学破解，`weiyi75` 是谁，我不知道，呵呵，真想认识一下）。
+
+要不是几位托神的脱壳教程，恐怕我这辈子也不知道还有个“双进程”。
+
+软件名称：`iRider.exe` 2.20BETA
+
+软件大小：3.61MB
+
+加壳方式：`Armadillo` 1.xx - 2.xx
+
+破解工具：`OllyDBG`1.10 `fly` 修改版，`ImportREC`1.6
+
+软件简介：`iRider` 是一种让你能够快速，方便的熟练操作打开成倍网页的新一代浏览器，并且在你工作时候能够更快的浏览和下载页面.
+
+`iRider` 使用方便是因为它是使用了十分简单并且功能强大的方式的非常人性化网页浏览器，而且能使用你十分常用的操作方式来打开你频繁使用的书签内的所以站点.
+
+## 一.寻找 OEP：
+
+```
+004A50B9 i>/$  55                push ebp                  //OD 载入，停在这里，下断点 bp OpenMuteA，F9 运行
+004A50BA  |.  8BEC               mov ebp,esp
+004A50BC  |.  6A FF              push -1
+004A50BE  |.  68 68D24B00        push iRider.004BD268
+004A50C3  |.  68 004B4A00        push iRider.004A4B00                  ;  SE handler installation
+004A50C8  |.  64:A1 00000000     mov eax,dword ptr fs:([0])
+004A50CE  |.  50                push eax
+004A50CF  |.  64:8925 00000000   mov dword ptr fs:([0]),esp
+...
+77E62391 k>- E9 E8EBFDFF         jmp kernel32.77E40F7E         //到这，看堆栈
+77E62396      837D 10 00          cmp dword ptr ss:[ebp+10],0
+77E6239A      56                push esi
+77E6239B      0F84 C2E30100      je kernel32.77E80763
+77E623A1      64:A1 18000000     mov eax,dword ptr fs:[18]
+77E623A7      FF75 10           push dword ptr ss:[ebp+10]
+77E623AA      8DB0 F80B0000      lea esi,dword ptr ds:[eax+BF8]
+77E623B0      8D45 F8           lea eax,dword ptr ss:[ebp-8]
+77E623B3      50                push eax
+```
+
+堆栈：
+
+```
+0012F5B8     0049E90C   /CALL to OpenMutexA from iRider.0049E906
+0012F5BC     001F0001   |Access = 1F0001
+0012F5C0     00000000   |Inheritable = FALSE
+0012F5C4     0012FBF8   \MutexName = "AD4::DA9B953645"                              //注意
+0012F5C8     0012FF2C
+```
+
+`Ctrl+G` `401000`
+
+```
+00401000     0000                add byte ptr ds:[eax],al
+00401002     0000                add byte ptr ds:[eax],al
+00401004     0000                add byte ptr ds:[eax],al
+00401006     0000                add byte ptr ds:[eax],al
+00401008     0000                add byte ptr ds:[eax],al
+0040100A     0000                add byte ptr ds:[eax],al
+0040100C     0000                add byte ptr ds:[eax],al
+0040100E     0000                add byte ptr ds:[eax],al
+```
+
+`OD` 直接双击修改,填入以下代码。
+
+```
+00401000    60             PUSHAD
+00401001    9C             PUSHFD
+00401002    68 DCFB1200    PUSH 12FBF8                    //堆栈内容
+00401007    33C0           XOR EAX,EAX
+00401009    50             PUSH EAX
+0040100A    50             PUSH EAX
+0040100B    E8 687BA677    CALL KERNEL32.CreateMutexA
+00401010    9D             POPFD
+00401011    61             POPAD
+00401012 - E9 75C7A677     JMP KERNEL32.OpenMutexA
+```
+
+`F9`，运行，再次中断在这里，此时 `Ctrl+G` `401000` 撤销刚才的修改
+
+```
+77E62391 k>- E9 E8EBFDFF          jmp kernel32.77E40F7E
+77E62396      837D 10 00          cmp dword ptr ss:[ebp+10],0
+77E6239A      56                push esi
+77E6239B      0F84 C2E30100      je kernel32.77E80763
+77E623A1      64:A1 18000000     mov eax,dword ptr fs:[18]
+77E623A7      FF75 10           push dword ptr ss:[ebp+10]
+77E623AA      8DB0 F80B0000      lea esi,dword ptr ds:[eax+BF8]
+77E623B0      8D45 F8           lea eax,dword ptr ss:[ebp-8]
+```
+
+这里，对 `VirtualProtect` 下硬件执行断点，运行
+
+```
+77E4169E k>  55                  push ebp            //中断，F9 运行
+77E4169F      8BEC               mov ebp,esp
+77E416A1      FF75 14           push dword ptr ss:[ebp+14]
+77E416A4      FF75 10           push dword ptr ss:[ebp+10]
+77E416A7      FF75 0C           push dword ptr ss:[ebp+C]
+77E416AA      FF75 08           push dword ptr ss:[ebp+8]
+77E416AD      6A FF             push -1
+77E416AF      E8 A4BB0100        call kernel32.VirtualProtectEx
+77E416B4      5D                pop ebp
+77E416B5      C2 1000           retn 10
+```
+
+直到堆栈中第二次出现
+
+```
+0012DEE4     003E30D2   /CALL to VirtualProtect from 003E30D0
+0012DEE8     00400000   |Address = iRider.00400000
+0012DEEC     00000040   |Size = 40 (64.)
+0012DEF0     00000004   |NewProtect = PAGE_READWRITE                                  //注意观看
+0012DEF4     0012DF10   \pOldProtect = 0012DF10
+```
+
+`Ctrl+F9`
+
+```
+003E30D2     8B45 F4           mov eax,dword ptr ss:[ebp-C]      ; iRider.00400000
+003E30D5     8D4D FC           lea ecx,dword ptr ss:[ebp-4]
+003E30D8     2BDF              sub ebx,edi
+003E30DA     51                push ecx
+003E30DB     0158 3C           add dword ptr ds:[eax+3C],ebx                       //这里是修改文件头，修改 ebx 为 0
+003E30DE     FF75 FC           push dword ptr ss:[ebp-4]
+003E30E1     6A 40             push 40
+003E30E3     50                push eax
+```
+
+`F8` 一步步运行，注意堆栈变化
+
+```
+003E30FF     8D4D F8           lea ecx,dword ptr ss:[ebp-8]
+003E3102     E8 F9DEFEFF        call 003D1000
+003E3107     83E0 03           and eax,3
+003E310A     8D4D F8           lea ecx,dword ptr ss:[ebp-8]
+003E310D     40                inc eax
+003E310E     66:0147 06        add word ptr ds:[edi+6],ax                      //这里修改块数，改 ax 为 0
+003E3112     E8 E9DEFEFF        call 003D1000
+```
+
+以后就是要小心了跟踪了，我没什么经验，只得一路 `F8`，直到看到两个连续的 `call` 便进入
+
+```
+003E3C42     3348 44           xor ecx,dword ptr ds:[eax+44]
+003E3C45     6A 00             push 0
+003E3C47     3348 08           xor ecx,dword ptr ds:[eax+8]
+003E3C4A     03F9              add edi,ecx
+003E3C4C     E8 D791FFFF        call 003DCE28
+003E3C51     50                push eax
+003E3C52     FFD7               call edi                 ; iRider.0043FE5B              //oep
+003E3C54     8BD8              mov ebx,eax
+```
+
+到达 `OEP` 处用插件直接脱壳，就可以了。
+
+## 二.修复输入表：
+
+脱壳后，用 `ImportREC` 试着修复，当然不成功了，随便找一个未修复的指针，然后用 `OD` 重新载入程序，直接 `d` `******`，其他步骤同上，观察数据窗口，看 `IAT` 何时被恢复，记下按 `F9` 的次数 `n`，从头再来，按 `n-1` 次 `F9`，然后下断点 `bp` `GetModuleHandleA` ，`F9` 运行
+
+中断后，`Ctrl+F9` 回到程序领空，几下 `F8`，来到这里
+
+```
+003D4B74     8B4D 08           mov ecx,dword ptr ss:[ebp+8]
+003D4B77     3BC8              cmp ecx,eax
+003D4B79     75 07             jnz short 003D4B82
+003D4B7B     B8 18D33E00       mov eax,3ED318
+003D4B80     EB 30             jmp short 003D4BB2
+003D4B82     393D D8D73E00      cmp dword ptr ds:[3ED7D8],edi
+003D4B88     B8 D8D73E00       mov eax,3ED7D8
+003D4B8D     74 0C             je short 003D4B9B
+003D4B8F     3B48 08           cmp ecx,dword ptr ds:[eax+8]
+003D4B92     EB 1B             je short 003D4BAF                              //Magic Jump，nop it
+003D4B94     83C0 0C           add eax,0C
+003D4B97     3938              cmp dword ptr ds:[eax],edi
+003D4B99   ^ 75 F4             jnz short 003D4B8F
+003D4B9B     FF75 0C           push dword ptr ss:[ebp+C]
+003D4B9E     FF75 08           push dword ptr ss:[ebp+8]
+003D4BA1     E8 41000000        call 003D4BE7
+```
+
+从 `ImportREC` 中找到最后一个指针的地址，记住它，在 `OD` 中对它下内存访问断点，`F9`，中断后 `Ctrl+G` `3D4B92`，撤销刚才的修改，`F9`，正常运行程序。`ImportREC` 恢复，全部指针有效，`fix it`。
+
+## 三.修复程序：
+
+`fix` 后的程序不能正常运行，程序提示“Registration error 86. Please contact iRider support.”，注意是程序提示，不是系统的提示，好办，`W32dasm` 分析，找到该字符串，发现有很多，统统改掉。下面是其中的几处
+
+```
+0042EA76     FF15 94424700      call dword ptr ds:[<&kernel32.GetEnv>; kernel32.GetEnvironmentVariableA
+0042EA7C     85C0              test eax,eax
+0042EA7E     EB 1C             jnz short dump_.0042EA9C                              //改为 jmp
+0042EA80     33DB              xor ebx,ebx
+0042EA82     68 00200000        push 2000
+0042EA87     53                push ebx
+```
+
+
+
+0042EA88  68 A4C84800          `push dump_.0048C8A4`                          ; ASCII "Registration error 86. Please contact iRider support."  
+
+0042EA8D  53                 `push ebx`  
+
+0042EA8E  FF15 04474700       `call dword ptr ds:[<&user32.MessageB>]`; USER32.`MessageBoxA`  
+
+0042EA94  6A 56               `push 56`  
+
+0042EA96  FF15 D4434700       `call dword ptr ds:[<&kernel32.ExitPr>]`; kernel32.`ExitProcess`  
+
+0042EA9C  8D4C24 10           `lea ecx,dword ptr ss:[esp+10]`  
+
+0042EAA0  E8 ED2C0200         `call dump_.00451792`  
+
+0042EAA5  E8 56040000         `call dump_.0042EF00`                          //这里还有出错，进去后还要改  
+
+0042EAAA  E8 C1D7FDFF         `call dump_.0040C270`  
+
+......................  
+
+0042EAE7  /75 1A             `jnz short dump_.0042EB03`                  //这里 jmp  
+
+0042EAE9  |68 00200000        `push 2000`  
+
+0042EAEE  |53                 `push ebx`  
+
+0042EAEF  |68 44C84800        `push dump_.0048C844`                  ; ASCII "Registration error 87. Please contact iRider support."  
+
+0042EAF4  |53                 `push ebx`  
+
+0042EAF5  |FF15 04474700       `call dword ptr ds:[<&user32.MessageB>]`; USER32.`MessageBoxA`  
+
+0042EAFB  |6A 57               `push 57`  
+
+0042EAFD  |FF15 D4434700       `call dword ptr ds:[<&kernel32.ExitPr>]`; kernel32.`ExitProcess`  
+
+0042EB03  \83F8 02            `cmp eax,2`  
+
+0042EB06    75 10             `jnz short dump_.0042EB18`  
+
+0042EB08    E8 13D7FDFF         `call dump_.0040C220`  
+
+.......................  
+
+0040C120  51                 `push ecx`  
+
+0040C121  56                 `push esi`  
+
+0040C122  8D4424 04           `lea eax,dword ptr ss:[esp+4]`  
+
+0040C126  68 24C84800         `push dump_2.0048C824`  
+
+0040C12B  50                 `push eax`  
+
+0040C12C  E8 BFACFFFF         `call dump_2.00406DF0`  
+
+0040C131  8B4C24 0C           `mov ecx,dword ptr ss:[esp+C]`  
+
+0040C135  83C4 08             `add esp,8`  
+
+0040C138  51                 `push ecx`  
+
+0040C139  FF15 D0434700       `call dword ptr ds:[<&kernel32.LoadLi>]`; kernel32.`LoadLibraryA`  
+
+0040C13F  8BF0                `mov esi,eax`  
+
+0040C141  85F6                `test esi,esi`  
+
+0040C143  75 1A               `jnz short dump_2.0040C15F`                        //jmp  
+
+0040C145  68 00200000         `push 2000`  
+
+0040C14A  50                 `push eax`  
+
+0040C14B  68 ECC74800         `push dump_2.0048C7EC`                  ; ASCII "Registration error 88. Please contact iRider support."  
+
+0040C150  50                 `push eax`  
+
+0040C151  FF15 04474700       `call dword ptr ds:[<&user32.MessageB>]`; USER32.`MessageBoxA`  
+
+.............................  
+
+0040C18B  52                 `push edx`  
+
+0040C18C  50                 `push eax`  
+
+0040C18D  FF15 C0424700       `call dword ptr ds:[<&kernel32.GetPro>]`; kernel32.`GetProcAddress`  
+
+0040C193  8BF0                `mov esi,eax`  
+
+0040C195  85F6                `test esi,esi`  
+
+0040C197  75 1A               `jnz short dump_2.0040C1B3`                          //jmp  
+
+0040C199  68 00200000         `push 2000`  
+
+0040C19E  50                 `push eax`  
+
+0040C19F  68 3CC74800         `push dump_2.0048C73C`                  ; ASCII "Registration error 89. Please contact iRider support."  
+
+0040C1A4  50                 `push eax`  
+
+0040C1A5  FF15 04474700       `call dword ptr ds:[<&user32.MessageB>]`; USER32.`MessageBoxA`  
+
+0040C1AB  6A 59               `push 59`  
+
+0040C1AD  FF15 D4434700       `call dword ptr ds:[<&kernel32.ExitPr>]`; kernel32.`ExitProcess`  
+
+0040C1B3  8D4C24 0C           `lea ecx,dword ptr ss:[esp+C]`  
+
+0040C1B7  E8 D6550400         `call dump_2.00451792`  
+
+0040C1BC  8BC6                `mov eax,esi`  
+
+0040C1BE  5E                 `pop esi`  
+
+0040C1BF  C3                 `retn`  
+
+0040C1C0  81EC 04040000       `sub esp,404`  
+
+0040C1C6  8D4424 00           `lea eax,dword ptr ss:[esp]`  
+
+0040C1CA  68 B4C44800         `push dump_2.0048C4B4`  
+
+0040C1CF  50                 `push eax`  
+
+0040C1D0  E8 1BACFFFF         `call dump_2.00406DF0`  
+
+0040C1D5  8B5424 08           `mov edx,dword ptr ss:[esp+8]`  
+
+0040C1D9  83C4 08             `add esp,8`  
+
+0040C1DC  8D4C24 04           `lea ecx,dword ptr ss:[esp+4]`  
+
+0040C1E0  68 00040000         `push 400`  
+
+0040C1E5  51                 `push ecx`  
+
+0040C1E6  52                 `push edx`  
+
+0040C1E7  FF15 94424700       `call dword ptr ds:[<&kernel32.GetEnv>]`; kernel32.`GetEnvironmentVariableA`  
+
+0040C1ED  85C0                `test eax,eax`  
+
+0040C1EF  75 1A               `jnz short dump_2.0040C20B`                              //jmp  
+
+0040C1F1  68 00200000         `push 2000`  
+
+0040C1F6  50                 `push eax`  
+
+0040C1F7  68 A4C84800         `push dump_2.0048C8A4`                  ; ASCII "Registration error 86. Please contact iRider support."  
+
+都修改好后运行，系统提示出错，从新载入跟踪
+
+::0041A7E1::  E8 DA19FFFF                 `CALL 0040C1C0`                          \:JMPUP  
+
+::0041A7E6::  E8 3519FFFF                 `CALL 0040C120`                          \:JMPUP  
+
+::0041A7EB::  8BF0                         `MOV ESI, EAX`                        
+
+::0041A7ED::  68 7CC84800                 `PUSH 48C87C`                       ->: ?莭聗?苮??利启?泅婪鲤??荔苐  
+
+::0041A7F2::  56                           `PUSH ESI`                          
+
+::0041A7F3::  E8 7819FFFF                 `CALL 0040C170`                          \:JMPUP  
+
+::0041A7F8::  83C4 08                     `ADD ESP, 8`                         
+
+::0041A7FB::  FFD0                         `CALL EAX`                                         //这里出错，数据在壳中， nop 试试  
+
+::0041A7FD::  56                           `PUSH ESI`                          
+
+::0041A7FE::  FF15 B8424700              `CALL [4742B8]`                       >>>: KERNEL32.DLL:释放 dll  
+
+::0041A804::  E8 671AFFFF                 `CALL 0040C270`                          \:JMPUP  
+
+居然可以正常运行了，下面开始注册
+
+0041A4FD  FFD7                 `call edi`  
+
+0041A4FF  83F8 03             `cmp eax,3`                                    //用户名位数>3  
+
+0041A502  76 51               `jbe short dump_3.0041A555`  
+
+0041A504  8D8424 3C080000      `lea eax,dword ptr ss:[esp+83C]`  
+
+0041A50B  68 00040000          `push 400`  
+
+0041A510  50                   `push eax`  
+
+0041A511  68 2E040000          `push 42E`  
+
+0041A516  56                   `push esi`  
+
+0041A517  FFD7                 `call edi`  
+
+0041A519  83F8 10             `cmp eax,10`                                 //注册码位数>16  
+
+0041A51C  76 37               `jbe short dump_3.0041A555`  
+
+0041A51E  8D8C24 3C080000      `lea ecx,dword ptr ss:[esp+83C]`  
+
+0041A525  8D5424 3C            `lea edx,dword ptr ss:[esp+3C]`  
+
+0041A529  51                   `push ecx`                                   //试练码入栈  
+
+0041A52A  52                   `push edx`                                   //用户名入栈  
+
+0041A52B  FFD3                 `call ebx`                                   //关键，担着部分在壳里，没办法 nop 掉  
+
+0041A52D  84C0                 `test al,al`  
+
+0041A52F  /74 13              `je short dump_3.0041A544`                      //nop  
+
+0041A531  6A 00               `push 0`  
+
+0041A533  68 BCCC4800         `push dump_3.0048CCBC`                  ; ASCII "Register"  
+
+0041A538  68 08C74800         `push dump_3.0048C708`                  ; ASCII "Thank you. Your name and key have been accepted."  
+
+0041A53D  56                   `push esi`  
+
+0041A53E  FF15 04474700        `call dword ptr ds:[<&user32.MessageB>]`; USER32.`MessageBoxA`  
+
+0041A544  68 2D040000          `push 42D`  
+
+0041A549  56                   `push esi`  
+
+0041A54A  FF15 0C474700        `call dword ptr ds:[<&user32.EndDialo>]`; USER32.`EndDialog`  
+
+0041A550  E9 13020000          `jmp dump_3.0041A768`  
+
+0041A555  6A 01               `push 1`  
+
+
+
+```
+0041A557     68 BCCC4800        push dump_3.0048CCBC              ; ASCII "Register"  
+
+0041A55C     68 70C64800        push dump_3.0048C670              ; ASCII "Sorry, this name and/or key is not valid. Please enter the correct name and key exactly as provided to you. You can use Copy and Paste to avoid typing."  
+
+0041A561     56                 push esi  
+
+0041A562     FF15 04474700      call dword ptr ds:[<&user32.MessageB>; USER32.MessageBoxA
+```
+
+破解总结：脱壳后，程序使用正常，但是不能注册，那部分在壳里（我功力不够，没能修补代码,如那位大侠有空，还望帮小弟研究一下），但是修改后可以无限期使用了。
+
+`CRACK by WXHing[BCG][FCG]`
+`2004.7.26`
+
+`4dd466d0e1e0cc123afbe504da2462ca`
