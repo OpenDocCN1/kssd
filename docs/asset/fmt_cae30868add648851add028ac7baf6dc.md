@@ -1,0 +1,198 @@
+
+```
+0043EA2E   .   7E 27            JLE SHORT FamFinan.0043EA57  
+
+0043EA30   .   8B75 D8         MOV ESI,DWORD PTR SS:\[EBP-28\]  
+
+0043EA33   .   8B7D E0         MOV EDI,DWORD PTR SS:\[EBP-20\]  
+
+0043EA36   .   2BFE          SUB EDI,ESI  
+
+0043EA38   .   8945 E8       MOV DWORD PTR SS:\[EBP-18\],EAX  
+
+0043EA3B   >   8D1437        LEA EDX,DWORD PTR DS:\[EDI+ESI\]  
+
+0043EA3E   .   8D8D C0FEFFFF LEA ECX,DWORD PTR SS:\[EBP-140\]  
+
+0043EA44   .   52            PUSH EDX                               ; /Arg2  
+0043EA45   .   56            PUSH ESI                               ; |Arg1  
+0043EA46   .   E8 95260000  CALL FamFinan.004410E0                 ; \\FamFinan.004410E0  
+0043EA4B   .   8B45 E8       MOV EAX,DWORD PTR SS:\[EBP-18\]  
+
+0043EA4E   .   83C6 10       ADD ESI,10  
+
+0043EA51   .   48            DEC EAX  
+
+0043EA52   .   8945 E8       MOV DWORD PTR SS:\[EBP-18\],EAX  
+
+0043EA55   .^  75 E4         JNZ SHORT FamFinan.0043EA3B  
+
+CALL FamFinan.00440F60 ：－－－这里面把我搞晕了。  
+
+00440F60  /$  53            PUSH EBX  
+
+00440F61  |.  8BD9          MOV EBX,ECX  
+
+00440F63  |.  8B4C24 0C     MOV ECX,DWORD PTR SS:\[ESP+C\]  
+
+00440F67  |.  C1E9 05       SHR ECX,5                              ;  右移 5 位  
+
+00440F6A  |.  83F9 04       CMP ECX,4  
+
+00440F6D  |.  0F82 62010000 JB FamFinan.004410D5                   ;  小于转移  
+
+00440F73  |.  83F9 0E       CMP ECX,0E                             ;  大于转移  
+
+00440F76  |.  0F87 59010000 JA FamFinan.004410D5  
+
+00440F7C  |.  55            PUSH EBP                               ;  基址  
+
+00440F7D  |.  56            PUSH ESI                               ;  源址  
+
+00440F7E  |.  85C9          TEST ECX,ECX  
+
+00440F80  |.  57            PUSH EDI                               ;  目的变址  
+
+00440F81  |.  76 18         JBE SHORT FamFinan.00440F9B  
+
+00440F83  |.  8B5424 14     MOV EDX,DWORD PTR SS:\[ESP+14\]  
+
+00440F87  |.  B8 74AF4500   MOV EAX,FamFinan.0045AF74  
+
+00440F8C  |.  2BD0          SUB EDX,EAX  
+
+00440F8E  |.  8BF1          MOV ESI,ECX  
+
+00440F90  |>  8B3C02        /MOV EDI,DWORD PTR DS:\[EDX+EAX\]      ;  两者地址送 EDI  
+00440F93  |.  8938          |MOV DWORD PTR DS:\[EAX\],EDI  
+
+00440F95  |.  83C0 04       |ADD EAX,4  
+
+00440F98  |.  4E            |DEC ESI  
+
+00440F99  |.^  75 F5        \\JNZ SHORT FamFinan.00440F90  
+
+00440F9B  |>  8D41 01       LEA EAX,DWORD PTR DS:\[ECX+1\]  
+
+00440F9E  |.  890C8D 74AF45>MOV DWORD PTR DS:\[ECX\*4+45AF74\],ECX  
+
+00440FA5  |.  83F8 0F       CMP EAX,0F  
+
+00440FA8  |.  73 12         JNB SHORT FamFinan.00440FBC  
+
+00440FAA  |.  B9 0F000000   MOV ECX,0F  
+
+00440FAF  |.  8D3C85 74AF45>LEA EDI,DWORD PTR DS:\[EAX\*4+45AF74\]  
+
+00440FB6  |.  2BC8          SUB ECX,EAX  
+
+00440FB8  |.  33C0          XOR EAX,EAX  
+
+00440FBA  |.  F3:AB         REP STOS DWORD PTR ES:\[EDI\]  
+
+00440FBC  |>  33D2          XOR EDX,EDX  
+
+00440FBE  |.  8D4B 04       LEA ECX,DWORD PTR DS:\[EBX+4\]  
+
+00440FC1  |>  33C0          /XOR EAX,EAX  
+
+00440FC3  |>  8BB0 40AD4500 |/MOV ESI,DWORD PTR DS:\[EAX+45AD40\]    ;  OD 入 ESI 源变址  
+00440FC9  |.  8BB8 7CAD4500 ||MOV EDI,DWORD PTR DS:\[EAX+45AD7C\]    ;  08 入 EDI 目的变址  
+00440FCF  |.  8B34B5 74AF45>||MOV ESI,DWORD PTR DS:\[ESI\*4+45AF74\]  
+00440FD6  |.  8B2CBD 74AF45>||MOV EBP,DWORD PTR DS:\[EDI\*4+45AF74\]  
+00440FDD  |.  33F5          ||XOR ESI,EBP  
+00440FDF  |.  8BA8 74AF4500 ||MOV EBP,DWORD PTR DS:\[EAX+45AF74\]  
+00440FE5  |.  C1C6 03       ||ROL ESI,3                              ;  循环左移 3 位  
+00440FE8  |.  8D3C10        ||LEA EDI,DWORD PTR DS:\[EAX+EDX\]  
+00440FEB  |.  83C0 04       ||ADD EAX,4  
+00440FEE  |.  33F7          ||XOR ESI,EDI  
+00440FF0  |.  33EE          ||XOR EBP,ESI                            ;  异或运算  
+00440FF2  |.  83F8 3C       ||CMP EAX,3C  
+00440FF5  |.  89A8 70AF4500 ||MOV DWORD PTR DS:\[EAX+45AF70\],EBP  
+00440FFB  |.^  7C C6        |\\JL SHORT FamFinan.00440FC3  
+
+00440FFD  |.  BE 04000000   |MOV ESI,4  
+00441002  |>  33C0          |/XOR EAX,EAX  
+00441004  |>  8BB8 04AD4500 ||/MOV EDI,DWORD PTR DS:\[EAX+45AD04\]  
+0044100A  |.  8BA8 74AF4500 |||MOV EBP,DWORD PTR DS:\[EAX+45AF74\]  
+00441010  |.  83C0 04       |||ADD EAX,4  
+00441013  |.  8B3CBD 74AF45>|||MOV EDI,DWORD PTR DS:\[EDI\*4+45AF74\]  
+0044101A  |.  81E7 FF010000 |||AND EDI,1FF  
+00441020  |.  8B3CBD 04A545>|||MOV EDI,DWORD PTR DS:\[EDI\*4+45A504\]  
+00441027  |.  03FD          |||ADD EDI,EBP  
+00441029  |.  C1C7 09       |||ROL EDI,9  
+0044102C  |.  89B8 70AF4500 |||MOV DWORD PTR DS:\[EAX+45AF70\],EDI  
+00441032  |.  83F8 3C       |||CMP EAX,3C  
+00441035  |.^  7C CD        ||\\JL SHORT FamFinan.00441004  
+00441037  |.  4E            ||DEC ESI  
+00441038  |.^  75 C8        |\\JNZ SHORT FamFinan.00441002  
+
+0044103A  |.  B8 B8AD4500   |MOV EAX,FamFinan.0045ADB8  
+0044103F  |>  8B30          |/MOV ESI,DWORD PTR DS:\[EAX\]  
+00441041  |.  83C0 04       ||ADD EAX,4  
+00441044  |.  83C1 04       ||ADD ECX,4  
+00441047  |.  3D E0AD4500   ||CMP EAX,FamFinan.0045ADE0  
+0044104C  |.  8B34B5 74AF45>||MOV ESI,DWORD PTR DS:\[ESI\*4+45AF74\]  
+00441053  |.  8971 FC       ||MOV DWORD PTR DS:\[ECX-4\],ESI  
+00441056  |.^  7C E7        |\\JL SHORT FamFinan.0044103F  
+
+00441058  |.  42            |INC EDX  
+00441059  |.  83FA 04       |CMP EDX,4  
+0044105C  |.^  0F82 5FFFFFFF \\JB FamFinan.00440FC1  
+
+00441062  |.  8D73 18       LEA ESI,DWORD PTR DS:\[EBX+18\]  
+00441065  |.  BF 10000000   MOV EDI,10  
+0044106A  |>  8B0E          /MOV ECX,DWORD PTR DS:\[ESI\]  
+0044106C  |.  8BD1          |MOV EDX,ECX  
+0044106E  |.  83CA 03       |OR EDX,3  
+00441071  |.  8BC2          |MOV EAX,EDX  
+00441073  |.  8BDA          |MOV EBX,EDX  
+00441075  |.  F7D0          |NOT EAX  
+00441077  |.  25 FFFFFFFF   |AND EAX,7FFFFFFF  
+0044107C  |.  D1EB          |SHR EBX,1  
+0044107E  |.  33C3          |XOR EAX,EBX  
+00441080  |.  8BD8          |MOV EBX,EAX  
+00441082  |.  8BE8          |MOV EBP,EAX  
+00441084  |.  C1EB 02       |SHR EBX,2  
+00441087  |.  D1ED          |SHR EBP,1  
+00441089  |.  23DD          |AND EBX,EBP  
+0044108B  |.  23C3          |AND EAX,EBX  
+0044108D  |.  8BD8          |MOV EBX,EAX  
+0044108F  |.  8BE8          |MOV EBP,EAX  
+00441091  |.  C1EB 06       |SHR EBX,6  
+00441094  |.  C1ED 03       |SHR EBP,3  
+00441097  |.  23DD          |AND EBX,EBP  
+00441099  |.  23C3          |AND EAX,EBX  
+0044109B  |.  74 2D         |JE SHORT FamFinan.004410CA  
+0044109D  |.  D1E0          |SHL EAX,1  
+0044109F  |.  83E1 03       |AND ECX,3  
+004410A2  |.  8D1C00        |LEA EBX,DWORD PTR DS:\[EAX+EAX\]  
+004410A5  |.  0BC3          |OR EAX,EBX  
+004410A7  |.  8D1C85 000000>|LEA EBX,DWORD PTR DS:\[EAX\*4\]  
+004410AE  |.  0BC3          |OR EAX,EBX  
+004410B0  |.  8B1C8D F4AD45>|MOV EBX,DWORD PTR DS:\[ECX\*4+45ADF4\]  
+004410B7  |.  8B4E FC       |MOV ECX,DWORD PTR DS:\[ESI-4\]  
+004410BA  |.  D3C3          |ROL EBX,CL  
+004410BC  |.  8BC8          |MOV ECX,EAX  
+004410BE  |.  C1E1 04       |SHL ECX,4  
+004410C1  |.  0BC8          |OR ECX,EAX  
+004410C3  |.  23D9          |AND EBX,ECX  
+004410C5  |.  83E3 FC       |AND EBX,FFFFFFFC  
+004410C8  |.  33D3          |XOR EDX,EBX  
+004410CA  |>  8916          |MOV DWORD PTR DS:\[ESI\],EDX  
+004410CC  |.  83C6 08       |ADD ESI,8  
+004410CF  |.  4F            |DEC EDI  
+004410D0  |.^  75 98        \\JNZ SHORT FamFinan.0044106A  
+004410D2  |.  5F            POP EDI  
+004410D3  |.  5E            POP ESI  
+004410D4  |.  5D            POP EBP  
+004410D5  |>  5B            POP EBX  
+004410D6  \\ . C2 0800      RETN 8  
+0043EA68   .   C745 E8 00000>MOV DWORD PTR SS:\[EBP-18\],0  
+0043EA6F   .   7E 27         JLE SHORT FamFinan.0043EA98  
+0043EA71   >   8B7D EC       MOV EDI,DWORD PTR SS:\[EBP-14\]          ;  (初始 cpu 选择)  
+0043EA74   .   53            PUSH EBX  
+0043EA75   .   57            PUSH EDI  
+0043EA76   .   8D4D C4       LEA ECX,DWORD PTR SS:\[EBP-3C\]  
+0043EA79   .   E8 F83D0000   CALL <JMP.&MFC42.#5442\_?Read@CFile@@UAEI>
+```
