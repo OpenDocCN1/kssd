@@ -1,0 +1,1382 @@
+
+# 电脑阅卷王 PC OMR V6.2 的注册+汉化
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-245.htm`](https://www.pediy.com/kssd/pediy07/pediy7-245.htm)
+
+【破文作者】 Rdsnow\[BCG\]\[PYG\]
+
+【 E-mail 】 RDSNOW@163.COM
+
+【 作者 QQ 】 83757177
+
+【文章题目】 PC OMR V6.2 的注册+汉化
+
+【软件名称】 电脑阅卷王(PC OMR) V6.2
+
+【下载地址】 [`www.cai2000.com/download.htm`](http://www.cai2000.com/download.htm)
+
+----------------------------------------------------------------------------------------------
+
+【加密方式】 序列号
+
+【破解工具】 FlyOD V1.10
+
+【软件限制】 功能限制
+
+【破解平台】 Windows XP SP2
+
+----------------------------------------------------------------------------------------------
+
+【软件简介】
+
+PC OMR V6.2 即电脑阅卷王 V5.2 的升级版本，但只有英文版，它是一款创新型的标准化试卷阅卷系统，教师必备软件。该系统采用数码相机（或扫描仪、摄像头、数码摄象机等）作为答题卡图象输入设备，取代动辄几十万元的昂贵的光电阅卷机，无须专用答题卡，成本极低、操作简易、功能更强大，更适合于中小学、考试中心、调查机构使用。
+
+----------------------------------------------------------------------------------------------
+
+【文章简介】
+
+偶从没有汉化过软件，以前调试过程序的 V5.2 版本，这次帮网友调试 V6.2 版本，竟然新版本没有中文版，于是把 V5.2 版目录下的 `language.txt` 复制到新版本的目录下，汉化过程就这么多了。快吧！
+
+程序是 VB 编写的东东，调试起来需要有点耐心，用了浮点指令，也增加了注册的难度。
+
+注册码的计算分四部分分别放在程序中，第一个很容易找到，满足了第一个条件，程序会提示注册成功，但是使用几分钟后，会被后面的条件检验，不通过又会变回未注册版。作者把后面还有三个条件放在 `Timer` 里，倒是有些隐蔽。
+
+----------------------------------------------------------------------------------------------
+
+【破解过程】
+
+调试过程中偶的机器码"3887567035"，调试过程中机器码的第一位和第六位是没有校验后会变化。注册码跟这两位应该没有关系。
+
+输入用户名：rdsnow\[BCG\]\[PYG\]；假注册码"9876453210"
+
+字符串中找到 UNICODE "SHURUYOUWUQINGCHONGXINSHURU"，这是"输入有误，请重新输入"的汉语拼音，下断，来到这儿：
+
+```
+0047676C   .  8B55 D0           MOV EDX,DWORD PTR SS:[EBP-30]
+0047676F   .  83C4 0C           ADD ESP,0C
+00476772   .  52                PUSH EDX
+00476773   .  FF15 34104000     CALL DWORD PTR DS:[<&MSVBVM60.__vbaLenBstr>]    ;  MSVBVM60.__vbaLenBstr
+00476779   .  83F8 0A           CMP EAX,0A                                ;  假注册码的长度是否为 10
+0047677C   .  0F84 C1000000     JE pcomr6.00476843
+00476782   .  BA 88BA4000       MOV EDX,pcomr6.0040BA88                   ;  UNICODE "SHURUYOUWUQINGCHONGXINSHURU"
+00476787   .  8D4D C8           LEA ECX,DWORD PTR SS:[EBP-38]
+0047678A   .  FF15 10124000     CALL DWORD PTR DS:[<&MSVBVM60.__vbaStrCopy>]    ;  MSVBVM60.__vbaStrCopy
+00476790   .  BA ECB84000       MOV EDX,pcomr6.0040B8EC                   ;  UNICODE "FRM_REG"
+00476795   .  8D4D CC           LEA ECX,DWORD PTR SS:[EBP-34]
+00476798   .  FF15 10124000     CALL DWORD PTR DS:[<&MSVBVM60.__vbaStrCopy>]    ;  MSVBVM60.__vbaStrCopy
+0047679E   .  8D45 C8           LEA EAX,DWORD PTR SS:[EBP-38]
+004767A1   .  50                PUSH EAX
+004767A2   .  8D4D CC           LEA ECX,DWORD PTR SS:[EBP-34]
+004767A5   .  51                PUSH ECX
+004767A6   .  E8 55760500       CALL pcomr6.004CDE00
+004767AB   .  8BD0              MOV EDX,EAX
+004767AD   .  8D4D C0           LEA ECX,DWORD PTR SS:[EBP-40]
+004767B0   .  FFD6              CALL ESI
+004767B2   .  8B55 C0           MOV EDX,DWORD PTR SS:[EBP-40]
+004767B5   .  B9 0A000000       MOV ECX,0A
+004767BA   .  B8 04000280       MOV EAX,80020004
+004767BF   .  898D 7CFFFFFF     MOV DWORD PTR SS:[EBP-84],ECX
+004767C5   .  894D 8C           MOV DWORD PTR SS:[EBP-74],ECX
+004767C8   .  894D 9C           MOV DWORD PTR SS:[EBP-64],ECX
+004767CB   .  68 7CBA4000       PUSH pcomr6.0040BA7C                      ;  UNICODE "  "
+004767D0   .  8D4D C4           LEA ECX,DWORD PTR SS:[EBP-3C]
+004767D3   .  8945 84           MOV DWORD PTR SS:[EBP-7C],EAX
+004767D6   .  8945 94           MOV DWORD PTR SS:[EBP-6C],EAX
+004767D9   .  8945 A4           MOV DWORD PTR SS:[EBP-5C],EAX
+004767DC   .  895D C0           MOV DWORD PTR SS:[EBP-40],EBX
+004767DF   .  FFD6              CALL ESI
+004767E1   .  50                PUSH EAX
+004767E2   .  FF15 68104000     CALL DWORD PTR DS:[<&MSVBVM60.__vbaStrCat>]     ;  MSVBVM60.__vbaStrCat
+004767E8   .  8D95 7CFFFFFF     LEA EDX,DWORD PTR SS:[EBP-84]
+004767EE   .  52                PUSH EDX
+004767EF   .  8945 B4           MOV DWORD PTR SS:[EBP-4C],EAX
+004767F2   .  8D45 8C           LEA EAX,DWORD PTR SS:[EBP-74]
+004767F5   .  50                PUSH EAX
+004767F6   .  8D4D 9C           LEA ECX,DWORD PTR SS:[EBP-64]
+004767F9   .  51                PUSH ECX
+004767FA   .  53                PUSH EBX
+004767FB   .  8D55 AC           LEA EDX,DWORD PTR SS:[EBP-54]
+004767FE   .  52                PUSH EDX
+004767FF   .  C745 AC 08000000  MOV DWORD PTR SS:[EBP-54],8
+00476806   .  FF15 B8104000     CALL DWORD PTR DS:[<&MSVBVM60.#595>]           ;  MSVBVM60.rtcMsgBox
+0047680C   .  8D45 C0           LEA EAX,DWORD PTR SS:[EBP-40]
+0047680F   .  50                PUSH EAX
+00476810   .  8D4D C4           LEA ECX,DWORD PTR SS:[EBP-3C]
+00476813   .  51                PUSH ECX
+00476814   .  8D55 C8           LEA EDX,DWORD PTR SS:[EBP-38]
+00476817   .  52                PUSH EDX
+00476818   .  8D45 CC           LEA EAX,DWORD PTR SS:[EBP-34]
+0047681B   .  50                PUSH EAX
+0047681C   .  6A 04             PUSH 4
+0047681E   .  FF15 1C124000     CALL DWORD PTR DS:[<&MSVBVM60.__vbaFreeStrList>>;  MSVBVM60.__vbaFreeStrList
+00476824   .  8D8D 7CFFFFFF     LEA ECX,DWORD PTR SS:[EBP-84]
+0047682A   .  51                PUSH ECX
+0047682B   .  8D55 8C           LEA EDX,DWORD PTR SS:[EBP-74]
+0047682E   .  52                PUSH EDX
+0047682F   .  8D45 9C           LEA EAX,DWORD PTR SS:[EBP-64]
+00476832   .  50                PUSH EAX
+00476833   .  8D4D AC           LEA ECX,DWORD PTR SS:[EBP-54]
+00476836   .  51                PUSH ECX
+00476837   .  6A 04             PUSH 4
+00476839   .  FFD7              CALL EDI
+0047683B   .  83C4 28           ADD ESP,28
+0047683E   .  E9 CC040000       JMP pcomr6.00476D0F
+00476843   >  BE 01000000       MOV ESI,1                                   ;  ESI=1,准备循环
+00476848   >  B8 08000000       MOV EAX,8
+0047684D   .  66:3BF0          CMP SI,AX
+00476850   .  0F8F B5000000     JG pcomr6.0047690B                      ;  ESI 大于 8，就跳出循环
+00476856   .  8D45 AC           LEA EAX,DWORD PTR SS:[EBP-54]
+00476859   .  50                PUSH EAX
+0047685A   .  0FBFCE           MOVSX ECX,SI
+0047685D   .  8D55 D0           LEA EDX,DWORD PTR SS:[EBP-30]
+00476860   .  8995 74FFFFFF     MOV DWORD PTR SS:[EBP-8C],EDX
+00476866   .  51                PUSH ECX
+00476867   .  8D95 6CFFFFFF     LEA EDX,DWORD PTR SS:[EBP-94]
+0047686D   .  52                PUSH EDX
+0047686E   .  8D45 9C           LEA EAX,DWORD PTR SS:[EBP-64]
+00476871   .  50                PUSH EAX
+00476872   .  C745 B4 01000000  MOV DWORD PTR SS:[EBP-4C],1
+00476879   .  C745 AC 02000000  MOV DWORD PTR SS:[EBP-54],2
+00476880   .  C785 6CFFFFFF 0840>MOV DWORD PTR SS:[EBP-94],4008
+0047688A   .  FF15 F8104000     CALL DWORD PTR DS:[<&MSVBVM60.#632>]           ;  MSVBVM60.rtcMidCharVar
+00476890   .  8D4D 9C           LEA ECX,DWORD PTR SS:[EBP-64]
+00476893   .  51                PUSH ECX
+00476894   .  8D55 CC           LEA EDX,DWORD PTR SS:[EBP-34]
+00476897   .  52                PUSH EDX
+00476898   .  FF15 BC114000     CALL DWORD PTR DS:[<&MSVBVM60.__vbaStrVarVal>]  ;  MSVBVM60.__vbaStrVarVal
+0047689E   .  50                PUSH EAX
+0047689F   .  FF15 E0124000     CALL DWORD PTR DS:[<&MSVBVM60.#581>]           ;  MSVBVM60.rtcR8ValFromBstr
+004768A5   .  DD9D 2CFFFFFF     FSTP QWORD PTR SS:[EBP-D4]
+004768AB   .  0FBFC3           MOVSX EAX,BX
+004768AE   .  8985 00FFFFFF     MOV DWORD PTR SS:[EBP-100],EAX
+004768B4   .  DB85 00FFFFFF     FILD DWORD PTR SS:[EBP-100]                     ;  存放累加结果，初始数值等于 0
+```
+
+
+
+### 汇编代码分析与注册验证逻辑
+
+```
+004768BA   .  DD9D F8FEFFFF       FSTP QWORD PTR SS:[EBP-108]  
+004768C0   .  DD85 F8FEFFFF       FLD QWORD PTR SS:[EBP-108]  
+004768C6   .  DC85 2CFFFFFF       FADD QWORD PTR SS:[EBP-D4]                ;  取出注册码的 1 到 8 位，累加  
+004768CC   .  DFE0               FSTSW AX  
+004768CE   .  A8 0D              TEST AL,0D  
+004768D0   .  0F85 B9040000      JNZ pcomr6.00476D8F  
+004768D6   .  FF15 5C124000      CALL DWORD PTR DS:[<&MSVBVM60.__vbaFpI2>]     ;  MSVBVM60.__vbaFpI2  
+004768DC   .  8D4D CC           LEA ECX,DWORD PTR SS:[EBP-34]  
+004768DF   .  8BD8               MOV EBX,EAX  
+004768E1   .  FF15 DC124000     CALL DWORD PTR DS:[<&MSVBVM60.__vbaFreeStr>]   ;  MSVBVM60.__vbaFreeStr  
+004768E7   .  8D4D 9C           LEA ECX,DWORD PTR SS:[EBP-64]  
+004768EA   .  51                 PUSH ECX  
+004768EB   .  8D55 AC           LEA EDX,DWORD PTR SS:[EBP-54]  
+004768EE   .  52                 PUSH EDX  
+004768EF   .  6A 02              PUSH 2  
+004768F1   .  FFD7               CALL EDI  
+004768F3   .  B8 01000000        MOV EAX,1  
+004768F8   .  83C4 0C            ADD ESP,0C  
+004768FB   .  66:03C6           ADD AX,SI  
+004768FE   .  0F80 90040000     JO pcomr6.00476D94  
+00476904   .  8BF0               MOV ESI,EAX  
+00476906   .^ E9 3DFFFFFF       JMP pcomr6.00476848                         ;  跳上去循环  
+```
+
+上面这个循环的作用是求试探注册码前八位的和，比如我得假注册码 `"9876453210"`，就是 `9+8+7+6+5+4+3+2＝44`
+
+```
+0047690B   >  B8 02000000        MOV EAX,2  
+00476910   .  8D4D AC           LEA ECX,DWORD PTR SS:[EBP-54]  
+00476913   .  51                 PUSH ECX  
+00476914   .  8945 B4           MOV DWORD PTR SS:[EBP-4C],EAX  
+00476917   .  8945 AC           MOV DWORD PTR SS:[EBP-54],EAX  
+0047691A   .  8D45 D0           LEA EAX,DWORD PTR SS:[EBP-30]  
+0047691D   .  6A 09             PUSH 9  
+0047691F   .  8D95 6CFFFFFF    LEA EDX,DWORD PTR SS:[EBP-94]  
+00476925   .  8985 74FFFFFF    MOV DWORD PTR SS:[EBP-8C],EAX  
+0047692B   .  52                 PUSH EDX  
+0047692C   .  8D45 9C           LEA EAX,DWORD PTR SS:[EBP-64]  
+0047692F   .  BE 08400000        MOV ESI,4008  
+00476934   .  50                 PUSH EAX  
+00476935   .  89B5 6CFFFFFF     MOV DWORD PTR SS:[EBP-94],ESI  
+0047693B   .  FF15 F8104000     CALL DWORD PTR DS:[<&MSVBVM60.#632>]            ;  MSVBVM60.rtcMidCharVar  
+00476941   .  8D4D 9C           LEA ECX,DWORD PTR SS:[EBP-64]  
+00476944   .  51                 PUSH ECX  
+00476945   .  8D55 CC           LEA EDX,DWORD PTR SS:[EBP-34]  
+00476948   .  52                 PUSH EDX  
+00476949   .  FF15 BC114000    CALL DWORD PTR DS:[<&MSVBVM60.__vbaStrVarVal>]  ;  MSVBVM60.__vbaStrVarVal  
+0047694F   .  50                 PUSH EAX  
+00476950   .  FF15 E0124000    CALL DWORD PTR DS:[<&MSVBVM60.#581>]            ;  MSVBVM60.rtcR8ValFromBstr  
+00476956   .  DD9D 2CFFFFFF     FSTP QWORD PTR SS:[EBP-D4]                ;  保存注册码的最后两位 10  
+0047695C   .  0FBFC3            MOVSX EAX,BX  
+0047695F   .  8985 F4FEFFFF     MOV DWORD PTR SS:[EBP-10C],EAX  
+00476965   .  DB85 F4FEFFFF     FILD DWORD PTR SS:[EBP-10C]  
+0047696B   .  DD9D ECFEFFFF     FSTP QWORD PTR SS:[EBP-114]                ;  注册码前八位的总和 44  
+00476971   .  DD85 ECFEFFFF     FLD QWORD PTR SS:[EBP-114]  
+00476977   .  DC85 2CFFFFFF     FADD QWORD PTR SS:[EBP-D4]                ;  44+10=54  
+0047697D   .  DFE0               FSTSW AX  
+0047697F   .  A8 0D              TEST AL,0D  
+00476981   .  0F85 08040000     JNZ pcomr6.00476D8F  
+00476987   .  FF15 5C124000     CALL DWORD PTR DS:[<&MSVBVM60.__vbaFpI2>]     ;  MSVBVM60.__vbaFpI2  
+0047698D   .  8D4D CC           LEA ECX,DWORD PTR SS:[EBP-34]  
+00476990   .  8BD8               MOV EBX,EAX  
+00476992   .  FF15 DC124000     CALL DWORD PTR DS:[<&MSVBVM60.__vbaFreeStr>]   ;  MSVBVM60.__vbaFreeStr  
+00476998   .  8D4D 9C           LEA ECX,DWORD PTR SS:[EBP-64]  
+0047699B   .  51                 PUSH ECX  
+0047699C   .  8D55 AC           LEA EDX,DWORD PTR SS:[EBP-54]  
+0047699F   .  52                 PUSH EDX  
+004769A0   .  6A 02              PUSH 2  
+004769A2   .  FFD7               CALL EDI  
+004769A4   .  83C4 0C            ADD ESP,0C  
+004769A7   .  66:83FB 64        CMP BX,64                              ;  54 跟 100 比，相等就注册成功  
+004769AB   .  0F84 CA000000     JE pcomr6.00476A7B                     ;  关键跳转  
+```
+
+可以看到假注册码前八位的和 `44`+最后两位 `10＝55`，不等于 `100`，当然不能通过
+
+```
+004769B1   .  8B35 10124000     MOV ESI,DWORD PTR DS:[<&MSVBVM60.__vbaStrCopy>] ;  MSVBVM60.__vbaStrCopy  
+004769B7   .  BA 88BA4000        MOV EDX,pcomr6.0040BA88                  ;  UNICODE "SHURUYOUWUQINGCHONGXINSHURU"  
+004769BC   .  8D4D C8           LEA ECX,DWORD PTR SS:[EBP-38]  
+004769BF   .  FFD6               CALL ESI                                 ;  <&MSVBVM60.__vbaStrCopy>  
+```
+
+………………省略部分代码  
+
+```
+00476A1F   .  8D95 7CFFFFFF     LEA EDX,DWORD PTR SS:[EBP-84]  
+00476A25   .  52                 PUSH EDX  
+00476A26   .  8945 B4           MOV DWORD PTR SS:[EBP-4C],EAX  
+00476A29   .  8D45 8C           LEA EAX,DWORD PTR SS:[EBP-74]  
+00476A2C   .  50                 PUSH EAX  
+00476A2D   .  8D4D 9C           LEA ECX,DWORD PTR SS:[EBP-64]  
+00476A30   .  51                 PUSH ECX  
+00476A31   .  6A 00              PUSH 0  
+00476A33   .  8D55 AC           LEA EDX,DWORD PTR SS:[EBP-54]  
+00476A36   .  52                 PUSH EDX  
+00476A37   .  C745 AC 08000000   MOV DWORD PTR SS:[EBP-54],8  
+00476A3E   .  FF15 B8104000     CALL DWORD PTR DS:[<&MSVBVM60.#595>]            ;  对话框：输入有误，请重新输入  
+```
+
+………………省略部分代码  
+
+```
+00476B10   .  8D55 C8           LEA EDX,DWORD PTR SS:[EBP-38]  
+00476B13   .  52                 PUSH EDX  
+00476B14   .  8D45 CC           LEA EAX,DWORD PTR SS:[EBP-34]  
+00476B17   .  50                 PUSH EAX  
+00476B18   .  8D8D 38FFFFFF     LEA ECX,DWORD PTR SS:[EBP-C8]  
+00476B1E   .  51                 PUSH ECX  
+00476B1F   .  8D55 AC           LEA EDX,DWORD PTR SS:[EBP-54]  
+00476B22   .  52                 PUSH EDX  
+00476B23   .  C785 38FFFFFF 0100>MOV DWORD PTR SS:[EBP-C8],80000001  
+00476B2D   .  E8 9E1D0400       CALL pcomr6.004B88D0                         ;  删除注册表中的注册信息  
+```
+
+………………省略部分代码  
+
+```
+00476C40   .  8945 B4           MOV DWORD PTR SS:[EBP-4C],EAX  
+00476C43   .  8D85 7CFFFFFF     LEA EAX,DWORD PTR SS:[EBP-84]  
+00476C49   .  50                 PUSH EAX  
+00476C4A   .  8D4D 8C           LEA ECX,DWORD PTR SS:[EBP-74]  
+00476C4D   .  51                 PUSH ECX  
+00476C4E   .  8D55 9C           LEA EDX,DWORD PTR SS:[EBP-64]  
+00476C51   .  52                 PUSH EDX  
+00476C52   .  6A 00              PUSH 0  
+00476C54   .  8D45 AC           LEA EAX,DWORD PTR SS:[EBP-54]  
+00476C57   .  50                 PUSH EAX  
+00476C58   .  C745 AC 08000000   MOV DWORD PTR SS:[EBP-54],8  
+00476C5F   .  FF15 B8104000     CALL DWORD PTR DS:[<&MSVBVM60.#595>]            ;  对话框：注册成功，请重新启动  
+```
+
+### 注册验证测试与注册表分析
+
+于是把注册码改为 `"8765432164"`
+
+注册条件一：注册码的前八位累加：`8+7+6+5+4+3+2+1＝36`，再加上最后两位：`36+64＝100`
+
+果然通过了，到这里以为破解成功。
+
+从上面可以看到注册信息保存在注册表中，机器码已经变了。
+
+`[HKEY_CURRENT_USER\Software\SiQiSoft\DMR5]`
+
+`"jiqi"="2887567035"`
+
+`"zhuce"="8765432164"`
+
+`"USERNAME"="rdsnow[BCG][PYG]"`
+
+没想到运行程序不到两分钟，又变回未注册版，再看注册表，`"zhuce"="8765432164"` 已经被删除了，有暗桩。
+
+`----------------------------------------------------------------------------------------------`
+
+### 深入调试与隐藏机制
+
+把上面“前八位各位相加的总和+最后两位＝100”作为注册条件一，还应该有其他注册条件
+
+于是：用户名：`rdsnow[BCG][PYG]`，假注册码：`8765432164`，继续调试：
+
+程序中 `CALL pcomr6.004B88D0` 的作用是删除注册表中 `"zhuce"` 键，查找命令 `CALL pcomr6.004B88D0`，其他部分共找到三处。
+
+```
+004B6CE7   .  8D45 94           LEA EAX,DWORD PTR SS:[EBP-6C]  
+004B6CEA   .  BB 0A000000        MOV EBX,0A  
+004B6CEF   .  50                 PUSH EAX  
+004B6CF0   .  C745 9C 04000280   MOV DWORD PTR SS:[EBP-64],80020004  
+004B6CF7   .  895D 94           MOV DWORD PTR SS:[EBP-6C],EBX  
+```
+
+
+
+```
+004B6CFA   .  FF15 AC104000      CALL DWORD PTR DS:[<&MSVBVM60.#594>]            ; MSVBVM60.rtcRandomize
+
+004B6D00   .  8B3D 24104000      MOV EDI,DWORD PTR DS:[<&MSVBVM60.__vbaFreeVar>] ; MSVBVM60.__vbaFreeVar
+
+004B6D06   .  8D4D 94            LEA ECX,DWORD PTR SS:[EBP-6C]
+
+004B6D09   .  FFD7               CALL EDI                                       ; <&MSVBVM60.__vbaFreeVar>
+
+004B6D0B   .  8D4D 94            LEA ECX,DWORD PTR SS:[EBP-6C]
+
+004B6D0E   .  51                 PUSH ECX
+
+004B6D0F   .  C745 9C 04000280   MOV DWORD PTR SS:[EBP-64],80020004
+
+004B6D16   .  895D 94            MOV DWORD PTR SS:[EBP-6C],EBX
+
+004B6D19   .  FF15 A0104000      CALL DWORD PTR DS:[<&MSVBVM60.#593>]            ; MSVBVM60.rtcRandomNext
+
+004B6D1F   .  D99D 30FFFFFF      FSTP DWORD PTR SS:[EBP-D0]
+
+004B6D25   .  D985 30FFFFFF      FLD DWORD PTR SS:[EBP-D0]
+
+004B6D2B   .  D80D 30204000      FMUL DWORD PTR DS:[402030]
+
+004B6D31   .  D805 2C204000      FADD DWORD PTR DS:[40202C]
+
+004B6D37   .  DFE0               FSTSW AX
+
+004B6D39   .  A8 0D              TEST AL,0D
+
+004B6D3B   .  0F85 F8040000      JNZ pcomr6.004B7239
+
+004B6D41   .  FF15 C4124000      CALL DWORD PTR DS:[<&MSVBVM60.__vbaFPInt>]       ; MSVBVM60.__vbaFPInt
+
+004B6D47   .  FF15 D0104000      CALL DWORD PTR DS:[<&MSVBVM60.__vbaFpR4>]        ; MSVBVM60.__vbaFpR4
+
+004B6D4D   .  D81D 60204000      FCOMP DWORD PTR DS:[402060]
+
+004B6D53   .  DFE0               FSTSW AX
+
+004B6D55   .  F6C4 40            TEST AH,40
+
+004B6D58   .  75 07              JNZ SHORT pcomr6.004B6D61
+
+004B6D5A   .  B8 01000000        MOV EAX,1
+
+004B6D5F   .  EB 02              JMP SHORT pcomr6.004B6D63
+
+004B6D61   >  33C0               XOR EAX,EAX
+
+004B6D63   >  F7D8               NEG EAX
+
+004B6D65   .  8D4D 94            LEA ECX,DWORD PTR SS:[EBP-6C]
+
+004B6D68   .  8BD8               MOV EBX,EAX
+
+004B6D6A   .  FFD7               CALL EDI
+
+004B6D6C   .  66:3BDE            CMP BX,SI
+
+004B6D6F   .  0F85 45040000      JNZ pcomr6.004B71BA                              ; 取得 0～1 的随机数，乘以 20，结果在 0～9 之间，就进行注册码校验，看来不是每次走到这里都进行注册码校验的，而是随机的，这也是作者隐藏校验代码的一个办法。调试时如果跳走，可以修改状态标志，让程序继续向下跑
+
+004B6D75   .  8B35 10124000      MOV ESI,DWORD PTR DS:[<&MSVBVM60.__vbaStrCopy>] ; MSVBVM60.__vbaStrCopy
+
+004B6D7B   .  BA 00B94000        MOV EDX,pcomr6.0040B900                         ; UNICODE "zhuce"
+
+004B6D80   .  8D4D A8            LEA ECX,DWORD PTR SS:[EBP-58]
+
+004B6D83   .  FFD6               CALL ESI                                       ; <&MSVBVM60.__vbaStrCopy>
+
+004B6D85   .  BA 98B84000        MOV EDX,pcomr6.0040B898                         ; UNICODE "Software\\SiQiSoft\\DMR5\\"
+
+004B6D8A   .  8D4D AC            LEA ECX,DWORD PTR SS:[EBP-54]
+
+004B6D8D   .  FFD6               CALL ESI
+
+004B6D8F   .  8D55 A8            LEA EDX,DWORD PTR SS:[EBP-58]
+
+004B6D92   .  52                 PUSH EDX
+
+004B6D93   .  8D45 AC            LEA EAX,DWORD PTR SS:[EBP-54]
+
+004B6D96   .  50                 PUSH EAX
+
+004B6D97   .  8D8D 30FFFFFF      LEA ECX,DWORD PTR SS:[EBP-D0]
+
+004B6D9D   .  51                 PUSH ECX
+
+004B6D9E   .  8D55 94            LEA EDX,DWORD PTR SS:[EBP-6C]
+
+004B6DA1   .  52                 PUSH EDX
+
+004B6DA2   .  C785 30FFFFFF 0100>MOV DWORD PTR SS:[EBP-D0],80000001
+
+004B6DAC   .  E8 EF210000        CALL pcomr6.004B8FA0                           ; 读取注册表中的注册码"8765432164"
+
+004B6DB1   .  8D45 94            LEA EAX,DWORD PTR SS:[EBP-6C]
+
+004B6DB4   .  50                 PUSH EAX
+
+004B6DB5   .  FF15 30104000      CALL DWORD PTR DS:[<&MSVBVM60.__vbaStrVarMove>] ; MSVBVM60.__vbaStrVarMove
+
+004B6DBB   .  8BD0               MOV EDX,EAX
+
+004B6DBD   .  8D4D B8            LEA ECX,DWORD PTR SS:[EBP-48]
+
+004B6DC0   .  FF15 98124000      CALL DWORD PTR DS:[<&MSVBVM60.__vbaStrMove>]    ; MSVBVM60.__vbaStrMove
+
+004B6DC6   .  8B1D 1C124000      MOV EBX,DWORD PTR DS:[<&MSVBVM60.__vbaFreeStrLi>; MSVBVM60.__vbaFreeStrList
+
+004B6DCC   .  8D4D A8            LEA ECX,DWORD PTR SS:[EBP-58]
+
+004B6DCF   .  51                 PUSH ECX
+
+004B6DD0   .  8D55 AC            LEA EDX,DWORD PTR SS:[EBP-54]
+
+004B6DD3   .  52                 PUSH EDX
+
+004B6DD4   .  6A 02              PUSH 2
+
+004B6DD6   .  FFD3               CALL EBX                                       ; <&MSVBVM60.__vbaFreeStrList>
+
+004B6DD8   .  83C4 0C            ADD ESP,0C
+
+004B6DDB   .  8D4D 94            LEA ECX,DWORD PTR SS:[EBP-6C]
+
+004B6DDE   .  FFD7               CALL EDI
+
+004B6DE0   .  8D8D 54FFFFFF      LEA ECX,DWORD PTR SS:[EBP-AC]
+
+004B6DE6   .  51                 PUSH ECX
+
+004B6DE7   .  8D55 94            LEA EDX,DWORD PTR SS:[EBP-6C]
+
+004B6DEA   .  8D45 B8            LEA EAX,DWORD PTR SS:[EBP-48]
+
+004B6DED   .  52                 PUSH EDX
+
+004B6DEE   .  8985 5CFFFFFF      MOV DWORD PTR SS:[EBP-A4],EAX
+
+004B6DF4   .  C785 54FFFFFF 0840>MOV DWORD PTR SS:[EBP-AC],4008
+
+004B6DFE   .  FF15 DC104000      CALL DWORD PTR DS:[<&MSVBVM60.#520>]            ; MSVBVM60.rtcTrimVar
+
+004B6E04   .  8D45 94            LEA EAX,DWORD PTR SS:[EBP-6C]
+
+004B6E07   .  50                 PUSH EAX
+
+004B6E08   .  8D4D AC            LEA ECX,DWORD PTR SS:[EBP-54]
+
+004B6E0B   .  51                 PUSH ECX
+
+004B6E0C   .  FF15 BC114000      CALL DWORD PTR DS:[<&MSVBVM60.__vbaStrVarVal>]  ; MSVBVM60.__vbaStrVarVal
+
+004B6E12   .  50                 PUSH EAX
+
+004B6E13   .  FF15 E0124000      CALL DWORD PTR DS:[<&MSVBVM60.#581>]            ; MSVBVM60.rtcR8ValFromBstr
+
+004B6E19   .  833D 00304E00 00   CMP DWORD PTR DS:[4E3000],0
+
+004B6E20   .  75 08              JNZ SHORT pcomr6.004B6E2A
+
+004B6E22   .  DC35 58204000      FDIV QWORD PTR DS:[402058]                      ; 8765432164/100000000=87.65432164
+
+004B6E28   .  EB 11              JMP SHORT pcomr6.004B6E3B
+
+004B6E2A   >  FF35 5C204000      PUSH DWORD PTR DS:[40205C]
+
+004B6E30   .  FF35 58204000      PUSH DWORD PTR DS:[402058]
+
+004B6E36   .  E8 79BFF4FF        CALL <JMP.&MSVBVM60._adj_fdiv_m64>
+
+004B6E3B   >  DFE0               FSTSW AX
+
+004B6E3D   .  A8 0D              TEST AL,0D
+
+004B6E3F   .  0F85 F4030000      JNZ pcomr6.004B7239
+
+004B6E45   .  FF15 C4124000      CALL DWORD PTR DS:[<&MSVBVM60.__vbaFPInt>]       ; 87.65432164 取整得到 87
+
+004B6E4B   .  DD5D B0            FSTP QWORD PTR SS:[EBP-50]
+
+004B6E4E   .  8D4D AC            LEA ECX,DWORD PTR SS:[EBP-54]
+
+004B6E51   .  FF15 DC124000      CALL DWORD PTR DS:[<&MSVBVM60.__vbaFreeStr>]    ; MSVBVM60.__vbaFreeStr
+
+004B6E57   .  8D4D 94            LEA ECX,DWORD PTR SS:[EBP-6C]
+
+004B6E5A   .  FFD7               CALL EDI
+
+004B6E5C   .  DD45 B0            FLD QWORD PTR SS:[EBP-50]
+
+004B6E5F   .  833D 00304E00 00   CMP DWORD PTR DS:[4E3000],0
+
+004B6E66   .  75 08              JNZ SHORT pcomr6.004B6E70
+
+004B6E68   .  DC35 C8144000      FDIV QWORD PTR DS:[4014C8]                      ; 87/100=0.87
+
+004B6E6E   .  EB 11              JMP SHORT pcomr6.004B6E81
+
+004B6E70   >  FF35 CC144000      PUSH DWORD PTR DS:[4014CC]
+
+004B6E76   .  FF35 C8144000      PUSH DWORD PTR DS:[4014C8]
+
+004B6E7C   .  E8 33BFF4FF        CALL <JMP.&MSVBVM60._adj_fdiv_m64>
+
+004B6E81   >  DFE0               FSTSW AX
+
+004B6E83   .  A8 0D              TEST AL,0D
+
+004B6E85   .  0F85 AE030000      JNZ pcomr6.004B7239
+
+004B6E8B   .  FF15 C4124000      CALL DWORD PTR DS:[<&MSVBVM60.__vbaFPInt>]       ; 0.87 取整得到 0
+
+004B6E91   .  DC0D C8144000      FMUL QWORD PTR DS:[4014C8]                      ; 0*100=0
+
+004B6E97   .  DC6D B0            FSUBR QWORD PTR SS:[EBP-50]                    ; 87-0=87
+
+004B6E9A   .  DD5D B0            FSTP QWORD PTR SS:[EBP-50]                     ; 以上是取得注册码的一二两位
+
+004B6E9D   .  DFE0               FSTSW AX
+```
+
+
+
+```text
+004B6E9F   .  A8 0D               TEST AL,0D  
+
+004B6EA1   .  0F85 92030000      JNZ pcomr6.004B7239  
+
+004B6EA7   .  E8 B45F0100        CALL pcomr6.004CCE60                    ;  得到"88"，机器码的二三两位  
+
+004B6EAC   .  8BD0               MOV EDX,EAX  
+
+004B6EAE   .  8D4D AC            LEA ECX,DWORD PTR SS:[EBP-54]  
+
+004B6EB1   .  FF15 98124000      CALL DWORD PTR DS:[<&MSVBVM60.__vbaStrMove>]    ;  MSVBVM60.__vbaStrMove  
+
+004B6EB7   .  50                 PUSH EAX  
+
+004B6EB8   .  FF15 E0124000      CALL DWORD PTR DS:[<&MSVBVM60.#581>]             ;  MSVBVM60.rtcR8ValFromBstr  
+
+004B6EBE   .  DC0D 50204000      FMUL QWORD PTR DS:[402050]                   ;  88*73=6424  
+
+004B6EC4   .  DC05 48204000      FADD QWORD PTR DS:[402048]                   ;  6424+457=6881  
+
+004B6ECA   .  DD9D 5CFFFFFF      FSTP QWORD PTR SS:[EBP-A4]  
+
+004B6ED0   .  DFE0               FSTSW AX  
+
+004B6ED2   .  A8 0D              TEST AL,0D  
+
+004B6ED4   .  0F85 5F030000      JNZ pcomr6.004B7239  
+
+004B6EDA   .  8D95 54FFFFFF      LEA EDX,DWORD PTR SS:[EBP-AC]  
+
+004B6EE0   .  8D4D DC            LEA ECX,DWORD PTR SS:[EBP-24]  
+
+004B6EE3   .  C785 54FFFFFF 0500>MOV DWORD PTR SS:[EBP-AC],5  
+
+004B6EED   .  FF15 1C104000      CALL DWORD PTR DS:[<&MSVBVM60.__vbaVarMove>]    ;  MSVBVM60.__vbaVarMove  
+
+004B6EF3   .  8D4D AC            LEA ECX,DWORD PTR SS:[EBP-54]  
+
+004B6EF6   .  FF15 DC124000      CALL DWORD PTR DS:[<&MSVBVM60.__vbaFreeStr>]    ;  MSVBVM60.__vbaFreeStr  
+
+004B6EFC   .  B8 64000000        MOV EAX,64  
+
+004B6F01   .  B9 02000000        MOV ECX,2  
+
+004B6F06   .  8D55 DC            LEA EDX,DWORD PTR SS:[EBP-24]  
+
+004B6F09   .  52                 PUSH EDX  
+
+004B6F0A   .  8985 5CFFFFFF      MOV DWORD PTR SS:[EBP-A4],EAX  
+
+004B6F10   .  8985 4CFFFFFF      MOV DWORD PTR SS:[EBP-B4],EAX  
+
+004B6F16   .  8D45 DC            LEA EAX,DWORD PTR SS:[EBP-24]  
+
+004B6F19   .  898D 54FFFFFF      MOV DWORD PTR SS:[EBP-AC],ECX  
+
+004B6F1F   .  898D 44FFFFFF      MOV DWORD PTR SS:[EBP-BC],ECX  
+
+004B6F25   .  50                 PUSH EAX  
+
+004B6F26   .  8D8D 54FFFFFF      LEA ECX,DWORD PTR SS:[EBP-AC]  
+
+004B6F2C   .  51                 PUSH ECX  
+
+004B6F2D   .  8D55 94            LEA EDX,DWORD PTR SS:[EBP-6C]  
+
+004B6F30   .  52                 PUSH EDX  
+
+004B6F31   .  FF15 9C114000      CALL DWORD PTR DS:[<&MSVBVM60.__vbaVarDiv>]     ;  6881/100=68.81  
+
+004B6F37   .  50                 PUSH EAX  
+
+004B6F38   .  8D45 84            LEA EAX,DWORD PTR SS:[EBP-7C]  
+
+004B6F3B   .  50                 PUSH EAX  
+
+004B6F3C   .  FF15 00124000      CALL DWORD PTR DS:[<&MSVBVM60.__vbaVarInt>]     ;  68.81 取整得到 68  
+
+004B6F42   .  50                 PUSH EAX  
+
+004B6F43   .  8D8D 44FFFFFF      LEA ECX,DWORD PTR SS:[EBP-BC]  
+
+004B6F49   .  51                 PUSH ECX  
+
+004B6F4A   .  8D95 74FFFFFF      LEA EDX,DWORD PTR SS:[EBP-8C]  
+
+004B6F50   .  52                 PUSH EDX  
+
+004B6F51   .  FF15 78114000      CALL DWORD PTR DS:[<&MSVBVM60.__vbaVarMul>]     ;  68*100=6800  
+
+004B6F57   .  50                 PUSH EAX  
+
+004B6F58   .  8D85 64FFFFFF      LEA EAX,DWORD PTR SS:[EBP-9C]  
+
+004B6F5E   .  50                 PUSH EAX  
+
+004B6F5F   .  FF15 00104000      CALL DWORD PTR DS:[<&MSVBVM60.__vbaVarSub>]     ;  6881-6800=81，以上其实就是取 6881 的最后两位得到 81  
+
+004B6F65   .  8BD0               MOV EDX,EAX  
+
+004B6F67   .  8D4D DC            LEA ECX,DWORD PTR SS:[EBP-24]  
+
+004B6F6A   .  FF15 1C104000      CALL DWORD PTR DS:[<&MSVBVM60.__vbaVarMove>]    ;  MSVBVM60.__vbaVarMove  
+
+004B6F70   .  8B4D B0            MOV ECX,DWORD PTR SS:[EBP-50]  
+
+004B6F73   .  8B55 B4            MOV EDX,DWORD PTR SS:[EBP-4C]  
+
+004B6F76   .  8D45 DC            LEA EAX,DWORD PTR SS:[EBP-24]  
+
+004B6F79   .  898D 5CFFFFFF      MOV DWORD PTR SS:[EBP-A4],ECX  
+
+004B6F7F   .  50                 PUSH EAX  
+
+004B6F80   .  8D8D 54FFFFFF      LEA ECX,DWORD PTR SS:[EBP-AC]  
+
+004B6F86   .  51                 PUSH ECX  
+
+004B6F87   .  8995 60FFFFFF      MOV DWORD PTR SS:[EBP-A0],EDX  
+
+004B6F8D   .  C785 54FFFFFF 0580>MOV DWORD PTR SS:[EBP-AC],8005  
+
+004B6F97   .  FF15 34124000      CALL DWORD PTR DS:[<&MSVBVM60.__vbaVarTstNe>]   ;  81 和 87 比较  
+
+004B6F9D   .  66:85C0            TEST AX,AX  
+
+004B6FA0   .  0F84 12020000      JE pcomr6.004B71B8                           ;  相等就跳走，不跳走就会变回未注册  
+
+004B6FA6   .  BA 00B94000        MOV EDX,pcomr6.0040B900                     ;  UNICODE "zhuce"  
+
+004B6FAB   .  8D4D A8            LEA ECX,DWORD PTR SS:[EBP-58]  
+
+004B6FAE   .  FFD6               CALL ESI  
+
+004B6FB0   .  BA 98B84000        MOV EDX,pcomr6.0040B898                     ;  UNICODE "Software\SiQiSoft\DMR5\"  
+
+004B6FB5   .  8D4D AC            LEA ECX,DWORD PTR SS:[EBP-54]  
+
+004B6FB8   .  FFD6               CALL ESI  
+
+004B6FBA   .  8D55 A8            LEA EDX,DWORD PTR SS:[EBP-58]  
+
+004B6FBD   .  52                 PUSH EDX  
+
+004B6FBE   .  8D45 AC            LEA EAX,DWORD PTR SS:[EBP-54]  
+
+004B6FC1   .  50                 PUSH EAX  
+
+004B6FC2   .  8D8D 30FFFFFF      LEA ECX,DWORD PTR SS:[EBP-D0]  
+
+004B6FC8   .  51                 PUSH ECX  
+
+004B6FC9   .  8D55 94            LEA EDX,DWORD PTR SS:[EBP-6C]  
+
+004B6FCC   .  52                 PUSH EDX  
+
+004B6FCD   .  C785 30FFFFFF 0100>MOV DWORD PTR SS:[EBP-D0],80000001  
+
+004B6FD7   .  E8 F4180000        CALL pcomr6.004B88D0                         ;  删除注册表中的注册信息  
+```
+
+注册码的条件二：机器码的 2、3 两位 88×73+457＝6881，取最后两位 81，作为注册码的前两位
+
+--------------------------------------------------------------------------------
+
+用户名：`rdsnow[BCG][PYG]`，假注册码：`8165432170`，前两位验证通过后，回跳到这里继续验证
+
+………………省略部分代码，和前面一样
+
+```text
+004B677C   .  66:3BDE            CMP BX,SI  
+
+004B677F   .  0F85 45040000      JNZ pcomr6.004B6BCA                          ;  取得随机数，满足条件就进行注册码校验二  
+
+004B6785   .  8B35 10124000      MOV ESI,DWORD PTR DS:[<&MSVBVM60.__vbaStrCopy>] ;  MSVBVM60.__vbaStrCopy  
+
+004B678B   .  BA 00B94000        MOV EDX,pcomr6.0040B900                     ;  UNICODE "zhuce"  
+
+004B6790   .  8D4D A8            LEA ECX,DWORD PTR SS:[EBP-58]  
+
+004B6793   .  FFD6               CALL ESI                                     ;  <&MSVBVM60.__vbaStrCopy>  
+
+004B6795   .  BA 98B84000        MOV EDX,pcomr6.0040B898                     ;  UNICODE "Software\SiQiSoft\DMR5\"  
+
+004B679A   .  8D4D AC            LEA ECX,DWORD PTR SS:[EBP-54]  
+
+004B679D   .  FFD6               CALL ESI  
+
+004B679F   .  8D55 A8            LEA EDX,DWORD PTR SS:[EBP-58]  
+
+004B67A2   .  52                 PUSH EDX  
+
+004B67A3   .  8D45 AC            LEA EAX,DWORD PTR SS:[EBP-54]  
+
+004B67A6   .  50                 PUSH EAX  
+
+004B67A7   .  8D8D 30FFFFFF      LEA ECX,DWORD PTR SS:[EBP-D0]  
+
+004B67AD   .  51                 PUSH ECX  
+
+004B67AE   .  8D55 94            LEA EDX,DWORD PTR SS:[EBP-6C]  
+
+004B67B1   .  52                 PUSH EDX  
+
+004B67B2   .  C785 30FFFFFF 0100>MOV DWORD PTR SS:[EBP-D0],80000001  
+
+004B67BC   .  E8 DF270000        CALL pcomr6.004B8FA0                         ;  读取注册表中的注册码"8165432170"  
+
+004B67C1   .  8D45 94            LEA EAX,DWORD PTR SS:[EBP-6C]  
+
+004B67C4   .  50                 PUSH EAX  
+
+004B67C5   .  FF15 30104000      CALL DWORD PTR DS:[<&MSVBVM60.__vbaStrVarMove>] ;  MSVBVM60.__vbaStrVarMove  
+
+004B67CB   .  8BD0               MOV EDX,EAX  
+
+004B67CD   .  8D4D B8            LEA ECX,DWORD PTR SS:[EBP-48]  
+
+004B67D0   .  FF15 98124000      CALL DWORD PTR DS:[<&MSVBVM60.__vbaStrMove>]    ;  MSVBVM60.__vbaStrMove  
+
+004B67D6   .  8B1D 1C124000      MOV EBX,DWORD PTR DS:[<&MSVBVM60.__vbaFreeStrLi>;  MSVBVM60.__vbaFreeStrList  
+
+004B67DC   .  8D4D A8            LEA ECX,DWORD PTR SS:[EBP-58]  
+
+004B67DF   .  51                 PUSH ECX  
+
+004B67E0   .  8D55 AC            LEA EDX,DWORD PTR SS:[EBP-54]  
+
+004B67E3   .  52                 PUSH EDX  
+```
+
+
+
+```
+004B67E4   .  6A 02                PUSH 2  
+004B67E6   .  FFD3                CALL EBX                         ;  <&MSVBVM60.__vbaFreeStrList>  
+004B67E8   .  83C4 0C             ADD ESP,0C  
+004B67EB   .  8D4D 94             LEA ECX,DWORD PTR SS:[EBP-6C]  
+004B67EE   .  FFD7                CALL EDI  
+004B67F0   .  8D8D 54FFFFFF       LEA ECX,DWORD PTR SS:[EBP-AC]  
+004B67F6   .  51                  PUSH ECX  
+004B67F7   .  8D55 94             LEA EDX,DWORD PTR SS:[EBP-6C]  
+004B67FA   .  8D45 B8             LEA EAX,DWORD PTR SS:[EBP-48]  
+004B67FD   .  52                  PUSH EDX  
+004B67FE   .  8985 5CFFFFFF       MOV DWORD PTR SS:[EBP-A4],EAX  
+004B6804   .  C785 54FFFFFF 0840>MOV DWORD PTR SS:[EBP-AC],4008  
+004B680E   .  FF15 DC104000       CALL DWORD PTR DS:[<&MSVBVM60.#520>]        ;  MSVBVM60.rtcTrimVar  
+004B6814   .  8D45 94             LEA EAX,DWORD PTR SS:[EBP-6C]  
+004B6817   .  50                  PUSH EAX  
+004B6818   .  8D4D AC             LEA ECX,DWORD PTR SS:[EBP-54]  
+004B681B   .  51                  PUSH ECX  
+004B681C   .  FF15 BC114000       CALL DWORD PTR DS:[<&MSVBVM60.__vbaStrVarVal>]  ;  MSVBVM60.__vbaStrVarVal  
+004B6822   .  50                  PUSH EAX  
+004B6823   .  FF15 E0124000       CALL DWORD PTR DS:[<&MSVBVM60.#581>]        ;  MSVBVM60.rtcR8ValFromBstr  
+004B6829   .  833D 00304E00 00    CMP DWORD PTR DS:[4E3000],0  
+004B6830   .  75 08               JNZ SHORT pcomr6.004B683A  
+004B6832   .  DC35 20204000       FDIV QWORD PTR DS:[402020]                  ;  8165432170/1000000=8165.432170  
+004B6838   .  EB 11               JMP SHORT pcomr6.004B684B  
+004B683A   >  FF35 24204000       PUSH DWORD PTR DS:[402024]  
+004B6840   .  FF35 20204000       PUSH DWORD PTR DS:[402020]  
+004B6846   .  E8 69C5F4FF         CALL <JMP.&MSVBVM60._adj_fdiv_m64>  
+004B684B   >  DFE0                FSTSW AX  
+004B684D   .  A8 0D               TEST AL,0D  
+004B684F   .  0F85 F4030000       JNZ pcomr6.004B6C49  
+004B6855   .  FF15 C4124000       CALL DWORD PTR DS:[<&MSVBVM60.__vbaFPInt>]     ;  8165.432164 取整得到 8165  
+004B685B   .  DD5D B0             FSTP QWORD PTR SS:[EBP-50]  
+004B685E   .  8D4D AC             LEA ECX,DWORD PTR SS:[EBP-54]  
+004B6861   .  FF15 DC124000       CALL DWORD PTR DS:[<&MSVBVM60.__vbaFreeStr>]    ;  MSVBVM60.__vbaFreeStr  
+004B6867   .  8D4D 94             LEA ECX,DWORD PTR SS:[EBP-6C]  
+004B686A   .  FFD7                CALL EDI  
+004B686C   .  DD45 B0             FLD QWORD PTR SS:[EBP-50]  
+004B686F   .  833D 00304E00 00    CMP DWORD PTR DS:[4E3000],0  
+004B6876   .  75 08               JNZ SHORT pcomr6.004B6880  
+004B6878   .  DC35 C8144000       FDIV QWORD PTR DS:[4014C8]                  ;  8165/100=81.65  
+004B687E   .  EB 11               JMP SHORT pcomr6.004B6891  
+004B6880   >  FF35 CC144000       PUSH DWORD PTR DS:[4014CC]  
+004B6886   .  FF35 C8144000       PUSH DWORD PTR DS:[4014C8]  
+004B688C   .  E8 23C5F4FF         CALL <JMP.&MSVBVM60._adj_fdiv_m64>  
+004B6891   >  DFE0                FSTSW AX  
+004B6893   .  A8 0D               TEST AL,0D  
+004B6895   .  0F85 AE030000       JNZ pcomr6.004B6C49  
+004B689B   .  FF15 C4124000       CALL DWORD PTR DS:[<&MSVBVM60.__vbaFPInt>]     ;  81.65 取整得到 81  
+004B68A1   .  DC0D C8144000       FMUL QWORD PTR DS:[4014C8]                  ;  81*100=8100  
+004B68A7   .  DC6D B0             FSUBR QWORD PTR SS:[EBP-50]                ;  8165-8100=65  
+004B68AA   .  DD5D B0             FSTP QWORD PTR SS:[EBP-50]                 ;  以上代码是取得注册码的三四两位，得到 65  
+004B68AD   .  DFE0                FSTSW AX  
+004B68AF   .  A8 0D               TEST AL,0D  
+004B68B1   .  0F85 92030000       JNZ pcomr6.004B6C49  
+004B68B7   .  E8 046A0100         CALL pcomr6.004CD2C0                       ;  得到"75"，机器码的四五两位  
+004B68BC   .  8BD0                MOV EDX,EAX  
+004B68BE   .  8D4D AC             LEA ECX,DWORD PTR SS:[EBP-54]  
+004B68C1   .  FF15 98124000       CALL DWORD PTR DS:[<&MSVBVM60.__vbaStrMove>]    ;  MSVBVM60.__vbaStrMove  
+004B68C7   .  50                  PUSH EAX  
+004B68C8   .  FF15 E0124000       CALL DWORD PTR DS:[<&MSVBVM60.#581>]        ;  MSVBVM60.rtcR8ValFromBstr  
+004B68CE   .  DC0D 18204000       FMUL QWORD PTR DS:[402018]                  ;  75*98=7350  
+004B68D4   .  DC05 10204000       FADD QWORD PTR DS:[402010]                  ;  7350+447=7797  
+004B68DA   .  DD9D 5CFFFFFF       FSTP QWORD PTR SS:[EBP-A4]  
+004B68E0   .  DFE0                FSTSW AX  
+004B68E2   .  A8 0D               TEST AL,0D  
+004B68E4   .  0F85 5F030000       JNZ pcomr6.004B6C49  
+004B68EA   .  8D95 54FFFFFF       LEA EDX,DWORD PTR SS:[EBP-AC]  
+004B68F0   .  8D4D DC             LEA ECX,DWORD PTR SS:[EBP-24]  
+004B68F3   .  C785 54FFFFFF 0500>MOV DWORD PTR SS:[EBP-AC],5  
+004B68FD   .  FF15 1C104000       CALL DWORD PTR DS:[<&MSVBVM60.__vbaVarMove>]    ;  MSVBVM60.__vbaVarMove  
+004B6903   .  8D4D AC             LEA ECX,DWORD PTR SS:[EBP-54]  
+004B6906   .  FF15 DC124000       CALL DWORD PTR DS:[<&MSVBVM60.__vbaFreeStr>]    ;  MSVBVM60.__vbaFreeStr  
+004B690C   .  B8 64000000         MOV EAX,64  
+004B6911   .  B9 02000000         MOV ECX,2  
+004B6916   .  8D55 DC             LEA EDX,DWORD PTR SS:[EBP-24]  
+004B6919   .  52                  PUSH EDX  
+004B691A   .  8985 5CFFFFFF       MOV DWORD PTR SS:[EBP-A4],EAX  
+004B6920   .  8985 4CFFFFFF       MOV DWORD PTR SS:[EBP-B4],EAX  
+004B6926   .  8D45 DC             LEA EAX,DWORD PTR SS:[EBP-24]  
+004B6929   .  898D 54FFFFFF       MOV DWORD PTR SS:[EBP-AC],ECX  
+004B692F   .  898D 44FFFFFF       MOV DWORD PTR SS:[EBP-BC],ECX  
+004B6935   .  50                  PUSH EAX  
+004B6936   .  8D8D 54FFFFFF       LEA ECX,DWORD PTR SS:[EBP-AC]  
+004B693C   .  51                  PUSH ECX  
+004B693D   .  8D55 94             LEA EDX,DWORD PTR SS:[EBP-6C]  
+004B6940   .  52                  PUSH EDX  
+004B6941   .  FF15 9C114000       CALL DWORD PTR DS:[<&MSVBVM60.__vbaVarDiv>]     ;  7797/100=77.97  
+004B6947   .  50                  PUSH EAX  
+004B6948   .  8D45 84             LEA EAX,DWORD PTR SS:[EBP-7C]  
+004B694B   .  50                  PUSH EAX  
+004B694C   .  FF15 00124000       CALL DWORD PTR DS:[<&MSVBVM60.__vbaVarInt>]     ;  77.97 取整得到 77  
+004B6952   .  50                  PUSH EAX  
+004B6953   .  8D8D 44FFFFFF       LEA ECX,DWORD PTR SS:[EBP-BC]  
+004B6959   .  51                  PUSH ECX  
+004B695A   .  8D95 74FFFFFF       LEA EDX,DWORD PTR SS:[EBP-8C]  
+004B6960   .  52                  PUSH EDX  
+004B6961   .  FF15 78114000       CALL DWORD PTR DS:[<&MSVBVM60.__vbaVarMul>]     ;  77*100=7700  
+004B6967   .  50                  PUSH EAX  
+004B6968   .  8D85 64FFFFFF       LEA EAX,DWORD PTR SS:[EBP-9C]  
+004B696E   .  50                  PUSH EAX  
+004B696F   .  FF15 00104000       CALL DWORD PTR DS:[<&MSVBVM60.__vbaVarSub>]     ;  7797-7700=97，以上就是取 7797 的最后两位得到 97  
+004B6975   .  8BD0                MOV EDX,EAX  
+004B6977   .  8D4D DC             LEA ECX,DWORD PTR SS:[EBP-24]  
+004B697A   .  FF15 1C104000       CALL DWORD PTR DS:[<&MSVBVM60.__vbaVarMove>]    ;  MSVBVM60.__vbaVarMove  
+004B6980   .  8B4D B0             MOV ECX,DWORD PTR SS:[EBP-50]  
+004B6983   .  8B55 B4             MOV EDX,DWORD PTR SS:[EBP-4C]  
+004B6986   .  8D45 DC             LEA EAX,DWORD PTR SS:[EBP-24]  
+004B6989   .  898D 5CFFFFFF       MOV DWORD PTR SS:[EBP-A4],ECX  
+004B698F   .  50                  PUSH EAX  
+004B6990   .  8D8D 54FFFFFF       LEA ECX,DWORD PTR SS:[EBP-AC]  
+004B6996   .  51                  PUSH ECX  
+004B6997   .  8995 60FFFFFF       MOV DWORD PTR SS:[EBP-A0],EDX  
+004B699D   .  C785 54FFFFFF 0580>MOV DWORD PTR SS:[EBP-AC],8005  
+004B69A7   .  FF15 34124000       CALL DWORD PTR DS:[<&MSVBVM60.__vbaVarTstNe>]   ;  比较 65 和 97  
+004B69AD   .  66:85C0             TEST AX,AX
+```
+
+
+
+```
+004B69B0   .  0F84 12020000      JE pcomr6.004B6BC8                   ; 相等就跳走，不等就改为未注册
+
+004B69B6   .  BA 00B94000        MOV EDX,pcomr6.0040B900             ; UNICODE "zhuce"
+
+004B69BB   .  8D4D A8            LEA ECX,DWORD PTR SS:\[EBP-58\]
+
+004B69BE   .  FFD6               CALL ESI
+
+004B69C0   .  BA 98B84000        MOV EDX,pcomr6.0040B898             ; UNICODE "Software\\SiQiSoft\\DMR5\\"
+
+004B69C5   .  8D4D AC            LEA ECX,DWORD PTR SS:\[EBP-54\]
+
+004B69C8   .  FFD6               CALL ESI
+
+004B69CA   .  8D55 A8            LEA EDX,DWORD PTR SS:\[EBP-58\]
+
+004B69CD   .  52                 PUSH EDX
+
+004B69CE   .  8D45 AC            LEA EAX,DWORD PTR SS:\[EBP-54\]
+
+004B69D1   .  50                 PUSH EAX
+
+004B69D2   .  8D8D 30FFFFFF      LEA ECX,DWORD PTR SS:\[EBP-D0\]
+
+004B69D8   .  51                 PUSH ECX
+
+004B69D9   .  8D55 94            LEA EDX,DWORD PTR SS:\[EBP-6C\]
+
+004B69DC   .  52                 PUSH EDX
+
+004B69DD   .  C785 30FFFFFF 0100>MOV DWORD PTR SS:\[EBP-D0\],80000001
+
+004B69E7   .  E8 E41E0000        CALL pcomr6.004B88D0                ; 删除注册表中的注册信息
+```
+
+注册码的条件三：机器码的 4、5 两位 75×98+447＝7797，取最后两位 97，作为注册码的 3、4 位
+
+--------------------------------------------------------------------------------
+
+用户名：`rdsnow`，假注册码：`8197432165`，继续调试
+
+……省略部分代码，和前面一样
+
+```
+004D6B78   .  8BD8               MOV EBX,EAX
+
+004D6B7A   .  FFD7               CALL EDI
+
+004D6B7C   .  66:3BDE            CMP BX,SI
+
+004D6B7F   .  0F85 45040000      JNZ pcomr6.004D6FCA                 ; 取得随机数，满足条件就进行注册码校验三
+
+004D6B85   .  8B35 10124000      MOV ESI,DWORD PTR DS:\[<&MSVBVM60.__vbaStrCopy>\] ; MSVBVM60.__vbaStrCopy
+
+004D6B8B   .  BA 00B94000        MOV EDX,pcomr6.0040B900             ; UNICODE "zhuce"
+
+004D6B90   .  8D4D A8            LEA ECX,DWORD PTR SS:\[EBP-58\]
+
+004D6B93   .  FFD6               CALL ESI                             ; <&MSVBVM60.__vbaStrCopy>
+
+004D6B95   .  BA 98B84000        MOV EDX,pcomr6.0040B898             ; UNICODE "Software\\SiQiSoft\\DMR5\\"
+
+004D6B9A   .  8D4D AC            LEA ECX,DWORD PTR SS:\[EBP-54\]
+
+004D6B9D   .  FFD6               CALL ESI
+
+004D6B9F   .  8D55 A8            LEA EDX,DWORD PTR SS:\[EBP-58\]
+
+004D6BA2   .  52                 PUSH EDX
+
+004D6BA3   .  8D45 AC            LEA EAX,DWORD PTR SS:\[EBP-54\]
+
+004D6BA6   .  50                 PUSH EAX
+
+004D6BA7   .  8D8D 30FFFFFF      LEA ECX,DWORD PTR SS:\[EBP-D0\]
+
+004D6BAD   .  51                 PUSH ECX
+
+004D6BAE   .  8D55 94            LEA EDX,DWORD PTR SS:\[EBP-6C\]
+
+004D6BB1   .  52                 PUSH EDX
+
+004D6BB2   .  C785 30FFFFFF 0100>MOV DWORD PTR SS:\[EBP-D0\],80000001
+
+004D6BBC   .  E8 DF23FEFF        CALL pcomr6.004B8FA0                ; 读取注册表中的注册码 8197432165
+
+004D6BC1   .  8D45 94            LEA EAX,DWORD PTR SS:\[EBP-6C\]
+
+004D6BC4   .  50                 PUSH EAX
+
+004D6BC5   .  FF15 30104000      CALL DWORD PTR DS:\[<&MSVBVM60.__vbaStrVarMove>\] ; MSVBVM60.__vbaStrVarMove
+
+004D6BCB   .  8BD0               MOV EDX,EAX
+
+004D6BCD   .  8D4D B8            LEA ECX,DWORD PTR SS:\[EBP-48\]
+
+004D6BD0   .  FF15 98124000      CALL DWORD PTR DS:\[<&MSVBVM60.__vbaStrMove>\]    ; MSVBVM60.__vbaStrMove
+
+004D6BD6   .  8B1D 1C124000      MOV EBX,DWORD PTR DS:\[<&MSVBVM60.__vbaFreeStrLi>; MSVBVM60.__vbaFreeStrList
+
+004D6BDC   .  8D4D A8            LEA ECX,DWORD PTR SS:\[EBP-58\]
+
+004D6BDF   .  51                 PUSH ECX
+
+004D6BE0   .  8D55 AC            LEA EDX,DWORD PTR SS:\[EBP-54\]
+
+004D6BE3   .  52                 PUSH EDX
+
+004D6BE4   .  6A 02              PUSH 2
+
+004D6BE6   .  FFD3               CALL EBX                             ; <&MSVBVM60.__vbaFreeStrList>
+
+004D6BE8   .  83C4 0C            ADD ESP,0C
+
+004D6BEB   .  8D4D 94            LEA ECX,DWORD PTR SS:\[EBP-6C\]
+
+004D6BEE   .  FFD7               CALL EDI
+
+004D6BF0   .  8D8D 54FFFFFF      LEA ECX,DWORD PTR SS:\[EBP-AC\]
+
+004D6BF6   .  51                 PUSH ECX
+
+004D6BF7   .  8D55 94            LEA EDX,DWORD PTR SS:\[EBP-6C\]
+
+004D6BFA   .  8D45 B8            LEA EAX,DWORD PTR SS:\[EBP-48\]
+
+004D6BFD   .  52                 PUSH EDX
+
+004D6BFE   .  8985 5CFFFFFF      MOV DWORD PTR SS:\[EBP-A4\],EAX
+
+004D6C04   .  C785 54FFFFFF 0840>MOV DWORD PTR SS:\[EBP-AC\],4008
+
+004D6C0E   .  FF15 DC104000      CALL DWORD PTR DS:\[<&MSVBVM60.#520>\]         ; MSVBVM60.rtcTrimVar
+
+004D6C14   .  8D45 94            LEA EAX,DWORD PTR SS:\[EBP-6C\]
+
+004D6C17   .  50                 PUSH EAX
+
+004D6C18   .  8D4D AC            LEA ECX,DWORD PTR SS:\[EBP-54\]
+
+004D6C1B   .  51                 PUSH ECX
+
+004D6C1C   .  FF15 BC114000      CALL DWORD PTR DS:\[<&MSVBVM60.__vbaStrVarVal>\] ; MSVBVM60.__vbaStrVarVal
+
+004D6C22   .  50                 PUSH EAX
+
+004D6C23   .  FF15 E0124000      CALL DWORD PTR DS:\[<&MSVBVM60.#581>\]         ; MSVBVM60.rtcR8ValFromBstr
+
+004D6C29   .  833D 00304E00 00   CMP DWORD PTR DS:\[4E3000\],0
+
+004D6C30   .  75 08              JNZ SHORT pcomr6.004D6C3A
+
+004D6C32   .  DC35 C8144000      FDIV QWORD PTR DS:\[4014C8\]                  ; 8197432165/100=81974321.65
+
+004D6C38   .  EB 11              JMP SHORT pcomr6.004D6C4B
+
+004D6C3A   >  FF35 CC144000      PUSH DWORD PTR DS:\[4014CC\]
+
+004D6C40   .  FF35 C8144000      PUSH DWORD PTR DS:\[4014C8\]
+
+004D6C46   .  E8 69C1F2FF        CALL <JMP.&MSVBVM60._adj_fdiv_m64>
+
+004D6C4B   >  DFE0               FSTSW AX
+
+004D6C4D   .  A8 0D              TEST AL,0D
+
+004D6C4F   .  0F85 F4030000      JNZ pcomr6.004D7049
+
+004D6C55   .  FF15 C4124000      CALL DWORD PTR DS:\[<&MSVBVM60.__vbaFPInt>\]     ; 81974321.65 取整得到 81974321
+
+004D6C5B   .  DD5D B0            FSTP QWORD PTR SS:\[EBP-50\]
+
+004D6C5E   .  8D4D AC            LEA ECX,DWORD PTR SS:\[EBP-54\]
+
+004D6C61   .  FF15 DC124000      CALL DWORD PTR DS:\[<&MSVBVM60.__vbaFreeStr>\]    ; MSVBVM60.__vbaFreeStr
+
+004D6C67   .  8D4D 94            LEA ECX,DWORD PTR SS:\[EBP-6C\]
+
+004D6C6A   .  FFD7               CALL EDI
+
+004D6C6C   .  DD45 B0            FLD QWORD PTR SS:\[EBP-50\]
+
+004D6C6F   .  833D 00304E00 00   CMP DWORD PTR DS:\[4E3000\],0
+
+004D6C76   .  75 08              JNZ SHORT pcomr6.004D6C80
+
+004D6C78   .  DC35 C8144000      FDIV QWORD PTR DS:\[4014C8\]                  ; 81974321/100=819743.21
+
+004D6C7E   .  EB 11              JMP SHORT pcomr6.004D6C91
+
+004D6C80   >  FF35 CC144000      PUSH DWORD PTR DS:\[4014CC\]
+
+004D6C86   .  FF35 C8144000      PUSH DWORD PTR DS:\[4014C8\]
+
+004D6C8C   .  E8 23C1F2FF        CALL <JMP.&MSVBVM60._adj_fdiv_m64>
+
+004D6C91   >  DFE0               FSTSW AX
+
+004D6C93   .  A8 0D              TEST AL,0D
+
+004D6C95   .  0F85 AE030000      JNZ pcomr6.004D7049
+
+004D6C9B   .  FF15 C4124000      CALL DWORD PTR DS:\[<&MSVBVM60.__vbaFPInt>\]     ; 819743.21 取整得到 819743
+
+004D6CA1   .  DC0D C8144000      FMUL QWORD PTR DS:\[4014C8\]                  ; 819743*100=81974300
+
+004D6CA7   .  DC6D B0            FSUBR QWORD PTR SS:\[EBP-50\]                 ; 81974321-81974300=21
+
+004D6CAA   .  DD5D B0            FSTP QWORD PTR SS:\[EBP-50\]                 ; 以上就是取得注册码的七八两位得到 21
+
+004D6CAD   .  DFE0               FSTSW AX
+
+004D6CAF   .  A8 0D              TEST AL,0D
+
+004D6CB1   .  0F85 92030000      JNZ pcomr6.004D7049
+
+004D6CB7   .  E8 C46AFFFF        CALL pcomr6.004CD780                ; 取得机器码的九十两位，得到"35"
+
+004D6CBC   .  8BD0               MOV EDX,EAX
+
+004D6CBE   .  8D4D AC            LEA ECX,DWORD PTR SS:\[EBP-54\]
+
+004D6CC1   .  FF15 98124000      CALL DWORD PTR DS:\[<&MSVBVM60.__vbaStrMove>\]    ; MSVBVM60.__vbaStrMove
+
+004D6CC7   .  50                 PUSH EAX
+```
+
+
+
+```
+004D6CC8   .  FF15 E0124000      CALL DWORD PTR DS:[<&MSVBVM60.#581>]            ; MSVBVM60.rtcR8ValFromBstr
+
+004D6CCE   .  DC0D 90294000      FMUL QWORD PTR DS:[402990]                     ; 35*29=1015
+
+004D6CD4   .  DC05 88294000      FADD QWORD PTR DS:[402988]                     ; 1015+566=1581
+
+004D6CDA   .  DD9D 5CFFFFFF      FSTP QWORD PTR SS:[EBP-A4]
+
+004D6CE0   .  DFE0               FSTSW AX
+
+004D6CE2   .  A8 0D              TEST AL,0D
+
+004D6CE4   .  0F85 5F030000      JNZ pcomr6.004D7049
+
+004D6CEA   .  8D95 54FFFFFF      LEA EDX,DWORD PTR SS:[EBP-AC]
+
+004D6CF0   .  8D4D DC            LEA ECX,DWORD PTR SS:[EBP-24]
+
+004D6CF3   .  C785 54FFFFFF 0500>MOV DWORD PTR SS:[EBP-AC],5
+
+004D6CFD   .  FF15 1C104000      CALL DWORD PTR DS:[<&MSVBVM60.__vbaVarMove>]    ; MSVBVM60.__vbaVarMove
+
+004D6D03   .  8D4D AC            LEA ECX,DWORD PTR SS:[EBP-54]
+
+004D6D06   .  FF15 DC124000      CALL DWORD PTR DS:[<&MSVBVM60.__vbaFreeStr>]    ; MSVBVM60.__vbaFreeStr
+
+004D6D0C   .  B8 64000000        MOV EAX,64
+
+004D6D11   .  B9 02000000        MOV ECX,2
+
+004D6D16   .  8D55 DC            LEA EDX,DWORD PTR SS:[EBP-24]
+
+004D6D19   .  52                 PUSH EDX
+
+004D6D1A   .  8985 5CFFFFFF      MOV DWORD PTR SS:[EBP-A4],EAX
+
+004D6D20   .  8985 4CFFFFFF      MOV DWORD PTR SS:[EBP-B4],EAX
+
+004D6D26   .  8D45 DC            LEA EAX,DWORD PTR SS:[EBP-24]
+
+004D6D29   .  898D 54FFFFFF      MOV DWORD PTR SS:[EBP-AC],ECX
+
+004D6D2F   .  898D 44FFFFFF      MOV DWORD PTR SS:[EBP-BC],ECX
+
+004D6D35   .  50                 PUSH EAX
+
+004D6D36   .  8D8D 54FFFFFF      LEA ECX,DWORD PTR SS:[EBP-AC]
+
+004D6D3C   .  51                 PUSH ECX
+
+004D6D3D   .  8D55 94            LEA EDX,DWORD PTR SS:[EBP-6C]
+
+004D6D40   .  52                 PUSH EDX
+
+004D6D41   .  FF15 9C114000      CALL DWORD PTR DS:[<&MSVBVM60.__vbaVarDiv>]     ; 1581/100=15.81
+
+004D6D47   .  50                 PUSH EAX
+
+004D6D48   .  8D45 84            LEA EAX,DWORD PTR SS:[EBP-7C]
+
+004D6D4B   .  50                 PUSH EAX
+
+004D6D4C   .  FF15 00124000      CALL DWORD PTR DS:[<&MSVBVM60.__vbaVarInt>]     ; 15.81 取整得到 15
+
+004D6D52   .  50                 PUSH EAX
+
+004D6D53   .  8D8D 44FFFFFF      LEA ECX,DWORD PTR SS:[EBP-BC]
+
+004D6D59   .  51                 PUSH ECX
+
+004D6D5A   .  8D95 74FFFFFF      LEA EDX,DWORD PTR SS:[EBP-8C]
+
+004D6D60   .  52                 PUSH EDX
+
+004D6D61   .  FF15 78114000      CALL DWORD PTR DS:[<&MSVBVM60.__vbaVarMul>]     ; 15*100=1500
+
+004D6D67   .  50                 PUSH EAX
+
+004D6D68   .  8D85 64FFFFFF      LEA EAX,DWORD PTR SS:[EBP-9C]
+
+004D6D6E   .  50                 PUSH EAX
+
+004D6D6F   .  FF15 00104000      CALL DWORD PTR DS:[<&MSVBVM60.__vbaVarSub>]     ; 1581-1500=81，以上其实就是取得 1581 的后两位得到 81
+
+004D6D75   .  8BD0               MOV EDX,EAX
+
+004D6D77   .  8D4D DC            LEA ECX,DWORD PTR SS:[EBP-24]
+
+004D6D7A   .  FF15 1C104000      CALL DWORD PTR DS:[<&MSVBVM60.__vbaVarMove>]    ; MSVBVM60.__vbaVarMove
+
+004D6D80   .  8B4D B0            MOV ECX,DWORD PTR SS:[EBP-50]
+
+004D6D83   .  8B55 B4            MOV EDX,DWORD PTR SS:[EBP-4C]
+
+004D6D86   .  8D45 DC            LEA EAX,DWORD PTR SS:[EBP-24]
+
+004D6D89   .  898D 5CFFFFFF      MOV DWORD PTR SS:[EBP-A4],ECX
+
+004D6D8F   .  50                 PUSH EAX
+
+004D6D90   .  8D8D 54FFFFFF      LEA ECX,DWORD PTR SS:[EBP-AC]
+
+004D6D96   .  51                 PUSH ECX
+
+004D6D97   .  8995 60FFFFFF      MOV DWORD PTR SS:[EBP-A0],EDX
+
+004D6D9D   .  C785 54FFFFFF 0580>MOV DWORD PTR SS:[EBP-AC],8005
+
+004D6DA7   .  FF15 34124000      CALL DWORD PTR DS:[<&MSVBVM60.__vbaVarTstNe>]   ; 81 和 21 比较
+
+004D6DAD   .  66:85C0            TEST AX,AX
+
+004D6DB0   .  0F84 12020000      JE pcomr6.004D6FC8                              ; 相等就跳走，不相等就改为未注册
+
+004D6DB6   .  BA 00B94000        MOV EDX,pcomr6.0040B900                       ; UNICODE "zhuce"
+
+004D6DBB   .  8D4D A8            LEA ECX,DWORD PTR SS:[EBP-58]
+
+004D6DBE   .  FFD6               CALL ESI
+
+004D6DC0   .  BA 98B84000        MOV EDX,pcomr6.0040B898                       ; UNICODE "Software\\SiQiSoft\\DMR5\\"
+
+004D6DC5   .  8D4D AC            LEA ECX,DWORD PTR SS:[EBP-54]
+
+004D6DC8   .  FFD6               CALL ESI
+
+004D6DCA   .  8D55 A8            LEA EDX,DWORD PTR SS:[EBP-58]
+
+004D6DCD   .  52                 PUSH EDX
+
+004D6DCE   .  8D45 AC            LEA EAX,DWORD PTR SS:[EBP-54]
+
+004D6DD1   .  50                 PUSH EAX
+
+004D6DD2   .  8D8D 30FFFFFF      LEA ECX,DWORD PTR SS:[EBP-D0]
+
+004D6DD8   .  51                 PUSH ECX
+
+004D6DD9   .  8D55 94            LEA EDX,DWORD PTR SS:[EBP-6C]
+
+004D6DDC   .  52                 PUSH EDX
+
+004D6DDD   .  C785 30FFFFFF 0100>MOV DWORD PTR SS:[EBP-D0],80000001
+
+004D6DE7   .  E8 E41AFEFF        CALL pcomr6.004B88D0                          ; 删除注册表中的注册信息
+```
+
+### 注册码逻辑
+
+机器码的 9、10 两位计算：`35 * 29 + 566 = 1581`，取最后两位 `81`，作为注册码的 7、8 位。
+
+未找到作者对注册码 5、6 位的检验逻辑，该部分取随机数。最终形成的示例注册码为：`8197438159`，通过校验。
+
+### 破解心得
+
+*   注册码跟用户名无关。
+*   机器码的 2、3 位：`88 * 73 + 457 = 6881`，取 `6881` 的最后两位 `81` 作为注册码的 1、2 位。
+*   机器码的 4、5 位：`75 * 98 + 447 = 7797`，取 `7797` 的最后两位 `97` 作为注册码的 3、4 位。
+*   注册码的 5、6 位任意。
+*   机器码的 9、10 位：`35 * 29 + 566 = 1581`，取 `1581` 的最后两位 `81` 作为注册码的 7、8 位。
+*   `100` 减去前八位注册码各位之和，结果作为注册码的 9、10 位。
+
+### 注册机源码
+
+> 刚刚学 VC，代码写的比较烂，高手就不要看了
+
+```cpp
+void CMy001Dlg::OnOK()
+
+{
+  // TODO: Add extra validation here
+  //CDialog::OnOK();
+  UpdateData(true);
+
+  int i,n=0;
+  char cMaccode[10],cRegcode[10];
+  CString sRegcode1,sRegcode2,sRegcode3;
+
+  if (m_Edit1.GetLength() != 10 ) {
+    MessageBox("请准确输入你的机器码\n 建议采用复制粘贴的方法输入！", "提示", MB_OK);
+    return;
+  }
+
+  //计算注册码的 1、2 两位
+  strcpy(cMaccode, m_Edit1.Mid(1,2));
+  i=atoi(cMaccode)*73+457;
+  itoa(i,cRegcode,10);
+  sRegcode1=cRegcode;
+  sRegcode1=sRegcode1.Right (2);
+
+  //计算注册码的 3、4 两位，并且随机取注册码的 5、6 两位
+  strcpy(cMaccode, m_Edit1.Mid(3,2));
+  i=atoi(cMaccode)*98+447;
+  itoa(i,cRegcode,10);
+  sRegcode2=cRegcode;
+  sRegcode2=sRegcode2.Right (2);
+
+  do i=rand();
+  while(i<48 || i>57);
+
+  do n=rand();
+  while(n<48 || n>57);
+
+  sRegcode2=sRegcode2+char(i)+char(n);
+
+  //计算注册码的 7、8 两位
+  strcpy(cMaccode, m_Edit1.Mid(8,2));
+  i=atoi(cMaccode)*29+566;
+  itoa(i,cRegcode,10);
+  sRegcode3=cRegcode;
+  sRegcode3=sRegcode3.Right (2);
+
+  //计算注册码的最后两位
+  n=0;
+  strcpy(cRegcode, sRegcode1+sRegcode2+sRegcode3);
+  for (i=0;i<8;i++)
+    n+=(cRegcode[i]-0x30);
+
+  n=100-n;
+  itoa(n,cRegcode,10);
+
+  //输出注册码
+  m_Edit2=sRegcode1+sRegcode2+sRegcode3+cRegcode;
+
+  if(m_Edit2.GetLength()!=10)
+    return;
+
+  UpdateData(false);
+}
+```
+
+### 声明
+
+**破解声明**：我是一只小菜鸟，偶得一点心得，愿与大家分享 :)
+
+**版权声明**：本文纯属技术交流，转载请注明作者并保持文章的完整，谢谢!
+
+文章写于 2005-5-23 0:41:29
+
+`4dd466d0e1e0cc123afbe504da2462ca`
