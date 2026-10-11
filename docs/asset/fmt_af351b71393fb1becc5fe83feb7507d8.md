@@ -1,0 +1,134 @@
+
+### 地址列表
+
+`:00429761` , `:00429AB0` , `:00429C16` , `:00429CE6` , `:00429DB0`
+
+`:00429E86` , `:00429F50` , `:0042A067` , `:0042A130` , `:0042A206`
+
+`:0042A2D0` , `:0042A3A0` , `:0042A506` , `:0042A5D6` , `:0042A6A0`
+
+`:0042A773` , `:0042A846` , `:0042A910` , `:0042AA27` , `:0042AAF0`
+
+`:0042ABC6` , `:0042AC90` , `:0042AD60` , `:0042AEC6` , `:0042AF96`
+
+`:0042B060` , `:0042B136` , `:0042B200` , `:0042B317` , `:0042B3E0`
+
+`:0042B4B6` , `:0042B580` , `:0042B650` , `:0042B7B6` , `:0042B886`
+
+`:0042B950` , `:0042BA23` , `:0042BAF6` , `:0042BBC0` , `:0042BCD7`
+
+`:0042BDA0` , `:0042BE76` , `:0042BF40`
+
+### 汇编代码分析
+
+```
+:004297D0 81EC1C010000                sub esp, 0000011C
+:004297D6 8B842420010000              mov eax, dword ptr [esp+00000120]
+:004297DD 53                          push ebx
+:004297DE 56                          push esi
+:004297DF 57                          push edi
+:004297E0 50                          push eax
+:004297E1 8D4C242C                    lea ecx, dword ptr [esp+2C]
+* Possible StringData Ref from Data Obj ->"%05d"
+:004297E5 687C594900                  push 0049597C
+:004297EA 51                          push ecx
+:004297EB E88E820100                  call 00441A7E
+:004297F0 8A5C2437                    mov bl, byte ptr [esp+37]      <--- UserID 字串第（4）位
+:004297F4 8A4C2434                    mov cl, byte ptr [esp+34]      <--- UserID 字串第（1）位
+:004297F8 8A542435                    mov dl, byte ptr [esp+35]      <--- UserID 字串第（2）位
+:004297FC 80EB30                      sub bl, 30
+:004297FF 80E930                      sub cl, 30
+:00429802 885C242F                    mov byte ptr [esp+2F], bl      <--- 保存到 esp+2F 处，下面用到。
+:00429806 8A5C2438                    mov bl, byte ptr [esp+38]      <--- UserID 字串第（5）位
+:0042980A 80C14A                      add cl, 4A
+:0042980D 8A442436                    mov al, byte ptr [esp+36]      <--- UserID 字串第（3）位
+:00429811 80EB30                      sub bl, 30
+:00429814 884C2419                    mov byte ptr [esp+19], cl      <--- 字母部分第（2）位
+:00429818 80EA30                      sub dl, 30
+:0042981B B15A                        mov cl, 5A
+:0042981D 885C2430                    mov byte ptr [esp+30], bl      <--- 保存到 esp+30 处，下面用到。
+:00429821 80C34C                      add bl, 4C
+:00429824 2ACA                        sub cl, dl
+:00429826 885C2418                    mov byte ptr [esp+18], bl      <--- 字母部分第（1）位
+:0042982A 8A5C242F                    mov bl, byte ptr [esp+2F]
+:0042982E 884C241A                    mov byte ptr [esp+1A], cl      <--- 字母部分第（3）位
+:00429832 B158                        mov cl, 58
+:00429834 2ACB                        sub cl, bl
+:00429836 2C30                        sub al, 30
+:00429838 884C241B                    mov byte ptr [esp+1B], cl      <--- 字母部分第（4）位
+:0042983C 8AC8                        mov cl, al
+:0042983E 80C141                      add cl, 41
+:00429841 8A5C2430                    mov bl, byte ptr [esp+30]
+:00429845 884C241C                    mov byte ptr [esp+1C], cl      <--- 字母部分第（5）位
+:00429849 B153                        mov cl, 53
+:0042984B 2ACA                        sub cl, dl
+:0042984D 044B                        add al, 4B
+:0042984F 884C241D                    mov byte ptr [esp+1D], cl      <--- 字母部分第（6）位
+:00429853 8844241E                    mov byte ptr [esp+1E], al      <--- 字母部分第（7）位
+:00429857 B059                        mov al, 59
+:00429859 B158                        mov cl, 58
+:0042985B 2AC3                        sub al, bl
+:0042985D 2ACA                        sub cl, dl
+:0042985F 8844241F                    mov byte ptr [esp+1F], al      <--- 字母部分第（8）位
+:00429863 8B842440010000              mov eax, dword ptr [esp+00000140]
+:0042986A 884C2420                    mov byte ptr [esp+20], cl      <--- 字母部分第（9）位
+:0042986E 8B8C2444010000              mov ecx, dword ptr [esp+00000144]
+:00429875 83C40C                      add esp, 0000000C
+:00429878 3BC1                        cmp eax, ecx
+:0042987A C644241500                  mov [esp+15], 00
+:0042987F 743A                        je 004298BB
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+:004298B9(C)
+:00429881 85C0                        test eax, eax
+:00429883 7C1E                        jl 004298A3
+:00429885 83F808                      cmp eax, 00000008
+:00429888 7F19                        jg 004298A3
+:0042988A 85C9                        test ecx, ecx
+:0042988C 7C15                        jl 004298A3
+:0042988E 83F908                      cmp ecx, 00000008
+:00429891 7F10                        jg 004298A3
+:00429893 8A5C0C0C                    mov bl, byte ptr [esp+ecx+0C]  <--- 准备将刚才生成的字母的顺序倒过来。
+:00429897 8A54040C                    mov dl, byte ptr [esp+eax+0C]
+:0042989B 885C040C                    mov byte ptr [esp+eax+0C], bl
+:0042989F 88540C0C                    mov byte ptr [esp+ecx+0C], dl
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+:00429883(C), :00429888(C), :0042988C(C), :00429891(C)
+:004298A3 48                          dec eax
+:004298A4 41                          inc ecx
+:004298A5 85C0                        test eax, eax
+:004298A7 7C12                        jl 004298BB
+:004298A9 83F808                      cmp eax, 00000008
+:004298AC 7F0D                        jg 004298BB
+:004298AE 85C9                        test ecx, ecx
+:004298B0 7C09                        jl 004298BB
+:004298B2 83F908                      cmp ecx, 00000008
+:004298B5 7F04                        jg 004298BB
+:004298B7 3BC1                        cmp eax, ecx
+:004298B9 75C6                        jne 00429881
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+:0042987F(C), :004298A7(C), :004298AC(C), :004298B0(C), :004298B5(C)
+:004298BB 8D7C240C                    lea edi, dword ptr [esp+0C]
+:004298BF 83C9FF                      or ecx, FFFFFFFF
+:004298C2 33C0                        xor eax, eax
+:004298C4 F2                          repnz
+:004298C5 AE                          scasb
+:004298C6 F7D1                        not ecx
+:004298C8 2BF9                        sub edi, ecx
+:004298CA 8BD1                        mov edx, ecx
+:004298CC 8BF7                        mov esi, edi
+:004298CE 8BBC2430010000              mov edi, dword ptr [esp+00000130]
+:004298D5 C1E902                      shr ecx, 02
+:004298D8 F3                          repz
+:004298D9 A5                          movsd
+:004298DA 8BCA                        mov ecx, edx
+:004298DC 83E103                      and ecx, 00000003
+:004298DF F3                          repz
+:004298E0 A4                          movsb
+:004298E1 5F                          pop edi
+:004298E2 5E                          pop esi
+:004298E3 5B                          pop ebx
+:004298E4 81C41C010000                add esp, 0000011C
+:004298EA C3                          ret
+```
+
+-------------------------------------------------------------------------------- 4dd466d0e1e0cc123afbe504da2462ca
