@@ -1,0 +1,503 @@
+
+# pe-armor0.74
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-653.htm`](https://www.pediy.com/kssd/pediy08/pediy8-653.htm)
+
+从对记事本加壳到最后把壳脱掉，大概用了一星期，但是实际上在分析代码的时间也就几小时。其他时间都在看相关分析文章，或者对着一大堆代码，就是不想分析。
+
+对于这个经典的壳，我想再也没有象我这么简单的分析了。用`ATTACH`法找到`OEP`，然后定位加密的数据表，找出数据结构和解密算法，直接用程序自身的解密算法将数据解密，覆盖被加密的部分。`ATTACH`法是从看雪的精华集看到的，似乎因为局限性，近年好象没怎么看到文章提到，或者你可以通过这篇文章对其了解一下，假如壳只是简单的解密或者解压程序，例如前两篇脱文那种。这个方法可以秒杀那种壳，当然假如目标程序会隐藏进程或者不会进入消息循环，那么这个方法是无能为力的。
+
+### 加壳的程序
+
+`http://www.pediy.com/tools/PACK/Protectors/PE-Armor/PE-Armor0.74.rar`
+
+### 脱掉的记事本
+
+`http://www.nxer.cn/709394/attachment/1163996037_0.rar`
+
+在主页下了`pe-armor0.74`，对记事本加壳。运行一下，等了超过 1 分钟，记事本的窗口才出来，CPU 运行都这么久，绝对适合锻炼耐性的壳。佩服那些跟完整个壳的人。看堆栈中的返回地址，一层一层向上，找到伪`OEP`（真正的被偷掉了）。
+
+重新加载程序，在伪`OEP`处下内存写入断点，在程序解码完伪`OEP`之后，在该位置下断。`SHIFT+F9`来到这个位置。看堆栈看寄存器
+
+`EAX 0006FFE0`
+
+`ECX 00000101`
+
+`EDX FFFFFFFF`
+
+`EBX 7FFDF000`
+
+`ESP 0006FFB0`
+
+`EBP 0006FFC0`
+
+`0006FFB0  0006FFE0  指针到下一个 SEH 记录`
+
+`0006FFB4  010065D0  SE 句柄`
+
+`0006FFB8  01001888  notepad.01001888`
+
+`0006FFBC  FFFFFFFF`
+
+`0006FFC0  0006FFF0`
+
+`0006FFC4  77E67903  返回到 KERNEL32.77E67903`
+
+程序入口点堆栈结尾一般都是`C4`，储存的是返回系统的地址。一般入口`EAX`为`0`，`EBP`则是`XXXXFFF0`。现在的堆栈入口是一个`SEH`，可见包含`SEH`的装入语句，即
+
+`PUSH FS:[0]`
+
+`mov fs:[0],esp`
+
+我们看到`EAX=入口堆栈的数据`，可知程序是先将`FS[0]`移入`EAX`再`PUSH`的。因此入口点可以修复如下
+
+`PUSH EBP`
+
+`MOV EBP，ESP  ；这两句不需要解释了，几乎都有的`
+
+`PUSH -1    ；-1=FFFFFFFF`
+
+`PUSH 01001888`
+
+`PUSH 010065D0`
+
+`MOV eax,fs:[0]`
+
+`push eax`
+
+`mov fs:[0],esp`
+
+然后`DUMP`下来就好了。运行`DUMP`，发现出错了，看到错误窗口之后点取消就可以调试了。看堆栈的返回地址，找到出问题的地方，输入表被加密了。现在必须跟踪壳处理输入表的过程。重新载入未脱壳的程序，刚才找到输入表的首址为`01001000`，在该处下内存写入断点。
+
+```
+002B7E98     8907            mov dword ptr ds:[edi],eax ;写入输入表
+002B7E9A     5A              pop edx    ；当前数据位置
+002B7E9B     0FB642 FF      movzx eax,byte ptr ds:[edx-1]
+002B7E9F     03D0            add edx,eax
+002B7EA1     42             inc edx    ；下一个数据的位置
+002B7EA2     83C7 04        add edi,4    ；下一个 API
+002B7EA5     59             pop ecx    ；未处理 API 数
+002B7EA6     49             dec ecx
+002B7EA7   ^ 0F85 F7F9FFFF  jnz 002B78A4  ；未完就下一个
+002B7EAD     E9 F4280000    jmp 002BA7A6  ；另外的处理流程
+```
+
+`EDX`指向一张表：
+
+`DWORD  RVA，在输入表范围内`
+
+`BYTE   DLL NAME 的长度`
+
+`STRING  ASCII 字符，DLL NAME`
+
+`DWORD  需要处理的 API 数`
+
+接下来是一个结构：
+
+`BYTE  长度，数据指针-1 取得其长度，指针+长度+1 获得下一数据的指针`
+
+`DATA  加密了的 API NAME`
+
+跟踪的过程中注意看其指向的内存位置和读取数据的方法，很容易就知道各常量的长度和用途了。
+
+`--------回到正题`
+
+```
+002B71E5     8B3A            mov edi,dword ptr ds:[edx]  ;输入表中该 DLL 的起始位置
+002B71E7     68 00FE98B7     push B798FE00
+002B71EC     50             push eax
+002B71ED     E8 5D000000     call 002B724F    ；将代码写到堆栈中并运行
+```
+
+`--------堆栈中的代码`
+
+```
+0006FF4C     873424          xchg dword ptr ss:[esp],esi
+0006FF4F     8B36            mov esi,dword ptr ds:[esi]
+0006FF51     81F6 EBFF7108  xor esi,871FFEB
+0006FF57     75 19           jnz short 0006FF72
+```
+
+进入堆栈前用的是`CALL`，如果返回处有`INT3`，`XOR`的结果就不为`0`。
+
+```
+0006FF59     8B7424 50       mov esi,dword ptr ss:[esp+50]
+0006FF5D     56              push esi
+0006FF5E     8B36            mov esi,dword ptr ds:[esi]
+0006FF60     81F6 EBFF7178  xor esi,7871FFEB
+0006FF66     75 09          jnz short 0006FF71
+```
+
+这里也是一样`ESP+50`处是`call 002B724F`的返回地址，巧妙的`ANTI DEBUG`。
+
+```
+0006FF68     5E              pop esi
+0006FF69     83C6 4C         add esi,4C  ；将刚才对比的地址+4C
+0006FF6C     897424 48       mov dword ptr ss:[esp+48],esi
+0006FF70     8D7424 58       lea esi,dword ptr ss:[esp+58]
+0006FF74     51              push ecx  ；垃圾代码
+0006FF75     B9 01000000     mov ecx,1  ；垃圾代码
+0006FF7A     8136 EBFF7074  xor dword ptr ds:[esi],7470FFEB
+0006FF80     83EE FC         sub esi,-4  ；垃圾代码
+0006FF83     49              dec ecx  ；垃圾代码
+0006FF84   ^ 75 F4          jnz short 0006FF7A  ；垃圾代码
+0006FF86     59              pop ecx  ；垃圾代码
+0006FF87     8D7424 58       lea esi,dword ptr ss:[esp+58] ；垃圾代码
+0006FF8B     FFD6            call esi
+0006FF8D     5E              pop esi
+0006FF8E     F3:             prefix rep:
+0006FF8F     68 61722B00     push 2B7261 ；被 0006FF6C 处指令改写
+0006FF94     C2 5000         retn 50
+```
+
+进入`CALL`之后发现还是垃圾。`call 002B724F`其实就相当于一个短跳转，转向当前位置+4C+5。看来看后面，居然是将`EAX`还原和释放堆栈。晕！将`002B71E7`处的代码直接修改为`JMP 002B7336`，后面就不说类似的代码修复过程了， 直接给出有意义的代码。
+
+`---------代码总结如下：`
+
+```
+002B71E5     8B3A            mov edi,dword ptr ds:[edx]  ;输入表中该 DLL 的起始位置
+002B7336     0BFF            or edi,edi
+002B7338     75 05           jnz short 002B733F
+002B733A     E9 6C340000     jmp 002BA7AB
+```
+
+似乎`EDI=0`即为`IAT`处理完毕。
+
+```
+002B733F     03BD 36F44000   add edi,dword ptr ss:[ebp+40F436]
+```
+
+`RVA+IMG BASE`，写入输入表的位置。
+
+```
+002B7494     83C2 05         add edx,5
+002B74C4     8BF2            mov esi,edx
+002B74C6     56              push esi  ；API 的第一个参数（这里是 DLLNAME）
+002B74C7     8D85 0A624000  lea eax,dword ptr ss:[ebp+40620A]
+002B74FA     50              push eax  ；返回地址
+002B74FB     8B85 2AF44000  mov eax,dword ptr ss:[ebp+40F42A]
+002C0072     6A 00           push 0  ；没搞懂
+002C0074     50              push eax  ；调用 API 的地址（GETMODULEHANDLEA）
+002C0075     8B85 1AFD4000  mov eax,dword ptr ss:[ebp+40FD1A]
+002C007B     68 00FE2FC7     push C72FFE00
+002C0080     50              push eax  ; 缓冲区域
+002C0081     E8 5D000000     call 002C00E3
+```
+
+该处实际就是使用`GETMODULEHANDLEA`取得`KERNEL32`的基址
+
+`---------说明`
+
+此后程序将会把`API`入口点的代码移到缓冲区域，先在缓冲区域运行`API`入口点的代码，然后再直接跳进`API`的区域。所以在`API`入口下断是不行的。此后直接在返回地址下断就可以了。
+
+`---------继续分析~~`
+
+```
+002B7508     0BC0            or eax,eax  ；判断是否获取成功
+002B750A     75 1E           jnz short 002B752A
+0006FF90     0FB64E FF      movzx ecx,byte ptr ds:[esi-1]
+0006FF94     01CE            add esi,ecx
+0006FF96     89F2            mov edx,esi
+0006FF99     FFC2            inc edx
+0006FF9B     8B0A            mov ecx,dword ptr ds:[edx]
+0006FF9D     81E1 00000080  and ecx,80000000
+```
+
+堆栈运行中有这样一段代码，取`DLLNAME`前面的一个`BYTE`并与`DLLNAME`的地址相加后再加 1，得到下一个数据的首址。
+
+```
+002B7746     8BF0            mov esi,eax
+002B7748     0BC9            or ecx,ecx
+002B774A     0F85 62070000  jnz 002B7EB2
+```
+
+此处校验`ECX`高位是否为`80`。`API`数怎么可能占`DWORD`这么大空间呢。对比`EDX`指向的表（注意给出的每个`DLL`数据段的最后 4 个字节，该处就是`ECX`读取的地方）。
+
+```
+002C137F                                     D4 12
+002C138F  00 00 0C 43 4F 4D 44 4C 47 33 32 2E 44 4C 4C 00  ...COMDLG32.DLL.
+002C139F  09 00 00 00                                        ...
+
+002C141F                                     94
+002C142F  11 00 00 0B 53 48 45 4C 4C 33 32 2E 44 4C 4C 00  ..SHELL32.DLL.
+002C143F  04 00 00 00                                        ...
+
+002C146F                                 44 11
+002C147F  00 00 0A 4D 53 56 43 52 54 2E 44 4C 4C 00 13 00  ...MSVCRT.DLL..
+002C148F  00 00
+
+002C155F              00 10 00 00 0C            ...
+002C156F  41 44 56 41 50 49 33 32 2E 44 4C 4C 00 07 00 00  ADVAPI32.DLL...
+002C157F  00
+
+002C15DF                                     80
+002C15EF  10 00 00 0C 4B 45 52 4E 45 4C 33 32 2E 44 4C 4C  ...KERNEL32.DLL
+002C15FF  00 30 00 00 80                                .0..€
+
+002C18AF          20 10 00 00 09 47 44 49 33 32 2E 44      ...GDI32.D
+002C18BF  4C 4C 00 17 00 00 00                            LL....
+
+002C19EF                A8 11 00 00 0A 55            ..U
+002C19FF  53 45 52 33 32 2E 44 4C 4C 00 46 00 00 80        SER32.DLL.F..€
+
+002C1E2F            C4 12 00 00 0C 57 49 4E 53 50        ...WINSP
+002C1E3F  4F 4F 4C 2E 44 52 56 00 03 00 00 00            OOL.DRV....
+```
+
+只有`KERNEL32.DLL`和`USER32.DLL`所在的表有`80`，在输入表中的`RVA`分别为`1080`和`11A8`，对比之前`DUMP`出的程序的`IAT`。
+
+```
+01001070 <>10 17 F4 77 F7 29 F6 77 02 59 F4 77 00 00 00 00  魒?鰓 Y 魒....
+01001080  00 10 02 01 20 10 02 01 40 10 02 01 60 10 02 01  . @\`
+010011A0 <>4E 7E 56 77 00 00 00 00 00 20 02 01 20 20 02 01  N~Vw.....
+```
+
+
+
+# 反汇编分析与解密流程
+
+`010011B0   40 20 02 01 60 20 02 01 80 20 02 01 A0 20 02 01  @ ` € ?`
+
+刚好是那些位置被加密了。看来 `80` 是 API 是否被加密的标记，继续跟下去看看它是如何解密的。
+
+```
+002B7EB2     8B0A             mov ecx,dword ptr ds:[edx]
+002B7EB4     81E1 FFFFFF7F   and ecx,7FFFFFFF    ；获取需要解密的 API 数
+002B7EBA     51               push ecx
+002B7EBB     52               push edx
+002B800B     C1E1 05          shl ecx,5
+002B800E     6A 04            push 4
+002B8010     68 00100000      push 1000
+002B8015     51               push ecx
+002B8016     6A 00            push 0
+002B8018     8D85 2D6D4000    lea eax,dword ptr ss:[ebp+406D2D]
+002B801E     50               push eax    ；此为返回地址
+002B801F     8B85 32F44000    mov eax,dword ptr ss:[ebp+40F432]
+002C0072     6A 00            push 0
+002C0074     50               push eax
+002C0075     8B85 1AFD4000    mov eax,dword ptr ss:[ebp+40FD1A]
+002C007B     68 00FE2FC7      push C72FFE00
+002C0080     50               push eax
+002C0081     E8 5D000000      call 002C00E3
+```
+
+此处准备调用 `VirtualAlloc` 申请空间了。关于 `call 002C00E3`，前面已经解释过了，在返回地址处下断就可以了。
+
+```
+002B802B     8985 82F44000    mov dword ptr ss:[ebp+40F482],eax
+```
+
+保存申请到的空间地址。
+
+```
+002B8197     8907             mov dword ptr ds:[edi],eax
+002B8199     83C0 20          add eax,20
+002B819C     83C7 04          add edi,4
+002B819F     49               dec ecx
+002B81A0     0BC9             or ecx,ecx
+002B81A2   ^ 75 F3            jnz short 002B8197
+002B81A4     59               pop ecx
+```
+
+这里直接从输入表填入加密后的地址，看来输入表解密在后面。
+
+```
+002B81D2     58               pop eax
+002B81D3     8BF8             mov edi,eax
+002B81D5     57               push edi
+002B81D6     51               push ecx
+002B81D7     E9 8B040000      jmp 002B8667
+```
+
+将加密后的地址传入 `EDI`，准备解密了。
+
+```
+002B81DC     8D47 1C          lea eax,dword ptr ds:[edi+1C]
+002B820C     66:C707 FF35    mov word ptr ds:[edi],35FF
+```
+
+写入 `PUSH DWORD PTR DS:[0]` 指令。
+
+```
+002B8360     C747 06 8134240> mov dword ptr ds:[edi+6],243481
+```
+
+`XOR DWORD PTR SS:[ESP]`，`0` 的形式。
+
+```
+002B84B6     8947 02          mov dword ptr ds:[edi+2],eax
+```
+
+把前面的指令改写为 `PUSH DWORD PTR DS:[75001c]`。
+
+```
+002B84E6     C647 0D C3       mov byte ptr ds:[edi+D],0C3
+```
+
+写入 `RETN`
+
+```
+002B865F     8947 09          mov dword ptr ds:[edi+9],eax
+```
+
+该处经过一些复杂的运算，用 `RDTSC` 随机生成一个密钥。
+
+## 总结
+
+输入表中加密的地址为 `20H` 对齐，`750000` 处的代码为：
+
+```
+00750000     FF35 1C007500   push dword ptr ds:[75001C]
+00750006     813424 5BDE27CD xor dword ptr ss:[esp],CD27DE5B
+0075000D     C3               retn
+```
+
+`75001C` 处保存加密过的数据。
+
+## 回到正题
+
+```
+002B8662     5A               pop edx
+002B8663     83C7 20          add edi,20
+002B8666     49               dec ecx
+002B8667     0BC9             or ecx,ecx
+002B8669   ^ 0F85 6DFBFFFF    jnz 002B81DC
+```
+
+这里判断是否需要处理下一个加密数据地址，直接在后面下断跳出循环。
+
+```
+002B866F     59               pop ecx
+002B8670     5F               pop edi
+002B8671     83C2 04          add edx,4
+002B8674     51               push ecx
+002B8675     0FB602           movzx eax,byte ptr ds:[edx]
+002B8678     0BC0             or eax,eax
+002B867A     0F85 B4090000    jnz 002B9034
+```
+
+进入下一个循环，先跟一次看看是干什么的。
+
+```
+002B9034     42               inc edx
+002B9035     52               push edx
+002B9036     60               pushad
+002B9037     68 FF559EB6      push B69E55FF
+002B903C     8BF2             mov esi,edx
+002B903E     68 3E3F8F00      push 8F3F3E
+002B9043     8DBD FCF94000    lea edi,dword ptr ss:[ebp+40F9FC]
+002B9049     68 00FE98C7      push C798FE00
+002B904E     50               push eax
+002B904F     E8 5D000000      call 002B90B1
+```
+
+`002B9043` 处取解密 API 的缓存区。
+
+```
+002B91A4     0FB64E FF        movzx ecx,byte ptr ds:[esi-1] ；取字符长度
+0006FF68     50               push eax
+0006FF69     AC               lods byte ptr ds:[esi]
+0006FF6A     34 79            xor al,79
+0006FF6C     2C 55            sub al,55
+0006FF6E     C0C0 03          rol al,3
+0006FF71     F6D0             not al
+0006FF73     AA               stos byte ptr es:[edi]
+0006FF74     31C0             xor eax,eax
+0006FF76     49               dec ecx
+0006FF77   ^ 75 F0            jnz short 0006FF69
+0006FF79     AA               stos byte ptr es:[edi]
+0006FF7A     58               pop eax
+```
+
+在堆栈中解密数据，得到的是一个 `API NAME`。到这里，`EBX` 指向的那个表所有常量的结构和用法都很清楚了。我直接写了代码还原表中的加密的 `API NAME`，然后直接用 `GetProcAddress` 取地址，按顺序排成一张表，再手动覆盖原来被加密的 `IAT`，最后用 `IMPORTRECT` 修复就 OK 了。
+
+```
+002B7E97     60               pushad
+002B7E98     8BEC             mov ebp,esp
+002B7E9A     BE EE152C00      mov esi,2C15EE
+```
+
+此处把表的入口传给 `ESI`，手动修改。反正只有两个表被加密。
+
+```
+002B7E9F     8B3E             mov edi,dword ptr ds:[esi]
+002B7EA1     83C6 05          add esi,5
+002B7EA4     56               push esi
+002B7EA5     B8 DB56E777      mov eax,KERNEL32.GetModuleHandleA
+002B7EAA     FFD0             call eax
+002B7EAC     50               push eax
+002B7EAD     0FB646 FF        movzx eax,byte ptr ds:[esi-1]
+002B7EB1     03F0             add esi,eax
+002B7EB3     46               inc esi
+002B7EB4     0FB60E           movzx ecx,byte ptr ds:[esi]
+002B7EB7     83C6 04          add esi,4
+002B7EBA     51               push ecx
+002B7EBB     0FB60E           movzx ecx,byte ptr ds:[esi]
+002B7EBE     46               inc esi
+002B7EBF     57               push edi
+002B7EC0     AC               lods byte ptr ds:[esi]
+002B7EC1     34 79            xor al,79
+002B7EC3     2C 55            sub al,55
+002B7EC5     C0C0 03          rol al,3
+002B7EC8     F6D0             not al
+002B7ECA     AA               stos byte ptr es:[edi]
+002B7ECB     33C0             xor eax,eax
+002B7ECD     49               dec ecx
+002B7ECE   ^ 75 F0            jnz short 002B7EC0
+002B7ED0     AA               stos byte ptr es:[edi]
+002B7ED7     8B0C24           mov ecx,dword ptr ss:[esp]
+002B7EDA     51               push ecx
+002B7EDB     8B45 FC          mov eax,dword ptr ss:[ebp-4]
+002B7EDE     50               push eax
+002B7EDF     B8 4B56E777      mov eax,KERNEL32.GetProcAddress
+002B7EE4     FFD0             call eax
+002B7EE6     85C0             test eax,eax
+002B7EE8     74 10            je short 002B7EFA
+```
+
+此处跳转需要说明一下，有时解密后的 `API NAME` 的后面会包含多余字符，所以当获取 API 地址失败时便把最后一个字节填 `00`。
+
+```
+002B7EEA     5F               pop edi
+002B7EEB     8907             mov dword ptr ds:[edi],eax
+002B7EED     83C7 04          add edi,4
+002B7EF0     46               inc esi
+002B7EF1     59               pop ecx
+002B7EF2     49               dec ecx
+002B7EF3   ^ 75 C5            jnz short 002B7EBA
+002B7EF5     61               popad
+002B7EF6     CC               int3
+002B7EFA     4F               dec edi
+002B7EFB     4F               dec edi
+002B7EFC     AA               stos byte ptr es:[edi]
+002B7EFD   ^ EB D8            jmp short 002B7ED7
+```
+
+看关于这个壳的分析文章时，有提及关于特殊代码加密的问题。虽然我没有使用这个功能加壳，还在学习中，不想搞得太复杂，不过在上述的表中的末尾，有这样一个表：
+
+```
+002C0AFD              00 58 44 4C 4C 2E 44 4C 4C 00 46 75      DLL.DLL.Fu
+002C0B0D   6E 63 32 46 75 6E 63 00 54 65 73 74 44 65 62 75   nc2Func.TestDebu
+002C0B1D   67 00 45 6E 43 72 79 70 74 00 44 65 43 72 79 70   g.EnCrypt.DeCryp
+002C0B2D   74 00 43 52 43 00 54 65 73 74 42 6D 70 00 43 72   t.CRC.TestBmp.Cr
+002C0B3D   65 61 74 65 44 69 61 6C 6F 67 50 61 72 61 6D 41   eateDialogParamA
+002C0B4D   00 44 69 61 6C 6F 67 42 6F 78 50 61 72 61 6D 41   .DialogBoxParamA
+002C0B5D   00 45 78 69 74 50 72 6F 63 65 73 73 00 46 72 65   .ExitProcess.Fre
+002C0B6D   65 52 65 73 6F 75 72 63 65 00 47 65 74 50 72 6F   eResource.GetProcAddress
+002C0B7D   63 41 64 64 72 65 73 73 00 47 65 74 56 65 72 73   cAddress.GetVers
+002C0B8D   69 6F 6E 00 47 65 74 4D 6F 64 75 6C 65 48 61 6E   ion.GetModuleHan
+002C0B9D   64 6C 65 41 00 47 65 74 43 75 72 72 65 6E 74 50   dleA.GetCurrentP
+002C0BAD   72 6F 63 65 73 73 00 47 65 74 43 75 72 72 65 6E   rocess.GetCurren
+002C0BBD   74 50 72 6F 63 65 73 73 49 64 00 47 65 74 43 6F   tProcessId.GetCo
+002C0BCD   6D 6D 61 6E 64 4C 69 6E 65 41 00 4C 6F 61 64 4C   mmandLineA.LoadL
+```
+
+
+
+`002C0BDD   69 62 72 61 72 79 41 00 4C 6F 63 6B 52 65 73 6F   ibraryA.LockReso`
+
+`002C0BED   75 72 63 65 00 53 65 6E 64 4D 65 73 73 61 67 65   urce.SendMessage`
+
+`002C0BFD   41 00 73 65 6E 64 00 72 65 63 76 00 00             A.send.recv..`
+
+程序在解密 `API NAME` 之后再对比是否上述表中的 `API`，似乎对比成功之后就特别照顾。我这么修复 `IAT`，似乎也能解决特定 `API` 加密。
