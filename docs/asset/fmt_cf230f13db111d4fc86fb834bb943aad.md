@@ -1,0 +1,174 @@
+
+### 内存数据块
+
+```
+0012F650  EA FE D8 60 83 B5 BC 7A AE EC 6C D9 96 E4 21 D1  
+0012F660  98 FC 5F B6 8A 82 F5 13 12 01 1C 21 B1 C4 B1 E1  
+0012F670  AD 25 EA 4E 3D A1 5A B0 DB D8 E8 2A 25 AB 8A E8  
+0012F680  09 5C 5F 96 D0 70 BD FE B4 C2 79 36 F7 DD A9 01  
+0012F690  9E 74 C3 DB 08 71 DC EA 91 23 8B F1 A5 C4 54 CF  
+0012F6A0  6C 9C CC 97 BA 70 CD 04 08 29 C3 F6 D0 11 F7 59  
+0012F6B0  BB 5C 89 22 6A CF 8F C2 DC 12 18 E5 E8 EF E7 60  
+0012F6C0  BF F1 D4 28 56 5C F7 87 F3 0A A8 5F 54 24 5D 02  
+```
+
+`H0`、`H1`、`H2`、`H3`、`H4`
+
+### SHA1 哈希值
+
+4 块数据 `HASH` 完后 `M1` `M2` `M3` `M4` 的 `SHA1` `Hash` 值：`{H0, H1, H2, H3, H4}`
+
+```
+0012F6FC  FD 02 BB D5 7D 99 91 B5 EC 6A BB 11 59 38 D8 55 27 8A AC C2
+```
+
+### 计算哈希值
+
+在 `00420693` `CALL` `Tin.004012D1` 中得到 `M1-M4` 的 `HASH` 值后如下计算，并将值分别赋予 `eax` 和 `edx`：
+
+*   `EAX=06ACE236` 存到 `[0012f990]` 处，`eax <-- H4 xor H2 xor H0`
+*   `EDX=E049A124` 存到 `[0012F994]` 处，`edx <-- 0 xor H3 xor H1`
+
+### 校验第一处
+
+`0042069B` `CALL` `Tin.004012BC` // 处理 `[0012f9c4]` 开始的 17 个字节 `{ddB1, ddB2, ddB3, ddB4, dbB5}`，运算结果在 `AX`
+
+称为 `VerifyProc1`：将 `AX` 与前面所得 `word[0012F9d6]=dwB7` 比较，必须相等。
+
+```
+004012BC  /$  56             PUSH ESI
+004012BD  |.  8BF1           MOV ESI,ECX
+004012BF  |.  56             PUSH ESI
+004012C0  |.  E8 E8FFFFFF    CALL Tin.004012AD             // 处理 [00129c4]-[0012f9d4] 17bytes, 结果在 AX
+004012C5  |.  66:2B46 12     SUB AX,WORD PTR DS:[ESI+12]  // AX 与 [0012f9d6] 的 word 值比较
+004012C9  |.  5E             POP ESI
+004012CA  |.  66:F7D8        NEG AX
+004012CD  |.  1BC0           SBB EAX,EAX
+004012CF  |.  40             INC EAX
+004012D0  \.  C3             RETN
+```
+
+### 跟进 `004206AE` `CALL` `Tin.00401383`
+
+```
+00401383  /$  55             PUSH EBP
+00401384  |.  8BEC           MOV EBP,ESP
+00401386  |.  81EC 08010000  SUB ESP,108
+0040138C  |.  56             PUSH ESI
+0040138D  |.  8BF1           MOV ESI,ECX
+0040138F  |.  57             PUSH EDI
+00401390  |.  8BFA           MOV EDI,EDX
+00401392  |.  8D8D F8FEFFFF  LEA ECX,DWORD PTR SS:[EBP-108]
+00401398  |.  E8 77FCFFFF    CALL Tin.00401014               ;  ;clear buffer
+0040139D  |.  8D85 78FFFFFF  LEA EAX,DWORD PTR SS:[EBP-88]
+004013A3  |.  8D95 F8FEFFFF  LEA EDX,DWORD PTR SS:[EBP-108]
+004013A9  |.  50             PUSH EAX
+004013AA  |.  8BCF           MOV ECX,EDI
+004013AC  |.  E8 73730300    CALL Tin.00438724               ;  ;copy 用户名 to buffer
+004013B1  |.  8B4D 08        MOV ECX,DWORD PTR SS:[EBP+8]
+004013B4  |.  8D45 F8        LEA EAX,DWORD PTR SS:[EBP-8]
+004013B7  |.  50             PUSH EAX
+004013B8  |.  8D95 78FFFFFF  LEA EDX,DWORD PTR SS:[EBP-88]
+004013BE  |.  E8 61730300    CALL Tin.00438724               ;  ;copy Email to buffer
+004013C3  |.  8D8D F8FEFFFF  LEA ECX,DWORD PTR SS:[EBP-108]
+004013C9  |.  E8 53FCFFFF    CALL Tin.00401021               ;  ;填充数据块,分别转换用户名和 Email 为 80h 字节长
+004013CE  |.  8D8D F8FEFFFF  LEA ECX,DWORD PTR SS:[EBP-108]
+004013D4  |.  E8 DDCCFFFF    CALL Tin.004010B6               ;  ;变异 SHA1 算法
+004013D9  |.  3B46 08        CMP EAX,DWORD PTR DS:[ESI+8]  //校验
+004013DC  |.  75 25          JNZ SHORT Tin.00401403
+004013DE  |.  3B56 0C        CMP EDX,DWORD PTR DS:[ESI+C]  //校验
+004013E1  |.  75 20          JNZ SHORT Tin.00401403
+004013E3  |.  8D4D F8        LEA ECX,DWORD PTR SS:[EBP-8]
+004013E6  |.  E8 EBFEFFFF    CALL Tin.004012D6     //再次取 USERName/ComputerName/系统盘卷标序列号，SHA1 运算
+004013EB  |.  85C0           TEST EAX,EAX
+004013ED  |.  74 14          JE SHORT Tin.00401403
+004013EF  |.  8B45 F8        MOV EAX,DWORD PTR SS:[EBP-8]
+004013F2  |.  3B06           CMP EAX,DWORD PTR DS:[ESI]    //校验是否切换了用户
+004013F4  |.  75 0D          JNZ SHORT Tin.00401403
+004013F6  |.  8B45 FC        MOV EAX,DWORD PTR SS:[EBP-4]
+004013F9  |.  3B46 04        CMP EAX,DWORD PTR DS:[ESI+4]  //校验是否切换了用户
+004013FC  |.  75 05          JNZ SHORT Tin.00401403
+004013FE  |.  6A 01          PUSH 1
+00401400  |.  58             POP EAX
+00401401  |.  EB 02          JMP SHORT Tin.00401405
+00401403  |>  33C0           XOR EAX,EAX
+00401405  |>  5F             POP EDI
+00401406  |.  5E             POP ESI
+00401407  |.  C9             LEAVE
+00401408  \.  C2 0400        RETN 4
+```
+
+### 消息串转换
+
+用户名 `WksWlj999` 和 `Email` `WksWLj999@sohu.com` 转换为要处理的消息串 `M1-M4`(4*512Bits)：
+
+```
+0012F71C  57 4B 53 57 4C 4A 39 39 39 57 4B 53 57 4C 4A 39  WKSWLJ999WKSWLJ9
+0012F72C  39 39 57 4B 53 57 4C 4A 39 39 39 57 4B 53 57 4C  99WKSWLJ999WKSWL
+0012F73C  4A 39 39 39 57 4B 53 57 4C 4A 39 39 39 57 4B 53  J999WKSWLJ999WKS
+0012F74C  57 4C 4A 39 39 39 57 4B 53 57 4C 4A 39 39 39 57  WLJ999WKSWLJ999W
+0012F75C  4B 53 57 4C 4A 39 39 39 57 4B 53 57 4C 4A 39 39  KSWLJ999WKSWLJ99
+0012F76C  39 57 4B 53 57 4C 4A 39 39 39 57 4B 53 57 4C 4A  9WKSWLJ999WKSWLJ
+0012F77C  39 39 39 57 4B 53 57 4C 4A 39 39 39 57 4B 53 57  999WKSWLJ999WKSW
+0012F78C  4C 4A 39 39 39 57 4B 53 57 4C 4A 39 39 39 57 00  LJ999WKSWLJ999W.
+0012F79C  57 4B 53 57 4C 4A 39 39 39 53 4F 48 55 43 4F 4D  WKSWLJ999SOHUCOM
+0012F7AC  57 4B 53 57 4C 4A 39 39 39 53 4F 48 55 43 4F 4D  WKSWLJ999SOHUCOM
+0012F7BC  57 4B 53 57 4C 4A 39 39 39 53 4F 48 55 43 4F 4D  WKSWLJ999SOHUCOM
+0012F7CC  57 4B 53 57 4C 4A 39 39 39 53 4F 48 55 43 4F 4D  WKSWLJ999SOHUCOM
+0012F7DC  57 4B 53 57 4C 4A 39 39 39 53 4F 48 55 43 4F 4D  WKSWLJ999SOHUCOM
+0012F7EC  57 4B 53 57 4C 4A 39 39 39 53 4F 48 55 43 4F 4D  WKSWLJ999SOHUCOM
+0012F7FC  57 4B 53 57 4C 4A 39 39 39 53 4F 48 55 43 4F 4D  WKSWLJ999SOHUCOM
+0012F80C  57 4B 53 57 4C 4A 39 39 39 53 4F 48 55 43 4F 00  WKSWLJ999SOHUCO.
+```
+
+### 计算 `M1 M2 M3 M4` 的 `SHA1` `Hash` 值：`{H0，H1，H2，H3，H4}`
+
+```
+0012F6F8  17 01 0A B9 26 87 F7 46 1C 65 B3 78 59 8A 59 02 6E 72 02 01
+```
+
+*   `EAX=C0BB1665` `eax <-- H4 xor H2 xor H0` 与 `[0012f998]` 处 `dword` 比较，必须相等
+*   `EDX=44AE0D7F` `edx <-- 0 xor H3 xor H1` 与 `[0012F994]` 处 `dword` 比较，必须相等
+
+### 校验第二处
+
+比较 `ddE1=eax` 和 `[0012ff998]=ddC1`，`ddE2=edx` 和 `[0012f99c]=ddC2`，必须均相等，参见 `Func3`
+
+### `004013E6` `CALL` `Tin.004012D6`
+
+处再次取 `UserName` 和 `ComputerName` 及系统盘卷标序列号，`SHA1` 运算
+
+检验是否切换了用户。
+
+### 校验第三处
+
+`004206C1` `CALL` `Tin.00420418` 处：
+
+*   `dbC4=[0012f9a1]` 应为 `03`
+*   `dbC5=[0012f9a3]` 应为 `02`
+*   `dbC3=[0012f9a0]` 应大于 `00`
+
+```
+00420418  /$  33C0          XOR EAX,EAX
+0042041A  |.  80B9 11010000 > CMP BYTE PTR DS:[ECX+111],3        ;  ;字节 [0012f9a1] 必须=3
+00420421  |.  75 14         JNZ SHORT Tin.00420437
+00420423  |.  80B9 13010000 > CMP BYTE PTR DS:[ECX+113],2        ;  ;字节 [0012f9a3] 必须=2
+0042042A  |.  75 0B         JNZ SHORT Tin.00420437
+0042042C  |.  3881 10010000  CMP BYTE PTR DS:[ECX+110],AL        ;  ;字节 [0012f9a0] 必须>0
+00420432  |.  76 03         JBE SHORT Tin.00420437
+00420434  |.  6A 01         PUSH 1
+00420436  |.  58            POP EAX
+00420437  \>  C3            RETN
+```
+
+### 写入注册表
+
+`004206F9` `CALL` `Tin.0042032A` 处写入用户名 `WksWlj999`，`Email` `WksWlj999@sohu.com` 和变换加密后的注册码到注册表：
+
+`[HKEY_CURRENT_USER\Software\Tarma Software Research\Tarma Installer\License]`
+
+*   `"Name"="WksWlj999"`
+*   `"Email"="WksWlj999@sohu.com"`
+*   `"License"=hex:a5,35,c1,a3,a5,d1,bb,06,c7,3d,b9,45,af,35,c6,a8,b0,27,6e,c3,2a,\`
+    `93,bb,fb,d6,cc,77,35,e5,97,c9,8d,aa,09,00,37,69,a1,1b,d5,17,9b,76,e2,63,d7,\`
+    `80,02,ec,74,bc,39,8c,0b,8a,6a,bb,3c,97,2a,9c,ed,e1,fe,6f,72,1a,c7,82,b8,49,\`
