@@ -1,0 +1,138 @@
+
+# 青少儿发育分析和身高预测
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6337.htm`](https://www.pediy.com/kssd/pediy06/pediy6337.htm)
+
+## 软件信息
+
+软件名称：青少儿发育分析和身高预测
+
+## 破解过程
+
+软件由 `FoxPro` 生成，用 `Unfoxall pro` 反编译就可以得到注册公式：
+
+```
+xl1=val(sys(1001))
+xl2=val(sys(2020))
+xl3=(xl1+xl2)/95*19/11+143-95
+x13=iif(xl3<1000000,xl3*14-5,xl3)
+x13=iif(xl3<1000000,xl3*14-5,xl3)
+x13=iif(xl3<1000000,xl3*14-5,xl3)
+x13=iif(xl3<1000000,xl3*14-5,xl3)
+x13=iif(xl3<10000000,xl3*4-5,xl3)
+x13=iif(xl3<10000000,xl3*4-5,xl3)
+x13=iif(xl3<10000000,xl3*4-5,xl3)
+x13=iif(xl3<10000000,xl3*4-5,xl3)
+x13=iif(xl3<10000000,xl3*4-5,xl3)
+x13=iif(xl3>999999999,xl3/13+7,xl3)
+x13=iif(xl3>999999999,xl3/13+7,xl3)
+x13=iif(xl3>999999999,xl3/13+7,xl3)
+x13=iif(xl3>99999999,xl3/3+7,xl3)
+x13=iif(xl3>99999999,xl3/3+7,xl3)
+x13=iif(xl3>99999999,xl3/3+7,xl3)
+x13=iif(xl3>99999999,xl3/3+7,xl3)
+x13=iif(xl3>99999999,xl3/3+7,xl3)
+xl4=allt(str(xl3))
+sys(2002,2)
+xl3=val(str(xl3))
+s1=mod(xl3,1001)*33/3
+s2=(mod(xl3,101)+s1)*17/5
+s3=allt(str(s1))+allt(str(s2))
+s3=val(s3)*3+229-153
+s3=iif(s3<1000000,s3*14-7,s3)
+s3=iif(s3<1000000,s3*14-7,s3)
+s3=iif(s3<1000000,s3*14-7,s3)
+s3=iif(s3<10000000,s3*4-7,s3)
+s3=iif(s3<10000000,s3*4-7,s3)
+s3=iif(s3<10000000,s3*4-7,s3)
+s3=iif(s3<10000000,s3*4-7,s3)
+s3=iif(s3>999999999,s3/13+5,s3)
+s3=iif(s3>999999999,s3/13+5,s3)
+s3=iif(s3>999999999,s3/13+5,s3)
+s3=iif(s3>99999999,s3/3+5,s3)
+s3=iif(s3>99999999,s3/3+5,s3)
+s3=iif(s3>99999999,s3/3+5,s3)
+s3=iif(s3>99999999,s3/3+5,s3)
+s3=val(str(s3))
+```
+
+`xl4` 机器码
+
+`s3(last)` 注册码
+
+## C++ 注册机源代码
+
+C++ 生成的注册机源代码如下：
+
+```c
+//青少儿发育分析和身高预测注册机
+
+#include "stdlib.h"
+#include "stdio.h"
+#include "math.h"
+
+void main()
+{
+  int machineSn;
+  int getmachineSn();
+  int calculate(int);
+  
+  printf("\n");
+  printf("青少儿发育分析和身高预测系统注册机\n");
+  printf("Cracker:coldeye\n");
+  printf("请输入您的序列号：");
+  
+  if(machineSn=getmachineSn(),machineSn==-1||machineSn==0)
+    printf("您输入了错误的机器码，请检查后重新输入。\n");
+  else
+    printf("您的注册码是：%d\n",calculate(machineSn));
+    
+  printf("\n感谢您使用 coldeye 制作的注册机。\n");
+}
+
+//获取机器码并且按位校验输入的机器码是否全部为数字
+
+int getmachineSn()
+{
+  int i,ch;
+  i=0;
+  while(ch=getchar(),ch!=10&&i>=0)
+  {
+    if (ch>=48&&ch<=57)
+      i=i*10+(ch-48);
+    else
+      i=-1;
+  }
+  return i;
+}
+
+//计算注册码
+
+int calculate(int machineSn)
+{
+  int sn;
+  double s1,s2,s3;
+  s1=(machineSn%1001)*33.0/3.0;
+  s2=((machineSn%101)+s1)*17.0/5.0;
+  s3=int(s1+0.5)*pow(10,(int(log10(s2))+1))+int(s2+0.5);
+  s3=s3*3+229-153;
+  s3=s3<1000000?s3*14-7:s3;
+  s3=s3<1000000?s3*14-7:s3;
+  s3=s3<1000000?s3*14-7:s3;
+  s3=s3<10000000?s3*4-7:s3;
+  s3=s3<10000000?s3*4-7:s3;
+  s3=s3<10000000?s3*4-7:s3;
+  s3=s3<10000000?s3*4-7:s3;
+  s3=s3>999999999?s3/13+5:s3;
+  s3=s3>999999999?s3/13+5:s3;
+  s3=s3>999999999?s3/13+5:s3;
+  s3=s3>99999999?s3/3+5:s3;
+  s3=s3>99999999?s3/3+5:s3;
+  s3=s3>99999999?s3/3+5:s3;
+  s3=s3>99999999?s3/3+5:s3;
+  sn=int(s3+0.5);
+  return sn;
+}
+```
+
+`4dd466d0e1e0cc123afbe504da2462ca`
