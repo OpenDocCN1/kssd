@@ -1,0 +1,381 @@
+
+# 易语言桌面钢笔 V2.0 先脱后爆
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-485.htm`](https://www.pediy.com/kssd/pediy07/pediy7-485.htm)
+
+【脱文标题】 易语言桌面钢笔 V2.0 先脱后爆
+
+【脱文作者】 weiyi75[Dfcg][D.4s]
+
+【作者邮箱】 weiyi75@sohu.com
+
+【作者主页】 Dfcg 官方大本营+龙族联盟论坛
+
+【使用工具】 `Anti-UPX scramble`, `UpxShell`, `Ollydbg`
+
+【脱壳平台】 Win2000/XP
+
+【软件名称】 桌面钢笔 V2.0
+
+【下载页面】 [`www.arongsoft.net/soft/4533.htm`](http://www.arongsoft.net/soft/4533.htm)
+
+【软件简介】 运行本桌面钢笔 V2.0 后，桌面会出现一支钢笔图形，按住鼠标左键移动鼠标可在桌面随意写字画画。
+
+【软件大小】 680K
+
+【加壳方式】 UPX-Scrambler RC1.x -> ㎡nT 畂 L [Overlay]
+
+【脱壳声明】 我是一只小菜鸟，偶得一点心得，愿与大家分享：）
+
+---
+
+## 脱壳内容
+
+首先 `Peid` 查壳，UPX-Scrambler RC1.x -> ㎡nT 畂 L，这个是加壳人做了手脚的，因为 `Upx` 合并了区段，手动脱壳后要用 `freeres` 释放资源才能分析，不过易语言目前无有效分析工具。首先用 `Anti-UPX scramble` 去除手脚，然后 `UpxShell` 轻松完美脱壳。`PEID` 查看为 Microsoft Visual C++ 6.0 [Overlay]，`OD` 载入就知道是易语言。
+
+`OllyDbg` 字符串参考搜索，项目 6
+
+```
+地址=00401378
+反汇编=mov dword ptr ss:[esp],桌面钢笔.0040714C
+字符串=krnln.fnr //字符参考看到这个易语言运行库
+```
+
+目前易语言大概有两个版本，带 [Overlay] 版本的是致命的，软件分析者轻松可以在类似程序领空的区域跟踪分析程序。
+
+运行程序，提示注册。
+
+分别填入三组注册码
+
+`111111111111` `222222222222` `333333333333`
+
+`Alt+M` 打开内存镜像
+
+内存镜像，项目 15
+
+```
+地址=00409000
+大小=00015000 (86016.)
+Owner=桌面钢笔 00400000
+区段=.ecode 对准这里下 F2 断点，因为这版本的易语言的代码段就是这里，点确定立即中断。
+类型=Imag 01001002
+访问=R
+初始访问=RWE
+```
+
+`0041C02D` 55 push ebp //这里开始尾行。
+
+```
+0041C02E 8BEC mov ebp,esp
+0041C030 81EC 2C000000 sub esp,2C
+0041C036 68 00000000 push 0
+0041C03B BB C4060000 mov ebx,6C4
+0041C040 E8 54110000 call 桌面钢笔.0041D199
+0041C045 83C4 04 add esp,4
+0041C048 68 01030080 push 80000301
+0041C04D 6A 00 push 0
+0041C04F 50 push eax
+0041C050 68 01000000 push 1
+0041C055 BB 64010000 mov ebx,164
+0041C05A E8 3A110000 call 桌面钢笔.0041D199
+0041C05F 83C4 10 add esp,10
+0041C062 8945 F4 mov dword ptr ss:[ebp-C],eax
+0041C065 8955 F8 mov dword ptr ss:[ebp-8],edx
+0041C068 DD45 F4 fld qword ptr ss:[ebp-C]
+0041C06B DC0D C02F4100 fmul qword ptr ds:[412FC0]
+0041C071 DD5D EC fstp qword ptr ss:[ebp-14] //二哥最讨厌浮点和算法了，既然脱壳了，当然要爆。
+0041C074 DD45 EC fld qword ptr ss:[ebp-14]
+0041C077 DC05 C82F4100 fadd qword ptr ds:[412FC8]
+0041C07D DD5D E4 fstp qword ptr ss:[ebp-1C]
+0041C080 DD45 E4 fld qword ptr ss:[ebp-1C]
+0041C083 E8 F9E2FFFF call 桌面钢笔.0041A381
+.......................................................................
+0041C0EC E8 B4100000 call 桌面钢笔.0041D1A5
+0041C0F1 83C4 10 add esp,10
+0041C0F4 8945 D8 mov dword ptr ss:[ebp-28],eax // EAX 第一组假码 11111111111111111111
+0041C0F7 8B45 DC mov eax,dword ptr ss:[ebp-24]
+0041C0FA 50 push eax //第一组真码 696C76AF
+0041C0FB FF75 D8 push dword ptr ss:[ebp-28] //假码入堆栈
+0041C0FE E8 06FEFFFF call 桌面钢笔.0041BF09 //比较 Call
+0041C103 83C4 08 add esp,8
+0041C106 83F8 00 cmp eax,0
+0041C109 B8 00000000 mov eax,0
+0041C10E 0F94C0 sete al //到这里看见条件为假，可以修改 al 为 1
+0041C111 8945 D4 mov dword ptr ss:[ebp-2C],eax //这里注意，是标志位赋值。
+0041C114 8B5D D8 mov ebx,dword ptr ss:[ebp-28]
+0041C117 85DB test ebx,ebx
+0041C119 74 09 je short 桌面钢笔.0041C124
+0041C11B 53 push ebx
+0041C11C E8 60100000 call 桌面钢笔.0041D181
+0041C121 83C4 04 add esp,4
+0041C124 8B5D DC mov ebx,dword ptr ss:[ebp-24]
+0041C127 85DB test ebx,ebx
+0041C129 74 09 je short 桌面钢笔.0041C134
+0041C12B 53 push ebx
+0041C12C E8 50100000 call 桌面钢笔.0041D181 //前面几个 Call 明显多余，不对就直接 Over 吧，还到这里。
+0041C131 83C4 04 add esp,4
+0041C134 837D D4 00 cmp dword ptr ss:[ebp-2C],0 比较注册标志是否为 0
+0041C138 0F84 67030000 je 桌面钢笔.0041C4A5 //是就 Over,去 0041C4A5 看看。然后是爆这里吗?不是,作者分三步校验注册码,偷懒只用两个公共 Call 就是
+
+call 桌面钢笔.0041BF09
+
+Call 桌面钢笔.0041D181
+
+最后过三关来到 0041C53D,我们看到生成两个注册标记
+
+"c:\\pen.key"
+
+Software\\Microsoft\\pen\\pen
+
+...........................................................
+0041C234 E8 480F0000 call 桌面钢笔.0041D181
+0041C239 83C4 04 add esp,4
+0041C23C 837D D4 00 cmp dword ptr ss:[ebp-2C],0
+0041C240 0F84 E9010000 je 桌面钢笔.0041C42F
+0041C246 68 00000000 push 0
+...........................................................................
+0041C48E BB 18000000 mov ebx,18
+0041C493 B8 02000000 mov eax,2
+0041C498 E8 F00C0000 call 桌面钢笔.0041D18D
+0041C49D 83C4 34 add esp,34
+0041C4A0 E9 71000000 jmp 桌面钢笔.0041C516
+0041C4A5 68 04000080 push 80000004
+0041C4AA 6A 00 push 0
+0041C4AC 68 8C304100 push 桌面钢笔.0041308C
+0041C4B1 68 01030080 push 80000301
+0041C4B6 6A 00 push 0
+0041C4B8 68 10000000 push 10
+0041C4BD 68 04000080 push 80000004
+0041C4C2 6A 00 push 0
+0041C4C4 68 97304100 push 桌面钢笔.00413097
+0041C4C9 68 03000000 push 3
+0041C4CE BB 00030000 mov ebx,300
+0041C4D3 E8 C10C0000 call 桌面钢笔.0041D199 //错误提示。
+0041C4D8 83C4 28 add esp,28
+0041C4DB 6A 00 push 0
+0041C4DD 6A 00 push 0
+0041C4DF 6A 00 push 0
+0041C4E1 68 04000080 push 80000004
+0041C4E6 6A 00 push 0
+0041C4E8 68 DD2E4100 push 桌面钢笔.00412EDD ; ASCII "http://www.wltv.net" //参数
+0041C4ED 68 04000080 push 80000004
+0041C4F2 6A 00 push 0
+0041C4F4 68 F12E4100 push 桌面钢笔.00412EF1 ; ASCII "iexplore.exe"
+0041C4F9 6A 00 push 0
+0041C4FB 6A 00 push 0
+0041C4FD 6A 00 push 0
+0041C4FF 68 04000000 push 4
+0041C504 BB 18000000 mov ebx,18
+0041C509 B8 02000000 mov eax,2
+0041C50E E8 7A0C0000 call 桌面钢笔.0041D18D //去作者网页。
+0041C513 83C4 34 add esp,34
+0041C516 8BE5 mov esp,ebp
+0041C518 5D pop ebp
+0041C519 C3 retn
+0041C51A 55 push ebp
+0041C51B 8BEC mov ebp,esp
+0041C51D 81EC 08000000 sub esp,8
+0041C523 C745 FC 00000000 mov dword ptr ss:[ebp-4],0
+0041C52A 68 05000080 push 80000005
+0041C52F 6A 00 push 0
+0041C531 68 15274100 push 桌面钢笔.00412715
+0041C536 68 04000080 push 80000004
+0041C53B 6A 00 push 0
+0041C53D 68 B4304100 push 桌面钢笔.004130B4 ; ASCII "c:\\pen.KEY"
+0041C542 68 02000000 push 2
+0041C547 BB 6C020000 mov ebx,26C
+0041C54C E8 480C0000 call 桌面钢笔.0041D199
+0041C551 83C4 1C add esp,1C
+0041C554 8945 FC mov dword ptr ss:[ebp-4],eax
+0041C557 68 01030080 push 80000301
+0041C55C 6A 00 push 0
+0041C55E 68 02000000 push 2
+0041C563 68 04000080 push 80000004
+0041C568 6A 00 push 0
+0041C56A 68 0A274100 push 桌面钢笔.0041270A ; ASCII "c:\\pen.key"
+0041C56F 68 02000000 push 2
+```
+
+
+
+0041C574     BB 60020000        mov ebx,260  
+
+0041C579     E8 1B0C0000        call 桌面钢笔.0041D199  
+
+0041C57E     83C4 1C           add esp,1C  
+
+0041C581     8945 FC           mov dword ptr ss:\[ebp-4\],eax  
+
+0041C584     68 05000080       push 80000005  
+
+0041C589     6A 00           push 0  
+
+0041C58B     68 15274100       push 桌面钢笔.00412715  
+
+0041C590     68 04000080       push 80000004  
+
+0041C595     6A 00           push 0  
+
+0041C597     68 9D2E4100       push 桌面钢笔.00412E9D        ; ASCII "Software\\Microsoft\\pen\\pen"  
+
+0041C59C     68 01030080       push 80000301  
+
+0041C5A1     6A 00           push 0  
+
+0041C5A3     68 03000000       push 3  
+
+0041C5A8     68 03000000       push 3  
+
+0041C5AD     BB A4060000       mov ebx,6A4  
+
+................................................................................................  
+
+选放 TNT 的位置.  
+
+就是公用 Call  
+
+0041BF09  
+
+0041BF09     8B5424 04         mov edx,dword ptr ss:\[esp+4\] //让 EAX 返回 0 就可以了.  
+
+0041BF0D     8B4C24 08         mov ecx,dword ptr ss:\[esp+8\]  
+
+修改为  
+
+0041BF09     B8 01000000       mov eax,0 //就一锅端了,程序不校验注册文件真伪,算法又偷懒了.  
+
+0041BF0E     C3              retn  
+
+0041BF0F     90              nop  
+
+0041BF10     90              nop  
+
+0041BF11     85D2            test edx,edx  
+
+0041BF13     75 0D           jnz short 桌面钢笔.0041BF22  
+
+0041BF15     33C0            xor eax,eax  
+
+0041BF17     85C9            test ecx,ecx  
+
+0041BF19     74 06           je short 桌面钢笔.0041BF21  
+
+0041BF1B     8039 00         cmp byte ptr ds:\[ecx\],0  
+
+........................................................................  
+
+研究 20 次使用限制位置.  
+
+先删除 C 盘的 `pen.KEY`  
+
+用 `RegSnap` 没发现产生文件记录次数,注册表变化很大.  
+
+用 `bp RegSetValueExA` 也可找到位置是  
+
+```
+\[HKEY\_CURRENT\_USER\\Software\\Microsoft\]
+
+"pen"=hex:af
+```
+
+```
+0012F9B8    1005F596  /CALL 到 RegSetValueExA 来自 krnln.1005F590
+0012F9BC    00000088  |hKey = 88
+0012F9C0    00412F11  |ValueName = "pen"
+0012F9C4    00000000  |Reserved = 0
+0012F9C8    00000003  |ValueType = REG\_BINARY
+0012F9CC    0013F5F0  |Buffer = 0013F5F0
+0012F9D0    00000001  \BufSize = 1
+0012F9D4    100E79F0  krnln.100E79F0
+0012F9D8    100E5948  krnln.100E5948
+0012F9DC    100DD82C  krnln.100DD82C
+0012F9E0    01547398  ASCII "Software\\Microsoft"
+```
+
+```
+\[HKEY\_CURRENT\_USER\\Software\\Microsoft\]
+
+"JIT"=hex:00,00,00,00,00,00,f0,3f
+"pen"=hex:a8
+```
+
+删除运行.  
+
+使用次数 0,但过期,有暗桩.  
+
+这次用  
+
+`bp RegQueryValueExA`
+
+```
+0012F7FC    77A4D862  /CALL 到 RegQueryValueExA 来自 ole32.77A4D85C
+0012F800    00000064  |hKey = 64
+0012F804    77A4E124  |ValueName = "CriticalSectionTimeout" //不重要,继续 F9
+0012F808    00000000  |Reserved = NULL
+0012F80C    00000000  |pValueType = NULL
+0012F810    0012F83C  |Buffer = 0012F83C
+0012F814    0012F840  \pBufSize = 0012F840
+```
+
+```
+0012F9D8    1005F97F  /CALL 到 RegQueryValueExA 来自 krnln.1005F979
+0012F9DC    00000084  |hKey = 84
+0012F9E0    00412F11  |ValueName = "pen"
+0012F9E4    00000000  |Reserved = NULL
+0012F9E8    0012FA04  |pValueType = 0012FA04
+0012F9EC    00000000  |Buffer = NULL
+0012F9F0    0012FA18  \pBufSize = 0012FA18
+0012F9F4    100E5948  krnln.100E5948
+0012F9F8    015472F8  ASCII "Software\\Microsoft"
+```
+
+```
+0012F9D8    1005F97F  /CALL 到 RegQueryValueExA 来自 krnln.1005F979
+0012F9DC    00000084  |hKey = 84
+0012F9E0    00412F30  |ValueName = "01"
+0012F9E4    00000000  |Reserved = NULL
+0012F9E8    0012FA04  |pValueType = 0012FA04
+0012F9EC    00000000  |Buffer = NULL
+0012F9F0    0012FA18  \pBufSize = 0012FA18
+0012F9F4    100E5948  krnln.100E5948
+0012F9F8    015472F8  ASCII "Software\\Microsoft\\Windows"
+```
+
+F9,过期,原来是 `Software\\Microsoft\\Windows`  
+
+删除  
+
+```
+\[HKEY\_CURRENT\_USER\\Software\\Microsoft\\Windows\]
+
+"01"=hex:47,49,46,38,39,61,76,00,42,00,f7,00,00,04,02,04,0c,32,54,ec,8e,5c,04,\
+  8a,04,fc,ae,04,04,aa,04,3c,a6,44,fc,c6,04,54,b2,4c,04,fe,04,fc,fe,ec,fc,fe,\
+  bc,fc,f6,44,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,\
+  00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,\
+```
+
+`01` 子键就可以了,又是 20 次.  
+
+### 【破解总结】
+
+```
+0041BF09     8B5424 04         mov edx,dword ptr ss:\[esp+4\] //让 EAX 返回 0 就可以了.
+0041BF0D     8B4C24 08         mov ecx,dword ptr ss:\[esp+8\]
+```
+
+修改为
+
+```
+0041BF09     B8 01000000       mov eax,0 //就一锅端了,程序不校验注册文件真伪,算法又偷懒了.
+0041BF0E     C3              retn
+0041BF0F     90              nop
+0041BF10     90              nop
+```
+
+任意名注册.  
+
+### 【版权声明】
+
+本文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢!
+
+`4dd466d0e1e0cc123afbe504da2462ca`

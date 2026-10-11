@@ -1,0 +1,180 @@
+
+# [易语言]文件保护专家 V9.61 算法分析
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-61.htm`](https://www.pediy.com/kssd/pediy09/pediy09-61.htm)
+
+> 【文章标题】: [易语言]文件保护专家 V9.61 算法分析
+> 【文章作者】: `KuNgBiM`
+> 【作者邮箱】: `kungbim@163.com`
+> 【作者主页】: `http://www.crkcn.com`
+> 【软件名称】: 文件保护专家 V9.61
+> 【软件大小】: 2448 KB
+> 【下载地址】: 自己搜索下载
+> 【加壳方式】: `UPX`
+> 【保护方式】: 启动 NAG+序列号+次数限制
+> 【编写语言】: 易语言·飞扬
+> 【使用工具】: `OD`
+> 【操作平台】: 盗版 XPsp2
+> 【软件介绍】: 文件保护专家是一款专业的超群的加密软件.在技术上居于国内领先地位，达到了当前同类产品的国际先进水平。使用了国际公认的 `RC4`，`RSA`，`MD5` 等多种强大加密算法（超），而且功能多样化（群），可以满足你的不同需要，是同类软件之中最好的一个（超群），她支持 `Windows98/me/2000/xp/2003` 等操作系统，软件具有界面漂亮友好、简单易用、功能强大、兼容性好等特点，是你加密文件夹资料不可多得的实用加密类软件。
+> 【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
+
+--------------------------------------------------------------------------------
+【详细过程】
+
+解压安装程序后发现目录下有 `krnln.fne`、`iext.fnr`、`dp1.fne`、`shell.fne`、`Tooltiplib.fne` 文件，我在第一时间内判断该程序为“易语言”程序，但没想到该程序是新版“易语言·飞扬”所编译的。
+
+## 一、分离壳
+
+外壳为 `UPX`，我们 `Ctrl+S` 搜索代码：
+
+```
+popad
+jmp     00401000
+```
+
+找到：
+
+```
+004E67EE    61             popad
+004E67EF  - E9 0CA8F1FF    jmp     00401000                   ; 这里 F2 下断，F9 运行，中断后 F7 跟进 OEP
+004E67F4    0000           add     byte ptr [eax], al
+004E67F6    0000           add     byte ptr [eax], al
+```
+
+跟进 `004E67EF` 后来到：
+
+```
+00401000    E8 06000000     call    0040100B                  ; OEP（易语言·飞扬）
+00401005    50            push    eax
+00401006    E8 A1010000   call    004011AC                    ; jmp 到 kernel32.ExitProcess
+0040100B    55            push    ebp
+0040100C    8BEC          mov     ebp, esp
+0040100E    81C4 F0FEFFFF add     esp, -110
+00401014    EB 6D         jmp     short 00401083
+00401016    6B72 6E 6C    imul    esi, dword ptr [edx+6E], 6C
+0040101A    6E            outs    dx, byte ptr es:[edi]
+0040101B    2E:66:6E      outs    dx, byte ptr es:[edi]
+0040101E    72 00         jb      short 00401020
+00401020    6B72 6E 6C    imul    esi, dword ptr [edx+6E], 6C
+00401024    6E            outs    dx, byte ptr es:[edi]
+00401025    2E:66:6E      outs    dx, byte ptr es:[edi]
+00401028    65:0047 65    add     byte ptr gs:[edi+65], al
+0040102C    74 4N         je      short 0040107C
+```
+
+## 二、寻找易语言程序核心
+
+这里我们继续 `Ctrl+S` 搜索代码：
+
+```
+call    eax
+push    0
+```
+
+找到：
+
+```
+00401171    810424 8F1E0000       add     dword ptr [esp], 1E8F
+00401178    FFD0                  call    eax                 ; 到这里 F2 下断，F9 运行，中断后 F7 跟进
+0040117A    6A 00                 push    0
+0040117C    E8 2B000000           call    004011AC            ; jmp 到 kernel32.ExitProcess
+00401181    FFB5 F8FEFFFF         push    dword ptr [ebp-108]
+```
+
+跟进 `0040117C` 后来到：
+
+```
+100290EC    55                    push    ebp                 ; 跟进后来到这里
+100290ED    8BEC                  mov     ebp, esp
+100290EF    8B45 08               mov     eax, dword ptr [ebp+8]
+100290F2    50                    push    eax
+100290F3    B9 88480E10           mov     ecx, 100E4888
+100290F8    E8 B2F5FFFF           call    100286AF            ; F7 单步跟进这里
+100290FD    5D                    pop     ebp
+100290FE    C2 0400               retn    4
+10029101    CC                    int3
+10029102    CC                    int3
+10029103    CC                    int3
+```
+
+跟进 `100290F8` 后来到：
+
+```
+100286AF    55                    push    ebp                 ; 这里是否很熟悉？
+100286B0    8BEC                  mov     ebp, esp
+100286B2    83EC 08               sub     esp, 8
+100286B5    53                    push    ebx
+100286B6    56                    push    esi
+100286B7    57                    push    edi
+100286B8    894D F8               mov     dword ptr [ebp-8], ecx
+100286BB    FF15 BCC30B10         call    dword ptr [100BC3BC]      ; kernel32.GetProcessHeap
+100286C1    8B4D F8               mov     ecx, dword ptr [ebp-8]
+100286C4    8981 EC030000         mov     dword ptr [ecx+3EC], eax
+100286CA    8B55 08               mov     edx, dword ptr [ebp+8]
+100286CD    8B42 30               mov     eax, dword ptr [edx+30]
+100286D0    83E0 01               and     eax, 1
+100286D3    85C0                  test    eax, eax
+100286D5    75 10                 jnz     short 100286E7
+100286D7    8B4D 08               mov     ecx, dword ptr [ebp+8]
+100286DA    51                    push    ecx
+100286DB    8B4D F8               mov     ecx, dword ptr [ebp-8]
+100286DE    E8 0DE30200           call    100569F0
+100286E3    FFE0                  jmp     eax                 ; 飞向光明之颠！F7 跟进到程序核心！
+100286E5    EB 0E                 jmp     short 100286F5
+100286E7    8B55 08               mov     edx, dword ptr [ebp+8]
+100286EA    52                    push    edx
+100286EB    8B4D F8               mov     ecx, dword ptr [ebp-8]
+```
+
+跟进 `100286E3` 后来到：
+
+```
+004E214B    FC                    cld                         ; 这里就是易语言的程序核心代码开始处
+004E214C    DBE3                  finit
+004E214E    68 08000000           push    8
+004E2153    E8 B9000000           call    004E2211
+004E2158    83C4 04               add     esp, 4
+004E215B    A3 A80CA800           mov     dword ptr [A80CA8], eax
+004E2160    8BF8                  mov     edi, eax
+004E2162    BE FD564000           mov     esi, 004056FD
+004E2167    AD                    lods    dword ptr [esi]
+004E2168    AB                    stos    dword ptr es:[edi]
+004E2169    AD                    lods    dword ptr [esi]
+004E216A    AB                    stos    dword ptr es:[edi]
+004E216B    68 28000000           push    28
+004E2170    E8 9C000000           call    004E2211
+004E2175    83C4 04               add     esp, 4
+004E2178    A3 D40CA800           mov     dword ptr [A80CD4], eax
+004E217D    8BD8                  mov     ebx, eax
+004E217F    8BF8                  mov     edi, eax
+004E2181    33C0                  xor     eax, eax
+```
+
+## 三、搜索关键字符，分析注册算法
+
+利用 `OD` 字符插件搜索关键字符后，找到这里下断：
+
+```
+联系人：KuNgBiM
+注册码：1234567890
+```
+
+```
+004DAB72  |.  83C4 04     add     esp, 4                  ;  来到这里设断，F9 运行
+004DAB75  |>  8B45 F0     mov     eax, dword ptr [ebp-10]
+004DAB78  |.  33C9        xor     ecx, ecx
+004DAB7A  |.  50          push    eax
+004DAB7B  |.  8D45 FC     lea     eax, dword ptr [ebp-4]
+004DAB7E  |.  8BD8        mov     ebx, eax
+004DAB80  |.  58          pop     eax
+004DAB81  |>  41          /inc    ecx                     ;  ECX 自加一，指向下一位
+004DAB82  |.  51          |push    ecx
+004DAB83  |.  53          |push    ebx
+004DAB84  |.  890B        |mov     dword ptr [ebx], ecx
+004DAB86  |.  50          |push    eax                     ;  计算用户长度
+004DAB87  |.  3BC8        |cmp     ecx, eax
+004DAB89  |.  0F8F BF000000 |jg      004DAC4E
+004DAB8F  |.  6A FF       |push    -1
+004DAB91  |.  6A 08       |push    8
+004DAB93  |.  68 BE070116 |push    160107BE
+```
