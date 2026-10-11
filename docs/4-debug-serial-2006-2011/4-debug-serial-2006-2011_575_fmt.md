@@ -1,0 +1,990 @@
+
+# FarSight Calculator v2.2 与 v3.6 版的注册算法比较
+
+> 原文：[`www.pediy.com/kssd/pediy12/136692.html`](https://www.pediy.com/kssd/pediy12/136692.html)
+
+## 软件名称
+
+FarSight Calculator v2.2,v3.6
+
+## 下载地址
+
+`http://www.farsightsoft.com/`
+
+## 软件简介
+
+FarSight Calculator 是一款简单易用的可编程计算器,它可以保存你的计算过程为函数或执行程序(这点很特别吧!),并可以显示计算过程中的中间变量的值,此外,它还支持超过 100 多个函数,覆盖代数/三角/双曲线/日期/统计/金融等等,用这些函数你可以做很多事,比如用金融函数计算一下存钱的利息,用日期函数计算一下指定的两个日期间的天数(这个对 Cracker 来说挺实用,因为很多共享软件会计算软件过期日期),同时,软件还附带三个计算工具:
+
+1. Finance Box
+2. Date Calculations
+3. Unit Converter
+
+不过,除了以上一些特点,鄙人还觉得它有一个功能挺好,就是可以定制界面上的按钮标题,比如 "Today",可以改为 "今天"; "Day" 改为 "日" 等等.不多做介绍了,自己体会吧,喜欢的朋友,自己下载
+
+## 软件限制
+
+v2.2 版如果没有注册,则有 7 天的试用期.
+
+v3.6 版如果没有注册,则有 30 天的试用期.
+
+## 破解声明
+
+比较这两个版本的 FarSight Calculator,其实,就是想知道在注册码生成原理基本相同的情况下,如何提高软件被破解的难度,这样就能比较有效的保护软件和著作人的权利(虽然软件能被破解是一定的).
+
+破解本身并没有太大的意义,如果大家有点钱的话,还是买个注册码吧,虽然有点贵.
+
+## 破解工具
+
+PEID v0.94,OllyDBG v1.10
+
+## 破文作者
+
+WSLVIC 电邮:Crk4u@163.com
+
+## 破解时间
+
+v2.2 二一一年七月五日
+
+v3.6 二一一年七月六日
+
+## 破解过程
+
+### FarSight Calculator v2.2 注册算法探秘
+
+路要一步步走,饭要一口口吃,破解自然也要一个个来.
+
+首先,拿 v2.2 版来开刀吧,为什么呢,道理其实很简单---低版本的算法通常一定必高版本的简单,所以先找个软柿子捏,不过分吧!
+
+打开 PEiD,拖拽 v2.2 版的执行文件 `FarsightCalc.exe` 到 PEiD 上,一瞅,是 Borland Delphi 6.0 - 7.0 写的,没加壳,呵呵---运气不错!那就请出 OD 吧,载入后,停在这里,
+
+```
+┌──────────────────┐
+│0060815C >/$  55            PUSH EBP│
+└──────────────────┘
+```
+
+为了获取必要信息,先 F9 运行一下,输入测试注册名 "WSLVIC",测试注册码 "12345678",点击 "ok",弹出注册失败对话框 "Invalid Registered User or Key!" (要是能一下子 K.O. 就好了!),记住这个字串,在 OD 中按 `Ctrl+F2` 重新载入,然后 "查找→所有参考字符串→查找文本→'Invalid Registered User or Key!'",OD 指向了地址 `602894`,向上没几行,就看到了一个跳过 "Invalid Registered User or Key!" 的 JNZ,和它前面的一个 Call,这个 Call 一猜都知道很关键了,可是为了比较保险起见,断点下在了 `602854` 处,因为这里有三个连续的 Push,好了按 F9 运行,点击注册 "Register" 在注册,在 "User:" 栏中输入 "WSLVIC","Key:" 栏中输入 "12345678","ok",OD 断了下来,F8 步进直到 `602884`,很快就知道了这段代码在干什么,
+
+```
+┌──────────────────────────────────────────────┐
+│00602854   .PUSH EBP                                              │
+│00602855   .PUSH Farsight.006028C8                                    │
+│0060285A   .PUSH DWORD PTR FS:[EAX]                                 │
+│0060285D   .MOV DWORD PTR FS:[EAX],ESP                              │
+│00602860   .LEA EDX,DWORD PTR SS:[EBP-4]                             │
+│00602863   .MOV EAX,DWORD PTR DS:[EBX+300]                           │
+│00602869   .CALL Farsight.004ABE68       ;  获取注册码               │
+│0060286E   .MOV EAX,DWORD PTR SS:[EBP-4]                             │
+│00602871   .PUSH EAX                                                │
+│00602872   .LEA EDX,DWORD PTR SS:[EBP-8]                             │
+│00602875   .MOV EAX,DWORD PTR DS:[EBX+2FC]                           │
+│0060287B   .CALL Farsight.004ABE68       ;  获取用户名               │
+│00602880   .MOV EAX,DWORD PTR SS:[EBP-8]                             │
+│00602883   .POP EDX                                                 │
+───────────────────────────────────────────────
+│00602884   .CALL Farsight.00601774       ;  测试注册码的调用         │
+───────────────────────────────────────────────
+│00602889   .TEST AL,AL                                                │
+│0060288B   .JNZ SHORT Farsight.006028AD  ;  不跳就死               │
+│0060288D   .PUSH 0                                                  │
+│0060288F   .MOV ECX,Farsight.006028D4                                │
+│00602894   .MOV EDX,Farsight.006028D8     ;  ASCII "Invalid Registered User or Key!" │
+│00602899   .MOV EAX,DWORD PTR DS:[610684]                             │
+└──────────────────────────────────────────────┘
+```
+
+既然已经到了这个关键 Call,不进去是不行的,F7 步入,
+
+```
+┌──────────────────────────────────────────────┐
+│00601774   $PUSH EBP                    ;  保存 EBP                  │
+│00601775   .MOV EBP,ESP                 ;  EBP 指向栈顶              │
+│00601777   .ADD ESP,-10                 ;  开辟栈空间                │
+│0060177A   .PUSH EBX                                                 │
+│0060177B   .PUSH ESI                                                 │
+│0060177C   .PUSH EDI                                                 │
+│0060177D   .MOV DWORD PTR SS:[EBP-8],EDX  ;  注册码入栈 SS:[EBP-8]  │
+│00601780   .MOV DWORD PTR SS:[EBP-4],EAX  ;  注册名入栈 SS:[EBP-4]  │
+│00601783   .MOV EAX,DWORD PTR SS:[EBP-4]  ;  EAX = 注册名           │
+│00601786   .CALL Farsight.00405348      ;  测试 EAX 是否全零        │
+│0060178B   .MOV EAX,DWORD PTR SS:[EBP-8]  ;  EAX = 注册码           │
+│0060178E   .CALL Farsight.00405348      ;  测试 EAX 是否全零        │
+│00601793   .XOR EAX,EAX                                               │
+│00601795   .PUSH EBP                                                │
+│00601796   .PUSH Farsight.00601874                                    │
+│0060179B   .PUSH DWORD PTR FS:[EAX]                                 │
+│0060179E   .MOV DWORD PTR FS:[EAX],ESP                              │
+│006017A1   .MOV BYTE PTR SS:[EBP-9],0                                 │
+│006017A5   .MOV EDX,DWORD PTR SS:[EBP-8]  ;  EDX = 注册码           │
+│006017A8   .MOV EAX,DWORD PTR SS:[EBP-4]  ;  EAX = 注册名           │
+───────────────────────────────────────────────
+│006017AB   .CALL Farsight.0060137C      ;  关键 Call                 │
+───────────────────────────────────────────────
+│006017B0   .TEST AL,AL                                                │
+───────────────────────────────────────────────
+│006017B2   .JE Farsight.00601859        ;  一跳就死                  │
+───────────────────────────────────────────────
+│006017B8   .XOR EAX,EAX                                               │
+│006017BA   .PUSH EBP                                                │
+│006017BB   .PUSH Farsight.0060184F                                    │
+│006017C0   .PUSH DWORD PTR FS:[EAX]                                 │
+│006017C3   .MOV DWORD PTR FS:[EAX],ESP                              │
+│006017C6   .MOV ECX,0F003F                                           │
+│006017CB   .MOV DL,1                                                 │
+│006017CD   .MOV EAX,DWORD PTR DS:[442D00]                             │
+│006017D2   .CALL Farsight.00442E44                                    │
+└──────────────────────────────────────────────┘
+```
+
+
+
+```
+006017D7   .MOV DWORD PTR SS:[EBP-10],EAX
+006017DA   .XOR EAX,EAX
+006017DC   .PUSH EBP
+006017DD   .PUSH Farsight.0060183E
+006017E2   .PUSH DWORD PTR FS:[EAX]
+006017E5   .MOV DWORD PTR FS:[EAX],ESP
+006017E8   .MOV EDX,80000001
+006017ED   .MOV EAX,DWORD PTR SS:[EBP-10]
+006017F0   .CALL Farsight.00442EDC
+006017F5   .MOV CL,1
+006017F7   .MOV EDX,Farsight.00601890     ;  ASCII "SOFTWARE\\farsightsoft\\FarsightCalc"
+006017FC   .MOV EAX,DWORD PTR SS:[EBP-10]
+006017FF   .CALL Farsight.00442F40
+00601804   .MOV ECX,DWORD PTR SS:[EBP-4]
+00601807   .MOV EDX,Farsight.006018BC     ;  ASCII "UserName"
+0060180C   .MOV EAX,DWORD PTR SS:[EBP-10]
+0060180F   .CALL Farsight.004432B4
+00601814   .MOV ECX,DWORD PTR SS:[EBP-8]
+00601817   .MOV EDX,Farsight.006018D0     ;  ASCII "Sn"
+0060181C   .MOV EAX,DWORD PTR SS:[EBP-10]
+0060181F   .CALL Farsight.004432B4
+00601824   .MOV BYTE PTR SS:[EBP-9],1
+00601828   .XOR EAX,EAX
+0060182A   .POP EDX
+0060182B   .POP ECX
+0060182C   .POP ECX
+0060182D   .MOV DWORD PTR FS:[EAX],EDX
+00601830   .PUSH Farsight.00601845
+00601835   >MOV EAX,DWORD PTR SS:[EBP-10]
+00601838   .CALL Farsight.00403F48
+0060183D   .RETN
+```
+
+这一段最引人注目的,自然要属那几个`ASCII`了,通过它们,立刻就可以猜想到这是注册成功后,向注册表写注册信息,而其前面不远处`006017B2`的指令`JE`则跳过了这段的几个`ASCII`,显然`006017AB`处的`Call`是绝对的关键了,既然如此,`F8`到该处后,`F7`步入,
+
+```
+0060137C  /$PUSH EBP
+0060137D  .MOV EBP,ESP
+0060137F  .MOV ECX,15
+00601384  >/PUSH 0                    ;  / 开辟栈空间
+00601386  .|PUSH 0                    ;  |
+00601388  .|DEC ECX                   ;  |
+00601389  .\\JNZ SHORT Farsight.00601384      ;  \\ 长度 = 0x15
+0060138B  .PUSH EBX
+0060138C  .MOV DWORD PTR SS:[EBP-8],EDX       ;  注册码入栈
+0060138F  .MOV DWORD PTR SS:[EBP-4],EAX       ;  注册名入栈
+00601392  .MOV EAX,DWORD PTR SS:[EBP-4]
+00601395  .CALL Farsight.00405348          ;  封锁总线指令 LOCK
+0060139A  .MOV EAX,DWORD PTR SS:[EBP-8]
+0060139D  .CALL Farsight.00405348
+006013A2  .XOR EAX,EAX
+006013A4  .PUSH EBP
+006013A5  .PUSH Farsight.00601737
+006013AA  .PUSH DWORD PTR FS:[EAX]
+006013AD  .MOV DWORD PTR FS:[EAX],ESP
+006013B0  .XOR EBX,EBX
+006013B2  .LEA EAX,DWORD PTR SS:[EBP-28]
+006013B5  .MOV ECX,Farsight.00601750        ;  ASCII "calc"
+006013BA  .MOV EDX,DWORD PTR SS:[EBP-4]      ;  EDX = 注册名
+006013BD  .CALL Farsight.004051A4
+006013C2  .MOV EAX,DWORD PTR SS:[EBP-28]     ;  EAX = 注册名 + "calc"
+006013C5  .LEA EDX,DWORD PTR SS:[EBP-24]     ;  EDX = "calc" 的堆栈地址
+006013C8  .CALL Farsight.00601224
+006013CD  .LEA EAX,DWORD PTR SS:[EBP-24]
+006013D0  .LEA EDX,DWORD PTR SS:[EBP-C]
+006013D3  .CALL Farsight.00601298
+006013D8  .MOV EAX,DWORD PTR SS:[EBP-8]
+006013DB  .CALL Farsight.00405158          ;  取得 EAX 中数据的长度(注册名/注册码)
+006013E0  .CMP EAX,4                       ;  注册码长度与 4 进行比较
+006013E3  .JL Farsight.0060170C
+006013E9  .PUSH 0
+006013EB  .LEA EAX,DWORD PTR SS:[EBP-2C]
+006013EE  .MOV EDX,DWORD PTR SS:[EBP-C]     ;  EDX = 第一个特征序列(非注册码)
+006013F1  .MOV DL,BYTE PTR DS:[EDX]         ;  DL = 该序列第一个字符
+006013F3  .CALL Farsight.00405080
+006013F8  .PUSH DWORD PTR SS:[EBP-2C]
+006013FB  .LEA EAX,DWORD PTR SS:[EBP-30]
+006013FE  .MOV EDX,DWORD PTR SS:[EBP-C]
+00601401  .MOV DL,BYTE PTR DS:[EDX+1]       ;  DL = 该序列第二个字符
+00601404  .CALL Farsight.00405080
+00601409  .PUSH DWORD PTR SS:[EBP-30]
+```
+
+
+
+```asm
+    │0060140C  │.LEA EAX,DWORD PTR SS:[EBP-34]                                                  │
+    │0060140F  │.MOV EDX,DWORD PTR SS:[EBP-C]                                                   │
+    │00601412  │.MOV DL,BYTE PTR DS:[EDX+2]             ;  DL = 该序列第三个字符                 │
+    │00601415  │.CALL Farsight.00405080                                                          │
+    │0060141A  │.PUSH DWORD PTR SS:[EBP-34]                                                      │
+    │0060141D  │.LEA EAX,DWORD PTR SS:[EBP-38]                                                   │
+    │00601420  │.MOV EDX,DWORD PTR SS:[EBP-C]                                                    │
+    │00601423  │.MOV DL,BYTE PTR DS:[EDX+3]             ;  DL = 该序列第四个字符                 │
+    │00601426  │.CALL Farsight.00405080                                                          │
+    │0060142B  │.PUSH DWORD PTR SS:[EBP-38]                                                      │
+    │0060142E  │.LEA EAX,DWORD PTR SS:[EBP-10]                                                   │
+    │00601431  │.MOV EDX,5                               ;  EDX = 5                              │
+    │00601436  │.CALL Farsight.00405218                                                          │
+    │0060143B  │.PUSH 0                                                                           │
+    │0060143D  │.LEA EAX,DWORD PTR SS:[EBP-3C]                                                   │
+    │00601440  │.MOV EDX,DWORD PTR SS:[EBP-8]             ;  EDX = 注册码                        │
+    │00601443  │.MOV DL,BYTE PTR DS:[EDX]                ;  DL = 注册码第一个字符               │
+    │00601445  │.CALL Farsight.00405080                                                          │
+    │0060144A  │.PUSH DWORD PTR SS:[EBP-3C]                                                      │
+    │0060144D  │.LEA EAX,DWORD PTR SS:[EBP-40]                                                   │
+    │00601450  │.MOV EDX,DWORD PTR SS:[EBP-8]                                                    │
+    │00601453  │.MOV DL,BYTE PTR DS:[EDX+1]             ;  DL = 注册码第二个字符                 │
+    │00601456  │.CALL Farsight.00405080                                                          │
+    │0060145B  │.PUSH DWORD PTR SS:[EBP-40]                                                      │
+    │0060145E  │.LEA EAX,DWORD PTR SS:[EBP-44]                                                   │
+    │00601461  │.MOV EDX,DWORD PTR SS:[EBP-8]                                                    │
+    │00601464  │.MOV DL,BYTE PTR DS:[EDX+2]             ;  DL = 注册码第三个字符                 │
+    │00601467  │.CALL Farsight.00405080                                                          │
+    │0060146C  │.PUSH DWORD PTR SS:[EBP-44]                                                      │
+    │0060146F  │.LEA EAX,DWORD PTR SS:[EBP-48]                                                   │
+    │00601472  │.MOV EDX,DWORD PTR SS:[EBP-8]                                                    │
+    │00601475  │.MOV DL,BYTE PTR DS:[EDX+3]             ;  DL = 注册码第四个字符                 │
+    │00601478  │.CALL Farsight.00405080                                                          │
+    │0060147D  │.PUSH DWORD PTR SS:[EBP-48]                                                      │
+    │00601480  │.LEA EAX,DWORD PTR SS:[EBP-14]                                                   │
+    │00601483  │.MOV EDX,5                               ;  EDX = 5                              │
+    │00601488  │.CALL Farsight.00405218                                                          │
+    │0060148D  │.LEA EDX,DWORD PTR SS:[EBP-4C]                                                   │
+    │00601490  │.MOV EAX,DWORD PTR SS:[EBP-10]                                                   │
+    │00601493  │.CALL Farsight.00409634                                                          │
+    │00601498  │.MOV EAX,DWORD PTR SS:[EBP-4C]                                                   │
+    │0060149B  │.PUSH EAX                                                                        │
+    │0060149C  │.LEA EDX,DWORD PTR SS:[EBP-50]                                                   │
+    │0060149F  │.MOV EAX,DWORD PTR SS:[EBP-14]                                                   │
+    │006014A2  │.CALL Farsight.00409634                  ;  转换到大写字母                      │
+    │006014A7  │.MOV EDX,DWORD PTR SS:[EBP-50]            ;  EDX = 注册码前四位                  │
+    │006014AA  │.POP EAX                                                                         │
+
+───────────────────────────────────────────────
+
+    │006014AB  │.CALL Farsight.004052A4                  ;  首四位比较                          │
+
+───────────────────────────────────────────────
+
+    │006014B0  │.JNZ SHORT Farsight.006014B6                                                     │
+    │006014B2  │.MOV BL,1                                                                        │
+    │006014B4  │.JMP SHORT Farsight.006014BD                                                     │
+    │006014B6  │>XOR EBX,EBX                                                                      │
+    │006014B8  │.JMP Farsight.0060170C                                                           │
+    │006014BD  │>LEA EAX,DWORD PTR SS:[EBP-54]                                                   │
+    │006014C0  │.MOV ECX,Farsight.00601760                ;  ASCII "spring"                       │
+    │006014C5  │.MOV EDX,DWORD PTR SS:[EBP-4]                                                    │
+    │006014C8  │.CALL Farsight.004051A4                                                          │
+    │006014CD  │.MOV EAX,DWORD PTR SS:[EBP-54]            ;  EAX = 注册名 + "spring"             │
+    │006014D0  │.LEA EDX,DWORD PTR SS:[EBP-24]                                                   │
+    │006014D3  │.CALL Farsight.00601224                                                          │
+    │006014D8  │.LEA EAX,DWORD PTR SS:[EBP-24]                                                   │
+    │006014DB  │.LEA EDX,DWORD PTR SS:[EBP-C]                                                    │
+    │006014DE  │.CALL Farsight.00601298                                                          │
+    │006014E3  │.MOV EAX,DWORD PTR SS:[EBP-8]             ;  EAX = 注册码的内存地址              │
+    │006014E6  │.CALL Farsight.00405158                  ;  获取注册码的长度                    │
+    │006014EB  │.CMP EAX,4                                                                       │
+    │006014EE  │.JL Farsight.0060170C                    ;  注册码长度小于 4,就跳                │
+    │006014F4  │.PUSH 0                                                                           │
+    │006014F6  │.LEA EAX,DWORD PTR SS:[EBP-58]                                                   │
+    │006014F9  │.MOV EDX,DWORD PTR SS:[EBP-C]             ;  第二个特征序列:                     │
+    │006014FC  │.MOV DL,BYTE PTR DS:[EDX]                ;  DL = 该序列第一个字符               │
+    │006014FE  │.CALL Farsight.00405080                                                          │
+    │00601503  │.PUSH DWORD PTR SS:[EBP-58]                                                      │
+    │00601506  │.LEA EAX,DWORD PTR SS:[EBP-5C]                                                   │
+    │00601509  │.MOV EDX,DWORD PTR SS:[EBP-C]                                                    │
+    │0060150C  │.MOV DL,BYTE PTR DS:[EDX+1]             ;  DL = 该序列第二个字符                 │
+    │0060150F  │.CALL Farsight.00405080                                                          │
+```
+
+
+
+```
+    │00601514  |.PUSH DWORD PTR SS:[EBP-5C]                       │  
+    │00601517  |.LEA EAX,DWORD PTR SS:[EBP-60]                     │  
+    │0060151A  |.MOV EDX,DWORD PTR SS:[EBP-C]                      │  
+    │0060151D  |.MOV DL,BYTE PTR DS:[EDX+2]       ;  DL = 该序列第三个字符       │  
+    │00601520  |.CALL Farsight.00405080                              │  
+    │00601525  |.PUSH DWORD PTR SS:[EBP-60]                         │  
+    │00601528  |.LEA EAX,DWORD PTR SS:[EBP-64]                       │  
+    │0060152B  |.MOV EDX,DWORD PTR SS:[EBP-C]                        │  
+    │0060152E  |.MOV DL,BYTE PTR DS:[EDX+3]       ;  DL = 该序列第四个字符       │  
+    │00601531  |.CALL Farsight.00405080                              │  
+    │00601536  |.PUSH DWORD PTR SS:[EBP-64]                         │  
+    │00601539  |.LEA EAX,DWORD PTR SS:[EBP-10]                       │  
+    │0060153C  |.MOV EDX,5                   ;  EDX = 5                   │  
+    │00601541  |.CALL Farsight.00405218                                │  
+    │00601546  |.PUSH 0                                              │  
+    │00601548  |.LEA EAX,DWORD PTR SS:[EBP-68]                       │  
+    │0060154B  |.MOV EDX,DWORD PTR SS:[EBP-8]                         │  
+    │0060154E  |.MOV DL,BYTE PTR DS:[EDX+4]       ;  DL = 注册码第二个四位的第一位       │  
+    │00601551  |.CALL Farsight.00405080                                │  
+    │00601556  |.PUSH DWORD PTR SS:[EBP-68]                         │  
+    │00601559  |.LEA EAX,DWORD PTR SS:[EBP-6C]                       │  
+    │0060155C  |.MOV EDX,DWORD PTR SS:[EBP-8]                         │  
+    │0060155F  |.MOV DL,BYTE PTR DS:[EDX+5]       ;  DL = 注册码第二个四位的第二位       │  
+    │00601562  |.CALL Farsight.00405080                                │  
+    │00601567  |.PUSH DWORD PTR SS:[EBP-6C]                         │  
+    │0060156A  |.LEA EAX,DWORD PTR SS:[EBP-70]                       │  
+    │0060156D  |.MOV EDX,DWORD PTR SS:[EBP-8]                         │  
+    │00601570  |.MOV DL,BYTE PTR DS:[EDX+6]       ;  DL = 注册码第二个四位的第三位       │  
+    │00601573  |.CALL Farsight.00405080                                │  
+    │00601578  |.PUSH DWORD PTR SS:[EBP-70]                         │  
+    │0060157B  |.LEA EAX,DWORD PTR SS:[EBP-74]                       │  
+    │0060157E  |.MOV EDX,DWORD PTR SS:[EBP-8]                         │  
+    │00601581  |.MOV DL,BYTE PTR DS:[EDX+7]       ;  DL = 注册码第二个四位的第四位       │  
+    │00601584  |.CALL Farsight.00405080                                │  
+    │00601589  |.PUSH DWORD PTR SS:[EBP-74]                         │  
+    │0060158C  |.LEA EAX,DWORD PTR SS:[EBP-14]                       │  
+    │0060158F  |.MOV EDX,5                   ;  EDX = 5                   │  
+    │00601594  |.CALL Farsight.00405218                                │  
+    │00601599  |.LEA EDX,DWORD PTR SS:[EBP-78]                       │  
+    │0060159C  |.MOV EAX,DWORD PTR SS:[EBP-10]                       │  
+    │0060159F  |.CALL Farsight.00409634            ;  转换到大写字母               │  
+    │006015A4  |.MOV EAX,DWORD PTR SS:[EBP-78]                       │  
+    │006015A7  |.PUSH EAX                                        │  
+    │006015A8  |.LEA EDX,DWORD PTR SS:[EBP-7C]                       │  
+    │006015AB  |.MOV EAX,DWORD PTR SS:[EBP-14]                       │  
+    │006015AE  |.CALL Farsight.00409634                                │  
+    │006015B3  |.MOV EDX,DWORD PTR SS:[EBP-7C]                       │  
+    │006015B6  |.POP EAX                                           │  
+    ───────────────────────────────────────────────  
+    │006015B7  |.CALL Farsight.004052A4            ;  中间四位比较                 │  
+    ───────────────────────────────────────────────  
+    │006015BC  |.JNZ SHORT Farsight.006015C2        ;  一跳就死                    │  
+    │006015BE  |.MOV BL,1                                          │  
+    │006015C0  |.JMP SHORT Farsight.006015C9                          │  
+    │006015C2  |>XOR EBX,EBX                                      │  
+    │006015C4  |.JMP Farsight.0060170C                                │  
+    │006015C9  |>LEA EAX,DWORD PTR SS:[EBP-80]                       │  
+    │006015CC  |.MOV ECX,Farsight.00601770          ;  ASCII "fly"                 │  
+    │006015D1  |.MOV EDX,DWORD PTR SS:[EBP-4]                         │  
+    │006015D4  |.CALL Farsight.004051A4                                │  
+    │006015D9  |.MOV EAX,DWORD PTR SS:[EBP-80]     ;  EAX = 注册名 + "fly"          │  
+    │006015DC  |.LEA EDX,DWORD PTR SS:[EBP-24]                       │  
+    │006015DF  |.CALL Farsight.00601224                                │  
+    │006015E4  |.LEA EAX,DWORD PTR SS:[EBP-24]                       │  
+    │006015E7  |.LEA EDX,DWORD PTR SS:[EBP-C]                         │  
+    │006015EA  |.CALL Farsight.00601298                                │  
+    │006015EF  |.MOV EAX,DWORD PTR SS:[EBP-8]     ;  EAX = 注册码                │  
+    │006015F2  |.CALL Farsight.00405158                                │  
+    │006015F7  |.CMP EAX,4                                         │  
+    │006015FA  |.JL Farsight.0060170C                                  │  
+    │00601600  |.PUSH 0                                              │  
+    │00601602  |.LEA EAX,DWORD PTR SS:[EBP-84]                       │  
+    │00601608  |.MOV EDX,DWORD PTR SS:[EBP-C]     ;  第三个特征序列:             │  
+    │0060160B  |.MOV DL,BYTE PTR DS:[EDX]         ;  DL = 该序列第一个字符         │  
+    │0060160D  |.CALL Farsight.00405080                                │  
+    │00601612  |.PUSH DWORD PTR SS:[EBP-84]                         │  
+    │00601618  |.LEA EAX,DWORD PTR SS:[EBP-88]                       │  
+    │0060161E  |.MOV EDX,DWORD PTR SS:[EBP-C]                         │  
+    │00601621  |.MOV DL,BYTE PTR DS:[EDX+1]       ;  DL = 该序列第二个字符         │  
+```
+
+
+
+```
+    │00601624  |.CALL Farsight.00405080
+    │00601629  |.PUSH DWORD PTR SS:[EBP-88]
+    │0060162F  |.LEA EAX,DWORD PTR SS:[EBP-8C]
+    │00601635  |.MOV EDX,DWORD PTR SS:[EBP-C]
+    │00601638  |.MOV DL,BYTE PTR DS:[EDX+2]       ;  DL = 该序列第三个字符
+    │0060163B  |.CALL Farsight.00405080
+    │00601640  |.PUSH DWORD PTR SS:[EBP-8C]
+    │00601646  |.LEA EAX,DWORD PTR SS:[EBP-90]
+    │0060164C  |.MOV EDX,DWORD PTR SS:[EBP-C]
+    │0060164F  |.MOV DL,BYTE PTR DS:[EDX+3]       ;  DL = 该序列第四个字符
+    │00601652  |.CALL Farsight.00405080
+    │00601657  |.PUSH DWORD PTR SS:[EBP-90]
+    │0060165D  |.LEA EAX,DWORD PTR SS:[EBP-10]
+    │00601660  |.MOV EDX,5                         ;  EDX = 5
+    │00601665  |.CALL Farsight.00405218
+    │0060166A  |.PUSH 0
+    │0060166C  |.LEA EAX,DWORD PTR SS:[EBP-94]
+    │00601672  |.MOV EDX,DWORD PTR SS:[EBP-8]
+    │00601675  |.MOV DL,BYTE PTR DS:[EDX+8]       ;  DL = 注册码第三个四位的第一位
+    │00601678  |.CALL Farsight.00405080
+    │0060167D  |.PUSH DWORD PTR SS:[EBP-94]
+    │00601683  |.LEA EAX,DWORD PTR SS:[EBP-98]
+    │00601689  |.MOV EDX,DWORD PTR SS:[EBP-8]
+    │0060168C  |.MOV DL,BYTE PTR DS:[EDX+9]       ;  DL = 注册码第三个四位的第二位
+    │0060168F  |.CALL Farsight.00405080
+    │00601694  |.PUSH DWORD PTR SS:[EBP-98]
+    │0060169A  |.LEA EAX,DWORD PTR SS:[EBP-9C]
+    │006016A0  |.MOV EDX,DWORD PTR SS:[EBP-8]
+    │006016A3  |.MOV DL,BYTE PTR DS:[EDX+A]       ;  DL = 注册码第三个四位的第三位
+    │006016A6  |.CALL Farsight.00405080
+    │006016AB  |.PUSH DWORD PTR SS:[EBP-9C]
+    │006016B1  |.LEA EAX,DWORD PTR SS:[EBP-A0]
+    │006016B7  |.MOV EDX,DWORD PTR SS:[EBP-8]
+    │006016BA  |.MOV DL,BYTE PTR DS:[EDX+B]       ;  DL = 注册码第三个四位的第四位
+    │006016BD  |.CALL Farsight.00405080
+    │006016C2  |.PUSH DWORD PTR SS:[EBP-A0]
+    │006016C8  |.LEA EAX,DWORD PTR SS:[EBP-14]
+    │006016CB  |.MOV EDX,5                         ;  EDX = 5
+    │006016D0  |.CALL Farsight.00405218
+    │006016D5  |.LEA EDX,DWORD PTR SS:[EBP-A4]
+    │006016DB  |.MOV EAX,DWORD PTR SS:[EBP-10]
+    │006016DE  |.CALL Farsight.00409634             ;  转换到大写字母
+    │006016E3  |.MOV EAX,DWORD PTR SS:[EBP-A4]
+    │006016E9  |.PUSH EAX
+    │006016EA  |.LEA EDX,DWORD PTR SS:[EBP-A8]
+    │006016F0  |.MOV EAX,DWORD PTR SS:[EBP-14]
+    │006016F3  |.CALL Farsight.00409634
+    │006016F8  |.MOV EDX,DWORD PTR SS:[EBP-A8]
+    │006016FE  |.POP EAX
+     ───────────────────────────────────────────────
+    │006016FF  |.CALL Farsight.004052A4             ;  末四位比较
+     ───────────────────────────────────────────────
+    │00601704  |.JNZ SHORT Farsight.0060170A        ;  一跳就死
+    │00601706  |.MOV BL,1
+    │00601708  |.JMP SHORT Farsight.0060170C
+    │0060170A  |>XOR EBX,EBX
+    │0060170C  |>XOR EAX,EAX
+    │0060170E  |.POP EDX
+    │0060170F  |.POP ECX
+    │00601710  |.POP ECX
+    │00601711  |.MOV DWORD PTR FS:[EAX],EDX
+    │00601714  |.PUSH Farsight.0060173E
+    │00601719  |>LEA EAX,DWORD PTR SS:[EBP-A8]
+    │0060171F  |.MOV EDX,21
+    │00601724  |.CALL Farsight.00404EBC
+    │00601729  |.LEA EAX,DWORD PTR SS:[EBP-14]
+    │0060172C  |.MOV EDX,5
+    │00601731  |.CALL Farsight.00404EBC
+    │00601736  |\.RETN
+    └──────────────────────────────────────────────┘
+```
+
+这段代码比较长，但结构其实很清晰。在`F8`步进的过程中，观察`OD`的寄存器窗口，不难看出其端倪。其注册过程为：
+
+将输入的注册名作为种子（我这里是`"WSLVIC"`），
+
+第一次时，将`"WSLVIC"`与`"calc"`连接起来成为`"WSLVICcalc"`，用它来算第一个特征序列，我这里是，
+
+    特征序列 1: `f8d5ca7bdde057179eb023f600477990`
+
+第二次时，将`"WSLVIC"`与`"spring"`连接起来成为`"WSLVICspring"`，用它来算第二个特征序列，我这里是，
+
+    特征序列 2: `b41c33d1503c68d53e2152bdd0ad90e6`
+
+第三次时，将`"WSLVIC"`与`"fly"`连接起来成为`"WSLVICfly"`，用它来算第三个特征序列，我这里是，
+
+    特征序列 3: `e087b63270b3147c4e2ee9290c695410`
+
+而注册码为每个特征序列的前四位相连接的结果，如，
+
+    特征序列 1 的前四位: `f8d5`
+    
+    特征序列 2 的前四位: `b41c`
+    
+    特征序列 3 的前四位: `e087`
+
+所以当注册名为`"WSLVIC"`时注册码就是：
+
+`RegCode = f8d5b41ce087`
+
+当然，如果你输入的注册名不是`"WSLVIC"`，那`RegCode`就不是`"f8d5b41ce087"`了。用这个注册名及注册码来注册`FarSight Calculator v2.2`，可以发现在关于对话框中软件已经注册给`"WSLVIC"`了。
+
+这里其实有个问题，就是`FarSight Calculator v2.2`如何用注册名来生成特征序列？关于这个问题，需要提问者自己解决，因为我根本就没有去追，原因是与我写这篇破文毫无关系。“算法是千变万化的，但你总需要一个结果”，所以无论`FarSight Calculator v2.2`是如何得到的这3个特征序列的，注册码却总是它们前四位的和！
+
+
+
+但如果你要写一个 `KeyGen`，那么追踪这 3 个特征序列的生成算法，就是必须要做的事了，有兴趣的人自己试试吧！而下面的 `FarSight Calculator v3.6` 的注册中依然会计算特征序列，和这里一样---将不作处理。这里先做一个预告。如果有一天，如果我"良心"发现，或许会追一下它的生成算法，然后写一个注册机，呵呵，有这么一天吗？
+
+"如果有一天，我悄然离去，请把我埋在这春天里..."
+
+至此，`FarSight Calculator v2.2` 的注册算法已基本清晰，下面就要开始 `FarSight Calculator v3.6` 的注册探秘了，希望大家不要烦哪，破文已经写的老长了，我也想打退堂鼓...
+
+┌───────────────────┐
+★ │ FarSight Calculator v3.6 注册算法探秘│
+└───────────────────┘
+
+与 `v2.2` 版一样，注册失败对话框，还是那几个字 "Invalid Registered User or Key!"，用同样的方法找到了地址 `60ABDC`（3 个 `Push` 的地方），`F8` 单步之后，发现与 `v2.2` 版几乎完全一致，这就是所谓的 "血继" 吧，
+
+┌──────────────────────────────────────────────┐
+│0060ABDC   .PUSH EBP                                                                        
+│0060ABDD   .PUSH Farsight.0060AC50                                                        
+│0060ABE2   .PUSH DWORD PTR FS:[EAX]                                                        
+│0060ABE5   .MOV DWORD PTR FS:[EAX],ESP                                                   
+│0060ABE8   .LEA EDX,DWORD PTR SS:[EBP-4]                                                  
+│0060ABEB   .MOV EAX,DWORD PTR DS:[EBX+300]                                                
+│0060ABF1   .CALL Farsight.004C2B10                                                        
+│0060ABF6   .MOV EAX,DWORD PTR SS:[EBP-4]          ;  获取注册码                            
+│0060ABF9   .PUSH EAX                                                                        
+│0060ABFA   .LEA EDX,DWORD PTR SS:[EBP-8]                                                  
+│0060ABFD   .MOV EAX,DWORD PTR DS:[EBX+2FC]                                                
+│0060AC03   .CALL Farsight.004C2B10                                                        
+│0060AC08   .MOV EAX,DWORD PTR SS:[EBP-8]          ;  获取注册名                            
+│0060AC0B   .POP EDX                                                                         
+───────────────────────────────────────────────
+│0060AC0C   .CALL Farsight.00609AFC                ;  关键调用-测试注册码                   
+───────────────────────────────────────────────
+│0060AC11   .TEST AL,AL                                                                    
+│0060AC13   .JNZ SHORT Farsight.0060AC35           ;  必跳                                 
+│0060AC15   .PUSH 0                                                                        
+│0060AC17   .MOV ECX,Farsight.0060AC5C                                                    
+│0060AC1C   .MOV EDX,Farsight.0060AC60             ;  ASCII "Invalid Registered User or Key!"│
+│0060AC21   .MOV EAX,DWORD PTR DS:[619688]                                                 
+└──────────────────────────────────────────────┘
+
+`F8` 单步到 `0060AC0C`，`F7` 步入后，来到，
+
+┌──────────────────────────────────────────────┐
+│00609AFC   $PUSH EBP                                                                      
+│00609AFD   .MOV EBP,ESP                                                                  
+│00609AFF   .ADD ESP,-10                                                                  
+│00609B02   .PUSH EBX                                                                      
+│00609B03   .PUSH ESI                                                                      
+│00609B04   .PUSH EDI                                                                      
+│00609B05   .MOV DWORD PTR SS:[EBP-8],EDX                                                  
+│00609B08   .MOV DWORD PTR SS:[EBP-4],EAX                                                  
+│00609B0B   .MOV EAX,DWORD PTR SS:[EBP-4]                                                  
+│00609B0E   .CALL Farsight.00404EC8                                                        
+│00609B13   .MOV EAX,DWORD PTR SS:[EBP-8]                                                  
+│00609B16   .CALL Farsight.00404EC8                                                        
+│00609B1B   .XOR EAX,EAX                                                                  
+│00609B1D   .PUSH EBP                                                                      
+│00609B1E   .PUSH Farsight.00609BFC                                                        
+│00609B23   .PUSH DWORD PTR FS:[EAX]                                                      
+│00609B26   .MOV DWORD PTR FS:[EAX],ESP                                                   
+│00609B29   .MOV BYTE PTR SS:[EBP-9],0                                                    
+│00609B2D   .MOV EDX,DWORD PTR SS:[EBP-8]                                                  
+│00609B30   .MOV EAX,DWORD PTR SS:[EBP-4]                                                  
+───────────────────────────────────────────────
+│00609B33   .CALL Farsight.006099B0               ;  关键调用                               
+───────────────────────────────────────────────
+│00609B38   .TEST AL,AL                                                                    
+│00609B3A   .JE Farsight.00609BE1                  ;  一跳就死                              
+│00609B40   .XOR EAX,EAX                                                                  
+│00609B42   .PUSH EBP                                                                      
+│00609B43   .PUSH Farsight.00609BD7                                                        
+│00609B48   .PUSH DWORD PTR FS:[EAX]                                                      
+│00609B4B   .MOV DWORD PTR FS:[EAX],ESP                                                   
+│00609B4E   .MOV ECX,0F003F                                                               
+│00609B53   .MOV DL,1                                                                      
+│00609B55   .MOV EAX,DWORD PTR DS:[442460]                                                 
+│00609B5A   .CALL Farsight.004425A4                                                        
+│00609B5F   .MOV DWORD PTR SS:[EBP-10],EAX                                                
+│00609B62   .XOR EAX,EAX                                                                  
+│00609B64   .PUSH EBP                                                                      
+│00609B65   .PUSH Farsight.00609BC6                                                        
+│00609B6A   .PUSH DWORD PTR FS:[EAX]                                                      
+│00609B6D   .MOV DWORD PTR FS:[EAX],ESP                                                   
+│00609B70   .MOV EDX,80000001                                                             
+│00609B75   .MOV EAX,DWORD PTR SS:[EBP-10]                                                
+│00609B78   .CALL Farsight.0044263C                                                        
+│00609B7D   .MOV CL,1                                                                      
+│00609B7F   .MOV EDX,Farsight.00609C18             ;  ASCII "SOFTWARE\farsightsoft\FarsightCalc"│
+│00609B84   .MOV EAX,DWORD PTR SS:[EBP-10]                                                
+│00609B87   .CALL Farsight.004426A0                                                        
+│00609B8C   .MOV ECX,DWORD PTR SS:[EBP-4]                                                  
+│00609B8F   .MOV EDX,Farsight.00609C44             ;  ASCII "UserName"                      
+└──────────────────────────────────────────────┘
+
+
+
+```
+    │00609B94    .MOV EAX,DWORD PTR SS:[EBP-10]                                             │  
+    │00609B97    .CALL Farsight.00442A14                                                     │  
+    │00609B9C    .MOV ECX,DWORD PTR SS:[EBP-8]                                              │  
+    │00609B9F    .MOV EDX,Farsight.00609C58          ;  ASCII "Sn"                           │  
+    │00609BA4    .MOV EAX,DWORD PTR SS:[EBP-10]                                             │  
+    │00609BA7    .CALL Farsight.00442A14                                                     │  
+    │00609BAC    .MOV BYTE PTR SS:[EBP-9],1                                                 │  
+    │00609BB0    .XOR EAX,EAX                                                                │  
+    │00609BB2    .POP EDX                                                                    │  
+    │00609BB3    .POP ECX                                                                    │  
+    │00609BB4    .POP ECX                                                                    │  
+    │00609BB5    .MOV DWORD PTR FS:[EAX],EDX                                                │  
+    │00609BB8    .PUSH Farsight.00609BCD                                                     │  
+    │00609BBD    >MOV EAX,DWORD PTR SS:[EBP-10]                                             │  
+    │00609BC0    .CALL Farsight.00403B24                                                     │  
+    │00609BC5    .RETN                                                                      │  
+    └──────────────────────────────────────────────┘  
+```
+
+连这里都一样,不废话了,`F8` 至 `609B33`,再 `F7`,来到,
+
+```
+    ┌──────────────────────────────────────────────┐  
+    │006099B0  /$PUSH EBP                                                                 │  
+    │006099B1  |.MOV EBP,ESP                                                              │  
+    │006099B3  |.ADD ESP,-0C                                                               │  
+    │006099B6  |.PUSH EBX                                                                  │  
+    │006099B7  |.XOR ECX,ECX                                                               │  
+    │006099B9  |.MOV DWORD PTR SS:[EBP-C],ECX                                              │  
+    │006099BC  |.MOV DWORD PTR SS:[EBP-8],EDX       ;  注册码入栈                         │  
+    │006099BF  |.MOV DWORD PTR SS:[EBP-4],EAX       ;  注册名入栈                         │  
+    │006099C2  |.MOV EAX,DWORD PTR SS:[EBP-4]       ;  EAX = 注册名                       │  
+    │006099C5  |.CALL Farsight.00404EC8                                                     │  
+    │006099CA  |.MOV EAX,DWORD PTR SS:[EBP-8]                                              │  
+    │006099CD  |.CALL Farsight.00404EC8                                                     │  
+    │006099D2  |.XOR EAX,EAX                                                               │  
+    │006099D4  |.PUSH EBP                                                                  │  
+    │006099D5  |.PUSH Farsight.00609AED                                                    │  
+    │006099DA  |.PUSH DWORD PTR FS:[EAX]                                                   │  
+    │006099DD  |.MOV DWORD PTR FS:[EAX],ESP                                                │  
+    │006099E0  |.XOR EBX,EBX                                                               │  
+    │006099E2  |.LEA EDX,DWORD PTR SS:[EBP-C]                                              │  
+    │006099E5  |.MOV EAX,DWORD PTR SS:[EBP-8]       ;  EAX = 注册码                       │  
+    │006099E8  |.CALL Farsight.00409310            ;  获取有效字符                        │  
+    │006099ED  |.CMP DWORD PTR SS:[EBP-C],0                                                │  
+    │006099F1  |.JE Farsight.00609AD2                                                        │  
+    │006099F7  |.MOV EDX,DWORD PTR SS:[EBP-8]       ;  EDX = 注册码                       │  
+    │006099FA  |.MOV EAX,DWORD PTR SS:[EBP-4]       ;  EAX = 注册名                       │  
+    │006099FD  |.CALL Farsight.00609128                                                    │  
+    │00609A02  |.TEST AL,AL                                                                 │  
+    │00609A04  |.JE SHORT Farsight.00609A0D                                                  │  
+    │00609A06  |.XOR EBX,EBX                                                                 │  
+    │00609A08  |.JMP Farsight.00609AD2                                                       │  
+    │00609A0D  |>MOV EDX,DWORD PTR SS:[EBP-8]       ;  EDX = 注册码                       │  
+    │00609A10  |.MOV EAX,DWORD PTR SS:[EBP-4]       ;  EAX = 注册名                       │  
+    │00609A13  |.CALL Farsight.00608C64            ;                                        │  
+    │00609A18  |.TEST AL,AL                                                                 │  
+    │00609A1A  |.JE SHORT Farsight.00609A23                                                  │  
+    │00609A1C  |.MOV BL,1                                                                    │  
+    │00609A1E  |.JMP Farsight.00609AD2                                                       │  
+    │00609A23  |>MOV EDX,DWORD PTR SS:[EBP-8]       ;  注册码                              │  
+    │00609A26  |.MOV EAX,DWORD PTR SS:[EBP-4]       ;  注册名                              │  
+    │00609A29  |.CALL Farsight.00609218            ;  比较注册码第 1 位                    │  
+    │00609A2E  |.TEST AL,AL                                                                 │  
+    │00609A30  |.JE Farsight.00609AD2               ;  一跳就死                           │  
+    │00609A36  |.MOV EDX,DWORD PTR SS:[EBP-8]                                              │  
+    │00609A39  |.MOV EAX,DWORD PTR SS:[EBP-4]                                              │  
+    │00609A3C  |.CALL Farsight.006092C4            ;  比较注册码第 2 位                    │  
+    │00609A41  |.TEST AL,AL                                                                 │  
+    │00609A43  |.JE Farsight.00609AD2                                                       │  
+    │00609A49  |.MOV EDX,DWORD PTR SS:[EBP-8]                                              │  
+    │00609A4C  |.MOV EAX,DWORD PTR SS:[EBP-4]                                              │  
+    │00609A4F  |.CALL Farsight.00609378            ;  比较注册码第 3 位                    │  
+    │00609A54  |.TEST AL,AL                                                                 │  
+    │00609A56  |.JE SHORT Farsight.00609AD2                                                  │  
+    │00609A58  |.MOV EDX,DWORD PTR SS:[EBP-8]                                              │  
+    │00609A5B  |.MOV EAX,DWORD PTR SS:[EBP-4]                                              │  
+    │00609A5E  |.CALL Farsight.00609428            ;  比较注册码第 4 位                    │  
+    │00609A63  |.TEST AL,AL                                                                 │  
+    │00609A65  |.JE SHORT Farsight.00609AD2                                                  │  
+    │00609A67  |.MOV EDX,DWORD PTR SS:[EBP-8]                                              │  
+    │00609A6A  |.MOV EAX,DWORD PTR SS:[EBP-4]                                              │  
+    │00609A6D  |.CALL Farsight.006094DC            ;  比较注册码第 5 位                    │  
+    │00609A72  |.TEST AL,AL                                                                 │  
+
+
+
+```
+│00609A74  .JE SHORT Farsight.00609AD2                                                                 │
+│00609A76  .MOV EDX,DWORD PTR SS:[EBP-8]                                                                 │
+│00609A79  .MOV EAX,DWORD PTR SS:[EBP-4]                                                                 │
+│00609A7C  .CALL Farsight.00609590             ;  比较注册码第 6 位                                     │
+│00609A81  .TEST AL,AL                                                                                   │
+│00609A83  .JE SHORT Farsight.00609AD2                                                                 │
+│00609A85  .MOV EDX,DWORD PTR SS:[EBP-8]                                                                 │
+│00609A88  .MOV EAX,DWORD PTR SS:[EBP-4]                                                                 │
+│00609A8B  .CALL Farsight.00609640             ;  比较注册码第 7 位                                     │
+│00609A90  .TEST AL,AL                                                                                   │
+│00609A92  .JE SHORT Farsight.00609AD2                                                                 │
+│00609A94  .MOV EDX,DWORD PTR SS:[EBP-8]                                                                 │
+│00609A97  .MOV EAX,DWORD PTR SS:[EBP-4]                                                                 │
+│00609A9A  .CALL Farsight.006096F0             ;  比较注册码第 8 位                                     │
+│00609A9F  .TEST AL,AL                                                                                   │
+│00609AA1  .JE SHORT Farsight.00609AD2                                                                 │
+│00609AA3  .MOV EDX,DWORD PTR SS:[EBP-8]                                                                 │
+│00609AA6  .MOV EAX,DWORD PTR SS:[EBP-4]                                                                 │
+│00609AA9  .CALL Farsight.006097A0             ;  比较注册码第 9 位                                     │
+│00609AAE  .TEST AL,AL                                                                                   │
+│00609AB0  .JE SHORT Farsight.00609AD2                                                                 │
+│00609AB2  .MOV EDX,DWORD PTR SS:[EBP-8]                                                                 │
+│00609AB5  .MOV EAX,DWORD PTR SS:[EBP-4]                                                                 │
+│00609AB8  .CALL Farsight.00609850             ;  比较注册码第 10 位                                    │
+│00609ABD  .TEST AL,AL                                                                                   │
+│00609ABF  .JE SHORT Farsight.00609AD2                                                                 │
+│00609AC1  .MOV EDX,DWORD PTR SS:[EBP-8]                                                                 │
+│00609AC4  .MOV EAX,DWORD PTR SS:[EBP-4]                                                                 │
+│00609AC7  .CALL Farsight.00609900             ;  比较注册码第 11 位                                    │
+│00609ACC  .TEST AL,AL                                                                                   │
+│00609ACE  .JE SHORT Farsight.00609AD2         ;  一跳就死                                             │
+│00609AD0  .MOV BL,1                                                                                     │
+│00609AD2  >XOR EAX,EAX                                                                                  │
+│00609AD4  .POP EDX                                                                                      │
+│00609AD5  .POP ECX                                                                                      │
+│00609AD6  .POP ECX                                                                                      │
+│00609AD7  .MOV DWORD PTR FS:[EAX],EDX                                                                     │
+│00609ADA  .PUSH Farsight.00609AF4                                                                      │
+│00609ADF  >LEA EAX,DWORD PTR SS:[EBP-C]                                                                 │
+│00609AE2  .MOV EDX,3                                                                                    │
+│00609AE7  .CALL Farsight.00404A3C                                                                       │
+│00609AEC  \.RETN                                                                                        │
+└──────────────────────────────────────────────┘
+```
+
+真的很相似呀,似乎 `v3.6` 版的注册算法与 `v2.2` 版差异不大,从注册算法的结构上讲,确实如此,但实际调试时,`v3.6` 版的算法却比 `v2.2` 版的算法耗时多了不少,现在之所以看起来比较简单是因为,已经对注册算法的结构有了整体的认识,不会漫无目的的乱跑,否则会很头痛,看到那些已经标注功能或未标注功能的 `Call` 了吗,通常是一个 `Call` 中嵌套 `N` 个 `Call`,这 `N` 个 `Call` 中又嵌套 `M` 个其它 `Call`,这样来回的跳转/调用,很容易失去对整体的把握,大大降低调试效率,使你不知道这个 `Call` 是干什么用的.
+
+好了还是说说 `v3.6` 版的注册过程吧,从上面可以看到 `v3.6` 版的注册码共 11 位,
+
+还是将输入的注册名作为种子(我这里是 `"WSLVIC"`),
+
+第一次时,将 `"WSLVIC"` 与 `"hgfjk"` 连接起来成为 `"WSLVIChgfjk"`,用它来算第一个特征序列,我这里是,
+
+特征序列 1: `7d2e1c3587754d4aad891fbedd00dcbb`
+
+第二次时,将 `"WSLVIC"` 与 `"hgfjhkjk"` 连接起来成为 `"WSLVIChgfjhkjk"`,用它来算第二个特征序列,我这里是,
+
+特征序列 2: `f62d38c02d8067df603ac8e77809efb9`
+
+第三次时,将 `"WSLVIC"` 与 `"hgfjk77"` 连接起来成为 `"WSLVIChgfjk77"`,用它来算第三个特征序列,我这里是,
+
+特征序列 3: `1cd45e98b81d190fa0b51fa789d53de7`
+
+第四次时,将 `"WSLVIC"` 与 `"hgfjksss5"` 连接起来成为 `"WSLVIChgfjksss5"`,用它来算第四个特征序列,我这里是,
+
+特征序列 4: `d684ab4e8be93bc5eb2e4bc1893a0fe2`
+
+第五次时,将 `"WSLVIC"` 与 `"6578uhgj"` 连接起来成为 `"WSLVIC6578uhgj"`,用它来算第五个特征序列,我这里是,
+
+特征序列 5: `cad0892fb4c66093b5c6f1956ed16aa6`
+
+第六次时,将 `"WSLVIC"` 与 `"hkjk"` 连接起来成为 `"WSLVIChkjk"`,用它来算第六个特征序列,我这里是,
+
+特征序列 6: `0883d26b6c29b936b33d3dfa3b09da6e`
+
+第七次时,将 `"WSLVIC"` 与 `"asdsd"` 连接起来成为 `"WSLVICasdsd"`,用它来算第七个特征序列,我这里是,
+
+特征序列 7: `b4f1a1bdecab3f6aa88af4354f689ea6`
+
+第八次时,将 `"WSLVIC"` 与 `"xcvxc"` 连接起来成为 `"WSLVICxcvxc"`,用它来算第八个特征序列,我这里是,
+
+特征序列 8: `dc880e4f427416d8d2518bafd29af88b`
+
+第九次时,将 `"WSLVIC"` 与 `"ytutyu"` 连接起来成为 `"WSLVICytutyu"`,用它来算第九个特征序列,我这里是,
+
+特征序列 9: `ec904030107d12e893b417bfc3a9b246`
+
+第十次时,将 `"WSLVIC"` 与 `"45tgy"` 连接起来成为 `"WSLVIC45tgy"`,用它来算第十个特征序列,我这里是,
+
+特征序列 10: `e86dbf967450fdc0fa8a602e77fc4a0d`
+
+第十一次时,将 `"WSLVIC"` 与 `"vbnv"` 连接起来成为 `"WSLVICvbnv"`,用它来算第十一个特征序列,我这里是,
+
+特征序列 11: `93a12dfaf85c5ff0218a55a48ea48cc7`
+
+而注册码为每个特征序列的第一位相连接的结果,如,
+
+特征序列 1 的第一位: `7`
+
+特征序列 2 的第一位: `f`
+
+特征序列 3 的第一位: `1`
+
+特征序列 4 的第一位: `d`
+
+特征序列 5 的第一位: `c`
+
+特征序列 6 的第一位: `0`
+
+特征序列 7 的第一位: `b`
+
+特征序列 8 的第一位: `d`
+
+特征序列 9 的第一位: `e`
+
+特征序列 10 的第一位: `e`
+
+特征序列 11 的第一位: `9`
+
+所以当注册名为 `"WSLVIC"` 时注册码就是:
+
+`RegCode = 7f1dc0bdee9`
+
+**【附加说明】**:
+
+`v2.2` 版中,计算特征序列的 `Call` 是 `CALL Farsight.00601298`
+
+```
+┌──────────────────────────────────────────────┐
+│00601298  /$ PUSH EBP                                                                                   │
+│00601299  |.  MOV EBP,ESP                                                                                │
+│0060129B  |.  ADD ESP,-18                                                                                 │
+│0060129E  |.  PUSH EBX                                                                                    │
+│0060129F  |.  PUSH ESI                                                                                    │
+│006012A0  |.  PUSH EDI                                                                                    │
+│006012A1  |.  XOR ECX,ECX                                                                                 │
+│006012A3  |.  MOV DWORD PTR SS:[EBP-14],ECX                                                                 │
+│006012A6  |.  MOV DWORD PTR SS:[EBP-18],ECX                                                                 │
+│006012A9  |.  MOV ESI,EAX                                                                                 │
+│006012AB  |.  LEA EDI,DWORD PTR SS:[EBP-10]                                                                   │
+│006012AE  |.  MOVS DWORD PTR ES:[EDI],DWORD PTR DS:[ESI]                                                      │
+│006012AF  |.  MOVS DWORD PTR ES:[EDI],DWORD PTR DS:[ESI]                                                      │
+└──────────────────────────────────────────────┘
+```
+
+
+
+## v3.6 版特征序列计算汇编代码
+
+以下代码展示了 `v3.6` 版本中计算特征序列的逻辑，涉及调用 `CALL Farsight.00405080` 等相关操作。
+
+```
+    │006012B0  |. MOVS DWORD PTR ES:[EDI],DWORD PTR DS:[ESI]                       │
+    │006012B1  |. MOVS DWORD PTR ES:[EDI],DWORD PTR DS:[ESI]                       │
+    │006012B2  |. MOV EDI,EDX                                                     │
+    │006012B4  |. XOR EAX,EAX                                                     │
+    │006012B6  |. PUSH EBP                                                        │
+    │006012B7  |. PUSH Farsight.00601333                                          │
+    │006012BC  |. PUSH DWORD PTR FS:[EAX]                                         │
+    │006012BF  |. MOV DWORD PTR FS:[EAX],ESP                                      │
+    │006012C2  |. MOV EAX,EDI                                                     │
+    │006012C4  |. CALL Farsight.00404E98                                          │
+    │006012C9  |. MOV BL,10                       ;  BL = 16d                     │
+    │006012CB  |. LEA ESI,DWORD PTR SS:[EBP-10]        ;  ESI 指向 7BCAD5F8 所在堆栈的地址│
+    │006012CE  |> /PUSH DWORD PTR DS:[EDI]                  ;  /                   │
+    │006012D0  |. |LEA EAX,DWORD PTR SS:[EBP-14]                             │
+    │006012D3  |. |XOR EDX,EDX                        ;  |计                   │
+    │006012D5  |. |MOV DL,BYTE PTR DS:[ESI]                                  │
+    │006012D7  |. |SHR EDX,4                           ;  |                   │
+    │006012DA  |. |AND EDX,0F                                                 │
+    │006012DD  |. |MOV DL,BYTE PTR DS:[EDX+60FF04]         ;  |算               │
+    │006012E3  |. |CALL Farsight.00405080                                     │
+    │006012E8  |. |PUSH DWORD PTR SS:[EBP-14]         ;  |                   │
+    │006012EB  |. |LEA EAX,DWORD PTR SS:[EBP-18]                             │
+    │006012EE  |. |MOV DL,BYTE PTR DS:[ESI]                 ;  |特               │
+    │006012F0  |. |AND DL,0F                                                  │
+    │006012F3  |. |AND EDX,0FF                       ;  |                   │
+    │006012F9  |. |MOV DL,BYTE PTR DS:[EDX+60FF04]                         │
+    │006012FF  |. |CALL Farsight.00405080          ;  |征               │
+    │00601304  |. |PUSH DWORD PTR SS:[EBP-18]                                 │
+    │00601307  |. |MOV EAX,EDI                        ;  |                   │
+    │00601309  |. |MOV EDX,3                                                  │
+    │0060130E  |. |CALL Farsight.00405218          ;  |码               │
+    │00601313  |. |INC ESI                                                  │
+    │00601314  |. |DEC BL                          ;  |                   │
+    │00601316  |. \\JNZ SHORT Farsight.006012CE          ;  \\                   │
+    │00601318  |. XOR EAX,EAX                                                     │
+    │0060131A  |. POP EDX                                                   │
+    │0060131B  |. POP ECX                                                   │
+    │0060131C  |. POP ECX                                                   │
+    │0060131D  |. MOV DWORD PTR FS:[EAX],EDX                                      │
+    │00601320  |. PUSH Farsight.0060133A                                          │
+    │00601325  |> LEA EAX,DWORD PTR SS:[EBP-18]                                 │
+    │00601328  |. MOV EDX,2                                                 │
+    │0060132D  |. CALL Farsight.00404EBC                                          │
+    │00601332  \. RETN                                                     │
+    └──────────────────────────────────────────────┘
+```
+
+在 `v3.6` 版中，计算特征序列的调用是 `CALL Farsight.00608B80`。
+
+```
+    ┌──────────────────────────────────────────────┐
+    │00608B80  /$  55            PUSH EBP                                     │
+    │00608B81  |.  8BEC          MOV EBP,ESP                                  │
+    │00608B83  |.  83C4 E8       ADD ESP,-18                                  │
+    │00608B86  |.  53            PUSH EBX                                     │
+    │00608B87  |.  56            PUSH ESI                                     │
+    │00608B88  |.  57            PUSH EDI                                     │
+    │00608B89  |.  33C9          XOR ECX,ECX                                  │
+    │00608B8B  |.  894D EC       MOV DWORD PTR SS:[EBP-14],ECX                 │
+    │00608B8E  |.  894D E8       MOV DWORD PTR SS:[EBP-18],ECX                 │
+    │00608B91  |.  8BF0          MOV ESI,EAX                                  │
+    │00608B93  |.  8D7D F0       LEA EDI,DWORD PTR SS:[EBP-10]                 │
+    │00608B96  |.  A5            MOVS DWORD PTR ES:[EDI],DWORD PTR DS:[ES>;  010A5B55         │
+    │00608B97  |.  A5            MOVS DWORD PTR ES:[EDI],DWORD PTR DS:[ES>;  E7A08C70         │
+    │00608B98  |.  A5            MOVS DWORD PTR ES:[EDI],DWORD PTR DS:[ES>;  787B8F07         │
+    │00608B99  |.  A5            MOVS DWORD PTR ES:[EDI],DWORD PTR DS:[ES>;  5A73B193 入 ES     │
+    │00608B9A  |.  8BFA          MOV EDI,EDX                                  │
+    │00608B9C  |.  33C0          XOR EAX,EAX                                  │
+    │00608B9E  |.  55            PUSH EBP                                     │
+    │00608B9F  |.  68 1B8C6000   PUSH Farsight.00608C1B                       │
+    │00608BA4  |.  64:FF30       PUSH DWORD PTR FS:[EAX]                       │
+    │00608BA7  |.  64:8920       MOV DWORD PTR FS:[EAX],ESP                   │
+    │00608BAA  |.  8BC7          MOV EAX,EDI                                  │
+    │00608BAC  |.  E8 67BEDFFF   CALL Farsight.00404A18                       │
+    │00608BB1  |.  B3 10         MOV BL,10                    ;  BL=16d       │
+    │00608BB3  |.  8D75 F0       LEA ESI,DWORD PTR SS:[EBP-10]    ;  ESI 指向 010A5B55   │
+    │00608BB6  |>  FF37          /PUSH DWORD PTR DS:[EDI]          ;  /       │
+    │00608BB8  |.  8D45 EC       |LEA EAX,DWORD PTR SS:[EBP-14]             │
+    │00608BBB  |.  33D2          |XOR EDX,EDX                     ;  |       │
+    │00608BBD  |.  8A16          |MOV DL,BYTE PTR DS:[ESI]                              │
+    │00608BBF  |.  C1EA 04       |SHR EDX,4                       ;  |计       │
+    │00608BC2  |.  83E2 0F       |AND EDX,0F                                           │
+    │00608BC5  |.  8A92 048F6100 |MOV DL,BYTE PTR DS:[EDX+618F04]     ;  |       │
+
+
+
+```
+    │00608BCB  |.  E8 30C0DFFF   |CALL Farsight.00404C00                                                  │
+    │00608BD0  |.  FF75 EC       |PUSH DWORD PTR SS:[EBP-14]              ;  |算                    │
+    │00608BD3  |.  8D45 E8       |LEA EAX,DWORD PTR SS:[EBP-18]                                  │
+    │00608BD6  |.  8A16          |MOV DL,BYTE PTR DS:[ESI]                     ;  |                    │
+    │00608BD8  |.  80E2 0F       |AND DL,0F                                                           │
+    │00608BDB  |.  81E2 FF000000 |AND EDX,0FF                         ;  |特                    │
+    │00608BE1  |.  8A92 048F6100 |MOV DL,BYTE PTR DS:[EDX+618F04]                              │
+    │00608BE7  |.  E8 14C0DFFF   |CALL Farsight.00404C00                  ;  |                    │
+    │00608BEC  |.  FF75 E8       |PUSH DWORD PTR SS:[EBP-18]                                     │
+    │00608BEF  |.  8BC7          |MOV EAX,EDI                          ;  |征                    │
+    │00608BF1  |.  BA 03000000   |MOV EDX,3                                                          │
+    │00608BF6  |.  E8 9DC1DFFF   |CALL Farsight.00404D98                  ;  |                    │
+    │00608BFB  |.  46            |INC ESI                                                              │
+    │00608BFC  |.  FECB          |DEC BL                        ;  |码                    │
+    │00608BFE  |.^ 75 B6         \JNZ SHORT Farsight.00608BB6            ;  \                    │
+    │00608C00  |.  33C0          XOR EAX,EAX                                                          │
+    │00608C02  |.  5A            POP EDX                                                            │
+    │00608C03  |.  59            POP ECX                                                            │
+    │00608C04  |.  59            POP ECX                                                            │
+    │00608C05  |.  64:8910       MOV DWORD PTR FS:[EAX],EDX                                        │
+    │00608C08  |.  68 228C6000   PUSH Farsight.00608C22                                             │
+    │00608C0D  |>   8D45 E8      LEA EAX,DWORD PTR SS:[EBP-18]                                   │
+    │00608C10  |.  BA 02000000   MOV EDX,2                                                         │
+    │00608C15  |.  E8 22BEDFFF   CALL Farsight.00404A3C                                             │
+    │00608C1A  \\.  C3           RETN                                                           │
+    └──────────────────────────────────────────────┘
+```
+
+有兴趣探秘或想写注册机的人，可以试试...（要是能送上注册机源码就最好不过了---我喜欢看别人的源码，呵呵）
+
+【破解总结】：
+
+`v2.2` 版：
+
+```
+RegName="WSLVIC"
+RegCode="f8d5b41ce087"
+```
+
+`v3.6` 版：
+
+```
+RegName="WSLVIC"
+RegCode="7f1dc0bdee9"
+```
+
+比较过新老版本 `FarSight Calculator` 的注册算法之后有所感，首先，它们的注册流程是很相似的，都是用注册名+预设字符串，作为种子来算出一个特征序列，然后从特征序列中取出特定部分，组成注册码。不同之处是 `v2.2` 版使用双字比较（4 字节）且特征序列较少（3 个），而 `v3.6` 版使用字节比较（单字节）且特征序列较多（11 个），这样的区别导致了 `v3.6` 版的调试过程较 `v2.2` 版稍显复杂，其主要原因是：双字比较在 `OD` 寄存器窗口很容易引起注意（字串），而字节比较则不是，因此关键命令就这样 “隐藏” 起来。
+
+将此扩展开来，如果一个软件的注册码是整串比较，那么一定比较容易破解，因为很容易找到关键指令，反之，如果一个软件使用位比较，则相对最难破解，因为首先要取得特定的位，然后再将这些位按照一定规则组织起来，形成有意义的字节/字/双字/字串，而如何找到这个规则，就是一个问题。
+
+所以这个实例告诉我们，在编写注册码算法时，应尽量避免使用整串比较，如果自己能力较强的话，可以试试位比较，这样生成的软件被破解的概率会低些，换句话说，安全性就高些。不知道自己说的对不对，欢迎大家来指摘。
+
+注意：由于没有具体去追 `FarSight Calculator` 到底是如何由 “注册名+预设字串” 做种子来生成注册码，所以不知道它是否用了硬件信息种子，如果没有用硬件信息种子，注册会成功，如果用了，可能就不会注册成功，请大家试用后，告诉我。
+
+![](img/02445529dd4a8d374cb8c2ca2d32e2e3.jpg)
+
+![](img/995bf48f147ec365aab9bd00bd3db672.jpg)
+
+上传的附件
+
+| ![](img/67af4f1ef9c98996f43e89e749c7dcf5.jpg) | `v2.2.rar` |
+| --- | --- |
+| ![](img/67af4f1ef9c98996f43e89e749c7dcf5.jpg) | `v3.6.rar` |
