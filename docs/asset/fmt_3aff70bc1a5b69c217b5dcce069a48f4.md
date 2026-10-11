@@ -1,0 +1,185 @@
+
+# 和 Taskmgr 过不去篇（无厘头版）
+
+> 原文：[`www.pediy.com/kssd/pediy10/92562.html`](https://www.pediy.com/kssd/pediy10/92562.html)
+
+## 程序逆向初步之一
+
+Hook 入门级文章，主要想培养一下偶写文章的感觉，老鸟无视…
+
+我想看看技术文章能不能无厘头的写，如果效果不错的话，准备更上一层-----
+
+用我的原创漫画表达。:)
+
+(警告 1:文章中有部分“限制级”词语，请 11 岁以下弟弟妹妹误入)
+
+(警告 2: 修正警告 1，不是“误入”，是“勿入”哦，我没有做暗示哦…)
+
+正义的 hopy 加菲
+
+http://album.hi.csdn.net/app\_uploads/mydo/20090630/174418687.p.JPG?d=20090630174540031
+
+邪恶的 hopy 阿宝
+
+http://album.hi.csdn.net/app\_uploads/mydo/20090630/175033078.p.JPG?d=20090630175047515
+
+## 故事
+
+时间: 终结者 2018 年
+
+场景: 地下泡泡澡堂
+
+故事: 纯属虚构
+
+在一场残酷的西红柿大战后，最终邪恶阿宝使用卑鄙无耻的招数轻松战胜了单纯的加菲,于是哥俩一起去地下废墟澡堂泡澡。在沉默了一阵之后加菲忽然问了阿宝一个恐怖的问题……
+
+加菲:……你说我们俩身上的毛哪个值钱…
+
+阿宝:%##$%@#$%#@%#@，你想钱想疯啦……
+
+加菲:最近手头比较紧,有没有活接？
+
+阿宝:嘿嘿……搞定一个任务，钞票大大滴。
+
+加菲(口水状):什么呀?
+
+阿宝:老比最近打麻将输我 200 多，赖账不肯还……
+
+加菲:不会吧…人家是首富哦…
+
+阿宝:没办法呀,`windows`赔老喽，我准备把他的命根子毁了……
+
+加菲:你这个流氓，我不跟你玩了…
+
+阿宝:什么啊！我指的是他的 `windows`,你想哪去了…
+
+加菲(迅速岔开话题):今天晚上太阳好亮哦…
+
+阿宝（画外音）:#@$%#@%,我们俩到底谁邪恶…
+
+加菲:怎么毁呀?
+
+阿宝:我搞了一个宇宙超级大病毒程序，只要运行 30 分钟保准他的命根子玩蛋！只要 30 分钟内不被 `windows taskmgr` 发现…
+
+加菲:你傻啊?人家不会用其他进程查看工具嘛？
+
+阿宝:说你不懂了吧，老比乱搞垄断，`windows` 和 `taskmgr` 捆死了，其他进程工具没法运行呀，嘿嘿…自掘死路…
+
+加菲:这还不简单，做个 `rootkit` 在内核层把病毒进程隐藏起来不就行了。
+
+阿宝:进不去 `RING0`，只能在用户层搞……，有没有其他办法…
+
+加菲:你超级病毒都能写出来，这个不会写?????
+
+阿宝（-\_-b）:少废话，你要不要钞票了…
+
+加菲:这个…
+
+一炷香的功夫过去了…
+
+阿宝:你到底想好了没啊？
+
+加菲:`taskmgr` 显示进程信息的控件是 `SysListView32`,我想可以截获显示每一行的消息，然后忽略显示病毒进程的那一条消息…
+
+阿宝:好啊…做一个 `dll` 植入 `taskmgr`,然后 `SysListView32` 子类化到 `dll` 中的一个消息处理函数，过滤特定进程的消息…
+
+加菲:没成功…可以截获和过滤消息，但显示老是会多出来一行…(可能是我实现方法有问题，请看我以前在看雪发布的程序)
+
+阿宝:那怎么办啊?
+
+加菲:要不然这样，做一个进程文本修改器，类似游戏修改器中的自动修改变量，只不过这个变量是一个进程名,只要找到病毒进程名字的文本，就将成其他混淆视听的名字(`svchost.exe`)。
+
+阿宝:8 错,查找时要注意同时修改 `UNICODE` 的字符串哦…
+
+加菲:成功了，因为两个进程同时要写一个内容，所以极少数时间里可能会造成病毒进程名漏出马脚…
+
+阿宝:嗯…病毒名有时会闪一下…进程数还是增加了…能不能干脆彻底删除这个进程名而不是将其改成其他名字呢?
+
+加菲:这个…
+
+阿宝(舔和路雪冰淇淋):搞得怎么样了，有什么新花样呢?
+
+加菲:如果你的超级病毒运行之后，就不准 `taskmgr` 运行起来，如果已经运行起来就将其关掉…
+
+阿宝:这个不行，太招人显眼了…
+
+加菲:把 `taskmgr` 僵掉…
+
+阿宝:你以为你是林正英啊？？？怎么僵呢???
+
+加菲:我刚才没事用 `IDA` 玩了一下 `taskmgr` 的 body,发现一个好玩的 `UpdateProcInfoArray` 过程哦,上代码(省略无关部分):
+
+代码:
+
+```
+public: long __thiscall CProcPage::UpdateProcInfoArray(void) proc near
+mov     eax, dword_1016580
+.text:0100CAD5              shr     eax, 0Ah
+.text:0100CAD8              mov     ecx, eax
+.text:0100CADA              imul    ecx, [ebp+var_1FC]
+.text:0100CAE1              mov     [ebp+var_88], ecx
+.text:0100CAE7              mov     ecx, eax
+.text:0100CAE9              imul    ecx, [ebp+var_1F8]
+.text:0100CAF0              mov     edx, eax
+.text:0100CAF2              imul    edx, [ebp+var_1F0]
+.text:0100CAF9              mov     [ebp+var_74], ecx
+.text:0100CAFC              mov     ecx, eax
+.text:0100CAFE              imul    ecx, [ebp+var_1F4]
+.text:0100CB05              mov     [ebp+var_6C], edx
+.text:0100CB08              mov     edx, eax
+.text:0100CB0A              imul    eax, [ebp+var_1B4]
+.text:0100CB11              imul    edx, [ebp+var_1B8]
+.text:0100CB18              mov     [ebp+var_7C], eax
+.text:0100CB1B              add     eax, edx
+.text:0100CB1D              push    edi
+.text:0100CB1E              mov     [ebp+var_78], eax
+.text:0100CB21              push    24h
+.text:0100CB23              lea     eax, [ebp+var_F0]
+.text:0100CB29              push    eax
+.text:0100CB2A              push    15h
+.text:0100CB2C              mov     [ebp+var_70], ecx
+.text:0100CB2F              mov     [ebp+var_80], edx
+.text:0100CB32              mov     __int64 g_MEMMax, ecx
+.text:0100CB38              mov     dword_1016564, edi
+.text:0100CB3E              call    esi ; NtQuerySystemInformation(x,x,x,x)
+.text:0100CB40              test    eax, eax
+.text:0100CB42              jge     short loc_100CB4E
+.text:0100CB42
+.text:0100CB44
+.text:0100CB44 loc_100CB44:                   ; CODE XREF: CProcPage::UpdateProcInfoArray(void)+4Bj
+.text:0100CB44                     ; CProcPage::UpdateProcInfoArray(void)+7Aj
+.text:0100CB44              mov     eax, 80004005h
+.text:0100CB49              jmp     loc_100CE7E
+.text:0100CB49
+.text:0100CB4E ; ---------------------------------------------------------------------------
+.text:0100CB4E
+.text:0100CB4E loc_100CB4E:                   ; CODE XREF: CProcPage::UpdateProcInfoArray(void)+EEj
+.text:0100CB4E              mov     eax, dword_1016580
+.text:0100CB53              shr     eax, 0Ah
+.text:0100CB56              imul    eax, [ebp+var_DC]
+.text:0100CB5D              mov     ecx, ebx
+.text:0100CB5F              mov     [ebp+var_84], eax
+.text:0100CB65              call    CProcPage::GetProcessInfo(void)
+.text:0100CB65
+.text:0100CB6A              cmp     eax, edi
+.text:0100CB6C              mov     [ebp+var_58], eax
+.text:0100CB6F              jl      loc_100CE64
+.text:0100CB6F
+.text:0100CB75              mov     [ebp+var_48], edi
+.text:0100CB75
+.text:0100CB78
+.text:0100CB78 loc_100CB78:                   ; CODE XREF: CProcPage::UpdateProcInfoArray(void)+1EEj
+.text:0100CB78              mov     esi, [ebx+10h]
+.text:0100CB7B              add     esi, [ebp+var_48]
+.text:0100CB7E              mov     eax, [esi+44h]
+.text:0100CB81              cmp     eax, edi
+.text:0100CB83              jnz     short loc_100CB8E
+.text:0100CB83
+.text:0100CB85              cmp     [esi+4], edi
+.text:0100CB88              jz      loc_100CC1D
+
+```
+
+加菲:注意 `call CProcPage::GetProcessInfo(void)` 这一行，进去看看:
+
+代码:
