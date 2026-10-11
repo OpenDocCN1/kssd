@@ -1,0 +1,1034 @@
+
+# slv unpackme 脱壳 & 去校验
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-525.htm`](https://www.pediy.com/kssd/pediy09/pediy09-525.htm)
+
+> 其实壳本身不要紧，问题是 vm 里面有个校验。
+
+> sm 同学手下留情，我勉强能搞一个运行正常的，没精力还原 vm 了。
+
+> 在 `virutalfree` 的 `retn` 上 f4, 直到`[esp]`是一个 exe image 内的地址 f7 返回:
+
+```
+0040FA91    B8 BE180000     mov     eax, 18BE
+0040FA96    BA 00004000     mov     edx, slv_unpa.00400000
+0040FA9B    03C2          add     eax, edx
+0040FA9D  - FFE0          jmp     eax
+```
+
+> 在 `jmp eax` 上 f4 f7 到 oep:
+
+```
+004018BE    68 EA1AF500     push    0F51AEA
+004018C3  - E9 EF01B500     jmp     00F51AB7
+004018C8    CC            int3
+004018C9    CC            int3
+```
+
+> jmp 到 vm 了, 不过这段内存不可 dump, ctrl f2 再来看哪里分配的:
+
+> bp `virtualalloc`, 不停的 ctrl f9 看到 eax=00F50000 停下:
+
+```
+0040FBB6    6A 40         push    40
+0040FBB8    68 00100000   push    1000
+0040FBBD    50            push    eax
+0040FBBE    6A 00         push    0
+0040FBC0    FF13          call    [ebx]                    ; kernel32.VirtualAlloc
+0040FBC2    8BD0          mov     edx, eax
+0040FBC4    8BFA          mov     edi, edx
+0040FBC6    8B4E FC       mov     ecx, [esi-4]
+0040FBC9    F3:A4         rep     movsb
+```
+
+> 往下走 ecx=000151E9, 复制一个 `unpackme.exe` 到 `2.exe`, 增加一个 section header:
+
+> vaddr=`0x0022000`
+> vsize=`0x20000`
+
+> 加载 `2.exe` 在 `0040FBC2` 上 f4 把 eax 改成 422000.
+
+> 然后按上面到方法走到 oep, 用 `lordpe` dump 一份(`ollydump` 我从来不成功) `dumped.exe`
+> 接着用 `imprec fixdump` 生成 `3.exe`
+
+> 一运行非法了, 点调试挂上 `od`:
+
+```
+00422CCA    8910          mov     [eax], edx//eax=00140688
+00422CCC    E9 0D0E0000   jmp     00423ADE
+```
+
+> 向上看全是屁股...啊不对, 全是花指令, 只有 EB, nop 掉:
+
+```
+00422CA4    33C0          xor     eax, eax
+00422CAC    AC            lodsb
+00422CB1    8B1487        mov     edx, [edi+eax*4]
+00422CB7    33C0          xor     eax, eax
+00422CBD    AC            lodsb
+00422CC1    8B0487        mov     eax, [edi+eax*4]
+00422CCA    8910          mov     [eax], edx
+00422CCC    E9 0D0E0000   jmp     00423ADE
+```
+
+> 看样子只是一个虚拟机指令, 好像丢掉东西了.
+
+> 校验是哪里来的?
+> 想法一：`GetFileSize`, 估计 sm 同学不屑使用, 怀着侥幸试一下果然没有用.
+> 想法二：在某处设置了标记, 前面 `virtualalloc` 都被释放掉了, vm 段我们也 dump 了, 能在哪呢?
+> 联想到 sm 同学一贯喜欢在 pe header 里面插东西, 就看看 pe header
+
+> 加载 `2.exe` 在 oep 的时候按 alt m 在 pe header 上 f2 果然中断了访问`[400110]==1000`
+> 加载 `3.exe` 也中断了,`[400110]==18BE`
+> 原来校验了 entrypoint, 估计后面当作常数运算了, 因为所有 kbys 都会把 1000 作为入口.
+
+> 解决方案有两种, 一种写一段入口代码把入口改为 1000, 另一种是挪动, 因为写保护不方便, 我选择挪动.
+
+> 401000 ctrl r 找到两处参考, 都改 401005
+
+```
+004011DA    E8 21FeFFFF   call    3.00401000
+004011EC    E8 0FFEFFFF   call    3.00401000
+```
+
+> 修改这里的代码:
+
+```
+00401000 > /E9 B9080000   jmp     4.004018BE
+00401005  |68 EA9C4200    push    4.00429CEA
+0040100A -|E9 A82A0200    jmp     4.00423AB7
+```
+
+> 保存到文件, 最后 `lordpe` 修改 1000 为入口, 保存 `4.exe`, 嗯出图片了.
+
+> 不过点了出来 she 之后不会关掉自己反而弹出自己, 估计是虚拟机里有调用 1000 退出,
+> 结果跳到 18be 又 `DialogParam` 了
+
+> 那么只好选择写保护了, 用 `lordpe` 添加一个输入函数 `VirutalProtect`
+
+> 在 oep 下面找片空地写代码, 最后跳回 18be
+
+```
+004018C8  >  B8 00004000   mov     eax, 00400000
+004018CD    0340 3C        add     eax, [eax+3C]
+004018D0    8D78 28        lea     edi, [eax+28]
+004018D3    50            push    eax
+004018D4    54            push    esp
+004018D5    6A 04         push    4
+004018D7    6A 04         push    4
+004018D9    57            push    edi
+004018DA    FF15 1E304400 call    [44301E]                ; kernel32.VirtualProtect
+004018E0    58            pop     eax
+004018E1    B8 00100000   mov     eax, 1000
+004018E6    AB            stosd
+004018E7  ^ EB D5        jmp     004018BE
+```
+
+> 把入口改成 18c8, 搞定收工.
+> 好虚伪
+
+> //code by skylly
+> //for shoooo's vm engine
+
+```
+gpa "VirtualFree", "kernel32.dll"
+cmp $RESULT,0
+je err
+var VF
+mov VF,$RESULT
+bp VF
+esto
+esto
+esto
+bc VF
+rtu
+
+find eip,#FFE0#
+cmp $RESULT,0
+je err
+go $RESULT
+sti
+//vm start here
+
+fuckvm:
+//首先找到 op_code 起始地址
+var temp
+lps:
+mov temp,[eip]
+and temp,FF
+cmp temp,E9  //jmp
+je vmstart
+sti
+jmp lps
+
+vmstart:
+sti
+var addr
+mov addr,[esp]
+cmt eip,"请等待分析过程..."
+//解析
+anly:
+var tempcode
+mov tempcode,[addr]
+and tempcode,FF
+cmp tempcode,0C
+je vm_0C
+cmp tempcode,0D
+je vm_0D
+cmp tempcode,13
+je vm_13
+cmp tempcode,14
+je vm_14
+cmp tempcode,1C
+je vm_1C
+cmp tempcode,2C
+je vm_2C
+cmp tempcode,2D
+je vm_2D
+cmp tempcode,35
+je vm_35
+cmp tempcode,39
+je vm_39
+cmp tempcode,3D
+je vm_3D
+cmp tempcode,3F
+je vm_3F
+cmp tempcode,42
+je vm_42
+cmp tempcode,45
+je vm_45
+cmp tempcode,48
+je vm_48
+cmp tempcode,4A
+je vm_4A
+cmp tempcode,4F
+je vm_4F
+cmp tempcode,54
+je vm_54
+cmp tempcode,55
+je vm_55
+cmp tempcode,5C
+je vm_5C
+cmp tempcode,5E
+je vm_5E
+cmp tempcode,60
+je vm_60
+cmp tempcode,61
+je vm_5E //这里和 5e 一样的操作
+cmp tempcode,64
+je vm_5E //这里和 5e 一样的操作
+cmp tempcode,68
+je vm_68
+cmp tempcode,6A
+je vm_6A
+cmp tempcode,76
+je vm_5E //这里和 5e 一样的操作
+cmp tempcode,78
+je vm_5E //这里和 5e 一样的操作
+cmp tempcode,7A
+je vm_7A
+cmp tempcode,7B
+je vm_7B
+cmp tempcode,7D
+je vm_7D
+//to be continue...
+
+jmp unknown
+
+vm_0C:
+//je neweip
+var code
+var reg
+inc addr
+mov reg,[addr]
+and reg,FF
+cmp reg,1A
+jne err
+inc addr
+mov code,[addr]
+add addr,4
+add code,addr
+sub addr,5
+eval "{addr}: je {code}"
+log $RESULT
+add addr,5
+
+var addr1
+var addr2
+mov addr1,addr
+mov addr2,code
+bphws addr1,"r"
+bphws addr2,"r"
+esto
+bphwc addr1
+bphwc addr2
+mov addr,esi
+dec addr
+jmp anly
+
+vm_0D:
+//or vm_reg1 vm_reg2
+var reg1
+var reg2
+inc addr
+mov reg1,[addr]
+and reg1,FF
+inc addr
+mov reg2,[addr]
+and reg2,FF
+sub addr,2
+eval "{addr}: or vmreg_{reg2}, vmreg_{reg1}"
+log $RESULT
+add addr,3
+jmp anly
+
+vm_13:
+//and 400, vm_reg
+//push 结果
+var code
+inc addr
+mov code,[addr]
+and code,FF
+dec addr
+eval "{addr}: and [esp], 400, vmreg_{code}"
+log $RESULT
+add addr,2
+jmp anly
+
+vm_14:
+//mov fs: [vm_reg1], vm_reg2
+var reg1
+var reg2
+inc addr
+mov reg1,[addr]
+and reg1,FF
+inc addr
+mov reg2,[addr]
+and reg2,FF
+sub addr,2
+eval "{addr}: mov dword ptr fs: [vmreg_{reg2}], vmreg_{reg1}"
+log $RESULT
+add addr,3
+jmp anly
+
+vm_1C:
+//mov vm_reg,const
+var code
+var reg
+inc addr
+mov code,[addr]
+add addr,4
+mov reg,[addr]
+and reg,FF
+sub addr,5
+eval "{addr}: mov vmreg_{reg}, {code}"
+log $RESULT
+add addr,6
+jmp anly
+
+vm_2C:
+//add vm_reg, esi
+var code
+inc addr
+mov code,[addr]
+and code,FF
+dec addr
+eval "{addr}: add vmreg_{code}, esi"
+log $RESULT
+add addr,2
+jmp anly
+
+vm_2D:
+//mov word vm_reg1,[vm_reg2]
+var reg1
+var reg2
+inc addr
+mov reg1,[addr]
+and reg1,FF
+inc addr
+mov reg2,[addr]
+and reg2,FF
+sub addr,2
+eval "{addr}: mov word vmreg_{reg2}, [vmreg_{reg1}]
+log $RESULT
+add addr,3
+jmp anly
+```
+
+
+
+`vm_35`
+
+```
+//mov byte ptr vm_reg1, vm_reg2
+
+var reg1
+
+var reg2
+
+inc addr
+
+mov reg1,[addr]
+
+and reg1,FF
+
+inc addr
+
+mov reg2,[addr]
+
+and reg2,FF
+
+sub addr,2
+
+eval "{addr}: mov byte vmreg_{reg2}, vmreg_{reg1}"
+
+log $RESULT
+
+add addr,3
+
+jmp anly
+```
+
+`vm_39`
+
+```
+//xor vm_reg1 vm_reg2
+
+var reg1
+
+var reg2
+
+inc addr
+
+mov reg1,[addr]
+
+and reg1,FF
+
+inc addr
+
+mov reg2,[addr]
+
+and reg2,FF
+
+sub addr,2
+
+eval "{addr}: xor vmreg_{reg2}, vmreg_{reg1}"
+
+log $RESULT
+
+add addr,3
+
+jmp anly
+```
+
+`vm_3D`
+
+```
+//pop vm_reg
+
+var code
+
+inc addr
+
+mov code,[addr]
+
+and code,FF
+
+dec addr
+
+eval "{addr}: pop vmreg_{code}"
+
+log $RESULT
+
+add addr,2
+
+jmp anly
+```
+
+`vm_3F`
+
+```
+//and byte ptr vm_reg1, vm_reg2
+
+var reg1
+
+var reg2
+
+inc addr
+
+mov reg1,[addr]
+
+and reg1,FF
+
+inc addr
+
+mov reg2,[addr]
+
+and reg2,FF
+
+sub addr,2
+
+eval "{addr}: and byte vmreg_{reg2}, vmreg_{reg1}"
+
+log $RESULT
+
+add addr,3
+
+jmp anly
+```
+
+`vm_42`
+
+```
+//mov [vm_reg1],vm_reg2
+
+var reg1
+
+var reg2
+
+inc addr
+
+mov reg1,[addr]
+
+and reg1,FF
+
+inc addr
+
+mov reg2,[addr]
+
+and reg2,FF
+
+sub addr,2
+
+eval "{addr}: mov [vmreg_{reg2}], vmreg_{reg1}"
+
+log $RESULT
+
+add addr,3
+
+jmp anly
+```
+
+`vm_45`
+
+```
+//sub vm_reg1,vm_reg2
+
+var reg1
+
+var reg2
+
+inc addr
+
+mov reg1,[addr]
+
+and reg1,FF
+
+inc addr
+
+mov reg2,[addr]
+
+and reg2,FF
+
+sub addr,2
+
+eval "{addr}: sub vmreg_{reg2}, vmreg_{reg1}"
+
+log $RESULT
+
+add addr,3
+
+jmp anly
+```
+
+`vm_48`
+
+```
+//jmp neweip
+
+var code
+
+var reg
+
+inc addr
+
+mov reg,[addr]
+
+and reg,FF
+
+cmp reg,1A
+
+jne err
+
+inc addr
+
+mov code,[addr]
+
+add addr,4
+
+add code,addr
+
+sub addr,5
+
+eval "{addr}: jmp {code}"
+
+log $RESULT
+
+add addr,5
+
+mov addr,code     //跳转了
+
+jmp anly
+```
+
+`vm_4A`
+
+```
+//mov ebp, vm_reg
+
+var code
+
+inc addr
+
+mov code,[addr]
+
+and code,FF
+
+dec addr
+
+eval "{addr}: mov ebp, vmreg_{code}\]"
+
+log $RESULT
+
+add addr,2
+
+jmp anly
+```
+
+`vm_4F`
+
+```
+//shr dword vm_reg1,vm_reg2
+
+var reg1
+
+var reg2
+
+inc addr
+
+mov reg1,[addr]
+
+and reg1,FF
+
+inc addr
+
+mov reg2,[addr]
+
+and reg2,FF
+
+sub addr,2
+
+eval "{addr}: shr vmreg_{reg2}, vmreg_{reg1}"
+
+log $RESULT
+
+add addr,3
+
+jmp anly
+```
+
+`vm_54`
+
+```
+//push vm_reg
+
+var code
+
+inc addr
+
+mov code,[addr]
+
+and code,FF
+
+dec addr
+
+eval "{addr}: push vmreg_{code}"
+
+log $RESULT
+
+add addr,2
+
+jmp anly
+```
+
+`vm_55`
+
+```
+//retn to a real api call
+
+eval "{addr}: out of vm"
+
+log $RESULT
+
+//add addr,1
+
+bphws addr,"r"
+
+esto
+
+bphwc addr
+
+mov addr,ebp
+
+add addr,24
+
+var temp
+
+mov temp,[addr]
+
+eval "jmp api: {temp}"
+
+log $RESULT
+
+add addr,4
+
+mov addr,[addr]
+
+cmp temp,10000000
+
+jb end          //如果不是个 api 地址
+
+bphws addr,"x"
+
+esto
+
+vmreturn:
+
+bphwc addr
+
+jmp fuckvm
+```
+
+`vm_5C`
+
+```
+//pushfd
+
+//or [esp],vm_13 的运行结果
+
+//pop vm_reg
+
+var code
+
+inc addr
+
+mov code,[addr]
+
+and code,FF
+
+dec addr
+
+eval "{addr}: or vmreg_{code}, eflag, [esp]"
+
+log $RESULT
+
+add addr,2
+
+jmp anly
+```
+
+`vm_5E`
+
+```
+//mov vm_reg1,vm_reg2
+
+var reg1
+
+var reg2
+
+inc addr
+
+mov reg1,[addr]
+
+and reg1,FF
+
+inc addr
+
+mov reg2,[addr]
+
+and reg2,FF
+
+sub addr,2
+
+eval "{addr}: mov vmreg_{reg2}, vmreg_{reg1}"
+
+log $RESULT
+
+add addr,3
+
+jmp anly
+```
+
+`vm_60`
+
+```
+//jne neweip
+
+var code
+
+var reg
+
+inc addr
+
+mov reg,[addr]
+
+and reg,FF
+
+cmp reg,1A
+
+jne err
+
+inc addr
+
+mov code,[addr]
+
+add addr,4
+
+add code,addr
+
+sub addr,5
+
+eval "{addr}: jne {code}"
+
+log $RESULT
+
+add addr,5       
+
+var addr1
+
+var addr2
+
+mov addr1,addr
+
+mov addr2,code
+
+bphws addr1,"r"
+
+bphws addr2,"r"
+
+esto
+
+bphwc addr1
+
+bphwc addr2
+
+mov addr,esi
+
+dec addr
+
+jmp anly
+```
+
+`vm_68`
+
+```
+//shl dword vm_reg1,vm_reg2
+
+var reg1
+
+var reg2
+
+inc addr
+
+mov reg1,[addr]
+
+and reg1,FF
+
+inc addr
+
+mov reg2,[addr]
+
+and reg2,FF
+
+sub addr,2
+
+eval "{addr}: shl vmreg_{reg2}, vmreg_{reg1}"
+
+log $RESULT
+
+add addr,3
+
+jmp anly
+```
+
+`vm_6A`
+
+```
+//add vm_reg1,vm_reg2
+
+var reg1
+
+var reg2
+
+inc addr
+
+mov reg1,[addr]
+
+and reg1,FF
+
+inc addr
+
+mov reg2,[addr]
+
+and reg2,FF
+
+sub addr,2
+
+eval "{addr}: add vmreg_{reg2}, vmreg_{reg1}"
+
+log $RESULT
+
+add addr,3
+
+jmp anly
+```
+
+`vm_7A`
+
+```
+//mov byte vm_reg1,[vm_reg2]
+
+var reg1
+
+var reg2
+
+inc addr
+
+mov reg1,[addr]
+
+and reg1,FF
+
+inc addr
+
+mov reg2,[addr]
+
+and reg2,FF
+
+sub addr,2
+
+eval "{addr}: mov byte vmreg_{reg2}, [vmreg_{reg1}]"
+
+log $RESULT
+
+add addr,3
+
+jmp anly
+```
+
+`vm_7B`
+
+```
+//and vm_reg1,vm_reg2
+
+var reg1
+
+var reg2
+
+inc addr
+
+mov reg1,[addr]
+
+and reg1,FF
+
+inc addr
+
+mov reg2,[addr]
+
+and reg2,FF
+
+sub addr,2
+
+eval "{addr}: and vmreg_{reg2}, vmreg_{reg1}"
+
+log $RESULT
+
+add addr,3
+
+jmp anly
+```
+
+`vm_7D`
+
+```
+//mov vm_reg1, (vm_reg2 shr 8; and FF)
+
+var reg1
+
+var reg2
+
+inc addr
+
+mov reg1,[addr]
+
+and reg1,FF
+
+inc addr
+
+mov reg2,[addr]
+
+and reg2,FF
+
+sub addr,2
+
+eval "{addr}: mov vmreg_{reg2}, (vmreg_{reg1} shr 8; and FF)"
+
+log $RESULT
+
+add addr,3
+
+jmp anly
+```
+
+`unknown`
+
+```
+eval "unkonw code at: {addr}"
+
+log $RESULT
+
+msg $RESULT
+
+ret
+```
+
+`end`
+
+```
+//vm 外的代码
+
+bphws temp,"x"
+
+esto
+
+bphwc temp
+
+cmt eip,"here is not vmed"
+
+bphws addr,"x"
+
+esto
+
+jmp vmreturn
+
+ret
+```
+
+`err`
+
+```
+msg "error"
+
+ret
+```
+
+`4dd466d0e1e0cc123afbe504da2462ca`
