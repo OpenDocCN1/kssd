@@ -1,0 +1,192 @@
+
+# 电视剧下载 V2.80 注册算法分析+VB 注册机
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-238.htm`](https://www.pediy.com/kssd/pediy07/pediy7-238.htm)
+
+## 基本信息
+
+- **【破文标题】**：电视剧下载 V2.80 注册算法分析+VB 注册机
+- **【破文作者】**：`KuNgBiM[DFCG]`
+- **【作者邮箱】**：`gb_1227@163.com`
+- **【软件名称】**：电视剧下载(电视剧、电视台) 2.80
+- **【软件大小】**：2151 KB
+- **【软件类别】**：国产软件/共享版/网络音视
+- **【整理时间】**：2005-5-21
+- **【下载地址】**：[`vvvvv.cn/zhencui/dsj.htm`](http://vvvvv.cn/zhencui/dsj.htm)
+
+### 软件简介
+独一无二的电视剧高速下载软件，汇集了 400 多个国内外电视台,1000 多部电视剧|港台现代剧 | 港台古装剧 | 大陆电视剧 | 青春偶像剧 | 粤语原版剧 | 日韩电视剧 | 卡通漫画剧 | 欧美原版剧| ,速度快质量高的精彩视频，专人实时跟踪更新升级,本软件具有自动升级功能。 通过独特的合作资源，提供超过 400 套超高清晰的卫星电视节目，高速 HBO 大片，BBC 新闻，日本 MM、港台凤凰、华娱、星空、TVB 系列，国内中央及各省卫星电视节目。
+
+### 技术细节
+- **【保护方式】**：注册码+功能限制
+- **【编译语言】**：`Borland Delphi 6.0 - 7.0`
+- **【调试环境】**：`WinXP`、`PEiD`、`W32Dasm`、`Ollydbg`
+- **【破解日期】**：2005-5-21
+- **【破解目的】**：研究算法分析
+
+### 作者声明
+初学 Crack，只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+----------------------------------------------------------------
+
+## 破解过程
+
+**侦测**：用 `PEiD` 查壳，无壳，`Borland Delphi 6.0 - 7.0` 编译。
+
+**试探**：运行主程序注册，输入试炼码，确认！程序提示：" 您输入的注册码无效，请重新输入。"
+
+**初步下药**：用 `W32Dasm` 进行静态反汇编，查找" 您输入的注册码无效，请重新输入。"字符串，找到 `004BCA2F` 处，确定断点应下在 `004BCA06` 处。
+
+**对症下药**：`Ollydbg` 载入主程序，来到 `004BCA06` 处下断，`F9` 运行，输入试炼信息：
+
+```
+***** 试炼信息 *****
+机器码：A8395E3C
+注册码：78787878
+*********************
+```
+
+点击确定后 `OD` 断下:（这里我采用的是 `W32Dasm` 的反汇编信息，比较干净清楚！）
+
+```
+:004BC9FA  8D55F0            lea edx, dword ptr [ebp-10]
+:004BC9FD  8B45FC            mov eax, dword ptr [ebp-04]
+:004BCA00  8B803C030000      mov eax, dword ptr [eax+0000033C]
+:004BCA06  E84DA0F8FF        call 00446A58
+:004BCA0B  837DF000          cmp dword ptr [ebp-10], 00000000     //比较注册码是否为 0
+:004BCA0F  741E              je 004BCA2F                           //等于 0 则跳死
+:004BCA11  8D55EC            lea edx, dword ptr [ebp-14]
+:004BCA14  8B45FC            mov eax, dword ptr [ebp-04]           //向 eax 赋值 010924D0
+:004BCA17  8B803C030000      mov eax, dword ptr [eax+0000033C]     //向 eax 赋值 01097FC4
+:004BCA1D  E836A0F8FF        call 00446A58
+:004BCA22  8B45EC            mov eax, dword ptr [ebp-14]           //试炼码赋值给 EAX
+:004BCA25  E8467AF4FF        call 00404470
+:004BCA2A  83F808            cmp eax, 00000008                     //注册码位数是否为 8
+:004BCA2D  7E0F              jle 004BCA3E                          //大于或小于则跳死
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004BCA0F(C)
+|
+* Possible StringData Ref from Code Obj ->" 您输入的注册码无效，请重新输入。"
+                  |
+:004BCA2F  B8A4CC4B00      mov eax, 004BCCA4
+:004BCA34  E80333F7FF      call 0042FD3C
+:004BCA39  E9BA010000      jmp 004BCBF8
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004BCA2D(C)
+|
+:004BCA3E  8D45E4          lea eax, dword ptr [ebp-1C]            //注册码位数等于 8
+:004BCA41  50              push eax
+:004BCA42  8D55E0          lea edx, dword ptr [ebp-20]
+:004BCA45  8B45FC          mov eax, dword ptr [ebp-04]
+:004BCA48  8B8040030000    mov eax, dword ptr [eax+00000340]
+:004BCA4E  E805A0F8FF      call 00446A58
+:004BCA53  8B45E0          mov eax, dword ptr [ebp-20]            //机器码入 EAX（ASCII "A8395E3C"）
+:004BCA56  B906000000      mov ecx, 00000006                     //ECX 给予 6 位空间
+:004BCA5B  BA01000000      mov edx, 00000001
+:004BCA60  E86B7CF4FF      call 004046D0                          //取机器码前 6 位
+:004BCA65  8B4DE4          mov ecx, dword ptr [ebp-1C]            //机器码前 6 位入 ECX（ASCII "A8395E"）
+:004BCA68  8D45E8          lea eax, dword ptr [ebp-18]
+:004BCA6B  BAD0CC4B00      mov edx, 004BCCD0                     //EDX 为 16 进制数（ASCII "0x"）
+:004BCA70  E8477AF4FF      call 004044BC
+:004BCA75  8B45E8          mov eax, dword ptr [ebp-18]            //机器码前 6 位变为 16 进制数（ASCII "0xA8395E"）
+:004BCA78  E8E3BFF4FF      call 00408A60
+:004BCA7D  8BF0            mov esi, eax                           //将机器码前 6 位的字符串转换成 16 进制后存放在 ESI 中
+:004BCA7F  33C0            xor eax, eax                           //异或清空
+:004BCA81  55              push ebp
+:004BCA82  68AFCB4B00      push 004BCBAF
+:004BCA87  64FF30          push dword ptr fs:[eax]
+:004BCA8A  648920          mov dword ptr fs:[eax], esp
+:004BCA8D  8D55DC          lea edx, dword ptr [ebp-24]
+:004BCA90  8B45FC          mov eax, dword ptr [ebp-04]            //EAX 清 0
+:004BCA93  8B803C030000    mov eax, dword ptr [eax+0000033C]      //eax=010924D0
+:004BCA99  E8BA9FF8FF      call 00446A58
+:004BCA9E  8B45DC          mov eax, dword ptr [ebp-24]            //假码赋值给 EAX （ASCII "78787878"）
+:004BCAA1  E8BABFF4FF      call 00408A60                          //将假码又转为 16 进制
+:004BCAA6  8BD8            mov ebx, eax                           //假码赋值给 EBX （eax=04B23526  ebx=01098648）
+:004BCAA8  8BC3            mov eax, ebx                           //EBX 又赋值给 EAX（ebx=04B23526  eax=04B23526）
+:004BCAAA  2BC6            sub eax, esi                           //EAX=EAX-ESI   （esi=00A8395E  eax=04B23526）
+:004BCAAC  3B05A8234F00    cmp eax, dword ptr [004F23A8]          //比较 EAX 与 004F23A8 中的值是否相等（常量值=1B669）
+:004BCAB2  7438            je 004BCAEC                            //EAX 值若不等于 1B669 就跳死
+                                                   //（1B669 十进制数就是 112233，晕死~）
+
+* Possible StringData Ref from Code Obj ->" 您输入的注册码 "
+                  |
+:004BCAB4  68DCCC4B00      push 004BCCDC
+:004BCAB9  8D55D4          lea edx, dword ptr [ebp-2C]
+:004BCABC  8B45FC          mov eax, dword ptr [ebp-04]
+:004BCABF  8B803C030000    mov eax, dword ptr [eax+0000033C]
+:004BCAC5  E88E9FF8FF      call 00446A58
+:004BCACA  FF75D4          push [ebp-2C]
+
+* Possible StringData Ref from Code Obj ->" 不正确，请与作者联系。"
+                  |
+:004BCACD  68F8CC4B00      push 004BCCF8
+:004BCAD2  8D45D8          lea eax, dword ptr [ebp-28]
+:004BCAD5  BA03000000      mov edx, 00000003
+:004BCADA  E8517AF4FF      call 00404530
+:004BCADF  8B45D8          mov eax, dword ptr [ebp-28]
+:004BCAE2  E85532F7FF      call 0042FD3C
+:004BCAE7  E9B9000000      jmp 004BCBA5
+```
+
+----------------------------------------------------------------
+
+## 算法总结
+
+注册验证非常简单：
+
+`注册码 = 十进制（机器码前 6 位 + 1B669）`
+
+## VB6 算法注册机源码
+
+```vb
+Private Sub Text1_Change()
+Dim jqm, z, a, b, m As String
+
+x = Text1.Text
+
+If x = "" Then               '未输入的机器码则不计算
+Else
+    If Len(x) = 8 Then       '输入的机器码等于 8 位后才开始计算
+        a = "1B669"
+        z = Mid(x, 1, 6)
+        m = Format("&h" + z)
+        b = Format("&h" + a)
+        zcm = Val(m) + Val(b)
+        Text2.Text = zcm
+    End If
+End If
+
+End Sub
+```
+
+---
+
+**注册信息:**
+
+- 机器码：`A8395E3C`
+- 注册码：`11136967`
+
+================================================================================================
+
+**BTW：** 值得庆幸的是，作者现在把试用版和正式版分别发售，这样来就可以减少被破解的机率，恭喜恭喜~~
+
+================================================================================================
+
+----------------------------------------------------------------
+
+（本文完）
+
+版权所有（C）2005 `KuNgBiM[DFCG]` Copyright (C) 2005 `KuNgBiM[DFCG]`
+
+----------------------------------------------------------------
+
+Cracked BY `KuNgBiM[DFCG]`
+
+2005-05-21
+
+2:25:26 AM
+
+`4dd466d0e1e0cc123afbe504da2462ca`
