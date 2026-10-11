@@ -1,0 +1,1628 @@
+
+# yoda's Protector V1.03.2.02 脱壳
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-563.htm`](https://www.pediy.com/kssd/pediy07/pediy7-563.htm)
+
+yoda's Protector V1.03.2.02 脱壳——`yP.exe` 全过程分析
+
+下载页面： `http://yodap.cjb.net/`
+
+软件作者： Ashkbiz Danehkar
+
+软件大小： 40K
+
+发布日期： 27.II.2005
+
+软件简介： Polymorphic encryption，Softice detection，Anti Debug API's，Erase PE Header，Anti Dumping，CRC checking，Import Table encryption/destruction，API Redirection
+
+【作者声明】：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教
+
+【调试环境】：WinXP、Ollydbg、PEiD、LordPE
+
+---
+
+## 脱壳过程
+
+我一向很少 `F7` 调试保护壳，上周日单步把 yoda's Protector 走了几遍，记录了过程。标题所谓的“全过程”其实还是简要分析。感觉 yoda's Protector 和 `[MSLRH]` 相似，除了一些反跟踪手段就没有什么可以看的了。
+
+```
+[yoda's Protector V1.0X -> Ashkbiz Danehkar]
+
+signature = E8 03 00 00 00 EB 01
+
+ep_only = true
+```
+
+设置 OllyDbg 忽略所有异常选项。用 `IsDebug` 插件去掉 OllyDbg 的调试器标志。
+
+---
+
+### 一、热身运动：准备 2 个校验值
+
+```
+00461549    E8 03000000      call 00461551
+
+//进入 Ollydbg 后暂停在这
+
+0046154E    EB 01           jmp short 00461551
+```
+
+前面几个 `CC`，没什么好说的，看着堆栈走就行了。
+
+```
+00461777    8D85 2F734200   lea eax,dword ptr ss:[ebp+42732F]
+
+//[ebp+42732F]=00461549      ModuleEntryPoint
+
+0046177D    B9 E39B4200      mov ecx,429BE3
+
+00461782    81E9 2F734200   sub ecx,42732F
+
+//ECX=429BE3-42732F=000028B4
+
+00461788    51               push ecx
+
+00461789    50               push eax
+
+0046178A    E8 3F0E0000      call 004625CE
+
+//计算壳 EP 处长度 28B4 代码的校验值＝000FC7C5
+
+0046178F    83C4 08          add esp,8
+
+00461792    8985 A8A34200   mov dword ptr ss:[ebp+42A3A8],eax
+
+//校验值 000FC7C5 保存在[ebp+42A3A8]处  ★  最后会检测的
+
+00461798    8DB5 98A34200   lea esi,dword ptr ss:[ebp+42A398]
+
+0046179E    8D85 A7754200   lea eax,dword ptr ss:[ebp+4275A7]
+
+004617A4    3E:8946 08      mov dword ptr ds:[esi+8],eax
+
+004617A8    8BFD            mov edi,ebp
+
+004617AA    8D85 B69F4200   lea eax,dword ptr ss:[ebp+429FB6]
+
+004617B0    33DB            xor ebx,ebx
+
+004617B2    50               push eax
+
+004617B3    64:FF33          push dword ptr fs:[ebx]
+
+004617B6    64:8923          mov dword ptr fs:[ebx],esp
+
+004617B9    66:B8 0400      mov ax,4
+
+004617BD    EB 01           jmp short 004617C0
+
+004617BF    C3               retn
+```
+
+同样过几个异常，下面一大段是壳获取所使用的 API 函数部分，没有意思，愿意看就走下去，否则就顺着 `Jmp` 翻屏下去
+
+```
+00461EA2    BB C3724200      mov ebx,4272C3
+
+00461EA7    FF541D 00       call dword ptr ss:[ebp+ebx]; kernel32.GetTickCount
+
+//获取自 windows 启动以来经历的时间长度
+
+00461EAB    8985 BCA04200   mov dword ptr ss:[ebp+42A0BC],eax
+
+//EAX=00C7E130 保存在[ebp+42A0BC]处  ★  最后会检测的
+
+00461EB1    E8 03000000      call 00461EB9
+```
+
+---
+
+### 二、获取当前 Windows 系统的版本
+
+```
+00461EB9    BB C7724200      mov ebx,4272C7
+
+00461EBE    FF541D 00       call dword ptr ss:[ebp+ebx]; kernel32.GetVersion
+
+//判断当前运行的 Windows 版本
+
+00461EC2    A9 00000080      test eax,80000000
+
+00461EC7    74 20            je short 00461EE9
+
+00461EC9    3C 04            cmp al,4
+
+00461ECB    75 0C            jnz short 00461ED9
+
+00461ECD    C785 48A04200 0>mov dword ptr ss:[ebp+42A048],2
+
+00461ED7    EB 40            jmp short 00461F19
+
+00461ED9    3C 03            cmp al,3
+
+00461EDB    75 3C            jnz short 00461F19
+
+00461EDD    C785 48A04200 0>mov dword ptr ss:[ebp+42A048],1
+
+00461EE7    EB 30            jmp short 00461F19
+
+00461EE9    3C 03            cmp al,3
+
+//Windows3.X ？
+
+00461EEB    75 0C            jnz short 00461EF9
+
+00461EED    C785 48A04200 0>mov dword ptr ss:[ebp+42A048],4
+
+00461EF7    EB 20            jmp short 00461F19
+
+00461EF9    3C 04            cmp al,4
+
+//Windows9X、NT4.0 ？
+
+00461EFB    75 0C            jnz short 00461F09
+
+//修改标志位使这里不跳转
+
+00461EFD    C785 48A04200 0>mov dword ptr ss:[ebp+42A048],8
+
+//[ebp+42A048]置 8，壳就以为我的系统不是 2K、XP，这样为下面省点 Anti
+
+00461F07    EB 10            jmp short 00461F19
+
+00461F09    3C 05            cmp al,5
+
+//Windows2K、XP ？
+
+00461F0B    75 0C            jnz short 00461F19
+
+00461F0D    C785 48A04200 1>mov dword ptr ss:[ebp+42A048],10
+
+00461F17    EB 00            jmp short 00461F19
+```
+
+---
+
+### 三、BlockInput ：锁定键盘和鼠标
+
+```
+00461F19    BB EB724200      mov ebx,4272EB
+
+00461F1E    FF541D 00       call dword ptr ss:[ebp+ebx]
+
+//User32.GetForegroundWindow   获得前台应用程序的活动窗口
+
+00461F22    8985 4CA04200   mov dword ptr ss:[ebp+42A04C],eax
+
+00461F28    6A 00            push 0
+
+00461F2A    8D85 A9A44200   lea eax,dword ptr ss:[ebp+42A4A9]
+
+//[ebp+42A4A9]=004646C3, (ASCII "Shell_TrayWnd")  任务栏窗口类
+
+00461F30    50               push eax
+
+00461F31    BB EF724200      mov ebx,4272EF
+
+00461F36    FF541D 00       call dword ptr ss:[ebp+ebx]; User32.FindWindowA
+
+00461F3A    8985 50A04200   mov dword ptr ss:[ebp+42A050],eax
+
+00461F40    BB F3724200      mov ebx,4272F3
+
+00461F45    FF541D 00       call dword ptr ss:[ebp+ebx]; User32.GetTopWindow
+
+00461F49    8985 58A04200   mov dword ptr ss:[ebp+42A058],eax
+
+00461F4F    E8 03000000      call 00461F57
+
+00461F57    BB 67724200      mov ebx,427267
+
+00461F5C    FF541D 00       call dword ptr ss:[ebp+ebx]; kernel32.GetCurrentProcess
+
+00461F60    50               push eax
+
+00461F61    50               push eax
+
+00461F62    BB 97724200      mov ebx,427297
+
+00461F67    FF541D 00       call dword ptr ss:[ebp+ebx]
+
+//kernel32.GetPriorityClass 获取当前进程的优先级别
+
+00461F6B    8985 60A04200   mov dword ptr ss:[ebp+42A060],eax
+
+00461F71    58               pop eax
+
+00461F72    68 80000000      push 80
+
+00461F77    50               push eax
+
+00461F78    BB 93724200      mov ebx,427293
+
+00461F7D    FF541D 00       call dword ptr ss:[ebp+ebx]; kernel32.SetPriorityClass
+
+//设置自身进程的优先级别为高
+
+00461F81    F785 48A04200 0>test dword ptr ss:[ebp+42A048],8
+
+00461F8B    75 0B            jnz short 00461F98
+
+//如果你使壳“相信”你不是用 WinDows 2K/XP，则这里会跳转，否则修改标志位 Z=0  ★
+
+00461F8D    6A 01            push 1
+
+//或者修改堆栈里 push 的 1 为 0
+
+00461F8F    BB DF724200      mov ebx,4272DF
+
+00461F94    FF541D 00       call dword ptr ss:[ebp+ebx]
+
+//User32.BlockInput         锁定键盘和鼠标
+
+00461F98    BA 00000000      mov edx,0
+
+00461F9D    F785 68A04200 0>test dword ptr ss:[ebp+42A068],1
+
+00461FA7    75 05            jnz short 00461FAE
+```
+
+省略一段调用 `ADVAPI32.CryptCreateHash`、`ADVAPI32.CryptHashData`、`ADVAPI32.CryptDeriveKey` 创建密钥的过程。
+
+---
+
+### 四、父进程检测
+
+如果在第二部分使 yoda's Protector 以为当前系统平台不是 WinDows 2000/XP，则不必担心下面的问题。并且，还是在 `[ebp+42A048]` 置 8 比较省事，后面的检测还有不少。
+
+```
+00462135    F785 A4A34200 0>test dword ptr ss:[ebp+42A3A4],1
+
+0046213F    74 7C            je short 004621BD
+
+004621BD    E8 03000000      call 004621C5
+
+004621C5    F785 48A04200 0>test dword ptr ss:[ebp+42A048],8
+
+//如果你使壳“相信”你不是用 WinDows 2K/XP，则下面不会跳转，否则下面要 Anti 了 ★
+
+004621CF    74 08            je short 004621D9
+
+004621D9    B9 49000000      mov ecx,49
+
+004621DE    8BD5             mov edx,ebp
+
+004621E0    81C2 EFA44200    add edx,42A4EF
+
+004621E6    33C0             xor eax,eax
+
+004621E8    8D3A             lea edi,dword ptr ds:[edx]
+
+004621EA    57               push edi
+
+004621EB    F3:AB            rep stos dword ptr es:[edi]
+
+004621ED    5F               pop edi
+
+004621EE    36:C702 2801000>mov dword ptr ss:[edx],128
+
+004621F5    8BD5             mov edx,ebp
+
+004621F7    81C2 6B724200    add edx,42726B
+
+004621FD    FF12             call dword ptr ds:[edx]; kernel32.GetCurrentProcessID
+
+004621FF    6A 00            push 0
+
+00462201    6A 02            push 2
+
+00462203    8BD5             mov edx,ebp
+
+00462205    81C2 E3A44200    add edx,42A4E3
+
+0046220B    8902             mov dword ptr ds:[edx],eax
+
+0046220D    8BD5             mov edx,ebp
+
+0046220F    81C2 63724200    add edx,427263
+
+00462215    FF12             call dword ptr ds:[edx]; kernel32.CreateToolhelp32Snapshot
+
+00462217    8BF0             mov esi,eax
+
+00462219    8BC5             mov eax,ebp
+
+0046221B    05 EFA44200      add eax,42A4EF
+```
+
+
+
+### 汇编代码段
+
+```asm
+00462220    56                push esi
+00462222    8BD5              mov edx,ebp
+00462224    81C2 6F724200     add edx,42726F
+0046222A    FF12              call dword ptr ds:[edx]; kernel32.Process32First
+0046222C    85C0              test eax,eax
+0046222E    0F84 B3000000     je 004622E7
+00462234    8BD5              mov edx,ebp
+00462236    81C2 EFA44200     add edx,42A4EF
+0046223C    8D0A              lea ecx,dword ptr ds:[edx]
+0046223E    51                push ecx
+0046223F    56                push esi
+00462240    8BD5              mov edx,ebp
+00462242    81C2 73724200     add edx,427273
+00462248    FF12              call dword ptr ds:[edx]; kernel32.Process32Next
+0046224A    85C0              test eax,eax
+0046224C    0F84 95000000     je 004622E7
+00462252    33DB              xor ebx,ebx
+00462254    EB 03             jmp short 00462259
+00462256    3E:8D09           lea ecx,dword ptr ds:[ecx]
+00462259    56                push esi
+0046225A    8BD5              mov edx,ebp
+0046225C    81C2 EFA44200     add edx,42A4EF
+00462262    8B42 08           mov eax,dword ptr ds:[edx+8]
+00462265    8D72 24           lea esi,dword ptr ds:[edx+24]
+00462268    8BFE              mov edi,esi
+0046226A    56                push esi
+0046226B    57                push edi
+0046226C    E8 320F0000       call 004631A3
+00462271    83C4 08           add esp,8
+00462274    57                push edi
+00462275    56                push esi
+00462276    E8 E4100000       call 0046335F
+0046227B    83C4 08           add esp,8
+0046227E    8BF7              mov esi,edi
+00462280    56                push esi
+00462281    57                push edi
+00462282    8BD5              mov edx,ebp
+00462284    81C2 89A44200     add edx,42A489
+0046228A    8D3A              lea edi,dword ptr ds:[edx]
+0046228C    B9 0D000000       mov ecx,0D
+00462291    33D2              xor edx,edx
+00462293    F3:A6             repe cmps byte ptr es:[edi],byte ptr ds:[esi]
+//比较是否是 EXPLORER.EXE.\.\SICE.\.\NTICE.Shell_TrayWnd.OLLYDBG
+00462295    75 09             jnz short 004622A0
+00462297    83FB 00           cmp ebx,0
+0046229A    74 02             je short 0046229E
+0046229C    EB 02             jmp short 004622A0
+0046229E    8BD8              mov ebx,eax
+004622A0    5F                pop edi
+004622A1    5E                pop esi
+004622A2    52                push edx
+004622A3    8BD5              mov edx,ebp
+004622A5    81C2 E3A44200     add edx,42A4E3
+004622AB    36:3B02           cmp eax,dword ptr ss:[edx]
+004622AE    5A                pop edx
+004622AF    75 17             jnz short 004622C8
+004622B1    52                push edx
+004622B2    8BD5              mov edx,ebp
+004622B4    81C2 EFA44200     add edx,42A4EF
+004622BA    8B42 18           mov eax,dword ptr ds:[edx+18]
+004622BD    8BD5              mov edx,ebp
+004622BF    81C2 3CA04200     add edx,42A03C
+004622C5    8902              mov dword ptr ds:[edx],eax
+//保存父进程 ID
+004622C7    5A                pop edx
+004622C8    5E                pop esi
+004622C9    8BD5              mov edx,ebp
+004622CB    81C2 EFA44200     add edx,42A4EF
+004622D1    8D0A              lea ecx,dword ptr ds:[edx]
+004622D3    51                push ecx
+004622D4    56                push esi
+004622D5    8BD5              mov edx,ebp
+004622D7    81C2 73724200     add edx,427273
+004622DD    FF12              call dword ptr ds:[edx]; kernel32.Process32Next
+004622DF    85C0              test eax,eax
+004622E1    0F85 72FFFFFF     jnz 00462259
+004622E7    8BD5              mov edx,ebp
+004622E9    81C2 40A04200     add edx,42A040
+004622EF    891A              mov dword ptr ds:[edx],ebx
+//保存资源浏览器(Explorer.exe)的进程 ID
+004622F1    56                push esi
+004622F2    8BD5              mov edx,ebp
+004622F4    81C2 5B724200     add edx,42725B
+004622FA    FF12              call dword ptr ds:[edx]; kernel32.CloseHandle
+004622FC    8BD5              mov edx,ebp
+004622FE    81C2 02814200     add edx,428102
+00462304    8D02              lea eax,dword ptr ds:[edx]
+00462306    50                push eax; 0046231C
+00462307    C3                retn
+0046231C    F785 A4A34200 80  test dword ptr ss:[ebp+42A3A4],80
+00462326    75 45             jnz short 0046236D
+00462328    8B85 40A04200     mov eax,dword ptr ss:[ebp+42A040]
+//资源浏览器(Explorer.exe)的进程 ID
+0046232E    8B9D 3CA04200     mov ebx,dword ptr ss:[ebp+42A03C]
+//当前父进程 ID
+00462334    3BC3              cmp eax,ebx
+//比较
+00462336    74 35             je short 0046236D
+//不同则不跳
+00462338    F785 48A04200 08  test dword ptr ss:[ebp+42A048],8
+00462342    74 08             je short 0046234C
+004627C4    81C2 B3724200     add edx,4272B3
+004627CA    FF12              call dword ptr ds:[edx]; kernel32.SuspendThread
+//挂起 OllyDbg，使得无法调试下去
+```
+
+### 五、任务栏的沉睡
+
+如果 `004621CF` 处不跳，那么继续看 `yoda's Protector` 的招数
+
+```asm
+004621C5    F785 48A04200 08  test dword ptr ss:[ebp+42A048],8
+004621CF    74 08             je short 004621D9
+004621D1    8D85 02814200     lea eax,dword ptr ss:[ebp+428102]
+004621D7    50                push eax; yP.0046231C
+004621D8    C3                retn
+0046231C    F785 A4A34200 80  test dword ptr ss:[ebp+42A3A4],80
+00462326    75 45             jnz short 0046236D
+00462328    8B85 40A04200     mov eax,dword ptr ss:[ebp+42A040]
+0046232E    8B9D 3CA04200     mov ebx,dword ptr ss:[ebp+42A03C]
+00462334    3BC3              cmp eax,ebx
+//没有进行进程 ID 的比较，所以这里都是 0
+00462336    74 35             je short 0046236D
+0046236D    6A F0             push -10
+0046236F    8B85 50A04200     mov eax,dword ptr ss:[ebp+42A050]
+//[ebp+42A050]＝00030046    00461F36 处获得的任务栏窗口句柄
+00462375    50                push eax
+00462376    BB E3724200       mov ebx,4272E3
+0046237B    FF541D 00         call dword ptr ss:[ebp+ebx]; User32.GetWindowLongA
+//0012EB00   0046237F  /CALL 到 GetWindowLongA 来自 yP.0046237B
+//0012EB04   00030046  |hWnd = 00030046 (class='Shell_TrayWnd')
+//0012EB08   FFFFFFFF0   \Index = GWL_STYLE
+0046237F    8985 54A04200     mov dword ptr ss:[ebp+42A054],eax
+//[ebp+42A054]=EAX=96000000 以后要恢复的
+00462385    0D 00000008       or eax,8000000
+0046238A    50                push eax
+0046238B    6A F0             push -10
+0046238D    8B85 50A04200     mov eax,dword ptr ss:[ebp+42A050]
+00462393    50                push eax
+00462394    BB E7724200       mov ebx,4272E7
+00462399    FF541D 00         call dword ptr ss:[ebp+ebx]; User32.SetWindowLongA
+//会导致任务栏失去响应。所以我们可以修改 NewValue = 96000000    ★
+//0012EAFC   0046239D  /CALL 到 SetWindowLongA 来自 yP.00462399
+//0012EB00   000200E4  |hWnd = 000200E4 (class='Shell_TrayWnd')
+//0012EB04   FFFFFFFF0   |Index = GWL_STYLE
+//0012EB08   9E000000    \NewValue = 9E000000
+0046239D    6A F0             push -10
+0046239F    8B85 58A04200     mov eax,dword ptr ss:[ebp+42A058]
+//00461F45 处没有获取成功，返回 0，下面就不必处理了
+004623A5    50                push eax
+004623A6    BB E3724200       mov ebx,4272E3
+004623AB    FF541D 00         call dword ptr ss:[ebp+ebx]; User32.GetWindowLongA
+004623AF    8985 5CA04200     mov dword ptr ss:[ebp+42A05C],eax
+004623B5    0D 0000008        or eax,8000000
+004623BA    50                push eax
+004623BB    6A F0             push -10
+004623BD    8B85 58A04200     mov eax,dword ptr ss:[ebp+42A058]
+004623C3    50                push eax
+004623C4    BB E7724200       mov ebx,4272E7
+004623C9    FF541D 00         call dword ptr ss:[ebp+ebx]; User32.SetWindowLongA
+004623CD    F785 A4A34200 10 test dword ptr ss:[ebp+42A3A4],10
+004623D7    74 3A             je short 00462413
+004623D9    64:FF35 30000000  push dword ptr fs:[30]
+004623E0    58                pop eax
+004623E1    85C0              test eax,eax
+004623E3    78 0F             js short 004623F4
+```
+
+
+
+```
+004623E5    8B40 0C         mov eax,dword ptr ds:[eax+C]  
+
+004623E8    8B40 0C         mov eax,dword ptr ds:[eax+C]  
+
+004623EB    C740 20 0020000>mov dword ptr ds:[eax+20],2000  
+
+004623F2    EB 1F           jmp short 00462413  
+```
+—————————————————————————————————
+
+### 六、计算校验值
+
+```
+00462413    F785 48A04200 0>test dword ptr ss:[ebp+42A048],8  
+
+0046241D    74 08           je short 00462427  
+
+0046241F    8D85 19824200   lea eax,dword ptr ss:[ebp+428219]  
+
+00462425    50              push eax; 00462433  
+
+00462426    C3              retn  
+
+00462433    E8 03000000     call 0046243B  
+
+00462438    EB 01           jmp short 0046243B  
+
+0046243B    8BBD 34A04200   mov edi,dword ptr ss:[ebp+42A034]  
+
+00462441    037F 3C         add edi,dword ptr ds:[edi+3C]  
+
+00462444    8BB5 34A04200   mov esi,dword ptr ss:[ebp+42A034]  
+
+0046244A    8B4F 54         mov ecx,dword ptr ds:[edi+54]  
+
+0046244D    8D85 EFA44200   lea eax,dword ptr ss:[ebp+42A4EF]  
+
+00462453    50              push eax  
+
+00462454    6A 04           push 4  
+
+00462456    51              push ecx  
+
+00462457    FFB5 34A04200   push dword ptr ss:[ebp+42A034]  
+
+0046245D    BB 3B724200     mov ebx,42723B  
+
+00462462    FF541D 00       call dword ptr ss:[ebp+ebx]; kernel32.VirtualProtect  
+
+00462466    F785 A4A34200 0>test dword ptr ss:[ebp+42A3A4],8  
+
+00462470    0F84 A3010000   je 00462619  
+
+00462476    F785 A4A34200 8>test dword ptr ss:[ebp+42A3A4],80  
+
+00462480    75 19           jnz short 0046249B  
+
+00462482    68 04010000     push 104  
+
+00462487    8DBD EFA44200   lea edi,dword ptr ss:[ebp+42A4EF]  
+
+0046248D    57              push edi  
+
+0046248E    6A 00           push 0  
+
+00462490    BB 43724200     mov ebx,427243  
+
+00462495    FF541D 00       call dword ptr ss:[ebp+ebx]; kernel32.GetModuleFileNameA  
+
+00462499    EB 1C           jmp short 004624B7  
+
+004624B7    6A 00           push 0  
+
+004624B9    68 80000000     push 80  
+
+004624BE    6A 03           push 3  
+
+004624C0    6A 00           push 0  
+
+004624C2    6A 01           push 1  
+
+004624C4    68 00000080     push 80000000  
+
+004624C9    57              push edi  
+
+004624CA    BB 47724200     mov ebx,427247  
+
+004624CF    FF541D 00       call dword ptr ss:[ebp+ebx]; kernel32.CreateFileA  
+
+004624D3    83F8 FF         cmp eax,-1  
+
+004624D6    75 07           jnz short 004624DF  
+
+004624D8    33C0            xor eax,eax  
+
+004624DA    E9 3A010000     jmp 00462619  
+
+004624E1    6A 00           push 0  
+
+004624E3    57              push edi  
+
+004624E4    BB 57724200     mov ebx,427257  
+
+004624E9    FF541D 00       call dword ptr ss:[ebp+ebx]; kernel32.GetFileSize  
+
+004624ED    50              push eax  
+
+004624EE    57              push edi  
+
+004624EF    56              push esi  
+
+004624F0    8BBD 34A04200   mov edi,dword ptr ss:[ebp+42A034]  
+
+004624F6    037F 3C         add edi,dword ptr ds:[edi+3C]  
+
+004624F9    8BF7            mov esi,edi  
+
+004624FB    83C6 06         add esi,6  
+
+004624FE    33C9            xor ecx,ecx  
+
+00462500    66:8B0E         mov cx,word ptr ds:[esi]  
+
+00462503    49              dec ecx  
+
+00462504    81C6 F2000000   add esi,0F2  
+
+0046250A    B8 28000000     mov eax,28  
+
+0046250F    F7E1            mul ecx  
+
+00462511    03F0            add esi,eax  
+
+00462513    83C6 10         add esi,10  
+
+00462516    8B0E            mov ecx,dword ptr ds:[esi]  
+
+00462518    5E              pop esi  
+
+00462519    5F              pop edi  
+
+0046251A    58              pop eax  
+
+0046251B    0385 44A04200   add eax,dword ptr ss:[ebp+42A044]  
+
+00462521    2BC1            sub eax,ecx  
+
+00462523    96              xchg eax,esi  
+
+00462524    56              push esi  
+
+00462525    6A 40           push 40  
+
+00462527    BB 4B724200     mov ebx,42724B  
+
+0046252C    FF541D 00       call dword ptr ss:[ebp+ebx]; kernel32.GlobalAlloc  
+
+00462530    83F8 00         cmp eax,0  
+
+00462533    75 05           jnz short 0046253A  
+
+00462535    E9 D3000000     jmp 0046260D  
+
+0046253A    93              xchg eax,ebx  
+
+0046253B    6A 00           push 0  
+
+0046253D    8D85 EFA44200   lea eax,dword ptr ss:[ebp+42A4EF]  
+
+00462543    50              push eax  
+
+00462544    56              push esi  
+
+00462545    53              push ebx  
+
+00462546    57              push edi  
+
+00462547    BA 53724200     mov edx,427253  
+
+0046254C    FF5415 00       call dword ptr ss:[ebp+edx]  
+
+00462550    8BC3            mov eax,ebx  
+
+00462552    8BCE            mov ecx,esi  
+
+00462554    53              push ebx  
+
+00462555    57              push edi  
+
+00462556    51              push ecx  
+
+00462557    50              push eax  
+
+00462558    E8 71000000     call 004625CE  
+```
+// 计算整个文件的校验值
+
+```
+0046255D    83C4 08         add esp,8  
+
+00462560    8985 38A04200   mov dword ptr ss:[ebp+42A038],eax  
+```
+// `[ebp+42A038]=00C66266` ★ 保存校验值
+—————————————————————————————————
+
+### 七、解码
+
+```
+00462566    5F              pop edi  
+
+00462567    5B              pop ebx  
+
+00462568    E8 03000000     call 00462570  
+
+00462570    8D85 E8834200   lea eax,dword ptr ss:[ebp+4283E8]  
+
+00462576    50              push eax; 00462602  
+
+00462577    C3              retn  
+
+00462602    53              push ebx  
+
+00462603    BB 4F724200     mov ebx,42724F  
+
+00462608    FF541D 00       call dword ptr ss:[ebp+ebx]; GlobalFree  
+
+0046260C    96              xchg eax,esi  
+
+0046260D    50              push eax  
+
+0046260E    57              push edi  
+
+0046260F    BB 5B724200     mov ebx,42725B  
+
+00462614    FF541D 00       call dword ptr ss:[ebp+ebx]; CloseHandle  
+
+00462618    58              pop eax  
+
+00462619    E8 03000000     call 00462621  
+
+00462621    E8 5AFFFFFF     call 00462580  
+```
+// 解码区段名
+```
+// 004645CE  2E 74 65 78 74 00 00 00 2E 69 64 61 74 61 00 00  .text....idata..  
+
+// 004645DE  2E 72 73 72 63 00 00 00 2E 79 50 00 00 00 00 00  .rsrc....yP.....  
+```
+```
+00462626    E8 03000000     call 0046262E  
+```
+// 调用 `ADVAPI32.CryptDecrypt` 解密数据，再逐字节运算解码：`xor 4B`、`rol 0D1`、`xor 0D5`、`rol 35`、`xor 26`、`dec`、`xor 11`
+
+```
+0046264C    E8 03000000     call 00462654  
+
+00462680    E8 D3030000     call 00462A58  
+```
+// 循环几次还原数据后再清除区段表中的区段名
+```
+// 00462A86  rep stos byte ptr es:[edi] 可以先 NOP 掉这句，等循环完了再恢复  
+```
+```
+00462685    E8 03000000     call 0046268D  
+
+0046268D    8B85 34A04200   mov eax,dword ptr ss:[ebp+42A034]  
+
+00462693    8BF8            mov edi,eax  
+
+00462695    037F 3C         add edi,dword ptr ds:[edi+3C]  
+
+00462698    83C7 34         add edi,34  
+
+0046269B    8B1F            mov ebx,dword ptr ds:[edi]  
+
+0046269D    3BC3            cmp eax,ebx  
+
+0046269F    74 05           je short 004626A6  
+
+004626A6    E8 03000000     call 004626AE  
+
+004626AE    E8 F9010000     call 004628AC  
+
+004626B3    E8 03000000     call 004626BB  
+
+004626BB    8D85 9B954200   lea eax,dword ptr ss:[ebp+42959B]  
+
+004626C1    50              push eax; 004637B5  
+
+004626C2    C3              retn  
+```
+—————————————————————————————————
+
+### 八、`OEP` `RVA`，后面还有埋伏：第 1 次检验
+
+```
+004637B5    F785 A4A34200 8>test dword ptr ss:[ebp+42A3A4],80  
+
+004637BF    75 30           jnz short 004637F1  
+
+004637C1    BB 5F724200     mov ebx,42725F  
+
+004637C6    FF541D 00       call dword ptr ss:[ebp+ebx]; kernel32.IsDebuggerPresent  
+```
+// 检测 `IsDebuggerPresent`
+
+```
+004637CA    0BC0            or eax,eax  
+
+004637CC    74 23           je short 004637F1  
+```
+// 不跳就 `Over` 了
+
+```
+004637CE    8B85 3CA04200   mov eax,dword ptr ss:[ebp+42A03C]  
+
+004637D4    50              push eax  
+
+004637D5    6A 01           push 1  
+
+004637D7    68 FF0F1F00     push 1F0FFF  
+
+004637DC    BB 8B724200     mov ebx,42728B  
+
+004637E1    FF541D 00       call dword ptr ss:[ebp+ebx]; kernel32.OpenProcess  
+
+004637E5    6A 00           push 0  
+
+004637E7    50              push eax  
+
+004637E8    BB 8F724200     mov ebx,42728F  
+
+004637ED    FF541D 00       call dword ptr ss:[ebp+ebx]; kernel32.TerminateProcess  
+
+004637F1    E8 03000000     call 004637F9  
+```
+
+
+
+004637F9 E8 37010000 call 00463935
+
+//检测当前系统平台是否是 2000、XP 等，是则进行取当前系统进程，比较黑名单
+
+004637FE E8 03000000 call 00463806
+
+00463803 EB 01 jmp short 00463806
+
+00463806 8B85 78A04200 mov eax,dword ptr ss:[ebp+42A078]
+
+0046380C 50 push eax
+
+0046380D BB 23734200 mov ebx,427323
+
+00463812 FF541D 00 call dword ptr ss:[ebp+ebx]; ADVAPI32.CryptDestroyKey
+
+00463816 6A 00 push 0
+
+00463818 8B85 64A04200 mov eax,dword ptr ss:[ebp+42A064]
+
+0046381E 50 push eax
+
+0046381F BB 0F734200 mov ebx,42730F
+
+00463824 FF541D 00 call dword ptr ss:[ebp+ebx]; ADVAPI32.CryptReleaseContext
+
+00463828 F785 A4A34200 8>test dword ptr ss:[ebp+42A3A4],80
+
+00463832 75 27 jnz short 0046385B
+
+00463834 8B9D 34A04200 mov ebx,dword ptr ss:[ebp+42A034]
+
+0046383A 8B85 3F724200 mov eax,dword ptr ss:[ebp+42723F]
+
+00463840 C1C8 10 ror eax,10
+
+//EAX=06E06462 ror 10=646206E0
+
+00463843 35 656E6164 xor eax,64616E65
+
+//EAX=646206E0 xor 64616E65=00036885 ★ OEP RVA
+
+00463848 03D8 add ebx,eax
+
+0046384A C1CB 07 ror ebx,7
+
+//EBX=00436885 ror 7=0A0086D1
+
+0046384D 895C24 10 mov dword ptr ss:[esp+10],ebx
+
+00463851 8D9D 369D4200 lea ebx,dword ptr ss:[ebp+429D36]
+
+00463857 895C24 1C mov dword ptr ss:[esp+1C],ebx
+
+0046385B 8BBD 34A04200 mov edi,dword ptr ss:[ebp+42A034]
+
+00463861 037F 3C add edi,dword ptr ds:[edi+3C]
+
+00463864 8B9F C0000000 mov ebx,dword ptr ds:[edi+C0]
+
+0046386A 83FB 00 cmp ebx,0
+
+0046386D 74 0F je short 0046387E
+
+0046386F 039D 34A04200 add ebx,dword ptr ss:[ebp+42A034]
+
+00463875 8B43 08 mov eax,dword ptr ds:[ebx+8]
+
+00463878 C700 00000000 mov dword ptr ds:[eax],0
+
+0046387E 8B85 38A04200 mov eax,dword ptr ss:[ebp+42A038]
+
+//[ebp+42A038]=00C66266 还记得在 00462560 处计算的校验值不？
+
+00463884 0BC0 or eax,eax
+
+00463886 74 0D je short 00463895
+
+00463888 3B85 DFA44200 cmp eax,dword ptr ss:[ebp+42A4DF]
+
+//[ebp+42A4DF]=[004646F9]=00C66266 与壳中保存的校验值进行比较 ★
+
+0046388E 74 05 je short 00463895
+
+//不等不跳就 Over 了。所以如果检验错误的话，则要修改标志位 Z=1 使这里跳转
+
+00463890 E9 D6030000 jmp 00463C6B
+
+—————————————————————————————————
+
+### 九、完美修复输入表
+
+00463895 8BD5 mov edx,ebp
+
+00463897 81C2 C8A04200 add edx,42A0C8
+
+0046389D 8D32 lea esi,dword ptr ds:[edx]
+
+0046389F 53 push ebx
+
+004638A0 F785 A4A34200 2>test dword ptr ss:[ebp+42A3A4],20
+
+004638AA 74 51 je short 004638FD
+
+004638AC 56 push esi
+
+004638AD 8DBD EFA44200 lea edi,dword ptr ss:[ebp+42A4EF]
+
+004638B3 33C9 xor ecx,ecx
+
+004638B5 3E:837E 04 00 cmp dword ptr ds:[esi+4],0
+
+004638BA 74 1B je short 004638D7
+
+004638BC 3E:8B56 04 mov edx,dword ptr ds:[esi+4]
+
+004638C0 0395 34A04200 add edx,dword ptr ss:[ebp+42A034]
+
+004638C6 3E:833A 00 cmp dword ptr ds:[edx],0
+
+004638CA 74 06 je short 004638D2
+
+004638CC 41 inc ecx
+
+004638CD 83C2 04 add edx,4
+
+004638D0 EB F4 jmp short 004638C6
+
+004638D2 83C6 0C add esi,0C
+
+004638D5 EB DE jmp short 004638B5
+
+//循环计算输入表函数的数量 ECX=000000E9
+
+004638D7 33D2 xor edx,edx
+
+004638D9 B8 05000000 mov eax,5
+
+004638DE F7E1 mul ecx
+
+//EAX=5 * E9=48D 作为申请内存的 MemSize
+
+004638E0 50 push eax
+
+004638E1 6A 00 push 0
+
+004638E3 BB 4B724200 mov ebx,42724B
+
+004638E8 FF541D 00 call dword ptr ss:[ebp+ebx]; GlobalAlloc
+
+//申请内存为加密输入表使用
+
+//0012EAC4 004638EC /CALL 到 GlobalAlloc 来自 yP.004638E8
+
+//0012EAC8 00000000 |Flags = GMEM_FIXED
+
+//0012EACC 0000048D \MemSize = 48D (1165.)
+
+004638EC 0BC0 or eax,eax
+
+004638EE 75 05 jnz short 004638F5
+
+004638F5 3E:8907 mov dword ptr ds:[edi],eax
+
+004638F8 3E:8947 04 mov dword ptr ds:[edi+4],eax
+
+004638FC 5E pop esi
+
+004638FD 5B pop ebx
+
+004638FE 3E:837E 04 00 cmp dword ptr ds:[esi+4],0
+
+//[esi+4]处保存的是 FirstThunk ★
+
+00463903 0F84 5F030000 je 00463C68
+
+//输入表处理完毕则跳转
+
+00463909 3E:8B1E mov ebx,dword ptr ds:[esi]
+
+//esi=004642E2 取 NameRVA ★ 注意[esi]处的表，我们最后要手工修复 Import Table ★
+
+0046390C 039D 34A04200 add ebx,dword ptr ss:[ebp+42A034]
+
+00463912 8BC3 mov eax,ebx
+
+00463914 E8 08000000 call 00463921
+
+//解码 DLL 名
+
+00463919 8D85 1C994200 lea eax,dword ptr ss:[ebp+42991C]
+
+0046391F 50 push eax
+
+00463920 C3 retn
+
+00463B36 53 push ebx
+
+00463B37 BA 2B724200 mov edx,42722B
+
+00463B3C FF5415 00 call dword ptr ss:[ebp+edx]; kernel32.LoadLibraryA
+
+00463B40 85C0 test eax,eax
+
+00463B42 0F84 23010000 je 00463C6B
+
+00463B48 52 push edx
+
+00463B49 50 push eax
+
+00463B4A F785 A4A34200 0>test dword ptr ss:[ebp+42A3A4],4
+
+00463B54 74 0E je short 00463B64
+
+00463B56 8D85 4A994200 lea eax,dword ptr ss:[ebp+42994A]
+
+00463B5C 50 push eax
+
+00463B5D 8BC3 mov eax,ebx
+
+00463B5F E9 5E060000 jmp 004641C2
+
+//跳下去对 DLL 名清 0
+
+00463B64 5B pop ebx
+
+00463B65 5A pop edx
+
+00463B66 3E:8B4E 08 mov ecx,dword ptr ds:[esi+8]
+
+//[esi+8]处保存的是 OriginaFirstThunk ★
+
+00463B6A 0BC9 or ecx,ecx
+
+00463B6C 75 04 jnz short 00463B72
+
+00463B6E 3E:8B4E 04 mov ecx,dword ptr ds:[esi+4]
+
+00463B72 038D 34A04200 add ecx,dword ptr ss:[ebp+42A034]
+
+00463B78 3E:8B56 04 mov edx,dword ptr ds:[esi+4]
+
+00463B7C 0395 34A04200 add edx,dword ptr ss:[ebp+42A034]
+
+00463B82 3E:8339 00 cmp dword ptr ds:[ecx],0
+
+00463B86 0F84 D4000000 je 00463C60
+
+00463B8C F701 00000080 test dword ptr ds:[ecx],80000000
+
+00463B92 75 50 jnz short 00463BE4
+
+00463B94 8B01 mov eax,dword ptr ds:[ecx]
+
+00463B96 83C0 02 add eax,2
+
+00463B99 0385 34A04200 add eax,dword ptr ss:[ebp+42A034]
+
+00463B9F 50 push eax
+
+00463BA0 E8 7CFDFFFF call 00463921
+
+//解码出函数名
+
+00463BA5 58 pop eax
+
+00463BA6 8BF8 mov edi,eax
+
+00463BA8 52 push edx
+
+00463BA9 51 push ecx
+
+00463BAA 50 push eax
+
+00463BAB 53 push ebx
+
+00463BAC BA 2F724200 mov edx,42722F
+
+00463BB1 FF5415 00 call dword ptr ss:[ebp+edx]; kernel32.GetProcAddress
+
+00463BB5 0BC0 or eax,eax
+
+00463BB7 75 07 jnz short 00463BC0
+
+00463BB9 59 pop ecx
+
+00463BBA 5A pop edx
+
+00463BBB E9 AB000000 jmp 00463C6B
+
+00463BC0 59 pop ecx
+
+00463BC1 5A pop edx
+
+00463BC2 52 push edx
+
+00463BC3 60 pushad
+
+00463BC4 F785 A4A34200 0>test dword ptr ss:[ebp+42A3A4],4
+
+00463BCE 74 0E je short 00463BDE
+
+00463BD0 8D85 C4994200 lea eax,dword ptr ss:[ebp+4299C4]
+
+00463BD6 50 push eax
+
+00463BD7 8BC7 mov eax,edi
+
+00463BD9 E9 E4050000 jmp 004641C2
+
+//跳下去对函数名清 0
+
+00463BDE 61 popad
+
+00463BDF 5A pop edx
+
+00463BE0 8902 mov dword ptr ds:[edx],eax
+
+//修改②： NOP 掉 ★
+
+//用 GetProcAddress 得到的系统函数地址填充 IAT
+
+00463BE2 EB 1C jmp short 00463C00
+
+00463BE4 52 push edx
+
+00463BE5 51 push ecx
+
+
+
+# 反汇编分析与修改
+
+## 初始代码段
+
+```
+00463BE6    8B01            mov eax,dword ptr ds:[ecx]  
+00463BE8    2D 00000080     sub eax,80000000  
+00463BED    50              push eax  
+00463BEE    53              push ebx  
+00463BEF    BA 2F724200     mov edx,42722F  
+00463BF4    FF5415 00       call dword ptr ss:[ebp+edx]  
+00463BF8    85C0            test eax,eax  
+00463BFA    74 6F           je short 00463C6B  
+00463BFC    59              pop ecx  
+00463BFD    5A              pop edx  
+00463BFE    8902            mov dword ptr ds:[edx],eax  
+00463C00    51              push ecx  
+00463C01    F785 A4A34200 2>test dword ptr ss:[ebp+42A3A4],20  
+00463C0B    74 47           je short 00463C54  
+00463C0D    83BD ACA34200 0>cmp dword ptr ss:[ebp+42A3AC],0  
+00463C14    74 14           je short 00463C2A  
+00463C16    81FB 00000070   cmp ebx,70000000  
+00463C1C    72 08           jb short 00463C26  
+00463C1E    81FB FFFFFF77   cmp ebx,77FFFFFF  
+00463C24    76 0E           jbe short 00463C34  
+00463C26    EB 2C           jmp short 00463C54  
+00463C28    EB 0A           jmp short 00463C34  
+00463C2A    81FB 00000080   cmp ebx,80000000  
+00463C30    73 02           jnb short 00463C34  
+00463C32    EB 20           jmp short 00463C54  
+00463C34    57              push edi  
+00463C35    56              push esi  
+00463C36    8DBD EFA44200   lea edi,dword ptr ss:[ebp+42A4EF]  
+00463C3C    3E:8B77 04      mov esi,dword ptr ds:[edi+4]  
+00463C40    8932            mov dword ptr ds:[edx],esi  
+
+//修改③： NOP 掉 ★ 填充加密地址  
+
+00463C42    2BC6            sub eax,esi  
+00463C44    83E8 05         sub eax,5  
+00463C47    C606 E9         mov byte ptr ds:[esi],0E9  
+00463C4A    8946 01         mov dword ptr ds:[esi+1],eax  
+00463C4D    3E:8347 04 05   add dword ptr ds:[edi+4],5  
+00463C52    5E              pop esi  
+00463C53    5F              pop edi  
+00463C54    59              pop ecx  
+00463C55    83C1 04         add ecx,4  
+00463C58    83C2 04         add edx,4  
+00463C5B    E9 22FFFFFF     jmp 00463B82  
+00463C60    83C6 0C         add esi,0C  
+00463C63    E9 96FCFFFF     jmp 004638FE  
+```
+
+//循环处理输入表
+
+```
+00463C68    33C0            xor eax,eax  
+00463C6A    40              inc eax  
+00463C6B    83F8 01         cmp eax,1  
+00463C6E    74 02           je short 00463C72  
+00463C70    61              popad  
+00463C71    C3              retn  
+```
+
+## 字符串解码函数
+
+```
+00463921    56              push esi  
+00463922    57              push edi  
+00463923    8BF0            mov esi,eax  
+00463925    8BF8            mov edi,eax  
+00463927    AC              lods byte ptr ds:[esi]  
+00463928    C0C8 04         ror al,4  
+0046392B    AA              stos byte ptr es:[edi]  
+0046392C    3E:803F 00      cmp byte ptr ds:[edi],0  
+00463930    75 F5           jnz short 00463927  
+```
+
+//解码出 DLL 名、函数名
+
+```
+00463932    5F              pop edi  
+00463933    5E              pop esi  
+00463934    C3              retn  
+```
+
+## 字符串清理函数
+
+```
+004641C2    EB 05           jmp short 004641C9  
+004641C4    3E:C600 00      mov byte ptr ds:[eax],0  
+```
+
+//修改①： NOP 掉 ★ 对使用过的 DLL 名和函数名清 0
+
+```
+004641C8    40              inc eax  
+004641C9    3E:8038 00      cmp byte ptr ds:[eax],0  
+004641CD    75 F5           jnz short 004641C4  
+004641CF    C3              retn  
+```
+
+## 修改步骤说明
+
+修改完以上 3 处后直接 `F4` 至 `00463C68` 处，运行 `LordPE` 修正 `ImageSize` 后完全 `Dump` 这个进程。
+
+如果要使用 `ImportREC` 修复输入表，则不需要修改 `00463BE0` 处，仅修改 `00463C40` 处就行了。
+
+下面来手工修复输入表，看看 `004642E2` 处保存的表：
+
+```
+004642E2   08 9D 05 00 B0 9C 05 00 AC 96 05 00 54 9D 05 00  
+004642F2   4C 97 05 00 48 91 05 00 F4 9E 05 00 0C 9A 05 00  
+00464302   08 94 05 00 22 9F 05 00 14 98 05 00 10 92 05 00  
+00464312   68 A1 05 00 48 98 05 00 44 92 05 00 FA A5 05 00  
+00464322   F8 9A 05 00 F4 94 05 00 50 A7 05 00 88 97 05 00  
+00464332   84 91 05 00 82 A7 05 00 7C 9C 05 00 78 96 05 00  
+00464342   8E A8 05 00 E0 96 05 00 DC 90 05 00 DE A8 05 00  
+00464352   BC 9A 05 00 B8 94 05 00 00 00 00 00 00 00 00 00  
+```
+
+每 3 个 `Dword` 对应一个 `DLL`，`[ESI]=NameRVA`、`[ESI+4]=FirstThunk`、`[ESI+8]=OriginaFirstThunk`
+
+在 `dump.eXe` 中找块空地，`005AC50` 处吧，根据 `IID` 数组的结构来重组一下 `004642E2` 表中数据
+
+```
+0005AC50   AC 96 05 00 00 00 00 00  00 00 00 00 08 9D 05 00  
+0005AC60   B0 9C 05 00 48 91 05 00  00 00 00 00 00 00 00 00  
+0005AC70   54 9D 05 00 4C 97 05 00  08 94 05 00 00 00 00 00  
+0005AC80   00 00 00 00 F4 9E 05 00  0C 9A 05 00 10 92 05 00  
+0005AC90   00 00 00 00 00 00 00 00  22 9F 05 00 14 98 05 00  
+0005ACA0   44 92 05 00 00 00 00 00  00 00 00 00 68 A1 05 00  
+0005ACB0   48 98 05 00 F4 94 05 00  00 00 00 00 00 00 00 00  
+0005ACC0   FA A5 05 00 F8 9A 05 00  84 91 05 00 00 00 00 00  
+0005ACD0   00 00 00 00 50 A7 05 00  88 97 05 00 78 96 05 00  
+0005ACE0   00 00 00 00 00 00 00 00  82 A7 05 00 7C 9C 05 00  
+0005ACF0   DC 90 05 00 00 00 00 00  00 00 00 00 8E A8 05 00  
+0005AD00   E0 96 05 00 B8 94 05 00  00 00 00 00 00 00 00 00  
+0005AD10   DE A8 05 00 BC 9A 05 00  00 00 00 00 00 00 00 00  
+```
+
+## 十、时间检验
+
+```
+00463C72    F785 A4A34200 0>test dword ptr ss:[ebp+42A3A4],2  
+00463C7C    74 14           je short 00463C92  
+00463C7E    8BBD 34A04200   mov edi,dword ptr ss:[ebp+42A034]  
+00463C84    037F 3C         add edi,dword ptr ds:[edi+3C]  
+00463C87    8B32            mov esi,dword ptr ds:[edx]  
+00463C89    8B4F 54         mov ecx,dword ptr ds:[edi+54]  
+00463C8C    C606 00         mov byte ptr ds:[esi],0  
+00463C8F    46              inc esi  
+00463C90    E2 FA           loopd short 00463C8C  
+00463C92    8D85 629B4200   lea eax,dword ptr ss:[ebp+429B62]  
+00463C98    50              push eax; 00463D7C  
+00463C99    C3              retn  
+00463D7C    BA C3724200     mov edx,4272C3  
+00463D81    FF5415 00       call dword ptr ss:[ebp+edx]; kernel32.GetTickCount  
+00463D85    8B8D BCA04200   mov ecx,dword ptr ss:[ebp+42A0BC]  
+```
+
+//`[ebp+42A0BC]`＝`00C7E130`  还记得 `00461EAB` 取的时间不？
+
+```
+00463D8B    2BC1            sub eax,ecx  
+```
+
+//`EAX=0209F1AD-00C7E130=0142107D`
+
+```
+00463D8D    3D E02E0000     cmp eax,2EE0  
+00463D92    78 08           js short 00463D9C  
+```
+
+//“磨蹭”了这么久肯定超时啦，修改标志位 `S=1` 使这里跳转
+
+```
+00463D9C    8D85 809A4200   lea eax,dword ptr ss:[ebp+429A80]  
+00463DA2    50              push eax; 00463C9A  
+00463DA3    C3              retn  
+```
+
+## 十一、醒来吧：解锁键盘、鼠标和任务栏
+
+```
+00463C9A    F785 48A04200 0>test dword ptr ss:[ebp+42A048],8  
+```
+
+//判断是否是 `Win2K/XP` 系统平台
+
+```
+00463CA4    75 0B           jnz short 00463CB1  
+00463CA6    6A 00           push 0  
+00463CA8    BB DF724200     mov ebx,4272DF  
+00463CAD    FF541D 00       call dword ptr ss:[ebp+ebx]; User32.BlockInput  
+```
+
+//恢复键盘、鼠标锁定了，输入表处理完了，不能还让别人不动鼠标吧
+
+```
+00463CB1    BB 67724200     mov ebx,427267  
+00463CB6    FF541D 00       call dword ptr ss:[ebp+ebx]  
+00463CBA    8B9D 60A04200   mov ebx,dword ptr ss:[ebp+42A060]; kernel32.GetCurrentProcess  
+00463CC0    53              push ebx  
+00463CC1    50              push eax  
+00463CC2    BB 93724200     mov ebx,427293  
+00463CC7    FF541D 00       call dword ptr ss:[ebp+ebx]; kernel32.SetPriorityClass  
+```
+
+//`NORMAL_PRIORITY_CLASS`      当前进程的优先级别也没必要那么高了
+
+```
+00463CCB    F785 A4A34200 8>test dword ptr ss:[ebp+42A3A4],80  
+00463CD5    75 40           jnz short 00463D17  
+00463CD7    8B85 40A04200   mov eax,dword ptr ss:[ebp+42A040]  
+00463CDD    8B9D 3CA04200   mov ebx,dword ptr ss:[ebp+42A03C]  
+00463CE3    3BC3            cmp eax,ebx  
+```
+
+//还比较资源浏览器(`Explorer.exe`)的进程 `ID` 和父进程的 `ID`
+
+```
+00463CE5    74 30           je short 00463D17  
+00463D17    8B85 54A04200   mov eax,dword ptr ss:[ebp+42A054]  
+00463D1D    50              push eax  
+00463D1E    6A F0           push -10  
+00463D20    8B85 50A04200   mov eax,dword ptr ss:[ebp+42A050]  
+00463D26    50              push eax  
+00463D27    BB E7724200     mov ebx,4272E7  
+00463D2C    FF541D 00       call dword ptr ss:[ebp+ebx]; User32.SetWindowLongA  
+```
+
+//任务栏也该有反应了，其实我的任务栏一直是正常的
+
+
+
+## 十二、再一再而不可再三再四：再次的检验
+
+`//0012EAC8 00463D30 /CALL 到 SetWindowLongA 来自 yP.00463D2C`
+
+`//0012EACC 000200E4 |hWnd = 000200E4 (class='Shell_TrayWnd')`
+
+`//0012EAD0 FFFFFFFF |Index = GWL_STYLE`
+
+`//0012EAD4 96000000 \NewValue = 96000000`
+
+```
+00463D30 8B85 5CA04200 mov eax,dword ptr ss:[ebp+42A05C]
+00463D36 50  push eax
+00463D37 6A F0  push -10
+00463D39 8B85 58A04200 mov eax,dword ptr ss:[ebp+42A058]
+00463D3F 50  push eax
+00463D40 BB E7724200  mov ebx,4272E7
+00463D45 FF541D 00  call dword ptr ss:[ebp+ebx]; User32.SetWindowLongA
+```
+
+现在取消所有断点、恢复以前修改的所有代码，下面还有检验和解码。
+
+```
+00463D49 8D85 2F734200 lea eax,dword ptr ss:[ebp+42732F]
+// [ebp+42732F]=00461549 ModuleEntryPoint
+00463D4F B9 E39B4200 mov ecx,429BE3
+00463D54 81E9 2F734200 sub ecx,42732F
+//ECX=429BE3-42732F=000028B4
+00463D5A EB 01  jmp short 00463D5D
+00463D5D 51  push ecx
+00463D5E 50  push eax
+00463D5F E8 6AE8FFFF call 004625CE
+//计算壳 EP 处长度 28B4 代码段的校验值＝000FC7C5
+00463D64 83C4 08 add esp,8
+00463D67 EB 01  jmp short 00463D6A
+00463D6A 8B9D A8A34200 mov ebx,dword ptr ss:[ebp+42A3A8]
+// [ebp+42A3A8]=[004645C2]=000FC7C5 还记得 0046178A 取得的检验值不？
+00463D70 33C3  xor eax,ebx
+//检验 恢复了修改的代码
+00463D72 74 30  je short 00463DA4
+//不等不跳就 Over 了。所以如果检验错误的话，则要修改标志位 Z=1 使这里跳转
+```
+
+## 十三、解出 463DFD 处下一步运行的代码
+
+```
+00463DA4 8DBD E39B4200 lea edi,dword ptr ss:[ebp+429BE3]
+// [ebp+429BE3]=00463DFD
+00463DAA 8BF7  mov esi,edi
+00463DAC B9 A39F4200 mov ecx,429FA3
+00463DB1 81E9 E39B4200 sub ecx,429BE3
+//ECX=429FA3-429BE3=000003C0
+00463DB7 EB 04  jmp short 00463DBD
+00463DBD AC  lods byte ptr ds:[esi]
+00463DBE 04 3C  add al,3C
+00463DC0 EB 01  jmp short 00463DC3
+00463DC3 2C 73  sub al,73
+00463DC5 FEC8  dec al
+00463DC7 EB 01  jmp short 00463DCA
+00463DCA EB 01  jmp short 00463DCD
+00463DCD 90  nop
+00463DCE EB 01  jmp short 00463DD1
+00463DD1 EB 01  jmp short 00463DD4
+00463DD4 F8  clc
+00463DD5 04 D4  add al,0D4
+00463DD7 EB 01  jmp short 00463DDA
+00463DDA C0C8 3C  ror al,3C
+00463DDD 02C1  add al,cl
+00463DDF EB 01  jmp short 00463DE2
+00463DE2 EB 01  jmp short 00463DE5
+00463DE5 EB 01  jmp short 00463DE8
+00463DE8 FEC8  dec al
+00463DEA EB 01  jmp short 00463DED
+00463DED F8  clc
+00463DEE AA  stos byte ptr es:[edi]
+//解码 00463DFD 长度 000003C0
+00463DEF E2 CC  loopd short 00463DBD
+00463DF1 8D85 E39B4200 lea eax,dword ptr ss:[ebp+429BE3]
+00463DF7 50  push eax; 00463DFD
+00463DF8 C3  retn
+```
+
+## 十四、清扫战场
+
+```
+00463DFD F785 48A04200 0> test dword ptr ss:[ebp+42A048],8
+00463E07 74 08  je short 00463E11
+00463E09 8D85 039C4200 lea eax,dword ptr ss:[ebp+429C03]
+00463E0F 50  push eax; yP.00463E1D
+00463E10 C3  retn
+00463E1D F785 A4A34200 8> test dword ptr ss:[ebp+42A3A4],80
+00463E27 75 53  jnz short 00463E7C
+00463E29 BB 5F724200 mov ebx,42725F
+00463E2E FF541D 00  call dword ptr ss:[ebp+ebx]; kernel32.IsDebuggerPresent
+00463E32 0BC0  or eax,eax
+00463E34 74 23  je short 00463E59
+00463E59 8B85 3CA04200 mov eax,dword ptr ss:[ebp+42A03C]
+00463E5F 50  push eax
+00463E60 6A 01  push 1
+00463E62 68 FF0F1F00 push 1F0FFF
+00463E67 BB 8B724200 mov ebx,42728B
+00463E6C FF541D 00  call dword ptr ss:[ebp+ebx]; kernel32.OpenProcess
+00463E70 6A FF  push -1
+00463E72 50  push eax
+00463E73 BB DB724200 mov ebx,4272DB
+00463E78 FF541D 00  call dword ptr ss:[ebp+ebx]; User32.WaitForInputIdle
+00463E7C F785 A4A34200 8> test dword ptr ss:[ebp+42A3A4],80
+00463E86 75 17  jnz short 00463E9F
+00463E88 BB 5F724200 mov ebx,42725F
+00463E8D FF541D 00  call dword ptr ss:[ebp+ebx]; kernel32.IsDebuggerPresent
+00463E93 74 17  je short 00463EAC
+00463EAC F785 A4A34200 0> test dword ptr ss:[ebp+42A3A4],1
+00463EB6 74 7C  je short 00463F34
+00463F34 F785 A4A34200 8> test dword ptr ss:[ebp+42A3A4],80
+00463F3E 74 08  je short 00463F48
+00463F48 8D85 349F4200 lea eax,dword ptr ss:[ebp+429F34]
+00463F4E 50  push eax; yP.0046414E
+00463F4F C3  retn
+0046414E F785 48A04200 0> test dword ptr ss:[ebp+42A048],8
+00464158 74 08  je short 00464162
+0046415A 8D85 549F4200 lea eax,dword ptr ss:[ebp+429F54]
+00464160 50  push eax; yP.0046416E
+00464161 C3  retn
+0046416E 32C0  xor al,al
+00464170 C685 8E734200 C> mov byte ptr ss:[ebp+42738E],0C3
+00464177 8DBD 2B724200 lea edi,dword ptr ss:[ebp+42722B]
+0046417D B9 2F734200 mov ecx,42732F
+00464182 81E9 2B724200 sub ecx,42722B
+00464188 F3:AA rep stos byte ptr es:[edi]
+//清扫战场 00461445 Size=00000104
+0046418A 8DBD E3734200 lea edi,dword ptr ss:[ebp+4273E3]
+00464190 B9 369D4200 mov ecx,429D36
+00464195 81E9 E3734200 sub ecx,4273E3
+0046419B F3:AA rep stos byte ptr es:[edi]
+//清扫战场 004615FD Size=00002953
+0046419D 8DBD A39F4200 lea edi,dword ptr ss:[ebp+429FA3]
+004641A3 B9 BFA44200 mov ecx,42A4BF
+004641A8 81E9 A39F4200 sub ecx,429FA3
+004641AE F3:AA rep stos byte ptr es:[edi]
+//清扫战场 004641BD Size=0000051C
+004641B0 61  popad
+```
+
+## 十五、飞向光明之巅
+
+```
+004641B1 50  push eax
+004641B2 33C0  xor eax,eax
+004641B4 64:FF30 push dword ptr fs:[eax]
+004641B7 64:8920 mov dword ptr fs:[eax],esp
+004641BA EB 01  jmp short 004641BD
+004641BD 0000  add byte ptr ds:[eax],al
+//yC 的典型异常，看堆栈
+0012EAF0 0012EC70 指针到下一个 SEH 记录
+0012EAF4 00463F50 SE 句柄
+BP 00463F50   Shift+F9 中断后取消断点
+00463F50 55  push ebp
+00463F51 8BEC  mov ebp,esp
+00463F53 57  push edi
+00463F54 36:8B45 10 mov eax,dword ptr ss:[ebp+10]
+00463F58 3E:8BB8 C400000> mov edi,dword ptr ds:[eax+C4]
+00463F5F 3E:FF37 push dword ptr ds:[edi]
+00463F62 33FF  xor edi,edi
+00463F64 64:8F07 pop dword ptr fs:[edi]
+00463F67 3E:8380 C400000> add dword ptr ds:[eax+C4],8
+00463F6F 3E:8BB8 A400000> mov edi,dword ptr ds:[eax+A4]
+00463F76 C1C7 07  rol edi,7
+00463F79 3E:89B8 B800000> mov dword ptr ds:[eax+B8],edi
+// [eax+B8]=00436885 OEP 值
+00463F80 B8 00000000 mov eax,0
+00463F85 5F  pop edi
+00463F86 C9  leave
+00463F87 C3  retn
+BP 00436885   Shift+F9 中断后取消断点
+00436885 6A 60  push 60
+//OEP
+00436887 68 90564100 push 415690
+0043688C E8 670D0000 call 004375F8
+00436891 BF 94000000 mov edi,94
+00436896 8BC7  mov eax,edi
+00436898 E8 23430000 call 0043ABC0
+```
+
+## 十六、终场：如果你是我的传说
+
+用 `LordPE` 修正 `dump.exe` 的 `OEP RVA=00036885` 和 `ImportTable RVA=0005AC50` 就行了，再清除掉壳数据，算是完美脱壳吧。
+
+若要快速脱壳的话，避开文中重点提示的反跟踪、自检验和时间检验，避开输入表加密就搞定了。
+
+
+
+幕落，该散场了。
+
+—————————————————————————————————
+
+, /_
+/| \_.-~/ \\\ , 青春都一晌
+( /~ / \\~-.|\\
+\``\\ /_ \ ~\ ) 忍把浮名
+_--~.) )\_/;;,. \\ \ //'
+/'\,\\ --~ \ ~~_ ,;\\__( -~~-. 换了脱壳轻狂
+\`~ _( ,\_..--\\ ( ,;'' / ~-- /.\_\`\\
+/~~//' / \`~\ ) /--..\_, )\_ \`~
+" \`~" " \`" /~'\`\\ \`\\~~\\
+" " ~' ""
+
+UnPacked By : fly
+2005-05-22 24:00
+
+`4dd466d0e1e0cc123afbe504da2462ca`
