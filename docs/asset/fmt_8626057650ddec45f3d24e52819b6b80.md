@@ -1,0 +1,245 @@
+
+# 模拟 Xuetr 枚举 GDT
+
+> 原文：[`www.pediy.com/kssd/pediy12/130581.html`](https://www.pediy.com/kssd/pediy12/130581.html)
+
+标 题: 【原创】模拟 Xuetr 枚举 GDT  
+作 者:  房有亮  
+时 间: 2011-03-09,15:08  
+
+说是原创其实也是 A 黑客防线的代码，其中也参考了 `Yas`，不过请看标题，不知道能不能申个精。
+
+![](img/081868d20f20fe7a9b4b88ab0d0d33c6.jpg "狂笑")
+
+下面不多说了，直接代码，第一次弄有错误请大家批评。
+
+## 结构
+
+```c
+typedef struct _SELECTOR{
+  unsigned short dpl: 2;
+  unsigned short ti: 1;
+  unsigned short index: 13;
+} SELECTOR, *PSELECTOR;
+
+typedef struct _CODE_DATA_SEGMMENT_DESC{
+  unsigned char limit_0_7;
+  unsigned char limit_8_15;
+  unsigned char base_0_7;
+  unsigned char base_8_15;
+  unsigned char base_16_23;
+  unsigned char type: 4;
+  unsigned char system: 1;
+  unsigned char dpl: 2;
+  unsigned char present: 1;
+  unsigned char limit_16_19: 4;
+  unsigned char avl: 1;
+  unsigned char l: 1;
+  unsigned char d_b: 1;
+  unsigned char granularity: 1;
+  unsigned char base_24_31;
+} CODE_DATA_SEGMMENT_DESC, *PCODE_DATA_SEGMMENT_DESC;
+
+typedef struct _INTER_TRAP_GATE_DESC{
+  unsigned short offset_0_15;
+  unsigned short selector;
+  unsigned char reserved;
+  unsigned char type: 4;
+  unsigned char system: 1;
+  unsigned char dpl: 2;
+  unsigned char present: 1;
+  unsigned short offset_16_31;
+} INTER_TRAP_GATE_DESC, *PINTER_TRAP_GATE_DESC;
+
+typedef struct _CALL_GATE_DESC{
+  unsigned short offset_0_15;
+  unsigned short selector;
+  unsigned char param_count: 5;
+  unsigned char some_bits: 3;
+  unsigned char type: 4;
+  unsigned char system: 1;
+  unsigned char dpl: 2;
+  unsigned char present: 1;
+  unsigned short offset_16_31;
+} CALL_GATE_DESC, *PCALL_GATE_DESC;
+
+typedef struct _TASK_GATE_DESC{
+  unsigned short reserved1;
+  unsigned short selector;
+  unsigned char reserved2;
+  unsigned char type: 4;
+  unsigned char system: 1;
+  unsigned char dpl: 2;
+  unsigned char present: 1;
+  unsigned short reserved3;
+} TASK_GATE_DESC, *PTASK_GATE_DESC;
+
+typedef struct _GENERAL_DESC{
+  unsigned int unknown1;
+  unsigned char unknown2;
+  unsigned char type: 4;
+  unsigned char system: 1;
+  unsigned char dpl: 2;
+  unsigned char present: 1;
+  unsigned short unknown3;
+} GENERAL_DESC, *PGENERAL_DESC;
+
+typedef struct _GDTR{
+  unsigned short GdtLimit;
+  unsigned short LowGdtbase;
+  unsigned short HighGdtbase;
+} GDTR, *PGDTR;
+```
+
+## 变量
+
+```c
+#define         SIZEOF_GDTR 6;
+#define         SIZEOF_IDTR 6;
+#define         SIZEOF_DESCRIPTOR 8;
+#define         SIZEOF_DESC 8
+#define         SIZEOF_SELECTOR 2;
+
+#define         MAKELONG(a, b) ((unsigned long) (((unsigned short) (a)) | ((unsigned long) ((unsigned short) (b))) << 16)) //IDT  
+
+#define FOUR_BYTE_TO_DWORD( byte_0_7, byte_8_15, byte_16_23, byte_24_31 ) \
+  \
+  (unsigned int)byte_0_7      |                  \
+  (unsigned int)byte_8_15 << 8   |                  \
+  (unsigned int)byte_16_23 << 16   |                  \
+  (unsigned int)byte_24_31 << 24
+
+#define TWENTY_BIT_TO_DWORD( bit_0_7, bit_8_15, bit_16_19 ) \
+  \
+  (unsigned int)bit_0_7      |        \
+  (unsigned int)bit_8_15 << 8    |        \
+  (unsigned int)bit_16_19 << 16
+
+#define TWO_SHORT_TO_DWORD( short_0_15, short_16_31 ) \
+  \
+  (unsigned int)short_0_15    |      \
+  (unsigned int)short_16_31 << 16
+
+char* NonSystemType[16] =
+{
+  "数据段：只读",          // 00
+  "数据段：只读,访问",      // 01
+  "数据段：读写",          // 02  
+  "数据段：读写,访问",      // 03
+  "数据段：只读,向下扩展",    // 04
+  "数据段：只读,向下扩展,访问",  // 05
+  "数据段：读写,向下扩展",    // 06
+  "数据段：读写,向下扩展,访问",  // 07
+  "代码段：只执行",        // 08
+  "代码段：只执行,访问",      // 09
+  "代码段：执行/读",      // 10
+  "代码段：执行/读,访问",    // 11  
+  "代码段：只执行,符合",      // 12
+  "代码段：只执行,符合,访问",  // 13  
+  "代码段：执行/只读, 符合",    // 14
+  "代码段：执行/只读, 符合,访问"  // 15
+};
+
+char* SystemType[16] =
+{
+  "保留",            // 00
+  "16 位：任务状态段(可用)",  // 01
+  "LDT",            // 02
+  "16 位：任务状态段(忙)",    // 03
+  "16 位：调用门",        // 04
+  "任务门",          // 05
+  "16 位：中断门",          // 06
+  "16 位：陷阱门",        // 07
+  "保留",            // 08
+  "32 位：任务状态段(可用)",  // 09
+  "保留",            // 10
+  "32 位：任务状态段(忙)",    // 11
+  "32 位：调用门",        // 12
+  "保留",            // 13
+  "32 位：中断门",          // 14
+  "32 位：陷阱门"        // 15
+};
+```
+
+## 函数
+
+```c
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+//模块名字：VOID FindGDT(ULONG Index)
+//模块功能：获取 GDT 地址
+//返回数值：
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+//参数说明：参数名       |   输入/输出  |        参数说明
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+VOID FindGDT(ULONG Index)
+{    
+  PGENERAL_DESC  GDT; 
+  PCODE_DATA_SEGMMENT_DESC Code_Data_Desc;
+  PCALL_GATE_DESC Call_Gate;
+  GDTR  Gdt_Base;   
+  ULONG GdtCount;
+  ULONG i; 
+  ULONG BaseAddr;
+  ULONG limit;
+  ULONG offset;
+  PUCHAR TypeName;
+  ULONG  DPL;
+  PUCHAR SegmentSize;
+
+  KeSetSystemAffinityThread(Index);//绑定 CPU
+
+  __asm  sgdt  Gdt_Base;
+
+  GDT = (PGENERAL_DESC) MAKELONG(Gdt_Base.LowGdtbase,Gdt_Base.HighGdtbase);
+
+  GdtCount = (ULONG)((Gdt_Base.GdtLimit+1) >> 3);
+
+  for(i = 0; i < GdtCount; i++)
+  {
+    Code_Data_Desc = (PCODE_DATA_SEGMMENT_DESC) &GDT[i];
+    BaseAddr = FOUR_BYTE_TO_DWORD( Code_Data_Desc->base_0_7,Code_Data_Desc->base_8_15,Code_Data_Desc->base_16_23,Code_Data_Desc->base_24_31);
+    limit = TWENTY_BIT_TO_DWORD( Code_Data_Desc->limit_0_7,  Code_Data_Desc->limit_8_15,  Code_Data_Desc->limit_16_19  );
+    if ( Code_Data_Desc->granularity == 1 )
+    {
+      SegmentSize = "Page";//4kb
+    }  
+    else  
+    {
+      SegmentSize = "Byte";//1byte
+    }
+    if ( GDT[i].system == 1 )  //代码和数据段描述符
+    {
+      TypeName = NonSystemType[Code_Data_Desc->type];
+    }
+    else
+    {
+      TypeName = SystemType[GDT[i].type];
+    }
+    if (GDT[i].type == 12) //32 位调用门
+    {
+      Call_Gate = (PCALL_GATE_DESC) &GDT[i];
+      DPL = Call_Gate->dpl;
+    }  
+    else
+    {
+      DPL = Code_Data_Desc->dpl;
+    }
+    if (strncmp(TypeName,"保留",strlen("保留")) != 0)  
+    {
+      DbgPrint("GDT-ID:%04x 基址： 0x%08X 界限：0x%08X 段粒度：%s 段特权级：%d 类型：%s", i,BaseAddr,limit,SegmentSize,DPL,TypeName);
+    }
+  } 
+  
+  KeRevertToUserAffinityThread();//卸载绑定
+}
+```
+
+![](img/dc72760be29362914ad766fcec12be31.jpg)
+
+可编译源码
+
+上传的附件
+
+| ![](img/67af4f1ef9c98996f43e89e749c7dcf5.jpg) || `EnumGDT.rar`  
+|
