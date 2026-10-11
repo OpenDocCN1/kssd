@@ -1,0 +1,270 @@
+
+# PELock 1.06 脱壳
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6385.htm`](https://www.pediy.com/kssd/pediy06/pediy6385.htm)
+
+模拟跟踪 之 `PELock 1.06` 脱壳——fly 杀手 `unpackme`
+
+相关页面： `http://tongtian.net/pediybbs/viewtopic.php?p=11089#`
+
+软件大小： `17.35 KB`
+
+**【加壳方式】**：`PELock 1.0x` -> `Bartosz Wojcik` 加壳的小东东。
+
+**【作者声明】**：初学 Crack，只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+**【调试环境】**：`WinXP`、`Ollydbg1.09`、`PEiD`、`LordPE`、`ImportREC`
+
+---
+
+## 一、脱壳过程
+
+### 1. 运用 模拟跟踪 走到 OEP
+
+设置 `Ollydbg` 忽略除了“内存访问异常”之外的所有其他异常选项。用 `Ollydbg` 手动脱壳,老规矩：用 `IsDebug 1.4` 插件去掉 `Ollydbg` 的调试器标志。载入后弹出“是压缩代码——要继续进行分析吗？”，点“否”
+
+```
+00405150     F3:                prefix rep:  //进入 OD 后停在这！
+```
+
+`F9` 运行，弹出 Demo 版 `PELock` 保护的提示，确定后返回。
+
+```
+00371AD1     8900               mov dword ptr ds:[eax],eax//第 1 次异常
+00371C7E     8900               mov dword ptr ds:[eax],eax//第 2 次异常
+00371E1B     8900               mov dword ptr ds:[eax],eax//第 3 次异常
+00372C8F     8912               mov dword ptr ds:[edx],edx//第 4 次异常
+00372E27     891B               mov dword ptr ds:[ebx],ebx//第 5 次异常
+00372EC2     8909               mov dword ptr ds:[ecx],ecx//第 6 次异常
+00374986     8900               mov dword ptr ds:[eax],eax//第 7 次异常
+```
+
+`Shift+F9` 通过 7 次异常，再来一次就运行啦，停！看看堆栈：
+
+```
+0012FFB0   0012FFB8  指针到下一个 SEH 记录
+0012FFB4   003746D4  SE 句柄  //当然是此处下断啦 :-)
+```
+
+在 `003746D4` 处下断，`Shift+F9` 断在 `003746D4` 处。OK，当然可以 `F7` 一步步单步走啦，但是很慢 :-(
+
+```
+003746D4     E8 01000000        call 003746DA//此处偶开始 模拟跟踪！:-)
+```
+
+> 关于 模拟跟踪，建议先看看 `[FCG]` 的 菩提 兄翻译的《ollydbg 的教学-Run trace》，在《看雪论坛精华五》里。
+
+现在让偶们复习如下几个命令，偶这次用到的就是 `TC` 命令。
+
+*   `TI`：跟踪进入直到地址
+*   `TO`：跟踪步过直到地址
+*   `TC`：跟踪进入直到满足条件 //脱壳一般使用这个命令较多 :-)
+*   `TOC`：跟踪步过直到满足条件
+*   `TR`：运行直到返回
+*   `TU`：运行直到用户代码
+
+当偶们来到 `003746D4` 处时下命令：`TC EIP>00400000`
+
+很快的，程序由于进入系统 DLL，地址大于 `00400000` 而暂停！
+
+```
+77F833A0     64:8B25 00000000   mov esp,dword ptr fs:[0]//停在这里！
+77F833A7     64:8F05 00000000   pop dword ptr fs:[0]
+77F833AE     8BE5               mov esp,ebp
+77F833B0     5D                 pop ebp
+77F833B1     C2 1400            retn 14
+```
+
+如果直接 `Ctrl+F9` 执行到返回的话，程序就运行了，所以偶只好想点办法。:-(
+
+点击 查看->运行跟踪，在最下面就会发现是 `003748DB` 处进入系统 DLL
+
+```
+003748DB     C3                 retn //这里返回入系统 DLL
+```
+
+所以偶在下面的许多 `JMP` 处下断，`F9` 运行，断在 `00374988` 处。呵呵，运气不错啦 :-)
+
+```
+003748DC     EB 02              jmp short 003748E0
+003748DE     0FC8               bswap eax
+003748E0     EB 02              jmp short 003748E4
+003748E2     CD 0A              int 0A
+003748E4     78 03              js short 003748E9
+003748E6     79 01              jns short 003748E9
+003748E8     92                 xchg eax,edx
+003748E9     74 03              je short 003748EE
+003748EB     75 01              jnz short 003748EE
+003748ED     D7                 xlat byte ptr ds:[ebx+al]
+003748EE     EB 02              jmp short 003748F2
+003748F0     CD20 EB034CAF      vxdcall AF4C03EB
+003748F6     B7 EB              mov bh,0EB
+003748F8     034D 6F            add ecx,dword ptr ss:[ebp+6F]
+003748FB     68 2BC0EB03        push 3EBC02B
+00374900     D5 A4              aad 0A4
+00374902     12E8               adc ch,al
+00374904     0100               add dword ptr ds:[eax],eax
+00374906     0000               add byte ptr ds:[eax],al
+00374908     04 8F              add al,8F
+0037490A     44                 inc esp
+0037490B     24 FC              and al,0FC
+0037490D     EB 02              jmp short 00374911
+0037490F     0F11EB             movups xmm3,xmm5
+00374912     02CD               add cl,ch
+00374914     2076 03            and byte ptr ds:[esi+3],dh
+00374917     77 01              ja short 0037491A
+00374919     F8                 clc
+0037491A     EB 03              jmp short 0037491F
+0037491C     57                 push edi
+0037491D     F8                 clc
+0037491E     48                 dec eax
+0037491F     EB 03              jmp short 00374924
+00374921     BF C41FE801        mov edi,1E81FC4
+00374926     0000               add byte ptr ds:[eax],al
+00374928     00FD               add ch,bh
+0037492A     8D6424 04          lea esp,dword ptr ss:[esp+4]
+0037492E     64:FF30            push dword ptr fs:[eax]
+00374931     76 03              jbe short 00374936
+00374933     77 01              ja short 00374936
+00374935     CC                 int3
+00374936     7E 03              jle short 0037493B
+00374938     7F 01              jg short 0037493B
+0037493A     AB                 stos dword ptr es:[edi]
+0037493B     EB 02              jmp short 0037493F
+0037493D     74 8E              je short 003748CD
+0037493F     EB 02              jmp short 00374943
+00374941     0F12E8             movhlps xmm5,xmm0
+00374944     0100               add dword ptr ds:[eax],eax
+00374946     0000               add byte ptr ds:[eax],al
+00374948     05 8F4424FC        add eax,FC24448F
+0037494D     C1F5 00            sal ebp,0
+00374950     78 03              js short 00374955
+00374952     79 01              jns short 00374955
+00374954     CC                 int3
+00374955     64:8920            mov dword ptr fs:[eax],esp
+00374958     EB 02              jmp short 0037495C
+0037495A     30DE               xor dh,bl
+0037495C     E8 01000000        call 00374962
+00374961     0F8F 4424FCEB      jg EC336DAB
+00374967     020F               add cl,byte ptr ds:[edi]
+00374969     3D EB027E75        cmp eax,757E02EB
+0037496E     78 03              js short 00374973
+00374970     79 01              jns short 00374973
+00374972     2AEB               sub ch,bl
+00374974     031C03             add ebx,dword ptr ds:[ebx+eax]
+00374977     6BEB 02            imul ebp,ebx,2
+0037497A     0F0F               ???
+0037497C     E8 01000000        call 00374982
+00374981     3F                 aas
+00374982     8F4424 FC          pop dword ptr ss:[esp-4]
+00374986     8900               mov dword ptr ds:[eax],eax
+00374988     EB 03              jmp short 0037498D   //断在这里 :-)
+```
+
+OK，偶继续模拟跟踪啦。取消所有断点，下命令：`TC EIP>00400000`  几秒钟后 `Ollydbg` 自动暂停在 OEP 处！
+
+查看运行跟踪，发现是从下面的地方跳到 OEP 的 :-)
+
+```
+00374C7A     68 00104000        push 401000 //下面返回的地址
+00374C7F     EB 01              jmp short 00374C82
+00374C81     65:EB 02           jmp short 00374C86
+00374C84     CD20 EB027853      vxdcall 537802EB
+00374C8A     EB 02              jmp short 00374C8E
+00374C8C     0FCB               bswap ebx
+00374C8E     EB 02              jmp short 00374C92
+00374C90     65:79 C1           jns short 00374C54
+00374C93     F600 EB            test byte ptr ds:[eax],0EB
+00374C96     010F               add dword ptr ds:[edi],ecx
+00374C98     EB 01              jmp short 00374C9B
+00374C9A     65:C1F0 00         sal eax,0
+00374C9E     C1F0 00            sal eax,0
+00374CA1     C3                 retn   //飞向光明之巅！返回至 00401000 :-)
+```
+
+**BTW**：选择适当的时机和条件使用 ★模拟跟踪★ 会节省很多单步跟踪的时间！！:-D
+
+```
+00401000       E8 7D010000      call unpackme.00401182//在这儿用 OllyDump 插件直接 DUMP
+00401005       8BF8             mov edi,eax
+00401007       50               push eax
+```
+
+---
+
+### 2. 修复输入表以及优化脱壳后的程序
+
+运行 `ImportREC`，选择这个进程。把 OEP 改为 `00001000`，点 `IT AutoSearch`，点“`Get Import`”，用“追踪层次 1”修复，只有一个函数没有识别出来：
+
+```
+0  00002008  ?  0000  00BB0029
+```
+
+正好接着跟踪原程序，在 `402008` 处下内存访问断点，退出时断下！
+
+```
+0040117C       FF25 08204000    jmp dword ptr ds:[402008]//进入
+77E55CA2       FFD6             call esi ; ntdll.ZwTerminateProcess//来到这里退出
+```
+
+
+
+## 结果
+发现来到 `77E55CA2` 处，所以这个函数应该是 `kernel32.ExitProcess` 啦，修正之，运行正常！
+
+简单优化：用 `LordPE` 删除 `.pelock` 和 `.newIID` 区段，然后重建 `PE`。20K->7.78K
+
+---
+
+,     \_/
+/| \_.-~/          \_     ,        青春都一饷
+( /~   /           ~-.\_ |
+\`\\  \_/              ~ )          忍把浮名
+\_-~~~-.)  )\_\_/;;,.          \_  //'
+/'\_,   --~    ~~~-  ,;;\_\_\_(  (.-~~~-.        换了破解轻狂
+\`~ \_( ,\_..-- (      ,;'' /    ~--   /.\_\`
+/~~//'   /' \`~          ) /--..\_, )\_  \`~
+"  \`~"  "      \`"      /~'\`    \`\\~~
+
+"     "   "~'  ""
+
+Cracked By 巢水工作坊——fly \[OCN\]\[FCG\]\[NUKE\]
+
+2003-12-06  21:25
+
+## 调试方法一
+
+引用一：
+
+```
+003748DB     C3                    retn //这里返回入系统 DLL
+```
+
+所以偶在下面的许多 `JMP` 处下断，`F9` 运行，断在 `00374988` 处。呵呵，运气不错啦
+
+## 调试方法二
+
+这种方法多少有点取巧，试试下面：
+
+引用：
+
+```
+0012FFB0   0012FFB8  指针到下一个 SEH 记录
+0012FFB4   003746D4  SE 句柄  //当然是此处下断啦
+```
+
+在 `003746D4` 处下断，`Shift+F9` 断在 `003746D4` 处。OK，当然可以 `F7` 一步步单步走啦，但是很慢
+
+实际只要小心 `F7` 走十几步，就到了这里
+
+```
+0037478A  ADD DWORD PTR DS:\[EAX+B8\],2    //B8!!!明显是修改 ConText 结构，程序将从这里继续执行。
+```
+
+原来值为 `374986`，加 `2` 后为 `374988`。
+
+我想这种方法更通用，而不是靠运气。
+
+```
+4dd466d0e1e0cc123afbe504da2462ca
+```
