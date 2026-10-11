@@ -1,0 +1,1531 @@
+
+# 网络××算法分析
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-787.htm`](https://www.pediy.com/kssd/pediy07/pediy7-787.htm)
+
+网络V2.05 (2005.04.06) 算法分析
+
+日期：2005 年 4 月 7 日 破解人：Baby2008
+
+先用 `PEID 0.93` 汉化增强版查壳，`EXE32Pack 1.3x` -> `SteelBytes`，用 `PEiD v0.93` 插件 `PEiD Generic UnPacker` 轻松搞定，程序没有自校验，脱壳后能直接运行，默认另存为 `NetUSB.exe.unpacked_.exe`。脱壳后再用 `PEID 0.93` 汉化增强版查壳，`Nothing found *`，看看软件用了什么算法？还是用 `PEiD` 吧，好东西总要多用用！`Krypto ANALyzer` 检测的结果用了一堆的公开算法，顿时晕过去 3 分钟不醒人事^\_^，本想用 `IDA` 做个 map 文件，可怜小菜的我，E 文分成 26 个字母我全都认识，放在一起就不敢恭维了，外加入门级菜鸟不知到 `IDA` 怎么用，在我的本本上(P4 1.5/256M)反编译 `NetUSB.exe.unpacked_.exe`，电全用完了还没完成(估计至少 3 个小时)，无奈用家里的台式机(P4 2.8HT 超频 4.1 512M)跑，结果花了近 1 个小时才完成，郁闷死了，请问大家用 `IDA` 反编译一个文件大概需要多少时间？更可怜的是 `IDA` 制作的 map 文件还是有很多的函数不认识，无奈中还是用 `DeDe` 试试，能反编译，狂喜中……，`DeDe3.50`，查的注册验证按钮<-`TForm9@Bn_RegClick` 地址 `005A4004`，`OD` 载入 `NetUSB.exe.unpacked_.exe` 并在 `005A4004` 下断，`F9` 运行，输入注册信息，注册名：Baby2008，机器码：(可能是作者设计缺陷，我的本本上显示的机器码为'FFFFFFFF'，暂且不管它)，注册码：1234567890，点击立即注册，`OD` 中断在：
+
+```
+005A4004  >/.  55                 push ebp                  ;  <-TForm9@Bn_RegClick
+005A4005  |.  8BEC                mov ebp,esp               ;  注册按钮 onClick 事件
+005A4007  |.  B9 07000000         mov ecx,7
+005A400C  |>  6A 00              /push 0
+005A400E  |.  6A 00              |push 0
+005A4010  |.  49                 |dec ecx
+005A4011  |.^ 75 F9              \jnz short NetUSB_e.005A400C
+005A4013  |.  53                 push ebx
+005A4014  |.  8BD8                mov ebx,eax
+005A4016  |.  33C0                xor eax,eax
+005A4018  |.  55                 push ebp
+005A4019  |.  68 E1415A00         push <NetUSB_e.->System.@HandleFinal>
+005A401E  |.  64:FF30             push dword ptr fs:[eax]
+005A4021  |.  64:8920             mov dword ptr fs:[eax],esp
+005A4024  |.  8D55 F8             lea edx,[local.2]
+005A4027  >|.  8B83 F8020000     mov eax,dword ptr ds:[ebx+2F8]     ;  *LEt_RegUser:N.A.
+005A402D  >|.  E8 3AACEAFF       call NetUSB_e.0044EC6C             ;  ->Controls.TControl.GetText(TControl):TCaption;
+005A4032  |.  8B45 F8             mov eax,[local.2]                ;  用户名
+005A4035  |.  8D55 FC             lea edx,[local.1]
+005A4038  >|.  E8 A754E6FF       call NetUSB_e.004094E4             ;  ->SysUtils.Trim(AnsiString):AnsiString;overload;
+005A403D  |.  837D FC 00          cmp [local.1],0
+005A4041  |.  75 4F               jnz short NetUSB_e.005A4092        ;  用户名不能为空
+005A4043  |.  6A 30               push 30
+005A4045  |.  8D55 F4             lea edx,[local.3]
+005A4048  |.  B8 F8415A00         mov eax,NetUSB_e.005A41F8          ;  ASCII "oJCFk\"
+005A404D  >|.  E8 4E3BFFFF       call NetUSB_e.00597BA0             ;  对应函数 DecodeStr()
+005A4052  |.  8B45 F4             mov eax,[local.3]                ;  '提示'
+005A4055  >|.  E8 2E0EE6FF       call NetUSB_e.00404E88             ;  ->System.@LStrToPChar(String):PAnsiChar;
+005A405A  |.  50                 push eax
+005A405B  |.  8D55 F0             lea edx,[local.4]
+005A405E  |.  B8 08425A00         mov eax,NetUSB_e.005A4208          ;  ASCII "qvFntXKwhgk@sHvfkyR_gH[gqi_LlhojpGN_dL"
+005A4063  >|.  E8 383BFFFF       call NetUSB_e.00597BA0             ;  DecodeStr()
+005A4068  |.  8B45 F0             mov eax,[local.4]
+005A406B  >|.  E8 180EE6FF       call NetUSB_e.00404E88             ;  ->System.@LStrToPChar(String):PAnsiChar;
+005A4070  |.  8BD0                mov edx,eax
+005A4072  |.  A1 4C2A5C00         mov eax,dword ptr ds:[5C2A4C]
+005A4077  |.  8B00                mov eax,dword ptr ds:[eax]
+005A4079  |.  59                 pop ecx                    ;  提示注册名不能为空
+005A407A  >|.  E8 71B3ECFF       call NetUSB_e.0046F3F0             ;
+->Forms.TApplication.MessageBox(TApplication;PChar;PChar;Longint):Integer;
+005A407F  >|.  8B83 F8020000     mov eax,dword ptr ds:[ebx+2F8]     ;  *LEt_RegUser:N.A.
+005A4085  |.  8B10                mov edx,dword ptr ds:[eax]
+005A4087  |.  FF92 C0000000     call dword ptr ds:[edx+C0]
+005A408D  |.  E9 FF000000        jmp NetUSB_e.005A4191          ;  提示后结束验证
+005A4092  |>  33D2                xor edx,edx
+005A4094  >|.  8B83 04030000     mov eax,dword ptr ds:[ebx+304]     ;  *Bn_Reg:N.A.
+005A409A  |.  8B08                mov ecx,dword ptr ds:[eax]
+005A409C  |.  FF51 64             call dword ptr ds:[ecx+64]
+005A409F  |.  B2 01               mov dl,1
+005A40A1  |.  B8 02000000         mov eax,2
+005A40A6  >|.  E8 693CFFFF       call NetUSB_e.00597D14             ;  ->:THttpCli._PROC_00597D14()
+005A40AB  |.  8D55 E4             lea edx,[local.7]
+005A40AE  >|.  8B83 00030000     mov eax,dword ptr ds:[ebx+300]     ;  *LEt_RegCode:N.A.
+005A40B4  >|.  E8 B3ABEAFF       call NetUSB_e.0044EC6C             ;  ->Controls.TControl.GetText(TControl):TCaption;
+005A40B9  |.  8B45 E4             mov eax,[local.7]                ;  试炼码
+005A40BC  |.  8D55 E8             lea edx,[local.6]
+005A40BF  >|.  E8 2054E6FF       call NetUSB_e.004094E4             ;  ->SysUtils.Trim(AnsiString):AnsiString;overload;
+005A40C4  |.  8B45 E8             mov eax,[local.6]                ;  Trim(试炼码)
+005A40C7  |.  8D55 EC             lea edx,[local.5]
+005A40CA  >|.  E8 D13AFFFF       call NetUSB_e.00597BA0             ;  对应函数 DecodeStr()
+005A40CF  |.  8B45 EC             mov eax,[local.5]                ;  DecodeStr(试炼码)
+005A40D2  |.  50                 push eax
+005A40D3  |.  8D55 DC             lea edx,[local.9]
+005A40D6  >|.  8B83 F8020000     mov eax,dword ptr ds:[ebx+2F8]     ;  *LEt_RegUser:N.A.
+005A40DC  >|.  E8 8BABEAFF       call NetUSB_e.0044EC6C             ;  ->Controls.TControl.GetText(TControl):TCaption;
+005A40E1  |.  8B45 DC             mov eax,[local.9]                ;  用户名
+005A40E4  |.  8D55 E0             lea edx,[local.8]
+005A40E7  >|.  E8 F853E6FF       call NetUSB_e.004094E4             ;  ->SysUtils.Trim(AnsiString):AnsiString;overload;
+005A40EC  |.  8B45 E0             mov eax,[local.8]                ;  Trim(用户名)
+005A40EF  |.  50                 push eax
+005A40F0  |.  8D55 D0             lea edx,[local.12]
+005A40F3  |.  A1 4C2A5C00         mov eax,dword ptr ds:[5C2A4C]
+005A40F8  |.  8B00                mov eax,dword ptr ds:[eax]
+005A40FA  >|.  E8 39B7ECFF       call NetUSB_e.0046F838             ;  ->DdeMan.TDdeMgr.GetExeName(TDdeMgr):AnsiString;<+>
+005A40FF  |.  8B45 D0             mov eax,[local.12]               ;  当前执行的程序
+005A4102  |.  8D55 D4             lea edx,[local.11]
+005A4105  >|.  E8 2A2EFFFF       call NetUSB_e.00596F34             ;  ->:THttpCli._PROC_00596F34()
+005A410A  |.  8B45 D4             mov eax,[local.11]               ;  取得应用程序的产品名称 '网络**'
+005A410D  |.  8D55 D8             lea edx,[local.10]
+005A4110  >|.  E8 CF53E6FF       call NetUSB_e.004094E4             ;  ->SysUtils.Trim(AnsiString):AnsiString;overload;
+005A4115  |.  8B55 D8             mov edx,[local.10]               ;  Trim('网络**')
+005A4118  |.  A1 6C285C00         mov eax,dword ptr ds:[5C286C]
+005A411D  |.  8B00                mov eax,dword ptr ds:[eax]
+005A411F  |.  8B80 64030000     mov eax,dword ptr ds:[eax+364]
+005A4125  |.  59                 pop ecx                    ;  '用户名'
+005A4126  |.  E8 91B5F4FF        call NetUSB_e.004EF6BC             ;  注册验证,关键!
+005A412B  |.  84C0                test al,al
+005A412D  |.  75 09               jnz short NetUSB_e.005A4138      ;  验证通不过,调用 Halt 结束程序。
+005A412F  |.  33C0                xor eax,eax
+005A4131  >|.  E8 D607E6FF       call NetUSB_e.0040490C             ;  ->System.@Halt(Integer);
+005A4136  |.  EB 59               jmp short NetUSB_e.005A4191
+005A4138  |>  B2 01               mov dl,1
+005A413A  |.  B8 02000000         mov eax,2
+005A413F  >|.  E8 D03BFFFF       call NetUSB_e.00597D14             ;  保存注册信息?
+```
+
+
+
+```
+005A4144  |.  6A 40                 push 40  
+005A4146  |.  8D55 CC               lea edx,[local.13]                  ;  提示注册成功信息  
+005A4149  |.  B8 F8415A00           mov eax,NetUSB_e.005A41F8            ;  ASCII "oJCFk\"  
+005A414E  >|.  E8 4D3AFFFF          call NetUSB_e.00597BA0               ;  ->:THttpCli._PROC_00597BA0()  
+005A4153  |.  8B45 CC               mov eax,[local.13]  
+005A4156  >|.  E8 2D0DE6FF          call NetUSB_e.00404E88               ;  ->System.@LStrToPChar(String):PAnsiChar;  
+005A415B  |.  50                   push eax  
+005A415C  |.  8D55 C8               lea edx,[local.14]  
+005A415F  |.  B8 38425A00           mov eax,NetUSB_e.005A4238            ;  ASCII  
+"qvFntWKEjVV_gG_LpGk@zgS@iKK=eiVchyV_gIWTpHGPny?LjkJyfySyngronXvfqvFntYK?jvZ_dL"  
+005A4164  >|.  E8 373AFFFF          call NetUSB_e.00597BA0               ;  ->:THttpCli._PROC_00597BA0()  
+005A4169  |.  8B45 C8               mov eax,[local.14]  
+005A416C  >|.  E8 170DE6FF          call NetUSB_e.00404E88               ;  ->System.@LStrToPChar(String):PAnsiChar;  
+005A4171  |.  8BD0                 mov edx,eax  
+005A4173  |.  A1 4C2A5C00           mov eax,dword ptr ds:[5C2A4C]  
+005A4178  |.  8B00                 mov eax,dword ptr ds:[eax]  
+005A417A  |.  59                   pop ecx  
+005A417B  >|.  E8 70B2ECFF          call NetUSB_e.0046F3F0               ;   
+->Forms.TApplication.MessageBox(TApplication;PChar;PChar;Longint):Integer;  
+005A4180  |.  C783 4C020000 01>mov dword ptr ds:[ebx+24C],1  
+005A418A  |.  8BC3                 mov eax,ebx  
+005A418C  >|.  E8 9379ECFF          call NetUSB_e.0046BB24               ;  ->Forms.TCustomForm.Close(TCustomForm);  
+005A4191  |>  33C0                 xor eax,eax  
+005A4193  |.  5A                   pop edx  
+005A4194  |.  59                   pop ecx  
+005A4195  |.  59                   pop ecx  
+005A4196  |.  64:8910              mov dword ptr fs:[eax],edx  
+005A4199  |.  68 E8415A00           push NetUSB_e.005A41E8  
+005A419E  |>  8D45 C8               lea eax,[local.14]  
+005A41A1  |.  BA 05000000           mov edx,5  
+005A41A6  >|.  E8 4108E6FF          call NetUSB_e.004049EC               ;  ->System.@LStrArrayClr(void;void;Integer);  
+005A41AB  |.  8D45 DC               lea eax,[local.9]  
+005A41AE  >|.  E8 1508E6FF          call NetUSB_e.004049C8               ;  ->System.@LStrClr(void;void);  
+005A41B3  |.  8D45 E0               lea eax,[local.8]  
+005A41B6  >|.  E8 0D08E6FF          call NetUSB_e.004049C8               ;  ->System.@LStrClr(void;void);  
+005A41BB  |.  8D45 E4               lea eax,[local.7]  
+005A41BE  >|.  E8 0508E6FF          call NetUSB_e.004049C8               ;  ->System.@LStrClr(void;void);  
+005A41C3  |.  8D45 E8               lea eax,[local.6]  
+005A41C6  |.  BA 04000000           mov edx,4  
+005A41CB  >|.  E8 1C08E6FF          call NetUSB_e.004049EC               ;  ->System.@LStrArrayClr(void;void;Integer);  
+005A41D0  |.  8D45 F8               lea eax,[local.2]  
+005A41D3  >|.  E8 F007E6FF          call NetUSB_e.004049C8               ;  ->System.@LStrClr(void;void);  
+005A41D8  |.  8D45 FC               lea eax,[local.1]  
+005A41DB  >|.  E8 E807E6FF          call NetUSB_e.004049C8               ;  ->System.@LStrClr(void;void);  
+005A41E0  \\.  C3                   retn  
+005A41E1  > .^ E9 4A01E6FF         jmp NetUSB_e.00404330                  ;  ->System.@HandleFinally;  
+005A41E6    .^ EB B6              jmp short NetUSB_e.005A419E  
+005A41E8    .  5B                   pop ebx  
+005A41E9    .  8BE5                 mov esp,ebp  
+005A41EB    .  5D                   pop ebp  
+005A41EC    .  C3                   retn  
+```
+
+从上面代码可以很明显的看出:
+
+1. 在 `005A40CA` 处 `call NetUSB_e.00597BA0` 对试炼码进行处理
+2. 在 `005A4126` 处 `call NetUSB_e.004EF6BC` 是关键部分，需要跟进
+3. 在 `005A412D` 处 跳转,爆破此处仅仅是注册验证爆破，重启验证还是通不过的!
+
+接下来开始分析一下上面的两了函数吧……
+
+1. `call NetUSB_e.00597BA0`
+
+---
+
+```
+00597BA0  /$  55                   push ebp                       ;  字符串解密函数  
+00597BA1  |.  8BEC                 mov ebp,esp  
+00597BA3  |.  83C4 D8               add esp,-28  
+00597BA6  |.  53                   push ebx  
+00597BA7  |.  56                   push esi  
+00597BA8  |.  57                   push edi  
+00597BA9  |.  33C9                 xor ecx,ecx  
+00597BAB  |.  894D D8               mov [local.10],ecx  
+00597BAE  |.  894D DC               mov [local.9],ecx  
+00597BB1  |.  894D E0               mov [local.8],ecx  
+00597BB4  |.  8955 F8               mov [local.2],edx  
+00597BB7  |.  8945 FC               mov [local.1],eax  
+00597BBA  |.  8B45 FC               mov eax,[local.1]  
+00597BBD  |.  E8 B6D2E6FF           call NetUSB_e.00404E78  
+00597BC2  |.  33C0                 xor eax,eax  
+00597BC4  |.  55                   push ebp  
+00597BC5  |.  68 047D5900           push NetUSB_e.00597D04  
+00597BCA  |.  64:FF30              push dword ptr fs:[eax]  
+00597BCD  |.  64:8920              mov dword ptr fs:[eax],esp  
+00597BD0  |.  8B45 F8               mov eax,[local.2]  
+00597BD3  |.  E8 F0CDE6FF           call NetUSB_e.004049C8  
+00597BD8  |.  8D45 E0               lea eax,[local.8]  
+00597BDB  |.  E8 E8CDE6FF           call NetUSB_e.004049C8  
+00597BE0  |.  C645 EA FC            mov byte ptr ss:[ebp-16],0FC  
+00597BE4  |.  C645 EC F0            mov byte ptr ss:[ebp-14],0F0  
+00597BE8  |.  C645 EE C0            mov byte ptr ss:[ebp-12],0C0  
+00597BEC  |.  33C0                 xor eax,eax  
+00597BEE  |.  8945 F0               mov [local.4],eax  
+00597BF1  |.  C645 E6 00            mov byte ptr ss:[ebp-1A],0  
+00597BF5  |.  BB 02000000           mov ebx,2  
+00597BFA  |.  33FF                 xor edi,edi  
+00597BFC  |.  33F6                 xor esi,esi  
+00597BFE  |.  8B45 FC               mov eax,[local.1]  
+00597C01  |.  E8 8AD0E6FF           call NetUSB_e.00404C90  
+00597C06  |.  8945 F4               mov [local.3],eax  
+00597C09  |.  3B75 F4               cmp esi,[local.3]  
+00597C0C  |.  0F8D B9000000         jge NetUSB_e.00597CCB  
+00597C12  |>  8B45 FC               /mov eax,[local.1]  
+00597C15  |.  0FB60430             |movzx eax,byte ptr ds:[eax+esi]  
+00597C19  |.  83E8 3C              |sub eax,3C  
+00597C1C  |.  79 2A                |jns short NetUSB_e.00597C48  
+00597C1E  |.  8D45 DC              |lea eax,[local.9]  
+00597C21  |.  8B55 FC              |mov edx,[local.1]  
+00597C24  |.  8A1432               |mov dl,byte ptr ds:[edx+esi]  
+00597C27  |.  E8 7CCFE6FF          |call NetUSB_e.00404BA8  
+00597C2C  |.  8B55 DC              |mov edx,[local.9]  
+00597C2F  |.  8D45 E0              |lea eax,[local.8]  
+00597C32  |.  E8 61D0E6FF          |call NetUSB_e.00404C98  
+00597C37  |.  FF45 F0              |inc [local.4]  
+00597C3A  |.  46                   |inc esi  
+00597C3B  |.  C645 E6 00           |mov byte ptr ss:[ebp-1A],0  
+00597C3F  |.  BB 02000000          |mov ebx,2  
+00597C44  |.  33FF                 |xor edi,edi  
+00597C46  |.  EB 7A                |jmp short NetUSB_e.00597CC2  
+00597C48  |>  8B45 FC              |mov eax,[local.1]  
+00597C4B  |.  8A0430               |mov al,byte ptr ds:[eax+esi]  
+00597C4E  |.  2C 3C                |sub al,3C  
+00597C50  |.  8845 E7              |mov byte ptr ss:[ebp-19],al  
+00597C53  |.  8B45 F0              |mov eax,[local.4]  
+00597C56  |.  3B45 F4              |cmp eax,[local.3]  
+00597C59  |.  7D 70                |jge short NetUSB_e.00597CCB  
+00597C5B  |.  8D47 06              |lea eax,dword ptr ds:[edi+6]  
+00597C5E  |.  83F8 08              |cmp eax,8  
+00597C61  |.  7C 44                |jl short NetUSB_e.00597CA7  
+00597C63  |.  8A45 E7              |mov al,byte ptr ss:[ebp-19]  
+00597C66  |.  24 3F                |and al,3F  
+00597C68  |.  8BF8                 |mov edi,eax  
+00597C6A  |.  81E7 FF000000        |and edi,0FF  
+00597C70  |.  B9 06000000          |mov ecx,6  
+00597C75  |.  2BCB                 |sub ecx,ebx  
+00597C77  |.  D3EF                 |shr edi,cl  
+00597C79  |.  8D45 D8              |lea eax,[local.10]  
+00597C7C  |.  33D2                 |xor edx,edx  
+00597C7E  |.  8A55 E6              |mov dl,byte ptr ss:[ebp-1A]  
+00597C81  |.  0BD7                 |or edx,edi  
+```
+
+
+
+### 00597C83 Base64 Decode Assembly
+
+```
+00597C83  |.  E8 20CFE6FF      |call NetUSB_e.00404BA8  
+00597C88  |.  8B55 D8         |mov edx,[local.10]  
+00597C8B  |.  8D45 E0         |lea eax,[local.8]  
+00597C8E  |.  E8 05D0E6FF     |call NetUSB_e.00404C98  
+00597C93  |.  FF45 F0         |inc [local.4]  
+00597C96  |.  33FF            |xor edi,edi  
+00597C98  |.  83FB 06         |cmp ebx,6  
+00597C9B  |.  7C 07           |jl short NetUSB_e.00597CA4  
+00597C9D  |.  BB 02000000     |mov ebx,2  
+00597CA2  |.  EB 1D           |jmp short NetUSB_e.00597CC1  
+00597CA4  |>  83C3 02         |add ebx,2  
+00597CA7  |>  8BCB            |mov ecx,ebx  
+00597CA9  |.  8A45 E7         |mov al,byte ptr ss:[ebp-19]  
+00597CAC  |.  D2E0            |shl al,cl  
+00597CAE  |.  8845 E6         |mov byte ptr ss:[ebp-1A],al  
+00597CB1  |.  8A441D E8       |mov al,byte ptr ss:[ebp+ebx-18]  
+00597CB5  |.  2045 E6         |and byte ptr ss:[ebp-1A],al  
+00597CB8  |.  B8 08000000     |mov eax,8  
+00597CBD  |.  2BC3            |sub eax,ebx  
+00597CBF  |.  03F8            |add edi,eax  
+00597CC1  |>  46              |inc esi  
+00597CC2  |>  3B75 F4         |cmp esi,[local.3]  
+00597CC5  |.^ 0F8C 47FFFFFF   \|jl NetUSB_e.00597C12  
+00597CCB  |>  8D45 E0         lea eax,[local.8]  
+00597CCE  |.  8B55 F0         mov edx,[local.4]  
+00597CD1  |.  E8 3ED3E6FF     call NetUSB_e.00405014  
+00597CD6  |.  8B45 F8         mov eax,[local.2]  
+00597CD9  |.  8B55 E0         mov edx,[local.8]  
+00597CDC  |.  E8 3BCDE6FF     call NetUSB_e.00404A1C  
+00597CE1  |.  33C0            xor eax,eax  
+00597CE3  |.  5A              pop edx  
+00597CE4  |.  59              pop ecx  
+00597CE5  |.  59              pop ecx  
+00597CE6  |.  64:8910        mov dword ptr fs:[eax],edx  
+00597CE9  |.  68 0B7D5900    push NetUSB_e.00597D0B  
+00597CEE  |>  8D45 D8         lea eax,[local.10]  
+00597CF1  |.  BA 03000000     mov edx,3  
+00597CF6  |.  E8 F1CCE6FF     call NetUSB_e.004049EC  
+00597CFB  |.  8D45 FC         lea eax,[local.1]  
+00597CFE  |.  E8 C5CCE6FF     call NetUSB_e.004049C8  
+00597D03  \.  C3              retn  
+```
+
+这是一个类 `Base64DecodeStr` 函数，调试时的注释被我不小心清除了^_&，大家可以参考 `Base64` 相关资料进行调试，记为 `DecodeStr()`，用 `Delphi 7.0` 表示如下：
+
+```
+Function DecodeStr(Const Value: String): String;
+
+Begin
+  SetLength(Result, (Length(Value) Div 4) * 3);
+  SetLength(Result, Decode(@Value[1], @Result[1], Length(Value)));
+End;
+
+Function Decode(pInput: pointer; pOutput: pointer; Size: longint): longint;
+
+Var
+  i, j, iptr, optr: integer;
+  Temp: Array[0..3] Of byte;
+  Input, Output: PByteArray;
+
+Begin
+  Input := PByteArray(pInput); Output := PByteArray(pOutput);
+  iptr := 0; optr := 0;
+  Result := 0;
+  For i := 1 To (Size Div 4) Do
+  Begin
+    For j := 0 To 3 Do
+    Begin
+      If Input^[iptr] <> 0 Then Temp[j] := Input^[iptr] - $3C Else Temp[j] := $FF;;
+      Inc(iptr);
+    End;
+    Output^[optr] := (Temp[0] Shl 2) Or (Temp[1] Shr 4);
+    Result := optr + 1;
+    If (Temp[2] <> $FF) And (Temp[3] = $FF) Then
+    Begin
+      Output^[optr + 1] := (Temp[1] Shl 4) Or (Temp[2] Shr 2);
+      Result := optr + 2;
+      Inc(optr)
+    End
+    Else If (Temp[2] <> $FF) Then
+    Begin
+      Output^[optr + 1] := (Temp[1] Shl 4) Or (Temp[2] Shr 2);
+      Output^[optr + 2] := (Temp[2] Shl 6) Or Temp[3];
+      Result := optr + 3;
+      Inc(optr, 2);
+    End;
+    Inc(optr);
+  End;
+
+End;
+```
+
+作者将软件中的提示信息，比如注册成功等提示也是通过这个函数解密后才显示的，所以我们直接找不到有用的提示信息。
+
+### 2、`call NetUSB_e.004EF6BC` 函数
+
+```
+004EF6BC  /$  55              push ebp                      ;  注册验证函数
+004EF6BD  |.  8BEC            mov ebp,esp
+004EF6BF  |.  83C4 F0         add esp,-10
+004EF6C2  |.  53              push ebx
+004EF6C3  |.  33DB            xor ebx,ebx
+004EF6C5  |.  895D F0         mov [local.4],ebx
+004EF6C8  |.  895D F4         mov [local.3],ebx
+004EF6CB  |.  894D F8         mov [local.2],ecx                  ;  用户名
+004EF6CE  |.  8955 FC         mov [local.1],edx
+004EF6D1  |.  8BD8            mov ebx,eax
+004EF6D3  |.  8B45 FC         mov eax,[local.1]
+004EF6D6  |.  E8 9D57F1FF     call NetUSB_e.00404E78
+004EF6DB  |.  8B45 F8         mov eax,[local.2]
+004EF6DE  |.  E8 9557F1FF     call NetUSB_e.00404E78
+004EF6E3  |.  8B45 08         mov eax,[arg.1]
+004EF6E6  |.  E8 8D57F1FF     call NetUSB_e.00404E78
+004EF6EB  |.  33C0            xor eax,eax
+004EF6ED  |.  55              push ebp
+004EF6EE  |.  68 A6F74E00     push NetUSB_e.004EF7A6
+004EF6F3  |.  64:FF30        push dword ptr fs:[eax]
+004EF6F6  |.  64:8920        mov dword ptr fs:[eax],esp
+004EF6F9  |.  8B45 FC         mov eax,[local.1]                    ;  '网络**'
+004EF6FC  |.  E8 8F55F1FF     call NetUSB_e.00404C90               ;  System.@LStrLen(String):Integer;
+004EF701  |.  3B43 4C         cmp eax,dword ptr ds:[ebx+4C]        ;  cmp length('网络**'),$32
+004EF704  |.  7F 19           jg short NetUSB_e.004EF71F
+004EF706  |.  8B45 FC         mov eax,[local.1]
+004EF709  |.  E8 8255F1FF     call NetUSB_e.00404C90               ;  System.@LStrLen(String):Integer;
+004EF70E  |.  3B43 50         cmp eax,dword ptr ds:[ebx+50]        ;  cmp length('网络**'),$3
+004EF711  |.  7C 0C           jl short NetUSB_e.004EF71F
+004EF713  |.  8B45 08         mov eax,[arg.1]
+004EF716  |.  E8 7555F1FF     call NetUSB_e.00404C90               ;  System.@LStrLen(String):Integer;
+004EF71B  |.  85C0           test eax,eax
+004EF71D  |.  75 04          jnz short NetUSB_e.004EF723
+004EF71F  |>  33DB           xor ebx,ebx
+004EF721  |.  EB 60          jmp short NetUSB_e.004EF783
+004EF723  |>  8D55 F4        lea edx,[local.3]
+004EF726  |.  8B45 08        mov eax,[arg.1]
+004EF729  |.  E8 669BF1FF    call NetUSB_e.00409294               ;  UpperCase(AnsiString):AnsiString;
+004EF72E  |.  8B55 F4        mov edx,[local.3]
+004EF731  |.  8D45 08        lea eax,[arg.1]
+004EF734  |.  E8 2753F1FF    call NetUSB_e.00404A60
+004EF739  |.  8D4D F0        lea ecx,[local.4]
+004EF73C  |.  8B55 FC        mov edx,[local.1]
+004EF73F  |.  8BC3           mov eax,ebx
+004EF741  |.  E8 46FBFFFF    call NetUSB_e.004EF28C               ;  产生注册码!!
+004EF746  |.  8B45 F0        mov eax,[local.4]                    ;  硬盘物理序列号经过 2 次变换的结果,为伪注册码
+004EF749  |.  8B55 08        mov edx,[arg.1]                       ;  变换后的试炼码
+004EF74C  |.  E8 BB9BF1FF    call NetUSB_e.0040930C               ;  SysUtils.CompareStr(AnsiString;AnsiString):Integer;
+004EF751  |.  85C0           test eax,eax
+004EF753  |.  74 04          je short NetUSB_e.004EF759           ;  又一个注册验证爆破点
+004EF755  |.  33DB           xor ebx,ebx
+004EF757  |.  EB 2A          jmp short NetUSB_e.004EF783          ;  不一致,Over!
+004EF759  |>  8D43 48        lea eax,dword ptr ds:[ebx+48]
+004EF75C  |.  8B55 FC        mov edx,[local.1]
+004EF75F  |.  E8 B852F1FF    call NetUSB_e.00404A1C
+004EF764  |.  8D43 54        lea eax,dword ptr ds:[ebx+54]
+004EF767  |.  8B55 F8        mov edx,[local.2]
+004EF76A  |.  E8 AD52F1FF    call NetUSB_e.00404A1C
+004EF76F  |.  8D43 5C        lea eax,dword ptr ds:[ebx+5C]
+004EF772  |.  8B55 08        mov edx,[arg.1]
+004EF775  |.  E8 A252F1FF    call NetUSB_e.00404A1C
+004EF77A  |.  8BC3           mov eax,ebx
+004EF77C  |.  E8 53020000    call NetUSB_e.004EF9D4
+004EF781  |.  B3 01          mov bl,1
+```
+
+
+
+# 逆向分析：注册验证逻辑
+
+```assembly
+004EF783  |>  33C0           xor eax,eax
+004EF785  |.  5A            pop edx
+004EF786  |.  59            pop ecx
+004EF787  |.  59            pop ecx
+004EF788  |.  64:8910       mov dword ptr fs:[eax],edx
+004EF78B  |.  68 ADF74E00   push NetUSB_e.004EF7AD
+004EF790  |>  8D45 F0       lea eax,[local.4]
+004EF793  |.  BA 04000000   mov edx,4
+004EF798  |.  E8 4F52F1FF   call NetUSB_e.004049EC
+004EF79D  |.  8D45 08       lea eax,[arg.1]
+004EF7A0  |.  E8 2352F1FF   call NetUSB_e.004049C8
+004EF7A5  \.  C3            retn
+```
+
+-----------------------------
+
+在这个函数中，我们可以看到：
+
+```assembly
+004EF741  |.  E8 46FBFFFF   call NetUSB_e.004EF28C             ;  产生注册码!!
+004EF746  |.  8B45 F0       mov eax,[local.4]                   ;  硬盘物理序列号经过 2 次变换的结果,为伪注册码
+004EF749  |.  8B55 08       mov edx,[arg.1]                     ;  变换后的试炼码
+004EF74C  |.  E8 BB9BF1FF   call NetUSB_e.0040930C             ;  SysUtils.CompareStr(AnsiString;AnsiString):Integer;
+004EF751  |.  85C0          test eax,eax
+004EF753  |.  74 04         je short NetUSB_e.004EF759         ;  又一个注册验证爆破点
+```
+
+软件的注册验证是：`call NetUSB_e.004EF28C()=DecodeStr(试炼码)`，即 `f1()=f2()` 的形式。要得到注册码，我们要做的是：
+
+1.  分析 `f1()` 函数，求得计算结果；
+2.  写出 `f2()` 的反函数，根据 `f1()` 的计算结果求得软件注册码；
+
+通过上面分析，`f1()` 函数即 `DecodeStr` 是个类 `Base64` 算法，那么我们可以参考 `Base64EncodeStr`，写出 `DecodeStr` 的反函数 `EncodeStr`，Delphi 7.0 表示如下：
+
+```delphi
+Function EncodeStr(Const Value: String): String;
+
+Begin
+  SetLength(Result, ((Length(Value) + 2) Div 3) * 4);
+  Encode(@Value[1], @Result[1], Length(Value));
+End;
+
+Function Encode(pInput: pointer; pOutput: pointer; Size: longint): longint;
+
+Var
+  i, iptr, optr: integer;
+  Input, Output: PByteArray;
+Begin
+  Input := PByteArray(pInput); Output := PByteArray(pOutput);
+  iptr := 0; optr := 0;
+  For i := 1 To (Size Div 3) Do
+  Begin
+    Output^[optr + 0] := Input^[iptr] Shr 2 + $3C;
+    Output^[optr + 1] := ((Input^[iptr] And 3) Shl 4) + (Input^[iptr + 1] Shr 4) + $3C;
+    Output^[optr + 2] := ((Input^[iptr + 1] And 15) Shl 2) + (Input^[iptr + 2] Shr 6) + $3C;
+    Output^[optr + 3] := Input^[iptr + 2] And 63 + $3C;
+    Inc(optr, 4); Inc(iptr, 3);
+  End;
+  Case (Size Mod 3) Of
+    1: Begin
+        Output^[optr + 0] := Input^[iptr] Shr 2 + $3C;
+        Output^[optr + 1] := (Input^[iptr] And 3) Shl 4 + $3C;
+        Output^[optr + 2] := byte(0);
+        Output^[optr + 3] := byte(0);
+      End;
+    2: Begin
+        Output^[optr + 0] := Input^[iptr] Shr 2 + $3C;
+        Output^[optr + 1] := ((Input^[iptr] And 3) Shl 4) + (Input^[iptr + 1] Shr 4) + $3C;
+        Output^[optr + 2] := (Input^[iptr + 1] And 15) Shl 2 + $3C;
+        Output^[optr + 3] := byte(0);
+      End;
+  End;
+  Result := ((Size + 2) Div 3) * 4;
+End;
+```
+
+至此，我们离胜利不远了，剩下一个在 `004EF741` 处的函数 `call NetUSB_e.004EF28C`。
+
+```assembly
+call NetUSB_e.004EF28C
+```
+
+-----------------------------
+
+```assembly
+004EF28C  /$  55            push ebp
+004EF28D  |.  8BEC          mov ebp,esp
+004EF28F  |.  51            push ecx
+004EF290  |.  B9 04000000   mov ecx,4
+004EF295  |>  6A 00         /push 0
+004EF297  |.  6A 00         |push 0
+004EF299  |.  49            |dec ecx
+004EF29A  |.^ 75 F9         \jnz short NetUSB_e.004EF295
+004EF29C  |.  874D FC       xchg [local.1],ecx
+004EF29F  |.  53            push ebx
+004EF2A0  |.  56            push esi
+004EF2A1  |.  57            push edi
+004EF2A2  |.  8BF9          mov edi,ecx
+004EF2A4  |.  8955 FC       mov [local.1],edx
+004EF2A7  |.  8BF0          mov esi,eax
+004EF2A9  |.  8B45 FC       mov eax,[local.1]                   ;  '网络**'
+004EF2AC  |.  E8 C75BF1FF   call NetUSB_e.00404E78
+004EF2B1  |.  33C0          xor eax,eax
+004EF2B3  |.  55            push ebp
+004EF2B4  |.  68 2CF44E00   push NetUSB_e.004EF42C
+004EF2B9  |.  64:FF30       push dword ptr fs:[eax]
+004EF2BC  |.  64:8920       mov dword ptr fs:[eax],esp
+004EF2BF  |.  8D55 DC       lea edx,[local.9]
+004EF2C2  |.  8BC6          mov eax,esi
+004EF2C4  |.  E8 FF0E0000   call NetUSB_e.004F01C8             ;  HDSerialNumber()
+004EF2C9  |.  8B45 DC       mov eax,[local.9]                   ;  硬盘物理序列号转换结果
+004EF2CC  |.  8D55 EC       lea edx,[local.5]
+004EF2CF  |.  E8 10A2F1FF   call NetUSB_e.004094E4             ;  SysUtils.Trim(AnsiString):AnsiString;overload;
+004EF2D4  |.  837D EC 00    cmp [local.5],0                     ;  去前后空格
+004EF2D8  |.  75 0D         jnz short NetUSB_e.004EF2E7
+004EF2DA  |.  8D45 E0       lea eax,[local.8]
+004EF2DD  |.  8B55 FC       mov edx,[local.1]
+004EF2E0  |.  E8 7B57F1FF   call NetUSB_e.00404A60
+004EF2E5  |.  EB 5D         jmp short NetUSB_e.004EF344
+004EF2E7  |>  8B45 EC       mov eax,[local.5]
+004EF2EA  |.  E8 A159F1FF   call NetUSB_e.00404C90             ;  System.@LStrLen(String):Integer;
+004EF2EF  |.  8BD8          mov ebx,eax                         ;  长度
+004EF2F1  |.  8D45 E8       lea eax,[local.6]                     ;  (保存后面函数 LStrCopy 的结果,即硬盘物理序列号转换结果的
+                                                                  ;  前半部分)
+004EF2F4  |.  50            push eax
+004EF2F5  |.  8BCB          mov ecx,ebx
+004EF2F7  |.  D1F9          sar ecx,1                             ;  length Shr 1
+004EF2F9  |.  79 03         jns short NetUSB_e.004EF2FE
+004EF2FB  |.  83D1 00       adc ecx,0
+004EF2FE  |>  BA 01000000   mov edx,1                             ;  起始位置 1
+004EF303  |.  8B45 EC       mov eax,[local.5]                     ;  硬盘物理序列号转换结果
+004EF306  |.  E8 DD5BF1FF   call NetUSB_e.00404EE8               ;  System.@LStrCopy;
+004EF30B  |.  8D45 E4       lea eax,[local.7]                     ;  保存后半部分
+004EF30E  |.  50            push eax
+004EF30F  |.  8BC3          mov eax,ebx
+004EF311  |.  D1F8          sar eax,1
+004EF313  |.  79 03         jns short NetUSB_e.004EF318
+004EF315  |.  83D0 00       adc eax,0
+004EF318  |>  8BCB          mov ecx,ebx
+004EF31A  |.  2BC8          sub ecx,eax
+004EF31C  |.  8BD3          mov edx,ebx
+004EF31E  |.  D1FA          sar edx,1
+004EF320  |.  79 03         jns short NetUSB_e.004EF325
+004EF322  |.  83D2 00       adc edx,0
+004EF325  |>  42            inc edx
+004EF326  |.  8B45 EC       mov eax,[local.5]
+004EF329  |.  E8 BA5BF1FF   call NetUSB_e.00404EE8               ;  System.@LStrCopy;取后半部分
+004EF32E  |.  FF75 E8       push [local.6]                        ;  前半部分
+004EF331  |.  FF75 FC       push [local.1]                        ;  '网络**'
+004EF334  |.  FF75 E4       push [local.7]                        ;  '后半部分'
+004EF337  |.  8D45 E0       lea eax,[local.8]
+004EF33A  |.  BA 03000000   mov edx,3
+004EF33F  |.  E8 0C5AF1FF   call NetUSB_e.00404D50               ;  System.@LStrCatN,字符串连接函数;
+004EF344  |>  C745 F0 00000000 mov [local.4],0
+004EF34B  |.  C745 F4 00000000 mov [local.3],0
+004EF352  |.  8B45 FC       mov eax,[local.1]                     ;  '网络**'
+004EF355  |.  E8 3659F1FF   call NetUSB_e.00404C90               ;  System.@LStrLen(String):Integer;
+004EF35A  |.  3B46 4C       cmp eax,dword ptr ds:[esi+4C]        ;  $32
+004EF35D  |.  7F 0D         jg short NetUSB_e.004EF36C
+004EF35F  |.  8B45 FC       mov eax,[local.1]
+004EF362  |.  E8 2959F1FF   call NetUSB_e.00404C90
+004EF367  |.  3B46 50       cmp eax,dword ptr ds:[esi+50]        ;  3
+004EF36A  |.  7D 0C         jge short NetUSB_e.004EF378
+```
+
+
+
+```
+004EF36C  |>  8BC7              mov eax,edi  
+
+004EF36E  |.  E8 5556F1FF       call NetUSB_e.004049C8  
+
+004EF373  |.  E9 91000000       jmp NetUSB_e.004EF409  
+
+004EF378  |>  8B45 E0           mov eax,[local.8]                ;  前半部分+'网络**'+后半部分  
+
+004EF37B  |.  E8 1059F1FF       call NetUSB_e.00404C90           ;  System.@LStrLen(String):Integer;  
+
+004EF380  |.  8BD8              mov ebx,eax  
+
+004EF382  |.  EB 37             jmp short NetUSB_e.004EF3BB      ;  下面代码与硬盘物理序列号转换函数一样!  
+
+004EF384  |>  8B45 F0           /mov eax,[local.4]               ;  参考 004F01C8 处注释  
+
+004EF387  |.  8B55 F4           |mov edx,[local.3]  
+
+004EF38A  |.  0346 68           |add eax,dword ptr ds:[esi+68]  
+
+004EF38D  |.  1356 6C           |adc edx,dword ptr ds:[esi+6C]  
+
+004EF390  |.  52                |push edx  
+
+004EF391  |.  50                |push eax  
+
+004EF392  |.  8B45 E0           |mov eax,[local.8]  
+
+004EF395  |.  0FB64418 FF       |movzx eax,byte ptr ds:[eax+ebx-1]  
+
+004EF39A  |.  50                |push eax  
+
+004EF39B  |.  B8 59040000       |mov eax,459  
+
+004EF3A0  |.  5A                |pop edx  
+
+004EF3A1  |.  8BCA              |mov ecx,edx  
+
+004EF3A3  |.  33D2              |xor edx,edx  
+
+004EF3A5  |.  F7F1              |div ecx  
+
+004EF3A7  |.  8BC2              |mov eax,edx  
+
+004EF3A9  |.  33D2              |xor edx,edx  
+
+004EF3AB  |.  290424            |sub dword ptr ss:[esp],eax  
+
+004EF3AE  |.  195424 04         |sbb dword ptr ss:[esp+4],edx  
+
+004EF3B2  |.  58                |pop eax  
+
+004EF3B3  |.  5A                |pop edx  
+
+004EF3B4  |.  8945 F0           |mov [local.4],eax  
+
+004EF3B7  |.  8955 F4           |mov [local.3],edx  
+
+004EF3BA  |.  4B                |dec ebx  
+
+004EF3BB  |>  8B45 E0           mov eax,[local.8]  
+
+004EF3BE  |.  E8 CD58F1FF       |call NetUSB_e.00404C90  
+
+004EF3C3  |.  3BD8              |cmp ebx,eax  
+
+004EF3C5  |.  7F 04             |jg short NetUSB_e.004EF3CB  
+
+004EF3C7  |.  85DB              |test ebx,ebx  
+
+004EF3C9  |.^ 7F B9             \jg short NetUSB_e.004EF384  
+
+004EF3CB  |>  8B5E 60           mov ebx,dword ptr ds:[esi+60]  
+
+004EF3CE  |.  85DB              test ebx,ebx  
+
+004EF3D0  |.  7F 11             jg short NetUSB_e.004EF3E3  
+
+004EF3D2  |.  FF75 F4           push [local.3]                   ; /Arg2  
+
+004EF3D5  |.  FF75 F0           push [local.4]                   ; |Arg1  
+
+004EF3D8  |.  8BD7              mov edx,edi                      ; |  
+
+004EF3DA  |.  33C0              xor eax,eax                      ; |  
+
+004EF3DC  |.  E8 4BA5F1FF       call NetUSB_e.0040992C           ; \NetUSB_e.0040992C  
+
+004EF3E1  |.  EB 26             jmp short NetUSB_e.004EF409  
+
+004EF3E3  |>  FF75 F4           push [local.3]                   ; /Arg2  
+
+004EF3E6  |.  FF75 F0           push [local.4]                   ; |Arg1  
+
+004EF3E9  |.  8BD7              mov edx,edi                      ; |  
+
+004EF3EB  |.  8BC3              mov eax,ebx                      ; |  
+
+004EF3ED  |.  E8 3AA5F1FF       call NetUSB_e.0040992C           ; \NetUSB_e.0040992C  
+
+004EF3F2  |.  8B07              mov eax,dword ptr ds:[edi]  
+
+004EF3F4  |.  E8 9758F1FF       call NetUSB_e.00404C90  
+
+004EF3F9  |.  8BC8              mov ecx,eax  
+
+004EF3FB  |.  2B4E 60           sub ecx,dword ptr ds:[esi+60]  
+
+004EF3FE  |.  8B56 60           mov edx,dword ptr ds:[esi+60]  
+
+004EF401  |.  42                inc edx  
+
+004EF402  |.  8BC7              mov eax,edi  
+
+004EF404  |.  E8 1F5BF1FF       call NetUSB_e.00404F28  
+
+004EF409  |>  33C0              xor eax,eax  
+
+004EF40B  |.  5A                pop edx  
+
+004EF40C  |.  59                pop ecx  
+
+004EF40D  |.  59                pop ecx  
+
+004EF40E  |.  64:8910           mov dword ptr fs:[eax],edx  
+
+004EF411  |.  68 33F44E00       push NetUSB_e.004EF433  
+
+004EF416  |>  8D45 DC           lea eax,[local.9]  
+
+004EF419  |.  BA 05000000       mov edx,5  
+
+004EF41E  |.  E8 C955F1FF       call NetUSB_e.004049EC  
+
+004EF423  |.  8D45 FC           lea eax,[local.1]  
+
+004EF426  |.  E8 9D55F1FF       call NetUSB_e.004049C8  
+
+004EF42B  \.  C3                retn                              ;  以上代码同硬盘物理序列号转换函数
+```
+
+\-------------------------------------------------------------------------------------------------------------
+
+通过动态调试得知：
+
+程序通过在 `004EF2C4` 处调用 `call NetUSB_e.004F01C8`，获取硬盘物理序列号的首次转换结果 记为 `HDSerialNumber`，在 `HDSerialNumber` 中间插入 `'网络**'`（应用程序的产品名称），形如：`HDSerialNumber` 前半部分 + `'网络**'` + `HDSerialNumber` 后半部分，通过 `004EF382` ～ `004EF3F2` 的代码转换的结果即为 `f1()` 的返回值，这正是我们所需要的，那么先看看 `call NetUSB_e.004F01C8` 函数吧：
+
+`call NetUSB_e.004F01C8`
+
+\-------------------------------------------------------------------------------------------------------------
+
+```
+004F01C8  /$  55                push ebp                           ;  获取硬盘物理序列号并转换  
+
+004F01C9  |.  8BEC              mov ebp,esp  
+
+004F01CB  |.  83C4 F0           add esp,-10  
+
+004F01CE  |.  53                push ebx  
+
+004F01CF  |.  56                push esi  
+
+004F01D0  |.  57                push edi  
+
+004F01D1  |.  33C9              xor ecx,ecx  
+
+004F01D3  |.  894D FC           mov [local.1],ecx  
+
+004F01D6  |.  8BFA              mov edi,edx  
+
+004F01D8  |.  8BF0              mov esi,eax  
+
+004F01DA  |.  33C0              xor eax,eax  
+
+004F01DC  |.  55                push ebp  
+
+004F01DD  |.  68 AB024F00       push NetUSB_e.004F02AB  
+
+004F01E2  |.  64:FF30           push dword ptr fs:[eax]  
+
+004F01E5  |.  64:8920           mov dword ptr fs:[eax],esp  
+
+004F01E8  |.  C745 F0 00000000  mov [local.4],0  
+
+004F01EF  |.  C745 F4 00000000  mov [local.3],0  
+
+004F01F6  |.  8D45 FC           lea eax,[local.1]  
+
+004F01F9  |.  8B96 94000000     mov edx,dword ptr ds:[esi+94]     ;  硬盘物理序列号 HDSerailNo  
+
+004F01FF  |.  E8 5C48F1FF       call NetUSB_e.00404A60  
+
+004F0204  |.  8B45 FC           mov eax,[local.1]                 ;  HDSerailNo  
+
+004F0207  |.  E8 844AF1FF       call NetUSB_e.00404C90            ;  System.@LStrLen(String):Integer;  
+
+004F020C  |.  8BD8              mov ebx,eax  
+
+004F020E  |.  EB 37             jmp short NetUSB_e.004F0247  
+
+004F0210  |>  8B46 68           /mov eax,dword ptr ds:[esi+68]    ;  $F1C981EE  
+
+004F0213  |.  8B56 6C           |mov edx,dword ptr ds:[esi+6C]    ;  $0A73A485  
+
+004F0216  |.  0345 F0           |add eax,[local.4]  
+
+004F0219  |.  1355 F4           |adc edx,[local.3]               ;  带符号加法  
+
+004F021C  |.  52                |push edx                         ;  常数$0A73A485 入栈  
+
+004F021D  |.  50                |push eax                         ;  常数$F1C981EE 入栈  
+
+004F021E  |.  8B45 FC           |mov eax,[local.1]                ;  HDSerailNo  
+
+004F0221  |.  0FB64418 FF       |movzx eax,byte ptr ds:[eax+ebx-1] ;  HDSerailNo[i]，从后面开始取字符  
+
+004F0226  |.  50                |push eax  
+
+004F0227  |.  B8 59040000       |mov eax,459                      ;  $459  
+
+004F022C  |.  5A                |pop edx                           ;  EDX=HDSerailNo[i]  
+
+004F022D  |.  8BCA              |mov ecx,edx                       ;  ECX=HDSerailNo[i]  
+
+004F022F  |.  33D2              |xor edx,edx  
+
+004F0231  |.  F7F1              |div ecx                            ;  $459 div HDSerailNo[i]  
+
+004F0233  |.  8BC2              |mov eax,edx                        ;  EAX=余数  
+
+004F0235  |.  33D2              |xor edx,edx                        ;  0  
+
+004F0237  |.  290424            |sub dword ptr ss:[esp],eax         ;  $F1C981EE-余数  
+
+004F023A  |.  195424 04         |sbb dword ptr ss:[esp+4],edx       ;  $0A73A485-0  
+
+004F023E  |.  58                |pop eax                            ;  $F1C981EE-余数  
+
+004F023F  |.  5A                |pop edx                            ;  $0A73A485-0  
+
+004F0240  |.  8945 F0           |mov [local.4],eax  
+
+004F0243  |.  8955 F4           |mov [local.3],edx  
+
+004F0246  |.  4B                |dec ebx                            ;  i=i-1
+```
+
+
+
+# 汇编代码片段：硬盘序列号处理
+
+```
+004F0247  |>  8B45 FC         mov eax,[local.1]                     ;  硬盘物理序列号  
+004F024A  |.  E8 414AF1FF     call NetUSB_e.00404C90               ;  System.@LStrLen(String):Integer;  
+004F024F  |.  3BD8           cmp ebx,eax  
+004F0251  |.  7F 04          jg short NetUSB_e.004F0257  
+004F0253  |.  85DB          test ebx,ebx  
+004F0255  |.^ 7F B9          \jg short NetUSB_e.004F0210           ;  i<length(HDSerailNo)继续循环  
+004F0257  |>  8B5E 60        mov ebx,dword ptr ds:[esi+60]  
+004F025A  |.  85DB          test ebx,ebx  
+004F025C  |.  7F 11          jg short NetUSB_e.004F026F  
+004F025E  |.  FF75 F4       push [local.3]                          ; /Arg2  
+004F0261  |.  FF75 F0       push [local.4]                          ; |Arg1  
+004F0264  |.  8BD7          mov edx,edi                             ; |  
+004F0266  |.  33C0          xor eax,eax                             ; |  
+004F0268  |.  E8 BF96F1FF   call NetUSB_e.0040992C                 ; \SysUtils.IntToHex(Int64;Integer):AnsiString;overload;  
+004F026D  |.  EB 26         jmp short NetUSB_e.004F0295  
+004F026F  |>  FF75 F4       push [local.3]                          ; /Arg2  
+004F0272  |.  FF75 F0       push [local.4]                          ; |Arg1  
+004F0275  |.  8BD7          mov edx,edi                             ; |  
+004F0277  |.  8BC3          mov eax,ebx                              ; |  
+004F0279  |.  E8 AE96F1FF   call NetUSB_e.0040992C                 ; \SysUtils.IntToHex(Int64;Integer):AnsiString;overload;  
+004F027E  |.  8B07          mov eax,dword ptr ds:[edi]  
+004F0280  |.  E8 0B4AF1FF   call NetUSB_e.00404C90                 ;  System.@LStrLen(String):Integer;  
+004F0285  |.  8BC8          mov ecx,eax  
+004F0287  |.  2B4E 60       sub ecx,dword ptr ds:[esi+60]  
+004F028A  |.  8B56 60       mov edx,dword ptr ds:[esi+60]  
+004F028D  |.  42             inc edx  
+004F028E  |.  8BC7          mov eax,edi  
+004F0290  |.  E8 934CF1FF   call NetUSB_e.00404F28                 ;  System.@LStrDelete;  
+004F0295  |>  33C0          xor eax,eax  
+004F0297  |.  5A             pop edx  
+004F0298  |.  59             pop ecx  
+004F0299  |.  59             pop ecx  
+004F029A  |.  64:8910       mov dword ptr fs:[eax],edx  
+004F029D  |.  68 B2024F00   push NetUSB_e.004F02B2  
+004F02A2  |>  8D45 FC       lea eax,[local.1]  
+004F02A5  |.  E8 1E47F1FF   call NetUSB_e.004049C8  
+004F02AA  \.  C3             retn                                    ;  转换结束  
+```
+
+好像是硬盘物理序列号参与一个大数运算，用 `Delphi` 表示如下：
+
+```delphi
+Function SerialNumber(Str: String): String; //硬盘序列号转换函数
+Var
+  i: Integer;
+  X: Int64;
+Begin
+  X := 0;
+  For i := Length(Str) Downto 1 Do
+  Begin
+    X := X + $0A73A485F1C981EE;
+    X := X - $459 Mod Ord(Str[i]);
+  End;
+  Result := IntToHex(X, 16);
+  If Length(Str) = 0 Then Result := #0;
+End;
+```
+
+`SerialNumber(硬盘物理序列号)=HDSerialNumber`，再在中间插入产品名称“网络\*\*”，仔细看看 `004EF382` ～`004EF3F2` 的代码，你发现了什么? 和 `call NetUSB_e.004F01C8` 函数一样, 有点郁闷，这是软件作者写了两次同样的代码，还是 `OD` 的问题? 不管了，到此为止，我们已经有了注册过程中所有重要的函数了，归纳一下：
+
+1. `DecodeStr(注册码)=SN1`
+2. `SerialNumber(硬盘物理序列号)=HDSerialNumber`
+3. `SerialNumber(HDSerialNumber 前半部分+'网络\*\*'+HDSerialNumber 后半部分)=SN2`
+
+`if SN1=SN2 Then 注册成功!`
+
+通过 `3`，可求的 `SN2`，那么通过 `DecodeStr()` 的反函数 `EncodeStr(SN2)`，就可以求的软件的注册码了!!!
+
+`delphi` 注册机框架表示如下：
+
+```delphi
+Procedure TFrmMain.FormCreate(Sender: TObject);
+Begin
+  edt1.Text := Trim(GetIdeSerialNumber());   //GetIdeSerialNumber()获取硬盘物理序列号函数
+End;
+
+Procedure TFrmMain.edt1Change(Sender: TObject);
+Var
+  MachineNo: String;
+Begin
+  MachineNo := Trim(SerialNumber(edt1.Text));    //SerialNumber(硬盘物理序列号)=HDSerialNumber
+  edt2.Text := MachineNo
+  MachineNo := LeftStr(MachineNo, Length(MachineNo) Shr 1) + '网络\*\*' + RightStr(MachineNo, Length(MachineNo) -
+  Length(MachineNo) Shr 1);
+                                                    //SerialNumber(HDSerialNumber 前半部分+'网络\*\*'+HDSerialNumber 后半部分)
+  MachineNo := Trim(SerialNumber(MachineNo));
+  edt3.Text := EncodeStr(MachineNo);    //EncodeStr(SN2) 注册码
+End;
+```
+
+说明: 因为在我的笔记本上无法正确显示机器码, 不知道机器码是什么形式显示的, 所有我就直接安装软件作者的思想, 直接从硬盘物理序列号求注册码了, 要是能正确显示的应该是 `HDSerialNumber`，可能在中间加点 `'-'` 如 `AAA-BBB-CCCCCCC` 等样子。
+
+如果你是个懒人话, 背上 `TNT`, 跟我来，暴了它……
+
+## 第一处: 重启验证
+
+```
+005AEBAD  |.  B8 5CEE5A00     mov eax,NetUSB_e.005AEE5C              ;  ASCII "qvFntL"
+005AEBB2  >|.  E8 E98FFEFF    call NetUSB_e.00597BA0               ;  ->:THttpCli._PROC_00597BA0()
+005AEBB7  |.  8B45 F4         mov eax,[local.3]                     ;  '注册'
+005AEBBA  |.  5A             pop edx
+005AEBBB  >|.  E8 0C64E5FF    call NetUSB_e.00404FCC               ;  ->System.@LStrPos;
+005AEBC0  |.  85C0           test eax,eax
+005AEBC2  |.  0F8F 2F020000  jg NetUSB_e.005AEDF7
+005AEBC8  |.  33D2           xor edx,edx
+005AEBCA  >|.  8B86 D0030000  mov eax,dword ptr ds:[esi+3D0]       ;  *PCl:N.A.
+005AEBD0  |.  8B08           mov ecx,dword ptr ds:[eax]
+005AEBD2  |.  FF91 C0010000  call dword ptr ds:[ecx+1C0]
+005AEBD8  |.  8BC6           mov eax,esi
+005AEBDA  |.  E8 91F0FFFF    call NetUSB_e.005ADC70
+005AEBDF  >|.  8B86 64030000  mov eax,dword ptr ds:[esi+364]       ;  *MeKao:N.A.
+005AEBE5  >|.  E8 9A06F4FF    call NetUSB_e.004EF284               ;  ->ActiveX.PROPSETHDR_OSVER_KIND(DWORD):Word;<+>
+005AEBEA  |.  84C0           test al,al                             ;  真正爆破点!!
+005AEBEC  |.  0F84 B6000000  je NetUSB_e.005AECA8
+005AEBF2  |.  8D55 F0        lea edx,[local.4]
+005AEBF5  >|.  8B86 64030000  mov eax,dword ptr ds:[esi+364]       ;  *MeKao:N.A.
+005AEBFB  |.  8B40 54        mov eax,dword ptr ds:[eax+54]
+005AEBFE  >|.  E8 E1A8E5FF    call NetUSB_e.004094E4               ;  ->SysUtils.Trim(AnsiString):AnsiString;overload;
+005AEC03  |.  837D F0 00     cmp [local.4],0
+005AEC07  |.  0F84 9B000000  je NetUSB_e.005AECA8
+005AEC0D  |.  33D2           xor edx,edx                            ;  下面是隐藏注册菜单
+005AEC0F  >|.  8B86 4C030000  mov eax,dword ptr ds:[esi+34C]       ;  *Pl_Web:N.A.
+005AEC15  >|.  E8 72FFE9FF    call NetUSB_e.0044EB8C               ;  ->Controls.TControl.SetVisible(TControl;Boolean);
+005AEC1A  |.  33D2           xor edx,edx
+005AEC1C  >|.  8B86 5C030000  mov eax,dword ptr ds:[esi+35C]       ;  *N6:N.A.
+005AEC22  >|.  E8 5D1FEBFF    call NetUSB_e.00460B84               ;  ->Menus.TMenuItem.SetVisible(TMenuItem;Boolean);
+005AEC27  |.  33D2           xor edx,edx
+005AEC29  >|.  8B86 CC030000  mov eax,dword ptr ds:[esi+3CC]       ;  *N36:N.A.
+005AEC2F  >|.  E8 501FEBFF    call NetUSB_e.00460B84               ;  ->Menus.TMenuItem.SetVisible(TMenuItem;Boolean);
+005AEC34  |.  8D55 EC        lea edx,[local.5]
+005AEC37  |.  8BC6           mov eax,esi
+005AEC39  >|.  E8 2E00EAFF    call NetUSB_e.0044EC6C               ;  ->Controls.TControl.GetText(TControl):TCaption;
+005AEC3E  |.  8D45 EC        lea eax,[local.5]
+```
+
+## 第二处: 注册验证
+
+```
+005A4118  |.  A1 6C285C00     mov eax,dword ptr ds:[5C286C]
+005A411D  |.  8B00           mov eax,dword ptr ds:[eax]
+005A411F  |.  8B80 64030000  mov eax,dword ptr ds:[eax+364]
+005A4125  |.  59             pop ecx                                   ;  '用户名'
+005A4126  |.  E8 91B5F4FF    call NetUSB_e.004EF6BC                 ;  注册验证,关键!
+005A412B  |.  84C0           test al,al
+005A412D  |.  75 09          jnz short NetUSB_e.005A4138            ;  验证通不过,调用 Halt 结束程序。
+005A412F  |.  33C0           xor eax,eax
+005A4131  >|.  E8 D607E6FF    call NetUSB_e.0040490C                 ;  ->System.@Halt(Integer);
+005A4136  |.  EB 59          jmp short NetUSB_e.005A4191
+```
+
+………………………………………………………………………………………………………………………………………………
+
+
+
+不能正确显示我的机器码我一直很郁闷，也没时间去好好看看，要是看象我一样看不到机器码，硬盘物理序列号不知道(我相信坛子里的人自己硬盘序列号肯定都背的出来，因为你们调试的太多了!)，总不会去拆机箱吧?哪我们从注册界面上获取注册信息按钮下手, `Dede` 查的事件地址 `005A47C0` 下断:
+
+```
+005A47C0 >/. 55           push ebp                  ; <-TForm9@Bn_GetRegCodeClick
+005A47C1 |. 8BEC         mov ebp,esp
+005A47C3 |. B9 0B000000   mov ecx,0B
+005A47C8 |> 6A 00         /push 0
+005A47CA |. 6A 00         |push 0
+005A47CC |. 49           |dec ecx
+005A47CD |.^ 75 F9        \jnz short NetUSB_e.005A47C8
+005A47CF |. 51           push ecx
+005A47D0 |. 53           push ebx
+005A47D1 |. 8BD8         mov ebx,eax
+005A47D3 |. 33C0         xor eax,eax
+005A47D5 |. 55           push ebp
+005A47D6 |. 68 554A5A00  push <NetUSB_e.->System.@HandleFinal>
+005A47DB |. 64:FF30      push dword ptr fs:[eax]
+005A47DE |. 64:8920      mov dword ptr fs:[eax],esp
+005A47E1 |. 8D55 EC      lea edx,[local.5]
+005A47E4 >|. 8B83 F8020000 mov eax,dword ptr ds:[ebx+2F8] ; *LEt_RegUser:N.A.
+005A47EA >|. E8 7DA4EAFF call NetUSB_e.0044EC6C ; ->Controls.TControl.GetText(TControl):TCaption;
+005A47EF |. 8B45 EC      mov eax,[local.5] ; 用户名
+005A47F2 |. 8D55 F0      lea edx,[local.4]
+005A47F5 >|. E8 EA4CE6FF call NetUSB_e.004094E4 ; ->SysUtils.Trim(AnsiString):AnsiString;overload;
+005A47FA |. 837D F0 00   cmp [local.4],0
+005A47FE |. 75 4F        jnz short NetUSB_e.005A484F ; 用户名不能为空
+005A4800 |. 6A 30        push 30
+005A4802 |. 8D55 E8      lea edx,[local.6] ; 提示注册名为空等信息
+005A4805 |. B8 6C4A5A00  mov eax,NetUSB_e.005A4A6C ; ASCII "oJCFk\"
+005A480A >|. E8 9133FFFF call NetUSB_e.00597BA0 ; ->:THttpCli._PROC_00597BA0()
+005A480F |. 8B45 E8      mov eax,[local.6]
+005A4812 >|. E8 7106E6FF call NetUSB_e.00404E88 ; ->System.@LStrToPChar(String):PAnsiChar;
+005A4817 |. 50           push eax
+005A4818 |. 8D55 E4      lea edx,[local.7]
+005A481B |. B8 7C4A5A00  mov eax,NetUSB_e.005A4A7C ; ASCII "qvFntXKwhgk@sHvfkyR_gH[gqi_LlhojpGN_dL"
+005A4820 >|. E8 7B33FFFF call NetUSB_e.00597BA0 ; ->:THttpCli._PROC_00597BA0()
+005A4825 |. 8B45 E4      mov eax,[local.7]
+005A4828 >|. E8 5B06E6FF call NetUSB_e.00404E88 ; ->System.@LStrToPChar(String):PAnsiChar;
+005A482D |. 8BD0         mov edx,eax
+005A482F |. A1 4C2A5C00  mov eax,dword ptr ds:[5C2A4C]
+005A4834 |. 8B00         mov eax,dword ptr ds:[eax]
+005A4836 |. 59           pop ecx
+005A4837 >|. E8 B4ABECFF call NetUSB_e.0046F3F0 ; 
+\->Forms.TApplication.MessageBox(TApplication;PChar;PChar;Longint):Integer;
+005A483C >|. 8B83 F8020000 mov eax,dword ptr ds:[ebx+2F8] ; *LEt_RegUser:N.A.
+005A4842 |. 8B10         mov edx,dword ptr ds:[eax]
+005A4844 |. FF92 C0000000 call dword ptr ds:[edx+C0]
+005A484A |. E9 9F010000  jmp NetUSB_e.005A49EE
+005A484F |> B2 01        mov dl,1
+005A4851 >|. 8B83 F8020000 mov eax,dword ptr ds:[ebx+2F8] ; *LEt_RegUser:N.A.
+005A4857 >|. E8 5073E9FF call NetUSB_e.0043BBAC ; 
+\->StdCtrls.TCustomEdit.SetReadOnly(TCustomEdit;Boolean);
+005A485C |. B2 01        mov dl,1
+005A485E >|. 8B83 FC020000 mov eax,dword ptr ds:[ebx+2FC] ; *LEt_HardCode:N.A.
+005A4864 >|. E8 4373E9FF call NetUSB_e.0043BBAC ; 
+\->StdCtrls.TCustomEdit.SetReadOnly(TCustomEdit;Boolean);
+005A4869 |. 33C0         xor eax,eax
+005A486B |. 8945 F8      mov [local.2],eax
+005A486E |. 8945 FC      mov [local.1],eax
+005A4871 |. EB 19        jmp short NetUSB_e.005A488C
+005A4873 >|> E8 70E3E5FF /call NetUSB_e.00402BE8 ; ->System.Randomize;
+005A4878 |. B8 FFC99A3B  |mov eax,3B9AC9FF ; 产生一个随机数
+005A487D |. E8 CAE9E5FF  |call NetUSB_e.0040324C
+005A4882 |. 8945 E0      |mov [local.8],eax
+005A4885 |. DB45 E0      |fild [local.8]
+005A4888 |. DD5D F8      |fstp qword ptr ss:[ebp-8]
+005A488B |. 9B           |wait
+005A488C |> DD45 F8      fld qword ptr ss:[ebp-8]
+005A488F |. D81D A44A5A00 |fcomp dword ptr ds:[5A4AA4]
+005A4895 |. DFE0         |fstsw ax
+005A4897 |. 9E           |sahf
+005A4898 |.^ 72 D9       \jb short <NetUSB_e.->System.Randomi>
+005A489A |. 8D55 D8      lea edx,[local.10]
+005A489D |. A1 4C2A5C00  mov eax,dword ptr ds:[5C2A4C]
+005A48A2 |. 8B00         mov eax,dword ptr ds:[eax]
+005A48A4 >|. E8 8FAFECFF call NetUSB_e.0046F838 ; ->DdeMan.TDdeMgr.GetExeName(TDdeMgr):AnsiString;<+>
+005A48A9 |. 8B45 D8      mov eax,[local.10] ; 当前应用程序路径
+005A48AC |. 8D55 DC      lea edx,[local.9]
+005A48AF >|. E8 8026FFFF call NetUSB_e.00596F34 ; ->:THttpCli._PROC_00596F34()
+005A48B4 |. FF75 DC      push [local.9] ; 产品名称:'网络**'
+005A48B7 |. 68 B04A5A00  push NetUSB_e.005A4AB0 ; '|'
+005A48BC |. DD45 F8      fld qword ptr ss:[ebp-8]
+005A48BF |. 83C4 F4      add esp,-0C
+005A48C2 |. DB3C24       fstp tbyte ptr ss:[esp] ; |
+005A48C5 |. 9B           wait ; |
+005A48C6 |. 8D45 D4      lea eax,[local.11] ; |
+005A48C9 |. E8 926CE6FF  call NetUSB_e.0040B560 ; \NetUSB_e.0040B560
+005A48CE |. FF75 D4      push [local.11] ; 随机数?
+005A48D1 |. 68 B04A5A00  push NetUSB_e.005A4AB0 ; '|'
+005A48D6 |. 8D55 CC      lea edx,[local.13]
+005A48D9 >|. 8B83 F8020000 mov eax,dword ptr ds:[ebx+2F8] ; *LEt_RegUser:N.A.
+005A48DF >|. E8 88A3EAFF call NetUSB_e.0044EC6C ; ->Controls.TControl.GetText(TControl):TCaption;
+005A48E4 |. 8B45 CC      mov eax,[local.13] ; 用户名
+005A48E7 |. 8D55 D0      lea edx,[local.12]
+005A48EA >|. E8 F54BE6FF call NetUSB_e.004094E4 ; ->SysUtils.Trim(AnsiString):AnsiString;overload;
+005A48EF |. FF75 D0      push [local.12]
+005A48F2 |. 68 B04A5A00  push NetUSB_e.005A4AB0
+005A48F7 |. 8D55 C4      lea edx,[local.15] ; '|'
+005A48FA |. A1 6C285C00  mov eax,dword ptr ds:[5C286C]
+005A48FF |. 8B00         mov eax,dword ptr ds:[eax]
+005A4901 |. 8B80 64030000 mov eax,dword ptr ds:[eax+364]
+005A4907 |. E8 BCB8F4FF  call NetUSB_e.004F01C8 ; SerialNumber()
+005A490C |. 8B45 C4      mov eax,[local.15] ; 得到 HDSerialNumber
+005A490F |. 8D55 C8      lea edx,[local.14]
+005A4912 >|. E8 CD4BE6FF call NetUSB_e.004094E4 ; ->SysUtils.Trim(AnsiString):AnsiString;overload;
+005A4917 |. FF75 C8      push [local.14]
+005A491A |. 68 B04A5A00  push NetUSB_e.005A4AB0 ; '|'
+005A491F |. 8D55 BC      lea edx,[local.17]
+005A4922 >|. 8B83 FC020000 mov eax,dword ptr ds:[ebx+2FC] ; *LEt_HardCode:N.A.
+005A4928 >|. E8 3FA3EAFF call NetUSB_e.0044EC6C ; ->Controls.TControl.GetText(TControl):TCaption;
+005A492D |. 8B45 BC      mov eax,[local.17] ; 机器码
+005A4930 |. 8D55 C0      lea edx,[local.16]
+```
+
+
+
+# 005A4933 - 005A4A54
+
+```
+005A4933  >|.  E8 AC4BE6FF      call NetUSB_e.004094E4            ;  ->SysUtils.Trim(AnsiString):AnsiString;overload;  
+
+005A4938   |.  FF75 C0          push [local.16]                   ;  机器码  
+
+005A493B   |.  68 B04A5A00     push NetUSB_e.005A4AB0            ;  '|'  
+
+005A4940   |.  8D45 F4         lea eax,[local.3]  
+
+005A4943   |.  BA 0A000000     mov edx,0A  
+
+005A4948  >|.  E8 0304E6FF     call NetUSB_e.00404D50            ;  ->System.@LStrCatN;  
+
+005A494D   |.  8D55 B8         lea edx,[local.18]                 ;  将上面的字符串连接起来  
+
+005A4950   |.  8B45 F4         mov eax,[local.3]                  ;  网络**|随机数|用户名|HDSerialNumber|机器码|  
+
+005A4953   |.  E8 403DFFFF     call NetUSB_e.00598698            ;  加密注册信息  
+
+005A4958   |.  8B55 B8         mov edx,[local.18]  
+
+005A495B   |.  8D45 F4         lea eax,[local.3]  
+
+005A495E  >|.  E8 FD00E6FF     call NetUSB_e.00404A60            ;  ->System.@LStrLAsg(void;void;void;void);  
+
+005A4963   |.  8D55 B0         lea edx,[local.20]  
+
+005A4966   |.  8B45 F4         mov eax,[local.3]  
+
+005A4969  >|.  E8 764BE6FF     call NetUSB_e.004094E4            ;  ->SysUtils.Trim(AnsiString):AnsiString;overload;  
+
+005A496E   |.  8B45 B0         mov eax,[local.20]  
+
+005A4971   |.  8D55 B4         lea edx,[local.19]  
+
+005A4974   |.  E8 373AFFFF     call NetUSB_e.005983B0  
+
+005A4979   |.  8B55 B4         mov edx,[local.19]  
+
+005A497C   |.  8D45 F4         lea eax,[local.3]                  ;  放到粘贴板中……  
+
+005A497F  >|.  E8 DC00E6FF     call NetUSB_e.00404A60            ;  ->System.@LStrLAsg(void;void;void;void);  
+
+005A4984  >|.  E8 2F3CEAFF     call NetUSB_e.004485B8            ;  ->Clipbrd.Clipboard:TClipboard;<+>  
+
+005A4989   |.  8B10            mov edx,dword ptr ds:[eax]  
+
+005A498B   |.  FF52 18        call dword ptr ds:[edx+18]  
+
+005A498E   |.  8D55 AC        lea edx,[local.21]  
+
+005A4991   |.  8B45 F4        mov eax,[local.3]  
+
+005A4994  >|.  E8 4B4BE6FF    call NetUSB_e.004094E4            ;  ->SysUtils.Trim(AnsiString):AnsiString;overload;  
+
+005A4999   |.  8B45 AC        mov eax,[local.21]  
+
+005A499C   |.  50              push eax  
+
+005A499D  >|.  E8 163CEAFF    call NetUSB_e.004485B8            ;  ->Clipbrd.Clipboard:TClipboard;<+>  
+
+005A49A2   |.  5A              pop edx  
+
+005A49A3  >|.  E8 F837EAFF    call NetUSB_e.004481A0            ;  ->Clipbrd.TClipboard.SetAsText(TClipboard;AnsiString);  
+
+005A49A8  >|.  E8 0B3CEAFF    call NetUSB_e.004485B8            ;  ->Clipbrd.Clipboard:TClipboard;<+>  
+
+005A49AD   |.  8B10            mov edx,dword ptr ds:[eax]  
+
+005A49AF   |.  FF52 14        call dword ptr ds:[edx+14]  
+
+005A49B2   |.  6A 30           push 30  
+
+005A49B4   |.  8D55 A8        lea edx,[local.22]                 ;  提示获取注册信息成功。  
+
+005A49B7   |.  B8 6C4A5A00    mov eax,NetUSB_e.005A4A6C          ;  ASCII "oJCFk\\"  
+
+005A49BC  >|.  E8 DF31FFFF    call NetUSB_e.00597BA0            ;  ->:THttpCli._PROC_00597BA0()  
+
+005A49C1   |.  8B45 A8        mov eax,[local.22]  
+
+005A49C4  >|.  E8 BF04E6FF    call NetUSB_e.00404E88            ;  ->System.@LStrToPChar(String):PAnsiChar;  
+
+005A49C9   |.  50              push eax  
+
+005A49CA   |.  8D55 A4        lea edx,[local.23]  
+
+005A49CD   |.  B8 BC4A5A00    mov eax,NetUSB_e.005A4ABC         ;  ASCII "piByfyZ^hjCLmXz^jGORmgRyqWKHzW?advoCvwRyPQBwxiKFkKw<wyRooKb_gGZ^nxrtzHwNdVH"  
+
+005A49D2  >|.  E8 C931FFFF    call NetUSB_e.00597BA0            ;  ->:THttpCli._PROC_00597BA0()  
+
+005A49D7   |.  8B45 A4        mov eax,[local.23]  
+
+005A49DA  >|.  E8 A904E6FF    call NetUSB_e.00404E88            ;  ->System.@LStrToPChar(String):PAnsiChar;  
+
+005A49DF   |.  8BD0            mov edx,eax  
+
+005A49E1   |.  A1 4C2A5C00     mov eax,dword ptr ds:[5C2A4C]  
+
+005A49E6   |.  8B00            mov eax,dword ptr ds:[eax]  
+
+005A49E8   |.  59              pop ecx  
+
+005A49E9  >|.  E8 02AAECFF    call NetUSB_e.0046F3F0            ;  ->Forms.TApplication.MessageBox(TApplication;PChar;PChar;Longint):Integer;  
+
+005A49EE   |>  33C0            xor eax,eax  
+
+005A49F0   |.  5A              pop edx  
+
+005A49F1   |.  59              pop ecx  
+
+005A49F2   |.  59              pop ecx  
+
+005A49F3   |.  64:8910         mov dword ptr fs:[eax],edx  
+
+005A49F6   |.  68 5C4A5A00     push NetUSB_e.005A4A5C  
+
+005A49FB   |>  8D45 A4        lea eax,[local.23]  
+
+005A49FE   |.  BA 06000000     mov edx,6  
+
+005A4A03  >|.  E8 E4FFE5FF    call NetUSB_e.004049EC            ;  ->System.@LStrArrayClr(void;void;Integer);  
+
+005A4A08   |.  8D45 BC        lea eax,[local.17]  
+
+005A4A0B  >|.  E8 B8FFE5FF    call NetUSB_e.004049C8            ;  ->System.@LStrClr(void;void);  
+
+005A4A10   |.  8D45 C0        lea eax,[local.16]  
+
+005A4A13   |.  BA 03000000     mov edx,3  
+
+005A4A18  >|.  E8 CFFFE5FF    call NetUSB_e.004049EC            ;  ->System.@LStrArrayClr(void;void;Integer);  
+
+005A4A1D   |.  8D45 CC        lea eax,[local.13]  
+
+005A4A20  >|.  E8 A3FFE5FF    call NetUSB_e.004049C8            ;  ->System.@LStrClr(void;void);  
+
+005A4A25   |.  8D45 D0        lea eax,[local.12]  
+
+005A4A28   |.  BA 04000000     mov edx,4  
+
+005A4A2D  >|.  E8 BAF E5FF    call NetUSB_e.004049EC            ;  ->System.@LStrArrayClr(void;void;Integer);  
+
+005A4A32   |.  8D45 E4        lea eax,[local.7]  
+
+005A4A35   |.  BA 02000000     mov edx,2  
+
+005A4A3A  >|.  E8 ADFFE5FF    call NetUSB_e.004049EC            ;  ->System.@LStrArrayClr(void;void;Integer);  
+
+005A4A3F   |.  8D45 EC        lea eax,[local.5]  
+
+005A4A42  >|.  E8 81FFE5FF    call NetUSB_e.004049C8            ;  ->System.@LStrClr(void;void);  
+
+005A4A47   |.  8D45 F0        lea eax,[local.4]  
+
+005A4A4A   |.  BA 02000000     mov edx,2  
+
+005A4A4F  >|.  E8 98FFE5FF    call NetUSB_e.004049EC            ;  ->System.@LStrArrayClr(void;void;Integer);  
+
+005A4A54   \.  C3              retn  
+```
+
+## 005A4950 分析
+
+在 `005A4950` 处将 `注册信息`: “`网络**|随机数|用户名|HDSerialNumber|机器码|`” 加密，跟进 `call NetUSB_e.00598698` 看看：
+
+### 00598698 - 005986EE
+
+```
+call NetUSB_e.00598698  
+
+-------------------------------------------------------------------------------------------------------------  
+
+00598698  /$  55              push ebp  
+
+00598699   |.  8BEC            mov ebp,esp  
+
+0059869B   |.  83C4 F8         add esp,-8  
+
+0059869E   |.  53              push ebx  
+
+0059869F   |.  33C9            xor ecx,ecx  
+
+005986A1   |.  894D F8         mov [local.2],ecx  
+
+005986A4   |.  8BDA            mov ebx,edx  
+
+005986A6   |.  8945 FC         mov [local.1],eax  
+
+005986A9   |.  8B45 FC         mov eax,[local.1]  
+
+005986AC   |.  E8 C7C7E6FF     call NetUSB_e.00404E78  
+
+005986B1   |.  33C0            xor eax,eax  
+
+005986B3   |.  55              push ebp  
+
+005986B4   |.  68 EF865900     push NetUSB_e.005986EF  
+
+005986B9   |.  64:FF30         push dword ptr fs:[eax]  
+
+005986BC   |.  64:8920         mov dword ptr fs:[eax],esp  
+
+005986BF   |.  8D55 F8         lea edx,[local.2]  
+
+005986C2   |.  8B45 FC         mov eax,[local.1]  
+
+005986C5   |.  E8 E6FCFFFF     call NetUSB_e.005983B0            ;  Base64EncodeStr()  
+
+005986CA   |.  8B45 F8         mov eax,[local.2]  
+
+005986CD   |.  8BD3            mov edx,ebx  
+
+005986CF   |.  E8 2CF3FFFF     call NetUSB_e.00597A00            ;  EncodeStr()  
+
+005986D4   |.  33C0            xor eax,eax  
+
+005986D6   |.  5A              pop edx  
+
+005986D7   |.  59              pop ecx  
+
+005986D8   |.  59              pop ecx  
+
+005986D9   |.  64:8910         mov dword ptr fs:[eax],edx  
+
+005986DC   |.  68 F6865900     push NetUSB_e.005986F6  
+
+005986E1   |>  8D45 F8         lea eax,[local.2]  
+
+005986E4   |.  BA 02000000     mov edx,2  
+
+005986E9   |.  E8 FEC2E6FF     call NetUSB_e.004049EC  
+
+005986EE   \.  C3              retn  
+```
+
+
+
+`005986C5` 处是标准的 `Base64EncodeStr()`，`005986CF` 处 `EncodeStr()` 实际上就是 `DecodeStr(注册码)=SN1` 中 `DecodeStr` 的反函数，为了加深对 `DecodeStr` 的理解，看看自己高级语言写的 `DecodeStr()` 函数是否正确，还是调试一下吧。`Base64EncodeStr()` 函数网上 N 多。
+
+`call NetUSB_e.00597A00`
+
+```
+00597A00   /$  55               push ebp                     ;  EncodeStr()
+00597A01   |.  8BEC             mov ebp,esp
+00597A03   |.  B9 05000000      mov ecx,5
+00597A08   |>  6A 00            /push 0
+00597A0A   |.  6A 00            |push 0
+00597A0C   |.  49               |dec ecx
+00597A0D   |.^ 75 F9            \jnz short NetUSB_e.00597A08
+00597A0F   |.  51               push ecx
+00597A10   |.  53               push ebx
+00597A11   |.  56               push esi
+00597A12   |.  57               push edi
+00597A13   |.  8955 F8          mov [local.2],edx
+00597A16   |.  8945 FC          mov [local.1],eax
+00597A19   |.  8B45 FC          mov eax,[local.1]
+00597A1C   |.  E8 57D4E6FF      call NetUSB_e.00404E78
+00597A21   |.  33C0             xor eax,eax
+00597A23   |.  55               push ebp
+00597A24   |.  68 8F7B5900      push NetUSB_e.00597B8F
+00597A29   |.  64:FF30          push dword ptr fs:[eax]
+00597A2C   |.  64:8920          mov dword ptr fs:[eax],esp
+00597A2F   |.  8B45 F8          mov eax,[local.2]
+00597A32   |.  E8 91CFE6FF      call NetUSB_e.004049C8
+00597A37   |.  8D45 E8          lea eax,[local.6]
+00597A3A   |.  E8 89CFE6FF      call NetUSB_e.004049C8
+00597A3F   |.  33C0             xor eax,eax
+00597A41   |.  8945 F0          mov [local.4],eax
+00597A44   |.  C645 EF 00       mov byte ptr ss:[ebp-11],0
+00597A48   |.  33FF             xor edi,edi
+00597A4A   |.  33F6             xor esi,esi
+00597A4C   |.  8B45 FC          mov eax,[local.1]
+00597A4F   |.  E8 3CD2E6FF      call NetUSB_e.00404C90
+00597A54   |.  8945 F4          mov [local.3],eax
+00597A57   |.  3B75 F4          cmp esi,[local.3]
+00597A5A   |.  0F8D D4000000    jge NetUSB_e.00597B34
+00597A60   |>  817D F0 10270000 /cmp [local.4],2710
+00597A67   |.  0F8D C7000000    |jge NetUSB_e.00597B34
+00597A6D   |.  8B45 FC          |mov eax,[local.1]
+00597A70   |.  0FB60430         |movzx eax,byte ptr ds:[eax+esi]
+00597A74   |.  8D4F 02          |lea ecx,dword ptr ds:[edi+2]
+00597A77   |.  D3E8             |shr eax,cl
+00597A79   |.  8BD8             |mov ebx,eax
+00597A7B   |.  0A5D EF          |or bl,byte ptr ss:[ebp-11]
+00597A7E   |.  80E3 3F          |and bl,3F
+00597A81   |.  8B45 FC          |mov eax,[local.1]
+00597A84   |.  0FB60430         |movzx eax,byte ptr ds:[eax+esi]
+00597A88   |.  8D57 02          |lea edx,dword ptr ds:[edi+2]
+00597A8B   |.  B9 08000000      |mov ecx,8
+00597A90   |.  2BCA             |sub ecx,edx
+00597A92   |.  D3E0             |shl eax,cl
+00597A94   |.  C1E8 02          |shr eax,2
+00597A97   |.  24 3F            |and al,3F
+00597A99   |.  8845 EF          |mov byte ptr ss:[ebp-11],al
+00597A9C   |.  83C7 02          |add edi,2
+00597A9F   |.  83FF 06          |cmp edi,6
+00597AA2   |.  7C 69            |jl short NetUSB_e.00597B0D
+00597AA4   |.  817D F0 0F270000 |cmp [local.4],270F
+00597AAB   |.  7C 1F            |jl short NetUSB_e.00597ACC
+00597AAD   |.  8D45 E4          |lea eax,[local.7]
+00597AB0   |.  33D2             |xor edx,edx
+00597AB2   |.  8AD3             |mov dl,bl
+00597AB4   |.  83C2 3C          |add edx,3C
+00597AB7   |.  E8 ECD0E6FF      |call NetUSB_e.00404BA8
+00597ABC   |.  8B55 E4          |mov edx,[local.7]
+00597ABF   |.  8D45 E8          |lea eax,[local.6]
+00597AC2   |.  E8 D1D1E6FF      |call NetUSB_e.00404C98
+00597AC7   |.  FF45 F0          |inc [local.4]
+00597ACA   |.  EB 39            |jmp short NetUSB_e.00597B05
+00597ACC   |>  8D45 E0          |lea eax,[local.8]
+00597ACF   |.  33D2             |xor edx,edx
+00597AD1   |.  8AD3             |mov dl,bl
+00597AD3   |.  83C2 3C          |add edx,3C
+00597AD6   |.  E8 CDD0E6FF      |call NetUSB_e.00404BA8
+00597ADB   |.  8B55 E0          |mov edx,[local.8]
+00597ADE   |.  8D45 E8          |lea eax,[local.6]
+00597AE1   |.  E8 B2D1E6FF      |call NetUSB_e.00404C98
+00597AE6   |.  8D45 DC          |lea eax,[local.9]
+00597AE9   |.  33D2             |xor edx,edx
+00597AEB   |.  8A55 EF          |mov dl,byte ptr ss:[ebp-11]
+00597AEE   |.  83C2 3C          |add edx,3C
+00597AF1   |.  E8 B2D0E6FF      |call NetUSB_e.00404BA8
+00597AF6   |.  8B55 DC          |mov edx,[local.9]
+00597AF9   |.  8D45 E8          |lea eax,[local.6]
+00597AFC   |.  E8 97D1E6FF      |call NetUSB_e.00404C98
+00597B01   |.  8345 F0 02       |add [local.4],2
+00597B05   |>  33FF             |xor edi,edi
+00597B07   |.  C645 EF 00       |mov byte ptr ss:[ebp-11],0
+00597B0B   |.  EB 1D            |jmp short NetUSB_e.00597B2A
+00597B0D   |>  8D45 D8          |lea eax,[local.10]
+00597B10   |.  33D2             |xor edx,edx
+00597B12   |.  8AD3             |mov dl,bl
+00597B14   |.  83C2 3C          |add edx,3C
+00597B17   |.  E8 8CD0E6FF      |call NetUSB_e.00404BA8
+00597B1C   |.  8B55 D8          |mov edx,[local.10]
+00597B1F   |.  8D45 E8          |lea eax,[local.6]
+00597B22   |.  E8 71D1E6FF      |call NetUSB_e.00404C98
+00597B27   |.  FF45 F0          |inc [local.4]
+00597B2A   |>  46               |inc esi
+00597B2B   |.  3B75 F4          |cmp esi,[local.3]
+00597B2E   |.^ 0F8C 2CFFFFFF    \jl NetUSB_e.00597A60
+00597B34   |>  85FF             test edi,edi
+00597B36   |.  7E 1E            jle short NetUSB_e.00597B56
+00597B38   |.  8D45 D4          lea eax,[local.11]
+00597B3B   |.  33D2             xor edx,edx
+00597B3D   |.  8A55 EF          mov dl,byte ptr ss:[ebp-11]
+00597B40   |.  83C2 3C          add edx,3C
+00597B43   |.  E8 60D0E6FF      call NetUSB_e.00404BA8
+00597B48   |.  8B55 D4          mov edx,[local.11]
+00597B4B   |.  8D45 E8          lea eax,[local.6]
+00597B4E   |.  E8 45D1E6FF      call NetUSB_e.00404C98
+00597B53   |.  FF45 F0          inc [local.4]
+00597B56   |>  8D45 E8          lea eax,[local.6]
+00597B59   |.  8B55 F0          mov edx,[local.4]
+00597B5C   |.  E8 B3D4E6FF      call NetUSB_e.00405014
+00597B61   |.  8B45 F8          mov eax,[local.2]
+00597B64   |.  8B55 E8          mov edx,[local.6]
+00597B67   |.  E8 B0CEE6FF      call NetUSB_e.00404A1C
+00597B6C   |.  33C0             xor eax,eax
+00597B6E   |.  5A               pop edx
+00597B6F   |.  59               pop ecx
+00597B70   |.  59               pop ecx
+00597B71   |.  64:8910          mov dword ptr fs:[eax],edx
+00597B74   |.  68 967B5900      push NetUSB_e.00597B96
+00597B79   |>  8D45 D4          lea eax,[local.11]
+00597B7C   |.  BA 06000000      mov edx,6
+00597B81   |.  E8 66CEE6FF      call NetUSB_e.004049EC
+00597B86   |.  8D45 FC          lea eax,[local.1]
+00597B89   |.  E8 3ACEE6FF      call NetUSB_e.004049C8
+00597B8E   \.  C3               retn
+00597B8F    .^ E9 9CC7E6FF      jmp NetUSB_e.00404330
+00597B94    .^ EB E3           jmp short NetUSB_e.00597B79
+00597B96    .  5F              pop edi
+00597B97    .  5E              pop esi
+00597B98    .  5B              pop ebx
+00597B99    .  8BE5            mov esp,ebp
+00597B9B    .  5D              pop ebp
+00597B9C    .  C3              retn
+```
+
+这样一来，我们可以先解密“注册信息”，得到 `－－－－“网络**|随机数|用户名|HDSerialNumber|机器码|”`。
+
+再参考前面所描述的，可以很方便的求的软件的注册码了。
+
+注册机 `Delphi 7.0` 原代码（包括获取硬盘物理序列号、`Base64`、注册成功截图）附件：`NetUSB 2.05.rar`
+
+### 【破解总结】
+
+因为本人不懂一些公开算法，调试算法花了很多时间，惭愧 ing……，有以下几点我认为作者保护的比好：
+
+
+
+1、软件的提示信息都经过加密，不能直接找到关键断点。
+
+2、软件采用 `F1()=F2()` 的注册方式，不出现明码，内存注册机肯定是做不了了。
+
+3、值得一提的是，软件的产品名称也参加注册计算，手工脱壳 `Import REConstructor` 修复等容易丢失这份信息，导致注册机无效。
+
+我机器上的注册信息：
+
+硬盘物理序列号：`CSH305DAJB16RB`
+
+`HDSerialNumber`：`9252FF533905195C`
+
+注册码：`M\_<rHpHtH?\]>JOA=LOY?IL`
+
+验证通过！累死我了…………，写这篇破文花了我 N 小时！各位看客看在我疲劳的份上………………顶一下^_^ (本文完)
+
+```
+4dd466d0e1e0cc123afbe504da2462ca
+```
