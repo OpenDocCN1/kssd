@@ -1,0 +1,489 @@
+
+# CycleCrack 注册机
+
+> 原文：[`www.pediy.com/kssd/pediy10/88139.html`](https://www.pediy.com/kssd/pediy10/88139.html)
+
+`CCDebug` 有一篇文章：`OllyDBG` 入门系列（五）－消息断点及 `RUN` 跟踪（`http://bbs.pediy.com/showthread.php?t=21532`），讲解了怎么设置消息断点，研究了一下那个 `CycleCrack`，写了一个注册机。虽然学习这么多年了，这还是我写的第一个注册机，非常惭愧。
+
+先来看看序列号的主要的认证流程：如果输入的名字不足 16 字节，就扩展成 16 字节，序列号必须为 16 字节。
+
+名字和序列号的字符的取值范围为 `[0x30, 0x7E]`。
+
+判断序列号的汇编代码如下：
+
+```assembly
+00401105  .|.E8 E7000000        call    004011F1      ;比较序列号算法
+0040110A  .|.B9 01FF0000        mov     ecx, 0FF01
+0040110F  .|.51                 push    ecx
+00401110  .|. E8 7B000000   call    00401190          ;比较序列号算法
+00401115  .|. 83F9 01       cmp     ecx, 1            ;ecx 必须要等于 1
+00401118  .|. 74 06         je      short 00401120
+0040111A  |>  E8 47000000   call    00401166          ;register failed
+0040111F  |>  C3            retn
+00401120  |>  A1 68214000   mov     eax, dword ptr [402168] ;name 的第 8 字节
+00401125  .|. 8B1D 6C214000 mov     ebx, dword ptr [40216C] ;name 的第 12 字节
+0040112B  .|. 33C3          xor     eax, ebx
+0040112D  .|. 3305 82214000 xor     eax, dword ptr [402182] ;一个 DWORD 变量，由 00401190 生成
+00401133  .|. 0D 40404040   or      eax, 40404040
+00401138  .|. 25 77777777   and     eax, 77777777
+0040113D  .|. 3305 79214000 xor     eax, dword ptr [402179] ;code 的第 8 字节
+00401143  .|. 3305 7D214000 xor     eax, dword ptr [40217D] ;code 的第 12 字节
+00401149  .|^. 75 CF        jnz     short 0040111A        ;如果 eax 为 0，表示注册码正确
+0040114B  .|. E8 2B000000   call    0040117B          ;register ok
+00401150  \\.  C3            retn
+```
+
+以上汇编代码改成 `C` 语言代码为：
+
+```c
+typedef unsigned int DWORD;
+typedef unsigned short WORD;
+typedef unsigned char BYTE;
+
+DWORD dwName[4];
+DWORD dwCode[4];
+
+dwName[0] = *((DWORD *)name);
+dwName[1] = *((DWORD *)&name[4]);
+dwName[2] = *((DWORD *)&name[8]);
+dwName[3] = *((DWORD *)&name[12]);
+
+dwCode[0] = *((DWORD *)code);
+dwCode[1] = *((DWORD *)&code[4]);
+dwCode[2] = *((DWORD *)&code[8]);
+dwCode[3] = *((DWORD *)&code[12]);
+
+count_402182 = 0xFEDCBA98;
+function4011F1();
+
+unsigned int ecx = 0xff01;
+ecx = function401190(ecx);
+if (ecx == 1)
+{
+    unsigned int eax = dwName[2] ^ dwName[3];
+    eax ^= count_402182;
+    eax |= 0x40404040;
+    eax &= 0x77777777;
+    eax ^= dwCode[2];
+    eax ^= dwCode[3];
+    if (eax == 0)
+    {
+        printf("register ok");
+    }
+}
+```
+
+序列号的算法主要在函数 `004011F1` 和函数 `00401190` 中。
+
+```assembly
+004011F1  /$  A1 60214000        mov     eax, dword ptr [402160]
+004011F6  .|. 8B1D 64214000     mov     ebx, dword ptr [402164]
+004011FC  .|. 3305 71214000     xor     eax, dword ptr [402171]
+00401202  .|. 331D 75214000     xor     ebx, dword ptr [402175]
+00401208  .|. 25 0F1F3F7F       and     eax, 7F3F1F0F
+0040120D  .|. 81E3 00010307     and     ebx, 7030100
+00401213  .|. 33C9             xor     ecx, ecx
+00401215  |>  8BF0             /mov    esi, eax
+00401217  .|. 8BFB            |mov    edi, ebx
+00401219  .|. D3E6            |shl     esi, cl
+0040121B  .|. D3E7            |shl     edi, cl
+0040121D  .|. 81E6 80808080   |and    esi, 80808080
+00401223  .|. 81E7 80808080   |and    edi, 80808080
+00401229  .|. 8BD6            |mov    edx, esi
+0040122B  .|. C0EE 07         |shr    dh, 7
+0040122E  .|. 66:C1E2 07      |shl    dx, 7
+00401232  .|. C1EA 08         |shr    edx, 8
+00401235  .|. C0EE 07         |shr    dh, 7
+00401238  .|. 66:C1E2 07      |shl    dx, 7
+0040123C  .|. C1EA 08         |shr    edx, 8
+0040123F  .|. C0EE 07         |shr    dh, 7
+00401242  .|. 66:D1EA         |shr    dx, 1
+00401245  .|. 8BF2            |mov    esi, edx
+00401247  .|. 8BD7            |mov    edx, edi
+00401249  .|. C0EE 07         |shr    dh, 7
+0040124C  .|. 66:C1E2 07      |shl    dx, 7
+00401250  .|. C1EA 08         |shr    edx, 8
+00401253  .|. C0EE 07         |shr    dh, 7
+00401256  .|. 66:C1E2 07      |shl    dx, 7
+0040125A  .|. C1EA 08         |shr    edx, 8
+0040125D  .|. C0EE 07         |shr    dh, 7
+00401260  .|. 66:C1EA 05      |shr    dx, 5
+00401264  .|. 8BFA            |mov    edi, edx
+00401266  .|. 33FE            |xor    edi, esi
+00401268  .|. 8BD7            |mov    edx, edi
+0040126A  .|. 81E2 FF000000   |and    edx, 0FF
+00401270  .|. 51              |push   ecx
+00401271  .|. 52              |push   edx
+00401272  .|. BA 08000000     |mov    edx, 8
+00401277  .|. 91              |xchg   eax, ecx
+00401278  .|. 83F8 03         |cmp    eax, 3
+0040127B  .|. 7F 0F           |jg     short 0040128C
+0040127D  .|. F6E2            |mul    dl
+0040127F  .|. 5A              |pop    edx
+00401280  .|. 83C0 08         |add    eax, 8
+00401283  .|. 91              |xchg   eax, ecx
+00401284  .|. D3C0            |rol    eax, cl
+00401286  .|. 33C2            |xor    eax, edx
+00401288  .|. D3C8            |ror    eax, cl
+0040128A  .|. EB 0D           |jmp    short 00401299
+0040128C  |>  83E8 03        |sub    eax, 3
+0040128F  .|. F6E2            |mul    dl
+00401291  .|. 5A              |pop    edx
+00401292  .|. 91              |xchg   eax, ecx
+00401293  .|. D3C3            |rol    ebx, cl
+00401295  .|. 33DA            |xor    ebx, edx
+00401297  .|. D3CB            |ror    ebx, cl
+00401299  |>  59              |pop    ecx
+0040129A  .|. 41              |inc    ecx
+0040129B  .|. 83F9 08         |cmp    ecx, 8
+0040129E  .|. ^ 0F85 71FFFFFF \jnz    00401215
+004012A4  \\.  C3            retn
+```
+
+这个函数主要是通过一系列算法，生成新的 `dwName[0]` 和 `dwName[1]`。
+
+以上汇编代码改成 `C` 语言代码为：
+
+```c
+void function4011F1()
+{
+    dwName[0] ^= dwCode[0];
+    dwName[1] ^= dwCode[1];
+    dwName[0] &= 0x7f3f1f0f;
+    dwName[1] &= 0x07030100;
+
+    for (int i=0; i<8; i++)
+    {
+        DWORD name0 = dwName[0];
+        DWORD name1 = dwName[1];
+        name0 <<= i;
+        name1 <<= i;
+        name0 &= 0x80808080;
+        name1 &= 0x80808080;
+
+        DWORD temp1 = name0;
+        BYTE dh;
+        WORD dx;
+
+        for (int j=0; j<2; j++)
+        {
+            dh = (temp1 >> 8) & 0XFF;
+            dh >>= 7;
+            temp1 &= 0xffff00ff;
+            temp1 |= (dh << 8);
+            dx = temp1 & 0xffff;
+            dx <<= 7;
+            temp1 &= 0xffff0000;
+            temp1 |= dx;
+            temp1 >>= 8;
+        }
+
+        dh = (temp1 >> 8) & 0XFF;
+        dh >>= 7;
+        temp1 &= 0xffff00ff;
+        temp1 |= (dh << 8);
+        dx = temp1 & 0xffff;
+        dx >>= 1;
+        temp1 &= 0xffff0000;
+        temp1 |= dx;
+        name0 = temp1;
+
+        temp1 = name1;
+        for (j=0; j<2; j++)
+        {
+            dh = (temp1 >> 8) & 0XFF;
+            dh >>= 7;
+            temp1 &= 0xffff00ff;
+            temp1 |= (dh << 8);
+            dx = temp1 & 0xffff;
+            dx <<= 7;
+            temp1 &= 0xffff0000;
+            temp1 |= dx;
+            temp1 >>= 8;
+        }
+
+        dh = (temp1 >> 8) & 0XFF;
+        dh >>= 7;
+        temp1 &= 0xffff00ff;
+        temp1 |= (dh << 8);
+        dx = temp1 & 0xffff;
+        dx >>= 5;
+        temp1 &= 0xffff0000;
+        temp1 |= dx;
+    }
+}
+```
+
+
+
+```
+    name1 = temp1;
+    
+    name1 ^= name0;
+    
+    DWORD edx = name1 & 0xff;
+    
+    int k = i;
+    
+    if (k <= 3)
+    
+    {
+    
+        k *= 8;
+        
+        k += 8;
+        
+        unsigned int hi = dwName[0]>>(32-k);
+        
+        dwName[0] <<= k;
+        
+        dwName[0] |= hi;
+        
+        dwName[0] ^= edx;
+        
+        hi = dwName[0]<<(32-k);
+        
+        dwName[0] >>= k;
+        
+        dwName[0] |= hi;
+        
+    }
+    
+    else
+    
+    {
+        
+        k -= 3;
+        
+        k *= 8;
+        
+        unsigned int hi = dwName[1]>>(32-k);
+        
+        dwName[1] <<= k;
+        
+        dwName[1] |= hi;
+        
+        dwName[1] ^= edx;
+        
+        hi = dwName[1]<<(32-k);
+        
+        dwName[1] >>= k;
+        
+        dwName[1] |= hi;
+        
+    }
+    
+}
+
+}
+```
+
+```
+00401190   /$  5F                pop     edi
+00401191   |.  59                pop     ecx
+00401192   |.  57                push    edi
+00401193   |.  81F9 80000000     cmp     ecx, 80
+00401199   |.  7E 55             jle     short 004011F0
+0040119B   |.  51                push    ecx
+0040119C   |.  8BF1              mov     esi, ecx
+0040119E   |.  81E1 FF000000     and     ecx, 0FF
+004011A4   |.  8BF8              mov     edi, eax
+004011A6   |.  83F9 08           cmp     ecx, 8
+004011A9   |.  7E 05             jle     short 004011B0
+004011AB   |.  8BFB              mov     edi, ebx
+004011AD   |.  C1E9 04           shr     ecx, 4
+004011B0   |>  C1C7 08           /rol     edi, 8
+004011B3   |.  D1E9              |shr     ecx, 1
+004011B5   |.^ 75 F9             \jnz     short 004011B0
+004011B7   |.  C1EE 08           shr     esi, 8
+004011BA   |.  23FE              and     edi, esi
+004011BC   |.  81E7 FF000000     and     edi, 0FF
+004011C2   |.  59                pop     ecx
+004011C3   |>  BE 80000000       mov     esi, 80
+004011C8   |>  85FE              /test    esi, edi
+004011CA   |.  74 20             |je      short 004011EC
+004011CC   |.  33FE              |xor     edi, esi
+004011CE   |.  57                |push    edi
+004011CF   |.  81E1 00FF0000     |and     ecx, 0FF00
+004011D5   |.  87CE              |xchg    esi, ecx
+004011D7   |.  32E9              |xor     ch, cl
+004011D9   |.  33F1              |xor     esi, ecx
+004011DB   |.  87F1              |xchg    ecx, esi
+004011DD   |.  51                |push    ecx
+004011DE   |.  FF05 82214000     |inc     dword ptr [402182]
+004011E4   |.  E8 A7FFFFFF       |call    00401190
+004011E9   |.  5F                |pop     edi
+004011EA   |.^ EB D7             |jmp     short 004011C3
+004011EC   |>  D1EE              |shr     esi, 1
+004011EE   |.^ 75 D8             \jnz     short 004011C8
+004011F0   \>  C3                retn
+```
+
+这个函数主要是产生 `count_402182` 供后面运算，同时 `ecx` 必须为 `1`。
+
+以上汇编代码改成 C 语言代码为：
+
+```
+unsigned int count_402182 = 0xFEDCBA98;
+
+unsigned int function401190(unsigned int ecx)
+{
+    if (ecx <= 0x80)
+        return ecx;
+    
+    unsigned int saveecx = ecx;
+    unsigned int esi = ecx;
+    ecx &= 0xff;
+    unsigned int edi = dwName[0];
+    
+    if (ecx > 8)
+    {
+        edi = dwName[1];
+        ecx >>= 4;
+    }
+    
+    while (ecx != 0)
+    {
+        unsigned int hi = edi>>24;
+        edi <<= 8;
+        edi |= hi;
+        ecx >>= 1;
+    }
+    
+    esi >>= 8;
+    edi &= esi;
+    edi &= 0xff;
+    
+    ecx = saveecx;
+    esi = 0x80;
+    
+    while(1)
+    {
+        int ret = esi & edi;
+        if (ret == 0)
+        {
+            esi >>= 1;
+            if (esi == 0)
+                return ecx;
+            else
+                continue;
+        }
+        
+        edi ^= esi;
+        unsigned int saveedi = edi;
+        
+        ecx &= 0xff00;
+        unsigned char esi_h = (esi >> 8) & 0xff;
+        unsigned char esi_l = (esi ) & 0xff;
+        esi_h ^= esi_l;
+        esi = (esi & 0xffff00ff ) | (esi_h<<8);
+        ecx ^= esi;
+        count_402182++;
+        ecx = function401190(ecx);
+        edi = saveedi;
+        esi = 0x80;
+    }
+    
+    return ecx;
+}
+```
+
+从上面的代码可以看到，我们可以固定 `dwCode[0]`，找到一个使 `ecx=1` 的 `dwCode[1]`。
+
+同样也可以固定 `dwCode[2]`，找到满足条件的 `dwCode[3]`，从而得到 `16` 字节的序列号。
+
+计算序列号代码为：
+
+```
+void PrintCode(unsigned int dwCode)
+{
+    int i;
+    for(i=0; i<4; i++)
+    {
+        printf("%c", dwCode&0xff);
+        dwCode >>= 8;
+    }
+}
+
+void  GetCode(unsigned int nName2, unsigned int nName3)
+{
+    unsigned int dwCode2;
+    char *pCode2 = "1234";
+    dwCode2 = *((unsigned int *)pCode2);
+    unsigned int eax = nName2 ^ nName3;
+    eax ^= count_402182;
+    eax |= 0x40404040;
+    eax &= 0x77777777;
+    eax ^= dwCode2;
+    printf("%s", pCode2);
+    PrintCode(eax);
+    printf("\n");
+}
+
+void GetSeiralNumber(char *pName)
+{
+    char name[32];
+    memset(name, 0, sizeof(name));
+    int nLen = strlen(pName);
+    if (nLen > 16)
+        nLen = 16;
+    //填充为 16 byte
+    strcpy(name, pName);
+    for (int i=0; i<16-nLen; i++)
+    {
+        name[nLen+i] = name[i];
+    }
+    
+    dwCode[0] = 0x30303030;
+    int k1,k2,k3,k4;
+    for(k1=0x30; k1<=0x7e; k1++)
+    {
+        unsigned int code1 = (k1<<24);
+        for(k2=0x30; k2<=0x7e; k2++)
+        {
+            unsigned int code2 = (k1<<16);
+            for(k3=0x30; k3<=0x7e; k3++)
+            {
+                unsigned int code3 = (k1<<8);
+                for(k4=0x30; k4<=0x7e; k4++)
+                {
+                    dwCode[1] = code1 | code2 | code3 | k4;;
+                    count_402182 = 0xFEDCBA98;
+                    dwName[0] = *((DWORD *)name);
+                    dwName[1] = *((DWORD *)&name[4]);
+                    dwName[2] = *((DWORD *)&name[8]);
+                    dwName[3] = *((DWORD *)&name[12]);
+                    function4011F1();
+                    unsigned int ecx = 0xff01;
+                    ecx = function401190(ecx);
+                    if (ecx == 1)
+                    {
+                        printf("serial num:");
+                        PrintCode(dwCode[0]);
+                        PrintCode(dwCode[1]);
+                        GetCode(dwName[2] , dwName[3]);
+                        return;
+                    }
+                }
+            }
+        }
+    }
+}
+
+int main(int argc, char* argv[])
+{
+    char name[128];
+    printf("input name:\n");
+    scanf("%s", name);
+    GetSeiralNumber(name);
+    getchar();
+    return 0;
+}
+```
+
+给出一组序列号：
+
+```
+name = "afeiwangafeiwang";
+code = "000000001234UGdD";
+```
