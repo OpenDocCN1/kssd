@@ -1,0 +1,201 @@
+
+# 逆向分析笔记
+
+## 代码片段
+
+以下汇编代码段展示了函数尾部恢复寄存器并返回的过程：
+
+```
+00B75EAC   .^. EB EB             JMP SHORT Skype.00B75E99
+
+00B75EAE   .  8BE5               MOV ESP, EBP
+
+00B75EB0   .  5D                 POP EBP
+
+00B75EB1   .  C3                 RETN
+```
+
+## C 语言伪代码
+
+整个过程用 C 语言写大致如下：
+
+```c
+VirtualProtect(OEP, size, PAGE_EXECUTE_READWRITE, &oldProtect);
+
+memset(OEP, 0, size);
+
+VirtualProtect(OEP, size, PAGE_EXECUTE_READ, &oldProtect);
+
+pMem = VirtualAlloc(NULL, 0x44C000, MEM_COMMIT, PAGE_READWRITE);
+
+value = 0X????;
+
+for (i = 0; i < SegNum; i++) {
+    for (j = 0; j < Segs[i].size; j += 4) {
+        offset = ....;
+        pMem[offset] = pOrig[offset] ^ value;
+        value += xxxx;
+    }
+}
+
+for (i = 0; i < num; i++) {
+    if (info[i].flags == xxx)
+        Handle = LoadLibrary(info[i].name);
+    else {
+        pProc = GetProcAddress(Handle, info[i].name);
+        offset = info[i].offset;
+        pMem[offset] = pProc;
+    }
+}
+
+VirtualProtect(pStart, 0x44C000, PAGE_READ_WRITE, &oldProtect);
+memcpy(pStart, pMem, 0x44C000);
+VirtualFree(pMem, 0, MEM_RELEASE);
+
+for (i = 0; i < SegNum; i++) {
+    offset = ...;
+    VirtualProtect(pStart + offset, sizexx, NewProtectxxxx, &oldProtect);
+}
+```
+
+### 作用分析
+
+看看它的作用：
+
+1.  **解码清理**：解码的时候清掉了 `OEP` 处的一小段代码，可防止解码后的简单 `DUMP`。
+2.  **内存保护**：调用了 `VirtualProtect`，对这段被解密的 `CODE` 下的 memory write 断点不再起作用。
+3.  **双 IAT 表机制**：两份 `IAT`，第一份是标准的 `EXE` 的，由 `Loader` 解析，另一份由自己在解码后解析。所以解码后，即使内存中全是明文，`DUMP` 后，`IAT` 也不容易修复。两份 `IAT` 在 memory 中相差很远，`ImportRec` 好像不行，总不至于手工构造引入表 (`IAT`) 吧？
+
+## 4. 程序中的 anti-debug 解除
+
+用 `OllyDbg` 载入程序，忽略所有 `Exception`，`F9` 能正确运行，但是运行不久，就出现：
+
+> `Debugged program was unable to process exception`
+
+但是单独运行却是好好的，十有八九是 `SetUnhandledExceptionFilter` 的 anti-debug。
+
+`Ctrl-F2` 重新开始，`bp SetUnhandledExceptionFilter`，然后 `F9` 运行，运行不久就断下来，果然不出所料。
+
+`Ctrl-G` 定位到 `UnhandledExceptionFilter`，向下一点，将 `CALL ZwQueryInformationProcess` 下面的第二个条件跳转 `NOP` 掉：
+
+```asm
+; UnhandledExceptionFilter
+7C59BCDC   >  55                  PUSH EBP
+7C59BCDD     8BEC                MOV EBP, ESP
+7C59BCDF     6A FF               PUSH -1
+7C59BCE1     68 C02E577C         PUSH kernel32.7C572EC0
+...
+7C59BD3B     6A 07               PUSH 7
+7C59BD3D     E8 7BBBFFFF         CALL kernel32.GetCurrentProcess
+7C59BD42     50                  PUSH EAX
+7C59BD43     FF15 B810577C      CALL DWORD PTR DS:[<&ntdll.NtQueryInformationProcess>; ntdll.ZwQueryInformationProcess
+7C59BD49     3BC3               CMP EAX, EBP
+7C59BD4B     7C 09              JL SHORT kernel32.7C59BD56
+7C59BD4D     395D C8            CMP DWORD PTR SS:[EBP-38], EBP
+7C59BD50     0F85 49020000      JNZ kernel32.7C59BF9F      ; // 这儿不能跳，NOP 掉就好了
+```
+
+这样，程序总算开始听话。由于 `Windows` 各个平台/版本的差异，下载的 `OLLYDBG` 插件不起作用，就只好手工改了。
+
+## 4. 程序中的 anti-debug CODE 分析 (1)
+
+解除 anti-debug 后总想看看，这样的 anti-debug `CODE` 是怎么写的，又是如何触发的。
+
+`bp SetUnhandledExceptionFilter`，可找到程序的 `exception filter function` 地址是 `0072B670`。
+
+分析一下这段 `CODE`：
+
+```asm
+:0072B670 53                     push ebx
+
+* Reference To: kernel32.GetCurrentThreadId, Ord:0111h
+                      |
+:0072B671 FF15909FA000           Call dword ptr [00A09F90]
+
+:0072B677 3B05F017B200           cmp eax, dword ptr [00B217F0]      ; ThreadId == [00B217F0]?
+:0072B67D 741C                   je 0072B69B                        ; YES
+:0072B67F A1EC17B200             mov eax, dword ptr [00B217EC]
+:0072B684 33DB                   xor ebx, ebx
+:0072B686 3BC3                   cmp eax, ebx
+:0072B688 740B                   je 0072B695
+:0072B68A 8B4C2408               mov ecx, dword ptr [esp+08]
+:0072B68E 51                      push ecx
+:0072B68F FFD0                   call eax
+:0072B691 5B                      pop ebx
+:0072B692 C20400                  ret 0004
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0072B688(C)
+|
+:0072B695 33C0                   xor eax, eax
+:0072B697 5B                      pop ebx
+:0072B698 C20400                  ret 0004
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0072B67D(C)
+|
+:0072B69B 8B0DE817B200           mov ecx, dword ptr [00B217E8]     ; 一个 NUM
+:0072B6A1 55                      push ebp
+:0072B6A2 56                      push esi
+:0072B6A3 8B742410               mov esi, dword ptr [esp+10]     ; ExceptionInfo 参数
+:0072B6A7 8D1449                 lea edx, dword ptr [ecx+2*ecx]
+:0072B6AA 57                      push edi
+:0072B6AB 41                      inc ecx
+:0072B6AC B801000000             mov eax, 00000001               ; 初始化返回值
+:0072B6B1 8D3C952018B200         lea edi, dword ptr [4*edx+00B21820] ; 00B21820 处是一个表，每项 size=3*4
+:0072B6B8 890DE817B200           mov dword ptr [00B217E8], ecx   ; NUM 加 1 了
+:0072B6BE C74708FFFFFFFF         mov [edi+08], FFFFFFFF
+:0072B6C5 8B0E                   mov ecx, dword ptr [esi]        ; ExceptionRecord
+:0072B6C7 8B29                   mov ebp, dword ptr [ecx]        ; ExceptionCode
+:0072B6C9 F7C500FFFF00           test ebp, 00FFFF00         ; 是 xx0000yy 的格式吗?
+:0072B6CF 7516                   jne 0072B6E7
+:0072B6D1 8BD5                   mov edx, ebp             ; xx0000yy ==> xxyy
+:0072B6D3 C1EA10                 shr edx, 10
+:0072B6D6 8ADA                   mov bl, dl
+:0072B6D8 3219                   xor bl, byte ptr [ecx]
+:0072B6DA 81E3FF000000           and ebx, 000000FF
+:0072B6E0 33DA                   xor ebx, edx
+:0072B6E2 66891F                 mov word ptr [edi], bx        ; 保存 xxyy
+:0072B6E5 EB05                   jmp 0072B6EC
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0072B6CF(C)
+|
+:0072B6E7 66C707FFFF             mov word ptr [edi], FFFF
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0072B6E5(U)
+|
+:0072B6EC 8B0E                   mov ecx, dword ptr [esi]
+:0072B6EE 33DB                   xor ebx, ebx
+:0072B6F0 8B510C                 mov edx, dword ptr [ecx+0C]
+:0072B6F3 895704                 mov dword ptr [edi+04], edx     ; 保存 ExceptionAddress
+:0072B6F6 8B0E                   mov ecx, dword ptr [esi]
+:0072B6F8 8B510C                 mov edx, dword ptr [ecx+0C]     ; edi = ExceptionAddress
+:0072B6FB 33C9                   xor ecx, ecx
+:0072B6FD 668B0F                 mov cx, word ptr [edi]
+:0072B700 81F91DC00000           cmp ecx, 0000C01D
+:0072B706 0F8F4E020000           jg 0072B95A
+:0072B70C 0F84C4010000           je 0072B8D6
+:0072B712 81E903800000           sub ecx, 00008003
+:0072B718 0F847D010000           je 0072B89B
+:0072B71E 49                      dec ecx
+:0072B71F 0F845E010000           je 0072B883
+:0072B725 81E901400000           sub ecx, 00004001
+:0072B72B 0F8534020000           jne 0072B965
+:0072B731 803ACD                 cmp byte ptr [edx], CD        ; xxyy == C005 到这
+:0072B734 0F8578020000           jne 0072B9B2
+:0072B73A 807A0101               cmp byte ptr [edx+01], 01
+:0072B73E 0F856E020000           jne 0072B9B2
+:0072B744 8B7A01                 mov edi, dword ptr [edx+01]
+:0072B747 32C9                   xor cl, cl
+:0072B749 81FF01CC8DC0           cmp edi, C08DCC01
+:0072B74F 7540                   jne 0072B791
+:0072B751 8B5604                 mov edx, dword ptr [esi+04]     ; ExceptionAddress 处是 CD 01 CC 8D C0 到这
+:0072B754 8B82B0000000           mov eax, dword ptr [edx+000000B0]
+:0072B75A A3281BB200             mov dword ptr [00B21B28], eax   ; [00B21B28] = context->eax
+:0072B75F 8B4E04                 mov ecx, dword ptr [esi+04]
+:0072B762 8B91A8000000           mov edx, dword ptr [ecx+000000A8]
+:0072B768 89152C1BB200           mov dword ptr [00B21B2C], edx   ; [00B21B28] = context->eax
+:0072B76E 8B4604                 mov eax, dword ptr [esi+04]
+```
