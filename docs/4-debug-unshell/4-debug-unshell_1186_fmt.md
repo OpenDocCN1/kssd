@@ -1,0 +1,210 @@
+
+# 12 月专题：手脱 Yoda 1.03.3 版本教程
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-767.htm`](https://www.pediy.com/kssd/pediy08/pediy8-767.htm)
+
+## Yoda Protector 1.03.3 - manually unpacking
+
+**Level**: beginner  
+**难度**: 初级
+
+### Yoda Protector 1.03.3 - manually unpacking
+
+这篇教程描述的是如何手脱最新版本 `1.03.3` 的 `Yoda` 壳。我们集中精力在这样一个问题上：如何在调试器中运行带 `Yoda` 壳的程序。
+
+附件：`Crackme05.rar`
+
+## 1. Introduction
+
+### 简介
+
+Hi, friends and welcome to new unpacking tutorial. As I said, `yP` `1.03.3` is last `yoda` protector version and author has decided to stop project. He is planning to start new one. I have already wrote tutorial for unpacking `1.03.2beta` version, which is pretty identical as this one, but that tutorial didn't described how to run protected file under debugger. This tutorial will show how anti-debug tricks can be easy avoided and bypassed.
+
+欢迎关注这篇脱壳教程。我在先前已经说过了，`Yoda` 壳 `1.03.3` 版本是最新的版本，并且作者决定以后都不再更新了。他想重新开始写新的壳。我写过如何脱 `1.03.2beta` 版本的壳的教程，发现 `1.03.2beta` 版本非常接近这个版本，只是那篇教程里我并未描述如何在调试器里运行带壳的程序。这篇教程将向大家展示壳 anti-debug 的花样，并且告知大家这些花样能被轻易破除。
+
+We will need some tools:
+
+我们将用到的工具如下：
+
+- `OllyDbg` `1.10`
+- `LordPE`
+- `ImpREC`
+- `Windows XP`
+- Target is here `http://www.reversing.be/binaries/articles/20060103202404818.rar`
+- `OllyDbg` `1.10`
+- `LordPE`
+- `ImpREC`
+- `Windows XP`
+- 目标程序我已经本地了。
+
+This tutorial will not go in details because there is no need for that. Rebuilding imports is very easy and that is all we need to do after we reach `OEP`.
+
+因为我认为没有必要，所以在教程之中鲜有细节描述。在我们找到 `OEP` 之后，我们只需对导入表重建，这很容易。
+
+`Yoda Protector` is based on `Yoda's Cryptor` frame, only that new tricks are added from time to time. Old tricks are `PE` header erasing (which is pointless), `CRC` checking (code and file), `IsDebuggerPresent` check, `API` redirecting and destroying import information. This old tricks are already described in my tutorial about `ExeStealth` `v2.74a` (this protector is just rip of `yoda`). New tricks are terminating `Olly` and possible freezing `Windows XP`.
+
+`Yoda` 壳的保护方式是基于它的加密框架，只是它一直往其中添加一些新花样。老的花样就是改写 `PE` 头，`CRC` 校验代码和文件，`IsDebuggerPresent` 检验，重定向 `API` 和破坏导入表信息。这些我都已经在脱 `ExeStealth` `v2.74a` (`Yoda` 里比较成熟的一个版本)这篇教程里描述过了。这个版本里的新花样就是：中止 `Olly` 的运行，并且很可能让系统崩溃。
+
+Let's see how `Olly` is killed. Protector is using combination of `API`s to get `PID` number of all running processes. Then it search for process that started (`ollydbg` in our case) and terminate it. It compares `PID` of that process with it's own `PID`. If those `PID`s are not same (ei. `exe` is started trough `olly`) it will terminate that process.
+
+先看看 `Olly` 是如何被中止进程的。壳先使用多个 `API` 进行组合来得到正在运行着的所有进程的 `PID` 数。然后，它搜寻启动程序的进程(调试的时候当然是 `Ollydbg` 了)并将之结束。程序把那个启动它的进程的 `PID` 和它自身的 `PID` 进行比较。如果不相等(比方说当 `.exe` 是通过 `Olly` 启动的)，它就会中止进程。
+
+Second trick is more annoying. Protector will use `BlockInput` `API` before any other check. That `API` blocks input devices (mouse, keyboard, etc..) so we are blocked from our system. Then protector will do other checks and decrypting. If in meantime protector stops on some exception or `Olly` is found , our system will wait for us to take action but we cannot do nothing except restart `windows`. If everything is passed fine, protector will again use `BlockInput` `API` to unblock input devices. Pretty smart trick.
+
+第二个花样就比较隐蔽了。壳在其它检验之前调用 `API` `BlockInput`。这个 `API` 会屏蔽输入设备(鼠标，键盘等等)，这样我们就与系统隔离了。这时候，壳会做各种检验和解密代码。如果壳停在了某个异常或者是 `Olly` 被发现了，系统会等待我们做出反应，然而我们除了重启电脑之外不能进行任何输入。如果一切运行顺利，壳会再次使用 `BlockInput` 来解除对输入设备的屏蔽。是不是相当聪明的技巧呢？！
+
+## 2. Reaching OEP
+
+### 找 OEP
+
+OK, time to unpack target. Grab `crackme` and load it in `Olly`. In `olly`, ignore all exceptions then set in Events to "Break on new module (DLL)". We need to break on `user32.dll` loading in order to intercept `BlockInput` `API`. Then press `F9` untill you see that `User32.dll` is loaded:
+
+是时候脱目标程序的壳了。在 `Olly` 里载入 `Crackme`，忽略所有异常，在“事件”里设置“中断于新模块 (DLL)”。这是为了能在加载时中断在 `user32.dll` 的 `BlockInput` 上。然后按 `F9` 直到 `Olly` 加载 `User32.dll`:
+
+Executable modules  
+执行模块
+
+| Base | Size | Entry | Name | File version | Path |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `00400000` | `0001F000` | `004166ED` | `Crackme0` | | `D:yodayP1.03.3Crackme05.exe` |
+| `77D40000` | `0008C000` | `77D53A05` | `User32` | `5.1.2600.1561` | `(x C:WINDOWSsystem32User32.dll` |
+| `77E60000` | `000E6000` | `77E7ADB3` | `kernel32` | `5.1.2600.1560` | `(x C:WINDOWSsystem32kernel32.dll` |
+| `77F50000` | `000A7000` | | `ntdll` | `5.1.2600.1106` | `(x C:WINDOWSSystem32ntdll.dll` |
+
+After that we can uncheck option for breaking on new module. Now we need just to patch `BlockInput` `API` so it doesn't block devices. Simply select, "go to, expression" and enter `BlockInput`. Ok and we land in `user32.dll` on that `API` (this looks on my system):
+
+这时候我们可以取消掉“中断于新模块(DLL)”。然后对 `BlockInput` 打 patch，这样程序就不会屏蔽输入设备了。选择“转到表达式”，敲入 `BlockInput`。我们就到了 `user32.dll` 的这个 `API` 上了(下面是我系统上的情形)：
+
+```
+77D98A69 > B8 36110000 MOV EAX,1136
+77D98A6E BA 0003FE7F MOV EDX,7FFE0300
+77D98A73 FFD2 CALL EDX
+77D98A75 C2 0400 RETN 4
+```
+
+To kill `API`, just `NOP` all to `RETN 4`:
+
+为了取消这个 `API`，把 `RETN 4` 之前的所有命令行都 `NOP` 掉。
+
+```
+77D98A69 > 90 NOP
+77D98A6A 90 NOP
+77D98A6B 90 NOP
+77D98A6C 90 NOP
+77D98A6D 90 NOP
+77D98A6E 90 NOP
+77D98A6F 90 NOP
+77D98A70 90 NOP
+77D98A71 90 NOP
+77D98A72 90 NOP
+77D98A73 90 NOP
+77D98A74 90 NOP
+77D98A75 C2 0400 RETN 4 <---- Place breakpoint here!
+                              在这设置一个断点!
+```
+
+And place `bp` on `RETN 4`. We will need this later.
+
+在 `RETN 4` 这里设一个断点。在后面我们会用到。
+
+We have killed this `api` and with that we avoid blocking devices, but we need to prevent `Olly` killing. There is similar simple solution for that. `Yoda` uses `CreateToolhelp32Snapshot` to get all processes and couple others to walk trough all processes. But it uses `GetCurrentProcessId` to get `PID` of itself. Then `yoda` will check is process who started it has same `PID` as itself (ei. did protected file started trough some debugger or not) and if not, it will terminate that process. We can do next to prevent killing `Olly`:
+
+我们取消掉了这个 `api`，避免了屏蔽设备，但是我们需要防止关闭 `Olly`。要解决这个问题也有一个非常简单的方法。`Yoda` 使用 `CreateToolhelp32Snapshot` 来获取所有的进程，并能在进程之中出入。但是它使用 `GetCurrentProcessId` 来获取其自身的 `PID`。随后，`Yoda` 检验启动它的进程的 `PID` 和自身的 `PID` 是否相同(也就是说，受保护的文件是否是通过调试器而启动的)，如果不同，它就会结束进程。为了避免 `Olly` 被中止，我们可以象下面这样：
+
+- Open `LordPE` and get `PID` of `OllyDbg.exe`. Mine is `478`.  
+  打开 `LordPE`，得到 `OllyDbg.exe` 的 `PID`，我的是 `478`。
+
+- "Go to , expression", enter `GetCurrentProcessId` and click `ok`. You are in `API`:  
+  选择“转到表达式”，键入 `GetCurrentProcessId`，选择 `ok`。这样你就到了 `API` 代码里了：
+
+```
+77E76914 > 64:A1 18000000 MOV EAX,DWORD PTR FS:[18]
+77E7691A 8B40 20 MOV EAX,DWORD PTR DS:[EAX+20]
+77E7691D C3 RETN
+```
+
+That `api` will return `PID` of protected file, but I will patch it to return `Olly` `PID`. And our protected file will think that it is `Olly` itself, he he, check:
+
+这个 `api` 会返回受保护文件的 `PID`，但是我将进行 patch，让其返回 `Olly` 的 `PID`。这样受保护文件就会认为它就是 `Olly` 了，嘿嘿，象这样：
+
+```
+77E76914 > B8 78040000 MOV EAX,478
+77E76919 90 NOP
+77E7691A 90 NOP
+77E7691B 90 NOP
+77E7691C 90 NOP
+77E7691D C3 RETN
+```
+
+And that's it! Now we need use plugin to hide `Olly` from `IsDebugerPresent` check and run (remember `bp` on `BlockInput`). We will stop two times on `bp` on patched `BlockInput` `API`. Then we open "Memory Map" window and place memory `bp` on access on first section and run. `OEP` is reached:
+
+就是上面这样了!现在选择插件，隐藏 `Olly`，躲过 `IsDebugerPresent` 检验，然后运行(记得我们在 `BlockInput` 设置过了断点)。我们会在打过 patch 的 `BlockInput` 上停两次。打开“内存窗口”，在第一节上设置内存访问断点，然后运行。这样就到了 `OEP` 了：
+
+```
+004079D0 55 PUSH EBP ; Crackme0.00417058
+004079D1 8BEC MOV EBP,ESP
+004079D3 83C4 F4 ADD ESP,-0C
+004079D6 53 PUSH EBX
+004079D7 56 PUSH ESI ; Crackme0.00418370
+004079D8 57 PUSH EDI ; Crackme0.0041837D
+004079D9 B8 98794000 MOV EAX,Crackme0.00407998
+004079DE E8 D1CBFFFF CALL Crackme0.004045B4
+```
+
+
+
+### 3. Final words
+
+写在最后
+
+#### Assembly Snippet
+
+```
+004079E3 BE CC954000 MOV ESI,Crackme0.004095CC  
+
+004079E8 BF E4954000 MOV EDI,Crackme0.004095E4  
+
+004079ED BB A0954000 MOV EBX,Crackme0.004095A0  
+
+004079F2 33C0 XOR EAX,EAX  
+
+004079F4 55 PUSH EBP ; Crackme0.00417058  
+
+004079F5 68 847C4000 PUSH Crackme0.00407C84  
+
+004079FA 64:FF30 PUSH DWORD PTR FS:[EAX]  
+
+004079FD 64:8920 MOV DWORD PTR FS:[EAX],ESP  
+
+00407A00 A1 80824000 MOV EAX,DWORD PTR DS:[408280]  
+
+00407A05 8B00 MOV EAX,DWORD PTR DS:[EAX]  
+
+...  
+
+...
+```
+
+All we need to do now is dumping and rebuilding IAT. For dumping you should use `OllyDump` (LordPE cause loss of icon) and for rebuilding IAT - `ImpREC`.
+
+到这里只需 dump 和重建 IAT 了。使用 `OllyDump`(`LordPE` 进行 dump 会缺少图标)，用 `ImpREC` 重建 IAT。
+
+And that is all :) Unpacking yoda protected dll's is even easier. Sorry for spelling and grammar mistakes.
+
+好了，都说完了。脱 Yoda 壳的 dll 比这更简单。由于我的拼写和语法错误为您的阅读带来不便，敬请谅解。
+
+Thanks and greets to `detten` for publishing my tutorials, all `BIW` crew. Special greets to friends on `artem` and `crackmes.de` comunity.
+
+向 `detten` 给予这篇教程的帮助致以谢意，还有 `BIW` 这一群兄弟。特别鸣谢 `artem` 和 `crackmes.de` 的帮助。
+
+See you in next tutorial and Happy New Year to all of you :)
+
+再见，另祝新年快乐。
+
+花近两个小时翻完了，眼睛疼，累，没有经过校正，大家发现错误，请指正。
+
+Yoda 的第二个我会再抽空翻译的。
+
+借老外一句话，我已经知道我是多么的菜了，如果大家想要说我水平太低之类的话就不必了。
+
+`4dd466d0e1e0cc123afbe504da2462ca`
