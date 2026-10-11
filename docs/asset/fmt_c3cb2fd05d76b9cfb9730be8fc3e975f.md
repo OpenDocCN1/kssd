@@ -1,0 +1,105 @@
+
+# LDM 木马检测程序(反木马) VI Build 1500 算法分析(2007 年 3 月 18 日发布)
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-89.htm`](https://www.pediy.com/kssd/pediy09/pediy09-89.htm)
+
+> 【文章标题】: LDM 木马检测程序(反木马) VI Build 1500 算法分析(2007 年 3 月 18 日发布)  
+> 【文章作者】: 壹只老虎  
+> 【作者邮箱】: tiger..tiger@163.com  
+> 【详细过程】  
+
+1：安装程序，发现有 5 个可执行程序，一看就知道是他们写的一套东西。看了看软件，做得很华丽，有点心虚了，不过还是继续，运行后发现 `lavs.exe` 需要注册，其他的都不需要注册的，`PEID` 查壳，`nSpack V2.9 -> LiuXingPing`，`esp` 定律脱壳后用 `importrec` 修复下就可以了。看看是什么写的？`Microsoft Visual Basic 5.0 / 6.0`，晕，我，我怕这个东西，试试看吧，也许会有收获，注册试试看，它里面有生成好的机器码，我们只需要写注册码就可以了，我来写，`asdsadsa,asfsaf,asfsaf` 错误了，(后来吃亏了才发现需要数字的！汗！)呵呵。这里需要输入数字才行，小数也可以的。至于为什么，因为，作者采用了字符串转浮点的函数进行转化，发现不是合法的数字就错误。好了，输入试验码，`111111`，`2222222`，`33333333`，不急，先把天网开起来，怕是网络验证的，注册，黑黑，天网没有报警，说明是本地验证的，好了，有错误提示，非常好，“你的注册码错误，请确认清楚”。虽然有这个字符串，不过对于 `vb` 的东西，我不指望能哪来怎么用，(不是不行，是替换字符串比较麻烦)。碰下运气，下函数断点看看。（这里有件比较有意思的事情需要说一下，你看那个脱壳前的 `lavs.exe` 大小是 `1.36M`，脱壳后的程序是 `15.0M` 我晕，这也太夸张了吧，不佩服不行啊，都不知道里面加了些什么，写的这么大，不过这个程序的界面做的是相当美观阿，估计是界面用去了很多空间，。注意下。`od` 脱壳的时候需要有耐心，发现 `od` 窗口假死个 `20-30s` 也不要急，这东西是有点大了，可以去泡杯茶，泡好了也差不多脱完了，黑黑）。修复下就行乐。
+
+2：`od` 载入修复后的程序，不要字符串参考了，没用，直接运行程序，好了，注册提示出来了，要我们写注册码。我写上 `111111`，`2222222`，`33333333`，不要忙着点按钮，回 `od` 里面 `ctrl+n`，找到 `msvbvm60.rtcMsgBox` 这个函数，在每个参考点上设置断点，`ok`，注册把。
+
+3：好了，断下来了，这里。
+
+```
+011907FC    .  FF15 C8104000     call dword ptr ds:[<&msvbvm60.rtcM>;  注册失败
+```
+
+往上面找到头，好长的代码的，灰心了，不过还好，里面垃圾代码太多，看完了你就知道了，下面是分析过程。
+
+```
+|01190090    > \ 55               push ebp
+|01190091    .  8BEC             mov ebp,esp
+|01190093    .  83EC 14          sub esp,14
+|01190096    .  68 362C4000      push <jmp.&msvbvm60.__vbaExceptHan>;  SE handler installation
+|0119009B    .  64:A1 00000000   mov eax,dword ptr fs:[0]
+|011900A1    .  50               push eax
+|011900A2    .  64:8925 00000000 mov dword ptr fs:[0],esp
+|011900A9    .  81EC D4000000    sub esp,0D4
+|011900AF    .  53               push ebx
+|011900B0    .  56               push esi
+|011900B1    .  57               push edi
+|011900B2    .  8965 EC          mov dword ptr ss:[ebp-14],esp
+|011900B5    .  C745 F0 602B4000 mov dword ptr ss:[ebp-10],lavss1_.>
+|011900BC    .  8B75 08          mov esi,dword ptr ss:[ebp+8]
+|011900BF    .  8BC6             mov eax,esi                     ;  EAX=ESI=1A3B41
+|011900C1    .  83E0 01          and eax,1                       ;  EAX=1
+|011900C4    .  8945 F4          mov dword ptr ss:[ebp-C],eax
+|011900C7    .  83E6 FE          and esi,FFFFFFFE
+|011900CA    .  8975 08          mov dword ptr ss:[ebp+8],esi
+|011900CD    .  33DB             xor ebx,ebx
+|011900CF    .  895D F8          mov dword ptr ss:[ebp-8],ebx
+|011900D2    .  8B0E             mov ecx,dword ptr ds:[esi]
+|011900D4    .  56               push esi
+|011900D5    .  FF51 04          call dword ptr ds:[ecx+4]
+|011900D8    .  895D E0          mov dword ptr ss:[ebp-20],ebx
+|011900DB    .  895D DC          mov dword ptr ss:[ebp-24],ebx
+|011900DE    .  895D D8          mov dword ptr ss:[ebp-28],ebx
+|011900E1    .  895D D4          mov dword ptr ss:[ebp-2C],ebx
+|011900E4    .  895D D0          mov dword ptr ss:[ebp-30],ebx
+|011900E7    .  895D CC          mov dword ptr ss:[ebp-34],ebx
+|011900EA    .  895D C8          mov dword ptr ss:[ebp-38],ebx
+|011900ED    .  895D B8          mov dword ptr ss:[ebp-48],ebx
+|011900F0    .  895D A8          mov dword ptr ss:[ebp-58],ebx
+|011900F3    .  895D 98          mov dword ptr ss:[ebp-68],ebx
+|011900F6    .  895D 88          mov dword ptr ss:[ebp-78],ebx
+|011900F9    .  899D 78FFFFFF    mov dword ptr ss:[ebp-88],ebx
+|011900FF    .  899D 68FFFFFF    mov dword ptr ss:[ebp-98],ebx
+|01190105    .  6A 01            push 1
+|01190107    .  FF15 CC104000    call dword ptr ds:[<&msvbvm60.__vb>;  msvbvm60.__vbaOnError
+|0119010D    .  8B16             mov edx,dword ptr ds:[esi]
+|0119010F    .  56               push esi
+|01190110    .  FF92 0C030000    call dword ptr ds:[edx+30C]        
+|01190116    .  50               push eax
+|01190117    .  8D45 D0          lea eax,dword ptr ss:[ebp-30]
+|0119011A    .  50               push eax
+|0119011B    .  FF15 C4104000    call dword ptr ds:[<&msvbvm60.__vb>;  msvbvm60.__vbaObjSet
+|01190121    .  8BF8             mov edi,eax
+|01190123    .  8B0F             mov ecx,dword ptr ds:[edi]
+|01190125    .  8D55 DC          lea edx,dword ptr ss:[ebp-24]
+|01190128    .  52               push edx
+|01190129    .  57               push edi
+|0119012A    .  FF91 A0000000    call dword ptr ds:[ecx+A0]
+|01190130    .  DBE2             fclex
+|01190132    .  3BC3             cmp eax,ebx
+|01190134    .  7D 12            jge short lavss1_.01190148
+|01190136    .  68 A0000000      push 0A0
+|0119013B    .  68 D4564600      push lavss1_.004656D4
+|01190140    .  57               push edi
+|01190141    .  50               push eax
+|01190142    .  FF15 98104000    call dword ptr ds:[<&msvbvm60.__vb>;  msvbvm60.__vbaHresultCheckObj
+|01190148    >  8B06             mov eax,dword ptr ds:[esi]
+|0119014A    .  56               push esi
+|0119014B    .  FF90 FC020000    call dword ptr ds:[eax+2FC]
+|01190151    .  50               push eax
+|01190152    .  8D4D CC          lea ecx,dword ptr ss:[ebp-34]
+|01190155    .  51               push ecx
+|01190156    .  FF15 C4104000    call dword ptr ds:[<&msvbvm60.__vb>;  msvbvm60.__vbaObjSet
+|0119015C    .  8BF8             mov edi,eax
+|0119015E    .  8B17             mov edx,dword ptr ds:[edi]
+|01190160    .  8D45 D8          lea eax,dword ptr ss:[ebp-28]
+|01190163    .  50               push eax
+|01190164    .  57               push edi
+|01190165    .  FF92 A0000000    call dword ptr ds:[edx+A0]
+|0119016B    .  DBE2             fclex
+|0119016D    .  3BC3             cmp eax,ebx
+|0119016F    .  7D 12            jge short lavss1_.01190183
+|01190171    .  68 A0000000      push 0A0
+|01190176    .  68 D4564600      push lavss1_.004656D4
+|0119017B    .  57               push edi
+|0119017C    .  50               push eax
+|0119017D    .  FF15 98104000    call dword ptr ds:[<&msvbvm60.__vb>;  msvbvm60.__vbaHresultCheckObj
+```
