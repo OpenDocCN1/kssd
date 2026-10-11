@@ -1,0 +1,806 @@
+
+# DaBri-Soft Declarer's Play 系列
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50318.htm`](https://www.pediy.com/kssd/pediy05/pediy50318.htm)
+
+**目标**：DaBri-Soft Declarer's Play 系列
+
+**工具**：`SOFTICE`，`IDA PRO`
+
+因为喜好桥牌，在看了 `blowfish` 大侠的文章后从 `www.dabrisoft.dk` 上下载了他们的 `Declarer's Play` 系列桥牌练习软件（由 4 个程序组成）。不过现在的版本升到了 `V3.0`，除了压缩方法和注册方法不同外，练习的实际内容跟 `blowfish` 大侠介绍的 `1.1` 版可能差不多。下载后试了一下，觉得对桥牌做庄技术的练习和提高很有用处，就试着解出，以跟 `PD` 一同练习。用 `FI` 检查，所有安装后的程序都是用 `Softec Dev. installer` 压缩的。这是新西兰的一个小公司 98 年开发的一个 `VB3` 程序压缩软件。不过，用它压缩后的程序可以被 `VB23DECOMPILER` 反编译。因此破解这程序的第一步是用 `VB23DECOMPILER` 来反编译一下。果然，在 `rForm` 中看到调用 `"dptrumf.exe -dptrumf.dll"` ... 等语句。
+
+原来程序安装时会将 `dptrumf.exe` 和 `dptrumf.dll` 两个文件装入 `WINDOWS` 目录下。在程序注册时，会用产品代码为参数调用 `dptrumf.dll` 中的 `lockbycode` 函数检验用户输入的 `access code`，如果输入的数字是正确的，程序会在 `WINDOWS\SYSTEM` 目录下生成一个以产品代码和 `C` 盘序列号为基础生成的文件名命名的 `.sys` 隐含文件（文件长度 183 字节）。以后程序在启动的时候会打开这个文件进行校验，以确认程序已注册。
+
+用 `SOFT ICE` 跟踪时，用 `"bpx getsystemdirectory"` 设置断点，调出注册窗口，输入 “`123454106212345`”，两次 `F5`，一次 `F12`，再 `"g 152f"`，`DB DS:E08`，就得到了首 5 位字符。`"BD *"`，`F5`，修改 5 位字符，一般这时就可以 `PASS` 了。如果不行，再将第 6 位开始的 “`41062`” 改为 “`21062`” 或更小，再试几次就会 `OK` 了。
+
+用 `IDA PRO` 打开 `dptrumf.dll`，可以看出校核算法为：
+
+将 `installation code`（实际上是 `C` 盘序列号与产品代码计算得出的）的前 5 位数字（一个十进制整数）与后 5 位字符串计算得出一个 5 位十进制整数，变为字符串后就是 `access code` 的前 5 位。把这个整数与一个 10 位的十进制数字字符串计算，得出的一个新的 10 位十进制数字字符串，取前 4 位得到一个 4 位的带符号十进制整数，只要这个整数大于等于 0 以及小于等于 `0x100C`，这个 10 位十进制字符串加上算出的首 5 位，就是一个合法的 15 位 `access code`。
+
+代码如下：
+
+```
+cseg01:14DF 00C               mov    di, 0DE6h      ; move the input string here
+
+cseg01:14E2 00C               mov    cx, 14h
+
+cseg01:14E5 00C               repe movsb             ;
+
+cseg01:14E7 00C               push   es
+
+cseg01:14E8 00E               pop    ds
+
+cseg01:14E9                   assume ds:nothing
+
+cseg01:14E9 00C               mov    cx, 5
+
+cseg01:14EC 00C               mov    bx, 0DE6h
+
+cseg01:14EF
+
+cseg01:14EF   loc_0_14EF:     ;
+
+cseg01:14EF 00C               mov    al, [bx]
+
+cseg01:14F1 00C               inc    bx             ;
+
+cseg01:14F2 00C               cmp    al, 0          ;
+
+cseg01:14F4 00C               jz     loc_0_16C1     ;
+
+cseg01:14F4
+
+cseg01:14F8 00C               loop   loc_0_14EF     ;
+
+cseg01:14F8
+
+cseg01:14FA 00C               call   openread_fileb22 ; read file b22 b7 bytes to e29
+
+cseg01:14FA
+
+cseg01:14FD 00C               call   sub_0_1E2D     ; get reg code
+
+cseg01:14FD
+
+cseg01:1500 00C               cmp    ax, 0          ;
+
+cseg01:1503 00C               jnz    loc_0_169A     ;
+
+cseg01:1503
+
+cseg01:1507 00C               call   sub_0_1F4B     ; 第一次计算
+
+cseg01:1507
+
+cseg01:150A 00C               mov    ax, ds:95h     ; 产品编码
+
+cseg01:150D 00C               mov    bx, 0E08h
+
+cseg01:1510 00C               mov    cx, 5
+
+cseg01:1513 00C               call   calculate_the_code ;得到首 5 位字符
+
+cseg01:1513
+
+cseg01:1516 00C               mov    cx, 5
+
+cseg01:1519 00C               mov    bx, 0DE6h
+
+cseg01:151C
+
+cseg01:151C   loc_0_151C:     ;
+
+cseg01:151C 00C               mov    al, [bx]
+
+cseg01:151E 00C               and    al, 0F0h       ;
+
+cseg01:1520 00C               cmp    al, 30h ; '0'   ;
+
+cseg01:1522 00C               jnz    loc_0_16C1     ; 不是十进制数字？BAD GUY！！
+
+cseg01:1522
+
+cseg01:1526 00C               inc    bx             ;
+
+cseg01:1527 00C               loop   loc_0_151C     ;
+
+cseg01:1527
+
+cseg01:1529 00C               mov    si, 0DE6h
+
+cseg01:152C 00C               mov    di, 0E08h
+
+cseg01:152F 00C               mov    cx, 5
+
+cseg01:1532 00C               repe cmpsb           ;比较首 5 位字符是否一样
+
+cseg01:1534 00C               jnz    loc_0_16B4     ; BAD GUY ！！
+
+cseg01:1534
+
+cseg01:1538 00C               mov    bx, 0DEBh
+
+cseg01:153B 00C               mov    al, [bx]
+
+cseg01:153D 00C               cmp    al, 0          ;
+
+cseg01:153F 00C               jz     loc_0_15E5     ;
+
+cseg01:153F
+
+cseg01:1543 00C               mov    cx, 0Ah
+
+cseg01:1546 00C               mov    bx, 0DEBh
+
+cseg01:1549
+
+cseg01:1549   loc_0_1549:     ;
+
+cseg01:1549 00C               mov    al, [bx]
+
+cseg01:154B 00C               and    al, 0F0h       ;
+
+cseg01:154D 00C               cmp    al, 30h ; '0'   ;
+
+cseg01:154F 00C               jnz    loc_0_16CE     ; 不是十进制数字？BAD GUY！！
+
+cseg01:154F
+
+cseg01:1553 00C               inc    bx             ;
+
+cseg01:1554 00C               loop   loc_0_1549     ;
+
+cseg01:1554
+
+cseg01:1556 00C               mov    ax, 0
+
+cseg01:1559 00C               mov    ds:0DFAh, ax
+
+cseg01:155C 00C               mov    ds:0DFCh, al
+
+cseg01:155F 00C               mov    al, ds:98h
+
+cseg01:1562 00C               mov    ds:0DFDh, al
+
+cseg01:1565 00C               mov    bx, 0DE6h
+
+cseg01:1568 00C               mov    cx, 5
+
+cseg01:156B 00C               call   strtoDEC       ;
+
+cseg01:156B
+
+cseg01:156E 00C               mov    bx, 0DEBh
+
+cseg01:1571 00C               mov    cx, 0Ah
+
+cseg01:1574 00C               call   sub_0_3091     ; Get the new code
+
+cseg01:1574
+
+cseg01:1577 00C               mov    bx, 0DEBh
+
+cseg01:157A 00C               mov    cx, 4
+
+cseg01:157D 00C               call   strtoDEC       ;
+
+cseg01:157D
+
+cseg01:1580 00C               cmp    ax, 0          ;
+
+cseg01:1583 00C               jz     loc_0_15A8     ;
+
+cseg01:1583
+
+cseg01:1585 00C               nop                   ;
+
+cseg01:1586 00C               nop                   ;
+
+cseg01:1587 00C               cmp    ax, 100Ch      ;
+
+cseg01:158A 00C               ja     loc_0_16DB     ; BAD GUY！！
+
+cseg01:158A
+
+cseg01:158E 00C               cmp    ax, 0          ;
+
+cseg01:1591 00C               jl     loc_0_16DB     ; BAD GUY！！
+
+…………
+
+主要的换算程序在 `calculate_the_code` 中。
+
+cseg01:30B9 000               mov    bx, ax
+
+cseg01:30BB 000               and    bx, 157h       ;
+
+cseg01:30BF 000               cmp    bx, 0          ;
+
+cseg01:30C2 000               jnz    loc_0_30D4     ;
+
+cseg01:30C2
+
+cseg01:30C4 000               nop                   ;
+
+cseg01:30C5 000               nop                   ;
+
+cseg01:30C6 000               xor    bx, 153h       ;
+
+cseg01:30CA 000               cmp    bx, 0          ;
+
+cseg01:30CD 000               jnz    loc_0_30D4     ;
+
+cseg01:30CD
+
+cseg01:30CF 000               nop                   ;
+
+cseg01:30D0 000               nop                   ;
+
+cseg01:30D1 000               or     bx, 53h        ;
+
+cseg01:30D4
+
+cseg01:30D4   loc_0_30D4:     ;
+
+cseg01:30D4                                ;
+
+cseg01:30D4 000               cmp    ax, bx         ;
+
+cseg01:30D6 000               jb     loc_0_30DF     ;
+
+cseg01:30D6
+
+cseg01:30D8 000               nop                   ;
+
+cseg01:30D9 000               nop                   ;
+
+cseg01:30DA 000               push   ax
+
+cseg01:30DB 002               mov    ax, bx
+
+cseg01:30DD 002               pop    bx
+
+cseg01:30DE 000               cwd                   ;
+
+cseg01:30DF
+
+cseg01:30DF   loc_0_30DF:     ;
+
+cseg01:30DF 000               div    bx             ;
+
+cseg01:30E1 000               mov    cx, 0Ah
+
+cseg01:30E4 000               mov    bx, 0E13h
+
+cseg01:30E7
+
+cseg01:30E7   loc_0_30E7:     ;
+
+cseg01:30E7 000               mov    word_36D_AC8, cx
+
+cseg01:30EB 000               xor    ax, dx         ;
+
+cseg01:30ED 000               ror    dx, 1          ;
+```
+
+
+
+# 寄存器级汇编代码片段
+
+```
+cseg01:30EF 000               ror    dx, 1          ;   
+cseg01:30F1 000               ror    dx, 1          ;   
+cseg01:30F3 000               ror    dx, 1          ;   
+cseg01:30F5 000               ror    dx, 1          ;   
+cseg01:30F7 000               mov    cl, dl        
+cseg01:30F9 000               ror    ax, cl         ;   
+cseg01:30FB 000               xor    ax, dx         ;   
+cseg01:30FD 000               xor    al, ah         ;   
+cseg01:30FF 000               xor    dl, al         ;   
+cseg01:3101 000               mov    cl, dl        
+cseg01:3103 000               rol    ax, cl         ;   
+cseg01:3105 000               and    ax, 0F0Fh      ;   
+cseg01:3108 000               mov    [bx], ax      
+cseg01:310A 000               add    bx, 2          ;   
+cseg01:310D 000               mov    cx, word_36D_AC8
+cseg01:3111 000               loop   loc_0_30E7     ;   
+cseg01:3111   
+cseg01:3113 000               mov    cx, 14h       
+cseg01:3116 000               mov    si, 0E13h      ;   
+cseg01:3119 000               mov    di, 158Dh      ; 查表   
+cseg01:311C 000               mov    bx, 0         
+cseg01:311F   
+cseg01:311F   loc_0_311F:                       ;   
+cseg01:311F 000               mov    al, [si]      
+cseg01:3121 000               mov    ah, 0         
+cseg01:3123 000               mov    bx, di        
+cseg01:3125 000               add    bx, ax         ;   
+cseg01:3127 000               mov    al, [bx]      
+cseg01:3129 000               mov    [si], al      
+cseg01:312B 000               mov    ax, di        
+cseg01:312D 000               add    ax, 0Ah        ;   
+cseg01:3130 000               mov    di, ax        
+cseg01:3132 000               inc    si             ;   
+cseg01:3133 000               loop   loc_0_311F     ;   
+```
+
+## C++ 构建器程序主要部分
+
+注册机的程序如下（`C++BUILDER` 程序主要部分）：
+
+```cpp
+void __fastcall TForm1::Button1Click(TObject *Sender)
+{
+    int rk;
+    char ctemp[10];
+    memset(ctemp,'\0',10);
+    randomize();
+    if (Edit1->Text.Length()!=10)
+    {
+        Application->MessageBox("请输入 10 位十进制数字", NULL, MB_OK);
+        return;
+    }
+    memcpy(input,Edit1->Text.c_str(),10);
+    input[10]='\0';
+    memcpy(sn1,input,5);
+    sn1[5]='\0';
+    memcpy(cs2,input+5,5);
+    cs2[5]='\0';
+    p1=cs2;
+    p2=cs3;
+    pt=table;
+    disk_sno1=atoi(sn1);
+
+    __asm
+    {
+        pushad
+        mov ax,[disk_sno1]
+        mov ebx,[p1]
+        mov cx,5
+        push ebx
+        push cx
+        clc
+        mov bx, ax
+        and bx, 157h
+        cmp bx, 0
+        jnz loc_0_30D4
+        nop
+        nop
+        xor bx, 153h
+        cmp bx, 0
+        jnz loc_0_30D4
+        nop
+        nop
+        or bx, 53h
+    loc_0_30D4:
+        cmp ax, bx
+        jb loc_0_30DF
+        nop
+        nop
+        push ax
+        mov ax, bx
+        pop bx
+        cwd
+    loc_0_30DF:
+        div bx
+        mov cx, 0Ah
+        mov ebx,[p2]
+    loc_0_30E7:
+        mov [k], cx
+        xor ax, dx
+        ror dx, 1
+        ror dx, 1
+        ror dx, 1
+        ror dx, 1
+        ror dx, 1
+        mov cl, dl
+        ror ax, cl
+        xor ax, dx
+        xor al, ah
+        xor dl, al
+        mov cl, dl
+        rol ax, cl
+        and ax, 0F0Fh
+        and eax,0ffffh
+        mov [ebx], ax
+        add ebx, 2
+        xor ecx,ecx
+        mov cx, [k]
+        loop loc_0_30E7
+        mov cx, 14h
+        mov esi,[p2]
+        mov edi,[pt]
+        mov bx, 0
+    loc_0_311F:
+        mov al, [esi]
+        mov ah, 0
+        mov ebx, edi
+        and eax,0ffffh
+        add ebx, eax
+        mov al, [ebx]
+        mov [esi], al
+        mov eax, edi
+        add eax, 0Ah
+        mov edi, eax
+        inc esi
+        loop loc_0_311F
+        pop cx
+        pop ebx
+        mov esi, ebx
+        mov ebx,[p2]
+        and ecx,0ffffh
+    loc_0_3078:
+        mov al, [ebx]
+        add al, 0
+        daa
+        mov ah, al
+        mov al, [esi]
+        and al, 0Fh
+        add al, ah
+        daa
+        and al, 0Fh
+        or al, 30h
+        mov [esi], al
+        inc esi
+        inc ebx
+        loop loc_0_3078
+    }
+
+    p1=cs2;
+
+    __asm
+    {
+        mov ax,[productsn]
+        mov ebx,[p1]
+        mov cx,5
+        push ebx
+        push cx
+        clc
+        mov bx, ax
+        and bx, 157h
+        cmp bx, 0
+        jnz loc_1_30D4
+        nop
+        nop
+        xor bx, 153h
+        cmp bx, 0
+        jnz loc_1_30D4
+        nop
+        nop
+        or bx, 53h
+    loc_1_30D4:
+        cmp ax, bx
+        jb loc_1_30DF
+        nop
+        nop
+        push ax
+        mov ax, bx
+        pop bx
+        cwd
+    loc_1_30DF:
+        div bx
+        mov cx, 0Ah
+        mov ebx,[p2]
+    loc_1_30E7:
+        mov [k], cx
+        xor ax, dx
+        ror dx, 1
+        ror dx, 1
+        ror dx, 1
+        ror dx, 1
+        ror dx, 1
+        mov cl, dl
+        ror ax, cl
+        xor ax, dx
+        xor al, ah
+        xor dl, al
+        mov cl, dl
+        rol ax, cl
+        and ax, 0F0Fh
+        and eax,0ffffh
+        mov [ebx], ax
+        add ebx, 2
+        xor ecx,ecx
+        mov cx, [k]
+        loop loc_1_30E7
+        mov cx, 14h
+        mov esi,[p2]
+        mov edi,[pt]
+        mov bx, 0
+        and ecx,0ffffh
+    loc_1_311F:
+        mov al, [esi]
+        mov ah, 0
+        mov ebx, edi
+        and eax, 0ffffh
+        add ebx, eax
+        mov al, [ebx]
+        mov [esi], al
+        mov eax, edi
+        add eax, 0Ah
+        mov edi, eax
+        inc esi
+        loop loc_1_311F
+        pop cx
+        pop ebx
+        mov esi, ebx
+        mov ebx,[p2]
+        and ecx,0ffffh
+    loc_1_3078:
+        mov al, [ebx]
+        add al, 0
+        daa
+        mov ah, al
+        mov al, [esi]
+        and al, 0Fh
+        add al, ah
+        daa
+        and al, 0Fh
+        or al, 30h
+        mov [esi], al
+        inc esi
+        inc ebx
+        loop loc_1_3078
+        popad
+    }
+
+    memset(keycode,'\0',16);
+    strcpy(keycode,cs2);
+
+    int cn1=atoi(cs2);
+    unsigned short uscn=(unsigned short)cn1;
+
+    char st1[11];
+    char st2[21];
+    memset(st2,'\0',21);
+    memset(st1,'\0',11);
+
+    char *p3;
+    p3=st2;
+    st1[5]='\0';
+
+    rk=(unsigned short)rand();
+    strcat(st1,"41062");
+    sprintf(ctemp,"%05d",rk);
+    strcat(st1,ctemp);
+
+    char stemp[11];
+    memcpy(stemp,st1,11);
+
+    for(signed char jk=4;jk>=0;jk--)
+        for(unsigned char jj=0;jj<=9;jj++)
+        {
+            if ((jk==4)&&(jj>1))
+                continue;
+            memcpy(st1,stemp,11);
+            st1[0]=jk+0x30;
+            stemp[0]=jk+0x30;
+            st1[1]=jj+0x30;
+            stemp[1]=jj+0x30;
+            p1=st1;
+
+            __asm
+            {
+                pushad
+                mov ax,[uscn]
+                mov ebx,[p1]
+                mov cx,5
+                push ebx
+                push cx
+                clc
+            }
+        }
+}
+```
+
+
+
+```asm
+mov     bx, ax
+
+and     bx, 157h
+
+cmp     bx, 0
+
+jnz     loc_2_30D4
+
+nop
+
+nop
+
+xor     bx, 153h
+
+cmp     bx, 0
+
+jnz     loc_2_30D4
+
+nop
+
+nop
+
+or      bx, 53h
+
+loc_2_30D4:
+
+cmp     ax, bx
+
+jb      loc_2_30DF
+
+nop
+
+nop
+
+push    ax
+
+mov     ax, bx
+
+pop     bx
+
+cwd
+
+loc_2_30DF:
+
+div     bx
+
+mov     cx, 0Ah
+
+mov ebx,[p3]
+
+loc_2_30E7:
+
+mov     [k], cx
+
+xor     ax, dx
+
+ror     dx, 1
+
+ror     dx, 1
+
+ror     dx, 1
+
+ror     dx, 1
+
+ror     dx, 1
+
+mov     cl, dl
+
+ror     ax, cl
+
+xor     ax, dx
+
+xor     al, ah
+
+xor     dl, al
+
+mov     cl, dl
+
+rol     ax, cl
+
+and     ax, 0F0Fh
+
+      and eax,0ffffh
+
+mov     [ebx], ax
+
+add     ebx, 2
+
+      xor ecx,ecx
+
+mov     cx, [k]
+
+loop    loc_2_30E7
+
+mov     cx, 14h
+
+mov esi,[p3]
+
+mov edi,[pt]
+
+mov     bx, 0
+
+loc_2_311F:
+
+mov     al, [esi]
+
+mov     ah, 0
+
+mov     ebx, edi
+
+      and eax,0ffffh
+
+add     ebx, eax
+
+mov     al, [ebx]
+
+mov     [esi], al
+
+mov     eax, edi
+
+add     eax, 0Ah
+
+mov     edi, eax
+
+inc     esi
+
+loop    loc_2_311F
+
+      }
+
+      p3=st2;
+
+      __asm
+
+      {
+
+        pop    cx
+
+        pop    ebx
+
+        mov    esi, ebx
+
+        mov    ebx, [p3]
+
+        and ecx,0ffffh
+
+    loc_2_309D:
+
+        mov    al, [ebx]
+
+        add    al, 0
+
+        daa
+
+        mov    ah, al
+
+        mov    al, [esi]
+
+        and    al, 0Fh
+
+        or      al, 10h
+
+        sub    al, ah
+
+        das
+
+        and    al, 0Fh
+
+        or      al, 30h
+
+        mov    [esi], al
+
+        inc    esi
+
+        inc    ebx
+
+        loop    loc_2_309D
+
+    popad
+
+  }
+
+  char cct[5];
+
+  memset(cct,'\0',5);
+
+  memcpy(cct,st1,4);
+
+  signed short il;
+
+  il=(signed short)(atoi(cct));
+
+  if ((il>=0)&&(il<=0x100c))
+
+    goto thatisit;
+
+ }
+
+  thatisit:
+
+  strcat(keycode,stemp);
+
+  Edit2->Text=keycode;
+
+}
+```
+
+需要编译好的注册机的请留下 `EMAIL`，我会发给你们。 4dd466d0e1e0cc123afbe504da2462ca
