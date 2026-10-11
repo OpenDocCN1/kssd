@@ -1,0 +1,75 @@
+
+# 网三机器人 10045
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum496.htm`](https://www.pediy.com/kssd/pediy03/forum496.htm)
+
+网三机器人 10045 破解文档
+
+-----------------------------
+
+雪椰
+
+2000,12,30am
+
+Email: wocy@263.net
+
+Http://wocy.yeah.net (有本例中的补丁）
+
+------------------------------
+
+（这个软件在运行开始读注册信息，但判断的地方和程序中一样，
+
+因我没玩网三，所以没测试过，如有问题请告知，
+
+附：喂，那个谁，我没说过我是男士啊）
+
+1. 检查发现此程式用 `vb60` 编写，`aspack` 压缩，用 `smartcheck` 提示出错，脱壳后也不行。
+
+   我选择用 `s-ice`，动态调试，暴力破解
+
+2. `set break point`
+
+   ```
+   bpx msvbvm60!__vbastrcmp
+   bpx msvbvm60!__vbavartsteq
+   bpx msvbvm60!__vbavartstne
+   ```
+
+3. `your will to...`
+
+   ```
+   :0040D826  52                  push edx
+   :0040D827  68606F4000          push 00406F60
+   :0040D82C  FF15D4104000        call dword ptr [004010D4]   <---bpx msvbvm60!__vbastrcmp
+   :0040D832  8BF8               mov edi, eax
+   :0040D834  8D4DD8             lea ecx, dword ptr [ebp-28]
+   ```
+
+   `F10 trace it to...`
+
+   ```
+   :0040D967  6685FF             test di, di
+   :0040D96A  0F84B9010000       je 0040DB29     <-----(1)
+   :0040D970  8B0E               mov ecx, dword ptr [esi]
+   :0040D972  56                 push esi
+   ```
+
+4. `at point (1), if you input a error code ,will jmp 40db29 to fail.`
+
+   so, you need modify `(1)` with : `jne xxxxxx`
+
+5. `go,ok`
+
+6. 但是有一个小意外，我输的网三号错了，而程式注册后不让修改了，90%在注册表。
+
+   启动 `regedit`，发现在
+
+   `[HKEY_CURRENT_USER\Software\VB and VBA Program Settings\智能机器人\setup]`
+
+   `"id"=" 你的网三号"`
+
+   `"password"="注册号"`
+
+   你随便改了
+
+7. 不管怎样，世界又清净了 `4dd466d0e1e0cc123afbe504da2462ca`

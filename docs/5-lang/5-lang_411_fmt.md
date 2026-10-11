@@ -1,0 +1,800 @@
+
+# 也谈神算超人Ⅲ算法分析及其注册机（写给学 VB 算法者）
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-41.htm`](https://www.pediy.com/kssd/pediy07/pediy7-41.htm)
+
+【原创】也谈神算超人Ⅲ算法分析及其注册机（写给学 VB 算法者）
+
+————手把手系列之六
+
+【破解作者】`jackily`
+
+【作者主页】[`estudy.ys168.com`](http://estudy.ys168.com)
+
+【使用工具】`ollydbg`
+
+【软件名称】神算超人Ⅲ v3.1
+
+【作者声明】 本破解纯以学习和交流为目的，偶得一点心得，愿与大家分享:)
+
+--------------------------------------------------------------------------------
+
+## 一、给个理由先
+
+前几天在看雪论坛看到一篇 `sharpair` 所写的关于神算超人Ⅲ算法分析的精华帖子。但发现其分析有一些不妥，一些关键性问题并没有分析透彻，本着学习交流的目的，现将我的分析写出来，一块共勉。
+
+## 二、注册验证方式
+
+该软件采用用户名和注册码的明码比较与重启验证相结合的方式。输入的用户名保存在目录中的`cus`文件中，注册码保存在`regedit`文件中。`cus`和`regedit`其实就是文本文件，在未注册之前，两个文件中都只有一对引号，当程序重启时，会读这两个文件中的内容来判断是否真正注册。一旦某个文件和既定形式不匹配则提示出错。这就是为什么`sharpair`所说的调试一次后再调试会出错(`Run-time error'62',Input past end of file`)。因为在调试时，打开了`regedit`文件，但我们一般没有执行完写入文件的操作就退出了，`regedit`文件中引号被清空，所以就出错了。
+
+## 三、算法分析过程
+
+先用`peid`检查，VB 编写，无壳。用`ollydbg`载入程序，运行，然后断下`_vbastrcmp`函数，用户名、注册码分别输入“jackily”和“123456”断点在`0058E5D8`，沿着代码行定位到关键代码，分析如下：
+
+```
+0058E000    push ebp
+0058E001    mov ebp,esp
+0058E003    sub esp,0C
+0058E006    push <jmp.&MSVBVM60.__vbaExceptHandler;  SE handler installation
+0058E00B    mov eax,dword ptr fs:[0]
+0058E011    push eax
+0058E012    mov dword ptr fs:[0],esp
+0058E019    sub esp,120
+0058E01F    push ebx
+0058E020    push esi
+0058E021    push edi
+0058E022    mov dword ptr ss:[ebp-C],esp
+0058E025    mov dword ptr ss:[ebp-8],神算超人.004012F8
+0058E02C    mov edi,dword ptr ss:[ebp+8]
+0058E02F    mov eax,edi
+0058E031    and eax,1
+0058E034    mov dword ptr ss:[ebp-4],eax
+0058E037    and edi,FFFFFFFE
+0058E03A    push edi
+0058E03B    mov dword ptr ss:[ebp+8],edi
+0058E03E    mov ecx,dword ptr ds:[edi]
+0058E040    call dword ptr ds:[ecx+4]
+0058E043    push 神算超人.00571428                   ;  UNICODE "Regedit"
+0058E048    push 1
+0058E04A    xor ebx,ebx
+0058E04C    push -1
+0058E04E    push 2
+0058E050    mov dword ptr ss:[ebp-24],ebx
+0058E053    mov dword ptr ss:[ebp-34],ebx
+0058E056    mov dword ptr ss:[ebp-38],ebx
+0058E059    mov dword ptr ss:[ebp-3C],ebx
+0058E05C    mov dword ptr ss:[ebp-40],ebx
+0058E05F    mov dword ptr ss:[ebp-50],ebx
+0058E062    mov dword ptr ss:[ebp-60],ebx
+0058E065    mov dword ptr ss:[ebp-70],ebx
+0058E068    mov dword ptr ss:[ebp-74],ebx
+0058E06B    mov dword ptr ss:[ebp-78],ebx
+0058E06E    mov dword ptr ss:[ebp-7C],ebx
+0058E071    mov dword ptr ss:[ebp-8C],ebx
+0058E077    mov dword ptr ss:[ebp-9C],ebx
+0058E07D    mov dword ptr ss:[ebp-AC],ebx
+0058E083    mov dword ptr ss:[ebp-BC],ebx
+0058E089    mov dword ptr ss:[ebp-CC],ebx
+0058E08F    mov dword ptr ss:[ebp-DC],ebx
+0058E095    call dword ptr ds:[<&MSVBVM60.__vbaFileOpen ;打开 regedit 文件
+0058E09B    mov edx,dword ptr ds:[edi]
+0058E09D    push edi
+0058E09E    call dword ptr ds:[edx+30C]
+0058E0A4    push eax
+0058E0A5    lea eax,dword ptr ss:[ebp-7C]
+0058E0A8    push eax
+0058E0A9    call dword ptr ds:[<&MSVBVM60.__vbaObj;  MSVBVM60.__vbaObjSet
+0058E0AF    mov esi,eax
+0058E0B1    lea edx,dword ptr ss:[ebp-74]
+0058E0B4    push edx
+0058E0B5    push esi
+0058E0B6    mov ecx,dword ptr ds:[esi]
+0058E0B8    call dword ptr ds:[ecx+A0]
+0058E0BE    cmp eax,ebx
+0058E0C0    fclex
+0058E0C2    jge short 神算超人.0058E0D6
+0058E0C4    push 0A0
+0058E0C9    push 神算超人.005719DC
+0058E0CE    push esi
+0058E0CF    push eax
+0058E0D0    call dword ptr ds:[<&MSVBVM60.__vbaHre;  MSVBVM60.__vbaHresultCheckObj
+0058E0D6    mov edx,dword ptr ss:[ebp-74]        ;“123456”，unicode 型
+0058E0D9    mov esi,dword ptr ds:[<&MSVBVM60.__vba;  MSVBVM60.__vbaStrMove
+0058E0DF    lea ecx,dword ptr ss:[ebp-40]
+0058E0E2    mov dword ptr ss:[ebp-74],ebx
+0058E0E5    call esi                              ;  <&MSVBVM60.__vbaStrMove
+0058E0E7    lea ecx,dword ptr ss:[ebp-7C]
+0058E0EA    call dword ptr ds:[<&MSVBVM60.__vbaFre;  MSVBVM60.__vbaFreeObj
+0058E0F0    mov eax,dword ptr ss:[ebp-40]        ; 输入的假码“123456”，unicode 型
+0058E0F3    push eax
+0058E0F4    push 1
+0058E0F6    push 神算超人.005719F0
+0058E0FB    call dword ptr ds:[<&MSVBVM60.__vbaWriteFile ;将假码写入 regedit 文件
+0058E101    mov ecx,dword ptr ds:[edi]
+0058E103    add esp,0C
+0058E106    push edi
+0058E107    call dword ptr ds:[ecx+304]
+0058E10D    lea edx,dword ptr ss:[ebp-7C]
+0058E110    push eax
+0058E111    push edx
+0058E112    call dword ptr ds:[<&MSVBVM60.__vbaObj;  MSVBVM60.__vbaObjSet
+0058E118    mov ecx,dword ptr ds:[eax]
+0058E11A    lea edx,dword ptr ss:[ebp-74]
+0058E11D    push edx
+0058E11E    push eax
+0058E11F    mov dword ptr ss:[ebp-100],eax
+0058E125    call dword ptr ds:[ecx+A0]
+0058E12B    cmp eax,ebx
+0058E12D    fclex
+0058E12F    jge short 神算超人.0058E149
+0058E131    mov ecx,dword ptr ss:[ebp-100]
+0058E137    push 0A0
+0058E13C    push 神算超人.005719DC
+0058E141    push ecx
+0058E142    push eax
+0058E143    call dword ptr ds:[<&MSVBVM60.__vbaHre;  MSVBVM60.__vbaHresultCheckObj
+0058E149    mov edx,dword ptr ss:[ebp-74]
+0058E14C    lea ecx,dword ptr ss:[ebp-38]
+0058E14F    mov dword ptr ss:[ebp-74],ebx
+0058E152    call esi
+0058E154    lea ecx,dword ptr ss:[ebp-7C]         ;call 后 eax 为用户名地址
+0058E157    call dword ptr ds:[<&MSVBVM60.__vbaFre;  MSVBVM60.__vbaFreeObj
+0058E15D    mov edx,dword ptr ss:[ebp-38]
+0058E160    push edx                               ；用户名地址
+0058E161    push 神算超人.00571450                 ; 空地址
+0058E166    call dword ptr ds:[<&MSVBVM60.__vbaStrCmp ;比较是否填用户名
+0058E16C    test eax,eax                           ；不等 eax 为 1
+0058E16E    je 神算超人.0058E4B1                   ；没填用户名跳走。这里没跳
+0058E174    lea ecx,dword ptr ss:[ebp-CC]
+0058E17A    push 1
+0058E17C    lea edx,dword ptr ss:[ebp-8C]
+0058E182    lea eax,dword ptr ss:[ebp-38]
+0058E185    push ecx
+0058E186    push edx
+0058E187    mov dword ptr ss:[ebp-C4],eax
+0058E18D    mov dword ptr ss:[ebp-CC],4008
+0058E197    call dword ptr ds:[<&MSVBVM60.#617]   ;  MSVBVM60.rtcLeftCharVar，取最左侧字符
+0058E19D    push 40000000
+0058E1A2    lea eax,dword ptr ss:[ebp-8C]
+0058E1A8    push ebx
+0058E1A9    lea ecx,dword ptr ss:[ebp-74]
+0058E1AC    push eax
+0058E1AD    push ecx
+0058E1AE    call dword ptr ds:[<&MSVBVM60.__vbaStr;  MSVBVM60.__vbaStrVarVal
+0058E1B4    push eax                                ; 此处取了"j"
+0058E1B5    call dword ptr ds:[<&MSVBVM60.#696]   ;  MSVBVM60.rtcCharValueBstr，转 ascII 值,"6A"
+0058E1BB    movsx edx,ax
+0058E1BE    mov dword ptr ss:[ebp-11C],edx
+0058E1C4    fild dword ptr ss:[ebp-11C]             ；ascII 转浮点值，"106"
+0058E1CA    fstp qword ptr ss:[ebp-124]
+0058E1D0    mov eax,dword ptr ss:[ebp-120]
+0058E1D6    mov ecx,dword ptr ss:[ebp-124]
+0058E1DC    push eax
+0058E1DD    push ecx
+0058E1DE    call dword ptr ds:[<&MSVBVM60.__vbaPowerR8> ;求"106"平方，11236
+0058E1E4    fmul qword ptr ds:[4011C8]              ；再乘以固定值 1010323
+0058E1EA    mov ebx,dword ptr ds:[<&MSVBVM60.__vba;  MSVBVM60.__vbaStrR8
+0058E1F0    sub esp,8
+0058E1F3    fstsw ax
+0058E1F5    test al,0D
+0058E1F7    jnz 神算超人.0058E85C
+0058E1FD    fstp qword ptr ss:[esp]
+0058E200    call ebx                                ;  <&MSVBVM60.__vbaStrR8>,浮点转字符串
+0058E202    mov edx,eax                             ;  eax 为"11351989228"地址
+0058E204    lea ecx,dword ptr ss:[ebp-78]
+0058E207    call esi
+0058E209    push eax
+0058E20A    call dword ptr ds:[<&MSVBVM60.#581]   ;  MSVBVM60.rtcR8ValFromBstr，转浮点数值
+0058E210    mov edi,dword ptr ds:[<&MSVBVM60.__vba;  MSVBVM60.__vbaVarMove
+0058E216    lea edx,dword ptr ss:[ebp-DC]
+```
+
+
+
+```
+0058E21C    fstp qword ptr ss:[ebp-D4]
+0058E222    lea ecx,dword ptr ss:[ebp-70]
+0058E225    mov dword ptr ss:[ebp-DC],5
+0058E22F    call edi                              ; <&MSVBVM60.__vbaVarMove
+0058E231    lea edx,dword ptr ss:[ebp-78]
+0058E234    lea eax,dword ptr ss:[ebp-74]
+0058E237    push edx
+0058E238    push eax
+0058E239    push 2
+0058E23B    call dword ptr ds:[<&MSVBVM60.__vbaFre; MSVBVM60.__vbaFreeStrList
+0058E241    add esp,0C
+0058E244    lea ecx,dword ptr ss:[ebp-8C]
+0058E24A    call dword ptr ds:[<&MSVBVM60.__vbaFre; MSVBVM60.__vbaFreeVar
+0058E250    lea edx,dword ptr ss:[ebp-CC]
+0058E256    push 1
+0058E258    lea eax,dword ptr ss:[ebp-8C]
+0058E25E    lea ecx,dword ptr ss:[ebp-38]
+0058E261    push edx
+0058E262    push eax
+0058E263    mov dword ptr ss:[ebp-C4],ecx
+0058E269    mov dword ptr ss:[ebp-CC],4008
+0058E273    call dword ptr ds:[<&MSVBVM60.#619]   ;MSVBVM60.rtcRightCharVar，取最右侧字符
+0058E279    push 40000000
+0058E27E    lea ecx,dword ptr ss:[ebp-8C]
+0058E284    push 0
+0058E286    lea edx,dword ptr ss:[ebp-74]
+0058E289    push ecx
+0058E28A    push edx
+0058E28B    call dword ptr ds:[<&MSVBVM60.__vbaStr ;MSVBVM60.__vbaStrVarVal
+0058E291    push eax                ;这里是"y"的地址，而非 sharpair 所说取第二个字符
+0058E292    call dword ptr ds:[<&MSVBVM60.#696]   ; MSVBVM60.rtcCharValueBstr,转 ascII，“79”
+0058E298    movsx eax,ax                    ;ax=79
+0058E29B    mov dword ptr ss:[ebp-128],eax
+0058E2A1    fild dword ptr ss:[ebp-128]            ；ascII 转浮点值，"121"   
+0058E2A7    fstp qword ptr ss:[ebp-130]
+0058E2AD    mov ecx,dword ptr ss:[ebp-12C]
+0058E2B3    mov edx,dword ptr ss:[ebp-130]
+0058E2B9    push ecx
+0058E2BA    push edx
+0058E2BB    call dword ptr ds:[<&MSVBVM60.__vbaPowerR8 ;求平方，121*121=14641
+0058E2C1    fmul qword ptr ds:[4011C8]           ；再乘以固定值 1010323，结果为"14792139043"
+0058E2C7    sub esp,8
+0058E2CA    fstsw ax
+0058E2CC    test al,0D
+0058E2CE    jnz 神算超人.0058E85C
+0058E2D4    fstp qword ptr ss:[esp]
+0058E2D7    call ebx
+0058E2D9    mov edx,eax
+0058E2DB    lea ecx,dword ptr ss:[ebp-78]
+0058E2DE    call esi
+0058E2E0    push eax
+0058E2E1    call dword ptr ds:[<&MSVBVM60.#581]   ; MSVBVM60.rtcR8ValFromBstr
+0058E2E7    fstp qword ptr ss:[ebp-D4]
+0058E2ED    lea edx,dword ptr ss:[ebp-DC]
+0058E2F3    lea ecx,dword ptr ss:[ebp-24]
+0058E2F6    mov dword ptr ss:[ebp-DC],5
+0058E300    call edi
+0058E302    lea eax,dword ptr ss:[ebp-78]
+0058E305    lea ecx,dword ptr ss:[ebp-74]
+0058E308    push eax
+0058E309    push ecx
+0058E30A    push 2
+0058E30C    call dword ptr ds:[<&MSVBVM60.__vbaFre; MSVBVM60.__vbaFreeStrList
+0058E312    add esp,0C
+0058E315    lea ecx,dword ptr ss:[ebp-8C]
+0058E31B    call dword ptr ds:[<&MSVBVM60.__vbaFre; MSVBVM60.__vbaFreeVar
+0058E321    mov edx,dword ptr ss:[ebp-38]
+0058E324    push edx
+0058E325    call dword ptr ds:[<&MSVBVM60.__vbaLenBstr ; 取用户名长度
+0058E32B    push eax
+0058E32C    call dword ptr ds:[<&MSVBVM60.__vbaStr;  MSVBVM60.__vbaStrI4
+0058E332    mov edx,eax                             ;长度值为 0x37，十进制为"7"的地址
+0058E334    lea ecx,dword ptr ss:[ebp-74]
+0058E337    call esi
+0058E339    push eax
+0058E33A    call dword ptr ds:[<&MSVBVM60.#581]   ; MSVBVM60.rtcR8ValFromBstr
+0058E340    fstp qword ptr ss:[ebp-C4]
+0058E346    lea edx,dword ptr ss:[ebp-CC]
+0058E34C    lea ecx,dword ptr ss:[ebp-34]
+0058E34F    mov dword ptr ss:[ebp-CC],5
+0058E359    call edi
+0058E35B    lea ecx,dword ptr ss:[ebp-74]
+0058E35E    call dword ptr ds:[<&MSVBVM60.__vbaFre; MSVBVM60.__vbaFreeStr
+0058E364    lea eax,dword ptr ss:[ebp-70]
+0058E367    lea ecx,dword ptr ss:[ebp-24]
+0058E36A    push eax
+0058E36B    lea edx,dword ptr ss:[ebp-8C]
+0058E371    push ecx
+0058E372    push edx
+0058E373    mov dword ptr ss:[ebp-C4],1
+0058E37D    mov dword ptr ss:[ebp-CC],2
+0058E387    call dword ptr ds:[<&MSVBVM60.__vbaVarAdd> ;此处是上面"11351989228"和"14792139043"相
+加，等于“26144128271”
+0058E38D    push eax
+0058E38E    lea eax,dword ptr ss:[ebp-34]
+0058E391    lea ecx,dword ptr ss:[ebp-CC]
+0058E397    push eax
+0058E398    lea edx,dword ptr ss:[ebp-34]
+0058E39B    push ecx
+0058E39C    lea eax,dword ptr ss:[ebp-9C]
+0058E3A2    push edx
+0058E3A3    push eax
+0058E3A4    call dword ptr ds:[<&MSVBVM60.__vbaVarDiv> ;此处用 1 除以用户名长度,1/7=0.1428571428571
+0058E3AA    lea ecx,dword ptr ss:[ebp-AC]
+0058E3B0    push eax
+0058E3B1    push ecx
+0058E3B2    call dword ptr ds:[<&MSVBVM60.__vbaVarPow> ;此函数为求以 x 为底数，y 为指数的幂，即 x 的 y
+次方；这里是用户名长度为底数，上面的商为指数，pow(7,1/7)=1.320469247754013669
+0058E3B8    lea edx,dword ptr ss:[ebp-BC]
+0058E3BE    push eax
+0058E3BF    push edx
+0058E3C0    call dword ptr ds:[<&MSVBVM60.__vbaVarMul> ; 1.320469247754013669 乘以“26144128271”
+，等于"34522517391.244100"
+0058E3C6    mov edx,eax
+0058E3C8    lea ecx,dword ptr ss:[ebp-50]
+0058E3CB    call edi
+0058E3CD    lea ecx,dword ptr ss:[ebp-8C]
+0058E3D3    call dword ptr ds:[<&MSVBVM60.__vbaFre; MSVBVM60.__vbaFreeVar
+0058E3D9    fld qword ptr ds:[4011C0]               ; [4011C0]中固定值 29.00000000
+0058E3DF    cmp dword ptr ds:[5C8000],0
+0058E3E6    jnz short 神算超人.0058E3F0
+0058E3E8    fdiv qword ptr ds:[4011B8]           ; 29.00000000 除以[4011B8]中固定值 28.00000000，
+等于"1.03571428571428"
+0058E3EE    jmp short 神算超人.0058E401
+0058E3F0    push dword ptr ds:[4011BC]
+0058E3F6    push dword ptr ds:[4011B8]
+0058E3FC    call <jmp.&MSVBVM60._adj_fdiv_m64
+0058E401    mov dword ptr ss:[ebp-CC],5
+0058E40B    fstp qword ptr ss:[ebp-C4]
+0058E411    fstsw ax
+0058E413    test al,0D
+0058E415    jnz 神算超人.0058E85C
+0058E41B    lea eax,dword ptr ss:[ebp-50]          ; "34522517391.244100"
+0058E41E    lea ecx,dword ptr ss:[ebp-CC]          ; "1.03571428571428"
+0058E424    push eax
+0058E425    lea edx,dword ptr ss:[ebp-8C]
+0058E42B    push ecx
+0058E42C    push edx
+0058E42D    call dword ptr ds:[<&MSVBVM60.__vbaVarPow ;"34522517391.244100"的 "1.03571428571428"
+次幂，“82122707487.8333673921”
+0058E433    push eax
+0058E434    call dword ptr ds:[<&MSVBVM60.__vbaR8V;  MSVBVM60.__vbaR8Var
+0058E43A    sub esp,8
+0058E43D    fstp qword ptr ss:[esp]
+0058E440    call dword ptr ds:[<&MSVBVM60.#614]   ; MSVBVM60.rtcSqr，求平方根=286570.597738
+0058E446    call dword ptr ds:[<&MSVBVM60.__vbaFPInt ;浮点转整数,"286570"
+0058E44C    sub esp,8
+0058E44F    fstp qword ptr ss:[esp]
+0058E452    call ebx
+0058E454    mov edx,eax
+0058E456    lea ecx,dword ptr ss:[ebp-74]
+0058E459    call esi
+0058E45B    push eax                       ;"286570"地址
+0058E45C    call dword ptr ds:[<&MSVBVM60.#581]   ; MSVBVM60.rtcR8ValFromBstr
+0058E462    fadd qword ptr ds:[4011B0]           ;"286570"加固定值"6050218610",等于"6050505180"
+0058E468    lea edx,dword ptr ss:[ebp-DC]
+0058E46E    lea ecx,dword ptr ss:[ebp-60]
+0058E471    mov dword ptr ss:[ebp-DC],5
+0058E47B    fstp qword ptr ss:[ebp-D4]
+0058E481    fstsw ax
+0058E483    test al,0D
+0058E485    jnz 神算超人.0058E85C
+0058E48B    call edi
+0058E48D    lea ecx,dword ptr ss:[ebp-74]
+0058E490    call dword ptr ds:[<&MSVBVM60.__vbaFre; MSVBVM60.__vbaFreeStr
+0058E496    lea eax,dword ptr ss:[ebp-60]
+0058E499    push eax
+0058E49A    call dword ptr ds:[<&MSVBVM60.__vbaStr; MSVBVM60.__vbaStrVarCopy
+0058E4A0    mov edx,eax                         ; 注册码"6050505180"地址
+0058E4A2    lea ecx,dword ptr ss:[ebp-3C]
+0058E4A5    call esi
+0058E4A7    mov edi,dword ptr ss:[ebp+8]
+0058E4AA    xor ebx,ebx
+```
+
+
+
+```
+0058E4AC    jmp 神算超人.0058E595  
+
+0058E4B1    mov ecx,0A                     ；由 0058E16E 跳转而来  
+
+0058E4B6    mov eax,80020004  
+
+0058E4BB    mov dword ptr ss:\[ebp-BC\],ecx  
+
+0058E4C1    mov dword ptr ss:\[ebp-AC\],ecx  
+
+0058E4C7    mov dword ptr ss:\[ebp-9C\],ecx  
+
+0058E4CD    lea edx,dword ptr ss:\[ebp-CC\]  
+
+0058E4D3    lea ecx,dword ptr ss:\[ebp-8C\]  
+
+0058E4D9    mov dword ptr ss:\[ebp-B4\],eax  
+
+0058E4DF    mov dword ptr ss:\[ebp-A4\],eax  
+
+0058E4E5    mov dword ptr ss:\[ebp-94\],eax  
+
+0058E4EB    mov dword ptr ss:\[ebp-C4\],神算超人.005719F  
+
+0058E4F5    mov dword ptr ss:\[ebp-CC\],8  
+
+0058E4FF    call dword ptr ds:\[<&MSVBVM60.__vbaVar;  MSVBVM60.__vbaVarDup  
+
+0058E505    lea ecx,dword ptr ss:\[ebp-BC\]  
+
+0058E50B    lea edx,dword ptr ss:\[ebp-AC\]  
+
+0058E511    push ecx  
+
+0058E512    lea eax,dword ptr ss:\[ebp-9C\]  
+
+0058E518    push edx  
+
+0058E519    push eax  
+
+0058E51A    lea ecx,dword ptr ss:\[ebp-8C\]  
+
+0058E520    push 10  
+
+0058E522    push ecx  
+
+0058E523    call dword ptr ds:\[<&MSVBVM60.#595\]   ;  MSVBVM60.rtcMsgBox，显示没填用户名  
+
+.....................此处非关键代码省略  
+
+0058E595    mov eax,dword ptr ds:\[edi\]               ；由 0058E4AC 跳转而来  
+
+0058E597    push edi  
+
+0058E598    call dword ptr ds:\[eax+30C\]           ；这个 Call 并非 sharpair 所说那样。它是 VB 的内部调用，不必跟进  
+
+0058E59E    lea ecx,dword ptr ss:\[ebp-7C\]  
+
+0058E5A1    push eax  
+
+0058E5A2    push ecx  
+
+0058E5A3    call dword ptr ds:\[<&MSVBVM60.__vbaObj;  MSVBVM60.__vbaObjSet  
+
+0058E5A9    mov esi,eax  
+
+0058E5AB    lea eax,dword ptr ss:\[ebp-74\]  
+
+0058E5AE    push eax  
+
+0058E5AF    push esi  
+
+0058E5B0    mov edx,dword ptr ds:\[esi\]  
+
+0058E5B2    call dword ptr ds:\[edx+A0\]  
+
+0058E5B8    cmp eax,ebx  
+
+0058E5BA    fclex  
+
+0058E5BC    jge short 神算超人.0058E5D0  
+
+0058E5BE    push 0A0  
+
+0058E5C3    push 神算超人.005719DC  
+
+0058E5C8    push esi  
+
+0058E5C9    push eax  
+
+0058E5CA    call dword ptr ds:\[<&MSVBVM60.__vbaHre;  MSVBVM60.__vbaHresultCheckObj  
+
+0058E5D0    mov ecx,dword ptr ss:\[ebp-74\]   ；假码“123456”  
+
+0058E5D3    mov edx,dword ptr ss:\[ebp-3C\]   ；真码“6050505180”  
+
+0058E5D6    push ecx  
+
+0058E5D7    push edx  
+
+0058E5D8    call dword ptr ds:\[<&MSVBVM60.__vbaStr;  MSVBVM60.__vbaStrCmp  
+
+0058E5DE    mov esi,eax  
+
+0058E5E0    lea ecx,dword ptr ss:\[ebp-74\]  
+
+0058E5E3    neg esi  
+
+0058E5E5    sbb esi,esi  
+
+0058E5E7    inc esi  
+
+0058E5E8    neg esi  
+
+0058E5EA    call dword ptr ds:\[<&MSVBVM60.__vbaFre;  MSVBVM60.__vbaFreeStr  
+
+0058E5F0    lea ecx,dword ptr ss:\[ebp-7C\]  
+
+0058E5F3    call dword ptr ds:\[<&MSVBVM60.__vbaFre;  MSVBVM60.__vbaFreeObj  
+
+0058E5F9    mov eax,80020004  
+
+0058E5FE    mov ecx,0A  
+
+0058E603    cmp si,bx  
+
+0058E606    mov dword ptr ss:\[ebp-B4\],eax  
+
+0058E60C    mov dword ptr ss:\[ebp-BC\],ecx  
+
+0058E612    mov dword ptr ss:\[ebp-A4\],eax  
+
+0058E618    mov dword ptr ss:\[ebp-AC\],ecx  
+
+0058E61E    je 神算超人.0058E71F                     ；跳走成功，否则失败  
+
+0058E624    mov esi,dword ptr ds:\[<&MSVBVM60.__vba;  MSVBVM60.__vbaVarDup  
+
+0058E62A    lea edx,dword ptr ss:\[ebp-DC\]  
+
+0058E630    lea ecx,dword ptr ss:\[ebp-9C\]  
+
+0058E636    mov dword ptr ss:\[ebp-D4\],神算超人.00571A3  
+
+0058E640    mov dword ptr ss:\[ebp-DC\],8  
+
+0058E64A    call esi                                 ;  <&MSVBVM60.__vbaVarDup  
+
+0058E64C    lea edx,dword ptr ss:\[ebp-CC\]  
+
+0058E652    lea ecx,dword ptr ss:\[ebp-8C\]  
+
+0058E658    mov dword ptr ss:\[ebp-C4\],神算超人.00571A0  
+
+0058E662    mov dword ptr ss:\[ebp-CC\],8  
+
+0058E66C    call esi  
+
+0058E66E    lea eax,dword ptr ss:\[ebp-BC\]  
+
+0058E674    lea ecx,dword ptr ss:\[ebp-AC\]  
+
+0058E67A    push eax  
+
+0058E67B    lea edx,dword ptr ss:\[ebp-9C\]  
+
+0058E681    push ecx  
+
+0058E682    push edx  
+
+0058E683    lea eax,dword ptr ss:\[ebp-8C\]  
+
+0058E689    push 40  
+
+0058E68B    push eax  
+
+0058E68C    call dword ptr ds:\[<&MSVBVM60.#595\]   ;MSVBVM60.rtcMsgBox，显示失败  
+
+0058E692    lea ecx,dword ptr ss:\[ebp-BC\]  
+
+0058E698    lea edx,dword ptr ss:\[ebp-AC\]  
+
+0058E69E    push ecx  
+
+0058E69F    lea eax,dword ptr ss:\[ebp-9C\]  
+
+0058E6A5    push edx  
+
+0058E6A6    lea ecx,dword ptr ss:\[ebp-8C\]  
+
+0058E6AC    push eax  
+
+0058E6AD    push ecx  
+
+0058E6AE    push 4  
+
+0058E6B0    call dword ptr ds:\[<&MSVBVM60.__vbaFre;  MSVBVM60.__vbaFreeVarList  
+
+0058E6B6    mov eax,dword ptr ds:\[5C8958\]  
+
+0058E6BB    add esp,14  
+
+0058E6BE    cmp eax,ebx  
+
+0058E6C0    jnz short 神算超人.0058E6D2  
+
+0058E6C2    push 神算超人.005C8958  
+
+0058E6C7    push 神算超人.0057154C  
+
+0058E6CC    call dword ptr ds:\[<&MSVBVM60.__vbaNew;  MSVBVM60.__vbaNew2  
+
+0058E6D2    mov esi,dword ptr ds:\[5C8958\]  
+
+0058E6D8    lea eax,dword ptr ss:\[ebp-7C\]  
+
+0058E6DB    push edi  
+
+0058E6DC    push eax  
+
+0058E6DD    mov edx,dword ptr ds:\[esi\]  
+
+0058E6DF    mov dword ptr ss:\[ebp-134\],edx  
+
+0058E6E5    call dword ptr ds:\[<&MSVBVM60.__vbaObj;  MSVBVM60.__vbaObjSetAddref  
+
+0058E6EB    mov ecx,dword ptr ss:\[ebp-134\]  
+
+0058E6F1    push eax  
+
+0058E6F2    push esi  
+
+0058E6F3    call dword ptr ds:\[ecx+10\]  
+
+0058E6F6    cmp eax,ebx  
+
+0058E6F8    fclex  
+
+0058E6FA    jge short 神算超人.0058E70B  
+
+0058E6FC    push 10  
+
+0058E6FE    push 神算超人.0057153C  
+
+0058E703    push esi  
+
+0058E704    push eax  
+
+0058E705    call dword ptr ds:\[<&MSVBVM60.__vbaHre;  MSVBVM60.__vbaHresultCheckObj  
+
+0058E70B    lea ecx,dword ptr ss:\[ebp-7C\]  
+
+0058E70E    call dword ptr ds:\[<&MSVBVM60.__vbaFre;  MSVBVM60.__vbaFreeObj  
+
+0058E714    call dword ptr ds:\[<&MSVBVM60.__vbaEnd;  MSVBVM60.__vbaEnd  
+
+0058E71A    jmp 神算超人.0058E7B1  
+
+0058E71F    mov esi,dword ptr ds:\[<&MSVBVM60.__vba;  MSVBVM60.__vbaVarDup  
+
+0058E725    mov edi,8  
+
+0058E72A    lea edx,dword ptr ss:\[ebp-DC\]  
+
+0058E730    lea ecx,dword ptr ss:\[ebp-9C\]  
+
+0058E736    mov dword ptr ss:\[ebp-D4\],神算超人.00571A6  
+
+0058E740    mov dword ptr ss:\[ebp-DC\],edi  
+
+0058E746    call esi                                 ;  <&MSVBVM60.__vbaVarDup  
+
+0058E748    lea edx,dword ptr ss:\[ebp-CC\]  
+
+0058E74E    lea ecx,dword ptr ss:\[ebp-8C\]  
+
+0058E754    mov dword ptr ss:\[ebp-C4\],神算超人.00571A4  
+
+0058E75E    mov dword ptr ss:\[ebp-CC\],edi  
+
+0058E764    call esi  
+
+0058E766    lea edx,dword ptr ss:\[ebp-BC\]  
+
+0058E76C    lea eax,dword ptr ss:\[ebp-AC\]  
+
+0058E772    push edx  
+
+0058E773    lea ecx,dword ptr ss:\[ebp-9C\]  
+
+0058E779    push eax  
+
+0058E77A    push ecx  
+
+0058E77B    lea edx,dword ptr ss:\[ebp-8C\]  
+
+0058E781    push 10  
+
+0058E783    push edx  
+
+0058E784    call dword ptr ds:\[<&MSVBVM60.#595\]   ;  MSVBVM60.rtcMsgBox，显示注册成功  
+
+0058E78A    lea eax,dword ptr ss:\[ebp-BC\]  
+
+0058E790    lea ecx,dword ptr ss:\[ebp-AC\]  
+
+0058E796    push eax  
+
+0058E797    lea edx,dword ptr ss:\[ebp-9C\]  
+
+0058E79D    push ecx  
+
+0058E79E    lea eax,dword ptr ss:\[ebp-8C\]  
+
+0058E7A4    push edx  
+
+0058E7A5    push eax  
+
+0058E7A6    push 4  
+
+0058E7A8    call dword ptr ds:\[<&MSVBVM60.__vbaFre;  MSVBVM60.__vbaFreeVarList  
+
+0058E7AE    add esp,14  
+
+0058E7B1    push 1  
+
+0058E7B3    call dword ptr ds:\[<&MSVBVM60.__vbaFileClose> ; 关毕文件  
+
+0058E7B9    mov dword ptr ss:\[ebp-4\],ebx  
+
+0058E7BC    wait  
+
+0058E7BD    push 神算超人.0058E83D  
+
+0058E7C2    jmp short 神算超人.0058E808  
+
+...........以下代码省略
+```
+
+---
+
+## 【破解总结】
+
+### 一、背景分析
+
+由于软件的作者是一名高三学生，可能受高中数学影响较大，因此算法中运用了较多的求平方、幂、及平方根的计算。不过流程还是比较简单和清晰的。（我的个人观点）。
+
+### 二、关于 sharpair 的分析
+
+首先 `sharpair` 的分析思路是正确的，但正如其所说，其对于 `VB` 的 `rtcRightCharVar`、`_vbavarPow` 等内部函数没有完全理解，因此 `sharpair` 的算法结论“注册码和用户名第一、二位及用户名长度有关”并不完全正确。详细在上面的代码分析中已经作了解释。
+
+### 三、算法思路
+
+1. 用户名的最左侧和最右侧，也就是第 1 个和最后一个的两个字符 `ascII` 值分别求平方并乘以 `1010323` 后相加；
+2. 以用户名长度为底数，`1` 除以用户名长度的值为指数，求幂；
+3. 第 1 步中的值乘以第 2 步中的值；
+4. 以第 3 步中的值为底数，以 `29` 除以 `28` 的值为指数，求幂；
+5. 求第 4 步中的值的平方根；
+6. 第 5 步中的平方根取整，与 `6050218610` 相加，结果为注册码。
+
+## 【算法注册机】
+
+```
+/* Mathhero 3 c 语言注册机 */
+/* 在 Turboc 2.0 下调试通过  */
+
+#include "stdio.h"
+#include "string.h"
+#include "stdlib.h"
+```
+
+
+
+# C 程序代码
+
+```c
+#include "math.h"
+
+main()
+{
+    char name[20],temp[30],*p;
+    int ndec=20;
+    long code;
+    float l,i=29.00000000,j=28.00000000;
+    double q=6050218610,c,m,k,t=1010323;
+
+    printf("Mathhero KeyGen by jackily 2005-1-30\n");
+    printf("Email:jackily_zhang@msn.com or jackily_zhang@yahoo.com.cn\n");
+    printf("please input name:");
+    p=temp;
+    scanf("%s",name);
+    l=strlen(name);
+    m=name[0]*name[0];
+    m*=t;
+    t=m;
+    m=name[l-1]*name[l-1];
+    m*=1010323;
+    m+=t;
+    c=pow(l,1/l);
+    m*=c;
+    k=pow(m,i/j);
+    c=sqrt(k);
+    gcvt(c,ndec,p);
+    code=atol(p);
+    code+=q;
+    printf("\nYour register code is %lu",code);
+}
+```
+
+---
+
+## 用户名、密码
+
+**用户名**:`jackily`  
+**SN** : `6050505180`
+
+---
+
+不足之处，欢迎各位指正！
+
+`jackily`  
+二零零五年元月三十日
+
+## 版权声明
+
+本文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢!
+
+`4dd466d0e1e0cc123afbe504da2462ca`
