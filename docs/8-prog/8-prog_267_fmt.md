@@ -1,0 +1,307 @@
+
+# VEH 实现的 HOOK
+
+> 原文：[`www.pediy.com/kssd/pediy10/85807.html`](https://www.pediy.com/kssd/pediy10/85807.html)
+
+HOOK 的方式有很多种，各有优缺点。IAT 表的 HOOK 需要监视 LIABRARY，GETPROCESS 这些相关函数，真想实现起来还是很麻烦的。用内存补丁的方法，JMP 到自己代码中，这个的缺点是需要在自己的代码里实现原来 JMP 处的指令。。。  
+
+现在我来说个新的思路，用异常来实现 HOOK。我们都知道，当一个程序发生异常的时候，异常传递路径是：1.debuger 2. 向量化异常，即 VEH 3.SEH。。。  
+
+如果在没有调试器的情况下，首先接受到异常的就是 VEH 了。那么我们可以在要 HOOK 的代码上插入一个 `int3` ,然后通过 VEH 处理这个异常，从而实现 HOOK 的目的。原理很简单。用代码说话吧  
+
+代码:
+
+```
+// Hook.h: interface for the CHook class.
+//
+//////////////////////////////////////////////////////////////////////
+
+#if !defined(AFX_HOOK_H__C0F41F39_4EB7_4129_BFB7_156CB203826F__INCLUDED_)
+#define AFX_HOOK_H__C0F41F39_4EB7_4129_BFB7_156CB203826F__INCLUDED_
+
+#if _MSC_VER > 1000
+#pragma once
+#endif // _MSC_VER > 1000
+
+
+#include <list> 
+using namespace std;
+
+typedef void (*HOOKHANDLEFUN)(EXCEPTION_POINTERS *pExceptionInfo,void *pExtendData);
+struct t_HookInfo
+{
+  DWORD dwAddr;
+  HOOKHANDLEFUN pFn;
+  BYTE byOldCode;
+};
+
+
+class CHook  
+{
+private:
+  static CHook *m_Instance;  //单件模式
+protected:
+  CHook();                   //保证只生成一个实例
+public:
+  static CHook* GetInstance();
+  t_HookInfo *m_pCurrentBP;
+  BOOL m_bSingleFlag;
+  EXCEPTION_POINTERS *m_pException;
+  
+  void SetTF();
+  static LONG WINAPI VectoredHandler(PEXCEPTION_POINTERS ExceptionInfo);
+  list<t_HookInfo*> m_listHook;
+  BOOL AddHook(DWORD dwHookAddr, HOOKHANDLEFUN pFn);
+  BOOL RemoveHook(DWORD dwHookAddr);
+  BOOL SetBP(t_HookInfo*);
+  BOOL UnSetBP(t_HookInfo*);
+  
+  virtual ~CHook();
+
+};
+
+#endif // !defined(AFX_HOOK_H__C0F41F39_4EB7_4129_BFB7_156CB203826F__INCLUDED_)
+```
+
+代码:
+
+```
+// Hook.cpp: implementation of the CHook class.
+//
+//////////////////////////////////////////////////////////////////////
+
+#include "stdafx.h"
+#include "HookDll.h"
+#include "Hook.h"
+
+
+#define  TEST
+#ifdef _DEBUG
+#undef THIS_FILE
+static char THIS_FILE[]=__FILE__;
+#define new DEBUG_NEW
+#endif
+
+
+#ifdef TEST
+#define TESTMSG(str) AfxMessageBox(str)
+#else 
+#define TESTMSG(str) 
+#endif
+//////////////////////////////////////////////////////////////////////
+// Construction/Destruction
+//////////////////////////////////////////////////////////////////////
+#define  BREAKPOINTLEN 2
+typedef PVOID (WINAPI *ADDVECTOREDEXCEPTIONHANDLER)(ULONG,PVOID);
+
+CHook* CHook::m_Instance;
+
+CHook::CHook()
+{
+  //清空链表
+  m_listHook.empty();
+  //安装顶层异常
+  HINSTANCE  hMod = LoadLibrary("kernel32.dll");
+  ADDVECTOREDEXCEPTIONHANDLER pfn = (ADDVECTOREDEXCEPTIONHANDLER)
+    GetProcAddress(hMod,"AddVectoredExceptionHandler");
+  PVOID ret = pfn(1,VectoredHandler);
+
+  m_bSingleFlag = FALSE;
+  m_pCurrentBP = NULL;
+}
+
+//函数名称：GetInstance
+//函数参数：无
+//函数功能：返回一个类的实例。
+//返回值：  CHook*
+
+CHook* CHook::GetInstance()
+{
+  if (!m_Instance)
+  {
+    m_Instance = new CHook;
+  }
+  return m_Instance;
+}
+CHook::~CHook()
+{
+  list<t_HookInfo*>::iterator it;
+  
+  for (it = m_listHook.begin(); it!=m_listHook.end(); it++)
+  {
+    UnSetBP((*it));
+    delete (*it);
+  }
+  m_listHook.empty();
+}
+//函数名称：AddHook
+//函数参数：1.要 HOOK 的地址 2.处理 HOOK 的函数指针
+//函数功能：添加一个 HOOKINFO 到链表中。并安装一个 HOOK
+//返回值：  成功返回 TRUE，否则 FALSE
+//注意：    本函数没有检查参数地址的有效性，由调用方检查。
+BOOL CHook::AddHook(DWORD dwHookAddr, HOOKHANDLEFUN pFn)
+{
+  t_HookInfo *pHookInfo = new t_HookInfo;
+  if (!pHookInfo)
+  {
+    return FALSE;
+  }
+  pHookInfo->dwAddr = dwHookAddr;
+  pHookInfo->pFn = pFn;
+  m_listHook.push_back(pHookInfo);
+  return SetBP(pHookInfo);
+
+}
+
+
+//函数名称：RemoveHook
+//函数参数：1.要 REMOVEHOOK 的地址 
+//函数功能：删除一个 HOOK
+//返回值：  成功返回 TRUE，否则 FALSE
+//注意：    本函数没有检查参数地址的有效性，由调用方检查。
+BOOL CHook::RemoveHook(DWORD dwHookAddr)
+{
+  list<t_HookInfo*>::iterator it;
+  
+  for (it = m_listHook.begin(); it!=m_listHook.end(); it++)
+  {
+    if ((*it)->dwAddr == dwHookAddr)
+    {
+      UnSetBP(*it);
+      delete (*it);
+      m_listHook.remove(*it);
+      return TRUE;
+    }
+  }
+  return FALSE;
+  
+}
+//函数名称：SetBP
+//函数参数：1.t_HookInfo hook 信息
+//函数功能：写入一个 INT3
+//返回值：  成功返回 TRUE，否则 FALSE
+//注意：    本函数没有检查参数地址的有效性，由调用方检查。
+BOOL CHook::SetBP(t_HookInfo *pHookInfo)
+{
+  DWORD dwOldProtect,dwNewProtect = PAGE_EXECUTE_READWRITE;
+  if (!pHookInfo)
+  {
+    return FALSE;
+  }
+  
+  VirtualProtect((void*)pHookInfo->dwAddr,BREAKPOINTLEN,dwNewProtect,&dwOldProtect);
+  pHookInfo->byOldCode = *(BYTE*)(pHookInfo->dwAddr);
+  *(BYTE*)(pHookInfo->dwAddr) = 0xcc;
+  VirtualProtect((void*)pHookInfo->dwAddr,BREAKPOINTLEN,dwOldProtect,&dwNewProtect);
+  return TRUE;
+
+}
+
+//函数名称：SetBP
+//函数参数：1.t_HookInfo hook 信息
+//函数功能：删除断点
+//返回值：  成功返回 TRUE，否则 FALSE
+//注意：    本函数没有检查参数地址的有效性，由调用方检查。
+BOOL CHook::UnSetBP(t_HookInfo *pHookInfo)
+{
+  DWORD dwOldProtect,dwNewProtect = PAGE_EXECUTE_READWRITE;
+  if (!pHookInfo)
+  {
+    return FALSE;
+  }
+  
+  VirtualProtect((void*)pHookInfo->dwAddr,BREAKPOINTLEN,dwNewProtect,&dwOldProtect);  
+  *(BYTE*)(pHookInfo->dwAddr) = pHookInfo->byOldCode;
+  VirtualProtect((void*)pHookInfo->dwAddr,BREAKPOINTLEN,dwOldProtect,&dwNewProtect);
+  return TRUE;
+  
+}
+//函数名称：VectoredHandler
+//函数参数：异常信息结构指针
+//函数功能：处理异常
+//返回值：  自己异常返回 EXCEPTION_CONTINUE_EXECUTION，否则返回 EXCEPTION_CONTINUE_SEARCH
+LONG WINAPI CHook::VectoredHandler(PEXCEPTION_POINTERS ExceptionInfo)
+{
+  CHook *pHook = CHook::GetInstance();
+  //检测是否 INT3 断点
+  if (ExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_BREAKPOINT)
+  {
+    CString str;
+    str.Format("%-8x",ExceptionInfo->ExceptionRecord->ExceptionAddress);
+//    TESTMSG(str);
+    list<t_HookInfo*>::iterator it;
+    //检测是否自己设置的断点
+    for (it = pHook->m_listHook.begin(); it!=pHook->m_listHook.end(); it++)
+    {
+      if ((*it)->dwAddr ==(DWORD) ExceptionInfo->ExceptionRecord->ExceptionAddress)
+      {
+        //记录当前断点，设置单步标志，删除断点，
+        pHook->m_pException = ExceptionInfo;
+        pHook->SetTF();
+        pHook->UnSetBP(*it);
+        pHook->m_pCurrentBP = *it;
+        //调用相关函数
+        (*it)->pFn(ExceptionInfo,NULL);
+        return EXCEPTION_CONTINUE_EXECUTION;
+      }
+    }
+    return EXCEPTION_CONTINUE_SEARCH;
+  }
+  //单步断点的处理
+  else if ( ExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_SINGLE_STEP )
+  {
+    //判断是否自己的单步断点
+    if (pHook->m_bSingleFlag && pHook->m_pCurrentBP)
+    {
+      //还原断点，标志位。
+      pHook->SetBP(pHook->m_pCurrentBP);
+      pHook->m_bSingleFlag = FALSE;
+      pHook->m_pCurrentBP = NULL;
+      return EXCEPTION_CONTINUE_EXECUTION;
+    }
+    else
+    {
+      return  EXCEPTION_CONTINUE_SEARCH;
+    }
+  }
+
+  else
+  {
+    return  EXCEPTION_CONTINUE_SEARCH;
+  }
+}
+
+
+//函数名称：SetTF
+//函数参数：无
+//函数功能：设置一个单步断点
+//返回值：  无
+
+void CHook::SetTF()
+{
+  
+  if (m_pException)
+  {
+    m_pException->ContextRecord->EFlags |= 0x100; 
+    m_bSingleFlag = TRUE;
+  }
+  
+}
+```
+
+需要注意的几个地方：  
+
+1. 由于 `VectoredHandler` 是 WINDOWS 回调函数，而我想把他封装在类中，如果想访问类的其他成员，则只能用静态变量了，所以我干脆把这个类设计成单件模式。有的人说了，用全局变量不是也可以么？全局变量确实是也可以达到目的，但是我总感觉他会破坏类的封装。。  
+
+2. 当异常发生的时候，处理完了 HOOK 的事情，要先设置一个单步断点，然后把原来的代码还原，在下个单步断点的时候，再写入 `INT3`  
+
+3. 调试程序的郁闷。。我用 VC 调试这个程序的时候，发现异常代码总是被修改为 `STATUS_ACCESS_VIOLATION` ，而非 `STATUS_BREAKPOINT`，不知道啥原因。。希望明白人解答  
+
+4. 在进行异常处理的时候，一些控件的消息通知无法正常运行，比如 LIST 控件的 `ADDITEM`，CWND 的 `UPDATEDATA`。。。。。等，希望能有人解决下这个问题。我测试的时候只能用 `GetItemText`, `SetItemText` 了。  
+
+另外把工程文件也一起奉上。。。
+
+上传的附件
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || `HookDll.rar`  
+|
