@@ -1,0 +1,26 @@
+
+# Delphi 逆向工程笔记
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6450.htm`](https://www.pediy.com/kssd/pediy06/pediy6450.htm)
+
+已经征得原作者 `you_known` 同意。
+
+`Delphi5` 编译通过。
+
+注意，这只是一个模板，不是注册机。所以，注册码=用户名。
+
+If you think it's useful,you can get it here.
+
+If you think it's useless,you can pass by.
+
+NO question,NO request.
+
+附件:`KeyGen.rar`
+
+2004-11-27 对外部释放源代码，遵循 `GNU` 和 `GPL`。
+
+为学习而释放，希望大家善用此源代码，不得将其用于谋取个人或商业利益；此源代码为本人独立原创，请尊重本人劳动成果，任何复制、分发请保证其完整性，并说明源码来源。本人能力有限，代码中难免有所纰漏，不保证此代码适用任何环境，且不对源码使用做任何问题的回答!
+
+点击此处本地下载
+
+> `4dd466d0e1e0cc123afbe504da2462ca`
