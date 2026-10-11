@@ -1,0 +1,17 @@
+
+# CMailServer 2.6+
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum737.htm`](https://www.pediy.com/kssd/pediy03/forum737.htm)
+
+1. 使用 `Alt`＋小键盘是不行的，这一点我提问前就试过了。
+2. `blowfish` 说：编程给那个窗口发消息可以把不可显示字符塞进去注册成功！
+
+能否给出代码？你所说的我无法实现！
+
+3. 我的解决方法：
+
+注册文件是 `ini` 文件，在 `DOS` 窗口下用 `EDIT` 的 16 进制编辑模式将注册码长度改为需要的长度，存盘后再用 `HIEW` 改为真正的注册码。
+
+写 `Shadow Security Scanner` 的俄国佬似乎是把注册码用 `Windows` 的序列号作为密钥加密后放在注册表中的（没深究），所以在自己的机器上注册之后把存放在注册表中的注册信息拷贝到别人的机器上无法使用。
+
+1. 可以用 `FindWindow()` 之类的先找到输入注册码的编辑框，如果是单行的编辑框直接用 `SetWindowText`/`SetDlgItemText` 把注册码填进去；如果是多行的编辑框，可以先用 `SendMessage` 给它发一个全部选中的消息，再发一个 `Replace` 消息，用自己的注册码来替换编辑框中的文本。 `4dd466d0e1e0cc123afbe504da2462ca`

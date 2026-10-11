@@ -1,0 +1,495 @@
+
+# CCProxy 4.11
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum1224.htm`](https://www.pediy.com/kssd/pediy03/forum1224.htm)
+
+目标软件：`CCProxy 4.11`
+保护方式：注册码
+破解人：`TAE![CCG][BCG][FCG]`
+破解方式：算注册码
+
+运行软件发现程序自动生成一个机器码，需要让用户输入序列号和注册码，你可以随便输入一些，我输入的是：
+
+- 序列号：`12345678`
+- 注册码：`78787878`
+
+进入 TRW 设置断点 `bpx hmemcpy`，回到程序点注册，这时被 TRW 拦住，按两次 `F5`，为什么？因为第三次按 `F5`，错误提示就出来了。其实系统使用了三次 `USER32.GetWindowTextA` 函数分别读取机器码、序列号和注册码，那么我们当然要在系统读取机器码和序列号之后进行跟踪喽。按过两次 `F5` 之后，便是程序第三次调用 `USER32.GetWindowTextA` 来读取注册码了。这时候，我们被中断在系统函数 `hmemcpy` 的附近，那么我们要回到程序中呀，所以下命令 `pmodule`，这时来到了下面这里：
+
+```
+* Reference To: USER32.GetWindowTextA, Ord:015Eh //其实你也可以直接下这个断点的
+
+:0042C9DD FF15FC434300          Call dword ptr [004343FC]
+:0042C9E3 8B4D10                mov ecx, dword ptr [ebp+10] //应该回到了这里
+:0042C9E6 6AFF                  push FFFFFFFF
+:0042C9E8 E8BCC7FFFF           call 004291A9
+:0042C9ED EB0B                  jmp 0042C9FA
+:0042C9EF 8B4510                mov eax, dword ptr [ebp+10]
+:0042C9F2 FF30                  push dword ptr [eax]
+:0042C9F4 56                    push esi
+:0042C9F5 E8EEF1FFFF            call 0042BBE8
+:0042C9FA 5F                    pop edi
+:0042C9FB 5E                    pop esi
+:0042C9FC 5D                    pop ebp
+:0042C9FD C20C00                ret 000C
+```
+
+一直跟着它走，来到这里：
+
+```
+:00405944 8B8620020000          mov eax, dword ptr [esi+00000220]
+
+* Reference To: KERNEL32.WritePrivateProfileStringA, Ord:02E5h
+
+:0040594A 8B1D18424300          mov ebx, dword ptr [00434218]
+:00405950 8D7E5C                lea edi, dword ptr [esi+5C]
+:00405953 57                    push edi  //edi 是文件名,也就是 CCProxy.ini
+:00405954 50                    push eax
+
+* Possible StringData Ref from Data Obj ->"RegCode"
+
+:00405955 68B0014400            push 004401B0
+
+* Possible StringData Ref from Data Obj ->"System"
+
+:0040595A 68D8024400            push 004402D8
+:0040595F FFD3                  call ebx  //这里是调用 WritePrivateProfileStringA
+:00405961 8B8624020000          mov eax, dword ptr [esi+00000224]
+:00405967 57                    push edi  //edi 是文件名,也就是 CCProxy.ini
+:00405968 50                    push eax
+
+* Possible StringData Ref from Data Obj ->"UserName"
+
+:00405969 681C024400            push 0044021C
+
+* Possible StringData Ref from Data Obj ->"System"
+
+:0040596E 68D8024400            push 004402D8
+:00405973 FFD3                  call ebx  //这里是调用 WritePrivateProfileStringA
+:00405975 8B862C020000          mov eax, dword ptr [esi+0000022C]
+:0040597B 57                    push edi  //edi 是文件名,也就是 CCProxy.ini
+:0040597C 50                    push eax
+
+* Possible StringData Ref from Data Obj ->"SerialCode"
+
+:0040597D 68C0014400            push 004401C0
+
+* Possible StringData Ref from Data Obj ->"System"
+
+:00405982 68D8024400            push 004402D8
+:00405987 FFD3                  call ebx  //这里是调用 WritePrivateProfileStringA
+```
+
+经过跟踪不能发现，上面一段程序是将序列号、注册码写入文件 `CCProxy.ini` 中。
+
+格式是这样的：
+
+```
+\=====================
+[System]
+Setup=1
+RegCode=78787878
+UserName=
+SerialCode=12345678
+\=====================
+```
+
+跟踪到这里我就发现这个程序很奇怪，一般来说程序注册的过程应该是这样的，即判断注册码的合法性，如果正确那么写入注册表或者是文件中，错误的话应该不写入的，而这个程序还没有判断正误就将注册信息写入了文件，奇怪！另外如你仔细观察机器码，你会发现每次注册，机器码都会改变，奇怪！可能会有陷阱！
+
+无论如何我们还是继续跟踪吧！
+
+```
+:00405989 E8F2D4FFFF            call 00402E80 //这里要进入哟,因为下面就是关键的跳转了
+:0040598E F7D8                  neg eax
+:00405990 1BC0                  sbb eax, eax
+:00405992 40                    inc eax
+:00405993 A3BC034400            mov dword ptr [004403BC], eax
+:00405998 A1240E4400            mov eax, dword ptr [00440E24]
+:0040599D 8944240C              mov dword ptr [esp+0C], eax
+:004059A1 BB00000000            mov ebx, 00000000
+:004059A6 895C241C              mov dword ptr [esp+1C], ebx
+:004059AA 747D                  je 00405A29    //关键的跳转.
+:004059AC 8D4C2410              lea ecx, dword ptr [esp+10]
+
+* Possible Reference to String Resource ID=00128: "CCProxy v4.11(evaluation version only for 5 clients)"
+
+:004059B0 6880000000            push 00000080
+:004059B5 51                    push ecx
+:004059B6 E885D6FFFF            call 00403040
+:004059BB 83C408                add esp, 00000008
+:004059BE 50                    push eax
+:004059BF 8D4C2410              lea ecx, dword ptr [esp+10]
+:004059C3 C644242001            mov [esp+20], 01
+:004059C8 E8AB340200            call 00428E78
+:004059CD 8D4C2410              lea ecx, dword ptr [esp+10]
+:004059D1 885C241C              mov byte ptr [esp+1C], bl
+:004059D5 E865330200            call 00428D3F
+:004059DA E8833A0200            call 00429462
+:004059DF 3BC3                  cmp eax, ebx
+:004059E1 7409                  je 004059EC
+:004059E3 8B10                  mov edx, dword ptr [eax]
+:004059E5 8BC8                  mov ecx, eax
+:004059E7 FF5274                call [edx+74]
+:004059EA EB02                  jmp 004059EE
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004059E1(C)
+
+:004059EC 33C0                  xor eax, eax
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004059EA(U)
+
+:004059EE 8B4C240C              mov ecx, dword ptr [esp+0C]
+:004059F2 51                    push ecx
+:004059F3 8BC8                  mov ecx, eax
+:004059F5 E85C2E0200            call 00428856
+:004059FA 8D542410              lea edx, dword ptr [esp+10]
+
+* Possible Reference to String Resource ID=00126: "Register failed!"
+
+:004059FE 6A7E                  push 0000007E
+:00405A00 52                    push edx
+:00405A01 E83AD6FFFF            call 00403040
+:00405A06 83C408                add esp, 00000008
+:00405A09 50                    push eax
+:00405A0A 8D4C2410              lea ecx, dword ptr [esp+10]
+:00405A0E C644242002            mov [esp+20], 02
+:00405A13 E860340200            call 00428E78
+:00405A18 8D4C2410              lea ecx, dword ptr [esp+10]
+:00405A1C 885C241C              mov byte ptr [esp+1C], bl
+:00405A20 E81A330200            call 00428D3F
+:00405A25 53                    push ebx
+:00405A26 53                    push ebx
+:00405A27 EB79                  jmp 00405AA2
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004059AA(C)
+
+:00405A29 8D4C2410              lea ecx, dword ptr [esp+10]
+
+* Possible Reference to String Resource ID=00127: "CCProxy v4.11"
+
+:00405A2D 6A7F                  push 0000007F
+:00405A2F 51                    push ecx
+:00405A30 E80BD6FFFF            call 00403040
+:00405A35 83C408                add esp, 00000008
+:00405A38 50                    push eax
+:00405A39 8D4C2410              lea ecx, dword ptr [esp+10]
+:00405A3D C644242003            mov [esp+20], 03
+:00405A42 E831340200            call 00428E78
+:00405A47 8D4C2410              lea ecx, dword ptr [esp+10]
+:00405A4B 885C241C              mov byte ptr [esp+1C], bl
+:00405A4F E8EB320200            call 00428D3F
+:00405A54 E8093A0200            call 00429462
+```
+
+
+
+:00405A59 `3BC3`                     `cmp eax, ebx`
+
+:00405A5B `7409`                     `je 00405A66`
+
+:00405A5D `8B10`                     `mov edx, dword ptr [eax]`
+
+:00405A5F `8BC8`                     `mov ecx, eax`
+
+:00405A61 `FF5274`                   `call [edx+74]`
+
+:00405A64 `EB02`                     `jmp 00405A68`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+`:00405A5B(C)`
+
+:00405A66 `33C0`                     `xor eax, eax`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+`:00405A64(U)`
+
+:00405A68 `8B4C240C`                 `mov ecx, dword ptr [esp+0C]`
+
+:00405A6C `51`                       `push ecx`
+
+:00405A6D `8BC8`                     `mov ecx, eax`
+
+:00405A6F `E8E22D0200`               `call 00428856`
+
+:00405A74 `8D542410`                 `lea edx, dword ptr [esp+10]`
+
+* Possible Reference to String Resource ID=00125: "Register successfully!"
+
+:00405A78 `6A7D`                     `push 0000007D`
+
+:00405A7A `52`                       `push edx`
+
+:00405A7B `E8C0D5FFFF`               `call 00403040`
+
+:00405A80 `83C408`                   `add esp, 00000008`
+
+:00405A83 `50`                       `push eax`
+
+:00405A84 `8D4C2410`                 `lea ecx, dword ptr [esp+10]`
+
+:00405A88 `C644242004`               `mov [esp+20], 04`
+
+:00405A8D `E8E6330200`               `call 00428E78`
+
+:00405A92 `8D4C2410`                 `lea ecx, dword ptr [esp+10]`
+
+:00405A96 `885C241C`                 `mov byte ptr [esp+1C], bl`
+
+:00405A9A `E8A0320200`               `call 00428D3F`
+
+:00405A9F `53`                       `push ebx`
+
+:00405AA0 `6A40`                     `push 00000040`
+
+现在我们就进入 `call 00402E80` 吧!
+
+* Referenced by a CALL at Addresses:
+`:00403F41`, `:004048C5`, `:0040539A`, `:00405989`
+
+:00402E80 `64A100000000`             `mov eax, dword ptr fs:[00000000]`
+
+:00402E86 `6AFF`                     `push FFFFFFFF`
+
+:00402E88 `6831184300`               `push 00431831`
+
+:00402E8D `50`                       `push eax`
+
+:00402E8E `B80C100000`               `mov eax, 0000100C`
+
+:00402E93 `64892500000000`           `mov dword ptr fs:[00000000], esp`
+
+:00402E9A `E8113A0100`               `call 004168B0`
+
+:00402E9F `A1240E4400`               `mov eax, dword ptr [00440E24]`
+
+:00402EA4 `56`                       `push esi`
+
+:00402EA5 `57`                       `push edi`
+
+:00402EA6 `89442408`                 `mov dword ptr [esp+08], eax`
+
+:00402EAA `C784241C10000000000000`   `mov dword ptr [esp+0000101C], 00000000`
+
+:00402EB5 `E890AF0200`               `call 0042DE4A`
+
+:00402EBA `8B4004`                   `mov eax, dword ptr [eax+04]`
+
+:00402EBD `8B888C000000`             `mov ecx, dword ptr [eax+0000008C]`
+
+:00402EC3 `51`                       `push ecx`
+
+:00402EC4 `8D4C240C`                 `lea ecx, dword ptr [esp+0C]`
+
+:00402EC8 `E8FB5F0200`               `call 00428EC8`
+
+:00402ECD `6A2E`                     `push 0000002E`
+
+:00402ECF `8D4C240C`                 `lea ecx, dword ptr [esp+0C]`
+
+:00402ED3 `E8B1070200`               `call 00423689`
+
+:00402ED8 `8D542410`                 `lea edx, dword ptr [esp+10]`
+
+:00402EDC `50`                       `push eax`
+
+:00402EDD `52`                       `push edx`
+
+:00402EDE `8D4C2410`                 `lea ecx, dword ptr [esp+10]`
+
+:00402EE2 `E82A070200`               `call 00423611`
+
+:00402EE7 `50`                       `push eax`
+
+:00402EE8 `8D4C240C`                 `lea ecx, dword ptr [esp+0C]`
+
+:00402EEC `C684242010000001`         `mov byte ptr [esp+00001020], 01`
+
+:00402EF4 `E87F5F0200`               `call 00428E78`
+
+:00402EF9 `8D4C2410`                 `lea ecx, dword ptr [esp+10]`
+
+:00402EFD `C684241C10000000`         `mov byte ptr [esp+0000101C], 00`
+
+:00402F05 `E8355E0200`               `call 00428D3F`
+
+:00402F0A `A1240E4400`               `mov eax, dword ptr [00440E24]`
+
+:00402F0F `8944240C`                 `mov dword ptr [esp+0C], eax`
+
+:00402F13 `8B4C2408`                 `mov ecx, dword ptr [esp+08]`
+
+:00402F17 `8D54240C`                 `lea edx, dword ptr [esp+0C]`
+
+:00402F1B `51`                       `push ecx`
+
+* Possible StringData Ref from Data Obj -> "%s.ini"
+
+:00402F1C `68CC014400`               `push 004401CC`
+
+:00402F21 `52`                       `push edx`
+
+:00402F22 `C684242810000002`         `mov byte ptr [esp+00001028], 02`
+
+:00402F2A `E8BD0A0200`               `call 004239EC`
+
+:00402F2F `8B442418`                 `mov eax, dword ptr [esp+18]`
+
+:00402F33 `83C40C`                   `add esp, 0000000C`
+
+* Reference To: `KERNEL32.GetPrivateProfileStringA`, Ord:013Ah
+
+:00402F36 `8B3520424300`             `mov esi, dword ptr [00434220]`
+
+:00402F3C `8D8C2414080000`           `lea ecx, dword ptr [esp+00000814]`
+
+:00402F43 `50`                       `push eax`
+
+:00402F44 `6800040000`               `push 00000400`
+
+:00402F49 `51`                       `push ecx`
+
+:00402F4A `68802C4400`               `push 00442C80`
+
+* Possible StringData Ref from Data Obj -> "SerialCode"
+
+:00402F4F `68C0014400`               `push 004401C0`
+
+* Possible StringData Ref from Data Obj -> "system"
+
+:00402F54 `68B8014400`               `push 004401B8`
+
+:00402F59 `FFD6`                     `call esi`
+
+:00402F5B `8B54240C`                 `mov edx, dword ptr [esp+0C]`
+
+:00402F5F `8D842414040000`           `lea eax, dword ptr [esp+00000414]`
+
+:00402F66 `52`                       `push edx`
+
+:00402F67 `6800040000`               `push 00000400`
+
+:00402F6C `50`                       `push eax`
+
+:00402F6D `68802C4400`               `push 00442C80`
+
+* Possible StringData Ref from Data Obj -> "RegCode"
+
+:00402F72 `68B0014400`               `push 004401B0`
+
+* Possible StringData Ref from Data Obj -> "system"
+
+:00402F77 `68B8014400`               `push 004401B8`
+
+:00402F7C `FFD6`                     `call esi`
+
+:00402F7E `8D4C2410`                 `lea ecx, dword ptr [esp+10]`
+
+:00402F82 `51`                       `push ecx`
+
+:00402F83 `E8B8FEFFFF`               `call 00402E40` //这个就是生成机器码的地方!
+
+上面是从文件 `CCproxy.ini` 中读取数据，并产生机器码，
+
+我系统生成的机器码是"080808082808"，(后来发现是个假的)
+
+继续跟踪，一直来到这里：
+
+:00402FCC `52`                       `push edx` //这个是机器码"080808082808"
+
+:00402FCD `50`                       `push eax` //这个是你输入的注册码"78787878"
+
+:00402FCE `E83DFBFFFF`               `call 00402B10` //算注册码的 call
+
+:00402FD3 `8D8C2400000000`           `lea ecx, dword ptr [esp]`
+
+:00402FDA `6A0C`                     `push 0000000C`
+
+:00402FDC `8D9424240C0000`           `lea edx, dword ptr [esp+00000C24]`
+
+:00402FE3 `52`                       `push edx`
+
+:00402FE4 `52`                       `push edx`
+
+:00402FE5 `E886380100`               `call 00416870`
+
+进入 `call 00402B10` 然后一直按 `F10`，一直来到这里：
+
+程序会根据"microserver0"和"ccproxy20010"还有你的序列号来生成注册码.
+
+```
+:00402B8E 8B442434      mov eax, dword ptr [esp+34]
+:00402B92 0FBE0408      movsx eax, byte ptr [eax+ecx];将 microserver0 的字符依次传给 eax
+:00402B96 0FBE140B      movsx edx, byte ptr [ebx+ecx];将 ccproxy20010 的字符依次传给 eax
+:00402B9A 03C2          add eax, edx              ;相加给 eax
+:00402B9C BD3E000000    mov ebp, 0000003E         ;"3E"给 ebp
+:00402BA1 0FBE140F      movsx edx, byte ptr [edi+ecx];将序列号的字符依次传给 edx
+:00402BA5 03C2          add eax, edx              ;相加给 eax
+:00402BA7 0FBE11        movsx edx, byte ptr [ecx]  ;将机器码的字符依次传给 edx
+:00402BAA 03C2          add eax, edx              ;再相加给 eax
+:00402BAC 99            cdq
+:00402BAD F7FD          idiv ebp                  ;最后的和除以 ebp,也就是"3E"余数给 dl
+:00402BAF 83FA1A        cmp edx, 0000001A         ;大于"1A"吗?
+:00402BB2 7D05          jge 00402BB9              ;大于就跳
+```
+
+
+
+```
+:00402BB4 80C261             add dl, 61           ;小于就加上 61
+
+:00402BB7 EB0D              jmp 00402BC6         ;跳到 00402bc6 处
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00402BB2(C)
+|
+
+:00402BB9 83FA34            cmp edx, 00000034    ;大于"34"吗?
+
+:00402BBC 7D05              jge 00402BC3         ;大于就跳
+
+:00402BBE 80C227            add dl, 27           ;小于就减去"27"
+
+:00402BC1 EB03              jmp 00402BC6         ;跳到 00402bc6 处
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00402BBC(C)
+| |
+
+:00402BC3 80EA04            sub dl, 04           ;上面如果小于就到了这里,减去"4"
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:00402BB7(U), :00402BC1(U)
+|
+
+:00402BC6 8B442438          mov eax, dword ptr [esp+38]
+
+:00402BCA 88140E            mov byte ptr [esi+ecx], dl  ;保存注册码!
+
+:00402BCD 41                inc ecx                ;指向下一个机器码的字符
+
+:00402BCE 48                dec eax                ;计数器
+
+:00402BCF 89442438          mov dword ptr [esp+38], eax
+
+:00402BD3 75B9              jne 00402B8E           ;形成循环
+```
+
+上面就是形成注册码的过程。
+
+```
+:00402BD5 5F                pop edi      //到了这里你可以用 d esp+38 来查看注册码
+
+:00402BD6 5E                pop esi
+
+:00402BD7 5D                pop ebp
+
+:00402BD8 5B                pop ebx
+
+:00402BD9 83C420            add esp, 00000020
+
+:00402BDC C3                ret
+```
+
+用这个注册码注册，显示注册成功，可是再次运行软件，还是未注册版。那么我们将断点设在生产注册码后的地方，也就是 `00402BD5` 这里，重新运行程序，第一次中断，下命令查看注册码显示的就是刚才程序生产的假注册码，下命令 `g`，再次被中断，这时再次查看注册码，这个就是真的注册码了，只不过你不能在注册对话框输入，只能在文件中修改，呵呵，就这样吧！`4dd466d0e1e0cc123afbe504da2462ca`

@@ -1,0 +1,642 @@
+
+# ChinaZip v2.0
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum417.htm`](https://www.pediy.com/kssd/pediy03/forum417.htm)
+
+`ChinaZip v2.0` 的注册码算法（初学者）
+
+很少写破解心得，不足之处请指正。
+
+为什么要选择 `ChinaZip` 呢？因为 `ChinaZip` 的算法比较简单，非常适合初学者。
+
+能让每一个初学者都能学会如何分析注册码的算法，写出注册机。（是谁在笑我...）^o^
+
+由于本文是针对初学者，所以下面的破解过程我尽量写的详细一些。
+
+### 软件介绍
+
+`中华压缩(ChinaZip) V2.0`
+
+`中华压缩` 是一个国产的压缩、解压缩软件，暂时只支持 `zip` 压缩格式，正式版本将逐步支持 `RAR`, `ARJ`, `CAB` 等更多的压缩格式。软件的界面、操作习惯、程序快捷键将完全兼容 `WinZip`。
+
+### 下载地
+
+`http://www.soft999.com/download2/ChinaZip.exe`
+
+### 软件保护
+
+1. `Aspack1.07b`
+2. 注册码保护
+
+---
+
+### 使用工具
+
+1. `UnAspack v1.0.9.1`
+2. `Trw2000 v1.22`
+3. `W32dsm v8.9` 黄金版
+4. `Crackcode2000`
+5. `VB 5.0`
+
+---
+
+现在开始破解喽！...............
+
+1. 首先运行 `ChinaZip.exe`
+2. 在帮助菜单下找到注册部分
+3. 用户名：`dyiyd`（你可输入你的名字）
+   注册码：`98989898`
+4. 按确定后出现“您的注册码不正确!”（这可是破解的线索哦！）
+5. 将 `ChinaZip.exe` 用 `UnAspack v1.0.9.1` 脱壳（有兴趣的朋友可手动脱壳。我比较懒....^o^）
+6. `w32dsm v8.9` 黄金版载入已脱壳的 `ChinaZip.exe`
+7. 搜索“您的注册码不正确”字符串。很快便找到了....
+8. 下面开始静态分析...从“您的注册码不正确!”向上看
+
+```
+* Possible StringData Ref from Code Obj ->"?蹕\]"
+                    |
+:004D1DD3 68D51E4D00               push 004D1ED5
+:004D1DD8 64FF30                   push dword ptr fs:[eax]
+:004D1DDB 648920                   mov dword ptr fs:[eax], esp
+:004D1DDE A1CC6D4E00               mov eax, dword ptr [004E6DCC]
+:004D1DE3 8B00                     mov eax, dword ptr [eax]
+:004D1DE5 8B10                     mov edx, dword ptr [eax]
+:004D1DE7 FF92D8000000             call dword ptr [edx+000000D8]
+:004D1DED 48                       dec eax
+:004D1DEE 0F85B6000000             jne 004D1EAA
+:004D1DF4 8D55FC                   lea edx, dword ptr [ebp-04]
+:004D1DF7 A1CC6D4E00               mov eax, dword ptr [004E6DCC]
+:004D1DFC 8B00                     mov eax, dword ptr [eax]
+:004D1DFE 8B80E0020000             mov eax, dword ptr [eax+000002E0]
+:004D1E04 E87F10F6FF               call 00432E88---------------------------/*取出你输入的用户名*/
+:004D1E09 8D4DF8                   lea ecx, dword ptr [ebp-08]
+:004D1E0C 8B55FC                   mov edx, dword ptr [ebp-04]--------------/*[ebp-04]存放是你的用户名*/
+:004D1E0F 8BC3                     mov eax, ebx
+:004D1E11 E8D6FDFFFF               call 004D1BEC---------------------------/*注册码计算部分*/
+:004D1E16 8D55F4                   lea edx, dword ptr [ebp-0C]
+:004D1E19 A1CC6D4E00               mov eax, dword ptr [004E6DCC]
+:004D1E1E 8B00                     mov eax, dword ptr [eax]
+:004D1E20 8B80E4020000             mov eax, dword ptr [eax+000002E4]
+:004D1E26 E85D10F6FF               call 00432E88---------------------------/*取出你输入的注册码*/
+:004D1E2B 8B45F4                   mov eax, dword ptr [ebp-0C]--------------/*[ebp-0C]存放你输入的注册码*/
+:004D1E2E 8B55F8                   mov edx, dword ptr [ebp-08]--------------/*[ebp-08]存放真正的注册码*/
+:004D1E31 E89A22F3FF               call 004040D0---------------------------/*这个 Call 一定是注册码比较处*/
+:004D1E36 7568                     jne 004D1EA0-----------------------------/*我们来到这里。哈哈！有点儿意思了吧？*/
+                        /*这里要跳就跳过了所有注册成功的信息*/
+:004D1E38 A1306F4E00               mov eax, dword ptr [004E6F30]
+:004D1E3D 8B00                     mov eax, dword ptr [eax]
+:004D1E3F 8B8008040000             mov eax, dword ptr [eax+00000408]
+:004D1E45 B201                     mov dl, 01
+:004D1E47 E89CB3FDFF               call 004AD1E8
+:004D1E4C 8D55F0                   lea edx, dword ptr [ebp-10]
+:004D1E4F A120704E00               mov eax, dword ptr [004E7020]
+:004D1E54 8B00                     mov eax, dword ptr [eax]
+:004D1E56 E8E1EEF7FF               call 00450D3C
+:004D1E5B 8D45F0                   lea eax, dword ptr [ebp-10]
+
+* Possible StringData Ref from Code Obj ->" - 注册用户!"
+                    |
+:004D1E5E BAEC1E4D00               mov edx, 004D1EEC
+:004D1E63 E86021F3FF               call 00403FC8
+:004D1E68 8B55F0                   mov edx, dword ptr [ebp-10]
+:004D1E6B A1306F4E00               mov eax, dword ptr [004E6F30]
+:004D1E70 8B00                     mov eax, dword ptr [eax]
+:004D1E72 E84110F6FF               call 00432EB8
+:004D1E77 6A40                     push 00000040
+
+* Possible StringData Ref from Code Obj ->"注册成功！"
+                    |
+:004D1E79 B9FC1E4D00               mov ecx, 004D1EFC
+
+* Possible StringData Ref from Code Obj ->"谢谢您的宝贵支持."
+                    |
+:004D1E7E BA081F4D00               mov edx, 004D1F08
+:004D1E83 A120704E00               mov eax, dword ptr [004E7020]
+:004D1E88 8B00                     mov eax, dword ptr [eax]
+:004D1E8A E8E1F4F7FF               call 00451370
+:004D1E8F A174F05000               mov eax, dword ptr [0050F074]
+:004D1E94 C7803402000001000000     mov dword ptr [ebx+00000234], 00000001
+:004D1E9E EB0A                     jmp 004D1EAA
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004D1E36(C)-----------------------------/*注意这个偏移地址，向上找到此偏移地址*/
+|
+
+* Possible StringData Ref from Code Obj ->"您的注册码不正确!"
+                    |
+:004D1EA0 B8241F4D00               mov eax, 004D1F24
+:004D1EA5 E84661F8FF               call 00457FF0
+```
+
+9. 到现在为止我们只要知道这个 `Call`
+
+```
+:004D1E31 E89A22F3FF               call 004040D0---------------------------/*这个 Call 一定是注册码比较处*/
+```
+
+如果用 `Trm2000` 跟踪的话，按 `F8` 进入
+
+```
+:004040D0 53                       push ebx
+:004040D1 56                       push esi
+:004040D2 57                       push edi
+:004040D3 89C6                     mov esi, eax
+:004040D5 89D7                     mov edi, edx
+:004040D7 39D0                     cmp eax, edx--------------------------/*这是注册码的比较核心
+                        eax 是你输入的注册码
+                        edx 是真正的注册码
+                        (下面我们可用这个地方用
+                        CRACKCODE2000 做个注册机)*/
+:004040D9 0F848F000000             je 0040416E
+:004040DF 85F6                     test esi, esi
+:004040E1 7468                     je 0040414B
+:004040E3 85FF                     test edi, edi
+:004040E5 746B                     je 00404152
+:004040E7 8B46FC                   mov eax, dword ptr [esi-04]
+:004040EA 8B57FC                   mov edx, dword ptr [edi-04]
+:004040ED 29D0                     sub eax, edx
+:004040EF 7702                     ja 004040F3
+:004040F1 01C2                     add edx, eax
+```
+
+10. 运行 `Trw2000`，在运行 `ChinaZip.exe` 重复 2、3 步
+
+11. 按 `Ctrl-N` 呼出 `Trw2000`
+    下断点 `bpx 4d1e31`
+    按确定后程序立刻被 `Trw2000` 接管
+    下命令 `d edx` 哈哈你看到什么?......注册码？^_^
+
+至此我们已经知道了注册码，但是这并不是我们的最终目的。我们是想知道他是如何计算出来的？往下看吧^_^
+
+12. 重复 10 步.....
+
+下断点 `bpx 004D1E11` 我们来到这里
+
+```
+:004D1E09 8D4DF8                   lea ecx, dword ptr [ebp-08]
+:004D1E0C 8B55FC                   mov edx, dword ptr [ebp-04]--------------/*[ebp-04]存放是你的用户名*/
+:004D1E0F 8BC3                     mov eax, ebx
+:004D1E11 E8D6FDFFFF               call 004D1BEC---------------------------/*注册码计算部分*/
+:004D1E16 8D55F4                   lea edx, dword ptr [ebp-0C]
+:004D1E19 A1CC6D4E00               mov eax, dword ptr [004E6DCC]
+:004D1E1E 8B00                     mov eax, dword ptr [eax]
+```
+
+按 `F8` 进入 `call 004D1BEC` 来到
+
+```
+* Referenced by a CALL at Address:
+|:004D1E11
+|
+:004D1BEC 55                       push ebp
+:004D1BED 8BEC                      mov ebp, esp
+:004D1BEF 6A00                     push 00000000
+:004D1BF1 6A00                     push 00000000
+:004D1BF3 6A00                     push 00000000
+```
+
+
+
+```
+:004D1BF5 6A00                 push 00000000   
+
+:004D1BF7 6A00                 push 00000000   
+
+:004D1BF9 6A00                 push 00000000   
+
+:004D1BFB 6A00                 push 00000000   
+
+:004D1BFD 53                   push ebx   
+
+:004D1BFE 56                   push esi   
+
+:004D1BFF 57                   push edi   
+
+:004D1C00 894DF8               mov dword ptr [ebp-08], ecx   
+
+:004D1C03 8955FC               mov dword ptr [ebp-04], edx   
+
+:004D1C06 8B45FC               mov eax, dword ptr [ebp-04]   
+
+:004D1C09 E86625F3FF           call 00404174   
+
+:004D1C0E 33C0                 xor eax, eax   
+
+:004D1C10 55                   push ebp   
+
+* Possible StringData Ref from Code Obj ->"?�鉤媇婾?   
+
+                         |   
+
+:004D1C11 68D41C4D00           push 004D1CD4   
+
+:004D1C16 64FF30               push dword ptr fs:[eax]   
+
+:004D1C19 648920               mov dword ptr fs:[eax], esp   
+
+:004D1C1C 33F6                 xor esi, esi   
+
+:004D1C1E 8D45F4               lea eax, dword ptr [ebp-0C]   
+
+:004D1C21 8B55FC               mov edx, dword ptr [ebp-04]   
+
+:004D1C24 E8AF21F3FF           call 00403DD8   
+
+:004D1C29 8B45F4               mov eax, dword ptr [ebp-0C]   
+
+:004D1C2C E88F23F3FF           call 00403FC0-----------------------------/*确定注册码的长度*/   
+
+:004D1C31 8BF8                 mov edi, eax\------------------------------/*将注册码的长度(Eax)作为循环次数   
+
+                                    保存在 Edi 当中*/   
+
+:004D1C33 85FF                 test edi, edi   
+
+:004D1C35 7E57                 jle 004D1C8E------------------------------/*检查用户名是否为空值若是则跳*/   
+
+:004D1C37 BB01000000           mov ebx, 00000001-------------------------/*将 Ebx 赋值 1(表示弟 1 次循环）   
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+
+|:004D1C8C(C)   
+
+|   
+
+:004D1C3C 8B45F4               mov eax, dword ptr [ebp-0C]---------------/*将用户名取出*/   
+
+:004D1C3F 8A4418FF             mov al, byte ptr [eax+ebx-01]-------------/*将第 1 位的 AscII 码取出，结果保存在 al 中*/   
+
+:004D1C43 E858FFFFFF           call 004D1BA0-----------------------------/*判断该 AscII 中的数是否为素数(我们将在下面详解)*/   
+
+:004D1C48 84C0                 test al, al\-------------------------------/*若是 al=1 若不是 al=0*/   
+
+:004D1C4A 7425                 je 004D1C71-------------------------------/*al=0 跳转*/   
+
+:004D1C4C 8D45E8               lea eax, dword ptr [ebp-18]              
+
+:004D1C4F 8B55F4               mov edx, dword ptr [ebp-0C]   
+
+:004D1C52 8A541AFF             mov dl, byte ptr [edx+ebx-01]   
+
+:004D1C56 E88D22F3FF           call 00403EE8-----------------------------/*                     
+
+:004D1C5B 8B45E8               mov eax, dword ptr [ebp-18]   
+
+:004D1C5E 8D55EC               lea edx, dword ptr [ebp-14]   
+
+:004D1C61 E8166DF3FF           call 0040897C-----------------------------/*这三个 Call 将素数提出并且转换成大写*/   
+
+:004D1C66 8B55EC               mov edx, dword ptr [ebp-14]   
+
+:004D1C69 8D45F0               lea eax, dword ptr [ebp-10]   
+
+:004D1C6C E85723F3FF           call 00403FC8-----------------------------/*   
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+
+|:004D1C4A(C)   
+
+|   
+
+:004D1C71 83FB01               cmp ebx, 00000001-------------------------/*比较是否为第 1 次循环*/   
+
+:004D1C74 740A                 je 004D1C80-------------------------------/*若是第 1 次循环则跳转*/   
+
+:004D1C76 8B45F4               mov eax, dword ptr [ebp-0C]---------------/*将用户名转移到 Eax 中*/   
+
+:004D1C79 0FB64418FE           movzx eax, byte ptr [eax+ebx-02]----------/*取出 1 位 AscII 码*/   
+
+:004D1C7E EB06                 jmp 004D1C86------------------------------/*无条件转移到 004D1C86*/   
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+
+|:004D1C74(C)   
+
+|   
+
+:004D1C80 8B45F4               mov eax, dword ptr [ebp-0C]---------------/*将用户名转移到 Eax 中*/   
+
+:004D1C83 0FB600               movzx eax, byte ptr [eax]-----------------/*将用户名第 1 位的 AscII 码移到 Eax 中*/   
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+
+|:004D1C7E(U)   
+
+|   
+
+:004D1C86 8D748612             lea esi, dword ptr [esi+4*eax+12]---------/*[esi+4*eax+12]是注册码的计算公式   
+
+                                    计算结果保存在 Esi 当中*/   
+
+:004D1C8A 43                   inc ebx\-----------------------------------/*当前循环次数+1*/   
+
+:004D1C8B 4F                   dec edi\-----------------------------------/*总循环次数-1*/   
+
+:004D1C8C 75AE                 jne 004D1C3C------------------------------/*edi 不等于 0 转移*/   
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+
+|:004D1C35(C)   
+
+|   
+
+:004D1C8E 8D55E4               lea edx, dword ptr [ebp-1C]   
+
+:004D1C91 8BC6                 mov eax, esi\------------------------------/*将 Esi 中的运算结果移至 Eax 中*/   
+
+:004D1C93 E8A870F3FF           call 00408D40   
+
+:004D1C98 8B4DE4               mov ecx, dword ptr [ebp-1C]   
+
+:004D1C9B 8D45F4               lea eax, dword ptr [ebp-0C]   
+
+:004D1C9E 8B55F0               mov edx, dword ptr [ebp-10]   
+
+:004D1CA1 E86623F3FF           call 0040400C-----------------------------/*将运算结果转换成字符串   
+
+                                    将上面 AscII 码为素数的字母+字符串   
+
+                                    这就是注册码*/----终于算完了^o^   
+
+:004D1CA6 8B45F8               mov eax, dword ptr [ebp-08]   
+
+:004D1CA9 8B55F4               mov edx, dword ptr [ebp-0C]   
+
+:004D1CAC E8E320F3FF           call 00403D94   
+
+:004D1CB1 33C0                 xor eax, eax   
+
+:004D1CB3 5A                   pop edx   
+
+:004D1CB4 59                   pop ecx   
+
+:004D1CB5 59                   pop ecx   
+
+:004D1CB6 648910               mov dword ptr fs:[eax], edx   
+
+* Possible StringData Ref from Code Obj ->"\_\[迕缷 jjS 乩 h"   
+
+                         |   
+
+:004D1CB9 68DB1C4D00           push 004D1CDB   
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+
+|:004D1CD9(U)   
+
+|   
+
+:004D1CBE 8D45E4               lea eax, dword ptr [ebp-1C]   
+
+:004D1CC1 BA05000000           mov edx, 00000005   
+
+:004D1CC6 E89920F3FF           call 00403D64   
+
+:004D1CCB 8D45FC               lea eax, dword ptr [ebp-04]   
+
+:004D1CCE E86D20F3FF           call 00403D40   
+
+:004D1CD3 C3                   ret\---------------------------------------/*退出子程序*/
+```
+
+至于判断是否为素数的算法也很简单：   
+
+按 `F8` 进入 `call 004D1BA0`   
+
+* Referenced by a `CALL` at Address:   
+
+|:004D1C43   
+
+|   
+
+```
+:004D1BA0 55                   push ebp   
+
+:004D1BA1 8BEC                 mov ebp, esp   
+
+:004D1BA3 51                   push ecx   
+
+:004D1BA4 53                   push ebx   
+
+:004D1BA5 56                   push esi   
+
+:004D1BA6 8845FF               mov byte ptr [ebp-01], al   
+
+:004D1BA9 C645FD02             mov [ebp-03], 02   
+
+:004D1BAD C645FE01             mov [ebp-02], 01   
+
+:004D1BB1 8A4DFF               mov cl, byte ptr [ebp-01]   
+
+:004D1BB4 49                   dec ecx   
+
+:004D1BB5 80E902               sub cl, 02   
+
+:004D1BB8 722A                 jb 004D1BE4   
+
+:004D1BBA 41                   inc ecx   
+
+:004D1BBB B302                 mov bl, 02--------------------------------/*bl=2*/   
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+
+|:004D1BE2(C)   
+
+|   
+
+:004D1BBD 33C0                 xor eax, eax   
+
+:004D1BBF 8A45FF               mov al, byte ptr [ebp-01]-----------------/*将用户名的 1 位 AscII 码移至 al*/   
+
+:004D1BC2 33D2                 xor edx, edx   
+
+:004D1BC4 8AD3                 mov dl, bl\--------------------------------/*将 Bl-->dl*/   
+
+:004D1BC6 8BF2                 mov esi, edx\------------------------------/*将 edx-->esi*/
+```
+
+
+
+:004D1BC8 33D2 xor edx, edx\------------------------------/\*edx 清零(异或）\*/
+
+:004D1BCA F7F6 div esi\-----------------------------------/\*eax/esi 结果保存在 eax 余数保存在 edx\*/
+
+:004D1BCC 85D2 test edx, edx\-----------------------------/\*检查是否有余数\*/
+
+:004D1BCE 7503 jne 004D1BD3------------------------------/\*若有则跳\*/
+
+:004D1BD0 FE45FD inc \[ebp\-03\]
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address: |:004D1BCE(C) |:
+
+:004D1BD3 807DFD02 cmp byte ptr \[ebp\-03\], 02
+
+:004D1BD7 7606 jbe 004D1BDF
+
+:004D1BD9 C645FE00 mov \[ebp\-02\], 00
+
+:004D1BDD EB05 jmp 004D1BE4
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address: |:004D1BD7(C) |:
+
+:004D1BDF 43 inc ebx\----------------------------------/\*edx+1\*/
+
+:004D1BE0 FEC9 dec cl
+
+:004D1BE2 75D9 jne 004D1BBD-----------------------------/不等于 0 跳\*/
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses: |:004D1BB8(C), :004D1BDD(U) |:
+
+:004D1BE4 8A45FE mov al, byte ptr \[ebp\-02\]
+
+:004D1BE7 5E pop esi
+
+:004D1BE8 5B pop ebx
+
+:004D1BE9 59 pop ecx
+
+:004D1BEA 5D pop ebp
+
+:004D1BEB C3 ret
+
+大家基本上看明白了吧？
+
+将用户名的一位 AscII 码提出/2 /3 /4 /5.........如果能被他本身整除即为素数....
+
+总结一下算法：
+
+如：用户名是`adyiyd`(为什么要加一个`a`呢？)^o^一会儿就知道了。
+
+字符串： a d y i y d
+
+AscII： 61 64 79 69 79 64
+
+十进制： 97 100 121 105 121 100
+
+`注册码=SN`
+
+`a` 为素数--->`A`(将他提出)---(原来`a`的 ASCII 码是个素数)^\_^
+
+`SN=A+((97*4+18)*2+(100*4+18)+(121*4+18)+(105*4+18)+(121*4+18))`----(为什么第一位*2 最后一位没有算呢？大家看看上边就清楚了)
+
+`SN=A2672`
+
+整理一下：
+
+用户名:`adyiyd`
+
+注册码:`A2672`
+
+我们一起写一个注册机....
+
+第一种方法：
+
+用`Crackcode2000`(具体用法请参考看雪主页里`RuFeng` 教程)
+
+`CRACKCODE.INI`中加入
+
+```
+[Options]
+CommandLine=ChinaZip.exe
+Mode=2
+First_Break_Address=4D1E31
+First_Break_Address_Code=E8
+First_Break_Address_Code_Lenth=5
+Second_Break_Address=4040D7
+Second_Break_Address_Code_Lenth=2
+Save_Code_Address=EDX
+```
+
+第二种方法：
+
+因为本文针对的是初学者，所以用`VB` 编制注册机
+
+源代码如下....
+
+```vb
+Private Sub Command1_Click()
+    Dim Sum As Long '第二部分总数
+    Dim StrString As String '第一部分字符串
+    Dim Strfull As String '输入的用户名
+    Dim StrPassWord As String '处理后的密码
+    Dim StrSingle As Integer '单独处理的字符的 ASC 码值
+    Dim intLen As Integer '用户名长度
+    Dim I As Integer, J As Integer
+    Dim flgFrist As Boolean '标示是否为第一次循环
+
+    StrString = ""
+    Sum = 0
+    '初始化为第一次循环
+    flgFrist = True
+    intLen = Len(Text1(0).Text)
+
+    If intLen <= 1 Then
+        MsgBox "请输入英文字符", vbInformation, "提示"
+        With Text1(0)
+            .SelStart = 0
+            .SelLength = Len(.Text)
+            .SetFocus
+        End With
+        Exit Sub
+    End If
+
+    '处理第二部分数字累加
+    For I = 1 To intLen - 1
+        StrSingle = Asc(Mid(Text1(0).Text, I))
+        '输入中文提示
+        If StrSingle < 0 Then
+            MsgBox "请输入英文字符", vbInformation, "提示"
+            With Text1(0)
+                .SelStart = 0
+                .SelLength = Len(.Text)
+                .SetFocus
+            End With
+            '如果为中文,则退出循环
+            Exit Sub
+        End If
+        Sum = Sum + StrSingle * 4 + 18
+    Next I
+
+    StrSingle = Asc(Mid(Text1(0).Text, 1))
+    Sum = Sum + StrSingle * 4 + 18
+    '累加和处理结束
+    StrPassWord = Trim(Str(Sum))
+    '处理第一部分字符连接
+    For I = 1 To intLen
+        StrSingle = Asc(Mid(Text1(0).Text, I))
+        J = 2
+        Do While StrSingle Mod J <> 0
+            If StrSingle = CLng(J) Then
+                Exit Do
+            End If
+            J = J + 1
+        Loop
+        If StrSingle = CLng(J) Then
+            StrString = StrString & UCase(Chr(StrSingle))
+        End If
+    Next I
+
+    Text1(1).Text = Trim(StrString) & Trim(StrPassWord)
+    With Text1(1)
+        .SelStart = 0
+        .SelLength = Len(.Text)
+        .SetFocus
+    End With
+End Sub
+```
+
+注：本程序没有对中文字符进行处理
+
+这种方法虽然笨一些，但是非常清楚。还是看不懂得朋友看看我家的注视吧!
+
+写了这么多，手已经麻了。还希望大家能够满意
+
+希望和大家多多交流!多提宝贵意见!^\_^
+
+注册机我的网页可以下载到
+
+`http://dyiyd.yeah.net`
+
+`dyiyd@yeah.net`
+
+`4dd466d0e1e0cc123afbe504da2462ca`

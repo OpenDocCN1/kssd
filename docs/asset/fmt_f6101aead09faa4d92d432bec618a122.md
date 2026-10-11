@@ -1,0 +1,148 @@
+
+# Cache and cookie washer
+
+> 原文：[`www.pediy.com/kssd/pediy01/forum105.htm`](https://www.pediy.com/kssd/pediy01/forum105.htm)
+
+下载 `www.webroot.com`
+
+软件名称:`cache and cookie washer`
+
+我已去除了 30 天限制,但每次启动时总有提示注册画面,
+
+按 `"Try it"` 后,软件运行.
+
+看看下面的代码。很显然它在 `DS:\[004679D4\]` 中设了个标志，
+
+强行将该标志置为 9 并跳过显示 Nag 的代码应该可行。
+
+跟一下它在哪里置这个标志，应该可以找到它把时间藏在什么地方。
+
+```
+:004628BF  cmp dword ptr \[004679D4\], 00000009
+
+:004628C6  jne 00462928
+
+\* Possible StringData Ref from Code Obj ->"You currently have "
+
+                               |
+
+:004628C8 push 00463740
+
+:004628CD push dword ptr \[004679D8\]
+
+\* Possible StringData Ref from Code Obj ->" left in your trial."
+
+                               |
+
+:004628D3 push 0046375C
+
+:004628D8 lea eax, dword ptr \[ebp\-14\]
+
+................
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:004628C6(C)
+
+|
+
+:00462928 cmp dword ptr \[004679D4\], 0000000A
+
+:0046292F jne 004629B7
+
+:00462935 mov eax, dword ptr \[00466EA8\]
+
+:0046293A mov eax, dword ptr \[eax\]
+
+:0046293C mov eax, dword ptr \[eax+000001E0\]
+
+\* Possible StringData Ref from Code Obj ->"    Sorry!     Your 30 day trial "
+
+                               ->"has expired."
+
+                               |
+
+:00462942 mov edx, 0046377C
+
+:00462947 call 00420444
+```
+
+下面有一处是把 `DS:\[004679D4\]` 清零，也要改掉，不过改的时候注意不要破坏堆栈了。还有其它简单些的改法。
+
+这个玩意儿显然把时间记录在 `HKEY\_LOCAL\_MACHINE\\Software\\caw2\\data` 里头。
+
+最变态的是它每次都要 `sleep( )` 一秒，使得启动极慢。可把传给 `sleep( )` 的
+
+参数由 `0x000003E8` 改为 1，或者干脆不要让它调用 `sleep( )`。 shit !
+
+```
+:0045D606 68E8030000               push 000003E8
+
+\* Reference To: kernel32.Sleep, Ord:0000h
+
+                               |
+
+:0045D60B E8B486FAFF               Call 00405CC4
+
+:0045D610 33C0                     xor eax, eax
+
+:0045D612 A3D4794600               mov dword ptr \[004679D4\], eax    //这里也要改成强行赋 9
+
+:0045D617 B101                     mov cl, 01
+
+\* Possible StringData Ref from Code Obj ->"\\Software\\caw2"
+
+                               |
+
+:0045D619 BA28D84500               mov edx, 0045D828
+
+:0045D61E 8B45F8                   mov eax, dword ptr \[ebp\-08\]
+
+:0045D621 E852AAFEFF               call 00448078
+
+:0045D626 8D4DEC                   lea ecx, dword ptr \[ebp\-14\]
+
+\* Possible StringData Ref from Code Obj ->"data"
+
+                               |
+
+:0045D629 BA40D84500               mov edx, 0045D840
+```
+
+除了上面所说的去除时间限制之外，如果还要去除 Nag，则将下面的 `jne 00462928` 直接改为 `jmp 004629B7` 即可。
+
+```
+:004628BF 833DD479460009            cmp dword ptr \[004679D4\], 00000009
+
+:004628C6 7560                       jne 00462928
+
+....................
+
+:00462928 833DD47946000A            cmp dword ptr \[004679D4\], 0000000A
+
+:0046292F 0F8582000000              jne 004629B7
+
+....................
+
+:004629B2 E94A0D0000                jmp 00463701
+
+:004629B7 8B45FC                     mov eax, dword ptr \[ebp\-04\]
+
+:004629BA E859B0FFFF                call 0045DA18
+
+:004629BF 8D55E8                     lea edx, dword ptr \[ebp\-18\]
+
+:004629C2 8B45FC                     mov eax, dword ptr \[ebp\-04\]
+
+:004629C5 E84ADAFBFF                call 00420414
+
+:004629CA 8B55E8                     mov edx, dword ptr \[ebp\-18\]
+
+:004629CD 8B45FC                     mov eax, dword ptr \[ebp\-04\]
+
+:004629D0 E89FE1FFFF                call 00460B74
+
+:004629D5 84C0                       test al, al
+
+:004629D7 7405                       je 004629DE
+```
