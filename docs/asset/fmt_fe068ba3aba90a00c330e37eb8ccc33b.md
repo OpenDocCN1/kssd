@@ -1,0 +1,302 @@
+
+### 00500E1E - 00500F0A 处代码
+
+```
+00500E1E   .  8B80 04030000   mov     eax, [eax+304]  
+
+00500E24   .  B2 01           mov     dl, 1  
+
+00500E26   .  E8 456FF4FF     call    00447D70  
+
+00500E2B   .  A1 28BE5100     mov     eax, [51BE28]  
+
+00500E30   .  E8 DB9AF7FF     call    0047A910  
+
+00500E35   .  EB 70           jmp     short 00500EA7  
+
+00500E37   >  6A 10           push    10                             ; /Style = MB_OK|MB_ICONHAND|MB_APPLMODAL  
+
+00500E39   .  68 AC0F5000     push    00500FAC                       ; |错误 86599  
+
+00500E3E   .  68 B80F5000     push    00500FB8                       ; |对不起，注册码不正确！  
+
+00500E43   .  6A 00           push    0                              ; |hOwner = NULL  
+
+00500E45   .  E8 666EF0FF     call    <jmp.&user32.MessageBoxA>      ; \\MessageBoxA  
+
+00500E4A   .  8B45 FC         mov     eax, [ebp-4]  
+
+00500E4D   .  8B80 00030000   mov     eax, [eax+300]  
+
+00500E53   .  33D2           xor     edx, edx  
+
+00500E55   .  E8 BE57F5FF     call    00456618  
+
+00500E5A   .  A1 5CA05100     mov     eax, [51A05C]  
+
+00500E5F   .  8B00           mov     eax, [eax]  
+
+00500E61   .  8B80 04030000   mov     eax, [eax+304]  
+
+00500E67   .  33D2           xor     edx, edx  
+
+00500E69   .  E8 026FF4FF     call    00447D70  
+
+00500E6E   .  EB 37           jmp     short 00500EA7  
+
+00500E70   >  6A 10           push    10                             ; /Style = MB_OK|MB_ICONHAND|MB_APPLMODAL  
+
+00500E72   .  68 D00F5000     push    00500FD0                       ; |错误 efgkc  
+
+00500E77   .  68 B80F5000     push    00500FB8                       ; |对不起，注册码不正确！  
+
+00500E7C   .  6A 00           push    0                              ; |hOwner = NULL  
+
+00500E7E   .  E8 2D6EF0FF     call    <jmp.&user32.MessageBoxA>      ; \\MessageBoxA  
+
+00500E83   .  8B45 FC         mov     eax, [ebp-4]  
+
+00500E86   .  8B80 00030000   mov     eax, [eax+300]  
+
+00500E8C   .  33D2           xor     edx, edx  
+
+00500E8E   .  E8 8557F5FF     call    00456618  
+
+00500E93   .  A1 5CA05100     mov     eax, [51A05C]  
+
+00500E98   .  8B00           mov     eax, [eax]  
+
+00500E9A   .  8B80 04030000   mov     eax, [eax+304]  
+
+00500EA0   .  33D2           xor     edx, edx  
+
+00500EA2   .  E8 C96EF4FF     call    00447D70  
+
+00500EA7   >  33C0           xor     eax, eax  
+
+00500EA9   .  5A             pop     edx  
+
+00500EAA   .  59             pop     ecx  
+
+00500EAB   .  59             pop     ecx  
+
+00500EAC   .  64:8910        mov     fs:[eax], edx  
+
+00500EAF   .  EB 14           jmp     short 00500EC5  
+
+00500EB1   .^ E9 4A34F0FF    jmp     00404300  
+
+00500EB6   .  A1 28BE5100     mov     eax, [51BE28]  
+
+00500EBB   .  E8 509AF7FF     call    0047A910  
+
+00500EC0   .  E8 A337F0FF     call    00404668  
+
+00500EC5   >  8B45 FC         mov     eax, [ebp-4]  
+
+00500EC8   .  8B80 08030000   mov     eax, [eax+308]  
+
+00500ECE   .  33D2           xor     edx, edx  
+
+00500ED0   .  E8 4F55F5FF     call    00456424  
+
+00500ED5   .  33C0           xor     eax, eax  
+
+00500ED7   .  5A             pop     edx  
+
+00500ED8   .  59             pop     ecx  
+
+00500ED9   .  59             pop     ecx  
+
+00500EDA   .  64:8910        mov     fs:[eax], edx  
+
+00500EDD   .  68 040F5000    push    00500F04  
+
+00500EE2   >  8D45 E4         lea     eax, [ebp-1C]  
+
+00500EE5   .  BA 03000000     mov     edx, 3  
+
+00500EEA   .  E8 453DF0FF     call    00404C34  
+
+00500EEF   .  8D45 F0         lea     eax, [ebp-10]  
+
+00500EF2   .  BA 03000000     mov     edx, 3  
+
+00500EF7   .  E8 383DF0FF     call    00404C34  
+
+00500EFC   .  C3             retn  
+
+00500EFD   .^ E9 B236F0FF    jmp     004045B4  
+
+00500F02   .^ EB DE         jmp     short 00500EE2  
+
+00500F04   .  5F             pop     edi  
+
+00500F05   .  5E             pop     esi  
+
+00500F06   .  5B             pop     ebx  
+
+00500F07   .  8BE5           mov     esp, ebp  
+
+00500F09   .  5D             pop     ebp  
+
+00500F0A   .  C3             retn  
+```
+
+### 跟进 500C91 处的代码如下
+
+```
+0040401C   $  50             push    eax  
+
+0040401D   .  51             push    ecx  
+
+0040401E   .  8B00           mov     eax, [eax]  
+
+00404020   .  E8 C7FFFFFF    call    00403FEC                       ;  这里跟进  
+
+00404025   .  59             pop     ecx  
+
+00404026   .  58             pop     eax  
+
+00404027   .  74 02         je      short 0040402B  
+
+00404029   .  FFE6           jmp     esi  
+
+0040402B   >  59             pop     ecx  
+
+0040402C   .^ E9 AFECFFFF   jmp     00402CE0  
+
+00404031   .  C3             retn  
+```
+
+### 跟进 404020 处的代码如下
+
+其中这里有 2 个 `call`，虽然说地址跟进是一样，但是有 2 段代码....小弟不明白,请各位大侠指点一二~
+
+```
+00403FEC  /$  57             push    edi  
+
+00403FED  |.  96             xchg    eax, esi  
+
+00403FEE  |.  EB 02         jmp     short 00403FF2  
+
+00403FF0  |>  8B36          /mov     esi, [esi]  
+
+00403FF2  |>  8B7E D0       mov     edi, [esi-30]  
+
+00403FF5  |.  85FF          |test    edi, edi  
+
+00403FF7  |.  74 0D         |je      short 00404006  
+
+00403FF9  |.  0FB70F       |movzx   ecx, word ptr [edi]  
+
+00403FFC  |.  51           |push    ecx  
+
+00403FFD  |.  83C7 02      |add     edi, 2  
+
+00404000  |.  F2:66:AF     |repne   scas word ptr es:[edi]  
+
+00404003  |.  74 0A         |je      short 0040400F  
+
+00404005  |.  59           |pop     ecx  
+
+00404006  |>  8B76 DC      |mov     esi, [esi-24]  
+
+00404009  |.  85F6         |test    esi, esi  
+
+0040400B  |.^ 75 E3        \\jnz     short 00403FF0  
+
+0040400D  |.  5F           pop     edi  
+
+0040400E  |.  C3           retn  
+
+0040400F  |>  58           pop     eax  
+
+00404010  |.  01C0         add     eax, eax  
+
+00404012  |.  29C8         sub     eax, ecx  
+
+00404014  |.  8B7447 FC    mov     esi, [edi+eax*2-4]  
+
+00404018  |.  5F           pop     edi  
+
+00404019  \\.  C3          retn  
+
+0040401A      8BC0         mov     eax, eax  
+
+0040401C   $  50             push    eax  
+
+0040401D   .  51             push    ecx  
+
+0040401E   .  8B00           mov     eax, [eax]  
+
+00404020   .  E8 C7FFFFFF    call    00403FEC                       
+
+00404025   .  59             pop     ecx  
+
+00404026   .  58             pop     eax  
+
+00404027   .  74 02         je      short 0040402B  
+
+00404029   . /FFE6           jmp     esi                              ;  *****.0044055C  （注意这里直接跳转）  
+
+0040402B   >  59             pop     ecx  
+
+0040402C   .^ E9 AFECFFFF   jmp     00402CE0  
+
+00404031   .  C3             retn  
+```
+
+中间省略 N 行代码~~~
+
+```
+0044055C  /$  55             push    ebp  
+
+0044055D  |.  8BEC           mov     ebp, esp  
+
+0044055F  |.  83C4 F8        add     esp, -8  
+
+00440562  |.  8945 FC        mov     [ebp-4], eax  
+
+00440565  |.  8B45 FC        mov     eax, [ebp-4]  
+
+00440568  |.  E8 DB340300    call    00473A48  
+
+0044056D  |.  8945 F8        mov     [ebp-8], eax  
+
+00440570  |.  837D F8 00     cmp     dword ptr [ebp-8], 0  
+
+00440574  |.  74 12         je      short 00440588  
+
+00440576  |.  8B45 FC        mov     eax, [ebp-4]  
+
+00440579  |.  8B80 14020000  mov     eax, [eax+214]  
+
+0044057F  |.  8B55 F8       mov     edx, [ebp-8]  
+
+00440582  |.  8982 4C020000 mov     [edx+24C], eax  
+
+00440588  |>  8B45 FC        mov     eax, [ebp-4]  
+
+0044058B  |.  E8 707D0100    call    00458300                       ;  算法  
+
+00440590  |.  59             pop     ecx  
+
+00440591  |.  59             pop     ecx  
+
+00440592  |.  5D             pop     ebp  
+
+00440593  \\.  C3            retn  
+```
+
+### 跟进 44058B 处的代码如下
+
+中间省略 N 行代码~~~
+
+```
+00458363  |.  8B40 6C       mov     eax, [eax+6C]  
+
+00458366  |.  8B08          mov     ecx, [eax]  
+
+00458368  |.  FF51 18       call    [ecx+18]  
+```
