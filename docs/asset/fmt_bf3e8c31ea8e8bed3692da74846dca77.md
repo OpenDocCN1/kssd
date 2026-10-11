@@ -1,0 +1,317 @@
+
+## C++ Source Code: Base64 and Blowfish Implementation
+
+The following code contains functions for handling Base64 encoding/decoding and Blowfish encryption/decryption, likely used in a cracking tool context.
+
+```cpp
+int Re_Base64(unsigned char *A, int len, unsigned char *out, int out_len)  
+{  
+    int i, j;  
+    char t;  
+    if(out_len < len * 3 / 4) return -1;  
+    memset(out, 0, out_len);  
+     for(i=0, j=0; i < len - 4; i += 4, j += 3)  
+        B_de(A + i, out + j);  
+    if(A[len - 1] != '=')  
+    {  
+        B_de(A + i, out + j);  
+        return 1;  
+    }  
+    else  
+    {  
+        if(A[len - 2] == '=')  
+        {  
+            t = B_search(A[i]);  
+            if(t == -1) return -1;  
+            out[j] = t << 2;  
+            t = B_search(A[i + 1]);  
+            if(t == -1) return -1;  
+            out[j] |= (t >> 4);  
+        }  
+        else  
+        {  
+            t = B_search(A[i]);  
+            if(t == -1) return -1;  
+            out[j] = t << 2;  
+            t = B_search(A[i + 1]);  
+            if(t == -1) return -1;  
+            out[j + 1] = t << 4;  
+            out[j] |= (t >> 4);  
+            t = B_search(A[i + 2]);  
+            if(t == -1) return -1;  
+            out[j + 1] |= (t >> 2);  
+            out[j + 2] |= (t << 6);  
+        }  
+    }  
+    return 1;  
+}  
+
+// Base64 encoding algorithm with specific errors. Since it's a dedicated sub-function, it is not generalized, only targeting 16-byte Base64 encoding.
+void Bad_Base64Enc(unsigned char *A, unsigned char *out)  
+{  
+    int i, j;  
+   
+    for(i = 0, j = 0; i < 15; i += 3)  
+    {  
+        out[j] = Table[A[i] >> 2];  
+        out[j + 1] = Table[((A[i] << 4) | (A[i + 1] >> 4)) & 0x3f];  
+        out[j + 2] = Table[((A[i + 1] << 2) | (A[i + 2] >> 6)) & 0x3f];  
+        out[j + 3] = Table[A[i + 2] & 0x3f];  
+        if(out[j + 3] == 'A') j += 3;  
+        else j += 4;  
+    }  
+    out[j] = Table[A[i] >> 2];  
+    out[j + 1] = Table[(A[i] << 4) & 0x3f];  
+    if(out[j + 1] == 'A')  
+    {  
+        out[j + 1] = '=';  
+        out[j + 2] = '=';  
+        return;  
+    }  
+    out[j + 2] = '=';  
+    out[j + 3] = '=';  
+    return;  
+}  
+
+void Usage()  
+{  
+    printf("Usage: Ediary_Crack  diaryfile  dictionaryfile");  
+}  
+
+int Blow_decry(unsigned long *AA)  
+{  
+    unsigned long L = AA[0], R = AA[1];  
+    unsigned long L1 = AA[2], R1 = AA[3];  
+    unsigned long L2 = AA[4], R2 = AA[5];  
+    unsigned long s0 = 0xffffffff, s1 = 0xffffffff;  
+    unsigned long s2, s3;  
+    BLOWFISH_CTX ctx;  
+    int i;  
+    unsigned char *p;  
+    unsigned char Key[16] = {0xf9, 0x6c, 0xea, 0x19, 0x8a, 0xd1, 0xdd, 0x56, 0x17, 0xac, 0x08, 0x4a, 0x3d, 0x92, 0xc6, 0x10};  
+    Blowfish_Init(&ctx, Key, 16);  
+    // Encrypt 8 bytes of all f as IV, encryption mode is feedback mode
+    Blowfish_Encrypt(&ctx, &s0, &s1);  
+    _asm  
+    {  
+        mov eax, s0  
+        bswap eax  
+        mov s0, eax  
+        mov eax, s1  
+        bswap eax  
+        mov s1, eax  
+    }  
+    s2 = L ^ s0; s3 = R ^ s1;  
+    _asm  
+    {  
+        mov eax, L  
+        bswap eax  
+        mov L, eax  
+        mov eax, R  
+        bswap eax  
+        mov R, eax  
+    }  
+    Blowfish_Decrypt(&ctx, &L, &R);  
+    _asm  
+    {  
+        mov eax, L  
+        bswap eax  
+        mov L, eax  
+        mov eax, R  
+        bswap eax  
+        mov R, eax  
+    }  
+    L ^= s0; R ^= s1;  
+   
+
+   
+
+    s0 = L1 ^ s2; s1 = R1 ^ s3;  
+    _asm  
+    {  
+        mov eax, L1  
+        bswap eax  
+        mov L1, eax  
+        mov eax, R1  
+        bswap eax  
+        mov R1, eax  
+    }  
+    Blowfish_Decrypt(&ctx, &L1, &R1);  
+    _asm  
+    {  
+        mov eax, L1  
+        bswap eax  
+        mov L1, eax  
+        mov eax, R1  
+        bswap eax  
+        mov R1, eax  
+    }  
+    L1 ^= s2; R1 ^= s3;  
+   
+
+   
+
+    s2 = L2 ^ s0; s3 = R2 ^ s1;  
+    _asm  
+    {  
+        mov eax, L2  
+        bswap eax  
+        mov L2, eax  
+        mov eax, R2  
+        bswap eax  
+        mov R2, eax  
+    }  
+    Blowfish_Decrypt(&ctx, &L2, &R2);  
+    _asm  
+    {  
+        mov eax, L2  
+        bswap eax  
+        mov L2, eax  
+        mov eax, R2  
+        bswap eax  
+        mov R2, eax  
+    }  
+    L2 ^= s0; R2 ^= s1;  
+
+    AA[0] = L; AA[1] = R;  
+    AA[2] = L1; AA[3] = R1;  
+    AA[4] = L2; AA[5] = R2;  
+    p = (unsigned char*)AA;  
+    for(i = 0; i < 24; i++)  
+        if(p[i] != 0)  
+            break;  
+    return i;  
+}  
+
+int Try_Check(unsigned char *try_key, unsigned char *De_base64, int len)  
+{  
+    unsigned char *p;  
+    shsInit(&Digit);  
+    shsUpdate(&Digit, try_key, len);  
+    shsFinal(&Digit);  
+    p = Digit.digest;  
+    _asm  
+    {  
+        mov ebx, p  
+        mov eax, dword ptr [ebx]  
+        bswap eax  
+        mov [ebx], eax  
+        mov eax, dword ptr [ebx+4]  
+        bswap eax  
+        mov [ebx+4], eax  
+        mov eax, dword ptr [ebx+8]  
+        bswap eax  
+        mov [ebx+8], eax  
+        mov eax, dword ptr [ebx+12]  
+        bswap eax  
+        mov [ebx+12], eax  
+    }  
+    if(!memcmp(Digit.digest, De_base64, 16))  
+        return 1;  
+    return 0;  
+}  
+
+int Try_Check_1(unsigned char *try_key, unsigned char *data2, int len)  
+{  
+    unsigned char *p;  
+   
+    unsigned char b_out[32];  
+    int i, t;  
+    shsInit(&Digit);  
+    shsUpdate(&Digit, try_key, len);  
+    shsFinal(&Digit);  
+    p = Digit.digest;  
+   
+    _asm  
+    {  
+        mov ebx, p  
+        mov eax, dword ptr [ebx]  
+        bswap eax  
+        mov [ebx], eax  
+        mov eax, dword ptr [ebx+4]  
+        bswap eax  
+        mov [ebx+4], eax  
+        mov eax, dword ptr [ebx+8]  
+        bswap eax  
+        mov [ebx+8], eax  
+        mov eax, dword ptr [ebx+12]  
+        bswap eax  
+        mov [ebx+12], eax  
+    }  
+
+    Bad_Base64Enc(p, b_out);  
+    if(!memcmp(b_out, data2, 24 - wrong_n)) return 1;  
+    return 0;  
+}  
+
+void main(int argc, char **argv)  
+{  
+    FILE *pe, *pd;  
+    int i;  
+    unsigned char data1[24];  
+    unsigned char try_key[100];  
+    unsigned char De_base64[20];  
+    int key_len;  
+    if(argc != 3)  
+    {  
+        Usage();  
+        return;  
+    }  
+    pe = fopen(argv[1], "rb");  
+    pd = fopen(argv[2], "rb");  
+    if((!pe) || (!pd))  
+    {  
+        printf("error in reading files.");  
+        return;  
+    }  
+    fseek(pe, 0x957, SEEK_SET);  
+    fread(data1, 24, 1, pe);  
+    fclose(pe);  
+    wrong_n = Blow_decry(data1);  
+    if(!wrong_n)  
+    {  
+        Re_Base64(data1, 24, De_base64, 20);  
+        while(fgets(try_key, 100, pd))  
+        {  
+            for(i = 0, key_len = 0; ; i++, key_len++)  
+            {  
+                if(try_key[i] == 0x0d)  
+                    break;  
+            }  
+            if(Try_Check(try_key, De_base64, key_len))  
+            {  
+                printf("the key is:%s\n", try_key);  
+                fclose(pd);  
+                return;  
+            }  
+        }  
+        printf("sorry,we can't find the key. Try another dictionary!");  
+        fclose(pd);  
+        return;  
+    }  
+    else  
+    {  
+        while(fgets(try_key, 100, pd))  
+        {  
+            for(i = 0, key_len = 0; ; i++, key_len++)  
+            {  
+                if(try_key[i] == 0x0d)  
+                    break;  
+            }  
+            if(Try_Check_1(try_key, data1 + wrong_n, key_len))  
+            {  
+                printf("the key is:%s\n", try_key);  
+                fclose(pd);  
+                return;  
+            }  
+        }  
+        printf("sorry,we can't find the key. Try another dictionary!");  
+        fclose(pd);  
+        return;  
+    }  
+}
+```
+
+SHS and Blowfish related algorithms are not included here.
+
+`4dd466d0e1e0cc123afbe504da2462ca`
