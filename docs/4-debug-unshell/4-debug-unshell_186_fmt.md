@@ -1,0 +1,1517 @@
+
+# Armadillo 几个版本脱壳总结--5 个软件实例！超详细！
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-582.htm`](https://www.pediy.com/kssd/pediy07/pediy7-582.htm)
+
+脱壳声明：纯属技术交流，请软件作者勿见怪！转载请保证文章的完整性---By wynney
+
+遇到过 Armadillo 的朋友应该知道，它是有点变态的。。中文意思“穿山甲”，可想而知，是很难脱的。
+
+首先介绍一下 Armadillo 的一些版本以及保护方式、线程情况吧
+
+## 版本与保护方式
+
+### 版本
+
+1. 1.xx--2.xx
+2. 3.0a--3.61
+3. 3.75
+4. 3.78
+5. 4.x
+
+### 保护方式
+
+* 标准方式
+* 非标准方式======> `Armadillo CopyMem-ll + Debug-Blocker`
+
+### 线程
+
+* 单线程
+* 双线程
+
+上面三种特征都可以两两组合，或者是三三组合。。变化方式之多，可见一斑！下面我将做下总结！希望
+
+能够起到抛砖引玉的作用！
+
+我的操作平台是 XP SP2，在不同的平台上所看到的代码是不一样的，所以还是请大家自己动手操作一下！
+
+我在 SP1 系统上也操作过，发现 SP1 上效果似乎比 SP2 好一点，至少寻找返回时机要明了一些！还有就是脱
+
+壳后的文件会出现跨平台现象，我只会简单的处理方法，可以尽量的降低跨平台现象出现的几率，努力学
+
+习中！呵呵！
+
+保护方式判断：如果你用脱标准壳的方法去脱不行的话，那么就很有可能是非标准版啦。
+
+线程的判断：
+
+* 方法 1、运行程序，打开系统的任务管理器，看看有几个同名进程咯。
+* 方法 2、运行程序，打开 `LordPE`，同样是看看有几个同名进程。一个的话就是单进程，两个就是双进程。
+
+## 脱壳前的准备
+
+（为了节约时间，我在后面将不做说明了，大家要记住！）
+
+1. `OD` 设置忽略所有的异常，用隐藏插件隐藏 `OD`！
+2. 思想准备：`Armadillo` 对断点的检测非常严格，所以我们在设置断点的时候要尽量去使用“硬件执行”
+3. 概念准备：使用 `PEID` 的 `Armadillo` 的版本检测一般没那么准确，我倒是发现 `fi` 的版本检测还是要强一些
+4. `Magic Jump`：跳转的跨越段一般比较大！（返回时机一定要对！）
+5. 返回的时机：
+    1. 返回的地址是系统领空
+    2. `F9` 过程当中，时间缓冲比较大才停下（得自己体会一下）
+
+！！！！！！！！！为了节约时间，我就不一一去查壳、不看它是单、还是双线程了！！！！！！！！！
+
+++++++++我们先不去管版本，因为保护方式一样的情况下，脱壳的方法一般上，基本一样的。+++++++++
+
+## 1. 1.xx--2.xx & 单线程 & 标准方式
+
+目标程序“`XDeskWeather 3.6`（桌面天气秀）”
+
+特别声明：偶知道这个软件是密界一位前辈的作品，脱它只是做练习，请前辈不要怪罪
+
+### 方法
+
+2 次断点法，即是：
+
+```
+bp GetModuleHandleA/he GetModuleHandleA
+bp GetCurrentThreadId
+```
+
+`OD`，载入。。。。。
+
+```
+004FD379 X>/$  55             push ebp  //程序入口
+004FD37A   |.  8BEC           mov ebp,esp
+004FD37C   |.  6A FF          push -1
+```
+
+下断 `he GetModuleHandleA`，`F9` 运行，注意看堆栈！
+
+```
+7C80B529 k>  8BFF             mov edi,edi     ;ntdll.7C930738 //停在这里
+7C80B52B     55               push ebp
+7C80B52C     8BEC             mov ebp,esp
+7C80B52E     837D 08 00       cmp dword ptr ss:[ebp+8],0
+```
+
+每一次 `F9` 运行时候，所出现的堆栈情况！
+
+```
+0012FF38    004FD441  /CALL 到 GetModuleHandleA 来自 XDeskWea.004FD43B
+0012FF3C    00000000  \pModule = NULL
+0012FF40    00000000
+
+0012ED48    77F45BB0  /CALL 到 GetModuleHandleA 来自 SHLWAPI.77F45BAA
+0012ED4C    77F44FF4  \pModule = "KERNEL32.DLL"
+0012ED50    00000001
+
+0012EC88    5D175334  /CALL 到 GetModuleHandleA 来自 COMCTL32.5D17532E
+0012EC8C    5D175380  \pModule = "kernel32.dll"
+0012EC90    5D1E3AB8  COMCTL32.5D1E3AB8
+
+0012F55C    004F3073  /CALL 到 GetModuleHandleA 来自 XDeskWea.004F306D
+0012F560    00000000  \pModule = NULL
+0012F564    7C939BA0  返回到 ntdll.7C939BA0 来自 ntdll.7C9399B5
+
+0012C280    00C15331  /CALL 到 GetModuleHandleA 来自 00C1532B  //到这一次的时间缓冲有点大
+0012C284    0012C3BC  \pModule = "kernel32.dll"
+0012C288    00000002
+```
+
+此时，取消断点，`Alt+F9` 返回！
+
+```
+00C15331     8B0D 60D8C300    mov ecx,dword ptr ds:[C3D860]   //返回到这里
+00C15337     89040E           mov dword ptr ds:[esi+ecx],eax
+00C1533A     A1 60D8C300      mov eax,dword ptr ds:[C3D860]
+00C1533F     393C06           cmp dword ptr ds:[esi+eax],edi
+00C15342     75 16            jnz short 00C1535A
+00C15344     8D85 B4FEFFFF    lea eax,dword ptr ss:[ebp-14C]
+00C1534A     50               push eax
+00C1534B     FF15 B850C300    call dword ptr ds:[C350B8]     ; kernel32.LoadLibraryA
+00C15351     8B0D 60D8C300    mov ecx,dword ptr ds:[C3D860]
+00C15357     89040E           mov dword ptr ds:[esi+ecx],eax
+00C1535A     A1 60D8C300      mov eax,dword ptr ds:[C3D860]
+00C1535F     393C06           cmp dword ptr ds:[esi+eax],edi
+00C15362     0F84 AD000000    je 00C15415                     //Magic Jump，改 jmp！
+00C15368     33C9             xor ecx,ecx
+00C1536A     8B03             mov eax,dword ptr ds:[ebx]
+00C1536C     3938             cmp dword ptr ds:[eax],edi
+00C1536E     74 06            je short 00C15376
+```
+
+此时第一个断点的任务完成！
+
+下断 `bp GetCurrentThreadId`，`F9`，注意观察堆栈！
+
+```
+7C809737 k>  64:A1 18000000    mov eax,dword ptr fs:[18]   //停在这里
+7C80973D     8B40 24          mov eax,dword ptr ds:[eax+24]
+7C809740     C3               retn
+```
+
+```
+0012BB40    73391E36  /CALL 到 GetCurrentThreadId 来自 73391E30
+0012BB44    00000001
+
+0012BB48    73391C1A  返回到 73391C1A 来自 73391DE2
+0012BB4C    73391B60  返回到 73391B60 来自 73391B8C
+
+0012BB20    7339353F  /CALL 到 GetCurrentThreadId 来自 73393539
+0012BB24    00000000
+0012BB28    734A0470
+
+0012F5A8    00C2CF2D  /CALL 到 GetCurrentThreadId 来自 00C2CF27   //到这一次的时间缓冲有点大
+0012F5AC    0012FF2C
+0012F5B0    00000000
+```
+
+此时，取消断点，`Alt+F9` 返回！
+
+```
+00C2CF2D     A3 F018C400       mov dword ptr ds:[C418F0],eax   //返回到了这里！
+00C2CF32     E8 2487FEFF       call 00C1565B
+00C2CF37     6A 00             push 0
+00C2CF39     E8 4BD9FEFF       call 00C1A889
+00C2CF3E     59                pop ecx
+00C2CF3F     E8 7D39FFFF       call 00C208C1
+00C2CF44     8BF8              mov edi,eax
+00C2CF46     A1 E018C400       mov eax,dword ptr ds:[C418E0]
+00C2CF4B     8B48 74           mov ecx,dword ptr ds:[eax+74]
+00C2CF4E     3348 5C           xor ecx,dword ptr ds:[eax+5C]
+00C2CF51     3308              xor ecx,dword ptr ds:[eax]
+00C2CF53     03F9              add edi,ecx
+00C2CF55     8B0E              mov ecx,dword ptr ds:[esi]
+00C2CF57     85C9              test ecx,ecx
+00C2CF59     75 2E             jnz short 00C2CF89
+00C2CF5B     8B78 5C           mov edi,dword ptr ds:[eax+5C]
+00C2CF5E     E8 5E39FFFF       call 00C208C1
+00C2CF63     8B0D E018C400     mov ecx,dword ptr ds:[C418E0]    ; XDeskWea.0051F258
+00C2CF69     FF76 14           push dword ptr ds:[esi+14]
+00C2CF6C     8B51 74           mov edx,dword ptr ds:[ecx+74]
+00C2CF6F     FF76 10           push dword ptr ds:[esi+10]
+00C2CF72     33D7              xor edx,edi
+00C2CF74     3311              xor edx,dword ptr ds:[ecx]
+00C2CF76     FF76 0C           push dword ptr ds:[esi+C]
+00C2CF79     03C2              add eax,edx
+```
+
+
+
+00C2CF7B     8B51 78           mov edx,dword ptr ds:\[ecx+78\]  
+
+00C2CF7E     3351 14           xor edx,dword ptr ds:\[ecx+14\]  
+
+00C2CF81     33D7              xor edx,edi  
+
+00C2CF83     2BC2              sub eax,edx  
+
+00C2CF85     FFD0              call eax  
+
+00C2CF87     EB 25             jmp short 00C2CFAE  
+
+00C2CF89     83F9 01           cmp ecx,1  
+
+00C2CF8C     75 22             jnz short 00C2CFB0  
+
+00C2CF8E     FF76 04          push dword ptr ds:\[esi+4\]  
+
+00C2CF91     FF76 08          push dword ptr ds:\[esi+8\]  
+
+00C2CF94     6A 00            push 0  
+
+00C2CF96     E8 2639FFFF      call 00C208C1  
+
+00C2CF9B     50               push eax  
+
+00C2CF9C     A1 E018C400      mov eax,dword ptr ds:\[C418E0\]  
+
+00C2CFA1     8B48 78          mov ecx,dword ptr ds:\[eax+78\]  
+
+00C2CFA4     3348 5C          xor ecx,dword ptr ds:\[eax+5C\]  
+
+00C2CFA7     3348 14          xor ecx,dword ptr ds:\[eax+14\]  
+
+00C2CFAC     FFD7              call edi   //直接到这下“硬件执行”断点，F9，取消断点，F7 进入  
+
+004D12D4     55               push ebp   //到这里了，OEP！LordPE-纠正映像-Dump！  
+
+004D12D5     8BEC              mov ebp,esp  
+
+004D12D7     83C4 F0          add esp,-10  
+
+004D12DA     B8 0C0E4D00      mov eax,XDeskWea.004D0E0C  
+
+004D12DF     E8 004EF3FF      call XDeskWea.004060E4  
+
+004D12E4     A1 B06E4D00      mov eax,dword ptr ds:\[4D6EB0\]  
+
+004D12E9     8B00              mov eax,dword ptr ds:\[eax\]  
+
+004D12EB     E8 08C0F9FF      call XDeskWea.0046D2F8  
+
+004D12F0     E8 D7E5FFFF      call XDeskWea.004CF8CC  
+
+004D12F5     A1 B06E4D00      mov eax,dword ptr ds:\[4D6EB0\]  
+
+004D12FA     8B00              mov eax,dword ptr ds:\[eax\]  
+
+OD，不要关！打开 import--选择进程--OEP 输入 D12D4--自动搜索 IAT--获取输入表--显示无效函数--CUT！  
+
+这样就可以了！因为这个软件是半透明界面，大家在录象中可能看不到，那就这样看吧~~  
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+## 2、Armadillo 3.00a - 3.61&单&标准方式=====》目标程序“查重软件 2.0 版（MARC 数据相关）”  
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+方法：2 次断点法，即是：  
+
+\`\`\`
+bp GetModuleHandleA/he GetModuleHandleA  
+bp GetCurrentThreadId  
+\`\`\`
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+OD 载入。。。。。  
+
+\`\`\`
+00469000 g>  60               pushad  //入口  
+00469001     E8 00000000     call gz\_LibIn.00469006  
+00469006     5D               pop ebp  
+\`\`\`
+
+he `GetModuleHandleA` 下断，F9，注意堆栈！  
+
+\`\`\`
+7C80B529 k>  8BFF             mov edi,edi   //入口  
+7C80B52B     55               push ebp  
+7C80B52C     8BEC             mov ebp,esp  
+7C80B52E     837D 08 00       cmp dword ptr ss:\[ebp+8\],0  
+7C80B532     74 18            je short kernel32.7C80B54C  
+0046B4A3     F0:            prefix lock:          //第一次典型异常，Shift+F9 过！  
+0046B4A4     F0:C7          ???                 ；未知命令  
+0046B4A6     C8 6033C9      enter 3360,0C9  
+0046B4AA     75 02            jnz short gz\_LibIn.0046B4AE  
+0046B4AC     EB 15            jmp short gz\_LibIn.0046B4C3  
+0046B4AE     EB 33            jmp short gz\_LibIn.0046B4E3  
+0046B4B0     C9               leave  
+0046B5BC     F0:            prefix lock:          //第二次典型异常，Shift+F9 过！  
+0046B5BD     F0:C7          ???                 ; 未知命令  
+0046B5BF     C8 64678F      enter 6764,8F  
+0046B5C3     06               push es  
+0046B5C4     0000             add byte ptr ds:\[eax\],al  
+0046B5C6     83C4 04          add esp,4  
+0046B5C9     8B85 5E3E0000  mov eax,dword ptr ss:\[ebp+3E5E\]  
+0046B5CF     60               pushad  
+7C80B529 k>  8BFF             mov edi,edi       //硬件中断在这里  
+7C80B52B     55               push ebp  
+7C80B52C     8BEC             mov ebp,esp  
+7C80B52E     837D 08 00       cmp dword ptr ss:\[ebp+8\],0  
+7C80B532     74 18            je short kernel32.7C80B54C  
+\`\`\`
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+每一次 `F9` 运行时候，所出现的堆栈情况！  
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+\`\`\`
+0012C258    00AF5331  /CALL 到 GetModuleHandleA 来自 00AF532B  
+0012C25C    0012C394  \\pModule = "kernel32.dll"  
+0012C260    00000002  
+\`\`\`
+
+这个只 `F9` 一次，`Shift+F9` 两次就可以返回了。。。  
+
+此时取消断点！就可以返回了  
+
+\`\`\`
+00AF5331     8B0D 60D8B100    mov ecx,dword ptr ds:\[B1D860\]     //返回到这里  
+00AF5337     89040E           mov dword ptr ds:\[esi+ecx\],eax  
+00AF533A     A1 60D8B100     mov eax,dword ptr ds:\[B1D860\]  
+00AF533F     393C06           cmp dword ptr ds:\[esi+eax\],edi  
+00AF5342     75 16            jnz short 00AF535A  
+00AF5344     8D85 B4FEFFFF   lea eax,dword ptr ss:\[ebp-14C\]  
+00AF534A     50               push eax  
+00AF534B     FF15 B850B100   call dword ptr ds:\[B150B8\]   ; kernel32.LoadLibraryA  
+00AF5351     8B0D 60D8B100   mov ecx,dword ptr ds:\[B1D860\]  
+00AF5357     89040E           mov dword ptr ds:\[esi+ecx\],eax  
+00AF535A     A1 60D8B100     mov eax,dword ptr ds:\[B1D860\]  
+00AF535F     393C06           cmp dword ptr ds:\[esi+eax\],edi  
+00AF5362     0F84 AD000000   je 00AF5415   //Magic Jump！改 jmp！跳转很大的。。只是没跳而已  
+00AF5368     33C9             xor ecx,ecx  
+00AF536A     8B03             mov eax,dword ptr ds:\[ebx\]  
+00AF536C     3938             cmp dword ptr ds:\[eax\],edi  
+00AF536E     74 06            je short 00AF5376  
+\`\`\`
+
+此时第一断点的任务就完成了！  
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+下断 `bp GetCurrentThreadId`，`F9` 运行，注意堆栈！  
+
+\`\`\`
+7C809737 k>  64:A1 18000000  mov eax,dword ptr fs:\[18\]  //停在这  
+7C80973D     8B40 24          mov eax,dword ptr ds:\[eax+24\]  
+7C809740     C3               retn  
+\`\`\`
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+每一次 `F9` 运行时候，所出现的堆栈情况！  
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+\`\`\`
+0012BB18    73391E36  /CALL 到 GetCurrentThreadId 来自 73391E30  
+0012BB1C    00000001  
+0012BB20    73391C1A  返回到 73391C1A 来自 73391DE2  
+0012BAF8    7339353F  /CALL 到 GetCurrentThreadId 来自 73393539  
+0012BAFC    00000000  
+0012BB00    734A0470  
+0012BB04    734A04D8  
+0012BD54    73DC9AD7  /CALL 到 GetCurrentThreadId 来自 73DC9AD1  
+0012BD58    00000000  
+0012BD5C    73E08100  
+0012BD60    73D30000  
+0012F580    00B0CF2D  /CALL 到 GetCurrentThreadId 来自 00B0CF27   //这一次时间缓冲比较大！  
+0012F584    0012FF04  
+0012F588    00000000  
+\`\`\`
+
+取消断点，返回！  
+
+\`\`\`
+00B0CF2D     A3 F018B200       mov dword ptr ds:\[B218F0\],eax   //回到这里  
+00B0CF32     E8 2487FEFF       call 00AF565B  
+00B0CF37     6A 00             push 0  
+00B0CF39     E8 4BD9FEFF       call 00AFA889  
+00B0CF3E     59               pop ecx  
+00B0CF3F     E8 7D39FFFF       call 00B008C1  
+00B0CF44     8BF8             mov edi,eax  
+00B0CF46     A1 E018B200      mov eax,dword ptr ds:\[B218E0\]  
+00B0CF4B     8B48 74          mov ecx,dword ptr ds:\[eax+74\]  
+00B0CF4E     3348 5C          xor ecx,dword ptr ds:\[eax+5C\]  
+00B0CF51     3308             xor ecx,dword ptr ds:\[eax\]  
+00B0CF53     03F9             add edi,ecx  
+00B0CF55     8B0E             mov ecx,dword ptr ds:\[esi\]  
+00B0CF57     85C9             test ecx,ecx  
+00B0CF59     75 2E            jnz short 00B0CF89  
+00B0CF5B     8B78 5C          mov edi,dword ptr ds:\[eax+5C\]  
+00B0CF5E     E8 5E39FFFF      call 00B008C1  
+00B0CF63     8B0D E018B200    mov ecx,dword ptr ds:\[B218E0\]               ;  
+\`\`\`
+
+`gz\_LibIn.00479258`
+
+
+
+```
+00B0CF69 FF76 14 push dword ptr ds:[esi+14]
+00B0CF6C 8B51 74 mov edx,dword ptr ds:[ecx+74]
+00B0CF6F FF76 10 push dword ptr ds:[esi+10]
+00B0CF72 33D7 xor edx,edi
+00B0CF74 3311 xor edx,dword ptr ds:[ecx]
+00B0CF76 FF76 0C push dword ptr ds:[esi+C]
+00B0CF79 03C2 add eax,edx
+00B0CF7B 8B51 78 mov edx,dword ptr ds:[ecx+78]
+00B0CF7E 3351 14 xor edx,dword ptr ds:[ecx+14]
+00B0CF81 33D7 xor edx,edi
+00B0CF83 2BC2 sub eax,edx
+00B0CF85 FFD0 call eax
+00B0CF87 EB 25 jmp short 00B0CFAE
+00B0CF89 83F9 01 cmp ecx,1
+00B0CF8C 75 22 jnz short 00B0CFB0
+00B0CF8E FF76 04 push dword ptr ds:[esi+4]
+00B0CF91 FF76 08 push dword ptr ds:[esi+8]
+00B0CF94 6A 00 push 0
+00B0CF96 E8 2639FFFF call 00B008C1
+00B0CF9B 50 push eax
+00B0CF9C A1 E018B200 mov eax,dword ptr ds:[B218E0]
+00B0CFA1 8B48 78 mov ecx,dword ptr ds:[eax+78]
+00B0CFA4 3348 5C xor ecx,dword ptr ds:[eax+5C]
+00B0CFA7 3348 14 xor ecx,dword ptr ds:[eax+14]
+00B0CFAA 2BF9 sub edi,ecx
+00B0CFAC FFD7 call edi //直接到这下“硬件执行”断点，F9，取消断点，F7 进入
+00434A94 55 push ebp //到这里了，OEP！LordPE-纠正映像-Dump！
+00434A95 8BEC mov ebp,esp
+00434A97 6A FF push -1
+00434A99 68 08D84300 push gz_LibIn.0043D808
+00434A9E 68 844C4300 push gz_LibIn.00434C84 ; jmp to msvcrt._except_handler3
+00434AA3 64:A1 00000000 mov eax,dword ptr fs:[0]
+00434AA9 50 push eax
+00434AAA 64:8925 00000000 mov dword ptr fs:[0],esp
+00434AB1 83EC 68 sub esp,68
+00434AB4 53 push ebx
+00434AB5 56 push esi
+00434AB6 57 push edi
+```
+
+不要关掉 `OD`！打开 import--选择进程--`OEP` 输入 `34A94`--自动搜索 `IAT`--获取输入表--显示无效函数--`CUT`！
+
+这样就可以了！这里查壳还是 `Armadillo` `1.xx` - `2.xx` -> `Silicon Realms Toolworks`，和二哥那里出现一样的现象。。那么我们用 `FI` 查下看看~没壳。。至于为什么 `PEID` 显示还是有壳~应该是加壳的缘故吧~
+
+3、`Armadillo` `V3.6`&双进程&标准方式=======》目标程序“超级兔子 `IE` 专家 `5.60` 企业版-iepro.exe”
+
+方法：`3` 次断点法，即是：
+
+- `bp OpenMutexA`
+- `bp GetModuleHandleA/he GetModuleHandleA`
+- `bp GetCurrentThreadId`
+
+`OD` 载入
+
+```
+00567000 i> 60 pushad //入口
+00567001 E8 00000000 call iepro.00567006
+00567006 5D pop ebp
+00567007 50 push eax
+```
+
+`BP OpenMutexA`，`F9`，转换成单进程！
+
+```
+0056ADCB F0: prefix lock: //第一次异常，Shift+F9 过！
+0056ADCC F0:C7 ??? ; 未知命令
+0056ADCE C8 6033C9 enter 3360,0C9
+0056ADD2 75 02 jnz short iepro.0056ADD6
+0056AEE4 F0: prefix lock: //第二次异常，Shift+F9 过！
+0056AEE5 F0:C7 ??? ; 未知命令
+0056AEE7 C8 64678F enter 6764,8F
+0056AEEB 06 push es
+0056AEEC 0000 add byte ptr ds:[eax],al
+7C80EC1B k> 8BFF mov edi,edi //断在这里，看堆栈！
+7C80EC1D 55 push ebp
+7C80EC1E 8BEC mov ebp,esp
+7C80EC20 51 push ecx
+7C80EC21 51 push ecx
+7C80EC22 837D 10 00 cmp dword ptr ss:[ebp+10],0
+7C80EC26 56 push esi
+```
+
+```
+0012F574 0053E141 /CALL 到 OpenMutexA 来自 iepro.0053E13B
+0012F578 001F0001 |Access = 1F0001
+0012F57C 00000000 |Inheritable = FALSE
+0012F580 0012FBB4 \MutexName = "758::DA3A38CB6B" //需要用到
+```
+
+`Ctrl+G` `00401000` 键入以下欺骗代码！
+
+```
+00401000 60 pushad
+00401001 9C pushfd
+00401002 68 B4FB1200 push 0012FBB4 ★ 堆栈里看到的值
+00401007 33C0 xor eax,eax
+00401009 50 push eax
+0040100A 50 push eax
+0040100B E8 B4B2A577 call kernel32.CreateMutexA
+00401010 9D popfd
+00401011 61 popad
+00401012 E9 33F7A577 jmp kernel32.OpenMutexA
+```
+
+二进制代码
+
+```
+60 9C 68 B4 FB 12 00 33 C0 50 50 E8 2F DB 40 7C 9D 61 E9 04 DC 40 7C
+```
+
+在 `401000` 处新建起源，`F9` 运行，再次中断在 `OpenMutexA` 处，取消断点，再次来到 `401000`，撤消刚才的修改
+
+第一断点的任务完成！！
+
+下断 `he GetModuleHandleA`。注意看堆栈！
+
+```
+7C80B529 k> 8BFF mov edi,edi //停在这里！
+7C80B52B 55 push ebp
+7C80B52C 8BEC mov ebp,esp
+7C80B52E 837D 08 00 cmp dword ptr ss:[ebp+8],0
+7C80B532 74 18 je short kernel32.7C80B54C
+```
+
+每一次 `F9` 运行时候，所出现的堆栈情况！
+
+```
+0012EC44 5D175334 /CALL 到 GetModuleHandleA 来自 5D17532E
+0012EC48 5D175380 \pModule = "kernel32.dll"
+0012EC4C 5D1E3AB8
+0012ED04 77F45BB0 /CALL 到 GetModuleHandleA 来自 SHLWAPI.77F45BAA //非返回系统地址~
+0012ED08 77F44FF4 \pModule = "KERNEL32.DLL"
+0012ED0C 00000001
+0012ED10 77F40000 SHLWAPI.77F40000
+0012F518 0053D33D /CALL 到 GetModuleHandleA 来自 iepro.0053D337 //非返回系统地址~
+0012F51C 00000000 \pModule = NULL
+0012F520 0012F52C
+0012BEF8 00C2E3B7 /CALL 到 GetModuleHandleA 来自 00C2E3B1
+0012BEFC 00C3F700 \pModule = "kernel32.dll"
+0012BF00 00C40710 ASCII "VirtualAlloc" //看到这个就慢行了
+0012BF04 00000001
+0012BEF8 00C2E3D4 /CALL 到 GetModuleHandleA 来自 00C2E3CE
+0012BEFC 00C3F700 \pModule = "kernel32.dll"
+0012BF00 00C40704 ASCII "VirtualFree" //看到这个就慢行了
+0012BF04 00000001
+```
+
+这里我们 `shift+F9` 过
+
+```
+0012BC70 00C1912E /CALL 到 GetModuleHandleA 来自 00C19128 //上一次到现在提示有异常，需要 Shift+F9 过！
+0012BC74 0012BDAC \pModule = "kernel32.dll"
+0012BC78 00000000
+```
+
+取消断点，返回！
+
+```
+00C1912E 8B0D 0838C400 mov ecx,dword ptr ds:[C43808] //返回到这
+00C19134 89040E mov dword ptr ds:[esi+ecx],eax
+00C19137 A1 0838C400 mov eax,dword ptr ds:[C43808]
+00C1913C 393C06 cmp dword ptr ds:[esi+eax],edi
+00C1913F 75 16 jnz short 00C19157
+00C19141 8D85 B4FEFFFF lea eax,dword ptr ss:[ebp-14C]
+00C19147 50 push eax
+00C19148 FF15 CCA0C300 call dword ptr ds:[C3A0CC] ; kernel32.LoadLibraryA
+00C1914E 8B0D 0838C400 mov ecx,dword ptr ds:[C43808]
+00C19154 89040E mov dword ptr ds:[esi+ecx],eax
+00C19157 A1 0838C400 mov eax,dword ptr ds:[C43808]
+00C1915C 393C06 cmp dword ptr ds:[esi+eax],edi
+00C1915F 0F84 AD000000 je 00C19212 //Magic Jump！改 jmp！
+00C19165 33C9 xor ecx,ecx
+```
+
+第二断点的任务完成！
+
+
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+下断 `bp GetCurrentThreadId`，`F9`，注意看堆栈！  
+
+```
+7C809737 k> 64:A1 18000000    mov eax,dword ptr fs:[18]  //停在这里
+7C80973D     8B40 24           mov eax,dword ptr ds:[eax+24]
+7C809740     C3                retn
+```
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+每一次 `F9` 运行时候，所出现的堆栈情况！  
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+```
+0012B530     73391E36  /CALL 到 GetCurrentThreadId 来自 73391E30
+0012B534     00000001
+0012B538     73391C1A  返回到 73391C1A 来自 73391DE2
+0012B53C     73391B60  返回到 73391B60 来自 73391B8C
+0012B510     7339353F  /CALL 到 GetCurrentThreadId 来自 73393539
+0012B514     00000000
+0012B518     734A0470
+0012F56C     00C361D4  /CALL 到 GetCurrentThreadId 来自 00C361CE
+0012F570     0012FF04
+0012F574     00000000
+```
+
+此时取消断点，返回！  
+
+```
+00C361D4     A3 D47CC400       mov dword ptr ds:[C47CD4],eax  //返回到这里！
+00C361D9     E8 4032FEFF       call 00C1941E
+00C361DE     6A 00             push 0
+00C361E0     E8 8F8AFEFF       call 00C1EC74
+00C361E5     6A 00             push 0
+00C361E7     C705 0CFCC300 7C0>mov dword ptr ds:[C3FC0C],0C4077C             ; ASCII "RC"
+00C361F1     E8 9D2CFEFF       call 00C18E93
+00C361F6     59                pop ecx
+00C361F7     59                pop ecx
+00C361F8     E8 8F10FFFF       call 00C2728C
+00C361FD     8BF8              mov edi,eax
+00C361FF     A1 BC7BC400       mov eax,dword ptr ds:[C47BBC]
+00C36204     8B48 3C           mov ecx,dword ptr ds:[eax+3C]
+00C36207     3348 14           xor ecx,dword ptr ds:[eax+14]
+00C3620A     3348 10           xor ecx,dword ptr ds:[eax+10]
+00C3620D     03F9              add edi,ecx
+00C3620F     8B0E              mov ecx,dword ptr ds:[esi]
+00C36211     85C9              test ecx,ecx
+00C36213     75 2F             jnz short 00C36244
+00C36215     8B78 3C           mov edi,dword ptr ds:[eax+3C]
+00C36218     E8 6F10FFFF       call 00C2728C
+00C3621D     8B0D BC7BC400     mov ecx,dword ptr ds:[C47BBC]                     ;
+
+iepro.00577260
+
+00C36223     FF76 14           push dword ptr ds:[esi+14]
+00C36226     8B51 14           mov edx,dword ptr ds:[ecx+14]
+00C36229     FF76 10           push dword ptr ds:[esi+10]
+00C3622C     3351 10           xor edx,dword ptr ds:[ecx+10]
+00C3622F     FF76 0C           push dword ptr ds:[esi+C]
+00C36232     33D7              xor edx,edi
+00C36234     03C2              add eax,edx
+00C36236     8B51 24           mov edx,dword ptr ds:[ecx+24]
+00C36239     3351 1C           xor edx,dword ptr ds:[ecx+1C]
+00C3623C     33D7              xor edx,edi
+00C3623E     2BC2              sub eax,edx
+00C36240     FFD0              call eax
+00C36242     EB 25             jmp short 00C36269
+00C36244     83F9 01           cmp ecx,1
+00C36247     75 22             jnz short 00C3626B
+00C36249     FF76 04           push dword ptr ds:[esi+4]
+00C3624C     FF76 08           push dword ptr ds:[esi+8]
+00C3624F     6A 00             push 0
+00C36251     E8 3610FFFF       call 00C2728C
+00C36256     50                push eax
+00C36257     A1 BC7BC400       mov eax,dword ptr ds:[C47BBC]
+00C3625C     8B48 3C           mov ecx,dword ptr ds:[eax+3C]
+00C3625F     3348 24           xor ecx,dword ptr ds:[eax+24]
+00C36262     3348 1C           xor ecx,dword ptr ds:[eax+1C]
+00C36265     2BF9              sub edi,ecx
+00C36267     FFD7              call edi  //直接到这下“硬件执行”断点，F9，取消断点，F7 进入
+```
+
+一片红色！呵呵！  
+
+```
+0040145C     68 24DF4000       push iepro.0040DF24 //到这里了，OEP！LordPE-纠正映像-Dump！
+00401461     E8 EEFFFFFF       call iepro.00401454
+00401466     0000              add byte ptr ds:[eax],al
+00401468     48                dec eax
+00401469     0000              add byte ptr ds:[eax],al
+0040146B     0030              add byte ptr ds:[eax],dh
+0040146D     0000              add byte ptr ds:[eax],al
+0040146F     0040 00           add byte ptr ds:[eax],al
+00401472     0000              add byte ptr ds:[eax],al
+00401474     0000              add byte ptr ds:[eax],al
+00401476     0000              add byte ptr ds:[eax],al
+```
+
+不要关掉 `OD`！打开 `import`--选择进程--`OEP` 输入 `145C`--自动搜索 `IAT`--获取输入表--显示无效函数--这个没有无效函数！  
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+### 4、`Armadillo CopyMem-ll` + `Debug-Blocker`=====》目标程序“`IDTOOLS`（火线 `ID CLONE` 程序）”
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++  
+
+非标准版的就是麻烦  
+
+### 6 次断点法！
+
+```
+bp WaitForDebugEvent
+bp WriteProcessMemory
+he WaitForDebugEvent
+bp DebugActiveProcess
+BP OpenMutexA
+BP GetModuleHandleA+5
+```
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+`OD` 载入，隐藏。。。  
+
+```
+005BF999 I>/$  55              push ebp
+005BF99A  |.  8BEC             mov ebp,esp
+```
+
+记住入口两个字节 `55` `8B`，后面要用到的  
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+`bp WaitForDebugEvent`，`F9`  
+
+```
+0012DAC0     00423D67  /CALL 到 WaitForDebugEvent 来自 Armadill.00423D61
+0012DAC4     0012EB84  |pDebugEvent = 0012EB84   //转存中跟随
+0012DAC8     000003E8  \Timeout = 1000. ms
+0012DACC     0012FF2C
+```
+
+取消断点，继续下一步  
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+`bp WriteProcessMemory` `F9`  
+
+```
+0012EB98  00000000
+0012EB9C  004015AC  IDTOOLS.004015AC  //OEP
+0012EBA0  00000002
+0012EBA4  00000000
+0012EBA8  004015AC  IDTOOLS.004015AC
+0012EBAC  004015AC  IDTOOLS.004015AC
+```
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+重新载入程序  
+
+`he WaitForDebugEvent` `F9`  
+
+中断后，删除断点，`Alt+F9` 回到壳的空间  
+
+搜索---全部常数---`FFFFFFF8`  
+
+```
+005B03D6 or eax,FFFFFFF8  //双击，来到代码处[第一处]
+005B03F1 or edx,FFFFFFF8
+```
+
+.....  
+
+一共有 `8` 处  
+
+```
+005B038A     > \83BD D0F5FFFF 0>cmp dword ptr ss:[ebp-A30],0   
+005B0391     .  0F8C A9020000   jl IDTOOLS.005B0640
+005B0397     .  8B8D D0F5FFFF   mov ecx,dword ptr ss:[ebp-A30]
+005B039D     .  3B0D E4055E00   cmp ecx,dword ptr ds:[5E05E4]
+005B03A3     .  0F8D 97020000   jge IDTOOLS.005B0640
+005B03A9     .  8B95 44F6FFFF   mov edx,dword ptr ss:[ebp-9BC]
+005B03AF     .  81E2 FF000000   and edx,0FF
+005B03B5     .  85D2             test edx,edx
+005B03B7     .  0F84 AD000000   je IDTOOLS.005B046A
+005B03BD     .  6A 00             push 0
+005B03BF     .  8BB5 D0F5FFFF   mov esi,dword ptr ss:[ebp-A30]
+005B03C5     .  C1E6 04         shl esi,4
+005B03C8     .  8B85 D0F5FFFF   mov eax,dword ptr ss:[ebp-A30]
+005B03CE     .  25 07000080     and eax,80000007
+005B03D3     .  79 05           jns short IDTOOLS.005B03DA
+005B03D5     .  48              dec eax
+005B03D6     .  83C8 F8         or eax,FFFFFFF8  //向上看
+```
+
+好，下面我们需要做几项记录！  
+
+1. 在 `005B038A`，硬件执行！  
+   `005B038A` 需要记录  
+2. `Stack ss:[0012EB70]=00000000`  //`12EB70=[ebp-A30]`  ====>清 `0`  
+   `Jumps from 005B01CD, 005B0383`  
+3. `005B039D     .  3B0D E4055E00   cmp ecx,dword ptr ds:[5E05E4]` //`5E05E4` 需要记录  
+4. `005B0391     .  0F8C A9020000   jl IDTOOLS.005B0640` //`005B0640` 需要记录  
+
+接下来我们就需要 patch  
+
+```
+005B045D     .  25 FF000000     and eax,0FF //这里 patch！
+```
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+```
+0042445D  inc dword ptr ds:[*****]   //要求记录的。。。
+00424463  mov dword ptr ds:[*****+4],1  //要求记录的。。。
+0042446D  jmp *******  //要求记录的。。。
+```
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+去掉所有的断点，到 `005B0640`（仍然是要求记录的。。。）处下断，运行，停住。好，所有代码都强制解  
+
+
+
+压完成。 //因为 Arm 对断点的检测很严格，动不动就跑飞了，所以我们还是多使用硬件执行比较保险
+
+运行 `LordPE`,选择第 2 个进程(有 2 个同名进程)，即可完全 dump 出来了。
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+修复输入表、`IAT` 的寻找（载入之前先修改入口点为 `OEP`）
+
+载入 `dump.exe`
+
+```
+004DDE18  - FF25 20214F00       jmp dword ptr ds:[4F2120]
+```
+
+那么 `RAV` 就是 `4F2120-400000=F2120`，`SIZE=1000` 就可以了
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+跳过加密，修改 `Magic Jump`
+
+用 `OD` 再一次载入未脱壳的程序，`bp DebugActiveProcess`，`F9` 断下。看堆栈窗口：
+
+```
+0012DAC4 00423BDB  /CALL 到 DebugActiveProcess 来自 NOTEPAD.00423BD5
+0012DAC8 00000324  \ProcessId = ***<=====子进程句柄    //这个值每调试一次就不一样的
+0012DACC 0012FF2C
+```
+
+打开另一个 `OD` 附加***这个子进程。然后 `ALT+F9` 返回程序:
+
+```
+00433999 N> - EB FE jmp short NOTEPAD.<ModuleEntryPoint><====中断在此处，还原代码
+0043399B EC in al,dx
+0043399C |. 6A FF push -1
+0043399E |. 68 503C4500 push NOTEPAD.00453C50
+```
+
+还原 `00433999` 处代码，`EB FE` 改为 `55 8B` （这也是我们要求记录。。。在这里用到了~呵呵~）
+
+下面的做法就和标准壳的一样了
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+`BP OpenMutexA`，`F9`
+
+`Ctrl+G 00401000`
+
+```
+00401000     60                pushad
+00401001     9C                pushfd
+00401002     68 B4FB1200       push 12FBDC ★ 堆栈里看到的值
+00401007     33C0              xor eax,eax
+00401009     50                push eax
+0040100A     50                push eax
+0040100B     E8 B4B2A577       call kernel32.CreateMutexA
+00401010     9D                popfd
+00401011     61                popad
+00401012     E9 33F7A577       jmp kernel32.OpenMutexA
+```
+
+新建 `EIP`，再次 `F9`，再次中断，取消断点
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+`BP GetModuleHandleA+5`， `F9`
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+每一次 `F9` 运行时候，所出现的堆栈情况！
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+```
+0012EC68  /0012ECA0
+0012EC6C  |5D175334     返回到 5D175334 来自 kernel32.GetModuleHandleA
+0012EC70  |5D175380     ASCII "kernel32.dll"
+```
+
+\*\*\*\*\*\*\*\*\*\*
+
+```
+0012ED28  /0012ED44
+0012ED2C  |77F45BB0     返回到 SHLWAPI.77F45BB0 来自 kernel32.GetModuleHandleA
+0012ED30  |77F44FF4     ASCII "KERNEL32.DLL"
+```
+
+\*\*\*\*\*\*\*\*\*\*
+
+```
+0012F53C  /0012F5A4
+0012F540  |005A07ED     返回到 IDTOOLS.005A07ED 来自 kernel32.GetModuleHandleA
+0012F544  |00000000
+```
+
+\*\*\*\*\*\*\*\*\*\*
+
+```
+0012BF1C  /0012ED70
+0012BF20  |00D2C807     返回到 00D2C807 来自 kernel32.GetModuleHandleA
+0012BF24  |00D3D6C8     ASCII "kernel32.dll"
+0012BF28  |00D3E67C     ASCII "VirtualAlloc"
+```
+
+\*\*\*\*\*\*\*\*\*\*
+
+```
+0012BF1C  /0012ED70
+0012BF20  |00D2C824     返回到 00D2C824 来自 kernel32.GetModuleHandleA
+0012BF24  |00D3D6C8     ASCII "kernel32.dll"
+0012BF28  |00D3E670     ASCII "VirtualFree"
+```
+
+\*\*\*\*\*\*\*\*\*\*
+
+```
+0012BC94  /0012BF20
+0012BC98  |00D1799B     返回到 00D1799B 来自 kernel32.GetModuleHandleA
+0012BC9C  |0012BDD4     ASCII "kernel32.dll"      //此时返回
+```
+
+\*\*\*\*\*\*\*\*\*\*
+
+```
+00D1799B    8B0D E011D400      mov ecx,dword ptr ds:[D411E0] //返回到这
+00D179A1    89040E            mov dword ptr ds:[esi+ecx],eax
+00D179A4    A1 E011D400       mov eax,dword ptr ds:[D411E0]
+00D179A9    393C06            cmp dword ptr ds:[esi+eax],edi
+00D179AC    75 16             jnz short 00D179C4
+00D179AE    8D85 B4FEFFFF     lea eax,dword ptr ss:[ebp-14C]
+00D179B4    50                push eax
+00D179B5    FF15 CC80D300     call dword ptr ds:[D380CC]         ; kernel32.LoadLibraryA
+00D179BB    8B0D E011D400     mov ecx,dword ptr ds:[D411E0]
+00D179C1    89040E            mov dword ptr ds:[esi+ecx],eax
+00D179C4    A1 E011D400       mov eax,dword ptr ds:[D411E0]
+00D179C9    393C06            cmp dword ptr ds:[esi+eax],edi
+00D179CC    0F84 AD000000     je 00D17A7F   //Magic Jump，修改成 jmp
+00D179D2    33C9              xor ecx,ecx
+```
+
+修改 `Magic Jump`，再直接按 `F9` 中断
+
+用 `Imprec1.6f` 选择进程 `4A4`，填入 `OEP` 地址 `15AC`，填 `RAV=F2120`，`SIZE=1000`
+
+不要按自动搜索 `IAT`，直接按获取输入表，再按显示无效地址，剪掉修复抓取文件就 `OK` 了。
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+5、`Armadillo 1.xx` - `2.xx` & 单 & 标准 & `IAT` 修复 & 跨平台问题的简单处理====>目标程序“沙漠杀手-2005-0404 私服版本”
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+方法：2 次断点法，即是：
+
+```
+bp GetModuleHandleA/he GetModuleHandleA
+bp GetCurrentThreadId
+```
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+`OD`，载入。。。
+
+```
+00991660 S>/$  55           push ebp  //入口
+00991661  |.  8BEC          mov ebp,esp
+00991663  |.  6A FF         push -1
+00991665  |.  68 90CA9A00   push SFsmss.009ACA90
+```
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+下断 `he GetModuleHandleA`，`F9`！注意看堆栈！
+
+```
+7C80B529 k>  8BFF           mov edi,edi     ; ntdll.7C930738  //停在这里
+7C80B52B     55             push ebp
+7C80B52C     8BEC           mov ebp,esp
+7C80B52E     837D 08 00     cmp dword ptr ss:[ebp+8],0
+```
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+每一次 `F9` 运行时候，所出现的堆栈情况！
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+```
+0012FF38    00991728  /CALL 到 GetModuleHandleA 来自 SFsmss.00991722
+0012FF3C    00000000  \pModule = NULL
+0012FF40    00000000
+
+0012CE70    5D175334  /CALL 到 GetModuleHandleA 来自 5D17532E
+0012CE74    5D175380  \pModule = "kernel32.dll"
+0012CE78    5D1E3AB8
+
+0012CF30    77F45BB0  /CALL 到 GetModuleHandleA 来自 SHLWAPI.77F45BAA
+0012CF34    77F44FF4  \pModule = "KERNEL32.DLL"
+0012CF38    00000001
+
+0012D744    0097C5A3  /CALL 到 GetModuleHandleA 来自 SFsmss.0097C59D
+0012D748    00000000  \pModule = NULL
+0012D74C    0000FFFF
+
+00127CD0    010C0C08  /CALL 到 GetModuleHandleA 来自 010C0C02
+00127CD4    010D4D68  \pModule = "kernel32.dll"
+00127CD8    010D5F58  ASCII "VirtualAlloc"  //看到这个就慢行了
+00127CDC    00000001
+
+00127CD0    010C0C25  /CALL 到 GetModuleHandleA 来自 010C0C1F
+00127CD4    010D4D68  \pModule = "kernel32.dll"
+00127CD8    010D5F4C  ASCII "VirtualFree"  //看到这个就慢行了
+00127CDC    00000001
+```
+
+这里用 `F9` 的话，会提示有异常，`Shift+F9` 过！
+
+```
+00127A48    010A9905  /CALL 到 GetModuleHandleA 来自 010A98FF
+00127A4C    00127B84  \pModule = "kernel32.dll"
+00127A50    00000000
+```
+
+此时取消断点，返回！
+
+```
+010A9905     8B0D 40A10D01      mov ecx,dword ptr ds:[10DA140]  //返回到这
+010A990B     89040E            mov dword ptr ds:[esi+ecx],eax
+010A990E     A1 40A10D01       mov eax,dword ptr ds:[10DA140]
+010A9913     393C06            cmp dword ptr ds:[esi+eax],edi
+010A9916     75 16             jnz short 010A992E
+010A9918     8D85 B4FEFFFF     lea eax,dword ptr ss:[ebp-14C]
+010A991E     50                push eax
+010A991F     FF15 D4F00C01     call dword ptr ds:[10CF0D4]               ;
+kernel32.LoadLibraryA
+010A9925     8B0D 40A10D01     mov ecx,dword ptr ds:[10DA140]
+010A992B     89040E            mov dword ptr ds:[esi+ecx],eax
+010A992E     A1 40A10D01       mov eax,dword ptr ds:[10DA140]
+```
+
+
+
+010A9933      393C06                cmp dword ptr ds:[esi+eax],edi
+
+010A9936      0F84 AC000000         je 010A99E8  //Magic Jump！改 `jmp`！跳得很远。。呵呵~
+
+010A993C      33C9                  xor ecx,ecx
+
+010A993E      8B03                  mov eax,dword ptr ds:[ebx]
+
+010A9940      3938                  cmp dword ptr ds:[eax],edi
+
+010A9942      74 06                 je short 010A994A
+
+010A9944      41                    inc ecx
+
+此时第一断点的任务完成了~
+
+下断 `bp GetCurrentThreadId`，`F9`，注意观察堆栈！
+
+7C809737 k>  64:A1 18000000    mov eax,dword ptr fs:[18]  //停在这里~
+
+7C80973D      8B40 24             mov eax,dword ptr ds:[eax+24]
+
+7C809740      C3                  retn
+
+每一次 `F9` 运行时候，所出现的堆栈情况！
+
+00127308    73391E36  /CALL 到 `GetCurrentThreadId` 来自 73391E30
+
+0012730C    00000001
+
+00127310    73391C1A  返回到 73391C1A 来自 73391DE2
+
+001272E8    7339353F  /CALL 到 `GetCurrentThreadId` 来自 73393539
+
+001272EC    00000000
+
+001272F0    734A0470
+
+0012754C    76DB3705  /CALL 到 `GetCurrentThreadId` 来自 76DB36FF
+
+00127550    76DBF014
+
+00127554    FFFFFFFF
+
+0012755C    76685212  /CALL 到 `GetCurrentThreadId` 来自 `WININET`.7668520C
+
+00127560    00000000
+
+00127564    76680000  `WININET`.76680000
+
+0012D798    010C9332  /CALL 到 `GetCurrentThreadId` 来自 010C932C
+
+0012D79C    0012FF2C
+
+0012D7A0    00000000
+
+此时取消断点，返回！
+
+010C9332      A3 F0E70D01         mov dword ptr ds:[10DE7F0],eax  //返回到这里~
+
+010C9337      E8 CA08FEFF         call 010A9C06
+
+010C933C      6A 00               push 0
+
+010C933E      E8 E164FEFF         call 010AF824
+
+010C9343      A1 D8E60D01         mov eax,dword ptr ds:[10DE6D8]
+
+010C9348      59                  pop ecx
+
+010C9349      8B88 80000000       mov ecx,dword ptr ds:[eax+80]
+
+010C934F      3348 3C             xor ecx,dword ptr ds:[eax+3C]
+
+010C9352      3348 30             xor ecx,dword ptr ds:[eax+30]
+
+010C9355      F6C1 40             test cl,40
+
+010C9358      75 08               jnz short 010C9362
+
+010C935A      6A 01               push 1
+
+010C935C      E8 D5D7FDFF         call 010A6B36
+
+010C9361      59                  pop ecx
+
+010C9362      6A 00               push 0
+
+010C9364      C705 B8520D01 D45>mov dword ptr ds:[10D52B8],10D5FD4                ; ASCII "RC"
+
+010C936E      E8 F402FEFF         call 010A9667
+
+010C9373      59                  pop ecx
+
+010C9374      E8 FCF3FEFF         call 010B8775
+
+010C9379      8BF8                mov edi,eax
+
+010C937B      A1 D8E60D01         mov eax,dword ptr ds:[10DE6D8]
+
+010C9380      8B48 70             mov ecx,dword ptr ds:[eax+70]
+
+010C9383      3348 48             xor ecx,dword ptr ds:[eax+48]
+
+010C9386      3348 3C             xor ecx,dword ptr ds:[eax+3C]
+
+010C9389      03F9                add edi,ecx
+
+010C938B      8B0E                mov ecx,dword ptr ds:[esi]
+
+010C938D      85C9                test ecx,ecx
+
+010C938F      75 2F               jnz short 010C93C0
+
+010C9391      8B78 3C             mov edi,dword ptr ds:[eax+3C]
+
+010C9394      E8 DCF3FEFF         call 010B8775
+
+010C9399      8B0D D8E60D01       mov ecx,dword ptr ds:[10DE6D8]                ;
+
+`SFsmss`.009A7310
+
+010C939F      FF76 14             push dword ptr ds:[esi+14]
+
+010C93A2      8B51 70             mov edx,dword ptr ds:[ecx+70]
+
+010C93A5      FF76 10             push dword ptr ds:[esi+10]
+
+010C93A8      3351 48             xor edx,dword ptr ds:[ecx+48]
+
+010C93AB      FF76 0C             push dword ptr ds:[esi+C]
+
+010C93AE      33D7                xor edx,edi
+
+010C93B0      03C2                add eax,edx
+
+010C93B2      8B51 74             mov edx,dword ptr ds:[ecx+74]
+
+010C93B5      3351 10             xor edx,dword ptr ds:[ecx+10]
+
+010C93B8      33D7                xor edx,edi
+
+010C93BA      2BC2                sub eax,edx
+
+010C93BC      FFD0                call eax
+
+010C93BE      EB 25               jmp short 010C93E5
+
+010C93C0      83F9 01             cmp ecx,1
+
+010C93C3      75 22               jnz short 010C93E7
+
+010C93C5      FF76 04             push dword ptr ds:[esi+4]
+
+010C93C8      FF76 08             push dword ptr ds:[esi+8]
+
+010C93CB      6A 00               push 0
+
+010C93CD      E8 A3F3FEFF         call 010B8775
+
+010C93D2      50                  push eax
+
+010C93D3      A1 D8E60D01         mov eax,dword ptr ds:[10DE6D8]
+
+010C93D8      8B48 74             mov ecx,dword ptr ds:[eax+74]
+
+010C93DB      3348 3C             xor ecx,dword ptr ds:[eax+3C]
+
+010C93DE      3348 10             xor ecx,dword ptr ds:[eax+10]
+
+010C93E1      2BF9                sub edi,ecx
+
+010C93E3      FFD7                call edi  //直接到这下“硬件执行”断点，`F9`，取消断点，`F7` 进入
+
+010C93E5      8BD8                mov ebx,eax
+
+004014B0    /EB 10              jmp short `SFsmss`.004014C2  //到这里了，`OEP`！`LordPE`-纠正映像-
+
+Dump！
+
+004014B2    |66:623A            bound di,dword ptr ds:[edx]
+
+004014B5    |43                  inc ebx
+
+004014B6    |2B2B                sub ebp,dword ptr ds:[ebx]
+
+004014B8    |48                  dec eax
+
+004014B9    |4F                  dec edi
+
+004014BA    |4F                  dec edi
+
+004014BB    |4B                  dec ebx
+
+004014BC    |90                  nop
+
+004014BD   -|E9 98A04F00         jmp `SFsmss`.008FB55A
+
+004014C2    \\A1 8BA04F00         mov eax,dword ptr ds:[4FA08B]
+
+004014C7      C1E0 02             shl eax,2
+
+`OD`，不要关！打开 `import`--选择进程--`OEP` 输入 `14B0`--自动搜索 `IAT`--获取输入表--显示无效函数--`CUT`！
+
+嘿嘿，这回不行了~运行不了~下面我们就来手动寻找 `IAT`，进行修复吧~
+
+`IAT` 手动寻找修复！
+
+004014B0    /EB 10              jmp short `SFsmss`.004014C2  //OEP！我们就单步 `F8` 吧~
+
+004014B2    |66:623A            bound di,dword ptr ds:[edx]
+
+004014B5    |43                  inc ebx
+
+004014B6    |2B2B                sub ebp,dword ptr ds:[ebx]
+
+004014B8    |48                  dec eax
+
+004014B9    |4F                  dec edi
+
+004014BA    |4F                  dec edi
+
+004014BB    |4B                  dec ebx
+
+004014BC    |90                  nop
+
+004014BD   -|E9 98A04F00         jmp `SFsmss`.008FB55A
+
+004014C2    \\A1 8BA04F00         mov eax,dword ptr ds:[4FA08B]
+
+004014C7      C1E0 02             shl eax,2
+
+004014CA      A3 8FA04F00         mov dword ptr ds:[4FA08F],eax
+
+004014CF      52                  push edx
+
+004014D0      6A 00               push 0
+
+004014D2      E8 7B7F0F00         call `SFsmss`.004F9452        //离 `OEP` 的第一个 `CALL`，`F7` 进！
+
+004014D7      8BD0                mov edx,eax
+
+004014D9      E8 4A5A0D00         call `SFsmss`.004D6F28
+
+004F9452   -  FF25 70E39100      jmp dword ptr ds:[91E370]    ; `kernel32.GetModuleHandleA`  //
+
+来到这里~向上翻看
+
+004F9458   -  FF25 74E39100      jmp dword ptr ds:[91E374]    ; `kernel32.GetOEMCP`
+
+004F945E   -  FF25 78E39100      jmp dword ptr ds:[91E378]    ;
+
+`kernel32.GetPrivateProfileStringA`
+
+004F9464   -  FF25 7CE39100      jmp dword ptr ds:[91E37C]    ; `kernel32.GetProcAddress`
+
+004F946A   -  FF25 80E39100      jmp dword ptr ds:[91E380]    ; `kernel32.GetProcessHeap`
+
+004F9470   -  FF25 84E39100      jmp dword ptr ds:[91E384]    ; `kernel32.GetStartupInfoA`
+
+004F9358      832D 58B89100 01   sub dword ptr ds:[91B858],1
+
+004F935F      C3                  retn
+
+004F9360   -  FF25 00E19100      jmp dword ptr ds:[91E100]     ; `ADVAPI32.RegCloseKey`  //第一
+
+个。。我们要 `91E100`
+
+004F9366   -  FF25 04E19100      jmp dword ptr ds:[91E104]     ; `ADVAPI32.RegOpenKeyExA`
+
+
+
+## 脱壳过程
+
+```
+004F936C   - FF25 08E19100     jmp dword ptr ds:[91E108]     ; ADVAPI32.RegQueryValueExA  
+
+004F9372     CC                int3  
+
+004F9373     CC                int3  
+
+004F9374   - FF25 DCE29100     jmp dword ptr ds:[91E2DC]     ; kernel32.CloseHandle  
+
+004F937A   - FF25 E0E29100     jmp dword ptr ds:[91E2E0]     ; kernel32.CompareStringA
+```
+
+把鼠标点一下转存窗口，`Ctrl+G`，输入 `91E100`
+
+```
+0091E0C8  00 00 00 00 00 00 00 00  ........  
+
+0091E0D0  00 00 00 00 1A F0 51 00  ....餛.  
+
+0091E0D8  00 00 00 00 00 00 00 00  ........  
+
+0091E0E0  00 00 00 00 00 00 00 00  ........  
+
+0091E0E8  00 00 00 00 00 00 00 00  ........  
+
+0091E0F0  25 F0 51 00 33 F0 51 00  %餛.3 餛.  
+
+0091E0F8  43 F0 51 00 00 00 00 00  C 餛.....  
+
+0091E100  F0 6B DA 77 1B 76 DA 77  餶趙 v 趙  ==========>在这里，我们向上翻看！  
+
+0091E108  83 78 DA 77 49 A9 0A 01  儀趙 I?  
+
+0091E110  57 F0 51 00 65 F0 51 00  W 餛.e 餛.  
+
+0091E118  77 F0 51 00 87 F0 51 00  w 餛.囸 Q.  
+
+0091E120  95 F0 51 00 A7 F0 51 00  曫 Q.юQ.  
+
+0091E128  B7 F0 51 00 C5 F0 51 00  佛 Q.硼 Q.  
+
+0091E130  DD F0 51 00 EB F0 51 00  蒺 Q.腽 Q.  
+
+0091E138  03 F1 51 00 17 F1 51 00  馫.馫.  
+
+0091E140  25 F1 51 00 33 F1 51 00  %馫.3 馫.  
+
+0091E148  4B F1 51 00 65 F1 51 00  K 馫.e 馫.  
+
+0091E150  71 F1 51 00 83 F1 51 00  q 馫.凂 Q.  
+
+0091E158  93 F1 51 00 A5 F1 51 00  擇 Q.ヱQ.  
+
+0091E160  B3 F1 51 00 C3 F1 51 00  绸 Q.民 Q.  
+
+0091E168  CD F1 51 00 D9 F1 51 00  婉 Q.亳 Q.  
+
+0091E170  EB F1 51 00 01 F2 51 00  腭 Q.騋.  
+
+0091E178  17 F2 51 00 29 F2 51 00  騋.)騋.  
+
+0091E180  3D F2 51 00 55 F2 51 00  =騋.U 騋.  
+
+0091E188  69 F2 51 00 7F F2 51 00  i 騋.騋.  
+
+0091E190  8D F2 51 00 9B F2 51 00  嶒 Q.涷 Q.  
+
+0091E198  AB F2 51 00 BB F2 51 00  或 Q.  
+
+0091E1A0  CD F2 51 00 E3 F2 51 00  万 Q.泸 Q.  
+
+0091E1A8  F7 F2 51 00 03 F3 51 00  黩 Q.驫.  
+
+0091E1B0  1F F3 51 00 31 F3 51 00  驫.1 驫.  
+
+0091E1B8  43 F3 51 00 55 F3 51 00  C 驫.U 驫.  
+
+0091E1C0  65 F3 51 00 77 F3 51 00  e 驫.w 驫.  
+
+0091E1C8  8B F3 51 00 9D F3 51 00  嬻 Q.濗 Q.  
+
+0091E1D0  B7 F3 51 00 C7 F3 51 00  敷 Q.求 Q.  
+
+0091E1D8  D9 F3 51 00 E9 F3 51 00  袤 Q.轶 Q.  
+
+0091E1E0  03 F4 51 00 19 F4 51 00  鬛.鬛.  
+
+0091E1E8  27 F4 51 00 37 F4 51 00  '鬛.7 鬛.  
+
+0091E1F0  49 F4 51 00 57 F4 51 00  I 鬛.W 鬛.  
+
+0091E1F8  6B F4 51 00 7D F4 51 00  k 鬛.}鬛.  
+
+0091E200  8B F4 51 00 9B F4 51 00  嬼 Q.涺 Q.  
+
+0091E208  A9 F4 51 00 B9 F4 51 00  刽 Q.  
+
+0091E210  C9 F4 51 00 D5 F4 51 00  婶 Q.蒸 Q.  
+
+0091E218  E1 F4 51 00 FD F4 51 00  狒 Q.Q.  
+
+0091E220  15 F5 51 00 2D F5 51 00  鮍.-鮍.  
+
+0091E228  3D F5 51 00 4D F5 51 00  =鮍.M 鮍.  
+
+0091E230  65 F5 51 00 75 F5 51 00  e 鮍.u 鮍.  
+
+0091E238  87 F5 51 00 97 F5 51 00  圂 Q.楑 Q.  
+
+0091E240  A5 F5 51 00 B1 F5 51 00  ヶQ.滨 Q.  
+
+0091E248  C1 F5 51 00 CB F5 51 00  刘 Q.缩 Q.  
+
+0091E250  E1 F5 51 00 F3 F5 51 00  狨 Q.篚 Q.  
+
+0091E258  FF F5 51 00 0D F6 51 00  ..鯭.
+```
+
+我们可以看到 `0091E0F0` 以上就是 `00 00`
+
+那我们就取 `0091E0F0` 作起始地址！
+
+`RAV=0091E0F0-00400000（imagbase）=0051E0F0`
+
+`SIZE` 我懒得去计算。。。用 `1000` 足够了（一般情况下填 `1000` 就行了）
+
+好，我们来修复！
+
+`OEP=14B0`，`RAV=0051E0F0`，`SIZE=1000`
+
+这样修复了之后就 OK 了
+
+由于这个程序是朋友需要用的~我这样脱掉之后给他~结果他那不能够运行了~呵呵~有跨平台问题~
+
+那我们就来简单的处理一下~把 `import` 的设置改下（这是 `fly` 大虾介绍的~）
+
+`选项---新建输入表` 的 `3` 个选项的勾勾都去掉~~再来修复~~结果拿给朋友~就可以正常运行了~！
+
+---
+
+### 脱壳后记
+
+关于 `Armadillo CopyMem-ll 4.X+Debug-Blocker` 的脱壳方法可以按 `Armadillo CopyMem-ll 3.X+Debug-Blocker` 来脱~
+
+我感觉唯一有点不一样的就是，它对 `OD` 的检测更加严格了，我平时使用的两个修改版的 `OD` 都无法正常调试
+
+，搞不了 `2` 步
+
+`OD` 就提示出错自动退出！幸好我保留了 `9` 个不同的修改版，终于找到了 `2` 个可以正常调试，不知道大家那里
+
+是不是这样的。。
+
+郁闷~可以告诉我吗~？还有就是跨平台的处理方法那位大虾知道的话~请指点一下~小弟很笨~所以，最好
+
+是有个详细的教程~
+
+谢谢了先！另外大家对付 `Armadillo CopyMem-ll+Debug-Blocker` 可以按照 `jwh51` 的“`Armadillo COPYMEMEII 之 DUMP 的一个 LOADPE 小插件`”来脱，过程很简单，有不少的人成功了，而且好像还支持比较高的版本。。。不过，在我
+
+这里却没有成功，
+
+为了测试这个我特地把 `SP1` 的系统换成 `SP2`！还是没有成功，郁闷！有个特殊的表现就是在脱的时候 `LordPE`
+
+会死机！大家知道
+
+的请指点一下！谢谢了！
+
+By `wynney-2005-6-26`
+
+`4dd466d0e1e0cc123afbe504da2462ca`
