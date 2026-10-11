@@ -1,0 +1,138 @@
+
+# 另一种读写进程内存空间的方法
+
+> 原文：[`www.pediy.com/kssd/pediy10/64938.html`](https://www.pediy.com/kssd/pediy10/64938.html)
+
+`cc682`
+
+`http://netroc682.spaces.live.com/`
+
+丢一个比较难防的读写其他进程内存空间的方法出来，嘿嘿。貌似我还没想到什么好办法可以防住的。
+
+内存空间不能跨进程访问的原因主要在于不同进程都有自己的页目录和页表。进程切换的很大一块也就是切换掉页目录。
+
+`Windows` 自己的 `ReadProcessMemory` 最终也是通过 `KeStackAttachProcess` 附加到目标进程空间执行拷贝的。但是中间的 `N` 个内核函数调用现在被很多保护系统 Hook 掉并保护起来了，所以要通过这层层关卡读到东西还是不那么简单的。Unhook？自己实现内核函数？都很麻烦。
+
+其实，仅仅是需要拿到目标进程的页目录，然后直接从目标地址拷贝出来而已，完全可以用简单得多的办法来达到这个目的。
+
+所有的 `XXAttachProcess` 函数最终都通过 `_KiSwapProcess` 切换进程环境，`_KiSwapProcess` 中会将目标进程的页目录指针放入 `CR3`。这个过程我们可以自己来实现，唯一需要的就是拿到目标进程的 `EPROCESS` 而已，而这有无数种方法可以达到。整个过程基本上没有能当作非正常访问的证据以阻止掉的。
+
+首先来看一下几个内核结构：
+
+每个进程都有一个内核里面的进程结构 `_EPROCESS`，前面几个字段如下：
+
+```
+typedef struct _EPROCESS {
+    KPROCESS Pcb;
+    EX_PUSH_LOCK ProcessLock;
+……
+```
+
+`Pcb` 中就包含我们需要的页目录地址：
+
+```
+typedef struct _KPROCESS {
+    DISPATCHER_HEADER Header;
+    LIST_ENTRY ProfileListHead;
+    ULONG_PTR DirectoryTableBase[2];
+……
+```
+
+系统一般只使用 `DirectoryTableBase[0]`，`DirectoryTableBase[1]` 是用于 hyperspace 的。我们只需要拿到目标进程里面的 `DirectoryTableBase[0]` 值并直接设置到 `CR3` 中就可以读取了。
+
+假设要读取 PID 为 `1000` 的进程从 `0x400000` 开始的 `100` 个字节，只需要按下面的步骤实现：
+
+1. 获取 PID=`1000` 的进程的 `_EPROCESS`，读取 `_EPROCESS::Pcb::DirectoryTableBase[0]`
+2. 将页目录的值 `mov` 到 `cr3` 中。
+3. 直接将 `0x400000` 的地址 `memcpy` 到内核空间地址中
+4. 恢复 `cr3` 的值。
+
+下面是我测试使用的代码片断，图方便使用了 `PsLookupProcessByProcessId` 来获取 `EPROCESS`，实际上这个函数多半被处理过的，所以很可能拿不到。解决的方法之一是可以通过 `PsSetCreateProcessNotifyRoutine` 挂一个回调，在里面通过 `PsLookupProcessByProcessId` 获取每个进程的 `EPROCESS` 地址并缓存起来后面使用。
+
+这是 `DispatchIoCtrl` 里面的
+
+```
+switch(irpStack->Parameters.DeviceIoControl.IoControlCode)
+  {
+  case IOCTL_READMEM:
+    pstReadInfo = Irp->AssociatedIrp.SystemBuffer;
+    ntStatus = STATUS_SUCCESS;
+    if ( pstReadInfo->ulLen > 1000 || 
+      irpStack->Parameters.DeviceIoControl.InputBufferLength < pstReadInfo->ulLen ||
+      pstReadInfo->ulStart >= (PVOID)0x80000000 ||
+      (ULONG)pstReadInfo->ulStart + pstReadInfo->ulLen >= 0x80000000)
+    {
+      DbgPrint( "Read range invalid\r\n");
+      ntStatus = STATUS_UNSUCCESSFUL;
+      break;
+    }
+    __try
+    {               
+      if (PsLookupProcessByProcessId((HANDLE)(pstReadInfo->ulPid),&pstEProcess) == STATUS_SUCCESS)
+      {
+        pbyBuff = (PUCHAR)ExAllocatePoolWithTag( NonPagedPool, pstReadInfo->ulLen, 'PMRD');
+        ASSERT( pbyBuff);
+      }
+      else
+      {
+        DbgPrint( "PsLookupProcessByProcessId fail\r\n");
+        ntStatus = STATUS_UNSUCCESSFUL;
+        break;
+      }
+      ntStatus = ReadProcessMemory( pstEProcess, pbyBuff, pstReadInfo->ulStart, pstReadInfo->ulLen);
+      if ( ntStatus == STATUS_SUCCESS)
+      {
+        RtlCopyMemory( pstReadInfo, pbyBuff, pstReadInfo->ulLen);
+      }
+      else
+      {
+        ntStatus = STATUS_UNSUCCESSFUL;
+        break;
+      }
+      ExFreePool( pbyBuff);
+      pbyBuff = NULL;
+    }
+    __except(1)
+    {
+      ntStatus=STATUS_UNSUCCESSFUL;
+    }
+    break;
+……
+```
+
+这是读取内存的：
+
+```
+NTSTATUS ReadProcessMemory( PEPROCESS pstEProcess, PUCHAR pucBuff, PVOID pStart, ULONG ulLen)
+{
+  PKPROCESS pstKProcess = NULL;
+  PEPROCESS pstCurrent = NULL;
+  ULONG ulPDT = 0; 
+  ULONG ulOldCr3 = 0;
+
+  pstKProcess = &pstEProcess->Pcb;
+  ulPDT = pstKProcess->DirectoryTableBase[0];
+
+  //load cr3
+  _asm
+  {
+    cli;
+    mov eax, cr3;
+    mov ulOldCr3, eax;
+    mov eax, ulPDT;
+    mov cr3,eax
+  }
+  _asm sti;
+  RtlCopyMemory( pucBuff, pStart, ulLen); //直接复制内存
+  _asm cli;
+  _asm
+  {
+    mov eax, ulOldCr3;
+    mov cr3,eax;
+    sti;
+  }
+  return STATUS_SUCCESS;
+}
+```
+
+这个代码有些细节并没有处理，只是尝试了一下新的访问进程内存的方式。除了拿 `EPROCESS` 之外，中间没有使用任何系统函数，所以常规办法基本上是没有办法挡住的。进程保护技术看来实现起来难度还是很大啊。还是那句话，一点突破，满盘皆输。

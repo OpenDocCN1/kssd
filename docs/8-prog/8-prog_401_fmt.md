@@ -1,0 +1,81 @@
+
+# 获取内核 `ntoskrnl.exe` 基地址的几种常见办法
+
+> 原文：[`www.pediy.com/kssd/pediy10/58447.html`](https://www.pediy.com/kssd/pediy10/58447.html)
+
+如果大家写过 `shellcode` 一定还记得，`shellcode` 中开头要找 `kernel32.dll` 模块的内存加载地址。
+
+同样，如果大家要写一个内核的类似东东的话，第一步也是要找出 `ntoskrnl.exe` 模块的内存加载位置。有三种常见办法在这里咱们大体描述下：
+
+1. 利用 `ZwQuerySystemInformation` 来检索加载的模块，从加载模块里面搜索出 `ntoskrnl.exe` 模块。例子如：[`bbs.pediy.com/showthread.php?t=58199`](http://bbs.pediy.com/showthread.php?t=58199)
+   在开头部分就是利用 `ZwQuerySystemInformation` 来检所 `ntoskrnl.exe` 模块的内存加载位置。
+
+2. 通过驱动 `DriverEntry` 函数的第一个参数，即 `DriverObject`。在 `DriverObject` 结构体中有一项
+   `DriverSection` 成员指向 `LDR_DATA_TABLE_ENTRY` 结构，通过遍历这张表得到 `ntoskrnl` 的基址和大小。例子如：[`bbs.pediy.com/showthread.php?t=56042`](http://bbs.pediy.com/showthread.php?t=56042)
+
+3. 通过驱动 `DriverEntry` 函数的返回地址，根据系统布局图，如下：
+
+   ![](img/db8c60407d4d96a922696f0bbdf240ac.jpg)
+
+   因此，我们可以在从 `80000000h` 开始的位置搜索 `ntosknrl`。我们的驱动程序就是加载在系统布局图的 `80000000h` 到 `a0000000h` 的区间中。
+
+完整代码如下：
+
+```asm
+.386
+
+.model flat, stdcall
+option casemap:none
+include GetKernelBase.inc
+.code
+
+GetKernelBase proc uses esi edi ebx dwSomewhereInKernel:DWORD
+  xor edi, edi      ; assume error
+  mov eax, MmSystemRangeStart
+  mov eax, [eax]
+  mov eax, [eax]               ; eax = 80000000h
+
+;  #define PAGE_SHIFT    12
+;  #define PAGE_SIZE     (1UL << PAGE_SHIFT)  4k 为单位
+  .if dwSomewhereInKernel >= eax
+    mov esi, dwSomewhereInKernel
+    and esi, not (PAGE_SIZE-1)      ; start down-search from here
+    mov ebx, esi
+    sub ebx, eax          ;      - MmSystemRangeStart
+    shr ebx, PAGE_SHIFT        ; Number of pages to search
+    .while ebx
+      invoke MmIsAddressValid, esi
+      .break .if al == FALSE       ; bad
+      mov eax, [esi]
+      .if eax == 00905A4Dh      ; MZ signature
+        mov edi, esi
+        .break
+      .endif
+      sub esi, PAGE_SIZE        ; next page down
+      dec ebx            ; next page
+    .endw
+  .endif
+  mov eax, edi
+  ret
+GetKernelBase endp
+
+DriverEntry proc pDriverObject:PDRIVER_OBJECT,pusRegistryPath:PUNICODE_STRING
+        lea ecx, [ebp][4]     ； 得到 DriverEntry 返回地址
+  push ecx
+  invoke MmIsAddressValid, ecx
+  pop ecx
+  .if al
+    mov ecx, [ecx]         ; Get return address from stack
+    invoke GetKernelBase, ecx
+    .if eax != 0
+      invoke DbgPrint, $CTA0("GetKernelBase: ntoskrnl.exe base = %08X\n"), eax
+    .else
+      invoke DbgPrint, $CTA0("GetKernelBase: Couldn't find ntoskrnl.exe base\n")
+    .endif
+  .endif
+  mov eax, STATUS_DEVICE_CONFIGURATION_ERROR
+  ret
+DriverEntry endp
+
+end DriverEntry
+```

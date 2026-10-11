@@ -1,0 +1,27 @@
+
+# 逆的一段注入代码
+
+> 原文：[www.pediy.com/kssd/pediy10/64533.html](https://www.pediy.com/kssd/pediy10/64533.html)
+
+前段时间被`cnnic`骚扰了一下,不爽,逆了一点驱动代码,玩`rootkit`的牛就不用看了.
+
+有些东西也没搞很清楚,不瞎解释了。嵌入的`Dll`是我自己的,只显示`MessageBox`。
+
+(`cdnprot.sys`里的还有些处理,如自己调`DllMain`)。
+
+我是用`OD`来试的,可以用,但对`ExeCryptor`主程序不能停到`TLS`Callback了,而是停在壳入口点,`F9`报检测到debugger,没时间去深究了;-)
+
+```
+case IOCTL_SET_DEBUGGEE_INFO:
+  // 被调试进程 Pid,Tid
+  ObjPid      = (HANDLE)*(PULONG)InputBuffer;
+  ObjMainTid  = (HANDLE)((PULONG)InputBuffer)[1];
+  Cid.UniqueProcess = ObjPid;
+  Cid.UniqueThread  = ObjMainTid;
+  InjectWithApc(&Cid);
+  ....
+```
+
+上传的附件
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || `Apc.rar` |
