@@ -1,0 +1,538 @@
+
+# sonique 的插件 Dee2
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6519.htm`](https://www.pediy.com/kssd/pediy06/pediy6519.htm)
+
+sonique 的插件 Dee2  
+
+`dee2.dll`   `UPX0.99-1.23`  
+
+`OD` 载入 `dee2.dll`  
+
+```
+1017C9C0  >  807C24 08 01    cmp     byte ptr ss:[esp+8], 1  <=========下断点
+1017C9C5    0F85 7E010000   jnz     dee2.1017CB49 <=====第一次没跳,解码,第二次跳往 dee2.1000BDA7
+1017C9CB    60              pushad
+
+--------------------------------------------------------
+
+1000BDA7    55              push    ebp                       ; 进来了~~~~~~~Dee2.dll
+1000BDA8    8BEC            mov     ebp, esp
+1000BDAA    53              push    ebx                       ; Dee2.<ModuleEntryPoint>
+1000BDAB    8B5D 08         mov     ebx, dword ptr ss:[ebp+8]        ; Dee2.<ModuleEntryPoint>
+1000BDAE    56              push    esi
+1000BDAF    8B75 0C         mov     esi, dword ptr ss:[ebp+C]        ; Dee2.10000000
+1000BDB2    57              push    edi
+1000BDB3    8B7D 10         mov     edi, dword ptr ss:[ebp+10]
+1000BDB6    85F6            test    esi, esi
+1000BDB8    75 09           jnz     short Dee2.1000BDC3
+1000BDBA    833D B8F80510 00  cmp     dword ptr ds:[1005F8B8], 0
+1000BDC1    EB 26           jmp     short Dee2.1000BDE9
+1000BDC3    83FE 01         cmp     esi, 1
+1000BDC6    74 05           je      short Dee2.1000BDCD
+1000BDC8    83FE 02         cmp     esi, 2
+1000BDCB    75 22           jnz     short Dee2.1000BDEF
+1000BDCD    A1 C80F0610     mov     eax, dword ptr ds:[10060FC8]
+1000BDD2    85C0            test    eax, eax
+1000BDD4    74 09           je      short Dee2.1000BDDF
+```
+
+右键|搜索|全部交互调用  
+
+`USER32.MessageBoxA`        `ADVAPI32.RegQueryValueExA`         `USER32.ShowWindow`    
+
+在这三类上全部下断点(关闭)  
+
+`OD` 载入 `sonique.exe`  
+
+运行...呵呵,听到歌声~~~~~~~:)  
+
+开断点.  
+
+输入试炼码 `166925-222222-222222-222222`,点确定~!  
+
+中断在:  
+
+```
+015C742D    FF15 44515D01   call    near dword ptr ds:[15D5144]      ; USER32.MessageBoxA (*)
+```
+
+看看中断处前面的代码~~~:)  
+
+```
+015C7313    390D 6CF86101   cmp     dword ptr ds:[161F86C], ecx
+015C7319    0F85 BD020000   jnz     dee2.015C75DC
+015C731F    8B75 08         mov     esi, dword ptr ss:[ebp+8]
+015C7322    8B1D 50515D01   mov     ebx, dword ptr ds:[15D5150]      ; USER32.LoadBitmapA
+015C7328    81FF 3A010000   cmp     edi, 13A
+015C732E    0F8C 55010000   jl      dee2.015C7489
+015C7334    81FF 7C010000   cmp     edi, 17C
+015C733A    0F8F 49010000   jg      dee2.015C7489
+015C7340    83F8 5C         cmp     eax, 5C
+015C7343    0F8C 40010000   jl      dee2.015C7489
+015C7349    83F8 76         cmp     eax, 76
+015C734C    0F8F 37010000   jg      dee2.015C7489
+015C7352    6A 06           push    6
+015C7354    8D4C24 24       lea     ecx, dword ptr ss:[esp+24]
+015C7358    68 74F86101     push    dee2.0161F874                     ; ASCII "166925-222222-222222-222222"
+015C735D    51              push    ecx
+015C735E    C705 6CF86101 0>mov     dword ptr ds:[161F86C], 0
+015C7368    C64424 32 00    mov     byte ptr ss:[esp+32], 0
+015C736D    E8 5E480000     call    dee2.015CBBD0
+015C7372    8D5424 2C       lea     edx, dword ptr ss:[esp+2C]
+015C7376    52              push    edx
+015C7377    E8 16480000     call    dee2.015CBB92 <================== ---S---
+015C737C    A3 58F86101     mov     dword ptr ds:[161F858], eax <==== 记录 K
+015C7381    6A 06           push    6
+015C7383    8D4424 34       lea     eax, dword ptr ss:[esp+34]
+015C7387    68 7BF86101     push    dee2.0161F87B                     ; ASCII "222222-222222-222222"
+015C738C    50              push    eax
+015C738D    E8 3E480000     call    dee2.015CBBD0
+015C7392    8D4C24 3C       lea     ecx, dword ptr ss:[esp+3C]
+015C7396    51              push    ecx
+015C7397    E8 F6470000     call    dee2.015CBB92  
+015C739C    6A 06           push    6
+015C739E    8D5424 44       lea     edx, dword ptr ss:[esp+44]
+015C73A2    68 82F86101     push    dee2.0161F882                     ; ASCII "222222-222222"
+015C73A7    52              push    edx
+015C73A8    A3 5CF86101     mov     dword ptr ds:[161F85C], eax <==== 记录 K
+015C73AD    E8 1E480000     call    dee2.015CBBD0
+015C73B2    8D4424 4C       lea     eax, dword ptr ss:[esp+4C]
+015C73B6    50              push    eax
+015C73B7    E8 D6470000     call    dee2.015CBB92
+015C73BC    6A 06           push    6
+015C73BE    8D4C24 54       lea     ecx, dword ptr ss:[esp+54]
+015C73C2    68 89F86101     push    dee2.0161F889                     ; ASCII "222222"
+015C73C7    51              push    ecx
+015C73C8    A3 60F86101     mov     dword ptr ds:[161F860], eax <==== 记录 K
+015C73CD    E8 FE470000     call    dee2.015CBBD0
+015C73D2    8D5424 5C       lea     edx, dword ptr ss:[esp+5C]
+015C73D6    52              push    edx
+015C73D7    E8 B6470000     call    dee2.015CBB92
+015C73DC    8B0D 5CF86101   mov     ecx, dword ptr ds:[161F85C]
+015C73E2    8B15 58F86101   mov     edx, dword ptr ds:[161F858]
+015C73E8    83C4 40         add     esp, 40
+015C73EB    A3 64F86101     mov     dword ptr ds:[161F864], eax
+015C73F0    50              push    eax
+015C73F1    A1 60F86101     mov     eax, dword ptr ds:[161F860]
+015C73F6    50              push    eax
+015C73F7    51              push    ecx
+015C73F8    52              push    edx
+015C73F9    E8 32C0FFFF     call    dee2.015C3430 <========== ---H---
+015C73FE    83C4 10         add     esp, 10  
+015C7401    83F8 01         cmp     eax, 1 <=================eax\=1 就 K.O.
+015C7404    75 1A           jnz     short dee2.015C7420 <====^\_^可爱的三步曲
+015C7406    6A 00           push    0
+015C7408    68 B8AC5D01     push    dee2.015DACB8                     ; ASCII ":)))))))))))))"
+015C740D    68 9CAC5D01     push    dee2.015DAC9C                     ; ASCII "Thanks for registering Dee2"
+015C7412    56              push    esi
+015C7413    A3 70F86101     mov     dword ptr ds:[161F870], eax
+015C7418    FF15 44515D01   call    near dword ptr ds:[15D5144]      ; USER32.MessageBoxA
+015C741E    EB 25           jmp     short dee2.015C7445
+015C7420    6A 00           push    0
+015C7422    68 8CAC5D01     push    dee2.015DAC8C                     ; ASCII ":((((((((((((("
+015C7427    68 80AC5D01     push    dee2.015DAC80                     ; ASCII "Invalid key"
+015C742C    56              push    esi
+015C742D    FF15 44515D01   call    near dword ptr ds:[15D5144]      ; USER32.MessageBoxA (*)
+```
+
+`---H---`  
+
+`---------------------------------------------------------------------`  
+
+```
+015C3430    8B4424 08       mov     eax, dword ptr ss:[esp+8] <====第二段试炼码的计算值  y     
+015C3434    8B4C24 04       mov     ecx, dword ptr ss:[esp+4] <====第一段试炼码的计算值  x        
+015C3438    35 4B1B3558     xor     eax, 58351B4B   
+015C343D    81F1 76823327   xor     ecx, 27338276   
+015C3443    0FAFC1          imul    eax, ecx   
+015C3446    8B5424 0C       mov     edx, dword ptr ss:[esp+C] <====第三段试炼码的计算值  t
+015C344A    B9 635E3100     mov     ecx, 315E63  
+015C344F    33C2            xor     eax, edx  
+015C3451    83EC 40         sub     esp, 40 <==================载入第四段试炼码的计算值  z
+015C3454    35 8A11DE1D     xor     eax, 1DDE118A <===========(y xor 58351B4B)*(x xor 27338276)xor t  xor 1DDE118A ---->eax
+015C3459    99              cdq
+015C345A    F7F9            idiv    ecx  
+015C345C    395424 50       cmp     dword ptr ss:[esp+50], edx <=======eax MOD 315E63 CMP z
+```
+
+
+
+```
+015C3460    0F85 F6000000   jnz     dee2.015C355C  <===NOP 就成功了,不幸的是有蛋壳,晕~~~,还要找算法~~~~
+
+015C3466    8B0D 5CF86101   mov     ecx, dword ptr ds:[161F85C]
+
+015C346C    8B15 60F86101   mov     edx, dword ptr ds:[161F860]
+
+015C3472    A1 58F86101     mov     eax, dword ptr ds:[161F858]
+
+015C3477    81F1 93CA8E00   xor     ecx, 8ECA93
+
+015C347D    81F2 95CE5135   xor     edx, 3551CE95
+
+015C3483    35 B75BE9CC     xor     eax, CCE95BB7
+
+015C3488    890D 5CF86101   mov     dword ptr ds:[161F85C], ecx
+
+015C348E    8B0D 64F86101   mov     ecx, dword ptr ds:[161F864]
+
+015C3494    8915 60F86101   mov     dword ptr ds:[161F860], edx
+
+015C349A    50              push    eax
+
+015C349B    8D5424 04       lea     edx, dword ptr ss:[esp+4]
+
+015C349F    81F1 57C06BA4   xor     ecx, A46BC057
+
+015C34A5    68 F0A85D01     push    dee2.015DA8F0              ; ASCII "%d"
+
+015C34AA    52              push    edx
+
+015C34AB    A3 58F86101     mov     dword ptr ds:[161F858], eax
+
+015C34B0    890D 64F86101   mov     dword ptr ds:[161F864], ecx
+
+015C34B6    E8 39850000     call    dee2.015CB9F4
+
+015C34BB    8D4424 0C       lea     eax, dword ptr ss:[esp+C]
+
+015C34BF    50              push    eax
+
+015C34C0    68 E8A85D01     push    dee2.015DA8E8              ; ASCII "key_a"
+
+015C34C5    68 0CA85D01     push    dee2.015DA80C              ; ASCII "Software\\Dee2"
+
+015C34CA    E8 31F1FFFF     call    dee2.015C2600
+
+015C34CF    8B0D 5CF86101   mov     ecx, dword ptr ds:[161F85C]
+
+015C34D5    8D5424 18       lea     edx, dword ptr ss:[esp+18]
+
+015C34D9    51              push    ecx
+
+015C34DA    68 F0A85D01     push    dee2.015DA8F0              ; ASCII "%d"
+
+015C34DF    52              push    edx
+
+015C34E0    E8 0F850000     call    dee2.015CB9F4
+
+015C34E5    8D4424 24       lea     eax, dword ptr ss:[esp+24]
+
+015C34E9    50              push    eax
+
+015C34EA    68 E0A85D01     push    dee2.015DA8E0              ; ASCII "key_b"
+
+015C34EF    68 0CA85D01     push    dee2.015DA80C              ; ASCII "Software\\Dee2"
+
+015C34F4    E8 07F1FFFF     call    dee2.015C2600
+
+015C34F9    8B0D 60F86101   mov     ecx, dword ptr ds:[161F860]
+
+015C34FF    8D5424 30       lea     edx, dword ptr ss:[esp+30]
+
+015C3503    51              push    ecx
+
+015C3504    68 F0A85D01     push    dee2.015DA8F0              ; ASCII "%d"
+
+015C3509    52              push    edx
+
+015C350A    E8 E5840000     call    dee2.015CB9F4
+
+015C350F    8D4424 3C       lea     eax, dword ptr ss:[esp+3C]
+
+015C3513    50              push    eax
+
+015C3514    68 D8A85D01     push    dee2.015DA8D8              ; ASCII "key_c"
+
+015C3519    68 0CA85D01     push    dee2.015DA80C              ; ASCII "Software\\Dee2"
+
+015C351E    E8 DDF0FFFF     call    dee2.015C2600
+
+015C3523    8B0D 64F86101   mov     ecx, dword ptr ds:[161F864]
+
+015C3529    83C4 48         add     esp, 48
+
+015C352C    8D5424 00       lea     edx, dword ptr ss:[esp]
+
+015C3530    51              push    ecx
+
+015C3531    68 F0A85D01     push    dee2.015DA8F0              ; ASCII "%d"
+
+015C3536    52              push    edx
+
+015C3537    E8 B8840000     call    dee2.015CB9F4
+
+015C353C    8D4424 0C       lea     eax, dword ptr ss:[esp+C]
+
+015C3540    50              push    eax
+
+015C3541    68 D0A85D01     push    dee2.015DA8D0              ; ASCII "key_d"
+
+015C3546    68 0CA85D01     push    dee2.015DA80C              ; ASCII "Software\\Dee2"
+
+015C354B    E8 B0F0FFFF     call    dee2.015C2600
+
+015C3550    83C4 18         add     esp, 18
+
+015C3553    B8 01000000     mov     eax, 1   <========== eax=1
+
+015C3558    83C4 40         add     esp, 40
+
+015C355B    C3              retn <===================
+
+015C355C    33C0            xor     eax, eax <========== eax=0
+
+015C355E    83C4 40         add     esp, 40
+
+015C3561    C3              retn <===================殊途同归
+```
+
+---S---
+
+```
+---------------------------------------------------------------
+
+015CBB07    53              push    ebx
+
+015CBB08    55              push    ebp
+
+015CBB09    56              push    esi
+
+015CBB0A    57              push    edi
+
+015CBB0B    8B7C24 14       mov     edi, dword ptr ss:[esp+14]
+
+015CBB0F    833D 7CB05D01 0>cmp     dword ptr ds:[15DB07C], 1
+
+015CBB16    7E 0F           jle     short dee2.015CBB27
+
+015CBB18    0FB607          movzx   eax, byte ptr ds:[edi]
+
+015CBB1B    6A 08           push    8
+
+015CBB1D    50              push    eax
+
+015CBB1E    E8 58100000     call    dee2.015CCB7B
+
+015CBB23    59              pop     ecx                              ; dee2.015DAE7A
+
+015CBB24    59              pop     ecx                              ; dee2.015DAE7A
+
+015CBB25    EB 0F           jmp     short dee2.015CBB36
+
+015CBB27    0FB607          movzx   eax, byte ptr ds:[edi]
+
+015CBB2A    8B0D 70AE5D01   mov     ecx, dword ptr ds:[15DAE70]      ; dee2.015DAE7A
+
+015CBB30    8A0441          mov     al, byte ptr ds:[ecx+eax*2]
+
+015CBB33    83E0 08         and     eax, 8
+
+015CBB36    85C0            test    eax, eax
+
+015CBB38    74 03           je      short dee2.015CBB3D
+
+015CBB3A    47              inc     edi
+
+015CBB3B  ^ EB D2           jmp     short dee2.015CBB0F
+
+015CBB3D    0FB637          movzx   esi, byte ptr ds:[edi]
+
+015CBB40    47              inc     edi
+
+015CBB41    83FE 2D         cmp     esi, 2D
+
+015CBB44    8BEE            mov     ebp, esi
+
+015CBB46    74 05           je      short dee2.015CBB4D
+
+015CBB48    83FE 2B         cmp     esi, 2B
+
+015CBB4B    75 04           jnz     short dee2.015CBB51
+
+015CBB4D    0FB637          movzx   esi, byte ptr ds:[edi]
+
+015CBB50    47              inc     edi
+
+015CBB51    33DB            xor     ebx, ebx
+
+015CBB53    833D 7CB05D01 0>cmp     dword ptr ds:[15DB07C], 1 <===================|
+
+015CBB5A    7E 0C           jle     short dee2.015CBB68
+
+015CBB5C    6A 04           push    4
+
+015CBB5E    56              push    esi
+
+015CBB5F    E8 17100000     call    dee2.015CCB7B
+
+015CBB64    59              pop     ecx                              ; dee2.015DAE7A
+
+015CBB65    59              pop     ecx                              ; dee2.015DAE7A
+
+015CBB66    EB 0B           jmp     short dee2.015CBB73
+
+015CBB68    A1 70AE5D01     mov     eax, dword ptr ds:[15DAE70]
+
+015CBB6D    8A0470          mov     al, byte ptr ds:[eax+esi*2]
+
+015CBB70    83E0 04         and     eax, 4
+
+015CBB73    85C0            test    eax, eax
+
+015CBB75    74 0D           je      short dee2.015CBB84
+
+015CBB77    8D049B          lea     eax, dword ptr ds:[ebx+ebx*4] <========
+
+015CBB7A    8D5C46 D0       lea     ebx, dword ptr ds:[esi+eax*2-30] <=====
+
+015CBB7E    0FB637          movzx   esi, byte ptr ds:[edi] <===============^_^可爱的三步曲
+
+015CBB81    47              inc     edi
+
+015CBB82  ^ EB CF           jmp     short dee2.015CBB53 ========================>|:)
+
+015CBB84    83FD 2D         cmp     ebp, 2D
+
+015CBB87    8BC3            mov     eax, ebx
+
+015CBB89    75 02           jnz     short dee2.015CBB8D
+
+015CBB8B    F7D8            neg     eax
+
+015CBB8D    5F              pop     edi
+
+015CBB8E    5E              pop     esi
+
+015CBB8F    5D              pop     ebp
+
+015CBB90    5B              pop     ebx
+
+015CBB91    C3              retn
+```
+
+`XXXXXX-XXXXXX-XXXXXX...` 每段的六位数用 `Y(X)` 表示
+
+起始 `eax`=0; `ebx`=`Y(0)-30` (Hex)
+
+`eax`=`Y(0)*5`; `ebx`=`Y(1)+Y(0)*5*2-30`
+
+`eax`=`(Y(1)+Y(0)*5*2-30)*5`; `ebx`=`Y(2)+((Y(1)+Y(0)*5*2-30)*5)*2-30`
+
+`eax`=`(Y(2)+((Y(1)+Y(0)*5*2-30)*5)*2-30)*5`; `ebx`=`Y(3)+((Y(2)+((Y(1)+Y(0)*5*2-30)*5)*2-30)*5)*2-30`
+
+
+
+`eax=(Y(3)+((Y(2)+((Y(1)+Y(0)*5*2-30)*5)*2-30)*5)*2-30)*5`
+
+...
+
+`ebx[1]=esi[1]+ebx[0]*A-30` <========= 归纳出来的递归式
+
+假设试炼码前六位为 `654321-`
+
+`x=((((6*A+5)*A+4)*A+3)*A+2)*A+1=9FBF1` <====== 即将数字视为十进制，将其转为十六进制运算（晕死啊!!:(我太菜了，分析出来原来是十转十六~~~~晕倒，下次一看就知道了，不用再傻头傻脑的算啊算啊~~~~~~:(，显得很没水准哦:)）
+
+`x-y-t-z`
+
+-------------------
+
+`(y xor 58351B4B)*(x xor 27338276) xor t xor 1DDE118A` ----> `eax`
+
+`eax MOD 315E63 CMP z`
+
+```c
+int x,y,t,z,eax,p;
+
+for(x=100000;x<999999;x++){
+    for (y = 100000; y < 999999;y++) {
+        for (t =100000; t < 999999; t++) {
+            for (z =100000; z < 999999; z++) {
+                p = (y ^ 0x58351B4B) * (x ^ 0x27338276);
+                eax = p ^ t ^ 0x1DDE118A;
+                if ( (eax - ( (int) (eax / 0x315E63) * 0x315E63)) == z) {
+                    System.out.println(x + "-" + y + "-" + t+"-"+z);
+                }
+            }
+        }
+    }
+    System.out.println("++"+x + "-" + y );
+}
+```
+
+`100000-100000-100000-810533`
+`100000-100000-100001-810534`
+`100000-100000-100002-810535`
+`100000-100000-100003-810536`
+`100000-100000-100004-810537`
+`100000-100000-100005-810538`
+
+... ...
+
+呵呵拿一个用用，K.O.
+
+=================================================================================================
+
+## PEDITOR
+
+Entry Point: `0017C9C0`
+
+Image Base: `10000000`
+
+Section Virtual Size Virtual Offset
+
+`UPX0` `00144000` `00001000`
+
+`UPX1` `00038000` `00145000`
+
+`.rsrc` `00002000` `0017D000`
+
+RVA size
+
+import table `0017E3F8` `0017E3F8`
+
+export table `0017E28C` `0000016C`
+
+----------------------------------------------------------------------------------------------
+
+`dspdee2.dll` (和 `dee2.dll` 相关的，反正我脱不了壳，不伤大雅:))
+
+```asm
+100010F5    68 B0600010      push    dspdee2.100060B0                     ; ASCII "system\dee2.dll"
+100010FA    C78424 24010000> mov     dword ptr ss:[esp+124], 0
+10001105    C703 F8500010    mov     dword ptr ds:[ebx], dspdee2.1000>
+1000110B    FF15 14500010    call    near dword ptr ds:[10005014]        ; kernel32.LoadLibraryA
+10001111    8B35 DC500010    mov     esi, dword ptr ds:[100050DC]        ; USER32.MessageBoxA
+10001117    A3 A0650010      mov     dword ptr ds:[100065A0], eax        ; dee2.015C0000
+1000111C    85C0             test    eax, eax                             ; dee2.015C0000
+1000111E    75 15            jnz     short dspdee2.10001135
+10001120    6A 00            push    0
+10001122    68 AC600010      push    dspdee2.100060AC                     ; ASCII ":("
+10001127    68 9C600010      push    dspdee2.1000609C                     ; ASCII "Dee2 not found"
+1000112C    6A 00            push    0
+1000112E    FFD6             call    near esi                             ; USER32.MessageBoxA
+10001130    A1 A0650010      mov     eax, dword ptr ds:[100065A0]
+10001135    68 88600010      push    dspdee2.10006088                     ; ASCII "winampDSPGetHeader2"
+1000113A    50               push    eax                                    ; dee2.015C0000
+1000113B    FF15 18500010    call    near dword ptr ds:[10005018]        ; kernel32.GetProcAddress
+10001141    A3 9C650010      mov     dword ptr ds:[1000659C], eax        ; dee2.015C0000
+10001146    FFD0             call    near eax                             ; dee2.015C0000
+10001148    85C0             test    eax, eax                             ; dee2.015C0000
+1000114A    A3 98650010      mov     dword ptr ds:[10006598], eax        ; dee2.015C0000
+1000114F    75 13            jnz     short dspdee2.10001164
+10001151    50               push    eax                                    ; dee2.015C0000
+10001152    68 AC600010      push    dspdee2.100060AC                     ; ASCII ":("
+10001157    68 9C600010      push    dspdee2.1000609C                     ; ASCII "Dee2 not found"
+1000115C    50               push    eax                                    ; dee2.015C0000
+1000115D    FFD6             call    near esi                             ; USER32.MessageBoxA
+1000115F    A1 98650010      mov     eax, dword ptr ds:[10006598]
+10001164    6A 00            push    0
+10001166    FF50 08          call    near dword ptr ds:[eax+8]
+```
+
+================================================================================================
+
+好了，有了这个插件，就可以充分发挥我的音响的 great 效果了，呵呵，享受去了... ...
+
+`4dd466d0e1e0cc123afbe504da2462ca`
