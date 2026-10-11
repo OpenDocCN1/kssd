@@ -1,0 +1,160 @@
+
+# VBA Decompilation Snippet
+
+## Logic Block 1
+```
+For j = 1 To Len(strCode)
+    If Mid(strCode, j, 1) = "b" Then code = code & "b"
+Next j
+```
+
+### Asm Correspondence
+
+```
+:00403417 F401                LitI2_Byte             ;Push 01
+:00403419 0464FF             FLdRfVar               ;Push LOCAL_009C
+:0040341C 6C70FF             ILdRf                  ;Push DWORD [LOCAL_0090]
+:0040341F 4A                 FnLenStr               ;vbaLenBstr
+:00403420 E4                 CI2I4                  ;Verify [stack] high word is 0000, ECX=[ECX]
+:00403421 FE638CFE830C       ForI2                  ;
+:00403427 2828FF0100         LitVarI2               ;PushVarInteger 0001
+:0040342C 6B64FF             FLdI2                  ;Push WORD [LOCAL_009C]
+:0040342F E7                 CI4UI1                 ;
+:00403430 0470FF             FLdRfVar               ;Push LOCAL_0090
+:00403433 4D48FF0840         CVarRef                ;
+:00403438 0418FF             FLdRfVar               ;Push LOCAL_00E8
+
+***********Reference To->msvbvm60.rtcMidCharVar
+                       |
+:0040343B 0A05001000         ImpAdCallFPR4          ;Call ptr_00401036; check stack 0010; Push EAX
+:00403440 0418FF             FLdRfVar               ;Push LOCAL_00E8
+
+******Possible String Ref To->"a"
+                       |
+:00403443 3A08FF4E00         LitVarStr              ;PushVarString ptr_00402510
+:00403448 5D                 HardType               ;
+:00403449 FB33               EqVarBool              ;
+:0040344B 36040028FF18FF     FFreeVar               ;Free 0004/2 variants
+:00403452 1C7B0C             BranchF                ;If Pop=0 then ESI=0040345F
+:00403455 6C74FF             ILdRf                  ;Push DWORD [LOCAL_008C]
+
+******Possible String Ref To->"a"
+                       |
+:00403458 1B4E00             LitStr                 ;Push ptr_00402510
+:0040345B 2A                 ConcatStr              ;vbaStrCat
+:0040345C 3174FF             FStStr                 ;SysFreeString [LOCAL_008C]; [LOCAL_008C]=Pop
+:0040345F 0464FF             FLdRfVar               ;Push LOCAL_009C
+:00403462 648CFE430C         NextI2                 ;
+```
+
+## Logic Block 2
+```
+For j = 1 To Len(strCode)
+    If Mid(strCode, j, 1) = "a" Then code = code & "a"
+Next j
+```
+
+### Asm Correspondence
+
+```
+:00403467 F401                LitI2_Byte             ;Push 01
+:00403469 0464FF             FLdRfVar               ;Push LOCAL_009C
+:0040346C 6C70FF             ILdRf                  ;Push DWORD [LOCAL_0090]
+:0040346F 4A                 FnLenStr               ;vbaLenBstr
+:00403470 E4                 CI2I4                  ;Verify [stack] high word is 0000, ECX=[ECX]
+:00403471 FE6388FED30C       ForI2                  ;
+:00403477 2828FF0100         LitVarI2               ;PushVarInteger 0001
+:0040347C 6B64FF             FLdI2                  ;Push WORD [LOCAL_009C]
+:0040347F E7                 CI4UI1                 ;
+:00403480 0470FF             FLdRfVar               ;Push LOCAL_0090
+:00403483 4D48FF0840         CVarRef                ;
+:00403488 0418FF             FLdRfVar               ;Push LOCAL_00E8
+
+***********Reference To->msvbvm60.rtcMidCharVar
+                       |
+:0040348B 0A05001000         ImpAdCallFPR4          ;Call ptr_00401036; check stack 0010; Push EAX
+:00403490 0418FF             FLdRfVar               ;Push LOCAL_00E8
+
+******Possible String Ref To->"9"
+                       |
+:00403493 3A08FF1600         LitVarStr              ;PushVarString ptr_004022E0
+:00403498 5D                 HardType               ;
+:00403499 FB33               EqVarBool              ;
+:0040349B 36040028FF18FF     FFreeVar               ;Free 0004/2 variants
+:004034A2 1CCB0C             BranchF                ;If Pop=0 then ESI=004034AF
+:004034A5 6C74FF             ILdRf                  ;Push DWORD [LOCAL_008C]
+
+******Possible String Ref To->"9"
+                       |
+:004034A8 1B1600             LitStr                 ;Push ptr_004022E0
+:004034AB 2A                 ConcatStr              ;vbaStrCat
+:004034AC 3174FF             FStStr                 ;SysFreeString [LOCAL_008C]; [LOCAL_008C]=Pop
+:004034AF 0464FF             FLdRfVar               ;Push LOCAL_009C
+:004034B2 6488FE930C         NextI2                 ;
+```
+
+## Logic Block 3
+```
+For j = 1 To Len(strCode)
+    If Mid(strCode, j, 1) = "9" Then code = code & "9"
+Next j
+```
+
+### Asm Correspondence
+
+```
+:004034B7 F401                LitI2_Byte             ;Push 01
+:004034B9 0464FF             FLdRfVar               ;Push LOCAL_009C
+:004034BC 6C70FF             ILdRf                  ;Push DWORD [LOCAL_0090]
+:004034BF 4A                 FnLenStr               ;vbaLenBstr
+:004034C0 E4                 CI2I4                  ;Verify [stack] high word is 0000, ECX=[ECX]
+:004034C1 FE6384FE230D       ForI2                  ;
+:004034C7 2828FF0100         LitVarI2               ;PushVarInteger 0001
+:004034CC 6B64FF             FLdI2                  ;Push WORD [LOCAL_009C]
+:004034CF E7                 CI4UI1                 ;
+:004034D0 0470FF             FLdRfVar               ;Push LOCAL_0090
+:004034D3 4D48FF0840         CVarRef                ;
+:004034D8 0418FF             FLdRfVar               ;Push LOCAL_00E8
+
+***********Reference To->msvbvm60.rtcMidCharVar
+                       |
+:004034DB 0A05001000         ImpAdCallFPR4          ;Call ptr_00401036; check stack 0010; Push EAX
+:004034E0 0418FF             FLdRfVar               ;Push LOCAL_00E8
+
+******Possible String Ref To->"8"
+                       |
+:004034E3 3A08FF1400         LitVarStr              ;PushVarString ptr_004022CC
+:004034E8 5D                 HardType               ;
+:004034E9 FB33               EqVarBool              ;
+:004034EB 36040028FF18FF     FFreeVar               ;Free 0004/2 variants
+:004034F2 1C1B0D             BranchF                ;If Pop=0 then ESI=004034FF
+:004034F5 6C74FF             ILdRf                  ;Push DWORD [LOCAL_008C]
+
+******Possible String Ref To->"8"
+                       |
+:004034F8 1B1400             LitStr                 ;Push ptr_004022CC
+:004034FB 2A                 ConcatStr              ;vbaStrCat
+:004034FC 3174FF             FStStr                 ;SysFreeString [LOCAL_008C]; [LOCAL_008C]=Pop
+:004034FF 0464FF             FLdRfVar               ;Push LOCAL_009C
+:00403502 6484FEE30C         NextI2                 ;
+```
+
+## Logic Block 4
+```
+For j = 1 To Len(strCode)
+    If Mid(strCode, j, 1) = "8" Then code = code & "8"
+Next j
+```
+
+### Asm Correspondence
+
+```
+:00403507 F401                LitI2_Byte             ;Push 01
+:00403509 0464FF             FLdRfVar               ;Push LOCAL_009C
+:0040350C 6C70FF             ILdRf                  ;Push DWORD [LOCAL_0090]
+:0040350F 4A                 FnLenStr               ;vbaLenBstr
+:00403510 E4                 CI2I4                  ;Verify [stack] high word is 0000, ECX=[ECX]
+:00403511 FE6380FE730D       ForI2                  ;
+:00403517 2828FF0100         LitVarI2               ;PushVarInteger 0001
+:0040351C 6B64FF             FLdI2                  ;Push WORD [LOCAL_009C]
+```
