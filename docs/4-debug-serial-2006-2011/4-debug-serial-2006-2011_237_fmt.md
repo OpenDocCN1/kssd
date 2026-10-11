@@ -1,0 +1,500 @@
+
+# 易通文件夹锁 2006 3.0.2.928
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-361.htm`](https://www.pediy.com/kssd/pediy08/pediy8-361.htm)
+
+【文章作者】: `tzl`
+
+【作者邮箱】: `tigerisme@126.com`
+
+【软件名称】: 易通文件夹锁 2006 3.0.2.928
+
+【软件大小】: 3099KB
+
+【下载地址】: `http://www.newhua.com/soft/43125.htm`
+
+【加壳方式】: `aspack`
+
+【保护方式】: 注册码
+
+【编写语言】: `Borland Delphi 6.0 - 7.0`
+
+【使用工具】: `OD`, `PEID`
+
+【操作平台】: `XP SP2`
+
+【软件介绍】: 四大保护功能，三种保护方式。集文件夹锁、文件锁、磁盘锁、增强锁于一体。提供锁定、隐藏、移动三种保护方式。防删除,复制等。是您文件资料的安全屏障。
+
+## 分析过程
+
+脱壳略去，调试主程序 `CDirLock.exe`，这个程序是调用了 `ETDirLock.dll` 进行注册加密，我们下 `bp MessageBoxA` 命令，运行并填写试练码后断下，返回反汇编窗口，在这里下断进行分析。注册名：`tigerisme` 试练码：`11111-22222-33333-44444`
+
+```
+0057C290    55              push ebp
+0057C291    8BEC            mov ebp,esp
+0057C293    B9 0B000000     mov ecx,0B
+0057C298    6A 00           push 0
+0057C29A    6A 00           push 0
+0057C29C    49              dec ecx
+0057C29D  ^ 75 F9           jnz short ETDirLoc.0057C298
+0057C29F    53              push ebx
+0057C2A0    8BD8            mov ebx,eax
+0057C2A2    33C0            xor eax,eax
+0057C2A4    55              push ebp
+0057C2A5    68 06C55700     push ETDirLoc.0057C506
+0057C2AA    64:FF30         push dword ptr fs:[eax]
+0057C2AD    64:8920         mov dword ptr fs:[eax],esp
+0057C2B0    8D55 F4         lea edx,dword ptr ss:[ebp-C]
+0057C2B3    8B83 20030000   mov eax,dword ptr ds:[ebx+320]
+0057C2B9    E8 6A6BFDFF     call ETDirLoc.00552E28
+0057C2BE    8B45 F4         mov eax,dword ptr ss:[ebp-C]                ; 注册名=ebp-C 送 eax
+0057C2C1    8D55 F8         lea edx,dword ptr ss:[ebp-8]
+0057C2C4    E8 53CCF8FF     call ETDirLoc.00508F1C
+0057C2C9    837D F8 00      cmp dword ptr ss:[ebp-8],0                  ; 注册名与 0 比较,不为 0 则正常跳转
+0057C2CD    0F84 80000000   je ETDirLoc.0057C353
+0057C2D3    8D55 EC         lea edx,dword ptr ss:[ebp-14]
+0057C2D6    8B83 24030000   mov eax,dword ptr ds:[ebx+324]
+0057C2DC    E8 476BFDFF     call ETDirLoc.00552E28
+0057C2E1    8B45 EC         mov eax,dword ptr ss:[ebp-14]               ; 第一组“11111”送 eax
+0057C2E4    8D55 F0         lea edx,dword ptr ss:[ebp-10]
+0057C2E7    E8 30CCF8FF     call ETDirLoc.00508F1C
+0057C2EC    837D F0 00      cmp dword ptr ss:[ebp-10],0                 ; 第一组“11111”与 0 比较,不为 0 则正常跳转
+0057C2F0    0F85 9A000000   jnz ETDirLoc.0057C390
+0057C2F6    8D55 E4         lea edx,dword ptr ss:[ebp-1C]
+0057C2F9    8B83 2C030000   mov eax,dword ptr ds:[ebx+32C]
+0057C2FF    E8 246BFDFF     call ETDirLoc.00552E28
+0057C304    8B45 E4         mov eax,dword ptr ss:[ebp-1C]
+0057C307    8D55 E8         lea edx,dword ptr ss:[ebp-18]
+0057C30A    E8 0DCCF8FF     call ETDirLoc.00508F1C
+0057C30F    837D E8 00      cmp dword ptr ss:[ebp-18],0
+0057C313    75 7B           jnz short ETDirLoc.0057C390
+0057C315    8D55 DC         lea edx,dword ptr ss:[ebp-24]
+0057C318    8B83 30030000   mov eax,dword ptr ds:[ebx+330]
+0057C31E    E8 056BFDFF     call ETDirLoc.00552E28
+0057C323    8B45 DC         mov eax,dword ptr ss:[ebp-24]
+0057C326    8D55 E0         lea edx,dword ptr ss:[ebp-20]
+0057C329    E8 EECBF8FF     call ETDirLoc.00508F1C
+0057C32E    837D E0 00      cmp dword ptr ss:[ebp-20],0
+0057C332    75 5C           jnz short ETDirLoc.0057C390
+0057C334    8D55 D4         lea edx,dword ptr ss:[ebp-2C]
+0057C337    8B83 34030000   mov eax,dword ptr ds:[ebx+334]
+0057C33D    E8 E66AFDFF     call ETDirLoc.00552E28
+0057C342    8B45 D4         mov eax,dword ptr ss:[ebp-2C]
+0057C345    8D55 D8         lea edx,dword ptr ss:[ebp-28]
+0057C348    E8 CFCBF8FF     call ETDirLoc.00508F1C
+0057C34D    837D D8 00      cmp dword ptr ss:[ebp-28],0
+0057C351    75 3D           jnz short ETDirLoc.0057C390
+0057C353    68 30000400     push 40030
+0057C358    8D55 D0         lea edx,dword ptr ss:[ebp-30]
+0057C35B    B8 20C55700     mov eax,ETDirLoc.0057C520
+0057C360    E8 E793FFFF     call ETDirLoc.0057574C
+0057C365    8B45 D0         mov eax,dword ptr ss:[ebp-30]
+0057C368    E8 B78AF8FF     call ETDirLoc.00504E24
+0057C36D    50              push eax
+0057C36E    8D55 CC         lea edx,dword ptr ss:[ebp-34]
+0057C371    B8 38C55700     mov eax,ETDirLoc.0057C538
+0057C376    E8 D193FFFF     call ETDirLoc.0057574C
+0057C37B    8B45 CC         mov eax,dword ptr ss:[ebp-34]
+0057C37E    E8 A18AF8FF     call ETDirLoc.00504E24
+0057C383    50              push eax
+0057C384    6A 00           push 0
+0057C386    E8 B9B5F8FF     call ETDirLoc.00507944              ; jmp 到 user32.MessageBoxA
+0057C38B    E9 EC000000     jmp ETDirLoc.0057C47C
+0057C390    8D55 C8         lea edx,dword ptr ss:[ebp-38]
+0057C393    8B83 24030000   mov eax,dword ptr ds:[ebx+324]
+0057C399    E8 8A6AFDFF     call ETDirLoc.00552E28
+0057C39E    FF75 C8         push dword ptr ss:[ebp-38]          ; ebp-38=11111
+0057C3A1    8D55 C4         lea edx,dword ptr ss:[ebp-3C]
+0057C3A4    8B83 2C030000   mov eax,dword ptr ds:[ebx+32C]      ; eax=5
+0057C3AA    E8 796AFDFF     call ETDirLoc.00552E28
+0057C3AF    FF75 C4         push dword ptr ss:[ebp-3C]          ; ebp-3C=22222
+0057C3B2    8D55 C0         lea edx,dword ptr ss:[ebp-40]
+0057C3B5    8B83 30030000   mov eax,dword ptr ds:[ebx+330]      ; eax=5
+0057C3BB    E8 686AFDFF     call ETDirLoc.00552E28
+0057C3C0    FF75 C0         push dword ptr ss:[ebp-40]          ; ebp-40=33333
+0057C3C3    8D55 BC         lea edx,dword ptr ss:[ebp-44]
+0057C3C6    8B83 34030000   mov eax,dword ptr ds:[ebx+334]      ; eax=5
+0057C3CC    E8 576AFDFF     call ETDirLoc.00552E28
+0057C3D1    FF75 BC         push dword ptr ss:[ebp-44]          ; ebp-44=44444
+0057C3D4    8D45 FC         lea eax,dword ptr ss:[ebp-4]
+0057C3D7    BA 04000000     mov edx,4                           ; 4 送 edx
+0057C3DC    E8 0B89F8FF     call ETDirLoc.00504CEC
+0057C3E1    8D55 B8         lea edx,dword ptr ss:[ebp-48]
+0057C3E4    8B83 20030000   mov eax,dword ptr ds:[ebx+320]
+0057C3EA    E8 396AFDFF     call ETDirLoc.00552E28
+0057C3EF    8B55 B8         mov edx,dword ptr ss:[ebp-48]       ; 注册名送 edx
+0057C3F2    8B45 FC         mov eax,dword ptr ss:[ebp-4]        ; 试练码送 eax
+0057C3F5    E8 5A97FFFF     call ETDirLoc.00575B54              ; 算法 call(1)
+0057C3FA    84C0            test al,al
+0057C3FC    74 46           je short ETDirLoc.0057C444          标志位判断，爆破点**********
+0057C3FE    68 40000400     push 40040
+0057C403    8D55 B4         lea edx,dword ptr ss:[ebp-4C]
+0057C406    B8 20C55700     mov eax,ETDirLoc.0057C520
+0057C40B    E8 3C93FFFF     call ETDirLoc.0057574C
+0057C410    8B45 B4         mov eax,dword ptr ss:[ebp-4C]
+0057C413    E8 0C8AF8FF     call ETDirLoc.00504E24
+0057C418    50              push eax
+0057C419    8D55 B0         lea edx,dword ptr ss:[ebp-50]
+0057C41C    B8 68C55700     mov eax,ETDirLoc.0057C568
+0057C421    E8 2693FFFF     call ETDirLoc.0057574C
+0057C426    8B45 B0         mov eax,dword ptr ss:[ebp-50]
+0057C429    E8 F689F8FF     call ETDirLoc.00504E24
+0057C42E    50              push eax
+0057C42F    6A 00           push 0
+0057C431    E8 0EB5F8FF     call ETDirLoc.00507944              ; 注册成功提示************
+0057C436    A1 2CD15900     mov eax,dword ptr ds:[59D12C]
+0057C43B    8B00            mov eax,dword ptr ds:[eax]
+0057C43D    E8 AE88FCFF     call ETDirLoc.00544CF0
+0057C442    EB 38           jmp short ETDirLoc.0057C47C
+********************************************************************************************
+
+算法 call(1)
+
+00575B6A    55              push ebp
+00575B6B    68 AA5C5700     push ETDirLoc.00575CAA
+```
+
+
+
+```
+00575B70    64:FF30         push dword ptr fs:[eax]  
+00575B73    64:8920         mov dword ptr fs:[eax],esp  
+00575B76    C645 FF 00      mov byte ptr ss:[ebp-1],0  
+00575B7A    B8 E0515700     mov eax,ETDirLoc.005751E0  
+00575B7F    E8 64F8FFFF     call ETDirLoc.005753E8  
+00575B84    84C0            test al,al  
+00575B86    74 0C           je short ETDirLoc.00575B94  
+00575B88    A1 2CD15900     mov eax,dword ptr ds:[59D12C]  
+00575B8D    8B00            mov eax,dword ptr ds:[eax]  
+00575B8F    E8 5CF1FCFF     call ETDirLoc.00544CF0  
+00575B94    B8 944F5700     mov eax,ETDirLoc.00574F94  
+00575B99    E8 4AF8FFFF     call ETDirLoc.005753E8  
+00575B9E    84C0            test al,al  
+00575BA0    74 0C           je short ETDirLoc.00575BAE  
+00575BA2    A1 2CD15900     mov eax,dword ptr ds:[59D12C]  
+00575BA7    8B00            mov eax,dword ptr ds:[eax]  
+00575BA9    E8 42F1FCFF     call ETDirLoc.00544CF0  
+00575BAE    B8 A8505700     mov eax,ETDirLoc.005750A8  
+00575BB3    E8 30F8FFFF     call ETDirLoc.005753E8  
+00575BB8    84C0            test al,al  
+00575BBA    74 0C           je short ETDirLoc.00575BC8  
+00575BBC    A1 2CD15900     mov eax,dword ptr ds:[59D12C]  
+00575BC1    8B00            mov eax,dword ptr ds:[eax]  
+00575BC3    E8 28F1FCFF     call ETDirLoc.00544CF0  
+00575BC8    8D45 F4         lea eax,dword ptr ss:[ebp-C]  
+00575BCB    E8 BCFAFFFF     call ETDirLoc.0057568C                   ; 算法 call(2)  
+00575BD0    8D4D F0         lea ecx,dword ptr ss:[ebp-10]  
+00575BD3    8BD7            mov edx,edi                               ; edi=tigerisme  
+00575BD5    A1 68EC5900     mov eax,dword ptr ds:[59EC68]  
+00575BDA    E8 BDFCFFFF     call ETDirLoc.0057589C  
+00575BDF    8B45 F0         mov eax,dword ptr ss:[ebp-10]  
+00575BE2    8BD6            mov edx,esi  
+00575BE4    E8 87F1F8FF     call ETDirLoc.00504D70                   ; 由算法 call（2）得出真正注册码“O8L708C1IOYFV086YK9S”  
+00575BE9    0F85 A0000000   jnz ETDirLoc.00575C8F  
+00575BEF    B2 01           mov dl,1  
+00575BF1    A1 FC465700     mov eax,dword ptr ds:[5746FC]  
+00575BF6    E8 01ECFFFF     call ETDirLoc.005747FC  
+00575BFB    8BD8            mov ebx,eax  
+00575BFD    BA 00000080     mov edx,80000000  
+00575C02    8BC3            mov eax,ebx  
+00575C04    E8 93ECFFFF     call ETDirLoc.0057489C  
+00575C09    8D45 F8         lea eax,dword ptr ss:[ebp-8]  
+00575C0C    50              push eax  
+00575C0D    B9 01000000     mov ecx,1  
+00575C12    BA 12000000     mov edx,12  
+00575C17    A1 68EC5900     mov eax,dword ptr ds:[59EC68]  
+00575C1C    E8 B7FBFFFF     call ETDirLoc.005757D8  
+00575C21    B1 01           mov cl,1  
+00575C23    8B55 F8         mov edx,dword ptr ss:[ebp-8]  
+00575C26    8BC3            mov eax,ebx  
+00575C28    E8 D7ECFFFF     call ETDirLoc.00574904  
+00575C2D    84C0            test al,al  
+00575C2F    74 50           je short ETDirLoc.00575C81  
+00575C31    8D55 EC         lea edx,dword ptr ss:[ebp-14]  
+00575C34    8BC6            mov eax,esi  
+00575C36    E8 11FBFFFF     call ETDirLoc.0057574C  
+00575C3B    8B45 EC         mov eax,dword ptr ss:[ebp-14]  
+00575C3E    50              push eax  
+00575C3F    8D55 E8         lea edx,dword ptr ss:[ebp-18]  
+00575C42    B8 C45C5700     mov eax,ETDirLoc.00575CC4                ; ASCII "cpsn"  
+00575C47    E8 00FBFFFF     call ETDirLoc.0057574C  
+00575C4C    8B55 E8         mov edx,dword ptr ss:[ebp-18]  
+00575C4F    8BC3            mov eax,ebx  
+00575C51    59              pop ecx  
+00575C52    E8 49F0FFFF     call ETDirLoc.00574CA0  
+00575C57    8D55 E4         lea edx,dword ptr ss:[ebp-1C]  
+00575C5A    8BC7            mov eax,edi  
+00575C5C    E8 EBFAFFFF     call ETDirLoc.0057574C  
+00575C61    8B45 E4         mov eax,dword ptr ss:[ebp-1C]  
+00575C64    50              push eax  
+00575C65    8D55 E0         lea edx,dword ptr ss:[ebp-20]  
+00575C68    B8 D45C5700     mov eax,ETDirLoc.00575CD4                ; ASCII "user"  
+00575C6D    E8 DAFAFFFF     call ETDirLoc.0057574C  
+00575C72    8B55 E0         mov edx,dword ptr ss:[ebp-20]  
+00575C75    8BC3            mov eax,ebx  
+00575C77    59              pop ecx  
+00575C78    E8 23F0FFFF     call ETDirLoc.00574CA0  
+00575C7D    C645 FF 01      mov byte ptr ss:[ebp-1],1  
+00575C81    8BC3            mov eax,ebx  
+00575C83    E8 E4EBFFFF     call ETDirLoc.0057486C  
+00575C88    8BC3            mov eax,ebx  
+00575C8A    E8 F1DEF8FF     call ETDirLoc.00503B80  
+00575C8F    33C0            xor eax,eax  
+00575C91    5A              pop edx  
+00575C92    59              pop ecx  
+00575C93    59              pop ecx  
+00575C94    64:8910         mov dword ptr fs:[eax],edx  
+00575C97    68 B15C5700     push ETDirLoc.00575CB1  
+00575C9C    8D45 E0         lea eax,dword ptr ss:[ebp-20]  
+00575C9F    BA 07000000     mov edx,7  
+00575CA4    E8 EFECF8FF     call ETDirLoc.00504998  
+00575CA9    C3              retn  
+00575CAA  ^ E9 65E6F8FF     jmp ETDirLoc.00504314  
+00575CAF  ^ EB EB           jmp short ETDirLoc.00575C9C  
+00575CB1    8A45 FF         mov al,byte ptr ss:[ebp-1]  
+00575CB4    5F              pop edi  
+00575CB5    5E              pop esi  
+00575CB6    5B              pop ebx  
+00575CB7    8BE5            mov esp,ebp  
+00575CB9    5D              pop ebp  
+00575CBA    C3              retn  
+```
+
+`****************************************************************`
+
+### `算法 call(2)`
+
+```
+0057568C    55              push ebp  
+0057568D    8BEC            mov ebp,esp  
+0057568F    33C9            xor ecx,ecx  
+00575691    51              push ecx  
+00575692    51              push ecx  
+00575693    51              push ecx  
+00575694    51              push ecx  
+00575695    51              push ecx  
+00575696    53              push ebx  
+00575697    8BD8            mov ebx,eax  
+00575699    33C0            xor eax,eax  
+0057569B    55              push ebp  
+0057569C    68 3D575700     push ETDirLoc.0057573D  
+005756A1    64:FF30         push dword ptr fs:[eax]  
+005756A4    64:8920         mov dword ptr fs:[eax],esp  
+005756A7    8D45 FC         lea eax,dword ptr ss:[ebp-4]  
+005756AA    E8 5DFEFFFF     call ETDirLoc.0057550C  
+005756AF    8D55 F8         lea edx,dword ptr ss:[ebp-8]  
+005756B2    8B45 FC         mov eax,dword ptr ss:[ebp-4]         ; WD-WCAD19885326=ebp-4 送 eax  
+005756B5    E8 6238F9FF     call ETDirLoc.00508F1C  
+005756BA    8B55 F8         mov edx,dword ptr ss:[ebp-8]         ; ebp-8=WD-WCAD19885326，送 edx  
+005756BD    8D45 FC         lea eax,dword ptr ss:[ebp-4]  
+005756C0    E8 47F3F8FF     call ETDirLoc.00504A0C  
+005756C5    837D FC 00      cmp dword ptr ss:[ebp-4],0           ; WD-WCAD19885326 与 0 比较  
+005756C9    74 22           je short ETDirLoc.005756ED  
+005756CB    8D45 F4         lea eax,dword ptr ss:[ebp-C]  
+005756CE    50              push eax  
+005756CF    33C9            xor ecx,ecx  
+005756D1    BA 12000000     mov edx,12  
+005756D6    8B45 FC         mov eax,dword ptr ss:[ebp-4]         ; WD-WCAD19885326=ebp-4 送 eax  
+005756D9    E8 FA000000     call ETDirLoc.005757D8               ; 算法 call（3）  
+005756DE    8B55 F4         mov edx,dword ptr ss:[ebp-C]         ; 由前个 call 得出“14121011813951089292015”  
+005756E1    B8 68EC5900     mov eax,ETDirLoc.0059EC68  
+005756E6    E8 DDF2F8FF     call ETDirLoc.005049C8  
+005756EB    EB 28           jmp short ETDirLoc.00575715  
+005756ED    8D45 F0         lea eax,dword ptr ss:[ebp-10]  
+005756F0    50              push eax  
+005756F1    8D45 EC         lea eax,dword ptr ss:[ebp-14]  
+005756F4    E8 2FFDFFFF     call ETDirLoc.00575428  
+005756F9    8B45 EC         mov eax,dword ptr ss:[ebp-14]  
+005756FC    33C9            xor ecx,ecx  
+005756FE    BA 12000000     mov edx,12  
+```
+
+
+
+```
+00575703    E8 D0000000     call ETDirLoc.005757D8  
+
+00575708    8B55 F0         mov edx,dword ptr ss:[ebp-10]  
+
+0057570B    B8 68EC5900     mov eax,ETDirLoc.0059EC68  
+
+00575710    E8 B3F2F8FF     call ETDirLoc.005049C8  
+
+00575715    8BC3            mov eax,ebx  
+
+00575717    8B15 68EC5900   mov edx,dword ptr ds:[59EC68]  
+
+0057571D    E8 A6F2F8FF     call ETDirLoc.005049C8  
+
+00575722    33C0            xor eax,eax  
+
+00575724    5A              pop edx  
+
+00575725    59              pop ecx  
+
+00575726    59              pop ecx  
+
+00575727    64:8910         mov dword ptr fs:[eax],edx  
+
+0057572A    68 44575700     push ETDirLoc.00575744  
+
+0057572F    8D45 EC         lea eax,dword ptr ss:[ebp-14]  
+
+00575732    BA 05000000     mov edx,5  
+
+00575737    E8 5CF2F8FF     call ETDirLoc.00504998  
+
+0057573C    C3              retn  
+
+0057573D  ^ E9 D2EBF8FF     jmp ETDirLoc.00504314  
+
+00575742  ^ EB EB          jmp short ETDirLoc.0057572F  
+
+00575744    5B              pop ebx  
+
+00575745    8BE5            mov esp,ebp  
+
+00575747    5D              pop ebp  
+
+00575748    C3              retn  
+```
+
+`***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***`
+
+### 算法 call（3）
+
+```
+005757D8    55              push ebp  
+
+005757D9    8BEC            mov ebp,esp  
+
+005757DB    83C4 EC         add esp,-14  
+
+005757DE    53              push ebx  
+
+005757DF    56              push esi  
+
+005757E0    57              push edi  
+
+005757E1    33DB            xor ebx,ebx  
+
+005757E3    895D EC         mov dword ptr ss:[ebp-14],ebx  
+
+005757E6    895D F0         mov dword ptr ss:[ebp-10],ebx  
+
+005757E9    894D F4         mov dword ptr ss:[ebp-C],ecx  
+
+005757EC    8955 F8         mov dword ptr ss:[ebp-8],edx  
+
+005757EF    8945 FC         mov dword ptr ss:[ebp-4],eax  
+
+005757F2    33C0            xor eax,eax  
+
+005757F4    55              push ebp  
+
+005757F5    68 8A585700     push ETDirLoc.0057588A  
+
+005757FA    64:FF30         push dword ptr fs:[eax]  
+
+005757FD    64:8920         mov dword ptr fs:[eax],esp  
+
+00575800    8B45 FC         mov eax,dword ptr ss:[ebp-4]  
+
+00575803    E8 24F4F8FF     call ETDirLoc.00504C2C                  ; WD-WCAD19885326=eax  
+
+00575808    8BF8            mov edi,eax  
+
+0057580A    85FF            test edi,edi  
+
+0057580C    7E 61           jle short ETDirLoc.0057586F  
+
+0057580E    BE 01000000     mov esi,1  
+
+00575813    8B45 FC         mov eax,dword ptr ss:[ebp-4]         ; WD-WCAD19885326=ebp-4 送 eax  
+
+00575816    0FB64430 FF     movzx eax,byte ptr ds:[eax+esi-1]      ; 逐位取“WD-WCAD19885326”，送 eax  
+
+0057581B    99              cdq  
+
+0057581C    F77D F8         idiv dword ptr ss:[ebp-8]             ; WD-WCAD19885326 逐位取，每位 ascii 码除 12，结果整数放 eax，余数放 edx  
+
+0057581F    8BDA            mov ebx,edx                               ; 余数放 edx 并送 ebx  
+
+00575821    33DE            xor ebx,esi                               ; 余数逐位与 1，2，3……15 进行 xor 运算，结果记和起来就是机器码  
+
+00575823    837D F4 01      cmp dword ptr ss:[ebp-C],1  
+
+00575827    75 2A           jnz short ETDirLoc.00575853  
+
+00575829    8BC3            mov eax,ebx  
+
+0057582B    B9 24000000     mov ecx,24  
+
+00575830    99              cdq  
+
+00575831    F7F9            idiv ecx  
+
+00575833    8BDA            mov ebx,edx  
+
+00575835    8D45 F0         lea eax,dword ptr ss:[ebp-10]  
+
+00575838    8A93 90C75900   mov dl,byte ptr ds:[ebx+59C790]  
+
+0057583E    E8 11F3F8FF     call ETDirLoc.00504B54  
+
+00575843    8B55 F0         mov edx,dword ptr ss:[ebp-10]  
+
+00575846    8B45 08         mov eax,dword ptr ss:[ebp+8]  
+
+00575849    E8 E6F3F8FF     call ETDirLoc.00504C34  
+
+0057584E    8B45 08         mov eax,dword ptr ss:[ebp+8]  
+
+00575851    EB 18           jmp short ETDirLoc.0057586B  
+
+00575853    8D55 EC         lea edx,dword ptr ss:[ebp-14]  
+
+00575856    8BC3            mov eax,ebx                               ; E 送 eax  
+
+00575858    E8 DB38F9FF     call ETDirLoc.00509138  
+
+0057585D    8B55 EC         mov edx,dword ptr ss:[ebp-14]             ; 由前面的 call 将 codeA 逐个由 16 位转成十进制，即 14121011813951089292015  
+
+00575860    8B45 08         mov eax,dword ptr ss:[ebp+8]  
+
+00575863    E8 CCF3F8FF     call ETDirLoc.00504C34  
+
+00575868    8B45 08         mov eax,dword ptr ss:[ebp+8]  
+
+0057586B    46              inc esi  
+
+0057586C    4F              dec edi  
+
+0057586D  ^ 75 A4          jnz short ETDirLoc.00575813  
+
+0057586F    33C0            xor eax,eax  
+
+00575871    5A              pop edx  
+
+00575872    59              pop ecx  
+
+00575873    59              pop ecx  
+
+00575874    64:8910         mov dword ptr fs:[eax],edx  
+
+00575877    68 91585700     push ETDirLoc.00575891  
+
+0057587C    8D45 EC         lea eax,dword ptr ss:[ebp-14]  
+
+0057587F    BA 02000000     mov edx,2  
+
+00575884    E8 0FF1F8FF     call ETDirLoc.00504998  
+
+00575889    C3              retn  
+```
+
+`***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***` `***`
+
+算法思路就是硬盘固定码`WD-WCAD19885326`经过一定运算得到机器码`14121011813951089292015`，之后与用户名经过运算得到注册码“`O8L70-8C1IO-YFV08-6YK9S`”，这里没有做详细分析，软件主要的加密特点是通过对`dll`文件进行注册加密，调试主程序时须调用`ETDirLock.dll`。希望对刚入门的朋友有帮助!
+
+`4dd466d0e1e0cc123afbe504da2462ca`
