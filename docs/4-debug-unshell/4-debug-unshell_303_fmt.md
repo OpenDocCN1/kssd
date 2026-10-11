@@ -1,0 +1,112 @@
+
+# Aspack2.12 加的壳
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue342.htm`](https://www.pediy.com/kssd/pediy04/kanxue342.htm)
+
+今天上网下载了个`Aspack2.12`，不知它的加壳有没有变化，让我们来看看。
+
+试验对象是`Windows`自带的记事本程序，压缩前`52KB`，压缩后`32.5KB`。好，开工了。
+
+先用`fi`检查壳的类型，报告显示`PE Win GUI *UNKNOWN*`，没关系，自己加的壳还用怀疑吗。
+
+接着用`Trw2000`加载程序，`Load`，程序被中断在如下代码处
+
+```
+0167:0040D001 60                         PUSHAD
+0167:0040D002 E803000000                CALL    0040D00A
+```
+
+按`F8`跟进去（这时如果按`F10`的话程序会直接运行）
+
+```
+0167:0040D00A 5D                         POP     EBP
+0167:0040D00B 45                         INC     EBP
+0167:0040D00C 55                         PUSH    EBP
+0167:0040D00D C3                         RET
+```
+
+按一下`F10`看到下面的代码
+
+```
+0167:0040D008 EB04                       JMP     0040D00E
+```
+
+按一下`F10`看到下面的代码
+
+```
+0167:0040D00E E801000000                CALL    0040D014
+```
+
+按`F8`跟进去，来到下面
+
+```
+0167:0040D014 5D                         POP     EBP
+0167:0040D015 BBEDFFFFFF                 MOV     EBX,FFFFFFED
+0167:0040D01A 03DD                       ADD     EBX,EBP
+0167:0040D01C 81EB00D00000              SUB     EBX,0000D000
+0167:0040D022 83BD2204000000            CMP     DWord Ptr [EBP+00000422],00000000
+0167:0040D029 899D22040000              MOV     [EBP+00000422],EBX
+0167:0040D02F 0F8565030000              JNZ     0040D39A       (NO JUMP) <--- 注意，下断点 bpx 0040D39A
+0167:0040D035 8D852E040000              LEA     EAX,[EBP+0000042E]
+0167:0040D03B 50                         PUSH    EAX
+0167:0040D03C FF954D0F0000              CALL    Near [`KERNEL32!GetModuleHandleA`]
+0167:0040D042 898526040000              MOV     [EBP+00000426],EAX
+0167:0040D048 8BF8                       MOV     EDI,EAX
+0167:0040D04A 8D5D5E                     LEA     EBX,[EBP+5E]
+0167:0040D04D 53                         PUSH    EBX
+0167:0040D04E 50                         PUSH    EAX
+0167:0040D04F FF95490F0000              CALL    Near [`KERNEL32!GetProcAddress`]
+```
+
+下断点后，按`F5`，程序来到下面的代码处
+
+```
+0167:0040D39A B8CC100000                 MOV     EAX,000010CC
+0167:0040D39F 50                         PUSH    EAX
+0167:0040D3A0 038522040000               ADD     EAX,[EBP+00000422]
+0167:0040D3A6 59                         POP     ECX
+0167:0040D3A7 0BC9                       OR      ECX,ECX
+0167:0040D3A9 8985A8030000               MOV     [EBP+000003A8],EAX
+0167:0040D3AF 61                         POPAD          <--- 关键字，入口点就在附近
+0167:0040D3B0 7508                       JNZ     0040D3BA
+0167:0040D3B2 B801000000                 MOV     EAX,00000001
+0167:0040D3B7 C20C00                     RET     000C
+0167:0040D3BA 6800000000                 PUSH    00000000
+0167:0040D3BF C3                         RET             <--- 从这返回后我们就来到程序的真正入口点
+```
+
+下面就是程序的真正入口点
+
+```
+0167:004010CC 55                         PUSH    EBP
+0167:004010CD 8BEC                       MOV     EBP,ESP
+0167:004010CF 83EC44                     SUB     ESP,00000044
+0167:004010D2 56                         PUSH    ESI
+0167:004010D3 FF15E4634000               CALL    Near [`KERNEL32!GetCommandLineA`]
+```
+
+返回到真正入口点后，下指令`suspend`挂起调试器，打开`PEditor`，按下`tasks`按钮，在列表中选中你的程序，点右键，选择菜单命令`dump(full)`把进程保存到文件中，保存后杀掉进程。
+
+上面的方法对其它的程序也一样适用（我测试了好几个程序，它们在调试器所显示的代码形式都差不多），用这种方法脱壳后的程序可以直接运行。
+
+附上`Procdump`的`Script`：
+
+```
+[Aspack2.12]
+
+L1=OBJR
+L2=LOOK 61,75
+L3=BP
+L4=STEP
+OPTL1=00000000
+OPTL2=01010001
+OPTL3=01010001
+OPTL4=00030000
+OPTL5=00000000
+```
+
+感谢你阅读这篇文章
+
+`2001.1.12`  一块三毛钱
+
+`4dd466d0e1e0cc123afbe504da2462ca`
