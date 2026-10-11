@@ -1,0 +1,430 @@
+
+# IMToo 系列软件的算法分析
+
+> 原文：[`www.pediy.com/kssd/pediy10/80529.html`](https://www.pediy.com/kssd/pediy10/80529.html)
+
+【文章标题】：`IMToo` 系列软件的算法分析  
+【文章作者】：`iawen`  
+【作者主页】：`www.iawen.com`  
+【软件名称】：`IMToo` 系列软件  
+【下载地址】：自己搜索下载  
+【加壳方式】：无  
+【保护方式】：注册码  
+【编写语言】：`VC`  
+【使用工具】：`OD`  
+【操作平台】：`XP SP3`  
+【软件介绍】：视频音频类的工具  
+【作者声明】：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
+
+---
+
+## 详细过程
+
+同样是一个通过专用 `DLL` 来验证程序，通过在 `DLL` 里查看导出函数，很快就能找到：
+
+`UILib8_M.ImRegUserInfo::IsValidRegInfo_private`
+
+双击来到段着下断：
+
+```
+0046D040 UILib8>/$  6A FF           push -1
+0046D042        |.  68 BB914A00     push UILib8_M.004A91BB                ;  SE 句柄安装
+0046D047        |.  64:A1 00000000  mov eax,dword ptr fs:[0]
+0046D04D        |.  50              push eax
+0046D04E        |.  64:8925 00000000 mov dword ptr fs:[0],esp
+0046D055        |.  81EC B8000000   sub esp,0B8
+```
+
+经过一段注册表的读取过程，很快来到这里：
+
+```
+0046D225        |> \6A 14           push 14
+0046D227        |.  8D4C24 0C       lea ecx,dword ptr ss:[esp+C]
+0046D22B        |.  51              push ecx                                ;  |Arg1 = 0013E8AC
+0046D22C        |.  8D4C24 18       lea ecx,dword ptr ss:[esp+18]           ;  |取输入的假码前 20 位，设为：szConst
+0046D230        |.  FF15 C8E54A00   call dword ptr ds:[<&MFC71U.#3990>]    ;  \MFC71U.7C29977E
+```
+
+继续单步，就看到了对注册码的长度的比较：
+
+```
+0046D27F        |.  8D4C24 10       lea ecx,dword ptr ss:[esp+10]
+0046D283        |.  FF15 8CE54A00  call dword ptr ds:[<&MFC71U.#2895>]     ;  MFC71U.7C256550
+0046D289        |.  83F8 27         cmp eax,27                              ;  将注册码长度与 0x27 比较
+0046D28C        |.  0F85 D3030000  jnz UILib8_M.0046D665                   ;  不等则失败
+```
+
+```
+0046D2D6        |.  50              push eax                                  ;  出现字符：ImTOOavimpegconverter5
+0046D2D7        |.  6A 00           push 0                                    ;  我们记为：sName
+0046D2D9        |.  E8 824B0000     call UILib8_M.CImTools::WC_A
+```
+
+继续单步吧，很快就来到了注册算法的关键部分了，呵呵：
+
+```
+0046D343        |.  8B4C24 20       mov ecx,dword ptr ss:[esp+20]             ;  将 ECX 指向字符串
+0046D347        |.  8B41 F4         mov eax,dword ptr ds:[ecx-C]             ;  将字符串的长度存储到 EAX
+0046D34A        |.  33F6            xor esi,esi
+0046D34C        |.  85C0            test eax,eax
+0046D34E        |.  C68424 C8000000 0>mov byte ptr ss:[esp+C8],9
+0046D356        |.  7E 5D           jle short UILib8_M.0046D3B5
+0046D358        |.  EB 06           jmp short UILib8_M.0046D360
+0046D35A        |   8D9B 00000000  lea ebx,dword ptr ds:[ebx]
+0046D360        |>  8BD6            /mov edx,esi
+0046D362        |.  81E2 01000080  |and edx,80000001
+0046D368        |.  79 05          |jns short UILib8_M.0046D36F
+0046D36A        |.  4A             |dec edx
+0046D36B        |.  83CA FE        |or edx,FFFFFFFE
+0046D36E        |.  42             |inc edx
+0046D36F        |>  75 38          |jnz short UILib8_M.0046D3A9              ;  测试 EDX 是否为 0
+0046D371        |.  56             |push esi
+0046D372        |.  8D4C24 24      |lea ecx,dword ptr ss:[esp+24]
+0046D376        |.  FF15 7CE34A00  |call dword ptr ds:[<&MFC71U.#861>]      ;  MFC71U.7C29986D
+0046D37C        |.  8D4C24 0C      |lea ecx,dword ptr ss:[esp+C]
+0046D380        |.  50             |push eax
+0046D381        |.  FF15 44E34A00  |call dword ptr ds:[<&MFC71U.#904>]      ;  MFC71U.7C29B289
+0046D387        |.  8D46 01        |lea eax,dword ptr ds:[esi+1]             ;  将 ESI+1 的结果保存到 EAX
+0046D38A        |.  99             |cdq
+0046D38B        |.  B9 FF000000    |mov ecx,0FF
+0046D390        |.  F7F9           |idiv ecx                                 ;  然后除以 0xFF
+0046D392        |.  84D2           |test dl,dl                               ;  比较余数不否为 0
+0046D394        |.  885424 08      |mov byte ptr ss:[esp+8],dl
+0046D398        |.  74 0F          |je short UILib8_M.0046D3A9              ;  为 0 则跳转，否则保存到 ESP+8 的位置
+0046D39A        |.  8B5424 08      |mov edx,dword ptr ss:[esp+8]
+0046D39E        |.  52             |push edx
+0046D39F        |.  8D4C24 10      |lea ecx,dword ptr ss:[esp+10]
+0046D3A3        |.  FF15 44E34A00  |call dword ptr ds:[<&MFC71U.#904>]      ;  MFC71U.7C29B289
+0046D3A9        |>  8B4C24 20      |mov ecx,dword ptr ss:[esp+20]
+0046D3AD        |.  8B41 F4        |mov eax,dword ptr ds:[ecx-C]
+0046D3B0        |.  46             |inc esi
+0046D3B1        |.  3BF0           |cmp esi,eax
+0046D3B3        |.^ 7C AB          \jl short UILib8_M.0046D360
+0046D3B5        |>  8B41 F4        mov eax,dword ptr ds:[ecx-C]
+```
+
+用代码来表示如下：
+
+```c
+len=strlen(sName);
+int num1[32]={0};
+int num1len=0;
+for(int i=0;i<len;i++){
+    int tmp=i;
+    tmp=tmp & 0x80000001;
+    if(tmp==0){
+        tmp=(i+1) % 0xFF;
+        if(tmp!=0){
+            num1[num1len]=tmp;
+            num1len++;
+        }
+    }
+}
+```
+
+下面还有一段相同的，操作相反的代码（取偶数位，上面的是取奇数位）：
+
+```
+0046D3BE        |.  8BFF            mov edi,edi
+0046D3C0        |>  8BC6            /mov eax,esi
+0046D3C2        |.  25 01000080     |and eax,80000001
+0046D3C7        |.  79 05          |jns short UILib8_M.0046D3CE
+0046D3C9        |.  48             |dec eax
+0046D3CA        |.  83C8 FE        |or eax,FFFFFFFE
+0046D3CD        |.  40             |inc eax
+0046D3CE        |>  74 38          |je short UILib8_M.0046D408
+0046D3D0        |.  56             |push esi
+0046D3D1        |.  8D4C24 24      |lea ecx,dword ptr ss:[esp+24]
+0046D3D5        |.  FF15 7CE34A00  |call dword ptr ds:[<&MFC71U.#861>]      ;  MFC71U.7C29986D
+0046D3DB        |.  8D4C24 0C      |lea ecx,dword ptr ss:[esp+C]
+0046D3DF        |.  50             |push eax
+0046D3E0        |.  FF15 44E34A00  |call dword ptr ds:[<&MFC71U.#904>]      ;  MFC71U.7C29B289
+0046D3E6        |.  8D46 01        |lea eax,dword ptr ds:[esi+1]
+0046D3E9        |.  99             |cdq
+0046D3EA        |.  B9 FF000000    |mov ecx,0FF
+0046D3EF        |.  F7F9           |idiv ecx
+0046D3F1        |.  84D2           |test dl,dl
+0046D3F3        |.  885424 08      |mov byte ptr ss:[esp+8],dl
+0046D3F7        |.  74 0F          |je short UILib8_M.0046D408
+0046D3F9        |.  8B5424 08      |mov edx,dword ptr ss:[esp+8]
+0046D3FD        |.  52             |push edx
+0046D3FE        |.  8D4C24 10      |lea ecx,dword ptr ss:[esp+10]
+0046D402        |.  FF15 44E34A00  |call dword ptr ds:[<&MFC71U.#904>]      ;  MFC71U.7C29B289
+0046D408        |>  8B4424 20      |mov eax,dword ptr ss:[esp+20]
+0046D40C        |.  8B48 F4        |mov ecx,dword ptr ds:[eax-C]
+0046D40F        |.  46             |inc esi
+0046D410        |.  3BF1           |cmp esi,ecx
+0046D412        |.^ 7C AC          \jl short UILib8_M.0046D3C0              ;  与上一个循环进行相反的操作
+0046D414        |>  8D4C24 2C      lea ecx,dword ptr ss:[esp+2C]
+```
+
+同样用代码表示如下：
+
+
+
+### 关键字符串合成逻辑
+
+首先通过循环处理 `num2` 数组，代码示例如下：
+
+```
+int num2[32]={0};
+int num2len=0;
+for(int i=0;i<len;i++){
+    int tmp=i;
+    tmp=tmp & 0x80000001;
+    if(tmp!=0){
+        tmp=(i+1) % 0xFF;
+        if(tmp!=0){
+            num2[num2len]=tmp;
+            num2len++;
+        }
+    }
+}
+```
+
+接下来是对关键字符串的汇编层面合成，涉及对 `esp` 寄存器的操作及调用 `UILib8_M` 模块：
+
+```
+0046D566        |.  52                    push edx
+0046D567        |.  8D4424 2C             lea eax,dword ptr ss:[esp+2C]
+0046D56B        |.  50                    push eax
+0046D56C        |.  8D4C24 1C             lea ecx,dword ptr ss:[esp+1C]
+0046D570        |.  51                    push ecx
+0046D571        |.  E8 6AF8FFFF           call UILib8_M.0046CDE0                  ;  合成字符
+0046D576        |.  83C4 18               add esp,18
+0046D579        |.  50                    push eax
+0046D57A        |.  8D4C24 10             lea ecx,dword ptr ss:[esp+10]
+0046D57E        |.  C68424 CC000000 1>mov byte ptr ss:[esp+CC],11
+0046D586        |.  FF15 34E34A00         call dword ptr ds:[<&MFC71U.#903>]     ;  MFC71U.7C29B383
+0046D58C        |.  8D4C24 08             lea ecx,dword ptr ss:[esp+8]
+0046D590        |.  889C24 C8000000       mov byte ptr ss:[esp+C8],bl
+0046D597        |.  FF15 1CE54A00         call dword ptr ds:[<&MFC71U.#578>]     ;  MFC71U.7C2868E9
+```
+
+通过观察与分析，首先是将上面两个大循环得到的结果，与软件名位错位相连，然后嫁接两个 `0x30`。再把假码的前 20 位与软件名连接到上面。首位不变，是 `0x31`。
+
+C++ 代码实现如下：
+
+```
+strCode[0]=0x31;
+int k=1,i=0,j=0;
+while(j<num1len){
+    strCode[k]=sName;
+    i+=2;
+    strCode[k+1]=num1[j];
+    j++;
+    k+=2;
+}
+
+j=0,i=1;
+while(j<num2len){
+    strCode[k]=sName;
+    i+=2;
+    strCode[k+1]=num2[j];
+    j++;
+    k+=2;
+}
+
+strCode[k]=0x30;
+k++;
+strCode[k]=0x30;
+k++;
+
+TCHAR szConst[]="11111A22222B33333C44";
+for(int i=0;i<20;i++,k++)
+    strCode[k]=szConst;
+
+for(int i=0;i<len;i++,k++)
+    strCode[k]=sName;
+```
+
+观察数据窗口中的内存分布：
+
+```
+03FC4018  31 49 01 54 03 4F 05 76 07 6D 09 65 0B 63 0D 6E  1ITOvm.e c.n
+03FC4028  0F 65 11 74 13 72 15 6D 02 4F 04 61 06 69 08 70  etrmOaip
+03FC4038  0A 67 0C 6F 0E 76 10 72 12 65 14 35 16 30 30 31  .g.ovre5001
+03FC4048  31 31 31 31 41 32 32 32 32 32 42 33 33 33 33 33  1111A22222B33333
+03FC4058  43 34 34 49 6D 54 4F 4F 61 76 69 6D 70 65 67 63  C44ImTOOavimpegc
+03FC4068  6F 6E 76 65 72 74 65 72 35                       onverter5
+```
+
+### MD5 计算与后续处理
+
+然后对上面的字符串进行 `MD5` 计算，汇编调用如下：
+
+```
+0046D5A1        |.  52                    push edx                              ; /Arg1
+0046D5A2        |.  8D8C24 84000000       lea ecx,dword ptr ss:[esp+84]         ; |
+0046D5A9        |.  E8 12E40200           call UILib8_M.0049B9C0               ; \UILib8_M.0049B9C0
+```
+
+接下来，继续对得到的 `MD5` 字符串进行处理，涉及位运算和循环逻辑：
+
+```
+0046D6B4        |>  /56                    /push esi
+0046D6B5        |. |8D4C24 34              |lea ecx,dword ptr ss:[esp+34]
+0046D6B9        |. |FF15 7CE34A00          |call dword ptr ds:[<&MFC71U.#861>] ;  MFC71U.7C29986D
+0046D6BF        |. |8D4C24 0C              |lea ecx,dword ptr ss:[esp+C]
+0046D6C3        |. |50                    |push eax
+0046D6C4        |. |FF15 44E34A00         |call dword ptr ds:[<&MFC71U.#904>] ;  MFC71U.7C29B289
+0046D6CA        |. |8BCE                   |mov ecx,esi
+0046D6CC        |. |D1E9                   |shr ecx,1                           ;  <<1，将最低位移到 CF 中
+0046D6CE        |. |41                     |inc ecx
+0046D6CF        |. |81E1 03000080          |and ecx,80000003
+0046D6D5        |. |79 05                  |jns short UILib8_M.0046D6DC
+0046D6D7        |. |49                     |dec ecx
+0046D6D8        |. |83C9 FC                |or ecx,FFFFFFFC
+0046D6DB        |. |41                     |inc ecx
+0046D6DC        |>  |75 0F                  |jnz short UILib8_M.0046D6ED
+0046D6DE        |.  |68 38F94A00            |push UILib8_M.004AF938
+0046D6E3        |.  |8D4C24 10             |lea ecx,dword ptr ss:[esp+10]
+0046D6E7        |.  |FF15 60E34A00         |call dword ptr ds:[<&MFC71U.#907>] ;  MFC71U.7C29B867
+0046D6ED        |>  |83C6 02               |add esi,2
+0046D6F0        |.  |83FE 20               |cmp esi,20
+0046D6F3        |.^\\7C BF                 \\jl short UILib8_M.0046D6B4
+0046D6F5        |.   8D4C24 0C             lea ecx,dword ptr ss:[esp+C]          ;  对 MD5 值的字符串进行处理
+0046D6F9        |.   FF15 74E34A00         call dword ptr ds:[<&MFC71U.#4079>] ;  隔位取，4 位一组，以－相连
+```
+
+移除末尾多余的连接符：
+
+```
+0046D706        |.  6A 01                 push 1
+0046D708        |.  48                    dec eax
+0046D709        |.  50                    push eax
+0046D70A        |.  8D4C24 14             lea ecx,dword ptr ss:[esp+14]         ;  去掉最后多出的一个“－”
+```
+
+### 最终比对与标志位设置
+
+将处理得到的字符串嫁接到假码的前 20 位后面，与假码进行比较，然后就开始设置标志位了。
+
+```
+0046D718        |.  50                    push eax
+0046D719        |.  6A 00                 push 0
+0046D71B        |.  8D4C24 14             lea ecx,dword ptr ss:[esp+14]
+0046D71F        |.  FF15 78E34A00         call dword ptr ds:[<&MFC71U.#3844>]  ;  MFC71U.7C299F0A
+0046D725        |.  8B4C24 34             mov ecx,dword ptr ss:[esp+34]         ;  将上面提所得字符串转大写
+0046D729        |.  51                    push ecx                              ;  与假码的前 20 位相连
+0046D72A        |.  8D4C24 10             lea ecx,dword ptr ss:[esp+10]          ;  然后与假码比较
+0046D72E        |.  FF15 54E34A00         call dword ptr ds:[<&MFC71U.#1473>]  ;  MFC71U.7C29927C
+0046D734        |.  F7D8                  neg eax
+0046D736        |.  1AC0                  sbb al,al
+0046D738        |.  FEC0                  inc al
+```
+
+完整的 `VC` 代码如下（这里将前 20 位固定下来了，没有模拟随机生成！）：
+
+
+
+```cpp
+void RegistMyCrackMe(HWND hDlg){
+    TCHAR sName[STR_LEN]={0};
+    memset(sName,0,STR_LEN);
+    int len=GetDlgItemText(hDlg,IDC_SNAME,sName,STR_LEN);
+    if(len==0){
+        MessageBox(hDlg,TEXT("请按照说明输入软件名称！用户名随意"),TEXT("提示"),0);
+        return;
+    }
+    
+    //计算用户名的 MD5 散列
+    MD5_CTX context;
+    TCHAR szHash[STR_LEN]={0};
+    TCHAR szBuffer[STR_LEN]={0};
+    memset(szBuffer,0,STR_LEN);
+    memset(strCode,0,STR_LEN);
+    
+    len=strlen(sName);
+    int num1[32]={0};
+    int num1len=0;
+    for(int i=0;i<len;i++){
+        int tmp=i;
+        tmp=tmp & 0x80000001;
+        if(tmp==0){
+            tmp=(i+1) % 0xFF;
+            if(tmp!=0){
+                num1[num1len]=tmp;
+                num1len++;
+            }
+        }
+    }
+    
+    int num2[32]={0};
+    int num2len=0;
+    for(int i=0;i<len;i++){
+        int tmp=i;
+        tmp=tmp & 0x80000001;
+        if(tmp!=0){
+            tmp=(i+1) % 0xFF;
+            if(tmp!=0){
+                num2[num2len]=tmp;
+                num2len++;
+            }
+        }
+    }
+    
+    strCode[0]=0x31;
+    int k=1,i=0,j=0;
+    while(j<num1len){
+        strCode[k]=sName;
+        i+=2;
+        strCode[k+1]=num1[j];
+        j++;
+        k+=2;
+    }
+    
+    j=0,i=1;
+    while(j<num2len){
+        strCode[k]=sName;
+        i+=2;
+        strCode[k+1]=num2[j];
+        j++;
+        k+=2;
+    }
+    
+    strCode[k]=0x30;
+    k++;
+    strCode[k]=0x30;
+    k++;
+    
+    TCHAR szConst[]="11111A22222B33333C44";
+    for(int i=0;i<20;i++,k++)
+        strCode[k]=szConst;
+    
+    for(int i=0;i<len;i++,k++)
+        strCode[k]=sName;
+    
+    len=strlen(strCode);
+    MD5Init(&context);
+    MD5Update(&context,(unsigned char*)strCode, len);
+    MD5Final((unsigned char*)szHash, &context);            
+    for(int i=0; i < 16; i++)   // 将 szHash[]中的 16 进制转换成字符形式显示
+        wsprintf(&szBuffer[i*2], "%02X", *(byte*)(szHash+i));
+    
+    memset(strCode,0,STR_LEN);
+    k=0;
+    for(int i=0;i<20;i++,k++)
+        strCode[k]=szConst;
+    j=0;
+    for(int i=0;i<32;i+=2){
+        strCode[k]=szBuffer;
+        j++;
+        if((j%4)==0){
+            k++;
+            strCode[k]='-';
+        }
+        k++;
+    }
+    strCode[k-1]=0;//去掉最后一个'-1'
+    
+    SetDlgItemText(hDlg,IDC_PWD,strCode);
+    return;
+}
+```
+
+---
+
+【版权声明】: 转载请注明作者并保持文章的完整, 谢谢!
+
+2009 年 01 月 15 日 15:47:11
