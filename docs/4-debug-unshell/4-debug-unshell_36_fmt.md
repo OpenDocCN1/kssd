@@ -1,0 +1,228 @@
+
+# 重建 stolen bytes
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6840.htm`](https://www.pediy.com/kssd/pediy06/pediy6840.htm)
+
+重建 stolen bytes 的目的，是为了让局部变量、全局变量、寄存器的初值在执行到 fake OEP 时和未加壳前的保持一致，并非要精确还原这些 stolen 的指令，只要功能相同即可。当然如果能精确还原的话是最好了。以下所说的“重建”都是指功能上的重建。
+
+一般编译器生成的 startup 代码的最开始几条指令主要是进行如下操作：
+
+1、 建立堆栈帧，也就是下面的两条指令。这两条指令是需要重建的，而且重建也很容易，因为是固定套路。
+
+```
+push ebp
+mov ebp, esp
+```
+
+2、 在堆栈中保存寄存器的值。
+
+保存寄存器对于普通的函数是有用的，但是对于 startup 函数来说是不需要的。普通函数在函数入口用类似 `push ecx` 这样的指令来保存寄存器的值到堆栈中，在返回之前则用 `pop ecx` 这样的指令来恢复寄存器的值；但是 startup 函数是不会返回的，因为在返回之前肯定主动调用了 `ExitProcess` 或者 `TerminateProcess` 自己退出了，或者被其它进程中止了。所以我们不需要重建这些保存寄存器的指令，这些指令仅仅影响堆栈指针 `esp` 的值。
+
+3、 初始化堆栈中的局部变量。
+
+这些必须重建，否则某些局部变量的初值不对可能会导致程序运行出错。重建这些指令有固定的方法可循，后面单独讲。
+
+4、 初始化全局变量。
+
+一般的编译器生成的 startup 代码的最开始部分不对全局变量进行操作，所以这一份暂时可以忽略。
+
+5、 初始化某些寄存器的值。
+
+如果有的话，需要对这些指令进行重建而且重建比较简单。就是执行到 fake OEP 时记下各个寄存器的值，例如如果此时 `esi` 的值为 `xxxxxx`，就可以用 `mov esi, xxxxxxxx` 这样的指令来完成相应的寄存器初始化功能。注意：一般只有 `EAX`、`EBX`、`ECX`、`EDX`、`ESI`、`EDI` 这几个寄存器可能有初值要求（仅仅是可能）。
+
+目前所见到的具有 stolen bytes 特性的壳似乎都只是对 startup 代码中第一个 `call` 之前的指令进行了隐藏处理。上述 5 部分中，对局部变量初值的重建稍微复杂一些，但是可以通过分析堆栈来采用比较“机械”的方法进行处理，也是有固定的套路。下面用一个例子来说明。
+
+如下是一个用 ASProtect v1.23 RC4 加壳的程序，我们找到其 OEP 为 `53F055`，fake OEP 为 `53F07B`，OEP 和 fake OEP 之间的 38 个字节被壳清零了(fake OEP 处的 `call` 是 `call GetVersion`)。不要指望能在内存中找到这些字节的原版。
+
+```
+001B:0053F04E  83C404              ADD       ESP,04
+001B:0053F051  FF6214              JMP       [EDX+14]
+001B:0053F054  C3                  RET
+001B:0053F055  0000                ADD       [EAX],AL
+001B:0053F057  0000                ADD       [EAX],AL
+001B:0053F059  0000                ADD       [EAX],AL
+001B:0053F05B  0000                ADD       [EAX],AL
+001B:0053F05D  0000                ADD       [EAX],AL
+001B:0053F05F  0000                ADD       [EAX],AL
+001B:0053F061  0000                ADD       [EAX],AL
+001B:0053F063  0000                ADD       [EAX],AL
+001B:0053F065  0000                ADD       [EAX],AL
+001B:0053F067  0000                ADD       [EAX],AL
+001B:0053F069  0000                ADD       [EAX],AL
+001B:0053F06B  0000                ADD       [EAX],AL
+001B:0053F06D  0000                ADD       [EAX],AL
+001B:0053F06F  0000                ADD       [EAX],AL
+001B:0053F071  0000                ADD       [EAX],AL
+001B:0053F073  0000                ADD       [EAX],AL
+001B:0053F075  0000                ADD       [EAX],AL
+001B:0053F077  0000                ADD       [EAX],AL
+001B:0053F079  0000                ADD       [EAX],AL
+001B:0053F07B  FF15DCD15400        CALL      [0054D1DC]
+001B:0053F081  33D2                XOR       EDX,EDX
+001B:0053F083  8AD4                MOV       DL,AH
+001B:0053F085  891510AF8B08        MOV       [088BAF10],EDX
+```
+
+以下只讨论如何恢复局部变量的初值。
+
+执行到 fake OEP 时，查看堆栈内容，并注意到此时 `ebp` 的值为 `12FFC0`（地址 `12FFC0` 处存放的是 `ebp` 寄存器的初值 `12FFF0`，是由程序最开始的 `push ebp` 指令放进去的）这个值加上 4 就是栈底（即 `esp` 寄存器的初值，也就是程序刚被加载时 `esp` 的值）`12FFC4`。至于为什么，看第 1 点的说明就知道了。此时 `esp` 的值为 `12FF4C`，为栈顶。栈顶和栈底的范围一确定，那么堆栈的范围也已经确定。下面要做的就是把对堆栈的初始化（即对堆栈中局部变量的初始化）用相应的 `mov dword ptr [ebp-xxxxxxxx], yyyyyyyy` 指令来完成即可。注意不要使用绝对地址，而要转换成 `ebp-xxxxxxxx` 这样的浮动地址（根据 `ebp` 的取值会浮动）。
+
+```
+:dd esp L 100
+
+0023:0012FF4C 00000000  00000000  7FFDF000  0CE352F0     ...
+0023:0012FF5C 33F7F161  00400000  0E24FAC5  0012FFA4     a..3..@...$.....
+0023:0012FF6C 0CE10000  003D0000  0CE24138  0CE368F0     .
+0023:0012FF7C 0CE3528C  00400000  088C0845  0CE3544A     .R...@.E...T..
+0023:0012FF8C 00000000  00000170  0C977323  0CE354B6     ...p...#s..T..
+0023:0012FF9C 0CE366B7  0CE354B7  00000000  0012FF4C     .f...T....L..
+0023:0012FFAC 0012FFE0  0012FFE0  00542B94  0054E948     .T..+T..H.T..
+0023:0012FFBC FFFFFFFF  0012FFF0  77E1F38C  00000000     ...w....
+0023:0012FFCC 00000000  7FFDF000  81F6E020  0012FFC8     .........
+0023:0012FFDC F6DC8C00  FFFFFFFF  77E40ABC  77E522E0     .w.".w
+0023:0012FFEC 00000000  00000000  00000000  00401000     .@.
+0023:0012FFFC 00000000  78746341  00000020  00000001     .Actx ...
+0023:0013000C 0000301C  000000DC  00000000  00000020     .0... .
+0023:0013001C 00000000  00000014  00000001  00000007     .
+0023:0013002C 00000034  0000016C  00000001  00000000     4...l...
+0023:0013003C 00000000  00000000  00000000  00000000     .
+```
+
+堆栈中主要有三种值：
+
+1、立即数常数
+
+例如 `12FF4C` 处的值为立即数 `0`，可以用 `mov dword ptr [ebp – 74], 0` 来实现。
+
+`12FF54` 处的值为立即数 `7FFDF000`，用 `mov dword ptr [ebp – 6C], 7FFDF000`。
+
+当然，这里面可能有些是属于垃圾随机数，实际上是不需要赋初值的。可以通过单步跟踪壳在进入 fake OEP 之前的处理来过滤掉这些不需要重建的垃圾数，从而优化代码长度。
+
+2、局部变量的地址。
+
+由于局部变量在堆栈中，所以这些地址的值在栈顶地址和栈底地址之间，即 `0012XXXX` 这样的值。对于这样的值，要用 `ebp – xxxxxxxx` 这样的形式来赋值。
+
+例如 `12FFA8`（即 `ebp-18`）处的值是地址 `12FF4C`(即 `ebp-74`)，那么完成相应赋值功能的指令是：
+
+```
+lea eax, [ebp-74]
+mov [ebp-18], eax
+```
+
+3、壳中的地址。
+
+对于例子程序，即 `0CEXXXXX` 这样的值。无需处理。
+
+这样，我们最终得到的重建的指令如下。这些指令可能在 OEP 处放不下，需要另找个空地放下，然后跳到 fake OEP 即可。
+
+```
+push ebp
+mov ebp, esp
+mov dword ptr [ebp – 74], 0
+mov dword ptr [ebp – 6C], 7FFDF000
+lea eax, [ebp-74]
+mov [ebp-18], eax
+...（其它省略）
+sub esp, 68    （esp 指向正确的栈顶）
+jmp 53F07B     （跳到 fake OEP）
+```
+
+下面通过跟踪壳在进入 fake OEP 之前的处理来印证并优化一下我们的重建代码（花指令，只需要看有注释的）。
+
+```
+:u eip l 20
+001B:0CE34219  896C2404            MOV       [ESP+04],EBP       //即 push ebp
+001B:0CE3421D  6681352642E30C33F0  XOR       WORD PTR [0CE34226],F033
+001B:0CE34226  D8F1                FDIV      ST,ST(1)
+001B:0CE34228  0F8D6424048B        JGE       97E76692
+001B:0CE3422E  EC                  IN        AL,DX
+001B:0CE3422F  6AFF                PUSH      FF
+001B:0CE34231  6848E95400          PUSH      0054E948
+001B:0CE34236  68942B5400          PUSH      00542B94
+
+:u ce34229 l 20
+001B:0CE34229  8D642404            LEA       ESP,[ESP+04]
+001B:0CE3422D  8BEC                MOV       EBP,ESP             //建立栈帧
+001B:0CE3422F  6AFF                PUSH      FF                  //立即数初始化
+001B:0CE34231  6848E95400          PUSH      0054E948            //立即数初始化
+001B:0CE34236  68942B5400          PUSH      00542B94            //立即数初始化
+001B:0CE3423B  64A100000000        MOV       EAX,FS:[00000000]
+001B:0CE34241  EB02                JMP       0CE34245
+001B:0CE34243  CD20                INT       20 VXDJmp 4F2D,0166
+
+:u eip l 10
+001B:0CE34260  89442404            MOV       [ESP+04],EAX        //初始化
+001B:0CE34264  6681356D42E30C33F0  XOR       WORD PTR [0CE3426D],F033
+001B:0CE3426D  D8F1                FDIV      ST,ST(1)
+001B:0CE3426F  0F8D64240464        JGE       70E766D9
+
+:u eip l 10
+001B:0CE3427B  83EC58              SUB       ESP,58             //为局部变量预留空间
+001B:0CE3427E  EB02                JMP       0CE34282
+001B:0CE34280  CD20                INT       20 VXDJmp 8C2D,0166
+001B:0CE34286  42                  INC       EDX
+001B:0CE34287  E30C                JECXZ     0CE34295
+001B:0CE34289  BE75F2A977          MOV       ESI,77A9F275
+
+:u eip l 10
+001B:0CE3429D  895C2404            MOV       [ESP+04],EBX        //初始化
+001B:0CE342A1  668135AA42E30C33F0  XOR       WORD PTR [0CE342AA],F033
+001B:0CE342AA  D8F1                FDIV      ST,ST(1)
+001B:0CE342AC  0F8D642404EB        JGE       F7E76716
+
+:u eip l 10
+001B:0CE342D0  89742404            MOV       [ESP+04],ESI        //初始化
+001B:0CE342D4  668135DD42E30C33F0  XOR       WORD PTR [0CE342DD],F033
+001B:0CE342DD  D8F1                FDIV      ST,ST(1)
+001B:0CE342DF  0F8D642404EB        JGE       F7E76749
+
+:u eip l 10
+001B:0CE34303  897C2404            MOV       [ESP+04],EDI        //初始化
+001B:0CE34307  6681351043E30C33F0  XOR       WORD PTR [0CE34310],F033
+```
+
+
+
+```
+001B:0CE34310   D8F1                 FDIV     ST,ST(1)
+
+001B:0CE34312   0F8D64240489        JGE      95E7677C
+
+:u eip l 10
+
+001B:0CE34317   8965E8              MOV      [EBP-18],ESP     //初始化
+001B:0CE3431A   2EEB01              JMP      0CE3431E
+001B:0CE3431D   F0F2EB01           LOCK REPNZ JMP0CE34322
+001B:0CE34321   F2687BF05300       REPNZ PUSH 0053F07B
+
+:u eip l 10
+
+001B:0CE34322   687BF05300         PUSH     0053F07B         //fake OEP
+001B:0CE34327   681541E30C         PUSH     0CE34115         //此处有段清零代码
+001B:0CE3432C   C3                 RET                   //先去清零，再去 fake OEP
+```
+
+通过分析上面的花指令单步跟踪，重建后得到的代码如下，运行正常。
+
+```
+          push   ebp
+          mov    ebp, esp
+          push   FF
+          push   54E948
+          push   542B94
+          lea    eax, [ebp+20]
+          mov    [ebp-10], eax
+          mov    dword ptr [ebp-6C], 7FFDF000
+          xor    eax, eax
+          mov    [ebp-70], eax
+          mov    [ebp-74], eax
+          lea    eax, [ebp-74]
+          mov    [ebp-18], eax
+             jmp    52F07B
+```
+
+由于可以“机械化”操作，实际上是可以写个工具自动或者半自动重建 `stolen bytes` 的。
+
+BTW: `aspr 1.23 RC4` 把虚拟地址弄得很大，`full dump` 出来的文件有 100 多 M，幸好 `rebuild` 一下就变小了，不然要每个 `section` 单独 `dump` 然后再合成。
+
+`4dd466d0e1e0cc123afbe504da2462ca`

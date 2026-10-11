@@ -1,0 +1,469 @@
+
+# Asprotect 脱壳的小结
+
+> 原文：[`www.pediy.com/kssd/pediy02/forum229.htm`](https://www.pediy.com/kssd/pediy02/forum229.htm)
+
+对 Asprotect 脱壳的一点总结
+
+作者：     （职位空缺）上次忘了留下联系电话，这次补上，欢迎各位垂询，小弟我在此静候佳音。热线电话：818-9481818。...你知道这是哪儿的电话号码。.......公厕电话......... @#$@#$ 熏倒 @#$@#$....
+
+写作日期：  2000-08-11
+
+## 【声明】
+
+我写文章以交流为主，希望大家在转载时能保持文章的完整性。
+
+## 【前言】
+
+从我知道的情况来看，对 Asprotect 加壳的程序大致可以分为三类：（这种分类方法不具有权威性，只是我自己为了区别而已）
+
+1、这类程序只检测 `SICE`、`SIWVID`、`SIWDEBUG`，内存中可以得到完整的 import table。一次跟踪可完成脱壳。
+
+2、这类程序检测 `SICE`、`SIWVID`、`SIWDEBUG` 和 `BCHK`，内存中也可以得到完整的 import table。一次跟踪也可完成脱壳。
+
+3、这类程序同 2，只是内存中无法得到完整的 import table。因此需要其他手段来辅助得到 import table。可能需要几次跟踪完成脱壳。
+
+以上三类程序脱壳方式基本相同。因此我把跟踪过程中几个关键的特征说明一下。
+
+## 【分析】
+
+### ①寻找合适的中断进入加壳程序。（我称为找进入点）
+
+（注：在跟踪之前，最好用 `ICEPatch` 修补你的 `SoftICE`，否则你就要手动跳过防跟踪代码了）
+
+对于 1 类程序，一般可以用以下方式进入：
+
+`Ctrl-D` 中断，进入 `SoftICE`。下指令
+
+```
+bpx CreateFileA do "p ret"
+```
+
+然后按 `F5` 返回 Windows，运行加壳程序，中断在我们所设下的中断处。
+
+以后的跟踪可以直接继续，看见不远处有 `ret` 语句还可以按 `F12` 键快速返回到上一层调用中。
+
+对于 2 、3 两类程序，一般可以用以下方式进入（操作方法同上，只是设下的断点不同）。这次我们设断点
+
+```
+bpint 3
+```
+
+以后的跟踪与上有些不同，在《找 Entry Point 的又一方法 -----针对 Asprotect v1.0 加壳的程序》一文中我已有说明，这里简要说明一下。
+
+中断后一般你可以看到类似如下的屏幕：
+
+```
+015F:004BF23C  CC                   INT       3       <--你中断在此
+015F:004BF23D  EB02                 JMP       004BF241
+015F:004BF23F  E9025DEB02           JMP       03374F46
+015F:004BF244  E9FF33C05A           JMP       5B0C2648
+015F:004BF249  59                   POP       ECX
+015F:004BF24A  59                   POP       ECX
+015F:004BF24B  648910               MOV       FS:[EAX],EDX
+015F:004BF24E  EB0A                 JMP       004BF25A
+015F:004BF250  E91305FFFF           JMP       004AF768    <--注意这个跳转语句，int 3 过后就要到这里继续了。
+015F:004BF255  E8AA07FFFF           CALL      004AFA04
+015F:004BF25A  8A1518514C00         MOV       DL,[004C5118]
+015F:004BF260  8B45F8               MOV       EAX,[EBP-08]
+```
+
+把光标移到第五个 `Jmp` 语句以后，按 `F7` 键。好，以后的跟踪和上面的方法相同。
+
+### ②检测 CRC 的地方
+
+在按了几个 `F12` 后，一般就到了检测 `CRC` 的代码地方，这里我们不需要做什么，只是让大家明白，如果你改到了程序某处，在这里就要关心一下了。
+
+```
+015F:004C6B74  EBF0                 JMP       004C6B66
+015F:004C6B76  8B45EC               MOV       EAX,[EBP-14]    <--注意此处
+015F:004C6B79  3B45F0               CMP       EAX,[EBP-10]    <--注意此处
+015F:004C6B7C  7443                 JZ        004C6BC1        <--如果比较的结果相同，就跳转了，否则就到下面显示 File corrupted! 的框框了
+015F:004C6B7E  8A155CC94C00         MOV       DL,[004CC95C]
+015F:004C6B84  8B45F8               MOV       EAX,[EBP-08]
+015F:004C6B87  E848E4FFFF           CALL      004C4FD4
+015F:004C6B8C  8945F4               MOV       [EBP-0C],EAX
+015F:004C6B8F  837DF400             CMP       DWORD PTR [EBP-0C],00
+015F:004C6B93  742C                 JZ        004C6BC1
+015F:004C6B95  8D85E4FEFFFF         LEA       EAX,[EBP-011C]
+015F:004C6B9B  8D95E9FEFFFF         LEA       EDX,[EBP-0117]
+```
+
+大家注意其中三句的特征，以后跟踪时就知道这里是比较 `CRC` 的地方就行了。对于做 `inline patch` 的朋友就要记住了。
+
+### ③获得 import table 和 Entry Point
+
+在按过几下 `F12` 键后，就会来到类似如下代码的地方，这里我以 `ARPR.EXE` 来做例子，来一段段的分析一下，许多 `Asprotect` 加壳的程序都有这样一段，熟悉了特征以后，再对 `Asprotect` 脱壳你也可以很轻松了。
+
+```
+015F:004C6EAB  E828FAFFFF           CALL      004C68D8
+015F:004C6EB0  33C0                 XOR       EAX,EAX         <--你来到此处,一般 XOR EAX,EAX 是特征.
+015F:004C6EB2  5A                   POP       EDX
+015F:004C6EB3  59                   POP       ECX
+015F:004C6EB4  59                   POP       ECX
+015F:004C6EB5  648910               MOV       FS:[EAX],EDX
+015F:004C6EB8  EB11                 JMP       004C6ECB        <--跳到下一段
+015F:004C6EBA  E9E900FFFF           JMP       004B6FA8
+015F:004C6EBF  33C0                 XOR       EAX,EAX
+015F:004C6EC1  E89EEFFFFF           CALL      004C5E64
+015F:004C6EC6  E87903FFFF           CALL      004B7244
+```
+
+以后我们重点关注几个 `Call` 调用，以后再跟踪这类 `Asprotect` 加壳的程序就有经验了。
+
+```
+015F:004C6ECB  33C0                 XOR       EAX,EAX
+015F:004C6ECD  55                   PUSH      EBP
+015F:004C6ECE  68086F4C00           PUSH      004C6F08
+015F:004C6ED3  64FF30               PUSH      DWORD PTR FS:[EAX]
+015F:004C6ED6  648920               MOV       FS:[EAX],ESP
+015F:004C6ED9  8B4508               MOV       EAX,[EBP+08]
+015F:004C6EDC  8B00                 MOV       EAX,[EAX]
+015F:004C6EDE  50                   PUSH      EAX
+015F:004C6EDF  B804464C00           MOV       EAX,004C4604
+015F:004C6EE4  50                   PUSH      EAX
+015F:004C6EE5  6A00                 PUSH      00
+015F:004C6EE7  8B4508               MOV       EAX,[EBP+08]
+015F:004C6EEA  8D4824               LEA       ECX,[EAX+24]
+015F:004C6EED  8B4508               MOV       EAX,[EBP+08]
+015F:004C6EF0  8D500C               LEA       EDX,[EAX+0C]
+015F:004C6EF3  8B4508               MOV       EAX,[EBP+08]
+015F:004C6EF6  8B4008               MOV       EAX,[EAX+08]
+015F:004C6EF9  E842F0FFFF           CALL      004C5F40        <--注意这个 Call 调用
+015F:004C6EFE  33C0                 XOR       EAX,EAX
+015F:004C6F00  5A                   POP       EDX
+015F:004C6F01  59                   POP       ECX
+015F:004C6F02  59                   POP       ECX
+015F:004C6F03  648910               MOV       FS:[EAX],EDX
+015F:004C6F06  EB13                 JMP       004C6F1B        <--跳到下一段
+015F:004C6F08  E99B00FFFF           JMP       004B6FA8
+015F:004C6F0D  66B80B00             MOV       AX,000B
+015F:004C6F11  E84EEFFFFF           CALL      004C5E64
+015F:004C6F16  E82903FFFF           CALL      004B7244
+```
+
+在以上要注意的 `Call` 调用处我们可以停下来，下指令
+
+```
+d 401000   （说明： 401000 由来为 <Image Base>+<First Section RVA> ）
+```
+
+我们可以看到在没有执行这个 `Call` 调用之前，数据窗口显示的为 `?? ??`。这说明这段代码还没有加载到内存中。如果按 `F10` 键执行这个调用过后，数据窗口就会显示各种十六进制数据。这说明这个 `Call` 调用的基本功能为加载数据。
+
+（按上段）
+
+```
+015F:004C6F1B  33C0                 XOR       EAX,EAX
+015F:004C6F1D  55                   PUSH      EBP
+015F:004C6F1E  68716F4C00           PUSH      004C6F71
+015F:004C6F23  64FF30               PUSH      DWORD PTR FS:[EAX]
+015F:004C6F26  648920               MOV       FS:[EAX],ESP
+015F:004C6F29  8B4508               MOV       EAX,[EBP+08]
+015F:004C6F2C  8B00                 MOV       EAX,[EAX]
+015F:004C6F2E  50                   PUSH      EAX
+015F:004C6F2F  B8485E4C00           MOV       EAX,004C5E48
+015F:004C6F34  50                   PUSH      EAX
+015F:004C6F35  B85C5E4C00           MOV       EAX,004C5E5C
+015F:004C6F3A  50                   PUSH      EAX
+015F:004C6F3B  6A00                 PUSH      00
+015F:004C6F3D  B8645E4C00           MOV       EAX,004C5E64
+015F:004C6F42  50                   PUSH      EAX
+015F:004C6F43  B8A4894B00           MOV       EAX,004B89A4
+015F:004C6F48  50                   PUSH      EAX
+015F:004C6F49  8B4508               MOV       EAX,[EBP+08]
+015F:004C6F4C  8B4020               MOV       EAX,[EAX+20]
+015F:004C6F4F  50                   PUSH      EAX
+015F:004C6F50  8B4508               MOV       EAX,[EBP+08]
+015F:004C6F53  8D4824               LEA       ECX,[EAX+24]
+015F:004C6F56  8B4508               MOV       EAX,[EBP+08]
+015F:004C6F59  8B500C               MOV       EDX,[EAX+0C]
+015F:004C6F5C  8B4508               MOV       EAX,[EBP+08]
+015F:004C6F5F  8B4008               MOV       EAX,[EAX+08]
+015F:004C6F62  E81DF1FFFF           CALL      004C6084        <--注意这个 Call 调用
+015F:004C6F67  33C0                 XOR       EAX,EAX
+015F:004C6F69  5A                   POP       EDX
+015F:004C6F6A  59                   POP       ECX
+015F:004C6F6B  59                   POP       ECX
+015F:004C6F6C  648910               MOV       FS:[EAX],EDX
+015F:004C6F6F  EB13                 JMP       004C6F84        <--跳到下一段
+015F:004C6F71  E93200FFFF           JMP       004B6FA8
+015F:004C6F76  66B80C00             MOV       AX,000C
+015F:004C6F7A  E8E5EEFFFF           CALL      004C5E64
+015F:004C6F7F  E8C002FFFF           CALL      004B7244
+```
+
+
+
+# 高级文档工程排版输出
+
+## 1. Call 调用与 idata Section 初始化
+
+我们再来关注一下上面这个要注意的 `Call` 调用。如果你用 `F10` 键带过这个 `Call` 调用，会发现数据窗口的内容改变了。
+
+好，我们再来看看 `idata` Section 所在位置的情况，下指令：
+
+```
+d 418000
+```
+
+（注：`ARPR.EXE` 的 `Image Base` 为 `400000`，`idata` Section 的 `RVA` 为 `18000`）
+
+可以看到数据窗口显示的全是 `00`，向下翻页，仍然是 `00`，这说明这个 `Call` 调用的功能可能是解压还原代码，并且初始化 `idata` Section。
+
+**（接上段）**
+
+```
+015F:004C6F84  B84B894B00            MOV     EAX,004B894B
+015F:004C6F89  40                    INC     EAX
+015F:004C6F8A  890530DA4C00          MOV     [004CDA30],EAX
+015F:004C6F90  B82B894B00            MOV     EAX,004B892B
+015F:004C6F95  890534DA4C00          MOV     [004CDA34],EAX
+015F:004C6F9B  FF0534DA4C00          INC     DWORD PTR [004CDA34]
+015F:004C6FA1  33C0                  XOR     EAX,EAX
+015F:004C6FA3  55                    PUSH    EBP
+015F:004C6FA4  6805704C00            PUSH    004C7005
+015F:004C6FA9  64FF30                PUSH    DWORD PTR FS:[EAX]
+015F:004C6FAC  648920                MOV     FS:[EAX],ESP
+015F:004C6FAF  B8485E4C00            MOV     EAX,004C5E48
+015F:004C6FB4  50                    PUSH    EAX
+015F:004C6FB5  B8AC694B00            MOV     EAX,004B69AC
+015F:004C6FBA  50                    PUSH    EAX
+015F:004C6FBB  A130DA4C00            MOV     EAX,[004CDA30]
+015F:004C6FC0  50                    PUSH    EAX
+015F:004C6FC1  A134DA4C00            MOV     EAX,[004CDA34]
+015F:004C6FC6  50                    PUSH    EAX
+015F:004C6FC7  B8645E4C00            MOV     EAX,004C5E64
+015F:004C6FCC  50                    PUSH    EAX
+015F:004C6FCD  B894954B00            MOV     EAX,004B9594
+015F:004C6FD2  50                    PUSH    EAX
+015F:004C6FD3  B874954B00            MOV     EAX,004B9574
+015F:004C6FD8  50                    PUSH    EAX
+015F:004C6FD9  B834904B00            MOV     EAX,004B9034
+015F:004C6FDE  50                    PUSH    EAX
+015F:004C6FDF  8B4508                MOV     EAX,[EBP+08]
+015F:004C6FE2  8B4020                MOV     EAX,[EAX+20]
+015F:004C6FE5  50                    PUSH    EAX
+015F:004C6FE6  B9E0944B00            MOV     ECX,004B94E0
+015F:004C6FEB  8B4508                MOV     EAX,[EBP+08]
+015F:004C6FEE  8B5014                MOV     EDX,[EAX+14]
+015F:004C6FF1  8B4508                MOV     EAX,[EBP+08]
+015F:004C6FF4  8B00                  MOV     EAX,[EAX]
+015F:004C6FF6  E8A5F5FFFF            CALL    004C65A0      <--注意这个 Call 调用
+015F:004C6FFB  33C0                  XOR     EAX,EAX       <--这里一般就是 Dump import table 的地方
+015F:004C6FFD  5A                    POP     EDX
+015F:004C6FFE  59                    POP     ECX
+015F:004C6FFF  59                    POP     ECX
+015F:004C7000  648910                MOV     FS:[EAX],EDX
+015F:004C7003  EB13                  JMP     004C7018      <--跳到下一段
+015F:004C7005  E99EFFFEFF            JMP     004B6FA8
+015F:004C700A  66B80D00              MOV     AX,000D
+015F:004C700E  E851EEFFFF            CALL    004C5E64
+015F:004C7013  E82C02FFFF            CALL    004B7244
+```
+
+## 2. 还原 idata Section 与 Dump Import Table
+
+我们来看看上面这个要注意的 `Call` 调用有什么作用。如果你用 `F10` 键带过这个 `Call` 调用，再看看数据窗口的变化，
+
+我们向下翻页看看，这次不再是 `00`，变成各种数据。这说明这个 `Call` 调用的功能可能是还原 `idata` Section，因此在该调用后的 `XOR EAX,EAX` 就是我们 Dump 出 import table 的地方。对于前面划分出的三类程序中前两类，都可以在此处看到完整的 import table，是 Dump 出 import table 的时候了，可以下指令
+
+```
+/dump <Image Base + idata Section RVA> <idata Section Size> <FileName>
+```
+
+（这是 `ICEDump` 1.61 的指令用法）
+
+而对于第三类程序则要用其他方法。（补充说明：对于第三类程序的 import table 重建问题由于我也没有找到一种统一的方法。只能不同情况不同对待。因此以后单独写文说明。）
+
+如果你喜欢用 `bpm` 跟踪 `idata` Section 的变化来做进入点。那么一般在按几个 `F12` 键后，就在处了。
+
+**（接上段）**
+
+```
+015F:004C7018  33C0                  XOR     EAX,EAX
+015F:004C701A  55                    PUSH    EBP
+015F:004C701B  6838704C00            PUSH    004C7038
+015F:004C7020  64FF30                PUSH    DWORD PTR FS:[EAX]
+015F:004C7023  648920                MOV     FS:[EAX],ESP
+015F:004C7026  8B4508                MOV     EAX,[EBP+08]
+015F:004C7029  E8D6FCFFFF            CALL    004C6D04      <--注意这个 Call 调用
+015F:004C702E  33C0                  XOR     EAX,EAX
+015F:004C7030  5A                    POP     EDX
+015F:004C7032  59                    POP     ECX
+015F:004C7033  648910                MOV     FS:[EAX],EDX
+015F:004C7036  EB13                  JMP     004C704B      <--跳到下一段
+015F:004C7038  E96BFFFEFF            JMP     004B6FA8
+015F:004C703D  66B81100              MOV     AX,0011
+015F:004C7041  E81EEEFFFF            CALL    004C5E64
+015F:004C7046  E8F901FFFF            CALL    004B7244
+```
+
+## 3. 函数指针转换与 Asprotect 圈套
+
+如果我们用 `F10` 键带过这个 `Call` 调用，会发现数据窗口的内容又有所变化。不过这次我们看到的数据都比较大。如果你进入此调用跟踪会发现它的作用就是获取 `idata` Section 中的各个函数的指针放入此处，如果你对可执行文件的加载机制有所了解的话，那么就知道这是加壳程序在做 Windows 的工作，把各个 Fircc 转换成真正函数入口指针。因此过了此处，你再无法获得“干净”的 import table 了。
+
+**（接上段）**
+
+```
+015F:004C704B  33C0                  XOR     EAX,EAX
+015F:004C704D  55                    PUSH    EBP
+015F:004C704E  6884704C00            PUSH    004C7084
+015F:004C7053  64FF30                PUSH    DWORD PTR FS:[EAX]
+015F:004C7056  648920                MOV     FS:[EAX],ESP
+015F:004C7059  B8645E4C00            MOV     EAX,004C5E64
+015F:004C705E  50                    PUSH    EAX
+015F:004C705F  8B4508                MOV     EAX,[EBP+08]
+015F:004C7062  8B4810                MOV     ECX,[EAX+10]
+015F:004C7065  8B4508                MOV     EAX,[EBP+08]
+015F:004C7068  8B5004                MOV     EDX,[EAX+04]
+015F:004C706B  8B4508                MOV     EAX,[EBP+08]
+015F:004C706E  8B00                  MOV     EAX,[EAX]
+015F:004C7070  E833F6FFFF            CALL    004C66A8      <---注意此 Call 调用
+015F:004C7075  A22CDA4C00            MOV     [004CDA2C],AL
+015F:004C707A  33C0                  XOR     EAX,EAX
+015F:004C707D  59                    POP     ECX
+015F:004C707E  59                    POP     ECX
+015F:004C707F  648910                MOV     FS:[EAX],EDX
+015F:004C7082  EB13                  JMP     004C7097      <--跳到下一段
+015F:004C7084  E91FFFFEFF            JMP     004B6FA8
+015F:004C7089  66B80E00              MOV     AX,000E
+015F:004C708D  E8D2EDFFFF            CALL    004C5E64
+015F:004C7092  E8AD01FFFF            CALL    004B7244
+```
+
+对于此 `Call` 调用是什么作用，我现在还说不出来。如果你用 `F10` 键带来，一点事没有。但是如果你是一个好奇心太强的人，按 `F8` 键进入看个究竟的话，那么我恭喜你，你进入了 `Asprotect` 的圈套。也许你会在带过某个 `Call` 调用时程序运行了。因此你一定以为其中有 Entry Point，于是重新来过，又进入那个 `Call` 调用看看，如此反复，也许你会某一层中发现 Entry Point，果真如此，那么我十分钦佩你的精神。我在跟踪到第四层时依然没有找到，就放弃了。至今我还没有弄明白这种圈套是怎么实现的。不过 `Asprotect` 作者一定很高兴他写的代码一行也没有浪费。
+
+## 4. Entry Point 定位与内存映像获取
+
+**（接上段）**
+
+```
+015F:004C7097  8B4508                MOV     EAX,[EBP+08]
+015F:004C709A  8D4818                LEA     ECX,[EAX+18]
+015F:004C709D  8B4508                MOV     EAX,[EBP+08]
+015F:004C70A0  8B10                  MOV     EDX,[EAX]
+015F:004C70A2  8B4508                MOV     EAX,[EBP+08]
+015F:004C70A5  8B401C                MOV     EAX,[EAX+1C]
+015F:004C70A8  E887F6FFFF            CALL    004C6734      <---注意此 Call 调用
+015F:004C70AD  5F                    POP     EDI
+015F:004C70AE  5E                    POP     ESI
+015F:004C70AF  5B                    POP     EBX
+015F:004C70B0  5D                    POP     EBP
+015F:004C70B1  C20400                RET     0004
+```
+
+如果你是个懒人，直接到此。那么我说你真有福气。这个 `Call` 调用一定要按 `F8` 键进入。其中你可以找到 Entry Point。
+
+### 4.1 获取整个内存映像
+
+在进入 `Call` 调用后，对于前两类程序和后一类程序的情况有所不同
+
+（注：这里以跟踪 `BrickShooter` 时截取的屏幕和跟踪 `ARPR` 时截取的屏幕做一比较）
+
+> **跟踪 `BrickShooter` 的情况**（代表前两类程序，以下简称 ㈠）
+
+```
+015F:0056EB4A  8BC0                  MOV     EAX,EAX
+015F:0056EB4C  55                    PUSH    EBP
+015F:0056EB4D  8BEC                  MOV     EBP,ESP
+015F:0056EB4F  83C4F8                ADD     ESP,-08
+015F:0056EB52  53                    PUSH    EBX
+015F:0056EB53  8BDA                  MOV     EBX,EDX
+015F:0056EB55  8945FC                MOV     [EBP-04],EAX
+015F:0056EB58  8B01                  MOV     EAX,[ECX]
+```
+
+
+
+### 汇编代码跟踪分析
+
+```
+015F:0056EB5A  8945F8                MOV       [EBP-08],EAX   
+015F:0056EB5D  6A04                  PUSH      04   
+015F:0056EB5F  B944565700            MOV       ECX,00575644   
+015F:0056EB64  8D45F8                LEA       EAX,[EBP-08]   
+015F:0056EB67  BA04000000            MOV       EDX,00000004   
+015F:0056EB6C  E803E7FFFF            CALL      0056D274      <--Call 调用   
+015F:0056EB71  015DF8                ADD       [EBP-08],EBX   
+015F:0056EB74  EB01                  JMP       0056EB77      <--JMP 跳转语句
+```
+
+跟踪 `ARPR` 的情况（代表后一类程序，以下简称 ㈡）：
+
+```
+015F:004C6732  8BC0                  MOV       EAX,EAX   
+015F:004C6734  55                    PUSH      EBP   
+015F:004C6735  8BEC                  MOV       EBP,ESP   
+015F:004C6737  83C4F0                ADD       ESP,-10   
+015F:004C673A  53                    PUSH      EBX   
+015F:004C673B  56                    PUSH      ESI   
+015F:004C673C  57                    PUSH      EDI   
+015F:004C673D  894DF0                MOV       [EBP-10],ECX   
+015F:004C6740  8955F4                MOV       [EBP-0C],EDX   
+015F:004C6743  8945FC                MOV       [EBP-04],EAX   
+015F:004C6746  33C0                  XOR       EAX,EAX   
+015F:004C6748  55                    PUSH      EBP   
+015F:004C6749  6871674C00            PUSH      004C6771   
+015F:004C674E  64FF30                PUSH      DWORD PTR FS:[EAX]   
+015F:004C6751  648920                MOV       FS:[EAX],ESP   
+015F:004C6754  33C9                  XOR       ECX,ECX   
+015F:004C6756  B201                  MOV       DL,01   
+015F:004C6758  B8088A4B00            MOV       EAX,004B8A08   
+015F:004C675D  E8AE3CFFFF            CALL      004BA410      <--第一个 Call 调用   
+015F:004C6762  E86D0AFFFF            CALL      004B71D4      <--第二个 Call 调用   
+015F:004C6767  33C0                  XOR       EAX,EAX   
+015F:004C6769  5A                    POP       EDX   
+015F:004C676A  59                    POP       ECX   
+015F:004C676B  59                    POP       ECX   
+015F:004C676C  648910                MOV       FS:[EAX],EDX   
+015F:004C676F  EB0A                  JMP       004C677B      <--JMP 跳转语句
+```
+
+对比我们可以发现，㈠ 中只有一个 `Call` 调用就跟着一个 `JMP` 跳转语句。㈡ 中有两个 `Call` 调用才跟着一个 `JMP` 跳转语句。
+
+对于 ㈠ 在 `JMP` 跳转过后，就可以很快找到 `Entry Point`。（当然这以后要按 `F8` 键跟踪为妙） 对于 ㈡ 则不同，请记住这个特征，如果有两个连续的 `Call` 调用，在跟踪时，在第二个 `Call` 调用处按 `F8` 进入看看，如果你发现类似以下代码：
+
+```
+015F:004B71D2  8BC0                  MOV       EAX,EAX   
+015F:004B71D4  5A                    POP       EDX   
+015F:004B71D5  54                    PUSH      ESP   
+015F:004B71D6  55                    PUSH      EBP   
+015F:004B71D7  57                    PUSH      EDI   
+015F:004B71D8  56                    PUSH      ESI   
+015F:004B71D9  53                    PUSH      EBX   
+015F:004B71DA  50                    PUSH      EAX   
+015F:004B71DB  52                    PUSH      EDX   
+015F:004B71DC  54                    PUSH      ESP   
+015F:004B71DD  6A07                  PUSH      07   
+015F:004B71DF  6A01                  PUSH      01   
+015F:004B71E1  68CEFAED0E            PUSH      0EEDFACE   
+015F:004B71E6  52                    PUSH      EDX   
+015F:004B71E7  E914E3FFFF            JMP       KERNEL32!RaiseException   
+015F:004B71EC  C3                    RET
+```
+
+那么这就是我在《找 `Entry Point` 的又一方法 -----针对 `Asprotect` `v1.0` 加壳的程序》中所介绍的异常地方了。按该文可以继续跟踪找到 `Entry Point`。在经过三个异常后，会发现同 ㈠ 一样的代码特征，只有一个 `Call` 调用和 `JMP` 语句了，那么以后你可以放心大胆地跟踪了，没有什么陷阱了。（当然在 `Call` 调用处不要用 `F10` 带过，那可能这只是一个简单的 `JMP` 语句的变形而已）
+
+### 内存映像与修补
+
+在 `Entry Point` 处我们可以下指令得到全部内存映像：
+
+`/dump <Image Base> <Image Size> <FileName>` （注：此为 `ICEDump` `1.61` 用法）
+
+以上介绍了跟踪部分的所有要注意的地方，以及 `Asprotect` 加壳程序的一点特征。下面说一下我们要做的修补工作。
+
+（至于你用 `ProcDump` 还是 `PE` `Editor` 随你的爱好，我一般用 `PEditor`，它太棒了。简直就是为脱壳设计的）
+
+首先，把 各个 `Section` 的 `Raw Offset` 改成 `Virtual Offset` 大小，`Raw Size` 改成 `Virtual Size` 大小。
+
+然后，把 `Entry Point` 改成你发现的大小。比如我发现的 `ARPR.EXE` 的 `Entry Point` 为 `401000`，由于 `Image Base` 为 `400000`，所以 `Entry Point` 就改为 `1000`，（因为 `401000-400000=1000`）。
+
+然后，再把 `import table` 的 `RVA` 改成 `idata Section` 的 `RVA`，`Size` 改成 `idata Section` 的 `Size` 大小。
+
+最后，我们还有一样工作要做，就是要把 我们得到的内存映象文件中的 `idata Section` 部分用我们前面方法得到的 `idata Section` 文件替换掉。你可以用 `Hex WorkShop` 来做这项工作，它做起来很方便。
+
+### 后记
+
+因为我跟踪的 `Asprotect` 加壳的程序不算多，所以很可能以偏概全。不过对于跟踪某些 `Asprotect` 加壳的程序你可以依此做一参考。
+
+`4dd466d0e1e0cc123afbe504da2462ca`
