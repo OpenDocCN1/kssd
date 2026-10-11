@@ -1,0 +1,193 @@
+
+# Windows 魔法助手
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-199.htm`](https://www.pediy.com/kssd/pediy07/pediy7-199.htm)
+
+**【破解作者】** 微笑刺客  
+**【作者邮箱】** `yuqli@yeah.net`  
+**【使用工具】** `PEID` v0.93, `OllyDbg` v1.10, fly 修改版  
+**【破解平台】** `Win2K`  
+**【软件名称】** `windows 魔法助手` V2.95  
+**【下载地址】** `http://www.softreg.com.cn/shareware_view.aspx?id=/8C10F1E1-47C9-4AC8-A42F-7F47C83F5A39/`  
+**【编写语言】** `Borland Delphi`  
+**【软件介绍】** 和 Windows 优化大师差不多，不管是界面还是一些基本功能都非常相似  
+**【破解声明】** 学习破解  
+
+## 破解过程
+
+`PEID` 查壳，`ASPack 2.12` -> `Alexey Solodovnikov`，用 `ASPackDie v1.41` 轻松搞定，默认另存为 `UnPacked.exe`，再查 `Borland Delphi 4.0 - 5.0`。`Dede` 查的注册按钮事件地址 `004A913C`，`OD` 载入在 `004A913C` 下断，`F9` 运行。
+
+注册->输入 `"12345-12345-12345-12345-12345"` 点注册认证 断下
+
+```
+004A913C   55                 push    ebp  //断在这里
+004A913D   8BEC               mov     ebp, esp
+004A913F   33C9               xor     ecx, ecx
+004A9141   51                 push    ecx
+004A9142   51                 push    ecx
+004A9143   51                 push    ecx
+004A9144   51                 push    ecx
+004A9145   51                 push    ecx
+004A9146   51                 push    ecx
+004A9147   51                 push    ecx
+004A9148   51                 push    ecx
+004A9149   53                 push    ebx
+004A914A   8BD8               mov     ebx, eax
+004A914C   33C0               xor     eax, eax
+004A914E   55                 push    ebp
+
+* Possible String Reference to: '殪 胗[嬪]?
+
+|
+004A914F   6847934A00         push    $004A9347
+
+***** TRY
+|
+004A9154   64FF30             push    dword ptr fs:[eax]
+004A9157   648920             mov     fs:[eax], esp
+004A915A   8D55F8             lea     edx, [ebp-$08]
+
+* Reference to control fetkey1 : N.A.
+|
+004A915D   8B830C030000       mov     eax, [ebx+$030C]
+
+* Reference to: Controls.TControl.GetText(TControl):TCaption;
+|
+004A9163   E84CC1F9FF         call    004452B4  // 看“~~~~~” 知道了吧 函数是取字符串
+004A9168   FF75F8             push    dword ptr [ebp-$08]
+004A916B   685C934A00         push    $004A935C
+004A9170   8D55F4             lea     edx, [ebp-$0C]
+
+* Reference to control fetkey2 : N.A.
+|
+004A9173   8B8310030000       mov     eax, [ebx+$0310]
+
+* Reference to: Controls.TControl.GetText(TControl):TCaption;
+|
+004A9179   E836C1F9FF         call    004452B4  //同上
+004A917E   FF75F4             push    dword ptr [ebp-$0C]
+004A9181   685C934A00         push    $004A935C
+004A9186   8D55F0             lea     edx, [ebp-$10]
+
+* Reference to control fetkey3 : N.A.
+|
+004A9189   8B8314030000       mov     eax, [ebx+$0314]
+
+* Reference to: Controls.TControl.GetText(TControl):TCaption;
+|
+004A918F   E820C1F9FF         call    004452B4  //同上
+004A9194   FF75F0             push    dword ptr [ebp-$10]
+004A9197   685C934A00         push    $004A935C
+004A919C   8D55EC             lea     edx, [ebp-$14]
+
+* Reference to control fetkey4 : N.A.
+|
+004A919F   8B8318030000       mov     eax, [ebx+$0318]
+
+* Reference to: Controls.TControl.GetText(TControl):TCaption;
+|
+004A91A5   E80AC1F9FF         call    004452B4
+004A91AA   FF75EC             push    dword ptr [ebp-$14]
+004A91AD   685C934A00         push    $004A935C
+004A91B2   8D55E8             lea     edx, [ebp-$18]
+
+* Reference to control fetkey5 : N.A.
+|
+004A91B5   8B831C030000       mov     eax, [ebx+$031C]
+
+* Reference to: Controls.TControl.GetText(TControl):TCaption;
+|
+004A91BB   E8F4C0F9FF         call    004452B4  //和上面是同一个函数
+004A91C0   FF75E8             push    dword ptr [ebp-$18]
+004A91C3   8D45FC             lea     eax, [ebp-$04]
+004A91C6   BA09000000         mov     edx, $00000009
+
+* Reference to: System.@LStrCatN; //看函数名知道什么意思了
+|
+004A91CB   E8D4B8F5FF         call    00404AA4   //连接  12345-12345-12345-12345-12345
+004A91D0   8B45FC             mov     eax, [ebp-$04]
+|
+004A91D3   E89C280A00         call    0054BA74  //关键 进入
+004A91D8   84C0               test    al, al
+004A91DA   0F8420010000       jz      004A9300
+
+* Possible String Reference to: '注册成功--感谢您对本软件的支持！'
+|
+004A91E0   B968934A00         mov     ecx, $004A9368
+004A91E5   BA01000000         mov     edx, $00000001
+004A91EA   B801000000         mov     eax, $00000001
+|
+004A91EF   E8C4F70900         call    005489B8
+004A91F4   B201               mov     dl, $01
+004A91F6   A160B04600         mov     eax, dword ptr [$0046B060]
+
+* Reference to: Registry.TRegistry.Create(TRegistry;boolean);overload;
+|
+004A91FB   E8601FFCFF         call    0046B160
+004A9200   8BD8               mov     ebx, eax
+004A9202   BA02000080         mov     edx, $80000002
+004A9207   8BC3               mov     eax, ebx
+
+* Reference to: Registry.TRegistry.SetRootKey(TRegistry;HKEY);
+|
+004A9209   E8F21FFCFF         call    0046B200
+004A920E   B101               mov     cl, $01
+
+* Possible String Reference to: '\\software\\GZNSoft'   //写入注册表 注册成功进去看看
+|
+004A9210   BA94934A00         mov     edx, $004A9394
+004A9215   8BC3               mov     eax, ebx
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+0054BA74   55                 push    ebp
+0054BA75   8BEC               mov     ebp, esp
+0054BA77   83C4F0              add     esp, -$10
+0054BA7A   53                 push    ebx
+0054BA7B   56                 push    esi
+0054BA7C   57                 push    edi
+0054BA7D   33D2               xor     edx, edx
+0054BA7F   8955F0             mov     [ebp-$10], edx
+0054BA82   8955F4             mov     [ebp-$0C], edx
+0054BA85   8945FC             mov     [ebp-$04], eax   //所有字符连接一起
+0054BA88   8B45FC             mov     eax, [ebp-$04]
+
+省略一部分
+
+0054BABE   E8218FEBFF         call    004049E4
+0054BAC3   83F81D             cmp     eax, +$1D
+0054BAC6   0F8508030000       jnz     0054BDD4
+0054BACC   8D45F4             lea     eax, [ebp-$0C]
+0054BACF   8B55FC             mov     edx, [ebp-$04]
+
+* Reference to: System.@LStrLAsg(void;void;void;void);
+|
+
+================================================================
+0054BAD2   E8ED8CEBFF         call    004047C4
+0054BAD7   8B45F4             mov     eax, [ebp-$0C]  //连接后注册码 12345-12345-12345-12345-12345 记为 SN[N] N=29
+0054BADA   0FB64018           movzx   eax, byte ptr [eax+$18]   //sn[24]=5
+0054BADE   8B55F4             mov     edx, [ebp-$0C]
+0054BAE1   0FB6521C           movzx   edx, byte ptr [edx+$1C]   //sn[28] =1
+0054BAE5   2BC2               sub     eax, edx                   //2 数相减
+0054BAE7   99                 cdq
+0054BAE8   33C2               xor     eax, edx
+0054BAEA   2BC2               sub     eax, edx  //相当于 取绝对值
+0054BAEC   8BD8               mov     ebx, eax
+0054BAEE   83C330              add     ebx, +$30
+0054BAF1   83FB39              cmp     ebx, +$39
+0054BAF4   7E08               jle     0054BAFE
+0054BAF6   83FB41              cmp     ebx, +$41
+0054BAF9   7D03               jnl     0054BAFE
+0054BAFB   83C307              add     ebx, +$07
+0054BAFE   8D45F4             lea     eax, [ebp-$0C]
+|
+0054BB01   E82E91EBFF         call    00404C34        //相减结果 bl=>字符
+0054BB06   885802             mov     [eax+$02], bl   //bl =>sn[2],'4'->'3'
+
+软件作者就是利用上面的这段代码来计算注册码
+
+所以下面的一样计算  简单
+
+========================================
+```

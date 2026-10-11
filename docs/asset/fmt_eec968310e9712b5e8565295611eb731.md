@@ -1,0 +1,259 @@
+
+# 申请加入 DFCG NO.2－－VBIDEUtils v4.00 注册算法分析
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-424.htm`](https://www.pediy.com/kssd/pediy07/pediy7-424.htm)
+
+`VBIDEUtils v4.00` 注册算法分析
+
+【破解作者】 `winndy[FCG][PYG]`  
+【作者邮箱】 `CNwinndy@hotmail.com`  
+【使用工具】 `Driver Studio 3.2` `Ollydbg v1.10 fly 修改版`  
+【破解平台】 `Winxp`  
+【软件名称】 `VBIDEUtils v4.00`  
+【官方网址】 `http://www.vbdiamond.com/`  
+【编写语言】 `Microsoft VB 6.0`  
+【软件介绍】 这是一款 `VB` 插件，里面整合了很多功能。  
+【破解声明】 `For Study ,For Fun`  
+【保护方式】 `VB Pcode`，序列号  
+
+### 【破解过程】
+
+这是一个 `VB Addins`，觉得很棘手。主要破解思路为：
+
+1. 首先到 `VBIDEUtils` 的安装目录去看看，查看里面的 `ocx` 以及 `dll`，以求寻得一些有用线索。
+2. 采用 `OD` 以及各种反编译软件（包括 `Pcode` 的反编译工具，象 `VB RezQ Version 2.4a`，`VB Decompiler`，`vb explorer` 等）尝试得到一些敏感信息。最终锁定的目标是 `VBIDEUtils.dll`。尽管 `VB Decompiler` 和 `vb explorer` 都是很好的 `Pcode` 反编译工具，但是其均不能反编译 `VBIDEUtils.dll`。采用 `VB RezQ Version 2.4a` 则只能得到其窗体(注册窗体导出来被我利用写了注册机)，并未有任何实质性的代码。
+3. 采用 `OD`，能看到其中的导入的函数，但是也不可以动态调试(可能是我还没掌握用 `OD` 动态调试 `dll` 吧)。
+4. 没有办法，只好请出 `SoftICE`。从这个时刻起，我就做好了吃苦的准备，边调试，边手工在草稿纸上作笔记，故这篇文章的代码也是从草稿纸上敲进来的，有影响阅读的，还望多体谅。
+
+现在，开始介绍具体步骤。
+
+拿到一个 `VB` 程序，常不知道下什么断点才是有成效的，为避免走弯路，我首先采用 `OD` 打开 `dll`，再从其导入函数中，根据自己的敏感来挑选一些可能很重要的函数下断点。
+
+`OD` 得到的导入函数为(在入口处，向上翻一页就可以看到)：
+
+```text
+* * *
+    112511C0    .- FF25 BC1025>jmp dword ptr ds:[<&MSVBVM60.DllFunctionCall>]   ;  MSVBVM60.DllFunctionCall
+112511C6    .- FF25 501025>jmp dword ptr ds:[<&MSVBVM60.#594>]             ;  MSVBVM60.rtcRandomize
+112511CC    .- FF25 481025>jmp dword ptr ds:[<&MSVBVM60.#593>]             ;  MSVBVM60.rtcRandomNext
+112511D2    .- FF25 401125>jmp dword ptr ds:[<&MSVBVM60.#572>]             ;  MSVBVM60.rtcHexBstrFromVar
+112511D8    .- FF25 581025>jmp dword ptr ds:[<&MSVBVM60.#595>]             ;  MSVBVM60.rtcMsgBox
+112511DE    .- FF25 941025>jmp dword ptr ds:[<&MSVBVM60.#631>]             ;  MSVBVM60.rtcMidCharBstr
+....
+....
+为了阅读的方便，省略若干...
+* * *
+```
+
+我选择了这几个：
+`rtcHexBstrFromVar`, `rtcMidcharBstr`, `rtcR8ValfromBstr`， `rtcMidcharVar`， `rtcAnsivalueBstr`.
+
+奇怪的是我并没有看到 `__vbastrcomp`,尽管这样，我还是下了这个断点。
+
+仅仅下 `msvbvm60!__vbastrcomp` 这个断点的时候，第二次中断的时候在调用 `msvbvm60!__vbastrcomp` 前，可以在堆栈里看到的输入假注册码以及真注册码。但这不是目的，最终的目标是分析出其算法。
+
+我输入的用户名是 `winndy`，假码是 `1234567890`，看到的真注册码是 `2E6D-BDFD-FCF9-6279`。
+
+下面把 `msvbvm60!__vbastrcomp` 断点清除，下上面选择的 4 个断点。
+
+首先中断在 `rtcMidcharVar`，单步跟踪下去，可以发现，`rtcMidcharVar` 调用了 `rtcMidcharBstr`(这也是我选择的断点之一，这样我清除了 `rtcMidcharBstr`，于是又少了一个断点，尽可能简化破解过程)，而 `rtcMidcharBstr` 又调用了 `rtcMidBstr`。从 `rtcMidcharVar` 返回后，发现是 `call eax` 来引发的这个调用。代码为：
+
+```text
+001B：7348E7A8：cmp BYTE PTR [734A01A4],00
+        AF:JNZ 734965AD
+      E7B5:call EAX=====>这里进去，调用了 rtcMidcharVar。
+      E7B7：cmp EDI，ESP
+      E7B9：jnz 73496595
+.......
+```
+
+`Ctrl＋D`，中断 `rtcAnsivalueBstr`，单步跟踪，发现其调用了 `Kernel32!WideCharToMultiByte`
+
+当单步跟踪到 `001B：7347A6D0：movzx AX，BYTE PTR[EBP+0A]` 时，发现 `AX＝"77"`,这正是用户名 `winndy` 的 `w` 的 `ascii` 码，OK，这这一行下断，则 `rtcMidcharVar` 和 `rtcAnsivalueBstr` 都可以清除了，因为程序先 `midchar` 取出用户名的一个字符，然后调用 `rtcAnsivalueBstr` 算出字符的 `ascii` 码，最终结果都可以从这一句看到，所以再减少两个断点吧！
+
+`001B：7347A6D0` 后一个 `jmp` 语句：`jmp 7347A6CB`，单步下去，在 `001B:73495191` 处：`pop eax`；弹出了 `77`。
+
+```text
+001B:73495191：pop eax             ；eax＝0077   
+      5192：add [esp],AX          ;[esp]=0
+      6196: jo  73494062
+................
+................
+001B:7349549E pop eax           ;eax=12,每次都是这个值，常数？yes
+      549F xor [esp],eax   ;77 xor 12=65
+......(pcode 的控制语句(也许不是很确切)，把代码取出来，再跳转，注意到 pcode 程序，往往一小段代码中只有一句有用的，其余全是控制代码)
+```
+
+`Ctrl＋D`，在 `001B：7347A6D0：movzx AX，BYTE PTR[EBP+0A]`处可以看到全部的字符串的 `ascii` 码，出了用户名，我还看到一个长 16 的常数串，`"36BRI4TQ1WJ83ET6"`,这个常数串的操作与用户名有区别。
+
+用户名每次都与 `12xor`，而常数串则每次与 `19xor`。
+
+由于破解是零星的进行的，笔记也记得不是很全。
+
+在与 `12` 或 `19` 异或后，还有个求和的过程，即：用户名与 `12` 异或后再加起来，`winndy` 得到的结果是 `024E`。
+
+16 个字符也有求和的过程，但又稍微有变化。前面 8 个字符与 `19XOR` 后加起来，后面 8 个字符要加上前面 8 个字符与 `19XOR` 后相应(9 对应 1...，16 对应 8)的结果，然后再与 `19XOR`，最后累加和。常数串的累加和是 `066C`。
+
+截取的代码为：
+
+```text
+* * *
+001B:73492B08 pop ecx             ;ecx=65,别忘了 77 xor 12=65
+        2B09 mov [eax*2+ebx],cx    ;cx=65,这里保存 65，我电脑上 ebx 是 001D1180，eax＝1。
+......
+    73492A3E mov BX，[eax*2+ebx]   ;这里取出了 65
+        2A42 push ebx          ；压入堆栈
+.....
+        5191 pop eax          ；取出 65
+              add [esp],AX         ;累加和
+......
+001B：7348E2FA pop ebx          ；bx＝65
+          E2FB mov [ebp+eax],bx     ;保存和，ebp＝0012DFF4，eax＝FFFFFECC，ebp＋eax＝0012DEC0
+                       ；下命令 d ebp+eax，可以看到数据。
+* * *
+```
+
+求完和以后，这两个不同的和还要再相加，求总和。
+
+代码为：
+
+```text
+* * *
+001B:7348E2B6 movsx eax,WORD PTR [esi]
+        E2B9 mov    ax,[ebp+eax]            ；取出和
+        E2BD push eax                    ；压入堆栈
+......
+    73495191 pop eax                    ；把和弹出来
+        5192 add [esp],ax              ;累加两个和，[esp]=02B9,ax=066C,sum=0925
+* * *
+```
+
+得到和 `0925` 以后，再除以 `0200`，得到的余数，留作后续使用。
+
+```text
+* * *
+001B:7349505E movsx eax,WORD PTR[ESI]        ;eax=0200,这也是常数
+        5061 push eax
+.....
+        5327 pop ecx                     ;ecx=0200
+        5328 pop eax                     ；eax＝0925，sum
+        5329 CWD
+        532B IDIV CX                     ；
+        532E push edx                   ;dx=0125,保存余数，后续使用
+* * *
+```
+
+前面提到过一个长为 16 的常数串，其中后面 8 个字符经过处理(`Xor 19`)后得到：
+`42 9F BC 9A 9A 6B B8 67`
+
+用户名经过处理(`Xor 19`)后为：
+`65 7B 7C 7C 76 6B`
+
+还有花样，代码为：
+`001B:73482A3E mov bx,[eax*2+ebx]     ;eax=1,ebx=002089A2`
+`; d eax*2+ebx`
+`;002089A2 BC 00 9A 00 9A 00 6B 00 B8 00 67 00 42 00 9F 00`
+
+这不是后面 8 个字符处理后的结果吗？但是顺序却不一样了。
+
+但通过观察，可以发现现在的第一个字节 `BC` 是原来的倒数第 6 个字节，而 `6` 正好是用户名的长度。
+
+后来发现，`BC` 与 `2E` 异或，后来又与 `65` 异或，
+`BC` 和 `65` 都知道是怎么得来的，但 `2E` 就不知道了，
+后来发现这是常数，数据为：
+`001CF30A 2E 00 59 00 8E 00 3F 00-E7 00 20 00 81 00 33 00`
+`1C 00 61 00 F8 00 29 00-88 00 35 00 4E 00 A4 00`
+其实只用得上前面 8 个。
+
+(`BC` xor `2E`) xor `65`=`F7`
+
+得到得 `F7` 再减去上面得到得余数 `0125`，然后进一步处理：
+
+```text
+* * *
+001B:734951FD pop eax         ;ax=0125
+        51FE sub [esp],ax      ;[esp]=F7，F7－0125＝FFD2
+        5202 jo 73494062
+......
+        5345 cmp WORD PTR [esp],00
+        534A jge 73495446
+        543C NEG WORD PTR [esp]  ;取补，FFD2 取反加 1 等于 2E，发现没有,正好是注册码的前两个字符。
+        5440 jo  73495446
+        5446 xor eax,eax
+        5448 mov al,[esi]
+        544a INC esi
+        544B jmp [eax*4+7348EA58]
+* * *
+```
+
+后面还有验证，看此结果是否大于 `10`。
+
+```text
+* * *
+001B:73496EA7 pop edx         ;edx=0010
+        6EA8 pop ecx         ;ecx=2E
+        6EA9 cmp cx,dx
+        6EAC mov eax,0
+        6EB1 SETL AL
+        6EB4 NEG EAX
+....
+* * *
+```
+
+上面这段代码的功能我还不是很清除。
+
+然后我就开始写注册机，通过比较各种不同长度用户名的注册码与注册机算出的注册码，我知道后面我没有跟踪下去的代码的意思，
+
+若取补后长度(不计前面的 `0`)大于 `2`，则取高两位；
+若取补后的长度等于 `2`，则就取这两位；
+若取补后的长度为 `1`，则在注册码前面补 `0`。
+
+另外，在写注册机时，
+
+"长为 16 的常数串，其中后面 8 个字符经过处理(`Xor 19`)后得到：
+`42 9F BC 9A 9A 6B B8 67`
+"
+
+从 `BC` 开始，即这样排列：`BC 9A 9A 6B B8 67 42 9F`。
+
+一开始，我没有将 `BC` 的位置与用户名长度联系起来，后来怀疑是用来除和的常数 `0200` 错了，
+取不同长度用户名再次跟踪后发现，这的确是常数。
+
+于是我将其看作一个循环链表，最终将其与用户名长度联系起来。
+
+具体规则就是，如果用户名长度对 `8` 取模后为 `0`，则从起始位置开始。
+若长度对 `8` 取模后(`n`)大于 `0`，则从倒数第 `n` 个位置开始。
+
+具体算法可见注册机(`VB 6` 编写，未优化)。
+
+注册信息保存在注册表中。
+
+我的：
+
+`Windows Registry Editor Version 5.00`
+
+```text
+[HKEY_CLASSES_ROOT\CLSID\{28D51C00-5D2A-4CFC-0078-000000350000}]
+
+@="09200511"
+"A"="winndy"
+"B"="2E6D-BDFD-FCF9-6279"
+```
+
+### 【破解总结】
+
+`SoftICE` 真不愧为 `SoftICE`。算法比较复杂，由于是 `pcode` 语句，一小段代码往往只有一句真正有用的代码，所以容易跟丢，往往要不断地重复。
+下断点有技巧，不能乱下，要找准。
+在大致知道程序地意思后，可先尝试写出注册机，可辅助调试，象最后地那段代码，完全是猜出来的。
+有错之处，还望指教。
+
+【Greetings】 看雪论坛,`FCG` 论坛,`DFCG` 论坛，`PYG` 论坛等
+
+【完稿时间等】2005.10.11，晚上 18:19,天气:晴
+武汉
+
+### 【VB 注册机源码】
+
+附件: `vbideutils_src.rar`
+
+`4dd466d0e1e0cc123afbe504da2462ca`
