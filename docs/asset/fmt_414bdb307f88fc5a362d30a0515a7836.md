@@ -1,0 +1,15 @@
+
+# NDIS6 防火墙 DEMO 源码
+
+> 原文：[`www.pediy.com/kssd/pediy12/143756.html`](https://www.pediy.com/kssd/pediy12/143756.html)
+
+华丽的体会`TCP` 10%丢包率时的上网感受吧！
+
+让`Windows7`下的防火墙技术自主创新，来得更猛烈些吧，当然有`bug`希望帮忙修补并通知，上午`COPY`得比较匆忙
+
+希望大家喜欢！哈哈
+
+## 上传的附件
+
+| ![](img/67af4f1ef9c98996f43e89e749c7dcf5.jpg) | `ndis6_hook.rar` |
+|---|---|

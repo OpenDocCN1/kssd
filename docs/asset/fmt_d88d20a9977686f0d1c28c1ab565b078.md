@@ -1,0 +1,15 @@
+
+# TestHips 的源码
+
+> 原文：[`www.pediy.com/kssd/pediy11/119551.html`](https://www.pediy.com/kssd/pediy11/119551.html)
+
+不成熟的代码（delphi）
+
+![](img/abb0e962d9e34f04abb8bec825333f3f.jpg)
+
+上传的附件
+
+| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) |  |
+|  | `TestHIPS.rar` |
+|  |  |
+|  |  |
