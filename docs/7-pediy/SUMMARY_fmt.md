@@ -1,0 +1,2636 @@
+
++   [第7篇 PEDIY篇](`README.md`)
+
++   [KSSD 第 7 篇 PEDIY 篇](`7-pediy_1.md`)
+
++   [BlindWrite Suite v5.1.5.132](`7-pediy_10.md`)
+
++   [Mass Downloader v2.2.223 SR1](`7-pediy_100.md`)
+
++   [有声有色 3.10](`7-pediy_101.md`)
+
++   [一个 SMC 补丁](`7-pediy_102.md`)
+
++   [SMC 破解应用](`7-pediy_103.md`)
+
++   [SMC 两层压缩壳的 ASP 组件](`7-pediy_104.md`)
+
++   [ASProtect](`7-pediy_105.md`)
+
++   [aspr 1.3x 注册笔记](`7-pediy_106.md`)
+
++   [Awave Studio v7.0](`7-pediy_107.md`)
+
++   [Patch 注册 ASProtect V1.X 壳保护程序的方法](`7-pediy_108.md`)
+
++   [Patch 注册 Ultra Tag Editor V2.0.8](`7-pediy_109.md`)
+
++   [把 qq2005 做成后门之编程实现(简单，高手勿入)](`7-pediy_11.md`)
+
++   [PECompact](`7-pediy_110.md`)
+
++   [PECompact.v1.80.b2](`7-pediy_111.md`)
+
++   [幻影](`7-pediy_112.md`)
+
++   [幻影 2003](`7-pediy_113.md`)
+
++   [MoleBox](`7-pediy_114.md`)
+
++   [MoleBox 中的 SMC 分析](`7-pediy_115.md`)
+
++   [其他](`7-pediy_116.md`)
+
++   [fldrmrkr](`7-pediy_117.md`)
+
++   [epoxUSDM](`7-pediy_118.md`)
+
++   [VP studio v6.75](`7-pediy_119.md`)
+
++   [其他](`7-pediy_12.md`)
+
++   [运用 SMC 打补 Ace ScreenSaver 2.21](`7-pediy_120.md`)
+
++   [Akala 密码壳的多层 smc 技术注入](`7-pediy_121.md`)
+
++   [DLL 劫持技术](`7-pediy_122.md`)
+
++   [理论基础](`7-pediy_123.md`)
+
++   [【样章 1】《加密与解密(第三版)》--18.2.4 DLL 劫持技术（内存补丁技术）](`7-pediy_124.md`)
+
++   [\[原创\]dll 劫持 详细分析](`7-pediy_125.md`)
+
++   [lpk 的合理使用及字符串处理 BUG 的修复原理](`7-pediy_126.md`)
+
++   [DLL 劫持 USER32](`7-pediy_127.md`)
+
++   [神奇的马甲 Dll By 海风月影\[RCT\]](`7-pediy_128.md`)
+
++   [无需 naked 打造 dll 劫持](`7-pediy_129.md`)
+
++   [使用 dll 进行验证的注册方式](`7-pediy_13.md`)
+
++   [DllHijacker For Delphi](`7-pediy_130.md`)
+
++   [关于自己写文件补丁和内存补丁 LPK](`7-pediy_131.md`)
+
++   [实例应用](`7-pediy_132.md`)
+
++   [利用特洛依动态库注入的学习总结](`7-pediy_133.md`)
+
++   [InLine Patching](`7-pediy_134.md`)
+
++   [理论基础](`7-pediy_135.md`)
+
++   [InLine Patching Protected Application By Hook API Function](`7-pediy_136.md`)
+
++   [实例应用](`7-pediy_137.md`)
+
++   [某些游戏对于特征码检测修改程序段的实现](`7-pediy_138.md`)
+
++   [Dll 注入 NetTransport 2.25.337](`7-pediy_139.md`)
+
++   [内存补丁](`7-pediy_14.md`)
+
++   [KERNEL32.DLL](`7-pediy_140.md`)
+
++   [ASPr 带壳调试+ASPr 内存校验完整分析+Inline Loader 使用之一+修改 vcl70.bpl 破解法](`7-pediy_141.md`)
+
++   [Hying's Armor v0.7x Code Injection](`7-pediy_142.md`)
+
++   [EnCryptPE v2 Code injection](`7-pediy_143.md`)
+
++   [OBSIDIUM 1.25 Code Injection](`7-pediy_144.md`)
+
++   [Inline Patch ASProtect 2.X 学习笔记](`7-pediy_145.md`)
+
++   [Inline Patch 注册 AsPrtect V2.X 保护程序——Tag&Rename V3.2 RC3](`7-pediy_146.md`)
+
++   [Aspr2.1 inline patching 学习笔记](`7-pediy_147.md`)
+
++   [ARMadillo V4.1 Copy MEM II Code Inj](`7-pediy_148.md`)
+
++   [Armadillo 3.7X-4.X Code Injection](`7-pediy_149.md`)
+
++   [理论基础](`7-pediy_15.md`)
+
++   [ARM3.7xCopyMEMII Code injection](`7-pediy_150.md`)
+
++   [Code Injection 破解 Armadillo V4.20 加壳程序](`7-pediy_151.md`)
+
++   [arm4.1 主程序 Patch 分析](`7-pediy_152.md`)
+
++   [VA\_X inline Patching](`7-pediy_153.md`)
+
++   [\====PEDIY 技术====](`7-pediy_154.md`)
+
++   [理论知识](`7-pediy_155.md`)
+
++   [基础知识](`7-pediy_156.md`)
+
++   [pll621 的 pediy 教学](`7-pediy_157.md`)
+
++   [网络军棋](`7-pediy_158.md`)
+
++   [diy pe 教学 2](`7-pediy_159.md`)
+
++   [如何访问一个进程中的内存](`7-pediy_16.md`)
+
++   [w32Dasm 加滚轮拖放](`7-pediy_160.md`)
+
++   [W32Dasm 8.93 Patch 1.0 的搜索功能](`7-pediy_161.md`)
+
++   [diy pe5](`7-pediy_162.md`)
+
++   [打造 super trw2000](`7-pediy_163.md`)
+
++   [邹丹的补丁教学](`7-pediy_164.md`)
+
++   [【分享】暴力更改 PE 文件各节大小,重组 PE,让 PE 文件重新运行](`7-pediy_165.md`)
+
++   [增加空间](`7-pediy_166.md`)
+
++   [PE 学习.动手写 PE.见缝插针](`7-pediy_167.md`)
+
++   [为 PE 文件添加 stub](`7-pediy_168.md`)
+
++   [函数调用](`7-pediy_169.md`)
+
++   [利用 veh 完成内存补丁功能，以躲避运行时内存检测](`7-pediy_17.md`)
+
++   [快速修改导入表的一种方法](`7-pediy_170.md`)
+
++   [PE 文件中引入表中的函数的方法](`7-pediy_171.md`)
+
++   [浅谈 API 函数调用的方法](`7-pediy_172.md`)
+
++   [直接执行 函数地址](`7-pediy_173.md`)
+
++   [给 Dll 制作导入的 lib](`7-pediy_174.md`)
+
++   [增加接口](`7-pediy_175.md`)
+
++   [修改 PE 头 添加 EXE 导出表，强行导出 EXE 内部函数](`7-pediy_176.md`)
+
++   [改造 PE 中的函数为导出函数](`7-pediy_177.md`)
+
++   [求助给 PE 文件增加导出函数](`7-pediy_178.md`)
+
++   [注入静态文件------------修改引入表](`7-pediy_179.md`)
+
+
+
+# 破解的装载器方法：理论、一般方式和框架
+
+## 详细信息
+
+- **文档编号**：`S000-F000`
+- **原文**：*Cracking with loaders: theory, general approach and a framework* (Version 1.2 – June 2005)
+- **作者**：`Shub-Nigurrath` & `ThunderPwr` of `ARTeam`
+- **译者**：`月中人` [PTG]
+- **审校**：
+- **时间**：`2007-01-08`
+- **关键词**：`Loader`, `Process`, `Thread`, `Breakpoint`, `Debugging`
+- **教程原文及全部源程序的下载地址**：<http://arteam.accessroot.com/tutorials.html?fid=81>
+
+### 目录
+
+1. 摘要
+2. 装载器是做什么的？
+    2.1 装载器分类与行为
+        2.1.1 标准的装载器
+        2.1.2 调试器装载器
+3. 编写你的第一个装载器
+    3.1 补丁数据集
+    3.2 标准的装载器
+    3.3 调试器装载器
+        3.3.1 对目标进程隐藏调试器
+        3.3.2 进程状态 Helper (`PSAPI.DLL`)
+        3.3.3 调试阶段 (附加阶段)
+        3.3.4 调试阶段 (`DEBUG_EVENT` 结构)
+4. 用于编写装载器的 C++ 统一框架
+    4.1 关于框架的概述
+        4.1.1 `NTInternals` 类
+        4.1.2 `ShubLoaderCore` 类
+        4.1.2.1 `DoMyJob` 方法
+        4.1.2.2 虚拟方法
+        4.1.2.3 Helper 方法
+        4.1.2.3.1 从进程转储大内存块的恰当时机？
+        4.1.3 `Loader` 类
+        4.1.4 `Patch` 类
+        4.1.4.1 回调
+    4.2 如何使用框架编写装载器
+        4.2.1 如何使用 `OllyDumpTranslator`
+        4.2.2 编写装载器的 `main()` 函数
+        4.2.3 编写派生的装载器类
+    4.3 使用框架编写调试器装载器
+5. 附录 A、VB 应用程序系列号钓鱼的一般方法
+6. 附录 B、一个调试型装载器完善的循环范例
+7. 参考
+8. 结论
+9. 历史
+10. 致谢
+
+---
+
+## 摘要
+
+本教程的目的是描述我们关于装载器的研究、介绍问题所在以及两个不同的编写装载器的方法。这里提供的一个框架，我们曾经在一些成功的补丁制作中使用过，希望你能够灵活应用它。
+
+阅读本文至少需要懂得一点 `C`/`C++` 程序语言知识，我们在以下章节使用的所有代码是用 `C` 语言编写的（而且在 `Visual C++ 6.0` 控制台应用程序工程类型下经过测试）。
+
+在本教程中我们还发布一个用 `C++` 语言编写的框架，帮助快速编写通用的、复杂的应用程序装载器。我们并不打算发布一个框架库，因为若要编写装载器你首先得读懂附件中 `C` 或 `C++` 源码，所以就把它的编译任务做为你的家庭作业了。
+
+我们还结合一个实例，讲解如何通过装载器嗅探 `VB` 应用程系列号算法，并指出关于 `VB` 魔术破解（不使用参考资料 `[2]`, `[3]`, `[4]` 和 `[5]` 中使用的远程线程技术或 `DLL` 注入方式）的一些注意事项。
+
+如果你已经了解如何自己编码一个装载器，你可以跳越到第四部分。如果你还不知道如何编写调试器装载器，可以跳到第 `3.3` 节开始，否则请从零开始按部就班地阅读全文。
+
+*Have phun!*  
+`Shub-Nigurrath` & `ThunderPwr` [ARTeam]  
+June 2005
+
+## 装载器是做什么的？
+
+如果你还完全不了解装载器以及程序如何装入内存的话，我们建议你阅读参考资料 `[1]` 和 `[8]` 以便理解本教程其余部分；鉴于读者应该已经具备了基础知识，所以本文只会复述少数的基本概念。
+
+### 装载器分类和行为
+
+装载器一个程序，它能够把另一个程序载入内存并运行。每次你启动一个程序，标准的 `window` 装载器在幕后替你做这项工作。装载器有许多种，但是所有装载器基本上可以分为两大类型：
+
+- 标准的装载器
+- 调试器装载器
+
+#### 标准的装载器
+
+标准的装载器需要使用 `API` 函数 `CreateProcess` 为磁盘上的一个目标程序在内存中创建一个进程，然后它还须使用 `ReadProcessMemory`、`WriteProcessMemory` 来读/写该进程的内存空间，以及使用 `API` 函数 `SuspendThread` 和 `ResumeThread` 来运行或停止该进程。也可能用得到其它 `API` 函数，这得看目标进程的上下文而定。
+
+一般来说，进程上下文反映该进程本身在每个指令周期中的状态，假如让进程停顿并查看寄存器值（比如 `EAX`, `EBX`, `ECX` 等等），同一时刻看到的所有寄存器和标志位保持着该进程的上下文，而所有这些数值被储存在一个 `CONTEXT` 结构之内，这意味着这个 `CONTEXT` 结构包含与处理器特性相关的寄存器数据，系统使用 `CONTEXT` 结构进行各种不同的内部操作（请参考为每个处理器体系结构定义该结构的头文件 `WinNT.h`）。图 1 给出上述操作的流程图。
+
+*图 1 - 简单装载器的一般流程图*
+
+装载器启动该程序后把它挂起，总之使它在我们的控制下，然后检查门槛条件，如果目标达到被唤醒的标准（比如，某个 `nag` 显示的时候、在目标的内存中出现某种特定模式的时候、或者某个特定窗口被创建时），那么就把我们的补丁写入目标的内存（就象以前用 `Olly` 做的那样），并且进行一些自定义操作（比如读/写上下文），然后恢复线程运行。
+
+上述步骤显然很简单，并没有考虑到象多线程应用程序之类的一些情况，实践中只须根据具体情况对基本原理做些应用上的变化即可。
+
+图 2 和 `UML` 顺序图是一样的，也许有人觉得这种形式容易理解（尽管这个流程非常简单）。
+
+*图 2 一个简单装载器的顺序图*
+
+#### 调试器装载器
+
+调试器装载器除了与标准的装载器基本相同的功能，还可以使用一些特殊类型的 `API` 函数调试目标进程，调试器能够产出一个进程来调试，也能够把自己附加到一个现有的进程。
+
+调试函数能够用来产生一个基本的、事件驱动的调试器。事件驱动意味着，在所调试的进程中某些事件每次发生时，调试器将得到通知。通知让调试器能够采取适当的操作来响应事件（例如，目标产生的异常），你可以什么都不做只须等待，直到某些事件发生时才进行你的操作或者也只是让目标本身处理该事件。这种调试器程序的主体从根本上讲就是一个大的 `switch-case` 结构，在其 `"case"` 中处理事件。我们操作的系统调试环境负责发送调试器事件给该进程的注册调试器。因此事实上，把装载器注册为目标进程的一个调试器是这种装载器的一个关键步骤。当然，通过 `Windows` `API` 函数很容易做到（期望 `API` 函数 `CreateProcess` 提供一个特别的开关）。
+
+一般来讲，你可以自主决定装载器类型，只要能够获得对该进程的控制权，然后在其内存中做些改动。但是，使用标准的装载器代替调试器装载器会有什么问题呢，这主要取决于目标，而且与我们要对目标做些什么很有关系。
+
+本质上，一个标准的装载器能够与程序交互，不需要使用系统的 `API` 调试函数，而一个调试型装载器有点象一个 `ring3` 级调试器，比如 `OllyDbg`，它拦截调试事件、并且用这样的方式与程序交互。这两种方式的取舍完全取决于应用程序。当然，如果你选择了调试器装载器，就必须向应用程序隐藏装载器，正如通常使用 `OllyDbg` 时要做的一样。向你正在调试的程序隐藏调试器有一个简单的办法，这是我们使用装载器真正干活之前要做的第一件事。
+
+总体上讲，这两类装载器的使用价值是一样的。
+
+## 编写你的第一个装载器
+
+作为第一个例子，我们重点讨论一个使用 `Asprotect 2.0` 以前版本保护的应用程序。我们并不十分关心应用程序本身，这里唯一跟应用程序有关系的东西是补丁数据集。对于我们选定的这个应用程序来说，标准的装载器或调试器装载器都是适用的，所以把它们两个都写出来。你能够从最简单的装载器代码开始学习。
+
+> **注意**
+> 对于不同版本 `AsProtect` 壳，如何编写装载器会在我们的一些后继教程中联系特定的真实的应用程序进行讨论。按我们的教程系列习惯，详见 <http://tutorials.accessroot.com>。
+
+### 补丁数据集
+
+首先我们需要创建合适的 `C` 语言结构储存补丁。我们通常需要这些数据：原始字节、补丁字节、偏移量。若要在补丁写入目标之前先确定目标是否正确，就必需原始字节。
+
+> **注意**
+> 我们把没有做这些额外检查的装载器称之为盲目的装载器！有必要增加这些检查（比如对目标做 `CRC` 检验）以便根据目标版本正确地打补丁。
+
+在下面这个例子中，我们使用一个名为 `Patch` 的 `C++` 类，不过同样也可以用 `C` 语言结构来实现。甚至只需 3 个简单 `BYTES` 或 `DWORD` 数据组就能做到：分别用于储存偏移量、原始字节、补丁字节。这里的任务是正确地建立数据结构便于后面编写代码。
+
+```cpp
+// A little class (C++) which is useful to store the single patch data. It’s a facility 
+// to use a C++ class, but any other structure is also usable, depending on your knowledge.
+class Patch {
+public:
+    Patch() {orig=address=patch=0;}
+    Patch(DWORD dw, BYTE bt) {
+        orig=0;
+        address=dw;
+        patch=bt;
+    }
+    DWORD address;
+    BYTE patch;
+    BYTE orig;
+};
+
+// The patch vector is made of Patch objects (there are 15 patches for this specific example).
+Patch crk[15];
+// Fill in the patch vector with the values we want to patch.
+crk[0]=Patch(0x0044337C, 0xEB);
+crk[1]=Patch(0x004795F0, 0xC3);
+crk[2]=Patch(0x004795F1, 0x90);
+crk[3]=Patch(0x004795F2, 0x90);
+crk[4]=Patch(0x004795F3, 0x90);
+crk[5]=Patch(0x004795F4, 0x90);
+crk[6]=Patch(0x005E478E, 0x90);
+crk[7]=Patch(0x005E478F, 0x90);
+crk[8]=Patch(0x005E4790, 0x90);
+crk[9]=Patch(0x005E4791, 0x90);
+crk[10]=Patch(0x005E4792, 0x90);
+crk[11]=Patch(0x005E5669, 0xEB);
+crk[12]=Patch(0x005F1552, 0xEB);
+crk[13]=Patch(0x005E626E, 0xEB);
+crk[14]=Patch(0x005E67D0, 0xEB);
+```
+
+你不必太在意该例所用补丁的内容，这仅仅与目标程序相关。而且在这个入门示例中我们编写的是一个盲目的装载器，因此并没有使用“原”字节。
+
+这个代码片对于两种装载器都适用，有了它我们就可以开始了。
+
+### 标准的装载器
+
+经过一番铺垫之后，现在我们马上给出标准装载器的核心结构。
+
+```cpp
+int main(int argc, char** argv) {
+    //Handle of the victim main window
+    HWND VictimDlghWnd=NULL;
+
+    Patch crk[15];
+    crk[0]=Patch(0x0044337C, 0xEB);
+    crk[1]=Patch(0x004795F0, 0xC3);
+    crk[2]=Patch(0x004795F1, 0x90);
+    crk[3]=Patch(0x004795F2, 0x90);
+    crk[4]=Patch(0x004795F3, 0x90);
+    crk[5]=Patch(0x004795F4, 0x90);
+    crk[6]=Patch(0x005E478E, 0x90);
+    crk[7]=Patch(0x005E478F, 0x90);
+    crk[8]=Patch(0x005E4790, 0x90);
+    crk[9]=Patch(0x005E4791, 0x90);
+    crk[10]=Patch(0x005E4792, 0x90);
+    crk[11]=Patch(0x005E5669, 0xEB);
+    crk[12]=Patch(0x005F1552, 0xEB);
+    crk[13]=Patch(0x005E626E, 0xEB);
+    crk[14]=Patch(0x005E67D0, 0xEB);
+
+    //These are process’specific structures
+    PROCESS_INFORMATION pi;
+    STARTUPINFO si;
+    memset(&pi, 0, sizeof(PROCESS_INFORMATION));
+    memset(&si, 0, sizeof(STARTUPINFO));
+    si.cb=sizeof(si);
+
+    if( !::CreateProcess(
+        ".\\TargetProcess.exe", // No module name (use command line).
+        NULL, // Command line.
+        NULL, // Process handle not inheritable.
+        NULL, // Thread handle not inheritable.
+        NULL, // Set handle inheritance to FALSE.
+        CREATE_SUSPENDED, // suspended creation flags.
+        NULL, // Use parent's environment block.
+        NULL, // Use parent's starting directory.
+        &si, // Pointer to STARTUPINFO structure.
+        &pi ) // Pointer to PROCESS_INFORMATION structure.
+    ) {
+        char szBuf[80];
+        GetLastErrorMsg(szBuf);
+        MessageBox(NULL, szBuf, MSG_CAPTION, MB_OK);
+        return 1;
+    }
+
+    ResumeThread(pi.hThread);
+
+    // CheckGuardCondition implementation
+    // Execute the FindConsole function that locates the console
+    while(VictimDlghWnd==NULL) {
+        EnumDesktopWindows(NULL, EnumWindowsProc, (LPARAM)&VictimDlghWnd);
+        if(VictimDlghWnd!=NULL) {
+            ::MessageBox(NULL,"Victim's window found",MSG_CAPTION, MB_OK);
+
+            HANDLE hProcess=NULL;
+            hProcess = pi.hProcess;
+
+            SuspendThread(pi.hThread);
+
+            //find the memory addresses to patch!
+            unsigned long byteswritten[15];
+            unsigned long bytesread[15];
+            char errors[15][256];
+
+            for(int i=0; i<15; i++) {
+                bytesread[i]=0;
+                byteswritten[i]=0;
+                strcpy(errors[i],"");
+            }
+
+            for (int idx=0; idx<15;idx++) {
+                ReadProcessMemory(hProcess, (LPVOID)(crk[idx].address), (LPVOID)(&(crk[idx].orig)), 1, &bytesread[idx]);
+                if(bytesread[idx]==0)
+                    GetLastErrorMsg(errors[idx]);
+                else
+                    strcpy(errors[idx],"OK");
+
+                WriteProcessMemory(hProcess, (LPVOID)(crk[idx].address), (LPVOID)(&(crk[idx].patch)), 1, &byteswritten[idx]);
+                if(byteswritten[idx]==0)
+                    GetLastErrorMsg(errors[idx]);
+                else
+                    strcpy(errors[idx],"OK");
+            }
+
+            ResumeThread(pi.hThread);
+
+            char str[10000];
+            strcpy(str,"");
+
+            break;
+        }
+    }
+    return 0;
+}
+
+void GetLastErrorMsg(char *szBuf) {
+    TCHAR szBuf[80];
+    LPVOID lpMsgBuf;
+    DWORD dw = GetLastError();
+
+    FormatMessage(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
+        NULL,
+        dw,
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        (LPTSTR) &lpMsgBuf,
+        0,
+        NULL
+    );
+
+    wsprintf(szBuf, "Loader failed with error %d: %s", dw, lpMsgBuf);
+
+    LocalFree(lpMsgBuf);
+}
+
+BOOL CALLBACK EnumWindowsProc(
+    HWND hWnd, // handle to parent window
+    LPARAM lParam // application-defined value
+) {
+    char ClassName[256];
+
+    GetClassName(hWnd,ClassName, 256);
+    char caption[256];
+    GetWindowText(hWnd, caption,256);
+
+    if(strstr(caption,"Main Target Window Caption")!=0 && _stricmp(ClassName,"TMainForm")==0) {
+        HWND *hw=(HWND*)lParam;
+        *hw=hWnd;
+        return FALSE;
+    }
+    return TRUE;
+}
+```
+
+该装载器的结构如图 1，其门槛条件能够用于多数应用程序。检查很简单：如果应用程序主窗口已经在桌面上（不论它可见还是不可见），那么就是符合补丁条件了。这个门卫的依据是任何 `Windows` 应用程序都有一个所谓的消息泵允许应用程序处理来自 `GUI` 的消息、以及普遍实现 `Windows` 事件驱动体系。简言之，在 `Windows` 系统中只有窗口（可见或不可见）才有消息泵，所以任何具有图形界面的应用程序总需要有一个窗口。如果你需要等到程序在内存中解压缩之后才能应用你的补丁，那么判断该程序是否已经装入内存并解压缩的可靠方法是检查其主窗口是否出现。总之，上述代码所做的就是使用下面这条指令列举桌面上的窗口：
+
+`EnumDesktopWindows(NULL, EnumWindowsProc, (LPARAM)&VictimDlghWnd)`
+
+这条指令所做的就是调用 `EnumWindowsProc` 检查桌面上所有的窗口，另外两个参数分别是当前已知窗口句柄和一个自定义参数，在示例中这个自定义参数是 `VictimDlgHwnd`。你能从代码中看到 `EnumWindowsProc` 只是使用两个 `API` 函数 `GetClassName` 和 `GetWindowText` 来获取窗口标题，并检查该窗口是不是我们要找到的（在该例中它应该是 `TMainForm` 类而且有一个特别的标题）。返回 `FALSE` 则循环停止并且把控制权返回给主函数。
+
+然后程序逐个应用补丁数据集中的每个补丁。
+
+显然，这样简单的一个装载器是基于以下这些假设：
+
+- 目标是单一线程的；
+- 应用程序在内存中脱壳以后没有太多的检验；
+- 能够写入目标进程的内存；
+- 目标的安全上下文允许我们对目标进行操作；
+- 目标没有复杂的反窜改保护（见参考 `[10]`）。比如，这种方式无法在 `Armadillo` 和 `COPYMEM2` 保护的目标上使用。
+
+当然，所有这些限制都不是无法战胜的，只不过需要编写更复杂的装载器代码。
+
+### 调试器装载器
+
+首先，装载器必须创建一个新进程或者附加到一个现有的进程，并且在目标内存空间上工作。因为我要谈的是调试一个正在运行的进程，所以我们必须使用 `API` 函数打开一个仍然在内存中活动的进程并且执行附加功能。附加到该进程以后，装载器就在一个恰当的调试循环中等待某些事件，在循环中目标的所有事件被传递给装载器来调试，最终装载器必须把控制权传给目标、或者关闭目标、或者从目标脱离而让它自由运行（最后这个功能只适用于 `Windows XP`）。
+
+大体步骤如下图：
+
+*图 3- 调试器装载器主循环*
+
+通过给予适当的创建参数，`CreateProcess` 函数为调试器启动一个进程并进行调试。`OpenProcess` 函数为调试器获得一个现有进程的识别号（`PID` 或进程识别号）。(`DebugActiveProcess` 函数使用这个识别号把调试器附加到该进程)。典型地，调试器使用 `PROCESS_VM_READ` 和 `PROCESS_VM_WRITE` 标志来打开进程。然后调试器能够使用常规的 `ReadProcessMemory` 和 `WriteProcessMemory` 函数来读写使用这些标志打开的那些进程的虚拟内存。
+
+从 `MSDN` 资料库和参考 `[1]` 你应该已经了解 `CreateProcess` 函数，因此我们只讲述后者。
+
+*MSDN 对 `API` 函数 `OpenProcess` 做如下描述：*
+
+*图 4 - `API` 函数 `OpenProcess` 的描述*
+
+首先你要了解 `dwProcessId` 参数，这个参数是用来打开正在运行进程的唯一识别号（即进程识别号或 `PID`），而且进程 `ID` 数字是重复使用的，所以它只能在一个进程的生存期间标识该进程。
+
+每个进程提供一个程序运行所需的资源。一个进程拥有一个虚拟地址空间、可执行代码、系统对象的打开句柄、一个安全上下文、一个唯一的进程识别号、环境变量、一个基本优先级、最小和最大工作集尺寸、和至少一个运行的线程。每个进程是以一个单一线程启动的，通常称之为主线程，而从进程的任何线程能够创建其它的线程。
+
+线程是进程里面的一个实体，能够通过调度而运行。一个进程中所有的线程共享该进程的虚拟地址空间和系统资源。此外，每个线程维持自己的异常处理、一个调度优先级、线程本地存储、一个唯一的线程识别号、以及一组结构（系统用它们保存线程上下文直到该线程被调度运行）。线程上下文包括该线程的机器寄存器组、内核栈、一个线程环境块、以及在该线程的进程地址空间里的一个用户栈。线程也能有它们自己的安全上下文，这可能会用于个性化客户端。
+
+> **注意**
+> 由于存在以上事实，请你注意关于目标进程的地址空间另一个非常重要的关键问题：目标进程不与装载器使用同一个地址空间，每个应用程序有各自专属的地址空间。下面谈到从装载器空间访问目标进程空间的时候请你务必记住这一点。
+
+那么现在我们必须找到一个方法能够检索与我们的目标进程相关的那个(进程)识别号，这是通过进程列举，更具体地讲就是 `PSAPI.DLL` 提供的那些功能。
+
+#### 对目标进程隐藏调试器
+
+当然，如果你要调试一个程序或者把一个调试器附加到一个正在运行的进程，首先要关心的是如何向该进程的控制者隐藏调试器。一个程序有许多办法检查它是不是正在被调试，而且并非全都可以被轻易地欺骗（参见参考 `[9]`）。我们这里顺便提到一些是最通常的（容易的）反调试检查，懒惰的程序员总是在使用它们。正如在参考 `[1]` 中已经介绍过的，最常用的 `API` 函数是 `IsDebuggerPresent`，如果是它返回 1，否则返回 0 (`false`)。由于必须进入目标进程的空间之内欺骗该 `API` 函数，因此编写装载器会有一点麻烦：`Hiding` 函数是多样的。
+
+每个正在运行的进程有一个名为 `PEB` (进程环境块) 的结构，对它有少许了解会有助于你学习本教程。这个结构有几个字段我们是感兴趣的，特别是 `BeingDebugged` 元素。我们给出 `TEB` 结构以及其组成元素的相对偏移，在编码时会很有用：
+
+```text
+TEB
+Offset Elements name Type
++0x000 InheritedAddressSpace : UChar
++0x001 ReadImageFileExecOptions : UChar
++0x002 BeingDebugged : UChar
++0x003 SpareBool : UChar
++0x004 Mutant : Ptr32 Void
++0x008 ImageBaseAddress : Ptr32 Void
++0x00c Ldr : Ptr32 _PEB_LDR_DATA
++0x010 ProcessParameters : Ptr32 _RTL_USER_PROCESS_PARAMETERS
++0x014 SubSystemData : Ptr32 Void
++0x018 ProcessHeap : Ptr32 Void
++0x01c FastPebLock : Ptr32 _RTL_CRITICAL_SECTION
++0x020 FastPebLockRoutine : Ptr32 Void
++0x024 FastPebUnlockRoutine : Ptr32 Void
++0x028 EnvironmentUpdateCount : Uint4B
++0x02c KernelCallbackTable : Ptr32 Void
++0x030 SystemReserved : [1] Uint4B
++0x034 ExecuteOptions : Pos 0, 2 Bits
++0x034 SpareBits : Pos 2, 30 Bits
++0x038 FreeList : Ptr32 _PEB_FREE_BLOCK
++0x03c TlsExpansionCounter : Uint4B
++0x040 TlsBitmap : Ptr32 Void
++0x044 TlsBitmapBits : [2] Uint4B
++0x04c ReadOnlySharedMemoryBase : Ptr32 Void
++0x050 ReadOnlySharedMemoryHeap : Ptr32 Void
++0x054 ReadOnlyStaticServerData : Ptr32 Ptr32 Void
++0x058 AnsiCodePageData : Ptr32 Void
++0x05c OemCodePageData : Ptr32 Void
++0x060 UnicodeCaseTableData : Ptr32 Void
++0x064 NumberOfProcessors : Uint4B
++0x068 NtGlobalFlag : Uint4B
++0x070 CriticalSectionTimeout : _LARGE_INTEGER
++0x078 HeapSegmentReserve : Uint4B
+```
+
+这个代替 `PEB` 结构的正式声明，以备你在编写自己的代码时可能需要它：
+
+```cpp
+typedef struct _PEB {
+    BOOLEAN             InheritedAddressSpace;
+    BOOLEAN             ReadImageFileExecOptions;
+    BOOLEAN             BeingDebugged;
+    BOOLEAN             Spare;
+    HANDLE              Mutant;
+    PVOID               ImageBaseAddress;
+    PPEB_LDR_DATA       LoaderData;
+    PRTL_USER_PROCESS_PARAMETERS  ProcessParameters;
+    PVOID               SubSystemData;
+    PVOID               ProcessHeap;
+    PVOID               FastPebLock;
+    PPEBLOCKROUTINE     FastPebLockRoutine;
+    PPEBLOCKROUTINE     FastPebUnlockRoutine;
+    ULONG               EnvironmentUpdateCount;
+    PPVOID              KernelCallbackTable;
+    PVOID               EventLogSection;
+    PVOID               EventLog;
+    PPEB_FREE_BLOCK     FreeList;
+    ULONG               TlsExpansionCounter;
+    PVOID               TlsBitmap;
+    ULONG               TlsBitmapBits[0x2];
+    PVOID               ReadOnlySharedMemoryBase;
+    PVOID               ReadOnlySharedMemoryHeap;
+    PPVOID              ReadOnlyStaticServerData;
+    PVOID               AnsiCodePageData;
+    PVOID               OemCodePageData;
+    PVOID               UnicodeCaseTableData;
+    ULONG               NumberOfProcessors;
+    ULONG               NtGlobalFlag;
+    BYTE                Spare2[0x4];
+    LARGE_INTEGER       CriticalSectionTimeout;
+    ULONG               HeapSegmentReserve;
+    ULONG               HeapSegmentCommit;
+    ULONG               HeapDeCommitTotalFreeThreshold;
+    ULONG               HeapDeCommitFreeBlockThreshold;
+    ULONG               NumberOfHeaps;
+    ULONG               MaximumNumberOfHeaps;
+    PPVOID              *ProcessHeaps;
+    PVOID               GdiSharedHandleTable;
+    PVOID               ProcessStarterHelper;
+    PVOID               GdiDCAttributeList;
+    PVOID               LoaderLock;
+    ULONG               OSMajorVersion;
+    ULONG               OSMinorVersion;
+    ULONG               OSBuildNumber;
+    ULONG               OSPlatformId;
+    ULONG               ImageSubSystem;
+    ULONG               ImageSubSystemMajorVersion;
+    ULONG               ImageSubSystemMinorVersion;
+    ULONG               GdiHandleBuffer[0x22];
+    ULONG               PostProcessInitRoutine;
+    ULONG               TlsExpansionBitmap;
+    BYTE                TlsExpansionBitmapBits[0x80];
+    ULONG               SessionId;
+} PEB, *PPEB;
+```
+
+秘密在于我们总是把上述结构的 `BeingDebugged` 字节设定为 0。问题当然是如何找到 `PEB` 起始地址。它储存在另一个名为线程环境块 (`TEB`) 或叫做线程信息块 (`TIB`) 的结构之内。
+
+操作系统为系统中运行的每一个线程维持一个名叫线程环境块 (`TEB`) 的结构。`FS` 段寄存器总是被设置成使得地址 `FS:0` 指向正在运行线程的 `TEB`（参见图 5）。
+
+*图 5 - 执行线程块的结构*
+
+其结构如下，供参考使用：
+
+```cpp
+typedef struct _TEB {
+    NT_TIB              Tib;
+    PVOID               EnvironmentPointer;
+    CLIENT_ID           Cid;
+    PVOID               ActiveRpcInfo;
+    PVOID               ThreadLocalStoragePointer;
+    PPEB                Peb;
+    ULONG               LastErrorValue;
+    ULONG               CountOfOwnedCriticalSections;
+    PVOID               CsrClientThread;
+    PVOID               Win32ThreadInfo;
+    ULONG               Win32ClientInfo[0x1F];
+    PVOID               WOW32Reserved;
+    ULONG               CurrentLocale;
+    ULONG               FpSoftwareStatusRegister;
+    PVOID               SystemReserved1[0x36];
+    PVOID               Spare1;
+    ULONG               ExceptionCode;
+    ULONG               SpareBytes1[0x28];
+    PVOID               SystemReserved2[0xA];
+    ULONG               GdiRgn;
+    ULONG               GdiPen;
+    ULONG               GdiBrush;
+    CLIENT_ID           RealClientId;
+    PVOID               GdiCachedProcessHandle;
+    ULONG               GdiClientPID;
+    ULONG               GdiClientTID;
+    PVOID               GdiThreadLocaleInfo;
+    PVOID               UserReserved[5];
+    PVOID               GlDispatchTable[0x118];
+    ULONG               GlReserved1[0x1A];
+    PVOID               GlReserved2;
+    PVOID               GlSectionInfo;
+    PVOID               GlSection;
+    PVOID               GlTable;
+    PVOID               GlCurrentRC;
+    PVOID               GlContext;
+    NTSTATUS            LastStatusValue;
+    UNICODE_STRING      StaticUnicodeString;
+    WCHAR               StaticUnicodeBuffer[0x105];
+    PVOID               DeallocationStack;
+    PVOID               TlsSlots[0x40];
+    LIST_ENTRY          TlsLinks;
+    PVOID               Vdm;
+    PVOID               ReservedForNtRpc;
+    PVOID               DbgSsReserved[0x2];
+    ULONG               HardErrorDisabled;
+    PVOID               Instrumentation[0x10];
+    PVOID               WinSockData;
+    ULONG               GdiBatchCount;
+    ULONG               Spare2;
+    ULONG               Spare3;
+    ULONG               Spare4;
+    PVOID               ReservedForOle;
+    ULONG               WaitingOnLoaderLock;
+    PVOID               StackCommit;
+    PVOID               StackCommitMax;
+    PVOID               StackReserved;
+} TEB, *PTEB;
+```
+
+其中我们最感兴趣的元素是 `Peb`，它在偏移 `0x30` 处（即，`TEB` 结构中它前面所有元素的尺寸总和）。
+
+图 6 显示正确使用的 `API` 函数。的确，使用一个未归档函数 `NtCurrentTeb` (见注 1) 能够直接得到 `TEB`，但是本教程不打算使用它来实现。
+
+(注 1)  
+`NTSYSAPI PTEB NTAPI NtCurrentTeb( );`
+
+*图 6 - `API` 函数 `GetThreadSelectorEntry` 返回值是另一个结构 `LDT_ENTRY` (这里不作具体描述，根本上讲，它是用一个特别的方式储存地址，能够处理很大的数值，因为 `windows` 的全部有效地址空间是极大的)。*
+
+不管怎样，由 `GetThreadSelectorEntry` 返回的 `LDT_ENTRY` 被转换成一个线性值以后，就可用于存取 `TEB` 然后存取 `PEB`，再然后是 `BeingDebugged` 元素，也就是把它设置为 0。
+
+全部操作都在这里给出的 `HideDebugger` 函数代码里面。你只需要传递给 `HideDebugger` 两种目标句柄：线程句柄和进程句柄。我们稍后再做解释。
+
+```cpp
+BOOL HideDebugger(HANDLE thread, HANDLE hproc) {
+    CONTEXT victimContext;
+    // This function is used to patch the IsDebuggerPresent API which might be called from 
+    // debugged program (e.g. ASProtect) in order to detect debugger presence. This function 
+    // is mainly based on FS:[0] treating.
+    // In an x86 environment, the FS register points to the current value of the Thread 
+    // Information Block (TIB) structure.
+    // One element in the TIB structure is a pointer to an EXCEPTION_RECORD structure, which 
+    // in turn contains a pointer to an exception handling callback function. Thus, each 
+    // thread has its own exception callback function.
+    // The x86 compiler builds exception-handling structures on the stack as it processes 
+    // functions. The FS register always points to the TIB, which in turn contains a pointer 
+    // to an EXCEPTION_RECORD structure.
+    // The EXCEPTION_RECORD structure points to the exception handler function.
+
+    // EXCEPTION_RECORD structures form a linked list: the new EXCEPTION_RECORD structure 
+    // contains a pointer to the previous EXCEPTION_RECORD structure, 
+    // and so on. On Intel-based machines, the head of the list is always pointed 
+    // to by the first DWORD in the thread information block, FS:[0]
+
+    //77E5276B > 64:A1 18000000 MOV EAX,DWORD PTR FS:[18]
+    //77E52771 8B40 30          MOV EAX,DWORD PTR DS:[EAX+30]
+    //77E52774 0FB640 02        MOVZX EAX,BYTE PTR DS:[EAX+2]
+    //77E52778 C3              RETN
+
+    // Set up the victimContex access flag
+    victimContext.ContextFlags = CONTEXT_SEGMENTS;
+
+    // Fill the victim context structure with process data
+    if (!GetThreadContext(thread, &victimContext))
+        return FALSE;
+
+    // GetThreadSelectorEntry is only functional on x86-based systems. 
+    // For systems that are not x86-based, the function returns FALSE. 
+    // The GetThreadSelectorEntry function fills this structure with 
+    // information from an entry in the descriptor table. You can use this information 
+    // to convert a segment-relative address to a linear virtual address. 
+    // The base address of a segment is the address of offset 0 in the segment. 
+    // To calculate this value, combine the BaseLow, BaseMid, and BaseHi members
+    LDT_ENTRY sel;
+    if (!GetThreadSelectorEntry(thread, victimContext.SegFs, &sel))
+        return FALSE;
+
+    DWORD fsbase = (sel.HighWord.Bytes.BaseHi << 8| sel.HighWord.Bytes.BaseMid) << 16| sel.BaseLow;
+    DWORD RVApeb;
+    SIZE_T numread;
+
+    if (!ReadProcessMemory(hproc, (LPCVOID)(fsbase + 0x30), &RVApeb, 4, &numread) || numread != 4)
+        return FALSE;
+
+    WORD beingDebugged;
+    if (!ReadProcessMemory(hproc, (LPCVOID)(RVApeb + 2), &beingDebugged, 2, &numread) || numread != 2)
+        return FALSE;
+
+    beingDebugged = 0;
+
+    if (!WriteProcessMemory(hproc, (LPVOID)(RVApeb + 2), &beingDebugged, 2, &numread) || numread != 2)
+        return FALSE;
+
+    return TRUE;
+}
+```
+
+#### 进程状态 Helper (`PSAPI.DLL`)
+
+在 `MSDN` 中，我们找到许多关于使用 `PSAPI.DLL` 那些函数（进程状态 `API`）调查进程的有用信息。
+
+进程状态 `API` (`PSAPI`) 提供检索下列信息的函数集：
+
+- 进程信息
+- 模块信息
+- 设备驱动程序信息
+- 进程内存使用信息
+- 工作集信息
+- 内存映射文件信息
+
+系统维持着一系列正在运行的进程（你打开任务管理器就可以看到的）。你可以通过调用 `EnumProcesses` 函数检索这些进程的识别号 (`PID`)。这个函数使用一个 `DWORD` 值数组储存当前正在系统中运行的所有进程的识别号。
+
+许多 `PSAPI` 函数需要一个进程句柄。句柄就是指向一个由系统控制的对象的指针。若要获取一个运行中进程的句柄，我们必须把它的进程识别号（从 `EnumProcesses` 获得）传给 `OpenProcess` 函数。在使用进程句柄后要记得调用 `CloseHandle` 函数（这不会关闭进程，仅仅是释放与所打开句柄关联的内存，这样会使系统运行比较稳定）。
+
+模块是一个可执行文件或一个 `DLL`。每个进程由一个或多个模块组成。你可以调用 `EnumProcessModules` 函数检索一个进程的模块句柄列表。这个函数把指定进程的模块句柄储存在一个 `HMODULE` 值数组。第一个模块是可执行文件。请记住，这些模块句柄很可能是来自其它进程的，所以你不能就这样使用它们，比如在 `GetModuleFileName` 函数中。不过，你可以使用 `PSAPI` 函数从另外的一个进程获取模块的有关信息。若要获取模块信息：
+
+- 调用 `GetModuleBaseName` 函数。这个函数把一个进程句柄和一个模块句柄作为输入，然后在一个缓冲区中填入模块的基本名字（例如 `KERNEL32.DLL`）。相关函数 `GetModuleFileNameEx` 的输入参数与之相同，但返回该模块的完整路径（例如 `C:\WINNT\SYSTEM32\KERNEL32.DLL`）。
+- 调用 `GetModuleInformation` 函数。这个函数把一个进程句柄和一个模块句柄作为输入，然后在一个 `MODULEINFO` 结构中填充该模块的装入地址、所占有的线性地址空间的大小、以及它的入口指针。
+
+利用这个信息，我们能够编写一个代码片断来查找目标进程的进程 `ID`、并且列举该进程所使用的全部模块，下面我们先给出一个进行进程列举的代码片断，稍后再给出模块列举的代码。
+
+首先我们需要使用 `PSAPI` 函数，我们必须为以后要使用的每个函数建立有效的指针：
+
+```cpp
+hPsapi = LoadLibrary("psapi.dll");
+
+if (!hPsapi) {
+    printf("Cannot load psapi.dll :-(\n");
+    return;
+}
+
+pEnumProcessModules = (BOOL (WINAPI *)(HANDLE, HMODULE *, DWORD, LPDWORD)) GetProcAddress(hPsapi, "EnumProcessModules");
+pGetModuleBaseName = (DWORD (WINAPI *)(HANDLE, HMODULE, LPTSTR, DWORD)) GetProcAddress(hPsapi, "GetModuleBaseNameA");
+pGetModuleInformation=(BOOL (WINAPI *)(HANDLE, HMODULE, LPMODULEINFO, DWORD)) GetProcAddress(hPsapi, "GetModuleInformation");
+pEnumProcesses = (BOOL (WINAPI *)(DWORD*, DWORD, DWORD*)) GetProcAddress(hPsapi, "EnumProcesses");
+
+// Make some simple check about right pointer assignment
+if ( (pEnumProcessModules == NULL) || (pGetModuleBaseName == NULL) ) {
+    printf("Cannot load psapi functions\n");
+    FreeLibrary(hPsapi);
+    return;
+}
+```
+
+现在我们必须先得到一个所有正在运行进程的列表，然后逐一检查它是不是我们的目标进程。这个工作必须在目标进程运行后才进行，所以我们必须先确定用户已经启动这个进程：
+
+```cpp
+// -----------------------------------------
+// Wait for user confirmation
+// -----------------------------------------
+sprintf(szMsgText,"\tStart the installer and press OK when you are into the registration window");
+MessageBox(NULL, szMsgText, szMsgCapt, MB_OK);
+printf("now go into the registration\nwindow and insert a fake serial...\n");
+```
+
+然后我们可以开始检查所有运行中进程，只要其中有一个是我们要找的，就可以保存它的句柄以备后用：
+
+```cpp
+// -----------------------------------------
+// Get the list of process identifiers.
+// -----------------------------------------
+TCHAR szProcessName[MAX_PATH] = TEXT("<unknown>");
+if ( !pEnumProcesses( aProcesses, (DWORD)sizeof(aProcesses), &cbNeeded ) ) {
+    if (hPsapi != NULL)
+        FreeLibrary(hPsapi);
+    return;
+}
+cProcesses = cbNeeded / sizeof(DWORD); // Calculate how many process identifiers were returned.
+for ( i = 0; i < cProcesses; i++ ) // Print the name and process identifier for each process.
+{
+    hTmpProcess = OpenProcess( PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, aProcesses[i] ); // Get a handle to the process.
+    if (NULL != hTmpProcess ) // Get the process name.
+    {
+        if ( pEnumProcessModules( hTmpProcess, &hMod, sizeof(hMod), &cbNeededTmp) )
+            pGetModuleBaseName( hTmpProcess, hMod, szProcessName, sizeof(szProcessName)/sizeof(TCHAR) );
+    }
+
+    // Print the process name and identifier.
+    if (bDebugStage)
+        printf("%s (PID: %u)\n", szProcessName, aProcesses[i] );
+
+    // Search for victim process name and retrieve the process ID
+    if ( strcmp(szProcessName,szVictimProcessName) == 0) {
+        bVictimPIDfound = true;
+        aVictimProcessId = aProcesses[i];
+    }
+    CloseHandle( hTmpProcess ); // Close the process handle
+}
+if (bVictimPIDfound == false) {
+    MessageBox( NULL, "\tVictim process ID not found!\n You've to start the installation before!", szMsgCapt, MB_OK);
+    if (hPsapi != NULL)
+        FreeLibrary(hPsapi);
+    return ;
+} else {
+    if (bDebugStage)
+        MessageBox(NULL, "\tVictim process ID found!", szMsgCapt, MB_OK);
+}
+```
+
+#### 调试阶段 (附加阶段)
+
+现在我们找到目标进程了，下一步是调试这个目标，在主要的调试工作开始之前我们必须附加到目标，这可通过使用 `API` 函数 `DebugActiveProcess` 来实现。
+
+*图 7 - `API` 函数 `DebugActiveProcess` 的描述*
+
+该进程是在 `DEBUG_ONLY_THIS_PROCESS` 权限下调试的；我们做个对比就可以看得更清楚：
+
+*图 8 - `DEBUG` 进程的形态图*
+
+从 `MSDN` 我们了解到：若要读写进程内存，调试器必须有适当的目标进程存取权，而且该调试器必须能够以 `PROCESS_ALL_ACCESS` 标志打开进程。在 `Windows Me/98/95` 上，只要进程识别号有效，调试器就有适当的存取权。而在其他 `Windows` 版本上，如果目标进程在创建时使用的安全描述器不准许调试器拥有完全存取权，则 `DebugActiveProcess` 就会失败。如果调试进程（我们的装载器）具有 `SE_DEBUG_NAME` 权限许可并已启用了，那么它就能够调试任何进程。
+
+成功执行这个函数后，该进程(调试对象)可以被调试并通过使用 `WaitForDebugEvent` 函数让调试器等待调试事件。
+
+*图 9 - `API` 函数 `WaitForDebugEvent`*
+
+这个函数应该有两个调用方法。第一个是把 `dwMilliseconds` 设置为 0 或大于 0 的某个数值，在这个模式中该函数等待某些事件指定毫秒时间然后把控制权返回给调试器，第二个方法是使用常数 `INFINITE`；此时该函数直到某些事件出现时才返回（在这段时间内目标自由运行，而调试器是不活动的或冻结的）。
+
+```cpp
+// --------------------------------------------
+// Main debugger cycle
+// --------------------------------------------
+
+DEBUG_EVENT DebugEv; // debugging event information
+DWORD dwContinueStatus = DBG_CONTINUE; // exception continuation
+HMODULE hDLL; // temp handle used for target function offset calculation
+
+for(;;) {
+    // Wait for a debugging event to occur. The second parameter indicates 
+    // that the function does not return until a debugging event occurs. 
+    // We are waiting for infinite time, then wait for each Debug Event.
+
+    WaitForDebugEvent(&DebugEv, INFINITE);
+
+    // If we're into the first event save the process thread handle
+    if (!bFirstEvent) {
+        hVictimThreadHandle = DebugEv.u.CreateProcessInfo.hThread;
+        bFirstEvent = true;
+    }
+    // Process the debugging event code.
+    switch (DebugEv.dwDebugEventCode) {
+        // Event handler …
+    }
+}
+```
+
+#### 调试阶段 (`DEBUG_EVENT` 结构)
+
+附加阶段完成之后，系统发送调试事件 `CREATE_PROCESS_DEBUG_EVENT` 给调试器。在 `WaitForDebugEvent` 函数返回调试器时，系统用进程数据填充 `DebugEv` 结构。
+
+现在应该研究一下 `DEBUG_EVENT` 结构，它是描述一个调试事件的：
+
+*图 10 - `DEBUG_EVENT` 结构*
+
+这个结构给出触发 `WaitForDebugEvent` 函数的那个事件的全部情况，其中更重要的参数保存于 `DEBUG_EVENT` 主结构的一个成员，它是 `CREATE_PROCESS_DEBUG_INFO` 结构。
+
+`CREATE_PROCESS_DEBUG_INFO` 结构包含有调试器可以使用的进程创建信息，从 `MSDN` 我们了解到：
+
+*图 11 - `CREATE_PROCESS_DEBUG_INFO` 结构。*
+
+> **注意**
+> `hThread` 参数也是比较重要的，因为这个句柄与主线程创建有关，而且我们需要在读取或修改所调查进程的 `CONTEXT` 时要使用它，因为该参数会由于所有未来事件而被设置为 `NULL`，所以我们必须在这里保存它。
+
+## 用于编写装载器的 C++ 统一框架
+
+现在要让你更多地了解我们是如何用 `C++` 编写装载器的。写过几个装载器之后，我们尝试从所有装载器中摘取复杂的或者重复的部分，把它们放在一个 `C++` 框架里面，这样可以相当大地降低编写装载器的复杂程度。现在我们就讲解如何使用框架编写一个装载器代码，而把内部工作留给包含的源文件(有注释)。我们做的框架的确不是那么简单，而且编码也比较费事。你必须把这个文件和代码里面的注释结合起来学习。
+
+显然，这个框架也是基于一些假设：
+
+- 目标的安全上下文能够被目标使用者修改、以便我们可以写进程内存；
+- 目标没有复杂的反窜改保护（见参考 `[10]`）。例如，对于使用 `Armadillo` 和 `COPYMEM2` 保护的目标，这个方式不太合适。
+
+### 关于框架的概述
+
+首先如果你已经读过参考 `[1]` 的话，会发现在这个框架中使用的许多类曾经在 `Oraculums` 装载器中使用（我就不再解释了）。`Oraculums` 的确是有特定任务的特殊装载器！
+
+*图 12 - 主要的框架类结构 (类图)*
+
+*图 12 使用 `UML` 标记给出该框架几个主要类的结构。除了它们之外还有更多的类，但是那些对我们来说不是那么重要，而且全部解释确实太复杂了。*
+
+下面将逐一说明这几个主要的类。尽管是简短地：
+
+- `NTInternals` 类。它是装载器所有类的基类，而且提供了一些有用的 `NT` 方法，它们实际存在于 `Kernel32` 中，但是编译器不会展现它们（比如 `SuspendProcess`、`DebugActiveProcessStop`）。
+- `ShubLoaderCore` 类。它是该框架的真正核心，所有的工作是由它执行。
+- `Loader` 类。它处在一个装载器大厦的顶部，所有与特定的应用程序相关的代码都在那里。这也许应该是开发者唯一需要修改的类，应该根据应用程序特有属性来编写代码。这个类相当复杂，但是没有它什么也干不了。它必须是一个派生类：指导引擎如何以及何时给目标打补丁。
+- `Patch` 这个类，比在第 3.1 节中给出的那个稍微复杂一点，用于方便存储程序的补丁。根据定义，补丁与应用程序特性相关，所以该类必须在 `Loader` 类实例化时初始化。
+- `BMG_gsar` 类。这个类在参考 `[1]` 中已经使用过，它实现了一个非常快速的内存模式搜索算法（详见参考 `[1]`）。它用于 `ShubLoaderCore` 类快速搜索补丁。
+- `CAccessMemory` 类。是 `BMG_gsar` 类的基类，它所提供的一些方法用于有控制存取内存（处理存取页的读/写权限）。
+
+和所有的面向对象编程一样，整个框架的基本指导思想是问题的包装。作为学习本教程的常识，开发者唯一需要修改的东西是 `Loader` 类。
+
+下面我们分别讲述最重要的类：`NTInternals`、`ShubLoaderCore` 和一个 `Loader` 类样例。
+
+#### `NTInternals` 类
+
+```text
+NTInternals
++DebugActiveProcessStop(in dwProcessId : unsigned long)
++GetProcessId(inout Process : void*)
++HideDebugger(inout thread : void*, inout hproc : void*)
++ZwResumeProcess(inout Process : void*)
++ZwSuspendProcess(inout Process : void*)
++ZwSuspendThread(inout hThread : void*, inout pSuspendCount : unsigned long*)
+```
+
+这个类实现若干个供装载器使用的 `NT` 内部函数包裹器。这些函数直接从系统的动态链接库输出取得，或是因为微软没有正式提供对这些 `API` 函数的支持（在 `Visual Studio` 标准发布版中找不到它们的原型），或是因为不想安装整个 `DDK` 软件包 (`Driver Developer Kit`)。
+
+在这里，我们用以下基本的方式实现它们（例如对于 `DebugActiveProcessStop`）：
+
+```cpp
+//Function pointer to the export.
+typedef WINBOOL (STDCALL *fcnDebugActiveProcessStop)(DWORD dwProcessId);
+
+WINBOOL STDCALL NTInternals::DebugActiveProcessStop(DWORD dwProcessId) {
+    FARPROC addrIDP;
+    HINSTANCE hKer;
+
+    fcnDebugActiveProcessStop fcn;
+
+    hKer = GetModuleHandle("Kernel32");
+    addrIDP = GetProcAddress(hKer, "DebugActiveProcessStop");
+
+    //Check API
+    if (addrIDP!=NULL) {
+        //gives to the function pointer the parameters.
+        fcn=(fcnDebugActiveProcessStop)addrIDP;
+        return fcn(dwProcessId);
+    }
+    return 0;
+}
+```
+
+> **注意**
+> `Windows` 的 `API` 函数 `DebugActiveProcessStop` 只在 `Windows XP` 上可用。使用 `NTInternals` 类，确保装载器在所有 `Windows` 系统 (`9x/Nt/2000`) 上的兼容性，如果这个系统函数是可用的（`addIDP` 变量为非 `NULL`）就使用它，否则该函数只是返回 0 而没有任何操作。
+
+务请注意这个类中所包含的 `API` 函数 `HideDebugger`，在第 3.3.1 节中已做过描述。你的派生类继承了这个 `API`，你可以给它增加额外的隐藏功能。只需编写如下代码：
+
+```cpp
+BOOL HideDebugger(HANDLE thread, HANDLE hproc) {
+    //TODO: Add you own extra hiding customization here
+    return NTInternals:: HideDebugger(thread, hproc);
+}
+```
+
+#### `ShubLoaderCore` 类
+
+```text
+ShubLoaderCore
+-m_bcheckCRC
+-m_dwCreationFlags
+-m_dwVictimCRCValue
+-m_ghMainWnd
+-m_SilentMode
+-m_startingMsg
+-pi
++ShubLoaderCore()
++~ShubLoaderCore()
++ActionsAfterCreateProc()
++ActionsAfterGateProcedure()
++ActionsBeforeClosingLoader()
++ActionsBeforeCreateProc()
++ActionsBeforeGateProcedure()
+-CRCFile(in strfilename : charconst *, in storedCRC : unsigned long)
++DoMyJob(in argc : int, inout argv[] : char* )
++GateProcedure()
++GetLastErrorMsg()
++GetPI()
++InitializePatchStack(inout p0 : growing_arraystack<Patch>&)
++PushPatchVector(inout stkPatches : growing_arraystack<Patch>&, in startAddr : unsigned long, inout OriVector : unsigned char*, inout PatchVector : unsigned char*, in dimension : int, inout fcn : void (*)(unsigned long))
++ReadProcessMemory(inout hProcess : void*, inout lpBaseAddress : void*, inout lpBuffer : void*, in nSize : unsigned long, inout lpNumberOfBytesRead : unsigned long*)
+-Reflect(in ref : unsigned long, in ch : char)
++SetCreateProcessFlags(in dwFlags : unsigned long)
++SetMainWnd(inout hWnd : HWND__)
++SetSilentMode(in bVal : int)
++SetStartingMsg(inout msg : char*)
++SetStartingMsg(in msg : TextString)
++SetVictimCRC(in crc : unsigned long)
++SetVictimDetails(inout p0 : TextString&)
++WriteProcessMemory(inout hProcess : void*, inout lpBaseAddress : void*, inout lpBuffer : void*, in nSize : unsigned long, inout lpNumberOfBytesWritten : unsigned long*)
+```
+
+这个类相当复杂。它的全部方法可以分成两个类别。
+
+- **虚拟方法**（参见 `C++` 手册中类的“`virtual methods`”的精确定义）：简单地讲，如果派生类(`Loader`)实现它们则使用它的实现，不然就使用虚拟的实现。虚拟函数是指在某个给定的类中只有缺省实现的函数。如果一个派生类实现了某个虚拟函数，那么继承的实现将被使用，否则使用缺省的实现。这是个重要机制，它使得派生类可以为一个给定的方法指定不同的行为，因而个性化装载器的行为。
+- 在虚拟方法的实现里面，你可以调用 `Help` 方法实现一些常用操作。
+
+##### `DoMyJob` 方法
+
+在 `DoMyJob` 方法里面实现装载器的主流程，它是这个类的真正核心。
+
+- `int DoMyJob(int argc, TCHAR* argv[])`。这是装载器的核心部分，负责所有的辛苦工作。参数是装载器的命令行参数，最终被传递给目标（通常它们来自装载器 `main` 函数的同名参数）。如果你不需要它们，只需把它们全部设置为 `NULL`。装载器通常是一个 `DOS` 或 `Win32` 应用程序，命令行参数能够被传递给 `DoMyJob` 方法。然后该函数会把参数透明地传递给目标进程。如果装载的目标使用命令行参数的话，那么装载器很需要这样做。
+
+为了启动装载器，装载器的 `main()` 函数唯一必须调用是 `DoMyJob` 方法。参见后面描述完全装载器编写过程的章节。
+
+我们对图 1 流程图做少许修改，插入一些更加个性化的、在大多数情况下做一个装载器通常都需要的控制点。新流程图即图 13，其中新增的方法以不同颜色表示。这些方法是虚拟方法，前面说过，它们使 `Loader` 类能够个性化实现整个装载器的行为。
+
+`GateProcedure` 函数确定何时插入补丁，这是由应用程序决定的，当应用程序可以接受补丁时该函数返回 `TRUE`。`GateProcedure` 连续地对目标进行测试，检查它是否符合某个补丁条件。所有其它虚拟函数是辅助的，即准备补丁。
+
+该类的源代码有详尽的注释，因此请你研读那些注释以加深了解。
+
+##### 虚拟方法
+
+纯虚拟的方法，即必须由继承 `ShubLoaderCore` 的派生类重写，为特定的装载器实现特定的动作，比如补丁、应用程序路径、和特定的门槛条件。
+
+只有 `ActionsBeforeCreateProc()` 和 `ActionsAfterCreateProc()` 不是纯虚拟的，因为你通常不需要在那里面做特别的操作（派生类不强制实现它们）。
+
+- `virtual BOOL SetVictimDetails(/*OUT*/ TextString &victimFileName)`。设定目标的名字及其 `CRC`（可选的，使用 `SetVictimCRC()`）。`TextString` 是一个 `OUT` 参数，即必须由该函数赋值。如果你实现的这个函数没有调用 `SetVictimCRC`，装载器就不会检查目标的 `CRC`。
+- `virtual BOOL InitializePatchStack(/*OUT*/ growing_arraystack<Patch> &stkPatches)`。把要用的补丁都添加到补丁栈中。`stkPatches` 变量是一个 `OUT` 参数而且必须由该函数填充。你也可以使用连续的二进制数据矩阵，比如一个转储或一个长补丁。在这种情况下，要使用 `PushPatchVector` 把整个连续的补丁矩阵推入补丁栈上某个初始地址开始的地方。内部处理把所有补丁储存在一个补丁栈之内。这个逻辑让你可以添加任何形式的补丁。如果需要按照一定的顺序应用补丁，那么根据栈逻辑，最后应用的补丁应该第一个添加。持有栈的变量是 `stkPatches`，它必须在该函数中被赋值。
+- `virtual BOOL ActionsBeforeCreateProc()`。恰在调用 `CreateProcess` 之前进行的操作。
+- `virtual BOOL ActionsAfterCreateProc()`。在 `CreateProcess` 调用之后立刻进行的操作，此时目标仍然是挂起的
+- `virtual BOOL ActionsBeforeGateProcedure()`。恰在检查门槛条件之前进行的操作，用于有必要的准备工作。
+- `virtual BOOL GateProcedure()`。用于判断装载器是继续等待还是挂起进程并应用补丁的条件。当目标准备好可以接受补丁的时候，该函数返回 `TRUE`。
+- `virtual BOOL ActionsAfterGateProcedure()`。这个操作恰在 `GateProcedure` 之后执行，最终清理那些为 `GateProcedure` 所做的特定设置。在应用所有补丁之后而在恢复进程之前调用它。
+- `virtual BOOL ActionsBeforeClosingLoader()`。恰在关闭装载器之前进行的操作。
+
+*图 13 - 修改后 `ShubLoaderCore::DoMyJob` 方法的流程图*
+
+##### Helper 方法
+
+`Helper` 方法用于在虚拟方法里面执行一些初始化操作（例如，设置目标的 `CRC`，或者设置装载器安静运行、不返回任何的消息窗口）。
+
+- `TextString GetLastErrorMsg()`。检索最后一个系统错误信息并格式化返回。以便你在派生类中使用自己的错误检查/报告。
+- `static void SetMainWnd(HWND hWnd)`。可以从门槛条件过程里面调用这个函数，设置应用程序真实的主窗口 `HWND`。当挂起一个程序有困难的时候，装载器尝试使用未归档的低级 `API` 函数来挂起整个进程，而执行这个功能需要该进程的主窗口句柄。如果你没有调用这个方法，那么不会使用未归档函数来停止目标进程。除非你在挂起目标进程的时候遇到问题，否则不要调用它。
+- `void SetCreateProcessFlags(DWORD dwFlags)`。用来定义新的创建标志，它们将被传递给 `API` 函数 `CreateProcess`。缺省值是 `CREATE_SUSPENDED`，除非你想要改设定为其它值，否则不需要调用该方法。举个例子，如果你在编写一个调试器装载器代码，你肯定会需要以适当的参数调用该方法。那么，可以在调用 `CreateProcess` 之前在下列任何一个函数里面调用它：`PushPatchVector` || `SetVictimDetails` || `InitializePatchStack` || `ActionsBeforeCreateProc`。最合理的位置应该是 `ActionsBeforeCreateProc`。比如使用 `DEBUG_PROCESS` | `DEBUG_ONLY_THIS_PROCESS` | `CREATE_NEW_CONSOLE` 这个组合创建调试器装载器。
+- `PROCESS_INFORMATION* GetPI()`。在所有派生类中使用这个函数来获取 `PROCESS_INFORMATION` 结构。如果返回值为 `NULL`，表示进程尚未启动，或者是什么东西出了毛病！
+- `void SetVictimCRC(DWORD crc)`。设置目标的 `CRC`。如果该函数被使用，装载器将会检查真实的目标 `CRC`（计算整个目标文件）。
+- `void SetSilentMode(BOOL bVal)`。在派生类里面，最终一定要调用这个函数，它修改程序的整个行为。如果设置了，装载器将不再发送通常情况下它会发送的大部分错误消息。当对话框会干扰程序的时候，或者错误消息无用的时候，我们需要设置它。举个例子：假设一个目标程序创建另一个内部线程，并且从那个线程继续运行或者从那个线程启动它本身的另一个实例（这是一个很常见的个性化保护）。在这种情况下，装载器可能无法挂起线程/进程，因为它已经是不活动的。所以会发出一个错误消息。但是只要正确地编写 `GateProcedure()`，装载器仍然能工作（比如继续等待目标的主窗口出现），所以这个错误消息没多大意义。那么，你不如把 `SILENT_MODE` 设置为 `TRUE`。其默认设定为 `FALSE`!
+- `void SetStartingMsg()`。用于修改装载器的启动消息。如果没有调用，那么装载器将使用一个标准串。你应该从某个地方被调用这个函数，比如从 `SetVictimDetails` 方法或者派生类的构造函数里面。
+- `int PushPatchVector(growing_arraystack<Patch> &stkPatches, DWORD startAddr, BYTE*OriVector, BYTE *PatchVector, int dimension, fcnPatchCallBack fcn )`。添加一整个补丁数据集。这个函数把两个字节组数据集作为输入，然后把值逐个推入一补丁对象栈，`fcnPatchCallBack` 被应用到数据集里的最后一个补丁，因此最终会在本操作结束时才执行这个动作。
+
+输入参数：
+
+- `stkPatches`，持有 `Patch` 对象的栈，亦即那些数值的储存处
+- `startAddr`，数据集的起始地址
+- `OriVector`，原始字节数据集，如果它是 `NULL`，`Patch` 类对象不会检查原始数值
+- `PatchVector`，新字节数据集
+- `dimension`，数据集的大小（两个数据集总是应该相同大小的）
+- `fcn`，这个回调函数将被应用到第一个入栈的值（根据栈逻辑，它将是最后一个被应用的补丁）。它只是一个回调函数，在完成补丁数组的应用之后被调用，这让你可以在“大量”补丁应用程序之后立刻执行任何个性化操作。简单装载器大多把该值设置为 `NULL`。
+
+如果一切顺利就返回 0 ，否则返回一个小于 0 的错误码数字（代码见实现）。这个函数在你需要补丁一些连续字节的时候非常有用，利用它你可以编写如下一个代码：
+
+```cpp
+typedef void (*fcnPatchCallBack) (DWORD addr);
+fcnPatchCallBack fcn(DWORD addr) {
+    char str[256];
+    sprintf(str,"Patch applied at address %X", addr);
+    ::MessageBox(NULL, str, DEFAULT_MSG_CAPTION, MB_OK|MB_ICONEXCLAMATION|MB_APPLMODAL);
+}
+
+BYTE iPatchDataInj[87] ={ 
+    0x90, 0x90, 0x90, 0x90, 0x90, 0xE9, 0x01, 0x00, 0x00, 0x00, 
+    0xBC, 0x8B, 0x45, 0xFC, 0x8B, 0x40, 0x14, 0xE8, 0xC2, 0x21, 
+    0xED, 0xFF, 0x8B, 0x45, 0xFC, 0x8B, 0x58, 0x1C, 0x85, 0xDB, 
+    0x74, 0x10, 0x8B, 0xC3, 0xE8, 0x01, 0xB1, 0xF5, 0xFF, 0x8B, 
+    0xD0, 0x8B, 0xC3, 0xE8, 0x84, 0xB3, 0xF5, 0xFF, 0x8B, 0x45, 
+    0xFC, 0x8B, 0x40, 0x20, 0x85, 0xC0, 0x74, 0x07, 0x33, 0xD2, 
+    0xE8, 0x17, 0x7C, 0xE8, 0xFF, 0xC6, 0x45, 0xFB, 0x01, 0x8B, 
+    0x45, 0xFC, 0xC6, 0x40, 0x19, 0x00, 0xEB, 0x04, 0x80, 0x8E, 
+    0x8C, 0x06, 0x90, 0x90, 0x90, 0x90, 0x90 
+};
+
+PushPatchVector(stkPatches, 0x005C684C, NULL, iPatchDataInj, 87, fcn);
+```
+
+这个代码片断从地址 `0x005C684C` 开始应用整个数值矩阵（87 字节），而且最后调用 `fcn` 函数显示一个消息窗口。
+
+- `BOOL ReadProcessMemory(HANDLE hProcess, LPVOID lpBaseAddress, LPVOID lpBuffer, DWORD nSize, LPDWORD lpNumberOfBytesRead)`
+- `BOOL WriteProcessMemory(HANDLE hProcess, LPVOID lpBaseAddress, LPVOID lpBuffer, DWORD nSize, LPDWORD lpNumberOfBytesWritten)`
+
+这两个函数是对 `BMG_gsar` 类中相似方法的反射器（见参考 `[1]`），自动处理对内存页的存取权限和错误，允许对内存做有控制的存取。这两个方法的行为与在 `Windows` 系统中的同名函数完全一样，而编写派生类的程序员完全可以象平常编写代码那样使用这两个函数，`C++` 继承特性会改为调用这些函数。因此，当从派生类调用这两个方法的时候，通常没必要进行更多的控制。
+
+##### 从进程转储大内存块的恰当时机？
+
+有时你必须补丁一个连续字节的大数据集，举一个最常见的例子，如参考 `[12]` 所描述，`Asprotect` 壳保护的程序有一部分代码被加密了，而运行程序需要一个有效的键（除非幸运地，你或某个朋友为该程序配了钥匙）。可是这里，正如参考 `[12]` 说明的，除了暴力攻击之外你没有办法破译那些加密的指令。当然你可能出于某种原因不愿意共享你的键，所以解决办法是运行完全注册的程序并调查它的内存。如此，该程序的加密部分被完全解密得到真正的工作代码。
+
+那么你必须做的是，把已注册程序的内存段保存到一个文本文件（使用 `OllyDbg` 和我们做的一个工具，见后面的第 4.2.1 节所示），然后把它插入到一个装载器，该装载器装入未注册的程序（没有“合法”键运行的）并且用它覆盖相同的内存部分，即，用已解密的内存块替换加密的内存块。
+
+#### `Loader` 类
+
+```text
+Loader
++Loader()
++~Loader()
++ActionsAfterCreateProc()
++ActionsAfterGateProcedure()
++ActionsBeforeClosingLoader()
++ActionsBeforeCreateProc()
++ActionsBeforeGateProcedure()
++GateProcedure()
++InitializePatchStack(inout stkPatches : growing_arraystack<Patch>&)
++SetVictimDetails(inout victimFileName : TextString&)
+```
+
+如前所述，所有与目标特有属性有关的东西都应该在这个类中实现，而且它应该是继承 `ShubLoaderCore` 类的一个派生类。
+
+这个类通常继承 `ShubLoaderCore` 类，使用父类的一些帮助方法来实现父类全部或部分的虚拟方法（取决于你的个性化需要）。
+
+较好的学习办法是直接阅读一个真实装载器的源代码（见第 4.2 节）。我们的经验表明，写过第一个装载器之后再写第二个就驾轻就熟了。
+
+#### `Patch` 类
+
+```text
+Patch
++address
++bytesread
++byteswritten
++checkorigByte
++fcnCallBack
++msg
++OnlyDoCallback
++orig
++patch
++Patch(in p0 : unsigned long, in p1 : unsigned char)
++Patch(in p0 : unsigned long, in p1 : unsigned char, in p2 : unsigned char)
++Patch(in p0 : unsigned long, in p1 : unsigned char, in p2 : unsigned char, inout p3 : void (*)(unsigned long))
++Patch(in p0 : unsigned long, in p1 : unsigned char, inout p2 : void (*)(unsigned long))
++Patch(in p0 : unsigned long, inout p1 : void (*)(unsigned long))
++Patch()
++~Patch()
+```
+
+`Patch` 类的意思很明了，这个类是用来储存补丁具体的数据，由偏移量、原始字节和补丁字节组成。`Patch` 类表示一个单字节补丁：每个 `Patch` 类对象只针对一个补丁字节。能够为每单个补丁执行一个性化操作（回调）：框架负责在应用补丁之后对回调函数的最终调用。
+
+该类有几个构造函数，你可以根据补丁的不同类型来选用。通常用 `InitializePatchStack` 方法把所有补丁对象推入一个补丁对象栈。
+
+该类的属性：
+
+- `address` – 是该补丁的相对虚拟地址 `RVA`
+- `byteswritten` - 在进程中已写入的字节数
+- `bytesread` – 从进程读取的字节数
+- `checkorigByte` – 该标志值决定是否检查从进程读取的原始字节。
+- `fcnCallBack` – 在应用补丁之后调用的回调函数。每个单一补丁对象可以各有不同的回调函数
+- `msg` – 该消息报告到目前为止的补丁结果，它由框架自动设置而且你可以从中了解一个特定补丁的状态
+- `OnlyDoCallback` – 该标志指示是否只调用回调而不写补丁。用于当你需要执行某些特别操作的情况。
+- `orig` – 是读自应用程序的原始字节
+- `patch` – 是用来替换的新字节
+
+该类的方法：
+
+- `Patch()` – 这个方法不应该被使用，它的存在仅仅是由于 `C++` 语法的规定。
+- `Patch(DWORD addr, BYTE ptc)` – 用于在一个特定位置写入一个单字节，不管那里的原始字节是什么。
+- `Patch(DWORD addr, BYTE ptc, fcnPatchCallBack fcn)` – 用于在一个指定地址写入一个字节然后执行一个回调。
+- `Patch(DWORD addr, BYTE ori, BYTE ptc)` – 用于先检查原始字节的值，如果匹配才打补丁（否则不打补丁，并且据此设置该类的成员 `msg`）
+- `Patch(DWORD addr, BYTE ori, BYTE ptc, fcnPatchCallBack fcn)` – 用于打补丁之后还要执行一个指定的回调。
+- `Patch(DWORD addr, fcnPatchCallBack fcn)` – 用于仅仅执行一个特定的回调而不读/写任何东西。这好比一个“虚拟”补丁，实际上你没有应用任何补丁。`addr` 数值被传递给回调函数，而你可以决定这个函数将会怎样使用它。
+
+#### 回调
+
+框架在一些不同地方都使用回调，这些函数要么有一个指定的原型、要么是某个特别的自定义类型。
+
+这是任何补丁通用的一个函数原型。
+
+```cpp
+typedef void (*fcnPatchCallBack) (DWORD addr);
+```
+
+见下例：
+
+```cpp
+fcnPatchCallBack fcn(DWORD addr) {
+    //do whatever you like here
+}
+```
+
+该函数只有一个参数，即补丁地址，它可以执行你需要的任何操作。回调机制非常强大而且灵活，以致你甚至可以为每单个补丁字节制定它们各自的回调函数。
+
+### 如何使用框架编写装载器
+
+我们完全理解，编写一个装载器可能比使用我们推荐的框架更简单，但是之所以你感觉得复杂是由于我们想要保存这个方式的普遍适用性。框架使你可以完全不需要改变核心代码就能写出非常复杂的装载器。因此如果你只是打算做一个简单的装载器，那么框架可能真的增加了不必要的复杂性，但是事实上我们使用这个框架编写装载器需要的工作几乎总是一样的（对于简单的案例），而且我们在经常性的逆向工程中发现，一旦你努力写出第一个装载器，以后写第二个就不会觉得那么难了。所以，我们觉得很有必要在这个长篇教程中增加这样一节，详细讲解使用框架创建装载器的每个步骤。那么，让我们开始新的一章...
+
+编写装载器的一般步骤是：
+
+1. 使用 `OllyDbg` 给程序打补丁；记下偏移量、原始字节和修改字节（或者只记下偏移量和修改字节）。
+2. 计算目标的 `CRC`，例如使用我们在本教程文档中提供的 `CRCCalculator` 程序。
+3. 用 `Visual C++` 创建一个工程，通常是一个 `DOS` `CRT` 程序就可以满足，而且它比图形界面的 `Win32` 程序尺寸小。让工程包含把框架所有必需资源。
+4. 任意重命名原始的可执行文件。我们习惯上是给原始的 `exe` 文件名加前缀“`_`”，即重命名为 `_` 原始文件名.exe。
+5. 填写 `main()` 程序。
+6. 通过创建一个 `ShubLoaderCore` 类的派生类自定义装载器的行为，一般命名为 `Loader` 或者你喜欢的名字。
+
+第 1 步或难或易，都不是这个教程的目标，所以我们只讲 `OllyTranslator` 的用法其余略过。对于第 2 步，你可以使用我们提供的、非常易用的 `CRC` 计算器，只需拖放 `.exe` 图标到它上面就得到 `CRC` 数值。第 3 步你应该已经会了，因为使用 `Visual C++` 是一个日常操作。第 4 步容易（J），第 5 步开始你的真正任务。第 6 步则更复杂..
+
+#### 如何使用 `OllyDumpTranslator`
+
+参考 `[11]` 中的这个简单程序能够把 `OllyDump` 文件格式 (`txt` 格式) 自动转换成一个对应的 `C` 语言补丁数据矩阵，以便装载器使用。
+
+这个工具程序能够把一个 `Olly` 文件作为输入，如下：
+
+```text
+005EFD7F 90 90 90 90 90 E9 01 00 00 00 B5 8B C3 E8 0B D2  __________é_.…μ‹ÃèÒ
+005EFD8F FF FF EB 04 EA 04 86 E6 90 90 90 90 90  ÿÿë_.ê_.†æ_________
+```
+
+而且将它转换成下面这个 `C` 语言代码片断：
+
+```cpp
+// =======================================
+// Olly File Translator 1.0 by ThunderPwr
+// 03/03/2005 22.02.03
+// translating file utility
+// =======================================
+
+#define IMAXINDEXINJ 29// Patch size
+
+// --------------------------------------------------------------------------------------
+// Definition about the addresses where to apply the patches.
+// --------------------------------------------------------------------------------------
+DWORD dwPatchaddrInj[IMAXINDEXINJ] = {
+    0x005EFD7F, 0x005EFD80, 0x005EFD81, 0x005EFD82, 0x005EFD83, 0x005EFD84, 0x005EFD85, 0x005EFD86, 0x005EFD87, 0x005EFD88, 
+    0x005EFD89, 0x005EFD8A, 0x005EFD8B, 0x005EFD8C, 0x005EFD8D, 0x005EFD8E, 0x005EFD8F, 0x005EFD90, 0x005EFD91, 0x005EFD92, 
+    0x005EFD93, 0x005EFD94, 0x005EFD95, 0x005EFD96, 
+
+    0x005EFD97, 0x005EFD98, 0x005EFD99, 0x005EFD9A, 0x005EFD9B 
+};
+// --------------------------------------------------------------------------------------
+// Definition about the patching value
+// --------------------------------------------------------------------------------------
+int iPatchDataInj[IMAXINDEXINJ] ={
+    0x90, 0x90, 0x90, 0x90, 0x90, 0xE9, 0x01, 0x00, 
+
+    0x00, 0x00, 0xB5, 0x8B, 0xC3, 0xE8, 0x0B, 0xD2, 0xFF, 0xFF, 0xEB, 0x04, 0xEA, 0x04, 0x86, 0xE6, 0x90, 0x90, 0x90, 0x90, 0x90 
+};
+```
+
+然后你可以在框架中使用 `PushPatchVector` 方法直接使用最后的矩阵，详见在第 4.1.2.3 节所述（在这种情况下 `dwPatchaddrInj` 是没有用的）：
+
+`PushPatchVector(stkPatches, 0x005EFD7F, NULL, iPatchDataInj, IMAXINDEXINJ, NULL);`
+
+或者，如果补丁地址不是全部连续的，你使用一个循环来做：
+
+`for (int i=0; i<IMAXINDEXINJ; i++) stkPatches.push(Patch(dwPatchaddrInj[i], (BYTE)iPatchDataInj[i]));`
+
+完整的整个过程如下：
+
+如图 14 所示办法能够获取 `Ollydbg` 的转储文件。
+
+*图 14 - 如何从 `Ollydbg` 把一个二进制段转储到文件*
+
+然后启动 `OllyDumpTranslator` 并按下按钮 1，选择文件然后按下按钮 2，如图 15。
+
+*图 15 - `OllyDumpTranslator` 的主窗口*
+
+然后该程序在原始转储文件相同文件夹中创建另一个文件，文件名是加缀“`_translated`”。
+
+#### 编写装载器的 `main()` 函数
+
+这一步总是相同的，需要关注的是：你必须调用你从 `ShubLoaderCore` 类继承的 `Loader` 类的 `DoMyJob` 方法。举例说明如下：
+
+```cpp
+#include "Loader.h"
+int main(int argc, char** argv) {
+    Loader loader;
+    int nRetCode=loader.DoMyJob(argc, argv);
+    return nRetCode;
+}
+```
+
+#### 编写派生的 `Loader` 类
+
+你知道，`C++` 类分开类的声明及其实现。声明一般放在一个 `.h` 文件中，而实现一般放在一个 `.cpp` 文件中（的确也可能是在 `.h` 文件）。
+
+`Loader` 类的声明如下：
+
+```cpp
+#include "ShubLoaderCore.h"
+class Loader: public ShubLoaderCore {
+public:
+    Loader();
+    ~Loader();
+
+    BOOL SetVictimDetails(/*OUT*/ TextString &victimFileName);
+    BOOL InitializePatchStack(/*OUT*/ growing_arraystack<Patch> &stkPatches);
+    BOOL ActionsBeforeCreateProc();
+    BOOL ActionsAfterCreateProc();
+    BOOL ActionsBeforeGateProcedure();
+    BOOL GateProcedure();
+    BOOL ActionsAfterGateProcedure();
+    BOOL ActionsBeforeClosingLoader();
+};
+```
+
+如第 4.1.2 节所描述的，该类继承 `ShubLoaderCore` 类并重新定义它的公共虚拟方法。
+
+`Loader` 类的实现如下（补丁数值不实际针对任何真实的应用程序）：
+
+```cpp
+#include "LoaderActions.h"
+
+//////////////////////////////////////////////////////////////////////////////
+Loader::Loader() {
+    //TODO: insert specific actions if you require additional initialization
+    SetStartingMsg("Loader working...wait a little\nCreditz 2 Shub-Nigurrath & ThunderPwr [at] ARTEam");
+}
+
+Loader::~Loader() {
+    //TODO: insert specific actions if you require additional de-initialization
+}
+
+//////////////////////////////////////////////////////////////////////////////
+//Receives
+//- the Stack of Patch elements that must be properly filled. The variable to use is stkPatches!
+//- the victim file name, containing a valid path to the patched file
+BOOL Loader::InitializePatchStack(growing_arraystack<Patch> &stkPatches) {
+    //////////////////////////////////////////////////////////////////////////
+    // This is the filling of the patches stack.
+    // you can use one of the constructors available.
+    // - The first only requires the patch address and the new byte so no controls will be
+    // performed later, the loader will only do a simply write to that memory section,
+    // regardless of the read value.
+    // - The second way, used here is to also add the original bytes, doing so the loader
+    // will also check if the byte read at the memory location specified is equal to the
+    // original byte you expected to be there. If not the patch is not applied and the msg
+    // buffer is set according.
+    // - The third one allows to specify a callback which is called when trying to perform
+    // the patch.
+    // Note that the patches are all applied subsequently after the gate condition is met
+    // (see GateProcedure())
+
+    //NB 0x00 must explicitly be casted to BYTE because otherwise the complier confuses
+    //it with a NULL pointer and doesn't know which constructor of class Patch to use.
+
+    // Example patches which also checks against the original bytes. If the original byte is
+    // different the Loader will issue and error BEFORE applying the patch
+    stkPatches.push(Patch(0x0044337C, 0x74, 0xEB));
+    stkPatches.push(Patch(0x005E5669, 0x75, 0xEB));
+    stkPatches.push(Patch(0x005F1552, 0x75, 0xEB));
+    stkPatches.push(Patch(0x005E626E, 0x75, 0xEB));
+    stkPatches.push(Patch(0x005E67D0, 0x75, 0xEB));
+    stkPatches.push(Patch(0x005E6921, 0x7E, 0xEB));
+
+    //Example of patches which don’t check against the original bytes
+    stkPatches.push(Patch(0x005F3898, 0x41)); //A
+    stkPatches.push(Patch(0x005F3899, 0x52)); //R
+    stkPatches.push(Patch(0x005F389A, 0x54)); //T
+    stkPatches.push(Patch(0x005F389B, 0x65)); //e
+    stkPatches.push(Patch(0x005F389C, 0x61)); //a
+    stkPatches.push(Patch(0x005F389D, 0x6D)); //m
+    stkPatches.push(Patch(0x005F389E,(BYTE)0x00)); //end string
+
+    //0x00 must explicitly be casted to BYTE because otherwise the complier confuses
+    //it with a NULL pointer and doesn't know which constructor of class Patch to use.
+    stkPatches.push(Patch(0x005F37C2, 0x75, (BYTE)0x00));
+
+    //Injected code sections.
+    BYTE iPatchDataInj[87] ={
+        0x90, 0x90, 0x90, 0x90, 0x90, 0xE9, 0x01, 0x00, 0x00, 0x00,
+        0xBC, 0x8B, 0x45, 0xFC, 0x8B, 0x40, 0x14, 0xE8, 0xC2, 0x21,
+        0xED, 0xFF, 0x8B, 0x45, 0xFC, 0x8B, 0x58, 0x1C, 0x85, 0xDB ,0x74, 0x10, 0x8B, 0xC3, 0xE8, 0x01, 0xB1, 0xF5, 0xFF, 0x8B,
+        0xD0, 0x8B, 0xC3, 0xE8, 0x84, 0xB3, 0xF5, 0xFF, 0x8B, 0x45,
+        0xFC, 0x8B, 0x40, 0x20, 0x85, 0xC0, 0x74, 0x07, 0x33, 0xD2,
+        0xE8, 0x17, 0x7C, 0xE8, 0xFF, 0xC6, 0x45, 0xFB, 0x01, 0x8B,
+        0x45, 0xFC, 0xC6, 0x40, 0x19, 0x00, 0xEB, 0x04, 0x80, 0x8E,
+        0x8C, 0x06, 0x90, 0x90, 0x90, 0x90, 0x90
+    };
+    PushPatchVector(stkPatches, 0x005C684C, NULL, iPatchDataInj, 87, NULL);
+    return TRUE;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+//Simply used to specify the victim's filename, received the storing variable.
+BOOL Loader::SetVictimDetails(TextString &victimFileName) {
+    victimFileName=TextString(".\\_TargetProgram.exe");
+    //Set this parameter to true when you want the loader to check the CRC of the file!
+    SetVictimCRC(0x8281dfe6);
+    return TRUE;
+}
+
+// It is called just before calling the GateProceduce, then should contain steps required to perform the action or special settings..
+BOOL Loader::ActionsBeforeGateProcedure() {
+    return TRUE;
+}
+
+// The function GateProcedure must always be defined with this prototype.
+// Returned value is TRUE when the matching condition required to start the patch is met.
+// Often this function simply checks against a specified DWORD value in a specified
+// memory location or the presence of a specific window, after which the patch can be successfully
+// applied.
+BOOL Loader::GateProcedure() {
+    BOOL bRet=FALSE;
+    //Enum all the windows starting from the desktop, one by one, also the
+    //hidden windows. Each handle is passed to EnumWindowsProc which decides
+    //what to do with that handle. Actually it returns if it's the victim's window.
+    EnumDesktopWindows(NULL, EnumWindowsProc, (LPARAM)&bRet);
+    return bRet;
+}
+BOOL Loader::ActionsAfterGateProcedure() {
+    //Stop debugger action and let program run freely
+    DWORD dwProcessId = GetProcessId(GetPI()->hProcess);
+    BOOL bDbgStopFlag = DebugActiveProcessStop(dwProcessId);
+    return TRUE;
+}
+//This function is called just before the call to CreateProcess. Could be left empty.
+BOOL Loader::ActionsBeforeCreateProc() {
+    return TRUE;
+}
+//This function is called just before the process has been created but it is still in waiting mode
+BOOL Loader::ActionsAfterCreateProc() {
+    HideDebugger(GetPI()->hThread, GetPI()->hProcess);
+    return TRUE;
+}
+//This function is called just before closing the loader, after all the actions have been performed.
+BOOL Loader::ActionsBeforeClosingLoader() {
+    return TRUE;
+}
+//////////////////////////////////////////////////////////////////////////////////
+//Callback of EnumDesktopWindows
+BOOL CALLBACK EnumWindowsProc(
+    HWND hWnd, // handle to parent window
+    LPARAM lParam // application-defined value
+) {
+    char ClassName[256];
+
+    //Retrieve the classname of the given handle
+    GetClassName(hWnd,ClassName, 256);
+    char caption[256];
+    //Retrieve the caption of the given handle
+    GetWindowText(hWnd, caption,256);
+
+    //Check of the window I want to find, It's specific of the application
+    //We have to wait till the window is visible because all the checks happens before
+    //this point.
+    if(strstr(caption,"Application titlebar")!=0 && IsWindowVisible(hWnd) && _stricmp(ClassName,"TMainForm")==0) {
+        //a little of tricky casting required to return the final BOOL to the caller,
+        //via an LPARAM parameter, which after all is a generic LPVOID.
+        BOOL *flag=(BOOL*)lParam;
+        *flag=TRUE;
+        return FALSE;
+    }
+    return TRUE;
+}
+```
+
+`Loader` 类作为 `ShubNigurrathCore` 类和 `NTInternals` 类的一个继承类（见图 12），它的实现不是那么困难，你可以直接使用父类所有的公共方法，没有特别需要注意的事项（参见 `C++` 继承特性）。
+
+> **注意**
+> 以上代码所调用的 `DebugActiveProcessStop` 不是真正的 `Windows` `API` 函数（只有在 `Windows XP` 及更新版本上是可用的），而是 `NTInternals` 类提供的方法（见参考 `[1]` 或第 4.1.1 节），为了保证 `Loader` 的兼容性，在 `Windows 9x/Nt/2000` 上它只是不做任何实际操作。
+
+在上述的例子中，我们的门槛条件是测试某个特定的窗口是否出现（由特定的窗口类和标题）。这种情况很常见，即使是高度压缩的程序（例如加 `AsProtect` 壳），常常也只是在解压缩期间 `AsProtect` 代码完成它们所有的检查。当第一个目标窗口（常常是不可见的）产生的时候，程序在内存中是完全没有保护的（大多数程序没有反窜改保护，见参考 `[10]`），此时装载器可以打补丁。
+
+若要获取该窗口的细节，你在 `OllyDbg` 里面来到 `OEP`（对于 `AsProtect` 壳在 `OllyDbg` 里面解压缩，`OEP` 在最后一个异常那里），从属于目标的句柄列表中选择正确的窗口句柄。
+
+> **注意**
+> 我们成功地在几个用 `AsProtect` 壳保护的目标上测试了这个技巧（在打补丁之前等待某个给定的窗口）。因为所使用的 `API` 函数在 `Windows 9x` 及其后版本上是可用的，所以我们做的装载器相当小而且对所有 `Windows` 版本兼容。调试器装载器在老的 `Windows` 版本上可能会有一些问题。我们做的框架负责处理所有兼容性问题，而它只是在不支持的 `Windows` 版本上不执行特定操作。如此，装载器不会使系统当机，但是可能会失效。
+
+### 使用框架编写调试器装载器
+
+开头说过，调试器装载器是特殊的装载器，它象调试器一样与目标应用程序交互。我们已经讲述了你应该知道的关键知识（全部讲述需要太多篇幅），现在我们将要写一个调试器装载器的概略架构，你将能够再次利用这些代码（也包含在这个教程的文档中）。编写步骤与第 4.2 节中叙述的一样，最大的不同是门槛条件，更复杂一点点。
+
+门槛条件的原理与第 2.1.2 节开始描述的一样。
+
+下面我给出与第 4.2.3 节的代码主要差别
+
+```cpp
+//Simply used to specify the victim's filename, received the storing variable.
+BOOL Loader::SetVictimDetails(TextString &victimFileName) {
+    victimFileName=TextString(".\\_TargetProgram.exe");
+    //Set this parameter to true when you want the loader to check the CRC of the file!
+    SetVictimCRC(0x8281dfe6);
+    SetCreateProcessFlags(DEBUG_PROCESS | DEBUG_ONLY_THIS_PROCESS | CREATE_NEW_CONSOLE);
+    return TRUE;
+}
+```
+
+注意其中 `SetCreateProcessFlags` 是前者没有调用过的，因为在那里目标进程默认地是在创建后挂起。为了创建在调试模式下的目标进程，需要设置这些参数。
+
+```cpp
+BOOL Loader::GateProcedure() {
+    BOOL bRet=FALSE;
+
+    DEBUG_EVENT DebugEv; // debugging event information
+    DWORD dwContinueStatus = DBG_CONTINUE; // exception continuation
+
+    // Define the CONTEXT structure used to load the victim process context
+    // when debugged process break due to exception event
+    CONTEXT victimContext;
+    int iExceptionCounter = 0;
+
+    BYTE OridataRead[2];
+
+    try {
+        for(;;) {
+            // Wait for a debugging event to occur. The second parameter indicates
+            // that the function does not return until a debugging event occurs.
+            // We are waiting for infinite time, then wait for each Debug Event.
+            WaitForDebugEvent(&DebugEv, INFINITE);
+
+            // Process the debugging event code.
+            switch (DebugEv.dwDebugEventCode) {
+                case EXCEPTION_DEBUG_EVENT: {
+                    // Process the exception code. When handling
+                    // exceptions, remember to set the continuation
+                    // status parameter (dwContinueStatus). This value
+                    // is used by the ContinueDebugEvent function.
+                    // Increment exception counter (not used)
+                    iExceptionCounter++;
+
+                    #ifdef _DEBUG
+                    // Show the current exception number
+                    char str[256];
+                    sprintf(str,"Exception number %d", iExceptionCounter);
+                    ::MessageBox(NULL, str, DEFAULT_MSG_CAPTION, MB_OK);
+                    #endif
+
+                    // Check if this is the right exception by reading the context
+                    // structure for the victim process. Before to do it set the
+                    // ContextFlags to READ_ALL
+                    victimContext.ContextFlags = 0x1003F;
+                    // Fill the process CONTEXT with the process information
+                    GetThreadContext(GetPI()->hThread , &victimContext);
+
+                    // Now I've to scan the process memory in order to see if I
+                    // can found the PUSH 0C instruction (19 byte after exception)
+                    ReadProcessMemory(GetPI()->hProcess, (LPVOID)((victimContext.Eip) + 19), OridataRead, 2, NULL);
+                    //6A 0C PUSH 0C
+                    if ((OridataRead[0] == 0x6A) && (OridataRead[1] == 0x0C)) {
+                        // Key location found, now we can apply the patch
+                        #ifdef _DEBUG
+                        char str[256];
+                        sprintf(str,"Found PUSH 0C location");
+                        MessageBox(NULL, str, DEFAULT_MSG_CAPTION, MB_OK);
+                        #endif
+                        throw TRUE; //jump to the catch block at the end
+                    }
+
+                    // Debugger’s Exception handler
+                    switch(DebugEv.u.Exception.ExceptionRecord.ExceptionCode) {
+                        case EXCEPTION_ACCESS_VIOLATION: {
+                            // First chance: Pass this on to the system.
+                            // Last chance: Display an appropriate error.
+                            dwContinueStatus = DBG_EXCEPTION_NOT_HANDLED;
+                        }
+                        break;
+
+                        case EXCEPTION_BREAKPOINT: {
+                            // First chance: Display the current
+                            // instruction and register values.
+                        }
+                        break;
+
+                        case EXCEPTION_DATATYPE_MISALIGNMENT: {
+                            // First chance: Pass this on to the system.
+                            // Last chance: Display an appropriate error.
+                        }
+                        break;
+
+                        case EXCEPTION_SINGLE_STEP: {
+                            // First chance: Update the display of the
+                            // current instruction and register values.
+                        }
+                        break;
+
+                        case DBG_CONTROL_C: {
+                            // First chance: Pass this on to the system.
+                            // Last chance: Display an appropriate error.
+                        }
+                        break;
+
+                        default: {
+                            // Handle other exceptions.
+                        }
+                        break;
+                    }
+                }
+
+                case CREATE_THREAD_DEBUG_EVENT: {
+                    // As needed, examine or change the thread's registers
+                    // with the GetThreadContext and SetThreadContext functions;
+                    // and suspend and resume thread execution with the
+                    // SuspendThread and ResumeThread functions.
+                }
+                break;
+
+                case CREATE_PROCESS_DEBUG_EVENT: {
+                    // As needed, examine or change the registers of the
+                    // process's initial thread with the GetThreadContext and
+                    // SetThreadContext functions; read from and write to the
+                    // process's virtual memory with the ReadProcessMemory and
+                    // WriteProcessMemory functions; and suspend and resume
+                    // thread execution with the SuspendThread and ResumeThread
+                    // functions. Be sure to close the handle to the process image
+                    // file with CloseHandle.
+                    dwContinueStatus = DBG_CONTINUE;
+                }
+                break;
+
+                case EXIT_THREAD_DEBUG_EVENT: {
+                    // Display the thread's exit code.
+                }
+                break;
+
+                case EXIT_PROCESS_DEBUG_EVENT: {
+                    // Target Process is closed from user, then we have
+                    // to stop the debugger work and exit from loader
+                    // Exit form loader
+                    ContinueDebugEvent(DebugEv.dwProcessId,DebugEv.dwThreadId, DBG_CONTINUE);
+                    throw FALSE;
+                }
+                break;
+
+                case LOAD_DLL_DEBUG_EVENT: {
+                    // Read the debugging information included in the newly
+                    // loaded DLL. Be sure to close the handle to the loaded DLL
+                    // with CloseHandle.
+                }
+                break;
+
+                case UNLOAD_DLL_DEBUG_EVENT: {
+                    // Display a message that the DLL has been unloaded.
+                }
+                break;
+
+                case OUTPUT_DEBUG_STRING_EVENT: {
+                    // Display the output debugging string.
+                }
+                break;
+            }
+            // Resume executing the thread that reported the debugging event.
+            ContinueDebugEvent(DebugEv.dwProcessId,DebugEv.dwThreadId, dwContinueStatus);
+        }
+        //end for(;;)
+    }
+    //end try
+    catch(BOOL bRet) {
+        return bRet; //gate condition met, returns to the framework!
+    }
+}
+```
+
+这里给出的门槛条件有一个很普遍的结构。你可以从代码中发现，它的本质核心是一个 `switch-case-break` 构造，反映所有的调试事件类型。在我们的示例中有一些“`case`”其实没有用到；但是从中你能够了解到编写装载器时可以在哪里放置一些控制操作来监视目标可能出现的一些异常，以及你能够捕获哪些异常类型（见注 2）。
+
+(注 2) 当然，其中没有完全包括该结构能够捕获的所有可能的异常，但是你可以自己添加，比如你的目标使用了自定义的异常。
+
+整个 `switch` 插入到一个无限循环之中（`for(;;)`），而该循环又包含在一个 `try-catch` 块当中。因而，从这个函数会有若干个出口，其中我们打算实现一个比较安全的退出方式，即丢出一个异常。当你发现条件合适的时候（即装载器能够应用补丁的时候），你应该丢出一个 `TRUE` 值（`throw TRUE;`）让最后的“`catch`”语句捕捉到。如此确保堆栈正确地回绕、并且从门槛条件的最深层安全返回。
+
+`EXCEPTION_DEBUG_EVENT` 是一个特别的“`case`”，它包括另一个开关的 `switch-case-break` 构造，用于区分可能发生的、各种不同的调试异常。
+
+需要稍微解释这个例子：门槛条件真正核心是 `EXCEPTION_DEBUG_EVENT` 异常。那里的代码普遍适用在 `AsProtect 1.2x` 及其更早版本保护的程序。
+
+```cpp
+// Process the exception code. When handling
+// exceptions, remember to set the continuation
+// status parameter (dwContinueStatus). This value
+// is used by the ContinueDebugEvent function.
+
+// Increment exception counter (not used)
+iExceptionCounter++;
+#ifdef _DEBUG
+// Show the current exception number
+char str[256];
+sprintf(str,"Exception number %d", iExceptionCounter);
+::MessageBox(NULL, str, DEFAULT_MSG_CAPTION, MB_OK);
+#endif
+
+// Check if this is the right exception by reading the context
+// structure for the victim process. Before to do it set the
+// ContextFlags to READ_ALL
+victimContext.ContextFlags = 0x1003F;
+// Fill the process CONTEXT with the process information
+GetThreadContext(GetPI()->hThread , &victimContext);
+// Now I've to scan the process memory in order to see if I
+// can found the PUSH 0C instruction (19 byte after exception)
+ReadProcessMemory(GetPI()->hProcess, (LPVOID)((victimContext.Eip) + 19), OridataRead, 2, NULL);
+//6A 0C PUSH 0C
+if ((OridataRead[0] == 0x6A) && (OridataRead[1] == 0x0C)) {
+    // Key location found, now we can apply the patch
+    #ifdef _DEBUG
+    char str[256];
+    sprintf(str,"Found PUSH 0C location");
+    MessageBox(NULL, str, DEFAULT_MSG_CAPTION, MB_OK);
+    #endif
+
+    throw TRUE; //jump to the catch block at the end
+}
+```
+
+简言之，门槛条件通过（`case EXCEPTION_DEBUG_EVENT`）捕捉由 `AsProtect` 引起的所有异常，直至最后一个异常，我们的识别依据是：`EIP` 地址附近有一条 `PUSH 0C` 指令。找到后你就可以跳出调试器循环，剩下的就是打补丁部分的工作了。为了支持所有可能的 `AsProtect` 异常序列，我们把代码放在一般性事件 `EXCEPTION_DEBUG_EVENT` 这个 `case` 里面，而不是针对某种特定的异常类型。
+
+以后会有一些专门教程针对不同的 `AsProtect` 版本或不同的壳讨论编写装载器。
+
+> **注意**
+> 你也许对于这个方式的可应用性有一点困惑，那么我们告诉你一个普遍原则：即使目标使用一些内存反窜改保护或者检查其自身代码的内存 `CRC` 以防轻易地修改进程内存，你还是能够给程序打补丁。`API` 函数 `Set/GetThreadContext` 让你可以在一个给定的异常点上读取和设定所有的标志位和寄存器。例如，我们可以用它们若干次改变 `TEST` 或 `CMP` 指令的执行结果，即操纵上下文（恰如你在 `OllyDbg` 中所做的那样）。关键是要在适当的时机挂起目标程序、把控制权交给装载器。其具体做法不在本教程的讨论范围之列，总之一句话，用于复杂程序的智能装载器既不需要在磁盘上也不需要在内存中修改任何目标代码。
+
+为了完善一个调试循环，请参考 Error! Reference source not found.
+
+## 附录 A、VB 应用程序系列号钓鱼的一般方法
+
+这里我们介绍另一个好用的应用程序装载器的制作过程。你会看到，如果不使用教程提供的框架，编写一个能与目标进行复杂的调试交互的、精巧的装载器会有多复杂。下面就其中最关键部分的源代码进行讲解。这个特定装载器的方式也能够推广到任何 `VB` 应用程序，因为我们这个方式是通过捕获 `VB` 程序普遍使用的比较字符串 `API` 函数，而这些函数经常被用来检验系列号（见参考 `[13]`, `[14]`）。
+
+当然也能够编写完整的程序代码，但是我们有意不做 .. 现在你自己做个练习！^_^
+
+相对本教程主题而言，在这个附录里讨论的是一个“辅助方式”，但并非不次要或容易！
+
+### 找到正确的模块并放置一个断点
+
+进程创建完成后第一件事，系统载入目标要使用的所有模块。对于当前装入目标进程地址空间的每一个动态链接库 (`DLL`)，系统发送一个 `LOAD_DLL_DEBUG_EVENT` 事件。
+
+> **注意**
+> 我们有必要在此再一次提醒，每个模块是被载入目标地址空间而非调试器地址空间。当我们必须在目标模块里面设置断点的时候，更要记得这一点。
+
+在这之后，系统恢复运行该进程的所有线程。当进程的第一个线程恢复运行时，它执行一条断点指令，导致发送一个 `EXCEPTION_DEBUG_EVENT` 调试事件给调试器。所有未来的调试事件通过使用正常的机制和规则被发送给调试器。
+
+我们需要在目标所使用的那些 `DLL` 所输出的某些 `API` 函数里面设置断点，步骤如下：
+
+1. 寻找目标模块，并且保存它的基址
+2. 在该模块里检索该函数地址，并且把一个断点放在函数的入口点 `EP`
+3. 等待，直到目标调用该函数时调试器收到系统发送的断点事件
+4. 补丁需要完成的所有任务...
+5. 恢复目标函数的 `EP` 字节
+6. 返回目标，并让它自由运行
+
+我们需要在遇到系统断点的时候判断它是不是第一个 `EXCEPTION_BREAKPOINT` 事件，然后根据判断结果设置某一个标志：
+
+```cpp
+case EXCEPTION_BREAKPOINT:
+// First chance: Display the current instruction and register values.
+// This exception will be called during the system breakpoint, then we have to
+// check about system breakpoint, if yes we have to place a breakpoint
+// into the target module and target exported function
+if (!bSystemBreakpoint) {
+    // Enumerate all module
+    iVictimDLLBaseAddress = EnumAllProcesModule( aVictimProcessId, szVictimDLLname, bDebugStage);
+    if (!iVictimDLLBaseAddress){
+        sprintf(szMsgText,"Can't read proces module\n");
+        MessageBox(NULL, szMsgText, szMsgCapt, MB_OK);
+        return;
+    }
+    ...
+```
+
+通过使用自定义函数 `EnumAllProcesModule`，我们能够寻找和检索目标模块的基址，下面是这个函数的代码：
+
+```cpp
+// -----------------------------------------------------------------------------------------------
+// EnumAllProcesModule routine
+// -----------------------------------------------------------------------------------------------
+FARPROC EnumAllProcesModule(DWORD, char *, BOOL);
+FARPROC EnumAllProcesModule(DWORD aVictimProcessId, char * VictimDLLNamePtr, BOOL bDebugFlag) {
+    HANDLE hTmpProcess; // Handle used when target is open by OpenProcess
+    HMODULE hMods[1024]; // Structure filled by all modules base address handle
+    DWORD cbNeeded;
+    char szModName[MAX_PATH];
+    unsigned int j;
+
+    hTmpProcess = OpenProcess( PROCESS_ALL_ACCESS, FALSE, aVictimProcessId );
+    if ( pEnumProcessModules(hTmpProcess, hMods, sizeof(hMods), &cbNeeded)) {
+        for ( j = 0; j < (cbNeeded / sizeof(HMODULE)); j++ ) {
+            // Get the full path to the module's file.
+            if ( pGetModuleBaseName( hTmpProcess, hMods[j], szModName, sizeof(szModName))) {
+                if (bDebugFlag)
+                    printf("\t%s\t(0x%08X)\n", szModName, hMods[j] );
+                if (!strcmp(szModName,VictimDLLNamePtr)) // I’ve find the module
+                    return( (FARPROC)hMods[j]);
+            }
+        }
+    }
+    CloseHandle( hTmpProcess ); // Close the handle to the process previously opened
+    return(0);
+}
+```
+
+首先我们必须找到一个方法引用目标进程空间，这通过使用 `API` 函数 `OpenProcess` 很容易获得（通过设定 `PROCESS_ALL_ACCESS` 标志获得所有的进程存取权限），该函数能够打开一个现有的进程对象（换言之，就是一个正在运行的进程）。之后，我们能够使用 `API` 函数 `EnumProcessModule` 和 `GetModuleBaseName` 列举在打开的进程里面运行的全部模块。
+
+关于 `EnumProcessModule` 我们有个重要的建议，为了使用这个 `API` 函数你需要把 `hMods` 大小设置得足够大，以便储存被该进程载入的所有可能模块；把这个值设置为 1024 几乎对于所有的应用程序来说都够大了。
+
+这个数组的每个元素对应目标进程空间里的每个模块，其值等于每个模块的基址。在我们的分析中，基址是很重要的，因为我们需要在目标空间里面从它出发找到那个断点地址。
+
+我们还需要找到被搜索的那个模块里面一些函数的真正的地址（然后进入目标空间）。
+
+为简单计，我们使用一个技巧：被载入进程空间的 `DLL` 是在系统目录（例如 `SYSTEM32`）或目标进程文件夹或某个已知进程路径里原始 `DLL` 的一个拷贝。对于不同进程，相同 `DLL` 两份拷贝的主要区别是模块基址不同，因为系统把这个模块放在进程空间里面什么地方会因进程不同而不同（重定位）。但是由于是拷贝，每个模块中的输出函数是相同的，其相对偏移量固定不变。
+
+*图 16 - 不同进程中的模块映射。*
+
+我们可以把该模块的一个拷贝（在本例中它是一个 `DLL`）载入装载器地址空间，在里面找到输出函数从基址开始的偏移量。然后我们把这个偏移量加上前面模块列举得到的基址，就可求出在目标地址空间里面真正的函数 `EP` (入口点) 地址。
+
+该技巧总结成下面几个步骤：
+
+7. 把 `DLL` 载入装载器，并且储存 `hModule` (库的起始地址)
+8. 在装载器中找到我们打算通过 `GetProcAddress` 挂勾目标进程的那个 `API` 函数（它是该 `DLL` 的一个输出函数）的地址并且把它储存在变量 `hProc` 中
+9. 计算增量，即 `hDelta = hProc - hModule`。`hDelta` 表示该 `API` 从该 `DLL` 的开始处算起的偏移量
+10. 把 `hDelta` 与已载入目标进程的模块的句柄求和。这样你就得到该 `API` 函数在目标进程中的真正地址了。
+11. 在目标进程中那个找到的地址上放置一个断点：即在该地址上写入 `INT3` (`0xCC`) (见参考 `[15]`)
+
+```cpp
+// LoadLibrary in order to know the function address, the right address
+// into the victim memory space can be found by using the right offset from
+// the base address and the API address when the same DLL is loaded into the
+// loader address space (copy is the same then offset is the same).
+// When you've the offset to find the real address into the victim space simply
+// add this offset to the base address of the target DLL mapped into the victim space
+// base address came from EnumAllProcesModule function.
+hDLL = LoadLibrary(szVictimDLLname); // Base address into the loader space
+FARPROC addrIDPBreakpoint; // Used to store the real address (victim space)
+DWORD apiOffset; // Used to store the function offset into the victim DLL
+// Load the absolute address for the victim function into the loader space
+addrIDPBreakpoint = GetProcAddress(hDLL, szVictimDLLfunc);
+// Calculate the function offset (same for loader and victim space)
+apiOffset = (DWORD)addrIDPBreakpoint-(DWORD)hDLL;
+// Calculate the real address into the victim space
+addrIDPBreakpoint = (FARPROC)((DWORD)iVictimDLLBaseAddress + (DWORD)apiOffset);
+if (addrIDPBreakpoint != NULL) {
+    if (bDebugStage) {
+        sprintf(szMsgText,"__vbaStrComp Address %X",(DWORD)addrIDPBreakpoint);
+        MessageBox(NULL, szMsgText, szMsgCapt, MB_OK);
+    }
+} else {
+    sprintf(szMsgText,"Can't place breakpoint");
+    MessageBox(NULL, szMsgText, szMsgCapt, MB_OK);
+    if (hDLL != NULL)
+        FreeLibrary(hDLL);
+    CloseHandle(hTmpProcess);
+    return;
+}
+```
+
+现在我们有了在目标进程空间里该函数的地址。然后，为了在该函数被调用的时候停止进程的运行，我们使用 `WriteProcessMemory` 在函数入口点 `EP` 放置一个断点（`INT3`）。
+
+```cpp
+// -----------------------------------------------------------------------------
+// Now we can open the process to place breakpoint (iPatchData[0] = 0xCC -> INT3
+// -----------------------------------------------------------------------------
+hTmpProcess = OpenProcess( PROCESS_ALL_ACCESS | PROCESS_VM_READ | PROCESS_VM_WRITE, FALSE, aVictimProcessId);
+if (!WriteProcessMemory(hTmpProcess, (LPVOID)(addrIDPBreakpoint), &iPatchData[0], 1, NULL)) {
+    ErrorExit("WriteProcessMemory ERROR: ");
+    MessageBox(NULL, "I can't write process memory :-(", szMsgCapt, MB_OK);
+    if (hDLL != NULL)
+        FreeLibrary(hDLL);
+    CloseHandle(hTmpProcess);
+    return;
+}
+bSystemBreakpoint = true;
+```
+
+在这全部完成之后，我们就达成第一个目标：把一个断点放置在目标进程空间的一个模块之内。
+
+### 实战等待和处理断点事件
+
+现在我们放置断点，这是关键性工作。我们需要等到目标使用我们要调查的那个函数，因为这个时候在该函数的 `EP` 会执行一条 `INT3` 指令，那么系统就会停止该进程以及相关线程，并且通过 `WaitForDebugEvent` 函数返回 `EXCEPTION_BREAKPOINT` 事件给调试器。
+
+首先我们必须检查是不是这个系统断点，这可以通过检查 `bSystemBreakpoint` 标志得知。在这之后，为了要保存寄存器数值，我们必须读取进程上下文，这些值跟我们从目标函数收集的信息是有联系的，然后在所有工作完成后让该进程自由运行。
+
+我们用 `Microsoft Visual Basic 6.0` 中编写一个简单的程序代码，作为一个实例展示：检查使用者的输入是否符合某个硬编码的系列号（你能在本教程附件中找到源代码）。不过其中，钓鱼正确系列号的主要秘诀具有普遍意义，以后你能明白怎样运用这个原理在软件安装阶段直接钓鱼系列号（同时这也是作为一个 `VB` 目标示例）。
+
+`CrackMeVB` 有一个简单的主对话框，使用者必须填写系列号，然后按下“Check it!”钮检查正误。
+
+*图 17 - `CrackMeVB`*
+
+随便填写个假系列号，并按下检查按钮：
+
+*图 18 - `CrackMeVB` 示例*
+
+你知道，目标是用 `VB` 编码的，所以我们可以利用函数`__vbaStrComp` 放置一个断点，即在我们的系列号嗅探者中我们必须寻找 `MSVBVM60.DLL` 模块，并安排一个断点打入这个对比函数。
+
+```cpp
+// Now I've to read the stack in order to fish the right serial
+// then first I've to keep the process CONTEXT
+victimContext.ContextFlags = 0x1003F;
+// Select all the flag and register
+if (!GetThreadContext( hVictimThreadHandle, &victimContext)) {
+    ErrorExit("GetThreadContext ERROR: ");
+    return;
+}
+if (bDebugStage) {
+    printf("Stack pointer ESP = %X\n",victimContext.Esp);
+    printf("Stack pointer EIP = %X\n",victimContext.Eip);
+}
+
+// First we have to keep a process handle
+hTmpProcess = OpenProcess( PROCESS_ALL_ACCESS | PROCESS_VM_READ | PROCESS_VM_WRITE, FALSE, aVictimProcessId);
+
+// Read the stack into the ESP+8 address, in this address we have
+// the pointer to the first argument which is in UNICODE format
+DWORD FakeSerialPtr;
+if (!ReadProcessMemory(hTmpProcess,(LPVOID)((victimContext.Esp) + 8), &FakeSerialPtr, sizeof(DWORD), NULL)) {
+    ErrorExit("ReadProcessMemory ERROR: ");
+    MessageBox(NULL, "I can't read process memory :-(", szMsgCapt, MB_OK);
+    CloseHandle(hTmpProcess);
+    return;
+} else {
+    if (bDebugStage)
+        printf("Fake serial pointer: %X\n", FakeSerialPtr);
+}
+
+// Read the stack into the ESP+12 address, in this address we have
+// the pointer to the first argument which is in UNICODE format
+DWORD RightSerialPtr;
+if (!ReadProcessMemory(hTmpProcess, (LPVOID)((victimContext.Esp) + 12), &RightSerialPtr, sizeof(DWORD), NULL)) {
+    ErrorExit("ReadProcessMemory ERROR: ");
+    MessageBox(NULL, "I can't read process memory :-(", szMsgCapt, MB_OK);
+    CloseHandle(hTmpProcess);
+    return;
+} else {
+    if (bDebugStage)
+        printf("Right serial pointer: %X\n", RightSerialPtr);
+}
+
+// Now we have to collect the serial code byte by using ReadProcessMemory, remember
+// this is in UNICODE format then we have to check about the string end, this is easily
+// achieved by checking the current data byte, if this is 0 we have reached the string end
+int iAddrPtr, iBufferPtr;
+iAddrPtr=0;
+iBufferPtr=0;
+do {
+    ReadProcessMemory(hTmpProcess, (LPVOID)(FakeSerialPtr + (DWORD)iAddrPtr), &iOridataReadOne, 1, NULL);
+    iAddrPtr=iAddrPtr+2;
+    szFakeSerial[iBufferPtr++]=iOridataReadOne;
+} while (iOridataReadOne != 0);
+szFakeSerial[iBufferPtr]='\0'; // Place the string terminator
+
+// Now we have to read the second serial number (same things as the previous one
+iAddrPtr=0;
+iBufferPtr=0;
+do {
+    ReadProcessMemory(hTmpProcess, (LPVOID)(RightSerialPtr + (DWORD)iAddrPtr), &iOridataReadOne, 1, NULL);
+    iAddrPtr=iAddrPtr+2;
+    szRightSerial[iBufferPtr++]=iOridataReadOne;
+} while (iOridataReadOne != 0);
+szRightSerial[iBufferPtr]='\0'; // Place the string terminator
+
+// Now we have to show our serial fishing to the user :)
+sprintf(szMsgText,"\tFirst serial: %s\n\tSecond serial: %s\n\tYou know where is the right serial :-)\n\tWrite it down to register appz!",szFakeSerial,szRightSerial);
+printf(szMsgText);
+MessageBox(NULL, szMsgText, szMsgCapt, MB_OK);
+
+// Before finish we have to restore the original value into the
+// target DLL and restore the EIP to the breakpoint address
+hDLL = LoadLibrary(szVictimDLLname);
+FARPROC addrIDPBreakpoint;
+DWORD apiOffset;
+
+addrIDPBreakpoint = GetProcAddress(hDLL, szVictimDLLfunc);
+apiOffset = (DWORD)addrIDPBreakpoint-(DWORD)hDLL;
+addrIDPBreakpoint = (FARPROC)((DWORD)iVictimDLLBaseAddress + (DWORD)apiOffset);
+if (!WriteProcessMemory(hTmpProcess, (LPVOID)addrIDPBreakpoint, &iOridata[0], 1, NULL)) {
+    ErrorExit("WriteProcessMemory ERROR: ");
+    MessageBox(NULL, "I can't write process memory :-(", szMsgCapt, MB_OK);
+    return;
+}
+
+if (hDLL != NULL)
+    FreeLibrary(hDLL);
+if (hPsapi != NULL)
+    FreeLibrary(hPsapi);
+
+// Restore the EIP by writing the right value into the process CONTEXT
+victimContext.Eip =(victimContext.Eip) - 1;
+if (!SetThreadContext( hVictimThreadHandle, &victimContext))
+    ErrorExit("GetThreadContext ERROR: ");
+// Close the temp handle for the process
+CloseHandle(hTmpProcess);
+// Run the victim process
+ContinueDebugEvent(DebugEv.dwProcessId,DebugEv.dwThreadId, DBG_CONTINUE);
+// Stop debugger action and let program run freely (only for WinXP)
+BOOL bDbgStopFlag = DebugActiveProcessStop(aVictimProcessId);
+// Exit from debugger
+return;
+```
+
+源代码最重要的部分完成了，现在启动目标然后启动装载器。
+
+在目标进程 (`CrackMeVB.exe`) 运行以后，要发送一个消息提醒使用者可以按 `OK` 钮了：
+
+*图 19 - 装载器起动...*
+
+当你按下 `OK` 钮时，显示所有进程的列表：
+
+*图 20 - 目标进程已经找到。*
+
+下一步是进程附加。上述步骤全部完成后，装载器列举模块、找出目标模块和`__vbaStrComp` 地址（函数入口点）：
+
+*图 21 - 在目标 `DLL` 内寻找目标函数。*
+
+按下 `OK` 钮，目标就会继续自由运行直到你让它验证系列号（在 `CrackMeVB` 对话框中再一次按下 `Check it!` 钮）。
+
+系统马上会触发断点事件(`INT3`)，通过 `WaitForDebugEvent` 函数传给调试器：
+
+*图 22 - `INT3` 异常被发送给调试器。*
+
+按下 `OK` 钮，结果我们看到：
+
+*图 23 - 从 `__vbaStrComp` 函数的最后钓鱼。*
+
+如果你有所怀疑，现在可以检验一下钓出的系列号是否正确了 ;-):
+
+*图 24 - 检查系列号。*
+
+目标应用程序中的最后需要关注的地方，源码如下：
+
+```vb
+Private Sub Command1_Click()
+If ("ARTeam is the best" = txtSerial.Text) Then
+MsgBox "Very nice!"
+Else
+MsgBox "Try again!"
+End If
+End Sub
+```
+
+`VB` 验证代码会影响调用`__vbaStrComp` 函数前的参数入栈顺序：
+
+`If ( "ARTeam is the best" = txtSerial.Text ) Then`
+
+换一个不同的入栈顺序：
+
+`If ( txtSerial.Text = "ARTeam is the best") Then`
+
+### 被取代的使用 `Olly` 破解方式
+
+下面是使用 `OllyDbg` 调试器的传统破解方式。在载入目标之后立刻使用命令行插件放置一个“`BP __vbaStrComp`”的断点，并按下 `F9` 键运行该应用程序。你将会来到这里：
+
+*图 25 - `OllyDbg` 打断进入 `__vbaStrComp` 函数。*
+
+*图 26 - 断点时的寄存器窗口。*
+
+*图 27 - 断点时的栈窗口。*
+
+### 实战系列号钓鱼范例
+
+为了检验我们的理论，我们来破解一个真实的 `VB` 程序 `crackme` 的系列号。我们的破解对象是参考 `[13]` 中曾经使用的，`Abel` 的第二个 `crackme`（也包含在本教程中）。
+
+其细节在此不再重复。关键是这个 `crackme` 比较字符串的方式，它不使用`__vbaStrComp` 这 `API` 函数。按参考 `[13]` 中所述的分析，它使用 `API` 函数`__vbaVarTstEq` 或`__vbaVarTstNe` 代替（猜猜这些 `API` 函数的作用）。我们把刚编写的装载器修改成挂钩`__vbaVarTstEq` 来获取其参数。
+
+首先，这个 `API` 函数接收两个 `VARIANT` 作为输入，这种字符串类型是在内存中以一种特别的方式储存字符串（字符串长度、控制地址、文本字符）。
+
+以下是在 `OllyDbg` 中所见到的。
+
+使用命令行插件放置一个“`BP __vbaVarTstEq`”的断点，并按下 `F9` 键让程序自由运行。
+
+你将会在这里停下来：
+
+此时，堆栈如下所示：
+
+所以我们的步骤很明了。使用前面讲过的代码，设定断点之后，我们通过 `ESP+4` 和 `ESP+8` 得到两个指针（`DWORD` 的大小是 4 字节），然后把那些数值加上一个额外的偏移量 8 就可以找到我们的 `UNICODE` 字符串。
+
+我们把程序信息改一下：
+
+```cpp
+// -------------------------------------------------------------------------------------
+// General target information
+// -------------------------------------------------------------------------------------
+char szTargetName[]="abex'2nd crackme"; // Target name
+char szTargetVersion[]="1.0"; // Target version
+char szTargetBuild[]="-"; // Target build (if applicable)
+char szTargetURL[]="-"; // Target URL
+char szTargetPacker[]="-"; // Target packer
+
+BOOL bDebugStage = true; // Set the debug mode (show the message from loader to user)
+BOOL bShowExcpNumber=false; // Exception number flag
+BOOL bSystemBreakpoint = false; // System breakpoint
+BOOL bFirstEvent = false;
+
+char szVictimProcessName[]="abexcrackme2.exe"; // Program name
+char notloaded[]="Process can be loaded :-("; // There is one error into loading process stage
+char szMsgText[128]; // Used as a buffer for message to user
+char szMsgCapt[]="ARTeam Serial Registration Code Sniffer";
+FARPROC iVictimDLLBaseAddress; // API base address
+char szVictimDLLname[]="MSVBVM60.DLL"; // Target DLL
+char szVictimDLLfunc[]="__vbaVarTstEq"; // Target function where we have to break
+char szFakeSerial[128]; // Buffer for the fake serial
+char szRightSerial[128];
+```
+
+请注意 `szVictimDLLfunc`, `szTargetName` 和 `szVictimProcessName` 的不同数值。
+
+然后是进程内存的读取，正如我们过去在 `Olly` 中看到的那样，它在 `OpenProcess` 调用之后就变成这样的。
+
+```cpp
+// Read the pointer to the fake serial
+DWORD FakeSerialPtr;
+DWORD FakeVariantPtr, RightVariantPtr;
+
+//skip a DWORD
+ReadProcessMemory(hTmpProcess, (LPVOID)((victimContext.Esp) + 4), &FakeVariantPtr, sizeof(DWORD), NULL);
+ReadProcessMemory(hTmpProcess, (LPVOID)((victimContext.Esp) + 4*2), &RightVariantPtr, sizeof(DWORD), NULL);
+ReadProcessMemory(hTmpProcess, (LPVOID)((FakeVariantPtr) + 8), &FakeSerialPtr, sizeof(DWORD), NULL);
+
+if (bDebugStage) {
+    printf("Fake serial pointer: %X\n",FakeSerialPtr);
+}
+
+// Read the pointer value to the right serial which is in ESP+12
+DWORD RightSerialPtr;
+ReadProcessMemory(hTmpProcess, (LPVOID)(RightVariantPtr + 8), &RightSerialPtr, sizeof(DWORD), NULL);
+
+if (bDebugStage) {
+    printf("Right serial pointer: %X\n",RightSerialPtr);
+}
+...
+```
+
+在这之后我们马上也把那些 `UNICODE` 字符串转换成 `ANSI` 字符串。这是破解 `VB` 程序总是要做的工作，我们在另一个名为 `crackme.cpp` 的文件中实现。
+
+那么结果是：
+
+*图 28 –最后的消息窗口显示真假系列号。*
+
+如果你读过参考 `[1]` 那个教程，应该了解我们所创建的 `Oraculum`。`Oraculums` 确实只是从目标程序中直接为你寻求真实系列号的特殊类型装载器。
+
+## 附录 B、一个调试型装载器完善的循环范例
+
+前面介绍的并非是装载器一个完善的调试循环。你能够处理若干个事件并且加上你的打补丁操作。在第 3.3 节及其后给出的代码中，为了简明的缘故有些东西被省略了。我提供一个相当完善的源代码（谢谢 `condzero`），你可以在它之上编制你自己的门槛条件。由于页数关系，本文不能列出完整的源代码，但是你可以在本教程的文档中找到它。
+
+你可以在该代码的门槛条件部分添加额外的调试条件以求精确地处理载入过程。
+
+`Complete_Debug_GateCondition.cpp` 中的源码是基于如下目的：给目标所使用的 `DLLs` 之一打补丁。这个源代码是用纯粹 `C` 编写的（但是可以容易地移植到我们的框架）。
+
+该装载器的任务是，调试主程序(可能稍减慢运行速度)然后仅当 `LOAD_DLL_DEBUG_EVENT` 事件发生的时候应用补丁。
+
+其操作步骤如下：
+
+1. 从所有被载入的 `DLL` 中找出那个 `DLL` 并取得它的名字（使用 `EnumProcessModules` 和 `GetModuleFileNameEx`）
+2. 如果匹配我们要补丁的目标，则应用 `isDebuggerPresent` 补丁（参见第 3.3.1 节），依据相对于基址（句柄）的偏移量计算该 `DLL` 的补丁位置
+3. 从调试器退出，并且让目标自由运行。
+
+```cpp
+case LOAD_DLL_DEBUG_EVENT: {
+    // Read the debugging information included in the newly loaded DLL.
+    // Be sure to close the handle to the loaded DLL with CloseHandle.
+    contproc = TRUE;
+    dwContinueStatus = DBG_CONTINUE;
+    if (DebugEv.u.LoadDll.hFile == NULL) {
+        break;
+    }
+    // EnumProcessModules returns an array of hMods for the process
+    // Fails first time for ntdll.dll
+    if (!EnumProcessModules(hSaveProcess, hMods, sizeof(hMods), &cbNeeded)) {
+        FormatMessage(
+            FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
+            NULL,
+            GetLastError(),
+            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // Default language
+            (LPTSTR) &lpMsgBuf,
+            0,
+            NULL
+        );
+        // Display any error msg.
+        //MessageBox(NULL, lpMsgBuf, "EnumProcessModules Error", MB_OK+MB_TASKMODAL);
+        // Free the buffer.
+        LocalFree( lpMsgBuf );
+        SetLastError(ERROR_SUCCESS);
+        //close handle to load dll event
+        CloseHandle(DebugEv.u.LoadDll.hFile);
+        break;
+    }
+    // Calculate number of modules in the process
+    nMods = cbNeeded / sizeof(HMODULE);
+    for ( i = 0; i < nMods; i++ ) {
+        HMODULE hModule = hMods[i];
+        char szModName[MAX_PATH];
+        // GetModuleFileNameEx is like GetModuleFileName, but works in other process
+        //address spaces
+        // Get the full path to the module's file.
+        GetModuleFileNameEx( hSaveProcess, hModule, szModName, sizeof(szModName));
+        if ( 0 == i ) {
+            // First module is the EXE.
+            Add to list and skip it.
+            modlist[i] = i;
+        } else {
+            // Not the first module. It's a DLL
+            // Determine if this is a DLL we've already seen
+            if ( i == modlist[i] ) {
+                continue;
+            } else {
+                // We haven't see it, add it to the list
+                modlist[i] = i;
+                // Find the last '\\' to obtain a pointer to just the base module
+                // name part
+                // (i.e. mydll.dll w/o the path)
+                PCSTR pszBaseName = strrchr( szModName, '\\' );
+                // We found a path, so advance to the base module
+                if ( pszBaseName ) {
+                    name pszBaseName++;
+                } else {
+                    pszBaseName = szModName; //No path. Use the same name for both
+                }
+                //optionally, if module name = "DB.DLL"
+                if (strcmp(strupr(pszBaseName), dbdll)==0) {
+                    // Get the address of the specified exported
+                    // dynamic-link library (DLL) function
+                    ProcAdd = GetProcAddress( hModule, // handle to DLL module );
+                    // Add offset 0x0C to ProcAddress
+                    if (NULL != ProcAdd) {
+                        DebugPatch[0] = (DWORD) ProcAdd + 0x0C;
+                        // apply the IsDebuggerPresent patch
+                        ReadProcessMemory(hSaveProcess, (LPVOID) DebugPatch[0], DataRead, sizeof(BYTE), &dwRead);
+                        if(DataRead[0] == scanbytd[0]) {
+                            WriteProcessMemory (hSaveProcess, (LPVOID) DebugPatch[0], &replbytd[0], sizeof(BYTE), &dwWritten);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // close handle to load dll event
+    CloseHandle(DebugEv.u.LoadDll.hFile);
+}
+break;
+```
+
+而且，你会从 `Complete_Debug_GateCondition.cpp` 源码中发现，它的调试循环相当复杂，因为有许多 `case` 分支和下一级 `case` 嵌套使得阅读困难。但是你写过一次以后多数情况下可以重复使用它相同的结构。
+
+你可能马上会从上述源代码中发现其它一些有意思的东西：
+
+- **调试多于一个进程时：**
+  在使用这些参数调用 `CreateProcess` 的时候..
+  `DEBUG_PROCESS, // No creation flags (use for more than 1 process`
+  `//DEBUG_PROCESS+DEBUG_ONLY_THIS_PROCESS, //(use for only 1 process)`
+- **避免锁定调试器装载器**
+  在调试循环开始处指定超时而不是使用 `INFINITE`，以此避免挂起。
+  `if (WaitForDebugEvent(&DebugEv, 1000))`
+- **如何显示当前异常地址：**
+  比如下例是写 `ExceptionRecord` 的 `ExceptionAddress`，而这个记录还包含我们感兴趣的其它很多信息
+  `sprintf( b, "Exception address:%08X", DebugEv.u.Exception.ExceptionRecord.ExceptionAddress);`
+- **如何打印一些进程信息**
+  例如，进程信息的丰富格式打印
+  ```cpp
+  sprintf( b, "hFile:%X\n"
+            "ProcessId:%X\n"
+            "hProcess:%X\n"
+            "hThread:%X\n"
+            "lpBaseOfImage:%08X\n"
+            "dwDebugInfoFileOffset:%d\n"
+            "nDebugInfoSize:%d\n"
+            "lpThreadLocalBase:%08X\n"
+            "lpStartAddress:%08X\n"
+            "lpImageName:%08X\n"
+            "fUnicode:%d",
+            DebugEv.u.CreateProcessInfo.hFile,
+            Pid[k -1],
+            DebugEv.u.CreateProcessInfo.hProcess,
+            DebugEv.u.CreateProcessInfo.hThread,
+            DebugEv.u.CreateProcessInfo.lpBaseOfImage,
+            DebugEv.u.CreateProcessInfo.dwDebugInfoFileOffset,
+            DebugEv.u.CreateProcessInfo.nDebugInfoSize,
+            DebugEv.u.CreateProcessInfo.lpThreadLocalBase,
+            DebugEv.u.CreateProcessInfo.lpStartAddress,
+            DebugEv.u.CreateProcessInfo.lpImageName,
+            DebugEv.u.CreateProcessInfo.fUnicode );
+  ```
+
+以上仅仅是示例，你可以从 `MSDN` 做进一步了解。那些结构互相之间有关联，就像 `Matrioska` (俄国布偶)，而且确实有意思的东西很多（有关逆向工程的）。大概现在你自己已经懂得如何打印出你需要的信息以及编写一个复杂的调试器了..
+
+> **注意**
+> `Complete_Debug_GateCondition.cpp` 中给出的代码本身没有错误，但是如果你编译它，还必须在你的 `Visual Studio` 工程中添加那些缺失的东西、一些包含和库声明。
+
+## 参考
+
+以下是一些关于装载器和代码注入的教程，列出以便参考。
+
+1. "Guide on How to play with processes memory, write loaders and Oraculums", `Shub-Nigurrath` of `ARTeam`, <http://tutorials.accessroot.com>
+   《关于如何操纵进程内存、编写装载器和 `Oraculums` 的指南》
+2. "Three Ways to Inject your code into Another Process", `Robert Kuster`, <http://www.codeguru.com/system/winspy.html>
+   《将你的代码注入另一个进程之内的三个方法》
+3. "RemoteLib - DLL Injection for Win9x & NT", `Abin`, <http://www.codeproject.com/dll/RemoteLib.asp>
+   [注入远程进程内存的重要方法，也适用于 `Win9x` 系统]
+   《`RemoteLib` - 在 `Win9x` & `NT` 系统上的 `DLL` 注入》
+4. "Injecting a DLL into Another Process's Address Space", `Zoltan Csizmadia`, <http://www.codeguru.com/Cpp/W-P/dll/article.php/c105/>
+   《把一个 `DLL` 注入另一个进程的地址空间》
+5. "DLL Injection and function interception tutorial, 2003", `CrankHank`, , <http://www.codeproject.com/dll/DLL_Injection_tutorial.asp>
+   《`DLL` 注入与函数拦截教程, 2003》
+6. "Creating Loaders & Dumpers - Crackers Guide to Program Flow Control", `yAtEs`, 2004, <http://www.yates2k.net/lad.txt>
+   《创建装载器与转储器 - 程序流程控制的破解者指南》
+7. "9x/NT API Hooking via Import Tables", `yAtEs`, <http://www.yates2k.net/import.html>
+   《通过入口表挂勾 `9x/NT` `API`》
+8. "Portable Executable File Format Compendium", `Goppit`, <http://tutorials.accessroot.com>
+   《可移植的可执行文件格式简述》
+9. "CrackProof your software", `Pavol Cerven`, `Nostarch Press`, 2002 (available as bookz)
+   《给你的软件加上防破解》
+10. "Beginner Olly Tutorial #10, Anti-tampering Theory", `Shub-Nigurrath` of `ARTeam`, <http://tutorials.accessroot.com>
+    《`Olly` 初学者教程之#10, 反窜改原理》
+11. "OllyDumpTranslator", `ThunderPwr` of `ARTeam`, <http://releases.accessroot.com>
+    《`OllyDumpTranslator`》
+12. "Beginner Olly Tutorial #6, Packer's Theory", `Shub-Nigurrath` of `ARTeam`, <http://tutorials.accessroot.com>
+    《`Olly` 初学者教程之#6, 壳之原理》
+13. "Fishing Primer with SmartCheck", `Palaryel`, <http://tutorials.accessroot.com>
+    《使用 `SmartCheck` 钓鱼入门》
+14. "Fishing Primer with SmartCheck number 2", `Palaryel`, <http://tutorials.accessroot.com>
+    《使用 `SmartCheck` 钓鱼入门之二》
+15. "Beginner Olly Tutorial #8, Breakpoints Theory", `Shub-Nigurrath` of `ARTeam`, <http://tutorials.accessroot.com>
+    《`Olly` 初学者教程之#8, 断点原理》
+
+## 结论
+
+好吧，故事讲完了，我们希望它会让你更加了解操作系统是如何处理进程，以及能够通过何种手段控制进程并使用一些高级技术进行调试。此外我们也展示了如何在已经装入目标空间的模块中修改代码。
+
+本教程提供的所有代码可以免费公开使用，如果你觉得它有用不妨向原作者和 `ARTeam` 表达谢意。
+
+请不要使用这些原理从事违法行为，所有这里提供的东西都是为了便于你学习、帮助你更好地了解应用程序代码安全技术。
+
+## 历史
+
+- `Version 1.0` – 首次公开发行！
+- `Version 1.1` – 增加了关于 `HideDebugger` 代码如何工作的更详细说明。
+- `Version 1.2` – 重要修正
+    - 改正源码中比较严重的错误。
+    - 增加附录二：一个相当完善的调试器装载器循环。
+
+## 致谢
+
+我们十分感谢所有的 `ARTeam` 成员以及本教程$\beta$版的读者和捐献者等等，同样也感谢你读完这个相当复杂的大文件！
+
+<http://cracking.accessroot.com>
+
+©2000-2007 PEdiy.com All rights reserved. By PEDIY
+
+
+
+*   [给飞狐交易师 v5.0.71120 网络版增加多接口](7-pediy_180.md)
+*   [消息循环](7-pediy_181.md)
+*   [请问如何能找到 `WndProc` 的地址？](7-pediy_182.md)
+*   [如何在 `IDA` 中找到 `MFC` 程序的消息处理函数](7-pediy_183.md)
+*   [消息回调函数定位 3 法](7-pediy_184.md)
+*   [重定位表](7-pediy_185.md)
+*   [对于 `DLL` 通过增加重定位项直接调用引入表函数](7-pediy_186.md)
+*   [代码自定位](7-pediy_187.md)
+*   [在代码段最后添加了几行，为什么有的机器上能用，有的机器上就不行？](7-pediy_188.md)
+*   [如何给 `DLL` 文件重定位加 `MessageBoxA` 显示框](7-pediy_189.md)
+*   [内存存取机制](7-pediy_19.md)
+*   [增加按钮/菜单](7-pediy_190.md)
+*   [`Win32`](7-pediy_191.md)
+*   [在可执行文件中添加菜单项](7-pediy_192.md)
+*   [`Delphi`](7-pediy_193.md)
+*   [`delphi` 程序添加功能按钮](7-pediy_194.md)
+*   [为 `delphi` 程序添加功能按钮](7-pediy_195.md)
+*   [为 `Delphi` 的 `Form` 加一个 `Button`](7-pediy_196.md)
+*   [`MFC`](7-pediy_197.md)
+*   [在 `MFC` 程序中添加功能按钮。](7-pediy_198.md)
+*   [功能增强](7-pediy_199.md)
+*   [\====补丁技术====](7-pediy_2.md)
+*   [是男人就上 120 层 `Loader`](7-pediy_20.md)
+*   [`windows` 自带程序](7-pediy_200.md)
+*   [扫雷](7-pediy_201.md)
+*   [`window` 扫雷的 `PEDIY`](7-pediy_202.md)
+*   [微软扫雷 `PEDIY` 尝试](7-pediy_203.md)
+*   [记事本](7-pediy_204.md)
+*   [`PEDIY` 技术之新思路（一）\_ 简单实现记事本自动保存](7-pediy_205.md)
+*   [用 `DELPHI` 编写 `DLL` 插件为 `Windows` 记事本增加各种功能](7-pediy_206.md)
+*   [修改 `XP` 记事本](7-pediy_207.md)
+*   [逆向初步,增加 `XP` 记事本功能,使用背景色,文字颜色,下划线,删除线](7-pediy_208.md)
+*   [逆向初步,给 `XP` 记事本增加显/隐工具栏,从文件载入工具图片](7-pediy_209.md)
+*   [`Loader` by `R!SC`](7-pediy_21.md)
+*   [记事本功能增加方案](7-pediy_210.md)
+*   [双击记事本自动打开文本](7-pediy_211.md)
+*   [给记事本增加一个启动页面](7-pediy_212.md)
+*   [为记事本增加功能-大小写转换，加解密文件，字数统计。](7-pediy_213.md)
+*   [增加你的记事本--给记事本加上文本预览功能](7-pediy_214.md)
+*   [给记事本添加启动窗口](7-pediy_215.md)
+*   [给记事本添加"总在前面"功能【原创】](7-pediy_216.md)
+*   [给 `windows` `XP` 记事本添加“自动保存”功能](7-pediy_217.md)
+*   [给记事本加上透明窗体和置顶功能(通过扩展消息循环的方法)-入门级的东东](7-pediy_218.md)
+*   [添加记事本置顶\\托盘\\字体颜色功能](7-pediy_219.md)
+*   [为程序打动态内存补丁的 `delphi` 原码](7-pediy_22.md)
+*   [计算器](7-pediy_220.md)
+*   [修改计算器初始 16 进制](7-pediy_221.md)
+*   [一次 `PEDIY`---修改 `Windows` 自带的 `calc.exe`](7-pediy_222.md)
+*   [菜鸟 `DIY`---为计算器增加退出动画效果](7-pediy_223.md)
+*   [为计算器添加设置文字颜色的功能](7-pediy_224.md)
+*   [任务器](7-pediy_225.md)
+*   [给任务管理器添加拷贝命令的功能](7-pediy_226.md)
+*   [第一次 `PEDIY`---让 `Windows` 任务管理器更强,更人性!](7-pediy_227.md)
+*   [`DIY` 让我们的任务管理器再智能一点](7-pediy_228.md)
+*   [给任务管理器增加显示程序完整路径功能](7-pediy_229.md)
+*   [`R！SC` 的 `CrackMe1`](7-pediy_23.md)
+*   [注册表编辑器增强](7-pediy_230.md)
+*   [`PEDIY`---让注册表编辑器更人性(一)增加 "转到(`Goto`)" 功能!](7-pediy_231.md)
+*   [豪杰](7-pediy_232.md)
+*   [豪杰解霸 `V8`](7-pediy_233.md)
+*   [豪杰 3.0](7-pediy_234.md)
+*   [豪杰最大化按钮无效](7-pediy_235.md)
+*   [豪杰 `V8`](7-pediy_236.md)
+*   [`QQ`](7-pediy_237.md)
+*   [`QQ1220`](7-pediy_238.md)
+*   [`QQ2000c` 0305](7-pediy_239.md)
+*   [学写内存补丁(初级版) - 修正](7-pediy_24.md)
+*   [`QQ2000c` 0630](7-pediy_240.md)
+*   [`QQ1220` 显 `IP` 补丁](7-pediy_241.md)
+*   [编写 `QQ` 显 `IP` 外挂插件及原理分析(1)](7-pediy_242.md)
+*   [其他应用程序](7-pediy_243.md)
+*   [`ArtCursors` 3.03](7-pediy_244.md)
+*   [初入 `Pediy`](7-pediy_245.md)
+*   [`DebugView.exe` 美化全过程](7-pediy_246.md)
+*   [`Dll` `DIY` 的另一种修改方式](7-pediy_247.md)
+*   [`EasyCHM`](7-pediy_248.md)
+*   [`FlashBoot` `DIY` 教程](7-pediy_249.md)
+*   [一个另类的 `loader.`](7-pediy_25.md)
+*   [`FlashGet`](7-pediy_250.md)
+*   [`flashget` 1.60a](7-pediy_251.md)
+*   [`FLVPlaye` 1.3.3](7-pediy_252.md)
+*   [［原创］菜鸟 `KOF97` 单文件版本制作记](7-pediy_253.md)
+*   [`mj1.6`](7-pediy_254.md)
+*   [`pediy` 打造专属的 `Malware` `Defender`](7-pediy_255.md)
+*   [`PEDIY` 技术在软件汉化中的应用一例](7-pediy_256.md)
+*   [`PhotoShop` 窗口置顶制作过程](7-pediy_257.md)
+*   [`Poweroff` 3.0.13](7-pediy_258.md)
+*   [`Windows` 系统 `RunAs` 命令的 `DIY` 改造【原创】](7-pediy_259.md)
+*   [《游戏修改器 `DIY` 之三》——用 `C#` 读写游戏进程内存](7-pediy_26.md)
+*   [`TUNet`](7-pediy_260.md)
+*   [`Winline` 1.21](7-pediy_261.md)
+*   [病毒也来 `PEDIY`](7-pediy_262.md)
+*   [暴力天使](7-pediy_263.md)
+*   [初试 `DIY` 之给某嗅探器添加保存功能【原创】](7-pediy_264.md)
+*   [打造 `myHiew`](7-pediy_265.md)
+*   [手写 `PE` 导入表，打造超小快速关机程序](7-pediy_266.md)
+*   [逆向工程-打造飞鸽传书自动启动功能](7-pediy_267.md)
+*   [打造具有 `EnableWindow` 功能的 `SPYXX`](7-pediy_268.md)
+*   [龙文](7-pediy_269.md)
+*   [屏蔽 `RealPlay` 10.5 英文版更新补丁并附 `java` 源代码](7-pediy_27.md)
+*   [对 `Skype` 的 `Pediy`](7-pediy_270.md)
+*   [改造 `INSTDRV`](7-pediy_271.md)
+*   [改造 `Radasm`](7-pediy_272.md)
+*   [改造系统日期与时间功能](7-pediy_273.md)
+*   [给 `Hash` 计算器增加自定义 `SHA-1` 初始化常数功能](7-pediy_274.md)
+*   [给 `LordPE` 查看输入表部分加上搜索功能](7-pediy_275.md)
+*   [一路 `Goo，Gle` 出个 `PEDIY` 来（给 `PEBrowseDbg8.13.1` 加个窗口置顶功能）](7-pediy_276.md)
+*   [用 `MASM32` 的 `Pre-Built` `Dialog` 给 `PE` 文件增加密码登陆框](7-pediy_277.md)
+*   [`MFC` 的逆向工程 - 给 `SPYXX` 添加新功能](7-pediy_278.md)
+*   [给 `winamp` 添加透明效果](7-pediy_279.md)
+*   [一个 `themida` 加壳的程序 `LOADER` 破解](7-pediy_28.md)
+*   [尝试着给 `winhex` 增加二进制文件比较功能](7-pediy_280.md)
+*   [给 `ZeroAdd` 加入拖放文件的功能](7-pediy_281.md)
+*   [初级 `peDIY，` 给窗口增加最大化按钮](7-pediy_282.md)
+*   [给文件添加对话框](7-pediy_283.md)
+*   [给迅雷加上完成后退出](7-pediy_284.md)
+*   [给应用程序加个弹出对话框](7-pediy_285.md)
+*   [文化财经](7-pediy_286.md)
+*   [迷你歌词插件](7-pediy_287.md)
+*   [由手动变自动：魔兽争霸助手的附加（附原代码及说明）](7-pediy_288.md)
+*   [男人系列修改补丁点睛教程](7-pediy_289.md)
+*   [编程实现修改硬件物理序号/指纹](7-pediy_29.md)
+*   [`OD` 实战 逆向修改 飞鸽传书](7-pediy_290.md)
+*   [嵌入写代码实现再加密](7-pediy_291.md)
+*   [让 `warkey` 与魔兽争霸“同生共死”！](7-pediy_292.md)
+*   [屏录专家 `DIY`](7-pediy_293.md)
+*   [`HIDEIT` 之 `PEDIY`](7-pediy_294.md)
+*   [『原创』调戏 `SkinSharp`](7-pediy_295.md)
+*   [给暴风影音添加主程序关闭时自动结束传输进程功能](7-pediy_296.md)
+*   [对 `sethc.exe` 文件 `DIY，` 制作 `shift` 后门](7-pediy_297.md)
+*   [`PEDIY` 之为 `EXE` 增加读取 `INI` 配置功能](7-pediy_298.md)
+*   [给 `ACDSee2.44` 绿色版来个添油加醋 `diy`](7-pediy_299.md)
+*   [文件补丁](7-pediy_3.md)
+*   [《`API` 浏览器.net》`smc` 补丁+内存注册机【原创】](7-pediy_30.md)
+*   [`DIY` `PPS` 退出之前终结 `PPSAP` 进程,还我内存,还我网络](7-pediy_300.md)
+*   [给 `PEID` 增加皮肤及音乐 一看就懂了哇](7-pediy_301.md)
+*   [动手给音速启动加点动力、](7-pediy_302.md)
+*   [飞鸽传书简易消息尾巴制作记录(已经添加编译好的 `DLL` 和相关工具以及源码)](7-pediy_303.md)
+*   [我也来 `PEDIY`--让 `ZeroAdd` 永不失败](7-pediy_304.md)
+*   [实现 `W32dsm.exe` 在 2000 下的命令行功能](7-pediy_305.md)
+*   [男人就下 100 层](7-pediy_306.md)
+*   [谈谈修改 `binary` 的新思路](7-pediy_307.md)
+*   [给记事本添加最小化到系统托盘的功能](7-pediy_308.md)
+*   [微软"查找目标的实现”](7-pediy_309.md)
+*   [实践内存注册机变算法注册机之明码篇](7-pediy_31.md)
+*   [为 `OllyIce` 增加附加隐藏进程的功能----`PeDiy` 入门教程](7-pediy_310.md)
+*   [为 `VB` 编译的程序增加自己的 `DLL` 调用【原创】](7-pediy_311.md)
+*   [`winhlp32` 增加支持鼠标滚轮功能](7-pediy_312.md)
+*   [为程序添加启动消息框](7-pediy_313.md)
+*   [为程序添加拖放功能](7-pediy_314.md)
+*   [为程序添加右键快捷菜单](7-pediy_315.md)
+*   [为程序增加菜单新功能](7-pediy_316.md)
+*   [为记事本添加 `Top` 功能](7-pediy_317.md)
+*   [为任意程序添加 `SplashScreen`](7-pediy_318.md)
+*   [菜鸟第一次 `DIY,` 为你的软件加载皮肤](7-pediy_319.md)
+*   [文件隐藏精灵](7-pediy_32.md)
+*   [`Sygate` `Office` `Network` `V4.5` `Build` 851](7-pediy_320.md)
+*   [修改游戏进度的保存路径（非菜鸟可以直接略过）](7-pediy_321.md)
+*   [英雄无敌 `III`](7-pediy_322.md)
+*   [增加 `taskmgr.exe` 调用 `FileInfo` 的功能](7-pediy_323.md)
+*   [`Smartsearch`](7-pediy_324.md)
+*   [为 `Loader` 增加命令行功能](7-pediy_325.md)
+*   [增加删除注册表项功能](7-pediy_326.md)
+*   [终截者入侵阻止 v5.26](7-pediy_327.md)
+*   [给 `LikecanViewer` 添加自动保存壁纸的功能](7-pediy_328.md)
+*   [功能的移植和提取](7-pediy_329.md)
+*   [如何编写 `Loader`](7-pediy_33.md)
+*   [`PEDIY` 之功能移植](7-pediy_330.md)
+*   [`Windows` 取色对话框补煎计划 (安装程序的故事)](7-pediy_331.md)
+*   [`CAJViewer7.0` 中 `OCR` 功能的提取](7-pediy_332.md)
+*   [`ASPr` 带壳调试+壳内存 `CRC` 分析+`Inline` `Loader\[Delphi` 开源\]+录象\[看雪 2006 读书季\]](7-pediy_34.md)
+*   [内存补丁的制作实例－修改 `WDASM`](7-pediy_35.md)
+*   [`A` `loader` for `Armadillo` `Protected`](7-pediy_36.md)
+*   [`asprotect` 2.x 内存补丁制作示例](7-pediy_37.md)
+*   [剑走偏锋，另辟蹊径获取加密信息](7-pediy_38.md)
+*   [利用进程空闲为壳软件打补丁 3 例](7-pediy_39.md)
+*   [基础知识](7-pediy_4.md)
+*   [`Tag&Rename` 1.7](7-pediy_40.md)
+*   [`arm1.01`](7-pediy_41.md)
+*   [变脸王](7-pediy_42.md)
+*   [修改 `QQ` 执行顺序,获取 `QQ2008` 最新版密码](7-pediy_43.md)
+*   [内存补丁初探(`C` 语言实现)](7-pediy_44.md)
+*   [动态修改别的进程运行流程【原创】](7-pediy_45.md)
+*   [一流 `QQ` 连连看助手 4.93](7-pediy_46.md)
+*   [`WinZip` `Nag`](7-pediy_47.md)
+*   [再谈给应用程序 `diy` 启动画面和 `java` 源代码补丁修改](7-pediy_48.md)
+*   [联众俄罗斯方块](7-pediy_49.md)
+*   [编写一个文件补丁](7-pediy_5.md)
+*   [从游戏中得到动态内存数据](7-pediy_50.md)
+*   [反恐精英 1.5](7-pediy_51.md)
+*   [`Debug` `API` 机制](7-pediy_52.md)
+*   [应用内存断点的 `Loader`](7-pediy_53.md)
+*   [`NT` 下的调试器并非需要 `Ntdll.ntcontinue` 跳板函数](7-pediy_54.md)
+*   [利用 `Debug` `Api` 获得 `QQ2007` 密码](7-pediy_55.md)
+*   [实践内存注册机变算法注册机之暗码篇](7-pediy_56.md)
+*   [`keymaker` 原理-`INT` 3 的插](7-pediy_57.md)
+
+
+
+*   [`SockMon2005 网络验证的去除(附内存补丁程序源码)`](7-pediy_58.md)
+*   [`利用调试寄存器为加壳软件打补丁`](7-pediy_59.md)
+*   [`标 题：`](7-pediy_6.md)
+*   [`DebugAPI`](7-pediy_60.md)
+*   [`蒙泰版纹 5.0-Debug Api 全补丁版`](7-pediy_61.md)
+*   [`也谈 HOW TO CODE A LOADER`](7-pediy_62.md)
+*   [`调试寄存器机制`](7-pediy_63.md)
+*   [`无责任硬件写断点的 loader 例子`](7-pediy_64.md)
+*   [`补丁工具辅助`](7-pediy_65.md)
+*   [`dUP2 中文帮助`](7-pediy_66.md)
+*   [`标 题：`](7-pediy_67.md)
+*   [`RegSnap2.80`](7-pediy_68.md)
+*   [`有声有色`](7-pediy_69.md)
+*   [`实例分析`](7-pediy_7.md)
+*   [`IPTools 1.10`](7-pediy_70.md)
+*   [`WinDbg 动态内存补丁脚本示例`](7-pediy_71.md)
+*   [`regsnap2.8(build 638)`](7-pediy_72.md)
+*   [`tetris 4000&tetris 5000crack`](7-pediy_73.md)
+*   [`SMC 补丁`](7-pediy_74.md)
+*   [`理论基础`](7-pediy_75.md)
+*   [`SMC`](7-pediy_76.md)
+*   [`SMC 例子`](7-pediy_77.md)
+*   [`SMC 之抛砖引玉(VC++6.0)`](7-pediy_78.md)
+*   [`简论程序是如何动态修改内存或指令的`](7-pediy_79.md)
+*   [`〈〈一分钟测试〉〉软件破解补丁分析和 C#.NetSDK 源代码`](7-pediy_8.md)
+*   [`smc 之双进程保护`](7-pediy_80.md)
+*   [`实例应用`](7-pediy_81.md)
+*   [`UPX`](7-pediy_82.md)
+*   [`UPX 壳的 PATCH------谈 EBOOK 文章类软件的破解`](7-pediy_83.md)
+*   [`简单 SMC 破解`](7-pediy_84.md)
+*   [`魔术情书 6.55`](7-pediy_85.md)
+*   [`魔术情书 6.55 破解过程+不脱壳打破解补丁【原创】`](7-pediy_86.md)
+*   [`Photo Watermark`](7-pediy_87.md)
+*   [`ASPack`](7-pediy_88.md)
+*   [`不脱壳破解《超级文件捆绑 V2.0》分析 + SMC 补丁`](7-pediy_89.md)
+*   [`大富翁 6`](7-pediy_9.md)
+*   [`\*辅助工具 1.0`](7-pediy_90.md)
+*   [`aspack 2.11`](7-pediy_91.md)
+*   [`SMC 体会`](7-pediy_92.md)
+*   [`ACDSee v3.0 trial build 1209`](7-pediy_93.md)
+*   [`movie play 2.51`](7-pediy_94.md)
+*   [`webzip4.0585`](7-pediy_95.md)
+*   [`WINDOWS 优化大师 3.2A`](7-pediy_96.md)
+*   [`Windows 优化大师 V4.3`](7-pediy_97.md)
+*   [`win commander 5.1`](7-pediy_98.md)
+*   [`有声有色 v3.16`](7-pediy_99.md)
