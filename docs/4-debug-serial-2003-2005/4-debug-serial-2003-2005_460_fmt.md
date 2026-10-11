@@ -1,0 +1,621 @@
+
+# 屏幕撷取程序 v1.53
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50478.htm`](https://www.pediy.com/kssd/pediy05/pediy50478.htm)
+
+**软件名称**：`Ashampoo SnapYa!`
+
+**整理日期**：2003.3.7
+
+**最新版本**：`1.53`
+
+**文件大小**：`3748KB`
+
+**软件授权**：共享软件/英文
+
+**使用平台**：`Win9x/Me/NT/2000/XP`
+
+**下载地址**: [`xz.onlinedown.net/down/ashampoo\_snapya153\_se.exe`](http://xz.onlinedown.net/down/ashampoo_snapya153_se.exe)
+
+## 软件简介
+
+`Ashampoo SnapYa!` 是个与众不同的屏幕撷取程序，透过 `Ctrl` 键跟鼠标点选所要撷取的部位，就可以完成屏幕撷取。然而，更奇妙的是可以实时加入图片特效，撷取完成后，还可以利用内建的邮件传送功能，立即将屏幕撷取图寄给朋友！
+
+**【作者声明】**：本人是个初学者，只是感兴趣，没有其它目的。失误之处敬请诸位大侠赐教！
+
+**【破解工具】**：`0llydbg\_cn v1.09` `TRW2000 V1.22`
+
+**【过 程】**：
+
+这个软件没有加壳，但是断点不好下，试了几个常用的 `API` 都没有中断。只好用 `TRW2000` 跟到这里，然后再用 `0llydbg` 继续跟踪。
+
+填好：试验码 `7894561230123456`
+
+跟踪过程如下：
+
+```
+00405750  /.  55             PUSH    EBP  
+00405751  |.  8BEC          MOV     EBP, ESP  
+00405753  |.  B9 07000000   MOV     ECX, 7  
+00405758  |>  6A 00         /PUSH    0  
+0040575A  |.  6A 00         |PUSH    0  
+0040575C  |.  49            |DEC     ECX  
+0040575D  |.^ 75 F9         \JNZ     SHORT SnapYa!.00405758  
+0040575F  |.  51            PUSH    ECX  
+00405760  |.  53            PUSH    EBX  
+00405761  |.  8BD8          MOV     EBX, EAX  
+00405763  |.  33C0          XOR     EAX, EAX  
+00405765  |.  55            PUSH    EBP  
+00405766  |.  68 E0594000   PUSH    SnapYa!.004059E0  
+0040576B  |.  64:FF30       PUSH    DWORD PTR FS:[EAX]  
+0040576E  |.  64:8920       MOV     DWORD PTR FS:[EAX], ESP  
+00405771  |.  C683 11030000>MOV     BYTE PTR DS:[EBX+311], 0  
+00405778  |.  C683 10030000>MOV     BYTE PTR DS:[EBX+310], 0  
+0040577F  |.  8D55 FC       LEA     EDX, [LOCAL.1]  
+00405782  |.  8B83 FC020000 MOV     EAX, DWORD PTR DS:[EBX+2FC]  
+00405788  |.  E8 B7BFFFFF   CALL    <JMP.&Vcl50.@Controls@TCon>  
+0040578D  |.  8B55 FC       MOV     EDX, [LOCAL.1]  
+00405790  |.  B8 F4594000   MOV     EAX, SnapYa!.004059F4  
+00405795  |.  E8 C6B9FFFF   CALL    <JMP.&Vcl50.@System@@LStrP>  
+0040579A  |.  85C0          TEST    EAX, EAX  
+0040579C  |.  7E 1F         JLE     SHORT SnapYa!.004057BD  
+0040579E  |>  8D55 FC       /LEA     EDX, [LOCAL.1]  
+004057A1  |.  B9 01000000   |MOV     ECX, 1  
+004057A6  |.  92            |XCHG    EAX, EDX  
+004057A7  |.  E8 ACB9FFFF   |CALL    <JMP.&Vcl50.@System@@LStr>  
+004057AC  |.  8B55 FC       |MOV     EDX, [LOCAL.1]  
+004057AF  |.  B8 F4594000   |MOV     EAX, SnapYa!.004059F4  
+004057B4  |.  E8 A7B9FFFF   |CALL    <JMP.&Vcl50.@System@@LStr>  
+004057B9  |.  85C0          |TEST    EAX, EAX  
+004057BB  |.^ 7F E1         \JG      SHORT SnapYa!.0040579E  
+004057BD  |>  8B45 FC       MOV     EAX, [LOCAL.1]               
+;  EAX <==SS:[12F2BC]=011909E4,(ASCII "7894561230123456")
+004057C0  |.  E8 37E9FFFF   CALL    SnapYa!.004040FC      ;  计算注册码的地方  
+004057C5  |.  F7D8          NEG     EAX  
+004057C7  |.  1BC0          SBB     EAX, EAX  
+004057C9  |.  F7D8          NEG     EAX  
+004057CB  |.  84C0          TEST    AL, AL                   ;  关键比较  
+004057CD  |.  75 30         JNZ     SHORT SnapYa!.004057FF    ;  关键跳转  
+004057CF  |.  6A 00         PUSH    0  
+004057D1  |.  8D55 F4       LEA     EDX, [LOCAL.3]  
+004057D4  |.  B8 A4524000   MOV     EAX, SnapYa!.004052A4  
+004057D9  |.  E8 A2B9FFFF   CALL    <JMP.&Vcl50.@System@LoadRe>  
+004057DE  |.  8B45 F4       MOV     EAX, [LOCAL.3]               
+;  EAX <== SS:[12F2B4]=011909BC,(ASCII "Sorry,wrong code! Please validate your input and try again!"
+004057E1  |.  8D55 F8       LEA     EDX, [LOCAL.2]  
+004057E4  |.  E8 1FD9FFFF   CALL    <JMP.&Ml42ND50.@Ivdictio@T>  
+004057E9  |.  8B45 F8       MOV     EAX, [LOCAL.2]  
+004057EC  |.  66:8B0D F8594>MOV     CX, WORD PTR DS:[4059F8]  
+004057F3  |.  B2 01         MOV     DL, 1  
+004057F5  |.  E8 9AC3FFFF   CALL    <JMP.&Vcl50.@Dialogs@Messa>  
+004057FA  |.  E9 B9010000   JMP     SnapYa!.004059B8
+```
+
+========================================================================
+
+`CALL SnapYa!.004040FC` ; 计算注册码的地方
+
+```
+004040FC  /$  55            PUSH    EBP  
+004040FD  |.  8BEC          MOV     EBP, ESP           ;  计算注册码的地方  
+004040FF  |.  83C4 E4       ADD     ESP, -1C  
+00404102  |.  53            PUSH    EBX  
+00404103  |.  56            PUSH    ESI  
+00404104  |.  33D2          XOR     EDX, EDX  
+00404106  |.  8955 EC       MOV     [LOCAL.5], EDX  
+00404109  |.  8955 F8       MOV     [LOCAL.2], EDX  
+0040410C  |.  8955 F4       MOV     [LOCAL.3], EDX  
+0040410F  |.  8945 FC       MOV     [LOCAL.1], EAX           
+;  SS:[12F268]<==011909E4,(ASCII "7894561230123456")
+00404112  |.  8B45 FC       MOV     EAX, [LOCAL.1]               
+;  EAX <==SS:[12F2BC]=011909E4,(ASCII "7894561230123456")
+00404115  |.  E8 1ED0FFFF   CALL    <JMP.&Vcl50.@System@@LStrA>  
+0040411A  |.  33C0          XOR     EAX, EAX  
+0040411C  |.  55            PUSH    EBP  
+0040411D  |.  68 54434000   PUSH    SnapYa!.00404354  
+00404122  |.  64:FF30       PUSH    DWORD PTR FS:[EAX]  
+00404125  |.  64:8920       MOV     DWORD PTR FS:[EAX], ESP  
+00404128  |.  C645 F3 00    MOV     BYTE PTR SS:[EBP-D], 0  
+0040412C  |.  C645 F1 00    MOV     BYTE PTR SS:[EBP-F], 0  
+00404130  |.  C645 F2 00    MOV     BYTE PTR SS:[EBP-E], 0  
+00404134  |.  33DB          XOR     EBX, EBX  
+00404136  |.  33C0          XOR     EAX, EAX  
+00404138  |.  A3 84C04000   MOV     DWORD PTR DS:[40C084], EAX  
+0040413D  |.  8D55 EC       LEA     EDX, [LOCAL.5]  
+00404140  |.  8B45 FC       MOV     EAX, [LOCAL.1]               
+;  EAX <==SS:[12F2BC]=011909E4,(ASCII "7894561230123456")
+00404143  |.  E8 5CD2FFFF   CALL    <JMP.&Vcl50.@Sysutils@Ansi>  
+00404148  |.  8B55 EC       MOV     EDX, [LOCAL.5]               
+;  EDX <==SS:[12F258]=01190904,(ASCII "7894561230123456")
+0040414B  |.  8D45 FC       LEA     EAX, [LOCAL.1]               
+;  (ASCII "7894561230123456") 的地址
+0040414E  |.  E8 ADCFFFFF   CALL    <JMP.&Vcl50.@System@@LStrL>  
+00404153  |.  8B45 FC       MOV     EAX, [LOCAL.1]               
+;  EAX <==SS:[12F258]=01190904,(ASCII "7894561230123456")
+00404156  |.  E8 B5CFFFFF   CALL    <JMP.&Vcl50.@System@@LStrL>  
+0040415B  |.  83F8 12       CMP     EAX, 12                  
+;  EAX =12 (注册码的长度=18),把试验码改为"789456123012345678"继续
+0040415E  |.  0F85 B3010000 JNZ     SnapYa!.00404317  
+00404164  |.  8B45 FC       MOV     EAX, [LOCAL.1]               
+;  EAX <==SS:[12F268]=011909BC,(ASCII "789456123012345678")
+00404167  |.  E8 20020000   CALL    SnapYa!.0040438C           ;  第一次计算的地方  
+0040416C  |.  8BF0          MOV     ESI, EAX             ;  ESI<==EAX=2A3 (第一次计算的值)  
+0040416E  |.  8D45 F8       LEA     EAX, [LOCAL.2]  
+00404171  |.  50            PUSH    EAX  
+00404172  |.  0FB7C6        MOVZX   EAX, SI              ;  EAX <==2A3  
+00404175  |.  8945 E4       MOV     [LOCAL.7], EAX       ;  SS:[12F250]<==2A3  
+00404178  |.  C645 E8 00    MOV     BYTE PTR SS:[EBP-18], 0  
+0040417C  |.  8D55 E4       LEA     EDX, [LOCAL.7]       
+;  EDX <==0012F250 (第一次计算的值的地址)
+0040417F  |.  33C9          XOR     ECX, ECX  
+00404181  |.  B8 6C434000   MOV     EAX, SnapYa!.0040436C; format   ASCII "%04x"  
+00404186  |.  E8 79D2FFFF   CALL    <JMP.&Vcl50.@Sysutils@form>  
+0040418B  |.  8D45 F4       LEA     EAX, [LOCAL.3]  
+0040418E  |.  50            PUSH    EAX  
+0040418F  |.  B9 04000000   MOV     ECX, 4               ;  ECX=4  
+00404194  |.  BA 0F000000   MOV     EDX, 0F              ;  EDX=0F  
+00404199  |.  8B45 FC       MOV     EAX, [LOCAL.1]               
+;  EAX <==SS:[12F268]=011909BC,(ASCII "789456123012345678")
+0040419C  |.  E8 AFCFFFFF   CALL    <JMP.&Vcl50.@System@@LStrC>  
+;  取试验码的最后四位"5678"
+004041A1  |.  8B45 F8       MOV     EAX, [LOCAL.2]               
+;  EAX<==SS:[12F264]=0117F40C,(ASCII " 2A3")
+004041A4  |.  E8 67CFFFFF   CALL    <JMP.&Vcl50.@System@@LStrL>  
+```
+
+
+
+```assembly
+004041A9  |.  83F8 04       CMP     EAX, 4                     ; EAX=4  
+004041AC  |.  7D 10         JGE     SHORT SnapYa!.004041BE  
+004041AE  |.  8D45 F8       LEA     EAX, [LOCAL.2]  
+004041B1  |.  8B4D F8       MOV     ECX, [LOCAL.2]  
+004041B4  |.  BA 7C434000   MOV     EDX, SnapYa!.0040437C  
+004041B9  |.  E8 62CFFFFF   CALL    <JMP.&Vcl50.@System@@LStrC>  
+
+004041BE  |>  8B45 F8       MOV     EAX, [LOCAL.2]             
+
+; EAX<==SS:[12F264]=0117F40C,(ASCII"2A3")  
+004041C1  |.  E8 4ACFFFFF   CALL    <JMP.&Vcl50.@System@@LStrL>  
+004041C6  |.  83F8 04       CMP     EAX, 4  
+004041C9  |.  7D 10         JGE     SHORT SnapYa!.004041DB  
+004041CB  |.  8D45 F8       LEA     EAX, [LOCAL.2]  
+004041CE  |.  8B4D F8       MOV     ECX, [LOCAL.2]  
+004041D1  |.  BA 7C434000   MOV     EDX, SnapYa!.0040437C  
+004041D6  |.  E8 45CFFFFF   CALL    <JMP.&Vcl50.@System@@LStrC>  
+
+004041DB  |>  8B45 F8       MOV     EAX, [LOCAL.2]  
+004041DE  |.  E8 2DCFFFFF   CALL    <JMP.&Vcl50.@System@@LStrL>  
+004041E3  |.  83F8 04       CMP     EAX, 4  
+004041E6  |.  7D 10         JGE     SHORT SnapYa!.004041F8  
+004041E8  |.  8D45 F8       LEA     EAX, [LOCAL.2]  
+004041EB  |.  8B4D F8       MOV     ECX, [LOCAL.2]  
+004041EE  |.  BA 7C434000   MOV     EDX, SnapYa!.0040437C  
+004041F3  |.  E8 28CFFFFF   CALL    <JMP.&Vcl50.@System@@LStrC>  
+
+004041F8  |>  8B45 F8       MOV     EAX, [LOCAL.2]  
+004041FB  |.  E8 10CFFFFF   CALL    <JMP.&Vcl50.@System@@LStrL>  
+00404200  |.  83F8 04       CMP     EAX, 4  
+00404203  |.  7D 10         JGE     SHORT SnapYa!.00404215  
+00404205  |.  8D45 F8       LEA     EAX, [LOCAL.2]  
+00404208  |.  8B4D F8       MOV     ECX, [LOCAL.2]  
+0040420B  |.  BA 7C434000   MOV     EDX, SnapYa!.0040437C  
+00404210  |.  E8 0BCFFFFF   CALL    <JMP.&Vcl50.@System@@LStrC>  
+
+00404215  |>  8B45 F8       MOV     EAX, [LOCAL.2]             
+
+; EAX<==SS:[12F264]=0117F40C,(ASCII"2A3")  
+00404218  |.  8038 20       CMP     BYTE PTR DS:[EAX], 20  
+0040421B  |.  75 0B         JNZ     SHORT SnapYa!.00404228  
+0040421D  |.  8D45 F8       LEA     EAX, [LOCAL.2]  
+00404220  |.  E8 23CFFFFF   CALL    <JMP.&Vcl50.@System@Unique>  
+00404225  |.  C600 30       MOV     BYTE PTR DS:[EAX], 30 ; 把得到的值前加 0  
+
+00404228  |>  8B45 F8       MOV     EAX, [LOCAL.2]             
+
+; EAX<==SS:[12F264]=0117F40C,(ASCII"02A3")  
+0040422B  |.  8078 01 20    CMP     BYTE PTR DS:[EAX+1], 20  
+0040422F  |.  75 0C         JNZ     SHORT SnapYa!.0040423D  
+00404231  |.  8D45 F8       LEA     EAX, [LOCAL.2]  
+00404234  |.  E8 0FCFFFFF   CALL    <JMP.&Vcl50.@System@Unique>  
+00404239  |.  C640 01 30    MOV     BYTE PTR DS:[EAX+1], 30  
+
+0040423D  |>  8B45 F8       MOV     EAX, [LOCAL.2]             
+
+; EAX<==SS:[12F264]=0117F40C,(ASCII"02A3")  
+00404240  |.  8078 02 20    CMP     BYTE PTR DS:[EAX+2], 20  
+00404244  |.  75 0C         JNZ     SHORT SnapYa!.00404252  
+00404246  |.  8D45 F8       LEA     EAX, [LOCAL.2]  
+00404249  |.  E8 FACEFFFF   CALL    <JMP.&Vcl50.@System@Unique>  
+0040424E  |.  C640 02 30    MOV     BYTE PTR DS:[EAX+2], 30  
+
+00404252  |>  8B45 F8       MOV     EAX, [LOCAL.2]             
+
+; EAX<==SS:[12F264]=0117F40C,(ASCII"02A3")  
+00404255  |.  8078 03 20    CMP     BYTE PTR DS:[EAX+3], 20  
+00404259  |.  75 0C         JNZ     SHORT SnapYa!.00404267  
+0040425B  |.  8D45 F8       LEA     EAX, [LOCAL.2]  
+0040425E  |.  E8 E5CEFFFF   CALL    <JMP.&Vcl50.@System@Unique>  
+00404263  |.  C640 03 30    MOV     BYTE PTR DS:[EAX+3], 30  
+
+00404267  |>  8B45 F8       MOV     EAX, [LOCAL.2]             
+
+; EAX<==SS:[12F264]=0117F40C,(ASCII"02A3")  
+0040426A  |.  8B55 F4       MOV     EDX, [LOCAL.3]             
+
+; EDX <== SS:[12F260]=011876CC,(ASCII "5678")  
+0040426D  |.  E8 BECEFFFF   CALL    <JMP.&Vcl50.@System@@LStrC>  
+; 把得到的值与试验码的最后四位比较  
+
+00404272  |.  75 04         JNZ     SHORT SnapYa!.00404278  
+00404274  |.  C645 F3 01    MOV     BYTE PTR SS:[EBP-D], 1     ; 标志  
+
+00404278  |>  8D45 F8       LEA     EAX, [LOCAL.2]  
+0040427B  |.  50            PUSH    EAX  
+0040427C  |.  B9 03000000   MOV     ECX, 3  
+00404281  |.  BA 01000000   MOV     EDX, 1  
+00404286  |.  8B45 FC       MOV     EAX, [LOCAL.1]             
+
+; EAX <==SS:[12F268]=011909BC,(ASCII "789456123012345678")  
+00404289  |.  E8 C2CEFFFF   CALL    <JMP.&Vcl50.@System@@LStrC>  
+
+0040428E  |.  8B45 F8       MOV     EAX, [LOCAL.2]             
+
+; EAX<==SS:[12F264]=01185298,(ASCII "789") 试验码的前三位  
+00404291  |.  8B15 68C04000 MOV     EDX, DWORD PTR DS:[40C068] 
+
+; EDX<==DS:[40C068]=011883EC,(ASCII "SNY")  
+00404297  |.  E8 94CEFFFF   CALL    <JMP.&Vcl50.@System@@LStrC>  
+
+; 注册码的前三位应该是"SNY"  
+0040429C  |.  75 04         JNZ     SHORT SnapYa!.004042A2  
+0040429E  |.  C645 F1 01    MOV     BYTE PTR SS:[EBP-F], 1     ; 标志  
+
+004042A2  |>  8D45 F8       LEA     EAX, [LOCAL.2]  
+004042A5  |.  50            PUSH    EAX  
+004042A6  |.  B9 01000000   MOV     ECX, 1                      ; ECX=1  
+004042AB  |.  BA 06000000   MOV     EDX, 6                      ; EDX=6  
+004042B0  |.  8B45 FC       MOV     EAX, [LOCAL.1]             
+
+EAX <==SS:[12F268]=011909BC,(ASCII "789456123012345678")  
+004042B3  |.  E8 98CEFFFF   CALL    <JMP.&Vcl50.@System@@LStrC>  
+
+004042B8  |.  8B45 F8       MOV     EAX, [LOCAL.2]  
+004042BB  |.  8B15 6CC04000 MOV     EDX, DWORD PTR DS:[40C06C]  
+004042C1  |.  E8 6ACEFFFF   CALL    <JMP.&Vcl50.@System@@LStrC>  
+
+; 比较计算得到的值的第 6 位=A  
+004042C6  |.  75 04         JNZ     SHORT SnapYa!.004042CC  
+004042C8  |.  C645 F2 01    MOV     BYTE PTR SS:[EBP-E], 1      ; 标志  
+
+004042CC  |>  8D45 F8       LEA     EAX, [LOCAL.2]  
+004042CF  |.  50            PUSH    EAX  
+004042D0  |.  B9 02000000   MOV     ECX, 2          ; ECX=2  (检查的位数)  
+004042D5  |.  BA 04000000   MOV     EDX, 4          ; EDX=4  (检查的位号)  
+004042DA  |.  8B45 FC       MOV     EAX, [LOCAL.1]             
+
+; EAX <==SS:[12F268]=011909BC,(ASCII "789456123012345678")  
+004042DD  |.  E8 6ECEFFFF   CALL    <JMP.&Vcl50.@System@@LStrC>  
+
+004042E2  |.  8B45 F8       MOV     EAX, [LOCAL.2]             
+
+; EAX=SS:[12F264]=0117AC14,(ASCII "45")  
+004042E5  |.  BA 88434000   MOV     EDX, SnapYa!.00404388      
+; EDX <==00404388, ASCII "77"  
+004042EA  |.  E8 41CEFFFF   CALL    <JMP.&Vcl50.@System@@LStrC>  
+
+; 注册码的第 4,5 不应该是 77"  
+004042EF  |.  74 0D         JE      SHORT SnapYa!.004042FE  
+004042F1  |.  8B45 F8       MOV     EAX, [LOCAL.2]             
+
+; EAX=SS:[12F264]=0117AC14,(ASCII "45")  
+004042F4  |.  E8 C3D0FFFF   CALL    <JMP.&Vcl50.@Sysutils@StrT>  
+
+; 注册码的第 4,5 是不是 77 <==如果是 77 就是完全版   (我的错误之一,现更正)  
+004042F9  |.  A3 84C04000   MOV     DWORD PTR DS:[40C084], EAX 
+
+; DS:[40C084]<==EAX=2D ('-')  
+004042FE  |>  8B45 F8       MOV     EAX, [LOCAL.2]             
+
+; EAX=SS:[12F264]=0117AC14,(ASCII "45")  
+00404301  |.  BA 88434000   MOV     EDX, SnapYa!.00404388      
+
+; EDX <==00404388, ASCII "77"  
+00404306  |.  E8 25CEFFFF   CALL    <JMP.&Vcl50.@System@@LStrC>  
+
+; 注册码的第 4,5 不是 77 就是 00  <== 如果是 00 就是 30 天的限制版 (我的错误之二,现更正)  
+0040430B  |.  75 0A         JNZ     SHORT SnapYa!.00404317  
+0040430D  |.  C705 84C04000>MOV     DWORD PTR DS:[40C084], -1   
+
+; 标志  (这是一个失败的标志)  
+00404317  |>  807D F3 01    CMP     BYTE PTR SS:[EBP-D], 1      
+
+; SS:[EBP-D]=SS:[12F25F]=01 ,(注册码的后四位=第一次计算的值的正确标志)  
+0040431B  |.  75 0E         JNZ     SHORT SnapYa!.0040432B  
+0040431D  |.  807D F2 01    CMP     BYTE PTR SS:[EBP-E], 1      
+
+; SS:[EBP-E]=SS:[12F260]=01 ,(注册码的第六位是 A 的正确标志)  
+00404321  |.  75 08         JNZ     SHORT SnapYa!.0040432B  
+00404323  |.  807D F1 01    CMP     BYTE PTR SS:[EBP-F], 1      
+
+SS:[EBP-F]=SS:[12F261]=01 ,(注册码的前三位是"SNY"的正确标志)  
+00404327  |.  75 02         JNZ     SHORT SnapYa!.0040432B  
+```
+
+
+
+## 汇编代码段 1
+
+```
+00404329  |.  B3 01         MOV     BL, 1             ; 应该是注册码成功的标志
+
+0040432B  |>  F6DB          NEG     BL
+
+0040432D  |.  1BC0         SBB     EAX, EAX
+
+0040432F  |.  8BD8         MOV     EBX, EAX
+
+00404331  |.  33C0         XOR     EAX, EAX
+
+00404333  |.  5A           POP     EDX
+
+00404334  |.  59           POP     ECX
+
+00404335  |.  59           POP     ECX
+
+00404336  |.  64:8910      MOV     DWORD PTR FS:[EAX], EDX
+
+00404339  |.  68 5B434000  PUSH    SnapYa!.0040435B
+
+0040433E  |>  8D45 EC      LEA     EAX, [LOCAL.5]
+
+00404341  |.  E8 A2CDFFFF  CALL    <JMP.&Vcl50.@System@@LStrC>
+
+00404346  |.  8D45 F4      LEA     EAX, [LOCAL.3]
+
+00404349  |.  BA 03000000  MOV     EDX, 3
+
+0040434E  |.  E8 9DCDFFFF  CALL    <JMP.&Vcl50.@System@@LStrA>
+
+00404353  \.  C3           RETN
+```
+
+## 第一次计算的地方
+
+`CALL SnapYa!.0040438C` ; 第一次计算的地方
+
+```
+0040438C  /$  55           PUSH    EBP             ; 第一次计算的地方
+
+0040438D  |.  8BEC         MOV     EBP, ESP
+
+0040438F  |.  51           PUSH    ECX
+
+00404390  |.  53           PUSH    EBX
+
+00404391  |.  8945 FC      MOV     [LOCAL.1], EAX
+
+00404394  |.  8B45 FC      MOV     EAX, [LOCAL.1]
+
+; EAX <==SS:[12F268]=011909BC,(ASCII "789456123012345678")
+
+00404397  |.  E8 9CCDFFFF  CALL    <JMP.&Vcl50.@System@@LStrA>
+
+0040439C  |.  33C0         XOR     EAX, EAX
+
+0040439E  |.  55           PUSH    EBP
+
+0040439F  |.  68 DF434000  PUSH    SnapYa!.004043DF
+
+004043A4  |.  64:FF30      PUSH    DWORD PTR FS:[EAX]
+
+004043A7  |.  64:8920      MOV     DWORD PTR FS:[EAX], ESP
+
+004043AA  |.  33C9         XOR     ECX, ECX
+
+004043AC  |.  B8 01000000  MOV     EAX, 1          ; EAX<==1 指针赋初值
+
+004043B1  |>  8B55 FC      /MOV    EDX, [LOCAL.1]
+
+; EAX <==SS:[12F268]=011909BC,(ASCII "789456123012345678")
+
+004043B4  |.  8A5402 FF    |MOV    DL, BYTE PTR DS:[EDX+EAX]->
+
+; DL <== DS:[011909BC]=37 ('7')
+
+004043B8  |.  81E2 FF000000|AND    EDX, 0FF
+
+004043BE  |.  66:03CA      |ADD    CX, DX           ; CX=CX+DX=0+37=37
+
+004043C1  |.  40           |INC     EAX              ; EAX++
+
+004043C2  |.  83F8 0E      |CMP     EAX, 0E          ; 计算的次数=14-1=13
+
+004043C5  |.^ 75 EA        \JNZ    SHORT SnapYa!.004043B1
+
+; //这段把试验码的前 13 位的 hex 值相加==>ECX
+
+004043C7  |.  8BD9         MOV     EBX, ECX          ; EBX<==ECX=2A3
+
+004043C9  |.  33C0         XOR     EAX, EAX
+
+004043CB  |.  5A           POP     EDX
+
+004043CC  |.  59           POP     ECX
+
+004043CD  |.  59           POP     ECX
+
+004043CE  |.  64:8910      MOV     DWORD PTR FS:[EAX], EDX
+
+004043D1  |.  68 E6434000  PUSH    SnapYa!.004043E6
+
+004043D6  |>  8D45 FC      LEA     EAX, [LOCAL.1]
+
+; (ASCII "7894561230123456") 的地址
+
+004043D9  |.  E8 0ACDFFFF  CALL    <JMP.&Vcl50.@System@@LStrC>
+
+004043DE  \.  C3           RETN
+```
+
+## 第四、五位如果不是 77 也不应该是
+
+```
+40003532    8BC0           MOV     EAX, EAX
+
+40003534 >  53            PUSH    EBX
+
+40003535    56            PUSH    ESI
+
+40003536    57            PUSH    EDI
+
+40003537    89C6          MOV     ESI, EAX
+
+40003539    50            PUSH    EAX
+
+4000353A    85C0          TEST    EAX, EAX
+
+4000353C    74 73         JE      SHORT Vcl50.400035B1
+
+4000353E    31C0          XOR     EAX, EAX
+
+40003540    31DB          XOR     EBX, EBX
+
+40003542    BF CCCCCC0C   MOV     EDI, 0CCCCCCC
+
+40003547    8A1E          MOV     BL, BYTE PTR DS:[ESI]
+
+; BL <== DS:[0117AC14]=34 ('4')
+
+40003549    46            INC     ESI
+
+4000354A    80FB 20       CMP     BL, 20
+
+4000354D  ^ 74 F8         JE      SHORT Vcl50.40003547
+
+4000354F    B5 00         MOV     CH, 0             ; 第四位的条件:
+
+40003551    80FB 2D       CMP     BL, 2D            ; 2D ('-')
+
+40003554    74 69         JE      SHORT Vcl50.400035BF
+
+40003556    80FB 2B       CMP     BL, 2B
+
+40003559    74 66         JE      SHORT Vcl50.400035C1
+
+4000355B    80FB 24       CMP     BL, 24
+
+4000355E    74 66         JE      SHORT Vcl50.400035C6
+
+40003560    80FB 78       CMP     BL, 78            ; 78 ('x')
+
+40003563    74 61         JE      SHORT Vcl50.400035C6
+
+40003565    80FB 58       CMP     BL, 58            ; 58 ('X')
+
+40003568    74 5C         JE      SHORT Vcl50.400035C6
+
+4000356A    80FB 30       CMP     BL, 30
+
+; <==如果是 0 就不跳,0 就正确
+
+4000356D    75 13         JNZ     SHORT Vcl50.40003582
+
+4000356F    8A1E          MOV     BL, BYTE PTR DS:[ESI]  ; BL =35 ('5')第五位
+
+40003571    46            INC     ESI
+
+40003572    80FB 78       CMP     BL, 78            ; 78 ('x')
+
+40003575    74 4F         JE      SHORT Vcl50.400035C6
+
+40003577    80FB 58       CMP     BL, 58            ; 58 ('X')
+
+4000357A    74 4A         JE      SHORT Vcl50.400035C6
+
+4000357C    84DB          TEST    BL, BL
+
+4000357E    74 20         JE      SHORT Vcl50.400035A0
+
+40003580    EB 04         JMP     SHORT Vcl50.40003586
+
+40003582    84DB          TEST    BL, BL
+
+40003584    74 34         JE      SHORT Vcl50.400035BA
+
+40003586    80EB 30       SUB     BL, 30
+
+40003589    80FB 09       CMP     BL, 9
+
+4000358C    77 2C         JA      SHORT Vcl50.400035BA
+
+4000358E    39F8          CMP     EAX, EDI
+
+40003590    77 28         JA      SHORT Vcl50.400035BA
+
+40003592    8D0480        LEA     EAX, DWORD PTR DS:[EAX+EAX*4]
+
+40003595    01C0          ADD     EAX, EAX
+
+40003597    01D8          ADD     EAX, EBX
+
+40003599    8A1E          MOV     BL, BYTE PTR DS:[ESI]
+
+; BL <== DS:[0117AC15]=35 ('5')
+
+4000359B    46            INC     ESI
+
+4000359C    84DB          TEST    BL, BL
+
+4000359E  ^ 75 E6         JNZ     SHORT Vcl50.40003586
+
+400035A0    FECD          DEC     CH
+
+400035A2    74 10         JE      SHORT Vcl50.400035B4
+
+400035A4    85C0          TEST    EAX, EAX          ; EAX=2D ('-')
+
+400035A6    7C 12         JL      SHORT Vcl50.400035BA
+
+400035A8    59            POP     ECX
+
+400035A9    31F6          XOR     ESI, ESI
+
+400035AB    8932          MOV     DWORD PTR DS:[EDX], ESI
+
+400035AD    5F            POP     EDI
+
+400035AE    5E            POP     ESI
+
+400035AF    5B            POP     EBX
+
+400035B0    C3            RETN
+```
+
+## 注册码计算的总结
+
+条件注册码的长度 = 18 位
+
+1. 注册码的前三位是: `SNY`
+2. 注册码的第六位是: `A`
+3. 注册码的第四五位有如下几种限制情况:
+   1. 如果是: `77` <== 就是完全版
+   2. 不能是: `X` 和: `x`
+   3. 如果是: `00` <== 就是 30 天限制版
+4. 注册码的第七到第十四位随便
+5. 注册码的最后四位的计算方法:
+   1. 把前 13 位的各位 `hex` 相加
+   2. 如果不足四位前面加 `0`
+
+一组可以用的注册码:
+
+- `SNY77A789456120321` <== 完全版
+- `SNY00A789456120313` <== 30 天限制版
+
+`fxyang` 更正于 `2003.3.8-12:00`
+
+`fxyang`
+
+`2003.3.7`
+
+`4dd466d0e1e0cc123afbe504da2462ca`
