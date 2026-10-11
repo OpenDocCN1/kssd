@@ -1,0 +1,309 @@
+
+# 一个视频工具的注册过程分析
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-408.htm`](https://www.pediy.com/kssd/pediy07/pediy7-408.htm)
+
+【软件名称】 Super Mp3 Converter 4.2.1
+
+【下载页面】 http://crc.onlinedown.net/soft/7235.htm
+
+【加密方式】 注册码
+
+【软件限制】 功能限制+nag 提示
+
+【软件简介】
+Super Mp3 Converter 能够在 MP3, Wave, WMA，Ogg 和 Vqf 等等这些音频文件格式中自由转换，是一个强力的音频转换工具。
+
+【破解声明】 破解只是感兴趣，没有任何目的。失误之处难免，敬望诸位大侠赐教!
+
+\-----------------------------------------------------------------------------------------------
+
+【跟踪过程】
+
+试验码(第 1 次)
+
+username:`ligyuan`
+
+regcode:`123456789`
+
+试验码(第 2 次)
+
+username:`ligyuan`
+
+regcode:`123456789abcdef24681`
+
+下断点 `bp GetdlgItem`,`Alt+F9` 返回到这里
+
+```
+0042F3DE  push 1388                       ; /Timeout = 5000. ms
+0042F3E3  call dword ptr ds:[<&KERNEL32.Sleep>]   ; \\Sleep     //调用延时函数得到注册码
+0042F3E9  mov edx,dword ptr ds:[ebx+60]
+0042F3EC  or ecx,FFFFFFFF
+0042F3EF  mov edi,edx
+0042F3F1  xor eax,eax
+0042F3F3  repne scas byte ptr es:[edi]            ;  扫描注册码     
+0042F3F5  not ecx
+0042F3F7  dec ecx
+0042F3F8  cmp ecx,14                    ;  比较注册码长度是否等于 0x14
+0042F3FB  jnz smc.0042F5DA                ;  不等直接跳失败
+0042F401  xor ecx,ecx
+0042F403  mov al,byte ptr ds:[edx]
+0042F405  cmp al,61                   ;  比较是否小于 a
+0042F407  jl short smc.0042F40F           ;  小就跳
+0042F409  cmp al,66                   ;  是否大于 f
+0042F40B  jg short smc.0042F40F           ;  大就跳
+0042F40D  sub al,7                  ;  减 7
+0042F40F  shl al,4                  ;  左移 4 位
+0042F412  mov byte ptr ss:[esp+ecx+3C],al         ;  保存在栈中
+0042F416  mov al,byte ptr ds:[edx+1]              ;  取下一个字符
+0042F419  cmp al,61                   ;  是否小于 a
+0042F41B  jl short smc.0042F425           ;  小就往下跳
+0042F41D  cmp al,66                   ;  是否大于 f
+0042F41F  jg short smc.0042F425           ;  大就跳
+0042F421  sub al,57                   ;  减 0x57
+0042F423  jmp short smc.0042F427
+0042F425  sub al,30                   ;  减 0x30
+0042F427  add byte ptr ss:[esp+ecx+3C],al         ;  与上一步的值加并存储
+0042F42B  inc ecx                   ;  ecx++
+0042F42C  add edx,2                 ;  edx+=2
+0042F42F  cmp ecx,0A                ;  比较是否大于 0x10
+0042F432  jl short smc.0042F403           ;  做上面的 10 次循环
+0042F434  push ebp
+0042F435  push smc.004EC684                 ;  ASCII "SMConvertr"
+0042F43A  lea eax,dword ptr ss:[esp+2C]
+0042F43E  push 0A
+0042F440  lea ecx,dword ptr ss:[esp+48]
+0042F444  push eax
+0042F445  push ecx
+0042F446  call smc.00442DA0                 ;  关键 call （跟进）
+0042F44B  mov al,byte ptr ss:[esp+38]          ;  给 al 赋值
+0042F44F  add esp,14
+0042F452  cmp al,72                   ;  比较第 1 字节是否为'r'
+0042F454  jnz smc.0042F5B6                ;  不等就跳走
+0042F45A  cmp byte ptr ss:[esp+25],67        ;  比较第 2 字节是否等于'f'
+0042F45F  jnz smc.0042F5B6
+0042F465  cmp byte ptr ss:[esp+2C],63        ;  比较第 9 字节是否等于'c'
+0042F46A  jnz smc.0042F5B6
+0042F470  cmp byte ptr ss:[esp+2D],78        ;  比较第 10 字节是否等于'x'
+0042F475  jnz smc.0042F5B6
+0042F47B  mov al,byte ptr ss:[esp+27]
+0042F47F  mov dl,byte ptr ss:[esp+26]
+0042F483  mov cl,byte ptr ss:[esp+28]
+0042F487  mov byte ptr ss:[esp+31],al
+0042F48B  mov byte ptr ss:[esp+30],dl
+0042F48F  mov dl,byte ptr ss:[esp+29]
+0042F493  lea eax,dword ptr ss:[esp+30]
+```
+
+F7 跟进后 F8 几步后来到这里
+
+```
+00442EF4  cmp edi,ebx
+00442EF6  jle short smc.00442F0A
+00442EF8  /xor edx,edx                ;  求得一个 ecx=0x36，作为下面的初值
+00442EFA  |mov dl,byte ptr ss:[esp+eax+DC]        ;  每次取 str1 的一个字节
+00442F01  |add edx,eax
+00442F03  |xor ecx,edx
+00442F05  |inc eax
+00442F06  |cmp eax,edi
+00442F08  \\jl short smc.00442EF8
+00442F0A  xor eax,eax
+00442F0C  cmp edi,ebx
+00442F0E  jle short smc.00442F20
+00442F10  /mov dl,byte ptr ss:[esp+eax+6C]        ;  "SMConvertr"每个字符和 cl++异或后存储
+00442F14  |xor dl,cl
+00442F16  |inc ecx
+00442F17  |mov byte ptr ss:[esp+eax+6C],dl        ;  记为 str2
+00442F1B  |inc eax
+00442F1C  |cmp eax,edi
+00442F1E  \\jl short smc.00442F10
+00442F20  xor esi,esi
+00442F22  cmp edi,ebx
+00442F24  jle short smc.00442F40
+00442F26  /xor eax,eax
+00442F28  |mov ebp,35
+00442F2D  |mov al,byte ptr ss:[esp+esi+6C]        ;  上一步转换的每一个字符除以 0x35 的余数存储
+00442F31  |cdq
+00442F32  |idiv ebp
+00442F34  |inc esi
+00442F35  |cmp esi,edi
+00442F37  |mov byte ptr ss:[esp+esi+A3],dl        ;  记为 str3
+00442F3E  \\jl short smc.00442F26
+```
+
+上面的部分都是对字符串的转换，由于 `str1="SMConvertr"` 是软件给出的定值，经它变换后的 `str2`，`str3` 也是一定了的。
+
+下面是对 `str1`,`str2`,`str3`，和变换后的假码 `vcode` 的处理，
+
+```
+00442F40  mov eax,ecx
+00442F42  mov ecx,35
+00442F47  cdq
+00442F48  idiv ecx
+00442F4A  mov eax,dword ptr ss:[esp+11C]
+00442F51  xor esi,esi
+00442F53  xor cl,cl
+00442F55  mov byte ptr ss:[esp+13],bl
+00442F59  mov byte ptr ss:[esp+18],cl
+00442F5D  mov byte ptr ss:[esp+14],bl
+00442F61  mov dword ptr ss:[esp+54],ebx
+00442F65  mov dword ptr ss:[esp+58],eax
+00442F69  mov dword ptr ss:[esp+5C],edx
+00442F6D  mov edx,dword ptr ss:[esp+118]
+00442F74  sub edx,eax
+00442F76  mov dword ptr ss:[esp+60],edx
+00442F7A  /mov edx,dword ptr ss:[esp+60]           ;  给 edx 赋值 edx=0x18
+00442F7E  |mov eax,dword ptr ss:[esp+58]
+00442F82  |mov edi,dword ptr ss:[esp+120]          ;  需要运行的次数
+00442F89  |movsx eax,byte ptr ds:[edx+eax]         ;  这里每一次取经注册码转换后的一个字节
+00442F8D  |mov edx,dword ptr ss:[esp+54]           ;  把运行次数赋给 edx
+00442F91  |cmp edx,edi                  ;  比较是否达到了 0xa 次
+00442F93  |jnb smc.004430BF
+00442F99  |mov edx,dword ptr ss:[esp+128]
+00442FA0  |test edx,edx                 ;  是否为零
+00442FA2  |je short smc.00442FE3           ;  不就跳
+00442FA4  |mov bl,byte ptr ss:[esp+esi+6C]
+00442FA8  |mov dl,byte ptr ss:[esp+esi+DC]
+00442FAF  |mov edi,ebx
+00442FB1  |mov ebp,edx
+00442FB3  |and edi,0FF
+00442FB9  |and ebp,0FF
+00442FBF  |xor edi,ebp
+00442FC1  |mov ebp,dword ptr ss:[esp+14]
+00442FC5  |and ebp,0FF
+00442FCB  |mov byte ptr ss:[esp+14],cl
+00442FCF  |xor edi,ebp
+00442FD1  |mov ebp,dword ptr ss:[esp+18]
+00442FD5  |and ebp,0FF
+00442FDB  |xor edi,ebp
+00442FDD  |xor eax,edi
+00442FDF  |mov cl,al
+00442FE1  |jmp short smc.00443026
+00442FE3  |mov bl,byte ptr ss:[esp+esi+6C]         ;  每次取 str2 的一个字节
+00442FE7  |mov dl,byte ptr ss:[esp+esi+DC]         ;  每次取 str1 的一个字节
+00442FEE  |mov edi,ebx                   ;  ebx 的值给 edi
+00442FF0  |mov ebp,edx                   ;  edx 的值给 ebp
+00442FF2  |and edi,0FF                   ;  取低位
+00442FF8  |and ebp,0FF                   ;  取低位
+00442FFE  |xor edi,ebp                   ;  异或后送 edi
+00443000  |mov ebp,dword ptr ss:[esp+14]           ;  取上轮保存的一个值
+00443004  |and ebp,0FF                   ;  取低位
+0044300A  |mov dword ptr ss:[esp+68],eax           ;  把 eax 的值保存
+0044300E  |xor edi,ebp                   ;  异或后送 edi
+```
+
+
+
+## 汇编代码片段
+
+```
+00443010  |mov ebp,dword ptr ss:[esp+18]           ; 取上一轮保存的一个值  
+00443014  |and ebp,0FF                             ; 取低位  
+0044301A  |mov byte ptr ss:[esp+14],cl             ; cl 保存在 ss:[esp+14]中  
+0044301E  |mov cl,byte ptr ss:[esp+68]             ; 给 cl 赋值  
+00443022  |xor edi,ebp                             ; 异或后送 edi  
+00443024  |xor eax,edi                             ; 异或后送 eax  
+00443026  |mov edi,dword ptr ss:[esp+58]           ; 得到偏移地址  
+0044302A  |mov ebp,dword ptr ss:[esp+64]  
+0044302E  |mov byte ptr ss:[esp+18],cl             ; cl 的值保存在 ss:[esp=18]中  
+00443032  |mov byte ptr ds:[edi],al                ; al 的值保存在 ds:[edi]中 <<<<<<<关键部分  
+00443034  |mov eax,dword ptr ss:[esp+54]  
+00443038  |inc eax  
+00443039  |inc edi  
+0044303A  |mov dword ptr ss:[esp+54],eax           ; 已运行次数保存  
+0044303E  |xor eax,eax                             ; 清 0  
+00443040  |mov al,byte ptr ss:[esp+esi+A4]         ; 每次取 str3 的一个字节  
+00443047  |mov dword ptr ss:[esp+58],edi           ; 保存偏移地址、  
+0044304B  |mov edi,dword ptr ss:[esp+5C]           ; 给 edi 赋值  
+0044304F  |mov al,byte ptr ss:[esp+eax+1C]         ; 给 al 赋值  
+00443053  |add al,dl                               ; al+=dl  
+00443055  |mov dl,byte ptr ss:[esp+edi+1C]         ; 给 dl 赋值  
+00443059  |add dl,bl  
+0044305B  |mov byte ptr ss:[esp+esi+DC],al         ; 保存 al  
+00443062  |mov byte ptr ss:[esp+esi+6C],dl         ; 保存 dl  
+00443066  |inc esi  
+00443067  |cmp esi,ebp                             ; 比较是否循环了 0xa 次  
+00443069  |jnz smc.00442F7A  
+```
+
+## 单次处理逻辑分析
+
+从代码可以看出单次处理过程是这样：`cl`、`temp1`、`temp2` 的初值是 0，`c[10]` 是处理后的注册码
+
+```
+c[i]=str1[i]^str2[i]  
+c[i]^=temp1;  
+temp1=cl;  
+cl=vcode[i]  
+c[i]^=temp2;  
+temp2=cl  
+c[i]^=cl  
+```
+
+## 算法总结
+
+注册码与用户名无关但不能为空，注册码的长度为 20 位，由注册码经过一系列的转换得到 `c[10]`
+
+```
+c[1]=str1[1]^str2[1]^vcode[1]⁰⁰;  
+c[2]=str1[2]^str2[2]^vcode[2]^vcode[1]⁰  
+c[3]=str1[3]^str2[3]^vcode[3]^vcode[2]^vcode[1]  
+c[4]=str1[4]^str2[4]^vcode[4]^vcode[3]^vcode[2]  
+......  
+......  
+c[9]=str1[9]^str2[9]^vcode[9]^vcode[8]^vcode[7]  
+c[10]=str1[10]^str2[10]^vcode[10]^vcode[9]^vcode[8]  
+```
+
+然后比较 `c[0]==0x72`、`c[1]==0x67`、`c[8]==0x63`、`c[9]==0x78`，全等则可以正确注册。
+
+由于 `str1[i++]^str2[i++]=0x36+i++`
+
+可以知道 `vcode[1]=0x44`，`vcode[2]=0x14`
+
+所以前 4 位注册码可以简单的得出，比如 `4414`，或者 `T4q4`，`3D0D` 等等皆可
+
+任取后 4 位，假设为 `5=0`；则有 `0x78=0x3f⁰x0b⁰x5d^vcode[8]`，`vcode[8]=0x11`
+
+同样可以得到 `vcode[7]=0x11`，这是可以构造这 4 位为 `1111` 或者 `0A11` 或 `0A0A`
+
+其他的任填。可以得出一住组册码 `441400vdasqw0A115=0`
+
+因此只需确定最后 4 位注册码，整个注册码就可以求出来了。
+
+## 示例代码
+
+```c
+void main(){  
+  unsigned char vcode[2];  
+  char code[17];  
+  for(int i=0;i<16;i++){  
+  time_t tt;  
+  srand((unsigned) time(&tt));  
+  code[i]=rand()%0x4e+0x30;  
+  }  
+  for(int i=0;i<2;i++){  
+  if(code[2*i+12]>='a'&&code[2*i+12]<='f')  
+    vcode[i]=code[i+12]-7;  
+  vcode[i]<<=4;  
+  if(code[2*i+13]>='a'&&code[2*i+13]<='f')  
+    vcode[i]+=code[2*i+13]-0x57;  
+  else  
+    vcode[i]+=code[2*i+13]-0x30;  
+  }  
+  vcode[1]=0x3f⁰x78^vcode[1]^vcode[0];  
+  vcode[0]=0x3e⁰x63^vcode[1]^vcode[0];  
+  code[8]=vcode[0]/16+0x30;  
+  code[9]=vcode[0]%16+0x30;  
+  code[10]=vcode[1]/16+0x30;  
+  code[11]=vcode[1]%16+0x30;  
+  code[16]='\0';  
+  printf("4414%s",code);  
+}  
+```
+
+有很多方面没有一一列出。
+
+注册信息放在 `HKLM\SOFTWARE\SACONVERTER\SACONVERTER` 下
+
+`4dd466d0e1e0cc123afbe504da2462ca`

@@ -1,0 +1,221 @@
+
+# Sohoanywhere V7.0
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-141.htm`](https://www.pediy.com/kssd/pediy07/pediy7-141.htm)
+
+【破解作者】 落魄浪子
+【使用工具】 `FlyOD1.1`
+【破解平台】 Win9x/NT/2000/XP
+【软件名称】 `Sohoanywhere` V7.0
+【下载地址】 `http://www.newhua.com/soft/7208.htm`
+【加壳方式】 `UPX` 0.89.6 - 1.02 / 1.05 - 1.24 (`Delphi`) stub -> Markus & Laszlo
+【破解声明】 我是一只小菜鸟，偶得一点心得，愿与大家分享：）
+
+---
+
+## 破解内容
+
+这个程序的 6.0 版，我以前也只能爆破了它，现在翻出并把它的注册算法找了出，原来它的注册算法很单简。今天下了它的新版本 7.0，来看看它的注册算法。
+
+先运行一下 `Sohoanywhere.exe` 程序，然后从 `\\\\SYSTEM32` 根目录下复制出它的子程序，这就是主程。`UPX` 壳，`UPX-Ripper` 脱了它。注册码错误时会有注册码错误的提示，然后程序退出。OK，用 `OD` 载入。
+
+```asm
+0054C548 R> $ 55           push ebp    程序入口
+0054C549   . 8BEC         mov ebp,esp
+0054C54B   . 83C4 F4      add esp,-0C
+0054C54E   . 53           push ebx
+0054C54F   . B8 40C05400  mov eax,Realview.0054C040
+0054C554   . E8 0BB9EBFF  call Realview.00407E64
+```
+
+找到出错字符串并在关键地方下断
+
+```asm
+0050041D   . E8 C2B2F3FF  call Realview.0043B6E4
+00500422   . 83BD 98FEFFFF 00 cmp dword ptr ss:[ebp-168],0
+00500429   . 74 57        je short Realview.00500482      第一组注册码是否为空
+0050042B   . 8D95 94FEFFFF lea edx,dword ptr ss:[ebp-16C]
+00500431   . 8B45 FC      mov eax,dword ptr ss:[ebp-4]
+00500434   . 8B80 08030000 mov eax,dword ptr ds:[eax+308]
+0050043A   . E8 A5B2F3FF  call Realview.0043B6E4
+0050043F   . 83BD 94FEFFFF 00 cmp dword ptr ss:[ebp-16C],0
+00500446   . 74 3A        je short Realview.00500482       第二组注册码是否为空
+00500448   . 8D95 90FEFFFF lea edx,dword ptr ss:[ebp-170]
+0050044E   . 8B45 FC      mov eax,dword ptr ss:[ebp-4]
+00500451   . 8B80 0C030000 mov eax,dword ptr ds:[eax+30C]
+00500457   . E8 88B2F3FF  call Realview.0043B6E4
+0050045C   . 83BD 90FEFFFF 00 cmp dword ptr ss:[ebp-170],0
+00500463   . 74 1D        je short Realview.00500482       第三组注册码是否为空
+00500465   . 8D95 8CFEFFFF lea edx,dword ptr ss:[ebp-174]
+0050046B   . 8B45 FC      mov eax,dword ptr ss:[ebp-4]
+0050046E   . 8B80 04030000 mov eax,dword ptr ds:[eax+304]
+00500474   . E8 6BB2F3FF  call Realview.0043B6E4
+00500479   . 83BD 8CFEFFFF 00 cmp dword ptr ss:[ebp-174],0
+00500480   . 75 76        jnz short Realview.005004F8      第一组注册码是否为空
+00500482 >  BB D0070000   mov ebx,7D0
+00500487 >  B8 64000000   mov eax,64
+0050048C >  B8 7D000000   mov eax,7D
+00500491   . E8 AA2FF0FF  call Realview.00403440
+```
+---------------------略过代码----这段代码是看看程序是否运行在 2000 年以前---------------------
+```asm
+0050053C   . 8B85 88FEFFFF mov eax,dword ptr ss:[ebp-178]  第一组注册码入 EAX
+00500542   . E8 F19EF0FF    call Realview.0040A438      把第一组注册码转成十六进制记为 N1
+00500547   . 8BD8           mov ebx,eax                N1 入 EAX
+00500549   . 8D95 84FEFFFF  lea edx,dword ptr ss:[ebp-17C]
+0050054F   . 8B45 FC        mov eax,dword ptr ss:[ebp-4]
+00500552   . 8B80 08030000  mov eax,dword ptr ds:[eax+308]
+00500558   . E8 87B1F3FF    call Realview.0043B6E4
+0050055D   . 8B85 84FEFFFF  mov eax,dword ptr ss:[ebp-17C]  第二组注册码入 EAX
+00500563   . E8 D09EF0FF    call Realview.0040A438  把第二组注册码转成十六进制记为 N2
+00500568   . 03D8           add ebx,eax               N1 加 N2 结果记为 S1
+0050056A   . 8D95 80FEFFFF  lea edx,dword ptr ss:[ebp-180]
+00500570   . 8B45 FC        mov eax,dword ptr ss:[ebp-4]
+00500573   . 8B80 0C030000  mov eax,dword ptr ds:[eax+30C]
+00500579   . E8 66B1F3FF    call Realview.0043B6E4
+0050057E   . 8B85 80FEFFFF  mov eax,dword ptr ss:[ebp-180]  第三组注册码入 EAX
+00500584   . E8 AF9EF0FF    call Realview.0040A438  把第三组注册码转成十六进制记为 N3
+00500589   . 8BF0           mov esi,eax             N3 入 ESI
+0050058B   . 8D95 7CFEFFFF  lea edx,dword ptr ss:[ebp-184]
+00500591   . 8B45 FC        mov eax,dword ptr ss:[ebp-4]
+00500594   . 8B80 10030000  mov eax,dword ptr ds:[eax+310]
+0050059A   . E8 45B1F3FF    call Realview.0043B6E4
+0050059F   . 8B85 7CFEFFFF  mov eax,dword ptr ss:[ebp-184] 第四组注册码入 EAX
+005005A5   . E8 8E9EF0FF    call Realview.0040A438  把第四组注册码转成十六进制记为 N4
+005005AA   . 0FAFF0         imul esi,eax            N3 乘 N4 结果记为 S2
+005005AD   . 03DE           add ebx,esi             S1 加 S2 结果记为 S3
+005005AF   . A1 981D5500    mov eax,dword ptr ds:[551D98] *注意 00551D98 处的值，把这个值记为 N5
+005005B4   . 8B00           mov eax,dword ptr ds:[eax]
+005005B6   . E8 7D9EF0FF    call Realview.0040A438  把 N5 转成十六进制记为 N6
+005005BB   . 3BD8           cmp ebx,eax
+005005BD   . 0F85 F3030000 jnz Realview.005009B6   比较 S3 是否等于 N6，不等则跳到出错。
+```
+
+好了我们现在来找到 00551D98 处的值，看看它是怎样计算的。
+
+```asm
+004FF64C  |. FF52 0C        call dword ptr ds:[edx+C]
+004FF64F  |. 8BC6           mov eax,esi
+004FF651  |. 8B15 74335500  mov edx,dword ptr ds:[553374]
+004FF657  |. 8B52 28        mov edx,dword ptr ds:[edx+28]   硬盘序列号入 EDX
+004FF65A  |. E8 B550F0FF    call Realview.00404714
+```
+-----------------------略过代码--------------------------------------------------
+```asm
+004FF66C  |> /A1 74335500  mov eax,dword ptr ds:[553374]
+004FF671  |. |E8 8641F0FF  call Realview.004037FC
+004FF676  \\. |C3            retn   返回
+004FF677   .^\E9 3C49F0FF  jmp Realview.00403FB8
+004FF67C   .^ EB EE        jmp short Realview.004FF66C
+004FF67E   . 5E            pop esi                 ; 00F8FAB4
+004FF67F   . 5B            pop ebx
+004FF680   . 5D            pop ebp
+004FF681   . C3            retn   返回
+004FF6CB   . 33C0          xor eax,eax  返回到这里
+004FF6CD   . 5A            pop edx
+004FF6CE   . 59            pop ecx
+004FF6CF   . 59            pop ecx
+004FF6D0   . 64:8910       mov dword ptr fs:[eax],edx
+004FF6D3   . EB 17         jmp short Realview.004FF6EC
+004FF6D5   .^ E9 2A46F0FF jmp Realview.00403D04
+```
+-----------------------略过代码--------------------------------------------------
+```asm
+004FF6E7   . E8 7449F0FF  call Realview.00404060
+004FF6EC   > 837D F8 00   cmp dword ptr ss:[ebp-8],0
+004FF6F0   . 75 36        jnz short Realview.004FF728  读取硬盘序列号是否成功
+```
+-----------------------略过代码--------------------------------------------------
+```asm
+004FF73B   > /33C0        xor eax,eax
+004FF73D   . |55          push ebp
+004FF73E   . |68 6CF74F00 push Realview.004FF76C
+004FF743   . |64:FF30     push dword ptr fs:[eax]
+004FF746   . |64:8920     mov dword ptr fs:[eax],esp
+004FF749   . |8D55 F0     lea edx,dword ptr ss:[ebp-10]
+004FF74C   . |8B45 F8     mov eax,dword ptr ss:[ebp-8] 序列号入 EAX
+004FF74F   . |0FB600      movzx eax,byte ptr ds:[eax] 取序列号的一位的十六进制入 EAX
+004FF752   . |E8 29ACF0FF call Realview.0040A380       序列号转成十进制
+004FF757   . |8B55 F0     mov edx,dword ptr ss:[ebp-10]
+004FF75A   . |8D45 F4     lea eax,dword ptr ss:[ebp-C]
+004FF75D   . |E8 0E52F0FF call Realview.00404970
+004FF762   . |33C0        xor eax,eax
+004FF764   . |5A          pop edx
+004FF765   . |59          pop ecx
+004FF766   . |59          pop ecx
+004FF767   . |64:8910     mov dword ptr fs:[eax],edx
+004FF76A   . |EB 15       jmp short Realview.004FF781
+004FF76C   .^|E9 9345F0FF jmp Realview.00403D04
+004FF771   . |8D45 F4     lea eax,dword ptr ss:[ebp-C]
+004FF774   . |8B55 F4     mov edx,dword ptr ss:[ebp-C]
+004FF777   . |E8 DC4FF0FF call Realview.00404758
+004FF77C   . |E8 DF48F0FF call Realview.00404060
+004FF781   > |8D45 F8     lea eax,dword ptr ss:[ebp-8]
+```
+
+
+
+```
+004FF784    . |50                    push eax  
+004FF785    . |8B45 F8              mov eax,dword ptr ss:[ebp-8]  
+004FF788    . |E8 DB51F0FF          call Realview.00404968  
+004FF78D    . |8BC8                 mov ecx,eax  
+004FF78F    . |49                   dec ecx  
+004FF790    . |BA 02000000          mov edx,2  
+004FF795    . |8B45 F8              mov eax,dword ptr ss:[ebp-8]  
+004FF798    . |E8 D353F0FF          call Realview.00404B70  
+004FF79D    > |8B45 F8              mov eax,dword ptr ss:[ebp-8] 序列号入 EAX  
+004FF7A0    . |E8 C351F0FF          call Realview.00404968  取得序列号长度  
+004FF7A5    . |85C0                 test eax,eax  
+004FF7A7    . ^.\\7F 92              jg short Realview.004FF73B  是否取完，没有则继续。  
+004FF7A9    .  8B45 F4              mov eax,dword ptr ss:[ebp-C]  转换后的序列号入 EAX  
+004FF7AC    .  E8 B751F0FF          call Realview.00404968  取长度  
+004FF7B1    .  83F8 09              cmp eax,9  
+004FF7B4    .  7C 16                jl short Realview.004FF7CC  
+004FF7B6    .  8D45 F4              lea eax,dword ptr ss:[ebp-C]  
+004FF7B9    .  50                   push eax  
+004FF7BA    .  B9 09000000          mov ecx,9  
+004FF7BF    .  BA 01000000          mov edx,1  
+004FF7C4    .  8B45 F4              mov eax,dword ptr ss:[ebp-C]     序列号入 EAX  
+004FF7C7    .  E8 A453F0FF          call Realview.00404B70           取序列号的前 9 位  
+004FF7CC    > \\8B45 F4              mov eax,dword ptr ss:[ebp-C]     9 位序列号入 EAX  
+004FF7CF    .  E8 64ACF0FF          call Realview.0040A438           9 位序列号转成十六进制记为 A1  
+004FF7D4    .  8BD8                 mov ebx,eax                       A1 入 EBX  
+004FF7D6    .  A1 78175500          mov eax,dword ptr ds:[551778]     这里存放的是代表版本的数字  
+004FF7DB    .  8338 00              cmp dword ptr ds:[eax],0  
+004FF7DE    .  74 31                je short Realview.004FF811        0 为共享版  
+004FF7E0    .  A1 78175500          mov eax,dword ptr ds:[551778]  
+004FF7E5    .  8338 01              cmp dword ptr ds:[eax],1         1 为专业版  
+004FF7E8    .  75 05                jnz short Realview.004FF7EF  
+004FF7EA    .  83C3 65              add ebx,65                       为专业版则 A1 加上 65  
+004FF7ED    .  EB 22                jmp short Realview.004FF811  
+004FF7EF    >  A1 78175500          mov eax,dword ptr ds:[551778]  
+004FF7F4    .  8338 02              cmp dword ptr ds:[eax],2         2 为企业版  
+004FF7F7    .  75 08                jnz short Realview.004FF801  
+004FF7F9    .  81C3 CA000000        add ebx,0CA                       为企业版则 A1 加上 0CA  
+004FF7FF    .  EB 10                jmp short Realview.004FF811  
+004FF801    >  A1 78175500          mov eax,dword ptr ds:[551778]  
+004FF806    .  8338 03              cmp dword ptr ds:[eax],3  
+004FF809    .  75 06                jnz short Realview.004FF811  
+004FF80B    .  81C3 2F010000        add ebx,12F  
+004FF811    >  8BC3                 mov eax,ebx  
+004FF813    .  B9 03000000          mov ecx,3  
+004FF818    .  99                   cdq  
+004FF819    .  F7F9                 idiv ecx      为共享版则直接 A1 除 3 取商，其它的在相加后除 3 取商。  
+004FF81B    .  8B55 FC              mov edx,dword ptr ss:[ebp-4]  
+004FF81E    .  E8 5DABF0FF          call Realview.0040A380  
+```
+
+【破解总结】
+
+注册码只能是数字，把每一组注册码转换成十六进制，然后第一组注册码与第二组注册码相加记为`N1`，第三组注册码乘第四组注册码的结果记为`N2`，然后`N1`与`N2`相加记为`N3`。
+
+取硬盘的序列号，把硬盘的序列号转成十进制，取转换后的序列号的前 9 位记为`S1`。`S1` 转换成十六进制如果是共享版则`S1` 除 3 取商，如果是专业版则`S1` 加上 `65` 再除 3 取商，如果是企业版则`S1` 加上 `0CA` 再除 3 取商记为`S2`。`N3` 如果等于 `S2` 则注册成功。
+
+设注册码为：`A`,`B`,`C`,`D` 转成十六进制
+
+注册码的计算式：`(A+C)+(C*D)=S2`
+
+【版权声明】 本文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢!
+
+`4dd466d0e1e0cc123afbe504da2462ca`
