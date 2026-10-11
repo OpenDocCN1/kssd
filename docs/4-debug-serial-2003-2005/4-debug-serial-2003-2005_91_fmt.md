@@ -1,0 +1,154 @@
+
+# CTris2000
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6172.htm`](https://www.pediy.com/kssd/pediy06/pediy6172.htm)
+
+ADC 游戏完全破解之三——`CTris2000`
+
+呵呵，ADC 公司是我成长的摇篮!!下面来看第三个软件 `CTris2000`,一个怪怪的俄罗斯方块游戏，没兴趣玩了，开工吧。
+
+前半部分的过程仍然和 `B-Puzzle`,`B-Jigsaw` 两个游戏差不多，只是那个字串变变而已(参考我的前两篇文章)
+
+先得到 `NAME`，如果小于 8 个字符就用空格来补，然后取第 1,3,5,7 个字符与字符串`"0002sirTCtanaRApnYtoNa"`中第 1,3,5,7 个字符进行异或运算，将每次得到的值变为十进制后作为两位 `CODE`，(如果是 2 位十进制数就把它翻转；如果是 1 位十进制数 `X` 就写成`'1X'`；如果是 3 位 `XYZ` 就写成 `XY`),这样最后的 `CODE` 就是 8 位。(这一部分省略)
+
+得出那个 8 位码后来到这里:
+
+```
+:0046C2D8 8B45FC                 mov eax, dword ptr [ebp-04]
+:0046C2DB E8087AF9FF             call 00403CE8
+:0046C2E0 85C0                   test eax, eax
+:0046C2E2 7E1F                   jle 0046C303
+:0046C2E4 BB01000000             mov ebx, 00000001
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0046C301(C)
+|
+:0046C2E9 8D5303                 lea edx, dword ptr [ebx+03]  <--edx=ebx+3
+:0046C2EC 8BCB                   mov ecx, ebx                 <--ecx=ebx
+:0046C2EE 49                     dec ecx                      <--ecx=ecx-1
+:0046C2EF 0FAFD1                 imul edx, ecx                <--edx=edx*ecx
+                                 <--即 edx=(ebx+3)*(ebx-1)
+:0046C2F2 8B4DFC                 mov ecx, dword ptr [ebp-04]
+:0046C2F5 0FB64C19FF             movzx ecx, byte ptr [ecx+ebx-01] <--依次取 NAME 中的字符
+:0046C2FA 0FAFD1                 imul edx, ecx              <--edx=edx*ecx
+:0046C2FD 03F2                   add esi, edx               <--esi=esi+edx
+                                 <--esi 就是最终结果的数值形式
+:0046C2FF 43                     inc ebx                  <--ebx+1
+:0046C300 48                     dec eax                  <--eax-1; eax 为 NAME 长度(包括空格)
+:0046C301 75E6                   jne 0046C2E9             <--循环次数为 NAME 的长度
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0046C2E2(C)
+|
+:0046C303 8B45FC                 mov eax, dword ptr [ebp-04]
+:0046C306 E8DD79F9FF             call 00403CE8
+:0046C30B 85C0                   test eax, eax
+:0046C30D 7E33                   jle 0046C342
+:0046C30F BB01000000             mov ebx, 00000001
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0046C340(C)
+|                                 <--循环开始
+:0046C314 8B55FC                 mov edx, dword ptr [ebp-04]
+:0046C317 0FB6541AFF             movzx edx, byte ptr [edx+ebx-01] <--依次取 NAME 中的字符给 edx
+:0046C31C 8D1452                 lea edx, dword ptr [edx+2*edx]  <--edx=edx*3
+:0046C31F 03F2                   add esi, edx                   <--esi=esi+edx
+:0046C321 8B55FC                 mov edx, dword ptr [ebp-04]
+:0046C324 0FB6541AFF             movzx edx, byte ptr [edx+ebx-01] <--还是那个字符
+:0046C329 6BD232                 imul edx, 00000032              <--edx=edx*32
+:0046C32C 03F2                   add esi, edx                   <--esi=esi+edx
+:0046C32E 8B55FC                 mov edx, dword ptr [ebp-04]
+:0046C331 0FB6541AFF             movzx edx, byte ptr [edx+ebx-01] <--还是那个字符
+:0046C336 69D2E8030000           imul edx, 000003E8              <--edx=edx*3E8
+:0046C33C 03F2                   add esi, edx                   <--esi=esi+edx
+:0046C33E 43                     inc ebx
+:0046C33F 48                     dec eax
+:0046C340 75D2                   jne 0046C314        <--循环次数为 NAME 长度
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0046C30D(C)
+|                                 <--下面是把 esi 转为字符之类
+:0046C342 8D55E4                 lea edx, dword ptr [ebp-1C]
+:0046C345 8BC6                   mov eax, esi
+:0046C347 E8D4BAF9FF             call 00407E20
+:0046C34C 8B4DE4                 mov ecx, dword ptr [ebp-1C]
+:0046C34F 8B45F8                 mov eax, dword ptr [ebp-08]
+:0046C352 BAD8C34600             mov edx, 0046C3D8
+:0046C357 E8D879F9FF             call 00403D34
+:0046C35C 33C0                   xor eax, eax
+:0046C35E 5A                     pop edx
+:0046C35F 59                     pop ecx
+:0046C360 59                     pop ecx
+:0046C361 648910                 mov dword ptr fs:[eax], edx
+:0046C364 6886C34600             push 0046C386
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0046C384(U)
+|
+:0046C369 8D45E4                 lea eax, dword ptr [ebp-1C]
+:0046C36C BA05000000             mov edx, 00000005
+:0046C371 E81677F9FF             call 00403A8C
+:0046C376 8D45FC                 lea eax, dword ptr [ebp-04]
+:0046C379 E8EA76F9FF             call 00403A68
+:0046C37E C3                     ret
+```
+
+整理一下: (设第 `n` 次取得的字符 ASCII 码为 `R`)
+
+```
+ESI = ESI + R * (n+3) * (n-1) + R * 3 + R * 50 + R * 1000 ;还要再加上前缀 'CT'
+(50 = 32H, 1000 = 3E8H)
+```
+
+注册机:(Borland Pascal 7.0)
+
+```pascal
+Program CrackCTris;
+
+var st,name:string;
+    s :array[1..8] of longint;
+    i,p,code:longint;
+
+begin
+   st:='0002sirTCtanaRApnYtoNa';
+   write('Please input your name:');
+   readln(name);
+   if length(name)<=8 then name:=name+'        '; {8 blanks}
+   p:=1;
+   repeat i:=(ord(st[p]) xor ord(name[p]));
+          if i>=100 then i:=i div 10;
+          if i<10 then begin s[p]:=1; s[p+1]:=i; end
+          else begin
+          s[p]:=i mod 10;
+          s[p+1]:=i div 10;
+          end;
+          p:=p+2;
+   until p>8;
+   code:=s[1]*10000000+s[2]*1000000+s[3]*100000
+         +s[4]*10000+s[5]*1000+s[6]*100+s[7]*10+s[8];
+   for p:=1 to length(name) do
+   begin
+        i:=ord(name[p]);
+        code:=code+i*(p+3)*(p-1);
+        code:=code+i*3+i*50+i*1000;
+   end;
+   writeln('CODE:CT',code);
+   writeln('Crack By RoBa');
+end.
+```
+
+一个可用的注册码: `NAME:RoBa`
+
+```
+CODE:CT89785072
+```
+
+`NAME: (什么也不填)`
+
+```
+CODE:CT61891460
+```
+
+呵呵，这样比较省事~~~
+
+`4dd466d0e1e0cc123afbe504da2462ca`
