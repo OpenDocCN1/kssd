@@ -1,0 +1,1153 @@
+
+# 易语言 Windows 系统风云 V4.5 两层简单壳反反脱壳
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-490.htm`](https://www.pediy.com/kssd/pediy07/pediy7-490.htm)
+
+【脱文标题】 易语言 Windows 系统风云 V4.5 两层简单壳反反脱壳+(一锅端+1)破解
+
+【脱文作者】 weiyi75[Dfcg][D.4s]
+
+【作者邮箱】 `weiyi75@sohu.com`
+
+【作者主页】 Dfcg 官方大本营+龙族联盟论坛
+
+【使用工具】 `Peid`, `Ollydbg`，`Loadpe`, `ImportREC`, `Active Registry Monitor`
+
+【脱壳平台】 Win2000/XP
+
+【软件名称】 Windows 系统风云 V4.5
+
+【软件简介】 Windows 系统风云是一款智能管理、维护、优化系统的绿色工具软件。特色功能：清除垃圾文件、清理注册表垃圾、系统信息修改、系统安全与优化、软件智能卸载、常规 Internet 设置、木马病毒预防与清除。
+
+【软件大小】 1.02M
+
+【加壳方式】 外层病毒免疫器＋里层 Aspack
+
+【保护方式】 Crc32 算法+Keyfile+20 次试用
+
+【破解目的】 为我的破解之路铺一块小石头
+
+【脱壳声明】 我是一只小菜鸟，偶得一点心得，愿与大家分享：）
+
+--------------------------------------------------------------------------------
+
+【脱壳内容】
+
+首先 `Peid` 查壳，`ASPack 2.12 -> Alexey Solodovnikov`，这个是加壳人做了手脚的，外面一层不知是什么壳，独孤求胜的 Windows 优化精灵据说外面有一层病毒免疫器，姑且算是吧，一共是两层壳。
+
+当我们学完进阶篇后，一般的复合加壳很难逃过我们的眼睛。
+
+`OD` 载入程序
+
+```
+004A2082 >  60               pushad   //第一层未知壳入口。
+004A2083    E8 00000000      call Windows\_.004A2088
+004A2088    5D               pop ebp
+004A2089    81ED B6A44500    sub ebp, Windows\_.0045A4B6
+004A208F    8DBD B0A44500    lea edi, dword ptr ss:[ebp+45A4B0]
+004A2095    81EF 82000000    sub edi, 82
+004A209B    89BD 18A84500    mov dword ptr ss:[ebp+45A818], edi
+004A20A1    8B4F 18          mov ecx, dword ptr ds:[edi+18]
+004A20A4    89FE             mov esi, edi
+004A20A6    0377 14          add esi, dword ptr ds:[edi+14]
+004A20A9    8B47 10          mov eax, dword ptr ds:[edi+10]
+004A20AC    E8 2A060000      call Windows\_.004A26DB
+004A20B1    8B4F 24          mov ecx, dword ptr ds:[edi+24]
+..................................................................
+```
+
+根据 `PUSHAD` 和 `POPAD` 对应的特征
+
+直接 `Ctrl+F` 向下找 `Popad`
+
+```
+004A2350    61               popad   //这里并不是，是花指令
+004A2351    6A 00            push 0
+004A2353    FF90 94A84500    call dword ptr ds:[eax+45A894]
+004A2359    8BBD 18A84500    mov edi, dword ptr ss:[ebp+45A818]
+004A235F    E8 07040000      call Windows\_.004A276B
+004A2364   ^ 72 E6          jb short Windows\_.004A234C
+004A2366    8B85 B8A74500    mov eax, dword ptr ss:[ebp+45A7B8]
+004A236C    0347 28          add eax, dword ptr ds:[edi+28]
+004A236F    894424 1C        mov dword ptr ss:[esp+1C], eax
+004A2373    61               popad     //壳或入口特征码
+004A2374    FFE0             jmp eax  //直接 F4 下来。
+0049E001    60               pushad  //这个认识，是 Aspack 入口。当然用 Esp 定律。
+0049E002    E8 03000000      call Windows\_.0049E00A  //到这里 ESP=0012FFA4
+```
+
+去 `OD` 命令行下
+
+`D 12ffa4`
+
+然后下硬件访问－Dword 断点，`F9` 运行中断
+
+```
+0049E007  - E9 EB045D45      jmp 45A6E4F7
+0049E00C    55               push ebp
+0049E00D    C3               retn
+0049E00E    E8 01000000      call Windows\_.0049E014
+0049E013    EB 5D            jmp short Windows\_.0049E072
+0049E015    BB EDFFFFFF      mov ebx, -13
+0049E01A    03DD             add ebx, ebp
+0049E01C    81EB 00E00900    sub ebx, 9E000
+0049E022    83BD 22040000 0> cmp dword ptr ss:[ebp+422], 0
+0049E029    899D 22040000    mov dword ptr ss:[ebp+422], ebx
+0049E02F    0F85 65030000    jnz Windows\_.0049E39A
+.................................................................
+0049E3AF    61               popad
+0049E3B0    75 08            jnz short Windows\_.0049E3BA //中断在这里。
+0049E3B2    B8 01000000      mov eax, 1
+0049E3B7    C2 0C00          retn 0C
+0049E3BA    68 00104000      push Windows\_.00401000  //入口 00401000 入堆栈
+0049E3BF    C3               retn
+00401000      E8             db E8  //点右键分析代码。
+00401001      06             db 06
+00401002      00             db 00
+00401003      00             db 00
+00401004      00             db 00
+00401005      50             db 50                   ;  CHAR 'P'
+00401006      E8             db E8
+00401007      A1             db A1
+00401000   .  E8 06000000    call Windows\_.0040100B  //这里用 Loadpe 脱壳。
+00401005   .  50             push eax                  ; /ExitCode
+00401006   .  E8 A1010000    call Windows\_.004011AC            ; \ExitProcess
+0040100B   $  55             push ebp
+0040100C   .  8BEC           mov ebp, esp
+0040100E   .  81C4 F0FEFFFF  add esp, -110
+00401014   .  EB 6D          jmp short Windows\_.00401083
+...............................................................
+```
+
+运行 `ImportREC`，选择这个进程。把 OEP 改为 `1000`，点 `IT AutoSearch`，点“Get Import”，有 1 个无效的函数，这是填充的垃圾指针，根本无法修，直接用剪刀剪掉。
+
+运行脱壳程序，无法运行，版本升级改进了加入反脱壳。
+
+反反脱壳可以用
+
+`bp ExitProcess`
+
+也可以用 `bp CreateFileA`
+
+载入脱壳程序
+
+```
+77E5B476 >  55               push ebp  //中断
+77E5B477    8BEC             mov ebp, esp
+77E5B479    FF75 08          push dword ptr ss:[ebp+8]
+77E5B47C    E8 11FFFFFF      call kernel32.77E5B392
+77E5B481    85C0             test eax, eax
+77E5B483    0F84 A3FF0100    je kernel32.77E7B42C
+77E5B489    FF75 20          push dword ptr ss:[ebp+20]
+```
+
+堆栈友好提示
+
+```
+0012FA58   00494DAA  /CALL 到 CreateFileA 来自 dumped\_.00494DA5
+0012FA5C   00232460  |FileName = "\\.NTICE"  //首先必杀目标是 Softice Nt 版,不过我从来不用 Softice。
+0012FA60   C0000000  |Access = GENERIC_READ|GENERIC_WRITE
+0012FA64   00000003  |ShareMode = FILE_SHARE_READ|FILE_SHARE_WRITE
+0012FA68   00000000  |pSecurity = NULL
+0012FA6C   00000003  |Mode = OPEN_EXISTING
+```
+
+继续还是每按一次 `F9` 检测一种调试器
+
+又按了 22 次 `F9`
+
+堆栈友好提示
+
+```
+0012F8B4   100AC5F0  /CALL 到 CreateFileA 来自 krnln.100AC5EA
+0012F8B8   00EBB760  |FileName = "E:\\Program Files\\Windows 系统风云\\dumped\_.exe"
+0012F8BC   80000000  |Access = GENERIC_READ
+0012F8C0   00000001  |ShareMode = FILE_SHARE_READ
+0012F8C4   0012F9E4  |pSecurity = 0012F9E4
+0012F8C8   00000003  |Mode = OPEN_EXISTING
+0012F8CC   00000080  |Attributes = NORMAL
+0012F8D0   00000000  \hTemplateFile = NULL
+```
+
+现在还不用返回，破解要多次火力探测，重启 N 次 `OD`，我到文章完成是已经用了 4 个多小时构思，调试等，仅仅破解一会就搞定了。
+
+又按了一次 `F9`
+
+```
+0012F8B4   100AC5F0  /CALL 到 CreateFileA 来自 krnln.100AC5EA
+0012F8B8   00EBB7B0  |FileName = "E:\\Program Files\\Windows 系统风云\\internet.fne"
+0012F8BC   80000000  |Access = GENERIC_READ
+0012F8C0   00000001  |ShareMode = FILE_SHARE_READ
+0012F8C4   0012F9E4  |pSecurity = 0012F9E4
+0012F8C8   00000003  |Mode = OPEN_EXISTING
+0012F8CC   00000080  |Attributes = NORMAL
+0012F8D0   00000000  \hTemplateFile = NULL
+0012F8D4   002325D6
+0012F8D8   00408A93  dumped\_.00408A93
+```
+
+`FileName = "E:\\Program Files\\Windows 系统风云\\internet.fne"` //这个是什么文件，大小 1k，我用记事本打开一看。
+
+`49ba7f178b26123374b016313800b0e3` //这个是文件大小校验和，编程时就计算好了。
+
+现在可以返回了。
+
+第一次 `Alt+F9`，然后 `Ctrl+F9` 根据 `OD` 提示返回。
+
+```
+100AC5F0    83F8 FF         cmp eax, -1   //ALT+F9
+100AC5F3    75 28           jnz short krnln.100AC61D
+100AC5F5    8B75 10         mov esi, dword ptr ss:[ebp+10]
+100AC5F8    85F6            test esi, esi
+100AC5FA    74 1D           je short krnln.100AC619
+100AC5FC    FF15 FCC20B10   call dword ptr ds:[100BC2FC]             ; ntdll.RtlGetLastWin32Error
+```
+
+然后 `Ctrl+F9`
+
+```
+100AC629    C2 0C00         retn 0C
+100296B4    C2 0800         retn 8
+1005C704    C3              retn
+10028858    C3              retn
+```
+
+`OD` 提示你要返回到 `00494B57`，`F8` 一下。
+
+```
+00494B57    83C4 10         add esp, 10  //回家的感觉真好。
+00494B5A    8945 F0         mov dword ptr ss:[ebp-10], eax
+00494B5D    68 01030080     push 80000301
+00494B62    6A 00           push 0
+00494B64    68 0A000000     push 0A
+00494B69    68 05000080     push 80000005
+00494B6E    6A 00           push 0
+00494B70    8B45 F0         mov eax, dword ptr ss:[ebp-10]
+00494B73    85C0            test eax, eax
+00494B75    75 05           jnz short dumped\_.00494B7C
+00494B77    B8 90344000     mov eax, dumped\_.00403490
+00494B7C    50              push eax
+00494B7D    68 02000000     push 2
+00494B82    BB 9C010000     mov ebx, 19C
+00494B87    E8 9A2D0000     call dumped\_.00497926
+00494B8C    83C4 1C         add esp, 1C
+00494B8F    8945 E4         mov dword ptr ss:[ebp-1C], eax
+```
+
+
+
+## 内存与汇编分析
+
+### 代码段
+`00494B92` `8955 E8` `mov dword ptr ss:[ebp-18], edx`
+`00494B95` `894D EC` `mov dword ptr ss:[ebp-14], ecx`
+`00494B98` `8B5D F0` `mov ebx, dword ptr ss:[ebp-10]`
+`00494B9B` `85DB` `test ebx, ebx`
+`00494B9D` `74 09` `je short dumped_.00494BA8`
+`..........................................................................................`
+`00494BDD` `E8 3F17FDFF` `call dumped_.00466321` // 一直到这里
+
+### 堆栈信息提示
+`0012FA98` `002325F0` `ASCII "49ba7f178b26123374b016313800b0e3"` // 未脱壳文件校验和
+`0012FA9C` `00232528` `ASCII "d640ac3262ec3ef968b78c4914b5340e"` // 脱壳文件校验和
+`0012FAA0` `00232488`
+`0012FAA4` `00232460`
+`0012FAA8` `10055B84` `返回到 krnln.10055B84 来自 krnln.10029C00`
+`0012FAAC` `00000000`
+`0012FAB0` `00232528` `ASCII "d640ac3262ec3ef968b78c4914b5340e"`
+`0012FAB4` `002325F0` `ASCII "49ba7f178b26123374b016313800b0e3"`
+
+### 继续代码段
+`00494BE2` `83C4 08` `add esp, 8`
+`00494BE5` `83F8 00` `cmp eax, 0` // 比较 `eax` 是否为 0，这时是 -1
+`00494BE8` `0F84 0A000000` `je dumped_.00494BF8` // 可选爆破点 1，因为我们可以一锅端解决它，所以是可选爆破点。
+`00494BEE` `6A 00` `push 0`
+`00494BF0` `E8 FB2C0000` `call dumped_.004978F0` // 死亡 Call, 执行 Over。
+`00494BF5` `83C4 04` `add esp, 4`
+`00494BF8` `8B5D FC` `mov ebx, dword ptr ss:[ebp-4]`
+`00494BFB` `85DB` `test ebx, ebx`
+`00494BFD` `74 09` `je short dumped_.00494C08`
+`00494BFF` `53` `push ebx`
+`00494C00` `E8 092D0000` `call dumped_.0049790E`
+`....................................................................`
+
+第一处是文件大小校验，还有五处未知校验。
+
+### 跟进死亡 Call
+
+#### 跳转表
+`004978F0` `- FF25 7D264600` `jmp dword ptr ds:[46267D]` `; krnln.10028FF4`
+// 就是这里，里面调用易语言领空。
+
+`004978F6` `- FF25 81264600` `jmp dword ptr ds:[462681]` `; krnln.10028F5F`
+`004978FC` `- FF25 85264600` `jmp dword ptr ds:[462685]` `; krnln.10028F89`
+`00497902` `- FF25 89264600` `jmp dword ptr ds:[462689]` `; krnln.100287A5`
+`00497908` `- FF25 71264600` `jmp dword ptr ds:[462671]` `; krnln.10028FB4`
+`0049790E` `- FF25 79264600` `jmp dword ptr ds:[462679]` `; krnln.100290BC`
+`00497914` `- FF25 6D264600` `jmp dword ptr ds:[46266D]` `; krnln.10028F38`
+`0049791A` `- FF25 61264600` `jmp dword ptr ds:[462661]` `; krnln.100287CA`
+`00497920` `- FF25 69264600` `jmp dword ptr ds:[462669]` `; krnln.10028F19`
+`00497926` `- FF25 65264600` `jmp dword ptr ds:[462665]` `; krnln.10028821`
+`0049792C` `- FF25 59264600` `jmp dword ptr ds:[462659]` `; krnln.10028EFB`
+`00497932` `- FF25 5D264600` `jmp dword ptr ds:[46265D]` `; krnln.100287BF`
+`00497938` `- FF25 75264600` `jmp dword ptr ds:[462675]` `; krnln.10029011`
+
+我们暂时修改了 `Z` 标志，程序还是退出了。
+
+没办法，还是用
+```
+bp ExitProcess
+```
+拦截所有的退出调用，发现都是调用
+`004978F6` `- FF25 81264600` `jmp dword ptr ds:[462681]` `; krnln.10028F5F`
+
+跟进这个 Call
+
+`10028FF4` `55` `push ebp` // 往下看到 `ExitProcess` 没有。
+
+先修改
+```
+ret
+```
+`10028FF5` `8BEC` `mov ebp, esp`
+`10028FF7` `8B45 08` `mov eax, dword ptr ss:[ebp+8]`
+`10028FFA` `50` `push eax`
+`10028FFB` `B9 88480E10` `mov ecx, krnln.100E4888`
+`10029000` `E8 ABB00200` `call krnln.100540B0`
+`10029005` `8B4D 08` `mov ecx, dword ptr ss:[ebp+8]`
+`10029008` `51` `push ecx`
+`10029009` `FF15 B0C30B10` `call dword ptr ds:[100BC3B0]` `; kernel32.ExitProcess`
+`1002900F` `5D` `pop ebp`
+`10029010` `C3` `retn`
+`...........................................................`
+
+然后由于好奇，对
+`004978F0` `- FF25 7D264600` `jmp dword ptr ds:[46267D]` `; krnln.10028FF4`
+`004978F6` `- FF25 81264600` `jmp dword ptr ds:[462681]` `; krnln.10028F5F`
+`004978FC` `- FF25 85264600` `jmp dword ptr ds:[462685]` `; krnln.10028F89`
+`00497902` `- FF25 89264600` `jmp dword ptr ds:[462689]` `; krnln.100287A5`
+`00497908` `- FF25 71264600` `jmp dword ptr ds:[462671]` `; krnln.10028FB4`
+`0049790E` `- FF25 79264600` `jmp dword ptr ds:[462679]` `; krnln.100290BC`
+`00497914` `- FF25 6D264600` `jmp dword ptr ds:[46266D]` `; krnln.10028F38`
+`0049791A` `- FF25 61264600` `jmp dword ptr ds:[462661]` `; krnln.100287CA`
+`00497920` `- FF25 69264600` `jmp dword ptr ds:[462669]` `; krnln.10028F19`
+`00497926` `- FF25 65264600` `jmp dword ptr ds:[462665]` `; krnln.10028821`
+`0049792C` `- FF25 59264600` `jmp dword ptr ds:[462659]` `; krnln.10028EFB`
+`00497932` `- FF25 5D264600` `jmp dword ptr ds:[46265D]` `; krnln.100287BF`
+`00497938` `- FF25 75264600` `jmp dword ptr ds:[462675]` `; krnln.10029011`
+
+全部下断点，然后 `F9`，估计其它的易语言都会有这个跳转表，是各种事件的集中点。
+
+所有调用
+`004978F0` `- FF25 7D264600` `jmp dword ptr ds:[46267D]` `; krnln.10028FF4`
+
+退出指令都被我们的
+```
+ret
+```
+拒绝了, ^-^, 和 `Nop` 的作用可不同啊，这个是直接返回，`Nop` 是什么也不做。
+
+然后我们 `F9` 不停中断，看堆栈
+
+`0012FA70` `00494DCC` `返回到 dumped_.00494DCC 来自 dumped_.0049790E`
+`0012FA74` `00232460` `ASCII "\\\\.\\NTiced155"`
+`0012FA78` `7FFDEC00` `UNICODE "\\\\.\\NTiced155"`
+`0012FA7C` `FFFFFFFF`
+`0012FA80` `0012FA78`
+`0012FA84` `00232460` `ASCII "\\\\.\\NTiced155"`
+`0012FA70` `00000000`
+`0012FA74` `80000004`
+`0012FA78` `7FFDEC00` `UNICODE "\\\\.\\FILEVXD"`
+`0012FA7C` `002324F0` `ASCII 4F,"llyDbg\nBW2000\nW32Dasm\nSoftICE\nWinHex\nNumega SmartCheck //怒，这些都上黑名单了。\nPEiD\nProcDump32"`
+
+`0012FA40` `00495102` `返回到 dumped_.00495102 来自 dumped_.00497926`
+`0012FA44` `00000004`
+`0012FA48` `002324F0` `ASCII "Default IM"`
+`0012FA4C` `00000000`
+`0012FA50` `80000004`
+`0012FA54` `00215250` `ASCII "OllyDbg"` // 普通 `OD`
+`0012FA40` `00495102` `dumped_.00495102`
+`0012FA44` `00000004`
+`0012FA48` `002324F0` `ASCII "Default IM"`
+`0012FA4C` `00000000`
+`0012FA50` `80000004`
+`0012FA54` `00215250` `ASCII "OllyDbg"`
+`0012FA58` `00000000`
+`0012FA5C` `80000004`
+`0012FA60` `00000000`
+`0012FA64` `00000000`
+`0012FA68` `00000000`
+`0012FA6C` `00000000`
+`0012FA70` `00495115` `返回到 dumped_.00495115 来自 dumped_.0049790E`
+`0012FA74` `00215250` `ASCII "OllyDbg"`
+`0012FA78` `7FFDEC00` `UNICODE "User32.dll"`
+`0012FA7C` `00232480`
+`0012FA80` `FFFFFFFF`
+`0012FA84` `00215250` `ASCII "OllyDbg"`
+`0012FA88` `002324F0` `ASCII "Default IM"`
+`0012FA40` `00495102` `返回到 dumped_.00495102 来自 dumped_.00497926`
+`0012FA44` `00000004`
+`0012FA48` `002324F0` `ASCII "Default IM"`
+`0012FA4C` `00000000`
+`0012FA50` `80000004`
+`0012FA54` `00215250` `ASCII "W32Dasm"`
+`0012FA70` `00495115` `返回到 dumped_.00495115 来自 dumped_.0049790E`
+`0012FA74` `00215250` `ASCII "WinHex"`
+`0012FA78` `7FFDEC00` `UNICODE "User32.dll"`
+`0012FA7C` `00232480`
+`0012FA80` `FFFFFFFF`
+`0012FA84` `00215250` `ASCII "WinHex"`
+`0012FA88` `002324F0` `ASCII "Default IM"`
+`0012FA70` `00495115` `返回到 dumped_.00495115 来自 dumped_.0049790E`
+`0012FA74` `00232460` `ASCII "Numega SmartCheck"` // 可以调试易语言吗?
+`0012FA78` `7FFDEC00` `UNICODE "User32.dll"`
+`0012FA7C` `00232480`
+`0012FA80` `FFFFFFFF`
+`0012FA84` `00232460` `ASCII "Numega SmartCheck"`
+`0012FA40` `00495102` `返回到 dumped_.00495102 来自 dumped_.00497926`
+`0012FA44` `00000004`
+`0012FA48` `002324F0` `ASCII "Default IM"`
+`0012FA4C` `00000000`
+`0012FA50` `80000004`
+`0012FA54` `00215250` `ASCII "PEiD"` // 真是可笑，这个也查!
+`0012FA40` `00495102` `返回到 dumped_.00495102 来自 dumped_.00497926`
+`0012FA44` `00000004`
+`0012FA48` `002324F0` `ASCII "Default IM"`
+`0012FA4C` `00000000`
+`0012FA50` `80000004`
+`0012FA54` `00215250` `ASCII "KeyMake"` // 注册机工具。
+`0012FA40` `00495102` `返回到 dumped_.00495102 来自 dumped_.00497926`
+`0012FA44` `00000004`
+`0012FA48` `002324F0` `ASCII "Default IM"`
+`0012FA4C` `00000000`
+`0012FA50` `80000004`
+`0012FA54` `00215250` `ASCII "RegMon"` // `regmon` 和 `filemon` 是必防软件。
+`0012FA40` `00495102` `返回到 dumped_.00495102 来自 dumped_.00497926`
+`0012FA44` `00000004`
+`0012FA48` `002324F0` `ASCII "Default IM"`
+
+
+
+`0012FA4C`   `00000000`  
+
+`0012FA50`   `80000004`  
+
+`0012FA54`   `00215250`  ASCII `"CASPR"`  //脱壳机，还有什么黑名单?  
+
+检测太多了，我们取消除了
+
+`004978F0`  -  `FF25 7D264600`   `jmp dword ptr ds:[46267D]`        ; `krnln.10028FF4`
+
+的所有断点，花样差不多都看到了。
+
+这里启动大概中断 5 次，一次文件大小和 5 处未知校验。
+
+我们的 `ret` 返回就全部看到了。
+
+```
+00494BE5    83F8 00          cmp eax, 0
+00494BE8    0F84 0A000000   je dumped_.00494BF8
+00494BEE    6A 00           push 0
+00494BF0    E8 FB2C0000     call dumped_.004978F0
+004653C7    F6C4 41         test ah, 41
+004653CA    0F85 0A000000   jnz dumped_.004653DA
+004653D0    6A 00           push 0
+004653D2    E8 19250300     call dumped_.004978F0
+00465525    F6C4 41         test ah, 41
+00465528    0F85 0A000000   jnz dumped_.00465538
+0046552E    6A 00           push 0
+00465530    E8 BB230300     call dumped_.004978F0
+004659DC    F6C4 41         test ah, 41
+004659DF    0F85 0A000000   jnz dumped_.004659EF
+004659E5    6A 00           push 0
+004659E7    E8 041F0300     call dumped_.004978F0
+00465625    F6C4 41         test ah, 41
+00465628    0F85 0A000000   jnz dumped_.00465638
+0046562E    6A 00           push 0
+00465630    E8 BB220300     call dumped_.004978F0
+```
+除了这些还有功能调用校验，同样被 `ret` 挡回。
+
+```
+00468584    F6C4 41         test ah, 41
+00468587    0F85 0A000000   jnz dumped_.00468597   //垃圾清理
+0046858D    6A 00           push 0
+0046858F    E8 5CF30200     call dumped_.004978F0
+004705A9    F6C4 41         test ah, 41
+004705AC    0F85 0A000000   jnz dumped_.004705BC   //清理注册表
+004705B2    6A 00           push 0
+004705B4    E8 37730200     call dumped_.004978F0
+```
+就不一一列举。
+
+现在可以一锅端爆破了，但你发现关闭按钮的叉叉也被挡住了！这样爆破的程序就关闭不了了。
+
+这个也简单，一锅端爆破
+
+`10028FF4`    `55`           `push ebp`
+
+修改为
+
+`10028FF4`    `C3`           `retn`  //所有的校验调用全部打回，本庭不予受理。
+
+`10028FF5`    `8BEC`         `mov ebp, esp`  //我们可以让叉叉按钮调用直接 `Call` 这里，正常调用关闭事件。
+
+`10028FF7`    `8B45 08`      `mov eax, dword ptr ss:[ebp+8]`
+
+`10028FFA`    `50`           `push eax`
+
+`10028FFB`    `B9 88480E10`  `mov ecx, krnln.100E4888`
+
+`10029000`    `E8 ABB00200`  `call krnln.100540B0`
+
+`10029005`    `8B4D 08`      `mov ecx, dword ptr ss:[ebp+8]`
+
+`10029008`    `51`           `push ecx`
+
+`10029009`    `FF15 B0C30B10` `call dword ptr ds:[100BC3B0]`       ; `kernel32.ExitProcess`
+
+`1002900F`    `5D`           `pop ebp`
+
+`10029010`    `C3`           `retn`
+
+一锅端+1 爆破
+
+`00467DFA`    `E8 F1FA0200`  `call dumped_.004978F0`  //叉叉按钮调用
+
+修改为
+
+`00467DFA`    `E8 F611BC0F`  `call krnln.10028FF5`  //合理分配，^-^
+
+`00467DFF`    `83C4 04`      `add esp, 4`
+
+`00467E02`    `8BE5`         `mov esp, ebp`
+
+`00467E04`    `5D`           `pop ebp`
+
+`00467E05`    `C3`           `retn`
+
+保存两处修改，什么校验都解决了。
+
+壳脱了当然要爆破了。
+
+运行之前我们要习惯性的给程序照相，看它往注册表或 `Winnt` 路径写什么信息限制我们。
+
+原来是有 20 次试用限制。
+
+我们这次用的是著名的注册表跟踪信息软件。
+
+`Active Registry Monitor`
+
+汉化新世纪有下载的。
+
+使用方法很容易，运行程序，在关闭时给注册表照相，然后关闭程序，再次照相，然后比较，结果就出来了。
+
+`[HKEY_USERS\S-1-5-21-507921405-2111687655-1060284298-500`
+
+`\Software\Microsoft\Windows\CurrentVersion]`
+
+`"Windows1"=dword:00000001`  //记录了使用次数。
+
+这次软件在其它地方也保存了记录，删除这里没有用了。
+
+当然这个并不能使我们满足。
+
+既然知道程序启动时候要读取注册表，那么就从这里入手吧。
+
+`Od` 载入脱壳程序。
+
+`命令行`
+
+`bp RegQueryValueExA`
+
+首先我们要分析作者判断你是否注册的流程，如果 `OD` 读取了 `"Windows1"=dword:00000001` 信息，这时程序已经判断你没有注册，我们这时可以返回程序领空，向上分析出关键判断点。
+
+`F9` 运行。
+
+`77DA2410` >  `55`           `push ebp`  //中断
+
+`77DA2411`    `8BEC`         `mov ebp, esp`
+
+`77DA2413`    `83EC 2C`      `sub esp, 2C`
+
+`77DA2416`    `57`           `push edi`
+
+`77DA2417`    `33FF`         `xor edi, edi`
+
+`77DA2419`    `397D 10`      `cmp dword ptr ss:[ebp+10], edi`
+
+`77DA241C`    `897D F8`      `mov dword ptr ss:[ebp-8], edi`
+
+`77DA241F`    `897D F4`      `mov dword ptr ss:[ebp-C], edi`
+
+`77DA2422`    `0F85 37F60000` `jnz ADVAPI32.77DB1A5F`
+
+`77DA2428`    `397D 18`      `cmp dword ptr ss:[ebp+18], edi`
+
+堆栈友好提示
+
+`0012F750`   `009A9F14`  /CALL 到 `RegQueryValueExA` 来自 `ole32.009A9F0E`  //继续 `F9`，关注堆栈内容。
+
+`0012F754`   `0000004C`  |hKey = `4C`
+
+`0012F758`   `00995188`  |ValueName = `"CriticalSectionTimeout"`
+
+`0012F75C`   `00000000`  |Reserved = `NULL`
+
+`0012F760`   `00000000`  |pValueType = `NULL`
+
+`0012F764`   `0012F790`  |Buffer = `0012F790`
+
+`0012F768`   `0012F794`  \pBufSize = `0012F794`
+
+继续 5 次 `F9`
+
+堆栈友好提示
+
+`0012FBF0`   `1005E970`  /CALL 到 `RegQueryValueExA` 来自 `krnln.1005E96E`
+
+`0012FBF4`   `000000A4`  |hKey = `A4`
+
+`0012FBF8`   `0040332C`  |ValueName = `"Windows1"`  /程序已经读取了使用次数键值，是时候返回了，清除断点。
+
+`0012FBFC`   `00000000`  |Reserved = `NULL`
+
+`0012FC00`   `0012FC28`  |pValueType = `0012FC28`
+
+`0012FC04`   `00000000`  |Buffer = `NULL`
+
+`0012FC08`   `0012FC90`  \pBufSize = `0012FC90`
+
+`0012FC0C`   `00233346`
+
+`0012FC10`   `00403388`  `Windows_.00403388`
+
+`0012FC14`   `0012FCF8`
+
+`0012FC18`   `100DC77C`  `krnln.100DC77C`
+
+`Alt+F9`
+
+`1005E970`    `85C0`         `test eax, eax`   //返回到这里，我们看 `OD` 标题发现还在系统领空。易语言的特征就是不断访问运行库，最终肯定要回到程序领空，我们不断的 `Ctrl+F9`，看着 `OD` 信息框提示我们。
+
+`1005E972`    `0F85 49020000` `jnz krnln.1005EBC1`
+
+`1005E978`    `8B4424 1C`    `mov eax, dword ptr ss:[esp+1C]`
+
+`1005E97C`    `83F8 03`      `cmp eax, 3`
+
+`1005E97F`    `75 0F`        `jnz short krnln.1005E990`
+
+`1005E981`    `83BC24 80000000>` `cmp dword ptr ss:[esp+80], 2`
+
+`1005E989`    `74 2F`        `je short krnln.1005E9BA`
+
+`1005E98B`    `E9 31020000`  `jmp krnln.1005EBC1`
+
+`1005E990`    `83F8 01`      `cmp eax, 1`
+
+继续 `Ctrl+F9`
+
+又按了 3 次。
+
+`00465414`    `E8 0D250300`  `call Windows_.00497926`
+
+`00465419`    `83C4 28`      `add esp, 28`  //返回到这里。
+
+`0046541C`    `8945 F8`      `mov dword ptr ss:[ebp-8], eax`
+
+`0046541F`    `837D F8 14`   `cmp dword ptr ss:[ebp-8], 14`  //比较是否到了 20 次，也是可选爆破点。
+
+`00465423`    `0F8E 3B000000` `jle Windows_.00465464`
+
+`00465429`    `68 04000080`  `push 80000004`
+
+`0046542E`    `6A 00`        `push 0`
+
+`00465430`    `68 35334000`  `push Windows_.00403335`
+
+`00465435`    `68 01030080`  `push 80000301`
+
+`0046543A`    `6A 00`        `push 0`
+
+`0046543C`    `68 40000000`  `push 40`
+
+`00465441`    `68 04000080`  `push 80000004`
+
+`00465446`    `6A 00`        `push 0`
+
+`00465448`    `68 47334000`  `push Windows_.00403347`
+
+然后我们要向上分析出关键点。
+
+`004653DA`    `E8 65020000`  `call Windows_.00465644`  //F7 进入
+
+`004653DF`    `8945 F8`      `mov dword ptr ss:[ebp-8], eax`  `EAX=1` 下面就跳过了，而 `EAX=?`是由 `call Windows_.00465644` 决定的。
+
+`004653E2`    `837D F8 00`   `cmp dword ptr ss:[ebp-8], 0`   
+
+`004653E6`    `0F85 78000000` `jnz Windows_.00465464`  //看这里的跳转，刚好跳过读取使用次数，简单爆破这里只是永远不过期，点关于对话框还是说你没注册。`call Windows_.00465644`
+
+`004653EC`    `6A 00`        `push 0`
+
+`004653EE`    `6A 00`        `push 0`
+
+`004653F0`    `6A 00`        `push 0`
+
+`004653F2`    `68 04000080`  `push 80000004`
+
+`004653F7`    `6A 00`        `push 0`
+
+`004653F9`    `68 02334000`  `push Windows_.00403302`                   ; ASCII 
+
+`"Software\Microsoft\Windows\CurrentVersion\Windows1"`
+
+`004653FE`    `68 01030080`  `push 80000301`
+
+`00465403`    `6A 00`        `push 0`
+
+`00465405`    `68 03000000`  `push 3`
+
+`0046540A`    `68 03000000`  `push 3`
+
+`0046540F`    `BB 9C060000`  `mov ebx, 69C`
+
+`00465414`    `E8 0D250300`  `call Windows_.00497926`
+
+`00465419`    `83C4 28`      `add esp, 28`
+
+`0046541C`    `8945 F8`      `mov dword ptr ss:[ebp-8], eax`
+
+`0046541F`    `837D F8 14`   `cmp dword ptr ss:[ebp-8], 14`
+
+`00465423`    `0F8E 3B000000` `jle Windows_.00465464`
+
+.....................................................................
+
+`00465644`    `55`           `push ebp`
+
+`00465645`    `8BEC`         `mov ebp, esp`
+
+`00465647`    `81EC 1C000000` `sub esp, 1C`
+
+`0046564D`    `68 00000000`  `push 0`
+
+`00465652`    `BB 04010000`  `mov ebx, 104`
+
+`00465657`    `E8 CA220300`  `call Windows_.00497926`
+
+`0046565C`    `83C4 04`      `add esp, 4`
+
+`0046565F`    `8945 FC`      `mov dword ptr ss:[ebp-4], eax`
+
+`00465662`    `6A FF`        `push -1`
+
+`00465664`    `6A 08`        `push 8`
+
+`00465666`    `68 5B0E0116`  `push 16010E5B`
+
+`0046566B`    `68 01000152`  `push 52010001`
+
+`00465670`    `E8 AB220300`  `call Windows_.00497920`
+
+`00465675`    `83C4 10`      `add esp, 10`
+
+`00465678`    `8945 F8`      `mov dword ptr ss:[ebp-8], eax`
+
+
+
+0046567B    68 84334000     push `Windows\_.00403384`                   ; ASCII `".key"`  
+
+00465680    FF75 F8         push `dword` ptr `ss:\[ebp-8\]`  
+
+00465683    68 E7324000    push `Windows\_.004032E7`  
+
+00465688    FF75 FC        push `dword` ptr `ss:\[ebp-4\]`  
+
+0046568B    B9 04000000    mov `ecx`, 4  
+
+00465690    E8 6BFBFFFF    call `Windows\_.00465200`  
+
+00465695    83C4 10        add `esp`, 10  
+
+00465698    8945 F4        mov `dword` ptr `ss:\[ebp-C\]`, `eax`  
+
+0046569B    8B5D FC        mov `ebx`, `dword` ptr `ss:\[ebp-4\]`  
+
+0046569E    85DB           test `ebx`, `ebx`  
+
+004656A0    74 09          je short `Windows\_.004656AB`  
+
+004656A2    53             push `ebx`  
+
+004656A3    E8 66220300    call `Windows\_.0049790E`  
+
+004656A8    83C4 04        add `esp`, 4  
+
+004656AB    8B5D F8        mov `ebx`, `dword` ptr `ss:\[ebp-8\]`  
+
+004656AE    85DB           test `ebx`, `ebx`  
+
+004656B0    74 09          je short `Windows\_.004656BB`  
+
+004656B2    53             push `ebx`  
+
+004656B3    E8 56220300    call `Windows\_.0049790E`  
+
+004656B8    83C4 04        add `esp`, 4  
+
+004656BB    68 04000080    push `80000004`  
+
+004656C0    6A 00          push 0  
+
+004656C2    8B45 F4        mov `eax`, `dword` ptr `ss:\[ebp-C\]`  
+
+004656C5    85C0           test `eax`, `eax`  
+
+004656C7    75 05          jnz short `Windows\_.004656CE`  
+
+004656C9    B8 E9324000    mov `eax`, `Windows\_.004032E9`  
+
+004656CE    50             push `eax`  
+
+004656CF    68 01000000    push 1  
+
+004656D4    BB 4C020000    mov `ebx`, `24C`  
+
+004656D9    E8 48220300    call `Windows\_.00497926`  
+
+004656DE    83C4 10        add `esp`, 10  
+
+004656E1    8945 F0        mov `dword` ptr `ss:\[ebp-10\]`, `eax`  
+
+004656E4    8B5D F4        mov `ebx`, `dword` ptr `ss:\[ebp-C\]`  
+
+004656E7    85DB           test `ebx`, `ebx`  
+
+004656E9    74 09          je short `Windows\_.004656F4`  
+
+004656EB    53             push `ebx`  
+
+004656EC    E8 1D220300    call `Windows\_.0049790E`  
+
+004656F1    83C4 04        add `esp`, 4  
+
+004656F4    837D F0 00     cmp `dword` ptr `ss:\[ebp-10\]`, 0  
+
+004656F8    0F85 0A000000  jnz `Windows\_.00465708`  
+
+004656FE    B8 00000000    mov `eax`, 0   //这里就是爆破点了。  
+
+修改为  
+
+004656FE    B8 01000000    mov `eax`, 1  
+
+00465703    E9 93010000     jmp `Windows\_.0046589B`  //这里就跳走了，慢着，把 `Eax` 里面的值为 1 你才能走!  
+
+00465708    6A FF          push -1  
+
+0046570A    6A 08          push 8  
+
+0046570C    68 5B0E0116    push `16010E5B`     //下面一大堆加密算法。  
+
+00465711    68 01000152    push `52010001`  
+
+00465716    E8 05220300    call `Windows\_.00497920`  
+
+0046571B    83C4 10        add `esp`, 10  
+
+0046571E    8945 FC        mov `dword` ptr `ss:\[ebp-4\]`, `eax`  
+
+00465721    68 04000080    push `80000004`  
+
+00465726    6A 00          push 0  
+
+00465728    8B45 FC        mov `eax`, `dword` ptr `ss:\[ebp-4\]`  
+
+0046572B    85C0           test `eax`, `eax`  
+
+0046572D    75 05          jnz short `Windows\_.00465734`  
+
+0046572F    B8 E9324000    mov `eax`, `Windows\_.004032E9`  
+
+00465734    50             push `eax`  
+
+00465735    68 01000000    push 1  
+
+0046573A    BB 98010000    mov `ebx`, `198`  
+
+0046573F    E8 E2210300    call `Windows\_.00497926`  
+
+00465744    83C4 10        add `esp`, 10  
+
+00465747    8945 F8        mov `dword` ptr `ss:\[ebp-8\]`, `eax`  
+
+0046574A    8B5D FC        mov `ebx`, `dword` ptr `ss:\[ebp-4\]`  
+
+0046574D    85DB           test `ebx`, `ebx`  
+
+0046574F    74 09          je short `Windows\_.0046575A`  
+
+00465751    53             push `ebx`  
+
+00465752    E8 B7210300    call `Windows\_.0049790E`  
+
+00465757    83C4 04        add `esp`, 4  
+
+0046575A    6A FF          push -1  
+
+0046575C    6A 08          push 8  
+
+0046575E    68 5B0E0116    push `16010E5B`  
+
+00465763    68 01000152    push `52010001`  
+
+00465768    E8 B3210300    call `Windows\_.00497920`  
+
+0046576D    83C4 10        add `esp`, 10  
+
+00465770    8945 F4        mov `dword` ptr `ss:\[ebp-C\]`, `eax`  
+
+00465773    68 84334000    push `Windows\_.00403384`                   ; ASCII `".key"`  
+
+00465778    FF75 F4        push `dword` ptr `ss:\[ebp-C\]`  
+
+0046577B    B9 02000000    mov `ecx`, 2  
+
+00465780    E8 7BFAFFFF    call `Windows\_.00465200`  
+
+00465785    83C4 08        add `esp`, 8  
+
+00465788    8945 F0        mov `dword` ptr `ss:\[ebp-10\]`, `eax`  
+
+0046578B    8B5D F4        mov `ebx`, `dword` ptr `ss:\[ebp-C\]`  
+
+0046578E    85DB           test `ebx`, `ebx`  
+
+00465790    74 09          je short `Windows\_.0046579B`  
+
+00465792    53             push `ebx`  
+
+00465793    E8 76210300    call `Windows\_.0049790E`  
+
+00465798    83C4 04        add `esp`, 4  
+
+0046579B    BB 06000000    mov `ebx`, 6  
+
+004657A0    E8 97FEFFFF    call `Windows\_.0046563C`  
+
+004657A5    68 04000080    push `80000004`  
+
+004657AA    6A 00          push 0  
+
+004657AC    8B45 F0        mov `eax`, `dword` ptr `ss:\[ebp-10\]`  
+
+004657AF    85C0           test `eax`, `eax`  
+
+004657B1    75 05          jnz short `Windows\_.004657B8`  
+
+004657B3    B8 E9324000    mov `eax`, `Windows\_.004032E9`  
+
+004657B8    50             push `eax`  
+
+004657B9    68 03000000    push 3  
+
+004657BE    BB 70020000    mov `ebx`, `270`  
+
+004657C3    E8 5E210300    call `Windows\_.00497926`  
+
+004657C8    83C4 28        add `esp`, 28  
+
+004657CB    8945 EC        mov `dword` ptr `ss:\[ebp-14\]`, `eax`  
+
+004657CE    8B5D F0        mov `ebx`, `dword` ptr `ss:\[ebp-10\]`  
+
+004657D1    85DB           test `ebx`, `ebx`  
+
+004657D3    74 09          je short `Windows\_.004657DE`  
+
+004657D5    53             push `ebx`  
+
+004657D6    E8 33210300    call `Windows\_.0049790E`  
+
+004657DB    83C4 04        add `esp`, 4  
+
+004657DE    6A 00          push 0  
+
+004657E0    6A 00          push 0  
+
+004657E2    6A 00          push 0  
+
+004657E4    68 01030080    push `80000301`  
+
+004657E9    6A 00          push 0  
+
+004657EB    FF75 EC        push `dword` ptr `ss:\[ebp-14\]`  
+
+004657EE    68 02000000    push 2  
+
+004657F3    BB 9C020000    mov `ebx`, `29C`  
+
+004657F8    E8 29210300    call `Windows\_.00497926`  
+
+004657FD    83C4 1C        add `esp`, `1C`  
+
+00465800    8945 E8        mov `dword` ptr `ss:\[ebp-18\]`, `eax`  
+
+00465803    68 04000080    push `80000004`  
+
+00465808    6A 00          push 0  
+
+0046580A    68 89334000    push `Windows\_.00403389`                   ; ASCII  
+
+`"89C40FBE91E58CB2E918DF3B5E29A94E418B105D5CE86B1955F1485F7F3CBE931CA3B4C55F55A792004637745833DBF9`  
+
+`AE6B54070F32D7589AC1FB4B0ACEC27F4E675B5BF1330D177BC3E3CD64C7F38ECF5FE6C1819656C37F5F4F6F482D2D29B`  
+
+`3087A8A17C7517C7A10F5E9AFFD1AD123290794592EB"...`  
+
+0046580F    68 04000080    push `80000004`  
+
+00465814    6A 00          push 0  
+
+00465816    68 8A344000    push `Windows\_.0040348A`                   ; ASCII `"16AC3"`  
+
+0046581B    68 04000080    push `80000004`  
+
+00465820    6A 00          push 0  
+
+00465822    8B45 E8        mov `eax`, `dword` ptr `ss:\[ebp-18\]`  
+
+00465825    85C0           test `eax`, `eax`  
+
+00465827    75 05          jnz short `Windows\_.0046582E`  
+
+00465829    B8 E9324000    mov `eax`, `Windows\_.004032E9`  
+
+0046582E    50             push `eax`  
+
+0046582F    68 05000080    push `80000005`  
+
+00465834    6A 00          push 0  
+
+00465836    8B45 F8        mov `eax`, `dword` ptr `ss:\[ebp-8\]`  
+
+00465839    85C0           test `eax`, `eax`  
+
+0046583B    75 05          jnz short `Windows\_.00465842`  
+
+0046583D    B8 90344000    mov `eax`, `Windows\_.00403490`  
+
+00465842    50             push `eax`  
+
+00465843    68 04000000    push 4  
+
+00465848    BB 18000000    mov `ebx`, `18`  
+
+0046584D    B8 05000000    mov `eax`, 5  
+
+00465852    E8 C3200300    call `Windows\_.0049791A`  
+
+00465857    83C4 34        add `esp`, `34`  
+
+0046585A    8945 E4        mov `dword` ptr `ss:\[ebp-1C\]`, `eax`  
+
+0046585D    8B5D F8        mov `ebx`, `dword` ptr `ss:\[ebp-8\]`  
+
+00465860    85DB           test `ebx`, `ebx`  
+
+00465862    74 09          je short `Windows\_.0046586D`  
+
+00465864    53             push `ebx`  
+
+00465865    E8 A4200300    call `Windows\_.0049790E`  
+
+0046586A    83C4 04        add `esp`, 4  
+
+0046586D    8B5D E8        mov `ebx`, `dword` ptr `ss:\[ebp-18\]`  
+
+00465870    85DB           test `ebx`, `ebx`  
+
+
+
+## 00465872 - 0046589E 反汇编代码块
+
+```
+00465872    74 09             je Windows\_.0046587D  
+
+00465874    53               push ebx  
+
+00465875    E8 94200300      call Windows\_.0049790E  
+
+0046587A    83C4 04          add esp, 4  
+
+0046587D    837D E4 00       cmp dword ptr ss:\[ebp-1C\], 0  
+
+00465881    0F84 0A000000    je Windows\_.00465891  
+
+00465887    B8 01000000      mov eax, 1  
+
+0046588C    E9 0A000000      jmp Windows\_.0046589B  
+
+00465891    B8 00000000      mov eax, 0  
+
+00465896    E9 00000000      jmp Windows\_.0046589B  
+
+0046589B    8BE5            mov esp, ebp  
+
+0046589D    5D              pop ebp  
+
+0046589E    C3              retn  
+```
+
+................................................................
+
+## 破解总结
+
+一锅端爆破所有自校验
+
+```
+10028FF4    55               push ebp
+```
+
+修改为
+
+```
+10028FF4    C3              retn  //所有的校验调用全部打会，不予受理。
+```
+
+一锅端+1 爆破 单独解决退出问题，内部协调。
+
+```
+00467DFA    E8 F1FA0200      call dumped\_.004978F0  //叉叉按钮调用
+```
+
+修改为
+
+```
+00467DFA    E8 F611BC0F      call krnln.10028FF5  //合理分配，^-^
+```
+
+```
+00464EBE    B8 00000000      MOV EAX,0
+```
+
+修改为
+
+```
+00464EBE    B8 00000000      MOV EAX,1
+```
+
+不知道作者或指派的间谍人员看到这篇文章又要沉思多久，这个`Crc32`对菜鸟而言根本不起作用。另外除了版本变化功能界面无任何改进，除了反跟踪增强的软件有人会升级它吗?首先在前面的版本已经破解并且功能界面都不比新推出的版本差，这个问题值的作者注意。比如`HprSnap`升级`n`遍，破解版本早就满天飞，除了版本号不同没发现任何增强，除了反跟踪。另外这个程序破解后点题正式注册版，作者自己说的。
+
+---
+
+## 版权声明
+
+本文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢!
+
+另外偶的一点拙见：在易格式的服务表上下中断似乎不是太好的方法，毕竟服务太集中了，这样误截率会很高。最好在服务调用前下断。
+
+偶感觉还是不要跟进支持库的领空为好，在外面分析基本上就够了。
+
+`4dd466d0e1e0cc123afbe504da2462ca`

@@ -1,0 +1,63 @@
+
+# .Net 环境的下的程序破解(2)
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6495.htm`](https://www.pediy.com/kssd/pediy06/pediy6495.htm)
+
+### MSIL: 从 Hello World 开始
+
+.Net 下的汇编语言(MSIL)看起来要友好的多，学编程都从 Hello World 开始，这里我们同样也从一个小小的 Hello World 开始来逐步了解 MSIL，呵呵。
+
+所需要的工具仅仅记事本就可以了，打开`Notepad`，输入代码：
+
+```
+// file:Hello.il       “//“都是注释，可省去
+// Author:WinHack[CCG]
+//定义 Assembly(EXE,DLL)
+.assembly helloworld      //要产生的 Assembly(EXE,DLL)名称
+{
+.ver 1:0:0:0   //版本
+}
+//用.method 定义方法（函数）
+.method public static void main() il managed  
+{
+.entrypoint     //这里定义整个程序的入口点！
+.maxstack 1     //函数所保留的栈槽数量
+//导入字符串
+ldstr "Hello World!!!\n"
+//在控制台(Console)显示
+call void [mscorlib]System.Console::WriteLine(class System.String)
+ret //返回
+}
+```
+
+将上面的文件保存成`hello.il`文件，打开`console`界面，用`ilasm`编译成`exe`。
+
+```
+D:\>ilasm hello.il
+
+Microsoft (R) .NET Framework IL Assembler.  Version 1.0.3705.0
+Copyright (C) Microsoft Corporation 1998-2001. All rights reserved.
+
+Assembling 'hello.il' , no listing file, to EXE --> 'hello.EXE'
+Source file is ANSI
+Assembled global method main
+Creating PE file
+Emitting members:
+Global  Methods: 1;
+Writing PE file
+Operation completed successfully
+```
+
+现在就可以运行程序了！
+
+```
+D:\>hello
+
+Hello World!!!
+```
+
+这就是一个简单得不能在简单的 hello world 程序了，但是通过这个程序，我想大家对 MSIL 已经有一个大体上的印象了吧，当然`.net framework`是一个极其庞大的系统，MSIL 里面包含了很多复杂的元素，后面我会尽力逐个介绍，不过好几天没有干活了，导师催得紧，过几天再写吧。有兴趣的发信交流，呵呵^\_^
+
+WinHack   QQ：`85436`
+属于`[CCG]`,`[OCN]`,`[YCG]`,`[FCG]`
+2003-03-14 于看雪论坛  `4dd466d0e1e0cc123afbe504da2462ca`
