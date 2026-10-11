@@ -1,0 +1,743 @@
+
+# 用 16 进制编辑器编写一个 DLL 文件
+
+> 原文：[`www.pediy.com/kssd/pediy10/75210.html`](https://www.pediy.com/kssd/pediy10/75210.html)
+
+【文章标题】: 用 16 进制编辑器编写一个 DLL 文件  
+【文章作者】: newjueqi  
+【作者邮箱】: zengjiansheng1@126.com  
+【作者 QQ 号】:190678908（sdf ）  
+【软件名称】: Hello  
+【软件大小】:4K  
+【编写语言】: 机器码  
+【使用工具】: WinHex  
+【操作平台】: xpSp2  
+【作者声明】: 手写 DLL 一方面为了体会一下最早期程序员一个二进制一个二进制地写程序的感觉，另一方面加强对 PE 文件的认识，失误之处敬请诸位大侠赐教!
+
+PE 文件格式是 Windows 下可执行文件的格式，熟悉 PE 文件将对操作系统和编译器工作原理的深刻理解。
+
+本人之所以选择手写 DLL 而不是手写 EXE 主要原因是 DLL 文件比起 EXE 文件多了输出表和重定位表的处理，手写 DLL 可以对PE的理解更深刻，有关手写EXE的可参考 dncwbc 大大写的文章：[`bbs.pediy.com/showthread.php?t=48590`](http://bbs.pediy.com/showthread.php?t=48590)
+
+本次手写 DLL 是输出一个函数显示一个对话框，对话框标题是“hello”，内容是“hello,pediy!!!”。由以上可知道，DLL 文件涉及到的区块如下
+
+![](img/0193b35f10f13f66c169e40edaf4975e.jpg)
+
+表 1
+
+本文的重点是上图所示的几个区块的构建，其它部分如果比较重要的会加说明，如果不重要的就略过，需要详细了解的请参考相关资料。
+
+那么，就从 DOS 部首开始分析，DOS 部首是一个 `IMAGE_DOS_HEADER`，结构如下：
+
+```c
+typedef struct _IMAGE_DOS_HEADER {      // DOS .EXE header
+  WORD   e_magic;                // Magic number
+  WORD   e_cblp;                 // Bytes on last page of file
+  WORD   e_cp;                   // Pages in file
+  WORD   e_crlc;                 // Relocations
+  WORD   e_cparhdr;              // Size of header in paragraphs
+  WORD   e_minalloc;            // Minimum extra paragraphs needed
+  WORD   e_maxalloc;            // Maximum extra paragraphs needed
+  WORD   e_ss;                   // Initial (relative) SS value
+  WORD   e_sp;                   // Initial SP value
+  WORD   e_csum;                 // Checksum
+  WORD   e_ip;                   // Initial IP value
+  WORD   e_cs;                   // Initial (relative) CS value
+  WORD   e_lfarlc;               // File address of relocation table
+  WORD   e_ovno;                 // Overlay number
+  WORD   e_res[4];                // Reserved words
+  WORD   e_oemid;                 // OEM identifier (for e_oeminfo)
+  WORD   e_oeminfo;              // OEM information; e_oemid specific
+  WORD   e_res2[10];              // Reserved words
+  LONG   e_lfanew;               // File address of new exe header
+} IMAGE_DOS_HEADER, *PIMAGE_DOS_HEADER;
+```
+
+`MS_DOS` 头部我们关心的只有两个字段：`e_magic` 和 `e_lfanew`。`e_magic` 需要被设置成 `5A4Dh`，这个值有个宏是 `IMAGE_DOS_SIGNATURE`，翻译成相应的 ASCⅡ码就是“MZ”，是某位大牛名字的缩写（至于是哪位大牛，请翻看《加密与解密 3》P266），另外一个关键的字段是 `e_lfanew`，这个字段指出了真正 PE 文件头的偏移量，当 PE 加载器加载文件后，用基址加上 `e_lfanew` 的偏移量，就可得到 PE 文件的指针。
+
+接着是 DOS stud 部分，在 windows 下用不到，预留 80 字节的空间。
+
+现在来计算一下，`MS_DOS` 头部共 19 个字段值，占 64 个字节，80+64=144 转化为 16 进制就是 90，所以PE文件头在整个文件里的偏移量为 9０，`e_lfanew` 设置为 `90 00 00 00`（ 因为 Intel CPU 字符存储是低位在前，高位在后，要把 `00 00 00 90` 写成 `90 00 00 00` ）。
+
+在 DOS 头部分，需要设置 `e_magic` 为 `4D5A`, `e_lfanew` 为 `90 00 00 00`。
+
+完成后内容如下：
+
+```text
+00000000   4D 5A 00 00 00 00 00 00  00 00 00 00 00 00 00 00   MZ..............
+00000010   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+00000020   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+00000030   00 00 00 00 00 00 00 00  00 00 00 00 90 00 00 00   ..............?..
+00000040   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+00000050   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+00000060   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+00000070   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+00000080   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+```
+
+紧接着 DOS 文件头是 PE 文件头（PE Header ），是 PE 相关结构 NT 映像头（`IMAGE_NT_HEADERS`）的简称，内容如下: 
+
+```c
+typedef struct _IMAGE_NT_HEADERS {
+  DWORD Signature;
+  IMAGE_FILE_HEADER FileHeader;
+  IMAGE_OPTIONAL_HEADER32 OptionalHeader;
+} IMAGE_NT_HEADERS32, *PIMAGE_NT_HEADERS32;
+```
+
+`IMAGE_NT_HEADERS` 结构中第一个字段 `Signature` 被设置成 `00004550h`，转化成 ASCⅡ码就是“PE00”，在`#define IMAGE_NT_SIGNATURE` 中定义，这个字段标志着PE文件头的开始。
+
+`IMAGE_FILE_HEADER`( 映像文件头)中包含了 PE 文件的一些基本信息，结构如下：
+
+```c
+typedef struct _IMAGE_FILE_HEADER {
+  WORD    Machine;
+  WORD    NumberOfSections;
+  DWORD   TimeDateStamp;
+  DWORD   PointerToSymbolTable;
+  DWORD   NumberOfSymbols;
+  WORD    SizeOfOptionalHeader;
+  WORD    Characteristics;
+} IMAGE_FILE_HEADER, *PIMAGE_FILE_HEADER;
+```
+
+（1）  `Machine`：两个字节，可执行文件的目标 CPU 类型，几种常见的 CPU 类型如下表：
+
+  ![](img/ea13d603c7094337aba022e1dc396201.jpg)
+
+ 表 2
+
+   对于我们常用的 Intel 平台，我们选择设置为 `014Ch`，在 16 进制编辑器里输入“4C 01”
+
+（2）  `NumberOfSections`：两个字节，区块的数目，紧接着 `IMAGE_NT_HEADERS` 后面，从表 1 可看到我们选择创建了 5 个区块，所以应该设置成“00 05”， 在 16 进制编辑器里输入“05 00”。
+
+（3）  `TimeDateStamp`：四个字节，文件的创建的时间，设置为“00 00 00 00”， 在 16 进制编辑器里输入“00 00 00 00”。
+
+（4）  `PointerToSymbolTable`：四个字节，COFF 符号表的文件偏移位置，设置为“00 00 00 00”， 在 16 进制编辑器里输入“00 00 00 00”。
+
+（5）  `NumberOfSymbols`：四个字节，如果有 COFF 符号表，就表示符号表的数目，设置为“00 00 00 00”， 在 16 进制编辑器里输入“00 00 00 00”。
+
+（6）  `SizeOfOptionalHeader`：两个字节，紧接着 `IMAGE_FILE_HEADER` 后面的 `IMAGE_OPTIONAL_HEADER32` 的数据大小，通常对于 32 位系统，通常设置为 `00 E0h`，对于 64 位的 PE32+文件，通常是 `00 F0h`，设置为“00 E0”， 在 16 进制编辑器里输入“E0 00”。
+
+（7）  `Characteristics`：两个字节，表示文件的属性，各个位的含有如下：
+
+Bit 0：没有重定位信息的话就置 1  
+Bit 1：是可执行文件就置 1，表示不是一个目标文件或库文件。这里说明一下，所谓的可执行文件不单单指 EXE 文件，更包括了编译成功的文件。  
+Bit 2：行号信息被移去就置 1。  
+Bit 3：符号信息被移去就置 1。  
+Bit 4：应用程序可处理超过 2G 的地址时就置 1。  
+Bit 7：处理器的低字节是相反的就置 1。  
+Bit 8：目标平台是 32 位机器就置 1。  
+Bit 9：如果没有调试信息在内就置 1。  
+Bit 10：如果程序不能从移动磁盘或多媒体光盘执行就置 1。  
+Bit 11：如果程序不能够从网络中运行就置 1。  
+Bit 12：是系统文件就置 1。  
+Bit 13：是 DLL 文件就置 1。  
+Bit 14：如果文件只能在单处理器上运行就置 1。  
+Bit 15：处理器的高字节是相反的就置 1。
+
+ 在这里，本人设置属性值为“`A1 8E`”, 分别置 `Bit 1`，`Bit 2`，`Bit 3`，`Bit 7`，`Bit 8`，`Bit 13`，`Bit 15` 为 1，在 16 进制编辑器里输入“`8E A1`”。
+
+经网友 cnhnyu 指点，本人设置 `Characteristics` 的属性值是有问题，PECOFF 里建议把第 7 和第 15 位设置为 0，特此提出来
+
+ 好，现在的 PE 文件头部分的 `Signature` 和 `IMAGE_FILE_HEADER` 部分的 16 进制源码如下：
+
+```text
+00000090   50 45 00 00 4C 01 05 00  00 00 00 00 00 00 00 00   PE..L...........
+000000A0   00 00 00 00 E0 00 8E A1                                ....?
+```
+
+紧接着 `IMAGE_FILE_HEADER` 就是 `IMAGE_OPTIONAL_HEADER32` 结构，注意，虽然名字是可选，但实际上是必须的。这个结构的定义如下：
+
+```c
+typedef struct _IMAGE_OPTIONAL_HEADER {
+  //
+  // Standard fields.
+  //
+  WORD    Magic;
+  BYTE    MajorLinkerVersion;
+  BYTE    MinorLinkerVersion;
+  DWORD   SizeOfCode;
+  DWORD   SizeOfInitializedData;
+  DWORD   SizeOfUninitializedData;
+  DWORD   AddressOfEntryPoint;
+  DWORD   BaseOfCode;
+  DWORD   BaseOfData;
+  //
+  // NT additional fields.
+  //
+  DWORD   ImageBase;
+  DWORD   SectionAlignment;
+  DWORD   FileAlignment;
+  WORD    MajorOperatingSystemVersion;
+  WORD    MinorOperatingSystemVersion;
+  WORD    MajorImageVersion;
+  WORD    MinorImageVersion;
+  WORD    MajorSubsystemVersion;
+  WORD    MinorSubsystemVersion;
+  DWORD   Win32VersionValue;
+  DWORD   SizeOfImage;
+  DWORD   SizeOfHeaders;
+  DWORD   CheckSum;
+  WORD    Subsystem;
+  WORD    DllCharacteristics;
+  DWORD   SizeOfStackReserve;
+  DWORD   SizeOfStackCommit;
+  DWORD   SizeOfHeapReserve;
+  DWORD   SizeOfHeapCommit;
+  DWORD   LoaderFlags;
+  DWORD   NumberOfRvaAndSizes;
+  IMAGE_DATA_DIRECTORY DataDirectory[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];
+} IMAGE_OPTIONAL_HEADER32, *PIMAGE_OPTIONAL_HEADER32;
+```
+
+一共是 31 个属性值，由此可见，这个结构的内容是多么的丰富！
+
+（1）  `Magic`：两个字节，是一个标志字，如果是 ROM 文件（`0107h`），可执行文件（`010Bh`），或者是 PE32+文件（`020Bh`）。设置为“01 0B”， 在 16 进制编辑器里输入“0B 01”。
+
+（2）  `MajorLinkerVersion`：一个字节，链接程序的主版本号。不影响程序的执行，设置为“00”， 在 16 进制编辑器里输入“00”。
+
+（3）  `MinorLinkerVersion`：一个字节，链接程序的主版本号。不影响程序的执行，设置为“00”， 在 16 进制编辑器里输入“00”。
+
+（4）  `SizeOfCode`：四个字节，可执行代码的长度，不影响程序的执行，设置为“00 00 00 00”， 在 16 进制编辑器里输入“00 00 00 00”。
+
+（5）  `SizeOfInitializedData`：四个字节，初始化数据的大小，不影响程序的执行，设置为“00 00 00 00”， 在 16 进制编辑器里输入“00 00 00 00”。
+
+
+
+（6） `SizeOfUnInitializedData`：四个字节，未初始化数据的大小，不影响程序的执行，设置为“00 00 00 00”，在 16 进制编辑器里输入“00 00 00 00”。
+
+（7） `AddressOfEntryPoint`：四个字节，程序执行入口的 `RVA`。对于 `DLL` 文件来说，这个入口点是在进程初始化和关闭时以及进程创建/销毁时被调用。在 `DLL` 中这个域能被设置为 0，前面提到的通知消息都不接收。我们知道一般的 `PE` 文件都有一个代码区块，里面存放的是所有的可执行代码，这里程序执行入口也就是代码区块的首地址 `RVA`，本人设置为 1000，这里不知道这个值怎么来没关系，在讲到区块表时就会了解。设置为“00 00 10 00”，在 16 进制编辑器里输入“00 10 00 00”。
+
+（8） `BaseOfCode`：四个字节，代码段起始 `RVA`。这个值在这里和 `AddressOfEntryPoint` 一样，设置为“00 00 10 00”，在 16 进制编辑器里输入“00 10 00 00”。
+
+（9） `BaseOfData`：四个字节，数据段的起始 `RVA`。在区块表会有详细说明，现在设置为“00 00 20 00”，在 16 进制编辑器里输入“00 20 00 00”。
+
+（10） `ImageBase`：四个字节，文件在内存中的首选装入地址。这个值对于 `DLL` 来说没有多大意义，因为 `DLL` 文件的载入地址是由系统决定的，设置为“00 40 00 00”，在 16 进制编辑器里输入“00 00 40 00”。
+
+（11） `SectionAlignment`：四个字节，载入内存时区块的内存对齐大小，每个区块的载入地址必须是本数值的整数倍。默认值是 `CPU` 的页尺寸，也就是 `1000h(4KB)`，设置为“00 00 10 00”，在 16 进制编辑器里输入“00 10 00 00”。
+
+（12） `FileAlignment`：四个字节，磁盘上的 `PE` 文件的区块对齐大小，每个区块的原始数据必须是本字段的整数倍开始。对与 `X86` 来说，一般是 `200h` 或 `1000h`，这是为了保证块总是从磁盘的扇区开始。这个值最小是 `200h`，我们选择设置为 “00 00 02 00”，在 16 进制编辑器里输入“00 02 00 00”。
+
+（13） `MajorOperatingSystemVersion`：两个字节，要求操作系统的最低版本号的主版本号。设置为 “ 00 00”，在 16 进制编辑器里输入“00 00”。
+
+（14） `MinorOperatingSystemVersion`：两个字节，要求操作系统的最低版本号的次版本号。设置为 “ 00 00”，在 16 进制编辑器里输入“00 00”。
+
+（15） `MajorImageVersion`：两个字节，该可执行文件的主版本号，由程序员定义。设置为 “ 00 00”，在 16 进制编辑器里输入“00 00”。
+
+（16） `MinorImageVersion`：两个字节，该可执行文件的次版本号，由程序员定义。设置为 “ 00 00”，在 16 进制编辑器里输入“00 00”。
+
+（17） `MajorSubSystemVersion`：两个字节。要求最低子系统的主版本号，通常与下个字段一起使用。`PE` 文件是专门为 `Win32` 系统设计的，所以该子系统版本号必须是 4.0。设置为 “ 00 04”，在 16 进制编辑器里输入“04 00”。
+
+（18） `MinorSubSystemVersion`：两个字节。要求最低子系统的次版本号，设置为 “ 00 00”，在 16 进制编辑器里输入“00 00”。
+
+（19） `Win32VersionValue`：四个字节。保留值为 0，设置为 “00 00 00 00”，在 16 进制编辑器里输入“00 00 00 00”。
+
+（20） `SizeOfImage`：四个字节。映像装入内存后的总大小。`DLL` 文件一共有 5 个区块，再加上 `DOS` 文件头和 `PE` 文件头，`1000+1000*5=6000h`，在讲到区块表时有详细论述。设置为 “00 00 60 00”，在 16 进制编辑器里输入“00 60 00 00”。
+
+（21） `SizeOfHeader`: 四个字节。是 `DOS` 头，`PE` 文件头和区块表的组合尺寸。现在我们来计算一下，`DOS` 文件头是 `80h`，`PE` 文件头大小是固定大小为 `4+20+224=248byte=F8h`，
+
+5 个区块表共 `5*40=200byte=C8h`，所以一共是 `80+F8+C8=240h`，但考虑值到必须与 `FileAlignment` 对齐，所以扩充为 `400h`，设置为 “00 00 04 00”，在 16 进制编辑器里输入“00 04 00 00”。
+
+（22） `CheckSum`：四个字节，映像的校验和。一般的 `EXE` 文件可以使用为 0，但一些内核模式的驱动程序和 `DLL` 文件必须要有一个校验和。设置为 “00 00 00 00”，在 16 进制编辑器里输入“00 00 00 00”。
+
+（23） `SubSystem`：两个字节，一个标明可执行文件所期望的子系统的枚举值。这个值对 `EXE` 来说是比较重要的，具体值见下表：
+
+![](img/a922cf4abec6c953a36def25a0344711.jpg)
+
+表 3
+
+一般来说，选择值为 2，设置为 “00 02”，在 16 进制编辑器里输入“02 00”。
+
+（24） `DllCharacteristics`：两个字节，`DllMain` 函数何时被调用，一般设置为 0。设置为 “00 00”，在 16 进制编辑器里输入“00 00”。
+
+（25） `SizeOfStackReserve`：四个字节，为线程保留的堆栈大小。设置为 “00 00 00 00”，在 16 进制编辑器里输入“00 00 00 00”。
+
+（26） `SizeOfStackCommit`：四个字节，委派给堆栈的内存大小。设置为 “00 00 00 00”，在 16 进制编辑器里输入“00 00 00 00”。
+
+（27） `SizeOfHeapReserve`：四个字节，为线程保留的堆大小。设置为 “00 00 00 00”，在 16 进制编辑器里输入“00 00 00 00”。
+
+（28） `SizeOfStackCommit`：四个字节，委派给堆的内存大小。设置为 “00 00 00 00”，在 16 进制编辑器里输入“00 00 00 00”。
+
+（29） `LoaderFlags`：四个字节，与调试相关，设置为 “00 00 00 00”，在 16 进制编辑器里输入“00 00 00 00”。
+
+（30） `NumberOfRvaAndSize`：四个字节，数据目录表的数目。这个字段自从 `NT` 发布以来就是 16。设置为 “00 00 00 10”，在 16 进制编辑器里输入“10 00 00 00”。
+
+（31） `DataDirectory[16]`：数据目录表，有数个相同的 `IMAGE_DATA_DIRECTORY` 结构组成，指向输入表，输出表，重定位表等数据。`IMAGE_DATA_DIRECTORY` 结构如下：
+
+```
+typedef struct _IMAGE_DATA_DIRECTORY {
+    DWORD VirtualAddress;
+    DWORD Size;
+} IMAGE_DATA_DIRECTORY, *PIMAGE_DATA_DIRECTORY;
+```
+
+数据目录表的成员的结构如表 4 所示：
+
+![](img/79ddb46fd0ce1382dbe9694bce6f44c3.jpg)
+
+表 4
+
+这些表里对我们的 `DLL` 文件有影响的就有输出表（`Export Table`）,输入表（ `Input Table` ）,重定位表（`Base relocation Table`）这三个表。由于下面的区块表也涉及到现在这个问题，我们必须要考虑一下我们在 `DLL` 文件中要用到的所有表的在磁盘文件上的布局和在内存中的布局，要注意内存中的区块地址必须与 `SectionAlignment` 这个值对齐，磁盘中的区块地址必须与 `FileAlignment` 这个值对齐，另外考虑到计算的方便性，我们都假定每个区块在内存中占 `1000h` 的空间，于是得出表 5，下表中的英文缩写与 `LordPe` 时查看区块信息时的英文缩写意义一致
+
+![](img/c703bb6cadbc8c01fe9846b696203fd5.jpg)
+
+表 5
+
+由于输入表，输出表，重定位表的大小还没知道，所以先不用填。
+
+其它表全部填充为“00 00 00 00 00 00 00 00”
+
+现在的 `PE` 文件头部分的 `IMAGE_OPTINAL_HEADER` 部分的 16 进制源码如下：
+
+```
+000000A0                     0B 01 00 00 00 00 00 00           ........
+000000B0   00 00 00 00 00 00 00 00  00 10 00 00 00 10 00 00   ................
+000000C0   00 20 00 00 00 00 40 00  00 10 00 00 00 02 00 00   . ....@.........
+000000D0   00 00 00 00 00 00 00 00  04 00 00 00 00 00 00 00   ................
+000000E0   00 60 00 00 00 04 00 00  00 00 00 00 02 00 00 00   .`..............
+000000F0   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+00000100   00 00 00 00 10 00 00 00  00 40 00 00 00 10 00 00   .........@......
+00000110   00 30 00 00 00 10 00 00  00 00 00 00 00 00 00 00   .0..............
+00000120   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+00000130   00 50 00 00 00 10 00 00  00 00 00 00 00 00 00 00   .P..............
+00000140   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+00000150   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+00000160   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+00000170   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+00000180   00 00 00 00 00 00 00 00                             ........
+```
+
+在 `PE` 文件头和原始数据之间存在一个区块表，区块表包含每个块在映像中的信息，分别指向不同的区块实体。
+
+区块表是一个 `IMAGE_SECTION_HEADERS` 的结构数组，每个 `IMAGE_SECTION_HEADER` 结构包含了它所关联了区块的信息，如位置，长度，属性；改数组的数目有 `IMAGE_NT_HEADERS.FileHeader.NumberOfSection` 指出。
+
+`IMAGE_SECTION_HEADER` 结构如下：
+
+```
+typedef struct _IMAGE_SECTION_HEADER {
+    BYTE Name[IMAGE_SIZEOF_SHORT_NAME];
+    union {
+        DWORD PhysicalAddress;
+        DWORD VirtualSize;
+    } Misc;
+    DWORD VirtualAddress;
+    DWORD SizeOfRawData;
+    DWORD PointerToRawData;
+    DWORD PointerToRelocations;
+    DWORD PointerToLinenumbers;
+    WORD NumberOfRelocations;
+    WORD NumberOfLinenumbers;
+    DWORD Characteristics;
+} IMAGE_SECTION_HEADER, *PIMAGE_SECTION_HEADER;
+```
+
+（1） `Name`：8 个字节，块名。块名是个 8 位的 `ASCⅡ` 码。
+
+（2） `VirtualSize`：四个字节，在内存中区块所占的大小。对应于表 5 中的 `Vsize`。
+
+（3） `VirtualAddress`：四个字节，该块装载到内存中的 `RVA`。对应于表 5 中的 `VOffset`。
+
+（4） `SizeOfRawData`：四个字节，该块在磁盘文件中所占的大小。对应于表 5 中的 `Rsize`。
+
+（5） `PointerToRawData`：四个字节，该块在磁盘文件中的偏移。对应于表 5 中的 `ROffset`。
+
+（6） `PointerToReclocations`：四个字节，在 `OBJ` 文件中，表示本块的重定位信息偏移值，但在 `DLL` 文件中也没多大用餐，因为有重定位表。设置为 “00 00 00 00”，在 16 进制编辑器里输入“00 00 00 00”。
+
+（7） `PointerToLinenumbers`：四个字节，符合表在文件中的偏移值，在 `DLL` 里用不到，设置为 “00 00 00 00”，在 16 进制编辑器里输入“00 00 00 00”。
+
+（8） `NumberOfRelocations`：两个字节，本快在重定位表中重定位的数目。在 `DLL` 里用不到，设置为 “00 00”，在 16 进制编辑器里输入“00 00”。
+
+（9） `NumberOfLinenumbers`：两个字节，该块在行号表中的行号数目。设置为 “00 00”，在 16 进制编辑器里输入“00 00”。
+
+（10） `Characteristics`：四个字节，块属性，各位的含义如下：
+
+`bit 5` `IMAGE_SCN_CNT_CODE`，置 1，节内包含可执行代码。
+
+`bit 6` `IMAGE_SCN_CNT_INITIALIZED_DATA`，置 1，节内包含的数据在执行前是确定的。
+
+`bit 7` `IMAGE_SCN_CNT_UNINITIALIZED_DATA`，置 1，本节包含未初始化的数据，执行前即将被初始化为 0。一般是 `BSS`。
+
+`bit 9` `IMAGE_SCN_LNK_INFO`，置 1，节内不包含映象数据除了注释，描述或者其他文档外，是一个目标文件的一部分，可能是针对链接器的信息。比如哪个库被需要。
+
+`bit 11` `IMAGE_SCN_LNK_REMOVE`，置 1，在可执行文件链接后，作为文件一部分的数据被清除。
+
+`bit 12` `IMAGE_SCN_LNK_COMDAT`，置 1，节包含公共块数据，是某个顺序的打包的函数。
+
+`bit 15` `IMAGE_SCN_MEM_FARDATA`，置 1，保留。
+
+`bit 17` `IMAGE_SCN_MEM_PURGEABLE`，置 1，节的数据是可清除的。
+
+`bit 18` `IMAGE_SCN_MEM_LOCKED`，置 1，节不可以在内存内移动。
+
+`bit 19` `IMAGE_SCN_MEM_PRELOAD`，置 1，节必须在执行开始前调入。
+
+`bits 20 to 23` 指定对齐。一般是库文件的对象对齐。
+
+`bit 24` `IMAGE_SCN_LNK_NRELOC_OVFL`，置 1，节包含扩展的重定位。
+
+`bit 25` `IMAGE_SCN_MEM_DISCARDABLE`，置 1，进程开始后节的数据不再需要。
+
+`bit 26` `IMAGE_SCN_MEM_NOT_CACHED`，置 1，节的数据没有缓存。
+
+`bit 27` `IMAGE_SCN_MEM_NOT_PAGED`，置 1，节的数据不得交换出去。
+
+`bit 28` `IMAGE_SCN_MEM_SHARED`，置 1，节的数据在所有映象例程内共享，如 `DLL` 的初始化数据。
+
+`bit 29` `IMAGE_SCN_MEM_EXECUTE`，置 1，该块可以执行。
+
+`bit 30` `IMAGE_SCN_MEM_READ`，置 1，该块可读。
+
+`bit 31` `IMAGE_SCN_MEM_WRITE` 置 1，该块可写。
+
+对于 `.text` 区块，节内包含可执行代码，`bit 5`，`bit 29` 都置 1；对于可执行文件，`bit 30` 总是置 1。设置为 “60 00 00 20”，在 16 进制编辑器里输入“20 00 00 60”。
+
+对于 `.data` 区块，节内包含的数据在执行前是确定的，`bit 6` 置 1；因为是数据区，所以 `bit 30`，`bit 31` 都置 1。设置为 “C0 00 00 40”，在 16 进制编辑器里输入“40 00 00 C0”。
+
+
+
+对于 `.idata` 区块，和 `.data` 区块的设置一样。设置为 `C0 00 00 40`，在 16 进制编辑器里输入 `40 00 00 C0`。
+
+对于 `.edata` 区块，节内包含的数据在执行前是确定的，bit 6 置 1；但输出表区块是不用写数据的，所以只有 bit 30 置 1。设置为 `40 00 00 40`，在 16 进制编辑器里输入 `40 00 00 40`。
+
+对于 `.reloc` 区块，和 `.edata` 区块设置一样。设置为 `40 00 00 40`，在 16 进制编辑器里输入 `40 00 00 40`。
+
+所以区块表的 16 进制源码如下：
+
+```
+00000180             2E 74 65 78 74 00 00 00       .text...
+
+00000190   00 10 00 00 00 10 00 00  00 02 00 00 00 06 00 00   ................
+
+000001A0   00 00 00 00 00 00 00 00  00 00 00 00 20 00 00 60   ........ .\`
+
+000001B0   2E 64 61 74 61 00 00 00  00 10 00 00 00 20 00 00   .data........ ..
+
+000001C0   00 02 00 00 00 08 00 00  00 00 00 00 00 00 00 00   ................
+
+000001D0   00 00 00 00 40 00 00 C0  2E 69 64 61 74 61 00 00   ....@..?idata..
+
+000001E0   00 10 00 00 00 30 00 00  00 02 00 00 00 0A 00 00   .....0..........
+
+000001F0   00 00 00 00 00 00 00 00  00 00 00 00 40 00 00 C0   ............@..?
+
+00000200   2E 65 64 61 74 61 00 00  00 10 00 00 00 40 00 00   .edata.......@..
+
+00000210   00 02 00 00 00 0C 00 00  00 00 00 00 00 00 00 00   ................
+
+00000220   00 00 00 00 40 00 00 40  2E 72 65 6C 6F 63 00 00   ....@..@.reloc..
+
+00000230   00 10 00 00 00 50 00 00  00 02 00 00 00 0E 00 00   .....P..........
+
+00000240   00 00 00 00 00 00 00 00  00 00 00 00 40 00 00 40   ............@..@
+```
+
+下面是开始编写区块部分，但手写区块的顺序是很讲究的，因为我们的目标是编写一个可以弹出对话框的函数，所以在写代码前必须要有对话框标题和内容等基本数据，而且还需要 `MessageBoxA` 的地址，因为是 DLL 文件，写完代码后还要处理输出表和重定位表。
+
+先来个最简单的，对话框标题是“hello”，内容是“hello,pediy!!!”，我们在磁盘文件偏移 `800` 处开始写入数据，完成后内容如下：
+
+```
+00000800   68 65 6C 6C 6F 00 00 00  00 00 00 00 00 00 00 00   hello...........
+
+00000810   68 65 6C 6C 6F 2C 70 65  64 69 79 21 21 21 00 00   hello,pediy!!!..
+```
+
+下面是输入表部分，也就是 `.idata` 区块。
+
+输入表是以 `IMAGE_IMPORT_DESCRIPTOR( IID )` 数组开始的，每个被调用的 ＤＬＬ 文件都对应一个 `IID`，做后一个全 0 数组结束。`IMAGE_IMPORT_DESCRIPTOR` 的结构如下所示：
+
+```
+typedef struct _IMAGE_IMPORT_DESCRIPTOR {
+
+    union {
+        DWORD   Characteristics;            // 0 for terminating null import descriptor
+        DWORD   OriginalFirstThunk;         // RVA to original unbound IAT (PIMAGE_THUNK_DATA)
+    };
+
+    DWORD   TimeDateStamp;                  IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT (new BIND)
+    DWORD   ForwarderChain;                 // -1 if no forwarders
+    DWORD   Name;
+    DWORD   FirstThunk;                     // RVA to IAT (if bound this IAT has 、、//actual addresses)
+
+} IMAGE_IMPORT_DESCRIPTOR;
+```
+
+（1） `OriginalFirstThunk`：四个字节，包含指向输入名称表（INT）的 RVA，INT 是一个 `IMAGE_THUNK_DATA` 结构的数组，数组的每个元素指向 `IMAGE_IMPORT_BY_NAME` 结构，数组最后以 0 结束。
+
+（2） `TimeDataStamp`：四个字节，32 位的时间标志，设置为 `00 00 00 00`，在 16 进制编辑器里输入 `00 00 00 00`。
+
+（3） `ForwardChain`：四个字节，第一个被转向的 API 索引。设置为 `00 00 00 00`，在 16 进制编辑器里输入 `00 00 00 00`。
+
+（4） `Name`：四个字节，DLL 文件的名称。是个以 00 结束的 ASCⅡ码的 RVA。
+
+（5） `FirstThunk`：包含指向输入地址表（ IAT ）的 RVA，IAT 是个 `IMAGE_THUNK_DATA` 结构的数组。
+
+现在我们编写的 DLL 文件只是弹出一个对话框，所以只是需要用到一个函数 `MessageBoxA`，在 `USER32.dll` 动态链接库里。观察输入表区块如下：
+
+```
+00000A00   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+
+00000A10   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+
+00000A20   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+
+00000A30   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+
+00000A40   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+
+00000A50   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+
+00000A60   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+
+00000A70   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+
+00000A80   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+
+00000A90   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+
+00000AA0   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+
+00000AB0   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+```
+
+必须要先构造一个 `IID` 元素指向 `USER32.dll` 的信息，然后以一个全 0 的 `IID` 元素结束。这里就占用了 2*（4*5）=40 字节，就是占用了 `A00` 到 `A27` 之间的空间。
+
+由表 5 可知，`.idata` 区块的虚拟偏移是 `3000h`，物理偏移是 `A00h`，所以两者之间的差值为 `3000-A00=2600h`，这个数值以后算 RVA 时会经常用到。
+
+现在先处理 `IID` 中 `Name` 的数值，由于 `A00` 到 `A27` 的空间应经被用了，所以我们在 `A30` 开始存放 `USER32.dll` 文件名的 ASCⅡ码，以 00 结束。`A30` 转化为 RVA 的方法是加上前面计算出来的 `2600h`，所以 `Name` 的数值为 `2600+A30=3030h`，在 16 进制编辑器里输入 `30 30 00 00`。
+
+接下来在 `A40h` 存放 INT，由于只有一个函数 `MessageBoxA`，所以整个 INT 只有两项（以一个全 0 结束），在 `A50h` 存放 `MessageBoxA` 的 ASCⅡ码，以 00 结束。
+
+所以 `OriginalFirstThunk` 存放的是 INT 的 RVA，为 `2600+A40=3040h`，在 16 进制编辑器里输入 `40 30 00 00`。`A40h` 存放的是 `MessageBoxA` 的 ASCⅡ码的 RVA，为 `2600+A50=3050h`，在 16 进制编辑器里输入 `50 30 00 00`。 `A50h` 存放的是 `MessageBoxA` 的 ASCⅡ码，在 16 进制编辑器里输入 `50 30 00 00`。但输入 `MessageBoxA` 的 ASCⅡ码时就要注意，ASCⅡ字符串前有两个字节的空缺，是作为函数名的引用，可以为 0，所以在 16 进制编辑器里输入 `50 30 00 00`。
+
+最后要处理的是输入地址表（ IAT ），我们在 `A60` 处存放 IAT，由于只有一个函数 `MessageBoxA`，所以整个 IAT 只有两项（以一个全 0 结束），IAT 的第一项也是指向 `MessageBoxA` 的 ASCⅡ码的 RVA，在 `A60` 处输入 `50 30 00 00`。而 `FirstThunk` 字段填充 `A60` 的 RVA，为 `2600+A60=3060h`，在 16 进制编辑器里输入 `60 30 00 00`。
+
+整个 `.idata` 区块完成后如下所示：
+
+```
+00000A00   40 30 00 00 00 00 00 00  00 00 00 00 30 30 00 00   @0..........00..
+
+00000A10   60 30 00 00 00 00 00 00  00 00 00 00 00 00 00 00   \`0..............
+
+00000A20   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+
+00000A30   55 53 45 52 33 32 2E 64  6C 6C 00 00 00 00 00 00   USER32.dll......
+
+00000A40   50 30 00 00 00 00 00 00  00 00 00 00 00 00 00 00   P0..............
+
+00000A50   00 00 4D 65 73 73 61 67  65 42 6F 78 41 00 00 00   ..MessageBoxA...
+
+00000A60   50 30 00 00 00 00 00 00  00 00 00 00 00 00 00 00   P0..............
+
+00000A70   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+
+00000A80   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+
+00000A90   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+```
+
+现在我们来处理代码区块（`.text`）的编写。
+
+首先，DLL 文件都有一个入口点，放在 `600` 处，内容如下：
+
+```
+mov     eax, 1       B8 01000000
+retn    0C           C2 0C00    ；由于 DLL 入口函数压了 3 个 DWORD 型参数大小为 4*3=12=0Ch，所以 retn  0c
+```
+
+紧接着编写弹出对话框的函数，但在编写代码前先要弄清楚对话框的标题“hello”和内容“hello,pediy!!!”的内存地址。由于对话框的标题和内容数据都处于 `.data` 区块中，由表 5 可知，该区块在内存中与基址的偏移为 `2000h`，与磁盘文件头的偏移为 `800h`，两者的差值为 `2000-800=1800h`。
+
+现在计算对话框的标题“hello”的内存地址。“hello”在磁盘文件的 `800h` 处，加上 `1800` 为 `800+1800=2000h`，再加上 `ImageBase` 的值 `400000h`，则标题“hello”的内存地址为 `400000+2000=402000h`。内容“hello,pediy!!!”的内存地址如上，最后得到内存地址为 `401010h`。
+
+另外还需要 `MessageBoxA` 的函数地址，由输入表部分可知，文件偏移 `A60` 处存放的是 `MessageBoxA` 的函数地址，转化成内存地址为 `400000+（（3000-A00）+A60）=403060h`。
+
+编写完成的代码如下：
+
+```
+55             push   ebp
+
+8BEC           mov    ebp, esp
+
+6A 00          push   0
+
+68 00204000    push   00402000       ；title “hello”
+
+68 10204000    push   00402010       ;  text “hello,pediy!!!”
+
+6A 00          push   0
+
+FF15 60304000  call     dword ptr [403060]      ；调用 MessageBoxA 函数
+
+8BE5           mov     esp, ebp
+
+5D            pop     ebp
+
+C3            retn
+```
+
+所以，代码区块（`.text`）的 16 源码如下:
+
+```
+00000600   B8 01 00 00 00 C2 0C 00  55 8B EC 6A 00 68 00 20   ?...?.Uj.h.
+
+00000610   40 00 68 10 20 40 00 6A  00 FF 15 60 30 40 00 8B   @.h. @.j..\`0@.?
+
+00000620   E5 5D C3 00 00 00 00 00  00 00 00 00 00 00 00 00   ?............
+```
+
+由代码区块可知，代码中存在 3 个重定位数据，分别是 title “hello”（ `00402000h` ）， text “hello,pediy!!!”（ `00402010` ）， `MessageBoxA` 函数地址（ `00403060h` ）。这就需要重定为表的帮忙。重定位表是为与 `.reloc` 区块上，数据的组织方式是由许多重定位块串接而成。每个块是必须以 4 字节对齐，重定位块的结构如下：
+
+```
+typedef struct _IMAGE_BASE_RELOCATION {
+
+    DWORD   VirtualAddress;
+    DWORD   SizeOfBlock;
+
+//   WORD    TypeOffset[1];
+
+} IMAGE_BASE_RELOCATION;
+```
+
+（1） `VirtualAddress`：这组重定位数据的 RVA 地址。每个重定位数据加上这个值才是重定位项的 RVA。
+
+（2） `SizeOfBlack`：四个字节，当前重定位结构的大小。用这个项减去 8，就是 `TypeOffset` 的大小。
+
+（3） `TypeOffset`：是一个数组。数组每项大小是两个字节，其中高 4 位是重定位的类型，低 12 位是重定位地址，它与 `VirtualAddress` 相加就是ＰＥ映像需要修改的地址数据的指针。
+
+常见的重定位类型如下表 6：
+
+![Table 6](img/1a5c86d38e686828a0d59c03364137ff.jpg)
+
+表 6
+
+
+
+## 重定位表构造
+
+标题`"hello"`（`00402000h`）在文件中的偏移为`60Eh`，转化成`RVA`为`60E+(1000-600)=100Eh`，减去这组重定位数据开始的`RVA`地址为`100E-1000=00Eh`，于是得到`TypeOffset`低`12`位地址`00Eh`，`TypeOffset`的高`4`位类型为`3`，所以`TypeOffset`的值为`300Eh`，在`16`进制编辑器里输入`"0E 30"`。
+
+文本`"hello,pediy!!!"`（`00402010`）按标题`"hello"`的方法计算，得到`TypeOffset`的值为`3013h`，在`16`进制编辑器里输入`"13 30"`。
+
+函数`MessageBoxA`地址（`00403060h`）按标题`"hello"`的方法计算，得到`TypeOffset`的值为`301Bh`，在`16`进制编辑器里输入`"1B 30"`。
+
+最后，我们得到`VirtualAddress`为`00001000h`，在`16`进制编辑器里输入`"00 10 00 00"`。
+
+`SizeOfBlock`为`00000010h`（有四个重定位项，其中一个是为了数据对齐，`(10-8)/2=4h`），在`16`进制编辑器里输入`"10 0 00 00"`。
+
+构造完成的重定位表区块`16`进制源码如下：
+
+```
+00000E00   00 10 00 00 10 00 00 00  0E 30 13 30 1B 30 00 00   .........0.0.0..
+```
+
+好，革命快要成功了，现在就差输出表区块（`.edata`）整个`DLL`文件就完成了。
+
+### 输出表结构
+
+输出表是个指向`IMAGE_EXPORT_DIRECTORY`（`IED`）结构，`IED`结构如下所示：
+
+```c
+typedef struct _IMAGE_EXPORT_DIRECTORY {
+    DWORD   Characteristics;
+    DWORD   TimeDateStamp;
+    WORD    MajorVersion;
+    WORD    MinorVersion;
+    DWORD   Name;
+    DWORD   Base;
+    DWORD   NumberOfFunctions;
+    DWORD   NumberOfNames;
+    DWORD   AddressOfFunctions;     // RVA from base of image
+    DWORD   AddressOfNames;         // RVA from base of image
+    DWORD   AddressOfNameOrdinals;  // RVA from base of image
+} IMAGE_EXPORT_DIRECTORY, *PIMAGE_EXPORT_DIRECTORY;
+```
+
+#### 字段说明
+
+1. `Characteristics`：四个字节，表示输出表的属性，保留。设置为`"00 00 00 00"`，在`16`进制编辑器里输入`"00 00 00 00"`。
+2. `TimeDateStamp`：四个字节，表示输出表创建时间，设置为`"00 00 00 00"`，在`16`进制编辑器里输入`"00 00 00 00"`。
+3. `MajorVersion`：两个字节，输出表的版本号，设置为`"00 00"`，在`16`进制编辑器里输入`"00 00"`。
+4. `MinorVersion`：两个字节，输出表的次版本号，设置为`"00 00"`，在`16`进制编辑器里输入`"00 00"`。
+5. `Name`：四个字节，指向一个`ASCII`码的`RVA`。这个字符串是本输出函数所指向的`DLL`名。这个值后面才论述。
+6. `Base`：四个字节，包含这个文件输出表的起始序数值。一般来说，这个值为`1`。设置为`"00 00 00 01"`，在`16`进制编辑器里输入`"01 00 00 00"`。
+7. `NumberOfFunctions`：四个字节，输出地址表（`EAT`）中的条目数量。因为只有一个输出函数`ShowMesBox`，所以这个值为`1`，设置为`"00 00 00 01"`，在`16`进制编辑器里输入`"01 00 00 00"`。
+8. `NumberOfNames`：四个字节，输出名称表（`ENT`）的条目数量。因为只有一个输出函数`ShowMesBox`，所以这个值为`1`，设置为`"00 00 00 01"`，在`16`进制编辑器里输入`"01 00 00 00"`。
+9. `AddressOfFunctions`：四个字节，`EAT`的`RVA`。数组中的每一个非零的`RVA`都对应于一个被输出的符号。
+10. `AddressOfNames`：四个字节，`ENT`的`RVA`。`ENT`是一个指向`ASCII`码字符串的`RVA`数组，每个`ASCII`字符串对应于一个被输出的符号。
+11. `AddressOfNameOrdinals`：四个字节，输出序数表的`RVA`。这个表将`ENT`中的数组索引映射到相应的输出地址表条目。
+
+现在我们来看，这个`IMAGE_EXPORT_DIRECTORY`结构共用了`40`个字节，也就是`C00`到`C27`。
+
+### 输出表数据构造
+
+那么，我们在`C30`构造`Name`属性的所指向的`DLL`名字的`ASCII`码的。`"BinaryDll.dll"`转化成的`ASCII`码是`"42696E617279446C6C2E646C6C"`，在`16`进制编辑器里输入`"42 69 6E 61 72 79 44 6C 6C 2E 64 6C 6C"`。
+
+把`C30`转化成`RVA`就是`C30+(4000-C00)=4030h`，所以把属性`Name`设置为`"00 00 40 30"`，在`16`进制编辑器里输入`"30 40 00 00"`。
+
+在`C40`构造`EAT`表，`C40`转化为`RVA`为`C40+(4000-C00)=4040h`，所以把属性`AddressOfFunctions`设置为`"00 00 40 40"`，在`16`进制编辑器里输入`"40 40 00 00"`。
+
+在`C50`构造`ENT`表，`C50`转化为`RVA`为`C50+(4000-C00)=4050h`，所以把属性`AddressOfNames`设置为`"00 00 40 50"`，在`16`进制编辑器里输入`"50 40 00 00"`。
+
+在`C60`构造输出序数表，`C60`转化为`RVA`为`C60+(4000-C00)=4060h`，所以把属性`AddressOfNameOrdinals`设置为`"00 00 40 60"`，在`16`进制编辑器里输入`"60 40 00 00"`。
+
+在`C40`处输入输出函数`ShowMesBox`的`RVA`，有代码区可得`DLL`的入口函数用了`8`个字节的空间，则`ShowMesBox`的地址为`1000+8=1008h`，在`16`进制编辑器里输入`"08 10 00 00"`。
+
+在`C70`处输入输出函数`ShowMesBox`的`ASCII`码，在`16`进制编辑器里输入`"53 68 6F 77 4D 65 73 42 6F 78"`。
+
+在`C50`处输入`C70`的`RVA`，为`C70+(4000-C00)=4070`，在`16`进制编辑器里输入`"70 40 00 00"`。
+
+在`C60`处构造输出序数表，由于只有一个输出函数，所以设置为`"00 00"`，在`16`进制编辑器里输入`"00 00"`。
+
+完成后输出表`16`进制源码如下：
+
+```
+00000C00   00 00 00 00 00 00 00 00  00 00 00 00 30 40 00 00   ............0@..
+00000C10   01 00 00 00 01 00 00 00  01 00 00 00 40 40 00 00   ............@@..
+00000C20   50 40 00 00 60 40 00 00  00 00 00 00 00 00 00 00   P@..`@..........
+00000C30   42 69 6E 61 72 79 44 6C  6C 2E 64 6C 6C 00 00 00   BinaryDll.dll...
+00000C40   08 10 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+00000C50   70 40 00 00 00 00 00 00  00 00 00 00 00 00 00 00   p@..............
+00000C60   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
+00000C70   53 68 6F 77 4D 65 73 42  6F 78 00 00 00 00 00 00   ShowMesBox......
+```
+
+### 数据目录表填写
+
+最后，我们来填写数据目录表的内容。
+
+数据目录表中的输出表`RVA`是`4000`，大小是`80h`，我们在`16`进制编辑器输入`"00 40 00 00 80 00 00 00"`。
+
+数据目录表中的输入表`RVA`是`3000`，大小是`70h`，我们在`16`进制编辑器输入`"00 30 00 00 70 00 00 00"`。
+
+数据目录表中的重定位表`RVA`是`5000`，大小是`10h`，我们在`16`进制编辑器输入`"00 50 00 00 10 00 00 00"`。
+
+### 测试程序
+
+最后写了个小测试程序，代码如下：
+
+```c
+#include <iostream>
+#include <windows.h>
+
+using namespace std;
+
+int main() {
+    typedef void(*pShowMsg)(void);
+    HINSTANCE hDLL;
+    pShowMsg ShowMeg;
+    hDLL=LoadLibrary("BinaryDll.dll");
+    ShowMeg=(pShowMsg)GetProcAddress(hDLL,"ShowMesBox");
+    ShowMeg();
+    ::FreeLibrary(hDLL);
+    return 0;
+}
+```
+
+运行后出现下图：
+
+![](img/36b209d3544f69ad6fabcf1cb73db6e1.jpg)
+
+上传的附件
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) |
+| :--- |
+| `手写 DLL.rar` |

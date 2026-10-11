@@ -1,0 +1,125 @@
+
+# PEID 的识别机制
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-332.htm`](https://www.pediy.com/kssd/pediy08/pediy8-332.htm)
+
+看雪出的软件加密一书写的不错，对程序员开发水平的提高很有帮助。
+
+此书对软件开发环境的伪装有涉及，大致讨论了一下 `FI` 的识别机制，在此讨论基础上，我深入了解了一下一些主流识别软件的机制，对识别方法也有一些补充，很希望和大家讨论交流一下，路过高手请不吝指点一二。
+
+我以 `PEID` 识别某个 `Delphi` 程序为例，跟踪其识别过程。
+
+检查 `PE` 合法性和使用用户定义数据文件暂不讨论。
+
+`PEID` 判断一个应用程序的开发环境主要依据 3 个地方：
+
+1. 代码入口
+2. `PE` 结构中的链接器版本
+    ```c
+    BYTE MajorLinkerVersion;
+    BYTE MinorLinkerVersion;
+    ```
+3. 特征码，对于 `Delphi`，把特征码定位在 `CODE` 节里，这里是 `Delphi` 的支持库代码。不同的 `Delphi` 版本，对应特征码不同。
+
+我们来看看代码。
+
+先自查一下，代码有加密，`PECompact 2.x`，`esp` 定理秒杀之。
+
+```asm
+0043FBF0    .   81EC 80050000           sub esp,580
+0043FBF6    .   B8 00AB0000             mov eax,0AB00
+0043FBFB    .   53                      push ebx
+0043FBFC    .   55                      push ebp
+0043FBFD    .   56                      push esi
+0043FBFE    .   B9 E8000000             mov ecx,0E8
+0043FC03    .   BD FF000000             mov ebp,0FF
+0043FC08    .   BA 89000000             mov edx,89
+0043FC0D    .   BE 42000000             mov esi,42
+0043FC12    .   57                      push edi
+0043FC13    .   BF 05000000             mov edi,5
+0043FC18    .   BB C0000000             mov ebx,0C0
+0043FC1D    .   66:C74424 14 5000       mov word ptr ss:[esp+14],50    ; 定义特征码
+0043FC24    .   66:C74424 16 6A00       mov word ptr ss:[esp+16],6A
+0043FC2B    .   66:C74424 18 0000       mov word ptr ss:[esp+18],0
+0043FC32    .   66:894C24 1A            mov word ptr ss:[esp+1A],cx
+0043FC37    .   66:894424 1C            mov word ptr ss:[esp+1C],ax
+0043FC3C    .   66:894424 1E            mov word ptr ss:[esp+1E],ax
+0043FC41    .   66:896C24 20            mov word ptr ss:[esp+20],bp
+0043FC46    .   66:896C24 22            mov word ptr ss:[esp+22],bp
+0043FC4B    .   66:C74424 24 BA00       mov word ptr ss:[esp+24],0BA
+0043FC52    .   66:894424 26            mov word ptr ss:[esp+26],ax
+0043FC57    .   66:894424 28            mov word ptr ss:[esp+28],ax
+0043FC5C    .   66:894424 2A            mov word ptr ss:[esp+2A],ax
+0043FC61    .   66:894424 2C            mov word ptr ss:[esp+2C],ax
+0043FC66    .   66:C74424 2E 5200       mov word ptr ss:[esp+2E],52
+0043FC6D    .   66:895424 30            mov word ptr ss:[esp+30],dx
+0043FC72    .   66:897C24 32            mov word ptr ss:[esp+32],di
+0043FC77    .   66:894424 34            mov word ptr ss:[esp+34],ax
+0043FC7C    .   66:894424 36            mov word ptr ss:[esp+36],ax
+0043FC81    .   66:894424 38            mov word ptr ss:[esp+38],ax
+0043FC86    .   66:894424 3A            mov word ptr ss:[esp+3A],ax
+0043FC8B    .   66:895424 3C            mov word ptr ss:[esp+3C],dx
+0043FC90    .   66:897424 3E            mov word ptr ss:[esp+3E],si
+0043FC95    .   66:C74424 40 0400       mov word ptr ss:[esp+40],4
+0043FC9C    .   66:894C24 42            mov word ptr ss:[esp+42],cx
+0043FCA1    .   66:894424 44            mov word ptr ss:[esp+44],ax
+0043FCA6    .   66:894424 46            mov word ptr ss:[esp+46],ax
+0043FCAB    .   66:894424 48            mov word ptr ss:[esp+48],ax
+0043FCB0    .   66:894424 4A            mov word ptr ss:[esp+4A],ax
+0043FCB5    .   66:C74424 4C 5A00       mov word ptr ss:[esp+4C],5A
+0043FCBC    .   66:C74424 4E 5800       mov word ptr ss:[esp+4E],58
+0043FCC3    .   66:894C24 50            mov word ptr ss:[esp+50],cx
+0043FCC8    .   66:894424 52            mov word ptr ss:[esp+52],ax
+0043FCCD    .   66:C74424 54 000A       mov word ptr ss:[esp+54],0A00
+0043FCD4    .   66:894424 56            mov word ptr ss:[esp+56],ax
+0043FCD9    .   66:894424 58            mov word ptr ss:[esp+58],ax
+0043FCDE    .   66:C74424 5A C300       mov word ptr ss:[esp+5A],0C3
+0043FCE5    .   66:C74424 5C 5500       mov word ptr ss:[esp+5C],55
+0043FCEC    .   66:C74424 5E 8B00       mov word ptr ss:[esp+5E],8B
+0043FCF3    .   66:C74424 60 EC00       mov word ptr ss:[esp+60],0EC
+0043FCFA    .   66:C74424 62 3300       mov word ptr ss:[esp+62],33
+0043FD01    .   66:895C24 64            mov word ptr ss:[esp+64],bx
+0043FD06    .   66:C78424 C4000000 5000 mov word ptr ss:[esp+C4],50
+0043FD10    .   66:C78424 C6000000 6A00 mov word ptr ss:[esp+C6],6A
+0043FD1A    .   66:898424 C8000000      mov word ptr ss:[esp+C8],ax
+0043FD22    .   66:898C24 CA000000      mov word ptr ss:[esp+CA],cx
+0043FD2A    .   66:898424 CC000000      mov word ptr ss:[esp+CC],ax
+0043FD32    .   66:898424 CE000000      mov word ptr ss:[esp+CE],ax
+0043FD3A    .   66:89AC24 D0000000      mov word ptr ss:[esp+D0],bp
+0043FD42    .   66:89AC24 D2000000      mov word ptr ss:[esp+D2],bp
+0043FD4A    .   66:C78424 D4000000 BA00 mov word ptr ss:[esp+D4],0BA
+0043FD54    .   66:898424 D6000000      mov word ptr ss:[esp+D6],ax
+0043FD5C    .   66:898424 D8000000      mov word ptr ss:[esp+D8],ax
+0043FD64    .   66:898424 DA000000      mov word ptr ss:[esp+DA],ax
+0043FD6C    .   66:898424 DC000000      mov word ptr ss:[esp+DC],ax
+0043FD74    .   66:C78424 DE000000 5200 mov word ptr ss:[esp+DE],52
+0043FD7E    .   66:899424 E0000000      mov word ptr ss:[esp+E0],dx
+0043FD86    .   66:89BC24 E2000000      mov word ptr ss:[esp+E2],di
+0043FD8E    .   66:898424 E4000000      mov word ptr ss:[esp+E4],ax
+0043FD96    .   66:898424 E6000000      mov word ptr ss:[esp+E6],ax
+0043FD9E    .   66:898424 E8000000      mov word ptr ss:[esp+E8],ax
+0043FDA6    .   66:898424 EA000000      mov word ptr ss:[esp+EA],ax
+0043FDAE    .   66:899424 EC000000      mov word ptr ss:[esp+EC],dx
+0043FDB6    .   66:89B424 EE000000      mov word ptr ss:[esp+EE],si
+0043FDBE    .   66:C78424 F0000000 0400 mov word ptr ss:[esp+F0],4
+0043FDC8    .   66:C78424 F2000000 C700 mov word ptr ss:[esp+F2],0C7
+0043FDD2    .   66:89B424 F4000000      mov word ptr ss:[esp+F4],si
+0043FDDA    .   66:C78424 F6000000 0800 mov word ptr ss:[esp+F6],8
+0043FDE4    .   66:898424 F8000000      mov word ptr ss:[esp+F8],ax
+0043FDEC    .   66:898424 FA000000      mov word ptr ss:[esp+FA],ax
+0043FDF4    .   66:898424 FC000000      mov word ptr ss:[esp+FC],ax
+0043FDFC    .   66:89B424 02010000      mov word ptr ss:[esp+102],si
+0043FE04    .   BE A3000000             mov esi,0A3
+0043FE09    .   66:89AC24 48010000      mov word ptr ss:[esp+148],bp
+0043FE11    .   BD 33000000             mov ebp,33
+0043FE16    .   66:898424 FE000000      mov word ptr ss:[esp+FE],ax
+0043FE1E    .   66:C78424 00010000 C700 mov word ptr ss:[esp+100],0C7
+0043FE28    .   66:C78424 04010000 0C00 mov word ptr ss:[esp+104],0C
+0043FE32    .   66:898424 06010000      mov word ptr ss:[esp+106],ax
+0043FE3A    .   66:898424 08010000      mov word ptr ss:[esp+108],ax
+0043FE42    .   66:898424 0A010000      mov word ptr ss:[esp+10A],ax
+0043FE4A    .   66:898424 0C010000      mov word ptr ss:[esp+10C],ax
+0043FE52    .   66:898C24 0E010000      mov word ptr ss:[esp+10E],cx
+0043FE5A    .   66:898424 10010000      mov word ptr ss:[esp+110],ax
+0043FE62    .   66:898424 12010000      mov word ptr ss:[esp+112],ax
+```

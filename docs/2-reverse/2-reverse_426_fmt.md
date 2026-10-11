@@ -1,0 +1,233 @@
+
+# LastError v0.0.1 （Ida 小插件）
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-791.htm`](https://www.pediy.com/kssd/pediy08/pediy8-791.htm)
+
+**LastError v0.0.1** （Ida 小插件）
+
+作者: 一块三毛钱  
+邮箱: zhongts@163.com  
+日期: 2005.10.17  
+附件: `lasterror.rar`
+
+使用 VC 调试可以在 `watch` 窗口添加 `@err,hr` 查看 API 调用的错误，`OllyDBG` 也可以查看 API 调用错误。由于 `Ida` 动态调试的时候没有这项功能（可能是我没有找到^\_^），所以我编写了这个个小插件。
+
+![](img/390a10237d3a3446332216307da1c10b.jpg)
+
+因为是第一次学习 `Ida` 插件的编写，很多函数的使用和调试方法都不知道，所以采用了代码中给出的拙劣手段。通过逆向 `Ida` 的插件模块 `win32_user.plw` 找到处理调试事件的代码处，把处理 `EXCEPTION_DEBUG_EVENT` 事件的过程地址替换成我的函数的地址，处理完后再返回原来的代码。本来是想注册通知消息 `hook_to_notification_point()` 来调用我的代码，但是找来找去没有找到应该使用哪一个消息，`dbg_exception`、`dbg_breakpoint` 等好象都不行。在跳转到我的代码中，首先通过 `GetThreadContext` 函数取得被调试进程的 `fs` 寄存器的值，然后读取 `TEB` 结构中的 `LastErrorValue` 成员的值得到 API 函数调用的错误。因为需要转换选择子，所以先通过 `GetThreadSelectorEntry` 函数把 `fs` 选择子转换成线性地址，然后再读取。代码中很多地方都采用了迂回的办法，本来是想通过函数 `get_reg_val` 读取 `fs` 寄存器的值，结果不管读取哪个寄存器的值该函数老是失败，不知道为什么。有没有哪位大侠知道？
+
+```c
+/*
+ * LastError v0.0.1 by 一块三毛钱 (2005.10.16)
+ *
+ * http://zhongts.reg365.com   zhongts@163.com
+ *
+ * IDA 调试插件，调试过程中获取 API 函数调用失败的原因
+ */
+
+#include <windows.h>
+
+#include <ida.hpp>
+
+#include <idp.hpp>
+
+#include <loader.hpp>
+
+#include <dbg.hpp>
+
+#pragma comment(linker,"/OPT:NOWIN98")
+
+char IDAP_comment[] = "LastError v0.0.1 by zhongts (" __DATE__ " " __TIME__ ")";
+
+char IDAP_help[] = "GetLastError() utility\n";
+
+char IDAP_name[] = "LastError";
+
+char IDAP_hotkey[] = "Alt-X";
+
+int         *lpTableAddr;
+
+int         lpAddr;
+
+DWORD       pid, tid;
+
+CONTEXT     MyContext;
+
+LDT_ENTRY   SelEntry;
+
+HANDLE      hProcess, hThread;
+
+DWORD       dwSegAddr;
+
+DWORD       dwReturn;
+
+int         precode, code;
+
+static void __declspec(naked) LastError(void)
+
+{
+    /* 进入该函数的时候，[ebp-150h] 表示 DEBUG_EVENT 结构 (ida480) */
+    __asm
+    {
+        pushad
+        mov     eax, [ebp-14Ch]
+        mov     [pid], eax
+        mov     eax, [ebp-148h]
+        mov     [tid], eax
+    }
+
+//  msg(">>> PID = %d, TID = %d\n", pid, tid);
+
+    /* 读取线程中的 fs 寄存器的值 */
+    hThread = OpenThread(THREAD_GET_CONTEXT | THREAD_QUERY_INFORMATION, 0, tid);
+
+    if (hThread == NULL)
+        goto exit_0;
+
+    MyContext.ContextFlags = CONTEXT_SEGMENTS;
+
+    GetThreadContext(hThread, &MyContext);
+
+    /* 为了读取 fs:[18h] 的值，需要转换选择子 fs 为线性地址 */
+    GetThreadSelectorEntry(hThread, MyContext.SegFs, &SelEntry);
+
+    dwSegAddr = ( SelEntry.HighWord.Bits.BaseHi << 24) |
+                (SelEntry.HighWord.Bits.BaseMid << 16) |
+                SelEntry.BaseLow;
+
+//  msg(">>> fs = 0x%X, FS = 0x%X\n", MyContext.SegFs, dwSegAddr);
+
+    CloseHandle(hThread);
+
+    hProcess = OpenProcess(PROCESS_VM_READ, 0, pid);
+
+    if (hProcess == NULL)
+        goto exit_0;
+
+    /* 读取 fs:[18h] 处的值得到 TEB 结构的地址 */
+    dwSegAddr += 0x18;
+
+    if (ReadProcessMemory(hProcess, (LPCVOID)dwSegAddr, &dwSegAddr, 4, &dwReturn))
+    {
+        /* 读取 [TEB].LastErrorValue 的值得到 LastError */
+        dwSegAddr += 0x34;
+
+        if (ReadProcessMemory(hProcess, (LPCVOID)dwSegAddr, &code, 4, &dwReturn))
+        {
+            if (code != precode)
+            {
+                msg(">>> GetLastError() = %X (%s)\n", code, winerr(code));
+
+                precode = code;
+            }
+        }
+    }
+
+    CloseHandle(hProcess);
+
+    goto exit_1;
+
+exit_0:
+
+    msg(">>> failed! (%s)\n", winerr(GetLastError()));
+
+exit_1:
+
+    __asm   popad
+
+    __asm   jmp [lpAddr]
+
+}
+
+int IDAP_init(void)
+
+{
+
+    if ( ph.id != PLFM_386 || inf.filetype != f_PE )
+        return PLUGIN_SKIP;
+
+    msg(">>> %s\n", IDAP_comment);
+
+    return PLUGIN_KEEP;
+
+}
+
+void IDAP_term(void)
+
+{
+
+    /* 还原被修改的跳转表中的地址 */
+
+    if (lpTableAddr && lpAddr)
+        *lpTableAddr = lpAddr;
+
+    return;
+
+}
+
+void IDAP_run(int arg)
+
+{
+
+    /* 找到调试模块中处理 EXCEPTION_DEBUG_EVENT 信息的地方，把地址替换成我的函数 */
+
+    lpTableAddr = (int *)GetModuleHandle("win32_user.plw");
+
+    if (lpTableAddr == NULL)
+    {
+        msg(">>> no found debug module win32_user.plw\n");
+
+        return;
+
+    }
+
+    lpTableAddr = (int *)((char *)lpTableAddr + 0xB860);    // ida480
+
+    if (*lpTableAddr != (int)LastError)
+    {
+        lpAddr = *lpTableAddr;
+
+        *lpTableAddr = (int)LastError;
+
+    }
+
+    msg(">>> Patch: Old = %p, New = %p\n", lpAddr, LastError);
+
+    return;
+
+}
+
+plugin_t PLUGIN =
+
+{
+
+    IDP_INTERFACE_VERSION,
+
+    0,
+
+    IDAP_init,
+
+    IDAP_term,
+
+    IDAP_run,
+
+    IDAP_comment,
+
+    IDAP_help,
+
+    IDAP_name,
+
+    IDAP_hotkey
+
+};
+```
+
+因为用到了硬编码，该插件应该是只能在 `ida480` 上面使用，如果是用别的版本的请自己修改代码。
+
+**参考资料：**
+
+`[1]` Ida Plug-In Writing In C/C++，Steve Micallef
+
+`http://www.binarypool.com/idapluginwriting/`
+
+`4dd466d0e1e0cc123afbe504da2462ca`

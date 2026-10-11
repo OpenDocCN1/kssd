@@ -1,0 +1,137 @@
+
+# LordPE 中的 PE 编辑器中增加首部大小的代码
+
+> 原文：`www.pediy.com/kssd/pediy10/61699.html` (链接: https://www.pediy.com/kssd/pediy10/61699.html)
+
+我最近在重修 `PE` 文件结构，听朋友说，学习 `PE` 文件结构最好的方法就是写一个 `PE` 结构查看器，于是我想写一个 `PE` 编辑器，完全仿照 `LordPE` 中 `PE` 编辑器！
+
+在要实现首部大小后面的 `+` 的功能时遇到了麻烦，我不知道它是每次固定加 `0x200` 呢还是每次都增加文件块对齐值的大小呢？
+
+问了几位朋友他们都不能给出确定的回答，无奈之下我调试跟踪了一下 `LordPE` 的处理过程，特帖出代码，希望能对跟我有同样疑惑的朋友有所帮助！
+
+代码如下：
+
+```asm
+00416DC0  /$  83EC 0C       sub     esp, 0C
+00416DC3  |.  53            push    ebx
+00416DC4  |.  55            push    ebp
+00416DC5  |.  56            push    esi
+00416DC6  |.  57            push    edi
+00416DC7  |.  BE 05000000   mov     esi, 5
+00416DCC  |.  FF15 4C924100 call    dword ptr [<&USER32.GetActiveWin>; [GetActiveWindow
+00416DD2  |.  8B5C24 20     mov     ebx, dword ptr [esp+20]
+00416DD6  |.  8BF8          mov     edi, eax
+00416DD8  |.  897C24 14     mov     dword ptr [esp+14], edi
+00416DDC  |.  8B83 0C010000 mov     eax, dword ptr [ebx+10C]
+00416DE2  |.  50            push    eax
+00416DE3  |.  E8 88FFFFFF   call    00416D70                          ;  得到当前 Head 的大小
+00416DE8  |.  83C4 04       add     esp, 4
+00416DEB  |.  3D 00100000   cmp     eax, 1000
+00416DF0  |.  72 18         jb      short 00416E0A                    ;  小于 1000 则
+00416DF2  |.  68 ACDB4100   push    0041DBAC                          ;  已达到头部大小最大值 (0x1000)!
+00416DF7  |.  57            push    edi
+00416DF8  |.  E8 A3D5FEFF   call    004043A0                          ;  提示已达到最大值
+00416DFD  |.  83C4 08       add     esp, 8
+00416E00  |.  8BC6          mov     eax, esi
+00416E02  |.  5F            pop     edi
+00416E03  |.  5E            pop     esi
+00416E04  |.  5D            pop     ebp
+00416E05  |.  5B            pop     ebx
+00416E06  |.  83C4 0C       add     esp, 0C
+00416E09  |.  C3            retn
+00416E0A  |>  8B8B 0C010000 mov     ecx, dword ptr [ebx+10C]        ;  取到了 MZ
+00416E10  |.  51            push    ecx
+00416E11  |.  E8 5AFFFFFF   call    00416D70
+00416E16  |.  8BB3 08010000 mov     esi, dword ptr [ebx+108]        ;  得到了 D3C00，是什么？
+00416E1C  |.  8BE8          mov     ebp, eax
+00416E1E  |.  2BF5          sub     esi, ebp
+00416E20  |.  56            push    esi
+00416E21  |.  897424 28     mov     dword ptr [esp+28], esi
+00416E25  |.  E8 36ACFEFF   call    00401A60                          ;  向内存申请 ESI 大小的空间
+00416E2A  |.  83C4 08       add     esp, 8
+00416E2D  |.  894424 10     mov     dword ptr [esp+10], eax
+00416E31  |.  85C0          test    eax, eax                          ;  如果申请成功
+00416E33  |.  75 0D         jnz     short 00416E42
+00416E35  |.  5F            pop     edi
+00416E36  |.  5E            pop     esi
+00416E37  |.  5D            pop     ebp
+00416E38  |.  B8 02000000   mov     eax, 2
+00416E3D  |.  5B            pop     ebx
+00416E3E  |.  83C4 0C       add     esp, 0C
+00416E41  |.  C3            retn
+00416E42  |>  8B93 0C010000 mov     edx, dword ptr [ebx+10C]
+00416E48  |.  8BCE          mov     ecx, esi                        ;  申请内存的大小给 ECX
+00416E4A  |.  8BF5          mov     esi, ebp
+00416E4C  |.  8BF8          mov     edi, eax
+00416E4E  |.  03F2          add     esi, edx                        ;  还原 00416E1E 处的操作
+00416E50  |.  8BD1          mov     edx, ecx
+00416E52  |.  C1E9 02       shr     ecx, 2
+00416E55  |.  F3:A5         rep     movs dword ptr es:[edi], dword p>
+00416E57  |.  8BCA          mov     ecx, edx
+00416E59  |.  81C5 00020000 add     ebp, 200                        ;  头部大小+200
+00416E5F  |.  83E1 03       and     ecx, 3
+00416E62  |.  F3:A4         rep     movs byte ptr es:[edi], byte ptr>
+00416E64  |.  8B83 18010000 mov     eax, dword ptr [ebx+118]        ;  定位 PE 位置
+00416E6A  |.  33C9          xor     ecx, ecx
+00416E6C  |.  8968 54       mov     dword ptr [eax+54], ebp
+00416E6F  |.  8B93 18010000 mov     edx, dword ptr [ebx+118]
+00416E75  |.  8B83 24010000 mov     eax, dword ptr [ebx+124]
+00416E7B  |.  66:394A 06    cmp     word ptr [edx+6], cx
+00416E7F  |.  76 25         jbe     short 00416EA6
+00416E81  |.  83C0 14       add     eax, 14
+00416E84  |>  8B10          /mov    edx, dword ptr [eax]
+00416E86  |.  85D2          |test   edx, edx
+00416E88  |.  74 08         |je    short 00416E92
+00416E8A  |.  81C2 00020000 |add    edx, 200
+00416E90  |.  8910          |mov   dword ptr [eax], edx
+00416E92  |>  8B93 18010000 |mov    edx, dword ptr [ebx+118]
+00416E98  |.  33F6          |xor   esi, esi
+00416E9A  |.  83C0 28       |add   eax, 28
+00416E9D  |.  41            |inc   ecx
+00416E9E  |.  66:8B72 06    |mov   si, word ptr [edx+6]
+00416EA2  |.  3BCE          |cmp   ecx, esi
+00416EA4  |.^ 72 DE         \jb    short 00416E84
+00416EA6  |>  53            push    ebx
+00416EA7  |.  E8 54EBFFFF   call    00415A00
+00416EAC  |.  6A 01         push    1
+00416EAE  |.  53            push    ebx
+00416EAF  |.  E8 2CFEFFFF   call    00416CE0
+00416EB4  |.  83C4 0C       add     esp, 0C
+00416EB7  |.  8BF0          mov     esi, eax
+00416EB9  |.  6A 00         push    0                               ; /Origin = FILE\_BEGIN
+00416EBB  |.  6A 00         push    0                               ; |pOffsetHi = NULL
+00416EBD  |.  55            push    ebp                             ; |OffsetLo
+00416EBE  |.  56            push    esi                             ; |hFile
+00416EBF  |.  FF15 C4904100 call    dword ptr [<&KERNEL32.SetFilePoi>; 确定位置
+00416EC5  |.  8B4C24 20     mov     ecx, dword ptr [esp+20]
+00416EC9  |.  8B7C24 10     mov     edi, dword ptr [esp+10]
+00416ECD  |.  8D4424 18     lea     eax, dword ptr [esp+18]
+00416ED1  |.  6A 00         push    0                               ; /pOverlapped = NULL
+00416ED3  |.  50            push    eax                             ; |pBytesWritten
+00416ED4  |.  51            push    ecx                             ; |nBytesToWrite
+00416ED5  |.  57            push    edi                             ; |Buffer
+00416ED6  |.  56            push    esi                             ; |hFile
+00416ED7  |.  FF15 B4904100 call    dword ptr [<&KERNEL32.WriteFile>>; 写入文件
+00416EDD  |.  56            push    esi                             ; /hObject
+00416EDE  |.  FF15 54914100 call    dword ptr [<&KERNEL32.CloseHandl>; \CloseHandle
+00416EE4  |.  57            push    edi
+00416EE5  |.  E8 A6ABFEFF   call    00401A90
+00416EEA  |.  53            push    ebx
+00416EEB  |.  E8 A0E9FFFF   call    00415890
+00416EF0  |.  83C4 08       add     esp, 8
+00416EF3  |.  85C0          test    eax, eax
+00416EF5  |.  74 1A         je      short 00416F11
+00416EF7  |.  8B5424 14     mov     edx, dword ptr [esp+14]
+00416EFB  |.  52            push    edx
+00416EFC  |.  E8 AF90FFFF   call    0040FFB0
+00416F01  |.  83C4 04       add     esp, 4
+00416F04  |.  B8 05000000   mov     eax, 5
+00416F09  |.  5F            pop     edi
+00416F0A  |.  5E            pop     esi
+00416F0B  |.  5D            pop     ebp
+00416F0C  |.  5B            pop     ebx
+00416F0D  |.  83C4 0C       add     esp, 0C
+00416F10  |.  C3            retn
+```
+
+OK!

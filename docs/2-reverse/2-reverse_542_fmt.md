@@ -1,0 +1,410 @@
+
+# 从逆向工程的角度来看 C++ (七)
+
+> 原文：[`www.pediy.com/kssd/pediy10/87593.html`](https://www.pediy.com/kssd/pediy10/87593.html)
+
+进入本次正题：
+
+(七)\[ C++ 之 动态对象创建 \]
+
+`////CPP`
+
+`// Lesson7.cpp : Defines the entry point for the console application.`
+`//`
+`#include "stdafx.h"`
+`#include <iostream.h>`
+`class Tree`
+`{`
+`private:`
+`int height;`
+`int years;`
+`public:`
+`Tree(int h,int y)`
+`{`
+`   cout << " constructor--called-- " << endl; `
+`   height = h;`
+`   years = y ;`
+`}`
+`~Tree()`
+`{`
+`   cout << " destructor--called-- " << endl;`
+`}`
+`void Print()`
+`{`
+`   height += 2;`
+`   years += 3;`
+`   cout << "the height is : " << height << endl;`
+`   cout << "the year is : " << years << endl;`
+`}`
+`};`
+`int main(int argc, char* argv[])`
+`{`
+`_asm int 3`
+`Tree *T = new Tree(40,10);`
+`T->Print();`
+`delete T;`
+`return 0;`
+`}`
+
+`////Dasm`
+
+```
+0040108D    90               nop
+0040108E    6A 08            push 8                            ; 申请堆中内存大小
+00401090    E8 0B040000      call Lesson7.operator new           ; 重载的运算符 new
+00401095    83C4 04          add esp,4
+00401098    8945 E8          mov dword ptr ss:[ebp-18],eax        ; var6 = 新内存, 就是新对象的 this 指针了.
+0040109B    C745 FC 0000000> mov dword ptr ss:[ebp-4],0
+004010A2    837D E8 00       cmp dword ptr ss:[ebp-18],0
+004010A6    74 11            je short Lesson7.004010B9
+004010A8    6A 0A            push 0A                             ; year
+004010AA    6A 28            push 28                             ; height
+004010AC    8B4D E8          mov ecx,dword ptr ss:[ebp-18]        ; this 指针了.
+004010AF    E8 7EFFFFFF      call Lesson7.00401032               ; 构造函数, 2 个参数.
+004010B4    8945 DC          mov dword ptr ss:[ebp-24],eax        ; var9 = this
+004010B7    EB 07            jmp short Lesson7.004010C0
+004010B9    C745 DC 0000000> mov dword ptr ss:[ebp-24],0
+004010C0    8B45 DC          mov eax,dword ptr ss:[ebp-24]
+004010C3    8945 EC          mov dword ptr ss:[ebp-14],eax        ; var5 = this 指针
+004010C6    C745 FC FFFFFFF> mov dword ptr ss:[ebp-4],-1
+004010CD    8B4D EC          mov ecx,dword ptr ss:[ebp-14]
+004010D0    894D F0          mov dword ptr ss:[ebp-10],ecx
+004010D3    8B4D F0          mov ecx,dword ptr ss:[ebp-10]        ; this 指针
+004010D6    E8 70FFFFFF      call Lesson7.0040104B               ; 无参成员函数.Print
+004010DB    8B55 F0          mov edx,dword ptr ss:[ebp-10]
+004010DE    8955 E0          mov dword ptr ss:[ebp-20],edx
+004010E1    8B45 E0          mov eax,dword ptr ss:[ebp-20]
+004010E4    8945 E4          mov dword ptr ss:[ebp-1C],eax
+004010E7    837D E4 00       cmp dword ptr ss:[ebp-1C],0
+004010EB    74 0F            je short Lesson7.004010FC
+004010ED    6A 01            push 1
+004010EF    8B4D E4          mov ecx,dword ptr ss:[ebp-1C]
+004010F2    E8 1DFFFFFF      call Lesson7.00401014               ; delete 了/.
+004010F7    8945 D8          mov dword ptr ss:[ebp-28],eax
+004010FA    EB 07            jmp short Lesson7.00401103
+004010FC    C745 D8 0000000> mov dword ptr ss:[ebp-28],0
+00401103    33C0             xor eax,eax
+00401105    8B4D F4          mov ecx,dword ptr ss:[ebp-C]
+00401108    64:890D 0000000> mov dword ptr fs:[0],ecx
+0040110F    5F               pop edi
+00401110    5E               pop esi
+00401111    5B               pop ebx
+00401112    83C4 68          add esp,68
+00401115    3BEC             cmp ebp,esp
+00401117    E8 84070000      call Lesson7._chkesp
+0040111C    8BE5             mov esp,ebp
+0040111E    5D               pop ebp
+0040111F    C3               retn
+```
+
+`////new`
+
+```
+004014A0 > 55               push ebp
+004014A1    8BEC             mov ebp,esp
+004014A3    51               push ecx
+004014A4    6A 01            push 1
+004014A6    8B45 08          mov eax,dword ptr ss:[ebp+8]
+004014A9    50               push eax                            ; 申请内存大小,
+004014AA    E8 11070000      call Lesson7._nh_malloc             ; 3 个参数
+004014AF    83C4 08          add esp,8
+004014B2    8945 FC          mov dword ptr ss:[ebp-4],eax        ; 申请的内存给 T
+004014B5    8B45 FC          mov eax,dword ptr ss:[ebp-4]
+004014B8    8BE5             mov esp,ebp
+004014BA    5D               pop ebp
+004014BB    C3               retn
+```
+
+`////构造函数`
+
+```
+00401120 > 55               push ebp
+00401121    8BEC             mov ebp,esp
+00401123    83EC 44          sub esp,44
+00401126    53               push ebx
+00401127    56               push esi
+00401128    57               push edi
+00401129    51               push ecx                              ; 保护一下
+0040112A    8D7D BC          lea edi,dword ptr ss:[ebp-44]
+0040112D    B9 11000000      mov ecx,11
+00401132    B8 CCCCCCCC      mov eax,CCCCCCCC
+00401137    F3:AB            rep stos dword ptr es:[edi]
+00401139    59               pop ecx
+0040113A    894D FC          mov dword ptr ss:[ebp-4],ecx        ; var1 = this
+0040113D    68 41104000      push Lesson7.00401041               ; endl
+00401142    68 1C804200      push Lesson7.0042801C               ; ASCII " constructor--called-- "
+00401147    B9 50E24200      mov ecx,offset Lesson7.cout
+0040114C    E8 AFDF0000      call Lesson7.ostream::operator<<
+00401151    8BC8             mov ecx,eax
+00401153    E8 DFFEFFFF      call Lesson7.00401037
+00401158    8B45 FC          mov eax,dword ptr ss:[ebp-4]
+0040115B    8B4D 08          mov ecx,dword ptr ss:[ebp+8]
+0040115E    8908             mov dword ptr ds:[eax],ecx          ; height = h;
+00401160 > 8B55 FC          mov edx,dword ptr ss:[ebp-4]
+00401163    8B45 0C          mov eax,dword ptr ss:[ebp+C]
+00401166    8942 04          mov dword ptr ds:[edx+4],eax        ; year = y;
+00401169    8B45 FC          mov eax,dword ptr ss:[ebp-4]
+0040116C    5F               pop edi
+0040116D    5E               pop esi
+0040116E    5B               pop ebx
+0040116F    83C4 44          add esp,44
+00401172    3BEC             cmp ebp,esp
+00401174    E8 27070000      call Lesson7._chkesp
+00401179    8BE5             mov esp,ebp
+0040117B    5D               pop ebp
+0040117C    C2 0800          retn 8
+```
+
+`////无参 Print 成员函数`
+
+```
+00411780 > 55               push ebp
+00411781    8BEC             mov ebp,esp
+00411783    83EC 44          sub esp,44
+00411786    53               push ebx
+00411787    56               push esi
+00411788    57               push edi
+00411789    51               push ecx
+0041178A    8D7D BC          lea edi,dword ptr ss:[ebp-44]
+0041178D    B9 11000000      mov ecx,11
+00411792    B8 CCCCCCCC      mov eax,CCCCCCCC
+00411797    F3:AB            rep stos dword ptr es:[edi]
+00411799    59               pop ecx
+0041179A    894D FC          mov dword ptr ss:[ebp-4],ecx
+0041179D    8B45 FC          mov eax,dword ptr ss:[ebp-4]
+004117A0    8B08             mov ecx,dword ptr ds:[eax]
+004117A2    83C1 02          add ecx,2
+004117A5    8B55 FC          mov edx,dword ptr ss:[ebp-4]
+004117A8    890A             mov dword ptr ds:[edx],ecx          ; 上面 5 句 :height += 2
+004117AA    8B45 FC          mov eax,dword ptr ss:[ebp-4]
+004117AD    8B48 04          mov ecx,dword ptr ds:[eax+4]
+004117B0    83C1 03          add ecx,3
+004117B3    8B55 FC          mov edx,dword ptr ss:[ebp-4]
+004117B6    894A 04          mov dword ptr ds:[edx+4],cx         ; 上面 5 句: year += 3
+004117B9    68 41104000      push Lesson7.00401041               ; endl
+004117BE    8B45 FC          mov eax,dword ptr ss:[ebp-4]
+004117C1    8B08             mov ecx,dword ptr ds:[eax]
+004117C3    51               push ecx                            ; height
+```
+
+
+
+### 代码片段 1
+
+```
+004117C4    68 18914200     push Lesson7.00429118                  ; ASCII "the height is : "  
+
+004117C9    B9 50E24200     mov ecx,offset Lesson7.cout  
+
+004117CE    E8 2DD9FFFF     call Lesson7.ostream::operator<<  
+
+004117D3    8BC8            mov ecx,eax  
+
+004117D5    E8 06D6FFFF     call Lesson7.ostream::operator<<  
+
+004117DA    8BC8            mov ecx,eax  
+
+004117DC    E8 56F8FEFF     call Lesson7.00401037  
+
+004117E1    68 41104000     push Lesson7.00401041  
+
+004117E6    8B55 FC         mov edx,dword ptr ss:[ebp-4]  
+
+004117E9    8B42 04         mov eax,dword ptr ds:[edx+4]  
+
+004117EC    50              push eax  
+
+004117ED    68 08914200     push Lesson7.00429108                  ; ASCII "the year is : "  
+
+004117F2    B9 50E24200     mov ecx,offset Lesson7.cout  
+
+004117F7    E8 04D9FFFF     call Lesson7.ostream::operator<<  
+
+004117FC    8BC8            mov ecx,eax  
+
+004117FE    E8 DDD5FFFF     call Lesson7.ostream::operator<<  
+
+00411803    8BC8            mov ecx,eax  
+
+00411805    E8 2DF8FEFF     call Lesson7.00401037  
+
+0041180A    5F              pop edi  
+
+0041180B    5E              pop esi  
+
+0041180C    5B              pop ebx  
+
+0041180D    83C4 44         add esp,44  
+
+00411810    3BEC            cmp ebp,esp  
+
+00411812    E8 8900FFFF     call Lesson7._chkesp  
+
+00411817    8BE5            mov esp,ebp  
+
+00411819    5D              pop ebp  
+
+0041181A    C3              retn  
+```
+
+### 代码片段 2：delete
+
+```
+////delete  
+
+00401330 > 55              push ebp  
+
+00401331    8BEC            mov ebp,esp  
+
+00401333    83EC 44         sub esp,44  
+
+00401336    53              push ebx  
+
+00401337    56              push esi  
+
+00401338    57              push edi  
+
+00401339    51              push ecx  
+
+0040133A    8D7D BC         lea edi,dword ptr ss:[ebp-44]  
+
+0040133D    B9 11000000     mov ecx,11  
+
+00401342    B8 CCCCCCCCC     mov eax,CCCCCCCC  
+
+00401347    F3:AB           rep stos dword ptr es:[edi]  
+
+00401349    59              pop ecx  
+
+0040134A    894D FC         mov dword ptr ss:[ebp-4],ecx  
+
+0040134D    8B4D FC         mov ecx,dword ptr ss:[ebp-4]  
+
+00401350 > E8 C9FCFFFF     call Lesson7.0040101E                  ; 这里就是析构函数了.  
+
+00401355    8B45 08         mov eax,dword ptr ss:[ebp+8]  
+
+00401358    83E0 01         and eax,1  
+
+0040135B    85C0            test eax,eax  
+
+0040135D    74 0C           je short Lesson7.0040136B  
+
+0040135F    8B4D FC         mov ecx,dword ptr ss:[ebp-4]  
+
+00401362    51              push ecx  
+
+00401363    E8 A8000000     call Lesson7.operator delete          ; 再来 delete 内存  
+
+00401368    83C4 04         add esp,4  
+
+0040136B    8B45 FC         mov eax,dword ptr ss:[ebp-4]  
+
+0040136E    5F              pop edi  
+
+0040136F    5E              pop esi  
+
+00401370    5B              pop ebx  
+
+00401371    83C4 44         add esp,44  
+
+00401374    3BEC            cmp ebp,esp  
+
+00401376    E8 25050000     call Lesson7._chkesp  
+
+0040137B    8BE5            mov esp,ebp  
+
+0040137D    5D              pop ebp  
+
+0040137E    C2 0400         retn 4  
+```
+
+### 代码片段 3：析构函数
+
+```
+////析构函数  
+
+00401390 > 55              push ebp  
+
+00401391    8BEC            mov ebp,esp  
+
+00401393    83EC 44         sub esp,44  
+
+00401396    53              push ebx  
+
+00401397    56              push esi  
+
+00401398    57              push edi  
+
+00401399    51              push ecx  
+
+0040139A    8D7D BC         lea edi,dword ptr ss:[ebp-44]  
+
+0040139D    B9 11000000     mov ecx,11  
+
+004013A2    B8 CCCCCCCCC     mov eax,CCCCCCCC  
+
+004013A7    F3:AB           rep stos dword ptr es:[edi]  
+
+004013A9    59              pop ecx  
+
+004013AA    894D FC         mov dword ptr ss:[ebp-4],ecx  
+
+004013AD    68 41104000     push Lesson7.00401041  
+
+004013B2    68 1C804200     push Lesson7.0042801C                  ; ASCII " destructor--called-- "  
+
+004013B7    B9 50E24200     mov ecx,offset Lesson7.cout  
+
+004013BC    E8 3FDD0000     call Lesson7.ostream::operator<<  
+
+004013C1    8BC8            mov ecx,eax  
+
+004013C3    E8 6FFCFFFF     call Lesson7.00401037  
+
+004013C8    5F              pop edi  
+
+004013C9    5E              pop esi  
+
+004013CA    5B              pop ebx  
+
+004013CB    83C4 44         add esp,44  
+
+004013CE    3BEC            cmp ebp,esp  
+
+004013D0    E8 CB040000     call Lesson7._chkesp  
+
+004013D5    8BE5            mov esp,ebp  
+
+004013D7    5D              pop ebp  
+
+004013D8    C3              retn  
+```
+
+### Release 版本
+
+差不多，不贴了。
+
+### 小结
+
+1. 几种常见用法.
+
+   ```
+   Tree *T = new Tree;  
+
+   Tree *T1 = new Tree(40,10);  
+
+   Tree *T2 = new Tree[100] ;  
+
+   delete T ;  
+
+   delete []T2;  
+   ```
+
+2. 注意点.
+
+   构造函数的执行在重载运算符中执行 . 在`new`的时候，`new`会判断要申请的内存的大小.
+
+   析构函数在`delete`中执行. 若`delete [] T`，则还会有个循环的`free`过程.
+
+3. 待补充.

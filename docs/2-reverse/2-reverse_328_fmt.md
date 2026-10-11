@@ -1,0 +1,158 @@
+
+# TraceMe--函数参考
+
+> 原文：[`www.pediy.com/kssd/pediy11/118020.html`](https://www.pediy.com/kssd/pediy11/118020.html)
+
+- **文章作者**: `Gall`
+- **作者主页**: `http://hi.baidu.com/8ohack`
+- **使用工具**: `Ollydbg`
+- **操作平台**: `WindowsXP`
+- **作者声明**: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
+
+---
+
+## 详细过程
+
+函数参考，就是利用函数定位到关键位置。
+
+在破解过程中常见的函数参考对象，一般指用来获取文本框数据的函数，例如：
+
+- `GetDlgItemText`-----------`[GetDlgItemTextA/GetDlgItemTextW]`
+- `GetWindowText`------------`[GetWindowTextA/GetWindowTextW]`
+
+当然，也有其他的函数可以作为参考，这个需要自己慢慢积累【主要看你调试的目的是什么】。
+
+下面就以【加密与解密 第三版】中的 `TraceMe.exe` 为案例，
+
+有人肯定要说，我怎么知道程序到底用的是什么函数，`Ollydbg` 自带查询功能，快捷键 `Ctrl+N`，我们可以看到程序 `TraceMe.exe` 中用到了 `GetDlgItemTextA`，
+
+```
+Names in TraceMe, item 12
+
+Address=004040A0
+Section=.rdata
+Type=Import (Known)
+Name=USER32.GetDlgItemTextA
+```
+
+按下 `Enter` 键，显示如下信息
+
+```
+References in TraceMe:.text to USER32.GetDlgItemTextA, item 0
+
+Address=004011A3
+Disassembly=mov edi, dword ptr [<&USER32.GetDlgItemTextA>]
+Comment=USER32.GetDlgItemTextA
+```
+
+然后双击 `004011A3`，来到下面的位置
+
+```
+004011A3 . 8B3D A0404000 mov edi, dword ptr [<&USER32.GetDlgI>; USER32.GetDlgItemTextA
+004011A9 . 53 push ebx
+004011AA . 8D4424 4C lea eax, dword ptr [esp+4C]
+004011AE . 6A 51 push 51 ; /Count = 51 (81.)
+004011B0 . 50 push eax ; |Buffer
+004011B1 . 6A 6E push 6E ; |ControlID = 6E (110.)
+004011B3 . 56 push esi ; |hWnd
+004011B4 . FFD7 call edi ; \GetDlgItemTextA
+```
+
+在 `004011A3` 处下断点，然后调试程序，接下来的操作自己完成。
+
+下面是分析出的关键信息
+
+```
+004011E5 . E8 56010000 call 00401340 ; 关键位置[算法过程]
+004011EA . 8B3D BC404000 mov edi, dword ptr [<&USER32.GetDlgI>; USER32.GetDlgItem
+004011F0 . 83C4 0C add esp, 0C
+004011F3 . 85C0 test eax, eax
+004011F5 . 74 37 je short 0040122E ; 关键跳转
+```
+
+---
+
+如果大家觉得不尽兴，可以以 `CrackHead.exe` 为例，在调试一下。
+
+```
+Names in CrackHea
+
+Address    Section    Type    (   Name                     Comment
+00402050   .rdata     Import   (   USER32.CreateWindowExA
+0040204C   .rdata     Import   (   USER32.DefWindowProcA
+00402048   .rdata     Import   (   USER32.DestroyWindow
+00402044   .rdata     Import   (   USER32.DispatchMessageA
+00402010   .rdata     Import   (   KERNEL32.ExitProcess
+0040200C   .rdata     Import   (   KERNEL32.GetCommandLineA
+00402008   .rdata     Import   (   KERNEL32.GetDriveTypeA
+00402018   .rdata     Import   (   USER32.GetMessageA
+00402004   .rdata     Import   (   KERNEL32.GetModuleHandleA
+00402000   .rdata     Import   (   KERNEL32.GetVolumeInformationA
+0040202C   .rdata     Import   (   USER32.GetWindowTextA                 【关键函数】
+00402030   .rdata     Import   (   USER32.LoadCursorA
+0040201C   .rdata     Import   (   USER32.LoadIconA
+00402020   .rdata     Import   (   USER32.LoadMenuA
+00402024   .rdata     Import   (   USER32.MessageBoxA
+00401000   .text      Export     <ModuleEntryPoint>
+00402028   .rdata     Import   (   USER32.PostQuitMessage
+00402054   .rdata     Import   (   USER32.RegisterClassExA
+00402058   .rdata     Import   (   USER32.SetFocus
+00402034   .rdata     Import   (   USER32.SetWindowTextA
+00402038   .rdata     Import   (   USER32.ShowWindow
+0040203C   .rdata     Import   (   USER32.TranslateMessage
+00402040   .rdata     Import   (   USER32.UpdateWindow
+```
+
+在关键函数处，按下 `Enter` 键，显示如下信息
+
+```
+References in CrackHea:.text to USER32.GetWindowTextA
+
+Address    Disassembly                               Comment
+00401323   call <jmp.&USER32.GetWindowTextA>
+00401474   jmp dword ptr [<&USER32.GetWindowTextA>]  USER32.GetWindowTextA
+```
+
+双击 `00401323` 来到下面的位置
+
+```
+00401323 |. E8 4C010000 call <jmp.&USER32.GetWindowTextA> ; \GetWindowTextA
+00401328 |. E8 A5000000 call 004013D2
+0040132D |. 3BC6 cmp eax, esi
+0040132F |. 75 42 jnz short 00401373 ; 【关键跳转】
+00401331 |. EB 2C jmp short 0040135F
+00401333 |. 4E 6F 77 20 7>ascii "Now write a keyg"
+00401343 |. 65 6E 20 61 6>ascii "en and tut and y"
+00401353 |. 6F 75 27 72 6>ascii "ou're done.",0
+```
+
+---
+
+## 经验总结
+
+函数参考，主要就是看你调试的目的是什么。
+
+在这里我们是为了分析出注册码，所以对下面的函数进行断点分析：
+
+- `GetDlgItemText`-----------`[GetDlgItemTextA/GetDlgItemTextW]`
+- `GetWindowText`------------`[GetWindowTextA/GetWindowTextW]`
+
+如果是其他目的就对其他的函数进行断点分析。
+
+这里给大家一个实例吧，大家自己看看。
+
+地址：`http://bbs.pediy.com/showthread.php?t=116595`
+
+---
+
+## 版权声明
+
+本文原创于看雪技术论坛，转载请注明作者并保持文章的完整，谢谢!
+
+2010 年 08 月 05 日 15:14:36
+
+## 上传的附件
+
+| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) | `TraceMe.rar` |
+| :--- | :--- |
+| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) | `CrackHead.rar` |

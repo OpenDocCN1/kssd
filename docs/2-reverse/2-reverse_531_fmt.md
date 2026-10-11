@@ -1,0 +1,503 @@
+
+# 第一章: 1.6、switch-case 识别技巧提高
+
+> 原文：[`www.pediy.com/kssd/pediy11/115240.html`](https://www.pediy.com/kssd/pediy11/115240.html)
+
+通过上一节我们一起学习了 `switch-case` 分支最基本的两种模式，但是很显然这并不是全部，但是即便是复杂，一个 `switch-case` 分支又能复杂到哪里去呢？期望我们的读者都有这种想法！复杂 `switch-case` 分支仅仅是应用了一点数据结构方面的知识而已……
+
+在撰写本章之前，笔者曾经多次演练怎样用一篇文章来教会初学者例如平衡二叉树这种数据结构，但是最后的结果都证明这是一个不可能完成的任务。因此，本小节在涉及到相关数据结构方面的 知识时并不会为各位介绍太多，相关的细节内容还要自己参考其他相关资料慢慢摸索。
+
+### 1.6.1、switch-case 分支结构与稀疏矩阵
+
+我们前面为各位读者分别介绍了转成 `if-else` 与利用跳转表两种优化模式，但是在最后我隐含着提出了一个问题，即如果我们的 `switch-case` 分支两个数之差大于 50 甚至更多的时候，那么我们此时是否仍需要利用跳转表来解决问题呢？很显然我们不能这样做，假如我们遇到如下这段代码：
+
+```c
+int _tmain(int argc, _TCHAR* argv[])  
+{  
+    switch (argc)  
+    {  
+    case 0:  
+        printf("argc=0", argc);  
+        break;  
+    case 1:  
+        printf("argc=%d", argc);  
+        break;  
+    case 6:  
+        printf("argc=%d", argc);  
+        break;  
+    case 7:  
+        printf("argc=%d", argc);  
+        break;  
+    case 199:                   // 注意这里！  
+        printf("argc=%d", argc);  
+        break;  
+    default:  
+        printf("nNum=%d,error!", argc);  
+    }  
+    return 0;  
+}
+```
+
+我们通过上面这个稍显极端的例子可以发现，如果此时编译器仍以跳转表的方式来优化的话，那么会出现什么情况？这会使得编译出来的代码具有多达 788 字节的冗余数据，至少会使其体积变为用 `Debug` 模式生成代码体积的 2.7 倍以上！
+
+通过与编译器打这么长市间的交道，我们猜也能猜得出编译器肯定不会使用这么笨的方法，由此便引出了“稀疏矩阵”。
+
+“稀疏矩阵”这名字起的很好，正可谓阅名知意，通过名字我们就可以猜到这应该是一个用来表达稀疏数据的矩阵，正好可以用于我们刚刚所面对的这种情况。
+
+那么我们的 `switch-case` 分支结构什么时候才会用到稀疏矩阵，而稀疏矩阵又是怎么回事呢？
+
+下面就由笔者一一为各位解答……
+
+#### （1、）什么时候应用稀疏矩阵
+
+由于每个编译器所使用的策略不一样，因此其“体积-效率比”权值的设定也不尽相同，笔者在这里只能告诉大家，如果使用跳转表所生成代码的体积大于使用稀疏矩阵的体积，那么一般情况下编译器就会选择使用稀疏矩阵来优化此段代码。
+
+#### （2、）什么是稀疏矩阵
+
+单从数学上讲，假设我们有一个 `m` 行乘以 `n` 列的二维阵列（即二维数组），那么如果此矩阵中非零值数量 `N` 小于等于 `m*n` 的话，那么我们就将这个矩阵称之为稀疏矩阵。
+
+当然稀疏矩阵的具体定义与其它特点还有很多，这里我们不再一一讨论，现在我们着重讲解一下编译器优化时所使用的稀疏矩阵是个什么情况。
+
+其实当我们深入的接触这种优化方式之后可以发现，编译器所用的优化方案仅仅是思路上借鉴了稀疏矩阵，但是其实际使用中并不符合稀疏矩阵的相关定义，因此笔者认为将其称之为“间接表”更为合适一些，现在就让我们共同看一看 `switch-case` 分支结构的间接表是怎么回事。
+
+在 `VC` 系列编译器中，其针对 `switch-case` 分支结构的间接表都是用一字节表示的，因此其最小索引值与最大索引值之差不得大于 256，否则此优化方法便不再适用。
+
+其次，这个拥有 256 个 `byte` 型元素的数组（间接表）需要与跳转表相呼应最终才能保证程序流程执行到正确的地方上去。下面我就带领各位读者深入的了解一下间接表是怎样被体现出来的。
+
+鉴于以后知识的复杂性，从现在开始，我们将不再使用 `OllyDbg`，因此也请各位读者跟随本文一起转变到 `IDA` 这个最专业的逆向工作平台上去（有关于 `IDA` 的使用请参考相关文章）。
+
+我们下面以一个例子来证明，以前面那个源码为蓝本，看看 `IDA` 生成的反汇编代码是不是更已读易懂：
+
+```asm
+.text:00401000  ;  int __cdecl main(int argc, const char **argv, const char **envp)  
+.text:00401000 _main  proc near                   ; CODE XREF: __tmainCRTStartup+10Ap  
+.text:00401000  
+.text:00401000 argc= dword ptr   4  
+.text:00401000 argv= dword ptr   8  
+.text:00401000 envp= dword ptr   0Ch  
+.text:00401000  
+.text:00401000    mov eax, [esp+argc]  
+.text:00401004    cmp eax, 0C7h                   ; switch 200 cases  
+.text:00401009    ja  short loc_40107B            ; default  
+.text:00401009                                      ; jumptable 00401012 cases 2-5,8-198  
+.text:0040100B    movzx ecx, ds:byte_4010A8[eax]  
+.text:00401012    jmp ds:off_401090[ecx*4]        ; switch jump  
+.text:00401019  
+.text:00401019 $LN6:                               ; DATA XREF: _main:off_401090o  
+.text:00401019    push 0                          ; jumptable 00401012 case 0  
+.text:0040101B    push offset Format              ; "argc=0"  
+.text:00401020    call ds:__imp__printf  
+.text:00401026    add esp, 8  
+.text:00401029    xor eax, eax  
+.text:0040102B    retn  
+.text:0040102C ; ---------------------------------------------------------------------------  
+.text:0040102C  
+.text:0040102C $LN5:                               ; CODE XREF: _main+12j  
+.text:0040102C                                      ; DATA XREF: _main:off_401090o  
+.text:0040102C    push 1                          ; jumptable 00401012 case 1  
+.text:0040102E    push offset aArgcD              ; "argc=%d"  
+.text:00401033    call ds:__imp__printf  
+.text:00401039    add esp, 8  
+.text:0040103C    xor eax, eax  
+.text:0040103E    retn  
+.text:0040103F ; ---------------------------------------------------------------------------  
+.text:0040103F  
+.text:0040103F $LN4:                               ; CODE XREF: _main+12j  
+.text:0040103F                                      ; DATA XREF: _main:off_401090o  
+.text:0040103F    push 6                          ; jumptable 00401012 case 6  
+.text:00401041    push offset aArgcD              ; "argc=%d"  
+.text:00401046    call ds:__imp__printf  
+.text:0040104C    add esp, 8  
+.text:0040104F    xor eax, eax  
+.text:00401051    retn  
+.text:00401052 ; ---------------------------------------------------------------------------  
+.text:00401052  
+.text:00401052 $LN3:                               ; CODE XREF: _main+12j  
+.text:00401052                                      ; DATA XREF: _main:off_401090o  
+.text:00401052    push 7                          ; jumptable 00401012 case 7  
+.text:00401054    push offset aArgcD              ; "argc=%d"  
+.text:00401059    call ds:__imp__printf  
+.text:0040105F    add esp, 8  
+.text:00401062    xor eax, eax  
+.text:00401064    retn  
+.text:00401065 ; ---------------------------------------------------------------------------  
+.text:00401065  
+.text:00401065 $LN2:                               ; CODE XREF: _main+12j  
+.text:00401065                                      ; DATA XREF: _main:off_401090o  
+.text:00401065    push 0C7h                       ; jumptable 00401012 case 199  
+.text:0040106A    push offset aArgcD              ; "argc=%d"  
+.text:0040106F    call ds:__imp__printf  
+.text:00401075    add esp, 8  
+.text:00401078    xor eax, eax  
+.text:0040107A    retn  
+.text:0040107B ; ---------------------------------------------------------------------------  
+.text:0040107B  
+.text:0040107B loc_40107B:                         ; CODE XREF: _main+9j  
+.text:0040107B                                      ; _main+12j  
+.text:0040107B                                      ; DATA XREF: ...  
+.text:0040107B    push eax                        ; default  
+.text:0040107B                                      ; jumptable 00401012 cases 2-5,8-198  
+.text:0040107C    push offset aNnumDError          ; "nNum=%d,error!"  
+.text:00401081    call ds:__imp__printf  
+.text:00401087    add esp, 8  
+.text:0040108A    xor eax, eax  
+.text:0040108C    retn  
+.text:0040108C ; ---------------------------------------------------------------------------
+```
+
+我想通过上面的反汇编代码已经足以能表明 `IDA` 的强大之处了，很明显它已经自动识别出了这就是一个 `switch-case` 语句，并为我们生成了清晰明了的注释，看看这是多么惬意呀！
+
+但是笔者在这里要提醒各位读者注意，`IDA` 也并不是每次都能灵验的（在实战时大多数情况都是如此），因此在学习逆向时一定要注意学会忽略 `IDA` 的注释，否则总有后悔的那一天的。
+
+通过上面的代码我们可以分析出主要是以下两句代码在控制其流程：
+
+```asm
+.text:0040100B    movzx ecx, ds:byte_4010A8[eax]  
+.text:00401012    jmp ds:off_401090[ecx*4]        ; switch jump
+```
+
+为了更好的理解第一句汇编指令的意思，我们需要看看 `4010A8` 处保存了些什么信息：
+
+```asm
+.text:004010A8 byte_4010A8     db       0          ; DATA XREF: _wmain+Br  
+.text:004010A8                                     ; indirect table for switch statement  
+.text:004010A9             db    1  
+.text:004010AA             db    5  
+…………  
+.text:004010AD             db    5  
+.text:004010AE             db    2  
+.text:004010AF             db    3  
+.text:004010B0             db    5  
+…………  
+.text:0040116E             db    5  
+.text:0040116F             db    4
+```
+
+由于我们的 `switch-case` 分支结构拥有 6 个分支，因此间接表里保存的内容都是在 0-5 之间的，然后便根据此索引来确定调转到第几个分支上去。下面我们来人工模拟一下，假如此时 `switch-case` 分支结构接收到的判断变量为 166，那么首先会通过执行“`mov eax, [esp+argc]`”将值传递给 `eax`，进行简单的对比检查之后，已确定其值未超过 `switch-case` 分支的最大值，然后就通过执行“`movzx ecx, ds:byte_4010A8[eax]`”指令，以 `eax` 为索引到地址为 `4010A8h` 的间接表中寻取相对应的值为跳转表索引，并将此索引保存在 `ecx` 里，最后在以 `ecx` 为索引执行“`jmp ds:off_401090[ecx*4]`”指令跳转到正确定分支上去，整体流程如下图：
+
+`argc = 166` (假设传入的数值为 166)
+
+```
+┃  
+┃  
+mov eax, [esp+argc]   
+```
+
+
+
+`eax = 166`  
+
+&nbsp;&nbsp;&nbsp;&nbsp;┃  
+
+&nbsp;&nbsp;&nbsp;&nbsp;┃  
+
+&nbsp;&nbsp;&nbsp;&nbsp;┃  
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`byte_4010A8`  
+
+`movzx ecx, ds:byte_4010A8[eax]`           `*---*`  
+
+&nbsp;&nbsp;&nbsp;&nbsp;`ecx = 5`                            `000| 0 |`  
+
+&nbsp;&nbsp;&nbsp;&nbsp;┃                                   `001| 1 |`  
+
+&nbsp;&nbsp;&nbsp;&nbsp;┃                                   `002| 2 |`  
+
+&nbsp;&nbsp;&nbsp;&nbsp;┃                                   `...| . |`  
+
+&nbsp;&nbsp;&nbsp;&nbsp;┃                                   `165| 5 |`  
+
+&nbsp;&nbsp;&nbsp;&nbsp;┃                            `eax--> 166| 5 |`  
+
+&nbsp;&nbsp;&nbsp;&nbsp;┃                                   `...| . |`  
+
+&nbsp;&nbsp;&nbsp;&nbsp;┃                                   `*---*`  
+
+&nbsp;&nbsp;&nbsp;&nbsp;┃  
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`off_401090`  
+
+`jmp ds:off_401090[ecx*4]`                    `*---------------------*`  
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`000| 401019h | cases_0   |`  
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`004| 40102Ch | cases_1   |`  
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`008| 40103Fh | cases_6   |`  
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`012| 401052h | cases_7   |`  
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`016| 401065h | cases_199 |`  
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`ecx*4--> 020| 40107Bh | default   |`  
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`*---------------------*`  
+
+通过上面这幅流程图，相信各位读者已经明白间接表是怎么回事了，那么下面我们就开始来点有挑战的。
+
+### 1.6.1、`switch-case` 分支结构与平衡二叉树
+
+虽然我们前面所学的知识已经足够对付大多数情况，但是毕竟大多数不代表所有，而当我们学完本小节之后，那么各位读者的 `switch-case` 分支结构学习之旅才算是真正的告一段落。
+
+通过上面的中转表的数据类型我们就能判断出他所能应付的只限于分支小于等于 256 的情况，如果超过 256 之后这种与跳转表相配合的中转表肯定会随之失效，取而代之的便是我们著名的二叉树了（准确的说应该叫平衡二叉树），有关于什么是二叉树或平衡二叉树笔者在这里很难以一个小节的容量将其介绍清楚，因此希望各位读者参考一下百度百科相关的内容，毕竟数据结构不是本文讨论的主题。
+
+为了是各位读者可是顺利的阅读下去，笔者在这里为各位简单的为大家介绍一下二叉树。
+
+所谓的二叉树查找法我们也可以暂时将其理解为折半查找法，例如我们想快速在 1-7 几个数字中找到某个数值，那么我们肯定是现将其与 1-7 的中间数 4 作比对看看它是比 4 小还是比 4 大，如果比 4 大的话那么就在 4-7 之间取一个中间数 6 与其比对，如果大于 6 那么这个数就是 7，如果小于 6 那么这个数就是 5 了。如果将所有的可能性化成一个流程的话，那么这幅图大概就是以下这个样子：
+
+```
+    4
+   / \
+  2   6
+ / \ / \
+1 3 5 7
+```
+
+由此可知当比对次数(深度)为 k 时，则最多可以查找 `2^(k)-1` 个结点，例如如果用此算法查找 419 万条数据的某一条的话，那么其比对次数不会超过 20 次。
+
+大致了解了二叉树的原理与优势之后，我们先看一段代码：
+
+```
+int _tmain(int argc, _TCHAR* argv[])
+{
+    switch (argc)
+    {
+  case 1:
+    printf("argc1=0",argc);
+    break;
+  case 92:
+    printf("argc12=%d",argc);
+    break;
+  case 262:
+    printf("argc1=%d",argc);
+    break;
+  case 118:
+    printf("argc118=%d",argc);
+    break;
+  case 25:
+    printf("argc25=%d",argc);
+    break;
+  case 456:
+    printf("argc456=%d",argc);
+    break;
+  case 588:
+    printf("argc588=%d",argc);
+    break;
+  case 896:
+    printf("argc896=0",argc);
+    break;
+  case 1000:
+    printf("argc1000=%d",argc);
+    break;
+  case 1090:
+    printf("argc1090=%d",argc);
+    break;
+  case 2100:
+    printf("argc2100=%d",argc);
+    break;
+    default:
+        printf("default nNum=%d,error!",argc);
+    }
+    return 0;
+}
+```
+
+下面是 Release 版的反汇编代码，有部分删截……
+
+```
+.text:00401000 ; int __cdecl main(int argc, const char **argv, const char **envp)
+.text:00401000 _main           proc near              ; CODE XREF: __tmainCRTStartup+10A p
+.text:00401000 
+.text:00401000 argc            = dword ptr  4
+.text:00401000 argv            = dword ptr  8
+.text:00401000 envp            = dword ptr  0Ch
+.text:00401000 
+.text:00401000                 mov     eax, [esp+argc]
+.text:00401004                 cmp     eax, 1C8h
+.text:00401009                 jg      loc_4010B0
+.text:0040100F                 jz      loc_40109A
+.text:00401015                 cmp     eax, 5Ch
+.text:00401018                 jg      short loc_401065
+.text:0040101A                 jz      short loc_401052
+.text:0040101C                 mov     ecx, eax
+.text:0040101E                 sub     ecx, 1
+.text:00401021                 jz      short loc_40103F
+.text:00401023                 sub     ecx, 18h
+.text:00401026                 jnz     loc_401113
+.text:0040102C                 push    19h
+.text:0040102E                 push    offset Format   ; "argc25=%d"
+......  ......                 ......
+.text:0040103F ; ---------------------------------------------------------------------------
+.text:0040103F 
+.text:0040103F loc_40103F:                                ; CODE XREF: _main+21j
+.text:0040103F                 push    1
+.text:00401041                 push    offset aArgc10  ; "argc1=0"
+......  ......                 ......
+.text:00401052 ; ---------------------------------------------------------------------------
+.text:00401052 
+.text:00401052 loc_401052:                                ; CODE XREF: _main+1Aj
+.text:00401052                 push    5Ch
+.text:00401054                 push    offset aArgc12D ; "argc12=%d"
+......  ......                 ......
+.text:00401065 ; ---------------------------------------------------------------------------
+.text:00401065 
+.text:00401065 loc_401065:                                ; CODE XREF: _main+18j
+.text:00401065                 cmp     eax, 76h
+.text:00401068                 jz      short loc_401087
+.text:0040106A                 cmp     eax, 106h
+.text:0040106F                 jnz     loc_401113
+.text:00401075                 push    eax
+.text:00401076                 push    offset aArgc1D  ; "argc1=%d"
+......  ......                 ......
+.text:00401087 ; ---------------------------------------------------------------------------
+.text:00401087 
+.text:00401087 loc_401087:                                ; CODE XREF: _main+68j
+.text:00401087                 push    76h
+.text:00401089                 push    offset aArgc118D ; "argc118=%d"
+......  ......                 ......
+.text:0040109A ; ---------------------------------------------------------------------------
+.text:0040109A 
+.text:0040109A loc_40109A:                                ; CODE XREF: _main+Fj
+.text:0040109A                 push    1C8h
+.text:0040109F                 push    offset aArgc456D ; "argc456=%d"
+......  ......                 ......
+.text:004010B0 ; ---------------------------------------------------------------------------
+.text:004010B0 
+.text:004010B0 loc_4010B0:                                ; CODE XREF: _main+9j
+.text:004010B0                 cmp     eax, 3E8h
+.text:004010B5                 jg      short loc_401105
+.text:004010B7                 jz      short loc_4010EF
+.text:004010B9                 cmp     eax, 24Ch
+.text:004010BE                 jz      short loc_4010D9
+.text:004010C0                 cmp     eax, 380h
+.text:004010C5                 jnz     short loc_401113
+.text:004010C7                 push    eax
+.text:004010C8                 push    offset aArgc8960 ; "argc896=0"
+......  ......                 ......
+.text:004010D9 ; ---------------------------------------------------------------------------
+.text:004010D9 
+.text:004010D9 loc_4010D9:                                ; CODE XREF: _main+BEj
+.text:004010D9                 push    24Ch
+.text:004010DE                 push    offset aArgc588D ; "argc588=%d"
+......  ......                 ......
+.text:004010EF ; ---------------------------------------------------------------------------
+.text:004010EF 
+.text:004010EF loc_004010EF:                              ; CODE XREF: _main+B7j
+.text:004010EF                 push    3E8h
+.text:004010F4                 push    offset aArgc1000D ; "argc1000=%d"
+......  ......                 ......
+.text:00401105 ; ---------------------------------------------------------------------------
+.text:00401105 
+.text:00401105 loc_401105:                                ; CODE XREF: _main+B5j
+.text:00401105                 cmp     eax, 442h
+.text:0040110A                 jz      short loc_40113B
+.text:0040110C                 cmp     eax, 834h
+.text:00401111                 jz      short loc_401125
+.text:00401113 
+```
+
+
+
+```
+.text:00401113 loc_401113:                  ; CODE XREF: _main+26j  
+.text:00401113                             ; _main+6Fj ...  
+.text:00401113              push    eax  
+.text:00401114              push    offset aDefaultNnumDEr ; "default nNum=%d,error!"  
+
+......  ......             ......  
+
+.text:00401125 ; ---------------------------------------------------------------------------  
+
+.text:00401125  
+
+.text:00401125 loc_401125:                  ; CODE XREF: _main+111j  
+.text:00401125              push    834h  
+.text:0040112A              push    offset aArgc2100D ; "argc2100=%d"  
+
+......  ......             ......  
+
+.text:0040113B ; ---------------------------------------------------------------------------  
+
+.text:0040113B  
+
+.text:0040113B loc_40113B:                  ; CODE XREF: _main+10Aj  
+.text:0040113B              push    442h  
+.text:00401140              push    offset aArgc1090D ; "argc1090=%d"  
+
+......  ......             ......  
+
+.text:00401150 _main             endp  
+```
+
+对于这种二叉树结构的识别，一般情况下只需要看两步跳转即可，如果其每次跳转所对比的值都是其后面分支跳转的中间值之一，那么这就有可能是一个二叉树，我们以本程序为例：
+
+第一次跳转及其后面的分支：
+
+```
+.text:00401004             cmp     eax, 1C8h         ; 跳转  
+.text:00401009             jg      loc_4010B0   
+
+......  ......  
+
+.text:00401015             cmp     eax, 5Ch  
+
+.text:00401018             jg      short loc_401065  ; 分支 1  
+
+......  ......  
+
+.text:004010B0 loc_4010B0:                  ; CODE XREF: _main+9 j  
+.text:004010B0             cmp     eax, 3E8h  
+
+.text:004010B5             jg      short loc_401105  ; 分支 2  
+```
+
+我们不难发现上面的第一个跳转所对比的值位于其后面两个分支对比值的区域中，我们在跟进分支 1 看看：
+
+```
+.text:00401015             cmp     eax, 5Ch  
+
+.text:00401018             jg      short loc_401065  ; 分支 1  
+
+......  ......  
+
+.text:0040101C             mov     ecx, eax  
+
+.text:0040101E             sub     ecx, 1  
+
+.text:00401021             jz      short loc_40103F  ; 子分支 1  
+
+......  ......  
+
+.text:00401065 loc_401065:                  ; CODE XREF: _main+18 j  
+.text:00401065             cmp     eax, 76h  
+
+.text:00401068             jz      short loc_401087  ; 子分支 2  
+```
+
+同样的，分支 1 也是位于其两个子分支比对值的区域内，其实现在我们至少就有 60% 的把握可以确定这是一个二叉树结构了，当然，如果想要更为精准的结果，我们还是要把大部分流程跟一遍的，下面就是本二叉树的结构图：
+
+```
+           456  
+         /    \  
+       /        \  
+     /            \  
+   /                \  
+ /                    \  
+92                     1000  
+/    \                /      \  
+1      118          588      1090  
+/ \    / \          / \      / \  
+def 25 def 262    def 896  def 2100  
+```
+
+细心的读者应该发现了，其实上面的代码是经过笔者细心修剪的，所以看起来结构清晰明了，当我们实际做逆向时也应该如此，在一开始要去其枝蔓留其骨干，这样才能更为顺利的识别类似于二叉树这样的较复杂数据结构。
+
+到这里本小节已经近尾声了，不知道读者们是否有所发觉，其实本小节都是在讲解两种数据结构而已，因此其实对于 `switch-case` 分支结构的识别就是对这两种数据结构的识别，但是我们怎样才能知道这种数据结构是编译器生成的，而并非是别人写的代码呢？这个问题很难回答，我们的逆向工程越是复杂，越是靠后的内容，理论上其不确定性也在不断增加，就像是上面的代码，如果我们将所有分支按照二叉树的规则排好序，并用 `if-else` 分支来实现它的话，那么其生成的代码与以上反汇编代码不会相差多少，有兴趣的读者可以自己试验一下。
+
+**题外话：**
+
+由于最近几天事情比较多，又赶上过节，所以此教程延误了几天，笔者在这里向一直关注本文的读者表示歉意。
+
+另按照题目走，我们下一小节将会开始讲解算术运算的优化，读者们可以先预习一下位运算的相关内容，这样更有利于理解下一小节的内容。
+
+[【返回到目录】：http://bbs.pediy.com/showthread.php?t=113689](http://bbs.pediy.com/showthread.php?t=113689)

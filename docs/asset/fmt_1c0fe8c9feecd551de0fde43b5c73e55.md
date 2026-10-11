@@ -1,0 +1,144 @@
+
+```assembly
+.text:0043FF65                 push    edx             ; s
+.text:0043FF66                 call    _memset
+.text:0043FF6B                 add     esp, 0Ch
+.text:0043FF6E                 lea     ecx, [ebp+var_14C]
+.text:0043FF74                 push    64h             ; n
+.text:0043FF76                 push    0               ; c
+.text:0043FF78                 push    ecx             ; s
+.text:0043FF79                 call    _memset
+.text:0043FF7E                 add     esp, 0Ch
+.text:0043FF81                 cmp     [ebp+var_10], 0
+.text:0043FF85                 jz      short loc_43FF8C
+.text:0043FF87                 mov     eax, [ebp+var_10] *****指向字符串
+.text:0043FF8A                 jmp     short loc_43FF91
+.text:0043FF8C ; 哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪?
+.text:0043FF8C
+.text:0043FF8C loc_43FF8C:                      ; CODE XREF: _TForm1_SpeedButton1Click+289j
+.text:0043FF8C                 mov     eax, offset unk_505436
+.text:0043FF91
+.text:0043FF91 loc_43FF91:                      ; CODE XREF: _TForm1_SpeedButton1Click+28Ej
+.text:0043FF91                 mov     edi, eax
+.text:0043FF93                 xor     eax, eax
+.text:0043FF95                 or      ecx, 0FFFFFFFFh
+.text:0043FF98                 lea     esi, [ebp+buffer] *****拷贝到 buffer
+.text:0043FF9E                 repne scasb
+.text:0043FFA0                 not     ecx
+.text:0043FFA2                 sub     edi, ecx
+.text:0043FFA4                 mov     edx, ecx
+.text:0043FFA6                 xchg    esi, edi
+.text:0043FFA8                 shr     ecx, 2
+.text:0043FFAB                 mov     eax, edi
+.text:0043FFAD                 rep movsd
+.text:0043FFAF                 mov     ecx, edx
+.text:0043FFB1                 lea     edx, [ebp+var_30] *****注册码缓冲区
+.text:0043FFB4                 and     ecx, 3
+.text:0043FFB7                 rep movsb
+```
+
+=========================================================上面这段逆向如下：
+
+```c
+memset(buffer, 0, 20);
+memset(var_14c, 0, 100);
+strcpy(buffer, var_10);
+```
+
+=========================================================
+
+```assembly
+.text:0043FFB9                 mov     [ebp+var_94], 5Ch
+.text:0043FFC2                 xor     eax, eax
+.text:0043FFC4                 mov     [ebp+var_30], eax
+.text:0043FFC7                 inc     [ebp+var_88]
+.text:0043FFCD                 mov     ecx, [ebp+var_A8]
+.text:0043FFD3                 mov     eax, [ecx+2D4h]
+.text:0043FFD9                 call    @TControl@GetText$qqrv ; TControl::GetText(void)
+.text:0043FFDE                 lea     edx, [ebp+var_30]
+.text:0043FFE1                 lea     eax, [ebp+rcode] ***** 保存到这里
+.text:0043FFE4                 call    @System@AnsiString@$basg$qqrrx17System@AnsiString ; System::AnsiString::operator=(System::AnsiString &)
+.text:0043FFE9                 dec     [ebp+var_88]
+.text:0043FFEF                 lea     eax, [ebp+var_30] *****释放缓冲区
+.text:0043FFF2                 mov     edx, 2
+.text:0043FFF7                 call    @System@AnsiString@$bdtr$qqrv ; System::AnsiString::~AnsiString(void)
+.text:0043FFFC
+.text:0043FFFC loc_43FFFC:                      ; CODE XREF: _TForm1_SpeedButton1Click+34Fj
+.text:0043FFFC                              ; DATA XREF: .text:00489A88o
+.text:0043FFFC                 mov     [ebp+var_94], 68h
+.text:00440005                 mov     edx, offset unk_505437 ; ' '
+.text:0044000A                 lea     eax, [ebp+var_34] ***** var_34 = ' '
+.text:0044000D                 call    tostring
+.text:00440012                 inc     [ebp+var_88]
+.text:00440018                 lea     edx, [ebp+var_34]
+.text:0044001B                 lea     eax, [ebp+rcode]
+.text:0044001E                 call    @System@AnsiString@Pos$xqqrrx17System@AnsiString ; System::AnsiString::Pos(System::AnsiString &)
+.text:00440023                 mov     edi, eax          ***** 返回空格的位置
+.text:00440025                 dec     [ebp+var_88]
+.text:0044002B                 lea     eax, [ebp+var_34]***** 释放 var_34
+.text:0044002E                 mov     edx, 2
+.text:00440033                 call    @System@AnsiString@$bdtr$qqrv ; System::AnsiString::~AnsiString(void)
+.text:00440038                 test    edi, edi
+.text:0044003A                 jz      short loc_44004D *****没有空格则跳
+.text:0044003C                 lea     eax, [ebp+rcode]
+.text:0044003F                 mov     ecx, 1
+.text:00440044                 mov     edx, edi          *****删除掉空格
+.text:00440046                 call    @System@AnsiString@Delete$qqrii ; System::AnsiString::Delete(int,int)
+.text:0044004B                 jmp     short loc_43FFFC *****循环
+.text:0044004D ; 哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪?
+```
+
+=========================================================上面这段逆向如下：
+
+```c
+char rcode[100];
+while(rcode[0] == ' ')
+{
+    len = strlen(rcode);
+    for(i = 1; i < len; i++)
+        rcode[i-1] = rcode[i];
+    rcode[len-1] = 0;
+}
+```
+
+=========================================================
+
+```assembly
+.text:0044004D
+.text:0044004D loc_44004D:                      ; CODE XREF: _TForm1_SpeedButton1Click+33Ej
+.text:0044004D                 lea     edi, [ebp+var_1B0]
+.text:00440053                 mov     esi, offset unk_5053A4 ;0
+.text:00440058                 mov     ecx, 14h                  ***** 每组注册码最多 20 个字节
+.text:0044005D                 mov     edx, offset unk_505439 ;0
+.text:00440062                 rep movsd                   ***** memset(var_1b0,0,80);
+.text:00440064                 mov     [ebp+var_94], 8
+.text:0044006D                 mov     [ebp+var_94], 74h
+.text:00440076                 lea     eax, [ebp+var_18]
+.text:00440079                 call    tostring
+.text:0044007E                 inc     [ebp+var_88]
+.text:00440084                 mov     edx, offset unk_50543A ; '-'
+.text:00440089                 mov     [ebp+var_94], 8
+.text:00440092                 mov     [ebp+var_94], 80h
+.text:0044009B                 lea     eax, [ebp+var_38] '-'
+.text:0044009E                 call    tostring
+.text:004400A3                 inc     [ebp+var_88]
+.text:004400A9                 lea     edx, [ebp+var_38]
+.text:004400AC                 lea     eax, [ebp+rcode]
+.text:004400AF                 call    @System@AnsiString@Pos$xqqrrx17System@AnsiString ; System::AnsiString::Pos(System::AnsiString &)
+.text:004400B4                 mov     edi, eax            *****取第一个'-'的位置
+.text:004400B6                 dec     [ebp+var_88]
+.text:004400BC                 lea     eax, [ebp+var_38]
+.text:004400BF                 mov     edx, 2
+.text:004400C4                 call    @System@AnsiString@$bdtr$qqrv ; System::AnsiString::~AnsiString(void)
+.text:004400C9                 mov     [ebp+var_94], 8Ch
+.text:004400D2                 xor     ecx, ecx
+.text:004400D4                 lea     eax, [ebp+var_3C]
+.text:004400D7                 mov     [ebp+var_3C], ecx
+.text:004400DA                 push    eax
+.text:004400DB                 inc     [ebp+var_88]
+.text:004400E1                 lea     eax, [ebp+rcode]  ***** AnsiString
+.text:004400E4                 lea     ecx, [edi-1]       ***** count  不包括'-'号
+.text:004400E7                 mov     edx, 1            ***** index
+.text:004400EC                 call    @System@AnsiString@SubString$xqqrii ; System::AnsiString::SubString(int,int)
+.text:004400F1                 lea     edx, [ebp+var_3C]
+```

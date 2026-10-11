@@ -1,0 +1,180 @@
+
+# 神泣
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-518.htm`](https://www.pediy.com/kssd/pediy08/pediy8-518.htm)
+
+【文章标题】: 神泣逆向工程—我的处女破文  
+【文章作者】: BUG  
+【作者邮箱】: `******`  
+【作者 QQ 号】: `******`  
+【软件名称】: 神泣  
+【下载地址】: 自己搜索下载  
+【加壳方式】: Asprotect  
+【编写语言】: VC++  
+【使用工具】: PEID, OD, IDA 5.0  
+【操作平台】: WINDOWS XP  
+【软件介绍】: 神泣是光通代理的一款韩国泡菜式游戏  
+【作者声明】: 最近国内对游戏破解开发搞得有点严,本来我也不想发布的,但是这是我的第一次:),不管怎样也得记录一下嘛,失误之处还请各位高手指正,谢谢!
+
+---
+
+### 前言
+
+破解此游戏并非用在商业用途，只是想自己脱机外挂升升级，让电脑自己去跟电脑说话，我就可以静心研究了，不过也是通过这一次逆向，让我感觉进步了不少。
+
+这是我第一写破文，还请大家批评指正！
+
+### 详细过程
+
+首先是脱壳,这个游戏是 Asprotect 的壳子，我现在还是新手，要不是有 Asprotect 的脱壳机，我想我在这一关上又得研究好几天了。脱掉它的"外衣"之后,就开始对它逆向工程了，要分析发送数据的来源，就得对 `send` 下断点，然后输入帐号密码，登陆。这时断点断在了 `WS_32` 模块,回到用户领空,
+
+到达这里:
+
+```
+0051B740  /$  B8 00100000   MOV EAX,1000
+0051B745  |.  E8 A68C0200   CALL _game.005443F0
+0051B74A  |.  53            PUSH EBX
+0051B74B  |.  8B9C24 0C1000>MOV EBX,DWORD PTR SS:[ESP+100C]
+0051B752  |.  8BCB          MOV ECX,EBX
+0051B754  |.  55            PUSH EBP
+0051B755  |.  56            PUSH ESI
+0051B756  |.  8BB424 101000>MOV ESI,DWORD PTR SS:[ESP+1010]
+0051B75D  |.  8BC1          MOV EAX,ECX
+0051B75F  |.  57            PUSH EDI
+0051B760  |.  8D6B 02       LEA EBP,DWORD PTR DS:[EBX+2]
+0051B763  |.  8D7C24 12     LEA EDI,DWORD PTR SS:[ESP+12]
+0051B767  |.  C1E9 02       SHR ECX,2
+0051B76A  |.  66:896C24 10  MOV WORD PTR SS:[ESP+10],BP
+0051B76F  |.  53            PUSH EBX
+0051B770  |.  F3:A5         REP MOVS DWORD PTR ES:[EDI],DWORD PTR DS>
+0051B772  |.  8BC8          MOV ECX,EAX
+0051B774  |.  83E1 03       AND ECX,3
+0051B777  |.  F3:A4         REP MOVS BYTE PTR ES:[EDI],BYTE PTR DS:[>
+0051B779  |.  8D4C24 16     LEA ECX,DWORD PTR SS:[ESP+16]
+0051B77D  |.  51            PUSH ECX
+0051B77E  |.  E8 2DB5FFFF   CALL _game.00516CB0                ; 加密函数
+0051B783  |.  A1 A0661002   MOV EAX,DWORD PTR DS:[21066A0]
+0051B788  |.  83C4 08       ADD ESP,8
+0051B78B  |.  83C3 02       ADD EBX,2
+0051B78E  |.  8D5424 10     LEA EDX,DWORD PTR SS:[ESP+10]
+0051B792  |.  6A 00         PUSH 0                              ; /Flags = 0
+0051B794  |.  53            PUSH EBX                            ; |DataSize
+0051B795  |.  52            PUSH EDX                            ; |Data
+0051B796  |.  50            PUSH EAX                            ; |Socket => EC
+0051B797  |.  FF15 D8135B00 CALL DWORD PTR DS:[<&ws2_32.send>] ; \send
+```
+
+这里还挺近的,`PUSH ECX` 就是原始数据,
+
+这以后我就用 IDA 看了,动态调试时用 OD,静态分析还是 IDA 强大,
+
+跟进`_game.00516CB0`到达:
+
+```
+.text:00516CB0 sub_516CB0      proc near                 ; CODE XREF: sub_51B740+3Ep
+.text:00516CB0
+.text:00516CB0 arg_0           = dword ptr  4
+.text:00516CB0 arg_4           = dword ptr  8
+.text:00516CB0
+.text:00516CB0                 mov     al, ds:byte_2100685
+.text:00516CB5                 test    al, al
+.text:00516CB7                 jz      short locret_516CEB
+.text:00516CB7
+.text:00516CB9                 mov     eax, ds:dword_210067C
+.text:00516CBE                 test    eax, eax
+.text:00516CC0                 jnz     short loc_516CD7
+.text:00516CC0
+.text:00516CC2                 mov     eax, [esp+arg_4]
+.text:00516CC6                 mov     ecx, [esp+arg_0]
+.text:00516CCA                 push    eax
+.text:00516CCB                 push    ecx
+.text:00516CCC                 mov     ecx, offset unk_20FF4D8
+.text:00516CD1                 call    sub_517CC0                       ;先不管那 2 个全
+.text:00516CD1                  局变量地址判断了什么,发送登陆封包是通过了这个函数
+.text:00516CD6                 retn
+.text:00516CD6
+.text:00516CD7 ; ----------------------------------------------------------------------
+.text:00516CD7 loc_516CD7:                 ; CODE XREF: sub_516CB0+10j
+.text:00516CD7                 mov     edx, [esp+arg_4]
+.text:00516CDB                 mov     eax, [esp+arg_0]
+.text:00516CDF                 push    edx
+.text:00516CE0                 push    eax
+.text:00516CE1                 mov     ecx, offset unk_20FF628
+.text:00516CE6                 call    sub_518000
+.text:00516CE6
+.text:00516CEB locret_516CEB:               ; CODE XREF: sub_516CB0+7j
+.text:00516CEB                 retn
+.text:00516CEB
+.text:00516CEB sub_516CB0      endp
+```
+
+分析可知`arg_4` = 长度,`arg_0` 为原始内容,`unk_20FF4D8` 就是一个偏移量,从代码上看来,我猜测它是 this 指针,类是一个全局变量,所以直接赋值了一个偏移量,在后面的代码上看来我的分析是正确的.
+
+.........
+
+以上是水话.现在说点实在的.
+
+最终到达 `sub_517B20`:
+
+```
+.text:00517B20 sub_517B20      proc near                 ; CODE XREF: sub_517CC0+Bp
+.text:00517B20
+.text:00517B20 dest            = dword ptr  10h
+.text:00517B20 src             = dword ptr  14h
+.text:00517B20 datalen         = dword ptr  18h
+.text:00517B20
+.text:00517B20                 push    ebx
+.text:00517B21                 push    ebp
+.text:00517B22                 push    esi
+.text:00517B23                 mov     esi, ecx          ; esi = this 指针
+.text:00517B25                 xor     ebp, ebp
+.text:00517B27                 push    edi
+.text:00517B28                 mov     edx, [esi+104h]
+.text:00517B2E                 cmp     edx, ebp
+.text:00517B30                 jle     else              ; 如果 esi+104h <= 0 就跳到另一个分支
+.text:00517B30
+.text:00517B36                 mov     ecx, [esp+4+datalen]
+.text:00517B3A                 mov     eax, 10h
+.text:00517B3F                 sub     eax, edx
+.text:00517B41                 cmp     ecx, eax
+.text:00517B43                 jg      short _len_jg_else
+.text:00517B43
+.text:00517B45                 mov     eax, ecx
+.text:00517B47                 dec     ecx
+.text:00517B48                 test    eax, eax
+.text:00517B4A                 jz      short _small_return
+.text:00517B4A
+.text:00517B4C                 mov     eax, [esp+4+dest]
+.text:00517B50                 lea     edi, [ecx+1]
+.text:00517B53                 mov     ecx, [esp+4+src]
+.text:00517B53
+.text:00517B57
+.text:00517B57 _loc_for:                 ; CODE XREF: sub_517B20+5Aj
+.text:00517B57                 mov     edx, [esi+104h]
+.text:00517B5D                 mov     bl, [ecx]
+.text:00517B5F                 mov     dl, [esi+edx+108h]
+.text:00517B66                 xor     dl, bl
+.text:00517B68                 mov     [eax], dl
+.text:00517B6A                 mov     ebx, [esi+104h]
+.text:00517B70                 inc     ebx
+.text:00517B71                 inc     eax
+.text:00517B72                 inc     ecx
+.text:00517B73                 dec     edi
+.text:00517B74                 mov     [esi+104h], ebx
+.text:00517B7A                 jnz     short _loc_for
+.text:00517B7A
+.text:00517B7C
+.text:00517B7C _small_return:           ; CODE XREF: sub_517B20+2Aj
+.text:00517B7C                 cmp     dword ptr [esi+104h], 10h
+.text:00517B83                 jl      _loc_return
+.text:00517B83
+.text:00517B89                 mov     [esi+104h], ebp
+.text:00517B8F                 pop     edi
+.text:00517B90                 pop     esi
+.text:00517B91                 pop     ebp
+.text:00517B92                 pop     ebx
+.text:00517B93                 retn    0Ch
+.text:00517B93
+.text:00517B96 ; ----------------------------------------------------------------------
+.text:00517B96
+```

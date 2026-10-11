@@ -1,0 +1,405 @@
+
+# 科锐第三阶段项目-CreateProcess 分析之 `MmInitializeProcessAddressSpace()` 分析
+
+> 原文：[`www.pediy.com/kssd/pediy11/114956.html`](https://www.pediy.com/kssd/pediy11/114956.html)
+
+**函数原型**：
+
+```
+NTSTATUS MmInitializeProcessAddressSpace (
+    IN PEPROCESS ProcessToInitialize,
+    IN PEPROCESS ProcessToClone OPTIONAL,
+    IN PVOID SectionToMap OPTIONAL,
+    IN OUT PULONG CreateFlags,
+    OUT POBJECT_NAME_INFORMATION *AuditName OPTIONAL
+);
+```
+
+**函数主要功能**：
+
+此函数的主要功能如函数名，初始化新进程的地址空间，主要有两部分操作：
+
+1. 初始化新进程 `EPROCESS` 对象有关变量
+2. 对新进程的可执行映像文件在地址空间的映射，或者在拷贝父进程地址空间。
+
+**函数参数**：
+
+*   `ProcessToInitialize`，即为要初始化的目标进程。
+*   `ProcessToClone`，可选参数，表示新进程的地址空间可以从该进程拷贝获得。
+*   `SectionToMap`，可选参数，一个内存区对象，表示在新进程地址空间中映射此对象。
+*   `CreateFlags`, 传入传出参数，表示各种与进程创建相关的标志，与内存管理有关的标志是 `PROCESS_CREATE_FLAGS_ALL_LARGE_PAGE_FLAGS`，其传出值表示是否成功地以大页面的方式来映射进程的映像文件。
+*   `AuditName`，可选参数，输出参数，是一个对象名称信息指针。
+
+**一些相关的名词解释**：
+
+*   **PDE**：Page Directory Entry, 页目录项
+*   **PTE**：Page Table Entry, 页表项
+*   **超空间**：一个用于映射进程工作集列表的特殊区域，在执行一些操作时它也被临时用于映射其他的物理页面，这样的操作有零化空闲列表上的页面、使其他页表中的页表项无效，以及创建进程。
+*   **系统页表项**：系统 PTE 池，其中的 PTE 被用于映射系统页面，比如 I/O 空间、内核栈，以及内存描述符列表。通过检查性能工具中的“Memory: Free System Page Table Entries”计数器的值，你可以知道有多少系统 PTE 是可以使用的。
+*   **换页内存池**：可换页的系统内存堆。
+*   **非换页内存池**：不可换页的系统内存堆，通常有两部分在系统空间的低端和高端各有一部分。
+*   **PFN 数据库**：页帧数据库(Page Frame Number Database)，是一个阵列或一个数组，每一个页面对应有一个 PFN 项,记录了该页面的使用情况，包括它的状态、对应页表项的地址等信息。
+*   **自旋锁**：是一种在内核定义，只能在内核态下使用的同步机制。自旋锁用来保护共享数据或者资源，使得并发执行的程序或者在高优先级 IRQL 的对称多处理器的程序能够正确访问这些数据。
+*   **工作集**：是指一个进程当前正在使用的物理页面的集合。
+*   **VAD**：Virtual Address Descriptor，虚拟地址描述符。Windows 的进程地址空间是通过 VAD 来管理的，VAD 对象描述了一些连续的地址范围，在整个地址空间中，保留的或提交的地址范围有可能是不连续的，所以，Windows 使用一棵平衡二叉搜索树(称为 AVL 树)来管理 VAD 对象。`VadRoot` 的类型为 `MM_AVL_TABLE`，VAD 树中的各节点类型为 `MMADDRESS_NODE`，当使用 AVL 树来管理虚拟地址空间中的 VAD 时，树中节点的真正类型为 `MMVAD`。需要说明的一点是，由于 `VadRoot` 的 `BalancedRoot` 域是一个内嵌结构体它无法从 `MMADDRESS_NODE` 适应 `MMVAD`，所以，虚拟地址空间 VAD 树的真正根节点是 `VadRoot.BalancedRoot.RightChild`，`VadRoot.BalancedRoot.LeftChild` 并未使用。`VadRoot.BalancedRoot.RightChild` 的静态类型是 `MMADDRESS_NODE`，但其实际的对象类型是 `MMVAD`。从这两种类型的定义可以看出，`MMVAD` 是 `MMADDRESS_NODE` 的一个扩展，它增加了几个数据成员。
+
+**函数调用时机**：
+
+此函数是在创建进程时，由父进程在 `NtCreateProcessEx()` 中, 在初始化完新进程对象的进程页目录和超空间的页帧号，以及新进程的句柄表之后调用的。
+
+调用此函数初始进程空间有四种可能性：
+
+1.  `Boot Process`，系统引导时调用，无父进程。
+2.  `System Process`，系统进程的初始化，无父进程，无文件区域对象。
+3.  `User Process (Cloned Address Space)`，根据父进程克隆地址空间。
+4.  `User Process (New Image Address Space)`，根据指定文件区域对象映射地址空间
+
+**函数具体分析**：
+
+一个新进程在创建时，父进程调用此函数属于第四种，以下用上述所说第四种的执行过程来分析此函数的具体功能。在第四种情况调用时，进入函数之前，在 `NtCreateProcessEx()` 函数中已调用了 `MmCreateProcessAddressSpace()` 函数创建了进程地址空间，而且在新进程地址空间中，系统空间部分的页目录项已经被拷贝到页目录中，系统空间已经映射好，新进程的超空间也已初始化，但新进程的用户空间部分，即 `0x00000000`～`0x7fffffff`，还是一片空白，此函数就是对用户空间部分的初始化。
+
+调用函数具体流程如下：
+
+1.  得到当前线程内核线程块 `KTHREAD` 结构体指针
+
+    代码:
+
+    ```
+    mov ebx, large fs:124h ; 得到 _KTHREAD 结构体指针
+    ```
+
+2.  设置自旋锁，保护共享数据和资源。
+
+    代码:
+
+    ```
+    .text:00447001 push edi
+    .text:00447002 mov ecx, offset _MmExpansionLock
+    .text:00447007 call ds:__imp_@KfAcquireSpinLock@4 ; KfAcquireSpinLock(x)
+    ```
+
+3.  检查新进程 PDE 是否需要更新，即 `EPROCESS` 对象中的 `PdeUpdateNeeded` 中的值，即：
+
+    代码:
+
+    ```
+    .text:00447010 lea edi, [esi+_EPROCESS.Flags]
+    .text:00447016 test byte ptr [edi+2], 80h ; ProcessToInitialize->PdeUpdateNeeded
+    .text:00447016 ; 比较是否需要更新 PDE
+    ```
+
+    需要的话调用 `MiUpdateSystemPdes()`。
+
+4.  调用 `KeAttachProcess()` 函数把当前线程附载到待初始化的进程对象上，此时执行的进程空间就由父进程转到新进程的进程空间，以便于做一些访问新进程页面的操作。在函数最后退出前会调用 `KeDetachProcess()`，从将线程恢复到父进程中。即：
+
+    代码:
+
+    ```
+    .text:0044703F push esi ; Process
+    .text:00447040 call _KeAttachProcess@4 ; KeAttachProcess(x)
+    ```
+
+5.  设置 `ProcessToInitialize->Flags`,标明当前正在使用地址空间 2，即
+
+    代码:
+
+    ```
+    .text:0044704D mov eax, 800h ; PS_PROCESS_FLAGS_ADDRESS_SPACE2
+    .text:00447052 lock or [edi], eax
+    ```
+
+6.  初始化地址创建锁，以及工作集互斥体。
+
+    代码:
+
+    ```
+    .text:00447055 lea eax, [esi+_EPROCESS.AddressCreationLock]
+    .text:0044705B and [eax+_KGUARDED_MUTEX.Owner], 0
+    .text:0044705F and [eax+_KGUARDED_MUTEX.Contention], 0
+    .text:00447063 xor edi, edi
+    .text:00447065 inc edi
+    .text:00447066 lea ecx, [eax+_KGUARDED_MUTEX.Gate] ; Gate
+    .text:00447069 mov [eax], edi
+    .text:0044706B call @KeInitializeGate@4 ; KeInitializeGate(x)
+    ```
+
+7.  初始化管理进程地址空间的 VAD 树，首先设置其根节点，即初始化进程 `EPROCESS` 对象中的 `VadRoot` 域，然后设置新进程虚拟地址空间的最后修剪时间（`Vm.LastTrimTime`）和工作集链表（`Vm.VmWorkingSetList`）。
+
+    代码:
+
+    ```
+    .text:00447077 lea eax, [esi+_EPROCESS.VadRoot]
+    .text:0044707D mov [eax], eax ; 设置根节点
+    .text:0044707F lea eax, [esi+_EPROCESS.Vm.LastTrimTime]
+    .text:00447085 push eax ; CurrentTime
+    .text:00447086 call _KeQuerySystemTime@4 ; KeQuerySystemTime(x)
+    .text:0044708B mov eax, _MmWorkingSetList
+    ```
+
+8.  初始化新进程的页目录页面和超空间页表页面的 PFN 项。这个与内存分页管理设置有关，是否开 PAE 和页表大小有几种不同情况，现讨论未开启 PAE 的一种，一些常量值如下定义：
+
+    ```
+    #define PDE_BASE PDE_BASE_X86
+    #define PDE_BASE_X86 0xc0300000
+    #define PTE_BASE 0xc0000000
+    #define MM_PTE_READWRITE MM_PTE_WRITE_MASK
+    #define MM_PTE_WRITE_MASK 0x800
+    #define MM_PTE_CACHE 0x0
+    ```
+
+    代码:
+
+    ```
+    .text:004470A3 mov eax, 0C0300C00h ; 0C0300C00h
+    .text:004470A3 ; = 0x300C00 + 0xc0000000
+    .text:004470A3 ; = ((PMMPTE)((0xc0300 << 2) + PTE_BASE))
+    .text:004470A3 ; = ((PMMPTE)(((0xc0300000 >> 12) << 2) + PTE_BASE))
+    .text:004470A3 ; = ((PMMPTE)(((((ULONG)(va)) >> 12) << 2) + PTE_BASE))
+    .text:004470A3 ; = MiGetPteAddress (PDE_BASE);
+    .text:004470A8 push eax ; PointerPte
+    .text:004470A9 mov eax, dword ptr [eax+_MMPTE.u]
+    .text:004470AB shr eax, 0Ch ; 右移 12 位，eax = _MMPTE.u.Hard.PageFrameNumber
+    .text:004470AE push eax ; PageFrameIndex
+    .text:004470AF call _MiInitializePfn@12 ; MiInitializePfn(x,x,x)
+    .text:004470B4 push edi ; ModifiedState
+    .text:004470B5 mov eax, 0C0300C04h ; PointerPte
+    .text:004470B5 ; = MiGetPdeAddress (HYPER_SPACE);
+    .text:004470B5 ; = ((PMMPTE)(((0xc0400000 >> 22) << 2) + PDE_BASE))
+    .text:004470B5 ; = ((PMMPTE)((0x301 << 2) + PDE_BASE))
+    .text:004470B5 ; = 0xC04 + 0xc0300000
+    .text:004470B5 ; = 0xc0300C04
+    .text:004470B5 ;
+    .text:004470BA push eax ; PointerPte
+    .text:004470BB mov eax, dword ptr [eax+_MMPTE.u]
+    .text:004470BD shr eax, 0Ch ; 右移 12 位，eax = _MMPTE.u.Hard.PageFrameNumber
+    .text:004470C0 push eax ; PageFrameIndex
+    .text:004470C1 call _MiInitializePfn@12 ; MiInitializePfn(x,x,x)
+    ```
+
+9.  初始化新进程的 VAD 位图和工作集页面的 PFN 项。
+
+    代码:
+
+
+
+```
+.text:004470C6   mov   ecx, 0C0301404h ; PointerPte
+.text:004470C6     ; = MiGetPteAddress (0xC0501000)
+.text:004470C6     ; = ((PMMPTE)(((0xC0501000 >> 12) << 2) + PTE\_BASE))
+.text:004470C6     ; = ((PMMPTE)((0xC0501 << 2) + PTE\_BASE))    
+.text:004470C6     ; = 0x301404 + 0xc0000000
+.text:004470C6     ; = 0xC0301404
+.text:004470CB   mov   [ebp+PointerPte], ecx
+.text:004470CE   call  @MiDetermineUserGlobalPteMask@4 ; fastcall
+.text:004470D3   mov   edi, eax
+.text:004470D5   or    edi, MmProtectToPteMask\_4\_ ;
+.text:004470DB   mov   [ebp+NumberOfPages], 2
+.text:004470E2   or    edi, 42h ; 42h = HARDWARE\_PTE\_DIRTY\_MASK
+.text:004470E2     ; TempPte.u.Long |= HARDWARE\_PTE\_DIRTY\_MASK
+
+.text:004470E5 LoopInitializePfn:
+.text:004470E5     ; CODE XREF: MmInitializeProcessAddressSpace(x,x,x,x,x)+127 j
+.text:004470E5   mov   ecx, [ebp+PointerPte]
+.text:004470E8   mov   eax, [ecx]
+.text:004470EA   push  1 ; ModifiedState
+.text:004470EC   shr   eax, 0Ch ; eax = PointerPte->u.Hard.PageFrameNumber
+.text:004470EF   push  ecx ; PointerPte
+.text:004470F0   push  eax ; PageFrameIndex
+.text:004470F1   mov   [ebp+VadBitMapPage], eax
+.text:004470F4   mov   dword ptr [ecx], 80h ; 80h = MM\_KERNEL\_DEMAND\_ZERO\_PTE
+.text:004470F4     ;
+.text:004470F4     ; MI\_WRITE\_INVALID\_PTE (PointerPte, DemandZeroPte);
+.text:004470F4     ; == (\*(PointerPte) = (DemandZeroPte))
+.text:004470F4     ; == == (\*(PointerPte) = (MM\_KERNEL\_DEMAND\_ZERO\_PTE))
+.text:004470F4     ; == == (\*(PointerPte) = (0x80))
+.text:004470FA   call  \_MiInitializePfn@12 ; MiInitializePfn(x,x,x)
+.text:004470FF   mov   eax, [ebp+VadBitMapPage]
+.text:00447102   shl   eax, 0Ch ; eax = PointerPte->u.Hard.PageFrameNumber
+.text:00447105   and   edi, 0FFFh ; 高 12 位以上清 0
+.text:0044710B   or    edi, eax ; MI\_WRITE\_VALID\_PTE (PointerPte, TempPte);
+.text:0044710D   mov   eax, [ebp+PointerPte]
+.text:00447110   add   [ebp+PointerPte], 4 ; PointerPte += 1 (PointerPte 为指针)
+.text:00447114   dec   [ebp+NumberOfPages] ; NumberOfPages--
+.text:00447117   mov   [eax], edi
+.text:00447119   jnz   short LoopInitializePfn
+```
+
+9.  解除自旋锁。
+
+代码:
+
+```
+.text:0044711B   mov   dl, [ebp+OldIrql] ; UNLOCK\_PFN (OldIrql);
+.text:0044711E   push  2 ; #define LockQueuePfnLock 2
+.text:00447120   pop   ecx
+.text:00447121   call  ds:\_\_imp\_@KeReleaseQueuedSpinLock@8 ; KeReleaseQueuedSpinLock(x,x)
+```
+
+10.  调用 `MiInitializeWorkingSetList()` 函数初始化新进程的工作集链表。
+
+代码:
+
+```
+.text:0044715A   push  esi ; CurrentProcess
+.text:0044715B   call  \_MiInitializeWorkingSetList@4 ; MiInitializeWorkingSetList(x)
+```
+
+11. 然后是比较用户空间的最高地址，判断系统是否为 3G 模式和 64 位模式系统，3G 模式用于一些要求用户空间大一些的系统情况，例如数据库系统等，在此略过。
+
+代码:
+
+```
+.text:00447165   lea   ecx, [eax-10000h] ; MM\_HIGHEST\_VAD\_ADDRESS
+.text:00447165     ; = ((PVOID)((ULONG\_PTR)MM\_HIGHEST\_USER\_ADDRESS - (64 \* 1024)))
+.text:00447165     ; = 0x7ffeffff - 65536
+.text:00447165     ; = 0x7ffeffff - 0x10000
+.text:00447165     ; = 0x7ffdffff
+.text:0044716B   xor   edi, edi
+.text:0044716D   mov   eax, 7FFE0000h ; MM\_SHARED\_USER\_DATA\_VA
+.text:00447172   cmp   ecx, eax
+.text:00447174   mov   [ebp+BaseAddress], edi
+.text:00447177   jbe   No\_3G\_No\_64 ; 
+```
+
+11.  根据系统环境设置来确定是否在新进程中由高到低分配虚拟地址空间。
+
+代码:
+
+```
+.text:0044730E   cmp   \_MmAllocationPreference, edi ; 检查当前进程是否是否由高到低分配虚拟地址空间
+.text:00447314   jz    short No\_HightToLow
+```
+
+12. 新进程创建的最后环节，在参数 `SectionToMap` 内存区域对象 不为空时进行，首先从整个文件路径截取文件名，并初始化新进程 `EPROCESS` 对象的 `ImageFileName` 域。
+
+代码:
+
+```
+.text:0044734F   mov   eax, [eax+\_SECTION.Segment]
+.text:00447352   mov   ecx, [eax+\_SEGMENT.ControlArea]
+.text:00447354   mov   ecx, [ecx+\_CONTROL\_AREA.FilePointer]
+.text:00447357   mov   edi, [eax+\_SEGMENT.u2.ImageInformation]
+.text:0044735A   mov   eax, dword ptr [ecx+\_FILE\_OBJECT.FileName.Length]
+.text:0044735D   mov   edx, [ecx+\_FILE\_OBJECT.FileName.Buffer]
+.text:00447360   movzx eax, ax
+.text:00447363   add   eax, edx ; Length+Buffer
+.text:00447365   xor   ebx, ebx
+.text:00447367   test  edx, edx ; FileName.Buffer != NULL
+.text:00447369   jz    short Buffer\_Null ; sizeof (ProcessToInitialize->ImageFileName)
+.text:0044736B   jmp   short Buffer\_NotNull
+.text:0044736D ; ---------------------------------------------------------------------------
+.text:0044736D No\_Path\_Sig: ; MmInitializeProcessAddressSpace(x,x,x,x,x)+386 j
+.text:0044736D   dec   eax
+.text:0044736E   dec   eax
+.text:0044736F   cmp   word ptr [eax], '\\' ; '\\' == OBJ\_NAME\_PATH\_SEPARATOR
+.text:00447373   jz    short Path\_Sig
+.text:00447375   inc   ebx
+.text:00447376
+.text:00447376 Buffer\_NotNull: ;: MmInitializeProcessAddressSpace(x,x,x,x,x)+379 j
+.text:00447376   cmp   eax, edx
+.text:00447378   ja    short No\_Path\_Sig
+.text:0044737A   jmp   short Buffer\_Null ; sizeof (ProcessToInitialize->ImageFileName)
+.text:0044737C ; ---------------------------------------------------------------------------
+.text:0044737C
+.text:0044737C Path\_Sig: ; CODE XREF: MmInitializeProcessAddressSpace(x,x,x,x,x)+381 j
+.text:0044737C   inc   eax
+.text:0044737D   inc   eax
+.text:0044737E
+.text:0044737E Buffer\_Null: ; MmInitializeProcessAddressSpace(x,x,x,x,x)+377 j
+.text:0044737E     ; MmInitializeProcessAddressSpace(x,x,x,x,x)+388 j
+.text:0044737E   cmp   ebx, 10h ; sizeof (ProcessToInitialize->ImageFileName)
+.text:00447381   lea   edx, [esi+\_EPROCESS.ImageFileName]
+.text:00447387   jb    short Hight\_SizeOf
+.text:00447389   push  0Fh
+.text:0044738B   pop   ebx
+.text:0044738C
+.text:0044738C Hight\_SizeOf: ;: MmInitializeProcessAddressSpace(x,x,x,x,x)+395 j
+.text:0044738C   test  ebx, ebx
+.text:0044738E   jz    short SizeOf\_isNull
+.text:00447390   mov   [ebp+ProcessToClone], ebx
+.text:00447393
+.text:00447393 loc\_447393: ; MmInitializeProcessAddressSpace(x,x,x,x,x)+3AB j
+.text:00447393   mov   bl, [eax] ; \*Dst++ = (UCHAR)\*Src++;
+.text:00447395   mov   [edx], bl
+.text:00447397   inc   edx
+.text:00447398   inc   eax
+.text:00447399   inc   eax
+.text:0044739A   dec   [ebp+ProcessToClone]
+.text:0044739D   jnz   short loc\_447393 ; \*Dst++ = (UCHAR)\*Src++;
+```
+
+13. 然后初始化新进程 `EPROCESS` 对象 `SubSystemMajorVersion` 域和 `SubSystemMinorVersion` 域。
+
+代码:
+
+```
+.text:004473C4 mov al, byte ptr [edi+\_SECTION\_IMAGE\_INFORMATION.\_\_\_u5.\_s0.SubSystemMajorVersion]
+.text:004473C7   mov   [esi+\_EPROCESS.\_\_\_u70.\_s0.SubSystemMajorVersion], al
+.text:004473CD   mov   al, byte ptr [edi+\_SECTION\_IMAGE\_INFORMATION.\_\_\_u5.\_s0.SubSystemMinorVersion]
+.text:004473D0   mov   edi, [ebp+CreateFlags]
+.text:004473D3   mov   [esi+\_EPROCESS.\_\_\_u70.\_s0.SubSystemMinorVersion], al
+```
+
+14. 然后是对一些局部变量赋值，再将其作为参数，调用 `MmMapViewOfSection` 函数，在新进程映射内存区对象指出的新进程可执行文件，真正将文件映射到内存中。调用完之后，新进程的虚拟地址空间就存在了可执行文件的具体内容。
+
+代码:
+
+
+
+```asm
+.text:004473D9   xor   eax, eax
+.text:004473DB   test  byte ptr [edi], 10h ; PROCESS_CREATE_FLAGS_LARGE_PAGES
+.text:004473DE   mov   [ebp+BaseAddress], ebx
+.text:004473E1   mov   [ebp+ViewSize], ebx
+.text:004473E4   mov   dword ptr [ebp+SectionOffset], ebx ; (SectionOffset).LowPart = 0;
+.text:004473E7   mov   dword ptr [ebp+SectionOffset+4], ebx ; (SectionOffset).HighPart = 0;
+.text:004473EA   jz    short NO_LARGE_PAGES
+.text:004473EC   mov   eax, 20000000h ; MEM_LARGE_PAGES
+.text:004473F1
+.text:004473F1 NO_LARGE_PAGES: ; CODE XREF: MmInitializeProcessAddressSpace(x,x,x,x,x)+3F8 j
+.text:004473F1   push  4 ; Win32Protect = PAGE_READWRITE
+.text:004473F3   push  eax ; AllocationType
+.text:004473F4   push  1 ; InheritDisposition
+.text:004473F6   lea   eax, [ebp+ViewSize]
+.text:004473F9   push  eax ; CapturedViewSize
+.text:004473FA   lea   eax, [ebp+SectionOffset]
+.text:004473FD   push  eax ; SectionOffset
+.text:004473FE   push  ebx ; CommitSize
+.text:004473FF   push  ebx ; ZeroBits
+.text:00447400   lea   eax, [ebp+BaseAddress]
+.text:00447403   push  eax ; CapturedBase
+.text:00447404   push  esi ; Process
+.text:00447405   push  [ebp+SectionToMap] ; SectionToMap
+.text:00447408   call  _MmMapViewOfSection@40 ; MmMapViewOfSection(x,x,x,x,x,x,x,x,x,x)
+```
+
+15. 因为可执行文件得到映射之后，在新进程中的必须环境就是需要 `ntdll.dll` 的支持，所以接下来就是调用 `PsMapSystemDll()` 函数，将系统 dll 即 `ntdll` 映射到新进程地址空间中。
+
+代码:
+
+```asm
+.text:00447441   push  ebx ; UseLargePages
+.text:00447442   push  ebx ; DllBase
+.text:00447443   push  esi ; Process
+.text:00447444   call  _PsMapSystemDll@12 ; PsMapSystemDll(x,x,x)
+```
+
+16. 最后调用 `MiAllowWorkingSetExpansion()` 函数，把新进程的虚拟地址空间插入到工作集管理链表中，然后调用 `KeDetachProcess()` 函数，函数就结束了。
+
+代码:
+
+```asm
+.text:00447456   push  esi ; WsInfo
+.text:00447457   call  _MiAllowWorkingSetExpansion@4 ; MiAllowWorkingSetExpansion(x)
+.text:0044745C   call  _KeDetachProcess@0 ; KeDetachProcess()
+```
+
+引用: 相关参考资料：
+
+*   《深入解析 Windows 操作系统》 潘爱民 译
+*   《Windows 内核原理与实现》 潘爱民 著
+*   《Windows 内核情景分析》 毛德操 著
+
+科锐 5 期：liangxue
+
+注： 因本人水平有限，加上时间仓促，难免存在错误与纰漏之处，恳请各位高手给予指正！

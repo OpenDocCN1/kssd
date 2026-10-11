@@ -1,0 +1,402 @@
+
+# 科锐第三阶段项目-CreateProcess 分析之 NtCreateProcessEx() 的分析
+
+> 原文：[`www.pediy.com/kssd/pediy11/114958.html`](https://www.pediy.com/kssd/pediy11/114958.html)
+
+**函数原型：**
+
+```
+NTSTATUS
+NtCreateProcessEx(
+    __out PHANDLE ProcessHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
+    __in HANDLE ParentProcess,
+    __in ULONG Flags,
+    __in_opt HANDLE SectionHandle,
+    __in_opt HANDLE DebugPort,
+    __in_opt HANDLE ExceptionPort,
+    __in ULONG JobMemberLevel
+);
+```
+
+**函数主要功能：**
+
+函数大致操作分三部分：
+1. 创建并初始化进程 `EPROCESS` 对象，
+2. 创建并初始化进程地址空间，
+3. 初始化内核进程块(`KPROCESS`)
+4. 创建进程 ID，创建 `PEB` 等操作。
+
+**函数参数：**
+
+- `ProcessHandle`：输出参数，如果创建成功，则它返回所创建的进程的句柄。
+- `DesiredAccess`：新进程的访问权限。
+- `ObjectAttributes`：可选参数，指定了新进程的对象属性。
+- `ParentProcess`：新进程的父进程句柄。如果这个参数没有设定，即新进程没有父进程，新进程使用系统地址空间创建。
+- `Flags`：进程创建的标志。
+- `SectionHandle`：内存区域映射句柄，用来创建进程的地址空间，如果这个参数没有设定，新进程的地址空间是一个简单的克隆父进程的地址空间。
+- `DebugPort`：一个端口对象的句柄，被用于进程的调试端口。
+- `ExceptionPort`：一个端口对象的句柄，被用于进程的异常端口。
+- `JobMemberLevel`：新进程的在 `jobset` 中的等级。
+
+**函数具体分析：**
+
+`NtCreateProcessEx` 函数的代码判断调用时状态是否为内核模式，内核模式不需要检查参数，而非内核模式要检查 `ProcessHandle` 参数代表的句柄是否可写，然后把真正的创建工作交给 `PspCreateProcess` 函数。需要注意的是，在反汇编中检查句柄是否可写的代码，会让人比较疑惑，就是一个相互赋值的语句，看似无用，其实是为了检查其地址是否可写，不是的话触发异常，`trycase` 块捕获异常。具体看代码：
+
+代码:
+
+```
+PAGE:005315DA   mov   eax, large fs:124h ; 得到当前线程  _KTHREAD 结构体的指针
+PAGE:005315E0   xor   edx, edx
+PAGE:005315E2   cmp   [eax+0D7h], dl ; 比较当前线程之前模式是否为 0 环，比较_KTHREAD->PreviousMode 中的值
+PAGE:005315E8   jz    short loc_53161F ; 之前运行模式在 0 环下，跳走
+PAGE:005315EA   mov   [ebp+ms_exc.disabled], edx
+PAGE:005315ED   mov   ecx, [ebp+ProcessHandle] ; 取得句柄值地址
+PAGE:005315F0   mov   eax, _MmUserProbeAddress ; 获得允许的用户空间大小
+PAGE:005315F5   cmp   ecx, eax ; 比较句柄地址是否超过用户空间大小
+PAGE:005315F7   jb    short loc_5315FB
+PAGE:005315F9   mov   [eax], edx
+PAGE:005315FB
+PAGE:005315FB loc_5315FB: ; CODE XREF: NtCreateProcessEx(x,x,x,x,x,x,x,x,x)+29 j
+PAGE:005315FB   mov   eax, [ecx] 检测地址是否可读
+PAGE:005315FD   mov   [ecx], eax ; 检测地址是否可写
+PAGE:005315FF   or    [ebp+ms_exc.disabled], 0FFFFFFFFh
+```
+
+检查完参数之后，就会调用 `PspCreateProcess` 函数，创建 `EPROCESS` 对象等相关操作都在这个函数中进行。`PspCreateProcess` 被三个函数调用，`NtCreateProcessEx`、`PsCreateSystemProcess`、`PspInitPhase`。其中 `PspInitPhase` 是在系统初始化的早期调用的，它创建的进程的句柄保存在全局变量 `PspInitialSystemProcess` 中。`PsCreateSystemProcess` 可用于创建系统进程对象，它创建的进程都是 `PspInitialSystemProcess` 的子进程。所以，`PspCreateProcess` 函数负责创建系统的所有进程，包括 `System` 进程。
+
+函数的具体流程：
+
+1. 首先是一些当前环境的获取，`CurrentThread`，`PreviousMode`，`CurrentProcess` 等，
+
+代码:
+
+```
+PAGE:005300DB   mov   eax, large fs:124h ;         得到 _KTHREAD 结构体指针
+PAGE:005300E1   mov   [ebp+CurrentThread], eax ;   保存到局部变量 CurrentThread 中
+PAGE:005300E4   mov   cl, [eax+_KTHREAD.__u33._s2.PreviousMode] ; 获得前一种运行模式
+PAGE:005300EA   mov   byte ptr [ebp+PreviousMode], cl
+PAGE:005300ED   mov   eax, [eax+_KTHREAD.__u6.ApcState.Process] ; 得到 _KPROCESS 结构体指针
+PAGE:005300F0   mov   [ebp+CurrentProcess], eax
+```
+
+2. 检查父进程句柄是否为空，不为空通过父进程句柄，调用 `ObReferenceObjectByHandle` 函数获得父进程的 `EPROCESS` 对象，放在局部变量 `Parent` 中，同时获得父进程的 `Affinity` 设置。设置新进程的工作集最大值最小值到局部变量 `WorkingSetMaximum`，`WorkingSetMinimum` 中。
+
+代码:
+
+```
+PAGE:0053010A   cmp   [ebp+ParentProcess], ebx ; 比较父进程句柄是否为 0
+PAGE:0053010D   jz    short loc_530161
+PAGE:0053010F   push  ebx ; HandleInformation
+PAGE:00530110   lea   eax, [ebp+ParentEPROCESS] ; 父进程 PEPROCESS
+PAGE:00530116   push  eax ; Object
+PAGE:00530117   push  [ebp+PreviousMode] ; AccessMode
+PAGE:0053011A   push  _PsProcessType ; ObjectType
+PAGE:00530120   push  PROCESS_CREATE_PROCESS ; DesiredAccess
+PAGE:00530125   push  [ebp+ParentProcess] ; Handle
+PAGE:00530128   call  _ObReferenceObjectByHandle@24 ; 根据父进程句柄获取其 EPROCESS
+
+PAGE:0053016B   mov   [ebp+Affinity], eax ; 可以运行在父进程 job 的各个处理器上
+PAGE:0053016E   mov   eax, ds:_PsMinimumWorkingSet ; 设置工作集最小数
+PAGE:00530173   mov   [ebp+WorkingSetMinimum], eax
+PAGE:00530176   mov   eax, ds:_PsMaximumWorkingSet ; 设置工作集最大数
+PAGE:0053017B   mov   [ebp+WorkingSetMaximum], eax
+```
+
+3. 调用 `ObCreateObject` 函数，通过指定参数 `ObjectType` 为 `PsProcessType`，创建新进程的 `EPROCESS` 对象，创建的对象类型是在系统初始时通过 `ObCreateObjectType` 创建的。
+
+代码:
+
+```
+PAGE:00530181   push  eax ; Object
+PAGE:00530182   push  ebx ; NonPagedPoolCharge
+PAGE:00530183   push  ebx ; PagedPoolCharge
+PAGE:00530184   push  278h ; ObjectBodySize
+PAGE:00530189   push  ebx ; ParseContext
+PAGE:0053018A   push  [ebp+PreviousMode] ; OwnershipMode
+PAGE:0053018D   push  [ebp+ObjectAttributes] ; ObjectAttributes
+PAGE:00530190   push  _PsProcessType ; ObjectType
+PAGE:00530196   push  [ebp+PreviousMode] ; ProbeMode
+PAGE:00530199   call  _ObCreateObject@36 ; 创建进程 _EPROCESS
+```
+
+4. 初始化新进程 `EPROCESS` 结构体空间为全 0，设置新进程 `EPROCESS` 对象保护锁 `RundownProtect`，和推锁(`push lock`)`ProcessLock` 成员，初始化 `EPROCESS` 线程链表头。将新进程的配额块设置为其父进程配额块地址，并且递增父进程配额块的引用计数，继承 Windows 的设备名称空间(包括驱动器字母的定义、COM 端口、等等)。
+
+代码:
+
+```
+PAGE:005301A8   mov   ecx, 9Eh ; <- 设置 Process 指向的 EPROCESS 结构为全 0
+PAGE:005301AD   xor   eax, eax
+PAGE:005301AF   mov   ebx, [ebp+Process]
+PAGE:005301B2   mov   edi, ebx
+PAGE:005301B4   rep stosd ;  ->
+PAGE:005301B6   and   dword ptr [ebx+_EPROCESS.RundownProtect.__u0], eax ; ExInitializeRundownProtection (&Process->RundownProtect);
+PAGE:005301BC   and   [ebx+_EPROCESS.ProcessLock.__u0.Value], eax ; PspInitializeProcessLock (Process);
+PAGE:005301BF   lea   eax, [ebx+_EPROCESS.ThreadListHead] ; <- 初始化 EPROCESS 线程链表头
+PAGE:005301C5   mov   [eax+4], eax
+PAGE:005301C8   mov   [eax], eax ;  ->
+PAGE:005301CA   push  esi ; ParentProcess
+PAGE:005301CB   push  ebx ; NewProcess
+PAGE:005301CC   call  _PspInheritQuota@8 ; 继承资源配额
+PAGE:005301D1   push  esi ; ParentProcess
+PAGE:005301D2   push  ebx ; NewProcess
+PAGE:005301D3   call  _ObInheritDeviceMap@8 ; 继承父进程的设备位图
+```
+
+5. 父进程 `EPROCESS` 对象不为空时，将父进程的进程 ID 保存在新进程对象的 `InheritedFromUniqueProcessId` 域中，以及继承父进程的 `DefaultHardErrorProcessing` 域。
+
+代码:
+
+```
+PAGE:005301DC   mov   eax, [esi+_EPROCESS.DefaultHardErrorProcessing]
+PAGE:005301E2   mov   [ebx+_EPROCESS.DefaultHardErrorProcessing], eax ; 子进程继承父进程的 DefaultHardErrorProcessing
+PAGE:005301E8   mov   eax, [esi+_EPROCESS.UniqueProcessId]
+PAGE:005301EE   mov   [ebx+_EPROCESS.InheritedFromUniqueProcessId], eax ; 子进程继承父进程的 InheritedFromUniqueProcessId
+```
+
+6. 检查内存区句柄参数 `SectionHandle`，对于系统进程，此参数为 `NULL`，此时除非父进程为 `PsInitialSystemProcess`,否则内存区对象继承自父进程，并且不得为 `NULL`。因为新进程是调用 `CreateProcess` 函数完成的，而在此函数中的第一步就是打开映像文件，创建内存区对象，所以新进程执行到此，`SectionHandle` 不为空，调用 `ObReferenceObjectByHandle` 获得内存区对象的指针，并设置新进程 `EPROCESS` 对象中 `SectionObject` 域。
+
+代码:
+
+```
+PAGE:00530211   push  0 ; HandleInformation
+PAGE:00530213   lea   eax, [ebp+SectionObj]
+PAGE:00530219   push  eax ; Object
+PAGE:0053021A   push  [ebp+PreviousMode] ; AccessMode
+PAGE:0053021D   push  _MmSectionObjectType ; ObjectType
+PAGE:00530223   push  8 ; DesiredAccess
+PAGE:00530225   push  [ebp+SectionHandle] ; Handle
+PAGE:00530228   call  _ObReferenceObjectByHandle@24 ; 
+PAGE:00530243   mov   eax, [ebp+SectionObject]
+PAGE:00530246   mov   [ebx+_EPROCESS.SectionObject], eax
+```
+
+7. 判断调试端口句柄存在的话,则获得调试端口对象，并初始化 新进程的 `EPROCESS` 对象中的 `DebugPort` 域。不存在的话继承父进程的调试端口。
+
+代码:
+
+```
+PAGE:0053024C   cmp   [ebp+DebugPort], 0 ; 调试端口句柄不为空，说明处于调试状态
+PAGE:00530250   jz    DEBUGPORT_NULL
+PAGE:00530256   push  0 ; HandleInformation
+PAGE:00530258   lea   eax, [ebp+DebugPortObj]
+PAGE:0053025B   push  eax ; Object
+PAGE:0053025C   push  [ebp+PreviousMode] ; AccessMode
+PAGE:0053025F   push  _DbgkDebugObjectType ; ObjectType
+PAGE:00530265   push  2 ; DesiredAccess = DEBUG_PROCESS_ASSIGN
+PAGE:00530267   push  [ebp+DebugPort] ; Handle
+PAGE:0053026A   call  _ObReferenceObjectByHandle@24 ; 获取调试端口对象
+PAGE:0053026F   mov   edi, eax
+PAGE:00530271   test  edi, edi
+PAGE:00530273   jl    exit_and_deref
+PAGE:00530279   mov   eax, [ebp+DebugPortObj]
+PAGE:0053027C   mov   [ebx+_EPROCESS.DebugPort], eax  ;初始化新进程调试端口
+```
+
+8. 判断异常端口句柄存在的话,则获得异常端口对象，并初始化 新进程的 `EPROCESS` 对象中的 `ExceptionPort` 域。
+
+代码:
+
+
+
+# 8. 创建新进程地址空间
+
+当父进程 `EPROCESS` 指针不为空时，调用 `MmCreateProcessAddressSpace` 创建新进程地址用户空间。
+
+其参数包括：
+*   `MinimumWorkingSetSize`：最小工作集大小
+*   `NewProcess`：进程对象
+*   `DirectoryTableBase`：输出参数，指向进程地址空间的页目录地址
+
+函数主要操作为：初始化页目录页面（对于超过两级页表的系统，比如 `PAE` 模式下的 `x86` 系统或者 `64` 位系统，可能会有多个页目录）、初始化页面、`VAD` 位图页面，以及工作集链表。
+
+代码：
+
+```
+PAGE:005302DE   lea   eax, [ebp+DirectoryTableBase]
+PAGE:005302E1   push  eax ; DirectoryTableBase
+PAGE:005302E2   push  ebx ; NewProcess
+PAGE:005302E3   push  [ebp+WorkingSetMinimum] ; MinimumWorkingSetSize
+PAGE:005302E6   call  _MmCreateProcessAddressSpace@12 ; 
+```
+
+# 9. 初始化新进程对象
+
+调用 `KeInitializeProcess` 函数来初始化新进程对象 `KPROCESS` 结构。该结构包含一个指向内核线程链表中的指针（内核没有句柄的知识，所以它绕过对象表）。
+
+`KPROCESS` 也指向进程的页表目录（此页表目录被用于跟踪进程的虚拟地址空间）、该进程中线程的总执行时间、该进程默认的基本调度优先级、该进程中线程默认的处理器亲和性，以及进程默认时限的初始值。
+
+代码：
+
+```
+PAGE:005303CE   push  eax ; Enable
+PAGE:005303CF   lea   eax, [ebp+DirectoryTableBase]
+PAGE:005303D2   push  eax ; DirectoryTableBase
+PAGE:005303D3   push  [ebp+Affinity] ; Affinity
+PAGE:005303D6   push  8 ; BasePriority = NORMAL_BASE_PRIORITY
+PAGE:005303D8   push  ebx ; Process
+PAGE:005303D9   call  _KeInitializeProcess@20 ; 初始化进程 EPROCESS 结构
+```
+
+# 10. 初始化安全属性
+
+通过 `PspInitializeProcessSecurity` 函数初始化新进程的安全属性，主要从父进程复制一个令牌。
+
+代码：
+
+```
+PAGE:005303DE   push  ebx ; Child
+PAGE:005303DF   push  esi ; Parent
+PAGE:005303E0   call  _PspInitializeProcessSecurity@8 ; 继承父进程的安全属性
+```
+
+# 11. 设置优先级与初始化句柄表
+
+之后设置新进程的优先级类别。如果父进程不为 `NULL`，则拷贝父进程的优先级，并且调用 `ObInitProcess` 初始化新进程的句柄表。若 `Flags` 参数中包含了句柄继承标志，则把父进程句柄表中凡是有继承属性的对象拷贝到新进程句柄表中。
+
+代码：
+
+```
+PAGE:0053040F PriorityClass__Idle: 
+PAGE:0053040F   mov   [eax], cl
+PAGE:00530411
+PAGE:00530411 PriorityClass__No_Normal:
+PAGE:00530411     ; CODE XREF: PspCreateProcess(x,x,x,x,x,x,x,x,x)+341 j
+PAGE:00530411   push  ebx ; NewProcess
+PAGE:00530412   mov   eax, [ebp+Flags]
+PAGE:00530415   and   al, 4 ; PROCESS_CREATE_FLAGS_INHERIT_HANDLES
+PAGE:00530417   neg   al
+PAGE:00530419   sbb   eax, eax
+PAGE:0053041B   and   eax, edx
+PAGE:0053041D   push  eax ; ParentProcess
+PAGE:0053041E   call  _ObInitProcess@8 ; 初始化进程对象表
+```
+
+# 12. 初始化地址空间
+
+调用 `MmInitializeProcessAddressSpace` 初始化新进程的地址空间。调用此函数初始化进程空间有四种可能性：
+
+1.  `Boot Process`：系统引导时调用，无父进程。
+2.  `System Process`：系统进程的初始化，无父进程，无文件区域对象。
+3.  `User Process (Cloned Address Space)`：根据父进程克隆地址空间。
+4.  `User Process (New Image Address Space)`：根据指定文件区域对象映射地址空间。
+
+此函数的功能包括：
+1.  初始化新进程 `EPROCESS` 对象有关变量。
+2.  对新进程的可执行映像文件在地址空间的映射，或者在拷贝父进程地址空间。
+
+代码：
+
+```
+PAGE:0053043F   lea   eax, [ebx+_EPROCESS.SeAuditProcessCreationInfo]
+PAGE:00530445   push  eax ; AuditName
+PAGE:00530446   lea   eax, [ebp+Flags]
+PAGE:00530449   push  eax ; CreateFlags
+PAGE:0053044A   push  [ebp+SectionObject] ; SectionToMap
+PAGE:0053044D   push  esi ; ProcessToClone
+PAGE:0053044E   push  ebx ; ProcessToInitialize
+PAGE:0053044F   call  _MmInitializeProcessAddressSpace@20 ; 
+```
+
+# 13. 创建进程 ID
+
+创建进程 `ID`。利用 `ExCreateHandle` 函数在 `CID` 句柄表中创建一个进程 `ID` 项。
+
+代码：
+
+```
+PAGE:00530511   mov   dword ptr [ebp+CidEntry.__u0], ebx
+PAGE:00530514   and   dword ptr [ebp+CidEntry.__u1], 0
+PAGE:00530518   lea   eax, [ebp+CidEntry]
+PAGE:0053051B   push  eax ; HandleTableEntry
+PAGE:0053051C   push  _PspCidTable ; HandleTable
+PAGE:00530522   call  _ExCreateHandle@8 ; 创建进程 ID
+PAGE:00530527   mov   [ebx+_EPROCESS.UniqueProcessId], eax
+```
+
+# 14. 初始化 PEB
+
+如果父进程属于一个作业对象，则也加入父进程所在的作业中（这里不考虑这部分）。新进程在接下来会创建 `PEB`，为其分页一个页面，并初始化其中的诸多域，包括可执行文件中的一些信息及一些内核变量。
+
+代码：
+
+```
+PAGE:00530649   xor   eax, eax ;   <- 初始化 PEB 结构体
+PAGE:0053064B   lea   edi, [ebp+InitialPeb]
+PAGE:0053064E   stosd ;   - >
+PAGE:0053064F   or    [ebp+InitialPeb.Mutant], -1
+PAGE:00530653   mov   al, [ebp+InitialPeb.BitField]
+PAGE:00530656   xor   al, [ebp+UseLargePages]
+PAGE:00530659   and   al, 1
+PAGE:0053065B   xor   [ebp+InitialPeb.BitField], al
+PAGE:0053065E   cmp   [ebp+SectionHandle], 0
+PAGE:00530662   jz    short loc_530687
+PAGE:00530664   lea   eax, [ebx+_EPROCESS.Peb]
+PAGE:0053066A   push  eax ; Base
+PAGE:0053066B   lea   eax, [ebp+InitialPeb]
+PAGE:0053066E   push  eax ; InitialPeb
+PAGE:0053066F   push  ebx ; TargetProcess
+PAGE:00530670   call  _MmCreatePeb@12 ; 初始化 PEB 结构
+```
+
+# 15. 加入全局进程链表
+
+把新进程加入到全局的进程链表 `PsActiveProcessHead` 中。
+
+代码：
+
+```
+PAGE:005306E7   lea   eax, [ebx+_EPROCESS.ActiveProcessLinks] ; 添加 EPROCESS 到全局 EPROCESS 链表中
+PAGE:005306ED   mov   ecx, dword_4A5EC4
+PAGE:005306F3   mov   dword ptr [eax], offset _PsActiveProcessHead
+PAGE:005306F9   mov   [eax+4], ecx
+PAGE:005306FC   mov   [ecx], eax
+```
+
+# 16. 插入句柄表
+
+调用 `ObInsertObject` 函数，把新进程对象插入到当前进程的句柄表中。
+
+代码：
+
+```
+PAGE:005307A7   lea   eax, [ebp+LocalProcessHandle]
+PAGE:005307AA   push  eax ; Handle
+PAGE:005307AB   push  0 ; NewObject
+PAGE:005307AD   push  1 ; ObjectPointerBias
+PAGE:005307AF   push  [ebp+DesiredAccess] ; DesiredAccess
+PAGE:005307B2   push  [ebp+AccessState] ; AccessState
+PAGE:005307B5   push  ebx ; Object
+PAGE:005307B6   call  _ObInsertObject@24 ; 在当前进程句柄表中插入对象
+```
+
+# 17. 计算优先级与时限
+
+然后调用 `PspComputeQuantumAndPriority` 函数计算新进程的基本优先级和时限重置值，并且设置进程的内存优先级。
+
+代码：
+
+```
+PAGE:005307D6   lea   eax, [ebp+QuantumReset]
+PAGE:005307D9   push  eax ; QuantumReset
+PAGE:005307DA   push  0 ; PriorityMode
+PAGE:005307DC   push  ebx ; Process
+PAGE:005307DD   call  _PspComputeQuantumAndPriority@12 ; 
+```
+
+# 18. 设置访问权限与创建时间
+
+设置进程的访问权限，即 `GrantedAccess` 域。以及设置进程的创建时间，并把新进程句柄赋给输出参数 `ProcessHandle` 中，从而创建者可以获得新进程的句柄。
+
+到此，函数返回。
+
+## 引用
+
+*   《深入解析 Windows 操作系统》 潘爱民 译
+*   《Windows 内核原理与实现》 潘爱民 著
+*   《Windows 内核情景分析》 毛德操 著
+
+科锐 5 期：liangxue
+
+注： 因本人水平有限，加上时间仓促，难免存在错误与纰漏之处，恳请各位高手给予指正！

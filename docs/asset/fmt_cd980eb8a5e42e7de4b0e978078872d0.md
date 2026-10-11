@@ -1,0 +1,122 @@
+
+# OllyDBG1.1 条件记录断点中传递命令到命令行插件功能的使用探索
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-323.htm`](https://www.pediy.com/kssd/pediy08/pediy8-323.htm)
+
+OllyDBG1.1 条件记录断点中传递命令到命令行插件功能的使用探索
+
+By icow 2006-9-11
+
+附插图版本见所符文档
+
+OD 的条件记录断点很好用，在帮助文件中关于 OD 条件记录断点的说明是：
+
+**条件记录断点**（Conditional logging breakpoint）（Shift+F4）是一种条件断点，每当遇到此类断点或者满足条件时，它将记录已知函数表达式或参数的值。例如，您可以在一些窗口过程函数上设置记录断点并列出对该函数的所有调用。或者只对接收到的 `WM_COMMAND` 消息标识符设断，或者对创建文件的函数（`CreateFile`）设断，并且记录以只读方式打开的文件名等，记录断点和条件断点速度相当，并且从记录窗口中浏览上百条消息要比按上百次 F9 轻松的多，您可以为表达式选择一个预先定义好的解释说明。
+
+您可以设置通过的次数 - 每次符合暂停条件时，计数器就会减一。如果通过计数在减一前，不等于零，`OllyDbg` 就会继续执行。如果一个循环执行 100 次（十进制），在循环体内设置一个断点，并设置通过次数为 99（十进制）。`OllyDbg` 将会在最后一次执行循环体时暂停。
+
+另外，条件记录断点允许您传递一个或多个命令给插件[`plugins`]。例如，您需要使用命令行插件改变一个寄存器的内容，然后继续执行程序。
+
+搜索论坛及 google，关于条件记录断点的使用说得很详细，但对如何传递命命到命令行插件没有介绍（或许是我没找到），在论坛发了求助贴，放了两天也没有人应，只好自己来分析了。
+
+直接在传递命令框里添上命令，中断时并没有执行所添命令。如下图：在命令框里添上 `d esp`，中断时命令行插件并没有执行 `d esp`。
+
+不知如何入手，又再读了一遍 OD 的帮助文件。其中有一段文字值得注意：
+
+**新的插件函数：**
+
+- 当被调试程序暂停时，都会调用回调用函数 `ODBG_Paused(int reason, t_reg *registers)` 或其的扩展版本 `ODBG_Pausedex(int reasonex, int extmode, reg *registers, DEBUG_EVENT *debugevent)`；
+- 当应用程序因条件断点暂停，并且断点包含有传递给插件的命令，都会调用回调函数 `ODBG_Plugincmd(int reason, t_reg *registers, char *cmd)`。
+- 函数 `Function Settracecount(ulong count)` 用于设置命令执行多少次后 `Run` 跟踪暂停；
+- 函数 `Settracepauseoncommands(char *cmdset)` s 用于指定暂停的命令集；
+- 函数 `Getbreakpointtypecount(ulong addr, ulong *passcount)` 和 `Setbreakpointext(ulong addr, ulong type, char cmd, ulong passcount)` 支持传递条件断点中的计数器；
+- 函数 `Listmemory()` 用于实现内存块列表。
+
+其中加下划线的那句话：回调函数 `ODBG_Plugincmd(int reason, t_reg *registers, char *cmd)`，呵呵，应该就是它了，动态跟一跟它再说。
+
+复制一份 OD，称 `OD_CP`，运行 `OllyICE`，载入 `OD_CP` 中的 `OllyICE`（以下称 `OllyDBG`，以示区别），F9 运行。用 `OllyDBG` 载入一个窗口程式 `AA` 己任选一个）并运行。
+
+找到一处（我找的是窗体的 `ClassPROC`）设条件记录断点如下图：
+
+切换到 `OllyICE` 即最先运行的 OD，`ALT-M` 打开内存窗口，
+
+找到 `CmdBar` 模块，在 CPU 数据窗口查看，`CTRL-N`，查找 `_ODBG_Plugincmd` 并跟随，在入口去设断点。在程式 `AA` 中点鼠标左键，首先 `OllyICE` 断下：
+
+```
+03463790  >  55                    push    ebp
+03463791    8BEC                    mov     ebp, esp
+03463793    81C4 00FFFFFF           add     esp, -100
+03463799    53                    push    ebx
+0346379A    56                    push    esi
+0346379B    8B5D 10               mov     ebx, [ebp+10] ；指向传给命令行插件的命令”d esp”
+0346379E    85DB                    test    ebx, ebx
+034637A0    74 0B                 je      short 034637AD
+034637A2    803B 2E               cmp     byte ptr [ebx], 2E；比较首字符是否是’.’(ACSII 码是 2E)
+034637A5    75 06                 jnz     short 034637AD;不是则转，置 EAX=0 并退出
+034637A7    807B 01 00            cmp     byte ptr [ebx+1], 0；比较第二个字符是否为空
+034637AB    75 04                 jnz     short 034637B1；不为空则跳
+034637AD    33C0                    xor     eax, eax
+034637AF    EB 48                 jmp     short 034637F9
+034637B1    8D95 00FFFFFF           lea     edx, [ebp-100]
+034637B7    52                    push    edx
+034637B8    8D73 01               lea     esi, [ebx+1]；将命令串的首字符去掉后压栈
+034637BB    56                    push    esi
+034637BC    E8 27E8FFFF           call    03461FE8；对命令串进行命令分析既表达式逻辑验证等，然后执行，有兴趣的可以跟一跟。
+034637C1    83C4 08               add     esp, 8
+034637C4    85C0                    test    eax, eax
+034637C6    75 07                 jnz     short 034637CF
+034637C8    56                    push    esi
+034637C9    E8 02F1FFFF           call    034628D0；执行命令
+034637CE    59                    pop     ecx
+034637CF    833D D4EA4603 0>      cmp     dword ptr [346EAD4], 0
+034637D6    74 1C                 je      short 034637F4
+034637D8    833D E8EA4603 0>      cmp     dword ptr [346EAE8], 0
+034637DF    74 13                 je      short 034637F4
+034637E1    8D85 00FFFFFF           lea     eax, [ebp-100]
+034637E7    50                    push    eax
+034637E8    8B15 E8EA4603           mov     edx, [346EAE8]
+034637EE    52                    push    edx
+034637EF    E8 E0770000           call    <jmp.&USER32.SetWindowTextA>；addline
+034637F4    B8 01000000           mov     eax, 1
+034637F9    5E                    pop     esi
+034637FA    5B                    pop     ebx
+034637FB    8BE5                    mov     esp, ebp
+034637FD    5D                    pop     ebp
+034637FE    C3                    retn
+```
+
+分析 `_ODBG_Plugincmd` 函数可知，在命令框输入命令格式应该为：`.加命令`。即 `d esp` 应为 `.d esp`。
+
+重新设条件记录断点：
+
+再执行，`_ODBG_Plugincmd` 执行两次，第一次传递命令 `.d esp`，第二次传递命令 `.a send`。
+
+两个命令都能正确执行。
+
+**总结**：OD 的条件记录断点传递命令到命令行插件的正确用法是：
+
+在条件记录断点对话框的命令框中输入 `. + 命令`。即按照命令行插件的用法前加一 `.`(ASCII 码为 2E)。
+
+搞得很复杂，只是我的分析过程，大家不要笑话。
+
+其实直接看命令行插件的源码更省事。搞玩了才想到这一着.
+
+```c
+extc int _export cdecl ODBG_Plugincmd(int reason, t_reg *reg, char *cmd)
+{
+  char answer[TEXTLEN];
+  // Command-line plugin accepts only commands that start with point (.)
+  if(cmd == NULL || cmd[0] != '.' || cmd[1] == '\0') {
+    return 0;
+  }
+  if(Execute(cmd + 1, answer) == 0) {
+    Addline(cmd + 1);                   // Add line only if command valid
+  }
+  if(hwmain != NULL && hwerr != NULL) {
+    SetWindowText(hwerr, answer);       // Display result or error message
+  }
+  return 1;
+};
+```
+
+4dd466d0e1e0cc123afbe504da2462ca

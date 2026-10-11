@@ -1,0 +1,232 @@
+
+# IDA Plugin 编写基础
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-718.htm`](https://www.pediy.com/kssd/pediy09/pediy09-718.htm)
+
+> IDA Plugin 编写基础
+
+> IDA 是迄今为止最为强大的反汇编器，它有着众多的功能。但是如果它不具备通过附加的模块来对标准的函数进行扩展的功能（粗俗点说就是 plugin）的话，也就有负此盛名了。现在我们就来更为详细地研究一下如何编写这些 plugin。
+
+> 喏，首要的就是要有这个叫做 IDA 的反汇编器，同时还要有与之匹配的 IDA SDK。SDK 里主要的部分就是 `include` 目录及其下的所有文件，这些文件里包含了编写 plugin 所用到的所有的宏定义和函数原型，同时用到它们的还有 `import lib` —— `ida.lib`。我这里使用的编译器是 Intel C++，与 VC++结合起来用。我选择它的原因就是，在 SDK 中没有对它进行内嵌的支持（比如在 SDK 中就有 Borland C++和 VC++编译器的安装文件），而这能使我们更好地理解。`ida.lib` 文件是 `ida.wll`（位于 IDA 目录下）的 `import library`。其中所有的函数都是用 `ordinal` 导出的，而 `ordinal` 与函数名的比较是在 `ida.lib` 里进行的。这就是需要使用与 IDA 版本相匹配的 SDK 的原因了，因为导出函数的 `ordinal` 会因版本的不同而发生变化。喏，好了，万事具备了，我们开始吧。
+
+> plugin 到底是个什么东东呢？其实它也没什么稀奇的，就像一个通常的 DLL，只是导出了下面这个名为 `PLUGIN` 的结构体：
+
+```
+struct plugin_t
+{int version;        // IDA 的版本，用于 plugin 的编写，通常这个域的值为 IDP_INTERFACE_VERSION - 表示 SDK 版本的 constant。
+                        如果这个域的值与所用 IDA 的版本不一致，就不会加载此 plugin。
+  int flags           // 这个好理解，就是些标志。嫌麻烦添 0 就行了。但这里要讲一下所有可能的取值。
+                                  
+                        PLUGIN_MOD - 置位表示 plugin 会修改 database（坦白讲，没有什么 plugin 会修改它）。如果此位置位，
+                        而进程模块却禁止修改 database，则 plugin 就不会被使用。这个标志我们并不需要，另外的几个也是一样。
+                        
+                        PLUGIN_DRAW - 置位表示 IDA 在调用 plugin 后需要重画（即刷新）所有窗口。
+                        
+                        PLUGIN_SEG - plugin 只在鼠标所放之处的地址属于某个 segment 时才能使用。这里也不需要。
+                        
+                        PLUGIN_UNL - 若置位，则 plugin 在使用后会从内存中卸载。这对于调试器来说当然是好了，但对我们来说
+                        就不太合适了。 
+
+                        这些标志可以用逻辑或（我们这里用 or，C 语言里用“|”）结合起来。但我说过，更为简单的是把所有这些
+                        域都填成红色的 NULL。
+  
+  void (idaapi* init)(void);        //初始化函数加载 plugin 的时候调用，如果函数返回了什么不好的东西，则 plugin 就不会被加载。
+  
+  void (idaapi* term)(void);        //卸载 plugin 时调用。一般不使用。
+  
+  void (idaapi* run)(int arg);      //也许这是最重要的域了 - working function，每次调用 plugin 都要运行，包含着 plugin 的主要
+                                    代码。
+  char* comment;                    //注释，作提示用的。
+  char* help;                       //help 自然就是 help 了.
+  char* wanted_name;                //首选的 plugin 名。
+  char* wanted_hotkey;              //首选的热键。一般来说不依赖于 plugin 作者选用的键，实际的热键值记录在 plugin.cfg，这个
+                                    文件后面会讲到。
+};
+```
+
+> 一般来说，`include` 里的 `loader.hpp` 文件里这个结构体是作为类来声明的，我想对那些不了解类的读者说，其实在 C++里类和结构体在本质上都是一样的。喏，好像到了该给出源代码的时候了。我这里给出一个最简单的 plugin，这个 plugin 会将 database 中的无用指令：
+
+> `бесполезные группы инструкций:`
+
+> `pusha`
+> `popa`
+>
+> `push eax`
+> `push edx`
+> `rdtsc`
+> `pop edx`
+> `pop eax`
+>
+> `push edx`
+> `push eax`
+> `rdtsc`
+> `pop eax`
+> `pop edx`
+
+> 替换为“更为明了”的 `nop` 指令。下面是代码：
+
+```c
+#pragma comment(linker,"/NODEFAULTLIB")
+#pragma comment(linker,"/Entry:Dllmain")    //Runtime 库占了 40kb 字节，却没什么有用的东西，特别是对 plugin。
+                                             然而，如果切断它，则需要重新标记入口点。
+
+#define __NT__
+#define __IDP__    //这个一定要有，否则 plugin 就罢工。
+
+typedef unsigned char BYTE;    //这里没有包含标准的 include 文件需要额外定义 BYTE 类型
+
+#include <ida.hpp>
+#include <idp.hpp>
+#include <bytes.hpp>
+#include <loader.hpp>
+#include <kernwin.hpp>    //"绅士的选择" IDA 中的头文件
+
+  //重新标记入口点
+bool Dllmain(void* hInstDLL, int reason, int reserved)
+{return true;}
+
+char comment[] = "Experimental plugin";
+char help[] = "Experimental plugin";
+char wanted_name[] = "ExpPlugin";
+char wanted_hotkey[] = "F11";
+
+BYTE rdtsc1[]={0x52, 0x0F, 0x31, 0x5A, 0x58};
+BYTE rdtsc2[]={0x50, 0x0F, 0x31, 0x58, 0x5A};    //就是些 opcodes
+
+  //plugin 的 initialization procedure
+```
+
+> 根据不同的返回值，IDA 可以加载或者不加载 plugin。可能返回的值有：
+
+> `PLUGIN_SKIP` - 不加载返回值。
+
+> `PLUGIN_OK` - 喏，一个 `OK` 自然要加载 plugin 啦。
+
+> `PLUGIN_KEEP` - 不但要加载，还要常驻内存。
+
+> 比如说，要想让 plugin 只处理 `PE` 格式的文件，需要这样写 `initialization procedure`：
+
+```c
+if (inf.filetype != f_PE) return PLUGIN_SKIP;
+return PLUGIN_OK;
+```
+
+> 这里就不研究那个 `inf` 结构体了，详情请见 SDK。我们这里总是要加载 plugin 的，所以代码如下：
+
+```c
+int init(void)
+{return PLUGIN_OK;}
+
+  //在 unload procedure 里也是什么也不用干，空着它。
+
+void term(void)
+{return;}
+
+  //最后就是主要的 run 函数了
+```
+
+> 在研究主函数之前有兴趣可以研究一下 database 的读写函数，还有获取当前地址的函数，也即 IDA 中鼠标所放之处的地址：
+
+> `get_byte`
+> `get_word`
+> `get_long` - 从 database 中读取各种长度字节。接受一个参数——listing 中的地址。
+
+> `patch_byte`
+> `patch_word`
+> `patch_long` - 向 database 中写入各种长度字节。两个参数，第一个——地址，第二个——值。
+
+> 可以猜到，名字里有 `byte` 的函数是用于（即接受或返回）字节的，`word`——字，而 `long`——双字。
+
+> `get_screen_ea` - 获取当前地址的函数，当前地址就是它的返回值。
+
+```c
+void run(int arg)
+{BYTE cb1;
+  int i, tmp0;
+
+ ea_t CA = get_screen_ea();
+ cb1=get_byte(CA);
+
+   //pusha
+   //popa
+  if (cb1==0x60 && get_byte(CA+1)==0x61)    // pusha 的 opcode - 60h，而 popa - 61h
+   {patch_word(CA, 0x9090);
+     return;}
+
+   //rdtsc
+  if (cb1==0x50)    //序列的第一个字节 - push eax 的 opcode
+   {tmp0=1;
+    for (i=0; i<5; i++)    //数组中的其它字节，使用循环检验
+    if (get_byte(CA+i+1)!=rdtsc1[i]) {tmp0=0; break;}
+
+    if (tmp0==1)
+      {patch_long(CA, 0x90909090);
+        patch_word(CA+4, 0x9090);
+        return;}}
+
+  if (cb1==0x52)
+   {tmp0=1;
+    for (i=0; i<4; i++)
+    if (get_byte(CA+i+1)!=rdtsc2[i]) {tmp0=0; break;}
+
+    if (tmp0==1)
+      {patch_long(CA, 0x90909090);
+        patch_word(CA+4, 0x9090);
+        return;}}
+};
+
+  //现在放入前面讲过的导出结构体。
+  //一定要写上 extern "C"，使得 linker 能正确找到导出结构体的名字
+
+extern "C" plugin_t PLUGIN = {
+IDP_INTERFACE_VERSION,
+0,
+init,
+term,
+run,
+comment,
+help,
+wanted_name,
+wanted_hotkey
+};
+```
+
+> 现在我们来看如何将它编译。以下是 `bat` 文件：
+
+```bat
+icl -Gz /I <SDK 的 include 目录的路径> plugin.cpp ida.lib /link /subsystem:windows /DLL /def:plugin.def /out:exp.plw
+del "<IDA 目录路径>\plugins\exp.plw"
+copy exp.plw "<IDA 目录路径>\plugins\"
+PAUSE
+```
+
+> 我已经说过，此处是以 Intel C++为例的，如果用 VC++的话，源代码不用改，而编译用的命令行则需要修改（不过就是把 `icl` 换成 `cl`）。现在来详细讲一下。
+
+> `-Gz` 告诉 intel compier，默认使用 `stdcall` 规则向函数传递参数。
+> `/I` - IDA SDK 的 `include` 目录的路径
+> `plugin.cpp` - plugin 源代码。
+> `ida.lib` - SDK 的 `import library`，应该和源代码放入一个目录。
+> `/link` 参数的后面是 linker options，就不用多说了。除了 `def` 文件。因为这里已经有源代码和 `bat` 文件了，就需要生成 `def` 文件。
+
+```text
+LIBRARY exp
+EXPORTS PLUGIN
+```
+
+> `def` 文件指明需要导出 `PLUGIN` 结构体。一般来说，到这里就都完成了，plugin 已经可以使用了，剩下的只是把它加到 IDA 里了。可以把它拷贝到 IDA 的 `plugins` 目录里。但这还不够，还需要配置一下。所有 plugins 的配置都保存在 `plugins` 目录下 `plugins.cfg` 文件里。通常文件的起始处是注释，后面就是 plugin 的配置了。为了将我们的 `exp.plw`（Windows 下的 plugin 的扩展名都是 `plw`）加入进去，需要在文件末尾加入四个参数，顺序 如下：
+
+> `plugin` 名 `文件名` `热键` `参数`。
+
+> 这里的参数就是传给 `run` 函数的，我个人觉得没什么用，所以就设为 `0`。热键嘛，可以设为 `F11`，好像 IDA 用不到这个键。这样，我们所添加的这一行就是下面这个样子的：
+
+```text
+     expplugin    exp    F11    0
+```
+
+> 不主张在前面写一个句点加一个逗号，因为那样就成了注释。喏，一般来说可以认为，mission accomplished。剩下的就是启动 IDA，打开某个文件，那个文件里要有我们前面给出的指令（比如，可以自己立马用 ASM 写一个），然后进行检查。如果没有问题，就按下 F11 键或从菜单里选择我们的 plugin，这时那些指令就应该都被替换成 nop 了。当然，鼠标应该放在这些 scrambled 的指令（如果可以这样说的话）的前面，当然这些都是些垃圾指令了。到这里就真的都完成了。
+
+> `[C]` dragon
+> `www.wasm.ru/article.php?article=idaplugin`
+
+> 鄙人拙译
+> `http://greatdong.blog.edu.cn`

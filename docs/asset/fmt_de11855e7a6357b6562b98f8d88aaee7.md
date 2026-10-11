@@ -1,0 +1,140 @@
+
+# 用 OD 学习 LoadPE 内存转存方法
+
+> 原文：[`www.pediy.com/kssd/pediy10/77120.html`](https://www.pediy.com/kssd/pediy10/77120.html)
+
+**【文章标题】**: 用 OD 学习 LoadPE 内存转存方法
+**【文章作者】**: `lijingli`
+**【作者邮箱】**: `lijingli168@126.com`
+**【作者 QQ 号】**: `35928252`
+**【使用工具】**: `OD`
+**【操作平台】**: `Xp+Sp2`
+**【作者声明】**: 没什么技术，只是觉得应该回报一下论坛，虽然一点技术含量都没有。
+
+从开始不懂汇编，到现在从事的工作，真的在看雪学了不少东西，虽然我还是很无知，但是努力去学习，去追求，也许又一天我会进步很多。
+
+谢谢坛主和大家的无私奉献，我真的希望能回报论坛，尽我小小的绵薄之力。
+
+最近又把 `PE` 结构看了一遍，觉得以前看的总是记忆的不是很深刻，于是想编一个 `PE` 查看器又无从下手，就想看看 `LordPE` 是用的什么方法。我用 `OD` 跟的。
+
+内存转存最后还是要保存到硬盘上的，所以我 `BP` `CreateFileA`，然后可以往上面分析应该就可以找到 `LordPE` 的内存转存方法了。
+
+随便选择一个来转存，`OD` 中断在 `CreateFileA`，如下：
+
+引用:
+```
+00406C3A  /CALL 到 CreateFileA 来自 LordPE.00406C34
+0012FB80  |FileName = "D:\Program Files\QQ2008\QQUpdateCenter.exe"
+80000000  |Access = GENERIC_READ
+00000001  |ShareMode = FILE_SHARE_READ
+00000000  |pSecurity = NULL
+00000003  |Mode = OPEN_EXISTING
+00000080  |Attributes = NORMAL
+00000000  \hTemplateFile = NULL
+```
+
+幸运的是我看见了这个文件的路径，我猛然想起以前在论坛的书里看见过，`LordPE` 是直接读取磁盘上文件的 `PE` 头的。但是当时并没有真正的理解。
+
+现在断在了这里，我才明白了 `LordPE` 内存转存的方法了（运气占了很大的成分。。![](img/9d43c9aee695f95b024aafd1b69ffa5a.jpg "伤心") ）。
+
+然后 `CTRL+F9` 返回。
+
+往上分析，就看见了，`LordPE` 通过：
+
+```
+00402C2C  .  E8 4B560100    call <jmp.&procs.GetProcessPath>
+00402C31  .  EB 17          jmp short 00402C4A
+00402C33  |> 8B4C24 18      mov ecx, dword ptr [esp+18]
+00402C37  .  8B5424 30      mov edx, dword ptr [esp+30]
+00402C3B  .  8D8424 B40100> lea eax, dword ptr [esp+1B4]
+00402C42  .  50             push eax
+00402C43  .  51             push ecx
+00402C44  .  52             push edx
+00402C45  .  E8 3E560100    call <jmp.&procs.GetModulePath>
+```
+
+获取执行文件所在的路径，然后通过 `CreateFileA` 来打开磁盘上的文件，然后通过 `ReadFile` 读取文件的 `DOS` 和 `PE` 头,并比较 `PE` 的标志：
+
+```
+|> push 0 ; /pOverlapped = NULL
+|> push ecx ; |pBytesRead
+|> lea edx,dword ptr [esp+1C] ; |
+|> push 40 ; |BytesToRead = 40 (64.)
+|> push edx ; |Buffer
+|> push esi ; |hFile
+|> call edi ; \ReadFile
+|> test eax, eax
+|> je 00406CFE
+|> cmp word ptr [esp+14], 5A4D ;比较 MZ
+|> je short 00406C8C
+\]
+```
+
+然后比较 `PE` 标志：
+
+```
+|. 6A 00 push 0
+|. 51 push ecx
+|. 8D5424 5C lea edx, dword ptr [esp+5C]
+|. 68 F8000000 push 0F8
+|. 52 push edx
+|. 56 push esi
+|. FFD7 call edi ; ReadFile
+|. 85C0 test eax, eax
+|. 74 48 je short 00406CFE
+|. 817C24 54 50450000 cmp dword ptr [esp+54], 4550    ; 比较 PE 标志
+|. 75 3E jnz short 00406CFE
+```
+
+然后读取磁盘文件映像的前面的 `0x1000`：
+
+```
+0012F9A0 00406CF5 /CALL 到 ReadFile 来自 LordPE.00406CF3
+0012F9A4 00000150 |hFile = 00000150 (window)
+0012F9A8 011A0020 |Buffer = 011A0020
+0012F9AC 00001000 |BytesToRead = 1000 (4096.)
+0012F9B0 0012F9C8 |pBytesRead = 0012F9C8
+0012F9B4 00000000 \pOverlapped = NULL
+```
+
+然后通过 `ImageNtHeader` 获取内存中映像的指针。
+
+```
+call dword ptr [<&IMAGEHLP.ImageNtHea>; IMAGEHLP.ImageNtHeader
+xor edx, edx                    ;测试获取的 PE 指针是否为 0
+cmp eax, edx
+je short 0041640D
+xor ecx, ecx
+mov cx, word ptr [eax+14]       ;PE 可选头的大小
+lea ecx, dword ptr [ecx+eax+18] ;代码段的起始 RVA
+mov dword ptr [ebp-4], edx
+mov dword ptr [ebp-1C], edx
+xor esi, esi
+mov si, word ptr [eax+6]        ;块的数目
+cmp edx, esi
+jnb short 004163D5              ;是否小于 0
+mov esi, dword ptr [ecx+C]      ;该块的 RVA
+mov dword ptr [ecx+14], esi     ;该块的 RVA 移到 PointToRawData(在文件中的偏移)
+mov esi, dword ptr [ecx+8]      ;[ecx+8]该块的真实长度
+mov dword ptr [ecx+10], esi     ;[ecx+10]对齐后的长度，即修正文件对齐后的长度
+add ecx, 28                     ;转到下一块
+mov dword ptr [ebp-20], ecx
+inc edx
+jmp short 004163B3
+mov dword ptr [ebp-4], -1
+mov ecx, 1000
+mov dword ptr [eax+3C], ecx     ;修正转存文件的文件对齐为 0x1000
+mov dword ptr [eax+54], ecx     ;修正部首+块表的大小为 0x1000
+```
+
+然后修正转存文件的文件对齐为 `0x1000`，修正 `RAW` 为 `RVA`。
+
+之后把 `DOS`，`PE` 头和内存中的块表和块的内容连接起来，写到磁盘上。
+
+就完成了 `LordPe` 对内存文件的转存。
+
+写完之后才发现，真的是一点技术含量都么有。
+
+哎，希望能给大家一点启发吧。![](img/1e00a4c5ba6d273521879fcbd5363999.jpg "碌眼")
+
+第一次发表帖子，有不对的地方大家原谅吧。![](img/f43c1e514327696dccbb0da997496b2a.jpg "扮鬼脸")

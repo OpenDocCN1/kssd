@@ -1,0 +1,915 @@
+
+# 我写的 AddSection 源码，希望对各位学习 PE 格式有点用
+
+> 原文：[`www.pediy.com/kssd/pediy10/85711.html`](https://www.pediy.com/kssd/pediy10/85711.html)
+
+主要功能是给 `pe` 文件增加一个节（像记事本有绑定输入结构的先清 `0`，在增加节，`ZeroAdd`，`topo` 对这些程序的处理会出错），然后把数据文件写入新节，例子见我写的另一篇“PEDIY 技术之新思路（一）”文章，希望各位指出不足之处，并加以完善，谢谢了！部分代码来自 `cyclotron` 大虾写的 `pelibrary`，特别感谢！
+
+----------------------------------------------------`AddSection.asm`------------------------------------------------------------------------
+
+```
+;******************************************************************************
+.586
+.model flat,stdcall
+option casemap:none
+
+;******************************************************************************
+include windows.inc
+include user32.inc
+include kernel32.inc
+includelib user32.lib
+includelib kernel32.lib
+include  Comdlg32.inc
+includelib  Comdlg32.lib
+
+;******************************************************************************
+IDD_DLGMain equ 1000
+IDC_BDesFile equ 1001
+IDC_EDesFile equ 1003
+IDC_EScnName equ 1005
+IDC_BData equ 1007
+IDC_EData equ 1008
+IDC_EScnSize equ 1009
+IDC_CHKWrite equ 1012
+IDC_CHKUpEntry equ  1013
+IDC_EEntry equ 1017
+IDC_EBase equ 1019
+IDC_EScnNum equ 1021
+IDC_EVOffset equ 1023
+IDC_EFOffset equ 1025
+IDC_ERSize equ 1027
+IDC_BAbout equ 1029
+IDC_BMake equ 1030
+IDC_BExit equ 1031
+ICO_ICON  equ 1045
+
+;******************************************************************************
+.data?
+hInstance   dd ?
+hWinMain   dd ?
+hInFile    dd  ?
+hInDataFile dd ?
+hOutFile  dd  ?
+dwFileSize  dd  ?
+dwDataFileSize dd ?
+lpDataHead  dd ?
+lpBytesRead  dd ?
+dwNewEntry  dd   ?
+lpPeHeader  dd  ?
+lpFileHeader  dd  ?
+szDesFileName  db  MAX_PATH dup (?)
+szDataFileName db MAX_PATH dup (?)
+szBuffer  db 100 dup(?)
+dwNewScnSize dd ?
+UpEntryFlag  dd ?
+szNewSectionName  db  8 dup(?)
+WriteDataFlag dd ?
+IsPe  dd ?
+
+PE_INFO  struct
+  dwEntryPointRVA  dd  ?
+  dwImageBase  dd  ?
+  dwNumberOfSections  dd  ?
+PE_INFO  ends
+
+SCN_INFO  struct
+  dwVirtualSize  dd  ?
+  dwVirtualAddress  dd  ?
+  dwRawSize  dd  ?
+  dwRawAddress  dd  ?
+  dwCharacteristics  dd  ?
+SCN_INFO  ends
+
+EXTRADATA_INFO  struct
+  dwRawAddress  dd  ?
+  dwSize    dd  ?
+  lpExtraData  dd  ?
+EXTRADATA_INFO  ends
+
+OrglastScainfo  SCN_INFO  <>
+NewScnInfo   SCN_INFO   <>
+PeInfo   PE_INFO   <>
+ExtraData     EXTRADATA_INFO  <>
+
+.data
+szCaption db  'Info',0
+szText   db  '成功完成',0
+ScnFlagsDefault      dd   0E0000020h
+szAbout db '    AddSection 1.0',0dh,0ah
+        db '     by:moonife',0dh,0ah
+        db '    QQ:765496322',0dh,0ah
+        db 'E-mail:moonife@163.com',0
+szAboutCaption db 'About',0       
+szFilter  db 'All Files(*.*)',0,'*.*',0,0
+szNotPe  db '不是 PE 文件，请重新选择！',0
+szNotPeCap db 'Error',0
+szNoFile  db '请先选择 PE 文件',0
+szScnSize db  '请填写字节大小',0
+szScnName db  '请填写节区名字',0
+szData  db  '请先选择数据文件',0
+szFormat  db '%lXh',0
+
+;******************************************************************************
+.code
+;>>>>>>>>>>>>>>>
+ErrorReport  proc 
+invoke  MessageBox,NULL,offset szText,offset szCaption,MB_ICONERROR or MB_OK
+ret
+ErrorReport  endp
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+_OpenFile  proc  @lpFileName:dword
+    local  @stOF:OPENFILENAME
+    invoke  RtlZeroMemory,addr @stOF,sizeof @stOF
+    mov  @stOF.lStructSize,sizeof @stOF
+    push  hWinMain
+    pop  @stOF.hwndOwner
+    mov  @stOF.lpstrFilter,offset szFilter
+    push @lpFileName
+    pop  @stOF.lpstrFile
+    mov  @stOF.nMaxFile,MAX_PATH
+    mov  @stOF.Flags,OFN_FILEMUSTEXIST or OFN_PATHMUSTEXIST
+    invoke  GetOpenFileName,addr @stOF
+    ret
+_OpenFile  endp
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+InitFileMap  proc   ;把文件映射到内存，然后进行处理 return 0 or 1
+  invoke  CreateFile,addr szDesFileName,\
+         GENERIC_READ,\
+         FILE_SHARE_READ,\
+         NULL,OPEN_EXISTING,FILE_ATTRIBUTE_ARCHIVE,\
+         NULL   
+  .if  eax == INVALID_HANDLE_VALUE
+    mov  eax,FALSE
+    ret
+  .else
+    mov  hInFile,eax
+  .endif
+  invoke  GetFileSize,hInFile,NULL
+  mov  dwFileSize,eax
+  invoke  VirtualAlloc,NULL,eax,MEM_COMMIT,PAGE_READWRITE
+  mov  lpFileHeader,eax
+  invoke  ReadFile,hInFile,eax,dwFileSize,offset lpBytesRead,NULL
+  .if  eax != 0
+    mov  eax,TRUE
+  .else
+    mov  eax,FALSE
+  .endif
+  ret
+InitFileMap  endp
+
+;>>>>>>>>>>>>>>>>>>>
+InitDataFile proc
+invoke  CreateFile,addr szDataFileName,\
+         GENERIC_READ,\
+         FILE_SHARE_READ,\
+         NULL,OPEN_EXISTING,FILE_ATTRIBUTE_ARCHIVE,\
+         NULL   
+  .if  eax == INVALID_HANDLE_VALUE
+    mov  eax,FALSE
+    ret
+  .else
+    mov  hInDataFile,eax
+  .endif
+  invoke  GetFileSize,hInDataFile,NULL
+  mov  dwDataFileSize,eax
+  invoke  VirtualAlloc,NULL,eax,MEM_COMMIT,PAGE_READWRITE
+  mov  lpDataHead,eax
+  invoke  ReadFile,hInDataFile,eax,dwDataFileSize,offset lpBytesRead,NULL
+  .if  eax != 0
+    mov  eax,TRUE
+  .else
+    mov  eax,FALSE
+  .endif
+  ret
+  InitDataFile  endp
+
+;>>>>>>>>>>>>>>>>>>>>>
+CheckPEValidity  proc  uses esi     ;判断是否为 pe 文件 return  1 or 0
+  mov  esi,lpFileHeader
+  .if  word ptr [esi] == IMAGE_DOS_SIGNATURE
+    assume  esi:ptr IMAGE_DOS_HEADER
+    add  esi,[esi].e_lfanew
+    assume  esi:nothing
+    .if  word ptr [esi] == IMAGE_NT_SIGNATURE
+      mov  lpPeHeader,esi
+    .else
+      mov  eax,FALSE
+      ret
+    .endif
+  .else
+    mov  eax,FALSE
+    ret
+  .endif
+  mov  eax,TRUE
+  ret
+CheckPEValidity  endp
+
+;>>>>>>>>>>>>>>>>>>>>>>
+GetPeInfo  proc  uses esi edi @lpPeInfo:DWORD   ;获取 pe 基本信息
+  mov  esi,lpPeHeader
+  assume  esi:ptr IMAGE_NT_HEADERS
+  mov  edi,@lpPeInfo
+  assume  edi:ptr PE_INFO
+  push  [esi].OptionalHeader.AddressOfEntryPoint
+  pop  [edi].dwEntryPointRVA
+  push  [esi].OptionalHeader.ImageBase
+  pop  [edi].dwImageBase
+  mov  ax,[esi].FileHeader.NumberOfSections
+  cwd
+  mov  [edi].dwNumberOfSections,eax
+  assume  esi:nothing
+  assume  edi:nothing
+  ret
+GetPeInfo  endp
+
+;>>>>>>>>>>>>>>>>>>>>>>>>
+CloseFileMap  proc  @lpFileHeader:DWORD ,@hInFile:dword   ;释放文件影像 return 1 or 0
+  invoke  VirtualFree,@lpFileHeader,0,MEM_RELEASE
+  .if  eax==0
+                mov  eax,FALSE
+                ret  
+  .endif
+  mov  @lpFileHeader,0
+        invoke  CloseHandle,@hInFile
+        mov  @hInFile,0
+        mov  eax,TRUE
+        ret
+CloseFileMap  endp
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>
+; 更新入口点 RVA，返回值为原入口点 RVA
+UpdateEntryPoint  proc  uses esi @dwNewEntryPoint:dword  ;Return OEP
+  mov  esi,lpPeHeader
+  assume  esi:ptr IMAGE_NT_HEADERS
+  mov  eax,[esi].OptionalHeader.AddressOfEntryPoint
+  add eax,[esi].OptionalHeader.ImageBase
+  push  @dwNewEntryPoint
+  pop  [esi].OptionalHeader.AddressOfEntryPoint
+  assume  esi:nothing
+  ret
+UpdateEntryPoint  endp
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>
+; 将输入双字按磁盘文件对齐值对齐
+AlignFile  proc  uses ecx edx esi @OrgSize:dword
+  mov  esi,lpPeHeader
+  assume  esi:ptr IMAGE_NT_HEADERS
+  mov  ecx,[esi].OptionalHeader.FileAlignment
+  assume  esi:nothing
+  mov  eax,@OrgSize
+  cdq
+  div  ecx
+```
+
+
+
+```
+  .if   edx != 0  
+
+    inc   eax  
+
+  .endif  
+
+  mul   ecx  
+
+  ret  
+
+AlignFile  endp  
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
+
+; 将输入双字按区块对齐值对齐  
+
+AlignScn  proc  uses ecx edx esi @OrgSize:dword  
+
+  mov  esi,lpPeHeader  
+
+  assume  esi:ptr IMAGE_NT_HEADERS  
+
+  mov  ecx,[esi].OptionalHeader.SectionAlignment  
+
+  assume  esi:nothing  
+
+  mov  eax,@OrgSize  
+
+  cdq  
+
+  div  ecx  
+
+  .if  edx != 0  
+
+    inc  eax  
+
+  .endif  
+
+  mul  ecx  
+
+  ret  
+
+AlignScn  endp  
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
+
+; 取得指定区块的信息，0 表示最后一个区块，同时如果输入区块序号大于区块数，也取得最后一个区块的信息  
+
+GetScnInfo  proc  uses ecx edx esi edi @nScn:dword,@lpScnInfo:dword   
+
+
+  mov  esi,lpPeHeader  
+
+  assume  esi:ptr IMAGE_NT_HEADERS  
+
+  xor  ecx,ecx  
+
+  mov  cx,[esi].FileHeader.NumberOfSections  
+
+  add  esi,sizeof IMAGE_NT_HEADERS  
+
+  .if  @nScn == 0 || @nScn > ecx  
+
+    dec  ecx  
+
+    mov  @nScn,0  
+
+  .else  
+
+    mov  ecx,@nScn  
+
+    dec  ecx  
+
+  .endif  
+
+  mov  eax,sizeof IMAGE_SECTION_HEADER  
+
+  mul  ecx  
+
+  add  esi,eax  
+
+  assume  esi:ptr IMAGE_SECTION_HEADER  
+
+  mov  edi,@lpScnInfo  
+
+  assume  edi:ptr SCN_INFO  
+
+  push  [esi].Misc.VirtualSize  
+
+  pop  [edi].dwVirtualSize  
+
+  push  [esi].VirtualAddress  
+
+  pop  [edi].dwVirtualAddress  
+
+  push  [esi].SizeOfRawData  
+
+  pop  [edi].dwRawSize  
+
+  mov  eax,[esi].PointerToRawData  
+
+  mov  [edi].dwRawAddress,eax  
+
+  push  [esi].Characteristics  
+
+  pop  [edi].dwCharacteristics  
+
+  .if  @nScn == 0  
+
+    mov  eax,FALSE    
+
+  .else  
+
+    mov  eax,TRUE  
+
+  .endif  
+
+  assume  esi:nothing  
+
+  assume  edi:nothing  
+
+  ret  
+
+GetScnInfo  endp  
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
+
+; 增加一个区块的块头信息，可以指定区块名称、大小和属性，同时更新 NumberOfSections 字段和 ImageSize 字段  
+
+AddSection  proc  uses ebx ecx edx esi edi @szScnName:dword,@dwSize:dword,@dwCharacteristics:dword  
+
+  local  @stNewScnInfo:SCN_INFO  
+
+  local  @dwImageSize  
+
+  xor eax,eax  
+
+  mov  esi,lpPeHeader  
+
+  assume  esi:ptr IMAGE_NT_HEADERS  
+
+  lea  ebx,[esi].OptionalHeader.DataDirectory\  
+
+      [IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT*sizeof IMAGE_DATA_DIRECTORY]  
+
+  mov  edi,[ebx]  
+
+  .if  edi != 0  
+
+    add  edi,lpFileHeader  
+
+    mov  ecx,[ebx+4]  
+
+    rep  stosb  
+
+    mov  edi,ebx  
+
+    mov  ecx,sizeof IMAGE_DATA_DIRECTORY  
+
+    rep  stosb  
+
+  .endif  
+
+  xor  ecx,ecx  
+
+  mov  cx,[esi].FileHeader.NumberOfSections  
+
+  add  esi,sizeof IMAGE_NT_HEADERS  
+
+  assume  esi:ptr IMAGE_SECTION_HEADER  
+
+  mov  edi,[esi].PointerToRawData  
+
+  add  edi,lpFileHeader  
+
+  mov  eax,sizeof IMAGE_SECTION_HEADER  
+
+  mul  ecx  
+
+  add  esi,eax  
+
+  add  esi,sizeof IMAGE_SECTION_HEADER  
+
+  .if  esi <= edi  
+
+    sub  esi,sizeof IMAGE_SECTION_HEADER  
+
+    invoke  GetScnInfo,0, addr @stNewScnInfo  
+
+    push  @dwSize  
+
+    pop  [esi].Misc.VirtualSize  
+
+    mov  eax,@stNewScnInfo.dwVirtualSize  
+
+    ;mov  eax,@dwSize  
+
+    invoke  AlignScn,eax  
+
+    add  eax,@stNewScnInfo.dwVirtualAddress  
+
+    mov dwNewEntry,eax  
+
+    mov  [esi].VirtualAddress,eax  
+
+    add  eax,@dwSize  
+
+    mov  @dwImageSize,eax  
+
+    invoke  AlignFile,@dwSize  
+
+    mov  [esi].SizeOfRawData,eax  
+
+    mov  eax,@stNewScnInfo.dwRawSize  
+
+    invoke  AlignFile,eax  
+
+    add  eax,@stNewScnInfo.dwRawAddress  
+
+    mov  [esi].PointerToRawData,eax  
+
+    push  @dwCharacteristics  
+
+    pop  [esi].Characteristics  
+
+    mov  edi,@szScnName  
+
+    xchg  esi,edi  
+
+    mov  ecx,8  
+
+    rep  movsb  
+
+    mov  esi,lpPeHeader  
+
+    assume  esi:ptr IMAGE_NT_HEADERS  
+
+    inc  [esi].FileHeader.NumberOfSections  
+
+    push  @dwImageSize  
+
+    ;push   0C000h  
+
+    pop  [esi].OptionalHeader.SizeOfImage  
+
+    mov  eax,TRUE  
+
+  .else  
+
+    mov  eax,FALSE  
+
+  .endif  
+
+  assume  esi:nothing  
+
+  assume  edi:nothing  
+
+  ret  
+
+AddSection  endp  
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
+
+; 取得附加数据的信息  
+
+GetExtraDataInfo  proc  uses ecx edx esi @lpExtraDataInfo:dword  
+
+  mov  esi,lpPeHeader  
+
+  assume  esi:ptr IMAGE_NT_HEADERS  
+
+  xor  ecx,ecx  
+
+  mov  cx,[esi].FileHeader.NumberOfSections  
+
+  add  esi,sizeof IMAGE_NT_HEADERS  
+
+  mov  eax,sizeof IMAGE_SECTION_HEADER  
+
+  dec  ecx  
+
+  mul  ecx  
+
+  add  esi,eax  
+
+  assume  esi:ptr IMAGE_SECTION_HEADER  
+
+  mov  edx,[esi].PointerToRawData  
+
+  add  edx,[esi].SizeOfRawData  
+
+  push  edx  
+
+  invoke  GetFileSize,hInFile,NULL  
+
+  pop  edx  
+
+  mov  esi,@lpExtraDataInfo  
+
+  assume  esi:ptr EXTRADATA_INFO  
+
+  .if  eax > edx  
+
+    mov  [esi].dwRawAddress,edx  
+
+    sub  eax,edx  
+
+    mov  [esi].dwSize,eax  
+
+    add  edx,lpFileHeader  
+
+    mov  [esi].lpExtraData,edx  
+
+    mov  eax,TRUE  
+
+  .else  
+
+    mov  [esi].dwRawAddress,0  
+
+    mov  eax,FALSE  
+
+  .endif  
+
+  assume  esi:nothing  
+
+  ret  
+
+GetExtraDataInfo  endp  
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
+
+; 输出文件命名为 xxx@.exe，并创建该文件，返回值为该文件的句柄  
+
+CreateOutFile  proc  uses ecx edi  
+
+  lea  edi,szDesFileName  
+
+  xor  ecx,ecx  
+
+  dec  ecx  
+
+  mov  al,'.'  
+
+  repnz  scasb  
+
+  dec  edi  
+
+  mov  al,'@'  
+
+  stosb  
+
+  mov  eax,'exe.'  
+
+  stosd  
+
+  xor  al,al  
+
+  stosb  
+
+  invoke  CreateFile,offset szDesFileName,GENERIC_READ or GENERIC_WRITE,\  
+
+          FILE_SHARE_READ,\  
+
+          NULL,CREATE_ALWAYS,\  
+
+          FILE_ATTRIBUTE_NORMAL,NULL  
+
+  .if  eax == INVALID_HANDLE_VALUE  
+
+    mov  eax,FALSE  
+
+   .else  
+
+   mov  hOutFile,eax  
+
+  .endif  
+
+  ret  
+
+CreateOutFile  endp  
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
+
+; 在新文件中写入新增区块并补上附加数据  
+
+AppendScnCode  proc  uses ebx esi edi @lpOrgLastScnInfo:dword,@lpExtraDataInfo:dword,\  
+
+          @lpNewScnData:dword,@dwNewScnSize:dword  
+
+  local  lpBytesWritten:dword  
+
+  mov  esi,@lpOrgLastScnInfo  
+
+  assume  esi:ptr SCN_INFO  
+
+  mov  ebx,[esi].dwRawSize  
+
+  add  ebx,[esi].dwRawAddress  
+
+  invoke  WriteFile,hOutFile,lpFileHeader,ebx,addr lpBytesWritten,NULL  
+
+  invoke  AlignFile,@dwNewScnSize  
+
+  mov  ebx,eax  
+
+  invoke  WriteFile,hOutFile,@lpNewScnData,ebx,addr lpBytesWritten,NULL  
+
+  mov  edi,@lpExtraDataInfo  
+
+  assume  edi:ptr EXTRADATA_INFO  
+
+  .if  [edi].dwRawAddress != 0  
+
+    invoke  WriteFile,hOutFile,[edi].lpExtraData,[edi].dwSize,addr lpBytesWritten,NULL  
+
+  .endif  
+
+  invoke  SetEndOfFile,hOutFile  
+
+  assume  esi:nothing  
+
+  assume  edi:nothing  
+
+  ret  
+
+AppendScnCode  endp  
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
+
+_windowcenter proc uses ebx edi esi hWnd  
+
+local @DlgHeight,@DlgWidth,@x,@y  
+
+ local @DlgRect:RECT,@DesktopRect:RECT  
+
+ local @hwindow  
+
+ invoke   GetWindowRect,hWnd,addr @DlgRect  
+
+     invoke   GetDesktopWindow  
+
+     mov @hwindow,eax  
+
+     invoke   GetWindowRect,@hwindow,addr @DesktopRect  
+
+     xor eax,eax  
+
+     mov eax,@DlgRect.bottom  
+
+     sub eax,@DlgRect.top  
+
+     mov @DlgHeight,eax  
+
+     xor eax,eax  
+
+     mov eax,@DlgRect.right  
+
+     sub eax,@DlgRect.left  
+
+     mov @DlgWidth,eax  
+
+     xor eax,eax  
+
+     mov eax,@DesktopRect.left  
+
+     add eax,@DesktopRect.right  
+
+     sub eax,@DlgWidth  
+
+     sar eax,1  
+
+     mov @x,eax  
+
+     xor eax,eax  
+
+     mov eax,@DesktopRect.top  
+
+     add eax,@DesktopRect.bottom  
+
+     sub eax,@DlgHeight  
+
+     sar eax,1  
+
+     mov @y,eax  
+
+     invoke MoveWindow,hWnd,@x,@y,@DlgWidth,@DlgHeight,FALSE  
+
+     mov eax,TRUE  
+
+     ret  
+
+     _windowcenter endp  
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
+
+_ProcDlgMain  proc  uses ebx edi esi hWnd,wMsg,wParam,lParam  
+
+    mov  eax,wMsg  
+
+    .if  eax == WM_CLOSE  
+
+      invoke  EndDialog,hWnd,NULL  
+
+    .elseif  eax == WM_INITDIALOG  
+
+      invoke  LoadIcon,hInstance,ICO_ICON  
+
+      invoke  SendMessage,hWnd,WM_SETICON,ICON_BIG,eax  
+
+      invoke   _windowcenter,hWnd  
+
+      push hWnd  
+
+      pop  hWinMain  
+
+    .elseif  eax == WM_COMMAND  
+
+      mov  eax,wParam  
+
+      .if  ax == IDC_BExit  
+
+        invoke CloseFileMap,lpFileHeader,hInFile  
+
+            invoke CloseFileMap,lpDataHead,hInDataFile  
+```
+
+
+
+```asm
+        invoke  EndDialog,hWnd,NULL
+      .elseif ax==IDC_BDesFile
+        invoke _OpenFile,addr szDesFileName
+        mov eax,DWORD ptr szDesFileName
+        .if eax    
+        invoke SetDlgItemText,hWnd,IDC_EDesFile,addr szDesFileName
+        invoke InitFileMap
+        invoke  CheckPEValidity
+        .if !eax
+          invoke MessageBox,hWnd,addr szNotPe,addr szNotPeCap,MB_OK or MB_ICONERROR
+        .else   
+        mov IsPe,1
+        invoke  GetPeInfo,addr PeInfo
+        invoke  wsprintf,addr szBuffer,addr szFormat,PeInfo.dwEntryPointRVA
+        invoke  SetDlgItemText,hWnd,IDC_EEntry,addr szBuffer
+        invoke  wsprintf,addr szBuffer,addr szFormat,PeInfo.dwImageBase
+        invoke  SetDlgItemText,hWnd,IDC_EBase,addr szBuffer
+        invoke  SetDlgItemInt,hWnd,IDC_EScnNum,PeInfo.dwNumberOfSections,FALSE
+        .endif
+        .endif
+      .elseif ax==IDC_BData   
+        invoke _OpenFile,addr szDataFileName
+        invoke SetDlgItemText,hWnd,IDC_EData,addr szDataFileName
+      .elseif ax==IDC_CHKWrite
+      invoke  IsDlgButtonChecked,hWnd,IDC_CHKWrite
+        .if  eax == BST_CHECKED
+          mov WriteDataFlag,TRUE
+          mov ebx,0
+        .else
+          mov WriteDataFlag,FALSE
+          mov ebx,1
+        .endif
+        invoke  GetDlgItem,hWnd,IDC_EScnSize
+        ;not WriteDataFlag   
+        invoke  EnableWindow,eax, ebx
+      .elseif  ax==IDC_CHKUpEntry
+        invoke  IsDlgButtonChecked,hWnd,IDC_CHKUpEntry
+        .if  eax == BST_CHECKED
+          mov UpEntryFlag,TRUE
+        .else
+          mov UpEntryFlag,FALSE
+        .endif
+      .elseif ax==IDC_BMake
+        mov eax,DWORD ptr szDesFileName
+        .if !eax || !IsPe          invoke MessageBox,hWnd,addr szNoFile,addr szNotPeCap,MB_OK or MB_ICONERROR
+        .else   
+        invoke  GetScnInfo,0, addr OrglastScainfo
+        invoke  GetDlgItemText,hWnd,IDC_EScnName,addr szNewSectionName,8
+        .if !eax
+            invoke MessageBox,hWnd,addr szScnName,addr szNotPeCap,MB_OK or MB_ICONERROR
+            mov  eax,TRUE
+            ret
+          .endif   
+        .if !WriteDataFlag          
+          invoke GetDlgItemInt,hWnd,IDC_EScnSize,NULL,FALSE
+          .if !eax
+            invoke MessageBox,hWnd,addr szScnSize,addr szNotPeCap,MB_OK or MB_ICONERROR
+            mov  eax,TRUE
+            ret
+          .endif   
+          mov dwNewScnSize,eax
+        .else 
+          mov eax,DWORD ptr szDataFileName
+          .if !eax
+            invoke MessageBox,hWnd,addr szData,addr szNotPeCap,MB_OK or MB_ICONERROR
+            mov  eax,TRUE
+            ret
+          .endif   
+          invoke  InitDataFile
+          push  dwDataFileSize
+          pop   dwNewScnSize
+        .endif
+            invoke AddSection,offset szNewSectionName,dwNewScnSize,ScnFlagsDefault
+            invoke   GetExtraDataInfo,offset ExtraData
+            .if UpEntryFlag
+              invoke  UpdateEntryPoint,dwNewEntry
+            .endif  
+            invoke  CreateOutFile
+            invoke AppendScnCode,offset OrglastScainfo,offset ExtraData,lpDataHead,dwNewScnSize
+            invoke GetScnInfo,0,addr NewScnInfo
+            invoke  wsprintf,addr szBuffer,addr szFormat,NewScnInfo.dwVirtualAddress
+        invoke  SetDlgItemText,hWnd,IDC_EVOffset,addr szBuffer
+        invoke  wsprintf,addr szBuffer,addr szFormat,NewScnInfo.dwRawAddress
+        invoke  SetDlgItemText,hWnd,IDC_EFOffset,addr szBuffer
+        invoke  wsprintf,addr szBuffer,addr szFormat,NewScnInfo.dwVirtualSize
+        invoke  SetDlgItemText,hWnd,IDC_ERSize,addr szBuffer
+            invoke MessageBox,hWnd,addr szText,addr szCaption,MB_OK
+            .endif
+      .elseif ax==IDC_BAbout
+        invoke MessageBox,hWnd,addr szAbout,addr szAboutCaption,MB_OK or MB_ICONINFORMATION
+      .endif
+    .else
+      mov  eax,FALSE
+      ret
+    .endif
+    mov  eax,TRUE
+    ret
+
+_ProcDlgMain  endp
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+start:
+    invoke  GetModuleHandle,NULL
+    mov  hInstance,eax
+    invoke  DialogBoxParam,hInstance,IDD_DLGMain,NULL,offset _ProcDlgMain,NULL
+    invoke  ExitProcess,NULL
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    end  start
+
+------------------------------------------------------the end-------------------------------------------------------------------------------------
+```
+
+ps：附件中文件有：`AddSection.asm`，`AddSection.rc`，`AddSection.exe`，`Main.ico`
+
+上传的附件
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || `AddSection.rar`
+|

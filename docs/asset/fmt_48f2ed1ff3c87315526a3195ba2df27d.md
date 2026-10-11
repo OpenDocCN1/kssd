@@ -1,0 +1,152 @@
+
+# 文件格式之 PE 知识
+
+> 原文：[`www.pediy.com/kssd/pediy10/100823.html`](https://www.pediy.com/kssd/pediy10/100823.html)
+
+自己最近正在看加密解密中的 PE 文件格式，原来也一直看过 PE 格式，但是很快就忘了，这次特地自己把 `WINNT.H` 找出来，对每个结构参照书上面的说明研究了下，把 PE 的框架结构里面的一些结构体整理了下，分享给大家！
+
+代码：
+
+```c
+// MZ 格式
+typedef struct _IMAGE_DOS_HEADER {     // DOS .EXE header
+    WORD   e_magic;                  // Magic number
+    WORD   e_cblp;                   // Bytes on last page of file
+    WORD   e_cp;                     // Pages in file
+    WORD   e_crlc;                   // Relocations
+    WORD   e_cparhdr;                // Size of header in paragraphs
+    WORD   e_minalloc;               // Minimum extra paragraphs needed
+    WORD   e_maxalloc;               // Maximum extra paragraphs needed
+    WORD   e_ss;                     // Initial (relative) SS value
+    WORD   e_sp;                     // Initial SP value
+    WORD   e_csum;                   // Checksum
+    WORD   e_ip;                     // Initial IP value
+    WORD   e_cs;                     // Initial (relative) CS value
+    WORD   e_lfarlc;                 // File address of relocation table
+    WORD   e_ovno;                   // Overlay number
+    WORD   e_res[4];                 // Reserved words
+    WORD   e_oemid;                  // OEM identifier (for e_oeminfo)
+    WORD   e_oeminfo;                // OEM information; e_oemid specific
+    WORD   e_res2[10];               // Reserved words
+    LONG   e_lfanew;                 // File address of new exe header  这个最有用指出了真正的 PE 文件头 位于开始偏移 3CH 字节处
+} 
+
+// IMAGE_NT_HEADERS 结构(PE 头由三部分组成)
+typedef struct _IMAGE_NT_HEADERS {
+    DWORD Signature;
+    IMAGE_FILE_HEADER FileHeader;  //结构体
+    IMAGE_OPTIONAL_HEADER32 OptionalHeader;//结构体
+} 
+
+// IMAGE_FILE_HEADER 结构
+typedef struct _IMAGE_FILE_HEADER {
+    WORD    Machine;   //运行平台 intel i386 一般为 14Ch
+    WORD    NumberOfSections;    //块(section)数目 
+    DWORD   TimeDateStamp;    //时间日期标记
+    DWORD   PointerToSymbolTable;  //COFF 符号指针，这是程序调试信息
+    DWORD   NumberOfSymbols;  //符号数
+    WORD    SizeOfOptionalHeader;  //可选部首长度，是 IMAGE_OPTIONAL_HEADER 的长度
+    WORD    Characteristics;  //文件属性
+} 
+
+// IMAGE_OPTIONAL_HEADER 结构(可选映像头)
+typedef struct _IMAGE_OPTIONAL_HEADER {
+    //
+    // Standard fields.
+    //
+    WORD    Magic;  //幻数，一般为 10BH   
+    BYTE    MajorLinkerVersion;  //链接程序的主版本号
+    BYTE    MinorLinkerVersion;  //链接程序的次版本号
+    DWORD   SizeOfCode;  //代码段大小
+    DWORD   SizeOfInitializedData;  //已初始化数据块的大小
+    DWORD   SizeOfUninitializedData;  //未初始化数据库的大小
+    DWORD   AddressOfEntryPoint;  //程序开始执行的入口地址,这是一个 RVA（相对虚拟地址）
+    DWORD   BaseOfCode; //代码段的起始 RVA
+    DWORD   BaseOfData; //数据段的起始 RVA
+    //
+    // NT additional fields.
+    //
+    DWORD   ImageBase; //可执行文件默认装入的基地址
+    DWORD   SectionAlignment; //内存中块的对齐值（默认的块对齐值为 1000H，4KB 个字节）
+    DWORD   FileAlignment;//文件中块的对齐值（默认值为 200H 字节，为了保证块总是从磁盘的扇区开始的）
+    WORD    MajorOperatingSystemVersion;//要求操作系统的最低版本号的主版本号
+    WORD    MinorOperatingSystemVersion;//要求操作系统的最低版本号的次版本号
+    WORD    MajorImageVersion;//该可执行文件的主版本号
+    WORD    MinorImageVersion;//该可执行文件的次版本号
+    WORD    MajorSubsystemVersion;//要求最低之子系统版本的主版本号
+    WORD    MinorSubsystemVersion;//要求最低之子系统版本的次版本号
+    DWORD   Win32VersionValue;//保留字
+    DWORD   SizeOfImage;//映像装入内存后的总尺寸
+    DWORD   SizeOfHeaders;//部首及块表的大小
+    DWORD   CheckSum;//CRC 检验和
+    WORD    Subsystem;//程序使用的用户接口子系统
+    WORD    DllCharacteristics;//DLLmain 函数何时被调用，默认为 0
+    DWORD   SizeOfStackReserve;//初始化时堆栈大小
+    DWORD   SizeOfStackCommit;//初始化时实际提交的堆栈大小
+    DWORD   SizeOfHeapReserve;//初始化时保留的堆大小
+    DWORD   SizeOfHeapCommit;//初始化时实际提交的对大小
+    DWORD   LoaderFlags;//与调试有关，默认为 0
+    DWORD   NumberOfRvaAndSizes;//数据目录结构的数目
+    IMAGE_DATA_DIRECTORY DataDirectory[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];//数据目录表
+} 
+
+//数据目录表
+typedef struct _IMAGE_DATA_DIRECTORY {
+    DWORD   VirtualAddress;//数据块的起始 RVA
+    DWORD   Size;//数据块的长度
+} 
+
+//块表（）
+typedef struct _IMAGE_SECTION_HEADER {
+    BYTE    Name[IMAGE_SIZEOF_SHORT_NAME];
+    union {
+            DWORD   PhysicalAddress;
+            DWORD   VirtualSize;
+    } Misc;
+    DWORD   VirtualAddress;//该块的 RVA
+    DWORD   SizeOfRawData;//在文件中对齐后的尺寸
+    DWORD   PointerToRawData;//在文件中偏移
+    DWORD   PointerToRelocations;//重定位偏移
+    DWORD   PointerToLinenumbers;//行号表的偏移
+    WORD    NumberOfRelocations;//重定位项数目
+    WORD    NumberOfLinenumbers;//行号表中行号的数目
+    DWORD   Characteristics;//块属性
+} 
+
+//输入表结构
+typedef struct _IMAGE_IMPORT_DESCRIPTOR {
+    union {
+        DWORD   Characteristics;            // 0 for terminating null import descriptor
+        DWORD   OriginalFirstThunk;         // RVA to original unbound IAT (PIMAGE_THUNK_DATA)
+    };
+    DWORD   TimeDateStamp;                    // 0 if not bound,
+                                               // -1 if bound, and real date\timestamp
+                                               //     in IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT (new BIND)
+                                               // O.W. date/time stamp of DLL bound to (Old BIND)
+
+    DWORD   ForwarderChain;                   // -1 if no forwarders
+    DWORD   Name;
+    DWORD   FirstThunk;                       // RVA to IAT (if bound this IAT has actual addresses)
+} 
+
+//输出表结构
+typedef struct _IMAGE_EXPORT_DIRECTORY {
+    DWORD   Characteristics;
+    DWORD   TimeDateStamp;
+    WORD    MajorVersion;
+    WORD    MinorVersion;
+    DWORD   Name;
+    DWORD   Base;
+    DWORD   NumberOfFunctions;
+    DWORD   NumberOfNames;
+    DWORD   AddressOfFunctions;     // RVA from base of image
+    DWORD   AddressOfNames;         // RVA from base of image
+    DWORD   AddressOfNameOrdinals;  // RVA from base of image
+} 
+```
+
+附件下载：
+
+上传的附件
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || `PE 结构分析.rar` |

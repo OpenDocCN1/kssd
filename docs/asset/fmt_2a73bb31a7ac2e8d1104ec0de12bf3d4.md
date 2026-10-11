@@ -1,0 +1,106 @@
+
+# 好文 Structured Exception Handling
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-261.htm`](https://www.pediy.com/kssd/pediy07/pediy7-261.htm)
+
+## A Crash Course on the Depths of Win32 Structured Exception Handling
+
+**Matt Pietrek 著**  
+**董岩 译**
+
+在所有 Win32 操作系统提供的机制中，使用最广泛的未公开的机制恐怕就要数结构化异常处理（structured exception handling，`SEH`）了。一提到结构化异常处理，可能就会令人想起 `_try`、`_finally` 和 `_except` 之类的词儿。在任何一本不错的 Win32 书中都会有对 `SEH` 详细的介绍。甚至连 Win32 SDK 里都对使用 `_try`、`_finally` 和 `_except` 进行结构化异常处理作了完整的介绍。既然有这么多地方都提到了 `SEH`，那我为什么还要说它是未公开的呢？本质上讲，Win32 结构化异常处理是操作系统提供的一种服务。编译器的运行时库对这种服务操作系统实现进行了封装，而所有能找到的介绍 `SEH` 的文档讲的都是针对某一特定编译器的运行时库。关键字 `_try`、`_finally` 和 `_except` 并没有什么神秘的。微软的 OS 和编译器定义了这些关键字以及它们的行为。其它的 C++ 编译器厂商也只需要尊从它们定好的语义就行了。在编译器的 `SEH` 层减少了直接使用纯操作系统的 `SEH` 所带来的危害的同时，也将纯操作系统的 `SEH` 从大家的面前隐藏了起来。
+
+我收到过大量的电子邮件说他们都需要实现编译器级的 `SEH` 但却找不到公开的文档。本来，我可以指着 `Visual C++` 和 `Borland C++` 的运行时库的源代码说看一下它们就行了。但是，不知道是什么原因，编译器级的 `SEH` 仍是个天大的秘密。微软和 `Borland` 都没有提供 `SEH` 最内层的源代码。
+
+在本文中，我会从最基本的概念上讲解结构化异常处理。在讲解的时候，我会将操作系统所提供的与编译器代码生成和运行时库支持的分离开来。当深入关键性操作系统程序的代码时，我基于的都是 `Intel` 版的 `Windows NT 4.0`。然而，我所讲的大部分内容同样适用于其它的处理器。
+
+我会避免提及实际的 `C++` 的异常处理，`C++` 下用的是 `catch()` 而不是 `_except`。其实，真正的 `C++` 异常处理的实现方式和我所讲的方式也是极为相似的。但是，真正 `C++` 异常处理特有的复杂性会影响到我这里所讲的概念。对于深挖那些晦涩的 `.H` 和 `.INC` 文件并拼凑出 `Win32 SEH` 的相关代码，最好的一个信息来源就是 `IBM OS/2` 的头文件（特别是 `BSEXCPT.H`）。这对有相关经验的人并没什么可希奇的，这里讲的 `SEH` 机制在微软开发 `OS/2` 时就定义了。因此，`Win32` 的 `SEH` 与 `OS/2` 的极为相似。
+
+## SEH in the Buff
+
+若将 `SEH` 的细节都放到一起讨论，任务实在艰巨，因此，我会从简单的开始，一层一层往深里讲。如果之前从未使用过结构化异常处理，则正好心无杂念。若是用过，那就要努力将 `_try`、`GetExceptionCode` 和 `EXCEPTION_EXECUTE_HANDLER` 从脑子中扫出，假装这是一个全新的概念。Are you ready？Good。
+
+当线程发生异常时，操作系统会将这个异常通知给用户使用户能够得知它的发生。更特别的是，当线程发生异常时，操作系统会调用用户定义的回调函数。这个回调函数想做什么就能做什么。例如，它可以修正引起异常的程序，也可以播放一段 `.WAV` 文件。无论回调函数干什么，函数最后的动作都是返回一个值告诉系统下面该干些什么（这样说并不严格，但目前可以认为是这样）。既然在用户代码引起异常后，操作系统会回调用户的代码，那这个回调函数又是什么样的呢？换句话说，关于异常都需要知道哪些信息呢？其实无所谓，因为 `Win32` 已经定义好了。异常的回调函数的样子如下：
+
+```
+EXCEPTION_DISPOSITION
+
+__cdecl _except_handler(
+    struct _EXCEPTION_RECORD *ExceptionRecord,
+    void * EstablisherFrame,
+    struct _CONTEXT *ContextRecord,
+    void * DispatcherContext
+    );
+```
+
+这个函数原型来自标准 Win32 头文件 `EXCPT.H`，初看上去让人有点眼晕。如果慢慢看的话，似乎情况还没那么严重。对于初学者来说，大可以忽略返回值的类型 （`EXCEPTION_DISPOSITION`）。所需知道的就是这个函数叫 `_except_handler`，需要四个参数。
+
+第一个参数是一个指向 `EXCEPTION_RECORD` 的指针。这个结构体定义在 `WINNT.H` 中，定义如下：
+
+```
+typedef struct _EXCEPTION_RECORD {
+    DWORD ExceptionCode;
+    DWORD ExceptionFlags;
+    struct _EXCEPTION_RECORD *ExceptionRecord;
+    PVOID ExceptionAddress;
+    DWORD NumberParameters;
+    DWORD ExceptionInformation[EXCEPTION_MAXIMUM_PARAMETERS];
+}  EXCEPTION_RECORD;
+```
+
+参数 `ExceptionCode` 是操作系统分配给异常的号。在 `WINNT.H` 文件中查找开头为“STATUS_” 的宏就能找到一大堆这样的异常代号。例如，大家熟知的 `STATUS_ACCESS_VIOLATION` 的代号就是 `0xC0000005`。更为完整的异常代号可以从 `Windows NT DDK` 中的 `NTSTATUS.H` 文件里找到。`EXCEPTION_RECORD` 结构体的第四个元素是异常发生处的地址。其余的 `EXCEPTION_RECORD` 域目前都可以忽略掉。`_except_handler` 函数的第二个参数是一个指向 establisher frame 结构体的指针。在 `SEH` 里这可是个重要的参数，不过现在先不用管它。第三个参数是一个指向 `CONTEXT` 结构体的指针。`CONTEXT` 结构体定义在 `WINNT.H` 文件中，它保存着某一线程的寄存器的值。Figure 1 即为 `CONTEXT` 结构体的域。当用于 `SEH` 时，`CONTEXT` 结构体保存着发生异常时各寄存器的值。无独有偶，`GetThreadContext` 和 `SetThreadContext` 使用的也是相同的 `CONTEXT` 结构体。第四个也是最后的一个参数叫做 `DispatcherContext`，现在先不去管它。
+
+简单总结一下，当发生异常时会调用一个回调函数。这个回调函数需要四个参数，其中三个都是结构体指针。在这些结构体中，有些域重要，有些并不重要。关键的问题是 `_except_handler` 回调函数收到了大量的信息，比如异常的类型和发生的位置。异常回调函数需要使用这些信息来决定所采取的行动。
+
+我很想现在就给出一个样例程序来说明 `_except_handler`，只是仍有一些东西需要解释，即当异常发生时操作系统是如何知道在那里调用回调函数呢？答案在另一个叫 `EXCEPTION_REGISTRATION` 的结构体中。本文通篇都能见到这个结构体，因此对这部分还是不要囫囵吞枣为好。唯一能找到 `EXCEPTION_REGISTRATION` 正式定义的地方就是 `Visual C++` 运行时库源代码中的 `EXSUP.INC` 文件：
+
+```
+_EXCEPTION_REGISTRATION struc
+    prev    dd      ?
+    handler dd      ?
+_EXCEPTION_REGISTRATION ends
+```
+
+可以看到，在 `WINNT.H` 的 `NT_TIB` 结构体定义中，这个结构体被称为 `_EXCEPTION_REGISTRATION_RECORD`。然而 `_EXCEPTION_REGISTRATION_RECORD` 的定义是没有的，因此我所能用的只能是 `EXSUP.INC` 中的汇编语言的 `struc` 定义。对于我前面提到的 `SEH` 的未公开，这就是一例。
+
+不管怎样，我们回到目前的问题上来。当异常发生时，OS 是如何知道调用位置的呢？`EXCEPTION_REGISTRATION` 结构体有两个域，第一个先不用管。第二个域，`handler`，为一个指向 `_except_handler` 回调函数的指针。有点儿接近答案了，但是还有个问题就是，OS 从哪里能找到这个 `EXCEPTION_REGISTRATION` 结构体呢？
+
+为了回答这个问题，需要记住结构化异常处理是以线程为基础的。也就是说，每一个线程都有自己的异常处理回调函数。在 1996 年 5 月的专栏中，我讲了一个关键的 Win32 数据结构，线程信息块（`TEB` 或 `TIB`）。这个结构体中有一个域对于 `Windows NT`, `Windows 95`, `Win32s` 和 `OS/2` 都是相同的。`TIB` 中的第一个 `DWORD` 是一个指向线程的 `EXCEPTION_REGISTRATION` 结构体的指针。在 `Intel` 的 `Win32` 平台上，`FS` 寄存器永远指向当前的 `TIB`，因此，在 `FS:[0]` 就可以找到指向 `EXCEPTION_REGISTRATION` 结构体的指针。答案出来了！当异常发生时，系统察看出错线程的 `TIB` 并取回一个指向 `EXCEPTION_REGISTRATION` 结构体的指针，从而得到一个指向 `_except_handler` 回调函数的指针。现在操作系统已经有足够的信息来调用 `_except_handler` 函数了，见 Figure 2。
+
+把目前这一小点儿东西凑到一起，我写了一个小程序来演示所讲到的这个非常简单的 OS 级的结构化异常处理。Figure 3 所示的就是 `MYSEH.CPP`，它只有两个函数。`main` 函数使用了三个内嵌的 `ASM` 块。第一个块使用两条 `PUSH` 指令（“`PUSH handler`”和“`PUSH FS:[0]`”）在堆栈上构建了一个 `EXCEPTION_REGISTRATION` 结构体。`PUSH FS:[0]` 将 `FS:[0]` 的上一个值保存为结构体的一部分，但是目前并不重要。重要的是堆栈上有一个 8 字节的 `EXCEPTION_REGISTRATION` 结构体。下一条指令（`MOV FS:[0],ESP`）将线程信息块的第一个 `DWORD` 指向新的 `EXCEPTION_REGISTRATION` 结构体。
+
+在堆栈上构建 `EXCEPTION_REGISTRATION` 结构体而不是使用全局变量是由原因的。当使用编译器的 `_try/_except` 语义时，编译器也会在堆栈上构建 `EXCEPTION_REGISTRATION` 结构体。我只是要说明使用 `_try/_except` 后编译器所做的最起码的工作。回到 `main` 函数，下一个 `__asm` 块清零了 `EAX` 寄存器（`MOV EAX,0`）然后将寄存器的值作为内存地址，而下一条指令就向这个地址进行写入（`MOV [EAX],1`），这就引发了异常。最后的 `__asm` 块移除这个简单的异常处理：首先恢复以前的 `FS:[0]` 的内容，然后从堆栈中弹出 `EXCEPTION_REGISTRATION` 记录（`ADD ESP,8`）。
+
+现在假设正在运行 `MYSEH.EXE`，看一下程序的执行情况。`MOV [EAX],1` 指令的执行引发了一个 access violation。系统察看 `TIB` 的 `FS:[0]` 并找到指向 `EXCEPTION_REGISTRATION` 结构体的指针。结构体中有一个指向 `MYSEH.CPP` 文件中的 `_except_handler` 函数的指针。系统将所需的四个参数入栈并调用 `_except_handler` 函数。一进入 `_except_handler`，代码首先用一条 `printf` 语句打印“Yo! I made it here!”。然后，`_except_handler` 修复引起异常的问题。问题在于 `EAX` 指向了不可写内存的地址（地址 `0`）。所做的修复就是修改 `CONTEXT` 中 `EAX` 的值，使其指向一个可写的内存单元。在这个简单的程序里，一个 `DWORD` 类型变量（`scratch`）就是用于此目的的。`_except_handler` 函数的最后的动作就是返回 `ExceptionContinueExecution` 类型的值，这个结构体定义在标准的 `EXCPT.H` 文件中。
+
+当操作系统看到所返回的 `ExceptionContinueExecution` 时，就认为问题已被解决并重新执行引起异常的指令。因为我的 `_except_handler` 函数修改了 `EAX` 寄存器使其指向了有效的内存，`MOV EAX,1` 就再一次执行，`main` 函数正常继续。并不很复杂，不是吗？
+
+## Moving In a Little Deeper
+
+有了这个最简单的情形，我们再回来填补几个空白。尽管异常回调如此伟大，但并不完美。对于任意大小的程序，编写一个函数来处理程序中可能发生的所有异常，那这个函数恐怕会是一团糟。更为可行的情形是能有多个异常处理函数，每一个函数都用于程序的某一特定的部分。操作系统提供了这个功能。
+
+还记得系统查找异常处理回调函数所用的 `EXCEPTION_REGISTRATION` 结构体吧？此结构体的第一个参数，就是我前面忽略的那个，它叫做 `prev`。它确实是指向另一个 `EXCEPTION_REGISTRATION` 结构体的指针。这个第二个 `EXCEPTION_REGISTRATION` 结构体可以有一个完全不同的处理函数。而且它的 `prev` 域还可以指向第三个 `EXCEPTION_REGISTRATION` 结构体，依次类推。简单讲，就是一个 `EXCEPTION_REGISTRATION` 结构体数组的链表。此链表的表头总是由线程信息块的第一个 `DWORD` （`Intel` 机器上的 `FS:[0]` ）所指向。
+
+操作系统用这个 `EXCEPTION_REGISTRATION` 结构体链表做什么？当异常发生时，系统遍历此链表并查找回调函数与异常相符的 `EXCEPTION_REGISTRATION`。对于 `MYSEH.CPP` 来说，回调函数返回 `ExceptionContinueExecution` 型的值，与异常相符合。回调函数也可能不适合所发生的异常，这时系统就移向链表中下一个 `EXCEPTION_REGISTRATION` 结构体并询问异常回调是否要处理此异常。Figure 4 所示即为此过程。一旦系统找到了处理此异常的回调函数就停止对 `EXCEPTION_REGISTRATION` 链表的遍历。
+
+我给出了一个异常回调不能处理异常的例子，见 Figure 5 的 `MYSEH2.CPP`。为简单起见，我用了一点编译器级的异常处理。`main` 函数只是建立一个 `_try/_except` 块。`_try` 块中的是一个对 `HomeGrownFrame` 函数的调用。函数与前面的 `MYSEH` 程序中的代码很类似。它在堆栈上创建了一个 `EXCEPTION_REGISTRATION` 记录并使 `FS:[0]` 指向此纪录。在建立了新的处理程序后，函数主动引起异常，向 `NULL` 指针处进行写入：
+
+```
+*(PDWORD)0 = 0;
+```
+
+这里的异常回调函数，也就是 `_except_handler`，与前面的那个很不一样。代码先打印出函数的 `ExceptionRecord` 参数的异常代号和标志。后面会说明打印此异常标志的原因。因为这个 `_except_handler` 函数并不能修复引起异常的代码，它就返回 `ExceptionContinueSearch`。这就使得操作系统继续查找链表中的下一个 `EXCEPTION_REGISTRATION` 记录。下一个异常回调是用于 `main` 函数中的 `_try/_except` 代码的。`_except` 块只是打印“Caught the exception in main()”。此处的异常处理就是简单地将其忽略。此处的一个关键的问题就是执行控制流。当处理程序不能处理异常时，就是在拒绝使控制流在此处继续。接受异常的处理程序则在所有异常处理代码完成之后决定控制流在哪里继续。这一点并不那么显而易见。
+
+当使用结构化异常处理时，如果一场处理程序没能处理异常，则函数可以用一种非正常的方式退出。例如，`MYSEH2` 的 `HomeGrownFrame` 函数中的处理程序并没有处理异常。因为异常处理链中后面的某个处理程序（`main` 函数）处理了此异常，所以引起异常的指令之后的 `printf` 从未获得执行。从某种意义上说，使用结构化异常处理和使用运行时库函数 `setjmp` 和 `longjmp` 差不多。
+
+若是运行 `MYSEH2`，其输出可能会令人惊讶。看上去似乎调用了两次 `_except_handler` 函数。第一次是可以理解的，那第二次又是怎么回事呢？
+
+```
+Home Grown handler: Exception Code: C0000005 Exception Flags 0
+Home Grown handler: Exception Code: C0000027 Exception Flags 2
+                    EH_UNWINDING
+
+Caught the Exception in main()
+```
+
+比较由“Home Grown Handler”开始的两行，其区别是显然的，即第一次的异常标志为 0，而第二次则为 2。这里就需要提到 `unwinding` 的概念。进一步讲，当异常回调拒绝处理异常时，就又被调用了一次。这次回调并没有立即发生，二是更为复杂。我还需要再进一步明确异常发生时的情景。
