@@ -1,0 +1,260 @@
+
+```
+004CD76F      |>  8B55 E8        /mov edx,dword ptr ss:[ebp-18]  
+
+004CD772      |.  83C2 01        |add edx,1  
+
+004CD775      |.  8955 E8        |mov dword ptr ss:[ebp-18],edx  
+
+004CD778      |>  837D E8 08     cmp dword ptr ss:[ebp-18],8       取到第 8 位  
+
+004CD77C      |.  7D 1F          |jge short FinalDat.004CD79D  
+
+004CD77E      |.  8B45 08        |mov eax,dword ptr ss:[ebp+8]  
+
+004CD781      |.  0345 E8        |add eax,dword ptr ss:[ebp-18]  
+
+004CD784      |.  0FBE08         |movsx ecx,byte ptr ds:[eax]       逐位取 4-8 位  
+
+004CD787      |.  51            |push ecx  
+
+004CD788      |.  E8 7B3A0600    |call FinalDat.00531208            序列号运算  
+
+004CD78D      |.  83C4 04        |add esp,4  
+
+004CD790      |.  85C0          |test eax,eax  
+
+004CD792      |.  75 07          |jnz short FinalDat.004CD79B  
+
+004CD794      |.  33C0          |xor eax,eax  
+
+004CD796      |.  E9 74020000    |jmp FinalDat.004CDA0F             这里必须跳  
+
+004CD79B      |>^ EB D2          \jmp short FinalDat.004CD76F  
+
+004CD79D      |>  C745 E8 09000>mov dword ptr ss:[ebp-18],9        前 9 位不用了  
+
+004CD7A4      |.  EB 09          jmp short FinalDat.004CD7AF  
+
+004CD7A6      |>  8B55 E8        /mov edx,dword ptr ss:[ebp-18]  
+
+004CD7A9      |.  83C2 01        |add edx,1  
+
+004CD7AC      |.  8955 E8        |mov dword ptr ss:[ebp-18],edx  
+
+004CD7AF      |>  837D E8 0D     cmp dword ptr ss:[ebp-18],0D       取到第 13 位  
+
+004CD7B3      |.  7D 1F          |jge short FinalDat.004CD7D4  
+
+004CD7B5      |.  8B45 08        |mov eax,dword ptr ss:[ebp+8]  
+
+004CD7B8      |.  0345 E8        |add eax,dword ptr ss:[ebp-18]  
+
+004CD7BB      |.  0FBE08         |movsx ecx,byte ptr ds:[eax]       逐位取 10-13 位  
+
+004CD7BE      |.  51            |push ecx  
+
+004CD7BF      |.  E8 443A0600    |call FinalDat.00531208            序列号运算  
+
+004CD7C4      |.  83C4 04        |add esp,4  
+
+004CD7C7      |.  85C0          |test eax,eax  
+
+004CD7C9      |.  75 07          |jnz short FinalDat.004CD7D2       这里必须跳  
+
+004CD7CB      |.  33C0          |xor eax,eax  
+
+004CD7CD      |.  E9 3D020000    |jmp FinalDat.004CDA0F  
+
+004CD7D2      |>^ EB D2          \jmp short FinalDat.004CD7A6  
+
+004CD7D4      |>  C745 E8 0E000>mov dword ptr ss:[ebp-18],0E        前 14 位不用了  
+
+004CD7DB      |.  EB 09          jmp short FinalDat.004CD7E6  
+
+004CD7DD      |>  8B55 E8        /mov edx,dword ptr ss:[ebp-18]  
+
+004CD7E0      |.  83C2 01        |add edx,1  
+
+004CD7E3      |.  8955 E8        |mov dword ptr ss:[ebp-18],edx  
+
+004CD7E6      |>  837D E8 1A     cmp dword ptr ss:[ebp-18],1A       取到第 26 位  
+
+004CD7EA      |.  7D 1F          |jge short FinalDat.004CD80B  
+
+004CD7EC      |.  8B45 08        |mov eax,dword ptr ss:[ebp+8]  
+
+004CD7EF      |.  0345 E8        |add eax,dword ptr ss:[ebp-18]  
+
+004CD7F2      |.  0FBE08         |movsx ecx,byte ptr ds:[eax]       逐位取 14-26 位  
+
+004CD7F5      |.  51            |push ecx  
+
+004CD7F6      |.  E8 0D3A0600    |call FinalDat.00531208            序列号运算  
+
+004CD7FB      |.  83C4 04        |add esp,4  
+
+004CD7FE      |.  85C0          |test eax,eax  
+
+004CD800      |.  75 07          |jnz short FinalDat.004CD809       这里必须跳   
+
+004CD802      |.  33C0          |xor eax,eax  
+
+004CD804      |.  E9 06020000    |jmp FinalDat.004CDA0F  
+
+004CD809      |>^ EB D2          \jmp short FinalDat.004CD7DD
+```
+
+可以看出，`call FinalDat.00531208` 会把每一位序列号变换。
+
+进入 `call FinalDat.00531208`
+
+```
+00531208      /$  833D A40D5F00>cmp dword ptr ds:[5F0DA4],1     比较 dword ptr ds:[5F0DA4],1  
+
+0053120F      |.  7E 0E          jle short FinalDat.0053121F     不大于就跳  
+
+00531211      |.  6A 04          push 4  
+
+00531213      |.  FF7424 08      push dword ptr ss:[esp+8]  
+
+00531217      |.  E8 95310000    call FinalDat.005343B1  
+
+0053121C      |.  59            pop ecx  
+
+0053121D      |.  59            pop ecx  
+
+0053121E      |.  C3            retn  
+
+0053121F      |>  8B4424 04      mov eax,dword ptr ss:[esp+4]    序列号 16 进制入 EAX  
+
+00531223      |.  8B0D 980B5F00 mov ecx,dword ptr ds:[5F0B98]      ;  FinalDat.005F0BA2   地址入 ECX  
+
+00531229      |.  8A0441         mov al,byte ptr ds:[ecx+eax*2]  （005F0BA2+每位序列号*2）地址处数据入 EAX 低位 AL。  
+
+0053122C      |.  83E0 04        and eax,4                       EAX=EAX 和 4 与运算  
+
+0053122F      \.  C3            retn                              子程序结束
+```
+
+上面验证每位序列号必须符合如下条件：（`005F0BA2+每位序列号的 16 进制码*2`）获得一个地址，再根据获得地址处的数据和 4 做与运算的值不等于零，具体对应结果：`0` 到 `9` 均为 `84`，`A` 到 `F` 均为 `81`，`G` 到 `Z` 均为 `1`，`a` 到 `f` 均为 `82`，`g` 到 `z` 均为 `2`。 看起来复杂，实际上验证序列号除 `UND` 和 `-` 以外是否全是数字。
+
+下面是验证序列号的算法：
+
+```
+004CD80B      |>  6A 02          push 2                            此处表示取 2 位  
+
+004CD80D      |.  8B55 08        mov edx,dword ptr ss:[ebp+8]     字符串长度  
+
+004CD810      |.  83C2 05        add edx,5                         前 5 位不用了  
+
+004CD813      |.  52            push edx                            
+
+004CD814      |.  8D45 C8        lea eax,dword ptr ss:[ebp-38]     取前 3 位  
+
+004CD817      |.  50            push eax  
+
+004CD818      |.  E8 B3210600    call FinalDat.0052F9D0           此 CALL 下面反复调用  
+
+004CD81D      |.  83C4 0C        add esp,0C                        
+
+004CD820      |.  C645 CA 00     mov byte ptr ss:[ebp-36],0       
+
+004CD824      |.  8D4D C8        lea ecx,dword ptr ss:[ebp-38]     67D 变成 67  
+
+004CD827      |.  51            push ecx  
+
+004CD828      |.  E8 D81C0600    call FinalDat.0052F505           此 CALL 下面反复调用  
+
+004CD82D      |.  83C4 04        add esp,4  
+
+004CD830      |.  83F0 03        xor eax,3  
+
+004CD833      |.  8845 EC        mov byte ptr ss:[ebp-14],al  
+
+004CD836      |.  6A 02          push 2                            再取 2 位，第 10、11 位  
+
+004CD838      |.  8B55 08        mov edx,dword ptr ss:[ebp+8]  
+
+004CD83B      |.  83C2 09        add edx,9                         前 9 位不用了  
+
+004CD83E      |.  52            push edx  
+
+004CD83F      |.  8D45 C8        lea eax,dword ptr ss:[ebp-38]  
+
+004CD842      |.  50            push eax  
+
+004CD843      |.  E8 88210600    call FinalDat.0052F9D0  
+
+004CD848      |.  83C4 0C        add esp,0C  
+
+004CD84B      |.  C645 CA 00     mov byte ptr ss:[ebp-36],0  
+
+004CD84F      |.  8D4D C8        lea ecx,dword ptr ss:[ebp-38]  
+
+004CD852      |.  51            push ecx  
+
+004CD853      |.  E8 AD1C0600    call FinalDat.0052F505           第 10、11 位的运算  
+
+004CD858      |.  83C4 04        add esp,4  
+
+004CD85B      |.  83F0 02        xor eax,2  
+
+004CD85E      |.  8845 C0        mov byte ptr ss:[ebp-40],al  
+
+004CD861      |.  6A 0A          push 0A                           取 10 位  
+
+004CD863      |.  8B55 08        mov edx,dword ptr ss:[ebp+8]  
+
+004CD866      |.  83C2 0E        add edx,0E                        前 14 位不用了  
+
+004CD869      |.  52            push edx  
+
+004CD86A      |.  8D45 C8        lea eax,dword ptr ss:[ebp-38]  
+
+004CD86D      |.  50            push eax  
+
+004CD86E      |.  E8 5D210600    call FinalDat.0052F9D0  
+
+004CD873      |.  83C4 0C        add esp,0C  
+
+004CD876      |.  C645 D2 00     mov byte ptr ss:[ebp-2E],0  
+
+004CD87A      |.  8D4D C8        lea ecx,dword ptr ss:[ebp-38]  
+
+004CD87D      |.  51            push ecx  
+
+004CD87E      |.  E8 F71B0600    call FinalDat.0052F47A           第 15 到 25 位的运算  
+
+004CD883      |.  83C4 04        add esp,4  
+
+004CD886      |.  35 87915713    xor eax,13579187                 EAX=EAX 和 13579187 异或运算  
+
+004CD88B      |.  8945 F0        mov dword ptr ss:[ebp-10],eax  
+
+004CD88E      |.  6A 02          push 2                            再取 2 位（第 4、5 位）  
+
+004CD890      |.  8B55 08        mov edx,dword ptr ss:[ebp+8]  
+
+004CD893      |.  83C2 03        add edx,3  
+
+004CD896      |.  52            push edx  
+
+004CD897      |.  8D45 C8        lea eax,dword ptr ss:[ebp-38]  
+
+004CD89A      |.  50            push eax  
+
+004CD89B      |.  E8 30210600    call FinalDat.0052F9D0  
+
+004CD8A0      |.  83C4 0C        add esp,0C  
+
+004CD8A3      |.  C645 CA 00     mov byte ptr ss:[ebp-36],0  
+
+004CD8A7      |.  8D4D C8        lea ecx,dword ptr ss:[ebp-38]  
+
+004CD8AA      |.  51            push ecx  
+
+004CD8AB      |.  E8 551C0600    call FinalDat.0052F505           第 4、5 位的运算   
+
+004CD8B0      |.  83C4 04        add esp,4
+```
