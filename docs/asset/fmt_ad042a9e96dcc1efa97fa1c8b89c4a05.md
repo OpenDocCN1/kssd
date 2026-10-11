@@ -1,0 +1,126 @@
+
+# 万能五笔 2004 的修改后续（去除 Bug 及自校验,打造绿色五笔）
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-91.htm`](https://www.pediy.com/kssd/pediy07/pediy7-91.htm)
+
+【原创】万能五笔 2004 的修改后续（去除 Bug 及自校验,打造绿色五笔）  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;————手把手系列之七  
+
+【破解作者】 `jackily`  
+
+【作者主页】 [`estudy.ys168.com`](http://estudy.ys168.com)  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[`jackily.ys168.com`](http://jackily.ys168.com)  
+
+【使用工具】 `ollydbg`、 `stripper`、`reshacker`  
+
+【破解平台】 Win9x/NT/2000/XP  
+
+【加壳方式】 `ASPack` 2.12 -> Alexey Solodovnikov  
+
+【破解声明】 本破解纯以学习和交流为目的，偶得一点心得，愿与大家分享:)  
+
+--------------------------------------------------------------------------------
+
+软件名称：万能五笔 2004：EXE 外挂高级 6.41 版  
+
+万能五笔 2004 自实行免费以来，一直 BUG 不断。从外挂 6.1 版至 2 月 15 日最新发布的 6.41 版，都存在着强行更改用户主页为 265.com 的问题，而这个 6.4 和 6.41 版更是变本加厉，又出来了个选字搜，每次调用万能五笔，其均自动将“选字搜”`selectso.exe` 加载，而退出时，却将“选字搜”置之不理，非常不便。于是决定再次拿起手术刀，主要目标“选字搜”。  
+
+首先，用 `PEID` 查壳，发现 `ASPack` 2.12，用 `stripper` 去掉外衣。用 `ollydbg` 加载，先解决了 265.com 的问题。（关于主页修改的问题请参见本人拙文《万能五笔 2004 的修改》，[`bbs.pediy.com/showthread.php?threadid=6168`](http://bbs.pediy.com/showthread.php?threadid=6168)）考虑到每次启动五笔，`selectso.exe` 都会运行，猜想会用到 `CreateProcessA` 函数，于是 `bpx CreateProcessA`。果然在 004018c3 处断下，0040189C 处正是“`selectso.exe`”。代码分析如下：  
+
+```
+00401808   /$  55                  push ebp
+00401809   |.  8BEC                mov ebp,esp
+0040180B   |.  81EC E0050000       sub esp,5E0
+00401811   |.  53                  push ebx
+00401812   |.  56                  push esi
+00401813   |.  57                  push edi
+00401814   |.  33DB               xor ebx,ebx
+00401816   |.  68 0C9C4500        push _wnwb.00459C0C                  ; /MutexName = 
+"FinallyIMadeItWorkThisIsMutexForWnwb"
+0040181B   |.  53                  push ebx                               ; |InitialOwner => FALSE
+0040181C   |.  53                  push ebx                               ; |pSecurity => NULL
+0040181D   |.  FF15 F4014500       call dword ptr ds:[<&KERNEL32.CreateMutexA>; \CreateMutexA
+00401823   |.  8BF0                mov esi,eax
+00401825   |.  FF15 F8014500       call dword ptr ds:[<&KERNEL32.GetLastError>; \GetLastError
+0040182B   |.  3D B7000000         cmp eax,0B7                             ; 判断 wnwb.exe 是否已经加载
+00401830   |.  75 20               jnz short _wnwb.00401852               ；否，跳到 401852 继续 
+00401832   |.  56                  push esi                               ; /hObject
+00401833   |.  FF15 FC014500       call dword ptr ds:[<&KERNEL32.CloseHandle>>; \CloseHandle
+00401839   |.  53                  push ebx                               ; /Title => NULL
+0040183A   |.  68 009C4500        push _wnwb.00459C00                  ; |Class = "WNWB Input"
+0040183F   |.  FF15 B8034500       call dword ptr ds:[<&USER32.FindWindowA>]  ; \FindWindowA
+00401845   |.  3BC3                cmp eax,ebx                             
+00401847   |.  0F84 6A040000       je _wnwb.00401CB7
+0040184D   |.  E9 9D030000         jmp _wnwb.00401BEF
+00401852   |>  6A 10               push 10
+00401854   |.  33C0                xor eax,eax
+00401856   |.  59                  pop ecx
+00401857   |.  8DBD 6CFFFFFF       lea edi,dword ptr ss:[ebp-94]
+0040185D   |.  C785 68FFFFFF 440000>mov dword ptr ss:[ebp-98],44
+00401867   |.  6A 40               push 40
+00401869   |.  F3:AB               rep stos dword ptr es:[edi]
+0040186B   |.  A0 DC1C4700         mov al,byte ptr ds:[471CDC]
+00401870   |.  59                  pop ecx
+00401871   |.  8885 88FCFFFF       mov byte ptr ss:[ebp-378],al
+00401877   |.  33C0                xor eax,eax
+00401879   |.  8DBD 89FCFFFF       lea edi,dword ptr ss:[ebp-377]
+0040187F   |.  BE 04010000         mov esi,104
+00401884   |.  F3:AB               rep stos dword ptr es:[edi]
+00401886   |.  66:AB               stos word ptr es:[edi]
+00401888   |.  AA                  stos byte ptr es:[edi]
+00401889   |.  8D85 88FCFFFF       lea eax,dword ptr ss:[ebp-378]
+0040188F   |.  56                  push esi
+00401890   |.  50                  push eax
+00401891   |.  E8 2B160200         call _wnwb.00422EC1
+00401896   |.  8D85 88FCFFFF       lea eax,dword ptr ss:[ebp-378]
+0040189C   |.  68 F09B4500        push _wnwb.00459BF0                    ;  ASCII "\\selectso.exe"
+004018A1   |.  50                  push eax
+004018A2   |.  E8 59E90200        call _wnwb.00430200
+004018A7   |.  83C4 10             add esp,10
+004018AA   |.  8D45 AC             lea eax,dword ptr ss:[ebp-54]
+004018AD   |.  50                  push eax                               ; /pProcessInfo
+004018AE   |.  8D85 68FFFFFF       lea eax,dword ptr ss:[ebp-98]            ; |
+004018B4   |.  50                  push eax                               ; |pStartupInfo
+004018B5   |.  53                  push ebx                               ; |CurrentDir
+004018B6   |.  53                  push ebx                               ; |pEnvironment
+004018B7   |.  53                  push ebx                               ; |CreationFlags
+004018B8   |.  53                  push ebx                               ; |InheritHandles
+004018B9   |.  53                  push ebx                               ; |pThreadSecurity
+004018BA   |.  53                  push ebx                               ; |pProcessSecurity
+004018BB   |.  8D85 88FCFFFF       lea eax,dword ptr ss:[ebp-378]          ; |
+004018C1   |.  53                  push ebx                               ; |CommandLine
+004018C2   |.  50                  push eax                               ; |ModuleFileName
+004018C3   |.  FF15 00024500       call dword ptr ds:[<&KERNEL32.CreateProces>; \CreateProcessA ，加载程序
+004018C9   |.  6A 64               push 64                                ; /Timeout = 100. ms
+004018CB   |.  FF75 AC             push dword ptr ss:[ebp-54]             ; |hObject
+004018CE   |.  FF15 04024500       call dword ptr ds:[<&KERNEL32.WaitForSingl>; \WaitForSingleObject
+004018D4   |.  FF75 B0             push dword ptr ss:[ebp-50]             ; /hObject
+004018D7   |.  8B3D FC014500       mov edi,dword ptr ds:[<&KERNEL32.CloseHand>; |kernel32.CloseHandle
+004018DD   |.  FFD7                call edi                               ; \CloseHandle
+004018DF   |.  FF75 AC             push dword ptr ss:[ebp-54]             ; /hObject
+004018E2   |.  FFD7                call edi                               ; \CloseHandle
+```
+
+以上是加载 `selectso.exe` 程序。  
+
+....................... 此处代码省略  
+
+以下是关键的 BUG 所在：  
+
+```
+00401DC9   |.  FF15 2C024500       call dword ptr ds:[<&KERNEL32.GetSystemTime>] ; \GetSystemTime
+00401DCF   |.  E8 2C120200         call _wnwb.00423000                   ；此处为修改 265.com 主页之调用，有兴趣
+可跟入
+00401DD4   |.  68 B7324200         push _wnwb.004232B7                   ; /Timerproc = _wnwb.004232B7
+00401DD9   |.  68 F4010000        push 1F4                             ; |Timeout = 500. ms
+00401DDE   |.  6A 02               push 2                               ; |TimerID = 2
+00401DE0   |.  FF35 E0FD4600       push dword ptr ds:[46FDE0]             ; |hWnd = NULL
+00401DE6   |.  FF15 C8034500       call dword ptr ds:[<&USER32.SetTimer>]     ; \SetTimer
+00401DEC   |.  FF35 E0FD4600       push dword ptr ds:[46FDE0]
+00401DF2   |.  E8 B8D40200         call _wnwb.0042F2AF
+00401DF7   |.  59                  pop ecx
+00401DF8   |.  E8 E9090200         call _wnwb.004227E6
+00401DFD   |.  E8 E3180200         call _wnwb.004236E5                   ；此处为自校验，跟入可见代码分析
+。
+00401E02   |.  8B35 C4034500       mov esi,dword ptr ds:[<&USER32.PostMessageA>] ;  USER32.PostMessageA
+```
