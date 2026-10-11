@@ -1,0 +1,530 @@
+
+# CoolClock V1.02
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50059.htm`](https://www.pediy.com/kssd/pediy05/pediy50059.htm)
+
+\===================Open Cracking Group========================
+
+\=
+
+\= CoolClock V1.02 注册算法分析
+
+\=
+
+\= ssljx/OCG
+
+\= http://www.newclw.com/lllufh/cgi-bin/leoboard.cgi
+
+\=
+
+\===================Open Cracking Group========================
+
+\`\`\`
+:00401C46 E84D3D0200              call 00425998=======>读取注册名,机械码,你输入的注册码
+
+:00401C4B A108264400              mov eax, dword ptr [00442608]
+
+:00401C50 89442410                mov dword ptr [esp+10], eax
+
+:00401C54 6894000000              push 00000094
+
+:00401C59 8D4C2414                lea ecx, dword ptr [esp+14]
+
+:00401C5D C744242000000000        mov [esp+20], 00000000
+
+:00401C65 E8296B0200              call 00428793
+
+:00401C6A 8D5F5C                  lea ebx, dword ptr [edi+5C]
+
+:00401C6D 8D6F60                  lea ebp, dword ptr [edi+60]
+
+:00401C70 53                      push ebx
+
+:00401C71 55                      push ebp
+
+:00401C72 8BCE                    mov ecx, esi
+
+:00401C74 E847880000              call 0040A4C0====>注册码计算比较
+
+:00401C79 85C0                    test eax, eax
+
+:00401C7B 7430                    je 00401CAD======>关键转向!!!!
+
+\=========================== END =================================
+
+\==========================SUB 0040AC0=============================
+
+:0040A4C0 6AFF                    push FFFFFFFF
+
+:0040A4C2 68B0254300              push 004325B0
+
+:0040A4C7 64A100000000            mov eax, dword ptr fs:[00000000]
+
+:0040A4CD 50                      push eax
+
+:0040A4CE 64892500000000          mov dword ptr fs:[00000000], esp
+
+:0040A4D5 83EC10                  sub esp, 00000010
+
+:0040A4D8 A108264400              mov eax, dword ptr [00442608]
+
+:0040A4DD 53                      push ebx
+
+:0040A4DE 55                      push ebp
+
+:0040A4DF 56                      push esi
+
+:0040A4E0 8BE9                    mov ebp, ecx
+
+:0040A4E2 89442414                mov dword ptr [esp+14], eax
+
+:0040A4E6 33F6                    xor esi, esi
+
+:0040A4E8 89442410                mov dword ptr [esp+10], eax
+
+:0040A4EC 89742424                mov dword ptr [esp+24], esi
+
+:0040A4F0 8D4C2414                lea ecx, dword ptr [esp+14]
+
+:0040A4F4 C644242401              mov [esp+24], 01
+
+:0040A4F9 E8D7C80100              call 00426DD5
+
+:0040A4FE 8B5C242C                mov ebx, dword ptr [esp+2C]
+
+:0040A502 C644240F00              mov [esp+0F], 00
+
+:0040A507 8B03                    mov eax, dword ptr [ebx]
+
+:0040A509 8B40F8                  mov eax, dword ptr [eax-08]
+
+:0040A50C 3BC6                    cmp eax, esi
+
+:0040A50E 89442418                mov dword ptr [esp+18], eax
+
+:0040A512 0F8444010000            je 0040A65C
+
+:0040A518 83F814                  cmp eax, 00000014================>注册名长度小于等于$14 位
+
+:0040A51B 0F8F3B010000            jg 0040A65C
+
+:0040A521 8B4C2430                mov ecx, dword ptr [esp+30]
+
+:0040A525 8B11                    mov edx, dword ptr [ecx]
+
+:0040A527 837AF818                cmp dword ptr [edx-08], 00000018==>输入注册码长度大于等于$18 位
+
+:0040A52B 0F8C2B010000            jl 0040A65C
+
+:0040A531 57                      push edi
+
+:0040A532 89742430                mov dword ptr [esp+30], esi
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0040A613(C)
+
+|
+
+:0040A536 33F6                    xor esi, esi
+
+:0040A538 85C0                    test eax, eax
+
+:0040A53A 0F8EC2000000            jle 0040A602======>为零,转到下面..
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0040A5F2(C)
+
+|
+
+:0040A540 8B442430                mov eax, dword ptr [esp+30]
+
+:0040A544 8D3C30                  lea edi, dword ptr [eax+esi]
+
+:0040A547 83FF28                  cmp edi, 00000028
+
+:0040A54A 0F8DAA000000            jnl 0040A5FA=========>计算注册码大于等于$28 位,不干了!!
+
+:0040A550 8BCE                    mov ecx, esi\=========>计算了注册名的位数
+
+:0040A552 81E101000080            and ecx, 80000001====>是否正数,并作奇偶校验!!
+
+:0040A558 7905                    jns 0040A55F=========>正数转向
+
+:0040A55A 49                      dec ecx ==========\\
+
+:0040A55B 83C9FE                  or ecx, FFFFFFFE  负数,将其求补码
+
+:0040A55E 41                      inc ecx\===========/
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0040A558(C)
+
+|
+
+:0040A55F 751E                    jne 0040A57F===================>奇数,到下面计算
+
+////////////////////////////偶数处理/////////////////////////////////
+
+:0040A561 8B13                    mov edx, dword ptr [ebx]
+
+:0040A563 8BC7                    mov eax, edi\========>indexj
+
+\====================说明这个 edi 的计算=====================
+
+edi 是注册名的长度
+
+:0040A565 8A0C32                  mov cl, byte ptr [edx+esi]=====>StrName[index]
+
+:0040A568 99                      cdq
+
+:0040A569 2BC2                    sub eax, edx
+
+:0040A56B 33D2                    xor edx, edx
+
+:0040A56D D1F8                    sar eax, 1 =========>indexj=indexj div 2
+
+:0040A56F 0FBEC9                  movsx ecx, cl\=======>如果大于$80,将符号位扩展,即为负数,主要是中文注册名时 cl>$80 则为负数
+
+:0040A572 8A9445F0000000          mov dl, byte ptr [ebp+2*eax+000000F0]==>Buf[2*indexj]取机械码
+
+\=====================================机械码表的说明===============================
+
+将注册窗口的机械码的奇偶字节对调,如:
+
+D4A4 E701 D8FE D8EE D8FE D8FE D8C1 D8FE D8FE D8FE
+
+EBB6 8BCC 9CCE EDB2 F8DE F8DE F8DE FED8 F8DE F8DE
+
+转换成:(这个方式才是程序存放的格式,后面有说明)
+
+A4D4 01E7 FED8 EED8 FED8 FED8 C1D8 FED8 FED8 FED8
+
+B6EB CC8B CE9C B2ED DEF8 DEF8 DEF8 D8FE D8FE D8FE
+
+用 `Buf[indexj]`表示
+
+\==================================================================================
+
+///////////////////////////////////说明机械吗取位算法/////////////////////////////
+
+`index`==>每轮读取注册名的指针  `indexj`==>计算注册码指针
+
+///////////////当注册名长度为奇数时的取位算法(长度:5)/////////////////////////////
+
+`index`    `indexj`      `eax`=indexj div 2    (`index` 为偶数)`2*eax`     (`index` 为奇数)`2*eax+1`
+
+0          0             0                    0
+
+1          1             0                                     1
+
+2          2             1                    2
+
+3          3             1                                     3
+
+4          4             2                    4
+
+0          5             2                    4
+
+1          6             3                                     7
+
+2          7             3                    6
+
+3          8             4                                     9
+
+4          9             4                    8
+
+就这样一直计算下去,那么取机械码的指针就是:0,1,2,3,4,4,7,6,9,8......
+
+///////////////////////////////奇数结束//////////////////////////////////////////
+
+///////////////当注册名长度为偶数时的取位算法(长度:6)/////////////////////////////
+
+`index`    `indexj`      `eax`=indexj div 2    (`index` 为偶数)`2*eax`     (`index` 为奇数)`2*eax+1`
+
+0          0             0                    0
+
+1          1             0                                     1
+
+2          2             1                    2
+
+3          3             1                                     3
+
+4          4             2                    4
+
+5          5             2                                     5
+
+0          6             3                    6
+
+1          7             3                                     7
+
+2          8             4                    8
+
+3          9             4                                     9
+
+4         10             5                    10
+\`\`\`
+
+
+
+### 计算过程概述
+
+5 11 5 11
+
+就这样一直计算下去，那么取机械码的指针就是：`0,1,2,3,4,5,6,7,8,9,10,11......`
+
+`///////////////////////////////偶数结束//////////////////////////////////////////`
+
+### 偶数处理部分
+
+:0040A579 8BC2  `mov eax, edx`
+
+:0040A57B 03C1  `add eax, ecx` ===> `StrName[index]+buf[2*indexj]`
+
+:0040A57D EB20  `jmp 0040A59F`
+
+`////////////////////////////偶数处理结束/////////////////////////////////`
+
+`////////////////////////////奇数处理/////////////////////////////////`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+| :0040A55F(C) |
+
+|
+
+:0040A57F 8B03  `mov eax, dword ptr [ebx]` ========== \
+
+:0040A581 8A0C30  `mov cl, byte ptr [eax+esi]`
+
+:0040A584 8BC7  `mov eax, edi` 这里跟偶数一样
+
+:0040A586 99  `cdq`
+
+:0040A587 2BC2  `sub eax, edx`
+
+:0040A589 33D2  `xor edx, edx`
+
+:0040A58B D1F8  `sar eax, 1` =====================/
+
+:0040A58D 8A9445F1000000  `mov dl, byte ptr [ebp+2*eax+000000F1]` == > `Buf[2*indexj+1]`
+
+:0040A594 0FBEC1  `movsx eax, cl`
+
+:0040A597 81E2FF000000  `and edx, 000000FF`
+
+:0040A59D 03C2  `add eax, edx` ===> `StrName[index]+buf[2*indexj+1]`
+
+`//////////////////////////奇数处理结束///////////////////////////////`
+
+`/////////////////////////计算,比较注册码////////////////////////////`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+| :0040A57D(U) |
+
+|
+
+:0040A59F 99  `cdq`
+
+:0040A5A0 B91A000000  `mov ecx, 0000001A`
+
+:0040A5A5 F7F9  `idiv ecx` ========= > `edx:=edx mod $1a`
+
+:0040A5A7 83C241  `add edx, 00000041` ==> `edx:=edx+$41`
+
+:0040A5AA 52  `push edx` ============ > 保存计算出来的注册码
+
+:0040A5AB 8D542418  `lea edx, dword ptr [esp+18]`
+
+:0040A5AF 689C1E4400  `push 00441E9C`
+
+:0040A5B4 52  `push edx`
+
+:0040A5B5 E8347A0100  `call 00421FEE`
+
+:0040A5BA 8B4C2440  `mov ecx, dword ptr [esp+40]`
+
+:0040A5BE 8BC7  `mov eax, edi`
+
+:0040A5C0 99  `cdq`
+
+:0040A5C1 8B39  `mov edi, dword ptr [ecx]`
+
+:0040A5C3 83E203  `and edx, 00000003`
+
+:0040A5C6 03C2  `add eax, edx`
+
+:0040A5C8 8B54243C  `mov edx, dword ptr [esp+3C]`
+
+:0040A5CC C1F802  `sar eax, 02`
+
+:0040A5CF 03C7  `add eax, edi`
+
+:0040A5D1 83C40C  `add esp, 0000000C`
+
+:0040A5D4 03C2  `add eax, edx`
+
+:0040A5D6 8B542414  `mov edx, dword ptr [esp+14]`
+
+:0040A5DA 8A0430  `mov al, byte ptr [eax+esi]` ==> 取出你输入的注册码
+
+:0040A5DD 8A0A  `mov cl, byte ptr [edx]` =====> 计算出来的注册码
+
+:0040A5DF 8A542413  `mov dl, byte ptr [esp+13]`
+
+:0040A5E3 2AC1  `sub al, cl` ======== > 输入的注册码减计算出来的注册码
+
+:0040A5E5 02D0  `add dl, al` ======== > 将差累加
+
+:0040A5E7 8B44241C  `mov eax, dword ptr [esp+1C]`
+
+:0040A5EB 46  `inc esi`
+
+:0040A5EC 88542413  `mov byte ptr [esp+13], dl`
+
+:0040A5F0 3BF0  `cmp esi, eax` =====> 如果取完注册码，则结束一轮计算
+
+:0040A5F2 0F8C48FFFFFF  `jl 0040A540` =====> 没取完继续计算
+
+:0040A5F8 EB08  `jmp 0040A602` ==== > 转到下面再初始化
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+| :0040A54A(C) |
+
+|
+
+:0040A5FA C7442430E8030000  `mov [esp+30], 000003E8`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+| :0040A53A(C), :0040A5F8(U) |
+
+|
+
+:0040A602 8B4C2430  `mov ecx, dword ptr [esp+30]`
+
+:0040A606 8B44241C  `mov eax, dword ptr [esp+1C]`
+
+:0040A60A 03C8  `add ecx, eax` ======== > `ecx=ecx+lenName(注册名长度)`
+
+:0040A60C 83F928  `cmp ecx, 00000028`
+
+:0040A60F 894C2430  `mov dword ptr [esp+30], ecx`
+
+:0040A613 0F8C1DFFFFFF  `jl 0040A536` ==== > 是否计算完 `$28` 位注册码，没完继续
+
+:0040A619 8A4C2413  `mov cl, byte ptr [esp+13]` =====> 上面的累加和
+
+:0040A61D 33C0  `xor eax, eax`
+
+:0040A61F 84C9  `test cl, cl` =================> 累加和一定为零
+
+:0040A621 0F94C0  `sete al` ===================> 设置标志
+
+:0040A624 8D4C2414  `lea ecx, dword ptr [esp+14]`
+
+:0040A628 8BF0  `mov esi, eax`
+
+:0040A62A C644242800  `mov [esp+28], 00`
+
+:0040A62F E816C80100  `call 00426E4A`
+
+:0040A634 8D4C2418  `lea ecx, dword ptr [esp+18]`
+
+:0040A638 C7442428FFFFFFFF  `mov [esp+28], FFFFFFFF`
+
+:0040A640 E805C80100  `call 00426E4A`
+
+:0040A645 8BC6  `mov eax, esi`
+
+:0040A647 5F  `pop edi`
+
+:0040A648 5E  `pop esi`
+
+:0040A649 5D  `pop ebp`
+
+:0040A64A 5B  `pop ebx`
+
+:0040A64B 8B4C2410  `mov ecx, dword ptr [esp+10]`
+
+:0040A64F 64890D00000000  `mov dword ptr fs:[00000000], ecx`
+
+:0040A656 83C41C  `add esp, 0000001C`
+
+:0040A659 C20800  `ret 0008`
+
+`======================== END 0040AC0 =============================`
+
+`===================== 机械码取出并转换字符串过程 ===============`
+
+:00401AF5 BB14000000  `mov ebx, 00000014` ===============> 机械码的长度
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+| :00401B25(C) |
+
+|
+
+:00401AFA 33C0  `xor eax, eax`
+
+:00401AFC 8D4C2410  `lea ecx, dword ptr [esp+10]`
+
+:00401B00 668B4500  `mov ax, word ptr [ebp+00]` =====> 按字方式取出机械码
+
+:00401B04 50  `push eax`
+
+:00401B05 6838114400  `push 00441138`
+
+:00401B0A 51  `push ecx`
+
+:00401B0B E8DE040200  `call 00421FEE` ========== > 将取出的机械码奇偶字节对调并化成字符串
+
+:00401B10 83C40C  `add esp, 0000000C`
+
+:00401B13 8D542410  `lea edx, dword ptr [esp+10]`
+
+:00401B17 8D4C2414  `lea ecx, dword ptr [esp+14]`
+
+:00401B1B 52  `push edx`
+
+:00401B1C E8E0560200  `call 00427201` ================> 把上面的字符串串起来
+
+:00401B21 83C502  `add ebp, 00000002`
+
+:00401B24 4B  `dec ebx`
+
+:00401B25 75D3  `jne 00401AFA`
+
+这里转后的字符串就是我们在注册窗口看到的机械码，当我们计算注册码的时候就要把注册窗口的机械码再转换回来!!
+
+`============================== END ===========================`
+
+### 注册配置说明
+
+把 `CoolClock` 目录下的 `CoolClock.ini` 的
+
+`UserName=`
+
+`RegKey=`
+
+删了又是未注册...
+
+注册机在 `OCG` 论坛提供下载
+
+`=================== Open Cracking Group ====================`
+
+`=`
+
+`       CoolClock V1.02 注册算法分析`
+
+`                  ssljx/OCG`
+
+`    http://www.newclw.com/lllufh/cgi-bin/leoboard.cgi`
+
+`=`
+
+`=================== Open Cracking Group ====================`  `4dd466d0e1e0cc123afbe504da2462ca`
