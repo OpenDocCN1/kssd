@@ -1,0 +1,640 @@
+
+# Super Fax Search 1.91 算法分析
+
+> 原文：[`www.pediy.com/kssd/pediy10/89389.html`](https://www.pediy.com/kssd/pediy10/89389.html)
+
+【破文标题】Super Fax Search 1.91 算法分析  
+【破文作者】`tianxj`  
+【作者邮箱】`tianxj_2007@126.com`  
+【作者主页】`WwW.ChiNaPYG.CoM`  
+【破解工具】`PEiD`, `OD`  
+【破解平台】`Windows XP sp2`  
+【软件名称】`Super Fax Search 1.91`  
+【软件大小】`1799KB`  
+【软件类别】国外软件/搜寻引擎  
+【软件授权】共享版  
+【软件语言】英文  
+【运行环境】`Win9x/Me/NT/2000/XP/2003`  
+【更新时间】`2009-5-11 11:11:48`  
+【原版下载】`http://www.onlinedown.net/soft/61639.htm`  
+【保护方式】注册码  
+【软件简介】是一款传真号码搜索软件，你可以使用关键字快速方便的建立商业传真号码列表，它能够在 `Internet` 上寻找和提取传真号码。  
+【破解声明】我是一只小菜鸟，偶得一点心得，愿与大家分享：）
+
+---
+
+【破解内容】
+
+一、运行程序，进行注册，输入错误的注册信息进行检测，有提示信息：
+"Sorry,the license name and register key you input doesn't match."
+
+二、用 `PEiD` 对 `XSearcher.exe` 查壳，为 `Borland Delphi 6.0 - 7.0`
+
+三、运行 `OD`，利用断点 `bp MessageBoxA` 来到关键
+
+---
+
+代码:
+```
+
+
+
+```
+005C4658    55               PUSH    EBP
+005C4659    8BEC             MOV     EBP, ESP
+005C465B    B9 07000000      MOV     ECX, 7
+005C4660    6A 00            PUSH    0
+005C4662    6A 00            PUSH    0
+005C4664    49               DEC     ECX
+005C4665  ^ 75 F9            JNZ     SHORT XSearche.005C4660
+005C4667    8955 F8          MOV     DWORD PTR SS:[EBP-8], EDX
+005C466A    8945 FC          MOV     DWORD PTR SS:[EBP-4], EAX
+005C466D    33C0             XOR     EAX, EAX
+005C466F    55               PUSH    EBP
+005C4670    68 69485C00      PUSH    XSearche.005C4869
+005C4675    64:FF30          PUSH    DWORD PTR FS:[EAX]
+005C4678    64:8920          MOV     DWORD PTR FS:[EAX], ESP
+005C467B    8D55 F0          LEA     EDX, DWORD PTR SS:[EBP-10]
+005C467E    8B45 FC          MOV     EAX, DWORD PTR SS:[EBP-4]
+005C4681    8B80 10030000    MOV     EAX, DWORD PTR DS:[EAX+310]
+005C4687    E8 ACDDEBFF      CALL    XSearche.00482438
+005C468C    8B45 F0          MOV     EAX, DWORD PTR SS:[EBP-10]
+005C468F    8D55 F4          LEA     EDX, DWORD PTR SS:[EBP-C]
+005C4692    E8 494BE4FF      CALL    XSearche.004091E0
+005C4697    837D F4 00       CMP     DWORD PTR SS:[EBP-C], 0
+005C469B    0F84 78010000    JE      XSearche.005C4819                 ; //试炼码为空则跳
+005C46A1    8D55 E8          LEA     EDX, DWORD PTR SS:[EBP-18]
+005C46A4    8B45 FC          MOV     EAX, DWORD PTR SS:[EBP-4]
+005C46A7    8B80 08030000    MOV     EAX, DWORD PTR DS:[EAX+308]
+005C46AD    E8 86DDEBFF      CALL    XSearche.00482438
+005C46B2    8B45 E8          MOV     EAX, DWORD PTR SS:[EBP-18]
+005C46B5    8D55 EC          LEA     EDX, DWORD PTR SS:[EBP-14]
+005C46B8    E8 234BE4FF      CALL    XSearche.004091E0
+005C46BD    837D EC 00       CMP     DWORD PTR SS:[EBP-14], 0
+005C46C1    0F84 52010000    JE      XSearche.005C4819                 ; //用户名为空则跳
+005C46C7    8D55 E0          LEA     EDX, DWORD PTR SS:[EBP-20]
+005C46CA    8B45 FC          MOV     EAX, DWORD PTR SS:[EBP-4]
+005C46CD    8B80 10030000    MOV     EAX, DWORD PTR DS:[EAX+310]
+005C46D3    E8 60DDEBFF      CALL    XSearche.00482438
+005C46D8    8B45 E0          MOV     EAX, DWORD PTR SS:[EBP-20]
+005C46DB    8D55 E4          LEA     EDX, DWORD PTR SS:[EBP-1C]
+005C46DE    E8 FD4AE4FF      CALL    XSearche.004091E0
+005C46E3    8B45 E4          MOV     EAX, DWORD PTR SS:[EBP-1C]
+005C46E6    50               PUSH    EAX
+005C46E7    8D55 DC          LEA     EDX, DWORD PTR SS:[EBP-24]
+005C46EA    8B45 FC          MOV     EAX, DWORD PTR SS:[EBP-4]
+005C46ED    8B80 08030000    MOV     EAX, DWORD PTR DS:[EAX+308]
+005C46F3    E8 40DDEBFF      CALL    XSearche.00482438
+005C46F8    8B55 DC          MOV     EDX, DWORD PTR SS:[EBP-24]
+005C46FB    A1 D8E25C00      MOV     EAX, DWORD PTR DS:[5CE2D8]
+005C4700    8B00             MOV     EAX, DWORD PTR DS:[EAX]
+005C4702    8B80 A4030000    MOV     EAX, DWORD PTR DS:[EAX+3A4]
+005C4708    33C9             XOR     ECX, ECX
+005C470A    E8 0DE3F6FF      CALL    XSearche.00532A1C                 ; //关键 CALL
+005C470F    84C0             TEST    AL, AL
+005C4711    0F84 84000000    JE      XSearche.005C479B
+005C4717    A1 90E05C00      MOV     EAX, DWORD PTR DS:[5CE090]
+005C471C    C600 01          MOV     BYTE PTR DS:[EAX], 1
+005C471F    A1 50E75C00      MOV     EAX, DWORD PTR DS:[5CE750]
+005C4724    8B00             MOV     EAX, DWORD PTR DS:[EAX]
+005C4726    C740 1C 204E000>MOV     DWORD PTR DS:[EAX+1C], 4E20
+005C472D    A1 50E75C00      MOV     EAX, DWORD PTR DS:[5CE750]
+005C4732    8B00             MOV     EAX, DWORD PTR DS:[EAX]
+005C4734    E8 F3100000      CALL    XSearche.005C582C
+005C4739    6A 40            PUSH    40
+005C473B    8D55 D8          LEA     EDX, DWORD PTR SS:[EBP-28]
+005C473E    A1 A4E45C00      MOV     EAX, DWORD PTR DS:[5CE4A4]
+005C4743    8B00             MOV     EAX, DWORD PTR DS:[EAX]
+005C4745    E8 1ADBEDFF      CALL    XSearche.004A2264
+005C474A    8B45 D8          MOV     EAX, DWORD PTR SS:[EBP-28]
+005C474D    E8 B205E4FF      CALL    XSearche.00404D04
+005C4752    50               PUSH    EAX
+005C4753    8D55 D4          LEA     EDX, DWORD PTR SS:[EBP-2C]
+005C4756    A1 E0E45C00      MOV     EAX, DWORD PTR DS:[5CE4E0]
+005C475B    E8 C424E4FF      CALL    XSearche.00406C24
+005C4760    8B45 D4          MOV     EAX, DWORD PTR SS:[EBP-2C]
+005C4763    E8 9C05E4FF      CALL    XSearche.00404D04
+005C4768    8BD0             MOV     EDX, EAX
+005C476A    A1 A4E45C00      MOV     EAX, DWORD PTR DS:[5CE4A4]
+005C476F    8B00             MOV     EAX, DWORD PTR DS:[EAX]
+005C4771    59               POP     ECX
+005C4772    E8 55E1EDFF      CALL    XSearche.004A28CC
+005C4777    8B15 90E05C00    MOV     EDX, DWORD PTR DS:[5CE090]       ; XSearche.005D1F94
+005C477D    8A12             MOV     DL, BYTE PTR DS:[EDX]
+005C477F    A1 D8E25C00      MOV     EAX, DWORD PTR DS:[5CE2D8]
+005C4784    8B00             MOV     EAX, DWORD PTR DS:[EAX]
+005C4786    8B80 04040000    MOV     EAX, DWORD PTR DS:[EAX+404]
+005C478C    E8 C756FEFF      CALL    XSearche.005A9E58
+005C4791    8B45 FC          MOV     EAX, DWORD PTR SS:[EBP-4]
+005C4794    E8 DFA8EDFF      CALL    XSearche.0049F078
+005C4799    EB 3C            JMP     SHORT XSearche.005C47D7
+005C479B    6A 10            PUSH    10
+005C479D    8D55 D0          LEA     EDX, DWORD PTR SS:[EBP-30]
+005C47A0    A1 14DF5C00      MOV     EAX, DWORD PTR DS:[5CDF14]
+005C47A5    E8 7A24E4FF      CALL    XSearche.00406C24
+005C47AA    8B45 D0          MOV     EAX, DWORD PTR SS:[EBP-30]
+005C47AD    E8 5205E4FF      CALL    XSearche.00404D04
+005C47B2    50               PUSH    EAX
+005C47B3    8D55 CC          LEA     EDX, DWORD PTR SS:[EBP-34]
+005C47B6    A1 F8DF5C00      MOV     EAX, DWORD PTR DS:[5CDFF8]
+005C47BB    E8 6424E4FF      CALL    XSearche.00406C24
+005C47C0    8B45 CC          MOV     EAX, DWORD PTR SS:[EBP-34]
+005C47C3    E8 3C05E4FF      CALL    XSearche.00404D04
+005C47C8    8BD0             MOV     EDX, EAX
+005C47CA    A1 A4E45C00      MOV     EAX, DWORD PTR DS:[5CE4A4]
+005C47CF    8B00             MOV     EAX, DWORD PTR DS:[EAX]
+005C47D1    59               POP     ECX
+005C47D2    E8 F5E0EDFF      CALL    XSearche.004A28CC                 ; //错误对话框
+005C47D7    A1 D8E25C00      MOV     EAX, DWORD PTR DS:[5CE2D8]
+005C47DC    8B00             MOV     EAX, DWORD PTR DS:[EAX]
+005C47DE    8B80 A4030000    MOV     EAX, DWORD PTR DS:[EAX+3A4]
+005C47E4    FF70 48          PUSH    DWORD PTR DS:[EAX+48]
+005C47E7    68 7C485C00      PUSH    XSearche.005C487C 
+005C47EC    A1 D8E25C00      MOV     EAX, DWORD PTR DS:[5CE2D8]
+005C47F1    8B00             MOV     EAX, DWORD PTR DS:[EAX]
+005C47F3    8B80 A4030000    MOV     EAX, DWORD PTR DS:[EAX+3A4]
+005C47F9    FF70 5C          PUSH    DWORD PTR DS:[EAX+5C]
+005C47FC    8D45 C8          LEA     EAX, DWORD PTR SS:[EBP-38]
+005C47FF    BA 03000000      MOV     EDX, 3
+005C4804    E8 C303E4FF      CALL    XSearche.00404BCC
+005C4809    8B45 C8          MOV     EAX, DWORD PTR SS:[EBP-38]
+005C480C    8B15 90E05C00    MOV     EDX, DWORD PTR DS:[5CE090]       ; XSearche.005D1F94
+005C4812    8A12             MOV     DL, BYTE PTR DS:[EDX]
+005C4814    E8 5F5AFEFF      CALL    XSearche.005AA278
+005C4819    33C0             XOR     EAX, EAX
+005C481B    5A               POP     EDX
+005C481C    59               POP     ECX
+005C481D    59               POP     ECX
+005C481E    64:8910          MOV     DWORD PTR FS:[EAX], EDX
+005C4821    68 70485C00      PUSH    XSearche.005C4870
+005C4826    8D45 C8          LEA     EAX, DWORD PTR SS:[EBP-38]
+005C4829    BA 05000000      MOV     EDX, 5
+005C482E    E8 1900E4FF      CALL    XSearche.0040484C
+005C4833    8D45 DC          LEA     EAX, DWORD PTR SS:[EBP-24]
+005C4836    BA 02000000      MOV     EDX, 2
+005C483B    E8 0C00E4FF      CALL    XSearche.0040484C
+005C4840    8D45 E4          LEA     EAX, DWORD PTR SS:[EBP-1C]
+005C4843    E8 E0FFE3FF      CALL    XSearche.00404828
+005C4848    8D45 E8          LEA     EAX, DWORD PTR SS:[EBP-18]
+005C484B    E8 D8FFE3FF      CALL    XSearche.00404828
+005C4850    8D45 EC          LEA     EAX, DWORD PTR SS:[EBP-14]
+005C4853    E8 D0FFE3FF      CALL    XSearche.00404828
+005C4858    8D45 F0          LEA     EAX, DWORD PTR SS:[EBP-10]
+005C485B    E8 C8FFE3FF      CALL    XSearche.00404828
+005C4860    8D45 F4          LEA     EAX, DWORD PTR SS:[EBP-C]
+005C4863    E8 C0FFE3FF      CALL    XSearche.00404828
+005C4868    C3               RETN
+005C4869  ^ E9 7AF8E3FF      JMP     XSearche.004040E8
+005C486E  ^ EB B6            JMP     SHORT XSearche.005C4826
+005C4870    8BE5             MOV     ESP, EBP
+005C4872    5D               POP     EBP
+005C4873    C3               RETN
+==============================================================
+00532A1C    55               PUSH    EBP
+00532A1D    8BEC             MOV     EBP, ESP
+00532A1F    83C4 E8          ADD     ESP, -18
+00532A22    53               PUSH    EBX
+00532A23    33DB             XOR     EBX, EBX
+00532A25    895D E8          MOV     DWORD PTR SS:[EBP-18], EBX
+00532A28    895D EC          MOV     DWORD PTR SS:[EBP-14], EBX
+00532A2B    894D F4          MOV     DWORD PTR SS:[EBP-C], ECX
+00532A2E    8955 F8          MOV     DWORD PTR SS:[EBP-8], EDX
+00532A31    8945 FC          MOV     DWORD PTR SS:[EBP-4], EAX
+00532A34    8B45 F8          MOV     EAX, DWORD PTR SS:[EBP-8]
+00532A37    E8 B822EDFF      CALL    XSearche.00404CF4
+00532A3C    8B45 F4          MOV     EAX, DWORD PTR SS:[EBP-C]
+00532A3F    E8 B022EDFF      CALL    XSearche.00404CF4
+00532A44    8B45 08          MOV     EAX, DWORD PTR SS:[EBP+8]
+00532A47    E8 A822EDFF      CALL    XSearche.00404CF4
+00532A4C    33C0             XOR     EAX, EAX
+00532A4E    55               PUSH    EBP
+00532A4F    68 2B2B5300      PUSH    XSearche.00532B2B
+00532A54    64:FF30          PUSH    DWORD PTR FS:[EAX]
+00532A57    64:8920          MOV     DWORD PTR FS:[EAX], ESP
+00532A5A    8B45 F8          MOV     EAX, DWORD PTR SS:[EBP-8]
+00532A5D    E8 AA20EDFF      CALL    XSearche.00404B0C
+00532A62    8B55 FC          MOV     EDX, DWORD PTR SS:[EBP-4]
+00532A65    3B42 4C          CMP     EAX, DWORD PTR DS:[EDX+4C]
+00532A68    7F 1C            JG      SHORT XSearche.00532A86           ; //用户名长度大于 100 则跳
+00532A6A    8B45 F8          MOV     EAX, DWORD PTR SS:[EBP-8]
+00532A6D    E8 9A20EDFF      CALL    XSearche.00404B0C
+00532A72    8B55 FC          MOV     EDX, DWORD PTR SS:[EBP-4]
+00532A75    3B42 50          CMP     EAX, DWORD PTR DS:[EDX+50]
+00532A78    7C 0C            JL      SHORT XSearche.00532A86           ; //用户名长度小于 3 则跳
+00532A7A    8B45 08          MOV     EAX, DWORD PTR SS:[EBP+8]
+00532A7D    E8 8A20EDFF      CALL    XSearche.00404B0C
+00532A82    85C0             TEST    EAX, EAX
+00532A84    75 06            JNZ     SHORT XSearche.00532A8C
+00532A86    C645 F3 00       MOV     BYTE PTR SS:[EBP-D], 0
+00532A8A    EB 6F            JMP     SHORT XSearche.00532AFB
+00532A8C    8D55 EC          LEA     EDX, DWORD PTR SS:[EBP-14]
+00532A8F    8B45 08          MOV     EAX, DWORD PTR SS:[EBP+8]
+00532A92    E8 D964EDFF      CALL    XSearche.00408F70
+00532A97    8B55 EC          MOV     EDX, DWORD PTR SS:[EBP-14]
+00532A9A    8D45 08          LEA     EAX, DWORD PTR SS:[EBP+8]
+00532A9D    E8 1E1EEDFF      CALL    XSearche.004048C0
+00532AA2    8D4D E8          LEA     ECX, DWORD PTR SS:[EBP-18]
+00532AA5    8B55 F8          MOV     EDX, DWORD PTR SS:[EBP-8]        ; //用户名
+00532AA8    8B45 FC          MOV     EAX, DWORD PTR SS:[EBP-4]
+00532AAB    E8 D4FBFFFF      CALL    XSearche.00532684                 ; //算法 CALL
+00532AB0    8B45 E8          MOV     EAX, DWORD PTR SS:[EBP-18]        ; //注册码
+00532AB3    8B55 08          MOV     EDX, DWORD PTR SS:[EBP+8]         ; //试炼码
+00532AB6    E8 2D65EDFF      CALL    XSearche.00408FE8                 ; //比较 CALL
+00532ABB    85C0             TEST    EAX, EAX
+00532ABD    74 06            JE      SHORT XSearche.00532AC5           ; //关键跳转
+00532ABF    C645 F3 00       MOV     BYTE PTR SS:[EBP-D], 0
+00532AC3    EB 36            JMP     SHORT XSearche.00532AFB
+00532AC5    8B45 FC          MOV     EAX, DWORD PTR SS:[EBP-4]
+00532AC8    83C0 48          ADD     EAX, 48
+00532ACB    8B55 F8          MOV     EDX, DWORD PTR SS:[EBP-8]
+00532ACE    E8 A91DEDFF      CALL    XSearche.0040487C
+00532AD3    8B45 FC          MOV     EAX, DWORD PTR SS:[EBP-4]
+00532AD6    83C0 54          ADD     EAX, 54
+00532AD9    8B55 F4          MOV     EDX, DWORD PTR SS:[EBP-C]
+00532ADC    E8 9B1DEDFF      CALL    XSearche.0040487C
+00532AE1    8B45 FC          MOV     EAX, DWORD PTR SS:[EBP-4]
+00532AE4    83C0 5C          ADD     EAX, 5C
+00532AE7    8B55 08          MOV     EDX, DWORD PTR SS:[EBP+8]
+00532AEA    E8 8D1DEDFF      CALL    XSearche.0040487C
+00532AEF    8B45 FC          MOV     EAX, DWORD PTR SS:[EBP-4]
+00532AF2    E8 49020000      CALL    XSearche.00532D40
+00532AF7    C645 F3 01       MOV     BYTE PTR SS:[EBP-D], 1
+00532AFB    33C0             XOR     EAX, EAX
+00532AFD    5A               POP     EDX
+00532AFE    59               POP     ECX
+00532AFF    59               POP     ECX
+00532B00    64:8910          MOV     DWORD PTR FS:[EAX], EDX
+00532B03    68 322B5300      PUSH    XSearche.00532B32
+00532B08    8D45 E8          LEA     EAX, DWORD PTR SS:[EBP-18]
+00532B0B    BA 02000000      MOV     EDX, 2
+00532B10    E8 371DEDFF      CALL    XSearche.0040484C
+00532B15    8D45 F4          LEA     EAX, DWORD PTR SS:[EBP-C]
+00532B18    BA 02000000      MOV     EDX, 2
+00532B1D    E8 2A1DEDFF      CALL    XSearche.0040484C
+00532B22    8D45 08          LEA     EAX, DWORD PTR SS:[EBP+8]
+00532B25    E8 FE1CEDFF      CALL    XSearche.00404828
+00532B2A    C3               RETN
+00532B2B  ^ E9 B815EDFF      JMP     XSearche.004040E8
+00532B30  ^ EB D6            JMP     SHORT XSearche.00532B08
+00532B32    8A45 F3          MOV     AL, BYTE PTR SS:[EBP-D]
+00532B35    5B               POP     EBX
+00532B36    8BE5             MOV     ESP, EBP
+00532B38    5D               POP     EBP
+00532B39    C2 0400          RETN    4
+==============================================================
+00532684    55               PUSH    EBP
+00532685    8BEC             MOV     EBP, ESP
+00532687    83C4 DC          ADD     ESP, -24
+0053268A    53               PUSH    EBX
+0053268B    33DB             XOR     EBX, EBX
+0053268D    895D DC          MOV     DWORD PTR SS:[EBP-24], EBX
+00532690    895D E8          MOV     DWORD PTR SS:[EBP-18], EBX
+00532693    894D F4          MOV     DWORD PTR SS:[EBP-C], ECX
+00532696    8955 F8          MOV     DWORD PTR SS:[EBP-8], EDX
+00532699    8945 FC          MOV     DWORD PTR SS:[EBP-4], EAX
+0053269C    8B45 F8          MOV     EAX, DWORD PTR SS:[EBP-8]        ; //用户名
+0053269F    E8 5026EDFF      CALL    XSearche.00404CF4
+005326A4    33C0             XOR     EAX, EAX
+005326A6    55               PUSH    EBP
+005326A7    68 C2275300      PUSH    XSearche.005327C2
+005326AC    64:FF30          PUSH    DWORD PTR FS:[EAX]
+005326AF    64:8920          MOV     DWORD PTR FS:[EAX], ESP
+005326B2    8B45 F8          MOV     EAX, DWORD PTR SS:[EBP-8]
+005326B5    E8 5224EDFF      CALL    XSearche.00404B0C
+005326BA    8B55 FC          MOV     EDX, DWORD PTR SS:[EBP-4]
+005326BD    3B42 4C          CMP     EAX, DWORD PTR DS:[EDX+4C]
+005326C0    7F 10            JG      SHORT XSearche.005326D2           ; //用户名长度大于 100 则跳
+005326C2    8B45 F8          MOV     EAX, DWORD PTR SS:[EBP-8]
+005326C5    E8 4224EDFF      CALL    XSearche.00404B0C
+005326CA    8B55 FC          MOV     EDX, DWORD PTR SS:[EBP-4]
+005326CD    3B42 50          CMP     EAX, DWORD PTR DS:[EDX+50]
+005326D0    7D 0D            JGE     SHORT XSearche.005326DF           ; //用户名长度大于等于 3 则跳
+005326D2    8B45 F4          MOV     EAX, DWORD PTR SS:[EBP-C]
+005326D5    E8 4E21EDFF      CALL    XSearche.00404828
+005326DA    E9 BD000000      JMP     XSearche.0053279C
+005326DF    8B45 F8          MOV     EAX, DWORD PTR SS:[EBP-8]        ; //用户名
+005326E2    E8 2524EDFF      CALL    XSearche.00404B0C                 ; //取用户名长度
+005326E7    8945 F0          MOV     DWORD PTR SS:[EBP-10], EAX       ; //保存用户名长度
+005326EA    EB 39            JMP     SHORT XSearche.00532725
+005326EC    8B45 F8          MOV     EAX, DWORD PTR SS:[EBP-8]
+005326EF    8B55 F0          MOV     EDX, DWORD PTR SS:[EBP-10]       ; //用户名
+005326F2    8A4410 FF        MOV     AL, BYTE PTR DS:[EAX+EDX-1]      ; //倒取用户名 ASCII 码
+005326F6    25 FF000000      AND     EAX, 0FF
+005326FB    33D2             XOR     EDX, EDX
+005326FD    52               PUSH    EDX
+005326FE    50               PUSH    EAX
+005326FF    8B45 FC          MOV     EAX, DWORD PTR SS:[EBP-4]
+00532702    8B50 6C          MOV     EDX, DWORD PTR DS:[EAX+6C]
+00532705    8B40 68          MOV     EAX, DWORD PTR DS:[EAX+68]       ; //0F41292E
+00532708    E8 3733EDFF      CALL    XSearche.00405A44                 ; //将 0F41292E 与所取字符的 ASCII 码取余
+0053270D    52               PUSH    EDX
+0053270E    50               PUSH    EAX
+0053270F    8D45 DC          LEA     EAX, DWORD PTR SS:[EBP-24]
+00532712    E8 7D6EEDFF      CALL    XSearche.00409594                 ; //将余数转 10 进制字符
+00532717    8B55 DC          MOV     EDX, DWORD PTR SS:[EBP-24]
+0053271A    8D45 E8          LEA     EAX, DWORD PTR SS:[EBP-18]
+0053271D    E8 F223EDFF      CALL    XSearche.00404B14                 ; //将字符相连
+00532722    FF4D F0          DEC     DWORD PTR SS:[EBP-10]
+00532725    8B45 F8          MOV     EAX, DWORD PTR SS:[EBP-8]
+00532728    E8 DF23EDFF      CALL    XSearche.00404B0C
+0053272D    83E8 06          SUB     EAX, 6
+00532730    3B45 F0          CMP     EAX, DWORD PTR SS:[EBP-10]
+00532733    7F 06            JG      SHORT XSearche.0053273B           ; //大于则跳出循环
+00532735    837D F0 00       CMP     DWORD PTR SS:[EBP-10], 0
+00532739  ^ 7F B1            JG      SHORT XSearche.005326EC           ; //循环
+0053273B    8D55 EC          LEA     EDX, DWORD PTR SS:[EBP-14]
+0053273E    8B45 E8          MOV     EAX, DWORD PTR SS:[EBP-18]
+00532741    E8 0A34EDFF      CALL    XSearche.00405B50
+00532746    8945 E0          MOV     DWORD PTR SS:[EBP-20], EAX
+00532749    8955 E4          MOV     DWORD PTR SS:[EBP-1C], EDX
+0053274C    8B45 FC          MOV     EAX, DWORD PTR SS:[EBP-4]
+0053274F    8378 60 00       CMP     DWORD PTR DS:[EAX+60], 0
+00532753    7F 12            JG      SHORT XSearche.00532767
+00532755    FF75 E4          PUSH    DWORD PTR SS:[EBP-1C]
+00532758    FF75 E0          PUSH    DWORD PTR SS:[EBP-20]
+0053275B    8B55 F4          MOV     EDX, DWORD PTR SS:[EBP-C]
+0053275E    33C0             XOR     EAX, EAX
+00532760    E8 9F6EEDFF      CALL    XSearche.00409604
+00532765    EB 35            JMP     SHORT XSearche.0053279C
+00532767    FF75 E4          PUSH    DWORD PTR SS:[EBP-1C]
+0053276A    FF75 E0          PUSH    DWORD PTR SS:[EBP-20]
+0053276D    8B55 F4          MOV     EDX, DWORD PTR SS:[EBP-C]
+00532770    8B45 FC          MOV     EAX, DWORD PTR SS:[EBP-4]
+00532773    8B40 60          MOV     EAX, DWORD PTR DS:[EAX+60]
+00532776    E8 896EEDFF      CALL    XSearche.00409604                 ; //相连字符串转为 12 位的 16 进制
+0053277B    8B45 F4          MOV     EAX, DWORD PTR SS:[EBP-C]
+0053277E    8B00             MOV     EAX, DWORD PTR DS:[EAX]          ; //注册码
+00532780    E8 8723EDFF      CALL    XSearche.00404B0C
+00532785    8BC8             MOV     ECX, EAX
+00532787    8B45 FC          MOV     EAX, DWORD PTR SS:[EBP-4]
+0053278A    2B48 60          SUB     ECX, DWORD PTR DS:[EAX+60]
+0053278D    8B45 FC          MOV     EAX, DWORD PTR SS:[EBP-4]
+00532790    8B50 60          MOV     EDX, DWORD PTR DS:[EAX+60]
+00532793    42               INC     EDX
+00532794    8B45 F4          MOV     EAX, DWORD PTR SS:[EBP-C]
+00532797    E8 0826EDFF      CALL    XSearche.00404DA4
+0053279C    33C0             XOR     EAX, EAX
+0053279E    5A               POP     EDX
+0053279F    59               POP     ECX
+005327A0    59               POP     ECX
+005327A1    64:8910          MOV     DWORD PTR FS:[EAX], EDX
+005327A4    68 C9275300      PUSH    XSearche.005327C9
+005327A9    8D45 DC          LEA     EAX, DWORD PTR SS:[EBP-24]
+005327AC    E8 7720EDFF      CALL    XSearche.00404828
+005327B1    8D45 E8          LEA     EAX, DWORD PTR SS:[EBP-18]
+005327B4    E8 6F20EDFF      CALL    XSearche.00404828
+005327B9    8D45 F8          LEA     EAX, DWORD PTR SS:[EBP-8]
+005327BC    E8 6720EDFF      CALL    XSearche.00404828
+005327C1    C3               RETN
+005327C2  ^ E9 2119EDFF      JMP     XSearche.004040E8
+005327C7  ^ EB E0            JMP     SHORT XSearche.005327A9
+005327C9    5B               POP     EBX
+005327CA    8BE5             MOV     ESP, EBP
+005327CC    5D               POP     EBP
+005327CD    C3               RETN
+
+```
+
+
+
+# 破解总结
+
+## 算法总结
+
+以 `tianxj` 为例：
+
+- `0F41292E` 与 `6A` (`'j'`) 取余得 `"66"`，转 10 进制为 `"102"`
+- `0F41292E` 与 `78` (`'x'`) 取余得 `"3E"`，转 10 进制为 `"62"`
+- `0F41292E` 与 `6E` (`'n'`) 取余得 `"5C"`，转 10 进制为 `"92"`
+- `0F41292E` 与 `61` (`'a'`) 取余得 `"27"`，转 10 进制为 `"39"`
+- `0F41292E` 与 `69` (`'i'`) 取余得 `"2F"`，转 10 进制为 `"47"`
+- `0F41292E` 与 `74` (`'t'`) 取余得 `"1A"`，转 10 进制为 `"26"`
+
+将 `"102"`、`"62"`、`"92"`、`"39"`、`"47"` 和 `"26"` 相连得 `"1026292394726"`
+
+将 `"1026292394726"` 转 16 进制为 `"EEF3CB2AE6"`
+
+补足 12 位就得到注册码 `"00EEF3CB2AE6"`
+
+## 算法注册机
+
+### 易语言代码
+
+```
+.版本 2
+
+.支持库 eCalc
+
+.子程序 _按钮1_被单击
+
+.局部变量 name, 文本型
+
+.局部变量 a, 整数型
+
+.局部变量 b, 整数型
+
+.局部变量 c, 文本型
+
+.局部变量 d, 文本型
+
+.局部变量 len, 整数型
+
+.局部变量 i, 整数型
+
+name ＝ 编辑框1.内容
+
+len ＝ 取文本长度 (name)
+
+.如果 (len ＜ 3 或 len ＞ 100)
+
+    编辑框2.内容 ＝ “输入有误，请重新输入！”
+
+.否则
+
+    .计次循环首 (len, i)
+
+        a ＝ 取代码 (name, len － i ＋ 1)
+
+        b ＝ 255928622 ％ a
+
+        c ＝ c ＋ 到文本 (b)
+
+        .如果真 (i ＝ 7)
+
+            跳出循环 ()
+
+        .如果真结束
+
+    .计次循环尾 ()
+
+    d ＝ 进制转换 (c, 10, 16)
+
+    .如果 (取文本长度 (d) ＜ 12)
+
+        编辑框2.内容 ＝ 取文本右边 (“000000000000” ＋ d, 12)
+
+    .否则
+
+        编辑框2.内容 ＝ d
+
+    .如果结束
+
+.如果结束
+
+.子程序 进制转换, 文本型, , 进行转换的子程序
+
+.参数 被转换文本, 文本型
+
+.参数 被转换进制, 整数型
+
+.参数 转换的进制, 整数型
+
+.局部变量 欲转换文本, 文本型, , , 输入的文本串
+
+.局部变量 临时文本, 文本型, , , 存放从输入的文本串中取出的一个文本
+
+.局部变量 临时数值, 长整数型
+
+.局部变量 计次变量 1, 整数型
+
+.局部变量 计次变量 2, 整数型
+
+.局部变量 次方数, 大数, , , 每一位数字对应的 10 的次方数
+
+.局部变量 转换的进制大数 1, 大数, , , 要转换的进制-1
+
+.局部变量 转换的进制大数, 大数, , , 要转换的进制
+
+.局部变量 被转换进制大数, 大数, , , 被转换的进制
+
+.局部变量 临时大数, 大数, , , 将被转换数字转换成的大数
+
+.局部变量 余数大数, 大数, , , 存放求出的余数大数
+
+.局部变量 数值 1 大数, 大数, , , 只存放 1
+
+.局部变量 临时大数 1, 大数, , , 将被转换数字的每一位转换成的大数
+
+.局部变量 临时变量, 整数型
+
+.如果真 (被转换进制 ＜ 2 或 转换的进制 ＜ 2 或 被转换进制 ＞ 36 或 转换的进制 ＞ 36)  ' 判断两个“进制系数”是否正确
+
+    返回 (“参数错误-进制只能在 2-36 之间”)
+
+.如果真结束
+
+被转换文本 ＝ 到大写 (到半角 (被转换文本))  ' 规范参数
+
+.变量循环首 (1, 取文本长度 (被转换文本), 1, 计次变量 1)  ' 判断输入的数字文本是否有效
+
+    临时文本 ＝ 取文本中间 (被转换文本, 计次变量 1, 1)
+
+    .如果真 (寻找文本 (取文本左边 (“0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ”, 被转换进制), 临时文本, , 假) ＝ -1)
+
+        临时文本 ＝ “参数错误-” ＋ 被转换文本 ＋ “不是一个有效的” ＋ 取文本左边 (数值到金额 (被转换进制, 真), 取文本长度 (数值到金额 (被转换进制, 真)) － 4) ＋ “进制数！”
+
+        跳出循环 ()
+
+    .如果真结束
+
+    ' 全部查找完毕
+
+    .如果真 (计次变量 1 ＝ 取文本长度 (被转换文本))
+
+        临时文本 ＝ “”
+
+    .如果真结束
+
+.变量循环尾 ()
+
+' 如果临时文本不为空，说明此数字文本无效！
+
+.如果真 (临时文本 ≠ “”)
+
+    返回 (临时文本)
+
+.如果真结束
+
+' 以上为数据正确性校验处理代码
+
+.如果真 (被转换进制 ＝ 转换的进制)  ' 相同时，不用进行转换
+
+    返回 (被转换文本)
+
+.如果真结束
+
+.变量循环首 (1, 取文本长度 (被转换文本), 1, 计次变量 1)  ' 先将要转换的数字放入大数中
+
+    次方数.导入数字 (1)  ' 数值 1 不能直接和大数类型计算，所以先放入一个大数中
+
+    被转换进制大数.导入数字 (被转换进制)
+
+    .计次循环首 (取文本长度 (被转换文本) － 计次变量 1, 计次变量 2)  ' 求次方
+
+        次方数 ＝ 次方数.乘 (被转换进制大数)
+
+    .计次循环尾 ()
+
+    临时变量 ＝ 寻找文本 (“0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ”, 取文本中间 (被转换文本, 计次变量 1, 1), , 真) － 1
+
+    临时大数 1.导入数字 (临时变量)
+
+    临时大数 1 ＝ 临时大数 1.乘 (次方数)
+
+    临时大数 ＝ 临时大数 1.加 (临时大数)  ' 临时大数即为最后转换成的大数
+
+.变量循环尾 ()
+
+转换的进制大数 1.导入数字 (转换的进制 － 1)
+
+转换的进制大数.导入数字 (转换的进制)
+
+数值 1 大数.导入数字 (1)  ' 数值 1 不能直接和大数类型计算，所以先放入一个大数中
+
+.判断循环首 (临时大数.大于 (转换的进制大数 1) ＝ 真)  ' 开始进制转换,除进制数取余数
+
+    余数大数 ＝ 临时大数.求余 (转换的进制大数)  ' 求出的余数
+
+    临时大数 1 ＝ 余数大数.加 (数值 1 大数)  ' 求出的余数＋1
+
+    临时数值 ＝ 到数值 (临时大数 1.导出文本 ())  ' 最后的余数
+
+    欲转换文本 ＝ 取文本中间 (“0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ”, 临时数值, 1) ＋ 欲转换文本  ' 找出每一个余数对应的数字
+
+    临时大数 ＝ 临时大数.除 (转换的进制大数, 10)  ' 取出剩余的数字
+
+    临时大数 ＝ 临时大数.取整数 ()
+
+.判断循环尾 ()
+
+临时数值 ＝ 临时大数.导出整数 ()  ' 最后剩下的余数
+
+欲转换文本 ＝ 取文本中间 (“0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ”, 临时数值 ＋ 1, 1) ＋ 欲转换文本  ' 整数转换结束
+
+返回 (欲转换文本)
+```
+
+## 内存注册机
+
+- 中断地址：`00532AB6`
+- 中断次数：`1`
+- 第一字节：`E8`
+- 指令长度：`5`
+- 内存方式-寄存器-EAX
+
+## 注册信息
+
+- 用户名：`tianxj`
+- 注册码：`00EEF3CB2AE6`
+
+---
+
+感谢飘云老大、猫老大、Nisy 老大以及很多前辈们的学习教程以及所有帮助过我的论坛兄弟姐妹们！
+
+感谢您能看完！谢谢
+
+---
+
+## 版权声明
+
+破文是学习的手记，兴趣是成功的源泉；本破文纯属技术交流，转载请注明作者并保持文章的完整，谢谢!

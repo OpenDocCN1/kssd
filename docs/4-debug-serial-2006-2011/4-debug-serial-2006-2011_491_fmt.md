@@ -1,0 +1,514 @@
+
+# Quick CD Ripper 2.2 算法分析
+
+> 原文：[`www.pediy.com/kssd/pediy10/89461.html`](https://www.pediy.com/kssd/pediy10/89461.html)
+
+【破文标题】Quick CD Ripper 2.2 算法分析
+
+【破文作者】`tianxj`
+
+【作者邮箱】`tianxj_2007@126.com`
+
+【作者主页】`WwW.ChiNaPYG.CoM`
+
+【破解工具】`PEiD`, `OD`
+
+【破解平台】Windows XP
+
+【软件名称】Quick CD Ripper 2.3(实际版本是 2.2)
+
+【软件大小】6600KB
+
+【软件类别】国外软件/音频处理
+
+【软件授权】共享版
+
+【软件语言】英文
+
+【运行环境】`Win9x/Me/NT/2000/XP/2003`
+
+【更新时间】2007-5-29 14:44:28
+
+【原版下载】`http://www.onlinedown.net/soft/36113.htm`
+
+【保护方式】注册码
+
+【软件简介】从 CD 盘中将数字音频抓取出来，保存为 `WAV` 或 `MP3` 格式。
+
+【破解声明】我是一只小菜鸟，偶得一点心得，愿与大家分享：）
+
+--------------------------------------------------------------
+
+【破解内容】
+
+--------------------------------------------------------------
+
+`******...`
+
+一、运行程序，进行注册，输入错误的注册信息进行检测，有提示信息
+
+`"Sorry, the registration code is wrong. Please check it and try again."`
+
+`******...`
+
+二、用 `PEiD` 对 `cdripper.exe` 查壳，为 Borland Delphi 6.0 - 7.0
+
+`******...`
+
+三、运行 `OD`，搜索字符串，来到关键之处
+
+==============================================================
+
+代码:
+```
+
+
+
+```
+004AA1D0   /.   55                     PUSH     EBP
+004AA1D1   |.   8BEC                   MOV      EBP, ESP
+004AA1D3   |.   6A 00                  PUSH     0
+004AA1D5   |.   6A 00                  PUSH     0
+004AA1D7   |.   6A 00                  PUSH     0
+004AA1D9   |.   6A 00                  PUSH     0
+004AA1DB   |.   53                     PUSH     EBX
+004AA1DC   |.   56                     PUSH     ESI
+004AA1DD   |.   8BF1                   MOV      ESI, ECX
+004AA1DF   |.   8BD8                   MOV      EBX, EAX
+004AA1E1   |.   33C0                   XOR      EAX, EAX
+004AA1E3   |.   55                     PUSH     EBP
+004AA1E4   |.   68 17A34A00            PUSH     cdripper.004AA317
+004AA1E9   |.   64:FF30                PUSH     DWORD PTR FS:[EAX]
+004AA1EC   |.   64:8920                MOV      DWORD PTR FS:[EAX], ESP
+004AA1EF   |.   83BB 4C020000>         CMP      DWORD PTR DS:[EBX+24C], 1
+004AA1F6   |.   0F85 00010000          JNZ      cdripper.004AA2FC
+004AA1FC   |.   A1 788B4B00            MOV      EAX, DWORD PTR DS:[4B8B78]
+004AA201   |.   8038 00                 CMP      BYTE PTR DS:[EAX], 0
+004AA204   |.   0F85 F2000000          JNZ      cdripper.004AA2FC
+004AA20A   |.   8D55 FC                LEA      EDX, DWORD PTR SS:[EBP-4]
+004AA20D   |.   8B83 0C030000          MOV      EAX, DWORD PTR DS:[EBX+30C]
+004AA213   |.   E8 B827FBFF            CALL     cdripper.0045C9D0
+004AA218   |.   8B45 FC                MOV      EAX, DWORD PTR SS:[EBP-4]
+004AA21B   |.   50                     PUSH     EAX
+004AA21C   |.   8D55 F8                LEA      EDX, DWORD PTR SS:[EBP-8]
+004AA21F   |.   8B83 08030000          MOV      EAX, DWORD PTR DS:[EBX+308]
+004AA225   |.   E8 A627FBFF            CALL     cdripper.0045C9D0
+004AA22A   |.   8B45 F8                MOV      EAX, DWORD PTR SS:[EBP-8]        ;  //用户名
+004AA22D   |.   5A                     POP      EDX                                ;  //试炼码
+004AA22E   |.   E8 51DAFFFF            CALL     cdripper.004A7C84                ;  //关键 CALL
+004AA233   |.   84C0                   TEST     AL, AL
+004AA235   |.   0F84 98000000          JE       cdripper.004AA2D3
+004AA23B   |.   8B83 24030000          MOV      EAX, DWORD PTR DS:[EBX+324]
+004AA241   |.   83C0 68                ADD      EAX, 68
+004AA244   |.   BA 2CA34A00            MOV      EDX, cdripper.004AA32C            ;  congratulations! you have been a registered user. all upgrades are free for you.
+004AA249   |.   E8 AE9FF5FF             CALL     cdripper.004041FC
+004AA24E   |.   8B83 24030000          MOV      EAX, DWORD PTR DS:[EBX+324]
+004AA254   |.   8B10                   MOV      EDX, DWORD PTR DS:[EAX]
+004AA256   |.   FF52 30                CALL     NEAR DWORD PTR DS:[EDX+30]
+004AA259   |.   A1 788B4B00            MOV      EAX, DWORD PTR DS:[4B8B78]
+004AA25E   |.   C600 01                MOV      BYTE PTR DS:[EAX], 1
+004AA261   |.   B2 01                  MOV      DL, 1
+004AA263   |.   A1 BC6A4300            MOV      EAX, DWORD PTR DS:[436ABC]
+004AA268   |.   E8 4FC9F8FF            CALL     cdripper.00436BBC
+004AA26D   |.   8BF0                   MOV      ESI, EAX
+004AA26F   |.   BA 02000080            MOV      EDX, 80000002
+004AA274   |.   8BC6                   MOV      EAX, ESI
+004AA276   |.   E8 E1C9F8FF            CALL     cdripper.00436C5C
+004AA27B   |.   B1 01                  MOV      CL, 1
+004AA27D   |.   BA 88A34A00            MOV      EDX, cdripper.004AA388            ;  software\\quickcdripper
+004AA282   |.   8BC6                   MOV      EAX, ESI
+004AA284   |.   E8 37CAF8FF            CALL     cdripper.00436CC0
+004AA289   |.   8D55 F4                LEA      EDX, DWORD PTR SS:[EBP-C]
+004AA28C   |.   8B83 08030000          MOV      EAX, DWORD PTR DS:[EBX+308]
+004AA292   |.   E8 3927FBFF            CALL     cdripper.0045C9D0
+004AA297   |.   8B4D F4                MOV      ECX, DWORD PTR SS:[EBP-C]
+004AA29A   |.   BA A8A34A00            MOV      EDX, cdripper.004AA3A8            ;  user
+004AA29F   |.   8BC6                   MOV      EAX, ESI
+004AA2A1   |.   E8 B6CBF8FF            CALL     cdripper.00436E5C
+004AA2A6   |.   8D55 F0                LEA      EDX, DWORD PTR SS:[EBP-10]
+004AA2A9   |.   8B83 0C030000          MOV      EAX, DWORD PTR DS:[EBX+30C]
+004AA2AF   |.   E8 1C27FBFF            CALL     cdripper.0045C9D0
+004AA2B4   |.   8B4D F0                MOV      ECX, DWORD PTR SS:[EBP-10]
+004AA2B7   |.   BA B8A34A00            MOV      EDX, cdripper.004AA3B8            ;  key
+004AA2BC   |.   8BC6                   MOV      EAX, ESI
+004AA2BE   |.   E8 99CBF8FF            CALL     cdripper.00436E5C
+004AA2C3   |.   8BC6                   MOV      EAX, ESI
+004AA2C5   |.   E8 62C9F8FF            CALL     cdripper.00436C2C
+004AA2CA   |.   8BC6                   MOV      EAX, ESI
+004AA2CC   |.   E8 2791F5FF            CALL     cdripper.004033F8
+004AA2D1   |.   EB 29                  JMP      SHORT cdripper.004AA2FC
+004AA2D3   |>   8B83 24030000          MOV      EAX, DWORD PTR DS:[EBX+324]
+004AA2D9   |.   83C0 68                ADD      EAX, 68
+004AA2DC   |.   BA C4A34A00            MOV      EDX, cdripper.004AA3C4            ;  sorry, the registration code is wrong. please check it and try again.
+004AA2E1   |.   E8 169FF5FF             CALL     cdripper.004041FC
+004AA2E6   |.   8B83 24030000          MOV      EAX, DWORD PTR DS:[EBX+324]
+004AA2EC   |.   8B10                   MOV      EDX, DWORD PTR DS:[EAX]
+004AA2EE   |.   FF52 30                CALL     NEAR DWORD PTR DS:[EDX+30]
+004AA2F1   |.   C606 00                MOV      BYTE PTR DS:[ESI], 0
+004AA2F4   |.   A1 788B4B00            MOV      EAX, DWORD PTR DS:[4B8B78]
+004AA2F9   |.   C600 00                MOV      BYTE PTR DS:[EAX], 0
+004AA2FC   |>   33C0                   XOR      EAX, EAX
+004AA2FE   |.   5A                     POP      EDX
+004AA2FF   |.   59                     POP      ECX
+004AA300   |.   59                     POP      ECX
+004AA301   |.   64:8910                MOV      DWORD PTR FS:[EAX], EDX
+004AA304   |.   68 1EA34A00            PUSH     cdripper.004AA31E
+004AA309   |>   8D45 F0                LEA      EAX, DWORD PTR SS:[EBP-10]
+004AA30C   |.   BA 04000000            MOV      EDX, 4
+004AA311   |.   E8 B69EF5FF            CALL     cdripper.004041CC
+004AA316   \\.  C3                     RETN
+004AA317    .^ E9 7098F5FF             JMP      cdripper.00403B8C
+004AA31C    .^ EB EB                   JMP      SHORT cdripper.004AA309
+004AA31E    .  5E                      POP      ESI
+004AA31F    .  5B                      POP      EBX
+004AA320    .  8BE5                    MOV      ESP, EBP
+004AA322    .  5D                      POP      EBP
+004AA323    .  C3                      RETN
+\==============================================================
+004A7C84   /$   55                     PUSH     EBP
+004A7C85   |.   8BEC                   MOV      EBP, ESP
+004A7C87   |.   83C4 C8                ADD      ESP, -38
+004A7C8A   |.   53                     PUSH     EBX
+004A7C8B   |.   33C9                   XOR      ECX, ECX
+004A7C8D   |.   894D E0                MOV      DWORD PTR SS:[EBP-20], ECX
+004A7C90   |.   894D E4                MOV      DWORD PTR SS:[EBP-1C], ECX
+004A7C93   |.   894D F4                MOV      DWORD PTR SS:[EBP-C], ECX
+004A7C96   |.   894D F0                MOV      DWORD PTR SS:[EBP-10], ECX
+004A7C99   |.   894D EC                MOV      DWORD PTR SS:[EBP-14], ECX
+004A7C9C   |.   894D E8                MOV      DWORD PTR SS:[EBP-18], ECX
+004A7C9F   |.   8955 F8                MOV      DWORD PTR SS:[EBP-8], EDX
+004A7CA2   |.   8945 FC                MOV      DWORD PTR SS:[EBP-4], EAX
+004A7CA5   |.   8B45 FC                MOV      EAX, DWORD PTR SS:[EBP-4]
+004A7CA8   |.   E8 ABC9F5FF            CALL     cdripper.00404658
+004A7CAD   |.   8B45 F8                MOV      EAX, DWORD PTR SS:[EBP-8]
+004A7CB0   |.   E8 A3C9F5FF            CALL     cdripper.00404658
+004A7CB5   |.   33C0                   XOR      EAX, EAX
+004A7CB7   |.   55                     PUSH     EBP
+004A7CB8   |.   68 CF7F4A00            PUSH     cdripper.004A7FCF
+004A7CBD   |.   64:FF30                PUSH     DWORD PTR FS:[EAX]
+004A7CC0   |.   64:8920                MOV      DWORD PTR FS:[EAX], ESP
+004A7CC3   |.   8D55 E4                LEA      EDX, DWORD PTR SS:[EBP-1C]
+004A7CC6   |.   8B45 FC                MOV      EAX, DWORD PTR SS:[EBP-4]
+004A7CC9   |.   E8 3208F6FF            CALL     cdripper.00408500
+004A7CCE   |.   8B55 E4                MOV      EDX, DWORD PTR SS:[EBP-1C]
+004A7CD1   |.   8D45 FC                LEA      EAX, DWORD PTR SS:[EBP-4]
+004A7CD4   |.   E8 67C5F5FF            CALL     cdripper.00404240
+004A7CD9   |.   8D55 E0                LEA      EDX, DWORD PTR SS:[EBP-20]
+004A7CDC   |.   8B45 F8                MOV      EAX, DWORD PTR SS:[EBP-8]
+004A7CDF   |.   E8 1C08F6FF            CALL     cdripper.00408500
+004A7CE4   |.   8B55 E0                MOV      EDX, DWORD PTR SS:[EBP-20]
+004A7CE7   |.   8D45 F8                LEA      EAX, DWORD PTR SS:[EBP-8]
+004A7CEA   |.   E8 51C5F5FF            CALL     cdripper.00404240
+004A7CEF   |.   8B45 FC                MOV      EAX, DWORD PTR SS:[EBP-4]
+004A7CF2   |.   E8 71C7F5FF            CALL     cdripper.00404468
+004A7CF7   |.   83F8 03                CMP      EAX, 3
+004A7CFA   |.   7D 07                  JGE      SHORT cdripper.004A7D03           ;  //用户名长度必须大于等于 3
+004A7CFC   |.   33DB                   XOR      EBX, EBX
+004A7CFE   |.   E9 B1020000             JMP      cdripper.004A7FB4
+004A7D03   |>   8B45 F8                MOV      EAX, DWORD PTR SS:[EBP-8]
+004A7D06   |.   E8 5DC7F5FF            CALL     cdripper.00404468
+004A7D0B   |.   83F8 13                CMP      EAX, 13
+004A7D0E   |.   74 07                  JE       SHORT cdripper.004A7D17           ;  //试炼码长度必须为 19
+004A7D10   |.   33DB                   XOR      EBX, EBX
+004A7D12   |.   E9 9D020000             JMP      cdripper.004A7FB4
+004A7D17   |>   8D45 DC                LEA      EAX, DWORD PTR SS:[EBP-24]
+004A7D1A   |.   8B55 F8                MOV      EDX, DWORD PTR SS:[EBP-8]
+004A7D1D   |.   8A12                   MOV      DL, BYTE PTR DS:[EDX]            ;  //试炼码第 1 位
+004A7D1F   |.   8850 01                MOV      BYTE PTR DS:[EAX+1], DL
+004A7D22   |.   C600 01                MOV      BYTE PTR DS:[EAX], 1
+004A7D25   |.   8D55 DC                LEA      EDX, DWORD PTR SS:[EBP-24]
+004A7D28   |.   8D45 D8                LEA      EAX, DWORD PTR SS:[EBP-28]
+004A7D2B   |.   E8 68AFF5FF            CALL     cdripper.00402C98
+004A7D30   |.   8D45 D4                LEA      EAX, DWORD PTR SS:[EBP-2C]
+004A7D33   |.   8B55 F8                MOV      EDX, DWORD PTR SS:[EBP-8]
+004A7D36   |.   8A52 01                MOV      DL, BYTE PTR DS:[EDX+1]          ;  //试炼码第 2 位
+004A7D39   |.   8850 01                MOV      BYTE PTR DS:[EAX+1], DL
+004A7D3C   |.   C600 01                MOV      BYTE PTR DS:[EAX], 1
+004A7D3F   |.   8D55 D4                LEA      EDX, DWORD PTR SS:[EBP-2C]
+004A7D42   |.   8D45 D8                LEA      EAX, DWORD PTR SS:[EBP-28]
+004A7D45   |.   B1 02                  MOV      CL, 2
+004A7D47   |.   E8 1CAFF5FF            CALL     cdripper.00402C68
+004A7D4C   |.   8D55 D8                LEA      EDX, DWORD PTR SS:[EBP-28]
+004A7D4F   |.   8D45 D0                LEA      EAX, DWORD PTR SS:[EBP-30]
+004A7D52   |.   E8 41AFF5FF            CALL     cdripper.00402C98
+004A7D57   |.   8D45 D4                LEA      EAX, DWORD PTR SS:[EBP-2C]
+004A7D5A   |.   8B55 F8                MOV      EDX, DWORD PTR SS:[EBP-8]
+004A7D5D   |.   8A52 02                MOV      DL, BYTE PTR DS:[EDX+2]          ;  //试炼码第 3 位
+004A7D60   |.   8850 01                MOV      BYTE PTR DS:[EAX+1], DL
+004A7D63   |.   C600 01                MOV      BYTE PTR DS:[EAX], 1
+004A7D66   |.   8D55 D4                LEA      EDX, DWORD PTR SS:[EBP-2C]
+004A7D69   |.   8D45 D0                LEA      EAX, DWORD PTR SS:[EBP-30]
+004A7D6C   |.   B1 03                  MOV      CL, 3
+004A7D6E   |.   E8 F5AEF5FF            CALL     cdripper.00402C68
+004A7D73   |.   8D55 D0                LEA      EDX, DWORD PTR SS:[EBP-30]
+004A7D76   |.   8D45 C8                LEA      EAX, DWORD PTR SS:[EBP-38]
+004A7D79   |.   E8 1AAFF5FF            CALL     cdripper.00402C98
+004A7D7E   |.   8D45 D4                LEA      EAX, DWORD PTR SS:[EBP-2C]
+004A7D81   |.   8B55 F8                MOV      EDX, DWORD PTR SS:[EBP-8]
+004A7D84   |.   8A52 03                MOV      DL, BYTE PTR DS:[EDX+3]          ;  //试炼码第 4 位
+004A7D87   |.   8850 01                MOV      BYTE PTR DS:[EAX+1], DL
+004A7D8A   |.   C600 01                MOV      BYTE PTR DS:[EAX], 1
+004A7D8D   |.   8D55 D4                LEA      EDX, DWORD PTR SS:[EBP-2C]
+004A7D90   |.   8D45 C8                LEA      EAX, DWORD PTR SS:[EBP-38]
+004A7D93   |.   B1 04                  MOV      CL, 4
+004A7D95   |.   E8 CEAFF5FF            CALL     cdripper.00402C68
+004A7D9A   |.   8D55 C8                LEA      EDX, DWORD PTR SS:[EBP-38]
+004A7D9D   |.   8D45 F4                LEA      EAX, DWORD PTR SS:[EBP-C]
+004A7DA0   |.   E8 67C6F5FF            CALL     cdripper.0040440C
+004A7DA5   |.   8D45 DC                LEA      EAX, DWORD PTR SS:[EBP-24]
+004A7DA8   |.   8B55 F8                MOV      EDX, DWORD PTR SS:[EBP-8]
+004A7DAB   |.   8A52 05                MOV      DL, BYTE PTR DS:[EDX+5]          ;  //试炼码第 6 位
+004A7DAE   |.   8850 01                MOV      BYTE PTR DS:[EAX+1], DL
+004A7DB1   |.   C600 01                MOV      BYTE PTR DS:[EAX], 1
+004A7DB4   |.   8D55 DC                LEA      EDX, DWORD PTR SS:[EBP-24]
+004A7DB7   |.   8D45 D8                LEA      EAX, DWORD PTR SS:[EBP-28]
+004A7DBA   |.   E8 D9AEF5FF            CALL     cdripper.00402C98
+004A7DBF   |.   8D45 D4                LEA      EAX, DWORD PTR SS:[EBP-2C]
+004A7DC2   |.   8B55 F8                MOV      EDX, DWORD PTR SS:[EBP-8]
+004A7DC5   |.   8A52 06                MOV      DL, BYTE PTR DS:[EDX+6]          ;  //试炼码第 7 位
+004A7DC8   |.   8850 01                MOV      BYTE PTR DS:[EAX+1], DL
+004A7DCB   |.   C600 01                MOV      BYTE PTR DS:[EAX], 1
+004A7DCE   |.   8D55 D4                LEA      EDX, DWORD PTR SS:[EBP-2C]
+004A7DD1   |.   8D45 D8                LEA      EAX, DWORD PTR SS:[EBP-28]
+004A7DD4   |.   B1 02                  MOV      CL, 2
+004A7DD6   |.   E8 8DAEF5FF            CALL     cdripper.00402C68
+004A7DDB   |.   8D55 D8                LEA      EDX, DWORD PTR SS:[EBP-28]
+004A7DDE   |.   8D45 D0                LEA      EAX, DWORD PTR SS:[EBP-30]
+004A7DE1   |.   E8 B2AEF5FF            CALL     cdripper.00402C98
+004A7DE6   |.   8D45 D4                LEA      EAX, DWORD PTR SS:[EBP-2C]
+004A7DE9   |.   8B55 F8                MOV      EDX, DWORD PTR SS:[EBP-8]
+004A7DEC   |.   8A52 07                MOV      DL, BYTE PTR DS:[EDX+7]          ;  //试炼码第 8 位
+004A7DEF   |.   8850 01                MOV      BYTE PTR DS:[EAX+1], DL
+004A7DF2   |.   C600 01                MOV      BYTE PTR DS:[EAX], 1
+004A7DF5   |.   8D55 D4                LEA      EDX, DWORD PTR SS:[EBP-2C]
+004A7DF8   |.   8D45 D0                LEA      EAX, DWORD PTR SS:[EBP-30]
+004A7DFB   |.   B1 03                  MOV      CL, 3
+004A7DFD   |.   E8 66AEF5FF            CALL     cdripper.00402C68
+004A7E02   |.   8D55 D0                LEA      EDX, DWORD PTR SS:[EBP-30]
+004A7E05   |.   8D45 C8                LEA      EAX, DWORD PTR SS:[EBP-38]
+004A7E08   |.   E8 8BAEF5FF            CALL     cdripper.00402C98
+004A7E0D   |.   8D45 D4                LEA      EAX, DWORD PTR SS:[EBP-2C]
+004A7E10   |.   8B55 F8                MOV      EDX, DWORD PTR SS:[EBP-8]
+004A7E13   |.   8A52 08                MOV      DL, BYTE PTR DS:[EDX+8]          ;  //试炼码第 9 位
+004A7E16   |.   8850 01                MOV      BYTE PTR DS:[EAX+1], DL
+004A7E19   |.   C600 01                MOV      BYTE PTR DS:[EAX], 1
+004A7E1C   |.   8D55 D4                LEA      EDX, DWORD PTR SS:[EBP-2C]
+004A7E1F   |.   8D45 C8                LEA      EAX, DWORD PTR SS:[EBP-38]
+004A7E22   |.   B1 04                  MOV      CL, 4
+004A7E24   |.   E8 3FAEF5FF            CALL     cdripper.00402C68
+004A7E29   |.   8D55 C8                LEA      EDX, DWORD PTR SS:[EBP-38]
+004A7E2C   |.   8D45 F0                LEA      EAX, DWORD PTR SS:[EBP-10]
+004A7E2F   |.   E8 D8C5F5FF            CALL     cdripper.0040440C
+004A7E34   |.   8D45 DC                LEA      EAX, DWORD PTR SS:[EBP-24]
+004A7E37   |.   8B55 F8                MOV      EDX, DWORD PTR SS:[EBP-8]
+004A7E3A   |.   8A52 0A                MOV      DL, BYTE PTR DS:[EDX+A]          ;  //试炼码第 11 位
+004A7E3D   |.   8850 01                MOV      BYTE PTR DS:[EAX+1], DL
+004A7E40   |.   C600 01                MOV      BYTE PTR DS:[EAX], 1
+004A7E43   |.   8D55 DC                LEA      EDX, DWORD PTR SS:[EBP-24]
+004A7E46   |.   8D45 D8                LEA      EAX, DWORD PTR SS:[EBP-28]
+004A7E49   |.   E8 4AAEF5FF            CALL     cdripper.00402C98
+004A7E4E   |.   8D45 D4                LEA      EAX, DWORD PTR SS:[EBP-2C]
+004A7E51   |.   8B55 F8                MOV      EDX, DWORD PTR SS:[EBP-8]
+004A7E54   |.   8A52 0B                MOV      DL, BYTE PTR DS:[EDX+B]          ;  //试炼码第 12 位
+004A7E57   |.   8850 01                MOV      BYTE PTR DS:[EAX+1], DL
+004A7E5A   |.   C600 01                MOV      BYTE PTR DS:[EAX], 1
+004A7E5D   |.   8D55 D4                LEA      EDX, DWORD PTR SS:[EBP-2C]
+004A7E60   |.   8D45 D8                LEA      EAX, DWORD PTR SS:[EBP-28]
+004A7E63   |.   B1 02                  MOV      CL, 2
+004A7E65   |.   E8 FEADF5FF            CALL     cdripper.00402C68
+004A7E6A   |.   8D55 D8                LEA      EDX, DWORD PTR SS:[EBP-28]
+004A7E6D   |.   8D45 D0                LEA      EAX, DWORD PTR SS:[EBP-30]
+004A7E70   |.   E8 23AEF5FF            CALL     cdripper.00402C98
+004A7E75   |.   8D45 D4                LEA      EAX, DWORD PTR SS:[EBP-2C]
+004A7E78   |.   8B55 F8                MOV      EDX, DWORD PTR SS:[EBP-8]
+004A7E7B   |.   8A52 0C                MOV      DL, BYTE PTR DS:[EDX+C]          ;  //试炼码第 13 位
+004A7E7E   |.   8850 01                MOV      BYTE PTR DS:[EAX+1], DL
+004A7E81   |.   C600 01                MOV      BYTE PTR DS:[EAX], 1
+004A7E84   |.   8D55 D4                LEA      EDX, DWORD PTR SS:[EBP-2C]
+004A7E87   |.   8D45 D0                LEA      EAX, DWORD PTR SS:[EBP-30]
+004A7E8A   |.   B1 03                  MOV      CL, 3
+004A7E8C   |.   E8 D7ADF5FF            CALL     cdripper.00402C68
+004A7E91   |.   8D55 D0                LEA      EDX, DWORD PTR SS:[EBP-30]
+004A7E94   |.   8D45 C8                LEA      EAX, DWORD PTR SS:[EBP-38]
+004A7E97   |.   E8 FCADF5FF            CALL     cdripper.00402C98
+004A7E9C   |.   8D45 D4                LEA      EAX, DWORD PTR SS:[EBP-2C]
+004A7E9F   |.   8B55 F8                MOV      EDX, DWORD PTR SS:[EBP-8]
+004A7EA2   |.   8A52 0D                MOV      DL, BYTE PTR DS:[EDX+D]          ;  //试炼码第 14 位
+004A7EA5   |.   8850 01                MOV      BYTE PTR DS:[EAX+1], DL
+004A7EA8   |.   C600 01                MOV      BYTE PTR DS:[EAX], 1
+004A7EAB   |.   8D55 D4                LEA      EDX, DWORD PTR SS:[EBP-2C]
+004A7EAE   |.   8D45 C8                LEA      EAX, DWORD PTR SS:[EBP-38]
+004A7EB1   |.   B1 04                  MOV      CL, 4
+004A7EB3   |.   E8 B0ADF5FF            CALL     cdripper.00402C68
+004A7EB8   |.   8D55 C8                LEA      EDX, DWORD PTR SS:[EBP-38]
+004A7EBB   |.   8D45 EC                LEA      EAX, DWORD PTR SS:[EBP-14]
+004A7EBE   |.   E8 49C5F5FF            CALL     cdripper.0040440C
+004A7EC3   |.   8D45 DC                LEA      EAX, DWORD PTR SS:[EBP-24]
+004A7EC6   |.   8B55 F8                MOV      EDX, DWORD PTR SS:[EBP-8]
+004A7EC9   |.   8A52 0F                MOV      DL, BYTE PTR DS:[EDX+F]          ;  //试炼码第 16 位
+004A7ECC   |.   8850 01                MOV      BYTE PTR DS:[EAX+1], DL
+004A7ECF   |.   C600 01                MOV      BYTE PTR DS:[EAX], 1
+004A7ED2   |.   8D55 DC                LEA      EDX, DWORD PTR SS:[EBP-24]
+004A7ED5   |.   8D45 D8                LEA      EAX, DWORD PTR SS:[EBP-28]
+004A7ED8   |.   E8 BBADF5FF            CALL     cdripper.00402C98
+004A7EDD   |.   8D45 D4                LEA      EAX, DWORD PTR SS:[EBP-2C]
+004A7EE0   |.   8B55 F8                MOV      EDX, DWORD PTR SS:[EBP-8]
+004A7EE3   |.   8A52 10                MOV      DL, BYTE PTR DS:[EDX+10]          ;  //试炼码第 17 位
+004A7EE6   |.   8850 01                MOV      BYTE PTR DS:[EAX+1], DL
+004A7EE9   |.   C600 01                MOV      BYTE PTR DS:[EAX], 1
+004A7EEC   |.   8D55 D4                LEA      EDX, DWORD PTR SS:[EBP-2C]
+004A7EEF   |.   8D45 D8                LEA      EAX, DWORD PTR SS:[EBP-28]
+004A7EF2   |.   B1 02                  MOV      CL, 2
+004A7EF4   |.   E8 6FADF5FF            CALL     cdripper.00402C68
+004A7EF9   |.   8D55 D8                LEA      EDX, DWORD PTR SS:[EBP-28]
+004A7EFC   |.   8D45 D0                LEA      EAX, DWORD PTR SS:[EBP-30]
+004A7EFF   |.   E8 94ADF5FF            CALL     cdripper.00402C98
+004A7F04   |.   8D45 D4                LEA      EAX, DWORD PTR SS:[EBP-2C]
+004A7F07   |.   8B55 F8                MOV      EDX, DWORD PTR SS:[EBP-8]
+004A7F0A   |.   8A52 11                MOV      DL, BYTE PTR DS:[EDX+11]          ;  //试炼码第 18 位
+004A7F0D   |.   8850 01                MOV      BYTE PTR DS:[EAX+1], DL
+004A7F10   |.   C600 01                MOV      BYTE PTR DS:[EAX], 1
+004A7F13   |.   8D55 D4                LEA      EDX, DWORD PTR SS:[EBP-2C]
+004A7F16   |.   8D45 D0                LEA      EAX, DWORD PTR SS:[EBP-30]
+004A7F19   |.   B1 03                  MOV      CL, 3
+004A7F1B   |.   E8 48ADF5FF            CALL     cdripper.00402C68
+004A7F20   |.   8D55 D0                LEA      EDX, DWORD PTR SS:[EBP-30]
+004A7F23   |.   8D45 C8                LEA      EAX, DWORD PTR SS:[EBP-38]
+004A7F26   |.   E8 6DADF5FF            CALL     cdripper.00402C98
+004A7F2B   |.   8D45 D4                LEA      EAX, DWORD PTR SS:[EBP-2C]
+004A7F2E   |.   8B55 F8                MOV      EDX, DWORD PTR SS:[EBP-8]
+004A7F31   |.   8A52 12                MOV      DL, BYTE PTR DS:[EDX+12]          ;  //试炼码第 19 位
+004A7F34   |.   8850 01                MOV      BYTE PTR DS:[EAX+1], DL
+004A7F37   |.   C600 01                MOV      BYTE PTR DS:[EAX], 1
+004A7F3A   |.   8D55 D4                LEA      EDX, DWORD PTR SS:[EBP-2C]
+004A7F3D   |.   8D45 C8                LEA      EAX, DWORD PTR SS:[EBP-38]
+004A7F40   |.   B1 04                  MOV      CL, 4
+004A7F42   |.   E8 21ADF5FF            CALL     cdripper.00402C68
+004A7F47   |.   8D55 C8                LEA      EDX, DWORD PTR SS:[EBP-38]
+004A7F4A   |.   8D45 E8                LEA      EAX, DWORD PTR SS:[EBP-18]
+004A7F4D   |.   E8 BAC4F5FF            CALL     cdripper.0040440C
+004A7F52   |.   E8 CDABF5FF            CALL     cdripper.00402B24
+004A7F57   |.   8B45 F4                MOV      EAX, DWORD PTR SS:[EBP-C]        ;  //试炼码 1-4 位
+004A7F5A   |.   E8 4509F6FF            CALL     cdripper.004088A4                ;  //转 16 进制送入 EAX
+004A7F5F   |.   8BD8                   MOV      EBX, EAX                         ;  //EBX=EAX=试炼码 1-4 位 16 进制
+004A7F61   |.   8B45 F0                MOV      EAX, DWORD PTR SS:[EBP-10]       ;  //试炼码 6-9 位
+004A7F64   |.   E8 3B09F6FF            CALL     cdripper.004088A4                ;  //转 16 进制送入 EAX
+004A7F69   |.   8BC8                   MOV      ECX, EAX                         ;  //ECX=EAX=试炼码 6-9 位 16 进制
+004A7F6B   |.   81C3 CE070000          ADD      EBX, 7CE                         ;  //EBX=EBX+7CEh
+004A7F71   |.   8BC3                   MOV      EAX, EBX                         ;  //EAX=EBX
+004A7F73   |.   03C0                   ADD      EAX, EAX                         ;  //EAX=EAX+EAX
+004A7F75   |.   BB 10270000            MOV      EBX, 2710                        ;  //EBX=2710h
+004A7F7A   |.   99                     CDQ
+004A7F7B   |.   F7FB                   IDIV     EBX                               ;  //EAX/EBX,商送 EAX,余送 EDX
+004A7F7D   |.   3BCA                   CMP      ECX, EDX                         ;  //关键 1,将余数与试炼码 6-9 位 16 进制比较
+004A7F7F   |.   74 04                  JE       SHORT cdripper.004A7F85
+004A7F81   |.   33DB                   XOR      EBX, EBX
+004A7F83   |.   EB 2F                  JMP      SHORT cdripper.004A7FB4
+004A7F85   |>   8B45 EC                MOV      EAX, DWORD PTR SS:[EBP-14]       ;  //试炼码 11-14 位
+004A7F88   |.   E8 1709F6FF            CALL     cdripper.004088A4                ;  //转 16 进制送入 EAX
+004A7F8D   |.   8BD8                   MOV      EBX, EAX                         ;  //EBX=EAX=试炼码 11-14 位 16 进制
+004A7F8F   |.   8B45 E8                MOV      EAX, DWORD PTR SS:[EBP-18]       ;  //试炼码 16-19 位
+004A7F92   |.   E8 0D09F6FF            CALL     cdripper.004088A4                ;  //转 16 进制送入 EAX
+004A7F97   |.   8BC8                   MOV      ECX, EAX                         ;  //ECX=EAX=试炼码 16-19 位 16 进制
+004A7F99   |.   81C3 AE080000          ADD      EBX, 8AE                         ;  //EBX=EBX+8AEh
+004A7F9F   |.   8D045B                 LEA      EAX, DWORD PTR DS:[EBX+EBX*2]     ;  //EAX=EBX+EBX*2
+004A7FA2   |.   BB 10270000            MOV      EBX, 2710                        ;  //EBX=2710h
+004A7FA7   |.   99                     CDQ
+004A7FA8   |.   F7FB                   IDIV     EBX                               ;  //EAX/EBX,商送 EAX,余送 EDX
+004A7FAA   |.   3BCA                   CMP      ECX, EDX                         ;  //关键 2,将余数与试炼码 16-19 位 16 进制比较
+004A7FAC   |.   74 04                  JE       SHORT cdripper.004A7FB2
+004A7FAE   |.   33DB                   XOR      EBX, EBX
+004A7FB0   |.   EB 02                  JMP      SHORT cdripper.004A7FB4
+004A7FB2   |>   B3 01                  MOV      BL, 1
+004A7FB4   |>   33C0                   XOR      EAX, EAX
+004A7FB6   |.   5A                     POP      EDX
+004A7FB7   |.   59                     POP      ECX
+004A7FB8   |.   59                     POP      ECX
+004A7FB9   |.   64:8910                MOV      DWORD PTR FS:[EAX], EDX
+004A7FBC   |.   68 D67F4A00            PUSH     cdripper.004A7FD6
+004A7FC1   |>   8D45 E0                LEA      EAX, DWORD PTR SS:[EBP-20]
+004A7FC4   |.   BA 08000000            MOV      EDX, 8
+004A7FC9   |.   E8 FEC1F5FF            CALL     cdripper.004041CC
+004A7FCE   \\.  C3                     RETN
+004A7FCF    .^ E9 B8BBF5FF             JMP      cdripper.00403B8C
+004A7FD4    .^ EB EB                   JMP      SHORT cdripper.004A7FC1
+004A7FD6    .  8BC3                    MOV      EAX, EBX
+004A7FD8    .  5B                      POP      EBX
+004A7FD9    .  8BE5                    MOV      ESP, EBP
+004A7FDB    .  5D                      POP      EBP
+004A7FDC    .  C3                      RETN
+
+```
+
+
+
+## 【破解总结】
+
+---
+
+## 【算法总结】
+
+1. 注册码与用户名无关,但用户名至少为 3 位
+2. 注册码形式如`XXXX-XXXX-XXXX-XXXX`,设为`A-B-C-D`
+3. `B=((A+7CEh)*2) mod 2710h`
+   `D=((C+8AEh)*3) mod 2710h`
+
+### 举例说明
+
+假设`A=1234`即`4D2h`
+
+`B=((4D2h+7CEh)*2) mod 2710h=1940h` 即`"6464"`
+
+假设`C=5678`即`162Eh`
+
+`D=((162Eh+8AEh)*3) mod 2710h=E74h` 即`"3700"`
+
+一组可用的注册码就出来了`"1234-6464-5678-3700"`
+
+---
+
+## 【算法注册机】
+
+### 〖易语言代码〗
+
+```
+.版本 2
+
+.子程序 _ 按钮 1_ 被单击
+
+.局部变量 Code1, 文本型
+
+.局部变量 Code2, 文本型
+
+.局部变量 Code3, 文本型
+
+.局部变量 Code4, 文本型
+
+Code1 ＝ 到文本 (取随机数 (0, 9)) ＋ 到文本 (取随机数 (0, 9)) ＋ 到文本 (取随机数 (0, 9)) ＋ 到文本 (取随机数 (0, 9))
+
+Code2 ＝ 取文本右边 (“0000” ＋ 到文本 ((到整数 (Code1) ＋ 1998) × 2 ％ 10000), 4)
+
+Code3 ＝ 到文本 (取随机数 (0, 9)) ＋ 到文本 (取随机数 (0, 9)) ＋ 到文本 (取随机数 (0, 9)) ＋ 到文本 (取随机数 (0, 9))
+
+Code4 ＝ 取文本右边 (“0000” ＋ 到文本 ((到整数 (Code3) ＋ 2222) × 3 ％ 10000), 4)
+
+编辑框 1.内容 ＝ Code1 ＋ “-” ＋ Code2 ＋ “-” ＋ Code3 ＋ “-” ＋ Code4
+```
+
+---
+
+## 【注册信息】
+
+保存在`[HKEY_LOCAL_MACHINE\SOFTWARE\QuickCDRipper]`
+
+---
+
+感谢飘云老大、猫老大、Nisy 老大以及很多前辈们的学习教程以及所有帮助过我的论坛兄弟姐妹们！
+
+感谢您能看完，谢谢！
+
+---
+
+## 【版权声明】
+
+破文是学习的手记，兴趣是成功的源泉；本破文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢!
