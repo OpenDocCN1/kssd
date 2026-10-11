@@ -1,0 +1,1141 @@
+
+# 关于 Rockey 的一点个人体会【原创】
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-123.htm`](https://www.pediy.com/kssd/pediy08/pediy8-123.htm)
+
+Rockey 4 标准版的分析日志  
+-yongpeng
+
+## 1、脱壳
+
+程序加了 `PECompact 1.68 - 1.84` -> `Jeremy Collake`,在有狗的情况下，对软件下 `ESP` 定律硬件访问断点，脱壳后，修复。
+
+## 2、来到关键读锁处：
+
+```
+0058B038                 .|  FF75 10        push dword ptr ss:[ebp+10]     Arg3 = 00000001
+0058B03B                 .|  FF75 0C        push dword ptr ss:[ebp+C]      Arg2 = 00000000
+0058B03E                 .|  FF75 08        push dword ptr ss:[ebp+8]      Arg1 = 0012F8E0
+0058B041                 .|  E8 B8FAFFFF    call d1.0058AAFE     关键读锁子程序
+
+0058AAFE                 /$  55           push ebp
+0058AAFF                 .|  8BEC         mov ebp,esp
+0058AB01                 .|  83C4 C8      add esp,-38
+0058AB04                 .|  53           push ebx
+0058AB05                 .|  56           push esi
+0058AB06                 .|  57           push edi
+0058AB07                 .|  8B75 10      mov esi,dword ptr ss:[ebp+10]  //00000001
+0058AB0A                 .|  8B5D 08      mov ebx,dword ptr ss:[ebp+8]   //0012f8E0
+0058AB0D                 .|  B8 01000000  mov eax,1
+0058AB12                 .| > /66:C745 F4 EFBF  /mov word ptr ss:[ebp-C],0BFEF  //基本口令 1
+0058AB18                 .| | 66:C745 F2 B070  |mov word ptr ss:[ebp-E],70B0   //基本口令 2
+0058AB1E                 .| | 33D2             |xor edx,edx
+0058AB20                 .| | 66:8955 EE      |mov word ptr ss:[ebp-12],dx
+0058AB24                 .| | 66:8955 F0      |mov word ptr ss:[ebp-10],dx
+0058AB28                 .| | 8D4D D4         |lea ecx,dword ptr ss:[ebp-2C]
+0058AB2B                 .| | 51              |push ecx
+0058AB2C                 .| | 8D55 EE         |lea edx,dword ptr ss:[ebp-12]
+0058AB2F                 .| | 52              |push edx
+0058AB30                 .| | 8D4D F0         |lea ecx,dword ptr ss:[ebp-10]
+0058AB33                 .| | 51              |push ecx
+0058AB34                 .| | 8D55 F2         |lea edx,dword ptr ss:[ebp-E]
+0058AB37                 .| | 52              |push edx
+0058AB38                 .| | 8D4D F4         |lea ecx,dword ptr ss:[ebp-C]
+0058AB3B                 .| | 51              |push ecx
+0058AB3C                 .| | 8D55 F8         |lea edx,dword ptr ss:[ebp-8]
+0058AB3F                 .| | 52              |push edx
+0058AB40                 .| | 8D4D FC         |lea ecx,dword ptr ss:[ebp-4]   //lp1 为返回的硬件锁 ID:88888888
+0058AB43                 .| | 51              |push ecx
+0058AB44                 .| | 8D55 F6         |lea edx,dword ptr ss:[ebp-A]
+0058AB47                 .| | 52              |push edx
+0058AB48                 .| | 50              |push eax
+0058AB49                 .| | FF15 94E16400   |call dword ptr ds:[64E194]   //找锁
+```
+
+/* 基本格式:
+
+`WORD Rockey(WORD function, WORD* handle, DWORD* lp1,  DWORD* lp2, WORD* p1, WORD* p2, WORD* p3, WORD* p4, BYTE* buffer)`
+
+(1) 查找锁
+
+输入参数:
+
+`function` = 1
+`*p1` = `pass1`
+`*p2` = `pass2`
+`*p3` = `pass3`
+`*p4` = `pass4`
+
+返回:
+
+`*lp1` 为锁的硬件 `ID`
+返回为 0 表示成功, 其它为错误码
+
+*/
+
+```
+0058AB4F                 .| | 83C4 24         |add esp,24
+0058AB52                 .| | 66:85C0         |test ax,ax
+0058AB55                 .| | 74 07           |je short d1.0058AB5E
+0058AB57                 .| | 33C0            |xor eax,eax
+0058AB59                 .| | E9 C1030000     |jmp d1.0058AF1F
+0058AB5E                 .| > | 66:C745 F4 EFBF  |mov word ptr ss:[ebp-C],0BFEF
+0058AB64                 .| | 66:C745 F2 B070  |mov word ptr ss:[ebp-E],70B0
+0058AB6A                 .| | 33C9            |xor ecx,ecx
+0058AB6C                 .| | 66:894D EE      |mov word ptr ss:[ebp-12],cx
+0058AB70                 .| | 66:894D F0      |mov word ptr ss:[ebp-10],cx
+0058AB74                 .| | 8D45 D4         |lea eax,dword ptr ss:[ebp-2C]
+0058AB77                 .| | 50              |push eax
+0058AB78                 .| | 8D55 EE         |lea edx,dword ptr ss:[ebp-12]
+0058AB7B                 .| | 52              |push edx
+0058AB7C                 .| | 8D45 F0         |lea eax,dword ptr ss:[ebp-10]
+0058AB7F                 .| | 50              |push eax
+0058AB80                 .| | 8D55 F2         |lea edx,dword ptr ss:[ebp-E]
+0058AB83                 .| | 52              |push edx
+0058AB84                 .| | 8D4D F4         |lea ecx,dword ptr ss:[ebp-C]
+0058AB87                 .| | 51              |push ecx
+0058AB88                 .| | 8D45 F8         |lea eax,dword ptr ss:[ebp-8]
+0058AB8B                 .| | 50              |push eax
+0058AB8C                 .| | 8D55 FC         |lea edx,dword ptr ss:[ebp-4]    //为硬件 ID
+0058AB8F                 .| | 52              |push edx
+0058AB90                 .| | 8D4D F6         |lea ecx,dword ptr ss:[ebp-A]    //返回后为锁句柄
+0058AB93                 .| | 51              |push ecx
+0058AB94                 .| | 6A 03           |push 3     //打开锁
+0058AB96                 .| | FF15 94E16400   |call dword ptr ds:[64E194]
+```
+
+/*
+
+(3) 打开锁
+
+输入参数:
+
+`function` = 3
+`*p1` = `pass1`
+`*p2` = `pass2`
+`*p3` = `pass3`
+`*p4` = `pass4`
+`*lp1` = 硬件 `ID`
+
+返回:
+
+`*handle` 为锁的句柄
+返回为 0 表示成功, 其它为错误码
+
+*/
+
+```
+0058AB9C                 .| | 83C4 24         |add esp,24
+0058AB9F                 .| | 66:85C0         |test ax,ax
+0058ABA2                 .| | 75 74           |jnz short d1.0058AC18
+0058ABA4                 .| | 8D45 D4         |lea eax,dword ptr ss:[ebp-2C]
+0058ABA7                 .| | 50              |push eax
+0058ABA8                 .| | 8D55 EE         |lea edx,dword ptr ss:[ebp-12]
+0058ABAB                 .| | 52              |push edx
+0058ABAC                 .| | 8D4D F0         |lea ecx,dword ptr ss:[ebp-10]
+0058ABAF                 .| | 51              |push ecx
+0058ABB0                 .| | 8D45 F2         |lea eax,dword ptr ss:[ebp-E]
+0058ABB3                 .| | 50              |push eax
+0058ABB4                 .| | 8D55 F4         |lea edx,dword ptr ss:[ebp-C]
+0058ABB7                 .| | 52              |push edx
+0058ABB8                 .| | 8D4D F8         |lea ecx,dword ptr ss:[ebp-8]
+0058ABBB                 .| | 51              |push ecx
+0058ABBC                 .| | 8D45 FC         |lea eax,dword ptr ss:[ebp-4]   //返回后为用户 ID 77777777
+0058ABBF                 .| | 50              |push eax
+0058ABC0                 .| | 8D55 F6         |lea edx,dword ptr ss:[ebp-A]
+0058ABC3                 .| | 52              |push edx
+0058ABC4                 .| | 6A 0A           |push 0A
+0058ABC6                 .| | FF15 94E16400   |call dword ptr ds:[64E194]
+```
+
+//
+
+(10) 读用户 `ID`
+
+`function` = 10
+`*handle` = 锁的句柄
+
+返回:
+
+`*lp1` = 用户 `ID`
+
+
+
+`返回为 0 表示成功, 其它为错误码`
+
+```
+0058ABCC |. |83C4 24 |add esp,24
+0058ABCF |. |66:85C0 |test ax,ax
+0058ABD2 |. |75 19 |jnz short d1.0058ABED
+0058ABD4 |. |FF75 FC |push dword ptr ss:[ebp-4] //存放的用户 ID
+0058ABD7 |. |8D4D D1 |lea ecx,dword ptr ss:[ebp-2F] ; |
+0058ABDA |. |51 |push ecx ; |Arg1
+0058ABDB |. |E8 1CFEFFFF |call d1.0058A9FC ; 对用户 ID 进行运算,有狗,所以直接读出用户 ID
+0058ABE0 |. |8B45 0C |mov eax,dword ptr ss:[ebp+C] //程序入口参数
+0058ABE3 |. |33D2 |xor edx,edx
+0058ABE5 |. |8A5405 D1 |mov dl,byte ptr ss:[ebp+eax-2F]
+0058ABE9 |. |3BF2 |cmp esi,edx //对用户 ID 运算的结果比较
+0058ABEB |. |74 35 |je short d1.0058AC22 //跳向下一操作,不跳 OVER
+0058ABED |> |8D4D D4 |lea ecx,dword ptr ss:[ebp-2C]
+0058ABF0 |. |51 |push ecx
+0058ABF1 |. |8D45 EE |lea eax,dword ptr ss:[ebp-12]
+0058ABF4 |. |50 |push eax
+0058ABF5 |. |8D55 F0 |lea edx,dword ptr ss:[ebp-10]
+0058ABF8 |. |52 |push edx
+0058ABF9 |. |8D4D F2 |lea ecx,dword ptr ss:[ebp-E]
+0058ABFC |. |51 |push ecx
+0058ABFD |. |8D45 F4 |lea eax,dword ptr ss:[ebp-C]
+0058AC00 |. |50 |push eax
+0058AC01 |. |8D55 F8 |lea edx,dword ptr ss:[ebp-8]
+0058AC04 |. |52 |push edx
+0058AC05 |. |8D4D FC |lea ecx,dword ptr ss:[ebp-4]
+0058AC08 |. |51 |push ecx
+0058AC09 |. |8D45 F6 |lea eax,dword ptr ss:[ebp-A]
+0058AC0C |. |50 |push eax //为锁的句柄
+0058AC0D |. |6A 04 |push 4 //关闭锁
+0058AC0F |. |FF15 94E16400 |call dword ptr ds:[64E194]
+```
+
+```
+(4) 关闭锁
+    输入参数:
+    function = 4
+    *handle = 锁的句柄
+    返回:
+    返回为 0 表示成功, 其它为错误码
+```
+
+```
+0058AC15 |. |83C4 24 |add esp,24
+0058AC18 |> |B8 02000000 |mov eax,2
+0058AC1D |. |E9 F0FEFFFF |jmp d1.0058AB12
+0058AC22 |> 66:8B55 0C mov dx,word ptr ss:[ebp+C] //入口参数赋值
+0058AC26 |. C1E2 03 shl edx,3
+0058AC29 |. 66:8955 F4 mov word ptr ss:[ebp-C],dx //读入内容的开始地址 0
+0058AC2D |. 66:C745 F2 0800 mov word ptr ss:[ebp-E],8 //读入内容的长度 8
+0058AC33 |. 53 push ebx //为 buffer 指针,返回后,添入读入的内容
+0058AC34 |. 8D4D EE lea ecx,dword ptr ss:[ebp-12]
+0058AC37 |. 51 push ecx
+0058AC38 |. 8D45 F0 lea eax,dword ptr ss:[ebp-10]
+0058AC3B |. 50 push eax
+0058AC3C |. 8D55 F2 lea edx,dword ptr ss:[ebp-E]
+0058AC3F |. 52 push edx //p2
+0058AC40 |. 8D4D F4 lea ecx,dword ptr ss:[ebp-C]
+0058AC43 |. 51 push ecx //p1
+0058AC44 |. 8D45 F8 lea eax,dword ptr ss:[ebp-8]
+0058AC47 |. 50 push eax //lp2
+0058AC48 |. 8D55 FC lea edx,dword ptr ss:[ebp-4]
+0058AC4B |. 52 push edx //lp1
+0058AC4C |. 8D4D F6 lea ecx,dword ptr ss:[ebp-A]
+0058AC4F |. 51 push ecx //handle
+0058AC50 |. 6A 05 push 5 //function 读锁
+0058AC52 |. FF15 94E16400 call dword ptr ds:[64E194]
+```
+
+```
+(5) 读锁
+    输入参数:
+    function = 5
+    *handle = 锁的句柄
+    *p1 = pos
+    *p2 = length
+    buffer = 缓冲区的指针
+    返回:
+    buffer 中添入读入的内容
+    返回为 0 表示成功, 其它为错误码
+```
+
+```
+0058AC58 |. 83C4 24 add esp,24
+0058AC5B |. 66:85C0 test ax,ax
+0058AC5E |. 74 32 je short d1.0058AC92
+0058AC60 |. 8D45 D4 lea eax,dword ptr ss:[ebp-2C]
+0058AC63 |. 50 push eax
+0058AC64 |. 8D55 EE lea edx,dword ptr ss:[ebp-12]
+0058AC67 |. 52 push edx
+0058AC68 |. 8D4D F0 lea ecx,dword ptr ss:[ebp-10]
+0058AC6B |. 51 push ecx
+0058AC6C |. 8D45 F2 lea eax,dword ptr ss:[ebp-E]
+0058AC6F |. 50 push eax
+0058AC70 |. 8D55 F4 lea edx,dword ptr ss:[ebp-C]
+0058AC73 |. 52 push edx
+0058AC74 |. 8D4D F8 lea ecx,dword ptr ss:[ebp-8]
+0058AC77 |. 51 push ecx
+0058AC78 |. 8D45 FC lea eax,dword ptr ss:[ebp-4]
+0058AC7B |. 50 push eax
+0058AC7C |. 8D55 F6 lea edx,dword ptr ss:[ebp-A]
+0058AC7F |. 52 push edx //锁的句柄
+0058AC80 |. 6A 04 push 4
+0058AC82 |. FF15 94E16400 call dword ptr ds:[64E194]
+```
+
+```
+WORD Rockey(WORD function, WORD* handle, DWORD* lp1,  DWORD* lp2, WORD* p1, WORD* p2, WORD* p3, WORD* p4, BYTE* buffer)
+(4) 关闭锁
+    输入参数:
+    function = 4
+    *handle = 锁的句柄
+    返回:
+    返回为 0 表示成功, 其它为错误码
+```
+
+```
+0058AC88 |. 83C4 24 add esp,24
+0058AC8B |. 33C0 xor eax,eax
+0058AC8D |. E9 8D020000 jmp d1.0058AF1F
+0058AC92 |> 66:8B53 04 mov dx,word ptr ds:[ebx+4]
+0058AC96 |. 66:8953 0E mov word ptr ds:[ebx+E],dx
+0058AC9A |. 66:8B4B 06 mov cx,word ptr ds:[ebx+6]
+0058AC9E |. 66:894D CA mov word ptr ss:[ebp-36],cx
+0058ACA2 |. 33C0 xor eax,eax
+0058ACA4 |. 8945 FC mov dword ptr ss:[ebp-4],eax
+0058ACA7 |. 8B55 0C mov edx,dword ptr ss:[ebp+C]
+0058ACAA |. 8D1492 lea edx,dword ptr ds:[edx+edx*4]
+0058ACAD |. 8955 F8 mov dword ptr ss:[ebp-8],edx
+0058ACB0 |. E8 03FEFFFF call d1.0058AAB8 //取启动时间(),用作返回值
+0058ACB5 |. 8BF8 mov edi,eax
+```
+
+
+
+```
+0058ACB7                 |.   66:8945 F4     mov word ptr ss:[ebp-C],ax  
+0058ACBB                 |.   E8 F8FDFFFF    call d1.0058AAB8  
+0058ACC0                 |.   8BF0           mov esi,eax  
+0058ACC2                 |.   66:8945 F2     mov word ptr ss:[ebp-E],ax  
+0058ACC6                 |.   E8 EDFDFFFF    call d1.0058AAB8  
+0058ACCB                 |.   66:8945 CE     mov word ptr ss:[ebp-32],ax  
+0058ACCF                 |.   66:8945 F0     mov word ptr ss:[ebp-10],ax  
+0058ACD3                 |.   E8 E0FDFFFF    call d1.0058AAB8  
+0058ACD8                 |.   66:8945 CC     mov word ptr ss:[ebp-34],ax  
+0058ACDC                 |.   66:8945 EE     mov word ptr ss:[ebp-12],ax  
+0058ACE0                 |.   8D55 D4        lea edx,dword ptr ss:[ebp-2C]  
+0058ACE3                 |.   52             push edx  
+0058ACE4                 |.   8D4D EE        lea ecx,dword ptr ss:[ebp-12]  //输入值 4  返回后为返回值 4  
+0058ACE7                 |.   51             push ecx  
+0058ACE8                 |.   8D45 F0        lea eax,dword ptr ss:[ebp-10]  //输入值 3  返回后为返回值 3  
+0058ACEB                 |.   50             push eax  
+0058ACEC                 |.   8D55 F2        lea edx,dword ptr ss:[ebp-E]  //输入值 2  返回后为返回值 2  
+0058ACEF                 |.   52             push edx  
+0058ACF0                 |.   8D4D F4        lea ecx,dword ptr ss:[ebp-C]  //输入值 1  返回后为返回值 1  
+0058ACF3                 |.   51             push ecx  
+0058ACF4                 |.   8D45 F8        lea eax,dword ptr ss:[ebp-8]  //模块号  
+0058ACF7                 |.   50             push eax  
+0058ACF8                 |.   8D55 FC        lea edx,dword ptr ss:[ebp-4]  //计算起始点  
+0058ACFB                 |.   52             push edx       
+0058ACFC                 |.   8D4D F6        lea ecx,dword ptr ss:[ebp-A]  //锁的句柄  
+0058ACFF                 |.   51             push ecx       
+0058AD00                 |.   6A 0E          push 0E        //ROCKEY 算法 1  
+0058AD02                 |.   FF15 94E16400  call dword ptr ds:[64E194]  
+
+/*
+WORD Rockey(WORD function, WORD* handle, DWORD* lp1,  DWORD* lp2, WORD* p1, WORD* p2, WORD* p3, WORD* p4, BYTE* buffer)
+
+(14) 计算 1 (模块字, ID 高位, ID 低位, 随机数)
+
+     function = 14
+     *handle = 锁的句柄
+     *lp1 = 计算起始点
+     *lp2 = 模块号
+     *p1 = 输入值 1
+     *p2 = 输入值 2
+     *p3 = 输入值 3
+     *p4 = 输入值 4
+
+     返回:
+     *p1 = 返回值 1
+     *p2 = 返回值 2
+     *p3 = 返回值 3
+     *p4 = 返回值 4
+
+     返回为 0 表示成功, 其它为错误码
+
+A  P1
+
+B  P2
+
+C  P3
+
+D  P4
+
+隐藏的变量
+
+E  硬件ＩＤ号的高１６位
+
+F  硬件ＩＤ号的低１６位
+
+G  模块内容
+
+H  随机数
+
+\------------------------------------------- 
+
+我们没有办法看到锁内的算法,不过可以分析程序对返回值进行了什么样的操作,进而分析出黑匣内面的东西,继续向下看 
+
+\------------------------------------------- 
+
+*/
+0058AD08                 |.   83C4 24        add esp,24  
+0058AD0B                 |.   66:85C0        test ax,ax  
+0058AD0E                 |.   74 32          je short d1.0058AD42    //如果不跳就 OVER   
+0058AD10                 |.   8D45 D4        lea eax,dword ptr ss:[ebp-2C]  
+0058AD13                 |.   50             push eax  
+0058AD14                 |.   8D55 EE        lea edx,dword ptr ss:[ebp-12]  
+0058AD17                 |.   52             push edx  
+0058AD18                 |.   8D4D F0        lea ecx,dword ptr ss:[ebp-10]  
+0058AD1B                 |.   51             push ecx  
+0058AD1C                 |.   8D45 F2        lea eax,dword ptr ss:[ebp-E]  
+0058AD1F                 |.   50             push eax  
+0058AD20                 |.   8D55 F4        lea edx,dword ptr ss:[ebp-C]  
+0058AD23                 |.   52             push edx  
+0058AD24                 |.   8D4D F8        lea ecx,dword ptr ss:[ebp-8]  
+0058AD27                 |.   51             push ecx  
+0058AD28                 |.   8D45 FC        lea eax,dword ptr ss:[ebp-4]  
+0058AD2B                 |.   50             push eax  
+0058AD2C                 |.   8D55 F6        lea edx,dword ptr ss:[ebp-A]  
+0058AD2F                 |.   52             push edx  
+0058AD30                 |.   6A 04          push 4         //关闭锁  
+0058AD32                 |.   FF15 94E16400  call dword ptr ds:[64E194]  
+0058AD38                 |.   83C4 24        add esp,24  
+0058AD3B                 |.   33C0           xor eax,eax  
+0058AD3D                 |.   E9 DD010000    jmp d1.0058AF1F  
+0058AD42                 |>   66:8B55 F4     mov dx,word ptr ss:[ebp-C]  //返回值 1  
+0058AD46                 |.   66:3155 F2     xor word ptr ss:[ebp-E],dx  //ebp-E:返回值 2  
+0058AD4A                 |.   6A 07          push 7                                ; /Arg2 = 00000007  
+0058AD4C                 |.   66:8B4D EE     mov cx,word ptr ss:[ebp-12]  //返回值 4         ; |  
+0058AD50                 |.   51             push ecx                              ; |Arg1  
+0058AD51                 |.   E8 85FDFFFF    call d1.0058AADB    对返回值进行运算  
+0058AD56                 |.   83C4 08        add esp,8  
+0058AD59                 |.   66:8B55 F4     mov dx,word ptr ss:[ebp-C]  
+0058AD5D                 |.   66:0355 F2     add dx,word ptr ss:[ebp-E]  
+0058AD61                 |.   66:2B55 F0     sub dx,word ptr ss:[ebp-10]  
+0058AD65                 |.   66:3BC2        cmp ax,dx    //对运算后的返回值与另一运算值进行比较  
+0058AD68                 |.   75 14          jnz short d1.0058AD7E  //跳就 OVER  
+0058AD6A                 |.   8D043E         lea eax,dword ptr ds:[esi+edi]  
+0058AD6D                 |.   66:8B4D CE     mov cx,word ptr ss:[ebp-32]  
+0058AD71                 |.   66:2B4D CC     sub cx,word ptr ss:[ebp-34]  
+0058AD75                 |.   66:33C1        xor ax,cx  //再比较  
+0058AD78                 |.   66:3B45 F0     cmp ax,word ptr ss:[ebp-10]  
+0058AD7C                 |.   74 32          je short d1.0058ADB0  
+0058AD7E                 |>   8D45 D4        lea eax,dword ptr ss:[ebp-2C]  
+0058AD81                 |.   50             push eax  
+0058AD82                 |.   8D55 EE        lea edx,dword ptr ss:[ebp-12]  
+0058AD85                 |.   52             push edx  
+0058AD86                 |.   8D4D F0        lea ecx,dword ptr ss:[ebp-10]  
+0058AD89                 |.   51             push ecx  
+0058AD8A                 |.   8D45 F2        lea eax,dword ptr ss:[ebp-E]  
+0058AD8D                 |.   50             push eax  
+0058AD8E                 |.   8D55 F4        lea edx,dword ptr ss:[ebp-C]  
+0058AD91                 |.   52             push edx  
+0058AD92                 |.   8D4D F8        lea ecx,dword ptr ss:[ebp-8]  
+0058AD95                 |.   51             push ecx  
+0058AD96                 |.   8D45 FC        lea eax,dword ptr ss:[ebp-4]  
+0058AD99                 |.   50             push eax  
+0058AD9A                 |.   8D55 F6        lea edx,dword ptr ss:[ebp-A]  
+0058AD9D                 |.   52             push edx
+```
+
+
+
+```
+0058AD9E         |.   6A 04             push 4        //关闭锁
+
+0058ADA0         |.   FF15 94E16400    call dword ptr ds:[64E194]
+
+0058ADA6         |.   83C4 24          add esp,24
+
+0058ADA9         |.   33C0             xor eax,eax
+
+0058ADAB         |.   E9 6F010000      jmp d1.0058AF1F
+
+0058ADB0         |>   66:8B55 F4      mov dx,word ptr ss:[ebp-C]
+
+0058ADB4         |.   66:2BD6         sub dx,si
+
+0058ADB7         |.   66:3355 F2      xor dx,word ptr ss:[ebp-E]
+
+0058ADBB         |.   66:8953 04      mov word ptr ds:[ebx+4],dx
+
+0058ADBF         |.   C745 FC 1000000>mov dword ptr ss:[ebp-4],10
+
+0058ADC6         |.   8B4D 0C         mov ecx,dword ptr ss:[ebp+C]
+
+0058ADC9         |.   8D0C89          lea ecx,dword ptr ds:[ecx+ecx*4]
+
+0058ADCC         |.   41               inc ecx
+
+0058ADCD         |.   894D F8         mov dword ptr ss:[ebp-8],ecx
+
+0058ADD0         |.   E8 E3FCFFFF     call d1.0058AAB8
+
+0058ADD5         |.   8BF8             mov edi,eax
+
+0058ADD7         |.   66:8945 F4      mov word ptr ss:[ebp-C],ax
+
+0058ADDB         |.   E8 D8FCFFFF     call d1.0058AAB8
+
+0058ADE0         |.   8BF0             mov esi,eax
+
+0058ADE2         |.   66:8945 F2      mov word ptr ss:[ebp-E],ax
+
+0058ADE6         |.   E8 CDFCFFFF     call d1.0058AAB8
+
+0058ADEB         |.   66:8945 CE      mov word ptr ss:[ebp-32],ax
+
+0058ADEF         |.   66:8945 F0      mov word ptr ss:[ebp-10],ax
+
+0058ADF3         |.   E8 C0FCFFFF     call d1.0058AAB8
+
+0058ADF8         |.   66:8945 CC      mov word ptr ss:[ebp-34],ax
+
+0058ADFC         |.   66:8945 EE      mov word ptr ss:[ebp-12],ax
+
+0058AE00         |.   8D55 D4         lea edx,dword ptr ss:[ebp-2C]
+
+0058AE03         |.   52               push edx
+
+0058AE04         |.   8D4D EE         lea ecx,dword ptr ss:[ebp-12]  //输入值 4  返回值 4
+
+0058AE07         |.   51               push ecx
+
+0058AE08         |.   8D45 F0         lea eax,dword ptr ss:[ebp-10]  //输入值 3  返回值 3
+
+0058AE0B         |.   50               push eax
+
+0058AE0C         |.   8D55 F2         lea edx,dword ptr ss:[ebp-E]  //输入值 2  返回值 2
+
+0058AE0F         |.   52               push edx
+
+0058AE10         |.   8D4D F4         lea ecx,dword ptr ss:[ebp-C]  //输入值 1  返回值 1
+
+0058AE13         |.   51               push ecx
+
+0058AE14         |.   8D45 F8         lea eax,dword ptr ss:[ebp-8]  //密码超始地址
+
+0058AE17         |.   50               push eax
+
+0058AE18         |.   8D55 FC         lea edx,dword ptr ss:[ebp-4]  //计算起始点
+
+0058AE1B         |.   52               push edx
+
+0058AE1C         |.   8D4D F6         lea ecx,dword ptr ss:[ebp-A]
+
+0058AE1F         |.   51               push ecx      //锁的句柄
+
+0058AE20         |.   6A 10            push 10        //计算 3
+
+0058AE22         |.   FF15 94E16400    call dword ptr ds:[64E194]
+
+/*
+
+WORD Rockey(WORD function, WORD* handle, DWORD* lp1,  DWORD* lp2, WORD* p1, WORD* p2, WORD* p3, WORD* p4, BYTE* buffer)
+
+(16) 计算 3
+
+     function = 15
+
+     *handle = 锁的句柄
+
+     *lp1 = 计算起始点
+
+     *lp2 = 密码起始地址
+
+     *p1 = 输入值 1
+
+     *p2 = 输入值 2
+
+     *p3 = 输入值 3
+
+     *p4 = 输入值 4
+
+     返回:
+
+     *p1 = 返回值 1
+
+     *p2 = 返回值 2
+
+     *p3 = 返回值 3
+
+     *p4 = 返回值 4
+
+     返回为 0 表示成功, 其它为错误码
+
+A  P1
+
+B  P2
+
+C  P3
+
+D  P4
+
+E  lp2 中指定的模块内容
+
+F  lp2+1 中指定的模块内容
+
+G  lp2+2 中指定的模块内容
+
+H  lp2+3 中指定的模块内容
+
+*/
+
+0058AE28         |.   83C4 24          add esp,24
+
+0058AE2B         |.   66:85C0         test ax,ax
+
+0058AE2E         |.   74 32            je short d1.0058AE62
+
+0058AE30         |.   8D45 D4         lea eax,dword ptr ss:[ebp-2C]
+
+0058AE33         |.   50               push eax
+
+0058AE34         |.   8D55 EE         lea edx,dword ptr ss:[ebp-12]
+
+0058AE37         |.   52               push edx
+
+0058AE38         |.   8D4D F0         lea ecx,dword ptr ss:[ebp-10]
+
+0058AE3B         |.   51               push ecx
+
+0058AE3C         |.   8D45 F2         lea eax,dword ptr ss:[ebp-E]
+
+0058AE3F         |.   50               push eax
+
+0058AE40         |.   8D55 F4         lea edx,dword ptr ss:[ebp-C]
+
+0058AE43         |.   52               push edx
+
+0058AE44         |.   8D4D F8         lea ecx,dword ptr ss:[ebp-8]
+
+0058AE47         |.   51               push ecx
+
+0058AE48         |.   8D45 FC         lea eax,dword ptr ss:[ebp-4]
+
+0058AE4B         |.   50               push eax
+
+0058AE4C         |.   8D55 F6         lea edx,dword ptr ss:[ebp-A]
+
+0058AE4F         |.   52               push edx
+
+0058AE50         |.   6A 04            push 4        //关闭锁
+
+0058AE52         |.   FF15 94E16400    call dword ptr ds:[64E194]
+
+0058AE58         |.   83C4 24          add esp,24
+
+0058AE5B         |.   33C0             xor eax,eax
+
+0058AE5D         |.   E9 BD000000     jmp d1.0058AF1F
+
+0058AE62         |>   6A 05            push 5                                  ; /Arg2 = 00000005
+
+0058AE64         |.   66:337D F4      xor di,word ptr ss:[ebp-C]             ; |
+
+0058AE68         |.   57               push edi                               ; |Arg1
+
+0058AE69         |.   E8 6DFCFFFF     call d1.0058AADB                       ; \d1.0058AADB
+
+0058AADB         /$   55               push ebp
+
+0058AADC         |.   8BEC             mov ebp,esp
+
+0058AADE         |.   53               push ebx
+
+0058AADF         |.   8B55 0C         mov edx,dword ptr ss:[ebp+C]  //参数 00000007>edx
+
+0058AAE2         |.   8B45 08         mov eax,dword ptr ss:[ebp+8]  //参数 001229c3>eax
+
+0058AAE5         |.   8BCA             mov ecx,edx     //拷贝
+
+0058AAE7         |.   0FB7D8          movzx ebx,ax     //ebx=p4=  29C3
+
+0058AAEA         |.   D3FB             sar ebx,cl  //cl=7  //循环右移 7 位=00000053
+
+0058AAEC         |.   B9 10000000     mov ecx,10  //10
+
+0058AAF1         |.   2BCA             sub ecx,edx  //ecx=9
+
+0058AAF3         |.   66:D3E0         shl ax,cl  //左移 p4 9 位
+
+0058AAF6         |.   66:0BD8         or bx,ax  //或 p4 第一次运数  ，p4 第三次运数  最后结果 00008653
+
+0058AAF9         |.   8BC3             mov eax,ebx  //将最后结果放入 eax
+
+0058AAFB         |.   5B               pop ebx    //出
+
+0058AAFC         |.   5D               pop ebp
+
+0058AAFD         \.   C3               retn
+
+0058AE6E         |.   83C4 08          add esp,8
+```
+
+
+
+```asm
+0058AE71                |.   8BF8          mov edi,eax
+
+0058AE73                |.   6A 06          push 6                     ; /Arg2 = 00000006
+
+0058AE75                |.   66:3375 F2     xor si,word ptr ss:[ebp-E]             ; |
+
+0058AE79                |.   56            push esi                   ; |Arg1
+
+0058AE7A                |.   E8 5CFCFFFF    call d1.0058AADB             ; \\d1.0058AADB
+
+0058AE7F                |.   83C4 08       add esp,8
+
+0058AE82                |.   8BF0          mov esi,eax
+
+0058AE84                |.   6A 07          push 7                     ; /Arg2 = 00000007
+
+0058AE86                |.   66:8B55 CE     mov dx,word ptr ss:[ebp-32]           ; |
+
+0058AE8A                |.   66:3355 F0     xor dx,word ptr ss:[ebp-10]           ; |
+
+0058AE8E                |.   52            push edx                   ; |Arg1
+
+0058AE8F                |.   E8 47FCFFFF    call d1.0058AADB             ; \\d1.0058AADB
+
+0058AE94                |.   83C4 08       add esp,8
+
+0058AE97                |.   66:8945 CE     mov word ptr ss:[ebp-32],ax
+
+0058AE9B                |.   6A 08          push 8                     ; /Arg2 = 00000008
+
+0058AE9D                |.   66:8B4D CC     mov cx,word ptr ss:[ebp-34]           ; |
+
+0058AEA1                |.   66:334D EE     xor cx,word ptr ss:[ebp-12]           ; |
+
+0058AEA5                |.   51            push ecx                   ; |Arg1
+
+0058AEA6                |.   E8 30FCFFFF    call d1.0058AADB             ; \\d1.0058AADB
+
+0058AEAB                |.   83C4 08       add esp,8
+
+0058AEAE                |.   66:8945 CC     mov word ptr ss:[ebp-34],ax
+
+0058AEB2                |.   66:897B 06     mov word ptr ds:[ebx+6],di
+
+0058AEB6                |.   8BC6          mov eax,esi
+
+0058AEB8                |.   66:2BC7       sub ax,di
+
+0058AEBB                |.   66:8943 08     mov word ptr ds:[ebx+8],ax
+
+0058AEBF                |.   66:2B75 CE     sub si,word ptr ss:[ebp-32]
+
+0058AEC3                |.   66:8973 0A     mov word ptr ds:[ebx+A],si
+
+0058AEC7                |.   66:8B55 CC     mov dx,word ptr ss:[ebp-34]
+
+0058AECB                |.   66:0355 CE     add dx,word ptr ss:[ebp-32]
+
+0058AECF                |.   66:8953 0C     mov word ptr ds:[ebx+C],dx
+
+0058AED3                |.   66:8B33       mov si,word ptr ds:[ebx]
+
+0058AED6                |.   B8 01000000   mov eax,1
+
+0058AEDB                |>   66:333443      /xor si,word ptr ds:[ebx+eax*2]
+
+0058AEDF                |.   40            |inc eax
+
+0058AEE0                |.   83F8 08       |cmp eax,8
+
+0058AEE3                |.^ 7C F6        \\jl short d1.0058AEDB
+
+0058AEE5                |.   66:81F6 3F1D   xor si,1D3F
+
+0058AEEA                |.   8D55 D4       lea edx,dword ptr ss:[ebp-2C]
+
+0058AEED                |.   52            push edx
+
+0058AEEE                |.   8D4D EE       lea ecx,dword ptr ss:[ebp-12]
+
+0058AEF1                |.   51            push ecx
+
+0058AEF2                |.   8D45 F0       lea eax,dword ptr ss:[ebp-10]
+
+0058AEF5                |.   50            push eax
+
+0058AEF6                |.   8D55 F2       lea edx,dword ptr ss:[ebp-E]
+
+0058AEF9                |.   52            push edx
+
+0058AEFA                |.   8D4D F4       lea ecx,dword ptr ss:[ebp-C]
+
+0058AEFD                |.   51            push ecx
+
+0058AEFE                |.   8D45 F8       lea eax,dword ptr ss:[ebp-8]
+
+0058AF01                |.   50            push eax
+
+0058AF02                |.   8D55 FC       lea edx,dword ptr ss:[ebp-4]
+
+0058AF05                |.   52            push edx
+
+0058AF06                |.   8D4D F6       lea ecx,dword ptr ss:[ebp-A]
+
+0058AF09                |.   51            push ecx
+
+0058AF0A                |.   6A 04          push 4         //关闭锁
+
+0058AF0C                |.   FF15 94E16400  call dword ptr ds:[64E194]
+
+0058AF12                |.   83C4 24       add esp,24
+
+0058AF15                |.   66:3B75 CA     cmp si,word ptr ss:[ebp-36]
+
+0058AF19                |.   0F94C0        sete al
+
+0058AF1C                |.   83E0 01       and eax,1
+
+0058AF1F                |>   5F            pop edi
+
+0058AF20                |.   5E            pop esi
+
+0058AF21                |.   5B            pop ebx
+
+0058AF22                |.   8BE5          mov esp,ebp
+
+0058AF24                |.   5D            pop ebp
+
+0058AF25                |\.   C2 0C00       ret n 0C
+```
+
+通过带锁分析，主要是算法 `1` 和算法 `3` 比较难处理一些，程序中没有用 `DLL` 读锁，好像是用的静态库文件，我的办法是
+
+在程序在加入自己的读锁 `DLL` 和函数 `ROCKEY`，在 `CALL` 静态库的地址处，改为 `CALL` 自己的 `ROCKEY`，因我使用的易编的 `DLL` 文件，所以堆栈返回已经进行了平衡，要将 `ADD ESP, 24`，`NOP` 到，在自己的 `DLL` 文件中完成想要的功能，我想应该离成功不远了，算法 `1` 中使用了 `3` 个公式，不好分析出锁内的算法，我想起了 `NIG` 大牛哥说过的一句话，“猜，永远是最好的办法”，所以我写了个计次循环，虽然有点慢，不过也可以正常工作，算法 `3` 中使用了简单的进行了位异或。
+
+//////////////////////下面为我写的 `ROCKEY.DLL` 文件/////////////////////////////
+
+```
+.版本 2
+
+.支持库 eLIB
+
+.程序集 程序集 1
+
+.程序集变量 hh, 整数型
+
+.子程序 \_ 启动子程序, 整数型, , 请在本子程序中放置动态链接库初始化代码
+
+hh ＝ 获取进程句柄 (取执行文件名 ())
+
+\_ 临时子程序 ()  ' 在初始化代码执行完毕后调用测试代码
+
+返回 (0)  ' 返回值被忽略。
+
+.子程序 \_ 临时子程序
+
+.局部变量 dd, 文本型
+
+读内存文本 (hh, 十六进制文本到整数 (“0012F8E0”), dd, 8)
+
+输出调试文本 (dd)
+
+.子程序 Rockey, 逻辑型, 公开, 读锁关键子程序
+
+.参数 function, 短整数型, , 命令字
+
+.参数 handle, 短整数型, , 锁句柄
+
+.参数 lp1, 整数型, , 0012F674
+
+.参数 lp2, 整数型
+
+.参数 p1, 短整数型
+
+.参数 p2, 短整数型
+
+.参数 p3, 短整数型
+
+.参数 p4, 短整数型
+
+.参数 buffer, 文本型
+
+.局部变量 p1b, 整数型
+
+.局部变量 p2b, 整数型
+
+.局部变量 p3b, 整数型
+
+.局部变量 p4b, 整数型
+
+.局部变量 a, 文本型
+
+.局部变量 b, 文本型
+
+.局部变量 c, 文本型
+
+.局部变量 d, 文本型
+
+.局部变量 读内 1, 整数型
+
+.局部变量 读内 2, 整数型
+
+' WORD Rockey(WORD function, WORD\* handle, DWORD\* lp1,  DWORD\* lp2, WORD\* p1, WORD\* p2, WORD\* p3, WORD\* p4, BYTE\* buffer)
+
+.如果真 (function ＝ 1)
+
+    .判断循环首 (读内存整数 (hh, lp1) ≠ 十六进制文本到整数 (“5a0ec8d2”))
+
+        写内存整数 (hh, lp1, 十六进制文本到整数 (“5a0ec8d2”))
+
+    .判断循环尾 ()
+
+.如果真结束
+
+.如果真 (function ＝ 3)
+
+    .判断循环首 (读内存整数 (hh, lp1 － 6) ≠ 十六进制文本到整数 (“00030000”))
+
+        写内存整数 (hh, lp1 － 6, 十六进制文本到整数 (“00030000”))
+
+    .判断循环尾 ()
+
+.如果真结束
+
+.如果真 (function ＝ 十六进制文本到整数 (“0A”))  ' 读用户 ID
+
+    .判断循环首 (读内存整数 (hh, lp1) ≠ 十六进制文本到整数 (“8D44ED92”))
+
+        写内存整数 (hh, lp1, 十六进制文本到整数 (“8D44ED92”))
+
+    .判断循环尾 ()
+
+.如果真结束
+
+.如果真 (function ＝ 5)  ' 读锁
+
+    .如果真 (次数 ＝ 0)  ' 如果是第一次启动时,关键数据地址不同
+
+        .判断循环首 (取十六进制文本 (读内 1) ≠ “3B85D7F0” 且 取十六进制文本 (读内 2) ≠ “63FBBBD0”)
+
+            写内存字节集 (hh, 十六进制文本到整数 (“0012F8E0”), 到字节集 (十六进制文本到整数 (“D7F0”)))
+
+            写内存字节集 (hh, 十六进制文本到整数 (“0012F8E0”) ＋ 2, 到字节集 (十六进制文本到整数 (“3B85”)))
+
+            写内存字节集 (hh, 十六进制文本到整数 (“0012F8E0”) ＋ 4, 到字节集 (十六进制文本到整数 (“BBD0”)))
+
+            写内存字节集 (hh, 十六进制文本到整数 (“0012F8E0”) ＋ 6, 到字节集 (十六进制文本到整数 (“63FB”)))
+
+            读内 1 ＝ 读内存整数 (hh, 十六进制文本到整数 (“0012F8E0”))
+
+            读内 2 ＝ 读内存整数 (hh, 十六进制文本到整数 (“0012F8E0”) ＋ 4)
+
+        .判断循环尾 ()
+
+    .如果真结束
+
+    .如果真 (次数 ＞ 0)
+
+        .判断循环首 (取十六进制文本 (读内 1) ≠ “3B85D7F0” 且 取十六进制文本 (读内 2) ≠ “63FBBBD0”)
+```
+
+
+
+```
+写内存字节集 (hh, 十六进制文本到整数 (“0012F0C8”), 到字节集 (十六进制文本到整数 (“D7F0”)))
+写内存字节集 (hh, 十六进制文本到整数 (“0012F0C8”) ＋ 2, 到字节集 (十六进制文本到整数 (“3B85”)))
+写内存字节集 (hh, 十六进制文本到整数 (“0012F0C8”) ＋ 4, 到字节集 (十六进制文本到整数 (“BBD0”)))
+写内存字节集 (hh, 十六进制文本到整数 (“0012F0C8”) ＋ 6, 到字节集 (十六进制文本到整数 (“63FB”)))
+
+读内 1 ＝ 读内存整数 (hh, 十六进制文本到整数 (“0012F0C8”))
+读内 2 ＝ 读内存整数 (hh, 十六进制文本到整数 (“0012F0C8”) ＋ 4)
+
+.判断循环尾 ()
+.如果真结束
+
+次数 ＝ 次数 ＋ 1
+
+' ' buffer ＝ “F0 D7 85 3B D0 BB FB 63”
+
+.如果真结束
+
+.如果真 (function ＝ 十六进制文本到整数 (“0E”))
+p4b ＝ 读内存整数 (hh, lp1 － 4 － 2 － 2 － 2 － 2 － 2)
+p3b ＝ 读内存整数 (hh, lp1 － 4 － 2 － 2 － 2 － 2)
+p2b ＝ 读内存整数 (hh, lp1 － 4 － 2 － 2 － 2)
+p1b ＝ 读内存整数 (hh, lp1 － 4 － 2 － 2)
+
+a ＝ 取文本右边 (取十六进制文本 (p1b), 4)
+b ＝ 取文本右边 (取十六进制文本 (p2b), 4)
+c ＝ 取文本右边 (取十六进制文本 (p3b), 4)
+d ＝ 取文本右边 (取十六进制文本 (p4b), 4)
+
+算法 1 子程序 (a, b, c, d, lp1)
+.如果真结束
+
+.如果真 (function ＝ 十六进制文本到整数 (“10”))
+p4b ＝ 读内存整数 (hh, lp1 － 4 － 2 － 2 － 2 － 2 － 2)
+p3b ＝ 读内存整数 (hh, lp1 － 4 － 2 － 2 － 2 － 2)
+p2b ＝ 读内存整数 (hh, lp1 － 4 － 2 － 2 － 2)
+p1b ＝ 读内存整数 (hh, lp1 － 4 － 2 － 2)
+
+a ＝ 取文本右边 (取十六进制文本 (p1b), 4)
+b ＝ 取文本右边 (取十六进制文本 (p2b), 4)
+c ＝ 取文本右边 (取十六进制文本 (p3b), 4)
+d ＝ 取文本右边 (取十六进制文本 (p4b), 4)
+
+算法 3 子程序 (a, b, c, d, lp1)
+.如果真结束
+
+.如果真 (function ＝ 4)
+.判断循环首 (读内存整数 (hh, lp1 － 6) ≠ 十六进制文本到整数 (“00000000”))
+写内存整数 (hh, lp1 － 6, 十六进制文本到整数 (“00000000”))
+.判断循环尾 ()
+.如果真结束
+
+返回 (假)
+```
+
+### 子程序：`算法 1 子程序`
+
+#### 参数定义
+- `.参数` `rp1`, 文本型
+- `.参数` `rp2`, 文本型
+- `.参数` `rp3`, 文本型
+- `.参数` `rp4`, 文本型
+- `.参数` `lp1`, 整数型
+
+#### 局部变量
+- `.局部变量` `p1`, 整数型
+- `.局部变量` `p2`, 整数型
+- `.局部变量` `p3`, 整数型
+- `.局部变量` `p4`, 整数型
+- `.局部变量` `A`, 整数型
+- `.局部变量` `B`, 整数型
+- `.局部变量` `C`, 整数型
+- `.局部变量` `D`, 整数型
+- `.局部变量` `D1`, 整数型
+- `.局部变量` `次数`, 整数型
+- `.局部变量` `次数 1`, 整数型
+- `.局部变量` `l1`, 整数型
+- `.局部变量` `l2`, 整数型
+- `.局部变量` `l3`, 整数型
+- `.局部变量` `l4`, 整数型
+- `.局部变量` `z1`, 文本型
+- `.局部变量` `z2`, 文本型
+- `.局部变量` `z3`, 文本型
+- `.局部变量` `z4`, 文本型
+- `.局部变量` `n1`, 文本型
+- `.局部变量` `n2`, 文本型
+- `.局部变量` `n3`, 文本型
+- `.局部变量` `n4`, 文本型
+
+#### 代码实现
+```
+p1 ＝ 十六进制文本到整数 (rp1)
+p2 ＝ 十六进制文本到整数 (rp2)
+p3 ＝ 十六进制文本到整数 (rp3)
+p4 ＝ 十六进制文本到整数 (rp4)
+
+' 信息框 (“内” ＋ 取十六进制文本 (p1) ＋ 取十六进制文本 (p2) ＋ 取十六进制文本 (p3) ＋ 取十六进制文本 (p4), 0, )
+
+C ＝ 位异或 (p1 ＋ p2, p3 － p4)
+
+.计次循环首 (65535, 次数)
+A ＝ 次数
+.计次循环首 (65535, 次数 1)
+B ＝ 次数 1
+l1 ＝ 位异或 (B, A)
+l2 ＝ 位异或 (A － p2, l1)
+.如果真 (取文本右边 (取十六进制文本 (l2), 4) ＝ “3214”)
+跳出循环 ()
+.如果真结束
+.计次循环尾 ()
+
+l3 ＝ 位异或 (B, A)
+l4 ＝ 位异或 (A － p2, l3)
+.如果真 (取文本右边 (取十六进制文本 (l4), 4) ＝ “3214”)
+A ＝ 次数
+B ＝ 次数 1
+D ＝ A ＋ 位异或 (B, A) － C
+跳出循环 ()
+.如果真结束
+.计次循环尾 ()
+
+.计次循环首 (65535, 次数)
+l1 ＝ 算术右移 (次数, 7)
+l2 ＝ 左移 (次数, 9)
+l3 ＝ 位或 (l1, l2)
+.如果真 (取文本右边 (取十六进制文本 (l3), 4) ＝ 取文本右边 (取十六进制文本 (D), 4))
+D1 ＝ 次数
+跳出循环 ()
+.如果真结束
+.计次循环尾 ()
+
+z1 ＝ 取文本右边 (取十六进制文本 (A), 4)
+z2 ＝ 取文本右边 (取十六进制文本 (B), 4)
+z3 ＝ 取文本右边 (取十六进制文本 (C), 4)
+z4 ＝ 取文本右边 (取十六进制文本 (D1), 4)
+
+.判断循环首 (n1 ≠ z1 ＋ z2 且 n2 ≠ z3 ＋ z4)
+写内存整数 (hh, lp1 － 6 － 2 － 2 － 2 － 2, 十六进制文本到整数 (z4))
+写内存整数 (hh, lp1 － 6 － 2 － 2 － 2, 十六进制文本到整数 (z3))
+写内存整数 (hh, lp1 － 6 － 2 － 2, 十六进制文本到整数 (z2))
+写内存整数 (hh, lp1 － 6 － 2, 十六进制文本到整数 (z1))
+n1 ＝ 取十六进制文本 (读内存整数 (hh, lp1 － 6 － 2 － 2))
+n2 ＝ 取十六进制文本 (读内存整数 (hh, lp1 － 6 － 2 － 2 － 2 － 2))
+.判断循环尾 ()
+
+返回 ()
+```
+
+### 子程序：`算法 3 子程序`
+
+#### 参数定义
+- `.参数` `rp1`, 文本型
+- `.参数` `rp2`, 文本型
+- `.参数` `rp3`, 文本型
+- `.参数` `rp4`, 文本型
+- `.参数` `lp1`, 整数型
+
+#### 局部变量
+- `.局部变量` `Z1`, 整数型
+- `.局部变量` `Z2`, 整数型
+- `.局部变量` `Z3`, 整数型
+- `.局部变量` `Z4`, 整数型
+- `.局部变量` `p1`, 整数型
+- `.局部变量` `p2`, 整数型
+- `.局部变量` `p3`, 整数型
+- `.局部变量` `p4`, 整数型
+- `.局部变量` `A`, 整数型
+- `.局部变量` `B`, 整数型
+- `.局部变量` `C`, 整数型
+- `.局部变量` `D`, 整数型
+- `.局部变量` `n1`, 文本型
+- `.局部变量` `n2`, 文本型
+
+#### 代码实现
+```
+p1 ＝ 十六进制文本到整数 (rp1)
+p2 ＝ 十六进制文本到整数 (rp2)
+p3 ＝ 十六进制文本到整数 (rp3)
+p4 ＝ 十六进制文本到整数 (rp4)
+
+A ＝ 位异或 (p1, 十六进制文本到整数 (“79AE”))
+B ＝ 位异或 (p2, 十六进制文本到整数 (“75E5”))
+C ＝ 位异或 (p3, 十六进制文本到整数 (“87EE”))
+D ＝ 位异或 (p4, 十六进制文本到整数 (“6B15”))
+
+Z4 ＝ 十六进制文本到整数 (取文本右边 (取十六进制文本 (A), 4))
+Z3 ＝ 十六进制文本到整数 (取文本右边 (取十六进制文本 (B), 4))
+Z2 ＝ 十六进制文本到整数 (取文本右边 (取十六进制文本 (C), 4))
+Z1 ＝ 十六进制文本到整数 (取文本右边 (取十六进制文本 (D), 4))
+
+.判断循环首 (n1 ≠ 取十六进制文本 (Z4) ＋ 取十六进制文本 (Z3) 且 n2 ≠ 取十六进制文本 (Z2) ＋ 取十六进制文本 (Z1))
+写内存整数 (hh, lp1 － 4 － 2 － 2 － 2 － 2 － 2, Z1)
+写内存整数 (hh, lp1 － 4 － 2 － 2 － 2 － 2, Z2)
+写内存整数 (hh, lp1 － 4 － 2 － 2 － 2, Z3)
+写内存整数 (hh, lp1 － 4 － 2 － 2, Z4)
+n1 ＝ 取十六进制文本 (读内存整数 (hh, lp1 － 6 － 2 － 2))
+n2 ＝ 取十六进制文本 (读内存整数 (hh, lp1 － 6 － 2 － 2 － 2 － 2))
+.判断循环尾 ()
+
+返回 ()
+```
+
+程序没有进行任何优化，主要实现了基本功能。
+--- yongpeng `4dd466d0e1e0cc123afbe504da2462ca`
