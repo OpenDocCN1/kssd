@@ -1,0 +1,140 @@
+
+# 给记事本增加一个启动页面
+
+> 原文：[`www.pediy.com/kssd/pediy11/127048.html`](https://www.pediy.com/kssd/pediy11/127048.html)
+
+以前一直在潜水，在学习。这两天学习有些心得，放上来和大家共享。
+
+写的很菜，见笑了。
+
+在论坛上也看到了好多关于给记事本程序做手术的文章，对于菜鸟们而言，有时候还是很高深，学起来很吃力。
+
+闲话少说，书归正传。
+
+目标：`XP` 记事本程序启动时，弹出一个界面而已。
+
+## 第一步：计算代码区可用空间
+
+`RawSize - VirtualSize=0xB8=184`，不干别的事足够用了。
+
+可用空间大的开始地址范围：
+
+`1001000+7748=0x1008748 --0x1008800`
+
+## 第二步：为了省事，避免过多的修改代码，启动界面由外部动态库程序提供
+
+我是使用 `Delphi` 实现的，主要代码如下：
+
+```delphi
+library My_NOTEPAD;
+
+  uses
+SysUtils,
+Classes,
+Unit_splash in 'Unit_splash.pas' {Form1};
+
+{$R *.res}
+
+exports Show_Me;
+
+begin
+
+end.
+
+unit Unit_splash;
+
+。。。。。。
+
+procedure Show_Me;stdcall;
+
+implementation
+
+{$R *.dfm}
+
+procedure Show_Me;stdcall;
+
+begin
+
+  with TForm1.Create(nil) do
+  begin
+    try
+      ShowModal;
+    finally
+      Free;
+    end;
+  end;
+end;
+```
+
+测试正确无误后，可以进行下一步。
+
+## 第三步：由于要调用动态库，要用到的函数有 `LoadLibraryA`，`GetProcAddress`，`FreeLibrary`
+
+可是在引用中没有找到 `FreeLibrary` 函数，需要手工引入。
+
+具体步骤如下：
+
+1. 用 `CFF Exploer` 打开记事本程序，在引入添加器中添加 `FreeLibrary` 的引用。添加动态库 `KERNEL32`，再按名字引入函数 `FreeLibrary`。
+2. 重建输入表，需要选中重建 `PE` 头和绑定输入表两项。我第一次使用时引入函数后直接保存退出，导致后面的失败。
+
+## 第四步：代码编写修改，在可用空间 `0x1008748` 处编写代码
+
+```asm
+01008748  >  $   90                                nop
+01008749    .  90                                nop
+0100874A    .  90                                nop
+0100874B    .  90                                nop
+0100874C    .  90                                nop
+0100874D    .  90                                nop
+0100874E    .  90                                nop
+0100874F    .  90                                nop
+01008750    .  90                                nop
+01008751    .  E8 23000000                       call My_NOTEP.01008779  ;//调用 Show_Me 过程
+01008756    .  90                                nop
+01008757    .  90                                nop
+01008758    .  90                                nop
+01008759    .  90                                nop
+0100875A    .  90                                nop
+0100875B    .  90                                nop
+0100875C    .^ E9 3CECFFFF                       jmp My_NOTEP.0100739D; //调回原 OEP
+01008761       90                                nop
+01008762    .  4D 79 5F 4E 4F 54 45 50 41 44 2>ascii "My_NOTEPAD.dll",0
+01008771    .  53 68 6F 77 5F 4D 65 00           ascii "Show_Me",0
+01008779  /$  53                                push ebx
+0100877A  |.  57                                push edi
+0100877B  |.  56                                push esi
+0100877C  |.  68 62870001                       push My_NOTEP.01008762                 ; /FileName = "My_NOTEPAD.dll"
+01008781  |.  FF15 C8100001                     call dword ptr ds:[<&KERNEL32.LoadLibraryA>]    ; \LoadLibraryA
+01008787  |.  8BD8                              mov ebx,eax
+01008789  |.  85DB                              test ebx,ebx
+0100878B  |.  74 28                             je short My_NOTEP.010087B5
+0100878D  |.  90                                nop
+0100878E  |.  90                                nop
+0100878F  |.  90                                nop
+01008790  |.  90                                nop
+01008791  |.  68 71870001                       push My_NOTEP.01008771                 ; /ProcNameOrOrdinal = "Show_Me"
+01008796  |.  53                                push ebx                               ; |hModule
+01008797  |.  FF15 10110001                     call dword ptr ds:[<&KERNEL32.GetProcAddress>] ; \GetProcAddress
+0100879D  |.  8BF8                              mov edi,eax
+0100879F  |.  8BF7                              mov esi,edi
+010087A1  |.  85FF                              test edi,edi
+010087A3  |.  74 10                             je short My_NOTEP.010087B5
+010087A5  |.  90                                nop
+010087A6  |.  90                                nop
+010087A7  |.  90                                nop
+010087A8  |.  90                                nop
+010087A9  |.  FFD6                              call esi
+010087AB  |.  53                                push ebx                               ; /hLibModule
+010087AC  |.  FF15 F7400101                     call dword ptr ds:[<&kernel32.FreeLibrary>]     ; \FreeLibrary
+010087B2  |.  90                                nop
+010087B3  |.  90                                nop
+010087B4  |.  90                                nop
+010087B5  |>   5E                                pop esi
+010087B6  |.  5F                                pop edi
+010087B7  |.  5B                                pop ebx
+010087B8  \\.  C3                                retn
+```
+
+最后用 `PE` 工具将程序的入口点修改为：`8748` 即可，在代码编辑中预留了空间，以后要增加修改代码时会方便些。
+
+请大家多多指教。

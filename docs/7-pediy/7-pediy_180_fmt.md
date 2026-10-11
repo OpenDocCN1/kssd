@@ -1,0 +1,2883 @@
+
+# 给飞狐交易师 v5.0.71120 网络版增加多接口
+
+> 原文：[`www.pediy.com/kssd/pediy10/90707.html`](https://www.pediy.com/kssd/pediy10/90707.html)
+
+很早以前的东西了，昨天从做系统的时候整理文件看到的，发上来看看能骗到点论坛积分不。呵呵。
+
+这款股票软件不知道是从 3.x 版还是 4.x 版后开始不支持多接口的，我接触这款软件的时候已经是 5.x 版了，参考了老版本中的一些代码，然后利用老版本代码来修复新版本(补代码的方式)来达到新版本增加功能的目的。
+
+脱壳和破解就不多说了，用脚本跑，然后断消息提示就搞定了。
+
+## 修改笔记
+
+由于代码较多前后我也搞了很长一段时间，所以中间笔记方面做的不是很好。
+
+这个笔记并不 100%完整，因为我当时也没整理，笔记中的内容都是我修改的时候简单注释的，并且笔记中的代码全部都是为网络版新增添的代码，源代码来自与低版本的飞狐，增添了笔记中的代码后网络版飞狐才变成了现在的网络专业版，这意味着单接口的飞狐变成了多接口的版本，95%的增加及修改代码都在这个段中了，基本上是从 `00BF5000` 这个地址开始的。还有一小部分代码是直接在程序原始位置修改的。因为暂时没空全部详细整理出来，大家将就参考吧精华基本也都在这 95%里了。
+
+`00BF4100` 地址开始的内容为后增加的代码用需要用到的文本字串，格式是 `ASCII` 的。可以当数据来看。
+
+## 新增代码段
+
+```
+00BF5000    90                 NOP
+00BF5001    90                 NOP
+00BF5002    C740 38 00000000   MOV DWORD PTR DS:[EAX+38],0                 ; 时间限制公式导入及使用限制解除
+00BF5009  - E9 999795FF        JMP <_text_54E7A7>
+00BF500E    90                 NOP
+00BF500F    90                 NOP
+00BF5010    90                 NOP
+00BF5011    90                 NOP
+00BF5012    60                 PUSHAD
+00BF5013    B8 0041BF00        MOV EAX,00BF4100
+00BF5018    B9 06000000        MOV ECX,6
+00BF501D    8B18               MOV EBX,DWORD PTR DS:[EAX]
+00BF501F    81F3 17060000      XOR EBX,617
+00BF5025    53                 PUSH EBX
+00BF5026    8F00               POP DWORD PTR DS:[EAX]
+00BF5028    83C0 04            ADD EAX,4
+00BF502B    49                 DEC ECX
+00BF502C    85C9               TEST ECX,ECX
+00BF502E  ^ 75 ED              JNZ SHORT 00BF501D
+00BF5030    61                 POPAD
+00BF5031    90                 NOP
+00BF5032    68 0041BF00        PUSH 00BF4100
+00BF5037  - E9 6D229EFF        JMP <_text_5D72A9>
+00BF503C    90                 NOP
+00BF503D    90                 NOP
+00BF503E    90                 NOP
+00BF503F    90                 NOP
+00BF5040    83FA 00            CMP EDX,0                                   ; 解决 K 线图下 Ctrl + F6 后附图指标切换的 BUG
+00BF5043    74 03              JE SHORT 00BF5048
+00BF5045    8B42 08            MOV EAX,DWORD PTR DS:[EDX+8]
+00BF5048    50                 PUSH EAX
+00BF5049    8B4D C4            MOV ECX,DWORD PTR SS:[EBP-3C]
+00BF504C    8B51 3C            MOV EDX,DWORD PTR DS:[ECX+3C]
+00BF504F    83FA 00            CMP EDX,0
+00BF5052    74 03              JE SHORT 00BF5057
+00BF5054    8B42 0C            MOV EAX,DWORD PTR DS:[EDX+C]
+00BF5057  - E9 40EEADFF        JMP 006D3E9C
+00BF505C    90                 NOP
+00BF505D    90                 NOP
+00BF505E    90                 NOP
+00BF505F    90                 NOP
+00BF5060    90                 NOP
+00BF5061    90                 NOP
+00BF5062    90                 NOP
+00BF5063    90                 NOP
+00BF5064    90                 NOP
+00BF5065    90                 NOP
+00BF5066    90                 NOP
+00BF5067    90                 NOP
+00BF5068    55                 PUSH EBP
+00BF5069    8BEC               MOV EBP,ESP
+00BF506B    83EC 20            SUB ESP,20
+00BF506E    894D F8            MOV DWORD PTR SS:[EBP-8],ECX
+00BF5071    8B45 F8            MOV EAX,DWORD PTR SS:[EBP-8]
+00BF5074    8B0D 985AA700      MOV ECX,DWORD PTR DS:[A75A98]
+00BF507A    8988 A8010000      MOV DWORD PTR DS:[EAX+1A8],ECX
+00BF5080    8B55 F8            MOV EDX,DWORD PTR SS:[EBP-8]
+00BF5083    A1 3033A700        MOV EAX,DWORD PTR DS:[A73330]
+00BF5088    8982 94010000      MOV DWORD PTR DS:[EDX+194],EAX
+00BF508E    8B4D F8            MOV ECX,DWORD PTR SS:[EBP-8]
+00BF5091    8B15 3433A700      MOV EDX,DWORD PTR DS:[A73334]
+00BF5097    8991 A0010000      MOV DWORD PTR DS:[ECX+1A0],EDX
+00BF509D    8B45 F8            MOV EAX,DWORD PTR SS:[EBP-8]
+00BF50A0    8B0D 3C33A700      MOV ECX,DWORD PTR DS:[A7333C]
+00BF50A6    8988 98010000      MOV DWORD PTR DS:[EAX+198],ECX
+00BF50AC    68 4433A700        PUSH 00A73344
+00BF50B1    8B4D F8            MOV ECX,DWORD PTR SS:[EBP-8]
+00BF50B4    81C1 9C010000      ADD ECX,19C
+00BF50BA    E8 73BFBDFF        CALL <CString::operator=(CString const &)>     ; JMP 到 mfc42.#858_CString::operator=
+00BF50BF    8B55 F8            MOV EDX,DWORD PTR SS:[EBP-8]
+00BF50C2    A1 4833A700        MOV EAX,DWORD PTR DS:[A73348]
+00BF50C7    8982 A4010000      MOV DWORD PTR DS:[EDX+1A4],EAX
+00BF50CD    8B4D F8            MOV ECX,DWORD PTR SS:[EBP-8]
+00BF50D0    8B15 4033A700      MOV EDX,DWORD PTR DS:[A73340]
+00BF50D6    8991 B4010000      MOV DWORD PTR DS:[ECX+1B4],EDX
+00BF50DC    68 4C33A700        PUSH 00A7334C
+00BF50E1    8B4D F8            MOV ECX,DWORD PTR SS:[EBP-8]
+00BF50E4    81C1 AC010000      ADD ECX,1AC
+00BF50EA    E8 43BFBDFF        CALL <CString::operator=(CString const &)>     ; JMP 到 mfc42.#858_CString::operator=
+00BF50EF    68 5033A700        PUSH 00A73350
+00BF50F4    8B4D F8            MOV ECX,DWORD PTR SS:[EBP-8]
+00BF50F7    81C1 B0010000      ADD ECX,1B0
+00BF50FD    E8 30BFBDFF        CALL <CString::operator=(CString const &)>     ; JMP 到 mfc42.#858_CString::operator=
+00BF5102    8B4D F8            MOV ECX,DWORD PTR SS:[EBP-8]
+00BF5105    E8 88BFBDFF        CALL <CDialog::OnInitDialog(void)>             ; JMP 到 mfc42.#4710_CDialog::OnInitDialog
+00BF510A    8B4D F8            MOV ECX,DWORD PTR SS:[EBP-8]
+00BF510D    E8 176FA5FF        CALL <_text_64C029>
+00BF5112    8B4D F8            MOV ECX,DWORD PTR SS:[EBP-8]
+00BF5115    E8 1C74A5FF        CALL <_text_64C536>
+00BF511A    B9 5433A700        MOV ECX,00A73354
+00BF511F    E8 2E7582FF        CALL <unknown_libname_6>
+00BF5124    8945 F0            MOV DWORD PTR SS:[EBP-10],EAX
+00BF5127    837D F0 00         CMP DWORD PTR SS:[EBP-10],0
+00BF512B    0F8E AA000000      JLE 00BF51DB
+00BF5131    8D4D EC            LEA ECX,DWORD PTR SS:[EBP-14]
+00BF5134    E8 D5BEBDFF        CALL <CString::CString(void)>                 ; JMP 到 mfc42.#540_CString::CString
+00BF5139    C745 FC 00000000   MOV DWORD PTR SS:[EBP-4],0
+00BF5140    C745 E8 00000000   MOV DWORD PTR SS:[EBP-18],0
+00BF5147    EB 09              JMP SHORT 00BF5152
+00BF5149    8B4D E8            MOV ECX,DWORD PTR SS:[EBP-18]
+00BF514C    83C1 01            ADD ECX,1
+00BF514F    894D E8            MOV DWORD PTR SS:[EBP-18],ECX
+00BF5152    8B55 E8            MOV EDX,DWORD PTR SS:[EBP-18]
+00BF5155    3B55 F0            CMP EDX,DWORD PTR SS:[EBP-10]
+00BF5158    7D 49              JGE SHORT 00BF51A3
+00BF515A    8B45 E8            MOV EAX,DWORD PTR SS:[EBP-18]
+00BF515D    50                 PUSH EAX
+00BF515E    B9 5433A700        MOV ECX,00A73354
+00BF5163    E8 7884ADFF        CALL <_text_6CD5E0>
+00BF5168    8945 E4            MOV DWORD PTR SS:[EBP-1C],EAX
+00BF516B    8B4D E4            MOV ECX,DWORD PTR SS:[EBP-1C]
+00BF516E    8B51 08            MOV EDX,DWORD PTR DS:[ECX+8]
+00BF5171    52                 PUSH EDX
+00BF5172    8B45 E4            MOV EAX,DWORD PTR SS:[EBP-1C]
+00BF5175    8B48 04            MOV ECX,DWORD PTR DS:[EAX+4]
+00BF5178    51                 PUSH ECX
+00BF5179    68 8C338C00        PUSH 008C338C                              ; ASCII "%s(%s)"
+00BF517E    8D55 EC            LEA EDX,DWORD PTR SS:[EBP-14]
+00BF5181    52                 PUSH EDX
+00BF5182    E8 59BFBDFF        CALL <CString::Format(char const *,...)>     ; JMP 到 mfc42.#2818_CString::Format
+00BF5187    83C4 10            ADD ESP,10
+```
+
+
+
+```
+00BF518A    8D4D EC             LEA ECX,DWORD PTR SS:[EBP-14]  
+
+00BF518D    E8 0E3081FF         CALL <unknown_libname_2>  
+
+00BF5192    50                 PUSH EAX  
+
+00BF5193    8B4D F8            MOV ECX,DWORD PTR SS:[EBP-8]  
+
+00BF5196    81C1 54010000      ADD ECX,154  
+
+00BF519C    E8 DF6281FF        CALL <_text_40B480>  
+
+00BF51A1  ^ EB A6              JMP SHORT 00BF5149  
+
+00BF51A3    A1 2033A700        MOV EAX,DWORD PTR DS:[A73320]  
+
+00BF51A8    3B45 F0            CMP EAX,DWORD PTR SS:[EBP-10]  
+
+00BF51AB    7C 0A              JL SHORT 00BF51B7  
+
+00BF51AD    C705 2033A700 000000>MOV DWORD PTR DS:[A73320],0  
+
+00BF51B7    8B0D 2033A700      MOV ECX,DWORD PTR DS:[A73320]  
+
+00BF51BD    51                 PUSH ECX  
+
+00BF51BE    8B4D F8            MOV ECX,DWORD PTR SS:[EBP-8]  
+
+00BF51C1    81C1 54010000      ADD ECX,154  
+
+00BF51C7    E8 246281FF        CALL <_text_40B3F0>  
+
+00BF51CC    C745 FC FFFFFFFF   MOV DWORD PTR SS:[EBP-4],-1  
+
+00BF51D3    8D4D EC            LEA ECX,DWORD PTR SS:[EBP-14]  
+
+00BF51D6    E8 1BBEBDFF        CALL <CString::~CString(void)>                 ; JMP 到 mfc42.#800_CString::~CString  
+
+00BF51DB    B8 01000000        MOV EAX,1  
+
+00BF51E0    8BE5               MOV ESP,EBP  
+
+00BF51E2    5D                 POP EBP  
+
+00BF51E3    C3                 RETN  
+
+00BF51E4    90                 NOP  
+
+00BF51E5    90                 NOP  
+
+00BF51E6    90                 NOP  
+
+00BF51E7    90                 NOP  
+
+00BF51E8    55                 PUSH EBP                                       ; 天网接口  
+
+00BF51E9    8BEC               MOV EBP,ESP  
+
+00BF51EB    6A FF              PUSH -1  
+
+00BF51ED    68 8FCB6B00        PUSH 006BCB8F  
+
+00BF51F2    64:A1 00000000     MOV EAX,DWORD PTR FS:[0]  
+
+00BF51F8    50                 PUSH EAX  
+
+00BF51F9    64:8925 00000000   MOV DWORD PTR FS:[0],ESP  
+
+00BF5200    81EC BC000000      SUB ESP,0BC  
+
+00BF5206    898D 3CFFFFFF      MOV DWORD PTR SS:[EBP-C4],ECX  
+
+00BF520C    8B85 3CFFFFFF      MOV EAX,DWORD PTR SS:[EBP-C4]  
+
+00BF5212    C780 E4000000 010000>MOV DWORD PTR DS:[EAX+E4],1  
+
+00BF521C    833D 7C33A700 00   CMP DWORD PTR DS:[A7337C],0  
+
+00BF5223    75 5E              JNZ SHORT 00BF5283  
+
+00BF5225    68 E0430000        PUSH 43E0  
+
+00BF522A    E8 712A81FF        CALL <_text_407CA0>  
+
+00BF522F    8985 48FFFFFF      MOV DWORD PTR SS:[EBP-B8],EAX  
+
+00BF5235    C745 FC 00000000   MOV DWORD PTR SS:[EBP-4],0  
+
+00BF523C    83BD 48FFFFFF 00   CMP DWORD PTR SS:[EBP-B8],0  
+
+00BF5243    74 15              JE SHORT 00BF525A  
+
+00BF5245    6A 00              PUSH 0  
+
+00BF5247    8B8D 48FFFFFF      MOV ECX,DWORD PTR SS:[EBP-B8]  
+
+00BF524D    E8 364D9AFF        CALL <_text_599F88>  
+
+00BF5252    8985 38FFFFFF      MOV DWORD PTR SS:[EBP-C8],EAX  
+
+00BF5258    EB 0A              JMP SHORT 00BF5264  
+
+00BF525A    C785 38FFFFFF 000000>MOV DWORD PTR SS:[EBP-C8],0  
+
+00BF5264    8B8D 38FFFFFF      MOV ECX,DWORD PTR SS:[EBP-C8]  
+
+00BF526A    898D 4CFFFFFF      MOV DWORD PTR SS:[EBP-B4],ECX  
+
+00BF5270    C745 FC FFFFFFFF   MOV DWORD PTR SS:[EBP-4],-1  
+
+00BF5277    8B95 4CFFFFFF      MOV EDX,DWORD PTR SS:[EBP-B4]  
+
+00BF527D    8915 7C33A700      MOV DWORD PTR DS:[A7337C],EDX  
+
+00BF5283    8B45 0C            MOV EAX,DWORD PTR SS:[EBP+C]  
+
+00BF5286    50                 PUSH EAX  
+
+00BF5287    8B4D 08            MOV ECX,DWORD PTR SS:[EBP+8]  
+
+00BF528A    51                 PUSH ECX  
+
+00BF528B    8B0D 7C33A700      MOV ECX,DWORD PTR DS:[A7337C]  
+
+00BF5291    E8 A5519AFF        CALL <_text_59A43B>  
+
+00BF5296    8B0D 7C33A700      MOV ECX,DWORD PTR DS:[A7337C]  
+
+00BF529C    E8 AFA981FF        CALL <_text_40FC50>  
+
+00BF52A1    85C0               TEST EAX,EAX  
+
+00BF52A3    75 0D              JNZ SHORT 00BF52B2  
+
+00BF52A5    6A 00              PUSH 0  
+
+00BF52A7    8B0D 7C33A700      MOV ECX,DWORD PTR DS:[A7337C]  
+
+00BF52AD    E8 7A6BA0FF        CALL <_text_5FBE2C>  
+
+00BF52B2    8B0D 7C33A700      MOV ECX,DWORD PTR DS:[A7337C]  
+
+00BF52B8    E8 9D6B9AFF        CALL <_text_59BE5A>  
+
+00BF52BD    8B15 7C33A700      MOV EDX,DWORD PTR DS:[A7337C]  
+
+00BF52C3    52                 PUSH EDX  
+
+00BF52C4    8D8D 50FFFFFF      LEA ECX,DWORD PTR SS:[EBP-B0]  
+
+00BF52CA    E8 D1229AFF        CALL 005975A0  
+
+00BF52CF    C745 FC 01000000   MOV DWORD PTR SS:[EBP-4],1  
+
+00BF52D6    8D8D 50FFFFFF      LEA ECX,DWORD PTR SS:[EBP-B0]  
+
+00BF52DC    E8 1FBCBDFF        CALL <CDialog::DoModal(void)>                  ; JMP 到 mfc42.#2514_CDialog::DoModal  
+
+00BF52E1    83F8 01            CMP EAX,1  
+
+00BF52E4    75 37              JNZ SHORT 00BF531D  
+
+00BF52E6    833D 9C2F8D00 00   CMP DWORD PTR DS:[8D2F9C],0  
+
+00BF52ED    74 2E              JE SHORT 00BF531D  
+
+00BF52EF    C705 78C6A300 000000>MOV DWORD PTR DS:[A3C678],0  
+
+00BF52F9    C785 44FFFFFF 010000>MOV DWORD PTR SS:[EBP-BC],1  
+
+00BF5303    C745 FC FFFFFFFF   MOV DWORD PTR SS:[EBP-4],-1  
+
+00BF530A    8D8D 50FFFFFF      LEA ECX,DWORD PTR SS:[EBP-B0]  
+
+00BF5310    E8 0B259AFF        CALL <_text_597820>  
+
+00BF5315    8B85 44FFFFFF      MOV EAX,DWORD PTR SS:[EBP-BC]  
+
+00BF531B    EB 2D              JMP SHORT 00BF534A  
+
+00BF531D    8B8D 3CFFFFFF      MOV ECX,DWORD PTR SS:[EBP-C4]  
+
+00BF5323    E8 4B03B2FF        CALL <_text_715673>  
+
+00BF5328    C785 40FFFFFF 000000>MOV DWORD PTR SS:[EBP-C0],0  
+
+00BF5332    C745 FC FFFFFFFF   MOV DWORD PTR SS:[EBP-4],-1  
+
+00BF5339    8D8D 50FFFFFF      LEA ECX,DWORD PTR SS:[EBP-B0]  
+
+00BF533F    E8 DC249AFF        CALL <_text_597820>  
+
+00BF5344    8B85 40FFFFFF      MOV EAX,DWORD PTR SS:[EBP-C0]  
+
+00BF534A    8B4D F4            MOV ECX,DWORD PTR SS:[EBP-C]  
+
+00BF534D    64:890D 00000000   MOV DWORD PTR FS:[0],ECX  
+
+00BF5354    8BE5               MOV ESP,EBP  
+
+00BF5356    5D                 POP EBP  
+
+00BF5357    C2 0800            RETN 8  
+
+00BF535A    90                 NOP  
+
+00BF535B    90                 NOP  
+
+00BF535C    90                 NOP  
+
+00BF535D    90                 NOP  
+
+00BF535E    55                 PUSH EBP                                       ; 正在读取初始化数据  
+
+00BF535F    8BEC               MOV EBP,ESP  
+
+00BF5361    6A FF              PUSH -1  
+
+00BF5363    68 BC6A7600        PUSH 00766ABC  
+
+00BF5368    64:A1 00000000     MOV EAX,DWORD PTR FS:[0]  
+
+00BF536E    50                 PUSH EAX  
+
+00BF536F    64:8925 00000000   MOV DWORD PTR FS:[0],ESP  
+
+00BF5376    83EC 24            SUB ESP,24  
+
+00BF5379    894D D8            MOV DWORD PTR SS:[EBP-28],ECX  
+
+00BF537C    8D4D F0            LEA ECX,DWORD PTR SS:[EBP-10]  
+
+00BF537F    E8 5C7581FF        CALL <_text_40C8E0>  
+
+00BF5384    C745 FC 00000000   MOV DWORD PTR SS:[EBP-4],0  
+
+00BF538B    6A 01              PUSH 1  
+
+00BF538D    B9 F825A700        MOV ECX,00A725F8  
+
+00BF5392    E8 867896FF        CALL <_text_55CC1D>  
+
+00BF5397    A3 9C2F8D00        MOV DWORD PTR DS:[8D2F9C],EAX  
+
+00BF539C    6A 00              PUSH 0  
+
+00BF539E    B9 F825A700        MOV ECX,00A725F8  
+
+00BF53A3    E8 757896FF        CALL <_text_55CC1D>  
+
+00BF53A8    A3 A02F8D00        MOV DWORD PTR DS:[8D2FA0],EAX  
+
+00BF53AD    833D 9C2F8D00 00   CMP DWORD PTR DS:[8D2F9C],0  
+
+00BF53B4    74 57              JE SHORT 00BF540D  
+
+00BF53B6    833D A02F8D00 00   CMP DWORD PTR DS:[8D2FA0],0  
+
+00BF53BD    74 4E              JE SHORT 00BF540D  
+
+00BF53BF    8B4D D8            MOV ECX,DWORD PTR SS:[EBP-28]  
+
+00BF53C2    E8 89A881FF        CALL <_text_40FC50>  
+
+00BF53C7    8B0D 9C2F8D00      MOV ECX,DWORD PTR DS:[8D2F9C]  
+
+00BF53CD    8941 54            MOV DWORD PTR DS:[ECX+54],EAX  
+```
+
+
+
+```asm
+00BF53D0    8B15 9C2F8D00        MOV EDX,DWORD PTR DS:[8D2F9C]  
+
+00BF53D6    83C2 4C              ADD EDX,4C  
+
+00BF53D9    8955 EC              MOV DWORD PTR SS:[EBP-14],EDX  
+
+00BF53DC    8B45 EC              MOV EAX,DWORD PTR SS:[EBP-14]  
+
+00BF53DF    C700 01000000        MOV DWORD PTR DS:[EAX],1  
+
+00BF53E5    8B4D D8              MOV ECX,DWORD PTR SS:[EBP-28]  
+
+00BF53E8    83C1 64              ADD ECX,64  
+
+00BF53EB    E8 60A881FF          CALL <_text_40FC50>  
+
+00BF53F0    8B4D EC              MOV ECX,DWORD PTR SS:[EBP-14]  
+
+00BF53F3    8941 04              MOV DWORD PTR DS:[ECX+4],EAX  
+
+00BF53F6    68 2041BF00          PUSH 00BF4120  
+
+00BF53FB    68 8B070000          PUSH 78B  
+
+00BF5400    8B4D D8              MOV ECX,DWORD PTR SS:[EBP-28]  
+
+00BF5403    E8 2EBEBDFF          CALL <CWnd::SetDlgItemTextA(int,char const *)>       ; JMP 到 mfc42.#5953_CWnd::SetDlgItemTextA  
+
+00BF5408    E9 93000000          JMP 00BF54A0  
+
+00BF540D    833D 9C2F8D00 00     CMP DWORD PTR DS:[8D2F9C],0  
+
+00BF5414    74 38                JE SHORT 00BF544E  
+
+00BF5416    8B15 9C2F8D00        MOV EDX,DWORD PTR DS:[8D2F9C]  
+
+00BF541C    8955 E4              MOV DWORD PTR SS:[EBP-1C],EDX  
+
+00BF541F    8B45 E4              MOV EAX,DWORD PTR SS:[EBP-1C]  
+
+00BF5422    8945 E8              MOV DWORD PTR SS:[EBP-18],EAX  
+
+00BF5425    837D E8 00           CMP DWORD PTR SS:[EBP-18],0  
+
+00BF5429    74 12                JE SHORT 00BF543D  
+
+00BF542B    6A 01                PUSH 1  
+
+00BF542D    8B4D E8              MOV ECX,DWORD PTR SS:[EBP-18]  
+
+00BF5430    8B11                 MOV EDX,DWORD PTR DS:[ECX]  
+
+00BF5432    8B4D E8              MOV ECX,DWORD PTR SS:[EBP-18]  
+
+00BF5435    FF52 04              CALL DWORD PTR DS:[EDX+4]  
+
+00BF5438    8945 D4              MOV DWORD PTR SS:[EBP-2C],EAX  
+
+00BF543B    EB 07                JMP SHORT 00BF5444  
+
+00BF543D    C745 D4 00000000     MOV DWORD PTR SS:[EBP-2C],0  
+
+00BF5444    C705 9C2F8D00 000000>MOV DWORD PTR DS:[8D2F9C],0  
+
+00BF544E    833D A02F8D00 00     CMP DWORD PTR DS:[8D2FA0],0  
+
+00BF5455    74 37                JE SHORT 00BF548E  
+
+00BF5457    A1 A02F8D00          MOV EAX,DWORD PTR DS:[8D2FA0]  
+
+00BF545C    8945 DC              MOV DWORD PTR SS:[EBP-24],EAX  
+
+00BF545F    8B4D DC              MOV ECX,DWORD PTR SS:[EBP-24]  
+
+00BF5462    894D E0              MOV DWORD PTR SS:[EBP-20],ECX  
+
+00BF5465    837D E0 00           CMP DWORD PTR SS:[EBP-20],0  
+
+00BF5469    74 12                JE SHORT 00BF547D  
+
+00BF546B    6A 01                PUSH 1  
+
+00BF546D    8B55 E0              MOV EDX,DWORD PTR SS:[EBP-20]  
+
+00BF5470    8B02                 MOV EAX,DWORD PTR DS:[EDX]  
+
+00BF5472    8B4D E0              MOV ECX,DWORD PTR SS:[EBP-20]  
+
+00BF5475    FF50 04              CALL DWORD PTR DS:[EAX+4]  
+
+00BF5478    8945 D0              MOV DWORD PTR SS:[EBP-30],EAX  
+
+00BF547B    EB 07                JMP SHORT 00BF5484  
+
+00BF547D    C745 D0 00000000     MOV DWORD PTR SS:[EBP-30],0  
+
+00BF5484    C705 A02F8D00 000000>MOV DWORD PTR DS:[8D2FA0],0  
+
+00BF548E    68 3441BF00          PUSH 00BF4134  
+
+00BF5493    68 8B070000          PUSH 78B  
+
+00BF5498    8B4D D8              MOV ECX,DWORD PTR SS:[EBP-28]  
+
+00BF549B    E8 96BDBDFF          CALL <CWnd::SetDlgItemTextA(int,char const *)>       ; JMP 到 mfc42.#5953_CWnd::SetDlgItemTextA  
+
+00BF54A0    C745 FC FFFFFFFF     MOV DWORD PTR SS:[EBP-4],-1  
+
+00BF54A7    8D4D F0              LEA ECX,DWORD PTR SS:[EBP-10]  
+
+00BF54AA    E8 517481FF          CALL <_text_40C900>  
+
+00BF54AF    8B4D F4              MOV ECX,DWORD PTR SS:[EBP-C]  
+
+00BF54B2    64:890D 00000000     MOV DWORD PTR FS:[0],ECX  
+
+00BF54B9    8BE5                 MOV ESP,EBP  
+
+00BF54BB    5D                   POP EBP  
+
+00BF54BC    C3                   RETN  
+
+00BF54BD    90                   NOP  
+
+00BF54BE    90                   NOP  
+
+00BF54BF    90                   NOP  
+
+00BF54C0    90                   NOP  
+
+00BF54C1    55                   PUSH EBP                                                   ; 解决天网不收数据的问题  
+
+00BF54C2    8BEC                 MOV EBP,ESP  
+
+00BF54C4    83EC 0C              SUB ESP,0C  
+
+00BF54C7    894D F8              MOV DWORD PTR SS:[EBP-8],ECX  
+
+00BF54CA    8B45 F8              MOV EAX,DWORD PTR SS:[EBP-8]  
+
+00BF54CD    8B48 0C              MOV ECX,DWORD PTR DS:[EAX+C]  
+
+00BF54D0    894D FC              MOV DWORD PTR SS:[EBP-4],ECX  
+
+00BF54D3    8B55 08              MOV EDX,DWORD PTR SS:[EBP+8]  
+
+00BF54D6    8955 F4              MOV DWORD PTR SS:[EBP-C],EDX  
+
+00BF54D9    817D F4 00050000     CMP DWORD PTR SS:[EBP-C],500  
+
+00BF54E0    7F 59                JG SHORT 00BF553B  
+
+00BF54E2    817D F4 00050000     CMP DWORD PTR SS:[EBP-C],500  
+
+00BF54E9    0F84 B1000000        JE 00BF55A0  
+
+00BF54EF    817D F4 02020000     CMP DWORD PTR SS:[EBP-C],202  
+
+00BF54F6    7F 28                JG SHORT 00BF5520  
+
+00BF54F8    817D F4 02020000     CMP DWORD PTR SS:[EBP-C],202  
+
+00BF54FF    0F84 B7000000        JE 00BF55BC  
+
+00BF5505    817D F4 02010000     CMP DWORD PTR SS:[EBP-C],102  
+
+00BF550C    74 6C                JE SHORT 00BF557A  
+
+00BF550E    817D F4 01020000     CMP DWORD PTR SS:[EBP-C],201  
+
+00BF5515    0F84 93000000        JE 00BF55AE  
+
+00BF551B    E9 E4000000          JMP 00BF5604  
+
+00BF5520    817D F4 00030000     CMP DWORD PTR SS:[EBP-C],300  
+
+00BF5527    74 66                JE SHORT 00BF558F  
+
+00BF5529    817D F4 01040000     CMP DWORD PTR SS:[EBP-C],401  
+
+00BF5530    0F84 94000000        JE 00BF55CA  
+
+00BF5536    E9 C9000000          JMP 00BF5604  
+
+00BF553B    817D F4 070B0000     CMP DWORD PTR SS:[EBP-C],0B07  
+
+00BF5542    7F 28                JG SHORT 00BF556C  
+
+00BF5544    817D F4 000B0000     CMP DWORD PTR SS:[EBP-C],0B00  
+
+00BF554B    0F8D 95000000        JGE 00BF55E6  
+
+00BF5551    817D F4 00060000     CMP DWORD PTR SS:[EBP-C],600  
+
+00BF5558    0F84 98000000        JE 00BF55F6  
+
+00BF555E    817D F4 20090000     CMP DWORD PTR SS:[EBP-C],920  
+
+00BF5565    74 71                JE SHORT 00BF55D8  
+
+00BF5567    E9 98000000          JMP 00BF5604  
+
+00BF556C    817D F4 21400000     CMP DWORD PTR SS:[EBP-C],4021  
+
+00BF5573    74 71                JE SHORT 00BF55E6  
+
+00BF5575    E9 8A000000          JMP 00BF5604  
+
+00BF557A    8B45 10              MOV EAX,DWORD PTR SS:[EBP+10]  
+
+00BF557D    50                   PUSH EAX  
+
+00BF557E    8B4D 0C              MOV ECX,DWORD PTR SS:[EBP+C]  
+
+00BF5581    51                   PUSH ECX  
+
+00BF5582    8B4D F8              MOV ECX,DWORD PTR SS:[EBP-8]  
+
+00BF5585    E8 877E96FF          CALL 0055D411  
+
+00BF558A    E9 92000000          JMP 00BF5621  
+
+00BF558F    8B55 0C              MOV EDX,DWORD PTR SS:[EBP+C]  
+
+00BF5592    52                   PUSH EDX  
+
+00BF5593    8B4D F8              MOV ECX,DWORD PTR SS:[EBP-8]  
+
+00BF5596    E8 7C8296FF          CALL 0055D817  
+
+00BF559B    E9 81000000          JMP 00BF5621  
+
+00BF55A0    8B45 0C              MOV EAX,DWORD PTR SS:[EBP+C]  
+
+00BF55A3    50                   PUSH EAX  
+
+00BF55A4    8B4D F8              MOV ECX,DWORD PTR SS:[EBP-8]  
+
+00BF55A7    E8 8A8396FF          CALL 0055D936  
+
+00BF55AC    EB 73                JMP SHORT 00BF5621  
+
+00BF55AE    8B4D 0C              MOV ECX,DWORD PTR SS:[EBP+C]  
+
+00BF55B1    51                   PUSH ECX  
+
+00BF55B2    8B4D F8              MOV ECX,DWORD PTR SS:[EBP-8]  
+
+00BF55B5    E8 368996FF          CALL 0055DEF0  
+
+00BF55BA    EB 65                JMP SHORT 00BF5621  
+
+00BF55BC    8B55 0C              MOV EDX,DWORD PTR SS:[EBP+C]  
+
+00BF55BF    52                   PUSH EDX  
+
+00BF55C0    8B4D F8              MOV ECX,DWORD PTR SS:[EBP-8]  
+
+00BF55C3    E8 DE8996FF          CALL 0055DFA6  
+
+00BF55C8    EB 57                JMP SHORT 00BF5621  
+
+00BF55CA    8B45 0C              MOV EAX,DWORD PTR SS:[EBP+C]  
+
+00BF55CD    50                   PUSH EAX  
+```
+
+
+
+```
+00BF55CE    8B4D F8                 MOV ECX,DWORD PTR SS:[EBP-8]  
+00BF55D1    E8 078F96FF            CALL 0055E4DD  
+00BF55D6    EB 49                  JMP SHORT 00BF5621  
+00BF55D8    8B4D 0C               MOV ECX,DWORD PTR SS:[EBP+C]  
+00BF55DB    51                    PUSH ECX  
+00BF55DC    8B4D F8               MOV ECX,DWORD PTR SS:[EBP-8]  
+00BF55DF    E8 B18F96FF           CALL 0055E595  
+00BF55E4    EB 3B                 JMP SHORT 00BF5621  
+00BF55E6    8B55 08               MOV EDX,DWORD PTR SS:[EBP+8]  
+00BF55E9    52                    PUSH EDX  
+00BF55EA    8B45 0C               MOV EAX,DWORD PTR SS:[EBP+C]  
+00BF55ED    50                    PUSH EAX  
+00BF55EE    8B4D F8               MOV ECX,DWORD PTR SS:[EBP-8]  
+00BF55F1    E8 399696FF           CALL 0055EC2F  
+00BF55F6    8B4D 0C               MOV ECX,DWORD PTR SS:[EBP+C]  
+00BF55F9    51                    PUSH ECX  
+00BF55FA    8B4D F8               MOV ECX,DWORD PTR SS:[EBP-8]  
+00BF55FD    E8 4F9096FF           CALL 0055E651  
+00BF5602    EB 1D                 JMP SHORT 00BF5621  
+00BF5604    8B55 08               MOV EDX,DWORD PTR SS:[EBP+8]  
+00BF5607    81E2 000F0000         AND EDX,0F00  
+00BF560D    81FA 00090000         CMP EDX,900  
+00BF5613    75 0C                 JNZ SHORT 00BF5621  
+00BF5615    8B45 0C               MOV EAX,DWORD PTR SS:[EBP+C]  
+00BF5618    50                    PUSH EAX  
+00BF5619    8B4D F8               MOV ECX,DWORD PTR SS:[EBP-8]  
+00BF561C    E8 0F9296FF           CALL 0055E830  
+00BF5621    8BE5                  MOV ESP,EBP  
+00BF5623    5D                    POP EBP  
+00BF5624    C2 0C00               RETN 0C  
+00BF5627    90                    NOP  
+00BF5628    90                    NOP  
+00BF5629    90                    NOP  
+00BF562A    90                    NOP  
+00BF562B    83BA E8000000 01      CMP DWORD PTR DS:[EDX+E8],1               ; 是图文接口吗？  
+00BF5632    75 14                 JNZ SHORT 00BF5648  
+00BF5634    8B91 3C070000         MOV EDX,DWORD PTR DS:[ECX+73C]            ; 还原三行原始代码  
+00BF563A    52                    PUSH EDX  
+00BF563B    8B4D EC               MOV ECX,DWORD PTR SS:[EBP-14]  
+00BF563E    E8 6E000000           CALL 00BF56B1  
+00BF5643   - E9 8CFCB1FF          JMP <\_text\_7152D4>  
+00BF5648    83BA E8000000 03      CMP DWORD PTR DS:[EDX+E8],3  
+00BF564F    75 1E                 JNZ SHORT 00BF566F  
+00BF5651    8B91 3C070000         MOV EDX,DWORD PTR DS:[ECX+73C]  
+00BF5657    52                    PUSH EDX  
+00BF5658    8B4D EC               MOV ECX,DWORD PTR SS:[EBP-14]  
+00BF565B    E8 8D0F0000           CALL 00BF65ED  
+00BF5660   - E9 6FFCB1FF          JMP <\_text\_7152D4>  
+00BF5665    8B91 3C070000         MOV EDX,DWORD PTR DS:[ECX+73C]  
+00BF566B    52                    PUSH EDX  
+00BF566C    8B4D EC               MOV ECX,DWORD PTR SS:[EBP-14]  
+00BF566F    E8 2CFDB1FF           CALL <\_text\_7153A0>  
+00BF5674   - E9 5BFCB1FF          JMP <\_text\_7152D4>  
+00BF5679    90                    NOP  
+00BF567A    90                    NOP  
+00BF567B    90                    NOP  
+00BF567C    90                    NOP  
+00BF567D    833D 985AA700 03      CMP DWORD PTR DS:[A75A98],3  
+00BF5684   - 0F84 CE08B2FF        JE 00715F58  
+00BF568A    833D 985AA700 00      CMP DWORD PTR DS:[A75A98],0  
+00BF5691   - 0F85 B30AB2FF        JNZ <\_text\_71614A>  
+00BF5697   - E9 BC08B2FF          JMP 00715F58  
+00BF569C    90                    NOP  
+00BF569D    90                    NOP  
+00BF569E    90                    NOP  
+00BF569F    90                    NOP  
+00BF56A0    90                    NOP  
+00BF56A1    90                    NOP  
+00BF56A2    90                    NOP  
+00BF56A3    90                    NOP  
+00BF56A4    90                    NOP  
+00BF56A5    90                    NOP  
+00BF56A6    90                    NOP  
+00BF56A7    90                    NOP  
+00BF56A8    90                    NOP  
+00BF56A9    90                    NOP  
+00BF56AA    90                    NOP  
+00BF56AB    90                    NOP  
+00BF56AC    90                    NOP  
+00BF56AD    90                    NOP  
+00BF56AE    90                    NOP  
+00BF56AF    90                    NOP  
+00BF56B0    90                    NOP  
+00BF56B1    55                    PUSH EBP                                  ; 图文接收开始  
+00BF56B2    8BEC                  MOV EBP,ESP  
+00BF56B4    6A FF                 PUSH -1  
+00BF56B6    68 58F97F00            PUSH 007FF958  
+00BF56BB    64:A1 00000000        MOV EAX,DWORD PTR FS:[0]  
+00BF56C1    50                    PUSH EAX  
+00BF56C2    64:8925 00000000      MOV DWORD PTR FS:[0],ESP  
+00BF56C9    81EC F0000000         SUB ESP,0F0  
+00BF56CF    898D 0CFFFFFF         MOV DWORD PTR SS:[EBP-F4],ECX  
+00BF56D5    8B85 0CFFFFFF         MOV EAX,DWORD PTR SS:[EBP-F4]  
+00BF56DB    33C9                  XOR ECX,ECX  
+00BF56DD    83B8 E8000000 00      CMP DWORD PTR DS:[EAX+E8],0  
+00BF56E4    0F94C1                SETE CL  
+00BF56E7    51                    PUSH ECX  
+00BF56E8    8B8D 0CFFFFFF         MOV ECX,DWORD PTR SS:[EBP-F4]  
+00BF56EE    E8 E0050000           CALL 00BF5CD3  
+00BF56F3    85C0                  TEST EAX,EAX  
+00BF56F5    75 07                 JNZ SHORT 00BF56FE  
+00BF56F7    33C0                  XOR EAX,EAX  
+00BF56F9    E9 C1050000           JMP 00BF5CBF  
+00BF56FE    8B95 0CFFFFFF         MOV EDX,DWORD PTR SS:[EBP-F4]  
+00BF5704    837A 30 00            CMP DWORD PTR DS:[EDX+30],0  
+00BF5708    0F84 24030000         JE 00BF5A32  
+00BF570E    68 B4000000           PUSH 0B4  
+00BF5713    E8 B6B9BDFF           CALL <operator new(uint)>                ; JMP 到 mfc42.#823\_operator new  
+00BF5718    83C4 04               ADD ESP,4  
+00BF571B    8985 28FFFFFF         MOV DWORD PTR SS:[EBP-D8],EAX  
+00BF5721    8B85 28FFFFFF         MOV EAX,DWORD PTR SS:[EBP-D8]  
+00BF5727    8985 40FFFFFF         MOV DWORD PTR SS:[EBP-C0],EAX  
+00BF572D    68 B4000000           PUSH 0B4  
+00BF5732    6A 00                 PUSH 0  
+00BF5734    8B8D 40FFFFFF         MOV ECX,DWORD PTR SS:[EBP-C0]  
+00BF573A    51                    PUSH ECX  
+00BF573B    E8 3CCEBDFF           CALL <memset>                             ; JMP 到 MSVCRT.memset  
+00BF5740    83C4 0C               ADD ESP,0C  
+00BF5743    8B95 40FFFFFF         MOV EDX,DWORD PTR SS:[EBP-C0]  
+00BF5749    C742 04 02000000      MOV DWORD PTR DS:[EDX+4],2  
+00BF5750    833D C862A700 00      CMP DWORD PTR DS:[A762C8],0  
+00BF5757    74 18                 JE SHORT 00BF5771  
+00BF5759    A1 C862A700           MOV EAX,DWORD PTR DS:[A762C8]  
+00BF575E    50                    PUSH EAX  
+00BF575F    8B8D 40FFFFFF         MOV ECX,DWORD PTR SS:[EBP-C0]  
+00BF5765    83C1 08               ADD ECX,8  
+00BF5768    51                    PUSH ECX  
+00BF5769    E8 02CEBDFF           CALL <\_mbscpy>                           ; JMP 到 MSVCRT.strcpy  
+00BF576E    83C4 08               ADD ESP,8  
+00BF5771    833D C462A700 00      CMP DWORD PTR DS:[A762C4],0  
+00BF5778    74 19                 JE SHORT 00BF5793  
+00BF577A    8B15 C462A700         MOV EDX,DWORD PTR DS:[A762C4]            ; <VFFT.\_text\_811444>  
+00BF5780    52                    PUSH EDX  
+00BF5781    8B85 40FFFFFF         MOV EAX,DWORD PTR SS:[EBP-C0]  
+00BF5787    83C0 1C               ADD EAX,1C  
+00BF578A    50                    PUSH EAX  
+00BF578B    E8 E0CDBDFF           CALL <\_mbscpy>                           ; JMP 到 MSVCRT.strcpy  
+00BF5790    83C4 08               ADD ESP,8  
+00BF5793    68 5C488C00           PUSH 008C485C  
+00BF5798    8B8D 40FFFFFF         MOV ECX,DWORD PTR SS:[EBP-C0]  
+00BF579E    83C1 58               ADD ECX,58  
+00BF57A1    51                    PUSH ECX  
+00BF57A2    E8 C9CDBDFF           CALL <\_mbscpy>                           ; JMP 到 MSVCRT.strcpy
+```
+
+
+
+```text
+00BF57A7    83C4 08               ADD ESP,8  
+
+00BF57AA    68 1C498C00           PUSH 008C491C                             ; ASCII "71120"  
+
+00BF57AF    8B95 40FFFFFF         MOV EDX,DWORD PTR SS:[EBP-C0]  
+
+00BF57B5    83C2 30               ADD EDX,30  
+
+00BF57B8    52                   PUSH EDX  
+
+00BF57B9    E8 B2CDBDFF          CALL <_mbscpy>                             ; JMP 到 MSVCRT.strcpy  
+
+00BF57BE    83C4 08               ADD ESP,8  
+
+00BF57C1    8B85 40FFFFFF         MOV EAX,DWORD PTR SS:[EBP-C0]  
+
+00BF57C7    C780 A8000000 000000  MOV DWORD PTR DS:[EAX+A8],0  
+
+00BF57D1    8B8D 40FFFFFF         MOV ECX,DWORD PTR SS:[EBP-C0]  
+
+00BF57D7    C701 B4000000         MOV DWORD PTR DS:[ECX],0B4  
+
+00BF57DD    8B95 40FFFFFF         MOV EDX,DWORD PTR SS:[EBP-C0]  
+
+00BF57E3    C782 B0000000 B6BB71  MOV DWORD PTR DS:[EDX+B0],0071BBB6  
+
+00BF57ED    A1 F4B7B300           MOV EAX,DWORD PTR DS:[B3B7F4]  
+
+00BF57F2    83E8 01               SUB EAX,1  
+
+00BF57F5    69C0 1B010000         IMUL EAX,EAX,11B  
+
+00BF57FB    05 24010000           ADD EAX,124  
+
+00BF5800    50                   PUSH EAX  
+
+00BF5801    E8 C8B8BDFF          CALL <operator new(uint)>                  ; JMP 到 mfc42.#823_operator new  
+
+00BF5806    83C4 04               ADD ESP,4  
+
+00BF5809    8985 24FFFFFF         MOV DWORD PTR SS:[EBP-DC],EAX  
+
+00BF580F    8B8D 24FFFFFF         MOV ECX,DWORD PTR SS:[EBP-DC]  
+
+00BF5815    898D 48FFFFFF         MOV DWORD PTR SS:[EBP-B8],ECX  
+
+00BF581B    8B15 F4B7B300         MOV EDX,DWORD PTR DS:[B3B7F4]  
+
+00BF5821    83EA 01               SUB EDX,1  
+
+00BF5824    69D2 1B010000         IMUL EDX,EDX,11B  
+
+00BF582A    81C2 24010000         ADD EDX,124  
+
+00BF5830    8B85 48FFFFFF         MOV EAX,DWORD PTR SS:[EBP-B8]  
+
+00BF5836    8910                   MOV DWORD PTR DS:[EAX],EDX  
+
+00BF5838    8B8D 48FFFFFF         MOV ECX,DWORD PTR SS:[EBP-B8]  
+
+00BF583E    8B15 F4B7B300         MOV EDX,DWORD PTR DS:[B3B7F4]  
+
+00BF5844    8951 04               MOV DWORD PTR DS:[ECX+4],EDX  
+
+00BF5847    C785 44FFFFFF 000000  MOV DWORD PTR SS:[EBP-BC],0  
+
+00BF5851    EB 0F                  JMP SHORT 00BF5862  
+
+00BF5853    8B85 44FFFFFF         MOV EAX,DWORD PTR SS:[EBP-BC]  
+
+00BF5859    83C0 01               ADD EAX,1  
+
+00BF585C    8985 44FFFFFF         MOV DWORD PTR SS:[EBP-BC],EAX  
+
+00BF5862    8B8D 44FFFFFF         MOV ECX,DWORD PTR SS:[EBP-BC]  
+
+00BF5868    3B0D F4B7B300         CMP ECX,DWORD PTR DS:[B3B7F4]  
+
+00BF586E    0F8D A1000000         JGE 00BF5915  
+
+00BF5874    8B95 44FFFFFF         MOV EDX,DWORD PTR SS:[EBP-BC]  
+
+00BF587A    52                   PUSH EDX  
+
+00BF587B    B9 C8B7B300           MOV ECX,00B3B7C8  
+
+00BF5880    E8 2B9B9DFF           CALL <_text_5CF3B0>  
+
+00BF5885    8B00                   MOV EAX,DWORD PTR DS:[EAX]  
+
+00BF5887    8985 3CFFFFFF         MOV DWORD PTR SS:[EBP-C4],EAX  
+
+00BF588D    8B8D 3CFFFFFF         MOV ECX,DWORD PTR SS:[EBP-C4]  
+
+00BF5893    83C1 18               ADD ECX,18  
+
+00BF5896    51                   PUSH ECX  
+
+00BF5897    8B95 44FFFFFF         MOV EDX,DWORD PTR SS:[EBP-BC]  
+
+00BF589D    69D2 1B010000         IMUL EDX,EDX,11B  
+
+00BF58A3    8B85 48FFFFFF         MOV EAX,DWORD PTR SS:[EBP-B8]  
+
+00BF58A9    8D4C10 08             LEA ECX,DWORD PTR DS:[EAX+EDX+8]  
+
+00BF58AD    51                   PUSH ECX  
+
+00BF58AE    E8 BDCCBDFF          CALL <_mbscpy>                             ; JMP 到 MSVCRT.strcpy  
+
+00BF58B3    83C4 08               ADD ESP,8  
+
+00BF58B6    8B95 3CFFFFFF         MOV EDX,DWORD PTR SS:[EBP-C4]  
+
+00BF58BC    83C2 1C               ADD EDX,1C  
+
+00BF58BF    52                   PUSH EDX  
+
+00BF58C0    8B85 44FFFFFF         MOV EAX,DWORD PTR SS:[EBP-BC]  
+
+00BF58C6    69C0 1B010000         IMUL EAX,EAX,11B  
+
+00BF58CC    8B8D 48FFFFFF         MOV ECX,DWORD PTR SS:[EBP-B8]  
+
+00BF58D2    8D5401 0B             LEA EDX,DWORD PTR DS:[ECX+EAX+B]  
+
+00BF58D6    52                   PUSH EDX  
+
+00BF58D7    E8 94CCBDFF          CALL <_mbscpy>                             ; JMP 到 MSVCRT.strcpy  
+
+00BF58DC    83C4 08               ADD ESP,8  
+
+00BF58DF    8B8D 3CFFFFFF         MOV ECX,DWORD PTR SS:[EBP-C4]  
+
+00BF58E5    81C1 4C010000         ADD ECX,14C  
+
+00BF58EB    E8 30DCABFF          CALL <PFileName>  
+
+00BF58F0    50                   PUSH EAX  
+
+00BF58F1    8B85 44FFFFFF         MOV EAX,DWORD PTR SS:[EBP-BC]  
+
+00BF58F7    69C0 1B010000         IMUL EAX,EAX,11B  
+
+00BF58FD    8B8D 48FFFFFF         MOV ECX,DWORD PTR SS:[EBP-B8]  
+
+00BF5903    8D5401 1F             LEA EDX,DWORD PTR DS:[ECX+EAX+1F]  
+
+00BF5907    52                   PUSH EDX  
+
+00BF5908    E8 63CCBDFF          CALL <_mbscpy>                             ; JMP 到 MSVCRT.strcpy  
+
+00BF590D    83C4 08               ADD ESP,8  
+
+00BF5910   ^ E9 3EFFFFFF          JMP 00BF5853  
+
+00BF5915    68 10020000           PUSH 210  
+
+00BF591A    E8 AFB7BDFF          CALL <operator new(uint)>                  ; JMP 到 mfc42.#823_operator new  
+
+00BF591F    83C4 04               ADD ESP,4  
+
+00BF5922    8985 20FFFFFF         MOV DWORD PTR SS:[EBP-E0],EAX  
+
+00BF5928    8B85 20FFFFFF         MOV EAX,DWORD PTR SS:[EBP-E0]  
+
+00BF592E    8985 4CFFFFFF         MOV DWORD PTR SS:[EBP-B4],EAX  
+
+00BF5934    8B8D 4CFFFFFF         MOV ECX,DWORD PTR SS:[EBP-B4]  
+
+00BF593A    C741 04 02000000     MOV DWORD PTR DS:[ECX+4],2  
+
+00BF5941    8B95 4CFFFFFF         MOV EDX,DWORD PTR SS:[EBP-B4]  
+
+00BF5947    C702 10020000         MOV DWORD PTR DS:[EDX],210  
+
+00BF594D    B9 345AA700           MOV ECX,00A75A34  
+
+00BF5952    E8 C9DBABFF          CALL <PFileName>  
+
+00BF5957    50                   PUSH EAX  
+
+00BF5958    8B85 4CFFFFFF         MOV EAX,DWORD PTR SS:[EBP-B4]  
+
+00BF595E    83C0 08               ADD EAX,8  
+
+00BF5961    50                   PUSH EAX  
+
+00BF5962    E8 09CCBDFF          CALL <_mbscpy>                             ; JMP 到 MSVCRT.strcpy  
+
+00BF5967    83C4 08               ADD ESP,8  
+
+00BF596A    B9 102EA700           MOV ECX,00A72E10  
+
+00BF596F    E8 ACDBABFF          CALL <PFileName>  
+
+00BF5974    50                   PUSH EAX  
+
+00BF5975    8B8D 4CFFFFFF         MOV ECX,DWORD PTR SS:[EBP-B4]  
+
+00BF597B    81C1 0C010000         ADD ECX,10C  
+
+00BF5981    51                   PUSH ECX  
+
+00BF5982    E8 E9CBBDFF          CALL <_mbscpy>                             ; JMP 到 MSVCRT.strcpy  
+
+00BF5987    83C4 08               ADD ESP,8  
+
+00BF598A    8B95 4CFFFFFF         MOV EDX,DWORD PTR SS:[EBP-B4]  
+
+00BF5990    52                   PUSH EDX  
+
+00BF5991    8B85 48FFFFFF         MOV EAX,DWORD PTR SS:[EBP-B8]  
+
+00BF5997    50                   PUSH EAX  
+
+00BF5998    8B8D 40FFFFFF         MOV ECX,DWORD PTR SS:[EBP-C0]  
+
+00BF599E    51                   PUSH ECX  
+
+00BF599F    8B95 0CFFFFFF         MOV EDX,DWORD PTR SS:[EBP-F4]  
+
+00BF59A5    FF52 30               CALL DWORD PTR DS:[EDX+30]  
+
+00BF59A8    83BD 40FFFFFF 00      CMP DWORD PTR SS:[EBP-C0],0  
+
+00BF59AF    74 25                 JE SHORT 00BF59D6  
+
+00BF59B1    8B85 40FFFFFF         MOV EAX,DWORD PTR SS:[EBP-C0]  
+
+00BF59B7    8985 1CFFFFFF         MOV DWORD PTR SS:[EBP-E4],EAX  
+
+00BF59BD    8B8D 1CFFFFFF         MOV ECX,DWORD PTR SS:[EBP-E4]  
+
+00BF59C3    51                   PUSH ECX  
+
+00BF59C4    E8 51B6BDFF          CALL <operator delete(void *)>             ; JMP 到 mfc42.#825_operator delete  
+
+00BF59C9    83C4 04               ADD ESP,4  
+
+00BF59CC    C785 40FFFFFF 000000  MOV DWORD PTR SS:[EBP-C0],0  
+
+00BF59D6    83BD 48FFFFFF 00      CMP DWORD PTR SS:[EBP-B8],0  
+
+00BF59DD    74 25                 JE SHORT 00BF5A04  
+
+00BF59DF    8B95 48FFFFFF         MOV EDX,DWORD PTR SS:[EBP-B8]  
+
+00BF59E5    8995 18FFFFFF         MOV DWORD PTR SS:[EBP-E8],EDX  
+
+00BF59EB    8B85 18FFFFFF         MOV EAX,DWORD PTR SS:[EBP-E8]  
+
+00BF59F1    50                   PUSH EAX  
+```
+
+
+
+```
+00BF59F2    E8 23B6BDFF          CALL <operator delete(void \*)>               ; JMP 到 mfc42.#825\_operator delete  
+
+00BF59F7    83C4 04             ADD ESP,4  
+
+00BF59FA    C785 48FFFFFF 000000>MOV DWORD PTR SS:\[EBP-B8\],0  
+
+00BF5A04    83BD 4CFFFFFF 00    CMP DWORD PTR SS:\[EBP-B4\],0  
+
+00BF5A0B    74 25               JE SHORT 00BF5A32  
+
+00BF5A0D    8B8D 4CFFFFFF       MOV ECX,DWORD PTR SS:\[EBP-B4\]  
+
+00BF5A13    898D 14FFFFFF       MOV DWORD PTR SS:\[EBP-EC\],ECX  
+
+00BF5A19    8B95 14FFFFFF       MOV EDX,DWORD PTR SS:\[EBP-EC\]  
+
+00BF5A1F    52                 PUSH EDX  
+
+00BF5A20    E8 F5B5BDFF         CALL <operator delete(void \*)>               ; JMP 到 mfc42.#825\_operator delete  
+
+00BF5A25    83C4 04             ADD ESP,4  
+
+00BF5A28    C785 4CFFFFFF 000000>MOV DWORD PTR SS:\[EBP-B4\],0  
+
+00BF5A32    8D85 50FFFFFF       LEA EAX,DWORD PTR SS:\[EBP-B0\]  
+
+00BF5A38    50                 PUSH EAX  
+
+00BF5A39    6A 01              PUSH 1  
+
+00BF5A3B    8B8D 0CFFFFFF       MOV ECX,DWORD PTR SS:\[EBP-F4\]  
+
+00BF5A41    51                 PUSH ECX  
+
+00BF5A42    E8 570B0000         CALL 00BF659E                                 ; 网络版缺失的图文接口代码-01  
+
+00BF5A47    8B95 0CFFFFFF       MOV EDX,DWORD PTR SS:\[EBP-F4\]  
+
+00BF5A4D    C782 E4000000 000000>MOV DWORD PTR DS:\[EDX+E4\],0  
+
+00BF5A57    8B85 0CFFFFFF       MOV EAX,DWORD PTR SS:\[EBP-F4\]  
+
+00BF5A5D    8378 18 00          CMP DWORD PTR DS:\[EAX+18\],0  
+
+00BF5A61    74 2D              JE SHORT 00BF5A90  
+
+00BF5A63    8B8D 0CFFFFFF       MOV ECX,DWORD PTR SS:\[EBP-F4\]  
+
+00BF5A69    83B9 E4000000 00    CMP DWORD PTR DS:\[ECX+E4\],0  
+
+00BF5A70    75 1E              JNZ SHORT 00BF5A90  
+
+00BF5A72    8D55 B4            LEA EDX,DWORD PTR SS:\[EBP-4C\]  
+
+00BF5A75    52                 PUSH EDX  
+
+00BF5A76    6A 06              PUSH 6  
+
+00BF5A78    8B85 0CFFFFFF       MOV EAX,DWORD PTR SS:\[EBP-F4\]  
+
+00BF5A7E    50                 PUSH EAX  
+
+00BF5A7F    E8 1A0B0000         CALL 00BF659E                                 ; 网络版缺失的图文接口代码-01  
+
+00BF5A84    8B8D 0CFFFFFF       MOV ECX,DWORD PTR SS:\[EBP-F4\]  
+
+00BF5A8A    8981 E4000000       MOV DWORD PTR DS:\[ECX+E4\],EAX  
+
+00BF5A90    8B95 0CFFFFFF       MOV EDX,DWORD PTR SS:\[EBP-F4\]  
+
+00BF5A96    837A 40 00          CMP DWORD PTR DS:\[EDX+40\],0  
+
+00BF5A9A    0F84 1D020000       JE 00BF5CBD  
+
+00BF5AA0    8B85 0CFFFFFF       MOV EAX,DWORD PTR SS:\[EBP-F4\]  
+
+00BF5AA6    83B8 E4000000 01    CMP DWORD PTR DS:\[EAX+E4\],1  
+
+00BF5AAD    75 0C              JNZ SHORT 00BF5ABB  
+
+00BF5AAF    C785 34FFFFFF 040000>MOV DWORD PTR SS:\[EBP-CC\],4  
+
+00BF5AB9    EB 0A              JMP SHORT 00BF5AC5  
+
+00BF5ABB    C785 34FFFFFF 020000>MOV DWORD PTR SS:\[EBP-CC\],2  
+
+00BF5AC5    8B8D 34FFFFFF       MOV ECX,DWORD PTR SS:\[EBP-CC\]  
+
+00BF5ACB    51                 PUSH ECX  
+
+00BF5ACC    8B55 0C             MOV EDX,DWORD PTR SS:\[EBP+C\]  
+
+00BF5ACF    52                 PUSH EDX  
+
+00BF5AD0    8B45 08             MOV EAX,DWORD PTR SS:\[EBP+8\]  
+
+00BF5AD3    50                 PUSH EAX  
+
+00BF5AD4    8B8D 0CFFFFFF       MOV ECX,DWORD PTR SS:\[EBP-F4\]  
+
+00BF5ADA    E8 D0FFB1FF         CALL 00715AAF  
+
+00BF5ADF    8985 38FFFFFF       MOV DWORD PTR SS:\[EBP-C8\],EAX  
+
+00BF5AE5    83BD 38FFFFFF 00    CMP DWORD PTR SS:\[EBP-C8\],0  
+
+00BF5AEC    0F8D 00010000       JGE 00BF5BF2  
+
+00BF5AF2    81BD 38FFFFFF 18FCFF>CMP DWORD PTR SS:\[EBP-C8\],-3E8  
+
+00BF5AFC    75 7B              JNZ SHORT 00BF5B79  
+
+00BF5AFE    8D8D 50FFFFFF       LEA ECX,DWORD PTR SS:\[EBP-B0\]  
+
+00BF5B04    51                 PUSH ECX  
+
+00BF5B05    6A 01              PUSH 1  
+
+00BF5B07    8B95 0CFFFFFF       MOV EDX,DWORD PTR SS:\[EBP-F4\]  
+
+00BF5B0D    52                 PUSH EDX  
+
+00BF5B0E    E8 8B0A0000         CALL 00BF659E  
+
+00BF5B13    8B85 0CFFFFFF       MOV EAX,DWORD PTR SS:\[EBP-F4\]  
+
+00BF5B19    8378 18 00          CMP DWORD PTR DS:\[EAX+18\],0  
+
+00BF5B1D    74 20              JE SHORT 00BF5B3F  
+
+00BF5B1F    8D4D B4            LEA ECX,DWORD PTR SS:\[EBP-4C\]  
+
+00BF5B22    51                 PUSH ECX  
+
+00BF5B23    6A 06              PUSH 6  
+
+00BF5B25    8B95 0CFFFFFF       MOV EDX,DWORD PTR SS:\[EBP-F4\]  
+
+00BF5B2B    52                 PUSH EDX  
+
+00BF5B2C    E8 6D0A0000         CALL 00BF659E                                 ; 网络版缺失的图文接口代码-02  
+
+00BF5B31    8B8D 0CFFFFFF       MOV ECX,DWORD PTR SS:\[EBP-F4\]  
+
+00BF5B37    8981 E4000000       MOV DWORD PTR DS:\[ECX+E4\],EAX  
+
+00BF5B3D    EB 10              JMP SHORT 00BF5B4F  
+
+00BF5B3F    8B95 0CFFFFFF       MOV EDX,DWORD PTR SS:\[EBP-F4\]  
+
+00BF5B45    C782 E4000000 000000>MOV DWORD PTR DS:\[EDX+E4\],0  
+
+00BF5B4F    8B85 0CFFFFFF       MOV EAX,DWORD PTR SS:\[EBP-F4\]  
+
+00BF5B55    83B8 E4000000 01    CMP DWORD PTR DS:\[EAX+E4\],1  
+
+00BF5B5C    75 0C              JNZ SHORT 00BF5B6A  
+
+00BF5B5E    C785 34FFFFFF 040000>MOV DWORD PTR SS:\[EBP-CC\],4  
+
+00BF5B68    EB 0A              JMP SHORT 00BF5B74  
+
+00BF5B6A    C785 34FFFFFF 020000>MOV DWORD PTR SS:\[EBP-CC\],2  
+
+00BF5B74    ^ E9 4CFFFFFF        JMP 00BF5AC5  
+
+00BF5B79    81BD 38FFFFFF 17FCFF>CMP DWORD PTR SS:\[EBP-C8\],-3E9  
+
+00BF5B83    75 1C              JNZ SHORT 00BF5BA1  
+
+00BF5B85    8B8D 0CFFFFFF       MOV ECX,DWORD PTR SS:\[EBP-F4\]  
+
+00BF5B8B    E8 A7FAB1FF         CALL <\_text\_715637>  
+
+00BF5B90    C705 4054A700 010000>MOV DWORD PTR DS:\[A75440\],1  
+
+00BF5B9A    33C0               XOR EAX,EAX  
+
+00BF5B9C    E9 1E010000         JMP 00BF5CBF  
+
+00BF5BA1    6A FF              PUSH -1  
+
+00BF5BA3    6A 24              PUSH 24  
+
+00BF5BA5    68 35FB0000         PUSH 0FB35  
+
+00BF5BAA    E8 BFB4BDFF         CALL <AfxMessageBox(uint,uint,uint)>         ; JMP 到 mfc42.#1199\_AfxMessageBox  
+
+00BF5BAF    83F8 07            CMP EAX,7  
+
+00BF5BB2    75 12              JNZ SHORT 00BF5BC6  
+
+00BF5BB4    8B8D 0CFFFFFF       MOV ECX,DWORD PTR SS:\[EBP-F4\]  
+
+00BF5BBA    E8 78FAB1FF         CALL <\_text\_715637>  
+
+00BF5BBF    33C0               XOR EAX,EAX  
+
+00BF5BC1    E9 F9000000         JMP 00BF5CBF  
+
+00BF5BC6    6A 01              PUSH 1  
+
+00BF5BC8    8B8D 0CFFFFFF       MOV ECX,DWORD PTR SS:\[EBP-F4\]  
+
+00BF5BCE    E8 F1090000         CALL 00BF65C4  
+
+00BF5BD3    83F8 FF            CMP EAX,-1  
+
+00BF5BD6    75 15              JNZ SHORT 00BF5BED  
+
+00BF5BD8    6A FF              PUSH -1  
+
+00BF5BDA    6A 00              PUSH 0  
+
+00BF5BDC    68 36FB0000         PUSH 0FB36  
+
+00BF5BE1    E8 88B4BDFF         CALL <AfxMessageBox(uint,uint,uint)>         ; JMP 到 mfc42.#1199\_AfxMessageBox  
+
+00BF5BE6    33C0               XOR EAX,EAX  
+
+00BF5BE8    E9 D2000000         JMP 00BF5CBF  
+
+00BF5BED    ^ E9 D3FEFFFF        JMP 00BF5AC5  
+
+00BF5BF2    8B8D 0CFFFFFF       MOV ECX,DWORD PTR SS:\[EBP-F4\]  
+
+00BF5BF8    8379 34 00          CMP DWORD PTR DS:\[ECX+34\],0  
+
+00BF5BFC    74 1A              JE SHORT 00BF5C18  
+
+00BF5BFE    8B55 0C             MOV EDX,DWORD PTR SS:\[EBP+C\]  
+
+00BF5C01    83EA 02            SUB EDX,2  
+
+00BF5C04    52                 PUSH EDX  
+
+00BF5C05    8B45 08             MOV EAX,DWORD PTR SS:\[EBP+8\]  
+
+00BF5C08    50                 PUSH EAX  
+
+00BF5C09    8B8D 0CFFFFFF       MOV ECX,DWORD PTR SS:\[EBP-F4\]  
+
+00BF5C0F    FF51 34            CALL DWORD PTR DS:\[ECX+34\]  
+
+00BF5C12    8985 30FFFFFF       MOV DWORD PTR SS:\[EBP-D0\],EAX  
+
+00BF5C18    8B95 0CFFFFFF       MOV EDX,DWORD PTR SS:\[EBP-F4\]  
+
+00BF5C1E    837A 0C 00          CMP DWORD PTR DS:\[EDX+C\],0  
+
+00BF5C22    74 78              JE SHORT 00BF5C9C  
+
+00BF5C24    8D8D 2CFFFFFF       LEA ECX,DWORD PTR SS:\[EBP-D4\]  
+
+00BF5C2A    E8 DFB3BDFF         CALL <CString::CString(void)>               ; JMP 到 mfc42.#540\_CString::CString  
+
+00BF5C2F    C745 FC 00000000    MOV DWORD PTR SS:\[EBP-4\],0  
+```
+
+
+
+```
+00BF5C36    B9 102EA700          MOV ECX,00A72E10  
+
+00BF5C3B    E8 E0D8ABFF          CALL <PFileName>  
+
+00BF5C40    50                  PUSH EAX  
+
+00BF5C41    8D85 10FFFFFF       LEA EAX,DWORD PTR SS:[EBP-F0]  
+
+00BF5C47    50                  PUSH EAX  
+
+00BF5C48    E8 3E2CA0FF         CALL <_text_5F888B>  
+
+00BF5C4D    83C4 08            ADD ESP,8  
+
+00BF5C50    8985 08FFFFFF      MOV DWORD PTR SS:[EBP-F8],EAX  
+
+00BF5C56    8B8D 08FFFFFF      MOV ECX,DWORD PTR SS:[EBP-F8]  
+
+00BF5C5C    898D 04FFFFFF      MOV DWORD PTR SS:[EBP-FC],ECX  
+
+00BF5C62    C645 FC 01        MOV BYTE PTR SS:[EBP-4],1  
+
+00BF5C66    8B8D 04FFFFFF      MOV ECX,DWORD PTR SS:[EBP-FC]  
+
+00BF5C6C    E8 AFD8ABFF        CALL <PFileName>  
+
+00BF5C71    50                  PUSH EAX  
+
+00BF5C72    8B95 0CFFFFFF      MOV EDX,DWORD PTR SS:[EBP-F4]  
+
+00BF5C78    FF52 0C            CALL DWORD PTR DS:[EDX+C]  
+
+00BF5C7B    C645 FC 00        MOV BYTE PTR SS:[EBP-4],0  
+
+00BF5C7F    8D8D 10FFFFFF      LEA ECX,DWORD PTR SS:[EBP-F0]  
+
+00BF5C85    E8 6CB3BDFF        CALL <CString::~CString(void)>             ; JMP 到 mfc42.#800_CString::~CString  
+
+00BF5C8A    C745 FC FFFFFFFF   MOV DWORD PTR SS:[EBP-4],-1  
+
+00BF5C91    8D8D 2CFFFFFF      LEA ECX,DWORD PTR SS:[EBP-D4]  
+
+00BF5C97    E8 5AB3BDFF        CALL <CString::~CString(void)>             ; JMP 到 mfc42.#800_CString::~CString  
+
+00BF5C9C    8B85 0CFFFFFF      MOV EAX,DWORD PTR SS:[EBP-F4]  
+
+00BF5CA2    05 94000000        ADD EAX,94  
+
+00BF5CA7    50                  PUSH EAX  
+
+00BF5CA8    6A 03              PUSH 3  
+
+00BF5CAA    8B8D 0CFFFFFF      MOV ECX,DWORD PTR SS:[EBP-F4]  
+
+00BF5CB0    51                  PUSH ECX  
+
+00BF5CB1    E8 E8080000        CALL 00BF659E                              ; 网络版缺失的图文接口代码-01  
+
+00BF5CB6    B8 01000000        MOV EAX,1  
+
+00BF5CBB    EB 02              JMP SHORT 00BF5CBF  
+
+00BF5CBD    33C0               XOR EAX,EAX  
+
+00BF5CBF    8B4D F4            MOV ECX,DWORD PTR SS:[EBP-C]  
+
+00BF5CC2    64:890D 00000000   MOV DWORD PTR FS:[0],ECX  
+
+00BF5CC9    8BE5               MOV ESP,EBP  
+
+00BF5CCB    5D                  POP EBP  
+
+00BF5CCC    C2 0800            RETN 8  
+
+00BF5CCF    90                  NOP  
+
+00BF5CD0    90                  NOP  
+
+00BF5CD1    90                  NOP  
+
+00BF5CD2    90                  NOP  
+
+00BF5CD3    55                  PUSH EBP  
+
+00BF5CD4    8BEC               MOV EBP,ESP  
+
+00BF5CD6    6A FF              PUSH -1  
+
+00BF5CD8    68 39FA7F00        PUSH 007FFA39  
+
+00BF5CDD    64:A1 00000000     MOV EAX,DWORD PTR FS:[0]  
+
+00BF5CE3    50                  PUSH EAX  
+
+00BF5CE4    64:8925 00000000   MOV DWORD PTR FS:[0],ESP  
+
+00BF5CEB    81EC DC010000      SUB ESP,1DC  
+
+00BF5CF1    898D 90FEFFFF      MOV DWORD PTR SS:[EBP-170],ECX  
+
+00BF5CF7    C685 F0FEFFFF 00   MOV BYTE PTR SS:[EBP-110],0  
+
+00BF5CFE    8B85 90FEFFFF      MOV EAX,DWORD PTR SS:[EBP-170]  
+
+00BF5D04    C740 40 00000000   MOV DWORD PTR DS:[EAX+40],0  
+
+00BF5D0B    837D 08 00         CMP DWORD PTR SS:[EBP+8],0  
+
+00BF5D0F    0F84 54050000      JE 00BF6269  
+
+00BF5D15    68 6041BF00        PUSH 00BF4160                              ; ASCII "FTSTKDRV.EXE.!!!"  
+
+00BF5D1A    68 602EA700        PUSH 00A72E60  
+
+00BF5D1F    8D8D D4FEFFFF      LEA ECX,DWORD PTR SS:[EBP-12C]  
+
+00BF5D25    51                  PUSH ECX  
+
+00BF5D26    E8 4FB3BDFF        CALL <operator+(CString const &,char const *)> ; JMP 到 mfc42.#924_operator+  
+
+00BF5D2B    8985 8CFEFFFF      MOV DWORD PTR SS:[EBP-174],EAX  
+
+00BF5D31    8B95 8CFEFFFF      MOV EDX,DWORD PTR SS:[EBP-174]  
+
+00BF5D37    8995 88FEFFFF      MOV DWORD PTR SS:[EBP-178],EDX  
+
+00BF5D3D    C745 FC 00000000   MOV DWORD PTR SS:[EBP-4],0  
+
+00BF5D44    8B8D 88FEFFFF      MOV ECX,DWORD PTR SS:[EBP-178]  
+
+00BF5D4A    E8 D1D7ABFF        CALL <PFileName>  
+
+00BF5D4F    50                  PUSH EAX  
+
+00BF5D50    FF15 344DCF00      CALL DWORD PTR DS:[<&kernel32.GetFileAttributesA>] ; kernel32.GetFileAttributesA  
+
+00BF5D56    33C9               XOR ECX,ECX  
+
+00BF5D58    83F8 FF            CMP EAX,-1  
+
+00BF5D5B    0F95C1             SETNE CL  
+
+00BF5D5E    888D D8FEFFFF      MOV BYTE PTR SS:[EBP-128],CL  
+
+00BF5D64    C745 FC FFFFFFFF   MOV DWORD PTR SS:[EBP-4],-1  
+
+00BF5D6B    8D8D D4FEFFFF      LEA ECX,DWORD PTR SS:[EBP-12C]  
+
+00BF5D71    E8 80B2BDFF        CALL <CString::~CString(void)>             ; JMP 到 mfc42.#800_CString::~CString  
+
+00BF5D76    8B95 D8FEFFFF      MOV EDX,DWORD PTR SS:[EBP-128]  
+
+00BF5D7C    81E2 FF000000      AND EDX,0FF  
+
+00BF5D82    85D2               TEST EDX,EDX  
+
+00BF5D84    0F84 8B010000      JE 00BF5F15  
+
+00BF5D8A    6A 00              PUSH 0  
+
+00BF5D8C    68 8041BF00        PUSH 00BF4180                              ; ASCII "FTSTKDRV.EXE.BAK"  
+
+00BF5D91    68 602EA700        PUSH 00A72E60  
+
+00BF5D96    8D85 D0FEFFFF      LEA EAX,DWORD PTR SS:[EBP-130]  
+
+00BF5D9C    50                  PUSH EAX  
+
+00BF5D9D    E8 D8B2BDFF        CALL <operator+(CString const &,char const *)> ; JMP 到 mfc42.#924_operator+  
+
+00BF5DA2    8985 84FEFFFF      MOV DWORD PTR SS:[EBP-17C],EAX  
+
+00BF5DA8    8B8D 84FEFFFF      MOV ECX,DWORD PTR SS:[EBP-17C]  
+
+00BF5DAE    898D 80FEFFFF      MOV DWORD PTR SS:[EBP-180],ECX  
+
+00BF5DB4    C745 FC 01000000   MOV DWORD PTR SS:[EBP-4],1  
+
+00BF5DBB    8B8D 80FEFFFF      MOV ECX,DWORD PTR SS:[EBP-180]  
+
+00BF5DC1    E8 5AD7ABFF        CALL <PFileName>  
+
+00BF5DC6    50                  PUSH EAX  
+
+00BF5DC7    68 A041BF00        PUSH 00BF41A0                              ; ASCII "FTSTKDRV.EXE"  
+
+00BF5DCC    68 602EA700        PUSH 00A72E60  
+
+00BF5DD1    8D95 CCFEFFFF      LEA EDX,DWORD PTR SS:[EBP-134]  
+
+00BF5DD7    52                  PUSH EDX  
+
+00BF5DD8    E8 9DB2BDFF        CALL <operator+(CString const &,char const *)> ; JMP 到 mfc42.#924_operator+  
+
+00BF5DDD    8985 7CFEFFFF      MOV DWORD PTR SS:[EBP-184],EAX  
+
+00BF5DE3    8B85 7CFEFFFF      MOV EAX,DWORD PTR SS:[EBP-184]  
+
+00BF5DE9    8985 78FEFFFF      MOV DWORD PTR SS:[EBP-188],EAX  
+
+00BF5DEF    C645 FC 02        MOV BYTE PTR SS:[EBP-4],2  
+
+00BF5DF3    8B8D 78FEFFFF      MOV ECX,DWORD PTR SS:[EBP-188]  
+
+00BF5DF9    E8 22D7ABFF        CALL <PFileName>  
+
+00BF5DFE    50                  PUSH EAX  
+
+00BF5DFF    FF15 A04CCF00      CALL DWORD PTR DS:[<&kernel32.CopyFileA>]   ; kernel32.CopyFileA  
+
+00BF5E05    C645 FC 01        MOV BYTE PTR SS:[EBP-4],1  
+
+00BF5E09    8D8D CCFEFFFF      LEA ECX,DWORD PTR SS:[EBP-134]  
+
+00BF5E0F    E8 E2B1BDFF        CALL <CString::~CString(void)>             ; JMP 到 mfc42.#800_CString::~CString  
+
+00BF5E14    C745 FC FFFFFFFF   MOV DWORD PTR SS:[EBP-4],-1  
+
+00BF5E1B    8D8D D0FEFFFF      LEA ECX,DWORD PTR SS:[EBP-130]  
+
+00BF5E21    E8 D0B1BDFF        CALL <CString::~CString(void)>             ; JMP 到 mfc42.#800_CString::~CString  
+
+00BF5E26    6A 00              PUSH 0  
+
+00BF5E28    68 A041BF00        PUSH 00BF41A0                              ; ASCII "FTSTKDRV.EXE"  
+
+00BF5E2D    68 602EA700        PUSH 00A72E60  
+
+00BF5E32    8D8D C8FEFFFF      LEA ECX,DWORD PTR SS:[EBP-138]  
+
+00BF5E38    51                  PUSH ECX  
+
+00BF5E39    E8 3CB2BDFF        CALL <operator+(CString const &,char const *)> ; JMP 到 mfc42.#924_operator+  
+
+00BF5E3E    8985 74FEFFFF      MOV DWORD PTR SS:[EBP-18C],EAX  
+
+00BF5E44    8B95 74FEFFFF      MOV EDX,DWORD PTR SS:[EBP-18C]  
+
+00BF5E4A    8995 70FEFFFF      MOV DWORD PTR SS:[EBP-190],EDX  
+
+00BF5E50    C745 FC 03000000   MOV DWORD PTR SS:[EBP-4],3  
+
+00BF5E57    8B8D 70FEFFFF      MOV ECX,DWORD PTR SS:[EBP-190]  
+```
+
+
+
+```asm
+00BF5E5D    E8 BED6ABFF          CALL <PFileName>  
+
+00BF5E62    50                  PUSH EAX  
+
+00BF5E63    68 6041BF00         PUSH 00BF4160                       ; ASCII "FTSTKDRV.EXE.!!!"  
+
+00BF5E68    68 602EA700         PUSH 00A72E60  
+
+00BF5E6D    8D85 C4FEFFFF       LEA EAX,DWORD PTR SS:[EBP-13C]  
+
+00BF5E73    50                  PUSH EAX  
+
+00BF5E74    E8 01B2BDFF         CALL <operator+(CString const &,char const *)>   ; JMP 到 mfc42.#924_operator+  
+
+00BF5E79    8985 6CFEFFFF       MOV DWORD PTR SS:[EBP-194],EAX  
+
+00BF5E7F    8B8D 6CFEFFFF       MOV ECX,DWORD PTR SS:[EBP-194]  
+
+00BF5E85    898D 68FEFFFF       MOV DWORD PTR SS:[EBP-198],ECX  
+
+00BF5E8B    C645 FC 04          MOV BYTE PTR SS:[EBP-4],4  
+
+00BF5E8F    8B8D 68FEFFFF       MOV ECX,DWORD PTR SS:[EBP-198]  
+
+00BF5E95    E8 86D6ABFF         CALL <PFileName>  
+
+00BF5E9A    50                  PUSH EAX  
+
+00BF5E9B    FF15 A04CCF00       CALL DWORD PTR DS:[<&kernel32.CopyFileA>]        ; kernel32.CopyFileA  
+
+00BF5EA1    C645 FC 03          MOV BYTE PTR SS:[EBP-4],3  
+
+00BF5EA5    8D8D C4FEFFFF       LEA ECX,DWORD PTR SS:[EBP-13C]  
+
+00BF5EAB    E8 46B1BDFF         CALL <CString::~CString(void)>                 ; JMP 到 mfc42.#800_CString::~CString  
+
+00BF5EB0    C745 FC FFFFFFFFFF  MOV DWORD PTR SS:[EBP-4],-1  
+
+00BF5EB7    8D8D C8FEFFFF       LEA ECX,DWORD PTR SS:[EBP-138]  
+
+00BF5EBD    E8 34B1BDFF         CALL <CString::~CString(void)>                 ; JMP 到 mfc42.#800_CString::~CString  
+
+00BF5EC2    68 6041BF00         PUSH 00BF4160                       ; ASCII "FTSTKDRV.EXE.!!!"  
+
+00BF5EC7    68 602EA700         PUSH 00A72E60  
+
+00BF5ECC    8D95 C0FEFFFF       LEA EDX,DWORD PTR SS:[EBP-140]  
+
+00BF5ED2    52                  PUSH EDX  
+
+00BF5ED3    E8 A2B1BDFF         CALL <operator+(CString const &,char const *)>   ; JMP 到 mfc42.#924_operator+  
+
+00BF5ED8    8985 64FEFFFF       MOV DWORD PTR SS:[EBP-19C],EAX  
+
+00BF5EDE    8B85 64FEFFFF       MOV EAX,DWORD PTR SS:[EBP-19C]  
+
+00BF5EE4    8985 60FEFFFF       MOV DWORD PTR SS:[EBP-1A0],EAX  
+
+00BF5EEA    C745 FC 05000000    MOV DWORD PTR SS:[EBP-4],5  
+
+00BF5EF1    8B8D 60FEFFFF       MOV ECX,DWORD PTR SS:[EBP-1A0]  
+
+00BF5EF7    E8 24D6ABFF         CALL <PFileName>  
+
+00BF5EFC    50                  PUSH EAX  
+
+00BF5EFD    FF15 C04CCF00       CALL DWORD PTR DS:[<&kernel32.DeleteFileA>]     ; kernel32.DeleteFileA  
+
+00BF5F03    C745 FC FFFFFFFFFF  MOV DWORD PTR SS:[EBP-4],-1  
+
+00BF5F0A    8D8D C0FEFFFF       LEA ECX,DWORD PTR SS:[EBP-140]  
+
+00BF5F10    E8 E1B0BDFF         CALL <CString::~CString(void)>                 ; JMP 到 mfc42.#800_CString::~CString  
+
+00BF5F15    68 C041BF00         PUSH 00BF41C0                       ; ASCII "FTSTKDRV.DLL.!!!"  
+
+00BF5F1A    68 602EA700         PUSH 00A72E60  
+
+00BF5F1F    8D8D B8FEFFFF       LEA ECX,DWORD PTR SS:[EBP-148]  
+
+00BF5F25    51                  PUSH ECX  
+
+00BF5F26    E8 4FB1BDFF         CALL <operator+(CString const &,char const *)>   ; JMP 到 mfc42.#924_operator+  
+
+00BF5F2B    8985 5CFEFFFF       MOV DWORD PTR SS:[EBP-1A4],EAX  
+
+00BF5F31    8B95 5CFEFFFF       MOV EDX,DWORD PTR SS:[EBP-1A4]  
+
+00BF5F37    8995 58FEFFFF       MOV DWORD PTR SS:[EBP-1A8],EDX  
+
+00BF5F3D    C745 FC 06000000    MOV DWORD PTR SS:[EBP-4],6  
+
+00BF5F44    8B8D 58FEFFFF       MOV ECX,DWORD PTR SS:[EBP-1A8]  
+
+00BF5F4A    E8 D1D5ABFF         CALL <PFileName>  
+
+00BF5F4F    50                  PUSH EAX  
+
+00BF5F50    FF15 344DCF00       CALL DWORD PTR DS:[<&kernel32.GetFileAttributesA>] ; kernel32.GetFileAttributesA  
+
+00BF5F56    33C9                XOR ECX,ECX  
+
+00BF5F58    83F8 FF             CMP EAX,-1  
+
+00BF5F5B    0F95C1              SETNE CL  
+
+00BF5F5E    888D BCFEFFFF       MOV BYTE PTR SS:[EBP-144],CL  
+
+00BF5F64    C745 FC FFFFFFFFFF  MOV DWORD PTR SS:[EBP-4],-1  
+
+00BF5F6B    8D8D B8FEFFFF       LEA ECX,DWORD PTR SS:[EBP-148]  
+
+00BF5F71    E8 80B0BDFF         CALL <CString::~CString(void)>                 ; JMP 到 mfc42.#800_CString::~CString  
+
+00BF5F76    8B95 BCFEFFFF       MOV EDX,DWORD PTR SS:[EBP-144]  
+
+00BF5F7C    81E2 FF000000       AND EDX,0FF  
+
+00BF5F82    85D2                TEST EDX,EDX  
+
+00BF5F84    0F84 8B010000       JE 00BF6115  
+
+00BF5F8A    6A 00               PUSH 0  
+
+00BF5F8C    68 E041BF00         PUSH 00BF41E0                       ; ASCII "FTSTKDRV.DLL.BAK"  
+
+00BF5F91    68 602EA700         PUSH 00A72E60  
+
+00BF5F96    8D85 B4FEFFFF       LEA EAX,DWORD PTR SS:[EBP-14C]  
+
+00BF5F9C    50                  PUSH EAX  
+
+00BF5F9D    E8 D8B0BDFF         CALL <operator+(CString const &,char const *)>   ; JMP 到 mfc42.#924_operator+  
+
+00BF5FA2    8985 54FEFFFF       MOV DWORD PTR SS:[EBP-1AC],EAX  
+
+00BF5FA8    8B8D 54FEFFFF       MOV ECX,DWORD PTR SS:[EBP-1AC]  
+
+00BF5FAE    898D 50FEFFFF       MOV DWORD PTR SS:[EBP-1B0],ECX  
+
+00BF5FB4    C745 FC 07000000    MOV DWORD PTR SS:[EBP-4],7  
+
+00BF5FBB    8B8D 50FEFFFF       MOV ECX,DWORD PTR SS:[EBP-1B0]  
+
+00BF5FC1    E8 5AD5ABFF         CALL <PFileName>  
+
+00BF5FC6    50                  PUSH EAX  
+
+00BF5FC7    68 0042BF00         PUSH 00BF4200                       ; ASCII "FTSTKDRV.DLL"  
+
+00BF5FCC    68 602EA700         PUSH 00A72E60  
+
+00BF5FD1    8D95 B0FEFFFF       LEA EDX,DWORD PTR SS:[EBP-150]  
+
+00BF5FD7    52                  PUSH EDX  
+
+00BF5FD8    E8 9DB0BDFF         CALL <operator+(CString const &,char const *)>   ; JMP 到 mfc42.#924_operator+  
+
+00BF5FDD    8985 4CFEFFFF       MOV DWORD PTR SS:[EBP-1B4],EAX  
+
+00BF5FE3    8B85 4CFEFFFF       MOV EAX,DWORD PTR SS:[EBP-1B4]  
+
+00BF5FE9    8985 48FEFFFF       MOV DWORD PTR SS:[EBP-1B8],EAX  
+
+00BF5FEF    C645 FC 08          MOV BYTE PTR SS:[EBP-4],8  
+
+00BF5FF3    8B8D 48FEFFFF       MOV ECX,DWORD PTR SS:[EBP-1B8]  
+
+00BF5FF9    E8 22D5ABFF         CALL <PFileName>  
+
+00BF5FFE    50                  PUSH EAX  
+
+00BF5FFF    FF15 A04CCF00       CALL DWORD PTR DS:[<&kernel32.CopyFileA>]        ; kernel32.CopyFileA  
+
+00BF6005    C645 FC 07          MOV BYTE PTR SS:[EBP-4],7  
+
+00BF6009    8D8D B0FEFFFF       LEA ECX,DWORD PTR SS:[EBP-150]  
+
+00BF600F    E8 E2AFBDFF         CALL <CString::~CString(void)>                 ; JMP 到 mfc42.#800_CString::~CString  
+
+00BF6014    C745 FC FFFFFFFFFF  MOV DWORD PTR SS:[EBP-4],-1  
+
+00BF601B    8D8D B4FEFFFF       LEA ECX,DWORD PTR SS:[EBP-14C]  
+
+00BF6021    E8 D0AFBDFF         CALL <CString::~CString(void)>                 ; JMP 到 mfc42.#800_CString::~CString  
+
+00BF6026    6A 00               PUSH 0  
+
+00BF6028    68 0042BF00         PUSH 00BF4200                       ; ASCII "FTSTKDRV.DLL"  
+
+00BF602D    68 602EA700         PUSH 00A72E60  
+
+00BF6032    8D8D ACFEFFFF       LEA ECX,DWORD PTR SS:[EBP-154]  
+
+00BF6038    51                  PUSH ECX  
+
+00BF6039    E8 3CB0BDFF         CALL <operator+(CString const &,char const *)>   ; JMP 到 mfc42.#924_operator+  
+
+00BF603E    8985 44FEFFFF       MOV DWORD PTR SS:[EBP-1BC],EAX  
+
+00BF6044    8B95 44FEFFFF       MOV EDX,DWORD PTR SS:[EBP-1BC]  
+
+00BF604A    8995 40FEFFFF       MOV DWORD PTR SS:[EBP-1C0],EDX  
+
+00BF6050    C745 FC 09000000    MOV DWORD PTR SS:[EBP-4],9  
+
+00BF6057    8B8D 40FEFFFF       MOV ECX,DWORD PTR SS:[EBP-1C0]  
+
+00BF605D    E8 BED4ABFF         CALL <PFileName>  
+
+00BF6062    50                  PUSH EAX  
+
+00BF6063    68 C041BF00         PUSH 00BF41C0                       ; ASCII "FTSTKDRV.DLL.!!!"  
+
+00BF6068    68 602EA700         PUSH 00A72E60  
+
+00BF606D    8D85 A8FEFFFF       LEA EAX,DWORD PTR SS:[EBP-158]  
+
+00BF6073    50                  PUSH EAX
+```
+
+
+
+```
+00BF6074    E8 01B0BDFF         CALL <operator+(CString const &,char const *)>      ; JMP 到 mfc42.#924\_operator+  
+
+00BF6079    8985 3CFEFFFF       MOV DWORD PTR SS:\[EBP-1C4\],EAX  
+
+00BF607F    8B8D 3CFEFFFF       MOV ECX,DWORD PTR SS:\[EBP-1C4\]  
+
+00BF6085    898D 38FEFFFF       MOV DWORD PTR SS:\[EBP-1C8\],ECX  
+
+00BF608B    C645 FC 0A          MOV BYTE PTR SS:\[EBP-4\],0A  
+
+00BF608F    8B8D 38FEFFFF       MOV ECX,DWORD PTR SS:\[EBP-1C8\]  
+
+00BF6095    E8 86D4ABFF         CALL <PFileName>  
+
+00BF609A    50                 PUSH EAX  
+
+00BF609B    FF15 A04CCF00      CALL DWORD PTR DS:\[<&kernel32.CopyFileA>\]          ; kernel32.CopyFileA  
+
+00BF60A1    C645 FC 09         MOV BYTE PTR SS:\[EBP-4\],9  
+
+00BF60A5    8D8D A8FEFFFF       LEA ECX,DWORD PTR SS:\[EBP-158\]  
+
+00BF60AB    E8 46AFBDFF         CALL <CString::~CString(void)>                     ; JMP 到 mfc42.#800\_CString::~CString  
+
+00BF60B0    C745 FC FFFFFFFF    MOV DWORD PTR SS:\[EBP-4\],-1  
+
+00BF60B7    8D8D ACFEFFFF       LEA ECX,DWORD PTR SS:\[EBP-154\]  
+
+00BF60BD    E8 34AFBDFF         CALL <CString::~CString(void)>                     ; JMP 到 mfc42.#800\_CString::~CString  
+
+00BF60C2    68 C041BF00         PUSH 00BF41C0                                      ; ASCII "FTSTKDRV.DLL.!!!"  
+
+00BF60C7    68 602EA700         PUSH 00A72E60  
+
+00BF60CC    8D95 A4FEFFFF       LEA EDX,DWORD PTR SS:\[EBP-15C\]  
+
+00BF60D2    52                 PUSH EDX  
+
+00BF60D3    E8 A2AFBDFF         CALL <operator+(CString const &,char const \*)>     ; JMP 到 mfc42.#924\_operator+  
+
+00BF60D8    8985 34FEFFFF       MOV DWORD PTR SS:\[EBP-1CC\],EAX  
+
+00BF60DE    8B85 34FEFFFF       MOV EAX,DWORD PTR SS:\[EBP-1CC\]  
+
+00BF60E4    8985 30FEFFFF       MOV DWORD PTR SS:\[EBP-1D0\],EAX  
+
+00BF60EA    C745 FC 0B000000    MOV DWORD PTR SS:\[EBP-4\],0B  
+
+00BF60F1    8B8D 30FEFFFF       MOV ECX,DWORD PTR SS:\[EBP-1D0\]  
+
+00BF60F7    E8 24D4ABFF         CALL <PFileName>  
+
+00BF60FC    50                 PUSH EAX  
+
+00BF60FD    FF15 C04CCF00      CALL DWORD PTR DS:\[<&kernel32.DeleteFileA>\]       ; kernel32.DeleteFileA  
+
+00BF6103    C745 FC FFFFFFFF    MOV DWORD PTR SS:\[EBP-4\],-1  
+
+00BF610A    8D8D A4FEFFFF       LEA ECX,DWORD PTR SS:\[EBP-15C\]  
+
+00BF6110    E8 E1AEBDFF         CALL <CString::~CString(void)>                     ; JMP 到 mfc42.#800\_CString::~CString  
+
+00BF6115    68 0042BF00         PUSH 00BF4200                                      ; ASCII "FTSTKDRV.DLL"  
+
+00BF611A    68 602EA700         PUSH 00A72E60  
+
+00BF611F    8D8D A0FEFFFF       LEA ECX,DWORD PTR SS:\[EBP-160\]  
+
+00BF6125    51                 PUSH ECX  
+
+00BF6126    E8 4FAFBDFF         CALL <operator+(CString const &,char const \*)>     ; JMP 到 mfc42.#924\_operator+  
+
+00BF612B    8985 2CFEFFFF       MOV DWORD PTR SS:\[EBP-1D4\],EAX  
+
+00BF6131    8B95 2CFEFFFF       MOV EDX,DWORD PTR SS:\[EBP-1D4\]  
+
+00BF6137    8995 28FEFFFF       MOV DWORD PTR SS:\[EBP-1D8\],EDX  
+
+00BF613D    C745 FC 0C000000    MOV DWORD PTR SS:\[EBP-4\],0C  
+
+00BF6144    8B8D 28FEFFFF       MOV ECX,DWORD PTR SS:\[EBP-1D8\]  
+
+00BF614A    E8 D1D3ABFF         CALL <PFileName>  
+
+00BF614F    50                 PUSH EAX  
+
+00BF6150    FF15 CC4CCF00      CALL DWORD PTR DS:\[<&kernel32.LoadLibraryA>\]      ; kernel32.LoadLibraryA  
+
+00BF6156    8B8D 90FEFFFF       MOV ECX,DWORD PTR SS:\[EBP-170\]  
+
+00BF615C    8941 40              MOV DWORD PTR DS:\[ECX+40\],EAX  
+
+00BF615F    C745 FC FFFFFFFF    MOV DWORD PTR SS:\[EBP-4\],-1  
+
+00BF6166    8D8D A0FEFFFF       LEA ECX,DWORD PTR SS:\[EBP-160\]  
+
+00BF616C    E8 85AEBDFF         CALL <CString::~CString(void)>                     ; JMP 到 mfc42.#800\_CString::~CString  
+
+00BF6171    8B95 90FEFFFF       MOV EDX,DWORD PTR SS:\[EBP-170\]  
+
+00BF6177    837A 40 00          CMP DWORD PTR DS:\[EDX+40\],0  
+
+00BF617B    75 15                JNZ SHORT 00BF6192  
+
+00BF617D    6A FF                PUSH -1  
+
+00BF617F    6A 00                PUSH 0  
+
+00BF6181    68 37FB0000         PUSH 0FB37  
+
+00BF6186    E8 E3AEBDFF         CALL <AfxMessageBox(uint,uint,uint)>               ; JMP 到 mfc42.#1199\_AfxMessageBox  
+
+00BF618B    33C0                XOR EAX,EAX  
+
+00BF618D    E9 F8030000         JMP 00BF658A  
+
+00BF6192    68 2042BF00         PUSH 00BF4220                                      ; ASCII "GetTradeData"  
+
+00BF6197    8B85 90FEFFFF       MOV EAX,DWORD PTR SS:\[EBP-170\]  
+
+00BF619D    8B48 40             MOV ECX,DWORD PTR DS:\[EAX+40\]  
+
+00BF61A0    51                 PUSH ECX  
+
+00BF61A1    FF15 C84CCF00      CALL DWORD PTR DS:\[<&kernel32.GetProcAddress>\]    ; kernel32.GetProcAddress  
+
+00BF61A7    8B95 90FEFFFF       MOV EDX,DWORD PTR SS:\[EBP-170\]  
+
+00BF61AD    8942 1C             MOV DWORD PTR DS:\[EDX+1C\],EAX  
+
+00BF61B0    68 3042BF00         PUSH 00BF4230                                      ; ASCII "GetF10Txt"  
+
+00BF61B5    8B85 90FEFFFF       MOV EAX,DWORD PTR SS:\[EBP-170\]  
+
+00BF61BB    8B48 40             MOV ECX,DWORD PTR DS:\[EAX+40\]  
+
+00BF61BE    51                 PUSH ECX  
+
+00BF61BF    FF15 C84CCF00      CALL DWORD PTR DS:\[<&kernel32.GetProcAddress>\]    ; kernel32.GetProcAddress  
+
+00BF61C5    8B95 90FEFFFF       MOV EDX,DWORD PTR SS:\[EBP-170\]  
+
+00BF61CB    8942 20             MOV DWORD PTR DS:\[EDX+20\],EAX  
+
+00BF61CE    68 3C42BF00         PUSH 00BF423C                                      ; ASCII "GetRemoteFile"  
+
+00BF61D3    8B85 90FEFFFF       MOV EAX,DWORD PTR SS:\[EBP-170\]  
+
+00BF61D9    8B48 40             MOV ECX,DWORD PTR DS:\[EAX+40\]  
+
+00BF61DC    51                 PUSH ECX  
+
+00BF61DD    FF15 C84CCF00      CALL DWORD PTR DS:\[<&kernel32.GetProcAddress>\]    ; kernel32.GetProcAddress  
+
+00BF61E3    8B95 90FEFFFF       MOV EDX,DWORD PTR SS:\[EBP-170\]  
+
+00BF61E9    8942 24             MOV DWORD PTR DS:\[EDX+24\],EAX  
+
+00BF61EC    68 4C42BF00         PUSH 00BF424C                                      ; ASCII "StopRemoteFile"  
+
+00BF61F1    8B85 90FEFFFF       MOV EAX,DWORD PTR SS:\[EBP-170\]  
+
+00BF61F7    8B48 40             MOV ECX,DWORD PTR DS:\[EAX+40\]  
+
+00BF61FA    51                 PUSH ECX  
+
+00BF61FB    FF15 C84CCF00      CALL DWORD PTR DS:\[<&kernel32.GetProcAddress>\]    ; kernel32.GetProcAddress  
+
+00BF6201    8B95 90FEFFFF       MOV EDX,DWORD PTR SS:\[EBP-170\]  
+
+00BF6207    8942 28             MOV DWORD PTR DS:\[EDX+28\],EAX  
+
+00BF620A    68 5C42BF00         PUSH 00BF425C                                      ; ASCII "SetParam"  
+
+00BF620F    8B85 90FEFFFF       MOV EAX,DWORD PTR SS:\[EBP-170\]  
+
+00BF6215    8B48 40             MOV ECX,DWORD PTR DS:\[EAX+40\]  
+
+00BF6218    51                 PUSH ECX  
+
+00BF6219    FF15 C84CCF00      CALL DWORD PTR DS:\[<&kernel32.GetProcAddress>\]    ; kernel32.GetProcAddress  
+
+00BF621F    8B95 90FEFFFF       MOV EDX,DWORD PTR SS:\[EBP-170\]  
+
+00BF6225    8942 30             MOV DWORD PTR DS:\[EDX+30\],EAX  
+
+00BF6228    68 6842BF00         PUSH 00BF4268                                      ; ASCII "ReSend"  
+
+00BF622D    8B85 90FEFFFF       MOV EAX,DWORD PTR SS:\[EBP-170\]  
+
+00BF6233    8B48 40             MOV ECX,DWORD PTR DS:\[EAX+40\]  
+
+00BF6236    51                 PUSH ECX  
+
+00BF6237    FF15 C84CCF00      CALL DWORD PTR DS:\[<&kernel32.GetProcAddress>\]    ; kernel32.GetProcAddress  
+
+00BF623D    8B95 90FEFFFF       MOV EDX,DWORD PTR SS:\[EBP-170\]  
+
+00BF6243    8942 2C             MOV DWORD PTR DS:\[EDX+2C\],EAX  
+
+00BF6246    68 7042BF00         PUSH 00BF4270                                      ; ASCII "ClearTick"  
+
+00BF624B    8B85 90FEFFFF       MOV EAX,DWORD PTR SS:\[EBP-170\]  
+
+00BF6251    8B48 40             MOV ECX,DWORD PTR DS:\[EAX+40\]  
+
+00BF6254    51                 PUSH ECX  
+
+00BF6255    FF15 C84CCF00      CALL DWORD PTR DS:\[<&kernel32.GetProcAddress>\]    ; kernel32.GetProcAddress  
+```
+
+
+
+```
+00BF625B    8B95 90FEFFFF        MOV EDX,DWORD PTR SS:[EBP-170]
+
+00BF6261    8942 3C             MOV DWORD PTR DS:[EDX+3C],EAX
+
+00BF6264    E9 FA000000         JMP 00BF6363
+
+00BF6269    C785 E4FEFFFF 01000000 MOV DWORD PTR SS:[EBP-11C],1
+
+00BF6273    C785 E0FEFFFF 04010000 MOV DWORD PTR SS:[EBP-120],104
+
+00BF627D    8D85 ECFEFFFF       LEA EAX,DWORD PTR SS:[EBP-114]
+
+00BF6283    50                  PUSH EAX
+
+00BF6284    68 19000200         PUSH 20019
+
+00BF6289    6A 00               PUSH 0
+
+00BF628B    68 7C42BF00         PUSH 00BF427C                                ; ASCII "SOFTWARE\\stockdrv"
+
+00BF6290    68 02000080         PUSH 80000002
+
+00BF6295    FF15 1040CF00       CALL DWORD PTR DS:[<&advapi32.RegOpenKeyExA>]    ; advapi32.RegOpenKeyExA
+
+00BF629B    8985 E8FEFFFF       MOV DWORD PTR SS:[EBP-118],EAX
+
+00BF62A1    83BD E8FEFFFF 00    CMP DWORD PTR SS:[EBP-118],0
+
+00BF62A8    75 3C               JNZ SHORT 00BF62E6
+
+00BF62AA    8D8D E0FEFFFF       LEA ECX,DWORD PTR SS:[EBP-120]
+
+00BF62B0    51                  PUSH ECX
+
+00BF62B1    8D95 F0FEFFFF       LEA EDX,DWORD PTR SS:[EBP-110]
+
+00BF62B7    52                  PUSH EDX
+
+00BF62B8    8D85 E4FEFFFF       LEA EAX,DWORD PTR SS:[EBP-11C]
+
+00BF62BE    50                  PUSH EAX
+
+00BF62BF    6A 00               PUSH 0
+
+00BF62C1    68 9042BF00         PUSH 00BF4290                                ; ASCII "Driver"
+
+00BF62C6    8B8D ECFEFFFF       MOV ECX,DWORD PTR SS:[EBP-114]
+
+00BF62CC    51                  PUSH ECX
+
+00BF62CD    FF15 0C40CF00       CALL DWORD PTR DS:[<&advapi32.RegQueryValueExA>]  ; advapi32.RegQueryValueExA
+
+00BF62D3    8985 E8FEFFFF       MOV DWORD PTR SS:[EBP-118],EAX
+
+00BF62D9    8B95 ECFEFFFF       MOV EDX,DWORD PTR SS:[EBP-114]
+
+00BF62DF    52                  PUSH EDX
+
+00BF62E0    FF15 0840CF00       CALL DWORD PTR DS:[<&advapi32.RegCloseKey>]         ; advapi32.RegCloseKey
+
+00BF62E6    8D85 F0FEFFFF       LEA EAX,DWORD PTR SS:[EBP-110]
+
+00BF62EC    50                  PUSH EAX
+
+00BF62ED    FF15 CC4CCF00       CALL DWORD PTR DS:[<&kernel32.LoadLibraryA>]        ; kernel32.LoadLibraryA
+
+00BF62F3    8B8D 90FEFFFF       MOV ECX,DWORD PTR SS:[EBP-170]
+
+00BF62F9    8941 40             MOV DWORD PTR DS:[ECX+40],EAX
+
+00BF62FC    8B95 90FEFFFF       MOV EDX,DWORD PTR SS:[EBP-170]
+
+00BF6302    837A 40 00          CMP DWORD PTR DS:[EDX+40],0
+
+00BF6306    74 5B               JE SHORT 00BF6363
+
+00BF6308    8B85 90FEFFFF       MOV EAX,DWORD PTR SS:[EBP-170]
+
+00BF630E    C740 04 00000000    MOV DWORD PTR DS:[EAX+4],0
+
+00BF6315    8B8D 90FEFFFF       MOV ECX,DWORD PTR SS:[EBP-170]
+
+00BF631B    C741 34 00000000    MOV DWORD PTR DS:[ECX+34],0
+
+00BF6322    8B95 90FEFFFF       MOV EDX,DWORD PTR SS:[EBP-170]
+
+00BF6328    C742 38 00000000    MOV DWORD PTR DS:[EDX+38],0
+
+00BF632F    8B85 90FEFFFF       MOV EAX,DWORD PTR SS:[EBP-170]
+
+00BF6335    C740 08 00000000    MOV DWORD PTR DS:[EAX+8],0
+
+00BF633C    8B8D 90FEFFFF       MOV ECX,DWORD PTR SS:[EBP-170]
+
+00BF6342    C741 0C 00000000    MOV DWORD PTR DS:[ECX+C],0
+
+00BF6349    8B95 90FEFFFF       MOV EDX,DWORD PTR SS:[EBP-170]
+
+00BF634F    C742 14 00000000    MOV DWORD PTR DS:[EDX+14],0
+
+00BF6356    8B85 90FEFFFF       MOV EAX,DWORD PTR SS:[EBP-170]
+
+00BF635C    C740 18 00000000    MOV DWORD PTR DS:[EAX+18],0
+
+00BF6363    8B8D 90FEFFFF       MOV ECX,DWORD PTR SS:[EBP-170]
+
+00BF6369    8379 40 00          CMP DWORD PTR DS:[ECX+40],0
+
+00BF636D    75 15               JNZ SHORT 00BF6384
+
+00BF636F    6A FF               PUSH -1
+
+00BF6371    6A 00               PUSH 0
+
+00BF6373    68 36FB0000         PUSH 0FB36
+
+00BF6378    E8 F1ACBDFF         CALL <AfxMessageBox(uint,uint,uint)>             ; JMP 到 mfc42.#1199_AfxMessageBox
+
+00BF637D    33C0                XOR EAX,EAX
+
+00BF637F    E9 06020000         JMP 00BF658A
+
+00BF6384    68 9842BF00         PUSH 00BF4298                                ; ASCII "Stock_Init"
+
+00BF6389    8B95 90FEFFFF       MOV EDX,DWORD PTR SS:[EBP-170]
+
+00BF638F    8B42 40             MOV EAX,DWORD PTR DS:[EDX+40]
+
+00BF6392    50                  PUSH EAX
+
+00BF6393    FF15 C84CCF00       CALL DWORD PTR DS:[<&kernel32.GetProcAddress>]     ; kernel32.GetProcAddress
+
+00BF6399    8B8D 90FEFFFF       MOV ECX,DWORD PTR SS:[EBP-170]
+
+00BF639F    8941 04             MOV DWORD PTR DS:[ECX+4],EAX
+
+00BF63A2    68 A442BF00         PUSH 00BF42A4                                ; ASCII "GTStockInit"
+
+00BF63A7    8B95 90FEFFFF       MOV EDX,DWORD PTR SS:[EBP-170]
+
+00BF63AD    8B42 40             MOV EAX,DWORD PTR DS:[EDX+40]
+
+00BF63B0    50                  PUSH EAX
+
+00BF63B1    FF15 C84CCF00       CALL DWORD PTR DS:[<&kernel32.GetProcAddress>]     ; kernel32.GetProcAddress
+
+00BF63B7    8B8D 90FEFFFF       MOV ECX,DWORD PTR SS:[EBP-170]
+
+00BF63BD    8941 34             MOV DWORD PTR DS:[ECX+34],EAX
+
+00BF63C0    68 B042BF00         PUSH 00BF42B0                                ; ASCII "Stock_InitAuto"
+
+00BF63C5    8B95 90FEFFFF       MOV EDX,DWORD PTR SS:[EBP-170]
+
+00BF63CB    8B42 40             MOV EAX,DWORD PTR DS:[EDX+40]
+
+00BF63CE    50                  PUSH EAX
+
+00BF63CF    FF15 C84CCF00       CALL DWORD PTR DS:[<&kernel32.GetProcAddress>]     ; kernel32.GetProcAddress
+
+00BF63D5    8B8D 90FEFFFF       MOV ECX,DWORD PTR SS:[EBP-170]
+
+00BF63DB    8941 38             MOV DWORD PTR DS:[ECX+38],EAX
+
+00BF63DE    68 C042BF00         PUSH 00BF42C0                                ; ASCII "Stock_Quit"
+
+00BF63E3    8B95 90FEFFFF       MOV EDX,DWORD PTR SS:[EBP-170]
+
+00BF63E9    8B42 40             MOV EAX,DWORD PTR DS:[EDX+40]
+
+00BF63EC    50                  PUSH EAX
+
+00BF63ED    FF15 C84CCF00       CALL DWORD PTR DS:[<&kernel32.GetProcAddress>]     ; kernel32.GetProcAddress
+
+00BF63F3    8B8D 90FEFFFF       MOV ECX,DWORD PTR SS:[EBP-170]
+
+00BF63F9    8941 08             MOV DWORD PTR DS:[ECX+8],EAX
+
+00BF63FC    68 CC42BF00         PUSH 00BF42CC                                ; ASCII "SetNewsPath"
+
+00BF6401    8B95 90FEFFFF       MOV EDX,DWORD PTR SS:[EBP-170]
+
+00BF6407    8B42 40             MOV EAX,DWORD PTR DS:[EDX+40]
+
+00BF640A    50                  PUSH EAX
+
+00BF640B    FF15 C84CCF00       CALL DWORD PTR DS:[<&kernel32.GetProcAddress>]     ; kernel32.GetProcAddress
+
+00BF6411    8B8D 90FEFFFF       MOV ECX,DWORD PTR SS:[EBP-170]
+
+00BF6417    8941 0C             MOV DWORD PTR DS:[ECX+C],EAX
+
+00BF641A    68 D842BF00         PUSH 00BF42D8                                ; ASCII "SetupReceiver"
+
+00BF641F    8B95 90FEFFFF       MOV EDX,DWORD PTR SS:[EBP-170]
+
+00BF6425    8B42 40             MOV EAX,DWORD PTR DS:[EDX+40]
+
+00BF6428    50                  PUSH EAX
+
+00BF6429    FF15 C84CCF00       CALL DWORD PTR DS:[<&kernel32.GetProcAddress>]     ; kernel32.GetProcAddress
+
+00BF642F    8B8D 90FEFFFF       MOV ECX,DWORD PTR SS:[EBP-170]
+
+00BF6435    8941 14             MOV DWORD PTR DS:[ECX+14],EAX
+
+00BF6438    68 E842BF00         PUSH 00BF42E8                                ; ASCII "GetStockDrvInfo"
+
+00BF643D    8B95 90FEFFFF       MOV EDX,DWORD PTR SS:[EBP-170]
+
+00BF6443    8B42 40             MOV EAX,DWORD PTR DS:[EDX+40]
+
+00BF6446    50                  PUSH EAX
+
+00BF6447    FF15 C84CCF00       CALL DWORD PTR DS:[<&kernel32.GetProcAddress>]     ; kernel32.GetProcAddress
+
+00BF644D    8B8D 90FEFFFF       MOV ECX,DWORD PTR SS:[EBP-170]
+
+00BF6453    8941 18             MOV DWORD PTR DS:[ECX+18],EAX
+
+00BF6456    8B95 90FEFFFF       MOV EDX,DWORD PTR SS:[EBP-170]
+```
+
+
+
+`00BF645C`    `C642` `44` `00`          `MOV` `BYTE` `PTR` `DS:\[EDX+44\],0`
+
+`00BF6460`    `837D` `08` `00`        `CMP` `DWORD` `PTR` `SS:\[EBP+8\],0`
+
+`00BF6464`    `0F85` `E6000000`      `JNZ` `00BF6550`
+
+`00BF646A`    `33C0`                  `XOR` `EAX,EAX`
+
+`00BF646C`    `85C0`                  `TEST` `EAX,EAX`
+
+`00BF646E`    `0F84` `DC000000`       `JE` `00BF6550`
+
+`00BF6474`    `8B8D` `90FEFFFF`       `MOV` `ECX,DWORD` `PTR` `SS:\[EBP-170\]`
+
+`00BF647A`    `83C1` `44`            `ADD` `ECX,44`
+
+`00BF647D`    `51`                   `PUSH` `ECX`
+
+`00BF647E`    `6A` `02`              `PUSH` `2`
+
+`00BF6480`    `8B95` `90FEFFFF`      `MOV` `EDX,DWORD` `PTR` `SS:\[EBP-170\]`
+
+`00BF6486`    `52`                   `PUSH` `EDX`
+
+`00BF6487`    `E8` `12010000`        `CALL` `00BF659E`                  ; 网络版缺失的图文接口代码-01
+
+`00BF648C`    `68` `F842BF00`        `PUSH` `00BF42F8`                 ; ASCII `"\\hrdata64.dat"`
+
+`00BF6491`    `68` `682EA700`        `PUSH` `00A72E68`
+
+`00BF6496`    `8D85` `DCFEFFFF`      `LEA` `EAX,DWORD` `PTR` `SS:\[EBP-124\]`
+
+`00BF649C`    `50`                   `PUSH` `EAX`
+
+`00BF649D`    `E8` `D8ABBDFF`        `CALL` `<operator+(CString` `const` `&,char` `const` `\*)>`   ; JMP 到 `mfc42.#924\_operator+`
+
+`00BF64A2`    `C745` `FC` `0D000000` `MOV` `DWORD` `PTR` `SS:\[EBP-4\],0D`
+
+`00BF64A9`    `51`                   `PUSH` `ECX`
+
+`00BF64AA`    `8BCC`                `MOV` `ECX,ESP`
+
+`00BF64AC`    `89A5` `9CFEFFFF`     `MOV` `DWORD` `PTR` `SS:\[EBP-164\],ESP`
+
+`00BF64B2`    `8D95` `DCFEFFFF`     `LEA` `EDX,DWORD` `PTR` `SS:\[EBP-124\]`
+
+`00BF64B8`    `52`                   `PUSH` `EDX`
+
+`00BF64B9`    `E8` `B6ABBDFF`       `CALL` `<CString::CString(CString` `const` `&)>`           ; JMP 到 `mfc42.#535\_CString::CString`
+
+`00BF64BE`    `8985` `24FEFFFF`     `MOV` `DWORD` `PTR` `SS:\[EBP-1DC\],EAX`
+
+`00BF64C4`    `8B85` `24FEFFFF`     `MOV` `EAX,DWORD` `PTR` `SS:\[EBP-1DC\]`
+
+`00BF64CA`    `8985` `20FEFFFF`     `MOV` `DWORD` `PTR` `SS:\[EBP-1E0\],EAX`
+
+`00BF64D0`    `C645` `FC` `0E`       `MOV` `BYTE` `PTR` `SS:\[EBP-4\],0E`
+
+`00BF64D4`    `8B8D` `90FEFFFF`     `MOV` `ECX,DWORD` `PTR` `SS:\[EBP-170\]`
+
+`00BF64DA`    `83C1` `44`          `ADD` `ECX,44`
+
+`00BF64DD`    `51`                  `PUSH` `ECX`
+
+`00BF64DE`    `8BD4`                `MOV` `EDX,ESP`
+
+`00BF64E0`    `89A5` `98FEFFFF`    `MOV` `DWORD` `PTR` `SS:\[EBP-168\],ESP`
+
+`00BF64E6`    `51`                  `PUSH` `ECX`
+
+`00BF64E7`    `8BCA`                `MOV` `ECX,EDX`
+
+`00BF64E9`    `E8` `7AABBDFF`       `CALL` `<CString::CString(char` `const` `\*)>`            ; JMP 到 `mfc42.#537\_CString::CString`
+
+`00BF64EE`    `8985` `1CFEFFFF`    `MOV` `DWORD` `PTR` `SS:\[EBP-1E4\],EAX`
+
+`00BF64F4`    `C645` `FC` `0D`       `MOV` `BYTE` `PTR` `SS:\[EBP-4\],0D`
+
+`00BF64F8`    `E8` `930D9DFF`       `CALL` `<\_text\_5C7290>`
+
+`00BF64FD`    `83C4` `08`           `ADD` `ESP,8`
+
+`00BF6500`    `8985` `18FEFFFF`     `MOV` `DWORD` `PTR` `SS:\[EBP-1E8\],EAX`
+
+`00BF6506`    `83BD` `18FEFFFF` `00` `CMP` `DWORD` `PTR` `SS:\[EBP-1E8\],0`
+
+`00BF650D`    `75` `2F`             `JNZ` `SHORT` `00BF653E`
+
+`00BF650F`    `8B8D` `90FEFFFF`     `MOV` `ECX,DWORD` `PTR` `SS:\[EBP-170\]`
+
+`00BF6515`    `E8` `AEEBB1FF`      `CALL` `<\_text\_7150C8>`
+
+`00BF651A`    `C785` `94FEFFFF` `000000>MOV` `DWORD` `PTR` `SS:\[EBP-16C\],0`
+
+`00BF6524`    `C745` `FC` `FFFFFFFF`  `MOV` `DWORD` `PTR` `SS:\[EBP-4\],-1`
+
+`00BF652B`    `8D8D` `DCFEFFFF`     `LEA` `ECX,DWORD` `PTR` `SS:\[EBP-124\]`
+
+`00BF6531`    `E8` `C0AABDFF`      `CALL` `<CString::~CString(void)>`                    ; JMP 到 `mfc42.#800\_CString::~CString`
+
+`00BF6536`    `8B85` `94FEFFFF`    `MOV` `EAX,DWORD` `PTR` `SS:\[EBP-16C\]`
+
+`00BF653C`    `EB` `4C`             `JMP` `SHORT` `00BF658A`
+
+`00BF653E`    `C745` `FC` `FFFFFFFF`  `MOV` `DWORD` `PTR` `SS:\[EBP-4\],-1`
+
+`00BF6545`    `8D8D` `DCFEFFFF`     `LEA` `ECX,DWORD` `PTR` `SS:\[EBP-124\]`
+
+`00BF654B`    `E8` `A6AABDFF`      `CALL` `<CString::~CString(void)>`                    ; JMP 到 `mfc42.#800\_CString::~CString`
+
+`00BF6550`    `8B85` `90FEFFFF`     `MOV` `EAX,DWORD` `PTR` `SS:\[EBP-170\]`
+
+`00BF6556`    `8378` `04` `00`       `CMP` `DWORD` `PTR` `DS:\[EAX+4\],0`
+
+`00BF655A`    `74` `0C`              `JE` `SHORT` `00BF6568`
+
+`00BF655C`    `8B8D` `90FEFFFF`     `MOV` `ECX,DWORD` `PTR` `SS:\[EBP-170\]`
+
+`00BF6562`    `8379` `08` `00`       `CMP` `DWORD` `PTR` `DS:\[ECX+8\],0`
+
+`00BF6566`    `75` `1D`             `JNZ` `SHORT` `00BF6585`
+
+`00BF6568`    `6A` `FF`             `PUSH` `-1`
+
+`00BF656A`    `6A` `00`             `PUSH` `0`
+
+`00BF656C`    `68` `38FB0000`      `PUSH` `0FB38`
+
+`00BF6571`    `E8` `F8AABDFF`      `CALL` `<AfxMessageBox(uint,uint,uint)>`              ; JMP 到 `mfc42.#1199\_AfxMessageBox`
+
+`00BF6576`    `8B8D` `90FEFFFF`     `MOV` `ECX,DWORD` `PTR` `SS:\[EBP-170\]`
+
+`00BF657C`    `E8` `47EBB1FF`      `CALL` `<\_text\_7150C8>`
+
+`00BF6581`    `33C0`                `XOR` `EAX,EAX`
+
+`00BF6583`    `EB` `05`             `JMP` `SHORT` `00BF658A`
+
+`00BF6585`    `B8` `01000000`       `MOV` `EAX,1`
+
+`00BF658A`    `8B4D` `F4`          `MOV` `ECX,DWORD` `PTR` `SS:\[EBP-C\]`
+
+`00BF658D`    `64:890D` `00000000`  `MOV` `DWORD` `PTR` `FS:\[0\],ECX`
+
+`00BF6594`    `8BE5`                `MOV` `ESP,EBP`
+
+`00BF6596`    `5D`                  `POP` `EBP`
+
+`00BF6597`    `C2` `0400`           `RETN` `4`
+
+`00BF659A`    `90`                  `NOP`
+
+`00BF659B`    `90`                  `NOP`
+
+`00BF659C`    `90`                  `NOP`
+
+`00BF659D`    `90`                  `NOP`
+
+`00BF659E`    `55`                  `PUSH` `EBP`                 ; 网络版缺失的图文接口代码-01
+
+`00BF659F`    `8BEC`                `MOV` `EBP,ESP`
+
+`00BF65A1`    `8B45` `08`           `MOV` `EAX,DWORD` `PTR` `SS:\[EBP+8\]`
+
+`00BF65A4`    `8378` `18` `00`       `CMP` `DWORD` `PTR` `DS:\[EAX+18\],0`
+
+`00BF65A8`    `75` `04`             `JNZ` `SHORT` `00BF65AE`
+
+`00BF65AA`    `33C0`                `XOR` `EAX,EAX`
+
+`00BF65AC`    `EB` `0E`             `JMP` `SHORT` `00BF65BC`
+
+`00BF65AE`    `8B4D` `10`           `MOV` `ECX,DWORD` `PTR` `SS:\[EBP+10\]`
+
+`00BF65B1`    `51`                  `PUSH` `ECX`
+
+`00BF65B2`    `8B55` `0C`           `MOV` `EDX,DWORD` `PTR` `SS:\[EBP+C\]`
+
+`00BF65B5`    `52`                  `PUSH` `EDX`
+
+`00BF65B6`    `8B45` `08`           `MOV` `EAX,DWORD` `PTR` `SS:\[EBP+8\]`
+
+`00BF65B9`    `FF50` `18`           `CALL` `DWORD` `PTR` `DS:\[EAX+18\]`
+
+`00BF65BC`    `5D`                  `POP` `EBP`
+
+`00BF65BD`    `C2` `0C00`           `RETN` `0C`
+
+`00BF65C0`    `90`                  `NOP`
+
+`00BF65C1`    `90`                  `NOP`
+
+`00BF65C2`    `90`                  `NOP`
+
+`00BF65C3`    `90`                  `NOP`
+
+`00BF65C4`    `55`                  `PUSH` `EBP`                 ; 网络版缺失的图文接口代码-02
+
+`00BF65C5`    `8BEC`                `MOV` `EBP,ESP`
+
+`00BF65C7`    `51`                  `PUSH` `ECX`
+
+`00BF65C8`    `894D` `FC`           `MOV` `DWORD` `PTR` `SS:\[EBP-4\],ECX`
+
+`00BF65CB`    `8B45` `FC`           `MOV` `EAX,DWORD` `PTR` `SS:\[EBP-4\]`
+
+`00BF65CE`    `8378` `14` `00`       `CMP` `DWORD` `PTR` `DS:\[EAX+14\],0`
+
+`00BF65D2`    `75` `05`             `JNZ` `SHORT` `00BF65D9`
+
+`00BF65D4`    `83C8` `FF`           `OR` `EAX,FFFFFFFF`
+
+`00BF65D7`    `EB` `0A`             `JMP` `SHORT` `00BF65E3`
+
+`00BF65D9`    `8B4D` `08`           `MOV` `ECX,DWORD` `PTR` `SS:\[EBP+8\]`
+
+`00BF65DC`    `51`                  `PUSH` `ECX`
+
+`00BF65DD`    `8B55` `FC`           `MOV` `EDX,DWORD` `PTR` `SS:\[EBP-4\]`
+
+`00BF65E0`    `FF52` `14`           `CALL` `DWORD` `PTR` `DS:\[EDX+14\]`
+
+`00BF65E3`    `8BE5`                `MOV` `ESP,EBP`
+
+`00BF65E5`    `5D`                  `POP` `EBP`
+
+`00BF65E6`    `C2` `0400`           `RETN` `4`
+
+`00BF65E9`    `90`                  `NOP`
+
+`00BF65EA`    `90`                  `NOP`
+
+`00BF65EB`    `90`                  `NOP`
+
+`00BF65EC`    `90`                  `NOP`
+
+`00BF65ED`    `55`                  `PUSH` `EBP`                 ; 外部接收
+
+`00BF65EE`    `8BEC`                `MOV` `EBP,ESP`
+
+`00BF65F0`    `6A` `FF`             `PUSH` `-1`
+
+`00BF65F2`    `68` `992F8000`      `PUSH` `<SEH\_7153A0>`
+
+`00BF65F7`    `64:A1` `00000000`    `MOV` `EAX,DWORD` `PTR` `FS:\[0\]`
+
+`00BF65FD`    `50`                  `PUSH` `EAX`
+
+`00BF65FE`    `64:8925` `00000000`  `MOV` `DWORD` `PTR` `FS:\[0\],ESP`
+
+`00BF6605`    `81EC` `F0000000`     `SUB` `ESP,0F0`
+
+`00BF660B`    `56`                  `PUSH` `ESI`
+
+`00BF660C`    `898D` `18FFFFFF`     `MOV` `DWORD` `PTR` `SS:\[EBP-E8\],ECX`
+
+`00BF6612`    `8B85` `18FFFFFF`     `MOV` `EAX,DWORD` `PTR` `SS:\[EBP-E8\]`
+
+`00BF6618`    `33C9`                `XOR` `ECX,ECX`
+
+`00BF661A`    `83B8` `E8000000` `00` `CMP` `DWORD` `PTR` `DS:\[EAX+E8\],0`
+
+`00BF6621`    `0F94C1`              `SETE` `CL`
+
+`00BF6624`    `51`                  `PUSH` `ECX`
+
+
+
+```
+00BF6625    8B8D 18FFFFFF        MOV ECX,DWORD PTR SS:[EBP-E8]  
+
+00BF662B    E8 30F1B1FF          CALL <\_text\_715760>  
+
+00BF6630    85C0                TEST EAX,EAX  
+
+00BF6632    75 07               JNZ SHORT 00BF663B  
+
+00BF6634    33C0                XOR EAX,EAX  
+
+00BF6636    E9 5A020000         JMP 00BF6895  
+
+00BF663B    E8 2B5DB2FF         CALL <\_text\_71C36B>  
+
+00BF6640    8985 38FFFFFF        MOV DWORD PTR SS:[EBP-C8],EAX  
+
+00BF6646    68 E8030000         PUSH 3E8  
+
+00BF664B    8B8D 38FFFFFF        MOV ECX,DWORD PTR SS:[EBP-C8]  
+
+00BF6651    E8 5DB389FF         CALL <\_text\_4919B3>  
+
+00BF6656    E8 005CB2FF         CALL <\_text\_71C25B>  
+
+00BF665B    8985 34FFFFFF        MOV DWORD PTR SS:[EBP-CC],EAX  
+
+00BF6661    FF15 EC4BCF00        CALL DWORD PTR DS:[<&kernel32.GetCurrentProcessId>] ; kernel32.GetCurrentProcessId  
+
+00BF6667    8985 44FFFFFF        MOV DWORD PTR SS:[EBP-BC],EAX  
+
+00BF666D    8D8D 40FFFFFF        LEA ECX,DWORD PTR SS:[EBP-C0]  
+
+00BF6673    E8 96A9BDFF         CALL <CString::CString(void)>                ; JMP 到 mfc42.#540\_CString::CString  
+
+00BF6678    C745 FC 00000000    MOV DWORD PTR SS:[EBP-4],0  
+
+00BF667F    8D8D 48FFFFFF        LEA ECX,DWORD PTR SS:[EBP-B8]  
+
+00BF6685    E8 84A9BDFF         CALL <CString::CString(void)>                ; JMP 到 mfc42.#540\_CString::CString  
+
+00BF668A    C645 FC 01          MOV BYTE PTR SS:[EBP-4],1  
+
+00BF668E    8D8D 3CFFFFFF        LEA ECX,DWORD PTR SS:[EBP-C4]  
+
+00BF6694    E8 75A9BDFF         CALL <CString::CString(void)>                ; JMP 到 mfc42.#540\_CString::CString  
+
+00BF6699    C645 FC 02          MOV BYTE PTR SS:[EBP-4],2  
+
+00BF669D    8B95 44FFFFFF        MOV EDX,DWORD PTR SS:[EBP-BC]  
+
+00BF66A3    52                 PUSH EDX  
+
+00BF66A4    68 B0778C00         PUSH 008C77B0                               ; ASCII "PatiosoftShareMem%d"  
+
+00BF66A9    8D85 40FFFFFF        LEA EAX,DWORD PTR SS:[EBP-C0]  
+
+00BF66AF    50                 PUSH EAX  
+
+00BF66B0    E8 2BAABDFF         CALL <CString::Format(char const \*,...)>    ; JMP 到 mfc42.#2818\_CString::Format  
+
+00BF66B5    83C4 0C             ADD ESP,0C  
+
+00BF66B8    8B8D 44FFFFFF        MOV ECX,DWORD PTR SS:[EBP-BC]  
+
+00BF66BE    51                 PUSH ECX  
+
+00BF66BF    68 C4778C00         PUSH 008C77C4                               ; ASCII "PatiosoftOptexName%d"  
+
+00BF66C4    8D95 48FFFFFF        LEA EDX,DWORD PTR SS:[EBP-B8]  
+
+00BF66CA    52                 PUSH EDX  
+
+00BF66CB    E8 10AABDFF         CALL <CString::Format(char const \*,...)>    ; JMP 到 mfc42.#2818\_CString::Format  
+
+00BF66D0    83C4 0C             ADD ESP,0C  
+
+00BF66D3    8B85 44FFFFFF        MOV EAX,DWORD PTR SS:[EBP-BC]  
+
+00BF66D9    50                 PUSH EAX  
+
+00BF66DA    68 DC778C00         PUSH 008C77DC                               ; ASCII "%d"  
+
+00BF66DF    8D8D 3CFFFFFF        LEA ECX,DWORD PTR SS:[EBP-C4]  
+
+00BF66E5    51                 PUSH ECX  
+
+00BF66E6    E8 F5A9BDFF         CALL <CString::Format(char const \*,...)>    ; JMP 到 mfc42.#2818\_CString::Format  
+
+00BF66EB    83C4 0C             ADD ESP,0C  
+
+00BF66EE    6A 00               PUSH 0  
+
+00BF66F0    83EC 10             SUB ESP,10  
+
+00BF66F3    8BF4                MOV ESI,ESP  
+
+00BF66F5    89A5 2CFFFFFF        MOV DWORD PTR SS:[EBP-D4],ESP  
+
+00BF66FB    8D95 28FFFFFF        LEA EDX,DWORD PTR SS:[EBP-D8]  
+
+00BF6701    52                 PUSH EDX  
+
+00BF6702    8D8D 48FFFFFF        LEA ECX,DWORD PTR SS:[EBP-B8]  
+
+00BF6708    E8 13CEABFF         CALL <PFileName>  
+
+00BF670D    50                 PUSH EAX  
+
+00BF670E    8BCE                MOV ECX,ESI  
+
+00BF6710    FF15 FC5DCF00        CALL DWORD PTR DS:[<&msvcp60.std::basic\_string<char>; msvcp60.std::basic\_string<char,std::char\_traits<char>,std::allocator<char> >::basic\_string<char,std::char\_traits<char>,std::allocator<char> >  
+
+00BF6716    8985 14FFFFFF        MOV DWORD PTR SS:[EBP-EC],EAX  
+
+00BF671C    8B85 14FFFFFF        MOV EAX,DWORD PTR SS:[EBP-EC]  
+
+00BF6722    8985 10FFFFFF        MOV DWORD PTR SS:[EBP-F0],EAX  
+
+00BF6728    C645 FC 03          MOV BYTE PTR SS:[EBP-4],3  
+
+00BF672C    83EC 10             SUB ESP,10  
+
+00BF672F    8BF4                MOV ESI,ESP  
+
+00BF6731    89A5 24FFFFFF        MOV DWORD PTR SS:[EBP-DC],ESP  
+
+00BF6737    8D8D 20FFFFFF        LEA ECX,DWORD PTR SS:[EBP-E0]  
+
+00BF673D    51                 PUSH ECX  
+
+00BF673E    8D8D 40FFFFFF        LEA ECX,DWORD PTR SS:[EBP-C0]  
+
+00BF6744    E8 D7CDABFF         CALL <PFileName>  
+
+00BF6749    50                 PUSH EAX  
+
+00BF674A    8BCE                MOV ECX,ESI  
+
+00BF674C    FF15 FC5DCF00        CALL DWORD PTR DS:[<&msvcp60.std::basic\_string<char>; msvcp60.std::basic\_string<char,std::char\_traits<char>,std::allocator<char> >::basic\_string<char,std::char\_traits<char>,std::allocator<char> >  
+
+00BF6752    8985 0CFFFFFF        MOV DWORD PTR SS:[EBP-F4],EAX  
+
+00BF6758    8B8D 34FFFFFF        MOV ECX,DWORD PTR SS:[EBP-CC]  
+
+00BF675E    C645 FC 02          MOV BYTE PTR SS:[EBP-4],2  
+
+00BF6762    E8 9B24A7FF         CALL <\_text\_668C02>  
+
+00BF6767    68 2043BF00         PUSH 00BF4320                               ; ASCII "\\system\\UserDrv.exe"  
+
+00BF676C    68 682EA700         PUSH 00A72E68  
+
+00BF6771    8D95 30FFFFFF        LEA EDX,DWORD PTR SS:[EBP-D0]  
+
+00BF6777    52                 PUSH EDX  
+
+00BF6778    E8 FDA8BDFF         CALL <operator+(CString const &,char const \*)> ; JMP 到 mfc42.#924\_operator+  
+
+00BF677D    C645 FC 04          MOV BYTE PTR SS:[EBP-4],4  
+
+00BF6781    6A 05               PUSH 5  
+
+00BF6783    8D8D 30FFFFFF        LEA ECX,DWORD PTR SS:[EBP-D0]  
+
+00BF6789    E8 92CDABFF         CALL <PFileName>  
+
+00BF678E    50                 PUSH EAX  
+
+00BF678F    8D85 1CFFFFFF        LEA EAX,DWORD PTR SS:[EBP-E4]  
+
+00BF6795    50                 PUSH EAX  
+
+00BF6796    E8 F020A0FF         CALL <\_text\_5F888B>  
+
+00BF679B    83C4 08             ADD ESP,8  
+
+00BF679E    8985 08FFFFFF        MOV DWORD PTR SS:[EBP-F8],EAX  
+
+00BF67A4    8B8D 08FFFFFF        MOV ECX,DWORD PTR SS:[EBP-F8]  
+
+00BF67AA    898D 04FFFFFF        MOV DWORD PTR SS:[EBP-FC],ECX  
+
+00BF67B0    C645 FC 05          MOV BYTE PTR SS:[EBP-4],5  
+
+00BF67B4    8B8D 04FFFFFF        MOV ECX,DWORD PTR SS:[EBP-FC]  
+
+00BF67BA    E8 61CDABFF         CALL <PFileName>  
+
+00BF67BF    50                 PUSH EAX  
+
+00BF67C0    8D8D 3CFFFFFF        LEA ECX,DWORD PTR SS:[EBP-C4]  
+
+00BF67C6    E8 55CDABFF         CALL <PFileName>  
+
+00BF67CB    50                 PUSH EAX  
+
+00BF67CC    8D8D 30FFFFFF        LEA ECX,DWORD PTR SS:[EBP-D0]  
+
+00BF67D2    E8 49CDABFF         CALL <PFileName>  
+
+00BF67D7    50                 PUSH EAX  
+
+00BF67D8    68 F8778C00         PUSH 008C77F8                               ; ASCII "open"  
+
+00BF67DD    6A 00               PUSH 0  
+
+00BF67DF    FF15 6460CF00        CALL DWORD PTR DS:[<&shell32.ShellExecuteA>] ; SHELL32.ShellExecuteA  
+
+00BF67E5    83F8 20             CMP EAX,20  
+
+00BF67E8    7F 1D               JG SHORT 00BF6807  
+
+00BF67EA    6A 40               PUSH 40  
+
+00BF67EC    68 14938900         PUSH 00899314  
+
+00BF67F1    68 5043BF00         PUSH 00BF4350  
+
+00BF67F6    8B45 08             MOV EAX,DWORD PTR SS:[EBP+8]  
+
+00BF67F9    50                 PUSH EAX  
+
+00BF67FA    FF15 2862CF00        CALL DWORD PTR DS:[<&user32.MessageBoxA>]    ; USER32.MessageBoxA  
+
+00BF6800    33C0                XOR EAX,EAX  
+
+00BF6802    E9 8E000000         JMP 00BF6895  
+
+00BF6807    8985 4CFFFFFF        MOV DWORD PTR SS:[EBP-B4],EAX  
+
+00BF680D    C645 FC 04          MOV BYTE PTR SS:[EBP-4],4  
+
+00BF6811    8D8D 1CFFFFFF        LEA ECX,DWORD PTR SS:[EBP-E4]  
+```
+
+
+
+#### 反汇编代码片段
+
+```
+00BF6817    E8 DAA7BDFF           CALL <CString::~CString(void)>                   ; JMP 到 mfc42.#800_CString::~CString
+00BF681C    C645 FC 02            MOV BYTE PTR SS:[EBP-4],2
+00BF6820    8D8D 30FFFFFF        LEA ECX,DWORD PTR SS:[EBP-D0]
+00BF6826    E8 CBA7BDFF          CALL <CString::~CString(void)>                   ; JMP 到 mfc42.#800_CString::~CString
+00BF682B    C645 FC 01            MOV BYTE PTR SS:[EBP-4],1
+00BF682F    8D8D 3CFFFFFF        LEA ECX,DWORD PTR SS:[EBP-C4]
+00BF6835    E8 BCA7BDFF          CALL <CString::~CString(void)>                   ; JMP 到 mfc42.#800_CString::~CString
+00BF683A    C645 FC 00            MOV BYTE PTR SS:[EBP-4],0
+00BF683E    8D8D 48FFFFFF        LEA ECX,DWORD PTR SS:[EBP-B8]
+00BF6844    E8 ADA7BDFF          CALL <CString::~CString(void)>                   ; JMP 到 mfc42.#800_CString::~CString
+00BF6849    C745 FC FFFFFFFF     MOV DWORD PTR SS:[EBP-4],-1
+00BF6850    8D8D 40FFFFFF        LEA ECX,DWORD PTR SS:[EBP-C0]
+00BF6856    E8 9BA7BDFF          CALL <CString::~CString(void)>                   ; JMP 到 mfc42.#800_CString::~CString
+00BF685B    8D95 50FFFFFF        LEA EDX,DWORD PTR SS:[EBP-B0]
+00BF6861    52                   PUSH EDX
+00BF6862    6A 01                PUSH 1
+00BF6864    8B85 18FFFFFF        MOV EAX,DWORD PTR SS:[EBP-E8]
+00BF686A    50                   PUSH EAX
+00BF686B    E8 25F3B1FF          CALL <DllMain(x,x,x)>
+00BF6870    8B8D 18FFFFFF        MOV ECX,DWORD PTR SS:[EBP-E8]
+00BF6876    C781 E4000000 000000>MOV DWORD PTR DS:[ECX+E4],0
+00BF6880    8B95 18FFFFFF        MOV EDX,DWORD PTR SS:[EBP-E8]
+00BF6886    C782 E4000000 010000>MOV DWORD PTR DS:[EDX+E4],1
+00BF6890    B8 01000000          MOV EAX,1
+00BF6895    8B4D F4               MOV ECX,DWORD PTR SS:[EBP-C]
+00BF6898    64:890D 00000000    MOV DWORD PTR FS:[0],ECX
+00BF689F    5E                   POP ESI
+00BF68A0    8BE5                 MOV ESP,EBP
+00BF68A2    5D                   POP EBP
+00BF68A3    C2 0800              RETN 8
+00BF68A6    90                   NOP
+00BF68A7    90                   NOP
+00BF68A8    90                   NOP
+00BF68A9    90                   NOP
+00BF68AA    8B4D F0              MOV ECX,DWORD PTR SS:[EBP-10]
+00BF68AD    81C1 E81D0000        ADD ECX,1DE8
+00BF68B3    51                   PUSH ECX
+00BF68B4    8B4D F0              MOV ECX,DWORD PTR SS:[EBP-10]
+00BF68B7    E8 DCADBDFF          CALL <CPropertySheet::AddPage(CPropertyPage *)>    ; JMP 到 mfc42.#1008_CPropertySheet::AddPage
+00BF68BC    8B4D F0              MOV ECX,DWORD PTR SS:[EBP-10]
+00BF68BF    81C1 A01F0000        ADD ECX,1FA0
+00BF68C5    51                   PUSH ECX
+00BF68C6    8B4D F0              MOV ECX,DWORD PTR SS:[EBP-10]
+00BF68C9    E8 CAADBDFF          CALL <CPropertySheet::AddPage(CPropertyPage *)>    ; JMP 到 mfc42.#1008_CPropertySheet::AddPage
+00BF68CE    8B4D F0              MOV ECX,DWORD PTR SS:[EBP-10]
+00BF68D1    81C1 34280000        ADD ECX,2834
+00BF68D7    51                   PUSH ECX
+00BF68D8    8B4D F0              MOV ECX,DWORD PTR SS:[EBP-10]
+00BF68DB    E8 B8ADBDFF          CALL <CPropertySheet::AddPage(CPropertyPage *)>    ; JMP 到 mfc42.#1008_CPropertySheet::AddPage
+00BF68E0  - E9 36F3A3FF          JMP 00635C1B
+00BF68E5    90                   NOP
+00BF68E6    90                   NOP
+00BF68E7    90                   NOP
+00BF68E8    90                   NOP
+```
+
+#### 新增数据段
+
+```
+00BF4100  DA FE C2 E7 C0 AE D2 B5 A7 E0 20 42 4E 26 C9 EE  邺络喇业о BN&深
+00BF4110  D3 C9 B4 F3 A2 C6 00 00 00 00 00 00 00 00 00 00  由大⑵..........
+00BF4120  D5 FD D4 DA B6 C1 C8 A1 B3 F5 CA BC CA FD BE DD  正在读取初始数据
+00BF4130  2E 2E 2E 00 C1 AA BD D3 CA A7 B0 DC 00 00 00 00  ....联接失败....
+00BF4140  5C 52 65 6E 44 72 76 2E 65 78 65 00 00 00 00 00  \RenDrv.exe.....
+00BF4150  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+00BF4160  46 54 53 54 4B 44 52 56 2E 45 58 45 2E 21 21 21  FTSTKDRV.EXE.!!!
+00BF4170  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+00BF4180  46 54 53 54 4B 44 52 56 2E 45 58 45 2E 42 41 4B  FTSTKDRV.EXE.BAK
+00BF4190  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+00BF41A0  46 54 53 54 4B 44 52 56 2E 45 58 45 00 00 00 00  FTSTKDRV.EXE....
+00BF41B0  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+00BF41C0  46 54 53 54 4B 44 52 56 2E 44 4C 4C 2E 21 21 21  FTSTKDRV.DLL.!!!
+00BF41D0  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+00BF41E0  46 54 53 54 4B 44 52 56 2E 44 4C 4C 2E 42 41 4B  FTSTKDRV.DLL.BAK
+00BF41F0  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+00BF4200  46 54 53 54 4B 44 52 56 2E 44 4C 4C 00 00 00 00  FTSTKDRV.DLL....
+00BF4210  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+00BF4220  47 65 74 54 72 61 64 65 44 61 74 61 00 00 00 00  GetTradeData....
+00BF4230  47 65 74 46 31 30 54 78 74 00 00 00 47 65 74 52  GetF10Txt...GetR
+00BF4240  65 6D 6F 74 65 46 69 6C 65 00 00 00 53 74 6F 70  emoteFile...Stop
+00BF4250  52 65 6D 6F 74 65 46 69 6C 65 00 00 53 65 74 50  RemoteFile..SetP
+00BF4260  61 72 61 6D 00 00 00 00 52 65 53 65 6E 64 00 00  aram....ReSend..
+00BF4270  43 6C 65 61 72 54 69 63 6B 00 00 00 53 4F 46 54  ClearTick...SOFT
+00BF4280  57 41 52 45 5C 73 74 6F 63 6B 64 72 76 00 00 00  WARE\\stockdrv...
+00BF4290  44 72 69 76 65 72 00 00 53 74 6F 63 6B 5F 49 6E  Driver..Stock_In
+00BF42A0  69 74 00 00 47 54 53 74 6F 63 6B 49 6E 69 74 00  it..GTStockInit.
+00BF42B0  53 74 6F 63 6B 5F 49 6E 69 74 41 75 74 6F 00 00  Stock_InitAuto..
+00BF42C0  53 74 6F 63 6B 5F 51 75 69 74 00 00 53 65 74 4E  Stock_Quit..SetN
+00BF42D0  65 77 73 50 61 74 68 00 53 65 74 75 70 52 65 63  ewsPath.SetupRec
+00BF42E0  65 69 76 65 72 00 00 00 47 65 74 53 74 6F 63 6B  eiver...GetStock
+00BF42F0  44 72 76 49 6E 66 6F 00 5C 68 72 64 61 74 61 36  DrvInfo.\\hrdata6
+00BF4300  34 2E 64 61 74 00 00 00 00 00 00 00 00 00 00 00  4.dat...........
+00BF4310  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+00BF4320  5C 73 79 73 74 65 6D 5C 55 73 65 72 44 72 76 2E  \\system\\UserDrv.
+00BF4330  65 78 65 00 00 00 00 00 00 00 00 00 00 00 00 00  exe.............
+00BF4340  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+00BF4350  CE B4 D5 D2 B5 BD CD E2 B2 BF BD D3 CA D5 BD D3  未找到外部接收接
+00BF4360  BF DA CE C4 BC FE 20 21 0D 0A 0D 0A C7 EB BD AB  口文件 !....请将
+00BF4370  C4 FA D7 D4 B6 A8 D2 E5 B5 C4 CD E2 B2 BF BD D3  您自定义的外部接
+00BF4380  CA D5 BD D3 BF DA CE C4 BC FE C3 FB B8 C4 CE AA  收接口文件名改为
+00BF4390  20 55 73 65 72 44 72 76 2E 65 78 65 20 BA F3 D6   UserDrv.exe 后
+00BF43A0  D8 D0 C2 D4 D9 CA D4 20 21 00 00 00 00 00 00 00  匦略偈?!.......
+```
+
+原版程序大家可以去各大股票论坛中找。去`GOOGLE`上应该也能找到。
