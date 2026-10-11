@@ -1,0 +1,184 @@
+
+### 0040E9E9 - 0040EA5B 第一部分的运算逻辑
+
+0040E9E9 : `40` | `inc` `eax`
+0040E9EA : `3BC2` | `cmp` `eax`, `edx`
+0040E9EC : `7C DB` | `jl` `short 0040E9C9`
+0040E9EE : `33F6` | `xor` `esi`, `esi`
+0040E9F0 : `33C0` | `xor` `eax`, `eax`
+0040E9F2 : `85D2` | `test` `edx`, `edx`
+0040E9F4 : `7E 18` | `jle` `short 0040EA0E`
+0040E9F6 : `83F8 07` | `cmp` `eax`, `7`
+0040E9F9 : `7C 07` | `jl` `short 0040EA02`
+0040E9FB : `8D4D 06` | `lea` `ecx`, `[ebp+6]`
+0040E9FE : `3BC1` | `cmp` `eax`, `ecx`
+0040EA00 : `7E 07` | `jle` `short 0040EA09`
+0040EA02 : `0FBE4C04 10` | `movsx` `ecx`, `byte ptr [esp+eax+10]`
+0040EA07 : `03F1` | `add` `esi`, `ecx`
+&nbsp;&nbsp;&nbsp;&nbsp;注释：将字符串 `ss` 的前 `7` 位 `asc` 码值的和与后 `6` 位数字的和的总和赋予 `ESI` (f)
+
+0040EA09 : `40` | `inc` `eax`
+0040EA0A : `3BC2` | `cmp` `eax`, `edx`
+0040EA0C : `7C E8` | `jl` `short 0040E9F6`
+0040EA0E : `8B8C24 180100` | `mov` `ecx`, `[esp+118]`
+0040EA15 : `0FBE57 FD` | `movsx` `edx`, `byte ptr [edi-3]`
+0040EA19 : `C1E1 04` | `shl` `ecx`, `4`
+0040EA1C : `8B81 24F94200` | `mov` `eax`, `[ecx+42F924]`
+&nbsp;&nbsp;&nbsp;&nbsp;值：`47`
+0040EA22 : `8B99 20F94200` | `mov` `ebx`, `[ecx+42F920]`
+&nbsp;&nbsp;&nbsp;&nbsp;值：`13`
+0040EA28 : `0FAFC2` | `imul` `eax`, `edx`
+&nbsp;&nbsp;&nbsp;&nbsp;逻辑：`a = a * c(8)`
+0040EA2B : `0FBE57 FE` | `movsx` `edx`, `byte ptr [edi-2]`
+0040EA2F : `0FAFDA` | `imul` `ebx`, `edx`
+&nbsp;&nbsp;&nbsp;&nbsp;逻辑：`h = h * c(9)`
+0040EA32 : `0FBE57 FF` | `movsx` `edx`, `byte ptr [edi-1]`
+0040EA36 : `8BB9 1CF94200` | `mov` `edi`, `[ecx+42F91C]`
+&nbsp;&nbsp;&nbsp;&nbsp;值：`25`
+0040EA3C : `03C3` | `add` `eax`, `ebx`
+&nbsp;&nbsp;&nbsp;&nbsp;逻辑：`a = a + h`
+0040EA3E : `0FAFFA` | `imul` `edi`, `edx`
+&nbsp;&nbsp;&nbsp;&nbsp;逻辑：`e = e * c(10)`
+0040EA41 : `8B91 28F94200` | `mov` `edx`, `[ecx+42F928]`
+&nbsp;&nbsp;&nbsp;&nbsp;值：`35`
+0040EA47 : `03C7` | `add` `eax`, `edi`
+&nbsp;&nbsp;&nbsp;&nbsp;逻辑：`a = a + e`
+0040EA49 : `03C2` | `add` `eax`, `edx`
+&nbsp;&nbsp;&nbsp;&nbsp;逻辑：`a = a + 53`
+0040EA4B : `B9 63000000` | `mov` `ecx`, `63`
+0040EA50 : `03C6` | `add` `eax`, `esi`
+&nbsp;&nbsp;&nbsp;&nbsp;逻辑：`a = a + f`
+0040EA52 : `5F` | `pop` `edi`
+0040EA53 : `99` | `cdq`
+0040EA54 : `F7F9` | `idiv` `ecx`
+&nbsp;&nbsp;&nbsp;&nbsp;逻辑：`a = a Mod 99`
+0040EA56 : `5E` | `pop` `esi`
+0040EA57 : `5D` | `pop` `ebp`
+0040EA58 : `5B` | `pop` `ebx`
+0040EA59 : `8BC2` | `mov` `eax`, `edx`
+&nbsp;&nbsp;&nbsp;&nbsp;逻辑：`a = a Mod 99`
+
+公式说明：
+`f = P + c(5) + c(6) + c(7) + c(8) + c(9) + c(10)`
+
+0040EA5B : `81C4 00010000` | `add` `esp`, `100`
+注释：运算结束后返回
+
+### 0040EA90 - 0040EABF 控制流与部分验证
+
+0040EA90 : `E8 7BFEFFFF` | `call` `0040E910`
+0040EA95 : `83C4 0C` | `add` `esp`, `0C`
+0040EA98 : `85C0` | `test` `eax`, `eax`
+&nbsp;&nbsp;&nbsp;&nbsp;注释：大于 `0` 则继续跳转到 `0040EAA3` 进行下一步的运算
+0040EA9A : `7D 07` | `jge` `short 0040EAA3`
+0040EA9C : `B8 08000000` | `mov` `eax`, `8`
+0040EAA1 : `5E` | `pop` `esi`
+注释：跳转到 `0040EAA3`
+
+0040EAA3 : `0FBE4E 07` | `movsx` `ecx`, `byte ptr [esi+7]`
+&nbsp;&nbsp;&nbsp;&nbsp;逻辑：`i(1) = Int(Rnd * 10)`
+0040EAA7 : `8D1489` | `lea` `edx`, `[ecx+ecx*4]`
+&nbsp;&nbsp;&nbsp;&nbsp;逻辑：`g = 5 * (i(1) + 48)`
+0040EAAA : `0FBE4E 08` | `movsx` `ecx`, `byte ptr [esi+8]`
+&nbsp;&nbsp;&nbsp;&nbsp;逻辑：`i(2) = Int(Rnd * 10)`
+0040EAAE : `5E` | `pop` `esi`
+0040EAAF : `8D9451 F0FDFF` | `lea` `edx`, `[ecx+edx*2-210]`
+&nbsp;&nbsp;&nbsp;&nbsp;逻辑：`g = i(2) + 48 + 2 * g - 528`
+0040EAB6 : `2BC2` | `sub` `eax`, `edx`
+0040EAB8 : `F7D8` | `neg` `eax`
+&nbsp;&nbsp;&nbsp;&nbsp;注释：`a=g` 则进行第二部分的运算，否则出错。
+0040EABA : `1BC0` | `sbb` `eax`, `eax`
+0040EABC : `83E0 08` | `and` `eax`, `8`
+0040EABF : `C3` | `retn`
+注释：返回到 `0040EE85`，第一部分的运算完成。
+
+### 0040EE7A - 0040EEA5 主函数后续调用
+
+0040EE7A : `8D4424 14` | `lea` `eax`, `[esp+14]`
+0040EE7E : `56` | `push` `esi`
+0040EE7F : `50` | `push` `eax`
+0040EE80 : `E8 FBFBFFFF` | `call` `0040EA80`
+0040EE85 : `83C4 0C` | `add` `esp`, `0C`
+0040EE88 : `85C0` | `test` `eax`, `eax`
+&nbsp;&nbsp;&nbsp;&nbsp;注释：`a=g` 可使 `eax=0`，否则跳转，出错。
+0040EE8A : `75 19` | `jnz` `short 0040EEA5`
+0040EE8C : `83FF 03` | `cmp` `edi`, `3`
+0040EE8F : `75 12` | `jnz` `short 0040EEA3`
+0040EE91 : `8D4C24 10` | `lea` `ecx`, `[esp+10]`
+0040EE95 : `56` | `push` `esi`
+0040EE96 : `51` | `push` `ecx`
+0040EE97 : `E8 D4FEFFFF` | `call` `0040ED70`
+&nbsp;&nbsp;&nbsp;&nbsp;注释：在此处进入。进行第二部分的运算。
+0040EE9C : `83C4 08` | `add` `esp`, `8`
+0040EE9F : `85C0` | `test` `eax`, `eax`
+0040EEA1 : `75 02` | `jnz` `short 0040EEA5`
+0040EEA3 : `33C0` | `xor` `eax`, `eax`
+0040EEA5 : `5F` | `pop` `edi`
+注释：进入 `0040ED70`
+
+### 0040ED70 - 0040ED92 子函数入口
+
+0040ED70 : `8B4424 08` | `mov` `eax`, `[esp+8]`
+0040ED74 : `56` | `push` `esi`
+0040ED75 : `8B7424 08` | `mov` `esi`, `[esp+8]`
+0040ED79 : `6A 03` | `push` `3`
+0040ED7B : `50` | `push` `eax`
+0040ED7C : `56` | `push` `esi`
+0040ED7D : `E8 3EFEFFFF` | `call` `0040EBC0`
+&nbsp;&nbsp;&nbsp;&nbsp;注释：在此处进入。
+0040ED82 : `8BC8` | `mov` `ecx`, `eax`
+0040ED84 : `83C4 0C` | `add` `esp`, `0C`
+0040ED87 : `85C9` | `test` `ecx`, `ecx`
+0040ED89 : `7D 07` | `jge` `short 0040ED92`
+0040ED8B : `B8 0C000000` | `mov` `eax`, `0C`
+0040ED90 : `5E` | `pop` `esi`
+注释：进入 `0040EBC0`
+
+### 0040EBC0 - 0040EC2B 第二部分核心运算
+
+0040EBC0 : `81EC 30010000` | `sub` `esp`, `130`
+0040EBC6 : `A0 30014300` | `mov` `al`, `[430130]`
+0040EBCB : `53` | `push` `ebx`
+0040EBCC : `55` | `push` `ebp`
+0040EBCD : `56` | `push` `esi`
+0040EBCE : `57` | `push` `edi`
+0040EBCF : `884424 40` | `mov` `[esp+40]`, `al`
+0040EBD3 : `B9 3F000000` | `mov` `ecx`, `3F`
+0040EBD8 : `33C0` | `xor` `eax`, `eax`
+0040EBDA : `8D7C24 41` | `lea` `edi`, `[esp+41]`
+0040EBDE : `8BAC24 440100` | `mov` `ebp`, `[esp+144]`
+0040EBE5 : `F3:AB` | `rep` `stos` `dword ptr es:[edi]`
+0040EBE7 : `66:AB` | `stos` `word ptr es:[edi]`
+0040EBE9 : `AA` | `stos` `byte ptr es:[edi]`
+0040EBEA : `8BFD` | `mov` `edi`, `ebp`
+0040EBEC : `83C9 FF` | `or` `ecx`, `FFFFFFFF`
+0040EBEF : `33C0` | `xor` `eax`, `eax`
+0040EBF1 : `C74424 10 030` | `mov` `dword ptr [esp+10]`, `3`
+0040EBF9 : `F2:AE` | `repne` `scas` `byte ptr es:[edi]`
+0040EBFB : `F7D1` | `not` `ecx`
+0040EBFD : `49` | `dec` `ecx`
+0040EBFE : `8BD9` | `mov` `ebx`, `ecx`
+0040EC00 : `83FB 14` | `cmp` `ebx`, `14`
+&nbsp;&nbsp;&nbsp;&nbsp;注释：判断序列号是否大于等于 `20` 位，是则跳转，否则出错。
+0040EC03 : `7D 0E` | `jge` `short 0040EC13`
+0040EC05 : `5F` | `pop` `edi`
+0040EC06 : `5E` | `pop` `esi`
+0040EC07 : `5D` | `pop` `ebp`
+0040EC08 : `83C8 FF` | `or` `eax`, `FFFFFFFF`
+0040EC0B : `5B` | `pop` `ebx`
+0040EC0C : `81C4 30010000` | `add` `esp`, `130`
+0040EC12 : `C3` | `retn`
+0040EC13 : `8BFD` | `mov` `edi`, `ebp`
+&nbsp;&nbsp;&nbsp;&nbsp;注释：跳到这里。
+0040EC15 : `83C9 FF` | `or` `ecx`, `FFFFFFFF`
+0040EC18 : `33C0` | `xor` `eax`, `eax`
+0040EC1A : `8D5424 40` | `lea` `edx`, `[esp+40]`
+0040EC1E : `F2:AE` | `repne` `scas` `byte ptr es:[edi]`
+0040EC20 : `F7D1` | `not` `ecx`
+0040EC22 : `2BF9` | `sub` `edi`, `ecx`
+0040EC24 : `55` | `push` `ebp`
+0040EC25 : `8BC1` | `mov` `eax`, `ecx`
+0040EC27 : `8BF7` | `mov` `esi`, `edi`
+0040EC29 : `8BFA` | `mov` `edi`, `edx`
+0040EC2B : `C1E9 02` | `shr` `ecx`, `2`
+0040EC2E : `F3:A5` | `rep` `movs` `dword ptr es:[edi]`, `dword p`
