@@ -1,0 +1,212 @@
+
+# 一个.NET 软件的破解过程
+
+> 原文：[`www.pediy.com/kssd/pediy10/99890.html`](https://www.pediy.com/kssd/pediy10/99890.html)
+
+## 破文信息
+
+- **破文标题**：一个.NET 软件的破解过程
+- **破文作者**：王者之剑（hj2008mt)
+- **作者邮箱**：hj2008mt@163.com
+- **作者主页**：bbs.huacolor.com
+- **破解工具**：`UEDIT32`, `Reflector`, `DotNet Helper`
+- **破解平台**：Windows XP SP2
+- **软件名称**：XX 数学软件
+- **保护方式**：无壳
+- **软件简介**：Microsoft Visual C# / Basic .NET
+- **破解声明**：应 SCS 成员小杨写的一个，高人不要看了，太简单了，不会的看一下就不要笑偶了，呵呵
+
+## 破解过程
+
+先用 `PDIE` 查壳吧，无壳，是个 Microsoft Visual C# / Basic .NET 编写的家伙。
+
+先运行软件观察一下有什么限制吧，发现过期后会弹出一大堆的网页，很烦的啦，所认我们要干掉他。
+
+此软件为一个重启注册软件，所以看上去有点麻烦，呵呵，还好这个软件只要改到两处。
+
+### 第一处
+
+再看一下注册方式，这时我们打开 `Reflector` 导入 `REG.DLL`，找到我们注册的地方：
+
+```csharp
+public bool Check(string reg)
+{
+    if (reg == this.Md5())
+    {
+        this.Info.RegCode = reg;
+        this.Info.IsReg = 3;        // 此位置是判断注册，如果为 3 就是注册成功
+        this.SetReg();
+        this.SetFile();
+        Mail mail = new Mail(this.Info.Email);
+        mail.Info.Name = this.Info.SoftName + " " + this.Ver;
+        mail.Info.Subject = "软件注册成功!";               // 软件注册成功
+        mail.Info.Body = "用户:" + this.Info.Computer + "<br>序列号:" + this.MacCode + "<br>版本:" + this.Ver + "<br>软件号:" 
+        + this.Info.Soft.ToString() + "<br>总使用次数:" + this.Info.UseCount.ToString();
+        mail.Send();
+        return true;
+    }
+    return false;
+}
+```
+
+这时我们打开 `DotNet Helper` 反编译成代码再打开 `UEDIT32` 将下面位置改动：
+
+```
+IL_0000:  nop
+    IL_0001:  ldarg.1
+    IL_0002:  ldarg.0
+    IL_0003:  call       instance string LibReg.Reg::Md5()
+    IL_0008:  call       bool [mscorlib]System.String::op_Equality(string, 
+                                                                                          string)
+    IL_000d:  ldc.i4.0              改成 ldc.i4.1
+    IL_000e:  ceq
+    IL_0010:  stloc.2
+    IL_0011:  ldloc.2
+    IL_0012:  brtrue     IL_0118
+    IL_0017:  nop
+    IL_0018:  ldarg.0
+    IL_0019:  ldflda     valuetype LibReg.Reg/RegInfo LibReg.Reg::Info
+    IL_001e:  ldarg.1
+    IL_001f:  stfld      string LibReg.Reg/RegInfo::RegCode
+    IL_0024:  ldarg.0
+    IL_0025:  ldflda     valuetype LibReg.Reg/RegInfo LibReg.Reg::Info
+```
+
+### 第二处
+
+我们再用 `Reflector` 查看哪里在比较：
+
+```csharp
+private void Check()
+{
+   Mail mail;
+   Dictionary<int, string> data = new Dictionary<int, string>();
+   Dictionary<int, string> dictionary2 = new Dictionary<int, string>();
+   bool flag = this.CheckReg(ref data);
+   bool flag2 = this.CheckFile(ref dictionary2);
+   if (!(flag || flag2))
+   {
+       this.Info.MacCode = this.GetCode();
+       mail = new Mail(this.Info.Email);
+       mail.Info.Name = this.Info.SoftName + " " + this.Ver;
+       mail.Info.Subject = "第一次使用";
+       mail.Info.Body = "用户:" + this.Info.Computer + "<br>序列号:" + this.MacCode + "<br>版本:" + this.Ver + "<br>软件号:" 
+       + this.Info.Soft.ToString();
+       mail.Send();
+   }
+   else if (flag && flag2)
+   {
+       for (int i = 0; i < 4; i++)
+       {
+           if (data != dictionary2)
+           {
+               this.Info.MacCode = this.GetCode();
+               if (dictionary2[1] == this.Info.MacCode)
+               {
+                   flag = false;
+               }
+               else if (data[1] == this.Info.MacCode)
+               {
+                   flag2 = false;
+               }
+               else
+               {
+                   flag = false;
+                   flag2 = false;
+               }
+               break;
+           }
+       }
+   }
+   if (flag)
+   {
+       this.Info.Computer = data[0];
+       this.Info.MacCode = data[1];
+       this.Info.RegCode = data[2];
+       this.Info.StartDate = Convert.ToInt64(data[3]);
+   }
+   if (flag2)
+   {
+       this.Info.Computer = dictionary2[0];
+       this.Info.MacCode = dictionary2[1];
+       this.Info.RegCode = dictionary2[2];
+       this.Info.StartDate = Convert.ToInt64(dictionary2[3]);
+       this.Info.LastDate = Convert.ToInt64(dictionary2[4]);
+       this.Info.UseCount = Convert.ToInt32(dictionary2[5]) + 1;
+   }
+   if (this.Info.RegCode == this.Md5())
+   {
+       this.Info.IsReg = 3;                 // 如果 IsReg 为 3 的话就是已注册
+   }
+   else
+   {
+       if (this.Info.LastDate > this.Info.CurDate)
+       {
+           this.Info.IsReg = 2;             // 这里是最主要的判断点，我们要改的就是这里了。
+       }
+       long num2 = (this.Info.CurDate - this.Info.StartDate) / 0xc92a69c000L;
+       int num3 = Convert.ToInt32(num2);
+       if ((num3 > this.Info.Days) || (num3 < 0))
+       {
+           this.Info.IsReg = 2;
+           mail = new Mail(this.Info.Email);
+           mail.Info.Name = this.Info.SoftName + " " + this.Ver;
+           mail.Info.Subject = "此用户已使用了" + num2 + "天";
+           mail.Info.Body = string.Concat(new object[] { "用户:", this.Info.Computer, "<br>序列号:", this.MacCode, "<br>版
+本:", this.Ver, "<br>软件号:", this.Info.Soft.ToString(), "<br>已使用天数:", num2, "<br>总使用次数:", 
+this.Info.UseCount.ToString() });
+           mail.Send();
+       }
+   }
+   if (!flag)
+   {
+       this.SetReg();
+   }
+   this.SetFile();
+   new Thread(new ThreadStart(this.CheckNet)).Start();
+}
+```
+
+地方我们找到了，现在再打开 `UEDIT32`，找到些地方：
+
+```
+IL_02ba:  ldc.i4.0            我们将这里改成 ldc.i4.1 那么我们也就注册成功
+    IL_02bb:  ceq
+    IL_02bd:  stloc.s    V_8
+    IL_02bf:  ldloc.s    V_8
+    IL_02c1:  brtrue.s   IL_02d6
+    IL_02c3:  nop
+    IL_02c4:  ldarg.0
+    IL_02c5:  ldflda     valuetype LibReg.Reg/RegInfo LibReg.Reg::Info
+    IL_02ca:  ldc.i4.3
+    IL_02cb:  stfld      int32 LibReg.Reg/RegInfo::IsReg
+    IL_02d0:  nop
+    IL_02d1:  br         IL_0472
+    IL_02d6:  nop
+    IL_02d7:  ldarg.0
+    IL_02d8:  ldflda     valuetype LibReg.Reg/RegInfo LibReg.Reg::Info
+    IL_02dd:  ldfld      int64 LibReg.Reg/RegInfo::LastDate
+    IL_02e2:  ldarg.0
+    IL_02e3:  ldflda     valuetype LibReg.Reg/RegInfo LibReg.Reg::Info
+    IL_02e8:  ldfld      int64 LibReg.Reg/RegInfo::CurDate
+    IL_02ed:  cgt
+    IL_02ef:  ldc.i4.0
+    IL_02f0:  ceq
+    IL_02f2:  stloc.s    V_8
+    IL_02f4:  ldloc.s    V_8
+    IL_02f6:  brtrue.s   IL_0306
+```
+
+经过上面两处地方完全搞定。我们再用 `DotNet Helper` 反编译成 `DLL` 文件就行了。我们再运行软件，这里我们可以看到已注册，再打开注册的地方也是已注册好了，不用写注册码了，呵呵。
+
+嘻嘻，是不是好简单的说呀！
+
+## 破解总结
+
+感谢一下 mélochite 师父长期的指导，呵呵！
+
+偶只是一只小小鸟，大鸟们就不要进来看了，呵呵，写完闪人！
+
+## 版权声明
+
+欢迎转载，转载请注明文章作者及出处！
