@@ -1,0 +1,101 @@
+
+# 浪漫情书 3.11 算法分析
+
+## 原文信息
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-237.htm`](https://www.pediy.com/kssd/pediy07/pediy7-237.htm)
+
+【破文标题】浪漫情书 3.11 算法分析  
+【破文作者】k99992002  
+【破解平台】winxp  
+【软件名称】浪漫情书 3.11  
+【软件大小】884KB  
+【下载地址】http://down.52pk.net/soft/571.htm  
+【破解工具】`PEiD` `0.93` 中文版、`OllyDbgV1.10`  
+【保护方式】机器码＋用户名+序列号  
+【破解声明】我乃小菜鸟一只，偶得一点心得，愿与大家分享：）只是学习没其他目的！
+
+## 破解步骤
+
+### 1. 脱壳与处理自校验
+
+先用 `PEiD` `0.93` 侦测，发现为 `ASPack` `1.08.04` -> `Alexey Solodovnikov`。用脱壳机（`Qunpack`）可以简单搞定！这里就不弄了，我已经脱好了。
+
+运行脱好的文件，运行有错误，程序有自校验。那就先解决程序自校验，`OD` 载入后，查找字符串，找到“文件读写错误”，双击来到代码窗口：
+
+```
+004974B5   .  E8 EAB2F6FF   CALL LoveLett.004027A4
+004974BA   .  8D85 B4FEFFFF LEA EAX,DWORD PTR SS:[EBP-14C]
+004974C0   .  E8 77E0F6FF   CALL LoveLett.0040553C
+004974C5   .  E8 DAB2F6FF   CALL LoveLett.004027A4
+004974CA     3D D0050500   CMP EAX,505D0  比较
+004974CF     7F 17         JG SHORT LoveLett.004974E8  如果文件大于这个数就说明出错了，把上面一行改为 1M 就可了(因为脱壳后的文件，有 757KB)。
+004974D1   .  8D85 B4FEFFFF LEA EAX,DWORD PTR SS:[EBP-14C]
+004974D7   .  E8 60E0F6FF   CALL LoveLett.0040553C
+004974DC   .  E8 C3B2F6FF   CALL LoveLett.004027A4
+004974E1   .  3D 18FA0400   CMP EAX,4FA18 比较
+004974E6     7D 3D         JGE SHORT LoveLett.00497525    如果文件小于这个数也出错。
+004974E8   >  8D85 B0FEFFFF LEA EAX,DWORD PTR SS:[EBP-150]
+```
+
+我们来修改。修改后保存，再来运行看下。可以运行了。
+
+### 2. 注册流程与算法分析
+
+现在在注册。再用 `OD` 打开修改后的文件，查找字符串“用户名和注册码错误”。双击来到代码窗口：
+
+```
+0048901C   .  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]
+0048901F   .  8B80 E0020000 MOV EAX,DWORD PTR DS:[EAX+2E0]
+00489025   .  E8 065CFAFF   CALL LoveLett.0042EC30
+0048902A   .  8B45 F0       MOV EAX,DWORD PTR SS:[EBP-10]
+0048902D   .  8D55 EC       LEA EDX,DWORD PTR SS:[EBP-14]
+00489030   .  E8 3BFEFFFF   CALL LoveLett.00488E70   算法 CALL 在此下断，运行！程序断下，接着 F7 进
+00489035   .  8B45 EC       MOV EAX,DWORD PTR SS:[EBP-14]
+00489038   .  8B55 F8       MOV EDX,DWORD PTR SS:[EBP-8]         现在我们来看看它的算法
+0048903B   .  E8 60ADF7FF   CALL LoveLett.00403DA0     真假码比较 我们先在这里下断看看，EDX 显示的是我们的假码，EAX 就是真码
+00489040   .  0F85 56010000 JNZ LoveLett.0048919C      关键跳转 不等就 OVER
+00489046   .  B8 34924800   MOV EAX,LoveLett.00489234
+```
+
+进入 `LoveLett.00488E70` 查看算法细节：
+
+```
+00488E9E  |.  A1 E4784A00   MOV EAX,DWORD PTR DS:[4A78E4]
+00488EA3  |.  8B00          MOV EAX,DWORD PTR DS:[EAX]
+00488EA5  |.  E8 82D90000   CALL LoveLett.0049682C
+00488EAA  |.  8B55 F8       MOV EDX,[LOCAL.2]                          ;  机器码
+00488EAD  |.  8D45 FC       LEA EAX,[LOCAL.1]
+00488EB0  |.  8B4D FC       MOV ECX,[LOCAL.1]                          ;  你输入的用户名：jk.x168.com
+00488EB3  |.  E8 24AEF7FF   CALL LoveLett.00403CDC                     ;  这个 CALL 的作用，将两者合为 499024jk.x168.com 把机器码和用户名合为一个字符串
+00488EB8  |.  8B45 FC       MOV EAX,[LOCAL.1]
+00488EBB  |.  E8 D0ADF7FF   CALL LoveLett.00403C90                     ;  计算 499024jk.x168.com 的长度 17
+00488EC0  |.  8BD0          MOV EDX,EAX
+00488EC2  |.  85D2          TEST EDX,EDX
+00488EC4  |.  7C 17         JL SHORT LoveLett.00488EDD
+00488EC6  |.  42            INC EDX
+00488EC7  |.  33C0          XOR EAX,EAX
+00488EC9  |>  8B4D FC       /MOV ECX,[LOCAL.1]
+00488ECC  |.  0FB64C01 FF   |MOVZX ECX,BYTE PTR DS:[ECX+EAX-1]        ;  依次取出上面那个合串的字符的 ASC 值
+00488ED1  |.  8D78 03       |LEA EDI,DWORD PTR DS:[EAX+3]             ;  EAX 也是依次递增+3
+00488ED4  |.  0FAFCF        |IMUL ECX,EDI                             ;  ASC 值与 EDI 相乘
+00488ED7  |.  03D9          |ADD EBX,ECX                               ;  将相乘的结果累加
+00488ED9  |.  40            |INC EAX
+00488EDA  |.  4A            |DEC EDX
+00488EDB  |.^ 75 EC         \JNZ SHORT LoveLett.00488EC9              这里循环，你的长度是多少就执行多少次
+00488EDD  |>  8BC3          MOV EAX,EBX                               ;  最后的总和为 3D11
+00488EDF  |.  99            CDQ
+00488EE0  |.  33C2          XOR EAX,EDX
+00488EE2  |.  2BC2          SUB EAX,EDX
+00488EE4  |.  69C0 C9430000 IMUL EAX,EAX,43C9                          ;  3D11 与系统给定值 43C9 相乘，EAX=102B6559
+00488EEA  |.  05 BBEF9505   ADD EAX,595EFBB                            ;  在此和 595EFBB 相加=15C15514(将此值转为 10 进制，就是我们所要的注册码了 364991764
+00488EEF  |.  8BD6          MOV EDX,ESI
+00488EF1  |.  E8 0AF0F7FF   CALL LoveLett.00407F00
+```
+
+### 3. 算法总结
+
+`a`、将机器码和用户名合为一个字符串，依次取出每个字符的 `ASC` 码值乘以(它所在的位置+3)，最后再把这些值加起来。
+
+`b`、相加得到的总和，再乘以 `43C9`，再加上 `595EFBB`，最后得出的结果转为 10 进制，就是注册码了。
+
+`4dd466d0e1e0cc123afbe504da2462ca`

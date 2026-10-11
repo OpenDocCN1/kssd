@@ -1,0 +1,286 @@
+
+```
+0047D6F2   .  33C9          XOR ECX,ECX  
+
+0047D6F4   .  66:3945 A8    CMP WORD PTR SS:[EBP-58],AX    〈---- 比较啦。AX = 33 ，SS:[EBP-58] = 46 。也就是说第 5 组的第 1 个加上 11 ，必须等于第 2 组的第 2 个。哈哈，得到条件 1。（当然，这只是我的）  
+
+0047D6F8   .  0F95C1        SETNE CL  
+
+0047D6FB   .  F7D9          NEG ECX  
+
+0047D6FD   .  898D 1CFFFFFF MOV DWORD PTR SS:[EBP-E4],ECX  
+
+0047D703   .  8D4D A0       LEA ECX,DWORD PTR SS:[EBP-60]  
+
+0047D706   .  FF15 04134000 CALL DWORD PTR DS:[<&msvbvm60.__vbaFreeStr>]        ;  msvbvm60.__vbaFreeStr  
+
+0047D70C   .  8D4D 8C       LEA ECX,DWORD PTR SS:[EBP-74]  
+
+0047D70F   .  FF15 28104000 CALL DWORD PTR DS:[<&msvbvm60.__vbaFreeVar>]        ;  msvbvm60.__vbaFreeVar  
+
+0047D715   .  66:83BD 1CFFF>CMP WORD PTR SS:[EBP-E4],0  
+
+0047D71D   .  0F85 7C0B0000 JNZ 扩展名仓.0047E29F    〈---- 不相等就跳，跳就 OVER 。呵呵  
+
+0047D723   .  C785 F4FEFFFF>MOV DWORD PTR SS:[EBP-10C],3  
+
+0047D72D   .  33C0          XOR EAX,EAX  
+
+0047D72F   >  66:3B85 F4FEF>CMP AX,WORD PTR SS:[EBP-10C]  
+
+0047D736   .  8945 EC       MOV DWORD PTR SS:[EBP-14],EAX  
+
+0047D739   .  0F8F BC010000 JG 扩展名仓.0047D8FB  
+
+0047D73F   .  B8 02000000   MOV EAX,2  
+
+0047D744   .  B9 01000000   MOV ECX,1  
+
+0047D749   .  8945 8C       MOV DWORD PTR SS:[EBP-74],EAX  
+
+0047D74C   .  8985 7CFFFFFF MOV DWORD PTR SS:[EBP-84],EAX  
+
+0047D752   .  66:8B45 EC    MOV AX,WORD PTR SS:[EBP-14]  
+
+0047D756   .  894D 94       MOV DWORD PTR SS:[EBP-6C],ECX  
+
+0047D759   .  66:03C1       ADD AX,CX  
+
+0047D75C   .  894D 84       MOV DWORD PTR SS:[EBP-7C],ECX  
+
+0047D75F   .  0F80 CE0B0000 JO 扩展名仓.0047E333  
+
+0047D765   .  0FBFC8        MOVSX ECX,AX  
+
+0047D768   .  8D95 7CFFFFFF LEA EDX,DWORD PTR SS:[EBP-84]  
+
+0047D76E   .  52            PUSH EDX  
+
+0047D76F   .  51            PUSH ECX  
+
+0047D770   .  68 E4E64200   PUSH 扩展名仓.0042E6E4                             ;  UNICODE "Liansoft"  
+
+0047D775   .  FFD3          CALL EBX          〈----- 取固定字符 Liansoft 的第 1 ， 2 ，3 ，…… 个 ，得到 4C 69  61 6E  73  6F  66  74  
+
+0047D777   .  8BD0          MOV EDX,EAX  
+
+0047D779   .  8D4D 9C       LEA ECX,DWORD PTR SS:[EBP-64]  
+
+0047D77C   .  FFD7          CALL EDI  
+
+0047D77E   .  50            PUSH EAX  
+
+0047D77F   .  FFD6          CALL ESI  
+
+0047D781   .  66:8985 A8FEF>MOV WORD PTR SS:[EBP-158],AX  
+
+0047D788   .  A1 18514A00   MOV EAX,DWORD PTR DS:[4A5118]  
+
+0047D78D   .  8D55 8C       LEA EDX,DWORD PTR SS:[EBP-74]  
+
+0047D790   .  8B48 08       MOV ECX,DWORD PTR DS:[EAX+8]  〈---- 取第 3 组加码 ，就是 34567  〈--这里根据第 3 组来推算第 5 组  
+
+0047D793   .  52            PUSH EDX  
+
+0047D794   .  6A 02         PUSH 2        〈---- 取第 2 个 ，得到的是 34  
+
+0047D796   .  51            PUSH ECX  
+
+0047D797   .  FFD3          CALL EBX  
+
+0047D799   .  8BD0          MOV EDX,EAX  
+
+0047D79B   .  8D4D A0       LEA ECX,DWORD PTR SS:[EBP-60]  
+
+0047D79E   .  FFD7          CALL EDI  
+
+0047D7A0   .  50            PUSH EAX  
+
+0047D7A1   .  FFD6          CALL ESI  
+
+0047D7A3   .  66:8B4D EC    MOV CX,WORD PTR SS:[EBP-14]  
+
+0047D7A7   .  66:8BD0       MOV DX,AX  
+
+0047D7AA   .  66:8B85 A8FEF>MOV AX,WORD PTR SS:[EBP-158]  
+
+0047D7B1   .  66:03C2       ADD AX,DX        〈---- 加起来 ，34 + 4C =80 ，34 + 69 = 9D ，……  
+
+0047D7B4   .  8D55 9C       LEA EDX,DWORD PTR SS:[EBP-64]  
+
+0047D7B7   .  0F80 760B0000 JO 扩展名仓.0047E333  
+
+0047D7BD   .  66:6BC9 07    IMUL CX,CX,7  
+
+0047D7C1   .  0F80 6C0B0000 JO 扩展名仓.0047E333  
+
+0047D7C7   .  66:03C1       ADD AX,CX  
+
+0047D7CA   .  52            PUSH EDX  
+
+0047D7CB   .  0F80 620B0000 JO 扩展名仓.0047E333  
+
+0047D7D1   .  8945 A8       MOV DWORD PTR SS:[EBP-58],EAX  
+
+0047D7D4   .  8D45 A0       LEA EAX,DWORD PTR SS:[EBP-60]  
+
+0047D7D7   .  50            PUSH EAX  
+
+0047D7D8   .  6A 02         PUSH 2  
+
+0047D7DA   .  FF15 54124000 CALL DWORD PTR DS:[<&msvbvm60.__vbaFreeStrList>]    ;  msvbvm60.__vbaFreeStrList  
+
+0047D7E0   .  8D8D 7CFFFFFF LEA ECX,DWORD PTR SS:[EBP-84]  
+
+0047D7E6   .  8D55 8C       LEA EDX,DWORD PTR SS:[EBP-74]  
+
+0047D7E9   .  51            PUSH ECX  
+
+0047D7EA   .  52            PUSH EDX  
+
+0047D7EB   .  6A 02         PUSH 2  
+
+0047D7ED   .  FF15 44104000 CALL DWORD PTR DS:[<&msvbvm60.__vbaFreeVarList>]    ;  msvbvm60.__vbaFreeVarList  
+
+0047D7F3   .  8B45 A8       MOV EAX,DWORD PTR SS:[EBP-58]  
+
+0047D7F6   .  83C4 18       ADD ESP,18  
+
+0047D7F9   .  66:837D A8 30 CMP WORD PTR SS:[EBP-58],30  
+
+0047D7FE   .  7C 06         JL SHORT 扩展名仓.0047D806  
+
+0047D800   .  66:3D 3900    CMP AX,39  
+
+0047D804   .  7E 76         JLE SHORT 扩展名仓.0047D87C  
+
+0047D806   >  66:3D 4100    CMP AX,41  
+
+0047D80A   .  7C 06         JL SHORT 扩展名仓.0047D812  
+
+0047D80C   .  66:3D 5A00    CMP AX,5A  
+
+0047D810   .  7E 6A         JLE SHORT 扩展名仓.0047D87C  
+
+0047D812   >  66:99         CWD  
+
+0047D814   .  66:B9 4D00    MOV CX,4D  
+
+0047D818   .  66:F7F9      IDIV CX  
+
+0047D81B   .  66:83FA 07   CMP DX,7  
+
+0047D81F   .  8955 A8       MOV DWORD PTR SS:[EBP-58],EDX  
+
+0047D822   .  7F 06         JG SHORT 扩展名仓.0047D82A  
+
+0047D824   .  66:83C2 31    ADD DX,31  
+
+0047D828   .  EB 49         JMP SHORT 扩展名仓.0047D873  
+
+0047D82A   >  66:83FA 21    CMP DX,21  
+
+0047D82E   .  7F 06         JG SHORT 扩展名仓.0047D836  
+
+0047D830   .  66:83C2 39    ADD DX,39  
+
+0047D834   .  EB 3D         JMP SHORT 扩展名仓.0047D873  
+
+0047D836   >  66:83FA 27    CMP DX,27  
+
+0047D83A   .  7D 1B         JGE SHORT 扩展名仓.0047D857  
+
+0047D83C   .  66:83E2 01    AND DX,1  
+
+0047D840   .  79 08         JNS SHORT 扩展名仓.0047D84A  
+
+0047D842   .  66:4A         DEC DX  
+
+0047D844   .  66:83CA FE    OR DX,0FFFE  
+
+0047D848   .  66:42         INC DX  
+
+0047D84A   >  66:F7DA      NEG DX  
+
+0047D84D   .  1BD2          SBB EDX,EDX  
+
+0047D84F   .  83E2 FB       AND EDX,FFFFFFFB  
+
+0047D852   .  83C2 4D       ADD EDX,4D  
+
+0047D855   .  EB 22         JMP SHORT 扩展名仓.0047D879  
+
+0047D857   >  66:83FA 30    CMP DX,30  
+
+0047D85B   .  7D 06         JGE SHORT 扩展名仓.0047D863  
+
+0047D85D   .  66:83C2 23    ADD DX,23  
+
+0047D861   .  EB 10         JMP SHORT 扩展名仓.0047D873  
+
+0047D863   >  66:83FA 39    CMP DX,39  
+
+0047D867   .  7E 13         JLE SHORT 扩展名仓.0047D87C  
+
+0047D869   .  66:83FA 41    CMP DX,41  
+
+0047D86D   .  7D 0D         JGE SHORT 扩展名仓.0047D87C  
+
+0047D86F   .  66:83EA 07    SUB DX,7  
+
+0047D873   >  0F80 BA0A0000 JO 扩展名仓.0047E333  
+
+0047D879   >  8955 A8       MOV DWORD PTR SS:[EBP-58],EDX  
+
+0047D87C   >  66:8B45 EC    MOV AX,WORD PTR SS:[EBP-14]  
+
+0047D880   .  8D55 8C       LEA EDX,DWORD PTR SS:[EBP-74]  
+
+0047D883   .  66:05 0200    ADD AX,2  
+
+0047D887   .  52            PUSH EDX  
+
+0047D888   .  8B15 18514A00 MOV EDX,DWORD PTR DS:[4A5118]  
+
+0047D88E   .  C745 94 01000>MOV DWORD PTR SS:[EBP-6C],1  
+
+0047D895   .  0F80 980A0000 JO 扩展名仓.0047E333  
+
+0047D89B   .  0FBFC8        MOVSX ECX,AX  
+
+0047D89E   .  C745 8C 02000>MOV DWORD PTR SS:[EBP-74],2    〈----- 先取第 2 个 ，然后第 3 ，第 4 ，…… ，也就是说这个循环是验证第 5 组后 4 位的。  
+
+0047D8A5   .  8B42 10       MOV EAX,DWORD PTR DS:[EDX+10]  〈----- 取第 5 组假码 ，就是 56789  
+
+0047D8A8   .  51            PUSH ECX  
+
+0047D8A9   .  50            PUSH EAX  
+
+0047D8AA   .  FFD3          CALL EBX  
+
+0047D8AC   .  8BD0          MOV EDX,EAX  
+
+0047D8AE   .  8D4D A0       LEA ECX,DWORD PTR SS:[EBP-60]  
+
+0047D8B1   .  FFD7          CALL EDI  
+
+0047D8B3   .  50            PUSH EAX  
+
+0047D8B4   .  FFD6          CALL ESI  
+
+0047D8B6   .  33C9          XOR ECX,ECX  
+
+0047D8B8   .  66:3945 A8    CMP WORD PTR SS:[EBP-58],AX    〈----- 比较啦。条件 2 ：就是说第 3 组的每个 ASC 分别加上对应的字符"Liansoft"的 ASC，处理必须等于第 5 组  
+
+0047D8BC   .  0F95C1        SETNE CL  
+
+0047D8BF   .  F7D9          NEG ECX  
+
+0047D8C1   .  898D 1CFFFFFF MOV DWORD PTR SS:[EBP-E4],ECX  
+
+0047D8C7   .  8D4D A0       LEA ECX,DWORD PTR SS:[EBP-60]  
+
+0047D8CA   .  FF15 04134000 CALL DWORD PTR DS:[<&msvbvm60.__vbaFreeStr>]        ;  msvbvm60.__vbaFreeStr  
+
+0047D8D0   .  8D4D 8C       LEA ECX,DWORD PTR SS:[EBP-74]  
+```
