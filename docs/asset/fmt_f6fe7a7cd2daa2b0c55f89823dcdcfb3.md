@@ -1,0 +1,246 @@
+
+```
+00439820     40                 inc eax   
+
+00439821     2BC7               sub eax,edi   
+
+00439823     8B3424             mov esi,dword ptr ss:[esp]   
+
+00439826     58                 pop eax   
+
+00439827     81EE 8A144100      sub esi,antiypor.0041148A   
+
+0043982D     EB 01              jmp short antiypor.00439830   
+
+00439830     2BC5               sub eax,ebp   
+
+00439832     F9                 stc   
+
+00439833     E8 08000000        call antiypor.00439840   
+
+00439840     98                 cwde   
+
+00439841     33C0               xor eax,eax   
+
+00439843     C3                 retn   
+
+                       =====>返回到 00439838   其实是变形的 JMP   
+
+00439838     E9 0C000000        jmp antiypor.00439849   
+
+00439849     1BC2               sbb eax,edx   
+
+0043984B     B9 F67BB059        mov ecx,59B07BF6   
+
+00439850     81F1 6C68F159      xor ecx,59F1686C   
+
+00439856     F9                 stc   
+
+00439857     72 01              jb short antiypor.0043985A   
+
+0043985A     83F0 A0            xor eax,FFFFFFA0   
+
+0043985D     03CE               add ecx,esi   
+
+0043985F     33D2               xor edx,edx   
+
+00439861     81F2 6BC3FC21      xor edx,21FCC36B   
+
+00439867     81C2 B23C03DE      add edx,DE033CB2   
+
+0043986D     EB 02              jmp short antiypor.00439871   
+
+00439871     F9                 stc   
+
+00439872     0BC2               or eax,edx   
+
+00439874     33FF               xor edi,edi   
+
+00439876     81F7 023B36C2      xor edi,C2363B02   
+
+0043987C     F8                 clc   
+
+0043987D     73 02              jnb short antiypor.00439881   
+
+00439881     F8                 clc   
+
+00439882     33C4               xor eax,esp   
+
+00439884     6BFF 3B            imul edi,edi,3B   
+
+00439887     3139               xor dword ptr ds:[ecx],edi   
+
+00439889     D1C7               rol edi,1   
+
+0043988B     F9                 stc   
+
+0043988C     83D7 4F            adc edi,4F   
+
+0043988F     81C7 D4D0F3E0      add edi,E0F3D0D4   
+
+00439895     0BE4               or esp,esp   
+
+00439897     75 01              jnz short antiypor.0043989A   
+
+0043989A     98                 cwde   
+
+0043989B     8BC6               mov eax,esi   
+
+0043989D     4A                 dec edx   
+
+0043989E     0BE4               or esp,esp   
+
+004398A0     75 01              jnz short antiypor.004398A3   
+
+004398A3     1D 96E4C132        sbb eax,32C1E496   
+
+004398A8     B8 04000000        mov eax,4   
+
+004398AD     03C8               add ecx,eax   
+
+004398AF     EB 01              jmp short antiypor.004398B2   
+
+004398B2     1BC5               sbb eax,ebp   
+
+004398B4     FC                 cld   
+
+004398B5     F8                 clc   
+
+004398B6     73 02              jnb short antiypor.004398BA   
+
+004398BA     2BC0               sub eax,eax   
+
+004398BC     48                 dec eax   
+
+004398BD     03C2               add eax,edx   
+
+004398BF   ^ 79 C3              jns short antiypor.00439884   
+
+                       =====>F4 下去跳出循环！   
+
+004398C1    /EB 01             jmp short antiypor.004398C4   
+
+004398C4     13C5               adc eax,ebp   
+
+004398C6     61                 popad   
+
+004398C7     F9                 stc   
+
+004398C8     72 01              jb short antiypor.004398CB   
+
+004398CB     F5                 cmc   
+
+004398CC     C3                 retn   
+
+                       =====>返回到 0043972B  呵呵，离胜利不远啦   
+
+0043972B     8B9D 82D34000      mov ebx,dword ptr ss:[ebp+40D382]   
+
+00439731     33F6               xor esi,esi   
+
+00439733     F7D3               not ebx   
+
+00439735     0BF3               or esi,ebx   
+
+00439737     75 08              jnz short antiypor.00439741   
+
+00439741     039D 62D34000      add ebx,dword ptr ss:[ebp+40D362]   
+
+                       =====>EBX=00003C16 + 00400000=00403C16   这就是 OEP 值   
+
+00439747     895C24 F0          mov dword ptr ss:[esp-10],ebx   
+
+0043974B     8DBD 84D24000      lea edi,dword ptr ss:[ebp+40D284]   
+
+00439751     33C0               xor eax,eax   
+
+00439753     B9 9E030000        mov ecx,39E   
+
+00439758     F3:AA              rep stos byte ptr es:[edi]   
+
+0043975A     8DBD A2B64000      lea edi,dword ptr ss:[ebp+40B6A2]   
+
+00439760     B9 58170000        mov ecx,1758   
+
+00439765     F3:AA              rep stos byte ptr es:[edi]   
+
+00439767     66:AB              stos word ptr es:[edi]   
+
+00439769     8DBD A2B64000      lea edi,dword ptr ss:[ebp+40B6A2]   
+
+0043976F     85F6               test esi,esi   
+
+00439771     75 08              jnz short antiypor.0043977B   
+
+0043977B     C607 E9            mov byte ptr ds:[edi],0E9   
+
+0043977E     47                 inc edi   
+
+0043977F     2BDF               sub ebx,edi   
+
+00439781     83EB 04            sub ebx,4   
+
+00439784     891F               mov dword ptr ds:[edi],ebx   
+
+00439786     8DBD FACD4000      lea edi,dword ptr ss:[ebp+40CDFA]   
+
+0043978C     B9 2C000000        mov ecx,2C   
+
+00439791     F3:AA              rep stos byte ptr es:[edi]   
+
+00439793     66:AB              stos word ptr es:[edi]   
+
+00439795     EB 02              jmp short antiypor.00439799   
+
+00439799     61                 popad   
+
+0043979A     FF6424 D0          jmp dword ptr ss:[esp-30]   
+
+                       =====>飞向光明之巅！ 跳至 00403C16   
+
+————————————————————————   
+
+00403C16       55                 db 55   
+
+                       =====>在这儿用 LordPE 完全 DUMP 这个进程   
+
+00403C17       8B                 db 8B   
+
+00403C18       EC                 db EC   
+
+00403C19       6A                 db 6A   
+
+—————————————————————————————————   
+```
+
+## 四、手动修复
+
+1. 用`WinHex`把部分`dumped.dmp`的代码复制、写入到`dumped.exe`的相应位置保存。
+
+2. 再用`PEditor`打开`dumped.exe`，修改入口点为`00003C16`；用`dumpfixer`修正区块。
+
+3. 用`LordPE`修正输入表地址为：`00006078`。最后重建 PE。OK，正常运行！`98.5K`->`221K`
+
+程序是用`VC++ 6.0`编译的，脱壳后可以跨系统平台运行！
+
+—————————————————————————————————
+
+```
+         ,     \_/ 
+       /| \_.-~/            \_     ,        青春都一饷
+      ( /~   /               ~-.\_ |
+      `\    \_/                    ~ )          忍把浮名 
+  \_-~~~-.)  )\_\_/;;,.           \_  //'    
+  /'\_,   --~    ~~~-  ,;;\_\_\_(  (.-~~~-.        换了破解轻狂 
+  \`~ \_( ,\_..-- (     ,;'' /    ~--   /.\_\`  
+  /~~//'   /' \`~         ) /--..\_, )\_  \`~    
+  "  \`~"  "       \`"      /~'\`    \`\\~~    
+
+                "     "   "~'  ""
+
+            Cracked By 巢水工作坊——fly [OCN][FCG]
+
+               2003-10-15  13:50
+```
+
+`4dd466d0e1e0cc123afbe504da2462ca`
