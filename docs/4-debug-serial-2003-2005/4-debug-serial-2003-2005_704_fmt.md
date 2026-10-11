@@ -1,0 +1,263 @@
+
+# 菜鸟的第一篇破文-----ChessGenius 算法分析与注册机
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-87.htm`](https://www.pediy.com/kssd/pediy07/pediy7-87.htm)
+
+破文作者： David Nash  
+破解平台： WinXP Sp2  
+软件名称： ChessGenius Classic V7.138R  
+软件大小： 576 KB  
+软件语言： 英文  
+软件类别： 国外软件 / 共享版 / 棋牌游戏  
+应用平台： Win9x/NT/2000/XP  
+开发商： `http://www.chessgenius.com/`
+
+**软件介绍**  
+一个世界冠军级的国际象棋程序。附有 40 种由初学者至专家级的游戏级别：10 级「容易」，10 级「攻棋」，10 级「限时下棋」，10「棋局解柝」 - 国际象棋计时钟 - 每步棋的记录 - 显示思考程序 - 叁种棋盘大小：小型，大型或巨大型 - 提示 - 起步设定。强大的游戏功能。此国际象棋棋程序的撰写者已赢取过 10 项世界电脑国际象棋棋冠军的荣誉。
+
+**保护方式**： 用户名 + 序列号  
+**破解目的**： 学习.........  
+**破解工具**： `Peid`, `OD`  
+**破解声明**： 我乃小菜鸟一只，偶得一点心得，愿与大家分享：）
+
+## 破解过程
+
+用 `PEiD` 查看，没加壳，`Microsoft Visual C++ 4.x`，那就不好意思了。
+
+注册失败后会显示： `Error - Incorrect key. Please enter name and key as supplied by www.chessgenius.com`
+
+用 `OD` 载入，查找字符串，双击来到 `00411F31`：
+
+```
+00411F19   |>  391D 9C764600     |cmp dword ptr ds:[46769C],ebx  向上来到这里。发现可以从 00411DF9,00411E09,00411E40,00411EFB 跳到这里。全部下断，呵呵
+
+00411F1F       75 22             |jnz short GEN32WIN.00411F43
+
+00411F21   |.   66:833D C27E4600 |>cmp word ptr ds:[467EC2],1
+
+00411F29   |.   75 18             |jnz short GEN32WIN.00411F43
+
+00411F2B   |.   A1 48764600       |mov eax,dword ptr ds:[467648]
+
+00411F30   |.   50                |push eax
+
+00411F31   |.   68 E8FB4400       |push GEN32WIN.0044FBE8          ;  ASCII "Error -Incorrect key. Please enter name and key as supplied by www.chessgenius.com"  双击来到这里，向上找
+
+00411F36   |.   E8 FE4D0200       |call GEN32WIN.00436D39
+
+00411F3B   |.   83C4 08           |add esp,8
+
+00411F3E   |.^ E9 D0FCFFFF        \jmp GEN32WIN.00411C13
+
+00411F43   |>  833D 9C764600 01  cmp dword ptr ds:[46769C],1
+
+00411F4A   |.   75 2A             jnz short GEN32WIN.00411F76
+
+00411F4C   |.   BE 58DE4400       mov esi,GEN32WIN.0044DE58        ;  ASCII "  Unregistered"
+
+00411F51   |.   8D85 B0FDFFFF     lea eax,dword ptr ss:[ebp-250]
+
+00411F57   |.   56                push esi
+
+00411F58   |.   68 D4FB4400       push GEN32WIN.0044FBD4  ;ASCII "  Registered to %s"
+
+00411F5D   |.   50                push eax
+
+00411F5E   |.   E8 3DAD0200       call GEN32WIN.0043CCA0
+```
+
+输入用户名： `david`  
+注册码： `123456`
+
+结果发现它是从 `00411E0E call GEN32WIN.00411845` 跳过来的。那里可是关键跳转哦。
+
+重新载入，用 `F7` 进入。
+
+单步跟踪到：
+
+```
+0041198D   |.   56                push esi                         ; /Arg6
+
+0041198E   |.   8B15 5C764600     mov edx,dword ptr ds:[46765C]    ; |GEN32WIN.0044FDFC
+
+00411994   |.   6A 0E             push 0E                           ; |Arg5 = 0000000E
+
+00411996   |.   33C9              xor ecx,ecx                       ; |
+
+00411998   |.   6A 46             push 46                           ; |Arg4 = 00000046
+
+0041199A   |.   68 B4000000      push 0B4                           ; |Arg3 = 000000B4
+
+0041199F   |.   6A 28             push 28                           ; |Arg2 = 00000028
+
+00411A01   |.   68 42060000       push 642                          ; |Arg1 = 00000642
+
+004119A6   |.   E8 34230100       call GEN32WIN.00423CDF            ; \GEN32WIN.00423CDF
+
+004119AB   |.   E8 3E370100       call GEN32WIN.004250EE     <---------要求输入用户名和注册码
+```
+
+继续向下走，来到这里：
+
+```
+00411A61   |.   389D FCFEFFFF     cmp byte ptr ss:[ebp-104],bl
+
+00411A67   |.   74 63             je short GEN32WIN.00411ACC
+
+00411A69   |> /0FBE843D FCFEFFFF /movsx eax,byte ptr ss:[ebp+edi-104]   将字符赋给 eax
+
+00411A71   |.|50                 |push eax                                将 eax 压入堆栈
+
+00411A72   |.|E8 89B50200       |call GEN32WIN.0043D000 跟进去后发现是 eax 赋给 ecx，eax=2, edx=45163A
+
+00411A77   |.|83C4 04           |add esp,4                                 esp 加上 4
+
+00411A7A   |.|85C0              |test eax,eax              如果 eax 为零,设置 ZF 为 1
+
+00411A7C   |.|74 43             |je short GEN32WIN.00411AC1
+
+00411A7E   |.|A1 58E04400       |mov eax,dword ptr ds:[44E058]          将原来压在 ptr ds:44E058]的数赋给 eax
+
+00411A83   |.|43                |inc ebx                                
+
+00411A84   |.|69C0 354E5A01     |imul eax,eax,15A4E35            eax = eax * 15A4E35
+
+00411A8A   |.|0FBE8C3D FCFEFFFF |movsx ecx,byte ptr ss:[ebp+edi-104]   再次将字符赋给 ecx
+
+00411A92   |.|40                |inc eax                                
+
+00411A93   |.|51                |push ecx                                
+
+00411A94   |.|A3 58E04400       |mov dword ptr ds:[44E058],eax          将 eax 的值传到 44E058 处
+
+00411A99   |.|E8 B2C40200       |call GEN32WIN.0043DF50                  跟进去你会发现 eax 的值等于它的 ASCII 值减去 20
+
+00411A9E   |.|83C4 04           |add esp,4                                 esp 加上 4
+
+00411AA1   |.|8B0D 58E04400     |mov ecx,dword ptr ds:[44E058]          将 ptr ds:[44E058]赋给 ecx
+
+00411AA7   |.|C1E9 10           |shr ecx,10                              ecx 右移 10 位
+
+00411AAA   |.|66:81E1 FF7F     |and cx,7FFF                               其实就是将 ecx 的后四位加上 7FFF
+
+00411AAF   |.|0FBFD1             |movsx edx,cx                              将 cx 赋值给 edx
+
+00411AB2   |.|0FAFC2             |imul eax,edx                              eax = eax * edx
+
+00411AB5   |.|05 4E070E00        |add eax,0E074E                            eax = eax + 0E074E
+
+00411ABA   |.|03F0               |add esi,eax                               esi = esi + eax
+
+00411ABC   |.|83FB 0C            |cmp ebx,0C                                比较 ebx 与 12，（限制位数小于 12）
+
+00411ABF   |.|7F 0B              |jg short GEN32WIN.00411ACC                如果大于，就跳转
+
+00411AC1   > |47                 |inc edi                                   edi 加上 1
+
+00411AC2   |.|80BC3D FCFEFFFF 0>|cmp byte ptr ss:[ebp+edi-104],0           比较下一字符是否为零
+
+00411ACA   |.^\75 9D             \jnz short GEN32WIN.00411A69                为零则跳转
+
+00411ACC   >  83FB 05            cmp ebx,5                                
+
+00411ACF   |.  7C 20             jl short GEN32WIN.00411AF1                
+
+00411AD1   |.  B9 40420F00       mov ecx,0F4240                              将 0F4240 赋给 ecx
+
+00411AD6   |.  8BC6             mov eax,esi                                 将 esi 赋给 eax
+
+00411AD8   |.  2BD2             sub edx,edx                                 edx 置为零
+
+00411ADA   |.  F7F1             div ecx       eax/ecx,商保存在 eax,    余数保存在 edx。真正注册码就是这里的 edx
+
+00411ADC   |.  3955 FC         cmp dword ptr ss:[ebp-4],edx            比较 edx 中的真正注册码与加注册码
+
+00411ADF   |.  75 10             jnz short GEN32WIN.00411AF1              若相等就跳，不跳就挂
+
+00411AE1   |.  C705 60764600 010>mov dword ptr ds:[467660],1               没跳，值标志位为 1，后面比较时用
+
+00411AEB   |.  8915 74764600     mov dword ptr ds:[467674],edx          把真的注册码放到地址 467674
+
+00411AF1   >  5F                 pop edi
+
+00411AF2   |.  5E                 pop esi
+
+00411AF3   |.  5B                 pop ebx
+
+00411AF4   |.  8BE5               mov esp,ebp
+
+00411AF6   |.  5D                 pop ebp
+
+00411AF7   \.  C3                 retn
+```
+
+`Name: david`  
+`Code: 445478`
+
+总体上来说，是比较简单的。我这样的菜鸟就可以搞定的。^o^
+
+### 算法总结
+
+`dword ptr ds:[44E058]` 初识值是 1，然后与 `15A4E35` 相乘，保存在 `eax` 中。`eax` 再加上 1。接着，右移 10 位，得到 8 位数，后四位与 `7FFF` 作与运算，其结果与 `eax` 的 `(ASCII-20h)` 的积再加上 `0E074E`。最后，与 `esi`（`esi` 初识值为 0）相加。然后再继续计算直到计算完所有的用户名字符。把"最终结果"(`esi`) 与 `0F4240` 作除法运算，余数(换算成十进制)就是注册码。
+
+### C 算法实现
+
+```c
+#include<stdio.h>
+
+main()
+
+{
+
+  unsigned long flag, eax = 0X1, dword = 0X1, esi = 0X0;
+
+  const const1 = 0x15A4E35, const2 = 0x7FFF, const3 = 0xE074E, const4 = 0XF4240;
+
+  char name[64];
+
+  printf("************** Keygen for ChessGenius Classic 7.138R **************\n");
+
+  printf("Powered by David Nash\n");
+
+  printf("Please enter your name:");
+
+  gets(name);
+
+  for ( flag = 0; name[flag]; flag++ )
+
+  {
+
+     if ( name[flag] > 64 && name[flag] < 91 )
+
+     name[flag] += 32;
+
+     eax = (const1 * dword) + 1;
+
+             dword = eax;
+
+     eax = eax / 0X10000;
+
+     eax &= const2;
+
+     eax *= (name[flag] - 0x20);
+
+     eax += const3;
+
+     esi += eax;
+
+  }
+
+  esi = esi % const4;
+
+  printf("The code is: %d", esi);
+```
+
+
+
+`getchar();`
+
+`}`
+
+当然了，程序对注册名还有一些限制，如不能包含数字、特殊字符等，大家有兴趣就自己看看好了。呵呵............
+
+`4dd466d0e1e0cc123afbe504da2462ca`

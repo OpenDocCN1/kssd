@@ -1,0 +1,375 @@
+
+# 编译器 C-Free V3.5.2 注册算法分析(重启验证)
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-183.htm`](https://www.pediy.com/kssd/pediy07/pediy7-183.htm)
+
+编译器 C-Free V3.5.2 注册算法分析(重启验证)
+
+今天在 DFCG 论坛上闲逛时无意中看到一个国产 C/C++编译器，C-Free V3.5.2，随手下载只是想看看注册算法，没有使用，不知道功能如何。
+
+- **[Cracker]** : prince
+- **[时间]** : 2005.01.28
+- **[声明]** : 只做技术交流，不做商业用途，如果你手头宽裕并喜欢这个软件的话请支持正版软件。
+- **[E-mail]** : `Cracker_prince@163.com`
+- **[保护方式]** : 机器码 + 序列号
+- **[限制方式]** : 次数限制 （10 次试用 ）
+- **[外壳保护]** : `ASPack 2.12`
+- **[编译器/语言]** : `Borland C++ 1999 / C++`
+- **[下载地址]** : `http://www.programarts.com/cfree_ch/index.htm`
+
+`ASPack 2.12` 脱壳很简单，`ASPackDie` 也可以轻松对付。无自校验，脱壳后可直接运行。注册情况：机器码给出，输入用户名 `prince` 和序列号 `8764321`，确定，提示重启验证。
+
+说到重启验证，最简单最直接的就想到注册表，确认一下，打开注册表搜索用户名 `prince`，果然找到在 `\HKEY_LOCAL_MACHINE\SOFTWARE\C-Free\3.5` 下，同样列在其中的还有我们输入的假码 `87654321` 和我机器上的机器码(`MachineCode`)`2781318776`。这下我们就可以确定了软件确实是通过注册表来进行重启验证的。目标如此明确，载入脱壳后的程序，下断点 `RegQueryValueA`，恩？没有，再下 `RegQueryValueExA`，呵呵，可以了。F9 运行，马上被断下，看堆栈，`ValueName = "layout text"`，不是我们想要的，继续 F9，注意断点不能取消，因为后面的对注册表的读取还是要靠这个函数，再次断下，还不是，再运行...，大约 81 次，堆栈中显示 `ValueName = "MachineCode"`，这就是要读取机器码了，注意。再次 F9，断在读取 `RegistryCode` 也就是假码的地方，呵呵，敏感。再接下来是读取 `UserName`，即用户名。到这里，计算注册码的准备工作就做完了，可是在那里计算的呢？作者在软件启动的时候将所有的配置信息连同机器码，用户名和注册码一起读出，而且也没有读出后立即计算注册码继续比较，这就给我们定位注册码计算造成了困难。这个时候我们该怎么办？两个办法，一个就是下面都进行单步跟踪，直到找到关键函数为止，毕竟软件在启动前肯定会计算注册码的；另外一个办法就是在内存中搜索假码然后下内存断点，这个方法倒是即快又方便，但是要掌握时机，具体什么时候搜内存要看代码的动作。我通常都是先搜内存，不行的话只好一步一步的单跟了，做 Cracker 要有耐心。当你在堆栈中看到 `ValueName = "EditorTabWidth"`的时候，小心，呵呵，我们到了藏有宝藏的秘密入口了。
+
+```
+----------------------------------------------------------------------------------------
+00419654  |.>MOV WORD PTR DS:[EBX+10],4B8
+0041965A  |.>MOV EDX,unpacked.005DAA4C        ;  ASCII "EditorTabWidth"
+0041965F  |.>LEA EAX,DWORD PTR SS:[EBP-620]
+00419665  |.>CALL unpacked.0058D308
+0041966A  |.>INC DWORD PTR DS:[EBX+1C]
+0041966D  |.>MOV EDX,DWORD PTR DS:[EAX]
+0041966F  |.>MOV EAX,ESI
+00419671  |.>CALL unpacked.004E936C
+00419676  |.>MOV ECX,DWORD PTR DS:[EDI]
+00419678  |.>MOV EDX,2
+0041967D  |.>MOV DWORD PTR DS:[ECX+A0C],EAX
+00419683  |.>LEA EAX,DWORD PTR SS:[EBP-620]
+00419689  |.>DEC DWORD PTR DS:[EBX+1C]
+0041968C  |.>CALL unpacked.0058D520
+00419691  |.>MOV ECX,DWORD PTR DS:[EDI]
+00419693  |.>MOV BYTE PTR DS:[ECX+8F4],0
+0041969A  |.>MOV EAX,DWORD PTR DS:[EDI]
+0041969C  |.>INC DWORD PTR DS:[EAX+8F0]
+004196A2  |.>CALL unpacked.00462F18           ;  取机器码送 EAX
+004196A7  |.>MOV DWORD PTR SS:[EBP-764],EAX
+004196AD  |.>MOV WORD PTR DS:[EBX+10],98
+004196B3  |.>MOV EDX,DWORD PTR DS:[EDI]
+004196B5  |.>MOV ECX,DWORD PTR DS:[EDX+8E4]
+004196BB  |.>CMP ECX,DWORD PTR SS:[EBP-764]
+004196C1  |.>JNZ unpacked.00419772
+004196C7  |.>LEA EAX,DWORD PTR SS:[EBP-884]
+004196CD  |.>PUSH EAX                         ; /Arg2
+004196CE  |.>MOV EDX,DWORD PTR SS:[EBP-764]   ; |[EBP-764]==机器码
+004196D4  |.>PUSH EDX                         ; |Arg1
+004196D5  |.>CALL unpacked.00462F70           ; \关键 CALL，跟进
+004196DA  |.>MOV WORD PTR DS:[EBX+10],4C4     ;  上面的这个 CALL 计算真码，存放在 EAX 中(哎！又是明文
+004196E0  |.>ADD ESP,8
+004196E3  |.>LEA EDX,DWORD PTR SS:[EBP-884]   ;  真码地址送入 EDX
+004196E9  |.>LEA EAX,DWORD PTR SS:[EBP-624]
+004196EF  |.>CALL unpacked.0058D308
+004196F4  |.>INC DWORD PTR DS:[EBX+1C]
+004196F7  |.>MOV EDX,DWORD PTR DS:[EAX]
+004196F9  |.>MOV EAX,DWORD PTR DS:[EDI]
+004196FB  |.>MOV EAX,DWORD PTR DS:[EAX+8E8]   ;  假码送入 EAX，呵呵，准备比较了哦
+00419701  |.>CALL unpacked.004ECED4           ;  比较函数，嘿嘿。
+00419706  |.>TEST EAX,EAX
+00419708  |.>LEA EAX,DWORD PTR SS:[EBP-624]
+----------------------------------------------------------------------------------------
+```
+
+我们要找算法的计算过程，所以 `004196D5` 处跟进：
+
+```
+----------------------------------------------------------------------------------------
+00462F70  /$>PUSH EBP
+00462F71  |.>MOV EBP,ESP
+00462F73  |.>ADD ESP,-0C
+00462F76  |.>XOR EDX,EDX
+00462F78  |.>PUSH EBX
+00462F79  |.>PUSH ESI
+00462F7A  |.>PUSH EDI
+00462F7B  |.>MOV EBX,25                       ;  EBX=0x25
+00462F80  |.>MOV ECX,DWORD PTR SS:[EBP+8]     ;  [EBP+8]==机器码
+00462F83  |.>XOR ECX,90909090                 ;  机器码异或 90909090，ECX==35571EE8
+00462F89  |.>MOV EAX,ECX
+00462F8B  |.>DIV EBX                          ;  上面异或的结果除以 25
+00462F8D  |.>MOV EAX,EDX                      ;  余数送 EAX
+00462F8F  |.>CMP EAX,11                       ;  余数同 0x11 比较
+00462F92  |.>JGE SHORT unpacked.00462F97      ;  大于等于就直接压栈准备函数调用
+00462F94  |.>ADD EAX,11                       ;  否则余数+0x11，然后再入栈
+00462F97  |>>PUSH EAX                         ; /Arg3 余数入栈
+00462F98  |.>LEA EDX,DWORD PTR SS:[EBP-C]     ; |
+00462F9B  |.>PUSH EDX                         ; |Arg2
+00462F9C  |.>PUSH ECX                         ; |Arg1 上面异或结果入栈
+00462F9D  |.>CALL unpacked.005861F0           ; \跟进
+00462FA2  |.>MOV ECX,DWORD PTR SS:[EBP+C]
+00462FA5  |.>ADD ESP,0C
+00462FA8  |.>MOV ESI,ECX
+00462FAA  |.>XOR EAX,EAX
+00462FAC  |.>LEA EDI,DWORD PTR SS:[EBP-C]
+----------------------------------------------------------------------------------------
+```
+
+`00462F9D` 处继续跟进：
+
+```
+----------------------------------------------------------------------------------------
+005861F0  /$>PUSH EBP
+005861F1  |.>MOV EBP,ESP
+005861F3  |.>MOV EAX,DWORD PTR SS:[EBP+10]
+005861F6  |.>MOV EDX,DWORD PTR SS:[EBP+8]
+005861F9  |.>CMP EAX,0A                       ;  余数同 0A 比较
+005861FC  |.>PUSH 61
+005861FE  |.>SETE CL                          ;  条件为假，所以 CL 清零
+00586201  |.>AND ECX,1
+00586204  |.>CMP EAX,0A                       ;  仍然同 0A 比较
+00586207  |.>PUSH ECX
+00586208  |.>PUSH EAX
+00586209  |.>MOV ECX,DWORD PTR SS:[EBP+C]
+0058620C  |.>PUSH ECX
+0058620D  |.>JNZ SHORT unpacked.00586213
+0058620F  |.>MOV EAX,EDX
+00586211  |.>JMP SHORT unpacked.00586215
+00586213  |>>MOV EAX,EDX
+00586215  |>>PUSH EAX                         ; |Arg1
+00586216  |.>CALL unpacked.00586160           ; \跟进
+0058621B  |.>ADD ESP,14
+0058621E  |.>POP EBP
+0058621F  \\.>RETN
+----------------------------------------------------------------------------------------
+```
+
+没有结果，`00586216` 处继续跟进：
+
+```
+----------------------------------------------------------------------------------------
+00586160  /$>PUSH EBP
+00586161  |.>MOV EBP,ESP
+00586163  |.>ADD ESP,-24
+00586166  |.>PUSH EBX
+00586167  |.>PUSH ESI
+00586168  |.>PUSH EDI
+00586169  |.>MOV EDI,DWORD PTR SS:[EBP+10]     ;  [EBP+10]为前面压栈的余数
+0058616C  |.>MOV ESI,DWORD PTR SS:[EBP+8]      ;  [EBP+8]为机器码异或 90909090 的结果
+0058616F  |.>MOV EBX,DWORD PTR SS:[EBP+C]
+00586172  |.>CMP EDI,2                        ;  余数同 0x2 比较
+00586175  |.>JL SHORT unpacked.005861C4        ;  小于跳
+00586177  |.>CMP EDI,24                       ;  同 0x24 比较
+0058617A  |.>JG SHORT unpacked.005861C4        ;  大于则跳
+0058617C  |.>TEST ESI,ESI
+0058617E  |.>JGE SHORT unpacked.0058618C
+00586180  |.>CMP BYTE PTR SS:[EBP+14],0
+00586184  |.>JE SHORT unpacked.0058618C
+00586186  |.>MOV BYTE PTR DS:[EBX],2D
+00586189  |.>INC EBX
+0058618A  |.>NEG ESI
+0058618C  |>>LEA ECX,DWORD PTR SS:[EBP-24]     ;  下面为关键循环
+0058618F  |>>/MOV EAX,ESI                     ;  ESI==机器码异或结果
+00586191  |.|XOR EDX,EDX                      ;  EDX 清零
+00586193  |.|DIV EDI                          ;  将上面异或结果除以压栈的余数
+00586195  |.|MOV BYTE PTR DS:[ECX],DL         ;  上面计算的余数的一个字节写入内存
+00586197  |.|INC ECX
+00586198  |.|MOV EAX,ESI
+0058619A  |.|XOR EDX,EDX
+0058619C  |.|DIV EDI
+0058619E  |.|MOV ESI,EAX                      ;  又做了一次相同的计算，商送入 ESI
+005861A0  |.|TEST EAX,EAX                     ;  直到 EAX==0 为止
+005861A2  |.\JNZ SHORT unpacked.0058618F      ;  不为 0 则继续循环
+005861A4  |.>JMP SHORT unpacked.005861BD
+005861A6  |>>/DEC ECX
+```
+
+
+
+### 汇编代码分析
+
+```
+005861A7  |.>|MOV AL,BYTE PTR DS:[ECX]        ;  内存[ECX]的值送入 AL  
+005861A9  |.>|CMP AL,0A                        ;  同 0A 比较  
+005861AB  |.>|JGE SHORT unpacked.005861B5      ;  大于等于跳到下面进行另外的计算  
+005861AD  |.>|ADD EAX,30                       ;  该值加上 0x30  
+005861B0  |.>|MOV BYTE PTR DS:[EBX],AL         ;  这个值就是注册码的第 i 个值，写入内存保存起来  
+005861B2  |.>|INC EBX                          ;  继续下一步  
+005861B3  |.>|JMP SHORT unpacked.005861BD  
+005861B5  |>>|ADD AL,BYTE PTR SS:[EBP+18]      ;  上面如果大于 0A，则加上[EBP+18]==61，  
+005861B8  |.>|ADD AL,0F6                       ;  再加上 0F6  
+005861BA  |.>|MOV BYTE PTR DS:[EBX],AL         ;  作为注册码的第 i 个值写入内存  
+005861BC  |.>|INC EBX  
+005861BD  |>> LEA EDX,DWORD PTR SS:[EBP-24]    ;  取地址[EBP-24]  
+005861C0  |.>|CMP ECX,EDX                      ;  比较是否结束循环  
+005861C2  |.>\JNZ SHORT unpacked.005861A6      ;  没有结束则继续  
+005861C4  |>>MOV BYTE PTR DS:[EBX],0  
+005861C7  |.>MOV EAX,DWORD PTR SS:[EBP+C]  
+005861CA  |.>POP EDI  
+005861CB  |.>POP ESI  
+005861CC  |.>POP EBX  
+005861CD  |.>MOV ESP,EBP  
+005861CF  |.>POP EBP  
+005861D0  \.>RETN
+```
+
+呵呵，过程清晰明了吧？第一次循环：机器码异或 `0x90909090` 的结果除以前面求得的压栈的余数，然后这个过程的余数写入内存保留，商作为下一次循环的变量继续循环。第二次循环：将第一次循环中写入内存的值逆序读取出来，同 `0xA` 比较，小于就直接加上 `0x30`，作为注册码的第 `i` 个字符写入内存；大于等于则加上 `61`，再加 `0xF6`，取低字节作为注册码的第 `i` 个字符写入内存。用户名没有参与计算。也不知道我说明白了没有，还是看程序来得直接，C 源码的注册机：
+
+### C 源码注册机
+
+```c
+#include "stdafx.h"
+
+#include "stdlib.h"
+
+#include "stdio.h"
+
+int main(int argc, char* argv[])
+{
+  char chKey[128] = {0};
+  unsigned int unXORCode, unRemainder, unQuotient, unTmp, unMachineCode;
+  printf("Please Key in the Machine Code:\n");
+  scanf("%d", &unMachineCode);
+  unXORCode   = unMachineCode ^ 0x90909090;
+  unRemainder = unXORCode % 0x25;
+  unQuotient  = unXORCode;
+  if (unRemainder < 0x11)
+  {
+    unRemainder += 0x11;
+  }
+  int i;
+  i = 0;
+  while (unQuotient != 0)
+  {
+    unTmp    = unQuotient % unRemainder;
+    unQuotient /= unRemainder;
+    if (unTmp >= 0xa)
+    {
+      unTmp = unTmp + 0x61 + 0xf6;
+      unTmp &= 0x0ff;
+      chKey[i] = unTmp;
+    }
+    else
+    {
+      chKey[i] = unTmp + 0x30;
+    }
+    i++;
+  }
+  printf("Key is: \n");
+  while (i >= 0)
+  {
+    printf("%c", chKey[i]);
+    i--;
+  }
+  printf("\n");
+  return 0;
+}
+```
+
+文章赶的比较紧，有失误的地方请来信告知。
+
+  菜鸟写菜文，请高手指教。
+
+               prince 2005.01.28 
+
+> 引用:
+>
+> *最初由 dssz 发布*
+>
+> C-FREE 中不成功，主要是找不到
+> `#include "stdafx.h"`
+> `#include "stdlib.h"`
+> ........ 
+
+`stdafx.h` 头文件是用来引入那些标准的系统包含的文件，或者是工程指定引入的那些被经常用到而且经常改变的文件。比如在 `stdafx.h` 文件中 include 这样一些头文件：
+
+```c
+#include <afxwin.h>        // MFC core and standard components
+#include <afxext.h>        // MFC extensions
+#include <afxcmn.h>        // MFC common controls
+#include <objbase.h>       // Common Object Model
+#include <strmif.h>        // Quartz
+#include <control.h>
+#include <evcode.h>
+#include <uuids.h>
+```
+
+`#include <stdlib.h>` 是引用标准函数库，这样才能使用该函数库中的函数。就好象要使用 `printf()` 函数就要 `#include <stdio.h>` 一样。
+
+`stdlib.h` 这里我并没有用到，可以去掉，而 `stdafx.h` 头文件正如上面解释的，是 VC 编译器预编译必须用到的文件，如果去掉会发生错误，编译不通过，提示查找预编译 (precompiled) 指引 (directive) 文件失败。C-Free 显然采用的编译方式同 VC 不一样，所以这个文件在 C-Free 下也不需要。
+
+以上是我的个人理解，如有失误请楼下指正。 
+
+请问楼主是通过 `F8` 单步跟踪还是通过搜索内存到达这里的：
+
+```
+00419654  |.>MOV WORD PTR DS:[EBX+10],4B8
+0041965A  |.>MOV EDX,unpacked.005DAA4C        ;  ASCII "EditorTabWidth"
+0041965F  |.>LEA EAX,DWORD PTR SS:[EBP-620] ?
+```
+
+另外，`EditorTabWidth` 是什么东东? 为什么在堆栈中看到它就到了关键的地方? 盼指教，谢谢！ 
+
+> 引用:
+>
+> *最初由 ljy3282393 发布*
+>
+> 请问楼主是通过 F8 单步跟踪还是通过搜索内存到达这里的：00419654 |.>MOV WORD PTR DS:[EBX+10],4B8
+> 0041965A |.>MOV EDX,unpacked.005DAA4C        ;  ASCII "EditorTabWidth"
+> 0041965F |.>LEA EAX,DWORD PTR SS:[EBP-620] ?
+> 另外，EditorTabWidth 是什么东东? 为什么在堆栈中看到它就到了关键的地方? 盼指教，谢谢！ 
+
+呵呵，真是不好意思，这里我写得确实比较模糊。原因是这样，我在分析他算法的时候是在读取完 `MachineCode` 等关键值后单步跟了好多步，具体多少我忘了，然后看到注册表中还有好多的键值程序还没有读完，就为了方便，直接打开内存镜像搜索我输入的假码，然后下内存访问中断，直接就找到了。可是在写这篇文章的时候忘了在什么地方开始下内存断点了 ![](img/d8960f6c7afa20ba0ca27920887f4540.jpg) ，就用了笨方法，直接单步跟踪来到了计算注册码的地方。呵呵，菜啊！
+
+那个 `EditorTabWidth` 是 C-Free 要用到的一个值，看名字应该是在编辑代码的时候按 `Tab` 键跳跃的列数。问为什么看到它就知道来到了关键地方？呵呵，跟踪喽，跟到关键地方后，记下地址或在上面下个断点，再重新调试分析，因为读完 `EditorTabWidth` 这个值后就快到计算注册码的地方了，所以这里我就拿它做标志讲解了。 
+
+注意：错误更正。
+
+有个小错误，原程序有一处的条件是大于等于，我马虎了，少写个等于，现在更正。
+
+`if (unTmp >= 0xa)`，就是这里，我原来写的是 `if (unTmp > 0xa)`，文章中已经更正。
+
+抱歉！
+
+![](img/d8960f6c7afa20ba0ca27920887f4540.jpg) ![](img/d8960f6c7afa20ba0ca27920887f4540.jpg) ![](img/d8960f6c7afa20ba0ca27920887f4540.jpg)
+
+我碰巧也研究了一下。
+
+写了个注册机自己用，gcc，vc6.0 下编译通过：
+
+```c
+#include <stdio.h>
+
+#include <stdlib.h>
+
+#include <string.h>
+
+char *strrev(char *s, char *t); /* 倒序输出*/
+
+int main(int argc, char *argv[])
+{
+    unsigned long Machinecode, x, y;
+    char RegistryCode[20], MiddleCode[20];
+    int i;
+    /*Machinecode = 3505625557; */
+    printf("Please input your Machinecode:");
+    scanf("%u", &Machinecode);
+    Machinecode ^= 0x90909090;
+    x = Machinecode / 0x25;
+    y = Machinecode % 0x25;
+    y += (y<0x11)?0x11:0;
+    i = 1;
+    while (Machinecode)
+    {
+        unsigned long code;
+        code = Machinecode % y;
+        Machinecode = Machinecode / y;
+        code += (code<=0xA)?0x30:0x157;
+        printf("%d:x is %X, y is %c \n", i, Machinecode, code);
+        MiddleCode[i-1] = code;
+        i++;
+    }
+    MiddleCode[i-1] = '\0';
+    printf("Your RegistryCode is %s \n", strrev(RegistryCode, MiddleCode));
+    return 0;
+}
+
+char *strrev(char *s, char *t)
+{
+    char *r = s;
+    t += strlen(t);
+    while (*s++ = *--t)
+    {
+        ;
+    }
+    return r;
+}
+```
+
+  4dd466d0e1e0cc123afbe504da2462ca

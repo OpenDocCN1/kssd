@@ -1,0 +1,460 @@
+
+# 中华压缩【ChinaZip】2005 钻石版 v10.8 算法
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-142.htm`](https://www.pediy.com/kssd/pediy07/pediy7-142.htm)
+
+中华压缩【ChinaZip】2005 钻石版 v10.8 算法分析
+
+日期：2005 年 3 月 23 日 破解人：Baby2008
+
+【软件名称】：中华压缩【ChinaZip】2005 钻石版 v10.8
+
+【软件大小】：2.8M
+
+【下载地址】：`http://www.wiseperson.com/download.htm`
+
+【软件限制】：Nag 试用提示,可试用 30 天。
+
+【保护方式】：注册码保护
+
+【破解声明】：初学 Crack，只是感兴趣，失误之处敬请诸位大侠赐教!
+
+【破解工具】：`DeDe3.50.04` `Fix` 超强版、`Ollydbg` `V1.10` 2005.3 汉化修正版+最新最全插件、`CasprGui` `v1.10` `YY` 汉化版、`PeID` `0.93`
+
+【破解过程】：
+
+先用 `PEID` `0.93` 汉化增强版查壳，`ASPack` `2.001` -> `Alexey` `Solodovnikov`，用 `Quick` `Unpack` `0.6` 等脱壳后程序不能运行，大家可以试试 `ESP` 定律
+
+手工脱，我选用一个老工具 `CasprGui` 轻松搞定，另存为 `unpacked.ExE`,脱壳后再用 `PEID` `0.93` 汉化增强版查壳，`Borland` `Delphi` `6.0` - `7.00`，现在 Delphi 的程序真多，我也是用 Delphi 的^\_^ 。`OD` 载入 `npacked.ExE`，查找'注册码不正确，无法注册...'字样,双击来到 `005022FE` 处,向上来到 `005022A8` 下断(也可以通过 `DeDe` 分析 `OkBtnClick` 地址直接下断),`F9` 运行,在 Nag 窗口点击输入注册码后 `OD` 中断：
+
+```
+005022A8 <>.  55                     push ebp                         ;  <-TfrmRegistration@OkBtnClick
+005022A9   |.  8BEC                   mov ebp,esp
+005022AB   |.  6A 00                  push 0
+005022AD   |.  6A 00                  push 0
+005022AF   |.  53                     push ebx
+005022B0   |.  8BD8                   mov ebx,eax
+005022B2   |.  33C0                   xor eax,eax
+005022B4   |.  55                     push ebp
+005022B5   |.  68 40235000            push <Unpacked.->System.@HandleFinal>
+005022BA   |.  64:FF30                push dword ptr fs:[eax]
+005022BD   |.  64:8920                mov dword ptr fs:[eax],esp
+005022C0   |.  8D55 FC                lea edx,[local.1]
+005022C3 <>|.  8B83 04030000          mov eax,dword ptr ds:[ebx+304]      ;  *TfrmRegistration.PasswordEdit:TEdit
+005022C9 <>|.  E8 F63DF4FF            call Unpacked.004460C4               ;  ->Controls.TControl.GetText(TControl):TCaption;
+005022CE   |.  8B45 FC                mov eax,[local.1]                    ;  注册码
+005022D1   |.  50                     push eax
+005022D2   |.  8D55 F8                lea edx,[local.2]
+005022D5 <>|.  8B83 00030000          mov eax,dword ptr ds:[ebx+300]      ;  *TfrmRegistration.NameEdit:TEdit
+005022DB <>|.  E8 E43DF4FF            call Unpacked.004460C4               ;  ->Controls.TControl.GetText(TControl):TCaption;
+005022E0   |.  8B55 F8                mov edx,[local.2]                    ;  注册名
+005022E3   |.  A1 84BA5100            mov eax,dword ptr ds:[51BA84]
+005022E8   |.  8B00                   mov eax,dword ptr ds:[eax]
+005022EA <>|.  8B80 34030000          mov eax,dword ptr ds:[eax+334]      ;  *TFrmRegNotice.Reg:TRegwareII
+005022F0   |.  B9 54235000            mov ecx,Unpacked.00502354           ;  ASCII "WisePerson SoftWare"
+005022F5 <>|.  E8 B6F4FFFF            call Unpacked.005017B0               ;  关键,跟进
+005022FA   |.  84C0                   test al,al
+005022FC   |.  75 0C                  jnz short Unpacked.0050230A         ;  经典比较,爆破点
+005022FE   |.  B8 70235000            mov eax,Unpacked.00502370           ;  注册码不正确...
+00502303 <>|.  E8 94CCF3FF            call Unpacked.0043EF9C               ;  ->Dialogs.ShowMessage(AnsiString);
+00502308   |.  EB 1B                  jmp short Unpacked.00502325
+0050230A   |>  B8 AC235000            mov eax,Unpacked.005023AC
+0050230F <>|.  E8 88CCF3FF            call Unpacked.0043EF9C               ;  ->Dialogs.ShowMessage(AnsiString);
+00502314   |.  A1 D8B85100            mov eax,dword ptr ds:[51B8D8]
+00502319   |.  8B00                   mov eax,dword ptr ds:[eax]
+0050231B   |.  BA D0235000            mov edx,Unpacked.005023D0
+00502320 <>|.  E8 CF3DF4FF            call Unpacked.004460F4               ;  ->Controls.TControl.SetText(TControl;TCaption);
+00502325   |>  33C0                   xor eax,eax
+00502327   |.  5A                     pop edx
+00502328   |.  59                     pop ecx
+00502329   |.  59                     pop ecx
+0050232A   |.  64:8910                mov dword ptr fs:[eax],edx
+0050232D   |.  68 47235000            push Unpacked.00502347
+00502332   |>  8D45 F8                lea eax,[local.2]
+00502335   |.  BA 02000000            mov edx,2
+0050233A <>|.  E8 1125F0FF            call Unpacked.00404850               ;  ->System.@LStrArrayClr(void;void;Integer);
+0050233F   \.  C3                     retn
+```
+
+经典比较，`005022F5 <>. E8 B6F4FFFF call Unpacked.005017B0 ; 关键,跟进`
+
+```
+005017B0   /$  55                     push ebp
+005017B1   |.  8BEC                   mov ebp,esp
+005017B3   |.  83C4 F0                add esp,-10
+005017B6   |.  53                     push ebx
+005017B7   |.  33DB                   xor ebx,ebx
+005017B9   |.  895D F0                mov [local.4],ebx
+005017BC   |.  895D F4                mov [local.3],ebx
+005017BF   |.  894D F8                mov [local.2],ecx                    ;  'WisePerson SoftWare'
+005017C2   |.  8955 FC                mov [local.1],edx                    ;  注册名
+005017C5   |.  8BD8                   mov ebx,eax
+005017C7   |.  8B45 FC                mov eax,[local.1]                    ;  注册名
+005017CA   |.  E8 FD34F0FF            call Unpacked.00404CCC               ;  System.@LStrAddRef(void;void):Pointer;
+005017CF   |.  8B45 F8                mov eax,[local.2]                    ;  'WisePerson SoftWare'
+005017D2   |.  E8 F534F0FF            call Unpacked.00404CCC
+005017D7   |.  8B45 08                mov eax,[arg.1]                      ;  注册码
+005017DA   |.  E8 ED34F0FF            call Unpacked.00404CCC
+005017DF   |.  33C0                   xor eax,eax
+005017E1   |.  55                     push ebp
+005017E2   |.  68 9A185000            push Unpacked.0050189A
+005017E7   |.  64:FF30                push dword ptr fs:[eax]
+005017EA   |.  64:8920                mov dword ptr fs:[eax],esp
+005017ED   |.  8B45 FC                mov eax,[local.1]                    ;  注册名
+005017F0   |.  E8 EF32F0FF            call Unpacked.00404AE4               ;  System.@LStrLen(String):Integer;
+005017F5   |.  3B43 4C                cmp eax,dword ptr ds:[ebx+4C]
+005017F8   |.  7F 19                  jg short Unpacked.00501813           ;  注册名长度不能>25
+005017FA   |.  8B45 FC                mov eax,[local.1]
+005017FD   |.  E8 E232F0FF            call Unpacked.00404AE4
+00501802   |.  3B43 50                cmp eax,dword ptr ds:[ebx+50]
+00501805   |.  7C 0C                  jl short Unpacked.00501813           ;  注册名长度不能<3
+00501807   |.  8B45 08                mov eax,[arg.1]                      ;  注册码
+0050180A   |.  E8 D532F0FF            call Unpacked.00404AE4
+0050180F   |.  85C0                   test eax,eax
+00501811   |.  75 04                  jnz short Unpacked.00501817          ;  注册码不能为空
+00501813   |>  33DB                   xor ebx,ebx
+00501815   |.  EB 60                  jmp short Unpacked.00501877
+00501817   |>  8D55 F4                lea edx,[local.3]
+0050181A   |.  8B45 08                mov eax,[arg.1]                      ;  注册码
+0050181D   |.  E8 1E75F0FF            call Unpacked.00408D40
+00501822   |.  8B55 F4                mov edx,[local.3]
+00501825   |.  8D45 08                lea eax,[arg.1]
+00501828   |.  E8 9730F0FF            call Unpacked.004048C4
+0050182D   |.  8D4D F0                lea ecx,[local.4]
+00501830   |.  8B55 FC                mov edx,[local.1]                    ;  注册名
+00501833   |.  8BC3                   mov eax,ebx
+00501835   |.  E8 72FCFFFF            call Unpacked.005014AC               ;  关键算法,跟进
+0050183A   |.  8B45 F0                mov eax,[local.4]                    ;  注册名计算结果
+0050183D   |.  8B55 08                mov edx,[arg.1]                      ;  注册码
+```
+
+
+
+`00501840   |.  E8 7375F0FF             call Unpacked.00408DB8`  
+
+`00501845   |.  85C0                   test eax,eax`  
+
+`00501847   |.  74 04                  je short Unpacked.0050184D       ;  相等保存注册信息`  
+
+`00501849   |.  33DB                   xor ebx,ebx`  
+
+`0050184B   |.  EB 2A                  jmp short Unpacked.00501877`  
+
+`0050184D   |>  8D43 48                lea eax,dword ptr ds:[ebx+48]`  
+
+`00501850   |.  8B55 FC                mov edx,[local.1]`  
+
+`00501853   |.  E8 2830F0FF            call Unpacked.00404880`  
+
+`00501858   |.  8D43 54                lea eax,dword ptr ds:[ebx+54]`  
+
+`0050185B   |.  8B55 F8                mov edx,[local.2]`  
+
+`0050185E   |.  E8 1D30F0FF            call Unpacked.00404880`  
+
+`00501863   |.  8D43 5C                lea eax,dword ptr ds:[ebx+5C]`  
+
+`00501866   |.  8B55 08                mov edx,[arg.1]`  
+
+`00501869   |.  E8 1230F0FF            call Unpacked.00404880`  
+
+`0050186E   |.  8BC3                   mov eax,ebx`  
+
+`00501870   |.  E8 B3010000            call Unpacked.00501A28`  
+
+`00501875   |.  B3 01                  mov bl,1`  
+
+`00501877   |>  33C0                   xor eax,eax`  
+
+`00501879   |.  5A                     pop edx`  
+
+`0050187A   |.  59                     pop ecx`  
+
+`0050187B   |.  59                     pop ecx`  
+
+`0050187C   |.  64:8910                mov dword ptr fs:[eax],edx`  
+
+`0050187F   |.  68 A1185000            push Unpacked.005018A1`  
+
+`00501884   |>  8D45 F0                lea eax,[local.4]`  
+
+`00501887   |.  BA 04000000            mov edx,4`  
+
+`0050188C   |.  E8 BF2FF0FF            call Unpacked.00404850`  
+
+`00501891   |.  8D45 08                lea eax,[arg.1]`  
+
+`00501894   |.  E8 932FF0FF            call Unpacked.0040482C`  
+
+`00501899   \.  C3                     retn`  
+
+`00501835   |.  E8 72FCFFFF            call Unpacked.005014AC           ;  关键算法,跟进`  
+
+`005014AC   /$  55                     push ebp`  
+
+`005014AD   |.  8BEC                   mov ebp,esp`  
+
+`005014AF   |.  83C4 E4                add esp,-1C`  
+
+`005014B2   |.  53                     push ebx`  
+
+`005014B3   |.  56                     push esi`  
+
+`005014B4   |.  57                     push edi`  
+
+`005014B5   |.  33DB                   xor ebx,ebx`  
+
+`005014B7   |.  895D E4                mov [local.7],ebx`  
+
+`005014BA   |.  895D F4                mov [local.3],ebx`  
+
+`005014BD   |.  8BF9                   mov edi,ecx`  
+
+`005014BF   |.  8955 FC                mov [local.1],edx              ;  注册名`  
+
+`005014C2   |.  8BF0                   mov esi,eax`  
+
+`005014C4   |.  8B45 FC                mov eax,[local.1]`  
+
+`005014C7   |.  E8 0038F0FF            call Unpacked.00404CCC           ;  System.@LStrAddRef(void;void):Pointer;`  
+
+`005014CC   |.  33C0                   xor eax,eax`  
+
+`005014CE   |.  55                     push ebp`  
+
+`005014CF   |.  68 C5155000            push Unpacked.005015C5`  
+
+`005014D4   |.  64:FF30                push dword ptr fs:[eax]`  
+
+`005014D7   |.  64:8920                mov dword ptr fs:[eax],esp`  
+
+`005014DA   |.  8B45 FC                mov eax,[local.1]              ;  注册名`  
+
+`005014DD   |.  E8 0236F0FF            call Unpacked.00404AE4           ;  System.@LStrLen(String):Integer;`  
+
+`005014E2   |.  3B46 4C                cmp eax,dword ptr ds:[esi+4C]`  
+
+`005014E5   |.  7F 0D                  jg short Unpacked.005014F4     ;  注册名长度不能>25`  
+
+`005014E7   |.  8B45 FC                mov eax,[local.1]`  
+
+`005014EA   |.  E8 F535F0FF            call Unpacked.00404AE4           ;  System.@LStrLen(String):Integer;`  
+
+`005014EF   |.  3B46 50                cmp eax,dword ptr ds:[esi+50]`  
+
+`005014F2   |.  7D 0C                  jge short Unpacked.00501500     ;  注册名长度必须>3`  
+
+`005014F4   |>  8BC7                   mov eax,edi`  
+
+`005014F6   |.  E8 3133F0FF            call Unpacked.0040482C           ;  System.@LStrClr(void;void);`  
+
+`005014FB   |.  E9 9F000000            jmp Unpacked.0050159F           ;  注册名不符合条件，则 Over!`  
+
+`00501500   |>  8B45 FC                mov eax,[local.1]              ;  注册名`  
+
+`00501503   |.  E8 DC35F0FF            call Unpacked.00404AE4           ;  System.@LStrLen(String):Integer;`  
+
+`00501508   |.  8BD8                   mov ebx,eax                    ;  注册名长度`  
+
+`0050150A   |.  EB 31                  jmp short Unpacked.0050153D`  
+
+`0050150C   |>  8B45 FC                /mov eax,[local.1]             ;  注册名`  
+
+`0050150F   |.  8A4418 FF              |mov al,byte ptr ds:[eax+ebx-1]  ;  从注册名后面开始取字符`  
+
+`00501513   |.  25 FF000000            |and eax,0FF`  
+
+`00501518   |.  33D2                   |xor edx,edx`  
+
+`0050151A   |.  52                     |push edx`  
+
+`0050151B   |.  50                     |push eax`  
+
+`0050151C   |.  8B46 68                |mov eax,dword ptr ds:[esi+68]   ;  3FAB9386`  
+
+`0050151F   |.  8B56 6C                |mov edx,dword ptr ds:[esi+6C]   ;  3`  
+
+`00501522   |.  E8 0945F0FF            |call Unpacked.00405A30         ;  System.@\_llmod;Dividend(EAX:EDX), Divisor([ESP]:[ESP+4])`  
+
+`00501527   |.  52                     |push edx                       ;  /Arg2`  
+
+`00501528   |.  50                     |push eax                       ;  |33FAB9386 /Name[i]`  
+
+`00501529   |.  8D45 E4                |lea eax,[local.7]             ;  |`  
+
+`0050152C   |.  E8 DF7CF0FF            |call Unpacked.00409210        ;  \\Unpacked.00409210`  
+
+`00501531   |.  8B55 E4                |mov edx,[local.7]             ;  转为 10 进制字符串`  
+
+`00501534   |.  8D45 F4                |lea eax,[local.3]`  
+
+`00501537   |.  E8 B035F0FF            |call Unpacked.00404AEC        ;  System.@LStrCat;`  
+
+`0050153C   |.  4B                     |dec ebx`  
+
+`0050153D   |>  8B45 FC                mov eax,[local.1]             ;  注册名`  
+
+`00501540   |.  E8 9F35F0FF            |call Unpacked.00404AE4        ;  System.@LStrLen(String):Integer;`  
+
+`00501545   |.  83E8 06                |sub eax,6                     ;  注册名长度-6`  
+
+`00501548   |.  3BD8                   |cmp ebx,eax`  
+
+`0050154A   |.  7C 04                  |jl short Unpacked.00501550`  
+
+`0050154C   |.  85DB                   |test ebx,ebx`  
+
+`0050154E   |.^ 7F BC                  \\jg short Unpacked.0050150C`  
+
+`00501550   |>  8D55 F8                lea edx,[local.2]`  
+
+`00501553   |.  8B45 F4                mov eax,[local.3]`  
+
+`00501556   |.  E8 E145F0FF            call Unpacked.00405B3C        ;  * Reference to: System.@ValInt64(String;Integer;Integer):Int64;`  
+
+`0050155B   |.  8945 E8                mov [local.6],eax             ;  转换为 Int64`  
+
+`0050155E   |.  8955 EC                mov [local.5],edx`  
+
+`00501561   |.  8B5E 60                mov ebx,dword ptr ds:[esi+60]    ;  12`  
+
+`00501564   |.  85DB                   test ebx,ebx`  
+
+`00501566   |.  7F 11                  jg short Unpacked.00501579`  
+
+`00501568   |.  FF75 EC                push [local.5]               ;  /Arg2`  
+
+`0050156B   |.  FF75 E8                push [local.6]               ;  |Arg1`  
+
+`0050156E   |.  8BD7                   mov edx,edi                 ;  |`  
+
+`00501570   |.  33C0                   xor eax,eax                 ;  |`  
+
+`00501572   |.  E8 097DF0FF            call Unpacked.00409280        ;  \\Unpacked.00409280`  
+
+`00501577   |.  EB 26                  jmp short Unpacked.0050159F`  
+
+`00501579   |>  FF75 EC                push [local.5]               ;  /Arg2`  
+
+`0050157C   |.  FF75 E8                push [local.6]               ;  |Arg1`  
+
+`0050157F   |.  8BD7                   mov edx,edi                 ;  |`  
+
+`00501581   |.  8BC3                   mov eax,ebx                 ;  |`  
+
+`00501583   |.  E8 F87CF0FF            call Unpacked.00409280        ;  \\Unpacked.00409280`  
+
+`00501588   |.  8B07                   mov eax,dword ptr ds:[edi]     ;  字符串转换为 Int64 后以 12 位 16 进制输出`  
+
+`0050158A   |.  E8 5535F0FF            call Unpacked.00404AE4        ;  求长度`  
+
+`0050158F   |.  8BC8                   mov ecx,eax`
+
+
+
+```
+00501591   |.  2B4E 60                 sub ecx,dword ptr ds:[esi+60]    ;  长度-12(要删除的字符数)  
+
+00501594   |.  8B56 60                 mov edx,dword ptr ds:[esi+60]    ;  12  
+
+00501597   |.  42                      inc edx                          ;  (起始位置 12+1=13)  
+
+00501598   |.  8BC7                    mov eax,edi  
+
+0050159A   |.  E8 DD37F0FF            call Unpacked.00404D7C            ;  System.@LStrDelete;删第除 12 位后的字符  
+
+0050159F   |>  33C0                    xor eax,eax  
+
+005015A1   |.  5A                      pop edx  
+
+005015A2   |.  59                      pop ecx  
+
+005015A3   |.  59                      pop ecx  
+
+005015A4   |.  64:8910                 mov dword ptr fs:[eax],edx  
+
+005015A7   |.  68 CC155000            push Unpacked.005015CC  
+
+005015AC   |>  8D45 E4                 lea eax,[local.7]  
+
+005015AF   |.  E8 7832F0FF            call Unpacked.0040482C  
+
+005015B4   |.  8D45 F4                 lea eax,[local.3]  
+
+005015B7   |.  E8 7032F0FF            call Unpacked.0040482C  
+
+005015BC   |.  8D45 FC                 lea eax,[local.1]  
+
+005015BF   |.  E8 6832F0FF            call Unpacked.0040482C  
+
+005015C4   \.  C3                      retn  
+
+005015C5    .^ E9 4A2CF0FF             jmp Unpacked.00404214  
+
+005015CA    .^ EB E0                   jmp short Unpacked.005015AC  
+
+005015CC    .  5F                      pop edi  
+
+005015CD    .  5E                      pop esi  
+
+005015CE    .  5B                      pop ebx  
+
+005015CF    .  8BE5                    mov esp,ebp  
+
+005015D1    .  5D                      pop ebp  
+
+005015D2    .  C3                      retn  
+```
+
+## 算法总结
+
+算法比较简单，怪不得很多教程都以它的前期版本为教程，注册算法是：
+
+1、用户名 `Name` 要求: `3<用户名长度<25`
+
+2、`Name` 后面开始取字符，
+
+3、用常数 `$33FAB9386` / `Name[i]` 的 `ASCII` 取余数，并转换成 10 进制字符串
+
+4、连接上述的 10 进制字符串，记为 `Serail`
+
+5、取 `Name[i]`字符到`<用户名长度-6` 结束
+
+6、将 `Serail` 转换成 `int64`,并以 12 位 16 进制字符串输出,如果长度超过 12 位，截取 12 后的所有字符即为注册码。
+
+贴出注册机 `delphi` 源码：
+
+```
+Procedure TForm1.btn1Click(Sender: TObject);
+
+Var
+  Name, SerailNo: String;
+  i: Integer;
+
+Begin
+  Name := edt1.Text;
+  If (Length(Name) > 25) Or (Length(Name) < 3) Then
+  Begin
+    edt2.Clear;
+    Exit;
+  End;
+  For i := Length(Name) Downto 1 Do
+  Begin
+    If i < Length(Name) - 6 Then
+      Break
+    Else
+      SerailNo := SerailNo + FormatFloat('0', $33FAB9386 Mod Ord(Name[i]));
+  End;
+  edt2.Text := LeftStr(IntToHex(StrToInt64(SerailNo), 12), 12);
+End;
+```
+
+大家可以验证一下：
+
+用户名：`Baby2008`
+
+注册码：`3176382C48A6`
+
+```
+ 4dd466d0e1e0cc123afbe504da2462ca
+```
