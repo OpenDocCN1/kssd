@@ -1,0 +1,154 @@
+
+# AVI Joiner 1.0.31
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-95.htm`](https://www.pediy.com/kssd/pediy08/pediy8-95.htm)
+
+### 基本信息
+
+*   **【破文标题】**：AVI Joiner 1.0.31 完整算法分析 + VC 注册机
+*   **【破文作者】**：KuNgBiM\[DFCG\]\[BCG\]\[SLT\]\[NCPH\]
+*   **【作者邮箱】**：`kungbim@163.com`
+*   **【软件名称】**：AVI Joiner 1.0.31
+*   **【软件大小】**：410 KB
+*   **【软件语言】**：英文
+*   **【软件类别】**：国外软件 / 共享版 / 视频工具
+*   **【整理时间】**：2006-01-01
+*   **【开发商】**：[`www.brizsoft.com/`](http://www.brizsoft.com/)
+*   **【下载地址】**：[`nj.onlinedown.net/soft/22537.htm`](http://nj.onlinedown.net/soft/22537.htm)
+
+### 软件简介
+
+AVI 影片合并的工具软件 - AVI Joiner，是一款很容易操作的软件，它能够将多个 AVI 影片档案加以合并成一个单一档案，如此对观看、烧录、传送给他人都更加的方便，您只要选择所要合并的 AVI 档案，再按下 Joiner，一切就大功告成了。
+
+### 保护与编译环境
+
+*   **【保护方式】**：注册码 + 启动 NAG + 功能限制
+*   **【编译语言】**：Microsoft Visual C++ 7.0
+*   **【调试环境】**：WinXP、PEiD、Ollydbg、Turbo C
+*   **【破解日期】**：2006-01-01
+*   **【破解目的】**：研究算法分析
+
+### 作者声明
+
+初学 Crack，只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+---
+
+### 破解过程
+
+1.  **侦测**：用 `PEiD` 查壳，无壳，`Microsoft Visual C++ 7.0` 编译。
+2.  **试探**：运行主程序注册，输入试炼码，确认！程序提示："Registration failed!"
+3.  **对症下药**：`Ollydbg` 载入主程序，用查找字符串插件查找 `"Registration failed!"` 这个信息! 双击来到 `00407E95` 处，向上来到 `00407BC0` 处下断，`F9` 运行，输入试炼信息：
+
+```text
+**************** 试炼信息 ****************
+User Name：KuNgBiM
+Registration Code：9876543210
+****************************************************
+```
+
+```asm
+00407BC0    55             push ebp
+00407BC1    8BEC           mov ebp,esp
+00407BC3    83EC 20        sub esp,20
+00407BC6    894D E0        mov dword ptr ss:[ebp-20],ecx
+00407BC9    6A 01          push 1
+00407BCB    8B4D E0        mov ecx,dword ptr ss:[ebp-20]
+00407BCE    E8 68950100    call AVIJoine.0042113B
+00407BD3    8B4D E0        mov ecx,dword ptr ss:[ebp-20]
+00407BD6    83C1 70        add ecx,70
+00407BD9    E8 F2F4FFFF    call AVIJoine.004070D0             ; 取用户名长度
+00407BDE    83F8 02        cmp eax,2                          ; 是否大于或等于 2 位
+00407BE1    7D 13          jge short AVIJoine.00407BF6        ; 是则继续下一步
+00407BE3    6A 00          push 0
+00407BE5    6A 00          push 0
+00407BE7    68 64E54200    push AVIJoine.0042E564             ; ASCII "Please input correct User Name!"
+00407BEC    E8 54F00100    call AVIJoine.00426C45
+00407BF1    E9 A9020000    jmp AVIJoine.00407E9F               ; 返回程序，重新注册
+00407BF6    8B4D E0        mov ecx,dword ptr ss:[ebp-20]
+00407BF9    83C1 74        add ecx,74
+00407BFC    E8 CFF4FFFF    call AVIJoine.004070D0             ; 取注册码长度
+00407C01    83F8 08        cmp eax,8                          ; 是否大于或等于 8 位
+00407C04    7D 13          jge short AVIJoine.00407C19        ; 是则继续下一步
+00407C06    6A 00          push 0
+00407C08    6A 00          push 0
+00407C0A    68 84E54200    push AVIJoine.0042E584             ; ASCII "Please input correct Registration Code!"
+00407C0F    E8 31F00100    call AVIJoine.00426C45
+00407C14    E9 86020000    jmp AVIJoine.00407E9F               ; 返回程序，重新注册
+00407C19    6A 00          push 0                             ; 算法初始化
+00407C1B    8B4D E0        mov ecx,dword ptr ss:[ebp-20]
+00407C1E    83C1 70        add ecx,70
+00407C21    E8 CAECFFFF    call AVIJoine.004068F0
+00407C26    8845 EF        mov byte ptr ss:[ebp-11],al         ; 取用户名第一位字符 ASCII 值，al=4B ('K')
+00407C29    6A 01          push 1
+00407C2B    8B4D E0        mov ecx,dword ptr ss:[ebp-20]
+00407C2E    83C1 70        add ecx,70
+00407C31    E8 BAECFFFF    call AVIJoine.004068F0
+00407C36    8845 F8        mov byte ptr ss:[ebp-8],al          ; 取用户名第二位字符 ASCII 值，al=75 ('u')
+00407C39    6A 00          push 0
+00407C3B    8B4D E0        mov ecx,dword ptr ss:[ebp-20]
+00407C3E    83C1 70        add ecx,70
+00407C41    E8 AAECFFFF    call AVIJoine.004068F0
+00407C46    8845 FF        mov byte ptr ss:[ebp-1],al          ; 再次取用户名第一位字符 ASCII 值，al=4B ('K')
+00407C49    6A 01          push 1
+00407C4B    8B4D E0        mov ecx,dword ptr ss:[ebp-20]
+00407C4E    83C1 70        add ecx,70
+00407C51    E8 9AECFFFF    call AVIJoine.004068F0
+00407C56    8845 FA        mov byte ptr ss:[ebp-6],al          ; 再次取用户名第二位字符 ASCII 值，al=75 ('u')
+00407C59    0FB645 EF      movzx eax,byte ptr ss:[ebp-11]      ; 第一个字符（K）送到 EAX 里
+00407C5D    83C8 41        or eax,41                            ; EAX=EAX or 0x41
+00407C60    8845 EF        mov byte ptr ss:[ebp-11],al         ; 把第一次或运算结果先保存起来
+00407C63    0FB64D F8      movzx ecx,byte ptr ss:[ebp-8]        ; 第二个字符（u）送到 ECX 里
+00407C67    83C9 56        or ecx,56                            ; ECX=ECX or 0x56
+00407C6A    884D F8        mov byte ptr ss:[ebp-8],cl           ; 把第二次或运算结果先保存起来
+00407C6D    0FB655 FF      movzx edx,byte ptr ss:[ebp-1]        ; 再次把第一个字符（K）送到 EDX 里
+00407C71    83CA 49        or edx,49                            ; EDX=EDX or 0x49
+00407C74    8855 FF        mov byte ptr ss:[ebp-1],dl           ; 把第三次或运算结果先保存起来
+00407C77    0FB645 FA      movzx eax,byte ptr ss:[ebp-6]        ; 再次把第二个字符（u）送到 EAX 里
+00407C7B    83C8 4A        or eax,4A                            ; EAX=EAX or 0x4A
+00407C7E    8845 FA        mov byte ptr ss:[ebp-6],al           ; 把第四次或运算结果先保存起来
+00407C81    0FB645 EF      movzx eax,byte ptr ss:[ebp-11]       ; 把第一次或运算结果送到 EAX 里
+00407C85    99             cdq
+00407C86    B9 0A000000    mov ecx,0A
+00407C8B    F7F9           idiv ecx                              ; EAX=EAX mod ECX(0A)，余数为 5
+00407C8D    8855 EF        mov byte ptr ss:[ebp-11],dl
+00407C90    0FB645 F8      movzx eax,byte ptr ss:[ebp-8]         ; 把第二次或运算结果送到 EAX 里
+00407C94    99             cdq
+00407C95    B9 0A000000    mov ecx,0A
+00407C9A    F7F9           idiv ecx                              ; EAX=EAX mod ECX(0A)，余数为 9
+00407C9C    8855 F8        mov byte ptr ss:[ebp-8],dl
+00407C9F    0FB645 FF      movzx eax,byte ptr ss:[ebp-1]         ; 把第三次或运算结果送到 EAX 里
+00407CA3    99             cdq
+00407CA4    B9 0A000000    mov ecx,0A
+00407CA9    F7F9           idiv ecx                              ; EAX=EAX mod ECX(0A)，余数为 5
+00407CAB    8855 FF        mov byte ptr ss:[ebp-1],dl
+00407CAE    0FB645 FA      movzx eax,byte ptr ss:[ebp-6]         ; 把第四次或运算结果送到 EAX 里
+00407CB2    99             cdq
+00407CB3    B9 0A000000    mov ecx,0A
+00407CB8    F7F9           idiv ecx                              ; EAX=EAX mod ECX(0A)，余数为 7
+00407CBA    8855 FA        mov byte ptr ss:[ebp-6],dl
+00407CBD    C745 F0 00000000 mov dword ptr ss:[ebp-10],0
+00407CC4    C745 E8 00000000 mov dword ptr ss:[ebp-18],0
+00407CCB    EB 09          jmp short AVIJoine.00407CD6
+00407CCD    8B55 E8        mov edx,dword ptr ss:[ebp-18]         ; 循环点
+00407CD0    83C2 01        add edx,1
+00407CD3    8955 E8        mov dword ptr ss:[ebp-18],edx
+00407CD6    8B4D E0        mov ecx,dword ptr ss:[ebp-20]
+00407CD9    83C1 70        add ecx,70
+00407CDC    E8 EFF3FFFF    call AVIJoine.004070D0                ; 检查注册码长度，并累加用户名的 ASCII 值
+00407CE1    3945 E8        cmp dword ptr ss:[ebp-18],eax
+00407CE4    7D 1E          jge short AVIJoine.00407D04
+00407CE6    8B45 E8        mov eax,dword ptr ss:[ebp-18]
+00407CE9    50             push eax
+00407CEA    8B4D E0        mov ecx,dword ptr ss:[ebp-20]
+00407CED    83C1 70        add ecx,70
+00407CF0    E8 FBEBFFFF    call AVIJoine.004068F0
+00407CF5    8845 E7        mov byte ptr ss:[ebp-19],al
+00407CF8    0FB64D E7      movzx ecx,byte ptr ss:[ebp-19]
+00407CFC    034D F0        add ecx,dword ptr ss:[ebp-10]
+00407CFF    894D F0        mov dword ptr ss:[ebp-10],ecx
+00407D02    ^ EB C9        jmp short AVIJoine.00407CCD           ; 循环检查用户名
+00407D04    8B45 F0        mov eax,dword ptr ss:[ebp-10]         ; 这部分是用户名的 ASCII 累加值（即：KuNgBiM-->EAX=0x26D）
+00407D07    99             cdq
+00407D08    B9 0A000000    mov ecx,0A
+```

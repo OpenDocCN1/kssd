@@ -1,0 +1,307 @@
+
+# 荣创-音像王 3.01
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-268.htm`](https://www.pediy.com/kssd/pediy08/pediy8-268.htm)
+
+## 文章信息
+
+- **文章标题**: 荣创-音像王 3.01 注册码算法浅析
+- **文章作者**: 石羽
+- **软件名称**: 荣创-音像王 3.01
+- **下载地址**: 自己搜索下载
+- **加壳方式**: 无
+- **保护方式**: 注册码
+- **编写语言**: `Borland Delphi 4.0 - 5.0`
+- **使用工具**: `OD`
+- **操作平台**: `winxp`
+- **作者声明**: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
+
+## 详细过程
+
+这是小弟的第二篇破文，与第一次的荣创房屋中介的软件是一个公司的产品，不过这个软件和中介软件算法有点出入，所以写了这篇破文，不过里边很多东西我也不太明白，望哪位大侠能够指点一二。这里先谢过了。。。。。
+
+1. 使用 `OllyICE` 载入文件，查找字符“祝贺您，注册成功”，双击来到 `006FAFB3`，我们向上看在 `006FAF90` 下断点，然后 `F9` 运行。
+2. 进入软件单击“帮助---软件注册”，随便填入注册码（我填的是 `1234567890987654321`），点完成注册。
+
+### 汇编代码分析
+
+```asm
+006FAF90  |.  E8 83F6FFFF   call    006FA618             \*程序中断在此处，F7 追入
+006FA618  /$  55           push    ebp
+006FA619  |.  8BEC         mov     ebp, esp
+006FA61B  |.  83C4 E8      add     esp, -18
+006FA61E  |.  53           push    ebx
+006FA61F  |.  8955 F8      mov     [ebp-8], edx
+006FA622  |.  8945 FC      mov     [ebp-4], eax
+006FA625  |.  8B45 FC      mov     eax, [ebp-4]
+006FA628  |.  E8 A39DD0FF   call    004043D0
+006FA62D  |.  8B45 F8      mov     eax, [ebp-8]
+006FA630  |.  E8 9B9DD0FF   call    004043D0
+006FA635  |.  33C0         xor     eax, eax
+006FA637  |.  55           push    ebp
+006FA638  |.  68 82A66F00  push    006FA682
+006FA63D  |.  64:FF30      push    dword ptr fs:[eax]
+006FA640  |.  64:8920      mov     fs:[eax], esp
+006FA643  |.  8B45 FC      mov     eax, [ebp-4]
+006FA646  |.  E8 7DFCFFFF   call    006FA2C8             \*程序计算用户码的地方，追入
+
+006FA2C8    $  55          push    ebp
+006FA2C9    .  8BEC        mov     ebp, esp
+006FA2CB    .  83C4 E4      add     esp, -1C
+006FA2CE    .  53          push    ebx
+006FA2CF    .  56          push    esi
+006FA2D0    .  57          push    edi
+006FA2D1    .  33D2        xor     edx, edx
+006FA2D3    .  8955 E8      mov     [ebp-18], edx
+006FA2D6    .  8955 EC      mov     [ebp-14], edx
+006FA2D9    .  8945 FC      mov     [ebp-4], eax
+006FA2DC    .  8B45 FC      mov     eax, [ebp-4]
+006FA2DF    .  E8 ECA0D0FF   call    004043D0
+006FA2E4    .  33C0        xor     eax, eax
+006FA2E6    .  55          push    ebp
+006FA2E7    .  68 B7A36F00  push    006FA3B7
+006FA2EC    .  64:FF30     push    dword ptr fs:[eax]
+006FA2EF    .  64:8920     mov     fs:[eax], esp
+006FA2F2    .  33D2        xor     edx, edx
+006FA2F4    .  55          push    ebp
+006FA2F5    .  68 82A36F00  push    006FA382
+006FA2FA    .  64:FF32     push    dword ptr fs:[edx]
+006FA2FD    .  64:8922     mov     fs:[edx], esp
+006FA300    .  A0 C8A36F00  mov     al, [6FA3C8]
+006FA305    .  50          push    eax
+006FA306    .  8D45 EC     lea     eax, [ebp-14]
+006FA309    .  50          push    eax
+006FA30A    .  33C9        xor     ecx, ecx
+006FA30C    .  BA D4A36F00  mov     edx, 006FA3D4            ;  -
+006FA311    .  8B45 FC     mov     eax, [ebp-4]
+006FA314    .  E8 A747D1FF   call    0040EAC0
+006FA319    .  33F6        xor     esi, esi
+006FA31B    .  33DB        xor     ebx, ebx
+006FA31D    >  8D45 E8     lea     eax, [ebp-18]              \*上面这段我就不详细说了，程序把用户号的"-"去掉了。
+006FA320    .  8B55 EC     mov     edx, [ebp-14]              \*将计算好的用户号存入 EDX 中
+006FA323    .  8A141A      mov     dl, [edx+ebx]              \*依次取用户号的一位数字的 ASC 码值存入 DL 中
+006FA326    .  E8 099ED0FF   call    00404134
+006FA32B    .  8B45 E8     mov     eax, [ebp-18]
+006FA32E    .  E8 B101D1FF   call    0040A4E4                 \*这个 CALL 就是把取的用户号的数字存入 EAX 中，有兴趣的朋友可以追入这个 CALL
+006FA333    .  A8 01        test    al, 1                      \*将 AL 中值与 1 比较，这里大概是比较奇偶性
+006FA335    .  74 25        je      short 006FA35C             \*如果 AL 中值为偶数时跳转，为奇数时不跳
+006FA337    .  68 00400000  push    4000
+006FA33C    .  68 00000080  push    80000000
+006FA341    .  6A 00        push    0
+006FA343    .  895D E4      mov     [ebp-1C], ebx              \*将 EBX 中的值存入地址[ebp-1C]
+006FA346    .  DB45 E4      fild    dword ptr [ebp-1C]          \*将地址[ebp-1C]的值转换成十进制存入 ST0，这个命令我也不太懂：）
+006FA349    .  83C4 F4      add     esp, -0C
+006FA34C    .  DB3C24       fstp    tbyte ptr [esp]
+006FA34F    .  9B          wait
+006FA350    .  E8 87E5D2FF   call    004288DC                   \*此处计算值（A）=2 的 N 次方，N=EBX 中的值，并且将值（A）转换成十六进制的值（B）此处有兴趣的朋友可以跟进看看。
+006FA355    .  E8 1A88D0FF   call    00402B74                   \*这二个 CALL 是将计算所得的值（B）存入 EAX 中
+006FA35A    .  03F0        add     esi, eax                     \*将 EAX 中的值累加至 ESI 中
+006FA35C    >  43          inc     ebx                            \*EBX=EBX+1
+006FA35D    .  83FB 0E      cmp     ebx, 0E                        \*将 EBX 中值与 E 比较
+006FA360    .^ 75 BB       jnz     short 006FA31D                 \*不等时跳转进入循环
+006FA362    .  B8 E0A36F00  mov     eax, 006FA3E0                 ;  1980-01-01
+006FA367    .  E8 142CD1FF   call    0040CF80                   \*对“1980-01-01”进行计算，这里计算出来应该是一个十进制的定值 29221 存入 ST0，有兴趣可以跟入看看算法。
+006FA36C    .  8975 E4      mov     [ebp-1C], esi                \*将 ESI 中刚所累加出的值存入地址[ebp-1C]
+006FA36F    .  DB45 E4      fild    dword ptr [ebp-1C]           \*将地址[ebp-1C]中值转换成十进制数存入 ST0,相应的刚所算的 29221 存入 ST1
+006FA372    .  DEC1         faddp   st(1), st                     \*ST0=ST0+ST1,就是 29221+ESI 中值的十进制值存入 ST0,至此以用户号所计算的值（1）
+006FA374    .  DD5D F0      fstp    qword ptr [ebp-10]
+006FA377    .  9B          wait
+006FA378    .  33C0        xor     eax, eax
+006FA37A    .  5A          pop     edx
+006FA37B    .  59          pop     ecx
+006FA37C    .  59          pop     ecx
+006FA37D    .  64:8910     mov     fs:[eax], edx
+006FA380    .  EB 12        jmp     short 006FA394
+006FA382    .^ E9 6D92D0FF  jmp     004035F4
+006FA387    .  33C0        xor     eax, eax
+006FA389    .  8945 F0      mov     [ebp-10], eax
+006FA38C    .  8945 F4      mov     [ebp-C], eax
+006FA38F    .  E8 7C96D0FF   call    00403A10
+006FA394    >  33C0        xor     eax, eax
+006FA396    .  5A          pop     edx
+006FA397    .  59          pop     ecx
+006FA398    .  59          pop     ecx
+006FA399    .  64:8910     mov     fs:[eax], edx
+006FA39C    .  68 BEA36F00  push    006FA3BE
+006FA3A1    >  8D45 E8     lea     eax, [ebp-18]
+006FA3A4    .  BA 02000000  mov     edx, 2
+006FA3A9    .  E8 029CD0FF   call    00403FB0
+006FA3AE    .  8D45 FC     lea     eax, [ebp-4]
+006FA3B1    .  E8 D69BD0FF   call    00403F8C
+006FA3B6    .  C3          retn
+006FA3B7    .^ E9 EC94D0FF  jmp     004038A8
+006FA3BC    .^ EB E3       jmp     short 006FA3A1
+006FA3BE    .  DD45 F0     fld     qword ptr [ebp-10]
+006FA3C1    .  5F          pop     edi
+006FA3C2    .  5E          pop     esi
+006FA3C3    .  5B          pop     ebx
+006FA3C4    .  8BE5        mov     esp, ebp
+006FA3C6    .  5D          pop     ebp
+006FA3C7    .  C3          retn
+
+006FA64B  |.  DD5D F0      fstp    qword ptr [ebp-10]
+006FA64E  |.  9B          wait
+```
+
+
+
+```
+  006FA64F  |.  8B45 F8       mov     eax, [ebp-8]  
+  006FA652  |.  E8 95FDFFFF   call    006FA3EC                     *这里取我们输入的注册码计算  
+```
+
+--------------------------------------------------------------------------------
+
+```
+  006FA3EC   $  55            push    ebp  
+  006FA3ED   .  8BEC         mov     ebp, esp  
+  006FA3EF   .  83C4 E4      add     esp, -1C  
+  006FA3F2   .  53           push    ebx  
+  006FA3F3   .  56           push    esi  
+  006FA3F4   .  57           push    edi  
+  006FA3F5   .  33D2         xor     edx, edx  
+  006FA3F7   .  8955 E8      mov     [ebp-18], edx  
+  006FA3FA   .  8955 EC     mov     [ebp-14], edx  
+  006FA3FD   .  8945 FC     mov     [ebp-4], eax  
+  006FA400   .  8B45 FC     mov     eax, [ebp-4]  
+  006FA403   .  E8 C89FD0FF call    004043D0  
+  006FA408   .  33C0         xor     eax, eax  
+  006FA40A   .  55           push    ebp  
+  006FA40B   .  68 E3A46F00  push    006FA4E3  
+  006FA410   .  64:FF30      push    dword ptr fs:[eax]  
+  006FA413   .  64:8920      mov     fs:[eax], esp  
+  006FA416   .  33D2         xor     edx, edx  
+  006FA418   .  55           push    ebp  
+  006FA419   .  68 AEA46F00  push    006FA4AE  
+  006FA41E   .  64:FF32      push    dword ptr fs:[edx]  
+  006FA421   .  64:8922      mov     fs:[edx], esp  
+  006FA424   .  A0 F4A46F00  mov     al, [6FA4F4]  
+  006FA429   .  50           push    eax  
+  006FA42A   .  8D45 EC      lea     eax, [ebp-14]  
+  006FA42D   .  50           push    eax  
+  006FA42E   .  33C9         xor     ecx, ecx  
+  006FA430   .  BA 00A56F00  mov     edx, 006FA500                ;  -  
+  006FA435   .  8B45 FC      mov     eax, [ebp-4]  
+  006FA438   .  E8 8346D1FF  call    0040EAC0  
+  006FA43D   .  33F6         xor     esi, esi  
+  006FA43F   .  33DB         xor     ebx, ebx  
+  006FA441   >  8D45 E8      lea     eax, [ebp-18]               
+  006FA444   .  BA 0E000000  mov     edx, 0E                      *将 0E 存入 EDX  
+  006FA449   .  2BD3         sub     edx, ebx                     *EDX=EDX-EBX  
+  006FA44B   .  8B4D EC      mov     ecx, [ebp-14]                *将我们输入的注册码存入 ECX 中  
+  006FA44E   .  8A5411 FF    mov     dl, [ecx+edx-1]              *从地址[ecx+edx-1]的值存入 DL 中，也就注册码从第 14 位向前依次取值  
+  006FA452   .  E8 DD9CD0FF  call    00404134  
+  006FA457   .  8B45 E8      mov     eax, [ebp-18]  
+  006FA45A   .  E8 8500D1FF  call    0040A4E4  
+  006FA45F   .  A8 01        test    al, 1                        *将 AL 中值与 1 比较，这里大概是比较奇偶性  
+  006FA461   .  74 25        je      short 006FA488  
+  006FA463   .  68 00400000  push    4000  
+  006FA468   .  68 00000080  push    80000000  
+  006FA46D   .  6A 00        push    0  
+  006FA46F   .  895D E4      mov     [ebp-1C], ebx  
+  006FA472   .  DB45 E4      fild    dword ptr [ebp-1C]  
+  006FA475   .  83C4 F4      add     esp, -0C  
+  006FA478   .  DB3C24       fstp    tbyte ptr [esp]             ; |  
+  006FA47B   .  9B           wait                                 ; |  
+  006FA47C   .  E8 5BE4D2FF  call    004288DC                     ; \\CdKing.004288DC  
+  006FA481   .  E8 EE86D0FF  call    00402B74  
+  006FA486   .  03F0         add     esi, eax  
+  006FA488   >  43           inc     ebx  
+  006FA489   .  83FB 0E      cmp     ebx, 0E  
+  006FA48C   .^ 75 B3        jnz     short 006FA441  
+  006FA48E   .  B8 0CA56F00  mov     eax, 006FA50C               ;  1980-01-01  
+  006FA493   .  E8 E82AD1FF  call    0040CF80  
+  006FA498   .  8975 E4      mov     [ebp-1C], esi  
+  006FA49B   .  DB45 E4      fild    dword ptr [ebp-1C]                *上面的计算过程与上面用户号计算过程一样，不同的是我们输入的注册码是从第 14 位向前依次计算，用户号是从第 1 位计算到第 14 位  
+  006FA49E   .  DEC1         faddp   st(1), st                       *ST0=ST0+ST1,就是 29221+ESI 中值的十进制值存入 ST0,至此以注册码所计算的值（2）  
+  006FA4A0   .  DD5D F0      fstp    qword ptr [ebp-10]  
+  006FA4A3   .  9B           wait  
+  006FA4A4   .  33C0         xor     eax, eax  
+  006FA4A6   .  5A           pop     edx  
+  006FA4A7   .  59           pop     ecx  
+  006FA4A8   .  59           pop     ecx  
+  006FA4A9   .  64:8910      mov     fs:[eax], edx  
+  006FA4AC   .  EB 12        jmp     short 006FA4C0  
+  006FA4AE   .^ E9 4191D0FF jmp     004035F4  
+  006FA4B3   .  33C0         xor     eax, eax  
+  006FA4B5   .  8945 F0      mov     [ebp-10], eax  
+  006FA4B8   .  8945 F4      mov     [ebp-C], eax  
+  006FA4BB   .  E8 5095D0FF  call    00403A10  
+  006FA4C0   >  33C0         xor     eax, eax  
+  006FA4C2   .  5A           pop     edx  
+  006FA4C3   .  59           pop     ecx  
+  006FA4C4   .  59           pop     ecx  
+  006FA4C5   .  64:8910      mov     fs:[eax], edx  
+  006FA4C8   .  68 EAA46F00  push    006FA4EA  
+  006FA4CD   >  8D45 E8      lea     eax, [ebp-18]  
+  006FA4D0   .  BA 02000000  mov     edx, 2  
+  006FA4D5   .  E8 D69AD0FF  call    00403FB0  
+  006FA4DA   .  8D45 FC      lea     eax, [ebp-4]  
+  006FA4DD   .  E8 AA9AD0FF  call    00403F8C  
+  006FA4E2   .  C3           retn  
+  006FA4E3   .^ E9 C093D0FF  jmp     004038A8  
+  006FA4E8   .^ EB E3        jmp     short 006FA4CD  
+  006FA4EA   .  DD45 F0      fld     qword ptr [ebp-10]  
+  006FA4ED   .  5F           pop     edi  
+  006FA4EE   .  5E           pop     esi  
+  006FA4EF   .  5B           pop     ebx  
+  006FA4F0   .  8BE5         mov     esp, ebp  
+  006FA4F2   .  5D           pop     ebp  
+  006FA4F3   .  C3           retn  
+```
+
+------------------------------------------------------------------------------------------
+
+```
+  006FA657  |.  DD5D E8       fstp    qword ptr [ebp-18]  
+  006FA65A  |.  9B            wait  
+  006FA65B  |.  DD45 F0       fld     qword ptr [ebp-10]  
+  006FA65E  |.  DC5D E8       fcomp   qword ptr [ebp-18]      *将用户号计算所得的值（1）与输入的注册码计算的值（2）进行比较，不一样就注册不成功  
+  006FA661  |.  DFE0          fstsw   ax  
+  006FA663  |.  9E            sahf  
+  006FA664  |.  0F94C3        sete    bl  
+  006FA667  |.  33C0          xor     eax, eax  
+  006FA669  |.  5A            pop     edx  
+  006FA66A  |.  59            pop     ecx  
+  006FA66B  |.  59            pop     ecx  
+  006FA66C  |.  64:8910       mov     fs:[eax], edx  
+  006FA66F  |.  68 89A66F00   push    006FA689  
+  006FA674  |>  8D45 F8       lea     eax, [ebp-8]  
+  006FA677  |.  BA 02000000   mov     edx, 2  
+  006FA67C  |.  E8 2F99D0FF   call    00403FB0  
+  006FA681  \\.  C3           retn  
+```
+
+---------------------------------------------------------------------------------
+
+```
+  006FAF95  |.  84C0          test    al, al  
+  006FAF97  |.  74 47         je      short 006FAFE0  
+  006FAF99  |.  A1 D00A7100   mov     eax, [710AD0]  
+  006FAF9E  |.  8B00          mov     eax, [eax]  
+  006FAFA0  |.  8B55 F8       mov     edx, [ebp-8]  
+  006FAFA3  |.  E8 00DCE6FF   call    00568BA8  
+  006FAFA8  |.  6A 00         push    0                     ; /Arg1 = 00000000  
+  006FAFAA  |.  66:8B0D 08B06>mov     cx, [6FB008]          ; |  
+  006FAFB1  |.  B2 02         mov     dl, 2                 ; |  
+  006FAFB3  |.  B8 14B06F00   mov     eax, 006FB014         ; |祝贺您,注册成功！  
+  006FAFB8  |.  E8 CBA6D6FF   call    00465688              ; \\CdKing.00465688  
+```
+
+--------------------------------------------------------------------------------
+
+## 【经验总结】
+
+这个软件与我第一次写破文的软件算法很不一样，注册码也很好找，只要把用户号的前 `14` 位号码倒过来输入就是注册码。例如我机器的用户号是 `0824-9739-6234-8419`，最简便的注册码就是 `48432693794280`。当然合适的注册码形式也很多种，可以在其中输入 `-`，因为计算时程序会把 `-` 去除，只要满足输入的数字和用户号奇偶性一致。
+
+破文好多地方可能没讲明白，请大家多多包涵，也请各位多多批评，写破文真的好累。。。。。。。。。。
+
+--------------------------------------------------------------------------------
+
+
+
+【版权声明】: 本文原创于看雪技术论坛，转载请注明作者并保持文章的完整，谢谢！
+
+2006 年 08 月 20 日 19:47:05
+
+> `4dd466d0e1e0cc123afbe504da2462ca`

@@ -1,0 +1,336 @@
+
+# 全能音频转换通
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-65.htm`](https://www.pediy.com/kssd/pediy08/pediy8-65.htm)
+
+## 基本信息
+- **软件名称**：全能音频转换通
+- **加壳类型**：无壳
+- **破文作者**：`firefly`（`http://fireflyCN.blog.tom.com/`）
+- **注册方式**：`sn`
+- **破解工具**：`Olldbg`, `peid`
+- **破解声明**：初学 `cracking`，研究算法，学习交流！
+
+## 破解过程
+
+首先用 `peid` 查查，无壳 `vc` 编译，难得啊！
+
+运行软件，提示注册，随便输入注册码后，提示重起验证！
+
+不想太麻烦，先看看软件所在的文件夹，发现有有个 `ini` 文件，打开一看，果然有刚才输入的注册码！看来运气比较好！
+
+`od` 载入，下断 `bpx GetPrivateProfileStringA` 最后找到如下地址：
+
+```
+===================================================
+00407170     56           push esi                   ; 全能音频.004B4BD0
+00407171     6A 0A        push 0A
+00407173     6A 00        push 0
+00407175     68 0CB94A00  push 全能音频.004AB90C      ; ASCII "AppNum"
+0040717A     68 D0B84A00  push 全能音频.004AB8D0      ; ASCII "App"
+0040717F     B9 C84B4B00  mov ecx,全能音频.004B4BC8   ; ASCII "hhI"
+00407184     E8 47AE0100  call 全能音频.00421FD0      ；关键算法，跟进
+00407189     8BC8         mov ecx,eax
+0040718B     BE E8030000  mov esi,3E8
+00407190     99           cdq
+00407191     F7FE         idiv esi
+00407193     8D04D5 0000000>lea eax,dword ptr ds:\[edx\*8\]         ; eax=edx\*8
+0040719A     2BC2         sub eax,edx
+0040719C     8D0440       lea eax,dword ptr ds:\[eax+eax\*2\]       ; eax=eax+eax\*2
+0040719F     8D7442 10    lea esi,dword ptr ds:\[edx+eax\*2+10\]    ; esi=edx+eax\*2+10
+004071A3     B8 D34D6210  mov eax,10624DD3
+004071A8     F7E9         imul ecx                     ; ecx\*10624DD3
+004071AA     C1FA 06      sar edx,6
+004071AD     8BCA         mov ecx,edx
+004071AF     33C0         xor eax,eax
+004071B1     C1E9 1F      shr ecx,1F
+004071B4     03D1         add edx,ecx
+004071B6     3BD6         cmp edx,esi
+004071B8     5E           pop esi
+004071B9     0F94C0       sete al
+004071BC     C3           retn
+\========================================================================
+```
+
+跟进后发现很多 `call`，最终来到如下地址：
+
+```
+\========================================================================
+0046D33B     55           push ebp
+0046D33C     8BEC         mov ebp,esp
+0046D33E     83EC 0C      sub esp,0C
+0046D341     53           push ebx
+0046D342     8365 F8 00   and dword ptr ss:\[ebp-8\],0
+0046D346     56           push esi
+0046D347     57           push edi
+0046D348     8B7D 08      mov edi,dword ptr ss:\[ebp+8\]       ；ss:\[ebp+8\]存放注册码
+0046D34B     8A1F         mov bl,byte ptr ds:\[edi\]           ；取注册码第一位
+0046D34D     8D77 01      lea esi,dword ptr ds:\[edi+1\]
+0046D350     8975 FC      mov dword ptr ss:\[ebp-4\],esi
+0046D353     833D 28214B00 >cmp dword ptr ds:\[4B2128\],1
+0046D35A     7E 0F        jle short 全能音频.0046D36B
+0046D35C     0FB6C3       movzx eax,bl
+0046D35F     6A 08        push 8
+0046D361     50           push eax
+0046D362     E8 79420000  call 全能音频.004715E0                ; \_\_isctype
+0046D367     59           pop ecx
+0046D368     59           pop ecx
+0046D369     EB 0F        jmp short 全能音频.0046D37A
+0046D36B     8B0D 1C1F4B00 mov ecx,dword ptr ds:\[4B1F1C\]     ; 全能音频.004B1F26
+0046D371     0FB6C3       movzx eax,bl
+0046D374     8A0441       mov al,byte ptr ds:\[ecx+eax\*2\]
+0046D377     83E0 08      and eax,8
+0046D37A     85C0         test eax,eax
+0046D37C     74 05        je short 全能音频.0046D383
+0046D37E     8A1E         mov bl,byte ptr ds:\[esi\]
+0046D380     46           inc esi
+0046D381   ^ EB D0        jmp short 全能音频.0046D353
+0046D383     80FB 2D      cmp bl,2D
+0046D386     8975 FC      mov dword ptr ss:\[ebp-4\],esi
+0046D389     75 06        jnz short 全能音频.0046D391
+0046D38B     834D 14 02   or dword ptr ss:\[ebp+14\],2
+0046D38F     EB 05        jmp short 全能音频.0046D396
+0046D391     80FB 2B      cmp bl,2B
+0046D394     75 06        jnz short 全能音频.0046D39C
+0046D396     8A1E         mov bl,byte ptr ds:\[esi\]
+0046D398     46           inc esi
+0046D399     8975 FC      mov dword ptr ss:\[ebp-4\],esi
+0046D39C     8B45 10      mov eax,dword ptr ss:\[ebp+10\]
+0046D39F     85C0         test eax,eax
+0046D3A1     0F8C 89010000 jl 全能音频.0046D530
+0046D3A7     83F8 01      cmp eax,1
+0046D3AA     0F84 80010000 je 全能音频.0046D530
+0046D3B0     83F8 24      cmp eax,24
+0046D3B3     0F8F 77010000 jg 全能音频.0046D530
+0046D3B9     6A 10        push 10
+0046D3BB     85C0         test eax,eax
+0046D3BD     59           pop ecx
+0046D3BE     75 24        jnz short 全能音频.0046D3E4
+0046D3C0     80FB 30      cmp bl,30
+0046D3C3     74 09        je short 全能音频.0046D3CE
+0046D3C5     C745 10 0A0000>mov dword ptr ss:\[ebp+10\],0A
+0046D3CC     EB 32        jmp short 全能音频.0046D400
+0046D3CE     8A06         mov al,byte ptr ds:\[esi\]
+0046D3D0     3C 78        cmp al,78
+0046D3D2     74 0D        je short 全能音频.0046D3E1
+0046D3D4     3C 58        cmp al,58
+0046D3D6     74 09        je short 全能音频.0046D3E1
+0046D3D8     C745 10 080000>mov dword ptr ss:\[ebp+10\],8
+0046D3DF     EB 1F        jmp short 全能音频.0046D400
+0046D3E1     894D 10      mov dword ptr ss:\[ebp+10\],ecx
+0046D3E4     394D 10      cmp dword ptr ss:\[ebp+10\],ecx
+0046D3E7     75 17        jnz short 全能音频.0046D400
+0046D3E9     80FB 30      cmp bl,30
+0046D3EC     75 12        jnz short 全能音频.0046D400
+0046D3EE     8A06         mov al,byte ptr ds:\[esi\]
+0046D3F0     3C 78        cmp al,78
+0046D3F2     74 04        je short 全能音频.0046D3F8
+0046D3F4     3C 58        cmp al,58
+0046D3F6     75 08        jnz short 全能音频.0046D400
+0046D3F8     8A5E 01      mov bl,byte ptr ds:\[esi+1\]
+0046D3FB     46           inc esi
+0046D3FC     46           inc esi
+0046D3FD     8975 FC      mov dword ptr ss:\[ebp-4\],esi
+0046D400     83C8 FF      or eax,FFFFFFFF
+0046D403     33D2         xor edx,edx
+0046D405     F775 10      div dword ptr ss:\[ebp+10\]
+0046D408     BF 03010000  mov edi,103
+0046D40D     8945 F4      mov dword ptr ss:\[ebp-C\],eax
+0046D410     833D 28214B00 >cmp dword ptr ds:\[4B2128\],1         ; 循环处理注册码
+0046D417     0FB6F3       movzx esi,bl
+0046D41A     7E 0C        jle short 全能音频.0046D428
+0046D41C     6A 04        push 4
+0046D41E     56           push esi
+0046D41F     E8 BC410000  call 全能音频.004715E0
+0046D424     59           pop ecx
+0046D425     59           pop ecx
+0046D426     EB 0B        jmp short 全能音频.0046D433
+0046D428     A1 1C1F4B00  mov eax,dword ptr ds:\[4B1F1C\]
+0046D42D     8A0470       mov al,byte ptr ds:\[eax+esi\*2\]
+0046D430     83E0 04      and eax,4
+0046D433     85C0         test eax,eax
+0046D435     74 08        je short 全能音频.0046D43F
+0046D437     0FBECB       movsx ecx,bl
+0046D43A     83E9 30      sub ecx,30                 ; 注册码的 ascii 值减 30
+0046D43D     EB 32        jmp short 全能音频.0046D471
+0046D43F     833D 28214B00 >cmp dword ptr ds:\[4B2128\],1
+0046D446     7E 0B        jle short 全能音频.0046D453
+0046D448     57           push edi
+0046D449     56           push esi
+0046D44A     E8 91410000  call 全能音频.004715E0
+0046D44F     59           pop ecx
+0046D450     59           pop ecx
+0046D451     EB 0B        jmp short 全能音频.0046D45E
+0046D453     A1 1C1F4B00  mov eax,dword ptr ds:\[4B1F1C\]
+0046D458     66:8B0470    mov ax,word ptr ds:\[eax+esi\*2\]
+0046D45C     23C7         and eax,edi
+0046D45E     85C0         test eax,eax
+0046D460     74 4A        je short 全能音频.0046D4AC
+0046D462     0FBEC3       movsx eax,bl
+0046D465     50           push eax
+```
+
+
+
+# 汇编代码片段
+
+```
+0046D466     E8 89F0FFFF    call 全能音频.0046C4F4  
+0046D46B     59            pop ecx  
+0046D46C     8BC8          mov ecx,eax  
+0046D46E     83E9 37       sub ecx,37  
+0046D471     3B4D 10       cmp ecx,dword ptr ss:[ebp+10]            ; 判断注册码是不是数字  
+0046D474     73 36         jnb short 全能音频.0046D4AC  
+0046D476     8B75 F8       mov esi,dword ptr ss:[ebp-8]  
+0046D479     834D 14 08    or dword ptr ss:[ebp+14],8  
+0046D47D     3B75 F4       cmp esi,dword ptr ss:[ebp-C]  
+0046D480     72 14         jb short 全能音频.0046D496  
+0046D482     75 0C         jnz short 全能音频.0046D490  
+0046D484     83C8 FF       or eax,FFFFFFFF  
+0046D487     33D2          xor edx,edx  
+0046D489     F775 10       div dword ptr ss:[ebp+10]  
+0046D48C     3BCA          cmp ecx,edx  
+0046D48E     76 06         jbe short 全能音频.0046D496  
+0046D490     834D 14 04    or dword ptr ss:[ebp+14],4  
+0046D494     EB 09         jmp short 全能音频.0046D49F  
+0046D496     0FAF75 10     imul esi,dword ptr ss:[ebp+10]           ; esi=esi*Ah  
+0046D49A     03F1          add esi,ecx                               ; esi=esi+ecx  ecx=注册码  
+0046D49C     8975 F8       mov dword ptr ss:[ebp-8],esi             ；存放注册码计算结果  
+0046D49F     8B45 FC       mov eax,dword ptr ss:[ebp-4]  
+0046D4A2     FF45 FC       inc dword ptr ss:[ebp-4]  
+0046D4A5     8A18          mov bl,byte ptr ds:[eax]  
+0046D4A7   ^ E9 64FFFFFF    jmp 全能音频.0046D410  
+0046D4AC     8B45 14       mov eax,dword ptr ss:[ebp+14]    
+0046D4AF     FF4D FC       dec dword ptr ss:[ebp-4]  
+0046D4B2     8B5D 0C       mov ebx,dword ptr ss:[ebp+C]  
+0046D4B5     A8 08         test al,8  
+0046D4B7     75 10         jnz short 全能音频.0046D4C9  
+0046D4B9     85DB          test ebx,ebx  
+0046D4BB     74 06         je short 全能音频.0046D4C3  
+0046D4BD     8B45 08       mov eax,dword ptr ss:[ebp+8]  
+0046D4C0     8945 FC       mov dword ptr ss:[ebp-4],eax  
+0046D4C3     8365 F8 00    and dword ptr ss:[ebp-8],0  
+0046D4C7     EB 4B         jmp short 全能音频.0046D514  
+0046D4C9     A8 04         test al,4  
+0046D4CB     BE FFFFFF7F   mov esi,7FFFFFFF  
+0046D4D0     75 1B         jnz short 全能音频.0046D4ED  
+0046D4D2     A8 01         test al,1  
+0046D4D4     75 3E         jnz short 全能音频.0046D514  
+0046D4D6     83E0 02       and eax,2  
+0046D4D9     74 09         je short 全能音频.0046D4E4  
+0046D4DB     817D F8 000000>cmp dword ptr ss:[ebp-8],80000000  
+0046D4E2     77 09         ja short 全能音频.0046D4ED  
+0046D4E4     85C0          test eax,eax  
+0046D4E6     75 2C         jnz short 全能音频.0046D514  
+0046D4E8     3975 F8       cmp dword ptr ss:[ebp-8],esi  
+0046D4EB     76 27         jbe short 全能音频.0046D514  
+0046D4ED     E8 BD1B0000   call 全能音频.0046F0AF  
+0046D4F2     F645 14 01    test byte ptr ss:[ebp+14],1  
+0046D4F6     C700 22000000   mov dword ptr ds:[eax],22  
+0046D4FC     74 06         je short 全能音频.0046D504  
+0046D4FE     834D F8 FF    or dword ptr ss:[ebp-8],FFFFFFFF  
+0046D502     EB 10         jmp short 全能音频.0046D514  
+0046D504     8B45 14       mov eax,dword ptr ss:[ebp+14]  
+0046D507     24 02         and al,2  
+0046D509     F6D8          neg al  
+0046D50B     1BC0          sbb eax,eax  
+0046D50D     F7D8          neg eax  
+0046D50F     03C6          add eax,esi  
+0046D511     8945 F8       mov dword ptr ss:[ebp-8],eax  
+0046D514     85DB          test ebx,ebx  
+0046D516     74 05         je short 全能音频.0046D51D  
+0046D518     8B45 FC       mov eax,dword ptr ss:[ebp-4]  
+0046D51B     8903          mov dword ptr ds:[ebx],eax  
+0046D51D     F645 14 02    test byte ptr ss:[ebp+14],2  
+0046D521     74 08         je short 全能音频.0046D52B  
+0046D523     8B45 F8       mov eax,dword ptr ss:[ebp-8]  
+0046D526     F7D8          neg eax  
+0046D528     8945 F8       mov dword ptr ss:[ebp-8],eax  
+0046D52B     8B45 F8       mov eax,dword ptr ss:[ebp-8]                ；将注册码最终计算结果赋给 eax  
+0046D52E     EB 0B         jmp short 全能音频.0046D53B  
+0046D530     8B45 0C       mov eax,dword ptr ss:[ebp+C]  
+0046D533     85C0          test eax,eax  
+0046D535     74 02         je short 全能音频.0046D539  
+0046D537     8938          mov dword ptr ds:[eax],edi  
+0046D539     33C0          xor eax,eax  
+0046D53B     5F            pop edi  
+0046D53C     5E            pop esi  
+0046D53D     5B            pop ebx  
+0046D53E     C9            leave  
+0046D53F     C3            retn  
+0046D540     6A 01         push 1  
+0046D542     FF7424 10     push dword ptr ss:[esp+10]  
+0046D546     FF7424 10     push dword ptr ss:[esp+10]  
+0046D54A     FF7424 10     push dword ptr ss:[esp+10]  
+0046D54E     E8 E8FDFFFF   call 全能音频.0046D33B  
+0046D553     83C4 10       add esp,10  
+0046D556     C3            retn  
+\======================================================================  
+```
+
+程序返回到下面地址
+
+```
+\=============================================================  
+00407189     8BC8          mov ecx,eax                        ；eax 存放运算后的注册码  
+0040718B     BE E8030000    mov esi,3E8                       
+00407190     99            cdq  
+00407191     F7FE          idiv esi                            ；将计算出来的注册码除以 3E8h  
+00407193     8D04D5 0000000>lea eax,dword ptr ds:[edx*8]      
+0040719A     2BC2          sub eax,edx  
+0040719C     8D0440        lea eax,dword ptr ds:[eax+eax*2]  
+0040719F     8D7442 10     lea esi,dword ptr ds:[edx+eax*2+10]     ；即 esi=余数*43+16；  
+004071A3     B8 D34D6210   mov eax,10624DD3  
+004071A8     F7E9          imul ecx                  ；计算出来的注册码*10624DD3  
+004071AA     C1FA 06       sar edx,6                       ；取结果的高位右移 6 位  
+004071AD     8BCA          mov ecx,edx                       ；移位后给 ecx           
+004071AF     33C0          xor eax,eax                       ；eax 清零  
+004071B1     C1E9 1F       shr ecx,1F  
+004071B4     03D1          add edx,ecx                       ；将高位再移 1Fh 位后与移位前相加  
+004071B6     3BD6          cmp edx,esi                       ；比较两次运算的结果是不是相等  
+004071B8     5E            pop esi  
+004071B9     0F94C0        sete al                           ；若相等则 al=1，注册成功！  
+004071BC     C3            retn  
+```
+
+## 破解总结
+
+注册码计算过程并不复杂，
+
+设 `Z=0`，
+
+依次取一位注册码
+
+    如果是数字：
+
+        则   `Z=Z*Ah`
+             `Z=Z+(一位注册码)`
+             取下一位注册码，继续循环
+
+    如果不是数字：
+
+        则   `over`
+
+最后取 `Z` 除以 `3E8h` 的余数，`ESI=余数*7+16`
+
+       `Z` 乘 `10624DD3h`，右移结果的高位 6 位得 `m`，再右移 `1Fh` 位后与 `m` 相加的结果与 `esi` 比较！
+
+我的数学不好！ `![](img/45777b5dbd6b901752ab7df42fce6892.jpg)` `![](img/45777b5dbd6b901752ab7df42fce6892.jpg)` ，算法没描述好，也不知道怎么倒回去！！！
+
+不过，最后我发现 `3E8h` 是 10 进制的 1000，如果是其整数倍的话，那么 `esi` 恒等于 `10h`！
+
+终于我凑出一个注册码来 `16000`！！！
+
+数学不好，感觉很失败！！！！
+
+`![](img/70b1b1b49da6fb968b36803b1ec24864.jpg)` `![](img/70b1b1b49da6fb968b36803b1ec24864.jpg)`
+
+还请各位大侠指点指点！我也好好补补数学！
+
+`![](img/dd27b7eb3e47f4f9a8b69ac3c32485f5.jpg)` `![](img/dd27b7eb3e47f4f9a8b69ac3c32485f5.jpg)`
+
+补：
+
+脑子开窍了，明白了，先确定注册码的后三位，然后用后三位`*43+16` 则得出注册码的前边几位，如注册码后三位为 `123`，`123*43+16=5305`，那么注册码就是 `5305123`
+
+`4dd466d0e1e0cc123afbe504da2462ca`
