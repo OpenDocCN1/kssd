@@ -1,0 +1,246 @@
+
+004C8B84    8D8D 7CFFFFFF   lea ecx,dword ptr ss:\[ebp\-84\]  
+
+004C8B8A    FF15 24104000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaFreeVar>>; MSVBVM60.\_\_vbaFreeVar  
+
+004C8B90    8D55 DC         lea edx,dword ptr ss:\[ebp\-24\]  
+
+004C8B93    8D85 7CFFFFFF   lea eax,dword ptr ss:\[ebp\-84\]  
+
+004C8B99    52              push edx  
+
+004C8B9A    50              push eax  
+
+004C8B9B    FF15 70104000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaLenVar>\] ; MSVBVM60.\_\_vbaLenVar  
+
+004C8BA1    50              push eax  
+
+004C8BA2    FF15 E4114000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaI4Var>\]  ; MSVBVM60.\_\_vbaI4Var  
+
+004C8BA8    8BF0            mov esi,eax                //获得特征码" 341491800135"长度  
+
+004C8BAA    83FE 0C         cmp esi,0C                  //比较特征码" 341491800135"长度＝D  
+
+004C8BAD    0F8D C5000000   jge MCS51.004C8C78           //大于 C 就跳走  
+
+........................  
+
+004C8C78    8B1D F0114000   mov ebx,dword ptr ds:\[<&MSVBVM60.\_\_vbaVarAd>; MSVBVM60.\_\_vbaVarAdd  
+
+004C8C7E    BA 28554100     mov edx,MCS51.00415528  
+
+004C8C83    8D4D B4         lea ecx,dword ptr ss:\[ebp\-4C\]  
+
+004C8C86    FF15 B8114000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaStrCopy>>; MSVBVM60.\_\_vbaStrCopy  
+
+004C8C8C    B8 02000000     mov eax,2                   //特征码转换为字符串" 341491800135"  
+
+004C8C91    B9 01000000     mov ecx,1  
+
+004C8C96    8985 3CFFFFFF   mov dword ptr ss:\[ebp\-C4\],eax  
+
+004C8C9C    8985 2CFFFFFF   mov dword ptr ss:\[ebp\-D4\],eax  
+
+004C8CA2    8985 1CFFFFFF   mov dword ptr ss:\[ebp\-E4\],eax  
+
+004C8CA8    8D95 3CFFFFFF   lea edx,dword ptr ss:\[ebp\-C4\]  
+
+004C8CAE    898D 44FFFFFF   mov dword ptr ss:\[ebp\-BC\],ecx  
+
+004C8CB4    898D 24FFFFFF   mov dword ptr ss:\[ebp\-DC\],ecx  
+
+004C8CBA    8D85 2CFFFFFF   lea eax,dword ptr ss:\[ebp\-D4\]  
+
+004C8CC0    52              push edx  
+
+004C8CC1    8D8D 1CFFFFFF   lea ecx,dword ptr ss:\[ebp\-E4\]  
+
+004C8CC7    50              push eax  
+
+004C8CC8    8D95 9CFEFFFF   lea edx,dword ptr ss:\[ebp\-164\]  
+
+004C8CCE    51              push ecx  
+
+004C8CCF    8D85 ACFEFFFF   lea eax,dword ptr ss:\[ebp\-154\]  
+
+004C8CD5    52              push edx  
+
+004C8CD6    8D4D CC         lea ecx,dword ptr ss:\[ebp\-34\]  
+
+004C8CD9    50              push eax  
+
+004C8CDA    51              push ecx  
+
+004C8CDB    C785 34FFFFFF 0>mov dword ptr ss:\[ebp\-CC\],0C  
+
+004C8CE5    FF15 80104000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaVarForIn>; MSVBVM60.\_\_vbaVarForInit  //变量初始化，循环开始了  
+
+004C8CEB    85C0            test eax,eax  
+
+004C8CED    0F84 4D010000   je MCS51.004C8E40  
+
+004C8CF3    8D55 DC         lea edx,dword ptr ss:\[ebp\-24\]    //取特征码" 341491800135"  
+
+004C8CF6    8D45 A0         lea eax,dword ptr ss:\[ebp\-60\]    //取特征码第一位  
+
+004C8CF9    52              push edx  
+
+004C8CFA    50              push eax  
+
+004C8CFB    FF15 80114000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaStrVarVa>; MSVBVM60.\_\_vbaStrVarVal  
+
+004C8D01    50              push eax                 //特征码压栈  
+
+004C8D02    FF15 54104000   call dword ptr ds:\[<&MSVBVM60.#516>\]        ; MSVBVM60.rtcAnsiValueBstr  
+
+004C8D08    66:8985 44FFFFF>mov word ptr ss:\[ebp\-BC\],ax      //特征码初始值为空 ax=20  
+
+004C8D0F    B8 02000000     mov eax,2  
+
+004C8D14    8D8D 3CFFFFFF   lea ecx,dword ptr ss:\[ebp\-C4\]  
+
+004C8D1A    8985 3CFFFFFF   mov dword ptr ss:\[ebp\-C4\],eax  
+
+004C8D20    8985 2CFFFFFF   mov dword ptr ss:\[ebp\-D4\],eax  
+
+004C8D26    8985 1CFFFFFF   mov dword ptr ss:\[ebp\-E4\],eax  
+
+004C8D2C    8D55 CC         lea edx,dword ptr ss:\[ebp\-34\]  
+
+004C8D2F    51              push ecx  
+
+004C8D30    8D85 7CFFFFFF   lea eax,dword ptr ss:\[ebp\-84\]  
+
+004C8D36    52              push edx  
+
+004C8D37    50              push eax  
+
+004C8D38    C785 34FFFFFF 1>mov dword ptr ss:\[ebp\-CC\],1A  //常量 26  
+
+004C8D42    C785 24FFFFFF 4>mov dword ptr ss:\[ebp\-DC\],41  //常量 65  
+
+004C8D4C    FF15 54114000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaVarMul>\] ; MSVBVM60.\_\_vbaVarMul  //循环次数与首位字 ASC 相乘  
+
+004C8D52    8D8D 2CFFFFFF   lea ecx,dword ptr ss:\[ebp\-D4\]  
+
+004C8D58    50              push eax  
+
+004C8D59    8D95 6CFFFFFF   lea edx,dword ptr ss:\[ebp\-94\]  
+
+004C8D5F    51              push ecx  
+
+004C8D60    52              push edx  
+
+004C8D61    FF15 04124000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaVarMod>\] ; MSVBVM60.\_\_vbaVarMod  //乘法结果 与 常量 26 求余  
+
+004C8D67    50              push eax  
+
+004C8D68    8D85 1CFFFFFF   lea eax,dword ptr ss:\[ebp\-E4\]  
+
+004C8D6E    8D8D 5CFFFFFF   lea ecx,dword ptr ss:\[ebp\-A4\]  
+
+004C8D74    50              push eax  
+
+004C8D75    51              push ecx  
+
+004C8D76    FFD3            call ebx                 //余数＋常量 65，即 6＋65＝71  
+
+004C8D78    50              push eax  
+
+004C8D79    FF15 E4114000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaI4Var>\]  ; MSVBVM60.\_\_vbaI4Var //把 ASC(71)转换为字符串"G"                     //第首位注册码字符  
+
+004C8D7F    8D95 4CFFFFFF   lea edx,dword ptr ss:\[ebp\-B4\]  
+
+004C8D85    50              push eax  
+
+004C8D86    52              push edx  
+
+004C8D87    FF15 78114000   call dword ptr ds:\[<&MSVBVM60.#608>\]        ; MSVBVM60.rtcVarBstrFromAnsi  
+
+004C8D8D    8D95 4CFFFFFF   lea edx,dword ptr ss:\[ebp\-B4\]  
+
+004C8D93    8D4D A4         lea ecx,dword ptr ss:\[ebp\-5C\]  
+
+004C8D96    FFD7            call edi  
+
+004C8D98    8D4D A0         lea ecx,dword ptr ss:\[ebp\-60\]  
+
+004C8D9B    FF15 54124000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaFreeStr>>; MSVBVM60.\_\_vbaFreeStr  
+
+004C8DA1    8D8D 5CFFFFFF   lea ecx,dword ptr ss:\[ebp\-A4\]  
+
+004C8DA7    FF15 24104000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaFreeVar>>; MSVBVM60.\_\_vbaFreeVar  
+
+004C8DAD    8BC6            mov eax,esi  
+
+004C8DAF    8D4D DC         lea ecx,dword ptr ss:\[ebp\-24\]  
+
+004C8DB2    83E8 01         sub eax,1                //计数器减 1  
+
+004C8DB5    8D95 7CFFFFFF   lea edx,dword ptr ss:\[ebp\-84\]  
+
+004C8DBB    0F80 480C0000   jo MCS51.004C9A09  
+
+004C8DC1    50              push eax  
+
+004C8DC2    51              push ecx  
+
+004C8DC3    52              push edx  
+
+004C8DC4    FF15 30124000   call dword ptr ds:\[<&MSVBVM60.#619>\]        ; MSVBVM60.rtcRightCharVar  //逐次取特征码单个字符  
+
+004C8DCA    8D95 7CFFFFFF   lea edx,dword ptr ss:\[ebp\-84\]  
+
+004C8DD0    8D4D DC         lea ecx,dword ptr ss:\[ebp\-24\]  
+
+004C8DD3    FFD7            call edi  
+
+004C8DD5    8B45 B4         mov eax,dword ptr ss:\[ebp\-4C\]  
+
+004C8DD8    8D8D 3CFFFFFF   lea ecx,dword ptr ss:\[ebp\-C4\]  
+
+004C8DDE    8985 44FFFFFF   mov dword ptr ss:\[ebp\-BC\],eax  
+
+004C8DE4    8D55 A4         lea edx,dword ptr ss:\[ebp\-5C\]  
+
+004C8DE7    51              push ecx  
+
+004C8DE8    8D85 7CFFFFFF   lea eax,dword ptr ss:\[ebp\-84\]  
+
+004C8DEE    83EE 01         sub esi,1                //计数器自减 1  
+
+004C8DF1    52              push edx  
+
+004C8DF2    50              push eax  
+
+004C8DF3    C785 3CFFFFFF 0>mov dword ptr ss:\[ebp\-C4\],8  
+
+004C8DFD    0F80 060C0000   jo MCS51.004C9A09  
+
+004C8E03    FFD3            call ebx                 //注册码＝第首位注册码字符"G"＋注册码  
+
+004C8E05    50              push eax  
+
+004C8E06    FF15 2C104000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaStrVarMo>; MSVBVM60.\_\_vbaStrVarMove  
+
+004C8E0C    8BD0            mov edx,eax  
+
+004C8E0E    8D4D B4         lea ecx,dword ptr ss:\[ebp\-4C\]  
+
+004C8E11    FF15 28124000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaStrMove>>; MSVBVM60.\_\_vbaStrMove  
+
+004C8E17    8D8D 7CFFFFFF   lea ecx,dword ptr ss:\[ebp\-84\]  
+
+004C8E1D    FF15 24104000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaFreeVar>>; MSVBVM60.\_\_vbaFreeVar  
+
+004C8E23    8D8D 9CFEFFFF   lea ecx,dword ptr ss:\[ebp\-164\]  
+
+004C8E29    8D95 ACFEFFFF   lea edx,dword ptr ss:\[ebp\-154\]  
+
+004C8E2F    51              push ecx  
+
+004C8E30    52              push edx  
+
+004C8E31    8D45 CC         lea eax,dword ptr ss:\[ebp\-34\]  
+
+004C8E34    50              push eax  
