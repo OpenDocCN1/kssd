@@ -1,0 +1,515 @@
+
+# 菜鸟 Unpack SafeDisc 2.70,高手误入
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-562.htm`](https://www.pediy.com/kssd/pediy09/pediy09-562.htm)
+
+> 工具：`OllyICE`，`ImportREC`，`LordPE`，`WinHEX`
+
+看了很多高手写的教程,终于半成功 1 次,写下心得
+
+这个程序是老游戏了,说出名字应该无妨
+
+用 `OD` 载入 `TTH3.exe`
+
+下断点 `bp IsDebuggerPresent`
+
+`F9`
+
+```
+7C813093 > 64:A1 18000000 mov eax, dword ptr fs:[18] //断在此处
+7C813099 8B40 30 mov eax, dword ptr [eax+30]
+7C81309C 0FB640 02 movzx eax, byte ptr [eax+2]
+7C8130A0 C3 retn
+```
+
+一路返回到
+
+```
+10004305 E8 26550000 call 10009830
+1000430A 83C4 04 add esp, 4 //到这里 以下都是检测调试器的所以到这里后我新到
+```
+
+新建 `eip`
+
+```
+1000430D 66:85C0 test ax, ax
+10004310 0F85 1C010000 jnz 10004432
+10004316 F6C3 04 test bl, 4
+10004319 76 12 jbe short 1000432D
+1000431B 56 push esi
+1000431C E8 0F540000 call 10009730
+.
+.
+.
+.
+10004414 E8 97490000 call 10008DB0
+10004419 83C4 04 add esp, 4
+1000441C 66:85C0 test ax, ax
+1000441F 75 11 jnz short 10004432
+10004421 F7C3 00040000 test ebx, 400
+10004427 76 09 jbe short 10004432
+10004429 56 push esi //直接到这里建立新的 eip
+1000442A E8 D1480000 call 10008D00
+1000442F 83C4 04 add esp, 4
+10004432 5E pop esi
+10004433 5B pop ebx
+10004434 C3 retn
+```
+
+一路 `F8` 之后
+
+```
+10003390 FF75 F8 push dword ptr [ebp-8]
+10003393 E8 C9710100 call 1001A561 //到这里会停住,进入看看
+10003398 8B43 14 mov eax, dword ptr [ebx+14] ; Tth3_ORG.01035009
+```
+
+```
+1001A561 81EC 0C020000 sub esp, 20C
+1001A567 53 push ebx
+1001A568 55 push ebp
+1001A569 33ED xor ebp, ebp
+1001A56B 392D 0CA20510 cmp dword ptr [1005A20C], ebp
+1001A571 0F84 CF000000 je 1001A646 //改这里也可以
+1001A577 E8 0670FEFF call 10001582
+.
+.
+.
+1001A61B 57 push edi
+1001A61C FFD6 call esi
+1001A61E E8 6D30FFFF call 1000D690
+1001A623 6A FF push -1
+1001A625 55 push ebp
+1001A626 FF15 64000510 call dword ptr [<&KERNEL32.WaitForSin>;
+```
+
+`kernel32.WaitForSingleObject` //原来是这个在搞鬼,将 `push -1` 改成 `push 1` 就可以了
+
+```
+1001A62C 57 push edi
+1001A62D 894424 14 mov dword ptr [esp+14], eax
+1001A631 FFD6 call esi
+1001A633 55 push ebp
+1001A634 FFD6 call esi
+1001A636 837C24 10 00 cmp dword ptr [esp+10], 0
+1001A63B 5F pop edi
+1001A63C 5E pop esi
+1001A63D 74 07 je short 1001A646
+1001A63F FFD3 call ebx
+1001A641 E8 4A30FFFF call 1000D690
+1001A646 5D pop ebp
+1001A647 5B pop ebx
+1001A648 81C4 0C020000 add esp, 20C
+1001A64E C3 retn
+```
+
+再路 `F8` 就到 `OEP` 了
+
+这个游戏采用了代码分段解码,你在程序中可以看到很多 `call 0056A6D9` 这个就是解码的模块,运行完了后
+
+有再加密
+
+我懒得找加密代码,直接用 `OD Script`,查找 `call 0056A6D9`,强制 `eip` 到查找位置,运行解码.然后把所有的解码代码复制下来,作成 `script`
+
+比如
+
+```
+mov
+[544770],#558BEC81EC8C0000005356578DBD74FFFFFFB923000000B8CCCCCCCCF3ABC745FCECF55B00C745F82000000
+0C745F4000000000C745F000000000A014985B008845C8B909000000...#
+```
+
+这个是力气活,但没有难度
+
+所有代码还原后,就是 `api` 了和变形 `call` 了
+
+```
+00588F60 55 push ebp //OEP
+00588F61 8BEC mov ebp, esp
+00588F63 6A FF push -1
+00588F65 68 C8575C00 push 005C57C8
+00588F6A 68 803B5900 push 00593B80
+00588F6F 64:A1 00000000 mov eax, dword ptr fs:[0]
+00588F75 50 push eax
+00588F76 64:8925 0000000>mov dword ptr fs:[0], esp
+00588F7D 83C4 A4 add esp, -5C
+00588F80 53 push ebx
+00588F81 56 push esi
+00588F82 57 push edi
+00588F83 8965 E8 mov dword ptr [ebp-18], esp
+00588F86 FF15 B8A90101 call dword ptr [101A9B8] ; kernel32.GetVersion
+00588F8C A3 B8790101 mov dword ptr [10179B8], eax
+00588F91 A1 B8790101 mov eax, dword ptr [10179B8]
+00588F96 C1E8 08 shr eax, 8
+00588F99 25 FF000000 and eax, 0FF
+00588F9E A3 C4790101 mov dword ptr [10179C4], eax
+00588FA3 8B0D B8790101 mov ecx, dword ptr [10179B8]
+00588FA9 81E1 FF000000 and ecx, 0FF
+00588FAF 890D C0790101 mov dword ptr [10179C0], ecx
+00588FB5 8B15 C0790101 mov edx, dword ptr [10179C0]
+00588FBB C1E2 08 shl edx, 8
+00588FBE 0315 C4790101 add edx, dword ptr [10179C4]
+00588FC4 8915 BC790101 mov dword ptr [10179BC], edx
+00588FCA A1 B8790101 mov eax, dword ptr [10179B8]
+00588FCF C1E8 10 shr eax, 10
+00588FD2 25 FFFF0000 and eax, 0FFFF
+00588FD7 A3 B8790101 mov dword ptr [10179B8], eax
+00588FDC 6A 00 push 0
+00588FDE E8 B655FEFF call 0056E599 //进入,这是个变形 call,注意看堆栽
+```
+
+```
+0056E599 51 push ecx
+0056E59A 50 push eax
+0056E59B E8 34A3EAFF call 004188D4 //进入
+0056E5A0 51 push ecx //经过几次尝试,这个是绝对运行不到的
+0056E5A1 53 push ebx
+0056E5A2 56 push esi
+0056E5A3 8B7424 10 mov esi, dword ptr [esp+10]
+0056E5A7 BB 01000000 mov ebx, 1
+0056E5AC 57 push edi
+```
+
+```
+004188D4 B8 ABA8FFFF mov eax, FFFFA8AB
+004188D9 59 pop ecx
+004188DA 03C1 add eax, ecx
+004188DC 8B00 mov eax, dword ptr [eax]
+004188DE - FFE0 jmp eax //跳到加密模块里了 ;
+```
+
+`df394b.1000FF1E`
+
+```
+1000FF1E 58 pop eax ; ~df394b.1000FF1E
+1000FF1F 59 pop ecx
+1000FF20 68 00004000 push offset Tth3_ORG.#28
+1000FF25 9C pushfd
+1000FF26 60 pushad
+1000FF27 8B4424 28 mov eax, dword ptr [esp+28]
+1000FF2B 8BCC mov ecx, esp
+1000FF2D 83C1 24 add ecx, 24
+1000FF30 50 push eax
+1000FF31 51 push ecx
+1000FF32 E8 D2FFFFFF call 1000FF09
+1000FF37 59 pop ecx
+1000FF38 58 pop eax
+1000FF39 61 popad
+1000FF3A 9D popfd
+1000FF3B C3 retn //返回到原来调用的地方
+```
+
+```
+00593A00 55 push ebp
+00593A01 8BEC mov ebp, esp
+00593A03 6A 00 push 0
+00593A05 68 00100000 push 1000
+00593A0A 33C0 xor eax, eax
+00593A0C 837D 08 00 cmp dword ptr [ebp+8], 0
+00593A10 0F94C0 sete al
+00593A13 50 push eax
+00593A14 - E9 60E6A900 jmp 01032079
+00593A19 10A3 587F0101 adc byte ptr [ebx+1017F58], ah
+00593A1F 833D 587F0101 0>cmp dword ptr [1017F58], 0
+.
+.
+```
+
+所以我直接
+
+```
+00588FDE E8 B655FEFF call 0056E599
+```
+
+修改为
+
+```
+00588FDE E8 B655FEFF call 00593A00
+```
+
+还有很多这个结构的变形 `call` ,只有慢慢找了,没办法,分析加密模块,我的工夫远远不够
+
+```
+00593A00 55 push ebp
+00593A01 8BEC mov ebp, esp
+00593A03 6A 00 push 0
+00593A05 68 00100000 push 1000
+00593A0A 33C0 xor eax, eax
+00593A0C 837D 08 00 cmp dword ptr [ebp+8], 0
+00593A10 0F94C0 sete al
+00593A13 50 push eax
+00593A14 - E9 60E6A900 jmp 01032079 //这种也是 call 变行 进入
+00593A19 10A3 587F0101 adc byte ptr [ebx+1017F58], ah
+00593A1F 833D 587F0101 0>cmp dword ptr [1017F58], 0
+.
+.
+.
+```
+
+最终跳入 `api` 解码模块
+
+```
+1004D349 55 push ebp
+1004D34A 8BEC mov ebp, esp
+1004D34C 83EC 40 sub esp, 40
+1004D34F 53 push ebx
+1004D350 56 push esi
+1004D351 57 push edi ; ntdll.7C930738
+1004D352 F0:FF05 440C061>lock inc dword ptr [10060C44]
+1004D359 74 0E je short 1004D369
+1004D35B 6A FF push -1
+1004D35D FF35 F4DB0610 push dword ptr [1006DBF4]
+1004D363 FF15 64000510 call dword ptr [<&KERNEL32.WaitForSin>;
+```
+
+`kernel32.WaitForSingleObject`
+
+```
+.
+.
+.
+1004D6E2 50 push eax
+1004D6E3 E8 DA7EFDFF call 100255C2
+1004D6E8 59 pop ecx
+1004D6E9 F0:FF0D 440C061>lock dec dword ptr [10060C44]
+1004D6F0 78 0C js short 1004D6FE
+1004D6F2 FF35 F4DB0610 push dword ptr [1006DBF4]
+1004D6F8 FF15 48000510 call dword ptr [<&KERNEL32.SetEvent>] ; kernel32.SetEvent
+1004D6FE 8B65 0C mov esp, dword ptr [ebp+C]
+1004D701 61 popad
+1004D702 9D popfd
+1004D703 C3 retn //这里返回原来的 api 地址,注意看堆栈
+```
+
+这个版本的 `SafeDisc` 同 1 个加密地址返回的 `api` 函数不一样所以只有把找到的地址填入新的区域
+
+`1004D6FE` 我在这里写入补丁代码 `jmp 005B8F40`
+
+这个代码因为修改很多次,所以很乱
+
+```
+005B8F00 B9 12050000 mov ecx, 512 //模糊认为有 512 个 api,这个设置没道理,乱弄的
+005B8F05 90 nop
+005B8F06 52 push edx
+005B8F07 33D2 xor edx, edx
+```
+
+
+
+# 汇编代码分析与修复说明
+
+> 005B8F09 3E:3B1C95 00A00> `cmp ebx, dword ptr [edx*4+101A000]` // 原来的 `iat` 地址. 比较是否已经存
+
+> 在这个 `api` 地址
+
+> `005B8F11 74 0A je short 005B8F1D`
+
+> `005B8F13 3BD1 cmp edx, ecx` // 全部找完了?
+
+> `005B8F15 74 03 je short 005B8F1A`
+
+> `005B8F17 42 inc edx`
+
+> `005B8F18 ^ EB EF jmp short 005B8F09`
+
+> `005B8F1A 5A pop edx` // 没有旧的
+
+> `005B8F1B EB 6C jmp short 005B8F89`
+
+> `005B8F1D 6BD2 04 imul edx, edx, 4` // 存在
+
+> `005B8F20 81C2 00A00101 add edx, 0101A000`
+
+> `005B8F26 8950 FC mov dword ptr [eax-4], edx` // 把这个 `iat` 地址放入变形 `api` 调用地址
+
+> `005B8F29 5A pop edx`
+
+> `005B8F2A EB 4A jmp short 005B8F76` // 返回执行 `api` 函数
+
+> `005B8F2C 90 nop`
+
+> `005B8F2D 90 nop`
+
+> `005B8F2E 90 nop`
+
+> `005B8F2F 90 nop`
+
+> `005B8F30 8078 FA E9 cmp byte ptr [eax-6], 0E9` // 比较是否是 `jmp`
+
+> `005B8F34 75 40 jnz short 005B8F76` // 不是离开
+
+> `005B8F36 C640 FA FF mov byte ptr [eax-6], 0FF` // 写入 `call`
+
+> `005B8F3A C640 FB 15 mov byte ptr [eax-5], 15`
+
+> `005B8F3E EB 16 jmp short 005B8F56` // 返回继续
+
+> `005B8F40 8B65 0C mov esp, dword ptr [ebp+C]` // 1. 还原原来的代码
+
+> `005B8F43 61 popad`
+
+> `005B8F44 9D popfd`
+
+> `005B8F45 50 push eax` // 保存现场
+
+> `005B8F46 53 push ebx`
+
+> `005B8F47 8B4424 0C mov eax, dword ptr [esp+C]` // 返回地址
+
+> `005B8F4B 8B5C24 08 mov ebx, dword ptr [esp+8]` // `api` 地址
+
+> `005B8F4F 51 push ecx`
+
+> `005B8F50 8078 FB 15 cmp byte ptr [eax-5], 15` // 比较是否是 `call`
+
+> `005B8F54 ^ 75 DA jnz short 005B8F30` // 不是到 005B8F30
+
+> `005B8F56 ^ EB A8 jmp short 005B8F00` // 到 005B8F00
+
+> `005B8F58 8B0D A08F5B00 mov ecx, dword ptr [5B8FA0]`
+
+> `005B8F5E 81C1 00A00101 add ecx, 0101A000`
+
+> `005B8F64 90 nop`
+
+> `005B8F65 8919 mov dword ptr [ecx], ebx` // 把 `api` 地址放入新的空间
+
+> `005B8F67 33C0 xor eax, eax`
+
+> `005B8F69 A1 A08F5B00 mov eax, dword ptr [5B8FA0]`
+
+> `005B8F6E 83C0 04 add eax, 4`
+
+> `005B8F71 A3 A08F5B00 mov dword ptr [5B8FA0], eax` // 添加计数器
+
+> `005B8F76 59 pop ecx`
+
+> `005B8F77 5B pop ebx`
+
+> `005B8F78 58 pop eax`
+
+> `005B8F79 C3 retn` // 返回执行 `api`
+
+> `005B8F7A 8339 00 cmp dword ptr [ecx], 0` // 看是否是空地址
+
+> `005B8F7D 75 05 jnz short 005B8F84` // 不是
+
+> `005B8F7F 8948 FC mov dword ptr [eax-4], ecx` // 是把这个地址放入原来的 `call`
+
+> `005B8F82 ^ EB E1 jmp short 005B8F65`
+
+> `005B8F84 83C1 04 add ecx, 4` // 再继续下 1 个
+
+> `005B8F87 ^ EB F1 jmp short 005B8F7A`
+
+> `005B8F89 8B0D A08F5B00 mov ecx, dword ptr [5B8FA0]` // `5B8FA0` 我放了 1 个计数器
+
+> `005B8F8F 81C1 00A00101 add ecx, 0101A000` //
+
+> `005B8F95 ^ EB E3 jmp short 005B8F7A`
+
+## 还原结果
+
+还原后应该是：
+
+```
+00593a14 call dword ptr [101A0B4]
+```
+
+## 修复过程描述
+
+`api` 算是临时修复完了，程序还有 `CC` 代码和错误指令，我采取的最笨的办法：
+
+把这个地址找到，运行正常程序，然后编写 1 个小程序去读这个地址。
+
+我实在想不到有什么办法，坛子里找了很久也没看见。
+
+这个把所有的动作做成 1 个 `script`，游行应该在 `OD` 下能正常运行起来了。
+
+现在还不能 `dump`，因为 `iat` 还是乱的。
+
+我先加载脚本 -> 把游戏玩 1 小时（没其他办法，呵呵，菜鸟就是菜鸟）。
+
+在 `ExitProcess` 加断点。
+
+退出游戏。
+
+用 `script` 来对 `iat` 排序。
+
+因为不知道有多少调用，所以我是 1 个 1 个修复的，不过还不多，只有 12 个调用。
+
+## 脚本代码
+
+```
+///
+mov edi,401000 //默认基础开始地址
+mov ebx,101a000 //查找开始地址
+//mov edx,101c250 //修复开始地址
+mov edx,101c458 //修复开始地址 空的空间 这里根据修复后的大小来修改
+
+comp:
+mov edi,401000
+mov eax, [ebx]
+gn eax //API 地址
+//cmp "kernel32",$RESULT_1
+cmp "kernel32",$RESULT_1 //要找的 dll 名字
+
+je kernel //EBX 为原地址
+
+retn1:
+inc ebx
+inc ebx
+inc ebx
+inc ebx
+cmp ebx,101c250 //是否查完了
+jne comp
+
+ret
+
+kernel:
+
+find edi,#ff15#
+
+cmp $RESULT,0
+je addedx //找完了,继续下 1 个
+
+mov edi,$RESULT //当前查找 Code 地址
+
+mov esi,ebx //保护 ebx
+
+inc edi
+inc edi
+mov esp,[edi] //原来的内容
+
+cmp esp,esi //比较是否是当前的地址
+jne kernel //不是 找下 1 个 CALL
+
+//msg "有了"
+
+mov [edx],eax //新的 api 地址
+mov [edi],edx //修改 call 地址
+jmp kernel
+
+addedx:
+inc edx
+inc edx
+inc edx
+inc edx
+jmp retn1 //继续查下 1 个
+/////////////////////
+//->这个是原来的,因为没有找到 iato 这个函数,呵呵,我真菜
+```
+
+## 后续处理
+
+完了之后，用 `ImportREC` 抓出，然后 `dump`，用 `ImportREC` 修复为 `_dump.exe`。
+
+新开 1 个 `OD`，用 `script` 运行到 `oep`，`dump` 1 个文件，为 `org.exe`。
+
+用 `WinHex` 将 `org.exe` 的 `.data` 段的所有内容复制到 `_dump.exe` 段，还原原来的变量。
+
+再用 `LoadPe` 修复 `PE`，现在勉强可以运行了。
+
+接下来就是，测试+修复了。
+
+`4dd466d0e1e0cc123afbe504da2462ca`
