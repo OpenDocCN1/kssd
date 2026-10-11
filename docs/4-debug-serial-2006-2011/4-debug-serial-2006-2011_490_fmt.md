@@ -1,0 +1,234 @@
+
+# QQ2009 聊天记录查看器 7.3 算法分析与实现
+
+> 原文：[`www.pediy.com/kssd/pediy10/96331.html`](https://www.pediy.com/kssd/pediy10/96331.html)
+
+【文章标题】: `QQ2009` 聊天记录查看器 `7.3` 算法分析与算法实现  
+【文章作者】: `renwoxiao`  
+【作者邮箱】: `renwoxiao@126.com`  
+【作者主页】: `http://hi.baidu.com/renwoxiao`  
+【作者 QQ 号】: `121663230`  
+【软件名称】: `QQ2009` 聊天记录查看器 `7.3`  
+【软件大小】: `276KB`  
+【下载地址】: `http://www.newhua.com/soft/90218.htm`  
+【加壳方式】: 无  
+【保护方式】: 注册码  
+【编写语言】: `Microsoft Visual C++ 6.0`  
+【使用工具】: `OD`, `PEID`  
+【操作平台】: `Winxp`, `vista`, `win7`, `2000`, `2003`  
+【软件介绍】: 使用方法,直接运行，然后选者要读取的 QQ 号码，然后  
+【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
+
+--------------------------------------------------------------------------------
+
+## 详细过程
+
+算法比较简单，大侠飘过
+
+1. 用 `peid` 查壳，为 `Microsoft Visual C++ 6.0`，无壳就少一道工序了，轻松一点
+2. 算法分析
+
+根据 `ximo` 大侠的各种语言按纽事件的找法（非 MFC）
+
+找到按钮事件，来到关键的地方
+
+代码:
+
+```
+00402C1B  |.  83F8 0C       cmp     eax, 0C
+00402C1E  |.  74 18         je      short 00402C38
+```
+
+注册码必须是 `0CH`=12 位
+
+先说一下，这个软件的注册码规律，前面 3 位是任意的数字或字母，或特殊符号，后面的 9 位由前 3 位确定，也就是说，前面 3 位确定了，整个注册码就固定了。第 1 位直接决定 4，7 位，间接决定第 10 位； 第 2 位直接决定 5，8 位，间接决定 11 位， 第 3 位直接决定 6，9 位，间接决定 12 位，下面就让我慢慢道来：
+
+### 判断注册码的第四位
+
+代码:
+
+```
+00402C73  |.  8B4C24 18     mov     ecx, dword ptr [esp+18]  //取出第一位
+00402C77  |.  BF 0A000000   mov     edi, 0A
+00402C7C  |.  0FBEF1        movsx   esi, cl
+00402C7F  |.  8BC6          mov     eax, esi
+00402C81  |.  0C 33         or      al, 33                   //第一位与 33H 做或运算
+00402C83  |.  99            cdq
+00402C84  |.  F7FF         idiv    edi                      //异或的结果对 0AH 求余
+00402C86  |.  0FBE6C24 1B   movsx   ebp, byte ptr [esp+1B]
+00402C8B  |.  83C2 30       add     edx, 30                  //求余的结果加 30h
+00402C8E  |.  3BEA          cmp     ebp, edx                 //判断第四位是否与上面的结果相等，不等就跳向失败
+00402C90  |.  74 18         je      short 00402CAA
+```
+
+### 判断注册码的第五位
+
+代码:
+
+```
+00402CAE  |.  0FBEFD        movsx   edi, ch
+00402CB1  |.  0FBECB        movsx   ecx, bl
+00402CB4  |.  8BC7          mov     eax, edi                 //把注册码的第二位给 eax
+00402CB6  |.  894C24 10     mov     dword ptr [esp+10], ecx
+00402CBA  |.  0C 33         or      al, 33                   //第二位与 33H 做或运算
+00402CBC  |.  B9 1A000000   mov     ecx, 1A
+00402CC1  |.  99            cdq
+00402CC2  |.  F7F9         idiv    ecx                      //对 1AH 求余
+00402CC4  |.  8B4424 10     mov     eax, dword ptr [esp+10]
+00402CC8  |.  83C2 41       add     edx, 41                  //把求余的结果加上 41H
+00402CCB  |.  3BC2          cmp     eax, edx                 //判断第五位是否等于上面的结果，不等就跳向失败
+00402CCD  |.  74 18         je      short 00402CE7
+```
+
+### 判断注册码的第六位
+
+代码:
+
+```
+00402CE7  |>  \0FBE4C24 1A   movsx   ecx, byte ptr [esp+1A]   //取出注册码的第三位
+00402CEC  |.  0FBED7        movsx   edx, bh
+00402CEF  |.  8BC1          mov     eax, ecx                //把注册码的第三位给 eax
+00402CF1  |.  895424 14     mov     dword ptr [esp+14], edx
+00402CF5  |.  0C 33         or      al, 33                  //第三位和 33H 做异或运算
+00402CF7  |.  BB 1A000000   mov     ebx, 1A
+00402CFC  |.  99            cdq
+00402CFD  |.  F7FB         idiv    ebx                   //异或的结果对 1AH 求余
+00402CFF  |.  8B5C24 14     mov     ebx, dword ptr [esp+14]
+00402D03  |.  83C2 61       add     edx, 61                //求余的结果加 61H
+00402D06  |.  3BDA          cmp     ebx, edx               //判断第六位是佛等于上面的运算结果，不等就跳向失败
+00402D08  |.  /74 18        je      short 00402D22
+```
+
+### 判断注册码第七位
+
+代码:
+
+```
+00402D22  |>  \8BC6         mov     eax, esi             //注册码的第一位给 eax
+00402D24  |.  BE 0A000000   mov     esi, 0A
+00402D29  |.  83E0 11       and     eax, 11             //第一位和 11H 做与运算
+00402D2C  |.  99            cdq
+00402D2D  |.  F7FE         idiv    esi                 //与得结果对 0A 求余
+00402D2F  |.  0FBE4424 1E   movsx   eax, byte ptr [esp+1E]
+00402D34  |.  83C2 30       add     edx, 30             //求余的结果加 30H
+00402D37  |.  3BC2          cmp     eax, edx           //判断第七位是否等于上面的结果，不等就跳向失败
+00402D39  |.  74 18         je      short 00402D53
+```
+
+### 判断注册码的第八位
+
+代码:
+
+```
+00402D53  |>  \8BC7         mov     eax, edi            //把注册码的第二位给 eax
+00402D55  |.  BE 1A000000   mov     esi, 1A
+00402D5A  |.  83E0 11       and     eax, 11             //第二位和 11H 做与运算
+00402D5D  |.  99            cdq
+00402D5E  |.  F7FE         idiv    esi                //与运算的结果对 1AH 求余
+00402D60  |.  0FBE4424 1F   movsx   eax, byte ptr [esp+1F]
+00402D65  |.  83C2 61       add     edx, 61             //求余后的结果加 61H
+00402D68  |.  3BC2          cmp     eax, edx            //判断第八位是否等于上面的结果，不等就跳向失败
+00402D6A  |.  74 18         je      short 00402D84
+```
+
+### 判断注册码的第九位
+
+代码:
+
+```
+00402D84  |>  \8BC1         mov     eax, ecx            //把注册码的第三位给 eax
+00402D86  |.  B9 1A000000   mov     ecx, 1A
+00402D8B  |.  83E0 11       and     eax, 11             //注册码的第三位和 11H 做与运算
+00402D8E  |.  99            cdq
+00402D8F  |.  F7F9         idiv    ecx                //与运算的结果对 1AH 求余
+00402D91  |.  8B4C24 20     mov     ecx, dword ptr [esp+20]
+00402D95  |.  0FBEC1        movsx   eax, cl
+00402D98  |.  83C2 41       add     edx, 41             //求余的结果加 41H
+00402D9B  |.  3BC2          cmp     eax, edx            //判断第九位是否等于上面运算的结果，不等就跳向失败
+00402D9D  |.  /74 18        je      short 00402DB7
+```
+
+### 判断注册码的第十位
+
+代码:
+
+```
+00402DB7  |>  \8BC5         mov     eax, ebp            //把注册码的第四位给 eax
+00402DB9  |.  BE 0A000000   mov     esi, 0A
+00402DBE  |.  83E0 11       and     eax, 11             //注册码的第十位和 11H 做与运算
+00402DC1  |.  99            cdq
+00402DC2  |.  F7FE         idiv    esi                 //与运算的结果对 0AH 求余
+00402DC4  |.  0FBECD        movsx   ecx, ch
+00402DC7  |.  83C2 30       add     edx, 30             //求余的结果加 30H
+00402DCA  |.  3BCA          cmp     ecx, edx            //判断第十位是否等于上面的结果，不等就跳向失败
+00402DCC  |.  74 15         je      short 00402DE3
+```
+
+### 判断注册码的第十一位
+
+代码:
+
+```
+00402DE3  |>  \8B4424 10     mov     eax, dword ptr [esp+10]    //把注册码的五位给 eax
+00402DE7  |.  B9 1A000000   mov     ecx, 1A
+00402DEC  |.  83E0 11       and     eax, 11                 //注册码的第五位和 11H 做与运算
+00402DEF  |.  99            cdq
+00402DF0  |.  F7F9         idiv    ecx                   //与运算的结果对 1AH 求余
+00402DF2  |.  0FBE4424 22   movsx   eax, byte ptr [esp+22]
+00402DF7  |.  83C2 61       add     edx, 61               //求余的结果加 61H
+00402DFA  |.  3BC2          cmp     eax, edx              //判断第十一位是否等于上面的运算结果，不等就跳向失败
+00402DFC  |.  74 15         je      short 00402E13
+```
+
+### 判断注册码的第十二位
+
+代码:
+
+```
+00402E13  |>  \8BC3         mov     eax, ebx      //把注册码的第六位给 eax
+00402E15  |.  B9 1A000000   mov     ecx, 1A
+00402E1A  |.  83E0 11       and     eax, 11       //注册码的第五位和 11H 做与运算
+00402E1D  |.  C74424 2C FFF>mov     dword ptr [esp+2C], -1
+00402E25  |.  99            cdq
+00402E26  |.  F7F9         idiv    ecx           //与运算的结果对 1AH 求余
+00402E28  |.  0FBE4424 23   movsx   eax, byte ptr [esp+23]
+00402E2D  |.  8D4C24 34     lea     ecx, dword ptr [esp+34]
+00402E31  |.  83C2 41       add     edx, 41       //求余的结果加 41H
+00402E34  |.  3BC2          cmp     eax, edx       //判断第十二位是否等于上面的结果，不等就跳向失败
+00402E36  |.  74 09         je      short 00402E41
+```
+
+注册码的算法就算完工了
+
+### 3.注册机的实现（MFC）
+
+代码:
+
+```
+  char ch[]={"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"};
+  char n[13]={"/0"};           //用来存储注册码
+  srand((unsigned)time(NULL));
+  for(int i=0;i<3;i++)         //用随机数来产生注册码的前三位
+      n[i]=ch[rand()%62];
+
+  n[3]=(n[0] | 0X33) % 0xA+0X30;
+  n[4]=(n[1] | 0X33) % 0x1A+0X41;
+  n[5]=(n[2] | 0X33) % 0x1A+0x61;
+  n[6]=(n[0] & 0x11) % 0xA+0X30;
+  n[7]=(n[1] & 0x11) % 0x1A+0x61;
+  n[8]=(n[2] & 0x11) % 0x1A+0x41;
+  n[9]=(n[3] & 0x11) % 0xA+0X30;
+  n[10]=(n[4] & 0x11) % 0x1A+0x61;
+  n[11]=(n[5] & 0x11) % 0x1A+0x41;
+  GetDlgItem(IDC_CODE)->SetWindowText(n);  //把注册码显示出来
+```
+
+--------------------------------------------------------------------------------
+
+## 经验总结
+
+算法分析要有耐心，否则。。。。。。。。。
+
+
+
+2009 年 08 月 23 日 11:56:54
