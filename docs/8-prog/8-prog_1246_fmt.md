@@ -1,0 +1,417 @@
+
+# Windows 系统程序设计之内存映射
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-715.htm`](https://www.pediy.com/kssd/pediy08/pediy8-715.htm)
+
+Windows 系统程序设计之内存映射
+
+【作者】北极星 2003
+
+【来源】看雪技术论坛（`bbs.pediy.com`）
+
+【时间】2006 年 8 月 11 日
+
+相信对于大家来说，内存映射技术已经是个很熟悉的技术了。在这里我只是作个总结，希望对那些新手朋友有帮助。
+
+内存映射文件通常有两个用途：一是内存映射磁盘文件，这对于大数据文件的处理比较适合；二是共享内存，作为进程间通信的一种方式。
+
+附件：`memmap.rar`
+
+## 实例一：内存映射实例--文件分割器
+
+![](img/9e61836e4ea4cb7b52a64f93a060262a.jpg)
+
+### 1、设计目标
+
+设计文件分割器，作为演示内存映射磁盘文件实例。
+
+### 2、设计思路
+
+内存映射磁盘文件的一般步骤：
+
+1. 打开文件
+2. 创建内存映射内核对象
+3. 映射文件视图
+4. 在内存中处理数据
+5. 卸载文件视图
+6. 关闭内存映射内核对象
+7. 关闭文件
+
+分割思路，把原文件按照设置的文件块大小依次映射到内存，然后生成一个新文件，下图中蓝色箭头所示。
+
+还原思路，把子文件依次映射到内存，然后再回写到原文件的各个部分，下图中红色箭头所示。
+
+![](img/6aadebf0ad01dc73eec730aef0b4348.jpg)
+
+### 3、详细设计
+
+#### （1）定义文件信息块结构
+
+文件信息块保存着分割文件时的信息，也是还原时的必备文件。
+
+```cpp
+typedef struct _FILE_ITEM_INFO {
+  DWORD  dwLowFileSize ;    // 文件大小低字段
+  DWORD  dwHighFileSize ;  // 文件大小高字段
+  DWORD  dwPartSize ;      // 文件块大小
+  DWORD  dwPartNum ;    // 文件块数量
+  CString  szFileName ;      // 源文件名
+} FILE_ITEM_INFO ;
+typedef FILE_ITEM_INFO* PFILE_ITEM_INFO ;
+```
+
+#### （2）文件分割实现部分
+
+```cpp
+DWORD CFD::FDFileDivide  ( PFILE_ITEM_INFO pItem )
+{
+  // 删除该文件原有的分块文件
+  this->DeleteAllPartFiles  ( pItem->szFileName ) ;
+
+  // 创建信息文件
+  HANDLE hFile = CreateFile ( 
+    pItem->szFileName + ".INFO",  
+    GENERIC_READ|GENERIC_WRITE, 
+    FILE_SHARE_READ|FILE_SHARE_WRITE, 
+    NULL, 
+    CREATE_ALWAYS, 
+    FILE_ATTRIBUTE_NORMAL, 
+    NULL ) ;
+  if ( hFile == INVALID_HANDLE_VALUE )
+    return GetLastError() ;
+  
+  // 写入信息文件
+  DWORD dwWriteByte ;
+  WriteFile ( hFile, &(pItem->dwLowFileSize),  sizeof(DWORD),  &dwWriteByte, NULL ) ;
+  WriteFile ( hFile, &(pItem->dwPartSize),  sizeof(DWORD),  &dwWriteByte, NULL ) ;
+  WriteFile ( hFile, &(pItem->dwPartNum),    sizeof(DWORD),  &dwWriteByte, NULL ) ;
+  CloseHandle ( hFile ) ;
+
+  // 打开目标文件
+  hFile = CreateFile ( 
+    pItem->szFileName,  
+    GENERIC_READ, 
+    FILE_SHARE_READ|FILE_SHARE_WRITE, 
+    NULL, 
+    OPEN_EXISTING, 
+    FILE_ATTRIBUTE_NORMAL, 
+    NULL ) ;
+  if ( hFile == INVALID_HANDLE_VALUE )
+    return GetLastError() ;
+
+  // 创建文件内存映射内核对象
+  HANDLE hMapFile = CreateFileMapping ( 
+    hFile,    
+    NULL, 
+    PAGE_READONLY, 
+    0, 
+    0, 
+    NULL ) ;
+  if ( hMapFile == NULL )
+  {
+    CloseHandle ( hFile ) ;
+    return GetLastError() ;
+  }
+
+  CString TempStr ;
+  DWORD  dwCurAddr = 0, dwCurPart = 0 ;
+  LPVOID lpMapAddr = 0 ;
+
+  // 分块循环映射文件
+  for ( UINT i = 1; i <= pItem->dwPartNum; i++ )
+  {
+    dwCurPart = pItem->dwLowFileSize - dwCurAddr ;
+    if ( dwCurPart > pItem->dwPartSize )
+      dwCurPart = pItem->dwPartSize ;
+
+    lpMapAddr = MapViewOfFile ( hMapFile, FILE_MAP_READ, 0, dwCurAddr, dwCurPart ) ;
+    if ( lpMapAddr == NULL )
+    {
+      CloseHandle ( hMapFile ) ;
+      CloseHandle ( hFile ) ;
+      return GetLastError() ;
+    }
+
+    dwCurAddr += dwCurPart ;
+
+    TempStr.Format ( "%s.PART_%d", pItem->szFileName, i ) ;
+    DeleteFile ( TempStr ) ;
+    
+    HANDLE hNewFile = CreateFile ( 
+      TempStr,
+      GENERIC_READ|GENERIC_WRITE, 
+      FILE_SHARE_READ|FILE_SHARE_WRITE, 
+      NULL, 
+      CREATE_ALWAYS, 
+      FILE_ATTRIBUTE_NORMAL, 
+      NULL ) ;
+    if ( hFile == INVALID_HANDLE_VALUE )
+      return GetLastError() ;
+      
+    HANDLE hNewMapFile = CreateFileMapping (
+      hNewFile,    
+      NULL, 
+      PAGE_READWRITE, 
+      0, 
+      dwCurPart, 
+      NULL ) ;
+    if ( hNewMapFile == NULL )
+    {
+      CloseHandle ( hNewFile ) ;
+      return GetLastError() ;
+    }
+
+    LPVOID lpNewMapAddr = MapViewOfFile ( hNewMapFile, FILE_MAP_WRITE, 0, 0, 0 ) ;
+    if ( lpMapAddr == NULL )
+    {
+      CloseHandle ( hNewMapFile ) ;
+      CloseHandle ( hNewFile ) ;
+      return GetLastError() ;
+    }
+
+    memcpy ( lpNewMapAddr, lpMapAddr, dwCurPart ) ;
+    
+    UnmapViewOfFile ( lpMapAddr ) ;
+    UnmapViewOfFile ( lpNewMapAddr ) ;
+    CloseHandle ( hNewMapFile ) ;
+    CloseHandle ( hNewFile ) ;
+  }
+
+  CloseHandle ( hMapFile ) ;
+  CloseHandle ( hFile ) ;
+  return 0 ;
+}
+```
+
+#### （3）文件还原部分
+
+```cpp
+DWORD CFD::FDFileConnect  ( PFILE_ITEM_INFO pItem )
+{
+  DeleteFile ( pItem->szFileName ) ;
+
+  // 打开目标文件
+  HANDLE hFile = CreateFile ( 
+    pItem->szFileName,  
+    GENERIC_READ|GENERIC_WRITE, 
+    FILE_SHARE_READ|FILE_SHARE_WRITE, 
+    NULL, 
+    CREATE_ALWAYS, 
+    FILE_ATTRIBUTE_NORMAL, 
+    NULL ) ;
+  if ( hFile == INVALID_HANDLE_VALUE )
+    return GetLastError() ;
+
+  // 创建文件内存映射内核对象
+  HANDLE hMapFile = CreateFileMapping ( 
+    hFile,    
+    NULL, 
+    PAGE_READWRITE, 
+    0, 
+    pItem->dwLowFileSize, 
+    NULL ) ;
+  if ( hMapFile == NULL )
+  {
+    CloseHandle ( hFile ) ;
+    return GetLastError() ;
+  }
+
+  CString TempStr ;
+  DWORD  dwCurAddr = 0, dwCurPart = 0 ;
+  LPVOID lpMapAddr = 0 ;
+
+  // 分块循环映射文件
+  for ( UINT i = 1; i <= pItem->dwPartNum; i++ )
+  {
+    dwCurPart = pItem->dwLowFileSize - dwCurAddr ;
+    if ( dwCurPart > pItem->dwPartSize )
+      dwCurPart = pItem->dwPartSize ;
+
+    lpMapAddr = MapViewOfFile ( hMapFile, FILE_MAP_WRITE, 0, dwCurAddr, dwCurPart ) ;
+    if ( lpMapAddr == NULL )
+    {
+      CloseHandle ( hMapFile ) ;
+      CloseHandle ( hFile ) ;
+      return GetLastError() ;
+    }
+
+    dwCurAddr += dwCurPart ;
+
+    TempStr.Format ( "%s.PART_%d", pItem->szFileName, i ) ;
+    
+    HANDLE hNewFile = CreateFile ( 
+      TempStr,
+      GENERIC_READ, 
+      FILE_SHARE_READ|FILE_SHARE_WRITE, 
+      NULL, 
+      OPEN_EXISTING, 
+      FILE_ATTRIBUTE_NORMAL, 
+      NULL ) ;
+    if ( hFile == INVALID_HANDLE_VALUE )
+    {
+      UnmapViewOfFile ( lpMapAddr ) ;
+      CloseHandle ( hMapFile ) ;
+      CloseHandle ( hFile ) ;
+      return GetLastError() ;
+    }
+      
+    HANDLE hNewMapFile = CreateFileMapping (
+      hNewFile,    
+      NULL, 
+      PAGE_READONLY, 
+      0, 
+      0, 
+      NULL ) ;
+    if ( hNewMapFile == NULL )
+    {  
+      UnmapViewOfFile ( lpMapAddr ) ;
+      CloseHandle ( hMapFile ) ;
+      CloseHandle ( hFile ) ;
+      CloseHandle ( hNewFile ) ;
+      return GetLastError() ;
+    }
+
+    LPVOID lpNewMapAddr = MapViewOfFile ( hNewMapFile, FILE_MAP_READ, 0, 0, 0 ) ;
+    if ( lpMapAddr == NULL )
+    {  
+      UnmapViewOfFile ( lpMapAddr ) ;
+      CloseHandle ( hMapFile ) ;
+      CloseHandle ( hFile ) ;
+      CloseHandle ( hNewMapFile ) ;
+      CloseHandle ( hNewFile ) ;
+      return GetLastError() ;
+    }
+
+    memcpy ( lpMapAddr, lpNewMapAddr, dwCurPart ) ;
+    FlushViewOfFile ( lpMapAddr, dwCurPart ) ;
+
+    UnmapViewOfFile ( lpMapAddr ) ;
+    UnmapViewOfFile ( lpNewMapAddr ) ;
+    CloseHandle ( hNewMapFile ) ;
+    CloseHandle ( hNewFile ) ;
+  }
+
+  CloseHandle ( hMapFile ) ;
+  CloseHandle ( hFile ) ;
+
+  this->DeleteAllPartFiles ( pItem->szFileName ) ;
+
+  return 0 ;
+}
+```
+
+#### （4）性能测试
+
+对于小文件没有测试的必要，这里选个较大的文件作为测试对象。
+
+测试平台信息：`P4 2.26GHz + WinXP sp2 + 256 MB` 内存
+
+测试对象大小：`203 MB`
+
+如果块大小为 `10 MB`, 分割需 6 秒左右，还原（合并）需 7 秒左右
+
+如果块大小为 `1 MB`, 分割需 13 秒左右，还原（合并）需 12 秒左右
+
+## 实例二：共享内存示例
+
+![](img/05078d532a7f819f456f663f38e2c70b.jpg) ![](img/2f06a169cbc2619c877d0b5eacec8632.jpg)
+
+### 1、设计目标
+
+在两个相互独立的进程间通过文件映射对象来分配和访问同一个共享内存块的应用实例。
+
+### 2、设计思路
+
+这个例子比较简单，从写入端进程把信息写到共享内存，然后读取端进程从共享内存中读取信息。
+
+![](img/ebdc5267f984cbfd6983595a42db5e35.jpg)
+
+### 3、详细设计
+
+#### （1）创建共享内存
+
+
+
+```cpp
+void CShareMemDlg::OnSetup() 
+{
+  if ( bSetup )
+  {
+    this->MessageBox ( "已经建立共享内存文件" ) ;
+    return ;
+  }
+
+  hMapFile = CreateFileMapping (
+    INVALID_HANDLE_VALUE,
+    NULL,
+    PAGE_READWRITE | SEC_COMMIT,
+    0,
+    uShareMemSize,
+    "ShareMemSample" ) ;
+  if ( hMapFile == NULL )
+  {
+    this->MessageBox ( "创建共享内存映射文件失败!" ) ;
+    return ;
+  }
+
+  lpBase  = MapViewOfFile ( 
+    hMapFile, 
+    FILE_MAP_READ|FILE_MAP_WRITE,
+    0,
+    0,
+    0 ) ;
+  if ( this->lpBase == NULL )
+  {
+    this->MessageBox ( "创建共享内存映射文件失败!" ) ;
+    return ;
+  }
+
+  this->MessageBox ( "创建内存共享成功!" ) ;
+  bSetup = true ;
+}
+```
+
+（2）从共享内存中读取信息
+
+```cpp
+void CShareMemReadDlg::OnRead() 
+{
+  HANDLE hMapFile = OpenFileMapping ( FILE_MAP_READ, FALSE, "ShareMemSample"); 
+  if ( hMapFile == NULL )
+  {
+    DWORD dwErrorCode = GetLastError () ;
+    this->MessageBox ( "打开共享内存映射文件失败!" ) ;
+    return ;
+  }
+
+  LPVOID lpBase = MapViewOfFile ( 
+    hMapFile, 
+    FILE_MAP_READ,
+    0,
+    0,
+    0 ) ;
+  if ( lpBase == NULL )
+  {
+    DWORD dwErrorCode = GetLastError () ;
+    this->MessageBox ( "打开共享内存映射文件失败!" ) ;
+    return ;
+  }
+
+  char *pReadInfo = (char*)lpBase ;
+  UINT uLength = strlen ( pReadInfo ) ;   
+  
+  memcpy ( this->m_ReadInfo.GetBuffer( uLength + 1 ), lpBase, uLength + 1 ) ;
+  this->UpdateData ( false ) ;
+
+  UnmapViewOfFile ( lpBase ) ;
+  CloseHandle ( hMapFile ) ;
+}
+```
+
+【参考文献】
+
+[1]. Windows 核心编程 Jeffrey Richter 著
+
+【版权声明】必须注明原创于看雪技术论坛(bbs.pediy.com) 及作者，并保持文章的完整性。
+
+4dd466d0e1e0cc123afbe504da2462ca

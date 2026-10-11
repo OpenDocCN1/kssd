@@ -1,0 +1,398 @@
+
+# 内核态调用 `Nt*` 函数
+
+> **原文：** [`www.pediy.com/kssd/pediy09/pediy09-325.htm`](https://www.pediy.com/kssd/pediy09/pediy09-325.htm)
+
+> 我先简单介绍一下 `Nt` 系列函数与 `Zw` 系列函数的区别。以 `ReadFile` 为例，`ntdll.dll` 导出了 `ZwReadFile` 和 `NtReadFile`。以下是反汇编代码：
+
+```
+.text:7C92E27C ; __stdcall NtReadFile(x, x, x, x, x, x, x, x, x)
+
+.text:7C92E27C             public _NtReadFile@36
+
+.text:7C92E27C _NtReadFile@36  proc near               ; CODE XREF: RtlGetSetBootStatusData(x,x,x,x,x,x)+5Fp
+
+.text:7C92E27C                         ; RtlGetSetBootStatusData(x,x,x,x,x,x):loc_7C95170Dp ...
+
+.text:7C92E27C             mov     eax, 0B7h       ; NtReadFile
+
+.text:7C92E281             mov     edx, 7FFE0300h
+
+.text:7C92E286             call    dword ptr [edx]
+
+.text:7C92E288             retn    24h
+
+.text:7C92E288 _NtReadFile@36  endp
+
+.text:7C92E288
+
+.text:7C92E288 ; ---------------------------------------------------------------------------
+
+.text:7C92E28B             db 6 dup(90h)
+
+.text:7C92E291 ; Exported entry 274. NtReadFileScatter
+
+.text:7C92E291 ; Exported entry 1083. ZwReadFileScatter
+
+.text:7C92E291
+```
+
+> 我们可以看到 `ZwReadFile` 和 `NtReadFile` 函数指向同一段代码...
+
+> 也就是说在用户态，不管你调用 `ZwReadFile` 还是 `NtReadFile` 都是一样的，因为他们是同一个函数的两个不同名称而已... 而且他们最终都会调用到 `ntoskrnl` 中的 `NtReadFile` 中去。
+
+> 而 `ntoskrnl.exe` 导出的 `ZwReadFile` 和 `NtReadFile` 却是不同的：
+
+```
+.text:00406508 ; NTSTATUS __stdcall ZwReadFile(HANDLE FileHandle,HANDLE Event,PIO_APC_ROUTINE ApcRoutine,PVOID ApcContext,PIO_STATUS_BLOCK IoStatusBlock,PVOID Buffer,ULONG Length,PLARGE_INTEGER ByteOffset,PULONG Key)
+
+.text:00406508             mov     eax, 0B7h
+
+.text:0040650D             lea     edx, [esp+FileHandle]
+
+.text:00406511             pushf
+
+.text:00406512             push    8
+
+.text:00406514             call    _KiSystemService
+
+.text:00406519             retn    24h
+
+.text:00406519 _ZwReadFile@36  endp
+```
+
+```
+PAGE:004990D8 ; NTSTATUS __stdcall NtReadFile(HANDLE FileHandle,HANDLE Event,PIO_APC_ROUTINE ApcRoutine,PVOID ApcContext,PIO_STATUS_BLOCK IoStatusBlock,PVOID Buffer,ULONG Length,PLARGE_INTEGER ByteOffset,PULONG Key)
+
+PAGE:004990D8             push    68h
+
+PAGE:004990DA             push    offset stru_418748
+
+PAGE:004990DF             call    __SEH_prolog
+
+PAGE:004990E4             xor     esi, esi
+
+PAGE:004990E6             mov     [ebp+var_20], esi
+
+PAGE:004990E9             mov     [ebp+var_34], esi
+
+PAGE:004990EC             mov     [ebp+var_70], esi
+
+PAGE:004990EF             mov     [ebp+var_6C], esi
+
+PAGE:004990F2             mov     eax, large fs:124h
+
+PAGE:004990F8             mov     [ebp+var_58], eax
+
+PAGE:004990FB             mov     al, [eax+140h]
+
+PAGE:00499101             mov     [ebp+WaitMode], al
+
+PAGE:00499104             push    esi                 ; HandleInformation
+
+PAGE:00499105             lea     eax, [ebp+FileObject]
+
+PAGE:00499108             push    eax                 ; Object
+
+PAGE:00499109             push    dword ptr [ebp+WaitMode] ; AccessMode
+
+PAGE:0049910C             push    _IoFileObjectType ; ObjectType
+
+PAGE:00499112             push    1                   ; DesiredAccess
+
+PAGE:00499114             push    [ebp+Handle]    ; Handle
+
+PAGE:00499117             call    _ObReferenceObjectByHandle@24 ; ObReferenceObjectByHandle(x,x,x,x,x,x)
+
+PAGE:0049911C             cmp     eax, esi
+
+PAGE:0049911E             jl      loc_49928C
+
+...
+
+...
+
+...
+```
+
+> `Ntoskrnl` 导出的 `NtReadFile` 是真正的执行函数，而 `ZwReadFile` 仍然是一个 stub 函数。
+
+> 内核态调用 `ZwReadFile` 会将 `Previous Mode` 设置为 `Kernel Mode` 然后再调用到 `NtReadFile` 中，而在内核态直接调用 `NtReadFile` 不会改变 `Previous Mode`。而在 `NtReadFile` 中会检测当前调用来自用户态还是内核态。如果是来自内核态，不会检测参数；而如果是来自用户态，就会做一系列的参数检测。而我们知道，内核组件可能运行在任意进程的上下文中，当它调用 `NtReadFile` 时，因为 `Previous Mode` 很可能是 `User Mode`... 而我们的参数请求的内核态的地址，这时通常会产生 `STATUS_ACCESS_VIOLATION` 错误。
+
+> 所以内核态一般用 `Zw*` 系列的函数。
+
+> 关于 `Nt*` 与 `Zw*` 更为详细的介绍请参考 [Nt vs. Zw - Clearing Confusion On The Native API](http://www.osronline.com/article.cfm?id=257)。
+
+> 那我们为什么还要在内核态直接调用 `Nt*` 函数呢？
+
+> 大家都知道很多杀毒软件 hook 了 `ssdt` 对系统进行监控... 现在比如我们已经进入了 `Ring0`（这个不在本文介绍的范围内），然后想干一些猥琐的事情，那么怎样绕过监控呢？一种方法先恢复被 hook 的 `ssdt`，然后再调用我们要用到的 `Zw*` 函数，不过这种方法不太好，不够隐藏，而且有很多监控程序会定时检测 `ssdt` 表的。
+
+> 那么我们可不可以直接调用 `Nt` 函数呢？如果可以的话，那么监控对我们就失去作用了。
+
+> 直接调用 `Nt*` 函数要解决几个问题。第一个就是 `Nt*` 函数在内存中的地址，只有有了地址我们才能调用啊，而 `ssdt` 表已经被 hook 了，所以我们不能直接从 `ssdt` 中获得，而要从磁盘文件 `ntoskrnl.exe` 中得到它。
+
+> 第二个问题是系统会在 `Nt*` 函数中检查当前线程结构的 `PreviousMode` 来确定调用是来自用户态还是内核态。如果是来自用户态，函数会检测参数地址是否小于 `_MmUserProbeAddress`。如果不是，将会产生一个错误。所以我们的目标就是把 `PreviousMode` 改为 `Kernel Mode`。
+
+> 下面看 `NtReadFile` 的代码：
+
+```
+PAGE:004990D8 ; NTSTATUS __stdcall NtReadFile(HANDLE FileHandle,HANDLE Event,PIO_APC_ROUTINE ApcRoutine,PVOID ApcContext,PIO_STATUS_BLOCK IoStatusBlock,PVOID Buffer,ULONG Length,PLARGE_INTEGER ByteOffset,PULONG Key)
+
+PAGE:004990D8             push    68h
+
+PAGE:004990DA             push    offset stru_418748
+
+PAGE:004990DF             call    __SEH_prolog
+
+PAGE:004990E4             xor     esi, esi
+
+PAGE:004990E6             mov     [ebp+var_20], esi
+
+PAGE:004990E9             mov     [ebp+var_34], esi
+
+PAGE:004990EC             mov     [ebp+var_70], esi
+
+PAGE:004990EF             mov     [ebp+var_6C], esi
+
+PAGE:004990F2             mov     eax, large fs:124h          ;内核态 fs 指向 KPCR
+
+/*                                                        ;fs:120 为 KPRCB
+
+lkd> dt _kprcb
+
+nt!_KPRCB
+
+   +0x000 MinorVersion     : Uint2B
+
+   +0x002 MajorVersion     : Uint2B
+
+   +0x004 CurrentThread    : Ptr32 _KTHREAD                  ;fs:124
+
+   +0x008 NextThread
+
+*/
+
+PAGE:004990F8             mov     [ebp+var_58], eax
+
+PAGE:004990FB             mov     al, [eax+140h]              
+
+
+/*
+lkd> dt _kthread
+nt!_KTHREAD
+
+   +0x000 Header           : _DISPATCHER_HEADER
+
+   +0x010 MutantListHead   : _LIST_ENTRY
+
+   +0x018 InitialStack     : Ptr32 Void
+
+   +0x01c StackLimit       : Ptr32 Void
+
+ ........
++0x140 PreviousMode     : Char                                        ;al =PreviousMode
+ ......................................
+*/
+
+PAGE:00499101             mov     [ebp+WaitMode], al           
+
+PAGE:00499104             push    esi                 ; HandleInformation
+
+PAGE:00499105             lea     eax, [ebp+FileObject]
+
+PAGE:00499108             push    eax                 ; Object
+
+PAGE:00499109             push    dword ptr [ebp+WaitMode] ; AccessMode
+
+PAGE:0049910C             push    _IoFileObjectType ; ObjectType
+
+PAGE:00499112             push    1                   ; DesiredAccess
+
+PAGE:00499114             push    [ebp+Handle]    ; Handle
+
+PAGE:00499117             call    _ObReferenceObjectByHandle@24 ; ObReferenceObjectByHandle(x,x,x,x,x,x)
+
+PAGE:0049911C             cmp     eax, esi
+
+PAGE:0049911E             jl      loc_49928C
+
+PAGE:00499124             mov     ebx, [ebp+FileObject]
+
+PAGE:00499127             push    ebx                 ; FileObject
+
+PAGE:00499128             call    _IoGetRelatedDeviceObject@4 ; IoGetRelatedDeviceObject(x)
+
+PAGE:0049912D             mov     [ebp+var_28], eax
+
+PAGE:00499130             cmp     [ebp+WaitMode], 0             ;如果调用来处内核态
+
+                                                    ;则不作后面的检查
+```
+
+
+
+## 汇编代码分析
+
+以下是部分汇编指令：
+
+```
+PAGE:00499134          jz      loc_4A9553
+PAGE:0049913A          mov     [ebp-4], esi
+PAGE:0049913D          mov     edi, [ebp+IoStatusBlock]
+PAGE:00499140          mov     eax, _MmUserProbeAddress
+PAGE:00499145          cmp     edi, eax
+PAGE:00499147          jnb     loc_50EBDC
+PAGE:0049914D
+PAGE:0049914D loc_49914D:                      ; CODE XREF: NtReadFile(x,x,x,x,x,x,x,x,x)+75B06j
+PAGE:0049914D          mov     eax, [edi]
+PAGE:0049914F          mov     [edi], eax
+PAGE:00499151          mov     eax, [edi+4]
+PAGE:00499154          mov     [edi+4], eax
+...
+```
+
+### `PreviousMode` 与内核调用
+
+我们只要把 `kthread` 中的 `PreviousMode` 值设为 `0` 就可以了。
+
+而 `PreviousMode` 在 `kthread` 中的偏移在各个系统版本中是不一样的，我们可以硬编码之。
+
+也可以在 `NtAdjustPrivilegesToken` 函数中得到这个偏移：
+
+```
+PAGE:004B7BB2 loc_4B7BB2:                      ; CODE XREF: NtAdjustPrivilegesToken(x,x,x,x,x,x)+23j
+PAGE:004B7BB2          mov     eax, large fs:124h
+PAGE:004B7BB8          mov     al, [eax+140h]              ; 这个 140h 就是偏移量
+PAGE:004B7BBE          mov     [ebp+AccessMode], al
+PAGE:004B7BC1          test    al, al
+PAGE:004B7BC3          jz      loc_4B8F67
+```
+
+`MmGetSystemRoutineAddress` 可以得到地址。
+
+如：
+
+```
+RtlInitUnicodeString( &functionName, L"NtReadFile" );
+地址=MmGetSystemRoutineAddress( &functionName );
+```
+
+完全不懂 ![](img/d40b5575a143b1b5e17e7f31e3f35d26.jpg "恐怖!")
+
+`NtReadFile` 是导出函数，直接就可以用。
+
+再加上找到 `Base Address`，自己实现一个 `KGetProcAddress` 貌似也不是难事~
+
+驱动中调用 `NtXX` 函数貌似永远都是 `KernelMode`，怎么也变不成 `UserMode`~
+
+`UserMode` 只有用过 `SysEnter` 上下文切换才有这么回事奥。
+
+反正 `2k3 sp1` 的代码大概是这个意思。
+
+我没有看懂楼主想说什么的哦~~理解能力有限 读了三遍都没有看懂。。。 ![](img/d40b5575a143b1b5e17e7f31e3f35d26.jpg "恐怖!")
+
+![](img/d40b5575a143b1b5e17e7f31e3f35d26.jpg "恐怖!") 可能是我表达的不够清楚 ![](img/d40b5575a143b1b5e17e7f31e3f35d26.jpg "恐怖!") ![](img/d40b5575a143b1b5e17e7f31e3f35d26.jpg "恐怖!") ![](img/d40b5575a143b1b5e17e7f31e3f35d26.jpg "恐怖!")
+
+不过楼上的认识也是有错误的：
+
+> The NtXxxx version of the native system service is the name of the function itself. Thus, when a Kernel Mode component calls the NtXxxx version of the system service, whatever is presently set into previous mode is unchanged. Thus, it is quite possible that the Kernel component could be running on an arbitrary User stack, with the requestor mode set to User. The system service will not know any better, attempt to validate the request parameters, possibly using the credentials of the arbitrary User Mode thread, and thus possibly fail the request. Another problem here is that one step in the validation process for a User Mode request is that all passed in buffers have either ProbeForRead or ProbeForWrite executed on them, depending on the buffer’s usage. These routines raise exceptions if executed on Kernel Mode addresses. Therefore, if you pass in Kernel Mode buffers with your request mode set to User, your calls into the native API return STATUS_ACCESS_VIOLATION.
+
+内核组件是可能运行在任意线程的上下文中的。
+
+在 `Nt*` 函数中会检查 `PreviousMode`，而这个 `PreViousMode` 从哪里来？
+
+看 `Nt*` 函数的代码：
+
+```
+PAGE:004990D8 ; NTSTATUS __stdcall NtReadFile(HANDLE FileHandle,HANDLE Event,PIO_APC_ROUTINE ApcRoutine,PVOID ApcContext,PIO_STATUS_BLOCK IoStatusBlock,PVOID Buffer,ULONG Length,PLARGE_INTEGER ByteOffset,PULONG Key)
+PAGE:004990D8          push    68h
+PAGE:004990DA          push    offset stru_418748
+PAGE:004990DF          call    __SEH_prolog
+PAGE:004990E4          xor     esi, esi
+PAGE:004990E6          mov     [ebp+var_20], esi
+PAGE:004990E9          mov     [ebp+var_34], esi
+PAGE:004990EC          mov     [ebp+var_70], esi
+PAGE:004990EF          mov     [ebp+var_6C], esi
+PAGE:004990F2          mov     eax, large fs:124h      ; 内核态 fs 指向 KPCR
+/*                                  ; fs:120 为 KPRCB
+lkd> dt _kprcb
+nt!_KPRCB
+  +0x000 MinorVersion    : Uint2B
+  +0x002 MajorVersion    : Uint2B
+  +0x004 CurrentThread   : Ptr32 _KTHREAD                 ; fs:124
+  +0x008 NextThread
+*/
+PAGE:004990F8          mov     [ebp+var_58], eax
+PAGE:004990FB          mov     al, [eax+140h]
+/*
+lkd> dt _kthread
+nt!_KTHREAD
+  +0x000 Header          : _DISPATCHER_HEADER
+  +0x010 MutantListHead  : _LIST_ENTRY
+  +0x018 InitialStack    : Ptr32 Void
+  +0x01c StackLimit      : Ptr32 Void
+...
++0x140 PreviousMode    : Char                             ; al = PreviousMode
+*/
+```
+
+我已经注释的很清楚了 `Nt*` 会根据这个 `PreviousMode` 来判断调是否需要参数检查。
+
+而现在的问题就是如果我们调用的是 `Zw*` 函数的话 `Zw*` 函数会把 `PreviousMode` 设置为 `KernelMode`，然后再调用 `Nt*` 函数，因此在 `Nt*` 函数中就不会进行参数检查。而如果我们直接调用 `Nt*` 函数的话 (it is quite possible that the Kernel component could be running on an arbitrary User stack, with the requestor mode set to User)，我们必须自己将 `PreviousMode` 设置为 `KernelMode`，否则 `PreviousMode` 很可能仍然是 `User`，这样的话 `Nt*` 函数就会认为对它的调用来自用户态，从而做一些检查，这时就会产生问题了 (不明白的话,再看一篇那段英文)......因此我们要自己调用 `Nt*` 的话必须先将 `PreviousMode` 设为 `KernelMode`。
+
+![](img/9e827a3de2ad55eed0f95082425861b2.jpg "微笑") 谢谢楼上的回复
+
+对我的表达能力深表抱歉!!!! ![](img/d40b5575a143b1b5e17e7f31e3f35d26.jpg "恐怖!") ![](img/d40b5575a143b1b5e17e7f31e3f35d26.jpg "恐怖!") ![](img/d40b5575a143b1b5e17e7f31e3f35d26.jpg "恐怖!")
+
+楼上如果还有疑问，欢迎与我继续讨论....................:p
+
+### `ZwSetValueKey` 与 `NtSetValueKey`
+
+以下是 `ntdll.dll` 里的 `NtSetValueKey`：
+
+```
+; Exported entry 338. NtSetValueKey
+; Exported entry 1147. ZwSetValueKey
+
+public ZwSetValueKey
+ZwSetValueKey proc near
+mov     eax, 0F7h       ; NtSetValueKey
+mov     edx, 7FFE0300h
+call    dword ptr [edx]
+retn    18h
+ZwSetValueKey endp
+```
+
+在 `ntoskrnl.exe` 未找到 `NtSetValueKey`，但是，你自己想想，`NtSetValueKey` 和 `ZwSetValueKey` 是不是一样的呢？那么，能否在 `ntoskrnl.exe` 里找到？
+
+引用：
+
+> 我们可以看到 `ZwReadFile` 和 `NtReadFile` 函数指向同一段代码.... 也就是说在用户态 不管你调用 `ZwReadFile` 还是 `NtReadFile` 都是一样的 因为他们是同一个函数的两个不同名称而已.... 而且他们最终都会调用到 `ntoskrnl` 中的 `NtReadFile` 中去
+
+再引用：
+
+> 本文说的是 `SSDT hook`,如果有 `inline hook` 的话 的确需要先恢复 `inline hook`. 但是不管有没有什么 `hook` ,如果想直接调用 `Nt*` 的话 还是要先设置 `PreviousMode` 为 `Kernel` 的
+
+再再引用：
+
+> 大家都知道很多杀毒软件 `hook` 了 `ssdt` 对系统进行监控.... 现在比如我们已经进入了 `Ring0`(这个不在本文介绍的范围内) 然后想干一些猥琐的事情 那么怎样绕过监控呢 ? 一种方法先恢复被 `ssdt`
+
+那么，究竟是在哪个模式下呢？
+
+再说，`SSDT hook`，不也是在 `Kernel Mode` 下进行的吗？
+
+以上纯属个人理解,如有不对,请指教...
+
+不过,楼主的意思我倒是不怎么明白...
+
+![](img/d40b5575a143b1b5e17e7f31e3f35d26.jpg "恐怖!")
+
+`ntoskrnl.exe` 中导出了 `ZwSetValueKey` 而没有导出 `NtSetValueKey` ...... 而我们现在想直接调用 `NtSetValueKey`，那么怎么才能得到 `NtSetValueKey` 的地址 ? 从现有的 `SST` 中得到的肯定是错误的(因为被 `ssdt hook` 了啊,正因为这样 所以我们才要直接调用 `Nt*` 函数的啊) 又因为 `NtSetValueKey` 没有导出 所以用 `MmGetSystemRoutineAddress` 的方法也是得不到 `NtSetValueKey` 的地址的 因此应该用以下方法 `ntoskrnl` 导出了符号 `KeServiceDescriptorTable`，通过该符号获取 `SST` 表的实际地址，将该地址的偏移转换为文件偏移，然后去打开硬盘上的 `ntoskrnl.exe` 文件，通过刚才计算的文件偏移来读取原始 `SST` 表，再加上实际装载地址与预装地址的偏差即可
+
+引用：以上纯属个人理解,如有不对,请指教...
+
+请问有在驱动中直接调用过 `Nt*` 函数吗 ? 成功率是多少 ? 至于为什么不成功 我在上面都说过了 ...
+
+光靠个人理解是不行的 为什么不动手试一下呢 ?
+
+4dd466d0e1e0cc123afbe504da2462ca
