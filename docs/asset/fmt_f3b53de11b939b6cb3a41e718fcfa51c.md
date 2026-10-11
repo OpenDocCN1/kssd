@@ -1,0 +1,146 @@
+
+```
+0040B130  $  83EC 10         SUB  ESP,10
+0040B133  |.  8B4424 18      MOV  EAX,DWORD PTR SS:[ESP+18]
+0040B137  |.  55             PUSH EBP
+0040B138  |.  56             PUSH ESI
+0040B139  |.  57             PUSH EDI
+0040B13A  |.  50             PUSH EAX                                   ; /Arg1
+0040B13B  |.  E8 10010000    CALL Geometry.0040B250                       ; \\//在比较前对 hex2 进行运算,还是用 hex2 来表示处理后的 hex2
+0040B140  |.  8A4C24 24      MOV  CL,BYTE PTR SS:[ESP+24]
+0040B144  |.  8BF0           MOV  ESI,EAX
+0040B146  |.  884C24 0C      MOV  BYTE PTR SS:[ESP+C],CL
+0040B14A  |.  8BFE           MOV  EDI,ESI
+0040B14C  |.  83C9 FF        OR   ECX,FFFFFFFF
+0040B14F  |.  33C0           XOR  EAX,EAX
+0040B151  |.  C74424 10 000>MOV  DWORD PTR SS:[ESP+10],0
+0040B159  |.  C74424 14 000>MOV  DWORD PTR SS:[ESP+14],0
+0040B161  |.  C74424 18 000>MOV  DWORD PTR SS:[ESP+18],0
+0040B169  |.  6A 01          PUSH 1
+0040B16B  |.  F2:AE          REPNE SCAS BYTE PTR ES:[EDI]
+0040B16D  |.  F7D1           NOT  ECX
+0040B16F  |.  49             DEC  ECX                                   ;  //计算 hex2 长度
+0040B170  |.  8BE9           MOV  EBP,ECX
+0040B172  |.  8D4C24 10      LEA  ECX,DWORD PTR SS:[ESP+10]
+0040B176  |.  55             PUSH EBP
+0040B177  |.  FF15 ACF44000  CALL DWORD PTR DS:[<&MSVCP60.?_Grow@?$basic_string@D>;  MSVCP60.?_Grow@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAE_NI_N@Z
+0040B17D  |.  84C0           TEST AL,AL
+0040B17F  |.  74 1F          JE   SHORT Geometry.0040B1A0
+0040B181  |.  8B7C24 10      MOV  EDI,DWORD PTR SS:[ESP+10]
+0040B185  |.  8BCD           MOV  ECX,EBP
+0040B187  |.  8BD1           MOV  EDX,ECX
+0040B189  |.  55             PUSH EBP
+0040B18A  |.  C1E9 02        SHR  ECX,2
+0040B18D  |.  F3:A5          REP  MOVS DWORD PTR ES:[EDI],DWORD PTR DS:[ESI]
+0040B18F  |.  8BCA           MOV  ECX,EDX
+0040B191  |.  83E1 03        AND  ECX,3
+0040B194  |.  F3:A4          REP  MOVS BYTE PTR ES:[EDI],BYTE PTR DS:[ESI]
+0040B196  |.  8D4C24 10      LEA  ECX,DWORD PTR SS:[ESP+10]
+0040B19A  |.  FF15 C4F44000  CALL DWORD PTR DS:[<&MSVCP60.?_Eos@?$basic_string@DU>;  MSVCP60.?_Eos@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXI@Z
+0040B1A0  |>  8B7C24 10      MOV  EDI,DWORD PTR SS:[ESP+10]
+0040B1A4  |.  8B35 A8F44000  MOV  ESI,DWORD PTR DS:[<&MSVCP60.?_C@?1??_Nullstr@?$b>;  MSVCP60.?_C@?1??_Nullstr@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@CAPBDXZ@4DB
+0040B1AA  |.  85FF           TEST EDI,EDI
+0040B1AC  |.  74 02          JE   SHORT Geometry.0040B1B0
+0040B1AE  |.  8BF7           MOV  ESI,EDI
+0040B1B0  |>  8B4424 20      MOV  EAX,DWORD PTR SS:[ESP+20]
+0040B1B4  |>  8A10           /MOV  DL,BYTE PTR DS:[EAX]                   ;  //取 hex3[i]
+0040B1B6  |.  8ACA           |MOV  CL,DL
+0040B1B8  |.  3A16          |CMP  DL,BYTE PTR DS:[ESI]                   ;  //hex3[i] == hex2[j] ?
+0040B1BA  |.  75 1C         |JNZ  SHORT Geometry.0040B1D8
+0040B1BC  |.  84C9          |TEST CL,CL
+0040B1BE  |.  74 14         |JE   SHORT Geometry.0040B1D4
+0040B1C0  |.  8A50 01       |MOV  DL,BYTE PTR DS:[EAX+1]                 ;  //取 hex3[i+1]
+0040B1C3  |.  8ACA          |MOV  CL,DL
+0040B1C5  |.  3A56 01       |CMP  DL,BYTE PTR DS:[ESI+1]                 ;  //hex3[i+1] == hex2[j+1] ?
+0040B1C8  |.  75 0E         |JNZ  SHORT Geometry.0040B1D8
+0040B1CA  |.  83C0 02       |ADD  EAX,2                                   ;  //i+=2
+0040B1CD  |.  83C6 02       |ADD  ESI,2                                   ;  //i+=2
+0040B1D0  |.  84C9          |TEST CL,CL
+0040B1D2  |.^ 75 E0         \JNZ  SHORT Geometry.0040B1B4
+```
+
+这里的比较是比较典型的按照每个字节来对比。要注意的是，比较前对 `hex2` 进行过一些运算处理，就在 `0040B13B` `CALL 0040B250` 处，下面跟入这个算法 `CALL`：
+
+```
+0040B250  $  8B5424 04      MOV  EDX,DWORD PTR SS:[ESP+4]
+0040B254  |.  81EC 08020000 SUB  ESP,208
+0040B25A  |.  33C0           XOR  EAX,EAX
+0040B25C  |.  53             PUSH EBX
+0040B25D  |.  55             PUSH EBP
+0040B25E  |.  56             PUSH ESI
+0040B25F  |.  8BD9           MOV  EBX,ECX
+0040B261  |.  57             PUSH EDI
+0040B262  |.  8BFA           MOV  EDI,EDX
+0040B264  |.  83C9 FF        OR   ECX,FFFFFFFF
+0040B267  |.  52             PUSH EDX                                   ; /<%s>
+0040B268  |.  F2:AE          REPNE SCAS BYTE PTR ES:[EDI]               ; |
+0040B26A  |.  F7D1           NOT  ECX                                    ; |
+0040B26C  |.  8D8424 1C0100>LEA  EAX,DWORD PTR SS:[ESP+11C]             ; |
+0040B273  |.  49             DEC  ECX                                    ; |
+0040B274  |.  68 64644100    PUSH Geometry.00416464                     ; |%s
+0040B279  |.  50             PUSH EAX                                    ; |s
+0040B27A  |.  8BF9           MOV  EDI,ECX                                 ; |
+0040B27C  |.  FF15 7CF54000  CALL DWORD PTR DS:[<&USER32.wsprintfA>]      ; \wsprintfA
+0040B282  |.  83C4 0C        ADD  ESP,0C
+0040B285  |.  33F6           XOR  ESI,ESI
+0040B287  |.  85FF           TEST EDI,EDI
+0040B289  |.  7E 35          JLE  SHORT Geometry.0040B2C0
+0040B28B  |.  8B2D 18F54000 MOV  EBP,DWORD PTR DS:[<&MSVCRT.div>]       ;  msvcrt.ldiv
+0040B291  |>  0FBE8C34 1801>/MOVSX ECX,BYTE PTR SS:[ESP+ESI+118]
+0040B299  |.  68 C3000000   |PUSH 0C3                                    ; /Arg3 = 000000C3
+0040B29E  |.  6A 05         |PUSH 5                                      ; |Arg2 = 00000005
+0040B2A0  |.  51           |PUSH ECX                                    ; |Arg1
+0040B2A1  |.  8BCB          |MOV  ECX,EBX                                 ; |
+0040B2A3  |.  E8 08020000   |CALL Geometry.0040B4B0                      ; \Geometry.0040B4B0
+0040B2A8  |.  68 C3000000   |PUSH 0C3
+0040B2AD  |.  50           |PUSH EAX
+0040B2AE  |.  FFD5          |CALL EBP
+0040B2B0  |.  83C4 08       |ADD  ESP,8
+0040B2B3  |.  885434 18     |MOV  BYTE PTR SS:[ESP+ESI+18],DL
+0040B2B7  |.  46           |INC  ESI
+0040B2B8  |.  894424 10     |MOV  DWORD PTR SS:[ESP+10],EAX
+0040B2BC  |.  3BF7          |CMP  ESI,EDI
+0040B2BE  |.^ 7C D1         \JL  SHORT Geometry.0040B291
+```
+
+是不是很熟悉呢，对，这就是机器码 `hex3` 的生成算法，但是细心一点就会发现其实有一个地方是不同的，就是 `0040B29E` `PSUH 5`。在 `hex3` 生成算法中的参数是 `push 65h` 的。
+
+好，整个注册过程的算法分析就到此为止了，整个算法就是让我们来求 `hex2` 的数据，好，下面开始写注册机。
+
+### 注册机编写
+
+因为小弟喜欢 `WIN32` 的汇编编程，因此，再此我提供的是 `asm` 版的注册机。代码结合上面的分析应该是挺好理解的，汗～
+
+首先是确定需要的函数：
+
+1. 机器码 `hex3` 的生成函数 `EncryptSerial`。
+2. 上面说道了在注册信息比较前会对 `hex2` 进行运算处理，而这个算法跟 `hex3` 的生成算法发很类似，出了那个参数，因此定义一个通用的加密函数 `MainEncrypt`。
+3. 地址为 `0040B4B0` 的里循环除法求余数的函数 `CycleDiv`。
+
+`EncryptSerial` 调用 `MainEncrypt`，`MainEncrypt` 调用 `CycleDiv`
+
+现在要做的是 `hex3=MainEncrypt(string,65)` = `MainEncrpyt(hex2,5)`，如果是输入的参数都是 `65` 或 `5` 的话，两个加密过程就是等价的，因此 `hex2=string` 即可，现在是不等，其实是不能够否定他们现在是不等价的（在后面会说到其实他们是等价的）。
+
+现在提供的是一个非常笨的方法：
+
+4. 现在就假设不等价，既然能够让每台机都能够注册，那么肯定存在某些字节值经过运算后能与 `string` 的每个字节数据经过加密的数据对应相同（即同 `hex3` 某对应的字节的值相等），一个字节的范围 `1----0ffh`,通过循环查找即可，所以需要一个循环查找函数，生成原始的 `hex2` 数据的，`GenerateSerial`
+
+这真的是比较笨的方法，用循环对每个值运算一次找相同的。幸好加密的数据是字节为单位，范围是 `1---0ffh`，很快就能够找到的。
+
+`注册机源代码已经作为附件贴上`
+
+### 注册算法的本质
+
+上面是直观的角度去写注册算法，比较繁琐，下面来通过试验来探讨注册加密过程的本质。
+
+其实当时看到 `hex2` 和 `string` 的处理函数非常相似的时候（不同之处在前面已经讲过了），就怀疑他们是否等价的，如果全值等价（或者在 `string` 每个字节所在的范围等价），那么 `hex2` 的数据就非常简单了，`hex2=string` 即可。
+
+首先在前面的分析中我们就知道，`string` 是通过调用 `GetVolumeInformation` 获取 `VolumeSerialNumber` 这是一个 `dword` 型数据，做了 `xor` 运算后还是 `dword` 型数据，因此它包括 `00000000------ffffffff`，因此通过`"%x"`的格式转化为字符串的话，`string` 每个字符范围是以下字符串：`"1234567890abcdef"`中的一个，并且 `string` 的长度已经确定，为 `8` 这个字符。
+
+现在就来验证它们的过程是否等价，如果等价的相同，也很简单，对记 `stemp="1234567890abcdef"` 使用两种加密过程对其进行加密，如果得到的数据相同，就表明在这些字符中，两个加密过程是等价的，也就 `hex2=string`。在前面已经写了一个 `hex3` 的生成函数 `MainEncrypt`，然后做如下调用：`MainEncrypt(string,65)`和 `MainEncrpyt(hex2,5)`。
+
+最后，你会发现实际上，加密后的数据是一样的，也就表明了它们是等价的。
+
+也就是说整个注册的算法的本质只是需要得到 `string`，而 `string` 的获取仅仅是调用一个 API 函数，异或了一下
+
+到这里才发现自己在上面写的注册机里，根本没必要对 `string` 进行加密运算，真的是给软件的作者甩了一圈，汗~，在此也不对注册机做优化了，这就留给大家了吧

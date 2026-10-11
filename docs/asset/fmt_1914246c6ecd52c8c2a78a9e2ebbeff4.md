@@ -1,0 +1,167 @@
+
+# 黄河 Flash 播放器算法分析
+
+> 原文：[`www.pediy.com/kssd/pediy11/109322.html`](https://www.pediy.com/kssd/pediy11/109322.html)
+
+想了想，还是发到这个版块来了，如果不合适，就辛苦版主了。因为这软件很久不更新了，难度也不是很大，适合初学者练手，嘿嘿。
+
+【文章标题】: 黄河 Flash 播放器算法分析
+
+【文章作者】: `gtboy`
+
+【作者邮箱】: `lywbff@163.com`
+
+【软件名称】: 黄河 Flash 播放器
+
+【下载地址】: 自己搜索下吧,很久不更新了
+
+【保护方式】: `Aspack`，`SN`
+
+【使用工具】: `od`
+
+【操作平台】: `xp sp3`
+
+【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
+
+--------------------------------------------------------------------------------
+
+【详细过程】
+
+一款 08 年的软件，作者已经不更新了。`flash` 现在随便一个播放器就可以搞定，可能这是作者退出的原因吧。在 `pyg` 上看到有个 `SMC` 教程用这个软件做例子，就下载下来分析下。
+
+软件是明码比较，可以很容易做内存注册机，为了锻炼下自己，跟进算法 `call` 分析
+
+软件用 `aspack` 加壳，`esp` 定律到入口，看样子是个 `Delphi` 的程序。超级字串参考，查找注册，有注册成功和注册失败，双击来到关键点。大家要写程序的时候一定要隐藏信息啊。
+
+```
+引用: 004BBB88    50                PUSH EAX
+ 004BBB89    8D55 F0           LEA EDX,DWORD PTR SS:[EBP-10]
+ 004BBB8C    8B83 FC020000     MOV EAX,DWORD PTR DS:[EBX+2FC]
+ 004BBB92    E8 2D41F8FF       CALL 0043FCC4
+ 004BBB97    8B45 F0           MOV EAX,DWORD PTR SS:[EBP-10]            ; eax 中为 id
+ 004BBB9A    8D55 F4           LEA EDX,DWORD PTR SS:[EBP-C]             ; edx 中为假码
+ 004BBB9D    E8 1ADFFFFF       CALL 004B9ABC                             ; 算法 call
+ 004BBBA2    8B55 F4           MOV EDX,DWORD PTR SS:[EBP-C]             ; edx 为真码
+ 004BBBA5    58                POP EAX                                   ; eax 为假码
+ 004BBBA6    E8 3D91F4FF       CALL 00404CE8                             ; 比较 call
+ 004BBBAB    75 34             JNZ SHORT 004BBBE1                       ; 关键跳
+ 004BBBAD    B8 40BC4B00       MOV EAX,004BBC40                          ; 注册成功！
+ 004BBBB2    E8 51CFF7FF       CALL 00438B08
+ 004BBBB7    8D55 E8           LEA EDX,DWORD PTR SS:[EBP-18]
+ 004BBBBA    8B83 04030000     MOV EAX,DWORD PTR DS:[EBX+304]
+ 004BBBC0    E8 FF40F8FF       CALL 0043FCC4
+ 004BBBC5    8B45 E8           MOV EAX,DWORD PTR SS:[EBP-18]
+ 004BBBC8    8D55 EC           LEA EDX,DWORD PTR SS:[EBP-14]
+ 004BBBCB    E8 88D1F4FF       CALL 00408D58
+ 004BBBD0    8B45 EC           MOV EAX,DWORD PTR SS:[EBP-14]
+ 004BBBD3    E8 6CFEFFFF       CALL 004BBA44
+ 004BBBD8    8BC3              MOV EAX,EBX
+ 004BBBDA    E8 9D0AFAFF       CALL 0045C67C
+ 004BBBDF    EB 0A             JMP SHORT 004BBBEB
+ 004BBBE1    B8 54BC4B00       MOV EAX,004BBC54                          ; 注册号不对!
+ 004BBBE6    E8 1DCFF7FF       CALL 00438B08
+ 004BBBEB    33C0              XOR EAX,EAX
+```
+
+至于明码比较这个问题就不说了，现在的国产软件已经很少了，可喜可贺。因为是没脱壳分析，我是在 `004BBB9D` 算法 `call` 这行设置了硬件执行断点，方便下次调试。运行程序，注册，软件提示识别号 `ID214592083`，输入假码，确定，断在硬件断点上。
+
+`F7` 进入 `004BBB9D` `E8 1ADFFFFF` `CALL 004B9ABC` 开始分析。
+
+```
+引用: 004B9ABC    55                PUSH EBP
+ 004B9ABD    8BEC              MOV EBP,ESP
+ 004B9ABF    83C4 F0           ADD ESP,-10
+ 004B9AC2    53                PUSH EBX
+ 004B9AC3    56                PUSH ESI
+ 004B9AC4    57                PUSH EDI
+ 004B9AC5    33C9              XOR ECX,ECX
+ 004B9AC7    894D F0           MOV DWORD PTR SS:[EBP-10],ECX            ; 改写堆栈中的 id 为 0
+ 004B9ACA    8BFA              MOV EDI,EDX
+ 004B9ACC    8945 FC           MOV DWORD PTR SS:[EBP-4],EAX
+ 004B9ACF    8B45 FC           MOV EAX,DWORD PTR SS:[EBP-4]
+ 004B9AD2    E8 B5B2F4FF       CALL 00404D8C
+ 004B9AD7    33C0              XOR EAX,EAX
+ 004B9AD9    55                PUSH EBP
+ 004B9ADA    68 BF9B4B00       PUSH 004B9BBF
+ 004B9ADF    64:FF30           PUSH DWORD PTR FS:[EAX]
+ 004B9AE2    64:8920           MOV DWORD PTR FS:[EAX],ESP
+ 004B9AE5    8BC7              MOV EAX,EDI
+ 004B9AE7    E8 00AEF4FF       CALL 004048EC
+ 004B9AEC    8D45 FC           LEA EAX,DWORD PTR SS:[EBP-4]
+ 004B9AEF    BA D89B4B00       MOV EDX,004B9BD8
+ 004B9AF4    E8 B3B0F4FF       CALL 00404BAC
+ 004B9AF9    8B45 FC           MOV EAX,DWORD PTR SS:[EBP-4]
+ 004B9AFC    0FB630            MOVZX ESI,BYTE PTR DS:[EAX]
+ 004B9AFF    66:6BC6 64        IMUL AX,SI,64
+ 004B9B03    66:8945 F8        MOV WORD PTR SS:[EBP-8],AX
+ 004B9B07    8BC6              MOV EAX,ESI
+ 004B9B09    C1E0 09           SHL EAX,9
+ 004B9B0C    66:8945 F6        MOV WORD PTR SS:[EBP-A],AX
+ 004B9B10    B3 01             MOV BL,1                                 ; 由 I 生成 1C84 9200
+ 004B9B12    8B45 FC           MOV EAX,DWORD PTR SS:[EBP-4]
+ 004B9B15    E8 8AB0F4FF       CALL 00404BA4
+ 004B9B1A    50                PUSH EAX
+ 004B9B1B    33C0              XOR EAX,EAX
+ 004B9B1D    8AC3              MOV AL,BL                                ; BL 循环位数 i
+ 004B9B1F    5A                POP EDX
+ 004B9B20    8BCA              MOV ECX,EDX
+ 004B9B22    99                CDQ
+ 004B9B23    F7F9              IDIV ECX
+ 004B9B25    8B45 FC           MOV EAX,DWORD PTR SS:[EBP-4]
+ 004B9B28    8A0410            MOV AL,BYTE PTR DS:[EAX+EDX]            ; 从 D 开始依次取识别码的值给 al
+ 004B9B2B    0FB7D6            MOVZX EDX,SI                             ; key=si，初始值为 49
+ 004B9B2E    C1EA 08           SHR EDX,8                                ; key 右移 8 位
+ 004B9B31    32C2              XOR AL,DL                                ; j=AL xor key
+ 004B9B33    33D2              XOR EDX,EDX
+ 004B9B35    8AD3              MOV DL,BL
+ 004B9B37    B9 E49B4B00       MOV ECX,004B9BE4                         ; qwert yuiop asdfg hjkl zxcvbnm
+ 004B9B3C    324411 FF         XOR AL,BYTE PTR DS:[ECX+EDX-1]           ; 和第 i 位异或
+ 004B9B40    50                PUSH EAX
+ 004B9B41    8B45 FC           MOV EAX,DWORD PTR SS:[EBP-4]
+ 004B9B44    E8 5BB0F4FF       CALL 00404BA4
+ 004B9B49    5A                POP EDX
+ 004B9B4A    02D0              ADD DL,AL                                ; j+=id 的位数+1
+ 004B9B4C    8855 FB           MOV BYTE PTR SS:[EBP-5],DL
+ 004B9B4F    33C0              XOR EAX,EAX
+ 004B9B51    8A45 FB           MOV AL,BYTE PTR SS:[EBP-5]
+ 004B9B54    B9 3E000000       MOV ECX,3E
+ 004B9B59    99                CDQ
+ 004B9B5A    F7F9              IDIV ECX                                 ; j=对 3E 求余
+ 004B9B5C    42                INC EDX                                  ; +1 后面-1，不予理会
+ 004B9B5D    8855 FB           MOV BYTE PTR SS:[EBP-5],DL
+ 004B9B60    8D45 F0           LEA EAX,DWORD PTR SS:[EBP-10]
+ 004B9B63    33D2              XOR EDX,EDX
+ 004B9B65    8A55 FB           MOV DL,BYTE PTR SS:[EBP-5]
+ 004B9B68    B9 0C9C4B00       MOV ECX,004B9C0C                         ; 0123456789abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz
+ 004B9B6D    8A5411 FF         MOV DL,BYTE PTR DS:[ECX+EDX-1]           ; 第 j 位依次组成注册码
+ 004B9B71    E8 56AFF4FF       CALL 00404ACC
+ 004B9B76    8B55 F0           MOV EDX,DWORD PTR SS:[EBP-10]
+ 004B9B79    8BC7              MOV EAX,EDI
+ 004B9B7B    E8 2CB0F4FF       CALL 00404BAC
+ 004B9B80    33C0              XOR EAX,EAX
+ 004B9B82    8AC3              MOV AL,BL                                ; 位数传给 al
+ 004B9B84    8B17              MOV EDX,DWORD PTR DS:[EDI]
+ 004B9B86    0FB64402 FF       MOVZX EAX,BYTE PTR DS:[EDX+EAX-1]        ; si 初始值为 49，即 I 的 ASCII
+ 004B9B8B    66:03F0           ADD SI,AX                                ; si+注册码第 i 位
+ 004B9B8E    66:0FAF75 F8      IMUL SI,WORD PTR SS:[EBP-8]             ; si*1C84
+ 004B9B93    66:0375 F6        ADD SI,WORD PTR SS:[EBP-A]              ; si+9200
+ 004B9B97    43                INC EBX                                  ; ebx 做循环计数
+ 004B9B98    80FB 1F           CMP BL,1F
+ 004B9B9B    0F85 71FFFFFF     JNZ 004B9B12                             ; 循环 30 次
+```
+
+算法不是很复杂，不知是编译器优化还是自己修改了，或者是我功力不行，初看的时候感觉挺难懂的，总算堆栈中来回窜，就想跟踪每个变量，累而且看不懂。注释也乱七八糟的，后来多看了几遍，就明白了。我的理解不是做地址用，而是用了 `bl` 做循环变量，`al`，`dl`，`si` 等，都只用了低位寄存器。
+
+写个 `c` 代码，我的编程很烂很不规范。不算是通用的 `keygen`，算法上的确是不行的。
+
+因为 `sn` 是 30 位的，所以 `ID` 第一次从 `D` 开始取完后多加个 `0x1` 然后继续 `ID`，凑够 30 位。`shift+F2` 断点很有用，当然用 `F2` 也可以完成分析工作。
+
+考虑了一会，这个 `ID` 不会用 `c` 语言构造，只好用 `ue` 生成 `ID` 进行验证，但是只有前
+
+```
+引用: #include <iostream.h>
+
+void main()
+{
+  char xor[]="Qwert yuiop asdfg hjkl zxcvbnm";
+```
