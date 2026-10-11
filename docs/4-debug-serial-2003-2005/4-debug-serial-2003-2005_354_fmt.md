@@ -1,0 +1,514 @@
+
+# 斗地主 4.0
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50085.htm`](https://www.pediy.com/kssd/pediy05/pediy50085.htm)
+
+斗地主 4.0 注册算法分析
+
+```asm
+\====================================================================================
+
+004991B1                call    rtcRandomNext
+004991B7                fmul    dbl_403920
+004991BD                call    __vbaFpI4
+004991C3                mov     dword_4D1030, eax               ;随机数 R1
+004991C8                lea     ecx, [ebp-98h]
+004991CE                call    __vbaFreeVar
+004991D4                mov     dword ptr [ebp-4], 0Eh
+004991DB                mov     dword ptr [ebp-90h], 80020004h
+004991E5                mov     dword ptr [ebp-98h], 0Ah
+004991EF                lea     ecx, [ebp-98h]
+004991F5                push    ecx
+004991F6                call    rtcRandomize
+004991FC                lea     ecx, [ebp-98h]
+00499202                call    __vbaFreeVar
+00499208                mov     dword ptr [ebp-4], 0Fh
+0049920F                mov     dword ptr [ebp-90h], 3
+00499219                mov     dword ptr [ebp-98h], 2
+00499223                lea     edx, [ebp-98h]
+00499229                push    edx
+0049922A                call    rtcRandomNext
+00499230                fmul    dbl_403920
+00499236                call    __vbaFpI4
+0049923C                mov     dword_4D1044, eax               ;随机数 R2
+00499241                lea     ecx, [ebp-98h]
+00499247                call    __vbaFreeVar
+0049924D                mov     dword ptr [ebp-4], 10h
+00499254                mov     eax, dword_4D1030
+00499259                xor     eax, 9DB7h
+0049925E                mov     dword_4D11EC, eax               ;R3=R1 xor 9DB7h
+00499263                mov     dword ptr [ebp-4], 11h
+0049926A                mov     ecx, dword_4D1044
+00499270                xor     ecx, 10A7Bh
+00499276                mov     dword_4D10D8, ecx               ;R4=R2 xor 10A7Bh
+
+\====================================================================================
+
+004BD57B                lea     ecx, [ebp-54h]
+004BD57E                push    ecx
+004BD57F                push    4
+004BD581                lea     edx, [ebp-74h]
+004BD584                push    edx
+004BD585                lea     eax, [ebp-64h]
+004BD588                push    eax
+004BD589                mov     dword ptr [ebp-4Ch], 5
+004BD590                mov     dword ptr [ebp-54h], 2
+004BD597                mov     [ebp-6Ch], edi
+004BD59A                mov     dword ptr [ebp-74h], 4008h
+004BD5A1                call    rtcMidCharVar
+004BD5A7                lea     ecx, [ebp-64h]                 ;str1=机器码第 4 到 8 组成的 5 位字符串
+004BD5AA                push    ecx
+004BD5AB                lea     edx, [ebp-18h]
+004BD5AE                push    edx
+004BD5AF                call    __vbaStrVarVal
+004BD5B5                push    eax                              ;str1
+004BD5B6                call    sub_4A8290                       ;H1 = invoke sub_4A8290 ,str1
+004BD5BB                mov     ecx, dword_4D1030                ;R1
+004BD5C1                xor     ecx, dword_4D11EC                ;ecx=R1 xor R3 = 9DB7h
+004BD5C7                push    ecx                                ;9DB7h
+004BD5C8                push    eax                                ;H1
+004BD5C9                call    sub_4A83F0                       ;X1 = invoke sub_4A83F0 ,H1,9DB7h
+004BD5CE                mov     edx, [esi+48h]
+004BD5D1                push    edx
+004BD5D2                push    eax                                ;X1
+004BD5D3                call    sub_4A83F0
+004BD5D8                lea     ecx, [ebp-18h]
+004BD5DB                mov     [esi+34h], eax                   ;A1 = invoke sub_4A83F0 ,X1,[esi+48h]
+
+\====================================================================================
+
+004BDE78                lea     eax, [ebp-2Ch]
+004BDE7B                push    eax
+004BDE7C                lea     ecx, [ebp-3Ch]
+004BDE7F                push    ecx
+004BDE80                mov     dword ptr [ebp-2Ch], 9
+004BDE87                call    edi ; rtcTrimVar
+004BDE89                mov     edx, [esi+44h]
+004BDE8C                push    5
+004BDE8E                lea     eax, [ebp-0BCh]
+004BDE94                push    eax
+004BDE95                lea     ecx, [ebp-3Ch]                  ;注册名
+004BDE98                mov     [ebp-0B4h], edx
+004BDE9E                push    ecx
+004BDE9F                lea     edx, [ebp-4Ch]                  ;机器码的右 3 位
+004BDEA2                push    edx
+004BDEA3                mov     dword ptr [ebp-0BCh], 8
+004BDEAD                call    __vbaVarCat                      ;str0＝机器码的右 3 位 + 注册名
+004BDEB3                push    eax
+004BDEB4                lea     eax, [ebp-5Ch]
+004BDEB7                push    eax
+004BDEB8                call    rtcRightCharVar
+004BDEBE                lea     ecx, [ebp-5Ch]                  ;str2=str0 的右 5 位
+004BDEC1                push    ecx
+004BDEC2                lea     edx, [ebp-18h]
+004BDEC5                push    edx
+004BDEC6                call    __vbaStrVarVal
+004BDECC                push    eax                              ;str2
+004BDECD                call    sub_4A8290                      ;H2 = invoke sub_4A8290 ,str2
+004BDED2                mov     ecx, dword_4D1044               ;R2
+004BDED8                xor     ecx, dword_4D10D8               ;ecx=R2 xor R4 = 10A7Bh
+004BDEDE                push    ecx                               ;10A7Bh
+004BDEDF                push    eax                               ;H2
+004BDEE0                call    sub_4A83F0                      ;X2 = invoke sub_4A83F0 ,H2,10A7Bh
+004BDEE5                mov     edx, [esi+4Ch]
+004BDEE8                push    edx
+004BDEE9                push    eax                               ;X2
+004BDEEA                call    sub_4A83F0
+004BDEEF                lea     ecx, [ebp-18h]
+004BDEF2                mov     [esi+38h], eax                  ;A2 = invoke sub_4A83F0 ,X2,[esi+4Ch]
+
+\====================================================================================
+
+004BD9B2                lea     edx, [ebp-28h]
+004BD9B5                mov     [ebp-20h], eax
+004BD9B8                push    edx
+004BD9B9                lea     eax, [ebp-38h]
+004BD9BC                push    eax
+004BD9BD                mov     dword ptr [ebp-28h], 9
+004BD9C4                call    edi ; rtcTrimVar
+004BD9C6                push    5
+004BD9C8                lea     ecx, [ebp-38h]                   ;SN = 输入的注册码
+004BD9CB                push    ecx
+004BD9CC                lea     edx, [ebp-48h]
+004BD9CF                push    edx
+004BD9D0                call    rtcLeftCharVar
+004BD9D6                mov     eax, [esi+48h]
+004BD9D9                push    eax
+004BD9DA                lea     ecx, [ebp-48h]                   ;snl5 = SN 的前 5 位
+004BD9DD                push    ecx
+004BD9DE                call    __vbaI4ErrVar
+004BD9E4                push    eax                               ;Y1 = hex(snl5)
+004BD9E5                call    sub_4A83F0
+004BD9EA                lea     edx, [ebp-48h]
+004BD9ED                push    edx
+004BD9EE                mov     [esi+3Ch], eax                   ;B1 = invoke sub_4A83F0 ,Y1,[esi+48h]
+
+\====================================================================================
+
+004BDAE5                lea     ecx, [ebp-28h]
+004BDAE8                push    ecx
+004BDAE9                lea     edx, [ebp-38h]
+```
+
+
+
+### 004BDAEC
+
+```
+004BDAEC               push   edx
+004BDAED               mov    [ebp-20h], eax
+004BDAF0               mov    dword ptr [ebp-28h], 9
+004BDAF7               call   edi ; rtcTrimVar
+004BDAF9               push   5
+004BDAFB               lea    eax, [ebp-38h]      ;SN = 输入的注册码
+004BDAFE               push   eax
+004BDAFF               lea    ecx, [ebp-48h]
+004BDB02               push   ecx
+004BDB03               call   rtcRightCharVar
+004BDB09               mov    edx, [esi+4Ch]
+004BDB0C               push   edx
+004BDB0D               lea    eax, [ebp-48h]      ;snr5 = SN 的后 5 位
+004BDB10               push   eax
+004BDB11               call   __vbaI4ErrVar
+004BDB17               push   eax      ;Y2 = hex(snr5)
+004BDB18               call   sub_4A83F0      ;
+004BDB1D               lea    ecx, [ebp-48h]
+004BDB20               push   ecx
+004BDB21               lea    edx, [ebp-48h]
+004BDB24               push   edx
+004BDB25               mov    [esi+40h], eax      ;B2 = invoke sub_4A83F0 ,Y2,[esi+4Ch]
+```
+
+====================================================================================
+
+### 004BCAAC
+
+```
+004BCAAC               mov    eax, [esi+3Ch]
+004BCAAF               mov    ecx, [esi+40h]
+004BCAB2               mov    edx, dword_4D1030
+004BCAB8               add    esp, 1Ch
+004BCABB               mov    [ebp-0C4h], eax
+004BCAC1               mov    [ebp-0C8h], ecx
+004BCAC7               push   edx      ;R1
+004BCAC8               push   eax      ;B1
+004BCAC9               call   sub_4A83F0      ;
+004BCACE               mov    ecx, [ebp-0C8h]
+004BCAD4               mov    [esi+3Ch], eax      ;N1 = invoke sub_4A83F0 ,B1,R1
+004BCAD7               mov    eax, dword_4D1044
+004BCADC               push   eax      ;R2
+004BCADD               push   ecx      ;B2
+004BCADE               call   sub_4A83F0      ;
+004BCAE3               mov    [esi+40h], eax      ;N2 = invoke sub_4A83F0 ,B2,R2
+004BCAE6               call   rtcGetTimer
+004BCAEC               fsub   dword ptr [esi+50h]
+004BCAEF               fcomp  flt_403914
+004BCAF5               fnstsw ax
+004BCAF7               test   ah, 41h
+004BCAFA               jnz    short loc_4BCB52
+004BCAFC               cmp    dword_4D1F98, edi
+004BCB02               jnz    short loc_4BCB14
+004BCB04               push   offset dword_4D1F98
+004BCB09               push   offset dword_416764
+004BCB0E               call   __vbaNew2
+004BCB14
+004BCB14 loc_4BCB14:
+004BCB14               mov    edi, dword_4D1F98
+004BCB1A               mov    ebx, [edi]
+004BCB1C               push   esi
+004BCB1D               lea    edx, [ebp-34h]
+004BCB20               push   edx
+004BCB21               call   __vbaObjSetAddref
+004BCB27               push   eax
+004BCB28               push   edi
+004BCB29               call   dword ptr [ebx+10h]
+004BCB2C               fnclex
+004BCB2E               test   eax, eax
+004BCB30               jge    short loc_4BCB41
+004BCB32               push   10h
+004BCB34               push   offset dword_416754
+004BCB39               push   edi
+004BCB3A               push   eax
+004BCB3B               call   __vbaHresultCheckObj
+004BCB41
+004BCB41 loc_4BCB41:
+004BCB41               lea    ecx, [ebp-34h]
+004BCB44               call   __vbaFreeObj
+004BCB4A               mov    ebx, __vbaStrMove
+004BCB50               xor    edi, edi
+004BCB52
+004BCB52 loc_4BCB52:
+004BCB52               mov    eax, [esi+40h]
+004BCB55               mov    ecx, [esi+3Ch]
+004BCB58               mov    edx, [esi+38h]
+004BCB5B               push   eax      ;arg_C = N2
+004BCB5C               mov    eax, [esi+34h]
+004BCB5F               push   ecx      ;arg_8 = N1
+004BCB60               push   edx      ;arg_4 = A2
+004BCB61               push   eax      ;arg_0 = A1
+004BCB62               call   sub_4A8060      ;这个 call 是比较的核心
+004BCB67               test   ax, ax      ;返回 ax=0 则注册失败
+004BCB6A               jz     loc_4BCDC4
+```
+
+====================================================================================
+
+### 004A8060
+
+```
+004A8060               push   ebp
+004A8061               mov    ebp, esp
+004A8063               sub    esp, 8
+004A8066               push   offset loc_404806
+004A806B               mov    eax, large fs0
+004A8071               push   eax
+004A8072               mov    large fs0, esp
+004A8079               sub    esp, 34h
+004A807C               push   ebx
+004A807D               push   esi
+004A807E               push   edi
+004A807F               mov    [ebp+var_8], esp
+004A8082               mov    [ebp+var_4], offset dword_403928
+004A8089               mov    ecx, [ebp+arg_0]      ;A1
+004A808C               xor    eax, eax
+004A808E               mov    [ebp+var_2C], eax
+004A8091               mov    [ebp+var_40], eax
+004A8094               mov    [ebp+var_1C], eax
+004A8097               mov    eax, dword_4D1030      ;R1
+004A809C               push   eax      ;R1
+004A809D               push   ecx      ;A1
+004A809E               call   sub_4A83F0      ;
+004A80A3               mov    edx, dword_4D1044      ;R2
+004A80A9               mov    [ebp+arg_0], eax      ;M1 = invoke sub_4A83F0 ,A1,R1
+004A80AC               mov    eax, [ebp+arg_4]      ;A2
+004A80AF               push   edx      ;R2
+004A80B0               push   eax      ;A2
+004A80B1               call   sub_4A83F0      ;
+004A80B6               mov    ecx, [ebp+arg_0]      ;M1
+004A80B9               mov    edx, [ebp+arg_8]      ;N1
+004A80BC               add    edx, ecx      ;M1+N1
+004A80BE               add    ecx, ecx      ;M1+M1
+004A80C0               cmp    ecx, edx      ;M1+N1 =? M1+M1 等效为 N1 =? M1
+004A80C2               mov    [ebp+arg_4], eax      ;M2 = invoke sub_4A83F0 ,A2,R2
+004A80C5               jnz    short loc_4A80E6
+004A80C7               mov    edx, [ebp+arg_C]      ;N2
+004A80CA               lea    ecx, [eax+edx]      ;M2+N2
+004A80CD               lea    edx, [eax+eax]      ;M2+M2
+004A80D0               cmp    ecx, edx      ;M2+N2 =? M2+M2 等效为 N2 =? M2
+004A80D2               jnz    short loc_4A80E6
+004A80D4               mov    [ebp+var_1C], 0FFFFFFFFh      ;到这里置注册成功标志
+```
+
+=========================sub_4A8290======================================
+
+### 004A8290
+
+```
+004A8290               push   ebp
+004A8291               mov    ebp, esp
+004A8293               sub    esp, 8
+004A8296               push   offset loc_404806
+004A829B               mov    eax, large fs0
+004A82A1               push   eax
+004A82A2               mov    large fs0, esp
+004A82A9               sub    esp, 70h
+004A82AC               push   ebx
+004A82AD               push   esi
+004A82AE               push   edi
+004A82AF               mov    [ebp+var_8], esp
+004A82B2               mov    [ebp+var_4], offset dword_403938
+```
+
+
+
+```
+004A82B9                 mov     edx, [ebp+arg_0]                 ;5 位的 str，(都是 WideChar)
+004A82BC                 xor     esi, esi
+004A82BE                 lea     ecx, [ebp+var_18]
+004A82C1                 mov     [ebp+var_18], esi
+004A82C4                 mov     [ebp+var_28], esi
+004A82C7                 mov     [ebp+var_38], esi
+004A82CA                 mov     [ebp+var_48], esi
+004A82CD                 mov     [ebp+var_58], esi
+004A82D0                 call    __vbaStrCopy
+004A82D6                 mov     edi, 1
+004A82DB                 mov     [ebp+var_24], esi
+004A82DE                 mov     ebx, edi
+004A82E0                 mov     esi, edi                         ;第 n 位 WideChar
+004A82E2 loc_4A82E2:
+004A82E2                 mov     eax, 5                             ;循环 5 次
+004A82E7                 cmp     esi, eax
+004A82E9                 jg      loc_4A839D
+004A82EF                 lea     ecx, [ebp+var_38]
+004A82F2                 push    ecx
+004A82F3                 lea     eax, [ebp+var_18]
+004A82F6                 push    edi
+004A82F7                 lea     edx, [ebp+var_58]
+004A82FA                 mov     [ebp+var_50], eax
+004A82FD                 push    edx
+004A82FE                 lea     eax, [ebp+var_48]
+004A8301                 push    eax
+004A8302                 mov     [ebp+var_30], 1
+004A8309                 mov     [ebp+var_38], 2
+004A8310                 mov     [ebp+var_58], 4008h
+004A8317                 call    rtcMidCharVar
+004A831D                 lea     ecx, [ebp+var_48]                 ;取出一位 WideChar
+004A8320                 push    ecx
+004A8321                 lea     edx, [ebp+var_28]
+004A8324                 push    edx
+004A8325                 call    __vbaStrVarVal
+004A832B                 push    eax
+004A832C                 call    rtcByteValueBstr
+004A8332                 mov     byte ptr [ebp+var_6C], al         ;只保留 WideChar 的低字节
+004A8335                 mov     eax, 5
+004A833A                 sub     eax, esi
+004A833C                 mov     [ebp+var_7C], eax                 ;5-n
+004A833F                 fild    [ebp+var_7C]
+004A8342                 sub     esp, 8
+004A8345                 fstp    [esp]
+004A8348                 push    40240000h                           ;浮点数 10
+004A834D                 push    0
+004A834F                 call    __vbaPowerR8                        ;10^(5-n)
+004A8355                 mov     eax, [ebp+var_6C]                   ;每位 WideChar 的低字节
+004A8358                 and     eax, 0FFh
+004A835D                 cdq
+004A835E                 mov     ecx, 0Ah
+004A8363                 idiv    ecx
+004A8365                 mov     [ebp+var_80], edx                   ;r = 每位 WideChar 的低字节 mod 10
+004A8368                 fild    [ebp+var_80]
+004A836B                 fmulp   st(1), st                            ;r*10^(5-n)
+004A836D                 fiadd   [ebp+var_24]                         ;循环相加
+004A8370                 call    __vbaFpI4
+004A8376                 lea     ecx, [ebp+var_28]
+004A8379                 mov     [ebp+var_24], eax                   ;经 5 次循环后，H = r1*10⁴+r2*10³+r3*10²+r4*10+r5
+004A837C                 call    __vbaFreeStr
+004A8382                 lea     edx, [ebp+var_48]
+004A8385                 push    edx
+004A8386                 lea     eax, [ebp+var_38]
+004A8389                 push    eax
+004A838A                 push    2
+004A838C                 call    __vbaFreeVarList
+004A8392                 add     esp, 0Ch
+004A8395                 inc     edi
+004A8396                 add     esi, ebx
+004A8398                 jmp     loc_4A82E2
+004A839D loc_4A839D:
+004A839D                 wait
+004A839E                 push    offset loc_4A83CC
+004A83A3                 jmp     short loc_4A83C2
+004A83A5                 lea     ecx, [ebp-28h]
+004A83A8                 call    __vbaFreeStr
+004A83AE                 lea     ecx, [ebp-48h]
+004A83B1                 push    ecx
+004A83B2                 lea     edx, [ebp-38h]
+004A83B5                 push    edx
+004A83B6                 push    2
+004A83B8                 call    __vbaFreeVarList
+004A83BE                 add     esp, 0Ch
+004A83C1                 retn
+004A83C2 loc_4A83C2:
+004A83C2                 lea     ecx, [ebp+var_18]
+004A83C5                 call    __vbaFreeStr
+004A83CB                 retn
+004A83CC loc_4A83CC:
+004A83CC                 mov     ecx, [ebp-10h]
+004A83CF                 mov     eax, [ebp-24h]                       ;返回值 H
+004A83D2                 pop     edi
+004A83D3                 pop     esi
+004A83D4                 mov     large fs0, ecx
+004A83DB                 pop     ebx
+004A83DC                 mov     esp, ebp
+004A83DE                 pop     ebp
+004A83DF sub_4A8290       endp
+```
+
+```
+=========================sub_4A83F0======================================
+004A83F0 sub_4A83F0       proc near
+004A83F0 arg_0            = dword ptr  4
+004A83F0 arg_4            = dword ptr  8
+004A83F0                 mov     ecx, [esp+arg_0]
+004A83F4                 xor     ecx, [esp+arg_4]
+004A83F8                 cmp     ecx, 1869Fh                          ;99999
+004A83FE                 jle     short loc_4A8413
+004A8400                 mov     eax, 66666667h
+004A8405                 imul    ecx
+004A8407                 mov     ecx, edx
+004A8409                 sar     ecx, 2
+004A840C                 mov     eax, ecx
+004A840E                 shr     eax, 1Fh
+004A8411                 add     ecx, eax
+004A8413 loc_4A8413:
+004A8413                 cmp     ecx, 2710h
+004A8419                 jge     short loc_4A8421
+004A841B                 add     ecx, 2710h                          ;10000
+004A8421 loc_4A8421:
+004A8421                 mov     eax, ecx                              ;返回一个 10000 到 99999 之间的 10 进制 5 位数
+004A8423                 retn    8
+004A8423 sub_4A83F0       endp
+======================================================================================================
+```
+
+把上面过程可以整理成如下四个步骤：
+
+#### 步骤 1
+
+```
+H1 = invoke sub_4A8290 ,str1
+X1 = invoke sub_4A83F0 ,H1,9DB7h
+A1 = invoke sub_4A83F0 ,X1,[esi+48h]
+M1 = invoke sub_4A83F0 ,A1,R1
+```
+
+#### 步骤 2
+
+```
+B1 = invoke sub_4A83F0 ,Y1,[esi+48h]
+N1 = invoke sub_4A83F0 ,B1,R1
+```
+
+#### 步骤 3
+
+```
+H2 = invoke sub_4A8290 ,str2
+X2 = invoke sub_4A83F0 ,H2,10A7Bh
+A2 = invoke sub_4A83F0 ,X2,[esi+4Ch]
+M2 = invoke sub_4A83F0 ,A2,R2
+```
+
+#### 步骤 4
+
+```
+B2 = invoke sub_4A83F0 ,Y2,[esi+4Ch]
+N2 = invoke sub_4A83F0 ,B2,R2
+```
+
+注册成功的条件是：`M1=N1`，`M2=N2`
+
+从而只要满足充分条件：
+
+
+
+(1) `Y1=X1=invoke sub_4A83F0, H1, 9DB7h`  
+其中 `H1=invoke sub_4A8290, str1`  
+`str1=机器码第 4 到 8 位`
+
+(2) `Y2=X2=invoke sub_4A83F0, H2, 10A7Bh`  
+其中 `H2=invoke sub_4A8290, str2`  
+`str2=(机器码的右 3 位+注册名)的右 5 位`
+
+\===================================================================================================
+
+将 `Y1` 转换成 10 进制得到注册码的前 5 位
+
+将 `Y2` 转换成 10 进制得到注册码的后 5 位
+
+\===================================================================================================
+
+总结:本注册算法并不复杂，只是 VB 的程序有些烦人，尤其是 unicode 字符看起来很不习惯
+
+注册机比较容易做，由于我未曾编过 WideChar 的程序，开始时在 WideChar 的处理上遇到一点障碍，  
+无法注册中文用户名，经反复调试修改现已克服。
+
+\===============================heXer/OCG==========2002.04.18=======================================  
+`4dd466d0e1e0cc123afbe504da2462ca`
