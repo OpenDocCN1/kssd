@@ -1,0 +1,195 @@
+
+## 汇编代码分析
+
+```
+.text:000192EE                 mov     eax, ds:NtBuildNumber  
+.text:000192F3                 cmp     word ptr [eax], 1770h //比较版本号  
+.text:000192F8                 mov     eax, P  
+.text:000192FD                 mov     ecx, offset byte_19284  
+.text:00019302                 jge     short loc_19309  
+.text:00019304                 mov     ecx, offset byte_19260 //取过滤函数地址  
+.text:00019309  
+.text:00019309 loc_19309:                                          
+.text:00019309                 sub     ecx, eax  
+.text:0001930B                 sub     ecx, 5  
+.text:0001930E                 mov     [eax+1], ecx //这几步都懂的，写跳转  
+.text:00019311                 lea     eax, [ebp+SpinLock]  
+.text:00019314                 push    eax             ; SpinLock  
+.text:00019315                 call    ds:KeInitializeSpinLock  
+.text:0001931B                 lea     ecx, [ebp+SpinLock] ; SpinLock  
+.text:0001931E                 call    ds:KfAcquireSpinLock  
+.text:00019324                 mov     bl, al  
+.text:00019326                 push    eax  
+.text:00019327                 push    ecx  
+.text:00019328                 push    edx  
+.text:00019329                 push    esi  
+.text:0001932A                 push    edi  
+.text:0001932B                 cli  
+.text:0001932C                 mov     eax, cr0  
+.text:0001932F                 mov     [ebp+arg_0], eax  
+.text:00019332                 and     eax, 0FFFEFFFFh  
+.text:00019337                 mov     cr0, eax  
+.text:0001933A                 mov     eax, KeServiceDescriptorTableaddr  
+.text:0001933F                 mov     eax, [eax]   //这里先重新写回  
+.text:00019341                 mov     edx, ZwSetEventaddrid  
+.text:00019347                 lea     eax, [eax+edx*4]  
+.text:0001934A                 mov     edx, ZwSetEventaddr  
+.text:00019350                 mov     [eax], edx  
+.text:00019352                 mov     eax, [ebp+4] //获取返回地址 8054263c  
+.text:00019355                 mov     edx, eax  
+.text:00019357                 mov     fanhuiaddrs, edx//保存返回地址  
+.text:0001935D  
+.text:0001935D loc_1935D:                                          
+.text:0001935D                 mov     edi, eax  //EAX=返回地址  
+.text:0001935F                 lea     esi, dword_1B680//特征码 2be1c1e9 也就是 sub esp, ecx shr ecx, 2  
+```
+
+查找确定 `KiFastCallEntryHOOK` 位置
+
+```
+    .text:00019365                 mov     ecx, 5  
+    .text:0001936A                 repe cmpsb  
+    .text:0001936C                 push    eax  
+    .text:0001936D                 setz    al  
+    .text:00019370                 test    al, al  
+    .text:00019372                 pop     eax  
+    .text:00019373                 jnz     short loc_19381  
+    .text:00019375                 dec     eax  
+    .text:00019376                 push    edx  
+    .text:00019377                 sub     edx, eax  
+    .text:00019379                 cmp     edx, 64h  
+    .text:0001937C                 pop     edx  
+    .text:0001937D                 ja      short loc_193B0  
+    .text:0001937F                 jmp     short loc_1935D  
+    .text:00019381 ; ---------------------------------------------------------  
+    .text:00019381  
+    .text:00019381 loc_19381:                                          
+    .text:00019381                 add     eax, 5     //确定 HOOK 后返回地址  
+    .text:00019384                 mov     addbp4addr5, eax //保存  
+    .text:00019389                 mov     edx, P  
+    .text:0001938F                 sub     edx, eax  
+    .text:00019391                 lea     eax, byte_1B688  
+    .text:00019397                 mov     [eax+1], edx  
+    .text:0001939A                 mov     edi, addbp4addr5  
+    .text:000193A0                 sub     edi, 5  
+    .text:000193A3                 lea     esi, byte_1B688  
+    .text:000193A9                 mov     ecx, 5  
+    .text:000193AE                 rep movsb        //这一段都知道的，HOOK  
+    .text:000193B0  
+    .text:000193B0 loc_193B0:                                           
+    .text:000193B0                 mov     eax, [ebp+arg_0]  
+    .text:000193B3                 mov     cr0, eax  
+    .text:000193B6                 sti  
+    .text:000193B7                 pop     edi  
+    .text:000193B8                 pop     esi  
+    .text:000193B9                 pop     edx  
+    .text:000193BA                 pop     ecx  
+    .text:000193BB                 pop     eax  
+    .text:000193BC                 mov     dl, bl          ; NewIrql  
+    .text:000193BE                 lea     ecx, [ebp+SpinLock] ; SpinLock  
+    .text:000193C1                 call    ds:KfReleaseSpinLock  
+    .text:000193C7  
+    .text:000193C7 loc_193C7:                                           
+    .text:000193C7                 xor     eax, eax  
+    .text:000193C9                 jmp     short loc_193DF  
+    .text:000193CB  
+    .text:000193CB  
+    .text:000193CB loc_193CB:                                           
+    .text:000193CB                                                       
+    .text:000193CB                 push    eax  
+    .text:000193CC                 push    [ebp+arg_4]      
+    .text:000193CF                 push    [ebp+arg_0]      
+    .text:000193D2                 call    ZwSetEventaddr//这里是确定不是自己调用就调用原服务  
+    .text:000193D8                 mov     [ebp+var_8], eax  
+    .text:000193DB                 pop     eax  
+    .text:000193DC                 mov     eax, [ebp+var_8]  
+    .text:000193DF  
+    .text:000193DF loc_193DF:                                          
+    .text:000193DF                 pop     edi  
+    .text:000193E0                 pop     esi  
+    .text:000193E1                 pop     ebx  
+    .text:000193E2                 leave  
+    .text:000193E3                 retn    8  
+    .text:000193E3 sub_192A8       endp  
+```
+
+这段给一段 C 代码，写得很乱，大家凑合看
+
+```c
+HANDLE hand=(HANDLE)0x288C58F1;//这里的几个全局变量大家自己定义，  
+//这里特别标出这个主要是考虑要判断  
+
+NTSTATUS 
+  NewZwSetEvent (
+    HANDLE  EventHandle, 
+    PLONG  PreviousState  
+  ) 
+{ 
+  NTSTATUS status; 
+  char *p,*ps; 
+  char code[5]={0xe9,0,0,0,0};  
+  char code1[5]={0xe9,0,0,0,0};    
+  ULONG addr,addr1,addr2; 
+  KIRQL  Irql;  
+  if (EventHandle!=hand||ExGetPreviousMode()==UserMode)   //判断一下是不是自己调用
+{  
+  status= OldZwSetEventEventHandle,PreviousState);  
+}  
+  else{
+    _asm{
+   mov eax,[ebp+4]  
+   mov addrss,eax  
+  }
+   DbgPrint("addrs is %08X\n",addrss);  
+    p=(ULONG)addrss;  
+  //2be1c1e902
+    ps=(char*)ExAllocatePoolWithTag(0,5,0);//这里判断一下哈，免得失败了 本人很懒
+  while(1)
+  {
+    if(*p==0x2b) //这里大家多判断几个特征，本人很懒
+    {
+       hookaddrs=(ULONG)p;//HOOK 地址 
+      Ret=(ULONG)p+5;//返回地址 
+      break; 
+    }
+    p--; 
+  }
+    DbgPrint("hookaddrs is %08X\n",hookaddrs);
+   addr1=(ULONG)ps; 
+   addr=(ULONG)addr1-hookaddrs-5; //1 个跳转
+   addr2=(ULONG)MyHook1-addr1-5; //2 个跳转
+   *(ULONG*)(code+1)=addr;  
+   *(ULONG*)(code1+1)=addr2;  
+     WPOFF();  
+     Irql=KeRaiseIrqlToDpcLevel();
+     RtlCopyMemory(hookaddrs,code,5);  
+     RtlCopyMemory(addr1,code1,5);  
+     KeLowerIrql(Irql); 
+      WPON();
+      status=STATUS_SUCCESS;  
+   }
+   return status; 
+}
+```
+
+## 第 4 步看下过滤函数
+
+```
+           pushf 
+           pusha 
+           push    edi //SSDTADDR
+           push    ebx //服务函数地址 
+           push    eax //SSDTINDEX
+           call    sub_191AC //过滤函数 
+           mov     [esp+10h], eax 
+           popa 
+           popf 
+           sub     esp, ecx 
+           shr     ecx, 2 
+           push    addbp4addr5 
+           retn 
+```
+
+由于时间和篇幅关系文章先讲这么多先，等那天有空的时候继续写下过滤函数的处理，和 360 的建自己的服务表的结构处理，和监控恢复 `HOOK` 的处理。此文章只是为了学习交流，如果此文章有错误的希望大牛门指出和更正。共同学习 共同进步嘛
+
+参考文章 教主的 分析 360 安全卫士的 `HOOK`

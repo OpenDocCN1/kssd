@@ -1,0 +1,11 @@
+
+# 窗口方式和 `HOOK DDRAW.dll` 遮挡电影字幕
+
+> 原文：[`www.pediy.com/kssd/pediy12/125936.html`](https://www.pediy.com/kssd/pediy12/125936.html)
+
+窗口方式和 `HOOK DDRAW.dll` 遮挡电影字幕，将工具窗口称到电影播放窗口上方，点设置按钮，即可遮挡电影字幕。代码中用了窗口遮挡方式和 `HOOK DDRAW.dll` 修改 `Buffer` 方式。具体见代码。`HOOK DDRAW.dll` 方式还不太稳定，在 `www.xunlei.com` 网页上看电影时有时会蹦![](img/65a46d670c4ac01e17bcc70193b248af.jpg "皱眉")。
+
+## 上传的附件
+
+| ![](img/67af4f1ef9c98996f43e89e749c7dcf5.jpg) | `HideWord.rar` |
+| :--- | :--- |
