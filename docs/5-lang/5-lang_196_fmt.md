@@ -1,0 +1,149 @@
+
+# CoolFocus Java Applet
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum635.htm`](https://www.pediy.com/kssd/pediy03/forum635.htm)
+
+`http://www.coolfocus.com` 有不少很酷的 Java Applet，可以做出多种特效。其保护如下：
+
+**Registered Applets**
+
+If you register an applet with Cool Focus, we'll send you personal code parameters that remove the shareware restrictions. You'll continue to use the same class files and documentation and simply add these codes to the applet tags in your own pages. We'll also notify you by email when an updated version of the applet you registered is available, and you can return to this section of the site to download it. The same registration codes will continue to work with all updated versions.
+
+在网页中应按照如下格式使用其 applet（只列出了与注册码有关的部分）：
+
+```
+<APPLET CODE="ryElevator.class" ARCHIVE="Elevator.jar" MAYSCRIPT WIDTH="400" HEIGHT="990">
+    <param name=Copyright value="Elevator (c) 1999 Cool Focus [www.coolfocus.com]">
+    <param name=Base value="http://members.tripod.lycos.nl/tool_place/">
+    <param name=Key value="7392045-1209-0-1038">
+</APPLET>
+```
+
+其中 `Key` 就是注册码，这个注册码是根据嵌有该 applet 的 HTML 文档的 `document base` 字符串计算出来的，所以必需写注册机。
+
+虽然现在已经有处理 `*.class` 文件的工具以防止被反编译，但大多数 applet 还是未作过任何手脚，所以可以轻易地利用 Java 反编译器/反汇编器将 class 文件反编译/反汇编，从而得到其源码。有了源码，破解它的难度近乎为 0，同时还可以“偷”到设计者的 Java 编程技巧。在这一点上 Java applet 和 `VB3`、`FoxPro` 程序没太大区别。
+
+以 `ryImageWizard.class` 为例，反编译后查找“`Key`”，看它如何处理注册码。非常简单：
+
+```java
+private boolean _mth0146(String s)
+    throws NoSuchElementException
+{
+    String s1 = getParameter("Key"); //取出注册码
+    if(s1 == null)
+    {
+        s1 = "";
+        return false;
+    }
+    StringTokenizer stringtokenizer = new StringTokenizer(s1, "-"); //以“-”字符将注册码分成 4 部分
+    String s2 = stringtokenizer.nextToken(); //注册码第一部分
+    String s3 = stringtokenizer.nextToken(); //注册码第二部分
+    String s4 = stringtokenizer.nextToken(); //注册码第三部分
+    String s5 = stringtokenizer.nextToken(); //注册码第四部分
+
+    int i = s.length();
+    i = i * 7510 + 928;
+    i -= 28338;
+    i *= 12;
+
+    if(!s2.equals(Integer.toString(i))) //判断第一部分
+        return false;
+
+    int j = _mth0145(s, 'e') * 684;
+    if(!s3.equals(Integer.toString(j))) //判断第二部分
+        return false;
+
+    j = _mth0145(s, 'w') * 947;
+    if(!s4.equals(Integer.toString(j))) //判断第三部分
+        return false;
+
+    j = _mth0145(s, 's') * 456;
+    return s5.equals(Integer.toString(j)); //判断第四部分
+}
+```
+
+上面所用到的函数 `_mth0145()` 只是简单地统计某字符在一个串中出现的次数：
+
+```java
+private int _mth0145(String s, char c)
+{
+    int i = 0;
+    byte byte0 = 120; //垃圾代码还是反编译器有问题？
+    for(int j = 0; j < s.length(); j++)
+    {
+        char c1 = s.charAt(j);
+        if(c1 == c)
+            i++;
+    }
+    return i;
+}
+```
+
+那么函数 `_mth0146()` 是在哪里被调用的呢？查找即知在如下的地方。很显然 `_fld0104` 是个全局标志，表示注册与否。传递给 `_mth0146()` 的参数就是嵌有 applet 的 HTML 的 URL。
+
+```java
+private void _mth0147()
+{
+    String s = getDocumentBase().toString().toLowerCase(); //取得 HTML 的 URL
+    boolean flag = false;
+
+    if(s.startsWith("file:") && s.indexOf("imagewizard/docs/") >= 0) //是否是在本地运行本 applet
+    {
+        _fld0104 = true; //本地则不判注册码
+        return;
+    }
+
+    String s1 = getParameter("Base");
+    if(s1 == null)
+    {
+        s1 = "";
+        _fld0104 = false;
+        return;
+    }
+
+    String s2 = "";
+    if(s1.indexOf("|") >= 0) //多个 URL 用竖线隔开
+    {
+        StringTokenizer stringtokenizer = new StringTokenizer(s1, "|");
+        String as[] = new String[stringtokenizer.countTokens()];
+        for(int i = 0; i < as.length; i++)
+        {
+            String s4 = stringtokenizer.nextToken();
+            if(!s4.startsWith("http"))
+                as[i] = "http://" + s4;
+            else
+                as[i] = s4;
+            s2 = s2 + as[i];
+            if(s.indexOf(s4) >= 0 || s.startsWith("file:"))
+                flag = true;
+        }
+    } else
+    {
+        String s3 = s1;
+        if(!s1.startsWith("http"))
+            s2 = "http://" + s1;
+        else
+            s2 = s1;
+        if(s.indexOf(s3) >= 0 || s.startsWith("file:"))
+            flag = true;
+    }
+
+    if(!flag)
+    {
+        _fld0104 = false;
+        return;
+    }
+
+    try
+    {
+        _fld0104 = _mth0146(s2); //这里判注册码
+        return;
+    }
+    catch(NoSuchElementException _ex)
+    {
+        _fld0104 = false;
+    }
+}
+```
+
+至此就可以写出注册机。`4dd466d0e1e0cc123afbe504da2462ca`
