@@ -1,0 +1,111 @@
+
+```
+CODE:007B26E5 ;     dec     ebx
+CODE:007B26E5 ;     test    ebx, ebx
+CODE:007B26E5 ;     jl      short loc_7B2088
+CODE:007B26E5 ;     inc     ebx
+CODE:007B26E5 ;
+CODE:007B26E5 ; loc_7B2064:
+CODE:007B26E5 ;     shl     ecx, 4
+CODE:007B26E5 ;     xor     edx, edx
+CODE:007B26E5 ;     mov     dl, [eax]
+CODE:007B26E5 ;     add     ecx, edx
+CODE:007B26E5 ;     mov     edx, ecx
+CODE:007B26E5 ;     and     edx, 0F0000000h
+CODE:007B26E5 ;     test    edx, edx
+CODE:007B26E5 ;     jz      short loc_7B2080
+CODE:007B26E5 ;     mov     esi, edx
+CODE:007B26E5 ;     shr     esi, 18h
+CODE:007B26E5 ;     xor     ecx, esi
+CODE:007B26E5 ;
+CODE:007B26E5 ; loc_7B2080:
+CODE:007B26E5 ;     not     edx
+CODE:007B26E5 ;     and     ecx, edx
+CODE:007B26E5 ;     inc     eax
+CODE:007B26E5 ;     dec     ebx
+CODE:007B26E5 ;     jnz     short loc_7B2064
+CODE:007B26E5 ;
+CODE:007B26E5 ; loc_7B2088:
+CODE:007B26E5 ;     mov     eax, ecx
+CODE:007B26E5 ;     pop     esi
+CODE:007B26E5 ;     pop     ebx
+CODE:007B26E5 ;     retn
+CODE:007B26E5 ; Encode          endp
+CODE:007B26E5 ;
+CODE:007B26E5 ;
+CODE:007B26E5 ;
+CODE:007B26E5 ; 函数原型: function ComputeValue(username: string): DWORD;
+CODE:007B26E5 ;
+```
+
+```
+CODE:007B26EA           cmp     ebx, eax        ; 如果计算得到的用户名的值等于解码后的 RegCodeNumber 的后 4 个字节
+CODE:007B26EA ; 那么注册成功
+CODE:007B26EC           jz      short loc_7B26F5
+CODE:007B26EE
+CODE:007B26EE loc_7B26EE:                     ; CODE XREF: CheckRegCode+1D8j
+CODE:007B26EE           xor     ebx, ebx
+CODE:007B26F0           jmp     @Exit         ; default
+CODE:007B26F5 ; -------------------------------------------------------------------------------?
+CODE:007B26F5
+CODE:007B26F5 loc_7B26F5:                     ; CODE XREF: CheckRegCode+218j
+CODE:007B26F5           mov     bl, 1
+CODE:007B26F7           jmp     @Exit         ; default
+CODE:007B26FC ; -------------------------------------------------------------------------------?
+CODE:007B26FC
+CODE:007B26FC loc_7B26FC:                     ; CODE XREF: CheckRegCode+85j
+CODE:007B26FC ; DATA XREF: CheckRegCode:off_7B2560o
+CODE:007B26FC           lea     edx, [ebp+RegCodeNumber] ; case 0x4
+CODE:007B26FF           mov     eax, offset Key1
+CODE:007B2704           call    CheckRegCode2bytes ; 用 Lockbox Quick cipher 解码 RegCodeNumber
+CODE:007B2704 ; 并检查解码后的 RegCodeNumber 的前 2 个字节
+CODE:007B2704 ; 是否为 5B9C
+CODE:007B2704 ; 如果为 5B9C 则返回 true
+CODE:007B2704 ; 否则返回 false
+CODE:007B2704 ;
+CODE:007B2704 ; Key 为:
+CODE:007B2704 ; DATA:009D8730 Key1  dd 95AF0D1Dh, 0D66C365Eh, 46F457DAh, 0C214D7D5h
+CODE:007B2704 ;
+CODE:007B2704 ; 函数原型:
+CODE:007B2704 ; function CheckRegCode2bytes(Key: TKey128; RegCodeNumber: array of byte): boolean;
+CODE:007B2709           test    al, al
+CODE:007B270B           jz      short loc_7B274D
+CODE:007B270D           lea     edx, [ebp+RegCodeNumber]
+CODE:007B2710           mov     eax, offset Key1
+CODE:007B2715           call    GetRegcodeNumberLast4Bytes ; 用 Lockbox Quick cipher 解码 RegCodeNumber
+CODE:007B2715 ; 并检查解码后的 RegCodeNumber 的前 2 个字节
+CODE:007B2715 ; 是否为 5B9C
+CODE:007B2715 ; 如果为 5B9C 则返回解码后的 RegCodeNumber 的后 4 个字节
+CODE:007B2715 ; 否则返回 0
+CODE:007B2715 ;
+CODE:007B2715 ; Key 为:
+CODE:007B2715 ; DATA:009D8730 Key1  dd 95AF0D1Dh, 0D66C365Eh, 46F457DAh, 0C214D7D5h
+CODE:007B2715 ;
+CODE:007B2715 ; 函数原型:
+CODE:007B2715 ; function GetRegcodeNumberLast4Bytes(Key: TKey128; RegCodeNumber: array of byte): DWORD;
+CODE:007B271A           mov     ebx, eax
+CODE:007B271C           lea     eax, [ebp+pUsername]
+CODE:007B2722           lea     edx, [ebp+User]
+CODE:007B2728           call    PChar         ; Borland Visual Component Library & Packages
+CODE:007B272D           mov     eax, [ebp+pUsername]
+CODE:007B2733           lea     edx, [ebp+var_230]
+CODE:007B2739           call    EnCodeUser      ; 编码用户名
+CODE:007B2739 ; 分下面 5 个步骤
+CODE:007B2739 ; 1. 构建码表 buf
+CODE:007B2739 ; 把上面运算得到的 3 个字符串连接起来
+CODE:007B2739 ; 0012F61C    01B05BF0   ASCII "zyxwvutsrqpo"
+CODE:007B2739 ; 0012F614    01B05C0C   ASCII "HIJKLMNOPQRSTUV"
+CODE:007B2739 ; 0012F610    015B083C   ASCII "0987654321"
+CODE:007B2739 ;
+CODE:007B2739 ; 2.如果用户名长度等于 17H，则把用户转为大写
+CODE:007B2739 ; 如果用户名长度大于 17H，则通过一定的规则取其输入
+CODE:007B2739 ; 的用户名，组合成 17H 长度，全部字母转为大写
+CODE:007B2739 ; 如果用户名长度不足 17H，则通过一个补码表把用户名补足
+CODE:007B2739 ; 17H 长度，全部字母转为大写
+CODE:007B2739 ;
+CODE:007B2739 ; 转换后的用户名存入 user1
+CODE:007B2739 ;
+CODE:007B2739 ; 3. 把 user1 的用户名，逐个字母的 Ascii 码转成 Str，并存入
+CODE:007B2739 ; user2:
+CODE:007B2739 ;   for i := 1 to Length(user1) do
+```
