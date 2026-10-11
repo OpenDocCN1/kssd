@@ -1,0 +1,236 @@
+
+00643BF2    .  FF15 58114000     call dword ptr ds:[<&MSVBVM60.__vbaStrVa>;  MSVBVM60.__vbaStrVarVal  
+
+00643BF8    .  50               push eax  
+
+00643BF9    .  68 4C2D4300      push yyjxc.00432D4C               ;  UNICODE "Top"  
+
+00643BFE    .  68 382D4300      push yyjxc.00432D38               ;  UNICODE "Startup"  
+
+00643C03    .  68 282D4300      push yyjxc.00432D28               ;  UNICODE "MyApp"  
+
+00643C08    .  FF15 08104000    call dword ptr ds:[<&MSVBVM60.#690>]    ;  MSVBVM60.rtcSaveSetting  
+
+00643C0E    .  8D4D E4          lea ecx,dword ptr ss:[ebp-1C]  
+
+00643C11    .  FF15 14124000    call dword ptr ds:[<&MSVBVM60.__vbaFreeS>;  MSVBVM60.__vbaFreeStr  
+
+00643C17    .  8D4D E0          lea ecx,dword ptr ss:[ebp-20]  
+
+00643C1A    .  FF15 10124000    call dword ptr ds:[<&MSVBVM60.__vbaFreeO>;  MSVBVM60.__vbaFreeObj  
+
+00643C20    .  8D45 C0          lea eax,dword ptr ss:[ebp-40]  
+
+00643C23    .  8D4D D0          lea ecx,dword ptr ss:[ebp-30]  
+
+00643C26    .  50               push eax  
+
+00643C27    .  51               push ecx  
+
+00643C28    .  6A 02            push 2  
+
+00643C2A    .  FFD7            call edi  
+
+00643C2C    .  B9 04000280      mov ecx,80020004  
+
+00643C31    .  B8 0A000000      mov eax,0A  
+
+00643C36    .  894D A8          mov dword ptr ss:[ebp-58],ecx  
+
+00643C39    .  894D B8          mov dword ptr ss:[ebp-48],ecx  
+
+00643C3C    .  83C4 0C          add esp,0C  
+
+00643C3F    .  8D55 80          lea edx,dword ptr ss:[ebp-80]  
+
+00643C42    .  8D4D C0          lea ecx,dword ptr ss:[ebp-40]  
+
+00643C45    .  8945 A0          mov dword ptr ss:[ebp-60],eax  
+
+00643C48    .  8945 B0          mov dword ptr ss:[ebp-50],eax  
+
+00643C4B    .  C745 88 F8C24400 mov dword ptr ss:[ebp-78],yyjxc.0044C2F8  
+
+00643C52    .  895D 80          mov dword ptr ss:[ebp-80],ebx  
+
+00643C55    .  FF15 C4114000    call dword ptr ds:[<&MSVBVM60.__vbaVarDu>;  MSVBVM60.__vbaVarDup  
+
+00643C5B    .  8D55 90          lea edx,dword ptr ss:[ebp-70]  
+
+00643C5E    .  8D4D D0          lea ecx,dword ptr ss:[ebp-30]  
+
+00643C61    .  C745 98 E0C24400 mov dword ptr ss:[ebp-68],yyjxc.0044C2E0  
+
+00643C68    .  895D 90          mov dword ptr ss:[ebp-70],ebx  
+
+00643C6B    .  FF15 C4114000    call dword ptr ds:[<&MSVBVM60.__vbaVarDu>;  MSVBVM60.__vbaVarDup  
+
+00643C71    .  8D55 A0          lea edx,dword ptr ss:[ebp-60]  
+
+00643C74    .  8D45 B0          lea eax,dword ptr ss:[ebp-50]  
+
+00643C77    .  52               push edx  
+
+00643C78    .  8D4D C0          lea ecx,dword ptr ss:[ebp-40]  
+
+00643C7B    .  50               push eax  
+
+00643C7C    .  51               push ecx  
+
+00643C7D    .  8D55 D0          lea edx,dword ptr ss:[ebp-30]  
+
+00643C80    .  6A 40            push 40  
+
+00643C82    .  52               push edx  
+
+00643C83    .  FF15 90104000    call dword ptr ds:[<&MSVBVM60.#595>]    ;  MSVBVM60.rtcMsgBox  
+
+00643C89    .  8D45 A0          lea eax,dword ptr ss:[ebp-60]  
+
+00643C8C    .  8D4D B0          lea ecx,dword ptr ss:[ebp-50]  
+
+00643C8F    .  50               push eax  
+
+00643C90    .  8D55 C0          lea edx,dword ptr ss:[ebp-40]  
+
+00643C93    .  51               push ecx  
+
+00643C94    .  8D45 D0          lea eax,dword ptr ss:[ebp-30]  
+
+00643C97    .  52               push edx  
+
+00643C98    .  50               push eax  
+
+00643C99    .  6A 04            push 4  
+
+00643C9B    .  FFD7            call edi  
+
+00643C9D    .  66:C746 34 FFFF mov word ptr ds:[esi+34],0FFFF  
+
+00643CA3    .  A1 104A6600      mov eax,dword ptr ds:[664A10]  
+
+00643CA8    .  83C4 14          add esp,14  
+
+00643CAB    .  85C0             test eax,eax  
+
+00643CAD    .  75 10            jnz short yyjxc.00643CBF  
+
+00643CAF    .  68 104A6600      push yyjxc.00664A10  
+
+00643CB4    .  68 9C2A4300      push yyjxc.00432A9C  
+
+00643CB9    .  FF15 74114000    call dword ptr ds:[<&MSVBVM60.__vbaNew2>>;  MSVBVM60.__vbaNew2  
+
+00643CBF    >  8B3D 104A6600    mov edi,dword ptr ds:[664A10]  
+
+00643CC5    .  8D4D E0          lea ecx,dword ptr ss:[ebp-20]  
+
+00643CC8    .  56               push esi  
+
+00643CC9    .  51               push ecx  
+
+00643CCA    .  8B1F             mov ebx,dword ptr ds:[edi]  
+
+00643CCC    .  FF15 A0104000    call dword ptr ds:[<&MSVBVM60.__vbaObjSe>;  MSVBVM60.__vbaObjSetAddref  
+
+00643CD2    .  50               push eax  
+
+00643CD3    .  57               push edi  
+
+00643CD4    .  FF53 10          call dword ptr ds:[ebx+10]  
+
+00643CD7    .  85C0             test eax,eax  
+
+00643CD9    .  DBE2             fclex  
+
+00643CDB    .  0F8D B4000000    jge yyjxc.00643D95  
+
+00643CE1    .  6A 10            push 10  
+
+00643CE3    .  68 8C2A4300      push yyjxc.00432A8C  
+
+00643CE8    .  E9 A0000000      jmp yyjxc.00643D8D  
+
+00643CED    >  B9 04000280      mov ecx,80020004  
+
+00643CF2    .  B8 0A000000      mov eax,0A  
+
+00643CF7    .  894D A8          mov dword ptr ss:[ebp-58],ecx  
+
+00643CFA    .  894D B8          mov dword ptr ss:[ebp-48],ecx  
+
+00643CFD    .  8D55 80          lea edx,dword ptr ss:[ebp-80]  
+
+00643D00    .  8D4D C0          lea ecx,dword ptr ss:[ebp-40]  
+
+00643D03    .  8945 A0          mov dword ptr ss:[ebp-60],eax  
+
+00643D06    .  8945 B0          mov dword ptr ss:[ebp-50],eax  
+
+00643D09    .  C745 88 402E4300 mov dword ptr ss:[ebp-78],yyjxc.00432E40  
+
+00643D10    .  895D 80          mov dword ptr ss:[ebp-80],ebx  
+
+00643D13    .  FF15 C4114000    call dword ptr ds:[<&MSVBVM60.__vbaVarDu>;  MSVBVM60.__vbaVarDup  
+
+00643D19    .  8D55 90          lea edx,dword ptr ss:[ebp-70]  
+
+00643D1C    .  8D4D D0          lea ecx,dword ptr ss:[ebp-30]  
+
+00643D1F    .  C745 98 04C34400 mov dword ptr ss:[ebp-68],yyjxc.0044C304  
+
+00643D26    .  895D 90          mov dword ptr ss:[ebp-70],ebx  
+
+00643D29    .  FF15 C4114000    call dword ptr ds:[<&MSVBVM60.__vbaVarDu>;  MSVBVM60.__vbaVarDup  
+
+00643D2F    .  8D55 A0          lea edx,dword ptr ss:[ebp-60]  
+
+00643D32    .  8D45 B0          lea eax,dword ptr ss:[ebp-50]  
+
+00643D35    .  52               push edx  
+
+00643D36    .  8D4D C0          lea ecx,dword ptr ss:[ebp-40]  
+
+00643D39    .  50               push eax  
+
+00643D3A    .  51               push ecx  
+
+00643D3B    .  8D55 D0          lea edx,dword ptr ss:[ebp-30]  
+
+00643D3E    .  6A 30            push 30  
+
+00643D40    .  52               push edx  
+
+00643D41    .  FF15 90104000    call dword ptr ds:[<&MSVBVM60.#595>]    ;  出现错误对话框  
+
+```
+发现注册码已经在那里了，明码比较，但我们当然要分析算法的，注册是次要的，
+
+再次输入，想找出关键的 CALL 计算注册码的地方就是找不到！
+
+而且发现，当一断在 `00643A80` 时，用 `d 00161844`(不一定是这个，反复 `CTRL+F2` 后固定）注册码已经的躺在那里了
+
+二却也进不到原程序领空。还发现当“取消”注册对话框 `CTRL+F2` 后时再查看，就没有了，干脆，就在 `00161844`
+
+下内存写入断点（此时，应该是 `CTRL+F2` 后的第一次也就是说 `d 00161844` 并没有发现注册码）
+
+770F36C8    F3:A5 REP MOVS DWORD PTR ES:[EDI],DWOR>     断在这句上
+770F36CA    8BCA  MOV ECX,EDX
+770F36CC    83E1  >AND ECX,3
+770F36CF    F3:A4 REP MOVS BYTE PTR ES:[EDI],BYTE >
+770F36D1    C6041>MOV BYTE PTR DS:[EAX+EBX],0
+
+你会在堆栈中发现第一个返回在 `0012F498`   `006445D1`  返回到 `yyjxc.006445D1` 来自 `MSVBVM60.__vbaStrCopy`
+
+按回车返回来到 `006445D1`，再向上看，已经来到了产生和计算注册码的地方：
+
+00644070    > \55               push ebp
+00644071    .  8BEC             mov ebp,esp
+00644073    .  83EC 0C          sub esp,0C
+00644076    .  68 A63E4000     push <jmp.&MSVBVM60.__vbaExceptHandler>         ;  SE handler installation
+0064407B    .  64:A1 00000000  mov eax,dword ptr fs:[0]
+00644081    .  50               push eax
+00644082    .  64:8925 0000000>mov dword ptr fs:[0],esp
+00644089    .  81EC 8C010000   sub esp,18C
+0064408F    .  53               push ebx
+```
