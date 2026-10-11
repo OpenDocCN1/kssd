@@ -1,0 +1,50 @@
+
+# Crystal Button 1.21a
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50112.htm`](https://www.pediy.com/kssd/pediy05/pediy50112.htm)
+
+`Asprotect` 1.2x 加壳的 `Crystal Button` 1.21a 脱壳(简单)
+
+`crack by fwnl`
+
+**软件说明:** `Crystal Button` 是一款绝对好用的网页按钮设计软件。通过使用 `Crystal Button`，你可以制作出各种三维玻璃质、金属质、塑料质甚至 `XP` 风格的网页上使用的按钮。制作令人叫绝的导航条、动态按钮更是不在话下。当然，包括颜色、文字、边界等在内的各种细节都可以进行精确设置。
+
+**软件下载:** `http://fileforum.betanews.com/detail.php3?fid=1014152276`
+
+**破解工具:** `loader`, `trw2000`, `superbpm`, `Import REConstructor v1.4.2+`
+
+好久没写脱文了,主要是对输入表不熟,`Armadillo` 加壳的几个软件都是输入表没搞定而没能完成,真是痛苦呀....
+
+那位能不能详细说说手动修复输入表的方法和技巧呀,真是太谢谢了
+
+昨天在汉化新世纪看到飞速兄要汉化这个东西,所以就来试试,到最后还是有一个地址没有搞定,不过好像并不影响程序的使用,各位能说说那个地址要怎么找呀?谢谢
+
+## 一. 找入口点
+
+感谢 `fs0` 给我们带来 `loader` 这么个一个超 cool 的工具,用 `loader` 载入 `Crystal.exe` 轻易找到入口 `42c370`
+
+## 二. 用 `trw2000` 初步脱壳
+
+下面要在入口处脱壳，打开 `SuperBPM`，点 `erase`，用 `trw` 载入 `Crystal.exe`，下 `g 42c370`，接着下 `pedump` 脱出程序.
+
+## 三. 修复 import table
+
+打开原加壳程序,在 `Import REConstructor v1.4.2+` 的 `Attach to an Active Process` 窗口中选取 `ang2icon.exe` 的进程,然后在下方的 `oep` 处填入 `0002c370`,点 `IAI AutoSearch`,再点 `Get Imports` 然后点 `Show Invalid`,在 `Imported Functions Found` 窗口里的无效地址上点鼠标右键，选 `Trace Leve11(disasm)`,再点 `show invaids`，发现还有几个没有修复，再次在那几个没有修复的地址上点鼠标右键.
+
+选中 `Plugin Tracer(Asprotect 1.2X Emul)`,再点 `show invaids`.这时只有一个没有修复了
+
+```
+1     00085710    ole32.dll     0060    CoTaskMemFree
+FThunk: 00085718    NbFunc: 00000001
+
+1     00085718    oledlg.dll    0008    OleUIBusyA
+FThunk: 00085720    NbFunc: 00000001
+
+0     00085720    ?     0000    00487C98  //就是这个,我怎么也搞不定,后来参考国外一个 1.2 的破解,发现他也没有解决,不过好像并不影响程序的运行,所以这时我们就 fix dump
+```
+
+修好的程序可以正常运行,只是没有破解,那位有时间可以看看,这个软件还有点意思. :)
+
+`fwnl`
+`2002.4.29`
+`长沙 4dd466d0e1e0cc123afbe504da2462ca`
