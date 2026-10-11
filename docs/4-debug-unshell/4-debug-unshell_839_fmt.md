@@ -1,0 +1,375 @@
+
+# 唐诗三百首 V1.2
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6394.htm`](https://www.pediy.com/kssd/pediy06/pediy6394.htm)
+
+## PEbundle V2.3 脱壳——唐诗三百首 V1.2
+
+下载页面：`http://www.skycn.com/soft/4259.html`
+
+软件大小：`584 KB`
+
+软件语言：`简体中文`
+
+软件类别：`国产软件 / 免费版 / 文科工具`
+
+应用平台：`Win9x/NT/2000/XP`
+
+加入时间：`2002-08-24 22:44:25`
+
+下载次数：`18939`
+
+推荐等级：`***`
+
+### 【软件简介】
+唐诗是中国古典文学的瑰宝，而《唐诗三百首》又可谓唐诗中的精华。本软件是唐诗三百首的电子版，并且具有它独特的功能：
+1. **浏览**。显示唐诗的诗名、作者、诗文、注解和简析，附带作者简介。可选择诗作按诗名排列、或按作者排列。浏览过程中可快速翻页，手动滚行、自动滚行和逐字显示三种模式任意切换；令行禁止，随心所欲。
+2. **批注**。在欣赏唐诗时，如有心得体会，可随时修改注释、简析或作者简介，甚至原诗文，并且保存起来。
+3. **查找功能强大**。支持多关键字查找，可同时通过诗名、作者、诗句等多种方式进行查找；并首创“多步骤返回查找法”，记忆用户每个查找步骤的信息，随时可退回前面的的步骤，以从该步骤的结果中继续查找。只要您对某首唐诗的任一部分有一点印象，通过一两个字词，就能通过完善的查询功能查找到您想知道的唐诗。
+4. **添加、删除**。唐诗浩如烟海，远不止三百首，难以穷尽。所以本软件特别留了一个拓展入口，可以根据自己的喜好，随意删、改、添唐诗。
+5. **导出存档**。能将唐诗诗文或全部（包括诗名、作者、注解、简析）导出到文本文件，便于单独浏览或处理。
+6. **变换文字颜色**。各部分文字颜色都能随意变换，并具有记忆功能，记住您的个性化设置。
+7. **保存和读取进度**。每次您读诗到一段落想休息时，可以记下进度，下次再来阅读时选择是否从保存进度处开始。
+8. **背景音乐**。在您读诗时有轻松典雅的背景音乐陪伴。
+
+### 【软件限制】
+免费软件，传播自由
+
+### 【作者声明】
+初学 `Crack`，只是感兴趣，没有其它目的。失误之处敬请诸位大侠赐教！
+
+### 【破解工具】
+`Ollydbg1.09`、`PEiD`、`LordPE`、`ImportREC`
+
+————————————————————————————————— 
+
+### 【脱壳过程】
+
+这个东东加的是 `PEbundle v2.3`，和 `万年历记事簿-XP1.8` 的有点点不同啦 ^O^
+
+用 `Ollydbg` 手动脱壳,老规矩：载入后弹出“是压缩代码——要继续进行分析吗？”，点“否”。
+
+```
+004A6000     9C                     pushfd
+                             ====>进入 OD 后断在这！
+004A6001     60                     pushad
+004A6002     E8 02000000            call 唐诗三百.004A6009
+                             ====>变形 JMP！F7 走进
+004A6007     33C0                   xor eax,eax
+004A6009     8BC4                   mov eax,esp
+004A600B     83C0 04               add eax,4
+004A600E     93                     xchg eax,ebx
+004A600F     8BE3                   mov esp,ebx
+004A6011     8B5B FC                mov ebx,dword ptr ds:[ebx-4]
+004A6014     81EB 07304000          sub ebx,唐诗三百.00403007
+004A601A     87DD                   xchg ebp,ebx
+004A601C     80BD DD3B4000 00       cmp byte ptr ss:[ebp+403BDD],0
+004A6023     74 21                  je short 唐诗三百.004A6046
+                             ====>跳
+004A6046     8DBD 703E4000          lea edi,dword ptr ss:[ebp+403E70]
+004A604C     33C0                   xor eax,eax
+004A604E     8A85 17374000          mov al,byte ptr ss:[ebp+403717]
+004A6054     3C 05                  cmp al,5
+004A6056     74 72                  je short 唐诗三百.004A60CA
+004A6058     3C 03                  cmp al,3
+004A605A     0F84 9C000000          je 唐诗三百.004A60FC
+004A6060     3C 02                  cmp al,2
+004A6062     0F84 86000000          je 唐诗三百.004A60EE
+004A6068     3C 04                  cmp al,4
+004A606A     74 19                  je short 唐诗三百.004A6085
+004A606C     3C 00                  cmp al,0
+004A606E     0F85 B1000000          jnz 唐诗三百.004A6125
+004A6074     68 D8010000            push 1D8
+004A6079     57                     push edi
+004A607A     FF95 A6384000          call dword ptr ss:[ebp+4038A6]
+004A6080     E9 83000000            jmp 唐诗三百.004A6108
+                             ====>跳
+004A6108     8DBD 703E4000          lea edi,dword ptr ss:[ebp+403E70]
+004A610E     50                     push eax
+004A610F     6A 00                  push 0
+004A6111     57                     push edi
+004A6112     FF95 82384000          call dword ptr ss:[ebp+403882]
+004A6118     8885 1B374000          mov byte ptr ss:[ebp+40371B],al
+004A611E     58                     pop eax
+004A611F     03F8                   add edi,eax
+004A6121     C607 5C                mov byte ptr ds:[edi],5C
+004A6124     47                     inc edi
+004A6125     8DB5 E3364000          lea esi,dword ptr ss:[ebp+4036E3]
+004A612B     AC                     lods byte ptr ds:[esi]
+004A612C     0AC0                   or al,al
+004A612E     74 03                  je short 唐诗三百.004A6133
+004A6130     AA                     stos byte ptr es:[edi]
+004A6131   ^ EB F8                  jmp short 唐诗三百.004A612B
+                             ====>F4 下去
+004A6133     80BD 18374000 01       cmp byte ptr ss:[ebp+403718],1
+004A613A    /74 7B                 je short 唐诗三百.004A61B7
+004A613C    |8DB5 703E4000          lea esi,dword ptr ss:[ebp+403E70]
+004A6142    |6A 00                 push 0
+004A6144    |68 80000000            push 80
+004A6149    |6A 03                 push 3
+004A614B    |6A 00                 push 0
+004A614D    |6A 00                 push 0
+004A614F    |68 00000080            push 80000000
+004A6154    |56                     push esi
+004A6155    |FF95 86384000          call dword ptr ss:[ebp+403886]
+004A615B    |83F8 FF               cmp eax,-1
+004A615E    |74 57                 je short 唐诗三百.004A61B7
+004A6160     8985 0B374000          mov dword ptr ss:[ebp+40370B],eax
+004A6166     8D85 34384000          lea eax,dword ptr ss:[ebp+403834]
+004A616C     8D9D 3C384000          lea ebx,dword ptr ss:[ebp+40383C]
+004A6172     8D8D 44384000          lea ecx,dword ptr ss:[ebp+403844]
+004A6178     51                     push ecx
+004A6179     53                     push ebx
+004A617A     50                     push eax
+004A617B     FFB5 0B374000          push dword ptr ss:[ebp+40370B]
+004A6181     FF95 9A384000          call dword ptr ss:[ebp+40389A]
+004A6187     FFB5 0B374000          push dword ptr ss:[ebp+40370B]
+004A618D     FF95 7E384000          call dword ptr ss:[ebp+40387E]
+004A6193     8B85 44384000          mov eax,dword ptr ss:[ebp+403844]
+004A6199     8B9D 48384000          mov ebx,dword ptr ss:[ebp+403848]
+004A619F     3B9D 30384000          cmp ebx,dword ptr ss:[ebp+403830]
+004A61A5     0F87 F9000000          ja 唐诗三百.004A62A4
+004A61AB     3B85 2C384000          cmp eax,dword ptr ss:[ebp+40382C]
+004A61B1    /0F83 ED000000         jnb 唐诗三百.004A62A4
+                             ====>跳
+004A62A4     8D85 AA344000          lea eax,dword ptr ss:[ebp+4034AA]
+004A62AA     50                     push eax
+004A62AB     E8 94010000            call 唐诗三百.004A6444
+004A62B0     FFB5 94354000          push dword ptr ss:[ebp+403594]
+004A62B6     FFB5 CF364000          push dword ptr ss:[ebp+4036CF]
+004A62BC     E8 EC070000            call 唐诗三百.004A6AAD
+004A62C1     0F83 A8000000          jnb 唐诗三百.004A636F
+                             ====>跳
+004A636F     61                     popad
+004A6370     9D                     popfd
+004A6371     68 00604900            push 唐诗三百.00496000
+004A6376     C3                     retn
+                             ====>返回到 00496000
+```
+
+———————————————————————
+
+```
+00496000     9C                     pushfd
+00496001     60                     pushad
+00496002     E8 02000000            call 唐诗三百.00496009
+                             ====>变形 JMP！F7 走进
+00496007     33C0                   xor eax,eax
+00496009     8BC4                   mov eax,esp
+0049600B     83C0 04               add eax,4
+0049600E     93                     xchg eax,ebx
+0049600F     8BE3                   mov esp,ebx
+00496011     8B5B FC                mov ebx,dword ptr ds:[ebx-4]
+00496014     81EB 07304000          sub ebx,唐诗三百.00403007
+0049601A     87DD                   xchg ebp,ebx
+0049601C     80BD DD3B4000 00       cmp byte ptr ss:[ebp+403BDD],0
+00496023     74 21                  je short 唐诗三百.00496046
+…… …… 省 略…… ……这个过程和上面的走法是一样的，估计是用 PEbundle 做了数次 ^O^
+0049636F     61                     popad
+00496370     9D                     popfd
+00496371     68 00C04200            push 唐诗三百.0042C000
+00496376     C3                     retn
+                             ====>返回到 0042C000
+```
+
+———————————————————————
+
+```
+0042C000    /EB 06                 jmp short 唐诗三百.0042C008
+0042C002    |68 6B130000            push 136B
+0042C007    |C3                     retn
+0042C008    9C                      pushfd
+```
+
+
+
+```
+0042C009      60                   pushad   
+
+0042C00A      E8 02000000          call 唐诗三百.0042C011   
+
+                                   ==== >变形 JMP！F7 走进   
+
+0042C00F      33C0                 xor eax,eax   
+
+0042C011      8BC4                 mov eax,esp   
+
+…… …… 省 略…… ……   
+
+0042C07B      C3                   retn   
+
+                                   ==== >返回到 0042D17B   
+
+0042D17B      BD CF400200          mov ebp,240CF   
+
+…… …… 省 略…… ……   
+
+0042D1A7      EB 26                jmp short 唐诗三百.0042D1CF   
+
+                                   ==== >跳   
+
+0042D1CF      8BB5 E6904000        mov esi,dword ptr ss:[ebp+4090E6]     
+
+…… …… 省 略…… ……   
+
+0042D21D      74 2E                je short 唐诗三百.0042D24D   
+
+                                   ==== >跳   
+
+0042D24D      57                   push edi   
+
+0042D24E      AD                   lods dword ptr ds:[esi]   
+
+0042D24F      85C0                 test eax,eax   
+
+0042D251      0F84 9B000000        je 唐诗三百.0042D2F2   
+
+                                   ==== >从这里跳出下面的循环  F4 到 0042D2F2   
+
+…… …… 省 略 …… ……   
+
+0042D2B0   ^ EB 9B                 jmp short 唐诗三百.0042D24D   
+
+0042D2F1      24 5F                and al,5F   
+
+                                   ==== >花指令！把 24 改为 90   
+
+0042D2F1      90                   nop  //改后的变化    
+
+0042D2F2      5F                   pop edi                                 ; 006F0000   
+
+0042D2F3      8BB5 E2904000        mov esi,dword ptr ss:[ebp+4090E2]   
+
+0042D2F9      AD                   lods dword ptr ds:[esi]   
+
+0042D2FA      83F8 FF              cmp eax,-1   
+
+0042D2FD      74 74                je short 唐诗三百.0042D373   
+
+                                   ==== >从这里跳出下面的循环  F4 到 0042D373   
+
+…… …… 省 略 …… ……   
+
+0042D370   ^EB 87                 jmp short 唐诗三百.0042D2F9   
+
+0042D372      0F6800               punpckhbw mm0,qword ptr ds:[eax]   
+
+                                   ==== >花指令！把 0F 改为 90   
+
+0042D372      90                   nop  //改后的变化    
+
+0042D373      68 00400000          push 4000   
+
+…… …… 省 略 …… ……   
+
+0042D3A0      74 72                je short 唐诗三百.0042D414   
+
+                                   ==== >从这里跳出下面的循环  F4 到 0042D414   
+
+0042D3A2      78 70                js short 唐诗三百.0042D414   
+
+…… …… 省 略 …… ……   
+
+0042D414      5F                   pop edi   
+
+…… …… 省 略 …… ……   
+
+0042D440    |74 15                 je short 唐诗三百.0042D457   
+
+                                   ==== >从这里跳出下面的循环  F4 到 0042D457   
+
+0042D442    |83F9 04               cmp ecx,4   
+
+0042D445   ^|73 E8                jnb short 唐诗三百.0042D42F   
+
+0042D447      BA 04000000          mov edx,4   
+
+0042D44C      2BD1                 sub edx,ecx   
+
+0042D44E      2BF2                 sub esi,edx   
+
+0042D450      B9 04000000          mov ecx,4   
+
+0042D455   ^ EB D8                 jmp short 唐诗三百.0042D42F   
+
+0042D457      3B85 67974000        cmp eax,dword ptr ss:[ebp+409767]   
+
+0042D45D      74 4D                je short 唐诗三百.0042D4AC   
+
+                                   ==== >跳   
+
+0042D4AB      00E8                 add al,ch   
+
+                                   ==== >花指令！把 00 改为 90   
+
+0042D4AB      90                   nop  //改后的变化    
+
+0042D4AC      E8 A1010000          call 唐诗三百.0042D652   
+
+0042D4B1      E8 A3000000          call 唐诗三百.0042D559   
+
+0042D4B6      73 6B                jnb short 唐诗三百.0042D523   
+
+                                   ==== >跳   
+
+0042D523      80BD 6B9F4000 C3     cmp byte ptr ss:[ebp+409F6B],0C3   
+
+0042D52A      74 22                je short 唐诗三百.0042D54E   
+
+                                   ==== >跳   
+
+0042D54E      61                   popad   
+
+0042D54F      9D                   popfd   
+
+0042D550      50                   push eax   
+
+0042D551      68 6B134000          push 唐诗三百.0040136B   
+
+                                   ==== >0040136B           这就是 OEP 值   
+
+0042D556      C2 0400              retn 4   
+
+                                   ==== >返回 0040136B       胜利的曙光！   
+
+———————————————————————   
+
+0040136B      55                   push ebp   
+
+                                   ==== >在这儿用 LordPE 转存调试进程   
+
+0040136C      8BEC                 mov ebp,esp   
+
+0040136E      6A FF                push -1   
+
+00401370      68 B0404000          push 唐诗三百.004040B0   
+
+00401375      68 A01E4000          push 唐诗三百.00401EA0
+```
+
+———————————————————————
+
+`F9` 运行`唐诗三百首`，运行`ImportREC`，选择这个进程。把 `OEP` 改为`0000136B`，点 `IT AutoSearch`，点“`Get Import`”，`FixDump`。正常运行！  `536K -> 676K`  晕，又是一个 `易程序` ！还好不用注册啦  `^O^`
+
+呵呵，再用 `FileScanner` 优化一下脱壳修复后的 `dumped_.exe` 吧  `^O^`  `676K->649K`
+
+`OK!` 完成！  `^O^`  `^O^`
+
+—————————————————————————————————
+
+```
+          ,      \_/   
+      /| \_.-~/          \_     ,        青春都一饷
+      ( /~   /            ~-.\_ |
+      `\   \_/                 ~ )          忍把浮名
+   _-~~~-.)  )\_\_/;;,.          _  //'    
+  /'\_,   --~    ~~~-  ,;;\_\_\_(  (.-~~~-.        换了破解轻狂
+  `~ _\_( ,\_..-- (      ,;'' /    ~--   /.\_\`   
+  /~~//'   / `~            ) /--..\_, )_  `~    
+   "  `~ "   "      `"      /~'`    \`\\~~    
+          "      "   "~'  ""
+        Cracked By 巢水工作坊——fly [OCN][FCG]
+                2003-09-12  18:00
+```
+
+`4dd466d0e1e0cc123afbe504da2462ca`
