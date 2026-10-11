@@ -1,0 +1,272 @@
+
+# Absolute Video Splitter Joiner
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-272.htm`](https://www.pediy.com/kssd/pediy08/pediy8-272.htm)
+
+Absolute Video Splitter Joiner 注册算法分析
+
+by `lnn1123`
+
+最进颓废，找软柿子玩玩。
+
+用了 `RSA`，`base64`
+
+```asm
+;//验证
+
+CODE:00506F84 sub_506F84      proc near              ; DATA XREF: CODE:00506EE0o
+
+CODE:00506F84
+
+CODE:00506F84 var_8           = dword ptr -8
+
+CODE:00506F84 var_4           = dword ptr -4
+
+CODE:00506F84
+
+CODE:00506F84                 push    ebp
+
+CODE:00506F85                 mov     ebp, esp
+
+CODE:00506F87                 push    0
+
+CODE:00506F89                 push    0
+
+CODE:00506F8B                 push    ebx
+
+CODE:00506F8C                 mov     ebx, eax
+
+CODE:00506F8E                 xor     eax, eax
+
+CODE:00506F90                 push    ebp
+
+CODE:00506F91                 push    offset loc_507031
+
+CODE:00506F96                 push    dword ptr fs:[eax]
+
+CODE:00506F99                 mov     fs:[eax], esp
+
+CODE:00506F9C                 lea     edx, [ebp+var_4]
+
+CODE:00506F9F                 mov     eax, [ebx+314h]
+
+CODE:00506FA5                 call    @TControl@GetText$qqrv ; TControl::GetText(void)
+
+CODE:00506FAA                 lea     edx, [ebp+var_8]
+
+CODE:00506FAD                 mov     eax, [ebx+318h]
+
+CODE:00506FB3                 call    @TControl@GetText$qqrv ; TControl::GetText(void)
+
+CODE:00506FB8                 mov     eax, ds:off_51647C
+
+CODE:00506FBD                 mov     eax, [eax]
+
+CODE:00506FBF                 mov     ecx, [ebp+var_8]
+
+CODE:00506FC2                 mov     edx, [ebp+var_4]
+
+CODE:00506FC5                 call    serial_Check
+
+CODE:00506FCA                 test    al, al
+
+CODE:00506FCC                 jz      short loc_506FFE
+
+CODE:00506FCE                 mov     eax, ds:off_51647C
+
+CODE:00506FD3                 mov     eax, [eax]
+
+CODE:00506FD5                 mov     edx, [ebp+var_4]
+
+CODE:00506FD8                 call    sub_511F38
+
+CODE:00506FDD                 push    40h
+
+CODE:00506FDF                 mov     ecx, offset dword_507040
+
+CODE:00506FE4                 mov     edx, offset unk_507054
+
+CODE:00506FE9                 mov     eax, ds:off_5166DC
+
+CODE:00506FEE                 mov     eax, [eax]
+
+CODE:00506FF0                 call    @Forms@TApplication@MessageBox$qqrpxct1i ; Forms::TApplication::MessageBox(char *,char *,int)
+
+CODE:00506FF5                 mov     eax, ebx
+
+CODE:00506FF7                 call    @Forms@TCustomForm@Close$qqrv ; Forms::TCustomForm::Close(void)
+
+CODE:00506FFC                 jmp     short loc_507016
+
+CODE:00506FFE ; ---------------------------------------------------------------------------
+
+CODE:00506FFE
+
+CODE:00506FFE loc_506FFE:                           ; CODE XREF: sub_506F84+48j
+
+CODE:00506FFE                 push    40h
+
+CODE:00507000                 mov     ecx, offset dword_507088
+
+CODE:00507005                 mov     edx, offset unk_507090
+
+CODE:0050700A                 mov     eax, ds:off_5166DC
+
+CODE:0050700F                 mov     eax, [eax]
+
+CODE:00507011                 call    @Forms@TApplication@MessageBox$qqrpxct1i ; Forms::TApplication::MessageBox(char *,char *,int)
+
+CODE:00507016
+
+CODE:00507016 loc_507016:                           ; CODE XREF: sub_506F84+78j
+
+CODE:00507016                 xor     eax, eax
+
+CODE:00507018                 pop     edx
+
+CODE:00507019                 pop     ecx
+
+CODE:0050701A                 pop     ecx
+
+CODE:0050701B                 mov     fs:[eax], edx
+
+CODE:0050701E                 push    offset loc_507038
+
+CODE:00507023
+
+CODE:00507023 loc_507023:                           ; CODE XREF: sub_506F84+B2j
+
+CODE:00507023                 lea     eax, [ebp+var_8]
+
+CODE:00507026                 mov     edx, 2
+
+CODE:0050702B                 call    @System@@LStrArrayClr$qqrv ; System::__linkproc__ LStrArrayClr(void)
+
+CODE:00507030                 retn
+
+CODE:00507031 ; ---------------------------------------------------------------------------
+
+CODE:00507031
+
+CODE:00507031 loc_507031:                           ; DATA XREF: sub_506F84+Do
+
+CODE:00507031                 jmp     @System@@HandleFinally$qqrv ; System::__linkproc__ HandleFinally(void)
+
+CODE:00507036 ; ---------------------------------------------------------------------------
+
+CODE:00507036                 jmp     short loc_507023
+
+CODE:00507038 ; ---------------------------------------------------------------------------
+
+CODE:00507038
+
+CODE:00507038 loc_507038:                           ; DATA XREF: sub_506F84+9Ao
+
+CODE:00507038                 pop     ebx
+
+CODE:00507039                 pop     ecx
+
+CODE:0050703A                 pop     ecx
+
+CODE:0050703B                 pop     ebp
+
+CODE:0050703C                 retn
+
+CODE:0050703C sub_506F84      endp ; sp = -4
+
+;///////核心代码
+
+CODE:00511BB8 serial_Check  proc near              ; CODE XREF: sub_506F84+41p
+
+CODE:00511BB8                                 ; sub_511D48+100p
+
+CODE:00511BB8
+
+CODE:00511BB8 var_1C           = dword ptr -1Ch
+
+CODE:00511BB8 var_14           = dword ptr -14h
+
+CODE:00511BB8 var_C            = dword ptr -0Ch
+
+CODE:00511BB8 var_8            = dword ptr -8
+
+CODE:00511BB8 var_4            = dword ptr -4
+
+CODE:00511BB8
+
+CODE:00511BB8                 push    ebp
+
+CODE:00511BB9                 mov     ebp, esp
+
+CODE:00511BBB                 add     esp, 0FFFFFFE4h
+
+CODE:00511BBE                 push    ebx
+
+CODE:00511BBF                 xor     ebx, ebx
+
+CODE:00511BC1                 mov     [ebp+var_C], ebx
+
+CODE:00511BC4                 mov     [ebp+var_8], ecx
+
+CODE:00511BC7                 mov     [ebp+var_4], edx
+
+CODE:00511BCA                 mov     eax, [ebp+var_4]
+
+CODE:00511BCD                 call    @System@@LStrAddRef$qqrv ; System::__linkproc__ LStrAddRef(void)
+
+CODE:00511BD2                 mov     eax, [ebp+var_8]
+
+CODE:00511BD5                 call    @System@@LStrAddRef$qqrv ; System::__linkproc__ LStrAddRef(void)
+
+CODE:00511BDA                 lea     eax, [ebp+var_14]
+
+CODE:00511BDD                 mov     edx, off_503FCC
+
+CODE:00511BE3                 call    sub_40535C
+
+CODE:00511BE8                 lea     eax, [ebp+var_1C]
+
+CODE:00511BEB                 mov     edx, off_503FCC
+
+CODE:00511BF1                 call    sub_40535C
+
+CODE:00511BF6                 xor     eax, eax
+
+CODE:00511BF8                 push    ebp
+
+CODE:00511BF9                 push    offset loc_511C7A
+
+CODE:00511BFE                 push    dword ptr fs:[eax]
+
+CODE:00511C01                 mov     fs:[eax], esp
+
+CODE:00511C04                 xor     ebx, ebx
+
+CODE:00511C06                 lea     edx, [ebp+var_14]
+
+CODE:00511C09                 mov     eax, ds:off_516304 ; E=0x10001
+
+CODE:00511C0E                 call    RSA_init
+
+CODE:00511C13                 lea     edx, [ebp+var_1C]
+
+CODE:00511C16                 mov     eax, ds:off_516308 ; N=24CB2A2F44E2626D8CC02B027
+
+CODE:00511C1B                 call    RSA_init
+
+CODE:00511C20                 lea     eax, [ebp+var_4]
+
+CODE:00511C23                 push    eax
+
+CODE:00511C24                 lea     ecx, [ebp+var_1C]
+
+CODE:00511C27                 lea     edx, [ebp+var_14]
+
+CODE:00511C2A                 mov     eax, [ebp+var_4]
+
+CODE:00511C2D                 call    @RSAEncrypt$qqr10AnsiStringr6TFGIntt2r10AnsiString ; RSAEncrypt(AnsiString,TFGInt & ,TFGInt &,AnsiString &)
+
+CODE:00511C32                 lea     edx, [ebp+var_C]
+
+CODE:00511C35                 mov     eax, [ebp+var_4]
+```

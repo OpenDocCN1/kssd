@@ -1,0 +1,164 @@
+
+# kingftp 1.2
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-426.htm`](https://www.pediy.com/kssd/pediy08/pediy8-426.htm)
+
+**【破文标题】** kingftp 简体中文版 1.2 注册算法
+
+**【破文作者】** XXNB
+
+**【作者邮箱】** 支持 PYG
+
+**【作者主页】** `binbinbin7456.ys168.com`
+
+**【破解工具】** `OD`
+
+**【破解平台】** `XPsp2`
+
+**【软件名称】** kingftp 简体中文版 1.2
+
+**【软件大小】** `85KB`
+
+**【原版下载】** `http://www.newhua.com/soft/46446.htm`
+
+**【保护方式】** 邮箱+码
+
+**【软件简介】**
+1. kingftp 是一套操作简单、使用方便的 FTP 软件，只需点击一下按纽、拖动一下鼠标就可以完成上传下载的工作；
+2. 是一个为顾客所想的 FTP 软件，其框架就如同把两个资源管理器合在一起，点点右键就可以完成所有工作；
+3. kingftp 支持 `windows` 2000 系列、`windows` xp、`windows` 2003 系列、`SunOS`、`AIX UNIX`、`Red Linux`、`Digital UNIX`、`FreeBSD` 等等操作系统。
+
+**【破解声明】** 菜鸟向高手学习！
+
+---
+
+## 破解过程
+
+1. 今天无聊中，发现了华军的这个软件，下载下来一看，居然是“kingftp 简体中文版 1.1”的。我也搞不懂了。管他呢。
+
+   这软件图标都没有改，放眼看去就知道是 `VC`。而且还没有任何壳。真是正合我等菜菜的意了，那我就 `looklook` 了。
+
+   经过我的分析这个软件连输入的东西都没有做检测。所以我输入邮箱：`b` 注册码：`1`。因为里面有循环，所以要尽量省。
+
+   字符串查找“注册码错误，请重新注册!”。得到：
+
+   ```asm
+   00414C80   .  6A FF          push    -1
+   00414C82   .  68 30F84100   push    0041F830                 ;  SE 处理程序安装
+   00414C87   .  64:A1 0000000>mov     eax, dword ptr fs:
+   00414C8D   .  50            push    eax
+   00414C8E   .  64:8925 00000>mov     dword ptr fs:
+   00414C95   .  83EC 20       sub     esp, 20
+   00414C98   .  56            push    esi
+   00414C99   .  8BF1          mov     esi, ecx
+   00414C9B   .  8D4C24 0C     lea     ecx, dword ptr
+   00414C9F   .  E8 CC730000   call    <jmp.&MFC42.#540>
+   00414CA4   .  8D4C24 08     lea     ecx, dword ptr
+   00414CA8   .  C74424 2C 000>mov     dword ptr, 0
+   00414CB0   .  E8 BB730000   call    <jmp.&MFC42.#540>
+   00414CB5   .  8D4C24 04     lea     ecx, dword ptr
+   00414CB9   .  C64424 2C 01  mov     byte ptr, 1
+   00414CBE   .  E8 AD730000   call    <jmp.&MFC42.#540>
+   00414CC3   .  8D4424 08     lea     eax, dword ptr
+   00414CC7   .  8BCE          mov     ecx, esi
+   00414CC9   .  50            push    eax
+   00414CCA   .  68 FC030000   push    3FC
+   00414CCF   .  C64424 34 02  mov     byte ptr, 2
+   00414CD4   .  E8 197C0000   call    <jmp.&MFC42.#3097>
+   00414CD9   .  8D4C24 0C     lea     ecx, dword ptr             ;  得到机器码
+   00414CDD   .  51            push    ecx
+   00414CDE   .  68 FB030000   push    3FB
+   00414CE3   .  8BCE          mov     ecx, esi
+   00414CE5   .  E8 087C0000   call    <jmp.&MFC42.#3097>         ;  得到邮箱
+   00414CEA   .  8D5424 04     lea     edx, dword ptr
+   00414CEE   .  8BCE          mov     ecx, esi
+   00414CF0   .  52            push    edx
+   00414CF1   .  68 FD030000   push    3FD
+   00414CF6   .  E8 F77B0000   call    <jmp.&MFC42.#3097>         ;  得到假的注册码。看见没有都是对称的
+   00414CFB   .  68 ED000000   push    0ED
+   00414D00   .  51            push    ecx
+   00414D01   .  8D4C24 14     lea     ecx, dword ptr
+   00414D05   .  8BC4          mov     eax, esp
+   00414D07   .  896424 1C     mov     dword ptr, esp
+   00414D0B   .  8D5424 10     lea     edx, dword ptr
+   00414D0F   .  51            push    ecx
+   00414D10   .  52            push    edx
+   00414D11   .  50            push    eax
+   00414D12   .  E8 63750000   call    <jmp.&MFC42.#922>          ;  这个 call 跟进去看的话会看到一个连接函数的，看堆栈数据
+   00414D17   .  8D4424 18     lea     eax, dword ptr              上面的 call 后将机器码和邮箱连接起来了。
+   00414D1B   .  50            push    eax
+   00414D1C   .  E8 1FC3FEFF   call    00401040                   ;  这个应该就是算法 call 了，进入看看《《《《《《《《《《《《
+   00414D21   .  8B4C24 1C     mov     ecx, dword ptr              ;  这里不会就是真码了吧，那上面那个 call 不就是！！
+   00414D25   .  8B5424 10     mov     edx, dword ptr              ;  (initial cpu selection)
+   00414D29   .  51            push    ecx                           ;  /真码入栈
+   00414D2A   .  52            push    edx                           ;  |假码入栈
+   00414D2B   .  C64424 40 03  mov     byte ptr, 3                   ;  |
+   00414D30   .  FF15 A4194200 call    dword ptr [<MSVCRT.__mbscmp>];  \__mbscmp
+   00414D36   .  83C4 14       add     esp, 14                       ;  上面这比较函数是逐位比较，从头开始，只要有一位不同就结束
+   00414D39   .  85C0          test    eax, eax
+   00414D3B   .  0F85 93000000 jnz     00414DD4
+   00414D41   .  68 02000080   push    80000002
+   00414D46   .  8D4C24 1C     lea     ecx, dword ptr
+   00414D4A   .  E8 41FAFFFF   call    00414790
+   00414D4F   .  8D4C24 14     lea     ecx, dword ptr
+   00414D53   .  C64424 2C 04  mov     byte ptr, 4                   ；写注册表
+   00414D58   .  E8 13730000   call    <jmp.&MFC42.#540>
+   00414D5D   .  68 E4944200   push    004294E4                      ;  software\kingftp\register
+   00414D62   .  8D4C24 1C     lea     ecx, dword ptr
+   00414D66   .  C64424 30 05  mov     byte ptr, 5
+   00414D6B   .  E8 B0FAFFFF   call    00414820
+   00414D70   .  85C0          test    eax, eax
+   00414D72   .  75 21         jnz     short 00414D95
+   00414D74   .  68 E4944200   push    004294E4                      ;  software\kingftp\register
+   00414D79   .  8D4C24 1C     lea     ecx, dword ptr
+   00414D7D   .  E8 EEFAFFFF   call    00414870
+   00414D82   .  68 78904200   push    00429078                      ;  1
+   00414D87   .  68 D8944200   push    004294D8                      ;  register
+   00414D8C   .  8D4C24 20     lea     ecx, dword ptr
+   00414D90   .  E8 0BFBFFFF   call    004148A0
+   00414D95   >  68 78904200   push    00429078                      ;  1
+   00414D9A   .  68 D8944200   push    004294D8                      ;  register
+   00414D9F   .  8D4C24 20     lea     ecx, dword ptr
+   00414DA3   .  E8 F8FAFFFF   call    004148A0
+   00414DA8   .  6A 00         push    0
+   00414DAA   .  6A 00         push    0
+   00414DAC   .  68 20954200   push    00429520                      ;  谢谢您的使用，你的软件已注册!
+   00414DB1   .  E8 36750000   call    <jmp.&MFC42.#1200>
+   00414DB6   .  8D4C24 14     lea     ecx, dword ptr
+   00414DBA   .  C64424 2C 04  mov     byte ptr, 4
+   00414DBF   .  E8 82720000   call    <jmp.&MFC42.#800>
+   00414DC4   .  8D4C24 18     lea     ecx, dword ptr
+   00414DC8   .  C64424 2C 03  mov     byte ptr, 3
+   00414DCD   .  E8 FEF9FFFF   call    004147D0
+   00414DD2   .  EB 0E         jmp     short 00414DE2
+   00414DD4   >  6A 00         push    0
+   00414DD6   .  6A 00         push    0
+   00414DD8   .  68 08954200   push    00429508                      ;  注册码错误，请重新注册!
+   00414DDD   .  E8 0A750000   call    <jmp.&MFC42.#1200>
+   00414DE2   >  8D4C24 10     lea     ecx, dword ptr
+   ```
+
+2. 跟进 `00414D1C   .  E8 1FC3FEFF   call    00401040` 得到：
+
+   ```asm
+   00401040  /$  6A FF          push    -1
+   00401042  |.  68 9FD04100    push    0041D09F                  ;  SE 处理程序安装
+   00401047  |.  64:A1 0000000>mov     eax, dword ptr fs:
+   0040104D  |.  50            push    eax
+   0040104E  |.  64:8925 00000>mov     dword ptr fs:
+   00401055  |.  83EC 10       sub     esp, 10
+   00401058  |.  56            push    esi
+   00401059  |.  57            push    edi
+   0040105A  |.  C74424 14 000>mov     dword ptr, 0
+   00401062  |.  8D4C24 08     lea     ecx, dword ptr
+   00401066  |.  C74424 20 010>mov     dword ptr, 1
+   0040106E  |.  E8 FDAF0100   call    <jmp.&MFC42.#540>
+   00401073  |.  8D4C24 0C     lea     ecx, dword ptr
+   00401077  |.  C64424 20 02  mov     byte ptr, 2
+   0040107C  |.  E8 EFAF0100   call    <jmp.&MFC42.#540>
+   00401081  |.  8D4424 2C     lea     eax, dword ptr
+   00401085  |.  8D4C24 08     lea     ecx, dword ptr
+   00401089  |.  50            push    eax
+   0040108A  |.  C64424 24 03  mov     byte ptr, 3
+   0040108F  |.  33F6          xor     esi, esi
+   ```

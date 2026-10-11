@@ -1,0 +1,258 @@
+
+### 汇编代码段 1
+
+```
+0043BFBF  |. 8B45 D8        MOV EAX,DWORD PTR SS:[EBP-28]  
+
+0043BFC2  |. 50             PUSH EAX  
+
+0043BFC3  |. 8D4D EC        LEA ECX,DWORD PTR SS:[EBP-14]  
+
+0043BFC6  |. E8 08120400    CALL QUIKSYNC.0047D1D3  
+
+0043BFCB  |. C645 FC 01     MOV BYTE PTR SS:[EBP-4],1  
+
+0043BFCF  |. 8D4D E8        LEA ECX,DWORD PTR SS:[EBP-18]  
+
+0043BFD2  |. E8 C3100400    CALL QUIKSYNC.0047D09A  
+
+0043BFD7  |. 8D4D EC        LEA ECX,DWORD PTR SS:[EBP-14]  
+
+0043BFDA  |. 51             PUSH ECX  
+
+0043BFDB  |. 8B4D 08        MOV ECX,DWORD PTR SS:[EBP+8]  
+
+0043BFDE  |. E8 2C0E0400    CALL QUIKSYNC.0047CE0F  
+
+0043BFE3  |. 8B55 E4        MOV EDX,DWORD PTR SS:[EBP-1C]  
+
+0043BFE6  |. 83CA 01        OR EDX,1  
+
+0043BFE9  |. 8955 E4        MOV DWORD PTR SS:[EBP-1C],EDX  
+
+0043BFEC  |. C645 FC 00     MOV BYTE PTR SS:[EBP-4],0  
+
+0043BFF0  |. 8D4D EC        LEA ECX,DWORD PTR SS:[EBP-14]  
+
+0043BFF3  |. E8 A2100400    CALL QUIKSYNC.0047D09A  
+
+0043BFF8  |. 8B45 08        MOV EAX,DWORD PTR SS:[EBP+8]  
+
+0043BFFB  |. 8B4D F4        MOV ECX,DWORD PTR SS:[EBP-C]  
+
+0043BFFE  |. 64:890D 000000>MOV DWORD PTR FS:[0],ECX  
+
+0043C005  |. 8BE5           MOV ESP,EBP  
+
+0043C007  |. 5D             POP EBP  
+
+0043C008  |\. C2 0800       RETN 8  
+```
+
+============================================================================  
+
+下面分析（3）处的函数，就是这个函数产生的注册码：  
+
+### 汇编代码段 2
+
+```
+0043AC70  /$ 55             PUSH EBP  
+
+0043AC71  |. 8BEC           MOV EBP,ESP  
+
+0043AC73  |. 6A FF          PUSH -1  
+
+0043AC75  |. 68 C0FC4800    PUSH QUIKSYNC.0048FCC0  
+
+0043AC7A  |. 64:A1 00000000 MOV EAX,DWORD PTR FS:[0]  
+
+0043AC80  |. 50             PUSH EAX  
+
+0043AC81  |. 64:8925 000000>MOV DWORD PTR FS:[0],ESP  
+
+0043AC88  |. 83EC 58        SUB ESP,58  
+
+0043AC8B  |. 894D 9C        MOV DWORD PTR SS:[EBP-64],ECX  
+
+0043AC8E  |. C745 A0 000000>MOV DWORD PTR SS:[EBP-60],0  
+
+0043AC95  |. 8D4D AC        LEA ECX,DWORD PTR SS:[EBP-54]  
+
+0043AC98  |. E8 738FFCFF    CALL QUIKSYNC.00403C10  
+
+0043AC9D  |. C745 FC 010000>MOV DWORD PTR SS:[EBP-4],1  
+
+0043ACA4  |. 8B45 0C        MOV EAX,DWORD PTR SS:[EBP+C]  
+
+0043ACA7  |. 8945 F0        MOV DWORD PTR SS:[EBP-10],EAX  
+
+0043ACAA  |. C745 EC 000000>MOV DWORD PTR SS:[EBP-14],0  
+
+0043ACB1  |. C745 A4 000000>MOV DWORD PTR SS:[EBP-5C],0  
+
+0043ACB8  |. C745 E4 000000>MOV DWORD PTR SS:[EBP-1C],0  
+
+0043ACBF  |. 6A 15          PUSH 15  
+
+0043ACC1  |. 8D4D AC        LEA ECX,DWORD PTR SS:[EBP-54]  
+
+0043ACC4  |. E8 78280400    CALL QUIKSYNC.0047D541  
+
+0043ACC9  |. 8945 E8        MOV DWORD PTR SS:[EBP-18],EAX  
+
+0043ACCC  |. 6A 15          PUSH 15  
+
+0043ACCE  |. 6A 00          PUSH 0  
+
+0043ACD0  |. 8B4D E8        MOV ECX,DWORD PTR SS:[EBP-18]  
+
+0043ACD3  |. 51             PUSH ECX  
+
+0043ACD4  |. E8 A7430300    CALL QUIKSYNC.0046F080           //把一段内存清零，准备产生注册码。  
+
+0043ACD9  |. 83C4 0C        ADD ESP,0C  
+
+0043ACDC  |> 8B55 F0        /MOV EDX,DWORD PTR SS:[EBP-10]   //从这里开始到 0043AD27 处的循环是复制假码的前 4 位  
+
+到另一地址。EDX 为假码地址。记新串为 S1。  
+
+0043ACDF  |. 0FBE02         |MOVSX EAX,BYTE PTR DS:[EDX]      //依次取假码前 4 位送 EAX。  
+
+0043ACE2  |. 85C0           |TEST EAX,EAX                     //如果 EAX 为 0 则 OVER。  
+
+0043ACE4  |. 74 43          |JE SHORT QUIKSYNC.0043AD29  
+
+0043ACE6  |. 837D E4 04     |CMP DWORD PTR SS:[EBP-1C],4      //判断是否已经到 4 位了。  
+
+0043ACEA  |. 7D 3D          |JGE SHORT QUIKSYNC.0043AD29      //如果到了则跳走。  
+
+0043ACEC  |. 8B4D E8        |MOV ECX,DWORD PTR SS:[EBP-18]   
+
+0043ACEF  |. 034D A4        |ADD ECX,DWORD PTR SS:[EBP-5C]    //目的地址送 ECX。  
+
+0043ACF2  |. 8B55 F0        |MOV EDX,DWORD PTR SS:[EBP-10]  
+
+0043ACF5  |. 8A02           |MOV AL,BYTE PTR DS:[EDX]         //把假码依次送 AL。   
+
+0043ACF7  |. 8801           |MOV BYTE PTR DS:[ECX],AL         //把假码送 ECX 指定的地址保存。  
+
+0043ACF9  |. 8B4D A4        |MOV ECX,DWORD PTR SS:[EBP-5C]  
+
+0043ACFC  |. 83C1 01        |ADD ECX,1            //ECX 增 1。  
+
+0043ACFF  |. 894D A4        |MOV DWORD PTR SS:[EBP-5C],ECX    //送回保存。  
+
+0043AD02  |. 8B55 F0        |MOV EDX,DWORD PTR SS:[EBP-10]  
+
+0043AD05  |. 0FBE02         |MOVSX EAX,BYTE PTR DS:[EDX]  
+
+0043AD08  |. 8B4D E4        |MOV ECX,DWORD PTR SS:[EBP-1C]  
+
+0043AD0B  |. D3E0           |SHL EAX,CL                   //EAX 左移 CL 位。CL 依次取 0，1，2，3。  
+
+0043AD0D  |. 8B4D EC        |MOV ECX,DWORD PTR SS:[EBP-14]   //取上次累加结果送 ECX。  
+
+0043AD10  |. 03C8           |ADD ECX,EAX                  //本次 EAX 值累加到 ECX。  
+
+0043AD12  |. 894D EC        |MOV DWORD PTR SS:[EBP-14],ECX   //保存结果。  
+
+0043AD15  |. 8B55 F0        |MOV EDX,DWORD PTR SS:[EBP-10]   
+
+0043AD18  |. 83C2 01        |ADD EDX,1                    //地址增 1。  
+
+0043AD1B  |. 8955 F0        |MOV DWORD PTR SS:[EBP-10],EDX  //送回保存。  
+
+0043AD1E  |. 8B45 E4        |MOV EAX,DWORD PTR SS:[EBP-1C]  //循环次数送 EAX。  
+
+0043AD21  |. 83C0 01        |ADD EAX,1    //EAX 增 1。  
+
+0043AD24  |. 8945 E4        |MOV DWORD PTR SS:[EBP-1C],EAX  //送回保存。  
+
+0043AD27  |.^EB B3          \JMP SHORT QUIKSYNC.0043ACDC     //未完继续。
+```
+
+注意：这个循环把前 4 位循环累加起来，比如前 4 位是 `abcd`，则结束后计算过程为 `R=a+b*2+c*4+d*8`. 下面就要用这个结果 `R`。
+
+```
+0043AD29  |> 6A FF          PUSH -1  
+
+0043AD2B  |. 8D4D AC        LEA ECX,DWORD PTR SS:[EBP-54]  
+
+0043AD2E  |. E8 E6270400    CALL QUIKSYNC.0047D519  
+
+0043AD33  |. 8B4D EC        MOV ECX,DWORD PTR SS:[EBP-14]   //前面计算的前 4 位累加和 R 送 ECX。  
+
+0043AD36  |. 51             PUSH ECX  
+
+0043AD37  |. 8B4D 9C        MOV ECX,DWORD PTR SS:[EBP-64]   
+
+0043AD3A  |. E8 11150000    CALL QUIKSYNC.0043C250          //取前面累加和 R 送 EAX。  
+
+0043AD3F  |. C745 A8 000000>MOV DWORD PTR SS:[EBP-58],0  
+
+0043AD46  |. EB 09          JMP SHORT QUIKSYNC.0043AD51     //这里跳下去。  
+
+0043AD48  |> 8B55 A8        /MOV EDX,DWORD PTR SS:[EBP-58]  //这里循环开始。求注册码了。  
+
+0043AD4B  |. 83C2 01        |ADD EDX,1  
+
+0043AD4E  |. 8955 A8        |MOV DWORD PTR SS:[EBP-58],EDX   
+
+0043AD51  |> 837D A8 32     |CMP DWORD PTR SS:[EBP-58],32   //查表次数与 32h 比较。  
+
+0043AD55  |. 7D 4E          |JGE SHORT QUIKSYNC.0043ADA5     //大于 32h 次则结束循环。  
+
+0043AD57  |. 8B4D 9C        |MOV ECX,DWORD PTR SS:[EBP-64]  //上次计算结果地址送 ECX。  
+
+0043AD5A  |. E8 11150000    |CALL QUIKSYNC.0043C270         //这个函数用累加和做参数进行简单计算。（4）  
+
+0043AD5F  |. 99             |CDQ                            //扩展到 EDX。  
+
+0043AD60  |. B9 5F000000    |MOV ECX,5F                     //把常数 5Fh 送 ECX。  
+
+0043AD65  |. F7F9           |IDIV ECX                       //EAX 除以 ECX，余数在 EDX。  
+
+0043AD67  |. 8B45 A8        |MOV EAX,DWORD PTR SS:[EBP-58]   
+
+0043AD6A  |. 8A8A B4BE4A00  |MOV CL,BYTE PTR DS:[EDX+4ABEB4]    //根据得到的余数 EDX 查表，结果送 CL。  
+
+0043AD70  |. 884C05 B0      |MOV BYTE PTR SS:[EBP+EAX-50],CL    //保存 CL。  
+
+0043AD74  |. 8B55 A8        |MOV EDX,DWORD PTR SS:[EBP-58]  
+
+0043AD77  |. 0FBE4415 B0    |MOVSX EAX,BYTE PTR SS:[EBP+EDX-50] //取出刚刚得到的查表结果。  
+
+0043AD7C  |. 85C0           |TEST EAX,EAX                   //判断是否为 0。  
+
+0043AD7E  |. 75 02          |JNZ SHORT QUIKSYNC.0043AD82      //如果不为 0 则跳到下面处理。  
+
+0043AD80  |.^EB C6          |JMP SHORT QUIKSYNC.0043AD48      //如果上面不跳，说明取出的值为 0，则需要重新  
+
+计算，然后查表取值。  
+
+0043AD82  |> 8B4D A4        |MOV ECX,DWORD PTR SS:[EBP-5C]     //新得到的字符要存放的相对位置。  
+
+0043AD85  |. 83C1 01        |ADD ECX,1                        //相对偏移增 1。  
+
+0043AD88  |. 894D A4        |MOV DWORD PTR SS:[EBP-5C],ECX     //送回保存。  
+
+0043AD8B  |. 837D A4 14     |CMP DWORD PTR SS:[EBP-5C],14       //和 14h 比较是否到达 20。  
+
+0043AD8F  |. 7E 02          |JLE SHORT QUIKSYNC.0043AD93        //如果没有到 20 则跳下面。  
+
+0043AD91  |. EB 12          |JMP SHORT QUIKSYNC.0043ADA5  
+
+0043AD93  |> 8B55 A8        |MOV EDX,DWORD PTR SS:[EBP-58]    
+
+0043AD96  |. 8A4415 B0      |MOV AL,BYTE PTR SS:[EBP+EDX-50]    //取出得到的查表结果送 AL。  
+
+0043AD9A  |. 50             |PUSH EAX  
+
+0043AD9B  |. 8D4D AC        |LEA ECX,DWORD PTR SS:[EBP-54]       //取出新注册码串地址送 ECX。  
+
+0043AD9E  |. E8 FA260400    |CALL QUIKSYNC.0047D49D              //把查得的字符送到新串 S 的后面。  
+
+0043ADA3  |.^EB A3          \JMP SHORT QUIKSYNC.0043AD48         //一直循环到满 20 位为止。  
+
+0043ADA5  |> 8D4D AC        LEA ECX,DWORD PTR SS:[EBP-54]  
+```
