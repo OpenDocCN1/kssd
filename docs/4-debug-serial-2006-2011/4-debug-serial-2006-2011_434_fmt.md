@@ -1,0 +1,186 @@
+
+# 对 PDF2WORD v.3.0 的算法分析
+
+> 原文：[`www.pediy.com/kssd/pediy10/68459.html`](https://www.pediy.com/kssd/pediy10/68459.html)
+
+VeryPDF `PDF2Word` v3.0 算法分析
+
+By Evil
+
+使用 `PEID` 0.94 查壳发现使用的 `UPX` 0.89.6 - 1.02 / 1.05 - 1.24 -> Markus & Laszlo。
+
+使用 `UPX` 通用脱壳机，以失败告终。使用 ESP 定律时，快到 `OEP` 了，出现如下代码：
+
+```
+00702817    8D4424 80       LEA EAX,DWORD PTR SS:[ESP-80]
+0070281B    6A 00           PUSH 0
+0070281D    39C4            CMP ESP,EAX
+0070281F  ^ 75 FA           JNZ SHORT 复件_pdf.0070281B
+00702821    83EC 80         SUB ESP,-80
+00702824  ^ E9 5506E9FF     JMP 复件_pdf.00592E7E
+```
+
+在地址 `0070281F` 处老是往回跳，跳到 `0070281B`，在 `00702821` 处下 `F4` 也没用。
+
+那就带壳分析吧。于是用 `OD` 载入带壳的 `pdf2word.exe`。
+
+在命令行插件里输入 `bp MessageBoxA`，按 `F9` 运行程序，程序会自动停止。从状态栏看到是程序出现异常，根据提示按 `Shift+F9` 跳过异常继续运行，这时弹出了注册窗口。输入你的 `E-mail` 地址，在 `Registration Key` 框中随意输入假注册码 `87654321`，点 `OK` 后程序被中断。按 `CTRL+F9` 执行到返回，这时弹出“`Wrong License Key`”的对话框。点确定按钮，程序又一次中断。按 `F8` 返回到程序空间，在注释栏可以看到很多字符串，向上不远可以看到注册成功的提示字符串“`Thank you registered VeryPDF PDF2Word v3.0.`”。按照程序的注册流程，必然在“成功提示”前面有个关键跳，跳向“错误提示”。我们在 `00405D90 74 44 JE SHORT 复件_pdf.00405DD6` 这行代码上点击一下鼠标左键，很清楚的看到它恰恰是跳到“错误提示”的前面。我们可以肯定这里就是关键跳了。大家都知道关键跳前面一般都是关键比较，也就是关键 `CALL`，向上走几行来到关键 `CALL` 处，在地址 `00405D86` 处。
+
+```
+00405D86    E8 95F8FFFF     CALL 复件_pdf.00405620
+```
+
+在此行代码上下断。按 `CTRL+F2` 重新载入程序，`F9` 运行，还是输入刚才的 `e-mail` 和假码 `87654321`，点 `OK`，程序中断在刚刚下的断点。按 `F7` 进入 `CALL`，算法代码如下：
+
+```
+00405620    83EC 18         SUB ESP,18
+00405623    83C9 FF         OR ECX,FFFFFFFF                 ;ECX = -1
+00405626    33C0            XOR EAX,EAX
+00405628    53              PUSH EBX
+00405629    56              PUSH ESI
+0040562A    8B7424 24       MOV ESI,DWORD PTR SS:[ESP+24]
+0040562E    57              PUSH EDI
+0040562F    8BFE            MOV EDI,ESI
+00405631    F2:AE           REPNE SCAS BYTE PTR ES:[EDI]
+00405633    F7D1            NOT ECX                         ;ECX = 9
+00405635    49              DEC ECX                         ;ECX = 8
+00405636    83F9 14         CMP ECX,14                      
+    ; 判断输入的注册码是否为 20 位
+00405639    74 07           JE SHORT 复件_pdf.00405642       
+    ; 相等的话就继续，不是就跳走
+0040563B    5F              POP EDI
+0040563C    5E              POP ESI
+0040563D    5B              POP EBX
+0040563E    83C4 18         ADD ESP,18
+00405641    C3              RETN
+00405642    8A06            MOV AL,BYTE PTR DS:[ESI]        
+    ; 取注册码第 1 位放入 al
+00405644    8A4E 01         MOV CL,BYTE PTR DS:[ESI+1]      
+    ; 取注册码第 2 位放入 cl
+00405647    8D5424 0C       LEA EDX,DWORD PTR SS:[ESP+C]
+0040564B    32DB            XOR BL,BL
+0040564D    52              PUSH EDX
+0040564E    884424 1C       MOV BYTE PTR SS:[ESP+1C],AL
+00405652    885C24 1D       MOV BYTE PTR SS:[ESP+1D],BL
+00405656    884C24 10       MOV BYTE PTR SS:[ESP+10],CL
+0040565A    885C24 11       MOV BYTE PTR SS:[ESP+11],BL
+0040565E    E8 AE9E1800     CALL 复件_pdf.0058F511
+00405663    8BF8            MOV EDI,EAX
+00405665    8D4424 1C       LEA EAX,DWORD PTR SS:[ESP+1C]
+00405669    50              PUSH EAX
+0040566A    E8 A29E1800     CALL 复件_pdf.0058F511
+0040566F    03F8            ADD EDI,EAX
+00405671    83C4 08         ADD ESP,8
+00405674    83FF 0B         CMP EDI,0B                      
+    ; 判断前两位之和是否为 11
+00405677    74 09           JE SHORT 复件_pdf.00405682       
+    ; 等于继续，不等则调走
+00405679    5F              POP EDI
+0040567A    5E              POP ESI
+0040567B    33C0            XOR EAX,EAX
+0040567D    5B              POP EBX
+0040567E    83C4 18         ADD ESP,18
+00405681    C3              RETN
+00405682    8A4E 12         MOV CL,BYTE PTR DS:[ESI+12]      
+    ; 取注册码第 19 位放入 cl
+00405685    8A56 13         MOV DL,BYTE PTR DS:[ESI+13]      
+    ; 取注册码第 20 位放入 dl
+00405688    8D4424 0C       LEA EAX,DWORD PTR SS:[ESP+C]
+0040568C    884C24 18       MOV BYTE PTR SS:[ESP+18],CL
+00405690    50              PUSH EAX
+00405691    885C24 1D       MOV BYTE PTR SS:[ESP+1D],BL
+00405695    885424 10       MOV BYTE PTR SS:[ESP+10],DL
+00405699    885C24 11       MOV BYTE PTR SS:[ESP+11],BL
+0040569D    E8 6F9E1800     CALL 复件_pdf.0058F511
+004056A2    8D4C24 1C       LEA ECX,DWORD PTR SS:[ESP+1C]
+004056A6    8BF8            MOV EDI,EAX
+004056A8    51              PUSH ECX
+004056A9    E8 639E1800     CALL 复件_pdf.0058F511
+004056AE    03F8            ADD EDI,EAX
+004056B0    83C4 08         ADD ESP,8
+004056B3    83FF 0D         CMP EDI,0D                      
+    ; 判断最后 2 位(19 位和 20 位) 之和是否为 13
+004056B6    74 09           JE SHORT 复件_pdf.004056C1       
+    ; 等于继续，不等则调走
+004056B8    5F              POP EDI
+004056B9    5E              POP ESI
+004056BA    33C0            XOR EAX,EAX
+004056BC    5B              POP EBX
+004056BD    83C4 18         ADD ESP,18
+004056C0    C3              RETN
+004056C1    8A56 05         MOV DL,BYTE PTR DS:[ESI+5]       
+    ; 取注册码第 6 位放入 dl
+004056C4    8A46 0D         MOV AL,BYTE PTR DS:[ESI+D]       
+    ; 取注册码第 14 位放入 al
+004056C7    8D4C24 0C       LEA ECX,DWORD PTR SS:[ESP+C]
+004056CB    885424 18       MOV BYTE PTR SS:[ESP+18],DL
+004056CF    51              PUSH ECX
+004056D0    885C24 1D       MOV BYTE PTR SS:[ESP+1D],BL
+004056D4    884424 10       MOV BYTE PTR SS:[ESP+10],AL
+004056D8    885C24 11       MOV BYTE PTR SS:[ESP+11],BL
+004056DC    E8 309E1800     CALL 复件_pdf.0058F511
+004056E1    8D5424 1C       LEA EDX,DWORD PTR SS:[ESP+1C]
+004056E5    8BF8            MOV EDI,EAX
+004056E7    52              PUSH EDX
+004056E8    E8 249E1800     CALL 复件_pdf.0058F511
+004056ED    03F8            ADD EDI,EAX
+004056EF    83C4 08         ADD ESP,8
+004056F2    83FF 09         CMP EDI,9                       
+    ; 判断第 6 位和第 14 位之和是否为 9
+004056F5    74 09           JE SHORT 复件_pdf.00405700
+004056F7    5F              POP EDI
+004056F8    5E              POP ESI
+004056F9    33C0            XOR EAX,EAX
+004056FB    5B              POP EBX
+004056FC    83C4 18         ADD ESP,18
+004056FF    C3              RETN
+00405700    807E 0C 56      CMP BYTE PTR DS:[ESI+C],56      
+    ; 判断第 13 位是否为“V”，16 进制的 56 就是“V”
+00405704    74 09           JE SHORT 复件_pdf.0040570F       
+    ; 等于继续，不等则跳转
+00405706    5F              POP EDI
+00405707    5E              POP ESI
+00405708    33C0            XOR EAX,EAX
+0040570A    5B              POP EBX
+0040570B    83C4 18         ADD ESP,18
+0040570E    C3              RETN
+0040570F    807E 0E 33      CMP BYTE PTR DS:[ESI+E],33      
+    ; 判断第 15 位是否为“3”，16 进制的 33 就是“3”
+00405713    74 09           JE SHORT 复件_pdf.0040571E
+00405715    5F              POP EDI
+00405716    5E              POP ESI
+00405717    33C0            XOR EAX,EAX
+00405719    5B              POP EBX
+0040571A    83C4 18         ADD ESP,18
+0040571D    C3              RETN
+0040571E    8A4E 0F         MOV CL,BYTE PTR DS:[ESI+F]      
+    ; 将注册码第 16 位放入 cl
+00405721    33C0            XOR EAX,EAX                       
+    ; 清空 eax
+00405723    80F9 31         CMP CL,31                         
+    ; 判断第 16 位是否为“1”，16 进制的 31 就是“1”
+00405726    5F              POP EDI
+00405727    5E              POP ESI
+00405728    5B              POP EBX
+00405729    0F94C0          SETE AL                           
+    ; 等于的话将 al 置 1，不等 eax 仍为零，返回后在关键跳前面 test eax,eax 看 eax 是否为零，为零跳向错误提示，不为零则成功，所以第 16 位必须为“1”
+0040572C    83C4 18         ADD ESP,18
+0040572F    C3              RETN
+```
+
+## 算法总结
+
+1. 注册码长度必须是 20 位。
+2. 第 1，2 位之和为 11。
+3. 第 19，20 位之和为 13。
+4. 第 6，14 位之和为 9。
+5. 第 13 位是“`V`”；大写的 `V`。
+6. 第 15 位是 `3`。
+7. 第 16 位是 `1`。
+8. 其它位任意。
+
+## 举例
+
+`EMIL` `alex@126.com`
+
+注册码：`470004000000V5310067`
