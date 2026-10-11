@@ -1,0 +1,148 @@
+
+# 跟进①里的情况
+
+```
+0045F365   .  BA 00F44500   MOV EDX,QUOD.0045F400           ; software\quod
+0045F36A   .  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]
+0045F36D   .  E8 7AF9FFFF   CALL QUOD.0045ECEC
+0045F372   .  B9 20F44500   MOV ECX,QUOD.0045F420           ; real programmers use pascal!
+0045F377   .  BA 48F44500   MOV EDX,QUOD.0045F448           ; key
+0045F37C   .  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]
+0045F37F   .  E8 04FBFFFF   CALL QUOD.0045EE88
+0045F384   .  B8 54F44500   MOV EAX,QUOD.0045F454           ; 软件注册成功,谢谢您的支持!
+0045F389   .  E8 2A39FDFF   CALL QUOD.00432CB8
+0045F38E   .  A1 E83E4600   MOV EAX,DWORD PTR DS:[463EE8]
+0045F393   .  8B00          MOV EAX,DWORD PTR DS:[EAX]
+0045F395   .  BA 78F44500   MOV EDX,QUOD.0045F478           ; 监狱(quod)—注册版
+0045F39A   .  E8 459EFDFF   CALL QUOD.004391E4
+0045F39F   .  33C0          XOR EAX,EAX
+0045F3A1   .  5A            POP EDX
+0045F3A2   .  59            POP ECX
+0045F3A3   .  59            POP ECX
+0045F3A4   .  64:8910       MOV DWORD PTR FS:[EAX],EDX
+0045F3A7   .  68 C6F34500   PUSH QUOD.0045F3C6
+0045F3AC   >  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]
+0045F3AF   .  E8 2043FAFF   CALL QUOD.004036D4
+0045F3B4   .  C3            RETN
+0045F3B5   .^ E9 AE4AFAFF   JMP QUOD.00403E68
+0045F3BA   .^ EB F0         JMP SHORT QUOD.0045F3AC
+0045F3BC     B8 94F44500   MOV EAX,QUOD.0045F494           ; 注册码不正确,无法注册!
+0045F3C1   .  E8 F238FDFF   CALL QUOD.00432CB8
+0045F3C6   .  33C0          XOR EAX,EAX
+0045F3C8   .  5A            POP EDX
+0045F3C9   .  59            POP ECX
+0045F3CA   .  59            POP ECX
+0045F3CB   .  64:8910       MOV DWORD PTR FS:[EAX],EDX
+0045F3CE   .  68 F3F34500   PUSH QUOD.0045F3F3
+0045F3D3   >  8D45 F0       LEA EAX,DWORD PTR SS:[EBP-10]
+0045F3D6   .  E8 6550FAFF   CALL QUOD.00404440
+0045F3DB   .  8D45 F4       LEA EAX,DWORD PTR SS:[EBP-C]
+0045F3DE   .  E8 5D50FAFF   CALL QUOD.00404440
+0045F3E3   .  8D45 F8       LEA EAX,DWORD PTR SS:[EBP-8]
+0045F3E6   .  E8 5550FAFF   CALL QUOD.00404440
+0045F3EB   .  C3            RETN
+0045F3EC   .^ E9 774AFAFF   JMP QUOD.00403E68
+0045F3F1   .^ EB E0         JMP SHORT QUOD.0045F3D3
+0045F3F3   .  5B            POP EBX
+0045F3F4   .  8BE5          MOV ESP,EBP
+0045F3F6   .  5D            POP EBP
+0045F3F7   .  C3            RETN
+```
+
+---
+
+# 跟进②里的情况
+
+```
+0045F4F8  /$  55            PUSH EBP
+0045F4F9  |.  8BEC          MOV EBP,ESP
+0045F4FB  |.  6A 00         PUSH 0
+0045F4FD  |.  6A 00         PUSH 0
+0045F4FF  |.  6A 00         PUSH 0
+0045F501  |.  6A 00         PUSH 0
+0045F503  |.  6A 00         PUSH 0
+0045F505  |.  6A 00         PUSH 0
+0045F507  |.  6A 00         PUSH 0
+0045F509  |.  53            PUSH EBX
+0045F50A  |.  56            PUSH ESI
+0045F50B  |.  57            PUSH EDI
+0045F50C  |.  894D F8       MOV DWORD PTR SS:[EBP-8],ECX
+0045F50F  |.  8955 FC       MOV DWORD PTR SS:[EBP-4],EDX
+0045F512  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]          ; 用户名->eax
+0045F515  |.  E8 C653FAFF   CALL QUOD.004048E0                    ; 跟进去后发现，仅是判断用户名是否为空，略过，下同
+0045F51A  |.  33C0          XOR EAX,EAX
+0045F51C  |.  55            PUSH EBP
+0045F51D  |.  68 E0F54500   PUSH QUOD.0045F5E0
+0045F522  |.  64:FF30       PUSH DWORD PTR FS:[EAX]
+0045F525  |.  64:8920       MOV DWORD PTR FS:[EAX],ESP
+0045F528  |.  33F6          XOR ESI,ESI
+0045F52A  |.  8D45 F4       LEA EAX,DWORD PTR SS:[EBP-C]
+0045F52D  |.  8B55 FC       MOV EDX,DWORD PTR SS:[EBP-4]          ; 用户名->edx
+0045F530  |.  E8 A34FFAFF   CALL QUOD.004044D8                    ; 同上
+0045F535  |.  8B45 F4       MOV EAX,DWORD PTR SS:[EBP-C]
+0045F538  |.  E8 BB51FAFF   CALL QUOD.004046F8                    ; 计算用户名位数，位数=>eax
+0045F53D  |.  8BF8          MOV EDI,EAX                             ; 用户名位数->edi
+0045F53F  |.  85FF          TEST EDI,EDI                            ; 是否 0 位，这家伙怎么那么关心用户名是否为空
+0045F541  |.  7E 57         JLE SHORT QUOD.0045F59A               ; 不为空继续，要开始算出真码了
+0045F543  |.  BB 01000000   MOV EBX,1                             ; ebx=1，初始化，从第一位开始，一位位算
+0045F548  |>  8B45 F4      /MOV EAX,DWORD PTR SS:[EBP-C]          ; 用户名->eax
+0045F54B  |.  8A4418 FF    |MOV AL,BYTE PTR DS:[EAX+EBX-1]       ; EAX+EBX-1，也就是用户名第 ebx 位，->al
+0045F54F  |.  E8 58FFFFFF  |CALL QUOD.0045F4AC                    ; ②跟进分析，此 CALL 判断当前位用户名的 ASCII 码是否素数
+0045F554  |.  84C0         |TEST AL,AL                             ; 如果此位的 ASCII 不为素数，则直接跳过，如果为素数，继续运算
+0045F556  |.  74 25        |JE SHORT QUOD.0045F57D
+0045F558  |.  8D45 E8      |LEA EAX,DWORD PTR SS:[EBP-18]
+0045F55B  |.  8B55 F4      |MOV EDX,DWORD PTR SS:[EBP-C]          ; 用户名->edx
+0045F55E  |.  8A541A FF    |MOV DL,BYTE PTR DS:[EDX+EBX-1]
+0045F562  |.  E8 B950FAFF  |CALL QUOD.00404620
+0045F567  |.  8B45 E8      |MOV EAX,DWORD PTR SS:[EBP-18]
+0045F56A  |.  8D55 EC      |LEA EDX,DWORD PTR SS:[EBP-14]
+0045F56D  |.  E8 F28EFAFF  |CALL QUOD.00408464                    ; ③把小写字母改成大写字母的 CALL，跟进看看
+0045F572  |.  8B55 EC      |MOV EDX,DWORD PTR SS:[EBP-14]
+0045F575  |.  8D45 F0      |LEA EAX,DWORD PTR SS:[EBP-10]
+0045F578  |.  E8 8351FAFF  |CALL QUOD.00404700                    ; ④拼接第一部分大写的注册码，跟进看看
+0045F57D  |>  83FB 01      |CMP EBX,1                             ; 是不是用户名的第一位，如果是的话
+0045F580  |.  74 0A        |JE SHORT QUOD.0045F58C               ; 位数不往后移，下次计算，还是计算第一位
+0045F582  |.  8B45 F4      |MOV EAX,DWORD PTR SS:[EBP-C]
+0045F585  |.  0FB64418 FE  |MOVZX EAX,BYTE PTR DS:[EAX+EBX-2]    ; eax+ebx-2，也就是用户名下一位
+0045F58A  |.  EB 06        |JMP SHORT QUOD.0045F592
+0045F58C  |>  8B45 F4      |MOV EAX,DWORD PTR SS:[EBP-C]
+0045F58F  |.  0FB600       |MOVZX EAX,BYTE PTR DS:[EAX]
+0045F592  |>  8D7486 6C    |LEA ESI,DWORD PTR DS:[ESI+EAX*4+6C]   ; 第二部分注册码关键！ESI 记录着第二部分注册码，每次都加上 EAX*4+6C，也就是用户名 ASCII*4+108（十进制），一位一位加
+0045F596  |.  43           |INC EBX                               ; ebx 记录着当前计算用户名的位数，加 1
+0045F597  |.  4F           |DEC EDI                               ; edi 和 ebx 相反，记录着还剩几位没有算
+0045F598  |.^ 75 AE        \JNZ SHORT QUOD.0045F548              ; 没算完上去循环计算下一位用户名
+0045F59A  |>  8D55 E4      LEA EDX,DWORD PTR SS:[EBP-1C]
+0045F59D  |.  8BC6         MOV EAX,ESI
+0045F59F  |.  E8 2C93FAFF  CALL QUOD.004088D0                    ; ⑤第二部分数字注册码，进去看看
+0045F5A4  |.  8B4D E4      MOV ECX,DWORD PTR SS:[EBP-1C]
+0045F5A7  |.  8D45 F4      LEA EAX,DWORD PTR SS:[EBP-C]
+0045F5AA  |.  8B55 F0      MOV EDX,DWORD PTR SS:[EBP-10]
+0045F5AD  |.  E8 9251FAFF  CALL QUOD.00404744                    ; 两部分拼起来，略过
+0045F5B2  |.  8B45 F8      MOV EAX,DWORD PTR SS:[EBP-8]
+0045F5B5  |.  8B55 F4      MOV EDX,DWORD PTR SS:[EBP-C]
+0045F5B8  |.  E8 D74EFAFF  CALL QUOD.00404494
+0045F5BD  |.  33C0         XOR EAX,EAX
+0045F5BF  |.  5A           POP EDX
+0045F5C0  |.  59           POP ECX
+0045F5C1  |.  59           POP ECX
+0045F5C2  |.  64:8910      MOV DWORD PTR FS:[EAX],EDX
+0045F5C5  |.  68 E7F54500  PUSH QUOD.0045F5E7
+0045F5CA  |>  8D45 E4      LEA EAX,DWORD PTR SS:[EBP-1C]
+0045F5CD  |.  BA 05000000  MOV EDX,5
+0045F5D2  |.  E8 8D4EFAFF  CALL QUOD.00404464
+0045F5D7  |.  8D45 FC      LEA EAX,DWORD PTR SS:[EBP-4]
+0045F5DA  |.  E8 614EFAFF  CALL QUOD.00404440
+0045F5DF  \.  C3           RETN
+```
+
+---
+
+# 跟进③里的情况
+
+```
+0045F4AC  /$  55            PUSH EBP
+0045F4AD  |.  8BEC          MOV EBP,ESP
+0045F4AF  |.  51            PUSH ECX
+0045F4B0  |.  53            PUSH EBX
+0045F4B1  |.  56            PUSH ESI
+```

@@ -1,0 +1,270 @@
+
+```
+004C1F08    E8 6368F4FF     call dumped\_.00408770
+
+004C1F0D    8B4D E4         mov ecx,dword ptr ss:\[ebp\-1C\]
+
+004C1F10    BA 7C204C00     mov edx,dumped\_.004C207C           //注册表里保存注册码位置，ASCII "red5sn"
+
+004C1F15    8BC6            mov eax,esi
+
+004C1F17    E8 E470FCFF     call dumped\_.00489000
+
+004C1F1C    8D55 D8         lea edx,dword ptr ss:\[ebp\-28\]
+
+004C1F1F    8B83 F4020000   mov eax,dword ptr ds:\[ebx+2F4\]
+
+004C1F25    E8 92EFF7FF     call dumped\_.00440EBC
+
+004C1F2A    8B45 D8         mov eax,dword ptr ss:\[ebp\-28\]
+
+004C1F2D    8D55 DC         lea edx,dword ptr ss:\[ebp\-24\]
+
+004C1F30    E8 3B68F4FF     call dumped\_.00408770
+
+004C1F35    8B4D DC         mov ecx,dword ptr ss:\[ebp\-24\]
+
+004C1F38    BA 8C204C00     mov edx,dumped\_.004C208C           //注册信息保存的字符串，ASCII "macstr"
+
+004C1F3D    8BC6            mov eax,esi
+
+004C1F3F    E8 BC70FCFF     call dumped\_.00489000
+
+004C1F44    8BC6            mov eax,esi
+
+004C1F46    E8 D16DFCFF     call dumped\_.00488D1C
+
+004C1F4B    8BC6            mov eax,esi
+
+004C1F4D    E8 4616F4FF     call dumped\_.00403598
+
+004C1F52    6A 00           push 0
+
+004C1F54    B9 94204C00     mov ecx,dumped\_.004C2094           //注册成功返回的信息
+
+004C1F59    BA 9C204C00     mov edx,dumped\_.004C209C
+
+004C1F5E    A1 848F4C00     mov eax,dword ptr ds:\[4C8F84\]
+
+004C1F63    8B00            mov eax,dword ptr ds:\[eax\]
+
+004C1F65    E8 5AFEF9FF     call dumped\_.00461DC4
+
+004C1F6A    A1 A0904C00     mov eax,dword ptr ds:\[4C90A0\]
+
+004C1F6F    8B00            mov eax,dword ptr ds:\[eax\]
+
+004C1F71    8B80 70030000   mov eax,dword ptr ds:\[eax+370\]
+
+004C1F77    33D2            xor edx,edx
+
+004C1F79    8B08            mov ecx,dword ptr ds:\[eax\]
+
+004C1F7B    FF51 64         call dword ptr ds:\[ecx+64\]
+
+004C1F7E    A1 A0904C00     mov eax,dword ptr ds:\[4C90A0\]
+
+004C1F83    8B00            mov eax,dword ptr ds:\[eax\]
+
+004C1F85    C680 78030000 0>mov byte ptr ds:\[eax+378\],1
+
+004C1F8C    8BC3            mov eax,ebx
+
+004C1F8E    E8 0DC6F9FF     call dumped\_.0045E5A0
+
+004C1F93    EB 19           jmp short dumped\_.004C1FAE
+
+004C1F95    6A 30           push 30
+
+004C1F97    68 24204C00     push dumped\_.004C2024               //注册失败返回的信息
+
+004C1F9C    68 B0204C00     push dumped\_.004C20B0
+
+004C1FA1    8BC3            mov eax,ebx
+
+004C1FA3    E8 C056F8FF     call dumped\_.00447668
+
+004C1FA8    50              push eax
+
+004C1FA9    E8 8651F4FF     call dumped\_.00407134               //调用通用对话框函数，MessageBoxA
+
+004C1FAE    33D2            xor edx,edx
+
+004C1FB0    8B83 FC020000   mov eax,dword ptr ds:\[ebx+2FC\]
+
+004C1FB6    E8 31EFF7FF     call dumped\_.00440EEC
+
+004C1FBB    33C0            xor eax,eax
+
+004C1FBD    5A              pop edx
+
+004C1FBE    59              pop ecx
+
+004C1FBF    59              pop ecx
+
+004C1FC0    64:8910         mov dword ptr fs:\[eax\],edx
+
+004C1FC3    68 1D204C00     push dumped\_.004C201D
+
+004C1FC8    8D45 D8         lea eax,dword ptr ss:\[ebp\-28\]
+
+004C1FCB    E8 3423F4FF     call dumped\_.00404304
+
+004C1FD0    8D45 DC         lea eax,dword ptr ss:\[ebp\-24\]
+
+004C1FD3    E8 2C23F4FF     call dumped\_.00404304
+
+004C1FD8    8D45 E0         lea eax,dword ptr ss:\[ebp\-20\]
+
+004C1FDB    E8 2423F4FF     call dumped\_.00404304
+
+004C1FE0    8D45 E4         lea eax,dword ptr ss:\[ebp\-1C\]
+
+004C1FE3    E8 1C23F4FF     call dumped\_.00404304
+
+004C1FE8    8D45 E8         lea eax,dword ptr ss:\[ebp\-18\]
+
+004C1FEB    E8 1423F4FF     call dumped\_.00404304
+
+004C1FF0    8D45 EC         lea eax,dword ptr ss:\[ebp\-14\]
+
+004C1FF3    BA 02000000     mov edx,2
+
+004C1FF8    E8 2B23F4FF     call dumped\_.00404328
+
+004C1FFD    8D45 F4         lea eax,dword ptr ss:\[ebp\-C\]
+
+004C2000    E8 FF22F4FF     call dumped\_.00404304
+
+004C2005    8D45 F8         lea eax,dword ptr ss:\[ebp\-8\]
+
+004C2008    E8 F722F4FF     call dumped\_.00404304
+
+004C200D    8D45 FC         lea eax,dword ptr ss:\[ebp\-4\]
+
+004C2010    E8 EF22F4FF     call dumped\_.00404304
+
+004C2015    C3              retn                             //返回程序
+
+============== 跟进：004C1EA7    E8 74FCFFFF     call dumped\_.004C1B20 ==============
+
+004C1B20    55              push ebp
+
+004C1B21    8BEC            mov ebp,esp
+
+004C1B23    B9 07000000     mov ecx,7
+
+004C1B28    6A 00           push 0
+
+004C1B2A    6A 00           push 0
+
+004C1B2C    49              dec ecx                            //ecx\=7
+
+004C1B2D   ^ 75 F9        jnz short dumped\_.004C1B28          //向上循环 7 次
+
+004C1B2F    53              push ebx
+
+004C1B30    56              push esi
+
+004C1B31    57              push edi
+
+004C1B32    8BFA            mov edi,edx
+
+004C1B34    8945 FC         mov dword ptr ss:\[ebp\-4\],eax    //取机器码，ASCII "000AEB97B625"
+
+004C1B37    8B45 FC         mov eax,dword ptr ss:\[ebp\-4\]    //赋值给 eax 计算
+
+004C1B3A    E8 652CF4FF     call dumped\_.004047A4
+
+004C1B3F    33C0            xor eax,eax
+
+004C1B41    55              push ebp
+
+004C1B42    68 E61C4C00     push dumped\_.004C1CE6
+
+004C1B47    64:FF30         push dword ptr fs:\[eax\]
+
+004C1B4A    64:8920         mov dword ptr fs:\[eax\],esp
+
+004C1B4D    8D45 F8         lea eax,dword ptr ss:\[ebp\-8\]    //取出机器码，ASCII "000AEB97B625"
+
+004C1B50    8B55 FC         mov edx,dword ptr ss:\[ebp\-4\]    //赋值给 edx
+
+004C1B53    E8 4428F4FF     call dumped\_.0040439C
+
+004C1B58    8D45 F4         lea eax,dword ptr ss:\[ebp\-C\]
+
+004C1B5B    E8 A427F4FF     call dumped\_.00404304
+
+004C1B60    8B45 F8         mov eax,dword ptr ss:\[ebp\-8\]    //调用机器码，ASCII "000AEB97B625"
+
+004C1B63    E8 542AF4FF     call dumped\_.004045BC
+
+004C1B68    8BF0            mov esi,eax
+
+004C1B6A    85F6            test esi,esi                       //比较是否取完 12 位机器码，esi=0C
+
+004C1B6C    0F8E 4F010000   jle dumped\_.004C1CC1              //未取完则继续！
+
+004C1B72    BB 01000000     mov ebx,1
+
+004C1B77    8D45 EC         lea eax,dword ptr ss:\[ebp\-14\]
+
+004C1B7A    8B55 F8         mov edx,dword ptr ss:\[ebp\-8\]    //edx 清零，装入机器码
+
+004C1B7D    8A541A FF       mov dl,byte ptr ds:\[edx+ebx\-1\]   //ds:\[00DDB14C\]=30 ('0')，dl=4C ('L')
+
+004C1B81    E8 5E29F4FF     call dumped\_.004044E4
+
+004C1B86    8B45 EC         mov eax,dword ptr ss:\[ebp\-14\]
+
+004C1B89    8D55 F0         lea edx,dword ptr ss:\[ebp\-10\]
+
+004C1B8C    E8 8F69F4FF     call dumped\_.00408520
+
+004C1B91    8B45 F0         mov eax,dword ptr ss:\[ebp\-10\]
+
+004C1B94    BA FC1C4C00     mov edx,dumped\_.004C1CFC
+
+004C1B99    E8 622BF4FF     call dumped\_.00404700
+
+004C1B9E    75 12           jnz short dumped\_.004C1BB2        //向上循环运算取字符所对应的 ASCII 码值
+
+004C1BA0    8D45 F4         lea eax,dword ptr ss:\[ebp\-C\]
+
+004C1BA3    BA 081D4C00     mov edx,dumped\_.004C1D08
+
+004C1BA8    E8 172AF4FF     call dumped\_.004045C4
+
+004C1BAD    E9 07010000     jmp dumped\_.004C1CB9
+
+004C1BB2    8D45 E4         lea eax,dword ptr ss:\[ebp\-1C\]
+
+004C1BB5    8B55 F8         mov edx,dword ptr ss:\[ebp\-8\]
+
+004C1BB8    8A541A FF       mov dl,byte ptr ds:\[edx+ebx\-1\]   //ds:\[00DDB14C\]=30 ('0')，dl=4C ('L')
+
+004C1BBC    E8 2329F4FF     call dumped\_.004044E4
+
+004C1BC1    8B45 E4         mov eax,dword ptr ss:\[ebp\-1C\]
+
+004C1BC4    8D55 E8         lea edx,dword ptr ss:\[ebp\-18\]
+
+004C1BC7    E8 5469F4FF     call dumped\_.00408520
+
+004C1BCC    8B45 E8         mov eax,dword ptr ss:\[ebp\-18\]
+
+004C1BCF    BA 141D4C00     mov edx,dumped\_.004C1D14
+
+004C1BD4    E8 272BF4FF     call dumped\_.00404700
+
+004C1BD9    75 12           jnz short dumped\_.004C1BED        //向上循环运算取字符所对应的 ASCII 码值
+
+004C1BDB    8D45 F4         lea eax,dword ptr ss:\[ebp\-C\]
+
+004C1BDE    BA 201D4C00     mov edx,dumped\_.004C1D20
+
+004C1BE3    E8 DC29F4FF     call dumped\_.004045C4
+
+004C1BE8    E9 CC000000     jmp dumped\_.004C1CB9
+```
