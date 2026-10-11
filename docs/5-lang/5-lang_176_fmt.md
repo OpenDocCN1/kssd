@@ -1,0 +1,345 @@
+
+# swf 格式在线课程破解往事
+
+> 原文：[`www.pediy.com/kssd/pediy10/80959.html`](https://www.pediy.com/kssd/pediy10/80959.html)
+
+一个小程序，现在拿出来与大家分享，希望认识更多的朋友。
+
+那还是 05 年的事，为了让女友在网上购买的盗版光盘不至于扔掉，苦于网上无现成工具，遂决心破解。光盘内容是“新东方教育在线”的课程，均为 `swf` 格式。有部份文件，在播放过程中自动返回初始位置。例如暴风影音也是如此。很是郁闷，心想必定是 `flash` 中的脚本在作祟。于是在网上搜到一款叫作“硕思闪客”的软件，用它打开问题文件如下图所示：
+
+![](img/e01c45fbc74ed9bd3a4d96735af28394.jpg)
+
+其中看到一段代码：
+
+```
+onClipEvent(load)
+{
+    function vv()
+    {
+        trace("interval called");
+        view = _url.substr(0, 4);
+        allURL = _url.substr(0, 60);
+        status = allURL.indexOf("tol24.com");
+        if (view != "http" || status == -1)
+        {
+            _root.gotoAndStop(1);
+        }
+    }
+    setInterval(vv, 10000);
+}
+```
+
+显然是每隔 10 秒调用一次函数 `vv()`；该函数判断如果当前网址不是以 `http` 开头且长度为 60 个字符的网址中不含 `tol24.com` 字符串就自动跳回第一帧，停止播放。原因找到了，现在就是要让这段脚本不执行。用 `winhex` 打开文件，搜索 `setInterval`，只出现 3 处，嫌疑最大的一处如下图。
+
+![](img/6aa53b96533d5e2ec3ae41282b083e99.jpg)
+
+这里可能就是 `setInterval(vv, 10000);` 函数语句所在处，能否破坏掉此处代码？遂将 `76 76 00 73 65 74 49 6E 74 65 72 76 61 6C` 中的第一个 `76` 改为 `00`，播放问题解决。
+
+但是新东方教育在线的课程多种多样，存在问题的 `swf` 文件多如牛毛，况且并不是所有文件都存在以上问题。必须用程序来解决。为了追求处理速度，遂用汇编语言捣鼓了几天，小有所成。程序应用界面如下：
+
+![](img/56d686fa2a4a39b1be2d8c68c7d2a65f.jpg)
+
+大致功能就是浏览“新东方教育在线”课程所在的文件夹，点击开始即可告诉你该文件夹中是否有功能限制的 `swf` 文件，如果有就进行处理。处理一张 `cd` 光盘也就 10 来秒钟，就连女友这种电脑“小白”也是运用自如。
+
+以下是完整代码供大家分享：
+
+```asm
+.386
+.model flat, stdcall
+option casemap :none
+include windows.inc
+include user32.inc
+includelib user32.lib
+include kernel32.inc
+includelib kernel32.lib
+include ole32.inc
+includelib ole32.lib
+include shell32.inc
+includelib shell32.lib
+
+search_data proto :DWORD,:DWORD, :DWORD,:DWORD
+check_swf proto :DWORD
+
+ICO_MAIN equ 1000
+DLG_MAIN equ 100
+IDC_PATH equ 101
+IDC_BROWSE equ 102
+IDC_NOWFILE equ 103
+IDC_LISTBOX1 equ 104
+F_SEARCHING equ 0001h
+F_STOP equ 0002h
+
+.data?
+hInstance dd ?
+dwFileCount dd ?
+szPath db MAX_PATH dup (?)
+dwOption db ?
+
+.data
+hMapping dd ?
+pMapView dd ?
+hFile dd ?
+len dd ?
+hWinMain dd ?
+
+.const
+szStart db '开始(&S)',0
+szStop db '停止(&S)',0
+szFilter db '\*.swf',0
+szSearchInfo db '共处理 %d 个 SWF 文件!',0
+searchdata db 76h,76h,00,73h,65h,74h
+szClear db 10h dup (0)
+
+.code
+include _BrowseFolder.asm
+
+_FindFile proc _lpszPath
+local @stFindFile:WIN32_FIND_DATA
+local @hFindFile
+local @szPath[MAX_PATH]:byte ;用来存放“路径\”
+local @szSearch[MAX_PATH]:byte ;用来存放“路径\*.*”
+local @szFindFile[MAX_PATH]:byte ;用来存放“路径\找到的文件”
+
+pushad
+invoke lstrcpy,addr @szPath,_lpszPath
+@@:
+invoke lstrlen,addr @szPath
+lea esi,@szPath
+add esi,eax
+xor eax,eax
+mov al,'\'
+.if byte ptr [esi-1] != al
+mov word ptr [esi],ax
+.endif
+invoke lstrcpy,addr @szSearch,addr @szPath
+invoke lstrcat,addr @szSearch,addr szFilter
+invoke FindFirstFile,addr @szSearch,addr @stFindFile
+.if eax != INVALID_HANDLE_VALUE
+mov @hFindFile,eax
+.repeat
+invoke lstrcpy,addr @szFindFile,addr @szPath
+invoke lstrcat,addr @szFindFile,addr @stFindFile.cFileName
+.if @stFindFile.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY
+.if @stFindFile.cFileName != '.'
+invoke _FindFile,addr @szFindFile
+.endif
+.else ;是文件就处理
+invoke check_swf,addr @szFindFile;
+inc dwFileCount
+; invoke SendDlgItemMessage,hWinMain,IDC_LISTBOX1,LB_ADDSTRING,0,addr @szFindFile
+.endif
+invoke FindNextFile,@hFindFile,addr @stFindFile
+.until (eax == FALSE) || (dwOption & F_STOP)
+invoke FindClose,@hFindFile
+.endif
+popad
+ret
+_FindFile endp
+
+_ProcThread proc uses ebx ecx edx esi edi,lParam
+local @szBuffer[256]:byte
+and dwOption,not F_STOP
+or dwOption,F_SEARCHING
+invoke GetDlgItem,hWinMain,IDC_PATH
+invoke EnableWindow,eax,FALSE
+invoke GetDlgItem,hWinMain,IDC_BROWSE
+invoke EnableWindow,eax,FALSE
+invoke SetDlgItemText,hWinMain,IDOK,addr szStop
+xor eax,eax
+mov dwFileCount,eax ;初始化记数变量
+invoke _FindFile,addr szPath
+;文件查找完后显示查找结果
+invoke GetDlgItem,hWinMain,IDC_BROWSE
+invoke EnableWindow,eax,FALSE
+invoke wsprintf,addr @szBuffer,addr szSearchInfo,dwFileCount
+invoke SetDlgItemText,hWinMain,IDC_NOWFILE,addr @szBuffer
+invoke GetDlgItem,hWinMain,IDOK
+invoke EnableWindow,eax,FALSE
+invoke GetDlgItem,hWinMain,IDC_BROWSE
+invoke EnableWindow,eax,TRUE
+invoke SetDlgItemText,hWinMain,IDOK,addr szStart
+and dwOption,not F_SEARCHING
+ret
+_ProcThread endp
+
+_ProcDlgMain proc uses ebx edi esi hWnd,wMsg,wParam,lParam
+local @dwTemp,@szBuffer[MAX_PATH]:byte
+mov eax,wMsg
+.if eax == WM_CLOSE
+.if ! (dwOption & F_SEARCHING)
+invoke EndDialog,hWnd,NULL
+.endif
+.elseif eax == WM_INITDIALOG
+push hWnd
+pop hWinMain
+invoke LoadIcon,hInstance,ICO_MAIN
+invoke SendMessage,hWnd,WM_SETICON,ICON_BIG,eax
+invoke SendDlgItemMessage,hWnd,IDC_PATH,EM_SETLIMITTEXT,MAX_PATH,0
+.elseif eax == WM_COMMAND
+mov eax,wParam
+.if ax == IDC_BROWSE
+invoke SetDlgItemText,hWinMain,IDC_NOWFILE,addr szClear
+invoke _BrowseFolder,hWnd,addr szPath
+.if eax
+invoke SetDlgItemText,hWnd,IDC_PATH,addr szPath
+.endif
+.elseif ax == IDC_PATH
+invoke GetDlgItemText,hWnd,IDC_PATH,addr @szBuffer,MAX_PATH
+mov ebx,eax
+invoke GetDlgItem,hWnd,IDOK
+invoke EnableWindow,eax,ebx
+.elseif ax == IDOK
+.if dwOption & F_SEARCHING
+or dwOption,F_STOP
+.else
+invoke GetDlgItemText,hWnd,IDC_PATH,addr szPath,MAX_PATH
+invoke CreateThread,NULL,0,offset _ProcThread,NULL,\
+NULL,addr @dwTemp
+invoke CloseHandle,eax
+.endif
+.endif
+.else
+mov eax,FALSE
+ret
+.endif
+mov eax,TRUE
+ret
+_ProcDlgMain endp
+
+start:
+invoke GetModuleHandle,NULL
+mov hInstance,eax
+invoke DialogBoxParam,hInstance,DLG_MAIN,NULL,offset _ProcDlgMain,NULL
+invoke ExitProcess,NULL
+
+search_data proc Base:DWORD,ToltalLen:DWORD ,mydata:DWORD ,mydatalen:DWORD
+LOCAL position: DWORD
+mov edi,Base
+mov position,edi
+mov esi,mydata
+xor ecx,ecx
+xor edx,edx
+mov ecx,mydatalen
+mov edx,ToltalLen
+xor eax,eax
+Match_data:
+mov bl,byte ptr [esi] ;要找的字节
+mov bh,byte ptr [edi]
+inc esi
+inc edi
+cmp bl,bh
+jz judge
+inc eax
+mov ecx,mydatalen
+cmp eax,ToltalLen
+jz no_exist
+mov position,eax ;注意 edi 的记数
+add eax,Base
+mov edi,eax
+mov eax,position
+mov esi,mydata
+jmp Match_data
+judge:
+dec ecx
+cmp ecx,0
+jnz Match_data
+foundit:
+sub edi,6h
+mov eax, edi
+ret
+no_exist:
+xor eax,eax
+ret
+search_data endp
+
+check_swf proc file:DWORD
+invoke CreateFile,file,
+GENERIC_READ+GENERIC_WRITE,
+FILE_SHARE_READ,
+NULL,OPEN_EXISTING,
+FILE_ATTRIBUTE_NORMAL,
+NULL
+mov hFile, eax
+```
+
+
+
+```asm
+  cmp   eax,INVALID_HANDLE_VALUE  
+
+  jz    Error  
+
+  invoke GetFileSize,hFile,NULL  
+
+  mov   len, eax  
+
+  invoke CreateFileMappingA,hFile,NULL,PAGE_READWRITE,0,len,NULL  
+
+  mov   hMapping,eax  
+
+  cmp   eax,NULL  
+
+  jz    Error  
+
+  invoke MapViewOfFile,hMapping,FILE_MAP_ALL_ACCESS,0,0,len  
+
+  cmp   eax,NULL  
+
+  jz    Error  
+
+  mov   pMapView,eax  
+
+  push  6h  
+
+  push  offset searchdata  
+
+  push  len  
+
+  push  eax  
+
+  call  search_data   
+
+
+  cmp   eax,0  
+
+  jz    Error   
+
+
+  mov   esi,eax  
+
+  mov   word ptr [esi],00h  
+
+  inc   dwFileCount  
+
+  invoke  SendDlgItemMessage,hWinMain,IDC_LISTBOX1,LB_ADDSTRING,0,file   
+
+
+Error:   
+
+
+  invoke UnmapViewOfFile,pMapView     
+
+
+  invoke CloseHandle,hMapping    
+
+
+  invoke CloseHandle,hFile  
+
+  ret     
+
+
+check_swf endp    
+
+
+
+
+  end start  
+```
+
+新年祝看雪论坛高手越来越多！大家共同进步。下附程序和测试 `swf` 文件
+
+上传的附件
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || `tougao.rar` [附件请到论坛下载：[`bbs.pediy.com/showthread.php?t=80959`](http://bbs.pediy.com/showthread.php?t=80959%20) ]
+
+|
