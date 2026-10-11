@@ -1,0 +1,205 @@
+
+```
+004776A4  |. 8B00           MOV EAX,DWORD PTR DS:[EAX]
+
+004776A6  |. E8 BDF4FFFF    CALL SMENU2.00476B68
+
+004776AB  |. 8BD8           MOV EBX,EAX                          ;
+
+SMENU2.<ModuleEntryPoint>
+
+004776AD  |. B8 54774700    MOV EAX,SMENU2.00477754              ;  ASCII "RegNum"
+
+004776B2  |. E8 DDF6FFFF    CALL SMENU2.00476D94        //调用 regqueryvalueExa 函数
+
+004776B7  |. 3BD8           CMP EBX,EAX                       //真假码进行对比，EBX 为解
+密后的真码，EAX 解密后的假码
+
+004776B9  |. 75 0A          JNZ SHORT SMENU2.004776C5  //不相同则 Fail。直接修改为 JZ 实行爆破，可
+以输入任意注册码了。
+
+004776BB  |. B8 01000000    MOV EAX,1
+
+004776C0  |. E9 83000000    JMP SMENU2.00477748
+
+004776C5  |> 33C0           XOR EAX,EAX                          ;
+
+SMENU2.<ModuleEntryPoint>
+
+004776C7  |. 5B             POP EBX                              ;  KERNEL32.BFF8B86C
+
+004776C8  |. C3             RETN
+```
+
+========================================================
+
+（5）跟踪注册码计算方法。只有在成功之前可以进行跟踪，如果注册成功了，那还跟踪干吗？？:) 输入任意码，比如 `78787878`，唤出 `SICE` 下断点 `bpx hmemcpy`，`F5` 退出 `SICE`，点击“注册”按钮，被拦住。`7` 次 `F12` 来到如下代码处，开始分析：
+
+```
+00477F37   E8 809EFAFF      CALL SMENU3.00421DBC
+
+00477F3C   837D FC 00       CMP DWORD PTR SS:[EBP-4],0  //在这里停住
+
+00477F40   74 65            JE SHORT SMENU3.00477FA7
+
+00477F42   8D55 FC          LEA EDX,DWORD PTR SS:[EBP-4]
+
+00477F45   8B83 F4010000    MOV EAX,DWORD PTR DS:[EBX+1F4]
+
+00477F4B   E8 6C9EFAFF      CALL SMENU3.00421DBC
+
+00477F50   8B45 FC          MOV EAX,DWORD PTR SS:[EBP-4]
+
+00477F53   E8 A4F9F8FF      CALL SMENU3.004078FC         //这个 CALL 关键，F8 跟入
+
+00477F58   8BD0             MOV EDX,EAX                          ;
+
+SMENU3.<ModuleEntryPoint>
+
+00477F5A   B8 D07F4700      MOV EAX,SMENU3.00477FD0              ;  ASCII "RegNum"
+
+00477F5F   E8 F4EEFFFF      CALL SMENU3.00476E58         //这个 CALL 也关键，F8 跟入
+```
+
+先看第一个 `477F53` 处的 `CALL`：
+
+*略去多行*
+
+```
+00407916   64:8920          MOV DWORD PTR FS:[EAX],ESP
+
+00407919   8D55 FC          LEA EDX,DWORD PTR SS:[EBP-4]
+
+0040791C   8BC3             MOV EAX,EBX
+
+0040791E   E8 E5B2FFFF      CALL SMENU3.00402C08   //这个 CALL 关键，F8 跟入
+
+00407923   8BF0             MOV ESI,EAX                          ;
+
+SMENU3.<ModuleEntryPoint>
+
+00407925   837D FC 00       CMP DWORD PTR SS:[EBP-4],0
+
+00407929   74 23            JE SHORT SMENU3.0040794E
+```
+
+下面是跟入的代码：
+
+```
+00402C08   53               PUSH EBX
+
+*略去多行*
+
+00402C16   BF CCCCCC0C      MOV EDI,0CCCCCCC   //EDI 赋值一个常量
+
+00402C1B   8A1E             /MOV BL,BYTE PTR DS:[ESI]  // 这个小循环判断每位注册码是否空格.
+
+00402C1D   46               |INC ESI
+
+00402C1E   80FB 20          |CMP BL,20
+
+00402C21  ⁷⁴ F8            \JE SHORT SMENU3.00402C1B
+
+00402C23   B5 00            MOV CH,0
+
+00402C25   80FB 2D          CMP BL,2D          //判断第一位是否是短杠"-"，是则错。
+
+00402C28   74 45            JE SHORT SMENU3.00402C6F
+
+00402C2A   80FB 2B          CMP BL,2B          //判断第一位是否是加号"+"，是则错。
+
+00402C2D   74 42            JE SHORT SMENU3.00402C71
+
+00402C2F   80FB 24          CMP BL,24          //判断第一位是否是"$"，是则错。
+
+00402C32   74 42            JE SHORT SMENU3.00402C76
+
+00402C34   84DB             TEST BL,BL
+
+00402C36   74 32            JE SHORT SMENU3.00402C6A
+
+00402C38   80EB 30          /SUB BL,30         //下面的循环把输入注册码的每位变成 16 进制数，累加起
+来。
+
+00402C3B   80FB 09          |CMP BL,9
+
+00402C3E   77 2A            |JA SHORT SMENU3.00402C6A
+
+00402C40   39F8             |CMP EAX,EDI       //不超过那个 EDI 内的常数则 OK。
+
+00402C42   77 26            |JA SHORT SMENU3.00402C6A
+
+00402C44   8D0480           |LEA EAX,DWORD PTR DS:[EAX+EAX*4]  //EAX=5*EAX
+
+00402C47   01C0             |ADD EAX,EAX       //EAX=2*EAX
+
+00402C49   01D8             |ADD EAX,EBX       // //EAX=EAX+EBX(下一位)
+
+00402C4B   8A1E             |MOV BL,BYTE PTR DS:[ESI]  //取下位注册码到 BL。
+
+00402C4D   46               |INC ESI
+
+00402C4E   84DB             |TEST BL,BL
+
+00402C50  ⁷⁵ E6            \JNZ SHORT SMENU3.00402C38  //继续循环累加。
+
+00402C52   FECD             DEC CH
+
+00402C54   74 10            JE SHORT SMENU3.00402C66
+
+00402C56   85C0             TEST EAX,EAX                       ;
+
+SMENU3.<ModuleEntryPoint>
+
+00402C58   7C 10            JL SHORT SMENU3.00402C6A
+```
+
+========================================================
+
+再看第二个 `477F5F` 处的 `CALL`：
+
+```
+00476E58   55               PUSH EBP
+
+00476E59   8BEC             MOV EBP,ESP
+
+*略去多行*
+
+00476E96   BA F06E4700      MOV EDX,SMENU3.00476EF0              ;  ASCII
+"SOFTWARE\\Mpsoft\\Smenu\\Reg"
+
+00476E9B   8BC7             MOV EAX,EDI
+
+00476E9D   E8 22C0FBFF      CALL SMENU3.00432EC4   //往注册表写入键。
+
+00476EA2   8BCE             MOV ECX,ESI
+
+00476EA4   81F1 45160100    XOR ECX,11645          //注册码与 11645h 异或运算，就是它的加密算法。写
+入注册表的值就是异或后的值。比如 78787878 变成十六进制后是 4B23526h，4B23526h xor 11645h=4B32363h。
+
+00476EAA   8B55 FC          MOV EDX,DWORD PTR SS:[EBP-4]
+
+*略去多行*
+```
+
+========================================================
+
+最后，得到我们的注册码，在 `004776B7 CMP EBX,EAX` 那里看到的 `EBX` 内的值为解密后的真码 `8C2Eh`，`8C2Eh` 变为 10 进制数为 `35886`，这就是你的注册码了。但在注册表内的值 `19A6Bh` 是与 `1164h` 进行异或后得到的。比如 `8C2Eh xor 11645h =19A6Bh`。
+
+### 后记：
+
+在学习看雪精华 3 的是时候偶尔看到这个破文，不过那里都写的比较精练，我按照其中一个下注册表断点失败，而且有的用“天意”破解的，还有一篇是静态分析出来的，我还是结合动态和静态分析自己的吧，自己实践了一把，感谢看雪精华的文章作者，我也把破解过程和心得奉献出来，希望菜鸟受益是最终目的。
+
+### 体会：
+
+软件破解的过程中，如果使用条件断点效率就比较高了，当然需要对函数的参数使用比较明确，函数调用后，参数在堆栈的什么位置上是关键。比如下条件断点 `bpx regqueryvalueExa if *(esp->8)= ='RegN' do "d esp->14"`。其中 `esp->8` 是键名地址`*(esp->8)`表示该地址指向的键名串。 `esp->14` 则是读取的键值所在的地址。这里给菜鸟说明一下这个语法：这个形式`(esp->8)`跟`(esp+8)`是一样的，就是 `esp` 内容加 `8` 得到一个新堆栈地址，比如当前 `esp=402000`，`esp+8=402008`。如果前面带了`*`号，则表示间接寻址的意思，要拿出 `402008` 处的 `4` 个字节作为地址使用，去存取目标对象。说白了，`esp->8` 是指针变量，里面保存了一个地址，如果是 `*(esp->8)`，则表示指针变量（值）所指向的内容。不知菜鸟能否明白我的 罗嗦？？：）希望阅读愉快，学习进步！
+
+感谢看雪对我们的成长与进步所起的巨大作用！
+
+QduWg
+
+qduwg@163.com
+
+2006 年 1 月 9 日完稿
+
+4dd466d0e1e0cc123afbe504da2462ca
