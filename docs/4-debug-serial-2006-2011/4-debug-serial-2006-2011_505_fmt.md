@@ -1,0 +1,605 @@
+
+# 逆向工程日记--WINDOWS 优化大师
+
+> 原文：[`www.pediy.com/kssd/pediy10/94241.html`](https://www.pediy.com/kssd/pediy10/94241.html)
+
+前一段时间破解了 WINDOWS 优化大师，并写 BLOG 文在 qq 空间里。但是这篇文章总的来说算是暴力破解修改原程序绕过序列号校验的代码，达到注册的目的。最近为了锻炼功力决定把它的注册算法逆向出来。说干就干。 我逆向的版本号是 `7.86.8.1105`。
+
+WINDOWS 优化大师是用 DEPHI 写的，用 DEDE 分析可以得到注册按钮的入口地址 `0062196C`，在 OD 里下断点。结合 DEDE 进行分析一路跟踪到这里
+
+```
+00621C33   E8F077FAFF             call    005C9428 
+
+00621C38   3DB2000000             cmp     eax, $000000B2 
+```
+
+这里调用一个函数，然后让 `eax` 和 `0xB2` 进行比较，如果相等则注册成功。进入函数 `005C9428` 查看，DEDE 的分析结果是：
+
+```
+005C9428   8BC8                   mov     ecx, eax 
+
+005C942A   B201                   mov     dl, $01 
+
+* Reference to class TBig5RegChkThread 
+| 
+005C942C   A1488F5C00             mov     eax, dword ptr [$005C8F48] 
+| 
+005C9431   E8C60A0000             call    005C9EFC 
+005C9436   8B15406F7500           mov     edx, [$00756F40] 
+005C943C   8B12                   mov     edx, [edx] 
+
+* Reference to field TBig5RegChkThread.OFFS_001C 
+| 
+005C943E   89501C                 mov     [eax+$1C], edx 
+
+* Reference to field TBig5RegChkThread.OFFS_0018 
+| 
+005C9441   C7401814EB6F00         mov     dword ptr [eax+$18], $006FEB14 
+005C9448   C605BCC2760001         mov     byte ptr [$0076C2BC], $01 
+
+* Reference to: Classes.TThread.Resume(TThread); 
+| 
+005C944F   E8E81AE6FF             call    0042AF3C 
+005C9454   B8E8030000             mov     eax, $000003E8 
+
+| 
+005C9459   E8EEA5E3FF             call    00403A4C 
+005C945E   A10C6F7500             mov     eax, dword ptr [$00756F0C] 
+005C9463   8B00                   mov     eax, [eax] 
+
+* Reference to: ActnMenus.TCustomActionMenuBar.ProcessMessages(TCustomActionMenuBar); 
+|           or: Forms.TApplication.ProcessMessages(TApplication); 
+| 
+005C9465   E88ECFECFF             call    004963F8 
+005C946A   803DBCC2760000         cmp     byte ptr [$0076C2BC], $00 
+005C9471   75E1                   jnz     005C9454 
+005C9473   A1C0C27600             mov     eax, dword ptr [$0076C2C0] 
+005C9478   C3                     ret 
+```
+
+该函数启动一个线程计算注册码，然后把结果放在地址 `0076C2C0` 处，也就是说，如果最后的计算结果是 `0XB2` 的话，则注册成功。
+
+继续逆流而上。在 `0076C2C0` 下内存写入断点，竟然断不了？那就是注册不成功，则不执行对该地址的写入操作。想点别的办法。查找命令 `MOV DWORD PTR DS:[76C2C0],0B2`， 找到下列地址中有该函数
+
+```
+5CA312 
+5CA383 
+5CA3F4 
+5CA474 
+5CA4F8 
+5CA544 
+```
+
+(这里还有个小技巧，也不知道是我笨，还是 OD 的功能所限，查找 `MOV DWORD PTR DS:[76C2C0],0B2` 指令时，查找到的总是第一个指令，无法查找下一条指令， 没办法，只能先把找到的指令改成别的，比如 `MOV DWORD PTR DS:[76C2C0],0B1`，然后继续查找，就会找到下一条 `MOV DWORD PTR DS:[76C2C0],0B2`。)
+
+发现它们统统在一个函数调用里面。那十之八九就是计算注册码的线程函数了。该函数的起始地址是 `5C9F88` , 用 OD 跟踪上几遍就会发现起运行步骤：
+
+1. 这个函数是先把注册字符串转换成十六进制 16 字节,即取注册字符串的前 32 有效字符字符。（把非 `0-9`，`A-F` 的字符全部滤去）。
+2. 通过一定的运算计算出 16 个字节的数据，再把该 16 字节数据转换成长度为 32 的字符串。
+3. 取该字符串后 16 位与一个固定字符串进行比较,如果相等，则注册成功，否则注册失败。
+
+如果要用暴力破解的话，直接把判断是否注册成功的语句改掉就 ok 了。其实很简单。但我现在的目的是不改动原来的持续，而要把它正确的注册码算出来。接下来的关键就是看步骤 2 中的加密算法了。
+
+```
+005CA219   >  \8D4D C0       LEA ECX,DWORD PTR SS:[EBP-40] 
+
+005CA21C   .  8D55 D0        LEA EDX,DWORD PTR SS:[EBP-30] 
+
+005CA21F   .  8D85 F0FEFFFF LEA EAX,DWORD PTR SS:[EBP-110] 
+
+005CA225   .  E8 3ED9FCFF   CALL WoptiUti.00597B68 
+```
+
+在此调用了该加密算法，即函数 `00597B68`。`ecx` 是输入参数，`edx` 是输出参数，`eax` 可以认为是加密密钥，每次都是不变。进入函数体内，可以看到
+
+```
+00597B68  /$  53             PUSH EBX 
+00597B69  |.  56             PUSH ESI 
+00597B6A  |.  57             PUSH EDI 
+00597B6B  |.  55             PUSH EBP 
+00597B6C  |.  83C4 EC        ADD ESP,-14 
+00597B6F  |.  890C24        MOV DWORD PTR SS:[ESP],ECX 
+00597B72  |.  8BDA          MOV EBX,EDX 
+00597B74  |.  8BF8          MOV EDI,EAX 
+00597B76  |.  8D5424 04      LEA EDX,DWORD PTR SS:[ESP+4] 
+00597B7A  |.  8BC3          MOV EAX,EBX 
+00597B7C  |.  B9 04000000   MOV ECX,4 
+00597B81  |.  E8 C6B5E6FF   CALL WoptiUti.0040314C 
+00597B86  |.  8D5424 08      LEA EDX,DWORD PTR SS:[ESP+8] 
+00597B8A  |.  8BF3          MOV ESI,EBX 
+00597B8C  |.  8BC6          MOV EAX,ESI 
+00597B8E  |.  83C0 04       ADD EAX,4 
+00597B91  |.  B9 04000000   MOV ECX,4 
+00597B96  |.  E8 B1B5E6FF   CALL WoptiUti.0040314C 
+00597B9B  |.  8D5424 0C      LEA EDX,DWORD PTR SS:[ESP+C] 
+00597B9F  |.  8BC6          MOV EAX,ESI 
+00597BA1  |.  83C0 08       ADD EAX,8 
+00597BA4  |.  B9 04000000   MOV ECX,4 
+00597BA9  |.  E8 9EB5E6FF   CALL WoptiUti.0040314C 
+00597BAE  |.  8D5424 10      LEA EDX,DWORD PTR SS:[ESP+10] 
+00597BB2  |.  8BC6          MOV EAX,ESI 
+00597BB4  |.  83C0 0C       ADD EAX,0C 
+00597BB7  |.  B9 04000000   MOV ECX,4 
+00597BBC  |.  E8 8BB5E6FF   CALL WoptiUti.0040314C 
+00597BC1  |.  8B87 CC000000 MOV EAX,DWORD PTR DS:[EDI+CC] 
+00597BC7  |.  294424 0C      SUB DWORD PTR SS:[ESP+C],EAX 
+00597BCB  |.  8B87 C8000000 MOV EAX,DWORD PTR DS:[EDI+C8] 
+00597BD1  |.  294424 04      SUB DWORD PTR SS:[ESP+4],EAX 
+00597BD5  |.  BE 14000000   MOV ESI,14 
+00597BDA  |>  8B5C24 04     /MOV EBX,DWORD PTR SS:[ESP+4] 
+00597BDE  |.  8B4424 10     |MOV EAX,DWORD PTR SS:[ESP+10] 
+00597BE2  |.  894424 04     |MOV DWORD PTR SS:[ESP+4],EAX 
+00597BE6  |.  8B4424 0C     |MOV EAX,DWORD PTR SS:[ESP+C] 
+00597BEA  |.  894424 10     |MOV DWORD PTR SS:[ESP+10],EAX 
+00597BEE  |.  8B4424 08     |MOV EAX,DWORD PTR SS:[ESP+8] 
+00597BF2  |.  894424 0C     |MOV DWORD PTR SS:[ESP+C],EAX 
+00597BF6  |.  895C24 08     |MOV DWORD PTR SS:[ESP+8],EBX 
+00597BFA  |.  8B4424 10     |MOV EAX,DWORD PTR SS:[ESP+10] 
+00597BFE  |.  03C0          |ADD EAX,EAX 
+00597C00  |.  40             |INC EAX 
+00597C01  |.  F76C24 10     |IMUL DWORD PTR SS:[ESP+10] 
+00597C05  |.  BA 05000000   |MOV EDX,5 
+00597C0A  |.  E8 D5FBFFFF   |CALL WoptiUti.005977E4 
+00597C0F  |.  8BE8          |MOV EBP,EAX 
+00597C11  |.  8B4424 08     |MOV EAX,DWORD PTR SS:[ESP+8] 
+00597C15  |.  03C0          |ADD EAX,EAX 
+00597C17  |.  40             |INC EAX 
+00597C18  |.  F76C24 08     |IMUL DWORD PTR SS:[ESP+8] 
+00597C1C  |.  BA 05000000   |MOV EDX,5 
+00597C21  |.  E8 BEFBFFFF   |CALL WoptiUti.005977E4 
+00597C26  |.  8BD8          |MOV EBX,EAX 
+00597C28  |.  8BC6          |MOV EAX,ESI 
+00597C2A  |.  03C0          |ADD EAX,EAX 
+00597C2C  |.  FF7487 24     |PUSH DWORD PTR DS:[EDI+EAX*4+24] 
+00597C30  |.  8B4424 10     |MOV EAX,DWORD PTR SS:[ESP+10] 
+00597C34  |.  5A             |POP EDX 
+00597C35  |.  2BC2           |SUB EAX,EDX 
+00597C37  |.  8BD3           |MOV EDX,EBX 
+00597C39  |.  E8 BAFBFFFF   |CALL WoptiUti.005977F8 
+00597C3E  |.  33C5           |XOR EAX,EBP 
+00597C40  |.  894424 0C     |MOV DWORD PTR SS:[ESP+C],EAX 
+00597C44  |.  8BC6           |MOV EAX,ESI 
+00597C46  |.  03C0           |ADD EAX,EAX 
+00597C48  |.  FF7487 20     |PUSH DWORD PTR DS:[EDI+EAX*4+20] 
+00597C4C  |.  8B4424 08     |MOV EAX,DWORD PTR SS:[ESP+8] 
+00597C50  |.  5A             |POP EDX 
+00597C51  |.  2BC2           |SUB EAX,EDX 
+00597C53  |.  8BD5           |MOV EDX,EBP 
+00597C55  |.  E8 9EFBFFFF   |CALL WoptiUti.005977F8 
+00597C5A  |.  33D8           |XOR EBX,EAX 
+00597C5C  |.  895C24 04     |MOV DWORD PTR SS:[ESP+4],EBX 
+00597C60  |.  4E             |DEC ESI 
+00597C61  |.  85F6           |TEST ESI,ESI 
+00597C63  |.^ 0F85 71FFFFFF \JNZ WoptiUti.00597BDA 
+00597C69  |.  8B47 24       MOV EAX,DWORD PTR DS:[EDI+24] 
+00597C6C  |.  294424 10     SUB DWORD PTR SS:[ESP+10],EAX 
+00597C70  |.  8B47 20       MOV EAX,DWORD PTR DS:[EDI+20] 
+00597C73  |.  294424 08     SUB DWORD PTR SS:[ESP+8],EAX 
+00597C77  |.  8B1424        MOV EDX,DWORD PTR SS:[ESP] 
+00597C7A  |.  8D4424 04     LEA EAX,DWORD PTR SS:[ESP+4] 
+00597C7E  |.  B9 04000000   MOV ECX,4 
+00597C83  |.  E8 C4B4E6FF   CALL WoptiUti.0040314C 
+00597C88  |.  8B1C24        MOV EBX,DWORD PTR SS:[ESP] 
+00597C8B  |.  8BD3          MOV EDX,EBX 
+00597C8D  |.  83C2 04       ADD EDX,4 
+```
+
+
+
+```
+00597C90  |.  8D4424 08      LEA EAX,DWORD PTR SS:[ESP+8]  
+00597C94  |.  B9 04000000    MOV ECX,4  
+00597C99  |.  E8 AEB4E6FF    CALL WoptiUti.0040314C  
+00597C9E  |.  8BD3          MOV EDX,EBX  
+00597CA0  |.  83C2 08       ADD EDX,8  
+00597CA3  |.  8D4424 0C     LEA EAX,DWORD PTR SS:[ESP+C]  
+00597CA7  |.  B9 04000000    MOV ECX,4  
+00597CAC  |.  E8 9BB4E6FF    CALL WoptiUti.0040314C  
+00597CB1  |.  8BD3          MOV EDX,EBX  
+00597CB3  |.  83C2 0C       ADD EDX,0C  
+00597CB6  |.  8D4424 10     LEA EAX,DWORD PTR SS:[ESP+10]  
+00597CBA  |.  B9 04000000    MOV ECX,4  
+00597CBF  |.  E8 88B4E6FF    CALL WoptiUti.0040314C  
+00597CC4  |.  83C4 14       ADD ESP,14  
+00597CC7  |.  5D            POP EBP  
+00597CC8  |.  5F            POP EDI  
+00597CC9  |.  5E            POP ESI  
+00597CCA  |.  5B            POP EBX  
+00597CCB  \.  C3            RETN  
+```
+
+这就是 `WINDOWS` 优化大师核心的注册算法。其中里面调用了一些函数，点进去看看，其实很简单。  
+
+`CALL 0040314C` 是内存 `copy` 函数。  
+
+`CALL 005977E4` 是循环左移位，完全可以用 `ROL` 指令替换。  
+
+`CALL 005977F8` 是循环右移位，完全可以用 `ROR` 指令替换。  
+
+`OK`，用 `OD` 把上面函数的反汇编结果转换成汇编代码并把用到的内存数据 `copy` 出来，经过调试就是得到一段内嵌汇编的 `c` 代码（一开始还想用高级语言重写一下的，后来一想还是直接来汇编的方便。）  
+
+运行一下，再和 `OD` 中的加密算法出来的结果对比，一样样的，`OK`。下面开始写逆运算，为了验证逆运算的有效性，我把逆向运算的代码写在注册运算代码之后，也就是说运行完注册算法后立刻运行逆注册运算，看结果和注册之前一样不一样。记过了几番调试，最终的代码如下：  
+
+```c
+int PassWord[4]  = {0x78563412, 0xEFCDAB90, 0x78563412, 0xEFCDAB90};  
+
+BYTE data[] =  
+
+{  
+0xA9, 0x8E, 0xA2, 0x84, 0x5B, 0x08, 0x78, 0x5F, 0xE6, 0xD9, 0x9E, 0x1A, 0x69, 0xD0, 0xBC, 0x4D,  
+0xCE, 0xEA, 0xA1, 0xD3, 0xEF, 0x63, 0x2D, 0x4A, 0x20, 0x0A, 0x4E, 0xCF, 0xAF, 0xFC, 0xB2, 0xA6,  
+0x88, 0xA1, 0xB0, 0xC9, 0xA3, 0xB9, 0xC3, 0xE1, 0x7B, 0xBB, 0x96, 0x8B, 0x2F, 0x4F, 0xC4, 0xE6,  
+0x60, 0x7B, 0xCE, 0x8A, 0x11, 0xB4, 0x11, 0x4F, 0xC3, 0xB8, 0x26, 0x72, 0x25, 0x06, 0x35, 0xB1,  
+0x33, 0x61, 0x41, 0x00, 0x64, 0xD4, 0x4E, 0xD5, 0x9A, 0x42, 0x43, 0xDD, 0x7B, 0xD3, 0x25, 0xF7,  
+0x8F, 0x38, 0x85, 0x67, 0xDA, 0x41, 0xFB, 0x84, 0xA7, 0x15, 0x5A, 0x62, 0x7A, 0x6F, 0x14, 0x99,  
+0x36, 0x46, 0x90, 0x90, 0x23, 0xAC, 0x1C, 0x1B, 0x46, 0x81, 0x22, 0xC6, 0x7D, 0xE9, 0x0B, 0x6B,  
+0x37, 0x67, 0x5B, 0x4B, 0x4C, 0x69, 0xC1, 0x7D, 0xD4, 0x2C, 0x34, 0x1B, 0x6E, 0xC3, 0x17, 0xFD,  
+0xEF, 0x04, 0x55, 0x86, 0x6C, 0x31, 0xE5, 0x36, 0x3A, 0xA5, 0x63, 0x62, 0x13, 0xA3, 0xDE, 0x73,  
+0xFA, 0x9A, 0x6E, 0x28, 0x77, 0xF2, 0x69, 0xD3, 0x5C, 0x0E, 0xA4, 0x8D, 0x33, 0xE9, 0x9F, 0xEE,  
+0xB1, 0xEB, 0xA7, 0xC6, 0xE9, 0x2C, 0x91, 0x30, 0x14, 0xD8, 0xC6, 0x7F, 0x29, 0xE1, 0xD7, 0xB1,  
+};  
+
+void main()  
+
+{  
+__asm  
+
+{  
+     push ebp  
+  sub  esp, 20  
+  mov  edi, offset data  
+  mov    eax, 0x78563412  
+  mov  [esp+4], eax  
+  mov    eax, 0xEFCDAB90  
+  mov  [esp+8], eax  
+  mov    eax, 0x78563412  
+  mov  [esp+0xc], eax  
+  mov    eax, 0xEFCDAB90  
+  mov  [esp+0x10], eax  
+  mov    eax, 0xB1D7E129  
+  sub    dword ptr [esp+0xc], eax  
+  mov    eax, 0x7FC6D814;  
+  sub    dword ptr [esp+4], eax  
+  mov    esi, 0x14  
+
+L005:  
+
+  mov    ebx, dword ptr [esp+4]  
+  mov    eax, dword ptr [esp+0x10]  
+  mov    dword ptr [esp+4], eax  
+  mov    eax, dword ptr [esp+0xc]  
+  mov    dword ptr [esp+0x10], eax  
+  mov    eax, dword ptr [esp+8]  
+  mov    dword ptr [esp+0xc], eax  
+  mov    dword ptr [esp+8], ebx  
+  mov    eax, dword ptr [esp+0x10]  
+  add    eax, eax  
+  inc    eax  
+  imul   dword ptr [esp+0x10]  
+  mov    edx, 5  
+  mov  ecx, edx  
+  rol    eax, cl  
+  mov    ebp, eax  
+  mov    eax, dword ptr [esp+8]  
+  add    eax, eax  
+  inc    eax  
+  imul   dword ptr [esp+8]  
+  mov    edx, 5  
+  mov  ecx, edx  
+  rol    eax, cl  
+  mov    ebx, eax  
+  mov    eax, esi  
+  add    eax, eax  
+  push   dword ptr [edi+eax*4+0x4]  
+  mov    eax, dword ptr [esp+0x10]  
+  pop    edx  
+  sub    eax, edx  
+  mov    edx, ebx  
+  mov  ecx, edx  
+  ror    eax, cl  
+  xor    eax, ebp  
+  mov    dword ptr [esp+0xc], eax  
+  mov    eax, esi  
+  add    eax, eax  
+  push   dword ptr [edi+eax*4]  
+  mov    eax, dword ptr [esp+8]  
+  pop    edx  
+  sub    eax, edx  
+  mov    edx, ebp  
+  mov  ecx, edx  
+  ror    eax, cl  
+  xor    ebx, eax  
+  mov    dword ptr [esp+4], ebx  
+  dec    esi  
+  test   esi, esi  
+  jnz L005  
+  mov eax, dword ptr[edi + 4]  
+  sub dword ptr[esp + 0x10], eax  
+  mov eax, dword ptr[edi]  
+  sub dword ptr[esp + 8], eax  
+  ;reverse  
+  mov eax, dword ptr[edi]  
+  add dword ptr[esp + 8], eax  
+  mov eax, dword ptr[edi + 4]  
+  add dword ptr[esp + 0x10], eax  
+  mov esi, 0  
+
+L006:  
+
+  inc esi  
+  mov    eax, dword ptr [esp+0x10]  
+  add    eax, eax  
+  inc    eax  
+  imul   dword ptr [esp+0x10]  
+  mov    edx, 5  
+  mov  ecx, edx  
+  rol    eax, cl  
+  mov    ebp, eax  
+  mov    eax, dword ptr [esp+8]  
+  add    eax, eax  
+  inc    eax  
+  imul   dword ptr [esp+8]  
+  mov    edx, 5  
+  mov  ecx, edx  
+  rol    eax, cl  
+  mov    ebx, eax  
+
+-  
+
+  mov    eax, dword ptr [esp+0xc]  
+  xor    eax, ebp  
+  mov    edx, ebx  
+  mov  ecx, edx  
+  rol    eax, cl  
+  push    eax  
+  mov    eax, esi  
+  add    eax, eax  
+  push   dword ptr [edi+eax*4+0x4]  
+  pop    edx  
+  pop    eax  
+  add    eax, edx  
+  mov    dword ptr [esp+0xc], eax  
+  mov    eax, dword ptr [esp+4]  
+  xor    eax, ebx  
+  mov    edx, ebp  
+  mov  ecx, edx  
+  rol    eax, cl  
+  push   eax  
+  mov    eax, esi  
+  add    eax, eax  
+  push   dword ptr [edi+eax*4]  
+  pop    edx  
+  pop    eax  
+  add    eax, edx  
+  mov    dword ptr [esp+4], eax  
+  mov    ebx, dword ptr [esp+4]  
+  mov  eax, dword ptr [esp+8]  
+  mov  dword ptr [esp+4], eax  
+  mov eax, dword ptr [esp+0x0c]  
+  mov dword ptr [esp+8], eax  
+  mov eax, dword ptr [esp+0x10]  
+  mov dword ptr [esp+0xc], eax  
+  mov dword ptr [esp+0x10], ebx  
+  cmp esi, 0x14  
+  jnz L006  
+  mov    eax, 0xB1D7E129  
+  add    dword ptr [esp+0xc], eax  
+  mov    eax, 0x7FC6D814;  
+  add    dword ptr [esp+4], eax  
+  mov eax, dword ptr [esp+4]  
+  mov PassWord[0], eax  
+  mov eax, dword ptr [esp+8]  
+  mov PassWord[0] + 4, eax  
+  mov eax, dword ptr [esp+0x0c]  
+  mov PassWord[0] + 8, eax  
+  mov eax, dword ptr [esp+0x10]  
+  mov PassWord[0] + 0x0c, eax  
+  add esp, 20  
+  pop ebp  
+ }  
+
+}  
+```
+
+`;reverse` 之后的即为逆向算法，最终的注册机代码如下：  
+
+```c
+int PassWord[4]  = {0};  
+
+BYTE data[] =  
+
+{  
+0xA9, 0x8E, 0xA2, 0x84, 0x5B, 0x08, 0x78, 0x5F, 0xE6, 0xD9, 0x9E, 0x1A, 0x69, 0xD0, 0xBC, 0x4D,  
+0xCE, 0xEA, 0xA1, 0xD3, 0xEF, 0x63, 0x2D, 0x4A, 0x20, 0x0A, 0x4E, 0xCF, 0xAF, 0xFC, 0xB2, 0xA6,  
+0x88, 0xA1, 0xB0, 0xC9, 0xA3, 0xB9, 0xC3, 0xE1, 0x7B, 0xBB, 0x96, 0x8B, 0x2F, 0x4F, 0xC4, 0xE6,  
+0x60, 0x7B, 0xCE, 0x8A, 0x11, 0xB4, 0x11, 0x4F, 0xC3, 0xB8, 0x26, 0x72, 0x25, 0x06, 0x35, 0xB1,  
+0x33, 0x61, 0x41, 0x00, 0x64, 0xD4, 0x4E, 0xD5, 0x9A, 0x42, 0x43, 0xDD, 0x7B, 0xD3, 0x25, 0xF7,  
+0x8F, 0x38, 0x85, 0x67, 0xDA, 0x41, 0xFB, 0x84, 0xA7, 0x15, 0x5A, 0x62, 0x7A, 0x6F, 0x14, 0x99,  
+0x36, 0x46, 0x90, 0x90, 0x23, 0xAC, 0x1C, 0x1B, 0x46, 0x81, 0x22, 0xC6, 0x7D, 0xE9, 0x0B, 0x6B,  
+0x37, 0x67, 0x5B, 0x4B, 0x4C, 0x69, 0xC1, 0x7D, 0xD4, 0x2C, 0x34, 0x1B, 0x6E, 0xC3, 0x17, 0xFD,  
+0xEF, 0x04, 0x55, 0x86, 0x6C, 0x31, 0xE5, 0x36, 0x3A, 0xA5, 0x63, 0x62, 0x13, 0xA3, 0xDE, 0x73,  
+0xFA, 0x9A, 0x6E, 0x28, 0x77, 0xF2, 0x69, 0xD3, 0x5C, 0x0E, 0xA4, 0x8D, 0x33, 0xE9, 0x9F, 0xEE,  
+0xB1, 0xEB, 0xA7, 0xC6, 0xE9, 0x2C, 0x91, 0x30, 0x14, 0xD8, 0xC6, 0x7F, 0x29, 0xE1, 0xD7, 0xB1,  
+};  
+
+void main()  
+
+{  
+__asm  
+
+{  
+```
+
+
+
+# Assembly Code Block
+
+```assembly
+push ebp
+
+sub  esp, 20
+
+mov  edi, offset data
+
+mov  dword ptr[esp+4], 0x78563412   ;这个值可以随便填
+
+mov  dword ptr[esp+8], 0xEFCDAB90   ;这个值 ye 可以随便填
+
+mov  dword ptr[esp+0x0c], 0x12d762c3
+
+mov  dword ptr[esp+0x010], 0x35a6b629
+
+;reverse
+
+mov eax, dword ptr[edi]
+
+add dword ptr[esp + 8], eax
+
+mov eax, dword ptr[edi + 4]
+
+add dword ptr[esp + 0x10], eax
+
+mov esi, 0
+
+L006:
+
+   inc esi
+
+   mov     eax, dword ptr [esp+0x10]
+
+   add     eax, eax
+
+   inc     eax
+
+   imul    dword ptr [esp+0x10]
+
+   mov     edx, 5
+
+   mov  ecx, edx
+
+   rol     eax, cl
+
+   mov     ebp, eax
+
+   mov     eax, dword ptr [esp+8]
+
+   add     eax, eax
+
+   inc     eax
+
+   imul    dword ptr [esp+8]
+
+   mov     edx, 5
+
+   mov  ecx, edx
+
+   rol     eax, cl
+
+   mov     ebx, eax
+
+   mov     eax, dword ptr [esp+0xc]
+
+   xor     eax, ebp
+
+   mov     edx, ebx
+
+   mov  ecx, edx
+
+   rol     eax, cl
+
+   push     eax
+
+   mov     eax, esi
+
+   add     eax, eax
+
+   push    dword ptr [edi+eax*4+0x4]
+
+   pop     edx
+
+   pop     eax
+
+   add     eax, edx
+
+   mov     dword ptr [esp+0xc], eax
+
+   mov     eax, dword ptr [esp+4]
+
+   xor     eax, ebx
+
+   mov     edx, ebp
+
+   mov  ecx, edx
+
+   rol     eax, cl
+
+   push    eax
+
+   mov     eax, esi
+
+   add     eax, eax
+
+   push    dword ptr [edi+eax*4]
+
+   pop     edx
+
+   pop     eax
+
+   add     eax, edx
+
+   mov     dword ptr [esp+4], eax
+
+   mov     ebx, dword ptr [esp+4]
+
+   mov  eax, dword ptr [esp+8]
+
+   mov  dword ptr [esp+4], eax
+
+   mov eax, dword ptr [esp+0x0c]
+
+   mov dword ptr [esp+8], eax
+
+   mov eax, dword ptr [esp+0x10]
+
+   mov dword ptr [esp+0xc], eax
+
+   mov dword ptr [esp+0x10], ebx
+
+   cmp esi, 0x14
+
+   jnz L006
+
+   mov     eax, 0xB1D7E129
+
+   add     dword ptr [esp+0xc], eax
+
+   mov     eax, 0x7FC6D814;
+
+   add     dword ptr [esp+4], eax
+
+   mov eax, dword ptr [esp+4]
+
+   mov PassWord[0], eax
+
+   mov eax, dword ptr [esp+8]
+
+   mov PassWord[0] + 4, eax
+
+   mov eax, dword ptr [esp+0x0c]
+
+   mov PassWord[0] + 8, eax
+
+   mov eax, dword ptr [esp+0x10]
+
+   mov PassWord[0] + 0x0c, eax
+
+   add esp, 20
+
+   pop ebp
+
+}
+
+//运算得到的注册码为 A282E03E56BB032CC418D93126F525C9
+
+}
+```
