@@ -1,0 +1,157 @@
+
+### 00402248 - 004022B6 反汇编代码
+
+```
+00402248   .   C78424 8C0000>mov dword ptr ss:[esp+8C],0  
+00402253   .   E8 E8F9FFFF   call SerialCh.00401C40  
+00402258   .   8D5424 08     lea edx,dword ptr ss:[esp+8]        ; |  
+0040225C   .   52            push edx                            ; |Arg1 压入固定字串跟你输入的字串。  
+0040225D   .   8BCE          mov ecx,esi                         ; |  
+0040225F   .   E8 3CFBFFFF   call SerialCh.00401DA0              ; \\验证码生成函数  
+00402264   .   50            push eax  
+00402265   .   8D4C24 7C     lea ecx,dword ptr ss:[esp+7C]  
+00402269   .   C68424 88000>mov byte ptr ss:[esp+88],1  
+00402271   .   E8 4AF8FFFF   call SerialCh.00401AC0  
+00402276   .   8D4C24 04     lea ecx,dword ptr ss:[esp+4]  
+0040227A   .   C68424 84000>mov byte ptr ss:[esp+84],0  
+00402282   .   E8 99F1FFFF   call SerialCh.00401420  
+00402287   .   8D4C24 08     lea ecx,dword ptr ss:[esp+8]  
+0040228B   .   E8 0C740100   call SerialCh.0041969C  
+00402290   .   8D4C24 08     lea ecx,dword ptr ss:[esp+8]  
+00402294   .   C78424 84000>mov dword ptr ss:[esp+84],-1  
+0040229F   .   E8 6C000000   call SerialCh.00402310  
+004022A4   .   8B4C24 7C     mov ecx,dword ptr ss:[esp+7C]  
+004022A8   .   64:890D 00000>mov dword ptr fs:[0],ecx  
+004022AF   .   5E            pop esi  
+004022B0   .   81C4 84000000 add esp,84  
+004022B6   .   C3            retn  
+```
+
+看来这个 `0040225F call SerialCh.00401DA0` 很关键，那就去看看了。
+
+### 00401DA0 - 00401F05 反汇编代码
+
+```
+00401DA0  /$  6A FF         push -1  
+00401DA2  |.  68 B8594200   push SerialCh.004259B8              ;  核心代码  
+00401DA7  |.  64:A1 0000000>mov eax,dword ptr fs:[0]  
+00401DAD  |.  50            push eax  
+00401DAE  |.  64:8925 00000>mov dword ptr fs:[0],esp  
+00401DB5  |.  83EC 18       sub esp,18  
+00401DB8  |.  53            push ebx  
+00401DB9  |.  55            push ebp  
+00401DBA  |.  56            push esi  
+00401DBB  |.  33C0          xor eax,eax  
+00401DBD  |.  57            push edi  
+00401DBE  |.  8BF1          mov esi,ecx  
+00401DC0  |.  894424 24     mov dword ptr ss:[esp+24],eax  
+00401DC4  |.  894424 30     mov dword ptr ss:[esp+30],eax  
+00401DC8  |.  E8 047C0100   call SerialCh.004199D1  
+00401DCF  |.  8B10          mov edx,dword ptr ds:[eax]  
+00401DCF  |.  8BC8          mov ecx,eax  
+00401DD1  |.  FF52 0C       call dword ptr ds:[edx+C]  
+00401DD4  |.  8D68 10       lea ebp,dword ptr ds:[eax+10]  
+00401DD7  |.  896C24 18     mov dword ptr ss:[esp+18],ebp  
+00401DDB  |.  C64424 30 01  mov byte ptr ss:[esp+30],1  
+00401DE0  |.  E8 EC7B0100   call SerialCh.004199D1  
+00401DE5  |.  8B10          mov edx,dword ptr ds:[eax]  
+00401DE7  |.  8BC8          mov ecx,eax  
+00401DE9  |.  FF52 0C       call dword ptr ds:[edx+C]  
+00401DEC  |.  8D78 10       lea edi,dword ptr ds:[eax+10]  
+00401DEF  |.  897C24 10     mov dword ptr ss:[esp+10],edi  
+00401DF3  |.  8B5C24 3C     mov ebx,dword ptr ss:[esp+3C]  
+00401DF7  |.  68 E0764200   push SerialCh.004276E0  
+00401DFC  |.  53            push ebx  
+00401DFD  |.  C64424 38 02  mov byte ptr ss:[esp+38],2  
+00401E02  |.  E8 CDA70000   call SerialCh.0040C5D4  
+00401E07  |.  83C4 08       add esp,8  
+00401E0A  |.  85C0          test eax,eax  
+00401E0C  |.  75 3C         jnz short SerialCh.00401E4A  
+00401E0E  |.  E8 BE7B0100   call SerialCh.004199D1  
+00401E13  |.  8B10          mov edx,dword ptr ds:[eax]  
+00401E15  |.  8BC8          mov ecx,eax  
+00401E17  |.  FF52 0C       call dword ptr ds:[edx+C]  
+00401E1A  |.  8B7424 38     mov esi,dword ptr ss:[esp+38]  
+00401E1E  |.  83C0 10       add eax,10  
+00401E21  |.  8906          mov dword ptr ds:[esi],eax  
+00401E23  |.  8D47 F0       lea eax,dword ptr ds:[edi-10]  
+00401E26  |.  C64424 30 01  mov byte ptr ss:[esp+30],1  
+00401E2B  |.  8D48 0C       lea ecx,dword ptr ds:[eax+C]  
+00401E2E  |.  83CA FF       or edx,FFFFFFFF  
+00401E31  |.  F0:0FC111     lock xadd dword ptr ds:[ecx],edx  
+00401E35  |.  4A            dec edx  
+00401E36  |.  85D2          test edx,edx  
+00401E38  |.  7F 08         jg short SerialCh.00401E42  
+00401E3A  |.  8B08          mov ecx,dword ptr ds:[eax]  
+00401E3C  |.  8B11          mov edx,dword ptr ds:[ecx]  
+00401E3E  |.  50            push eax  
+00401E3F  |.  FF52 04       call dword ptr ds:[edx+4]  
+00401E42  |>  8D45 F0       lea eax,dword ptr ss:[ebp-10]  
+00401E45  |.  E9 94020000   jmp SerialCh.004020DE  
+00401E4A  |>  8D46 74       lea eax,dword ptr ds:[esi+74]  
+00401E4D  |.  50            push eax  
+00401E4E  |.  8D4E 70       lea ecx,dword ptr ds:[esi+70]  
+00401E51  |.  51            push ecx  
+00401E52  |.  8D5424 2C     lea edx,dword ptr ss:[esp+2C]  
+00401E56  |.  52            push edx                            ;  下面把所有的字符串连接起来  
+00401E57  |.  E8 34FDFFFF   call SerialCh.00401B90  
+00401E5C  |.  8D4E 78       lea ecx,dword ptr ds:[esi+78]  
+00401E5F  |.  51            push ecx  
+00401E60  |.  50            push eax  
+00401E61  |.  8D5424 34     lea edx,dword ptr ss:[esp+34]  
+00401E65  |.  52            push edx  
+00401E66  |.  C64424 48 03  mov byte ptr ss:[esp+48],3  
+00401E6B  |.  E8 20FDFFFF   call SerialCh.00401B90  
+00401E70  |.  8D4E 7C       lea ecx,dword ptr ds:[esi+7C]  
+00401E73  |.  51            push ecx  
+00401E74  |.  50            push eax  
+00401E75  |.  8D5424 34     lea edx,dword ptr ss:[esp+34]  
+00401E79  |.  52            push edx  
+00401E7A  |.  C64424 54 04  mov byte ptr ss:[esp+54],4  
+00401E7F  |.  E8 0CFDFFFF   call SerialCh.00401B90  
+00401E84  |.  81C6 80000000 add esi,80  
+00401E8A  |.  56            push esi  
+00401E8B  |.  50            push eax  
+00401E8C  |.  8D4424 48     lea eax,dword ptr ss:[esp+48]  
+00401E90  |.  B3 05         mov bl,5  
+00401E92  |.  50            push eax  
+00401E93  |.  885C24 60     mov byte ptr ss:[esp+60],bl  
+00401E97  |.  E8 F4FCFFFF   call SerialCh.00401B90              ;  连接起来 12345  
+00401E9C  |.  83C4 30       add esp,30  
+00401E9F  |.  50            push eax  
+00401EA0  |.  8D4C24 1C     lea ecx,dword ptr ss:[esp+1C]  
+00401EA4  |.  C64424 34 06  mov byte ptr ss:[esp+34],6  
+00401EA9  |.  E8 12FCFFFF   call SerialCh.00401AC0  
+00401EAE  |.  8B4424 1C     mov eax,dword ptr ss:[esp+1C]       ;  12345  
+00401EB2  |.  83C0 F0       add eax,-10  
+00401EB5  |.  885C24 30     mov byte ptr ss:[esp+30],bl         ;  长度 5  
+00401EB9  |.  8D48 0C       lea ecx,dword ptr ds:[eax+C]  
+00401EBC  |.  83CA FF       or edx,FFFFFFFF  
+00401EBF  |.  F0:0FC111     lock xadd dword ptr ds:[ecx],edx  
+00401EC3  |.  4A            dec edx  
+00401EC4  |.  85D2          test edx,edx  
+00401EC6  |.  7F 08         jg short SerialCh.00401ED0  
+00401EC8  |.  8B08          mov ecx,dword ptr ds:[eax]  
+00401ECA  |.  8B11          mov edx,dword ptr ds:[ecx]  
+00401ECC  |.  50            push eax  
+00401ECD  |.  FF52 04       call dword ptr ds:[edx+4]  
+00401ED0  |>  8B4424 14     mov eax,dword ptr ss:[esp+14]       ;  下面把他们分开存放  
+00401ED4  |.  83C0 F0       add eax,-10  
+00401ED7  |.  C64424 30 04  mov byte ptr ss:[esp+30],4  
+00401EDC  |.  8D48 0C       lea ecx,dword ptr ds:[eax+C]  
+00401EDF  |.  83CA FF       or edx,FFFFFFFF  
+00401EE2  |.  F0:0FC111     lock xadd dword ptr ds:[ecx],edx  
+00401EE6  |.  4A            dec edx  
+00401EE7  |.  85D2          test edx,edx  
+00401EE9  |.  7F 08         jg short SerialCh.00401EF3  
+00401EEB  |.  8B08          mov ecx,dword ptr ds:[eax]  
+00401EED  |.  8B11          mov edx,dword ptr ds:[ecx]  
+00401EEF  |.  50            push eax  
+00401EF0  |.  FF52 04       call dword ptr ds:[edx+4]  
+00401EF3  |>  8B4424 20     mov eax,dword ptr ss:[esp+20]  
+00401EF7  |.  83C0 F0       add eax,-10  
+00401EFA  |.  C64424 30 03  mov byte ptr ss:[esp+30],3  
+00401EFF  |.  8D48 0C       lea ecx,dword ptr ds:[eax+C]  
+00401F02  |.  83CA FF       or edx,FFFFFFFF  
+00401F05  |.  F0:0FC111     lock xadd dword ptr ds:[ecx],edx  
+```
