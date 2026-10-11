@@ -1,0 +1,365 @@
+
+# 简析利用调试寄存器实现内核函数的 HOOK
+
+> 原文：[www.pediy.com/kssd/pediy09/pediy09-292.htm](https://www.pediy.com/kssd/pediy09/pediy09-292.htm)
+
+某些 RK、木马会经常 HOOK 一些关键函数从而达到隐藏等目的，而相应的 ARK 检测软件通常会先恢复这些关键函数的 HOOK（譬如利用硬盘文件恢复），然后再调用来检测 RK，这样就可以检测出某些隐藏。下面介绍利用调试器实现某些内核函数的 HOOK。
+
+Intel386 以后的系列 CPU 增加了 8 个 32 位的调试寄存器，从 `Dr0` 到 `Dr7`，方便调试使用。如果设置了相应的调试信息，在条件满足的情况下将会发生 1 号（DB 例外）中断，CPU 就会陷入中断例程，执行中断代码，我们的 HOOK 目的就可以通过这个实现。
+
+首先看下面百度出来的对寄存器组的使用方法的解释：
+
+这八个寄存器中由四个用于断点，两个用于控制，另两个保留未用。对这八个寄存器的访问，只能在 0 级特权级进行。在其它任何特权级对这八个寄存器中的任意一个寄存器进行读或写访问，都将产生无效操作码异常。此外，这八个寄存器还可用 `DR6` 及 `DR7` 中的 `BD` 位和 `GD` 位进行进一步的保护，使其即使是在 0 级也不能进行读出或写入。
+
+对这些寄存器的访问使用通常的 `MOV` 指令：
+
+- `MOV reg Dri`：该指令将调试寄存器 `i` 中的内容读至通用寄存器 `reg` 中。
+- `MOV Dri reg`：该指令将通用寄存器 `reg` 中的内容写至调试寄存器 `i` 中。此处 `i` 的取值可以为 0 至 7 中的任意值。
+
+这些寄存器的功能如下：
+
+- `DR0`-`DR3`：寄存器 `DR0`-`DR3` 包含有与四个断点条件的每一个相联系的线性地址（断点条件则在 `DR7` 中）。因为这里使用的是线性地址，所以，断点设施的操作，无论分页机制是否启用，都是相同的。
+- `DR4`-`DR5`：保留。
+- `DR6`：是调试状态寄存器。当一个调试异常产生时，处理器设置 `DR6` 的相应位，用于指示调试异常发生的原因，帮助调试异常处理程序分析、判断，以及作出相应处理。
+- `DR7`：是调试控制寄存器。分别对应四个断点寄存器的控制位，对断点的启用及断点类型的选择进行控制。所有断点寄存器的保护也在此寄存器中规定。（下面这图怎么也改不好，大家还是去百度吧）
+
+|   | | | |
+|---|---|---|---|
+| | `DR6` | | |
+| | | `BBB` | `BBB B` |
+| | | `TSD` | `3 2 1 0` |
+| | `DR7` | | |
+| | `RWE LEN` | `RWE LEN` | `G GLGLGLGL` |
+| | `3 3` | `0 0` | `D EE33221100` |
+| | | | |
+| `31` | | `15` | `0` |
+
+### `DR6` 各位的功能
+
+- `B0`-`B3`（对应 0-3 位）：当断点线性地址寄存器规定的条件被检测到时，将对应的 `B0`-`B3` 位置 1。置位 `B0`-`B3` 与断点条件是否被启用无关。即 `B0`-`B3` 的某位被置 1，并不表示要进行对应的断点异常处理。
+- `BD`（13 位）：如下一条指令要对八个调试寄存器之一进行读或写时，则在指令的边界 `BD` 位置 1。在一条指令内，每当即将读写调试寄存器时，也 `BD` 位置 1。`BD` 位置 1 与 `DR7` 中 `GD` 位启用与否无关。
+- `BS`（14 位）：如果单步异常发生时，`BS` 位被置 1。单步条件由 `EFLAGS` 寄存器中的 `TF` 位启用。如果程序由于单步条件进入调试处理程序，则 `BS` 位被置 1。与 `DR6` 中的其它位不同的是，`BS` 位只在单步陷阱实际发生时才置位，而不是检测到单步条件就置位。
+- `BT`（15 位）：`BT` 位对任务切换导致 `TSS` 中的调试陷阱位被启用而造成的调试异常，指示其原因。对这一条件，在 `DR7` 中没有启用位。
+
+`DR6` 中的各个标志位，在处理机的各种清除操作中不受影响，因此，调试异常处理程序在运行以前，应清除 `DR6`，以避免下一次检测到异常条件时，受到原来的 `DR6` 中状态位的影响。
+
+### `DR7` 各位的功能
+
+- `LEN`：`LEN` 为一个两位的字段，用以指示断点的长度。每一断点寄存器对应一个这样的字段，所以共有四个这样的字段分别对应四个断点寄存器。`LEN` 的四种译码状态对应的断点长度如下：
+    - `00`：断点为一字节
+    - `01`：断点为两字节
+    - `10`：保留
+    - `11`：断点为四字节
+
+    这里，如果断点是多字节长度，则必须按对应多字节边界进行对齐。如果对应断点是一个指令地址，则 `LEN` 必须为 `00`。
+
+- `RWE`：`RWE` 也是两位的字段，用以指示引起断点异常的访问类型。共有四个 `RWE` 字段分别对应四个断点寄存器，`RWE` 的四种译码状态对应的访问类型如下：
+    - `00`：指令
+    - `01`：数据写
+    - `10`：保留
+    - `11`：数据读和写
+
+- `GE`/`LE`：`GE`/`LE` 为分别指示准确的全局/局部数据断点。如果 `GE` 或 `LE` 被置位，则处理器将放慢执行速度，使得数据断点准确地把产生断点的指令报告出来。如果这些位没有置位，则处理器在执行数据写的指令接近执行结束稍前一点报告断点条件。建议读者每当启用数据断点时，启用 `LE` 或 `GE`。降低处理机执行速度除稍微降低一点性能以外，不会引起别的问题。但是，对速度要求严格的代码区域除外。这时，必须禁用 `GE` 及 `LE`，并且必须容许某些不太精确的调试异常报告。
+
+- `L0`-`L3`/`G0`-`G3`：`L0`-`L3` 及 `G0`-`G3` 位分别为四个断点寄存器的局部及全局启用信号。如果有任一个局部或全局启用位被置位，则由对应断点寄存器 `DRi` 规定的断点被启用。
+
+- `GD`：`GD` 位启用调试寄存器保护条件。注意，处理程序在每次转入调试异常处理程序入口处清除 `GD` 位，从而使处理程序可以不受限制地访问调试寄存器。
+
+前述的各个 `L` 位（即 `LE`，`L0`-`L3`）是有关任务的局部位，使调试条件只在特定的任务启用。而各个 `G` 位（即 `GD`，`G0`-`G3`）是全局的，调试条件对系统中的所有任务皆有效。在每次任务切换时，处理器都要清除 `L` 位。
+
+如果你耐心把上面的信息看完了，基本上也就应该明白了。其实我们可以利用调试寄存器做的不只是函数的 HOOK，也可以进行 I/O 的 HOOK。下面要说的是在指定的内核函数上下指令执行断点，然后挂接 1 号中断实现 HOOK（有很多种方法可以实现，看你自己喜欢哪种了）。
+
+首先把 `DR0` 寄存器设置为要挂接的内核函数的地址（譬如 `ZwCreateFile`），然后修改 `Dr7` 的 `L0` 和 `G0`（第 0 和第 1 位）都为 1，`Dr7` 的 `R/W0`（16.17 位）为 `00`，`LEN0`（18.19 位）为 `00`，这样当 CPU 执行到 `ZwCreateFile` 地址的时候，就会进入 1 号中断例程。
+
+然后我们应该去修改 IDT 表，将 1 号中断指向我们的处理程序。
+
+接着需要考虑在中断例程我们要做的事情，关于中断时 CPU 具体做了什么，大家可以去搜索。下面只介绍我们所关心的在内核空间发生 DB 例外时的情况：中断发生时，依次将 `EFLAGS`、`CS`、`EIP` 压入堆栈，然后进入中断程序（由于中断地址本来就在内核空间，所以不需要切换堆栈）。在中断处理程序中作出相应的处理，然后使用 `iretd` 指令退出中断（`iretd` 指令：依次将堆栈弹出到 `EIP`、`CS`、`EFLAGS`）。我们可以通过修改堆栈中 `EIP` 的值，在中断返回时跳转实现 HOOK。
+
+上面就是主要的内容，但是还有点问题。Windows 在 `KiFastCall` 和线程切换时会修改 `Drx` 的值，为了防止我们的断点被清除，可以利用 `Dr7:GD` 位保护寄存器，这样任何对调试寄存器的操作（读和写）都会产生 DB 例外然后进入 1 号中断例程。这样，我们在中断例程中又需要利用 `Dr6` 的标识位处理那些因为操作调试寄存器产生的例外（关于这个我只是简单的跳过了那些对 `DRX` 操作的代码，并没有详细分析）。
+
+下面可以看详细的实现代码：
+
+#### 简单实现 HOOK 下 ZwCreateFile，XP 下，其他系统慎用
+
+```c
+/*
+drxhook.h
+Written By yykingking@126.com
+*/
+
+#ifndef _DRX_HOOK
+#define _DRX_HOOK
+
+#include <ntddk.h>
+
+typedef unsigned long DWORD;
+typedef unsigned char BOOL;
+
+#pragma pack(push,1)
+typedef struct _idtr
+{
+    //定义中断描述符表的限制，长度两字节；
+    short     IDTLimit;
+    //定义中断描述服表的基址，长度四字节；
+    unsigned int   IDTBase;
+}IDTR,*PIDTR;
+
+typedef struct _IDTENTRY
+{
+    unsigned short LowOffset;
+    unsigned short selector;
+    unsigned char unused_lo;
+    unsigned char segment_type:4;   //0x0E is an interrupt gate
+    unsigned char system_segment_flag:1;
+    unsigned char DPL:2;   // descriptor privilege level
+    unsigned char P:1; /* present */
+    unsigned short HiOffset;
+} IDTENTRY,*PIDTENTRY;
+
+#pragma pack(pop)
+
+DWORD GetDBEntry();
+void HookDBInt();
+void UnHookDBInt();
+
+#endif
+
+
+/*
+drxhook.cpp
+Written By yykingking@126.com
+*/
+
+
+#include "drxhook.h"
+
+DWORD g_OldDBEntry;
+IDTR g_IDTR;
+DWORD g_OldCreateFile;
+DWORD g_HookNumber = 0;
+DWORD g_CR0;
+BOOL g_bExit;
+
+void ReLoadCR0AndSti()
+{
+    __asm
+    {
+        push   eax
+        mov    eax, g_CR0
+        mov    cr0, eax
+        pop    eax
+        sti
+    }
+}
+
+void CliAndDisableWPBit()
+{
+    __asm
+    {
+        cli
+        push   eax
+        mov    eax, cr0
+        mov    g_CR0, eax
+        and    eax, 0xFFFEFFFF
+        mov    cr0, eax
+        pop    eax
+    }
+}
+
+
+void PrintHook()
+{
+    DbgPrint(" Now Get In ZwCreateFile Hook: %d...Pid: %d...\n", g_HookNumber++, (DWORD)PsGetCurrentProcessId());
+}
+
+__declspec(naked) void NewZwCreateFile()
+{
+    __asm
+    {
+        pushfd;         // 仅仅适合于 XP 操作系统
+        call PrintHook;
+        popfd;
+        mov eax,0x25;
+        jmp g_OldCreateFile;
+    }
+}
+
+void SetHB()         // set hardware breakpoint 设置硬件断点
+{
+    __asm
+    {
+        mov eax, ZwCreateFile;     // 想要挂接的函数或者地址
+        mov dr0, eax;
+        mov eax, dr7;
+        or eax, 0x2703;         // 也要修改 dr7:GD 位，以免 DrX 被操作系统或其他程序修改
+        and eax, 0xfff0ffff;
+        mov dr7, eax;
+    }
+}
+
+__declspec(naked) void NewDBEntry()
+{
+    __asm
+    {
+        pushfd;
+        push eax;
+
+        mov eax, dr6;
+        test eax, 0x2000;
+        jz NOT_EDIT_DRX;
+
+        // 以下是如果有对 DRX 的操作的简单处理,如有需要可以修改
+        // 我只是简单的跳过这些指令
+        and eax, 0xFFFFDFFF;
+        mov dr6, eax;         // 清除 DR6 的标志
+
+        cmp g_bExit, 0;
+        jnz MY_DRV_EXIT;     // 驱动 Unload
+
+        mov eax, [esp+8];     // 获取堆栈中的 EIP
+        add eax, 3;          // 由于所有对 DRX 的操作全都是 3 个字节的
+        mov [esp+8], eax;     // 修改 EIP ,跳过当前指令,返回时执行下条指令
+
+        jmp MY_INT_END;
+
+    NOT_EDIT_DRX:
+
+        mov eax, dr6;
+        test eax, 0x1;
+        jz SYS_INT;         // 如果不是 Dr0 产生的中断,则跳回原系统中断
+
+        mov eax, [esp+8];
+        cmp eax, ZwCreateFile;   // 判断一下是不是 ZwCreateFile 的线性地址
+        jnz SYS_INT;
+
+        mov eax, NewZwCreateFile;
+        mov [esp+8],eax;     // 修改堆栈中的 EIP ,实现返回时跳转
+
+
+    MY_INT_END:
+
+        mov eax, dr7;
+        or eax, 0x2000;     // 恢复 GD 位
+        mov dr7, eax;
+
+    MY_DRV_EXIT:            // 整个驱动 UnLoad 时,不恢复 Dr7
+
+        pop eax;
+        popfd;
+        iretd;
+
+    SYS_INT:
+        pop eax;
+        popfd;
+        jmp g_OldDBEntry;
+
+    }
+}
+
+DWORD GetDBEntry()
+{
+    PIDTENTRY IdtEntry;
+    DWORD Entry;
+
+    __asm sidt g_IDTR;
+```
+
+
+
+```
+IdtEntry = (PIDTENTRY)(g_IDTR.IDTBase + 8);
+
+Entry = IdtEntry->HiOffset << 16;
+
+Entry |= IdtEntry->LowOffset;
+
+return Entry;
+}
+
+void HookDBInt()
+{
+  DWORD NewEntry;
+  PIDTENTRY IdtEntry;
+
+  NewEntry = (DWORD)NewDBEntry;
+
+  g_OldCreateFile = (DWORD)ZwCreateFile + 5;     // 新的要跳转过去的地址
+
+  g_OldDBEntry = GetDBEntry();
+
+  IdtEntry = (PIDTENTRY)(g_IDTR.IDTBase + 8);
+
+  CliAndDisableWPBit();
+
+  IdtEntry->LowOffset = (USHORT)NewEntry;
+
+  IdtEntry->HiOffset = (USHORT)( NewEntry >> 16 );
+
+  ReLoadCR0AndSti();
+
+  SetHB();
+
+  g_bExit = FALSE;
+
+  return;
+}
+
+void UnHookDBInt()
+{
+  PIDTENTRY IdtEntry;
+  DWORD Entry;
+
+  __asm sidt g_IDTR;
+
+  IdtEntry = (PIDTENTRY)(g_IDTR.IDTBase + 8);
+
+  CliAndDisableWPBit();
+
+  g_bExit = TRUE;
+
+  __asm mov eax, dr7;           // 产生一次例外并且清除 Dr7:GD
+
+  if ( g_OldDBEntry != 0 )
+  {
+    IdtEntry->LowOffset = (USHORT)g_OldDBEntry;
+
+    IdtEntry->HiOffset = (USHORT)( g_OldDBEntry >> 16 );
+  }
+
+  ReLoadCR0AndSti();
+
+  DbgPrint(" UnLoad drx hook..\n");
+
+  return;
+}
+
+NTSTATUS DriverUnload(IN PDRIVER_OBJECT DriverObject)
+{
+  UnHookDBInt();
+
+  return STATUS_SUCCESS;
+}
+
+NTSTATUS DriverEntry(
+                  IN PDRIVER_OBJECT DriverObject,
+                  IN PUNICODE_STRING RegistryPath
+                  )
+{
+  HookDBInt();
+
+  DriverObject->DriverUnload = DriverUnload;
+
+  DbgPrint("Load drxhook Driver Ok...\n");
+
+  return STATUS_SUCCESS;
+}
+```
+
+以上代码实现了简单的 `ZwCreateFile` 函数的 HOOK，可以拿 `DbgView` 查看效果。
+
+由于本人水平有限，代码中难免有错误出现，希望指正。
+
+同时也希望各位牛人来指点，`dddxxxx007@sina.com`
+
+1. 这个方法呢首先不怎么实用，因为你用了调试寄存器后某些壳也想用，因此就冲突了，可能会使某些东西失效，不如传统的 `HOOK` 好用（据说利用缺页中断 `HOOK` 也比较好用，没试过）。还有人认为呢这个 `HOOK` 虽然是 `HOOK` 成功了，但是还得 `HOOK` 中断向量，没有必要。其实呢，只是多了种思路罢了，多给大家提供一些想法而已。
+2. 其次呢，这个方法是我在调试某 `ARK` 时想到的，这个 `ARK` 的作者说他们会恢复函数的 `inline hook` 然后才去调用（大面积的恢复，甚至是整个文件的恢复），于是我就用调试器在该函数上下断点，结果自然是没有断下了，因为下的 `(0xcc)` 断点被恢复了。于是就索性下了个硬件断点，这下就断住了，然后呢就想到了拿这个东西来 `HOOK`。然后就去网上搜资料，发现不少人还是稍微提到过这个方法的，包括 `vxk`、`xikug`，都说过。
