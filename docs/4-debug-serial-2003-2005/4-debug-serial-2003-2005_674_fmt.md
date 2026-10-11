@@ -1,0 +1,617 @@
+
+# MP3 Encode/Decode Control 算法分析
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6621.htm`](https://www.pediy.com/kssd/pediy06/pediy6621.htm)
+
+**破文标题**：MP3 Encode/Decode Control 算法分析  
+**破文作者**：`daxia2002`  
+**作者邮箱**：`daxia2002@126.com`  
+**使用工具**：`Peid`, `Ollydbg`, `ida`, `ActiveX control test container`, `CoClassSyms`  
+**破解平台**：Win2000/XP  
+**软件名称**：MP3 Encode/Decode Control  
+**下载地址**：[`www.streamware-dev.com/products.html`](http://www.streamware-dev.com/products.html)
+
+**软件简介**：MP3 Encode/Decode Control is an ActiveX control allowing you to add MP3 audio encoding and decoding(playing) ability into your C/C++ and Visual Basic applications. The control is fully documented and includes samples to get started easily.
+
+**软件特性**：
+1. Encodes audio to `.MP3` files
+2. Decodes MP3 audio
+3. Supports `ID3v1` and `ID3v2` tags
+4. Easy to understand ActiveX interface
+5. Integration with other ActiveX components by Streamware Development
+   - Adapted interface for easy understanding by VisualBasic and C/C++ developers
+   - Can be used in any programming environment supporting ActiveX controls
+6. Works in Win95/98/ME/NT/2000/XP environment
+
+**软件大小**：1.16M  
+**保护方式**：无。  
+**破解目的**：研究 `OCX` 控件的一般破解和分析方法  
+**破解声明**：我是一只小菜鸟，偶得一点心得，愿与大家分享：）
+
+## 破解内容
+
+**说明**：`olldbg` 已经内置了调试 `dll` 动态链接库的功能，`fly` 版主的 `dll` 脱壳系列写的非常精彩，使我受益非浅。但是发现目前版本还没有调试 `ocx` 控件的功能，看学论坛和 `DFCG` 论坛也没有人发表这方面的文章，于是自己试着研究了一下，也借用了很多工具，偶得一点心得，愿与大家分享，希望各位老大们批评指正，偶洗耳恭听。
+
+**工具简介**：
+1. `ActiveX control test container`: 我想大家都应该知道吧，`visual studio` 带的专门测试控件功能的工具。
+2. `CoClassSyms`：在 `REC` 论坛上找到的辅助工具软件，能够把 `COM` 和 `ActiveX` 控件中接口中的方法和属性导出成格式为 `DBG` 的符号文件，有了符号文件，`olldbg` 和 `ida` 就能分析出 `COM` 和 `ActiveX` 控件中接口中的方法和属性所在虚拟地址和名称了。
+
+用 `Peid` 查壳，发现 `swdmp3.ocx` 控件无壳，为 `Visual C++` 语言编写。
+
+把 `CoClassSyms.exe` 文件拷贝到 `winnt\system32` 目录下，在 `dos` 窗口环境下执行：`CoClassSyms swdmp3.ocx`, 生成 `swdmp3.dbg` 同名的符号文件。
+
+下面我们先用 `ida` 静态分析一下，强大的 `ida` 自动加载对应的符号文件，在名字窗口中已分析出该控件中的方法和属性名称，如下：
+
+```
+ISwdAudioEncoder::Open                1000D3C0    
+ISwdAudioEncoder::OpenHandle          1000D940    
+ISwdAudioEncoder::SetInputFormat      1000DAE0    
+ISwdAudioEncoder::SetInputFormatWFX   1000DE00    
+ISwdAudioEncoder::SetOutputFormatVBR  1000E000    
+ISwdAudioEncoder::SetOutputFormatABR  1000E1E0    
+ISwdAudioEncoder::SetOutputFormatCBR  1000E3B0    
+ISwdAudioEncoder::Write               1000E720    
+ISwdAudioEncoder::Close               1000F420    
+ISwdAudioEncoder::Filename_get        10011030    
+ISwdAudioEncoder::AddExtension_get    10011060    
+ISwdAudioEncoder::AddExtension_put    10011090    
+ISwdAudioEncoder::TagData_get         100110B0    
+ISwdAudioEncoder::OverwritePrompt_get 100110D0    
+ISwdAudioEncoder::OverwritePrompt_put 10011100    
+ISwdAudioEncoder::LicenseNumber_get   10011120    
+ISwdAudioEncoder::LicenseNumber_put   100111A0    
+```
+
+很显然，`ISwdAudioEncoder::LicenseNumber_put` 属性就是设置许可证号的。双击鼠标，跳到代码入口，如下：
+
+```
+.text:100111A0 55             push    ebp  
+.text:100111A1 8B EC          mov     ebp, esp  
+.text:100111A3 51             push    ecx  
+.text:100111A4 53             push    ebx  
+.text:100111A5 56             push    esi  
+.text:100111A6 57             push    edi  
+.text:100111A7 8B 7D 0C       mov     edi, [ebp+lpString]  //edi 指向输入的许可证号  
+.text:100111AA 85 FF          test    edi, edi     //判断许可证号是否为空  
+.text:100111AC 74 25         jz      short loc_100111D3  //为空跳走  
+.text:100111AE 57             push    edi           ; lpString  //许可证号入桟  
+.text:100111AF FF 15 7C A1 01 10 call    ds:lstrlenW    //测试许可证号 unicode 长度  
+.text:100111B5 8D 74 00 02    lea     esi, [eax+eax+2]  
+.text:100111B9 8B C6          mov     eax, esi  
+.text:100111BB 83 C0 03       add     eax, 3  
+.text:100111BE 24 FC          and     al, 0FCh  
+.text:100111C0 E8 6B 1E 00 00 call    __alloca_probe  
+.text:100111C5 8B C4          mov     eax, esp  
+.text:100111C7 6A 00          push    0  
+.text:100111C9 56             push    esi  
+.text:100111CA 57             push    edi  
+.text:100111CB 50             push    eax  
+.text:100111CC E8 EF 00 FF FF call    sub_100012C0  
+.text:100111D1 8B F8          mov     edi, eax  
+.text:100111D3               loc_100111D3:          ; CODE XREF: ISwdAudioEncoder__LicenseNumber_put+Cj  
+.text:100111D3 8B 5D 08      mov     ebx, [ebp+arg_0]  
+.text:100111D6 85 FF          test    edi, edi  
+.text:100111D8 8D B3 CC 00 00 00 lea     esi, [ebx+0CCh]  
+.text:100111DE 75 04          jnz     short loc_100111E4  
+.text:100111E0 33 C0          xor     eax, eax  
+.text:100111E2 EB 07          jmp     short loc_100111EB  
+.text:100111E4               loc_100111E4:          ; CODE XREF: ISwdAudioEncoder__LicenseNumber_put+3Ej  
+.text:100111E4 57             push    edi           ; lpString  
+.text:100111E5 FF 15 D0 A1 01 10 call    ds:lstrlenA  
+.text:100111EB               loc_100111EB:          ; CODE XREF: ISwdAudioEncoder__LicenseNumber_put+42j  
+.text:100111EB 57             push    edi  
+.text:100111EC 50             push    eax  
+.text:100111ED 8B CE         mov     ecx, esi  
+.text:100111EF E8 DC BD FF FF call    sub_1000CFD0  
+.text:100111F4 8B 06          mov     eax, [esi]  
+.text:100111F6 68 F0 18 02 10 push    offset String  
+.text:100111FB 50             push    eax  
+.text:100111FC E8 5B 29 00 00 call    __mbscmp  
+.text:10011201 83 C4 08       add     esp, 8  
+.text:10011204 85 C0          test    eax, eax  
+.text:10011206 75 0E          jnz     short loc_10011216  
+.text:10011208               loc_10011208:          ; CODE XREF: ISwdAudioEncoder__LicenseNumber_put+310j  
+.text:10011208 33 C0          xor     eax, eax  
+.text:1001120A 8D 65 F0       lea     esp, [ebp-10h]  
+.text:1001120D 5F             pop     edi  
+.text:1001120E 5E             pop     esi  
+.text:1001120F 5B             pop     ebx  
+.text:10011210 8B E5          mov     esp, ebp  
+.text:10011212 5D             pop     ebp  
+.text:10011213 C2 08 00       retn    8  
+.text:10011216               loc_10011216:          ; CODE XREF: ISwdAudioEncoder__LicenseNumber_put+66j  
+.text:10011216 8B 06          mov     eax, [esi]  
+.text:10011218 83 78 F8 18    cmp     dword ptr [eax-8], 18h  //比较许可证号的长度是否为 24 位  
+.text:1001121C 7D 38          jge     short loc_10011256  //大于等于 24 跳转到 10011256，小于 24 位显示下面的 “License number is wrong.” 消息框  
+.text:1001121E 8B 48 F8       mov     ecx, [eax-8]  
+.text:10011221 85 C9          test    ecx, ecx  
+.text:10011223 74 1C          jz      short loc_10011241  
+.text:10011225 8B 48 F4       mov     ecx, [eax-0Ch]  
+.text:10011228 85 C9          test    ecx, ecx  
+.text:1001122A 7C 09          jl      short loc_10011235  
+.text:1001122C 8B CE         mov     ecx, esi  
+.text:1001122E E8 0D C1 FF FF call    sub_1000D340  
+.text:10011233 EB 0C          jmp     short loc_10011241  
+.text:10011235               loc_10011235:          ; CODE XREF: ISwdAudioEncoder__LicenseNumber_put+8Aj  
+.text:10011235 68 F0 18 02 10 push    offset String  
+.text:1001123A 8B CE         mov     ecx, esi  
+.text:1001123C E8 3F 15 00 00 call    sub_10012780  
+.text:10011241               loc_10011241:  
+```
+
+
+
+```
+.text:10011241                   loc_10011241:                 ; CODE XREF: ISwdAudioEncoder__LicenseNumber_put+83j
+
+.text:10011241                   ; ISwdAudioEncoder__LicenseNumber_put+93j
+
+.text:10011241 8B 4B 50         mov     ecx, [ebx+50h]
+
+.text:10011244 6A 10            push    10h
+
+.text:10011246 68 C8 E1 01 10   push    offset aMp3EncoderCont  ; "MP3 Encoder Control"
+
+.text:1001124B 68 68 E8 01 10   push    offset aLicenseNumberI  ; "License number is wrong."
+
+.text:10011250 51               push    ecx
+
+.text:10011251 E9 B1 02 00 00    jmp     loc_10011507
+
+.text:10011256                   ; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+.text:10011256
+
+.text:10011256                   loc_10011256:                 ; CODE XREF: ISwdAudioEncoder__LicenseNumber_put+7Cj
+
+.text:10011256 8B 16             mov     edx, [esi]      //edx 指向许可证号
+
+.text:10011258 B8 05 00 00 00    mov     eax, 5          //eax=5
+
+.text:1001125D 8B 4A F8          mov     ecx, [edx-8]     //ecx=许可证号的长度
+
+.text:10011260 3B C8             cmp     ecx, eax
+
+.text:10011262 7D 02             jge     short loc_10011266
+
+.text:10011264 8B C1             mov     eax, ecx
+
+.text:10011266
+
+.text:10011266                   loc_10011266:                 ; CODE XREF: ISwdAudioEncoder__LicenseNumber_put+C2j
+
+.text:10011266 8B 0D 30 D0 01 10 mov     ecx, off_1001D030
+
+.text:1001126C 6A 00             push    0
+
+.text:1001126E 6A 00             push    0
+
+.text:10011270 8D 55 0C          lea     edx, [ebp+lpString]
+
+.text:10011273 89 4D 0C          mov     [ebp+lpString], ecx
+
+.text:10011276 50               push    eax
+
+.text:10011277 52               push    edx
+
+.text:10011278 8B CE             mov     ecx, esi
+
+.text:1001127A E8 91 14 00 00    call    sub_10012710    //取许可证号前 5 位
+
+.text:1001127F 8D 45 0C          lea     eax, [ebp+lpString]  //eax 指向许可证号前 5 位
+
+.text:10011282 8D 4D FC          lea     ecx, [ebp+var_4]
+
+.text:10011285 50               push    eax
+
+.text:10011286 E8 85 12 00 00    call    sub_10012510
+
+.text:1001128B 8D 4D 0C          lea     ecx, [ebp+lpString]
+
+.text:1001128E E8 1D BB FF FF    call    sub_1000CDB0
+
+.text:10011293 8B 4D FC          mov     ecx, [ebp+var_4]  //ecx 指向许可证号前 5 位
+
+.text:10011296 68 60 E8 01 10    push    offset aMped        ; "MPED-"   //内定的 5 位固定字符
+
+.text:1001129B 51               push    ecx
+
+.text:1001129C E8 BB 28 00 00    call    __mbscmp      //进行比较
+
+.text:100112A1 8B 0D 34 D0 01 10 mov     ecx, off_1001D034
+
+.text:100112A7 83 C4 08          add     esp, 8
+
+.text:100112AA 8B 3D A8 A0 01 10 mov     edi, ds:InterlockedDecrement
+
+.text:100112B0 85 C0             test    eax, eax      //测试比较结果
+
+.text:100112B2 8B 45 FC          mov     eax, [ebp+var_4]
+
+.text:100112B5 0F 95 C3          setnz   bl      //置标志为给 bl
+
+.text:100112B8 8D 50 F4          lea     edx, [eax-0Ch]
+
+.text:100112BB 3B D1             cmp     edx, ecx
+
+.text:100112BD 74 19             jz      short loc_100112D8
+
+.text:100112BF 83 C0 F4          add     eax, 0FFFFFFF4h
+
+.text:100112C2 50               push    eax                 ; lpAddend
+
+.text:100112C3 FF D7             call    edi ; InterlockedDecrement
+
+.text:100112C5 85 C0             test    eax, eax
+
+.text:100112C7 7F 0F             jg      short loc_100112D8
+
+.text:100112C9 8B 45 FC          mov     eax, [ebp+var_4]
+
+.text:100112CC 83 C0 F4          add     eax, 0FFFFFFF4h
+
+.text:100112CF 50               push    eax
+
+.text:100112D0 E8 5B 1C 00 00    call    sub_10012F30
+
+.text:100112D5 83 C4 04          add     esp, 4
+
+.text:100112D8
+
+.text:100112D8                   loc_100112D8:                 ; CODE XREF: ISwdAudioEncoder__LicenseNumber_put+11Dj
+
+.text:100112D8                   ; ISwdAudioEncoder__LicenseNumber_put+127j
+
+.text:100112D8 8B 06             mov     eax, [esi]  //eax 指向指向输入的许可证号
+
+.text:100112DA 84 DB             test    bl, bl      //测试 bl 标志位
+
+.text:100112DC 74 3B             jz      short loc_10011319  //为 0 跳到 10011319，否则位显示下面的
+
+                    “License number is wrong.”消息框
+
+.text:100112DE 8B 48 F8          mov     ecx, [eax-8]
+
+.text:100112E1 85 C9             test    ecx, ecx
+
+.text:100112E3 74 1C             jz      short loc_10011301
+
+.text:100112E5 8B 48 F4          mov     ecx, [eax-0Ch]
+
+.text:100112E8 85 C9             test    ecx, ecx
+
+.text:100112EA 7C 09             jl      short loc_100112F5
+
+.text:100112EC 8B CE             mov     ecx, esi
+
+.text:100112EE E8 4D C0 FF FF    call    sub_1000D340
+
+.text:100112F3 EB 0C             jmp     short loc_10011301
+
+.text:100112F5                   ; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+.text:100112F5
+
+.text:100112F5                   loc_100112F5:                 ; CODE XREF: ISwdAudioEncoder__LicenseNumber_put+14Aj
+
+.text:100112F5 68 F0 18 02 10    push    offset String
+
+.text:100112FA 8B CE             mov     ecx, esi
+
+.text:100112FC E8 7F 14 00 00    call    sub_10012780
+
+.text:10011301
+
+.text:10011301                   loc_10011301:                 ; CODE XREF: ISwdAudioEncoder__LicenseNumber_put+143j
+
+.text:10011301                   ; ISwdAudioEncoder__LicenseNumber_put+153j
+
+.text:10011301 8B 4D 08          mov     ecx, [ebp+arg_0]
+
+.text:10011304 6A 10             push    10h
+
+.text:10011306 68 C8 E1 01 10    push    offset aMp3EncoderCont  ; "MP3 Encoder Control"
+
+.text:1001130B 68 68 E8 01 10    push    offset aLicenseNumberI  ; "License number is wrong."
+
+.text:10011310 8B 51 50          mov     edx, [ecx+50h]
+
+.text:10011313 52               push    edx
+
+.text:10011314 E9 EE 01 00 00    jmp     loc_10011507
+
+.text:10011319                   ; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+.text:10011319
+
+.text:10011319                   loc_10011319:                 ; CODE XREF: ISwdAudioEncoder__LicenseNumber_put+13Cj
+
+.text:10011319 8A 50 09          mov     dl, [eax+9]  //取输入的许可证号的第 10 位
+
+.text:1001131C B1 2D             mov     cl, 2Dh   //cl='-'
+
+.text:1001131E 3A D1             cmp     dl, cl    //比较许可证号的第 10 位是否等于'-'
+
+.text:10011320 0F 85 A9 01 00 00 jnz     loc_100114CF  //不等跳走
+
+.text:10011326 38 48 0E          cmp     [eax+0Eh], cl  //相等继续比较许可证号的第 15 位是否等于'-'
+
+.text:10011329 0F 85 A0 01 00 00 jnz     loc_100114CF  //不等跳走
+
+.text:1001132F 38 48 13          cmp     [eax+13h], cl  //相等继续比较许可证号的第 20 位是否等于'-'
+
+.text:10011332 0F 85 97 01 00 00 jnz     loc_100114CF   //不等跳走
+
+.text:10011338 8B 0E             mov     ecx, [esi]
+
+.text:1001133A B8 04 00 00 00    mov     eax, 4
+
+.text:1001133F 8B 49 F8          mov     ecx, [ecx-8]
+
+.text:10011342 83 F9 09          cmp     ecx, 9
+
+.text:10011345 7D 03             jge     short loc_1001134A
+
+.text:10011347 8D 41 FB          lea     eax, [ecx-5]
+
+.text:1001134A
+
+.text:1001134A                   loc_1001134A:                 ; CODE XREF: ISwdAudioEncoder__LicenseNumber_put+1A5j
+
+.text:1001134A 83 F9 05          cmp     ecx, 5
+
+.text:1001134D 7D 02             jge     short loc_10011351
+
+.text:1001134F 33 C0             xor     eax, eax
+
+.text:10011351
+
+.text:10011351                   loc_10011351:                 ; CODE XREF: ISwdAudioEncoder__LicenseNumber_put+1ADj
+
+.text:10011351 8B 15 30 D0 01 10 mov     edx, off_1001D030
+
+.text:10011357 6A 00             push    0
+
+.text:10011359 6A 05             push    5
+
+.text:1001135B 50               push    eax
+
+.text:1001135C 8D 45 0C          lea     eax, [ebp+lpString]
+
+.text:1001135F 8B CE             mov     ecx, esi
+```
+
+
+
+```
+.text:10011361 50                     push    eax  
+.text:10011362 89 55 0C             mov     [ebp+lpString], edx  
+.text:10011365 E8 A6 13 00 00       call    sub_10012710  //取输入的许可证号的 6 至 9 位  
+.text:1001136A 8D 4D 0C             lea     ecx, [ebp+lpString]  //ecx 指向输入的许可证号的 6 至 9 位  
+.text:1001136D 51                   push    ecx  
+.text:1001136E 8D 4D FC             lea     ecx, [ebp+var_4]  
+.text:10011371 E8 9A 11 00 00       call    sub_10012510    //将许可证号的 6 至 9 位保存到[0012ec78]  
+.text:10011376 8D 4D 0C             lea     ecx, [ebp+lpString]  
+.text:10011379 E8 32 BA FF FF       call    sub_1000CDB0  
+.text:1001137E 8B 55 FC             mov     edx, [ebp+var_4]  
+.text:10011381 52                   push    edx    //edx 指向输入的许可证号的 6 至 9 位  
+.text:10011382 E8 99 01 00 00       call    sub_10011520  //判断许可证号的每一位是否在 0-9，a-f,A-F 之间  
+.text:10011387 8B 15 34 D0 01 10    mov     edx, off_1001D034  
+.text:1001138D 66 A3 74 19 02 10    mov     word ptr dword_10021974, ax  //ax=许可证号的 6 至 9 位,保存到 10021974  
+.text:10011393 8B 45 FC             mov     eax, [ebp+var_4]  
+.text:10011396 83 C4 04             add     esp, 4  
+.text:10011399 8D 48 F4             lea     ecx, [eax-0Ch]  
+.text:1001139C 3B CA                cmp     ecx, edx  
+.text:1001139E 74 19                jz      short loc_100113B9  
+.text:100113A0 83 C0 F4             add     eax, 0FFFFFFF4h  
+.text:100113A3 50                   push    eax                   ; lpAddend  
+.text:100113A4 FF D7                call    edi ; InterlockedDecrement  
+.text:100113A6 85 C0                test    eax, eax  
+.text:100113A8 7F 0F                jg      short loc_100113B9  
+.text:100113AA 8B 55 FC             mov     edx, [ebp+var_4]  
+.text:100113AD 83 C2 F4             add     edx, 0FFFFFFF4h  
+.text:100113B0 52                   push    edx  
+.text:100113B1 E8 7A 1B 00 00       call    sub_10012F30  
+.text:100113B6 83 C4 04             add     esp, 4  
+.text:100113B9                       
+.text:100113B9                       loc_100113B9:                ; CODE XREF: ISwdAudioEncoder__LicenseNumber_put+1FEj  
+.text:100113B9                                       ; ISwdAudioEncoder__LicenseNumber_put+208j  
+.text:100113B9 8B 0E                mov     ecx, [esi]  
+.text:100113BB B8 04 00 00 00       mov     eax, 4  
+.text:100113C0 8B 49 F8             mov     ecx, [ecx-8]  
+.text:100113C3 83 F9 0E             cmp     ecx, 0Eh  
+.text:100113C6 7D 03                jge     short loc_100113CB  
+.text:100113C8 8D 41 F6             lea     eax, [ecx-0Ah]  
+.text:100113CB                       
+.text:100113CB                       loc_100113CB:                ; CODE XREF: ISwdAudioEncoder__LicenseNumber_put+226j  
+.text:100113CB 83 F9 0A             cmp     ecx, 0Ah  
+.text:100113CE 7D 02                jge     short loc_100113D2  
+.text:100113D0 33 C0                xor     eax, eax  
+.text:100113D2                       
+.text:100113D2                       loc_100113D2:                ; CODE XREF: ISwdAudioEncoder__LicenseNumber_put+22Ej  
+.text:100113D2 8B 15 30 D0 01 10    mov     edx, off_1001D030  
+.text:100113D8 6A 00                push    0  
+.text:100113DA 6A 0A                push    0Ah  
+.text:100113DC 50                   push    eax  
+.text:100113DD 8D 45 0C             lea     eax, [ebp+lpString]  
+.text:100113E0 8B CE                mov     ecx, esi  
+.text:100113E2 50                   push    eax  
+.text:100113E3 89 55 0C             mov     [ebp+lpString], edx  
+.text:100113E6 E8 25 13 00 00       call    sub_10012710    //取输入的许可证号的 11 至 14 位  
+.text:100113EB 8D 4D 0C             lea     ecx, [ebp+lpString]  
+.text:100113EE 51                   push    ecx  
+.text:100113EF 8D 4D FC             lea     ecx, [ebp+var_4]  
+.text:100113F2 E8 19 11 00 00       call    sub_10012510  
+.text:100113F7 8D 4D 0C             lea     ecx, [ebp+lpString]  
+.text:100113FA E8 B1 B9 FF FF       call    sub_1000CDB0  
+.text:100113FF 8B 55 FC             mov     edx, [ebp+var_4]  
+.text:10011402 52                   push    edx     //edx 指向输入的许可证号的 11 至 14 位  
+.text:10011403 E8 18 01 00 00       call    sub_10011520    //判断许可证号的每一位是否在 0-9，a-f,A-F 之间  
+.text:10011408 83 C4 04             add     esp, 4  
+.text:1001140B 8D 4D FC             lea     ecx, [ebp+var_4]  
+.text:1001140E 66 A3 76 19 02 10    mov     word ptr dword_10021974+2, ax //ax=许可证号的 11 至 14 位,保存到 10021976  
+.text:10011414 E8 97 B9 FF FF       call    sub_1000CDB0  
+.text:10011419 6A 04                push    4  
+.text:1001141B 8D 45 0C             lea     eax, [ebp+lpString]  
+.text:1001141E 6A 0F                push    0Fh  
+.text:10011420 50                   push    eax  
+.text:10011421 8B CE                mov     ecx, esi  
+.text:10011423 E8 D8 14 00 00       call    sub_10012900    //取输入的许可证号的 16 至 19 位  
+.text:10011428 8B 00                mov     eax, [eax]  
+.text:1001142A 50                   push    eax     //eax 向输入的许可证号的 16 至 19 位  
+.text:1001142B E8 F0 00 00 00       call    sub_10011520    //判断许可证号的每一位是否在 0-9，a-f,A-F 之间  
+.text:10011430 83 C4 04             add     esp, 4  
+.text:10011433 8D 4D 0C             lea     ecx, [ebp+lpString]  
+.text:10011436 66 A3 78 19 02 10    mov     word_10021978, ax  //ax=许可证号的 16 至 19 位,保存到 10021978  
+.text:1001143C E8 6F B9 FF FF       call    sub_1000CDB0  
+.text:10011441 6A 04                push    4  
+.text:10011443 8D 4D 0C             lea     ecx, [ebp+lpString]  
+.text:10011446 6A 14                push    14h  
+.text:10011448 51                   push    ecx  
+.text:10011449 8B CE                mov     ecx, esi  
+.text:1001144B E8 B0 14 00 00       call    sub_10012900    ///取输入的许可证号的 21 至 24 位  
+.text:10011450 8B 00                mov     eax, [eax]  
+.text:10011452 50                   push    eax     //eax 向输入的许可证号的 21 至 24 位  
+.text:10011453 E8 C8 00 00 00       call    sub_10011520    //判断许可证号的每一位是否在 0-9，a-f,A-F 之间  
+.text:10011458 83 C4 04             add     esp, 4  
+.text:1001145B 8D 4D 0C             lea     ecx, [ebp+lpString]  
+.text:1001145E 66 A3 7A 19 02 10    mov     word_1002197A, ax  //ax=许可证号的 21 至 24 位,保存到 1002197A  
+.text:10011464 E8 47 B9 FF FF       call    sub_1000CDB0    //下面对保存的许可证号进行运算处理  
+.text:10011469 66 8B 15 7A 19 02+   mov     dx, word_1002197A  //保存许可证号的 21 至 24 位到 dx  
+.text:10011470 8B 0D 74 19 02 10    mov     ecx, dword_10021974  //10021974 保存许可证号的 6 至 9 位，10021976 保存许可证号的 11 至 14 位  
+                       //10021976 对应 ecx 高 word 位,10021974 对应 ecx 低 word 位  
+.text:10011476 66 03 15 78 19 02+   add     dx, word_10021978  //dx=许可证号的 21 至 24+许可证号的 16 至 19 位  
+.text:1001147D 8B 7D 08             mov     edi, [ebp+arg_0]  
+.text:10011480 66 03 15 76 19 02+   add     dx, word ptr dword_10021974+2  //dx=许可证号的 21 至 24+许可证号的 16 至 19 位+许可证号的 11 至 14 位  
+.text:10011487 03 D1                add     edx, ecx     //edx=许可证号的 21 至 24+许可证号的 16 至 19 位+许可证号的 11 至 14 位+ecx  
+.text:10011489 F7 DA                neg     edx     //edx 取反  
+.text:1001148B 66 F7 DA             neg     dx     //dx 取反  
+.text:1001148E 1B D2                sbb     edx, edx    //edx=edx-edx-C(C 为进位标志)  
+.text:10011490 42                   inc     edx     //edx=edx+1  
+.text:10011491 66 89 15 7C 19 02+   mov     word ptr dword_1002197C, dx //将 dx 保存到 1002197C  
+.text:10011498 A1 7C 19 02 10       mov     eax, dword_1002197C  //eax=dx  
+.text:1001149D 25 FF FF 00 00       and     eax, 0FFFFh    //与 0FFFFh 相与  
+.text:100114A2 89 87 D4 00 00 00    mov     [edi+0D4h], eax  //保存结果  
+.text:100114A8 66 83 3D 7C 19 02+   cmp     word ptr dword_1002197C, 0 //与 0 比较  
+.text:100114B0 0F 85 52 FD FF FF    jnz     loc_10011208    //不为 0 跳转到 10011208，为 0 显示"License number is wrong."信息  
+.text:100114B6 8B CE                mov     ecx, esi  
+.text:100114B8 E8 33 11 00 00       call    sub_100125F0  
+.text:100114BD 8B 4F 50             mov     ecx, [edi+50h]  
+.text:100114C0 6A 10                push    10h  
+.text:100114C2 68 C8 E1 01 10       push    offset aMp3EncoderCont ; "MP3 Encoder Control"  
+```
+
+
+
+## 汇编代码分析
+
+```
+.text:100114C7 68 68 E8 01 10    push    offset aLicenseNumberI ; "License number is wrong."
+.text:100114CC 51                push    ecx
+.text:100114CD EB 38             jmp     short loc_10011507
+.text:100114CF                   ; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+.text:100114CF
+.text:100114CF                   loc_100114CF:             ; CODE XREF: ISwdAudioEncoder__LicenseNumber_put+180j
+.text:100114CF                                            ; ISwdAudioEncoder__LicenseNumber_put+189j
+.text:100114CF                                            ; ISwdAudioEncoder__LicenseNumber_put+192j
+.text:100114CF 8B 06                mov     eax, [esi]
+.text:100114D1 8B 48 F8             mov     ecx, [eax-8]
+.text:100114D4 85 C9                test    ecx, ecx
+.text:100114D6 74 1C                jz      short loc_100114F4
+.text:100114D8 8B 48 F4             mov     ecx, [eax-0Ch]
+.text:100114DB 85 C9                test    ecx, ecx
+.text:100114DD 7C 09                jl      short loc_100114E8
+.text:100114DF 8B CE                mov     ecx, esi
+.text:100114E1 E8 5A BE FF FF      call    sub_1000D340
+.text:100114E6 EB 0C                jmp     short loc_100114F4
+.text:100114E8                   ; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+.text:100114E8
+.text:100114E8                   loc_100114E8:             ; CODE XREF: ISwdAudioEncoder__LicenseNumber_put+33Dj
+.text:100114E8 68 F0 18 02 10      push    offset String
+.text:100114ED 8B CE                mov     ecx, esi
+.text:100114EF E8 8C 12 00 00      call    sub_10012780
+.text:100114F4
+.text:100114F4                   loc_100114F4:             ; CODE XREF: ISwdAudioEncoder__LicenseNumber_put+336j
+.text:100114F4                                            ; ISwdAudioEncoder__LicenseNumber_put+346j
+.text:100114F4 8B 55 08             mov     edx, [ebp+arg_0]
+.text:100114F7 6A 10                push    10h               ; uType
+.text:100114F9 68 C8 E1 01 10      push    offset aMp3EncoderCont ; lpCaption
+.text:100114FE 68 68 E8 01 10      push    offset aLicenseNumberI ; lpText
+.text:10011503 8B 42 50             mov     eax, [edx+50h]
+.text:10011506 50                   push    eax               ; hWnd
+.text:10011507
+.text:10011507                   loc_10011507:             ; CODE XREF: ISwdAudioEncoder__LicenseNumber_put+B1j
+.text:10011507                                            ; ISwdAudioEncoder__LicenseNumber_put+174j
+.text:10011507                                            ; ISwdAudioEncoder__LicenseNumber_put+32Dj
+.text:10011507 FF 15 80 A2 01 10   call    ds:MessageBoxA
+.text:1001150D 8D 65 F0             lea     esp, [ebp+var_10]
+.text:10011510 B8 05 40 00 80      mov     eax, 80004005h
+.text:10011515 5F                   pop     edi
+.text:10011516 5E                   pop     esi
+.text:10011517 5B                   pop     ebx
+.text:10011518 8B E5                mov     esp, ebp
+.text:1001151A 5D                   pop     ebp
+.text:1001151B C2 08 00             retn    8
+.text:1001151B                   ISwdAudioEncoder__LicenseNumber_put endp
+```
+
+## 动态调试流程
+
+让我们开始启动 `olldbg` 动态调试，用 `olldbg` 加载 `ActiveX control test container` 后，`F9` 运行，在 `ActiveX control test container` 中选择 `edit->new control`, 选择 `mp3encoder class`。切换到 `olldbg`, `ALT+E` 打开模块窗口，选择 `swdmp3.ocx`, 右键选择"查看名称"，类型为"文件库"的条目信息就是 `olldbg` 根据符号文件生成的控件的接口信息，双击 `ISwdAudioEncoder::LicenseNumber_put`，来到我们想要的地方，在 `10011A0` 处下断点。
+
+切换到 `ActiveX control test container`，选择 `control->invoke methods`, 选择 `LicenseNumber`（`PropPut`), 参数框输入我们生成的注册码 `MPED-5446-1AF5-56FC-39C9`，点击"set value", 再点击"invoke", 中断在 `10011A0`，我们就可以开始跟踪分析了。
+
+## 算法总结
+
+首先注册码的长度为 24 位，前 5 位为 `'MPED-'` 是固定的，第 10、15、20 位为 `'-'`, 6 至 9 位、11 至 14 位、16 至 19 位、21 至 24 位每一位在 `0-9`, `a-f`, `A-F` 之间，所以注册码的形式位：`MPED-XXXX-XXXX-XXXX-XXXX`。
+
+假设第二组数值为 `X2`，第三组数值为 `X3`，第四组数值为 `X4`，第五组数值为 `X5`，由最后往前推，要想注册成功，`edx=[1002197C]<>0`，因为 `edx=edx-edx-C` `edx` 结果不是为 0 就为-1，如果 `edx=-1` 则 `inc edx` 后为 0，所以要 `edx=0`，即 `C=0`, 进位标志由最后 `neg dx` 决定，当 `dx=0` 时 `C＝0`，所以最终 `X3X2+X3+X4+X5` 低 16 位为 0 即可，只要 `X2+X3+X4+X5` 低 16 位为 0 即可，所以（`X2+X3+X4+X5`）`mod 10000h=0` 即可，让 `X2+X3+X4+X5=10000h` 就满足条件，最终的算法就是 `X2+X3+X4+X5=10000h`, 是不是很简单！
+
+## VB 注册机代码
+
+简单的用 VB 做了个注册机：
+
+```vb
+Private Sub Command1_Click()
+Dim x2, x3, x4, x5 As Long
+Do
+x2 = CLng((&H10000 - &H1000) * Rnd() + &H1000)
+x3 = CLng((&H10000 - &H1000) * Rnd() + &H1000)
+x4 = CLng((&H10000 - &H1000) * Rnd() + &H1000)
+x5 = CLng(&H10000 - x2 - x3 - x4)
+Loop Until Len(Hex$(x5)) = 4
+Text1.Text = "MPED-" & Hex$(x2) & "-" & Hex$(x3) & "-" & Hex$(x4) & "-" & Hex$(x5)
+End Sub
+
+Private Sub Command2_Click()
+End
+End Sub
+
+Private Sub Form_Load()
+Dim x2, x3, x4, x5 As Long
+Do
+x2 = CLng((&H10000 - &H1000) * Rnd() + &H1000)
+x3 = CLng((&H10000 - &H1000) * Rnd() + &H1000)
+x4 = CLng((&H10000 - &H1000) * Rnd() + &H1000)
+x5 = CLng(&H10000 - x2 - x3 - x4)
+Loop Until Len(Hex$(x5)) = 4
+Text1.Text = "MPED-" & Hex$(x2) & "-" & Hex$(x3) & "-" & Hex$(x4) & "-" & Hex$(x5)
+End Sub
+```
+
+## 其他控件算法
+
+其他的三种控件（`Streamware.CD.Extractor.Control`，`Streamware.OGG.Encoder.Control.v1.0`，`Streamware.WMA.Encoder.Control`）算法是换汤不换药，分别为：
+
+1. `Streamware.CD.Extractor.Control`
+   固定信息 `'RIPC'`, `X2+X3+X4-X5=10000h`
+2. `Streamware.OGG.Encoder.Control`
+   固定信息 `'OVER'`, `X3+X4+X5-X2=10000h`
+3. `Streamware.WMA.Encoder.Control`
+   固定信息 `'WMED'`, `X1-X2+X3-X4=10000h`
+
+写的好累人，谢谢您耐心看完。
+
+`daxia2002` 于 2004-6-23 晚
+
+`4dd466d0e1e0cc123afbe504da2462ca`

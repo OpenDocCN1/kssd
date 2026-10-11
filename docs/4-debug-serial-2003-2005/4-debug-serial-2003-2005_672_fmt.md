@@ -1,0 +1,532 @@
+
+# 系统优化大师 V2004 build 12.10
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6815.htm`](https://www.pediy.com/kssd/pediy06/pediy6815.htm)
+
+系统优化大师 V2004 build 12.10 破解教程
+
+**【破解作者】** `kyc[dfcg][czg]`
+
+**【作者邮箱】** `muyang008@163.com`
+
+**【使用工具】** `FLYold1.10c`
+
+**【破解平台】** `win2003`
+
+**【软件名称】** 系统优化大师 V2004 build 12.10
+
+**【下载地址】** <http://www.skycn.com/soft/12317.html>
+
+**【软件简介】**〖系统优化大师〗软件是一个电脑性能优化软件。软件全面、高效、安全地提高系统性能，使用简单，傻瓜式操作。
+
+使用本软件可能迅速达到系统优化目的。包括桌面优化、菜单优化、网络优化、软件优化、系统优化以及禁用设置、选择设置、
+
+更改设置等一系列个性化优化及设置选项。软件可以进行高速的注册表清理及高速的硬盘垃圾文件清理，清理全面、安全、
+
+不影响任何运行性能。软件绿色、环保、小巧、功能强大、可完全卸载，放心使用。软件由澄海市夫子电脑工作室推荐，软件随时升级。
+
+**【软件大小】** `1743` `KB`
+
+**【加壳方式】** 无壳
+
+**【破解声明】** 我是一只小菜鸟，偶得一点心得，愿与大家分享：）
+
+--------------------------------------------------------------------------------
+
+【破解内容】这个软件的注册码是重启验证的，注册码保存在注册表里
+
+用 `OLD` 分析后很容易得到以下代码，具体下断点分析过程我就忽略了。
+
+```
+0052A8C0    /.  55            push ebp                                             ;  f2
+0052A8C1    |.  8BEC          mov ebp,esp
+0052A8C3    |.  B9 17000000   mov ecx,17
+0052A8C8    |>  6A 00         /push 0
+0052A8CA    |.  6A 00         |push 0
+0052A8CC    |.  49            |dec ecx
+0052A8CD    |.^ 75 F9         \jnz short yhds.0052A8C8
+0052A8CF    |.  51            push ecx                                             ;  f4
+0052A8D0    |.  53            push ebx
+0052A8D1    |.  56            push esi
+0052A8D2    |.  57            push edi
+0052A8D3    |.  8BD8          mov ebx,eax
+0052A8D5    |.  33C0          xor eax,eax
+0052A8D7    |.  55            push ebp
+0052A8D8    |.  68 89AB5200   push yhds.0052AB89
+0052A8DD    |.  64:FF30       push dword ptr fs:[eax]
+0052A8E0    |.  64:8920       mov dword ptr fs:[eax],esp
+0052A8E3    |.  B2 01         mov dl,1
+0052A8E5    |.  A1 446B4700   mov eax,dword ptr ds:[476B44]
+0052A8EA    |.  E8 C1C3F4FF   call yhds.00476CB0
+0052A8EF    |.  8B15 80725900 mov edx,dword ptr ds:[597280]                     ;  yhds.00599948
+0052A8F5    |.  8902          mov dword ptr ds:[edx],eax
+0052A8F7    |.  A1 80725900   mov eax,dword ptr ds:[597280]
+0052A8FC    |.  8B00          mov eax,dword ptr ds:[eax]
+0052A8FE    |.  BA 02000080   mov edx,80000002
+0052A903    |.  E8 84C4F4FF   call yhds.00476D8C
+0052A908    |.  A1 80725900   mov eax,dword ptr ds:[597280]
+0052A90D    |.  8B00          mov eax,dword ptr ds:[eax]
+0052A90F    |.  B1 01         mov cl,1
+0052A911    |.  BA A0AB5200   mov edx,yhds.0052ABA0                             ;  ASCII "SOFTWARE\Microsoft\Yhds"
+0052A916    |.  E8 B5C5F4FF   call yhds.00476ED0                                 ；这是注册码保存在注册表位置
+0052A91B    |.  68 80000000   push 80                                            ; /BufSize = 80 (128.)
+0052A920    |.  8D85 7BFFFFFF lea eax,dword ptr ss:[ebp-85]                     ; |
+0052A926    |.  50            push eax                                           ; |Buffer
+0052A927    |.  E8 78CCEDFF   call <jmp.&kernel32.GetSystemDirectoryA>          ; \GetSystemDirectoryA
+0052A92C    |.  8D45 FC       lea eax,dword ptr ss:[ebp-4]
+0052A92F    |.  8D95 7BFFFFFF lea edx,dword ptr ss:[ebp-85]
+0052A935    |.  B9 81000000   mov ecx,81
+0052A93A    |.  E8 C5A3EDFF   call yhds.00404D04
+0052A93F    |.  8D95 74FFFFFF lea edx,dword ptr ss:[ebp-8C]
+0052A945    |.  8B83 14030000 mov eax,dword ptr ds:[ebx+314]
+0052A94B    |.  E8 9816F2FF   call yhds.0044BFE8
+0052A950    |.  83BD 74FFFFFF>cmp dword ptr ss:[ebp-8C],0                       ;  确认码不能为空
+0052A957    |.  74 1A         je short yhds.0052A973
+0052A959    |.  8D95 70FFFFFF lea edx,dword ptr ss:[ebp-90]
+0052A95F    |.  8B83 08030000 mov eax,dword ptr ds:[ebx+308]
+0052A965    |.  E8 7E16F2FF   call yhds.0044BFE8
+0052A96A    |.  83BD 70FFFFFF>cmp dword ptr ss:[ebp-90],0                       ;  注册码不能为空
+0052A971    |.  75 0F         jnz short yhds.0052A982
+0052A973    |>  B8 C0AB5200   mov eax,yhds.0052ABC0
+0052A978    |.  E8 9BA7F1FF   call yhds.00445118
+0052A97D    |.  E9 85010000   jmp yhds.0052AB07
+0052A982    |>  8D95 6CFFFFFF lea edx,dword ptr ss:[ebp-94]
+0052A988    |.  8B83 08030000 mov eax,dword ptr ds:[ebx+308]
+0052A98E    |.  E8 5516F2FF   call yhds.0044BFE8
+0052A993    |.  8B85 6CFFFFFF mov eax,dword ptr ss:[ebp-94]
+0052A999    |.  50            push eax
+0052A99A    |.  8D95 64FFFFFF lea edx,dword ptr ss:[ebp-9C]
+0052A9A0    |.  8B83 14030000 mov eax,dword ptr ds:[ebx+314]
+0052A9A6    |.  E8 3D16F2FF   call yhds.0044BFE8
+0052A9AB    |.  8B85 64FFFFFF mov eax,dword ptr ss:[ebp-9C]
+0052A9B1    |.  E8 8EEFEDFF   call yhds.00409944                                 ;  EAX=确认码
+0052A9B6    |.  B9 A1030000   mov ecx,3A1                                        ;  ECX=3A1
+0052A9BB    |.  99            cdq
+0052A9BC    |.  F7F9          idiv ecx                                           ;  EAX/3A1
+0052A9BE    |.  8BC2          mov eax,edx                                          ;  EAX=EAX%3A1 重要记住
+0052A9C0    |.  8D95 68FFFFFF lea edx,dword ptr ss:[ebp-98]
+0052A9C6    |.  E8 99EEEDFF   call yhds.00409864
+0052A9CB    |.  8D85 68FFFFFF lea eax,dword ptr ss:[ebp-98]
+0052A9D1    |.  50            push eax
+0052A9D2    |.  8D95 58FFFFFF lea edx,dword ptr ss:[ebp-A8]
+0052A9D8    |.  8B83 14030000 mov eax,dword ptr ds:[ebx+314]
+0052A9DE    |.  E8 0516F2FF   call yhds.0044BFE8
+0052A9E3    |.  8B85 58FFFFFF mov eax,dword ptr ss:[ebp-A8]
+0052A9E9    |.  E8 56EFEDFF   call yhds.00409944
+0052A9EE    |.  8D95 5CFFFFFF lea edx,dword ptr ss:[ebp-A4]
+0052A9F4    |.  E8 17FCFFFF   call yhds.0052A610                                 ;  F7  关键算法
+0052A9F9    |.  8B85 5CFFFFFF mov eax,dword ptr ss:[ebp-A4]
+0052A9FF    |.  E8 40EFEDFF   call yhds.00409944
+0052AA04    |.  8D95 60FFFFFF lea edx,dword ptr ss:[ebp-A0]
+0052AA0A    |.  E8 E1FCFFFF   call yhds.0052A6F0                                 ;  F7 关键算法
+0052AA0F    |.  8B95 60FFFFFF mov edx,dword ptr ss:[ebp-A0]
+0052AA15    |.  58            pop eax
+0052AA16    |.  E8 41A3EDFF   call yhds.00404D5C                                 ;  f7 **关键算法连接上面算好的数字
+0052AA1B    |.  8B95 68FFFFFF mov edx,dword ptr ss:[ebp-98]
+0052AA21    |.  58            pop eax
+0052AA22    |.  E8 71A4EDFF   call yhds.00404E98                                 ;  F7
+0052AA27    |.  0F85 CD000000 jnz yhds.0052AAFA
+0052AA2D    |.  8D95 54FFFFFF lea edx,dword ptr ss:[ebp-AC]
+0052AA33    |.  8B83 08030000 mov eax,dword ptr ds:[ebx+308]
+0052AA39    |.  E8 AA15F2FF   call yhds.0044BFE8
+0052AA3E    |.  8B8D 54FFFFFF mov ecx,dword ptr ss:[ebp-AC]
+0052AA44    |.  A1 80725900   mov eax,dword ptr ds:[597280]
+0052AA49    |.  8B00          mov eax,dword ptr ds:[eax]
+0052AA4B    |.  BA E0AB5200   mov edx,yhds.0052ABE0                              ;  ASCII "yhdsger"
+0052AA50    |.  E8 A7C9F4FF   call yhds.004773FC
+0052AA55    |.  8D85 50FFFFFF lea eax,dword ptr ss:[ebp-B0]
+0052AA5B    |.  B9 F0AB5200   mov ecx,yhds.0052ABF0                              ;  ASCII "\i1l00.sys"
+=============================================================================call yhds.0052A610
+0052A610    /$  55            push ebp
+0052A611    |.  8BEC          mov ebp,esp
+0052A613    |.  33C9          xor ecx,ecx
+0052A615    |.  51            push ecx
+0052A616    |.  51            push ecx
+0052A617    |.  51            push ecx
+0052A618    |.  51            push ecx
+0052A619    |.  53            push ebx
+0052A61A    |.  56            push esi
+0052A61B    |.  8BF2          mov esi,edx
+0052A61D    |.  8BD8          mov ebx,eax                                      ;  ebx=eax=确认码
+0052A61F    |.  33C0          xor eax,eax                                      ;  eax=0
+```
+
+
+
+```asm
+0052A621    |.   55                 push ebp  
+0052A622    |.   68 E0A65200        push yhds.0052A6E0  
+0052A627    |.   64:FF30           push dword ptr fs:[eax]  
+0052A62A    |.   64:8920          mov dword ptr fs:[eax],esp  
+0052A62D    |.   81F3 F1250B00    xor ebx,0B25F1                     ;  ebx=0B25F1  
+0052A633    |.   8BC3             mov eax,ebx                        ;  eax=ebx  
+0052A635    |.   33D2             xor edx,edx                        ;  edx=0  
+0052A637    |.   52               push edx                           ; /Arg2 => 00000000  
+0052A638    |.   50               push eax                           ; |Arg1  
+0052A639    |.   8D45 FC          lea eax,dword ptr ss:[ebp-4]       ; |  
+0052A63C    |.   E8 53F2EDFF      call yhds.00409894                 ; \yhds.00409894  
+0052A641    |.   8B45 FC          mov eax,dword ptr ss:[ebp-4]       ;  确认码和 0B25F1 异或结果转成 10 进制  
+0052A644    |.   0FB600           movzx eax,byte ptr ds:[eax]        ;  eax=[eax]第 1 个数值  
+0052A647    |.   8B55 FC          mov edx,dword ptr ss:[ebp-4]      
+0052A64A    |.   0FB652 01        movzx edx,byte ptr ds:[edx+1]      ;  edx=[eax+1]第 2 个数值  
+0052A64E    |.   03C2             add eax,edx                        ;  EAX=eax+edx  
+0052A650    |.   B9 05000000      mov ecx,5                          ;  ecx=5  
+0052A655    |.   99               cdq                                  
+0052A656    |.   F7F9             idiv ecx                           ;  eax/ecx  
+0052A658    |.   80C2 34          add dl,34                          ;  DL=eax%ecx+34  
+0052A65B    |.   8855 F8          mov byte ptr ss:[ebp-8],dl         ;  [EBP-8]=DL  
+0052A65E    |.   8B45 FC          mov eax,dword ptr ss:[ebp-4]      
+0052A661    |.   0FB640 02        movzx eax,byte ptr ds:[eax+2]      ;  eax=[eax+2]第 3 个数值  
+0052A665    |.   8B55 FC          mov edx,dword ptr ss:[ebp-4]      
+0052A668    |.   0FB652 03        movzx edx,byte ptr ds:[edx+3]      ;  edx=[eax+3]第 4 个数值  
+0052A66C    |.   03C2             add eax,edx                        ;  EAX=eax+edx  
+0052A66E    |.   B9 05000000      mov ecx,5                          ;  ecx=5  
+0052A673    |.   99               cdq                                  
+0052A674    |.   F7F9             idiv ecx                           ;  eax/ecx  
+0052A676    |.   8BDA             mov ebx,edx                        
+0052A678    |.   80C3 33          add bl,33                          ;  BL=bl+33  
+0052A67B    |.   885D F9          mov byte ptr ss:[ebp-7],bl         ;  [EBP-7]=BL  
+0052A67E    |.   8D45 F4          lea eax,dword ptr ss:[ebp-C]      
+0052A681    |.   8A55 F8          mov dl,byte ptr ss:[ebp-8]        
+0052A684    |.   E8 F3A5EDFF      call yhds.00404C7C                 
+0052A689    |.   8B45 F4          mov eax,dword ptr ss:[ebp-C]      
+0052A68C    |.   8D55 FC          lea edx,dword ptr ss:[ebp-4]      
+0052A68F    |.   B9 1B000000      mov ecx,1B                         
+0052A694    |.   E8 9BA9EDFF      call yhds.00405034                 
+0052A699    |.   8D45 F0          lea eax,dword ptr ss:[ebp-10]     
+0052A69C    |.   8BD3             mov edx,ebx                        
+0052A69E    |.   E8 D9A5EDFF      call yhds.00404C7C                 
+0052A6A3    |.   8B45 F0          mov eax,dword ptr ss:[ebp-10]     
+0052A6A6    |.   8D55 FC          lea edx,dword ptr ss:[ebp-4]      
+0052A6A9    |.   B9 19000000      mov ecx,19                         
+0052A6AE    |.   E8 81A9EDFF      call yhds.00405034                 ;  把两个值连接到异或后的 10 进制数组后面  
+0052A6B3    |.   8BC6             mov eax,esi                        
+0052A6B5    |.   8B55 FC          mov edx,dword ptr ss:[ebp-4]      
+0052A6B8    |.   E8 33A4EDFF      call yhds.00404AF0                 
+0052A6BD    |.   33C0             xor eax,eax                        
+0052A6BF    |.   5A               pop edx                            
+0052A6C0    |.   59               pop ecx                            
+0052A6C1    |.   59               pop ecx                            
+0052A6C2    |.   64:8910          mov dword ptr fs:[eax],edx        
+0052A6C5    |.   68 E7A65200      push yhds.0052A6E7                 
+0052A6CA    |>   8D45 F0          lea eax,dword ptr ss:[ebp-10]     
+0052A6CD    |.   BA 02000000      mov edx,2                          
+0052A6D2    |.   E8 E9A3EDFF      call yhds.00404AC0                 
+0052A6D7    |.   8D45 FC          lea eax,dword ptr ss:[ebp-4]      
+0052A6DA    |.   E8 BDA3EDFF      call yhds.00404A9C                 
+
+====================================================================================call yhds.0052A6F0
+
+0052A6F0    /$   55                 push ebp  
+0052A6F1    |.   8BEC             mov ebp,esp                        
+0052A6F3    |.   33C9             xor ecx,ecx                        
+0052A6F5    |.   51               push ecx                           
+0052A6F6    |.   51               push ecx                           
+0052A6F7    |.   51               push ecx                           
+0052A6F8    |.   51               push ecx                           
+0052A6F9    |.   51               push ecx                           
+0052A6FA    |.   51               push ecx                           
+0052A6FB    |.   53               push ebx                           
+0052A6FC    |.   56               push esi                           
+0052A6FD    |.   8BF2             mov esi,edx                        
+0052A6FF    |.   8BD8             mov ebx,eax                        ;  EBX=EAX=刚形成的数值  
+0052A701    |.   33C0             xor eax,eax                        
+0052A703    |.   55               push ebp                           
+0052A704    |.   68 3CA85200      push yhds.0052A83C                 
+0052A709    |.   64:FF30          push dword ptr fs:[eax]           
+0052A70C    |.   64:8920          mov dword ptr fs:[eax],esp        
+0052A70F    |.   81F3 8776FBDD   xor ebx,DDFB7687                   ;  EBX^DDFB7687  
+0052A715    |.   8BC3             mov eax,ebx                        ;  EAX=EBX  
+0052A717    |.   33D2             xor edx,edx                        ;  EDX=0  
+0052A719    |.   52               push edx                           ; /Arg2 => 00000000  
+0052A71A    |.   50               push eax                           ; |Arg1  
+0052A71B    |.   8D45 FC          lea eax,dword ptr ss:[ebp-4]       ; |  
+0052A71E    |.   E8 71F1EDFF      call yhds.00409894                 ; \结果转换为 10 进制  
+0052A723    |.   8B45 FC          mov eax,dword ptr ss:[ebp-4]      
+0052A726    |.   0FB600           movzx eax,byte ptr ds:[eax]        ;  EAX=第 1 位数值  
+0052A729    |.   8B55 FC          mov edx,dword ptr ss:[ebp-4]      
+0052A72C    |.   0FB652 01        movzx edx,byte ptr ds:[edx+1]      ;  EDX=第 2 位数值  
+0052A730    |.   03C2             add eax,edx                        ;  EAX=EAX+EDX  
+0052A732    |.   B9 05000000      mov ecx,5                          
+0052A737    |.   99               cdq                                  
+0052A738    |.   F7F9             idiv ecx                           ;  EAX/5  
+0052A73A    |.   80C2 66          add dl,66                          ;  DL=EAX%5+66  
+0052A73D    |.   8855 F8          mov byte ptr ss:[ebp-8],dl         ;  [EBP-8]=DL  
+0052A740    |.   8B45 FC          mov eax,dword ptr ss:[ebp-4]      
+0052A743    |.   0FB640 02        movzx eax,byte ptr ds:[eax+2]      ;  EAX=第 3 位数值  
+0052A747    |.   8B55 FC          mov edx,dword ptr ss:[ebp-4]      
+0052A74A    |.   0FB652 03        movzx edx,byte ptr ds:[edx+3]      ;  EDX=第 4 位数值  
+0052A74E    |.   03C2             add eax,edx                        ;  EAX=EAX+EDX  
+0052A750    |.   B9 05000000      mov ecx,5                          
+0052A755    |.   99               cdq                                  
+0052A756    |.   F7F9             idiv ecx                           ;  EAX/5  
+0052A758    |.   80C2 75          add dl,75                          ;  DL=EAX%5+75  
+0052A75B    |.   8855 F9          mov byte ptr ss:[ebp-7],dl        
+0052A75E    |.   8B45 FC          mov eax,dword ptr ss:[ebp-4]      
+0052A761    |.   0FB640 04        movzx eax,byte ptr ds:[eax+4]      ;  EAX=第 5 位数值  
+0052A765    |.   8B55 FC          mov edx,dword ptr ss:[ebp-4]      
+```
+
+
+
+```
+0052A768    |.   0FB652 05      movzx edx,byte ptr ds:\[edx+5\]                  ;  EDX\=第 6 位数值  
+
+0052A76C    |.   03C2          add eax,edx                                       ;  EAX\=EAX+EDX  
+
+0052A76E    |.   B9 05000000   mov ecx,5  
+
+0052A773    |.   99            cdq  
+
+0052A774    |.   F7F9          idiv ecx                                          ;  EAX/5  
+
+0052A776    |.   80C2 7A       add dl,7A                                         ;  DL\=EAX%5+7A  
+
+0052A779    |.   8855 FA       mov byte ptr ss:\[ebp\-6\],dl  
+
+0052A77C    |.   8B45 FC       mov eax,dword ptr ss:\[ebp\-4\]  
+
+0052A77F    |.   0FB640 06     movzx eax,byte ptr ds:\[eax+6\]                  ;  EAX\=第 7 位数值  
+
+0052A783    |.   8B55 FC       mov edx,dword ptr ss:\[ebp\-4\]  
+
+0052A786    |.   0FB652 07     movzx edx,byte ptr ds:\[edx+7\]                  ;  EDX\=第 8 位数值  
+
+0052A78A    |.   03C2          add eax,edx                                       ;  EAX\=EAX+EDX  
+
+0052A78C    |.   8B55 FC       mov edx,dword ptr ss:\[ebp\-4\]  
+
+0052A78F    |.   0FB652 08     movzx edx,byte ptr ds:\[edx+8\]                  ;  EDX\=第 9 位数值  
+
+0052A793    |.   03C2          add eax,edx                                       ;  EAX\=EAX+EDX  
+
+0052A795    |.   B9 05000000   mov ecx,5  
+
+0052A79A    |.   99            cdq  
+
+0052A79B    |.   F7F9          idiv ecx                                          ;  EAX/5  
+
+0052A79D    |.   80C2 69       add dl,69  
+
+0052A7A0    |.   8855 FB       mov byte ptr ss:\[ebp\-5\],dl  
+
+0052A7A3    |.   8D45 F4       lea eax,dword ptr ss:\[ebp\-C\]  
+
+0052A7A6    |.   8A55 F8       mov dl,byte ptr ss:\[ebp\-8\]  
+
+0052A7A9    |.   E8 CEA4EDFF   call yhds.00404C7C  
+
+0052A7AE    |.   8B45 F4       mov eax,dword ptr ss:\[ebp\-C\]  
+
+0052A7B1    |.   8D55 FC       lea edx,dword ptr ss:\[ebp\-4\]  
+
+0052A7B4    |.   B9 07000000   mov ecx,7  
+
+0052A7B9    |.   E8 76A8EDFF   call yhds.00405034                                ;F7 把第 1 个字符插入到第 7 位  
+
+0052A7BE    |.   8D45 F0       lea eax,dword ptr ss:\[ebp\-10\]  
+
+0052A7C1    |.   8A55 FB       mov dl,byte ptr ss:\[ebp\-5\]  
+
+0052A7C4    |.   E8 B3A4EDFF   call yhds.00404C7C  
+
+0052A7C9    |.   8B45 F0       mov eax,dword ptr ss:\[ebp\-10\]  
+
+0052A7CC    |.   8D55 FC       lea edx,dword ptr ss:\[ebp\-4\]  
+
+0052A7CF    |.   B9 03000000   mov ecx,3  
+
+0052A7D4    |.   E8 5BA8EDFF   call yhds.00405034                                ;  f7 把第 4 个字符插入到第 3 位  
+
+0052A7D9    |.   8D45 EC       lea eax,dword ptr ss:\[ebp\-14\]  
+
+0052A7DC    |.   8A55 F9       mov dl,byte ptr ss:\[ebp\-7\]  
+
+0052A7DF    |.   E8 98A4EDFF   call yhds.00404C7C  
+
+0052A7E4    |.   8B45 EC       mov eax,dword ptr ss:\[ebp\-14\]  
+
+0052A7E7    |.   8D55 FC       lea edx,dword ptr ss:\[ebp\-4\]  
+
+0052A7EA    |.   B9 05000000   mov ecx,5  
+
+0052A7EF    |.   E8 40A8EDFF   call yhds.00405034                                ;  f7 把第 2 个字符插入到第 5 位  
+
+0052A7F4    |.   8D45 E8       lea eax,dword ptr ss:\[ebp\-18\]  
+
+0052A7F7    |.   8A55 FA       mov dl,byte ptr ss:\[ebp\-6\]  
+
+0052A7FA    |.   E8 7DA4EDFF   call yhds.00404C7C  
+
+0052A7FF    |.   8B45 E8       mov eax,dword ptr ss:\[ebp\-18\]  
+
+0052A802    |.   8D55 FC       lea edx,dword ptr ss:\[ebp\-4\]  
+
+0052A805    |.   B9 09000000   mov ecx,9  
+
+0052A80A    |.   E8 25A8EDFF   call yhds.00405034                                ;  f7 把第 3 个字符插入到第 9 位  
+
+0052A80F    |.   8BC6          mov eax,esi  
+
+0052A811    |.   8B55 FC       mov edx,dword ptr ss:\[ebp\-4\]  
+
+0052A814    |.   E8 D7A2EDFF   call yhds.00404AF0  
+
+0052A819    |.   33C0          xor eax,eax  
+
+0052A81B    |.   5A            pop edx  
+
+0052A81C    |.   59            pop ecx  
+
+0052A81D    |.   59            pop ecx  
+
+0052A81E    |.   64:8910       mov dword ptr fs:\[eax\],edx  
+
+0052A821    |.   68 43A85200   push yhds.0052A843  
+
+0052A826    |>   8D45 E8       lea eax,dword ptr ss:\[ebp\-18\]  
+
+0052A829    |.   BA 04000000   mov edx,4  
+
+0052A82E    |.   E8 8DA2EDFF   call yhds.00404AC0  
+
+0052A833    |.   8D45 FC       lea eax,dword ptr ss:\[ebp\-4\]  
+
+0052A836    |.   E8 61A2EDFF   call yhds.00404A9C  
+
+0052A83B    \\.  C3            retn  
+```
+
+为了节省空间省略其他代码。。。。。。。。。。。。。。。。。。。。。。
+
+==============================================================================
+
+总结：根据上述分析过程能得到以下 C++代码。
+
+写的很烂请各位大虾指点指点…^\_^
+
+///////////////////////////////////////////////////
+
+/////////系统优化大师 V2004 build 12.10/////////////
+
+//////////////// key.cpp //////////////////////////
+
+```cpp
+#include<iostream>
+
+#include<string>
+
+#include <stdlib.h>
+
+using namespace std;
+
+char output[256],sn[256],str1[256];
+
+char str[20];
+
+unsigned long stmp1;
+
+//插入函数
+
+void InsertSort(char* pData,unsigned long Count,int pos) 
+
+{ 
+
+  for(int i=strlen(pData);i>pos;i--) 
+
+  { 
+
+    pData[i]=pData[i-1]; 
+
+  } 
+
+  pData[pos]=Count; 
+
+} 
+
+//主函数
+
+void main()
+
+{
+
+  unsigned long qrm,tmp;
+
+  unsigned long s1,s2,s3,s4;
+
+  cout<<"请输入确认码(必须是数字):"<<endl;
+
+  cin>>qrm;
+
+  cout<<"您输入的确认码是："<<qrm<<endl;
+
+  tmp=qrm;
+
+  qrm%=0x3a1;//这是注册码的前部分
+
+  _ui64toa(qrm,output,10); 
+
+        tmp^=0x0B25F1;
+
+  _ui64toa(tmp,str1,10); 
+
+s1=str1[0]+str1[1];
+
+str[0]=s1%5+0x34;
+
+s1=str1[2]+str1[3];
+
+str[1]=s1%5+0x33;
+
+strcat(str1,str);
+
+strcpy(sn,str1);
+
+tmp=atol(str1 );
+
+tmp^=0xDDFB7687;
+
+  _ui64toa(tmp,str1,10); 
+
+s1=str1[0]+str1[1];
+
+str[0]=s1%5+0x66;
+
+s2=str1[2]+str1[3];
+
+str[1]=s2%5+0x75;
+
+s3=str1[4]+str1[5];
+
+str[2]=s3%5+0x7A;
+
+s4=str1[6]+str1[7]+str1[8];
+
+str[3]=s4%5+0x69;
+
+/////////////////////////////////////
+
+InsertSort(str1,str[0],6) ;//插入第 1 个
+
+InsertSort(str1,str[3],2) ;//插入第 4 个
+
+InsertSort(str1,str[1],4) ;//插入第 2 个
+
+InsertSort(str1,str[2],8) ;//插入第 3 个
+
+//////////////////////////////////      
+
+strcat(output,str1);//连接上面算好的数字
+
+strcpy(sn,output);
+
+cout<<"您的注册码是：";
+
+cout<<sn<<endl;
+
+}
+
+//////////////////////////////////////////////////////////////////////
+```
+
+4dd466d0e1e0cc123afbe504da2462ca
