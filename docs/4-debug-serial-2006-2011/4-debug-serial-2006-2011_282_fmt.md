@@ -1,0 +1,2296 @@
+
+# HexAssistant1.9 注册码算法部分的分析
+
+> 原文：`www.pediy.com/kssd/pediy09/pediy09-230.htm`
+
+> 【文章标题】: `HexAssistant1.9` 算法分析  
+> 【文章作者】: `fangawxs`  
+> 【作者邮箱】: `fangawxs@163.com`  
+> 【软件名称】: `HexAssistant1.9`  
+> 【软件大小】: `2.34M`  
+> 【下载地址】: 自己搜索下载  
+> 【加壳方式】: 无  
+> 【保护方式】: `serial`  
+> 【编写语言】: `VC++`  
+> 【使用工具】: `0D`, `IDA Pro5.0`  
+> 【操作平台】: `win32`  
+> 【软件介绍】: `HexAssistant` is an Internet-ready 32-bit hex edi  
+> 【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
+
+--------------------------------------------------------------------------------
+
+【详细过程】
+
+运行软件,出现注册对话框,输入注册名:`fangawxs`,注册码:`123456789123456789` 后,出现错误提示:`Invalid User Name`  
+`or Registration Code!`
+
+反汇编很快就找到出错的地方:
+
+```assembly
+.text:0041224D 50                  push  eax                    ; lpData;指向用户名
+.text:0041224E B9 38 17 4E 00      mov   ecx, offset unk_4E1738
+.text:00412253 E8 5D E4 03 00      call  sub_4506B5             ;关键 call,进入
+.text:00412258 85 C0               test  eax, eax
+.text:0041225A 74 0A               jz    short loc_412266
+.text:0041225C 8B 4D E8            mov   ecx, [ebp+var_18]
+.text:0041225F E8 D8 CD 04 00      call  ?OnOK@CDialog@@MAEXXZ ; CDialog::OnOK(void)
+.text:00412264 EB 17               jmp   short loc_41227D
+.text:00412266                     ; ---------------------------------------------------------------------------
+.text:00412266
+.text:00412266                     loc_412266:                   ; CODE XREF: sub_4121D3+87j
+.text:00412266 6A 00               push  0
+.text:00412268 6A 01               push  1
+.text:0041226A 68 3A F0 00 00      push  0F03Ah                 ; 出错(Invalid User Name
+.text:0041226F 8B 55 E8            mov   edx, [ebp-18h]
+.text:00412272 52                   push  edx
+.text:00412273 B9 88 16 4E 00      mov   ecx, offset unk_4E1688
+.text:00412278 E8 63 24 FF FF      call  sub_4046E0
+.text:0041227D
+.text:0041227D                     loc_41227D:                   ; CODE XREF: sub_4121D3+91j
+.text:0041227D C6 45 FC 00         mov   byte ptr [ebp+var_4], 0
+.text:00412281 8D 4D F0           lea   ecx, [ebp+var_10]
+```
+
+进入 `.text:00412253` 处的 `call sub_4506B5`
+
+```assembly
+.text:004506B5 55                  push  ebp                    ; *lpData="用户名"
+.text:004506B5                      ; *arg_4="注册码"
+.text:004506B6 8B EC               mov   ebp, esp
+.text:004506B8 81 EC 1C 01 00 00   sub   esp, 11Ch
+.text:004506BE 89 8D E4 FE FF FF   mov   [ebp+var_11C], ecx     ; 一个指针,*ecx=004c7834
+.text:004506C4 C6 45 B8 00         mov   byte ptr [ebp+var_48], 0      ; var_48=0
+.text:004506C8 33 C0               xor   eax, eax                 ; set eax to zero
+.text:004506CA 89 45 B9            mov   [ebp+var_48+1], eax      ; var_48+1=var_47
+.text:004506CD 89 45 BD            mov   [ebp+var_43], eax
+.text:004506D0 89 45 C1            mov   [ebp+var_3F], eax
+.text:004506D3 66 89 45 C5         mov   [ebp+var_3B], ax
+.text:004506D7 88 45 C7            mov   [ebp+var_39], al
+.text:004506DA C6 45 E0 00         mov   byte ptr [ebp+var_20], 0
+.text:004506DE 33 C9               xor   ecx, ecx                 ; set ecx to zero
+.text:004506E0 89 4D E1            mov   [ebp+var_20+1], ecx      ; var_20+1=var_1F
+.text:004506E3 89 4D E5            mov   [ebp+var_1B], ecx
+.text:004506E6 89 4D E9            mov   [ebp+var_17], ecx
+.text:004506E9 66 89 4D ED         mov   [ebp+var_13], cx
+.text:004506ED 88 4D EF            mov   [ebp+var_11], cl
+.text:004506F0 C6 45 F0 00         mov   byte ptr [ebp+var_10], 0
+.text:004506F4 33 D2               xor   edx, edx                 ; set edx=0
+.text:004506F6 89 55 F1            mov   [ebp+var_10+1], edx      ; var_10+1=var_0F
+.text:004506F9 89 55 F5            mov   [ebp+var_B], edx
+.text:004506FC 89 55 F9            mov   [ebp+var_7], edx
+.text:004506FF 66 89 55 FD         mov   [ebp+var_3], dx
+.text:00450703 88 55 FF            mov   [ebp+var_1], dl
+.text:00450706 C6 45 CC 00         mov   byte ptr [ebp+var_34], 0
+.text:0045070A 33 C0               xor   eax, eax                 ; eax=0
+.text:0045070C 89 45 CD            mov   [ebp+var_34+1], eax      ; var_34+1=var_33
+.text:0045070F 89 45 D1            mov   [ebp+var_2F], eax
+.text:00450712 89 45 D5            mov   [ebp+var_2B], eax
+.text:00450715 66 89 45 D9         mov   [ebp+var_27], ax
+.text:00450719 88 45 DB            mov   [ebp+var_25], al
+.text:0045071C 8B 4D 08            mov   ecx, [ebp+lpData]
+.text:0045071F 51                   push  ecx                    ; char *
+.text:00450720 E8 6B F0 00 00      call  strlen
+.text:00450725 83 C4 04            add   esp, 4
+.text:00450728 83 F8 10            cmp   eax, 10h                 ; 用户名 > 10h?
+.text:00450728                      ; 如果大于 16 位,就取前 16 位
+.text:0045072B 76 14               jbe   short loc_450741
+.text:0045072D 6A 10               push  10h                    ; size_t
+.text:0045072F 8B 55 08            mov   edx, [ebp+lpData]        ; src
+.text:00450732 52                   push  edx                    ; void *
+.text:00450733 8D 45 B8            lea   eax, [ebp+var_48]        ; dest
+.text:00450736 50                   push  eax                    ; void *
+.text:00450737 E8 60 F0 00 00      call  memcpy                 ; copy src to dest
+.text:0045073C 83 C4 0C            add   esp, 0Ch
+.text:0045073F EB 1D               jmp   short loc_45075E
+.text:00450741                     ; ---------------------------------------------------------------------------
+.text:00450741
+.text:00450741                     loc_450741:                   ; CODE XREF: sub_4506B5+76j
+.text:00450741 8B 4D 08            mov   ecx, [ebp+lpData]
+.text:00450744 51                   push  ecx                    ; char *
+.text:00450745 E8 46 F0 00 00      call  strlen
+.text:0045074A 83 C4 04            add   esp, 4
+.text:0045074D 50                   push  eax                    ; size_t
+.text:0045074E 8B 55 08            mov   edx, [ebp+lpData]        ; src
+.text:00450751 52                   push  edx                    ; void *
+.text:00450752 8D 45 B8            lea   eax, [ebp+var_48]        ; dest
+.text:00450755 50                   push  eax                    ; void *
+.text:00450756 E8 41 F0 00 00      call  memcpy
+.text:0045075B 83 C4 0C            add   esp, 0Ch
+.text:0045075E
+.text:0045075E                     loc_45075E:                   ; CODE XREF: sub_4506B5+8Aj
+```
+
+
+
+```
+  .text:0045075E 8D 4D E0              lea   ecx, [ebp+var_20]  
+  .text:00450761 51                    push  ecx  
+  .text:00450762 8D 55 B8              lea   edx, [ebp+var_48]            ; *var_48=用户名  
+  .text:00450765 52                    push  edx  
+  .text:00450766 B9 28 1C 4E 00        mov   ecx, offset table1  
+  .text:0045076B E8 EB F6 FE FF        call  sub_43FE5B                   ; 用户名的算法.  
+  .text:0045076B                                   ; 结果放在 var_20 处  
+  .text:00450770 C6 45 DC 00           mov   [ebp+var_24], 0  
+  .text:00450774 33 C0                xor   eax, eax  
+  .text:00450776 66 89 45 DD          mov   [ebp-23h], ax  
+  .text:0045077A C7 45 B4 00 00 00 00 mov   [ebp+var_4C], 0  
+  .text:00450781 EB 09                jmp   short loc_45078C  
+  .text:00450783                        ; ---------------------------------------------------------------------------  
+  .text:00450783  
+  .text:00450783                        loc_450783:                         ; CODE XREF: sub_4506B5+115j  
+  .text:00450783 8B 4D B4               mov   ecx, [ebp+var_4C]  
+  .text:00450786 83 C1 01               add   ecx, 1  
+  .text:00450789 89 4D B4               mov   [ebp+var_4C], ecx           ; var_4C 为计数器  
+  .text:0045078C  
+  .text:0045078C                        loc_45078C:                         ; CODE XREF: sub_4506B5+CCj  
+  .text:0045078C 83 7D B4 10            cmp   [ebp+var_4C], 10h  
+  .text:00450790 7D 3A                 jge   short loc_4507CC  
+  .text:00450792 6A 02                 push  2                             ; size_t,复制为 2 个字节  
+  .text:00450792                                   ; 循环 16 次,因此注册码要 32 个字节  
+  .text:00450794 8B 55 B4               mov   edx, [ebp+var_4C]  
+  .text:00450797 8B 45 0C               mov   eax, [ebp+arg_4]             ; arg_4 指向注册码  
+  .text:0045079A 8D 0C 50               lea   ecx, [eax+edx*2]             ; src  
+  .text:0045079D 51                    push  ecx                           ; void *  
+  .text:0045079E 8D 55 DC              lea   edx, [ebp+var_24]            ; dest  
+  .text:004507A1 52                    push  edx                           ; void *  
+  .text:004507A2 E8 F5 EF 00 00        call  memcpy                        ; 复制  
+  .text:004507A7 83 C4 0C              add   esp, 0Ch  
+  .text:004507AA 8D 45 C8              lea   eax, [ebp+var_38]  
+  .text:004507AD 50                    push  eax                           ; 存放地址  
+  .text:004507AE 68 00 F9 4D 00        push  offset asc_4DF900             ; 以 16 进制数输入%x  
+  .text:004507B3 8D 4D DC              lea   ecx, [ebp+var_24]  
+  .text:004507B6 51                    push  ecx                           ; char *  
+  .text:004507B7 FF 15 94 0C 4C 00     call  ds:sscanf                      
+  .text:004507BD 83 C4 0C              add   esp, 0Ch  
+  .text:004507C0 8B 55 B4               mov   edx, [ebp+var_4C]  
+  .text:004507C3 8A 45 C8               mov   al, byte ptr [ebp+var_38]  
+  .text:004507C6 88 44 15 F0            mov   byte ptr [ebp+edx+var_10], al ; 处理结果写到 var_10 处  
+  .text:004507C6                                   ; 注册码的字符应该为 0-F,共有 32 位  
+  .text:004507CA EB B7                 jmp   short loc_450783  
+  .text:004507CC                        ; ---------------------------------------------------------------------------  
+  .text:004507CC  
+  .text:004507CC                        loc_4507CC:                         ; CODE XREF: sub_4506B5+DBj  
+  .text:004507CC 8D 4D CC              lea   ecx, [ebp+var_34]  
+  .text:004507CF 51                    push  ecx  
+  .text:004507D0 8D 55 F0              lea   edx, [ebp+var_10]  
+  .text:004507D3 52                    push  edx                           ; 注册码,为 32 位的十六进制数  
+  .text:004507D4 B9 80 1B 4E 00        mov   ecx, offset table  
+  .text:004507D9 E8 99 06 FF FF        call  sub_440E77                   ; 对注册码处理,注册码算法  
+      
+  .text:004507DE 6A 10                 push  10h                           ; size_t  
+  .text:004507E0 8D 45 CC              lea   eax, [ebp+var_34]             ; var_34 为字符串  
+  .text:004507E3 50                    push  eax                           ; void *  
+  .text:004507E4 8D 4D E0              lea   ecx, [ebp+var_20]             ; var_20 为字符串  
+  .text:004507E7 51                    push  ecx                           ; void *  
+  .text:004507E8 E8 25 F3 00 00        call  memcmp                        ; 比较两个字符串是否相等  
+  .text:004507ED 83 C4 0C              add   esp, 0Ch                      ; 相等则注册成功!  
+  .text:004507F0 85 C0                 test  eax, eax  
+  .text:004507F2 0F 85 E5 00 00 00     jnz   loc_4508DD                    
+  .text:004507F8 8D 95 E8 FE FF FF      lea   edx, [ebp+hKey]              
+  .text:004507FE 52                    push  edx                           ; phkResult  
+  .text:004507FF 68 3F 00 0F 00        push  0F003Fh                       ; samDesired  
+  .text:00450804 6A 00                 push  0                             ; ulOptions  
+  .text:00450806 68 04 F9 4D 00        push  offset SubKey                 ; "SOFTWARE\\Microsoft\\sabdu"  
+  .text:0045080B 68 02 00 00 80         push  80000002h                     ; hKey  
+  .text:00450810 FF 15 08 00 4C 00      call  ds:RegOpenKeyExA  
+  .text:00450816 85 C0                 test  eax, eax  
+  .text:00450818 74 31                 jz    short loc_45084B  
+  .text:0045081A 6A 00                 push  0                             ; lpdwDisposition  
+  .text:0045081C 8D 85 E8 FE FF FF      lea   eax, [ebp+hKey]  
+  .text:00450822 50                    push  eax                           ; phkResult  
+  .text:00450823 6A 00                 push  0                             ; lpSecurityAttributes  
+  .text:00450825 68 3F 00 0F 00        push  0F003Fh                       ; samDesired  
+  .text:0045082A 6A 00                 push  0                             ; dwOptions  
+  .text:0045082C 6A 00                 push  0                             ; lpClass  
+  .text:0045082E 6A 00                 push  0                             ; Reserved  
+  .text:00450830 68 20 F9 4D 00        push  offset aSoftwareMicr_0        ; "SOFTWARE\\Microsoft\\sabdu"  
+  .text:00450835 68 02 00 00 80         push  80000002h                     ; hKey  
+  .text:0045083A FF 15 04 00 4C 00      call  ds:RegCreateKeyExA  
+  .text:00450840 85 C0                 test  eax, eax  
+  .text:00450842 74 07                 jz    short loc_45084B             
+  .text:00450844 33 C0                 xor   eax, eax  
+  .text:00450846 E9 94 00 00 00         jmp   loc_4508DF  
+  .text:0045084B                        ; ---------------------------------------------------------------------------  
+  .text:0045084B  
+  .text:0045084B                        loc_45084B:                         ; CODE XREF: sub_4506B5+163j  
+  .text:0045084B                                   ; sub_4506B5+18Dj  
+  .text:0045084B 8B 4D 08               mov   ecx, [ebp+lpData]            ; 写注册表  
+  .text:0045084E 51                    push  ecx                           ; char *  
+  .text:0045084F E8 3C EF 00 00        call  strlen
+```
+
+
+
+## 汇编代码分析
+
+以下是 `.text` 段中关于注册表操作的汇编代码：
+
+```asm
+.text:00450854 83 C4 04                 add   esp, 4
+.text:00450857 83 C0 01                 add   eax, 1
+.text:0045085A 50                       push  eax                       ; cbData
+.text:0045085B 8B 55 08                 mov   edx, [ebp+lpData]
+.text:0045085E 52                       push  edx                       ; lpData
+.text:0045085F 6A 01                    push  1                         ; dwType
+.text:00450861 6A 00                    push  0                         ; Reserved
+.text:00450863 68 3C F9 4D 00           push  offset ValueName          ; "name"
+.text:00450868 8B 85 E8 FE FF FF        mov   eax, [ebp+hKey]
+.text:0045086E 50                       push  eax                       ; hKey
+.text:0045086F FF 15 18 00 4C 00        call  ds:RegSetValueExA
+.text:00450875 85 C0                    test  eax, eax
+.text:00450877 74 11                    jz    short loc_45088A
+.text:00450879 8B 8D E8 FE FF FF        mov   ecx, [ebp+hKey]
+.text:0045087F 51                       push  ecx                       ; hKey
+.text:00450880 FF 15 00 00 4C 00        call  ds:RegCloseKey
+.text:00450886 33 C0                    xor   eax, eax
+.text:00450888 EB 55                    jmp   short loc_4508DF
+
+.text:0045088A
+.text:0045088A
+loc_45088A: ; CODE XREF: sub_4506B5+1C2j
+.text:0045088A 8B 55 0C                 mov   edx, [ebp+arg_4]          ; 写注册表
+.text:0045088D 52                       push  edx                       ; char *
+.text:0045088E E8 FD EE 00 00           call  strlen
+.text:00450893 83 C4 04                 add   esp, 4
+.text:00450896 83 C0 01                 add   eax, 1
+.text:00450899 50                       push  eax                       ; cbData
+.text:0045089A 8B 45 0C                 mov   eax, [ebp+arg_4]
+.text:0045089D 50                       push  eax                       ; lpData
+.text:0045089E 6A 01                    push  1                         ; dwType
+.text:004508A0 6A 00                    push  0                         ; Reserved
+.text:004508A2 68 44 F9 4D 00           push  offset aCode              ; "code"
+.text:004508A7 8B 8D E8 FE FF FF        mov   ecx, [ebp+hKey]
+.text:004508AD 51                       push  ecx                       ; hKey
+.text:004508AE FF 15 18 00 4C 00        call  ds:RegSetValueExA
+.text:004508B4 85 C0                    test  eax, eax
+.text:004508B6 74 11                    jz    short loc_4508C9
+.text:004508B8 8B 95 E8 FE FF FF        mov   edx, [ebp+hKey]
+.text:004508BE 52                       push  edx                       ; hKey
+.text:004508BF FF 15 00 00 4C 00        call  ds:RegCloseKey
+.text:004508C5 33 C0                    xor   eax, eax
+.text:004508C7 EB 16                    jmp   short loc_4508DF
+
+.text:004508C9
+loc_4508C9: ; CODE XREF: sub_4506B5+201j
+.text:004508C9 8B 85 E8 FE FF FF        mov   eax, [ebp+hKey]
+.text:004508CF 50                       push  eax                       ; hKey
+.text:004508D0 FF 15 00 00 4C 00        call  ds:RegCloseKey
+.text:004508D6 B8 01 00 00 00           mov   eax, 1
+.text:004508DB EB 02                    jmp   short loc_4508DF
+
+.text:004508DD
+loc_4508DD: ; CODE XREF: sub_4506B5+13Dj
+.text:004508DD 33 C0                    xor   eax, eax
+
+.text:004508DF
+loc_4508DF: ; CODE XREF: sub_4506B5+191j
+            ; sub_4506B5+1D3j ...
+.text:004508DF 8B E5                    mov   esp, ebp
+.text:004508E1 5D                       pop   ebp
+.text:004508E2 C2 08 00                 retn  8
+.text:004508E2 sub_4506B5 endp
+```
+
+### 逻辑说明
+
+在上面的代码中可知，用户名如果超过 16 位，就只取前面的 16 位，注册码为 32 位，而且字符为 0-F，不能为其它的字符，是作为一个整数输进去的。
+
+从上面可以看出注册的算法为：
+
+```
+if F(name)=G(serial)
+      注册成功;
+```
+
+因此重点是 `G(serial)` 的逆函数。
+
+进入 `.text:004507D9` 处的 `call sub_440E77`。
+
+为了表达方便，把代码中处理注册码的分割为小段，不同的处理方式为一大段。
+
+### 注册码处理代码
+
+```asm
+.text:00440E77 55                       push  ebp                       ; 对注册码处理
+                                        ; arg_0 为注册码处理后的数据，共 16 个字节
+                                        ; arg_4 为结果存放地址
+                                        ; 设注册码=s1s2s3s4
+.text:00440E78 8B EC                    mov   ebp, esp
+.text:00440E7A 83 EC 20                 sub   esp, 20h
+.text:00440E7D 89 4D E0                 mov   [ebp+var_20], ecx         ; ecx 这一个地址，指向一个 table
+.text:00440E80 8B 45 08                 mov   eax, [ebp+arg_0]
+.text:00440E83 8B 08                    mov   ecx, [eax]
+.text:00440E85 8B 55 E0                 mov   edx, [ebp+var_20]
+.text:00440E88 03 8A 94 00 00 00        add   ecx, [edx+94h]
+.text:00440E8E 89 4D EC                 mov   [ebp+var_14], ecx         ; 第一个双字:var_14,s1=s1+table[94h]
+.text:00440E91 8B 45 08                 mov   eax, [ebp+arg_0]
+.text:00440E94 8B 48 04                 mov   ecx, [eax+4]
+.text:00440E97 8B 55 E0                 mov   edx, [ebp+var_20]
+.text:00440E9A 03 8A 98 00 00 00        add   ecx, [edx+98h]
+.text:00440EA0 89 4D F0                 mov   [ebp+var_10], ecx         ; 第二个双字:var_10,s2=s2+table[98h]
+.text:00440EA3 8B 45 08                 mov   eax, [ebp+arg_0]
+.text:00440EA6 8B 48 08                 mov   ecx, [eax+8]
+.text:00440EA9 8B 55 E0                 mov   edx, [ebp+var_20]
+.text:00440EAC 03 8A 9C 00 00 00        add   ecx, [edx+9Ch]
+.text:00440EB2 89 4D F4                 mov   [ebp+var_C], ecx          ; 第三个双字:var_C,s3=s3+table[9Ch]
+.text:00440EB5 8B 45 08                 mov   eax, [ebp+arg_0]
+.text:00440EB8 8B 48 0C                 mov   ecx, [eax+0Ch]
+.text:00440EBB 8B 55 E0                 mov   edx, [ebp+var_20]
+.text:00440EBE 03 8A A0 00 00 00        add   ecx, [edx+0A0h]
+.text:00440EC4 89 4D FC                 mov   [ebp+var_4], ecx          ; 第四个双字:var_4,s4=s4+table[0A0h]
+```
+
+### 逆算法
+
+上面的逆算法为：
+
+```
+s1=s1-table[94h]
+s2=s2-table[98h]
+s3=s3-table[9Ch]
+s4=s4-table[0A0h]
+```
+
+
+
+```asm
+.text:00440EC4
+.text:00440EC4
+.text:00440EC4 ;
+.text:00440EC4 ;
+.text:00440EC7 8B 45 FC        mov   eax, [ebp+var_4]        ; s4
+.text:00440ECA C1 C8 08        ror   eax, 8
+.text:00440ECD 89 45 F8        mov   [ebp+var_8], eax        ; var_8=tmp=(ror s4,8)
+.text:00440ED0 8B 4D FC        mov   ecx, [ebp+var_4]
+.text:00440ED3 81 E1 FF 00 00 00      and   ecx, 0FFh        
+.text:00440ED9 8B 55 F4        mov   edx, [ebp+var_C]        
+.text:00440EDC 33 14 8D BC ED 4D 00   xor   edx, table_1[ecx*4]
+.text:00440EE3 89 55 F4        mov   [ebp+var_C], edx        ; s3=s3^(table_1[(s4&0FFh)*4])
+.text:00440EE6 8B 45 F8        mov   eax, [ebp+var_8]
+.text:00440EE9 25 FF 00 00 00     and   eax, 0FFh        
+.text:00440EEE 8B 4D F4        mov   ecx, [ebp+var_C]        
+.text:00440EF1 03 0C 85 BC F1 4D 00   add   ecx, table_2[eax*4]
+.text:00440EF8 89 4D F4        mov   [ebp+var_C], ecx        ; s3=s3+table_2[(tmp&0FFh)*4]
+.text:00440EFB 8B 55 FC        mov   edx, [ebp+var_4]
+.text:00440EFE C1 CA 10        ror   edx, 10h
+.text:00440F01 89 55 F8        mov   [ebp+var_8], edx        ; var_8=tmp=(ror s4,10h)
+.text:00440F04 8B 45 FC        mov   eax, [ebp+var_4]
+.text:00440F07 C1 C8 18        ror   eax, 18h
+.text:00440F0A 89 45 FC        mov   [ebp+var_4], eax        ; s4=(ror s4,18h)
+.text:00440F0D 8B 4D F8        mov   ecx, [ebp+var_8]
+.text:00440F10 81 E1 FF 00 00 00      and   ecx, 0FFh        
+.text:00440F16 8B 55 F0        mov   edx, [ebp+var_10]
+.text:00440F19 03 14 8D BC ED 4D 00   add   edx, table_1[ecx*4]
+.text:00440F20 89 55 F0        mov   [ebp+var_10], edx       ; s2=s2+table_1[(tmp&0FFh)*4]
+.text:00440F23 8B 45 FC        mov   eax, [ebp+var_4]
+.text:00440F26 25 FF 00 00 00     and   eax, 0FFh        
+.text:00440F2B 8B 4D EC        mov   ecx, [ebp+var_14]
+.text:00440F2E 33 0C 85 BC F1 4D 00   xor   ecx, table_2[eax*4]
+.text:00440F35 89 4D EC        mov   [ebp+var_14], ecx       ; s1=s1^table_2[(s4&0FFh)*4]
+```
+
+===================================================================
+
+上面的逆算法为：
+
+```
+s1=s1^table_2[(s4&0FFh)*4]
+s4=(rol s4,18h)
+var_8=tmp=(ror s4,8)
+s3=s3-table_2[(tmp&0FFh)*4]
+s3=s3^table_1[(s4&0FFh)*4]
+var_8=tmp=(ror s4,10h)
+s2=s2-table_1[(tmp&0FFh)*4]
+```
+
+把上面的代码按上面的顺序改一下，加法变为减法，右移变为左移，就是逆算法了
+
+====================================================================
+
+```asm
+.text:00440F35 ;____________________________________
+.text:00440F38 8B 55 FC        mov   edx, [ebp+var_4]        ; s4
+.text:00440F3B 03 55 EC        add   edx, [ebp+var_14]
+.text:00440F3E 89 55 FC        mov   [ebp+var_4], edx        ; s4=s4+s1
+.text:00440F41 8B 45 F4        mov   eax, [ebp+var_C]
+.text:00440F44 C1 C8 08        ror   eax, 8
+.text:00440F47 89 45 F8        mov   [ebp+var_8], eax        ; var_8=tmp=(ror s3,8)
+.text:00440F4A 8B 4D F4        mov   ecx, [ebp+var_C]
+.text:00440F4D 81 E1 FF 00 00 00      and   ecx, 0FFh
+.text:00440F53 8B 55 F0        mov   edx, [ebp+var_10]
+.text:00440F56 33 14 8D BC ED 4D 00   xor   edx, table_1[ecx*4]
+.text:00440F5D 89 55 F0        mov   [ebp+var_10], edx       ; s2=s2^table_1[(s3&0FFh)*4]
+.text:00440F60 8B 45 F8        mov   eax, [ebp+var_8]
+.text:00440F63 25 FF 00 00 00     and   eax, 0FFh
+.text:00440F68 8B 4D F0        mov   ecx, [ebp+var_10]
+.text:00440F6B 03 0C 85 BC F1 4D 00   add   ecx, table_2[eax*4]
+.text:00440F72 89 4D F0        mov   [ebp+var_10], ecx       ; s2=s2+table_2[(tmp&0FFh)*4]
+.text:00440F75 8B 55 F4        mov   edx, [ebp+var_C]
+.text:00440F78 C1 CA 10        ror   edx, 10h
+.text:00440F7B 89 55 F8        mov   [ebp+var_8], edx        ; var_8=tmp=(ror s3,10h)
+.text:00440F7E 8B 45 F4        mov   eax, [ebp+var_C]
+.text:00440F81 C1 C8 18        ror   eax, 18h
+.text:00440F84 89 45 F4        mov   [ebp+var_C], eax        ; s3=(ror s3,18h)
+.text:00440F87 8B 4D F8        mov   ecx, [ebp+var_8]
+.text:00440F8A 81 E1 FF 00 00 00      and   ecx, 0FFh
+.text:00440F90 8B 55 EC        mov   edx, [ebp+var_14]
+.text:00440F93 03 14 8D BC ED 4D 00   add   edx, table_1[ecx*4]
+.text:00440F9A 89 55 EC        mov   [ebp+var_14], edx       ; s1=s1+table_1[(tmp&0FFh)*4]
+.text:00440F9D 8B 45 F4        mov   eax, [ebp+var_C]
+.text:00440FA0 25 FF 00 00 00     and   eax, 0FFh
+.text:00440FA5 8B 4D FC        mov   ecx, [ebp+var_4]
+.text:00440FA8 33 0C 85 BC F1 4D 00   xor   ecx, table_2[eax*4]
+.text:00440FAF 89 4D FC        mov   [ebp+var_4], ecx       ; s4=s4^table_2[(s3&0FFh)*4]
+```
+
+============================================================================
+
+上面的逆算法为：
+
+```
+s4=s4^table_2[(s3&0FFh)*4]
+s3=(rol s3,18h)
+var_8=tmp=(ror s3,8)
+s2=s2^table_1[(s3&0FFh)*4]
+s2=s2-table_2[(tmp&0FFh)*4]
+var_8=tmp=(ror s3,10h)
+s1=s1-table_1[(tmp&0FFh)*4]
+s4=s4-s1
+```
+
+====================================================================
+
+```asm
+.text:00440FB2 8B 55 F4        mov   edx, [ebp+var_C]        ; s3
+.text:00440FB5 03 55 F0        add   edx, [ebp+var_10]
+.text:00440FB8 89 55 F4        mov   [ebp+var_C], edx        ; s3=s3+s2
+.text:00440FBB 8B 45 F0        mov   eax, [ebp+var_10]
+.text:00440FBE C1 C8 08        ror   eax, 8
+.text:00440FC1 89 45 F8        mov   [ebp+var_8], eax        ; var_8=tmp=(ror s2,8)
+.text:00440FC4 8B 4D F0        mov   ecx, [ebp+var_10]
+.text:00440FC7 81 E1 FF 00 00 00      and   ecx, 0FFh
+.text:00440FCD 8B 55 EC        mov   edx, [ebp+var_14]
+.text:00440FD0 33 14 8D BC ED 4D 00   xor   edx, table_1[ecx*4]
+.text:00440FD7 89 55 EC        mov   [ebp+var_14], edx       ; s1=s1^table_1[(s2&0FFh)*4]
+.text:00440FDA 8B 45 F8        mov   eax, [ebp+var_8]
+.text:00440FDD 25 FF 00 00 00     and   eax, 0FFh
+.text:00440FE2 8B 4D EC        mov   ecx, [ebp+var_14]
+.text:00440FE5 03 0C 85 BC F1 4D 00   add   ecx, table_2[eax*4]
+```
+
+
+
+### 汇编代码段
+
+```assembly
+.text:00440FEC 89 4D EC                 mov   [ebp+var_14], ecx              ; s1=s1+table_2[(tmp&0FFh)*4]
+.text:00440FEF 8B 55 F0                 mov   edx, [ebp+var_10]
+.text:00440FF2 C1 CA 10                 ror   edx, 10h
+.text:00440FF5 89 55 F8                 mov   [ebp+var_8], edx               ; var_8=tmp=(ror s2,10h)
+.text:00440FF8 8B 45 F0                 mov   eax, [ebp+var_10]
+.text:00440FFB C1 C8 18                 ror   eax, 18h
+.text:00440FFE 89 45 F0                 mov   [ebp+var_10], eax              ; s2=(ror s2,18h)
+.text:00441001 8B 4D F8                 mov   ecx, [ebp+var_8]
+.text:00441004 81 E1 FF 00 00 00        and   ecx, 0FFh
+.text:0044100A 8B 55 FC                 mov   edx, [ebp+var_4]
+.text:0044100D 03 14 8D BC ED 4D 00     add   edx, table_1[ecx*4]
+.text:00441014 89 55 FC                 mov   [ebp+var_4], edx               ; s4=s4+table_1[(tmp&0FFh)*4]
+.text:00441017 8B 45 F0                 mov   eax, [ebp+var_10]
+.text:0044101A 25 FF 00 00 00           and   eax, 0FFh
+.text:0044101F 8B 4D F4                 mov   ecx, [ebp+var_C]
+.text:00441022 33 0C 85 BC F1 4D 00     xor   ecx, table_2[eax*4]
+.text:00441029 89 4D F4                 mov   [ebp+var_C], ecx               ; s3=s3^table_2[(s2&0FFh)*4]
+```
+
+======================================================================
+
+上面的逆算法为:
+
+```text
+          s3=s3^table_2[(s2&0FFh)*4]
+          s2=(rol s2,18h)
+          var_8=tmp=(ror s2,8)
+          s1=s1^table_1[(s2&0FFh)*4]
+          s1=s1-table_2[(tmp&0FFh)*4]
+          var_8=tmp=(ror s2,10h)
+          s4=s4-table_1[(tmp&0FFh)*4]
+          s3=s3-s2
+```
+
+====================================================================
+
+```assembly
+.text:0044102C 8B 55 EC                 mov   edx, [ebp+var_14]              ; s1
+.text:0044102F C1 CA 08                 ror   edx, 8
+.text:00441032 89 55 F8                 mov   [ebp+var_8], edx               ; var_8=tmp=(ror s1,8)
+.text:00441035 8B 45 EC                 mov   eax, [ebp+var_14]
+.text:00441038 25 FF 00 00 00           and   eax, 0FFh
+.text:0044103D 8B 4D FC                 mov   ecx, [ebp+var_4]
+.text:00441040 33 0C 85 BC ED 4D 00     xor   ecx, table_1[eax*4]
+.text:00441047 89 4D FC                 mov   [ebp+var_4], ecx               ; s4=s4^table_1[(s1&0FFh)*4]
+.text:0044104A 8B 55 F8                 mov   edx, [ebp+var_8]
+.text:0044104D 81 E2 FF 00 00 00        and   edx, 0FFh
+.text:00441053 8B 45 FC                 mov   eax, [ebp+var_4]
+.text:00441056 03 04 95 BC F1 4D 00     add   eax, table_2[edx*4]
+.text:0044105D 89 45 FC                 mov   [ebp+var_4], eax               ; s4=s4+table_2[(tmp&0FFh)*4]
+.text:00441060 8B 4D EC                 mov   ecx, [ebp+var_14]
+.text:00441063 C1 C9 10                 ror   ecx, 10h
+.text:00441066 89 4D F8                 mov   [ebp+var_8], ecx               ; var_8=tmp=(ror s1,10h)
+.text:00441069 8B 55 EC                 mov   edx, [ebp+var_14]
+.text:0044106C C1 CA 18                 ror   edx, 18h
+.text:0044106F 89 55 EC                 mov   [ebp+var_14], edx              ; s1=(ror s1,18h)
+.text:00441072 8B 45 F8                 mov   eax, [ebp+var_8]
+.text:00441075 25 FF 00 00 00           and   eax, 0FFh
+.text:0044107A 8B 4D F4                 mov   ecx, [ebp+var_C]
+.text:0044107D 03 0C 85 BC ED 4D 00     add   ecx, table_1[eax*4]
+.text:00441084 89 4D F4                 mov   [ebp+var_C], ecx               ; s3=s3+table_1[(tmp&0FFh)*4]
+.text:00441087 8B 55 EC                 mov   edx, [ebp+var_14]
+.text:0044108A 81 E2 FF 00 00 00        and   edx, 0FFh
+.text:00441090 8B 45 F0                 mov   eax, [ebp+var_10]
+.text:00441093 33 04 95 BC F1 4D 00     xor   eax, table_2[edx*4]
+.text:0044109A 89 45 F0                 mov   [ebp+var_10], eax              ; s2=s2^table_2[(s1&0FFh)*4]
+```
+
+===================================================================
+
+上面的逆算法为:
+
+```text
+          s2=s2^table_2[(s1&0FFh)*4]
+          s1=(rol s1,18h)
+          var_8=tmp=(ror s1,8)
+          s4=s4^table_1[(s1&0FFh)*4]
+          s4=s4-table_2[(tmp&0FFh)*4]
+          var_8=tmp=(ror s1,10h)
+          s3=s3-table_1[(tmp&0FFh)*4]
+```
+
+====================================================================
+
+```assembly
+.text:0044109A                                                 ; _______________
+.text:0044109A                                                 ; 重复一次上面的操作
+.text:0044109A                                                 ; _______________
+.text:0044109D 8B 4D FC                 mov   ecx, [ebp+var_4]               ; s4
+.text:004410A0 C1 C9 08                 ror   ecx, 8
+.text:004410A3 89 4D F8                 mov   [ebp+var_8], ecx               ; var_8=tmp=(ror s4,8)
+.text:004410A6 8B 55 FC                 mov   edx, [ebp+var_4]
+.text:004410A9 81 E2 FF 00 00 00        and   edx, 0FFh
+.text:004410AF 8B 45 F4                 mov   eax, [ebp+var_C]
+.text:004410B2 33 04 95 BC ED 4D 00     xor   eax, table_1[edx*4]
+.text:004410B9 89 45 F4                 mov   [ebp+var_C], eax               ; s3=s3^table_1[(s4&0FFh)*4]
+.text:004410BC 8B 4D F8                 mov   ecx, [ebp+var_8]
+.text:004410BF 81 E1 FF 00 00 00        and   ecx, 0FFh
+.text:004410C5 8B 55 F4                 mov   edx, [ebp+var_C]
+.text:004410C8 03 14 8D BC F1 4D 00     add   edx, table_2[ecx*4]
+.text:004410CF 89 55 F4                 mov   [ebp+var_C], edx               ; s3=s3+table_2[(tmp&0FFh)*4]
+.text:004410D2 8B 45 FC                 mov   eax, [ebp+var_4]
+.text:004410D5 C1 C8 10                 ror   eax, 10h
+.text:004410D8 89 45 F8                 mov   [ebp+var_8], eax               ; var_8=tmp=(ror s4,10h)
+.text:004410DB 8B 4D FC                 mov   ecx, [ebp+var_4]
+.text:004410DE C1 C9 18                 ror   ecx, 18h
+.text:004410E1 89 4D FC                 mov   [ebp+var_4], ecx               ; s4=(ror s4,18h)
+.text:004410E4 8B 55 F8                 mov   edx, [ebp+var_8]
+.text:004410E7 81 E2 FF 00 00 00        and   edx, 0FFh
+.text:004410ED 8B 45 F0                 mov   eax, [ebp+var_10]
+.text:004410F0 03 04 95 BC ED 4D 00     add   eax, table_1[edx*4]
+.text:004410F7 89 45 F0                 mov   [ebp+var_10], eax              ; s2=s2+table_1[(tmp&0FFh)*4]
+.text:004410FA 8B 4D FC                 mov   ecx, [ebp+var_4]
+.text:004410FD 81 E1 FF 00 00 00        and   ecx, 0FFh
+.text:00441103 8B 55 EC                 mov   edx, [ebp+var_14]
+.text:00441106 33 14 8D BC F1 4D 00     xor   edx, table_2[ecx*4]
+.text:0044110D 89 55 EC                 mov   [ebp+var_14], edx              ; s1=s1^table_2[(s4&0FFh)*4]
+.text:0044110D                                                 ;
+.text:0044110D                                                 ;
+.text:0044110D                                                 ;
+```
+
+
+
+```asm
+.text:0044110D                                            ; _______________
+.text:00441110 8B 45 FC          mov   eax, [ebp+var_4]       ; s4
+.text:00441113 03 45 EC          add   eax, [ebp+var_14]
+.text:00441116 89 45 FC          mov   [ebp+var_4], eax        ; s4=s4+s1
+.text:00441119 8B 4D F4          mov   ecx, [ebp+var_C]
+.text:0044111C C1 C9 08          ror   ecx, 8
+.text:0044111F 89 4D F8          mov   [ebp+var_8], ecx        ; var_8=tmp=(ror s3,8)
+.text:00441122 8B 55 F4          mov   edx, [ebp+var_C]
+.text:00441125 81 E2 FF 00 00 00         and   edx, 0FFh
+.text:0044112B 8B 45 F0          mov   eax, [ebp+var_10]
+.text:0044112E 33 04 95 BC ED 4D 00      xor   eax, table_1[edx*4]
+.text:00441135 89 45 F0          mov   [ebp+var_10], eax       ; s2=s2^table_1[(s3&0FFh)*4]
+.text:00441138 8B 4D F8          mov   ecx, [ebp+var_8]
+.text:0044113B 81 E1 FF 00 00 00         and   ecx, 0FFh
+.text:00441141 8B 55 F0          mov   edx, [ebp+var_10]
+.text:00441144 03 14 8D BC F1 4D 00      add   edx, table_2[ecx*4]
+.text:0044114B 89 55 F0          mov   [ebp+var_10], edx       ; s2=s2+table_2[(tmp&0FFh)*4]
+.text:0044114E 8B 45 F4          mov   eax, [ebp+var_C]
+.text:00441151 C1 C8 10          ror   eax, 10h
+.text:00441154 89 45 F8          mov   [ebp+var_8], eax        ; var_8=tmp=(ror s3,10h)
+.text:00441157 8B 4D F4          mov   ecx, [ebp+var_C]
+.text:0044115A C1 C9 18          ror   ecx, 18h
+.text:0044115D 89 4D F4          mov   [ebp+var_C], ecx        ; s3=(ror s3,18h)
+.text:00441160 8B 55 F8          mov   edx, [ebp+var_8]
+.text:00441163 81 E2 FF 00 00 00         and   edx, 0FFh
+.text:00441169 8B 45 EC          mov   eax, [ebp+var_14]
+.text:0044116C 03 04 95 BC ED 4D 00      add   eax, table_1[edx*4]
+.text:00441173 89 45 EC          mov   [ebp+var_14], eax       ; s1=s1+table_1[(tmp&0FFh)*4]
+.text:00441176 8B 4D F4          mov   ecx, [ebp+var_C]
+.text:00441179 81 E1 FF 00 00 00         and   ecx, 0FFh
+.text:0044117F 8B 55 FC          mov   edx, [ebp+var_4]
+.text:00441182 33 14 8D BC F1 4D 00      xor   edx, table_2[ecx*4]
+.text:00441189 89 55 FC          mov   [ebp+var_4], edx        ; s4=s4^table_2[(s3&0FFh)*4]
+.text:00441189                                            ;
+.text:00441189                                            ;
+.text:00441189                                            ;
+.text:00441189                                            ; _______________
+.text:0044118C 8B 45 F4          mov   eax, [ebp+var_C]        ; s3
+.text:0044118F 03 45 F0          add   eax, [ebp+var_10]
+.text:00441192 89 45 F4          mov   [ebp+var_C], eax        ; s3=s3+s2
+.text:00441195 8B 4D F0          mov   ecx, [ebp+var_10]
+.text:00441198 C1 C9 08          ror   ecx, 8
+.text:0044119B 89 4D F8          mov   [ebp+var_8], ecx        ; var_8=tmp=(ror s2,8)
+.text:0044119E 8B 55 F0          mov   edx, [ebp+var_10]
+.text:004411A1 81 E2 FF 00 00 00         and   edx, 0FFh
+.text:004411A7 8B 45 EC          mov   eax, [ebp+var_14]
+.text:004411AA 33 04 95 BC ED 4D 00      xor   eax, table_1[edx*4]
+.text:004411B1 89 45 EC          mov   [ebp+var_14], eax       ; s1=s1^table_1[(s2&0FFh)*4]
+.text:004411B4 8B 4D F8          mov   ecx, [ebp+var_8]
+.text:004411B7 81 E1 FF 00 00 00         and   ecx, 0FFh
+.text:004411BD 8B 55 EC          mov   edx, [ebp+var_14]
+.text:004411C0 03 14 8D BC F1 4D 00      add   edx, table_2[ecx*4]
+.text:004411C7 89 55 EC          mov   [ebp+var_14], edx       ; s1=s1+table_2[(tmp&0FFh)*4]
+.text:004411CA 8B 45 F0          mov   eax, [ebp+var_10]
+.text:004411CD C1 C8 10          ror   eax, 10h
+.text:004411D0 89 45 F8          mov   [ebp+var_8], eax        ; var_8=tmp=(ror s2,10h)
+.text:004411D3 8B 4D F0          mov   ecx, [ebp+var_10]
+.text:004411D6 C1 C9 18          ror   ecx, 18h
+.text:004411D9 89 45 F0          mov   [ebp+var_10], ecx       ; s2=(ror s2,18h)
+.text:004411DC 8B 55 F8          mov   edx, [ebp+var_8]
+.text:004411DF 81 E2 FF 00 00 00         and   edx, 0FFh
+.text:004411E5 8B 45 FC          mov   eax, [ebp+var_4]
+.text:004411E8 03 04 95 BC ED 4D 00      add   eax, table_1[edx*4]
+.text:004411EF 89 45 FC          mov   [ebp+var_4], eax        ; s4=s4+table_1[(tmp&0FFh)*4]
+.text:004411F2 8B 4D F0          mov   ecx, [ebp+var_10]
+.text:004411F5 81 E1 FF 00 00 00         and   ecx, 0FFh
+.text:004411FB 8B 55 F4          mov   edx, [ebp+var_C]
+.text:004411FE 33 14 8D BC F1 4D 00      xor   edx, table_2[ecx*4]
+.text:00441205 89 55 F4          mov   [ebp+var_C], edx        ; s3=s3^table_2[(s2&0FFh)*4]
+.text:00441205                                            ;
+.text:00441205                                            ;
+.text:00441205                                            ;
+.text:00441205                                            ; _______________
+.text:00441208 8B 45 EC          mov   eax, [ebp+var_14]       ; s1
+.text:0044120B C1 C8 08          ror   eax, 8
+.text:0044120E 89 45 F8          mov   [ebp+var_8], eax        ; var_8=tmp=(ror s1,8)
+.text:00441211 8B 4D EC          mov   ecx, [ebp+var_14]
+.text:00441214 81 E1 FF 00 00 00         and   ecx, 0FFh
+.text:0044121A 8B 55 FC          mov   edx, [ebp+var_4]
+.text:0044121D 33 14 8D BC ED 4D 00      xor   edx, table_1[ecx*4]
+.text:00441224 89 55 FC          mov   [ebp+var_4], edx        ; s4=s1^table_1[(s1&0FFh)*4]
+.text:00441227 8B 45 F8          mov   eax, [ebp+var_8]
+.text:0044122A 25 FF 00 00 00          and   eax, 0FFh
+.text:0044122F 8B 4D FC          mov   ecx, [ebp+var_4]
+.text:00441232 03 0C 85 BC F1 4D 00      add   ecx, table_2[eax*4]
+.text:00441239 89 4D FC          mov   [ebp+var_4], ecx        ; s4=s4+table_2[(tmp&0FFh)*4]
+.text:0044123C 8B 55 EC          mov   edx, [ebp+var_14]
+.text:0044123F C1 CA 10          ror   edx, 10h
+.text:00441242 89 55 F8          mov   [ebp+var_8], edx        ; var_8=tmp=(ror s1,10h)
+.text:00441245 8B 45 EC          mov   eax, [ebp+var_14]
+.text:00441248 C1 C8 18          ror   eax, 18h
+.text:0044124B 89 45 EC          mov   [ebp+var_14], eax       ; s1=(ror s1,18h)
+.text:0044124E 8B 4D F8          mov   ecx, [ebp+var_8]
+.text:00441251 81 E1 FF 00 00 00         and   ecx, 0FFh
+```
+
+
+
+```
+.text:00441257 8B 55 F4                   mov   edx, [ebp+var_C]
+.text:0044125A 03 14 8D BC ED 4D 00       add   edx, table_1[ecx*4]
+.text:00441261 89 55 F4                   mov   [ebp+var_C], edx            ; s3=s3+table_1[(tmp&0FFh)*4]
+.text:00441264 8B 45 EC                   mov   eax, [ebp+var_14]
+.text:00441267 25 FF 00 00 00             and   eax, 0FFh
+.text:0044126C 8B 4D F0                   mov   ecx, [ebp+var_10]
+.text:0044126F 33 0C 85 BC F1 4D 00       xor   ecx, table_2[eax*4]
+.text:00441276 89 4D F0                   mov   [ebp+var_10], ecx           ; s2=s2^table_2[(s1&0FFh)*4]
+.text:00441276                                             ;
+.text:00441276                                             ; ____________________
+.text:00441276                                             ; 上面的为一大段
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+.text:00441279 8B 55 E0                   mov   edx, [ebp+var_20]           ; var_20=table
+.text:0044127C 8B 45 FC                   mov   eax, [ebp+var_4]            ; s4
+.text:0044127F 0F AF 82 90 00 00 00       imul  eax, [edx+90h]
+.text:00441286 89 45 F8                   mov   [ebp+var_8], eax            ; var_8=tmp=s4*table[90h]
+.text:00441289 8B 4D FC                   mov   ecx, [ebp+var_4]
+.text:0044128C C1 C9 0D                   ror   ecx, 0Dh
+.text:0044128F 89 4D FC                   mov   [ebp+var_4], ecx            ; s4=(ror s4,0Dh)
+.text:00441292 8B 55 E0                   mov   edx, [ebp+var_20]
+.text:00441295 8B 45 FC                   mov   eax, [ebp+var_4]
+.text:00441298 03 82 8C 00 00 00          add   eax, [edx+8Ch]
+.text:0044129E 89 45 E4                   mov   [ebp+var_1C], eax           ; var_1C=tmp2=s4+table[8Ch]
+.text:004412A1 8B 4D E4                   mov   ecx, [ebp+var_1C]
+.text:004412A4 81 E1 FF 01 00 00          and   ecx, 1FFh
+.text:004412AA 8B 14 8D BC ED 4D 00       mov   edx, table_1[ecx*4]         ; table_1 255 个双字,如果超出范围,将用到 table_2 中的数值
+.text:004412B1 89 55 E8                   mov   [ebp+var_18], edx           ; var_18=tmp1=table_1[(tmp2&1FFh)*4]
+.text:004412B4 8B 45 F8                   mov   eax, [ebp+var_8]
+.text:004412B7 C1 C0 05                   rol   eax, 5
+.text:004412BA 89 45 F8                   mov   [ebp+var_8], eax            ; var_8=tmp=(rol tmp,5)
+.text:004412BD 8B 4D E8                   mov   ecx, [ebp+var_18]
+.text:004412C0 33 4D F8                   xor   ecx, [ebp+var_8]
+.text:004412C3 89 4D E8                   mov   [ebp+var_18], ecx          ; var_18=tmp1=tmp1^tmp
+.text:004412C6 8B 4D F8                   mov   ecx, [ebp+var_8]
+.text:004412C9 8B 55 E4                   mov   edx, [ebp+var_1C]
+.text:004412CC D3 C2                      rol   edx, cl
+.text:004412CE 8B 45 F0                   mov   eax, [ebp+var_10]
+.text:004412D1 2B C2                      sub   eax, edx
+.text:004412D3 89 45 F0                   mov   [ebp+var_10], eax          ; s2=s2-(rol tmp2,(tmp&0Fh))
+.text:004412D6 8B 4D F8                   mov   ecx, [ebp+var_8]
+.text:004412D9 C1 C1 05                   rol   ecx, 5
+.text:004412DC 89 4D F8                   mov   [ebp+var_8], ecx            ; var_8=tmp=(rol tmp,5)
+.text:004412DF 8B 55 E8                   mov   edx, [ebp+var_18]
+.text:004412E2 33 55 F8                   xor   edx, [ebp+var_8]
+.text:004412E5 89 55 E8                   mov   [ebp+var_18], edx           ; var_18=tmp1=tmp1^tmp
+.text:004412E8 8B 45 EC                   mov   eax, [ebp+var_14]
+.text:004412EB 33 45 F8                   xor   eax, [ebp+var_8]
+.text:004412EE 89 45 EC                   mov   [ebp+var_14], eax           ; s1=s1^tmp
+.text:004412F1 8B 4D F8                   mov   ecx, [ebp+var_8]
+.text:004412F4 8B 55 E8                   mov   edx, [ebp+var_18]
+.text:004412F7 D3 C2                      rol   edx, cl
+.text:004412F9 8B 45 F4                   mov   eax, [ebp+var_C]
+.text:004412FC 2B C2                      sub   eax, edx
+.text:004412FE 89 45 F4                   mov   [ebp+var_C], eax            ; s3=s3-(rol tmp1,(tmp&0Fh))
+==========================================================================
+
+上面的的逆算法为:
+
+      var_1C=tmp2=s4+table[8Ch]
+      s4=(rol s4,0Dh)
+      var_8=tmp=s4*table[90h]
+      var_18=tmp1=table_1[(tmp2&1FFh)*4]
+      var_8=tmp=(rol tmp,5)
+      var_18=tmp1=tmp1^tmp
+      s2=s2+(rol tmp2,(tmp&0Fh))
+      var_8=tmp=(rol tmp,5)
+      var_18=tmp1=tmp1^tmp
+      s1=s1^tmp
+      s3=s3+(rol tmp1,(tmp&0Fh))
+==========================================================================
+
+.text:00441301 8B 4D E0                   mov   ecx, [ebp+var_20]
+.text:00441304 8B 55 F4                   mov   edx, [ebp+var_C]            ; s3
+.text:00441307 0F AF 91 88 00 00 00       imul  edx, [ecx+88h]
+.text:0044130E 89 55 F8                   mov   [ebp+var_8], edx            ; var_8=tmp=s3*table[88h]
+.text:00441311 8B 45 F4                   mov   eax, [ebp+var_C]
+.text:00441314 C1 C8 0D                   ror   eax, 0Dh
+.text:00441317 89 45 F4                   mov   [ebp+var_C], eax            ; s3=(ror s3,0Dh)
+.text:0044131A 8B 4D E0                   mov   ecx, [ebp+var_20]
+.text:0044131D 8B 55 F4                   mov   edx, [ebp+var_C]
+.text:00441320 03 91 84 00 00 00          add   edx, [ecx+84h]
+.text:00441326 89 55 E4                   mov   [ebp+var_1C], edx           ; var_1C=tmp2=s3+table[84h]
+.text:00441329 8B 45 E4                   mov   eax, [ebp+var_1C]
+.text:0044132C 25 FF 01 00 00             and   eax, 1FFh
+.text:00441331 8B 0C 85 BC ED 4D 00       mov   ecx, table_1[eax*4]
+.text:00441338 89 4D E8                   mov   [ebp+var_18], ecx           ; var_18=tmp1=table_1[(tmp2&1FFh)*4]
+.text:0044133B 8B 55 F8                   mov   edx, [ebp+var_8]
+.text:0044133E C1 C2 05                   rol   edx, 5
+.text:00441341 89 55 F8                   mov   [ebp+var_8], edx            ; var_8=tmp=(rol tmp,5)
+.text:00441344 8B 45 E8                   mov   eax, [ebp+var_18]
+.text:00441347 33 45 F8                   xor   eax, [ebp+var_8]
+.text:0044134A 89 45 E8                   mov   [ebp+var_18], eax           ; var_18=tmp1=tmp1^tmp
+.text:0044134D 8B 4D F8                   mov   ecx, [ebp+var_8]
+.text:00441350 8B 55 E4                   mov   edx, [ebp+var_1C]
+.text:00441353 D3 C2                      rol   edx, cl
+.text:00441355 8B 45 EC                   mov   eax, [ebp+var_14]
+.text:00441358 2B C2                      sub   eax, edx
+.text:0044135A 89 45 EC                   mov   [ebp+var_14], eax           ; s1=s1-(rol tmp2,(tmp&0Fh))
+.text:0044135D 8B 4D F8                   mov   ecx, [ebp+var_8]
+.text:00441360 C1 C1 05                   rol   ecx, 5
+.text:00441363 89 4D F8                   mov   [ebp+var_8], ecx            ; var_8=tmp=(rol tmp,5)
+.text:00441366 8B 55 E8                   mov   edx, [ebp+var_18]
+```
+
+
+
+```assembly
+.text:00441369 33 55 F8                 xor   edx, [ebp+var_8]
+.text:0044136C 89 55 E8                 mov   [ebp+var_18], edx           ; var_18=tmp1=tmp1^tmp
+.text:0044136F 8B 45 FC                 mov   eax, [ebp+var_4]
+.text:00441372 33 45 F8                 xor   eax, [ebp+var_8]
+.text:00441375 89 45 FC                 mov   [ebp+var_4], eax           ; s4=s4^tmp
+.text:00441378 8B 4D F8                 mov   ecx, [ebp+var_8]
+.text:0044137B 8B 55 E8                 mov   edx, [ebp+var_18]
+.text:0044137E D3 C2                     rol   edx, cl
+.text:00441380 8B 45 F0                 mov   eax, [ebp+var_10]
+.text:00441383 2B C2                     sub   eax, edx
+.text:00441385 89 45 F0                 mov   [ebp+var_10], eax         ; s2=s2-(rol tmp1,(tmp&0Fh))
+==========================================================================
+上面的的逆算法为:
+             var_1C=tmp2=s3+table[84h]
+             s3=(rol s3,0Dh)
+             var_8=tmp=s3*table[88h]
+             var_18=tmp1=table_1[(tmp2&1FFh)*4]
+             var_8=tmp=(rol tmp,5)
+             var_18=tmp1=tmp1^tmp
+             s1=s1+(rol tmp2,(tmp&0Fh))
+             var_8=tmp=(rol tmp,5)
+             var_18=tmp1=tmp1^tmp
+             s4=s4^tmp
+             s2=s2+(rol tmp1,(tmp&0Fh))
+==========================================================================
+.text:00441385                                                ; ____________
+.text:00441388 8B 4D E0                 mov   ecx, [ebp+var_20]
+.text:0044138B 8B 55 F0                 mov   edx, [ebp+var_10]          ; s2
+.text:0044138E 0F AF 91 80 00 00 00     imul  edx, [ecx+80h]
+.text:00441395 89 55 F8                 mov   [ebp+var_8], edx          ; var_8=tmp=s2*table[80h]
+.text:00441398 8B 45 F0                 mov   eax, [ebp+var_10]
+.text:0044139B C1 C8 0D                 ror   eax, 0Dh
+.text:0044139E 89 45 F0                 mov   [ebp+var_10], eax         ; s2=(ror s2,0Dh)
+.text:004413A1 8B 4D E0                 mov   ecx, [ebp+var_20]
+.text:004413A4 8B 55 F0                 mov   edx, [ebp+var_10]
+.text:004413A7 03 51 7C                 add   edx, [ecx+7Ch]
+.text:004413AA 89 55 E4                 mov   [ebp+var_1C], edx         ; var_1C=tmp2=s2+table[7Ch]
+.text:004413AD 8B 45 E4                 mov   eax, [ebp+var_1C]
+.text:004413B0 25 FF 01 00 00           and   eax, 1FFh
+.text:004413B5 8B 0C 85 BC ED 4D 00     mov   ecx, table_1[eax*4]
+.text:004413BC 89 4D E8                 mov   [ebp+var_18], ecx         ; var_18=tmp1=table_1[(tmp2&1FFh)*4]
+.text:004413BF 8B 55 F8                 mov   edx, [ebp+var_8]
+.text:004413C2 C1 C2 05                 rol   edx, 5
+.text:004413C5 89 55 F8                 mov   [ebp+var_8], edx          ; var_8=tmp=(rol tmp,5)
+.text:004413C8 8B 45 E8                 mov   eax, [ebp+var_18]
+.text:004413CB 33 45 F8                 xor   eax, [ebp+var_8]
+.text:004413CE 89 45 E8                 mov   [ebp+var_18], eax         ; var_18=tmp1=tmp1^tmp
+.text:004413D1 8B 4D F8                 mov   ecx, [ebp+var_8]
+.text:004413D4 8B 55 E4                 mov   edx, [ebp+var_1C]
+.text:004413D7 D3 C2                     rol   edx, cl
+.text:004413D9 8B 45 FC                 mov   eax, [ebp+var_4]
+.text:004413DC 2B C2                     sub   eax, edx
+.text:004413DE 89 45 FC                 mov   [ebp+var_4], eax          ; s4=s4-(rol tmp2,(tmp&0Fh))
+.text:004413E1 8B 4D F8                 mov   ecx, [ebp+var_8]
+.text:004413E4 C1 C1 05                 rol   ecx, 5
+.text:004413E7 89 4D F8                 mov   [ebp+var_8], ecx          ; var_8=tmp=(rol tmp,5)
+.text:004413EA 8B 55 E8                 mov   edx, [ebp+var_18]
+.text:004413ED 33 55 F8                 xor   edx, [ebp+var_8]
+.text:004413F0 89 55 E8                 mov   [ebp+var_18], edx         ; var_18=tmp1=tmp1^tmp
+.text:004413F3 8B 45 F4                 mov   eax, [ebp+var_C]
+.text:004413F6 33 45 F8                 xor   eax, [ebp+var_8]
+.text:004413F9 89 45 F4                 mov   [ebp+var_C], eax          ; s3=s3^tmp
+.text:004413FC 8B 4D F8                 mov   ecx, [ebp+var_8]
+.text:004413FF 8B 55 E8                 mov   edx, [ebp+var_18]
+.text:00441402 D3 C2                     rol   edx, cl
+.text:00441404 8B 45 EC                 mov   eax, [ebp+var_14]
+.text:00441407 2B C2                     sub   eax, edx
+.text:00441409 89 45 EC                 mov   [ebp+var_14], eax         ; s1=s1-(rol tmp1,(tmp&0Fh))
+==========================================================================
+上面的的逆算法为:
+             var_1C=tmp2=s2+table[7Ch]
+             s2=(rol s2,0Dh)
+             var_8=tmp=s2*table[80h]
+             var_18=tmp1=table_1[(tmp2&1FFh)*4]
+             var_8=tmp=(rol tmp,5)
+             var_18=tmp1=tmp1^tmp
+             s4=s4+(rol tmp2,(tmp&0Fh))
+             var_8=tmp=(rol tmp,5)
+             var_18=tmp1=tmp1^tmp
+             s3=s3^tmp
+             s1=s1+(rol tmp1,(tmp&0Fh))
+==========================================================================
+.text:00441409                                                ; ____________
+.text:0044140C 8B 4D E0                 mov   ecx, [ebp+var_20]
+.text:0044140F 8B 55 EC                 mov   edx, [ebp+var_14]          ; s1
+.text:00441412 0F AF 51 78              imul  edx, [ecx+78h]
+.text:00441416 89 55 F8                 mov   [ebp+var_8], edx          ; var_8=tmp=s1*table[78h]
+.text:00441419 8B 45 EC                 mov   eax, [ebp+var_14]
+.text:0044141C C1 C8 0D                 ror   eax, 0Dh
+.text:0044141F 89 45 EC                 mov   [ebp+var_14], eax         ; s1=(ror s1,0Dh)
+.text:00441422 8B 4D E0                 mov   ecx, [ebp+var_20]
+.text:00441425 8B 55 EC                 mov   edx, [ebp+var_14]
+.text:00441428 03 51 74                 add   edx, [ecx+74h]
+.text:0044142B 89 55 E4                 mov   [ebp+var_1C], edx         ; var_1C=tmp2=s1+table[74h]
+.text:0044142E 8B 45 E4                 mov   eax, [ebp+var_1C]
+.text:00441431 25 FF 01 00 00           and   eax, 1FFh
+.text:00441436 8B 0C 85 BC ED 4D 00     mov   ecx, table_1[eax*4]
+.text:0044143D 89 4D E8                 mov   [ebp+var_18], ecx         ; var_18=tmp1=table_1[(tmp2&1FFh)*4]
+.text:00441440 8B 55 F8                 mov   edx, [ebp+var_8]
+.text:00441443 C1 C2 05                 rol   edx, 5
+.text:00441446 89 55 F8                 mov   [ebp+var_8], edx          ; var_8=tmp=(rol tmp,5)
+.text:00441449 8B 45 E8                 mov   eax, [ebp+var_18]
+.text:0044144C 33 45 F8                 xor   eax, [ebp+var_8]
+.text:0044144F 89 45 E8                 mov   [ebp+var_18], eax         ; var_18=tmp1=tmp1^tmp
+.text:00441452 8B 4D F8                 mov   ecx, [ebp+var_8]
+.text:00441455 8B 55 E4                 mov   edx, [ebp+var_1C]
+.text:00441458 D3 C2                     rol   edx, cl
+```
+
+
+
+```
+.text:0044145A 8B 45 F4                 mov   eax, [ebp+var_C]
+
+.text:0044145D 2B C2                   sub   eax, edx
+
+.text:0044145F 89 45 F4                 mov   [ebp+var_C], eax              ; s3=s3-(rol tmp2,(tmp&0Fh))
+
+.text:00441462 8B 4D F8                 mov   ecx, [ebp+var_8]
+
+.text:00441465 C1 C1 05                 rol   ecx, 5
+
+.text:00441468 89 4D F8                 mov   [ebp+var_8], ecx              ; var_8=tmp=(rol tmp,5)
+
+.text:0044146B 8B 55 E8                 mov   edx, [ebp+var_18]
+
+.text:0044146E 33 55 F8                 xor   edx, [ebp+var_8]
+
+.text:00441471 89 55 E8                 mov   [ebp+var_18], edx             ; var_18=tmp1=tmp1^tmp
+
+.text:00441474 8B 45 F0                 mov   eax, [ebp+var_10]
+
+.text:00441477 33 45 F8                 xor   eax, [ebp+var_8]
+
+.text:0044147A 89 45 F0                 mov   [ebp+var_10], eax             ; s2=s2^tmp
+
+.text:0044147D 8B 4D F8                 mov   ecx, [ebp+var_8]
+
+.text:00441480 8B 55 E8                 mov   edx, [ebp+var_18]
+
+.text:00441483 D3 C2                   rol   edx, cl
+
+.text:00441485 8B 45 FC                 mov   eax, [ebp+var_4]
+
+.text:00441488 2B C2                   sub   eax, edx
+
+.text:0044148A 89 45 FC                 mov   [ebp+var_4], eax              ; s4=s4-(rol tmp1,(tmp&0Fh))
+```
+
+==========================================================================
+上面的的逆算法为:
+
+```
+var_1C=tmp2=s1+table[74h]
+s1=(rol s1,0Dh)
+var_8=tmp=s1*table[78h]
+var_18=tmp1=table_1[(tmp2&1FFh)*4]
+var_8=tmp=(rol tmp,5)
+var_18=tmp1=tmp1^tmp
+s3=s3+(rol tmp2,(tmp&0Fh))
+var_8=tmp=(rol tmp,5)
+var_18=tmp1=tmp1^tmp
+s2=s2^tmp
+s4=s4+(rol tmp1,(tmp&0Fh))
+```
+==========================================================================
+
+```
+.text:0044148A                                    ; 重复 1 次上面操作
+.text:0044148D 8B 4D E0                 mov   ecx, [ebp+var_20]
+.text:00441490 8B 55 FC                 mov   edx, [ebp+var_4]              ; s4
+.text:00441493 0F AF 51 70               imul  edx, [ecx+70h]
+.text:00441497 89 55 F8                 mov   [ebp+var_8], edx
+.text:0044149A 8B 45 FC                 mov   eax, [ebp+var_4]
+.text:0044149D C1 C8 0D                 ror   eax, 0Dh
+.text:004414A0 89 45 FC                 mov   [ebp+var_4], eax
+.text:004414A3 8B 4D E0                 mov   ecx, [ebp+var_20]
+.text:004414A6 8B 55 FC                 mov   edx, [ebp+var_4]
+.text:004414A9 03 51 6C                 add   edx, [ecx+6Ch]
+.text:004414AC 89 55 E4                 mov   [ebp+var_1C], edx
+.text:004414AF 8B 45 E4                 mov   eax, [ebp+var_1C]
+.text:004414B2 25 FF 01 00 00            and   eax, 1FFh
+.text:004414B7 8B 0C 85 BC ED 4D 00      mov   ecx, table_1[eax*4]
+.text:004414BE 89 4D E8                 mov   [ebp+var_18], ecx
+.text:004414C1 8B 55 F8                 mov   edx, [ebp+var_8]
+.text:004414C4 C1 C2 05                 rol   edx, 5
+.text:004414C7 89 55 F8                 mov   [ebp+var_8], edx
+.text:004414CA 8B 45 E8                 mov   eax, [ebp+var_18]
+.text:004414CD 33 45 F8                 xor   eax, [ebp+var_8]
+.text:004414D0 89 45 E8                 mov   [ebp+var_18], eax
+.text:004414D3 8B 4D F8                 mov   ecx, [ebp+var_8]
+.text:004414D6 8B 55 E4                 mov   edx, [ebp+var_1C]
+.text:004414D9 D3 C2                   rol   edx, cl
+.text:004414DB 8B 45 F0                 mov   eax, [ebp+var_10]
+.text:004414DE 2B C2                   sub   eax, edx
+.text:004414E0 89 45 F0                 mov   [ebp+var_10], eax
+.text:004414E3 8B 4D F8                 mov   ecx, [ebp+var_8]
+.text:004414E6 C1 C1 05                 rol   ecx, 5
+.text:004414E9 89 4D F8                 mov   [ebp+var_8], ecx
+.text:004414EC 8B 55 E8                 mov   edx, [ebp+var_18]
+.text:004414EF 33 55 F8                 xor   edx, [ebp+var_8]
+.text:004414F2 89 55 E8                 mov   [ebp+var_18], edx
+.text:004414F5 8B 45 EC                 mov   eax, [ebp+var_14]
+.text:004414F8 33 45 F8                 xor   eax, [ebp+var_8]
+.text:004414FB 89 45 EC                 mov   [ebp+var_14], eax
+.text:004414FE 8B 4D F8                 mov   ecx, [ebp+var_8]
+.text:00441501 8B 55 E8                 mov   edx, [ebp+var_18]
+.text:00441504 D3 C2                   rol   edx, cl
+.text:00441506 8B 45 F4                 mov   eax, [ebp+var_C]
+.text:00441509 2B C2                   sub   eax, edx
+.text:0044150B 89 45 F4                 mov   [ebp+var_C], eax
+.text:0044150E 8B 4D E0                 mov   ecx, [ebp+var_20]
+.text:00441511 8B 55 F4                 mov   edx, [ebp+var_C]              ; s3
+.text:00441514 0F AF 51 68               imul  edx, [ecx+68h]
+.text:00441518 89 55 F8                 mov   [ebp+var_8], edx
+.text:0044151B 8B 45 F4                 mov   eax, [ebp+var_C]
+.text:0044151E C1 C8 0D                 ror   eax, 0Dh
+.text:00441521 89 45 F4                 mov   [ebp+var_C], eax
+.text:00441524 8B 4D E0                 mov   ecx, [ebp+var_20]
+.text:00441527 8B 55 F4                 mov   edx, [ebp+var_C]
+.text:0044152A 03 51 64                 add   edx, [ecx+64h]
+.text:0044152D 89 55 E4                 mov   [ebp+var_1C], edx
+.text:00441530 8B 45 E4                 mov   eax, [ebp+var_1C]
+.text:00441533 25 FF 01 00 00            and   eax, 1FFh
+.text:00441538 8B 0C 85 BC ED 4D 00      mov   ecx, table_1[eax*4]
+.text:0044153F 89 4D E8                 mov   [ebp+var_18], ecx
+.text:00441542 8B 55 F8                 mov   edx, [ebp+var_8]
+.text:00441545 C1 C2 05                 rol   edx, 5
+.text:00441548 89 55 F8                 mov   [ebp+var_8], edx
+.text:0044154B 8B 45 E8                 mov   eax, [ebp+var_18]
+.text:0044154E 33 45 F8                 xor   eax, [ebp+var_8]
+.text:00441551 89 45 E8                 mov   [ebp+var_18], eax
+.text:00441554 8B 4D F8                 mov   ecx, [ebp+var_8]
+.text:00441557 8B 55 E4                 mov   edx, [ebp+var_1C]
+.text:0044155A D3 C2                   rol   edx, cl
+.text:0044155C 8B 45 EC                 mov   eax, [ebp+var_14]
+.text:0044155F 2B C2                   sub   eax, edx
+.text:00441561 89 45 EC                 mov   [ebp+var_14], eax
+.text:00441564 8B 4D F8                 mov   ecx, [ebp+var_8]
+.text:00441567 C1 C1 05                 rol   ecx, 5
+.text:0044156A 89 4D F8                 mov   [ebp+var_8], ecx
+.text:0044156D 8B 55 E8                 mov   edx, [ebp+var_18]
+.text:00441570 33 55 F8                 xor   edx, [ebp+var_8]
+```
+
+
+
+```
+.text:00441573 89 55 E8                      mov   [ebp+var_18], edx  
+.text:00441576 8B 45 FC                      mov   eax, [ebp+var_4]  
+.text:00441579 33 45 F8                      xor   eax, [ebp+var_8]  
+.text:0044157C 89 45 FC                      mov   [ebp+var_4], eax  
+.text:0044157F 8B 4D F8                      mov   ecx, [ebp+var_8]  
+.text:00441582 8B 55 E8                      mov   edx, [ebp+var_18]  
+.text:00441585 D3 C2                          rol   edx, cl  
+.text:00441587 8B 45 F0                      mov   eax, [ebp+var_10]  
+.text:0044158A 2B C2                          sub   eax, edx  
+.text:0044158C 89 45 F0                      mov   [ebp+var_10], eax                   ;  
+.text:0044158C                                                                        ;  
+.text:0044158C                                                                        ; ____________  
+.text:0044158F 8B 4D E0                      mov   ecx, [ebp+var_20]  
+.text:00441592 8B 55 F0                      mov   edx, [ebp+var_10]                   ; s2  
+.text:00441595 0F AF 51 60                   imul  edx, [ecx+60h]  
+.text:00441599 89 55 F8                      mov   [ebp+var_8], edx  
+.text:0044159C 8B 45 F0                      mov   eax, [ebp+var_10]  
+.text:0044159F C1 C8 0D                      ror   eax, 0Dh  
+.text:004415A2 89 45 F0                      mov   [ebp+var_10], eax  
+.text:004415A5 8B 4D E0                      mov   ecx, [ebp+var_20]  
+.text:004415A8 8B 55 F0                      mov   edx, [ebp+var_10]  
+.text:004415AB 03 51 5C                      add   edx, [ecx+5Ch]  
+.text:004415AE 89 55 E4                      mov   [ebp+var_1C], edx  
+.text:004415B1 8B 45 E4                      mov   eax, [ebp+var_1C]  
+.text:004415B4 25 FF 01 00 00                 and   eax, 1FFh  
+.text:004415B9 8B 0C 85 BC ED 4D 00           mov   ecx, table_1[eax*4]  
+.text:004415C0 89 4D E8                      mov   [ebp+var_18], ecx  
+.text:004415C3 8B 55 F8                      mov   edx, [ebp+var_8]  
+.text:004415C6 C1 C2 05                      rol   edx, 5  
+.text:004415C9 89 55 F8                      mov   [ebp+var_8], edx  
+.text:004415CC 8B 45 E8                      mov   eax, [ebp+var_18]  
+.text:004415CF 33 45 F8                      xor   eax, [ebp+var_8]  
+.text:004415D2 89 45 E8                      mov   [ebp+var_18], eax  
+.text:004415D5 8B 4D F8                      mov   ecx, [ebp+var_8]  
+.text:004415D8 8B 55 E4                      mov   edx, [ebp+var_1C]  
+.text:004415DB D3 C2                          rol   edx, cl  
+.text:004415DD 8B 45 FC                      mov   eax, [ebp+var_4]  
+.text:004415E0 2B C2                          sub   eax, edx  
+.text:004415E2 89 45 FC                      mov   [ebp+var_4], eax  
+.text:004415E5 8B 4D F8                      mov   ecx, [ebp+var_8]  
+.text:004415E8 C1 C1 05                      rol   ecx, 5  
+.text:004415EB 89 4D F8                      mov   [ebp+var_8], ecx  
+.text:004415EE 8B 55 E8                      mov   edx, [ebp+var_18]  
+.text:004415F1 33 55 F8                      xor   edx, [ebp+var_8]  
+.text:004415F4 89 55 E8                      mov   [ebp+var_18], edx  
+.text:004415F7 8B 45 F4                      mov   eax, [ebp+var_C]  
+.text:004415FA 33 45 F8                      xor   eax, [ebp+var_8]  
+.text:004415FD 89 45 F4                      mov   [ebp+var_C], eax  
+.text:00441600 8B 4D F8                      mov   ecx, [ebp+var_8]  
+.text:00441603 8B 55 E8                      mov   edx, [ebp+var_18]  
+.text:00441606 D3 C2                          rol   edx, cl  
+.text:00441608 8B 45 EC                      mov   eax, [ebp+var_14]  
+.text:0044160B 2B C2                          sub   eax, edx  
+.text:0044160D 89 45 EC                      mov   [ebp+var_14], eax                   ;  
+.text:0044160D                                                                        ;  
+.text:0044160D                                                                        ;  
+.text:0044160D                                                                        ; ______________  
+.text:00441610 8B 4D E0                      mov   ecx, [ebp+var_20]  
+.text:00441613 8B 55 EC                      mov   edx, [ebp+var_14]                   ; s1  
+.text:00441616 0F AF 51 58                   imul  edx, [ecx+58h]  
+.text:0044161A 89 55 F8                      mov   [ebp+var_8], edx  
+.text:0044161D 8B 45 EC                      mov   eax, [ebp+var_14]  
+.text:00441620 C1 C8 0D                      ror   eax, 0Dh  
+.text:00441623 89 45 EC                      mov   [ebp+var_14], eax  
+.text:00441626 8B 4D E0                      mov   ecx, [ebp+var_20]  
+.text:00441629 8B 55 EC                      mov   edx, [ebp+var_14]  
+.text:0044162C 03 51 54                      add   edx, [ecx+54h]  
+.text:0044162F 89 55 E4                      mov   [ebp+var_1C], edx  
+.text:00441632 8B 45 E4                      mov   eax, [ebp+var_1C]  
+.text:00441635 25 FF 01 00 00                 and   eax, 1FFh  
+.text:0044163A 8B 0C 85 BC ED 4D 00           mov   ecx, table_1[eax*4]  
+.text:00441641 89 4D E8                      mov   [ebp+var_18], ecx  
+.text:00441644 8B 55 F8                      mov   edx, [ebp+var_8]  
+.text:00441647 C1 C2 05                      rol   edx, 5  
+.text:0044164A 89 55 F8                      mov   [ebp+var_8], edx  
+.text:0044164D 8B 45 E8                      mov   eax, [ebp+var_18]  
+.text:00441650 33 45 F8                      xor   eax, [ebp+var_8]  
+.text:00441653 89 45 E8                      mov   [ebp+var_18], eax  
+.text:00441656 8B 4D F8                      mov   ecx, [ebp+var_8]  
+.text:00441659 8B 55 E4                      mov   edx, [ebp+var_1C]  
+.text:0044165C D3 C2                          rol   edx, cl  
+.text:0044165E 8B 45 F4                      mov   eax, [ebp+var_C]  
+.text:00441661 2B C2                          sub   eax, edx  
+.text:00441663 89 45 F4                      mov   [ebp+var_C], eax  
+.text:00441666 8B 4D F8                      mov   ecx, [ebp+var_8]  
+.text:00441669 C1 C1 05                      rol   ecx, 5  
+.text:0044166C 89 4D F8                      mov   [ebp+var_8], ecx  
+.text:0044166F 8B 55 E8                      mov   edx, [ebp+var_18]  
+.text:00441672 33 55 F8                      xor   edx, [ebp+var_8]  
+.text:00441675 89 55 E8                      mov   [ebp+var_18], edx  
+.text:00441678 8B 45 F0                      mov   eax, [ebp+var_10]  
+.text:0044167B 33 45 F8                      xor   eax, [ebp+var_8]  
+.text:0044167E 89 45 F0                      mov   [ebp+var_10], eax  
+.text:00441681 8B 4D F8                      mov   ecx, [ebp+var_8]  
+.text:00441684 8B 55 E8                      mov   edx, [ebp+var_18]  
+.text:00441687 D3 C2                          rol   edx, cl  
+.text:00441689 8B 45 FC                      mov   eax, [ebp+var_4]  
+.text:0044168C 2B C2                          sub   eax, edx  
+.text:0044168E 89 45 FC                      mov   [ebp+var_4], eax                   ; 上面为一小段  
+```
+
+============================================================================
+
+============================================================================
+
+继续
+
+```
+.text:0044168E                                                                        
+.text:00441691 8B 4D E0                      mov   ecx, [ebp+var_20]  
+.text:00441694 8B 55 FC                      mov   edx, [ebp+var_4]                   ; s4  
+.text:00441697 0F AF 51 50                   imul  edx, [ecx+50h]  
+.text:0044169B 89 55 F8                      mov   [ebp+var_8], edx                   ; var_8=tmp=s4*table[50h]  
+```
+
+
+
+```text
+ .text:0044169E 8B 45 FC               mov   eax, [ebp+var_4]
+
+ .text:004416A1 C1 C8 0D               ror   eax, 0Dh
+
+ .text:004416A4 89 45 FC               mov   [ebp+var_4], eax                ; s4=(ror s4,0Dh)
+
+ .text:004416A7 8B 4D E0               mov   ecx, [ebp+var_20]
+
+ .text:004416AA 8B 55 FC               mov   edx, [ebp+var_4]
+
+ .text:004416AD 03 51 4C               add   edx, [ecx+4Ch]
+
+ .text:004416B0 89 55 E4               mov   [ebp+var_1C], edx               ; var_1C=tmp2=s4+table[4Ch]
+
+ .text:004416B3 8B 45 E4               mov   eax, [ebp+var_1C]
+
+ .text:004416B6 25 FF 01 00 00          and   eax, 1FFh
+
+ .text:004416BB 8B 0C 85 BC ED 4D 00     mov   ecx, table_1[eax*4]
+
+ .text:004416C2 89 4D E8               mov   [ebp+var_18], ecx               ; var_18=tmp1=table_1[(tmp2&1FFh)*4]
+
+ .text:004416C5 8B 55 F8               mov   edx, [ebp+var_8]
+
+ .text:004416C8 C1 C2 05               rol   edx, 5
+
+ .text:004416CB 89 55 F8               mov   [ebp+var_8], edx                ; var_8=tmp=(rol tmp,5)
+
+ .text:004416CE 8B 45 E8               mov   eax, [ebp+var_18]
+
+ .text:004416D1 33 45 F8               xor   eax, [ebp+var_8]
+
+ .text:004416D4 89 45 E8               mov   [ebp+var_18], eax               ; var_18=tmp1=tmp1^tmp
+
+ .text:004416D7 8B 4D F8               mov   ecx, [ebp+var_8]
+
+ .text:004416DA 8B 55 E4               mov   edx, [ebp+var_1C]
+
+ .text:004416DD D3 C2                 rol   edx, cl
+
+ .text:004416DF 8B 45 F0               mov   eax, [ebp+var_10]
+
+ .text:004416E2 2B C2                 sub   eax, edx
+
+ .text:004416E4 89 45 F0               mov   [ebp+var_10], eax               ; s2=s2-(rol tmp2,(tmp&0Fh))
+
+ .text:004416E7 8B 4D F8               mov   ecx, [ebp+var_8]
+
+ .text:004416EA C1 C1 05               rol   ecx, 5
+
+ .text:004416ED 89 4D F8               mov   [ebp+var_8], ecx                ; var_8=tmp=(rol tmp,5)
+
+ .text:004416F0 8B 55 E8               mov   edx, [ebp+var_18]
+
+ .text:004416F3 33 55 F8               xor   edx, [ebp+var_8]
+
+ .text:004416F6 89 55 E8               mov   [ebp+var_18], edx               ; var_18=tmp1=tmp1^tmp
+
+ .text:004416F9 8B 45 F4               mov   eax, [ebp+var_C]
+
+ .text:004416FC 33 45 F8               xor   eax, [ebp+var_8]
+
+ .text:004416FF 89 45 F4               mov   [ebp+var_C], eax                ; s3=s3^tmp
+
+ .text:00441702 8B 4D F8               mov   ecx, [ebp+var_8]
+
+ .text:00441705 8B 55 E8               mov   edx, [ebp+var_18]
+
+ .text:00441708 D3 C2                 rol   edx, cl
+
+ .text:0044170A 8B 45 EC               mov   eax, [ebp+var_14]
+
+ .text:0044170D 2B C2                 sub   eax, edx
+
+ .text:0044170F 89 45 EC               mov   [ebp+var_14], eax               ; s1=s1-(rol tmp1,(tmp&0Fh))
+
+==========================================================================
+
+上面的的逆算法为:
+
+                 var_1C=tmp2=s4+table[4Ch]
+                 s4=(rol s4,0Dh)
+                 var_8=tmp=s4*table[50h]
+                 var_18=tmp1=table_1[(tmp2&1FFh)*4]
+                 var_8=tmp=(rol tmp,5)
+                 var_18=tmp1=tmp1^tmp
+                 s2=s2+(rol tmp2,(tmp&0Fh))
+                 var_8=tmp=(rol tmp,5)
+                 var_18=tmp1=tmp1^tmp
+                 s3=s3^tmp
+                 s1=s1+(rol tmp1,(tmp&0Fh))
+
+==========================================================================
+
+
+ .text:00441712 8B 4D E0               mov   ecx, [ebp+var_20]
+
+ .text:00441715 8B 55 F4               mov   edx, [ebp+var_C]                ; s3
+
+ .text:00441718 0F AF 51 48            imul  edx, [ecx+48h]
+
+ .text:0044171C 89 55 F8               mov   [ebp+var_8], edx                ; var_8=tmp=s3*table[48h]
+
+ .text:0044171F 8B 45 F4               mov   eax, [ebp+var_C]
+
+ .text:00441722 C1 C8 0D               ror   eax, 0Dh
+
+ .text:00441725 89 45 F4               mov   [ebp+var_C], eax                ; s3=(ror s3,0Dh)
+
+ .text:00441728 8B 4D E0               mov   ecx, [ebp+var_20]
+
+ .text:0044172B 8B 55 F4               mov   edx, [ebp+var_C]
+
+ .text:0044172E 03 51 44               add   edx, [ecx+44h]
+
+ .text:00441731 89 55 E4               mov   [ebp+var_1C], edx               ; var_1C=tmp2=s3+tabel[44h]
+
+ .text:00441734 8B 45 E4               mov   eax, [ebp+var_1C]
+
+ .text:00441737 25 FF 01 00 00          and   eax, 1FFh
+
+ .text:0044173C 8B 0C 85 BC ED 4D 00     mov   ecx, table_1[eax*4]
+
+ .text:00441743 89 4D E8               mov   [ebp+var_18], ecx               ; var_18=tmp1=table_1[(tmp2&1FFh)*4]
+
+ .text:00441746 8B 55 F8               mov   edx, [ebp+var_8]
+
+ .text:00441749 C1 C2 05               rol   edx, 5
+
+ .text:0044174C 89 55 F8               mov   [ebp+var_8], edx                ; var_8=tmp=(rol tmp,5)
+
+ .text:0044174F 8B 45 E8               mov   eax, [ebp+var_18]
+
+ .text:00441752 33 45 F8               xor   eax, [ebp+var_8]
+
+ .text:00441755 89 45 E8               mov   [ebp+var_18], eax               ; var_18=tmp1=tmp1^tmp
+
+ .text:00441758 8B 4D F8               mov   ecx, [ebp+var_8]
+
+ .text:0044175B 8B 55 E4               mov   edx, [ebp+var_1C]
+
+ .text:0044175E D3 C2                 rol   edx, cl
+
+ .text:00441760 8B 45 EC               mov   eax, [ebp+var_14]
+
+ .text:00441763 2B C2                 sub   eax, edx
+
+ .text:00441765 89 45 EC               mov   [ebp+var_14], eax               ; s1=s1-(rol tmp2,(tmp&0Fh))
+
+ .text:00441768 8B 4D F8               mov   ecx, [ebp+var_8]
+
+ .text:0044176B C1 C1 05               rol   ecx, 5
+
+ .text:0044176E 89 4D F8               mov   [ebp+var_8], ecx                ; var_8=tmp=(rol tmp,5)
+
+ .text:00441771 8B 55 E8               mov   edx, [ebp+var_18]
+
+ .text:00441774 33 55 F8               xor   edx, [ebp+var_8]
+
+ .text:00441777 89 55 E8               mov   [ebp+var_18], edx               ; var_18=tmp1=tmp1^tmp
+
+ .text:0044177A 8B 45 F0               mov   eax, [ebp+var_10]
+
+ .text:0044177D 33 45 F8               xor   eax, [ebp+var_8]
+
+ .text:00441780 89 45 F0               mov   [ebp+var_10], eax               ; s2=s2^tmp
+
+ .text:00441783 8B 4D F8               mov   ecx, [ebp+var_8]
+
+ .text:00441786 8B 55 E8               mov   edx, [ebp+var_18]
+
+ .text:00441789 D3 C2                 rol   edx, cl
+
+ .text:0044178B 8B 45 FC               mov   eax, [ebp+var_4]
+
+ .text:0044178E 2B C2                 sub   eax, edx
+
+ .text:00441790 89 45 FC               mov   [ebp+var_4], eax                ; s4=s4-(rol tmp1,(tmp&0Fh))
+
+==========================================================================
+
+上面的的逆算法为:
+
+                 var_1C=tmp2=s3+table[44h]
+                 s3=(rol s3,0Dh)
+                 var_8=tmp=s3*table[48h]
+                 var_18=tmp1=table_1[(tmp2&1FFh)*4]
+                 var_8=tmp=(rol tmp,5)
+                 var_18=tmp1=tmp1^tmp
+                 s1=s1+(rol tmp2,(tmp&0Fh))
+                 var_8=tmp=(rol tmp,5)
+                 var_18=tmp1=tmp1^tmp
+                 s2=s2^tmp
+                 s4=s4+(rol tmp1,(tmp&0Fh))
+
+==========================================================================
+
+
+ .text:00441793 8B 4D E0               mov   ecx, [ebp+var_20]
+```
+
+
+
+```asm
+.text:00441796 8B 55 F0                 mov   edx, [ebp+var_10]                ; s2
+.text:00441799 0F AF 51 40              imul  edx, [ecx+40h]
+.text:0044179D 89 55 F8                 mov   [ebp+var_8], edx                 ; var_8=tmp=s2*table[40h]
+.text:004417A0 8B 45 F0                 mov   eax, [ebp+var_10]
+.text:004417A3 C1 C8 0D                 ror   eax, 0Dh
+.text:004417A6 89 45 F0                 mov   [ebp+var_10], eax                ; s2=(ror s2,0Dh)
+.text:004417A9 8B 4D E0                 mov   ecx, [ebp+var_20]
+.text:004417AC 8B 55 F0                 mov   edx, [ebp+var_10]
+.text:004417AF 03 51 3C                 add   edx, [ecx+3Ch]
+.text:004417B2 89 55 E4                 mov   [ebp+var_1C], edx                ; var_1C=tmp2=s2+table[3Ch]
+.text:004417B5 8B 45 E4                 mov   eax, [ebp+var_1C]
+.text:004417B8 25 FF 01 00 00           and   eax, 1FFh
+.text:004417BD 8B 0C 85 BC ED 4D 00     mov   ecx, table_1[eax*4]
+.text:004417C4 89 4D E8                 mov   [ebp+var_18], ecx                ; var_18=tmp1=table_1[(tmp2&1FFh)*4]
+.text:004417C7 8B 55 F8                 mov   edx, [ebp+var_8]
+.text:004417CA C1 C2 05                 rol   edx, 5
+.text:004417CD 89 55 F8                 mov   [ebp+var_8], edx                 ; var_8=tmp=(rol tmp,5)
+.text:004417D0 8B 45 E8                 mov   eax, [ebp+var_18]
+.text:004417D3 33 45 F8                 xor   eax, [ebp+var_8]
+.text:004417D6 89 45 E8                 mov   [ebp+var_18], eax                ; var_18=tmp1=tmp1^tmp
+.text:004417D9 8B 4D F8                 mov   ecx, [ebp+var_8]
+.text:004417DC 8B 55 E4                 mov   edx, [ebp+var_1C]
+.text:004417DF D3 C2                    rol   edx, cl
+.text:004417E1 8B 45 FC                 mov   eax, [ebp+var_4]
+.text:004417E4 2B C2                    sub   eax, edx
+.text:004417E6 89 45 FC                 mov   [ebp+var_4], eax                  ; s4=s4-(rol tmp2,(tmp&0Fh))
+.text:004417E9 8B 4D F8                 mov   ecx, [ebp+var_8]
+.text:004417EC C1 C1 05                 rol   ecx, 5
+.text:004417EF 89 4D F8                 mov   [ebp+var_8], ecx                 ; var_8=tmp=(rol tmp,5)
+.text:004417F2 8B 55 E8                 mov   edx, [ebp+var_18]
+.text:004417F5 33 55 F8                 xor   edx, [ebp+var_8]
+.text:004417F8 89 55 E8                 mov   [ebp+var_18], edx                ; var_18=tmp1=tmp1^tmp
+.text:004417FB 8B 45 EC                 mov   eax, [ebp+var_14]
+.text:004417FE 33 45 F8                 xor   eax, [ebp+var_8]
+.text:00441801 89 45 EC                 mov   [ebp+var_14], eax                ; s1=s1^tmp
+.text:00441804 8B 4D F8                 mov   ecx, [ebp+var_8]
+.text:00441807 8B 55 E8                 mov   edx, [ebp+var_18]
+.text:0044180A D3 C2                    rol   edx, cl
+.text:0044180C 8B 45 F4                 mov   eax, [ebp+var_C]
+.text:0044180F 2B C2                    sub   eax, edx
+.text:00441811 89 45 F4                 mov   [ebp+var_C], eax                 ; s3=s3-(rol tmp1,(tmp&0Fh))
+==========================================================================
+
+上面的的逆算法为:
+
+            var_1C=tmp2=s2+table[3Ch]
+            s2=(rol s2,0Dh)
+            var_8=tmp=s2*table[40h]
+            var_18=tmp1=table_1[(tmp2&1FFh)*4]
+            var_8=tmp=(rol tmp,5)
+            var_18=tmp1=tmp1^tmp
+            s4=s4+(rol tmp2,(tmp&0Fh))
+            var_8=tmp=(rol tmp,5)
+            var_18=tmp1=tmp1^tmp
+            s1=s1^tmp
+            s3=s3+(rol tmp1,(tmp&0Fh))
+==========================================================================
+
+.text:00441814 8B 4D E0                 mov   ecx, [ebp+var_20]
+.text:00441817 8B 55 EC                 mov   edx, [ebp+var_14]                ; s1
+.text:0044181A 0F AF 51 38              imul  edx, [ecx+38h]
+.text:0044181E 89 55 F8                 mov   [ebp+var_8], edx                 ; var_8=tmp=s1*table[38h]
+.text:00441821 8B 45 EC                 mov   eax, [ebp+var_14]
+.text:00441824 C1 C8 0D                 ror   eax, 0Dh
+.text:00441827 89 45 EC                 mov   [ebp+var_14], eax                ; s1=(ror s1,0Dh)
+.text:0044182A 8B 4D E0                 mov   ecx, [ebp+var_20]
+.text:0044182D 8B 55 EC                 mov   edx, [ebp+var_14]
+.text:00441830 03 51 34                 add   edx, [ecx+34h]
+.text:00441833 89 55 E4                 mov   [ebp+var_1C], edx                ; var_1C=tmp2=s1+table[34h]
+.text:00441836 8B 45 E4                 mov   eax, [ebp+var_1C]
+.text:00441839 25 FF 01 00 00           and   eax, 1FFh
+.text:0044183E 8B 0C 85 BC ED 4D 00     mov   ecx, table_1[eax*4]
+.text:00441845 89 4D E8                 mov   [ebp+var_18], ecx                ; var_18=tmp1=table_1[(tmp2&1FFh)*4]
+.text:00441848 8B 55 F8                 mov   edx, [ebp+var_8]
+.text:0044184B C1 C2 05                 rol   edx, 5
+.text:0044184E 89 55 F8                 mov   [ebp+var_8], edx                 ; var_8=tmp=(rol tmp,5)
+.text:00441851 8B 45 E8                 mov   eax, [ebp+var_18]
+.text:00441854 33 45 F8                 xor   eax, [ebp+var_8]
+.text:00441857 89 45 E8                 mov   [ebp+var_18], eax                ; var_18=tmp1=tmp1^tmp
+.text:0044185A 8B 4D F8                 mov   ecx, [ebp+var_8]
+.text:0044185D 8B 55 E4                 mov   edx, [ebp+var_1C]
+.text:00441860 D3 C2                    rol   edx, cl
+.text:00441862 8B 45 F4                 mov   eax, [ebp+var_C]
+.text:00441865 2B C2                    sub   eax, edx
+.text:00441867 89 45 F4                 mov   [ebp+var_C], eax                 ; s3=s3-(rol tmp2,(tmp&0Fh))
+.text:0044186A 8B 4D F8                 mov   ecx, [ebp+var_8]
+.text:0044186D C1 C1 05                 rol   ecx, 5
+.text:00441870 89 4D F8                 mov   [ebp+var_8], ecx                 ; var_8=tmp=(rol tmp,5)
+.text:00441873 8B 55 E8                 mov   edx, [ebp+var_18]
+.text:00441876 33 55 F8                 xor   edx, [ebp+var_8]
+.text:00441879 89 55 E8                 mov   [ebp+var_18], edx                ; var_18=tmp1=tmp1^tmp
+.text:0044187C 8B 45 FC                 mov   eax, [ebp+var_4]
+.text:0044187F 33 45 F8                 xor   eax, [ebp+var_8]
+.text:00441882 89 45 FC                 mov   [ebp+var_4], eax                 ; s4=s4^tmp
+.text:00441885 8B 4D F8                 mov   ecx, [ebp+var_8]
+.text:00441888 8B 55 E8                 mov   edx, [ebp+var_18]
+.text:0044188B D3 C2                    rol   edx, cl
+.text:0044188D 8B 45 F0                 mov   eax, [ebp+var_10]
+.text:00441890 2B C2                    sub   eax, edx
+.text:00441892 89 45 F0                 mov   [ebp+var_10], eax                ; s2=s2-(rol tmp1,(tmp&0Fh))
+==========================================================================
+
+上面的的逆算法为:
+
+            var_1C=tmp2=s1+table[34h]
+            s1=(rol s1,0Dh)
+            var_8=tmp=s1*table[38h]
+            var_18=tmp1=table_1[(tmp2&1FFh)*4]
+            var_8=tmp=(rol tmp,5)
+            var_18=tmp1=tmp1^tmp
+            s3=s3+(rol tmp2,(tmp&0Fh))
+            var_8=tmp=(rol tmp,5)
+```
+
+
+
+`var_18 = tmp1 = tmp1 ^ tmp`
+
+`s4 = s4 ^ tmp`
+
+`s2 = s2 + (rol tmp1, (tmp & 0Fh))`
+
+==========================================================================
+
+```
+.text:00441895 8B 4D E0             mov   ecx, [ebp+var_20]            ; 重复 1 次上面的操作
+.text:00441898 8B 55 FC             mov   edx, [ebp+var_4]             ; s4
+.text:0044189B 0F AF 51 30          imul  edx, [ecx+30h]
+.text:0044189F 89 55 F8             mov   [ebp+var_8], edx
+.text:004418A2 8B 45 FC             mov   eax, [ebp+var_4]
+.text:004418A5 C1 C8 0D             ror   eax, 0Dh
+.text:004418A8 89 45 FC             mov   [ebp+var_4], eax
+.text:004418AB 8B 4D E0             mov   ecx, [ebp+var_20]
+.text:004418AE 8B 55 FC             mov   edx, [ebp+var_4]
+.text:004418B1 03 51 2C             add   edx, [ecx+2Ch]
+.text:004418B4 89 55 E4             mov   [ebp+var_1C], edx
+.text:004418B7 8B 45 E4             mov   eax, [ebp+var_1C]
+.text:004418BA 25 FF 01 00 00       and   eax, 1FFh
+.text:004418BF 8B 0C 85 BC ED 4D 00 mov   ecx, table_1[eax*4]
+.text:004418C6 89 4D E8             mov   [ebp+var_18], ecx
+.text:004418C9 8B 55 F8             mov   edx, [ebp+var_8]
+.text:004418CC C1 C2 05             rol   edx, 5
+.text:004418CF 89 55 F8             mov   [ebp+var_8], edx
+.text:004418D2 8B 45 E8             mov   eax, [ebp+var_18]
+.text:004418D5 33 45 F8             xor   eax, [ebp+var_8]
+.text:004418D8 89 45 E8             mov   [ebp+var_18], eax
+.text:004418DB 8B 4D F8             mov   ecx, [ebp+var_8]
+.text:004418DE 8B 55 E4             mov   edx, [ebp+var_1C]
+.text:004418E1 D3 C2                rol   edx, cl
+.text:004418E3 8B 45 F0             mov   eax, [ebp+var_10]
+.text:004418E6 2B C2                sub   eax, edx
+.text:004418E8 89 45 F0             mov   [ebp+var_10], eax
+.text:004418EB 8B 4D F8             mov   ecx, [ebp+var_8]
+.text:004418EE C1 C1 05             rol   ecx, 5
+.text:004418F1 89 4D F8             mov   [ebp+var_8], ecx
+.text:004418F4 8B 55 E8             mov   edx, [ebp+var_18]
+.text:004418F7 33 55 F8             xor   edx, [ebp+var_8]
+.text:004418FA 89 55 E8             mov   [ebp+var_18], edx
+.text:004418FD 8B 45 F4             mov   eax, [ebp+var_C]
+.text:00441900 33 45 F8             xor   eax, [ebp+var_8]
+.text:00441903 89 45 F4             mov   [ebp+var_C], eax
+.text:00441906 8B 4D F8             mov   ecx, [ebp+var_8]
+.text:00441909 8B 55 E8             mov   edx, [ebp+var_18]
+.text:0044190C D3 C2                rol   edx, cl
+.text:0044190E 8B 45 EC             mov   eax, [ebp+var_14]
+.text:00441911 2B C2                sub   eax, edx
+.text:00441913 89 45 EC             mov   [ebp+var_14], eax            ;
+.text:00441913                                                 ;
+.text:00441913                                                 ;
+.text:00441913                                                 ; ____________
+.text:00441916 8B 4D E0             mov   ecx, [ebp+var_20]
+.text:00441919 8B 55 F4             mov   edx, [ebp+var_C]             ; s3
+.text:0044191C 0F AF 51 28          imul  edx, [ecx+28h]
+.text:00441920 89 55 F8             mov   [ebp+var_8], edx
+.text:00441923 8B 45 F4             mov   eax, [ebp+var_C]
+.text:00441926 C1 C8 0D             ror   eax, 0Dh
+.text:00441929 89 45 F4             mov   [ebp+var_C], eax
+.text:0044192C 8B 4D E0             mov   ecx, [ebp+var_20]
+.text:0044192F 8B 55 F4             mov   edx, [ebp+var_C]
+.text:00441932 03 51 24             add   edx, [ecx+24h]
+.text:00441935 89 55 E4             mov   [ebp+var_1C], edx
+.text:00441938 8B 45 E4             mov   eax, [ebp+var_1C]
+.text:0044193B 25 FF 01 00 00       and   eax, 1FFh
+.text:00441940 8B 0C 85 BC ED 4D 00 mov   ecx, table_1[eax*4]
+.text:00441947 89 4D E8             mov   [ebp+var_18], ecx
+.text:0044194A 8B 55 F8             mov   edx, [ebp+var_8]
+.text:0044194D C1 C2 05             rol   edx, 5
+.text:00441950 89 55 F8             mov   [ebp+var_8], edx
+.text:00441953 8B 45 E8             mov   eax, [ebp+var_18]
+.text:00441956 33 45 F8             xor   eax, [ebp+var_8]
+.text:00441959 89 45 E8             mov   [ebp+var_18], eax
+.text:0044195C 8B 4D F8             mov   ecx, [ebp+var_8]
+.text:0044195F 8B 55 E4             mov   edx, [ebp+var_1C]
+.text:00441962 D3 C2                rol   edx, cl
+.text:00441964 8B 45 EC             mov   eax, [ebp+var_14]
+.text:00441967 2B C2                sub   eax, edx
+.text:00441969 89 45 EC             mov   [ebp+var_14], eax
+.text:0044196C 8B 4D F8             mov   ecx, [ebp+var_8]
+.text:0044196F C1 C1 05             rol   ecx, 5
+.text:00441972 89 4D F8             mov   [ebp+var_8], ecx
+.text:00441975 8B 55 E8             mov   edx, [ebp+var_18]
+.text:00441978 33 55 F8             xor   edx, [ebp+var_8]
+.text:0044197B 89 55 E8             mov   [ebp+var_18], edx
+.text:0044197E 8B 45 F0             mov   eax, [ebp+var_10]
+.text:00441981 33 45 F8             xor   eax, [ebp+var_8]
+.text:00441984 89 45 F0             mov   [ebp+var_10], eax
+.text:00441987 8B 4D F8             mov   ecx, [ebp+var_8]
+.text:0044198A 8B 55 E8             mov   edx, [ebp+var_18]
+.text:0044198D D3 C2                rol   edx, cl
+.text:0044198F 8B 45 FC             mov   eax, [ebp+var_4]
+.text:00441992 2B C2                sub   eax, edx
+.text:00441994 89 45 FC             mov   [ebp+var_4], eax             ;
+.text:00441994                                                 ;
+.text:00441994                                                 ;
+.text:00441994                                                 ; ____________
+.text:00441997 8B 4D E0             mov   ecx, [ebp+var_20]
+.text:0044199A 8B 55 F0             mov   edx, [ebp+var_10]            ; s2
+.text:0044199D 0F AF 51 20          imul  edx, [ecx+20h]
+.text:004419A1 89 55 F8             mov   [ebp+var_8], edx
+.text:004419A4 8B 45 F0             mov   eax, [ebp+var_10]
+.text:004419A7 C1 C8 0D             ror   eax, 0Dh
+.text:004419AA 89 45 F0             mov   [ebp+var_10], eax
+.text:004419AD 8B 4D E0             mov   ecx, [ebp+var_20]
+.text:004419B0 8B 55 F0             mov   edx, [ebp+var_10]
+.text:004419B3 03 51 1C             add   edx, [ecx+1Ch]
+.text:004419B6 89 55 E4             mov   [ebp+var_1C], edx
+.text:004419B9 8B 45 E4             mov   eax, [ebp+var_1C]
+.text:004419BC 25 FF 01 00 00       and   eax, 1FFh
+.text:004419C1 8B 0C 85 BC ED 4D 00 mov   ecx, table_1[eax*4]
+```
+
+
+
+```asm
+  .text:004419C8 89 4D E8                mov   [ebp+var_18], ecx  
+
+  .text:004419CB 8B 55 F8                mov   edx, [ebp+var_8]  
+
+  .text:004419CE C1 C2 05                rol   edx, 5  
+
+  .text:004419D1 89 55 F8                mov   [ebp+var_8], edx  
+
+  .text:004419D4 8B 45 E8                mov   eax, [ebp+var_18]  
+
+  .text:004419D7 33 45 F8                xor   eax, [ebp+var_8]  
+
+  .text:004419DA 89 45 E8                mov   [ebp+var_18], eax  
+
+  .text:004419DD 8B 4D F8                mov   ecx, [ebp+var_8]  
+
+  .text:004419E0 8B 55 E4                mov   edx, [ebp+var_1C]  
+
+  .text:004419E3 D3 C2                    rol   edx, cl  
+
+  .text:004419E5 8B 45 FC                mov   eax, [ebp+var_4]  
+
+  .text:004419E8 2B C2                    sub   eax, edx  
+
+  .text:004419EA 89 45 FC                mov   [ebp+var_4], eax  
+
+  .text:004419ED 8B 4D F8                mov   ecx, [ebp+var_8]  
+
+  .text:004419F0 C1 C1 05                rol   ecx, 5  
+
+  .text:004419F3 89 4D F8                mov   [ebp+var_8], ecx  
+
+  .text:004419F6 8B 55 E8                mov   edx, [ebp+var_18]  
+
+  .text:004419F9 33 55 F8                xor   edx, [ebp+var_8]  
+
+  .text:004419FC 89 55 E8                mov   [ebp+var_18], edx  
+
+  .text:004419FF 8B 45 EC                mov   eax, [ebp+var_14]  
+
+  .text:00441A02 33 45 F8                xor   eax, [ebp+var_8]  
+
+  .text:00441A05 89 45 EC                mov   [ebp+var_14], eax  
+
+  .text:00441A08 8B 4D F8                mov   ecx, [ebp+var_8]  
+
+  .text:00441A0B 8B 55 E8                mov   edx, [ebp+var_18]  
+
+  .text:00441A0E D3 C2                    rol   edx, cl  
+
+  .text:00441A10 8B 45 F4                mov   eax, [ebp+var_C]  
+
+  .text:00441A13 2B C2                    sub   eax, edx  
+
+  .text:00441A15 89 45 F4                mov   [ebp+var_C], eax                ;  
+
+  .text:00441A15                                                 ;  
+
+  .text:00441A15                                                 ;  
+
+  .text:00441A15                                                 ; ______________  
+
+  .text:00441A18 8B 4D E0                mov   ecx, [ebp+var_20]  
+
+  .text:00441A1B 8B 55 EC                mov   edx, [ebp+var_14]               ; s1  
+
+  .text:00441A1E 0F AF 51 18             imul  edx, [ecx+18h]  
+
+  .text:00441A22 89 55 F8                mov   [ebp+var_8], edx  
+
+  .text:00441A25 8B 45 EC                mov   eax, [ebp+var_14]  
+
+  .text:00441A28 C1 C8 0D                ror   eax, 0Dh  
+
+  .text:00441A2B 89 45 EC                mov   [ebp+var_14], eax  
+
+  .text:00441A2E 8B 4D E0                mov   ecx, [ebp+var_20]  
+
+  .text:00441A31 8B 55 EC                mov   edx, [ebp+var_14]  
+
+  .text:00441A34 03 51 14                add   edx, [ecx+14h]  
+
+  .text:00441A37 89 55 E4                mov   [ebp+var_1C], edx  
+
+  .text:00441A3A 8B 45 E4                mov   eax, [ebp+var_1C]  
+
+  .text:00441A3D 25 FF 01 00 00          and   eax, 1FFh  
+
+  .text:00441A42 8B 0C 85 BC ED 4D 00      mov   ecx, table_1[eax*4]  
+
+  .text:00441A49 89 4D E8                mov   [ebp+var_18], ecx  
+
+  .text:00441A4C 8B 55 F8                mov   edx, [ebp+var_8]  
+
+  .text:00441A4F C1 C2 05                rol   edx, 5  
+
+  .text:00441A52 89 55 F8                mov   [ebp+var_8], edx  
+
+  .text:00441A55 8B 45 E8                mov   eax, [ebp+var_18]  
+
+  .text:00441A58 33 45 F8                xor   eax, [ebp+var_8]  
+
+  .text:00441A5B 89 45 E8                mov   [ebp+var_18], eax  
+
+  .text:00441A5E 8B 4D F8                mov   ecx, [ebp+var_8]  
+
+  .text:00441A61 8B 55 E4                mov   edx, [ebp+var_1C]  
+
+  .text:00441A64 D3 C2                    rol   edx, cl  
+
+  .text:00441A66 8B 45 F4                mov   eax, [ebp+var_C]  
+
+  .text:00441A69 2B C2                    sub   eax, edx  
+
+  .text:00441A6B 89 45 F4                mov   [ebp+var_C], eax  
+
+  .text:00441A6E 8B 4D F8                mov   ecx, [ebp+var_8]  
+
+  .text:00441A71 C1 C1 05                rol   ecx, 5  
+
+  .text:00441A74 89 4D F8                mov   [ebp+var_8], ecx  
+
+  .text:00441A77 8B 55 E8                mov   edx, [ebp+var_18]  
+
+  .text:00441A7A 33 55 F8                xor   edx, [ebp+var_8]  
+
+  .text:00441A7D 89 55 E8                mov   [ebp+var_18], edx  
+
+  .text:00441A80 8B 45 FC                mov   eax, [ebp+var_4]  
+
+  .text:00441A83 33 45 F8                xor   eax, [ebp+var_8]  
+
+  .text:00441A86 89 45 FC                mov   [ebp+var_4], eax  
+
+  .text:00441A89 8B 4D F8                mov   ecx, [ebp+var_8]  
+
+  .text:00441A8C 8B 55 E8                mov   edx, [ebp+var_18]  
+
+  .text:00441A8F D3 C2                    rol   edx, cl  
+
+  .text:00441A91 8B 45 F0                mov   eax, [ebp+var_10]  
+
+  .text:00441A94 2B C2                    sub   eax, edx  
+
+  .text:00441A96 89 45 F0                mov   [ebp+var_10], eax               ;  
+
+  .text:00441A96                                                 ;  
+
+  .text:00441A96                                                 ;  
+
+  .text:00441A96                                                 ; ______________  
+
+  .text:00441A96                                                 ; 上面的为一段  
+
+  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++  
+
+                                                                                  
+
+  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++  
+
+                                                                                  
+
+  .text:00441A99 8B 4D FC                mov   ecx, [ebp+var_4]                ; s4  
+
+  .text:00441A9C C1 C1 08                rol   ecx, 8  
+
+  .text:00441A9F 89 4D F8                mov   [ebp+var_8], ecx                ; var_8=tmp=(rol s4,8)  
+
+  .text:00441AA2 8B 55 FC                mov   edx, [ebp+var_4]  
+
+  .text:00441AA5 81 E2 FF 00 00 00        and   edx, 0FFh  
+
+  .text:00441AAB 8B 45 F4                mov   eax, [ebp+var_C]  
+
+  .text:00441AAE 33 04 95 BC F1 4D 00     xor   eax, table_2[edx*4]  
+
+  .text:00441AB5 89 45 F4                mov   [ebp+var_C], eax                ; s3=s3^table_2[(s4&0FFh)*4]  
+
+  .text:00441AB8 8B 4D F8                mov   ecx, [ebp+var_8]  
+
+  .text:00441ABB 81 E1 FF 00 00 00        and   ecx, 0FFh  
+
+  .text:00441AC1 8B 55 F0                mov   edx, [ebp+var_10]  
+
+  .text:00441AC4 2B 14 8D BC ED 4D 00     sub   edx, table_1[ecx*4]  
+
+  .text:00441ACB 89 55 F0                mov   [ebp+var_10], edx               ; s2=s2-table_1[(tmp&0FFh)*4]  
+
+  .text:00441ACE 8B 45 FC                mov   eax, [ebp+var_4]  
+
+  .text:00441AD1 C1 C0 10                rol   eax, 10h  
+
+  .text:00441AD4 89 45 F8                mov   [ebp+var_8], eax                ; var_8=tmp=(rol s4,10h)  
+
+  .text:00441AD7 8B 4D FC                mov   ecx, [ebp+var_4]  
+
+  .text:00441ADA C1 C1 18                rol   ecx, 18h  
+
+  .text:00441ADD 89 4D FC                mov   [ebp+var_4], ecx                ; s4=(rol s4,18h)  
+
+  .text:00441AE0 8B 55 F8                mov   edx, [ebp+var_8]  
+
+  .text:00441AE3 81 E2 FF 00 00 00        and   edx, 0FFh  
+
+  .text:00441AE9 8B 45 EC                mov   eax, [ebp+var_14]  
+
+  .text:00441AEC 2B 04 95 BC F1 4D 00     sub   eax, table_2[edx*4]  
+
+  .text:00441AF3 89 45 EC                mov   [ebp+var_14], eax               ; s1=s1-table_2[(tmp&0FFh)*4]  
+```
+
+
+
+## 汇编代码与逆算法分析
+
+> ```assembly
+> .text:00441AF6 8B 4D FC               mov   ecx, [ebp+var_4]
+> .text:00441AF9 81 E1 FF 00 00 00      and   ecx, 0FFh
+> .text:00441AFF 8B 55 EC               mov   edx, [ebp+var_14]
+> .text:00441B02 33 14 8D BC ED 4D 00   xor   edx, table_1[ecx*4]
+> .text:00441B09 89 55 EC               mov   [ebp+var_14], edx    ; s1=s1^table_1[(s4&0FFh)*4]
+> ```
+>
+> 上面的逆算法为:
+>
+> ```text
+> s1=s1^table_1[(s4&0FFh)*4]
+> s4=(ror s4,18h)
+> var_8=tmp=(rol s4,8)
+> s3=s3^table_2[(s4&0FFh)*4]
+> s2=s2+table_1[(tmp&0FFh)*4]
+> var_8=tmp=(rol s4,10h)
+> s1=s1+table_2[(tmp&0FFh)*4]
+> ```
+>
+> ```assembly
+> .text:00441B0C 8B 45 F4               mov   eax, [ebp+var_C]     ; s3
+> .text:00441B0F C1 C0 08               rol   eax, 8
+> .text:00441B12 89 45 F8               mov   [ebp+var_8], eax     ; var_8=tmp=(rol s3,8)
+> .text:00441B15 8B 4D F4               mov   ecx, [ebp+var_C]
+> .text:00441B18 81 E1 FF 00 00 00      and   ecx, 0FFh
+> .text:00441B1E 8B 55 F0               mov   edx, [ebp+var_10]
+> .text:00441B21 33 14 8D BC F1 4D 00  xor   edx, table_2[ecx*4]
+> .text:00441B28 89 55 F0               mov   [ebp+var_10], edx    ; s2=s2^table_2[(s3&0FFh)*4]
+> .text:00441B2B 8B 45 F8               mov   eax, [ebp+var_8]
+> .text:00441B2E 25 FF 00 00 00         and   eax, 0FFh
+> .text:00441B33 8B 4D EC               mov   ecx, [ebp+var_14]
+> .text:00441B36 2B 0C 85 BC ED 4D 00  sub   ecx, table_1[eax*4]
+> .text:00441B3D 89 4D EC               mov   [ebp+var_14], ecx    ; s1=s1-table_1[(tmp&0FFh)*4]
+> .text:00441B40 8B 55 F4               mov   edx, [ebp+var_C]
+> .text:00441B43 C1 C2 10               rol   edx, 10h
+> .text:00441B46 89 55 F8               mov   [ebp+var_8], edx     ; var_8=tmp=(rol s3,10h)
+> .text:00441B49 8B 45 F4               mov   eax, [ebp+var_C]
+> .text:00441B4C C1 C0 18               rol   eax, 18h
+> .text:00441B4F 89 45 F4               mov   [ebp+var_C], eax     ; s3=(rol s3,18h)
+> .text:00441B52 8B 4D F8               mov   ecx, [ebp+var_8]
+> .text:00441B55 81 E1 FF 00 00 00      and   ecx, 0FFh
+> .text:00441B5B 8B 55 FC               mov   edx, [ebp+var_4]
+> .text:00441B5E 2B 14 8D BC F1 4D 00  sub   edx, table_2[ecx*4]
+> .text:00441B65 89 55 FC               mov   [ebp+var_4], edx     ; s4=s4-table_2[(tmp&0FFh)*4]
+> .text:00441B68 8B 45 F4               mov   eax, [ebp+var_C]
+> .text:00441B6B 25 FF 00 00 00         and   eax, 0FFh
+> .text:00441B70 8B 4D FC               mov   ecx, [ebp+var_4]
+> .text:00441B73 33 0C 85 BC ED 4D 00  xor   ecx, table_1[eax*4]
+> .text:00441B7A 89 4D FC               mov   [ebp+var_4], ecx     ; s4=s4^table_1[(s3&0FFh)*4]
+> ```
+>
+> 上面的逆算法为:
+>
+> ```text
+> s4=s4^table_1[(s3&0FFh)*4]
+> s3=(ror s3,18h)
+> var_8=tmp=(rol s3,8)
+> s2=s2^table_2[(s3&0FFh)*4]
+> s1=s1+table_1[(tmp&0FFh)*4]
+> var_8=tmp=(rol s3,10h)
+> s4=s4+table_2[(tmp&0FFh)*4]
+> ```
+>
+> ```assembly
+> .text:00441B7D 8B 55 F0               mov   edx, [ebp+var_10]    ; s2
+> .text:00441B80 2B 55 F4               sub   edx, [ebp+var_C]
+> .text:00441B83 89 55 F0               mov   [ebp+var_10], edx    ; s2=s2-s3
+> .text:00441B86 8B 45 F0               mov   eax, [ebp+var_10]
+> .text:00441B89 C1 C0 08               rol   eax, 8
+> .text:00441B8C 89 45 F8               mov   [ebp+var_8], eax     ; var_8=tmp=(rol s2,8)
+> .text:00441B8F 8B 4D F0               mov   ecx, [ebp+var_10]
+> .text:00441B92 81 E1 FF 00 00 00      and   ecx, 0FFh
+> .text:00441B98 8B 55 EC               mov   edx, [ebp+var_14]
+> .text:00441B9B 33 14 8D BC F1 4D 00  xor   edx, table_2[ecx*4]
+> .text:00441BA2 89 55 EC               mov   [ebp+var_14], edx    ; s1=s1^table_2[(s2&0FFh)*4]
+> .text:00441BA5 8B 45 F8               mov   eax, [ebp+var_8]
+> .text:00441BA8 25 FF 00 00 00         and   eax, 0FFh
+> .text:00441BAD 8B 4D FC               mov   ecx, [ebp+var_4]
+> .text:00441BB0 2B 0C 85 BC ED 4D 00  sub   ecx, table_1[eax*4]
+> .text:00441BB7 89 4D FC               mov   [ebp+var_4], ecx     ; s4=s4-table[(tmp&0FFh)*4]
+> .text:00441BBA 8B 55 F0               mov   edx, [ebp+var_10]
+> .text:00441BBD C1 C2 10               rol   edx, 10h
+> .text:00441BC0 89 55 F8               mov   [ebp+var_8], edx     ; var_8=tmp=(rol s2,10h)
+> .text:00441BC3 8B 45 F0               mov   eax, [ebp+var_10]
+> .text:00441BC6 C1 C0 18               rol   eax, 18h
+> .text:00441BC9 89 45 F0               mov   [ebp+var_10], eax    ; s2=(rol s2,18h)
+> .text:00441BCC 8B 4D F8               mov   ecx, [ebp+var_8]
+> .text:00441BCF 81 E1 FF 00 00 00      and   ecx, 0FFh
+> .text:00441BD5 8B 55 F4               mov   edx, [ebp+var_C]
+> .text:00441BD8 2B 14 8D BC F1 4D 00  sub   edx, table_2[ecx*4]
+> .text:00441BDF 89 55 F4               mov   [ebp+var_C], edx     ; s3=s3-table_2[(tmp&0FFh)*4]
+> .text:00441BE2 8B 45 F0               mov   eax, [ebp+var_10]
+> .text:00441BE5 25 FF 00 00 00         and   eax, 0FFh
+> .text:00441BEA 8B 4D F4               mov   ecx, [ebp+var_C]
+> .text:00441BED 33 0C 85 BC ED 4D 00  xor   ecx, table_1[eax*4]
+> .text:00441BF4 89 4D F4               mov   [ebp+var_C], ecx     ; s3=s3^table_1[(s2&0FFh)*4]
+> ```
+>
+> 上面的逆算法为:
+>
+> ```text
+> s3=s3^table_1[(s2&0FFh)*4]
+> s2=(ror s2,18h)
+> var_8=tmp=(rol s2,8)
+> s1=s1^table_2[(s2&0FFh)*4]
+> s4=s4+table_1[(tmp&0FFh)*4]
+> var_8=tmp=(rol s2,10h)
+> s3=s3+table_2[(tmp&0FFh)*4]
+> ```
+>
+> ```assembly
+> .text:00441BF7 8B 55 EC               mov   edx, [ebp+var_14]    ; s1
+> .text:00441BFA 2B 55 FC               sub   edx, [ebp+var_4]
+> .text:00441BFD 89 55 EC               mov   [ebp+var_14], edx    ; s1=s1-s4
+> .text:00441C00 8B 45 EC               mov   eax, [ebp+var_14]
+> .text:00441C03 C1 C0 08               rol   eax, 8
+> .text:00441C06 89 45 F8               mov   [ebp+var_8], eax     ; var_8=tmp=(rol s1,8)
+> .text:00441C09 8B 4D EC               mov   ecx, [ebp+var_14]
+> .text:00441C0C 81 E1 FF 00 00 00      and   ecx, 0FFh
+> .text:00441C12 8B 55 FC               mov   edx, [ebp+var_4]
+> .text:00441C15 33 14 8D BC F1 4D 00  xor   edx, table_2[ecx*4]
+> .text:00441C1C 89 55 FC               mov   [ebp+var_4], edx     ; s4=s4^table_2[(s1&0FFh)*4]
+> .text:00441C1F 8B 45 F8               mov   eax, [ebp+var_8]
+> ```
+
+
+
+> `.text:00441C22 25 FF 00 00 00` `and eax, 0FFh`
+>
+> `.text:00441C27 8B 4D F4` `mov ecx, [ebp+var_C]`
+>
+> `.text:00441C2A 2B 0C 85 BC ED 4D 00` `sub ecx, table_1[eax*4]`
+>
+> `.text:00441C31 89 4D F4` `mov [ebp+var_C], ecx` ; `s3=s3-table[(tmp&0FFh)*4]`
+>
+> `.text:00441C34 8B 55 EC` `mov edx, [ebp+var_14]`
+>
+> `.text:00441C37 C1 C2 10` `rol edx, 10h`
+>
+> `.text:00441C3A 89 55 F8` `mov [ebp+var_8], edx` ; `var_8=tmp=(rol s1,10h)`
+>
+> `.text:00441C3D 8B 45 EC` `mov eax, [ebp+var_14]`
+>
+> `.text:00441C40 C1 C0 18` `rol eax, 18h`
+>
+> `.text:00441C43 89 45 EC` `mov [ebp+var_14], eax` ; `s1=(rol s1,18h)`
+>
+> `.text:00441C46 8B 4D F8` `mov ecx, [ebp+var_8]`
+>
+> `.text:00441C49 81 E1 FF 00 00 00` `and ecx, 0FFh`
+>
+> `.text:00441C4F 8B 55 F0` `mov edx, [ebp+var_10]`
+>
+> `.text:00441C52 2B 14 8D BC F1 4D 00` `sub edx, table_2[ecx*4]`
+>
+> `.text:00441C59 89 55 F0` `mov [ebp+var_10], edx` ; `s2=s2-table_2[(tmp&0FFh)*4]`
+>
+> `.text:00441C5C 8B 45 EC` `mov eax, [ebp+var_14]`
+>
+> `.text:00441C5F 25 FF 00 00 00` `and eax, 0FFh`
+>
+> `.text:00441C64 8B 4D F0` `mov ecx, [ebp+var_10]`
+>
+> `.text:00441C67 33 0C 85 BC ED 4D 00` `xor ecx, table_1[eax*4]`
+>
+> `.text:00441C6E 89 4D F0` `mov [ebp+var_10], ecx` ; `s2=s2^table_1[(s1&0FFh)*4]`
+>
+> `==========================================================================`
+>
+> 上面的逆算法为:
+>
+> `s2=s2^table_1[(s1&0FFh)*4]`
+>
+> `s1=(ror s2,18h)`
+>
+> `var_8=tmp=(rol s1,8)`
+>
+> `s4=s4^table_2[(s1&0FFh)*4]`
+>
+> `s3=s3+table_1[(tmp&0FFh)*4]`
+>
+> `var_8=tmp=(rol s1,10h)`
+>
+> `s2=s2+table_2[(tmp&0FFh)*4]`
+>
+> `==========================================================================`
+>
+> `.text:00441C6E` ; `重复一次上面的操作`
+>
+> `.text:00441C71 8B 55 FC` `mov edx, [ebp+var_4]` ; `s4`
+>
+> `.text:00441C74 C1 C2 08` `rol edx, 8`
+>
+> `.text:00441C77 89 55 F8` `mov [ebp+var_8], edx`
+>
+> `.text:00441C7A 8B 45 FC` `mov eax, [ebp+var_4]`
+>
+> `.text:00441C7D 25 FF 00 00 00` `and eax, 0FFh`
+>
+> `.text:00441C82 8B 4D F4` `mov ecx, [ebp+var_C]`
+>
+> `.text:00441C85 33 0C 85 BC F1 4D 00` `xor ecx, table_2[eax*4]`
+>
+> `.text:00441C8C 89 4D F4` `mov [ebp+var_C], ecx`
+>
+> `.text:00441C8F 8B 55 F8` `mov edx, [ebp+var_8]`
+>
+> `.text:00441C92 81 E2 FF 00 00 00` `and edx, 0FFh`
+>
+> `.text:00441C98 8B 45 F0` `mov eax, [ebp+var_10]`
+>
+> `.text:00441C9B 2B 04 95 BC ED 4D 00` `sub eax, table_1[edx*4]`
+>
+> `.text:00441CA2 89 45 F0` `mov [ebp+var_10], eax`
+>
+> `.text:00441CA5 8B 4D FC` `mov ecx, [ebp+var_4]`
+>
+> `.text:00441CA8 C1 C1 10` `rol ecx, 10h`
+>
+> `.text:00441CAB 89 4D F8` `mov [ebp+var_8], ecx`
+>
+> `.text:00441CAE 8B 55 FC` `mov edx, [ebp+var_4]`
+>
+> `.text:00441CB1 C1 C2 18` `rol edx, 18h`
+>
+> `.text:00441CB4 89 55 FC` `mov [ebp+var_4], edx`
+>
+> `.text:00441CB7 8B 45 F8` `mov eax, [ebp+var_8]`
+>
+> `.text:00441CBA 25 FF 00 00 00` `and eax, 0FFh`
+>
+> `.text:00441CBF 8B 4D EC` `mov ecx, [ebp+var_14]`
+>
+> `.text:00441CC2 2B 0C 85 BC F1 4D 00` `sub ecx, table_2[eax*4]`
+>
+> `.text:00441CC9 89 4D EC` `mov [ebp+var_14], ecx`
+>
+> `.text:00441CCC 8B 55 FC` `mov edx, [ebp+var_4]`
+>
+> `.text:00441CCF 81 E2 FF 00 00 00` `and edx, 0FFh`
+>
+> `.text:00441CD5 8B 45 EC` `mov eax, [ebp+var_14]`
+>
+> `.text:00441CD8 33 04 95 BC ED 4D 00` `xor eax, table_1[edx*4]`
+>
+> `.text:00441CDF 89 45 EC` `mov [ebp+var_14], eax` ;
+>
+> `.text:00441CDF` ;
+>
+> `.text:00441CDF` ;
+>
+> `.text:00441CDF` ; `________________________________`
+>
+> `.text:00441CE2 8B 4D F4` `mov ecx, [ebp+var_C]` ; `s3`
+>
+> `.text:00441CE5 C1 C1 08` `rol ecx, 8`
+>
+> `.text:00441CE8 89 4D F8` `mov [ebp+var_8], ecx`
+>
+> `.text:00441CEB 8B 55 F4` `mov edx, [ebp+var_C]`
+>
+> `.text:00441CEE 81 E2 FF 00 00 00` `and edx, 0FFh`
+>
+> `.text:00441CF4 8B 45 F0` `mov eax, [ebp+var_10]`
+>
+> `.text:00441CF7 33 04 95 BC F1 4D 00` `xor eax, table_2[edx*4]`
+>
+> `.text:00441CFE 89 45 F0` `mov [ebp+var_10], eax`
+>
+> `.text:00441D01 8B 4D F8` `mov ecx, [ebp+var_8]`
+>
+> `.text:00441D04 81 E1 FF 00 00 00` `and ecx, 0FFh`
+>
+> `.text:00441D0A 8B 55 EC` `mov edx, [ebp+var_14]`
+>
+> `.text:00441D0D 2B 14 8D BC ED 4D 00` `sub edx, table_1[ecx*4]`
+>
+> `.text:00441D14 89 55 EC` `mov [ebp+var_14], edx`
+>
+> `.text:00441D17 8B 45 F4` `mov eax, [ebp+var_C]`
+>
+> `.text:00441D1A C1 C0 10` `rol eax, 10h`
+>
+> `.text:00441D1D 89 45 F8` `mov [ebp+var_8], eax`
+>
+> `.text:00441D20 8B 4D F4` `mov ecx, [ebp+var_C]`
+>
+> `.text:00441D23 C1 C1 18` `rol ecx, 18h`
+>
+> `.text:00441D26 89 4D F4` `mov [ebp+var_C], ecx`
+>
+> `.text:00441D29 8B 55 F8` `mov edx, [ebp+var_8]`
+>
+> `.text:00441D2C 81 E2 FF 00 00 00` `and edx, 0FFh`
+>
+> `.text:00441D32 8B 45 FC` `mov eax, [ebp+var_4]`
+>
+> `.text:00441D35 2B 04 95 BC F1 4D 00` `sub eax, table_2[edx*4]`
+>
+> `.text:00441D3C 89 45 FC` `mov [ebp+var_4], eax`
+>
+> `.text:00441D3F 8B 4D F4` `mov ecx, [ebp+var_C]`
+>
+> `.text:00441D42 81 E1 FF 00 00 00` `and ecx, 0FFh`
+>
+> `.text:00441D48 8B 55 FC` `mov edx, [ebp+var_4]`
+>
+> `.text:00441D4B 33 14 8D BC ED 4D 00` `xor edx, table_1[ecx*4]`
+>
+> `.text:00441D52 89 55 FC` `mov [ebp+var_4], edx` ;
+>
+> `.text:00441D52` ;
+>
+> `.text:00441D52` ;
+>
+> `.text:00441D52` ; `________________________________`
+>
+> `.text:00441D55 8B 45 F0` `mov eax, [ebp+var_10]` ; `s2`
+>
+> `.text:00441D58 2B 45 F4` `sub eax, [ebp+var_C]`
+>
+> `.text:00441D5B 89 45 F0` `mov [ebp+var_10], eax`
+>
+> `.text:00441D5E 8B 4D F0` `mov ecx, [ebp+var_10]`
+>
+> `.text:00441D61 C1 C1 08` `rol ecx, 8`
+>
+> `.text:00441D64 89 4D F8` `mov [ebp+var_8], ecx`
+>
+> `.text:00441D67 8B 55 F0` `mov edx, [ebp+var_10]`
+>
+> `.text:00441D6A 81 E2 FF 00 00 00` `and edx, 0FFh`
+>
+> `.text:00441D70 8B 45 EC` `mov eax, [ebp+var_14]`
+>
+> `.text:00441D73 33 04 95 BC F1 4D 00` `xor eax, table_2[edx*4]`
+>
+> `.text:00441D7A 89 45 EC` `mov [ebp+var_14], eax`
+>
+> `.text:00441D7D 8B 4D F8` `mov ecx, [ebp+var_8]`
+
+
+
+# 经验总结
+
+## 汇编代码分析
+
+以下代码片段来自 `HexAssistant1.9` 的注册码校验部分：
+
+```asm
+.text:00441D80 81 E1 FF 00 00 00         and   ecx, 0FFh  
+.text:00441D86 8B 55 FC                 mov   edx, [ebp+var_4]  
+.text:00441D89 2B 14 8D BC ED 4D 00     sub   edx, table_1[ecx*4]  
+.text:00441D90 89 55 FC                 mov   [ebp+var_4], edx  
+.text:00441D93 8B 45 F0                 mov   eax, [ebp+var_10]  
+.text:00441D96 C1 C0 10                 rol   eax, 10h  
+.text:00441D99 89 45 F8                 mov   [ebp+var_8], eax  
+.text:00441D9C 8B 4D F0                 mov   ecx, [ebp+var_10]  
+.text:00441D9F C1 C1 18                 rol   ecx, 18h  
+.text:00441DA2 89 4D F0                 mov   [ebp+var_10], ecx  
+.text:00441DA5 8B 55 F8                 mov   edx, [ebp+var_8]  
+.text:00441DA8 81 E2 FF 00 00 00         and   edx, 0FFh  
+.text:00441DAE 8B 45 F4                 mov   eax, [ebp+var_C]  
+.text:00441DB1 2B 04 95 BC F1 4D 00     sub   eax, table_2[edx*4]  
+.text:00441DB8 89 45 F4                 mov   [ebp+var_C], eax  
+.text:00441DBB 8B 4D F0                 mov   ecx, [ebp+var_10]  
+.text:00441DBE 81 E1 FF 00 00 00         and   ecx, 0FFh  
+.text:00441DC4 8B 55 F4                 mov   edx, [ebp+var_C]  
+.text:00441DC7 33 14 8D BC ED 4D 00     xor   edx, table_1[ecx*4]  
+.text:00441DCE 89 55 F4                 mov   [ebp+var_C], edx                  ;
+.text:00441DCE                                                  ;
+.text:00441DCE                                                  ;
+.text:00441DCE                                                  ;
+.text:00441DCE                                                  ; _______  
+.text:00441DD1 8B 45 EC                 mov   eax, [ebp+var_14]             ; s1  
+.text:00441DD4 2B 45 FC                 sub   eax, [ebp+var_4]  
+.text:00441DD7 89 45 EC                 mov   [ebp+var_14], eax  
+.text:00441DDA 8B 4D EC                 mov   ecx, [ebp+var_14]  
+.text:00441DDD C1 C1 08                 rol   ecx, 8  
+.text:00441DE0 89 4D F8                 mov   [ebp+var_8], ecx  
+.text:00441DE3 8B 55 EC                 mov   edx, [ebp+var_14]  
+.text:00441DE6 81 E2 FF 00 00 00         and   edx, 0FFh  
+.text:00441DEC 8B 45 FC                 mov   eax, [ebp+var_4]  
+.text:00441DEF 33 04 95 BC F1 4D 00     xor   eax, table_2[edx*4]  
+.text:00441DF6 89 45 FC                 mov   [ebp+var_4], eax  
+.text:00441DF9 8B 4D F8                 mov   ecx, [ebp+var_8]  
+.text:00441DFC 81 E1 FF 00 00 00         and   ecx, 0FFh  
+.text:00441E02 8B 55 F4                 mov   edx, [ebp+var_C]  
+.text:00441E05 2B 14 8D BC ED 4D 00     sub   edx, table_1[ecx*4]  
+.text:00441E0C 89 55 F4                 mov   [ebp+var_C], edx  
+.text:00441E0F 8B 45 EC                 mov   eax, [ebp+var_14]  
+.text:00441E12 C1 C0 10                 rol   eax, 10h  
+.text:00441E15 89 45 F8                 mov   [ebp+var_8], eax  
+.text:00441E18 8B 4D EC                 mov   ecx, [ebp+var_14]  
+.text:00441E1B C1 C1 18                 rol   ecx, 18h  
+.text:00441E1E 89 4D EC                 mov   [ebp+var_14], ecx  
+.text:00441E21 8B 55 F8                 mov   edx, [ebp+var_8]  
+.text:00441E24 81 E2 FF 00 00 00         and   edx, 0FFh  
+.text:00441E2A 8B 45 F0                 mov   eax, [ebp+var_10]  
+.text:00441E2D 2B 04 95 BC F1 4D 00     sub   eax, table_2[edx*4]  
+.text:00441E34 89 45 F0                 mov   [ebp+var_10], eax  
+.text:00441E37 8B 4D EC                 mov   ecx, [ebp+var_14]  
+.text:00441E3A 81 E1 FF 00 00 00         and   ecx, 0FFh  
+.text:00441E40 8B 55 F0                 mov   edx, [ebp+var_10]  
+.text:00441E43 33 14 8D BC ED 4D 00     xor   edx, table_1[ecx*4]  
+.text:00441E4A 89 55 F0                 mov   [ebp+var_10], edx             ;
+.text:00441E4A                                                  ;
+.text:00441E4A                                                  ;
+.text:00441E4A                                                  ;
+.text:00441E4A                                                  ;
+.text:00441E4A                                                  ; ____________  
+.text:00441E4D 8B 45 E0                 mov   eax, [ebp+var_20]  
+.text:00441E50 8B 4D EC                 mov   ecx, [ebp+var_14]  
+.text:00441E53 2B 48 04                 sub   ecx, [eax+4]  
+.text:00441E56 8B 55 0C                 mov   edx, [ebp+arg_4]  
+.text:00441E59 89 0A                     mov   [edx], ecx                    ; s1=s1-table[4]  
+.text:00441E5B 8B 45 E0                 mov   eax, [ebp+var_20]  
+.text:00441E5E 8B 4D F0                 mov   ecx, [ebp+var_10]  
+.text:00441E61 2B 48 08                 sub   ecx, [eax+8]  
+.text:00441E64 8B 55 0C                 mov   edx, [ebp+arg_4]  
+.text:00441E67 89 4A 04                 mov   [edx+4], ecx                  ; s2=s2-table[8]  
+.text:00441E6A 8B 45 E0                 mov   eax, [ebp+var_20]  
+.text:00441E6D 8B 4D F4                 mov   ecx, [ebp+var_C]  
+.text:00441E70 2B 48 0C                 sub   ecx, [eax+0Ch]  
+.text:00441E73 8B 55 0C                 mov   edx, [ebp+arg_4]  
+.text:00441E76 89 4A 08                 mov   [edx+8], ecx                  ; s3=s3-table[0Ch]  
+.text:00441E79 8B 45 E0                 mov   eax, [ebp+var_20]  
+.text:00441E7C 8B 4D FC                 mov   ecx, [ebp+var_4]  
+.text:00441E7F 2B 48 10                 sub   ecx, [eax+10h]  
+.text:00441E82 8B 55 0C                 mov   edx, [ebp+arg_4]  
+.text:00441E85 89 4A 0C                 mov   [edx+0Ch], ecx              ; s4=s4-table[10h]  
+.text:00441E88 8B E5                     mov   esp, ebp  
+.text:00441E8A 5D                         pop   ebp  
+.text:00441E8B C2 08 00                  retn  8  
+.text:00441E8B                       sub_440E77 endp  
+```
+
+### 运算逻辑说明
+
+上述代码段对应的逻辑运算如下：
+
+```
+s1 = s1 + table[4]
+s2 = s2 + table[8]
+s3 = s3 + table[0Ch]
+s4 = s4 + table[10h]
+```
+
+## 分析结论
+
+`HexAssistant1.9` 的注册码部分算法分析完毕。具体算法来源未知，但代码逻辑可参考：将代码逆序处理并稍作修改即可复用。注册名部分的算法与注册码部分相似。
+
+## 版权声明
+
+本文原创于看雪技术论坛，转载请注明作者并保持文章的完整。
+
+`2007年08月14日`
+
+`4dd466d0e1e0cc123afbe504da2462ca`

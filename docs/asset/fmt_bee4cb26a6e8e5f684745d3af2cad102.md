@@ -1,0 +1,85 @@
+
+```asm
+0049BA30  |.  B9 3CBB4900    MOV ECX,mp3cutte.0049BB3C               ;  mp3cutter
+0049BA35  |.  BA 50BB4900    MOV EDX,mp3cutte.0049BB50               ;  basic
+0049BA3A  |.  8B18           MOV EBX,DWORD PTR DS:[EAX]
+0049BA3C  |.  FF53 14        CALL DWORD PTR DS:[EBX+14]
+0049BA3F  |.  8B45 FC        MOV EAX,DWORD PTR SS:[EBP-4]
+0049BA42  |.  50             PUSH EAX
+0049BA43  |.  A1 200B4B00    MOV EAX,DWORD PTR DS:[4B0B20]
+0049BA48  |.  8B00           MOV EAX,DWORD PTR DS:[EAX]
+0049BA4A  |.  B9 60BB4900    MOV ECX,mp3cutte.0049BB60               ;  mp3cutter1
+0049BA4F  |.  BA 50BB4900    MOV EDX,mp3cutte.0049BB50               ;  basic
+0049BA54  |.  8B18           MOV EBX,DWORD PTR DS:[EAX]
+0049BA56  |.  FF53 04        CALL DWORD PTR DS:[EBX+4]
+0049BA59  |.  A1 F81D4B00    MOV EAX,DWORD PTR DS:[4B1DF8]
+0049BA5E  |.  E8 C521FCFF    CALL mp3cutte.0045DC28
+0049BA63  |.  EB 15          JMP SHORT mp3cutte.0049BA7A
+0049BA65  |>  6A 00          PUSH 0                                   ; /Arg1 = 00000000
+0049BA67  |.  66:8B0D C4BA4>MOV CX,WORD PTR DS:[49BAC4]              ; |
+0049BA6E  |.  B2 02          MOV DL,2                                  ; |
+0049BA70  |.  B8 D0BA4900    MOV EAX,mp3cutte.0049BAD0                ; |Invalid register code! Please retry!
+0049BA75  |.  E8 76F0F9FF    CALL mp3cutte.0043AAF0                    ; \mp3cutte.0043AAF0
+0049BA7A  |>  33C0           XOR EAX,EAX
+0049BA7C  |.  5A             POP EDX
+0049BA7D  |.  59             POP ECX
+0049BA7E  |.  59             POP ECX
+0049BA7F  |.  64:8910        MOV DWORD PTR FS:[EAX],EDX
+0049BA82  |.  68 BCBA4900    PUSH mp3cutte.0049BABC
+0049BA87  |>  8D45 E8        LEA EAX,DWORD PTR SS:[EBP-18]
+0049BA8A  |.  E8 898BF6FF    CALL mp3cutte.00404618
+0049BA8F  |.  8D45 EC        LEA EAX,DWORD PTR SS:[EBP-14]
+0049BA92  |.  E8 818BF6FF    CALL mp3cutte.00404618
+0049BA97  |.  8D45 F0        LEA EAX,DWORD PTR SS:[EBP-10]
+0049BA9A  |.  E8 798BF6FF    CALL mp3cutte.00404618
+0049BA9F  |.  8D45 F4        LEA EAX,DWORD PTR SS:[EBP-C]
+0049BAA2  |.  E8 718BF6FF    CALL mp3cutte.00404618
+0049BAA7  |.  8D45 F8        LEA EAX,DWORD PTR SS:[EBP-8]
+0049BAAA  |.  BA 02000000    MOV EDX,2
+0049BAAF  |.  E8 888BF6FF    CALL mp3cutte.0040463C
+0049BAB4  \.  C3             RETN
+0049BAB5    .^ E9 E284F6FF   JMP mp3cutte.00403F9C
+0049BABA    .^ EB CB          JMP SHORT mp3cutte.0049BA87
+0049BABC    .  5F            POP EDI
+0049BABD    .  5E            POP ESI
+0049BABE    .  5B            POP EBX
+0049BABF    .  8BE5          MOV ESP,EBP
+0049BAC1    .  5D            POP EBP
+0049BAC2    .  C3            RETN
+--------------------------------------------------------------------------------
+```
+
+**【算法总结】** 逐一取用户名的`Ascii`，乘以`BE755`，加上`C0F97`，然后整除以`2`，再加上`4A2FFE3`就是注册码了。
+
+这个软件必须是作者预设的用户名，不是的话是不行的，所以我们要把`0049B956`改为`Jmp`，算法不变，呵呵。
+
+```
+JAGD38-jowBN3K KOB82j-ncVBN8k VXV96J-WU76yw BNCE8H-Pmx87by CXZ93z-nbBP93Y BOXLR6-8hvg8C HGSOhox-bnr29h
+```
+
+`YWT6682-hoa46I` 这是这个软件所预设的用户名，还有很多，我就不列出来了，如果大家要注册，就用这几个就可以了。
+
+**【Delphi 算法注册机源码】**
+
+```pascal
+procedure TForm1.Button1Click(Sender: TObject);
+var
+  a: string;
+  b, i: integer;
+begin
+  a := edit1.text;
+  b := 0;
+  for i := 1 to length(a) do
+    b := b + ord(a[i]);
+  b := b * $BE755;
+  b := b + $C0F97;
+  b := b div 2;
+  b := b + $4A2FFE3;
+  edit2.text := inttostr(b);
+end;
+```
+
+我比较懒，写成这样就算了。大家如果想做的比较完美的话，可以定义一个`49`个元素的数组，假定数组名为`str`（预设的用户名有`49`个），然后取`0`到`49`内的随机数，假定为`sjs`，然后赋值，然后让`edit1`的内容等于`str(sjs)`，这样就可以随机取那`49`个用户名了，然后再进行计算，就可以得到用户名了。因为比较麻烦我就不写了，嘿嘿，给大家这个思路就可以了。
+![扮鬼脸](img/7c79845954f5fbf9e981f570ed213a8d.jpg)
+
+`4dd466d0e1e0cc123afbe504da2462ca`
