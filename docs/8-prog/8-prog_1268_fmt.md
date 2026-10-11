@@ -1,0 +1,67 @@
+
+# 显示被 EncryptPE 隐藏的进程，附源代码
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-689.htm`](https://www.pediy.com/kssd/pediy08/pediy8-689.htm)
+
+只要运行`ShowProcess.exe`就可显示隐藏的进程。
+
+比如，先运行`ImportREC.exe`再运行`ShowProcess.exe`，就可以找到隐藏的进程。
+
+```c
+#include <Windows.h>
+#include <Psapi.h>
+
+#pragma comment (lib,"Psapi.lib")
+
+int ShowProcess(HANDLE hd,DWORD address);
+
+void main_()
+{
+  DWORD dll;
+  DWORD aProcesses[1024], cbNeeded;
+  int cProcesses,i;
+  HANDLE hProcess;
+
+  dll =(DWORD)GetProcAddress(LoadLibrary("ntdll.dll"),"ZwOpenProcess");
+
+  if( !EnumProcesses(aProcesses,sizeof(aProcesses), &cbNeeded))
+  {
+    return;
+  }
+
+  cProcesses = cbNeeded / sizeof(DWORD);
+
+  for(i=0;i<cProcesses;i++)
+  {
+    hProcess=OpenProcess( PROCESS_VM_WRITE| PROCESS_CREATE_THREAD |
+      PROCESS_VM_OPERATION| PROCESS_QUERY_INFORMATION|PROCESS_VM_READ,
+      FALSE, aProcesses[i]);
+    if(hProcess==NULL)
+      continue;
+
+    ShowProcess(hProcess,dll);
+  }
+}
+
+int ShowProcess(HANDLE hd,DWORD address)
+{
+  DWORD old;
+  SIZE_T read;
+  char befor[10];
+  ReadProcessMemory(hd,(LPCVOID)address,befor,5,&read);
+
+  if((UCHAR)*befor!=0xb8 && (UCHAR)*(befor+1)!=0x80)
+  {
+    ZeroMemory(befor,10);
+    *befor=0xb8;
+    *(befor+1)=0x80;
+    VirtualProtectEx((HANDLE)hd,(LPVOID)address,5,PAGE_EXECUTE_READWRITE,&old);
+    WriteProcessMemory((HANDLE)hd,(LPVOID)address,befor,5,&read);
+    VirtualProtectEx((HANDLE)hd,(LPVOID)address,5,old,&old);
+  }
+
+  return 0;
+}
+```
+
+4dd466d0e1e0cc123afbe504da2462ca

