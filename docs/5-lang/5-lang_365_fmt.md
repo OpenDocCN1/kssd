@@ -1,0 +1,312 @@
+
+# Vopt99 v4.31
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum343.htm`](https://www.pediy.com/kssd/pediy03/forum343.htm)
+
+Vopt99 v4.31 的注册码破解
+
+工具：`TRW2000` 和 `Wdasm 8.93`
+
+目标说明：`Vopt99` 可将分裂在硬盘上不同扇区的文件快速和安全的重整，帮你节省更多时间，支持 `FAT16` 和 `FAT32` 格式及中文长文件名，速度特快！真不知道 `M$` 的那个是怎么写的！
+
+下载地址：`ftp://member.myrice.com/czy/dl3/V99v431.exe`
+
+难度：中级？
+
+===========================================================================
+
+运行程序，输入 `Name:sUpErbOss  Location:Super  Personal key:1234567890ABCDEFGHIJ`
+
+按 `Ctrl-N` 切换到 `TRW2000` 下，设断点 `BPX HMEMCPY`，点击“OK”按钮，被拦下，打 "BD *"。
+
+按几次 `F12` 键，回到 `Vopt99` 模组下，再一直按 `F10` 键，直到下面所指的重点处：
+
+```
+:00456F63 8BF8                 mov edi, eax
+:00456F65 FF91A0000000         call dword ptr [ecx+000000A0]
+:00456F6B 3BC3                 cmp eax, ebx  <----我们首先在此登陆！
+:00456F6D 7D12                 jge 00456F81
+:00456F6F 68A0000000           push 000000A0
+:00456F74 68A4244100           push 004124A4
+
+.
+.
+.
+
+* Reference To: MSVBVM50.__vbaStrMove, Ord:0000h
+|
+:004570B0 FF15C4D44500         Call dword ptr [0045D4C4]
+:004570B6 8D4DE4               lea ecx, dword ptr [ebp-1C]
+:004570B9 51                   push ecx
+:004570BA E87124FDFF           call 00429530  <-----重点哦！！(按 F8 键吧！^^)
+:004570BF 8D55E4               lea edx, dword ptr [ebp-1C]
+:004570C2 8D45E8               lea eax, dword ptr [ebp-18]
+```
+
+进去后，很快来到下面所指的地方，现在该明白了，注册码为什么要输 20 个字符吧？！
+
+还有啦！呆会儿，程序会把输入的字符打乱，未免产生混乱，所以要按一定的顺序输入注册码！
+
+这是破解软件的好习惯！
+
+```
+* Reference To: MSVBVM50.__vbaLenBstr, Ord:0000h
+|
+:004295ED 8B3DC4D24500         mov edi, dword ptr [0045D2C4]
+:004295F3 FFD7                 call edi
+:004295F5 33DB                 xor ebx, ebx
+:004295F7 83F814               cmp eax, 00000014  <-----注册码长度要为 20 个字符
+:004295FA 0F94C3               sete bl
+:004295FD A148964500           mov eax, dword ptr [00459648]
+:00429602 50                   push eax
+:00429603 FFD7                 call edi
+:00429605 33C9                 xor ecx, ecx
+:00429607 83F805               cmp eax, 00000005 <-----Location 的长度不能小于 5 个字符
+:0042960A 0F9DC1               setnl cl
+:0042960D 85D9                 test ecx, ebx
+:0042960F 0F8599000000         jne 004296AE
+
+.
+.
+.
+
+:00429BCC 50                   push eax  <-----"IGJFH"
+:00429BCD 8B55A0               mov edx, dword ptr [ebp-60]
+:00429BD0 52                   push edx  <-----"CEPUB"
+
+* Reference To: MSVBVM50.__vbaStrCmp, Ord:0000h
+|
+:00429BD1 FF1590D34500         Call dword ptr [0045D390] <---注册码的第一个比对处！
+:00429BD7 8BD8                 mov ebx, eax
+:00429BD9 F7DB                 neg ebx
+:00429BDB 1BDB                 sbb ebx, ebx
+:00429BDD 43                   inc ebx
+:00429BDE F7DB                 neg ebx
+```
+
+看到上面的比对后，二话不说，先在 `00429BD1` 处设断点（什么键？！当然是 `F9` 键啦），再改注册码："1234567890ABCDEUEBCP"
+
+再往下走，就到了程序的迷魂阵了，在主程序中什么也找不到！
+
+其实，`Vopt99` 还借助了第三方的注册码校验器，它就是 `ShareLock`，其主文件 `shrlk21.dll` 位于系统目录下。
+
+用 `WDasm` 反汇编后，会找到如下的输出函数，这就是我们的突破点，Let's Go!!
+
+按 `Ctrl-N` 切换到 `TRW2000` 下，打 "pdll32 shrlk21.dll"，按 `F5` 键回到系统，将 `Vopt99` 关闭。
+
+被拦下后，记一下当前指令的地址（即 `shrlk21.dll` 入口处的地址），将它与 `Wdasm` 中 `shrlk21.dll` 的入口地址比较一下，如：
+
+指令的地址为 `00F88E50`，而 `Wdasm` 中显示的为 `00448E50`，那么下面可这样打 "BPX 00F87548"。
+
+重新输入注册码："1234567890ABCDEUEBCP"，点击“OK”按钮，被拦下，打 "BD *"。
+
+接着，一直按 `F10` 键往下走，到了核心 `Call_1` 处，按 `F8` 键进入：
+
+```
+Exported fn(): InputUnlockCode - Ord:000Ch
+
+:00447548 55                   push ebp
+:00447549 8BEC                 mov ebp, esp
+:0044754B 6A00                 push 00000000
+:0044754D 6A00                 push 00000000
+:0044754F 6A00                 push 00000000
+:00447551 33C0                 xor eax, eax
+:00447553 55                   push ebp
+:00447554 68AD754400           push 004475AD
+:00447559 64FF30               push dword ptr fs:[eax]
+:0044755C 648920               mov dword ptr fs:[eax], esp
+:0044755F 8D45FC               lea eax, dword ptr [ebp-04]
+:00447562 8B5510               mov edx, dword ptr [ebp+10]
+:00447565 E8C6C4FBFF           call 00403A30
+:0044756A 8B45FC               mov eax, dword ptr [ebp-04]
+:0044756D 50                   push eax
+:0044756E 8D45F8               lea eax, dword ptr [ebp-08]
+:00447571 8B550C               mov edx, dword ptr [ebp+0C]
+:00447574 E8B7C4FBFF           call 00403A30
+:00447579 8B45F8               mov eax, dword ptr [ebp-08]
+:0044757C 50                   push eax
+:0044757D 8D45F4               lea eax, dword ptr [ebp-0C]
+:00447580 8B5508               mov edx, dword ptr [ebp+08]
+:00447583 E8A8C4FBFF           call 00403A30
+:00447588 8B45F4               mov eax, dword ptr [ebp-0C]
+:0044758B 5A                   pop edx
+:0044758C 59                   pop ecx
+:0044758D E8F2D5FFFF           call 00444B84  <----核心 Call_1！(别忘了按 F8 键哦!)
+:00447592 33C0                 xor eax, eax
+```
+
+进入核心 `Call_1` 后，再一直按 `F10` 键往下走，直到核心 `Call_2` 处，按 `F8` 键进入：
+
+```
+:00444B84 55                   push ebp
+:00444B85 8BEC                 mov ebp, esp
+:00444B87 83C4E8               add esp, FFFFFFE8
+:00444B8A 53                   push ebx
+:00444B8B 33DB                 xor ebx, ebx
+:00444B8D 895DE8               mov dword ptr [ebp-18], ebx
+:00444B90 894DF4               mov dword ptr [ebp-0C], ecx
+:00444B93 8955F8               mov dword ptr [ebp-08], edx
+:00444B96 8945FC               mov dword ptr [ebp-04], eax
+:00444B99 8B45FC               mov eax, dword ptr [ebp-04]
+:00444B9C E80BF1FBFF           call 00403CAC
+:00444BA1 8B45F8               mov eax, dword ptr [ebp-08]
+:00444BA4 E803F1FBFF           call 00403CAC
+:00444BA9 8B45F4               mov eax, dword ptr [ebp-0C]
+:00444BAC E8FBF0FBFF           call 00403CAC
+:00444BB1 33C0                 xor eax, eax
+:00444BB3 55                   push ebp
+:00444BB4 68524D4400           push 00444D52
+:00444BB9 64FF30               push dword ptr fs:[eax]
+:00444BBC 648920               mov dword ptr fs:[eax], esp
+:00444BBF C645F300             mov [ebp-0D], 00
+:00444BC3 C645F300             mov [ebp-0D], 00
+:00444BC7 33C0                 xor eax, eax
+:00444BC9 8945EC               mov dword ptr [ebp-14], eax
+:00444BCC 803D8DA8440000       cmp byte ptr [0044A88D], 00
+:00444BD3 741D                 je 00444BF2
+:00444BD5 8D45EC               lea eax, dword ptr [ebp-14]
+:00444BD8 50                   push eax
+:00444BD9 8D45E8               lea eax, dword ptr [ebp-18]
+:00444BDC 50                   push eax
+
+* Reference To: ShrLk21.GetDriveNumber
+|
+:00444BDD E84E300000           call 00447C30
+:00444BE2 8B55E8               mov edx, dword ptr [ebp-18]
+:00444BE5 8D4DF3               lea ecx, dword ptr [ebp-0D]
+:00444BE8 8B45FC               mov eax, dword ptr [ebp-04]
+:00444BEB E8AC010000           call 00444D9C
+:00444BF0 EB1D                 jmp 00444C0F
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00444BD3(C)
+|
+:00444BF2 8D45EC               lea eax, dword ptr [ebp-14]
+:00444BF5 50                   push eax
+```
+
+
+
+:00444BF6 8D55E8          lea edx, dword ptr [ebp-18]
+
+:00444BF9 8B45F8          mov eax, dword ptr [ebp-08]
+
+:00444BFC E85B2AFCFF      call 0040765C
+
+:00444C01 8B55E8          mov edx, dword ptr [ebp-18]
+
+:00444C04 8D4DF3          lea ecx, dword ptr [ebp-0D]
+
+:00444C07 8B45FC          mov eax, dword ptr [ebp-04]
+
+:00444C0A E88D010000      call 00444D9C  <----核心 Call_2! (别忘了按 F8 键哦!)
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00444BF0(U)
+
+|
+
+:00444C0F 8A45F3          mov al, byte ptr [ebp-0D]
+
+进了核心 Call_2，就到站啦！往下看吧！
+
+:00444D9C 55              push ebp
+
+:00444D9D 8BEC            mov ebp, esp
+
+:00444D9F 83C4E4          add esp, FFFFFFE4
+
+:00444DA2 53              push ebx
+
+:00444DA3 33DB            xor ebx, ebx
+
+:00444DA5 895DE8          mov dword ptr [ebp-18], ebx
+
+                                  .
+
+                                  .
+
+                                  .
+
+:00444E59 8AC3            mov al, bl
+
+:00444E5B 83E841          sub eax, 00000041  <---eax 必须为 41，即字母"A"
+
+:00444E5E 6BC01A          imul eax, 0000001A
+
+:00444E61 33D2            xor edx, edx
+
+:00444E63 8A55EF          mov dl, byte ptr [ebp-11]  <---dl 必须也为 41，即字母"A"
+
+:00444E66 83EA41          sub edx, 00000041
+
+:00444E69 03C2            add eax, edx
+
+:00444E6B 8B5508          mov edx, dword ptr [ebp+08]
+
+:00444E6E 8902            mov dword ptr [edx], eax  <---eax 必须为 0，下面会比对！
+
+:00444E70 33DB            xor ebx, ebx
+
+                                  .
+
+                                  .
+
+:00444EAF 8BD3            mov edx, ebx
+
+:00444EB1 E8BA070000      call 00445670
+
+:00444EB6 8B55E8          mov edx, dword ptr [ebp-18] <------"1C41A5EAD6F2"
+
+:00444EB9 8B45FC          mov eax, dword ptr [ebp-04] <------"54B7DE038296"
+
+:00444EBC E847EDFBFF      call 00403C08  <----比对注册码！(光带移到此处，按 F9 键设段)
+
+:00444EC1 7506            jne 00444EC9
+
+:00444EC3 8B45F4          mov eax, dword ptr [ebp-0C]
+
+:00444EC6 C60001          mov byte ptr [eax], 01
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00444EC1(C)
+
+|
+
+:00444EC9 8B4508          mov eax, dword ptr [ebp+08]
+
+:00444ECC 833800          cmp dword ptr [eax], 00000000  <----[eax]的值必须为 0
+
+:00444ECF 750C            jne 00444EDD
+
+:00444ED1 807DEE43        cmp byte ptr [ebp-12], 43  <------[ebp-12]的值必须为"C"
+
+:00444ED5 7406            je 00444EDD
+
+:00444ED7 8B45F4          mov eax, dword ptr [ebp-0C]
+
+:00444EDA C60000          mov byte ptr [eax], 00
+
+注意哦！`Vopt99` 在核心 `Call_2` 中设置了一个小小的陷阱,第一次打"D EDX"，看到的注册码是假的。如果你用假的注册码注册，程序也会显示注册成功，但在 About 对话框中，会显示授权给非法的版本。再次启动 `Vopt99`，根本就不能运行了！
+
+所以，第一次到这时，设置一个断点，按 F5 键再次拦下，这时打"D EDX",看到的注册码才是真的。
+
+下面排一下注册码：
+
+1  2  3  4  5  6  7  8  9  0  A  B  C  D  E  U  E  B  C  P
+
+|  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+
+|  6  A  C  1  2  1  D  F  E  |  4  |  A  5
+
+C                       A   A
+
+很明显，注册码为"C6AC121DFEA4AA5UEBCP",重新输入，成功啦！
+
+不过，此注册码并不能流通，也就是说，不同的机器，注册码是不一样的！可能还有安装时间或机器硬件信息也参与了注册码的运算,看来只能用算号器，来得到注册码了！:（
+
+```
+4dd466d0e1e0cc123afbe504da2462ca
+```

@@ -1,0 +1,80 @@
+
+# Windows 超级设置 723
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50668.htm`](https://www.pediy.com/kssd/pediy05/pediy50668.htm)
+
+破解的程序：`Windows 超级设置 723`。
+
+前几天在论坛上看了一篇破解文本框输入限制的文章，得到些启示，于是有了这篇破文。
+
+运行程序，提示注册，可输入框竟不能输入，尝试用粘贴法也行。注册码很容易找到，用`__vbastrcomp` 比较，`ollydbg` 跟踪即可看到。可无论如何无法输入。
+
+跟踪`regform_load`，发现不像是`text1.enabled=false`，因为如果那样，输入框没有光标闪动，且不接受右键点击。反汇编找`__vbaobjectset`，看看前面是否有`push 00(enabled=false)`没找到。用`vbded` 反编译也没看出什么东西。看来是另做了手脚。
+
+没办法，只好想办法改内存来给它数据。以下用另一`VB`程序来模拟输入。
+
+```
+00413013  LEA ECX,DWORD PTR SS:[EBP-38]      --->文本框指针
+00413016  PUSH ECX
+00413017  PUSH EDI
+00413018  MOV EAX,DWORD PTR DS:[EDI]
+0041301A  CALL DWORD PTR DS:[EAX+A0]         --->读文本框数据
+00413020  TEST EAX,EAX
+00413022  FCLEX
+00413024  JGE SHORT EX611.00413038
+00413026  PUSH 0A0
+0041302B  PUSH EX611.00411A48
+00413030  PUSH EDI
+00413031  PUSH EAX
+00413032  CALL DWORD PTR DS:[<&MSVBVM60.__vbaHresu>; 
+MSVBVM60.__vbaHresultCheckObj
+00413038  MOV EDX,DWORD PTR SS:[EBP-38]      --->得到输入码
+0041303B  LEA ECX,DWORD PTR SS:[EBP-34]
+0041303E  MOV DWORD PTR SS:[EBP-38],0
+00413045  CALL ESI
+00413047  LEA ECX,DWORD PTR SS:[EBP-48]
+0041304A  CALL DWORD PTR DS:[<&MSVBVM60.__vbaFreeO>; 
+MSVBVM60.__vbaFreeObj
+00413050  MOV EDX,DWORD PTR SS:[EBP-30]
+00413053  MOV EAX,DWORD PTR SS:[EBP-34]
+00413056  PUSH EDX                            --->输入码
+00413057  PUSH EAX                            --->正确码
+00413058  PUSH 0
+0041305A  CALL DWORD PTR DS:[<&MSVBVM60.__vbaStrCo>; 
+MSVBVM60.__vbaStrComp     --->比较是否相等
+```
+
+在`0041301A`处跟入，里面还有个`call`，再跟入，直到：
+
+```
+****CED2  PUSH DWORD PTR SS:[EBP+10]
+****CED5  PUSH DWORD PTR SS:[EBP+C]      --->输入码。在 OllyDbg 中转存跟随数值，如果输入为空，
+可能显示 ABEF0108 等乱码。将其改为正确注册码即可。注意不要用宽字符，输完后以 00 结束(98 中好像用 0001 结束)。
+****CED8  CALL MSVBVM60.733BD01B
+```
+
+(以上地址前四位可能不同，但后四位应该是一样的。)
+
+再次运行`Windows 超级设置 723`，出现注册提示直接点击确定，在`****CED5`处中断。修改内存，收工。
+
+本人水平不高，不能破解输入限制，只能改内存。麻烦哪位高手看看怎么破解，我等也好学习。
+
+输入注册码的控件是在`form7`中的第 5 个控件`text1`
+
+作者没有用`text1.enabled=false`来限制输入;
+
+而是用了`text1.locked=true`下套。
+
+所以用`ultraedit`在`Form7`区域中定位至`offset 33523H`
+
+注意这里
+
+`offset 3353dH 2D FF --> text1.locked=true`
+
+改为 `2D 00 --> text1.locked=false`
+
+`job done！`
+
+`BTW：`看了这个软件，才发现`vbde`对很多控件属性并没有反编译；但要编程实现这个，也真的很烦；懒人于我也就手工完成了。
+
+`4dd466d0e1e0cc123afbe504da2462ca`

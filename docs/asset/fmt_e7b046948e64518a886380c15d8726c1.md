@@ -1,0 +1,50 @@
+
+# wintools5.0
+
+> 原文：[`www.pediy.com/kssd/pediy01/forum113.htm`](https://www.pediy.com/kssd/pediy01/forum113.htm)
+
+本篇文章只供学习交流之用。
+
+## 方法一、用 `SOFTICE`
+
+1. 这是一 `VB5` 程序，在 `winice.dat` 装载：`EXP=c:\windows\system\msvbvm50.dll`；`winNT` 用户需在 `setint` 配制。
+2. 下 `bpx __vbastrcmp`，将中断，按 `F12` 走出此 `CALL`，来到 `0137:0043617E`（当然你一直跟进去也能找到序列号）。
+3. 下 `BC *` 清除其余断点，在 `0137:00436178` 设断，将中断如下：
+
+```
+0137:00436175 8B4DE8    MOV     ECX,[EBP-18]
+0137:00436178 51        PUSH    ECX........中断于此，下 d ecx 你输入的注册码
+0137:00436179 688C944000 PUSH   0040948C
+
+                              ^^^^^^^^
+
+d 40948c，正确的注册码
+
+0137:0043617E FF1578E24300 CALL   Near [`MSVBVM50!__vbaStrCmp`]...第 2 步的按 F12 回到此
+0137:00436184 8BD8        MOV     EBX,EAX
+0137:00436186 8D4DE8      LEA     ECX,[EBP-18]
+```
+
+4. 这程序保护一般，大家想了解更多的 `Vb` 序列号破解，请关注网站的更新。
+
+## 方法二、用 `SmartCheck`
+
+1. 首先配制好 `SmartCheck`；
+2. 装载 `wintools5.0`，运行，一直到时 `wintools` 运行结束，在 `SmartCheck` 主窗口中，还不断有信息记录产生:
+
+```
+...........
+Timer1_Timer
+Timer2_Timer
+...........
+```
+
+此时不管它，点击 `wintools` 注册，输入注册码，按 `OK` 后，再在 `SmartCheck` 下按红色的按钮停止程序的运行，最好快点，不然，还有许多没用的 `Timer1_Timer` 产生；
+3. 找一找：`cmdOk_Click`;展开它，
+
+`txtpassword.Text`;光标移到这一行，点击菜单的"show all evants"
+4. 点击下面一行：
+
+`_vbastrcmp` returns `DWORD:FFFFF`
+
+看右窗口，哈哈，全在那！
