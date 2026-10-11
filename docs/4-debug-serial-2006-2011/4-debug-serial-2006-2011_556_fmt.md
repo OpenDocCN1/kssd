@@ -1,0 +1,261 @@
+
+# 新手追寻 WinCHM V4.07
+
+> 原文：[`www.pediy.com/kssd/pediy11/110733.html`](https://www.pediy.com/kssd/pediy11/110733.html)
+
+新手作品，疏漏之处，多多见谅！
+
+运行软件，输入注册名与注册码，提示 `illegal registration code!`
+
+开始追！
+
+`PEID` 查壳，`Borland Delphi 6.0 - 7.0`
+
+`OD` 载入，查找 `ASCII` 码，
+
+```
+0050FEA6  .  BA BCFF5000   mov     edx, 0050FFBC            ; illegal registration code!
+```
+
+幸运！
+
+向上寻找
+
+```
+0050FD74  /  55           push    ebp
+```
+
+下断，`F9` 运行，输入注册名与注册码，确定，断下
+
+`F8` 向下，
+
+```
+0050FE3D  .  E8 F6F9FFFF   call    0050F838
+0050FE42  .  A1 C4A15400   mov     eax, dword ptr [54A1C4]
+0050FE47  .  8338 00       cmp     dword ptr [eax], 0
+0050FE4A  .  74 57         je      short 0050FEA3
+0050FE4C  .  8B0D C4A15400 mov     ecx, dword ptr [54A1C4]  ; winchm.0054C1F0
+0050FE52  .  8B09          mov     ecx, dword ptr [ecx]
+0050FE54  .  8D45 FC       lea     eax, dword ptr [ebp-4]
+0050FE57  .  BA 30FF5000   mov     edx, 0050FF30            ; thank you for purchasing our product!\\n\\n\\n\\nlicense type:
+```
+
+`0050FE3D` 为关键 `CALL`，`F7` 跟进
+
+`F8` 向下
+
+```
+0050F94D  .  83E8 01       sub     eax, 1                    ; Switch (cases 0..270F)
+0050F950  .  72 0B         jb      short 0050F95D
+0050F952  .  74 15         je      short 0050F969
+0050F954  .  2D 0E270000   sub     eax, 270E
+0050F959  .  74 1F         je      short 0050F97A
+0050F95B  .  EB 2E         jmp     short 0050F98B
+0050F95D  >  A1 C4A15400   mov     eax, dword ptr [54A1C4]   ; Case 0 of switch 0050F94D
+0050F962  .  E8 E149EFFF   call    00404348
+0050F967  .  EB 3E         jmp     short 0050F9A7
+0050F969  >  A1 C4A15400   mov     eax, dword ptr [54A1C4]   ; Case 1 of switch 0050F94D
+0050F96E  .  BA 20FA5000   mov     edx, 0050FA20             ; single-user license
+0050F973  .  E8 244AEFFF   call    0040439C
+0050F978  .  EB 2D         jmp     short 0050F9A7
+0050F97A  >  A1 C4A15400   mov     eax, dword ptr [54A1C4]   ; Case 270F of switch 0050F94D
+0050F97F  .  BA 3CFA5000   mov     edx, 0050FA3C             ; unlimited-user license
+0050F984  .  E8 134AEFFF   call    0040439C
+0050F989  .  EB 1C         jmp     short 0050F9A7
+0050F98B  >  8D55 E8       lea     edx, dword ptr [ebp-18]  ; Default case of switch 0050F94D
+```
+
+猜想为多种权限注册，追 `unlimited-user license`
+
+观察跳转，为
+
+```
+0050F959  .  74 1F         je      short 0050F97A
+```
+
+跳向无权限限制注册
+
+观察上面
+
+```
+0050F944  .  E8 03F7FFFF   call    0050F04C
+0050F949  .  8BD8          mov     ebx, eax
+0050F94B  .  8BC3          mov     eax, ebx
+0050F94D  .  83E8 01       sub     eax, 1                    ; Switch (cases 0..270F)
+0050F950  .  72 0B         jb      short 0050F95D
+0050F952  .  74 15         je      short 0050F969
+0050F954  .  2D 0E270000   sub     eax, 270E
+0050F959  .  74 1F         je      short 0050F97A
+```
+
+`0050F944` 为计算 `CALL`，两次 `SUB` 操作，则需要 `eax` 为 `270F`
+
+跟进 `CALL 0050F04C`
+
+```
+0050F0A4  .  E8 BFF7FFFF   call    0050E868
+0050F0A9  .  8945 F0       mov     dword ptr [ebp-10], eax
+0050F0AC  .  8955 F4       mov     dword ptr [ebp-C], edx
+0050F0AF  .  837D F4 00    cmp     dword ptr [ebp-C], 0
+0050F0B3  .  75 13         jnz     short 0050F0C8
+0050F0B5  .  817D F0 082E0>cmp     dword ptr [ebp-10], 2E08
+0050F0BC  .  75 0A         jnz     short 0050F0C8
+0050F0BE  .  BB 01000000   mov     ebx, 1
+0050F0C3  .  E9 7F050000   jmp     0050F647
+0050F0C8  |>  837D F4 00   cmp     dword ptr [ebp-C], 0
+0050F0CC  .  75 13         jnz     short 0050F0E1
+0050F0CE  .  817D F0 A42F0>cmp     dword ptr [ebp-10], 2FA4
+0050F0D5  .  75 0A         jnz     short 0050F0E1
+0050F0D7  .  BB 02000000   mov     ebx, 2
+0050F0DC  .  E9 66050000   jmp     0050F647
+0050F0E1  |>  837D F4 00   cmp     dword ptr [ebp-C], 0
+0050F0E5  .  75 13         jnz     short 0050F0FA
+0050F0E7  .  817D F0 A4290>cmp     dword ptr [ebp-10], 29A4
+0050F0EE  .  75 0A         jnz     short 0050F0FA
+0050F0F0  .  BB 03000000   mov     ebx, 3
+0050F0F5  .  E9 4D050000   jmp     0050F647
+0050F0FA  |>  837D F4 00   cmp     dword ptr [ebp-C], 0
+0050F0FE  .  75 13         jnz     short 0050F113
+0050F100  .  817D F0 37310>cmp     dword ptr [ebp-10], 3137
+0050F107  .  75 0A         jnz     short 0050F113
+0050F109  .  BB 05000000   mov     ebx, 5
+0050F10E  .  E9 34050000   jmp     0050F647
+0050F113  |>  837D F4 00   cmp     dword ptr [ebp-C], 0
+0050F117  .  75 13         jnz     short 0050F12C
+0050F119  .  817D F0 262E0>cmp     dword ptr [ebp-10], 2E26
+0050F120  .  75 0A         jnz     short 0050F12C
+0050F122  .  BB 0A000000   mov     ebx, 0A
+0050F127  .  E9 1B050000   jmp     0050F647
+0050F12C  |>  837D F4 00   cmp     dword ptr [ebp-C], 0
+0050F130  .  75 13         jnz     short 0050F145
+0050F132  .  817D F0 862F0>cmp     dword ptr [ebp-10], 2F86
+0050F139  .  75 0A         jnz     short 0050F145
+0050F13B  .  BB 14000000   mov     ebx, 14
+0050F140  .  E9 02050000   jmp     0050F647
+0050F145  |>  837D F4 00   cmp     dword ptr [ebp-C], 0
+0050F149  .  75 13         jnz     short 0050F15E
+0050F14B  .  817D F0 AE370>cmp     dword ptr [ebp-10], 37AE
+0050F152  .  75 0A         jnz     short 0050F15E
+0050F154  .  BB 32000000   mov     ebx, 32
+0050F159  .  E9 E9040000   jmp     0050F647
+0050F15E  |>  837D F4 00   cmp     dword ptr [ebp-C], 0
+0050F162  .  75 13         jnz     short 0050F177
+0050F164  .  817D F0 A9300>cmp     dword ptr [ebp-10], 30A9
+```
+
+下面（代码太长，这里不贴了）可以看出是选择类别的
+
+```
+0050F182  .  83FB 14       cmp     ebx, 14                   ; Switch (cases 14..22)
+```
+
+分析上面代码，记录下数字
+
+`2E08` `2FA4` `29A4` `3137` `2E26` `2F86` `37AE` `30A9`
+
+```
+0050F164  .  817D F0 A9300>cmp     dword ptr [ebp-10], 30A9
+0050F16B  .  75 0A         jnz     short 0050F177
+0050F16D  .  BB 0F270000   mov     ebx, 270F
+0050F172  .  E9 D0040000   jmp     0050F647
+```
+
+分析出一个值与 `30A9` 比较，不为零则跳，否则将 `270F` 放入 `ebx`
+
+这根上面分析的 `eax` 需要为 `270F` 吻合，故追踪 `ebx` 值，
+
+```
+0050F0A4  .  E8 BFF7FFFF   call    0050E868
+```
+
+`F7` 跟进
+
+```
+0050E8B9  |>  /8B45 EC     /mov     eax, dword ptr [ebp-14]
+```
+
+密码放入 `eax`
+
+```
+0050E8BC  .  |0FB64408 FF  |movzx   eax, byte ptr [eax+ecx-1]
+```
+
+密码第一位的 `ASCII` 的 `HEX` 值放入
+
+```
+0050E8C1  .  |F7E9         |imul    ecx
+```
+
+与 `ecx` 的值相乘，初始为 `1`
+
+```
+0050E8C3  .  |99          |cdq
+```
+
+`D` 寄存器清 `0`
+
+```
+0050E8C4  .  |0345 E0     |add     eax, dword ptr [ebp-20]
+```
+
+与 `dword ptr [ebp-20]` 内值相加，初始为 `0`
+
+```
+0050E8C7  .  |1355 E4     |adc     edx, dword ptr [ebp-1C] 略过
+0050E8CA  .  |8945 E0     |mov     dword ptr [ebp-20], eax
+```
+
+相加后的值放入 `dword ptr [ebp-20]`
+
+```
+0050E8CD  .  |8955 E4     |mov     dword ptr [ebp-1C], edx 略过
+0050E8D0  .  |41          |inc     ecx
+```
+
+`ecx`+1
+
+```
+0050E8D1  .  |4B          |dec     ebx
+```
+
+`ebx`-1
+
+```
+0050E8D2  |.^\\75 E5        \\jnz     short 0050E8B9
+```
+
+跳回
+
+此段代码就是算法了
+
+即密码第一位 `X1`+第二位 `X2`+第三位 `X3`+……第 `N` 位 `XN`
+
+然后与外面的那组数比较，这里就追踪 `30A9` 的了
+
+由于只是为了自己使用，所以仅手工算了一个
+
+`30A9` 换算为 `10` 进制为 `12457`
+
+取多位相同的
+
+    `HEX`
+
+`5` `35` 对应 `10` 进制为 `53`
+
+`4` `34` 对应 `10` 进制为 `52`
+
+`R` `52` 对应 `10` 进制为 `82`
+
+`54RRRRRRRRRRRRRRR`
+
+即
+
+`53+52X2+82X(3+4+5+6+7+8+9+10+11+12+13+14+15+16+17)=53+104+82X150=12457`
+
+数学问题。。。
+
+注册名任意输入，注册码 `54RRRRRRRRRRRRRRR`
+
+注册成功 注册信息 `Unlimited-user License`
+
+至此完成了追寻！

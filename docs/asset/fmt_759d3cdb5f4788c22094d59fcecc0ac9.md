@@ -1,0 +1,151 @@
+
+# FlashPT 2.2 Build
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-283.htm`](https://www.pediy.com/kssd/pediy08/pediy8-283.htm)
+
+**破文标题** FlashPT 2.2 Build 算法分析
+
+**破文作者** 逍遥风
+
+**作者邮箱**
+
+**作者主页**
+
+**破解工具** `OD` `ASPACKDIE`
+
+**破解平台** `WINXP`
+
+**软件名称** `FlashPT`
+
+**软件大小**
+
+**原版下载**
+
+**保护方式** `ASpack`
+
+**软件简介** 随着网络的快速发展，`Flash` 渐渐受到更多人的关注。无论是网页制作还是动画影片的制作，`Flash` 成为了大家必不可少的工具。
+
+因此，网络上出现了众多的 `Flash` 动画影片，因为其体积小、影片种类多、风格各异，所以越来越受到人们的喜爱，而使其如 `MP3` 歌曲一样为大家所收藏。但是，当大家收集的 `Flash` 影片渐渐增多时，您在管理和欣赏 `Flash` 影片便会感到很不方便。为此，我开发了 `FlashPT`（全称：`Flash Player and Tools`），它由 `Flash` 播放器、`Flash` 文件转换解密、`Flash` 文件分析器三个独立的应用程序组成，不仅可以使您方便的观看和管理 `Flash` 动画影片，还可以帮助您搜索驱动器或 `IE` 缓存下的影片文件，`exe` 文件和 `swf` 文件之间的互相转换，影片文件属性的查看，`swf` 文件的解密，以及从影片文件中解析出图片和声音资源，可以满足大部分用户的需求。
+
+此软件为绿色软件，适用与 `Win9x`/`ME`/`2000`/`XP` 系统。您可以随时通过任意途径传播
+
+--------------------------------------------------------------------------------------------------------------------
+
+软件用 `ASPACK` 加了壳，很容易脱掉后用 `OD` 载入程序。
+
+来到关键代码处，开始分析算法
+
+### 注册流程
+
+```asm
+004F5AD7  .  55             push    ebp                  ; 在这里下断点
+004F5AD8  .  68 9C5C4F00    push    004F5C9C
+004F5ADD  .  64:FF30        push    dword ptr fs:[eax]
+004F5AE0  .  64:8920        mov     fs:[eax], esp
+004F5AE3  .  8D55 EC        lea     edx, [ebp-14]
+004F5AE6  .  8B87 EC020000  mov     eax, [edi+2EC]
+004F5AEC  .  E8 775FFAFF    call    0049BA68              ; 取 ID 号码
+004F5AF1  .  837D EC 00     cmp     dword ptr [ebp-14], 0 ; 有 ID 号码吗？
+004F5AF5  .  75 1D          jnz     short 004F5B14         ; 没有 ID 号码就出现错误提示
+004F5AF7  .  6A 00          push    0
+004F5AF9  .  B9 AC5C4F00    mov     ecx, 004F5CAC          ; 提示
+004F5AFE  .  BA B45C4F00    mov     edx, 004F5CB4          ; 请先获取 id 号码！
+004F5B03  .  A1 5CFD4F00    mov     eax, [4FFD5C]
+004F5B08  .  8B00           mov     eax, [eax]
+004F5B0A  .  E8 C982F5FF    call    0044DDD8
+004F5B0F  .  E9 65010000    jmp     004F5C79
+004F5B14  |>  8D55 FC        lea     edx, [ebp-4]
+004F5B17  .  8B87 EC020000  mov     eax, [edi+2EC]
+004F5B1D  .  E8 465FFAFF    call    0049BA68              ; 再一次取 ID 号码
+004F5B22  .  C745 F0 00000> mov     dword ptr [ebp-10], 0
+004F5B29  .  C745 F4 00000> mov     dword ptr [ebp-C], 0
+004F5B30  .  8B45 FC        mov     eax, [ebp-4]          ; 使 EAX 等于 ID 号码
+004F5B33  .  E8 A8E3F0FF     call    00403EE0              ; 取 ID 号码的位数
+004F5B38  .  8BF0           mov     esi, eax              ; 使 ESI=EAX 等于 ID 号的位数
+004F5B3A  .  85F6          test    esi, esi
+004F5B3C  .  7E 2D         jle     short 004F5B6B
+004F5B3E  .  BB 01000000    mov     ebx, 1                ; 使 EBX 等于 1，开始循环计算
+004F5B43  |>  8B45 FC       /mov    eax, [ebp-4]           ; 使 EAX 等于 ID 号
+004F5B46  .  807C18 FF 00  |cmp     byte ptr [eax+ebx-1], 0
+004F5B4B  .  74 1A         |je      short 004F5B67
+004F5B4D  .  8B45 FC       |mov    eax, [ebp-4]           ; 使 EAX 等于 ID 号
+004F5B50  .  8A4418 FF     |mov    al, [eax+ebx-1]        ; 取 ID 号每一位的 HEX 值，放进 AL 中
+004F5B54  .  25 FF000000   |and    eax, 0FF                ; 去掉高位
+004F5B59  .  33D2          |xor    edx, edx               ; EDX 清零
+004F5B5B  .  0345 F0       |add    eax, [ebp-10]          ; ID 号的每一位的 HEX 值累加
+004F5B5E  .  1355 F4       |adc    edx, [ebp-C]
+004F5B61  .  8945 F0       |mov    [ebp-10], eax          ; ID 号的累加值保存在[EBP-10]中
+004F5B64  .  8955 F4       |mov    [ebp-C], edx
+004F5B67  |>  43           |inc    ebx                  ; 每计算一次 EBX+1
+004F5B68  .  4E           |dec    esi                  ; 每计算一次 ESI-1
+004F5B69  .^ 75 D8        \jnz    short 004F5B43         ; 循环计算
+```
+
+循环计算的作用就是将 `ID` 号每一位的 `HEX` 值，进行累加，结果设为 `A`
+
+```asm
+004F5B6B  |>  6A 00          push    0
+004F5B6D  .  68 F1E05D00    push    5DE0F1               ; 定值 0x5DE0F1
+004F5B72  .  8B45 F0        mov     eax, [ebp-10]         ; 使 EAX 等于 ID 号每一位的累加和
+004F5B75  .  8B55 F4        mov     edx, [ebp-C]
+004F5B78  .  E8 A70AF1FF    call    00406624               ; 关键的算法 CALL
+```
+
+--------------------------------------------------------------------------------------------------------------------
+
+### 跟进关键 CALL
+
+```asm
+00406624  /$  52            push    edx
+00406625  |.  50            push    eax                   ; EAX 等于累加计算的和
+00406626  |.  8B4424 10     mov     eax, [esp+10]           ; 使 EAX=0
+0040662A  |.  F72424        mul     dword ptr [esp]
+0040662D  |.  8BC8          mov     ecx, eax
+0040662F  |.  8B4424 04     mov     eax, [esp+4]
+00406633  |.  F76424 0C     mul     dword ptr [esp+C]
+00406637  |.  03C8          add     ecx, eax
+00406639  |.  8B0424        mov     eax, [esp]              ; 使 EAX 再次等于累加计算的和
+0040663C  |.  F76424 0C     mul     dword ptr [esp+C]       ; 累加计算的和乘以定值 0x5DE0F1
+00406640  |.  03D1          add     edx, ecx
+00406642  |.  59            pop     ecx
+00406643  |.  59            pop     ecx
+00406644  \\.  C2 0800      retn    8                       ; 将计算的结果输出
+```
+
+算法 `CALL` 的作用就是将累加计算所得的结果 `A` 与定值 `0x5DE0F1` 相乘，结果设为 `B`
+
+--------------------------------------------------------------------------------------------------------------------
+
+```asm
+004F5B7D  .  8945 F0        mov     [ebp-10], eax          ; 将计算结果保存在[EBP-10]中
+004F5B80  .  8955 F4        mov     [ebp-C], edx
+004F5B83  .  8D55 E8        lea     edx, [ebp-18]
+004F5B86  .  8B87 F4020000  mov     eax, [edi+2F4]
+004F5B8C  .  E8 D75EFAFF    call    0049BA68               ; 取输入的注册码
+004F5B91  .  8B45 E8        mov     eax, [ebp-18]          ; 使 EAX 等于输入的注册码
+004F5B94  .  50            push    eax
+004F5B95  .  FF75 F4       push    dword ptr [ebp-C]       ; /Arg2
+004F5B98  .  FF75 F0       push    dword ptr [ebp-10]      ; |Arg1
+004F5B9B  .  8D45 E4       lea     eax, [ebp-1C]           ; |
+004F5B9E  .  E8 2D30F1FF    call    00408BD0               ; \\将算法计算的结果转换成对应的十进制数，即为注册码
+004F5BA3  .  8B55 E4       mov     edx, [ebp-1C]          ; 使 EDX 等于真正的注册码
+004F5BA6  .  58            pop     eax
+004F5BA7  .  E8 44E4F0FF    call    00403FF0               ; 真假注册码比较。
+004F5BAC  .  0F85 93000000 jnz     004F5C45                ; 不相等就跳向失败
+```
+
+最后将 `B` 转换成对应的 10 进制数就是正确的注册码。
+
+--------------------------------------------------------------------------------------------------------------------
+
+### 算法总结
+
+1. 累加 `ID` 号的每一位，结果设为 `A`
+2. `A * 0x5DE0F1 = B`
+3. 将 `B` 转换成对应的 10 进制数就是注册码。
+
+--------------------------------------------------------------------------------------------------------------------
+
+**版权声明** 本文只为交流，转载请保留作者及文章完整性
+
+`4dd466d0e1e0cc123afbe504da2462ca`
