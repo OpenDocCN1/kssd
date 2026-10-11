@@ -1,0 +1,298 @@
+
+# Adult PDF Password Recovery Remover 3.0 算法分析
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-70.htm`](https://www.pediy.com/kssd/pediy09/pediy09-70.htm)
+>
+> 【文章标题】: Adult PDF Password Recovery Remover 3.0 算法分析
+>
+> 【文章作者】: KuNgBiM
+>
+> 【作者邮箱】: kungbim@163.com
+>
+> 【作者主页】: http://www.crkcn.com
+>
+> 【详细过程】
+>
+> 主程序为 ASPack 2.12 加壳，机机脱之分析。
+>
+> 试炼码：`0123456789ABCDEF`
+
+```
+00409520  /.  55                     push    ebp                     ;  找到这里，下断重新运行注册
+00409521  |.  8BEC                   mov     ebp, esp
+00409523  |.  83C4 C4                add     esp, -3C
+00409526  |.  53                     push    ebx
+00409527  |.  56                     push    esi
+00409528  |.  57                     push    edi
+00409529  |.  8BD8                   mov     ebx, eax
+0040952B  |.  BE E41C4C00            mov     esi, 004C1CE4
+00409530  |.  8D7D C4                lea     edi, dword ptr [ebp-3C]
+00409533  |.  B8 A81F4C00            mov     eax, 004C1FA8
+00409538  |.  E8 878A0A00            call    004B1FC4
+0040953D  |.  66:C747 10 1400        mov     word ptr [edi+10], 14
+00409543  |.  33D2                   xor     edx, edx
+00409545  |.  8955 FC                mov     dword ptr [ebp-4], edx
+00409548  |.  8D55 FC                lea     edx, dword ptr [ebp-4]
+0040954B  |.  FF47 1C                inc     dword ptr [edi+1C]
+0040954E  |.  8B83 F4020000          mov     eax, dword ptr [ebx+2F4]
+00409554  |.  E8 53C10700            call    004856AC
+00409559  |.  66:C747 10 0800        mov     word ptr [edi+10], 8
+0040955F  |.  837D FC 00             cmp     dword ptr [ebp-4], 0      ;  比较注册码是否为 0
+00409563  |.  74 05                  je      short 0040956A           ;  跳则 GAME OVER
+00409565  |.  8B4D FC                mov     ecx, dword ptr [ebp-4]
+00409568  |.  EB 03                  jmp     short 0040956D
+0040956A  |>  8D4E 47                lea     ecx, dword ptr [esi+47]
+0040956D  |>  51                     push    ecx                    ; /Arg2
+0040956E  |.  53                     push    ebx                    ; |Arg1
+0040956F  |.  E8 50FFFFFF            call    004094C4               ; \\★算法 CALL 跟进★
+00409574  |.  83C4 08                add     esp, 8
+00409577  |.  3C 01                  cmp     al, 1
+00409579  |.  0F85 45010000          jnz     004096C4               ;  跳则 GAME OVER
+0040957F  |.  6A 40                  push    40
+00409581  |.  8D86 A8000000          lea     eax, dword ptr [esi+A8]
+00409587  |.  50                     push    eax
+00409588  |.  8D56 48                lea     edx, dword ptr [esi+48]
+0040958B  |.  52                     push    edx
+0040958C  |.  8BC3                   mov     eax, ebx
+0040958E  |.  E8 2D280800            call    0048BDC0
+00409593  |.  50                     push    eax                    ; |hOwner
+00409594  |.  E8 DB560B00            call    <jmp.&USER32.MessageBoxA>     ; \\这里是注册成功提示！
+00409599  |.  66:C747 10 2C00        mov     word ptr [edi+10], 2C
+0040959F  |.  33D2                   xor     edx, edx
+004095A1  |.  8955 F4                mov     dword ptr [ebp-C], edx
+004095A4  |.  8D55 F4                lea     edx, dword ptr [ebp-C]
+004095A7  |.  FF47 1C                inc     dword ptr [edi+1C]
+004095AA  |.  A1 44A24C00            mov     eax, dword ptr [4CA244]
+004095AF  |.  8B00                   mov     eax, dword ptr [eax]
+004095B1  |.  E8 BEE60600            call    00477C74
+004095B6  |.  8D45 F4                lea     eax, dword ptr [ebp-C]
+004095B9  |.  8B00                   mov     eax, dword ptr [eax]
+004095BB  |.  33D2                   xor     edx, edx
+004095BD  |.  8955 F0                mov     dword ptr [ebp-10], edx
+004095C0  |.  8D55 F0                lea     edx, dword ptr [ebp-10]
+004095C3  |.  FF47 1C                inc     dword ptr [edi+1C]
+004095C6  |.  E8 E9840200            call    00431AB4
+004095CB  |.  8D45 F0                lea     eax, dword ptr [ebp-10]
+004095CE  |.  50                     push    eax
+004095CF  |.  8D96 BB000000          lea     edx, dword ptr [esi+BB]
+004095D5  |.  8D45 EC                lea     eax, dword ptr [ebp-14]
+004095D8  |.  E8 6F440B00            call    004BDA4C
+004095DD  |.  FF47 1C                inc     dword ptr [edi+1C]
+004095E0  |.  33C0                   xor     eax, eax
+004095E2  |.  8945 F8                mov     dword ptr [ebp-8], eax
+004095E5  |.  8D55 EC                lea     edx, dword ptr [ebp-14]
+004095E8  |.  FF47 1C                inc     dword ptr [edi+1C]
+004095EB  |.  8D4D F8                lea     ecx, dword ptr [ebp-8]
+004095EE  |.  58                     pop     eax
+004095EF  |.  E8 54460B00            call    004BDC48
+004095F4  |.  FF4F 1C                dec     dword ptr [edi+1C]
+004095F7  |.  8D45 EC                lea     eax, dword ptr [ebp-14]
+004095FA  |.  BA 02000000            mov     edx, 2
+004095FF  |.  E8 EC450B00            call    004BDBF0
+00409604  |.  FF4F 1C                dec     dword ptr [edi+1C]
+00409607  |.  8D45 F0                lea     eax, dword ptr [ebp-10]
+0040960A  |.  BA 02000000            mov     edx, 2
+0040960F  |.  E8 DC450B00            call    004BDBF0
+00409614  |.  FF4F 1C                dec     dword ptr [edi+1C]
+00409617  |.  8D45 F4                lea     eax, dword ptr [ebp-C]
+0040961A  |.  BA 02000000            mov     edx, 2
+0040961F  |.  E8 CC450B00            call    004BDBF0
+00409624  |.  66:C747 10 2000        mov     word ptr [edi+10], 20
+0040962A  |.  837D F8 00             cmp     dword ptr [ebp-8], 0
+0040962E  |.  74 05                  je      short 00409635
+00409630  |.  8B4D F8                mov     ecx, dword ptr [ebp-8]
+00409633  |.  EB 06                  jmp     short 0040963B
+00409635  |>  8D8E D6000000          lea     ecx, dword ptr [esi+D6]
+0040963B  |>  51                     push    ecx
+0040963C  |.  837D FC 00             cmp     dword ptr [ebp-4], 0
+00409640  |.  74 05                  je      short 00409647
+00409642  |.  8B45 FC                mov     eax, dword ptr [ebp-4]
+00409645  |.  EB 06                  jmp     short 0040964D
+00409647  |>  8D86 D5000000          lea     eax, dword ptr [esi+D5]
+0040964D  |>  50                     push    eax                    ; |String
+0040964E  |.  8D96 CE000000          lea     edx, dword ptr [esi+CE]        ; |
+00409654  |.  52                     push    edx                    ; |Key
+00409655  |.  8D8E C7000000          lea     ecx, dword ptr [esi+C7]        ; |
+0040965B  |.  51                     push    ecx                    ; |Section
+0040965C  |.  E8 2D500B00            call    <jmp.&KERNEL32.WritePrivatePro>; \\WritePrivateProfileStringA
+00409661  |.  33D2                   xor     edx, edx
+00409663  |.  8B83 08030000          mov     eax, dword ptr [ebx+308]
+00409669  |.  8B08                   mov     ecx, dword ptr [eax]
+0040966B  |.  FF51 64                call    dword ptr [ecx+64]
+```
+
+
+
+## 反汇编代码分析
+
+> 0040966E  |.  66:C747 10 3800        mov     word ptr [edi+10], 38  
+> 00409674  |.  8D96 D7000000          lea     edx, dword ptr [esi+D7]  
+> 0040967A  |.  8D45 E8               lea     eax, dword ptr [ebp-18]  
+> 0040967D  |.  E8 CA430B00           call    004BDA4C  
+> 00409682  |.  FF47 1C               inc     dword ptr [edi+1C]  
+> 00409685  |.  8B10                  mov     edx, dword ptr [eax]  
+> 00409687  |.  8B83 00030000         mov     eax, dword ptr [ebx+300]  
+> 0040968D  |.  E8 4AC00700           call    004856DC  
+> 00409692  |.  FF4F 1C               dec     dword ptr [edi+1C]  
+> 00409695  |.  8D45 E8               lea     eax, dword ptr [ebp-18]  
+> 00409698  |.  BA 02000000           mov     edx, 2  
+> 0040969D  |.  E8 4E450B00           call    004BDBF0  
+> 004096A2  |.  C783 4C020000 01000000 mov     dword ptr [ebx+24C], 1  
+> 004096AC  |.  FF4F 1C               dec     dword ptr [edi+1C]  
+> 004096AF  |.  8D45 F8               lea     eax, dword ptr [ebp-8]  
+> 004096B2  |.  BA 02000000           mov     edx, 2  
+> 004096B7  |.  E8 34450B00           call    004BDBF0  
+> 004096BC  |.  66:C747 10 0800       mov     word ptr [edi+10], 8  
+> 004096C2  |.  EB 38                 jmp     short 004096FC  
+> 004096C4  |>  6A 10                 push    10  
+> 004096C6  |.  8D8E 10010000         lea     ecx, dword ptr [esi+110]  
+> 004096CC  |.  51                    push    ecx  
+> 004096CD  |.  8D86 DD000000         lea     eax, dword ptr [esi+DD]  
+> 004096D3  |.  50                    push    eax  
+> 004096D4  |.  8BC3                  mov     eax, ebx  
+> 004096D6  |.  E8 E5260800           call    0048BDC0  
+> 004096DB  |.  50                    push    eax                         ; |hOwner  
+> 004096DC  |.  E8 93550B00           call    <jmp.&USER32.MessageBoxA>     ; \\函数断点中断于这里，向上找程序运算开始部位  
+> 004096E1  |.  FF4F 1C               dec     dword ptr [edi+1C]  
+> 004096E4  |.  8D45 FC               lea     eax, dword ptr [ebp-4]  
+> 004096E7  |.  BA 02000000           mov     edx, 2  
+> 004096EC  |.  E8 FF440B00           call    004BDBF0  
+> 004096F1  |.  8B0F                  mov     ecx, dword ptr [edi]  
+> 004096F3  |.  64:890D 00000000      mov     dword ptr fs:[0], ecx  
+> 004096FA  |.  EB 19                 jmp     short 00409715  
+> 004096FC  |>  FF4F 1C               dec     dword ptr [edi+1C]  
+> 004096FF  |.  8D45 FC               lea     eax, dword ptr [ebp-4]  
+> 00409702  |.  BA 02000000           mov     edx, 2  
+> 00409707  |.  E8 E4440B00           call    004BDBF0  
+> 0040970C  |.  8B0F                  mov     ecx, dword ptr [edi]  
+> 0040970E  |.  64:890D 00000000      mov     dword ptr fs:[0], ecx  
+> 00409715  |>  5F                    pop     edi  
+> 00409716  |.  5E                    pop     esi  
+> 00409717  |.  5B                    pop     ebx  
+> 00409718  |.  8BE5                  mov     esp, ebp  
+> 0040971A  |.  5D                    pop     ebp  
+> 0040971B  \\.  C3                    retn                          ;  返回程序  
+
+跟进 `0040956F`：
+
+```
+004094C4  /$  55                    push    ebp                       ;  跟进后来到这里  
+004094C5  |.  8BEC                  mov     ebp, esp  
+004094C7  |.  53                    push    ebx  
+004094C8  |.  56                    push    esi  
+004094C9  |.  57                    push    edi  
+004094CA  |.  8B5D 0C               mov     ebx, dword ptr [ebp+C]  
+004094CD  |.  85DB                  test    ebx, ebx                ;  检查是否输入了注册码  
+004094CF  |.  74 0C                 je      short 004094DD          ;  跳则 GAME OVER  
+004094D1  |.  53                    push    ebx  
+004094D2  |.  E8 B1870A00           call    004B1C88  
+004094D7  |.  59                    pop     ecx  
+004094D8  |.  83F8 10               cmp     eax, 10                 ;  检查注册码是否为 16 位  
+004094DB  |.  74 04                 je      short 004094E1          ;  是则进行下一步  
+004094DD  |>  33C0                  xor     eax, eax  
+004094DF  |.  EB 39                 jmp     short 0040951A  
+004094E1  |>  0FBE73 06             movsx   esi, byte ptr [ebx+6]    ;  ESI=偏移 0x6 取注册码(注册码第 7 位)的 ASCII 值  
+004094E5  |.  8BC6                  mov     eax, esi                ;  ESI=0x37  
+004094E7  |.  0FBE7B 0E             movsx   edi, byte ptr [ebx+E]    ;  EDI=偏移 0xE 取注册码(注册码第 15 位)的 ASCII 值  
+004094EB  |.  03C7                  add     eax, edi                ;  EAX=EDI+EAX=0x45+0x37=0x7C  
+004094ED  |.  3D 9B000000           cmp     eax, 9B                 ;  比较 EAX 是否等于 9B  
+004094F2  |.  75 24                 jnz     short 00409518          ;  不是则 GAME OVER  
+004094F4  |.  8BCE                  mov     ecx, esi  
+004094F6  |.  2BCF                  sub     ecx, edi  
+004094F8  |.  8BC1                  mov     eax, ecx  
+004094FA  |.  99                    cdq  
+004094FB  |.  33C2                  xor     eax, edx                ;  异或清零  
+004094FD  |.  2BC2                  sub     eax, edx                ;  注册码第 15 位与第 7 位 ASCII 值的差  
+004094FF  |.  83C0 41               add     eax, 41                 ;  结果加上 0x41  
+00409502  |.  0FBE53 09             movsx   edx, byte ptr [ebx+9]    ;  EDX=偏移 0x9 取注册码(注册码第 10 位)的 ASCII 值  
+00409506  |.  3BC2                  cmp     eax, edx                ;  比较结果是否相等  
+00409508  |.  75 0E                 jnz     short 00409518  
+0040950A  |.  8B45 08               mov     eax, dword ptr [ebp+8]  
+0040950D  |.  C680 34030000 01      mov     byte ptr [eax+334], 1  
+00409514  |.  B0 01                 mov     al, 1  
+00409516  |.  EB 02                 jmp     short 0040951A  
+00409518  |>  33C0                  xor     eax, eax  
+0040951A  |>  5F                    pop     edi  
+0040951B  |.  5E                    pop     esi  
+0040951C  |.  5B                    pop     ebx  
+0040951D  |.  5D                    pop     ebp  
+0040951E  \\.  C3                    retn                          ;  返回上一步  
+```
+
+--------------------------------------------------------------------------------
+
+### 【算法总结】
+
+1. 注册码必须为 16 位
+2. 注册码第 7 位与第 15 位 `ASCII` 值的和要等于 `0x9B`
+3. 注册码第 10 位 `ASCII` 值要等于第 7 位与第 15 位 `ASCII` 值的差加上 `0x41` 的和
+
+这样注册码通过验证。
+
+由之可得出注册码（以试炼码做基准）
+
+`123456789nABCDdF` 或 `123456d89nABCD7F`
+
+=======================================
+
+这篇文章的注册机偶就不写了，不过直接提取代码做注册机也是不错的选择（提取的关键代码）
+
+```
+push    ebp  
+mov     ebp, esp  
+push    ebx  
+push    esi  
+push    edi  
+mov     ebx, dword ptr [ebp+C]  
+test    ebx, ebx  
+je L013  
+push    ebx  
+call    004B1C88  
+pop     ecx  
+cmp     eax, 10  
+je L015  
+L013:  
+xor     eax, eax  
+jmp L036  
+L015:  
+movsx   esi, byte ptr [ebx+6]  
+mov     eax, esi  
+movsx   edi, byte ptr [ebx+E]  
+add     eax, edi  
+cmp     eax, 9B  
+jnz L035  
+mov     ecx, esi  
+sub     ecx, edi  
+mov     eax, ecx  
+cdq  
+xor     eax, edx  
+sub     eax, edx  
+add     eax, 41  
+movsx   edx, byte ptr [ebx+9]  
+cmp     eax, edx  
+jnz L035  
+```
+
+
+
+> ```asm
+> mov     eax, dword ptr [ebp+8]  
+> mov     byte ptr [eax+334], 1  
+> mov     al, 1  
+> jmp L036  
+> L035:  
+> xor     eax, eax  
+> L036:  
+> pop     edi  
+> pop     esi  
+> pop     ebx  
+> pop     ebp  
+> retn  
+> ```
+>
+> ----------------------------------------
+> 【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!
+>
+> 2007 年 02 月 25 日 03:22:00
+
+`4dd466d0e1e0cc123afbe504da2462ca`
