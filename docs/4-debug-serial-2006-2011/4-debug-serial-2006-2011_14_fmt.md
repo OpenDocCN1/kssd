@@ -1,0 +1,429 @@
+
+# AshampooCD Recording Studio 2.05
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-61.htm`](https://www.pediy.com/kssd/pediy08/pediy8-61.htm)
+
+**题目**：注册刻录软件“AshampooCD Recording Studio 2.05” only FOR 菜鸟
+
+**软件功能**：德国人写的一款光盘刻录软件，Audio CD 助手帮你快速拷贝 ACD；支持从便携式 MP3 播放器导入播放列表，然后刻录为音乐光碟；支持可擦写式光盘 CD-RWs；支持整盘拷贝音乐 CD，消除音轨之间的间隔；自动屏蔽屏幕保护。未注册版本只能以 2X 速度刻录，30 天试用期限。
+
+**工具**：`Softice`
+
+**特别鸣谢**：感谢 `blackeyes` 大侠的指点！！如果没有您的指点，就没有下面的破文。
+
+**引子**：前几天分析这个小软件，未果，因为遇到一点疑惑，遂向论坛求助，果然有大侠指点迷津，使我顿悟！因此接着把分析过程简单一写，首先要指出的是：只是我自己的一个分析笔记，发上来权当一个小小的“纪念”吧。这几天状况不佳，没有下功夫分析软件。等过几天再写。下面开始吧。拿 `PEID` 查看一下，没有加壳，用 `BC++` 写的。启动程序，点击“Internet”菜单，然后单击里面的“Enter Reg/Trial Key”命令，弹出输入框。输入注册码，`CRS11B111111188888`，必须至少 18 位字符。调出 `SOFTICE`，下断点 `bpx getwindowtexta`，3 次 `F12` 即可来到如下代码：
+
+```
+00403542  .|. E8 BDFF0900    CALL RECST.004A3504
+00403547  .|. 83C4 0C        ADD ESP,0C                                     //我们回到这里。
+0040354A  .|. 8D43 09        LEA EAX,DWORD PTR DS:[EBX+9]                  //字符串“pts.ini”地址送 EAX。
+0040354D  .|. 50             PUSH EAX
+0040354E  .|. 8D55 C0        LEA EDX,DWORD PTR SS:[EBP-40]                 //输入的假码地址送 EDX。
+00403551  .|. 52             PUSH EDX
+00403552  .|. 8D4B 04        LEA ECX,DWORD PTR DS:[EBX+4]
+00403555  .|. 51             PUSH ECX
+00403556  .|. 53             PUSH EBX
+00403557  .|. E8 597E0A00    CALL <JMP.&KERNEL32.WritePrivateProfileStringA> //信息写入“pts.ini”
+0040355C  .|. 8D43 23        LEA EAX,DWORD PTR DS:[EBX+23]
+0040355F  .|. 50             PUSH EAX
+00403560  .|. 6A 00          PUSH 0
+00403562  .|. 8D53 15        LEA EDX,DWORD PTR DS:[EBX+15]
+00403565  .|. 52             PUSH EDX
+00403566  .|. 8D4B 11        LEA ECX,DWORD PTR DS:[EBX+11]
+00403569  .|. 51             PUSH ECX
+0040356A  .|. E8 127F0A00    CALL <JMP.&KERNEL32.GetPrivateProfileIntA>
+0040356F  .|. 85C0           TEST EAX,EAX
+00403571  .|. 75 2A          JNZ SHORT RECST.0040359D                      //此处跳走。
+*略掉几行*
+0040359D  |> 6A 00           PUSH 0
+0040359F  .|. E8 DB890A00    CALL <JMP.&xnbpr450.@PWR_CObjectRWC@GetG$qv>
+004035A4  .|. 50             PUSH EAX
+004035A5  .|. E8 AD810A00    CALL <JMP.&xnbpr450.@PWR_CGlobalClassLib@GetApplication$qv>
+004035AA  .|. 59             POP ECX
+004035AB  .|. 50             PUSH EAX
+004035AC  .|. E8 CD8D0000    CALL RECST.0040C37E                           //此函数内校验注册码。（1）
+004035B1  .|. 83C4 08        ADD ESP,8
+004035B4  .|. 84C0           TEST AL,AL                                     //AL 内为标志。AL=1 则成功。
+004035B6  .|. 74 13          JE SHORT RECST.004035CB                       //AL 如果为 0 则通往失败。
+004035B8  .|. 6A 00          PUSH 0
+004035BA  .|. 8D4B 7F        LEA ECX,DWORD PTR DS:[EBX+7F]
+004035BD  .|. 51             PUSH ECX
+004035BE  .|. 8D43 63        LEA EAX,DWORD PTR DS:[EBX+63]
+004035C1  .|. 50             PUSH EAX
+004035C2  .|. 6A 00          PUSH 0
+004035C4  .|. E8 668B0A00    CALL <JMP.&USER32.MessageBoxA>               //显示注册码 OK 对话框。
+004035C9  .|. EB 17          JMP SHORT RECST.004035E2
+004035CB  |> 6A 00           PUSH 0
+004035CD  .|. 8D93 A0000000  LEA EDX,DWORD PTR DS:[EBX+A0]
+004035D3  .|. 52             PUSH EDX
+004035D4  .|. 8D8B 93000000  LEA ECX,DWORD PTR DS:[EBX+93]
+004035DA  .|. 51             PUSH ECX
+004035DB  .|. 6A 00          PUSH 0
+004035DD  .|. E8 4D8B0A00    CALL <JMP.&USER32.MessageBoxA>               //显示注册码 Wrong 对话框。
+004035E2  |> 5E             POP ESI
+004035E3  .|. 5B             POP EBX
+004035E4  .|. 8BE5           MOV ESP,EBP
+004035E6  .|. 5D             POP EBP
+004035E7  .\  C3             RETN
+```
+
+================================================================
+
+下面分析 `004035AC` 处的 `CALL RECST.0040C37E`：                            （1）
+
+```
+0040C37E  /$ 55               PUSH EBP
+0040C37F  .|. 8BEC             MOV EBP,ESP
+0040C381  .|. 81C4 E0FEFFFF    ADD ESP,-120
+0040C387  .|. 53               PUSH EBX
+0040C388  .|. 56               PUSH ESI
+0040C389  .|. 57               PUSH EDI
+0040C38A  .|. 8B75 08          MOV ESI,DWORD PTR SS:[EBP+8]
+0040C38D  .|. B8 B0FF4A00      MOV EAX,RECST.004AFFB0
+0040C392  .|. E8 59E90900      CALL RECST.004AACF0
+0040C397  .|. 803D 80FF4A00 00  CMP BYTE PTR DS:[4AFF80],0
+0040C39E  .|. 75 1A            JNZ SHORT RECST.0040C3BA                   //此处不跳。
+0040C3A0  .|. 807D 0C 00        CMP BYTE PTR SS:[EBP+C],0
+0040C3A4  .|. 74 14            JE SHORT RECST.0040C3BA                    //此处跳。
+0040C3A6  .|. A0 81FF4A00      MOV AL,BYTE PTR DS:[4AFF81]
+0040C3AB  .|. 8B55 DC          MOV EDX,DWORD PTR SS:[EBP-24]
+0040C3AE  .|. 64:8915 00000000 MOV DWORD PTR FS:[0],EDX
+0040C3B5  .|. E9 E6020000      JMP RECST.0040C6A0
+0040C3BA  |> B3 01            MOV BL,1                                     //注册成功标志为 1，送 BL。如果注册码错
+                                 误，后面 BL 清 0。
+0040C3BC  .|. 8D45 80          LEA EAX,DWORD PTR SS:[EBP-80]
+0040C3BF  .|. 50               PUSH EAX
+0040C3C0  .|. 56               PUSH ESI
+0040C3C1  .|. E8 F5030000      CALL RECST.0040C7BB                        //取 pts.ini 文件内的键值。
+0040C3C6  .|. 83C4 08          ADD ESP,8
+0040C3C9  .|. 6A 0D            PUSH 0D                                      //需要累加的注册码串的长度进栈（13 位
+                                 ）。
+0040C3CB  .|. 8D55 80          LEA EDX,DWORD PTR SS:[EBP-80]
+0040C3CE  .|. 52               PUSH EDX                                     //注册码地址进栈。
+0040C3CF  .|. E8 41C0FFFF      CALL RECST.00408415                        //累加前 13 位注册码，得一个 16 进制结果
+                                 ，记为 R。（2）
+0040C3D4  .|. 83C4 08          ADD ESP,8
+0040C3D7  .|. 0FB7C8           MOVZX ECX,AX
+0040C3DA  .|. 51               PUSH ECX
+0040C3DB  .|. 68 CA0B4B00      PUSH RECST.004B0BCA
+0040C3E0  .|. 8D85 70FFFFFF    LEA EAX,DWORD PTR SS:[EBP-90]
+0040C3E6  .|. 50               PUSH EAX
+0040C3E7  .|. E8 B1EF0900      CALL <JMP.&cw3220mt._sprintf>             //把得到的 R 逐位转换为 ASSIC 码形式，设此
+                                 串为 S。
+0040C3EC  .|. 83C4 0C          ADD ESP,0C
+0040C3EF  .|. 6A 04            PUSH 4                                       //要比较的字符个数进栈。
+0040C3F1  .|. 8D55 8E          LEA EDX,DWORD PTR SS:[EBP-72]
+0040C3F4  .|. 52               PUSH EDX                                     //注册码第 15 位地址进栈。
+0040C3F5  .|. 8D8D 70FFFFFF    LEA ECX,DWORD PTR SS:[EBP-90]
+0040C3FB  .|. 51               PUSH ECX                                     //字符串 S 的地址进栈。
+0040C3FC  .|. E8 58EE0900      CALL <JMP.&cw3220mt._strncmp>             //显然这里是进行比较的地方，拿字符串 S
+                                 与第 15 位以后的注册码逐位比较，如果 S 就是 4 位，那么只比较 4 位，其他注册码字符被忽略掉。
+0040C401  .|. 83C4 0C          ADD ESP,0C
+0040C404  .|. 85C0             TEST EAX,EAX
+0040C406  .|. 74 02            JE SHORT RECST.0040C40A                    //正确则跳。
+0040C408  .|. 33DB             XOR EBX,EBX
+0040C40A  |> 6A 08            PUSH 8
+0040C40C  .|. 8D45 D4          LEA EAX,DWORD PTR SS:[EBP-2C]
+0040C40F  .|. 50               PUSH EAX
+0040C410  .|. 68 190C0000      PUSH 0C19
+0040C415  .|. 68 11270000      PUSH 2711
+0040C41A  .|. 6A 00            PUSH 0
+0040C41C  .|. E8 A56A0900      CALL RECST.004A2EC6
+0040C421  .|. 83C4 08          ADD ESP,8
+0040C424  .|. 50               PUSH EAX
+0040C425  .|. E8 0BFD0900      CALL <JMP.&USER32.LoadStringA>           //取字符串“CRS”。
+0040C42A  .|. 6A 03            PUSH 3
+0040C42C  .|. 8D55 D4          LEA EDX,DWORD PTR SS:[EBP-2C]
+0040C42F  .|. 52               PUSH EDX                                   //字符串“CRS”地址进栈。
+0040C430  .|. 8D4D 80          LEA ECX,DWORD PTR SS:[EBP-80]
+0040C433  .|. 51               PUSH ECX                                   //注册码前 3 位字符地址进栈。
+0040C434  .|. E8 20EE0900      CALL <JMP.&cw3220mt._strncmp>             //比较注册码的前三位是否是“CRS”。
+0040C439  .|. 83C4 0C          ADD ESP,0C
+0040C43C  .|. 85C0             TEST EAX,EAX
+0040C43E  .|. 74 02            JE SHORT RECST.0040C442                    //正确则跳。
+0040C440  .|. 33DB             XOR EBX,EBX
+0040C442  |> 6A 08            PUSH 8
+```
+
+
+
+```
+0040C444  |. 8D45 CC            LEA EAX,DWORD PTR SS:[EBP-34]
+
+0040C447  |. 50                 PUSH EAX
+
+0040C448  |. 68 180C0000        PUSH 0C18
+
+0040C44D  |. 68 11270000        PUSH 2711
+
+0040C452  |. 6A 00              PUSH 0
+
+0040C454  |. E8 6D6A0900        CALL RECST.004A2EC6
+
+0040C459  |. 83C4 08            ADD ESP,8
+
+0040C45C  |. 50                 PUSH EAX
+
+0040C45D  |. E8 D3FC0900        CALL <JMP.&USER32.LoadStringA>         //取字符“B”。
+
+0040C462  |. 6A 01              PUSH 1
+
+0040C464  |. 8D55 CC            LEA EDX,DWORD PTR SS:[EBP-34]
+
+0040C467  |. 52                 PUSH EDX                                //字符“B”地址进栈。
+
+0040C468  |. 8D4D 85            LEA ECX,DWORD PTR SS:[EBP-7B]
+
+0040C46B  |. 51                 PUSH ECX                                //第 6 位注册码地址进栈。
+
+0040C46C  |. E8 E8ED0900        CALL <JMP.&cw3220mt._strncmp>           //比较注册码第 6 位是否是字符'B'。
+
+0040C471  |. 83C4 0C            ADD ESP,0C
+
+0040C474  |. 85C0               TEST EAX,EAX
+
+0040C476  |. 74 02              JE SHORT RECST.0040C47A                 //正确则跳。
+
+0040C478  |. 33DB               XOR EBX,EBX                             //如果不是 B，则 EBX 标志清 0。很快就没戏了。
+
+0040C47A  |> 8D45 83            LEA EAX,DWORD PTR SS:[EBP-7D]
+
+0040C47D  |. 50                 PUSH EAX                                //第四位字符地址进栈。
+
+0040C47E  |. E8 B4EE0900        CALL <JMP.&cw3220mt._atol>              //把第 4，5 位转为十六进制数形式，放在 EAX 内。如 77h 的 16 进制形式为 4Dh.
+
+0040C483  |. 59                 POP ECX
+
+0040C484  |. 8BF8               MOV EDI,EAX
+
+0040C486  |. 83FF 4D            CMP EDI,4D                              //与 4D 比较。此处要相等，修改第 4，5 位为 77 即可。
+
+0040C489  |. 74 09              JE SHORT RECST.0040C494                 //相等则跳。
+
+0040C48B  |. 8BC7               MOV EAX,EDI
+
+0040C48D  |. 03C0               ADD EAX,EAX                             //EAX 加倍。
+
+0040C48F  |. 8D0480             LEA EAX,DWORD PTR DS:[EAX+EAX*4]        //EAX=EAX*5。
+
+0040C492  |. 89C7               MOV EDI,EAX
+
+0040C494  |> 83FF 4D            CMP EDI,4D                              //与 4D 比较。
+
+0040C497  |. 75 1A              JNZ SHORT RECST.0040C4B3                //相等则不跳。
+
+0040C499  |. 84DB               TEST BL,BL
+
+0040C49B  |. 74 16              JE SHORT RECST.0040C4B3                 //测试 BL，非 0 则不跳。
+
+0040C49D  |. 6A 01              PUSH 1                                  //把 1 入栈。
+
+0040C49F  |. 56                 PUSH ESI
+
+0040C4A0  |. E8 3C0F0000        CALL RECST.0040D3E1                     //把 1 送[9461A4]单元。如果成功则后面用到此值。
+
+0040C4A5  |. 83C4 08            ADD ESP,8
+
+0040C4A8  |. 6A 00              PUSH 0                                  //把 0 入栈。
+
+0040C4AA  |. 56                 PUSH ESI
+
+0040C4AB  |. E8 500F0000        CALL RECST.0040D400                     //把 0 送[9461A5]单元。
+
+0040C4B0  |. 83C4 08            ADD ESP,8
+
+0040C4B3  |> 81FF F4010000      CMP EDI,1F4                             //与 1F4 比较。
+
+0040C4B9  |. 75 22              JNZ SHORT RECST.0040C4DD                //不等则跳。
+
+0040C4BB  |. 84DB               TEST BL,BL
+
+0040C4BD  |. 74 1E              JE SHORT RECST.0040C4DD                 //如果 BL=0 则跳。
+
+0040C4BF  |. 6A 00              PUSH 0                                  //否则把 0 入栈。
+
+0040C4C1  |. 56                 PUSH ESI
+
+0040C4C2  |. E8 1A0F0000        CALL RECST.0040D3E1                     //把 0 送[9461A4]单元。如果失败则后面用到此值。
+
+0040C4C7  |. 83C4 08            ADD ESP,8
+
+0040C4CA  |. 6A 00              PUSH 0                                  //把 0 入栈。
+
+0040C4CC  |. 56                 PUSH ESI
+
+0040C4CD  |. E8 2E0F0000        CALL RECST.0040D400                     //把 0 送[9461A5]单元。
+
+0040C4D2  |. 83C4 08            ADD ESP,8
+
+0040C4D5  |. 807D 0C 00         CMP BYTE PTR SS:[EBP+C],0
+
+0040C4D9  |. 74 02              JE SHORT RECST.0040C4DD
+
+0040C4DB  |. 33DB               XOR EBX,EBX
+
+0040C4DD  |> 56                 PUSH ESI                                //从 0040C4B9 跳到这里。
+
+0040C4DE  |. E8 0F0F0000        CALL RECST.0040D3F2                     //则可以取[9461A4]单元的 1 到 EAX，否则就是 0 送 EAX。
+
+0040C4E3  |. 59                 POP ECX
+
+0040C4E4  |. 84C0               TEST AL,AL
+
+0040C4E6  |. 74 1E              JE SHORT RECST.0040C506                 //如果 AL=0，说明第 4，5 位不是 77，则跳到下面的时间比较代码。
+
+0040C4E8  |. 881D 81FF4A00      MOV BYTE PTR DS:[4AFF81],BL            //否则执行本行下面代码。
+
+0040C4EE  |. C605 80FF4A00 00   MOV BYTE PTR DS:[4AFF80],0
+
+0040C4F5  |. 8BC3               MOV EAX,EBX                             //EBX 送 EAX。EBX=1。
+
+0040C4F7  |. 8B55 DC            MOV EDX,DWORD PTR SS:[EBP-24]
+
+0040C4FA  |. 64:8915 00000000   MOV DWORD PTR FS:[0],EDX
+
+0040C501  |. E9 9A010000        JMP RECST.0040C6A0                      //直接跳走。通往成功！注意：从这里注册成功后，菜单内的"Enter Reg/trial Key"命令是变成灰色不可用状态的。
+
+0040C506  |> 66:C745 EC 0800    MOV WORD PTR SS:[EBP-14],8
+
+0040C50C  |. 6A 00              PUSH 0
+
+0040C50E  |. 8D4D FC            LEA ECX,DWORD PTR SS:[EBP-4]
+
+0040C511  |. 51                 PUSH ECX
+
+0040C512  |. E8 EDE00100        CALL RECST.0042A604
+
+0040C517  |. 83C4 08            ADD ESP,8
+
+0040C51A  |. 8D45 FC            LEA EAX,DWORD PTR SS:[EBP-4]
+
+0040C51D  |. 50                 PUSH EAX
+
+0040C51E  |. E8 11E30100        CALL RECST.0042A834
+
+0040C523  |. 59                 POP ECX
+
+0040C524  |. 33FF               XOR EDI,EDI
+
+*略去多行，取本地时间，进行时间处理，好象没有用*
+
+0040C656  |. 59                 POP ECX
+
+0040C657  |. 0FBFD0             MOVSX EDX,AX
+
+0040C65A  |. 03F2               ADD ESI,EDX
+
+0040C65C  |. 57                 PUSH EDI
+
+0040C65D  |. E8 301C0000        CALL RECST.0040E292
+
+0040C662  |. 59                 POP ECX
+
+0040C663  |. 0345 C8            ADD EAX,DWORD PTR SS:[EBP-38]
+
+0040C666  |. 8BCE               MOV ECX,ESI
+
+0040C668  |. 2BC8               SUB ECX,EAX
+
+0040C66A  |. 83F9 1E            CMP ECX,1E                              //即使调整系统日期，这个 ECX 值不变。奇怪？？
+
+0040C66D  |. 7E 02              JLE SHORT RECST.0040C671                //如果 ECX 大于 1E，则不跳。
+
+0040C66F  |. 33DB               XOR EBX,EBX                             //EBX 被清 0。
+
+0040C671  |> 3BC6               CMP EAX,ESI
+
+0040C673  |. 7E 02              JLE SHORT RECST.0040C677                //如果 EAX 大于 ESI 内的值，则不跳。
+
+0040C675  |. 33DB               XOR EBX,EBX                             //EBX 被清 0。
+
+0040C677  |> 881D 81FF4A00      MOV BYTE PTR DS:[4AFF81],BL            //如果前面都是分别小于 1E 和 ESI 的值，则 BL 依然保持 1。
+
+0040C67D  |. C605 80FF4A00 00   MOV BYTE PTR DS:[4AFF80],0
+
+0040C684  |. 8BC3               MOV EAX,EBX                             //EBX 送 EAX。如果 EAX=1 则成功。注意：从这里注册成功后，菜单内的"Enter Reg/trial Key"命令是依然是黑色的可用状态的。可以重新输入注册码。
+
+0040C686  |. 50                 PUSH EAX
+
+0040C687  |. 6A 02              PUSH 2
+
+0040C689  |. 8D55 FC            LEA EDX,DWORD PTR SS:[EBP-4]
+
+0040C68C  |. 52                 PUSH EDX
+
+0040C68D  |. E8 34E00100        CALL RECST.0042A6C6
+
+0040C692  |. 83C4 08            ADD ESP,8
+
+0040C695  |. 58                 POP EAX
+
+0040C696  |. 8B55 DC            MOV EDX,DWORD PTR SS:[EBP-24]
+
+0040C699  |. 64:8915 00000000   MOV DWORD PTR FS:[0],EDX
+
+0040C6A0  |> 5F                 POP EDI
+
+0040C6A1  |. 5E                 POP ESI
+
+0040C6A2  |. 5B                 POP EBX
+
+0040C6A3  |. 8BE5               MOV ESP,EBP
+
+0040C6A5  |. 5D                 POP EBP
+
+0040C6A6  |\. C3                 RETN
+================================================================
+
+下面分析 0040C3CF CALL RECST.00408415 函数：           （2）
+
+00408415  /$ 55                 PUSH EBP
+
+00408416  |. 8BEC               MOV EBP,ESP
+
+00408418  |. 53                 PUSH EBX
+
+00408419  |. 56                 PUSH ESI
+
+0040841A  |. 8B5D 0C            MOV EBX,DWORD PTR SS:[EBP+C]          //需要累加的注册码长度送 EBX。
+```
+
+
+
+0040841D |. 33C9             XOR ECX,ECX                  //ECX 保存结果，首先清 0。
+0040841F |. 8B45 08         MOV EAX,DWORD PTR SS:[EBP+8]   //注册码地址送 EAX。
+00408422 |. 33D2             XOR EDX,EDX                  //EDX 为计数器，清 0。
+00408424 |. 3BDA             CMP EBX,EDX
+00408426 |. 7E 0C            JLE SHORT RECST.00408434
+00408428 |> 0FB630           /MOVZX ESI,BYTE PTR DS:[EAX]   //逐个取注册码字符送 ESI。
+0040842B |. 66:03CE          |ADD CX,SI                   //累加到 CX。
+0040842E |. 40               |INC EAX                     //EAX 递增。
+0040842F |. 42               |INC EDX                     //EDX 递增。
+00408430 |. 3BDA             |CMP EBX,EDX                  //EBX 与 EDX 比较。
+00408432 |. 7F F4            \JG SHORT RECST.00408428     //EBX 大于 EDX 则继续循环。
+00408434 |> 8BC1             MOV EAX,ECX                  //结果送 EAX。
+00408436 |. 5E               POP ESI
+00408437 |. 5B               POP EBX
+00408438 |. 5D               POP EBP
+00408439 \. C3               RETN
+```
+
+================================================================
+
+### 后记
+
+这个软件在分析的时候，我由于输入的注册码长度不够 18 位，所以出现一点意外，通过在论坛上求助，得到 `blackeyes` 大侠的指点，我回来后又重新研究了一下，终于搞定这个软件了。当注册码的第 4，5 位为 77 的时候，如果注册码正确的话，则菜单内的 `"Enter Reg/trial Key"` 变成灰色不可用状态了。否则，如果是其他值，则也提示注册码 OK，但是菜单内的命令依然可用。我不知这两种方法有什么区别？？因为算法相对简单，自己构造一个注册码即可。
+
+### 结论
+
+注册码：`CRS77B1111111802ef`
+
+感谢各位热情的坛友浪费时间分享我的破文！多多指教！
+
+`qduwg`
+
+`qduwg@163.com`
+
+完稿：2006 年 2 月 15 日晚 12 点
+
+`4dd466d0e1e0cc123afbe504da2462ca`
