@@ -1,0 +1,563 @@
+
+# 图像处理 Mosaic Creator 算法分析+3 字节注册
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-39.htm`](https://www.pediy.com/kssd/pediy07/pediy7-39.htm)
+
+- **【软件大小】**： 1943 KB
+- **【软件语言】**： 英文
+- **【软件类别】**： 国外软件 / 共享版 / 图像处理
+- **【应用平台】**： Win9x/NT/2000/XP
+- **【加入时间】**： 2005-01-27 21:01:37
+- **【下载次数】**： 8851
+- **【推荐等级】**： ★★★★
+- **【软件下载】**： 天空软件站
+
+**【软件介绍】**：
+
+Mosaic Creator 是一个特殊的“拼集照片”制作工具，它可以把一个影像，用很多单独的小影像拼凑成一个大影像，远看是原来的影像，但近看却是由许多小影像所组成，也可以将相片制作成像拼图般的影像。
+
+**【作者声明】**： 初学破解，仅作学习交流之用，失误之处敬请大侠赐教!
+
+**【破解工具】**： `Ollydbg1.10`、`Hiew6.81`、`TRW122`
+
+正文开始:
+
+### 【第一步】定位到关键代码:
+
+小弟初接触破解，但我认为破解一个软件，能定位到关键的算法代码段就是成功了一半，很多时候我们跟进一个个 `Call` 里面却一无所获，如何快速定位到注册算法部分可能是每个菜鸟刚开始破解时的一个难题。当然，要想成为高手必须对 `Windows` 的操作系统很了解，但对于小菜鸟来说，我们只能以勤补拙，多破解软件，经验自然多了!
+
+这个软件加了 `UPX` 壳，脱壳后的软件检测一下，是 `Dephi` 编写的，这样的程序要么用串式参考，要么用万能断点，成功率应该都很高!但是当我用 `OD` 载入查找串式参考时，没发现有用的信息，因为脱壳后的软件有点大，不想用 `WDasm` 反汇编了，还是拿出国产利器 `TRW` 吧。运行程序，任意填入假码：用户名:`sharpair` 和假码:`651484556`，再运行 `TRW`，下断 `bpx hmemcpy`，找到适当的中断位置，记下中断地址，然后用 `OD` 载入程序(个人习惯,好写注释)：
+
+> PS:这个软件好像加了反跟踪或反调试，用 `TRW` 跟踪一次再跟踪就死机，本文中不作分析(呵呵,水平不够)
+
+### 【第二步】算法分析部分:
+
+★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+
+```
+..............
+0051DCB2   lea  edx,dword ptr ss:\[ebp-8\]
+0051DCB5   mov  eax,dword ptr ds:\[ebx+300\]
+0051DCBB   call UNPACK.0044EC04          ; 这个 Call 取用户名
+0051DCC0   cmp  dword ptr ss:\[ebp-8\],0     ; 判断有无输入用户名,堆栈中可看到我们输入的用户名
+0051DCC4   jnz  short UNPACK.0051DCEB
+0051DCC6   push 0
+0051DCC8   lea  edx,dword ptr ss:\[ebp-C\]
+0051DCCB   mov  eax,UNPACK.0051DF00        ; ASCII "Please enter your Name"
+0051DCD0   call UNPACK.0055B3EC
+0051DCD5   mov  eax,dword ptr ss:\[ebp-C\]
+0051DCD8   mov  cx,word ptr ds:\[51DF18\]
+0051DCDF   mov  dl,2
+0051DCE1   call UNPACK.00447D28
+0051DCE6   jmp  UNPACK.0051DE91
+0051DCEB   lea  edx,dword ptr ss:\[ebp-10\]
+0051DCEE   mov  eax,dword ptr ds:\[ebx+304\]
+0051DCF4   call UNPACK.0044EC04          ; 这个 Call 同上面一样,应该是取假码的了
+0051DCF9   mov  eax,dword ptr ss:\[ebp-10\]  ; 这里把假码存入 EAX
+0051DCFC   call UNPACK.00567508          ; 这个 Call 后面有跳转,往后看就知道是关键跳转了
+0051DD01   mov  esi,eax                 ; 返回值存入 EAX 中
+0051DD03   test esi,esi
+0051DD05   jge  short UNPACK.0051DD53     ; 往下看一下知道此处必须跳,不然就 Game Over 了
+0051DD07   xor  edx,edx
+0051DD09   mov  eax,dword ptr ds:\[ebx+304\]
+0051DD0F   call UNPACK.0044EC34
+0051DD14   push 0
+0051DD16   lea  edx,dword ptr ss:\[ebp-14\]
+0051DD19   mov  eax,UNPACK.0051DF24      ; ASCII "Bad registration number"
+0051DD1E   call UNPACK.0055B3EC
+0051DD23   mov  eax,dword ptr ss:\[ebp-14\]
+0051DD26   mov  cx,word ptr ds:\[51DF18\]
+0051DD2D   mov  dl,1
+0051DD2F   call UNPACK.00447D28
+0051DD34   inc  dword ptr ds:\[58E188\]
+0051DD3A   cmp  dword ptr ds:\[58E188\],3
+0051DD41   jl   UNPACK.0051DE91
+0051DD47   mov  eax,ebx
+0051DD49   call UNPACK.0046B670
+0051DD4E   jmp  UNPACK.0051DE91
+0051DD53   lea  edx,dword ptr ss:\[ebp-4\]
+0051DD56   mov  eax,UNPACK.0051DF44      ; ASCII "RegUserNumber"
+0051DD5B   call UNPACK.004BB4E8
+0051DD60   lea  edx,dword ptr ss:\[ebp-18\]
+0051DD63   mov  eax,dword ptr ds:\[ebx+304\]
+0051DD69   call UNPACK.0044EC04
+0051DD6E   mov  edx,dword ptr ss:\[ebp-18\]
+0051DD71   mov  eax,dword ptr ss:\[ebp-4\]
+0051DD74   call UNPACK.00404E00
+0051DD79   jnz  short UNPACK.0051DD87
+0051DD7B   mov  eax,ebx
+0051DD7D   call UNPACK.0046B670
+0051DD82   jmp  UNPACK.0051DE91
+0051DD87   mov  eax,dword ptr ds:\[58C784\]
+0051DD8C   mov  eax,dword ptr ds:\[eax\]
+0051DD8E   mov  eax,dword ptr ds:\[eax+5C4\]
+0051DD94   xor  edx,edx
+0051DD96   call UNPACK.004439BC
+0051DD9B   cmp  esi,1
+0051DD9E   jnz  short UNPACK.0051DDC0
+0051DDA0   push 0
+0051DDA2   lea  edx,dword ptr ss:\[ebp-1C\]
+0051DDA5   mov  eax,UNPACK.0051DF5C      ; ASCII "You are registered Lite version, thank you."
+0051DDAA   call UNPACK.0055B3EC
+0051DDAF   mov  eax,dword ptr ss:\[ebp-1C\]
+0051DDB2   mov  cx,word ptr ds:\[51DF18\]
+0051DDB9   mov  dl,2
+0051DDBB   call UNPACK.00447D28
+0051DDC0   cmp  esi,2
+0051DDC3   jnz  short UNPACK.0051DDE5
+0051DDC5   push 0
+0051DDC7   lea  edx,dword ptr ss:\[ebp-20\]
+0051DDCA   mov  eax,UNPACK.0051DF90      ; ASCII "You are registered Professional version, thank you."
+0051DDCF   call UNPACK.0055B3EC
+0051DDD4   mov  eax,dword ptr ss:\[ebp-20\]
+0051DDD7   mov  cx,word ptr ds:\[51DF18\]
+0051DDDE   mov  dl,2
+0051DDE0   call UNPACK.00447D28
+0051DDE5   lea  edx,dword ptr ss:\[ebp-24\]
+0051DDE8   mov  eax,dword ptr ds:\[ebx+300\]
+0051DDEE   call UNPACK.0044EC04
+0051DDF3   mov  edx,dword ptr ss:\[ebp-24\]
+0051DDF6   mov  eax,UNPACK.0051DFCC      ; ASCII "RegUserName"
+0051DDFB   call UNPACK.004BB65C
+0051DE00   lea  edx,dword ptr ss:\[ebp-28\]
+0051DE03   mov  eax,dword ptr ds:\[ebx+304\]
+0051DE09   call UNPACK.0044EC04
+0051DE0E   mov  edx,dword ptr ss:\[ebp-28\]
+0051DE11   mov  eax,UNPACK.0051DF44      ; ASCII "RegUserNumber"
+0051DE16   call UNPACK.004BB65C
+0051DE1B   mov  eax,dword ptr ds:\[58C784\]
+0051DE20   mov  eax,dword ptr ds:\[eax\]
+0051DE22   mov  dword ptr ds:\[eax+9AC\],esi
+0051DE28   lea  edx,dword ptr ss:\[ebp-2C\]
+0051DE2B   mov  eax,dword ptr ds:\[ebx+300\]
+0051DE31   call UNPACK.0044EC04
+0051DE36   mov  edx,dword ptr ss:\[ebp-2C\]
+0051DE39   mov  eax,dword ptr ds:\[58C784\]
+0051DE3E   mov  eax,dword ptr ds:\[eax\]
+0051DE40   add  eax,9A8
+0051DE45   call UNPACK.00404A58
+0051DE4A   lea  eax,dword ptr ss:\[ebp-4\]
+0051DE4D   mov  edx,UNPACK.0051DFE0
+0051DE52   call UNPACK.00404A9C
+0051DE57   mov  eax,UNPACK.0051DFFC      ; ASCII "185dE7SD4dsw"
+0051DE5C   call UNPACK.00567658
+0051DE61   lea  eax,dword ptr ss:\[ebp-4\]
+0051DE64   call UNPACK.005676B4
+0051DE69   mov  edx,dword ptr ss:\[ebp-4\]
+0051DE6C   mov  eax,dword ptr ds:\[ebx+314\]
+0051DE72   call UNPACK.0044EC34
+0051DE77   mov  dl,1
+0051DE79   mov  eax,dword ptr ds:\[ebx+310\]
+0051DE7F   call UNPACK.0044EB24
+0051DE84   mov  dl,1
+0051DE86   mov  eax,dword ptr ds:\[ebx+314\]
+0051DE8C   call UNPACK.0044EB24
+0051DE91   xor  eax,eax
+...........
+```
+
+★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+
+#### ㈠跟进关键的 `Call`，可看到如下代码
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+```
+0056750E   push ebx
+0056750F   push esi
+00567510   push edi
+00567511   mov  dword ptr ss:\[ebp-4\],eax
+00567514   mov  eax,dword ptr ss:\[ebp-4\]
+00567517   call UNPACK.00404EA4
+0056751C   xor  eax,eax
+0056751E   push ebp
+0056751F   push UNPACK.005675E5
+00567524   push dword ptr fs:\[eax\]
+00567527   mov  dword ptr fs:\[eax\],esp
+0056752A   mov  dword ptr ss:\[ebp-8\],-1
+00567531   cmp  dword ptr ss:\[ebp-4\],0
+00567535   je   UNPACK.005675CF
+0056753B   call UNPACK.004BB4A4          ; 这个 Call 取系统当前时间然后进行
+                                           ; 浮点运算产生一个值,不解
+00567540   xor  eax,eax
+00567542   push ebp
+00567543   push UNPACK.005675C0
+00567548   push dword ptr fs:\[eax\]
+0056754B   mov  dword ptr fs:\[eax\],esp
+0056754E   mov  eax,dword ptr ss:\[ebp-4\]    ; ss:\[ebp-4\]中为假码"65148455"
+00567551   call UNPACK.00567658          ; 这个 Call 很关键,跟进去看看
+00567556   lea  eax,dword ptr ss:\[ebp-4\]    ; 同上,还是取假码到\[eax\]中
+00567559   call UNPACK.005676B4          ; 又一个很关键的调用,跟进!
+0056755E   mov  eax,dword ptr ss:\[ebp-4\]    ; 下面这三句又是经典句式,光明就在前方了
+00567561   mov  edx,UNPACK.00567600         ; 567600 处是程序内置固定值
+                                           ; 22 38 5C 4E C0 1A 75 1B 52 F4 2F 93
+                                           ; 故正确注册码的位数应该为 12 位
+00567566   call UNPACK.00404E00          ; 第一次比较,
+0056756B   jnz  short UNPACK.00567574
+0056756D   mov  dword ptr ss:\[ebp-8\],2      ; 上面通过置 ss:\[ebp-8\]为 2,Professional 版标记
+00567574   mov  eax,dword ptr ss:\[ebp-4\]
+00567577   mov  edx,UNPACK.00567618         ; 567618 处是程序内置固定值
+                                           ; CD E5 0D 70 D1 AF 8A 24 49 E5 FB 3B
+```
+
+
+
+### 代码段 1：注册码验证逻辑
+
+```
+0056757C   call UNPACK.00404E00                   ; 比较是否为 Lite 版注册码
+
+00567581   jnz short UNPACK.0056758A
+
+00567583   mov dword ptr ss:[ebp-8],1             ; 上面通过置 ss:[ebp-8]为 1,Lite 版标记
+
+0056758A   mov eax,dword ptr ss:[ebp-4]
+
+0056758D   mov edx,UNPACK.00567630                ; 567630 处是程序内置固定值
+                                                 ; D1 BA FC A1 D9 47 BC 51 6C D3 AF 9D
+
+00567592   call UNPACK.00404E00                   ; 同上,不注释了,机会还挺多的嘛!
+
+00567597   jnz short UNPACK.005675A0
+
+00567599   mov dword ptr ss:[ebp-8],2
+
+005675A0   mov eax,dword ptr ss:[ebp-4]
+
+005675A3   mov edx,UNPACK.00567648                ; 该处为 B0 1A 57 97 0F F2 32 C9 75 99 2C D1
+
+005675A8   call UNPACK.00404E00
+
+005675AD   jnz short UNPACK.005675B6              ; 最后一次机会
+
+005675AF   mov dword ptr ss:[ebp-8],1             ; 注意这里,给 ss:[ebp-8]赋值 1
+
+005675B6   xor eax,eax
+
+005675B8   pop edx
+
+005675B9   pop ecx
+
+005675BA   pop ecx
+
+005675BB   mov dword ptr fs:[eax],edx
+
+005675BE   jmp short UNPACK.005675CA
+
+005675C0   jmp UNPACK.00404178
+
+005675C5   call UNPACK.004044E0
+
+005675CA   call UNPACK.004BB4B4
+
+005675CF   xor eax,eax
+
+005675D1   pop edx
+
+005675D2   pop ecx
+
+005675D3   pop ecx
+
+005675D4   mov dword ptr fs:[eax],edx
+
+005675D7   push UNPACK.005675EC
+
+005675DC   lea eax,dword ptr ss:[ebp-4]
+
+005675DF   call UNPACK.00404A04
+
+005675E4   retn
+
+005675E5   jmp unpack.0040442C
+
+005675EA   jmp short unpack.005675DC
+
+005675EC   mov eax,dword ptr ss:[ebp-8]           ;关键噢,这里把 ss:[ebp-8]值赋给 eax
+
+005675EF   pop edi
+
+005675F0   pop esi
+
+005675F1   pop ebx
+
+005675F2   pop ecx
+
+005675F3   pop ecx
+
+005675F4   pop ebp
+
+005675F5   retn
+```
+
+### 代码段 2：首次置换操作（Call `UNPACK.00567658`）
+
+以下代码是跟入 `00567551 call UNPACK.00567658` 处的调用:
+
+```
+00567658   push esi
+
+00567659   push edi
+
+0056765A   push ebx
+
+0056765B   mov esi,eax
+
+0056765D   or esi,esi
+
+0056765F   je short unpack.005676A5
+
+00567661   mov ecx,dword ptr ds:[esi-4]          ; ds:[esi-4]中为假码的长度
+
+00567664   jecxz short unpack.005676A5
+
+00567666   mov eax,0FF
+
+0056766B   mov edx,eax
+
+0056766D   cmp ecx,eax
+
+0056766F   jbe short unpack.00567673
+
+00567671   mov ecx,eax
+
+00567673   lea edi,dword ptr ds:[58E250]
+
+00567679   mov byte ptr ds:[eax+edi],al          ; 下面这个小循环产一个 255 个元素的表格,首址为 ds:[58e250]
+
+0056767C   dec eax                               ; 其值为 0~0xFF
+
+0056767D   jns short unpack.00567679
+
+0056767F   xchg edx,ecx
+
+00567681   xor ebx,ebx
+
+00567683   xor eax,eax
+
+00567685   mov dh,byte ptr ds:[ebx+esi]          ; 按位取假码
+
+00567688   add al,dh                              ; 和累加到 al 中
+
+0056768A   mov bh,byte ptr ds:[ecx+edi]          ; 从上面生成的表的尾址取值到 bh 中
+
+0056768D   add al,bh                              ; 再与 al 累加结果存入 al 中
+
+0056768F   mov dh,byte ptr ds:[eax+edi]          ; 利用 al 的指针作指针查表取值到 dh 中
+
+00567692   mov byte ptr ds:[ecx+edi],dh          ; 把值存入表尾,简言之用假码对生成的表格再进行一次转换
+
+00567695   mov byte ptr ds:[eax+edi],bh          ; 应该是查表交换值，重新洗牌了:)
+
+00567698   xor bh,bh
+
+0056769A   inc bl                                 ; bl 作小循环指针
+
+0056769C   cmp bl,dl                              ; 是否取完假码?
+
+0056769E   jnz short unpack.005676A2
+
+005676A0   xor ebx,ebx
+
+005676A2   dec ecx                                ; ecx 作大循环指针
+
+005676A3   jns short unpack.00567685
+
+005676A5   xor eax,eax
+
+005676A7   mov word ptr ds:[58E354],ax           ; 注意对地址 ds:[58E354]的操作
+
+005676AD   pop ebx                                ; 00D0D3F8
+
+005676AE   pop edi
+
+005676AF   pop esi
+
+005676B0   retn
+```
+
+上方代码中 `Call` 重新洗牌后，`ds:[0058e250]` 处开始的表格值:
+
+```
+0058E250   2E 9F 35 3B BF 8A 2D 8C 03 A7 1D 07 BE 72 59 55   .?;繆-??緍 YU
+0058E260   99 70 2F D2 DA 23 21 34 A6 60 50 9C BA 7F A5 D5   檖/亿#!4P 満フ
+0058E270   E7 4A 19 CC E3 08 57 81 12 10 BC 51 7D F2 00 6D   鏙蹄 W?糛}?m
+0058E280   D9 44 F5 38 CE BB 96 2A CD 92 75 82 43 5B 22 87   貲?位?蛼 u 侰\"
+0058E290   3C CF 16 F4 E0 AD 1E 40 C9 80 D8 E6 7C 09 8B 25   <?羿?@蓘劓|.?
+0058E2A0   EE D6 76 E9 45 14 FA 1F 30 C5 D4 A4 C7 90 33 71   钪 v 镋?0 旁で?q
+0058E2B0   3A 15 5E 95 84 EF 0B F1 1C 8F 74 58 6B 67 62 BD   :^晞??弔 Xkgb
+0058E2C0   32 3F 97 3E 17 13 6F B3 6C D7 DB 53 29 E1 EA 18   2??o 砽综 S)彡
+0058E2D0   E2 B9 54 D0 0D 93 FD 69 83 0A A1 02 E4 88 78 D3   夤 T?擙 i??鋱 x
+0058E2E0   52 39 F7 B2 2B 47 9E 9D FF B1 AB 7B FB 4F 56 66   R9 鞑+G 灊鲍{鸒 Vf
+0058E2F0   CB C2 B6 1A F0 5A 6E 5D 49 DF A2 AF 4B 8E 7A 89   寺?餤 n]I 撷疜巣
+0058E300   73 06 0F ED A3 EC B8 68 11 24 36 1B F3 65 77 F8   s 恚旄 h$6 骵 w
+0058E310   CA 9A C0 AE 0C AA AC 41 05 8D 5C 7E 31 D1 6A 5F   蕷喇.A 峔~1 裫_
+0058E320   E8 28 61 3D E5 48 42 37 A8 A0 85 01 0E C4 46 B4   ?a=錒 B7?腇
+0058E330   98 79 63 4D DE A9 04 C1 86 20 91 B0 4C 2C F6 EB   榶 cM 蕞羻 懓 L,鲭
+0058E340   FC C8 9B 94 DD 4E DC B5 64 26 27 F9 C6 FE B7 C3        洈軳艿 d&'
+```
+
+### 代码段 3：二次置换操作（Call `UNPACK.005676B4`）
+
+以下代码为 `00567559 call UNPACK.005676B4` 处的调用过程:
+
+```
+005676B4   push ebx
+
+005676B5   mov ebx,eax
+
+005676B7   push esi
+
+005676B8   push edi
+
+005676B9   push ebx
+
+005676BA   push eax
+
+005676BB   call unpack.00404F04                 ; 这个 Call 不清楚干什么的,先不去管它
+
+005676C0   pop eax
+
+005676C1   mov edi,dword ptr ds:[eax]           ; 取假码到 edi 中
+
+005676C3   or edi,edi
+
+005676C5   je short unpack.0056770F
+
+005676C7   mov ecx,dword ptr ds:[edi-4]         ; 取假码位数到 ecx 中
+
+005676CA   jecxz short unpack.0056770F
+
+005676CC   lea esi,dword ptr ds:[58E250]        ; 呵呵,表格的首址赋给 esi
+
+005676D2   xor eax,eax
+
+005676D4   xor ebx,ebx
+
+005676D6   xor edx,edx
+
+005676D8   mov ax,word ptr ds:[58E354]          ; 这个地址 ds:[58e354]还记得吗
+
+005676DE   mov bl,ah
+
+005676E0   xor ah,ah
+
+005676E2   inc al
+
+005676E4   mov dl,byte ptr ds:[eax+esi]         ; 从表格第 2 位开始取值
+
+005676E7   add bl,dl                            ; 和累加到 bl 中
+
+005676E9   mov dh,byte ptr ds:[ebx+esi]         ; 不用说了,与前面一样,第二轮洗牌开始了
+
+005676EC   mov byte ptr ds:[eax+esi],dh
+
+005676EF   mov byte ptr ds:[ebx+esi],dl
+
+005676F2   add dl,dh                            ; 这里与前面有些不同,注意结果超过 FF 会
+                                               ; 自动舍去的,因为是用 dl 作累加器
+
+005676F4   xor dh,dh
+
+005676F6   mov bh,byte ptr ds:[edx+esi]         ; 又来查表取值
+
+005676F9   mov ah,byte ptr ds:[edi]            ; 取假码的第一位到 ah 中
+
+005676FB   xor ah,bh
+
+005676FD   mov byte ptr ds:[edi],ah            ; 或运算后的值存入原假码位置
+
+005676FF   inc edi
+
+00567700   xor ah,ah
+
+00567702   xor bh,bh
+
+00567704   dec ecx
+
+00567705   jnz short unpack.005676E2           ; 判断是否取完假码
+
+00567707   mov ah,bl                          ; 我的循环结束后假码位置为 BC 65 63 24 0E FE F3 F1
+
+00567709   mov word ptr ds:[58E354],ax         ; 又来对 ds:[58E354]这个地址赋值
+
+0056770F   pop ebx
+
+00567710   pop edi
+
+00567711   pop esi
+
+00567712   mov eax,dword ptr ds:[58C604]
+
+00567717   mov edx,dword ptr ds:[ebx]          ; 注意这里 ds:[ebx]指向上面覆盖原假码后的值
+
+00567719   call unpack.00404A58                ;
+
+0056771E   pop ebx
+
+0056771F   retn
+```
+
+### 分析与总结
+
+看到这儿是不是有点头晕了，不好意思，我的描述能力只有这么多了。总结一下，注册码与用户名无关，正确码应该为 12 位，只要经过程序中的那两轮置换操作后与程序内置的 4 个固定串值任一相等即可（`Profession` 与 `Lite` 版本的比较不同），弄了半天是数字游戏。
+
+### 【第三步】注册机？（3 个字节搞定??）
+
+为什么我加个问号呢？因为我认为面对这样的算法写注册机是折磨（主要是水平不够），我们看看能不能侧面突击一下，同样实现程序的正确注册呢？
+
+我在上面的分析中在 `005675EC` 行处标注了一个关键，是的，我的程序自注册关键就在此，此处的语句如下：
+
+```
+005675EC   mov eax,dword ptr ss:[ebp-8]  ;此句机器码形式为 3 个字节,就是改这一句了
+
+005675EF   pop edi
+
+005675F0   pop esi
+
+005675F1   pop ebx
+
+005675F2   pop ecx
+
+005675F3   pop ecx
+
+005675F4   pop ebp
+
+005675F5   retn
+```
+
+如果你仔细观察一下上下代码就知道，此处是赋注册成功标志（成功了 `profession` 和 `lite` 版之分），所以我们只要在此处使 `eax` 的值不受 `ss:[ebp-8]` 影响即可，呵呵，就是我们自己给 `eax` 赋值了。我将此处改为如下所示，在我的系统中测试通过！
+
+`Lite` 版改为这样：
+
+```
+----------------------
+......
+005675EC   xor eax,eax
+005675EE   inc eax
+005675EF   pop edi
+005675F0   pop esi
+.....
+----------------------
+```
+
+
+
+Professional 版改成这样:
+
+```
+------------------------
+
+.....
+
+005675EC   push 2  
+005675EE   pop eax  
+005675EF   pop edi  
+005675F0   pop esi  
+.....
+
+------------------------
+```
+
+本文结束!水平所限,不能把这个老外的软件分析得彻底,感觉这个软件里还有很多有意思的东西,如果你有兴趣不妨自己亲自跟踪一下!欢迎 e-mail 到`sharpair@163.com`交流!QQ:402800474
+
+`4dd466d0e1e0cc123afbe504da2462ca`
