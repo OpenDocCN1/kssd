@@ -1,0 +1,559 @@
+
+# XoftSpy 4.13 的注册算法分析
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-286.htm`](https://www.pediy.com/kssd/pediy07/pediy7-286.htm)
+
+## 标题
+XoftSpy 4.13 的注册算法分析
+
+## 作者
+`forever[RCT]`
+
+## 语言
+`VC`
+
+## 工具
+`ida4.6`, `ollydbg1.1`
+
+## 正文
+这个软件的算法很简单，正好拿来做逆向分析。我就会捏软柿子。呵呵。
+
+因为这个软件注册失败会弹出一个对话框来提示您，所以在 `ollydbg` 中在函数 `MessageBox` 上下断点很容易就找到软件的关键算法处。这个软件装载时间很长，所以如果您也要分析它，建议用 `ollydbg` 来 attach 一下。我就是这么的。:)
+
+其他的都省略了。这里只分析一下关键的算法部分：
+
+```asm
+.text:00417690 sub_417690      proc near
+.text:00417690
+.text:00417690
+.text:00417690 var_28          = dword ptr -28h
+.text:00417690 var_24          = dword ptr -24h
+.text:00417690 var_20          = dword ptr -20h
+.text:00417690 var_1C          = dword ptr -1Ch
+.text:00417690 var_18          = dword ptr -18h
+.text:00417690 var_14          = dword ptr -14h
+.text:00417690 var_10          = dword ptr -10h
+.text:00417690 var_C           = dword ptr -0Ch
+.text:00417690 var_4           = dword ptr -4
+.text:00417690 arg_myName      = dword ptr  4
+.text:00417690 arg_myCode      = dword ptr  8
+.text:00417690
+.text:00417690                 push    0FFFFFFFFh
+.text:00417692                 push    offset unknown_libname_428
+.text:00417697                 mov     eax, large fs:0
+.text:0041769D                 push    eax
+.text:0041769E                 mov     large fs:0, esp
+.text:004176A5                 sub     esp, 1Ch
+.text:004176A8                 push    ebx
+.text:004176A9                 push    esi
+.text:004176AA                 push    edi
+.text:004176AB                 mov     eax, [esp+34h+arg_myName]
+.text:004176AF                 push    offset byte_48FA48  //这里是 0
+.text:004176B4                 push    eax
+.text:004176B5                 mov     [esp+3Ch+var_4], 1
+.text:004176BD                 call    __mbscmp
+.text:004176C2                 add     esp, 8
+.text:004176C5                 test    eax, eax
+.text:004176C7                 jz      loc_4178F5
+//注册名为空则退出
+.text:004176CD                 mov     ecx, [esp+34h+arg_myCode]
+.text:004176D1                 push    offset byte_48FA48
+.text:004176D6                 push    ecx
+.text:004176D7                 call    __mbscmp
+.text:004176DC                 add     esp, 8
+.text:004176DF                 test    eax, eax
+.text:004176E1                 jz      loc_4178F5
+//注册码为空则退出
+.text:004176E7                 mov     edx, [esp+34h+arg_myCode]
+.text:004176EB                 cmp     dword ptr [edx-8], 21
+.text:004176EF                 jl      loc_4178F5
+//注册码长度小于 21 位则退出
+.text:004176F5                 lea     eax, [esp+34h+var_18]
+.text:004176F9                 push    11
+.text:004176FB                 push    eax
+.text:004176FC                 lea     ecx, [esp+3Ch+arg_myCode]
+.text:00417700                 call    ?Left@CString@@QBE?AV1@H@Z ; CString::Left(int)
+.text:00417705                 mov     ecx, [esp+34h+var_18]
+//取注册码左边 11 个字符
+.text:00417709                 xor     esi, esi
+//mov 指令执行后 ecx 是字符串的地址
+.text:0041770B                 xor     edx, edx
+//这是指针和变量的区别，变量一般用 lea
+.text:0041770D                 mov     byte ptr [esp+34h+var_4], 2
+.text:00417712                 mov     [esp+34h+var_14], esi
+.text:00417716                 xor     eax, eax
+.text:00417718
+.text:00417718 loc_417718:
+.text:00417718                 movsx   edi, byte ptr [eax+ecx]
+//取一个字符(符号扩展的，所以 edi 是整型数)
+.text:0041771C                 add     edx, edi
+//累加到 edx
+.text:0041771E                 inc     eax
+//索引加 1
+.text:0041771F                 cmp     eax, 0Ah
+.text:00417722                 jle     short loc_417718
+//这里用的 jle，所以累加 11 个字节
+.text:00417724                 mov     [esp+34h+var_10], edx
+//保存累加和
+.text:00417728                 mov     edx, [esp+34h+arg_myName]
+.text:0041772C                 xor     eax, eax
+.text:0041772E                 mov     ecx, [edx-8]
+//这个位置是 CString 类型的变量的长度
+.text:00417731                 test    ecx, ecx
+.text:00417733                 jle     short loc_417744
+//用户名长度小于等于 0 则跳
+.text:00417735
+.text:00417735 loc_417735:
+.text:00417735                 movsx   edi, byte ptr [eax+edx]
+//取用户名一个字符
+.text:00417739                 add     esi, edi
+//累加到 esi
+.text:0041773B                 inc     eax
+.text:0041773C                 cmp     eax, ecx
+.text:0041773E                 jl      short loc_417735
+//(注意这里用的 jl)
+.text:00417740                 mov     [esp+34h+var_14], esi
+//保存用户名累加和
+.text:00417744
+.text:00417744 loc_417744:
+.text:00417744                 mov     ecx, [esp+34h+arg_myCode]
+.text:00417748                 push    ebp
+.text:00417749                 lea     edx, [esp+38h+var_28]
+.text:0041774D                 mov     eax, [ecx-8]
+.text:00417750                 lea     ecx, [esp+38h+arg_myCode]
+.text:00417754                 add     eax, -12
+//注册码长度减去 12
+.text:00417757                 push    eax
+.text:00417758                 push    edx
+.text:00417759                 call    ?Right@CString@@QBE?AV1@H@Z ; CString::Right(int)
+.text:0041775E                 lea     eax, [esp+38h+var_1C]
+//上面是取右半部分，不要左边的 12 个字符
+.text:00417762                 push    3
+.text:00417764                 push    eax
+.text:00417765                 lea     ecx, [esp+40h+var_28]
+.text:00417769                 mov     byte ptr [esp+40h+var_4], 3
+.text:0041776E                 call    ?Left@CString@@QBE?AV1@H@Z ; CString::Left(int)
+.text:00417773                 mov     ecx, [esp+38h+var_1C]
+//取右半部分的左边 3 个字符
+.text:00417777                 mov     byte ptr [esp+38h+var_4], 4
+.text:0041777C                 push    ecx       ; char *
+.text:0041777D                 call    _atoi
+//转换成整数
+.text:00417782                 cdq
+.text:00417783                 add     esp, 4
+.text:00417786                 sub     eax, edx
+.text:00417788                 lea     edx, [esp+38h+var_20]
+.text:0041778C                 mov     esi, eax
+//结果放在这里
+.text:0041778E                 push    3
+.text:00417790                 push    3
+.text:00417792                 push    edx
+.text:00417793                 lea     ecx, [esp+44h+var_28]
+.text:00417797                 sar     esi, 1
+//除以 2（符号右移 1 位）
+.text:00417799                 call    ?Mid@CString@@QBE?AV1@HH@Z ; CString::Mid(int,int)
+.text:0041779E                 mov     eax, [esp+38h+var_20]
+//依次再取 3 个字符
+.text:004177A2                 mov     byte ptr [esp+38h+var_4], 5
+.text:004177A7                 push    eax       ; char *
+.text:004177A8                 call    _atoi
+//转换成整数
+.text:004177AD                 cdq
+.text:004177AE                 add     esp, 4
+.text:004177B1                 and     edx, 3
+.text:004177B4                 add     eax, edx
+.text:004177B6                 lea     ecx, [esp+38h+var_24]
+.text:004177BA                 push    3
+```
+
+
+
+## 汇编代码
+
+```
+.text:004177BC         mov     edi, eax
+
+            //结果放在这里
+
+.text:004177BE         push    ecx
+.text:004177BF         lea     ecx, [esp+40h+var_28]
+.text:004177C3         sar     edi, 2
+
+            //除以 4（符号右移 2 位）
+
+.text:004177C6         call    ?Right@CString@@QBE?AV1@H@Z ; CString::Right(int)
+.text:004177CB         mov     edx, [esp+38h+var_24]
+
+            //取右半部分最右边 3 位
+
+.text:004177CF         push    edx                 ; char *
+.text:004177D0         call    _atoi
+
+            //转换成整数
+
+.text:004177D5         mov     ecx, eax
+.text:004177D7         mov     eax, 55555556h
+
+            //乘以 55555556h
+
+.text:004177DC         imul    ecx
+.text:004177DE         mov     eax, edx
+
+            //模 2 的 32 次方
+
+.text:004177E0         add     esp, 4
+.text:004177E3         shr     eax, 1Fh
+
+            //处理符号位
+
+.text:004177E6         add     edx, eax
+
+            //上面实际上是除以 3，我们看看怎么计算的：
+            // ecx * 55555556h / 2³²
+            //== ecx * 1431655766 / 4294967296
+            //== ecx / 2.9999999986030161387273035297509
+            //== ecx / 3
+
+.text:004177E8         mov     eax, [esp+38h+arg_myName]
+.text:004177EC         mov     ebx, edx
+
+            //结果放在这里
+
+.text:004177EE         movsx   ecx, byte ptr [eax]
+
+            //取用户名一个字节到 ecx
+
+.text:004177F1         mov     ebp, [eax-8]
+.text:004177F4         cmp     esi, ecx
+
+            //和第一个整数比较
+
+.text:004177F6         movsx   edx, byte ptr [eax+1]
+
+            //取用户名第 2 个字符到 edx
+
+.text:004177FA         movsx   eax, byte ptr [eax+ebp-1]
+
+            //取用户名最后一个字节到 eax
+
+.text:004177FF         pop     ebp
+.text:00417800         jnz     loc_4178AF
+.text:00417806         cmp     edi, edx
+
+            //第 2 个字符和第 2 个整数比较
+
+.text:00417808         jnz     loc_4178AF
+.text:0041780E         cmp     ebx, eax
+
+            //最后一个字符和第 3 个整数比较
+
+.text:00417810         jnz     loc_4178AF
+.text:00417816         mov     eax, [esp+34h+var_14]
+
+            //用户名累加和
+
+.text:0041781A         mov     ecx, 0Ah
+.text:0041781F         cdq
+.text:00417820         idiv    ecx
+.text:00417822         mov     eax, [esp+34h+var_10]
+
+            //注册码左半部分累加和
+
+.text:00417826         mov     esi, 0Ah
+.text:0041782B         mov     ecx, edx
+
+            //这个是用户名累加和模 10 的结果
+
+.text:0041782D         cdq
+.text:0041782E         idiv    esi
+
+            //注册码左半部分累加和模 10 的结果在 edx
+
+.text:00417830         cmp     edx, ecx    //比较
+.text:00417832         jnz     short loc_4178AF
+.text:00417834         lea     ecx, [esp+34h+var_24]
+.text:00417838         mov     byte ptr [esp+34h+var_4], 5
+.text:0041783D         call    ??1CString@@QAE@XZ ; CString::~CString(void)
+.text:00417842         lea     ecx, [esp+34h+var_20]
+.text:00417846         mov     byte ptr [esp+34h+var_4], 4
+.text:0041784B         call    ??1CString@@QAE@XZ ; CString::~CString(void)
+.text:00417850         lea     ecx, [esp+34h+var_1C]
+.text:00417854         mov     byte ptr [esp+34h+var_4], 3
+.text:00417859         call    ??1CString@@QAE@XZ ; CString::~CString(void)
+.text:0041785E         lea     ecx, [esp+34h+var_28]
+.text:00417862         mov     byte ptr [esp+34h+var_4], 2
+.text:00417867         call    ??1CString@@QAE@XZ ; CString::~CString(void)
+.text:0041786C         lea     ecx, [esp+34h+var_18]
+.text:00417870         mov     byte ptr [esp+34h+var_4], 1
+.text:00417875         call    ??1CString@@QAE@XZ ; CString::~CString(void)
+.text:0041787A         lea     ecx, [esp+34h+arg_myName]
+.text:0041787E         mov     byte ptr [esp+34h+var_4], 0
+.text:00417883         call    ??1CString@@QAE@XZ ; CString::~CString(void)
+.text:00417888         lea     ecx, [esp+34h+arg_myCode]
+.text:0041788C         mov     [esp+34h+var_4], 0FFFFFFFFh
+.text:00417894         call    ??1CString@@QAE@XZ ; CString::~CString(void)
+.text:00417899         pop     edi
+.text:0041789A         pop     esi
+.text:0041789B         mov     al, 1
+.text:0041789D         pop     ebx
+.text:0041789E         mov     ecx, [esp+28h+var_C]
+.text:004178A2         mov     large fs:0, ecx
+.text:004178A9         add     esp, 28h
+.text:004178AC         retn    8
+
+.text:004178AF ; 哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪
+
+.text:004178AF
+
+.text:004178AF loc_4178AF:
+
+.text:004178AF         lea     ecx, [esp+34h+var_24]
+.text:004178B3         mov     byte ptr [esp+34h+var_4], 5
+.text:004178B8         call    ??1CString@@QAE@XZ ; CString::~CString(void)
+.text:004178BD         lea     ecx, [esp+34h+var_20]
+.text:004178C1         mov     byte ptr [esp+34h+var_4], 4
+.text:004178C6         call    ??1CString@@QAE@XZ ; CString::~CString(void)
+.text:004178CB         lea     ecx, [esp+34h+var_1C]
+.text:004178CF         mov     byte ptr [esp+34h+var_4], 3
+.text:004178D4         call    ??1CString@@QAE@XZ ; CString::~CString(void)
+.text:004178D9         lea     ecx, [esp+34h+var_28]
+.text:004178DD         mov     byte ptr [esp+34h+var_4], 2
+.text:004178E2         call    ??1CString@@QAE@XZ ; CString::~CString(void)
+.text:004178E7         lea     ecx, [esp+34h+var_18]
+.text:004178EB         mov     byte ptr [esp+34h+var_4], 1
+.text:004178F0         call    ??1CString@@QAE@XZ ; CString::~CString(void)
+.text:004178F5
+
+.text:004178F5 loc_4178F5:
+
+.text:004178F5         lea     ecx, [esp+34h+arg_myName]
+.text:004178F9         mov     byte ptr [esp+34h+var_4], 0
+.text:004178FE         call    ??1CString@@QAE@XZ ; CString::~CString(void)
+.text:00417903         lea     ecx, [esp+34h+arg_myCode]
+.text:00417907         mov     [esp+34h+var_4], 0FFFFFFFFh
+.text:0041790F         call    ??1CString@@QAE@XZ ; CString::~CString(void)
+.text:00417914         mov     ecx, [esp+34h+var_C]
+.text:00417918         pop     edi
+.text:00417919         pop     esi
+.text:0041791A         xor     al, al
+.text:0041791C         pop     ebx
+.text:0041791D         mov     large fs:0, ecx
+.text:00417924         add     esp, 28h
+.text:00417927         retn    8
+
+.text:00417927 sub_417690      endp
+```
+
+## 算法总结
+
+1. 注册码长度大于等于 21 个字符。
+2. 注册码分左右两部分处理，左边取 11 个字符，右边取除左边 12 个字符的所有字符。
+3. 用户名累加和模 10 和注册码左边 11 个字节累加和模 10 相等。
+4. 注册码右半部分的前 3 个字符转换成整数和用户名第一个字符比较。
+5. 注册码右半部分的接着 3 个字符转换成整数和用户名第二个字符比较。
+6. 注册码右半部分最后 3 个字符转换成整数和用户名最后一个字符比较。
+
+## 逆向代码
+
+```
+/////////////////////////////////////////////////////////////////
+//逆向如下：/////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////
+
+BOOL fun1(CString myName, CString myCode)
+{
+    CString tmp1, tmp2;
+    int iLeftSum, iNameSum;
+    int x, y, z;
+    int i;
+```
+
+
+
+```c
+int iLen;  
+
+if(myName.IsEmpty())return FALSE;  
+
+if(myCode.IsEmpty())return FALSE;  
+
+if(myCode.GetLength() < 21)return FALSE;  
+
+tmp1 = myCode.Left(11);  
+
+iLen = tmp1.GetLength();  
+
+iLeftSum = 0;  
+
+for(i = 0;i < iLen;i ++)  
+
+{  
+
+    iLeftSum += tmp1.GetAt(i);  
+
+}  
+
+iLen = myName.GetLength();  
+
+iNameSum = 0;  
+
+for(i = 0;i < iLen;i ++)  
+
+{  
+
+    iNameSum += myName.GetAt(i);  
+
+}  
+
+tmp1 = myCode.Right(myCode.GetLength() - 12);  
+
+tmp2 = tmp1.Left(3);  
+
+x    = atoi(tmp2);  
+
+x    = x / 2;  
+
+tmp2 = tmp1.Mid(3,3);  
+
+y    = atoi(tmp2);  
+
+y    = y / 4;  
+
+tmp2 = tmp1.Right(3);  
+
+z    = atoi(tmp2);  
+
+z    = z / 3;  
+
+if(x != myName.GetAt(0))return FALSE;  
+
+if(y != myName.GetAt(1))return FALSE;  
+
+if(z != myName.GetAt(myName.GetLength() - 1))return FALSE;  
+
+if(iLeftSum != iNameSum)return FALSE;  
+
+return TRUE;  
+
+}  
+
+/////////////////////////////////////////////////////////////  
+
+//注册机算法如下：////////////////////////////////////////////  
+
+/////////////////////////////////////////////////////////////  
+
+CString fun1(const CString myName)  
+
+{  
+
+    int i,iLen;  
+
+    int iNameSum;  
+
+    int iLeftSum;  
+
+    char tmp[4];  
+
+    char tmp1[12];  
+
+    CString myCode;  
+
+    iNameSum = 0;  
+
+    iLen = myName.GetLength();  
+
+    for(i = 0;i < iLen;i ++)  
+
+    {  
+
+        iNameSum += myName.GetAt(i);  
+
+    }  
+
+    memset(tmp1,0,12);  
+
+    srand( (unsigned)time( NULL ) );  
+
+    for(i = 0;i < 10;i ++)  
+
+    {  
+
+        tmp1[i] = rand() % 10 + 0x30;  
+
+    }  
+
+    iLeftSum = 0;  
+
+    for(i = 0;i < 10;i ++)  
+
+    {  
+
+        iLeftSum += tmp1[i];  
+
+    }  
+
+    iLeftSum %= 10;  
+
+    iNameSum %= 10;  
+
+    tmp1[10] = (iLeftSum >= iNameSum? iLeftSum - iNameSum:iNameSum - iLeftSum);  
+
+    if(tmp1[10] <= 7)tmp1[10] += 50;  //保证注册码都是数字  
+
+    else tmp1[10] += 40;    
+
+    myCode += tmp1;  
+
+    myCode += "-";  
+
+    memset(tmp,0,4);  
+
+    sprintf(tmp,"%03d",myName.GetAt(0)*2);  
+
+    myCode += tmp;  
+
+    memset(tmp,0,4);  
+
+    sprintf(tmp,"%03d",myName.GetAt(1)*4);  
+
+    myCode += tmp;  
+
+    memset(tmp,0,4);  
+
+    sprintf(tmp,"%03d",myName.GetAt(myName.GetLength() - 1)*3);  
+
+    myCode += tmp;  
+
+    return myCode;  
+
+}  
+
+=======================全文完=======================
+```
+
+我的注册机算法很简单的：
+
+```c
+void CTt2Dlg::OnButton1()  
+
+{  
+
+  UpdateData();  
+
+  m_name.MakeUpper();  
+
+  if(m_name.GetLength() <= 0)  
+
+    m_code = "";  
+
+  else  
+
+    m_code = fun1(m_name);  
+
+  UpdateData(FALSE);     
+
+}
+```
+
+`4dd466d0e1e0cc123afbe504da2462ca`
