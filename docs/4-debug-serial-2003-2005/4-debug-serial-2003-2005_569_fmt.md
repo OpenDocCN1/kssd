@@ -1,0 +1,43 @@
+
+# 足彩大师 5.0
+
+> 原文：`www.pediy.com/kssd/pediy05/pediy50033.htm`
+
+可能上次我把足彩大师 4.06 的爆破贴了出来，作者有意改动了一下，但万变不离其中。
+
+现在我把 5.0 的再写出来和大家交流一下。
+
+```
+0167:0046D642 B830D74600       MOV       EAX,0046D730
+0167:0046D647 E800BAF9FF       CALL      0040904C
+0167:0046D64C 33F3             XOR       ESI,EBX
+0167:0046D64E 83F6FF           XOR       ESI,BYTE -01
+0167:0046D651 8BC6             MOV       EAX,ESI <--这里的 ESI 为我们的机器号（复制给 EAX 做计算注册号的入口参数）
+0167:0046D653 33D2             XOR       EDX,EDX
+0167:0046D655 52               PUSH      EDX
+0167:0046D656 50               PUSH      EAX
+0167:0046D657 8D55F4           LEA       EDX,[EBP-0C]
+0167:0046D65A B808000000       MOV       EAX,08
+0167:0046D65F E8A8B9F9FF       CALL      0040900C
+0167:0046D664 8B45F4           MOV       EAX,[EBP-0C]
+0167:0046D667 8D55FC           LEA       EDX,[EBP-04]
+0167:0046C1B4 BE01000000       MOV       ESI,01
+0167:0046C1B9 8D45EC           LEA       EAX,[EBP-14]
+0167:0046C1BC 8B55F4           MOV       EDX,[EBP-0C]
+0167:0046C1BF 8A5432FF         MOV       DL,[EDX+ESI-01] <--在这里按下 D EDX+ESI-1 能看到正确的注册码,这里的命令意思是取出注册码的第一个 ASCII 码，后面就是比较的过程了
+0167:0046C1C3 80F2EF           XOR       DL,EF
+0167:0046C1C6 E88988F9FF       CALL      00404A54
+0167:0046C1CB 8B55EC           MOV       EDX,[EBP-14]
+0167:0046C1CE 8D45F8           LEA       EAX,[EBP-08]
+0167:0046C1D1 E85E89F9FF       CALL      00404B34
+0167:0046C1D6 46               INC       ESI
+0167:0046C1D7 4B               DEC       EBX
+0167:0046C1D8 75DF             JNZ       0046C1B9
+0167:0046C1DA 8BC7             MOV       EAX,EDI
+0167:0046C1DC 8B55F8           MOV       EDX,[EBP-08]
+0167:0046C1DF E8E486F9FF       CALL      004048C8
+```
+
+欢迎大家来信交流。
+
+我的信箱：`tsgmx@21cn.com` `4dd466d0e1e0cc123afbe504da2462ca`

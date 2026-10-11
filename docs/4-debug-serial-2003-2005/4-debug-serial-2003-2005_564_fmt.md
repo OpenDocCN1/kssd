@@ -1,0 +1,206 @@
+
+# Flash 伴侣 2.1
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6403.htm`](https://www.pediy.com/kssd/pediy06/pediy6403.htm)
+
+**工具**：`od`, `peid`
+
+**环境**：`win98`
+
+**目标**：`flashfare`（`Flash 伴侣 2.1`）
+
+## 功能简介
+
+*   支持多种视频文件格式并可对其完全控制。原则上 `Windows 媒体播放机`支持的格式她都支持。
+*   三个独立的音频通道可以独立地播放不同格式的音频，用来播放背景音乐、配音等。
+*   用位图或矢量图来确定窗口或所播放的媒体的外形，很方便地制作出异形窗体。
+*   定制的右键菜单及高级的动画右键菜单（`2.1`版），动画右键菜单可以完全表现你的创意！
+*   方便地执行高级操作，如安装字体、拷贝文件、操作注册表、关闭计算机、定时执行指定命令、闲置指定时间后执行指定命令、读写外部文本文件等。
+*   可定制的任意拖动窗口的区域。
+*   打包成独立的可执行文件。
+*   嵌入 `HTML` 页面。
+*   支持 `Flash` 内置变量。
+*   ...其他一些小功能。
+
+**下载**：`http://www.goomoo.net/soft.htm`
+
+**目的**：对程序破解技术的爱好与研究，无他
+
+## 开工
+
+两个程序。主程序（`aspack` 壳），播放器（`upx` 壳）。
+
+脱壳。（参考手脱文章或用 `aspackice`, `upx`）
+
+主要是主程序。
+
+启动，输入试验码：`987654321`
+
+提示重启验证。
+
+照作。
+
+`od` 加载。
+
+发现在注册表操作调用上下断不明显。
+
+搜索->字符参考 中找到 `sn`、`name` 等字符。下断。
+
+来到这里：
+
+```
+0049A8BE  |.  BA 30AB4900     MOV EDX,UNPACKED.0049AB30            ;  ASCII "sn"
+0049A8C3  |.  8B45 F8         MOV EAX,DWORD PTR SS:[EBP-8]
+0049A8C6  |.  E8 CDCEF9FF     CALL UNPACKED.00437798
+0049A8CB  |.  84C0            TEST AL,AL
+0049A8CD  |.  0F84 71010000   JE UNPACKED.0049AA44
+0049A8D3  |.  BA 3CAB4900     MOV EDX,UNPACKED.0049AB3C            ;  ASCII "name"
+0049A8D8  |.  8B45 F8         MOV EAX,DWORD PTR SS:[EBP-8]
+0049A8DB  |.  E8 B8CEF9FF     CALL UNPACKED.00437798
+0049A8E0  |.  84C0            TEST AL,AL
+0049A8E2  |.  0F84 5C010000   JE UNPACKED.0049AA44
+0049A8E8  |.  8D4D F4         LEA ECX,DWORD PTR SS:[EBP-C]
+0049A8EB  |.  BA 30AB4900     MOV EDX,UNPACKED.0049AB30            ;  ASCII "sn"
+0049A8F0  |.  8B45 F8         MOV EAX,DWORD PTR SS:[EBP-8]
+0049A8F3  |.  E8 B8CCF9FF     CALL UNPACKED.004375B0             ;  读取试验码
+0049A8F8  |.  8D4D F0         LEA ECX,DWORD PTR SS:[EBP-10]
+0049A8FB  |.  BA 3CAB4900     MOV EDX,UNPACKED.0049AB3C            ;  ASCII "name"
+0049A900  |.  8B45 F8         MOV EAX,DWORD PTR SS:[EBP-8]
+0049A903  |.  E8 A8CCF9FF     CALL UNPACKED.004375B0             ;  读取用户名
+0049A908  |.  FF75 F0         PUSH DWORD PTR SS:[EBP-10]
+0049A90B  |.  68 4CAB4900     PUSH UNPACKED.0049AB4C
+0049A910  |.  FF75 EC         PUSH DWORD PTR SS:[EBP-14]
+0049A913  |.  8D45 D8         LEA EAX,DWORD PTR SS:[EBP-28]
+0049A916  |.  BA 03000000     MOV EDX,3
+0049A91B  |.  E8 30A0F6FF     CALL UNPACKED.00404950             ;  用户名与机器码组合
+0049A920  |.  8B45 D8         MOV EAX,DWORD PTR SS:[EBP-28]
+0049A923  |.  8D55 DC         LEA EDX,DWORD PTR SS:[EBP-24]
+0049A926  |.  E8 D9BAFFFF     CALL UNPACKED.00496404             ;  注册码转换，跟进
+0049A92B  |.  8B55 DC         MOV EDX,DWORD PTR SS:[EBP-24]        edx 指向注册码
+0049A92E  |.  8B45 F4         MOV EAX,DWORD PTR SS:[EBP-C]         eax 指向试验码
+0049A931  |.  E8 A6A0F6FF     CALL UNPACKED.004049DC             比较
+0049A936  |.  0F85 08010000  JNZ UNPACKED.0049AA44              失败跳转
+0049A93C  |.  8B45 FC         MOV EAX,DWORD PTR SS:[EBP-4]
+```
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+## 注册码转换
+
+来到这里：
+
+```
+00496404  /$ 55             PUSH EBP
+00496405  |. 8BEC           MOV EBP,ESP
+00496407  |. 83C4 F4        ADD ESP,-0C
+0049640A  |. 53             PUSH EBX
+0049640B  |. 56             PUSH ESI
+0049640C  |. 57             PUSH EDI
+0049640D  |. 33C9           XOR ECX,ECX
+0049640F  |. 894D F4        MOV DWORD PTR SS:[EBP-C],ECX
+00496412  |. 8BFA           MOV EDI,EDX
+00496414  |. 8945 FC        MOV DWORD PTR SS:[EBP-4],EAX
+00496417  |. 8B45 FC        MOV EAX,DWORD PTR SS:[EBP-4]
+0049641A  |. E8 61E6F6FF    CALL UNPACKED.00404A80
+0049641F  |. 33C0           XOR EAX,EAX
+00496421  |. 55             PUSH EBP
+00496422  |. 68 CC644900    PUSH UNPACKED.004964CC
+00496427  |. 64:FF30        PUSH DWORD PTR FS:[EAX]
+0049642A  |. 64:8920        MOV DWORD PTR FS:[EAX],ESP
+0049642D  |. 66:BB 0100     MOV BX,1
+00496431  |. 8B45 FC        MOV EAX,DWORD PTR SS:[EBP-4]
+00496434  |. E8 57E4F6FF    CALL UNPACKED.00404890
+00496439  |. 8BF0           MOV ESI,EAX
+0049643B  |. 66:85F6        TEST SI,SI
+0049643E  |. 76 6E          JBE SHORT UNPACKED.004964AE
+00496440  |. 66:C745 FA 01>MOV WORD PTR SS:[EBP-6],1
+00496446  |> 0FB745 FA      /MOVZX EAX,WORD PTR SS:[EBP-6]
+0049644A  |. 8B55 FC        |MOV EDX,DWORD PTR SS:[EBP-4]          ;  组合串到 edx
+0049644D  |. 8A4402 FF      |MOV AL,BYTE PTR DS:[EDX+EAX-1]        ;  取一个字符到 al
+00496451  |. 0FB7D3         |MOVZX EDX,BX                           ;  1=>edx
+00496454  |. 8B0D 28164A00  |MOV ECX,DWORD PTR DS:[4A1628]          ;  注意字符串“zengjinsong”到 ecx
+0049645A  |. 8A5411 FF      |MOV DL,BYTE PTR DS:[ECX+EDX-1]         ;  取字符到 dl，取 z,n,j,循环
+0049645E  |. 8855 F8        |MOV BYTE PTR SS:[EBP-8],DL            ;  字符到 70fc34 低字节
+00496461  |. 25 FF000000    |AND EAX,0FF
+00496466  |. 33D2           |XOR EDX,EDX                             ;  清零
+00496468  |. 8A55 F8        |MOV DL,BYTE PTR SS:[EBP-8]             ;  上面 70fc34 中字符到 dl
+0049646B  |. 66:03C2        |ADD AX,DX                               ;  与组合串中字符相加
+0049646E  |. 8845 F9        |MOV BYTE PTR SS:[EBP-7],AL            ;  相加后到 70fc35
+00496471  |. 8A45 F9        |MOV AL,BYTE PTR SS:[EBP-7]
+00496474  |. E8 0BFEFFFF    |CALL UNPACKED.00496284                得到注册码的 call,跟进
+00496479  |. 8BD0           |MOV EDX,EAX                            ;  返回 eax，注册码中字符
+0049647B  |. 8D45 F4        |LEA EAX,DWORD PTR SS:[EBP-C]           ;  70fc30
+0049647E  |. E8 35E3F6FF    |CALL UNPACKED.004047B8
+00496483  |. 8B55 F4        |MOV EDX,DWORD PTR SS:[EBP-C]           ;  返回值到 edx,
+00496486  |. 8BC7           |MOV EAX,EDI                            ;  eax 指向注册码字符串
+00496488  |. E8 0BE4F6FF    |CALL UNPACKED.00404898                 ;  写入字符
+0049648D  |. 43             |INC EBX
+0049648E  |. A1 28164A00    |MOV EAX,DWORD PTR DS:[4A1628]          ;  eax 指向 zengjinsong 字符串
+00496493  |. E8 F8E3F6FF    |CALL UNPACKED.00404890
+00496498  |. 50             |PUSH EAX
+00496499  |. 0FB7C3         |MOVZX EAX,BX
+0049649C  |. 5A             |POP EDX
+0049649D  |. 8BCA           |MOV ECX,EDX
+0049649F  |. 99             |CDQ
+004964A0  |. F7F9           |IDIV ECX
+004964A2  |. 42             |INC EDX
+004964A3  |. 8BDA           |MOV EBX,EDX
+004964A5  |. 66:FF45 FA     |INC WORD PTR SS:[EBP-6]                ;  计数器加一
+004964A9  |. 66:FFCE        |DEC SI                                  ;  计数器减一
+004964AC  |. 75 98          JNZ SHORT UNPACKED.00496446
+004964AE  |> 33C0           XOR EAX,EAX
+004964B0  |. 5A             POP EDX
+004964B1  |. 59             POP ECX
+004964B2  |. 59             POP ECX
+004964B3  |. 64:8910        MOV DWORD PTR FS:[EAX],EDX
+004964B6  |. 68 D3644900    PUSH UNPACKED.004964D3
+004964BB  |> 8D45 F4        LEA EAX,DWORD PTR SS:[EBP-C]
+004964BE  |. E8 0DE1F6FF    CALL UNPACKED.004045D0
+004964C3  |. 8D45 FC        LEA EAX,DWORD PTR SS:[EBP-4]
+004964C6  |. E8 05E1F6FF    CALL UNPACKED.004045D0
+004964CB  . C3             RETN
+```
+
+得到注册码的 call \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+```
+00496284  /$ 53             PUSH EBX
+00496285  |. 8BD8           MOV EBX,EAX
+00496287  |. EB 22          JMP SHORT UNPACKED.004962AB
+00496289  |> 80FB 7E        /CMP BL,7E
+0049628C  |. 76 0F          |JBE SHORT UNPACKED.0049629D
+0049628E  |. 33C0           |XOR EAX,EAX
+00496290  |. 8AC3           |MOV AL,BL
+00496292  |. B9 7E000000    |MOV ECX,7E
+00496297  |. 33D2           |XOR EDX,EDX
+00496299  |. F7F1           |DIV ECX                               ;  与 7e 相除
+0049629B  |. 8BDA           |MOV EBX,EDX                             余数到 ebx
+0049629D  |> 80FB 20        |CMP BL,20                             与空格比较
+```
+
+
+
+```
+004962A0  |. 73 09          |JNB SHORT UNPACKED.004962AB
+004962A2  |. 33C0          |XOR EAX,EAX
+004962A4  |. 8AC3          |MOV AL,BL
+004962A6  |. 83C0 20       |ADD EAX,20
+004962A9  |. 8BD8          |MOV EBX,EAX
+004962AB  |> 8BC3          |MOV EAX,EBX
+004962AD  |. E8 BEFFFFFF   |CALL UNPACKED.00496270
+004962B2  |. 84C0          |TEST AL,AL
+004962B4  |. 75 D3         |JNZ SHORT UNPACKED.00496289
+004962B6  |. 8BC3          |MOV EAX,EBX                         ; 余数返回 eAX
+004962B8  |. 5B            |POP EBX
+004962B9  |. C3            |RET
+```
+
+得到注册码，注册，成功。
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+注册机可编程。
+
+收工。
+
+`4dd466d0e1e0cc123afbe504da2462ca`
