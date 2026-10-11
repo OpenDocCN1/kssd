@@ -1,0 +1,455 @@
+
+# 某游戏封包加解密算法及其算法 KEY 的算法
+
+> 原文：[`www.pediy.com/kssd/pediy10/99936.html`](https://www.pediy.com/kssd/pediy10/99936.html)
+
+`free Q.744303` (只接受志同道合的技术研究伙伴，验证说明“看雪”，无聊人士勿扰)
+
+潜水很多年，第一次发技术贴，不会排版还请版主帮忙。。
+
+下载了某游戏的客户端，目的就是练习一下算法逆向，并且目标不是汇编代码，是 C++代码。
+
+研究了两天，有可能有疏漏，还请大侠批评指教！
+
+用到的调试工具只有 `OllyDBG`。
+
+## 一、获取与运算封包 Key
+
+获取很简单，直接连接服务器，会收到服务器返回的包含了 `SendKey` 和 `RecvKey` 的钥匙包。
+
+经过一定的算法，得到两个 Key，在后续的游戏中，将使用这两个 Key 进行加密通信。
+
+封包 `[0][1]` 为封包长度，不进行加解密操作。
+
+封包：
+
+```
+2C 00 20 00 00 0A 00 0A 00 BD AD F2 A5 D5 75 61 6E 78 75 0B 73 D6 7C 38 38 38 40 31 36 33 2E 63 6F 6D 00 00 00 00 00 00 00 00 00 00
+```
+
+下断点在 `AD` 这个字节上，运行，会断在访问的地址，如下汇编代码：
+
+```asm
+mov     edx, dword ptr [esi+11]      //取得 0B 73 D6 7C  
+mov     esi, dword ptr [esi+8]       //取得 AD F2 A5 D5
+mov     ecx, edx               //第二个 KEY 开始运算  
+mov     ebx, edx
+xor     ecx, 6D23CF
+sub     ecx, 6D2399
+xor     edx, FFFFFCF
+not     ecx
+add     edx, 67
+xor     ebx, 2E6D23CF
+and     ecx, 0FFFF00
+not     edx
+sub     ebx, 2E6D2399
+shl     edx, 18
+not     ebx
+shr     ebx, 18
+or      ecx, ebx
+or      ecx, edx
+push    ebp
+push    ecx
+mov     edx, esi               //第一个 KEY 开始运算  
+mov     ecx, esi
+xor     edx, 6D23CF
+xor     ecx, 2E6D23CF
+sub     edx, 6D2399
+sub     ecx, 2E6D2399
+xor     esi, FFFFFCF
+not     edx
+not     ecx
+add     esi, 67
+and     edx, 0FFFF00
+shr     ecx, 18
+or      edx, ecx
+not     esi
+shl     esi, 18
+or      edx, esi
+```
+
+经过逆向，逆出 C++代码如下：
+
+```cpp
+DWORD __stdcall GetRecvKey(DWORD PacketRecvKey)
+{
+    DWORD sKey = 0;
+    sKey = (((~((PacketRecvKey ^ 0x006D23CF) - 0x006D2399)) & 0x0FFFF00)
+            | ((~((PacketRecvKey ^ 0x2E6D23CF) - 0x2E6D2399)) >> 0x18)
+            | ((~((PacketRecvKey ^ 0xFFFFFFCF) + 0x67)) << 0x18);
+    return sKey;
+}
+
+DWORD __stdcall GetSendKey(DWORD PacketSendKey)
+{
+    DWORD sKey = 0;
+    sKey  = (((~((PacketSendKey ^ 0x6D23CF) - 0x6D2399)) & 0xffff00)
+             | ((~((PacketSendKey ^ 0x2E6D23CF) - 0x2E6D2399)) >> 0x18))
+             | ((~((PacketSendKey ^ 0xFFFFFFCF) + 0x67)) << 0x18);
+    return sKey ;
+}
+```
+
+这两个 KEY 逆完后，继续逆封包加解密算法，中间碰到一个包，经过分析是心跳包，以 `07 00 01` 开头。
+
+其实只是以 `01` 开头，刚才说过第一位和第二位是长度，所以 `07 00` 是封包长度而已。心跳包是提交时间的。
+
+这个封包的组成是这样的：
+
+```
+07 00 01 (XX XX XX XX)_time32()
+```
+
+蓝色是长度，红色是封包类型，后面的四位由 `MSVCR80.DLL` 里面的 `_time32()` 函数得到结果。
+
+在 `VS 2005+` 里可以直接使用这个函数，头文件：`time.h`。
+
+通过类似的断点方法，找到解密用的函数，汇编如下：
+
+```asm
+push    ebx
+push    ebp
+mov     ebp, dword ptr [esp+14]
+mov     ecx, dword ptr [ebp]
+push    esi
+mov     esi, dword ptr [esp+10]
+mov     ebx, esi
+and     ebx, 3                                   //求余数，下面以 DWORD(4Byte)操作，如果有余数还要另行操作
+shr     esi, 2                                   
+push    edi
+mov     edi, dword ptr [esp+18]
+je      short 004D5605
+lea     ecx, dword ptr [ecx]                     //取得传入的经过运算的 KEY
+sub     esi, 1
+lea     eax, dword ptr [ecx+esi]
+xor     edx, edx
+div     dword ptr [51FEDC]
+add     edi, 4
+mov     ecx, dword ptr [edx*4+51A620]            //进行完上面的运算，进行异或，注意是以 DWORD(4 字节)为单位的  
+add     ecx, 2E6D23C1                             
+xor     dword ptr [edi-4], ecx
+test    esi, esi                                  //全完成了吗？
+ja      short 004D55E0                             //没有全完成的话继续
+xor     edx, edx
+mov     eax, ebx
+div     dword ptr [51FEDC]
+xor     ecx, dword ptr [edx*4+51A620]
+test    ebx, ebx                                   //有余数吗？
+jbe     short 004D562F                             //没有的话就不继续处理剩下的字节了
+lea     ebx, dword ptr [ebx]
+xor     byte ptr [edi], cl
+sub     ebx, 1
+add     edi, 1
+shr     ecx, 8
+test    ebx, ebx                                   //余下的几个字节处理完了吗？
+ja      short 004D5620                             //没处理完继续
+mov     eax, dword ptr [ebp]
+mov     ecx, eax
+shl     ecx, 5
+sub     ecx, eax
+pop     edi
+add     ecx, 8088405
+pop     esi
+mov     dword ptr [ebp], ecx
+pop     ebp
+mov     eax, 1
+pop     ebx
+retn
+```
+
+经过分析，逆出的 C++代码如下：
+
+```cpp
+VOID __stdcall EncryptionPacket(DWORD *enbyte, int len, DWORD PacketKey)
+{
+    int NextLen = len % 4, PacketLength = len / 4;
+    int i=0, j=0;
+    DWORD NextKey = 0, AddNum = 0;
+    BYTE *NewPacketAddr = (BYTE *)enbyte;
+    AddNum = PacketKey;
+    while (PacketLength--)
+    {
+        AddNum += PacketLength;
+        NextKey = Pack_Tabel[AddNum % 0x162F] + 0x2E6D23C1;
+        enbyte[i] = enbyte[i] ^ NextKey;
+        AddNum = NextKey;
+        i++;
+    }
+    j=i*4;
+    NextKey ^= Pack_Tabel[NextLen % 0x162F];
+    if (NextLen != 0)
+    {
+        while (NextLen--)
+        {
+            (BYTE)NewPacketAddr[j] = (BYTE)NewPacketAddr[j] ^ (BYTE)NextKey;
+            NextKey = NextKey >> 8;
+            j++;
+        }
+    }
+}
+```
+
+至此封包算法已经逆完了，经过测试，是正确的：
+
+```
+取得服务端封包验证 KEY...
+开始发送帐号密码...
+验证正常...
+取得人物信息了...
+帐号：h3389@vip.qq.com
+人物：凌行恶
+性别：男
+等级：4
+```
+
+其实直接套汇编速度非常快，解了此游戏算法的人也不少，这里只是作为真正逆向代码的练习方法罢了。
+
+接下来说一下是如何将算法逆成 C++代码的，上面只给出了结果，其实我在个人空间里面分了两个贴子来说的，在这里直接就贴在下面给各位朋友参考，有不妥的地方还请大家批评指教：
+
+寻找修改变量的代码，一直找到计算完毕，废话不多说，拿昨天的代码再来继续做个示例，看看我是如何把它逆成 C++代码的：
+
+### （一）使用变量修改追踪找出单独的计算代码：
+
+```asm
+mov     edx, dword ptr [esi+11]      //取得 0B 73 D6 7C  
+mov     esi, dword ptr [esi+8]       //取得 AD F2 A5 D5
+mov     ecx, edx               //第二个 KEY 开始运算  
+mov     ebx, edx
+xor     ecx, 6D23CF
+sub     ecx, 6D2399
+xor     edx, FFFFFCF
+not     ecx
+add     edx, 67
+xor     ebx, 2E6D23CF
+and     ecx, 0FFFF00
+not     edx
+sub     ebx, 2E6D2399
+shl     edx, 18
+not     ebx
+shr     ebx, 18
+or      ecx, ebx
+or      ecx, edx
+push    ebp
+push    ecx
+```
+
+上面是 `recvkey` 的计算方法，很容易可以看得出，第一行取得了 `recvkey` 即将运算的封包里的代码，第二行取得的是 `sendkey` 的，所以第二行与目前这段程序没有任何关联，删除它就可以了。
+
+继续下来分析代码：
+
+```asm
+mov     edx, dword ptr [esi+11]      //取得 0B 73 D6 7C  
+```
+
+这一行把取得的 KEY 放到了 `EDX` 里面，继续向下看：
+
+```asm
+mov     ecx, edx
+mov     ebx, edx
+```
+
+可以看到 `ecx` 和 `ebx` 都等于 `edx` 了，也就是复制了两个变量，可能要进行其它运算了。
+
+先来搞定 `EDX`，看看它最终会怎么样，其它的都不管，向下寻找修改了 `EDX` 值的语句：
+
+```asm
+xor     edx, FFFFFCF
+```
+
+修改了 `EDX` 之后，没有把 `EDX` 换到其它寄存器，还是 `EDX`，那再向下找修改了 `EDX` 的语句：
+
+```asm
+add     edx, 67  
+```
+
+看样子还要继续找……
+
+最终，形成的代码如下：
+
+```asm
+mov     edx, dword ptr [esi+11]
+xor     edx, FFFFFCF
+add     edx, 67
+not     edx
+shl     edx, 18
+```
+
+再来看 `ECX` 和 `EBX`，最终 `ECX` 形成代码：
+
+```asm
+mov     ecx, edx
+xor     ecx, 6D23CF
+sub     ecx, 6D2399
+not     ecx
+and     ecx, 0FFFF00
+```
+
+寻找 `EBX` 的相关代码：
+
+```asm
+xor     ebx, 2E6D23CF
+sub     ebx, 2E6D2399
+not     ebx
+shr     ebx, 18
+```
+
+再继续向下看，最后做了什么操作：
+
+```asm
+or      ecx, ebx
+or      ecx, edx
+```
+
+看样子 `ECX`,`EBX`,`EDX` 这三个变量，最终形成了 `ECX` 的一个结果。
+
+### （二）寻找并使用等同运算符
+
+先从第一段程序开始，我们先做一个函数，以便传入待运算的 KEY，返回值是 `DWORD`，以便返回一个运算好的 KEY，
+
+选一门能胜任并熟悉的语言，这里以 C++代码做为示例，红色的是汇编，等于号代表左右代码执行的结果相等，蓝色的是翻译之后的代码：
+
+```cpp
+DWORD GetSendKey(DWORD SendKey)
+{
+}
+```
+
+做好之后，向里面开始写代码：
+
+```asm
+mov     edx, dword ptr [esi+11] = DWORD sKey = SendKey;
+```
+
+上面这句，等同于将一个变量读入另一个变量，这里我们可以先声明一个变量：
+
+```cpp
+DWORD sKey;
+```
+
+接下来用这个 `sKey` 进行运算，经过分析，其实这句可以省掉，因为可以直接用实参做运算。
+
+下面这一句，我们看到了，将我们的变量进行异或运算，C++里异或运算符是 `^`，其它语言跟据定义和语法不同自行改变。
+
+```asm
+xor     edx, FFFFFCF = sKey = sKey ^ 0xFFFFFFCF;
+```
+
+好，接下来再看下面：
+
+```asm
+add     edx, 67 = sKey = sKey + 0x67; 
+not     edx = sKey = ~sKey;
+shl     edx, 18 = sKey = sKey << 0x18;
+```
+
+最终，我们形成了代码：
+
+```cpp
+DWORD GetSendKey(DWORD SendKey)
+{
+    DWORD sKey = SendKey;
+    sKey = sKey ^ 0xFFFFFFCF;
+    sKey = sKey + 0x67;  
+    sKey = ~sKey;
+    sKey = sKey << 0x18;
+}
+```
+
+其实可以看出，前一个运算的返回值是下一个运算要用的运算值，我们再来简化它，让它更接近原始代码：
+
+把这句删掉，直接用实参操作：
+
+```cpp
+DWORD sKey = SendKey;
+```
+
+变成了：
+
+```cpp
+SendKey = SendKey ^ 0xFFFFFFCF;
+SendKey = SendKey - 0x67;  
+SendKey = ~SendKey;
+SendKey = SendKey << 0x18;
+```
+
+接下来第一句，我们直接取它的运算结果：
+
+`(SendKey ^ 0xFFFFFFCF)`
+
+第二句直接用第一句的结果，再取它的运算结果：
+
+`((SendKey ^ 0xFFFFFFCF) + 0x67)`
+
+第三句直接用第二句的运算结果，并取它的运算结果：
+
+`(~((SendKey ^ 0xFFFFFFCF) + 0x67))`
+
+第四句用第三句的运算结果：
+
+`((~((SendKey ^ 0xFFFFFFCF) + 0x67)) << 0x18);`
+
+这样，我们把所有的语句整合成了一句：
+
+再定义一个标识返回值的变量，最终，我们形成了代码：
+
+```cpp
+DWORD GetSendKey(DWORD SendKey)
+{
+    DWORD retKey = ((~((SendKey ^ 0xFFFFFFCF) + 0x67)) << 0x18);
+}
+```
+
+其它两个(`EBX`,`ECX`)按照这种方法，加上上面生成的，最终生成三行代码：
+
+```cpp
+((~((SendKey ^ 0xFFFFFFCF) + 0x67)) << 0x18)                          //EDX
+((~((PacketSendKey ^ 0x2E6D23CF) - 0x2E6D2399)) >> 0x18))     //EBX
+```
+
+
+
+```
+(((~((PacketSendKey ^ 0x6D23CF) - 0x6D2399)) & 0xffff00)    //ECX
+```
+
+再看最后两行代码：
+
+```
+or      ecx, ebx
+or      ecx, edx
+```
+
+其实就是把最终运算好的 `ecx` 代码和 `ebx` 代码 或运算之后，再与运算好的 `edx` 代码进行或运算，先来第一步：
+
+```
+((((~((PacketSendKey ^ 0x6D23CF) - 0x6D2399)) & 0xffff00)
+| ((~((PacketSendKey ^ 0x2E6D23CF) - 0x2E6D2399)) >> 0x18)))
+```
+
+这样我们就得到了 `ecx | ebx`
+
+然后再把它们的结果与 `edx` 的运算结果再进行或运算：
+
+```
+((((~((PacketSendKey ^ 0x6D23CF) - 0x6D2399)) & 0xffff00)
+| ((~((PacketSendKey ^ 0x2E6D23CF) - 0x2E6D2399)) >> 0x18)))
+| ((~((SendKey ^ 0xFFFFFFCF) + 0x67)) << 0x18)
+```
+
+最终，我们得到了这个函数的全部代码：
+
+```
+DWORD GetSendKey(DWORD SendKey)
+{
+    DWORD retKey = ((((~((PacketSendKey ^ 0x6D23CF) - 0x6D2399)) & 0xffff00)
+                     | ((~((PacketSendKey ^ 0x2E6D23CF) - 0x2E6D2399)) >> 0x18)))
+                     | ((~((SendKey ^ 0xFFFFFFCF) + 0x67)) << 0x18);
+    return retKey;
+}
+```
+
+其它的代码也用类似这种方法逆出来整合到一起的，就不再赘述了。
+
+希望大家看过之后，可以提出批评意见，或是指出不合理的地方，或是有更好的方法，都可以一起进行讨论。
+
+声明：本人完全不知道这款游戏是什么游戏，也完全不知道这款游戏是哪家公司运营的，以上内容都是我作梦的时候说的梦话，我老婆记录下来的。![](img/8e0d77ee22c3d8438aad7d42c7829e53.jpg "使眼色")
