@@ -1,0 +1,40 @@
+
+# 新发现一个简单有效的 .net 程序破解方法（可破隐藏 IL 级别的保护）
+
+> 原文：[`www.pediy.com/kssd/pediy12/129272.html`](https://www.pediy.com/kssd/pediy12/129272.html)
+
+做过程序破解的同学都知道，一般的破解分为静态和动态两种，对于动态的破解，大家比较常用`ollydbg`，其虽然非常强悍，但貌似对 .net 程序支持不是很好，呵呵也许是我使用不够熟练吧。
+
+对于 .net 程序，我们知道，它类似于 Java，编译后只是编译成了一种中间码（IL），其高于汇编但低于高等语言如`C#`、Java 之类。其运行时候需要一个运行时，然后在需要的时候才进行 JIT，根据当前系统平台将 IL 转成汇编码。普通的保护也就是做些混淆，加上强签名，再加上`SuppressIldasmAttribute`属性禁止 Ildasm，相应的破解方法也比较简单，使用修改过的`ildasm`就可以将相应的 IL 导出来，然后修改 IL 代码，再使用`ilasm`将之编译回去，破解也就完成了。
+
+不过呢，目前也有一些比较好的 .net 程序保护工具可以将 IL 隐藏，如国内的`Maxtocode`。今天下午我就遇到了一个该类型的保护程序。我使用`ildasm`打开后查看到所有的方法内容 IL 都是下边这样：
+
+```
+.method public hidebysig static void  MethodName(class [System.Windows.Forms]System.Windows.Forms.Control contrl, 
+                                              string text) cil managed noinlining 
+{ 
+  // 代码大小      4 (0x4) 
+  .maxstack  4 
+  IL_0000:  nop 
+  IL_0001:  nop 
+  IL_0002:  nop 
+  IL_0003:  ret 
+} // end of method CallCtrlWithThreadSafetyEx::SetText 
+```
+
+这样的话即使将它们导出也无意义，即使我们使用反射动态的获取它们的 IL，也会得到我上边的结果，显然这样的保护做的已经是非常好了。
+
+那么我们就没有办法了么？ 正当我觉得山穷水尽的时候，突然想起来为什么不使用`windbg`呢。我们知道任何的保护它都不应该破坏程序的正常逻辑和行为，那么 .net 的 JIT 机制是不是也应该还是有效呢？如果有效的话，那么我们是否可以通过`windbg`的`!u addr`命令来反编译得到代码呢，说干就干，我立刻挂上目标程序，果不其然，`!dumpil`得到的依然是上边说到的 Il 内容，但`!U`却能得到正确的完整的逻辑。
+
+既然已经得到的汇编代码，那就好办了，使用`windbg`的`ed`命令修改一下关键的指令，立刻工作。哈哈，太完美了，下边我就将我的完整破解过程列出来，以防以后忘记。
+
+本来准备将博客中的文章粘贴到这的，可发现粘贴过来后格式、图片全丢了，那详细步骤大家可以移步：[`www.xioxu.com/?p=326010`](http://www.xioxu.com/?p=326010)
+
+有朋友说上边地址访问不了，哈哈，没办法我的网站部署在 GAE 上边，常这样。所以我刚将文章转成了 pdf 格式，感兴趣的同学请[**---下载---**](http://bbs.pediy.com/attachment.php?attachmentid=54219&stc=1&d=1297731471)。
+
+存储在`Box.net`的 下载地址`http://www.box.net/shared/cfx9vbxd7h`
+
+上传的附件
+
+| ![](img/aabdec8de01ec04d2bc68959c61abb93.jpg) | | DotNetApplicationCrack.pdf  
+|
