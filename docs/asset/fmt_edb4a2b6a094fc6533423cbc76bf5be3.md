@@ -1,0 +1,175 @@
+
+### 伪代码实现
+以上代码根据数组 `457B78` 的值进行，其实质也是对索引进行运算，然后根据索引将 `457B78` 中的值填充到 `UserNameBuf` 中。其伪代码如下：
+
+```c
+409790(UserNameBuf, -1);
+DWORD num = 0x100;
+while(num != 0)
+{
+  var1 = [457C7C];   //eax
+  index1 = [457C78];  //esi
+  
+  num2 = 0;
+  while(num2 < 0x100) 
+  {
+    for(int i=0; i<4; i++)
+    {
+      var1 = var1++ & 0xFF;
+      temp = 457B78[var1];
+      index1 = (temp + index1) & 0xFF;
+      457B78[var1] = 457B78[index1];
+      457B78[index1] = temp;
+      index2 = (temp + 457B78[var1]) & 0xFF;
+      UserNameBuf[num2 + i] = 457B78[index2];
+    }
+    
+    num2 += 4;   
+  }
+  [457C7C] = var1;
+  [457C78] = index1;
+  sub_409790(UserNameBuf, 0x100);
+  num--;
+}
+```
+
+### 用户名处理结果
+此时用户名仍没有处理完毕，接着就是一段很长的代码，也不外乎是对用户名缓冲区数组进行置换赋值。为了节省篇幅，代码就不列出来了。当其中代码执行完毕后，经处理的用户名缓冲区的部分数据如下：
+
+```text
+0013F988  23 03 8A 00 F7 EA 2C 57 72 E7 FF 2B A0 CB E2 21  #?麝,Wr?+?
+0013F998  29 8F 07 88 91 1F DA 4C 00 F7 49 D4 98 11 ED 2B  }?.?
+0013F9A8  A5 06 AA B4 20 45 37 17 9B 60 68 64 92 95 A8 D2  ? E7hdㄒ
+0013F9B8  04 99 FC 45 AA DB 1D FB 14 A7 5F B4 11 0C 9F 85  E??.
+0013F9C8  D5 05 E1 20 A2 6E 0D 9C E8 73 DA E0 B8 7A BB 48  ??.s 卩
+0013F9D8  6E 1D 12 F0 DA AE B6 D6 DB 8B 3B 5C B5 55 A4 30  n 疒舟?\?
+………………………………
+………………………………
+```
+
+至此，用户名已经处理完毕，跟着就是对用户密码进行处理。
+
+### 密码处理逻辑
+代码如下：
+
+```asm
+.text:0040A0D8             mov     edx, [ebp+password] ; 获取用户密码
+.text:0040A0DB             mov     cl, [edx]
+.text:0040A0DD             lea     esi, [esp+140h+PasBuf] ; 密码缓冲区
+.text:0040A0E1             mov     [esp+140h+index], esi
+.text:0040A0E5             mov     bl, 1
+.text:0040A0E7             test    cl, cl
+.text:0040A0E9             jz      short loc_40A169
+.text:0040A0EB             jmp     short loc_40A0F0
+.text:0040A0EB ; ---------------------------------------------------------------------------
+.text:0040A0ED             align 10h
+
+.text:0040A0F0
+.text:0040A0F0 loc_40A0F0:                      ; CODE XREF: CheckPas+6DBj
+.text:0040A0F0                                 ; CheckPas+757j
+.text:0040A0F0             mov     al, ds:LetterTable
+.text:0040A0F5             mov     edx, offset LetterTable ; ASCII "23456789ABC……XYZ"
+.text:0040A0FA             test    al, al
+.text:0040A0FC             jz      short loc_40A15B
+.text:0040A0FE             mov     edi, edi
+
+.text:0040A100
+.text:0040A100 loc_40A100:                      ; CODE XREF: CheckPas+6FAj
+.text:0040A100             cmp     al, cl          ; 判断密码的某个字符是否在"234……XYZ"字符表中
+.text:0040A102             jz      short loc_40A125 ; 密码字符在字母表中
+.text:0040A104             mov     al, [edx+1]
+.text:0040A107             inc     edx
+.text:0040A108             test    al, al
+.text:0040A10A             jnz     short loc_40A100 ; 判断密码的某个字符是否在"234……XYZ"字符表中
+.text:0040A10C             jmp     short loc_40A15B ; 密码的某个字符不在"234……XYZ"字符表中
+.text:0040A10E ; ---------------------------------------------------------------------------
+.text:0040A10E
+.text:0040A10E exit:                            ; CODE XREF: CheckPas+6BBj
+.text:0040A10E                                 ; CheckPas+792j
+.text:0040A10E             xor     al, al          ; al = 0
+.text:0040A110             pop     edi
+.text:0040A111             pop     esi
+.text:0040A112             pop     ebx
+.text:0040A113             mov     ecx, [esp+134h+var_4]
+.text:0040A11A             xor     ecx, esp
+.text:0040A11C             call    sub_4322D2
+.text:0040A121             mov     esp, ebp
+.text:0040A123             pop     ebp
+.text:0040A124             retn
+
+.text:0040A125 ; ---------------------------------------------------------------------------
+.text:0040A125
+.text:0040A125 loc_40A125:                      ; CODE XREF: CheckPas+6F2j
+.text:0040A125             movzx   ecx, cl
+.text:0040A128             mov     edi, dword_457778[ecx*4] ; EDI = 密码某字符在字母表中的位置
+.text:0040A12F             mov     eax, 1
+.text:0040A134             lea     edx, [eax+4]    ; edx = 5
+
+.text:0040A137
+.text:0040A137 loc_40A137:                      ; CODE XREF: CheckPas+749j
+.text:0040A137             test    edi, eax        ; edi 用户某个密码字符做索引取得的值
+```
+
+### 汇编指令序列
+.text:00409AD3             movzx   edx, dl  
+.text:00409AD6             add     edx, esi  
+.text:00409AD8             and     edx, 0FFh  
+.text:00409ADE             movzx   edx, byte_457B78[edx]  
+.text:00409AE5             mov     [esp+edi+140h+UserNameBuf], dl  
+.text:00409AE9             inc     eax  
+.text:00409AEA             and     eax, 0FFh  
+.text:00409AEF             mov     bl, byte_457B78[eax]  
+.text:00409AF5             movzx   edx, bl  
+.text:00409AF8             add     edx, ecx  
+.text:00409AFA             and     edx, 0FFh  
+.text:00409B00             movzx   ecx, byte_457B78[edx]  
+.text:00409B07             mov     byte_457B78[eax], cl  
+.text:00409B0D             mov     byte_457B78[edx], bl  
+.text:00409B13             movzx   esi, byte_457B78[eax]  
+.text:00409B1A             movzx   ecx, bl  
+.text:00409B1D             add     ecx, esi  
+.text:00409B1F             and     ecx, 0FFh  
+.text:00409B25             movzx   ecx, byte_457B78[ecx]  
+.text:00409B2C             inc     eax  
+.text:00409B2D             and     eax, 0FFh  
+.text:00409B32             mov     bl, byte_457B78[eax]  
+.text:00409B38             mov     [esp+edi+140h+var_107], cl  
+.text:00409B3C             movzx   ecx, bl  
+.text:00409B3F             add     ecx, edx  
+.text:00409B41             and     ecx, 0FFh  
+.text:00409B47             movzx   edx, byte_457B78[ecx]  
+.text:00409B4E             mov     byte_457B78[eax], dl  
+.text:00409B54             mov     byte_457B78[ecx], bl  
+.text:00409B5A             movzx   esi, byte_457B78[eax]  
+.text:00409B61             movzx   edx, bl  
+.text:00409B64             add     edx, esi  
+.text:00409B66             and     edx, 0FFh  
+.text:00409B6C             movzx   edx, byte_457B78[edx]  
+.text:00409B73             mov     [esp+edi+140h+var_106], dl  
+.text:00409B77             inc     eax  
+.text:00409B78             and     eax, 0FFh  
+.text:00409B7D             mov     dl, byte_457B78[eax]  
+.text:00409B83             movzx   esi, dl  
+.text:00409B86             add     esi, ecx  
+.text:00409B88             and     esi, 0FFh  
+.text:00409B8E             movzx   ecx, byte_457B78[esi]  
+.text:00409B95             mov     byte_457B78[eax], cl  
+.text:00409B9B             mov     byte_457B78[esi], dl  
+.text:00409BA1             movzx   ecx, byte_457B78[eax]  
+.text:00409BA8             movzx   edx, dl  
+.text:00409BAB             add     edx, ecx  
+.text:00409BAD             and     edx, 0FFh  
+.text:00409BB3             movzx   edx, byte_457B78[edx]  
+.text:00409BBA             mov     [esp+edi+140h+var_105], dl  
+.text:00409BBE             add     edi, 4  
+.text:00409BC1             cmp     edi, 100h  
+.text:00409BC7             jl      loc_409AA2  
+.text:00409BCD             mov     dword_457C7C, eax  
+.text:00409BD2             lea     eax, [esp+140h+UserNameBuf]  
+.text:00409BD6             push    100h  
+.text:00409BDB             push    eax  
+.text:00409BDC             mov     dword_457C78, esi  
+.text:00409BE2             call    sub_409790  
+.text:00409BE7             add     esp, 8  
+.text:00409BEA             sub     [esp+140h+index], 1  
+.text:00409BEF             jnz     loc_409A95  
