@@ -1,0 +1,604 @@
+
+# 超级网视
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6068.htm`](https://www.pediy.com/kssd/pediy06/pediy6068.htm)
+
+## 软件信息
+
+- 【软件名称】：超级网视
+- 【下载页面】：中国共享软件注册中心
+- 【软件大小】：1.03M
+- 【应用平台】：`WIN9X`/`WINNT`/`WIN2K`/`WINXP`
+
+## 软件简介
+
+1. “超级网视”是一款绿色软件，运行过程中不会在系统目录及注册表增添任何内容。
+2. 本软件主要功能是为了充分利用宽带网络的资源，通过网络收看电视节目，收听广播节目，以及网络中的其他在线影视节目。并可以播放几乎所有的本的及网络媒体文件（如`*.dat`, `*.wav`, `*.avi`, `*.mov`, `*.mmm`, `*.mid`, `*.rmi`, `*.mpg`, `*.rm`, `*.ram`, `*.ra`, `*.swf`, `*.mp3`, `*.asf` 等格式）。
+3. 可自行定义多达 10 个快捷频道，单击主界面按钮即可播放相应的节目。
+4. 软件有两种语言版本，简体中文（`GB2312`）及繁体中文（`BIG5`），需分别下载。
+5. 拥有在线检查新版本，注册后可实现在线升级数据文件及程序文件的功能。
+6. 界面华丽美观，仿 `Windows XP` 界面，并可通过设置即时改变多种界面风格。
+
+## 软件限制
+
+可以免费使用，但启动的时候和每半小时就会弹出一个提醒注册的窗口！
+
+## 作者声明
+
+本人发表这篇文章只是为了学习！请不用于商业用途或是将本文方法制作的注册机任意传播，读者看了文章后所做的事情与我无关，我也不会负责，请读者看了文章后三思而后行！最后希望大家在经济基础好的时候，支持共享软件！
+
+## 破解工具
+
+`Ollydbg` `W32Dasm` `PEiD` `AspackDie`
+
+---
+
+## 过程
+
+用 `PEiD` 侦察出主程序 `SuperTVPlayer.exe` 加了壳
+
+用 `AspackDie` 把它脱了，用 `W32Dasm` 反汇编主程序 `SuperTVPlayer.exe`
+
+因为软件是输入注册码后重起验证的，它的注册信息保存在同目录的 `SuperTVPlayer.ini` 文件的：
+
+```
+[System]
+RegisterName=Yock[DFCG]
+RegisterCode=9876543210ABCDEFGHI
+```
+
+\[这里是名字\] !!!
+
+\[这里最少要 19 位不同的注册码，不然分析的时候很头晕\] !!!
+
+那么我们根据参考字串 `"RegisterCode"` 发现有两处，分别是 `00532252` 和 `00516195`
+
+呵呵，现在就是边听 `MP3` 边跟踪试调的时候了，搬出 `OLLYDBG`
+
+加载主程序 `SuperTVPlayer.exe` --> 等了 N 秒后 `OLLYDBG` 自动中断 --> 下断点 `00532252` 和 `00516195`
+
+按 `F9` 运行程序，在 `00532252` 这里拦下 !!!
+
+往下看，是不是看见一个跳转啊 !!! 很可疑哦 !!!
+
+```
+* Possible StringData Ref from Code Obj -> "   -   -   "
+                    |
+:00532249 6830275300            push 00532730
+:0053224E 8D45DC                lea eax, dword ptr [ebp-24]
+:00532251 50                    push eax
+
+* Possible StringData Ref from Code Obj -> "RegisterCode"
+                    |
+:00532252 B948275300            mov ecx, 00532748            \在这里拦下!!
+
+* Possible StringData Ref from Code Obj -> "System"
+                    |
+:00532257 BA60275300            mov edx, 00532760
+:0053225C 8BC6                  mov eax, esi
+:0053225E 8B38                  mov edi, dword ptr [eax]
+:00532260 FF17                  call dword ptr [edi]
+:00532262 8B55DC                mov edx, dword ptr [ebp-24]
+:00532265 8BC3                  mov eax, ebx
+:00532267 E8781C0000            call 00533EE4                \这里是关键，F7 跟进去!
+:0053226C 84C0                  test al, al
+:0053226E 7545                  jne 005322B5
+
+                    \就是这个跳转了! (很可疑)
+                    \后来试调后得知不跳的话就看见大便了!!!
+                    \跳走就是注册版了!!完美爆破点哦!
+                    \把 7545 改成 EB45 就可以了!嘿嘿!
+
+:00532270 8B0D988F5300          mov ecx, dword ptr [00538F98]
+:00532276 A168935300            mov eax, dword ptr [00539368]
+:0053227B 8B00                  mov eax, dword ptr [eax]
+```
+
+`532291`
+
+```
+-----------------------------------------------------------------
+* Referenced by a CALL at Address:
+|:00532267
+|
+:00533EE4 55                    push ebp                \上面 F7 来到这里!(好长啊...)
+:00533EE5 8BEC                  mov ebp, esp
+:00533EE7 B905000000            mov ecx, 00000005
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00533EF1(C)
+|
+:00533EEC 6A00                  push 00000000
+:00533EEE 6A00                  push 00000000
+:00533EF0 49                    dec ecx
+:00533EF1 75F9                  jne 00533EEC
+:00533EF3 51                    push ecx
+:00533EF4 53                    push ebx
+:00533EF5 56                    push esi
+:00533EF6 8955FC                mov dword ptr [ebp-04], edx
+:00533EF9 8BD8                  mov ebx, eax
+:00533EFB 8B45FC                mov eax, dword ptr [ebp-04]\这里是假注册码!
+:00533EFE E84D0CEDFF            call 00404B50
+:00533F03 33C0                  xor eax, eax
+:00533F05 55                    push ebp
+:00533F06 6810415300            push 00534110
+:00533F0B 64FF30                push dword ptr fs:[eax]
+:00533F0E 648920                mov dword ptr fs:[eax], esp
+:00533F11 8D55EC                lea edx, dword ptr [ebp-14]
+:00533F14 8BC3                  mov eax, ebx
+:00533F16 E8B9FEFFFF            call 00533DD4
+:00533F1B 8B45EC                mov eax, dword ptr [ebp-14]\这里是机器码!
+:00533F1E E8450AEDFF            call 00404968                \取得机器码的位数!
+:00533F23 50                    push eax
+:00533F24 8D45F8                lea eax, dword ptr [ebp-08]
+:00533F27 B901000000            mov ecx, 00000001
+
+* Possible StringData Ref from Code Obj -> ".3"
+                    |
+:00533F2C 8B15C03E5300          mov edx, dword ptr [00533EC0]
+:00533F32 E87D1FEDFF            call 00405EB4
+:00533F37 83C404                add esp, 00000004
+:00533F3A 8B45EC                mov eax, dword ptr [ebp-14]\这里是机器码!
+:00533F3D E8260AEDFF            call 00404968                \取得机器码的位数!
+:00533F42 8BF0                  mov esi, eax
+:00533F44 83EE01                sub esi, 00000001           \作者有病
+:00533F47 7105                  jno 00533F4E                \作者有病，我这里是跳下去的!
+:00533F49 E81AF9ECFF            call 00403868
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00533F47(C)
+|
+:00533F4E 85F6                  test esi, esi               \比较有没有机器码，作者有病!
+:00533F50 7C3F                  jl 00533F91
+:00533F52 46                    inc esi
+:00533F53 33DB                  xor ebx, ebx
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00533F8F(C)                                                           /
+|                   \从这里是一个循环，有多少个机器码就循环多少次!
+:00533F55 8BC3                  mov eax, ebx                        |
+:00533F57 83C001                add eax, 00000001                   |
+:00533F5A 7105                  jno 00533F61                        |
+:00533F5C E807F9ECFF            call 00403868                       |
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:|
+|:00533F5A(C)
+|
+:00533F61 8B55EC                mov edx, dword ptr [ebp-14]         |
+:00533F64 48                    dec eax                               |
+:00533F65 85D2                  test edx, edx                         |
+:00533F67 7405                  je 00533F6E                           |
+:00533F69 3B42FC                cmp eax, dword ptr [edx-04]          |
+:00533F6C 7205                  jb 00533F73
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:|
+|:00533F67(C)
+|
+:00533F6E E8EDF8ECFF            call 00403860                         |
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:|
+|:00533F6C(C)
+|
+:00533F73 40                    inc eax
+:00533F74 0FB64402FF            movzx eax, byte ptr [edx+eax-01]     |
+:00533F79 8B55F8                mov edx, dword ptr [ebp-08]          |
+:00533F7C 85D2                  test edx, edx                         |
+:00533F7E 7405                  je 00533F85
+:00533F80 3B5AFC                cmp ebx, dword ptr [edx-04]          |
+:00533F83 7205                  jb 00533F8A                          |
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:|
+|:00533F7E(C)
+|
+:00533F85 E8D6F8ECFF            call 00403860                         |
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:|
+|:00533F83(C)                                                           |
+|                                                                        |
+:00533F8A 89049A                mov dword ptr [edx+4*ebx], eax        |
+:00533F8D 43                    inc ebx                                 |
+```
+
+
+
+:00533F8E 4E | `dec esi`
+
+:00533F8F 75C4 | `jne 00533F55`
+
+\
+上面到这里是把机器码分开的!
+
+\
+我的机器码是`YMDYMH13838`分开后如下:
+
+`012450E8 59 00 00 00 4D 00 00 00 44 00 00 00 59 00 00 00` `Y...M...D...Y...`
+
+`012450F8 4D 00 00 00 48 00 00 00 31 00 00 00 33 00 00 00` `M...H...1...3...`
+
+`01245108 38 00 00 00 33 00 00 00 38` `8...3...8`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`| :00533F50(C)`
+
+`|`
+
+:00533F91 C745F000000000 | `mov [ebp-10], 00000000`
+
+:00533F98 C745F400000000 | `mov [ebp-0C], 00000000`
+
+:00533F9F 8B45EC | `mov eax, dword ptr [ebp-14]` \
+机器码!作者有病
+
+:00533FA2 E8C109EDFF | `call 00404968` \
+取得机器码的位数!作者有病
+
+:00533FA7 8BF0 | `mov esi, eax`
+
+:00533FA9 83EE01 | `sub esi, 00000001`
+
+:00533FAC 7105 | `jno 00533FB3`
+
+:00533FAE E8B5F8ECFF | `call 00403868`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`| :00533FAC(C)`
+
+`|`
+
+:00533FB3 85F6 | `test esi, esi`
+
+:00533FB5 7C57 | `jl 0053400E`
+
+:00533FB7 46 | `inc esi`
+
+:00533FB8 33DB | `xor ebx, ebx`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`| :0053400C(C)` \
+这里开始到 `0053400C` 下面也是一个循环!
+
+`|` \
+主要是把所有机器码的 ASCII 码都乘起来!
+
+:00533FBA 85DB | `test ebx, ebx`
+
+:00533FBC 751D | `jne 00533FDB`
+
+:00533FBE 8B45F8 | `mov eax, dword ptr [ebp-08]` \
+这里是分开后的机器码!
+
+:00533FC1 85C0 | `test eax, eax`
+
+:00533FC3 7405 | `je 00533FCA`
+
+:00533FC5 3B58FC | `cmp ebx, dword ptr [eax-04]`
+
+:00533FC8 7205 | `jb 00533FCF`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`| :00533FC3(C)`
+
+`|`
+
+:00533FCA E891F8ECFF | `call 00403860`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`| :00533FC8(C)`
+
+`|`
+
+:00533FCF 8B0498 | `mov eax, dword ptr [eax+4*ebx]` \
+把当前机器码的 ASCII 码放入 `EAX`
+
+\
+这里可能说的不准确,可是我尽力了!
+
+:00533FD2 99 | `cdq`
+
+:00533FD3 8945F0 | `mov dword ptr [ebp-10], eax` \
+宝贝放好!
+
+\
+这里只放一次,主要是下面 `00534004` 放的多!
+
+:00533FD6 8955F4 | `mov dword ptr [ebp-0C], edx`
+
+:00533FD9 EB2F | `jmp 0053400A`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`| :00533FBC(C)`
+
+`|`
+
+:00533FDB 8B45F8 | `mov eax, dword ptr [ebp-08]`
+
+:00533FDE 85C0 | `test eax, eax`
+
+:00533FE0 7405 | `je 00533FE7`
+
+:00533FE2 3B58FC | `cmp ebx, dword ptr [eax-04]`
+
+:00533FE5 7205 | `jb 00533FEC`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`| :00533FE0(C)`
+
+`|`
+
+:00533FE7 E874F8ECFF | `call 00403860`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`| :00533FE5(C)`
+
+`|`
+
+:00533FEC 8B0498 | `mov eax, dword ptr [eax+4*ebx]` \
+把当前机器码的 ASCII 码放入 `EAX`
+
+\
+这里可能说的不准确,可是我尽力了!
+
+:00533FEF 99 | `cdq`
+
+:00533FF0 52 | `push edx`
+
+:00533FF1 50 | `push eax` \
+`EAX` 压栈
+
+:00533FF2 8B45F0 | `mov eax, dword ptr [ebp-10]` \
+这里是把宝贝拿出来!
+
+:00533FF5 8B55F4 | `mov edx, dword ptr [ebp-0C]`
+
+:00533FF8 E8DF18EDFF | `call 004058DC` \
+关键!!其实就一个乘法 `CALL`
+
+\
+主要是把所有机器码的 ASCII 都乘在一起!
+
+\
+最后的积保存的地方是"宝贝放好"的地方!
+
+:00533FFD 7105 | `jno 00534004`
+
+:00533FFF E864F8ECFF | `call 00403868`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`| :00533FFD(C)`
+
+`|`
+
+:00534004 8945F0 | `mov dword ptr [ebp-10], eax` \
+宝贝方好!!!
+
+:00534007 8955F4 | `mov dword ptr [ebp-0C], edx`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`| :00533FD9(U)`
+
+`|`
+
+:0053400A 43 | `inc ebx`
+
+:0053400B 4E | `dec esi`
+
+:0053400C 75AC | `jne 00533FBA` \
+如果机器码还没有计算完的话就跳上去!
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`| :00533FB5(C)`
+
+`|`
+
+:0053400E BB01000000 | `mov ebx, 00000001` \
+`BEX=1`
+
+:00534013 8BC3 | `mov eax, ebx` \
+`EBX=EAX=1`
+
+:00534015 99 | `cdq` \
+`EDX=0`
+
+:00534016 0345F0 | `add eax, dword ptr [ebp-10]` \
+所有机器码的 ASCII 的积的后八位加多 1
+
+:00534019 1355F4 | `adc edx, dword ptr [ebp-0C]` \
+这里是机器码的 ASCII 码的积的前八位!
+
+:0053401C 7105 | `jno 00534023` \
+跳下去!
+
+:0053401E E845F8ECFF | `call 00403868`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`| :0053401C(C)`
+
+`|`
+
+:00534023 52 | `push edx` \
+`EDX` 压栈!
+
+:00534024 50 | `push eax` \
+`EAX` 压栈!
+
+:00534025 8BC3 | `mov eax, ebx` \
+`EAX=EBX=1`
+
+:00534027 83C00A | `add eax, 0000000A` \
+`EAX+A=B`
+
+:0053402A 7105 | `jno 00534031` \
+跳下去!
+
+:0053402C E837F8ECFF | `call 00403868`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`| :0053402A(C)`
+
+`|`
+
+:00534031 99 | `cdq` \
+`EDX=0`
+
+:00534032 330424 | `xor eax, dword ptr [esp]` \
+机器码 ASCII 码的积的后八位加多 1 的值 `XOR` `B` 结果保存在 `EAX`
+
+:00534035 33542404 | `xor edx, dword ptr [esp+04]` \
+机器码 ASCII 码的积的前八位的值 `XOR` `0` 结果保存在 `EDX`
+
+:00534039 83C408 | `add esp, 00000008`
+
+:0053403C 52 | `push edx` \
+`EDX` 压栈!
+
+:0053403D 50 | `push eax` \
+`EAX` 压栈!
+
+:0053403E 8D55EC | `lea edx, dword ptr [ebp-14]`
+
+:00534041 B808000000 | `mov eax, 00000008`
+
+:00534046 E87952EDFF | `call 004092C4` \
+这里是吧 `EDX` 和 `EAX` 的值连在一起!
+
+\
+格式是 `EDX` 在前, `EAX` 在后!
+
+:0053404B 8D45E4 | `lea eax, dword ptr [ebp-1C]`
+
+:0053404E 50 | `push eax`
+
+:0053404F B902000000 | `mov ecx, 00000002`
+
+:00534054 BA03000000 | `mov edx, 00000003`
+
+:00534059 8B45FC | `mov eax, dword ptr [ebp-04]` \
+这里是假注册码！
+
+:0053405C E85F0BEDFF | `call 00404BC0` \
+这里是取得假注册码第 3、4 位数的值！
+
+:00534061 FF75E4 | `push [ebp-1C]` \
+假注册码第 3、4 位数的值压栈！
+
+:00534064 8D45E0 | `lea eax, dword ptr [ebp-20]`
+
+:00534067 50 | `push eax`
+
+:00534068 B902000000 | `mov ecx, 00000002`
+
+:0053406D BA08000000 | `mov edx, 00000008`
+
+:00534072 8B45FC | `mov eax, dword ptr [ebp-04]` \
+这里是假注册码！
+
+:00534075 E8460BEDFF | `call 00404BC0` \
+这里是取得假注册码第 8、9 位数的值！
+
+:0053407A FF75E0 | `push [ebp-20]` \
+假注册码第 8、9 位数的值压栈！
+
+:0053407D 8D45DC | `lea eax, dword ptr [ebp-24]`
+
+:00534080 50 | `push eax`
+
+:00534081 B902000000 | `mov ecx, 00000002`
+
+
+
+```
+:00534086 BA0D000000                mov edx, 0000000D  
+:0053408B 8B45FC                   mov eax, dword ptr [ebp-04]     \这里是假注册码！  
+:0053408E E82D0BEDFF               call 00404BC0                   \这里是取得假注册码第 13、14 位数的值！  
+:00534093 FF75DC                   push [ebp-24]                   \假注册码第 13、14 位数的值压栈！  
+:00534096 8D45D8                   lea eax, dword ptr [ebp-28]  
+:00534099 50                       push eax  
+:0053409A B902000000               mov ecx, 00000002  
+:0053409F BA12000000               mov edx, 00000012  
+:005340A4 8B45FC                   mov eax, dword ptr [ebp-04]     \这里是假注册码！  
+:005340A7 E8140BEDFF               call 00404BC0                   \这里是取得假注册码第 18、19 位数的值！  
+:005340AC FF75D8                   push [ebp-28]                   \假注册码第 18、19 位数的值压栈！  
+:005340AF 8D45E8                   lea eax, dword ptr [ebp-18]  
+:005340B2 BA04000000               mov edx, 00000004  
+:005340B7 E86C09EDFF               call 00404A28                   \这里是把假注册码第 3、4、8、9、13、14、18、19 位连在一起！  
+:005340BC 8D4DD4                   lea ecx, dword ptr [ebp-2C]  
+:005340BF BA08000000               mov edx, 00000008  
+:005340C4 8B45EC                   mov eax, dword ptr [ebp-14]     \这里是 00534046 的 CALL 把机器码连在一起后的值!  
+:005340C7 E828C8F0FF               call 004408F4                   \这里是把机器码计算后的值取其后八位！  
+:005340CC 8B45D4                   mov eax, dword ptr [ebp-2C]     \机器码计算后的值的后八位！ 
+:005340CF 8B55E8                   mov edx, dword ptr [ebp-18]     \假注册码第 3、4、8、9、13、14、18、19 连在一起! 
+:005340D2 E8D509EDFF               call 00404AAC      \这个 CALL 是比较的,有兴趣的朋友可以自己进去转转!  
+
+                                  \我进去后看见有 N 多个地址跳去 404AAC 就晕了!  
+:005340D7 7504                     jne 005340DD  
+:005340D9 B301                     mov bl, 01  
+:005340DB EB02                     jmp 005340DF 
+
+\ Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+:005340D7(C)  
+:005340DD 33DB                     xor ebx, ebx 
+\ Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+:005340DB(U)  
+:005340DF 33C0                     xor eax, eax  
+:005340E1 5A                       pop edx  
+:005340E2 59                       pop ecx  
+:005340E3 59                       pop ecx  
+:005340E4 648910                   mov dword ptr fs:[eax], edx  
+:005340E7 6817415300               push 00534117 
+\ Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+:00534115(U)  
+:005340EC 8D45D4                   lea eax, dword ptr [ebp-2C]  
+:005340EF BA07000000               mov edx, 00000007  
+:005340F4 E8DB05EDFF               call 004046D4  
+:005340F9 8D45F8                   lea eax, dword ptr [ebp-08] 
+
+\ Possible StringData Ref from Code Obj -> ".3"  
+:005340FC 8B15C03E5300             mov edx, dword ptr [00533EC0]  
+:00534102 E8CD1EEDFF               call 00405FD4  
+:00534107 8D45FC                   lea eax, dword ptr [ebp-04]  
+:0053410A E8A105EDFF               call 004046B0  
+:0053410F C3                       ret 
+
+------------------------------------------------------------------  
+
+【总    结】：  
+
+呵呵,终于到总结了,好累!(天都亮了!) 
+
+算法:  
+
+这个程序注册的用户名不做计算,可以说是没有用的!(我个人觉得用户名最大的作用就是显示再关于那里的授权给 "XXX") 
+
+真注册码=机器码的 ASCII 码都乘起来的积-->再加 1 的和-->与 B 或运算的结果-->取得结果的后八位-->与输入的注册码第 3、4、8、9、13、14、18、19 连在一起的值比较,不同就死! 
+
+以我的机器码为例(我的机器码是 `YMDYMH13838`) 
+
+(注:以下括号里的是 16 进制的乘法和加法)  
+
+`59 * 4D * 44 * 59 * 4D * 48 * 31 * 33 * 38 * 33 * 38 + 1` XOR `B` = `FB5E45C45EA3C80A`  
+
+取其后八位 `5EA3C80A` 与注册码第 3、4、8、9、13、14、18、19 连在一起的值比较,不同就死! 
+
+我的机器码是 "YMDYMH13838" 
+
+那么注册码是 "XX5EXXXA3XXXC8XXX0A"(X 为 0-F 间任意) 
+
+终于可以睡觉了!  
+
+最后在这里真心感谢你花了那么多时间看这篇文章!谢谢了... 
+
+                                                                                          2003.05.24 晨于清远
+`4dd466d0e1e0cc123afbe504da2462ca`
