@@ -1,0 +1,149 @@
+
+# One Click Ringtone Converter 1.4
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-170.htm`](https://www.pediy.com/kssd/pediy08/pediy8-170.htm)
+
+【破解软件】`One Click Ringtone Converter 1.4`  
+
+【下载地址】`http://www.onlinedown.net/soft/46780.htm`  
+
+【运行环境】`Win9x/Me/NT/2000/XP/2003`  
+
+【软件类别】国外软件/共享版/音频工具  
+
+【保护方式】注册码  
+
+【作者声明】初学 Crack，只是感兴趣，消遣业余时间，错误之处敬请诸位前辈不吝赐教。  
+
+【调试环境】`Winxp`、`OllyDBD`、`PEiD`  
+
+【软件介绍】一款手机铃声制作软件，只需要点一下鼠标就可以将所有的音乐变成你的手机和弦铃声。支持由 `WAV`，`MP3`，`WMA`，`OGG`，`APE`，`FLAC` 音频文件到 `WAV`，`MP3` 和 `MMF` 格式的压缩铃声的转换。可以整个文件或部分转换，支持批处理。  
+
+## 一、追码
+
+该软件安装后有 4 个 `EXE` 文件，其中 `unlock.exe` 是注册程序，`PEiD` 检查无壳，是：`Microsoft Visual C++ 7.0 Method2`。`OD` 载入查找字串参考，找到：“`you registration data is incorrect.error`” 双击来到代码窗口，向上在 `04046F3` 处下断，`F9` 运行程序，弹出注册框填入用户名：`wzwgp` 组织：`icbc` `Unlock code: 12345678` 点击“`ok`”
+
+```
+004046F3  /$  55             PUSH EBP
+004046F4  |.  8BEC          MOV EBP,ESP
+004046F6  |.  81EC 34080000 SUB ESP,834
+004046FC  |.  53             PUSH EBX
+004046FD  |.  56             PUSH ESI
+004046FE  |.  57             PUSH EDI
+004046FF  |.  33DB          XOR EBX,EBX
+00404701  |.  53             PUSH EBX
+00404702  |.  8BF0          MOV ESI,EAX
+00404704  |.  53             PUSH EBX
+00404705  |.  6A 01         PUSH 1
+00404707  |.  8D7E 20      LEA EDI,DWORD PTR DS:[ESI+20]
+0040470A  |.  8D46 28      LEA EAX,DWORD PTR DS:[ESI+28]         ;  用户名地址入 EAX
+0040470D  |.  68 EA030000  PUSH 3EA
+00404712  |.  8BCF          MOV ECX,EDI
+00404714  |.  E8 5DCCFFFF  CALL unlock.00401376
+00404719  |.  85C0          TEST EAX,EAX
+0040471B  |.  74 2A        JE SHORT unlock.00404747
+0040471D  |.  53             PUSH EBX
+0040471E  |.  53             PUSH EBX
+0040471F  |.  6A 01         PUSH 1
+00404721  |.  8D46 2C      LEA EAX,DWORD PTR DS:[ESI+2C]         ;  组织名地址入 EAX
+00404724  |.  68 EB030000  PUSH 3EB
+00404729  |.  8BCF          MOV ECX,EDI
+0040472B  |.  E8 46CCFFFF  CALL unlock.00401376
+00404730  |.  85C0          TEST EAX,EAX
+00404732  |.  74 13        JE SHORT unlock.00404747
+00404734  |.  53             PUSH EBX
+00404735  |.  53             PUSH EBX
+00404736  |.  6A 01         PUSH 1
+00404738  |.  8D46 30      LEA EAX,DWORD PTR DS:[ESI+30]         ;  假码地址入 EAX
+0040473B  |.  68 EC030000  PUSH 3EC
+00404740  |.  8BCF          MOV ECX,EDI
+00404742  |.  E8 2FCCFFFF  CALL unlock.00401376
+00404747  |>  8D7E 30      LEA EDI,DWORD PTR DS:[ESI+30]         ;  假码地址入 EDI
+0040474A  |.  8BC7          MOV EAX,EDI
+0040474C  |.  E8 2FCDFFFF  CALL unlock.00401480
+00404751  |.  FF37          PUSH DWORD PTR DS:[EDI]
+00404753  |.  FF15 CC514000 CALL NEAR DWORD PTR DS:[<&USER32.CharUpp>; 假码字符小写转大写
+00404759  |.  8B46 28      MOV EAX,DWORD PTR DS:[ESI+28]
+0040475C  |.  3958 F8      CMP DWORD PTR DS:[EAX-8],EBX
+0040475F  |.  0F84 A2010000 JE unlock.00404907
+00404765  |.  8B17          MOV EDX,DWORD PTR DS:[EDI]
+00404767  |.  395A F8      CMP DWORD PTR DS:[EDX-8],EBX
+0040476A  |.  0F84 97010000 JE unlock.00404907
+00404770  |.  6A 07         PUSH 7
+00404772  |.  59             POP ECX
+00404773  |.  33C0          XOR EAX,EAX
+00404775  |.  8D7D D0      LEA EDI,DWORD PTR SS:[EBP-30]
+00404778  |.  895D CC      MOV DWORD PTR SS:[EBP-34],EBX
+0040477B  |.  F3:AB        REP STOS DWORD PTR ES:[EDI]
+0040477D  |.  B9 00010000  MOV ECX,100
+00404782  |.  8DBD CCFBFFFF LEA EDI,DWORD PTR SS:[EBP-434]
+00404788  |.  68 FF030000  PUSH 3FF
+0040478D  |.  F3:AB        REP STOS DWORD PTR ES:[EDI]
+0040478F  |.  52             PUSH EDX
+00404790  |.  8D85 CCFBFFFF LEA EAX,DWORD PTR SS:[EBP-434]
+00404796  |.  50             PUSH EAX
+00404797  |.  FF15 64514000 CALL NEAR DWORD PTR DS:[<&MSVCR71._mbsnb>; 假码 16 进制数入堆栈
+0040479D  |.  8D85 CCFBFFFF LEA EAX,DWORD PTR SS:[EBP-434]
+004047A3  |.  E8 E6FEFFFF  CALL unlock.0040468E　　　　　　　　　　 ; 检查假码是否有 R、T、U…有将被替换
+004047A8  |.  8D85 CCFBFFFF LEA EAX,DWORD PTR SS:[EBP-434]
+004047AE  |.  68 D8524000  PUSH unlock.004052D8                 ;  2D (-) 入栈
+004047B3  |.  50             PUSH EAX
+004047B4  |.  FF15 60514000 CALL NEAR DWORD PTR DS:[<&MSVCR71._mbsto>;  取检查后假码
+004047BA  |.  83C4 14       ADD ESP,14
+004047BD  |.  85C0          TEST EAX,EAX
+004047BF  |.  8945 FC       MOV DWORD PTR SS:[EBP-4],EAX
+004047C2  |.  0F84 F1000000 JE unlock.004048B9                 ;  未输入注册码跳到注册失败提示窗
+004047C8  |>  83FB 08      /CMP EBX,8                         ;  注册码取完没有？
+004047CB  |.  0F83 B3000000 |JNB unlock.00404884
+004047D1  |.  8B45 FC      |MOV EAX,DWORD PTR SS:[EBP-4]
+004047D4  |.  8D50 01      |LEA EDX,DWORD PTR DS:[EAX+1]
+004047D7  |>  8A08         |/MOV CL,BYTE PTR DS:[EAX]
+004047D9  |.  40           ||INC EAX
+004047DA  |.  84C9         ||TEST CL,CL
+004047DC  |.^ 75 F9        |\JNZ SHORT unlock.004047D7
+004047DE  |.  2BC2         |SUB EAX,EDX                         ;  计算每组注册码位数
+004047E0  |.  83F8 06      |CMP EAX,6
+004047E3  |.  77 12        |JA SHORT unlock.004047F7            ;  组注册码位数大于 6 跳到下面计算
+004047E5  |.  6A 1A        |PUSH 1A
+004047E7  |.  6A 00        |PUSH 0
+004047E9  |.  FF75 FC      |PUSH DWORD PTR SS:[EBP-4]
+004047EC  |.  FF15 5C514000 |CALL NEAR DWORD PTR DS:[<&MSVCR71.strto>; 算法 Call
+004047F2  |.  83C4 0C      |ADD ESP,0C
+004047F5  |.  EB 6E        |JMP SHORT unlock.00404865
+004047F7  |>  8B45 FC      |MOV EAX,DWORD PTR SS:[EBP-4]
+004047FA  |.  8D50 01      |LEA EDX,DWORD PTR DS:[EAX+1]
+004047FD  |>  8A08         |/MOV CL,BYTE PTR DS:[EAX]
+004047FF  |.  40           ||INC EAX
+00404800  |.  84C9         ||TEST CL,CL
+00404802  |.^ 75 F9        |\JNZ SHORT unlock.004047FD
+00404804  |.  2BC2         |SUB EAX,EDX
+00404806  |.  83F8 08      |CMP EAX,8
+00404809  |.  75 5F        |JNZ SHORT unlock.0040486A           ;  不等于 8 跳走
+0040480B  |.  33C0         |XOR EAX,EAX
+0040480D  |.  884D EC      |MOV BYTE PTR SS:[EBP-14],CL
+00404810  |.  8D7D ED      |LEA EDI,DWORD PTR SS:[EBP-13]
+00404813  |.  AB           |STOS DWORD PTR ES:[EDI]
+00404814  |.  66:AB       |STOS WORD PTR ES:[EDI]
+00404816  |.  AA           |STOS BYTE PTR ES:[EDI]
+00404817  |.  33C0         |XOR EAX,EAX
+00404819  |.  884D F4      |MOV BYTE PTR SS:[EBP-C],CL
+0040481C  |.  8D7D F5      |LEA EDI,DWORD PTR SS:[EBP-B]
+0040481F  |.  AB           |STOS DWORD PTR ES:[EDI]
+00404820  |.  66:AB       |STOS WORD PTR ES:[EDI]
+00404822  |.  6A 06        |PUSH 6
+00404824  |.  FF75 FC      |PUSH DWORD PTR SS:[EBP-4]
+00404827  |.  AA           |STOS BYTE PTR ES:[EDI]
+00404828  |.  8B3D 64514000 |MOV EDI,DWORD PTR DS:[<&MSVCR71._mbsnbc>
+0040482E  |.  8D45 EC      |LEA EAX,DWORD PTR SS:[EBP-14]
+00404831  |.  50           |PUSH EAX
+00404832  |.  FFD7         |CALL NEAR EDI                       ; 取位数等于 8 的假码的前 6 位保存
+00404834  |.  8B45 FC      |MOV EAX,DWORD PTR SS:[EBP-4]        ; 取位数等于 8 的假码
+00404837  |.  83C0 06      |ADD EAX,6
+0040483A  |.  6A 02        |PUSH 2
+0040483C  |.  50           |PUSH EAX                            ; 保存后 2 位
+0040483D  |.  8D45 F4      |LEA EAX,DWORD PTR SS:[EBP-C]
+00404840  |.  50           |PUSH EAX
+00404841  |.  FFD7         |CALL NEAR EDI
+00404843  |.  8B3D 5C514000 |MOV EDI,DWORD PTR DS:[<&MSVCR71.strtoul>
+00404849  |.  6A 1A        |PUSH 1A
+```
