@@ -1,0 +1,293 @@
+
+# 写几句 PhantOm1.20 学习笔记
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-568.htm`](https://www.pediy.com/kssd/pediy09/pediy09-568.htm)
+
+`PhantOm` 是我见过的唯一能过 `ExeCryptor` 的插件，听 `fly` 的意思还有，估计是 `h`、`s`、`f` 等人揣着不拿出来。
+
+驱动没有什么特殊的，就不说了，有用的东西在 `ring3`，正好近来对改 `OD` 有兴趣，学习学习写插件，不过我没有看全。
+
+有段 `Patch` 被调试进程 `PEB` 内 `_RTL_USER_PROCESS_PARAMETERS` 内一些数据，在 `0040DF74`，这我没有做过，但对 `ExeCryptor` 不重要。
+
+主要问题是 `ExeCryptor` 使用 `DRx` 解码，以前 `xDREAM` 提到过 `OD` 会破坏 `CONTEXT` 内的调试寄存器，如果 `Hook` 掉 `OD` 的 `WaitForDebugEvent`、`ContinueDebugEvent`，读出 `DRx` 比较一下，可以发现确实不同了。`PhantOm` 的处理是这样的：
+
+`Patch` `OD` 调用插件 `ODBG_Pluginmainloop` 的代码：
+
+```assembly
+.text:0043966A          loc_43966A:  
+.text:0043966A 68 14 57 4D 00     push    offset DebugEvent
+.text:0043966F E8 D8 D4 05 00     call    sub_496B4C     
+```
+
+把 `push` 改成了 `JMP`，跳到自己补的一段代码：
+
+```assembly
+ATA:00412554 PhantOmCodes:    
+DATA:00412554             nop  
+DATA:00412555             nop  
+DATA:00412556             mov     eax, ds:4D5714h  
+DATA:0041255B             cmp     eax, 8  
+DATA:0041255E             jz      short __PassThrough  
+DATA:00412560             mov     eax, ds:4D5720h  
+DATA:00412565             cmp     eax, EXCEPTION_ACCESS_VIOLATION  
+DATA:0041256A             jz      short __PassThrough  
+DATA:0041256C             cmp     eax, 0C000001Eh  
+DATA:00412571             jz      short __PassThrough  
+DATA:00412573             cmp     eax, EXCEPTION_GUARD_PAGE  
+DATA:00412578             jz      short __PassThrough  
+DATA:0041257A             cmp     eax, EXCEPTION_ILLEGAL_INSTRUCTION  
+DATA:0041257F             jz      short __PassThrough  
+DATA:00412581             cmp     eax, EXCEPTION_INT_DIVIDE_BY_ZERO  
+DATA:00412586             jz      short __PassThrough  
+DATA:00412588             nop  
+DATA:00412589             push    4D5714h  
+DATA:0041258E             jmp     near ptr 39C4E7h ;  jmp 0043966F  
+DATA:00412593 ; ---------------------------------------------------------------------------  
+DATA:00412593  
+DATA:00412593 __PassThrough:                       ; CODE XREF: DATA:0041255Ej  
+DATA:00412593                                       ; DATA:0041256Aj  
+DATA:00412593                                       ; DATA:00412571j  
+DATA:00412593                                       ; DATA:00412578j  
+DATA:00412593                                       ; DATA:0041257Fj  
+DATA:00412593                                       ; DATA:00412586j  
+DATA:00412593             mov     ebx, DBG_EXCEPTION_NOT_HANDLED  
+DATA:00412598             push    ebx  
+DATA:00412599             mov     eax, ds:4D571Ch  
+DATA:0041259E             push    eax  
+DATA:0041259F             mov     edx, ds:4D5718h  
+DATA:004125A5             push    edx  
+DATA:004125A6             call    dword ptr ds:50D2B8h ; ContinueDebugEvent  
+DATA:004125AC             jmp     near ptr 39BEF4h ; jmp 0043907C  
+```
+
+如果是一些特殊的调试事件或异常，则直接调用 `ContinueDebugEvent`，不让 `OD` 处理了，否则跳回到 `43966F`。比较奇怪的是最后那句跳到 `0043907C`，不大明白，为什么是这里：
+
+```assembly
+.text:00439077         call    j_GetTickCount
+.text:0043907C         mov     [ebp+var_34], eax  
+.text:0043907F         cmp     stream, 0
+.text:00439086         jnz     short loc_439091
+.text:00439088         cmp     dword_4D9E40, 0
+.text:0043908F         jz      short loc_4390D4
+```
+
+不过这样做是有问题的，我一边看一边整理自己的代码，改成插件形式，如果这样 `Patch`，会导致当被调试程序（特别是加过壳的）处于运行状态时直接关 `OD`，`OD` 会崩溃。没有深究原因，不过写成直接 `Hook` 掉 `OD` 的 `WaitForDebugEvent` 不存在这个问题，调用 `ContinueDebugEvent` 后返回 `FALSE` 就行。
+
+另外，我觉得 `PhantOm` 这样处理不是很好，一是可能需要添加更多的异常判断，另外 `OD` 要用的调试异常如 `int3`、单步等不好处理，所以想换个方式。
+
+`OD` 里面的断点实现，包括把代码起始字节替换为 `CC`，使用调试寄存器，设置 `EFLAGS` 的 `TF`，及设置内存页为 `PAGE_NOACCESS`、`PAGE_GUARD` 等，我们可以试试把在 `OD` 里的操作造成的调试异常与被调试程序故意造成的异常区分开来，这样只要不是 `OD` 的都 `Pass`。写了几个函数：
+
+### 1. 测试 `EXCEPTION_BREAKPOINT` 是否由于在 `OD` 下断所致
+
+```c
+BOOL IsMyInt3BP(DWORD addr)  
+{  
+ //addr 是否存在激活 int3 断点  
+
+ t_table *bptable = 0;  
+ t_bpoint *bpoint = 0;  
+
+ bptable = (t_table *)_Plugingetvalue(VAL_BREAKPOINTS);  
+ if(bptable)  
+ {  
+   bpoint=(t_bpoint *)_Findsorteddata(&(bptable->data), addr);  
+   
+   if((bpoint) && (bpoint->type & (~TY_DISABLED)))  
+   {  
+     return TRUE;  
+   }  
+   else  
+     return FALSE;  
+ }  
+ else  
+ {  
+   _Addtolist(0, 1, "Failed to get bptable");  
+   return FALSE;  
+ }  
+}
+```
+
+### 2. 测试 `EXCEPTION_SINGLE_STEP` 是否由于下硬件断点或设置 `TF` 位所致
+
+```c
+BOOL IsMyHardwareBP(DWORD dwThreadId)  
+{  
+ //测试当前单步异常是否为 Olly 的操作引起,PDK 未提供函数访问硬件断点  
+
+ /* Olly 保存硬件断点的地址通过_Sethardwarebreakpoint 可以找到  
+ 004D8D70     004112E7    00000001    00000001    00000000  
+ 004D8D80     00000000    00000000    00000000    004112E8 ...  
+ */  
+
+ BOOL bFound = FALSE; 
+ CONTEXT ctx; 
+ HANDLE hThread = 0; 
+ DR6 iDr6; 
+ DR7 iDr7; 
+ t_thread* descriptor = 0; 
+ t_hardbpoint *hdbptable = (t_hardbpoint*)0x4D8D70; 
+
+
+ memset(&ctx, 0, sizeof(ctx)); 
+ hThread = g_OpenThread(THREAD_GET_CONTEXT, FALSE, dwThreadId); 
+
+ if(hThread)  
+ { 
+   ctx.ContextFlags = CONTEXT_CONTROL | CONTEXT_DEBUG_REGISTERS; 
+ 
+   if(GetThreadContext(hThread, &ctx))  
+   { 
+     iDr6.data = ctx.Dr6; 
+     iDr7.data = ctx.Dr7; 
+
+     //是否由 Dr0-Dr3 引起调试故障/陷阱 
+     if(((iDr7.u.L0 == 1) || (iDr7.u.G0 == 1)) && 
+       (iDr6.u.B0 == 1) && 
+       (hdbptable[0].addr == ctx.Dr0))  
+     { 
+       //_Addtolist(0, 1, "Trigger by Dr0=%08X", hdbptable[0].addr); 
+       bFound = TRUE; 
+     } 
+     else  
+     if(((iDr7.u.L1 == 1) || (iDr7.u.G1 == 1)) && 
+         (iDr6.u.B1 == 1) && 
+         (hdbptable[1].addr == ctx.Dr1))  
+     { 
+       //_Addtolist(0, 1, "Trigger by Dr1=%08X", hdbptable[1].addr); 
+       bFound = TRUE; 
+     } 
+     else  
+     if(((iDr7.u.L2 == 1) || (iDr7.u.G2 == 1)) && 
+         (iDr6.u.B2 == 1) && 
+         (hdbptable[2].addr == ctx.Dr2))  
+     { 
+       //_Addtolist(0, 1, "Trigger by Dr2=%08X", hdbptable[2].addr); 
+       bFound = TRUE; 
+     } 
+     else  
+     if(((iDr7.u.L3 == 1) || (iDr7.u.G3 == 1)) && 
+       (iDr6.u.B3 == 1) && 
+       (hdbptable[3].addr == ctx.Dr3))  
+     { 
+       //_Addtolist(0, 1, "Trigger by Dr3=%08X", hdbptable[3].addr); 
+       bFound = TRUE; 
+     } 
+     else  
+     if(descriptor = _Findthread(dwThreadId)) 
+     {   
+       //若线程处于 Olly 置的单步方式(TF),返回 TRUE 
+       if(descriptor->reg.singlestep & 1)  
+       { 
+         //_Addtolist(0, 1, "singlestep is true"); 
+         bFound = TRUE; 
+       } 
+       else  
+       { 
+         //_Addtolist(0, 1, "not my fault ;)"); 
+       } 
+     } 
+
+ 
+     //不检测 iDr6.BD,如果因 DR7.GD 置位,访问 DRx 引发调试故障, 
+     //应该在驱动处理,用户代码永远不会直接访问 DRx 
+   } 
+
+   CloseHandle(hThread); 
+ } 
+
+ return bFound; 
+}
+```
+
+### 3. 测试 `EXCEPTION_ACCESS_VIOLATION` 和 `STATUS_GUARD_PAGE_VIOLATION` 是否因为在 `OD` 下内存访问断点所致
+
+```c
+BOOL IsMyMemoryBP(DWORD addr)  
+{  
+ //测试 addr 是否落在 Olly 内存访问断点页面范围  
+
+ DWORD dwBeginPage = *(PDWORD)0x4D8144;  
+ DWORD dwEndPage = *(PDWORD)0x4D8148;  
+
+ if(dwBeginPage == 0) //未设置内存断点  
+   return FALSE;  
+ else if(addr < dwBeginPage)  
+   return FALSE;  
+ else if(addr > (dwEndPage + 0x1000))
+```
+
+
+
+```
+  return FALSE;  
+  else  
+  return TRUE;  
+}  
+```
+
+在`4D8144`前面一点就是内存断点的精确地址，但不能用这个来判断，否则访问内存页内其他地址的异常没人处理，被调试程序崩溃了。注意这个函数的参数应该是:
+
+`lpDebugEvent->u.Exception.ExceptionRecord.ExceptionInformation[1]`
+
+不感兴趣的的调试事件直接返给`debuggee`（我还动了点别的;-)。用到的`2`个联合如下:
+
+//调试寄存器`DR6`,`DR7`
+
+```c
+typedef union _DR6
+{
+  struct
+  {
+    unsigned B0     : 1;  // b0
+    unsigned B1     : 1;  // b1
+    unsigned B2     : 1;  // b2
+    unsigned B3     : 1;  // b3
+    unsigned unused1  : 9;
+    unsigned BD     : 1;  // b13
+    unsigned BS     : 1;  // b14
+    unsigned BT     : 1;  // b15
+    unsigned unused2  : 16;
+  }u;
+  
+  DWORD data;
+} DR6;
+```
+
+```c
+typedef union _DR7
+{
+  struct
+  {
+    unsigned L0     : 1;  // b0
+    unsigned G0     : 1;  // b1
+    unsigned L1     : 1;  // b2
+    unsigned G1     : 1;  // b3
+    unsigned L2     : 1;  // b4
+    unsigned G2     : 1;  // b5
+    unsigned L3     : 1;  // b6
+    unsigned G3     : 1;  // b7
+    unsigned LE     : 1;
+    unsigned GE     : 1;
+    unsigned unused1  : 3;
+    unsigned GD     : 1;  // b13
+    unsigned unused2  : 2;
+    unsigned RW0    : 2;  // b16-17
+    unsigned Len0    : 2;  // b18-19
+    unsigned RW1    : 2;  // b20-21
+    unsigned Len1    : 2;  // b22-23
+    unsigned RW2    : 2;  // b24-25
+    unsigned Len2    : 2;  // b26-27
+    unsigned RW3    : 2;  // b28-29
+    unsigned Len3    : 2;  // b30-31
+  } u;
+  
+  DWORD data;
+} DR7;
+```
+
+不过这样做有个缺点，那些需要拦截异常来获取介入点的脚本不能用，嗯这只是,
+`Just a game`,或许可以给用户提供交互式的设置。
+
+近来做什么都没有耐心，文章写得前言不搭后语，见谅。
+
+`4dd466d0e1e0cc123afbe504da2462ca`

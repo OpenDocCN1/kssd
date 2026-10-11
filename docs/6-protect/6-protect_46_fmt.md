@@ -1,0 +1,223 @@
+
+# MyGetProcAddress 详细分析 + 还原 C 代码 + 流程图
+
+> 原文：[`www.pediy.com/kssd/pediy11/119650.html`](https://www.pediy.com/kssd/pediy11/119650.html)
+
+【谢谢 forgot 的提醒，特此更正，这个 `GetProcAddress` 是一个病毒的自实现过程，不是 sdk 中真实的 `GetProcAddress`。】
+
+模拟 `GetProcAddress` 很早以前就有了，我发出来是觉得那个不细，毕竟这样的东西是给像我一样的菜鸟学习的，在我学习的过程中总是遇到很多笼统的教学帖或者普及帖，所以详细的分析了一下，也当做自己的练习。`img/234a76e67df951b6551d305c177a8b78.jpg`
+
+分析的肯定有不妥之处，还请各位多多包含~
+
+`GetProcAddress`：
+
+代码:
+
+
+
+```
+00401931  /$  55            push    ebp
+00401932  |.  8BEC          mov     ebp, esp
+00401934  |.  81EC 0C010000 sub     esp, 10C             ;  分配 10C 大小的栈空间
+0040193A  |.  53            push    ebx
+0040193B  |.  56            push    esi
+0040193C  |.  57            push    edi
+0040193D  |.  8B7D 08       mov     edi, dword ptr [ebp+8]     ;  edi = arg1
+00401940  |.  33DB          xor     ebx, ebx                  ;  ebx = 0
+00401942  |.  3BFB          cmp     edi, ebx                  ;  判断输入参数是否为 0
+00401944  |.  0F84 CA000000 je      00401A14                  ;  如果参数为 0，则跳转
+0040194A  |.  8B47 3C       mov     eax, dword ptr [edi+3C]    ;  获取输入模块的 IMAGE_NT_HEADERS 结构偏移，并传入 eax
+0040194D  |.  03C7          add     eax, edi                  ;  用模块基址+IMAGE_NT_HEADERS 的偏移 = IMAGE_NT_HEADERS 的 RVA
+
+0040194F  |.  8B70 78       mov     esi, dword ptr [eax+78]    ;  IMAGE_NT_HEADERS 偏移 0x78 处是 IMAGE_DATA_DIRECTORY 结构数组首地址，在这里取第一个目录项，也就是输出表的 RVA
+00401952  |.  8B40 7C       mov     eax, dword ptr [eax+7C]    ;  eax = 输出表的大小
+00401955  |.  8945 F8       mov     dword ptr [ebp-8], eax     ;  把输出表大小传入局部变量
+00401958  |.  8B45 0C       mov     eax, dword ptr [ebp+C]     ;  eax = 第二个参数内容，第二个参数是一个函数名字符串
+0040195B  |.  03F7          add     esi, edi                  ;  esi = 输出表在内存空间中的地址，定位输出表
+0040195D  |.  3D 00000100   cmp     eax, 10000                 ;  如果参数地址大于 0x10000 ，则说明是按名称输出，否则这里要按序号输出
+00401962  |.  73 1C         jnb     short 00401980
+00401964  |.  8B4E 10       mov     ecx, dword ptr [esi+10]    ;  ecx = IMAGE_EXPORT_DIRECTORY.Base 函数序号基数
+00401967  |.  8B56 14       mov     edx, dword ptr [esi+14]    ;  edx = IMAGE_EXPORT_DIRECTORY.NumberOfFunctions 输出表中函数数量
+0040196A  |.  03D1          add     edx, ecx                  ;  edx = 最大的函数序号
+0040196C  |.  3BC2          cmp     eax, edx                  ;  对比参数中的序号，和本 dll 库中的最大的函数序号
+0040196E  |.  0F83 A0000000 jnb     00401A14          ;  如果大于本 dll 中的最大的函数序号，则返回错误
+00401974  |.  3BC1          cmp     eax, ecx                  ;  对比参数中的序号，和本 dll 库中的最小的函数序号
+00401976  |.  0F82 98000000 jb      00401A14            ;  如果小于本 dll 中的最小的函数序号，则返回错误
+0040197C  |.  2BC1          sub     eax, ecx                  ;  eax = 函数的位序，表明参数序号代表的函数所在的位置
+0040197E  |.  EB 47         jmp     short 004019C7
+00401980  |>  8B4E 20       mov     ecx, dword ptr [esi+20]    ;  esi + 0x20 是 IMAGE_EXPORT_DIRECTORY.AddressOfNames，即 ecx = 输出名称表
+00401983  |.  895D 08       mov     dword ptr [ebp+8], ebx     ;  参数清零
+00401986  |.  03CF          add     ecx, edi                  ;  ecx = 输出名称表在内存中的位置
+00401988  |.  395E 18       cmp     dword ptr [esi+18], ebx    ;  判断 IMAGE_EXPORT_DIRECTORY.AddressOfFunctions 是否为 0
+0040198B  |.  76 45         jbe     short 004019D2             ;  <= 0 则跳转
+0040198D  |.  894D FC       mov     dword ptr [ebp-4], ecx     ;  把输出地址表的 VA 传给第一个局部变量
+00401990  |.  EB 03         jmp     short 00401995
+00401992  |>  8B45 0C       /mov     eax, dword ptr [ebp+C]    ;  接下来是一个循环，在动态库输出表中查找指定的函数
+00401995  |>  8B55 FC        mov     edx, dword ptr [ebp-4]      ;  edx = 输出名称表 va
+00401998  |.  8BCF          |mov     ecx, edi                            ;  ecx = 输入的参数（HMODULE）
+0040199A  |.  030A          |add     ecx, dword ptr [edx]      ;  ecx = 输出名称表中的第一个函数名称的地址
+0040199C  |.  51            |push    ecx
+0040199D  |.  50            |push    eax
+0040199E  |.  E8 2FFDFFFF   |call    004016D2                   ;  判断两字符串是否相等
+004019A3  |.  59            |pop     ecx
+004019A4  |.  84C0          |test    al, al
+004019A6  |.  59            |pop     ecx
+004019A7  |.  74 11         |je      short 004019BA            ;  判断比较结果
+004019A9  |.  FF45 08       |inc     dword ptr [ebp+8]
+004019AC  |.  8345 FC 04    |add     dword ptr [ebp-4], 4      ;  跳到下一个函数
+004019B0  |.  8B45 08       |mov     eax, dword ptr [ebp+8]    ;  eax = 比较次数
+004019B3  |.  3B46 18       |cmp     eax, dword ptr [esi+18]   ;  判断是否到达了输出表尾
+004019B6  |.^ 72 DA         \jb     short 00401992            ;  如果没到尾，则继续循环查找函数
+004019B8  |.  EB 18         jmp     short 004019D2
+004019BA  |>  8B46 24       mov     eax, dword ptr [esi+24]    ;  eax = IMAGE_EXPORT_DIRECTORY.AddressOfNameOrdinals,即导出序号表地址 rva
+004019BD  |.  8B4D 08       mov     ecx, dword ptr [ebp+8]     ;  ecx = 函数位置
+004019C0  |.  8D0448        lea     eax, dword ptr [eax+ecx*2] ;  eax = 刚刚找到的函数在序号表中的序号 word RVA
+004019C3  |.  0FB70438      movzx   eax, word ptr [eax+edi]    ;  eax = 函数序号
+004019C7  |>  8B4E 1C       mov     ecx, dword ptr [esi+1C]    ;  ecx = IMAGE_EXPORT_DIRECTORY.AddressOfFunctions 函数地址表
+004019CA  |.  8D0481        lea     eax, dword ptr [ecx+eax*4] ;  eax = 函数的真正地址的 RVA 保存的地址
+004019CD  |.  8B1C38        mov     ebx, dword ptr [eax+edi]   ;  ebx = 函数在内存中的真正地址的 RVA
+004019D0  |.  03DF          add     ebx, edi                  ;  ebx = 函数在内存中的 va
+004019D2  |>  8B45 F8       mov     eax, dword ptr [ebp-8]     ;  eax = 输出表大小
+004019D5  |.  03C6          add     eax, esi                  ;  eax = 输出表尾
+004019D7  |.  3BD8          cmp     ebx, eax                  ;  判断函数地址和输出表尾
+004019D9  |.  73 6F         jnb     short 00401A4A             ;  if (ebx > 输出表尾 va || ebx < 输出表头 va || ebx == 0) 则跳转
+004019DB  |.  3BDE          cmp     ebx, esi
+004019DD  |.  72 6B         jb      short 00401A4A
+004019DF  |.  85DB          test    ebx, ebx
+004019E1  |.  74 67         je      short 00401A4A
+004019E3  |.  8A03          mov     al, byte ptr [ebx]          ;  函数的第一个 byte 放入 al
+004019E5  |.  8BF3          mov     esi, ebx                      ;  esi = 函数地址
+004019E7  |>  84C0          /test    al, al
+004019E9  |.  74 29         |je      short 00401A14            ;  如果内容为 0 则函数返回
+004019EB  |.  3C 2E         |cmp     al, 2E                         ;  如果是'.'
+004019ED  |.  74 06         |je      short 004019F5            ;  如果其中有‘.’ ，则说明此函数来自于其他库
+004019EF  |.  8A46 01       |mov     al, byte ptr [esi+1]
+004019F2  |.  46            |inc     esi
+004019F3  |.^ EB F2         \jmp     short 004019E7
+004019F5  |>  80A5 F4FEFFFF>and     byte ptr [ebp-10C], 0      ;  ebp-10c 位清零
+004019FC  |.  6A 40         push    40
+004019FE  |.  59            pop     ecx                           ;  ecx = 0x40
+004019FF  |.  33C0          xor     eax, eax                  ;  eax = 0
+00401A01  |.  8DBD F5FEFFFF lea     edi, dword ptr [ebp-10B]   ;  edi = buffer(ebp-10B)
+00401A07  |.  F3:AB         rep     stos dword ptr es:[edi]            ;  ebp-10b 缓冲区清 0  共 0x100 个 0
+00401A09  |.  66:AB         stos    word ptr es:[edi]
+00401A0B  |.  AA            stos    byte ptr es:[edi]          ;  再补充 3 位的 0
+00401A0C  |.  8BFE          mov     edi, esi                  ;  edi = '.'的位置
+00401A0E  |.  2BFB          sub     edi, ebx                  ;  用‘.’的位置 - 函数首位置 则得到了动态库的名字长度
+00401A10  |.  85FF          test    edi, edi                  ;  判断长度
+00401A12  |.  7F 04         jg      short 00401A18             ;  如果大于 0，说明正确
+00401A14  |>  33C0          xor     eax, eax                  ;  如果<=0 则本函数返回 0
+00401A16  |.  EB 34         jmp     short 00401A4C             ;  跳到结尾
+00401A18  |>  57            push    edi                         ; /dll 名长度
+00401A19  |.  8D85 F4FEFFFF lea     eax, dword ptr [ebp-10C]   ; |
+00401A1F  |.  53            push    ebx                         ; |dll 名地址
+00401A20  |.  50            push    eax                         ; |dest
+00401A21  |.  E8 DC380000   call    <jmp.&MSVCRT.memcpy>       ; \memcpy
+00401A26  |.  80A43D F4FEFF>and     byte ptr [ebp+edi-10C], 0  ;  清 0
+00401A2E  |.  83C4 0C       add     esp, 0C
+00401A31  |.  8D85 F4FEFFFF lea     eax, dword ptr [ebp-10C]   ;  eax = dll 名
+00401A37  |.  50            push    eax                         ; /加载动态库
+00401A38  |.  FF15 04604000 call    dword ptr <&kernel32.GetM>; \GetModuleHandleA
+00401A3E  |.  46            inc     esi                         ;  跳过'.' 因为本库中如果有其他库的函数，保存形式为“Advapi32.RegQueryValueEx”，即跳过.后就是函数名的地址
+00401A3F  |.  56            push    esi                         ;  压入函数名
+00401A40  |.  50            push    eax                         ;  压入模块名
+00401A41  |.  E8 EBFEFFFF   call    00401931                   ;  递归调用
+00401A46  |.  59            pop     ecx
+00401A47  |.  8BD8          mov     ebx, eax                  ;  ebx = 函数地址
+00401A49  |.  59            pop     ecx
+00401A4A  |>  8BC3          mov     eax, ebx                 ;  eax = 函数地址，用于返回
+00401A4C  |>  5F            pop     edi
+00401A4D  |.  5E            pop     esi
+00401A4E  |.  5B            pop     ebx
+00401A4F  |.  C9            leave
+00401A50  \.  C3            retn
+```
+
+
+
+分析之后总结的流程图：
+
+![
+
+还原 `C` 代码：
+
+前面分析注释了很多代码，这个没写注释了。
+
+`MyGetProcAddress` 中没有对第二个参数进行判断，我发现我看过的所有的自己实现的 `GetProcAddress` 都判断第二个参数是否为 `NULL`，如果是 `NULL` 则函数返回，这块严格的讲是有问题的。因为如果 `dll` 的 `DEF` 中明确定义了函数的序号为 `0`，则此时第二个参数传入的 `0` 就是有意义的。
+
+代码：
+
+```
+FARPROC WINAPI MyGetProcAddress(HMODULE hModule, LPCSTR lpProcName)
+{
+  PIMAGE_DOS_HEADER pDOSHeader;
+  PIMAGE_NT_HEADERS pNTHeader;
+  PIMAGE_EXPORT_DIRECTORY pExportDir;
+  LONG peNtHeaderBaseOffset;
+  DWORD dwImage_Export_Directory_RVA;
+  DWORD dwImage_Export_Directory_Size;
+  DWORD dwAddressOfNamesVA;
+  DWORD dwProcOrdinalNumber;
+  DWORD dwProcAddressVA;
+  int count = 0; //计数
+  char dllName[_MAX_FNAME];
+
+  if (NULL == hModule)
+    return 0;
+
+  pDOSHeader = (PIMAGE_DOS_HEADER)hModule;
+  peNtHeaderBaseOffset = pDOSHeader->e_lfanew;
+  pNTHeader = (PIMAGE_NT_HEADERS)(hModule + peNtHeaderBaseOffset);
+  dwImage_Export_Directory_RVA = pNTHeader->OptionalHeader.DataDirectory[0].VirtualAddress;
+  dwImage_Export_Directory_Size = pNTHeader->OptionalHeader.DataDirectory[0].Size;
+
+  pExportDir = (PIMAGE_EXPORT_DIRECTORY)(hModule + dwImage_Export_Directory_RVA);
+  if ((DWORD)lpProcName > 0x10000)
+  {
+    if (pExportDir->AddressOfFunctions > 0)
+    {
+      dwAddressOfNamesVA = pExportDir->AddressOfNames + (DWORD)hModule;
+      do 
+      {
+        if (!strcmp(lpProcName, (const char*)*(DWORD*)((DWORD)hModule + dwAddressOfNamesVA)))
+          goto _jmp;
+        count++;
+        dwAddressOfNamesVA += 4;
+      } while ((DWORD)count < pExportDir->NumberOfNames);
+      goto _whenend;
+_jmp:     
+      dwProcOrdinalNumber = *(DWORD*)((pExportDir->AddressOfNameOrdinals + count*2) + (DWORD)hModule);
+    }
+  }
+  else
+  {//如果第二个参数是函数序号
+    if ((unsigned long)lpProcName > pExportDir->Base + pExportDir->NumberOfFunctions || (unsigned long)lpProcName <pExportDir->Base)
+      return 0;
+    dwProcOrdinalNumber = (DWORD)lpProcName - pExportDir->Base; //函数位置
+  }
+  dwProcAddressVA = *(DWORD*)((pExportDir->AddressOfFunctions + dwProcOrdinalNumber*4) + (DWORD)hModule) + (DWORD)hModule;
+_whenend:   
+  if (dwProcAddressVA >dwImage_Export_Directory_Size + dwImage_Export_Directory_RVA + (DWORD)hModule || dwProcAddressVA < (DWORD)hModule + dwImage_Export_Directory_RVA || dwProcAddressVA == 0)
+    return (FARPROC)dwProcAddressVA;
+  count = 0;
+  DWORD dwProcAddr = dwProcAddressVA;
+  byte bTmp = *(byte*)dwProcAddr;
+  do 
+  {
+    if (0 == bTmp)
+      return 0;
+    if (0x2E == bTmp)  //ascii '.'
+      break;
+    bTmp = *(byte*)(dwProcAddr + 1);
+    dwProcAddr++;
+  } while (1);
+  unsigned int libNameLength = dwProcAddr - dwProcAddressVA;
+  if (libNameLength <= 0)
+    return 0;
+  memset(dllName, 0, _MAX_FNAME);
+  memcpy(dllName, (const void*)dwProcAddressVA, libNameLength);
+  HMODULE hDllModule = GetModuleHandleA(dllName);
+  dwProcAddr++;
+  return MyGetProcAddress(hDllModule, (LPCSTR)dwProcAddr);  //递归
+}
+```
