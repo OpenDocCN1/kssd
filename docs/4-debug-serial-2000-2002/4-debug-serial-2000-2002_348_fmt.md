@@ -1,0 +1,277 @@
+
+# hellfire2000
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum544.htm`](https://www.pediy.com/kssd/pediy03/forum544.htm)
+
+## 文章信息
+
+文章名称：`hellfire2000` 破解过程及注册机的编写（上）
+
+作者：夜月
+
+e\_mail:`luoyi.ly@yeah.net`
+
+oicq:`36606500`
+
+目的：帮助和我一样的广大初学者。
+
+软件名称：`hellfire2000`
+
+软件简介：很酷的屏幕保护软件。与流行的那些几张图片换来换去的屏保完全不同。它可以完全让你的桌面“燃烧”起来，还有很逼真的背景音效。如果能再加上一点嗅觉的刺激的话，呵呵...你可能真的会以为你的宝贝 compute 烧起来了呢！
+
+## 保护分析
+
+### 1.时间保护分析
+
+该软件把它的时间信息保存在：`[HKEY_CLASSES_ROOT\AppID\HCB1CD94CF]`下，（埋得好怪呀！呵呵..）过期后，将该键删除，就可以继续使用了。
+
+### 2.注册保护分析
+
+在它的设置项里面就有三个输入框，分别是输入：`user name`,`company`,`reg.key`.用 `trw2000` 的万能中断 `hmemcpy+pmodule` 很容易找到关键的比较处。它会先判断 `reg.key` 的长度是否为偶数，不是的话直接出错。是的话，再继续判断是否为 12 位数字。不是的话，又是直接出错，而且它的这个判断和平常我们常见的用 `ecx` 计数的判断不同（下面我会提到），只有过了这两关，才能到达计算注册码的核心代码处。
+
+算出来的注册吗以两位一组的形式和你输入的 `reg.key` 比较，而且是数字比较，不是 ascii 码比较。用 `d` 命令不能直接在内存窗口的右边看到注册码。它以整数的形式存放在左边。
+
+注册成功后，注册信息保存在：`[HKEY_CURRENT_USER\SOFTWARE\FP SOFTWARE\HELLFIRE-2000\HELLFIRE\CONFIG]`下的：`LicenseCompany`、`LicenseKEY`、`LicenseUSER` 三个键中。删除后程序又可以重新注册。
+
+### 3.程序自我保护分析
+
+我曾试图用暴力破解法改动一个字节使程序注册，（具体地点后面我会提到）但是第二次程序运行时，提示我：可执行文件被修改。小弟功力不够，不能够破解这个“地雷”，那位大虾有兴趣帮小弟一把，小弟感激不尽！
+
+### 教程正文
+
+1. 输入注册信息：
+
+```
+user name: luoyi
+company: upc
+reg.key: 654321
+```
+
+2. 用 `trw2000` 跟踪，可找到如下代码：
+
+```
+:00405EAA C784249400000000000000  mov dword ptr [esp+00000094], 00000000
+:00405EB5 E806FDFFFF              call 00405BC0  <---------CALL1
+:00405EBA 83C40C                  add esp, 0000000C
+:00405EBD 85C0                    test eax, eax
+:00405EBF 0F84FD000000            je 00405FC2
+:00405EC5 8D4C2410                lea ecx, dword ptr [esp+10]
+:00405EC9 E8620B0000              call 00406A30  <---------CALL2
+:00405ECE 85C0                    test eax, eax
+:00405ED0 0F84EC000000            je 00405FC2
+:00405ED6 53                      push ebx
+```
+
+可以看出：程序有两个子程序来判断注册码的正确与否。可是，就我跟踪的结果来看，好像只有 `CALL1` 起了判断作用。好了，用 `F8` 跟入 `CALL1`,继续跟踪，会看到如下代码：
+
+```
+:00405BE6 6800010000              push 00000100
+:00405BEB 50                      push eax
+:00405BEC 51                      push ecx
+:00405BED E8DEFDFFFF              call 004059D0  <----------CALL3
+:00405BF2 83C40C                  add esp, 0000000C
+:00405BF5 83F806                  cmp eax, 0000006 <-----------reg.key 的位数比较
+:00405BF8 7417                    je 00405C11
+```
+
+大家看到了吧，一般的长度比较，都是用 `ecx` 作计数器来进行的，可是这个程序有点不一样，它是把长度的一半作为比较依据。（小弟在此耗时 1 个小时，才搞清楚 `eax` 是什么东东,5555...真丢人！）
+
+OK！长度的地雷已经排除了，下面进入正式的注册码计算阶段：
+
+```
+:00405C6F 6A06                    push 00000006
+:00405C71 51                      push ecx
+:00405C72 E869FCFFFF              call 004058E0      <---------关键算法所在处
+:00405C77 83C40C                  add esp, 0000000C
+:00405C7A 85C0                    test eax, eax
+:00405C7C 752B                    jne 00405CA9
+```
+
+大家千万不要被这个 `TEST EAX,EAX` 所迷惑，在这个关键算法的 `CALL` 里，出口的 `EAX` 总是为 1。也就是说，程序在此总是会往下面跳，跳到哪？呵呵....当然就是下面的这一段关键比较了：
+
+```
+:00405CA9 33C0                    xor eax, eax
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+  :00405CBE(C)
+
+:00405CAB 8A540408                mov dl, byte ptr [esp+eax+08]       --------------------
+:00405CAF 8A8C0408010000          mov cl, byte ptr [esp+eax+00000108]
+:00405CB6 3AD1                    cmp dl, cl  <-----------看到注册码的比较了吗？
+:00405CB8 75C4                    jne 00405C7E
+:00405CBA 40                      inc eax
+:00405CBB 83F806                  cmp eax, 0000006  循环 6 次，正好比完 12 位数，只要有一个
+:00405CBE 72EB                    jb 00405CAB         不对，就...嘿嘿....------------------
+:00405CC0 8D4C2400                lea ecx, dword ptr [esp]
+:00405CC4 C7842410020000FFFFFFFF  mov dword ptr [esp+00000210], FFFFFFFF
+:00405CCF E8F10A0100              call 004167C5
+:00405CD4 8B8C2408020000          mov ecx, dword ptr [esp+00000208]
+```
+
+我在开始的时候说的改动一个字节注册，到了这时候，大家应该都明白了吧?就是把 `405CB8` 处的 `JNE` 改成 `JE` 就 OK 了！可惜....呵呵...不过，这点困难还难不到我们，我们既然找到了关键算法的 `CALL` 那我们能不能写出注册机呢？（其实，这个时候，在内存窗口已经可以看到注册码了）。
+
+出于长度的原因，软件的算法分析及注册机的编写我就写到这篇文章的（下）中去了！
+
+# hellfire2000
+
+## 文章信息
+
+文章名称：`hellfire2000` 破解过程及注册机的编写（下）
+
+作者：夜月
+
+e\_mail:`luoyi.ly@yeah.net`
+
+oicq:`36606500`
+
+目的：帮助和我一样的广大初学者。
+
+软件名称: `hellfire2000`
+
+软件简介：略
+
+保护分析：略
+
+## 教程正文
+
+进入该软件注册算法的关键 `call` 中后，我们可以看到如下代码：
+
+```
+:00405916 8AC8                    mov cl, al  --------------------------------
+:00405918 2455                    and al, 55
+:0040591A 80E1AA                  and cl, AA
+:0040591D 2AC8                    sub cl, al
+:0040591F 8A442410                mov al, byte ptr [esp+10]     第一步  循环次数
+:00405923 02C1                    add al, cl                    由名字和公司决定
+:00405925 47                      inc edi
+:00405926 88442410                mov byte ptr [esp+10], al
+:0040592A 8A0437                  mov al, byte ptr [edi+esi]
+:0040592D 84C0                    test al, al
+:0040592F 75E5                    jne 00405916    ------------------------------
+:00405931 83FF05                  cmp edi, 00000005
+:00405934 7D08                    jge 0040593E
+.............
+.............
+:0040593E 8B4C2410                mov ecx, dword ptr [esp+10]
+:00405942 33D2                    xor edx, edx
+:00405944 81E1FF000000            and ecx, 000000FF
+:0040594A 8954241C                mov dword ptr [esp+1C], edx
+:0040594E 2BCE                    sub ecx, esi
+:00405950 894C2418                mov dword ptr [esp+18], ecx
+:00405954 EB04                    jmp 0040595A
+.............
+.............
+:00405956 8B4C2418                mov ecx, dword ptr [esp+18]  ----------------------
+:0040595A 8BC2                    mov eax, edx
+:0040595C 99                      cdq
+:0040595D F7FB                    idiv ebx                   edx 中保存了循环次数除以 6 的余数 n
+:0040595F 8D0431                  lea eax, dword ptr [ecx+esi]  <------eax=第一步的结果+n
+:00405962 B90A000000              mov ecx, 0000000A
+:00405967 8D3C2A                  lea edi, dword ptr [edx+ebp]  edi=ebp+n
+:0040596A 99                      cdq
+:0040596B F7F9                    idiv ecx     第一步的结果除以 a,
+:0040596D 8A0E                    mov cl, byte ptr [esi]
+:0040596F 8A07                    mov al, byte ptr [edi]
+:00405971 8A92C4FD4100            mov dl, byte ptr [edx+0041FDC4]  <------查表（就是在注册机
+:00405977 32D1                    xor dl, cl                          里的 table[10]那张
+:00405979 32C2                    xor al, dl                          表。
+:0040597B 8B54241C                mov edx, dword ptr [esp+1C]
+:0040597F 8807                    mov byte ptr [edi], al
+:00405981 33C0                    xor eax, eax
+:00405983 85DB                    test ebx, ebx
+:00405985 7E0C                    jle 00405993
+:00405987 8A0E                    mov cl, byte ptr [esi]---------------------
+:00405989 02CA                    add cl, dl
+:0040598B 300C28                  xor byte ptr [eax+ebp], cl  小二步  6 次
+:0040598E 40                      inc eax
+:0040598F 3BC3                    cmp eax, ebx
+:00405991 7CF4                    jl 00405987--------------------------------
+:00405993 8A4601                  mov al, byte ptr [esi+01]
+:00405996 42                      inc edx
+:00405997 46                      inc esi                       大二步  由名字和公司决定
+:00405998 8954241C                mov dword ptr [esp+1C], edx  保存 edx 值        循环次数
+:0040599C 84C0                    test al, al
+```
+
+
+
+```
+:0040599E 75B6 jne 00405956 
+:004059A0 33F6 xor esi, esi 
+:004059A2 85DB test ebx, ebx 
+:004059A4 7E1A jle 004059C0 
+:004059A6 8A042E mov al, byte ptr [esi+ebp]
+:004059A9 8AD0 mov dl, al 
+:004059AB 80E2F3 and dl, F3 
+:004059AE C0E802 shr al, 02 
+:004059B1 C0E202 shl dl, 02 
+:004059B4 2433 and al, 33 
+:004059B6 0AD0 or dl, al 
+:004059B8 88142E mov byte ptr [esi+ebp], dl 
+:004059BB 46 inc esi 
+:004059BC 3BF3 cmp esi, ebx 
+:004059BE 7CE6 jl 004059A6 
+:004059C0 5F pop edi 
+:004059C1 5E pop esi 
+:004059C2 5D pop ebp 
+:004059C3 B801000000 mov eax, 00000001 
+:004059C8 5B pop ebx 
+:004059C9 59 pop ecx 
+:004059CA C3 ret 
+```
+
+注册机的编写实际上就是读懂汇编代码的问题，我把我的理解都写在代码旁边，希望对大家能有一些帮助。下面我只是粗线条地分析一下注册码的产生过程，让大家在更短的时间内读懂上面的代码。
+
+这段代码用到的数据是由 `user name`, `company` 组合而成的。在这里，我的是 `luoyiupc`,(也就是把两个字符串组合一下）。设这个字符串为 `name[]`。
+
+这一段代码由 3 个循环组成，其中，第二个循环还套了一个小循环。整个注册码的产生过程是这样的：
+
+1. 经过第一个循环，由 `name[]` 产生一个数 `N`。其中要注意进借位的问题。
+2. 经过第二个循环，由 `name[]` 和 `N` 长生一个 12 位的整数。每两位做一个元素，组成数组 `code[6]`。
+3. 经过第三个循环，由 `code[6]` 产生最终注册码。存放在 `ebp` 为首的地址空间里。
+
+下面就是我用 `tc2.0` 编的注册机程序的源代码，由于不太熟悉 `c` 语言，编的程序效率肯定不太高。如有哪位大虾能够指点一二，小弟感激不尽！另外需要说明的一点就是注册码不区分大小写，在我的程序里输出用的都是小写字母，你把它们改称大写也能成功注册。
+
+### 注册机的编写：
+
+```c
+#include <string.h> 
+#include <stdio.h> 
+
+main(){ 
+    static char name[40]; 
+    char company[20]; 
+    int al,cl,dl,N=0,TEMP=0,i,j,index,high,low; 
+    int code[6]={0}; 
+    int table[10]={1,2,3,0x1E,0,0x39,0x49,0x48,0x1B,0}; 
+    printf("Please input your name:"); 
+    gets(name); 
+    printf("Please input your company:"); 
+    gets(company); 
+    strcat(name,company); 
+    for(i=0;(al=cl=name[i])!='\0';i++){ 
+        al&=0x55;cl&=0xAA; 
+        TEMP=(cl>al)?(cl-al):(256+cl-al); 
+        N=(N+TEMP)&0xFF; 
+    } 
+    for(i=0;(cl=name[i])!='\0';i++){ 
+        index=(N+i)%10; 
+        dl=table[index]; 
+        al=code[i%6]; 
+        dl^=cl; 
+        code[i%6]=al^dl; 
+        cl+=i; 
+        for(j=0;j<6;j++){ 
+            code[j]^=cl; 
+        } 
+    } 
+    printf("Your registration code is:\n"); 
+    for(i=0;(al=dl=code[i])&&i<6;i++){ 
+        dl&=0xF3;dl<<=2;dl&=0xFF; 
+        al>>=2;al&=0x33;al&=0xFF; 
+        code[i]=(dl|al); 
+        printf("%2x",code[i]); 
+    } 
+}
+```
+
+`4dd466d0e1e0cc123afbe504da2462ca`

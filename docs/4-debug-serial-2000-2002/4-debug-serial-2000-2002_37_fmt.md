@@ -1,0 +1,165 @@
+
+# CuteFTP 4.0
+
+> 原文：[`www.pediy.com/kssd/pediy02/forum148.htm`](https://www.pediy.com/kssd/pediy02/forum148.htm)
+
+`CuteFTP` 早期版本的保护机制较为严密，先采用 `KeyFile`，后改为注册码。其 3.x 版本曾被用作 `HCU`（High Cracking University）的练习目标。4.0 版本可转换为注册版，但输入注册码后需连接公司服务器进行在线验证。若输入注册码后可推导出正确注册码，但通过不了在线验证，程序不会保存该注册码，导致下次启动仍为未注册版。可以从程序启动时开始跟踪以获取注册码，实际上多数软件均可从启动阶段入手分析。
+
+使用 `RegMon`、`FileMon` 检查，发现存在名为 `Key1` 的注册表键，其中存储了一长串复杂字符。可尝试用 `bpx RegQueryValueExA` 设断点并跟踪，但由于其读取的注册表键过多，且 `SoftICE` 的条件断点不够可靠（例如使用 `bpx RegQueryValueExA if \*(esp+8)=='Key1'` 设置断点时无法触发中断），故改用 `W32Dasm` 寻找合适的断点。反汇编后查找引用 `"Key1"` 字符串的位置，记录其地址作为断点。随后用 `Symbol Loader` 加载主程序并设置断点，发现以下代码负责读取该键值，但要求 `Key1` 字符串长度小于等于 20。
+
+```
+015F:00489074  MOV       ESI,[ADVAPI32!RegQueryValueExA]
+015F:0048907A  JNZ       004890A9
+015F:0048907C  MOV       ECX,[ESP+10]
+015F:00489080  LEA       EDX,[ESP+14]
+015F:00489084  PUSH      EDX
+015F:00489085  LEA       EAX,[ESP+20]
+015F:00489089  PUSH      EBX
+015F:0048908A  PUSH      EAX
+015F:0048908B  PUSH      00
+015F:0048908D  PUSH      0053E030        //Key1
+015F:00489092  PUSH      ECX
+015F:00489093  CALL      ESI             //读注册表
+015F:00489095  TEST      EAX,EAX
+015F:00489097  JNZ       004890A2
+015F:00489099  MOV       EDX,[ESP+10]
+015F:0048909D  PUSH      EDX
+015F:0048909E  CALL      EBP
+015F:004890A0  JMP       00489108
+
+.........
+
+015F:00489108  MOV       ECX,[ESP+14]    //Key1 串的长度
+015F:0048910C  CMP       ECX,14          //长度小于等于 0x14 则继续检查
+015F:0048910F  JBE       0048911B
+015F:00489111  POP       EDI
+015F:00489112  POP       ESI
+015F:00489113  POP       EBP
+015F:00489114  XOR       EAX,EAX         //bag  guy
+015F:00489116  POP       EBX
+015F:00489117  ADD       ESP,10
+015F:0048911A  RET
+015F:0048911B  MOV       EAX,[ESP+28]
+015F:0048911F  TEST      EAX,EAX
+015F:00489121  JZ        00489125
+015F:00489123  MOV       [EAX],ECX
+015F:00489125  POP       EDI
+015F:00489126  POP       ESI
+015F:00489127  POP       EBP
+015F:00489128  MOV       EAX,00000001
+015F:0048912D  POP       EBX
+015F:0048912E  ADD       ESP,10
+015F:00489131  RET
+```
+
+将 `Key1` 字符串改成一个长度小于 20 的 `ASCIIZ` 字符串，重新运行。待其读取完 `Key1` 后，用 `BPR` 断点监视 `Key1` 字符串，可观察到其被转换为大写并检查长度：
+
+```
+015F:004AB0F0  REPNZ SCASB
+015F:004AB0F2  NOT     ECX
+015F:004AB0F4  DEC     ECX
+015F:004AB0F5  CMP     ECX,0E
+015F:004AB0F8  JNZ     004AB16D
+```
+
+可见长度应为 14 个字符。接下来程序检查 `Key1` 的首字符是否为 `'A'`，并计算注册码的其他位：
+
+```
+015F:00491828  CMP     BYTE PTR [EBX],41   //Key1 的首字符
+015F:0049182B  JZ      00491832
+015F:0049182D  POP     EDI
+015F:0049182E  XOR     EAX,EAX             //bad guy
+015F:00491830  POP     EBX
+015F:00491831  RET
+015F:00491832  PUSH    ESI                 //以下为计算过程
+015F:00491833  MOV     ESI,00000001
+015F:00491838  MOV     AL,[EBX+ESI]
+015F:0049183B  PUSH    EAX
+015F:0049183C  CALL    004917D0
+015F:00491841  SHL     EDI,05
+015F:00491844  ADD     ESP,04
+015F:00491847  OR      EDI,EAX
+015F:00491849  INC     ESI
+015F:0049184A  CMP     ESI,07
+015F:0049184D  JL      00491838
+015F:0049184F  MOV     CL,[EBX+07]
+015F:00491852  PUSH    ECX
+015F:00491853  CALL    004917D0
+015F:00491858  ADD     ESP,04
+015F:0049185B  LEA     EDX,[EDI*4+00000000]
+015F:00491862  SHR     EAX,02
+015F:00491865  POP     ESI
+015F:00491866  POP     EDI
+015F:00491867  OR      EAX,EDX
+015F:00491869  POP     EBX
+015F:0049186A  RET
+```
+
+计算完成后开始比较：
+
+```
+015F:004AB0F0  REPNZ SCASB
+015F:004AB0F2  NOT     ECX
+015F:004AB0F4  DEC     ECX
+015F:004AB0F5  CMP     ECX,0E    //这是刚才判长度的地方
+015F:004AB0F8  JNZ     004AB16D
+015F:004AB0FA  PUSH    ESI
+015F:004AB0FB  CALL    004B1B8A
+015F:004AB100  PUSH    0E
+015F:004AB102  LEA     EAX,[ESP+20]
+015F:004AB106  PUSH    ESI
+015F:004AB107  PUSH    EAX
+015F:004AB108  CALL    004AF930
+015F:004AB10D  LEA     ECX,[ESP+28]
+015F:004AB111  MOV     BYTE PTR [ESP+36],00
+015F:004AB116  PUSH    ECX
+015F:004AB117  CALL    00491820      //这是刚才计算的地方
+015F:004AB11C  MOV     ESI,EAX
+015F:004AB11E  PUSH    ESI
+015F:004AB11F  CALL    00491510
+015F:004AB124  LEA     EDX,[ESP+20]
+015F:004AB128  MOV     EDI,EAX
+015F:004AB12A  PUSH    EDX
+015F:004AB12B  PUSH    ESI
+015F:004AB12C  MOV     BYTE PTR [ESP+28],00
+015F:004AB131  CALL    004916A0
+015F:004AB136  LEA     EAX,[ESP+38]
+015F:004AB13A  PUSH    0E            //14 个字符
+015F:004AB13C  LEA     ECX,[ESP+2C]
+015F:004AB140  PUSH    EAX           //真注册码
+015F:004AB141  PUSH    ECX           //假注册码
+015F:004AB142  CALL    004B04D0      //比较
+015F:004AB147  ADD     ESP,2C
+015F:004AB14A  TEST    EAX,EAX
+015F:004AB14C  JNZ     004AB15E
+015F:004AB14E  MOV     EDX,[ESP+2C]
+015F:004AB152  OR      AX,FFFF       //good guy
+015F:004AB156  MOV     [EDX],EDI
+015F:004AB158  POP     EDI
+015F:004AB159  POP     ESI
+015F:004AB15A  ADD     ESP,20
+015F:004AB15D  RET
+015F:004AB15E  MOV     EAX,[ESP+2C]
+015F:004AB162  MOV     [EAX],EDI
+015F:004AB164  POP     EDI
+015F:004AB165  XOR     AX,AX         //bad guy
+015F:004AB168  POP     ESI
+015F:004AB169  ADD     ESP,20
+015F:004AB16C  RET
+```
+
+至此已找到注册码。根据上述计算和比较逻辑可知，注册码与用户名无关，因此程序启动时不会读取用户名。使用 `RegMon` 监视其显示 About 对话框时的操作，发现它还会读取 `RegUserName` 键，该键显然用于存储用户名。
+
+关键注册表键：
+
+```
+HKEY_LOCAL_MACHINE\Software\GlobalSCAPE Inc.\CuteFTP\Key1
+
+HKEY_LOCAL_MACHINE\Software\GlobalSCAPE Inc.\CuteFTP\RegUserName
+
+HKEY_CLASSES_ROOT\pfc
+```
+
+最后一个键用于存放日期信息，旧版本亦在此处。
+
+`dr0`, 2000.7.20 `4dd466d0e1e0cc123afbe504da2462ca`

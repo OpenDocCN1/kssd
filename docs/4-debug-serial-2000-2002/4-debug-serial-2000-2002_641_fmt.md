@@ -1,0 +1,113 @@
+
+# 局域网数据库快易通
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum591.htm`](https://www.pediy.com/kssd/pediy03/forum591.htm)
+
+## 作者信息
+- 作者：孙 锋
+- Email：`sffs@263.net`
+- 主页：`http://sffs.6to23.com`
+
+## 软件说明
+该软件为共享软件，你可以下载、复制使用，安装后可以运行 50 次，之后会提醒注册并终止使用。你需要注册获得合法注册码，注册办法如下：
+
+### 注册流程
+1. 从邮局汇款到以下地址，请勿电汇。
+   - 山东威海鸣球毛纺织有限公司
+   - 黄泽 收
+   - 邮编：`264200`
+2. 邮寄金额：`180` 元人民币，如需要收据寄 `190` 元；
+3. 请写清汇款人地址、姓名；
+4. 通知注册码的方法：接到汇款后我可以通过邮寄、电话、`E_mail` 的方式通知您注册的方法，需要哪一种方法请在附言中写清，如果有 `E_mail` 最好同时发个 `E_mail` 通知我。
+
+- 主页：`http://huangze.126.com`
+- `E_mail`: `hz008@yeah.net` 或 `hzwork@263.net`
+
+### 破解步骤
+1. 随便输入注册信息，
+   - 用户名：`孙锋`
+   - 通讯地址：`曲阜师范大学 142#`
+   - 邮编：`273165`
+   - 电话：`0537-4457109`
+   - 电子邮件：`sffs@263.net`
+   - 注册码处：输入 `12121212`，然后中断。
+   - 然后下中断 `bpx hmemcpy`
+   - `F5` 返回程式，点“确定”
+2. 拦截后，`F12` 共 14 次
+3. `bd *` 中断断点
+4. 一直 `F10` 到下面地址：
+   - `0167:004C7D92    POP EAX ;--------->D EDX` 得到正确注册码：`86124124`
+5. 整理重新注册。
+
+### 注册码算法公式
+注册码 =（用户名的每个字符累加）+（通讯地址每个字符累加）-（电话号码各个字符累加）-（E-mail 各个字符累加）+ `86121186`
+
+### 参考代码
+```c
+#include "stdio.h"
+
+main()
+{
+    char string[81];
+    unsigned long i,a=0,b=0;
+    unsigned c;
+
+    printf("Please input your name    ");
+    gets(string);
+    for(i=0;(c=string[i])!='\0';i++)
+    {
+        if(c>127) c+=256;
+        a+=c;
+    }
+
+    printf("Your name is ");
+    puts(string);
+
+    printf("Please input your address    ");
+    gets(string);
+    for(i=0;(c=string[i])!='\0';i++)
+    {
+        if(c>127) c+=256;
+        a+=c;
+    }
+
+    printf("Your address is ");
+    puts(string);
+
+    printf("Please input your phone number    ");
+    gets(string);
+    for(i=0;(c=string[i])!='\0';i++)
+    {
+        if(c>127) c+=256;
+        a-=c;
+    }
+
+    printf("Your phone number is ");
+    puts(string);
+
+    printf("Please input your E-mail    ");
+    gets(string);
+    for(i=0;(c=string[i])!='\0';i++)
+    {
+        if(c>127) c+=256;
+        a-=c;
+    }
+
+    printf("Your E-mail is ");
+    puts(string);
+
+    printf("Your Register code is:  %ld",a+86121186);
+
+    printf("\n");
+    printf("Welcome to WWW.CRACKNOW.COM\n");
+}
+```
+
+### 补充说明
+另外孙锋我前两个注册机的数据类型有问题，请改一下~~要不然输入中文得到的注册码就不对~~~
+
+数据类型变量全设成 `UNSIGNED`，在读取后判断一下是不是中文。
+
+我的解决办法是添加 `if(c>127) c+=256;` 后来试了试没有什么问题。
+
+`4dd466d0e1e0cc123afbe504da2462ca`

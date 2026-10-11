@@ -1,0 +1,139 @@
+
+# 推箱子 1.9
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum1038.htm`](https://www.pediy.com/kssd/pediy03/forum1038.htm)
+
+关于蒋刚的`推箱子 1.9`版本的破解
+
+下载地址：`http://www.3q1.com/zip/Cargador.zip`
+
+首先这个软件的作者在做这个程序的时候加上了对自身程序的 `CRC` 校验，所以在破解的时候我开始一直没找到破解点，在我老友 `gfh` 的提示下，我知道了破解点，下面是破解的代码（根据前几个版本的破解，只做修改如下，如果还有问题，请喜欢这个游戏的朋友告诉我还有什么限制，谢谢）
+
+## 修改要点
+
+1. 去掉要注册和未注册的限制。
+2. 去掉文件的自身 `CRC` 校验功能。
+
+下面是用 `w32dsmv8.93` 反汇编得到的部分关键代码：
+
+### 1. 去掉要注册和未注册的限制
+
+```
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004020D6(C)
+|
+:00402141 8D45E4                 lea eax, dword ptr [ebp-1C]
+:00402144 8D55E8                 lea edx, dword ptr [ebp-18]
+:00402147 E8E4AB0600             call 0046CD30
+:0040214C 8B55E4                 mov edx, dword ptr [ebp-1C]
+:0040214F 8B45FC                 mov eax, dword ptr [ebp-04]
+:00402152 8B80E8020000           mov eax, dword ptr [eax+000002E8]
+:00402158 E853C20300             call 0043E3B0
+:0040215D 803DF85E490001         cmp byte ptr [00495EF8], 01 //----->注册标志，1。
+:00402164 7544                   jne 004021AA//------->修改为：90  nop
+                                                   90  nop,跳过检验
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004020F1(C)
+|
+:00402166 33D2                   xor edx, edx
+:00402168 8B45FC                 mov eax, dword ptr [ebp-04]
+:0040216B 8B80D8020000           mov eax, dword ptr [eax+000002D8]
+:00402171 E846C00300             call 0043E1BC
+:00402176 B201                   mov dl, 01
+:00402178 8B45FC                 mov eax, dword ptr [ebp-04]
+:0040217B 8B8000030000           mov eax, dword ptr [eax+00000300]
+:00402181 E836C00300             call 0043E1BC
+
+* Possible StringData Ref from Code Obj ->"关于"
+                                |
+:00402186 BA18224000             mov edx, 00402218
+:0040218B A1F45E4900             mov eax, dword ptr [00495EF4]
+:00402190 E81BC20300             call 0043E3B0
+:00402195 8B45FC                 mov eax, dword ptr [ebp-04]
+:00402198 8B9000030000           mov edx, dword ptr [eax+00000300]
+:0040219E A1F45E4900             mov eax, dword ptr [00495EF4]
+:004021A3 E830B00200             call 0042D1D8
+:004021A8 EB42                   jmp 004021EC
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00402164(C) //----------------------------------------------------->破解点，往上看看。
+|
+:004021AA 33D2                   xor edx, edx
+:004021AC 8B45FC                 mov eax, dword ptr [ebp-04]
+:004021AF 8B8000030000           mov eax, dword ptr [eax+00000300]
+:004021B5 E802C00300             call 0043E1BC
+:004021BA B201                   mov dl, 01
+:004021BC 8B45FC                 mov eax, dword ptr [ebp-04]
+:004021BF 8B80D8020000           mov eax, dword ptr [eax+000002D8]
+:004021C5 E8F2BF0300             call 0043E1BC
+
+* Possible StringData Ref from Code Obj ->"注册"  //---->如果没注册就让你注册，注册了就没限制了！
+                                |
+:004021CA BA28224000             mov edx, 00402228
+:004021CF A1F45E4900             mov eax, dword ptr [00495EF4]
+:004021D4 E8D7C10300             call 0043E3B0
+:004021D9 8B45FC                 mov eax, dword ptr [ebp-04]
+:004021DC 8B90F8020000           mov edx, dword ptr [eax+000002F8]
+:004021E2 A1F45E4900             mov eax, dword ptr [00495EF4]
+:004021E7 E8ECAF0200             call 0042D1D8
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+怎么程序不能运行？是不是程序有自身校验的功能，来看看吧。
+
+### 2. 去掉文件的自身 CRC 校验功能
+
+如果只修改了上面就不能运行程序，所以要修改程序的 `CRC` 校验地点，查看反汇编的字符串，看到 `"最经典的游戏——推箱子"`，呵呵，看来有问题，因为在程序开始和结束的时候都没有这个提示和语句啊。看看吧。
+
+```
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:00403B77(C), :00403BDB(C)
+|
+:00403BD4 8B55C4                 mov edx, dword ptr [ebp-3C]
+:00403BD7 F6421220               test [edx+12], 20
+:00403BDB 7509                   jne 00403BE6
+:00403BDD 817DBC00000700         cmp dword ptr [ebp-44], 00070000
+:00403BE4 7CA7                   jl 00403B8D
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00403B8B(U)
+|
+:00403BE6 8A4DC2                 mov cl, byte ptr [ebp-3E]
+:00403BE9 03C9                   add ecx, ecx
+:00403BEB 3A4DC3                 cmp cl, byte ptr [ebp-3D]
+:00403BEE 7411                   je 00403C01  //------------->修改它!7511 jne 00403C01
+:00403BF0 A1145B4900             mov eax, dword ptr [00495B14]
+:00403BF5 8B00                   mov eax, dword ptr [eax]
+:00403BF7 E8ECF00200             call 00432CE8
+:00403BFC E98A000000             jmp 00403C8B
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00403BEE(C) //-------->看看去!
+|
+:00403C01 66C745DC3800           mov [ebp-24], 0038
+
+* Possible StringData Ref from Data Obj ->"最经典的游戏——推箱子"//----->有点怪异!!!
+                                |
+:00403C07 BABCE34700             mov edx, 0047E3BC
+:00403C0C 8D45F0                 lea eax, dword ptr [ebp-10]
+:00403C0F E8688C0700             call 0047C87C
+:00403C14 FF45E8                 inc [ebp-18]
+:00403C17 8B10                   mov edx, dword ptr [eax]
+:00403C19 8B0D145B4900           mov ecx, dword ptr [00495B14]
+:00403C1F 8B01                   mov eax, dword ptr [ecx]
+:00403C21 E80EEA0200             call 00432634
+:00403C26 FF4DE8                 dec [ebp-18]
+:00403C29 8D45F0                 lea eax, dword ptr [ebp-10]
+:00403C2C BA02000000             mov edx, 00000002
+:00403C31 E8BA8C0700             call 0047C8F0
+:00403C36 8B0D145B4900           mov ecx, dword ptr [00495B14]
+:00403C3C 8B01                   mov eax, dword ptr [ecx]
+
+* Reference To: Cargador._Main_Form
+                                |
+:00403C3E 8B0D085B4900           mov ecx, dword ptr [00495B08]
+```
+
+通过上面两处的修改，程序就完成了破解，大家看看如何？ `4dd466d0e1e0cc123afbe504da2462ca`

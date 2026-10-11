@@ -1,0 +1,97 @@
+
+# register PC_Shield 1.0
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum1164.htm`](https://www.pediy.com/kssd/pediy03/forum1164.htm)
+
+PC_Shield 1.0
+
+by 6767 \[BCG\]
+
+d/l @csdn
+
+tools:`Trw2000`
+
+Functions: `Pc system protection`
+
+the Tutors:
+
+将其释放到某一目录下，运行(它的运行比较慢，耐心等)，没有注册窗；退出，再运行，打开注册窗，随便输入：`LazyUser-12365498788`(注意：其中的‘-’不要输)，先不要点确定。运行 `trw`，下中断 `Bpx hmemcpy`。回来，点确定，被拦下。按一次 `F5`，仍被拦。下 `BD *`阻断点，小心的跟踪到下面：
+
+```
+... ...
+
+017F:0041030B  INC      DWORD [EBP-4C]
+017F:0041030E  LEA      EDX,[EBP-2C]
+017F:00410311  POP      EAX
+017F:00410312  CALL    0048A658     <- 检查是否有输入，不用管它
+017F:00410317  TEST     AL,AL
+017F:00410319  SETNZ    CL
+017F:0041031C  AND      ECX,BYTE +01
+017F:0041031F  PUSH     ECX
+017F:00410320  DEC      DWORD [EBP-4C]
+017F:00410323  LEA      EAX,[EBP-2C]
+017F:00410326  MOV      EDX,02
+017F:0041032B  CALL    0048A588
+017F:00410330  DEC      DWORD [EBP-4C]
+017F:00410333  LEA      EAX,[EBP-28]
+017F:00410336  MOV      EDX,02
+017F:0041033B  CALL    0048A588
+017F:00410340  POP      ECX
+017F:00410341  TEST     ECX,ECX
+017F:00410343  JNZ      00410356     <- 这里不会跳
+017F:00410345  PUSH     DWORD [EBP-04]
+017F:00410348  CALL    004104FC     <- 这里可疑，追进去
+017F:0041034D  POP      ECX
+017F:0041034E  TEST     EAX,EAX
+017F:00410350  JZ       00410356
+017F:00410352  XOR      EAX,EAX       <- 置标志
+017F:00410354  JMP      SHORT 0041035B
+017F:00410356  MOV      EAX,01        <- 置标志
+017F:0041035B  PUSH     EAX
+
+... ...
+```
+
+追进那个 call，小心的跟踪到下面：
+
+```
+... ...
+
+017F:0041067D  MOV      ECX,004932B0
+017F:00410682  LEA      EDX,[EBP-0C]     <- 放加密后的结果
+017F:00410685  MOV      EAX,[EBP-04]     <- 对你输入的前一部分变换，看这个 call 的名字
+017F:00410688  CALL    `PCSHIELD!@Gost@GOSTEncryptStr$qqrx17System@AnsiStringr17System@AnsiStringpxui`
+017F:0041068D  LEA      EDX,[EBP-08]     <- 你输入的注册码的后一部分
+017F:00410690  LEA      EAX,[EBP-0C]     <- 加密结果
+017F:00410693  CALL    0048A658     <- 显然是比较啦
+017F:00410698  TEST     AL,AL         <- 测试出口，下面不重要了
+017F:0041069A  JZ       004106EF
+017F:0041069C  MOV      EAX,01
+017F:004106A1  PUSH     EAX
+017F:004106A2  DEC      DWORD [EBP-20]
+017F:004106A5  LEA      EAX,[EBP-0C]
+017F:004106A8  MOV      EDX,02
+017F:004106AD  CALL    0048A588
+017F:004106B2  DEC      DWORD [EBP-20]
+017F:004106B5  LEA      EAX,[EBP-08]
+017F:004106B8  MOV      EDX,02
+017F:004106BD  CALL    0048A588
+017F:004106C2  DEC      DWORD [EBP-20]
+017F:004106C5  LEA      EAX,[EBP-04]
+017F:004106C8  MOV      EDX,02
+017F:004106CD  CALL    0048A588
+017F:004106D2  DEC      DWORD [EBP-20]
+017F:004106D5  LEA      EAX,[EBP+08]
+017F:004106D8  MOV      EDX,02
+017F:004106DD  CALL    0048A588
+017F:004106E2  POP      EAX
+017F:004106E3  MOV      EDX,[EBP-3C]
+017F:004106E6  MOV      [FS:00],EDX
+017F:004106ED  JMP      SHORT 0041073D
+017F:004106EF  XOR      EAX,EAX
+017F:004106F1  PUSH     EAX
+
+... ...
+```
+
+好了，一个可用的码是：`LazyUser-ScHY2RIhBhd`。这个好用，记着，如果你不想用这个软件，不要点应用，这样注册结果不会被保存，否则给你的系统保护上，不方便而且也不能继续注册了。 `4dd466d0e1e0cc123afbe504da2462ca`

@@ -1,0 +1,29 @@
+
+# OICQ 图形留言系统
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum652.htm`](https://www.pediy.com/kssd/pediy03/forum652.htm)
+
+提示：下 `BPX REGQUERYVALUEEXA` 可找到注册码
+
+```
+#include "stdio.h"
+
+main()
+{
+char string[81];
+unsigned long i,a=0,b=0;
+unsigned c;
+printf("******OICQ PIC 3.20******\nThis keygen is maked by Pretender\nPlease input your name\n");
+gets(string);
+for(i=0;(c=string[i])!='\0';i++)
+{a=(24+i)*a;
+if(c>127) c=256+c;
+b=c*c;
+a=a+b;
+}
+printf("Your name is ");
+puts(string);
+printf("Your Register code is %ld\n",a+0x54d);
+printf("Welcome to WWW.CRACKNOW.COM\n");}
+```
+`4dd466d0e1e0cc123afbe504da2462ca`

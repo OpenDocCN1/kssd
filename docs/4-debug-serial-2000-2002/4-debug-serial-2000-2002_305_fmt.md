@@ -1,0 +1,717 @@
+
+# EmEditor v3.x
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum1162.htm`](https://www.pediy.com/kssd/pediy03/forum1162.htm)
+
+```
+:0041B09F 668907               mov word ptr [edi], ax
+
+:0041B0A2 46                   inc esi
+
+:0041B0A3 47                   inc edi
+
+:0041B0A4 47                   inc edi
+
+:0041B0A5 83FE04               cmp esi, 00000004
+
+:0041B0A8 7CE3                 jl 0041B08D
+
+:0041B0AA 8D45F4               lea eax, dword ptr [ebp-0C]
+
+:0041B0AD 50                   push eax
+
+:0041B0AE E8F5FeFFFF           call 0041AFA8   ------>跟进这个 call
+
+:0041B0B3 3BC3                 cmp eax, ebx
+
+:0041B0B5 5F                   pop edi
+
+:0041B0B6 742A                 je 0041B0E2
+
+:0041B0B8 33C9                 xor ecx, ecx
+
+:0041B0BA 83F802               cmp eax, 00000002
+
+:0041B0BD 0F95C1               setne cl
+
+:0041B0C0 49                   dec ecx
+
+:0041B0C1 6A30                 push 00000030
+
+:0041B0C3 83E103               and ecx, 00000003
+
+:0041B0C6 81C154040000         add ecx, 00000454
+
+:0041B0CC 51                   push ecx
+
+:0041B0CD E8DCA1FFFF           call 004152AE
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0041B019(C)
+
+|
+
+:0041B0D2 6A02                 push 00000002
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0041B149(U)
+
+|
+
+:0041B0D4 FF7508               push [ebp+08]
+
+* Reference To: USER32.EndDialog, Ord:00BBh
+
+                     |
+
+:0041B0D7 FF15C0834300         Call dword ptr [004383C0]
+
+:0041B0DD E998000000           jmp 0041B17A
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0041B0B6(C)
+
+|
+
+:0041B0E2 C605742E440001       mov byte ptr [00442E74], 01
+
+:0041B0E9 E82EFDFFFF           call 0041AE1C
+
+:0041B0EE 8BF0                 mov esi, eax
+
+:0041B0F0 3BF3                 cmp esi, ebx
+
+:0041B0F2 7509                 jne 0041B0FD
+
+:0041B0F4 6A30                 push 00000030
+
+:0041B0F6 6861040000           push 00000461
+
+:0041B0FB EB45                 jmp 0041B142
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0041B0F2(C)
+
+|
+
+:0041B0FD 6A02                 push 00000002
+
+* Possible StringData Ref from Data Obj ->"EmEditor"
+
+                     |
+
+:0041B0FF 686CCE4300           push 0043CE6C
+
+:0041B104 8D45D4               lea eax, dword ptr [ebp-2C]
+
+* Possible StringData Ref from Data Obj ->"%s-%d"
+
+                     |
+
+:0041B107 6818D04300           push 0043D018
+
+:0041B10C 50                   push eax
+
+----------------------------------------------------------------------------------------------------
+
+----------------------------------------------------------------------------------------------------
+
+* Referenced by a CALL at Addresses:
+
+|:0041B0AE  , :0041B22E
+
+|
+
+:0041AFA8 56                   push esi
+
+:0041AFA9 8B742408             mov esi, dword ptr [esp+08]
+
+:0041AFAD 57                   push edi
+
+:0041AFAE 6A0A                 push 0000000A
+
+:0041AFB0 0FB706               movzx eax, word ptr [esi]
+
+:0041AFB3 99                   cdq
+
+:0041AFB4 59                   pop ecx
+
+:0041AFB5 F7F9                 idiv ecx
+
+:0041AFB7 3DAB000000           cmp eax, 000000AB   ------>检查 code1 的前三位是否为 171
+
+:0041AFBC 7405                 je 0041AFC3   ------>不跳就死
+
+:0041AFBE 6A01                 push 00000001
+
+:0041AFC0 58                   pop eax
+
+:0041AFC1 EB15                 jmp 0041AFD8
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0041AFBC(C)
+
+|
+
+:0041AFC3 668B7E06             mov di, word ptr [esi+06]
+
+:0041AFC7 56                   push esi
+
+:0041AFC8 E813FFFFFF           call 0041AEE0   ------>跟进这个 call
+
+:0041AFCD 85C0                 test eax, eax
+
+:0041AFCF 7507                 jne 0041AFD8   ------>一跳就完了
+
+:0041AFD1 663B7E06             cmp di, word ptr [esi+06]   ------>esi+06 为 code4
+
+:0041AFD5 0F95C0               setne al
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:0041AFC1(U), :0041AFCF(C)
+
+|
+
+:0041AFD8 5F                   pop edi
+
+:0041AFD9 5E                   pop esi
+
+:0041AFDA C20400               ret 0004
+
+----------------------------------------------------------------------------------------------------
+
+----------------------------------------------------------------------------------------------------
+
+* Referenced by a CALL at Address:
+
+|:0041AFC8
+
+|
+
+:0041AEE0 56                   push esi
+
+:0041AEE1 8B742408             mov esi, dword ptr [esp+08]
+
+:0041AEE5 668B4602             mov ax, word ptr [esi+02]
+
+:0041AEE9 6683660600           and word ptr [esi+06], 0000
+
+:0041AEEE 663D0F27             cmp ax, 270F   ------>检查 code2 是否为 9999
+
+:0041AEF2 0F87A9000000         ja 0041AFA1   ------>大于就跳
+
+:0041AEF8 668B5604             mov dx, word ptr [esi+04]
+
+:0041AEFC 6681FA0F27           cmp dx, 270F   ------>检查 code3 是否为 9999
+
+:0041AF01 0F879A000000         ja 0041AFA1   ------>大于就跳
+
+:0041AF07 6685C0               test ax, ax
+
+:0041AF0A 0F848D000000         je 0041AF9D
+
+:0041AF10 663DAE08             cmp ax, 08AE   ------>检查 code2 是否为 2222
+
+:0041AF14 0F8483000000         je 0041AF9D   ------>等于就跳
+
+:0041AF1A 663D2E16             cmp ax, 162E   ------>检查 code2 是否为 5678
+
+:0041AF1E 747D                 je 0041AF9D   ------>等于就跳
+
+:0041AF20 663D1625             cmp ax, 2516   ------>检查 code2 是否为 9494
+
+:0041AF24 7477                 je 0041AF9D   ------>等于就跳
+
+:0041AF26 668B0E               mov cx, word ptr [esi]
+
+:0041AF29 6681F9AE06           cmp cx, 06AE   ------>检查 code1 是否为 1710
+
+:0041AF2E 746D                 je 0041AF9D   ------>等于就跳
+
+:0041AF30 53                   push ebx
+
+:0041AF31 55                   push ebp
+
+:0041AF32 57                   push edi
+
+:0041AF33 6A64                 push 00000064
+
+:0041AF35 0FB7C0               movzx eax, ax
+
+:0041AF38 0FB7FA               movzx edi, dx
+
+:0041AF3B 89442418             mov dword ptr [esp+18], eax
+
+:0041AF3F 8BC7                 mov eax, edi
+
+:0041AF41 99                   cdq
+
+:0041AF42 5B                   pop ebx
+
+:0041AF43 F7FB                 idiv ebx
+
+:0041AF45 0FB7C9               movzx ecx, cx
+
+:0041AF48 6A0A                 push 0000000A
+
+:0041AF4A 5D                   pop ebp
+
+:0041AF4B 6A64                 push 00000064
+
+:0041AF4D 8BD8                 mov ebx, eax
+
+:0041AF4F 8BC1                 mov eax, ecx
+
+:0041AF51 99                   cdq
+
+:0041AF52 F7FD                 idiv ebp
+
+:0041AF54 8B542418             mov edx, dword ptr [esp+18]
+
+:0041AF58 03D3                 add edx, ebx
+
+:0041AF5A 03C2                 add eax, edx
+
+:0041AF5C 03C7                 add eax, edi
+
+:0041AF5E 5F                   pop edi
+
+:0041AF5F 99                   cdq
+
+:0041AF60 F7FF                 idiv edi
+
+:0041AF62 8B442414             mov eax, dword ptr [esp+14]
+
+:0041AF66 6A64                 push 00000064
+```
+
+
+
+:0041AF68 `5B` `pop` `ebx`
+
+:0041AF69 `6A64` `push` `00000064`
+
+:0041AF6B `5D` `pop` `ebp`
+
+:0041AF6C `55` `push` `ebp`
+
+:0041AF6D `8B3C9588CE4300` `mov` `edi`, `dword` `ptr` `[4*edx+0043CE88]`
+
+:0041AF74 `99` `cdq`
+
+:0041AF75 `6BFF64` `imul` `edi`, `00000064`
+
+:0041AF78 `F7FB` `idiv` `ebx`
+
+:0041AF7A `8BD8` `mov` `ebx`, `eax`
+
+:0041AF7C `8BC1` `mov` `eax`, `ecx`
+
+:0041AF7E `99` `cdq`
+
+:0041AF7F `F7FD` `idiv` `ebp`
+
+:0041AF81 `03CB` `add` `ecx`, `ebx`
+
+:0041AF83 `03C1` `add` `eax`, `ecx`
+
+:0041AF85 `59` `pop` `ecx`
+
+:0041AF86 `99` `cdq`
+
+:0041AF87 `F7F9` `idiv` `ecx`
+
+:0041AF89 `8B049588CE4300` `mov` `eax`, `dword` `ptr` `[4*edx+0043CE88]`
+
+:0041AF90 `03F8` `add` `edi`, `eax`
+
+:0041AF92 `33C0` `xor` `eax`, `eax`
+
+:0041AF94 `66897E06` `mov` `word` `ptr` `[esi+06]`, `di`
+
+:0041AF98 `5F` `pop` `edi`
+
+:0041AF99 `5D` `pop` `ebp`
+
+:0041AF9A `5B` `pop` `ebx`
+
+:0041AF9B `EB07` `jmp` `0041AFA4`
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+`|:0041AF0A(C), :0041AF14(C), :0041AF1E(C), :0041AF24(C), :0041AF2E(C)`
+
+`|`
+
+:0041AF9D `6A02` `push` `00000002`
+
+:0041AF9F `EB02` `jmp` `0041AFA3`
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+`|:0041AEF2(C), :0041AF01(C)`
+
+`|`
+
+:0041AFA1 `6A01` `push` `00000001`
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+`|:0041AF9F(U)`
+
+`|`
+
+:0041AFA3 `58` `pop` `eax`
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+`|:0041AF9B(U)`
+
+`|`
+
+:0041AFA4 `5E` `pop` `esi`
+
+:0041AFA5 `C20400` `ret` `0004`
+
+`conanxu[BCG]`
+
+`conanxu@eastday.com`
+
+`http://conanxu.51.net/`
+
+### 破解 `EMEDITOR` `v3.0`
+
+小弟第一次写过程，有不对的地方大家指正~~~~呵呵~~
+
+`EMEDITOR` `3.0` 是一个完全可以代替 `WINDOWS` 下 `NOTEBOOK` 的小玩意~~~~
+
+这东西使用 30 天就需要注册，现将注册过程写一下
+
+这个软件在我的主页有下载 `http://zop.yeah.net/download/crem.zip` `660K` 左右
+
+我使用的工具：`TRW2000` + `W32DASM89` + `ULTRAEDIT`
+
+安装完 `EMEDITOR` 后运行并选说明中的关于，关于注册信息点那个输入序列号：
+
+这时弹出一对话窗口，需要填一个分为四部分的序列号，我们设这四个部分为
+
+`X1`，`X2`，`X3`，`X4`
+
+我第一次填的是 `X1=1234`，`X2=4321`，`X3=1324`，`X4=1423`
+
+运行 `TRW2000` 下 `BPX` `HMEMCPY`（小弟暂时只会用这个断点~~~~呵呵~~~~~）
+
+顺利拦到，我们 `PMODULE` 程序蹦到 `417A01` 处，见下：
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+`|:00417A0A(C)`
+
+`|`
+
+:004179EF `53` `push` `ebx`
+
+:004179F0 `8D86F2030000` `lea` `eax`, `dword` `ptr` `[esi+000003F2]`
+
+:004179F6 `53` `push` `ebx`
+
+:004179F7 `50` `push` `eax`
+
+:004179F8 `FF7508` `push` `[ebp+08]`
+
+\* Reference To: `USER32.GetDlgItemInt`, `Ord:0103h`
+
+`|`
+
+:004179FB `FF1588434300` `Call` `dword` `ptr` `[00434388]`
+
+:00417A01 `668907` `mov` `word` `ptr` `[edi]`, `ax` ----->就是蹦到这里了~~呵呵，看一眼 `EAX`
+
+:00417A04 `46` `inc` `esi` | ，里面装的就是我们的 `X1`，往下走……
+
+:00417A05 `47` `inc` `edi` |
+
+:00417A06 `47` `inc` `edi` |
+
+:00417A07 `83FE04` `cmp` `esi`, `00000004` | 这里比较 `ESI` 和 `4` 如果小于则往上蹦（就是
+
+:00417A0A `7CE3` `jl` `004179EF` | 上面那段代码~~~直到我们序列号的四个部分
+
+:00417A0C `8D45F4` `lea` `eax`, `dword` `ptr` `[ebp-0C]` | 完全存进 `EBP-C` 中（不知道这么说合不合适~）
+
+:00417A0F `50` `push` `eax` |
+
+:00417A10 `E8F5FEFFFF` `call` `0041790A` | 呵呵~~~~~一个 `CALL`，看看底下，一个对比，如果
+
+:00417A15 `3BC3` `cmp` `eax`, `ebx` | 是，怎么怎么样，不是又怎么怎么样，很显然这是
+
+:00417A17 `5F` `pop` `edi` -----> 关键 `CALL`，我们按 `F8` 跟进去 `HAVE` `A` `LOOK` ~~~~~
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+\* Referenced by a `CALL` at Addresses:
+`|:00417A10 , :00417B90`
+
+`|`
+
+:0041790A `56` `push` `esi` --->这段代码比较作用是
+
+:0041790B `8B742408` `mov` `esi`, `dword` `ptr` `[esp+08]` 将我们输入的 `X1`，即 `1234` 除以 `10` 后
+
+:0041790F `57` `push` `edi` 和 `171` 比较，`171` 哪来得？就是那个
+
+:00417910 `6A0A` `push` `0000000A` `AB` 转换成十进制得到的，如果是呢
+
+:00417912 `0FB706` `movzx` `eax`, `word` `ptr` `[esi]` 就继续，不是的话~~~~嘿嘿嘿嘿~~
+
+:00417915 `99` `cdq` 你就等着出序列号错误吧~~~由于我
+
+:00417916 `59` `pop` `ecx` 们输入的是 `1234`，不符合要求，所以
+
+:00417917 `F7F9` `idiv` `ecx` 这时我们对 `X1` 进行第一次修正，现在
+
+:00417919 `3DAB000000` `cmp` `eax`, `000000AB` 新的 `X1=171x` 其中“x”为任意数，
+
+:0041791E `7405` `je` `00417925` 我的是 `X1=1710`，接着往下走~~~~~~
+
+:00417920 `6A01` `push` `00000001` 走…………………………………………
+
+:00417922 `58` `pop` `eax` 走……………………………………
+
+:00417923 `EB15` `jmp` `0041793A` ---->走………………………………
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address: 走…………………………
+`|:0041791E(C)`
+
+`|`
+
+:00417925 `668B7E06` `mov` `di`, `word` `ptr` `[esi+06]` 走到此处，程序将我们的 `X4` 移到 `DI` 中
+
+:00417929 `56` `push` `esi` 走……………………
+
+:0041792A `E834FFFFFF` `call` `00417863` 走到此处又有一个 `CALL`，不要着急，看看
+
+:0041792F `85C0` `test` `eax`, `eax` 下面，呵呵~~~~又是一个关键 `CALL` 我们跟
+
+:00417931 `7507` `jne` `0041793A` 进去瞧瞧~~~~~~~~
+
+###################################################################################################################
+
+\* Referenced by a `CALL` at Address:
+`|:0041792A`
+
+`|`
+
+:00417863 `56` `push` `esi` ---->到目前 `ESI` 中存放的还是我们输入的序列号
+
+:00417864 `8B742408` `mov` `esi`, `dword` `ptr` `[esp+08]` 走………………………………………………
+
+:00417868 `668B4602` `mov` `ax`, `word` `ptr` `[esi+02]` 这行将我们的 `X2` 移入 `AX` 中
+
+:0041786C `6683660600` `and` `word` `ptr` `[esi+06]`, `0000`
+
+:00417871 `663D0F27` `cmp` `ax`, `270F` 比较 `X2` 和 `9999`
+
+:00417875 `0F8788000000` `ja` `00417903` 大于的话蹦到 `417903`，不过不大可能大于
+
+:0041787B `668B4E04` `mov` `cx`, `word` `ptr` `[esi+04]` 这行将我们的 `X3` 移入 `CX` 中
+
+:0041787F `6681F90F27` `cmp` `cx`, `270F` 比较 `X2` 和 `9999`
+
+:00417884 `777D` `ja` `00417903` 大于的话蹦到 `417903`，不过不大可能大于
+
+:00417886 `6685C0` `test` `ax`, `ax`
+
+:00417889 `7474` `je` `004178FF`
+
+:0041788B `663DAE08` `cmp` `ax`, `08AE` 比较 `X2` 和 `2222`，`X2` 和 `5678`，我们的 `X2=4321`
+
+:0041788F `746E` `je` `004178FF` 没有蹦~~后来发现蹦了就 `DIE` 了
+
+:00417891 `663D2E16` `cmp` `ax`, `162E`
+
+:00417895 `7468` `je` `004178FF`
+
+:00417897 `53` `push` `ebx`
+
+:00417898 `55` `push` `ebp`
+
+:00417899 `57` `push` `edi`
+
+:0041789A `6A0A` `push` `0000000A` 下面会提到这个 `A`
+
+:0041789C `0FB7F9` `movzx` `edi`, `cx` 把 `X3` 放入 `EDI`
+
+:0041789F `0FB70E` `movzx` `ecx`, `word` `ptr` `[esi]` 把 `X1` 放入 `ECX`
+
+:004178A2 `0FB7C0` `movzx` `eax`, `ax`
+
+:004178A5 `89442418` `mov` `dword` `ptr` `[esp+18]`, `eax` 把 `X2` 放入 `ESP+18` 中
+
+:004178A9 `8BC1` `mov` `eax`, `ecx` 把 `X1` 放入 `EAX` 中
+
+:004178AB `99` `cdq`
+
+:004178AC `5B` `pop` `ebx` 把上面那个 `A` 放到 `EBX` 中
+
+:004178AD `F7FB` `idiv` `ebx` 用 `X1/10` `1710÷10=171` 整数放入 `EAX`，余数放入 `EDX`
+
+:004178AF `6A64` `push` `00000064` 下面会提到这个 `64`
+
+:004178B1 `5D` `pop` `ebp`
+
+:004178B2 `55` `push` `ebp`
+
+:004178B3 `8BD8` `mov` `ebx`, `eax` 把结果的整数放入 `EBX`
+
+:004178B5 `8BC7` `mov` `eax`, `edi` 把 `X3` 放入 `EAX` 中
+
+:004178B7 `99` `cdq`
+
+:004178B8 `F7FD` `idiv` `ebp` 用 `X3` 除以 `100`（就是上面那个 `64`）
+
+:004178BA `8B542418` `mov` `edx`, `dword` `ptr` `[esp+18]` 把 `X2` 放入 `EDX` 中
+
+:004178BE `03D3` `add` `edx`, `ebx` 把 `X2+(X1/10` 的整数）放入 `EDX`
+
+:004178C0 `03C2` `add` `eax`, `edx` 把 `X2+(X1/10` 的整数）+（`X3/100` 的整数）放入 `EAX`
+
+:004178C2 `03C7` `add` `eax`, `edi` 用 `X2+(X1/10` 的整数）+（`X3/100` 的整数）+`X3` 放入
+
+:004178C4 `5F` `pop` `edi` `EAX` 中
+
+:004178C5 `99` `cdq` 用 `X2+(X1/10` 的整数）+（`X3/100` 的整数）+`X3` 除以
+
+:004178C6 `F7FF` `idiv` `edi` `100`，整数放入 `EAX`，余数放入 `EDX`
+
+:004178C8 `8B442414` `mov` `eax`, `dword` `ptr` `[esp+14]` 把 `X2` 放入 `EAX` 中
+
+:004178CC `55` `push` `ebp`
+
+:004178CD `5B` `pop` `ebx`
+
+:004178CE `55` `push` `ebp`
+
+:004178CF `8B3C95288C4300` `mov` `edi`, `dword` `ptr` `[4*edx+00438C28]` 把刚才那个余数 `x4+438C28` 中的值放入 `EDI` 中
+关于这个 `438C28` 文章最后有它的值
+:004178D6 `99` `cdq`
+:004178D7 `6BFF64` `imul` `edi`, `00000064` 用 `EDIx100`，得的结果放入 `EDI` 中我们这里是 `2300`
+:004178DA `F7FB` `idiv` `ebx` 把 `X2/100` 的整数放入 `EAX` 中，余数放入 `EDX` 中
+:004178DC `8BD8` `mov` `ebx`, `eax` 把 `X2/100` 的整数放入 `EBX` 中
+:004178DE `8BC1` `mov` `eax`, `ecx` 把 `X1` 放入 `EAX` 中
+:004178E0 `99` `cdq` 用 `X1/100`，结果整数放入 `EAX` 中，余数放入 `EDX` 中
+:004178E1 `F7FD` `idiv` `ebp`
+:004178E3 `03CB` `add` `ecx`, `ebx` 把 `X1+(X2/100` 的整数）放入 `ECX` 中
+:004178E5 `03C1` `add` `eax`, `ecx` 把 `X1+(X2/100` 的整数）+（`X1/100` 的整数）放入 `EAX`
+:004178E7 `59` `pop` `ecx` 把 `100` 放入 `ECX` 中
+:004178E8 `99` `cdq` 用`[X1+(X2/100` 的整数）+（`X1/100` 的整数）`]/100`
+:004178E9 `F7F9` `idiv` `ecx` 结果整数放入 `EAX` 中，余数放入 `EDX` 中
+
+
+
+`004178EB 8B0495288C4300 mov eax, dword ptr [4*edx+00438C28]` 把（刚刚得到的余数 `x4+438C28`）的值放入 `EAX` 中我们这里是 `69`
+
+`004178F2 03F8 add edi, eax` `EDI=EDI+EAX=2369`，即把这两次的结果相加我们设它为 `X4'`
+
+`004178F4 33C0 xor eax, eax` 清空 `EAX`
+
+`004178F6 66897E06 mov word ptr [esi+06], di` 把 `ESI+6` 的值用 `X4'` 代替
+
+`004178FA 5F pop edi` 走…………………………………………………………
+
+`004178FB 5D pop ebp` 走……………………………………………………
+
+`004178FC 5B pop ebx` 走………………………………………………
+
+`004178FD EB07 jmp 00417906` 蹦…………………………………………
+
+*   Referenced by a (U)nconditional or (C)onditional Jump at Address:
+    *   `004178FD(U)`
+
+`00417906 5E pop esi` 走……………………………………
+
+`00417907 C20400 ret 0004` 回去喽…………………………
+
+`00417933 663B7E06 cmp di, word ptr [esi+06]` 呵呵~~~让我们来比较一下 `DI` 中是我们的 `X4`，`ESI+6` 的值是我们的 `X4'`
+
+`00417937 0F95C0 setne al` 如果不一样那么就把 `AL` 改为 `1`，聪明的你一定想到了这个 `X4'` 就是正确的序列号的最后一部分~~现在我们修正
+
+*   Referenced by a (U)nconditional or (C)onditional Jump at Addresses:`X4=X4'=2369`
+    *   `00417923(U), :00417931(C)`
+
+`0041793A 5F pop edi`
+
+`0041793B 5E pop esi`
+
+`0041793C C20400 ret 0004` 返回
+
+*   Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+    *   `00417923(U), :00417931(C)`
+
+`0041793A 5F pop edi`
+
+`0041793B 5E pop esi`
+
+`0041793C C20400 ret 0004` 返回
+
+`00417A15 3BC3 cmp eax, ebx` 这时的 `EBX` 本身是 `0`，如果没出以外的话你的 `EAX`
+
+`00417A17 5F pop edi` 现在也该是 `0`，比较一下，一样呀~~~呵呵
+
+`00417A18 742A je 00417A44` 那就蹦到正确的地方去吧
+
+`00417A1A 33C9 xor ecx, ecx`
+
+`00417A1C 83F802 cmp eax, 00000002`
+
+`00417A1F 0F95C1 setne cl`
+
+`00417A22 49 dec ecx`
+
+`00417A23 6A30 push 00000030`
+
+`00417A25 83E103 and ecx, 00000003`
+
+`00417A28 81C154040000 add ecx, 00000454`
+
+`00417A2E 51 push ecx`
+
+`00417A2F E8E3ACFFFF call 00412717` 这是出错的 `CALL`
+
+总结：
+
+输入 `X1` 必须为 `171x`，
+
+`X4={{[X2+（X1/10 的整数）+（X3/100 的整数）+X3]/100 的余数}x4 在下表中的位置的值}x100`
+
+`+{{[X1+（X2/100 的整数）+（X1/100 的整数）]/100 的余数}x4 在下表中的位置的值}`
+
+如 `X1=1710,X2=4321,X3=1324`
+
+根据上式得 `X4=2369`
+
+附 `438C28` 表：
+
+```
+260000005B0000006200000036000000340000006600000013000000350000001900000054000000 
+3F000000440000004C000000380000005D0000003300000056000000610000004200000021000000 
+3E0000002D000000230000000E0000001E0000005F00000057000000120000001B00000017000000 
+22000000580000002C000000630000005C000000180000002700000041000000590000004D000000 
+150000005A000000530000000B000000050000001C000000100000002E0000004900000040000000 
+0D00000007000000500000003D00000032000000460000000A000000430000002B00000000000000 
+3B000000480000005E0000004E000000510000001F000000200000003A000000010000002A000000 
+45000000550000004A000000020000005200000027000000030000004B000000080000003C000000 
+0F0000001400000024000000250000002800000029000000160000001D0000001A00000011000000 
+2F000000390000000900000047000000060000004F00000004000000310000000C00000030000000 
+```
+
+后记：
+
+本人以前没写过破解过程，真没想到写过程这么费劲，我也是看着前辈们的教程入的门
+
+在此小弟对以前写过程引导我们入门的前辈们说一声你们辛苦了~~~
+
+另外，有人可能会问，文章中提到的三个工具好象只用到了一个，其实 `W32DASM` 和 `ULTRA EDIT` 对破解这个软件确实没有多大作用，但是小弟要用它们进行复制粘贴呀~~~~呵呵
+
+最后我还想问一个问题，`EMEDITOR V3.0` 的说明文件中说可以注册不同的用户数量，小弟一直没找到在哪~~~~~哪位大吓知道告诉小弟一声~~~~谢谢！ `4dd466d0e1e0cc123afbe504da2462ca`

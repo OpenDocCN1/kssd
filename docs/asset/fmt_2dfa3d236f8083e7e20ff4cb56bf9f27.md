@@ -1,0 +1,43 @@
+
+# 精诚 MP3 多功能播放器 V2.0+
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue409.htm`](https://www.pediy.com/kssd/pediy04/kanxue409.htm)
+
+**简介**：播放 MP3
+
+**工具**：`ollydbg`+`Keymake`
+
+**难度**：4 级（共十级）
+
+**步骤**：
+
+1. 加载软件
+2. `Alt+E` 切换到 `Executable modules` 模式
+3. 选中 `MSVBVM60.dll`
+4. 单击右键选择 `View Name`
+5. 输入 `vbastrcmp`
+6. 单击 `F2`,下断点
+7. `F9`,运行软件
+8. 找注册的地方。（很小的！！，我找了半天！！）
+9. 输入注册码
+10. 按下注册按钮
+11. 弹出窗口，这时被中断
+12. `ollydbg` 中断在 `660614AB` > `FF7424 08` `PUSH DWORD PTR SS:[ESP+8]`
+13. 右边的窗口中就有注册码
+
+   a. 启动 `keymake`
+   b. 按下 `F8`,选择另类注册器（这是因为我笨，不会算法）
+   c. 选定精诚 MP3 多功能播放器 V2.0
+   d. 然后选择“添加”
+   e. 输入刚才被 `ollydbg` 中断的地址 `660614AB` > `FF7424 08`
+   f. 再输入中断 1 次，和指令长度为 5
+   g. 再选择“添加”
+   h. 在右边注册码内选择——内存方式
+   i. 寄存器+`EDX`(因为刚才 `ollydbg` 中的对比中真的注册码在 `EDX` 中）
+   j. 输入用户信息+生成+选择注册器外观
+
+完工
+
+```
+4dd466d0e1e0cc123afbe504da2462ca
+```

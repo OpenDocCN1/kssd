@@ -1,0 +1,78 @@
+
+# SolSuite v8.0
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum1298.htm`](https://www.pediy.com/kssd/pediy03/forum1298.htm)
+
+`SolSuite` `v8.0` 含有二百九十多种单机扑克游戏，也有空当接龙（`FREECALL`）和纸牌（`KLONDIKE`），还有一些我比较喜欢的（忘了名字了），而且可以存档，无限 `UNDO`，自动计时评分，还有高分榜，可以有多玩家，不同玩家可以有不同的存档和高分榜；此外可以把自己喜欢的游戏放在 `my favorite` 里，玩的时候可以直接选；选项里可以自定义纸牌风格，还有背景，指针等等。以前我的机器上安过 `5.0` 的汉化注册版，很不错，除了玩 `DXBall2`，`SolSuite` 也是休闲游戏不错的选择。（虽然它那么好，不过我还是不会花钱去注册的，哈哈哈哈）
+
+1. 启动 `TRW`，再启动 `SolSuite`，点注册，出现注册窗口，填入 `1346791346`。（个人习惯）
+
+2. `CTRL+N`，叫出 `TRW`，下 `bpx hmemcpy`，再 `g`。回到 `SolSuite`，点 `OK`，被拦。
+
+3. `bc *`，然后 `pmodule`，来到下面的代码段
+
+```
+015F:0043A10B 89430C   MOV      [EBX+0C],EAX
+015F:0043A10E 8B03     MOV      EAX,[EBX]
+015F:0043A110 83F80C   CMP      EAX,BYTE +0C
+015F:0043A113 751B     JNZ      0043A130
+015F:0043A115 8B5308   MOV      EDX,[EBX+08]
+015F:0043A118 52       PUSH     EDX
+015F:0043A119 8B4B04   MOV      ECX,[EBX+04]
+015F:0043A11C 8BD0     MOV      EDX,EAX
+015F:0043A11E 8BC6     MOV      EAX,ESI
+015F:0043A120 E827BEFFFF CALL   00435F4C
+015F:0043A125 EB09     JMP      SHORT 0043A130
+015F:0043A127 8BD3     MOV      EDX,EBX
+015F:0043A129 8BC6     MOV      EAX,ESI
+```
+
+一直按 `F10` 往下跟，途中可以看到很多"注册码"，像 `2487021545`，`0103246300`，`4552447001` 等等，不过我想都是黑名单，我输过，都没用，还有一个输了会"非法操作"。还是跟下去，直到来到下面的代码段
+
+```
+015F:004A2CBD DEE9     FSUBP    ST1
+015F:004A2CBF 83C4F4   ADD      ESP,BYTE -0C
+015F:004A2CC2 DB3C24   FSTP     TWORD [ESP]
+015F:004A2CC5 9B       WAIT
+015F:004A2CC6 8D45C4   LEA      EAX,[EBP-3C]
+015F:004A2CC9 E8727CF6FF CALL   0040A940
+015F:004A2CCE 8B55C4   MOV      EDX,[EBP-3C]
+015F:004A2CD1 58       POP      EAX
+015F:004A2CD2 E86114F6FF CALL   00404138 这里就是比较注册码了，跟进去！
+015F:004A2CD7 745A     JZ       004A2D33 不跳就会执行下面的 call 005C1B78，所以只要改一下，让他跳，就注册成功
+015F:004A2CD9 B802000000 MOV     EAX,02
+015F:004A2CDE E895EE1100 CALL   005C1B78 这里一 call 就完，所以上面的 JZ 要跳
+015F:004A2CE3 8BC3     MOV      EAX,EBX
+```
+
+只要把上面的 `JZ` 改成 `JMP SHORT` 就 `OK` 了
+
+所以用十六进制编辑器打开 `SolSuite`，找 `E86114F6FF745A`
+
+改 `EB--` 就行了，这样随便输一个都能注册成功。
+
+不过还没有跟出注册码，如果已经注册了，运行 `SolSuite` 目录里的反安装程序，用手动，全删，再安装，启动后又是没注册的了
+
+再跟一次，到 `call 00404138` 时，`F8` 跟进，
+
+```
+015F:00404138 53       PUSH     EBX 这里下 d eax 可以看到你输的假注册码，下 d edx 就看到注册码 3208110309 了
+015F:00404139 56       PUSH     ESI
+015F:0040413A 57       PUSH     EDI
+015F:0040413B 89C6     MOV      ESI,EAX
+015F:0040413D 89D7     MOV      EDI,EDX
+015F:0040413F 39D0     CMP      EAX,EDX
+015F:00404141 0F848F000000 JZ    NEAR 004041D6
+015F:00404147 85F6     TEST     ESI,ESI
+015F:00404149 7468     JZ       004041B3
+015F:0040414B 85FF     TEST     EDI,EDI
+015F:0040414D 746B     JZ       004041BA
+015F:0040414F 8B46FC   MOV      EAX,[ESI-04]
+015F:00404152 8B57FC   MOV      EDX,[EDI-04]
+```
+
+回到 `SolSuite`，输入注册码，注册成功！
+
+`http://www.skycn.com/down1.php?id=1492&url=http://202.107.104.34/soft/down/solsuite.exe`
+
+请各位前辈们点评一下。 `4dd466d0e1e0cc123afbe504da2462ca`

@@ -1,0 +1,40 @@
+
+# Winace v2.0b5
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum590.htm`](https://www.pediy.com/kssd/pediy03/forum590.htm)
+
+Winace v2.0b5
+
+压缩软件我比较喜用这个，因为它支持几乎所有的压缩格式，方便的很。
+
+最新版是不是这个 `b5` 我也不知道了，但这个还是试用版，有功能限制。是不是可以把它改成 `full function` 使用我也没尝试了，因为好累，而且破功能限制我都没有经验呀，呵呵，见笑。
+
+今天只是简单的分析了一下它的时间限制，还有就是找到了它的注册检测主程，当然我也不知道那里面具体是不是注册校验部分，不过我大概看了一下，应该就是了，有兴趣有能力的朋友可以去看看。如下。
+
+主程序是用 `aspack2k` 压缩的，用 `unaspack 1.0.9.1` 可脱壳。
+
+### 时间限制破解
+
+- offset: `5a976c`
+- 改法:
+  - sourceCode: `8b c3 34 01 74 07 8b 07 e8 e5 f5`
+  - substiCode: `8b c3 34 01 eb 07 8b 07 e8 e5 f5`
+
+### 注册主模块
+
+- offset: `5c9782` (断在这里，上面将变换好的 `name` 和你输入的 `regcode` 分别放入 `EDX`, `EAX`)
+
+可将此处校验改变使注册成功。
+
+```
+offset:
+XXXX:002404fb              CALL XXXXXXXX
+                          TEST EAX, EAX
+                          JZ  XXXXXXXX
+```
+
+- 改法:
+  - sourceCode: `85 c0 74 17 e8 07 ed 00 00 83 3d 88 65 29 00`
+  - substiCode: `85 c0 90 90 e8 07 ed 00 00 83 3d 88 65 29 00`
+
+上述两处修改在用编辑器查找时最好将整串全部查找。`4dd466d0e1e0cc123afbe504da2462ca`

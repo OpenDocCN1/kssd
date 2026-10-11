@@ -1,0 +1,62 @@
+
+# fulldisk A32
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum723.htm`](https://www.pediy.com/kssd/pediy03/forum723.htm)
+
+`fulldisk` `A32` 破解过程！（简单）
+
+下载地址：`http://nj.onlinedown.net/down/fuldsk43.zip`
+
+用途：察看本地磁盘使用情况
+
+工具：`softice` `for9x`
+
+在其注册框中输入名字：`crack` （任意）
+
+注册码：`12345678` （任意 8 位）
+
+`ctrl+d` 呼出 `ice`，下断：
+
+```
+bpx hmemcpy
+```
+
+按 `f5` 回到注册处，回车。
+
+按 9 次 `f12` 来到：
+
+```
+:0040774A 6A08                  push 00000008    ;用 d ecx 可看到 12345678
+:0040774C 8B45FC                mov eax, dword ptr [ebp-04]
+:0040774F 83C060                add eax, 0000060
+:00407752 50                    push eax
+:00407753 8B4D08                mov ecx, dword ptr [ebp+08]
+:00407756 51                    push ecx
+```
+
+按 `f10` 到这：
+
+```
+:00407771 6A32                  push 0000032     ;可看到 crack
+:00407773 8B4DFC                mov ecx, dword ptr [ebp-04]
+:00407776 83C164                add ecx, 0000064
+:00407779 51                    push ecx ;这里用 d ecx 看到一个地址 00664610，再用 d 00664610 可看到 crack 按 alt+向下键看到 9E58777C（注意大小写）
+:0040777A 8B5508                mov edx, dword ptr [ebp+08]
+:0040777D 52                    push edx
+```
+
+回到注册框输入 `crack` 和 `9E5877C` 注册完毕！
+
+也可到次查看：
+
+```
+:00406560 8D4DEC                lea ecx, dword ptr [ebp-14] ;假的注册码
+:00406563 51                    push ecx
+:00406564 8D5588                lea edx, dword ptr [ebp-78] ;真的注册码
+:00406567 52                    push edx               ;d edx 看到了？
+:00406568 E823070000           call 00406C90
+```
+
+我的注册名 `crack`
+
+注册码 `9E5877C` `4dd466d0e1e0cc123afbe504da2462ca`

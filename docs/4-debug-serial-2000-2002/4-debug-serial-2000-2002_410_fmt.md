@@ -1,0 +1,404 @@
+
+# NetStat4.0
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum1075.htm`](https://www.pediy.com/kssd/pediy03/forum1075.htm)
+
+《`NetStat4.0` 的破解实录》
+
+破解作者：`yuppc`
+
+破解时间：2001 年 6 月 17 日
+
+破解难度：易
+
+注：（转载希望保持完整）
+
+## 软件概述
+
+1.  软件名：`NetStat4.0`
+2.  软件作用（摘）：介绍：这是一个强大的 Internet 工具，它能够让你通过图形界面查看当前的网络连接情况，你可以用它来了解和防堵非法连接。不管你是连接到网站、检查信件、发送 `ICQ` 信息，还是无意中打开了一个后门程序，`XMS` 都将会注意到这些活动，并对你进行提醒，同时还能够显示每个连接的详细情况。
+3.  评：这是一个非常好的网络软件，在网络自由英雄时代有些人们连自己的网络门户都无法看受，为什麽？那是因为他们还不了解自己的机器！此软件有全监控能力，向用户提供连接 `Ip`、端口等信息和控制的图形化操作！
+4.  未注册软件只有十五天的使用期。
+5.  主页：`http://www.freshsw.com`
+6.  最新版本：`X-NetStat 5.0 Standard Beta 1` (`05-02-01`)
+
+## 破解目的
+
+为加入 `CCG` 奋斗！
+
+## 破解工具
+
+1.  `regshot` ====> 注册表工具
+2.  `w32asm` 中文黄金板 ====> 反汇编工具
+3.  `TRW2000` =====> 动态调试工具
+4.  `Hex shop` =====> 十六进制编辑器
+
+## 破解方法
+
+**方法一**：注册表分析及静态反汇编法（适用大部分在注册表内加入时间标志位的时间限制软件）
+
+**方法二**：标准破解法（很传统，也很实用）
+
+## 破解开始
+
+### 分析
+
+软件安装后，第一次启动，软件“标题栏”显示 `15 days left`；第二次启动，软件的“标题栏”显示 `14 days left`；改动日期，向后改动，“标题栏”显示天数减少；向前改动，“标题栏”天数增加（看起来较容易呀），但当日期超过安装日期时提示错误。
+
+### 方法一：注册表分析及反汇编
+
+1.  使用 `regshot` 为注册表“拍摄”镜像并对软件安装前后的 `Reg` 进行对比，发现键值 `HLM\software\XNSvc\when`，是软件启动时新建的。
+2.  发现：当我们删除 `REG` 中的 `when` 键后，软件启动后将重新建立 `when` 键，并从新开始记时（也就是重新从 `15` 开始倒数），可以得知此键应为软件的安装时间标志。
+3.  初步设想：如果当软件启动时都从新建立 `when` 键，那麽软件的时间约束不就解除了，并且是全功能的！！
+4.  使用 `w32asm` 黄金版进行反绘编，查找 `when`，过程如下：
+
+第 12 下到站（共有 15 处含 `when`，其中包括 `"whenreg_pro4"` `"whenlv"` `"Registeredwhen"`）：有人问那为什麽是第 12 个呢，其实搜能搜到 2 大块个真正完全搭配的 `when` 程序带，就是第 12 次停时和第 15 次停时，而第 15 次的程序段显然不是（分析一下嘛：:-)
+
+下面是源程序：
+
+```
+* Referenced by a CALL at Addresses:
+
+|:00508CE5  , :00508D05  , :00519DEA  , :00519E05  , :00519E54 
+
+|                          ^^^^^^^^^^
+
+:00518624 53                  push ebx
+
+:00518625 56                  push esi
+
+* Possible StringData Ref from Code Obj ->"DaysLeft"
+
+                              |
+
+:00518626 B8FC865100          mov eax, 005186FC
+
+:0051862B E80CE5FFFF          call 00516B3C
+
+:00518630 B201                mov dl, 01
+
+:00518632 A1D0BF4700          mov eax, dword ptr [0047BFD0]
+
+:00518637 E8003BF6FF          call 0047C13C
+
+:0051863C 8BD8                mov ebx, eax
+
+:0051863E BA02000080          mov edx, 80000002
+
+:00518643 8BC3                mov eax, ebx
+
+:00518645 E8CE3BF6FF          call 0047C218
+
+:0051864A B101                mov cl, 01
+
+* Possible StringData Ref from Code Obj ->"\SOFTWARE\XNSvc"
+
+                              |
+
+:0051864C BA10875100          mov edx, 00518710
+
+:00518651 8BC3                mov eax, ebx
+
+:00518653 E8043DF6FF          call 0047C35C
+
+* Possible StringData Ref from Code Obj ->"when"=====>第一个(我们停在这)
+
+                              |
+
+:00518658 BA28875100          mov edx, 00518728
+
+:0051865D 8BC3                mov eax, ebx
+
+:0051865F E8D442F6FF          call 0047C938=====>检查键值 when 的 call
+
+:00518664 84C0                test al, al\====>标志位(when 是否存在)
+
+:00518666 7415                je 0051867D===>否,跳(解决问题的跳)
+
+* Possible StringData Ref from Code Obj ->"when"=====>第二个
+
+                              |
+
+:00518668 BA28875100          mov edx, 00518728
+
+:0051866D 8BC3                mov eax, ebx
+
+:0051866F E83C41F6FF          call 0047C7B0
+
+:00518674 DD1DB89D5300        fstp qword ptr [00539DB8]
+
+:0051867A 9B                  wait
+
+:0051867B EB24                jmp 005186A1====>正常跳转(将取得本地时间与 when 值比较)
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00518666(C)
+
+|
+
+:0051867D E82E23EFFF          call 0040A9B0====>新建立 when 键(破解时间所在)
+
+:00518682 DD1DB89D5300        fstp qword ptr [00539DB8]
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00518617(C)
+
+|
+
+:00518688 9B                  wait
+
+:00518689 FF35BC9D5300        push dword ptr [00539DBC]
+
+:0051868F FF35B89D5300        push dword ptr [00539DB8]
+
+* Possible StringData Ref from Code Obj ->"when"====>第三个
+
+                              |
+
+:00518695 BA28875100          mov edx, 00518728
+
+:0051869A 8BC3                mov eax, ebx
+
+:0051869C E8FB40F6FF          call 0047C79C
+
+\-------------------------------------------------------
+```
+
+5.  用 `Hex shop` 改地址 `518666` 内容 `7515` ---> `eb15`
+    
+    时间限制解决，使用者永远可以使用！
+
+6.  总结：方法快速、简便、安全性好，缺点是软件不太美观（标志栏总有“`15 days left`”）
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+因此下面介绍一下完美破解：
+
+### 方法二
+
+1.  把日期调到过期时间。
+2.  记下过期提示框所显示的的英文。
+3.  老方法，用 `w32asm` 黄金版查找字符串：
+
+    查找 `"Evaluation period over"`（或者 `"Evaluation"`，可能会找到的多些呀）
+
+    发现了三个地方：
+
+    \---------------------------------------------------------
+
+4.  开始分析：
+
+    **第一处**（看源程序，显然不对吗），不信，你向上看有这样的句子（这个程序有些怪，它有“反注册”功能）：
+
+    ```
+    * Possible StringData Ref from Code Obj ->"Warning"
+
+                                  |
+
+    :00508C9F BAA48D5000          mov edx, 00508DA4
+
+    * Possible StringData Ref from Code Obj ->"This will unregister your copy "=====>是反注册的标志嘛,所以……
+
+                                  ->"of X-NetStat.
+
+    You will have to "
+
+                                  ->"re-enter your registration information. "
+
+                                  ->"Do you wish to proceed?"
+
+          :
+
+          :
+
+          :
+
+    :00508D47 8D45F0              lea eax, dword ptr [ebp-10]
+
+    * Possible StringData Ref from Code Obj ->" - Evaluation period over"=====>第一处
+
+                                  |
+
+    :00508D4A BA8C8E5000          mov edx, 00508E8C                                
+
+    \------------------------------------------------------------
+    ```
+
+    **第二处**（这个可以认定是具体的调用），源程序如下：
+
+    ```
+    * Referenced by a CALL at Addresses:
+
+    |:005047E0  , :00510513  , :00519E5D  , :0052185C 
+
+    |                          ^^^^^^^^
+
+    :005107EC 53                  push ebx
+
+    :005107ED BBC8D95200          mov ebx, 0052D9C8
+
+    :005107F2 B930000000          mov ecx, 00000030
+
+    * Possible StringData Ref from Code Obj ->"Evaluation period over"=======>第二处
+
+                                  |
+
+    :005107F7 BADC085100          mov edx, 005108DC
+
+    * Possible StringData Ref from Code Obj ->"Your evaluation period for XNS "
+
+                                  ->"has expired. XNS will no longer "
+
+                                  ->"be functional until you register.
+
+    Please "
+
+                                  ->"consider purchasing X-NetStat "
+
+                                  ->"Professional."
+
+                                  |
+
+    :005107FC B8FC085100          mov eax, 005108FC
+
+    :00510801 E8EE46F9FF          call 004A4EF4
+
+    * Possible StringData Ref from Code Obj ->"X-NetStat Professional - Evaluation "
+
+                                  ->"period over"
+
+                :
+
+                :
+
+    ```
+
+    下面有一小群 `mov` 和 `call`，所以我猜是具体调用，先不要理她，请记住上面调用这段程序的 `call` 的地址！（十分感谢）
+
+    \--------------------------------------------------------
+
+    **第三处**（仔细看，停的位置给你标出了）：
+
+    ```
+    * Possible StringData Ref from Code Obj ->"creating udpstats"
+
+                                  |
+
+    :00519DC4 B8A8A15100          mov eax, 0051A1A8
+
+    :00519DC9 E86ECDFFFF          call 00516B3C
+
+    :00519DCE 8B0B                mov ecx, dword ptr [ebx]
+
+    :00519DD0 B201                mov dl, 01
+
+    * Possible StringData Ref from Code Obj ->"?A"
+
+                                  |
+
+    :00519DD2 A1BCE94500          mov eax, dword ptr [0045E9BC]
+
+    :00519DD7 E87C5AF4FF          call 0045F858
+
+    :00519DDC A3DCD95200          mov dword ptr [0052D9DC], eax
+
+    :00519DE1 E8BAE6FFFF          call 005184A0======>注册检查 call(我当然知道,我追过嘛)
+
+    :00519DE6 84C0                test al, al\=====>标志位
+
+    :00519DE8 7578                jne 00519E62=========>关键跳(完美破解所在)
+    ```
+
+
+
+:00519DEA `E835E8FFFF` `call 00518624` =====> 检测软件安装时间（时间在注册表 `HLM\software\XNSvc\when`）
+
+:00519DEF `85C0` `test eax, eax`
+
+:00519DF1 `7E40` `jle 00519E33` =====> 过期就跳
+
+:00519DF3 `8D55F0` `lea edx, dword ptr [ebp-10]`
+
+:00519DF6 `8B03` `mov eax, dword ptr [ebx]`
+
+:00519DF8 `E877C5F1FF` `call 00436374`
+
+:00519DFD `FF75F0` `push [ebp-10]`
+
+:00519E00 `68C4A15100` `push 0051A1C4`
+
+:00519E05 `E81AE8FFFF` `call 00518624`
+
+:00519E0A `8D55EC` `lea edx, dword ptr [ebp-14]`
+
+:00519E0D `E842F7EEFF` `call 00409554`
+
+:00519E12 `FF75EC` `push [ebp-14]`
+
+* Possible StringData Ref from Code Obj -> ` days left`
+
+:00519E15 `68D0A15100` `push 0051A1D0`
+
+:00519E1A `8D45F4` `lea eax, dword ptr [ebp-0C]`
+
+:00519E1D `BA04000000` `mov edx, 00000004`
+
+:00519E22 `E861A1EEFF` `call 00403F88`
+
+:00519E27 `8B55F4` `mov edx, dword ptr [ebp-0C]`
+
+:00519E2A `8B03` `mov eax, dword ptr [ebx]`
+
+:00519E2C `E873C5F1FF` `call 004363A4`
+
+:00519E31 `EB21` `jmp 00519E54`
+
+* Referenced by a `(U)nconditional` or `(C)onditional` Jump at Address: `:00519DF1(C)`
+
+:00519E33 `8D55E8` `lea edx, dword ptr [ebp-18]`
+
+:00519E36 `8B03` `mov eax, dword ptr [ebx]`
+
+:00519E38 `E837C5F1FF` `call 00436374`
+
+:00519E3D `8D45E8` `lea eax, dword ptr [ebp-18]`
+
+* Possible StringData Ref from Code Obj -> ` - Evaluation period over` =====> 第三处(我们停在这!)
+
+:00519E40 `BAE4A15100` `mov edx, 0051A1E4`
+
+:00519E45 `E886A0EEFF` `call 00403ED0`
+
+:00519E4A `8B55E8` `mov edx, dword ptr [ebp-18]`
+
+:00519E4D `8B03` `mov eax, dword ptr [ebx]`
+
+:00519E4F `E850C5F1FF` `call 004363A4`
+
+* Referenced by a `(U)nconditional` or `(C)onditional` Jump at Address: `:00519E31(U)`
+
+:00519E54 `E8CBE7FFFF` `call 00518624` =====> 检查注册表的 `when` 键值
+
+:00519E59 `85C0` `test eax, eax`
+
+:00519E5B `7D05` `jge 00519E62`
+
+:00519E5D `E88A69FFFF` `call 005107EC` =====> 过期时跳出的 `nag`(这也是调用第二处程序的 `call`, 让记的地址记了吗!)
+
+* Referenced by a `(U)nconditional` or `(C)onditional` Jump at Addresses: `:00519DE8(C), :00519E5B(C)`
+
+:00519E62 `E8DDB5FFFF` `call 00515444` =====> 正常的程序调用
+
+:00519E67 `803DF8B5520000` `cmp byte ptr [0052B5F8], 00`
+
+:00519E6E `7405` `je 00519E75`
+
+:00519E70 `E84F69FFFF` `call 005107C4`
+
+---
+
+5> 现在清楚了吗,动手:改地址 `519de8` 的 `7578` -----> `eb78`
+
+6> 收工!:-) `4dd466d0e1e0cc123afbe504da2462ca`

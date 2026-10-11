@@ -1,0 +1,229 @@
+
+# MP3 to EXE v 2.6
+
+> 原文：[`www.pediy.com/kssd/pediy03/bc002.htm`](https://www.pediy.com/kssd/pediy03/bc002.htm)
+
+MP3 to EXE v 2.6 破解手记
+
+作者: `lb[BCG]` 或 `X man`
+
+**软件简介：**
+
+With `MP3 to EXE` you can create `Selfplaying MP3 Songs`. While the Song is played you can change the `Volume` (`Left and Right seperate`), see an `VU-Meter`, change the position in the `MP3-Song`, `Loop` the Song, view the `TAG's` with Information about the Song. And you change this Information with `MP3 to EXE` before creating the file.
+
+**工具：** `fi`, `trw2000`, `w32dasm`, `hiew`
+
+该软件是一年前下的，直到今天才搞定，看来我太失败了（肺腑之言）
+
+首先用 `FI` 检测有无壳，很幸运没有。
+
+用 `W32DASM` 反编译，查找 `"The Registrationinformation is wrong. Try again?"`
+
+来到 `\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:`
+
+```text
+|:0046F1B4(C), :0046F1F9(C)-----------------------//从这两处跳来
+|-------------------------------------------------//向上来到这两处
+\* Possible Reference to Dialog: DialogID_0065, CONTROL_ID:0064, "Text"
+                      |
+:0046F2D8 6A64                   push 00000064
+\* Reference To: kernel32.Sleep, Ord:0000h
+                      |
+:0046F2DA E8ED68F9FF              Call 00405BCC
+:0046F2DF 6A04                   push 00000004
+\* Possible StringData Ref from Code Obj ->"Error"
+                      |
+:0046F2E1 B938F44600              mov ecx, 0046F438
+\* Possible StringData Ref from Code Obj ->"The Registrationinformation is "
+                              ->"wrong. Try again?"
+                      |
+:0046F2E6 BA40F44600              mov edx, 0046F440
+:0046F2EB A140144800              mov eax, dword ptr [00481440]
+:0046F2F0 8B00                   mov eax, dword ptr [eax]
+:0046F2F2 E80103FCFF              call 0042F5F8
+:0046F2F7 83F807                  cmp eax, 00000007
+:0046F2FA 750A                   jne 0046F306
+:0046F2FC A1E8494800              mov eax, dword ptr [004849E8]
+:0046F301 E84EE0FBFF              call 0042D354
+************************
+```
+
+来到 `0046F1B4(C), :0046F1F9(C)` 处
+
+```text
+\* Possible StringData Ref from Code Obj ->"MP3-"
+                      |
+:0046F164 6890F34600              push 0046F390
+:0046F169 8BC7                   mov eax, edi
+:0046F16B E8008BF9FF              call 00407C70
+:0046F170 8BC8                   mov ecx, eax
+:0046F172 A108154800              mov eax, dword ptr [00481508]
+:0046F177 8B00                   mov eax, dword ptr [eax]
+:0046F179 8B800C030000             mov eax, dword ptr [eax+0000030C]
+:0046F17F 8BD7                   mov edx, edi
+:0046F181 E8AADFFFFF              call 0046D130
+:0046F186 83C003                  add eax, 00000003
+:0046F189 8D4DEC                  lea ecx, dword ptr [ebp-14]
+:0046F18C BA08000000              mov edx, 00000008
+:0046F191 E86682F9FF              call 004073FC
+:0046F196 FF75EC                  push [ebp-14]
+\* Possible StringData Ref from Code Obj ->"-B9"
+                      |
+:0046F199 68A0F34600              push 0046F3A0
+:0046F19E 8D45F0                  lea eax, dword ptr [ebp-10]
+:0046F1A1 BA03000000              mov edx, 00000003
+:0046F1A6 E8654BF9FF              call 00403D10
+:0046F1AB 8B55F0                  mov edx, dword ptr [ebp-10]----你填的 serial number
+:0046F1AE 58                      pop eax\------------------------正确的 serial number
+:0046F1AF E8AC4BF9FF              call 00403D60
+:0046F1B4 0F851E010000             jne 0046F2D8-------------跳到出错的地方
+:0046F1BA 8D55FC                  lea edx, dword ptr [ebp-04]
+:0046F1BD 8B83E0010000             mov eax, dword ptr [ebx+000001E0]
+:0046F1C3 E85805FBFF              call 0041F720
+:0046F1C8 8B55FC                  mov edx, dword ptr [ebp-04]
+:0046F1CB 8D4DEC                  lea ecx, dword ptr [ebp-14]
+:0046F1CE A108154800              mov eax, dword ptr [00481508]
+:0046F1D3 8B00                   mov eax, dword ptr [eax]
+:0046F1D5 E81A7F0000              call 004770F4
+:0046F1DA 8B55EC                  mov edx, dword ptr [ebp-14]
+:0046F1DD 8D4DF0                  lea ecx, dword ptr [ebp-10]
+:0046F1E0 A108154800              mov eax, dword ptr [00481508]
+:0046F1E5 8B00                   mov eax, dword ptr [eax]
+:0046F1E7 E8087F0000              call 004770F4
+:0046F1EC 8B45F0                  mov eax, dword ptr [ebp-10]-------经变换后你填的注册码
+\* Possible StringData Ref from Code Obj ->"巗 Y 窫綅鉮<=w0 燔-"
+                      |
+:0046F1EF BAACF34600              mov edx, 0046F3AC-----------------------经变换后正确的注册码
+:0046F1F4 E8674BF9FF              call 00403D60
+:0046F1F9 0F85D9000000             jne 0046F2D8---------------跳到出错的地方
+:0046F1FF B201                   mov dl, 01
+:0046F201 A118AC4500              mov eax, dword ptr [0045AC18]
+:0046F206 E809BBFEFF              call 0045AD14
+:0046F20B 8BF0                   mov esi, eax
+:0046F20D BA02000080              mov edx, 80000002
+:0046F212 8BC6                   mov eax, esi
+:0046F214 E88FBBFEFF              call 0045ADA8
+```
+
+看到上面的地方，我想已经成功了一半了，但是当我一次次的追进 `CALL` 中，却发现离目标又远了。
+
+（在 `CALL` 中转来转去，老是找不到注册码是如何变化的。请高手指点一二。^_^）
+
+并且，我发现 `call 00403D60` 在两次出现后运算的结果都不同。
+
+在
+
+```text
+:0046F1AF E8AC4BF9FF              call 00403D60
+:0046F1B4 0F851E010000             jne 0046F2D8---要保证 call 00403D60 的输出为 EAX=0
+```
+
+在
+
+```text
+:0046F1F4 E8674BF9FF              call 00403D60
+:0046F1F9 0F85D9000000             jne 0046F2D8---要保证 call 00403D60 的输出为 EAX 不为 0
+```
+
+SO，在别无它法时，我突然想到了每次打开 `MP3TOEXE` 都会有个 `NAG`，不如查找它的关键字吧！
+
+于是几经波折，来到了最关键的地方：
+
+```text
+\* Possible StringData Ref from Code Obj ->"MP3-"
+                      |
+:004799A8 680C9B4700              push 00479B0C
+:004799AD 8BC7                   mov eax, edi
+:004799AF E8BCE2F8FF              call 00407C70
+:004799B4 8BC8                   mov ecx, eax
+:004799B6 8BD7                   mov edx, edi
+:004799B8 8B860C030000             mov eax, dword ptr [esi+0000030C]
+:004799BE E86D37FFFF              call 0046D130
+:004799C3 83C003                  add eax, 00000003
+:004799C6 8D4DF4                  lea ecx, dword ptr [ebp-0C]
+:004799C9 BA08000000              mov edx, 00000008
+:004799CE E829DAF8FF              call 004073FC
+:004799D3 FF75F4                  push [ebp-0C]
+\* Possible StringData Ref from Code Obj ->"-B9"
+                      |
+:004799D6 681C9B4700              push 00479B1C
+:004799DB 8D45F8                  lea eax, dword ptr [ebp-08]
+:004799DE BA03000000              mov edx, 00000003
+:004799E3 E828A3F8FF              call 00403D10
+:004799E8 8B55F8                  mov edx, dword ptr [ebp-08]
+:004799EB 58                      pop eax
+:004799EC E86FA3F8FF              call 00403D60
+:004799F1 7556                   jne 00479A49---------是不是和刚才的地方很象
+    ---------------将 JNE 改成 JE 既成任意注册版！哈哈
+:004799F3 8D4DFC                  lea ecx, dword ptr [ebp-04]
+\* Possible StringData Ref from Code Obj ->"Free"
+                      |
+:004799F6 BAEC9A4700              mov edx, 00479AEC
+:004799FB 8BC3                   mov eax, ebx
+:004799FD E8FA15FEFF              call 0045AFFC
+:00479A02 8B55FC                  mov edx, dword ptr [ebp-04]
+:00479A05 8D4DF8                  lea ecx, dword ptr [ebp-08]
+:00479A08 8BC6                   mov eax, esi
+:00479A0A E8E5D6FFFF              call 004770F4
+:00479A0F 8B55F8                  mov edx, dword ptr [ebp-08]
+:00479A12 8D4DFC                  lea ecx, dword ptr [ebp-04]
+:00479A15 8BC6                   mov eax, esi
+:00479A17 E8D8D6FFFF              call 004770F4
+```
+
+
+
+```
+:00479A1C 8B45FC              mov eax, dword ptr [ebp-04]   
+
+* Possible StringData Ref from Code Obj ->"巗 Y 窫綅鉮<=w0 燔-"   
+
+                                 |   
+
+:00479A1F BA289B4700            mov edx, 00479B28   
+
+:00479A24 E837A3F8FF            call 00403D60   
+
+:00479A29 751E                  jne 00479A49 ----------将 JNE 改成 JE 既成任意注册版！哈哈   
+
+:00479A2B 33D2                  xor edx, edx   
+
+:00479A2D 8B86EC010000          mov eax, dword ptr [esi+000001EC]   
+
+:00479A33 E8445CFAFF            call 0041F67C   
+
+:00479A38 B8E84C4800            mov eax, 00484CE8   
+
+* Possible StringData Ref from Code Obj ->"MP3TOEXE_2"   
+
+                                 |   
+
+:00479A3D BA449B4700            mov edx, 00479B44   
+
+:00479A42 E8E19FF8FF            call 00403A28   
+
+:00479A47 EB0D                  jmp 00479A56   
+
+```
+
+好了，由于我是 BEGINNER，所以只有爆破了。高手可不要见笑哦！
+
+`PATCH`：
+
+用`HIEW`，打开`MP3TOEXE.exe`，按`F4`，选择第三个选项，按`F5`，输入`78df1`，将`7556`改成`7456`
+
+在将它下面的`751E`改成`741E`，按`F9`，`F10`。`OK`！文件就改好了。
+
+打开注册表编辑器来到
+
+`HKEY_LOCAL_MACHINE\Software\Oliver Buschjost\MP3TOEXE\v2.6`
+
+将其中`lName`、`Serial`改成您的大名和`Seria`码(可以任意填）
+
+`END`：
+
+软件搞定了，但是注册码是如何变化的还是不明白。望高手给我指点一二。
+
+X man or lb[BCG]  
+lbcool@elong.com  
+2001.9.8 4dd466d0e1e0cc123afbe504da2462ca

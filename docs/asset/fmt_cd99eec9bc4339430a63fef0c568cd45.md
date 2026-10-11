@@ -1,0 +1,49 @@
+
+# 万能五笔
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum1031.htm`](https://www.pediy.com/kssd/pediy03/forum1031.htm)
+
+这个软件十分好用，这文件是从它产生的。
+
+重要点是下面的`0048CCFA`
+
+```
+:0048CCF3 E828FBFFFF                    call 0048C820
+:0048CCF8 8BE8                          mov ebp, eax
+:0048CCFA 2BEE                          sub ebp, esi  <------
+:0048CCFC 85ED                          test ebp, ebp
+:0048CCFE 7429                          je 0048CD29
+```
+
+这`call 0048C820`返回名字的计算值，再跟`esi`比较，相等等于OK!
+
+```
+:0048CC65 E8064E0000                    call 00491A70
+:0048CC6A 66833D286D490001              cmp word ptr [00496D28], 0001
+:0048CC72 8BF0                          mov esi, eax  <-------
+:0048CC74 7559                          jne 0048CCCF
+```
+
+这`call 00491A70`返回`ID`的计算值,送到`esi`。
+
+`ID`是-->`tt98xx...x0615`
+
+`xx...x`=`xn....x3,x2,x1,x0`是`ID`的计算值
+
+计算方法：返回名字的计算值=`(xn*A^n)+(x5*186A0)+(x4*2710)+(x3*3E8)+(x2*64)+(x1*A)+(x0*1)`
+
+如果名字的计算值=`2BFC3`
+
+`2BFC3 - 1*186A0 = 13923`--->`x5=1`
+
+`13923 - 8*2710 = A3`--->`x4=8`
+
+`A3 - 0*3E8 = A3`--->`x3=0`
+
+`A3 - 1*64 = 3F`--->`x2=1`
+
+`3F - 6*A = 3`--->`x1=6`
+
+`3 - 3*1 = 0`--->`x0=3`
+
+`ID` `tt981801630615` `4dd466d0e1e0cc123afbe504da2462ca`

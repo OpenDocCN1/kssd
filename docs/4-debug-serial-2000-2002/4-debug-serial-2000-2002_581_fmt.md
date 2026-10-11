@@ -1,0 +1,83 @@
+
+# 卜算子\_ 权谋个人彩票分析助理软件 V6.00
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum988.htm`](https://www.pediy.com/kssd/pediy03/forum988.htm)
+
+《卜算子\_ 权谋个人彩票分析助理软件》V6.00 的破解
+
+软件名称：《卜算子\_ 权谋个人彩票分析助理软件》V6.00
+
+软件来源：新双龙工作室（`www.lifeok.com`）
+
+下载地址：`http://software.wx88.net/down/quanmou.zip`
+
+软件简介：《卜算子\_ 权谋个人彩票分析助理软件》V6.00，是国内功能最强的一套彩票软件，是为精通概率论的高级用户而量身打造的，为他们节约大量的计算和分析时间。普通用户在不了解这些参数的情况下，完全可以依据其它功能和参数完成选号（当然，作者不反对阁下参阅有关资料来加深对概率学的理解）。因此，不论是初学者或高级用户，卜算子都能适合您的胃口。‘高可成，低可就’是我们永远追求的信仰！
+
+## 声明
+
+我写这篇文章是以技术交流为主，希望大家在转载时能保持文章的完整性。
+
+作者：李海涛
+邮箱地址：`lihaitao@pub.xaonline.com`
+破解日期：2001 年 5 月 13 日
+破解工具：
+1、`Trw2000 1.23` 注册版
+2、`W32Dasm 8.93` 超级中文版
+
+## 分析
+
+```
+* Possible StringData Ref from Code Obj ->"酦?檉??"
+                      |
+:0073039F 683CFF4200       push 0042FF3C
+:007303A4 57               push edi
+:007303A5 50               push eax
+
+* Reference To: MSVBVM60.__vbaHresultCheckObj, Ord:0000h
+                      |
+:007303A6 FF1580104000     Call dword ptr [00401080]
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00730398(C)
+|
+:007303AC 8B55D8            mov edx, dword ptr [ebp-28]   D EDX 你输入的注册码。
+:007303AF 8B4638            mov eax, dword ptr [esi+38]   D EAX 真的注册码！快抄！！！
+:007303B2 52               push edx
+:007303B3 50               push eax
+
+                      :
+                      :
+                      :
+
+* Reference To: MSVBVM60.__vbaFreeObjList, Ord:0000h
+                      |
+:007303F3 FF155C104000     Call dword ptr [0040105C]
+:007303F9 83C418            add esp, 00000018
+:007303FC 663BFB            cmp di, bx
+:007303FF 0F84E5030000      je 007307EA     一跳就玩完！！！
+
+    改：909090909090       修改此处后，程序会将正确的注册码写入注册表（不就成了任意注册版了！！！）
+                          [HKEY_USERS\.DEFAULT\Software\VB and VBA Program Settings\QMFT\Code]
+                          "Key"="EricGO"
+                          "Name"="注册"
+
+:00730405 8B0E               mov ecx, dword ptr [esi]
+:00730407 56               push esi
+:00730408 FF91B4020000      call dword ptr [ecx+000002B4]
+:0073040E 3BC3               cmp eax, ebx
+:00730410 DBE2               fclex
+:00730412 7D12               jge 00730426
+:00730414 68B4020000         push 000002B4
+```
+
+对了！注册表
+
+```
+[HKEY_USERS\.DEFAULT\Software\VB and VBA Program Settings\QMFT\Times]
+"Times"="0"
+```
+
+是程序运行次数的标志。
+
+完成时间
+2001.5.13  `4dd466d0e1e0cc123afbe504da2462ca`

@@ -1,0 +1,136 @@
+
+# CDSpace 1.95
+
+> 原文：[`www.pediy.com/kssd/pediy02/forum156.htm`](https://www.pediy.com/kssd/pediy02/forum156.htm)
+
+## 菜鸟破解录(九)之 CDSpace 1.95
+
+- **软件名称**：`CDSpace`
+- **版本**：`1.95`
+- **简介**：一个相当不错的虚拟光驱程序，操作简单，最大可同时使用 23 个虚拟光驱。
+- **作者**：`xiA Qin`
+- **等级**：很菜....很菜....
+- **破解日期**：2000 年 7 月 22 日
+- **破解工具**：`Trw2000 1.22`
+- **破解目的**：学习注册码的破解（简单）
+- **说明**：
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;本文是在我的软件破解记录上整理出来的。所以在文中没有任何的注册码，只作技术交流。如若有纰漏，请各位大侠多指教！
+
+## 操作步骤
+
+运行程序，输入注册信息。
+
+- `name`: `xiA Qin` &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;（任意输入）
+- `code`: `1234567890123456` （必须是 16 位，为什么？程序会检查注册码位数。下面会讲到）
+
+下指令 `bpx hmemcpy` // 下中断点
+
+按 `F5` 回到程序，按确定，这时会被 `Trw2000` 拦截到。
+
+下指令 `bd *` // 屏障中断点
+
+下指令 `pmodule` // 直接跳到程序的领空
+
+按 `F10` 来到下面的代码。
+
+```asm
+...................
+
+015F:00409570  CALL       0040FB9E
+015F:00409575  LEA        ECX,[ESP+10]
+015F:00409579  CALL       0040FB1A
+015F:0040957E  XOR        ESI,ESI
+015F:00409580  LEA        ECX,[ESP+14]
+015F:00409584  MOV        [ESP+2C],ESI
+015F:00409588  CALL       0040FB1A
+015F:0040958D  MOV        EAX,[EDI+60]
+015F:00409590  LEA        EBP,[EDI+60]
+015F:00409593  MOV        BYTE PTR [ESP+2C],01
+015F:00409598  CMP        DWORD PTR [EAX-08],06
+015F:0040959C  JGE        004095AA
+015F:0040959E  PUSH       ESI
+015F:0040959F  PUSH       ESI
+015F:004095A0  PUSH       00418810
+015F:004095A5  JMP        004096AC               把 16 进制的 10 换算成 10 进制=16，表示注册码
+015F:004095AA  MOV        EDX,[EDI+64]           ┍────────────       是 16 位
+015F:004095AD  LEA        EBX,[EDI+64]           ↓
+015F:004095B0  CMP        DWORD PTR [EDX-08],10  //检查注册码的位数是不是 16 位。
+015F:004095B4  JZ         004095C2               //是 16 位就跳到 004095C2 继续检查注册码是否正确，
+015F:004095B6  PUSH       ESI                    不然死给你看。当然我们可以把它改成无条件
+015F:004095B7  PUSH       ESI                    跳转 JMP 。
+015F:004095B8  PUSH       004187FC
+015F:004095BD  JMP        004096AC               
+015F:004095C2  XOR        ECX,ECX
+015F:004095C4  MOV        AL,[ECX+EDX]
+015F:004095C7  CMP        AL,30
+015F:004095C9  JL         004095CF
+015F:004095CB  CMP        AL,39
+015F:004095CD  JLE        004095DF
+015F:004095CF  CMP        AL,41
+015F:004095D1  JL         0040969E
+015F:004095D7  CMP        AL,46
+015F:004095D9  JG         0040969E
+015F:004095DF  INC        ECX
+015F:004095E0  CMP        ECX,08
+015F:004095E3  JL         004095C4
+015F:004095E5  LEA        ECX,[ESP+1C]
+015F:004095E9  PUSH       ECX
+015F:004095EA  PUSH       ECX
+015F:004095EB  MOV        ECX,ESP
+015F:004095ED  MOV        [ESP+20],ESP
+015F:004095F1  PUSH       EBP
+015F:004095F2  CALL       0040FC0A
+015F:004095F7  MOV        ECX,EDI
+015F:004095F9  CALL       004096F0
+015F:004095FE  LEA        ECX,[ESP+10]
+015F:00409602  CALL       0040FCE2
+015F:00409607  XOR        EDX,EDX                <--|
+015F:00409609  LEA        EAX,[ESP+14]           |
+015F:0040960D  MOV        DL,[ESI+ESP+1C]          |计
+015F:00409611  PUSH       EDX                     |算
+015F:00409612  PUSH       004187F4                |正
+015F:00409617  PUSH       EAX                     |确
+015F:00409618  CALL       0040FB98                |的
+015F:0040961D  ADD        ESP,0C                  |注
+015F:00409620  LEA        ECX,[ESP+14]           |册
+015F:00409624  PUSH       ECX                     |码
+015F:00409625  LEA        ECX,[ESP+14]           |.
+015F:00409629  CALL       0040FBEC                |注意 EDX 的变化。
+015F:0040962E  INC        ESI                     |
+015F:0040962F  CMP        ESI,08                  |
+015F:00409632  JL         00409607               <--|
+015F:00409634  LEA        ECX,[ESP+10]
+015F:00409638  CALL       0040FBC8
+015F:0040963D  MOV        ECX,EBX                //正确的注册码 D EAX.
+015F:0040963F  CALL       0040FBC8
+015F:00409644  MOV        EAX,[EBX]
+015F:00409646  MOV        EDX,[ESP+10]
+015F:0040964A  PUSH       EAX
+015F:0040964B  PUSH       EDX
+015F:0040964C  CALL       [0041268C]
+015F:00409652  ADD        ESP,08
+015F:00409655  TEST       EAX,EAX
+015F:00409657  PUSH       00
+015F:00409659  PUSH       00
+015F:0040965B  JNZ        004096A7              //比较注册码是否相等。
+015F:0040965D  PUSH       004187D4             
+015F:00409662  CALL       0040FB92              //注册成功对话框。
+015F:00409667  CALL       0040FB68
+015F:0040966C  MOV        ESI,[EAX+04]
+015F:0040966F  MOV        EAX,[EBP+00]
+015F:00409672  PUSH       EAX
+015F:00409673  PUSH       004187CC
+015F:00409678  MOV        ECX,ESI
+015F:0040967A  CALL       0040BD70              //注册失败对话框。
+015F:0040967F  MOV        EAX,[EBX]
+015F:00409681  MOV        ECX,ESI
+015F:00409683  PUSH       EAX
+015F:00409684  PUSH       004187C0
+015F:00409689  CALL       0040BD70
+015F:0040968E  MOV        ECX,EDI
+015F:00409690  MOV        BYTE PTR [ESI+000000C4],00
+.........................
+```
+
+4dd466d0e1e0cc123afbe504da2462ca

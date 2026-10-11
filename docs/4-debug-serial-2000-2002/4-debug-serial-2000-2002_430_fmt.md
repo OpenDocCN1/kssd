@@ -1,0 +1,58 @@
+
+# pcGhost 4.0
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum880.htm`](https://www.pediy.com/kssd/pediy03/forum880.htm)
+
+电脑幽灵 `pcGhost4.0` 注册机 (TC 编译通过)
+
+下载 华军，海阔天空
+
+根据以前版本作的，新版应该能用
+
+电脑幽灵 `pcGhost4.0` 注册码 `gdong-4953667`
+
+破解看以前的帖子
+
+电脑幽灵 `pcGhost4.0` 注册机 (TC 编译通过)
+
+```c
+#include <stdio.h>
+
+int main(void)
+{
+    const long a=0xf1da4;
+    int counter=0;
+    unsigned long b=0;
+    unsigned char yourname[63];
+
+    clrscr();
+
+    printf("pcGhost 4.0\n");
+
+    printf("==================\n");
+
+    printf("Made by fpx[CCG]-2001\n");
+
+    printf("China Cracking Group\n");
+
+    printf("please enter your name:");
+
+    gets(yourname);
+
+    printf("Your register number is :");
+
+    for(counter=0;counter<strlen(yourname);counter++)
+    {
+        b+=yourname[counter]+a;
+        putch(yourname[counter]);
+    }
+
+    printf("-%ld\n",b);
+
+    printf("bye");
+
+    return(0);
+}
+```
+
+`4dd466d0e1e0cc123afbe504da2462ca`

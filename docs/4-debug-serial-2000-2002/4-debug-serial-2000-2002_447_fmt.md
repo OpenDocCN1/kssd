@@ -1,0 +1,56 @@
+
+# Read Book 1.2
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum741.htm`](https://www.pediy.com/kssd/pediy03/forum741.htm)
+
+`Backup Magic 1.3.2`
+
+下断点：`bpx 0044c519`
+
+```
+015F:0044C514  MOV       EAX,[EBP-04]
+015F:0044C517  MOV       EDX,ESI
+015F:0044C519  CALL      00403E50
+015F:0044C51E  SETZ      AL
+015F:0044C521  MOV       EBX,EAX
+```
+
+分别`d eax`、`d edx`就可以得到注册码了
+
+## Read Book 1.2
+
+《论坛精华 2》中，冰毒大虾说破这个程序费了不少力气，我觉得是它的方法不对，所以找关键比较的地方很麻烦。其实用`W32dasm`反汇编后，察看字符串参考，很快就能看到：“您已经成功注册了”的字样，于是比较地址就很好找了，代码是这样的：
+
+```
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00409A6C(C)
+.................
+.................
+
+* Possible StringData Ref from Data Obj ->"祝贺"
+                          |
+:00409ABF 6848D84500      push 0045D848
+
+* Possible StringData Ref from Data Obj ->"您已经成功地注册了!"
+                          |
+:00409AC4 6834D84500      push 0045D834
+:00409AC9 8BCE           mov ecx, esi
+:00409ACB E82FAD0200      call 004347FF
+:00409AD0 EB38           jmp 00409B0A
+```
+
+马上转到`409a6c`处，关键比较就出来了：
+
+```
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00409A84(C)
+|
+:00409A69 3975FC         cmp dword ptr [ebp-04], esi
+:00409A6C 741D           je 00409A8B
+:00409A6E 8B55EC         mov edx, dword ptr [ebp-14]
+```
+
+`esi`就可以得到正确的注册码。
+
+看来入手的方法真的是很重要！
+`4dd466d0e1e0cc123afbe504da2462ca`

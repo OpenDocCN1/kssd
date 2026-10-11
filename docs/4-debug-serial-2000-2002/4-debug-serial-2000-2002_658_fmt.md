@@ -1,0 +1,205 @@
+
+# 敏思硬盘卫士 1.0
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum1249.htm`](https://www.pediy.com/kssd/pediy03/forum1249.htm)
+
+敏思硬盘卫士 1.0 (网络版客户端)的注册分析(简单级)
+
+by Fpc[CCG] & 6767[BCG]     @2001/08
+
+tools: `sI`, `WdaSm`
+
+level: 1/5
+
+主要功能：硬盘保护，访问限制，个人空间，文档中心，病毒防范，远程管理
+
+作者主页：`http://www.globalmediastar.com/`
+
+ 有人要这个，所以追一下了。因为是一机一号，没办法，只有作出注册机或破解版，好在这个简单，能作注册机。
+
+```
+:004A6866 8B45F4                 mov eax, dword ptr [ebp-0C]        <- 硬件号
+:004A6869 8D4DF8                 lea ecx, dword ptr [ebp-08]        <- 注册码存放位置
+:004A686C 66BA1300               mov dx, 0013                <- 参与运算
+:004A6870 E8A3F8FFFF             call 004A6118                <- 生成注册码
+:004A6875 8B55F8                 mov edx, dword ptr [ebp-08]   <- 真码
+:004A6878 58                     pop eax                  <- 假码
+:004A6879 E836D7F5FF             call 00403FB4                <- 比较了
+:004A687E 7423                   je 004A68A3
+:004A6880 6A30                   push 00000030
+
+* Possible StringData Ref from Code Obj ->" 敏思硬盘卫士"
+
+                                |
+:004A6882 6814694A00             push 004A6914
+
+* Possible StringData Ref from Code Obj ->"输入的注册码无效，请重新输入。"
+
+                                |
+:004A6887 6824694A00             push 004A6924
+:004A688C 6A00                   push 00000000
+
+* Reference To: user32.MessageBoxA, Ord:0000h
+
+                                |
+:004A688E E85509F6FF             Call 004071E8
+```
+
+ 显然在`:004A6870 call 004A6118` 是关键追进去看它是怎么算的：
+
+```
+* Referenced by a CALL at Addresses:
+:004A66B4  , :004A6870  , :004CF984  , :004CFFA4  , :004D04B4
+:004D07C0  , :004D0B98  , :004D0DBC  , :004D108F  , :004D17C0
+:004D2728
+
+:004A6118 55                     push ebp
+:004A6119 8BEC                   mov ebp, esp
+... ...
+:004A6125 8BDA                   mov ebx, edx                  <- ebx=0x13
+:004A6127 8945FC                 mov dword ptr [ebp-04], eax
+... ...
+:004A6140 8D55F4                 lea edx, dword ptr [ebp-0C]    <- 存放的位置
+:004A6143 8B45FC                 mov eax, dword ptr [ebp-04]    <- 硬件号
+:004A6146 E88524F6FF             call 004085D0                  <- 硬件号中的字母小写转大写，请看
+
+>>>>>>>
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+:00408604(C)
+
+    :004085F1 8A02                   mov al, byte ptr [edx]
+    :004085F3 3C61                   cmp al, 61
+    :004085F5 7206                   jb 004085FD
+    :004085F7 3C7A                   cmp al, 7A
+    :004085F9 7702                   ja 004085FD
+    :004085FB 2C20                   sub al, 20                    <- 这一句
+    * Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+    |:004085F5(C), :004085F9(C)
+    |
+    :004085FD 8806                   mov byte ptr [esi], al
+    :004085FF 42                     inc edx
+    :00408600 46                     inc esi
+    :00408601 4B                     dec ebx
+    :00408602 85DB                   test ebx, ebx
+    :00408604 75EB                   jne 004085F1
+
+<<<<<<
+
+:004A614B 8B45F4                 mov eax, dword ptr [ebp-0C]        <- 硬件号(已转换为大写)
+:004A614E 8D4DF8                 lea ecx, dword ptr [ebp-08]
+:004A6151 0FB7D3                 movzx edx, bx
+:004A6154 E8037AFEFF             call 0048DB5C                  <- 这个的作用是将硬件号的各位置加上一个数
+                                 <- 规则是：奇数位置加 0x14，偶数位置加 0x13
+
+>>>>>>>
+
+    * Referenced by a CALL at Addresses:
+    |:0048E5BF  , :004A6154  , :004C40F3  , :004C410D  , :004C4127
+    |
+
+    :0048DB5C 55                     push ebp
+    :0048DB5D 8BEC                   mov ebp, esp
+    :0048DB5F 83C4EC                 add esp, FFFFFFEC
+    :0048DB62 53                     push ebx
+    :0048DB63 56                     push esi
+    :0048DB64 57                     push edi
+    :0048DB65 33DB                   xor ebx, ebx
+    :0048DB67 895DEC                 mov dword ptr [ebp-14], ebx
+    :0048DB6A 894DF4                 mov dword ptr [ebp-0C], ecx
+    :0048DB6D 8955F8                 mov dword ptr [ebp-08], edx   <- [ebp-8]=0x13
+    :0048DB70 8945FC                 mov dword ptr [ebp-04], eax
+    ... ...
+    :0048DB91 8B45F8                 mov eax, dword ptr [ebp-08]
+    :0048DB94 40                     inc eax
+    :0048DB95 8945F0                 mov dword ptr [ebp-10], eax   <- [ebp-10]=0x14
+    ... ...
+    :0048DBA6 BE01000000             mov esi, 00000001
+    * Referenced by a (U)nconditional or (C)onditional Jump at Address:
+    |:0048DBDB(C)
+    |
+    :0048DBAB 8B45FC                 mov eax, dword ptr [ebp-04]
+    :0048DBAE 33DB                   xor ebx, ebx
+    :0048DBB0 8A5C30FF               mov bl, byte ptr [eax+esi-01]
+    :0048DBB4 F7C601000000           test esi, 00000001          <- 相当于对 2 取模
+    :0048DBBA 7505                   jne 0048DBC1        <- 在奇数位置上则向下跳
+    :0048DBBC 035DF8                 add ebx, dword ptr [ebp-08]   <- bl+=0x13
+    :0048DBBF EB03                   jmp 0048DBC4
+    * Referenced by a (U)nconditional or (C)onditional Jump at Address:
+    |:0048DBBA(C)
+    |
+    :0048DBC1 035DF0                 add ebx, dword ptr [ebp-10]   <- bl+=0x14
+    * Referenced by a (U)nconditional or (C)onditional Jump at Address:
+    |:0048DBBF(U)
+    |
+    :0048DBC4 8D45EC                 lea eax, dword ptr [ebp-14]
+    :0048DBC7 8BD3                   mov edx, ebx
+    :0048DBC9 E8FE61F7FF             call 00403DCC        <- 这两个 Call 只是在内存中拷贝
+    :0048DBCE 8B55EC                 mov edx, dword ptr [ebp-14]
+    :0048DBD1 8B45F4                 mov eax, dword ptr [ebp-0C]
+    :0048DBD4 E8E3A9F7FF             call 004085BC
+    :0048DBD9 46                     inc esi
+    :0048DBDA 4F                     dec edi
+    :0048DBDB 75CE                   jne 0048DBAB        <- 未完成则处理下一字符
+    ... ...
+    :0048DC08 C3                     ret
+
+<<<<<<
+
+:004A6159 8BD6                     mov edx, esi
+:004A615B 8B45F8                   mov eax, dword ptr [ebp-08]
+:004A615E E889010000               call 004A62EC                  <- 这个是对字符串的运算，求出一个和，再打印成无符号数，就是注册码
+
+>>>>>>>
+
+    :004A6317 BB611E0000             mov ebx, 00001E61        <- 初始化：ebx=7777
+    ... ...
+    :004A632A B801000000             mov eax, 00000001        <- i=1
+    * Referenced by a (U)nconditional or (C)onditional Jump at Address:
+    |:004A6340(C)
+    |
+    :004A632F 8B4DFC                 mov ecx, dword ptr [ebp-04]
+    :004A6332 0FB64C01FF             movzx ecx, byte ptr [ecx+eax-01]   <- ecx=Code[i]
+    :004A6337 03C8                   add ecx, eax            <- ecx+=i (这里 i 从一开始)
+    :004A6339 0FAFCB                 imul ecx, ebx           <- ecx*=ebx
+    :004A633C 8BD9                   mov ebx, ecx            <- ebx=ecx
+    :004A633E 40                     inc eax                 <- i++
+    :004A633F 4A                     dec edx
+    :004A6340 75ED                   jne 004A632F            <- 未处理完则继续
+    * Referenced by a (U)nconditional or (C)onditional Jump at Address:
+    |:004A6328(C)
+    |
+    :004A6342 8B45F8                 mov eax, dword ptr [ebp-08]    <- 打印的目标地址
+    :004A6345 50                     push eax
+    :004A6346 895DF0                 mov dword ptr [ebp-10], ebx    <- 保存结果
+    :004A6349 C645F400               mov [ebp-0C], 00
+    :004A634D 8D55F0                 lea edx, dword ptr [ebp-10]
+```
+
+
+
+`:004A6350` `33C9` `xor ecx, ecx`
+
+\* Possible StringData Ref from Code Obj -> `"%.10u"` <- 很明确
+
+```
+:004A6352 B888634A00       mov eax, 004A6388
+:004A6357 E85036F6FF       call 004099AC       <- 打印字符串
+
+<<<<<<
+
+... ...
+
+:004A6189 5D              pop ebp
+:004A618A C3              ret                  <- 注册码生成完毕，则返回
+```
+
+注册信息在：
+
+```
+REGEDIT4
+[HKEY_CURRENT_USER\Software\MediaStar\HddGuard]
+"RegCode"="Your SN is here"
+```
+
+结束。 `4dd466d0e1e0cc123afbe504da2462ca`

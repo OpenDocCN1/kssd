@@ -1,0 +1,83 @@
+
+# 美萍安全卫士 8.2
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum1182.htm`](https://www.pediy.com/kssd/pediy03/forum1182.htm)
+
+目标：美萍安全卫士 8.2 标准版
+
+这个东西用 `ASPACK` 加过壳，刚开始玩的时候，由于机子运行了 `trw`，没想到它未经本人同意，竟然将俺的机子关了。TMD，可恶!!俺倒要看看是你凭啥关俺的爱机：)
+
+## 一、除去防跟踪程序的部分
+
+用 `wasm32` 反脱壳后的程序，发现它是调用 `ExitWindowsEx` 来关闭计算机的!
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*关机代码 1\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+```assembly
+:004A03D3 E814E9FCFF             call 0046ECEC
+:004A03D8 84C0                   test al, al
+:004A03DA 7409                   je 004A03E5    //可以跳过关机
+:004A03DC 6A00                   push 00000000
+:004A03DE 6A05                   push 00000005
+
+* Reference To: USER32.ExitWindowsEx, Ord:0000h
+
+                                |
+:004A03E0 E8BB5FF6FF             Call 004063A0　//关机!
+```
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*关机代码 2\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+```assembly
+:004A0805 E8864AF6FF             call 00405290
+:004A080A E8751FF6FF             call 00402784
+:004A080F E8D8E4FCFF             call 0046ECEC
+:004A0814 84C0                   test al, al
+:004A0816 7409                   je 004A0821    //可以跳过关机
+:004A0818 6A00                   push 00000000
+:004A081A 6A05                   push 00000005
+
+* Reference To: USER32.ExitWindowsEx, Ord:0000h
+
+                                |
+:004A081C E87F5BF6FF             Call 004063A0  //要关机!
+```
+
+改过以上两处，就不会再轻易关掉我的爱机了^\_^。。
+
+其实，它防的不止 `trw` 一个哟，，`ICE`、`REGMON` ect..，你可以进入 `CALL 0046ECEC` 看看嘛!
+
+## 二、找出注册码
+
+我是用这个方法，发现它将注册信息写在注册表里的。
+
+输入一个注册码。用 `regshot` 查看注册后的注册表是否变化，嘿嘿。。有了以下变化。
+
+**Original contents Maybe deleted or modified**
+
+`H.L.K\\Software\\Mpsoft\\Smenu\\Reg\\RegNum`: `0x00792EC6`
+
+**Keys&Values Modified | Added in the 2ndShot**
+
+`H.L.K\\Software\\Mpsoft\\Smenu\\Reg\\RegNum`: `0x075ADB50`
+
+原来它是将注册信息写在 `H.L.K\\Software\\Mpsoft\\Smenu\\Reg\\RegNum` 这儿，于是在 `trw` 中设 `bpx regqueryvalueEXA do "d \*(Esp+8)"`，看到程序读 `RegNum` 时，要小心点跟了，这离正确的注册码已经不远了^\_^。
+
+贴如下代码：
+
+```assembly
+015F:00474447  MOV       EAX,[004A7C14]
+015F:0047444C  MOV       EAX,[EAX]    //? EAX (你的本机软件序列号)
+015F:0047444E  CALL      00473910    //生成正确的注册,想做注册机可不要错过!
+015F:00474453  MOV       EBX,EAX     //正确注册号放入 EBX 中
+015F:00474455  MOV       EAX,004744FC
+015F:0047445A  CALL      00473B3C
+015F:0047445F  CMP       EBX,EAX       //注册码比较
+015F:00474461  JNZ       0047446D
+```
+
+注册算法没有时间看，应该不是很难，有兴趣的同志可以做个注册机呀!
+
+十三少[`CCG`]
+
+2001.07.27 `4dd466d0e1e0cc123afbe504da2462ca`

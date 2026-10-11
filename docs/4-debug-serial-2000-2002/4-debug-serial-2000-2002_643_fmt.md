@@ -1,0 +1,48 @@
+
+# 开心斗地主 1.7S4
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum1068.htm`](https://www.pediy.com/kssd/pediy03/forum1068.htm)
+
+采用用户名：`/0` 注册码：`01` 注册后重启，出现非法注册。
+
+先用 `UPX` 将主程序脱壳后，用 `TRW2000` 调入主程序，（需加入 `msvbvm50.dll`）
+
+下 `bpx __vbaFileOpen` 拦截，返回 `TRW` 后跟踪即可。
+
+我跟了两回，（详情略过）发现正式画面入口在 `167:004f942d` 处，
+
+我直接将
+
+```
+167:004f7285 jz near 004f7578 (jump)
+```
+
+改为
+
+```
+jmp 004f942d
+```
+
+顺利完成。
+
+另：也可用 `UPX` 脱壳后，直接用 `ultraedit` 或 `winhex` 等在主程序里找 `0f84ed020000` 替换为 `e9a3210000`。
+
+开心斗地主 `1.7S4` 的注册文件在 `windows\system` 里：
+
+`oliver.dll` 和 `sysinfo.vxd`
+
+开心斗地主 `1.7S(4)` 注册算法：
+
+注册码为用户名的 `ASC` 码经过如下运算后获得 `ASC` 字符：
+
+（每隔 6 位算法相同）
+
+```
+BIT1:+1
+BIT2:+1
+BIT3:+6
+BIT4:+2
+BIT5:+5
+BIT6:-3
+4dd466d0e1e0cc123afbe504da2462ca
+```

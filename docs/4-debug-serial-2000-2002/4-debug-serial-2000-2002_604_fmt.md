@@ -1,0 +1,170 @@
+
+# 电脑室网吧集中管理软件
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum1079.htm`](https://www.pediy.com/kssd/pediy03/forum1079.htm)
+
+电脑室网吧集中管理软件破解过程。
+
+`crack:小球[CCG]`
+
+前言：终于和 `CCG` 的大师哥罗降神联系上了，没有想到一上来就考验老弟！呵呵......还好..搞定！
+
+`peterchen` 发话了，多写过程！好吧，写个简单的。不费时间又可以应付工作！
+
+开始吧！
+
+首先了解一下它是怎么保护的，有壳？先不要管它，不脱壳一样可以追到注册码！最糟的是它的注册方式，嘿嘿...为了防止破解，它来个先注册后判断，很是流行的注册方式哦！不管了，死马当活马医！来到注册处，看到有机器码？不好办哦！一机一码？写个注册机？想的太远了，先看看你能不能读懂算法吧！输入你的注册码，机器码是六位的我就输入六位的，不行再改嘛？改完再犯嘛！千锤百炼嘛！
+
+下断：`bpx hmemcpy`
+
+点击“填好了”程序立刻被中断。
+
+命令：`bc*`
+
+命令：`pomdule`
+
+来到程序的内存空间！
+
+按几下 `F10` 来到：
+
+```
+:00438823 89430C    mov dword ptr [ebx+0C], eax    *****停在这儿！！！
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+:004387C6(U), :00438805(U)
+:00438826 8B03      mov eax, dword ptr [ebx]
+:00438828 83F80C    cmp eax, 0000000C
+:0043882B 751B      jne 00438848
+:0043882D 8B5308    mov edx, dword ptr [ebx+08]
+:00438830 52        push edx
+:00438831 8B4B04    mov ecx, dword ptr [ebx+04]
+:00438834 8BD0      mov edx, eax
+:00438836 8BC6      mov eax, esi
+:00438838 E8AFBEFFFF call 004346EC
+:0043883D EB09      jmp 00438848
+```
+
+一直按 `F10` 直到你看见有用的东东：
+
+```
+:004EBD3A 8B45D4    mov eax, dword ptr [ebp-2C]    *****这里看到了你输入的注册码！！
+:004EBD3D E85684F1FF call 00404198                 *****注册码长度！
+:004EBD42 48        dec eax
+:004EBD43 0F8CD2010000 jl 004EBF1B
+:004EBD49 8D45F4    lea eax, dword ptr [ebp-0C]
+:004EBD4C E8C781F1FF call 00403F18
+:004EBD51 B201      mov dl, 01
+:004EBD53 A164E04700 mov eax, dword ptr [0047E064]
+:004EBD58 E80724F9FF call 0047E164
+:004EBD5D 8945F8    mov dword ptr [ebp-08], eax
+:004EBD60 BA02000080 mov edx, 80000002
+:004EBD65 8B45F8    mov eax, dword ptr [ebp-08]
+:004EBD68 E89724F9FF call 0047E204
+:004EBD6D B101      mov cl, 01
+* Possible StringData Ref from Code Obj ->"software\microsoft\jingzu"
+:004EBD6F BA78BF4E00 mov edx, 004EBF78
+:004EBD74 8B45F8    mov eax, dword ptr [ebp-08]
+:004EBD77 E8EC24F9FF call 0047E268
+:004EBD7C 84C0      test al, al
+:004EBD7E 0F84DE000000 je 004EBE62
+:004EBD84 8D55D0    lea edx, dword ptr [ebp-30]
+:004EBD87 8B45FC    mov eax, dword ptr [ebp-04]
+:004EBD8A 8B8064040000 mov eax, dword ptr [eax+00000464]
+:004EBD90 E8578DF4FF call 00434AEC
+:004EBD95 8B55D0    mov edx, dword ptr [ebp-30]    ***这里又看到了假的注册码，赶快下断：bpm 012***** （假的注册码地址）以免它溜掉！好了放心的按 F10 吧！也许你会突然的来到这儿：
+```
+
+```
+:004D4F66 8B45F0    mov eax, dword ptr [ebp-10] *****eax 里就是你的假的注册码的第一位！
+:004D4F69 8B55F8    mov edx, dword ptr [ebp-08] *****edx 里是什么？好像是个‘*’嗯！有问题。所以嘛，下一个 CALL 一定要进入！F8
+:004D4F6C E837F3F2FF call 004042A8     ***就是这个！
+:004D4F71 7505      jne 004D4F78
+:004D4F73 895DF4    mov dword ptr [ebp-0C], ebx
+:004D4F76 EB04      jmp 004D4F7C
+```
+
+由上面的 `call` 来的：
+
+```
+:004042A8 53        push ebx
+:004042A9 56        push esi
+:004042AA 57        push edi
+:004042AB 89C6      mov esi, eax
+:004042AD 89D7      mov edi, edx
+:004042AF 39D0      cmp eax, edx    *****看到了吗？它两个比较了！由此判断注册码的第一位可能是‘*’！
+:004042B1 0F848F000000 je 00404346     *****这个嘛！经过反复的研究，没有什么关系，不要管他。因为如果你输入的第一位是‘*’的话，它也是不跳的！但是爆破的时候千万不要改动哦。因为它会被其他的 CALL 调用的！
+:004042B7 85F6      test esi, esi
+:004042B9 7468      je 00404323
+:004042BB 85FF      test edi, edi
+:004042BD 746B      je 0040432A
+:004042BF 8B46FC    mov eax, dword ptr [esi-04]
+:004042C2 8B57FC    mov edx, dword ptr [edi-04]
+:004042C5 29D0      sub eax, edx
+:004042C7 7702      ja 004042CB
+:004042C9 01C2      add edx, eax
+```
+
+继续按 `F10`，注意期间的变化，多用 `D` 命令。
+
+```
+:004EBDF2 55        push ebp
+:004EBDF3 6818BE4E00 push 004EBE18
+:004EBDF8 64FF30    push dword ptr fs:[eax]
+:004EBDFB 648920    mov dword ptr fs:[eax], esp
+:004EBDFE 8B45F4    mov eax, dword ptr [ebp-0C]     *****例如这里就是有问题！你看看？好像没有第一位。对嘛？第一位刚才不是比较过了吗？呵呵.....就是吗！
+:004EBE01 E8AAD2F1FF call 004090B0     *****这个 CALL 是把它转化成十六进制的形式！哦！你是怎么直到的？你用命令：‘？’看看不就知道了？
+:004EBE06 8BD8      mov ebx, eax
+:004EBE08 81F326750000 xor ebx, 00007526    *****异或了。什么是异或？我倒......
+:004EBE0E 33C0      xor eax, eax       *****注意结果存放在哪？
+:004EBE10 5A        pop edx
+:004EBE11 59        pop ecx
+:004EBE12 59        pop ecx
+:004EBE13 648910    mov dword ptr fs:[eax], edx
+:004EBE16 EB0C      jmp 004EBE24
+:004EBE18 E9DF78F1FF jmp 004036FC
+:004EBE1D 33DB      xor ebx, ebx
+:004EBE1F E8347CF1FF call 00403A58
+```
+
+按 `F10` 继续--
+
+```
+:004D1000 8BF1      mov esi, ecx    *****快看把结果取回来了！
+:004D1002 8BDA      mov ebx, edx
+:004D1004 33C0      xor eax, eax
+:004D1006 55        push ebp
+:004D1007 680E124D00 push 004D120E
+:004D100C 64FF30    push dword ptr fs:[eax]
+:004D100F 648920    mov dword ptr fs:[eax], esp
+:004D1012 33D2      xor edx, edx
+:004D1014 55        push ebp
+:004D1015 68E2114D00 push 004D11E2
+:004D101A 64FF32    push dword ptr fs:[edx]
+:004D101D 648922    mov dword ptr fs:[edx], esp
+:004D1020 C645FF00  mov [ebp-01], 00
+:004D1024 8BC6      mov eax, esi          *****eax 你就是！注意了！
+:004D1026 3526750000 xor eax, 00007526       *****又来了！
+:004D102B 3535F19303 xor eax, 0393F135       *****还来？
+:004D1030 8B15D44E4F00 mov edx, dword ptr [004F4ED4]   *****猜猜 edx 里面是什么？
+:004D1036 3B02        cmp eax, dword ptr [edx]         *****比较真假了！
+:004D1038 740D        je 004D1047
+:004D103A 33C0        xor eax, eax
+:004D103C 5A        pop edx
+:004D103D 59        pop ecx
+:004D103E 59        pop ecx
+:004D103F 648910    mov dword ptr fs:[eax], edx
+:004D1042 E9AC010000 jmp 004D1047
+```
+
+到次已经搞定了！继续跟下去也行，可以看到他是怎么存放你的注册信息的！放到你的 `C:\windows\system` 下面，文件名是 `SR***.dat`（`***`是你的网上邻居的标示！）
+
+至于算码嘛？很是简单！伪装者老兄哪去了！快来.....搞定他。
+
+至于爆破嘛？很是简单！`*****`老兄哪去了！快来.....搞定他。
+
+爆破的修改点就是上面所说的，可是启动时的检测在哪？试试：`4d125b`？你是怎么知道的？呵呵.....不告诉你！
+
+我的破解版下载：`http://www.cn778.net`
+
+`cracker：小球[CCG]`
+
+`2001.6.22 4dd466d0e1e0cc123afbe504da2462ca`

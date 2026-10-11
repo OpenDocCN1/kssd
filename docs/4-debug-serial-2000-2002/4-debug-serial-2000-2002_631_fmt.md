@@ -1,0 +1,54 @@
+
+# 虹狗破解工具
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum1104.htm`](https://www.pediy.com/kssd/pediy03/forum1104.htm)
+
+```c
+#include "stdio.h"   
+
+main()   
+
+{   
+
+char e[8],d[8];   
+
+long i,c,esi=0x5816,t,a;   
+
+printf("******TEST******\nThis keygen is made by Pretender\nPlease input your ID  :  ");   
+
+gets(e);   
+
+for(i=0;i<4;i++)   
+
+d[i]=e[i+4],d[i+4]=e[i];   
+
+  printf("Your Register code is :  ");   
+
+for(i=0;(c=d[i])!='\0';i++)   
+
+{if(c>='0'&&c<='9') d[i]-=48;   
+
+  if(c>='A'&&c<='F') d[i]-=55;   
+
+  if(c>='a'&&c<='f') d[i]-=87;}   
+
+for(i=0;i<4;i++)   
+
+{c=d[2*i]*16+d[2*i+1];   
+
+t=esi/256;   
+
+t=t^c;   
+
+printf("%02X",t);   
+
+esi=(esi+t)*0xf3f;   
+
+esi+=0x8f30;   
+
+esi&=0xffff;   
+
+}   
+
+printf("\n ****************************        ---    ---    ---\n *Welcome to WWW.CRACKNOW.COM*        /        /        / --\n ****************************        ---    ---    --/\n");}  4dd466d0e1e0cc123afbe504da2462ca
+```

@@ -1,0 +1,268 @@
+
+### 代码段分析
+
+:00439DB2 `8D8754190617`   `lea eax, dword ptr [edi+17061954]`
+
+:00439DB8 `50`             `push eax`
+
+:00439DB9 `8D8500FEFFFF`   `lea eax, dword ptr [ebp+FFFFFE00]`
+
+:00439DBF `50`             `push eax`
+
+:00439DC0 `E80EFFFFFF`     `call 00439CD3`
+
+:00439DC5 `59`             `pop ecx` <--按 `D` `EAX` 可以看到第三个正确的注册码
+
+:00439DC6 `59`             `pop ecx`
+
+:00439DC7 `50`             `push eax`
+
+`Reference To: CRTDLL.strcmp, Ord:01CFh`
+
+:00439DC8 `E8AB3A0000`     `Call 0043D878`
+
+:00439DCD `59`             `pop ecx`
+
+:00439DCE `85C0`           `test eax, eax`
+
+:00439DD0 `59`             `pop ecx`
+
+:00439DD1 `7450`           `je 00439E23`
+
+:00439DD3 `8D8500FFFFFF`   `lea eax, dword ptr [ebp+FFFFFF00]`
+
+:00439DD9 `50`             `push eax`
+
+:00439DDA `8D8781190510`   `lea eax, dword ptr [edi+10051981]`
+
+:00439DE0 `50`             `push eax`
+
+:00439DE1 `8D8500FEFFFF`   `lea eax, dword ptr [ebp+FFFFFE00]`
+
+:00439DE7 `50`             `push eax`
+
+:00439DE8 `E8E6FEFFFF`     `call 00439CD3`
+
+:00439DED `59`             `pop ecx` <--按 `D` `EAX` 可以看到第四个正确的注册码
+
+:00439DEE `59`             `pop ecx`
+
+:00439DEF `50`             `push eax`
+
+`Reference To: CRTDLL.strcmp, Ord:01CFh`
+
+:00439DF0 `E8833A0000`     `Call 0043D878`
+
+:00439DF5 `59`             `pop ecx`
+
+:00439DF6 `85C0`           `test eax, eax`
+
+:00439DF8 `59`             `pop ecx`
+
+:00439DF9 `7455`           `je 00439E50`
+
+:00439DFB `8D8500FFFFFF`   `lea eax, dword ptr [ebp+FFFFFF00]`
+
+:00439E01 `50`             `push eax`
+
+:00439E02 `8D8795190104`   `lea eax, dword ptr [edi+04011995]`
+
+:00439E08 `50`             `push eax`
+
+:00439E09 `8D8500FEFFFF`   `lea eax, dword ptr [ebp+FFFFFE00]`
+
+:00439E0F `50`             `push eax`
+
+:00439E10 `E8BEFEFFFF`     `call 00439CD3`
+
+:00439E15 `59`             `pop ecx` <--按 `D` `EAX` 可以看到第五个正确的注册码
+
+:00439E16 `59`             `pop ecx`
+
+:00439E17 `50`             `push eax`
+
+`Reference To: CRTDLL.strcmp, Ord:01CFh`
+
+:00439E18 `E85B3A0000`     `Call 0043D878`
+
+:00439E1D `59`             `pop ecx`
+
+:00439E1E `85C0`           `test eax, eax`
+
+:00439E20 `59`             `pop ecx`
+
+:00439E21 `7505`           `jne 00439E28`
+
+`Referenced by a (U)nconditional or (C)onditional Jump at Addresses: :00439D7D(C), :00439DA9(C), :00439DD1(C)`
+
+:00439E23 `6A01`           `push 00000001`
+
+:00439E25 `58`             `pop eax`
+
+:00439E26 `EB35`           `jmp 00439E5D`
+
+`Referenced by a (U)nconditional or (C)onditional Jump at Address: :00439E21(C)`
+
+:00439E28 `8D8500FFFFFF`   `lea eax, dword ptr [ebp+FFFFFF00]`
+
+:00439E2E `81C797190602`   `add edi, 02061997`
+
+:00439E34 `50`             `push eax`
+
+:00439E35 `8D8500FEFFFF`   `lea eax, dword ptr [ebp+FFFFFE00]`
+
+:00439E3B `57`             `push edi`
+
+:00439E3C `50`             `push eax`
+
+:00439E3D `E891FEFFFF`     `call 00439CD3`
+
+:00439E42 `59`             `pop ecx` <--按 `D` `EAX` 可以看到第六个正确的注册码
+
+:00439E43 `59`             `pop ecx`
+
+:00439E44 `50`             `push eax`
+
+`Reference To: CRTDLL.strcmp, Ord:01CFh`
+
+:00439E45 `E82E3A0000`     `Call 0043D878`
+
+:00439E4A `59`             `pop ecx`
+
+:00439E4B `85C0`           `test eax, eax`
+
+:00439E4D `59`             `pop ecx`
+
+:00439E4E `750B`           `jne 00439E5B` <--这里也一定不能跳转
+
+`Referenced by a (U)nconditional or (C)onditional Jump at Address: :00439DF9(C)`
+
+:00439E50 `6A01`           `push 00000001`
+
+:00439E52 `85F6`           `test esi, esi`
+
+:00439E54 `58`             `pop eax`
+
+:00439E55 `7406`           `je 00439E5D`
+
+:00439E57 `8906`           `mov dword ptr [esi], eax`
+
+:00439E59 `EB02`           `jmp 00439E5D`
+
+`Referenced by a (U)nconditional or (C)onditional Jump at Addresses: :00439D57(C), :00439E4E(C)`
+
+:00439E5B `33C0`           `xor eax, eax` <--如果跳到这里的话就 `OVER` 了
+
+`Referenced by a (U)nconditional or (C)onditional Jump at Addresses: :00439E26(U), :00439E55(C), :00439E59(U)`
+
+:00439E5D `5F`             `pop edi`
+
+:00439E5E `5E`             `pop esi`
+
+:00439E5F `C9`             `leave`
+
+:00439E60 `C3`             `ret`
+
+上面的那个 `CALL` 进入后会来到如下地方：
+
+`Referenced by a CALL at Addresses: :00433C57, :00433C69, :00439D47`
+
+:00439C50 `55`             `push ebp`
+
+:00439C51 `8BEC`           `mov ebp, esp`
+
+:00439C53 `81EC04010000`   `sub esp, 00000104`
+
+:00439C59 `FF7508`         `push [ebp+08]`
+
+:00439C5C `8D85FCFEFFFF`   `lea eax, dword ptr [ebp+FFFFFEFC]`
+
+:00439C62 `C745FC4C694700`  `mov [ebp-04], 0047694C` <--赋初值到 `[EBP-04]`
+
+:00439C69 `50`             `push eax`
+
+:00439C6A `E8B5FFFFFF`     `call 00439C24` <--把用户名复制到内存另一个区域，并把所有的小写转换成大写
+
+:00439C6F `59`             `pop ecx`
+
+:00439C70 `8D85FCFEFFFF`   `lea eax, dword ptr [ebp+FFFFFEFC]`
+
+:00439C76 `59`             `pop ecx`
+
+:00439C77 `50`             `push eax`
+
+`Reference To: KERNEL32.lstrlenA, Ord:0308h`
+
+:00439C78 `FF15C8F84400`   `Call dword ptr [0044F8C8]`
+
+:00439C7E `33C9`           `xor ecx, ecx`
+
+:00439C80 `894508`         `mov dword ptr [ebp+08], eax`
+
+:00439C83 `85C0`           `test eax, eax`
+
+:00439C85 `7E47`           `jle 00439CCE`
+
+:00439C87 `53`             `push ebx`
+
+:00439C88 `56`             `push esi`
+
+:00439C89 `8DB5FCFEFFFF`   `lea esi, dword ptr [ebp+FFFFFEFC]`
+
+:00439C8F `57`             `push edi`
+
+:00439C90 `8B7D08`         `mov edi, dword ptr [ebp+08]`
+
+:00439C93 `83EE03`         `sub esi, 00000003`
+
+`Referenced by a (U)nconditional or (C)onditional Jump at Address: :00439CC9(C)`
+
+:00439C96 `8BC1`           `mov eax, ecx`
+
+:00439C98 `6A0E`           `push 0000000E`
+
+:00439C9A `99`             `cdq`
+
+:00439C9B `5B`             `pop ebx`
+
+:00439C9C `F7FB`           `idiv ebx`
+
+:00439C9E `85D2`           `test edx, edx`
+
+:00439CA0 `7503`           `jne 00439CA5`
+
+:00439CA2 `6A27`           `push 00000027`
+
+:00439CA4 `5F`             `pop edi` <--`EDI` 置初始值 `0x27`
+
+`Referenced by a (U)nconditional or (C)onditional Jump at Address: :00439CA0(C)`
+
+:00439CA5 `0FB6540E03`     `movzx edx, byte ptr [esi+ecx+03]` <--`[ESI+03]` 中为用户名
+
+:00439CAA `8D4103`         `lea eax, dword ptr [ecx+03]`
+
+:00439CAD `0FAFD7`         `imul edx, edi`
+
+:00439CB0 `0155FC`         `add dword ptr [ebp-04], edx`
+
+:00439CB3 `6A0E`           `push 0000000E`
+
+:00439CB5 `99`             `cdq`
+
+:00439CB6 `5B`             `pop ebx`
+
+:00439CB7 `F7FB`           `idiv ebx` <--`EAX` 除以 `0xE`
+
+:00439CB9 `85D2`           `test edx, edx` <--判断余数是否为零
+
+:00439CBB `7405`           `je 00439CC2` <--是的话则跳转
+
+:00439CBD `8D3C7F`         `lea edi, dword ptr [edi+2*edi]`
+
+:00439CC0 `EB03`           `jmp 00439CC5`
+
+`Referenced by a (U)nconditional or (C)onditional Jump at Address: :00439CBB(C)`
+
+:00439CC2 `6BFF07`         `imul edi, 00000007`
+
+`Referenced by a (U)nconditional or (C)onditional Jump at Address: :00439CC0(U)`

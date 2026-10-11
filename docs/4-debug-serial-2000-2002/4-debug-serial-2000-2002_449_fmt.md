@@ -1,0 +1,287 @@
+
+# `readbook` v1.41
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum685.htm`](https://www.pediy.com/kssd/pediy03/forum685.htm)
+
+文件阅读器 `readbook` v1.41 crack by `happyhackwang`
+
+软件名称: 文件阅读器 `readbook` v1.41
+
+软件功能: 语音阅读文本
+
+注册方式: `name`+`serial`
+
+作者: 余民
+
+作者主页: `http://ReadBook.126.com`
+
+作者邮箱: `ReadBook@126.COM`
+
+破解者: `happyhackwang`
+
+邮箱: `happyhackwang@263.net`
+
+OICQ: `4696993` (不在线^^)
+
+注册方式: `Patch` (谁想写注册机, 自己写吧! 算法见后)
+
+工具: `softice`, `w32dasm`, `my head`, `ultraedit` (to write this article)
+
+特别感谢: `w32dasm` 作者, 以及 `patch` 它的各位
+
+反汇编以后, 看到了注册失败的信息提示的字符串, 向上看:
+
+```
+:0040A10F 3975FC              cmp dword ptr [ebp-04], esi     ;这是关键
+:0040A112 741D                je 0040A131
+......
+:0040A12C 3975FC              cmp dword ptr [ebp-04], esi     ;关键的比较
+:0040A12F 7547                jne 0040A178      ;相等则注册,不等则失败
+```
+
+`[ebp-4]` 里的数是怎么来的?
+
+```
+:0040A09E C745F412320000      mov [ebp-0C], 00003212     ;预定义的
+:0040A0A5 C745E434120000      mov [ebp-1C], 00001234     ;
+:0040A0AC C745E888880000      mov [ebp-18], 00008888     ;
+:0040A0B3 C745F023230000      mov [ebp-10], 00002323     ;
+:0040A0BA E878D20000          call 00417337
+:0040A0BF 83C410              add esp, 00000010
+:0040A0C2 85C0                test eax, eax
+:0040A0C4 7524                jne 0040A0EA
+:0040A0C6 8D45F0              lea eax, dword ptr [ebp-10]     ;2323
+:0040A0C9 50                  push eax
+:0040A0CA 8D45E8              lea eax, dword ptr [ebp-18]     ;8888
+:0040A0CD 50                  push eax
+:0040A0CE 8D45E4              lea eax, dword ptr [ebp-1C]     ;1234
+:0040A0D1 50                  push eax
+:0040A0D2 8D45F4              lea eax, dword ptr [ebp-0C]     ;3212
+:0040A0D5 50                  push eax
+* Possible StringData Ref from Data Obj ->"C:\\"
+:0040A0D6 6860374600          push 00463760
+* Reference To: KERNEL32.GetDiskFreeSpaceA, Ord:0100h
+:0040A0DB FF15F8114500        Call dword ptr [004511F8]
+:0040A0E1 8B45F0              mov eax, dword ptr [ebp-10]     ;总簇数
+:0040A0E4 0FAF45F4            imul eax, dword ptr [ebp-0C]     ;与每簇的扇区数乘
+:0040A0E8 EB19                jmp 0040A103
+......
+:0040A103 F7D0                not eax
+:0040A105 3145FC              xor dword ptr [ebp-04], eax     ;这里
+```
+
+看看 `GetDiskFreeSpace` API 的入口参数
+
+`?lpRootPathName` : `00463760`
+(根目录)
+
+`?lpSectorsPerCluster` : `ebp-0C`
+(每簇的扇区数目的指针)
+
+`?lpBytesPerSector` : `ebp-1C`
+(每个扇区字节数的指针)
+
+`?lpNumberOfFreeClusters` : `ebp-18`
+(空闲的簇数的指针)
+
+`?lpTotalNumberOfClusters` : `ebp-10`
+(总簇数的指针)
+
+`esi` 的数是怎么来的?
+
+```
+:0040A03F E8829B0200          call 00433BC6
+:0040A044 8B8548FFFFFF        mov eax, dword ptr [ebp+FFFFFF48]     ;[72F8E8]@1
+:0040A04A 8B8D4CFFFFFF        mov ecx, dword ptr [ebp+FFFFFF4C]     ;[72F8EC]@2
+:0040A050 8BB544FFFFFF        mov esi, dword ptr [ebp+FFFFFF44]     ;[72F8E4]@3
+:0040A056 03C1                add eax, ecx
+:0040A058 038550FFFFFF        add eax, dword ptr [ebp+FFFFFF50]     ;[72F8F0]@4
+:0040A05E 69F631750000        imul esi, 00007531
+:0040A064 69C031750000        imul eax, 00007531
+* Possible StringData Ref from Data Obj ->"BIN_OR_TEXT"
+:0040A06A C704240C334600      mov dword ptr [esp], 0046330C
+:0040A071 68B5000000          push 000000B5
+:0040A076 53                  push ebx
+:0040A077 2BF0                sub esi, eax      ;这里
+```
+
+`[72F8E4]` 是存放名字字符串的地方
+
+所以 `@1` 是偏移地址的第四个字节开始的 4 个字节
+`@2` 是第八个字节开始的 4 个字节
+`@3` 是零开始的 4 个字节
+`@4` 是十二开始的 4 个字节
+
+例如: 名字输入 `crack readbook`
+
+`@1` 就是 `k re`
+`@2` 就是 `adbo`
+`@3` 就是 `crac`
+`@4` 就是 `ok`
+
+名字字符不够长的补以空格 (ASCII `20`)
+
+自我病毒监测功能的实现: 打开 `RBBackup.DAT`
+
+```
+|
+:00417F6A FF1564124500        Call dword ptr [00451264]     ;FindCloseChangeNotification()
+:00417F70 395DD4              cmp dword ptr [ebp-2C], ebx     ;API 函数
+:00417F73 742D                je 00417FA2
+:00417F75 6A14                push 00000014
+* Possible StringData Ref from Data Obj ->"这里是 ReadBOOK 的自我修复功能"
+|
+:00417F77 68B0594600          push 004659B0
+* Possible StringData Ref from Data Obj ->"    ReadBook 察觉到自身有改变，如果不是文件损坏"
+                        ->"的就是让病毒感染了！
+    一般说来，硬盘很少损*"
+                        ->"担绻腞 eadBook 是安装在硬盘上的，那么
+极大"
+                        ->"的可能是您的计算机中存在病毒。
+"
+                        ->"  解决办法是使用杀毒软件对计算机进行检查。但*"
+                        ->"捎诩扑慊久刻於*
+有新的种类出现，请您一定要"
+                        ->"注意您的杀毒软件的版本（出版时间），确定
+您使*"
+                        ->"玫氖亲钚掳姹镜模ㄉ倍救砑坢陌姹靖轮芷谝话闶羌"
+                        ->"甘欤祾*
+    ReadBOOK 具有自我修复功*"
+|
+:00417F7C 6894574600          push 00465794
+:00417F81 53                  push ebx
+* Reference To: USER32.MessageBoxA, Ord:01BEh
+|
+:00417F82 FF1530164500        Call dword ptr [00451630]
+:00417F88 83F806              cmp eax, 00000006
+:00417F8B 0F850D010000        jne 0041809E
+:00417F91 E81AEFFFFF          call 00416EB0
+:00417F96 53                  push ebx
+* Reference To: USER32.PostQuitMessage, Ord:01E0h
+|
+:00417F97 FF15F0144500        Call dword ptr [004514F0]
+:00417F9D E9FC000000          jmp 0041809E
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:00417EC6(C), :00417F73(C)
+|
+:00417FA2 6A10                push 00000010
+* Possible StringData Ref from Data Obj ->"这里是 ReadBOOK 的病毒监测功能"
+|
+:00417FA4 6874574600          push 00465774
+* Possible StringData Ref from Data Obj ->"    ReadBook 察觉到自身有改变，如果不是文件损坏"
+                        ->"的就是让病毒感染了！
+    一般说来，硬盘很少损*"
+                        ->"担绻腞 eadBook 是安装在硬盘上的，那么
+极大"
+                        ->"的可能是您的计算机中存在病毒。
+"
+                        ->"  解决办法是使用杀毒软件对计算机进行检查。但*"
+                        ->"捎诩扑慊久刻於*
+有新的种类出现，请您一定要"
+                        ->"注意您的杀毒软件的版本（出版时间），确定
+您使*"
+                        ->"玫氖亲钚掳姹镜模ㄉ倍救砑坢陌姹靖轮芷谝话闶羌"
+                        ->"甘欤祾*
+    由于 ReadBOOK 的损坏严重*"
+|
+:00417FA9 6888554600          push 00465588
+:00417FAE 53                  push ebx
+* Reference To: USER32.MessageBoxA, Ord:01BEh
+|
+:00417FAF FF1530164500        Call dword ptr [00451630]
+:00417FB5 E9E4000000          jmp 0041809E
+```
+
+如何绕过去呢?
+
+向上看到, 在这里设断点
+
+```
+:00417D96 E87AF5FFFF          call 00417315     ;API GetPrivateProfileStringA
+......
+:00417DA7 E8E45A0100          call 0042D890
+:00417DAC 83C418              add esp, 00000018
+:00417DAF 85C0                test eax, eax
+:00417DB1 0F84F9020000        je 004180B0
+```
+
+追进 `00417D96`
+
+```
+:00417315 FF3580754B00        push dword ptr [004B7580]     ;readbook.ini
+:0041731B FF742414            push [esp+14]                 ;10
+:0041731F FF742414            push [esp+14]                 ;03
+:00417323 6850844600          push 00468450
+:00417328 FF742418            push [esp+18]                 ;verify
+```
+
+
+
+```
+:0041732C FF742418            push [esp+18]          ;file
+
+* Reference To: KERNEL32.GetPrivateProfileStringA, Ord:013Ah
+
+:00417330 FF1568134500        Call dword ptr [00451368]
+```
+
+`GetPrivateProfileStringA` 的入口参数:
+
+| 参数 | 值 | 说明 |
+| :--- | :--- | :--- |
+| `lpAppName` | `esp+18` | 初始化文件中 `section` 字符串 |
+| `lpKeyName` | `esp+18` | 要得到的 `key` 的字符串 |
+| `lpDefault` | `00468450` | 缺省字符串 |
+| `lpReturnedString` | `esp+14` | 接收缓冲区 |
+| `nSize` | `esp+14` | 长度 |
+| `lpFileName` | `004B7580` | 初始化文件名 |
+
+追进 `00417DA7`
+
+```
+:0042D8B0 8A06             mov al, byte ptr [esi]     ;预定义的字符串"No"
+:0042D8B2 46               inc esi
+:0042D8B3 8A27             mov ah, byte ptr [edi]     ;ini 中得到的字符串
+:0042D8B5 47               inc edi
+:0042D8B6 38C4             cmp ah, al
+:0042D8B8 74F2             je 0042D8AC
+```
+
+在 `readbook.ini` 中添加
+
+```ini
+[File]
+Verify=No
+```
+
+就可以绕过检验程序是否更改, 当然也可以 `Patch`。
+
+这在程序中 视图->配置->控制->防病毒校验 可以设置。
+
+总结:
+
+`Patch`
+
+```
+00417DB1 0F84F9020000      je 004180B0         ;patch 病毒自检
+        E9FA02000090       jmp 4180B0
+
+0040A112 741D             je 0040A131         ;patch 注册失败
+        EB1D               jmp 40A131
+```
+
+另外, `readbook` v1.42 与 1.41 大同小异, 不另行说明, `Patch` 如下:
+
+```
+:0040A160 3975F8           cmp dword ptr [ebp-08], esi
+:0040A163 741D             je 0040A182(A163)
+          EB1DS
+
+:00417E53 E818620100       call 0042E070
+:00417E58 83C418           add esp, 00000018
+:00417E5B 85C0             test eax, eax
+:00417E5D 0F84F9020000     je 0041815C(17E5D)
+          E9FA02000090
+```
+
+*****世间本无事,庸人自扰耳***** `4dd466d0e1e0cc123afbe504da2462ca`

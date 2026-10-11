@@ -1,0 +1,497 @@
+
+# WinImage
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum1103.htm`](https://www.pediy.com/kssd/pediy03/forum1103.htm)
+
+破解心得之 WinImage 篇
+
+作者：时空幻影
+
+时间：2001 年 6 月 25 日
+
+使用工具：`Fileinfo` `v2.43`、`W32DSM` 白金版汉化版、`TRW2000` `v1.22`
+
+软件名称：`WinImage`
+
+发布公司：`Gilles Vollant`
+
+最新版本：`v5.0.5009`
+
+操作系统：`Win9x/ME/NT4/2000`
+
+软件说明：
+
+可制作、解压磁盘映像(`iso` `bin` 等)
+
+由于这个软件没有加壳，因此破解相对容易一些，且注册算法也不复杂，很适合初学者破解。
+
+### 破解步骤
+
+1、先把执行文件用 `Fileinfo` 查看一下有没有加壳，结果没有；
+
+2、用 `W32DSM` 反编译该执行文件，查找出错字符串，找出比对点，然后根据比对点找出核心 `CALL`，记下该 `CALL` 的偏移地址，如这个软件核心 `CALL` 的偏移地址为 `0043407F`；
+
+3、运行 `TRW2000`，再运行该软件，填好 `Name` 和 `Registration Code` 后，按 `Ctrl+N` 激活 `TRW2000`，然后键入 `"BPX HMEMCPY"`
+
+按 `F5` 跳回程序，然后点 `OK` 就会被拦下，再键入 `"pmodule"`。
+
+```
+* Possible Reference to Dialog: REGISTER, CONTROL_ID:0816, ""
+
+                                |
+:0043405C 6816080000                 push 00000816
+:00434061 FF7508                     push [ebp+08]
+:00434064 FFD6                       call esi
+:00434066 BF6CD04400                 mov edi, 0044D06C  <--pmodule 后到这里，D EAX 可看到自己输入的 Name
+
+* Possible Ref to Menu: WINIMAGMENU, Item: "Create directory..."
+
+                                |
+:0043406B 6A7F                     push 0000007F
+:0043406D 57                       push edi
+
+* Possible Reference to Dialog: REGISTER, CONTROL_ID:0817, ""
+
+                                |
+:0043406E 6817080000                 push 00000817
+:00434073 FF7508                     push [ebp+08]
+:00434076 FFD6                       call esi
+:00434078 6840D44400                 push 0044D440  <--D EDI 可看到输入的注册码
+:0043407D 57                       push edi
+:0043407E 53                       push ebx
+:0043407F E89C5C0000                 call 00439D20  <--核心 CALL，按 F8 进入
+:00434084 8B0D40D44400               mov ecx, dword ptr [0044D440]
+:0043408A 83C40C                     add esp, 0000000C
+:0043408D 33D2                       xor edx, edx
+:0043408F A334D24400                   mov dword ptr [0044D234], eax
+:00434094 3BC2                       cmp eax, edx
+:00434096 5F                       pop edi
+:00434097 5B                       pop ebx
+:00434098 7406                       je 004340A0
+:0043409A 890D04D44400               mov dword ptr [0044D404], ecx
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00434098(C)
+|
+:004340A0 391504D44400               cmp dword ptr [0044D404], edx
+:004340A6 890D90D64400               mov dword ptr [0044D690], ecx
+:004340AC 7505                       jne 004340B3
+:004340AE A390D64400                   mov dword ptr [0044D690], eax
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004340AC(C)
+|
+:004340B3 6A01                       push 00000001
+:004340B5 3BC2                       cmp eax, edx
+:004340B7 5E                       pop esi
+:004340B8 7529                       jne 004340E3  <--暴破的话把这个 JNE 改成 JMP 即可，即把 75 改成 EB
+:004340BA 6800200000                 push 00002000
+
+* Possible Reference to String Resource ID=01069: "WinImage Registration"
+
+                                |
+:004340BF 682D040000                 push 0000042D
+:004340C4 89350CD34400               mov dword ptr [0044D30C], esi
+:004340CA 893564D44400               mov dword ptr [0044D464], esi
+:004340D0 88156CD04400               mov byte ptr [0044D06C], dl
+:004340D6 881568D44400               mov byte ptr [0044D468], dl
+
+* Possible Reference to String Resource ID=01067: "Registering information is invalid"  <--注册失败对话框
+
+                                |
+:004340DC 682B040000                 push 0000042B
+:004340E1 EB1B                       jmp 004340FE
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004340B8(C)
+|
+:004340E3 6800200000                 push 00002000
+
+* Possible Reference to String Resource ID=01069: "WinImage Registration"
+
+                                |
+:004340E8 682D040000                 push 0000042D
+:004340ED 89150CD34400               mov dword ptr [0044D30C], edx
+:004340F3 891564D44400               mov dword ptr [0044D464], edx
+
+* Possible Reference to String Resource ID=01066: "Your registration code is valid.
+                                                You are now a registered us"  <--  <--注册成功对话框
+
+                                |
+:004340F9 682A040000                 push 0000042A
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004340E1(U)
+|
+:004340FE FF7508                     push [ebp+08]
+:00434101 E84BDEFEFF                 call 00421F51
+:00434106 83C410                     add esp, 00000010
+:00434109 56                       push esi
+:0043410A FF7508                     push [ebp+08]
+```
+
+按 `F8` 后会进入如下地方：
+
+```
+* Referenced by a CALL at Addresses:
+|:0043407F  , :00439225
+
+|
+:00439D20 55                           push ebp
+:00439D21 8BEC                         mov ebp, esp
+:00439D23 81EC00020000                 sub esp, 00000200
+:00439D29 56                           push esi
+:00439D2A 8B7510                         mov esi, dword ptr [ebp+10]
+:00439D2D 85F6                         test esi, esi
+:00439D2F 57                           push edi
+:00439D30 7403                         je 00439D35
+:00439D32 832600                         and dword ptr [esi], 00000000
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00439D30(C)
+|
+:00439D35 FF750C                         push [ebp+0C]
+:00439D38 8D8500FFFFFF                   lea eax, dword ptr [ebp+FFFFFF00]
+:00439D3E 50                           push eax
+:00439D3F E8E0FEFFFF                   call 00439C24
+:00439D44 FF7508                         push [ebp+08]
+:00439D47 E804FFFFFF                   call 00439C50  <--核心 CALL，按 F8 进入
+:00439D4C 8BF8                         mov edi, eax  <--EDI 和 EAX 中的内容均为第一个注册码
+:00439D4E 83C40C                         add esp, 0000000C
+:00439D51 81FF26DDDCB8                   cmp edi, B8DCDD26
+:00439D57 0F84FE000000                   je 00439E5B  <--这里一定不能跳转
+:00439D5D 8D8500FFFFFF                   lea eax, dword ptr [ebp+FFFFFF00]
+:00439D63 50                           push eax
+:00439D64 8D8500FEFFFF                   lea eax, dword ptr [ebp+FFFFFE00]
+:00439D6A 57                           push edi
+:00439D6B 50                           push eax
+:00439D6C E862FFFFFF                   call 00439CD3
+:00439D71 59                           pop ecx  <--按 D EAX 可以看到第一个正确的注册码
+:00439D72 59                           pop ecx
+:00439D73 50                           push eax
+
+* Reference To: CRTDLL.strcmp, Ord:01CFh
+
+                                |
+:00439D74 E8FF3A0000                   Call 0043D878
+:00439D79 59                           pop ecx
+:00439D7A 85C0                         test eax, eax
+:00439D7C 59                           pop ecx
+:00439D7D 0F84A0000000                   je 00439E23
+:00439D83 8D8500FFFFFF                   lea eax, dword ptr [ebp+FFFFFF00]
+:00439D89 50                           push eax
+:00439D8A 8D8748190514                   lea eax, dword ptr [edi+14051948]
+:00439D90 50                           push eax
+:00439D91 8D8500FEFFFF                   lea eax, dword ptr [ebp+FFFFFE00]
+:00439D97 50                           push eax
+:00439D98 E836FFFFFF                   call 00439CD3
+:00439D9D 59                           pop ecx  <--按 D EAX 可以看到第二个正确的注册码
+:00439D9E 59                           pop ecx
+:00439D9F 50                           push eax
+
+* Reference To: CRTDLL.strcmp, Ord:01CFh
+
+                                |
+:00439DA0 E8D33A0000                   Call 0043D878
+:00439DA5 59                           pop ecx
+:00439DA6 85C0                         test eax, eax
+:00439DA8 59                           pop ecx
+:00439DA9 7478                         je 00439E23
+:00439DAB 8D8500FFFFFF                   lea eax, dword ptr [ebp+FFFFFF00]
+:00439DB1 50                           push eax
+```
+
+
+
+### 代码段分析
+
+:00439DB2 `8D8754190617`   `lea eax, dword ptr [edi+17061954]`
+
+:00439DB8 `50`             `push eax`
+
+:00439DB9 `8D8500FEFFFF`   `lea eax, dword ptr [ebp+FFFFFE00]`
+
+:00439DBF `50`             `push eax`
+
+:00439DC0 `E80EFFFFFF`     `call 00439CD3`
+
+:00439DC5 `59`             `pop ecx` <--按 `D` `EAX` 可以看到第三个正确的注册码
+
+:00439DC6 `59`             `pop ecx`
+
+:00439DC7 `50`             `push eax`
+
+`Reference To: CRTDLL.strcmp, Ord:01CFh`
+
+:00439DC8 `E8AB3A0000`     `Call 0043D878`
+
+:00439DCD `59`             `pop ecx`
+
+:00439DCE `85C0`           `test eax, eax`
+
+:00439DD0 `59`             `pop ecx`
+
+:00439DD1 `7450`           `je 00439E23`
+
+:00439DD3 `8D8500FFFFFF`   `lea eax, dword ptr [ebp+FFFFFF00]`
+
+:00439DD9 `50`             `push eax`
+
+:00439DDA `8D8781190510`   `lea eax, dword ptr [edi+10051981]`
+
+:00439DE0 `50`             `push eax`
+
+:00439DE1 `8D8500FEFFFF`   `lea eax, dword ptr [ebp+FFFFFE00]`
+
+:00439DE7 `50`             `push eax`
+
+:00439DE8 `E8E6FEFFFF`     `call 00439CD3`
+
+:00439DED `59`             `pop ecx` <--按 `D` `EAX` 可以看到第四个正确的注册码
+
+:00439DEE `59`             `pop ecx`
+
+:00439DEF `50`             `push eax`
+
+`Reference To: CRTDLL.strcmp, Ord:01CFh`
+
+:00439DF0 `E8833A0000`     `Call 0043D878`
+
+:00439DF5 `59`             `pop ecx`
+
+:00439DF6 `85C0`           `test eax, eax`
+
+:00439DF8 `59`             `pop ecx`
+
+:00439DF9 `7455`           `je 00439E50`
+
+:00439DFB `8D8500FFFFFF`   `lea eax, dword ptr [ebp+FFFFFF00]`
+
+:00439E01 `50`             `push eax`
+
+:00439E02 `8D8795190104`   `lea eax, dword ptr [edi+04011995]`
+
+:00439E08 `50`             `push eax`
+
+:00439E09 `8D8500FEFFFF`   `lea eax, dword ptr [ebp+FFFFFE00]`
+
+:00439E0F `50`             `push eax`
+
+:00439E10 `E8BEFEFFFF`     `call 00439CD3`
+
+:00439E15 `59`             `pop ecx` <--按 `D` `EAX` 可以看到第五个正确的注册码
+
+:00439E16 `59`             `pop ecx`
+
+:00439E17 `50`             `push eax`
+
+`Reference To: CRTDLL.strcmp, Ord:01CFh`
+
+:00439E18 `E85B3A0000`     `Call 0043D878`
+
+:00439E1D `59`             `pop ecx`
+
+:00439E1E `85C0`           `test eax, eax`
+
+:00439E20 `59`             `pop ecx`
+
+:00439E21 `7505`           `jne 00439E28`
+
+`Referenced by a (U)nconditional or (C)onditional Jump at Addresses: :00439D7D(C), :00439DA9(C), :00439DD1(C)`
+
+:00439E23 `6A01`           `push 00000001`
+
+:00439E25 `58`             `pop eax`
+
+:00439E26 `EB35`           `jmp 00439E5D`
+
+`Referenced by a (U)nconditional or (C)onditional Jump at Address: :00439E21(C)`
+
+:00439E28 `8D8500FFFFFF`   `lea eax, dword ptr [ebp+FFFFFF00]`
+
+:00439E2E `81C797190602`   `add edi, 02061997`
+
+:00439E34 `50`             `push eax`
+
+:00439E35 `8D8500FEFFFF`   `lea eax, dword ptr [ebp+FFFFFE00]`
+
+:00439E3B `57`             `push edi`
+
+:00439E3C `50`             `push eax`
+
+:00439E3D `E891FEFFFF`     `call 00439CD3`
+
+:00439E42 `59`             `pop ecx` <--按 `D` `EAX` 可以看到第六个正确的注册码
+
+:00439E43 `59`             `pop ecx`
+
+:00439E44 `50`             `push eax`
+
+`Reference To: CRTDLL.strcmp, Ord:01CFh`
+
+:00439E45 `E82E3A0000`     `Call 0043D878`
+
+:00439E4A `59`             `pop ecx`
+
+:00439E4B `85C0`           `test eax, eax`
+
+:00439E4D `59`             `pop ecx`
+
+:00439E4E `750B`           `jne 00439E5B` <--这里也一定不能跳转
+
+`Referenced by a (U)nconditional or (C)onditional Jump at Address: :00439DF9(C)`
+
+:00439E50 `6A01`           `push 00000001`
+
+:00439E52 `85F6`           `test esi, esi`
+
+:00439E54 `58`             `pop eax`
+
+:00439E55 `7406`           `je 00439E5D`
+
+:00439E57 `8906`           `mov dword ptr [esi], eax`
+
+:00439E59 `EB02`           `jmp 00439E5D`
+
+`Referenced by a (U)nconditional or (C)onditional Jump at Addresses: :00439D57(C), :00439E4E(C)`
+
+:00439E5B `33C0`           `xor eax, eax` <--如果跳到这里的话就 `OVER` 了
+
+`Referenced by a (U)nconditional or (C)onditional Jump at Addresses: :00439E26(U), :00439E55(C), :00439E59(U)`
+
+:00439E5D `5F`             `pop edi`
+
+:00439E5E `5E`             `pop esi`
+
+:00439E5F `C9`             `leave`
+
+:00439E60 `C3`             `ret`
+
+上面的那个 `CALL` 进入后会来到如下地方：
+
+`Referenced by a CALL at Addresses: :00433C57, :00433C69, :00439D47`
+
+:00439C50 `55`             `push ebp`
+
+:00439C51 `8BEC`           `mov ebp, esp`
+
+:00439C53 `81EC04010000`   `sub esp, 00000104`
+
+:00439C59 `FF7508`         `push [ebp+08]`
+
+:00439C5C `8D85FCFEFFFF`   `lea eax, dword ptr [ebp+FFFFFEFC]`
+
+:00439C62 `C745FC4C694700`  `mov [ebp-04], 0047694C` <--赋初值到 `[EBP-04]`
+
+:00439C69 `50`             `push eax`
+
+:00439C6A `E8B5FFFFFF`     `call 00439C24` <--把用户名复制到内存另一个区域，并把所有的小写转换成大写
+
+:00439C6F `59`             `pop ecx`
+
+:00439C70 `8D85FCFEFFFF`   `lea eax, dword ptr [ebp+FFFFFEFC]`
+
+:00439C76 `59`             `pop ecx`
+
+:00439C77 `50`             `push eax`
+
+`Reference To: KERNEL32.lstrlenA, Ord:0308h`
+
+:00439C78 `FF15C8F84400`   `Call dword ptr [0044F8C8]`
+
+:00439C7E `33C9`           `xor ecx, ecx`
+
+:00439C80 `894508`         `mov dword ptr [ebp+08], eax`
+
+:00439C83 `85C0`           `test eax, eax`
+
+:00439C85 `7E47`           `jle 00439CCE`
+
+:00439C87 `53`             `push ebx`
+
+:00439C88 `56`             `push esi`
+
+:00439C89 `8DB5FCFEFFFF`   `lea esi, dword ptr [ebp+FFFFFEFC]`
+
+:00439C8F `57`             `push edi`
+
+:00439C90 `8B7D08`         `mov edi, dword ptr [ebp+08]`
+
+:00439C93 `83EE03`         `sub esi, 00000003`
+
+`Referenced by a (U)nconditional or (C)onditional Jump at Address: :00439CC9(C)`
+
+:00439C96 `8BC1`           `mov eax, ecx`
+
+:00439C98 `6A0E`           `push 0000000E`
+
+:00439C9A `99`             `cdq`
+
+:00439C9B `5B`             `pop ebx`
+
+:00439C9C `F7FB`           `idiv ebx`
+
+:00439C9E `85D2`           `test edx, edx`
+
+:00439CA0 `7503`           `jne 00439CA5`
+
+:00439CA2 `6A27`           `push 00000027`
+
+:00439CA4 `5F`             `pop edi` <--`EDI` 置初始值 `0x27`
+
+`Referenced by a (U)nconditional or (C)onditional Jump at Address: :00439CA0(C)`
+
+:00439CA5 `0FB6540E03`     `movzx edx, byte ptr [esi+ecx+03]` <--`[ESI+03]` 中为用户名
+
+:00439CAA `8D4103`         `lea eax, dword ptr [ecx+03]`
+
+:00439CAD `0FAFD7`         `imul edx, edi`
+
+:00439CB0 `0155FC`         `add dword ptr [ebp-04], edx`
+
+:00439CB3 `6A0E`           `push 0000000E`
+
+:00439CB5 `99`             `cdq`
+
+:00439CB6 `5B`             `pop ebx`
+
+:00439CB7 `F7FB`           `idiv ebx` <--`EAX` 除以 `0xE`
+
+:00439CB9 `85D2`           `test edx, edx` <--判断余数是否为零
+
+:00439CBB `7405`           `je 00439CC2` <--是的话则跳转
+
+:00439CBD `8D3C7F`         `lea edi, dword ptr [edi+2*edi]`
+
+:00439CC0 `EB03`           `jmp 00439CC5`
+
+`Referenced by a (U)nconditional or (C)onditional Jump at Address: :00439CBB(C)`
+
+:00439CC2 `6BFF07`         `imul edi, 00000007`
+
+`Referenced by a (U)nconditional or (C)onditional Jump at Address: :00439CC0(U)`
+
+
+
+```
+:00439CC5 41                   inc ecx
+:00439CC6 3B4D08               cmp ecx, dword ptr [ebp+08]   <--比较 ECX 中的数是否大于[EBP+08]
+:00439CC9 7CCB                 jl 00439C96
+:00439CCB 5F                   pop edi
+:00439CCC 5E                   pop esi
+:00439CCD 5B                   pop ebx
+```
+
+`Referenced by a (U)nconditional or (C)onditional Jump at Address:`
+
+`|:00439C85(C)`
+
+`|`
+
+```
+:00439CCE 8B45FC              mov eax, dword ptr [ebp-04]
+:00439CD1 C9                  leave
+:00439CD2 C3                  ret
+```
+
+`4dd466d0e1e0cc123afbe504da2462ca`

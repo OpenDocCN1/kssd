@@ -1,0 +1,698 @@
+
+# Screen logger manager v1
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum1147.htm`](https://www.pediy.com/kssd/pediy03/forum1147.htm)
+
+`Screen logger manager v1.01` 和 `Fileprot` 基本一样,不过没有在 `vxd` 中的校验部分,注册机算法部分没有按照他的计算过程重写,二十在 `fileprot` 的基础上少加改动,可能存在不"兼容",不过我试了几个,还好用,不知有没有不能用的,不过我觉得因该都能用的,作者主页上 `http://www.mikkotech.com/` 共有三个作品,除了被破掉的 `fileprot` 和 `Screen logger manager`, 还有一个 `keykey2000`,也差不多,做人不能太绝!所以就不破他了,不过初学者可以用来练习写注册机...
+
+编译好的注册机下载:
+
+`http://ia2k.myetang.com/hack/crkslm.exe`
+
+源码:
+
+```asm
+;******** hd.h
+
+       include c:\masm32\include\windows.inc
+   include c:\masm32\include\user32.inc
+   include c:\masm32\include\kernel32.inc
+   include c:\masm32\include\gdi32.inc
+   include c:\masm32\include\comctl32.inc
+   include c:\masm32\include\comdlg32.inc
+   include c:\masm32\include\shell32.inc
+   includelib c:\masm32\lib\user32.lib
+   includelib c:\masm32\lib\kernel32.lib
+   includelib c:\masm32\lib\gdi32.lib
+   includelib c:\masm32\lib\comctl32.lib
+   includelib c:\masm32\lib\comdlg32.lib
+   includelib c:\masm32\lib\shell32.lib
+
+;******** crkslm.rc
+
+#include <c:\masm32\include\resource.h>
+
+#define ID_GEN    1003
+#define ID_EXIT  1002
+#define IDC_OUT  1001
+#define DLG_MAIN  1000
+
+DLG_MAIN DIALOG 37, 61, 282, 59
+
+STYLE DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+
+CAPTION "Screen Logger Manager V1.01 Keygen(in ASM), By Hume..."
+
+FONT 8, "MS Sans Serif"
+
+{
+
+DEFPUSHBUTTON "Generate", ID_GEN, 209, 14, 50, 14
+
+PUSHBUTTON "Exit", ID_EXIT, 209, 36, 50, 14
+
+LTEXT "NAME:", -1, 15, 8, 36, 8
+
+LTEXT "COMPANY:", -1, 15, 25, 39, 8
+
+LTEXT "PRODUCT ID:", -1, 15, 43, 49, 10
+
+CONTROL "Hume Wen", -1, "EDIT", ES_MULTILINE | WS_BORDER | WS_TABSTOP, 67, 6, 48, 13
+
+CONTROL "BCG", -1, "EDIT", ES_MULTILINE | WS_BORDER | WS_TABSTOP, 67, 23, 71, 13
+
+EDITTEXT IDC_OUT, 67, 42, 130, 12, ES_READONLY | WS_BORDER | WS_TABSTOP
+
+}
+
+;******** crkslm.asm
+
+.386
+.model flat,stdcall
+option casemap:none
+include hd.h
+_ProcDlg proto :DWORD,:DWORD,:DWORD,:DWORD
+rand proto :DWORD
+
+;->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>data seg
+
+   .data
+esp_10 db 0  ;保存 ecx+5
+esp_04 db 0  ;保存高 4 位
+esp_08 db 0  ;保存低 4 位
+flg    db 0
+rand_init db 0
+rand_out  db 0
+Serial db 32 dup(0)
+
+   .data?
+hInstance  HANDLE ?
+
+   .const
+ID_GEN    equ  1003
+ID_EXIT  equ    1002
+IDC_OUT  equ    1001
+DLG_MAIN  equ    1000
+
+ ;-->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>code seg
+
+   .code
+start:
+
+  invoke    GetModuleHandle,NULL
+  mov    hInstance,eax
+  invoke    DialogBoxParam,hInstance,DLG_MAIN,NULL,offset _ProcDlg,0
+  invoke    ExitProcess,NULL
+
+_ProcDlg    proc    uses ebx edi esi, \
+   hWnd:DWORD,wMsg:DWORD,wParam:DWORD,lParam:DWORD
+   mov    eax,wMsg
+   .if    eax == WM_CLOSE
+     invoke    EndDialog,hWnd,NULL
+   .elseif    eax == WM_COMMAND
+     mov eax,wParam
+     .IF lParam!=0
+       .if ax==ID_GEN
+         invoke RtlZeroMemory,addr Serial,32
+         call Cal
+         invoke SetDlgItemText,hWnd,IDC_OUT,addr Serial
+       .elseif ax==ID_EXIT
+         invoke SendMessage,hWnd,WM_CLOSE,NULL,NULL
+       .endif
+     .ENDIF
+   .else
+     mov eax,FALSE
+     ret
+       .endif
+
+   mov eax,TRUE
+   ret
+
+_ProcDlg    ENDP
+
+include  cal.asm
+
+end start
+
+;******** cal.asm
+
+Cal    proc
+   PUSHAD
+   lea ecx, Serial
+   mov byte ptr [ecx],'S'
+   mov byte ptr [ecx+1],'L'
+   mov byte ptr [ecx+2],'1'
+   mov byte ptr [ecx+3],'0'
+   mov al, 2Dh
+   mov byte ptr [ecx+4],al
+   mov byte ptr [ecx+7],al
+   mov byte ptr [ecx+0bh],al
+   mov byte ptr [ecx+0Dh],al
+   mov byte ptr [ecx+1ch],al
+
+GenerateAgain:
+   mov al,flg
+   .if al!=30h
+   mov al,30h
+   .else
+   mov al,31h
+   .endif
+   mov flg,al
+   mov byte ptr [ecx+0ch],al
+   .if al==0
+   mov eax,3930h          ;ah=0,al=39
+   .endif
+   mov eax,4630h
+   call randomize
+   invoke rand,eax
+   mov bl,rand_out
+   mov byte ptr [ecx+0fh],bl
+   invoke rand,eax
+   mov bl,rand_out
+   mov byte ptr [ecx+10h],bl
+   invoke rand,eax
+   mov bl,rand_out
+   mov byte ptr [ecx+11h],bl
+   invoke rand,eax
+   mov bl,rand_out
+   mov byte ptr [ecx+12h],bl
+   invoke rand,eax
+   mov bl,rand_out
+   mov byte ptr [ecx+15h],bl
+   invoke rand,eax
+   mov bl,rand_out
+   mov byte ptr [ecx+16h],bl
+   invoke rand,eax
+   mov bl,rand_out
+   mov byte ptr [ecx+17h],bl
+   invoke rand,eax
+   mov bl,rand_out
+   mov byte ptr [ecx+19h],bl
+   mov eax,3930h
+   invoke rand,eax
+   mov bl,rand_out
+   mov byte ptr [ecx+5],bl
+   invoke rand,eax
+   mov bl,rand_out
+   mov byte ptr [ecx+6],bl
+   mov eax,3930h
+   invoke rand,eax
+   mov bl,rand_out
+   mov byte ptr [ecx+8],bl
+   invoke rand,eax
+   mov bl,rand_out
+   mov byte ptr [ecx+9],bl
+   invoke rand,eax
+   mov bl,rand_out
+   mov byte ptr [ecx+0Ah],bl
+
+;******** The following is the first verifying part:
+
+   mov dl, byte ptr [ecx+05]  ;dl<-ecx+5
+   mov bl, byte ptr [ecx+08]  ;bl<-ecx+8
+   mov byte ptr esp_10, dl    ;save to esp_10
+   mov al, byte ptr [ecx+19h]  ;//add the instruction to complete the following
+   mov dl, byte ptr [ecx+17h]  ;al=ecx+19 add 17,16,15,12,11,10,F
+   add al, dl
+   mov dl, byte ptr [ecx+16h]
+   add al, dl
+   mov dl, byte ptr [ecx+15h]
+   add al, dl
+   mov dl, byte ptr [ecx+12h]
+   add al, dl
+   mov dl, byte ptr [ecx+11h]
+   add al, dl
+   mov dl, byte ptr [ecx+10h]
+   add al, dl
+   mov dl, byte ptr [ecx+0Fh]
+   add al, dl
+   mov dl, byte ptr esp_10    ;dl=saved  ecx+5 (al xor dl)
+   xor al, dl
+   mov dl, byte ptr [ecx+0Ch]  ;刚才的运算结果 al 与 5,0C,8,5 位依次 xor,再与 23h xor
+   xor al, bl                  ;bl=ecx+8
+   xor al, dl
+   xor al, 23h
+   mov dl, al                  ;校验结果存为 al,dl
+   shr dl, 4                  ;去掉低 4 位,将其转化为 0~F 的字符
+   add dl, 30h
+   cmp dl, 39h
+   mov byte ptr esp_04, dl    ;存放去掉低 4 位的高四位结果
+   jbe RA_0E38C
+   add dl, 7
+   mov byte ptr esp_04, dl
+
+RA_0E38C:
+   and al, 0Fh
+   add al, 30h
+   cmp al, 39h
+   mov byte ptr esp_08, al    ;存放低四位转化为 0~F 字符
+   jbe RA_0E39E
+   add al, 7
+   mov byte ptr esp_08, al
+
+RA_0E39E:
+   mov byte ptr [ecx+14h],al  ;取 ecx+13    标志 1********
+       mov al,esp_04
+       mov byte ptr [ecx+14],al    ;ecx+14       标志 2*********
+
+;******** process 1A,1B flag
+
+   mov al, byte ptr [ecx+0Ah]  ;(ECX+0A) +'F',XOR ECX+9 XOR ECX+14 XOR ECX+13
+   add al, 46h
+   xor al, byte ptr [ecx+09]
+   xor al, dl
+   mov dl, byte ptr [ecx+13h]
+   xor al, dl
+   xor al, bl                  ;XOR BL=ECX+8  与 41h 异或得到结果
+   xor al, 41h
+   mov dl, al
+   shr dl, 4                  ;高位转化为 0~f 字符 ->esp_04
+   add dl, 30h
+   cmp dl, 39h
+   mov byte ptr esp_04, dl
+   jbe RA_0E3F9
+   add dl, 7
+   mov byte ptr esp_04, dl
+
+RA_0E3F9:
+   and al, 0Fh
+   add al, 30h
+   cmp al, 39h
+```
+
+
+
+```
+mov byte ptr esp_08, al     ;低位化为 0~f 字符 ->esp_08   
+
+jbe RA_0E40B   
+
+add al, 7   
+
+mov byte ptr esp_08, al   
+
+RA_0E40B:   
+
+mov byte ptr [ecx+1Bh],al  ;ecx+1Bh 标志 4*****************   
+
+mov al, esp_04   
+
+
+mov byte ptr [ecx+1Ah],al    ;ecx+1A  标志 3*******************   
+
+;***************************the following are 0E and 18h offset processing   
+
+mov al, byte ptr [ecx+6]     ;ecx+06 xor ecx+14  xor 13 xor ecx+5   
+
+             ;与 ABh 数字异或得到结果   
+
+mov dl, byte ptr [ecx+14h]   
+
+xor al, dl   
+
+mov dl, byte ptr [ecx+13h]   
+
+xor al, dl   
+
+mov dl, byte ptr esp_10        ;esp_10=ecx+5   
+
+xor al, dl   
+
+xor al, 0ABh   
+
+mov dl, al   
+
+shr dl, 4   
+
+add dl, 30h   
+
+cmp dl, 39h   
+
+mov byte ptr esp_04, dl        ;高 4 位   
+
+jbe RA_0E464   
+
+add dl, 7   
+
+mov byte ptr esp_04, dl   
+
+RA_0E464:   
+
+and al, 0Fh   
+
+add al, 30h   
+
+cmp al, 39h   
+
+mov byte ptr esp_08, al    ;低 4 位   
+
+jbe RA_0E476   
+
+add al, 7   
+
+mov byte ptr esp_08, al   
+
+RA_0E476:   
+
+mov byte ptr [ecx+18h],al  ;ecx+18 标志 5*******************   
+
+mov al, esp_04   
+
+mov byte ptr [ecx+0Eh],al  ;ecx+0E 标志 6**********************   
+
+;*****************************************************************1D,1E flag   
+
+mov al, byte ptr [ecx+1Ah]     ;1A,0c   
+
+mov dl, byte ptr [ecx+0Ch]   
+
+mov bl, byte ptr [ecx+8]   
+
+xor bl, al                   ;ecx+8 xor 1A xor 0C xor 数字 63h 最后结果   
+
+xor bl, dl   
+
+xor bl, 63h   
+
+mov dl, bl   
+
+mov al, dl   
+
+shr al, 4                   ;高四位   
+
+add al, 30h   
+
+cmp al, 39h   
+
+mov byte ptr esp_04, al   
+
+jbe RA_0E4BC   
+
+add al, 7   
+
+mov byte ptr esp_04, al   
+
+RA_0E4BC:   
+
+and dl, 0Fh                   ;低四位   
+
+add dl, 30h   
+
+cmp dl, 39h   
+
+mov byte ptr esp_08, dl   
+
+jbe RA_0E4D2   
+
+add dl, 7   
+
+mov byte ptr esp_08, dl   
+
+RA_0E4D2:   
+
+mov byte ptr [ecx+1Eh],dl    ;ecx+1D  标志 7**************   
+
+mov al,esp_04   
+
+mov byte ptr [ecx+1Dh],al      ;ecx+1E 标志 8****************   
+
+;*********************************************************************************************************   
+
+;**********************************************************************partII,修正   
+
+lea ebx,Serial           ;//add the interface   
+
+mov al, byte ptr [ebx+0Fh]   
+
+add al, byte ptr [ebx+10h]   
+
+add al, byte ptr [ebx+11h]   
+
+add al, byte ptr [ebx+12h]   
+
+add al, byte ptr [ebx+15h]   
+
+add al, byte ptr [ebx+16h]   
+
+add al, byte ptr [ebx+17h]   
+
+add al, byte ptr [ebx+19h]   
+
+xor al, byte ptr [ebx]   
+
+;add them ->al 与 0x46,ebx+5,0C,8,5 位依次 xor,再与 0x58,0x3D xor   
+
+xor al, byte ptr [ebx+5]   
+
+xor al, byte ptr [ebx+8]   
+
+xor al, byte ptr [ebx+0Ch]   
+
+xor al, 58h   
+
+xor al, 3Dh   
+
+mov ah, al   
+
+shr al, 4   
+
+add al, 30h   
+
+cmp al, 39h   
+
+jbe RA_01BF2  ;convert high and low part to ascII   
+
+add al, 7   
+
+RA_01BF2:   
+
+and ah, 0Fh   
+
+add ah, 30h   
+
+cmp ah, 39h   
+
+jbe RA_01C00   
+
+add ah, 7   
+
+RA_01C00:   
+
+mov byte ptr [ebx+13h], al ;ebx+13==high   
+
+mov byte ptr [ebx+14h], ah ;ebx+14==low   
+
+;+++++++++++++++++++++++++++++++   
+
+mov al, byte ptr [ebx]   
+
+add al, byte ptr [ebx+0Ah] ;'F' xor ebx+01,2,3,8,9,13,14 xor 0x18->al   
+
+xor al, byte ptr [ebx+01h]   
+
+xor al, byte ptr [ebx+02h]   
+
+xor al, byte ptr [ebx+03h]   
+
+xor al, byte ptr [ebx+08h]   
+
+xor al, byte ptr [ebx+09h]   
+
+xor al, byte ptr [ebx+13h]   
+
+xor al, byte ptr [ebx+14h]   
+
+xor al, 18h   
+
+mov ah, al   
+
+shr al, 04h   
+
+add al, 30h   
+
+cmp al, 39h   
+
+jbe RA_01C2F   
+
+add al, 07h   
+
+RA_01C2F:   
+
+and ah, 0Fh   
+
+add ah, 30h   
+
+cmp ah, 39h   
+
+jbe RA_01C3D   
+
+add ah, 07h   
+
+RA_01C3D:   
+
+mov byte ptr [ebx+1Ah], al ;ebx+1A==high   
+
+mov byte ptr [ebx+1Bh], ah ;ebx+1B==low part   
+
+;+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++   
+
+mov al, byte ptr [ebx+13h]   
+
+xor al, byte ptr [ebx+14h]   
+
+xor al, byte ptr [ebx+05h]   
+
+xor al, byte ptr [ebx+06h] ;ebx+13,14,5,6 xor 0xAB->al   
+
+xor al, 0ABh   
+
+mov ah, al   
+
+shr al, 04h   
+
+add al, 30h   
+
+cmp al, 39h   
+
+jbe RA_01C5E   
+
+add al, 07h   
+
+RA_01C5E:   
+
+and ah, 0Fh   
+
+add ah, 30h   
+
+cmp ah, 39h   
+
+jbe RA_01C6C   
+
+add ah, 07h   
+
+RA_01C6C:   
+
+mov byte ptr [ebx+0Eh], al ;ebx+0E==high   
+
+mov byte ptr [ebx+18h], ah ;ebx+18==Low   
+
+;+++++++++++++++++++++++++++++++++++++++++++++++++++   
+
+mov al, byte ptr [ebx+1Ah] ;ebx+1A,1B,0C xor 0x 63   
+
+xor al, byte ptr [ebx+1Bh]   
+
+xor al, byte ptr [ebx+0Ch]   
+
+xor al, 63h   
+
+mov ah, al   
+
+shr al, 04h   
+
+add al, 30h   
+
+cmp al, 39h   
+
+jbe RA_01C8A   
+
+add al,7   
+
+RA_01C8A:   
+
+and ah, 0Fh   
+
+add ah, 30h   
+
+cmp ah, 39h   
+
+jbe RA_01C98   
+
+add ah,7   
+
+RA_01C98:   
+
+mov byte ptr [ebx+1Dh], al ;ebx+1D==high   
+
+mov byte ptr [ebx+1Eh], ah ;ebx+1E==Low   
+
+;++++++++++++++++++++++++++++++++++++++++ over!!!!!!!!!!!!!   
+
+POPAD   
+
+Cal    endp   
+
+randomize    proc   
+
+   pushad   
+
+   mov ebx,[esp+10h]   
+
+   mov rand_init,bl   
+
+   popad   
+
+   ret   
+
+   randomize    endp   
+
+   rand    proc range   
+
+   LOCAL @stime:SYSTEMTIME   
+
+   pushad   
+
+   invoke GetSystemTime,addr @stime   
+
+   mov eax,range   
+
+   .if ah==al   
+
+   mov bl,al   
+
+   jmp rand_exit   
+
+   .endif   
+
+   mov bx,@stime.wMilliseconds   
+
+   mov ecx,1000   
+
+   randlop:dec ecx   
+
+       jnz next   
+
+   mov bl,38h   
+
+   jmp rand_exit   
+
+ next:   
+
+       add bh,bl       
+
+
+   add bl,rand_init   
+
+   add bl,2       
+
+
+   cmp bl,al   
+
+   jb  randlop   
+
+   cmp bl,ah   
+
+   ja  randlop   
+
+rand_exit:   
+
+   add rand_init,3   
+
+   mov rand_out,bl   
+
+   popad   
+
+   ret   
+
+   rand    endp  4dd466d0e1e0cc123afbe504da2462ca
+```

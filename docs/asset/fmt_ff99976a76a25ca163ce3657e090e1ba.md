@@ -1,0 +1,218 @@
+
+# 观察者 1.6
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum1291.htm`](https://www.pediy.com/kssd/pediy03/forum1291.htm)
+
+## 观察者 1.6 算法与注册机
+
+By `Nydoll[CCG]`
+
+这个东西其实很简单，但是也不是直接就可以找到算法，因为它的机器码计算以及注册码计算都是在打开注册窗口时才开始的。在输入注册码后下断点都只能找到注册码而无法发现它的具体算法。所以我用的方法是先反汇编解决，反汇编找到“您已是 Observer (观察者)注册用户!” 向上翻就是它的注册算法了：
+
+// 上面省略一部分计算机器码的代码，因为这些代码可以不考虑在注册机里。
+
+```assembly
+:004038F4 57                      push edi                //EDI 中为经过计算的机器代码。
+:004038F5 6831010000              push 0000131
+:004038FA FF7508                  push [ebp+08]           |
+:004038FD E8F6370000              Call 004070F8
+:00403902 8A5DF8                  mov bl, byte ptr [ebp-08] //取机器码倒数第 7 位
+:00403905 3A5DF9                  cmp bl, byte ptr [ebp-07] //取机器码倒数第 6 位
+:00403908 7C0F                    jl 00403919             //对比两个数，用大数减去小数，差放到 EDX 中
+:0040390A 0FBE5DF8                movsx ebx, byte ptr [ebp-08]
+:0040390E 0FBE7DF9                movsx edi, byte ptr [ebp-07]
+:00403912 29FB                    sub ebx, edi
+:00403914 885DEC                  mov byte ptr [ebp-14], bl
+:00403917 EB0D                    jmp 00403926
+:00403919 0FBE5DF9                movsx ebx, byte ptr [ebp-07]
+:0040391D 0FBE7DF8                movsx edi, byte ptr [ebp-08]
+:00403921 29FB                    sub ebx, edi
+:00403923 885DEC                  mov byte ptr [ebp-14], bl
+:00403926 8A5DF6                  mov bl, byte ptr [ebp-0A] //取机器码倒数第 9 位
+:00403929 3A5DFB                  cmp bl, byte ptr [ebp-05] //取机器码倒数第 4 位
+:0040392C 7C0F                    jl 0040393D             //对比两个数，用大数减去小数，差放到 EDX 中
+:0040392E 0FBE5DF6                movsx ebx, byte ptr [ebp-0A]
+:00403932 0FBE7DFB                movsx edi, byte ptr [ebp-05]
+:00403936 29FB                    sub ebx, edi
+:00403938 885DED                  mov byte ptr [ebp-13], bl
+:0040393B EB0D                    jmp 0040394A
+:0040393D 0FBE5DFB                movsx ebx, byte ptr [ebp-05]
+:00403941 0FBE7DF6                movsx edi, byte ptr [ebp-0A]
+:00403945 29FB                    sub ebx, edi
+:00403947 885DED                  mov byte ptr [ebp-13], bl
+:0040394A 8A5DF7                  mov bl, byte ptr [ebp-09] //取机器码倒数第 8 位
+:0040394D 3A5DFA                  cmp bl, byte ptr [ebp-06] //取机器码倒数第 5 位
+:00403950 7C0F                    jl 00403961             //对比两个数，用大数减去小数，差放到 EDX 中
+:00403952 0FBE5DF7                movsx ebx, byte ptr [ebp-09]
+:00403956 0FBE7DFA                movsx edi, byte ptr [ebp-06]
+:0040395A 29FB                    sub ebx, edi
+:0040395C 885DEE                  mov byte ptr [ebp-12], bl
+:0040395F EB0D                    jmp 0040396E
+:00403961 0FBE5DFA                movsx ebx, byte ptr [ebp-06]
+:00403965 0FBE7DF7                movsx edi, byte ptr [ebp-09]
+:00403969 29FB                    sub ebx, edi
+:0040396B 885DEE                  mov byte ptr [ebp-12], bl
+:0040396E 8A5DF5                  mov bl, byte ptr [ebp-0B] //取机器码倒数第 10 位
+:00403971 3A5DFC                  cmp bl, byte ptr [ebp-04] //取机器码倒数第 3 位
+:00403974 7C0F                    jl 00403985             //对比两个数，用大数减去小数，差放到 EDX 中
+:00403976 0FBE5DF5                movsx ebx, byte ptr [ebp-0B]
+:0040397A 0FBE7DFC                movsx edi, byte ptr [ebp-04]
+:0040397E 29FB                    sub ebx, edi
+:00403980 885DEF                  mov byte ptr [ebp-11], bl
+:00403983 EB0D                    jmp 00403992
+:00403985 0FBE5DFC                movsx ebx, byte ptr [ebp-04]
+:00403989 0FBE7DF5                movsx edi, byte ptr [ebp-0B]
+:0040398D 29FB                    sub ebx, edi
+:0040398F 885DEF                  mov byte ptr [ebp-11], bl
+```
+
+// 上面一部分代码根据机器码产生了 4 个值，不知道过程我说明白没有，在此重新复述一遍：比如我的机器码是 `D0F0111E16`，程序分别取他的第 5 位与第 6 位比较，第 8 位与第 3 位比较，第 7 位与第 4 位比较，第 9 位与第 2 位比较，然后用大数减去小数，值分别保存。所以通过我的机器码得到的 4 个数分别为：`1`，`1`，`5`，`1`。
+
+// 接下来是第二部分计算：
+
+```assembly
+:00403992 0FBE7DEC                movsx edi, byte ptr [ebp-14] //取计算完的第一个数 即 1 放入 EDI
+:00403996 83EF01                  sub edi, 00000001           //EDI=EDI-1
+:00403999 81E7FF000000            and edi, 000000FF           //结果与 255 进行按位与运算
+:0040399F 57                      push edi                    //保存运算结果
+
+// 省略一部分代码。
+
+:004039E1 0FBE7DED                movsx edi, byte ptr [ebp-13] //取上面计算的第二个值放入 EDI
+:004039E5 83EF02                  sub edi, 00000002           //EDI=EDI-2
+:004039E8 81E7FF000000            and edi, 000000FF           //结果与 255 进行按位与运算
+:004039EE 57                      push edi                    //保存运算结果
+
+// 省略一部分代码。
+
+:00403A30 0FBE7DEE                movsx edi, byte ptr [ebp-12] //取上面计算的第三个值放入 EDI
+:00403A34 83EF03                  sub edi, 00000003           //EDI=EDI-3
+:00403A37 81E7FF000000            and edi, 000000FF           //结果与 255 进行按位与运算
+:00403A3D 57                      push edi                    //保存运算结果
+
+// 省略一部分代码。
+
+:00403A7F 0FBE7DEF                movsx edi, byte ptr [ebp-11] //取上面计算的第四个值放入 EDI
+:00403A83 83EF04                  sub edi, 00000004           //EDI=EDI-4
+:00403A86 81E7FF000000            and edi, 000000FF           //结果与 255 进行按位与运算
+:00403A8C 57                      push edi                    //保存运算结果
+```
+
+// 至此全部注册码计算结束，让我们再来回顾一下。第一部分计算我们已经得到了 4 个中间数据：`1`，`1`，`5`，`1`。
+
+// 在第二部分中程序作出了以下计算：`(1-1) AND 255`，`(1-2) AND 255`，`(5-3) AND 255`，`(1-1) AND 255`，同样得出 4 个结果，他们的 16 进制累计值就是真正的注册码，我的是 `00FF32FD` ^_^
+
+// Possible StringData Ref from Data Obj -> `"谢谢您试用 Observer (观察者)！"` // 验证成功时的信息。
+
+```assembly
+:00403B04 68A5A94000              push 0040A9A5
+:00403B09 6A00                    push 00000000
+:00403B0B 6880010000              push 00000180
+:00403B10 FF75F0                  push [ebp-10]
+```
+
+// 下面是 VB 的注册机，写的又臭又长，请高手帮忙改改
+
+```vb
+Dim c_num As Integer
+Dim a, b, c, e, d, f As Integer
+
+c_num = Len(Trim(Text1.Text))
+d = c_num - 5
+a = Mid(Text1, d, 1)
+d = c_num - 6
+b = Mid(Text1, d, 1)
+a = Asc(a)
+b = Asc(b)
+
+If a > b Then
+    a = a - b
+Else
+    a = b - a
+End If
+
+a = (a - 1) And 255
+a = Hex(a)
+c_num = Len(a)
+
+If c_num = 1 Then
+    a = a & "0"
+End If
+
+c_num = Len(Trim(Text1.Text))
+d = c_num - 8
+b = Mid(Text1.Text, d, 1)
+d = c_num - 3
+c = Mid(Text1, d, 1)
+c = Asc(c)
+b = Asc(b)
+
+If c > b Then
+    b = c - b
+Else
+    b = b - c
+End If
+
+b = (b - 2) And 255
+b = Hex(b)
+c_num = Len(b)
+
+If c_num = 1 Then
+    b = b & "0"
+End If
+
+c_num = Len(Trim(Text1.Text))
+d = c_num - 7
+c = Mid(Text1.Text, d, 1)
+d = c_num - 4
+d = Mid(Text1, d, 1)
+c = Asc(c)
+d = Asc(d)
+
+If c > d Then
+    c = c - d
+Else
+    c = d - c
+End If
+
+c = (c - 3) And 255
+c = Hex(c)
+c_num = Len(c)
+
+If c_num = 1 Then
+    c = c & "0"
+End If
+
+c_num = Len(Trim(Text1.Text))
+d = c_num - 9
+e = Mid(Text1.Text, d, 1)
+f = c_num - 2
+d = Mid(Text1, f, 1)
+e = Asc(e)
+d = Asc(d)
+
+If e > d Then
+    d = e - d
+Else
+    d = d - e
+End If
+
+d = (d - 4) And 255
+d = Hex(d)
+c_num = Len(d)
+
+If c_num = 1 Then
+    d = d & "0"
+End If
+
+Text2.Text = a & b & c & d
+```
+
+// ENDB
+
+本人现在正在学习 `VC` 和 `DEPHI`，请各位大客务必写出一个这两种语言的注册机，小弟感激不尽！
+
+`Nydoll`
+`CHiNA CrACKiNG GrOUp`
+
+`4dd466d0e1e0cc123afbe504da2462ca`

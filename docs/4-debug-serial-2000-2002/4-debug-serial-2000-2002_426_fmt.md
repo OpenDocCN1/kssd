@@ -1,0 +1,151 @@
+
+# PageBuilder V3.0c1
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum620.htm`](https://www.pediy.com/kssd/pediy03/forum620.htm)
+
+TafWeb 出品的 `PageBuilder V3.0c1`
+
+TafWeb 出品的 `PageBuilder V3.0c1` 版本日期 1999-08-26，下载地址：`http://download.sina.com.cn/scgi/click.pl?s_id=884&href=1&ants=/pbldr_30.zip`。用过的网页设计工具不多，这个 `PageBuilder` 也许是一个方便的面向文字的编辑工具。在试用版中，有 60 天的使用限制，网上的注册机我找到的最高版本是 `V3.0C`。于是自己破解，好难：-（ 它的注册计算过程比较麻烦，没有明确的 `call+test+jz`（`jnz`）的过程，而是对注册用户名作了处理（程序代码从 `0041DA8E` 到 `0041E011` 是注册变换过程），之后是几个取商、取余数的过程。
+
+用 `file scanner` 查出这个 `page builder V3.0c1` 是用 `aspack` 压的，解压后本来准备暴破的，不甘心。于是费时 4 个多小时，终于搞清它的注册原理，如下（以下数字均为 16 进制）：
+
+1. 将输入的 `User` 名称各字符的 `ASCII` 相加，再加上固定值 `3*3+3=9`（被乘数和后面加数的 3 是版本号），再加 `PageBuiler` 的 `ASCII` 字符值是 `288`，得到的结果，设为 `AA`；
+2. 取奇数位 1、3、5、7，迭代 `B=(1)*2*5+(3); B=B*2*5+(5); BB=B*2*5+(7)`，其中（i）表示为第 i 位的数值，其结果设为 `BB`；
+3. 取偶数位 8、6、4、2（注意顺序），同上面一样处理：`C=(8)*2*5+(6); C=C*2*5+(4); CC=C*2*5+(2)`，接下来是 `CC=CC-AA`，其结果设为 `CC`；
+4. `BB mod 7=0`；
+5. `CC mod d=0`；
+6. `int[BB/7]=int[CC/d]` 且 `>94`;
+7. 大家看到第 9 位没有用到，事实上第 9 位是校验位。我不是分析程序得到的，原因在于这个程序比较狡猾，计算后的值在内存地址中不固定，我是一遍遍试出来的 :-< 。将前 8 位数值相加，将和的个位与十位再相加，如果是一位数则应当与第 9 位相等；如果出现前 8 位类似是 `777-777-77`，和为 `56`，`5+6=11>9`，则将该结果再处理 `1+1=2`，即第 9 位应为 `2`；
+
+以上就是它的注册计算过程，整个过程跟下来好累，下面要作的就是写出注册机，手头只有 `TC2.0`，还不错。
+
+第 1 步中的固定值可能不正确，有待核实。给出一个可用的注册码：
+
+`UserName: PcRocker`
+`Number : 240-479-245`
+
+这里是注册程序：
+
+```c
+#include <stdio.h>
+
+#include <stdlib.h>
+
+#include <string.h>
+
+#include <ctype.h>
+
+void main( void )
+
+{
+
+   char  cName[ 50 ], *p = cName;
+
+   int    nUser = 0, nCodeOdd=0,nCodeEven=0,nTemp,i,nOutPut[10];
+
+   printf( "\n TafWeb Software----PageBuilder 3.0c1 (c) by PcRocker.\n\nEnter your name: " );
+
+   scanf("%s",&cName);
+
+   nTemp=0;
+
+   while( *p!=0 ) {
+
+   nUser+= (int) *p++;
+
+   nTemp++;
+
+   }
+
+   p--;
+
+   nUser-= (int) *p;     /* to adjust the sum of UserName */
+
+   nUser-= 30*nTemp;  /* also                               */
+
+   nUser+=657;         /* for page builder 3.0c1,it's a static value     */
+
+printf("%x\n",nUser);
+
+   for(nCodeEven=nUser*2; nCodeEven<9999; nCodeEven++)
+
+   {
+
+     nTemp=nCodeEven-nUser;
+
+     nTemp/=13;
+
+     if( nTemp<148 )
+
+       continue;
+
+     else
+
+     {
+
+       nTemp*= 7;
+
+       break;
+
+     }
+
+   }
+
+   nCodeOdd=nTemp+(nCodeEven-nUser)%13;
+
+   nCodeOdd+=1036;      /* 7 and 148     */
+
+   nCodeEven+=1924;    /* 13 and 148  */
+
+   printf("\nYour registration code is:\t");
+
+   for( i=0; i<4; i++)
+
+   {
+
+     nTemp=nCodeOdd%10;
+
+     nOutPut[6-2*i]=nTemp;
+
+     nCodeOdd-=nTemp;
+
+     nCodeOdd/=10;
+
+     nTemp=nCodeEven%10;
+
+     nOutPut[2*i+1]=nTemp;
+
+     nCodeEven-=nTemp;
+
+     nCodeEven/=10;
+
+   }
+
+   nTemp=0;
+
+   for( i=0; i<8; i++)
+
+   {
+
+     nTemp+=nOutPut[i];
+
+     printf("%d",nOutPut[i]);
+
+     if( i%3==2)
+
+       printf("-");
+
+   }
+
+   if(nTemp>9)
+
+     nTemp=nTemp%10+nTemp/10;
+
+   printf("%1d\n",nTemp);
+
+   getch();
+
+}
+```
+
+`4dd466d0e1e0cc123afbe504da2462ca`

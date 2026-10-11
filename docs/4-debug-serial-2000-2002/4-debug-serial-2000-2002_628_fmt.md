@@ -1,0 +1,900 @@
+
+# 豪杰大眼睛共享版
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum1128.htm`](https://www.pediy.com/kssd/pediy03/forum1128.htm)
+
+先调整系统时间，让软件过期，下断点`bpx getprivateprofilestringa`，`F12`一下，
+
+`F10`一下，到`:00416415`
+
+```
+* Referenced by a CALL at Address:
+
+|:004168FB
+
+|
+
+:004163F0 56                         push esi
+
+* Reference To: KERNEL32.GetPrivateProfileStringA, Ord:013Ah
+
+                                     |
+
+:004163F1 8B358C314400               mov esi, dword ptr [0044318C]
+
+* Possible StringData Ref from Data Obj ->"HeroSHOW.INI"
+
+                                     |
+
+:004163F7 6890604400                 push 00446090
+
+* Possible Reference to Menu: MenuID_0080
+
+                                     |
+
+:004163FC 6880000000                 push 00000080
+
+:00416401 681CB64400                 push 0044B61C<---用户名
+
+:00416406 6860AF4400                 push 0044AF60
+
+* Possible StringData Ref from Data Obj ->"USERNAME"
+
+                                     |
+
+:0041640B 6854644400                 push 00446454
+
+* Possible StringData Ref from Data Obj ->"REGISTER"
+
+                                     |
+
+:00416410 6848644400                 push 00446448
+
+:00416415 FFD6                       call esi<---退出到这里
+
+* Possible StringData Ref from Data Obj ->"HeroSHOW.INI"
+
+                                     |
+
+:00416417 6890604400                 push 00446090
+
+* Possible Reference to Menu: MenuID_0080
+
+                                     |
+
+:0041641C 6880000000                 push 00000080
+
+:00416421 6818C14400                 push 0044C118<---假注册码
+
+:00416426 6860AF4400                 push 0044AF60
+
+* Possible StringData Ref from Data Obj ->"KEY"
+
+                                     |
+
+:0041642B 6844644400                 push 00446444
+
+* Possible StringData Ref from Data Obj ->"REGISTER"
+
+                                     |
+
+:00416430 6848644400                 push 00446448
+
+:00416435 FFD6                       call esi
+
+:00416437 5E                         pop esi
+
+:00416438 C3                         ret<---退出到 004168fb
+
+=================================================================待续
+
+:004168FB E8F0FAFFFF                 call 004163F0<---到这里
+
+:00416900 E8ABFAFFFF                 call 004163B0
+
+:00416905 891D24C24400               mov dword ptr [0044C224], ebx
+
+* Reference To: KERNEL32.GetACP, Ord:00B9h
+
+                                     |
+
+:0041690B FF15A8314400               Call dword ptr [004431A8]
+
+:00416911 8BF8                       mov edi, eax
+
+:00416913 8D9424E0010000             lea edx, dword ptr [esp+000001E0]
+
+:0041691A 57                         push edi
+
+:0041691B 6888BB4400                 push 0044BB88
+
+* Possible StringData Ref from Data Obj ->"%sSHOW%d.DLL"
+
+                                     |
+
+:00416920 68C0674400                 push 004467C0
+
+:00416925 52                         push edx
+
+* Reference To: USER32.wsprintfA, Ord:02ACh
+
+                                     |
+
+:00416926 FF15A4344400               Call dword ptr [004434A4]
+
+:0041692C 83C410                     add esp, 00000010
+
+:0041692F 8D8424E0010000             lea eax, dword ptr [esp+000001E0]
+
+:00416936 50                         push eax
+
+* Reference To: KERNEL32.LoadLibraryA, Ord:01C2h
+
+                                     |
+
+:00416937 FF152C324400               Call dword ptr [0044322C]
+
+:0041693D 3BC3                       cmp eax, ebx
+
+:0041693F 740B                       je 0041694C
+
+:00416941 893D24C24400               mov dword ptr [0044C224], edi
+
+:00416947 A398C14400                 mov dword ptr [0044C198], eax
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0041693F(C)
+
+|
+
+:0041694C 3BEB                       cmp ebp, ebx
+
+:0041694E 7407                       je 00416957
+
+:00416950 E8BBFDFFFF                 call 00416710<---跟进去
+
+:00416955 EB0A                       jmp 00416961
+
+=====================================================================
+
+待续
+
+* Referenced by a CALL at Address:
+
+|:00416950
+
+|
+
+:00416710 55                         push ebp
+
+:00416711 8BEC                       mov ebp, esp
+
+:00416713 6AFF                       push FFFFFFFF
+
+:00416715 68B0354400                 push 004435B0
+
+:0041671A 6814934300                 push 00439314
+
+:0041671F 64A100000000               mov eax, dword ptr fs:[00000000]
+
+:00416725 50                         push eax
+
+:00416726 64892500000000             mov dword ptr fs:[00000000], esp
+
+:0041672D 83EC08                     sub esp, 00000008
+
+:00416730 53                         push ebx
+
+:00416731 56                         push esi
+
+:00416732 57                         push edi
+
+:00416733 8965E8                     mov dword ptr [ebp-18], esp
+
+:00416736 C745FC00000000             mov [ebp-04], 00000000
+
+:0041673D 68B0B24400                 push 0044B2B0
+
+* Reference To: KRNLAPI.Ordinal:001B, Ord:001Bh
+
+                                     |
+
+:00416742 E813260200                 Call 00438D5A
+
+:00416747 83C404                     add esp, 00000004
+
+:0041674A 85C0                       test eax, eax
+
+:0041674C 7419                       je 00416767
+
+:0041674E 6818C14400                 push 0044C118
+
+:00416753 681CB64400                 push 0044B61C
+
+:00416758 E8E3CDFEFF                 call 00403540<---跟进去，核心计算
+
+:0041675D 83C408                     add esp, 00000008
+
+:00416760 A358C24400                 mov dword ptr [0044C258], eax
+
+:00416765 EB1F                       jmp 00416786
+
+====================================================================
+
+* Referenced by a CALL at Address:
+
+|:00416758
+
+|
+
+:00403540 83EC20                     sub esp, 00000020
+
+:00403543 B908000000                 mov ecx, 00000008
+
+:00403548 33C0                       xor eax, eax
+
+:0040354A 53                         push ebx
+
+:0040354B 55                         push ebp
+
+:0040354C 8B6C2430                   mov ebp, dword ptr [esp+30]
+
+:00403550 56                         push esi
+
+:00403551 57                         push edi
+
+:00403552 8D7C2410                   lea edi, dword ptr [esp+10]
+
+:00403556 F3                         repz
+
+:00403557 AB                         stosd
+
+:00403558 8BDD                       mov ebx, ebp
+
+:0040355A 8D442410                   lea eax, dword ptr [esp+10]
+
+:0040355E 33F6                       xor esi, esi
+
+:00403560 2BD8                       sub ebx, eax
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00403586(C)
+
+|
+
+:00403562 8D7C3410                   lea edi, dword ptr [esp+esi+10]
+
+:00403566 0FBE043B                   movsx eax, byte ptr [ebx+edi]<--注册码
+
+:0040356A 83F841                     cmp eax, 00000041                   第一字
+
+:0040356D 7C08                       jl 00403577
+
+:0040356F 83F85A                     cmp eax, 0000005A
+
+:00403572 7F03                       jg 00403577
+
+:00403574 83C020                     add eax, 00000020
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:0040356D(C), :00403572(C)
+
+|
+
+:00403577 50                         push eax
+
+:00403578 E863FFFFFF                 call 004034E0
+
+:0040357D 83C404                     add esp, 00000004
+
+:00403580 46                         inc esi
+
+:00403581 83FE04                     cmp esi, 00000004
+
+:00403584 8807                       mov byte ptr [edi], al
+
+:00403586 7CDA                       jl 00403562
+
+:00403588 8B442410                   mov eax, dword ptr [esp+10]
+
+:0040358C 8D4801                     lea ecx, dword ptr [eax+01]
+
+:0040358F 0FAFC8                     imul ecx, eax
+
+:00403592 894C2414                   mov dword ptr [esp+14], ecx
+
+:00403596 33F6                       xor esi, esi
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:004035B9(C)
+
+|
+```
+
+
+
+:00403598 8A543414          mov dl, byte ptr [esp+esi+14]   
+
+:0040359C 52               push edx   
+
+:0040359D 56               push esi   
+
+:0040359E E81FFFFFFF      call 004034C0   
+
+:004035A3 25FF000000       and eax, 000000FF   
+
+:004035A8 50               push eax   
+
+:004035A9 E832FFFFFF      call 004034E0   
+
+:004035AE 83C40C          add esp, 0000000C   
+
+:004035B1 88443414        mov byte ptr [esp+esi+14], al<--算出第 5 个字   
+
+:004035B5 46               inc esi   
+
+:004035B6 83FE04          cmp esi, 00000004<--循环算出 6,7,8 个字   
+
+:004035B9 7CDD           jl 00403598   
+
+:004035BB 33C9           xor ecx, ecx   
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+
+|:004035E0(C)   
+
+|   
+
+:004035BD 0FBE442905     movsx eax, byte ptr [ecx+ebp+05]   
+
+:004035C2 83F841          cmp eax, 00000041   
+
+:004035C5 7C08           jl 004035CF   
+
+:004035C7 83F85A          cmp eax, 0000005A   
+
+:004035CA 7F03           jg 004035CF   
+
+:004035CC 83C020          add eax, 00000020   
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
+
+|:004035C5(C), :004035CA(C)   
+
+|   
+
+:004035CF 0FBE540C14     movsx edx, byte ptr [esp+ecx+14]   
+
+:004035D4 3BC2           cmp eax, edx<---与假注册码比较   
+
+:004035D6 0F85BA000000    jne 00403696   
+
+:004035DC 41             inc ecx   
+
+:004035DD 83F904          cmp ecx, 00000004   
+
+:004035E0 7CDB           jl 004035BD   
+
+:004035E2 8B442414        mov eax, dword ptr [esp+14]   
+
+:004035E6 8B4C2410        mov ecx, dword ptr [esp+10]   
+
+:004035EA 8BD0            mov edx, eax   
+
+:004035EC 33D1            xor edx, ecx   
+
+:004035EE 42              inc edx   
+
+:004035EF 0FAFD1          imul edx, ecx   
+
+:004035F2 03D0            add edx, eax   
+
+:004035F4 33F6            xor esi, esi   
+
+:004035F6 89542418        mov dword ptr [esp+18], edx   
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+
+|:00403610(C)   
+
+|   
+
+:004035FA 0FBE443418     movsx eax, byte ptr [esp+esi+18]   
+
+:004035FF 50              push eax   
+
+:00403600 E8DBFEFFFF      call 004034E0   
+
+:00403605 83C404          add esp, 00000004   
+
+:00403608 88443418        mov byte ptr [esp+esi+18], al   
+
+:0040360C 46              inc esi   
+
+:0040360D 83FE04          cmp esi, 00000004<--由 5,6,7,8 算出   
+
+:00403610 7CE8           jl 004035FA       9,10,11,12 个字   
+
+:00403612 33C9           xor ecx, ecx   
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+
+|:00403633(C)   
+
+|   
+
+:00403614 0FBE44290A     movsx eax, byte ptr [ecx+ebp+0A]   
+
+:00403619 83F841          cmp eax, 00000041   
+
+:0040361C 7C08           jl 00403626   
+
+:0040361E 83F85A          cmp eax, 0000005A   
+
+:00403621 7F03           jg 00403626   
+
+:00403623 83C020          add eax, 00000020   
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
+
+|:0040361C(C), :00403621(C)   
+
+|   
+
+:00403626 0FBE540C18     movsx edx, byte ptr [esp+ecx+18]   
+
+:0040362B 3BC2           cmp eax, edx<---与假注册码比较   
+
+:0040362D 7567           jne 00403696   
+
+:0040362F 41             inc ecx   
+
+:00403630 83F904          cmp ecx, 00000004   
+
+:00403633 7CDF           jl 00403614   
+
+:00403635 8B4C2414        mov ecx, dword ptr [esp+14]   
+
+:00403639 8B442410        mov eax, dword ptr [esp+10]   
+
+:0040363D 0FAFC8          imul ecx, eax   
+
+:00403640 41              inc ecx   
+
+:00403641 0FAF4C2418      imul ecx, dword ptr [esp+18]   
+
+:00403646 03C8            add ecx, eax   
+
+:00403648 33F6            xor esi, esi   
+
+:0040364A 894C241C        mov dword ptr [esp+1C], ecx   
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+
+|:00403664(C)   
+
+|   
+
+:0040364E 0FBE54341C     movsx edx, byte ptr [esp+esi+1C]   
+
+:00403653 52              push edx   
+
+:00403654 E887FEFFFF      call 004034E0   
+
+:00403659 83C404          add esp, 00000004   
+
+:0040365C 8844341C        mov byte ptr [esp+esi+1C], al   
+
+:00403660 46              inc esi   
+
+:00403661 83FE04          cmp esi, 00000004<--注册码的 13,14,15,16 个字   
+
+:00403664 7CE8           jl 0040364E   
+
+:00403666 33C9           xor ecx, ecx   
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+
+|:00403687(C)   
+
+|   
+
+:00403668 0FBE44290F     movsx eax, byte ptr [ecx+ebp+0F]   
+
+:0040366D 83F841          cmp eax, 00000041   
+
+:00403670 7C08           jl 0040367A   
+
+:00403672 83F85A          cmp eax, 0000005A   
+
+:00403675 7F03           jg 0040367A   
+
+:00403677 83C020          add eax, 00000020   
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
+
+|:00403670(C), :00403675(C)   
+
+|   
+
+:0040367A 0FBE540C1C     movsx edx, byte ptr [esp+ecx+1C]   
+
+:0040367F 3BC2           cmp eax, edx<--与假注册码比较   
+
+:00403681 7513           jne 00403696   
+
+:00403683 41             inc ecx   
+
+:00403684 83F904          cmp ecx, 00000004   
+
+:00403687 7CDF           jl 00403668   
+
+:00403689 5F             pop edi   
+
+:0040368A 5E             pop esi   
+
+:0040368B 5D             pop ebp   
+
+:0040368C B801000000      mov eax, 00000001<--到这里就注册成功了   
+
+:00403691 5B             pop ebx   
+
+:00403692 83C420          add esp, 00000020   
+
+:00403695 C3             ret   
+
+用户名：`lancelot` 注册码：`4343-bz5x-15qq-m35q`   
+
+crack by `lancelot` 2001.7.8 
+
+软件名称：豪杰大眼睛共享版 7 月 2 日最新版   
+
+软件下载地址：`http://www.herosoft.com/down/down_file/bigeye.zip`   
+
+软件作用：图片处理！！可以和 `acdess` 媲美   
+
+破解工具：几乎都用了   
+
+软件限制：30 天限制   
+
+破解过程：   
+
+由于我实力不行，本来这个软件可以找到注册码的，唉，希望那位朋友指教！   
+
+我先用的 `trw2000`，下断点 `createwindowex` 然后中断！这时候开始跟！先一直走了一偏，观察了他的判断过程，以后反汇编就注意 `getsystemtime` 这个函数的调用。具体如下的代码。   
+
+\* Reference To: `SthShell.Ordinal:0003`, `Ord:0003h`   
+
+|   
+
+:00416977 E826240200      Call 00438DA2   
+
+:0041697C E86FB5FEFF      call 00401EF0   
+
+:00416981 391D58C24400    cmp dword ptr [0044C258], ebx   
+
+:00416987 7505           jne 0041698E       =====>>>>改为 74   
+
+:00416989 E832FBFFFF      call 004164C0   
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+
+|:00416987(C)   
+
+|   
+
+:0041698E E8EDA0FFFF      call 00410A80   
+
+:00416993 E8D8700100      call 0042DA70   
+
+:00416998 E8A3850000      call 0041EF40   
+
+:0041699D 8B0D1CC24400    mov ecx, dword ptr [0044C21C]   
+
+:004169A3 A118C24400      mov eax, dword ptr [0044C218]   
+
+:004169A8 0BC8            or ecx, eax   
+
+:004169AA 7413           je 004169BF    ===================>>改为 75   
+
+:004169AC A1A0644400      mov eax, dword ptr [004464A0]   
+
+:004169B1 33D2            xor edx, edx   
+
+:004169B3 83F808          cmp eax, 00000008   
+
+:004169B6 0F9FC2          setg dl   
+
+:004169B9 891550C24400    mov dword ptr [0044C250], edx   
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
+
+|:004169AA(C)   
+
+|   
+
+\* Reference To: `KERNEL32.GetPrivateProfileStringA`, `Ord:013Ah`   
+
+|   
+
+:004169BF 8B3D8C314400    mov edi, dword ptr [0044318C]   
+
+\* Possible StringData Ref from Data Obj ->"HeroSHOW.INI"   
+
+|   
+
+
+
+```
+:004169C5 6890604400                push 00446090
+
+:004169CA 8D8424E4000000            lea eax, dword ptr [esp+000000E4]
+
+:004169D1 6800010000                push 00000100
+
+:004169D6 50                        push eax
+
+:004169D7 6860AF4400                push 0044AF60
+
+* Possible StringData Ref from Data Obj ->"OEMICON"
+
+:004169DC 68E0624400                push 004462E0
+
+* Possible StringData Ref from Data Obj ->"INSTALL"       ===>>可能是判断安装的的时候的时间
+
+:004169E1 68FC624400                push 004462FC
+
+:004169E6 FFD7                      call edi
+
+:004169E8 85C0                      test eax, eax
+
+:004169EA 7453                      je 00416A3F            ===========>>改为 75
+
+:004169EC 6A50                      push 00000050
+
+:004169EE 53                        push ebx
+
+:004169EF 53                        push ebx
+
+:004169F0 8D8C24EC000000            lea ecx, dword ptr [esp+000000EC]
+
+:004169F7 6A01                      push 00000001
+
+:004169F9 51                        push ecx
+
+:004169FA 53                        push ebx
+
+* Reference To: USER32.LoadImageA, Ord:01A0h
+
+:004169FB FF15EC334400              Call dword ptr [004433EC]
+
+:00416A01 8B159CC14400              mov edx, dword ptr [0044C19C]
+
+* Reference To: USER32.LoadIconA, Ord:019Eh
+
+:00416A07 8B1D30354400              mov ebx, dword ptr [00443530]
+
+:00416A0D 6891000000                push 00000091
+
+:00416A12 52                        push edx
+
+:00416A13 A3F4C14400                mov dword ptr [0044C1F4], eax
+
+:00416A18 FFD3                      call ebx
+
+:00416A1A A3F8C14400                mov dword ptr [0044C1F8], eax
+
+:00416A1F A19CC14400                mov eax, dword ptr [0044C19C]
+
+:00416A24 688F000000                push 0000008F
+
+:00416A29 50                        push eax
+
+:00416A2A FFD3                      call ebx
+
+:00416A2C 8B0DF4C14400              mov ecx, dword ptr [0044C1F4]
+
+:00416A32 A3ECC14400                mov dword ptr [0044C1EC], eax
+
+:00416A37 890DF0C14400              mov dword ptr [0044C1F0], ecx
+
+:00416A3D EB51                      jmp 00416A90
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:004169EA(C)
+
+:00416A3F 8B159CC14400              mov edx, dword ptr [0044C19C]
+
+* Reference To: USER32.LoadIconA, Ord:019Eh
+
+:00416A45 8B1D30354400              mov ebx, dword ptr [00443530]
+
+:00416A4B 6892000000                push 00000092
+
+:00416A50 52                        push edx
+
+:00416A51 FFD3                      call ebx
+
+:00416A53 A3F4C14400                mov dword ptr [0044C1F4], eax
+
+:00416A58 A19CC14400                mov eax, dword ptr [0044C19C]
+
+:00416A5D 6891000000                push 00000091
+
+:00416A62 50                        push eax
+
+:00416A63 FFD3                      call ebx
+
+:00416A65 8B0D9CC14400              mov ecx, dword ptr [0044C19C]
+
+:00416A6B 688F000000                push 0000008F
+
+:00416A70 51                        push ecx
+
+:00416A71 A3F8C14400                mov dword ptr [0044C1F8], eax
+
+:00416A76 FFD3                      call ebx
+
+:00416A78 8B159CC14400              mov edx, dword ptr [0044C19C]
+
+* Possible Reference to Dialog: DialogID_0093
+
+:00416A7E 6893000000                push 00000093
+
+:00416A83 52                        push edx
+
+:00416A84 A3ECC14400                mov dword ptr [0044C1EC], eax
+
+:00416A89 FFD3                      call ebx
+
+:00416A8B A3F0C14400                mov dword ptr [0044C1F0], eax
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00416A3D(U)
+
+:00416A90 A158C24400                mov eax, dword ptr [0044C258]
+
+:00416A95 85C0                      test eax, eax
+
+:00416A97 7505                      jne 00416A9E               ===========>>>改为 74
+
+:00416A99 E8A2F9FFFF                call 00416440
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00416A97(C)
+
+* Possible Reference to Dialog:
+
+:00416A9E 6890604400                push 00446090
+
+:00416AA3 8D8424E4000000            lea eax, dword ptr [esp+000000E4]
+
+:00416AAA 6800010000                push 00000100
+
+:00416AAF 50                        push eax
+
+:00416AB0 6860AF4400                push 0044AF60
+
+* Possible StringData Ref from Data Obj ->"OEM"
+
+:00416AB5 6804634400                push 00446304
+
+* Possible StringData Ref from Data Obj ->"INSTALL"     ======>>和上面哪个一样？
+
+:00416ABA 68FC624400                push 004462FC
+
+:00416ABF FFD7                      call edi
+
+:00416AC1 56                        push esi
+
+:00416AC2 A328C24400                mov dword ptr [0044C228], eax
+
+:00416AC7 E8E4020000                call 00416DB0
+
+:00416ACC 56                        push esi
+
+:00416ACD E86EF1FFFF                call 00415C40
+
+:00416AD2 83C408                    add esp, 00000008
+
+:00416AD5 E896260000                call 00419170
+
+:00416ADA FFD5                      call ebp
+
+:00416ADC 56                        push esi
+
+:00416ADD E8FE050000                call 004170E0
+
+:00416AE2 6A00                      push 00000000
+
+:00416AE4 56                        push esi
+
+:00416AE5 E8C6450100                call 0042B0B0
+
+:00416AEA 83C40C                    add esp, 0000000C
+
+* Possible Reference to Menu: MenuID_0070
+
+* Possible Reference to String Resource ID=00112: "BigEye"
+
+:00416AED 6A70                      push 00000070
+
+:00416AEF 56                        push esi
+
+* Reference To: USER32.LoadAcceleratorsA, Ord:0196h
+
+:00416AF0 FF1534354400              Call dword ptr [00443534]
+
+:00416AF6 8B0DA0C14400              mov ecx, dword ptr [0044C1A0]
+
+:00416AFC 6A00                      push 00000000
+
+:00416AFE 68D0070000                push 000007D0
+
+:00416B03 6A02                      push 00000002
+
+:00416B05 51                        push ecx
+
+:00416B06 8BD8                      mov ebx, eax
+
+* Reference To: USER32.SetTimer, Ord:0252h
+
+:00416B08 FF1520344400              Call dword ptr [00443420]
+
+:00416B0E E8FD010000                call 00416D10
+
+:00416B13 A160644400                mov eax, dword ptr [00446460]
+
+* Reference To: USER32.ShowWindow, Ord:026Ah
+
+:00416B18 8B35B8334400              mov esi, dword ptr [004433B8]
+
+:00416B1E 85C0                      test eax, eax
+
+:00416B20 750B                      jne 00416B2D            ==========>>改为 74
+
+:00416B22 8B15A8C14400              mov edx, dword ptr [0044C1A8]
+
+:00416B28 6A00                      push 00000000
+
+:00416B2A 52                        push edx
+
+:00416B2B FFD6                      call esi
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00416B20(C)
+
+:00416B2D A164644400                mov eax, dword ptr [00446464]
+
+:00416B32 85C0                      test eax, eax
+
+:00416B34 750A                      jne 00416B40            ===============>>改为 74
+
+:00416B36 A1ACC14400                mov eax, dword ptr [0044C1AC]
+
+:00416B3B 6A00                      push 00000000
+
+:00416B3D 50                        push eax
+
+:00416B3E FFD6                      call esi
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+```
+
+完成了，这个软件我搞了 30 分钟，原因肯定是自己对 `createwindowex` 这个函数的运用不太熟悉，这下有了经验了，呵呵
+
+在跟中的时候最好先完整的走一次，这样才能很好掌握这个程序的判断经过，呵呵
+
+作为 `BCG` 和 `FCG` 的作业吧，实在没时间写了，马上要复习然后补考，唉
+
+
+
+`cracked by copyyour 4dd466d0e1e0cc123afbe504da2462ca`
