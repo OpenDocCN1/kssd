@@ -1,0 +1,205 @@
+
+# 美萍网管大师 V7.7
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50092.htm`](https://www.pediy.com/kssd/pediy05/pediy50092.htm)
+
+**软件名称**：美萍网管大师 V7.7 解压后为 1,253KB
+
+**下载地点**：`http://www.mpsoft.com`
+
+**撰 稿 人**：井 风
+
+**时 间**：2002-04-18
+
+**破解工具**：`Soft-ice 4.05` `Trw2000 1.22` `BW2000 0.2` `Unaspack 1.0.9.1`
+
+**解题难度**：\[专 业\]  ##\[学 士\]##  \[硕 士\]  \[博 士\]
+
+## 前 言
+
+很多网友要求破解，这是最新版本。
+
+## 过 程
+
+### （一）制作破解版方法
+
+1. 用 `Unaspack` 去壳；
+2. 用 HEX 编辑器将：`00475CFC JNZ 00475D05` 改成永远不跳；
+3. 一切 OK!
+
+### （二）找出注册码方法
+
+1. 用 `Unaspack` 去壳；
+2. 此软件检测 `TRW2000` 的方法是依据检查 `TRW2000` 文件是否在硬盘上来判断的，所以要先用 `HIEW` 等十六进制软件将 `SCON.EXE` 所有“trw”字符串改成“20 20 20”，即三个格，不然的话它一检测到 `TRW` 就会调用 `EXITWINDOWSEX` 函数关机；
+3. 下断点：`BPX MESSAGEBOXA`，可以拦截试用期还剩 N 天的对话框；
+4. 分析代码如下：
+
+```
+0167:004C0904  MOV       EAX,[004D5678]
+0167:004C0909  CALL    004C2360
+0167:004C090E  MOV       EAX,EBX
+0167:004C0910  CALL    004BA428
+0167:004C0915  XOR       EAX,EAX
+0167:004C0917  MOV       [004CD4C0],EAX
+0167:004C091C  CALL    00475C48    <==明显这个调用就是验证核心处，重点跟踪分析此调用
+0167:004C0921  TEST    EAX,EAX     <==返加值如果非零就可以跳过后面提醒框
+0167:004C0923  JNZ      NEAR 004C09AE   <==
+0167:004C0929  MOV       EAX,[004CD4B8]
+0167:004C092E  SUB       EAX,BYTE +0F
+0167:004C0931  CMP       EAX,[004F3010]
+0167:004C0937  JNL      004C09AE    <==比较试用天数，不管它，关键是找到核心验证外，向上……
+0167:004C0939  PUSH    BYTE +40
+0167:004C093B  LEA       EAX,[EBP-18]
+0167:004C093E  MOV       ECX,[004CD644]
+0167:004C0944  MOV       EDX,[004CD508]
+0167:004C094A  CALL    00403C78
+0167:004C094F  MOV       EAX,[EBP-18]
+0167:004C0952  CALL    00403DF0
+0167:004C0957  PUSH    EAX
+0167:004C0958  PUSH    DWORD [004CD638]
+0167:004C095E  LEA       EDX,[EBP-24]
+0167:004C0961  MOV       EAX,[004CD4B8]
+0167:004C0966  INC       EAX
+0167:004C0967  SUB       EAX,[004F3010]
+0167:004C096D  CALL    00407890
+0167:004C0972  PUSH    DWORD [EBP-24]
+0167:004C0975  PUSH    DWORD [004CD63C]
+0167:004C097B  PUSH    DWORD [004CD640]
+0167:004C0981  PUSH    DWORD 004C0A7C
+0167:004C0986  PUSH    DWORD 004C0A88
+0167:004C098B  LEA       EAX,[EBP-1C]
+0167:004C098E  MOV       EDX,06
+0167:004C0993  CALL    00403CEC
+0167:004C0998  MOV       EAX,[EBP-1C]
+0167:004C099B  CALL    00403DF0
+0167:004C09A0  PUSH    EAX
+0167:004C09A1  MOV       EAX,EBX
+0167:004C09A3  CALL    004269C0
+0167:004C09A8  PUSH    EAX
+0167:004C09A9  CALL    `USER32!MessageBoxA`    <==试用期提醒对话框，向上分析如何跳过？
+0167:004C09AE  MOV       DL,01
+0167:004C09B0  MOV       EAX,[EBX+0210]
+0167:004C09B6  CALL    00456930
+```
+
+5. 深入跟踪 `0167:004C091C CALL 00475C48`
+
+```
+0167:00475C8E  CALL    00476AF0
+0167:00475C93  CMP       EBX,EAX
+0167:00475C95  MOV       EDX,[004CDAA0]
+0167:00475C9B  MOV       EDX,[EDX]
+0167:00475C9D  MOV       EAX,[004CDB94]
+0167:00475CA2  MOV       EAX,[EAX]     <==EAX 的值是你输入的注册码
+0167:00475CA4  CALL    00403EB8     <==子程序调用，记为*2*
+0167:00475CA9  MOV       EDX,[004CDD04]     <==
+0167:00475CAF  MOV       [EDX],EAX     <==将调用返回值移入 4CDD04 指向的地址
+0167:00475CB1  MOV       EAX,[004CDD04]     <==4CDD04 指向的地址移入 EAX
+0167:00475CB6  CMP       DWORD [EAX],BYTE +00   <==4CDD04 指向的地址值与 0 比较
+0167:00475CB9  JNZ       00475CC6     <==**此处应跳**
+0167:00475CBB  MOV       EAX,[004CDD04]
+0167:00475CC0  MOV       DWORD [EAX],1B     <==向 4CDD04 指向的内存移入 1B
+0167:00475CC6  MOV       EAX,[004CDB94]
+0167:00475CCB  MOV       EAX,[EAX]
+0167:00475CCD  CALL    00403C2C     <==返加你输入注册码的长度
+0167:00475CD2  CMP       EAX,BYTE +05     <==检测你输入注册码是否为 5 位，--
+0167:00475CD5  JNZ       00475CED     <==不是 5 位则跳走。
+0167:00475CD7  MOV       EDX,[004CDAA0]
+0167:00475CDD  MOV       EDX,[EDX]
+0167:00475CDF  MOV       EAX,[004CDB94]
+0167:00475CE4  MOV       EAX,[EAX]     <==EAX 值是你输入的注册码
+0167:00475CE6  CALL    00403EB8     <==子程序调用，记为*2*
+0167:00475CEB  TEST    EAX,EAX
+0167:00475CED  MOV       EAX,[004CD8A8]     <==内存中 4cd8a8 指向地址的值移--
+0167:00475CF2  MOV       EAX,[EAX]     <==到 EAX
+0167:00475CF4  MOV       EDX,[004CDD04]     <==
+0167:00475CFA  CMP       EAX,[EDX]     <==用内存 4CDD04 指向地址的值与 EAX 比较，记为*1*
+0167:00475CFC  JNZ       00475D05     <==**此处应不跳**
+0167:00475CFE  MOV       EBX,01       <==移入注册标志
+0167:00475D03  JMP       SHORT 00475D07
+0167:00475D05  XOR       EBX,EBX
+0167:00475D07  XOR       EAX,EAX
+0167:00475D09  POP       EDX
+0167:00475D0A  POP       ECX
+0167:00475D0B  POP       ECX
+0167:00475D0C  MOV       [FS:EAX],EDX
+0167:00475D0F  PUSH    DWORD 00475D24
+0167:00475D14  LEA       EAX,[EBP-04]
+0167:00475D17  CALL    004039B0
+0167:00475D1C  RET
+0167:00475D1D  JMP       004033D0
+0167:00475D22  JMP       SHORT 00475D14
+0167:00475D24  MOV       EAX,EBX
+0167:00475D26  POP       EBX
+0167:00475D27  POP       ECX
+0167:00475D28  POP       EBP
+0167:00475D29  RET
+```
+
+通过以上代码分析，结合动态跟踪可知，只要 `*1*` 处比较等于零就 OK 了（制作破解版就是将这个比较后的 `JNZ` 改成永远不跳），`*1*` 处所比较的值就是分别由 `*2*` 两次调用产生的，只要两次调都返回“A”值就成功了。继续进行第六步分析，以夺取最后胜利——“找注册码”；
+
+6. 革命尚未成功，壮士还需努力！！，继续深入 `*2*` `CALL`，分析代码如下：
+
+```
+0167:00403EB8     TEST    EAX,EAX
+0167:00403EBA     JZ      00403EFC
+0167:00403EBC     TEST    EDX,EDX
+0167:00403EBE     JZ      00403EF1
+0167:00403EC0  PUSH    EBX
+0167:00403EC1  PUSH    ESI
+0167:00403EC2  PUSH    EDI
+0167:00403EC3  MOV       ESI,EAX
+0167:00403EC5  MOV       EDI,EDX     <==EDI 指向的串是根据你机器码产生的，记为*3*
+0167:00403EC7  MOV       ECX,[EDI-04]  <==串长度入 ECX
+0167:00403ECA  PUSH    EDI
+0167:00403ECB  MOV       EDX,[ESI-04]  <==你输入的码长度入 EDX
+0167:00403ECE  DEC       EDX     <== -1
+0167:00403ECF  JS      00403EEC
+0167:00403ED1  MOV       AL,[ESI]  <==S/N 的第一位到 AL
+0167:00403ED3  INC       ESI     <==ESI 指向第二位
+0167:00403ED4  SUB       ECX,EDX     <==串长度-(输入码长度-1)
+0167:00403ED6  JNG       00403EEC  <==不大于跳，不能跳
+0167:00403ED8  REPNE SCASB     <==搜索第一字符在串中位置
+0167:00403EDA  JNZ       00403EEC  <==不等于 0 跳，不能跳
+0167:00403EDC  MOV       EBX,ECX
+0167:00403EDE  PUSH    ESI
+0167:00403EDF  PUSH    EDI
+0167:00403EE0  MOV       ECX,EDX
+0167:00403EE2  REPE CMPSB     <==比较剩下四位字符是否相同
+0167:00403EE4  POP       EDI
+0167:00403EE5  POP       ESI
+0167:00403EE6  JZ      00403EF4  <==跳走，进一步找出你输入注册码在串中所处位置
+0167:00403EE8  MOV       ECX,EBX
+0167:00403EEA  JMP       SHORT 00403ED8
+0167:00403EEC    POP       EDX
+0167:00403EED    XOR       EAX,EAX
+0167:00403EEF    JMP       SHORT 00403EF9
+0167:00403EF1    XOR       EAX,EAX
+0167:00403EF3    RET
+0167:00403EF4  POP       EDX
+0167:00403EF5  MOV       EAX,EDI
+0167:00403EF7  SUB       EAX,EDX     <==这行就是产生返回值，实际上它就是你输入的注册码在
+串中的位置，此程序要求是 10（十六进制是 A）。
+0167:00403EF9    POP       EDI
+0167:00403EFA    POP       ESI
+0167:00403EFB    POP       EBX
+0167:00403EFC    RET
+```
+
+其实这段代码你不一定要看懂，实际上它就是找出你所输入注册码在根据你机器码产生的串中的位置。
+
+## 小 结
+
+这个程序要找出注册码还真要仔细分析才能得出:
+
+- 我的序例号：`1319019`
+- `*3*` 处串为：`882628364 30494 47244625`
+- 那么从 10 起的 5 位数字就是注册码：`30494`
+
+## 后 记
+
+有疑问请与我联系：`hz.cy@163.net`
+
+## 附 则
+
+斗地主 V4.0 Build378 破解：`UPX` 脱壳，将 `4A8274` 处四个字节改成 `B0 01 90 90` 就成注册版。 `4dd466d0e1e0cc123afbe504da2462ca`
