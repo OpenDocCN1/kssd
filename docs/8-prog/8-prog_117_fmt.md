@@ -1,0 +1,116 @@
+
+# 函数指针的值不是函数地址?
+
+> 原文：[`www.pediy.com/kssd/pediy12/135365.html`](https://www.pediy.com/kssd/pediy12/135365.html)
+
+原贴最初发布在 QQ 空间里，见[`user.qzone.qq.com/31731705/blog/1302859584`](http://user.qzone.qq.com/31731705/blog/1302859584)，那里格式较好。
+
+在写[**跑在 main 之前**](http://bbs.pediy.com/showthread.php?t=134576)的时候，碰到了很奇怪的问题。
+
+```c
+int initBreak()
+{
+    DebugBreak();
+    return 0;
+}
+
+typedef int (*pInit)();
+
+pInit start3 = initBreak;
+```
+
+`initBreak` 是函数名，`start3` 是指针，它们的值竟然不一样。
+
+开始学习 C 语言的时候，就知道函数名代表函数地址，可以被赋值给函数指针，方便后面的调用。为什么这里的值会不一样了？
+
+还是使用 [**跑在 main 之前 (2)**](http://user.qzone.qq.com/31731705/blog/1302852473)代码例子，继续用 `windbg` 分析。
+
+```text
+0:000> g
+Fri Apr 15 17:03:10.492 2011 (UTC + 8:00): Breakpoint 0 hit
+eax=00000000 ebx=7ffdf000 ecx=0041956c edx=00130000 esi=00000000 edi=00000000
+eip=0f9186a6 esp=0012ff30 ebp=0012ff34 iopl=0 nv up ei pl zr na pe nc
+cs=001b ss=0023 ds=0023 es=0023 fs=003b gs=0000 efl=00000246
+MSVCR100D!_initterm_e+0x6:
+0f9186a6 c745fc00000000 mov dword ptr [ebp-4],0 ss:0023:0012ff30={testC!__native_startup_lock (0041956c)}
+
+0:000> kPL
+ChildEBP RetAddr
+0012ff34 0041272b MSVCR100D!_initterm_e(
+   <function> ** pfbegin = 0x0041641c,
+   <function> ** pfend = 0x00416a40)+0x6
+0012ff80 0041263f testC!__tmainCRTStartup(void)+0xdb
+0012ff88 77773c45 testC!mainCRTStartup(void)+0xf
+0012ff94 77ce37f5 kernel32!BaseThreadInitThunk+0xe
+0012ffd4 77ce37c8 ntdll!__RtlUserThreadStart+0x70
+0012ffec 00000000 ntdll!_RtlUserThreadStart+0x1b
+
+0:000> dd start l4
+00416728 00411186 00411023 0041118b 00000000
+
+0:000> dd start2 l4
+00416208 00411186 00411023 0041118b 00000000
+
+0:000> dd start3 l4
+00416624 0041118b 00000000 00000000 00000000
+
+0:000> dd start4 l4
+00416838 0041118b 00000000 00000000 00000000
+
+0:000> ln 41118b
+(0041118b) testC!ILT+390(_initBreak) | (00411190) testC!ILT+395(__controlfp_s)
+Exact matches:
+
+0:000> ln start3
+(00416624) testC!start3 | (00416728) testC!start
+Exact matches:
+    testC!start3 = 0x0041118b
+
+0:000> ln start4
+(00416838) testC!start4 | (0041693c) testC!pinit
+Exact matches:
+    testC!start4 = 0x0041118b
+
+0:000> ln initBreak
+d:\project\mine\vs.net\testc\testc\testc.c(47)
+(004120f0) testC!initBreak | (00412150) testC!main
+Exact matches:
+    testC!initBreak (void)
+```
+
+能够看到，`start3` 和 `start4` 均为 `0x0041118b`，而函数 `initBreak` 则是 `004120f0`，它们的值并不一样，这是为什么呢？
+
+再前进一点点就有答案了，
+
+```text
+0:000> u 41118b -8
+testC!ILT+380(__RTC_Initialize)+0x2:
+00411183 250000e985 and eax,85E90000h
+00411188 0e push cs
+00411189 0000 add byte ptr [eax],al
+
+testC!ILT+390(_initBreak):
+0041118b e9600f0000 jmp testC!initBreak (004120f0)
+
+testC!ILT+395(__controlfp_s):
+00411190 e987300000 jmp testC!controlfp_s (0041421c)
+
+testC!ILT+400(__StackOverflow):
+00411195 e9d6040000 jmp testC!_StackOverflow (00411670)
+
+testC!ILT+405(_GetSystemTimeAsFileTime:
+0041119a e90d310000 jmp testC!GetSystemTimeAsFileTime (004142ac)
+
+testC!ILT+410(_f1):
+0041119f e96c0d0000 jmp testC!f1 (00411f10)
+```
+
+真相如此简单，就是一条 5 个字节的 `JMP` 指令。
+
+另一个问题随之而来，编译器为何如此做呢，不是降低效率，多此一举嘛。Google 了一下，答案在此：
+
+*什么是 Incremental Link Table 呢？
+
+假如一个程序有连续两个 `foo` 和 `bar` (所谓连续，就是他们编译连接之后函数体连续存放)， `foo` 入口位置在 `0x0400`，长度为 `0x200` 个字节，那么 `bar` 入口就应该在 `0x0600 = 0x0400+0x0200`。程序员在开发的时候总是频繁的修改 code 然后 build，假如程序员在 `foo` 里面增加了一些内容，现在 `foo` 函数体占 `0x300` 个字节了，`bar` 的入口也就只好往后移 `0x100` 变成了 `0x0700`，这样就有一个问题，如果 `foo` 在程序中被调用了 `n` 次，那么 linker 不得不修改这 `n` 个函数调用点，虽然 linker 不嫌累，但是 link 时间长了，程序员会觉得不爽。所以 MSVC 在 Debug 版的 build，不会让各个函数体之间这么紧凑，每个函数体后都有 padding（全是汇编代码 `int 3`，作用是引发中断，这样因为古怪原因运行到不该运行的 padding 部分，会发生异常），有了这些 padding，就可以一定程度上缓解上面提到的问题，不过当函数增加内容太多超过 padding，还是有问题，怎么办呢？MSVC 在 Debug build 中用上了 Incremental Link Table， `ILT` 其实就是一串 `jmp` 语句，每个 `jmp` 语句对应一个函数，`jmp` 的目的地就是函数的入口点，和没有 `ILT` 的区别是，现在对函数的调用不是直接 `call` 到函数入口点了，而是 `call` 到 `ILT` 中对应的位置，而这个位置上什么也不做，直接 `jmp` 到函数中去。这样的好处是，当一个函数入口地址改变时，只要修改 `ILT` 中对应值就搞定了，用不着修改每一个调用位置，用一个冗余的 ITL 把时间复杂度从 `O(n)` 将为 `O(1)`，值得，当然 Debug 版的二进制文件会稍大稍慢，Release 版不会用上 `ILT`。*
+
+所以，想得到正确的结果，disable incremental linking 即可，代价是链接时间的变长，没有两全其美的方法
