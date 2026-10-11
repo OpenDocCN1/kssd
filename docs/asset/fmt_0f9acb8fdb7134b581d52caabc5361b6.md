@@ -1,0 +1,188 @@
+
+# 00402BDF 代码段
+
+```
+00402BDF  |.  8A5424 05     mov     dl, [esp+5]      //取 b
+00402BE3  |.  32C3          xor     al, bl
+00402BE5  |.  8A5C24 06     mov     bl, [esp+6]      //取 c
+00402BE9  |.  32CA          xor     cl, dl
+00402BEB  |.  8A5424 09     mov     dl, [esp+9]      //取 f
+00402BEF  |.  32D3          xor     dl, bl
+00402BF1  |.  8A5C24 08     mov     bl, [esp+8]      //取 e
+00402BF5  |.  325C24 0A     xor     bl, [esp+A]      //取 g
+00402BF9  |.  3C 38         cmp     al, 38           //a^d=0x38
+00402BFB  |.  75 35         jnz     short 00402C32
+00402BFD  |.  80F9 78       cmp     cl, 78           //b^h=0x78
+00402C00  |.  75 30         jnz     short 00402C32
+00402C02  |.  80FA 4E       cmp     dl, 4E           //c^f=0x4e
+00402C05  |.  75 2B         jnz     short 00402C32
+00402C07  |.  80FB 1A       cmp     bl, 1A           //g^e=0x1a
+00402C0A  |.  75 26         jnz     short 00402C32
+00402C0C  |.  8D4C24 2C     lea     ecx, [esp+2C]
+00402C10  |.  C74424 24 FFF>mov     dword ptr [esp+24], -1
+00402C18  |.  E8 F5860100   call    0041B312
+00402C1D  |.  B8 01000000   mov     eax, 1           //注册码正确，设置返回 1
+00402C22  |.  5B            pop     ebx
+00402C23  |.  8B4C24 18     mov     ecx, [esp+18]
+00402C27  |.  64:890D 00000>mov     fs:[0], ecx
+00402C2E  |.  83C4 24       add     esp, 24
+00402C31  |.  C3            retn
+00402C32  |>  8D4C24 2C     lea     ecx, [esp+2C]
+00402C36  |.  C74424 24 FFF>mov     dword ptr [esp+24], -1
+00402C3E  |.  E8 CF860100   call    0041B312
+00402C43  |.  8B4C24 1C     mov     ecx, [esp+1C]
+00402C47  |.  33C0          xor     eax, eax         //错误，设置返回 0
+00402C49  |.  5B            pop     ebx
+00402C4A  |.  64:890D 00000>mov     fs:[0], ecx
+00402C51  |.  83C4 24       add     esp, 24
+00402C54  \.  C3            retn
+```
+
+从后面可以看出，他有两个无效注册码 `1163659294813585`,`0386848021608060`，注册部分简单。注册机代码如下，生成所有注册码。
+
+## 注册机代码
+
+生成所有的注册码：
+
+```cpp
+// KeyGenMSN.cpp : Defines the entry point for the console application.
+//
+
+#include "stdafx.h"
+
+#include <STDIO.H>
+
+#include <windows.h>
+
+#define REVERSE(a) (BYTE)(a>>4|a<<4)
+
+int main(int argc, char* argv[])
+{
+  BYTE a,b,c,d,e,f,g,h;
+  char serial[17];
+  for(a=0;a<=0xff;a++)
+    for(b=0;b<=0xff;b++)
+      for(c=0;c<=0xff;c++)
+        for(e=0;e<=0xff;e++)
+        {
+          d=a^0x38;
+          h=b^0x78;
+          f=c^0x4e;
+          g=e^0x1a;
+          sprintf(serial,"%02X%02X%02X%02X%02X%02X%02X%02X",
+            REVERSE(a),REVERSE(b),REVERSE(c),REVERSE(d),
+            REVERSE(e),REVERSE(f),REVERSE(g),REVERSE(h));
+          if(strcmp(serial,"1163659294813585")&&strcmp(serial,"0386848021608060"))
+          {
+            printf("%s\n",serial);
+          }
+        }
+  system("pause");
+  return 0;
+}
+```
+
+算法很简单，就不多说了。
+
+## 【功能分析】
+
+这个程序注册部分不是我所感兴趣的地方，真正感兴趣的地方是多个 `msn` 开启是如何实现的。因为是一个 `Loader`，很显然想到 `CreateProcess`,`ReadProcessMemory` 等 `API`，在它们上面下断点。找到：
+
+```
+00401B10  /$  6A FF         push    -1
+00401B12  |.  68 E8334200   push    004233E8                       ;  SE 处理程序安装
+00401B17  |.  64:A1 0000000>mov     eax, fs:[0]
+00401B1D  |.  50            push    eax
+00401B1E  |.  64:8925 00000>mov     fs:[0], esp
+00401B25  |.  83EC 5C       sub     esp, 5C
+00401B28  |.  33C0          xor     eax, eax
+00401B2A  |.  53            push    ebx
+00401B2B  |.  894424 0C     mov     [esp+C], eax
+00401B2F  |.  56            push    esi
+00401B30  |.  894424 14     mov     [esp+14], eax
+00401B34  |.  57            push    edi
+00401B35  |.  894424 1C     mov     [esp+1C], eax
+00401B39  |.  B9 11000000   mov     ecx, 11
+00401B3E  |.  8D7C24 24     lea     edi, [esp+24]
+00401B42  |.  8D5424 10     lea     edx, [esp+10]
+00401B46  |.  F3:AB         rep     stos dword ptr es:[edi]
+00401B48  |.  8B4C24 78     mov     ecx, [esp+78]
+00401B4C  |.  83CB FF       or      ebx, FFFFFFFF
+00401B4F  |.  51            push    ecx
+00401B50  |.  68 0CF14200   push    0042F10C                       ;  "
+00401B55  |.  52            push    edx
+00401B56  |.  894424 2C     mov     [esp+2C], eax
+00401B5A  |.  C74424 30 440>mov     dword ptr [esp+30], 44
+00401B62  |.  E8 709A0100   call    0041B5D7
+00401B67  |.  68 08F14200   push    0042F108                       ;  "
+00401B6C  |.  50            push    eax
+00401B6D  |.  8D4424 14     lea     eax, [esp+14]
+00401B71  |.  C74424 78 000>mov     dword ptr [esp+78], 0
+00401B79  |.  50            push    eax
+00401B7A  |.  E8 E4990100   call    0041B563
+00401B7F  |.  8B7424 7C     mov     esi, [esp+7C]
+00401B83  |.  8D4C24 78     lea     ecx, [esp+78]
+00401B87  |.  56            push    esi
+00401B88  |.  50            push    eax
+00401B89  |.  51            push    ecx
+00401B8A  |.  C64424 7C 01  mov     byte ptr [esp+7C], 1
+00401B8F  |.  E8 69990100   call    0041B4FD
+00401B94  |.  8D4C24 0C     lea     ecx, [esp+C]
+00401B98  |.  C64424 70 04  mov     byte ptr [esp+70], 4
+00401B9D  |.  E8 70970100   call    0041B312
+00401BA2  |.  8D4C24 10     lea     ecx, [esp+10]
+00401BA6  |.  C64424 70 03  mov     byte ptr [esp+70], 3
+00401BAB  |.  E8 62970100   call    0041B312
+00401BB0  |.  8B16          mov     edx, [esi]
+00401BB2  |.  8D4C24 14     lea     ecx, [esp+14]
+00401BB6  |.  51            push    ecx
+00401BB7  |.  8D4C24 7C     lea     ecx, [esp+7C]
+00401BBB  |.  8B42 F8       mov     eax, [edx-8]
+00401BBE  |.  8D5424 28     lea     edx, [esp+28]
+00401BC2  |.  52            push    edx
+00401BC3  |.  6A 00         push    0
+00401BC5  |.  6A 00         push    0
+00401BC7  |.  6A 00         push    0
+00401BC9  |.  6A 00         push    0
+00401BCB  |.  6A 00         push    0
+00401BCD  |.  6A 00         push    0
+00401BCF  |.  50            push    eax
+00401BD0  |.  E8 149B0100   call    0041B6E9
+00401BD5  |.  50            push    eax                            ; |CommandLine
+00401BD6  |.  6A 00         push    0                              ; |ModuleFileName = NULL
+00401BD8  |.  FF15 DC514200 call    [<&KERNEL32.CreateProcessA>]   ; \CreateProcessA  //启动一个 MSN
+00401BDE  |.  85C0          test    eax, eax
+00401BE0  |.  74 04         je      short 00401BE6
+00401BE2  |.  8B5C24 14     mov     ebx, [esp+14]
+00401BE6  |>  6A FF         push    -1
+00401BE8  |.  8D4C24 7C     lea     ecx, [esp+7C]
+00401BEC  |.  E8 479B0100   call    0041B738
+00401BF1  |.  8D4C24 78     lea     ecx, [esp+78]
+00401BF5  |.  C74424 70 FFF>mov     dword ptr [esp+70], -1
+00401BFD  |.  E8 10970100   call    0041B312
+00401C02  |.  8B4C24 68     mov     ecx, [esp+68]
+00401C06  |.  5F            pop     edi
+00401C07  |.  8BC3          mov     eax, ebx
+00401C09  |.  5E            pop     esi
+00401C0A  |.  5B            pop     ebx
+00401C0B  |.  64:890D 00000>mov     fs:[0], ecx
+00401C12  |.  83C4 68       add     esp, 68
+00401C15  \.  C2 0800       retn    8
+```
+
+这段是启动 `MSN`，`Ctrl+F9` 返回，没过多久来到了关键地方。
+
+```
+00401C20  /$  B8 28100000   mov     eax, 1028
+00401C25  |.  E8 E6900000   call    0040AD10
+00401C2A  |.  53            push    ebx
+00401C2B  |.  55            push    ebp
+00401C2C  |.  56            push    esi
+00401C2D  |.  8BF1          mov     esi, ecx
+00401C2F  |.  33DB          xor     ebx, ebx
+00401C31  |.  B2 0F         mov     dl, 0F
+00401C33  |.  B1 85         mov     cl, 85
+00401C35  |.  B0 B5         mov     al, 0B5
+00401C37  |.  57            push    edi
+00401C38  |.  C64424 10 14  mov     byte ptr [esp+10], 14
+```
