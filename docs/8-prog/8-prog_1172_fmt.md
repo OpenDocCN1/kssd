@@ -1,0 +1,549 @@
+
+# 如何使 `PsSetCreateProcessNotifyRoutine` 等 3 个函数设置的监控历程从内核中脱链
+
+> 原文：[`www.pediy.com/kssd/pediy10/70531.html`](https://www.pediy.com/kssd/pediy10/70531.html)
+
+## 【原创】如何使 `PsSetCreateProcessNotifyRoutine` 等 3 个函数设置的监控历程从内核中脱链
+
+【作者】`drcool`
+
+大家都知道在内核环境下有三个函数分别可以设置 `Process`, `Thread`, `Image` 的相关通知函数，他们是 `PsSetCreateProcessNotifyRoutine`, `PsSetCreateThreadNotifyRoutine`, `PsSetLoadImageNotifyRoutine`。在 DDK 里面都有详细的介绍。通过这三个函数，我们就可以设置历程，对进程建立和销毁，线程建立和销毁，以及模块加载这些过程进行监控，也就是得到相关的通知。在 DDK 里面也明确指出，进行这些设置的内核模块是不能卸载的，也就是说，通过这些函数设置的监控历程一旦设置就要一直工作下去，直到系统关闭。但是通过对这三个函数的研究发现，DDK 的说法是不正确的。下面我们就来看看，如何让这些监控历程从内核中脱链并失效。本文所使用的方法可以适用于 Win2000 和 XPSP2 以及 2003SP1，其他操作系统平台的原理是一样的，只不过具体的内核相关偏移需要修改。
+
+### 1. Win2000 的情况
+
+对于 `PsSetCreateProcessNotifyRoutine(
+    IN PCREATE_PROCESS_NOTIFY_ROUTINE  NotifyRoutine,
+    IN BOOLEAN  Remove
+    );`，最后一个参数 `Remove` 为 `TRUE` 时，就是对 `NotifyRoutine` 从内核中卸载。我们所需要的就是找到 `NotifyRoutine` 的内核地址，然后调用这个函数就可以了。那么如何获得这个内核地址呢？经过对 `PsSetCreateProcessNotifyRoutine` 进行反汇编我们发现，`PsSetCreateProcessNotifyRoutine` 能设置 8 个监控历程，这和 DDK 的描述是一致的，它们依次顺序存放在 `0x80483720` 开始的 8 个 `ULONG` 里面，而监控历程的个数，存放在 `0x8046dc38` 中。所以我们的工作可以描述如下(伪代码)：
+
+```
+ULONG *p1=0x80483720; ULONG *p2=0x8046dc38;
+for(i=0;i<8;i++,p1++)if(*p1)PsSetCreateProcessNotifyRoutine(*p1,TRUE);
+```
+
+这样我们就完成了对监控函数的卸载。
+
+但是 `Thread`, `Image` 的监控函数在 2000 下是没有相关的卸载函数的。于是我们进一步发现，其实三个函数在内部所做的工作是类似的，一是在固定地址存放函数地址，二是增加函数个数的计数。因此卸载工作完全可以我们自己来做。接上面的定义，对于 `Process` 监控的卸载(伪代码描述)：`*p2=0; memset(p1,0,32);` 两句话就完成了。对于 `Thread`, `Image`，过程是一样的，只不过 `p1` 和 `p2` 变了。
+
+对于 `PsSetCreateThreadNotifyRoutine`
+`ULONG *p1=0x804836e0; ULONG *p2=0x8046cfc4;`
+
+对于 `PsSetLoadImageNotifyRoutine`
+`ULONG *p1=0x80483760; ULONG *p2=0x80483740;`
+
+自己手动来卸载的方式还可以抵御 `PsSetCreateProcessNotifyRoutine` 被 HOOK 的情况。
+
+### 2. XPSP2 的情况
+
+对于 `Process` 我们依然可以采用 2000 下面的文档化的方法，也就是 `PsSetCreateProcessNotifyRoutine(NotifyRoutine,TRUE);` 同时内核中有又了两个用于卸载的函数，`PsRemoveCreateThreadNotifyRoutine`，`PsRemoveLoadImageNotifyRoutine(NotifyRoutine)`。下面我们就来看看如何得到这些 `NotifyRoutine` 的地址并使用这些函数来卸载。并且我们还要讨论如何利用手工来卸载函数，这样也是为了抵御相互内核函数被 HOOK 的情况。
+
+现看 `PsSetCreateProcessNotifyRoutine` 的情况：
+
+`nt!PsSetCreateProcessNotifyRoutine:`
+
+```
+805cf44c 8bff         mov     edi,edi
+805cf44e 55           push    ebp
+805cf44f 8bec         mov     ebp,esp
+805cf451 53           push    ebx
+805cf452 33db         xor     ebx,ebx
+805cf454 385d0c       cmp     [ebp+0xc],bl
+805cf457 56           push    esi
+805cf458 57           push    edi
+805cf459 7464         jz nt!PsSetCreateProcessNotifyRoutine+0x73 (805cf4bf)
+805cf45b bf40395680   mov     edi,0x80563940
+805cf460 57           push    edi
+805cf461 e8a6ce0300   call    nt!ExReferenceCallBackBlock (8060c30c)
+805cf466 8bf0         mov     esi,eax
+805cf468 85f6         test    esi,esi
+805cf46a 741f         jz nt!PsSetCreateProcessNotifyRoutine+0x3f (805cf48b)
+805cf46c 56           push    esi
+805cf46d e89acc0300   call    nt!ExGetCallBackBlockRoutine (8060c10c)
+805cf472 3b4508       cmp     eax,[ebp+0x8]
+805cf475 750d         jnz nt!PsSetCreateProcessNotifyRoutine+0x38 (805cf484)
+805cf477 56           push    esi
+805cf478 6a00         push    0x0
+805cf47a 57           push    edi
+805cf47b e8c0cd0300   call    nt!ExCompareExchangeCallBack (8060c240)
+805cf480 84c0         test    al,al
+805cf482 7517         jnz nt!PsSetCreateProcessNotifyRoutine+0x4f (805cf49b)
+805cf484 56           push    esi
+805cf485 57           push    edi
+805cf486 e883cf0300   call    nt!ExDereferenceCallBackBlock (8060c40e)
+805cf48b 43           inc     ebx
+805cf48c 83c704       add     edi,0x4
+805cf48f 83fb08       cmp     ebx,0x8
+805cf492 72cc         jb nt!PsSetCreateProcessNotifyRoutine+0x14 (805cf460)
+805cf494 b87a0000c0   mov     eax,0xc000007a
+805cf499 eb64         jmp nt!PsSetCreateProcessNotifyRoutine+0xb3 (805cf4ff)
+805cf49b b860395680   mov     eax,0x80563960
+805cf4a0 83c9ff       or      ecx,0xffffffff
+805cf4a3 f00fc108     lock    xadd [eax],ecx
+805cf4a7 56           push    esi
+805cf4a8 8d049d40395680 lea eax,[nt!PspCreateProcessNotifyRoutine (80563940)+ebx*4]
+805cf4af 50           push    eax
+805cf4b0 e859cf0300   call    nt!ExDereferenceCallBackBlock (8060c40e)
+805cf4b5 56           push    esi
+805cf4b6 e83bcc0300   call    nt!ExWaitForCallBacks (8060c0f6)
+805cf4bb 33ff         xor     edi,edi
+805cf4bd eb38         jmp nt!PsSetCreateProcessNotifyRoutine+0xab (805cf4f7)
+805cf4bf 53           push    ebx
+805cf4c0 ff7508       push    dword ptr [ebp+0x8]
+805cf4c3 e848cd0300   call    nt!ExAllocateCallBack (8060c210)
+805cf4c8 8bf0         mov     esi,eax
+805cf4ca 3bf3         cmp     esi,ebx
+805cf4cc 7507         jnz nt!PsSetCreateProcessNotifyRoutine+0x89 (805cf4d5)
+805cf4ce b89a0000c0   mov     eax,0xc000009a
+805cf4d3 eb2a         jmp nt!PsSetCreateProcessNotifyRoutine+0xb3 (805cf4ff)
+805cf4d5 bf40395680   mov     edi,0x80563940
+805cf4da 6a00         push    0x0
+805cf4dc 56           push    esi
+805cf4dd 57           push    edi
+805cf4de e85dcd0300   call    nt!ExCompareExchangeCallBack (8060c240)
+805cf4e3 84c0         test    al,al
+805cf4e5 751f         jnz nt!PsSetCreateProcessNotifyRoutine+0xba (805cf506)
+805cf4e7 83c304       add     ebx,0x4
+805cf4ea 83c704       add     edi,0x4
+805cf4ed 83fb20       cmp     ebx,0x20
+805cf4f0 72e8         jb nt!PsSetCreateProcessNotifyRoutine+0x8e (805cf4da)
+805cf4f2 bf0d0000c0   mov     edi,0xc000000d
+805cf4f7 56           push    esi
+805cf4f8 e8ed820100   call    nt!SepFreeCapturedString (805e77ea)
+805cf4fd 8bc7         mov     eax,edi
+805cf4ff 5f           pop     edi
+805cf500 5e           pop     esi
+805cf501 5b           pop     ebx
+805cf502 5d           pop     ebp
+805cf503 c20800       ret     0x8
+805cf506 33c9         xor     ecx,ecx
+805cf508 b860395680   mov     eax,0x80563960
+805cf50d 41           inc     ecx
+805cf50e f00fc108     lock    xadd [eax],ecx
+805cf512 33c0         xor     eax,eax
+805cf514 ebe9         jmp nt!PsSetCreateProcessNotifyRoutine+0xb3 (805cf4ff)
+```
+
+为了配合后面的手动卸载，再看两个函数：
+
+`nt!ExAllocateCallBack:`
+
+```
+8060c210 8bff         mov     edi,edi
+8060c212 55           push    ebp
+8060c213 8bec         mov     ebp,esp
+8060c215 6843627262   push    0x62726243
+8060c21a 6a0c         push    0xc
+8060c21c 6a01         push    0x1
+8060c21e e845f7f3ff   call    nt!ExAllocatePoolWithTag (8054b968)
+8060c223 85c0         test    eax,eax
+8060c225 740f         jz      nt!ExAllocateCallBack+0x26 (8060c236)
+8060c227 8b4d08       mov     ecx,[ebp+0x8]
+8060c22a 832000       and     dword ptr [eax],0x0
+8060c22d 894804       mov     [eax+0x4],ecx
+8060c230 8b4d0c       mov     ecx,[ebp+0xc]
+8060c233 894808       mov     [eax+0x8],ecx
+8060c236 5d           pop     ebp
+8060c237 c20800       ret     0x8
+```
+
+这个函数在设置监控函数时用到
+
+`nt!ExCompareExchangeCallBack:`
+
+```
+8060c240 8bff         mov     edi,edi
+8060c242 55           push    ebp
+8060c243 8bec         mov     ebp,esp
+8060c245 56           push    esi
+8060c246 8b750c       mov     esi,[ebp+0xc]
+8060c249 85f6         test    esi,esi
+8060c24b 7412         jz      nt!ExCompareExchangeCallBack+0x1f (8060c25f)
+8060c24d 6a08         push    0x8
+8060c24f 5a           pop     edx
+8060c250 8bce         mov     ecx,esi
+8060c252 e809f9ffff   call    nt!ExAcquireRundownProtectionEx (8060bb60)
+8060c257 84c0         test    al,al
+```
+
+
+
+这个函数在卸载监控函数时用到，用于取地址。
+
+`nt!ExCompareExchangeCallBack`
+
+```
+8060c259 0f84a2000000     je      nt!ExCompareExchangeCallBack+0xc1 (8060c301)
+8060c25f 8b5508           mov     edx,[ebp+0x8]
+8060c262 53               push    ebx
+8060c263 8b1a             mov     ebx,[edx]
+8060c265 8bc3             mov     eax,ebx
+8060c267 334510           xor     eax,[ebp+0x10]
+8060c26a 895d0c           mov     [ebp+0xc],ebx
+8060c26d 83f807           cmp     eax,0x7
+8060c270 7717             ja      nt!ExCompareExchangeCallBack+0x49 (8060c289)
+8060c272 85f6             test    esi,esi
+8060c274 7407             jz      nt!ExCompareExchangeCallBack+0x3d (8060c27d)
+8060c276 8bce             mov     ecx,esi
+8060c278 83c907           or      ecx,0x7
+8060c27b eb02             jmp     nt!ExCompareExchangeCallBack+0x3f (8060c27f)
+8060c27d 33c9             xor     ecx,ecx
+8060c27f 8bc3             mov     eax,ebx
+8060c281 f00fb10a         lock    cmpxchg [edx],ecx
+8060c285 3bc3             cmp     eax,ebx
+8060c287 75da             jnz     nt!ExCompareExchangeCallBack+0x23 (8060c263)
+8060c289 83e3f8           and     ebx,0xfffffff8
+8060c28c 3b5d10           cmp     ebx,[ebp+0x10]
+8060c28f 755f             jnz     nt!ExCompareExchangeCallBack+0xb0 (8060c2f0)
+8060c291 85db             test    ebx,ebx
+8060c293 7457             jz      nt!ExCompareExchangeCallBack+0xac (8060c2ec)
+8060c295 57               push    edi
+8060c296 64a124010000     mov     eax,fs:[00000124]
+8060c29c 8bf8             mov     edi,eax
+8060c29e 8db7d4000000     lea     esi,[edi+0xd4]
+8060c2a4 ff0e             dec     dword ptr [esi]
+8060c2a6 874510           xchg    [ebp+0x10],eax
+8060c2a9 833d5c4b568000  cmp   dword ptr [nt!ExpCallBackFlush (80564b5c)],0x0
+8060c2b0 7414             jz      nt!ExCompareExchangeCallBack+0x86 (8060c2c6)
+8060c2b2 b95c4b5680       mov     ecx,0x80564b5c
+8060c2b7 e856fbffff       call    nt!ExfAcquirePushLockExclusive (8060be12)
+8060c2bc b95c4b5680       mov     ecx,0x80564b5c
+8060c2c1 e8cef9ffff       call    nt!ExfReleasePushLock (8060bc94)
+8060c2c6 ff06             inc     dword ptr [esi]
+8060c2c8 7513             jnz     nt!ExCompareExchangeCallBack+0x9d (8060c2dd)
+8060c2ca 8d4734           lea     eax,[edi+0x34]
+8060c2cd 3900             cmp     [eax],eax
+8060c2cf 740c             jz      nt!ExCompareExchangeCallBack+0x9d (8060c2dd)
+8060c2d1 b101             mov     cl,0x1
+8060c2d3 c6474901         mov     byte ptr [edi+0x49],0x1
+8060c2d7 ff150c914d80    call    dword ptr [nt!_imp_HalRequestSoftwareInterrupt (804d910c)]
+8060c2dd 8b550c           mov     edx,[ebp+0xc]
+8060c2e0 83e207           and     edx,0x7
+8060c2e3 42               inc     edx
+8060c2e4 8bcb             mov     ecx,ebx
+8060c2e6 e8e1f8ffff       call    nt!ExReleaseRundownProtectionEx (8060bbcc)
+8060c2eb 5f               pop     edi
+8060c2ec b001             mov     al,0x1
+8060c2ee eb10             jmp     nt!ExCompareExchangeCallBack+0xc0 (8060c300)
+8060c2f0 85f6             test    esi,esi
+8060c2f2 740a             jz      nt!ExCompareExchangeCallBack+0xbe (8060c2fe)
+8060c2f4 6a08             push    0x8
+8060c2f6 5a               pop     edx
+8060c2f7 8bce             mov     ecx,esi
+8060c2f9 e8cef8ffff       call    nt!ExReleaseRundownProtectionEx (8060bbcc)
+8060c2fe 32c0             xor     al,al
+8060c300 5b               pop     ebx
+8060c301 5e               pop     esi
+8060c302 5d               pop     ebp
+8060c303 c20c00           ret     0xc
+8060c306 cc               int     3
+8060c307 cc               int     3
+8060c308 cc               int     3
+8060c309 cc               int     3
+8060c30a cc               int     3
+8060c30b cc               int     3
+```
+
+`nt!ExReferenceCallBackBlock`
+
+```
+8060c30c 8bff             mov     edi,edi
+8060c30e 55               push    ebp
+8060c30f 8bec             mov     ebp,esp
+8060c311 53               push    ebx
+8060c312 57               push    edi
+8060c313 8b7d08           mov     edi,[ebp+0x8]
+8060c316 6a07             push    0x7
+8060c318 5b               pop     ebx
+8060c319 8b0f             mov     ecx,[edi]
+8060c31b 84cb             test    bl,cl
+8060c31d 740d             jz      nt!ExReferenceCallBackBlock+0x20 (8060c32c)
+8060c31f 8d51ff           lea     edx,[ecx-0x1]
+8060c322 8bc1             mov     eax,ecx
+8060c324 f00fb117         lock    cmpxchg [edi],edx
+8060c328 3bc1             cmp     eax,ecx
+8060c32a 75ed             jnz     nt!ExReferenceCallBackBlock+0xd (8060c319)
+8060c32c 85c9             test    ecx,ecx
+8060c32e 0f8480000000     je      nt!ExReferenceCallBackBlock+0xa8 (8060c3b4)
+8060c334 8bc1             mov     eax,ecx
+8060c336 23c3             and     eax,ebx
+8060c338 757e             jnz     nt!ExReferenceCallBackBlock+0xac (8060c3b8)
+8060c33a 56               push    esi
+8060c33b 64a124010000     mov     eax,fs:[00000124]
+8060c341 8bf0             mov     esi,eax
+8060c343 ff8ed4000000     dec     dword ptr [esi+0xd4]
+8060c349 6a02             push    0x2
+8060c34b bb5c4b5680       mov     ebx,0x80564b5c
+8060c350 59               pop     ecx
+8060c351 8bd3             mov     edx,ebx
+8060c353 33c0             xor     eax,eax
+8060c355 f00fb10a         lock    cmpxchg [edx],ecx
+8060c359 85c0             test    eax,eax
+8060c35b 7407             jz      nt!ExReferenceCallBackBlock+0x58 (8060c364)
+8060c35d 8bcb             mov     ecx,ebx
+8060c35f e8aefaffff       call    nt!ExfAcquirePushLockExclusive (8060be12)
+8060c364 8b3f             mov     edi,[edi]
+8060c366 83e7f8           and     edi,0xfffffff8
+8060c369 7412             jz      nt!ExReferenceCallBackBlock+0x71 (8060c37d)
+8060c36b 8bcf             mov     ecx,edi
+8060c36d e8c4f7ffff       call    nt!ExAcquireRundownProtection (8060bb36)
+8060c372 84c0             test    al,al
+8060c374 7507             jnz     nt!ExReferenceCallBackBlock+0x71 (8060c37d)
+8060c376 83650800         and     dword ptr [ebp+0x8],0x0
+8060c37a 8b7d08           mov     edi,[ebp+0x8]
+8060c37d 6a02             push    0x2
+8060c37f 33c9             xor     ecx,ecx
+8060c381 8bd3             mov     edx,ebx
+8060c383 58               pop     eax
+8060c384 f00fb10a         lock    cmpxchg [edx],ecx
+8060c388 83f802           cmp     eax,0x2
+8060c38b 7407             jz      nt!ExReferenceCallBackBlock+0x88 (8060c394)
+8060c38d 8bcb             mov     ecx,ebx
+8060c38f e800f9ffff       call    nt!ExfReleasePushLock (8060bc94)
+8060c394 ff86d4000000     inc     dword ptr [esi+0xd4]
+8060c39a 7513             jnz     nt!ExReferenceCallBackBlock+0xa3 (8060c3af)
+8060c39c 8d4634           lea     eax,[esi+0x34]
+8060c39f 3900             cmp     [eax],eax
+8060c3a1 740c             jz      nt!ExReferenceCallBackBlock+0xa3 (8060c3af)
+8060c3a3 b101             mov     cl,0x1
+8060c3a5 c6464901         mov     byte ptr [esi+0x49],0x1
+8060c3a9 ff150c914d80    call    dword ptr [nt!_imp_HalRequestSoftwareInterrupt (804d910c)]
+8060c3af 85ff             test    edi,edi
+8060c3b1 5e               pop     esi
+8060c3b2 754c             jnz     nt!ExReferenceCallBackBlock+0xf4 (8060c400)
+8060c3b4 33c0             xor     eax,eax
+8060c3b6 eb4a             jmp     nt!ExReferenceCallBackBlock+0xf6 (8060c402)
+8060c3b8 83e1f8           and     ecx,0xfffffff8
+8060c3bb 83f801           cmp     eax,0x1
+8060c3be 894d08           mov     [ebp+0x8],ecx
+8060c3c1 753a             jnz     nt!ExReferenceCallBackBlock+0xf1 (8060c3fd)
+8060c3c3 8bd3             mov     edx,ebx
+8060c3c5 e896f7ffff       call    nt!ExAcquireRundownProtectionEx (8060bb60)
+8060c3ca 84c0             test    al,al
+```
+
+
+
+```
+8060c3cc 742f jz nt!ExReferenceCallBackBlock+0xf1 (8060c3fd)
+
+8060c3ce 8b17 mov edx,[edi]
+
+8060c3d0 8bc2 mov eax,edx
+
+8060c3d2 23c3 and eax,ebx
+
+8060c3d4 03c3 add eax,ebx
+
+8060c3d6 3bc3 cmp eax,ebx
+
+8060c3d8 7719 ja nt!ExReferenceCallBackBlock+0xe7 (8060c3f3)
+
+8060c3da 8bc2 mov eax,edx
+
+8060c3dc 83e0f8 and eax,0xfffffff8
+
+8060c3df 394508 cmp [ebp+0x8],eax
+
+8060c3e2 750f jnz nt!ExReferenceCallBackBlock+0xe7 (8060c3f3)
+
+8060c3e4 8d4a07 lea ecx,[edx+0x7]
+
+8060c3e7 8bc2 mov eax,edx
+
+8060c3e9 f00fb10f lock cmpxchg [edi],ecx
+
+8060c3ed 3bc2 cmp eax,edx
+
+8060c3ef 75dd jnz nt!ExReferenceCallBackBlock+0xc2 (8060c3ce)
+
+8060c3f1 eb0a jmp nt!ExReferenceCallBackBlock+0xf1 (8060c3fd)
+
+8060c3f3 8b4d08 mov ecx,[ebp+0x8]
+
+8060c3f6 8bd3 mov edx,ebx
+
+8060c3f8 e8cff7ffff call nt!ExReleaseRundownProtectionEx (8060bbcc)
+
+8060c3fd 8b7d08 mov edi,[ebp+0x8]
+
+8060c400 8bc7 mov eax,edi
+
+8060c402 5f pop edi
+
+8060c403 5b pop ebx
+
+8060c404 5d pop ebp
+
+8060c405 c20400 ret 0x4
+```
+
+### 具体分析
+
+#### a. 设置过程
+通过 `nt!ExAllocateCallBack` 分配 12 字节的空间 `ULONG d[3]`，是 3 个 `ULONG`，在第二个 `ULONG` 里面存放的是监控函数的地址。然后通过 `ExCompareExchangeCallBack` 这个关键的函数进行后续的设置工作，指针 `d` 经过变换后存放在固定的位置，并增加相关计数。对 `d` 的变换是这样的，把它的低三位置 1，也就是 `or 7`，这在汇编代码里面可以看的很清楚，这样做的可以的原因是，`ExAllocatePoolWithTag` 所分配的内存是 8 字节对齐的。函数内部的其他工作是大部分是为了同步操作，就不多研究了。
+
+#### b. 卸载工作
+不过是设置的逆过程，也就是取得 `d` 指针，再取得函数指针，比较是否是要卸载的函数，如果是则减少计数，释放 12 字节空间（这个应该是内部做），相应位置置 0。
+
+### 两种方法说明
+好了，下面我们来分别说明两种方法，利用文档函数的方法和手动方法(伪代码如下)：
+
+1) 利用文档化函数的方法：
+```c
+ULONG *p1=0x80563940; //连续的 8 个 ULONG 存放不同的 d 指针
+ULONG *p2=0x80563960; //函数个数的计数
+ULONG *d;
+
+for(i=0;i<8;i++,p1++)
+{      
+  if(*p1)
+  {
+    d=*p1&0xfffffff8;
+    PsSetCreateProcessNotifyRoutine(d[1],TRUE);        
+  }
+  *p1=0;
+}
+```
+
+2) 手动卸载方法：
+```c
+*p2=0;
+
+for(i=0;i<8;i++,p1++)
+{
+  if(*p1)
+  {
+    *p1&=0xfffffff8;
+    ExfreePool(*p1);
+  }
+  *p1=0;
+}
+```
+
+对于 `Thread` 和 `Image` 的过程是类似的，只不过 `p1` 和 `p2` 的值变化了。
+
+- 对于 `PsSetCreateThreadNotifyRoutine`：`ULONG *p1=0x80563900;` `ULONG *p2=0x80563920;`
+- 对于 `PsSetLoadImageNotifyRoutine`：`ULONG *p1=0x805638e0;` `ULONG *p2=0x805638c8;`
+
+对于 2003 下面，也可以使用 XP 下的方法(手动和利用文档化函数都是可以的)，只不过 `p1` 和 `p2` 的值有了变化，原理都是一样的。
+
+- 对于 `PsSetCreateProcessNotifyRoutine`：`ULONG *p1=0x808ad260;` `ULONG *p2=0x808ad280;`
+- 对于 `PsSetCreateThreadNotifyRoutine`：`ULONG *p1=0x808ad220;` `ULONG *p2=0x808ad240;`
+- 对于 `PsSetLoadImageNotifyRoutine`：`ULONG *p1=0x808ad200;` `ULONG *p2=0x808ad1e8;`
+
+### 实际测试通过的代码
+下面给出实际测试通过的代码,2003 的代码大家可以参照着写出来：
+
+```c
+void Remove2000()
+{ 
+  int i; 
+  unsigned long *D1=(unsigned long *)0x80483720, *D2=(unsigned long *)0x8046DC38, *E1=(unsigned long *)0x804836e0, *E2=(unsigned long *)0x8046cfc4, *F1=(unsigned long *)0x80483760, *F2=(unsigned long *)0x80483740; 
+  *D2=0; 
+  for(i=0;i<8;i++) D1[i]=0;    
+  *E2=0; 
+  for(i=0;i<8;i++) E1[i]=0;    
+  *F2=0; 
+  for(i=0;i<8;i++) F1[i]=0;    
+}
+```
+
+#### 利用文档化函数方法
+
+```c
+void RemoveXPSP2()
+{
+  int i;
+
+  ULONG *D1=(ULONG *)0x80563940; //连续的 8 个 ULONG 存放不同的 d 指针 
+  ULONG *D2=(ULONG *)0x80563960; //函数个数的计数   
+  ULONG *E1=(ULONG *)0x80563900; ULONG *E2=(ULONG *)0x80563920;
+
+  ULONG *F1=(ULONG *)0x805638e0; ULONG *F2=(ULONG *)0x805638c8; 
+
+  unsigned long *d; 
+
+  for(i=0;i<8;i++,D1++)
+   {       
+     if(*D1)
+     {
+       d=(ULONG *)(*D1&0xfffffff8); 
+       PsSetCreateProcessNotifyRoutine((PCREATE_PROCESS_NOTIFY_ROUTINE)d[1],TRUE);        
+     }
+     *D1=0; 
+   }
+ for(i=0;i<8;i++,E1++)
+   {       
+     if(*E1)
+     {
+       d=(ULONG *)(*E1&0xfffffff8); 
+       PsRemoveCreateThreadNotifyRoutine(d[1]);        
+     }
+     *E1=0; 
+   }
+ for(i=0;i<8;i++,F1++)
+   {       
+     if(*F1)
+     {
+       d=(ULONG *)(*F1&0xfffffff8); 
+       PsRemoveLoadImageNotifyRoutine(d[1]);        
+     }
+     *F1=0; 
+   }    
+}
+```
+
+#### 手动删除方法
+
+```c
+void RemoveXPSP2V2()
+{
+  int i;
+
+  ULONG *D1=(ULONG *)0x80563940; //连续的 8 个 ULONG 存放不同的 d 指针 
+  ULONG *D2=(ULONG *)0x80563960; //函数个数的计数   
+  ULONG *E1=(ULONG *)0x80563900; ULONG *E2=(ULONG *)0x80563920;
+
+  ULONG *F1=(ULONG *)0x805638e0; ULONG *F2=(ULONG *)0x805638c8; 
+
+  unsigned long *d; 
+
+  *D2=0; 
+
+  for(i=0;i<8;i++,D1++)
+   {       
+     if(*D1)
+     {
+       d=(ULONG *)(*D1&0xfffffff8); 
+       ExFreePool(d);       
+     }
+     *D1=0; 
+   }
+
+   *E2=0; 
+
+ for(i=0;i<8;i++,E1++)
+   {       
+     if(*E1)
+     {
+       d=(ULONG *)(*E1&0xfffffff8); 
+       ExFreePool(d);       
+     }
+     *E1=0; 
+   }
+
+ *F2=0; 
+
+ for(i=0;i<8;i++,F1++)
+   {       
+     if(*F1)
+     {
+       d=(ULONG *)(*F1&0xfffffff8); 
+       ExFreePool(d);        
+     }
+     *F1=0; 
+   }     
+}
+```
+
+欢迎访问我的博客：[`blog.sina.com.cn/tigerDeng`](http://blog.sina.com.cn/tigerDeng)

@@ -1,0 +1,689 @@
+
+# 扫描 nt 模块内存，定位未导出函数
+
+> 原文：[`www.pediy.com/kssd/pediy12/143817.html`](https://www.pediy.com/kssd/pediy12/143817.html)
+
+本文是自己学习内核编程的一些笔记，与各位同学共享。
+
+废话不多说，有三种方式：
+
+### 1. 直接扫描 nt 模块内存定位函数
+
+缺点：有些数据未映射进内存，容易造成 BSD。
+
+```c
+/**
+ * 得到模块基地址和大小
+ * 参数:
+ *    pModuleName[IN]-模块名
+ *    pModuleBase[OUT]-保存基地址
+ *    pModuleSize[OUT]-保存大小    单位：字节
+ * 返回值: TRUE-成功，FALSE-失败。
+ */
+BOOL GetModuleBaseAndSize( IN const char* pModuleName, OUT PULONG pModuleBase, OUT PULONG pModuleSize )   // 这个函数是通过逆向 360 的 hookport.sys 得来的，在此感谢 360
+{
+  NTSTATUS status;
+  BOOL bRet = FALSE;
+  char* pName;
+  char* pFind;
+  ULONG ulReturnLength;
+  int i, nNumberOfBytes = 10240;
+  PVOID pSystemInformation = NULL;
+  PDRIVERMODULESYSTEMINFO pDriverModuleSystemInfo;
+
+  if( NULL == pModuleName || NULL == pModuleBase || NULL == pModuleSize || strlen( pModuleName ) <= 0 )
+  {
+    return bRet;
+  }
+
+  // 得到模块信息
+  do
+  {
+    if( NULL != pSystemInformation )
+    {
+      ExFreePool( pSystemInformation );
+      pSystemInformation = NULL;  
+    }
+
+    pSystemInformation = ExAllocatePoolWithTag( NonPagedPool, nNumberOfBytes, 'bob1' );
+    if( NULL == pSystemInformation )
+    {
+      goto _Exit_GetModuleBaseAndSize;
+    }
+
+    status = NtQuerySystemInformation( SystemModuleInformation, pSystemInformation, nNumberOfBytes, &ulReturnLength );
+    if( !NT_SUCCESS( status ) && status != STATUS_INFO_LENGTH_MISMATCH )
+    {
+      goto _Exit_GetModuleBaseAndSize;
+    }
+
+    nNumberOfBytes += 4096;
+  }
+  while ( !NT_SUCCESS( status ) );
+
+  // 查找指定的模块
+  pDriverModuleSystemInfo =( PDRIVERMODULESYSTEMINFO )pSystemInformation;
+  for( i = 0; i < pDriverModuleSystemInfo->nDriverModules; i++ ) 
+  {
+    pName = pDriverModuleSystemInfo->DriverModuleInfo[i].ModuleName;  // ***** 这里是模块路径
+    pFind = strrchr( pName, '\\' );
+    pFind = ( NULL != pFind ) ? pFind + 1 : pName;
+
+    if ( !_stricmp( pFind, pModuleName ) )
+    {
+      *pModuleBase = pDriverModuleSystemInfo->DriverModuleInfo[i].ModuleBaseAddress;
+      *pModuleSize = pDriverModuleSystemInfo->DriverModuleInfo[i].ModuleSize;
+      bRet = TRUE;
+      break;
+    }
+  }
+
+_Exit_GetModuleBaseAndSize:
+  if( NULL != pSystemInformation )
+  {
+    ExFreePool( pSystemInformation );
+    pSystemInformation = NULL;  
+  }
+
+  return bRet;
+}
+
+/**
+ * 得到未导出函数的首地址。
+ * 参数:
+ *    ulDllBase[IN]-模块基地址
+ *    ulSize[IN]-模块大小    单位：字节
+ *    pulArrayFeatures[IN]-函数特征码数组。注意：这里特征码必须是连续的
+ *    ulArrayNum[IN]-特征码数组中数据的个数
+ *    ulOffset[IN]-第一个特征码距离函数首地址的偏移
+ * 返回值: 不为 NULL-成功，NULL-失败。
+ */
+PVOID GetUnDocApiAddr( IN ULONG ulDllBase, IN ULONG ulSize, IN PULONG pulArrayFeatures, IN ULONG ulArrayNum, IN ULONG ulOffset )
+{
+  ULONG i, j, k, ulTotalFeaturesSize, ulEnd, ulFind, ulValue;
+  if( 0 == ulDllBase || 0 == ulSize || NULL == pulArrayFeatures || 0 == ulArrayNum )     
+    return NULL;
+
+  ulTotalFeaturesSize = ulArrayNum * sizeof( ULONG );
+  ulEnd = (ULONG)ulDllBase + ulSize;
+
+  for( i = (ULONG)ulDllBase; i <= ulEnd; i++ )
+  {
+    if( ( i + ulTotalFeaturesSize ) > ulEnd )
+      break;
+
+    ulFind = 0;
+    for( j = i, k = 0; k < ulArrayNum; j += sizeof( ULONG ), k++ )
+    {
+      if( *( (PULONG)j ) !=  pulArrayFeatures[ k ] ) // 比较
+        break;
+
+      ulFind++;
+    }
+
+    if( ulFind == ulArrayNum )
+    {  
+      return (PVOID)( i - ulOffset );
+    }
+  }
+
+  return NULL;
+}
+```
+
+### 2. 先分配内存并拷贝模块数据
+
+先分配一块内存 `M`，再将 `nt` 模块内存里的数据拷贝到 `M`，扫描 `M` 来定位函数。
+
+这里拷贝 `nt` 模块内存时照样会产生 bsd，幸运的是通过 `SysReveal.exe` 可以成功实现此功能，在此感谢 `SysReveal.exe`。
+
+下面的函数是实现 `nt` 模块内存复制的，其思路是判断数据是否在物理内存里，在就复制，不再就尝试复制，不行就算了，呵呵。
+
+缺点：`CopyModuleMemToBuffer()` 复制时，复制得不全面，会漏掉数据。
+
+```c
+/**
+ * 拷贝模块内存里的数据       // 逆向自 SysReveal
+ * 参数:
+ *    pInSrcAddr[IN]-需要拷贝的地址
+ *    ulLen[IN]-需要拷贝的数据长度      单位：字节  // SysReveal 中传入的是 512 字节
+ *    pOutBuf[OUT]-保存拷贝的数据
+ * 返回值: 已拷贝的数据长度   单位：字节
+ */
+int CopyModuleMemToBuffer( IN char *pInSrcAddr, IN unsigned int ulLen, OUT int pOutBuf )
+{
+  unsigned int nCircleCount; // ebx@1
+  int vOutAddr1; // edi@1
+  ULONG vLen; // esi@1
+  PHYSICAL_ADDRESS qPhysicalAddr;
+  int v7; // eax@13
+  char *v8; // ecx@13
+  ULONG v9; // edi@13
+  int v10; // eax@19
+  char *v11; // ecx@19
+  ULONG v12; // edi@19
+  int v13; // eax@24
+  char *v14; // ecx@24
+  ULONG v15; // edi@24
+  int vOutAddr2; // [sp+10h] [bp-24h]@1
+  unsigned int vNewLen; // [sp+14h] [bp-20h]@3
+  struct _MDL *pMdl; // [sp+18h] [bp-1Ch]@6
+  KIRQL CurrentIRQL; // [sp+47h] [bp+13h]@1
+
+  vOutAddr1 = pOutBuf;
+  vOutAddr2 = pOutBuf;
+  CurrentIRQL = KeGetCurrentIrql();
+  nCircleCount = (ulLen >> 12) + (((ulLen & 0xFFF) + ((WORD)pInSrcAddr & 0xFFF) + 4095) >> 12);
+  vLen = 4096;
+
+  if ( (WORD)pInSrcAddr & 0xFFF )
+    vLen = 4096 - ((WORD)pInSrcAddr & 0xFFF);
+
+  vNewLen = ulLen;
+  if ( ulLen < vLen )
+    vLen = ulLen;
+
+  while ( nCircleCount )
+  {
+    pMdl = IoAllocateMdl(pInSrcAddr, vLen, 0, 0, 0);
+    if ( !pMdl )
+      break;
+
+    if ( !MmIsAddressValid(pInSrcAddr) )
+    {
+      IoFreeMdl(pMdl);
+      return ulLen - vNewLen;
+    }
+
+    qPhysicalAddr = MmGetPhysicalAddress(pInSrcAddr);
+    if ( qPhysicalAddr.LowPart >= g_PhysicalPage.LowPart )  // g_PhysicalPage.LowPart 这个变量来自  BOOL GetPhysicalPage()
+    {
+      if ( CurrentIRQL < DISPATCH_LEVEL )                      // DISPATCH_LEVEL
+      {
+        if ( vLen )
+        {
+          v13 = vOutAddr1;
+          v14 = &pInSrcAddr[-vOutAddr1];
+          v15 = vLen;
+          do
+          {
+            *(char *)v13 = v14[v13];
+            ++v13;
+            --v15;
+          }
+          while ( v15 );
+        }
+      }
+    }
+    else
+    {
+      if ( (char *)MmGetVirtualForPhysical( qPhysicalAddr ) == pInSrcAddr )
+      {
+        if ( CurrentIRQL < DISPATCH_LEVEL )                    // DISPATCH_LEVEL
+          MmProbeAndLockPages(pMdl, 0, 0);
+        if ( vLen )
+        {
+          v7 = vOutAddr1;
+          v8 = &pInSrcAddr[-vOutAddr1];
+          v9 = vLen;
+          do
+          {
+            *(char *)v7 = v8[v7];
+            ++v7;
+            --v9;
+          }
+          while ( v9 );
+        }
+        if ( CurrentIRQL < DISPATCH_LEVEL )                    // DISPATCH_LEVEL
+          MmUnlockPages(pMdl);
+      }
+      else
+      {
+        if ( CurrentIRQL < DISPATCH_LEVEL )                    // DISPATCH_LEVEL
+        {
+          if ( vLen )
+          {
+            v10 = vOutAddr1;
+            v11 = &pInSrcAddr[-vOutAddr1];
+            v12 = vLen;
+            do
+            {
+              *(char *)v10 = v11[v10];
+              ++v10;
+              --v12;
+            }
+            while ( v12 );
+          }
+        }
+      }
+    }
+
+    IoFreeMdl(pMdl);
+    vOutAddr1 = vLen + vOutAddr2;
+    vOutAddr2 += vLen;
+  }
+}
+```
+
+
+
+```c
+    pInSrcAddr += vLen;  
+
+    vNewLen -= vLen;  
+
+    vLen = 4096;  
+
+    if ( vNewLen < 0x1000 )  
+
+      vLen = vNewLen;  
+
+    --nCircleCount;  
+
+  }  
+
+  return ulLen - vNewLen;  
+
+}  
+
+typedef struct _SYSTEM_BASIC_INFORMATION  
+
+{  
+
+  ULONG Unknown;  // 00000000  
+
+  ULONG MaximumIncrement;//一个时钟的计量单位  0002625a  
+
+  ULONG PhysicalPageSize; //一个内存页的大小  0x1000   
+
+  ULONG NumberOfPhysicalPages; //系统管理着多少个页  0001ff7c   
+
+  ULONG LowestPhysicalPage;//低端内存页   00000001  
+
+  ULONG HighestPhysicalPage;//高端内存页   0001ffff  
+
+  ULONG AllocationGranularity;  // 00010000  
+
+  ULONG LowestUserAddress;//低端用户地址  00010000  
+
+  ULONG HighestUserAddress;//高端用户地址  7ffeffff  
+
+  ULONG ActiveProcessors;//激活的处理器  00000001  
+
+  UCHAR NumberProcessors; //有多少个处理器  00000001  
+
+}SYSTEM_BASIC_INFORMATION;  
+
+//全局变量，用来记录物理内存信息  
+
+PHYSICAL_ADDRESS g_PhysicalPage = { 0 };  
+
+PHYSICAL_ADDRESS g_PhysicalHighPage = { 0 };  
+
+PHYSICAL_ADDRESS g_PhysicalLowPage = { 0 };  
+
+BOOL GetPhysicalPage()  
+
+{  
+
+  ULONG uLen;  
+
+  NTSTATUS status = STATUS_SUCCESS;  
+
+  SYSTEM_BASIC_INFORMATION struBasicInfo;  
+
+  status = NtQuerySystemInformation( SystemBasicInformation, &struBasicInfo, sizeof(SYSTEM_BASIC_INFORMATION), &uLen );  
+
+  if( !NT_SUCCESS( status ) )  
+
+  {  
+
+    return FALSE;  
+
+  }  
+
+  _asm  
+
+  {  
+
+    mov eax, struBasicInfo.PhysicalPageSize; //一个内存页的大小  
+
+    mul struBasicInfo.NumberOfPhysicalPages; //系统管理着多少个页  
+
+    mov g_PhysicalPage.HighPart, edx;  
+
+    mov g_PhysicalPage.LowPart, eax;  
+
+    mov eax, struBasicInfo.PhysicalPageSize; //一个内存页的大小  
+
+    mul struBasicInfo.HighestPhysicalPage; //高端内存页  
+
+    mov g_PhysicalHighPage.HighPart, edx;  
+
+    mov g_PhysicalHighPage.LowPart, eax;  
+
+    mov eax, struBasicInfo.PhysicalPageSize; //一个内存页的大小  
+
+    mul struBasicInfo.LowestPhysicalPage; //低端内存页  
+
+    mov g_PhysicalLowPage.HighPart, edx;  
+
+    mov g_PhysicalLowPage.LowPart, eax;  
+
+  }  
+
+  return TRUE;  
+
+}
+```
+
+第三种：打开 `nt` 模块文件（在 `GetModuleBaseAndSize()` 里可得到），在文件里扫描函数特侦码，得到文件偏移 `fileoffset`，  
+然后通过 `rva` 和 `fileoffset` 的关系就可以计算出来。这部分代码我还未写完，需要的话自己写吧。
+
+![](img/5a486957018cc8d631c876cf55447279.jpg)
+
+代码如下：
+
+```c
+ULONG GetRvaByFileoffset( IN ULONG ulFileBase, IN ULONG ulFileSize, IN ULONG ulFileOffset )  
+
+{  
+
+  const ULONG ulSizeOfNtheaders = 0x0f0;  
+
+  const ULONG ulSizeOfSectionheader = 0x28;  
+
+  ULONG ulRet = 0, ulTemp, ulSectionTable;  
+
+  ULONG ulRawStart, ulRawSize, ulVirtualStart;  
+
+  ULONG ulRawStartValue, ulRawSizeValue, ulVirtualStartValue;  
+
+  WORD i, wNumOfSections;  
+
+  BOOL bFind = FALSE;  
+
+  do  
+
+  {  
+
+    if( 0 == ulFileBase || 0 == ulFileSize || 0 == ulFileOffset )     
+  
+      break;  
+
+    if( 0x5A4D != *( (PWORD)ulFileBase ) ) // value of e_magic  
+
+      break;  
+
+    ulTemp = *( (PDWORD)( ulFileBase + 0x3c ) ); // value of e_lfanew  
+
+    ulTemp += ulFileBase;  // nt headers 的起始地址  
+
+    if( 0x00004550 != *( (PDWORD)ulTemp ) ) // value of Signature  
+
+      break;  
+
+    wNumOfSections = *( (PWORD)( ulTemp + 6 ) ); // NumberOfSections  
+
+    if( 0 == wNumOfSections )  
+
+      break;  
+
+    ulTemp += ulSizeOfNtheaders;  
+
+    ulTemp += 8;  // Section Headers 的起始地址  
+
+    for( i = 0; i < wNumOfSections; i++ )  
+
+    {  
+
+      ulSectionTable = ulTemp + ulSizeOfSectionheader * i;  
+
+      ulRawStart = ulSectionTable + 0x14;  
+
+      ulRawStartValue = *( (PDWORD)ulRawStart );  
+
+      if( ulFileOffset >= ulRawStartValue )  
+
+      {  
+
+        ulRawSize = ulSectionTable + 0x10;  
+
+        ulRawSizeValue = *( (PDWORD)ulRawSize );  
+
+        if( ulFileOffset <= ( ulRawStartValue + ulRawSizeValue ) )  
+
+        {  
+
+          bFind = TRUE;  
+
+          break;  
+
+        }  
+
+      }       
+  
+    }  
+
+    if( bFind )  
+
+    {  
+
+      ulVirtualStart = ulSectionTable + 0x0c;  
+
+      ulVirtualStartValue = *( (PDWORD)ulVirtualStart );  
+
+      ulRet = ulFileOffset + ulVirtualStartValue - ulRawStartValue; // RVA = 文件偏移 + voffset - roffset  
+
+    }  
+
+  } while ( 0 );  
+
+  return ulRet;  
+
+}  
+
+// 返回值是 RVA  
+
+ULONG GetUnDocApiAddr( IN ULONG ulDllBase, IN ULONG ulSize, IN PULONG pulArrayFeatures, IN ULONG ulArrayNum )  
+
+{  
+
+  ULONG i, j, k, ulTotalFeaturesSize, ulEnd, ulFind, ulValue;  
+
+  if( 0 == ulDllBase || 0 == ulSize || NULL == pulArrayFeatures || 0 == ulArrayNum )     
+  
+    return 0;  
+
+  ulTotalFeaturesSize = ulArrayNum * sizeof( ULONG );  
+
+  ulEnd = (ULONG)ulDllBase + ulSize;  
+
+  for( i = (ULONG)ulDllBase; i <= ulEnd; i++ )  
+
+  {  
+
+    if( ( i + ulTotalFeaturesSize ) > ulEnd )  
+
+      break;  
+
+    ulFind = 0;  
+
+    for( j = i, k = 0; k < ulArrayNum; j += sizeof( ULONG ), k++ )  
+
+    {  
+
+      if( *( (PULONG)j ) !=  pulArrayFeatures[ k ] )  
+
+        break;  
+
+      ulFind++;  
+
+    }  
+
+    if( ulFind == ulArrayNum )  
+
+    {  
+
+      return GetRvaByFileoffset( ulDllBase, ulSize, i - ulDllBase );  
+
+    }  
+
+  }  
+
+  return 0;  
+
+}
+```
+
+### 上传的附件
+
+| ![](img/620251b33676a8e4b98ca0ece915ee8d.jpg) | `360_hookport.zip` |
+| :--- | :--- |
+| ![](img/620251b33676a8e4b98ca0ece915ee8d.jpg) | `SysReveal_driver.zip` |
+
+```c
+PsGetVersion( &ulMajorVersion, &ulMinorVersion, &ulBuildNumber, 0 );  
+
+  if( ulMajorVersion == 5 && ulMinorVersion == 1 ) // xp 32 位  
+
+  {  
+
+    bRet = GetModuleBaseAndSize( g_szNtKrnlName[ 0 ], &nModuleBase, &nModuleSize );  
+
+    if( !bRet )  
+
+    {  
+
+      bRet = GetModuleBaseAndSize( g_szNtKrnlName[ 1 ], &nModuleBase, &nModuleSize );  
+
+    }  
+
+    if( bRet )  
+
+    {  
+
+      if( CopyModule( nModuleBase, nModuleSize, &nCopyModuleBase, &nCopyModuleSize ) )  
+
+      {  
+
+        ulArrayFeatures[0] = 0x0124a164;  
+
+        ulArrayFeatures[1] = 0x85890000;  
+
+        ulArrayFeatures[2] = 0x0ffffff7c;  
+
+        ulArrayFeatures[3] = 0x0140888a;  
+
+        ulArrayFeatures[4] = 0x4d880000;  
+
+        ulArrayFeatures[5] = 0x44408bdf;  
+
+        ulArrayFeatures[6] = 0x33a84589;  
+
+        ulArrayFeatures[7] = 0x0e345c6f6;  
+
+        ulArrayFeatures[8] = 0x0b8758900;  
+
+        ulArrayFeatures[9] = 0x0f7bc7589;  
+
+        ulArrayFeatures[10] = 0x0fff01845;  
+
+        //ulArrayFeatures[11] = 0x4075ffff;  
+
+        ulOffset = 0x805d1867 - 0x805d1858;  
+
+        g_ulPspCreateProcess = ( ULONG )GetUnDocApiAddr( nCopyModuleBase, nCopyModuleSize, ulArrayFeatures, 11, ulOffset );  
+
+        if( 0 != g_ulPspCreateProcess )  
+
+        {  
+
+          g_ulPspCreateProcess = nModuleBase + g_ulPspCreateProcess - nCopyModuleBase;  
+
+          if( 0 != g_ulPspCreateProcess && NT_SUCCESS( MyHookPspCreateProcess() ) )  
+
+          {  
+
+            SIOCTL_KDPRINT( ( "MyHookPspCreateProcess()成功！PspCreateProcess:%#x...", g_ulPspCreateProcess ) );   
+
+          }  
+
+        }  
+
+      }  
+
+    }  
+
+  }  
+
+  else if( ulMajorVersion == 6 && ulMinorVersion == 1 ) // win7 32 位  
+
+  {       
+  
+    bRet = GetModuleBaseAndSize( g_szNtKrnlName[ 0 ], &nModuleBase, &nModuleSize );  
+
+    if( !bRet )  
+
+    {  
+
+      bRet = GetModuleBaseAndSize( g_szNtKrnlName[ 1 ], &nModuleBase, &nModuleSize );  
+
+    }  
+
+    if( bRet )  
+
+    {  
+
+      if( CopyModule( nModuleBase, nModuleSize, &nCopyModuleBase, &nCopyModuleSize ) )  
+
+      {  
+
+        ulArrayFeatures[0] = 0x8908458b;  
+
+        ulArrayFeatures[1] = 0x0fff9b085;  
+
+        ulArrayFeatures[2] = 0x0c458bff;  
+
+        ulArrayFeatures[3] = 0x0f9ac8589;  
+
+        ulArrayFeatures[4] = 0x5d8bffff;  
+
+        ulArrayFeatures[5] = 0x0a09d8918;  
+
+        ulArrayFeatures[6] = 0x8bfffff9;  
+
+        ulArrayFeatures[7] = 0x85891c45;  
+
+        ulArrayFeatures[8] = 0x0fffff98c;  
+
+        ulArrayFeatures[9] = 0x8928458b;  
+
+        ulArrayFeatures[10] = 0x0fff9c885;  
+
+        ulArrayFeatures[11] = 0x2c458bff;  
+
+        ulOffset = 0x83e86065 - 0x83e86056;  
+
+        g_ulNtCreateUserProcess = ( ULONG )GetUnDocApiAddr( nCopyModuleBase, nCopyModuleSize, ulArrayFeatures, 12, ulOffset );  
+
+        if( 0 != g_ulNtCreateUserProcess )  
+
+        {  
+```
+
+
+
+```
+g_ulNtCreateUserProcess = nModuleBase + g_ulNtCreateUserProcess - nCopyModuleBase;  
+
+if( 0 != g_ulNtCreateUserProcess && NT_SUCCESS( MyHookNtCreateUserProcess() ) )  
+
+{  
+  SIOCTL_KDPRINT( ( "MyHookNtCreateUserProcess()成功！NtCreateUserProcess:%#x...", g_ulNtCreateUserProcess ) );  
+  bIsFind_NtCreateUserProcess = TRUE;  
+}  
+}  
+}  
+}  
+```
