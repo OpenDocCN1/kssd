@@ -1,0 +1,299 @@
+
+# C 语言数组和简单栈
+
+> 原文：[`www.pediy.com/kssd/pediy12/134593.html`](https://www.pediy.com/kssd/pediy12/134593.html)
+
+## 数组
+
+具有相同属性的，在内存中顺序排列的一组数据。
+
+`int nAge1, nAge2, nAge3...nAge49;`
+
+`int nAge[50] = {0};`
+
+上述两实质是相同的，只是数组提供了更好的管理，将相同的类型的数据组织起来使用。
+
+代码:
+
+```
+    int nAge1 = 0x19880808;
+00324335   mov         dword ptr [nAge1],19880808h 
+    int nAget2 = 0x19870707;
+0032433C   mov         dword ptr [nAget2],19870707h 
+    //.............
+    int nAge50 = 0x19890909;
+00324343   mov         dword ptr [nAge50],19890909h 
+
+    int nAge[50] = {1,2,3,4,5};
+0032434A   mov         dword ptr [nAge],1 
+00324354   mov         dword ptr [ebp-0ECh],2 
+0032435E   mov         dword ptr [ebp-0E8h],3 
+00324368   mov         dword ptr [ebp-0E4h],4 
+00324372   mov         dword ptr [ebp-0E0h],5 
+
+    int nHight[50] ;
+    for (int i = 0; i < sizeof(nAge)/sizeof(nAge[0]); ++i)
+    {
+        nHight[i] = i;
+        *(int*)(nAge+i) = i;
+    }
+
+   for (int i = 0; i < sizeof(nAge)/sizeof(nAge[0]); ++i)
+01144363   mov         dword ptr [i],0 
+0114436D   jmp         wmain+6Eh (114437Eh) 
+0114436F   mov         eax,dword ptr [i] 
+01144375   add         eax,1 
+01144378   mov         dword ptr [i],eax 
+0114437E   cmp         dword ptr [i],32h 
+01144385   jae         wmain+9Fh (11443AFh) 
+    {
+        nHight[i] = i;
+01144387   mov         eax,dword ptr [i] 
+0114438D   mov         ecx,dword ptr [i] 
+01144393   mov         dword ptr nHight[eax*4],ecx 
+        *(int*)(nAge+i) = i;
+0114439A   mov         eax,dword ptr [i] 
+011443A0   mov         ecx,dword ptr [i] 
+011443A6   mov         dword ptr nAge[eax*4],ecx 
+}
+
+```
+
+两种访问数据的方式效果是相同的。
+
+一维数据的寻址方式为：首地址+下标(偏移个数)，因为指针有类型，知道数据大小
+
+实质还是以首地址做为标杆，偏移下标和类型对应的字节数（`BYTE*`）首地址 + 类型大小*下标(偏移个数)
+
+代码:
+
+```
+    int nTemp1 = nHight[20];
+    int nTemp2 = *(nHight + 20);
+    int nTemp3 = *(((char*)nHight +sizeof(nHight[0]/*sizeof(int)*/))*20);
+
+    int nTemp1 = nHight[20];
+003343AF   mov         eax,dword ptr [ebp-170h] 
+003343B5   mov         dword ptr [nTemp1],eax 
+    int nTemp2 = *(nHight + 20);
+003343BB   mov         eax,dword ptr [ebp-170h] 
+003343C1   mov         dword ptr [nTemp2],eax 
+    int nTemp3 = *(((char*)nHight + sizeof(nHight[0]/*sizeof(int)*/))*20);
+003343C7   movsx       eax,byte ptr [ebp-170h] 
+003343CE   mov         dword ptr [nTemp3],eax 
+
+```
+
+## 二维数组
+
+二维数组在内存也是按一维数组的方式顺序存放在连续的内存空间中。
+
+如 `int nTest[2][3]`
+
+代码:
+
+```
+nTest[0][0]    低地址
+nTest[0][1]
+nTest[0][2]    
+  nTest[1][0]
+   nTest[1][1]
+   nTest[1][2]   高地址
+    //nAryTest[1][2];
+    nTemp2 = *(((char*)nAryTest + sizeof(nAryTest[3])*1 + sizeof(nAryTest[0][0])*2));
+    nTemp3 = *(((int*)nAryTest + 1*3/*整一维的个数*/ + 2/*一维余数*/);
+    nTemp2 = *(((char*)nAryTest + sizeof(nAryTest[3])*1 + sizeof(nAryTest[0][0])*2));
+011E1FA8   movsx       eax,byte ptr [ebp-1FCh] 
+011E1FAF   mov         dword ptr [nTemp2],eax 
+    nTemp3 = *(((int*)nAryTest + 1*3 + 2));
+011E1FB5   mov         eax,dword ptr [ebp-1FCh] 
+011E1FBB   mov         dword ptr [nTemp3],eax
+
+```
+
+## 用数组实现一个简单的栈
+
+代码:
+
+```
+int* g_lpStackTop     = NULL;
+int* g_lpStackBottom  = NULL;
+int* g_lpEsp          = NULL;
+
+void ShowStack(char* lpInfo, int nShowCount)
+{
+    if (g_lpEsp == g_lpStackBottom)
+    {
+        printf(" ====栈底 [%08X]!===\\r\\n", g_lpEsp);
+        return ;
+    }
+    if (NULL != lpInfo)
+    {
+        printf("%s \\r\\n", lpInfo);
+    }
+    for (int i = 0; i < nShowCount; ++i)
+    {
+        if (g_lpEsp+i > g_lpStackBottom-1)
+            break;
+        if (0 ==i)
+            printf("  stack:%08X [ %08X ] <-- ESP\\r\\n", g_lpEsp+i, g_lpEsp[i]);
+        else
+            printf("  stack:%08X [ %08X ]\\r\\n", g_lpEsp+i, g_lpEsp[i]);
+    }
+}
+
+//初始化栈
+bool InitStack(int* lpStack, int nStackSize)
+{
+    if (NULL == lpStack || 0 >= nStackSize)
+        return false;
+    g_lpStackTop      = lpStack;
+    g_lpStackBottom   = lpStack + nStackSize;
+    g_lpEsp           = g_lpStackBottom;
+    if ( g_lpStackBottom < g_lpStackTop )
+        return false;
+    return true;
+}
+
+//push 抬高栈(往低地址)，塞值
+bool _push(int nValue)
+{
+    if (g_lpEsp-1 < g_lpStackTop)
+        return false;
+    --g_lpEsp;
+    g_lpEsp[0] = nValue;
+}
+
+//值传去，栈指针下移(往高地址移)
+int _pop()
+{
+    if (g_lpEsp+1 > g_lpStackBottom)
+        return false;
+    ++g_lpEsp;
+    return g_lpEsp[0];
+}
+
+//这里没有处理超出的情况
+
+void StackTest()
+{
+    int szStack[100] = {0};
+    InitStack(szStack, 100);
+    ShowStack("初始化的栈\\r\\n", 1);
+    _push(0x12);
+    ShowStack("push 后的栈", 4);
+    _push(0x34);
+    ShowStack("push 后的栈", 4);
+    _push(0x56);
+    ShowStack("push 后的栈", 4);
+    _push(0x78);
+    ShowStack("push 后的栈", 4);
+    _pop();
+    ShowStack("pop 后的栈", 4);
+    _pop();
+    ShowStack("pop 后的栈", 4);
+    _pop();
+    ShowStack("pop 后的栈", 4);
+}
+
+```
+
+## 数组寻址公式
+
+关于数组这里简单说下：
+
+数组就是相同数类型的一个数据块，通过下标来区分不同的数据，重点了解数组的寻址公式，这里引用下论坛里的资料，这个帖子的作者 `evilkis` 将数组涉及到的概念都讲的比较清楚。
+
+原帖地址为 [`bbs.pediy.com/showthread.php?t=120897`](http://bbs.pediy.com/showthread.php?t=120897) 【分享】C 数组与指针学习笔记，作者：`evilkis`
+
+代码:
+
+```
+一维数组的寻址公式
+如 int a[6];
+则 a[n]的地址为(int)a+sizeof(int)*n(当然 n<=6),其原理即：首地址+偏移地址其中 a 一定要做强制类型转换因为 a 是有类型的，必须把其转换成整数，sizeof(int)即是一个元素的大小
+推而广之
+对于 TYPE array[m];
+则 array[n]的地址为:(int)array+sizeof(TYPE)*n(n<=m)//做逆向的时候很有用
+二维数组的寻址公式
+如:int a[4][5]
+则 a[2][3]的地址为:(int)a+sizeof(int[5])*2+sizeof(int)*3
+                 |             |             | 
+                 |             |             | 
+          数组首地址      行偏移          列偏移
+即：先算确定在第几行，在确定在第几列最后加上首地址
+或者第二种方式：
+a[2][3]的地址为:(int)a+sizeof(int)*(2*5+3)     
+                          |
+                          | 
+       直接定位元素看跨越了多少个元素然后乘以他们的数据类型大小
+因为数组 a 每一行有 5 个元素故 2*5,3 是目标行的元素偏移
+故推而光之
+对于 TYPE array[x][y]二维数组
+则 array[m][n]的地址为:(int)a+sizeof(int[y])*m+sizeof(TYPE)*n
+或 array[m][n]的地址为:(int)a+sizeof(TYPE)*(m*y+n)
+这些寻址公式在逆向过程中很有用，至少看到这样的寻址方式我们应该能想到是个数组，其实把数组在内存中的存放想成线性的就很好理解这些寻址方法。
+
+```
+
+## 指针操作
+
+另外上述帖子对指针涉及到的概念也讲述的很清楚，用奶牛和牛奶来讲述各种类型的指针区别非常好，我现在都没有十足把握搞清楚这些指针该叫什么。
+
+这里只对讲述指针加法补充一点点：
+
+指针类型做加法时实际就是移动指针到下一个类型的内存位置：
+
+比如：
+
+代码:
+
+```
+    char* lpBuf = "Test";
+00D4457E   mov         dword ptr [lpBuf],offset string "Test" (0D4783Ch) 
+    ++lpBuf;
+00D44585   mov         eax,dword ptr [lpBuf] 
+00D44588   add         eax,1  //char 型指针所以下一地址就是类型大小
+00D4458B   mov         dword ptr [lpBuf],eax 
+    int nNum = 0x12;
+00D4458E   mov         dword ptr [nNum],12h 
+    int* lpNum = &nNum;
+00D44595   lea         eax,[nNum] 
+00D44598   mov         dword ptr [lpNum],eax 
+    ++lpNum;
+00D4459B   mov         eax,dword ptr [lpNum] 
+00D4459E   add         eax,4  //同上
+00D445A1   mov         dword ptr [lpNum],eax 
+    int nAry[3][4] = {0};
+00D445A4   mov         dword ptr [nAry],0 
+00D445AB   push        2Ch   
+00D445AD   push        0     
+00D445AF   lea         eax,[ebp-54h] 
+00D445B2   push        eax   
+00D445B3   call        @ILT+160(_memset) (0D410A5h) 
+00D445B8   add         esp,0Ch 
+    int (*lpAry)[4] = nAry;
+00D445BB   lea         eax,[nAry] 
+00D445BE   mov         dword ptr [lpAry],eax 
+    ++ lpAry;
+00D445C1   mov         eax,dword ptr [lpAry] 
+//指针数组，类型是个数组，4 个元素*sizeof(int)
+00D445C4   add         eax,10h  00D445C7   mov         dword ptr [lpAry],eax 
+
+```
+
+指针的大小是固定的，32 位为 4 字节也就是 32 位。
+
+## 总结
+
+C 语言不好理解的应该就这几部分了，其他内容多联系下也应该可以较容易搞定，况且其他内容论坛都有相关精彩文章，大家参考并吸取就好了
+
+基本数据类型和局部变量： [`bbs.pediy.com/showthread.php?t=134570`](http://bbs.pediy.com/showthread.php?t=134570)
+
+常量：  [`bbs.pediy.com/showthread.php?t=134555`](http://bbs.pediy.com/showthread.php?t=134555)
+
+简单的函数调用过程： [`bbs.pediy.com/showthread.php?t=135551`](http://bbs.pediy.com/showthread.php?t=135551)
+
+声明 : 水平比较菜，表述不清和错误难免，只是将个人的一点心得拿出来检讨下，也希望有过来人能多多提点，求进步求提高！
+
+五边形
