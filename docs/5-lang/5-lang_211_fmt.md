@@ -1,0 +1,313 @@
+
+# 从一个对话框类的构造函数找到消息处理函数
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-133.htm`](https://www.pediy.com/kssd/pediy07/pediy7-133.htm)
+
+## 基本信息
+
+【作者】ForEver \[Reverse Code Team\]
+
+## 正文
+
+如果一个程序是使用 MFC 类库的，如果在它的对话框模板上有一个按钮（假如不是 `IDOK`, 即 `id` 不是 1），那么当我们单击这个按钮时，程序会调用那个处理函数呢？
+
+下面我将把我的探索过程写下来，希望能给您一些启示。
+
+让我们从一个例子开始。这是 `ida4.6` 分析的一个程序的部分代码,我加上了一些注释。
+
+```
+.text:00401880  sub_401880      proc near
+.text:00401880
+.text:00401880  var_10          = dword ptr -10h
+.text:00401880  var_C           = dword ptr -0Ch
+.text:00401880  var_4           = dword ptr -4
+.text:00401880  arg_0           = dword ptr  4
+.text:00401880
+.text:00401880        push    0FFFFFFFFh
+.text:00401882        push    offset unknown_libname_153
+.text:00401887        mov     eax, large fs:0
+.text:0040188D        push    eax
+.text:0040188E        mov     large fs:0, esp    //构建异常帧
+.text:00401895        push    ecx
+.text:00401896        mov     eax, [esp+10h+arg_0]
+.text:0040189A        push    esi
+.text:0040189B        push    edi
+.text:0040189C        mov     esi, ecx           //this 指针
+.text:0040189E        push    eax
+.text:0040189F        push    102                //对话框 id
+.text:004018A1        mov     [esp+20h+var_10], esi  //保存 this 指针
+.text:004018A5        call    ??0CDialog@@QAE@IPAVCWnd@@@Z ; CDialog::CDialog(uint,CWnd \*)
+                                             //调用基类的构造函数
+.text:004018AA        lea     edi, [esi+5Ch]     //这是一个 CWnd 对象成员
+.text:004018AD        mov     [esp+18h+var_4], 0
+.text:004018B5        mov     ecx, edi
+.text:004018B7        call    ??0CWnd@@QAE@XZ ; CWnd::CWnd(void)
+.text:004018BC        mov     dword ptr [edi], offset off_424E48
+.text:004018C2        lea     edi, [esi+98h]     //这是一个 CWnd 对象成员
+.text:004018C8        mov     byte ptr [esp+18h+var_4], 1
+.text:004018CD        mov     ecx, edi
+.text:004018CF        call    ??0CWnd@@QAE@XZ ; CWnd::CWnd(void)
+.text:004018D4        mov     dword ptr [edi], offset off_424D8C
+.text:004018DA        mov     edx, dword_42DD18
+.text:004018E0        lea     ecx, [esi+0D4h]    //这是一个字符串
+.text:004018E6        mov     [ecx], edx         //字符串初始化
+.text:004018E8        push    offset unk_42FB10
+.text:004018ED        mov     byte ptr [esp+1Ch+var_4], 3
+.text:004018F2        mov     dword ptr [esi], offset off_424760  ******这里就是虚函数表
+                                             ********************虚函数表总是从对象的起始地址开始
+.text:004018F8        call    ??4CString@@QAEABV0@PBD@Z ; CString::operator=(char const \*)
+                                             //为上面的字符串赋值""
+.text:004018FD        call    ?AfxGetModuleState@@YGPAVAFX_MODULE_STATE@@XZ ; AfxGetModuleState(void)
+.text:00401902        call    ?AfxGetModuleState@@YGPAVAFX_MODULE_STATE@@XZ ; AfxGetModuleState(void)
+.text:00401907        mov     eax, [eax+0Ch]
+.text:0040190A        push    80h              ; lpIconName
+.text:0040190F        push    eax              ; hInstance
+.text:00401910        call    ds:LoadIconA               //加载图标
+.text:00401916        mov     ecx, [esp+18h+var_C]
+.text:0040191A        mov     [esi+10Ch], eax           //保存句柄
+.text:00401920        mov     eax, esi                   //返回 this 指针
+.text:00401922        pop     edi
+.text:00401923        pop     esi
+.text:00401924        mov     large fs:0, ecx
+.text:0040192B        add     esp, 10h
+.text:0040192E        retn    4
+.text:0040192E sub_401880      endp
+```
+
+为了方便阅读，我加上了一些空行。上面加了星号的地址指出了虚函数表的位置。
+
+我们知道，在 `vc` 里，一个对象的最低的地址上总是虚函数表，然后跟着的才是类成员。找到了虚函数表，意味着我们已经成功了一半。为什么这么说呢？相信您早已经看出来了，上面这段代码是一个对话框类的构造函数。您知道, `CDialog` 类继承自 `CWnd` 类，后者又继承自 `CCmdTarget` 类。而 `CCmdTarget` 类里有一个对于我们来说非常重要的虚函数：`GetMessageMap`。这个函数返回当前类的 `AFX_MSGMAP` 结构。
+
+让我们先看一下虚函数表：
+
+```
+////////////////////////////////////////////////////////////////////////////////////
+.rdata:00424760  off_424760  dd offset sub_41F579     ;CObject 对象虚函数表
+.rdata:00424764              dd offset sub_401940
+.rdata:00424768              dd offset nullsub_10
+                                         ; CCmdTarget 对象虚函数表
+.rdata:0042476C              dd offset unknown_libname_119 ; ?OnCmdMsg@CPropertySheet@@UAEHIHPAXPAUAFX_CMDHANDLERINFO@@@Z
+.rdata:0042476C              ; doubtful name
+.rdata:00424770              dd offset ?OnFinalRelease@CWnd@@UAEXXZ ; CWnd::OnFinalRelease(void)
+.rdata:00424774              dd offset unknown_libname_59
+.rdata:00424778              dd offset unknown_libname_60
+.rdata:0042477C              dd offset sub_417E42
+.rdata:00424780              dd offset sub_417E42
+.rdata:00424784              dd offset ?GetTypeLib@CCmdTarget@@UAEJKPAPAUITypeLib@@@Z ; CCmdTarget::GetTypeLib(ulong,ITypeLib \* \*)
+.rdata:00424788              dd offset sub_4019B0    ************注意这个没识别出来的函数 GetMessageMap
+.rdata:0042478C              dd offset sub_417ECB
+.rdata:00424790              dd offset sub_417E7D
+.rdata:00424794              dd offset sub_417EC5
+.rdata:00424798              dd offset sub_417E89
+.rdata:0042479C              dd offset sub_417E83
+.rdata:004247A0              dd offset sub_417EC1
+.rdata:004247A4              dd offset unknown_libname_60
+.rdata:004247A8              dd offset unknown_libname_60
+.rdata:004247AC              dd offset unknown_libname_60
+.rdata:004247B0              dd offset nullsub_11      ;CWnd 对象虚函数表
+.rdata:004247B4              dd offset ?Create@CWnd@@UAEHPBD0KABUtagRECT@@PAV1@IPAUCCreateContext@@@Z ; CWnd::Create(char const \*,char const \*,ulong,tagRECT const &,CWnd \*,uint,CCreateContext \*)
+.rdata:004247B8              dd offset ?DestroyWindow@CWnd@@UAEHXZ ; CWnd::DestroyWindow(void)
+.rdata:004247BC              dd offset ?PreCreateWindow@CWnd@@UAEHAAUtagCREATESTRUCTA@@@Z ; CWnd::PreCreateWindow(tagCREATESTRUCTA &)
+.rdata:004247C0              dd offset ?CalcWindowRect@CWnd@@UAEXPAUtagRECT@@I@Z ; CWnd::CalcWindowRect(tagRECT \*,uint)
+.rdata:004247C4              dd offset ?OnToolHitTest@CWnd@@UBEHVCPoint@@PAUtagTOOLINFOA@@@Z ; CWnd::OnToolHitTest(CPoint,tagTOOLINFOA \*)
+.rdata:004247C8              dd offset unknown_libname_60
+.rdata:004247CC              dd offset ?WinHelpA@CWnd@@UAEXKI@Z ; CWnd::WinHelpA(ulong,uint)
+.rdata:004247D0              dd offset ?ContinueModal@CWnd@@UAEHXZ ; CWnd::ContinueModal(void)
+.rdata:004247D4              dd offset ?EndModalLoop@CWnd@@UAEXH@Z ; CWnd::EndModalLoop(int)
+.rdata:004247D8              dd offset ?OnCommand@CWnd@@MAEHIJ@Z ; CWnd::OnCommand(uint,long)
+.rdata:004247DC              dd offset ?OnNotify@CWnd@@MAEHIJPAJ@Z ; CWnd::OnNotify(uint,long,long \*)
+.rdata:004247E0              dd offset sub_419E15
+.rdata:004247E4              dd offset sub_401960
+.rdata:004247E8              dd offset sub_402710
+.rdata:004247EC              dd offset sub_402720
+.rdata:004247F0              dd offset ?PreTranslateMessage@CDialog@@UAEHPAUtagMSG@@@Z ; CDialog::PreTranslateMessage(tagMSG \*)
+.rdata:004247F4              dd offset ?OnAmbientProperty@CWnd@@UAEHPAVCOleControlSite@@JPAUtagVARIANT@@@Z ; CWnd::OnAmbientProperty(COleControlSite \*,long,tagVARIANT \*)
+.rdata:004247F8              dd offset ?WindowProc@CWnd@@MAEJIIJ@Z ; CWnd::WindowProc(uint,uint,long)
+.rdata:004247FC              dd offset ?OnWndMsg@CWnd@@MAEHIIJPAJ@Z ; CWnd::OnWndMsg(uint,uint,long,long \*)
+.rdata:00424800              dd offset ?DefWindowProcA@CWnd@@MAEJIIJ@Z ; CWnd::DefWindowProcA(uint,uint,long)
+.rdata:00424804              dd offset nullsub_11
+```
+
+
+
+### `.rdata` 段与虚函数表
+
+```assembly
+.rdata:00424808  dd offset ?OnChildNotify@CWnd@@MAEHIIJPAJ@Z  ; CWnd::OnChildNotify(uint,uint,long,long *)
+.rdata:0042480C  dd offset ?CheckAutoCenter@CDialog@@UAEHXZ  ; CDialog::CheckAutoCenter(void)
+.rdata:00424810  dd offset sub_417E42
+.rdata:00424814  dd offset ?SetOccDialogInfo@CDialog@@MAEHPAU_AFX_OCC_DIALOG_INFO@@@Z  ; CDialog::SetOccDialogInfo(_AFX_OCC_DIALOG_INFO *)
+                                                      ; CDialog 对象虚函数表
+.rdata:00424818  dd offset ?DoModal@CDialog@@UAEHXZ  ; CDialog::DoModal(void)
+.rdata:0042481C  dd offset sub_4019C0
+.rdata:00424820  dd offset nullsub_13
+.rdata:00424824  dd offset sub_401C00
+.rdata:00424828  dd offset ?OnCancel@CDialog@@MAEXXZ  ; CDialog::OnCancel(void)
+.rdata:0042482C  dd offset nullsub_11
+```
+
+上面带星号的地方就是 `GetMessageMap` 了。我们来看看这个函数：
+
+```assembly
+////////////////////////////////////////////////////////////////////
+.text:004019B0 sub_4019B0      proc near                 ; DATA XREF: .rdata:00424788o
+.text:004019B0                 mov     eax, offset off_424610 // 这里是当前类的 AFX_MSGMAP 结构的地址
+.text:004019B5                 retn
+.text:004019B5 sub_4019B0      endp
+```
+
+在 MFC 里，`AFX_MSGMAP` 结构的定义如下：
+
+```cpp
+////////////////////////////////////////////////////////////////////
+struct AFX_MSGMAP
+{
+#ifdef _AFXDLL
+  const AFX_MSGMAP* (PASCAL* pfnGetBaseMap)();
+#else
+  const AFX_MSGMAP* pBaseMap;
+#endif
+  const AFX_MSGMAP_ENTRY* lpEntries;
+};
+```
+
+我们跟进 `424610h` 这个地址看看：
+
+```assembly
+///////////////////////////////////////////////////////////////////
+.rdata:00424610 MsgMap_424610   dd 424B60h             ; pBaseMap  //AFX_MSGMAP*
+.rdata:00424610                 dd 424618h             ; lpEntries //AFX_MSGMAP_ENTRY*
+```
+
+MFC 里 `AFX_MSGMAP_ENTRY` 结构定义如下：
+
+```cpp
+////////////////////////////////////////////////////////////////////
+struct AFX_MSGMAP_ENTRY
+{
+  UINT nMessage;   // windows message
+  UINT nCode;      // control code or WM_NOTIFY code
+  UINT nID;        // control ID (or 0 for windows messages)
+  UINT nLastID;    // used for entries specifying a range of control id's
+  UINT nSig;       // signature type (action) or pointer to message #
+  AFX_PMSG pfn;    // routine to call (or special value)
+};
+```
+
+是不是一切都已经渐渐清晰了 :)
+
+在 `424618h` 处是一个 `AFX_MSGMAP_ENTRY` 结构，事实上这就是定义在消息映射宏里的消息处理函数了（不包括 `IDOK`、`IDCANCEL` 的处理函数，那个在刚才提到的虚函数表里）。
+
+看看 `424618h` 这个地址里都有什么吧。
+
+```assembly
+///////////////////////////////////////////////////////////////////
+.rdata:00424618                 dd 112h             ; nMessage //WM_SYSCOMMAND
+.rdata:00424618                 dd 0               ; nCode
+.rdata:00424618                 dd 0               ; nID
+.rdata:00424618                 dd 0               ; nLastID
+.rdata:00424618                 dd 12h             ; nSig
+.rdata:00424618                 dd 401AB0h         ; pfn
+
+.rdata:00424630                 dd 0Fh             ; nMessage //WM_PAINT
+.rdata:00424630                 dd 0               ; nCode
+.rdata:00424630                 dd 0               ; nID
+.rdata:00424630                 dd 0               ; nLastID
+.rdata:00424630                 dd 0Ch             ; nSig
+.rdata:00424630                 dd 401B30h         ; pfn
+
+.rdata:00424648                 dd 37h             ; nMessage //WM_QUERYDRAGICON
+.rdata:00424648                 dd 0               ; nCode
+.rdata:00424648                 dd 0               ; nID
+.rdata:00424648                 dd 0               ; nLastID
+.rdata:00424648                 dd 23h             ; nSig
+.rdata:00424648                 dd 401BF0h         ; pfn
+
+.rdata:00424660                 dd 19h             ; nMessage
+.rdata:00424660                 dd 0               ; nCode
+.rdata:00424660                 dd 0               ; nID
+.rdata:00424660                 dd 0               ; nLastID
+.rdata:00424660                 dd 4               ; nSig
+.rdata:00424660                 dd 402290h         ; pfn
+
+.rdata:00424678                 dd 0               ; nMessage
+.rdata:00424678                 dd 0               ; nCode
+.rdata:00424678                 dd 0               ; nID
+.rdata:00424678                 dd 0               ; nLastID
+.rdata:00424678                 dd 0               ; nSig
+.rdata:00424678                 dd 0               ; pfn
+```
+
+<全文完>
+
+### 参考
+
+《深入浅出 MFC(第二版)》
+
+学习！
+
+MFC 逆向很头大。前些天看到别人的说法，找到 `AfxFindMessageEntry` 函数。关键参数是：
+
+```cpp
+struct AFX_MSGMAP_ENTRY
+{
+  UINT nMessage; // windows message
+  UINT nCode;    // control code (or WM_NOTIFY code)
+  UINT nID;      // control ID (or 0 for windows messages)
+  UINT nLastID;  // used for entries specifying a range of control id's
+  UINT nSig;     // signature type (action) or pointer to message #
+  AFX_PMSG pfn;  // routine to call (or special value)
+};
+```
+
+### 示例
+
+```assembly
+004945D1  push ebp
+:004945D2 mov ebp, esp
+:004945D4 push ebx
+:004945D5 mov ebx, [ebp+arg_0] ; ebx points to our AFX_MSGMAP_ENTRY
+:004945D8 mov eax, [ebp+arg_4] ; windows message received by the dialog
+:004945DB mov edx, [ebp+arg_8] ; control code
+:004945DE mov ecx, [ebp+arg_C] ; control ID
+:004945E1 cmp dword ptr [ebx+10h], 0 ; this is the first instruction of the *while* that looks in the message_map for our message
+:004945E5 jz short loc_494604 ; no message is found
+:004945E7 cmp eax, [ebx] ; ebx points to our AFX_MSGMAP_ENTRY structure
+:004945E9 jz short loc_4945F0 ; jump if the message is found
+:004945EB add ebx, 18h ; moves to the next message in the messagemap
+:004945EE jmp short loc_4945E1
+
+:004945F0 cmp edx, [ebx+4]
+:004945F3 jnz short loc_4945EB
+:004945F5 cmp ecx, [ebx+8]
+:004945F8 jb short loc_4945EB
+:004945FA cmp ecx, [ebx+0Ch]
+:004945FD ja short loc_4945EB
+:004945FF mov [ebp+arg_0], ebx ; save the AFX_MSGMAP_ENTRY relative to the received message
+:00494602 jmp short loc_494609
+
+:00494604 xor eax, eax
+:00494606 mov [ebp+arg_0], eax
+:00494609 mov eax, [ebp+arg_0]
+:0049460C pop ebx
+:0049460D pop ebp
+:0049460E retn 10h
+```
+
+### MFC 的宏很恐怖
+
+```cpp
+struct CRuntimeClass
+{
+LPCSTR m_lpszClassName;
+int m_nObjectSize;
+UINT m_wSchema;
+CObject* (PASCAL* m_pfnCreateObject)( );
+CRuntimeClass* (PASCAL* m_pfnGetBaseClass)( );
+CRuntimeClass* m_pBaseClass;
+CObject* CreateObject( );
+BOOL IsDerivedFrom(const CRuntimeClass* pBaseClass) const;
+};
+```
+
+`4dd466d0e1e0cc123afbe504da2462ca`
