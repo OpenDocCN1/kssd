@@ -1,0 +1,1241 @@
+
+# 推箱子游戏的注册算法分析(KeyFile)
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-412.htm`](https://www.pediy.com/kssd/pediy07/pediy7-412.htm)
+
+【软件介绍】：国产软件, 游戏, 简体中文, 2.7 M  
+【软件下载】：`http://www.supersoko.com/chs/supersoko.zip`  
+【保护方式】：Keyfile + 功能限制  
+【破解工具】：`Win2000`, `PEiD`, `Ollydbg`, `DeDe`, `W32DSM`  
+【破解目的】：研究算法分析  
+【作者声明】：初学 Crack，只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+【破解过程】：
+
+1, 注册文件名破解
+
+侦测：用 `PEiD` 查壳，`ASPack` 2.12, 用 `Ollydbg` + `ImportRec`, 几分钟就可脱掉
+
+脱壳后再用 `PEiD`, 为 `Borland Delphi` 4.0 - 5.0
+
+`OllyDbg` 打开软件, `F9` 运行, 帮助(`H`) -> 注册(`R`) 输入:
+
+注册用户名:: `blackeyes`
+
+用户 Email:: `blackeyes@abc.com`
+
+只有 "确定" 一个 Button, 没有别的可点.
+
+点 "确定" , 没有错误提示, 再 帮助(`H`) -> 注册(`R`), 注册用户名 & 用户 Email 为空.
+
+看注册方法:
+
+1、到作者网站，按照注册说明交付注册费；
+
+2、将您的注册用户名及真实有效的 Email 告知作者，作者会在最短的时间内把注册文件邮寄给您；
+
+3、将注册文件拷贝到游戏目录下，再次进入这里输入您的用户名及 EMail，若输入正确则点击注册，然后退出并重新进入游戏即可完成注册！
+
+看来要先有注册文件才可以点击注册.
+
+用 `DEDE` 分析脱壳后 的文件,
+
+`TAboutBox.eNameChange` 是用户在输入 注册用户名 & 用户 Email 时调用的,
+
+用 `OLLYDBG` 动态跟一下:
+
+```asm
+/* How to get the FileName
+004AEDDC    55               PUSH EBP
+004AEDDD    8BEC             MOV EBP,ESP
+004AEDDF    B9 07000000      MOV ECX,7
+004AEDE4    6A 00            PUSH 0
+004AEDE6    6A 00            PUSH 0
+004AEDE8    49               DEC ECX
+004AEDE9  ^ 75 F9            JNZ SHORT SuperSok.004AEDE4
+004AEDEB    53               PUSH EBX
+004AEDEC    56               PUSH ESI
+004AEDED    8BD8             MOV EBX,EAX
+004AEDEF    33C0             XOR EAX,EAX
+004AEDF1    55               PUSH EBP
+004AEDF2    68 A9EF4A00      PUSH SuperSok.004AEFA9
+004AEDF7    64:FF30          PUSH DWORD PTR FS:[EAX]
+004AEDFA    64:8920          MOV DWORD PTR FS:[EAX],ESP
+004AEDFD    8D55 F4          LEA EDX,DWORD PTR SS:[EBP-C]
+004AEE00    8B83 20030000    MOV EAX,DWORD PTR DS:[EBX+320]
+004AEE06    E8 A918F8FF      CALL SuperSok.004306B4                      ; GetText(eMail, str_eMail);
+004AEE0B    8B45 F4          MOV EAX,DWORD PTR SS:[EBP-C]
+004AEE0E    8D55 F8          LEA EDX,DWORD PTR SS:[EBP-8]
+004AEE11    E8 7AA0F5FF      CALL SuperSok.00408E90
+004AEE16    8B55 F8          MOV EDX,DWORD PTR SS:[EBP-8]
+004AEE19    B8 C0EF4A00      MOV EAX,SuperSok.004AEFC0
+004AEE1E    E8 4554F5FF      CALL SuperSok.00404268
+004AEE23    85C0             TEST EAX,EAX
+004AEE25    0F8E 13010000    JLE SuperSok.004AEF3E
+004AEE2B    8D55 EC          LEA EDX,DWORD PTR SS:[EBP-14]
+004AEE2E    8B83 18030000    MOV EAX,DWORD PTR DS:[EBX+318]
+004AEE34    E8 7B18F8FF      CALL SuperSok.004306B4                      ; GetText(eName, str_eName);
+004AEE39    8B45 EC          MOV EAX,DWORD PTR SS:[EBP-14]
+004AEE3C    8D55 F0          LEA EDX,DWORD PTR SS:[EBP-10]
+004AEE3F    E8 4CA0F5FF      CALL SuperSok.00408E90
+004AEE44    8D45 F0          LEA EAX,DWORD PTR SS:[EBP-10]
+004AEE47    50               PUSH EAX
+004AEE48    8D55 E4          LEA EDX,DWORD PTR SS:[EBP-1C]
+004AEE4B    8B83 20030000    MOV EAX,DWORD PTR DS:[EBX+320]
+004AEE51    E8 5E18F8FF      CALL SuperSok.004306B4
+004AEE56    8B45 E4          MOV EAX,DWORD PTR SS:[EBP-1C]
+004AEE59    8D55 E8          LEA EDX,DWORD PTR SS:[EBP-18]
+004AEE5C    E8 2FA0F5FF      CALL SuperSok.00408E90
+004AEE61    8B55 E8          MOV EDX,DWORD PTR SS:[EBP-18]
+004AEE64    58               POP EAX
+004AEE65    E8 1A51F5FF      CALL SuperSok.00403F84                      ; str = strcat(str_eName, str_eMail);
+004AEE6A    837D F0 00       CMP DWORD PTR SS:[EBP-10],0
+004AEE6E    0F84 CA000000    JE SuperSok.004AEF3E
+004AEE74    8D55 DC          LEA EDX,DWORD PTR SS:[EBP-24]
+004AEE77    8B83 18030000    MOV EAX,DWORD PTR DS:[EBX+318]
+004AEE7D    E8 3218F8FF      CALL SuperSok.004306B4
+004AEE82    8B45 DC          MOV EAX,DWORD PTR SS:[EBP-24]
+004AEE85    8D55 E0          LEA EDX,DWORD PTR SS:[EBP-20]
+004AEE88    E8 03A0F5FF      CALL SuperSok.00408E90
+004AEE8D    8D45 E0          LEA EAX,DWORD PTR SS:[EBP-20]
+004AEE90    50               PUSH EAX
+004AEE91    8D55 D4          LEA EDX,DWORD PTR SS:[EBP-2C]
+004AEE94    8B83 20030000    MOV EAX,DWORD PTR DS:[EBX+320]
+004AEE9A    E8 1518F8FF      CALL SuperSok.004306B4
+004AEE9F    8B45 D4          MOV EAX,DWORD PTR SS:[EBP-2C]
+004AEEA2    8D55 D8          LEA EDX,DWORD PTR SS:[EBP-28]
+004AEEA5    E8 E69FF5FF      CALL SuperSok.00408E90
+004AEEAA    8B55 D8          MOV EDX,DWORD PTR SS:[EBP-28]
+004AEEAD    58               POP EAX
+004AEEAE    E8 D150F5FF      CALL SuperSok.00403F84
+004AEEB3    8B45 E0          MOV EAX,DWORD PTR SS:[EBP-20]
+004AEEB6    E8 497A0400      CALL SuperSok.004F6904                      ; num1=Func1(str)
+004AEEBB    8BF0             MOV ESI,EAX
+004AEEBD    A1 206F5200      MOV EAX,DWORD PTR DS:[526F20]
+004AEEC2    FF30             PUSH DWORD PTR DS:[EAX]                    ; "C:\Program Files\Supersoko\"
+004AEEC4    68 CCEF4A00      PUSH SuperSok.004AEFCC                      ; ASCII "fsk"
+004AEEC9    6A 00            PUSH 0
+004AEECB    6A 7B            PUSH 7B
+004AEECD    8BC6             MOV EAX,ESI
+004AEECF    B9 A0860100      MOV ECX,186A0                               ; 100000
+004AEED4    33D2             XOR EDX,EDX
+004AEED6    F7F1             DIV ECX
+004AEED8    8955 C8          MOV DWORD PTR SS:[EBP-38],EDX              ; num2=num1%100000;
+004AEEDB    33C0             XOR EAX,EAX
+004AEEDD    8945 CC          MOV DWORD PTR SS:[EBP-34],EAX
+004AEEE0    DF6D C8          FILD QWORD PTR SS:[EBP-38]                 ; d1=(double)num2;
+004AEEE3    DB2D D0EF4A00    FLD TBYTE PTR DS:[4AEFD0]                 ; d2 = 3.14;
+004AEEE9    DEC9             FMULP ST(1),ST
+004AEEEB    D9FA             FSQRT                                       ; d3= sqrt(d1*d2);
+004AEEED    E8 E63BF5FF      CALL SuperSok.00402AD8                      ; num3 = (int)round(d3); // int (d3+0.5);
+004AEEF2    E8 A17BF5FF      CALL SuperSok.00406A98                      ; num4 = Func2(0x7b, num3); // A * B
+004AEEF7    52               PUSH EDX
+004AEEF8    50               PUSH EAX
+004AEEF9    8D45 D0          LEA EAX,DWORD PTR SS:[EBP-30]
+004AEEFC    E8 3FA1F5FF      CALL SuperSok.00409040                      ; printf("%d", num4);
+004AEF01    FF75 D0          PUSH DWORD PTR SS:[EBP-30]
+004AEF04    68 E4EF4A00      PUSH SuperSok.004AEFE4                      ; ASCII ".fsk"
+004AEF09    8D45 FC          LEA EAX,DWORD PTR SS:[EBP-4]
+004AEF0C    BA 04000000      MOV EDX,4
+004AEF11    E8 2651F5FF      CALL SuperSok.0040403C
+004AEF16    8B45 FC          MOV EAX,DWORD PTR SS:[EBP-4]
+004AEF19    E8 E2A3F5FF      CALL SuperSok.00409300
+004AEF1E    84C0             TEST AL,AL
+004AEF20    74 0F            JE SHORT SuperSok.004AEF31
+004AEF22    B2 01            MOV DL,1
+004AEF24    8B83 28030000    MOV EAX,DWORD PTR DS:[EBX+328]
+004AEF2A    E8 9D16F8FF      CALL SuperSok.004305CC
+004AEF2F    EB 0D            JMP SHORT SuperSok.004AEF3E
+004AEF31    33D2             XOR EDX,EDX
+004AEF33    8B83 28030000    MOV EAX,DWORD PTR DS:[EBX+328]
+004AEF39    E8 8E16F8FF      CALL SuperSok.004305CC
+004AEF3E    33C0             XOR EAX,EAX
+004AEF40    5A               POP EDX
+004AEF41    59               POP ECX
+004AEF42    59               POP ECX
+004AEF43    64:8910          MOV DWORD PTR FS:[EAX],EDX
+004AEF46    68 B0EF4A00      PUSH SuperSok.004AEFB0
+004AEF4B    8D45 D0          LEA EAX,DWORD PTR SS:[EBP-30]
+004AEF4E    E8 A94DF5FF      CALL SuperSok.00403CFC
+004AEF53    8D45 D4          LEA EAX,DWORD PTR SS:[EBP-2C]
+004AEF56    E8 A14DF5FF      CALL SuperSok.00403CFC
+004AEF5B    8D45 D8          LEA EAX,DWORD PTR SS:[EBP-28]
+004AEF5E    E8 994DF5FF      CALL SuperSok.00403CFC
+004AEF63    8D45 DC          LEA EAX,DWORD PTR SS:[EBP-24]
+004AEF66    E8 914DF5FF      CALL SuperSok.00403CFC
+004AEF6B    8D45 E0          LEA EAX,DWORD PTR SS:[EBP-20]
+```
+
+
+
+```
+004AEF6E    E8 894DF5FF     CALL SuperSok.00403CFC
+004AEF73    8D45 E4         LEA EAX,DWORD PTR SS:[EBP-1C]
+004AEF76    E8 814DF5FF     CALL SuperSok.00403CFC
+004AEF7B    8D45 E8         LEA EAX,DWORD PTR SS:[EBP-18]
+004AEF7E    E8 794DF5FF     CALL SuperSok.00403CFC
+004AEF83    8D45 EC         LEA EAX,DWORD PTR SS:[EBP-14]
+004AEF86    E8 714DF5FF     CALL SuperSok.00403CFC
+004AEF8B    8D45 F0         LEA EAX,DWORD PTR SS:[EBP-10]
+004AEF8E    E8 694DF5FF     CALL SuperSok.00403CFC
+004AEF93    8D45 F4         LEA EAX,DWORD PTR SS:[EBP-C]
+004AEF96    E8 614DF5FF     CALL SuperSok.00403CFC
+004AEF9B    8D45 F8         LEA EAX,DWORD PTR SS:[EBP-8]
+004AEF9E    BA 02000000     MOV EDX,2
+004AEFA3    E8 784DF5FF     CALL SuperSok.00403D20
+004AEFA8    C3              RETN
+*/
+```
+
+```
+/* Get a Number based on a string
+004F6904    53              PUSH EBX
+004F6905    56              PUSH ESI
+004F6906    57              PUSH EDI
+004F6907    55              PUSH EBP
+004F6908    51              PUSH ECX
+004F6909    8BD8            MOV EBX,EAX
+004F690B    8BC3            MOV EAX,EBX
+004F690D    E8 6AD6F0FF     CALL SuperSok.00403F7C                ; num1 = strlen(str1); ==> ESI
+004F6912    8BF0            MOV ESI,EAX
+004F6914    8BC3            MOV EAX,EBX
+004F6916    E8 61D6F0FF     CALL SuperSok.00403F7C                ; len = strlen(str1)
+004F691B    8BF8            MOV EDI,EAX
+004F691D    85FF            TEST EDI,EDI
+004F691F    7E 57           JLE SHORT SuperSok.004F6978           ; for(i=0;i<len;i++) {
+004F6921    BD 01000000     MOV EBP,1
+004F6926    8A442B FF       MOV AL,BYTE PTR DS:[EBX+EBP-1]         ; ch1=str1[i]; ==> AL
+004F692A    8BD6            MOV EDX,ESI
+004F692C    C1EA 08         SHR EDX,8                              ; num1>>8
+004F692F    32C2            XOR AL,DL
+004F6931    880424          MOV BYTE PTR SS:[ESP],AL               ; ch2 = ch1 ^ (num1>>8); ==>[ESP]
+004F6934    8BC3            MOV EAX,EBX
+004F6936    E8 41D6F0FF     CALL SuperSok.00403F7C                ; strlen(str1)
+004F693B    B9 32000000     MOV ECX,32                             ; 50
+004F6940    99              CDQ
+004F6941    F7F9            IDIV ECX                               ; EAX=(EDX:EAX)/50, EDX=[EDX:EAX)%50
+004F6943    8B0495 286B5200 MOV EAX,DWORD PTR DS:[EDX*4+526B28]    ; num2 = value1[len%50];
+004F694A    33D2            XOR EDX,EDX
+004F694C    8A1424          MOV DL,BYTE PTR SS:[ESP]
+004F694F    03F2            ADD ESI,EDX                             ; num1 += ch2;
+004F6951    F7EE            IMUL ESI                                ; num2 *= num1;
+004F6953    50              PUSH EAX
+004F6954    8BC3            MOV EAX,EBX
+004F6956    E8 21D6F0FF     CALL SuperSok.00403F7C
+004F695B    B9 32000000     MOV ECX,32
+004F6960    99              CDQ
+004F6961    F7F9            IDIV ECX
+004F6963    B8 31000000     MOV EAX,31
+004F6968    2BC2            SUB EAX,EDX                              ; num3 = 49 - len%50;
+004F696A    5A              POP EDX
+004F696B    031485 F46B5200 ADD EDX,DWORD PTR DS:[EAX*4+526BF4]     ; num2 += value2[num3];
+004F6972    8BF2            MOV ESI,EDX                              ; num1 = num2;
+004F6974    45              INC EBP
+004F6975    4F              DEC EDI
+004F6976    ^ 75 AE          JNZ SHORT SuperSok.004F6926             ; }
+004F6978    8BC6            MOV EAX,ESI                              ; return num1;
+004F697A    5A              POP EDX
+004F697B    5D              POP EBP
+004F697C    5F              POP EDI
+004F697D    5E              POP ESI
+004F697E    5B              POP EBX
+004F697F    C3              RETN
+*/
+```
+
+注册文件名算法:
+
+a. 注册用户名 + 用户 Email, 再 `CALL 004F6904`, 返回一 `magic_num`
+b. `magic_num / 100000`, 取余数, 再 `X 3.14;`
+c. 取平方根, 4 舍 5 入取整,
+d. 再 `X 0x7B`, 得一 `number`: `####`
+e. 文件名为 `fsk###.fsk`
+
+2. keyfile 内容初步跟踪/破解
+
+输入
+
+  注册用户名:: `blackeyes`
+
+  用户 Email:: `blackeyes@abc.com`
+
+算出文件名为 `fsk46740.fsk`
+
+用二进制工具构造出一 `fsk46740.fsk` 文件, 拷贝到游戏目录下
+
+`OLLYDBG`, 下断 `CreateFileA`, 当 `filename` 是 `fsk46740.fsk`, `Ctrl+F9` 返回 `00409203`
+
+下断 `ReadFile`, 然后再 `F8` 慢慢跟
+
+```
+004091F8   E8 43AFFFFF     CALL SuperSok.00404140
+004091FD   50              PUSH EAX
+004091FE   E8 69DEFFFF     CALL SuperSok.0040706C                ; JMP to kernel32.CreateFileA
+00409203   5E              POP ESI                              ; // 返回这
+00409204   5B              POP EBX
+00409205   C3              RETN                                 ; // 返回 00412FD2
+00412FBC   E8 6788FFFF     CALL SuperSok.0040B828
+00412FC1   E8 EA07FFFF     CALL SuperSok.004037B0
+00412FC6   EB 37           JMP SHORT SuperSok.00412FFF
+00412FC8   0FB7D7          MOVZX EDX,DI
+00412FCB   8BC6            MOV EAX,ESI
+00412FCD   E8 F661FFFF     CALL SuperSok.004091C8                ; Open KeyFile
+00412FD2   8943 04         MOV DWORD PTR DS:[EBX+4],EAX          ; // 上面返回这
+00412FD5   837B 04 00      CMP DWORD PTR DS:[EBX+4],0
+00412FD9   7D 24           JGE SHORT SuperSok.00412FFF
+00412FDB   8975 F4         MOV DWORD PTR SS:[EBP-C],ESI
+00412FDE   C645 F8 0B      MOV BYTE PTR SS:[EBP-8],0B
+00412FE2   8D45 F4         LEA EAX,DWORD PTR SS:[EBP-C]
+00412FE5   50              PUSH EAX
+00412FE6   6A 00           PUSH 0
+00412FE8   8B0D 24735200   MOV ECX,DWORD PTR DS:[527324]         ; SuperSok.0040DAC8
+00412FEE   B2 01           MOV DL,1
+00412FF0   A1 78EA4000     MOV EAX,DWORD PTR DS:[40EA78]
+00412FF5   E8 2E88FFFF     CALL SuperSok.0040B828
+00412FFA   E8 B107FFFF     CALL SuperSok.004037B0
+00412FFF   8BC3            MOV EAX,EBX
+00413001   807D FF 00      CMP BYTE PTR SS:[EBP-1],0
+00413005   74 0F           JE SHORT SuperSok.00413016
+00413007   E8 A403FFFF     CALL SuperSok.004033B0
+0041300C   64:8F05 00000000 POP DWORD PTR FS:[0]
+00413013   83C4 0C         ADD ESP,0C
+00413016   8BC3            MOV EAX,EBX
+00413018   5F              POP EDI
+00413019   5E              POP ESI
+0041301A   5B              POP EBX
+0041301B   8BE5            MOV ESP,EBP
+0041301D   5D              POP EBP
+0041301E   C2 0400         RETN 4                                 ; // 返回 00413143
+0041313E   E8 29FEFFFF     CALL SuperSok.00412F6C                ; // Open KeyFile
+00413143   8945 FC         MOV DWORD PTR SS:[EBP-4],EAX          ; // 上面返回这
+00413146   33C0            XOR EAX,EAX
+00413148   55              PUSH EBP
+00413149   68 74314100     PUSH SuperSok.00413174
+0041314E   64:FF30         PUSH DWORD PTR FS:[EAX]
+00413151   64:8920         MOV DWORD PTR FS:[EAX],ESP
+00413154   8B55 FC         MOV EDX,DWORD PTR SS:[EBP-4]
+00413157   8BC3            MOV EAX,EBX
+00413159   E8 96FFFFFF     CALL SuperSok.004130F4                ; // F8 这一句, 会断在 ReadFile
+0041315E   33C0            XOR EAX,EAX
+00413160   5A              POP EDX
+00413161   59              POP ECX
+00413162   59              POP ECX
+00413163   64:8910         MOV DWORD PTR FS:[EAX],EDX
+00413166   68 7B314100     PUSH SuperSok.0041317B
+0041316B   8B45 FC         MOV EAX,DWORD PTR SS:[EBP-4]
+0041316E   E8 A5FEFEFF     CALL SuperSok.00403018
+00413173   C3              RETN                                 ; // 返回 0041317B
+00413174  ^E9 FF05FFFF     JMP SuperSok.00403778
+00413179  ^EB F0           JMP SHORT SuperSok.0041316B
+0041317B   5B              POP EBX
+0041317C   59              POP ECX
+0041317D   5D              POP EBP
+0041317E   C3              RETN                                 ; // 返回 0050D2B3
+```
+
+```
+/* File Handler during INIT
+0050D28B    . E8 FC17F4FF  CALL SuperSok.0044EA8C
+```
+
+
+
+## 0050D290 - 0050D329 代码段
+
+```
+0050D290   >  B2 01          MOV DL,1  
+0050D292   .  A1 90F64000   MOV EAX,DWORD PTR DS:[40F690]  
+0050D297   .  E8 4C5DEFFF   CALL SuperSok.00402FE8  
+0050D29C   .  8B15 30735200 MOV EDX,DWORD PTR DS:[527330]            ;  SuperSok.00ADEFAC  
+0050D2A2   .  8902          MOV DWORD PTR DS:[EDX],EAX  
+0050D2A4   .  A1 30735200   MOV EAX,DWORD PTR DS:[527330]  
+0050D2A9   .  8B00          MOV EAX,DWORD PTR DS:[EAX]  
+0050D2AB   .  8B55 F0       MOV EDX,DWORD PTR SS:[EBP-10]  
+0050D2AE   .  E8 795EF0FF   CALL SuperSok.0041312C                   ; // Open & Read KeyFile  
+0050D2B3   .  A1 30735200   MOV EAX,DWORD PTR DS:[527330]            ; 返回这  
+0050D2B8   .  8B00          MOV EAX,DWORD PTR DS:[EAX]  
+0050D2BA   .  E8 415AF0FF   CALL SuperSok.00412D00  
+0050D2BF   .  8BD0          MOV EDX,EAX  
+0050D2C1   .  81EA FE010000 SUB EDX,1FE                               ; EDX -= 510;  
+0050D2C7   .  A1 30735200   MOV EAX,DWORD PTR DS:[527330]  
+0050D2CC   .  8B00          MOV EAX,DWORD PTR DS:[EAX]  
+0050D2CE   .  33C9          XOR ECX,ECX  
+0050D2D0   .  8B18          MOV EBX,DWORD PTR DS:[EAX]  
+0050D2D2   .  FF53 0C       CALL DWORD PTR DS:[EBX+C]  
+0050D2D5   .  33C0          XOR EAX,EAX  
+0050D2D7   .  55            PUSH EBP  
+0050D2D8   .  68 2FD35000   PUSH SuperSok.0050D32F  
+0050D2DD   .  64:FF30       PUSH DWORD PTR FS:[EAX]  
+0050D2E0   .  64:8920       MOV DWORD PTR FS:[EAX],ESP  
+0050D2E3   .  33DB          XOR EBX,EBX  
+0050D2E5   .  8B35 AC715200 MOV ESI,DWORD PTR DS:[5271AC]            ;  numbers @ [5271AC]  
+0050D2EB   >  8D55 E6       LEA EDX,DWORD PTR SS:[EBP-1A]  
+0050D2EE   .  A1 30735200   MOV EAX,DWORD PTR DS:[527330]  
+0050D2F3   .  8B00          MOV EAX,DWORD PTR DS:[EAX]  
+0050D2F5   .  B9 0A000000   MOV ECX,0A                                ; 10 bytes  
+0050D2FA   .  8B38          MOV EDI,DWORD PTR DS:[EAX]  
+0050D2FC   .  FF57 04       CALL DWORD PTR DS:[EDI+4]                ; copy_buf()  
+0050D2FF   .  8D8D 1CFFFFFF LEA ECX,DWORD PTR SS:[EBP-E4]  
+0050D305   .  8D45 E6       LEA EAX,DWORD PTR SS:[EBP-1A]  
+0050D308   .  8BD3          MOV EDX,EBX  
+0050D30A   .  E8 7196FEFF   CALL SuperSok.004F6980                   ; 解密 buf  
+0050D30F   .  8B85 1CFFFFFF MOV EAX,DWORD PTR SS:[EBP-E4]  
+0050D315   .  E8 D2BDEFFF   CALL SuperSok.004090EC                   ; num = (unsigned long)atol(buf)  
+0050D31A   .  8906          MOV DWORD PTR DS:[ESI],EAX               ; numbers[i] = num;  
+0050D31C   .  43            INC EBX                                   ; i++;  
+0050D31D   .  83C6 04       ADD ESI,4  
+0050D320   .  83FB 33       CMP EBX,33                                ; i==51?  
+0050D323   .^ 75 C6         JNZ SHORT SuperSok.0050D2EB              ; repeat  
+0050D325   .  33C0          XOR EAX,EAX  
+0050D327   .  5A            POP EDX  
+0050D328   .  59            POP ECX  
+0050D329   .  59            POP ECX  
+```
+
+## 004F6980 - 004F69F0 解密函数 (Decode 10 bytes buffer)
+
+```
+/* Decode 10 bytes buffer 
+004F6980  /$  53             PUSH EBX                                  ; (EAX=buf_in, DX=index, ECX=buf_out)  
+004F6981  |.  56             PUSH ESI  
+004F6982  |.  57             PUSH EDI  
+004F6983  |.  55             PUSH EBP  
+004F6984  |.  83C4 F8        ADD ESP,-8  
+004F6987  |.  894C24 04      MOV DWORD PTR SS:[ESP+4],ECX  
+004F698B  |.  8BEA           MOV EBP,EDX  
+004F698D  |.  890424         MOV DWORD PTR SS:[ESP],EAX  
+004F6990  |.  0FB7C5         MOVZX EAX,BP  
+004F6993  |.  66:8B3C45 C06>MOV DI,WORD PTR DS:[EAX*2+526CC0]        ; ushort num1 = value3[index];  
+004F699B  |.  8B4424 04      MOV EAX,DWORD PTR SS:[ESP+4]  
+004F699F  |.  BA FC694F00    MOV EDX,SuperSok.004F69FC                ; ASCII "0000000000"  
+004F69A4  |.  E8 A7D3F0FF    CALL SuperSok.00403D50  
+004F69A9  |.  BE 01000000    MOV ESI,1                                 ; for (i=0;i<10;i++) {  
+004F69AE  |.  8B1C24         MOV EBX,DWORD PTR SS:[ESP]  
+004F69B1  |>  8B4424 04      MOV EAX,DWORD PTR SS:[ESP+4]  
+004F69B5  |.  E8 92D7F0FF    CALL SuperSok.0040414C  
+004F69BA  |.  8A13           MOV DL,BYTE PTR DS:[EBX]                 ; ch1 = buf_in[i];  
+004F69BC  |.  0FB7CF         MOVZX ECX,DI                              ;  
+004F69BF  |.  C1E9 08       SHR ECX,8  
+004F69C2  |.  32D1           XOR DL,CL                                 ; ch1 ^= (num1>>8);  
+004F69C4  |.  885430 FF     MOV BYTE PTR DS:[EAX+ESI-1],DL            ; buf_out[i] = ch1;  
+004F69C8  |.  33D2           XOR EDX,EDX  
+004F69CA  |.  8A13           MOV DL,BYTE PTR DS:[EBX]                 ; ch1 = buf_in[i];  
+004F69CC  |.  66:03FA        ADD DI,DX                                 ; num1 += ch1;  
+004F69CF  |.  0FB7C5         MOVZX EAX,BP  
+004F69D2  |.  66:0FAF3C85 2>IMUL DI,WORD PTR DS:[EAX*4+526B28]        ; num1 *= value1[index];  
+004F69DB  |.  66:033C85 F46>ADD DI,WORD PTR DS:[EAX*4+526BF4]         ; num1 += value2[index];  
+004F69E3  |.  46             INC ESI  
+004F69E4  |.  43             INC EBX  
+004F69E5  |.  83FE 0B        CMP ESI,0B  
+004F69E8  |.^ 75 C7          JNZ SHORT SuperSok.004F69B1              ; }  
+004F69EA  |.  59             POP ECX  
+004F69EB  |.  5A             POP EDX  
+004F69EC  |.  5D             POP EBP  
+004F69ED  |.  5F             POP EDI  
+004F69EE  |.  5E             POP ESI  
+004F69EF  |.  5B             POP EBX  
+004F69F0  \\.  C3             RETN  
+*/
+```
+
+### 跟踪结果分析
+
+- 文件最后 `510` bytes, 分为 `51` 块, 每块 `10` Bytes
+- 每块 `10` Bytes, CALL `004F6980` 解密
+- 结果应是长为 `10` 的整数串
+- 每串转换为一整数, 保存在 size 为 `51` 的数组中
+
+### Keyfile 内容再跟踪/破解
+
+用 C 写一小程序, 构造出一 `fsk46740.fsk` 文件, 长为 `510`, 满足上面的条件.
+
+再用 `OLLYDBG` 动态调试
+
+程序报错, 在 `OLLYDBG` 中点暂停, 根据堆栈友好提示, 可跟踪到下面的 CODE
+
+### 005129DC - 00512A3A 代码段
+
+```
+/* 
+005129DC  |.  A1 30735200   MOV EAX,DWORD PTR DS:[527330]  
+005129E1  |.  8B00          MOV EAX,DWORD PTR DS:[EAX]  
+005129E3  |.  33C9          XOR ECX,ECX  
+005129E5  |.  BA F8110000   MOV EDX,11F8                            ; offset = 4600; // 23*200  
+005129EA  |.  8B18          MOV EBX,DWORD PTR DS:[EAX]  
+005129EC  |.  FF53 0C       CALL DWORD PTR DS:[EBX+C]  
+005129EF  |.  33C0          XOR EAX,EAX  
+005129F1  |.  8945 EC       MOV DWORD PTR SS:[EBP-14],EAX           ; sum = 0;  
+005129F4  |.  BB C8000000   MOV EBX,0C8                              ; num = 200;  
+005129F9  |>  8D55 EB       /LEA EDX,DWORD PTR SS:[EBP-15]           ; buf=[EBP-15];  
+005129FC  |.  A1 30735200   |MOV EAX,DWORD PTR DS:[527330]  
+00512A01  |.  8B00          |MOV EAX,DWORD PTR DS:[EAX]  
+00512A03  |.  B9 01000000   |MOV ECX,1                               ; bytes=1  
+00512A08  |.  8B38          |MOV EDI,DWORD PTR DS:[EAX]  
+00512A0A  |.  FF57 04       |CALL DWORD PTR DS:[EDI+4]               ; get_buf(buf, bytes)?  
+00512A0D  |.  33C0          |XOR EAX,EAX  
+00512A0F  |.  8A45 EB       |MOV AL,BYTE PTR SS:[EBP-15]             ; ch=buf[0];  
+00512A12  |.  0145 EC       |ADD DWORD PTR SS:[EBP-14],EAX           ; sum += ch;  
+00512A15  |.  4B            |DEC EBX                                   ; num--;  
+00512A16  |.^ 75 E1         \JNZ SHORT SuperSok.005129F9              ; num==0?  
+00512A18  |.  A1 AC715200   MOV EAX,DWORD PTR DS:[5271AC]            ; numbers @ [5271AC]  
+00512A1D  |.  8B40 5C       MOV EAX,DWORD PTR DS:[EAX+5C]            ; EAX = numbers[23]; // 0x5C=4*23d  
+00512A20  |.  3B45 EC       CMP EAX,DWORD PTR SS:[EBP-14]            ; EAX = sum? ******  
+00512A23  |.  74 26         JE SHORT SuperSok.00512A4B              ; // 必须跳  
+00512A25  |.  8B0D 58715200 MOV ECX,DWORD PTR DS:[527158]            ;  SuperSok.00ADEF9C  
+00512A2B  |.  8B09          MOV ECX,DWORD PTR DS:[ECX]  
+00512A2D  |.  8B15 A86F5200 MOV EDX,DWORD PTR DS:[526FA8]            ;  SuperSok.00ADEFD0  
+00512A33  |.  8B12          MOV EDX,DWORD PTR DS:[EDX]  
+00512A35  |.  B8 03000000   MOV EAX,3  
+00512A3A  |.  E8 6940FEFF   CALL SuperSok.004F6AA8  
+*/
+```
+
+
+
+00512A3F | . A1 18725200 MOV EAX,DWORD PTR DS:\[527218\]
+
+\*/
+
+跟踪结果:
+
+a. 从文件 offset 4600 取 200 Bytes 累加, 求和
+
+b. 累加和 == 51 个的数组中的一个, array\[23\]
+
+用 W32DASM 反汇编, 找类似的 CODE, 好多地方, 只有 OFFSET 与 index 有区别.
+
+4. keyfile 内容再跟踪/破解 B
+
+重新构造出一 fsk46740.fsk 文件, 长为 200\*50+510, 满足上面的条件.
+
+再用 OLlyDbg F9 运行, 还是报错, 跟到下面的 CODE
+
+/\*
+
+```
+004B47CF  |.  33F6             XOR ESI,ESI                                   ; i = 0;
+004B47D1  |.  8D45 E6         LEA EAX,DWORD PTR SS:\[EBP-1A\]               ; buf=\[EBP-24\]
+004B47D4  |.  8945 DC         MOV DWORD PTR SS:\[EBP-24\],EAX
+004B47D7  |>  8BD6           /MOV EDX,ESI                                   ; EDX = i;
+004B47D9  |.  C1E2 02        |SHL EDX,2                                    ; EDX *= 4;
+004B47DC  |.  8D1492         |LEA EDX,DWORD PTR DS:\[EDX+EDX*4\]            ; EDX *= 5; // EDX=20\*i;
+004B47DF  |.  81C2 F8110000 |ADD EDX,11F8                                  ; offset = 4600+20\*i; // 23 \* 200
+004B47E5  |.  A1 30735200   |MOV EAX,DWORD PTR DS:\[527330\]
+004B47EA  |.  8B00          |MOV EAX,DWORD PTR DS:\[EAX\]
+004B47EC  |.  33C9          |XOR ECX,ECX
+004B47EE  |.  8B38          |MOV EDI,DWORD PTR DS:\[EAX\]
+004B47F0  |.  FF57 0C       |CALL DWORD PTR DS:\[EDI+C\]
+004B47F3  |.  8B45 DC       |MOV EAX,DWORD PTR SS:\[EBP-24\]
+004B47F6  |.  8BD0          |MOV EDX,EAX
+004B47F8  |.  A1 30735200   |MOV EAX,DWORD PTR DS:\[527330\]
+004B47FD  |.  8B00          |MOV EAX,DWORD PTR DS:\[EAX\]
+004B47FF  |.  B9 01000000   |MOV ECX,1                                     ; bytes = 1
+004B4804  |.  8B38          |MOV EDI,DWORD PTR DS:\[EAX\]
+004B4806  |.  FF57 04       |CALL DWORD PTR DS:\[EDI+4\]                   ; get\_buf(buf, bytes)?
+004B4809  |.  46            |INC ESI                                     ; i++;
+004B480A  |.  FF45 DC       |INC DWORD PTR SS:\[EBP-24\]                 ; buf++;
+004B480D  |.  83FE 0A       |CMP ESI,0A                                  ; i<10?
+004B4810  |.^ 75 C5         \\JNZ SHORT SuperSok.004B47D7                ; loop
+004B4812  |.  8D4D A0       LEA ECX,DWORD PTR SS:\[EBP-60\]               ; &result
+004B4815  |.  8D45 E6       LEA EAX,DWORD PTR SS:\[EBP-1A\]               ; buf
+004B4818  |.  66:BA 1700    MOV DX,17
+004B481C  |.  E8 5F210400   CALL SuperSok.004F6980                      ; 解密 buf
+004B4821  |.  8B45 A0       MOV EAX,DWORD PTR SS:\[EBP-60\]               ; result
+004B4824  |.  8B15 FC6E5200 MOV EDX,DWORD PTR DS:\[526EFC\]               ;
+004B482A  |.  8B12          MOV EDX,DWORD PTR DS:\[EDX\]
+004B482C  |.  E8 5BF8F4FF   CALL SuperSok.0040408C                      ; CString\_Compare(result, xx)?
+004B4831  |.  74 26         JE SHORT SuperSok.004B4859                 ; // 必须跳
+004B4833  |.  8B0D 58715200 MOV ECX,DWORD PTR DS:\[527158\]               ; SuperSok.00ADEF9C
+004B4839  |.  8B09          MOV ECX,DWORD PTR DS:\[ECX\]
+004B483B  |.  8B15 A86F5200 MOV EDX,DWORD PTR DS:\[526FA8\]               ; SuperSok.00ADEFD0
+004B4841  |.  8B12          MOV EDX,DWORD PTR DS:\[EDX\]
+004B4843  |.  B8 03000000   MOV EAX,3
+004B4848  |.  E8 5B220400   CALL SuperSok.004F6AA8
+004B484D  |.  A1 18725200   MOV EAX,DWORD PTR DS:\[527218\]
+004B4852  |.  8B00          MOV EAX,DWORD PTR DS:\[EAX\]
+004B4854  |.  E8 33A2F9FF   CALL SuperSok.0044EA8C
+004B4859  |>  8B83 2C030000 MOV EAX,DWORD PTR DS:\[EBX+32C\]
+004B485F  |.  8B80 44020000 MOV EAX,DWORD PTR DS:\[EAX+244\]
+```
+
+\*/
+
+跟踪结果:
+
+a. 从文件 offset 4600 取 200 Bytes
+
+b. 每 20 bytes 中取 第 1 BYTE, 构成一长为 10 的 BUF;
+
+c. 10 Bytes, CALL 004F6980 解密
+
+d. 结果与一串相比, 必须一样,
+
+e. 类似的 CODE 好多, 只有 OFFSET 与 index 有区别.
+
+相比较的串是这样取出来的:
+
+```
+004B4824  |.  8B15 FC6E5200 MOV EDX,DWORD PTR DS:\[526EFC\]
+004B482A  |.  8B12          MOV EDX,DWORD PTR DS:\[EDX\]
+```
+
+在 OLlyDbg 中 Search constants 526EFC, 可找到下面的 CODE
+
+/\*
+
+```
+0050D141   .  A1 48705200   MOV EAX,DWORD PTR DS:\[527048\]
+0050D146   .  C600 00       MOV BYTE PTR DS:\[EAX\],0
+0050D149   .  6A 00         PUSH 0
+0050D14B   .  8D45 F4       LEA EAX,DWORD PTR SS:\[EBP-C\]             ;  buf for RegName
+0050D14E   .  50            PUSH EAX
+0050D14F   .  A1 4C735200   MOV EAX,DWORD PTR DS:\[52734C\]
+0050D154   .  8B00          MOV EAX,DWORD PTR DS:\[EAX\]
+0050D156   .  B9 4CE35000   MOV ECX,SuperSok.0050E34C                  ;  ASCII "Name"
+0050D15B   .  BA E4E45000   MOV EDX,SuperSok.0050E4E4                  ;  ASCII "RegName"
+0050D160   .  E8 D31EF7FF   CALL SuperSok.0047F038                    ;  ReadFromRegister(...) // read RegName
+0050D165   .  6A 00         PUSH 0
+0050D167   .  8D85 30FFFFFF LEA EAX,DWORD PTR SS:\[EBP-D0\]            ;  buf for RegEmail
+0050D16D   .  50            PUSH EAX
+0050D16E   .  A1 4C735200   MOV EAX,DWORD PTR DS:\[52734C\]
+0050D173   .  8B00          MOV EAX,DWORD PTR DS:\[EAX\]
+0050D175   .  B9 F4E45000   MOV ECX,SuperSok.0050E4F4                  ;  ASCII "Email"
+0050D17A   .  BA 04E55000   MOV EDX,SuperSok.0050E504                  ;  ASCII "RegEmail"
+0050D17F   .  E8 B41EF7FF   CALL SuperSok.0047F038                    ;  ReadFreomRegister(...) // read RegEmail
+0050D184   .  8B95 30FFFFFF MOV EDX,DWORD PTR SS:\[EBP-D0\]            ;  str\_Email
+0050D18A   .  8D45 F4       LEA EAX,DWORD PTR SS:\[EBP-C\]             ;  str\_Name
+0050D18D   .  E8 F26DEFFF   CALL SuperSok.00403F84                    ;  strNameEmail = strcat(Name, Email)
+0050D192   .  837D F4 00    CMP DWORD PTR SS:\[EBP-C\],0
+0050D196   .  0F84 CB010000 JE SuperSok.0050D367
+0050D19C   .  8B45 F4       MOV EAX,DWORD PTR SS:\[EBP-C\]
+0050D19F   .  E8 6097FEFF   CALL SuperSok.004F6904                    ;  magic\_num = Func1(strNameEmail);
+0050D1A4   .  8D95 2CFFFFFF LEA EDX,DWORD PTR SS:\[EBP-D4\]
+0050D1AA   .  E8 BD96FEFF   CALL SuperSok.004F686C                    ;  sprintf(magic\_buf, "%10u", magic\_num);
+0050D1AF   .  8B95 2CFFFFFF MOV EDX,DWORD PTR SS:\[EBP-D4\]
+0050D1B5   .  A1 FC6E5200   MOV EAX,DWORD PTR DS:\[526EFC\]            ;  String @ \[526EFC\]   \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+0050D1BA   .  E8 916BEFFF   CALL SuperSok.00403D50                    ;  String.buf=magic\_buf;
+0050D1BF   .  A1 206F5200   MOV EAX,DWORD PTR DS:\[526F20\]
+0050D1C4   .  FF30          PUSH DWORD PTR DS:\[EAX\]
+0050D1C6   .  68 18E55000   PUSH SuperSok.0050E518                    ;  ASCII "fsk"
+0050D1CB   .  6A 00         PUSH 0
+0050D1CD   .  6A 7B         PUSH 7B
+0050D1CF   .  6A 00         PUSH 0
+0050D1D1   .  68 A0860100   PUSH 186A0                                  ;  100000
+0050D1D6   .  A1 FC6E5200   MOV EAX,DWORD PTR DS:\[526EFC\]            ;  String @\[526EFC\]
+0050D1DB   .  8B00          MOV EAX,DWORD PTR DS:\[EAX\]               ;  String.buf
+0050D1DD   .  E8 0ABFEFFF   CALL SuperSok.004090EC                    ;  magic\_num = sscanf("%10u", buf);
+0050D1E2   .  E8 EA99EFFF   CALL SuperSok.00406BD1                    ;  magic\_num%10000
+0050D1E7   .  8985 20FFFFFF MOV DWORD PTR SS:\[EBP-E0\],EAX
+0050D1ED   .  8995 24FFFFFF MOV DWORD PTR SS:\[EBP-DC\],EDX
+0050D1F3   .  DFAD 20FFFFFF FILD QWORD PTR SS:\[EBP-E0\]                ;  (double)int
+0050D1F9   .  DB2D 1CE55000 FLD TBYTE PTR DS:\[50E51C\]                 ;  3.14
+0050D1FF   .  DEC9          FMULP ST(1),ST
+0050D201   .  D9FA          FSQRT
+0050D203   .  E8 D058EFFF   CALL SuperSok.00402AD8
+0050D208   .  E8 8B98EFFF   CALL SuperSok.00406A98
+0050D20D   .  52            PUSH EDX                                    ; /Arg2
+0050D20E   .  50            PUSH EAX                                    ; |Arg1
+0050D20F   .  8D85 28FFFFFF LEA EAX,DWORD PTR SS:\[EBP-D8\]            ; |
+0050D215   .  E8 26BEEFFF   CALL SuperSok.00409040                    ; \\SuperSok.00409040
+0050D21A   .  FFB5 28FFFFFF PUSH DWORD PTR SS:\[EBP-D8\]
+0050D220   .  68 30E55000   PUSH SuperSok.0050E530                    ; ASCII ".fsk"
+0050D225   .  8D45 F0       LEA EAX,DWORD PTR SS:\[EBP-10\]
+```
+
+
+
+```
+0050D228 . BA 04000000 MOV EDX,4
+
+0050D22D . E8 0A6EEFFF CALL SuperSok.0040403C
+
+0050D232 . 8B45 F0 MOV EAX,DWORD PTR SS:[EBP-10]
+
+0050D235 . E8 C6C0EFFF CALL SuperSok.00409300
+
+\*/
+```
+
+## 5. 分析总结
+
+**Crack 的难点:**
+
+a. 注册没有错误提示，文件名动态计算
+b. `CALL FindFirstFileA` 判断文件是否存在，而不是用 `CreateFileA`
+c. `keyfile SIZE` 大，`>10K`
+d. `Read Keyfile` 是多少读多少，在分析清楚前，不好确定 `SIZE`
+e. 不是一次判断，很多地方，很难暴破
+
+**作者加密/算法的不足**
+
+a. 加密壳等于没有
+b. 没有反跟踪，没有防 `DEDE`
+c. 加密算法强度不高
+d. 判断点很多，分析一处就可解决相同的其它多处：`OFFSET` 与 `index` 成正比
+
+## 6. 注册机
+
+```c
+#include <stdlib.h>
+
+#include <string.h>
+
+#include <stdio.h>
+
+#include <math.h>
+
+#include <time.h>
+
+// @00526B28
+
+unsigned long value1[51] = {
+    0x0000CE6D,    0x000084C3,    0x00007176,    0x00004B82,
+
+    0x0000E387,    0x00018605,    0x0000F66F,    0x00005C04,
+
+    0x00005C45,    0x0000B0BC,    0x0000AB60,    0x0000AB83,
+
+    0x0000CFFA,    0x0000A8CD,    0x000108F8,    0x00015DCB,
+
+    0x0000D2B1,    0x00011EC5,    0x0000CC79,    0x0000B2B1,
+
+    0x0000BEE9,    0x0000337D,    0x0000AA70,    0x00012253,
+
+    0x0000E058,    0x00014A72,    0x00005AF2,    0x0000DFEA,
+
+    0x0000B2A4,    0x00015D4E,    0x00017FBA,    0x0000809E,
+
+    0x0000D4FA,    0x0000B5D0,    0x0000B6C9,    0x00015D71,
+
+    0x00016B9B,    0x0001802A,    0x000121F0,    0x00013648,
+
+    0x000181C2,    0x000102C8,    0x0000B236,    0x0000DC16,
+
+    0x000152D7,    0x0000328F,    0x00011E21,    0x000123E2,
+
+  0x0000536B,    0x0000B257,    0x0000B045
+
+};
+
+// @00526BF4
+
+unsigned long value2[51] = {
+    0x000058BF,    0x000086DB,    0x00010A02,    0x0000C468,
+
+    0x00003980,    0x000181BF,    0x000102C1,    0x0000B23C,
+
+    0x0000DC1B,    0x000152D7,    0x00014A70,    0x00005AF2,
+
+    0x0000DFF0,    0x0000B2A9,    0x00015D54,    0x0000AB63,
+
+    0x0000AB7E,    0x0000CFFA,    0x0000A8D1,    0x000108F8,
+
+    0x0000BEEC,    0x0000337E,    0x0000AA71,    0x00012254,
+
+    0x0000E05E,    0x00015D72,    0x00016B9C,    0x00018026,
+
+    0x000121F0,    0x00013648,    0x0000328E,    0x00011E1D,
+
+    0x000123E1,    0x0000536B,    0x0000B256,    0x00017FBC,
+
+    0x0000809D,    0x0000D4F9,    0x0000B5D0,    0x0000B6CE,
+
+    0x00015DCC,    0x0000D2AF,    0x00011EC4,    0x0000CC79,
+
+    0x0000B2B0,    0x0001560A,    0x0000758C,    0x00005CFB,
+
+    0x0001251A,    0x00012280,    0x00015542,
+
+};
+
+// @00526CC0
+
+unsigned short value3[51] = {
+  0x0052,  0x004A,  0x001D,  0x001D,  0x001A,  0x0036,  0x0062,
+
+0x0038,
+  0x0017,  0x002D,  0x0062,  0x037D,  0x02F7,  0x0905,  0x1F07,
+
+0x0359,
+  0x03AF,  0x2668,  0x2673,  0x165A,  0x221E,  0x2675,  0x1C35,
+
+0x0D68,
+  0x11C9,  0x0D7D,  0x0022,  0x2694,  0x1C6A,  0x02AA,  0x02AF,
+
+0x0223,
+  0x095E,  0x0009,  0x18BC,  0x021F,  0x01B2,  0x0980,  0x11AA,
+
+0x10E4,
+  0x2248,  0x0296,  0x0156,  0x0023,  0x00EA,  0x0233,  0x0E32,
+
+0x0D7D,
+  0x1916,  0x0D7F,  0x2213
+};
+
+//@004F6904
+
+unsigned long Func1(char *str)
+{
+  int i, len;
+  unsigned char ch1, ch2;
+  unsigned long num1, num2;
+  len = strlen(str);
+  num1 = len;
+  for(i=0;i<len;i++)
+  {
+    ch1 = str[i];
+    ch2 = ch1 ^ (unsigned char)(num1>>8);
+    num2 = value1[len%50];
+    num1 += ch2;
+    num2 *= num1;
+    num2 += value2[49-len%50];
+    num1 = num2;
+  }
+  return num1;
+}
+
+const char Progpath[]="C:\\Program Files\\Supersoko\\";
+
+unsigned long getFilename(char *name, char *email, char *filename)
+{
+  char buf[100];
+  unsigned long num1, num2, num3, num4;
+  double d1;
+  strcpy(buf, name);
+  strcat(buf, email);
+  num1 = Func1(buf);
+  num2 = num1 % 100000;
+  d1 = (double) num2;
+  d1 *= 3.14;
+  d1 = sqrt(d1);
+  num3 = (int)(d1+0.5);
+  num4 = num3 * 0x7B;
+  sprintf(filename, "%sfsk%u.fsk", Progpath, num4);
+  return num1;
+}
+
+//@004F6980
+
+void Func2(char *in, char *out, int index)
+{
+  int i;
+  unsigned char  ch;
+  unsigned short num;
+  num = value3[index];
+  for (i=0;i<10;i++)
+  {
+    ch = in[i];
+    out[i] = ch ^ (unsigned char)(num>>8);
+    num += ch;
+    num *= (unsigned short)value1[index];
+    num += (unsigned short)value2[index];
+  }
+}
+
+void Reverse_Func2(char *in, char *out, int index)
+{
+  int i;
+  unsigned char  ch;
+  unsigned short num;
+  num = value3[index];
+  for (i=0;i<10;i++)
+  {
+    ch = in[i];
+    out[i] = ch ^ (unsigned char)(num>>8);
+    ch = out[i];
+    num += ch;
+    num *= (unsigned short)value1[index];
+    num += (unsigned short)value2[index];
+  }
+}
+
+char User[100];
+
+char Email[100];
+
+char Filename[100];
+
+int main(void)
+{
+  int i,j;
+  unsigned long magic_num, checksum[51];
+  FILE *fp;
+  unsigned char ch;
+  char big_buf1[200];
+  char small_buf1[20],small_buf2[20];
+  printf("Username:");
+  gets(User);
+  printf("Email:");
+  gets(Email);
+  magic_num = getFilename(User, Email, Filename);
+  printf("filename=%s\n", Filename);
+  fp = fopen(Filename,"wb");
+  if (!fp) {
+    printf("fopen error\n");
+    return 0;
+  }
+  sprintf(small_buf1, "%010u", magic_num);
+  memset(big_buf1, 0, 200);
+  for(i=0;i<50;i++)
+  {
+    Reverse_Func2(small_buf1, small_buf2, i);
+    for(j=0;j<10;j++)
+    {
+      big_buf1[20*j] = small_buf2[j];
+    }
+    fwrite(big_buf1, 1, 200, fp);
+    checksum[i] = 0;
+    for(j=0;j<200;j++)
+    {
+      ch = (unsigned char)big_buf1[j];
+      checksum[i] += (unsigned long)ch;
+    }
+  }
+  checksum[50] = 0;
+  for(i=0;i<51;i++)
+  {
+    sprintf(small_buf1, "%010u", checksum[i]);
+    Reverse_Func2(small_buf1, small_buf2, i);
+    fwrite(small_buf2, 1, 10, fp);
+  }
+  fclose(fp);
+  return 0;
+}
+```
+
+```c
+#include <stdlib.h>
+
+#include <string.h>
+
+#include <stdio.h>
+
+#include <math.h>
+
+#include <time.h>
+
+/* @00526B28 */
+
+unsigned long value1[51] = {
+    0x0000CE6D,    0x000084C3,    0x00007176,    0x00004B82,
+
+    0x0000E387,    0x00018605,    0x0000F66F,    0x00005C04,
+
+    0x00005C45,    0x0000B0BC,    0x0000AB60,    0x0000AB83,
+
+    0x0000CFFA,    0x0000A8CD,    0x000108F8,    0x00015DCB,
+
+    0x0000D2B1,    0x00011EC5,    0x0000CC79,    0x0000B2B1,
+
+    0x0000BEE9,    0x0000337D,    0x0000AA70,    0x00012253,
+
+    0x0000E058,    0x00014A72,    0x00005AF2,    0x0000DFEA,
+
+    0x0000B2A4,    0x00015D4E,    0x00017FBA,    0x0000809E,
+
+    0x0000D4FA,    0x0000B5D0,    0x0000B6C9,    0x00015D71,
+
+    0x00016B9B,    0x0001802A,    0x000121F0,    0x00013648,
+
+    0x000181C2,    0x000102C8,    0x0000B236,    0x0000DC16,
+
+    0x000152D7,    0x0000328F,    0x00011E21,    0x000123E2,
+
+  0x0000536B,    0x0000B257,    0x0000B045
+
+};
+
+/* @00526BF4 */
+
+unsigned long value2[51] = {
+    0x000058BF,    0x000086DB,    0x00010A02,    0x0000C468,
+
+    0x00003980,    0x000181BF,    0x000102C1,    0x0000B23C,
+
+    0x0000DC1B,    0x000152D7,    0x00014A70,    0x00005AF2,
+
+    0x0000DFF0,    0x0000B2A9,    0x00015D54,    0x0000AB63,
+
+    0x0000AB7E,    0x0000CFFA,    0x0000A8D1,    0x000108F8,
+
+    0x0000BEEC,    0x0000337E,    0x0000AA71,    0x00012254,
+
+    0x0000E05E,    0x00015D72,    0x00016B9C,    0x00018026,
+
+    0x000121F0,    0x00013648,    0x0000328E,    0x00011E1D,
+
+    0x000123E1,    0x0000536B,    0x0000B256,    0x00017FBC,
+
+    0x0000809D,    0x0000D4F9,    0x0000B5D0,    0x0000B6CE,
+
+    0x00015DCC,    0x0000D2AF,    0x00011EC4,    0x0000CC79,
+
+    0x0000B2B0,    0x0001560A,    0x0000758C,    0x00005CFB,
+
+    0x0001251A,    0x00012280,    0x00015542,
+
+};
+
+/* @00526CC0 */
+
+unsigned short value3[51] = {
+```
+
+
+
+```c
+   0x0052,   0x004A,   0x001D,   0x001D,   0x001A,   0x0036,   0x0062,   
+0x0038,   
+   0x0017,   0x002D,   0x0062,   0x037D,   0x02F7,   0x0905,   0x1F07,   
+0x0359,   
+   0x03AF,   0x2668,   0x2673,   0x165A,   0x221E,   0x2675,   0x1C35,   
+0x0D68,   
+   0x11C9,   0x0D7D,   0x0022,   0x2694,   0x1C6A,   0x02AA,   0x02AF,   
+0x0223,   
+   0x095E,   0x0009,   0x18BC,   0x021F,   0x01B2,   0x0980,   0x11AA,   
+0x10E4,   
+   0x2248,   0x0296,   0x0156,   0x0023,   0x00EA,   0x0233,   0x0E32,   
+0x0D7D,   
+   0x1916,   0x0D7F,   0x2213  
+};  
+
+/* @004F6904 */  
+
+unsigned long Func1(char *str)  
+
+{  
+
+  int i, len;  
+
+  unsigned char ch1, ch2;  
+
+  unsigned long num1, num2;  
+
+  len = strlen(str);  
+
+  num1 = len;  
+
+  for(i=0;i<len;i++)  
+
+  {  
+
+    ch1 = str[i];  
+
+    ch2 = ch1 ^ (unsigned char)(num1>>8);  
+
+    num2 = value1[len%50];  
+
+    num1 += ch2;  
+
+    num2 *= num1;  
+
+    num2 += value2[49-len%50];  
+
+    num1 = num2;  
+
+  }  
+
+  return num1;  
+
+}  
+
+const char Progpath[]="C:\\Progra~1\\Supers~1\\";  
+
+unsigned long getFilename(char *name, char *email, char *filename)  
+
+{  
+
+  char buf[100];  
+
+  unsigned long num1, num2, num3, num4;  
+
+  double d1;  
+
+  strcpy(buf, name);  
+
+  strcat(buf, email);  
+
+  num1 = Func1(buf);  
+
+  num2 = num1 % 100000;  
+
+  d1 = (double) num2;  
+
+  d1 *= 3.14;  
+
+  d1 = sqrt(d1);  
+
+  num3 = (int)(d1+0.5);  
+
+  num4 = num3 * 0x7B;  
+
+  sprintf(filename, "%sfsk%u.fsk", Progpath, num4);  
+
+  return num1;  
+
+}  
+
+/* @004F6980 */  
+
+void Func2(char *in, char *out, int index)  
+
+{  
+
+  int i;  
+
+  unsigned char  ch;  
+
+  unsigned short num;  
+
+  num = value3[index];  
+
+  for (i=0;i<10;i++)  
+
+  {  
+
+    ch = in[i];  
+
+    out[i] = ch ^ (unsigned char)(num>>8);  
+
+    num += ch;  
+
+    num *= (unsigned short)value1[index];  
+
+    num += (unsigned short)value2[index];  
+
+  }  
+
+}  
+
+void Reverse_Func2(char *in, char *out, int index)  
+
+{  
+
+  int i;  
+
+  unsigned char  ch;  
+
+  unsigned short num;  
+
+  num = value3[index];  
+
+  for (i=0;i<10;i++)  
+
+  {  
+
+    ch = in[i];  
+
+    out[i] = ch ^ (unsigned char)(num>>8);  
+
+    ch = out[i];  
+
+    num += ch;  
+
+    num *= (unsigned short)value1[index];  
+
+    num += (unsigned short)value2[index];  
+
+  }  
+
+}  
+
+char User[100];  
+
+char Email[100];  
+
+char Filename[100];  
+
+int main(void)  
+
+{  
+
+  int i,j;  
+
+  unsigned long magic_num, checksum[51];  
+
+  FILE *fp;  
+
+  unsigned char ch;  
+
+  char big_buf1[200];  
+
+  char small_buf1[20],small_buf2[20];  
+
+  printf("Username:");  
+
+  gets(User);  
+
+  printf("Email:");  
+
+  gets(Email);  
+
+  magic_num = getFilename(User, Email, Filename);  
+
+  printf("filename=%s\n", Filename);  
+
+  fp = fopen(Filename,"wb");  
+
+  if (!fp) {  
+
+    printf("fopen error\n");  
+
+    return 0;  
+
+  }  
+
+  sprintf(small_buf1, "%010u", magic_num);  
+
+  memset(big_buf1, 0, 200);  
+
+  for(i=0;i<50;i++)  
+
+  {  
+
+    Reverse_Func2(small_buf1, small_buf2, i);  
+
+    for(j=0;j<10;j++)  
+
+    {  
+
+      big_buf1[20*j] = small_buf2[j];  
+
+    }  
+
+    fwrite(big_buf1, 1, 200, fp);  
+
+    checksum[i] = 0;  
+
+    for(j=0;j<200;j++)  
+
+    {  
+
+      ch = (unsigned char)big_buf1[j];  
+
+      checksum[i] += (unsigned long)ch;  
+
+    }  
+
+  }  
+
+  checksum[50] = 0;  
+
+  for(i=0;i<51;i++)  
+
+  {  
+
+    sprintf(small_buf1, "%010u", checksum[i]);  
+
+    Reverse_Func2(small_buf1, small_buf2, i);  
+
+    fwrite(small_buf2, 1, 10, fp);  
+
+  }  
+
+  fclose(fp);  
+
+  return 0;  
+
+} 
+
+4dd466d0e1e0cc123afbe504da2462ca
+```

@@ -1,0 +1,149 @@
+
+# 4.3 程序调用分析
+
+## 汇编指令序列 1
+
+```asm
+004F94F2  lea eax, dword ptr ss:[ebp-30]  
+004F94F5  push eax  
+004F94F6  xor ecx, ecx  
+004F94F8  mov edx, dword ptr ss:[ebp-C]  
+004F94FB  mov eax, dword ptr ss:[ebp-4]  
+004F94FE  call UPNetGet.004C315C  
+004F9503  mov eax, dword ptr ss:[ebp-30]  
+004F9506  lea ecx, dword ptr ss:[ebp-2C]  
+004F9509  mov edx, 1C  
+004F950E  call UPNetGet.0044C3AC  
+004F9513  mov ecx, dword ptr ss:[ebp-2C]  
+004F9516  mov eax, dword ptr ss:[ebp+8]  
+004F9519  mov edx, UPNetGet.004F961C        ;  ASCII "pr-"  
+004F951E  call UPNetGet.00404FCC  
+004F9523  jmp UPNetGet.004F95BB  
+004F9528  lea eax, dword ptr ss:[ebp-C]  
+004F952B  mov ecx, dword ptr ss:[ebp-10]  
+004F952E  mov edx, UPNetGet.004F9628        ;  ASCII "pe"  
+004F9533  call UPNetGet.00404FCC  
+004F9538  lea eax, dword ptr ss:[ebp-38]  
+004F953B  push eax  
+004F953C  xor ecx, ecx  
+004F953E  mov edx, dword ptr ss:[ebp-C]  
+004F9541  mov eax, dword ptr ss:[ebp-4]  
+004F9544  call UPNetGet.004C315C  
+004F9549  mov eax, dword ptr ss:[ebp-38]  
+004F954C  lea ecx, dword ptr ss:[ebp-34]  
+004F954F  mov edx, 1C  
+004F9554  call UPNetGet.0044C3AC  
+004F9559  mov ecx, dword ptr ss:[ebp-34]  
+004F955C  mov eax, dword ptr ss:[ebp+8]  
+004F955F  mov edx, UPNetGet.004F9634        ;  ASCII "pe-"  
+004F9564  call UPNetGet.00404FCC  
+004F9569  jmp short UPNetGet.004F95BB  
+004F956B  lea eax, dword ptr ss:[ebp-C]  
+004F956E  mov ecx, dword ptr ss:[ebp-10]  
+004F9571  mov edx, UPNetGet.004F9640        ;  ASCII "ex"  
+004F9576  call UPNetGet.00404FCC  
+004F957B  lea eax, dword ptr ss:[ebp-40]  
+004F957E  push eax  
+004F957F  xor ecx, ecx  
+004F9581  mov edx, dword ptr ss:[ebp-C]  
+004F9584  mov eax, dword ptr ss:[ebp-4]  
+004F9587  call UPNetGet.004C315C  
+004F958C  mov eax, dword ptr ss:[ebp-40]  
+004F958F  lea ecx, dword ptr ss:[ebp-3C]  
+004F9592  mov edx, 1C  
+004F9597  call UPNetGet.0044C3AC  
+004F959C  mov ecx, dword ptr ss:[ebp-3C]  
+004F959F  mov eax, dword ptr ss:[ebp+8]  
+004F95A2  mov edx, UPNetGet.004F964C        ;  ASCII "ex-"  
+004F95A7  call UPNetGet.00404FCC  
+004F95AC  jmp short UPNetGet.004F95BB  
+004F95AE  mov eax, dword ptr ss:[ebp+8]  
+004F95B1  mov edx, UPNetGet.004F9658        ;  ASCII "NoneReg"  
+004F95B6  call UPNetGet.00404D1C  
+004F95BB  xor eax, eax  
+004F95BD  pop edx  
+004F95BE  pop ecx  
+004F95BF  pop ecx  
+004F95C0  mov dword ptr fs:[eax], edx  
+004F95C3  push UPNetGet.004F95E5  
+004F95C8  lea eax, dword ptr ss:[ebp-40]  
+004F95CB  mov edx, 0E  
+004F95D0  call UPNetGet.00404CEC  
+004F95D5  lea eax, dword ptr ss:[ebp-4]  
+004F95D8  call UPNetGet.00404CC8  
+004F95DD  retn  
+004F95DE  jmp UPNetGet.0040458C  
+004F95E3  jmp short UPNetGet.004F95C8  
+004F95E5  pop edi  
+004F95E6  pop esi  
+004F95E7  pop ebx  
+004F95E8  mov esp, ebp  
+004F95EA  pop ebp  
+004F95EB  retn 4  
+```
+
+## 调用指令
+
+在程序 `00513097` 处，指令 `E8B856FEFF` 调用函数 `004F8754`。
+
+## 注册码校验逻辑
+
+将输入的注册码与下列内置的字符串比较，若相等则程序继续，否则注册错误。
+
+```asm
+004F8786  mov edx, UPNetGet.004F8AC0        ;  ASCII "EN-D1D9673F0A6C4A08A597BA3282CB"  
+004F8793  mov edx, UPNetGet.004F8AE8        ;  ASCII "pr-4721D414F70B5ACDE4BC8B63D05B"  
+004F87A0  mov edx, UPNetGet.004F8B10        ;  ASCII "pe-E5168778342086A114405B138529"  
+004F87AD  mov edx, UPNetGet.004F8B38        ;  ASCII "pe-7DAE3433BD7D102F93AB2FB98944"  
+004F87BA  mov edx, UPNetGet.004F8B60        ;  ASCII "EN-BABF0099063E9362F16E7DDA3265"  
+004F87C7  mov edx, UPNetGet.004F8B88        ;  ASCII "pe-AF24A6F8AAD69CCA956C168B705F"  
+004F87D4  mov edx, UPNetGet.004F8BB0        ;  ASCII "ex-33F8430B2B150255E115BB41D808"  
+004F87E1  mov edx, UPNetGet.004F8BD8        ;  ASCII "ex-7093DFD5D13EF78B7C569053F8A8"  
+004F87EE  mov edx, UPNetGet.004F8C00        ;  ASCII "ex-ED1DA86A88B16EBC55B70758AE8F"  
+004F87FB  mov edx, UPNetGet.004F8C28        ;  ASCII "EN-655F3971F512305E73D0DDB1DB4A"  
+004F8808  mov edx, UPNetGet.004F8C50        ;  ASCII "EN-C1C27E3061AF6E57AF8966DE8C1E"  
+004F8815  mov edx, UPNetGet.004F8C78        ;  ASCII "pe-A0FCF4BE1B68EE0718531A59BE41"  
+004F8822  mov edx, UPNetGet.004F8CA0        ;  ASCII "pe-7F9AD364C665B37A302111748B0F"  
+004F882F  mov edx, UPNetGet.004F8CC8        ;  ASCII "pe-1C0303AB77B7A4B9A6690987C5AF"  
+004F883C  mov edx, UPNetGet.004F8CF0        ;  ASCII "pr-587ED034328E75DE5B22C703C859"  
+004F8849  mov edx, UPNetGet.004F8D18        ;  ASCII "pe-F6EF8235BFA130FE560DBB85746A"  
+004F8856  mov edx, UPNetGet.004F8D40        ;  ASCII "EN-3EFA729C76F0EF0578191E221EFA"  
+004F8863  mov edx, UPNetGet.004F8D68        ;  ASCII "EN-D0BF945CB4E303BBE2765438C22E"  
+004F8870  mov edx, UPNetGet.004F8D90        ;  ASCII "EN-5EAD3D30B8D113604C229A2F852C"  
+004F887D  mov edx, UPNetGet.004F8DB8        ;  ASCII "ex-D202693E59B810CE6AF026864345"  
+004F888A  mov edx, UPNetGet.004F8DE0        ;  ASCII "ex-78C12A1F987AD72FF021DA6CFFBA"  
+004F8897  mov edx, UPNetGet.004F8E08        ;  ASCII "EN-6C6DF3AB83A652C30CF2D9806FBB"  
+004F88A4  mov edx, UPNetGet.004F8E30        ;  ASCII "pr-74F363811310B8284D3E99F35837"  
+004F88B1  mov edx, UPNetGet.004F8E58        ;  ASCII "pe-46FA89DF1CF47B1E05C943BEA218"  
+004F88BE  mov edx, UPNetGet.004F8E80        ;  ASCII "EN-6A3F1726740C84C4E44B9FBFF5AC"  
+004F88CB  mov edx, UPNetGet.004F8EA8        ;  ASCII "EN-685B7C1B91DD1AD26D36AEAA8F1B"  
+004F88D8  mov edx, UPNetGet.004F8ED0        ;  ASCII "pe-78B6D0BAD93AA6D998C894A7BD8B"  
+004F88E5  mov edx, UPNetGet.004F8EF8        ;  ASCII "EN-63E9D81888D61C411F2C453C061A"  
+004F88F2  mov edx, UPNetGet.004F8F20        ;  ASCII "ex-6C3E1A8EA7B1EE6A370C5B39A168"  
+004F88FF  mov edx, UPNetGet.004F8F48        ;  ASCII "EN-7C5AD967A26C2E92F2FD96CDA8CA"  
+004F890C  mov edx, UPNetGet.004F8F70        ;  ASCII "EN-2E863D911FB55BA700E1AB6E4D33"  
+004F8919  mov edx, UPNetGet.004F8F98        ;  ASCII "EN-71B93F8FB025406EF9681A1ABAAA"  
+004F8926  mov edx, UPNetGet.004F8FC0        ;  ASCII "ex-75B3CAA328EE9F91217285038AED"  
+004F8933  mov edx, UPNetGet.004F8FE8        ;  ASCII "ex-336931F283D761D3F0AB833FF7B8"  
+004F8940  mov edx, UPNetGet.004F9010        ;  ASCII "ex-C6E6069B9FBF6AB1A6C0121D6D7C"  
+004F894D  mov edx, UPNetGet.004F9038        ;  ASCII "ex-1E8354E83118422E84BA31322306"  
+004F895A  mov edx, UPNetGet.004F9060        ;  ASCII "pe-1F26A3B4C0E1A4F5976560FB6F3C"  
+004F8967  mov edx, UPNetGet.004F9088        ;  ASCII "pe-ACABA6CCC8A681484E9D0A3C842F"  
+004F8974  mov edx, UPNetGet.004F90B0        ;  ASCII "pe-7B767DC5149C42534334D5529378"  
+004F8981  mov edx, UPNetGet.004F90D8        ;  ASCII "pr-04C5AA23CFDAEC5357F4283E9071"  
+004F898E  mov edx, UPNetGet.004F9100        ;  ASCII "pr-19ABBF2B6BDCC6A612D538336A7E"  
+004F899B  mov edx, UPNetGet.004F9128        ;  ASCII "ex-9A6D966BD9C342C5F1E22F5C6262"  
+004F89A8  mov edx, UPNetGet.004F9150        ;  ASCII "EN-62A2461FDF00A36723C0747AA037"  
+004F89B5  mov edx, UPNetGet.004F9178        ;  ASCII "EN-AFB901625AF858C64F59AC801BC7"  
+004F89C2  mov edx, UPNetGet.004F91A0        ;  ASCII "EN-062019DC00DF10278EEBB39F09ED"  
+004F89CF  mov edx, UPNetGet.004F91C8        ;  ASCII "pr-FD64576C94A38E223884481B62E7"  
+004F89DC  mov edx, UPNetGet.004F91F0        ;  ASCII "pe-D830B6BFEA4CDC6B01EA4070B873"  
+004F89E9  mov edx, UPNetGet.004F9218        ;  ASCII "ex-DB3361889A3A85DB00EE7A0EDF41"  
+004F89F6  mov edx, UPNetGet.004F9240        ;  ASCII "ex-E624BFD9F641886D316B5B595205"  
+004F8A03  mov edx, UPNetGet.004F9268        ;  ASCII "pe-E41AA909F57DD61B01D04FB6236C"  
+004F8A10  mov edx, UPNetGet.004F9290        ;  ASCII "pe-81F4742BD88BA22407ECFDAC3EA5"  
+004F8A1D  mov edx, UPNetGet.004F92B8        ;  ASCII "pe-58DBD86C0335E86495FC042106F2"  
+004F8A2A  mov edx, UPNetGet.004F92E0        ;  ASCII "pe-AB40462CC3BB7E1DF3B279ADC91C"  
+004F8A37  mov edx, UPNetGet.004F9308        ;  ASCII "EN-1CEF455F6A9586B90217AD353B45"  
+004F8A44  mov edx, UPNetGet.004F9330        ;  ASCII "pe-29E2E51767B58D5F5DABCC227224"  
+```

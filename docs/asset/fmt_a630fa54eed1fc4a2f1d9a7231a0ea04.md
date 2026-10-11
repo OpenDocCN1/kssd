@@ -1,0 +1,127 @@
+
+显示对话框后, 我们选中作者给我们的一个文件, 比如 `key.dat`, 下断 `MFC42.#5186_?Open@CFile@@UAEHPBDIPAVCFileException@@@Z`, 点注册,
+
+```
+00408F80  /.  55              PUSH EBP  
+00408F81  |.  8BEC            MOV EBP,ESP  
+00408F83  |.  6A FF           PUSH -1  
+00408F85  |.  68 A8184300     PUSH chess.004318A8                                           ;  SE handler installation  
+00408F8A  |.  64:A1 0000000>  MOV EAX,DWORD PTR FS:[0]  
+00408F90  |.  50              PUSH EAX  
+00408F91  |.  64:8925 00000>  MOV DWORD PTR FS:[0],ESP  
+00408F98  |.  81EC 48070000   SUB ESP,748  
+00408F9E  |.  53              PUSH EBX  
+00408F9F  |.  56              PUSH ESI  
+00408FA0  |.  57              PUSH EDI  
+00408FA1  |.  8BD9            MOV EBX,ECX  
+00408FA3  |.  8965 F0         MOV DWORD PTR SS:[EBP-10],ESP  
+00408FA6  |.  6A 01           PUSH 1  
+00408FA8  |.  895D D8         MOV DWORD PTR SS:[EBP-28],EBX  
+00408FAB  |.  E8 46750200     CALL <JMP.&MFC42.#6334_?UpdateData@CWnd@@QAEHH@Z>  
+00408FB0  |.  8B83 00020000   MOV EAX,DWORD PTR DS:[EBX+200]  
+00408FB6  |.  8D8B 00020000   LEA ECX,DWORD PTR DS:[EBX+200]  
+00408FBC  |.  8B40 F8         MOV EAX,DWORD PTR DS:[EAX-8]  
+00408FBF  |.  50              PUSH EAX  
+00408FC0  |.  E8 71740200     CALL <JMP.&MFC42.#2915_?GetBuffer@CString@@QAEPADH@Z>  
+00408FC5  |.  8D4D E0         LEA ECX,DWORD PTR SS:[EBP-20]  
+00408FC8  |.  8BF0            MOV ESI,EAX  
+00408FCA  |.  E8 B1750200     CALL <JMP.&MFC42.#354_??0CFile@@QAE@XZ>  
+00408FCF  |.  8B83 FC010000   MOV EAX,DWORD PTR DS:[EBX+1FC]  
+00408FD5  |.  6A 00           PUSH 0  
+00408FD7  |.  6A 00           PUSH 0  
+00408FD9  |.  50              PUSH EAX  
+00408FDA  |.  8D4D E0         LEA ECX,DWORD PTR SS:[EBP-20]  
+00408FDD  |.  C745 FC 00000>  MOV DWORD PTR SS:[EBP-4],0  
+00408FE4  |.  E8 91750200     CALL <JMP.&MFC42.#5186_?Open@CFile@@UAEHPBDIPAVCFileException@@@Z> ; //打开 Key.dat  
+00408FE9  |.  85C0            TEST EAX,EAX  
+00408FEB  |.  75 35           JNZ SHORT chess.00409022  
+00408FED  |.  50              PUSH EAX  
+00408FEE  |.  68 54F54300     PUSH chess.0043F554  
+00408FF3  |>  E8 88600200     CALL chess.0042F080  
+00408FF8  |.  83C4 08         ADD ESP,8  
+00408FFB  |>  8BCB            MOV ECX,EBX  
+00408FFD  |.  E8 58740200     CALL <JMP.&MFC42.#4376_?OnCancel@CDialog@@MAEXXZ>  
+00409002  |>  8D4D E0         LEA ECX,DWORD PTR SS:[EBP-20]  
+00409005  |.  C745 FC FFFFF>  MOV DWORD PTR SS:[EBP-4],-1  
+0040900C  |.  E8 45750200     CALL <JMP.&MFC42.#665_??1CFile@@UAE@XZ>  
+00409011  |.  8B4D F4         MOV ECX,DWORD PTR SS:[EBP-C]  
+00409014  |.  5F              POP EDI  
+00409015  |.  5E              POP ESI  
+00409016  |.  64:890D 00000>  MOV DWORD PTR FS:[0],ECX  
+0040901D  |.  5B              POP EBX  
+0040901E  |.  8BE5            MOV ESP,EBP  
+00409020  |.  5D              POP EBP  
+00409021  |.  C3              RETN  
+00409022  |>  8D4D E0         LEA ECX,DWORD PTR SS:[EBP-20]  
+00409025  |.  C645 FC 01      MOV BYTE PTR SS:[EBP-4],1  
+00409029  |.  E8 46750200     CALL <JMP.&MFC42.#3318_?GetLength@CFile@@UBEKXZ>                 ; //比较文件大小  
+0040902E  |.  3D 120C0000     CMP EAX,0C12                                                   ; // >3090  
+00409033  |.  0F82 05010000   JB chess.0040913E  
+00409039  |.  8D4D CC         LEA ECX,DWORD PTR SS:[EBP-34]  
+0040903C  |.  6A 0A           PUSH 0A  
+0040903E  |.  51              PUSH ECX  
+0040903F  |.  8D4D E0         LEA ECX,DWORD PTR SS:[EBP-20]  
+00409042  |.  E8 27750200     CALL <JMP.&MFC42.#5442_?Read@CFile@@UAEIPAXI@Z>                ;  //读 10 个字节文件头  
+00409047  |.  BF 48F54300     MOV EDI,chess.0043F548                                         ;  ASCII "GHKFORREG"  
+0040904C  |.  8D45 CC         LEA EAX,DWORD PTR SS:[EBP-34]  
+0040904F  |>  8A10            /MOV DL,BYTE PTR DS:[EAX]                                     ;  //判断是否是"GHKFORREG",0  
+00409051  |.  8ACA            |MOV CL,DL  
+00409053  |.  3A17            |CMP DL,BYTE PTR DS:[EDI]  
+00409055  |.  75 1C           |JNZ SHORT chess.00409073  
+00409057  |.  84C9            |TEST CL,CL  
+00409059  |.  74 14           |JE SHORT chess.0040906F  
+0040905B  |.  8A50 01         |MOV DL,BYTE PTR DS:[EAX+1]  
+0040905E  |.  8ACA            |MOV CL,DL  
+00409060  |.  3A57 01         |CMP DL,BYTE PTR DS:[EDI+1]  
+00409063  |.  75 0E           |JNZ SHORT chess.00409073  
+00409065  |.  83C0 02         |ADD EAX,2  
+00409068  |.  83C7 02         |ADD EDI,2  
+0040906B  |.  84C9            |TEST CL,CL  
+0040906D  |.^ 75 E0           \JNZ SHORT chess.0040904F  
+0040906F  |>  33C0            XOR EAX,EAX  
+00409071  |.  EB 05           JMP SHORT chess.00409078  
+00409073  |>  1BC0            SBB EAX,EAX  
+00409075  |.  83D8 FF         SBB EAX,-1  
+00409078  |>  85C0            TEST EAX,EAX  
+0040907A  |.  0F85 BE000000   JNZ chess.0040913E  
+00409080  |.  8945 DC         MOV DWORD PTR SS:[EBP-24],EAX  
+00409083  |.  8D45 DC         LEA EAX,DWORD PTR SS:[EBP-24]  
+00409086  |.  6A 04           PUSH 4  
+00409088  |.  50              PUSH EAX  
+00409089  |.  8D4D E0         LEA ECX,DWORD PTR SS:[EBP-20]  
+0040908C  |.  E8 DD740200     CALL <JMP.&MFC42.#5442_?Read@CFile@@UAEIPAXI@Z>                ;  //读 4 个字节, 包的长度  
+00409091  |.  8B45 DC         MOV EAX,DWORD PTR SS:[EBP-24]  
+00409094  |.  3D 00040000     CMP EAX,400                                                    ;  //要小于 1024  
+00409099  |.  0F83 AE000000   JNB chess.0040914D  
+0040909F  |.  8D8D CCFBFFFF   LEA ECX,DWORD PTR SS:[EBP-434]  
+004090A5  |.  50              PUSH EAX  
+004090A6  |.  51              PUSH ECX  
+004090A7  |.  8D4D E0         LEA ECX,DWORD PTR SS:[EBP-20]                                  ;  //读上述长度的数据包  
+004090AA  |.  E8 BF740200     CALL <JMP.&MFC42.#5442_?Read@CFile@@UAEIPAXI@Z>                ;  //放在堆栈 0010AF48  
+004090AF  |.  8B7D DC         MOV EDI,DWORD PTR SS:[EBP-24]  
+004090B2  |.  33C0            XOR EAX,EAX  
+004090B4  |.  C6843D CCFBFF>  MOV BYTE PTR SS:[EBP+EDI-434],0                                ;  //在内存数据包最后放 0  
+004090BC  |>  3BC7            /CMP EAX,EDI                                                   ;  //处理每一字节  
+004090BE  |.  7D 16           |JGE SHORT chess.004090D6  
+004090C0  |.  8A8C05 CCFBFF>  |MOV CL,BYTE PTR SS:[EBP+EAX-434]                              ;  //原来 XX  
+004090C7  |.  80CA FF         |OR DL,0FF  
+004090CA  |.  2AD1           |SUB DL,CL                                                      ;  //现在 FF-XX  
+004090CC  |.  889405 CCFBFF>  |MOV BYTE PTR SS:[EBP+EAX-434],DL                              ;  //相当于每一 Bit 取反  
+004090D3  |.  40              |INC EAX  
+004090D4  |.^ EB E6           \JMP SHORT chess.004090BC  
+004090D6  |>  33C9            XOR ECX,ECX  
+004090D8  |>  8BC7            /MOV EAX,EDI                                                   ;  //EAX = 长度  
+004090DA  |.  99              |CDQ                                                            ;  //符号扩展 EAX -> EDX:EAX  
+004090DB  |.  2BC2            |SUB EAX,EDX                                                    ;  // if EAX<0 then EAX-0xFFFFFFFF  
+004090DD  |.  D1F8            |SAR EAX,1                                                      ;  // EAX / 2  
+004090DF  |.  3BC8            |CMP ECX,EAX  
+004090E1  |.  7D 28           |JGE SHORT chess.0040910B  
+004090E3  |.  8BC7            |MOV EAX,EDI  
+004090E5  |.  8A940D CCFBFF>  |MOV DL,BYTE PTR SS:[EBP+ECX-434]                               ;  //从前往后取一字节 -> DL  
+004090EC  |.  2BC1            |SUB EAX,ECX  
+004090EE  |.  41              |INC ECX  
+004090EF  |.  8A9C05 CBFBFF>  |MOV BL,BYTE PTR SS:[EBP+EAX-435]                               ;  //从后往前取一字节 -> BL  
+004090F6  |.  8D8405 CBFBFF>  |LEA EAX,DWORD PTR SS:[EBP+EAX-435]  
+004090FD  |.  889C0D CBFBFF>  |MOV BYTE PTR SS:[EBP+ECX-435],BL                               ;  //后面移到前面  
+00409104  |.  8B5D D8         |MOV EBX,DWORD PTR SS:[EBP-28]  
+```

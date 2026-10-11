@@ -1,0 +1,297 @@
+
+# 利用 OD,增加 FlashGet 同时下载的线程
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-479.htm`](https://www.pediy.com/kssd/pediy07/pediy7-479.htm)
+
+【破文作者】xu_wh（在别的论坛,我的注册名是 xu_wh,只有在这里是 yuyu）
+
+【所属组织】PCG
+
+【作者主页】
+
+【 E-mail 】xu_wh@163.com
+
+【 作者 QQ 】
+
+【文章题目】利用 OD,增加 FlashGet 同时下载的线程
+
+【软件名称】FlashGet 1.7
+
+【使用工具】OD,UltraEdit
+
+【软件限制】
+
+【破解平台】WinXP
+
+=======================================================================================================
+
+【文章简介】
+
+FlashGet 默认的一个任务下载的最大线程是 10 个。往往 10 个线程是不够用的。网上有关于这个问题的补丁，但是没有文字说明。本文的目的是做这个方面的研究。
+
+=======================================================================================================
+
+【反向过程】
+
+今天没有上班，就在家里看看书，补补内功。
+
+突然想到，我的 FlashGet 虽然已经注册过了，但是，单个任务下载还是限制在 10 个线程内。今天就扩展一下吧，
+
+以前在找 FlashGet 1.65 注册算法的时候用 OD 跟过。现在又要对你动手了，呵呵~~~~。
+
+先运行软件，右键点击一个在下载的任务，选择属性。在我用的版本是文件分成 2 份同时下载，那么我们输入 20，点击确定，出现一个对话框：说明我们输入的数字只能在 0-10 之间。好了，这个对话框就成了我们下手的入口点了：
+
+1. OD 载入程序，bp `MessageBoxA`，F9，我们来到这里：
+
+```
+004C1E60   /$   55                     push ebp
+004C1E61   |.   8BEC                  mov ebp,esp
+004C1E63   |.   81EC 14010000         sub esp,114
+004C1E69   |.   53                    push ebx
+`````` （略）
+004C1EF6   |.   68 04010000          push 104                        ; /BufSize = 104 (260.)
+004C1EFB   |.   50                   push eax                        ; |PathBuffer
+004C1EFC   |.   6A 00                push 0                          ; |hModule = NULL
+004C1EFE   |.   8DBD ECFEFFFF        lea edi,dword ptr ss:[ebp-114]   ; |
+004C1F04   |.   FF15 A8234E00        call near dword ptr ds:[<&KERNEL32.GetModuleFileNameA
+004C1F0A   |>   53                   push ebx                        ; /Style
+004C1F0B   |.   57                   push edi                        ; |Title
+004C1F0C   |.   FF75 08              push dword ptr ss:[ebp+8]        ; |Text
+004C1F0F   |.   FF75 F4              push dword ptr ss:[ebp-C]        ; |hOwner
+004C1F12   |.   FF15 84254E00        call near dword ptr ds:[<&USER32.MessageBoxA
+004C1F18   |.   85F6                test esi,esi                     ;  flashget.00513A2C
+```
+
+=============================================================================
+
+从 `004C1F12` 向上，我们没有找到能跳过这个对话框的语句，所以，执行到这里是由调用 `004C1E60` 的部分决定的，所以，我们要找到是谁调用了这段子程序。我们来到这里：
+
+=============================================================================
+
+```
+004C1F47   /$   55                     push ebp
+004C1F48   |.   8BEC                   mov ebp,esp
+004C1F4A   |.   E8 BEA10000           call flashget.004CC10D
+004C1F4F   |.   8B40 04              mov eax,dword ptr ds:[eax+4]
+004C1F52   |.   85C0                 test eax,eax
+004C1F54   |.   74 15                je short flashget.004C1F6B
+004C1F56   |.   FF75 10              push dword ptr ss:[ebp+10]
+004C1F59   |.   8B10                 mov edx,dword ptr ds:[eax]
+004C1F5B   |.   8BC8                 mov ecx,eax
+004C1F5D   |.   FF75 0C              push dword ptr ss:[ebp+C]
+004C1F60   |.   FF75 08              push dword ptr ss:[ebp+8]
+004C1F63   |.   FF92 8C000000         call near dword ptr ds:[edx+8C]
+004C1F69   |.   EB 10                jmp short flashget.004C1F7B
+004C1F6B   |>   FF75 10              push dword ptr ss:[ebp+10]        ; /Arg3
+004C1F6E   |.   33C9                 xor ecx,ecx                     ; |
+004C1F70   |.   FF75 0C              push dword ptr ss:[ebp+C]        ; |Arg2
+004C1F73   |.   FF75 08              push dword ptr ss:[ebp+8]        ; |Arg1
+004C1F76   |.   E8 E5FEFFFF          call flashget.004C1E60           ; \flashget.004C1E60
+004C1F7B   |>   5D                   pop ebp
+004C1F7C   \.   C2 0C00             retn 0C
+```
+
+=============================================================================
+
+是程序在通常情况下 `04C1F63` 处调用上面的过程的。要想对后面的语句进行控制，必须控制 `JE` 的跳转。在 `004C1F4F` 上下断，`CTRL+F2` 重来，断在 `004C1F4A` 处，发现 `EAX=00513990`，这显然是一个变量的地址，所以对 `EAX` 的判断是不能修改的确。我们再往前找。看看是谁调用 `004C1F47` 的。我们找到这里：
+
+=============================================================================
+
+```
+004C0D76   /$   B8 B4F94D00          mov eax,flashget.004DF9B4
+004C0D7B   |.   E8 5824FEFF          call flashget.004A31D8
+004C0D80   |.   83EC 40              sub esp,40
+004C0D83   |.   57                   push edi
+004C0D84   |.   8B7D 08              mov edi,dword ptr ss:[ebp+8]
+004C0D87   |.   833F 00              cmp dword ptr ds:[edi],0
+004C0D8A   |.   74 6B                je short flashget.004C0DF7
+004C0D8C   |.   56                   push esi
+004C0D8D   |.   8B35 D4254E00        mov esi,dword ptr ds:[<&USER32.wsprintfA
+004C0D93   |.   FF75 0C              push dword ptr ss:[ebp+C]
+004C0D96   |.   8D45 B4              lea eax,dword ptr ss:[ebp-4C]
+004C0D99   |.   FF75 14              push dword ptr ss:[ebp+14]        ; |Format
+004C0D9C   |.   50                   push eax                        ; |s
+004C0D9D   |.   FFD6                 call near esi                  ; \wsprintfA
+004C0D9F   |.   FF75 10              push dword ptr ss:[ebp+10]
+004C0DA2   |.   8D45 D4              lea eax,dword ptr ss:[ebp-2C]
+004C0DA5   |.   FF75 14              push dword ptr ss:[ebp+14]        ; |Format
+004C0DA8   |.   50                   push eax                        ; |s
+004C0DA9   |.   FFD6                 call near esi                  ; \wsprintfA
+004C0DAB   |.   A1 58135100          mov eax,dword ptr ds:[511358]
+004C0DB0   |.   83C4 18              add esp,18
+004C0DB3   |.   8945 08              mov dword ptr ss:[ebp+8],eax
+004C0DB6   |.   8D45 D4              lea eax,dword ptr ss:[ebp-2C]
+004C0DB9   |.   8365 FC 00            and dword ptr ss:[ebp-4],0
+004C0DBD   |.   50                   push eax
+004C0DBE   |.   8D45 B4              lea eax,dword ptr ss:[ebp-4C]
+004C0DC1   |.   50                   push eax
+004C0DC2   |.   8D45 08              lea eax,dword ptr ss:[ebp+8]
+004C0DC5   |.   FF75 18              push dword ptr ss:[ebp+18]
+004C0DC8   |.   50                   push eax
+004C0DC9   |.   E8 36200000          call flashget.004C2E04
+004C0DCE   |.   FF75 18              push dword ptr ss:[ebp+18]        ; /Arg3
+004C0DD1   |.   6A 30                push 30                       ; |Arg2 = 00000030
+004C0DD3   |.   FF75 08              push dword ptr ss:[ebp+8]        ; |Arg1
+004C0DD6   |.   E8 6C110000          call flashget.004C1F47          ; \flashget.004C1F47
+004C0DDB   |.   8D4D 08              lea ecx,dword ptr ss:[ebp+8]
+004C0DDE   |.   E8 F34EFFFF          call flashget.004B5CD6
+004C0DE3   |.   8BCF                 mov ecx,edi
+004C0DE5   |.   E8 BFFBFFFF          call flashget.004C09A9
+```
+
+=============================================================================
+
+在上面这段程序中，只有一个跳转语句，而比较的条件是一个变量和 `0` 进行比较，我们大家需要的和 `A`（因为最大是 10）进行比较，所以还要向上找，（不要怕麻烦呀，主席教导我们：坚持就是胜利！），是下面这部分程序调用上面的：
+
+=============================================================================
+
+```
+004C0E06   /$   55                     push ebp
+004C0E07   |.   8BEC                   mov ebp,esp
+004C0E09   |.   8B45 0C              mov eax,dword ptr ss:[ebp+C]      ;  eax 是同时下载的线程数
+004C0E0C   |.   3B45 10              cmp eax,dword ptr ss:[ebp+10] ;  ss:[ebp+10] = 1, 是最小值
+004C0E0F   |.   7C 05                jl short flashget.004C0E16
+004C0E11   |.   3B45 14              cmp eax,dword ptr ss:[ebp+14] ；  ss:[ebp+14] = A, 是最大值
+004C0E14   |.   7E 18                jle short flashget.004C0E2E
+```
+
+
+
+# 反汇编分析与优化
+
+## 汇编代码片段 1
+
+```
+004C0E16   |>  68 12F10000                   push 0F112  
+004C0E1B   |.  68 B4A45000                   push flashget.0050A4B4         ;  ASCII "%ld"  
+004C0E20   |.  FF75 14                       push dword ptr ss:[ebp+14]  
+004C0E23   |.  FF75 10                       push dword ptr ss:[ebp+10]  
+004C0E26   |.  FF75 08                       push dword ptr ss:[ebp+8]  
+004C0E29   |.  E8 48FFFFFF                   call flashget.004C0D76  
+004C0E2E   |>  5D                            pop ebp  
+004C0E2F   \.  C2 1000                       retn 10  
+```
+
+`eax` 是我们输入的同时可以下载的线程数，如果这个值比预定的值大，就会出现我们看到的那个信息提示框。所以，我们要追踪 `eax` 的来源，它来自 `ss:[ebp+14]`，既然是用堆栈的方式，前面一定有一条语句是进栈的：
+
+## 调用子程序的上下文
+
+调用上面这个子程序的是：
+
+```
+0040CA8F    .  8BC8                    mov ecx,eax  
+0040CA91    .  E8 5A750000             call flashget.00413FF0             ; F7  
+0040CA96    .  8B4C24 14               mov ecx,dword ptr ss:[esp+14]      
+0040CA9A    .  50                      push eax                    ; /Arg4   
+0040CA9B    .  6A 01                    push 1                        ; |Arg3 = 00000001  
+0040CA9D    .  51                      push ecx                    ; |Arg2  
+0040CA9E    .  57                      push edi                    ; |Arg1  
+0040CA9F    .  E8 62430B00             call flashget.004C0E06         ; \\flashget.004C0E06  
+0040CAA4    .  8B5424 14               mov edx,dword ptr ss:[esp+14]  
+0040CAA8    .  8B8E 8C000000           mov ecx,dword ptr ds:[esi+8C]  
+```
+
+执行到这里，`eax` 的值是 `0000000A`，它是在 `CALL 004C0E06` 之前就进栈的。我们需要在 `0040CA91` 的地方下断，看看 `eax` 值的来源，`CTRL + F2`，在 `004CA91` 处断下，我们 `F7` 跟进：
+
+```
+00414062   |> \\8B81 CC010000              mov eax,dword ptr ds:[ecx+1CC]   ;  Case 2 of switch 00413FF4  
+00414068   |.  C2 0400                     retn 4  
+```
+
+是在这里给 `eax` 赋值的，但是 `ds:[ecx+1CC]`，这个值是程序用到的一个变量。它的地址在 `ECX + 1CC = 00513990 + 1CC = 00513B5C`。
+
+这个值一定是程序在初始化的时候赋的值，所以，在 `00513B5C` 处下断，类型当然要写入断点了，我习惯下硬件断点。好了，`CTRL+F2`，重新开始：
+
+## 注册表访问逻辑分析
+
+```
+004172E3   |.  E8 B2500B00                 call flashget.004CC39A  
+004172E8   |.  68 6CDC0200                 push 2DC6C  
+004172ED   |.  68 88BA5000                 push flashget.0050BA88           ;  ASCII "BandWidth"  
+004172F2   |.  68 C0BA5000                 push flashget.0050BAC0           ;  ASCII "Connection"  
+004172F7   |.  8BCE                        mov ecx,esi  
+004172F9   |.  8986 E0000000               mov dword ptr ds:[esi+E0],eax  
+004172FF   |.  E8 96500B00                 call flashget.004CC39A  
+00417304   |.  6A 08                       push 8  
+00417306   |.  68 7CBA5000                 push flashget.0050BA7C           ;  ASCII "ConnType"  
+0041730B   |.  68 C0BA5000                 push flashget.0050BAC0           ;  ASCII "Connection"  
+00417310   |.  8BCE                        mov ecx,esi  
+00417312   |.  8986 E4000000               mov dword ptr ds:[esi+E4],eax  
+00417318   |.  E8 7D500B00                 call flashget.004CC39A  
+0041731D   |.  6A 0A                       push 0A  
+0041731F   |.  68 B8BC5000                 push flashget.0050BCB8           ;  ASCII "Max Parallel Num"  
+00417324   |.  68 FCA45000                 push flashget.0050A4FC           ;  ASCII "General"  
+00417329   |.  8BCE                        mov ecx,esi  
+0041732B   |.  8986 E8000000               mov dword ptr ds:[esi+E8],eax  
+00417331   |.  E8 64500B00                 call flashget.004CC39A  
+00417336   |.  83F8 1E                     cmp eax,1E  
+00417339   |.  8986 CC010000               mov dword ptr ds:[esi+1CC],eax     ;  eax=单个任务可同时下载的线程数  
+0041733F   |.  7E 0A                       jle short flashget.0041734B  
+00417341   |.  C786 CC010000 1E000000      mov dword ptr ds:[esi+1CC],1E  
+0041734B   |>  6A 08                       push 8  
+0041734D   |.  68 ACBC5000                 push flashget.0050BCAC           ;  ASCII "MaxSimJobs"  
+00417352   |.  68 FCA45000                 push flashget.0050A4FC           ;  ASCII "General"  
+00417357   |.  8BCE                        mov ecx,esi  
+00417359   |.  E8 3C500B00                 call flashget.004CC39A  
+```
+
+大概一看上面的程序就知道，是对注册表进行访问的：）。不过我可是找了，我的注册表里没有这一项。没有的话 `EAX` 就是 `10` 了。注意 `EAX` 要和 `'1E'`(30)进行比较的，也就是说，如果你添加注册表，最大不能超过 30！，既然我们都要改了，还受这 30 的限制干什么？ ？？
+
+动手吧！我机器上的程序我做主！
+
+## 修改代码逻辑
+
+我们将：
+
+```
+00417336   |.  83F8 1E                     cmp eax,1E  
+00417339   |.  8986 CC010000               mov dword ptr ds:[esi+1CC],eax   
+0041733F   |.  7E 0A                       jle short flashget.0041734B  
+```
+
+改为：
+
+```
+00417336       C1E0 0A                     shl eax,0A  
+00417339   |.  8986 CC010000               mov dword ptr ds:[esi+1CC],eax     ;  eax=单个任务可同时下载的线程数  
+0041733F       EB 0A                       jmp short flashget.0041734B  
+```
+
+好了，用 `UltraEdit` 按照左边的偏移，找到机器码，就自己动手改吧！
+
+不过，你不要太狠心，一下子改得很大。可能你的网络也提供不了那么大的带宽，同时，你的线程过多的话，会影响别人的速度。
+
+## 心得与声明
+
+【我的心得】
+
+在反向的过程中，要坚持，坚持就是胜利！
+
+【声 明】我是一个小小菜虫子,文章如有错误,请高手指正!
+
+【版权声明】本文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢! 
+
+文章完成于 2005-12-9 上午 3:51:24  `xu_wh[PCG]`
+
+> 引用:
+>
+> *最初由 `jfaumt` 发布*
+>
+> **改为：  
+> `00417336       C1E0 0A                     shl eax,0A//*****shl 是什么意思啊？请问`  
+> `00417339   |.  8986 CC010000               mov dword ptr ds:[esi+1CC],eax     ;  eax=单个任务可同时下载的线程数`  
+> `0041733F       EB 0A                       jmp short flashget.0041734B` **
+
+表示 `EAX` 的值向左移位，右边补 0。向左移一位的意思是：`EAX*2`
+
+修改后就是移 10 位
+
+-------------------------------------------------
+
+注：本文的目的是研究，关于这样做的可行性或有效性，不是本文的目的。
+
+如果你用拨号，`ADSL`，提高线程数对你没有什么帮助。
+
+另：网上有线程修改后的版本，如果我一直使用网络提供的现成的软件，我永远不会知道到底是怎么实现。本文的目的是研究！是学习！
+
+`4dd466d0e1e0cc123afbe504da2462ca`

@@ -1,0 +1,182 @@
+
+# Accent Access Password Recovery
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue430.htm`](https://www.pediy.com/kssd/pediy04/kanxue430.htm)
+
+软件名称：`Accent Access Password Recovery`
+
+软件用途：解 office access 密码
+
+下载：白菜乐园
+
+首先感谢：白菜、飞鹰、看雪、`Liutaotao`
+
+工具：`TRW2000` `W32dsm89`，`Hew`
+
+我本来要试一试解《起名向导》，在《起》的目录下有一`*.mdb` 文件要密码就 down 下了 `Accent Access Password Recovery` 发现为注册版本只能解 3 位密码,飞鹰大老的破解版在我这不能用,只好自己动手.
+
+1. 用 `procdump32` 脱壳,不能运行;
+
+2. 用 `TRW2000` 手动脱壳;
+
+3. 用 `W32dsm89` 分析:
+
+```
+:00401EE8 55                            push ebp
+:00401EE9 89E5                          mov ebp, esp
+:00401EEB 81ECAC020000                  sub esp, 000002AC
+:00401EF1 57                            push edi
+:00401EF2 56                            push esi
+:00401EF3 53                            push ebx
+:00401EF4 8B7508                        mov esi, dword ptr [ebp+08]
+:00401EF7 C705ACBD400000000000          mov dword ptr [0040BDAC], 00000000<--注册标志 1--注册;0--为注册
+                                        mov dword ptr [0040BDAC], 00000001<--改
+:00401F01 BA09000000                    mov edx, 00000009
+:00401F06 8D9D80FEFFFF                  lea ebx, dword ptr [ebp+FFFFFE80]
+:00401F0C 8DBD00FEFFFF                  lea edi, dword ptr [ebp+FFFFFE00]
+:00401F12 8D8580FDFFFF                  lea eax, dword ptr [ebp+FFFFFD80]
+:00401F18 898574FDFFFF                  mov dword ptr [ebp+FFFFFD74], eax
+:00401F1E 8D4580                        lea eax, dword ptr [ebp-80]
+:00401F21 898578FDFFFF                  mov dword ptr [ebp+FFFFFD78], eax
+:00401F27 8D8500FFFFFF                  lea eax, dword ptr [ebp+FFFFFF00]
+:00401F2D 898570FDFFFF                  mov dword ptr [ebp+FFFFFD70], eax
+:00401F33 89D9                          mov ecx, ebx
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00401F3F(C)
+|
+
+:00401F35 8A0432                        mov al, byte ptr [edx+esi]
+:00401F38 8801                          mov byte ptr [ecx], al
+:00401F3A 41                            inc ecx
+:00401F3B 42                            inc edx
+:00401F3C 83FA0B                        cmp edx, 0000000B
+:00401F3F 7EF4                          jle 00401F35
+:00401F41 83C4F4                        add esp, FFFFFFF4
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00401EDD(C)
+|
+
+:00401F44 53                            push ebx
+
+* Reference To: CRTDLL.atoi, Ord:0000h
+                                        |
+
+:00401F45 E886160000                    Call 004035D0
+:00401F4A 89C3                          mov ebx, eax
+:00401F4C 83C410                        add esp, 00000010
+:00401F4F C78500FEFFFF01234567          mov dword ptr [ebp+FFFFFE00], 67452301
+:00401F59 C78504FEFFFF89ABCDEF          mov dword ptr [ebp+FFFFFE04], EFCDAB89
+:00401F63 C78508FEFFFFFEDCBA98          mov dword ptr [ebp+FFFFFE08], 98BADCFE
+:00401F6D C7850CFEFFFF76543210          mov dword ptr [ebp+FFFFFE0C], 10325476
+:00401F77 C78510FEFFFF10010000          mov dword ptr [ebp+FFFFFE10], 00000110
+:00401F81 C78514FEFFFF00000000          mov dword ptr [ebp+FFFFFE14], 00000000
+:00401F8B 83C4FC                        add esp, FFFFFFFC
+:00401F8E 6A22                          push 00000022
+:00401F90 56                            push esi
+:00401F91 8D4718                        lea eax, dword ptr [edi+18]
+:00401F94 50                            push eax
+:00401F95 E81E120000                    call 004031B8
+:00401F9A 83C410                        add esp, 00000010
+:00401F9D 83C4F8                        add esp, FFFFFFF8
+:00401FA0 8D8500FEFFFF                  lea eax, dword ptr [ebp+FFFFFE00]
+:00401FA6 50                            push eax
+:00401FA7 8BBD74FDFFFF                  mov edi, dword ptr [ebp+FFFFFD74]
+:00401FAD 57                            push edi
+:00401FAE E8FDF1FFFF                    call 004011B0
+:00401FB3 C705ACBD400001000000          mov dword ptr [0040BDAC], 00000001<--注册标志 1--注册;0--为注册
+:00401FBD 31D2                          xor edx, edx
+:00401FBF 8BB578FDFFFF                  mov esi, dword ptr [ebp+FFFFFD78]
+:00401FC5 4B                            dec ebx
+:00401FC6 C1E304                        shl ebx, 04
+:00401FC9 8B8570FDFFFF                  mov eax, dword ptr [ebp+FFFFFD70]
+:00401FCF 89857CFDFFFF                  mov dword ptr [ebp+FFFFFD7C], eax
+:00401FD5 31C9                          xor ecx, ecx
+:00401FD7 89BD6CFDFFFF                  mov dword ptr [ebp+FFFFFD6C], edi
+:00401FDD 8D7600                        lea esi, dword ptr [esi+00]
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00402020(C)
+|
+
+:00401FE0 8D041A                        lea eax, dword ptr [edx+ebx]
+:00401FE3 8B048548404000                mov eax, dword ptr [4*eax+00404048]
+:00401FEA 89040E                        mov dword ptr [esi+ecx], eax
+:00401FED 8BBD6CFDFFFF                  mov edi, dword ptr [ebp+FFFFFD6C]
+:00401FF3 0FB6043A                      movzx eax, byte ptr [edx+edi]
+:00401FF7 8BBD7CFDFFFF                  mov edi, dword ptr [ebp+FFFFFD7C]
+:00401FFD 89040F                        mov dword ptr [edi+ecx], eax
+:00402000 39040E                        cmp dword ptr [esi+ecx], eax
+:00402003 7414                          je 00402019
+:00402005 C705ACBD400000000000          mov dword ptr [0040BDAC], 00000000<--注册标志 1--注册;0--为注册
+                                        mov dword ptr [0040BDAC], 00000001<--改
+:0040200F B940000000                    mov ecx, 00000040
+:00402014 BA10000000                    mov edx, 00000010
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00402003(C)
+|
+
+:00402019 83C104                        add ecx, 00000004
+:0040201C 42                            inc edx
+:0040201D 83FA0F                        cmp edx, 0000000F
+:00402020 7EBE                          jle 00401FE0
+:00402022 A1ACBD4000                    mov eax, dword ptr [0040BDAC]
+:00402027 8DA548FDFFFF                  lea esp, dword ptr [ebp+FFFFFD48]
+:0040202D 5B                            pop ebx
+:0040202E 5E                            pop esi
+:0040202F 5F                            pop edi
+:00402030 C9                            leave
+:00402031 C3                            ret
+```
+
+一切 OK!!
+
+后来又发现另外一种改法:
+
+```
+* Possible StringData Ref from Data Obj ->"File name: %s
+Type of document: "
+                                              ->"MS Access %s
+Length of password: "
+                                              ->"%i
+Password: "
+                                              |
+
+:00402760 6850234000                    push 00402350
+:00402765 8B550C                        mov edx, dword ptr [ebp+0C]
+:00402768 52                            push edx
+
+* Reference To: CRTDLL.sprintf, Ord:0000h
+                                        |
+
+:00402769 E8220E0000                    Call 00403590
+:0040276E 89F7                          mov edi, esi
+:00402770 B000                          mov al, 00
+:00402772 FC                            cld
+:00402773 B9FFFFFFFF                     mov ecx, FFFFFFFF
+:00402778 F2                            repnz
+:00402779 AE                            scasb
+:0040277A 83C430                        add esp, 00000030
+:0040277D 83F9FE                        cmp ecx, FFFFFFFE
+:00402780 0F84CB000000                  je 00402851      <--去,没有秘码
+:00402786 83C4F8                        add esp, FFFFFFF8
+:00402789 89F7                          mov edi, esi
+:0040278B FC                            cld
+:0040278C B9FFFFFFFF                     mov ecx, FFFFFFFF
+:00402791 F2                            repnz
+:00402792 AE                            scasb
+:00402793 F7D1                          not ecx
+:00402795 8D41FF                        lea eax, dword ptr [ecx-01]
+:00402798 50                            push eax
+:00402799 6A42                          push 00000042
+
+* Reference To: KERNEL32.LocalAlloc, Ord:0000h
+                                        |
+
+:0040279B E8880F0000                    Call 00403728
+:004027A0 89C3                          mov ebx, eax
+:004027A2 83C4FC                        add esp, FFFFFFFC
+:004027A5 53                            push ebx
+```
