@@ -1,0 +1,305 @@
+
+# LRC 傻瓜编辑器 V1.1
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6555.htm`](https://www.pediy.com/kssd/pediy06/pediy6555.htm)
+
+详细分析 `LRC 傻瓜编辑器 V1.1` 算法
+
+简介：本软件可以让你听完一首 MP3 歌曲，便可编辑完成一首 LRC 歌词。并且本软件自身还带有 MP3 音乐播放和 LRC 歌词播放功能。
+
+软件下载地址：[`www.softreg.com.cn/shareware...F4-5E964A1486D9`](http://www.softreg.com.cn/shareware_view.asp?id=/C68F2D1B-69B4-41E5-BBF4-5E964A1486D9)
+
+打开软件，注册发现有 15 天的限制，加了壳，用工具轻松脱了。分析如下：
+
+```
+* Reference to Form2
+
+|
+0047B5CF   8B45FC                 mov     eax, [ebp-$04]
+
+* Reference to control TForm2.Edit1 : TEdit
+|
+0047B5D2   8B8004030000           mov     eax, [eax+$0304]
+
+* Reference to: controls.TControl.GetText(TControl):TCaption;
+|
+0047B5D8   E8E30CFBFF             call    0042C2C0
+0047B5DD   8B45F8                 mov     eax, [ebp-$08]
+
+* Reference to: system.@LStrLen:Integer;
+|           or: system.@DynArrayLength;
+|           or: system.DynArraySize(Pointer):Integer;
+|
+0047B5E0   E8F386F8FF             call    00403CD8
+0047B5E5   8BF0                   mov     esi, eax    ///////用户名长度－－》eax
+0047B5E7   85F6                   test    esi, esi
+0047B5E9   7E3C                   jle     0047B627
+0047B5EB   BF01000000             mov     edi, $00000001
+0047B5F0   8B45F8                 mov     eax, [ebp-$08]
+0047B5F3   33DB                   xor     ebx, ebx       //////ebx 清零
+0047B5F5   8A5C38FF               mov     bl, byte ptr [eax+edi-$01]   //////q 取用户名的第一个字符－》bl 中
+0047B5F9   8BC3                   mov     eax, ebx
+0047B5FB   F7EB                   imul    ebx
+0047B5FD   F7EB                   imul    ebx     ///上面的作用是把第一个字符的 asc 码进行 3 次方运算－－》eax
+0047B5FF   8945EC                 mov     [ebp-$14], eax
+0047B602   DB45EC                 fild    dword ptr [ebp-$14]   ///对这个值浮点取整
+0047B605   D9FA                   fsqrt                       /////在开方
+
+* Reference to: system.@ROUND;
+|
+0047B607   E8D072F8FF             call    004028DC       //////////跟进,下文分析
+0047B60C   8BD8                   mov     ebx, eax
+0047B60E   8D55E8                 lea     edx, [ebp-$18]
+0047B611   8BC3                   mov     eax, ebx
+
+* Reference to: Unit_00407618.Proc_00408590
+|
+0047B613   E878CFF8FF             call    00408590        ////////////跟进，下文分析
+0047B618   8B55E8                 mov     edx, [ebp-$18]
+0047B61B   8D45F4                 lea     eax, [ebp-$0C]
+
+* Reference to: system.@LStrCat;
+|
+0047B61E   E8BD86F8FF             call    00403CE0
+0047B623   47                     inc     edi
+0047B624   4E                     dec     esi
+0047B625   75C9                   jnz     0047B5F0
+0047B627   8B45F4                 mov     eax, [ebp-$0C]
+
+* Reference to: system.@LStrLen:Integer;
+|           or: system.@DynArrayLength;
+|           or: system.DynArraySize(Pointer):Integer;
+|
+0047B62A   E8A986F8FF             call    00403CD8
+0047B62F   83F80A                 cmp     eax, +$0A
+0047B632   7E26                   jle     0047B65A
+0047B634   8D45E4                 lea     eax, [ebp-$1C]
+0047B637   50                     push    eax
+0047B638   B90A000000             mov     ecx, $0000000A
+0047B63D   BA01000000             mov     edx, $00000001
+0047B642   8B45F4                 mov     eax, [ebp-$0C]
+
+* Reference to: system.@LStrCopy;                        ////////取计算出来注册码的前 10 位
+|
+0047B645   E89688F8FF             call    00403EE0
+0047B64A   8B55E4                 mov     edx, [ebp-$1C]
+0047B64D   8D45F4                 lea     eax, [ebp-$0C]
+
+* Possible String Reference to: '321'               //////////////////想想这是干什么的？？？？
+|
+0047B650   B96CB74700             mov     ecx, $0047B76C
+
+* Reference to: system.@LStrCat3;
+|
+0047B655   E8CA86F8FF             call    00403D24
+0047B65A   8D55E0                 lea     edx, [ebp-$20]
+
+* Reference to Form2
+|
+0047B65D   8B45FC                 mov     eax, [ebp-$04]
+
+* Reference to control TForm2.Edit2 : TEdit
+|
+0047B660   8B8010030000           mov     eax, [eax+$0310]
+
+* Reference to: controls.TControl.GetText(TControl):TCaption;
+|
+0047B666   E8550CFBFF             call    0042C2C0
+0047B66B   8B55E0                 mov     edx, [ebp-$20]    ////////这里进行了明文比较。
+0047B66E   8B45F4                 mov     eax, [ebp-$0C]
+
+* Reference to: system.@LStrCmp;
+|
+0047B671   E87287F8FF             call    00403DE8
+0047B676   0F85A0000000           jnz     0047B71C     //////关键跳转，相等则  '您已经注册，多谢支持!'，下面写入到注册表
+
+* Reference to Form2
+|
+0047B67C   8B45FC                 mov     eax, [ebp-$04]
+
+* Reference to control TForm2.Label1 : TLabel
+|
+0047B67F   8B80F4020000           mov     eax, [eax+$02F4]
+
+* Possible String Reference to: '您已经注册，多谢支持!'
+|
+0047B685   BA78B74700             mov     edx, $0047B778
+
+* Reference to: controls.TControl.SetText(TControl;TCaption);
+|
+0047B68A   E8610CFBFF             call    0042C2F0
+
+* Reference to Form2
+|
+0047B68F   8B45FC                 mov     eax, [ebp-$04]
+
+* Reference to control TForm2.Label2 : TLabel
+|
+0047B692   8B80F8020000           mov     eax, [eax+$02F8]
+0047B698   33D2                   xor     edx, edx
+
+* Reference to: controls.TControl.SetVisible(TControl;Boolean);
+|
+0047B69A   E8390BFBFF             call    0042C1D8
+
+* Reference to TForm1 instance
+|
+0047B69F   A124024800             mov     eax, dword ptr [$00480224]
+0047B6A4   8B00                   mov     eax, [eax]
+
+* Reference to control TForm1.Timer3 : TTimer
+|
+0047B6A6   8B8084030000           mov     eax, [eax+$0384]
+0047B6AC   33D2                   xor     edx, edx
+
+* Reference to: extctrls.TTimer.SetEnabled(TTimer;Boolean);
+|
+0047B6AE   E84515FDFF             call    0044CBF8
+0047B6B3   B201                   mov     dl, $01
+
+* Reference to class TRegistry
+|
+0047B6B5   A1A0B64400             mov     eax, dword ptr [$0044B6A0]
+
+* Reference to: Unit_0044B640.Proc_0044B7A0
+|
+0047B6BA   E8E100FDFF             call    0044B7A0
+0047B6BF   8BD8                   mov     ebx, eax
+0047B6C1   BA01000080             mov     edx, $80000001
+0047B6C6   8BC3                   mov     eax, ebx
+
+* Reference to: Unit_0044B640.Proc_0044B840
+|
+0047B6C8   E87301FDFF             call    0044B840
+
+* Possible String Reference to: 'software\\gcbjq'                         /////注册表里的东东
+|
+0047B6CD   BA98B74700             mov     edx, $0047B798
+0047B6D2   8BC3                   mov     eax, ebx
+
+* Reference to: Unit_0044B640.Proc_0044BD08
+|
+0047B6D4   E82F06FDFF             call    0044BD08
+0047B6D9   84C0                   test    al, al
+0047B6DB   750C                   jnz     0047B6E9
+
+* Possible String Reference to: 'software\\gcbjq'
+|
+0047B6DD   BA98B74700             mov     edx, $0047B798
+0047B6E2   8BC3                   mov     eax, ebx
+
+* Reference to: Unit_0044B640.Proc_0044B8A4
+|
+0047B6E4   E8BB01FDFF             call    0044B8A4
+0047B6E9   33C9                   xor     ecx, ecx
+
+* Possible String Reference to: 'software\\gcbjq'
+|
+0047B6EB   BA98B74700             mov     edx, $0047B798
+0047B6F0   8BC3                   mov     eax, ebx
+
+* Reference to: Unit_0044B640.Proc_0044B980
+|
+0047B6F2   E88902FDFF             call    0044B980
+
+* Possible String Reference to: 'zhuche'
+|
+0047B6F7   BAB0B74700             mov     edx, $0047B7B0
+0047B6FC   8BC3                   mov     eax, ebx
+
+* Reference to: Unit_0044B640.Proc_0044BC60
+|
+0047B6FE   E85D05FDFF             call    0044BC60
+0047B703   84C0                   test    al, al
+0047B705   750E                   jnz     0047B715
+```
+
+
+
+### 汇编代码分析与注释
+
+```asm
+0047B707   B101                 mov     cl, $01  
+
+*   Possible String Reference to: 'zhuche'                       ///////   dword 型的键，置 1 表示注册成功！！  
+
+|  
+
+0047B709   BAB0B74700           mov     edx, $0047B7B0  
+
+0047B70E   8BC3                 mov     eax, ebx  
+
+0047B607   E8D072F8FF           call    004028DC    进去  
+
+004028DC   /$ 83EC 08           SUB     ESP,8  
+
+004028DF   |. DF3C24            FISTP   QWORD PTR SS:[ESP]      /////把刚才计算的结果取整，并出栈  
+
+004028E2   |. 9B               WAIT  
+
+004028E3   |. 58               POP     EAX      ////结果转为 16 进制－－－》eax 中  
+
+004028E4   |. 5A               POP     EDX  
+
+004028E5   \. C3               RETN  
+
+0047B613   E878CFF8FF          call    00408590    进去  经过反复的调试发现注册码的计算出(这里有一些陷阱）  
+
+00408F02   |$ B9 0A000000      MOV     ECX,0A       ////eax=a   此时 eax 为先前计算的值  
+
+00408F07   |> 8D75 9F          LEA     ESI,DWORD PTR SS:[EBP-61]    
+
+00408F0A   |> 31D2             /XOR    EDX,EDX   
+
+00408F0C   |. F7F1             |DIV    ECX     ///eax 除以 eca（0ah），商－>eax,余数－》edx  
+
+00408F0E   |. 80C2 30          |ADD    DL,30   edx＝edx＋30  
+
+00408F11   |. 80FA 3A          |CMP    DL,3A    
+
+00408F14   |. 72 03           |JB     SHORT 1.00408F19    如果 edx 小于 3a，则跳  
+
+00408F16   |. 80C2 07          |ADD    DL,7   
+
+00408F19   |> 4E              |DEC     ESI       ////////esi 为为注册码存放的栈地址  
+
+00408F1A   |. 8816            |MOV     BYTE PTR DS:[ESI],DL    
+
+00408F1C   |. 09C0            |OR      EAX,EAX   
+
+00408F1E   |. 75 EA           \JNZ    SHORT 1.00408F0A    如果 eax 为 0（即商位 0），则跳出，否则循环  
+```
+
+### 算法总结
+
+下面把算法总结一下，取用户名的第一个字符，求它的 3 次方，再对其开方，取整，自动转换为 16 进制的形式保存。再对这个 16 进制数不断的除以 `0ah`，余数＋30 与 `3ah` 比较，如果比 `3ah` 小，则 `dl` 放入一个堆栈地址（初始是 `12e1a3`，下次循环逐次减一）中；反之把 `dl`＋7，再放入一个堆栈地址中。最后看 `eax` 是否为 0，不为 0，则继续循环除下去。最后把堆栈地址中的数据转换为 `asc` 码的形式。以“u”为例，堆栈地址中的数据形式如下：
+
+```text
+      36   36   32   31  
+
+   36－－对应的第一次循环的 esi  12e1a2  
+
+   36－－ 对应的第二次循环的 esi  12e1a1  32－－对应的第三次循环的 esi  12e1a0    
+
+  31－－ 对应的第四次循环的 esi  12e19f  
+
+         asc 码为“1266”  
+```
+
+下面再取第二个字符计算。
+
+`··························`
+
+把所有计算的 `asc` 码拼在一起，取前 10 位，再在后面拼上“321”，就是真正的注册码了。
+
+`   如：huangrui`
+
+`     1061 1266 955 1154 1045 1217 1266 1076`
+
+` 取前 10 位，再在后面拼上“321”  即为 “1061126695321”`
+
+### 注册表行为分析
+
+最后提议下这个软件在注册表里的行为，如果没注册，它会生成 `first` 的键。它的键值位 `xx xx xx xx 00 a7 02 40`。（`xx` 位随即的）每过一天它的另外一个键 `yesday` 会有变化！键值第五位起决定因素。`00` 第一天，`02` 第二天，`04` 第三天，偶数关系。比较有意思。其实再注册表中 `user\software\gcbjq` 下添加一个名位 `zhuche` 的 `dword` 型的键，置 1 表示注册成功，一切就 ok 了！！好累啊！！！睡觉拉！！！！
+
+`4dd466d0e1e0cc123afbe504da2462ca`
