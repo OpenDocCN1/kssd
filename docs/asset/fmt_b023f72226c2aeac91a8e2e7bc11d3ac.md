@@ -1,0 +1,634 @@
+
+# 动态分析与脱壳过程分析
+
+## 1. 断点设置与初始检测
+对第一个 `TLS` 回调函数下断点。断到这里 `===>` 然后就是后面的内容了...
+
+```assembly
+00628BEF    E8 53F4FFFF       call    00628047
+```
+
+## 2. TLS 第一个回调函数头部检测
+检测了 `TLS` 第一个回调函数头部是否设置了 `INT3` 软件断点。。。
+
+// `[00628BEF]` = `E8 CALL` ----> 计算公式: (`[00628BEF]` - `0x99`) * `[00628BEF]` = (`0xe8` - `0x99` ) * `0xe8` = `0x98` (一个字节)
+
+// 如果是 `INT3` 断点的话 ---> (`0xCC` - `0x99`) * `0xCC` = `0xA4`
+
+```assembly
+0062804B   0F89 35030000      jns     00628386
+006288D7                 push    ebp                       Morph instruction
+006285B8   0F89 7CFAFFFF      jns     0062803A
+0062803A   8BEC             mov     ebp, esp
+0062803F                 push    ecx                       Morph instruction
+00628D79   8D05 EF8B6200     lea     eax, dword ptr [628BEF]
+0062985C                 push    00629505                  Morph instruction
+0062890F                 push    ebp                       Morph instruction
+00628912   8BEC             mov     ebp, esp
+00628096                 push    ecx                       Morph instruction
+00628099   8945 FC          mov     dword ptr [ebp-4], eax
+0062809C                 mov     eax, FFFFFFC              eax = FFFFFFC
+00629479   03C5             add     eax, ebp
+00629481   8B00             mov     eax, dword ptr [eax]
+00629298   8A00             mov     al, byte ptr [eax]
+0062929A   2C 99            sub     al, 99
+0062929C                 mov     edx, D4237042             edx = D4237042
+006295FA   F7C2 00040000     test    edx, 400
+00629688   0F84 95FBFFFF     je      00629223
+006288FB   81F2 53E2FF84     xor     edx, 84FFE253
+00628901   03D5             add     edx, ebp
+006284AD   81C2 EB6D23AF     add     edx, AF236DEB
+006284B3   8B12             mov     edx, dword ptr [edx]
+006284B5   F62A             imul    byte ptr [edx]
+0062888B   3C A4            cmp     al, 0A4
+0062888D   0F85 EA0D0000     jnz     0062967D
+00629682                 pop     ecx                         Morph instruction
+00629448                 pop     ebp                         Morph instruction
+00629449   C3             retn
+
+
+// codeclean 之后返回到这里 ..  ==> 006293D0 返回到 TLS 处理完毕收尾的地方...
+
+00628B21                 push    006293D0            Morph instruction
+```
+
+## 3. 流程区分与控制
+这里修改指令为 `0xC3 retn` 是有目的的... `TLS` 回调函数会被调用 2 次.. 所以.. 这里修改为 `0xC3` 的目的就是区别第一次和第二次的流程。。不可能都走一样的路线的。。。
+
+所以，这个 `C3` 很关键...
+
+// 自己指令的 `EIP` ---> 填充为 `0xC3` `retn` 指令....
+```assembly
+006297C2   8D05 C2976200     lea     eax, dword ptr [6297C2]  // 这里会变为 retn
+0062950F   C600 C3          mov     byte ptr [eax], 0C3
+```
+
+## 4. 代码段数据解压
+`00555108` 内存数据：
+```text
+00555108  00 10 40 00 1E 04 10 40 00 03 07 42 6F 6F 6C 65  .@.@.Boole
+```
+
+```assembly
+00629512   B8 08515500        mov     eax, 00555108       // 存放压缩后的数据
+00629517   0F83 67FAFFFF      jnb     00628F84      // 这里的很多 jnb js 指令其实是垃圾代码来着。只是不知道怎么确定
+0062951D   0F88 42EDFFFF      js      00628265
+
+00628815   8B10             mov     edx, dword ptr [eax]    // edx = 00401000 --> 代码段起始地址
+0062919F   09D2             or      edx, edx
+006291A1   0F84 9BF9FFFF     je      00628B42
+
+
+00628549      push    edx    // edx = 00401000
+0062854C   57             push    edi    // edi = 00400000
+
+
+006290FF                 mov     edi, 00000004                 edi = 00000004
+00628063   03C7             add     eax, edi  // eax ==> 存放代码段压缩后的数据
+00629468   5F             pop     edi
+
+
+// 返回地址...
+006281E0                 push     0062920A                ; Morph instruction
+00628630                 push     00627F50                ; Morph instruction
+00628633    C3           retn
+```
+
+### 4.1 解压被保护程序的代码段数据
+比较执行该代码之前，都是 0. 执行后 有被保护程序字符串数据。。。所以这段代码是解压被保护程序的代码。
+
+```assembly
+00627F50    56           push    esi
+00627F51    57           push    edi
+00627F52    53           push    ebx
+00627F53    31DB         xor     ebx, ebx
+00627F55    89C6         mov     esi, eax
+00627F57    89D7         mov     edi, edx
+00627F59    0FB606       movzx   eax, byte ptr [esi]
+00627F5C    89C2         mov     edx, eax
+00627F5E    83E0 1F      and     eax, 1F
+00627F61    C1EA 05      shr     edx, 5
+00627F64    74 2D        je      short 00627F93
+00627F66    4A           dec     edx
+00627F67    74 15        je      short 00627F7E
+00627F69    8D5C13 02    lea     ebx, dword ptr [ebx+edx+2]
+00627F6D    46           inc     esi
+00627F6E    C1E0 08      shl     eax, 8
+00627F71    89FA         mov     edx, edi
+00627F73    0FB60E       movzx   ecx, byte ptr [esi]
+00627F76    46           inc     esi
+00627F77    29CA         sub     edx, ecx
+00627F79    4A           dec     edx
+00627F7A    29C2         sub     edx, eax
+00627F7C    EB 32        jmp     short 00627FB0
+00627F7E    C1E3 05      shl     ebx, 5
+00627F81    8D5C03 04    lea     ebx, dword ptr [ebx+eax+4]
+00627F85    46           inc     esi
+00627F86    89FA         mov     edx, edi
+00627F88    0FB70E       movzx   ecx, word ptr [esi]
+00627F8B    29CA         sub     edx, ecx
+00627F8D    4A           dec     edx
+00627F8E    83C6 02      add     esi, 2
+00627F91    EB 1D        jmp     short 00627FB0
+00627F93    C1E3 04      shl     ebx, 4
+00627F96    46           inc     esi
+00627F97    89C1         mov     ecx, eax
+00627F99    83E1 0F      and     ecx, 0F
+00627F9C    01CB         add     ebx, ecx
+00627F9E    C1E8 05      shr     eax, 5
+00627FA1    73 07        jnb     short 00627FAA
+00627FA3    43           inc     ebx
+00627FA4    89F2         mov     edx, esi
+00627FA6    01DE         add     esi, ebx
+00627FA8    EB 06        jmp     short 00627FB0
+00627FAA    85DB         test    ebx, ebx
+00627FAC    74 0E        je      short 00627FBC
+00627FAE  ^ EB A9        jmp     short 00627F59
+00627FB0    56           push    esi
+00627FB1    89D6         mov     esi, edx
+00627FB3    89D9         mov     ecx, ebx
+00627FB5    F3:A4        rep     movs byte ptr es:[edi], byte ptr>
+00627FB7    31DB         xor     ebx, ebx
+00627FB9    5E           pop     esi
+00627FBA  ^ EB 9D        jmp     short 00627F59
+
+00627FBC    89F0         mov     eax, esi    // 结构指针向下移动
+00627FBE    5B           pop     ebx
+00627FBF    5F           pop     edi
+00627FC0    5E           pop     esi
+00627FC1    C3           retn
+```
+
+### 4.2 解压完成后返回与结构布局
+解压完代码段数据后返回 `0062920A`。
+
+压缩数据的结构布局:
+```c
+struct stCompressData
+{
+   DWORD  dest;      // 释放压缩数据的内存地址  --> eg. 00401000 -->(如果为 0, 所以区段解压处理完毕)
+   char   pData[MAX];    // 压缩后的数据
+
+   DWORD  sectionRawDataSize;  // 下面两个参数为了修复 E8 E9 的偏移量 (如果为 0,解压下一个区段数据)
+   DWORD  sectionRVA;
+};
+```
+
+所以解压完一个段的数据后，`eax` 指针自动指向第二个结构的起始地址
+
+```text
+00401000
+data
+```
+
+// `005BC0A5` 内存数据
+```text
+005BC0A5  00 08 0C 00 00 20 4C 00 1B 32 13 8B C0 02 00 8B  .... L.2.
+005BC0B5  C0 00 8D 40 00 E0 03 11 B4 49 A0 03 E0 00 01 1D  ?.???
+```
+
+// `eax` = `005BC0A5`
+```assembly
+0062920A    8B10             mov     edx, dword ptr [eax]  ; eax = 005BC0A5  edx = 000C0800
+0062920C    52             push    edx
+
+// 安装 SEH..
+0062920D    E8 CCF7FFFF       call    006289DE
+006289DE    67:64:FF36 0000   push    dword ptr fs:[0]
+006287C9    67:64:8926 0000   mov     dword ptr fs:[0], esp
+
+// 一下修改 EFLAGS --> TF 标志位 --> 造成单步异常 -> 等同于指令 int1 --> 如果单步跟踪下去的话，程序运行..
+// 因为正确的流程是设置了 TF 标志后，就相当于 INT1 指令.. INT1 下面的代码不会被指令，会被执行就是错误的。。
+
+006283BE    9C             pushfd
+00629746    870424         xchg    dword ptr [esp], eax
+00629749    81C8 00010000  or      eax, 100               ; TF = 1
+0062974F    870424         xchg    dword ptr [esp], eax
+
+// 这条指令造成单步异常...
+00629752    9D             popfd
+
+// 直接 F4 到这里程序运行??? 流程是正确的走向???? [ 这里应该是错误的..刚好往下走是到退 SEH 的地方。。而且 EBP 可能修正。。所以才没出错 ]
+00628253    81D5 1D83E636  adc     ebp, 36E6831D
+00627FF1    81CD B403DF7F or      ebp, 7FDF03B4    ; ebp = 7FFF7FFF
+00627FF7    C1E9 0C        shr     ecx, 0C
+00627FFA   /0F8C 34070000 jl      00628734
+
+// 退掉 SEH....
+00628000   |67:64:8F06 0000  pop     dword ptr fs:[0]
+00628006   |870424         xchg    dword ptr [esp], eax
+00628009   |58             pop     eax
+
+0062891F    81E2 410EE038  and     edx, 38E00E41
+00628925    81C2 5D2AEDAE  add     edx, AEED2A5D
+0062892B    F7C2 40000000  test    edx, 40
+0062807F    0F84 4F150000  je      006295D4
+006295D4    81F2 9A328DBF  xor     edx, BF8D329A
+006295E4    03C2             add     eax, edx        ; edx = 4  eax = 005BC0A5 处的结构数据
+006295E6    5A             pop     edx               ; edx = 000C0800
+
+// 中间的 SEH 被 codeclean...
+00628F7C    870424         xchg    dword ptr [esp], eax
+006295A5    09D2             or      edx, edx
+006295A7    0F84 AB010000  je      00629758
+00628786    0F85 000C0000  jnz     0062938C
+
+// 中间的 SEH 被 codeclean...
+00628027                 mov     esi, 629758                  ; esi = 629758  ==> 返回地址
+006290A6    873424         xchg    dword ptr [esp], esi
+00628E56                 push    005550E0                    ; Morph instruction
+00628E59    C3             retn
+```
+
+## 5. 修正 E9 指令偏移量
+返回到 `005550E0`.... 修正被保护程序中所有的 `E9` 指令的偏离量...
+
+参数:
+`edx` = `000C0800` (区段的 `RawDataSize`) `eax` = `00401000` ( 区段 `RVA` )
+
+`<<<< 注意: 005550E0 的计算方法: --> E8 E9 都满足条件... >>>`
+
+```assembly
+005550E0    56           push    esi
+005550E1    51           push    ecx
+005550E2    89C6         mov     esi, eax
+005550E4    89D1         mov     ecx, edx
+005550E6    83E9 04      sub     ecx, 4
+005550E9    FC           cld
+
+// 循环查找   所有的 E9 --> far jmp 指令
+005550EA    AC           lods    byte ptr [esi]
+
+005550EB    D0E8         shr     al, 1
+005550ED    80F8 74      cmp     al, 74    // 0xE9 / 2 = 0x74
+005550F0    75 0E        jnz     short 00555100
+
+// 如果是 jmp --> 处理跳转偏移量...
+005550F2    8B06         mov     eax, dword ptr [esi]  // [esi] --> 四字节偏离量..
+
+// 交换 32 位寄存器内的字节顺序 比如：[EAX]=0123 4567H，执行指令： BSWAP EAX ；使[EAX]=6745 2301H .
+005550F4    0FC8         bswap   eax
+005550F6    01C8         add     eax, ecx
+005550F8    8906         mov     dword ptr [esi], eax  // 填充正确的偏离量数值
+005550FA    83C6 04      add     esi, 4
+005550FD    83E9 04      sub     ecx, 4
+00555100    49           dec     ecx         // ecx = C0800 --> 被保护程序代码段大小
+
+00555101  ^ 7F E7        jg      short 005550EA
+00555103    59           pop     ecx
+00555104    5E           pop     esi
+00555105    C3           retn
+```
+
+## 6. 循环解压多个区段
+返回到 `00628B3C`
+
+```text
+005BC099                     00 08 0C 00      ..
+005BC0A9  00 20 4C 00 1B 32 13 8B C0 02 00 8B C0 00 8D 40  . L.2..
+```
+
+// 代码段大小 = `000C8000`
+// 第一个区段的开始地址= `004C2000`
+// `eax` = `005BC0A9`
+
+```assembly
+00628B3C                 pop     eax                           ; Morph instruction
+00629517    0F83 67FAFFFF  jnb     00628F84
+0062951D    0F88 42EDFFFF  js      00628265
+00628815    8B10             mov     edx, dword ptr [eax]
+0062919F    09D2             or      edx, edx      ; edx = 004C2000
+006291A1    0F84 9BF9FFFF  je      00628B42
+
+006291A1    0F84 9BF9FFFF  je      00628B42
+00628549                 push    edx                       ; Morph instruction
+0062854C    57           push    edi
+006290FF                 mov     edi, 00000004             ; edi = 00000004
+00628063    03C7             add     eax, edi            ; eax = 005BC0AD
+00629468    5F           pop     edi
+006281E0                 push    0062920A                ; 这个是返回地址 --> 下面进入一个函数
+
+// 跳去该函数
+00628630                 push    00627F50                ; Morph instruction
+00628633    C3           retn
+
+// 跳到这里..
+00627F50    56           push    esi
+00627F51    57           push    edi
+00627F52    53           push    ebx
+00627F53    31DB         xor     ebx, ebx
+```
+
+注意和前面的是同一个函数.... 所以这个函数被调用了 多次。。解压多个区段<具体说是前几个区段>..
+
+// 解压缩数据到 `004C2000` --> 压缩算法和前面的一样。。 (前面解压 `00401000` 处的数据)... (下面的函数和前面调用的一样)....
+
+```assembly
+00627F55    89C6         mov     esi, eax      ; esi = eax = 005BC0AD
+00627F57    89D7         mov     edi, edx      ; edi = 004C2000
+
+00627F59    0FB606       movzx   eax, byte ptr [esi]
+00627F5C    89C2         mov     edx, eax
+00627F5E    83E0 1F      and     eax, 1F
+00627F61    C1EA 05      shr     edx, 5
+00627F64    74 2D        je      short 00627F93
+00627F66    4A           dec     edx
+00627F67    74 15        je      short 00627F7E
+00627F69    8D5C13 02    lea     ebx, dword ptr [ebx+edx+2]
+00627F6D    46           inc     esi
+00627F6E    C1E0 08      shl     eax, 8
+00627F71    89FA         mov     edx, edi
+00627F73    0FB60E       movzx   ecx, byte ptr [esi]
+00627F76    46           inc     esi
+00627F77    29CA         sub     edx, ecx
+00627F79    4A           dec     edx
+00627F7A    29C2         sub     edx, eax
+00627F7C    EB 32        jmp     short 00627FB0
+00627F7E    C1E3 05      shl     ebx, 5
+00627F81    8D5C03 04    lea     ebx, dword ptr [ebx+eax+4]
+00627F85    46           inc     esi
+00627F86    89FA         mov     edx, edi
+00627F88    0FB70E       movzx   ecx, word ptr [esi]
+00627F8B    29CA         sub     edx, ecx
+00627F8D    4A           dec     edx
+00627F8E    83C6 02      add     esi, 2
+00627F91    EB 1D        jmp     short 00627FB0
+00627F93    C1E3 04      shl     ebx, 4
+00627F96    46           inc     esi
+00627F97    89C1         mov     ecx, eax
+00627F99    83E1 0F      and     ecx, 0F
+00627F9C    01CB         add     ebx, ecx
+00627F9E    C1E8 05      shr     eax, 5
+00627FA1    73 07        jnb     short 00627FAA
+00627FA3    43           inc     ebx
+00627FA4    89F2         mov     edx, esi
+00627FA6    01DE         add     esi, ebx
+00627FA8    EB 06        jmp     short 00627FB0
+00627FAA    85DB         test    ebx, ebx
+00627FAC    74 0E        je      short 00627FBC
+00627FAE  ^ EB A9        jmp     short 00627F59
+00627FB0    56           push    esi
+00627FB1    89D6         mov     esi, edx
+00627FB3    89D9         mov     ecx, ebx
+00627FB5    F3:A4        rep     movs byte ptr es:[edi], byte ptr [esi]
+00627FB7    31DB         xor     ebx, ebx
+00627FB9    5E           pop     esi
+00627FBA  ^ EB 9D        jmp     short 00627F59
+00627FBC    89F0         mov     eax, esi
+00627FBE    5B           pop     ebx
+00627FBF    5F           pop     edi
+00627FC0    5E           pop     esi
+00627FC1    C3           retn
+```
+
+## 7. 返回与异常处理
+返回到 `0062920A` (上面也有调用这个函数... 有个异常)
+
+```assembly
+0062920A    8B10         mov     edx, dword ptr [eax]    ; eax --> 前面解压缩数据接下来的地址  eax = 005D9272
+0062920C    52           push    edx
+0062920D    E8 CCF7FFFF  call    006289DE       ; 第二类 SEH 安装函数
+
+// SEH 执行完返回到这里
+006295E4    03C2         add     eax, edx      ; eax  = 005D9276
+006295E6    5A           pop     edx
+00628F7C    870424       xchg    dword ptr [esp], eax
+006295A5    09D2         or      edx, edx
+```
+
+// `<<<< 这里下断点 --> 判断所有区段是否都已解压数据完毕 >>>>`
+// `Exectryptor` 把所有的数据全部压缩到 最后一个区段中..... -----------------------> 外壳的代码也是在最后一个区段中 `/////`
+// 而且每次解压数据都是 `eax` --> 存放压缩后数据的内存地址 `edx` --> 目的内存地址...
+// `0062920A` --> 解压完数据的出口
+// `00629758` --> 修复 `E8` `E9` 后的出口...
+
+流程:
+- `循环结构获取结构数据` `stCompressData` `--> 获取区段开始地址 ---> 判读是否为 0 --> 不为 0 调用` `00627F50` `解压数据函数 ---> 返回到` `0062920A`
+- `获取区段的大小 ---> 判段是否为 0 --> 不为 0 调用` `00629758` `修复` `E8` `E9` `--> 返回到` `00629758` `--> 再循环这个过程...`
+
+```assembly
+006295A7    0F84 AB010000  je      00629758   // 这个是判断每个区段是否有数据需要解压缩的... << PEID 查看区段信息 >>>
+
+// eax = 005D9276 跳到这里...
+00628F8A    8B10         mov     edx, dword ptr [eax]    // edx = 004E7000
+00628E18    09D2         or      edx, edx
+00628E1A    0F84 22FDFFFF je      00628B42
+
+00629017    9D           popfd
+00629018    871424       xchg    dword ptr [esp], edx    // 返回地址: 006283C4
+00628F20    9C           pushfd
+00628645    9D           popfd
+00628646                 push    00627F50                ; 这个是解压函数....
+00628649    C3           retn
+
+// 解压后返回到到 006283C4 --> 之前是 0062920A
+006283C4    8B10         mov     edx, dword ptr [eax]    ; eax = 005D9A0D
+006296DE    52           push    edx
+006296DF                 mov     edx, BCE8D362            ; edx = BCE8D362
+006296F7    F7C2 00000008 test    edx, 8000000
+00629080    0F85 C2F7FFFF jnz     00628848
+00628848    81F2 66D3E8BC xor     edx, BCE8D366
+0062959F    03C2         add     eax, edx          ; edx = 4
+006295A1    5A           pop     edx               ; edx = 0x3000 <<< 区段大小>>
+006295A2    870424       xchg    dword ptr [esp], eax
+006295A5    09D2         or      edx, edx
+006295A7    0F84 AB010000 je      00629758
+
+<<<< 注意: 005550E0 的计算方法: --> E8 E9 都满足条件... >>>
+
+// 接下来调用 005550E0 --> 修复区段 004E7000 的 所有 jmp 和 call 的偏移量数值...
+00628786    0F85 000C0000 jnz     0062938C
+006290A6                 push    00629758                ; Morph instruction
+00628E56                 push    005550E0                ; Morph instruction
+00628E59    C3           retn
+
+006291FE    0F84 3EF9FFFF je      00628B42
+00629204    52           push    edx
+00628936    51           push    ecx
+00628937    E8 84010000  call    00628AC0
+```
+
+## 8. 处理外壳输入表
+所有区段的数据解压和修复完毕后返回到这里... ==> 处理外壳自己的输入表..s 获取外壳自己需要的一些 API 函数地址
+
+// 此时 `eax` = `00627F0D`
+```text
+00627F0D  00 00 00 00 00 00 00 00  ........
+```
+
+```assembly
+006297A6    8B10         mov     edx, dword ptr [eax]    ; eax = 00627F0D
+006297A8    56           push    esi
+006297A9                 mov     esi, 00000004             ; esi = 00000004
+006280FD    03C6         add     eax, esi
+006280FF    5E           pop     esi
+00628100    870424       xchg    dword ptr [esp], eax
+00628103    09D2         or      edx, edx
+00628105    0F84 4D160000 je      00629758
+00628B3C                 pop     eax                           ; Morph instruction
+00629517    0F83 67FAFFFF jnb     00628F84
+00628F84    0F88 DBF2FFFF js      00628265
+00628F8A    8B10         mov     edx, dword ptr [eax]
+00628E18    09D2         or      edx, edx
+00628E1A    0F84 22FDFFFF je      00628B42    ; = 0
+
+00628B42    E8 4A0E0000  call    00629991       // 所有区段数据全部解压和修复完毕后返回到这
+00629991    C3           retn
+
+// 返回到 00628B47
+00628B47                 mov     edx, 00627F40             ; edx = 00627F40
+00629714    8B02         mov     eax, dword ptr [edx]
+00628671    68 5E7A4FB5 push    B54F7A5E
+00628676    5A           pop     edx
+00628677    81C2 50E1FFBB add     edx, BBFFE150
+006284EC    0F85 61100000 jnz     00629553
+00629553    81EA 788AA43C sub     edx, 3CA48A78
+00629589    81C2 9E43A3CB add     edx, CBA3439E
+0062958F    8902         mov     dword ptr [edx], eax    ; EDX = 004E14D4 EAX = 0
+0062949D    E8 21040000  call    006298C3
+```
+
+// 这个函数很好读。。哈哈
+```c
+006298C3    55           push    ebp
+006298C4    8BEC         mov     ebp, esp
+006298C6    83C4 F4      add     esp, -0C
+006298C9    56           push    esi
+006298CA    57           push    edi
+006298CB    53           push    ebx
+
+// esi = 004A7EEF
+006298CC    BE EF7E4A00 mov     esi, 004A7EEF
+006298D1    B8 00004000 mov     eax, 00400000        ; ASCII "MZP"
+006298D6    8945 FC      mov     dword ptr [ebp-4], eax
+006298D9    89C2         mov     edx, eax
+
+//---------------------------------------------------------------
+esi = 004A7EEF 数据结构 --> 壳的输入表结构 s
+
+struct stImport
+{
+   DWORD  IAT;
+   DWORD  DLLname;
+   DWORD  INT;
+};
+
+004A7EFF  83 7F 0A 00 C7 7F 0A 00 00 00 00 00 FF FF FF FF  ?..?......
+004A7F0F  A7 7F 0A 00 C3 7F 0A 00 00 00 00 00 00 00 00 00  ?..?..........
+004A7F1F  00 00 00 00 00 00 00 00 00 00 00 00 6B 65 72 6E  ........kern
+004A7F2F  65 6C 33 32 2E 64 6C 6C 00 00 00 00 00 00 47 65  el32.dll......Ge
+004A7F3F  74 4D 6F 64 75 6C 65 48 61 6E 64 6C 65 41 00 00  tModuleHandleA..
+004A7F4F  00 00 4C 6F 61 64 4C 69 62 72 61 72 79 41 00 00  ..LoadLibraryA..
+004A7F5F  00 00 47 65 74 50 72 6F 63 41 64 64 72 65 73 73  ..GetProcAddress
+004A7F6F  00 00 00 00 00 00 45 78 69 74 50 72 6F 63 65 73  ......ExitProces
+004A7F7F  73 00 00 00 3B 7F 0A 00 4F 7F 0A 00 5F 7F 0A 00  s...;..O..\_..
+004A7F8F  73 7F 0A 00 3B 7F 0A 00 4F 7F 0A 00 5F 7F 0A 00  s..;..O..\_..
+004A7F9F  73 7F 0A 00 00 00 00 00 75 73 65 72 33 32 2E 64  s......user32.d
+004A7FAF  6C 6C 00 00 00 00 4D 65 73 73 61 67 65 42 6F 78  ll....MessageBox
+
+//------------------------------------------------------------------
+// [esi + c] = 000A7F2B
+006298DB    8B46 0C      mov     eax, dword ptr [esi+C]
+006298DE    09C0         or      eax, eax
+006298E0    0F84 99000000 je      0062997F
+006298E6    01D0         add     eax, edx  ; EAX = 00400000  EDX = 000A7F2B
+
+006298E8    89C3         mov     ebx, eax
+006298EA    50           push    eax
+006298EB    FF15 94505500 call    dword ptr [<&kernel32.GetModu>; kernel32.GetModuleHandleA
+
+006298F1    09C0         or      eax, eax
+006298F3    0F85 0F000000 jnz     00629908
+
+// LoadLibrayA
+006298F9    53           push    ebx
+006298FA    FF15 98505500 call    dword ptr [<&kernel32.LoadLib>; kernel32.LoadLibraryA
+
+00629900    09C0         or      eax, eax
+00629902    0F84 62000000 je      0062996A
+
+00629908    8945 F8      mov     dword ptr [ebp-8], eax
+0062990B    6A 00        push    0
+0062990D    8F45 F4      pop     dword ptr [ebp-C]
+00629910    8B06         mov     eax, dword ptr [esi]
+00629912    09C0         or      eax, eax
+00629914    8B55 FC      mov     edx, dword ptr [ebp-4]
+00629917    0F85 03000000 jnz     00629920
+0062991D    8B46 10      mov     eax, dword ptr [esi+10]
+00629920    01D0         add     eax, edx
+00629922    0345 F4      add     eax, dword ptr [ebp-C]
+00629925    8B18         mov     ebx, dword ptr [eax]
+00629927    8B7E 10      mov     edi, dword ptr [esi+10]
+0062992A    01D7         add     edi, edx
+0062992C    037D F4      add     edi, dword ptr [ebp-C]
+0062992F    09DB         or      ebx, ebx
+00629931    0F84 4F000000 je      00629986
+00629937    F7C3 00000080 test    ebx, 80000000
+0062993D    0F85 04000000 jnz     00629947
+00629943    8D5C13 02    lea     ebx, dword ptr [ebx+edx+2]
+00629947    81E3 FFFFFF0F and     ebx, 0FFFFFFF
+0062994D    53           push    ebx
+0062994E    FF75 F8      push    dword ptr [ebp-8]
+00629951    FF15 9C505500 call    dword ptr [<&kernel32.GetProc>; kernel32.GetProcAddress
+00629957    09C0         or      eax, eax
+00629959    0F84 0B000000 je      0062996A
+
+// edi = 004A7F83  ===> 存到这里。。
+0062995F    8907         mov     dword ptr [edi], eax
+00629961    8345 F4 04   add     dword ptr [ebp-C], 4
+00629965  ^ E9 A6FFFFFF  jmp     00629910
+0062996A    6A 10        push    10
+0062996C    6A 00        push    0
+0062996E    53           push    ebx
+0062996F    6A 00        push    0
+00629971    FF15 D4505500 call    dword ptr [<&user32.MessageBo>; user32.MessageBoxA
+00629977    6A FF        push    -1
+00629979    FF15 A0505500 call    dword ptr [<&kernel32.ExitPro>; kernel32.ExitProcess
+0062997F    5B           pop     ebx
+00629980    5F           pop     edi
+00629981    5E           pop     esi
+00629982    8BE5         mov     esp, ebp
+00629984    5D           pop     ebp
+00629985    C3           retn
+}
+```
+
+## 9. 修复入口点与收尾
+// 返回到 `006294A2` ---> 修改 `EP` 处的指令... `<<< 这下面的几个地址都是关键地址???? >>>`
+// 去掉 `OD` 下的 `EP` 软件断点,让 `OD` 在 `EP` 处段不下来..
+
+```assembly
+006294A2    C605 59946200 0F  mov     byte ptr [<ModuleEntryPoint>], 0F
+
+// 修改第一个 TLS 回调函数指令.. (去 INT3 断点)
+006294A9    C605 EF8B6200 E8  mov     byte ptr [628BEF], 0E8
+
+006294B0    C605 47806200 87  mov     byte ptr [628047], 87
+006294B7    C605 4A806200 5E  mov     byte ptr [62804A], 5E
+006294BE    C605 4B806200 0F  mov     byte ptr [62804B], 0F
+006294C5    C3           retn
+
+// 返回到这里
+006293D0    C745 FC 01000000 mov     dword ptr [ebp-4], 1
+006293D7    E8 85F5FFFF  call    00628961
+
+006293D0    C745 FC 01000000 mov     dword ptr [ebp-4], 1
+00628965                 mov     eax, B2DFBF52            ; eax = B2DFBF52
+00629720    D1C0         rol     eax, 1
+00628D5C    03C5         add     eax, ebp
+00628CEC    8B00         mov     eax, dword ptr [eax]      ; eax= 0012F9C3  [eax] = 1
+00628CF3                 pop     ecx                         ; Morph instruction
+006297BE    5D           pop     ebp
+
+// 这里返回到 系统调用 TLS 回调函数的代码处..
+006297BF    C2 0C00      retn    0C
+
+{
+7C92118A  |.  8BE6       mov     esp, esi
+7C92118C  |.  5B         pop     ebx
+7C92118D  |.  5F         pop     edi
+7C92118E  |.  5E         pop     esi
+7C92118F  |.  5D         pop     ebp
+7C921190  \\.  C2 1000   retn    10
+}
+```
