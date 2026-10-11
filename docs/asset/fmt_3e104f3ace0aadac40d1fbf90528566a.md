@@ -1,0 +1,185 @@
+
+`LpszSound` 指定将要播放的声音，它通常是系统声音标识或者波形文件名；
+
+`FuSound` 指定播放参数；
+
+MSDN 并没有指出该函数可以播放资源中的声音，但输入表告诉我们它是我们的唯一选择。
+
+我们试着在反汇编代码中寻找对它的调用：
+
+```
+00404267  CALL DWORD PTR DS:[<&GDI32.DeleteObject>]    ; \DeleteObject
+0040426D  MOV EAX,DWORD PTR SS:[EBP+8]
+00404270  MOV EAX,DWORD PTR DS:[EAX+C]
+00404273  PUSH EAX                                 ; /hObject
+00404274  CALL DWORD PTR DS:[<&GDI32.DeleteObject>]    ; \DeleteObject
+0040427A  PUSH 0
+0040427C  PUSH 0
+0040427E  CALL DWORD PTR DS:[<&WINMM.sndPlaySoundA>]   ;  WINMM.sndPlaySoundA
+00404284  MOV DWORD PTR SS:[EBP-8],8D
+```
+
+这显然不是我们需要的。MSDN 指出，当 `lpszSound` 参数为 `NULL` 时，函数将终止异步播放的声音。
+
+下面是第二处调用（也是最后一次），我想这次我们找对地方了:）
+
+```
+00406E3D  PUSH EBP
+00406E3E  MOV EBP,ESP
+00406E40  PUSH EBX
+00406E41  PUSH ESI
+00406E42  PUSH EDI
+00406E43  PUSH 0
+00406E45  PUSH 0                                  同样是为了终止任何正在播放的声音
+00406E47  CALL DWORD PTR DS:[<&WINMM.sndPlaySoundA>]   ;  WINMM.sndPlaySoundA
+00406E4D  CMP DWORD PTR SS:[EBP+C],9D
+00406E54  JA 是男人就.00406E75
+00406E5A  PUSH 5
+00406E5C  MOV EAX,DWORD PTR SS:[EBP+C]
+00406E5F  MOV ECX,DWORD PTR SS:[EBP+8]
+00406E62  MOV EAX,DWORD PTR DS:[ECX+EAX*4+1110]         这是一个查表操作
+00406E69  PUSH EAX                                 这个参数标识了将要播放的声音
+00406E6A  CALL DWORD PTR DS:[<&WINMM.sndPlaySoundA>]   ;  WINMM.sndPlaySoundA
+00406E70  JMP 是男人就.00406EAB
+00406E75  CMP DWORD PTR SS:[EBP+C],9E
+00406E7C  JNZ 是男人就.00406E97
+00406E82  PUSH 40005
+00406E87  PUSH 9E                                 这是什么？
+00406E8C  CALL DWORD PTR DS:[<&WINMM.sndPlaySoundA>]   ;  WINMM.sndPlaySoundA
+00406E92  JMP 是男人就.00406EAB
+00406E97  PUSH 40004
+00406E9C  MOV EAX,DWORD PTR SS:[EBP+C]
+00406E9F  AND EAX,0FFFF
+00406EA4  PUSH EAX                               又一次调用
+00406EA5  CALL DWORD PTR DS:[<&WINMM.sndPlaySoundA>]   ;  WINMM.sndPlaySoundA
+00406EAB  POP EDI
+00406EAC  POP ESI
+00406EAD  POP EBX
+00406EAE  LEAVE
+00406EAF  RETN
+```
+
+我在本文的开头提到过，这个游戏的资源很容易找到，现在是动用 `EXEscope` 的时候了：
+
+![](img/e9b81ee76eb10a1c7e49a30be5708d00.jpg)
+
+我想大家一定对“绝望的尖叫”印象深刻，那么我们就从它入手。
+
+`160D`，转换为 16 进制就是 `A0h`，等会儿我们会用到它。
+
+这次换 `OllyDbg`，我们在上面代码的 `RET` 处设下断点，然后开始游戏。不出所料，一旦我们按下空格键蓄力，游戏就被中断了。但是在这之前并没有播放我们所需要的声音。于是我们不断地返回游戏，并不断中断在这里，直到我们听到“绝望的尖叫”！这次要小心了，按下 `F8` 以后，我们来到了调用这段代码的地方：
+
+```
+004068F1  CALL 是男人就.00405A93
+004068F6  ADD ESP,4
+004068F9  MOV EAX,DWORD PTR SS:[EBP+8]
+004068FC  CMP DWORD PTR DS:[EAX+1338],0
+00406903  JE 是男人就.00406924
+00406909  MOV EAX,DWORD PTR SS:[EBP+8]
+0040690C  MOV EAX,DWORD PTR DS:[EAX+11A8]                  注意这里
+00406912  ADD EAX,8E                                 加上一个基址 8E
+00406917  PUSH EAX                               参数 2
+00406918  MOV EAX,DWORD PTR SS:[EBP+8]
+0040691B  PUSH EAX                               参数 1，动态数据存储区的基址
+0040691C  CALL 是男人就.00406E3D                   我们从这里出来
+00406921  ADD ESP,8                              返回到这里
+00406924  JMP 是男人就.00406A12
+00406929  MOV EAX,DWORD PTR SS:[EBP+8]
+```
+
+这不就是我们前面找到的 D 区么？！果然与弹跳力的数值有关！我们再重复这一过程，会发现播放“绝望的尖叫”之前，参数 2 的值为 `A0h`，正是“绝望的尖叫”的资源标识！`8Eh`＝`142D`，而 `143D` 正是弹跳力为 1 时播放的蓄力声音！
+
+现在一切都清楚了，游戏是通过弹跳力的值计算出声音资源的标识，然后调用 `WINMM.sndPlaySoundA` 播放相应的声音！如果弹跳力不断增加而且不回零，那么参数 2 标识的资源是无效的声音，当参数 2 的值达到 `A0h` 时——“绝望的尖叫”！如果该值继续增加，那么标识的就根本不是声音资源了，所以继续蓄力就不会播放声音。
+
+把原理弄明白了，打补丁就方便了，我们只要在代码区的空白处添加一些代码，让参数 2 在传入之前先对 `12D` 求余，就可以播放有效的声音了。真的是这样吗？我做了这样的尝试，不幸的是，一旦我在空白代码区写入代码，以修改可执行文件，就会产生非法访问错误，而在原有的代码区修改却不会出错。但是我想即使写入合法，那也不是最高效的修改方法，或许我们真的可以放弃那种做法，在原有的代码上实现我们的功能。
+
+在修改之前，我们先看看能量槽显示的位图问题吧。
+
+先看一下程序的位图资源，下面是我在程序资源中找到的相关位图：
+
+![](img/828fb5d9967f1f6732cc0d9c5e5d990a.jpg)
+
+是不是很有想法？有了前面的经验，我们大致可以猜测位图也是以某种查表方式“贴”上去的：每一个弹跳力值都对应有一块位图块，根据弹跳力的值可以确定相应的位图块。
+
+查表的前提就是读取弹跳力的值，也就是偏移量 `11A8` 处的值。对了，它在我们前面找到的一些代码区里！
+
+除了 C 区和 D 区以外，只有 B 区和 E 区有对弹跳力的读取。到底是哪里呢？我的结论是 B 区。为什么？看我的注释就明白了。
+
+```
+00405A93  PUSH EBP
+00405A94  MOV EBP,ESP
+00405A96  SUB ESP,4
+00405A99  PUSH EBX
+00405A9A  PUSH ESI
+00405A9B  PUSH EDI
+00405A9C  PUSH 0                                  ; /ForceBackground = FALSE
+00405A9E  MOV EAX,DWORD PTR SS:[EBP+8]             ; |
+00405AA1  MOV EAX,DWORD PTR DS:[EAX+C]             ; |
+00405AA4  PUSH EAX                               ; |hPalette
+00405AA5  MOV EAX,DWORD PTR SS:[EBP+8]             ; |
+00405AA8  MOV EAX,DWORD PTR DS:[EAX+4]             ; |
+00405AAB  PUSH EAX                               ; |hDC
+00405AAC  CALL DWORD PTR DS:[<&GDI32.SelectPalette>]   ; \SelectPalette
+00405AB2  MOV DWORD PTR SS:[EBP-4],EAX
+00405AB5  PUSH 0CC0020                             ; /ROP = SRCCOPY
+00405ABA  MOV EAX,DWORD PTR SS:[EBP+8]             ; |
+00405ABD  MOV EAX,DWORD PTR DS:[EAX+11A8]                 读取弹跳力的值
+00405AC3  SHL EAX,4                                ; |        乘以 16（能量槽位图的高度）
+00405AC6  ADD EAX,0A0                              ; |        加上一个基址
+00405ACB  PUSH EAX                               ; |Ysrc    作为 BitBlt 的参数传入
+00405ACC  PUSH 0C0                               ; |XSrc = C0 (192.)
+00405AD1  MOV EAX,DWORD PTR SS:[EBP+8]             ; |
+00405AD4  MOV EAX,DWORD PTR DS:[EAX+13A4]           ; |
+00405ADA  PUSH EAX                               ; |hSrcDC
+00405ADB  PUSH 10                                ; |Height = 10 (16.)
+00405ADD  PUSH 60                                ; |Width = 60 (96.)
+00405ADF  PUSH 20                                ; |YDest = 20 (32.)
+00405AE1  PUSH 58                                ; |XDest = 58 (88.)
+00405AE3  MOV EAX,DWORD PTR SS:[EBP+8]             ; |
+00405AE6  MOV EAX,DWORD PTR DS:[EAX+4]             ; |
+00405AE9  PUSH EAX                               ; |hDestDC
+00405AEA  CALL DWORD PTR DS:[<&GDI32.BitBlt>]          ; \BitBlt 这个函数是关键，一经过这里，能量槽的位图就发生变化了
+00405AF0  PUSH 0                                ; /ForceBackground = FALSE
+00405AF2  MOV EAX,DWORD PTR SS:[EBP-4]             ; |
+00405AF5  PUSH EAX                               ; |hPalette
+00405AF6  MOV EAX,DWORD PTR SS:[EBP+8]             ; |
+00405AF9  MOV EAX,DWORD PTR DS:[EAX+4]             ; |
+00405AFC  PUSH EAX                               ; |hDC
+00405AFD  CALL DWORD PTR DS:[<&GDI32.SelectPalette>]   ; \SelectPalette
+00405B03  POP EDI
+00405B04  POP ESI
+00405B05  POP EBX
+00405B06  LEAVE
+00405B07  RETN
+```
+
+`BitBlt` 函数是干什么的？下面是 MSDN 对它的描述：
+
+`Transfers bits from a rectangle on a source device to a rectangle that has the same dimensions on a destination device. The transfer is controlled by a ternary raster operation value that specifies how corresponding bits from the source, destination, and pattern in a brush are combined to form the final bits in the destination.`
+
+大致意思就是说把一个矩形区域里的位（象素）从一个设备传递到另一个设备，这里的功能我们可以理解为把一块矩形位图复制到视频显示器上输出。它的原型是：
+
+```
+BOOL BitBlt (LPPDEVICE lpDestDev, WORD wDestX, WORD wDestY,
+    LPPDEVICE lpSrcDev, WORD wSrcX, WORD wSrcY, WORD wXext,
+    WORD wYext, long Rop3, LPBRUSH lpPBrush, LPDRAWMODE lpDrawMode);
+```
+
+这个函数的参数看起来很多，其实并不复杂。第一个参数是目的设备描述表的句柄，第二、第三个参数指定目标位置，第四个参数是源设备描述表的句柄，第五到第八个参数指定源位图块的位置，剩下一些标志性参数没必要知道。`OllyDbg` 已经把对应的参数都注释出来了，值得注意的是 `Ysrc`，它是通过弹跳力的值计算出来的。很明显，`0A0`，所谓的基址，就是弹跳力为零时的位图块的左上角的 `Y` 坐标。
+
+现在这个 bug 可以得到解释了：程序以弹跳力的值为索引计算出源位图块的 `Y` 坐标位置，这个值如果超过了 `12`，那么得到的位图块自然就是无效的。
+
+从上面这个 `RET` 返回后（处理完能量槽的显示后），我们来到了：
+
+```
+004068C3  MOV EAX,DWORD PTR SS:[EBP+8]
+004068C6  MOV DWORD PTR DS:[EAX+11AC],1
+004068D0  MOV EAX,DWORD PTR SS:[EBP+8]
+004068D3  MOV ECX,0C
+004068D8  MOV EAX,DWORD PTR DS:[EAX+11A8]
+004068DE  CDQ
+004068DF  IDIV ECX                              这里不就是弹跳力的递增么？
+004068E1  LEA EAX,DWORD PTR DS:[EDX+1]
+004068E4  MOV ECX,DWORD PTR SS:[EBP+8]
+004068E7  MOV DWORD PTR DS:[ECX+11A8],EAX
+```

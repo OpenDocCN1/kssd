@@ -1,0 +1,256 @@
+
+# 给文件添加对话框
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-431.htm`](https://www.pediy.com/kssd/pediy08/pediy8-431.htm)
+
+**【文章标题】**: 用 OD 给 exe 文件添加一个对话框初探
+
+**【文章作者】**: CxLrb
+
+**【作者邮箱】**: cxlrb@yahoo.com.cn
+
+**【作者主页】**: http://unpack.blog.sohu.com/
+
+**【作者 QQ 号】**: 21252130
+
+**【软件名称】**: `Pe_optimizer1.4` 汉化版 by.CxLrb
+
+**【下载地址】**: 自己搜索下载
+
+**【使用工具】**: `OD`, `HexDecChar`, `XN Resource Editor`
+
+**【作者声明】**: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
+
+---
+
+## 详细过程
+
+也许你正想者 diy 一个可执行文件，给一个汉化好的文件加上自己的对话框，或者直接加上帮助文本，或者显示破解组织信息。总之是为一个 exe 文件添加一个对话框，功能类似关于窗口。在此举一个例子供大家参考，实际没什么意义，但仅仅是出于兴趣和技术探讨，给大家分享我的成功喜悦！
+
+我们以 `Pe_optimizer1.4` (以下简称 `PO`) 这个小程序为例来学习：
+
+### 1. 预备知识----对话框响应原理
+
+当我们按下界面上的一个菜单或者一个按钮时，`DialogBoxParamA` 会调用窗口回调函数来处理，即把包含菜单命令的信息作为参数送给窗口回调函数，因为一般界面中菜单或按钮有多个，所以很明显会有下面的类型的代码：
+
+```assembly
+cmp     ebx, xxxx1                     比较按下的按钮 ID 是否等于 xxxx1
+jnz     short xxxxxxxx1               如果不是，跳过继续判断，xxxxxxxx1 为下一个比较的地址
+call    xxxxxxxx1                     如果是，调用该按钮响应的操作
+cmp     ebx, xxxx2
+jnz     short xxxxxxxx2
+call    xxxxxxxx2
+.....................
+```
+
+或者
+
+```assembly
+cmp eax, xxxx1                        比较点击的菜单 ID 是否等于 xxxx1
+jz xxxxxxxx1                          如果是，调用该按钮响应的操作
+cmp eax, xxxx2                        不是，继续判断
+jz xxxxxxxx2
+...................
+```
+
+或者
+
+```assembly
+cmp ax, xxxx1                         比较点击的菜单 ID 是否等于 xxxx1
+jz xxxxxxxx1                          如果是，调用该按钮响应的操作
+cmp ax, xxxx2                         不是，继续判断
+jz xxxxxxxx2
+...................
+```
+
+也许还有其他形式，但总会类似以上列举的几种。
+
+本文的例子就是第一种情况。
+
+### 2. 添加资源按钮和对话框资源
+
+我们用 `XN Resource Editor 3.0` 来打开，然后在主界面对话框上添加一个按钮，ID 改为 505 (16 进制 1F9)；然后再添加一个对话框，将对话框的资源名（其实就是 ID）称改为 103 （16 进制 67），再在 103 对话框上添加一个按钮，ID 与关于对话框中关闭的 ID (即 505)相同即可。最后保存关闭。
+
+运行程序看看，已经出现添加的按钮，但点击不会出现我们添加的对话框，因为还没有响应代码。
+
+### 3. 添加响应代码
+
+我们用 OD 载入 `PO`，右键－》查找－》所有模块间的调用，在最后几行我们看到两了 `DialogBoxParamA` 这个函数找到的模块间的调用
+
+```text
+地址      反汇编                                         目标
+0040654E  call    <jmp.&GDI32.CreateFontA>             GDI32.CreateFontA
+00406567  call    <jmp.&USER32.SendDlgItemMessageA     USER32.SendDlgItemMessageA
+004065D1  call    <jmp.&USER32.SetDlgItemTextA>        USER32.SetDlgItemTextA
+00406610  call    <jmp.&USER32.EndDialog>              USER32.EndDialog
+00406634  call    <jmp.&KERNEL32.ExitProcess>          kernel32.ExitProcess
+00406665  call    <jmp.&USER32.EndDialog>              USER32.EndDialog
+004066D7  call    <jmp.&USER32.DialogBoxParamA>        USER32.DialogBoxParamA
+0040675C  push    ebp              （初始 CPU 选择）
+004067A1  call    <jmp.&USER32.DialogBoxParamA>        USER32.DialogBoxParamA
+```
+
+双击进入第一个看看，到这里：
+
+```assembly
+004066D7   E8 5CDFFFFF     call    <jmp.&USER32.DialogBoxParamA>
+004066DC   EB 14          jmp     short Pe_optim.004066F2
+004066DE   8B45 08        mov     eax, [ebp+8]
+004066E1   A3 E0844000    mov     [4084E0], eax
+004066E6   E8 F5FDFFFF    call    Pe_optim.004064E0
+004066EB   EB 05          jmp     short Pe_optim.004066F2
+004066ED   E8 16FFFFFF    call    Pe_optim.00406608
+```
+
+往上翻翻，目标出现了
+
+```assembly
+00406695   81FB F8010000   cmp     ebx, 1F8                      典型的 ID 对比
+0040669B   75 05          jnz     short Pe_optim.004066A2         ID 不正确则执行下一比较
+0040669D   E8 66FFFFFF     call    Pe_optim.00406608             ID 就转到 00406608 执行响应操作
+004066A2   81FB F6010000   cmp     ebx, 1F6                      第二个 ID 对比
+004066A8   75 05          jnz     short Pe_optim.004066AF
+004066AA   E8 89FCFFFF     call    Pe_optim.00406338
+004066AF   81FB F5010000   cmp     ebx, 1F5
+004066B5   75 05          jnz     short Pe_optim.004066BC
+004066B7   E8 C0ECFFFF     call    Pe_optim.0040537C
+004066BC   81FB F7010000   cmp     ebx, 1F7
+004066C2   75 2E          jnz     short Pe_optim.004066F2
+```
+
+我们用资源编辑软件打开 `PO`，看看各按钮的 ID，关于按钮 ID 为 503，我们再看这段代码：
+
+```assembly
+004066BC   81FB F7010000   cmp     ebx, 1F7                  1F7 是 10 进制 503，正好是关于按钮的 ID
+004066C2   75 2E          jnz     short Pe_optim.004066F2     如果 ID 不是 503，跳转到 004066f2
+004066C4   6A 00          push    0                         以下就是关于对话框的响应代码
+004066C6   68 3C664000    push    Pe_optim.0040663C
+004066CB   8B45 08        mov     eax, [ebp+8]
+004066CE   50             push    eax
+004066CF   6A 66          push    66                        66 是关于对话框的 ID，10 进制 102
+004066D1   A1 DC844000    mov     eax, [4084DC]
+004066D6   50             push    eax
+004066D7   E8 5CDFFFFF    call    <jmp.&USER32.DialogBoxParamA>
+004066DC   EB 14         jmp     short Pe_optim.004066F2
+004066DE   8B45 08       mov     eax, [ebp+8]
+004066E1   A3 E0844000    mov     [4084E0], eax
+004066E6   E8 F5FDFFFF    call    Pe_optim.004064E0
+004066EB   EB 05         jmp     short Pe_optim.004066F2
+004066ED   E8 16FFFFFF    call    Pe_optim.00406608
+004066F2   8BC6           mov     eax, esi
+004066F4   5E             pop     esi
+004066F5   5B             pop     ebx
+004066F6   5D             pop     ebp
+004066F7   C2 1000        retn    10
+…………………………………
+```
+
+我们就从这里下手，找一段空间，添加一段类似以上这段代码，把
+
+```assembly
+004066BC   81FB F7010000   cmp     ebx, 1F7
+```
+
+中的 1F7 改为你添加的按钮的 ID，比如我们添加的按钮 ID 为 1F9，即 505，把
+
+```assembly
+004066CF   6A 66       push    66
+```
+
+这句中的 66 改为你添加的对话框的资源 ID，比如我们添加的为 67，即 103.
+
+其他更高深的代码本人就不能企及了，所以就直接仿造关于窗口。
+
+因此，本人所提到的方法不具有普遍的通用性，还希望抛砖引玉，高人指点，写出一些通用代码给我等菜鸟参考。
+
+接下来就是添加代码了
+
+我们首先找一处空间，文件末端有很多，所以就用那里的，选择一个比较好记忆的地址，如：`0040B333`，然后我们将上面比较的代码改成下面这样：
+
+```assembly
+00406693  /75 5D          jnz     short Pe_optim.004066F2
+00406695  |81FB F8010000   cmp     ebx, 1F8
+0040669B  |75 05          jnz     short Pe_optim.004066A2
+0040669D  |E8 66FFFFFF     call    Pe_optim.00406608
+004066A2  |E9 8C4C0000     jmp     Pe_optim.0040B333
+004066A7  |90             nop
+004066A8  |90             nop
+004066A9  |90             nop
+004066AA  |90             nop
+004066AB  |90             nop
+004066AC  |90             nop
+004066AD  |90             nop
+004066AE  |90             nop
+004066AF  |81FB F5010000   cmp     ebx, 1F5
+004066B5  |75 05          jnz     short Pe_optim.004066BC
+004066B7  |E8 C0ECFFFF     call    Pe_optim.0040537C
+004066BC  |81FB F7010000   cmp     ebx, 1F7
+004066C2  |75 2E          jnz     short Pe_optim.004066F2
+```
+
+即从
+
+```assembly
+004066A2    81FB F6010000   cmp     ebx, 1F6
+```
+
+处直接跳转 `0040B333`，然后再把这段比较代码加上去即可，其他两句先 `nop` 掉。
+
+我们再 `0040B333` 处加上以下代码：
+
+```assembly
+0040B333    81FB F6010000   cmp     ebx, 1F6                    把上面 nop 掉的代码补回
+0040B339    75 05          jnz     short Pe_optim.0040B340       0040B340 是我们新增的比较的地址
+0040B33B    E8 F8AFFFFF     call    Pe_optim.00406338           这一句不变
+0040B340    81FB F9010000   cmp     ebx, 1F9                    1F9 这是我们添加的按钮的 ID
+0040B346    0F85 63B3FFFF   jnz     Pe_optim.004066AF           注 1
+0040B34C    6A 00          push    0
+0040B34E    68 3C664000    push    Pe_optim.0040663C
+0040B353    8B45 08        mov     eax, [ebp+8]
+0040B356    50             push    eax
+0040B357    6A 67          push    67                          67 是我们添加的对话框的 ID
+0040B359    A1 DC844000    mov     eax, [4084DC]
+0040B35E    50             push    eax
+0040B35F    E8 D492FFFF    call    <jmp.&USER32.DialogBoxParamA>
+0040B364    EB 14         jmp     short Pe_optim.0040B37A
+```
+
+
+
+```
+0040B366    8B45 08         mov     eax, [ebp+8]
+0040B369    A3 E0844000     mov     [4084E0], eax
+0040B36E    E8 6DB1FFFF     call    Pe_optim.004064E0
+0040B373    EB 05           jmp     short Pe_optim.0040B37A
+0040B375    E8 8EB2FFFF     call    Pe_optim.00406608
+0040B37A    8BC6            mov     eax, esi
+0040B37C    5E              pop     esi
+0040B37D    5B              pop     ebx
+0040B37E    5D              pop     ebp
+```
+
+注 1：`0040B346 ^ 0F85 63B3FFFF jnz Pe_optim.004066AF` 这一句要掉转到下一个比较
+
+```
+004066AF   |81FB F5010000   cmp     ebx, 1F5
+```
+
+然后就是保存代码，测试程序，终于，我们添加的对话框显示出来了。
+
+没什么技术含量，请不要转载。
+
+--------------------------------------------------------------------------------
+
+## 经验总结
+
+只是尝试用一种另类的方法给 `exe` 文件加一个对话框，没有什么技术含量，希望那位高手能做一个全自动的工具，那才是我等所期待的。
+
+--------------------------------------------------------------------------------
+
+## 版权声明
+
+本文纯属好玩, 转载请注明作者并保持文章的完整, 谢谢!
+
+2006 年 06 月 08 日 16:18:37
+
+`4dd466d0e1e0cc123afbe504da2462ca`
