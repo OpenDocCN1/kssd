@@ -1,0 +1,141 @@
+
+# 铁甲风暴之黑色战线
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue413.htm`](https://www.pediy.com/kssd/pediy04/kanxue413.htm)
+
+《铁甲风暴之黑色战线》免 CD 破解手记
+
+By: bood E-mail: boodweb@263.net 2002/2/14
+
+看人家的破文（可不是指人家的文章破），在正式开始前总是有一段讲述自己破解这个软件的原因，至少也要说一下这个软件的大致功能。这篇文章是我的处女作，当然也不能例外啦:))。有什么问题还请大虾们多多指教才是。
+
+这个游戏大家应该都听说过吧，还是目标在几年前出的，当时还红过一段时间，那时我朋友买了个光盘版，几天前他不知哪根经搭错了，想要联机对战，这样就要两张光盘，现在还哪儿去搞啊。算了，我自己动手吧，还能增加点经验值呢。
+
+破 CD 嘛，当然先找`GetDriveTypeA`函数，`mk.exe`中共有三个地方用到，但是大致结构都一样，现在仅挑一个地方出来分析（还有两个地方在`004820D3`和`0048248D`）：
+
+```
+:00481CED 8A44241C  mov al, byte ptr [esp+1C] ;初始盘符
+:00481CF1 8D4C241C  lea ecx, dword ptr [esp+1C]
+:00481CF5 FEC0       inc al ;下一个盘符
+:00481CF7 51         push ecx
+:00481CF8 88442420   mov byte ptr [esp+20], al
+
+* Reference To: KERNEL32.GetDriveTypeA, Ord:00DFh
+                  |
+:00481CFC FF15DC175300 Call dword ptr [005317DC]
+
+:00481D02 83F805     cmp eax, 00000005 ;光驱？
+:00481D05 754E       jne 00481D55 ;不是则转，然后测试下一个盘符
+
+:004824A7 8DBC249C000000 lea edi, dword ptr [esp+0000009C] ;是光驱
+:004824AE 83C9FF     or ecx, FFFFFFFF ;以下代码在盘符后面加文件名
+:004824B1 33C0       xor eax, eax
+```
+
+`GetDriveTypeA`函数的返回值是这样的：
+
+```c
+#define DRIVE_UNKNOWN     0
+#define DRIVE_NO_ROOT_DIR 1
+#define DRIVE_REMOVABLE   2 //可移动
+#define DRIVE_FIXED       3 //硬盘
+#define DRIVE_REMOTE      4
+#define DRIVE_CDROM       5 //光驱
+#define DRIVE_RAMDISK     6
+```
+
+那我们就把`cmp eax, 5`改成`cmp eax, 3`，让它在第一个硬盘上检查（一般是`C`盘），也便于我伪造数据嘛。用`softice`跟下去会发现加的文件名一处是`overmax0.avi`，另一处是`gen0.avi`。不是有三个地方吗？这个我不知道，反正用光盘启动时只有两次出现动画。把这两个文件拷到`C`盘根目录，再运行游戏，两次动画顺利通过，然后在出现选项界面的时候又跳出来说要光盘。这下可要费力气了...
+
+经过一番痛苦的对比跟踪（就是看插光盘和不插光盘流程有什么不同），发现系统函数`mciSendString`的返回值不同，这下搞清楚了，玩游戏的时候不是还有`CD`音乐嘛，怎么早没想到呢！用`MSDN`查查`mciSendString`发现返回`0`是成功，那我让它永远返回`0`不就行了，为了不让光驱受苦，干脆一了百了，把整个`mciSendString`函数都给切了，呵呵，够毒吧。
+
+```
+:00449F28 6A00  push 00000000
+:00449F2A 6800010000 push 00000100
+:00449F2F 50  push eax
+:00449F30 51  push ecx
+
+* Reference To: WINMM.mciSendStringA, Ord:0034h
+                  |
+:00449F31 FF158C1A5300 Call dword ptr [00531A8C]
+
+:00449F37 33D2  xor edx, edx
+:00449F39 85C0  test eax, eax
+:00449F3B 0F94C2 sete dl
+:00449F3E 8BC2  mov eax, edx
+:00449F40 C20800 ret 0008
+```
+
+把`Call dword ptr [00531A8C]`（就是`mciSendString`）改成：
+
+```
+83C410 add esp, 10
+33C0   xor eax, eax
+90     nop
+```
+
+再试试，好用了！不过还要想办法干掉硬盘上的那两个累赘（没办法，有客观原因在：硬盘太小）。在`CreateFileA`设断，注意应该先设`GetDriveTypeA`的断，拦下来后再设`CreateFileA`的断，因为系统好像一直在频繁的调用`CreateFileA`（要不就是我的机器有问题）。`F12`跳出后发现：
+
+```
+* Reference To: KERNEL32.CreateFileA, Ord:0031h
+                  |
+:004A348A FF1520175300 Call dword ptr [00531720]
+:004A3490 8945FC  mov dword ptr [ebp-04], eax
+:004A3493 837DFCFF cmp dword ptr [ebp-04], FFFFFFFF ;返回值是否是-1？
+:004A3497 7523    jne 004A34BC ;不是-1 则转
+... ...
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004A3497(C)
+|
+:004A34BC 8B4DFC  mov ecx, dword ptr [ebp-04]
+:004A34BF 51      push ecx
+
+* Reference To: KERNEL32.GetFileType, Ord:00EFh
+                  |
+:004A34C0 FF1500185300 Call dword ptr [00531800] ;检查文件类型
+:004A34C6 8945F4  mov dword ptr [ebp-0C], eax
+:004A34C9 837DF400 cmp dword ptr [ebp-0C], 00000000 ;相等则错误
+:004A34CD 752D    jne 004A34FC ;不是 0 则转
+... ...
+
+;下面转到 004A351C 就差不多正确了，GetFileType 函数倒没仔细研究过
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004A34CD(C)
+|
+:004A34FC 837DF402 cmp dword ptr [ebp-0C], 00000002
+:004A3500 750B     jne 004A350D
+:004A3502 8A4DC8   mov cl, byte ptr [ebp-38]
+:004A3505 80C940   or cl, 40
+:004A3508 884DC8   mov byte ptr [ebp-38], cl
+:004A350B EB0F     jmp 004A351C
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004A3500(C)
+|
+:004A350D 837DF403 cmp dword ptr [ebp-0C], 00000003
+:004A3511 7509     jne 004A351C
+:004A3513 8A55C8   mov dl, byte ptr [ebp-38]
+:004A3516 80CA08   or dl, 08
+:004A3519 8855C8   mov byte ptr [ebp-38], dl
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:004A350B(U), :004A3511(C)
+|
+:004A351C 8B45FC  mov eax, dword ptr [ebp-04]
+```
+
+我转到`004A351C`的方法是在`CreateFileA`后的比较那里插个`jmp`直接跳到`004A3502`，即把那里改成：
+
+```
+* Reference To: KERNEL32.CreateFileA, Ord:0031h
+                  |
+:004A348A FF1520175300 Call dword ptr [00531720]
+:004A3490 8945FC  mov dword ptr [ebp-04], eax
+:004A3493 E96A000000 jmp 004A3502 ;6A = 4A3502-(4A3493+5) 5 是 jmp 指令本身长度
+:004A3498 90      nop
+```
+
+全部搞定，清理战场，把`C`盘上的两个`avi`删了:))。可以开始对战了，呵呵！
+
+`4dd466d0e1e0cc123afbe504da2462ca`
