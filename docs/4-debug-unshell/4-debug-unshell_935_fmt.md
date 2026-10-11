@@ -1,0 +1,198 @@
+
+# pklite 之 dll
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6743.htm`](https://www.pediy.com/kssd/pediy06/pediy6743.htm)
+
+原文链接：[`bbs.pediy.com/showthread.php?s=&threadid=7230`](http://bbs.pediy.com/showthread.php?s=&threadid=7230)
+
+在程序入口处看到如下代码：
+
+```
+01052000 > 68 80200310      PUSH 10032080
+01052005   68 40CA0310      PUSH 1003CA40
+0105200A   B8 00000010      MOV EAX,10000000
+0105200F   2B4424 0C        SUB EAX,DWORD PTR SS:[ESP+C]
+01052013   50               PUSH EAX
+01052014   E8 27AA0000      CALL dll.0105CA40
+01052019  ^E9 92F2FCFF      JMP dll.010212B0    ;注意这个跳
+```
+
+光条放在最后一行上回车，看到那里还全是 00，推测可能是原代码入口，于是在 `10212B0` 处设写入断点，`f9` 断在这里：
+
+```
+0105C6EC   8808             MOV BYTE PTR DS:[EAX],CL
+0105C6EE   8B46 20          MOV EAX,DWORD PTR DS:[ESI+20]
+0105C6F1   8B4E 1C          MOV ECX,DWORD PTR DS:[ESI+1C]
+```
+
+取消内存写断点，在这个函数的退出点设断再 `f9`，停下后 `ctrl+g` 转到 `10212B0` 看到
+
+```
+010212B0   55               PUSH EBP
+010212B1   8BEC             MOV EBP,ESP
+010212B3   51               PUSH ECX
+010212B4   C745 FC 01000000 MOV DWORD PTR SS:[EBP-4],1
+010212BB   837D 0C 00       CMP DWORD PTR SS:[EBP+C],0
+010212BF   75 10            JNZ SHORT dll.010212D1
+010212C1   833D E0D30210 00 CMP DWORD PTR DS:[1002D3E0],0    ;看这里
+010212C8   75 07            JNZ SHORT dll.010212D1
+010212CA   33C0             XOR EAX,EAX
+010212CC   E9 CC000000      JMP dll.0102139D
+010212D1   837D 0C 01       CMP DWORD PTR SS:[EBP+C],1
+010212D5   74 06            JE SHORT dll.010212DD
+010212D7   837D 0C 02       CMP DWORD PTR SS:[EBP+C],2
+010212DB   75 42            JNZ SHORT dll.0102131F
+010212DD   833D 5CEF0210 00 CMP DWORD PTR DS:[1002EF5C],0
+010212E4   74 15            JE SHORT dll.010212FB
+010212E6   8B45 10          MOV EAX,DWORD PTR SS:[EBP+10]
+010212E9   50               PUSH EAX
+010212EA   8B4D 0C          MOV ECX,DWORD PTR SS:[EBP+C]
+010212ED   51               PUSH ECX
+010212EE   8B55 08          MOV EDX,DWORD PTR SS:[EBP+8]
+010212F1   52               PUSH EDX
+010212F2   FF15 5CEF0210    CALL DWORD PTR DS:[1002EF5C]    ;这里
+```
+
+从 `010212C1` 等处可以看出这是“重定位”之前的代码，赶快 `dump` 吧！（我用 `LordPe`）
+
+下面查找重定位函数：
+
+在 `10212C3` 设硬件写入断点，两次 `f9` 后来到：
+
+```
+0105CBBB   291408           SUB DWORD PTR DS:[EAX+ECX],EDX    ;重定位
+0105CBBE   8B46 04          MOV EAX,DWORD PTR DS:[ESI+4]
+0105CBC1   83C7 02          ADD EDI,2
+0105CBC4   83E8 08          SUB EAX,8
+0105CBC7   43               INC EBX
+```
+
+`0105CBBB` 行所在的函数就是 `pklite` 的重定位函数了，如下：
+
+```
+0105CB60   8B4424 08        MOV EAX,DWORD PTR SS:[ESP+8]
+0105CB64   56               PUSH ESI
+0105CB65   8B7424 08        MOV ESI,DWORD PTR SS:[ESP+8]
+0105CB69   85C0             TEST EAX,EAX
+0105CB6B   897424 08        MOV DWORD PTR SS:[ESP+8],ESI
+0105CB6F   76 7C            JBE SHORT dll.0105CBED
+0105CB71   57               PUSH EDI
+0105CB72   55               PUSH EBP
+0105CB73   8B6C24 20        MOV EBP,DWORD PTR SS:[ESP+20]
+0105CB77   53               PUSH EBX
+0105CB78   8B46 04          MOV EAX,DWORD PTR DS:[ESI+4]    ;这里取 block size
+0105CB7B   33DB             XOR EBX,EBX
+0105CB7D   83E8 08          SUB EAX,8
+0105CB80   8D7E 08          LEA EDI,DWORD PTR DS:[ESI+8]
+0105CB83   99               CDQ
+0105CB84   2BC2             SUB EAX,EDX
+0105CB86   D1F8             SAR EAX,1
+0105CB88   85C0             TEST EAX,EAX
+0105CB8A   7E 45            JLE SHORT dll.0105CBD1
+0105CB8C   66:8B0F          MOV CX,WORD PTR DS:[EDI]
+0105CB8F   8B16             MOV EDX,DWORD PTR DS:[ESI]       ;这里取 section value
+0105CB91   8BC1             MOV EAX,ECX
+0105CB93   81E1 00F00000    AND ECX,0F000
+0105CB99   25 FF0F0000      AND EAX,0FFF
+0105CB9E   03C2             ADD EAX,EDX
+0105CBA0   2BC5             SUB EAX,EBP
+0105CBA2   66:81F9 0030     CMP CX,3000
+0105CBA7   75 15            JNZ SHORT dll.0105CBBE
+0105CBA9   3B4424 20        CMP EAX,DWORD PTR SS:[ESP+20]
+0105CBAD   7D 0F            JGE SHORT dll.0105CBBE
+0105CBAF   85C0             TEST EAX,EAX
+0105CBB1   7C 0B            JL SHORT dll.0105CBBE
+0105CBB3   8B4C24 1C        MOV ECX,DWORD PTR SS:[ESP+1C]
+0105CBB7   8B5424 28        MOV EDX,DWORD PTR SS:[ESP+28]
+0105CBBB   291408           SUB DWORD PTR DS:[EAX+ECX],EDX    ;这里重定位
+0105CBBE   8B46 04          MOV EAX,DWORD PTR DS:[ESI+4]
+0105CBC1   83C7 02          ADD EDI,2
+0105CBC4   83E8 08          SUB EAX,8
+0105CBC7   43               INC EBX
+0105CBC8   99               CDQ
+0105CBC9   2BC2             SUB EAX,EDX
+0105CBCB   D1F8             SAR EAX,1
+0105CBCD   3BD8             CMP EBX,EAX
+0105CBCF   7C BB            JL SHORT dll.0105CB8C
+0105CBD1   8B46 04          MOV EAX,DWORD PTR DS:[ESI+4]
+0105CBD4   8B7424 14        MOV ESI,DWORD PTR SS:[ESP+14]
+0105CBD8   8B4C24 18        MOV ECX,DWORD PTR SS:[ESP+18]
+0105CBDC   03F0             ADD ESI,EAX
+0105CBDE   2BC8             SUB ECX,EAX
+0105CBE0   897424 14        MOV DWORD PTR SS:[ESP+14],ESI
+0105CBE4   894C24 18        MOV DWORD PTR SS:[ESP+18],ECX
+0105CBE8   75 8E            JNZ SHORT dll.0105CB78
+0105CBEA   5B               POP EBX
+0105CBEB   5D               POP EBP
+0105CBEC   5F               POP EDI
+0105CBED   B8 01000000      MOV EAX,1
+0105CBF2   5E               POP ESI
+0105CBF3   C3               RETN
+```
+
+容易看出 `esi` 指向重定位表，在 `Registers` 窗口里选中 `ESI` 后再选击 `Follow in dump`，数据窗口中看到：
+
+```
+01052094  00 10 00 00 52 01 00 00 51 30 56 30 5E 30 70 30  ...R..Q0V0^p0
+010520A4  75 30 7D 30 DD 30 E2 30 EA 30 20 31 3F 31 44 31  u0}0??? 1?1D1
+010520B4  4B 31 7F 31 84 31 9E 31 AB 31 B1 31 BD 31 C3 31  K11??????
+010520C4  CC 31 D2 31 D7 31 E4 31 FF 31 04 32 0E 32 28 32  ?????122(2
+010520D4  31 32 3F 32 48 32 51 32 57 32 C3 32 DF 32 F4 32  12?2H2Q2W2???
+010520E4  7E 33 93 33 B5 33 BE 33 C7 33 E6 33 F5 33 21 34  ~3??????!4
+```
+
+显然是重定位表了！有点简单哦？
+
+但是当我们把这个表粘贴到刚才 `dump` 的文件中再对它作简单修改（`oep`, `reloc`），`dll_loader` 仍然是“加载失败”！
+
+重新再来一次，这次不用写入断点，直接在重定位函数入口（`0105CB60`）处设断，`go!go!go!`
+
+中断后 `ctrl+g` 转到 `010212B0`，我们惊恐地发现，那里仍然是“一遍空白”，没有代码，程序在这里重定位！在 `0105CBBB` 处设断，`f9` 断下后看出，这里是对原程序中数据段中的指针重定位！看来 `pklite` 对于各段（`segment`）的处理是分步进行的，就是说我们这时要么 `dump` 数据段的内容保存起来以后恢复，要么禁止 `pklite` 这时重定位，我选择后者，光标点中 `0105CBEA`，`ctrl+\*`，`f9`，再次中断在 `0105CB60` 后 `dump` 程序，这次应该差不多了？结果还是遭遇“加载失败”！有点背运，这只是一个压缩壳呀！
+
+经过对 `dump` 下的程序仔细检查，终于看到原来是重定位表的“偶数”规则在作怪！具体说，就是重定位表中每一节（`section`）中要重定位的数据个数都应该是偶数，而经 `pklite`“搬了家”的重定位表已不满足这个要求。原因找到就这样办：重复上次操作，`dump` 之前，找个“空处”键入如下代码：
+
+```
+0105CC00   60               PUSHAD
+0105CC01   BE 94200501      MOV ESI,dll.01052094
+0105CC06   BF C0820301      MOV EDI,dll.01050000
+0105CC0B   8B4E 04          MOV ECX,DWORD PTR DS:[ESI+4]
+0105CC0E   8BD1             MOV EDX,ECX
+0105CC10   C1E9 02          SHR ECX,2
+0105CC13   C1E1 02          SHL ECX,2
+0105CC16   2BD1             SUB EDX,ECX
+0105CC18   8BC7             MOV EAX,EDI
+0105CC1A   F3:A4            REP MOVS BYTE PTR ES:[EDI],BYTE PTR DS:[ESI]
+0105CC1C   2950 04          SUB DWORD PTR DS:[EAX+4],EDX
+0105CC1F   03F2             ADD ESI,EDX
+0105CC21   81FE 90320501    CMP ESI,dll.01053290
+0105CC27   72 E2            JB SHORT dll.0105CC0B
+0105CC29   61               POPAD
+0105CC2A  ^E9 31FFFFFF      JMP dll.0105CB60
+```
+
+`alt+M`，把 `dll` 所在段设为 `read/write`，再把 `eip` 变到 `0105CC0`，在 `0105CC29` 行上 `f4`，`ok`，再次 `dump`，然后把重定位表的 `rav` 改成 `30000`，`size` 改为 `11F4`。`all done`！
+
+小结一下：
+
+1. `pklite` 对各 `segment` 分步处理
+2. 重定位表注意偶数规则
+
+仅此而已，是不是比较简单！
+
+`to great123 again`:
+
+请你多注意自身修为。只要细心，其实并不难，大家对 `pklite` 不太上心，因为每个人都有自己的活，何况它的却比较“旧”了。
+
+`Microsoft Portable Executable and Common Object File Format Specification`
+
+`Microsoft Corporation`
+
+`Revision 6.0 - February 1999`
+
+有这样的叙述:
+
+![](img/c998336a8c888f15095b853dabc88992.jpg)
+
+
+
+`4dd466d0e1e0cc123afbe504da2462ca`
