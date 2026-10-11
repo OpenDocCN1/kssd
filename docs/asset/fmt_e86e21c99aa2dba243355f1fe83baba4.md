@@ -1,0 +1,272 @@
+
+```
+01010184             83E1 03         AND ECX,3
+
+01010187             F3:A4           REP MOVS [BYTE ES:EDI],[BYTE DS:ESI]<====将解码后的数据写回
+
+01010189             5E             POP ESI
+
+0101018A             68 00800000    PUSH 8000
+
+0101018F             6A 00          PUSH 0
+
+01010191             FFB5 52010000  PUSH [DWORD SS:EBP+152]
+
+01010197             FF95 51050000  CALL [DWORD SS:EBP+551]<====释放输出缓冲区
+
+0101019D             83C6 08        ADD ESI,8
+
+010101A0             833E 00        CMP [DWORD DS:ESI],0<=======ESI 重要数据哟!
+
+010101A3             ^F85 1EFFFFFF  JNZ notepad.010100C7<=======循环解码
+
+010101A9             68 00800000    PUSH 8000
+
+010101AE             6A 00          PUSH 0
+
+010101B0             FFB5 56010000  PUSH [DWORD SS:EBP+156]
+
+010101B6             FF95 51050000  CALL [DWORD SS:EBP+551]<====释放解码缓冲区
+
+010101BC             8B9D 31050000  MOV EBX,[DWORD SS:EBP+531]
+
+010101C2             0BDB           OR EBX,EBX
+
+010101C4             74 08          JE SHORT notepad.010101CE
+
+010101C6             8B03           MOV EAX,[DWORD DS:EBX]
+
+010101C8             8785 35050000  XCHG [DWORD SS:EBP+535],EAX
+
+010101CE             8B95 22040000  MOV EDX,[DWORD SS:EBP+422]
+
+010101D4             8B85 2D050000  MOV EAX,[DWORD SS:EBP+52D]
+
+010101DA             2BD0           SUB EDX,EAX
+
+010101DC             74 79          JE SHORT notepad.01010257
+
+<=======================下面这一段不知道干什么的, 到如今还没执行过=========>
+
+010101DE             8BC2           MOV EAX,EDX
+
+010101E0             C1E8 10        SHR EAX,10
+
+010101E3             33DB           XOR EBX,EBX
+
+010101E5             8BB5 39050000  MOV ESI,[DWORD SS:EBP+539]
+
+010101EB             03B5 22040000  ADD ESI,[DWORD SS:EBP+422]
+
+010101F1             833E 00        CMP [DWORD DS:ESI],0
+
+010101F4             74 61          JE SHORT notepad.01010257
+
+010101F6             8B4E 04        MOV ECX,[DWORD DS:ESI+4]
+
+010101F9             83E9 08        SUB ECX,8
+
+010101FC             D1E9           SHR ECX,1
+
+010101FE             8B3E           MOV EDI,[DWORD DS:ESI]
+
+01010200             03BD 22040000  ADD EDI,[DWORD SS:EBP+422]
+
+01010206             83C6 08        ADD ESI,8
+
+01010209             66:8B1E        MOV BX,[WORD DS:ESI]
+
+0101020C             C1EB 0C        SHR EBX,0C
+
+0101020F             83FB 01        CMP EBX,1
+
+01010212             74 0C          JE SHORT notepad.01010220
+
+01010214             83FB 02        CMP EBX,2
+
+01010217             74 16          JE SHORT notepad.0101022F
+
+01010219             83FB 03        CMP EBX,3
+
+0101021C             74 20          JE SHORT notepad.0101023E
+
+0101021E             EB 2C          JMP SHORT notepad.0101024C
+
+01010220             66:8B1E        MOV BX,[WORD DS:ESI]
+
+01010223             81E3 FF0F0000  AND EBX,0FFF
+
+01010229             66:01041F      ADD [WORD DS:EDI+EBX],AX
+
+0101022D             EB 1D          JMP SHORT notepad.0101024C
+
+0101022F             66:8B1E        MOV BX,[WORD DS:ESI]
+
+01010232             81E3 FF0F0000  AND EBX,0FFF
+
+01010238             66:01141F      ADD [WORD DS:EDI+EBX],DX
+
+0101023C             EB 0E          JMP SHORT notepad.0101024C
+
+0101023E             66:8B1E        MOV BX,[WORD DS:ESI]
+
+01010241             81E3 FF0F0000  AND EBX,0FFF
+
+01010247             01141F         ADD [DWORD DS:EDI+EBX],EDX
+
+0101024A             EB 00          JMP SHORT notepad.0101024C
+
+0101024C             66:830E FF     OR [WORD DS:ESI],0FFFF
+
+01010250             83C6 02        ADD ESI,2
+
+01010253             ^E2 B4         LOOPD SHORT notepad.01010209
+
+01010255             ^EB 9A         JMP SHORT notepad.010101F1
+
+01010257             8B95 22040000  MOV EDX,[DWORD SS:EBP+422]
+
+0101025D             8BB5 41050000  MOV ESI,[DWORD SS:EBP+541]
+
+01010263             0BF6           OR ESI,ESI
+
+01010265             74 11          JE SHORT notepad.01010278
+
+01010267             03F2           ADD ESI,EDX
+
+01010269             AD             LODS [DWORD DS:ESI]
+
+0101026A             0BC0           OR EAX,EAX
+
+0101026C             74 0A          JE SHORT notepad.01010278
+
+0101026E             03C2           ADD EAX,EDX
+
+01010270             8BF8           MOV EDI,EAX
+
+01010272             66:AD          LODS [WORD DS:ESI]
+
+01010274             66:AB          STOS [WORD ES:EDI]
+
+01010276             ^EB F1         JMP SHORT notepad.01010269
+
+01010278             BE 50660000    MOV ESI,6650<===============Import Table
+
+<========================这个是原始导入表的入口
+
+<========================在程序入口的这个偏移, 肯定没错
+
+<========================乘现在导入表还没覆盖 dumper 之
+
+0101027D             8B95 22040000  MOV EDX,[DWORD SS:EBP+422]
+
+01010283             03F2           ADD ESI,EDX
+
+01010285             8B46 0C        MOV EAX,[DWORD DS:ESI+C]
+
+01010288             85C0           TEST EAX,EAX
+
+0101028A             0F84 0A010000  JE notepad.0101039A
+
+01010290             03C2           ADD EAX,EDX
+
+01010292             8BD8           MOV EBX,EAX
+
+01010294             50             PUSH EAX
+
+01010295             FF95 4D0F0000  CALL [DWORD SS:EBP+F4D]
+
+0101029B             85C0           TEST EAX,EAX
+
+0101029D             75 07          JNZ SHORT notepad.010102A6
+
+0101029F             53             PUSH EBX
+
+010102A0             FF95 510F0000  CALL [DWORD SS:EBP+F51]
+
+010102A6             8985 45050000  MOV [DWORD SS:EBP+545],EAX
+
+010102AC             C785 49050000 >MOV [DWORD SS:EBP+549],0
+
+010102B6             8B95 22040000  MOV EDX,[DWORD SS:EBP+422]
+
+010102BC             8B06           MOV EAX,[DWORD DS:ESI]
+
+010102BE             85C0           TEST EAX,EAX
+
+010102C0             75 03          JNZ SHORT notepad.010102C5
+
+010102C2             8B46 10        MOV EAX,[DWORD DS:ESI+10]
+
+010102C5             03C2           ADD EAX,EDX
+
+010102C7             0385 49050000  ADD EAX,[DWORD SS:EBP+549]
+
+010102CD             8B18           MOV EBX,[DWORD DS:EAX]
+
+010102CF             8B7E 10        MOV EDI,[DWORD DS:ESI+10]
+
+010102D2             03FA           ADD EDI,EDX
+
+010102D4             03BD 49050000  ADD EDI,[DWORD SS:EBP+549]
+
+010102DA             85DB           TEST EBX,EBX
+
+010102DC             0F84 A2000000  JE notepad.01010384
+
+010102E2             F7C3 00000080  TEST EBX,80000000
+
+010102E8             75 04          JNZ SHORT notepad.010102EE
+
+010102EA             03DA           ADD EBX,EDX
+
+010102EC             43             INC EBX
+
+010102ED             43             INC EBX
+
+010102EE             53             PUSH EBX
+
+010102EF             81E3 FFFFFF7F  AND EBX,7FFFFFFF
+
+010102F5             53             PUSH EBX
+
+010102F6             FFB5 45050000  PUSH [DWORD SS:EBP+545]
+
+010102FC             FF95 490F0000  CALL [DWORD SS:EBP+F49]
+
+01010302             85C0           TEST EAX,EAX
+
+01010304             5B             POP EBX
+
+01010305             75 6F          JNZ SHORT notepad.01010376
+
+01010307             F7C3 00000080  TEST EBX,80000000
+
+0101030D             75 19          JNZ SHORT notepad.01010328
+
+0101030F             57             PUSH EDI
+
+01010310             8B46 0C        MOV EAX,[DWORD DS:ESI+C]
+
+01010313             0385 22040000  ADD EAX,[DWORD SS:EBP+422]
+
+01010319             50             PUSH EAX
+
+0101031A             53             PUSH EBX
+
+0101031B             8D85 75040000  LEA EAX,[DWORD SS:EBP+475]
+
+01010321             50             PUSH EAX
+
+01010322             57             PUSH EDI
+
+01010323             E9 98000000    JMP notepad.010103C0
+
+01010328             81E3 FFFFFF7F  AND EBX,7FFFFFFF
+
+0101032E             8B85 26040000  MOV EAX,[DWORD SS:EBP+426]
+
+01010334             3985 45050000  CMP [DWORD SS:EBP+545],EAX
+
+0101033A             75 24          JNZ SHORT notepad.01010360
+```
