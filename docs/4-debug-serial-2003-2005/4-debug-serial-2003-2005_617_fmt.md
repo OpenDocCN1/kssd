@@ -1,0 +1,456 @@
+
+# CryptCD 3
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6946.htm`](https://www.pediy.com/kssd/pediy06/pediy6946.htm)
+
+CryptCD 3 是一款能够加密文件的工具,其实不用我解释大家看文件名就知道该文件的用途了!你可以到 `http://www.timesavesoftware.com` 下载,当然如果你感兴趣的话.
+
+下面来看看这个软件的注册的分析过程(我们到达下面的关键地方):
+
+```
+0040873B   . 8D5424 48       LEA EDX,DWORD PTR SS:[ESP+48]
+0040873F   . 52             PUSH EDX
+00408740   . E8 7B5B0000    CALL CRYPTCD3.0040E2C0     ;关键
+00408745   . 83C4 04        ADD ESP,4
+00408748   . 85C0           TEST EAX,EAX
+0040874A   . 5F             POP EDI
+0040874B   . 75 27          JNZ SHORT CRYPTCD3.00408774
+0040874D   . 68 60794200    PUSH CRYPTCD3.00427960     ;  ASCII "That registration code is invalid. Please make sure the CAPS Lock key is not on."
+00408752   . 68 44794200    PUSH CRYPTCD3.00427944     ;  ASCII "INVALID REGISTRATION CODE!"
+00408757   . E8 04ACFFFF    CALL CRYPTCD3.00403360
+```
+
+进入 `408740` 的 `Call`:
+
+```
+0040E2C0  /$ 81EC 34040000  SUB ESP,434
+0040E2C6  |. 53             PUSH EBX
+0040E2C7  |. 55             PUSH EBP
+0040E2C8  |. 8BAC24 4004000>MOV EBP,DWORD PTR SS:[ESP+440]
+0040E2CF  |. 56             PUSH ESI
+0040E2D0  |. 85ED           TEST EBP,EBP
+0040E2D2  |. 57             PUSH EDI
+0040E2D3  |. 75 0F          JNZ SHORT CRYPTCD3.0040E2E4
+0040E2D5  |. 68 48874200    PUSH CRYPTCD3.00428748     ;  ASCII "No code entered. (654a)"
+0040E2DA  |. 68 38874200    PUSH CRYPTCD3.00428738     ;  ASCII "Error: (654a)"
+0040E2DF  |. E9 07020000    JMP CRYPTCD3.0040E4EB
+0040E2E4  |> 8BFD           MOV EDI,EBP
+0040E2E6  |. 83C9 FF        OR ECX,FFFFFFFF
+0040E2E9  |. 33C0           XOR EAX,EAX
+0040E2EB  |. F2:AE          REPNE SCAS BYTE PTR ES:[EDI]
+0040E2ED  |. F7D1           NOT ECX
+0040E2EF  |. 49             DEC ECX
+0040E2F0  |. 83F9 0E        CMP ECX,0E                 ;比较注册码是否是 14 个
+0040E2F3  |. 73 0F          JNB SHORT CRYPTCD3.0040E304
+0040E2F5  |. 68 28874200    PUSH CRYPTCD3.00428728      ;  ASCII "Invalid. (654b)"
+0040E2FA  |. 68 18874200    PUSH CRYPTCD3.00428718      ;  ASCII "Error: (654b)"
+0040E2FF  |. E9 E7010000    JMP CRYPTCD3.0040E4EB
+0040E304  |> B9 00010000    MOV ECX,100
+0040E309  |. 33C0           XOR EAX,EAX
+0040E30B  |. 8D7C24 44      LEA EDI,DWORD PTR SS:[ESP+44]
+0040E30F  |. 6A 04          PUSH 4
+0040E311  |. F3:AB          REP STOS DWORD PTR ES:[EDI]
+0040E313  |. 8D4424 48      LEA EAX,DWORD PTR SS:[ESP+48]
+0040E317  |. 55             PUSH EBP
+0040E318  |. 50             PUSH EAX
+0040E319  |. E8 92C40000    CALL CRYPTCD3.0041A7B0       ;取注册码的前 4 位
+0040E31E  |. 83C4 0C        ADD ESP,0C
+0040E321  |. BE 10874200    MOV ESI,CRYPTCD3.00428710    ;  ASCII "TCX3"
+0040E326  |. 8D4424 44      LEA EAX,DWORD PTR SS:[ESP+44]  ; 前 4 位的值的地址
+0040E32A  |> 8A10           /MOV DL,BYTE PTR DS:[EAX]
+0040E32C  |. 8A1E           |MOV BL,BYTE PTR DS:[ESI]
+0040E32E  |. 8ACA           |MOV CL,DL
+0040E330  |. 3AD3           |CMP DL,BL
+0040E332  |. 75 1E          |JNZ SHORT CRYPTCD3.0040E352
+0040E334  |. 84C9           |TEST CL,CL
+0040E336  |. 74 16          |JE SHORT CRYPTCD3.0040E34E
+0040E338  |. 8A50 01        |MOV DL,BYTE PTR DS:[EAX+1]
+0040E33B  |. 8A5E 01        |MOV BL,BYTE PTR DS:[ESI+1]
+0040E33E  |. 8ACA           |MOV CL,DL
+0040E340  |. 3AD3           |CMP DL,BL
+0040E342  |. 75 0E          |JNZ SHORT CRYPTCD3.0040E352
+0040E344  |. 83C0 02        |ADD EAX,2
+0040E347  |. 83C6 02        |ADD ESI,2
+0040E34A  |. 84C9           |TEST CL,CL
+0040E34C  |. 75 DC          JNZ SHORT CRYPTCD3.0040E32A  ;以上的是前 4 位和"TCX3"进行比较
+0040E34E  |> 33C0           XOR EAX,EAX
+0040E350  |. EB 05          JMP SHORT CRYPTCD3.0040E357
+0040E352  |> 1BC0           SBB EAX,EAX
+0040E354  |. 83D8 FF        SBB EAX,-1
+0040E357  |> 85C0           TEST EAX,EAX
+0040E359  |. 74 0F          JE SHORT CRYPTCD3.0040E36A
+0040E35B  |. 68 FC864200    PUSH CRYPTCD3.004286FC    ;  ASCII "Invalid.  (654c)"
+0040E360  |. 68 EC864200    PUSH CRYPTCD3.004286EC    ;ASCII "Error: (654c)"
+0040E365  |. E9 81010000    JMP CRYPTCD3.0040E4EB
+0040E36A  |> 6A 2D          PUSH 2D              ;压入'-'号
+0040E36C  |. 55             PUSH EBP
+0040E36D  |. E8 7EB70000    CALL CRYPTCD3.00419AF0    ;搜索是否有'-'号
+0040E372  |. 83C4 08        ADD ESP,8
+0040E375  |. 85C0           TEST EAX,EAX
+0040E377  |. 75 0F          JNZ SHORT CRYPTCD3.0040E388
+0040E379  |. 68 D8864200    PUSH CRYPTCD3.004286D8    ;  ASCII "Invalid.  (654d)"
+0040E37E  |. 68 C8864200    PUSH CRYPTCD3.004286C8    ;  ASCII "Error: (654d)"
+0040E383  |. E9 63010000    JMP CRYPTCD3.0040E4EB
+0040E388  |> 8D7D 05        LEA EDI,DWORD PTR SS:[EBP+5] ;取后 9 位数
+0040E38B  |. 83C9 FF        OR ECX,FFFFFFFF
+0040E38E  |. 33C0           XOR EAX,EAX
+0040E390  |. 8D5424 44      LEA EDX,DWORD PTR SS:[ESP+44]
+0040E394  |. F2:AE          REPNE SCAS BYTE PTR ES:[EDI]
+0040E396  |. F7D1           NOT ECX
+0040E398  |. 2BF9           SUB EDI,ECX
+0040E39A  |. 8BC1           MOV EAX,ECX
+0040E39C  |. 8BF7           MOV ESI,EDI
+0040E39E  |. 8BFA           MOV EDI,EDX
+0040E3A0  |. 8D5424 10      LEA EDX,DWORD PTR SS:[ESP+10]
+0040E3A4  |. C1E9 02        SHR ECX,2
+0040E3A7  |. F3:A5          REP MOVS DWORD PTR ES:[EDI],DWORD PTR DS>
+0040E3A9  |. 8BC8           MOV ECX,EAX
+0040E3AB  |. 33C0           XOR EAX,EAX
+0040E3AD  |. 83E1 03        AND ECX,3
+0040E3B0  |. F3:A4          REP MOVS BYTE PTR ES:[EDI],BYTE PTR DS:>
+0040E3B2  |. 8BFD           MOV EDI,EBP
+0040E3B4  |. 83C9 FF        OR ECX,FFFFFFFF
+0040E3B7  |. F2:AE          REPNE SCAS BYTE PTR ES:[EDI]
+0040E3B9  |. F7D1           NOT ECX
+0040E3BB  |. 49             DEC ECX
+0040E3BC  |. 8D7C29 FC      LEA EDI,DWORD PTR DS:[ECX+EBP-4] ;后 4 位地址给 EDI
+0040E3C0  |. 83C9 FF        OR ECX,FFFFFFFF
+0040E3C3  |. F2:AE          REPNE SCAS BYTE PTR ES:[EDI]
+0040E3C5  |. F7D1           NOT ECX
+0040E3C7  |. 2BF9           SUB EDI,ECX
+0040E3C9  |. 8BC1           MOV EAX,ECX
+0040E3CB  |. 8BF7           MOV ESI,EDI
+0040E3CD  |. 8BFA           MOV EDI,EDX
+0040E3CF  |. C1E9 02        SHR ECX,2
+0040E3D2  |. F3:A5          REP MOVS DWORD PTR ES:[EDI],DWORD PTR DS>
+0040E3D4  |. 8BC8           MOV ECX,EAX
+0040E3D6  |. 33C0           XOR EAX,EAX
+0040E3D8  |. 83E1 03        AND ECX,3
+0040E3DB  |. F3:A4          REP MOVS BYTE PTR ES:[EDI],BYTE PTR DS:>
+0040E3DD  |. 8D7424 44      LEA ESI,DWORD PTR SS:[ESP+44]
+0040E3E1  |. 8D7C24 44      LEA EDI,DWORD PTR SS:[ESP+44]
+0040E3E5  |. 83C9 FF        OR ECX,FFFFFFFF
+0040E3E8  |. 83EE 04        SUB ESI,4
+0040E3EB  |. F2:AE          REPNE SCAS BYTE PTR ES:[EDI]
+0040E3ED  |. F7D1           NOT ECX
+0040E3EF  |. 49             DEC ECX
+0040E3F0  |. 880431         MOV BYTE PTR DS:[ECX+ESI],AL
+0040E3F3  |. 8A4C24 10      MOV CL,BYTE PTR SS:[ESP+10]
+0040E3F7  |. 84C9           TEST CL,CL
+0040E3F9  |. 8D4424 10      LEA EAX,DWORD PTR SS:[ESP+10] ;后 4 位给 EAX
+0040E3FD  |. 74 10          JE SHORT CRYPTCD3.0040E40F
+0040E3FF  |> 8038 2B        /CMP BYTE PTR DS:[EAX],2B
+0040E402  |. 75 03          |JNZ SHORT CRYPTCD3.0040E407
+0040E404  |. C600 20        |MOV BYTE PTR DS:[EAX],20
+0040E407  |> 8A48 01        |MOV CL,BYTE PTR DS:[EAX+1]
+0040E40A  |. 40             |INC EAX
+0040E40B  |. 84C9           |TEST CL,CL
+0040E40D  |. 75 F0          JNZ SHORT CRYPTCD3.0040E3FF ;判断后 4 位是否是合法字符
+0040E40F  |> 8D4C24 10      LEA ECX,DWORD PTR SS:[ESP+10]
+0040E413  |. 51             PUSH ECX
+0040E414  |. E8 E7000000    CALL CRYPTCD3.0040E500 ;关键 Call=====>所以我们跟进
+0040E419  |. 8D7C24 48      LEA EDI,DWORD PTR SS:[ESP+48]
+```
+
+
+
+## 汇编分析
+
+### 主逻辑片段
+```
+0040E41D  |. 83C9 FF        OR ECX,FFFFFFFF   
+
+0040E420  |. 33C0           XOR EAX,EAX   
+
+0040E422  |. 83C4 04        ADD ESP,4   
+
+0040E425  |. F2:AE          REPNE SCAS BYTE PTR ES:\[EDI\]   
+
+0040E427  |. F7D1           NOT ECX   
+
+0040E429  |. 49             DEC ECX   
+
+0040E42A  |. 8D6C24 10      LEA EBP,DWORD PTR SS:\[ESP+10\] ;上面的 Call 运算后的结果   
+
+0040E42E  |. 03CE           ADD ECX,ESI   
+
+0040E430 |> 8A11           /MOV DL,BYTE PTR DS:\[ECX\]   
+
+0040E432  |. 8A5D 00        |MOV BL,BYTE PTR SS:\[EBP\]   
+
+0040E435  |. 8AC2           |MOV AL,DL   
+
+0040E437  |. 3AD3           |CMP DL,BL   
+
+0040E439  |. 75 1E          |JNZ SHORT CRYPTCD3.0040E459   
+
+0040E43B  |. 84C0           |TEST AL,AL   
+
+0040E43D  |. 74 16          |JE SHORT CRYPTCD3.0040E455   
+
+0040E43F  |. 8A51 01        |MOV DL,BYTE PTR DS:\[ECX+1\]   
+
+0040E442  |. 8A5D 01        |MOV BL,BYTE PTR SS:\[EBP+1\]   
+
+0040E445  |. 8AC2           |MOV AL,DL   
+
+0040E447  |. 3AD3           |CMP DL,BL   
+
+0040E449  |. 75 0E          |JNZ SHORT CRYPTCD3.0040E459   
+
+0040E44B  |. 83C1 02        |ADD ECX,2   
+
+0040E44E  |. 83C5 02        |ADD EBP,2   
+
+0040E451  |. 84C0           |TEST AL,AL   
+
+0040E453  |.⁷⁵ DB          JNZ SHORT CRYPTCD3.0040E430 ;与 2345 位进行比较   
+
+进入 `4040E414` 的 `Call`:   
+
+0040E500  /$ 53             PUSH EBX   
+
+0040E501  |. 8B5C24 08      MOV EBX,DWORD PTR SS:\[ESP+8\]   
+
+0040E505  |. 56             PUSH ESI   
+
+0040E506  |. 33F6           XOR ESI,ESI   
+
+0040E508  |. 85DB           TEST EBX,EBX   
+
+0040E50A  |. 57             PUSH EDI   
+
+0040E50B  |. 75 12          JNZ SHORT CRYPTCD3.0040E51F   
+
+0040E50D  |. 68 68874200    PUSH CRYPTCD3.00428768   ;  ASCII "\*Data == NULL! in UnEncText!"   
+
+0040E512  |. 68 60874200    PUSH CRYPTCD3.00428760   ;  ASCII "ERROR!"   
+
+0040E517  |. E8 444EFFFF    CALL CRYPTCD3.00403360   
+
+0040E51C  |. 83C4 08        ADD ESP,8   
+
+0040E51F  |> 8BFB           MOV EDI,EBX   
+
+0040E521  |. 83C9 FF        OR ECX,FFFFFFFF   
+
+0040E524  |. 33C0           XOR EAX,EAX   
+
+0040E526  |. F2:AE          REPNE SCAS BYTE PTR ES:\[EDI\]   
+
+0040E528  |. F7D1           NOT ECX   
+
+0040E52A  |. 49             DEC ECX   
+
+0040E52B  |. 8BF9           MOV EDI,ECX   
+
+0040E52D  |. 85FF           TEST EDI,EDI   
+
+0040E52F  |. 7E 14          JLE SHORT CRYPTCD3.0040E545   
+
+0040E531  |> 8A041E         /MOV AL,BYTE PTR DS:\[ESI+EBX\]   
+
+0040E534  |. 50             |PUSH EAX                 ;压入一个字符,进行运算   
+
+0040E535  |. E8 16000000    |CALL CRYPTCD3.0040E550  ;所以我们进入   
+
+0040E53A  |. 83C4 04        |ADD ESP,4   
+
+0040E53D  |. 88041E         |MOV BYTE PTR DS:\[ESI+EBX\],AL   
+
+0040E540  |. 46             |INC ESI   
+
+0040E541  |. 3BF7           |CMP ESI,EDI   
+
+0040E543  |.⁷C EC          JL SHORT CRYPTCD3.0040E531   
+
+0040E545  |> 5F             POP EDI   
+
+0040E546  |. 5E             POP ESI   
+
+0040E547  |. 5B             POP EBX   
+
+0040E548  . C3             RETN   
+
+进入 `40E535` 的 `Call`:   
+
+0040E550  /$ 8B4424 04      MOV EAX,DWORD PTR SS:\[ESP+4\]   
+
+0040E554  |. 3C 3D          CMP AL,3D   
+
+0040E556  |. 75 03          JNZ SHORT CRYPTCD3.0040E55B   
+
+0040E558  |. B0 20          MOV AL,20   
+
+0040E55A  |. C3             RETN   
+
+0040E55B  |> 50             PUSH EAX   
+
+0040E55C  |. 68 F0604200    PUSH CRYPTCD3.004260F0 ;ASCII "JrKYmF!.GXjWin-boca0NyEv3Lle4qHOwP2s87xUtQM1V56Ag9ZfkuDhzIpT#BCRSd ="   
+
+0040E561  |. E8 0A000000    CALL CRYPTCD3.0040E570 ;计算位置的 Call   
+
+0040E566  |. 8A80 A8604200  MOV AL,BYTE PTR DS:\[EAX+4260A8\] ;4260A8 是真正的密码表的地址   
+
+0040E56C  |. 83C4 08        ADD ESP,8   
+
+0040E56F  . C3             RETN   
+
+`40E561` 的 `Call` 是计算位置:   
+
+0040E570  /$ 8B5424 04      MOV EDX,DWORD PTR SS:\[ESP+4\]   
+
+0040E574  |. 33C0           XOR EAX,EAX   
+
+0040E576  |. 56             PUSH ESI   
+
+0040E577  |. 8A0A           MOV CL,BYTE PTR DS:\[EDX\]   
+
+0040E579  |. 84C9           TEST CL,CL   
+
+0040E57B  |. 74 18          JE SHORT CRYPTCD3.0040E595   
+
+0040E57D  |. 0FBE7424 0C    MOVSX ESI,BYTE PTR SS:\[ESP+C\]   
+
+0040E582  |> 81E1 FF000000 /AND ECX,0FF ;比较字符找到位置   
+
+0040E588  |. 3BCE           |CMP ECX,ESI   
+
+0040E58A  |. 74 0E          |JE SHORT CRYPTCD3.0040E59A   
+
+0040E58C  |. 8A4A 01        |MOV CL,BYTE PTR DS:\[EDX+1\]   
+
+0040E58F  |. 42             |INC EDX   
+
+0040E590  |. 40             |INC EAX   
+
+0040E591  |. 84C9           |TEST CL,CL   
+
+0040E593  |.⁷⁵ ED          JNZ SHORT CRYPTCD3.0040E582   
+
+0040E595  |> B8 2A000000    MOV EAX,2A ;如果没有找到则把 2AH 送给 EAX   
+
+0040E59A  |> 5E             POP ESI   
+
+0040E59B  . C3             RETN   
+
+### 逻辑总结
+下面总结一下整个过程，首先比较个数是否为 `14` 个，然后察看注册码的前 `4` 位是否为 `TCX3`，
+
+接着搜索字符串中是否含有 `'-'`，如果没有则出错。如果含有 `'-'` 则取出，最后 `9` 位数，依次取出
+
+最后 `4` 位，通过密码表：`"JrKYmF!.GXjWin-boca0NyEv3Lle4qHOwP2s87xUtQM1V56Ag9ZfkuDhzIpT#BCRSd ="`
+
+用来计算位置，最后位置存放在 `EAX` 中，即找到的字符的位置，如果没有找到该字符则 `EAX` 为 `2AH`，
+
+然后在查真正的表 `".-#!0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz="`
+
+得到每位相对应的字符，然后把所得的 `4` 位字符和 `9` 位中的 `2~5` 位进行比较，如果注册成功！
+
+### KeyGen 源码
+
+下面是 `KeyGen`:
+
+```c
+#include <stdio.h>   
+
+#include <stdlib.h>   
+
+int  p\[4\];   
+
+char key\[4\];   
+
+void GetRealKey()   
+
+{   
+
+  int  i,k,j;   
+
+  char position\[\]="JrKYmF!.GXjWin-boca0NyEv3Lle4qHOwP2s87xUtQM1V56Ag9ZfkuDhzIpT#BCRSd =";   
+
+  char suiji\[\]="1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";   
+
+  k=0;j=0;   
+
+  for(i=0;i<=3;i++)   
+
+  {   
+
+    p\[i\]=rand()%61;   
+
+    key\[i\]=suiji\[p\[i\]\];   
+
+  }   
+
+  for(i=0;i<=3;i++)   
+
+  {   
+
+    while(key\[i\]!=position\[k\])   
+
+      {   
+
+        k++;   
+
+      }   
+
+    p\[j\]=k;   
+
+    k=0;   
+
+    j++;   
+
+  }   
+
+}   
+
+int main()   
+
+{   
+
+  int i;   
+
+  char mima\[\]=".-#!0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz=";   
+
+  char key1\[3\];   
+
+  printf("===========================================   
+
+");   
+
+  printf("KeyGen for CryptCD 3 mady by dengkeng\[DFCG\]   
+
+");   
+
+  printf("===========================================   
+
+");   
+
+  for(i=0;i<=7;i++)   
+
+  {   
+
+    GetRealKey();   
+
+    printf("TCX3-%c%c%c%c%c%c%c%c%c   
+
+",key\[rand()%3\],mima\[p\[0\]\],mima\[p\[1\]\],mima\[p\[2\]\],mima\[p\[3\]\],key\[0\],key\[1\],key\[2\],key\[3\]);   
+
+  }   
+
+  return 0;   
+
+}
+```
+
+### 注册码与来源
+
+给出注册码 `TCX3-1gXWj6789` 或者 `TCX31-gXWj6789`
+
+`Made By dengkeng[DFCG]`
+
+`E-mail: shellc0de@sohu.com`
+
+欢迎转载，请保持文章的完整性
+
+`4dd466d0e1e0cc123afbe504da2462ca`
