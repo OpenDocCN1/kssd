@@ -1,0 +1,227 @@
+
+## 汇编代码片段
+
+```
+0113EBE3    68 00010000     push 100
+0113EBE8    52              push edx
+0113EBE9    56              push esi
+0113EBEA    6A 00           push 0
+0113EBEC    8BCD            mov ecx,ebp
+0113EBEE    E8 5D040000     call 0113F050
+0113EBF3    85C0            test eax,eax
+0113EBF5    0F8C F4010000   jl 0113EDEF
+0113EBFB    8D4424 40       lea eax,dword ptr ss:[esp+40]
+0113EBFF    50              push eax
+0113EC00    FF15 94611401   call dword ptr ds:[1146194]       ; kernel32.LoadLibraryA
+0113EC06    85C0            test eax,eax
+```
+
+在`00401000`段“设置内存写入断点”。`F9`运行，中断后取消断点
+
+```
+0113F18C    C606 E9         mov byte ptr ds:[esi],0E9
+```
+
+//中断在这里，我们要在这里 `Patch`，否则壳会把输入表搞的乱七八糟
+//修改为：`jmp 114607D`  ★    跳到 `Patch` 代码处
+
+```
+0113F18F    2BC6            sub eax,esi
+0113F191    83C0 FB         add eax,-5
+0113F194    8946 01         mov dword ptr ds:[esi+1],eax
+0113F197    8B5424 14       mov edx,dword ptr ss:[esp+14]
+0113F19B    8B4424 20       mov eax,dword ptr ss:[esp+20]
+0113F19F    3D 2D8B0000     cmp eax,8B2D
+0113F1A4    893A            mov dword ptr ds:[edx],edi
+0113F1A6    0F8F 9C000000  jg 0113F248
+0113F1AC    0F84 86000000  je 0113F238
+0113F1B2    3D 158B0000     cmp eax,8B15
+0113F1B7    7F 68           jg short 0113F221
+0113F1B9    74 38           je short 0113F1F3
+0113F1BB    3D A1000000     cmp eax,0A1
+0113F1C0    74 1B           je short 0113F1DD
+0113F1C2    3D 0D8B0000     cmp eax,8B0D
+0113F1C7    0F85 D9000000   jnz 0113F2A6
+0113F1CD    8B4C24 10       mov ecx,dword ptr ss:[esp+10]
+0113F1D1    8D46 06         lea eax,dword ptr ds:[esi+6]
+0113F1D4    C601 8B         mov byte ptr ds:[ecx],8B
+0113F1D7    C641 01 0D      mov byte ptr ds:[ecx+1],0D
+0113F1DB    EB 24           jmp short 0113F201
+0113F1DD    8B4C24 10       mov ecx,dword ptr ss:[esp+10]
+0113F1E1    8D46 05         lea eax,dword ptr ds:[esi+5]
+0113F1E4    C601 A1         mov byte ptr ds:[ecx],0A1
+0113F1E7    8B5424 14       mov edx,dword ptr ss:[esp+14]
+0113F1EB    8951 01         mov dword ptr ds:[ecx+1],edx
+0113F1EE    83C1 05         add ecx,5
+0113F1F1    EB 18           jmp short 0113F20B
+0113F1F3    8B4C24 10       mov ecx,dword ptr ss:[esp+10]
+0113F1F7    8D46 06         lea eax,dword ptr ds:[esi+6]
+0113F1FA    C601 8B         mov byte ptr ds:[ecx],8B
+0113F1FD    C641 01 15      mov byte ptr ds:[ecx+1],15
+0113F201    8B5424 14       mov edx,dword ptr ss:[esp+14]
+0113F205    8951 02         mov dword ptr ds:[ecx+2],edx
+0113F208    83C1 06         add ecx,6
+0113F20B    2BC1            sub eax,ecx
+0113F20D    C601 E9         mov byte ptr ds:[ecx],0E9
+0113F210    83E8 05         sub eax,5
+0113F213    5F              pop edi
+0113F214    8941 01         mov dword ptr ds:[ecx+1],eax
+0113F217    5E              pop esi
+0113F218    33C0            xor eax,eax
+0113F21A    5B              pop ebx
+0113F21B    83C4 10         add esp,10
+0113F21E    C2 0C00         retn 0C
+0113F221    3D 1D8B0000     cmp eax,8B1D
+0113F226    75 7E           jnz short 0113F2A6
+0113F228    8B4C24 10       mov ecx,dword ptr ss:[esp+10]
+0113F22C    8D46 06         lea eax,dword ptr ds:[esi+6]
+0113F22F    C601 8B         mov byte ptr ds:[ecx],8B
+0113F232    C641 01 1D      mov byte ptr ds:[ecx+1],1D
+0113F236    EB C9           jmp short 0113F201
+0113F238    8B4C24 10       mov ecx,dword ptr ss:[esp+10]
+0113F23C    8D46 06         lea eax,dword ptr ds:[esi+6]
+0113F23F    C601 8B         mov byte ptr ds:[ecx],8B
+0113F242    C641 01 2D      mov byte ptr ds:[ecx+1],2D
+0113F246    EB B9           jmp short 0113F201
+0113F248    3D 15FF0000     cmp eax,0FF15
+0113F24D    7F 3D           jg short 0113F28C
+0113F24F    74 2C           je short 0113F27D
+0113F251    2D 358B0000     sub eax,8B35
+0113F256    74 15           je short 0113F26D
+0113F258    83E8 08         sub eax,8
+0113F25B    75 49           jnz short 0113F2A6
+0113F25D    8B4C24 10       mov ecx,dword ptr ss:[esp+10]
+0113F261    8D46 06         lea eax,dword ptr ds:[esi+6]
+0113F264    C601 8B         mov byte ptr ds:[ecx],8B
+0113F267    C641 01 3D      mov byte ptr ds:[ecx+1],3D
+0113F26B    EB 94           jmp short 0113F201
+0113F26D    8B4C24 10       mov ecx,dword ptr ss:[esp+10]
+0113F271    8D46 06         lea eax,dword ptr ds:[esi+6]
+0113F274    C601 8B         mov byte ptr ds:[ecx],8B
+0113F277    C641 01 35      mov byte ptr ds:[ecx+1],35
+0113F27B    EB 84           jmp short 0113F201
+0113F27D    8B4C24 10       mov ecx,dword ptr ss:[esp+10]
+0113F281    8D46 06         lea eax,dword ptr ds:[esi+6]
+0113F284    C601 FF         mov byte ptr ds:[ecx],0FF
+0113F287    E9 71FFFFFF     jmp 0113F1FD
+0113F28C    3D 25FF0000     cmp eax,0FF25
+0113F291    75 13           jnz short 0113F2A6
+0113F293    8B4C24 10       mov ecx,dword ptr ss:[esp+10]
+0113F297    8D46 06         lea eax,dword ptr ds:[esi+6]
+0113F29A    C601 FF         mov byte ptr ds:[ecx],0FF
+0113F29D    C641 01 25      mov byte ptr ds:[ecx+1],25
+0113F2A1    E9 5BFFFFFF     jmp 0113F201
+0113F2A6    5F              pop edi
+0113F2A7    C743 08 152700> mov dword ptr ds:[ebx+8],2715
+0113F2AE    5E              pop esi
+0113F2AF    83C8 FF         or eax,FFFFFFFF
+0113F2B2    5B              pop ebx
+0113F2B3    83C4 10         add esp,10
+0113F2B6    C2 0C00         retn 0C
+```
+
+看上面的输入表处理流程，应该明白为何说和某壳很像了吧？
+
+外挂克星相当于在比泰软件防盗版战士上增加了诸多反调试。
+
+## Patch 处理，避开输入表加密
+
+现在我们要找两个地方：
+
+1. `Patch`代码存放地址。选择`Patch`代码存放的地址时候要小心，小心异常，我选择`0114607D`处
+2. 跳转表存放地址。这里的地址要保证是程序中不被占用的空白处，我选择放在`004E9000`处。
+
+```
+0114607D    53              push ebx
+0114607E    3E:8B5C24 7C    mov ebx,dword ptr ds:[esp+7C]
+```
+
+//`[esp+7C]`处保存的是处理 `DLL` 的基址 ★
+
+```
+01146083    3B1D 00B44E00   cmp ebx,dword ptr ds:[4EB400]
+```
+
+//提前在`[4EB400]`处写入当前第一次处理 `DLL` 的基址 ★
+
+//这样比较前后 2 次处理的函数是否是同一个 `DLL` 的
+
+```
+01146089    74 0D           je short 01146098
+0114608B    891D 00B44E00   mov dword ptr ds:[4EB400],ebx
+01146091    8305 04B44E00 0> add dword ptr ds:[4EB404],4
+```
+
+//提前在`[4EB404]`处写入准备放跳转地址的地址`004E9000` ★
+
+```
+01146098    3B3D 08B44E00   cmp edi,dword ptr ds:[4EB408]
+```
+
+//第一个函数过后在`[4EB408]`处写入第一个函数的地址，判断函数是否重复
+
+```
+0114609E    74 0D           je short 011460AD
+011460A0    893D 08B44E00   mov dword ptr ds:[4EB408],edi
+011460A6    8305 04B44E00 0> add dword ptr ds:[4EB404],4
+011460AD    3E:8B5C24 24    mov ebx,dword ptr ds:[esp+24]
+```
+
+//`[esp+24]`是壳放置的命令类型代码！ ★
+
+```
+011460B2    81FB A1000000   cmp ebx,0A1
+```
+
+//有一个单字节的，所以需要单独提出来
+
+```
+011460B8    74 11           je short 011460CB
+011460BA    86FB            xchg bl,bh
+```
+
+//前后位调换
+
+```
+011460BC    891E            mov dword ptr ds:[esi],ebx
+```
+
+//命令类型写入
+
+```
+011460BE    8B1D 04B44E00   mov ebx,dword ptr ds:[4EB404]
+011460C4    893B            mov dword ptr ds:[ebx],edi
+```
+
+//正确函数写入 ★
+
+```
+011460C6    895E 02         mov dword ptr ds:[esi+2],ebx
+```
+
+//跳转地址写入 ★
+
+```
+011460C9    EB 0D           jmp short 011460D8
+011460CB    891E            mov dword ptr ds:[esi],ebx
+011460CD    8B1D 04B44E00   mov ebx,dword ptr ds:[4EB404]
+011460D3    893B            mov dword ptr ds:[ebx],edi
+011460D5    895E 01         mov dword ptr ds:[esi+1],ebx
+011460D8    5B              pop ebx
+011460D9    E9 B990FFFF     jmp 0113F197
+```
+
+//跳回去继续流程
+
+从 `Ollydbg` 中“二进制复制”如下：
+
+```
+53 3E 8B 5C 24 7C 3B 1D 00 B4 4E 00 74 0D 89 1D 00 B4 4E 00 83 05 04 B4 4E 00 04 3B 3D 08 B4 4E
+00 74 0D 89 3D 08 B4 4E 00 83 05 04 B4 4E 00 04 3E 8B 5C 24 24 81 FB A1 00 00 00 74 11 86 FB 89
+1E 8B 1D 04 B4 4E 00 89 3B 89 5E 02 EB 0D 89 1E 8B 1D 04 B4 4E 00 89 3B 89 5E 01 5B E9 B9 90 FF
+FF
+```
+
+这样处理后，所有的函数不再重复累赘，可以用 `ImportRec` 顺利获取了。
+
+外挂克星主程序的 `Patch` 处理一样，也可以取得壳对应表后写代码修复。
