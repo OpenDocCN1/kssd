@@ -1,0 +1,174 @@
+
+# 恢复 KiFastCallEntry 的 hook，用任务管理器结束 360
+
+> 原文：[`www.pediy.com/kssd/pediy12/136070.html`](https://www.pediy.com/kssd/pediy12/136070.html)
+
+今天闲来无事，打开任务管理器，想结束 `360` 的进程，怎料只听噔的一声，弹出一对话框，提示无法结束该进程...
+
+为啥结束不了它的进程呢？我便有了一探究竟的想法。研究了半天，发现原来是 `360` hook 了 `KiFastCallEntry` 这个函数。我打开 `XueTr`，恢复了这个 inline hook，可怎想一刷新还有这个 hook![](img/d23858dd221cce728a3a61b46badb044.jpg "恐怖!")，我想一定是 `360` 通过什么方法来检测 hook 是否被还原。不管它，先进入他跳转的地址看看。进来一看又是一个跳转，再跟进才是它真正的过滤函数。我想让第二个跳转跳转到中转函数，然后再跳到原来地址加 5 的地方继续执行，应该可以恢复了这个 hook。
+
+我郁闷，不会插图片，蛋疼了...![](img/d23858dd221cce728a3a61b46badb044.jpg "恐怖!")![](img/d23858dd221cce728a3a61b46badb044.jpg "恐怖!")
+
+开始想用 `MmGetSystemRoutineAddress` 直接得到这个函数的地址，可这个函数是个未导出函数，由于本人很菜，没别的办法，我只会通过这个特征码搜索这个函数的地址，那么看代码吧。
+
+```cpp
+#include "Driver.h"
+
+#define SystemModuleInformation 11
+
+ULONG Address;
+
+extern "C" NTSTATUS NTAPI ZwQuerySystemInformation(
+                                                IN ULONG SystemInformationClass,
+                                                IN OUT PVOID SystemInformation,    
+                                                IN ULONG SystemInformationLength, 
+                                                OUT PULONG ReturnLength            
+                                                );
+
+typedef struct _SYSTEM_MODULE_INFORMATION_ENTRY {
+HANDLE Section;
+PVOID MappedBase;
+PVOID Base;
+ULONG Size;
+ULONG Flags;
+USHORT LoadOrderIndex;
+USHORT InitOrderIndex;
+USHORT LoadCount;
+USHORT PathLength;
+CHAR ImageName[256];
+} SYSTEM_MODULE_INFORMATION_ENTRY, *PSYSTEM_MODULE_INFORMATION_ENTRY;
+
+typedef struct _SYSTEM_MODULE_INFORMATION {
+ULONG Count;
+SYSTEM_MODULE_INFORMATION_ENTRY Module[1];
+} SYSTEM_MODULE_INFORMATION, *PSYSTEM_MODULE_INFORMATION;
+
+ULONG getAddress(ULONG ntosknlBase,ULONG ntosknlEndAddr)//根据特征码搜出被 HOOK 的地址
+{
+  ULONG code1_sp2=0x01244c80,code2_sp2=0xff1b6a02,code3_sp2=0xdf030435,code4_sp2=0x55006aff,i;
+  for(i=ntosknlBase;i<=ntosknlEndAddr;i++)
+  {
+    if(*(PULONG)i==code1_sp2 && (*(PULONG)(i+4))==code2_sp2 && (*(PULONG)(i+8))==code3_sp2 && (*(PULONG)(i+12))==code4_sp2)
+    {
+      return i-0x20;
+    }
+  }
+}
+
+_declspec(naked) myFunction() //中转函数，跳到被 hook 的地址加 5 的地方继续执行
+{
+  ULONG jmpAddress;
+  jmpAddress=Address+5;
+  _asm
+  {
+    sub   esp,ecx
+    shr   ecx,2
+    jmp   jmpAddress
+  }
+}
+
+void hooking(ULONG jmpCode,ULONG Address2)  //hook 函数，把第二个跳转地址改成中转函数的地址
+{
+  KIRQL oldIRQL;
+  UCHAR Jmp[5] = {0xE9,0,0,0,0};   
+  *(ULONG *)(Jmp+1)=jmpCode;
+  oldIRQL=KeRaiseIrqlToDpcLevel();
+  _asm
+  {
+    cli
+    mov eax,cr0
+    and eax,not 10000h
+    mov cr0,eax
+  }
+  RtlCopyMemory((PUCHAR)Address2,Jmp,5);
+  _asm
+  {
+    mov eax,cr0
+    or eax,10000h
+    mov cr0,eax
+    sti
+  }
+  KeLowerIrql(oldIRQL);
+  DbgPrint("hook successful\n");
+  return;
+}
+
+ULONG GetUndocumentFunctionAddress() \\根据特征码，搜索出 KiFastCallEntry 的地址
+{
+  ULONG i,Modcnt=0;
+  ULONG size,index;
+  PULONG buf;
+  PSYSTEM_MODULE_INFORMATION module;
+  PSYSTEM_MODULE_INFORMATION_ENTRY pSysModuleInfo,pModInfo;
+  ULONG ntosknlBase;
+  ULONG ntosknlEndAddr;
+  ULONG funAddr;
+  NTSTATUS status;
+  ZwQuerySystemInformation(SystemModuleInformation,&size,0,&size);
+  if(NULL==(buf=(PULONG)ExAllocatePool(PagedPool,size)))
+  {
+    DbgPrint("failed alloc memory\n");
+    return 0;
+  }
+  status=ZwQuerySystemInformation(SystemModuleInformation,buf,size,0);
+  if(!NT_SUCCESS(status))
+  {
+    DbgPrint("failed query\n");
+    return 0;
+  }
+  pSysModuleInfo=(PSYSTEM_MODULE_INFORMATION_ENTRY)((PULONG)buf+1);
+      DbgPrint("%d\t0x%08X 0x%08X %s\n",pSysModuleInfo->LoadOrderIndex,pSysModuleInfo->Base,pSysModuleInfo->Size,pSysModuleInfo->ImageName);
+          ntosknlBase = (ULONG)pSysModuleInfo->Base;
+          ntosknlEndAddr = pSysModuleInfo->Size+ntosknlBase;
+          funAddr=getAddress(ntosknlBase,ntosknlEndAddr);
+      for(i=funAddr;i<funAddr+0x200;i++)
+      {
+        if((*(PULONG)(i-4)==0x1c8b3f8b) && (*(PULONG)(i-8)==0x180c8ac9))
+        {
+          DbgPrint("the hook  Address is %x\n",i+1);
+          return i+1;
+        }
+      }
+}
+
+void unhook(ULONG Address)
+{
+  ULONG Address2,Address3,jmpCode;
+  if((UCHAR)(*(PULONG)Address)==0xe9)//如果被 hook 了则执行下面代码
+  {
+    DbgPrint("the function bei hook\n");
+    Address2=*(PULONG)(Address+1)+Address+5;
+    DbgPrint("the jump Address is %x\n",Address2);
+    jmpCode=(ULONG)myFunction-Address2-5;
+    DbgPrint("the jmpCode is %x\n",jmpCode);
+    hooking(jmpCode,Address2);
+  }
+  else //没有被 HOOK 打出下面一句话
+  {
+    DbgPrint("no hook\n");
+  }
+}
+
+//主函数
+
+#pragma INITCODE
+extern "C" NTSTATUS DriverEntry (
+      IN PDRIVER_OBJECT pDriverObject,
+      IN PUNICODE_STRING pRegistryPath  ) 
+{
+  DbgPrint("Enter DriverEntry\n");
+  Address=GetUndocumentFunctionAddress();
+  unhook(Address);
+  DbgPrint("leave DriverEntry\n");
+  return STATUS_SUCCESS;
+}
+
+#pragma PAGEDCODE
+
+VOID HelloDDKUnload (IN PDRIVER_OBJECT pDriverObject) 
+{
+  DbgPrint("leave unload!!!\n");
+}
+```
+
+编译运行后，果然在任务管理器里能结束 `360` 的进程了，达到了预期的效果，没有技术含量，大牛们别笑话。

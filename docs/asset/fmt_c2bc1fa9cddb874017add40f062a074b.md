@@ -1,0 +1,129 @@
+
+# 远程卸载 DLL 代码
+
+> 原文：[`www.pediy.com/kssd/pediy10/70491.html`](https://www.pediy.com/kssd/pediy10/70491.html)
+
+代码:
+
+```
+BOOL UnLoadModules( LPCTSTR processname , LPCTSTR modulename)
+{
+HANDLE hModuleSnap = INVALID\_HANDLE\_VALUE;
+MODULEENTRY32 me32;
+HANDLE hpro;
+DWORD modulebase;
+DWORD pid=GetProcessIdByName(processname);
+
+hpro= OpenProcess
+  (
+  PROCESS\_ALL\_ACCESS,
+  TRUE,
+  pid
+       );
+
+hModuleSnap = CreateToolhelp32Snapshot( TH32CS\_SNAPMODULE, pid );
+if( hModuleSnap == INVALID\_HANDLE\_VALUE )
+{
+
+  return( FALSE );
+}
+
+me32.dwSize = sizeof( MODULEENTRY32 );
+
+if( !Module32First( hModuleSnap, &me32 ) )
+{
+
+  CloseHandle( hModuleSnap );
+  return( FALSE );
+}
+
+do
+{
+printf( "\n\n     MODULE NAME:     %s",         me32.szModule );
+  printf( "\n     executable     = %s",         me32.szExePath );
+  printf( "\n     process ID     = 0x%08X",     me32.th32ProcessID );
+  printf( "\n     ref count (g) =     0x%04X",   me32.GlblcntUsage );
+  printf( "\n     ref count (p) =     0x%04X",   me32.ProccntUsage );
+  printf( "\n     base address   = 0x%08X", (DWORD) me32.modBaseAddr );
+  printf( "\n     base size      = %d",         me32.modBaseSize );
+
+
+if(!strcmpi(me32.szModule, modulename))
+{
+modulebase=(DWORD)me32.modBaseAddr;
+printf("module :%s found at :%x\n",modulename,modulebase);
+break;
+
+}
+
+} while( Module32Next( hModuleSnap, &me32 ) );
+
+ZwUnmapViewOfSection(hpro,(DWORD)modulebase);
+CloseHandle( hModuleSnap );
+return( TRUE );
+}
+
+DWORD GetProcessIdByName(LPCTSTR name)
+{
+
+PROCESSENTRY32 prostruct;
+  DWORD id = 0;
+  HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS\_SNAPPROCESS,0);
+  prostruct.dwSize = sizeof(PROCESSENTRY32);
+
+if(!Process32First(hSnapshot,&prostruct))
+  return 0;
+
+do
+
+{
+  prostruct.dwSize = sizeof(PROCESSENTRY32);
+        if(!Process32Next(hSnapshot,&prostruct))
+           break;
+
+  if(strcmp(prostruct.szExeFile,name) == 0)
+
+  {
+   id = prostruct.th32ProcessID;
+   break;
+  }
+
+}while(TRUE);
+
+CloseHandle(hSnapshot);
+return id;
+}
+
+ZwUnmapViewOfSection 这个 NTDLL 中的函数的地址自己用 GetProcAddress 就可以得到引用了
+```
+
+其实就是用`NtUnmapViewOfSection()`卸载处理目标进程 DLL 的基址，所以精简一下，写成函数是这样：
+
+```
+// 输入参数：dwProcessId = 目标进程 ID，dwBaseAddr = DLL 基址
+
+function UnmapViewOfModule(dwProcessId: DWORD; dwBaseAddr: DWORD): DWORD;
+
+var
+  hModule, hProcess: THandle;
+  NtUnmapViewOfSection: function (ProcessHandle: DWORD; BaseAddress: Pointer): DWORD; stdcall;
+
+begin
+  hModule := GetModuleHandle('ntdll.dll');
+  if (hModule = 0) then
+    hModule := LoadLibrary('ntdll.dll');
+  @NtUnmapViewOfSection := GetProcAddress( hModule, 'NtUnmapViewOfSection');
+  hProcess := OpenProcess( PROCESS\_ALL\_ACCESS, TRUE, dwProcessId );
+  Result := NtUnmapViewOfSection( hProcess, Pointer(dwBaseAddr) );
+  CloseHandle( hProcess );
+  FreeLibrary(hModule);
+end;
+```
+
+设置一下`dwBaseAddr`就行了，调用起来也就两句话：
+
+```
+tmpModule := LoadLibrary('ntdll.dll');     // 卸载目标进程的 ntdll.dll
+
+UnmapViewOfModule(<目标进程 ID>, tmpModule);  // 效果是直接杀死目标进程
+```
