@@ -1,0 +1,268 @@
+
+```asm
+008F48A8  ^ EB E1          JMP SHORT XieXieMa.008F488B
+
+008F48AA    61             POPAD
+
+008F48AB    61             POPAD
+
+008F48AC    837C24 04 FF  CMP DWORD PTR SS:[ESP+4],-1
+
+008F48B1    74 06         JE SHORT XieXieMa.008F48B9         ; // 第一个参数为 -1, ACProtect SDK
+
+008F48B3    90            NOP
+
+008F48B4    90            NOP
+
+008F48B5    90            NOP
+
+008F48B6    90            NOP
+
+008F48B7    FFE0          JMP EAX                            ; // 普通 Messagebox
+
+008F48B9    C2 1000       RETN 10                            ; // 返回到 4090A9
+
+// 注意刚才复制的代码就是从 4090AB 开始 (3445 字节）到 1455E8
+
+// 这就是 Embedded 本身壳代码和加密后用户代码, 保留到堆,  当 Embedded Protect 结束, 恢复原状时要用
+
+004090A9    61            POPAD
+
+004090AA    60            PUSHAD
+
+004090AB    60            PUSHAD
+
+004090AC    48            DEC EAX
+
+004090AD    45            INC EBP
+
+004090AE    F9            STC
+
+...
+
+0040913C   ^ F85 DDFFFFFF JNZ Xie.0040911F
+
+00409142  . E8 00000000   CALL Xie.00409147
+
+// 这里又有很多 SMC , 查找 0F85 XXFFFFFF
+
+// 可下硬件执行断点的有 40918D, 409297, 409395, 409570, 409603, 40965E, 4096AE
+
+0040969F     81EA FCFFFFFF     SUB EDX,-4
+
+004096A5     83C5 FF           ADD EBP,-1
+
+004096A8   ^ 0F85 DFFFFFFF     JNZ Xie.0040968D
+
+004096AE     E9 F41D0000       JMP Xie.0040B4A7
+
+0040B4A7     E8 B3FDFFFF       CALL Xie.0040B25F         ;  // F7
+
+0040B25F     60              PUSHAD
+
+0040B260     45              INC EBP
+
+0040B261     F9              STC
+
+...
+
+0040B3EF   ^ F85 6DFFFFFF JNZ Xie.0040B362
+
+0040B3F5     E8 01000000   CALL Xie.0040B3FB
+
+0040B3FB  ? 830424 06     ADD DWORD PTR SS:[ESP],6
+
+0040B3FF     C3              RETN
+
+0040B400     66:C1CE BE    ROR SI,0BE                 ;  Shift constant out of range 1..31
+
+0040B404     77 04         JA SHORT Xie.0040B40A
+
+0040B406     66:BA 9E9F    MOV DX,9F9E
+
+0040B40A     E8 D5F9FFFF   CALL Xie.0040ADE4               ;  // F7
+
+0040ADE4    ...
+
+//SMC
+
+0040AF87    C1FB 8A        SAR EBX,8A                    ; Shift constant out of range 1..31
+
+0040AF8A    BB 745319E0    MOV EBX,E0195374
+
+0040AF8F    E8 4EEBFFFF    CALL XieXieMa.00409AE2           ; // EBP = 80AB
+
+0040AF94    C685 392D4000 C>MOV BYTE PTR SS:[EBP+402D39],0C3
+
+0040AF9B    E8 00000000    CALL XieXieMa.0040AFA0
+
+0040AFA0    5B            POP EBX
+
+0040AFA1    2BDD          SUB EBX,EBP
+
+0040AFA3    81EB F51E0000 SUB EBX,1EF5
+
+0040AFA9    8BF3          MOV ESI,EBX
+
+0040AFAB    4E            DEC ESI
+
+0040AFAC    66:8B16       MOV DX,WORD PTR DS:[ESI]
+
+0040AFAF    66:81FA 4D5A  CMP DX,5A4D                   ; // "MZ"
+
+0040AFB4  ^ 75 F5        JNZ SHORT XieXieMa.0040AFAB     ; // 在 PE 头中找 "MZ"
+
+0040AFB6    0FB756 3C     MOVZX EDX,WORD PTR DS:[ESI+3C]  ; // EDX = E8, 指向 PE
+
+0040AFBA    66:F7C2 00F0 TEST DX,0F000
+
+0040AFBF  ^ 75 EA        JNZ SHORT XieXieMa.0040AFAB
+
+0040AFC1    0FB70C16      MOVZX ECX,WORD PTR DS:[ESI+EDX]
+
+0040AFC5    81F9 50450000 CMP ECX,4550                   ; // "PE"
+
+0040AFCB  ^ 75 DE        JNZ SHORT XieXieMa.0040AFAB
+
+0040AFCD    89B5 F8194000 MOV DWORD PTR SS:[EBP+4019F8],ESI      ; // 400000
+
+0040AFD3    8BFE          MOV EDI,ESI
+
+0040AFD5    03FA          ADD EDI,EDX                  ; // 4000E8
+
+0040AFD7    8B47 50       MOV EAX,DWORD PTR DS:[EDI+50]    ; // ImageSize  = 50CDD0
+
+0040AFDA    03C6          ADD EAX,ESI                  ; // ImageSize  + 400000
+
+0040AFDC    8985 F0194000 MOV DWORD PTR SS:[EBP+4019F0],EAX      ; // Save in 409A9B
+
+0040AFE2    8B47 1C       MOV EAX,DWORD PTR DS:[EDI+1C]    ; // SizeOfCode = 50C000
+
+0040AFE5    03C6          ADD EAX,ESI                  ; // SizeOfCode + 400100
+
+0040AFE7    05 00010000    ADD EAX,100
+
+0040AFEC    8985 F4194000 MOV DWORD PTR SS:[EBP+4019F4],EAX      ; // Save in 409A9F
+
+0040AFF2    8B47 28       MOV EAX,DWORD PTR DS:[EDI+28]    ; // OEP = 4E8000
+
+0040AFF5    3B85 E8194000 CMP EAX,DWORD PTR SS:[EBP+4019E8]      ; // [409A93] = 9BF0A
+
+0040AFFB    74 15        JE SHORT XieXieMa.0040B012      ; // 可以见到敏感数据有: ImageSize, CodeSize, OEP
+
+0040AFFD    90            NOP
+
+0040AFFE    90            NOP
+
+0040AFFF    90            NOP
+
+0040B000    90            NOP
+
+0040B001    3B85 EC194000 CMP EAX,DWORD PTR SS:[EBP+4019EC]      ; // [409A97] = 4E8000
+
+0040B007    75 09        JNZ SHORT XieXieMa.0040B012
+
+0040B009    90            NOP
+
+0040B00A    90            NOP
+
+0040B00B    90            NOP
+
+0040B00C    90            NOP
+
+0040B00D    EB 05        JMP SHORT XieXieMa.0040B014      ; // SMC 加密代码(Dynamic End)
+
+0040B014    60            PUSHAD
+
+0040B015    E8 00000000   CALL XieXieMa.0040B01A
+
+0040B01A    5E            POP ESI
+
+0040B01B    83EE 06       SUB ESI,6
+
+0040B01E    B9 85000000   MOV ECX,85
+
+0040B023    29CE          SUB ESI,ECX
+
+0040B025    BA B2DC5B11   MOV EDX,115BDCB2
+
+0040B02A    C1E9 02       SHR ECX,2
+
+0040B02D    83E9 02       SUB ECX,2
+
+0040B030    83F9 00       CMP ECX,0
+
+0040B033    7C 1A        JL SHORT XieXieMa.0040B04F
+
+0040B035    8B048E        MOV EAX,DWORD PTR DS:[ESI+ECX*4]
+
+0040B038    8B5C8E 04     MOV EBX,DWORD PTR DS:[ESI+ECX*4+4]
+
+0040B03C    33C3          XOR EAX,EBX
+
+0040B03E    C1C8 12       ROR EAX,12
+
+0040B041    03C2          ADD EAX,EDX
+
+0040B043    81C2 A7DC7C20 ADD EDX,207CDCA7
+
+0040B049    89048E        MOV DWORD PTR DS:[ESI+ECX*4],EAX
+
+0040B04C    49            DEC ECX
+
+0040B04D  ^ EB E1        JMP SHORT XieXieMa.0040B030
+
+0040B04F    61            POPAD
+
+0040B050    61            POPAD
+
+0040B051    C3            RETN                         ; // return to 40B40F
+
+0040B40F     E8 CEE6FFFF  CALL Xie.00409AE2            ; // F8 , EBP = 80AB
+
+0040B414     C685 B4314000>MOV BYTE PTR SS:[EBP+4031B4],0C3    ; // 将 40B25F 处指令改成 RETN, 下次不再执行
+
+0040B41B     8DB5 A5404000 LEA ESI,DWORD PTR SS:[EBP+4040A5]
+
+0040B421     46           INC ESI
+
+0040B422     3BB5 F0194000 CMP ESI,DWORD PTR SS:[EBP+4019F0]      ;  Xie.0090CDD0
+
+0040B428     77 36        JA SHORT Xie.0040B460
+
+0040B42A     90           NOP
+
+0040B42B     90           NOP
+
+0040B42C     90           NOP
+
+0040B42D     90           NOP
+
+0040B42E   8B06           MOV EAX,DWORD PTR DS:[ESI]
+
+0040B430   3D 52455452   CMP EAX,52544552                 ; // "RETR"
+
+0040B435  ^ 75 EA        JNZ SHORT XieXieMa.0040B421      ; // ESI = 8F44D1 才找到
+
+0040B437   8B46 04       MOV EAX,DWORD PTR DS:[ESI+4]
+
+0040B43A   3D 49564150   CMP EAX,50415649                 ; // "IVAP"
+
+0040B43F  ^ 75 E0        JNZ SHORT XieXieMa.0040B421
+
+0040B441   8B46 08       MOV EAX,DWORD PTR DS:[ESI+8]
+
+0040B444   3D 495A4346   CMP EAX,46435A49                 ; // "IZCF"
+
+0040B449  ^ 75 D6        JNZ SHORT XieXieMa.0040B421      ; // "RETRIVAPIZCF"
+
+0040B44B   83C6 0E       ADD ESI,0E                    ; // ESI = 8F44DF
+
+0040B44E   8DBD 4C194000 LEA EDI,DWORD PTR SS:[EBP+40194C]      ; // EDI = 4099F7
+
+0040B454   B9 26000000   MOV ECX,26
+
+0040B459   F3:A5        REP MOVS DWORD PTR ES:[EDI],DWORD PTR DS:[ESI]  ;// 壳所用的函数, 检测调试器用
+
+008F4361  00 00 4B 45 52 4E 45 4C 33 32 2E 44 4C 4C 00 47  ..KERNEL32.DLL.G
+```
