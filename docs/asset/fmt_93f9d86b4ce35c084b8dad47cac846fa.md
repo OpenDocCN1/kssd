@@ -1,0 +1,52 @@
+
+# Ap Document To PDF V2.1 算法分析
+
+> 原文：[`www.pediy.com/kssd/pediy10/73234.html`](https://www.pediy.com/kssd/pediy10/73234.html)
+
+## 元数据
+
+- **破文标题**：Ap Document To PDF V2.1 算法分析
+- **破文作者**：tianxj
+- **作者邮箱**：`tianxj_2007@126.com`
+- **作者主页**：`WwW.ChiNaPYG.CoM`
+- **破解工具**：`PEiD`, `OD`
+- **破解平台**：`Windows XP sp2`
+- **软件名称**：`Ap Document To PDF V2.1`
+- **软件大小**：1.3 MB
+- **软件语言**：英文
+- **软件类别**：国外软件 / 共享软件 / 文字处理
+- **更新时间**：2007-01-18
+- **原版下载**：自己找一下
+- **保护方式**：注册码
+
+## 软件简介
+
+文档转换工具。可以将你的文档批量转换成可搜索的 `PDF` 文件。允许将任何 `windows` 应用程序的文档转换成上百种文件类型，包括可搜索的 `PDF`, `DOC`, `TIFF`, `JPEG`, `RTF`, `HTML` 等等。只要应用程序支持打印功能，就能转换成 `PDF` 文档。对于 `PDF` 文档，甚至提供了多种选项：字体嵌入、分辨率、页面尺寸、文档信息、安全书签、自动链接、多语言等。是制作专业级 `PDF` 文档的最佳选择。
+
+## 其他说明
+
+`Picture To Video Converter` 图片视频转换器的应用被设计为一个易于使用的工具，加入图片一起视频过渡效果。
+
+## 破解声明
+
+我是一只小菜鸟，偶得一点心得，愿与大家分享：）
+
+## 破解内容
+
+一、运行程序，进行注册，输入错误的注册信息进行检测，有提示信息：
+
+`"Series number error,please check it and try again."`
+
+二、用 `PEiD` 对 `ApDocToPDF.exe` 查壳，为 `ASPack 2.12 -> Alexey Solodovnikov`
+
+三、带壳调试，运行 `OD`，打开 `ApDocToPDF.exe`，输入注册信息，`F12` 暂停，`alt+K` 调用堆栈，项目 14
+
+```
+地址=0012F0D8 
+堆栈=00409317 
+程序过程 / 参数=? ApDocToP.004C22F8 
+调用来自=ApDocToP.00409312 
+结构=0012F0D4 
+```
+
+代码:
