@@ -1,0 +1,42 @@
+
+# 联众俄罗斯方块
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50375.htm`](https://www.pediy.com/kssd/pediy05/pediy50375.htm)
+
+```
+int buf[10][20];
+HWND wnd1;
+HANDLE ID;
+DWORD Pid;
+int i;
+unsigned long len;
+long *m_addr; //联众俄罗斯方块的关键数组地址
+m_addr = (long *) 0x677d68;
+::memset(buf,0,800);
+if( (wnd1 = ::FindWindow(NULL,"联众俄罗斯方块(网络版)"))==NULL)
+{
+  AfxMessageBox("联众俄罗斯方块(网络版)未运行!");
+  return;
+}
+::GetWindowThreadProcessId(wnd1,&Pid);
+ID=::OpenProcess(PROCESS_ALL_ACCESS,false,Pid);
+if(ID)
+{
+  ::ReadProcessMemory(ID,m_addr,buf,800,&len);//将俄罗斯方块的数据读入 buf 数组中
+  for(i=0;i<10;i++)//以下让最底的 4 行全满。
+  {
+    if(buf[i][19]==0) buf[i][19]=1;//数组的值代表不同颜色的方块
+    if(buf[i][18]==0) buf[i][18]=2;
+    if(buf[i][17]==0) buf[i][17]=3;
+    if(buf[i][16]==0) buf[i][16]=4;
+  }
+  ::WriteProcessMemory(ID,m_addr,buf,800,&len);//将处理过的值再次写入俄罗斯方块中。对方一定死翘翘了。
+  ::CloseHandle(ID);
+  ::BringWindowToTop(wnd1);
+}
+```
+
+这是以前写的。现在不知俄罗斯方块升级了没有。
+
+业余编程，高手莫笑。
+`4dd466d0e1e0cc123afbe504da2462ca`

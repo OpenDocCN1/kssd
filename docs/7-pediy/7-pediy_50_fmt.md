@@ -1,0 +1,173 @@
+
+# 从游戏中得到动态内存数据
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50350.htm`](https://www.pediy.com/kssd/pediy05/pediy50350.htm)
+
+sbsummer（原作）
+
+各位朋友大家好，嗷嗷，我第一次在这里发文章，好高兴
+
+本人技术有限，不要笑话，如有错误请您告诉我一声[em09]。
+
+刚才我玩了几把疯狂坦克，输了好几盘，觉得无聊就搞搞这个，下面开始说说如何得到游戏中的动态数据（地址改变），以得到疯狂坦克中坦克 X 坐标为例
+
+---
+
+工具：
+
+`SoftICE` 动态调试程序，游戏修改工具（金山游侠），反汇编（`W32Dasm`），`Hex Workshop`
+
+---
+
+### 一、找到内存中坦克 X 坐标
+
+1. 用金山游侠搜索，方法如下（金山游侠的使用我就不说了）
+    把坦克往左移动一些，就搜索“减少”；坦克往右移动，就搜索“增大”
+    反复搜索将会找到一个地址（当然其他游戏可能不止一个），这里是`08BFAACC`
+    注：动态的内存分配就是下次你如果再次搜索，地址将不再是`08BFAACC`
+
+2. 找到那条代码修改了这个数据（X 坐标）
+    加载`SoftIce`
+    在游戏状态`Ctrl+D`调出`SoftIce`，输入`BPM 08BFAACC W`，这里的`W`表示如果这个地址被写将中断
+    回到游戏，移动坦克，左移一下，程序中断，`SoftIce`指向的上面一句是
+    `004640B3 MOV DWORD PTR [ESI+000001A4],EAX`
+    这句就是修改坦克坐标的代码，当然右移也能找到一句，这里就不重复了
+
+3. 修改程序使动态的数据变成静态
+    这里说点题外话，修改程序包括两种，一种是直接修改程序，一种是修改内存中的程序（内存补丁），这里由于我懒，所以用了第一种
+    修改程序：
+    疯狂坦克程序存在`Fortress2.dat`当中，如果你把这个文件改名为`EXE`文件一样可以运行，这里我们就把他修改成`Fortress2.exe`
+    打开`W32Dasm`反汇编，`SHIFT+F12`跳到`004046B3`，你看到这几行
+    `004046B3 8986A4010000    MOV DWORD PTR [ESI+000001A4],EAX`
+    `004046B9 8B8644020000    MOV EAX,DWORD PTR [ESI+00000244]`
+    `004046BF C744241001000000 MOV [ESP+10],00000001`
+    刚才我们说了`004046B3`是修改 X 坐标的那条语句，现在我们要让他每次修改完程序就能够把 X 坐标存储到一个固定的地址
+    现在要让它运行到这里就`JMP`到一个我们自己的代码的地方，于是在程序的尾部我们找到一段空白的区域`00465A52`，于是我修改`004046BF`为代码`JMP 00465A52`，机器码为`E98E130600`，因为这句的长度不够以前的那句长，所以要加入几个`NOP`，机器码为`90`，所以我们打开`HEX Workshop`修改程序，`CTRL+G`跳到位移为`000046BF`的地方，看到了`C744241001000000`，我们把它修改为`E98E130600909090`，现在程序将一运行到这里就跳到`00465A52`运行我们的代码。
+
+4. 实现我们自己的代码，然后跳回
+    我们的代码要做的是把动态变成静态，
+    `PUSH EAX`
+    `MOV EAX,[ESI+000001A4]`
+    `MOV [00470000],EAX`
+    `POP EAX`
+    `JMP 004046C7`
+    这样这个数值无论运行多少次，只要你移动（当然右移也要修改）就能在`00470000`中找到 X 坐标，这段机器码为`50 8B86A4010000 A300004700 58 E95BECF9FF`
+    忘了说刚才我们把`004046BF`替换掉的那句`MOV [ESP+10],00000001`也必须加上，所以打开`HEX Workshop,CTRL+G`跳到`00465A52`，修改加入
+    `C744241001000000 50 8B86A4010000 A300004700 58 E95BECF9FF`
+    这样动态数据就变成了静态
+
+---
+
+现在回顾一下
+
+.首先搜索坐标地址
+.找到改变这个地址的代码
+.修改代码让他跳到自己的代码中运行
+.在程序的空白段加入自己的代码，当然要补上被替换了的那句，还有修改了寄存器，必须先`PUSH,`再`POP`
+
+下面的工作就是写一个程序读取这个地址了，我用 VC 写了一个，顺便贴一下关键代码
+
+```cpp
+CProcess m_process;
+
+bool m_ret = m_process.FindProcess("FortressII");
+
+if (m_ret)
+
+{
+
+  BYTE tank1xL = m_process.ReadByte(0x00470000);
+
+  BYTE tank1xR = m_process.ReadByte(0x00470001);
+
+  WORD tank1x = tank1xL+tank1xR*256;
+
+  temp = tank1x;
+
+  str.Format("%d",temp);
+
+  m_tank1x=str;
+
+  UpdateData(FALSE);
+
+  return TRUE;
+
+}
+
+else return FALSE;
+```
+
+`CProcess` 是一个我编写的修改类，这里用到的函数代码如下
+
+```cpp
+HANDLE CProcess::OpenProcess(char *p_ClassName, char *p_WindowTitle)
+
+{
+
+HWND hWindow;
+
+DWORD pid;
+
+hWindow = FindWindow(p_ClassName, p_WindowTitle);
+
+if (hWindow) {
+
+    GetWindowThreadProcessId(hWindow, &pid);
+
+    return ::OpenProcess(PROCESS_ALL_ACCESS, false, pid);
+
+}
+
+return NULL;
+
+}
+
+bool CProcess::FindProcess(char *p_WindowTitle)
+
+{
+
+if (m_hProcess == NULL) {
+
+    m_hProcess = this->OpenProcess(NULL, p_WindowTitle);
+
+if (m_hProcess)
+
+    m_bGameRunning = true;
+
+return m_bGameRunning;
+
+}
+
+else
+
+    return false;
+
+}
+
+BYTE CProcess::ReadByte(DWORD p_Address)
+
+{
+
+DWORD bytes;
+
+BYTE tmpValue;
+
+if (m_bGameRunning) {
+
+    if (ReadProcessMemory(m_hProcess, (void*)p_Address,
+
+        (void *)&tmpValue, 1, &bytes) == 0)
+
+    return 0;
+
+    else
+
+        return tmpValue;
+
+}
+
+return 0;
+
+}
+
+4dd466d0e1e0cc123afbe504da2462ca
