@@ -1,0 +1,533 @@
+
+# th666 西风 脱壳详解 + 技术分析
+
+> 原文：[`www.pediy.com/kssd/pediy10/97216.html`](https://www.pediy.com/kssd/pediy10/97216.html)
+
+## 基本信息
+
+【文章标题】: `th666 西风 脱壳详解 + 技术分析`
+
+【文章作者】: `index09`
+
+【作者邮箱】: `cradiator@gmail.com`
+
+【作者主页】: `http://hi.baidu.com/index09`
+
+【软件名称】: `OD`
+
+【加壳方式】: `th666 西风`
+
+--------------------------------------------------------------------------------
+
+## 详细过程
+
+最近在学习脱壳，恰巧看见 `th666` 大大在看雪上发表的新壳。
+
+`http://bbs.pediy.com/showthread.php?t=96997`
+
+只给出了加壳的 `notepad`，我作为一个脱壳新手正好学习一下。
+
+分析后发现这个壳的思路十分清晰，用的技术也很实用，真的是学习的好材料。发上来一些心得与大家分享。
+
+用 `OD` 载入后
+
+```asm
+0101988A >  E8 00000000     CALL NOTEPAD.0101988F
+0101988F     5B            POP EBX
+01019890     81EB 05000000 SUB EBX,5                     ; ebx 是自定位指针
+01019896     8B93 9F080000 MOV EDX,DWORD PTR DS:[EBX+89F] ; edx = size
+0101989C     53            PUSH EBX
+0101989D     6A 40         PUSH 40                       ; PAGE_EXECUTE_READWRITE
+0101989F     68 00100000   PUSH 1000                     ; MEM_COMMIT
+010198A4     52            PUSH EDX                      ; size
+010198A5     6A 00         PUSH 0
+010198A7     FF93 32080000 CALL DWORD PTR DS:[EBX+832]   ; virtualalloc 生成[ebx+89F]的空间
+010198AD     5B            POP EBX
+010198AE     8BF0          MOV ESI,EAX                   ; esi = room
+010198B0     8BBB 9B080000 MOV EDI,DWORD PTR DS:[EBX+89B]
+010198B6     03FB          ADD EDI,EBX                   ; edi = some data
+010198B8     56            PUSH ESI                      ; room
+010198B9     57            PUSH EDI                      ; data
+010198BA     E8 86080000   CALL <NOTEPAD.extract>        ; extract data in edi to buffer in esi (decompress code)
+010198BF     83C4 08       ADD ESP,8
+010198C2     8D93 BB080000 LEA EDX,DWORD PTR DS:[EBX+8BB]
+010198C8     52            PUSH EDX                      ; ???
+010198C9     53            PUSH EBX                      ; base
+010198CA     56            PUSH ESI                      ; room
+010198CB     C3            RETN                          ; jmp to esi (刚刚解压的代码)
+```
+
+这段代码很容易看明白。
+
+首先用 `CALL` 和 `POP` 获得自定位指针。
+
+然后 `VirtualAlloc` 一段内存空间。
+
+`010198BA    E8 86080000 CALL <NOTEPAD.extract>    ; extract data in edi to buffer in esi (decompress code)`
+
+这一个 `CALL` 进去以后看就是我们熟悉的 `APLib` 解压过程了。
+
+这个壳很有趣，解压代码同样是经过压缩的，所以壳的头部申请空间，并且将壳的解压代码释放到空间里。
+
+然后使用 `PUSH ESI` 和 `RETN` 来实现 `JMP` 的功能，跳转到真正的解压代码中。
+
+然后我们来到这里（这里的地址由于是刚刚申请的，所以每次运行都会改变）
+
+```asm
+00930000    E8 00000000 CALL 00930005
+00930005    5B            POP EBX
+00930006    81EB 05000000 SUB EBX,5
+0093000C    8B7424 08     MOV ESI,DWORD PTR SS:[ESP+8]  ; esi 是程序入口时的栈顶
+00930010    E8 B7020000   CALL 009302CC                  ; //////////////////获得了许多函数地址///////////////////////
+00930015    8983 BF040000 MOV DWORD PTR DS:[EBX+4BF],EAX  ; eax 是 kernel32 module base
+0093001B    8B83 BF040000 MOV EAX,DWORD PTR DS:[EBX+4BF]
+00930021    8DB3 12050000 LEA ESI,DWORD PTR DS:[EBX+512] ; esi = 函数名地址
+00930027    E8 CE020000   CALL <MyGetProcAddress>
+```
+
+外壳首先过得了 `kernel32` 的基地址，然后通过让 `eax = kernel32 handle`  `esi = function name` 并调用 `MyGetProcAddress` 来实现函数的获取。
+
+这里并没有使用 `windows` 提供的 `GetProcAddress` 例程，作者自己实现了 `MyGetProcAddress`，十分有趣，所以我们跟进去看看。
+
+`F7` 后来到这里
+
+```asm
+009302FA >  55            PUSH EBP
+009302FB    8BEC          MOV EBP,ESP
+009302FD    83C4 EC       ADD ESP,-14
+00930300    895D EC       MOV DWORD PTR SS:[EBP-14],EBX
+00930303    C745 FC 0000000>MOV DWORD PTR SS:[EBP-4],0
+0093030A    8945 F4       MOV DWORD PTR SS:[EBP-C],EAX
+0093030D    8975 F0       MOV DWORD PTR SS:[EBP-10],ESI
+00930310    8BD6          MOV EDX,ESI
+00930312    803E 00       CMP BYTE PTR DS:[ESI],0
+00930315    74 03         JE SHORT 0093031A
+00930317    46            INC ESI
+00930318   ^ EB F8        JMP SHORT 00930312
+0093031A    46            INC ESI
+0093031B    2BF2          SUB ESI,EDX                   ; esi = 函数长度
+0093031D    8975 F8       MOV DWORD PTR SS:[EBP-8],ESI
+00930320    8B75 F4       MOV ESI,DWORD PTR SS:[EBP-C]  ; esi = kernel32 base
+00930323    0376 3C       ADD ESI,DWORD PTR DS:[ESI+3C]  ; esi = kernel32 pe header
+00930326    8B76 78       MOV ESI,DWORD PTR DS:[ESI+78]
+00930329    0375 F4       ADD ESI,DWORD PTR SS:[EBP-C]  ; esi = export directory
+0093032C    8B5E 20       MOV EBX,DWORD PTR DS:[ESI+20]
+0093032F    035D F4       ADD EBX,DWORD PTR SS:[EBP-C]  ; ebx= address of names
+00930332    33D2          XOR EDX,EDX                   ; //////////////////////////////////
+00930334    56            PUSH ESI                      ; push data directory
+00930335    8B3B          MOV EDI,DWORD PTR DS:[EBX]
+00930337    037D F4       ADD EDI,DWORD PTR SS:[EBP-C]  ; edi = function name
+0093033A    8B75 F0       MOV ESI,DWORD PTR SS:[EBP-10]
+0093033D    8B4D F8       MOV ECX,DWORD PTR SS:[EBP-8]
+00930340    FC            CLD                           ; 这个循环从 kernel32 的导出表中寻找目标函数的索引
+00930341    F3:A6        REPE CMPS BYTE PTR ES:[EDI],BYTE PTR DS:[ESI] ; edx 为索引
+00930343    75 03        JNZ SHORT 00930348
+00930345    5E            POP ESI
+00930346    EB 0C        JMP SHORT 00930354
+00930348    5E            POP ESI                       ; esi = export directory
+00930349    83C3 04       ADD EBX,4                     ; next export function
+0093034C    42            INC EDX                       ; edx = index
+0093034D    3B56 18       CMP EDX,DWORD PTR DS:[ESI+18] ; [esi + 18] = number of names
+00930350   ^ 72 E2       JB SHORT 00930334             ; ...........................................
+00930352    EB 22        JMP SHORT 00930376
+00930354    2B5E 20       SUB EBX,DWORD PTR DS:[ESI+20]
+00930357    2B5D F4       SUB EBX,DWORD PTR SS:[EBP-C]
+0093035A    D1EB          SHR EBX,1                     ; ebx = (ebx - address of names - image base) / 2
+0093035C    035E 24       ADD EBX,DWORD PTR DS:[ESI+24]
+0093035F    035D F4       ADD EBX,DWORD PTR SS:[EBP-C]  ; ebx = 函数入口项
+00930362    0FB703        MOVZX EAX,WORD PTR DS:[EBX]   ; eax = 函数入口序号
+00930365    C1E0 02       SHL EAX,2
+00930368    0346 1C       ADD EAX,DWORD PTR DS:[ESI+1C]
+0093036B    0345 F4       ADD EAX,DWORD PTR SS:[EBP-C]
+0093036E    8B00          MOV EAX,DWORD PTR DS:[EAX]
+00930370    0345 F4       ADD EAX,DWORD PTR SS:[EBP-C]  ; eax = function address
+00930373    8945 FC       MOV DWORD PTR SS:[EBP-4],EAX
+00930376    8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]
+00930379    8B5D EC       MOV EBX,DWORD PTR SS:[EBP-14]
+0093037C    C9            LEAVE
+0093037D    C3            RETN
+```
+
+这里的我做的注释已经很清楚了。
+
+作者的思路是这样的，因为我们传入的 `kernel32` 的句柄实际上就是它的基地址。所以它指向 `kernel32.dll` 的 `DOS` 头部。
+
+通过头部找到 `PE` 头，然后又索引到 `kernel32.dll` 的输出表。
+
+
+
+程序遍历输出表，寻找 `esi` 指向的函数地址，然后通过 `eax` 返回。
+
+等于作者自己实现了 Windows 提供的 `GetProcAddress`。
+
+好了我们离开这里函数，重新回到解压缩的代码中。
+
+```
+0093000C    8B7424 08       MOV ESI,DWORD PTR SS:[ESP+8]                    ; esi 是程序入口时的栈顶
+00930010    E8 B7020000     CALL 009302CC                                    ; ////////////////获得了许多函数地址///////////////////////
+00930015    8983 BF040000   MOV DWORD PTR DS:[EBX+4BF],EAX                  ; eax 是 kernel32 module base
+0093001B    8B83 BF040000   MOV EAX,DWORD PTR DS:[EBX+4BF]
+00930021    8DB3 12050000   LEA ESI,DWORD PTR DS:[EBX+512]                  ; esi = 函数名地址
+00930027    E8 CE020000     CALL <MyGetProcAddress>
+0093002C    8983 22050000   MOV DWORD PTR DS:[EBX+522],EAX                  ; eax = GetMuduleHandleA
+00930032    8B83 BF040000   MOV EAX,DWORD PTR DS:[EBX+4BF]
+00930038    8DB3 DE040000   LEA ESI,DWORD PTR DS:[EBX+4DE]
+0093003E    E8 B7020000     CALL <MyGetProcAddress>
+00930043    8983 EB040000   MOV DWORD PTR DS:[EBX+4EB],EAX                  ; loadlibrarya
+00930049    8B83 BF040000   MOV EAX,DWORD PTR DS:[EBX+4BF]
+0093004F    8DB3 EF040000   LEA ESI,DWORD PTR DS:[EBX+4EF]
+00930055    E8 A0020000     CALL <MyGetProcAddress>
+0093005A    8983 FE040000   MOV DWORD PTR DS:[EBX+4FE],EAX                  ; getprocaddress
+00930060    8B83 BF040000   MOV EAX,DWORD PTR DS:[EBX+4BF]
+00930066    8DB3 26050000   LEA ESI,DWORD PTR DS:[EBX+526]
+0093006C    E8 89020000     CALL <MyGetProcAddress>
+00930071    8983 34050000   MOV DWORD PTR DS:[EBX+534],EAX                  ; virtualprotect
+00930077    8D93 C3040000   LEA EDX,DWORD PTR DS:[EBX+4C3]
+0093007D    52                PUSH EDX                                       ; user32.dll
+0093007E    FF93 EB040000   CALL DWORD PTR DS:[EBX+4EB]                     ; loadlibrary
+00930084    8983 62050000   MOV DWORD PTR DS:[EBX+562],EAX
+0093008A    8D93 02050000   LEA EDX,DWORD PTR DS:[EBX+502]
+00930090    52                PUSH EDX
+00930091    50                PUSH EAX                                       ; messageboxa
+00930092    FF93 FE040000   CALL DWORD PTR DS:[EBX+4FE]                     ; getprocaddress
+00930098    8983 0E050000   MOV DWORD PTR DS:[EBX+50E],EAX
+0093009E    8D93 52050000   LEA EDX,DWORD PTR DS:[EBX+552]
+009300A4    52                PUSH EDX
+009300A5    FFB3 62050000   PUSH DWORD PTR DS:[EBX+562]                     ; IsIconic
+009300AB    FF93 FE040000   CALL DWORD PTR DS:[EBX+4FE]                     ; getprocaddress
+009300B1    8983 5A050000   MOV DWORD PTR DS:[EBX+55A],EAX                  ; ...........................................
+009300B7    BA 1C060000     MOV EDX,61C                                      ; /////////////////////////////////////////
+```
+
+作者使用刚刚介绍的函数，获得了几个重要函数后。
+
+```
+009300B7    BA 1C060000     MOV EDX,61C                                      ; /////////////////////////////////////////
+009300BC    03D3            ADD EDX,EBX
+009300BE    52                PUSH EDX
+009300BF    6A 04             PUSH 4
+009300C1    6A 04             PUSH 4                                         ; 这一段将 kernel32 的 e_lfanew 设置为本段代码的基地址
+009300C3    8B93 BF040000   MOV EDX,DWORD PTR DS:[EBX+4BF]
+009300C9    83C2 1C           ADD EDX,1C
+009300CC    52                PUSH EDX
+009300CD    FF93 34050000   CALL DWORD PTR DS:[EBX+534]                     ; VirtualProtect   set kernel32 -> e_lfanew PAGE_READWRITE
+009300D3    8B93 BF040000   MOV EDX,DWORD PTR DS:[EBX+4BF]
+009300D9    83C2 1C           ADD EDX,1C
+009300DC    891A            MOV DWORD PTR DS:[EDX],EBX                      ; kernel32->e_lfanew = decoder base
+009300DE    BA 20060000     MOV EDX,620
+009300E3    03D3            ADD EDX,EBX
+009300E5    52                PUSH EDX
+009300E6    FFB3 1C060000   PUSH DWORD PTR DS:[EBX+61C]
+009300EC    6A 04             PUSH 4
+009300EE    8B93 BF040000   MOV EDX,DWORD PTR DS:[EBX+4BF]
+009300F4    83C2 1C           ADD EDX,1C
+009300F7    52                PUSH EDX
+009300F8    FF93 34050000   CALL DWORD PTR DS:[EBX+534]                     ; VirtualProtect.............................
+```
+
+这就是作者的帖子中所说的改了 `kernel32` 内存中的一些数据。
+
+也就是 `e_lfanew` 指针。但暂时还不知道他的用意是什么。
+
+哪位大侠指点一下？？
+
+然后来到了西风同学弹出版权对话框的地方
+
+```
+009300FE    8B83 66050000   MOV EAX,DWORD PTR DS:[EBX+566]                  ; eax = 控制版权对话框的数字
+00930104    A9 02000000     TEST EAX,2
+00930109    74 04             JE SHORT 0093010F
+0093010B    EB 04             JMP SHORT 00930111
+0093010D    EB 02             JMP SHORT 00930111
+0093010F    EB 18             JMP SHORT 00930129
+00930111    6A 40             PUSH 40
+00930113    8D93 9D030000   LEA EDX,DWORD PTR DS:[EBX+39D]
+00930119    52                PUSH EDX
+0093011A    8D93 BF030000   LEA EDX,DWORD PTR DS:[EBX+3BF]
+00930120    52                PUSH EDX
+00930121    6A 00             PUSH 0
+00930123    FF93 0E050000   CALL DWORD PTR DS:[EBX+50E]                     ; messageboxa    弹出版权对话框
+00930129    5D                POP EBP                                       ; ebp = 程序入口点
+0093012A    8F83 82050000   POP DWORD PTR DS:[EBX+582]                     ; [ebx+582] = ?????
+00930130    B9 05000000     MOV ECX,5                                        ; ////////////////////////////////
+```
+
+关键在这里
+
+```
+009300FE    8B83 66050000   MOV EAX,DWORD PTR DS:[EBX+566]                  ; eax = 控制版权对话框的数字
+```
+
+当 `ebx+566` 指向的数据为 `2` 时就会弹出对话框，不想看到他的话改一下：）
+
+继续往下
+
+```
+0093012A    8F83 82050000   POP DWORD PTR DS:[EBX+582]                     ; [ebx+582] = ?????
+00930130    B9 05000000     MOV ECX,5                                        ; ////////////////////////////////
+00930135    8DB5 26080000   LEA ESI,DWORD PTR SS:[EBP+826]                  ; esi = IAT
+0093013B    8DBB 6A050000   LEA EDI,DWORD PTR DS:[EBX+56A]
+00930141    FF36            PUSH DWORD PTR DS:[ESI]                         ; 这个循环把程序本身的 IAT 复制到[ebx+56A]中
+00930143    8F07            POP DWORD PTR DS:[EDI]
+00930145    83C6 04         ADD ESI,4
+00930148    83C7 04         ADD EDI,4
+0093014B    49                DEC ECX
+0093014C   ^ 75 F3          JNZ SHORT 00930141                             ; ................................
+```
+
+没什么好说的壳把程序本身的 `IAT`，复制到另外一片空间中。
+
+以后大部分系统调用 `GetProcAddress` 之类的，都是从 `ebx+56A` 指向的函数数组中找啦~~~：）
+
+然后来这里
+
+```
+00930158    8983 7E050000   MOV DWORD PTR DS:[EBX+57E],EAX                  ; //////////这段代码将 ebx+586 指向的结构释放，共有[ebx+5fe]个结构///////////////////////
+0093015E    0FB78B FE050000 MOVZX ECX,WORD PTR DS:[EBX+5FE]                 ; ecx = [ebx+5fe] = ???? = 2
+00930165    8D93 86050000   LEA EDX,DWORD PTR DS:[EBX+586]
+0093016B    EB 4B             JMP SHORT 009301B8
+0093016D    51                PUSH ECX
+0093016E    52                PUSH EDX
+0093016F    53                PUSH EBX
+00930170    6A 04             PUSH 4                                         ; PAGE_READWRITE
+00930172    68 00100000     PUSH 1000                                        ; MEM_COMMIT
+00930177    FF32            PUSH DWORD PTR DS:[EDX]                         ; size
+00930179    6A 00             PUSH 0
+0093017B    FF93 76050000   CALL DWORD PTR DS:[EBX+576]                     ; VirtualAlloc
+00930181    8BF0            MOV ESI,EAX
+00930183    5B                POP EBX
+00930184    5A                POP EDX
+00930185    8B83 7E050000   MOV EAX,DWORD PTR DS:[EBX+57E]                  ; eax = image base
+0093018B    0342 04         ADD EAX,DWORD PTR DS:[EDX+4]
+0093018E    8BF8            MOV EDI,EAX
+```
+
+
+
+```
+  00930190    56              PUSH ESI                              ; esi 是刚才申请的空间  
+  00930191    57              PUSH EDI                              ; 压缩的数据  
+  00930192    FF93 82050000   CALL DWORD PTR DS:[EBX+582]          ; 解压  
+  00930198    83C4 08         ADD ESP,8  
+  0093019B    56              PUSH ESI  
+  0093019C    8B0A            MOV ECX,DWORD PTR DS:[EDX]  
+  0093019E    F3:A4           REP MOVS BYTE PTR ES:[EDI],BYTE PTR DS:[ESI]      ; 解压完复制回原地址  
+  009301A0    5E              POP ESI  
+  009301A1    52              PUSH EDX  
+  009301A2    53              PUSH EBX  
+  009301A3    68 00800000     PUSH 8000  
+  009301A8    FF32            PUSH DWORD PTR DS:[EDX]  
+  009301AA    56              PUSH ESI  
+  009301AB    FF93 7A050000   CALL DWORD PTR DS:[EBX+57A]          ; VirtualFree  释放了刚才申请的空间  
+  009301B1    5B              POP EBX  
+  009301B2    5A              POP EDX  
+  009301B3    59              POP ECX  
+  009301B4    83C2 0C         ADD EDX,0C  
+  009301B7    49              DEC ECX  
+  009301B8    0BC9            OR ECX,ECX  
+  009301BA   ^ 75 B1          JNZ SHORT 0093016D                   ; ..............................................  
+```
+
+这是壳中比较重要的部分，释放程序资源和代码。
+
+在这里有几个比较重要的参数和结构。
+
+`MOVZX ECX,WORD PTR DS:[EBX+5FE]` 这里的 `ecx` 是一个技术器。
+
+`LEA EDX,DWORD PTR DS:[EBX+586]` `edx` 指向一个很重要的结构。
+
+如下
+
+```c
+struct{
+    DWORD size;     //这个是一个大小，以后申请的缓冲就按照这个大小
+    DWORD rva;      //这个事压缩资源的 rva，加上基地址之后就可以找到压缩资源了
+    DWORD unused;   //这个东西没有用到
+}
+```
+
+首先作者读取 `size` 申请空间。再通过 `rva` 得到压缩后的代码地址。
+
+同样 `CALL ApLib` 的解压代码把解压后的代码释放到刚刚申请的缓冲中。
+
+再将缓冲中的数据复制回之前的压缩代码的位置。
+
+通过循环完成 `ecx` 个结构的解码，想这 `ecx` 应该就是源程序的段了。
+
+解码完毕后我们该修复 IAT 了。
+
+```
+  009301BC    8BB3 00060000   MOV ESI,DWORD PTR DS:[EBX+600]  
+  009301C2    03B3 7E050000   ADD ESI,DWORD PTR DS:[EBX+57E]        ; esi = import directory  
+  009301C8    E9 E7000000     JMP 009302B4                          ; ////////////////////////////////////////  
+  009301CD    53              PUSH EBX  
+  009301CE    56              PUSH ESI  
+  009301CF    8B46 0C         MOV EAX,DWORD PTR DS:[ESI+C]  
+  009301D2    0383 7E050000   ADD EAX,DWORD PTR DS:[EBX+57E]        ; eax = dll name  
+  009301D8    50              PUSH EAX  
+  009301D9    FF93 72050000   CALL DWORD PTR DS:[EBX+572]           ; getmodulehandlea  
+  009301DF    0BC0            OR EAX,EAX  
+  009301E1    75 14           JNZ SHORT 009301F7  
+  009301E3    5E              POP ESI  
+  009301E4    5B              POP EBX  
+  009301E5    53              PUSH EBX  
+  009301E6    56              PUSH ESI  
+  009301E7    8B46 0C         MOV EAX,DWORD PTR DS:[ESI+C]  
+  009301EA    0383 7E050000   ADD EAX,DWORD PTR DS:[EBX+57E]  
+  009301F0    50              PUSH EAX  
+  009301F1    FF93 6E050000   CALL DWORD PTR DS:[EBX+56E]           ; loadlibrary  
+  009301F7    5E              POP ESI  
+  009301F8    5B              POP EBX  
+  009301F9    56              PUSH ESI  
+  009301FA    8BD0            MOV EDX,EAX                           ; edx = module handle  
+  009301FC    8B06            MOV EAX,DWORD PTR DS:[ESI]            ; eax = Original First Thunk RVA  
+  009301FE    8B7E 10         MOV EDI,DWORD PTR DS:[ESI+10]  
+  00930201    03BB 7E050000   ADD EDI,DWORD PTR DS:[EBX+57E]        ; edi = First Thunk  
+  00930207    0BC0            OR EAX,EAX  
+  00930209    75 03           JNZ SHORT 0093020E  
+  0093020B    8B46 10         MOV EAX,DWORD PTR DS:[ESI+10]  
+  0093020E    8BF0            MOV ESI,EAX  
+  00930210    03B3 7E050000   ADD ESI,DWORD PTR DS:[EBX+57E]        ; esi = Original First Thunk  
+  00930216    E9 8C000000     JMP 009302A7                          ; ////////////////////////////////  
+  0093021B    F706 00000080   TEST DWORD PTR DS:[ESI],80000000  
+  00930221    74 1B           JE SHORT 0093023E  
+  00930223    8B06            MOV EAX,DWORD PTR DS:[ESI]  
+  00930225    25 FFFFFF7F     AND EAX,7FFFFFFF  
+  0093022A    53              PUSH EBX  
+  0093022B    52              PUSH EDX  
+  0093022C    56              PUSH ESI  
+  0093022D    57              PUSH EDI  
+  0093022E    50              PUSH EAX  
+  0093022F    52              PUSH EDX  
+  00930230    FF93 6A050000   CALL DWORD PTR DS:[EBX+56A]  
+  00930236    5F              POP EDI  
+  00930237    8907            MOV DWORD PTR DS:[EDI],EAX  
+  00930239    5E              POP ESI  
+  0093023A    5A              POP EDX  
+  0093023B    5B              POP EBX  
+  0093023C    EB 63           JMP SHORT 009302A1  
+  0093023E    8B06            MOV EAX,DWORD PTR DS:[ESI]  
+  00930240    83C0 02         ADD EAX,2                               ; eax + 2 是怎么回事  
+  00930243    53              PUSH EBX  
+  00930244    52              PUSH EDX  
+  00930245    56              PUSH ESI  
+  00930246    57              PUSH EDI  
+  00930247    0383 7E050000   ADD EAX,DWORD PTR DS:[EBX+57E]  
+  0093024D    50              PUSH EAX  
+  0093024E    52              PUSH EDX  
+  0093024F    FF93 6A050000   CALL DWORD PTR DS:[EBX+56A]           ; getprocaddress  
+  00930255    5F              POP EDI  
+  00930256    8B93 66050000   MOV EDX,DWORD PTR DS:[EBX+566]  
+  0093025C    A9 01000000     TEST EAX,1                              ; eax 非零??? 这么判断???  
+  00930261    74 39           JE SHORT 0093029C  
+  00930263    3B83 22050000   CMP EAX,DWORD PTR DS:[EBX+522]        ; eax 和 getmodulehandlea 比较  
+  00930269    75 21           JNZ SHORT 0093028C  
+  0093026B    8983 18060000   MOV DWORD PTR DS:[EBX+618],EAX        ; 如果是 getmodulehandlea 函数  
+  00930271    8D93 3B060000   LEA EDX,DWORD PTR DS:[EBX+63B]  
+  00930277    C602 A1         MOV BYTE PTR DS:[EDX],0A1  
+  0093027A    B8 18060000     MOV EAX,618  
+  0093027F    03C3            ADD EAX,EBX  
+  00930281    8942 01         MOV DWORD PTR DS:[EDX+1],EAX  
+  00930284    66:C742 05 FFE0 MOV WORD PTR DS:[EDX+5],0E0FF  
+  0093028A    8BC2            MOV EAX,EDX  
+  0093028C    3B83 5A050000   CMP EAX,DWORD PTR DS:[EBX+55A]        ; eax 和 IsIconic 比较  
+  00930292    75 08           JNZ SHORT 0093029C  
+  00930294    8D93 47060000   LEA EDX,DWORD PTR DS:[EBX+647]        ; 如果是 IsIconic 则替换为 ebx+647  
+  0093029A    8BC2            MOV EAX,EDX  
+  0093029C    8907            MOV DWORD PTR DS:[EDI],EAX  
+  0093029E    5E              POP ESI  
+  0093029F    5A              POP EDX  
+  009302A0    5B              POP EBX  
+  009302A1    83C6 04         ADD ESI,4  
+  009302A4    83C7 04         ADD EDI,4  
+  009302A7    833E 00         CMP DWORD PTR DS:[ESI],0              ; original first thunk 指向 0 则跳出  
+  009302AA   ^ 0F85 6BFFFFFF   JNZ 0093021B                       ; ....................................  
+  009302B0    5E              POP ESI  
+  009302B1    83C6 14         ADD ESI,14  
+  009302B4    837E 0C 00      CMP DWORD PTR DS:[ESI+C],0          ; dll name == null??  
+  009302B8   ^ 0F85 0FFFFFFF   JNZ 009301CD                       ; ................................................  
+```
+
+这一段代码十分标准，但有两个特别的地方。
+
+就是遇到 `GetModuleHandleA` 和 `IsIconic` 则替换为壳中自带的两个对应函数。
+
+这就给工具修复 IAT 带来了一定麻烦，好在解决方法很简单。
+
+```
+  00930269    75 21           JNZ SHORT 0093028C  
+  00930292    75 08           JNZ SHORT 0093029C  
+```
+
+把这两句直接改成 `JMP` 就可以啦。
+
+这里还有一个很有趣的判断
+
+```
+  0093025C    A9 01000000     TEST EAX,1                    
+  00930269    75 21           JNZ SHORT 0093028C  
+```
+
+`eax` 是 `GetProcAddress` 返回的函数地址。
+
+如果尾数不等于 1 才做替换工作，何解？？？望作者或各位大侠指点。
+
+```
+  009302BE    8B83 04060000   MOV EAX,DWORD PTR DS:[EBX+604]  
+```
+
+
+
+```
+  009302C4    0383 7E050000   ADD EAX,DWORD PTR DS:[EBX+57E]  
+
+  009302CA    50              PUSH EAX  
+
+  009302CB    C3              RETN  
+```
+
+然后 `RETN` 就来到 OEP 了，如果刚才改了 `JMP`，`OllyDump` 一下就可以了。
+
+最后提一下 `IsIconic` 的替换后函数。
+
+```
+  00930647    3BF6            CMP ESI,ESI  
+
+  00930649    64:A1 30000000  MOV EAX,DWORD PTR FS:[30]       ;获得 peb  
+
+  0093064F    8B40 0C         MOV EAX,DWORD PTR DS:[EAX+C]     ;PEB_LDR_DATA  
+
+  00930652    8B40 1C         MOV EAX,DWORD PTR DS:[EAX+1C]    
+
+  00930655    8B00            MOV EAX,DWORD PTR DS:[EAX]  
+
+  00930657    8B50 08         MOV EDX,DWORD PTR DS:[EAX+8]  
+
+  0093065A    8B42 1C         MOV EAX,DWORD PTR DS:[EDX+1C]  
+
+  0093065D    8BD0            MOV EDX,EAX  
+
+  0093065F    FFA2 5A050000   JMP DWORD PTR DS:[EDX+55A]  
+```
+
+最后一句挑到真正的 `IsIconic` 函数。
+
+前面作者获得了 PEB 中的一些数据，这个结构很复杂，不多说。
+
+有一篇文章希望有用
+
+`http://bbs.pediy.com/showthread.php?t=52398`
+
+--------------------------------------------------------------------------------
+
+【经验总结】
+
+这个壳虽然不难，但逻辑十分清晰，是不可多得的教材呀。希望看到作者更棒的作品
+
+还有导出表找函数那里写得十分精彩。
+
+--------------------------------------------------------------------------------
+
+【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!
+
+2009 年 09 月 05 日 22:19:37

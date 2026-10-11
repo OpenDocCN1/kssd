@@ -1,0 +1,596 @@
+
+# 霸王卸甲——秦赢甲胄反盗版加密软件 V1.01 主程序脱壳
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-608.htm`](https://www.pediy.com/kssd/pediy07/pediy7-608.htm)
+
+下载页面：`http://www2.skycn.com/soft/16995.html`
+软件大小：`1961 KB`
+软件语言：简体中文
+软件类别：国产软件 / 共享版 / 编程其它
+应用平台：`Win9x/NT/2000/XP`
+加入时间：`2005-01-04 15:59:27`
+下载次数：`908`
+推荐等级：`***`
+开 发 商：`http://www.vterminal.cn/`
+
+软件介绍：系统优点
+1. 用户注册
+A. 用户注册方便，终端用户不需要手动输入序列号认证码等等，一切由注册端软件自动完成；
+B. 用户机器的硬件信息作为注册码/加密密钥；
+C. 一个拷贝只能在同一台机器上注册；
+D. 只要是同一台机器，可以在这台机器上注册多次；
+E. 只能在注册的那台机器上运行
+2. 使用理论上安全的密码学协议和算法，保证不可脱机破解
+A. 不能通过注册机破解；
+B. 不能通过散发序列号破解
+3. 更改检测(可以检测病毒和破解者更改)
+4. 反跟踪功能（`Anti-Debug`）
+5. 运行时代码完整性校验
+A. 可防止 `Cracker` 跟踪时设置断点；
+B. 可防止通过补丁程序破解
+6. 反 `Dump` 功能（`Anti-Dump`）
+7. 反反汇编功能（`Anit-Disassembler`）
+8. 可以有效的管理经销商和序列号的发放;
+9. 可以统计软件的销售数量;
+10. 可以有效的管理用户注册。
+
+【作者声明】：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+【调试环境】：`Win2003`、`Ollydbg`、`PEiD`、`LordPE`、`ImportREC`
+
+---
+
+## 【脱壳过程】：
+
+`LicenseManager V1.0` 算是比较新的国产壳了，看作者主页介绍的比较好，所以下载看看。
+
+壳在下载后就脱了，却直至今天才抽出时间来整理教程。
+
+另外篇名的“霸王卸甲”只是和 `WiNrOOt` 开玩笑偶然提起的，没有戏谑的意思。
+
+放个 `PEiD` 的 `Sign`，选择 `PEiD` 的 `External Scan` 扫描方式即可侦测出。
+
+```
+[Vterminal V1.0X -> Lei Peng]
+
+signature = E8 00 00 00 00 58 05 ?? ?? ?? ?? 9C 50 C2 04 00
+
+ep_only = true
+```
+
+### 一、`Magic Jump`：避开输入表加密
+
+老规矩：用 `IsDebug V1.4` 插件去掉 `Ollydbg` 的调试器标志。
+
+```
+00471000 E8 00000000 call lm.00471005
+//进入 Ollydbg 后暂停在这
+00471005 58 pop eax
+00471006 05 3B060000 add eax,63B
+0047100B 9C pushfd
+0047100C 50 push eax
+0047100D C2 0400 retn 4
+```
+
+下断：`HE GetVersion` `F9` 运行，中断后取消断点。`Alt+F9` 返回
+
+```
+00471870 E8 AE780000 call lm.00479123
+00471875 3D 00000080 cmp eax,80000000
+//返回这里
+0047187A 0F82 D3010000 jb lm.00471A53
+```
+
+`Ctrl+F` 搜索命令：`test byte ptr ds:[eax+38],60`
+
+找到在 `00475297` 处，`F4` 过去。这里就是处理输入表的地方了。
+
+当然，也可以通过 `HE LoadLibraryA` 来到这个地方。
+
+```
+00475297 F640 38 60 test byte ptr ds:[eax+38],60
+//F4 到这里！
+0047529B 74 0E je short lm.004752AB
+0047529D 8B5424 2C mov edx,dword ptr ss:[esp+2C]
+004752A1 8B8B 1C020000 mov ecx,dword ptr ds:[ebx+21C]
+004752A7 890A mov dword ptr ds:[edx],ecx
+004752A9 EB 0A jmp short lm.004752B5
+004752AB 8B4424 2C mov eax,dword ptr ss:[esp+2C]
+004752AF C700 00000000 mov dword ptr ds:[eax],0
+004752B5 E8 34F7FFFF call lm.004749EE
+//自校验，这部分下面再处理
+004752BA 8B8B 00020000 mov ecx,dword ptr ds:[ebx+200]
+004752C0 8BB3 08020000 mov esi,dword ptr ds:[ebx+208]
+004752C6 8B69 10 mov ebp,dword ptr ds:[ecx+10]
+//[ecx+10]=[00471110]=000547D0 这是原来输入表的 RVA
+…… ……省略一段恢复 DLL 名、函数名的处理…… ……
+004753A8 E8 78FAFFFF call lm.00474E25
+//GetProcAddress
+004753AD 8B08 mov ecx,dword ptr ds:[eax]
+//[eax]保存的是取得的函数系统地址
+004753AF 57 push edi
+004753B0 890F mov dword ptr ds:[edi],ecx
+//API 函数的系统地址填充到 IAT 中 ★
+004753B2 8BCB mov ecx,ebx
+004753B4 E8 4EFCFFFF call lm.00475007
+//判断是否要加密 进入修改！
+004753B9 8B93 00020000 mov edx,dword ptr ds:[ebx+200]
+004753BF F642 38 08 test byte ptr ds:[edx+38],8
+004753C3 74 11 je short lm.004753D6
+004753C5 3BF7 cmp esi,edi
+004753C7 74 0D je short lm.004753D6
+004753C9 6A 04 push 4
+004753CB 68 CC000000 push 0CC
+004753D0 56 push esi
+004753D1 E8 77F1FFFF call lm.0047454D
+004753D6 8B4424 14 mov eax,dword ptr ss:[esp+14]
+004753DA 83C6 04 add esi,4
+004753DD 83C7 04 add edi,4
+004753E0 48 dec eax
+004753E1 897C24 30 mov dword ptr ss:[esp+30],edi
+004753E5 894424 14 mov dword ptr ss:[esp+14],eax
+004753E9 0F85 2FFFFFFF jnz lm.0047531E
+004753EF 8B6C24 18 mov ebp,dword ptr ss:[esp+18]
+004753F3 E8 F6F5FFFF call lm.004749EE
+//同样的自校验
+004753F8 8B83 00020000 mov eax,dword ptr ds:[ebx+200]
+004753FE F640 38 08 test byte ptr ds:[eax+38],8
+00475402 74 28 je short lm.0047542C
+00475404 8B45 0C mov eax,dword ptr ss:[ebp+C]
+00475407 8B93 08020000 mov edx,dword ptr ds:[ebx+208]
+0047540D 03C2 add eax,edx
+0047540F 8038 00 cmp byte ptr ds:[eax],0
+00475412 74 0B je short lm.0047541F
+00475414 C600 CC mov byte ptr ds:[eax],0CC
+//用 CC 填充处理的 DLL 名
+00475417 8A48 01 mov cl,byte ptr ds:[eax+1]
+0047541A 40 inc eax
+0047541B 84C9 test cl,cl
+0047541D 75 F5 jnz short lm.00475414
+0047541F 6A 14 push 14
+00475421 68 CC000000 push 0CC
+00475426 55 push ebp
+00475427 E8 21F1FFFF call lm.0047454D
+0047542C 8B4424 1C mov eax,dword ptr ss:[esp+1C]
+00475430 83C5 14 add ebp,14
+00475433 48 dec eax
+00475434 896C24 18 mov dword ptr ss:[esp+18],ebp
+00475438 894424 1C mov dword ptr ss:[esp+1C],eax
+0047543C 0F85 A2FeFFFF jnz lm.004752E4
+//循环处理
+00475442 5F pop edi
+00475443 5E pop esi
+00475444 5D pop ebp
+00475445 5B pop ebx
+00475446 83C4 1C add esp,1C
+00475449 C2 0400 retn 4
+//修改好第二步的自校验后就可以 F4 到到这里，输入表处理就结束了
+```
+
+进入 `call 00475007`，修改 `Magic Jump`
+
+```
+00475007 53 push ebx
+00475008 56 push esi
+00475009 57 push edi
+0047500A 8B7C24 10 mov edi,dword ptr ss:[esp+10]
+0047500E 8BF1 mov esi,ecx
+00475010 833F 00 cmp dword ptr ds:[edi],0
+00475013 75 2B jnz short lm.00475040
+00475040 8B86 A0020000 mov eax,dword ptr ds:[esi+2A0]
+//[esi+2A0]处保存的就是是否加密的标志 ★ 为 0 则不加密
+00475046 85C0 test eax,eax
+00475048 0F84 D5000000 je lm.00475123
+//修改为：jmp 00475123 ★ Magic Jump！下面则是加密部分，很弱
+0047504E 8B86 00020000 mov eax,dword ptr ds:[esi+200]
+00475054 F640 38 20 test byte ptr ds:[eax+38],20
+00475058 0F84 C5000000 je lm.00475123
+0047505E 81BE 14020000 07180>cmp dword ptr ds:[esi+214],1807
+00475068 0F83 B5000000 jnb lm.00475123
+0047506E 33C9 xor ecx,ecx
+00475070 8B86 18020000 mov eax,dword ptr ds:[esi+218]
+00475076 8BD0 mov edx,eax
+00475078 8BD8 mov ebx,eax
+0047507A C1EA 13 shr edx,13
+0047507D C1E3 0D shl ebx,0D
+00475080 0BD3 or edx,ebx
+00475082 8BD8 mov ebx,eax
+00475084 C1EB 1D shr ebx,1D
+00475087 C1E0 03 shl eax,3
+0047508A 0BD8 or ebx,eax
+0047508C 8D4413 61 lea eax,dword ptr ds:[ebx+edx+61]
+00475090 33D2 xor edx,edx
+00475092 BB 07180000 mov ebx,1807
+00475097 8986 18020000 mov dword ptr ds:[esi+218],eax
+0047509D F7F3 div ebx
+0047509F 8B86 1C020000 mov eax,dword ptr ds:[esi+21C]
+004750A5 41 inc ecx
+004750A6 8A5CD0 03 mov bl,byte ptr ds:[eax+edx*8+3]
+004750AA 84DB test bl,bl
+```
+
+
+
+### 0. 代码片段
+
+```
+004750AC     74 05               je short lm.004750B3
+
+004750B3     83F9 64             cmp ecx,64
+
+004750B1     72 BD               jb short lm.00475070
+
+004750B3     8B8E 1C020000       mov ecx,dword ptr ds:[esi+21C]
+
+004750B9     8D04D1              lea eax,dword ptr ds:[ecx+edx*8]
+
+004750BC     8A4CD1 03           mov cl,byte ptr ds:[ecx+edx*8+3]
+
+004750C0     84C9                test cl,cl
+
+004750C2     75 5F               jnz short lm.00475123
+
+004750C4     8ACA                mov cl,dl
+
+004750C6     80C1 53             add cl,53
+
+004750C9     8808                mov byte ptr ds:[eax],cl
+
+004750CB     8A07                mov al,byte ptr ds:[edi]
+
+004750CD     8B8E 1C020000       mov ecx,dword ptr ds:[esi+21C]
+
+004750D3     04 3D               add al,3D
+
+004750D5     8844D1 01           mov byte ptr ds:[ecx+edx*8+1],al
+
+004750D9     8B07                mov eax,dword ptr ds:[edi]
+
+004750DB     8B8E 1C020000       mov ecx,dword ptr ds:[esi+21C]
+
+004750E1     C1E8 08             shr eax,8
+
+004750E4     8844D1 02           mov byte ptr ds:[ecx+edx*8+2],al
+
+004750E8     8B86 1C020000       mov eax,dword ptr ds:[esi+21C]
+
+004750EE     8D0CD5 08000000     lea ecx,dword ptr ds:[edx*8+8]
+
+004750F5     C644D0 03 E9        mov byte ptr ds:[eax+edx*8+3],0E9
+
+004750FA     8B1F                mov ebx,dword ptr ds:[edi]
+
+004750FC     8B86 1C020000       mov eax,dword ptr ds:[esi+21C]
+
+00475102     2BD9                sub ebx,ecx
+
+00475104     2BD8                sub ebx,eax
+
+00475106     895CD0 04           mov dword ptr ds:[eax+edx*8+4],ebx
+
+0047510A     8B86 1C020000       mov eax,dword ptr ds:[esi+21C]
+
+00475110     8D4CD0 03           lea ecx,dword ptr ds:[eax+edx*8+3]
+
+00475114     890F                mov dword ptr ds:[edi],ecx
+
+00475116     8B86 14020000       mov eax,dword ptr ds:[esi+214]
+
+0047511C     40                  inc eax
+
+0047511D     8986 14020000       mov dword ptr ds:[esi+214],eax
+
+00475123     5F                  pop edi
+
+00475124     5E                  pop esi
+
+00475125     5B                  pop ebx
+
+00475126     C2 0400             retn 4
+```
+
+如果你跟踪的话，可以发现壳判别是否是如下几个函数，是则加密：
+
+```
+00474BBA   61 64 76 61 70 69 33 32 2E 64 6C 6C 00 63 6F 6D   advapi32.dll.com
+00474BCA   64 6C 67 33 32 2E 64 6C 6C 00 67 64 69 33 32 2E   dlg32.dll.gdi32.
+00474BDA   64 6C 6C 00 6B 65 72 6E 65 6C 33 32 2E 64 6C 6C   dll.kernel32.dll
+00474BEA   00 6E 74 64 6C 6C 2E 64 6C 6C 00 6F 6C 65 33 32   .ntdll.dll.ole32
+00474BFA   2E 64 6C 6C 00 73 68 65 6C 6C 33 32 2E 64 6C 6C   .dll.shell32.dll
+00474C0A   00 73 68 6C 77 61 70 69 2E 64 6C 6C 00 75 73 65   .shlwapi.dll.use
+00474C1A   72 33 32 2E 64 6C 6C 00 77 69 6E 73 70 6F 6F 6C   r32.dll.winspool
+00474C2A   2E 64 72 76 00 77 69 6E 73 6F 63 6B 33 32 2E 64   .drv.winsock32.d
+00474C3A   6C 6C 00 6D 73 76 63 70 36 30 2E 64 6C 6C         ll.msvcp60.dll
+```
+
+---
+
+### 1. 搞定自校验
+
+进入 `call 004749EE`
+
+虽然作者的话语有点“威胁”效果，殊不知仅仅根据他的对话框也就能定位检验的地方。
+
+```
+004749EE     83EC 10             sub esp,10
+
+004749F1     53                  push ebx
+
+004749F2     55                  push ebp
+
+004749F3     56                  push esi
+
+004749F4     E8 77D4FFFF         call lm.00471E70
+
+004749F9     8BF0                mov esi,eax
+
+004749FB     8D4424 0C           lea eax,dword ptr ss:[esp+C]
+
+004749FF     56                  push esi
+
+00474A00     50                  push eax
+
+00474A01     E8 20DFFFFF         call lm.00472926
+
+00474A06     83C4 08             add esp,8
+
+00474A09     8D8E 8C000000       lea ecx,dword ptr ds:[esi+8C]
+
+00474A0F     8D5424 0C           lea edx,dword ptr ss:[esp+C]
+
+00474A13     6A 10               push 10
+
+00474A15     51                  push ecx
+
+00474A16     52                  push edx
+
+00474A17     E8 1CFDFFFF         call lm.00474738
+
+00474A1C     E8 00000000         call lm.00474A21
+
+00474A21     5B                  pop ebx
+
+00474A22     81C3 6E350000       add ebx,356E
+
+00474A28     E8 00000000         call lm.00474A2D
+
+00474A2D     5D                  pop ebp
+
+00474A2E     81C5 1E510000       add ebp,511E
+
+00474A34     85C0                test eax,eax
+
+00474A36     74 2A               je short lm.00474A62
+
+//直接修改为：JMP 00474ABE   ★   这样就轻易去除了自检验部分
+
+00474A38     F646 42 01          test byte ptr ds:[esi+42],1
+
+00474A3C     74 20               je short lm.00474A5E
+
+00474A3E     57                  push edi
+
+00474A3F     68 70494000         push lm.00404970
+
+00474A44     E8 F7D3FFFF         call lm.00471E40
+
+00474A49     6A 10               push 10
+
+00474A4B     68 6B494000         push lm.0040496B
+
+00474A50     8BF8                mov edi,eax
+
+00474A52     E8 E9D3FFFF         call lm.00471E40
+
+00474A57     50                  push eax
+
+00474A58     57                  push edi
+
+00474A59     6A 00               push 0
+
+00474A5B     FFD3                call ebx
+
+00474A5D     5F                  pop edi
+
+00474A5E     6A EC               push -14
+
+00474A60     FFD5                call ebp
+
+00474A62     F646 2C 40          test byte ptr ds:[esi+2C],40
+
+00474A66     74 56               je short lm.00474ABE
+
+00474A68     E8 2BFEFFFF         call lm.00474898
+
+00474A6D     85C0                test eax,eax
+
+00474A6F     75 4D               jnz short lm.00474ABE
+
+00474A71     8A46 42             mov al,byte ptr ds:[esi+42]
+
+00474A74     A8 01               test al,1
+
+00474A76     74 3E               je short lm.00474AB6
+
+00474A78     68 88494000         push lm.00404988
+
+00474A7D     E8 BED3FFFF         call lm.00471E40
+
+00474A82     6A 01               push 1
+
+00474A84     68 7B494000         push lm.0040497B
+
+00474A89     8BF0                mov esi,eax
+
+00474A8B     E8 B0D3FFFF         call lm.00471E40
+
+00474A90     50                  push eax
+
+00474A91     56                  push esi
+
+00474A92     6A 00               push 0
+
+00474A94     FFD3                call ebx
+
+//检验错误，弹出作者的“忠告”
+
+00474A96     83F8 02             cmp eax,2
+
+00474A99     75 0B               jnz short lm.00474AA6
+
+00474A9B     6A 09               push 9
+
+00474A9D     FFD5                call ebp
+
+00474A9F     5E                  pop esi
+
+00474AA0     5D                  pop ebp
+
+00474AA1     5B                  pop ebx
+
+00474AA2     83C4 10             add esp,10
+
+00474AA5     C3                  retn
+
+00474AA6     6A FF               push -1
+
+00474AA8     6A 0C               push 0C
+
+00474AAA     E8 A8350000         call lm.00478057
+
+00474AAF     5E                  pop esi
+
+00474AB0     5D                  pop ebp
+
+00474AB1     5B                  pop ebx
+
+00474AB2     83C4 10             add esp,10
+
+00474AB5     C3                  retn
+
+00474AB6     A8 02               test al,2
+
+00474AB8     74 04               je short lm.00474ABE
+
+00474ABA     6A 03               push 3
+
+00474ABC     FFD5                call ebp
+
+00474ABE     5E                  pop esi
+
+00474ABF     5D                  pop ebp
+
+00474AC0     5B                  pop ebx
+
+00474AC1     83C4 10             add esp,10
+
+00474AC4     C3                  retn
+```
+
+---
+
+### 2. 断点检测
+
+这里也就是普通的 `INT3` 断点检测，所以我用了硬件断点。
+
+```
+004794A7     E8 00000000         call lm.004794AC
+
+004794AC     58                  pop eax
+
+004794AD     05 F4290000         add eax,29F4
+
+004794B2     8B00                mov eax,dword ptr ds:[eax]
+
+004794B4     E8 00000000         call lm.004794B9
+
+004794B9     59                  pop ecx
+
+004794BA     81C1 477CFFFF       add ecx,FFFF7C47
+
+004794C0     F741 2C 08000000    test dword ptr ds:[ecx+2C],8
+
+004794C7     75 02               jnz short lm.004794CB
+
+004794C9     FFE0                jmp eax
+
+004794CB     8038 CC             cmp byte ptr ds:[eax],0CC
+```
+
+
+
+四、OEP+修复输入表：完成脱壳
+
+修改完`Magic Jump`和自校验后，直接`F4`到`00475449`处。
+
+下断:`HE GetModuleHandleA` `F9` 运行，中断后取消断点。`Alt+F9`返回
+
+```
+00471C95     E8 00000000         call lm.00471C9A
+00471C9A     59                 pop ecx
+00471C9B     81C1 72F4FFFF      add ecx,-0B8E
+00471CA1     0301               add eax,dword ptr ds:[ecx]
+//EAX=00400000+00043B6E=00443B6E 这就是 OEP 值 ★
+00471CA3     8BF8               mov edi,eax  ; lm.00443B6E
+00471CA5     50                 push eax
+00471CA6     E8 00000000        call lm.00471CAB
+```
+
+下面经过几个`ret`后就可以返回`OEP`了
+
+当然，可以使用第2区段内存断点大法直接暂停在`OEP`处。
+
+我们下命令：`G 00443B6E` 回车之后就直达`OEP`啦
+
+```
+00443B6E     55                 push ebp
+//在这儿用 LordPE 完全 Dump 此进程
+00443B6F     8BEC               mov ebp,esp
+00443B71     6A FF              push -1
+00443B73     68 90E74400        push lm.0044E790
+00443B78     68 D83C4400        push lm.00443CD8 ; jmp to msvcrt._except_handler3
+00443B7D     64:A1 00000000     mov eax,dword ptr fs:[0]
+00443B83     50                 push eax
+00443B84     64:8925 00000000   mov dword ptr fs:[0],esp
+00443B8B     83EC 68            sub esp,68
+00443B8E     53                 push ebx
+00443B8F     56                 push esi
+00443B90     57                 push edi
+00443B91     8965 E8            mov dword ptr ss:[ebp-18],esp
+00443B94     33DB               xor ebx,ebx
+00443B96     895D FC           mov dword ptr ss:[ebp-4],ebx
+00443B99     6A 02              push 2
+00443B9B     FF15 9C9E4400      call dword ptr ds:[449E9C]; msvcrt.__set_app_type
+```
+
+运行`ImportREC`，选择这个进程。把`OEP`改为`00043B6E`，点`IT AutoSearch`，很明显`ImportREC`自动得到的数据不正确。
+
+可以手动定位`IAT RVA`和大小，但是这个壳有更简单的方法。
+
+用`LordPE`打开原来的`lm.exe`，看到`IAT RVA=00049000`、`Size=000010F8`，呵呵，壳没有加密`IAT`信息。直接在`ImportREC`里填入这个数据，点`Get Import`。我们已经避开输入表加密了，所以直接`CUT`掉填充在`DLL`名之间的垃圾数据，就可以得到完整的输入表了。
+
+可以“新增区段”来修复，不过我选择放在原来的输入表处。`New Import Infors`填入`RVA=000547D0`，把`ImportREC`新建输入表的3个选项清空，`FixDump`！
+
+简单优化一下。用`LordPE`删除最后的`.Shield`区段，重建`PE`即可。
+
+希望作者能够继续完善这个壳，成长为新的猛壳。
+
+```
+          ,     _/ 
+
+        /| \_.-~/           \_     ,        青春都一晌
+       ( /~   /            \\~-.\_ |\\
+       \`\\   \_/                \\   ~\\ )          忍把浮名 
+   _-~~~-.)  )\_//;;,.            \_  //'/
+  '/\,\\   --~   \ ~~~-  ,;\\__(  (.-~~~-.        换了破解轻狂 
+ `\~ _( ,_..--\ (     ,;'' /    ~--   /.\`\ 
+  /~~//'  / `\~\         ) /--.._\,)  `~
+  "  `~"  "     "       /~'\`\    `\\~~\ 
+
+          "     "   "~'  ""
+
+          UnPacked By :  fly
+           2005-01-18  零点
+
+ 4dd466d0e1e0cc123afbe504da2462ca
+```
