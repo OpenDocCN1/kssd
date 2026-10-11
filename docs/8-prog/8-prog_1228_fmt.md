@@ -1,0 +1,319 @@
+
+# 调用 NATIVE APIs
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-795.htm`](https://www.pediy.com/kssd/pediy08/pediy8-795.htm)
+
+在内核中调用系统服务（NATIVE APIs）。
+
+**\[原文出处\]**：《Windows NT2000 Native API Reference》 附录 B
+
+**\[关键字\]**：System services, NATIVE API
+
+**\[原作者\]**： Gary Nebbett
+
+**\[中文翻译\]**： prince
+
+**\[翻译日期\]**： 2006.04.25 – 15:12
+
+**\[译者声明\]**：
+
+最近写程序时想用一些 NATIVE APIs，查了《Undocumented functions of NTDLL》手册，找到相应的函数原型声明，放到我的工程文件中，却发现有的可以直接使用，有的却无法被编译器识别。网上找了很久，终于在《Windows NT2000 Native API Reference》中发现了此文，抱着学习的目的顺手翻译一下，肯定有不对的地方，无奈英文太烂，只能止步于此，各位大侠如果发现任何问题，还请 mail 至 `cracker_prince[at]163[dot]com` 不吝赐教，谢谢。
+
+另外，转贴请保持文章完整，并注明出处是看雪学院（`www.pediy.com`）。本来不想写这句话的，但是我发现我曾经翻译的烂文章被很多网站转载，并且被无耻地去掉了原作者、译者声明和出处，在这里强烈 BS 一下！做人要厚道！
+
+**\[正文\]**：
+
+就像在前言中陈述过的，理论上有可能用那些运行在内核中 `PASSIVE_LEVEL IRQL` 的代码去调用所有系统服务。对于内核态程序来说前面几章的文档中讲过的那些系统服务是可用的，条件是关于 holding 权限需求的声明是可以被忽略的（prince 注：对不起，我完全不理解这句话）。尽管如此，我们面临着一个实际的困难就是：`ntoskrnl.exe` 并没有导出所有必需的函数的入口点。
+
+在 Windows 2000 平台上下面这些 `ZwXxx` 函数的入口点都是被 `ntoskrnl.exe` 导出的：
+
+`ZwAccessCheckAndAuditAlarm` `ZwPowerInformation`
+`ZwAdjustPrivilegesToken` `ZwPulseEvent`
+`ZwAlertThread` `ZwQueryDefaultLocale`
+`ZwAllocateVirtualMemory` `ZwQueryDefaultUILanguage`
+`ZwCancelIoFile` `ZwQueryDirectoryFile`
+`ZwCancelTimer` `ZwQueryDirectoryObject`
+`ZwClearEvent` `ZwQueryEaFile`
+`ZwClose` `ZwQueryInformationFile`
+`ZwCloseObjectAuditAlarm` `ZwQueryInformationProcess`
+`ZwConnectPort` `ZwQueryInformationToken`
+`ZwCreateDirectoryObject` `ZwQueryInstallUILanguage`
+`ZwCreateEvent` `ZwQueryKey`
+`ZwCreateFile` `ZwQueryObject`
+`ZwCreateKey` `ZwQuerySection`
+`ZwCreateSection` `ZwQuerySecurityObject`
+`ZwCreateSymbolicLinkObject` `ZwQuerySymbolicLinkObject`
+`ZwCreateTimer` `ZwQuerySystemInformation`
+`ZwDeleteFile` `ZwQueryValueKey`
+`ZwDeleteKey` `ZwQueryVolumeInformationFile`
+`ZwDeleteValueKey` `ZwReadFile`
+`ZwDeviceIoControlFile` `ZwReplaceKey`
+`ZwDisplayString` `ZwRequestWaitReplyPort`
+`ZwDuplicateObject` `ZwResetEvent`
+`ZwDuplicateToken` `ZwRestoreKey`
+`ZwEnumerateKey` `ZwSaveKey`
+`ZwEnumerateValueKey` `ZwSetDefaultLocale`
+`ZwFlushInstructionCache` `ZwSetDefaultUILanguage`
+`ZwFlushKey` `ZwSetEaFile`
+`ZwFlushVirtualMemory` `ZwSetEvent`
+`ZwFreeVirtualMemory` `ZwSetInformationFile`
+`ZwFsControlFile` `ZwSetInformationObject`
+`ZwInitiatePowerAction` `ZwSetInformationProcess`
+`ZwLoadDriver` `ZwSetInformationThread`
+`ZwLoadKey` `ZwSetSecurityObject`
+`ZwMakeTemporaryObject` `ZwSetSystemInformation`
+`ZwMapViewOfSection` `ZwSetSystemTime`
+`ZwNotifyChangeKey` `ZwSetTimer`
+`ZwOpenDirectoryObject` `ZwSetValueKey`
+`ZwOpenEvent` `ZwSetVolumeInformationFile`
+`ZwOpenFile` `ZwTerminateProcess`
+`ZwOpenKey` `ZwUnloadDriver`
+`ZwOpenProcess` `ZwUnloadKey`
+`ZwOpenProcessToken` `ZwUnmapViewOfSection`
+`ZwOpenSection` `ZwWaitForMultipleObjects`
+`ZwOpenSymbolicLinkObject` `ZwWaitForSingleObject`
+`ZwOpenThread` `ZwWriteFile`
+`ZwOpenThreadToken` `ZwYieldExecution`
+`ZwOpenTimer`
+
+在 Windows 2000 平台上下面这些 `NtXxx` 函数入口点都是被 `ntoskrnl.exe` 导出的：
+
+`NtAddAtom` `NtQueryEaFile`
+`NtAdjustPrivilegesToken` `NtQueryInformationAtom`
+`NtAllocateLocallyUniqueId` `NtQueryInformationFile`
+`NtAllocateUuids` `NtQueryInformationProcess`
+`NtAllocateVirtualMemory` `NtQueryInformationToken`
+`NtClose` `NtQueryQuotaInformationFile`
+`NtConnectPort` `NtQuerySecurityObject`
+`NtCreateEvent` `NtQuerySystemInformation`
+`NtCreateFile` `NtQueryVolumeInformationFile`
+`NtCreateSection` `NtReadFile`
+`NtDeleteAtom` `NtRequestPort`
+`NtDeleteFile` `NtRequestWaitReplyPort`
+`NtDeviceIoControlFile` `NtSetEaFile`
+`NtDuplicateObject` `NtSetEvent`
+`NtDuplicateToken` `NtSetInformationFile`
+`NtFindAtom` `NtSetInformationProcess`
+`NtFreeVirtualMemory` `NtSetInformationThread`
+`NtFsControlFile` `NtSetQuotaInformationFile`
+`NtLockFile` `NtSetSecurityObject`
+`NtMapViewOfSection` `NtSetVolumeInformationFile`
+`NtNotifyChangeDirectoryFile` `NtUnlockFile`
+`NtOpenFile` `NtVdmControl`
+`NtOpenProcess` `NtWaitForSingleObject`
+`NtOpenProcessToken` `NtWriteFile`
+`NtQueryDirectoryFile`
+
+如果是被导出的 `ZwXxx` 表中的函数，就可以在内核态代码中直接调用；如果仅是在 `NtXxx` 表中被导出的函数，那么内核代码就必须确认指针和对象访问的检查结果(prince 注：这句话也令我困惑)，就像在前言中描述的那样。
+
+下面这些函数根本就没有被导出：
+
+`ZwAcceptConnectPort` `ZwQueryInformationThread`
+`ZwAccessCheck` `ZwQueryIntervalProfile`
+`ZwAccessCheckByType` `ZwQueryIoCompletion`
+`ZwAccessCheckByTypeAndAuditAlarm` `ZwQueryMultipleValueKey`
+`ZwAccessCheckByTypeResultList` `ZwQueryMutant`
+`ZwAccessCheckByTypeResultListAndAuditAlarm` `ZwQueryPerformanceCounter`
+`ZwAdjustGroupsToken` `ZwQuerySemaphore`
+`ZwAlertResumeThread` `ZwQuerySystemEnvironmentValue`
+`ZwAllocateUserPhysicalPages` `ZwQuerySystemTime`
+`ZwAllocateVirtualMemory64` `ZwQueryTimer`
+`ZwAreMappedFilesTheSame` `ZwQueryTimerResolution`
+`ZwAssignProcessToJobObject` `ZwQueryVirtualMemory`
+`ZwCallbackReturn` `ZwQueryVirtualMemory64`
+`ZwCancelDeviceWakeupRequest` `ZwQueueApcThread`
+`ZwCompleteConnectPort` `ZwRaiseException`
+`ZwContinue` `ZwRaiseHardError`
+`ZwCreateChannel` `ZwReadFile64`
+`ZwCreateEventPair` `ZwReadFileScatter`
+`ZwCreateIoCompletion` `ZwReadRequestData`
+`ZwCreateJobObject` `ZwReadVirtualMemory`
+`ZwCreateMailslotFile` `ZwReadVirtualMemory64`
+`ZwCreateMutant` `ZwRegisterThreadTerminatePort`
+`ZwCreateNamedPipeFile` `ZwReleaseMutant`
+`ZwCreatePagingFile` `ZwReleaseSemaphore`
+`ZwCreatePort` `ZwRemoveIoCompletion`
+`ZwCreateProcess` `ZwReplyPort`
+`ZwCreateProfile` `ZwReplyWaitReceivePort`
+`ZwCreateSemaphore` `ZwReplyWaitReceivePortEx`
+`ZwCreateThread` `ZwReplyWaitReplyPort`
+`ZwCreateToken` `ZwReplyWaitSendChannel`
+`ZwCreateWaitablePort` `ZwRequestDeviceWakeup`
+`ZwDelayExecution` `ZwRequestWakeupLatency`
+`ZwDeleteObjectAuditAlarm` `ZwResumeThread`
+`ZwExtendSection` `ZwSaveMergedKeys`
+`ZwFilterToken` `ZwSecureConnectPort`
+`ZwFlushBuffersFile` `ZwSendWaitReplyChannel`
+`ZwFlushWriteBuffer` `ZwSetContextChannel`
+`ZwFreeUserPhysicalPages` `ZwSetContextThread`
+`ZwFreeVirtualMemory64` `ZwSetDefaultHardErrorPort`
+`ZwGetContextThread` `ZwSetHighEventPair`
+`ZwGetDevicePowerState` `ZwSetHighWaitLowEventPair`
+`ZwGetPlugPlayEvent` `ZwSetInformationJobObject`
+`ZwGetTickCount` `ZwSetInformationKey`
+`ZwImpersonateAnonymousToken` `ZwSetInformationToken`
+`ZwImpersonateClientOfPort` `ZwSetIntervalProfile`
+`ZwImpersonateThread` `ZwSetIoCompletion`
+`ZwInitializeRegistry` `ZwSetLdtEntries`
+`ZwIsSystemResumeAutomatic` `ZwSetLowEventPair`
+`ZwListenChannel` `ZwSetLowWaitHighEventPair`
+`ZwListenPort` `ZwSetSystemEnvironmentValue`
+`ZwLoadKey2` `ZwSetSystemPowerState`
+`ZwLockVirtualMemory` `ZwSetThreadExecutionState`
+`ZwMapUserPhysicalPages` `ZwSetTimerResolution`
+`ZwMapViewOfVlmSection` `ZwSetUuidSeed`
+`ZwNotifyChangeMultipleKeys` `ZwShutdownSystem`
+`ZwOpenChannel` `ZwSignalAndWaitForSingleObject`
+`ZwOpenEventPair` `ZwStartProfile`
+`ZwOpenIoCompletion` `ZwStopProfile`
+
+
+
+`ZwOpenJobObject` `ZwSuspendThread`
+
+`ZwOpenMutant` `ZwSystemDebugControl`
+
+`ZwOpenObjectAuditAlarm` `ZwTerminateJobObject`
+
+`ZwOpenSemaphore` `ZwTerminateThread`
+
+`ZwPlugPlayControl` `ZwTestAlert`
+
+`ZwPrivilegeCheck` `ZwUnlockVirtualMemory`
+
+`ZwPrivilegeObjectAuditAlarm` `ZwUnmapViewOfVlmSection`
+
+`ZwPrivilegedServiceAuditAlarm` `ZwWaitHighEventPair`
+
+`ZwProtectVirtualMemory` `ZwWaitLowEventPair`
+
+`ZwProtectVirtualMemory64` `ZwWriteFile64`
+
+`ZwQueryAttributesFile` `ZwWriteFileGather`
+
+`ZwQueryEvent` `ZwWriteRequestData`
+
+`ZwQueryFullAttributesFile` `ZwWriteVirtualMemory`
+
+`ZwQueryInformationJobObject` `ZwWriteVirtualMemory64`
+
+`ZwQueryInformationPort`
+
+对于某些函数，都有一些功能与其相近的被导出的和有文档的内核函数存在；比如，`KeQueryPerformanceCounter`函数就可以可以用来代替`ZwQueryPerformanceCount`函数。
+
+`ntddk.h`定义了一些内部对象（events, mutants, semaphores, timers, and files）格式，还有一些被导出的和有文档的对象管理器和内核函数，有了这些就有可能自己来重新实现一些系统服务（NATIVE API）。示例 B.1 就是`NtQueryEvent`函数的重新实现，去掉了参数确认(prince 注：希望我翻译的对)。
+
+Example B.1: Re-Implementing `NtQueryEvent`
+
+```
+#include “ntdll.h”
+
+NTSTATUS
+NTAPI
+MyQueryEvent(
+  IN HANDLE EventHandle,
+  IN NT::EVENT_INFORMATION_CLASS EventInformationClass,
+  OUT PVOID EventInformation,
+  IN ULONG EventInformationLength,
+  OUT PULONG ResultLength OPTIONAL
+  )
+{
+  if (ResultLength) *ResultLength = 0;
+  if (EventInformationClass != NT::EventBasicInformation)
+    return STATUS_INVALID_INFO_CLASS;
+  if (EventInformationLength != sizeof (NT::EVENT_BASIC_INFORMATION))
+    return STATUS_INFO_LENGTH_MISMATCH;
+  NT::PKEVENT Event;
+  NTSTATUS rv = NT::ObReferenceObjectByHandle( EventHandle,
+            EVENT_MODIFY_STATE,
+            *NT::ExEventObjectType,
+            NT::ExGetPreviousMode(),
+            (PVOID*)&Event, 0);
+  if (NT_SUCCESS(rv)) {
+    NT::PEVENT_BASIC_INFORMATION(EventInformation)->EventType = NT::EVENT_TYPE(Event->Header.Type);
+    NT::PEVENT_BASIC_INFORMATION(EventInformation)->SignalState = NT::KeReadStateEvent(Event);
+    NT::ObDereferenceObject(Event);
+    if (ResultLength) *ResultLength = sizeof (NT::EVENT_BASIC_INFORMATION);
+  }
+  return rv;
+}
+```
+
+Example B.1 中可以看到很多常见的错误代码。
+
+`ObReferenceObjectByHandle`函数可以返回如下的错误代码：
+
+当`EventHandle`是无效句柄的时候返回`STATUS_INVALID_HANDLE`；当`EventHandle`是有效句柄但却不是一个事件(event)对象句柄时返回`STATUS_OBJECT_TYPE_MISMATCH`；当句柄没有被授权访问的时候返回`STATUS_ACCESS_DENIED`；当访问的前一种模式为用户态时返回`EVENT_MODIFY_STATE`。指向前一个状态的指针的参数检查会导致返回错误代码`STATUS_ACCESS_VIOLATION`或者`STATUS_DATATYPE_MISALIGNMENT`。
+
+这个例子也显示了对象管理器仅仅是封装了像`KEVENT`这样的简单的数据结构来提供例如 naming, ACLs, reference counting 和 quotas 这样的服务。
+
+对于那些内部保留的不能直接访问的系统服务，除了动态链接到`ntdll.dll`来映射到每一个进程的地址空间然后导出所有的`ZwXxx`函数的入口点之外还没有什么好的解决方案。使用这种技术需要注意的是`ntdll.dll`是以 copy on write 方式映射的，所以进程可以修改`ntdll.dll`的代码来实现`ZwXxx`函数调用（但是对于运行在系统进程中的线程像`system`进程来说应该不是问题）。
+
+Example B.2: Dynamically Binding to `ntdll.dll`
+
+```
+#include “ntdll.h”
+
+PVOID FindNT()
+{
+  ULONG n;
+  NT::ZwQuerySystemInformation(NT::SystemModuleInformation, &n, 0, &n);
+  PULONG q = PULONG(NT::ExAllocatePool(NT::PagedPool, n));
+  NT::ZwQuerySystemInformation(NT::SystemModuleInformation, q, n * sizeof *q, 0);
+  NT::PSYSTEM_MODULE_INFORMATION p = NT::PSYSTEM_MODULE_INFORMATION(q + 1);
+  PVOID ntdll = 0;
+  for (ULONG i = 0; i < *q; i++)
+    if (_stricmp(p[i].ImageName + p[i].ModuleNameOffset, “ntdll.dll”) == 0)
+      ntdll = p[i].Base;
+  NT::ExFreePool(q);
+  return ntdll;
+}
+
+PVOID FindFunc(PVOID Base, PCSTR Name)
+{
+  PIMAGE_DOS_HEADER dos = PIMAGE_DOS_HEADER(Base);
+  PIMAGE_NT_HEADERS nt = PIMAGE_NT_HEADERS(PCHAR(Base) + dos->e_lfanew);
+  PIMAGE_DATA_DIRECTORY expdir = nt->OptionalHeader.DataDirectory + IMAGE_DIRECTORY_ENTRY_EXPORT;
+  ULONG size = expdir->Size;
+  ULONG addr = expdir->VirtualAddress;
+  PIMAGE_EXPORT_DIRECTORY exports = PIMAGE_EXPORT_DIRECTORY(PCHAR(Base) + addr);
+  PULONG functions = PULONG(PCHAR(Base) + exports->AddressOfFunctions);
+  PSHORT ordinals = PSHORT(PCHAR(Base) + exports->AddressOfNameOrdinals);
+  PULONG names = PULONG(PCHAR(Base) + exports->AddressOfNames);
+  PVOID func = 0;
+  for (ULONG i = 0; i < exports->NumberOfNames; i++) {
+    ULONG ord = ordinals[i];
+    if (functions[ord] < addr || functions[ord] >= addr + size) {
+      if (strcmp(PSTR(PCHAR(Base) + names[i]), Name) == 0)
+        func = PCHAR(Base) + functions[ord];
+    }
+  }
+  return func;
+}
+
+VOID Unload(NT::PDRIVER_OBJECT)
+{
+}
+
+typedef NTSTATUS (NTAPI *NtQueryPerformanceCounter)(PLARGE_INTEGER, PLARGE_INTEGER);
+
+extern “C”
+NTSTATUS DriverEntry(NT::PDRIVER_OBJECT DriverObject, NT::PUNICODE_STRING)
+{
+  LARGE_INTEGER Count, Freq;
+  NtQueryPerformanceCounter(FindFunc(FindNT(), “ZwQueryPerformanceCounter”))(&Count, &Freq);
+  NT::DbgPrint(“Freq = %lx, Count = %lx\\n”, Freq.LowPart, Count.LowPart);
+  if (DriverObject) DriverObject->DriverUnload = Unload;
+    return DriverObject ? STATUS_SUCCESS : STATUS_UNSUCCESSFUL;
+}
+```
+
+示例 B.2 首先调用`ZwQuerySystemInformation`函数得到 kernel images 列表（包括`ntdll.dll`），并且从这些信息中得到了`ntdll.dll`的基址。接下来利用 PE 文件格式的知识定位导出表并且搜索我们想要的函数入口点。
+
+示例 B.2 可以作为设备驱动安装，用`ZwLoadDriver`函数启动或者直接用`ZwSetSystemInformation`函数加载。
+
+prince
+
+2006-4-25
+
+`4dd466d0e1e0cc123afbe504da2462ca`
