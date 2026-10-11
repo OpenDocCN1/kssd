@@ -1,0 +1,170 @@
+
+## 1. 代码段 001B:00427CE3 - 001B:00427DAA
+
+```
+001B:00427CE3  6A00                   PUSH      00  
+001B:00427CE5  52                     PUSH      EDX  
+001B:00427CE6  FFD7                   CALL      EDI   //\[USER32!PeekMessageA\]  
+001B:00427CE8  85C0                   TEST      EAX,EAX  
+001B:00427CEA  75D7                   JNZ       00427CC3/  
+001B:00427CEC  6A64                   PUSH      64  
+001B:00427CEE  FF1528044E00           CALL      \[KERNEL32!Sleep\]    //★★★该 call 挂起当前（登录主线程）线程，则上网验证线程照样或开始工作，将取得网上验证信息，改变标志位【ESI+94】，必须设置其他断点，捕捉关键的验证代码★★★  
+001B:00427CF4  FFD5                   CALL      EBP   //76B11B40 函数：WINMM!timeGettime,取 WINDOWS 启动以来的时间（毫秒），注意对启动时间的验证来对付调试，堆栈不变，可以直接修改代码，将返回值改为 A 个定值；或在代码返回前设断，防止断点无效，修改返回值。  
+001B:00427CF6  2BC3                   SUB       EAX,EBX  
+001B:00427CF8  B988130000             MOV       ECX,00001388  
+001B:00427CFD  99                     CDQ  
+001B:00427CFE  F7F9                   IDIV      ECX  
+001B:00427D00  B81F85EB51             MOV       EAX,51EB851F  
+001B:00427D05  8D4C2430               LEA       ECX,\[ESP+30\]  
+001B:00427D09  F7EA                   IMUL      EDX  
+001B:00427D0B  C1FA04                 SAR       EDX,04  
+001B:00427D0E  8BC2                   MOV       EAX,EDX  
+001B:00427D10  C1E81F                 SHR       EAX,1F  
+001B:00427D13  03D0                   ADD       EDX,EAX  
+001B:00427D15  52                     PUSH      EDX  
+001B:00427D16  E8C5B5FFFF             CALL      004232E0  //发送消息到进度窗口（msctls\_progress32）  
+001B:00427D1B  8B8698000000           MOV       EAX,\[ESI+00000098\]  
+001B:00427D21  85C0                   TEST      EAX,EAX  
+001B:00427D23  758B                   JNZ       00427CB0  //to 进度窗口的消息循环  
+001B:00427D25  5F                     POP       EDI  
+001B:00427D26  8B8694000000           MOV       EAX,\[ESI+00000094\]//登录标准位  
+001B:00427D2C  48                     DEC       EAX  
+001B:00427D2D  83F803                 CMP       EAX,03  
+001B:00427D30  772B                   JA        00427D5D  // eax > 3, 跳转  
+001B:00427D32  FF2485AC7D4200         JMP       \[EAX\*4+00427DAC\]  
+```
+
+`eax<=3`，跳转到相应位置
+
+- `[0+00427DAC]`: `00427D39` `<== eax = 0` “没有上网”
+- `[4+00427DAC]`: `00427D4F` `<== eax = 1` “非法口令”
+- `[8+00427DAC]`: `00427D44` `<== eax = 2` “服务器忙”
+- `[C+00427DAC]`: `00427D4F`
+
+```
+001B:00427D39  6AFF                   PUSH      FF  
+001B:00427D3B  6A40                   PUSH      40  
+001B:00427D3D  6801FA0000             PUSH      0000FA01  
+001B:00427D42  EB14                   JMP       00427D58  
+001B:00427D44  6AFF                   PUSH      FF  
+001B:00427D46  6A40                   PUSH      40  
+001B:00427D48  6803FA0000             PUSH      0000FA03  
+001B:00427D4D  EB09                   JMP       00427D58  
+001B:00427D4F  6AFF                   PUSH      FF  
+001B:00427D51  6A40                   PUSH      40  
+001B:00427D53  6802FA0000             PUSH      0000FA02  
+001B:00427D58  E819260900             CALL      004BA376  //显示相应的消息文字对话框  
+001B:00427D5D  8B8694000000           MOV       EAX,\[ESI+00000094\]  
+001B:00427D63  33C9                   XOR       ECX,ECX  
+001B:00427D65  85C0                   TEST      EAX,EAX  
+001B:00427D67  0F94C1                 SETZ      CL  
+001B:00427D6A  8BF1                   MOV       ESI,ECX  
+001B:00427D6C  8D4C242C               LEA       ECX,\[ESP+2C\]  
+001B:00427D70  C68424F800000000        MOV       BYTE PTR \[ESP+000000F8\],00  
+001B:00427D78  E8E3B3FFFF             CALL      00423160  
+001B:00427D7D  8D4C240C               LEA       ECX,\[ESP+0C\]  
+001B:00427D81  C78424F8000000FFFFFFMOV       DWORD PTR \[ESP+000000F8\],FFFFFFFF  
+001B:00427D8C  E808990800             CALL      004B1699  
+001B:00427D91  8B8C24F0000000         MOV       ECX,\[ESP+000000F0\]  
+001B:00427D98  8BC6                   MOV       EAX,ESI  
+001B:00427D9A  5E                     POP       ESI  
+001B:00427D9B  5D                     POP       EBP  
+001B:00427D9C  5B                     POP       EBX  
+001B:00427D9D  64890D00000000         MOV       FS:\[00000000\],ECX  
+001B:00427DA4  81C4F0000000          ADD       ESP,000000F0  
+001B:00427DAA  C3                     RET     //ret to 00427DD1  
+```
+
+=========================================`
+
+## 2. 函数调用 001B:004BA376
+
+```
+001B:00427D58  E819260900             CALL      004BA376
+```
+
+------------------------（多处调用）
+
+```
+001B:004BA376  B8287A4D00             MOV       EAX,004D7A28  
+001B:004BA37B  E8C8D7F7FF             CALL      00437B48  
+001B:004BA380  51                     PUSH      ECX  
+001B:004BA381  A1A4105100             MOV       EAX,\[005110A4\]  
+001B:004BA386  8945F0                 MOV       \[EBP-10\],EAX  
+001B:004BA389  FF7508                 PUSH      DWORD PTR \[EBP+08\]  
+001B:004BA38C  8365FC00               AND       DWORD PTR \[EBP-04\],00  
+001B:004BA390  8D4DF0                 LEA       ECX,\[EBP-10\]  
+001B:004BA393  E8C478FFFF             CALL      004B1C5C  
+001B:004BA398  8B4510                 MOV       EAX,\[EBP+10\]  
+001B:004BA39B  83F8FF                 CMP       EAX,-01  
+001B:004BA39E  7503                   JNZ       004BA3A3  
+001B:004BA3A0  8B4508                 MOV       EAX,\[EBP+08\]  
+001B:004BA3A3  56                     PUSH      ESI  
+001B:004BA3A4  50                     PUSH      EAX  
+001B:004BA3A5  FF750C                 PUSH      DWORD PTR \[EBP+0C\]  
+001B:004BA3A8  FF75F0                 PUSH      DWORD PTR \[EBP-10\]  
+001B:004BA3AB  E88EFFFFFF             CALL      004BA33E  
+001B:004BA3B0  834DFCFF               OR        DWORD PTR \[EBP-04\],-01  
+001B:004BA3B4  8D4DF0                 LEA       ECX,\[EBP-10\]  
+001B:004BA3B7  8BF0                   MOV       ESI,EAX  
+001B:004BA3B9  E8DB72FFFF             CALL      004B1699  
+001B:004BA3BE  8B4DF4                 MOV       ECX,\[EBP-0C\]  
+001B:004BA3C1  8BC6                   MOV       EAX,ESI  
+001B:004BA3C3  5E                     POP       ESI  
+001B:004BA3C4  64890D00000000         MOV       FS:\[00000000\],ECX  
+001B:004BA3CB  C9                     LEAVE  
+001B:004BA3CC  C20C00                 RET       000C  
+```
+
+--------------------------------------------------
+
+* Referenced by a `CALL` at Addresses:
+
+|:00401836   , :004021CB   , :004026EF   , :0040289F   , :00402A11    
+
+|:00403117   , :00403557   , :00405928   , :0040C0CF   , :00418E00    
+
+|:004261C2   , :0042629A   , :004289E4   , :00428A08   , :00428A4B    
+
+|:0044B6B9   , :0048A708   , :0048C21A   , :00499607   , :004B343B    
+
+|:004B6CF1   , :004B6E89   , :004BA0D5   , :004BA18F   , :004BA3AB    
+
+|
+
+## 3. 函数实现 001B:004BA33E
+
+```
+001B:004BA33E  55                     PUSH      EBP  
+001B:004BA33F  8BEC                   MOV       EBP,ESP  
+001B:004BA341  E86AEE0000             CALL      004C91B0//取选择条数比较？？  
+001B:004BA346  8B4004                 MOV       EAX,\[EAX+04\]  
+001B:004BA349  85C0                   TEST      EAX,EAX  
+001B:004BA34B  7415                   JZ        004BA362  
+001B:004BA34D  FF7510                 PUSH      DWORD PTR \[EBP+10\]  
+001B:004BA350  8B10                   MOV       EDX,\[EAX\]  
+001B:004BA352  8BC8                   MOV       ECX,EAX  
+001B:004BA354  FF750C                 PUSH      DWORD PTR \[EBP+0C\]  
+001B:004BA357  FF7508                 PUSH      DWORD PTR \[EBP+08\]  
+001B:004BA35A  FF928C000000           CALL      \[EDX+0000008C\]  //调用 004BA257 MessageBoxA（见下面 ★★★★）显示消息框  
+001B:004BA360  EB10                   JMP       004BA372  (JUMP)  
+001B:004BA362  FF7510                 PUSH      DWORD PTR \[EBP+10\]  
+001B:004BA365  33C9                   XOR       ECX,ECX  
+001B:004BA367  FF750C                 PUSH      DWORD PTR \[EBP+0C\]  
+001B:004BA36A  FF7508                 PUSH      DWORD PTR \[EBP+08\]  
+001B:004BA36D  E8E5FEFFFF             CALL      004BA257  //显示消息框  
+001B:004BA372  5D                     POP       EBP  
+001B:004BA373  C20C00                 RET       000C  // 显示 10 条限制消息框返回 00418E05；上面的调用返回 004BA3AB  
+```
+
+=================================================================
+
+★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+
+=================================================================
+
+## B、从改变标志位入手跟踪
+
+上述跟踪无法找到核心代码，但可以看出标志位，下面以标志位设断跟踪！
+
+对标志位设断【`ESI+94`】，上网时中断于 `427BB3`，不上网时中断于 `427156`，并且都返回于 `426FEC`，代码有区别！

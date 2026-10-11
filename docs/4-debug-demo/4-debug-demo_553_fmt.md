@@ -1,0 +1,414 @@
+
+# 程序的自我效验
+
+> 原文：[`www.pediy.com/kssd/pediy10/75546.html`](https://www.pediy.com/kssd/pediy10/75546.html)
+
+编程语言：`C`，`汇编`
+编译环境：`VC++6.0`，`MASM`
+建议工具：`OD`
+时间：`2008.10.28`
+
+程序的自我效验，就是程序自己检测自身的完整性，主要用于抵抗软件的动态调试（如断点），内存补丁，暴力破解等。
+
+本文旨在介绍程序自我效验的基本方法，希望可以起到抛砖引玉的作用。（菜文一篇，高手飘过）
+
+## 示例 1
+
+我们先来看一个例子：
+
+```c
+#include<windows.h>
+#include<stdio.h>
+
+/************************************************************************
+自我效验测试程序
+***************************************************************/
+
+DWORD Calculation(DWORD StartAddr,DWORD dwCodeLength);
+
+void CheckSelfRelease(DWORD StartAddr,DWORD dwCodeLength);
+
+void TerminateCurrentProcess();
+
+DWORD Calculation(DWORD StartAddr,DWORD dwCodeLength)
+{
+  _asm
+  {
+    xor eax,eax
+    xor ebx,ebx
+    mov esi,StartAddr
+    mov ecx,dwCodeLength
+Label001:
+    mov bl,byte ptr [esi]
+    add eax,ebx
+    inc esi
+    loop Label001
+  }
+}
+
+void TerminateCurrentProcess()
+{
+  TerminateProcess(GetCurrentProcess(),0);
+}
+
+void CheckSelfRelease(DWORD StartAddr,DWORD dwCodeLength)
+{
+  _asm
+  {
+    xor eax,eax
+    xor ebx,ebx
+    mov esi,StartAddr
+    mov ecx,dwCodeLength
+Label001:
+    mov bl,byte ptr [esi]
+    add eax,ebx
+    inc esi
+    loop Label001
+    cmp eax,0x0B59  //0x0B59 是提前计算好的
+    je Label002
+    call TerminateCurrentProcess
+Label002:
+  }
+}
+
+void main()
+{
+  DWORD StartAddr=0;
+  DWORD EndAddr=0;
+  DWORD dwCodeLength=0;
+  DWORD dwChecksum=0;
+  _asm
+  {
+Start:
+    xor eax,eax
+    xor ebx,ebx
+    inc eax
+    add ebx,eax
+    add eax,ebx
+    mov StartAddr,offset Start
+    mov EndAddr,offset End
+End:
+  }
+    dwCodeLength=EndAddr-StartAddr;
+  CheckSelfRelease(StartAddr,dwCodeLength);
+  MessageBoxA(NULL,"0K!","INFO",MB_OK);
+}
+```
+
+上面的程序用累加得到指定程序段的效验和，你完全可以使用其它的方法来计算效验和，可以用 `SUB`，`ROR`，`ROL` ... 等等。我只是用尽可能简单的过程来描述。
+
+如果内存中程序的指定部分没有被改动，就会输出一个 `MessageBox`,否则程序会结束自己。
+
+## 获取校验值
+
+到这读者可能要问 `0x0B59` 是怎样得到的，那就看下面的程序吧：
+
+```c
+#include<windows.h>
+#include<stdio.h>
+
+DWORD __stdcall Calculation(DWORD StartAddr,DWORD dwCodeLength);  //计算效验和
+void  __stdcall CheckSelf(DWORD StartAddr,DWORD dwCodeLength,DWORD dwChecksum);
+void  __stdcall TerminateCurrentProcess();
+
+DWORD __stdcall Calculation(DWORD StartAddr,DWORD dwCodeLength)
+{
+  _asm
+  {
+    xor eax,eax
+    xor ebx,ebx
+    mov esi,StartAddr
+    mov ecx,dwCodeLength
+Label001:
+    mov bl,byte ptr [esi]
+    add eax,ebx
+    inc esi
+    loop Label001
+  }
+}
+
+void __stdcall TerminateCurrentProcess()
+{
+  TerminateProcess(GetCurrentProcess(),0);
+}
+
+void __stdcall CheckSelf(DWORD StartAddr,DWORD dwCodeLength,DWORD dwChecksum)
+{
+  _asm
+  {
+    xor eax,eax
+    xor ebx,ebx
+    mov esi,StartAddr
+    mov ecx,dwCodeLength
+Label001:
+    mov bl,byte ptr [esi]
+    add eax,ebx
+    inc esi
+    loop Label001
+    cmp eax,dwChecksum
+    je Label002
+    call TerminateCurrentProcess
+Label002:
+  }
+}
+
+void main()
+{
+  DWORD StartAddr=0;
+  DWORD EndAddr=0;
+  DWORD dwCodeLength=0;
+  DWORD dwChecksum=0;
+  _asm
+  {
+    Start:
+    xor eax,eax
+    xor ebx,ebx
+    inc eax
+    add ebx,eax
+    add eax,ebx
+    mov StartAddr,offset Start
+    mov EndAddr,offset End
+    End:
+  }
+    dwCodeLength=EndAddr-StartAddr;
+    dwChecksum=Calculation(StartAddr,dwCodeLength);
+  CheckSelf(StartAddr,dwCodeLength,dwChecksum);
+  MessageBoxA(NULL,"OK!","INFO",MB_OK);
+}
+```
+
+程序中的 `Calculation` 函数用于计算效验和，其他与第一个程序基本相同。`0x0B59` 就是用这中方法得到的。
+
+我们在 `OD` 中分析软件的时候，仅仅下了几个断点，按下 `F9`，程序就结束了，界面没有了，什么也没有了，十有八九是因为软件用了自我效验。
+
+## 实时监控
+
+上面的方法只对指定程序段进行了一次效验，很脆弱，可不可以实时监控程序的完整性呢？
+
+答案是肯定的，我的想法是用 `CreateThread()` 来创建一子线程，实现实时监控：
+
+```c
+#include<windows.h>
+#include<stdio.h>
+
+/************************************************************************
+自我效验测试程序，用于监视内存中程序的完整性
+***************************************************************/
+
+DWORD Calculation(DWORD StartAddr,DWORD dwCodeLength);
+
+void  CheckSelf(DWORD StartAddr,DWORD dwCodeLength,DWORD dwChecksum);
+
+void  TerminateCurrentProcess();
+
+DWORD  Calculation(DWORD StartAddr,DWORD dwCodeLength)
+{
+  _asm
+  {
+    xor eax,eax
+    xor ebx,ebx
+    mov esi,StartAddr
+    mov ecx,dwCodeLength
+Label001:
+    mov bl,byte ptr [esi]
+    add eax,ebx
+    inc esi
+    loop Label001
+  }
+}
+
+void TerminateCurrentProcess()
+{
+  TerminateProcess(GetCurrentProcess(),0);
+}
+
+void CheckSelf(DWORD StartAddr,DWORD dwCodeLength,DWORD dwChecksum)
+{
+  _asm
+  {
+    xor eax,eax
+    xor ebx,ebx
+    mov esi,StartAddr
+    mov ecx,dwCodeLength
+Label001:
+    mov bl,byte ptr [esi]
+    add eax,ebx
+    inc esi
+    loop Label001
+    cmp eax,dwChecksum
+    je Label002
+    call TerminateCurrentProcess
+Label002:
+  }
+}
+
+void CheckSelfRelease(DWORD StartAddr,DWORD dwCodeLength)
+{
+  _asm
+  {
+    xor eax,eax
+    xor ebx,ebx
+    mov esi,StartAddr
+    mov ecx,dwCodeLength
+Label001:
+    mov bl,byte ptr [esi]
+    add eax,ebx
+    inc esi
+    loop Label001
+    cmp eax,0x0AF9
+    je Label002
+    call TerminateCurrentProcess
+Label002:
+  }
+}
+
+void ThreadStartRoutine(DWORD * StartAddr)
+{
+  for(;;)
+    CheckSelfRelease(*StartAddr,0x17);  //无限循环，实时监视，直到程序终止。
+}
+
+void main()
+{
+  DWORD StartAddr=0;
+  DWORD EndAddr=0;
+  DWORD dwCodeLength=0;
+  DWORD dwChecksum=0;
+  _asm
+  {
+Start:
+    xor eax,eax
+    xor ebx,ebx
+    inc eax
+    add ebx,eax
+    add eax,ebx
+    mov StartAddr,offset Start
+    mov EndAddr,offset End
+End:
+  }
+        dwCodeLength=EndAddr-StartAddr;
+  Calculation(StartAddr,dwCodeLength);
+  CreateThread(NULL,
+          0,
+      (LPTHREAD_START_ROUTINE)ThreadStartRoutine,
+      &StartAddr,0,NULL);//创建一个新的线程，循环监视内存中程序的完整性。
+  Sleep(88888);
+  printf("0k!");
+}
+```
+
+## C/C++ 代码实现片段
+
+在 `C/C++` 代码中实现自我效验，可以使用以下代码段（仅供参考）
+
+```c
+_asm
+{
+LabelStart:
+  mov dwStartAddr,offset LabelStart
+}
+
+....
+
+_asm
+{
+  LabelEnd:
+  mov dwEndAddr,offset LabelEnd
+}
+
+/************************************************************************
+```
+
+在 `VC` 中使用内联汇编总是感觉不太直接，所以用 `MASM` 实现之，供喜欢汇编的读者参考。
+
+## MASM 实现参考
+
+```asm
+;####################################
+.386
+.model flat,stdcall
+option casemap:none
+;####################################
+include windows.inc
+include kernel32.inc
+include user32.inc
+includelib kernel32.lib
+includelib user32.lib
+;####################################
+;###################################################################
+.data
+;###################################################################
+CodeLength=LabelEnd-LabelStart
+.code
+Calculation proc StartAddr:dword,dwCodeLength:dword
+        xor eax,eax
+    xor ebx,ebx
+    mov esi,StartAddr
+    mov ecx,dwCodeLength
+  Label001:
+        mov bl,byte ptr [esi]
+    add eax,ebx
+    inc esi
+    loop Label001
+    ret 8
+Calculation endp
+;###################################################################
+CheckSelf proc StartAddr:dword,dwCodeLength:dword,dwChecksum:dword
+```
+
+
+
+```
+xor eax,eax
+xor ebx,ebx
+mov esi,StartAddr
+mov ecx,dwCodeLength
+
+Label001:
+mov bl,byte ptr [esi]
+add eax,ebx
+inc esi
+loop Label001
+cmp eax,dwChecksum
+je Label002
+call TerminateCurrentProcess
+
+Label002:
+ret 0ch
+
+CheckSelf endp
+```
+
+```
+;###################################################################
+TerminateCurrentProcess proc
+call GetCurrentProcess
+push 0
+push eax
+call TerminateProcess
+ret
+TerminateCurrentProcess endp
+
+;###################################################################
+
+Start:
+LabelStart:
+xor eax,eax
+inc eax
+mov eax,0
+sub eax,1
+
+LabelEnd:
+push CodeLength
+mov eax,offset LabelStart
+push eax
+call Calculation
+push eax
+push CodeLength
+mov eax,offset LabelStart
+push eax
+call CheckSelf
+end Start
+```
+
+由于本人水平有限，文中疏漏之处在所难免，请读者不吝赐教。

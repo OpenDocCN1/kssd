@@ -1,0 +1,274 @@
+
+```
+001B:004272C1   8B4C2428            MOV       ECX,[ESP+28]
+
+001B:004272C5   6828045100          PUSH      00510428
+
+001B:004272CA   51                  PUSH      ECX
+
+001B:004272CB   E866EA0000          CALL      00435D36
+
+001B:004272D0   83C408              ADD       ESP,08
+
+001B:004272D3   BF01000000          MOV       EDI,00000001
+
+001B:004272D8   F7D8                NEG       EAX
+
+001B:004272DA   1BC0                SBB       EAX,EAX
+
+001B:004272DC   B305                MOV       BL,05
+
+001B:004272DE   F7D8                NEG       EAX
+
+001B:004272E0   A31C045100          MOV       [0051041C],EAX //★★网上验证后正版标志位被重置,改★1⑵
+
+001B:004272E5   8B15A4105100        MOV       EDX,[005110A4]
+
+001B:004272EB   89542418            MOV       [ESP+18],EDX
+
+001B:004272EF   57                  PUSH      EDI
+
+001B:004272F0   8D44241C            LEA       EAX,[ESP+1C]
+
+001B:004272F4   68B8065100          PUSH      005106B8
+
+001B:004272F9   50                  PUSH      EAX
+
+001B:004272FA   C644244406          MOV       BYTE PTR [ESP+44],06
+
+001B:004272FF   E8E3240800          CALL      004A97E7
+
+001B:00427304   8B4C2424            MOV       ECX,[ESP+24]
+
+001B:00427308   83C40C              ADD       ESP,0C
+
+001B:0042730B   8D54240C            LEA       EDX,[ESP+0C]
+
+001B:0042730F   51                  PUSH      ECX
+
+001B:00427310   51                  PUSH      ECX
+
+001B:00427311   8BCC                MOV       ECX,ESP
+
+001B:00427313   89642434            MOV       [ESP+34],ESP
+
+001B:00427317   52                  PUSH      EDX
+
+001B:00427318   E8F1A00800          CALL      004B140E
+
+001B:0042731D   8D44241C            LEA       EAX,[ESP+1C]
+
+001B:00427321   8BCE                MOV       ECX,ESI
+
+001B:00427323   50                  PUSH      EAX
+
+001B:00427324   E8470B0000          CALL      00427E70
+
+001B:00427329   8B4C2414            MOV       ECX,[ESP+14]
+
+001B:0042732D   C644243807          MOV       BYTE PTR [ESP+38],07
+
+001B:00427332   8B41F8              MOV       EAX,[ECX-08]
+
+001B:00427335   85C0                TEST      EAX,EAX
+
+001B:00427337   742B                JZ        00427364
+
+001B:00427339   8D542414            LEA       EDX,[ESP+14]
+
+001B:0042733D   8D4E5C              LEA       ECX,[ESI+5C]
+
+001B:00427340   52                  PUSH      EDX
+
+001B:00427341   E8854A0800          CALL      004ABDCB
+
+001B:00427346   8D4C2414            LEA       ECX,[ESP+14]
+
+001B:0042734A   47                  INC       EDI
+
+001B:0042734B   C644243806          MOV       BYTE PTR [ESP+38],06
+
+001B:00427350   E844A30800          CALL      004B1699
+
+001B:00427355   8D4C2418            LEA       ECX,[ESP+18]
+
+001B:00427359   885C2438            MOV       [ESP+38],BL
+
+001B:0042735D   E837A30800          CALL      004B1699
+
+001B:00427362   EB81                JMP       004272E5
+
+001B:00427364   8D4C2414            LEA       ECX,[ESP+14]
+
+001B:00427368   C644243806          MOV       BYTE PTR [ESP+38],06
+
+001B:0042736D   E827A30800          CALL      004B1699
+
+001B:00427372   8D4C2418            LEA       ECX,[ESP+18]
+
+001B:00427376   885C2438            MOV       [ESP+38],BL
+
+001B:0042737A   E81AA30800          CALL      004B1699
+
+001B:0042737F   68A8065100          PUSH      005106A8
+
+001B:00427384   51                  PUSH      ECX
+
+001B:00427385   8D442414            LEA       EAX,[ESP+14]
+
+001B:00427389   8BCC                MOV       ECX,ESP
+
+001B:0042738B   89642434            MOV       [ESP+34],ESP
+
+001B:0042738F   50                  PUSH      EAX
+
+001B:00427390   E879A00800          CALL      004B140E
+
+001B:00427395   8D4C2420            LEA       ECX,[ESP+20]
+
+001B:00427399   51                  PUSH      ECX
+
+001B:0042739A   8BCE                MOV       ECX,ESI
+
+001B:0042739C   E8CF0A0000          CALL      00427E70
+
+001B:004273A1   50                  PUSH      EAX
+
+001B:004273A2   B904A35100          MOV       ECX,0051A304
+
+001B:004273A7   C644243C08          MOV       BYTE PTR [ESP+3C],08
+
+001B:004273AC   E821A40800          CALL      004B17D2
+
+001B:004273B1   8D4C2418            LEA       ECX,[ESP+18]
+
+001B:004273B5   885C2438            MOV       [ESP+38],BL
+
+001B:004273B9   E8DBA20800          CALL      004B1699
+
+001B:004273BE   6894065100          PUSH      00510694
+
+001B:004273C3   51                  PUSH      ECX
+
+001B:004273C4   8D542414            LEA       EDX,[ESP+14]
+
+001B:004273C8   8BCC                MOV       ECX,ESP
+
+001B:004273CA   89642434            MOV       [ESP+34],ESP
+
+001B:004273CE   52                  PUSH      EDX
+
+001B:004273CF   E83AA00800          CALL      004B140E
+
+001B:004273D4   8D442420            LEA       EAX,[ESP+20]
+
+001B:004273D8   8BCE                MOV       ECX,ESI
+
+001B:004273DA   50                  PUSH      EAX
+
+001B:004273DB   E8900A0000          CALL      00427E70
+
+001B:004273E0   50                  PUSH      EAX
+
+001B:004273E1   B9D4A25100          MOV       ECX,0051A2D4
+
+001B:004273E6   C644243C09          MOV       BYTE PTR [ESP+3C],09
+
+001B:004273EB   E8E2A30800          CALL      004B17D2
+
+001B:004273F0   8D4C2418            LEA       ECX,[ESP+18]
+
+001B:004273F4   885C2438            MOV       [ESP+38],BL
+
+001B:004273F8   E89CA20800          CALL      004B1699
+
+001B:004273FD   6A01                PUSH      01
+
+001B:004273FF   6884065100          PUSH      00510684
+
+001B:00427404   51                  PUSH      ECX
+
+001B:00427405   8D542418            LEA       EDX,[ESP+18]
+
+001B:00427409   8BCC                MOV       ECX,ESP
+
+001B:0042740B   89642438            MOV       [ESP+38],ESP
+
+001B:0042740F   52                  PUSH      EDX
+
+001B:00427410   E8F99F0800          CALL      004B140E
+
+001B:00427415   8D442420            LEA       EAX,[ESP+20]
+
+001B:00427419   8BCE                MOV       ECX,ESI
+
+001B:0042741B   50                  PUSH      EAX
+
+001B:0042741C   E84F0A0000          CALL      00427E70
+
+001B:00427421   8BC8                MOV       ECX,EAX
+
+001B:00427423   C644243C0A          MOV       BYTE PTR [ESP+3C],0A
+
+001B:00427428   E8D30CFEFF          CALL      00408100
+
+001B:0042742D   8D4C241C            LEA       ECX,[ESP+1C]
+
+001B:00427431   50                  PUSH      EAX
+
+001B:00427432   51                  PUSH      ECX
+
+001B:00427433   E8D8100000          CALL      00428510
+
+001B:00427438   83C40C              ADD       ESP,0C
+
+001B:0042743B   50                  PUSH      EAX
+
+001B:0042743C   B9A0A25100          MOV       ECX,0051A2A0
+
+001B:00427441   C644243C0B          MOV       BYTE PTR [ESP+3C],0B
+
+001B:00427446   E887A30800          CALL      004B17D2
+
+001B:0042744B   8D4C2418            LEA       ECX,[ESP+18]
+
+001B:0042744F   C64424380A          MOV       BYTE PTR [ESP+38],0A
+
+001B:00427454   E840A20800          CALL      004B1699
+
+001B:00427459   8D4C2414            LEA       ECX,[ESP+14]
+
+001B:0042745D   885C2438            MOV       [ESP+38],BL
+
+001B:00427461   E833A20800          CALL      004B1699
+
+001B:00427466   686C065100          PUSH      0051066C
+
+001B:0042746B   51                  PUSH      ECX
+
+001B:0042746C   8BCC                MOV       ECX,ESP
+
+001B:0042746E   89642434            MOV       [ESP+34],ESP
+
+001B:00427472   8D542414            LEA       EDX,[ESP+14]
+
+001B:00427476   52                  PUSH      EDX
+
+001B:00427477   E8929F0800          CALL      004B140E
+
+001B:0042747C   8D442420            LEA       EAX,[ESP+20]
+
+001B:00427480   8BCE                MOV       ECX,ESI
+
+001B:00427482   50                  PUSH      EAX
+
+001B:00427483   E8E8090000          CALL      00427E70
+
+001B:00427488   50                  PUSH      EAX
+
+001B:00427489   B9D0A25100          MOV       ECX,0051A2D0
+
+001B:0042748E   C644243C0C          MOV       BYTE PTR [ESP+3C],0C
+
+001B:00427493   E83AA30800          CALL      004B17D2
+```
