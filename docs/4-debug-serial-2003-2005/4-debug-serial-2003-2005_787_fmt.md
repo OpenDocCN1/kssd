@@ -1,0 +1,369 @@
+
+# 破解 READBOOK
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-195.htm`](https://www.pediy.com/kssd/pediy07/pediy7-195.htm)
+
+- **文章作者**: `yijun[PYG]`
+- **作者邮件**: `yijun8354@sina.com`
+- **软件名称**: `READBOOK`
+- **下载地址**: `http://hdt.downloadsky.com:8080/down/RB_Setup_Plus1.51.exe`
+- **破解工具**: `OD`, `PEID`
+- **保护方式**: 序列号
+- **破解难度**: 简单
+
+## 破解分析过程
+
+先用 `PEID` 查知道该软件是 `PEtite 2.2 -> Ian Luck` 壳，`OD` 忽略所有异常载入来到这里：
+
+```assembly
+0050B042  >  B8 00B05000      mov eax,ReadBook.0050B000  //停在这里
+0050B047    68 00C04700      push ReadBook.0047C000
+0050B04C    64:FF35 0000000>push dword ptr fs:[0]
+0050B053    64:8925 0000000>mov dword ptr fs:[0],esp
+0050B05A    66:9C           pushfw
+0050B05C    60             pushad
+0050B05D    50             push eax  //一路 F8 来到这里，此时 ESP=0012FF9A
+0050B05E    68 00004000     push ReadBook.00400000
+0050B063    8B3C24          mov edi,dword ptr ss:[esp]
+0050B066    8B30           mov esi,dword ptr ds:[eax]
+0050B068    66:81C7 8007   add di,780
+0050B06D    8D7406 08      lea esi,dword ptr ds:[esi+eax+8]
+0050B071    8938           mov dword ptr ds:[eax],edi
+0050B073    8B5E 10        mov ebx,dword ptr ds:[esi+10]
+```
+
+在命令行输入 `DD 0012FF9A`,下硬件访问断点，选 `WORD`,`F9` 断在这里：
+
+```assembly
+0050B03D    66:9D           popfw   //断在这里，清除断点
+0050B03F    83C4 08         add esp,8
+0050B042  >- E9 2570F2FF     jmp ReadBook.0043206C //F8 到这里，跳到入口
+0050B047  - E9 62E4327C     jmp kernel32.GetTimeZoneInformati>
+0050B04C  - E9 903A317C     jmp kernel32.RaiseException
+0050B051  - E9 EDE82F7C     jmp kernel32.GetACP
+0050B056  - E9 7416307C     jmp kernel32.SetHandleCount
+0050B05B  - E9 CB7D327C     jmp kernel32.LCMapStringA
+0050B060  - E9 8859427C     jmp ntdll.RtlSizeHeap
+0050B065  - E9 4FDC327C     jmp kernel32.GetStringTypeA
+0050B06A  - E9 E80A307C     jmp kernel32.IsBadCodePtr
+0050B06F  - E9 2DE7327C     jmp kernel32.GetCurrentDirectoryA
+0050B074  - E9 165C307C     jmp kernel32.GetFileSize
+0050B079  - E9 C4732F7C     jmp kernel32.Sleep
+0050B07E  - E9 2E17307C     jmp kernel32.FindResourceA
+0050B083  - E9 FA4F307C     jmp kernel32.GlobalUnlock
+0050B088  - E9 A24D307C     jmp kernel32.GlobalFree
+```
+
+从 `0050B042` 跳到这里：
+
+```assembly
+0043206C    55             push ebp
+0043206D    8BEC           mov ebp,esp
+0043206F    6A FF          push -1
+00432071    68 C8994600    push ReadBook.004699C8
+00432076    68 5C1E4300    push ReadBook.00431E5C
+0043207B    64:A1 00000000 mov eax,dword ptr fs:[0]
+00432081    50             push eax
+00432082    64:8925 0000000>mov dword ptr fs:[0],esp
+00432089    83EC 58        sub esp,58
+0043208C    53             push ebx
+0043208D    56             push esi
+0043208E    57             push edi
+0043208F    8965 E8        mov dword ptr ss:[ebp-18],esp
+00432092    FF15 1C034600 call dword ptr ds:[46031C]        ; kernel32.GetVersion
+00432098    33D2           xor edx,edx
+```
+
+`OD` 直接脱壳后 `IR` 修复，脱壳后知道该软件是 `Microsoft Visual C++ 6.0` 编写，700 多 K~~~~~~~~~~
+
+我修复后运行该软件有个警告，但是可以运行，可能是修复不到位吧^-^
+
+下面我以 `yijun[PYG]` 为用户名进行注册~~~~~~~~~~~~~~~~~
+
+`OD` 重新载入，查找关键字 `您已经成功地注册了!祝贺`，双击来到以下地方：
+
+```assembly
+00409EBD    3935 A4AC4C00   cmp dword ptr ds:[4CACA4],esi
+00409EC3    74 4D           je short ReadBook.00409F12
+00409EC5    56              push esi
+00409EC6    68 7C5A4700     push ReadBook.00475A7C
+00409ECB    68 685A4700     push ReadBook.00475A68   //来到这里，往上~~~~~~~~~
+00409ED0    8BCB            mov ecx,ebx
+00409ED2    E8 B5B20300     call ReadBook.0044518C
+00409ED7    EB 39           jmp short ReadBook.00409F12
+```
+
+```assembly
+00409D6D    E8 A4550300     call ReadBook.0043F316             ; 这此下断点，断下后跟进~~~~~~~~~~~~~
+00409D72    8B85 54FFFFFF   mov eax,dword ptr ss:[ebp-AC]     ; 跳出后回到这里，20202020（16 进制）送 EAX
+00409D78    8B8D 4CFFFFFF   mov ecx,dword ptr ss:[ebp-B4]     ; 79705B6E（16 进制）送 ECX
+00409D7E    8BB5 48FFFFFF   mov esi,dword ptr ss:[ebp-B8]     ; 756A6979（16 进制）送 ESI
+00409D84    03C8            add ecx,eax                         ; ECX+EAX 送 ECX
+00409D86    038D 50FFFFFF   add ecx,dword ptr ss:[ebp-B0]     ; [ebp-B0]+ECX 送 ECX
+00409D8C    69F6 31750000   imul esi,esi,7531                  ; ESI 乘以 7531，取积的低 8 位再送 ESI
+00409D92    69C9 31750000   imul ecx,ecx,7531                  ; ECX 乘以 7531，取积的低 8 位再送 ECX
+00409D98    C70424 60544700 mov dword ptr ss:[esp],ReadBook.0>; ASCII "BIN_OR_TEXT"
+00409D9F    68 B5000000     push 0B5
+00409DA4    6A 00           push 0
+00409DA6    2BF1            sub esi,ecx                         ; ESI-ECX 送 ESI
+00409DA8    FF15 38024600   call dword ptr ds:[<&KERNEL32.Fin>; kernel32.FindResourceA
+00409DAE    50              push eax
+00409DAF    6A 00           push 0
+00409DB1    FF15 40024600   call dword ptr ds:[<&KERNEL32.Loa>; kernel32.LoadResource
+00409DB7    68 985A4700     push ReadBook.00475A98             ; ASCII "Register"
+00409DBC    57              push edi
+00409DBD    8945 F0        mov dword ptr ss:[ebp-10],eax
+00409DC0    E8 F8ED0000     call ReadBook.00418BBD
+00409DC5    68 845A4700     push ReadBook.00475A84             ; ASCII "RegisterEncryptMode"
+00409DCA    57              push edi
+00409DCB    8945 FC        mov dword ptr ss:[ebp-4],eax
+00409DCE    C745 F4 1232000>mov dword ptr ss:[ebp-C],3212
+00409DD5    C745 E8 3412000>mov dword ptr ss:[ebp-18],1234
+00409DDC    C745 EC 8888000>mov dword ptr ss:[ebp-14],8888
+00409DE3    C745 F8 2323000>mov dword ptr ss:[ebp-8],2323
+00409DEA    E8 CEED0000     call ReadBook.00418BBD//EAX 清 0
+00409DEF    83C4 10         add esp,10                         ; ESP-10 送 ESP
+00409DF2    85C0            test eax,eax
+00409DF4    75 24           jnz short ReadBook.00409E1A//EAX 不为 0 就跳
+00409DF6    8D45 F8        lea eax,dword ptr ss:[ebp-8]  //'##'送 EAX
+00409DF9    50              push eax
+00409DFA    8D45 EC        lea eax,dword ptr ss:[ebp-14]//[ebp-14]送 EAX
+00409DFD    50              push eax
+00409DFE    8D45 E8        lea eax,dword ptr ss:[ebp-18]//[ebp-18]送 EAX
+00409E01    50              push eax
+00409E02    8D45 F4        lea eax,dword ptr ss:[ebp-C] //[ebp-c]送 EAX
+00409E05    50              push eax
+00409E06    68 34594700     push ReadBook.00475934             ; ASCII "C:\\"
+00409E0B    FF15 FC014600   call dword ptr ds:[<&KERNEL32.Get>; kernel32.GetDiskFreeSpaceA
+00409E11    8B45 F8        mov eax,dword ptr ss:[ebp-8]
+00409E14    0FAF45 F4      imul eax,dword ptr ss:[ebp-C]
+00409E18    EB 19           jmp short ReadBook.00409E33
+00409E1A    8D45 C8        lea eax,dword ptr ss:[ebp-38]
+00409E1D    C745 C8 2000000>mov dword ptr ss:[ebp-38],20
+00409E24    50              push eax
+00409E25    FF15 EC014600   call dword ptr ds:[<&KERNEL32.Glo>; kernel32.GlobalMemoryStatus
+00409E2B    8B45 D4        mov eax,dword ptr ss:[ebp-2C]
+00409E2E    05 CCEDFFFF    add eax,-1234
+00409E33    F7D0            not eax  //EAX 取反
+00409E35    3145 FC        xor dword ptr ss:[ebp-4],eax  //[ebp-4]与 EAX 取异或
+00409E38    33C0            xor eax,eax  //EAX 清 0
+00409E3A    A3 B8774700     mov dword ptr ds:[4777B8],eax
+00409E3F    3975 FC        cmp dword ptr ss:[ebp-4],esi       ; ESI 送[ebp-4]
+00409E42    74 1D           je short ReadBook.00409E61
+```
+
+
+
+```
+00409E44    8B55 F0         mov edx,dword ptr ss:[ebp-10]  
+
+00409E47    8BC8            mov ecx,eax                   ; EAX=0 送 ECX  
+
+00409E49    83E1 7F        and ecx,7F                     ; ECX 和 7F 相与  
+
+00409E4C    03348A         add esi,dword ptr ds:[edx+ecx*4]  ; [edx+ecx*4]+ESI 送 ESI  
+
+00409E4F    40             inc eax                       ; EAX+1 送 EAX  
+
+00409E50    3D FF0F0000    cmp eax,0FFF                   ; EAX 和 0FFF 比较  
+
+00409E55    A3 B8774700    mov dword ptr ds:[4777B8],eax  
+
+00409E5A  ^ 72 E3          jb short ReadBook.00409E3F        ; EAX 小于 0FFF（10 进制 4095）就继续  
+
+00409E5C    3975 FC        cmp dword ptr ss:[ebp-4],esi      ; 计算后的 16 进制值取低 8 位存在 ESI，与输入假码 16 进制比较  
+
+00409E5F    75 78          jnz short ReadBook.00409ED9       ; 关键跳  
+
+00409E61    8B35 EC054600   mov esi,dword ptr ds:[<&USER32.Ge>; ; //以下是保存注册信息~~~~~~~~~~  
+
+00409E67    C705 A0AC4C00 0>mov dword ptr ds:[4CACA0],1  
+
+00409E71    FF73 1C        push dword ptr ds:[ebx+1C]  
+
+00409E74    FFD6           call esi  
+
+00409E76    50             push eax  
+
+00409E77    E8 B1DB0300    call ReadBook.00447A2D  
+
+00409E7C    8B3D E0054600   mov edi,dword ptr ds:[<&USER32.Re>; ; USER32.RemoveMenu  
+
+00409E82    6A 00          push 0  
+
+00409E84    68 50800000    push 8050  
+
+00409E89    FF70 04        push dword ptr ds:[eax+4]  
+
+00409E8C    FFD7           call edi  
+
+00409E8E    FF73 1C        push dword ptr ds:[ebx+1C]  
+
+00409E91    FFD6           call esi  
+
+00409E93    50             push eax  
+
+00409E94    E8 94DB0300    call ReadBook.00447A2D  
+
+00409E99    6A 00          push 0  
+
+00409E9B    68 51800000    push 8051  
+
+00409EA0    FF70 04        push dword ptr ds:[eax+4]  
+
+00409EA3    FFD7           call edi  
+
+00409EA5    FF73 1C        push dword ptr ds:[ebx+1C]  
+
+00409EA8    FFD6           call esi  
+
+00409EAA    50             push eax  
+
+00409EAB    E8 7DDB0300    call ReadBook.00447A2D  
+
+00409EB0    33F6           xor esi,esi  
+
+00409EB2    56             push esi  
+
+00409EB3    68 AF800000    push 80AF  
+
+00409EB8    FF70 04        push dword ptr ds:[eax+4]  
+
+00409EBB    FFD7           call edi  
+
+00409EBD    3935 A4AC4C00   cmp dword ptr ds:[4CACA4],esi  
+
+00409EC3    74 4D          je short ReadBook.00409F12  
+
+00409EC5    56             push esi  
+
+00409EC6    68 7C5A4700    push ReadBook.00475A7C  
+
+00409ECB    68 685A4700    push ReadBook.00475A68  
+
+00409ED0    8BCB           mov ecx,ebx  
+
+00409ED2    E8 B5B20300    call ReadBook.0044518C  
+
+00409ED7    EB 39          jmp short ReadBook.00409F12  
+
+00409ED9    8325 A0AC4C00 0>and dword ptr ds:[4CACA0],0  
+
+00409EE0    6A 00          push 0  
+
+00409EE2    68 A45A4700    push ReadBook.00475AA4            ; ASCII "User"  
+
+00409EE7    57             push edi  
+
+00409EE8    E8 66EC0000    call ReadBook.00418B53  
+
+00409EED    6A 00          push 0  
+
+00409EEF    68 985A4700    push ReadBook.00475A98            ; ASCII "Register"  
+
+00409EF4    57             push edi  
+
+00409EF5    E8 59EC0000    call ReadBook.00418B53  
+
+00409EFA    83C4 18        add esp,18  
+
+00409EFD    6A 00          push 0  
+
+00409EFF    68 53800000    push 8053  
+
+00409F04    68 11010000    push 111  
+
+00409F09    FF73 1C        push dword ptr ds:[ebx+1C]  
+
+00409F0C    FF15 74064600   call dword ptr ds:[<&USER32.PostM>; ; USER32.PostMessageA  
+
+00409F12    8325 A4AC4C00 0>and dword ptr ds:[4CACA4],0  
+
+00409F19    5F             pop edi  
+
+00409F1A    5E             pop esi  
+
+00409F1B    5B             pop ebx  
+
+00409F1C    C9             leave  
+
+00409F1D    C3             retn  
+```
+
+跟进 `00409D6D` 处 `CALL` 来到：
+
+```
+0043F316    55             push ebp  
+
+0043F317    8BEC           mov ebp,esp  
+
+0043F319    51             push ecx  
+
+0043F31A    51             push ecx  
+
+0043F31B    56             push esi  
+
+0043F31C    33F6           xor esi,esi                   ; ESI 清 0  
+
+0043F31E    3935 4CE54C00   cmp dword ptr ds:[4CE54C],esi  
+
+0043F324    57             push edi  
+
+0043F325    8975 F8        mov dword ptr ss:[ebp-8],esi  
+
+0043F328    75 2A          jnz short ReadBook.0043F354  
+
+0043F32A    8B45 08        mov eax,dword ptr ss:[ebp+8]      ; 用户名送 EAX  
+
+0043F32D    8BD0           mov edx,eax                   ; EAX 送 EDX  
+
+0043F32F    8038 00        cmp byte ptr ds:[eax],0           ; 判断是否为空  
+
+0043F332    0F84 0E010000   je ReadBook.0043F446              ; 为空就跳  
+
+0043F338    8A0A           mov cl,byte ptr ds:[edx]          ; 按位取用户名  
+
+0043F33A    80F9 41        cmp cl,41                     ; 和 41 比较  
+
+0043F33D    7C 0A          jl short ReadBook.0043F349        ; 小于就跳  
+
+0043F33F    80F9 5A        cmp cl,5A                     ; 再和 5A 比较  
+
+0043F342    7F 05          jg short ReadBook.0043F349        ; 大于就跳  
+
+0043F344    80C1 20        add cl,20                     ; CL 不大于 5A 则 CL+20 送 CL  
+
+0043F347    880A           mov byte ptr ds:[edx],cl          ; CL 送[edx]  
+
+0043F349    42             inc edx                       ; EDX 加一  
+
+0043F34A    803A 00        cmp byte ptr ds:[edx],0           ; 取完了没  
+
+0043F34D  ^ 75 E9          jnz short ReadBook.0043F338       ; 没有继续，以上循环将用户名中的大写变为小写。  
+
+0043F34F    E9 F2000000    jmp ReadBook.0043F446//跳出去~~~~~~
+```
+
+=== =========================================================
+
+**破解分析过程总结**
+
+注册名：`yijun[PYG]`
+
+注册码：`3375730025`
+
+内存注册机：
+
+中断地址：`409E5F`
+
+中断次数：`1`
+
+第一字节：`75`
+
+指令长度：`2`
+
+寄存器方式：`esi`－十进制
+
+=== =========================================================
+
+`4dd466d0e1e0cc123afbe504da2462ca`
