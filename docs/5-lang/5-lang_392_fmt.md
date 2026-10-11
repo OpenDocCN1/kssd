@@ -1,0 +1,34 @@
+
+# 家庭象册
+
+> 原文：[`www.pediy.com/kssd/pediy01/forum083.htm`](https://www.pediy.com/kssd/pediy01/forum083.htm)
+
+求救：我想破解家庭象册这个软件，可始终不成功，请各位老师指点迷津。谢谢！！！
+
+回复：
+
+**标题**: 注册码很好找，用 `bpx __vbaStrCmp` 做断点即可，但是写注册机要花点功夫 (955 字)
+
+- **作者**：郭大志
+- **时间**：2000-6-7 9:51:12
+
+**详细信息**:
+
+先加载 `MSVBVM60.DLL` 的符号表（最好不要同时加载 `MSVBVM50.DLL` 和 `MSVBVM60.DLL` 的符号表，否则断点应为 `bpx MSVBVM60!__vbaStrCmp`），用 `bpx __vbaStrCmp` 设断点之后看见如下的指令段：
+
+```
+0167:00707F0C  CALL       006FCE50                           //计算注册号
+0167:00707F11  MOV        ECX,[EBP-18]
+0167:00707F14  MOV        EDX,[007320FC]
+0167:00707F1A  PUSH       ECX                                  //假注册号
+0167:00707F1B  PUSH       EDX                                  //正确的注册号
+0167:00707F1C  CALL       [MSVBVM60!__vbaStrCmp]
+0167:00707F22  TEST       EAX,EAX
+0167:00707F24  JNZ        007080A9
+```
+
+跟踪进 `CALL 006FCE50` 则可以看见生成注册号的过程。根据程序指令可以证实微软的 VB6 程序确实是真正的 EXE，跟用 VC、Delphi 等编译得到的 EXE 没有太大分别，而早期的 VB4、VB3 程序根本不能叫做真正的 EXE 程序。
+
+另外，要写注册机的话最好先用 `SmartCheck` 看一下生成注册码的大致流程，然后再用 `SoftICE` 跟。困难在于微软没有公布 `MSVBVM50.DLL` 中的函数接口，所以该 DLL 中的函数的作用和参数都要靠猜。
+
+`4dd466d0e1e0cc123afbe504da2462ca`
