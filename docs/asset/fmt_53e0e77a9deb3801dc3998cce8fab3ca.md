@@ -1,0 +1,283 @@
+
+### 汇编代码分析
+
+```assembly
+004AC33C   .  0F85 E0000000 JNZ _CCC.004AC422                     //不能被 7 整除，OVER  
+
+004AC342   .  895D A0        MOV DWORD PTR SS:[EBP-60],EBX  
+
+004AC345   .  33C0          XOR EAX,EAX  
+
+004AC347   .  8945 A4       MOV DWORD PTR SS:[EBP-5C],EAX  
+
+004AC34A   .  DF6D A0       FILD QWORD PTR SS:[EBP-60]  
+
+004AC34D   .  D835 84C44A00 FDIV DWORD PTR DS:[4AC484]  
+
+004AC353   .  E8 9868F5FF  CALL _CCC.00402BF0  
+
+004AC358   .  8BD8         MOV EBX,EAX                              //余数传给 EBX  
+
+004AC35A   .  2B5D E4      SUB EBX,DWORD PTR SS:[EBP-1C]             //减去用户名第 5 位  
+
+004AC35D   .  8BC3         MOV EAX,EBX  
+
+004AC35F   .  B9 07000000  MOV ECX,7  
+
+004AC364   .  33D2         XOR EDX,EDX  
+
+004AC366   .  F7F1         DIV ECX  
+
+004AC368   .  85D2         TEST EDX,EDX  
+
+004AC36A   .  0F85 B2000000 JNZ _CCC.004AC422                       //不能被 7 整除，OVER  
+
+004AC370   .  895D A0      MOV DWORD PTR SS:[EBP-60],EBX  
+
+004AC373   .  33C0         XOR EAX,EAX  
+
+004AC375   .  8945 A4      MOV DWORD PTR SS:[EBP-5C],EAX  
+
+004AC378   .  DF6D A0      FILD QWORD PTR SS:[EBP-60]  
+
+004AC37B   .  D835 84C44A00 FDIV DWORD PTR DS:[4AC484]  
+
+004AC381   .  E8 6A68F5FF  CALL _CCC.00402BF0  
+
+004AC386   .  8BD8         MOV EBX,EAX                              //余数传给 EBX  
+
+004AC388   .  2B5D E8      SUB EBX,DWORD PTR SS:[EBP-18]             //减去用户名第 4 位  
+
+004AC38B   .  8BC3         MOV EAX,EBX  
+
+004AC38D   .  B9 07000000  MOV ECX,7  
+
+004AC392   .  33D2         XOR EDX,EDX  
+
+004AC394   .  F7F1         DIV ECX  
+
+004AC396   .  85D2         TEST EDX,EDX  
+
+004AC398   .  0F85 84000000 JNZ _CCC.004AC422                        //不能被 7 整除，OVER  
+
+004AC39E   .  895D A0      MOV DWORD PTR SS:[EBP-60],EBX  
+
+004AC3A1   .  33C0         XOR EAX,EAX  
+
+004AC3A3   .  8945 A4      MOV DWORD PTR SS:[EBP-5C],EAX  
+
+004AC3A6   .  DF6D A0      FILD QWORD PTR SS:[EBP-60]  
+
+004AC3A9   .  D835 84C44A00 FDIV DWORD PTR DS:[4AC484]  
+
+004AC3AF   .  E8 3C68F5FF  CALL _CCC.00402BF0  
+
+004AC3B4   .  8BD8         MOV EBX,EAX                               //余数传给 EBX  
+
+004AC3B6   .  2B5D EC      SUB EBX,DWORD PTR SS:[EBP-14]             //减去用户名第 3 位  
+
+004AC3B9   .  8BC3         MOV EAX,EBX  
+
+004AC3BB   .  B9 07000000  MOV ECX,7  
+
+004AC3C0   .  33D2         XOR EDX,EDX  
+
+004AC3C2   .  F7F1         DIV ECX  
+
+004AC3C4   .  85D2         TEST EDX,EDX  
+
+004AC3C6   .  75 5A        JNZ SHORT _CCC.004AC422                   //不能被 7 整除，OVER  
+
+004AC3C8   .  895D A0      MOV DWORD PTR SS:[EBP-60],EBX  
+
+004AC3CB   .  33C0         XOR EAX,EAX  
+
+004AC3CD   .  8945 A4      MOV DWORD PTR SS:[EBP-5C],EAX  
+
+004AC3D0   .  DF6D A0      FILD QWORD PTR SS:[EBP-60]  
+
+004AC3D3   .  D835 84C44A00 FDIV DWORD PTR DS:[4AC484]  
+
+004AC3D9   .  E8 1268F5FF  CALL _CCC.00402BF0  
+
+004AC3DE   .  8BD8         MOV EBX,EAX                               //余数传给 EBX  
+
+004AC3E0   .  2BDF         SUB EBX,EDI                               //减去用户名第 2 位  
+
+004AC3E2   .  8BC3         MOV EAX,EBX  
+
+004AC3E4   .  B9 07000000  MOV ECX,7  
+
+004AC3E9   .  33D2         XOR EDX,EDX  
+
+004AC3EB   .  F7F1         DIV ECX  
+
+004AC3ED   .  85D2         TEST EDX,EDX  
+
+004AC3EF   .  75 31        JNZ SHORT _CCC.004AC422                  //不能被 7 整除，OVER  
+
+004AC3F1   .  895D A0      MOV DWORD PTR SS:[EBP-60],EBX  
+
+004AC3F4   .  33C0         XOR EAX,EAX  
+
+004AC3F6   .  8945 A4      MOV DWORD PTR SS:[EBP-5C],EAX  
+
+004AC3F9   .  DF6D A0      FILD QWORD PTR SS:[EBP-60]  
+
+004AC3FC   .  D835 84C44A00 FDIV DWORD PTR DS:[4AC484]  
+
+004AC402   .  E8 E967F5FF  CALL _CCC.00402BF0  
+
+004AC407   .  8BD8         MOV EBX,EAX                               //余数传给 EBX  
+
+004AC409   .  2BDE         SUB EBX,ESI                               //减去用户名第 1 位  
+
+004AC40B   .  8BC3         MOV EAX,EBX  
+
+004AC40D   .  B9 07000000  MOV ECX,7  
+
+004AC412   .  33D2         XOR EDX,EDX  
+
+004AC414   .  F7F1         DIV ECX  
+
+004AC416   .  85D2         TEST EDX,EDX  
+
+004AC418   .  75 08        JNZ SHORT _CCC.004AC422                  //不能被 7 整除，OVER  
+
+004AC41A   .  A1 58C35600  MOV EAX,DWORD PTR DS:[56C358]  
+
+004AC41F   .  C600 01      MOV BYTE PTR DS:[EAX],1                   //置注册标志位为 1  
+
+004AC422   >  33C0         XOR EAX,EAX  
+
+004AC424   .  5A           POP EDX  
+
+004AC425   .  59           POP ECX  
+
+004AC426   .  59           POP ECX  
+
+004AC427   .  64:8910      MOV DWORD PTR FS:[EAX],EDX  
+
+004AC42A   .  68 59C44A00  PUSH _CCC.004AC459  
+
+004AC42F   >  8D45 A8      LEA EAX,DWORD PTR SS:[EBP-58]  
+
+004AC432   .  BA 0C000000  MOV EDX,0C  
+
+004AC437   .  E8 387AF5FF  CALL _CCC.00403E74  
+
+004AC43C   .  8D45 F0      LEA EAX,DWORD PTR SS:[EBP-10]  
+
+004AC43F   .  E8 0C7AF5FF  CALL _CCC.00403E50  
+
+004AC444   .  8D45 F8      LEA EAX,DWORD PTR SS:[EBP-8]  
+
+004AC447   .  BA 02000000  MOV EDX,2  
+
+004AC44C   .  E8 237AF5FF  CALL _CCC.00403E74  
+
+004AC451   .  C3           RETN  
+
+004AC452   . ^ E9 7574F5FF JMP _CCC.004038CC  
+
+004AC457   . ^ EB D6       JMP SHORT _CCC.004AC42F  
+
+004AC459   .  8B45 F4      MOV EAX,DWORD PTR SS:[EBP-C]  
+
+004AC45C   .  5F           POP EDI  
+
+004AC45D   .  5E           POP ESI  
+
+004AC45E   .  5B           POP EBX  
+
+004AC45F   .  8BE5         MOV ESP,EBP  
+
+004AC461   .  5D           POP EBP  
+
+004AC462   .  C3           RETN  
+```
+
+### 算法总结
+
+1. 取用户名 8 位，不足用空格补齐。
+2. 其 `ASCII` 码值取低 7 位。
+3. 设用户名 1-8 位分别为 `NAME1`-`NAME8`，注册码第 7－14 位 = `(((((((n×7)＋NAME1)×7＋NAME2)×7＋NAME3)×7＋NAME4)×7＋NAME5)×7＋NAME6)×7＋NAME7)×7＋NAME8`。
+   - `n` 取 `0` 和 `1` 应该没问题，只要最后得出的结果不超过 8 位就行。
+4. 示例用户名 `jney2345`，算出来的结果为 `061822B2`，注册表为：
+
+```text
+Windows Registry Editor Version 5.00
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\MGC\RL]
+
+"NAME"="jney2345"
+"CODE"="123456061822B2"
+```
+
+这只是算法的一部分，通过该部分即可去掉 `NAG` 对话框、菜单中的注册项、关于和桌面上的未注册字样。但日历中的未注册字样和通讯录功能不可用，其算法验证与下面的 `CALL _CCC.004AC488` 有关。功力有限，搞不定。用 `PEID` 的插件查加密算法，有四五种之多，算了放弃吧，只看那位高手再出手了。
+
+我的解决办法是通过修改资源菜单可恢复其通讯录功能。但程序本身有些菜单项是没有功能的。
+
+### 后续汇编分析
+
+```assembly
+0055F857  |> \ 8B15 9CBE5600 MOV EDX,DWORD PTR DS:[56BE9C]              ;  _CCC.0056D920
+0055F85D  |.  8B12           MOV EDX,DWORD PTR DS:[EDX]
+0055F85F  |.  A1 6CC25600   MOV EAX,DWORD PTR DS:[56C26C]
+0055F864  |.  8B00           MOV EAX,DWORD PTR DS:[EAX]
+0055F866  |.  E8 1DCCF4FF   CALL _CCC.004AC488                          //另一部分算法 CALL？？？
+0055F86B  |.  48             DEC EAX
+0055F86C  |.  75 08          JNZ SHORT _CCC.0055F876
+0055F86E  |.  A1 78C25600   MOV EAX,DWORD PTR DS:[56C278]
+0055F873  |.  C600 01        MOV BYTE PTR DS:[EAX],1
+0055F876  |>  8D55 B4       LEA EDX,DWORD PTR SS:[EBP-4C]
+0055F879  |.  B8 C0F95500   MOV EAX,_CCC.0055F9C0                        ;  ASCII "2852314454075600CE2E435312522D36232944210D31445407CF"
+0055F87E  |.  E8 B9C5F4FF   CALL _CCC.004ABE3C
+0055F883  |.  8B55 B4       MOV EDX,DWORD PTR SS:[EBP-4C]
+0055F886  |.  A1 28C25600   MOV EAX,DWORD PTR DS:[56C228]
+0055F88B  |.  8B00           MOV EAX,DWORD PTR DS:[EAX]
+0055F88D  |.  8B80 DC020000 MOV EAX,DWORD PTR DS:[EAX+2DC]
+0055F893  |.  E8 A874EDFF   CALL _CCC.00436D40
+0055F898  |.  A1 78C25600   MOV EAX,DWORD PTR DS:[56C278]
+0055F89D  |.  8038 00        CMP BYTE PTR DS:[EAX],0
+0055F8A0  |.  74 32          JE SHORT _CCC.0055F8D4
+0055F8A2  |.  8D55 B0       LEA EDX,DWORD PTR SS:[EBP-50]
+0055F8A5  |.  B8 00FA5500   MOV EAX,_CCC.0055FA00                        ;  ASCII "314454075E1EDC"
+0055F8AA  |.  E8 8DC5F4FF   CALL _CCC.004ABE3C
+```
+
+本文完。
+
+### C++ 代码片段
+
+```cpp
+void CRounDlg::OnButton1()  
+
+{  
+
+  // TODO: Add your control notification handler code here  
+
+  UpdateData(true);  
+
+  unsigned int sum=0;  
+
+  char tt[8]={0};  
+
+  CString t1,err="用户名必须等于 8 位";  
+
+  if(m_name.GetLength()!=8)  
+
+  {  
+
+    MessageBox(err);  
+
+    return;  
+
+  }  
+
+      m_code.Empty();  
+
+  for(int i=0;i<m_name.GetLength();i++)  
+
+  {   
+```
