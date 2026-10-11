@@ -1,0 +1,244 @@
+
+```
+00415B3B    6A 04           PUSH 4
+
+00415B3D    68 00300000     PUSH 3000
+
+00415B42    51              PUSH ECX
+
+00415B43    6A 00           PUSH 0
+
+00415B45    8D85 214F4000   LEA EAX,DWORD PTR SS:[EBP+404F21]
+
+00415B4B    48              DEC EAX
+
+00415B4C    FF10            CALL DWORD PTR DS:[EAX]                ; KERNEL32.VirtualAlloc
+
+00415B4E    8985 A0624000   MOV DWORD PTR SS:[EBP+4062A0],EAX      ; [004155F4], buffer1, 保留子进程的 ThreadID 和 hThread 用
+
+00415B54    B9 00100000     MOV ECX,1000                           ; size
+
+00415B59    6A 04           PUSH 4
+
+00415B5B    68 00300000     PUSH 3000
+
+00415B60    51              PUSH ECX
+
+00415B61    6A 00           PUSH 0
+
+00415B63    8D85 214F4000   LEA EAX,DWORD PTR SS:[EBP+404F21]
+
+00415B69    48              DEC EAX
+
+00415B6A    FF10            CALL DWORD PTR DS:[EAX]                ; KERNEL32.VirtualAlloc
+
+00415B6C    8985 C4624000   MOV DWORD PTR SS:[EBP+4062C4],EAX      ; [00415618], buffer2,  给 mov reg1, [reg2+offset] 用的
+
+00415BA0    C785 EE624000 4>MOV DWORD PTR SS:[EBP+4062EE],44       ; [00415642], StartupInfo
+
+00415BAA    8D85 6C4F4000   LEA EAX,DWORD PTR SS:[EBP+404F6C]
+
+00415BB0    48              DEC EAX
+
+00415BB1    FF10            CALL DWORD PTR DS:[EAX]                ; KERNEL32.GetCommandLineA
+
+00415BB3    8BF8            MOV EDI,EAX
+
+00415BB5    8BD0            MOV EDX,EAX                            ; EDX -> CommandLine
+
+00415BB7    803F 22         CMP BYTE PTR DS:[EDI],22               ; 双引号
+
+00415BBA    75 1A           JNZ SHORT PESpin.00415BD6
+
+00415BBC    83C9 FF         OR ECX,FFFFFFFF
+
+00415BBF    47              INC EDI
+
+00415BC0    8BF7            MOV ESI,EDI
+
+00415BC2    B0 22           MOV AL,22
+
+00415BC4    F2:AE           REPNE SCAS BYTE PTR ES:[EDI]
+
+00415BC6    F7D1            NOT ECX
+
+00415BC8    49              DEC ECX                                 ; 去掉双引号的长度
+
+00415BC9    8BBD A0624000   MOV EDI,DWORD PTR SS:[EBP+4062A0]
+
+00415BCF    8BDF            MOV EBX,EDI                             ; EBX -> buffer1
+
+00415BD1    F3:A4           REP MOVS BYTE PTR ES:[EDI],BYTE PTR DS:[ESI] ; 复制到 buffer1
+
+00415BD3    2AC0            SUB AL,AL
+
+00415BD5    AA              STOS BYTE PTR ES:[EDI]
+
+00415BE2    8DB5 EE624000   LEA ESI,DWORD PTR SS:[EBP+4062EE]       ; 00415642, pStartupInfo
+
+00415BE8    8DBD 32634000   LEA EDI,DWORD PTR SS:[EBP+406332]       ; 00415686, pProcessInfo
+
+00415BEE    8D85 5D2E8663   LEA EAX,DWORD PTR SS:[EBP+63862E5D]
+
+00415BF4    57              PUSH EDI
+
+00415BF5    56              PUSH ESI
+
+00415BF6    6A 00           PUSH 0
+
+00415BF8    6A 00           PUSH 0
+
+00415C0B    6A 03           PUSH 3
+
+00415C0D    6A 01           PUSH 1
+
+00415C0F    6A 00           PUSH 0
+
+00415C11    6A 00           PUSH 0
+
+00415C13    2D F8DE4563     SUB EAX,6345DEF8
+
+00415C18    52              PUSH EDX
+
+00415C19    53              PUSH EBX
+
+00415C1A    40              INC EAX
+
+00415C1B    FF10            CALL DWORD PTR DS:[EAX]                 ; KERNEL32.CreateProcessA
+
+    0012FF74   00415C1D  /CALL to CreateProcessA from PESpin.00415C1B
+
+    0012FF78   00880000  |ModuleFileName = "E:\pespin13\PESpin.exe"
+
+    0012FF7C   00132610  |CommandLine = ""E:\pespin13\PESpin.exe""
+
+    0012FF80   00000000  |pProcessSecurity = NULL
+
+    0012FF84   00000000  |pThreadSecurity = NULL
+
+    0012FF88   00000001  |InheritHandles = TRUE
+
+    0012FF8C   00000003  |CreationFlags = DEBUG_PROCESS|DEBUG_ONLY_THIS_PROCESS
+
+    0012FF90   00000000  |pEnvironment = NULL
+
+    0012FF94   00000000  |CurrentDir = NULL
+
+    0012FF98   00415642  |pStartupInfo = PESpin.00415642
+
+    0012FF9C   00415686  \pProcessInfo = PESpin.00415686
+
+00415C1D    0BC0            OR EAX,EAX
+
+00415C1F    0F84 68060000   JE PESpin.0041628D                       ; 不成功直接退出
+
+// 调试循环
+
+00415C5D    8D9D 42634000   LEA EBX,DWORD PTR SS:[EBP+406342]       ; 00415696, DebugEvent
+
+00415C63    8D85 854F4000   LEA EAX,DWORD PTR SS:[EBP+404F85]
+
+00415C69    6A FF           PUSH -1                                  ; 无限等待
+
+00415C6B    53              PUSH EBX
+
+00415C6C    48              DEC EAX
+
+00415C6D    FF10            CALL DWORD PTR DS:[EAX]                 ; KERNEL32.WaitForDebugEvent
+
+00415C6F    0BC0            OR EAX,EAX
+
+00415C71    0F84 16060000   JE PESpin.0041628D                       ; 结束
+
+00415C77    8B85 42634000   MOV EAX,DWORD PTR SS:[EBP+406342]       ; dwDebugEventCode
+
+00415C7D    35 C19B54D3     XOR EAX,D3549BC1
+
+00415C82    3D C29B54D3     CMP EAX,D3549BC2
+
+00415C87    0F84 D4050000   JE PESpin.00416261                       ; CREATE_PROCESS_DEBUG_EVENT, 好象没干什么活, 最后跳到 00415CB5
+
+00415C8D    3D C09B54D3     CMP EAX,D3549BC0
+
+00415C92    74 50           JE SHORT PESpin.00415CE4                ; EXCEPTION_DEBUG_EVENT
+
+00415C94    3D C49B54D3     CMP EAX,D3549BC4
+
+00415C99    0F84 EE050000   JE PESpin.0041628D                       ; EXIT_PROCESS_DEBUG_EVENT
+
+00415C9F    3D C39B54D3     CMP EAX,D3549BC3
+
+00415CA4    0F84 33050000   JE PESpin.004161DD                       ; CREATE_THREAD_DEBUG_EVENT, 增加成员到 Buffer1
+
+00415CAA    3D C59B54D3     CMP EAX,D3549BC5
+
+00415CAF    0F84 69050000   JE PESpin.0041621E                       ; EXIT_THREAD_DEBUG_EVENT, 减少 Buffer1 成员
+
+00415CB5    B8 127DB87E     MOV EAX,7EB87D12
+
+00415CBA    35 137DB9FE     XOR EAX,FEB97D13
+
+00415CBF    50              PUSH EAX                                 ; 80010001, DBG_EXCEPTION_NOT_HANDLED
+
+00415CC0    FFB5 4A634000   PUSH DWORD PTR SS:[EBP+40634A]          ; dwThreadId
+
+00415CC6    FFB5 46634000   PUSH DWORD PTR SS:[EBP+406346]          ; dwProcessId
+
+00415CCC    8D85 8A4F4000   LEA EAX,DWORD PTR SS:[EBP+404F8A]
+
+00415CD2    48              DEC EAX
+
+00415CD3    FF10            CALL DWORD PTR DS:[EAX]                 ; KERNEL32.ContinueDebugEvent
+
+00415CD5    8D85 219BA74F   LEA EAX,DWORD PTR SS:[EBP+4FA79B21]
+
+00415CDB    05 E8CD98B0     ADD EAX,B098CDE8
+
+00415CE0    FFE0            JMP EAX                                  ; 00415C5D
+
+// 对异常的处理
+
+00415CE4    8B85 4E634000   MOV EAX,DWORD PTR SS:[EBP+40634E]       ; EXCEPTION_DEBUG_EVENT 的处理代码
+
+00415CEA    35 A1B97180     XOR EAX,8071B9A1
+
+00415CEF    3D A2B97100     CMP EAX,71B9A2
+
+00415CF4    74 1F           JE SHORT PESpin.00415D15                ; 80 00 00 03 Int3
+
+00415CF6    3D A5B97100     CMP EAX,71B9A5
+
+00415CFB    0F84 C8030000   JE PESpin.004160C9                       ; 80 00 00 04 单步
+
+00415D01    3D BCB97140     CMP EAX,4071B9BC
+
+00415D06    74 5E           JE SHORT PESpin.00415D66                ; C0 00 00 1D 非法指令
+
+00415D08    8D85 49014800   LEA EAX,DWORD PTR SS:[EBP+480149]       ; 其他异常父进程都不处理
+
+00415D0E    2D E8970700     SUB EAX,797E8
+
+00415D13   ^\FFE0            JMP EAX                                ; PESpin.00415CB5
+
+00415D15    838D B4624000 0>OR DWORD PTR SS:[EBP+4062B4],0          ; [00415608] Int3 异常次数
+
+00415D1C    75 39           JNZ SHORT PESpin.00415D57
+
+        // 第一次 Int3 异常
+
+00415D1E    FF85 B4624000   INC DWORD PTR SS:[EBP+4062B4]           ; 第一次, 系统异常
+
+00415D2E    50              PUSH EAX                                 ; DBG_CONTINUE
+
+00415D2F    FFB5 4A634000   PUSH DWORD PTR SS:[EBP+40634A]          ; dwThreadId
+
+00415D35    FFB5 46634000   PUSH DWORD PTR SS:[EBP+406346]          ; dwProcessId
+
+00415D3B    8D85 0A176B51   LEA EAX,DWORD PTR SS:[EBP+516B170A]
+
+00415D41    2D 81C72A51     SUB EAX,512AC781
+
+00415D46    FF10            CALL DWORD PTR DS:[EAX]                 ; KERNEL32.ContinueDebugEvent
+
+00415D48    8D85 25A9150A   LEA EAX,DWORD PTR SS:[EBP+A15A925]
+```
