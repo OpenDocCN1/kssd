@@ -1,0 +1,260 @@
+
+# 国外 SDK 注册破解 + 算法分析
+
+> 原文：[`www.pediy.com/kssd/pediy11/108158.html`](https://www.pediy.com/kssd/pediy11/108158.html)
+
+**【文章标题】**: 国外一注册算法分析  
+**【文章作者】**: `steven844`  
+**【作者邮箱】**: `steven844@126.com`  
+**【作者 QQ 号】**: `821248938`  
+**【作者声明】**: 本文以学习为主,没有其他别的目的.算法也不难,不足之处请大侠批评指正.
+
+--------------------------------------------------------------------------------
+
+## 【详细过程】
+
+小弟初学者,偶见一个国外一个条码试用 SDK,DLL 的注册函数,可在他给的 vc 工程里看到:
+
+`PtQREncodeRegister("01234567890123456789");` // use the license key of demo version.
+
+类似这样的函数,有点小小的激动以为注册成功就可使用正式版的功能,于是想破解之,发现他的算法其实也不难,就小小显摆了一下.意在熟悉汇编的一些指令操作和了解一些基本的算法.文章写的比较详细,可能有点繁琐意在和菜菜们一起交流,大侠不要见笑哈.
+
+### (1) `Reg` 函数下断点
+
+这里直接把 Debug 里头的目标可执行文件用 OD 载入,`alt+e` 来到 Executable modules 窗口,在这里看到了关于这个这个 SDK 要调用的几个 DLL,随即我来到其中一个 `Encode`(选中然后 `Enter` 或者 `DoubleClick`),这里是此 `Encode.dll` 的领空了,`Ctrl+N`,找到了 `Reg` 的导出函数.下面就是 `F9` 来到 `Reg` 函数位置.
+
+如下:
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+```
+00391580 >/$ 56 push esi
+00391581 |. 8B7424 08 mov esi,dword ptr ss:[esp+8]
+00391585 |. 56 push esi ---->注册数字串的地址入栈
+00391586 |. E8 B5060000 call PtQREnco.00391C40 ------>算法关键 call
+0039158B |. 83C4 04 add esp,4
+0039158E |. 83F8 01 cmp eax,1
+00391591 |. 74 0E je short PtQREnco.003915A1------->ErrorKey 不跳
+...这里如果不跳的哈就直接跟上一个 retn 了,显然要跳了.
+00391593 |. C705 20603900>mov dword ptr ds:[396020],1
+0039159D |. 5E pop esi
+0039159E |. C2 0400 retn 4
+003915A1 |> 6A 03 push 3 ; /maxlen = 3
+003915A3 |. 68 48803900 push PtQREnco.00398048 ; |162
+003915A8 |. 56 push esi ; |s1
+003915A9 |. FF15 28513900 call dword ptr ds:[<&MSVCRT.strncmp>]; \strncmp
+...注册数字串前三位与"162"比较
+003915AF |. 83C4 0C add esp,0C
+003915B2 |. C705 20603900>mov dword ptr ds:[396020],1->这里还不知道为什么
+003915BC |. 85C0 test eax,eax
+003915BE |. 74 06 je short PtQREnco.003915C6
+003915C0 |. 33C0 xor eax,eax
+003915C2 |. 5E pop esi
+003915C3 |. C2 0400 retn 4
+003915C6 |> B8 01000000 mov eax,1
+003915CB |. 5E pop esi
+003915CC \\. C2 0400 retn 4
+```
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+所以 `Crack` 这里要做的事情就是把:
+
+```
+003915BE |. 74 06 je short PtQREnco.003915C6
+00391591 |. 74 0E je short PtQREnco.003915A1
+```
+
+改成 `JMP` 就 ok 了.心想这样只就玩了.
+
+### (2) 运行的时候有对话框
+
+把它去了,用 `F12` 暂停再 `alt+k`:
+
+调用堆栈： 主线程 3
+
+地址 堆栈 函数过程 / 参数 调用来
+`0011C75C` `00394541` ? `<jmp.&MFC42.#1200>` `PtQREnco.0039453C`
+`0011C76C` `003945CC` ? `PtQREnco.00394530` `PtQREnco.003945C7`
+`0011CE3C` `00391638` `PtQREnco.00394550` `PtQREnco.PtQREncode+13`
+`0012F95C` `00402854` `PtQREnco.PtQREncode` `Sample.0040284E`
+
+看来这里只有"一步一步往上找"了,这个方法是天草里头学的.就双击第一个 `<jmp.&MFC42.#1200>` 来到这里:
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+```
+00394530 /$ 8B4424 04 mov eax,dword ptr ss:[esp+4]
+00394534 |. 6A 00 push 0
+00394536 |. 68 00200000 push 2000
+0039453B |. 50 push eax
+0039453C |. E8 9F010000 call <jmp.&MFC42.#1200>-->断点位置
+00394541 \\. C3 retn
+```
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+在断首下段.再一次 `F9` 来到断首,看到堆栈:
+
+`0011C76C` `003945CC` 返回到 `PtQREnco.003945CC` 来自 `PtQREnco.00394530`
+
+直接 `Enter`,然后又到断首下端..如此循环几次就可以看到:
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+```
+0040284E |. FF15 880C6000 call dword ptr ds:[<&PtQREncode.#2_PtQREncode>] ; PtQREnco.PtQREncode
+```
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+呵呵,原来是 `Encode` 函数调用的那个对话框.跟进去...我们可以看到:
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+```
+00391620 >/$ B8 1C2B0100 mov eax,12B1C
+00391625 |. E8 36330000 call PtQREnco.00394960
+0039162A |. 833D 20603900>cmp dword ptr ds:[396020],1->这个地址写 1 又出现
+00391631 |. 75 05 jnz short PtQREnco.00391638
+00391633 |. E8 182F0000 call PtQREnco.00394550
+```
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+..这个 `call` 运行了就显示那个对话框.所以嘿嘿签名的那个 `Cmp` 是关建了..
+
+..这个时候我想到了开始 `Reg` 函数的那个不知道为什么写 1 了,这是为了标志是否要显示对话框.
+
+所以嘿嘿,把 `Reg` 函数那个地址 `[396020]` `MOV` `0` 就 ok 了哈...
+
+到此以为全部就 OK 了,后来才发现这个是用版的还是有限制在 `Ecode` 的字符数上的限制,有意者可以自己下来研究.
+
+很是郁闷啊..干脆已经到这个时候了,看看他的那个算法..
+
+从那个 `Reg` 函数的关键算法 `Call` 进来:
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+```
+00391C40 /$ push ecx
+00391C41 |. push ebx
+00391C42 |. push esi
+00391C43 |. mov esi,dword ptr ss:[esp+10]----->esi 放注册数字串
+00391C47 |. push edi
+00391C48 |. mov edi,esi
+00391C4A |. or ecx,FFFFFFFF
+00391C4D |. xor eax,eax
+00391C4F |. repne scas byte ptr es:[edi] ; 判断是否是 20 位
+00391C51 |. not ecx
+00391C53 |. dec ecx
+00391C54 |. cmp ecx,14
+00391C57 |. je short PtQREnco.00391C61
+00391C59 |. pop edi
+00391C5A |. pop esi
+00391C5B |. or eax,FFFFFFFF
+00391C5E |. pop ebx
+00391C5F |. pop ecx
+00391C60 |. retn
+00391C61 |> ecx,ecx ; ecx = 0
+00391C63 |> mov al,byte ptr ds:[ecx+esi] ; 判断 20 位都是'0'-'9'之间
+00391C66 |. cmp al,30
+00391C68 |. jl PtQREnco.00391D00
+00391C6E |. cmp al,39
+00391C70 |. jg PtQREnco.00391D00
+00391C76 |. inc ecx
+00391C77 |. cmp ecx,14
+00391C7A |.^ jl short PtQREnco.00391C63
+00391C7C |. xor edi,edi ; edi = 0
+00391C7E |. mov ebx,1 ; ebx = 1
+00391C83 |. xor eax,eax ; eax = 0
+00391C85 |> movsx ecx,byte ptr ds:[eax+esi] ; byte 扩展成 word 到 ecx
+00391C89 |. lea edi,dword ptr ds:[edi+ecx-2F] ; edi = edi + ecx -'0' +1->计算值 1
+00391C8D |. add ecx,-2F ; ecx = ecx - '0' + 1
+00391C90 |. imul ebx,ecx ; ebx = ecx * ebx------>计算值 2
+00391C93 |. inc eax ; eax = eax + 1
+00391C94 |. cmp eax,0C ; eax<->12
+00391C97 |.^jl short PtQREnco.00391C85 ; 处理 0-11 位数字
+00391C99 |. mov dl,byte ptr ds:[esi+C] ; dl = byte[12]
+00391C9C |. mov al,byte ptr ds:[esi+D] ; al = byte[13]
+00391C9F |. mov cl,byte ptr ds:[esi+E] ; cl = byte[14]
+00391CA2 |. mov byte ptr ss:[esp+14],dl
+00391CA6 |. lea edx,dword ptr ss:[esp+14] ; edx <- dl
+00391CAA |. push ebp
+00391CAB |. mov ebp,dword ptr ds:[<&MSVCRT.atoi>] ; msvcrt.atoi
+00391CB1 |. push edx ; /s
+00391CB2 |. mov byte ptr ss:[esp+1D],al ; |
+00391CB6 |. mov byte ptr ss:[esp+1E],cl ; |
+00391CBA |. mov byte ptr ss:[esp+1F],0 ; |
+00391CBF |. call ebp ; eax = Integer[12.13.14]//atoi 函数
+00391CC1 |. add esi,0F ; 取第 15 位数字
+00391CC4 |. mov dword ptr ss:[esp+14],eax ; ss:[esp+14] = Integer[12.13.14]
+00391CC8 |. push esi ; /s
+00391CC9 |. call ebp ; eax = Integer[15.16.17.18.19]
+00391CCB |. mov ecx,eax ; ecx = eax = Integer[15.16.17.18.19]
+00391CCD |. mov eax,edi ; eax = edi = 计算值 1
+00391CCF |. cdq ; cdq.把 edx 扩展为 eax 的高位
+00391CD0 |. mov esi,3E8 ; 1000
+00391CD5 |. add esp,8
+00391CD8 |. idiv esi ; eax = 0;edx = 计算值 1
+00391CDA |. mov eax,dword ptr ss:[esp+10] ; eax = Integer[12.13.14]
+00391CDE |. pop ebp
+00391CDF |. cmp edx,eax ; [计算值 1]=?[Integer[12.13.14]]
+00391CE1 |. jnz short PtQREnco.00391CF6
+00391CE3 |. mov eax,ebx ; eax = ebx = 计算值 2
+00391CE5 |. mov esi,186A0 ; 100000
+00391CEA |. cdq
+00391CEB |. idiv esi ; eax = 0;edx = 计算值 2
+00391CED |. mov eax,1
+00391CF2 |. cmp edx,ecx ; [计算值 2]=?[Integer[15.16.17.18.19]]
+00391CF4 |. je short PtQREnco.00391CFB
+00391CF6 |> mov eax,-3
+00391CFB |> pop edi
+00391CFC |. pop esi
+00391CFD |. pop ebx
+00391CFE |. pop ecx
+00391CFF |. retn
+00391D00 |> pop edi
+00391D01 |. pop esi
+00391D02 |. mov eax,-2
+00391D07 |. pop ebx
+00391D08 |. pop ecx
+00391D09 \\. retn
+```
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+不知道这样的书写风格大家习惯不..呵呵.
+
+到此基本上可以知道了他的算法了,我说一下,他是把一个字符串传入,做了以下几件事情:
+
+1. 判断是不是有效的 20 位数字的 ASII 码.
+2. 核心算法部分..这里的位数从 0 开始哈
+   - `[1]` 取前 11 位数字进行运算,得出一个 3 位和一个 5 位的 `Integer` 分别保存在 `edi` 和 `ebx` 里.
+   - `[2]` 取 12,13,14 位数字转化成一个 3 位的 `Integer` 判断是否与 `edi` 相等,再取 15,16,17,18,19 位数字转化成一个 4 位的 `Integer`,判断是否与 `ebx` 相等.
+
+呵呵..这里的稍微有点麻烦的就是 `edi` 和 `ebx` 怎样计算的问题了.其实很简单,自己多跟几次就出来了..
+
+`edi = sum(Xi+1) ; ebx = product (Xi+1);`
+
+说明: `x` 表示字符串的位置, `i` 的范围是 `[0-11]`, `sum` 表示求和, `product` 乘积哈,不能插图了只能这样写了.
+
+不要忘了 `Reg` 函数的判断前 3 位是 `"162"` 哦`
+
+写个注册机练习哈..
+
+## 后话
+
+其中遇到的问题..
+
+这里有几个指令不是好清楚:
+
+```
+repne scas byte ptr es:[edi]
+```
+
+
+
+扫描 `es:edi` 指向的一系列字节数据，扫描长度由 `ecx` 指定，当遇到与 `al` 中的数据相等时停止扫描
+
+附:  
+
+此 sdk 的下载地址:  
+
+`http://www.PartiTek.com..`试用版  
+
+总结:  
+
+呵呵,版本是对加密串有限制,有点伤感.个人认为学习是意见持久的事情,还是需要有专研的精神.还有就是要有一个适合自己的学习风格和习惯.不知道我的风格大家能习惯不.  
+
+小弟在这里,有不足之处还望大牛们多加指点.

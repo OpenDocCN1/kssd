@@ -1,0 +1,141 @@
+
+# 3GP to iPod Converter 算法分析和软件的算法注册机代码
+
+> 原文：[`www.pediy.com/kssd/pediy12/131087.html`](https://www.pediy.com/kssd/pediy12/131087.html)
+
+软件大小： 5.31 M 软件性质： 共享软件
+更新时间： 2007-05-25
+下载次数： 1406 开 发 商： [`www.pop-software.net/`](http://www.pop-software.net/)
+软件语言： 英文 软件类别： 国外软件 / 视频转换
+应用平台： `Win2003`/`WinXP`/`Win2000`/`WinNT`/`Win9x`
+
+软件介绍： 是一个功能强大的智能视频转换工具，可以将手机支持 3GP 格式的视频文件转换为 iPod 支持的视频格式。它使用方便，批量转换，可以实现最快的转换速
+
+这些就软件提供的用户名~~~~
+
+我们注册软件时就一定要用他们的用户名注册\`
+
+```
+004A7A74  004A09E0  ASCII "VS88T6-Vs86"
+004A7A78  004A09F4  ASCII "TV66P6-TV66"
+004A7A7C  004A0A08  ASCII "S1R6P6-SV66"
+004A7A80  004A0A1C  ASCII "TDR6p6-SV66"
+004A7A84  004A0A30  ASCII "TDR6p6-EVS"
+004A7A88  004A0A44  ASCII "TDR6p6-ST1"
+004A7A8C  004A0A58  ASCII "Tsf6p6-VB1"
+004A7A90  004A0A6C  ASCII "B8sf6p6-VB1"
+004A7A94  004A0A80  ASCII "B8TDf6p6-VB1"
+004A7A98  004A0A98  ASCII "BS45f6p6-VB1"
+004A7A9C  004A0AB0  ASCII "Osrf6p6-VB1"
+004A7AA0  004A0AC4  ASCII "Ofrg6p6-VB1"
+004A7AA4  004A0AD8  ASCII "ESrg6p6-VB1"
+004A7AA8  004A0AEC  ASCII "IUrg6p6-VB1"
+004A7AAC  004A0B00  ASCII "IUDT6-BX1"
+004A7AB0  004A0B14  ASCII "DUIT6-tV1"
+004A7AB4  004A0B28  ASCII "S1IT6-DV1"
+004A7AB8  004A0B3C  ASCII "SNMS6-DV1"
+004A7ABC  004A0B50  ASCII "SNWS6-TN1"
+004A7AC0  004A0B64  ASCII "SNWS6-MN3"
+004A7AC4  004A0B78  ASCII "TDVS6-MN3"
+004A0C94    /$  55               push ebp
+004A0C95    |.  8BEC             mov ebp,esp
+004A0C97    |.  33C9             xor ecx,ecx
+004A0C99    |.  51               push ecx
+004A0C9A    |.  51               push ecx
+004A0C9B    |.  51               push ecx
+004A0C9C    |.  51               push ecx
+004A0C9D    |.  51               push ecx
+004A0C9E    |.  51               push ecx
+004A0C9F    |.  51               push ecx
+004A0CA0    |.  53               push ebx
+004A0CA1    |.  56               push esi
+004A0CA2    |.  57               push edi
+004A0CA3    |.  8945 FC          mov [local.1],eax
+004A0CA6    |.  33C0             xor eax,eax
+004A0CA8    |.  55               push ebp
+004A0CA9    |.  68 8C0E4A00      push 3GP\_to\_i.004A0E8C
+004A0CAE    |.  64:FF30          push dword ptr fs:[eax]
+004A0CB1    |.  64:8920          mov dword ptr fs:[eax],esp
+004A0CB4    |.  B3 01            mov bl,1
+004A0CB6    |.  8D55 F0          lea edx,[local.4]
+004A0CB9    |.  8B45 FC          mov eax,[local.1]
+004A0CBC    |.  8B80 F8020000    mov eax,dword ptr ds:[eax+2F8]
+004A0CC2    |.  E8 41E3FBFF      call 3GP\_to\_i.0045F008           ;  取用户名把用户名位数给 EAX
+004A0CC7    |.  8B45 F0          mov eax,[local.4]                 ;  ASCII "wangwei"
+004A0CCA    |.  8D55 F8          lea edx,[local.2]
+004A0CCD    |.  E8 B279F6FF      call 3GP\_to\_i.00408684
+004A0CD2    |.  8D55 EC          lea edx,[local.5]
+004A0CD5    |.  8B45 F8          mov eax,[local.2]
+004A0CD8    |.  E8 DB79F6FF      call 3GP\_to\_i.004086B8
+004A0CDD    |.  8B55 EC          mov edx,[local.5]                 ;  ASCII "wangwei"
+004A0CE0    |.  8D45 F8          lea eax,[local.2]
+004A0CE3    |.  E8 CC35F6FF      call 3GP\_to\_i.004042B4
+004A0CE8    |.  BF 15000000      mov edi,15                        ;  EDI=15
+004A0CED    |.  BE 747A4A00      mov esi,3GP\_to\_i.004A7A74
+004A0CF2    |>  8B45 F8          /mov eax,[local.2]                 ;  ----------------->
+004A0CF5    |.  8B16             |mov edx,dword ptr ds:[esi]        ;  ASCII "VS88T6-Vs86"
+004A0CF7    |.  E8 2C39F6FF      |call 3GP\_to\_i.00404628          ;  这个些代码是测试我们输入在用户名是否在
+004A0CFC    |.  75 04           |jnz short 3GP\_to\_i.004A0D02     ;  软件用户列表中有，如果我们输入的用户名在这列表
+004A0CFE    |.  33DB           |xor ebx,ebx                       ;  中没有就出错
+004A0D00    |.  EB 06           |jmp short 3GP\_to\_i.004A0D08
+004A0D02    |>  83C6 04        |add esi,4
+004A0D05    |.  4F             |dec edi
+004A0D06    |.^ 75 EA          \jnz short 3GP\_to\_i.004A0CF2      ;  <--------------------
+004A0D08    |>  84DB           test bl,bl
+004A0D0A    |.  74 1A          je short 3GP\_to\_i.004A0D26
+004A0D0C    |.  6A 00          push 0                              ; /Arg1 = 00000000
+004A0D0E    |.  66:8B0D 9C0E4A0>mov cx,word ptr ds:[4A0E9C]        ; |
+004A0D15    |.  B2 02          mov dl,2                             ; |
+004A0D17    |.  B8 A80E4A00     mov eax,3GP\_to\_i.004A0EA8         ; |ASCII "Invalid register code! Please retry!"
+004A0D1C    |.  E8 4B4AF9FF     call 3GP\_to\_i.0043576C           ; \\3GP\_to\_i.0043576C
+004A0D21    |.  E9 2B010000     jmp 3GP\_to\_i.004A0E51
+004A0D26    |>  8D55 E8        lea edx,[local.6]
+004A0D29    |.  8B45 FC          mov eax,[local.1]
+004A0D2C    |.  8B80 FC020000    mov eax,dword ptr ds:[eax+2FC]
+004A0D32    |.  E8 D1E2FBFF      call 3GP\_to\_i.0045F008           ;  取假码
+004A0D37    |.  8B45 E8          mov eax,[local.6]                 ;  ASCII "11111111111111111"
+004A0D3A    |.  8D55 F4          lea edx,[local.3]
+004A0D3D    |.  E8 4279F6FF      call 3GP\_to\_i.00408684
+004A0D42    |.  8D55 E4          lea edx,[local.7]
+004A0D45    |.  8B45 F4          mov eax,[local.3]
+004A0D48    |.  E8 6B79F6FF      call 3GP\_to\_i.004086B8
+004A0D4D    |.  8B55 E4          mov edx,[local.7]
+004A0D50    |.  8D45 F4          lea eax,[local.3]
+004A0D53    |.  E8 5C35F6FF      call 3GP\_to\_i.004042B4
+004A0D58    |.  837D F8 00       cmp [local.2],0
+004A0D5C    |.  0F84 EF000000    je 3GP\_to\_i.004A0E51             ;  用户名是否为空
+004A0D62    |.  837D F4 00       cmp [local.3],0
+004A0D66    |.  0F84 E5000000    je 3GP\_to\_i.004A0E51             ;  注册码是否为空
+004A0D6C    |.  8B45 F4          mov eax,[local.3]
+004A0D6F    |.  E8 6837F6FF      call 3GP\_to\_i.004044DC
+004A0D74    |.  85C0             test eax,eax
+004A0D76    |.  7E 35            jle short 3GP\_to\_i.004A0DAD
+004A0D78    |.  BA 01000000      mov edx,1                         ;  EDX 置 1
+004A0D7D    |>  8B4D F4        /mov ecx,[local.3]                 ;  ---------------------->
+004A0D80    |.  0FB64C11 FF     |movzx ecx,byte ptr ds:[ecx+edx->;  检测我们输的注册码是否为 0-9 的数字
+004A0D85    |.  83F9 30         |cmp ecx,30
+004A0D88    |.  7C 05           |jl short 3GP\_to\_i.004A0D8F
+004A0D8A    |.  83F9 39         |cmp ecx,39
+004A0D8D    |.  7E 1A           |jle short 3GP\_to\_i.004A0DA9
+004A0D8F    |>  6A 00          |push 0                             ; /Arg1 = 00000000
+004A0D91    |.  66:8B0D 9C0E4A0>|mov cx,word ptr ds:[4A0E9C]      ; |
+004A0D98    |.  B2 02          |mov dl,2                          ; |
+004A0D9A    |.  B8 A80E4A00     |mov eax,3GP\_to\_i.004A0EA8       ; |ASCII "Invalid register code! Please retry!"
+004A0D9F    |.  E8 C849F9FF     |call 3GP\_to\_i.0043576C         ; \\3GP\_to\_i.0043576C
+004A0DA4    |.  E9 A8000000     |jmp 3GP\_to\_i.004A0E51
+004A0DA9    |>  42             |inc edx
+004A0DAA    |.  48             |dec eax
+004A0DAB    |.^ 75 D0          \\jnz short 3GP\_to\_i.004A0D7D     ;  <-------------------------
+004A0DAD    |>  33F6           xor esi,esi
+004A0DAF    |.  8B45 F8          mov eax,[local.2]                 ;  ASCII "VS88T6-Vs86"
+004A0DB2    |.  E8 2537F6FF      call 3GP\_to\_i.004044DC           ;  取用户名的位数~~~作下面运算的控制参数
+004A0DB7    |.  85C0             test eax,eax
+004A0DB9    |.  7E 13            jle short 3GP\_to\_i.004A0DCE
+004A0DBB    |.  BF 01000000      mov edi,1                         ;  EDI=1
+004A0DC0    |>  8B55 F8        /mov edx,[local.2]
+004A0DC3    |.  0FB6543A FF     |movzx edx,byte ptr ds:[edx+edi->;  逐位取用户名的 ACSSII 值
+004A0DC8    |.  03F2            |add esi,edx                       ;  初始化 ESI 是为 0 的 ESI=ESI+用户名的 ACSSII 值
+004A0DCA    |.  47             |inc edi                             ;  EDI++
+004A0DCB    |.  48             |dec eax
+004A0DCC    |.^ 75 F2          \\jnz short 3GP\_to\_i.004A0DC0
+```
