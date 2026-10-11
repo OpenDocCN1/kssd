@@ -1,0 +1,302 @@
+
+# Security Administrator v10.2
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-166.htm`](https://www.pediy.com/kssd/pediy08/pediy8-166.htm)
+
+- **文章标题**: 菜鸟初试算法分析之一 `Security Administrator v10.2`
+- **文章作者**: `wind`
+- **作者邮箱**: `qf100@163.com`
+- **软件名称**: `Security Administrator v10.2`
+- **下载地址**: `http://www.skycn.com/soft/3205.html`
+- **加壳方式**: 无
+- **保护方式**: `Serial`
+- **编写语言**: `Delphi 6.0 - 7.0`
+- **使用工具**: `Ollydbg`, `PEiD`
+- **操作平台**: `WinXPsp2`
+
+**作者声明**：
+让你保护你的电脑和完全控制其的访问，可以定制有访问权限的人员及其权限的等级，
+可以把控制面板里的显示、网络、密码、打印机和系统选项保护起来，还可以关闭开始菜单里的项目，
+可以隐藏驱动器，禁止 `DOS` 提示符，隐藏桌面图标等等
+
+**作者声明**：
+我的第一篇算法分析，难度很低适合和我一样菜的朋友共同分享。只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
+
+--------------------------------------------------------------------------------
+
+## 详细过程
+
+初学算法分析，所以捡了个软柿子，算是和初学者分享自己的一点心得，高手就请跳过了。
+
+**查壳**：`Delphi 6.0 - 7.0` 无壳
+
+**试探**：程序启动后跳出 `NAG` 要求注册，输入注册码 `78787878` 点击后提示 `"This registration code is invalid"`
+
+`OD` 加载后，下断点 `bp MessageBoxA` 输入注册码确认后断在
+
+```
+  77D504EA  >  8BFF                mov edi,edi
+  77D504EC    55                  push ebp
+  77D504ED    8BEC                mov ebp,esp
+  77D504EF    833D BC04D777 00    cmp dword ptr ds:[77D704BC],0
+  77D504F6    74 24               je short user32.77D5051C
+```
+
+取消断点后 `Alt+F9` 返回程序领空
+
+```
+  0048A686  |.  E8 8DCEF7FF        call <jmp.&user32.MessageBoxA>                         ; \MessageBoxA
+  0048A68B  |.  8945 F8           mov [local.2],eax                                       ; 返回到这里
+  0048A68E  |.  33C0              xor eax,eax
+  0048A690  |.  5A                pop edx
+  0048A691  |.  59                pop ecx
+  0048A692  |.  59                pop ecx
+  0048A693  |.  64:8910           mov dword ptr fs:[eax],edx
+```
+
+然后 `Ctrl+F9` 返回上一层
+
+```
+  00499653  |.  33C0              xor eax,eax                                             ; 返回到这里
+  00499655  |.  5A                pop edx
+  00499656  |.  59                pop ecx
+  00499657  |.  59                pop ecx
+  00499658  |.  64:8910           mov dword ptr fs:[eax],edx
+  0049965B  |.  68 75964900       push newadmin.00499675
+  00499660  |>  8D45 F8           lea eax,[local.2]
+  00499663  |.  BA 02000000       mov edx,2
+  00499668  |.  E8 67B1F6FF       call newadmin.004047D4
+  0049966D  \.  C3                retn
+  0049966E   .^ E9 41ABF6FF       jmp newadmin.004041B4
+  00499673   .^ EB EB            jmp short newadmin.00499660
+  00499675   .  59                pop ecx
+  00499676   .  59                pop ecx
+  00499677   .  5D                pop ebp
+  00499678   .  C3                retn
+```
+
+继续 `Ctrl+F9` 返回再上一层 就明朗了
+
+```
+  004A8224  /$  55                push ebp
+  004A8225  |.  8BEC              mov ebp,esp
+  004A8227  |.  B9 06000000       mov ecx,6
+  004A822C  |>  6A 00            /push 0
+  004A822E  |.  6A 00            |push 0
+  004A8230  |.  49                |dec ecx
+  004A8231  |.^ 75 F9            \jnz short newadmin.004A822C
+  004A8233  |.  51                push ecx
+  004A8234  |.  53                push ebx
+  004A8235  |.  56                push esi
+  004A8236  |.  8BF0              mov esi,eax
+  004A8238  |.  33C0              xor eax,eax
+  004A823A  |.  55                push ebp
+  004A823B  |.  68 A3834A00       push newadmin.004A83A3
+  004A8240  |.  64:FF30           push dword ptr fs:[eax]
+  004A8243  |.  64:8920           mov dword ptr fs:[eax],esp
+  004A8246  |.  8D55 F4           lea edx,[local.3]
+  004A8249  |.  8B86 48030000    mov eax,dword ptr ds:[esi+348]
+  004A824F  |.  E8 7810FCFF      call newadmin.004692CC                                       ; 计算注册码位数
+  004A8254  |.  8B45 F4           mov eax,[local.3]                                          ; 注册码进 eax
+  004A8257  |.  8D55 F8           lea edx,[local.2]
+  004A825A  |.  E8 8938FEFF      call newadmin.0048BAE8
+  004A825F  |.  8B55 F8           mov edx,[local.2]                                          ; 注册码进 EDX
+  004A8262  |.  B8 4CED4C00       mov eax,newadmin.004CED4C
+  004A8267  |.  E8 98C5F5FF      call newadmin.00404804
+  004A826C  |.  E8 FBFDFFFF      call newadmin.004A806C                                       ; 关键 CALL 跟进☆☆☆☆☆
+  004A8271  |.  8BD8              mov ebx,eax                                                ; ebx=eax
+  004A8273  |.  84DB              test bl,bl
+  004A8275  |.  0F84 D9000000    je newadmin.004A8354                                         ; bl 为 0 则挂
+```
+
+到这里很明显就是说 `bl=1` 则注册成功,又因为 `ebx=eax` 所以 `al` 等于 1 就注册成功了,待会我们跟进关键 `CALL` 的时候就要注意这一点
+
+```
+  004A827B  |.  C686 70030000 01 mov byte ptr ds:[esi+370],1
+  004A8282  |.  8D45 FC           lea eax,[local.1]
+  004A8285  |.  50                push eax
+  004A8286  |.  8D55 F0           lea edx,[local.4]
+  004A8289  |.  B8 BC834A00       mov eax,newadmin.004A83BC                                   ;  ASCII "BF8A83B980"
+  004A828E  |.  E8 E14CFEFF      call newadmin.0048CF74                                       ; 变换字符串成为注册表键值
+  004A8293  |.  8B45 F0           mov eax,[local.4]
+  004A8296  |.  50                push eax
+  004A8297  |.  8D55 EC           lea edx,[local.5]
+  004A829A  |.  B8 D0834A00       mov eax,newadmin.004A83D0                                   ;  ASCII "BE828B999A8C9F88B1A0848E9F829E828B99B1A9BFA0BFBEB5"
+  004A829F  |.  E8 D04CFEFF      call newadmin.0048CF74                                       ; 变换字符串成为注册表键值
+  004A82A4  |.  8B55 EC           mov edx,[local.5]
+  004A82A7  |.  A1 54ED4C00       mov eax,dword ptr ds:[4CED54]
+  004A82AC  |.  59                pop ecx
+  004A82AD  |.  E8 FA7FFEFF      call newadmin.004902AC
+  004A82B2  |.  8D55 E8           lea edx,[local.6]
+  004A82B5  |.  A1 4CED4C00       mov eax,dword ptr ds:[4CED4C]
+  004A82BA  |.  E8 194CFEFF      call newadmin.0048CED8
+  004A82BF  |.  8B45 E8           mov eax,[local.6]
+  004A82C2  |.  50                push eax
+  004A82C3  |.  8D55 E4           lea edx,[local.7]
+  004A82C6  |.  B8 0C844A00       mov eax,newadmin.004A840C                                   ;  ASCII "BF9D9FAE999E"
+  004A82CB  |.  E8 A44CFEFF      call newadmin.0048CF74                                       ; 写入注册表 作为注册后的标志
+  004A82D0  |.  8B45 E4           mov eax,[local.7]
+  004A82D3  |.  50                push eax
+  004A82D4  |.  8D45 E0           lea eax,[local.8]
+  004A82D7  |.  50                push eax
+  004A82D8  |.  B8 D0834A00       mov eax,newadmin.004A83D0                                   ;  ASCII "BE828B999A8C9F88B1A0848E9F829E828B99B1A9BFA0BFBEB5"
+  004A82DD  |.  5A                pop edx                                                   ; 写入注册表 作为注册后的标志
+  004A82DE  |.  E8 914CFEFF      call newadmin.0048CF74                                     这里写入的是 HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\DRMRSX
+  004A82E3  |.  8B55 E0           mov edx,[local.8]
+  004A82E6  |.  A1 54ED4C00       mov eax,dword ptr ds:[4CED54]
+  004A82EB  |.  59                pop ecx
+  004A82EC  |.  E8 FB80FEFF      call newadmin.004903EC
+  004A82F1  |.  837D FC 00        cmp [local.1],0
+  004A82F5  |.  75 46             jnz short newadmin.004A833D
+  004A82F7  |.  E8 5829F6FF      call newadmin.0040AC54
+  004A82FC  |.  83C4 F8           add esp,-8
+  004A82FF  |.  DD1C24            fstp qword ptr ss:[esp]
+  004A8302  |.  9B                wait
+  004A8303  |.  8D45 DC           lea eax,[local.9]
+  004A8306  |.  E8 A94EFEFF      call newadmin.0048D1B4
+  004A830B  |.  8B45 DC           mov eax,[local.9]
+  004A830E  |.  50                push eax
+  004A830F  |.  8D55 D8           lea edx,[local.10]
+  004A8312  |.  B8 BC834A00       mov eax,newadmin.004A83BC                                   ;  ASCII "BF8A83B980"
+  004A8317  |.  E8 584CFEFF      call newadmin.0048CF74
+  004A831C  |.  8B45 D8           mov eax,[local.10]
+  004A831F  |.  50                push eax
+  004A8320  |.  8D45 D4           lea eax,[local.11]
+  004A8323  |.  50                push eax
+```
+
+
+
+### 汇编代码段
+
+004A8324 |. B8 D0834A00 mov eax, newadmin.004A83D0 ; ASCII "BE828B999A8C9F88B1A0848E9F829E828B99B1A9BFA0BFBEB5"
+004A8329 |. 5A pop edx ;; 写入注册表 作为注册后的标志
+004A832A |. E8 454CFEFF call newadmin.0048CF74
+004A832F |. 8B55 D4 mov edx, [local.11]
+004A8332 |. A1 54ED4C00 mov eax, dword ptr ds:[4CED54]
+004A8337 |. 59 pop ecx
+004A8338 |. E8 AF80FEFF call newadmin.004903EC
+004A833D |> 8D55 D0 lea edx, [local.12]
+004A8340 |. B8 24844A00 mov eax, newadmin.004A8424 ; ASCII "M_THANKS"
+004A8345 |. E8 3A03FFFF call newadmin.00498684 ; 看字符串很清晰,这里是成功了
+004A834A |. 8B45 D0 mov eax, [local.12]
+004A834D |. E8 AE12FFFF call newadmin.00499600
+004A8352 |. EB 1F jmp short newadmin.004A8373
+004A8354 |> B8 4CED4C00 mov eax, newadmin.004CED4C
+004A8359 |. E8 52C4F5FF call newadmin.004047B0
+004A835E |. 8D55 CC lea edx, [local.13]
+004A8361 |. B8 38844A00 mov eax, newadmin.004A8438 ; ASCII "M_BADCODE"
+004A8366 |. E8 1903FFFF call newadmin.00498684 ; 到这里就挂掉
+004A836B |. 8B45 CC mov eax, [local.13]
+004A836E |. E8 8D12FFFF call newadmin.00499600 ; 返回到这里后,向上看
+004A8373 |> 33C0 xor eax, eax
+004A8375 |. 5A pop edx
+004A8376 |. 59 pop ecx
+004A8377 |. 59 pop ecx
+004A8378 |. 64:8910 mov dword ptr fs:[eax], edx
+004A837B |. 68 AA834A00 push newadmin.004A83AA
+004A8380 |> 8D45 CC lea eax, [local.13]
+004A8383 |. BA 0A000000 mov edx, 0A
+004A8388 |. E8 47C4F5FF call newadmin.004047D4
+004A838D |. 8D45 F4 lea eax, [local.3]
+004A8390 |. E8 1BC4F5FF call newadmin.004047B0
+004A8395 |. 8D45 F8 lea eax, [local.2]
+004A8398 |. BA 02000000 mov edx, 2
+004A839D |. E8 32C4F5FF call newadmin.004047D4
+004A83A2 \. C3 retn
+004A83A3 .^ E9 0CBEF5FF jmp newadmin.004041B4
+004A83A8 .^ EB D6 jmp short newadmin.004A8380
+004A83AA . 8BC3 mov eax, ebx
+004A83AC . 5E pop esi
+004A83AD . 5B pop ebx
+004A83AE . 8BE5 mov esp, ebp
+004A83B0 . 5D pop ebp
+004A83B1 . C3 retn
+
+=================进入 004A826C call newadmin.004A806C ======================================================
+
+### 函数 `newadmin.004A806C` 代码段
+
+004A806C /$ 53 push ebx
+004A806D |. 56 push esi
+004A806E |. 57 push edi
+004A806F |. BF 4CED4C00 mov edi, newadmin.004CED4C
+004A8074 |. 33F6 xor esi, esi
+004A8076 |. 33DB xor ebx, ebx
+004A8078 |. 8B07 mov eax, dword ptr ds:[edi]
+004A807A |. E8 F1C9F5FF call newadmin.00404A70 ; 计算注册码位数
+004A807F |. 83F8 0E cmp eax, 0E ; 必须是 14 位 不是则挂
+004A8082 |. 75 67 jnz short newadmin.004A80EB
+004A8084 |. 8B07 mov eax, dword ptr ds:[edi] ; 注册码进 eax
+004A8086 |. 8038 36 cmp byte ptr ds:[eax], 36 ; 比较第 1 位的 ASC 码是否是 36
+004A8089 |. 0F94C0 sete al
+004A808C |. 83E0 7F and eax, 7F ; 和 7F 与运算
+004A808F |. 03F0 add esi, eax ; 累加到 esi
+004A8091 |. 8B07 mov eax, dword ptr ds:[edi]
+004A8093 |. 8078 02 32 cmp byte ptr ds:[eax+2], 32 ; 比较第 3 位 ASC 码是否是 32
+004A8097 |. 0F94C0 sete al
+004A809A |. 83E0 7F and eax, 7F
+004A809D |. 03F0 add esi, eax
+004A809F |. 8B07 mov eax, dword ptr ds:[edi]
+004A80A1 |. 8078 03 31 cmp byte ptr ds:[eax+3], 31 ; 比较第 4 位 ASC 码是否是 31
+004A80A5 |. 0F94C0 sete al
+004A80A8 |. 83E0 7F and eax, 7F
+004A80AB |. 03F0 add esi, eax
+004A80AD |. 8B07 mov eax, dword ptr ds:[edi]
+004A80AF |. 8078 04 39 cmp byte ptr ds:[eax+4], 39 ; 比较第 5 位 ASC 码是否是 39
+004A80B3 |. 0F94C0 sete al
+004A80B6 |. 83E0 7F and eax, 7F
+004A80B9 |. 03F0 add esi, eax
+004A80BB |. 8B07 mov eax, dword ptr ds:[edi]
+004A80BD |. 8078 07 30 cmp byte ptr ds:[eax+7], 30 ; 比较第 8 位 ASC 码是否是 30
+004A80C1 |. 0F94C0 sete al
+004A80C4 |. 83E0 7F and eax, 7F
+004A80C7 |. 03F0 add esi, eax
+004A80C9 |. 8B07 mov eax, dword ptr ds:[edi]
+004A80CB |. 8078 08 35 cmp byte ptr ds:[eax+8], 35 ; 比较第 9 位 ASC 码是否是 35
+004A80CF |. 0F94C0 sete al
+004A80D2 |. 83E0 7F and eax, 7F
+004A80D5 |. 03F0 add esi, eax
+004A80D7 |. 8B07 mov eax, dword ptr ds:[edi]
+004A80D9 |. 8078 0A 33 cmp byte ptr ds:[eax+A], 33 ; 比较第 11 位 ASC 码是否是 33
+004A80DD |. 0F94C0 sete al
+004A80E0 |. 83E0 7F and eax, 7F
+004A80E3 |. 03F0 add esi, eax ; 以上验证共 7 处 累加到 esi 正好是 7
+004A80E5 |. 83FE 07 cmp esi, 7 ; 比较 esi 是否是 7
+004A80E8 |. 0F94C3 sete bl ; 是则条件为真,置 bl 为 1
+004A80EB |> 8BC3 mov eax, ebx ; eax=ebx
+004A80ED |. 5F pop edi
+004A80EE |. 5E pop esi
+004A80EF |. 5B pop ebx
+004A80F0 \. C3 retn
+
+--------------------------------------------------------------------------------
+
+### 经验总结
+
+算法如下:
+
+1. 注册码必须是 `14` 位
+2. 注册码的第一,三,四,五,八,九,十一分别是 `6`,`2`,`1`,`9`,`0`,`5`,`3`,其他数位任意
+3. 注册码形如 `6X219XX05X3XXX`
+4. 注册后写入注册表
+
+```ini
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\DRMRSX]
+   "RprCts"="DB8CDFDCD48F8EDDD889DE888B8A"
+   "RgnTm"="38842~4947352431"
+```
+
+删除又可以再玩一次。菜鸟写文章，感谢大家看完。失误之处敬请诸位大侠赐教!
+
+顺便写了个注册机，代码丑陋，就不贴了，需要的朋友可以到 `windz.ys168.com` 去下
+
+--------------------------------------------------------------------------------
+
+### 版权声明
+
+本文纯属技术交流,请支持正版软件, 转载请注明作者并保持文章的完整, 谢谢!
+
+by `wind`
+
+`4dd466d0e1e0cc123afbe504da2462ca`
