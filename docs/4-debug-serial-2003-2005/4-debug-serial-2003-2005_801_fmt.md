@@ -1,0 +1,889 @@
+
+# SwiftDog PCThrust V1.4.25.2005 算法分析
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-186.htm`](https://www.pediy.com/kssd/pediy07/pediy7-186.htm)
+
+**SwiftDog PCThrust V1.4.25.2005** 注册算法分析
+
+日期：2005 年 4 月 26 日　　破解人：`Baby2008`
+
+---
+
+『软件名称』：`SwiftDog PCThrust V1.4.25.2005`
+
+『软件大小』：`850 KB`
+
+『下载地址』：`http://www.skycn.com/soft/21448.html`
+
+『软件介绍』：
+
+`PCThrust` 通过修改相关设置，提高计算机的性能和运行速度，对硬盘没有任何修改，界面友好，操作简单。
+
+『保护方式』：注册码保护
+
+『破解声明』：初学 Crack，只是感兴趣,失误之处敬请诸位大侠赐教!
+
+『破解工具』：`OllyDbg.V1.10` 聆风听雨汉化第二版、`PeID 0.93`
+
+『破解过程』：
+
+先用 `PeID 0.93` 查壳，`PECompact 2.x` -> `Jeremy Collake`。那就先脱了再说，`OllyDbg` 忽略内存访问异常，载入主程序：
+
+```assembly
+00401000  P>  B8 94A05800    mov eax,PcThrust.0058A094
+00401005   50               push eax
+00401006   64:FF35 0000000> push dword ptr fs:[0]
+0040100D   64:8925 0000000> mov dword ptr fs:[0],esp
+00401014   33C0             xor eax,eax
+00401016   8908             mov dword ptr ds:[eax],ecx
+00401018   50               push eax
+00401019   45               inc ebp
+0040101A   43               inc ebx
+0040101B   6F               outs dx,dword ptr es:[edi]
+0040101C   6D               ins dword ptr es:[edi],dx
+0040101D   70 61            jo short PcThrust.00401080
+0040101F   637432 00        arpl word ptr ds:[edx+esi],si
+00401023   CE               into
+00401024   1E               push ds
+00401025   42               inc edx
+00401026   AF               scas dword ptr es:[edi]
+00401027   F8               clc
+00401028   D6               salc
+00401029   CC               int3
+0040102A  - E9 FBC84F1B     jmp 1B8FD92A
+```
+
+下中断 `bp VirtualAlloc`，`F9` 运行，`OD` 中断在：
+
+```assembly
+7C809A81 k>  8BFF            mov edi,edi                     ; ntdll.7C930738
+7C809A83    55              push ebp
+7C809A84    8BEC            mov ebp,esp
+7C809A86    FF75 14         push dword ptr ss:[ebp+14]
+7C809A89    FF75 10         push dword ptr ss:[ebp+10]
+7C809A8C    FF75 0C         push dword ptr ss:[ebp+C]
+7C809A8F    FF75 08         push dword ptr ss:[ebp+8]
+7C809A92    6A FF           push -1
+7C809A94    E8 09000000     call kernel32.VirtualAllocEx
+7C809A99    5D              pop ebp
+7C809A9A    C2 1000         retn 10
+```
+
+再次 `F9` 运行，再次中断在 `7C809A81`，取消断点，`Alt+F9` 返回：
+
+```assembly
+003F0C1B     8985 421B0010   mov dword ptr ss:[ebp+10001B42],eax  ; 返回这里
+003F0C21     56               push esi
+003F0C22     E8 89030000      call 003F0FB0
+003F0C27     85C0             test eax,eax
+003F0C29     0F85 A6000000    jnz 003F0CD5
+003F0C2F     56               push esi
+003F0C30     E8 D7020000      call 003F0F0C
+003F0C35     56               push esi
+003F0C36     E8 DF010000      call 003F0E1A
+003F0C3B     90               nop
+003F0C3C     90               nop
+003F0C3D     90               nop
+003F0C3E     90               nop
+003F0C3F     90               nop
+003F0C40     90               nop
+003F0C41     90               nop
+003F0C42     90               nop
+003F0C43     90               nop
+003F0C44     90               nop
+003F0C45     90               nop
+003F0C46     90               nop
+003F0C47     90               nop
+003F0C48     90               nop
+003F0C49     8B4E 34          mov ecx,dword ptr ds:[esi+34]
+003F0C4C     85C9             test ecx,ecx                   ; 选择此行
+003F0C4E     0F84 89000000    je 003F0CDD                  ; 强制跳过
+003F0C54     034E 08          add ecx,dword ptr ds:[esi+8]
+003F0C57     51               push ecx
+003F0C58     56               push esi
+```
+
+选择 `003F0C4C`，`F4` 运行到 `003F0C4C`，此时寄存器状态如下：
+
+```text
+EAX 00000000
+ECX 00093000
+EDX 00400000 ASCII "MZP"
+EBX 003F0A54
+ESP 0012FF90
+EBP F03EF945
+ESI 003F0A54
+EDI 003F147F
+EIP 003F0C4C
+```
+
+`ecx=00093000` 保存原始 Import，把它改成 `0`，让 `003F0C4E` 处强制跳过。
+
+`bp VirtualFree`，`F9` 运行，中断两次取消断点以后，`ALT+F9` 返回：
+
+```assembly
+0058A157     8BC6            mov eax,esi                     ; PcThrust.0048D598
+0058A159     5A              pop edx
+0058A15A     5E              pop esi
+0058A15B     5F              pop edi
+0058A15C     59              pop ecx
+0058A15D     5B              pop ebx
+0058A15E     5D              pop ebp
+0058A15F     FFE0            jmp eax                 ; Magic Jmp
+0048D598     55              push ebp              ; 跳到这里
+0048D599     8BEC            mov ebp,esp
+0048D59B     B9 36000000     mov ecx,36
+0048D5A0     6A 00           push 0
+0048D5A2     6A 00           push 0
+0048D5A4     49              dec ecx
+0048D5A5   ^ 75 F9           jnz short PcThrust.0048D5A0
+0048D5A7     51              push ecx
+0048D5A8     53              push ebx
+0048D5A9     56              push esi
+0048D5AA     57              push edi
+0048D5AB     B8 B8D14800     mov eax,PcThrust.0048D1B8
+```
+
+在 `0048D598` 处完全 dump 下来，另存为 `UnPacked.exe`，用 `LoadPE` 修正 `UnPacked.exe` 输入表为 `00093000`，脱壳完成。
+
+再次 `PeID` 查壳，`Borland Delphi 6.0 - 7.0` ^^
+
+`OD` 载入 `UnPacked.exe`，开始分析算法啦，`F9` 运行，输入注册信息 `Name=Baby008` `Serial=135792468012345`，切换到 `OD` 窗口，在 `004868BC` 处下断（注册按钮事件地址，可以用 `DeDe` 分析获得），点击 `OK`，`OD` 中断在：
+
+```assembly
+004868BC <> .  55             push ebp                          ; <-TForm3@Button1Click
+004868BD .  8BEC             mov ebp,esp
+004868BF .  B9 04000000     mov ecx,4
+004868C4 >  6A 00            push 0
+004868C6 .  6A 00            push 0
+004868C8 .  49               dec ecx
+004868C9 .^ 75 F9            jnz short UnPacked.004868C4
+004868CB .  51               push ecx
+004868CC .  53               push ebx
+004868CD .  56               push esi
+004868CE .  57               push edi
+004868CF .  8BD8             mov ebx,eax
+004868D1 .  33C0             xor eax,eax
+004868D3 .  55               push ebp
+004868D4 .  68 E16A4800      push <UnPacked.->System.@HandleFinall>
+004868D9 .  64:FF30          push dword ptr fs:[eax]
+004868DC .  64:8920          mov dword ptr fs:[eax],esp
+004868DF .  8D55 FC          lea edx,dword ptr ss:[ebp-4]
+004868E2 <> . 8B83 38030000  mov eax,dword ptr ds:[ebx+338]
+004868E8 <> . E8 C712FDFF    call UnPacked.00457BB4
+004868ED .  837D FC 00       cmp dword ptr ss:[ebp-4],0        ; 用户名,记为 Name
+004868F1 .  0F84 98010000    je UnPacked.00486A8F
+004868F7 .  8D55 F8          lea edx,dword ptr ss:[ebp-8]
+004868FA <> . 8B83 34030000  mov eax,dword ptr ds:[ebx+334]
+00486900 <> . E8 AF12FDFF    call UnPacked.00457BB4
+00486905 .  837D F8 00       cmp dword ptr ss:[ebp-8],0        ; 序列号,记为 SerialNo
+00486909 .  0F84 80010000    je UnPacked.00486A8F
+0048690F .  8D55 F0          lea edx,dword ptr ss:[ebp-10]
+00486912 <> . 8B83 34030000  mov eax,dword ptr ds:[ebx+334]
+00486918 <> . E8 9712FDFF    call UnPacked.00457BB4
+0048691D .  8B45 F0          mov eax,dword ptr ss:[ebp-10]      ; SerialNo
+00486920 .  8D55 F4          lea edx,dword ptr ss:[ebp-C]
+00486923 <> . E8 FC17F8FF    call UnPacked.00408124           ; Trim()函数
+00486928 .  8B45 F4          mov eax,dword ptr ss:[ebp-C]       ; Trim(SerialNo)
+0048692B .  50              push eax
+0048692C .  8D55 E8          lea edx,dword ptr ss:[ebp-18]
+0048692F <> . 8B83 38030000  mov eax,dword ptr ds:[ebx+338]
+00486935 <> . E8 7A12FDFF    call UnPacked.00457BB4
+0048693A .  8B45 E8          mov eax,dword ptr ss:[ebp-18]      ; Name
+0048693D .  8D55 EC          lea edx,dword ptr ss:[ebp-14]
+00486940 <> . E8 DF17F8FF    call UnPacked.00408124           ; Trim()函数
+00486945 .  8B45 EC          mov eax,dword ptr ss:[ebp-14]      ; Trim(Name)
+00486948 .  5A              pop edx
+00486949 <> . E8 662D0000    call UnPacked.004896B4           ; 注册验证关键，跟进
+0048694E .  3C 01            cmp al,1
+```
+
+
+
+### 00486950 - 注册验证爆破
+
+`00486950 0F85 03010000 jnz UnPacked.00486A59` ; 注册验证爆破
+
+跟进 `00486949 call UnPacked.004896B4`：
+
+```
+004896B4    $   55            push ebp
+004896B5    .   8BEC          mov ebp,esp
+004896B7    .   B9 0C000000   mov ecx,0C
+004896BC    >   6A 00         push 0
+004896BE    .   6A 00         push 0
+004896C0    .   49            dec ecx
+004896C1    .^  75 F9         jnz short UnPacked.004896BC
+004896C3    .   51            push ecx
+004896C4    .   53            push ebx
+004896C5    .   56            push esi
+004896C6    .   57            push edi
+004896C7    .   8955 F8       mov dword ptr ss:[ebp-8],edx          ; SerialNo
+004896CA    .   8945 FC       mov dword ptr ss:[ebp-4],eax          ; Name
+004896CD    .   8B45 FC       mov eax,dword ptr ss:[ebp-4]
+004896D0    .   E8 3BAEF7FF   call UnPacked.00404510
+004896D5    .   8B45 F8       mov eax,dword ptr ss:[ebp-8]
+004896D8    .   E8 33AEF7FF   call UnPacked.00404510
+004896DD    .   33C0          xor eax,eax
+004896DF    .   55            push ebp
+004896E0    .   68 589B4800   push UnPacked.00489B58
+004896E5    .   64:FF30       push dword ptr fs:[eax]
+004896E8    .   64:8920       mov dword ptr fs:[eax],esp
+004896EB    .   33C0          xor eax,eax
+004896ED    .   55            push ebp
+004896EE    .   68 0C9B4800   push UnPacked.00489B0C
+004896F3    .   64:FF30       push dword ptr fs:[eax]
+004896F6    .   64:8920       mov dword ptr fs:[eax],esp
+004896F9    .   837D FC 00    cmp dword ptr ss:[ebp-4],0            ; Name,用户名不能为空
+004896FD    .   74 73         je short UnPacked.00489772
+004896FF    .   837D F8 00    cmp dword ptr ss:[ebp-8],0            ; SerialNo，序列号不能为空
+00489703    .   74 6D         je short UnPacked.00489772
+```
+
+注册信息不为空时在注册表`\\Software\\SWIFTDOG\\PcThrust`中保存注册信息
+
+```
+00489705    .   33C0          xor eax,eax
+00489707    .   55            push ebp
+00489708    .   68 66974800   push UnPacked.00489766
+0048970D    .   64:FF30       push dword ptr fs:[eax]
+00489710    .   64:8920       mov dword ptr fs:[eax],esp
+00489713    .   B2 01         mov dl,1
+00489715    .   A1 B01A4200   mov eax,dword ptr ds:[421AB0]
+0048971A    .   E8 9184F9FF   call UnPacked.00421BB0
+0048971F    .   8BD8          mov ebx,eax
+00489721    .   BA 02000080   mov edx,80000002
+00489726    .   8BC3          mov eax,ebx
+00489728    .   E8 2385F9FF   call UnPacked.00421C50                ; 开始在注册表中保存注册信息
+0048972D    .   B1 01         mov cl,1
+0048972F    .   BA 749B4800   mov edx,UnPacked.00489B74             ; ASCII "\\Software\\SWIFTDOG\\PcThrust"
+00489734    .   8BC3          mov eax,ebx
+00489736    .   E8 7985F9FF   call UnPacked.00421CB4
+0048973B    .   8B4D FC       mov ecx,dword ptr ss:[ebp-4]          ; Name
+0048973E    .   BA 989B4800   mov edx,UnPacked.00489B98             ; ASCII "Name"
+00489743    .   8BC3          mov eax,ebx
+00489745    .   E8 2687F9FF   call UnPacked.00421E70
+0048974A    .   8B4D F8       mov ecx,dword ptr ss:[ebp-8]          ; SerialNo
+0048974D    .   BA A89B4800   mov edx,UnPacked.00489BA8             ; ASCII "Serial"
+00489752    .   8BC3          mov eax,ebx
+00489754    .   E8 1787F9FF   call UnPacked.00421E70
+00489759    .   33C0          xor eax,eax
+0048975B    .   5A            pop edx
+0048975C    .   59            pop ecx
+0048975D    .   59            pop ecx
+0048975E    .   64:8910       mov dword ptr fs:[eax],edx
+00489761    .   E9 89000000   jmp UnPacked.004897EF
+00489766    .^  E9 C19FF7FF   jmp UnPacked.0040372C
+0048976B    .   E8 24A3F7FF   call UnPacked.00403A94
+00489770    .   EB 7D         jmp short UnPacked.004897EF
+```
+
+```
+00489772    >   33C0          xor eax,eax
+00489774    .   55            push ebp
+00489775    .   68 E5974800   push UnPacked.004897E5
+0048977A    .   64:FF30       push dword ptr fs:[eax]
+0048977D    .   64:8920       mov dword ptr fs:[eax],esp
+00489780    .   B2 01         mov dl,1
+00489782    .   A1 B01A4200   mov eax,dword ptr ds:[421AB0]
+00489787    .   E8 2484F9FF   call UnPacked.00421BB0
+0048978C    .   8BD8          mov ebx,eax
+0048978E    .   BA 02000080   mov edx,80000002
+00489793    .   8BC3          mov eax,ebx
+00489795    .   E8 B684F9FF   call UnPacked.00421C50
+0048979A    .   C743 18 19000>mov dword ptr ds:[ebx+18],20019
+```
+
+注册信息为空时清空注册信息
+
+```
+004897A1    .   33C9          xor ecx,ecx
+004897A3    .   BA 749B4800   mov edx,UnPacked.00489B74             ; ASCII "\\Software\\SWIFTDOG\\PcThrust"
+004897A8    .   8BC3          mov eax,ebx
+004897AA    .   E8 0585F9FF   call UnPacked.00421CB4
+004897AF    .   8D4D FC       lea ecx,dword ptr ss:[ebp-4]
+004897B2    .   BA 989B4800   mov edx,UnPacked.00489B98             ; ASCII "Name"
+004897B7    .   8BC3          mov eax,ebx
+004897B9    .   E8 DE86F9FF   call UnPacked.00421E9C
+004897BE    .   8D4D F8       lea ecx,dword ptr ss:[ebp-8]
+004897C1    .   BA A89B4800   mov edx,UnPacked.00489BA8             ; ASCII "Serial"
+004897C6    .   8BC3          mov eax,ebx
+004897C8    .   E8 CF86F9FF   call UnPacked.00421E9C
+004897CD    .   8BC3          mov eax,ebx
+004897CF    .   E8 4C84F9FF   call UnPacked.00421C20
+004897D4    .   8BC3          mov eax,ebx
+004897D6    .   E8 B19AF7FF   call UnPacked.0040328C
+004897DB    .   33C0          xor eax,eax
+004897DD    .   5A            pop edx
+004897DE    .   59            pop ecx
+004897DF    .   59            pop ecx
+004897E0    .   64:8910       mov dword ptr fs:[eax],edx
+004897E3    .   EB 0A         jmp short UnPacked.004897EF
+004897E5    .^  E9 429FF7FF   jmp UnPacked.0040372C
+004897EA    .   E8 A5A2F7FF   call UnPacked.00403A94
+```
+
+开始验证啦
+
+```
+004897EF    >   33C0          xor eax,eax
+004897F1    .   55            push ebp
+004897F2    .   68 F49A4800   push UnPacked.00489AF4
+004897F7    .   64:FF30       push dword ptr fs:[eax]
+004897FA    .   64:8920       mov dword ptr fs:[eax],esp
+004897FD    .   837D FC 00    cmp dword ptr ss:[ebp-4],0            ; Name
+00489801    .   0F84 E3020000 je UnPacked.00489AEA
+00489807    .   837D F8 00    cmp dword ptr ss:[ebp-8],0            ; SerialNo
+0048980B    .   0F84 D9020000 je UnPacked.00489AEA
+00489811    .   B8 781F4900   mov eax,UnPacked.00491F78
+00489816    .   8B55 FC       mov edx,dword ptr ss:[ebp-4]
+00489819    .   E8 96A8F7FF   call UnPacked.004040B4
+0048981E    .   68 7C1F4900   push UnPacked.00491F7C
+00489823    .   8D45 E4       lea eax,dword ptr ss:[ebp-1C]
+00489826    .   50            push eax
+00489827    .   8B55 F8       mov edx,dword ptr ss:[ebp-8]          ; SerialNo
+0048982A    .   B8 B89B4800   mov eax,UnPacked.00489BB8             ; '+'
+0048982F    .   E8 30AEF7FF   call UnPacked.00404664                ; System.@LStrPos;
+00489834    .   40            inc eax                               ; 分隔字符在序列号中的位置+1
+00489835    .   50            push eax                              ; 入栈
+00489836    .   8B45 F8       mov eax,dword ptr ss:[ebp-8]          ; SerialNo
+00489839    .   E8 E2AAF7FF   call UnPacked.00404320                ; System.@LStrLen(String):Integer;
+0048983E    .   8BC8          mov ecx,eax                           ; 注册码长度
+00489840    .   8B45 F8       mov eax,dword ptr ss:[ebp-8]          ; SerialNo
+00489843    .   5A            pop edx                               ; 出栈
+00489844    .   E8 37ADF7FF   call UnPacked.00404580                ; System.@LStrCopy;
+00489849    .   8B55 E4       mov edx,dword ptr ss:[ebp-1C]         ; 取得第一个分隔字符后的序列号
+0048984C    .   B8 B89B4800   mov eax,UnPacked.00489BB8             ; '+'
+00489851    .   E8 0EAEF7FF   call UnPacked.00404664                ; System.@LStrPos;
+```
+
+
+
+这是一段关于序列号验证逻辑的汇编代码片段，主要涉及 Delphi 运行时库（如 `System` 和 `SysUtils` 单元）中的字符串处理和数学运算。代码首先通过计算用户名相关值与序列号第二段的组合，生成一个临时结果，然后利用指数表示法（`FormatFloat`）进行处理，最后从序列号中提取第一段并进行浮点数转换，以完成后续的验证比较。
+
+```asm
+00489856    .   48                  dec eax                                   ; 第 2 个分隔字符在序列号中的位置-1  
+
+00489857    .   50                  push eax                                  ; 入栈  
+
+00489858    .   8D45 E0           lea eax,dword ptr ss:[ebp-20]  
+
+0048985B    .   50                  push eax  
+
+0048985C    .   8B55 F8           mov edx,dword ptr ss:[ebp-8]              ; SerialNo  
+
+0048985F    .   B8 B89B4800       mov eax,UnPacked.00489BB8                 ; '+'  
+
+00489864    .   E8 FBADF7FF       call UnPacked.00404664                    ; System.@LStrPos;  
+
+00489869    .   40                  inc eax  
+
+0048986A    .   50                  push eax  
+
+0048986B    .   8B45 F8           mov eax,dword ptr ss:[ebp-8]              ; SerialNo  
+
+0048986E    .   E8 ADAAF7FF       call UnPacked.00404320                    ; System.@LStrLen(String):Integer;  
+
+00489873    .   8BC8                mov ecx,eax  
+
+00489875    .   8B45 F8           mov eax,dword ptr ss:[ebp-8]              ; SerialNo  
+
+00489878    .   5A                  pop edx  
+
+00489879    .   E8 02ADF7FF       call UnPacked.00404580                    ; System.@LStrCopy;  
+
+0048987E    .   8B45 E0           mov eax,dword ptr ss:[ebp-20]  
+
+00489881    .   BA 01000000       mov edx,1  
+
+00489886    .   59                  pop ecx  
+
+00489887    .   E8 F4ACF7FF       call UnPacked.00404580                    ; System.@LStrCopy;  
+
+0048988C    .   BB 01000000       mov ebx,1  
+
+00489891    >   8D45 D8           lea eax,dword ptr ss:[ebp-28]  
+
+00489894    .   50                  push eax  
+
+00489895    .   B9 01000000       mov ecx,1  
+
+0048989A    .   8BD3                mov edx,ebx  
+
+0048989C    .   8B45 FC           mov eax,dword ptr ss:[ebp-4]              ; 用户名  
+
+0048989F    .   E8 DCACF7FF       call UnPacked.00404580                    ; System.@LStrCopy;  
+
+004898A4    .   8B45 D8           mov eax,dword ptr ss:[ebp-28]             ; Name[i]=Copy(Name,i,1)  
+
+004898A7    .   0FB600            movzx eax,byte ptr ds:[eax]              ; Name[i]  
+
+004898AA    .   F7EB                imul ebx                                ; i  
+
+004898AC    .   8945 D4           mov dword ptr ss:[ebp-2C],eax             ; Eax=Name[i]*i  
+
+004898AF    .   DB45 D4           fild dword ptr ss:[ebp-2C]               ; 装入到 st(0)  
+
+004898B2    .   E8 DD91F7FF       call UnPacked.00402A94                    ; System.@ROUND;  
+
+004898B7    .   8945 CC           mov dword ptr ss:[ebp-34],eax             ; Round(Name[i])  
+
+004898BA    .   8955 D0           mov dword ptr ss:[ebp-30],edx  
+
+004898BD    .   DF6D CC           fild qword ptr ss:[ebp-34]                ; 装入到 st(0)  
+
+004898C0    .   83C4 F4           add esp,-0C  
+
+004898C3    .   DB3C24            fstp tbyte ptr ss:[esp]                   ; |dest <- st(0)  
+
+004898C6    .   9B                  wait                                      ; |  
+
+004898C7    .   8D55 DC           lea edx,dword ptr ss:[ebp-24]             ; |  
+
+004898CA    .   B8 C49B4800       mov eax,UnPacked.00489BC4                ; |  
+
+004898CF    .   E8 9804F8FF       call UnPacked.00409D6C                    ; \SysUtils.FormatFloat(AnsiString;Extended):AnsiString;overload;  
+
+004898D4    .   FF75 DC           push dword ptr ss:[ebp-24]               ; FormatFloat(Round(Name[i]))  
+
+004898D7    .   8D55 C8           lea edx,dword ptr ss:[ebp-38]  
+
+004898DA    .   8BC3                mov eax,ebx                             ; i  
+
+004898DC    .   E8 13ECF7FF       call UnPacked.004084F4                    ; SysUtils.IntToStr(Integer):AnsiString;overload;  
+
+004898E1    .   FF75 C8           push dword ptr ss:[ebp-38]               ; IntStr(i)  
+
+004898E4    .   FF35 7C1F4900    push dword ptr ds:[491F7C]               ; 序列号第二段  
+
+004898EA    .   8D45 EC           lea eax,dword ptr ss:[ebp-14]  
+
+004898ED    .   BA 03000000       mov edx,3  
+
+004898F2    .   E8 E9AAF7FF       call UnPacked.004043E0                    ; System.@LStrCatN;  
+
+004898F7    .   8B45 EC           mov eax,dword ptr ss:[ebp-14]             ; FormatFloat(Round(Name[i]))+IntToStr(i)+注册码第 2 段,记为 Temp  
+
+004898FA    .   E8 31EDF7FF       call UnPacked.00408630                    ; SysUtils.StrToInt(AnsiString):Integer;  
+
+004898FF    .   8BF0                mov esi,eax                             ; EAX=StrToInt(Temp)  
+
+00489901    .   8B45 EC           mov eax,dword ptr ss:[ebp-14]  
+
+00489904    .   E8 27EDF7FF       call UnPacked.00408630                    ; SysUtils.StrToInt(AnsiString):Integer;  
+
+00489909    .   03F0                add esi,eax                             ; ESI=EAX+EAX  
+
+0048990B    .   8BC6                mov eax,esi  
+
+0048990D    .   8D55 C4           lea edx,dword ptr ss:[ebp-3C]  
+
+00489910    .   E8 DFEBF7FF       call UnPacked.004084F4                    ; SysUtils.IntToStr(Integer):AnsiString;overload;  
+
+00489915    .   8B55 C4           mov edx,dword ptr ss:[ebp-3C]             ; IntToStr(Temp*2)  
+
+00489918    .   8D45 EC           lea eax,dword ptr ss:[ebp-14]  
+
+0048991B    .   E8 D8A7F7FF       call UnPacked.004040F8  
+
+00489920    .   43                  inc ebx                                 ; i=i+1  
+
+00489921    .   8B45 FC           mov eax,dword ptr ss:[ebp-4]              ; Name  
+
+00489924    .   E8 F7A9F7FF       call UnPacked.00404320                    ; System.@LStrLen(String):Integer;  
+
+00489929    .   40                  inc eax                                 ; Length(Name)+1  
+
+0048992A    .   3BD8                cmp ebx,eax                             ; i  
+
+0048992C    .^  0F85 5FFFFFFF     jnz UnPacked.00489891                     ; 用户名长度循环  
+
+00489932    .   6A 16               push 16  
+
+00489934    .   68 99BD5116       push 1651BD99  
+
+00489939    .   8B45 EC           mov eax,dword ptr ss:[ebp-14]             ;  
+ 用户名与序列号第 2 段计算结果,实际上是(IntToStr(Name[Length]*Length)+IntToStr(Length)+'序列号第 2 段')*2  
+
+0048993C    .   E8 EFECF7FF       call UnPacked.00408630                    ; SysUtils.StrToInt(AnsiString):Integer;  
+
+00489941    .   99                  cdq  
+
+00489942    .   E8 15B6F7FF       call UnPacked.00404F5C                    ; System.@_llmul; 64 位乘法运算  
+
+00489947    .   8945 CC           mov dword ptr ss:[ebp-34],eax            ; StrToInt(计算结果)*161651BD99  
+
+0048994A    .   8955 D0           mov dword ptr ss:[ebp-30],edx            ; EDX 保存高 32 位,EAX 保存低 32 位  
+
+0048994D    .   DF6D CC           fild qword ptr ss:[ebp-34]  
+
+00489950    .   83C4 F4           add esp,-0C  
+
+00489953    .   DB3C24            fstp tbyte ptr ss:[esp]                   ; |  
+
+00489956    .   9B                  wait                                      ; |  
+
+00489957    .   8D55 C0           lea edx,dword ptr ss:[ebp-40]             ; |  
+
+0048995A    .   B8 C49B4800       mov eax,UnPacked.00489BC4                ; |'#'  
+
+0048995F    .   E8 0804F8FF       call UnPacked.00409D6C                    ; \SysUtils.FormatFloat(AnsiString;Extended):AnsiString;overload;  
+
+00489964    .   8B55 C0           mov edx,dword ptr ss:[ebp-40]             ; 指数表示  
+
+00489967    .   8D45 EC           lea eax,dword ptr ss:[ebp-14]  
+
+0048996A    .   E8 89A7F7FF       call UnPacked.004040F8                    ; System.@LStrLAsg(void;void;void;void);  
+
+0048996F    .   8D45 F0           lea eax,dword ptr ss:[ebp-10]  
+
+00489972    .   50                  push eax  
+
+00489973    .   8B55 F8           mov edx,dword ptr ss:[ebp-8]              ; 序列号  
+
+00489976    .   B8 B89B4800       mov eax,UnPacked.00489BB8                 ; '+'  
+
+0048997B    .   E8 E4ACF7FF       call UnPacked.00404664                    ; System.@LStrPos;  
+
+00489980    .   8BC8                mov ecx,eax                             ; '+'在序列号中的位置  
+
+00489982    .   49                  dec ecx                                 ; 位置-1  
+
+00489983    .   BA 01000000       mov edx,1  
+
+00489988    .   8B45 F8           mov eax,dword ptr ss:[ebp-8]              ; 序列号  
+
+0048998B    .   E8 F0ABF7FF       call UnPacked.00404580                    ; System.@LStrCopy;  
+
+00489990    .   8B45 F0           mov eax,dword ptr ss:[ebp-10]             ; 取得序列号第 1 段  
+
+00489993    .   E8 2C04F8FF       call UnPacked.00409DC4                    ; SysUtils.StrToFloat(AnsiString):Extended;overload;  
+
+00489998    .   DB7D B4           fstp tbyte ptr ss:[ebp-4C]  
+
+0048999B    .   9B                  wait  
+
+0048999C    .   8B45 EC           mov eax,dword ptr ss:[ebp-14]             ; 用户名与序列号第 2 段计算结果  
+
+0048999F    .   E8 2004F8FF       call UnPacked.00409DC4                    ; SysUtils.StrToFloat(AnsiString):Extended;overload;  
+```
+
+
+
+```
+004899A4    .  DB6D B4       fld tbyte ptr ss:\[ebp-4C\]            ;  装入实数到 st(0),StrToFloat(序列号第 1 段)  
+
+004899A7    .  DEE1          fsubrp st(1),st                        ;  st(0) <- st(i) - st(0)  
+
+004899A9    .  D81D C89B4800 fcomp dword ptr ds:\[489BC8\]          ;  将 st(0)和 4000.000 比较  
+
+004899AF    .  DFE0          fstsw ax                               ;  保存状态字的值到 AX  
+
+004899B1    .  9E            sahf  
+
+004899B2       0F87 2E010000 ja UnPacked.00489AE6                  ;  St(0)>4000 跳转  
+
+004899B8    .  8B45 EC       mov eax,dword ptr ss:\[ebp-14\]       ;  序列号第 2 段计算结果  
+
+004899BB    .  E8 0404F8FF  call UnPacked.00409DC4                 ;  SysUtils.StrToFloat(AnsiString):Extended;overload;  
+
+004899C0    .  DB7D A8       fstp tbyte ptr ss:\[ebp-58\]          ;  转为浮点数  
+
+004899C3    .  9B            wait  
+
+004899C4    .  8B45 F0       mov eax,dword ptr ss:\[ebp-10\]       ;  序列号第 1 段  
+
+004899C7    .  E8 F803F8FF  call UnPacked.00409DC4                 ;  SysUtils.StrToFloat(AnsiString):Extended;overload;  
+
+004899CC    .  DB6D A8       fld tbyte ptr ss:\[ebp-58\]  
+
+004899CF    .  DEE1          fsubrp st(1),st  
+
+004899D1    .  D81D C89B4800 fcomp dword ptr ds:\[489BC8\]          ;  4000.000  
+
+004899D7    .  DFE0          fstsw ax  
+
+004899D9    .  9E            sahf  
+
+004899DA       0F87 06010000 ja UnPacked.00489AE6                  
+
+004899E0    .  C605 741F4900>mov byte ptr ds:\[491F74\],1          ;满足条件 置注册成功标准  
+
+004899E7    .  C645 F7 01    mov byte ptr ss:\[ebp-9\],1  
+
+004899EB    .  33C0          xor eax,eax  
+
+004899ED    .  55            push ebp  
+
+004899EE    .  68 5A9A4800   push UnPacked.00489A5A  
+
+004899F3    .  64:FF30       push dword ptr fs:\[eax\]  
+
+004899F6    .  64:8920       mov dword ptr fs:\[eax\],esp  
+
+004899F9    .  8D45 E8       lea eax,dword ptr ss:\[ebp-18\]  
+
+004899FC    .  8B55 F8       mov edx,dword ptr ss:\[ebp-8\]  
+
+004899FF    .  E8 F4A6F7FF   call UnPacked.004040F8                 ;  System.@LStrLAsg(void;void;void;void);  
+
+00489A04    .  8D45 E8       lea eax,dword ptr ss:\[ebp-18\]  
+
+00489A07    .  50            push eax  
+
+00489A08    .  8B55 E8       mov edx,dword ptr ss:\[ebp-18\]        ;  序列号  
+
+00489A0B    .  B8 B89B4800   mov eax,UnPacked.00489BB8              ;  '+'  
+
+00489A10    .  E8 4FACF7FF   call UnPacked.00404664                 ;  System.@LStrPos;  
+
+00489A15    .  40            inc eax                                ;  '+'在序列号中得位置  
+
+00489A16    .  50            push eax  
+
+00489A17    .  8B45 E8       mov eax,dword ptr ss:\[ebp-18\]        ;  序列号  
+
+00489A1A    .  E8 01A9F7FF   call UnPacked.00404320                 ;  System.@LStrLen(String):Integer;  
+
+00489A1F    .  8BC8          mov ecx,eax                            ;  Length  
+
+00489A21    .  8B45 E8       mov eax,dword ptr ss:\[ebp-18\]        ;  序列号  
+
+00489A24    .  5A            pop edx  
+
+00489A25    .  E8 56ABF7FF   call UnPacked.00404580                 ;  System.@LStrCopy;  
+
+00489A2A    .  8D45 E8       lea eax,dword ptr ss:\[ebp-18\]        ;  取得序列号后两段  
+
+00489A2D    .  50            push eax  
+
+00489A2E    .  8B55 E8       mov edx,dword ptr ss:\[ebp-18\]        ;  序列号后两段  
+
+00489A31    .  B8 B89B4800   mov eax,UnPacked.00489BB8              ;  '+'  
+
+00489A36    .  E8 29ACF7FF   call UnPacked.00404664                 ;  System.@LStrPos;  
+
+00489A3B    .  40            inc eax                                ;  位置+1  
+
+00489A3C    .  50            push eax  
+
+00489A3D    .  8B45 E8       mov eax,dword ptr ss:\[ebp-18\]        ;  序列号后两段  
+
+00489A40    .  E8 DBA8F7FF   call UnPacked.00404320                 ;  System.@LStrLen(String):Integer;  
+
+00489A45    .  8BC8          mov ecx,eax                            ;  序列号长度  
+
+00489A47    .  8B45 E8       mov eax,dword ptr ss:\[ebp-18\]  
+
+00489A4A    .  5A            pop edx  
+
+00489A4B    .  E8 30ABF7FF   call UnPacked.00404580                 ;  System.@LStrCopy;取得序列号第 3 段  
+
+00489A50    .  33C0          xor eax,eax  
+
+00489A52    .  5A            pop edx  
+
+00489A53    .  59            pop ecx  
+
+00489A54    .  59            pop ecx  
+
+00489A55    .  64:8910       mov dword ptr fs:\[eax\],edx  
+
+00489A58    .  EB 0A         jmp short UnPacked.00489A64  
+
+00489A5A    .^ E9 CD9CF7FF   jmp UnPacked.0040372C  
+
+00489A5F    .  E8 30A0F7FF   call UnPacked.00403A94  
+
+00489A64    >  8B55 F8       mov edx,dword ptr ss:\[ebp-8\]         ;  序列号  
+
+00489A67    .  B8 B89B4800   mov eax,UnPacked.00489BB8              ;  '+'  
+
+00489A6C    .  E8 F3ABF7FF   call UnPacked.00404664                 ;  StrPos  
+
+00489A71    .  85C0          test eax,eax  
+
+00489A73    .  75 04         jnz short UnPacked.00489A79  
+
+00489A75    .  C645 F7 00    mov byte ptr ss:\[ebp-9\],0           ;  注册成功标志位，置失败  
+
+00489A79    >  B2 01         mov dl,1  
+
+00489A7B    .  A1 B42B4100   mov eax,dword ptr ds:\[412BB4\]       ;  00412C00  
+
+00489A80    .  E8 D797F7FF   call UnPacked.0040325C  
+
+00489A85    .  8BF0          mov esi,eax  
+
+00489A87    .  BA D49B4800   mov edx,UnPacked.00489BD4             ;  ASCII "1164121"  
+
+00489A8C    .  8BC6          mov eax,esi  
+
+00489A8E    .  8B08          mov ecx,dword ptr ds:\[eax\]  
+
+00489A90    .  FF51 38       call dword ptr ds:\[ecx+38\]  
+
+00489A93    .  33DB          xor ebx,ebx  
+
+00489A95    >  8D55 A4       lea edx,dword ptr ss:\[ebp-5C\]  
+
+00489A98    .  8B45 E8       mov eax,dword ptr ss:\[ebp-18\]        ;  注册码第 3 段  
+
+00489A9B    .  E8 34E4F7FF   call UnPacked.00407ED4                 ;  SysUtils.UpperCase(AnsiString):AnsiString;  
+
+00489AA0    .  8B45 A4       mov eax,dword ptr ss:\[ebp-5C\]        ;  UpCase(注册码第 3 段)  
+
+00489AA3    .  50            push eax  
+
+00489AA4    .  8D4D 9C       lea ecx,dword ptr ss:\[ebp-64\]  
+
+00489AA7    .  8BD3          mov edx,ebx  
+
+00489AA9    .  8BC6          mov eax,esi  
+
+00489AAB    .  8B38          mov edi,dword ptr ds:\[eax\]  
+
+00489AAD    .  FF57 0C       call dword ptr ds:\[edi+C\]  
+
+00489AB0    .  8B45 9C       mov eax,dword ptr ss:\[ebp-64\]        ;  '1164121'  
+
+00489AB3    .  8D55 A0       lea edx,dword ptr ss:\[ebp-60\]  
+
+00489AB6    .  E8 19E4F7FF   call UnPacked.00407ED4                 ;  SysUtils.UpperCase(AnsiString):AnsiString;  
+
+00489ABB    .  8B55 A0       mov edx,dword ptr ss:\[ebp-60\]        ;  '1164121'  
+
+00489ABE    .  58            pop eax                                ;  '序列号第 3 段'  
+
+00489ABF    .  E8 A8A9F7FF   call UnPacked.0040446C                 ;  System.@LStrCmp;  
+
+00489AC4    .  75 0B         jnz short UnPacked.00489AD1            ;必须跳 要求序列号第 3 段<>'1164121'  
+
+00489AC6    .  C605 741F4900>mov byte ptr ds:\[491F74\],0 
+
+00489ACD    .  C645 F7 00    mov byte ptr ss:\[ebp-9\],0  
+
+00489AD1    >  43            inc ebx  
+
+00489AD2    .  8BC6          mov eax,esi  
+
+00489AD4    .  8B10          mov edx,dword ptr ds:\[eax\]  
+
+00489AD6    .  FF52 14       call dword ptr ds:\[edx+14\]          
+
+00489AD9    .  3BD8          cmp ebx,eax  
+
+00489ADB    .^ 75 B8         jnz short UnPacked.00489A95  
+
+00489ADD    .  8BC6          mov eax,esi  
+
+00489ADF    .  E8 A897F7FF   call UnPacked.0040328C  
+
+00489AE4    .  EB 04         jmp short UnPacked.00489AEA  
+
+00489AE6    >  C645 F7 00    mov byte ptr ss:\[ebp-9\],0            ；注册失败标志  
+
+00489AEA    >  33C0          xor eax,eax  
+
+00489AEC    .  5A            pop edx  
+
+00489AED    .  59            pop ecx  
+
+00489AEE    .  59            pop ecx  
+
+00489AEF    .  64:8910       mov dword ptr fs:\[eax\],edx  
+
+00489AF2    .  EB 0E         jmp short UnPacked.00489B02  
+
+00489AF4    .^ E9 339CF7FF   jmp UnPacked.0040372C  
+
+00489AF9    .  C645 F7 00    mov byte ptr ss:\[ebp-9\],0  
+
+00489AFD    .  E8 929FF7FF   call UnPacked.00403A94  
+
+00489B02    >  33C0          xor eax,eax  
+
+00489B04    .  5A            pop edx  
+
+00489B05    .  59            pop ecx  
+
+00489B06    .  59            pop ecx  
+
+00489B07    .  64:8910       mov dword ptr fs:\[eax\],edx  
+```
+
+
+
+```
+00489B0A    .   EB 0A         jmp short UnPacked.00489B16  
+
+00489B0C    .^ E9 1B9CF7FF   jmp UnPacked.0040372C  
+
+00489B11    .   E8 7E9FF7FF  call UnPacked.00403A94  
+
+00489B16    >   33C0         xor eax,eax  
+
+00489B18    .   5A          pop edx  
+
+00489B19    .   59          pop ecx  
+
+00489B1A    .   59          pop ecx  
+
+00489B1B    .   64:8910     mov dword ptr fs:[eax],edx  
+
+00489B1E    .   68 5F9B4800 push UnPacked.00489B5F  
+
+00489B23    >   8D45 9C     lea eax,dword ptr ss:[ebp-64]  
+
+00489B26    .   BA 03000000 mov edx,3  
+
+00489B2B    .   E8 54A5F7FF call UnPacked.00404084  
+
+00489B30    .   8D45 C0     lea eax,dword ptr ss:[ebp-40]  
+
+00489B33    .   BA 03000000 mov edx,3  
+
+00489B38    .   E8 47A5F7FF call UnPacked.00404084  
+
+00489B3D    .   8D45 D8     lea eax,dword ptr ss:[ebp-28]  
+
+00489B40    .   BA 07000000 mov edx,7  
+
+00489B45    .   E8 3AA5F7FF call UnPacked.00404084  
+
+00489B4A    .   8D45 F8     lea eax,dword ptr ss:[ebp-8]  
+
+00489B4D    .   BA 02000000 mov edx,2  
+
+00489B52    .   E8 2DA5F7FF call UnPacked.00404084  
+
+00489B57    .   C3          retn  
+
+00489B58    .^ E9 839EF7FF  jmp UnPacked.004039E0  
+
+00489B5D    .^ EB C4        jmp short UnPacked.00489B23  
+
+00489B5F    .   8A45 F7     mov al,byte ptr ss:[ebp-9]  
+
+00489B62    .   5F          pop edi  
+
+00489B63    .   5E          pop esi  
+
+00489B64    .   5B          pop ebx  
+
+00489B65    .   8BE5        mov esp,ebp  
+
+00489B67    .   5D          pop ebp  
+
+00489B68    .   C3          retn  
+```
+
+## 『算法总结』
+
+1、序列号以`+`分隔,形式为`12345+67890+12345`
+
+2、序列号第 1 段-(`IntToStr(Name[Length]*Length)+IntToStr(Length)+'序列号第 2 段')*2`<=`4000.000`
+
+3、序列号第 3 段<>`'1164121'`
+
+`4dd466d0e1e0cc123afbe504da2462ca`
