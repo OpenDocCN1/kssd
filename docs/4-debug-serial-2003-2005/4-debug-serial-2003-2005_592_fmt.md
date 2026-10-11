@@ -1,0 +1,2934 @@
+
+# 同益起名大师 3.29
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6583.htm`](https://www.pediy.com/kssd/pediy06/pediy6583.htm)
+
+【下载页面】[`down.tfol.com/down/soft/pc/t...523,12288.shtml`](http://down.tfol.com/down/soft/pc/trade/others/web/ihtml/2003-11-21/20031121,170523,12288.shtml)
+
+【软件名称】同益起名大师 3.29
+
+【软件分类】国产软件 / 授权未知 / 测字算命
+
+【适用平台】`Win9x`/`Me`/`NT`/`2000`/`XP`
+
+【文件大小】`4,687KB`
+
+【软件介绍】是一个专业的起名测名软件，可以说是最优秀、最专业的，绝对 100% 精品（注：自吹而已）。它有个人起名、公司行号命名、商标楼号命名、姓名八卦、吉号选择、姓名分析、名称分析、号码吉凶分析等及参考名字查询、成语查询、偏旁查字等多种活字典辞典功能。是姓名学爱好者及研究人员的得力工具，让您真正放心、方便、快捷地为您的公司商行或亲朋好友起个好名。
+
+---
+
+【破文作者】`moon`
+
+【作者声明】只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+【调试环境】`WinXP`、`flyODBG`、`PEiD`
+
+---
+
+## 准备工作
+
+如果手动更改注册表信息且经验证失败，而且你又没有及时制止它更改注册信息，它会把你的注册表项目 `HKEY_LOCAL_MACHINE\SOFTWARE\GoodSoft\GoodName` 中的 `Appid` 设为 `4D`，这样就没有输入注册码的地方啦。如果发生这种情况，只要把 `Appid` 手动更改为 `0` 即可再次进行注册。
+
+---
+
+## 脱壳
+
+`flyODBG` 载入，停在：
+
+```assembly
+005DC060 > pushad  <====停于此处
+005DC061  call GoodName.005DC066
+005DC066  pop ebp
+005DC067  sub ebp,GoodName.00401DF3
+```
+
+忽略除“内存访问异常”以外的所有异常，运行。在第 2 次异常时打开内存镜像，在 code 段设置访问断点，然后通过异常。断于以下位置，不是 OEP，但离 OEP 不远：
+
+```assembly
+005D8C4C  rep movs dword ptr es:[edi],dword ptr ds:[esi] <====断于此处
+005D8C4E  add ecx,eax
+005D8C50  and ecx,3
+005D8C53  rep movs byte ptr es:[edi],byte ptr ds:[esi]
+005D8C55  leave
+005D8C56  retn 1C  <====到此 F4
+```
+
+执行到 `005D8C56`，然后 F8 一次，来到：
+
+```assembly
+005D8282  pop edx        <====来到这里       ; GoodName.00401000
+005D8283  pop edi
+```
+
+向下查看一下代码，看到了这个：
+
+```assembly
+005D854E  popad
+005D854F  popfd
+005D8550  push eax
+005D8551  push GoodName.00517418  <====OEP
+005D8556  retn 4  <====到此 F4
+```
+
+于是执行到此，再 F8 一次，来到 OEP 处。
+
+用 `OD` 转存程序，然后再用 `IMR` 修复输入表即可。
+
+## 程序跟踪
+
+因为要对注册表进行操作，所以先看看对函数设断，搜索->当前模块中的名称，看到 `advapi32.RegSetValueExA` 和 `advapi32.RegQueryValueExA`，一个是写入注册表，一个是读取注册表值，在对它们的每个参考设置断点，然后运行程序，中断后看堆栈中的第二行，不是 `Appid` 就 F9 运行。另外，经过跟踪已知验证失败时修改注册表都是通过 `call 004E6A44` 进行的，可以在 `004E6A44` 设置断点，就可以拦截到所有验证失败的地方。
+
+### 1. 点“注册”按钮后
+
+点击“注册”以后无任何提示，这时断点较难找，用“资源相关事件分析法”得知是从 `00509484` 开始执行，这一段的关键在：
+
+```assembly
+005097BA  call UN-GOODN.0050903C  <====关键 CALL，跟进
+```
+
+跟进子程序 `0050903C` 后，其中的关键在：
+
+```assembly
+0050930F  mov edx,dword ptr ss:[ebp-74]  注册码
+00509312  mov ecx,un-Go.00509480        ;  ASCII "111"
+00509317  mov eax,dword ptr ss:[ebp-10]  申请码加姓加公司名后缀中的两位
+0050931A  call un-Go.004E1BBC  <====关键 call 之一，计算及比较，正确时写入注册表
+0050931F  mov byte ptr ss:[ebp-5],al  存结果
+00509322  cmp byte ptr ss:[ebp-5],0  检查结果
+00509326  je short un-Go.00509368
+00509328  lea edx,dword ptr ss:[ebp-88]
+0050932E  mov eax,dword ptr ss:[ebp-4]
+00509331  mov eax,dword ptr ds:[eax+32C]
+00509337  call un-Go.00457230  取得注册码
+0050933C  mov eax,dword ptr ss:[ebp-88]
+00509342  lea edx,dword ptr ss:[ebp-84]
+00509348  call un-Go.00408B18  复制注册码
+0050934D  mov eax,dword ptr ss:[ebp-84]
+00509353  lea ecx,dword ptr ss:[ebp-80]
+00509356  mov dl,2D
+00509358  call un-Go.004E29C4  去掉注册码中的'-'
+0050935D  mov edx,dword ptr ss:[ebp-80]  注册码
+00509360  mov eax,dword ptr ss:[ebp-10]  申请码加姓加公司名后缀中的两位
+00509363  call un-Go.004E17B0  <====关键 call 之二，这一步以后注册表又被更改
+```
+
+跟进关键 call 之一 `call un-Go.004E1BBC` 后，其中的关键比较是：
+
+```assembly
+004E1F19  mov edx,dword ptr ss:[ebp-88]  "EF9F176831E87F88"
+004E1F1F  pop eax      "9E4165ADC409583C"
+004E1F20  call un-GoodN.004046D0  <====关键比较，这儿不跳就会将
+004E1F25  jnz un-GoodN.004E2382    这儿不跳就会将信息写入注册表（会帮我们算出 Value 哟，爽）。爆破方法为 nop 掉，爆破点 1
+```
+
+跟进关键 call 之二 `call un-Go.004E17B0` 后，其中的关键比较是：
+
+```assembly
+004E18B5  lea eax,dword ptr ss:[ebp-44]  常数变来的数
+004E18B8  pop edx      数 1 出栈
+004E18B9  call un-GoodN.004DCC58  <====关键比较，大数比较，不相等就会把注册信息修改，爆破点 2
+004E18BE  mov byte ptr ss:[ebp-9],al  存结果，作为一个标志
+```
+
+### 2. 启动以后
+
+重启以后从 `00513944` 开始读注册表，`00513C3A` 是关键比较：
+
+```assembly
+00513C33  lea eax,dword ptr ss:[ebp-8C]
+00513C39  pop edx
+00513C3A  call un-GoodN.004DCC58  关键比较，两个大数比较，爆破点 3
+00513C3F  mov byte ptr ds:[51CEC4],al  存结果，作为一个标志
+00513C44  cmp byte ptr ds:[51CEC4],0   
+00513C4B  je short un-GoodN.00513C5D
+```
+
+### 3. 点“个人起名”以后
+
+点“个人起名”以后，从 `00503AE5` 开始读注册表，`00503D8E` 是关键 call，就是点“注册”按钮后的关键 call 中的一个。`004E1F20` 是关键比较。
+
+```assembly
+00503D8E  call un-GoodN.004E1BBC
+```
+
+### 4. 点“开始分析”以后
+
+```assembly
+00503467  cmp eax,5  当前月与 5 比较，因此只能在 2004 年 4 月以前用？
+0050346A  jge short cr-un-Go.00503494  nop 掉，爆破点 4
+
+005054DC  mov eax,dword ptr ss:[ebp-10]
+005054DF  mov edx,cr-un-Go.00505C48        ;  ASCII "-1"
+005054E4  call cr-un-Go.004046D0
+005054E9  jnz short cr-un-Go.005054FF  jnz 改为 jmp，爆破点 5
+```
+
+从 `005055C2` 开始读注册表进行注册码验算，`005057AF` 是关键 call：
+
+```assembly
+005057A8  lea eax,dword ptr ss:[ebp-B4]
+005057AE  pop edx
+005057AF  call un-GoodN.004DCC58  关键 call，大数比较，改为 mov al,1，爆破点 6
+005057B4  mov byte ptr ss:[ebp-5],al  
+```
+
+### 5. 到此以后，总结了一下发现
+
+它验证注册码的地方都是从注册表读取信息，而读取信息的程序段结构都差不多，诸如：
+
+```assembly
+00513944  mov edx,un-GoodN.00513D80           ;  ASCII "Appid"
+00513949  mov eax,dword ptr ss:[ebp-10]
+0051394C  call un-GoodN.0043C780
+00513951  mov ebx,eax
+00513953  lea ecx,dword ptr ss:[ebp-8]
+00513956  mov edx,un-GoodN.00513D90           ;  ASCII "Serial"
+0051395B  mov eax,dword ptr ss:[ebp-10]
+0051395E  call un-GoodN.0043C6F4
+00513963  lea ecx,dword ptr ss:[ebp-C]
+00513966  mov edx,un-GoodN.00513DA0           ;  ASCII "FName"
+```
+
+因此搜索所有引用 `Serial` 的地方，以走个捷径：
+
+1.  点“注册”后通过验证后写入注册表时引用 `004E2159`（关键计算处）、
+2.  删除注册信息的 `call 004E6A44` 中 `004E6D26`（删除注册表信息处）
+3.  删除注册信息的 `call 004E6A44` 中 `004E6F34`、
+4.  点“个人起名”以后的验证段中 `00503B3F`、
+5.  点“开始分析”以后的验证段中 `005055C5`、
+6.  `call 0050ED58` 中 `0050F3B1` `call cr-un-Go.004E1BBC` 是关键 call，是点注册后的关键 call 之一 `0050F071`、
+7.  `call 00510778` 中 `00510D49` `call cr-un-Go.004DCC58` 是关键 call，爆破点 7 `00510B2A`、
+8.  启动以后的验证段 `00513956`
+
+爆破以上七点以后，任意输入 23 位的注册码，程序可以注册成功，并且可以起名、分析名字。至于是否完美就不得而知啦。
+
+## 附：点“注册”以后程序段的跟踪分析
+
+```assembly
+005094C6  lea edx,dword ptr ss:[ebp-10]
+005094C9  mov eax,dword ptr ss:[ebp-4]
+005094CC  mov eax,dword ptr ds:[eax+2FC]
+005094D2  call UN-GOODN.00457230  取得申请码
+005094D7  mov eax,dword ptr ss:[ebp-10]
+005094DA  lea edx,dword ptr ss:[ebp-C]
+005094DD  call UN-GOODN.00408B18  复制申请码
+005094E2  mov eax,dword ptr ss:[ebp-C]
+005094E5  call UN-GOODN.00404584  查申请码的位数
+005094EA  cmp eax,3
+005094ED  jl short UN-GOODN.00509541
+005094EF  lea edx,dword ptr ss:[ebp-18]
+005094F2  mov eax,dword ptr ss:[ebp-4]
+005094F5  mov eax,dword ptr ds:[eax+300]
+005094FB  call UN-GOODN.00457230  取得姓
+00509500  mov eax,dword ptr ss:[ebp-18]
+00509503  lea edx,dword ptr ss:[ebp-14]
+00509506  call UN-GOODN.00408B18  复制姓
+0050950B  mov eax,dword ptr ss:[ebp-14]
+0050950E  call UN-GOODN.00404584  查姓的位数
+00509513  cmp eax,2      姓的位数不小于 2
+00509516  jl short UN-GOODN.00509541
+00509518  lea edx,dword ptr ss:[ebp-20]
+0050951B  mov eax,dword ptr ss:[ebp-4]
+0050951E  mov eax,dword ptr ds:[eax+32C]
+00509524  call UN-GOODN.00457230  取得注册码
+00509529  mov eax,dword ptr ss:[ebp-20]
+0050952C  lea edx,dword ptr ss:[ebp-1C]
+0050952F  call UN-GOODN.00408B18  复制注册码
+00509534  mov eax,dword ptr ss:[ebp-1C]
+00509537  call UN-GOODN.00404584  查注册码的位数
+0050953C  cmp eax,0A     位数和 10 比较
+0050953F  jge short UN-GOODN.00509549
+00509541  mov eax,dword ptr ss:[ebp-4]
+00509544  call UN-GOODN.00473A40  未知，但不会执行到
+00509549  lea eax,dword ptr ss:[ebp-8]  以上是对申请码、姓、注册码的位数进行验证，通过后到此处执行
+0050954C  push eax
+0050954D  lea eax,dword ptr ss:[ebp-24]
+00509550  push eax
+00509551  lea edx,dword ptr ss:[ebp-2C]
+00509554  mov eax,dword ptr ss:[ebp-4]
+00509557  mov eax,dword ptr ds:[eax+300]
+0050955D  call UN-GOODN.00457230  再次取得姓
+00509562  mov eax,dword ptr ss:[ebp-2C]
+00509565  lea edx,dword ptr ss:[ebp-28]
+00509568  call UN-GOODN.00408B18  复制姓
+0050956D  mov eax,dword ptr ss:[ebp-28]
+```
+
+
+
+```
+00509570   mov ecx,2  
+
+00509575   mov edx,1  
+
+0050957A   call UN-GOODN.004047E4   从 `eax` 所指的第 `edx` 位开始取 `ecx` 位，即取姓的第一个汉字  
+
+0050957F   mov edx,dword ptr ss:[ebp-24]  
+
+00509582   mov eax,dword ptr ds:[51B81C]  
+
+00509587   mov eax,dword ptr ds:[eax]  
+
+00509589   mov eax,dword ptr ds:[eax+3D4]  
+
+0050958F   mov ecx,UN-GOODN.005098E0       ;  ASCII "11"  
+
+00509594   call UN-GOODN.004ED3BC   `[ebp-8]`处变成"06"的地址  
+
+00509599   xor eax,eax  
+
+0050959B   push ebp  
+
+0050959C   push UN-GOODN.005095BB  
+
+005095A1   push dword ptr fs:[eax]  
+
+005095A4   mov dword ptr fs:[eax],esp  
+
+005095A7   mov eax,dword ptr ss:[ebp-8]  
+
+005095AA   call UN-GOODN.00408FEC   字符串变成整数，"06"变成 6  
+
+005095AF   mov ebx,eax      <====暂存 6，一种标志，后面会用到  
+
+005095B1   xor eax,eax  
+
+005095B3   pop edx  
+
+005095B4   pop ecx  
+
+005095B5   pop ecx  
+
+005095B6   mov dword ptr fs:[eax],edx  
+
+005095B9   jmp short UN-GOODN.005095C7  
+
+005095BB   jmp UN-GOODN.00403914  
+
+005095C0   xor ebx,ebx  
+
+005095C2   call UN-GOODN.00403D40  
+
+005095C7   mov eax,dword ptr ds:[51B81C]  
+
+005095CC   mov eax,dword ptr ds:[eax]  
+
+005095CE   mov eax,dword ptr ds:[eax+404]  
+
+005095D4   mov edx,UN-GOODN.005098EC       ;  ASCII "000"  
+
+005095D9   call UN-GOODN.00457260  
+
+005095DE   mov eax,dword ptr ds:[51BBF4]  
+
+005095E3   mov eax,dword ptr ds:[eax]  
+
+005095E5   call UN-GOODN.00477058  
+
+005095EA   lea edx,dword ptr ss:[ebp-34]  
+
+005095ED   mov eax,dword ptr ss:[ebp-4]  
+
+005095F0   mov eax,dword ptr ds:[eax+324]  
+
+005095F6   call UN-GOODN.00457230   取得公司名后缀  
+
+005095FB   mov eax,dword ptr ss:[ebp-34]  
+
+005095FE   lea edx,dword ptr ss:[ebp-30]  
+
+00509601   call UN-GOODN.00408B18   复制公司名后缀  
+
+00509606   mov eax,dword ptr ss:[ebp-30]  
+
+00509609   call UN-GOODN.00404584   查公司名后缀的位数  
+
+0050960E   cmp eax,3  
+
+00509611   jle UN-GOODN.005096AF     公司名后缀不输入时从这儿跳  
+
+00509617   lea edx,dword ptr ss:[ebp-3C]  
+
+0050961A   mov eax,dword ptr ss:[ebp-4]  
+
+0050961D   mov eax,dword ptr ds:[eax+324]  
+
+00509623   call UN-GOODN.00457230   取得公司名后缀  
+
+00509628   mov eax,dword ptr ss:[ebp-3C]  
+
+0050962B   lea edx,dword ptr ss:[ebp-38]  
+
+0050962E   call UN-GOODN.00408B18   复制公司名后缀  
+
+00509633   mov ecx,dword ptr ss:[ebp-38]  
+
+00509636   mov eax,dword ptr ds:[51BD30]  
+
+0050963B   mov eax,dword ptr ds:[eax]  
+
+0050963D   xor edx,edx  
+
+0050963F   mov ebx,dword ptr ds:[eax]  
+
+00509641   call dword ptr ds:[ebx+20]   ds:[0041B7FC]=0041FBE0 (un-Go.0041FBE0)  
+
+00509644   mov eax,dword ptr ds:[51B81C]  
+
+00509649   mov eax,dword ptr ds:[eax]  
+
+0050964B   mov eax,dword ptr ds:[eax+3D4]  
+
+00509651   call UN-GOODN.004EDA04  
+
+00509656   mov ebx,eax      <====暂存某结果，公司名后缀写“公司”，结果为 9  
+
+00509658   cmp ebx,1  
+
+0050965B   jle short UN-GOODN.005096A7   公司名后缀输入“comcn”后，这儿会跳，写“公司”，这儿不跳  
+
+0050965D   lea edx,dword ptr ss:[ebp-40]  
+
+00509660   mov eax,ebx  
+
+00509662   call UN-GOODN.004F561C   `[ebp-40]`得到"009"  
+
+00509667   lea eax,dword ptr ss:[ebp-40]  
+
+0050966A   push eax  
+
+0050966B   lea edx,dword ptr ss:[ebp-48]  
+
+0050966E   mov eax,dword ptr ss:[ebp-4]  
+
+00509671   mov eax,dword ptr ds:[eax+324]  
+
+00509677   call UN-GOODN.00457230   取得公司名后缀  
+
+0050967C   mov eax,dword ptr ss:[ebp-48]  
+
+0050967F   lea edx,dword ptr ss:[ebp-44]  
+
+00509682   call UN-GOODN.00408B18   复制公司名后缀  
+
+00509687   mov edx,dword ptr ss:[ebp-44]  
+
+0050968A   pop eax  
+
+0050968B   call UN-GOODN.0040458C   连接字符串，得到"009 公司"  
+
+00509690   mov edx,dword ptr ss:[ebp-40]  
+
+00509693   mov eax,dword ptr ds:[51B81C]  
+
+00509698   mov eax,dword ptr ds:[eax]  
+
+0050969A   mov eax,dword ptr ds:[eax+404]  
+
+005096A0   call UN-GOODN.00457260  
+
+005096A5   jmp short UN-GOODN.005096AF   跳  
+
+005096A7   mov eax,dword ptr ss:[ebp-4]   公司名后缀输入“comcn”后跳到这儿  
+
+005096AA   call UN-GOODN.00473A40  
+
+005096AF   mov eax,dword ptr ds:[51B81C]   公司名后缀不输入时跳到这儿  
+
+005096B4   mov eax,dword ptr ds:[eax]  
+
+005096B6   mov eax,dword ptr ds:[eax+430]  
+
+005096BC   xor edx,edx  
+
+005096BE   call UN-GOODN.00437364  
+
+005096C3   mov eax,dword ptr ds:[51B81C]  
+
+005096C8   mov eax,dword ptr ds:[eax]  
+
+005096CA   mov eax,dword ptr ds:[eax+430]  
+
+005096D0   mov dl,1  
+
+005096D2   call UN-GOODN.00437364  
+
+005096D7   lea edx,dword ptr ss:[ebp-64]  
+
+005096DA   mov eax,dword ptr ss:[ebp-4]  
+
+005096DD   mov eax,dword ptr ds:[eax+2FC]  
+
+005096E3   call UN-GOODN.00457230   再次取得申请码  
+
+005096E8   mov eax,dword ptr ss:[ebp-64]  
+
+005096EB   lea edx,dword ptr ss:[ebp-60]  
+
+005096EE   call UN-GOODN.00408B18   复制申请码  
+
+005096F3   mov eax,dword ptr ss:[ebp-60]  
+
+005096F6   lea edx,dword ptr ss:[ebp-5C]  
+
+005096F9   call UN-GOODN.004DCB68   计算得一个数  
+
+005096FE   lea eax,dword ptr ss:[ebp-5C]  
+
+00509701   lea edx,dword ptr ss:[ebp-4C]  
+
+00509704   call UN-GOODN.004DCBDC   计算得一个字符串"Zsh19jRDfbHzAPRQ"  
+
+00509709   lea edx,dword ptr ss:[ebp-70]  
+
+0050970C   mov eax,dword ptr ss:[ebp-4]  
+
+0050970F   mov eax,dword ptr ds:[eax+300]  
+
+00509715   call UN-GOODN.00457230   再次取得姓  
+
+0050971A   mov eax,dword ptr ss:[ebp-70]  
+
+0050971D   lea edx,dword ptr ss:[ebp-6C]  
+
+00509720   call UN-GOODN.00408B18   复制姓  
+
+00509725   mov eax,dword ptr ss:[ebp-6C]  
+
+00509728   lea edx,dword ptr ss:[ebp-5C]  
+
+0050972B   call UN-GOODN.004DCB68   计算得一个数  
+
+00509730   lea eax,dword ptr ss:[ebp-5C]  
+
+00509733   lea edx,dword ptr ss:[ebp-68]  
+
+00509736   call UN-GOODN.004DCBDC   计算得一个字符串 "GANQgI2m9NdTJIEp"  
+
+0050973B   lea edx,dword ptr ss:[ebp-7C]  
+
+0050973E   mov eax,dword ptr ss:[ebp-4]  
+
+00509741   mov eax,dword ptr ds:[eax+32C]  
+
+00509747   call UN-GOODN.00457230   再次取得注册码  
+
+0050974C   mov eax,dword ptr ss:[ebp-7C]  
+
+0050974F   lea edx,dword ptr ss:[ebp-78]  
+
+00509752   call UN-GOODN.00408B18   复制注册码  
+
+00509757   mov eax,dword ptr ss:[ebp-78]  
+
+0050975A   lea edx,dword ptr ss:[ebp-5C]  
+
+0050975D   call UN-GOODN.004DCB68   某种运算 004DCB68  
+
+00509762   lea eax,dword ptr ss:[ebp-5C]  
+
+00509765   lea edx,dword ptr ss:[ebp-74]  
+
+00509768   call UN-GOODN.004DCBDC   得一个串 "hwCWvfiPQaZZZQKA"  
+
+0050976D   lea edx,dword ptr ss:[ebp-5C]  
+
+00509770   mov eax,UN-GOODN.005098F8       ;  ASCII "718B1C252E2F7E5E8F6328ED65617C95B47DAF"  
+
+00509775   call UN-GOODN.004DCB68   某种运算 004DCB68  
+
+0050977A   lea eax,dword ptr ss:[ebp-5C]  
+
+0050977D   lea edx,dword ptr ss:[ebp-80]  
+
+00509780   call UN-GOODN.004DCBDC   得一个串"AStCa3pYweA0PZWK"  
+
+00509785   lea edx,dword ptr ss:[ebp-5C]  
+
+00509788   mov eax,UN-GOODN.00509928       ; ASCII "CCB3EF10FF82041FEC05EBCB3B523362992AB75ADD33CF49F"  
+
+0050978D   call UN-GOODN.004DCB68   某种运算 004DCB68  
+
+00509792   lea eax,dword ptr ss:[ebp-5C]  
+
+00509795   lea edx,dword ptr ss:[ebp-84]  
+
+0050979B   call UN-GOODN.004DCBDC   得一个串 "wsra022ajLlcEEW9"  
+
+005097A0   test ebx,ebx  
+
+005097A2   jle short UN-GOODN.005097BF   公司名后缀输入“comcn”时这儿跳，不会执行关键 call  
+
+005097A4   mov eax,dword ptr ds:[51B81C]  
+
+005097A9   mov eax,dword ptr ds:[eax]  
+
+005097AB   mov eax,dword ptr ds:[eax+430]  
+
+005097B1   cmp byte ptr ds:[eax+40],0  
+
+005097B5   je short UN-GOODN.005097BF  
+
+005097B7   mov eax,dword ptr ss:[ebp-4]  
+
+005097BA   call UN-GOODN.0050903C   <====关键 CALL，跟进  
+
+    跟进子程序 0050903C  
+
+0050906F   lea edx,dword ptr ss:[ebp-1C]  
+
+00509072   mov eax,dword ptr ss:[ebp-4]  
+
+00509075   mov eax,dword ptr ds:[eax+32C]  
+
+0050907B   call cr-un-Go.00457230   取得注册码  
+
+00509080   mov eax,dword ptr ss:[ebp-1C]  
+
+00509083   lea edx,dword ptr ss:[ebp-18]  
+
+00509086   call cr-un-Go.00408B18   复制注册码  
+
+0050908B   mov eax,dword ptr ss:[ebp-18]  
+
+0050908E   call cr-un-Go.00404584   查注册码位数  
+
+00509093   cmp eax,16      位数不能小于 22  
+
+00509096   jl cr-un-Go.00509368  
+
+0050909C   lea edx,dword ptr ss:[ebp-24]  
+
+0050909F   mov eax,dword ptr ss:[ebp-4]  
+
+005090A2   mov eax,dword ptr ds:[eax+300]  
+
+005090A8   call cr-un-Go.00457230   取得姓  
+
+005090AD   mov eax,dword ptr ss:[ebp-24]  
+
+005090B0   lea edx,dword ptr ss:[ebp-20]  
+
+005090B3   call cr-un-Go.00408B18   复制姓  
+
+005090B8   mov eax,dword ptr ss:[ebp-20]  
+
+005090BB   lea ecx,dword ptr ss:[ebp-10]  
+```
+
+
+
+```asm
+005090BE  mov dl,2D
+
+005090C0  call cr-un-Go.004E29C4 去掉姓中的'-'
+
+005090C5  lea edx,dword ptr ss:\[ebp\-28\]
+
+005090C8  mov eax,dword ptr ss:\[ebp\-10\]
+
+005090CB  call cr-un-Go.00408B18 复制去掉'-'后的姓
+
+005090D0  mov eax,dword ptr ss:\[ebp\-28\]
+
+005090D3  call cr-un-Go.00404584 查姓的位数
+
+005090D8  mov ebx,eax       位数存 ebx
+
+005090DA  sar ebx,1         位数除以 2
+
+005090DC  jns short cr-un-Go.005090E1
+
+005090DE  adc ebx,0
+
+005090E1  test bx,bx
+
+005090E4  jbe short cr-un-Go.00509160 商不能小于 0
+
+005090E6  mov word ptr ss:\[ebp\-14\],bx
+
+005090EA  mov word ptr ss:\[ebp\-12\],1
+
+005090F0  lea eax,dword ptr ss:\[ebp\-C\]
+
+005090F3  push eax
+
+005090F4  lea eax,dword ptr ss:\[ebp\-2C\]
+
+005090F7  push eax
+
+005090F8  movzx eax,word ptr ss:\[ebp\-12\]
+
+005090FC  mov edx,eax
+
+005090FE  add edx,edx
+
+00509100  dec edx
+
+00509101  mov ecx,2
+
+00509106  mov eax,dword ptr ss:\[ebp\-10\]
+
+00509109  call cr-un-Go.004047E4 从 eax 所指的第 edx 位开始取 ecx 位
+
+0050910E  mov edx,dword ptr ss:\[ebp\-2C\]
+
+00509111  mov eax,dword ptr ds:\[51B81C\]
+
+00509116  mov eax,dword ptr ds:\[eax\]
+
+00509118  mov eax,dword ptr ds:\[eax+3D4\]
+
+0050911E  mov ecx,cr-un-Go.00509454        ;   ASCII "11"
+
+00509123  call cr-un-Go.004ED3BC 取得字符串"06"
+
+00509128  xor eax,eax
+
+0050912A  push ebp
+
+0050912B  push cr-un-Go.0050914A
+
+00509130  push dword ptr fs:\[eax\]
+
+00509133  mov dword ptr fs:\[eax\],esp
+
+00509136  mov eax,dword ptr ss:\[ebp\-C\]  字符串"06"
+
+00509139  call cr-un-Go.00408FEC 字符串变成整数，"06"变成 6
+
+0050913E  mov ebx,eax       暂存于 ebx
+
+00509140  xor eax,eax
+
+00509142  pop edx
+
+00509143  pop ecx
+
+00509144  pop ecx
+
+00509145  mov dword ptr fs:\[eax\],edx
+
+00509148  jmp short cr-un-Go.00509156
+
+0050914A  jmp cr-un-Go.00403914
+
+0050914F  xor ebx,ebx
+
+00509151  call cr-un-Go.00403D40
+
+00509156  inc word ptr ss:\[ebp\-12\]
+
+0050915A  dec word ptr ss:\[ebp\-14\]
+
+0050915E  jnz short cr-un-Go.005090F0
+
+00509160  cmp bx,1
+
+00509164  jb cr-un-Go.00509368
+
+0050916A  lea eax,dword ptr ss:\[ebp\-30\]
+
+0050916D  call cr-un-Go.004E261C 从系统得到申请码
+
+00509172  mov eax,dword ptr ss:\[ebp\-30\]
+
+00509175  lea edx,dword ptr ss:\[ebp\-10\]
+
+00509178  call cr-un-Go.00408B18 复制申请码
+
+0050917D  lea edx,dword ptr ss:\[ebp\-34\]
+
+00509180  mov eax,dword ptr ss:\[ebp\-10\]
+
+00509183  call cr-un-Go.00408B18 又复制申请码
+
+00509188  mov eax,dword ptr ss:\[ebp\-34\]
+
+0050918B  call cr-un-Go.00404584 查申请码位数
+
+00509190  cmp eax,2
+
+00509193  jl cr-un-Go.00509368
+
+00509199  lea edx,dword ptr ss:\[ebp\-3C\]
+
+0050919C  mov eax,dword ptr ss:\[ebp\-4\]
+
+0050919F  mov eax,dword ptr ds:\[eax+2FC\]
+
+005091A5  call cr-un-Go.00457230 从对话框得到申请码
+
+005091AA  mov eax,dword ptr ss:\[ebp\-3C\]
+
+005091AD  lea edx,dword ptr ss:\[ebp\-38\]
+
+005091B0  call cr-un-Go.00408B18 复制申请码
+
+005091B5  mov edx,dword ptr ss:\[ebp\-38\]
+
+005091B8  mov eax,dword ptr ss:\[ebp\-10\]
+
+005091BB  call cr-un-Go.004046D0 字符串比较
+
+005091C0  jnz cr-un-Go.00509368
+
+005091C6  lea edx,dword ptr ss:\[ebp\-44\]
+
+005091C9  mov eax,dword ptr ss:\[ebp\-4\]
+
+005091CC  mov eax,dword ptr ds:\[eax+324\]
+
+005091D2  call cr-un-Go.00457230 取得公司名后缀
+
+005091D7  mov eax,dword ptr ss:\[ebp\-44\]
+
+005091DA  lea edx,dword ptr ss:\[ebp\-40\]
+
+005091DD  call cr-un-Go.00408B18 复制公司名后缀
+
+005091E2  mov eax,dword ptr ss:\[ebp\-40\]
+
+005091E5  call cr-un-Go.00404584 查公司名后缀位数
+
+005091EA  cmp eax,3
+
+005091ED  jle cr-un-Go.0050928C
+
+005091F3  lea eax,dword ptr ss:\[ebp\-48\]
+
+005091F6  push eax
+
+005091F7  lea edx,dword ptr ss:\[ebp\-4C\]
+
+005091FA  mov eax,dword ptr ss:\[ebp\-10\]
+
+005091FD  call cr-un-Go.00408B18 复制申请码
+
+00509202  lea eax,dword ptr ss:\[ebp\-4C\]
+
+00509205  mov edx,cr-un-Go.00509460        ;   ASCII "        "
+
+0050920A  call cr-un-Go.0040458C 连接字符串，得到 "25963613        "
+
+0050920F  mov eax,dword ptr ss:\[ebp\-4C\]
+
+00509212  mov ecx,8
+
+00509217  mov edx,1
+
+0050921C  call cr-un-Go.004047E4 从字符串的第 edx 位开始取 ecx 位
+
+00509221  push dword ptr ss:\[ebp\-48\]
+
+00509224  lea edx,dword ptr ss:\[ebp\-54\]
+
+00509227  mov eax,dword ptr ss:\[ebp\-4\]
+
+0050922A  mov eax,dword ptr ds:\[eax+300\]
+
+00509230  call cr-un-Go.00457230 取得姓
+
+00509235  mov eax,dword ptr ss:\[ebp\-54\]
+
+00509238  lea edx,dword ptr ss:\[ebp\-50\]
+
+0050923B  call cr-un-Go.00408B18 复制姓
+
+00509240  push dword ptr ss:\[ebp\-50\]
+
+00509243  push cr-un-Go.00509474
+
+00509248  lea eax,dword ptr ss:\[ebp\-58\]
+
+0050924B  push eax
+
+0050924C  lea edx,dword ptr ss:\[ebp\-60\]
+
+0050924F  mov eax,dword ptr ss:\[ebp\-4\]
+
+00509252  mov eax,dword ptr ds:\[eax+324\]
+
+00509258  call cr-un-Go.00457230 取得公司名后缀
+
+0050925D  mov eax,dword ptr ss:\[ebp\-60\]
+
+00509260  lea edx,dword ptr ss:\[ebp\-5C\]
+
+00509263  call cr-un-Go.00408B18 复制公司名后缀
+
+00509268  mov eax,dword ptr ss:\[ebp\-5C\]
+
+0050926B  mov ecx,2
+
+00509270  mov edx,3
+
+00509275  call cr-un-Go.004047E4 从字符串的第 edx 位开始取 ecx 位，即取第 2 个汉字
+
+0050927A  push dword ptr ss:\[ebp\-58\]
+
+0050927D  lea eax,dword ptr ss:\[ebp\-10\]
+
+00509280  mov edx,4
+
+00509285  call cr-un-Go.00404644 连接字符串，连接成"25963613 朱-司"
+
+0050928A  jmp short cr-un-Go.005092E6
+
+0050928C  lea eax,dword ptr ss:\[ebp\-64\]
+
+0050928F  push eax
+
+00509290  lea edx,dword ptr ss:\[ebp\-68\]
+
+00509293  mov eax,dword ptr ss:\[ebp\-10\]
+
+00509296  call cr-un-Go.00408B18
+
+0050929B  lea eax,dword ptr ss:\[ebp\-68\]
+
+0050929E  mov edx,cr-un-Go.00509460        ;   ASCII "        "
+
+005092A3  call cr-un-Go.0040458C 连接字符串，得到 "25963613        "
+
+005092A8  mov eax,dword ptr ss:\[ebp\-68\]
+
+005092AB  mov ecx,8
+
+005092B0  mov edx,1
+
+005092B5  call cr-un-Go.004047E4 取出"25963613        " 的前 8 位 "25963613"
+
+005092BA  mov eax,dword ptr ss:\[ebp\-64\]
+
+005092BD  push eax      "25963613"的地址入栈
+
+005092BE  lea edx,dword ptr ss:\[ebp\-70\]
+
+005092C1  mov eax,dword ptr ss:\[ebp\-4\]
+
+005092C4  mov eax,dword ptr ds:\[eax+300\]
+
+005092CA  call cr-un-Go.00457230 取得姓
+
+005092CF  mov eax,dword ptr ss:\[ebp\-70\]
+
+005092D2  lea edx,dword ptr ss:\[ebp\-6C\]
+
+005092D5  call cr-un-Go.00408B18
+
+005092DA  mov ecx,dword ptr ss:\[ebp\-6C\] 姓
+
+005092DD  lea eax,dword ptr ss:\[ebp\-10\]  结果
+
+005092E0  pop edx      申请码地址出栈
+
+005092E1  call cr-un-Go.004045D0 连接 edx、ecx 所指的字符串，结果地址存 eax
+
+005092E6  lea edx,dword ptr ss:\[ebp\-7C\]    跳到这儿
+
+005092E9  mov eax,dword ptr ss:\[ebp\-4\]
+
+005092EC  mov eax,dword ptr ds:\[eax+32C\]
+
+005092F2  call cr-un-Go.00457230 取得注册码
+
+005092F7  mov eax,dword ptr ss:\[ebp\-7C\]
+
+005092FA  lea edx,dword ptr ss:\[ebp\-78\]
+
+005092FD  call cr-un-Go.00408B18 复制注册码
+
+00509302  mov eax,dword ptr ss:\[ebp\-78\]
+
+00509305  lea ecx,dword ptr ss:\[ebp\-74\]
+
+00509308  mov dl,2D
+
+0050930A  call cr-un-Go.004E29C4 去掉其中的'-'
+
+0050930F  mov edx,dword ptr ss:\[ebp\-74\]  注册码
+
+00509312  mov ecx,cr-un-Go.00509480        ;   ASCII "111"
+
+00509317  mov eax,dword ptr ss:\[ebp\-10\]  申请码加姓加公司名后缀中的两位
+
+0050931A  call cr-un-Go.004E1BBC  <====关键 call 之一，计算及比较，正确时写入注册表
+
+0050931F  mov byte ptr ss:\[ebp\-5\],al  存结果
+
+00509322  cmp byte ptr ss:\[ebp\-5\],0  检查结果
+
+00509326  je short cr-un-Go.00509368
+
+00509328  lea edx,dword ptr ss:\[ebp\-88\]
+
+0050932E  mov eax,dword ptr ss:\[ebp\-4\]
+
+00509331  mov eax,dword ptr ds:\[eax+32C\]
+
+00509337  call cr-un-Go.00457230 取得注册码
+
+0050933C  mov eax,dword ptr ss:\[ebp\-88\]
+
+00509342  lea edx,dword ptr ss:\[ebp\-84\]
+
+00509348  call cr-un-Go.00408B18 复制注册码
+
+0050934D  mov eax,dword ptr ss:\[ebp\-84\]
+
+00509353  lea ecx,dword ptr ss:\[ebp\-80\]
+
+00509356  mov dl,2D
+
+00509358  call cr-un-Go.004E29C4 去掉注册码中的'-'
+
+0050935D  mov edx,dword ptr ss:\[ebp\-80\]  注册码
+
+00509360  mov eax,dword ptr ss:\[ebp\-10\]  申请码加姓加公司名后缀中的两位
+
+00509363  call cr-un-Go.004E17B0  <====关键 call 之二，这一步以后注册表又被更改
+
+00509368  xor eax,eax  以下全是清理数据
+```
+
+跟进 `0050931A` `call cr-un-Go.004E1BBC`：
+
+```asm
+004E1C36  mov ecx,eax
+
+004E1C38  xor eax,eax
+```
+
+
+
+## 004E1C3A
+
+`mov al,cl` 申请码加姓的一位
+
+## 004E1C3C
+
+`imul dword ptr ss:[ebp-18]` 乘以上次的余数
+
+## 004E1C3F
+
+`add eax,68911` 加上常数 `68911`
+
+## 004E1C44
+
+`mov ecx,0F4240`
+
+## 004E1C49
+
+`xor edx,edx`
+
+## 004E1C4B
+
+`div ecx` 除以常数 `0F4240`
+
+## 004E1C4D
+
+`mov dword ptr ss:[ebp-18],edx` 存余数
+
+## 004E1C50
+
+`inc ebx`
+
+## 004E1C51
+
+`xor eax,eax`
+
+## 004E1C53
+
+`mov al,bl`
+
+## 004E1C55
+
+`mov edx,dword ptr ss:[ebp-4]`
+
+## 004E1C58
+
+`mov al,byte ptr ds:[edx+eax-1]` 取申请码加姓的一位
+
+## 004E1C5C
+
+`test al,al`
+
+## 004E1C5E
+
+`jnz short un-GoodN.004E1C36`
+
+## 004E1C60
+
+`mov eax,dword ptr ss:[ebp-18]`
+
+## 004E1C63
+
+`xor edx,edx`
+
+## 004E1C65
+
+```
+push edx ; /Arg2 => 00000000
+push eax ; |Arg1
+lea eax,dword ptr ss:[ebp-30] ; |
+call un-GoodN.00408F6C ; \\un-GoodN.00408F6C 按 10 进制打印数据，得到"982165"
+```
+
+## 004E1C6F
+
+`lea edx,dword ptr ss:[ebp-44]`
+
+## 004E1C72
+
+`mov eax,dword ptr ss:[ebp-30]`
+
+## 004E1C75
+
+`call un-GoodN.00408B18` 复制
+
+## 004E1C7A
+
+`mov edx,dword ptr ss:[ebp-44]`
+
+## 004E1C7D
+
+`lea eax,dword ptr ss:[ebp-30]`
+
+## 004E1C80
+
+`call un-GoodN.0040435C` 没看出什么变化
+
+## 004E1C85
+
+`mov dword ptr ss:[ebp-40],28753F59`
+
+## 004E1C8C
+
+`mov dword ptr ss:[ebp-3C],20681261`
+
+## 004E1C93
+
+`mov dword ptr ss:[ebp-38],2A316962`
+
+## 004E1C9A
+
+`mov dword ptr ss:[ebp-34],2E311871`
+
+## 004E1CA1
+
+`xor esi,esi`
+
+## 004E1CA3
+
+`mov bl,4`
+
+## 004E1CA5
+
+`xor eax,eax`
+
+## 004E1CA7
+
+`mov al,bl`
+
+## 004E1CA9
+
+`mov edx,dword ptr ss:[ebp-4]`
+
+## 004E1CAC
+
+`movzx eax,byte ptr ds:[edx+eax-1]` 取申请码加姓的一位，但从第四位开始取
+
+## 004E1CB1
+
+`add esi,eax`
+
+## 004E1CB3
+
+`shl esi,8`
+
+## 004E1CB6
+
+`dec ebx`
+
+## 004E1CB7
+
+`cmp bl,1`
+
+## 004E1CBA
+
+`jnz short un-GoodN.004E1CA5`
+
+## 004E1CBC
+
+`mov eax,dword ptr ss:[ebp-4]`
+
+## 004E1CBF
+
+`movzx eax,byte ptr ds:[eax]`
+
+## 004E1CC2
+
+`add esi,eax` 到此取出申请码的前四位，存于 `esi` 中
+
+## 004E1CC4
+
+`xor edi,edi`
+
+## 004E1CC6
+
+`mov bl,8`
+
+## 004E1CC8
+
+`xor eax,eax`
+
+## 004E1CCA
+
+`mov al,bl`
+
+## 004E1CCC
+
+`mov edx,dword ptr ss:[ebp-4]`
+
+## 004E1CCF
+
+`movzx eax,byte ptr ds:[edx+eax-1]`
+
+## 004E1CD4
+
+`add edi,eax`
+
+## 004E1CD6
+
+`shl edi,8`
+
+## 004E1CD9
+
+`dec ebx`
+
+## 004E1CDA
+
+`cmp bl,5`
+
+## 004E1CDD
+
+`jnz short un-GoodN.004E1CC8`
+
+## 004E1CDF
+
+`mov eax,dword ptr ss:[ebp-4]`
+
+## 004E1CE2
+
+`movzx eax,byte ptr ds:[eax+4]`
+
+## 004E1CE6
+
+`add edi,eax` 到此取出申请码的后四位，存于 `edi` 中
+
+## 004E1CE8
+
+`xor eax,eax`
+
+## 004E1CEA
+
+`mov dword ptr ss:[ebp-18],eax`
+
+## 004E1CED
+
+`lea edx,dword ptr ss:[ebp-58]`
+
+## 004E1CF0
+
+`mov eax,un-GoodN.004E248C ;  ASCII "718B1C252E2F7E5E8F6328ED65617C95B47DAF"`
+
+## 004E1CF5
+
+`call un-GoodN.004DCB68` 某种计算，得一数
+
+## 004E1CFA
+
+`lea eax,dword ptr ss:[ebp-58]`
+
+## 004E1CFD
+
+`lea edx,dword ptr ss:[ebp-48]`
+
+## 004E1D00
+
+`call un-GoodN.004DCBDC` 某种变换，得一字符串"AStCa3pYweA0PZWK"
+
+## 004E1D05
+
+`mov bl,20`
+
+## 004E1D07
+
+`add dword ptr ss:[ebp-18],9E3719B5`
+
+## 004E1D0E
+
+`mov eax,edi`
+
+## 004E1D10
+
+`shl eax,4`
+
+## 004E1D13
+
+`add esi,eax`
+
+## 004E1D15
+
+`mov eax,dword ptr ss:[ebp-3C]`
+
+## 004E1D18
+
+`xor eax,edi`
+
+## 004E1D1A
+
+`add esi,eax`
+
+## 004E1D1C
+
+`mov eax,edi`
+
+## 004E1D1E
+
+`shr eax,5`
+
+## 004E1D21
+
+`xor eax,dword ptr ss:[ebp-18]`
+
+## 004E1D24
+
+`add esi,eax`
+
+## 004E1D26
+
+`add esi,dword ptr ss:[ebp-40]`
+
+## 004E1D29
+
+`mov eax,esi`
+
+## 004E1D2B
+
+`shl eax,4`
+
+## 004E1D2E
+
+`add edi,eax`
+
+## 004E1D30
+
+`mov eax,dword ptr ss:[ebp-34]`
+
+## 004E1D33
+
+`xor eax,esi`
+
+## 004E1D35
+
+`add edi,eax`
+
+## 004E1D37
+
+`mov eax,esi`
+
+## 004E1D39
+
+`shr eax,5`
+
+## 004E1D3C
+
+`xor eax,dword ptr ss:[ebp-18]`
+
+## 004E1D3F
+
+`add edi,eax`
+
+## 004E1D41
+
+`add edi,dword ptr ss:[ebp-38]`
+
+## 004E1D44
+
+`dec bl`
+
+## 004E1D46
+
+`jnz short un-GoodN.004E1D07` 循环对申请码计算
+
+## 004E1D48
+
+`mov eax,esi`
+
+## 004E1D4A
+
+`and eax,3FFFFFFF`
+
+## 004E1D4F
+
+`add eax,2`
+
+## 004E1D52
+
+`xor edx,edx`
+
+## 004E1D54
+
+`mov dword ptr ss:[ebp-20],eax` 存申请码变换结果
+
+## 004E1D57
+
+`mov dword ptr ss:[ebp-1C],edx` 存申请码变换结果
+
+## 004E1D5A
+
+`mov eax,esi`
+
+## 004E1D5C
+
+`shr eax,1E`
+
+## 004E1D5F
+
+`add eax,24F80050`
+
+## 004E1D64
+
+`add eax,2`
+
+## 004E1D67
+
+`xor edx,edx`
+
+## 004E1D69
+
+`mov dword ptr ss:[ebp-28],eax` 存申请码变换结果
+
+## 004E1D6C
+
+`mov dword ptr ss:[ebp-24],edx` 存申请码变换结果
+
+## 004E1D6F
+
+```
+push dword ptr ss:[ebp-1C] ; /Arg2
+push dword ptr ss:[ebp-20] ; |Arg1
+call un-GoodN.004E0E00 ; \\un-GoodN.004E0E00 计算
+```
+
+## 004E1D7A
+
+`mov dword ptr ss:[ebp-20],eax` 存结果
+
+## 004E1D7D
+
+`mov dword ptr ss:[ebp-1C],edx`
+
+## 004E1D80
+
+```
+push dword ptr ss:[ebp-24] ; /Arg2
+push dword ptr ss:[ebp-28] ; |Arg1
+call un-GoodN.004E0E00 ; \\un-GoodN.004E0E00 计算
+```
+
+## 004E1D8B
+
+`mov dword ptr ss:[ebp-28],eax` 存结果
+
+## 004E1D8E
+
+`mov dword ptr ss:[ebp-24],edx`
+
+## 004E1D91
+
+`lea edx,dword ptr ss:[ebp-58]`
+
+## 004E1D94
+
+`mov eax,un-GoodN.004E24BC ;ASCII "CCB3EF10FF82041FEC05EBCB3B523362992AB75ADD33CF49F"`
+
+## 004E1D99
+
+`call un-GoodN.004DCB68` 某种计算，得一数
+
+## 004E1D9E
+
+`lea eax,dword ptr ss:[ebp-58]`
+
+## 004E1DA1
+
+`lea edx,dword ptr ss:[ebp-5C]`
+
+## 004E1DA4
+
+`call un-GoodN.004DCBDC` 某种变换，得一字符串 "wsra022ajLlcEEW9"
+
+## 004E1DA9
+
+```
+push dword ptr ss:[ebp-24] ; /Arg2
+push dword ptr ss:[ebp-28] ; |Arg1
+lea edx,dword ptr ss:[ebp-64] ; |
+mov eax,8 ; |
+call un-GoodN.00408FBC ; \\un-GoodN.00408FBC 按 16 进制打印
+```
+
+## 004E1DBC
+
+`mov eax,dword ptr ss:[ebp-64]`
+
+## 004E1DBF
+
+`lea edx,dword ptr ss:[ebp-60]`
+
+## 004E1DC2
+
+`call un-GoodN.00408B18` 某种计算，得一数
+
+## 004E1DC7
+
+`mov eax,dword ptr ss:[ebp-60]`
+
+## 004E1DCA
+
+`push eax`
+
+## 004E1DCB
+
+```
+push dword ptr ss:[ebp-1C] ; /Arg2
+push dword ptr ss:[ebp-20] ; |Arg1
+lea edx,dword ptr ss:[ebp-6C] ; |
+mov eax,8 ; |
+call un-GoodN.00408FBC ; \\un-GoodN.00408FBC 按 16 进制打印
+```
+
+## 004E1DDE
+
+`mov eax,dword ptr ss:[ebp-6C]`
+
+## 004E1DE1
+
+`lea edx,dword ptr ss:[ebp-68]`
+
+## 004E1DE4
+
+`call un-GoodN.00408B18` 某种计算，得一数
+
+## 004E1DE9
+
+`mov edx,dword ptr ss:[ebp-68]`
+
+## 004E1DEC
+
+`lea eax,dword ptr ss:[ebp-2C]`
+
+## 004E1DEF
+
+`pop ecx`
+
+## 004E1DF0
+
+`call un-GoodN.004045D0` 连接字符串
+
+## 004E1DF5
+
+`lea ecx,dword ptr ss:[ebp-70]`
+
+## 004E1DF8
+
+`mov eax,dword ptr ss:[ebp-2C]`
+
+## 004E1DFB
+
+`mov dl,byte ptr ds:[eax+2]` '6'
+
+## 004E1DFE
+
+`mov eax,dword ptr ss:[ebp-2C]`
+
+## 004E1E01
+
+`call un-GoodN.004E29C4` 去掉其中的'6'
+
+## 004E1E06
+
+`mov edx,dword ptr ss:[ebp-70]`
+
+## 004E1E09
+
+`lea eax,dword ptr ss:[ebp-2C]`
+
+## 004E1E0C
+
+`call un-GoodN.0040435C` 没看出什么变化
+
+## 004E1E11
+
+`lea ecx,dword ptr ss:[ebp-74]`
+
+## 004E1E14
+
+`mov edx,dword ptr ss:[ebp-30]`
+
+## 004E1E17
+
+`mov eax,dword ptr ss:[ebp-2C]`
+
+## 004E1E1A
+
+`call un-GoodN.004DD8E8` 字符串变换
+
+## 004E1E1F
+
+`mov edx,dword ptr ss:[ebp-74]`
+
+## 004E1E22
+
+`lea eax,dword ptr ss:[ebp-30]`
+
+## 004E1E25
+
+`call un-GoodN.0040435C`
+
+## 004E1E2A
+
+`lea ecx,dword ptr ss:[ebp-78]`
+
+## 004E1E2D
+
+`mov eax,dword ptr ss:[ebp-30]`
+
+## 004E1E30
+
+`mov dl,byte ptr ds:[eax+D]` '6'
+
+## 004E1E33
+
+`mov eax,dword ptr ss:[ebp-30]` 字符串 "FC3C63988AAA46B00FF5D5DB8131CD3F"
+
+## 004E1E36
+
+`call un-GoodN.004E29C4` 去掉其中的'6'
+
+## 004E1E3B
+
+`mov edx,dword ptr ss:[ebp-78]`
+
+## 004E1E3E
+
+`lea eax,dword ptr ss:[ebp-30]`
+
+## 004E1E41
+
+`call un-GoodN.0040435C`
+
+## 004E1E46
+
+`mov eax,dword ptr ds:[51B81C]`
+
+## 004E1E4B
+
+`mov eax,dword ptr ds:[eax]`
+
+## 004E1E4D
+
+`mov eax,dword ptr ds:[eax+430]`
+
+## 004E1E53
+
+`cmp byte ptr ds:[eax+40],0`
+
+## 004E1E57
+
+`je un-GoodN.004E239D`
+
+## 004E1E5D
+
+`lea edx,dword ptr ss:[ebp-2C]` 申请码变来的数
+
+## 004E1E60
+
+`mov eax,dword ptr ss:[ebp-8]` 注册码 "1234523456345674567856789"
+
+## 004E1E63
+
+`call un-GoodN.004E2744` 注册码变成 "4231423546354675867586759"
+
+## 004E1E68
+
+`mov eax,dword ptr ss:[ebp-C]`
+
+## 004E1E6B
+
+`mov edx,un-GoodN.004E24F8 ;  ASCII "aaa"`
+
+## 004E1E70
+
+`call un-GoodN.004046D0`
+
+## 004E1E75
+
+`jnz short un-GoodN.004E1E94`
+
+## 004E1E77
+
+`mov eax,dword ptr ds:[51BD30]`
+
+## 004E1E7C
+
+`mov eax,dword ptr ds:[eax]`
+
+## 004E1E7E
+
+`mov ecx,dword ptr ss:[ebp-30]`
+
+## 004E1E81
+
+`mov edx,1`
+
+## 004E1E86
+
+`mov ebx,dword ptr ds:[eax]`
+
+## 004E1E88
+
+`call dword ptr ds:[ebx+20]`
+
+## 004E1E8B
+
+`mov byte ptr ss:[ebp-D],1`
+
+
+
+## 004E1E8F - 004E21D0 汇编代码片段
+
+```
+004E1E8F jmp un-GoodN.004E239D  
+
+004E1E94 lea eax,dword ptr ss:\[ebp\-80\]  
+
+004E1E97 push eax  
+
+004E1E98 lea eax,dword ptr ss:\[ebp\-84\]  
+
+004E1E9E mov ecx,un-GoodN.004E2504             ; ASCII "     "  
+
+004E1EA3 mov edx,dword ptr ss:\[ebp\-2C\]  
+
+004E1EA6 call un-GoodN.004045D0 加 5 个空格，变成 "4231423546354675867586759     "  
+
+004E1EAB mov eax,dword ptr ss:\[ebp\-84\]  
+
+004E1EB1 mov ecx,7  
+
+004E1EB6 mov edx,11  
+
+004E1EBB call un-GoodN.004047E4 从第 17 位开始取 7 位， "8675867"  
+
+004E1EC0 mov eax,dword ptr ss:\[ebp\-80\] "8675867"  
+
+004E1EC3 lea ecx,dword ptr ss:\[ebp\-7C\]  
+
+004E1EC6 mov edx,un-GoodN.004E2514     常数"34A5CC48D1AB3"  
+
+004E1ECB call un-GoodN.004DD8E8 字符串变换，得 "9E4165ADC409583C"  
+
+004E1ED0 mov eax,dword ptr ss:\[ebp\-7C\]  
+
+004E1ED3 push eax  
+
+004E1ED4 lea eax,dword ptr ss:\[ebp\-8C\]  
+
+004E1EDA push eax  
+
+004E1EDB lea eax,dword ptr ss:\[ebp\-90\]  
+
+004E1EE1 mov ecx,un-GoodN.004E252C             ; ASCII "2AB75ADD"  
+
+004E1EE6 mov edx,dword ptr ss:\[ebp\-30\] "FC3C3988AAA4B00FF5D5DB8131CD3F"  
+
+004E1EE9 call un-GoodN.004045D0 连接成 "FC3C3988AAA4B00FF5D5DB8131CD3F2AB75ADD"  
+
+004E1EEE mov eax,dword ptr ss:\[ebp\-90\]  
+
+004E1EF4 mov ecx,7  
+
+004E1EF9 mov edx,1  
+
+004E1EFE call un-GoodN.004047E4 取前 7 位得 "FC3C398"  
+
+004E1F03 mov eax,dword ptr ss:\[ebp\-8C\] ASCII "FC3C398"  
+
+004E1F09 lea ecx,dword ptr ss:\[ebp\-88\]  
+
+004E1F0F mov edx,un-GoodN.004E2514             ; ASCII "34A5CC48D1AB3"  
+
+004E1F14 call un-GoodN.004DD8E8 字符串变换，得 "EF9F176831E87F88"  
+
+004E1F19 mov edx,dword ptr ss:\[ebp\-88\] "EF9F176831E87F88"  
+
+004E1F1F pop eax      "9E4165ADC409583C"  
+
+004E1F20 call un-GoodN.004046D0 关键比较，字符串比较  
+
+004E1F25 jnz un-GoodN.004E2382    关键跳，这儿不跳就会将信息写入注册表  
+
+004E1F2B mov eax,dword ptr ss:\[ebp\-C\]  
+
+004E1F2E mov edx,un-GoodN.004E2540             ; ASCII "111"  
+
+004E1F33 call un-GoodN.004046D0  
+
+004E1F38 jnz un-GoodN.004E237C  
+
+004E1F3E mov dl,1  
+
+004E1F40 mov eax,dword ptr ds:\[43C144\]  
+
+004E1F45 call un-GoodN.0043C244  
+
+004E1F4A mov dword ptr ss:\[ebp\-14\],eax  
+
+004E1F4D xor eax,eax  
+
+004E1F4F push ebp  
+
+004E1F50 push un-GoodN.004E2375  
+
+004E1F55 push dword ptr fs:\[eax\]  
+
+004E1F58 mov dword ptr fs:\[eax\],esp  
+
+004E1F5B mov edx,80000002  
+
+004E1F60 mov eax,dword ptr ss:\[ebp\-14\]  
+
+004E1F63 call un-GoodN.0043C2E4  
+
+004E1F68 mov cl,1  
+
+004E1F6A mov edx,un-GoodN.004E254C             ; ASCII "Software\\GoodSoft\\GoodName"  
+
+004E1F6F mov eax,dword ptr ss:\[ebp\-14\]  
+
+004E1F72 call un-GoodN.0043C34C  
+
+004E1F77 test al,al  
+
+004E1F79 jnz short un-GoodN.004E1F85  
+
+004E1F7B call un-GoodN.00403D70  
+
+004E1F80 jmp un-GoodN.004E239D  
+
+004E1F85 lea eax,dword ptr ss:\[ebp\-98\]  
+
+004E1F8B call un-GoodN.004E26B0  
+
+004E1F90 mov eax,dword ptr ss:\[ebp\-98\]  
+
+004E1F96 lea edx,dword ptr ss:\[ebp\-94\]  
+
+004E1F9C call un-GoodN.00408B18  
+
+004E1FA1 mov eax,dword ptr ss:\[ebp\-94\]  
+
+004E1FA7 call un-GoodN.00408FEC  
+
+004E1FAC mov ecx,eax  
+
+004E1FAE mov edx,un-GoodN.004E2570             ; ASCII "Appid"  
+
+004E1FB3 mov eax,dword ptr ss:\[ebp\-14\]  
+
+004E1FB6 call un-GoodN.0043C76C "Appid"写入注册表  
+
+004E1FBB xor eax,eax  
+
+004E1FBD push ebp  
+
+004E1FBE push un-GoodN.004E2014  
+
+004E1FC3 push dword ptr fs:\[eax\]  
+
+004E1FC6 mov dword ptr fs:\[eax\],esp  
+
+004E1FC9 lea eax,dword ptr ss:\[ebp\-9C\]  
+
+004E1FCF push eax  
+
+004E1FD0 lea edx,dword ptr ss:\[ebp\-A0\]  
+
+004E1FD6 mov eax,dword ptr ds:\[51B81C\]  
+
+004E1FDB mov eax,dword ptr ds:\[eax\]  
+
+004E1FDD mov eax,dword ptr ds:\[eax+404\]  
+
+004E1FE3 call un-GoodN.00457230 取得"009 公司"  
+
+004E1FE8 mov eax,dword ptr ss:\[ebp\-A0\]  
+
+004E1FEE mov ecx,3  
+
+004E1FF3 mov edx,1  
+
+004E1FF8 call un-GoodN.004047E4  
+
+004E1FFD mov eax,dword ptr ss:\[ebp\-9C\]  
+
+004E2003 call un-GoodN.00408FEC  
+
+004E2008 mov ebx,eax  
+
+004E200A xor eax,eax  
+
+004E200C pop edx  
+
+004E200D pop ecx  
+
+004E200E pop ecx  
+
+004E200F mov dword ptr fs:\[eax\],edx  
+
+004E2012 jmp short un-GoodN.004E2020  
+
+004E2014 jmp un-GoodN.00403914  
+
+004E2019 xor ebx,ebx  
+
+004E201B call un-GoodN.00403D40  
+
+004E2020 test bl,bl  
+
+004E2022 jbe short un-GoodN.004E2055  
+
+004E2024 lea eax,dword ptr ss:\[ebp\-30\]  
+
+004E2027 push eax  
+
+004E2028 lea edx,dword ptr ss:\[ebp\-A4\]  
+
+004E202E mov eax,dword ptr ss:\[ebp\-4\]  
+
+004E2031 call un-GoodN.00408B18  
+
+004E2036 mov eax,dword ptr ss:\[ebp\-A4\]  
+
+004E203C call un-GoodN.00404584  
+
+004E2041 mov ecx,eax  
+
+004E2043 sub ecx,0B  
+
+004E2046 mov edx,9  
+
+004E204B mov eax,dword ptr ss:\[ebp\-4\]  
+
+004E204E call un-GoodN.004047E4  
+
+004E2053 jmp short un-GoodN.004E2084  
+
+004E2055 lea eax,dword ptr ss:\[ebp\-30\]  
+
+004E2058 push eax  
+
+004E2059 lea edx,dword ptr ss:\[ebp\-A8\]  
+
+004E205F mov eax,dword ptr ss:\[ebp\-4\]  
+
+004E2062 call un-GoodN.00408B18  
+
+004E2067 mov eax,dword ptr ss:\[ebp\-A8\]  
+
+004E206D call un-GoodN.00404584  
+
+004E2072 mov ecx,eax  
+
+004E2074 sub ecx,8  
+
+004E2077 mov edx,9  
+
+004E207C mov eax,dword ptr ss:\[ebp\-4\]  
+
+004E207F call un-GoodN.004047E4  
+
+004E2084 mov ecx,dword ptr ss:\[ebp\-30\]  
+
+004E2087 mov edx,un-GoodN.004E2580             ; ASCII "FName"  
+
+004E208C mov eax,dword ptr ss:\[ebp\-14\]  
+
+004E208F call un-GoodN.0043C6C8 "FName"即姓，写入注册表  
+
+004E2094 lea eax,dword ptr ss:\[ebp\-B0\]   
+
+
+004E209A push eax  
+
+004E209B mov ecx,5  
+
+004E20A0 mov edx,1  
+
+004E20A5 mov eax,dword ptr ss:\[ebp\-8\]  
+
+004E20A8 call un-GoodN.004047E4 注册码取 1~5 位  
+
+004E20AD push dword ptr ss:\[ebp\-B0\]  
+
+004E20B3 push un-GoodN.004E2590 '-'  
+
+004E20B8 lea eax,dword ptr ss:\[ebp\-B4\]  
+
+004E20BE push eax  
+
+004E20BF mov ecx,5  
+
+004E20C4 mov edx,6  
+
+004E20C9 mov eax,dword ptr ss:\[ebp\-8\]  
+
+004E20CC call un-GoodN.004047E4 注册码取 6~10 位  
+
+004E20D1 push dword ptr ss:\[ebp\-B4\]  
+
+004E20D7 push un-GoodN.004E2590 '-'  
+
+004E20DC lea eax,dword ptr ss:\[ebp\-B8\]  
+
+004E20E2 push eax  
+
+004E20E3 mov ecx,5  
+
+004E20E8 mov edx,0B  
+
+004E20ED mov eax,dword ptr ss:\[ebp\-8\]  
+
+004E20F0 call un-GoodN.004047E4 注册码取 11~15 位  
+
+004E20F5 push dword ptr ss:\[ebp\-B8\]  
+
+004E20FB push un-GoodN.004E2590 '-'  
+
+004E2100 lea eax,dword ptr ss:\[ebp\-BC\]  
+
+004E2106 push eax  
+
+004E2107 mov ecx,3  
+
+004E210C mov edx,10  
+
+004E2111 mov eax,dword ptr ss:\[ebp\-8\]  
+
+004E2114 call un-GoodN.004047E4 注册码取 16~18 位  
+
+004E2119 push dword ptr ss:\[ebp\-BC\]  
+
+004E211F push un-GoodN.004E2590 '-'  
+
+004E2124 lea eax,dword ptr ss:\[ebp\-C0\]  
+
+004E212A push eax  
+
+004E212B mov ecx,5  
+
+004E2130 mov edx,13  
+
+004E2135 mov eax,dword ptr ss:\[ebp\-8\]  
+
+004E2138 call un-GoodN.004047E4 注册码取 19~23 位  
+
+004E213D push dword ptr ss:\[ebp\-C0\]  
+
+004E2143 lea eax,dword ptr ss:\[ebp\-AC\]  
+
+004E2149 mov edx,9  
+
+004E214E call un-GoodN.00404644 把 edx 段字符串连接起来  
+
+004E2153 mov ecx,dword ptr ss:\[ebp\-AC\]  
+
+004E2159 mov edx,un-GoodN.004E259C             ; ASCII "Serial"  
+
+004E215E mov eax,dword ptr ss:\[ebp\-14\]  
+
+004E2161 call un-GoodN.0043C6C8 写入注册表，可见注册码是 22 或 23 位有效  
+
+004E2166 lea edx,dword ptr ss:\[ebp\-C4\]  
+
+004E216C mov eax,dword ptr ds:\[51B81C\]  
+
+004E2171 mov eax,dword ptr ds:\[eax\]  
+
+004E2173 mov eax,dword ptr ds:\[eax+404\]  
+
+004E2179 call un-GoodN.00457230  
+
+004E217E mov eax,dword ptr ss:\[ebp\-C4\]  
+
+004E2184 call un-GoodN.00404584  
+
+004E2189 cmp eax,6  
+
+004E218C jle un-GoodN.004E2220  
+
+004E2192 lea eax,dword ptr ss:\[ebp\-C8\]  
+
+004E2198 push eax  
+
+004E2199 lea edx,dword ptr ss:\[ebp\-D0\]  
+
+004E219F mov eax,dword ptr ds:\[51B81C\]  
+
+004E21A4 mov eax,dword ptr ds:\[eax\]  
+
+004E21A6 mov eax,dword ptr ds:\[eax+404\]  
+
+004E21AC call un-GoodN.00457230  
+
+004E21B1 mov eax,dword ptr ss:\[ebp\-D0\]  
+
+004E21B7 lea edx,dword ptr ss:\[ebp\-CC\]  
+
+004E21BD call un-GoodN.00408B18  
+
+004E21C2 mov eax,dword ptr ss:\[ebp\-CC\]  
+
+004E21C8 call un-GoodN.00404584  
+
+004E21CD sub eax,3  
+
+004E21D0 push eax  
+```
+
+
+
+```
+004E21D1   lea edx,dword ptr ss:[ebp-D8]  
+004E21D7   mov eax,dword ptr ds:[51B81C]  
+004E21DC   mov eax,dword ptr ds:[eax]  
+004E21DE   mov eax,dword ptr ds:[eax+404]  
+004E21E4   call un-GoodN.00457230  
+004E21E9   mov eax,dword ptr ss:[ebp-D8]  
+004E21EF   lea edx,dword ptr ss:[ebp-D4]  
+004E21F5   call un-GoodN.00408B18  
+004E21FA   mov eax,dword ptr ss:[ebp-D4]  
+004E2200   mov edx,4  
+004E2205   pop ecx  
+004E2206   call un-GoodN.004047E4  
+004E220B   mov ecx,dword ptr ss:[ebp-C8]  
+004E2211   mov edx,un-GoodN.004E25AC            ;  ASCII "HName"  
+004E2216   mov eax,dword ptr ss:[ebp-14]  
+004E2219   call un-GoodN.0043C6C8  公司名后缀写入"HName"项  
+004E221E   jmp short un-GoodN.004E222F  
+004E2220   xor ecx,ecx  
+004E2222   mov edx,un-GoodN.004E25AC            ;  ASCII "HName"  
+004E2227   mov eax,dword ptr ss:[ebp-14]  
+004E222A   call un-GoodN.0043C6C8   
+004E222F   mov cl,1  
+004E2231   mov edx,un-GoodN.004E25BC            ;  ASCII "License"  
+004E2236   mov eax,dword ptr ss:[ebp-14]  
+004E2239   call un-GoodN.0043C34C  检查有无"License"  
+004E223E   test al,al  
+004E2240   jnz short un-GoodN.004E224C  
+004E2242   call un-GoodN.00403D70  
+004E2247   jmp un-GoodN.004E239D  
+004E224C   mov ecx,0FB  
+004E2251   mov edx,un-GoodN.004E25CC            ;  ASCII "RegMod"  
+004E2256   mov eax,dword ptr ss:[ebp-14]  
+004E2259   call un-GoodN.0043C76C  "RegMod"写入注册表，ecx 中的数写入注册表  
+004E225E   mov ecx,2  
+004E2263   mov edx,un-GoodN.004E25DC            ;  ASCII "RegSeq"  
+004E2268   mov eax,dword ptr ss:[ebp-14]  
+004E226B   call un-GoodN.0043C76C  "RegSeq"写入注册表  
+004E2270   lea ecx,dword ptr ss:[ebp-DC]  
+004E2276   mov edx,un-GoodN.004E25EC            ;  ASCII "CFE37613C6ACB1"  
+004E227B   mov eax,dword ptr ss:[ebp-30]  姓  
+004E227E   call un-GoodN.004DD8E8  计算出正确的 Value，得到"AC2A706C25768C57"  
+004E2283   mov ecx,dword ptr ss:[ebp-DC]  
+004E2289   mov edx,un-GoodN.004E2604            ;  ASCII "Value"  
+004E228E   mov eax,dword ptr ss:[ebp-14]  
+004E2291   call un-GoodN.0043C6C8  "Value"写入注册表  
+004E2296   lea edx,dword ptr ss:[ebp-E0]  
+004E229C   mov eax,dword ptr ds:[51B81C]  
+004E22A1   mov eax,dword ptr ds:[eax]  
+004E22A3   mov eax,dword ptr ds:[eax+404]  
+004E22A9   call un-GoodN.00457230  
+004E22AE   mov eax,dword ptr ss:[ebp-E0]  
+004E22B4   call un-GoodN.00404584  
+004E22B9   cmp eax,6  
+004E22BC   jle un-GoodN.004E2348  
+004E22C2   lea eax,dword ptr ss:[ebp-EC]  
+004E22C8   push eax  
+004E22C9   lea edx,dword ptr ss:[ebp-F4]  
+004E22CF   mov eax,dword ptr ds:[51B81C]  
+004E22D4   mov eax,dword ptr ds:[eax]  
+004E22D6   mov eax,dword ptr ds:[eax+404]  
+004E22DC   call un-GoodN.00457230  
+004E22E1   mov eax,dword ptr ss:[ebp-F4]  
+004E22E7   lea edx,dword ptr ss:[ebp-F0]  
+004E22ED   call un-GoodN.00408B18  
+004E22F2   mov eax,dword ptr ss:[ebp-F0]  
+004E22F8   mov ecx,2  
+004E22FD   mov edx,6  
+004E2302   call un-GoodN.004047E4  
+004E2307   mov ecx,dword ptr ss:[ebp-EC]  
+004E230D   lea eax,dword ptr ss:[ebp-E8]  
+004E2313   mov edx,un-GoodN.004E2590  
+004E2318   call un-GoodN.004045D0  
+004E231D   mov eax,dword ptr ss:[ebp-E8]  
+004E2323   lea ecx,dword ptr ss:[ebp-E4]  
+004E2329   mov edx,un-GoodN.004E25EC            ;  ASCII "CFE37613C6ACB1"  
+004E232E   call un-GoodN.004DD8E8  计算出正确的 Value1  
+004E2333   mov ecx,dword ptr ss:[ebp-E4]  
+004E2339   mov edx,un-GoodN.004E2614            ;  ASCII "Value1"  
+004E233E   mov eax,dword ptr ss:[ebp-14]  
+004E2341   call un-GoodN.0043C6C8  正确的 Value1 写入注册表  
+004E2346   jmp short un-GoodN.004E2357  
+004E2348   xor ecx,ecx  
+004E234A   mov edx,un-GoodN.004E2614            ;  ASCII "Value1"  
+004E234F   mov eax,dword ptr ss:[ebp-14]  
+004E2352   call un-GoodN.0043C6C8  
+004E2357   mov eax,dword ptr ss:[ebp-14]  
+004E235A   call un-GoodN.0043C2B4  
+004E235F   xor eax,eax  
+004E2361   pop edx  
+004E2362   pop ecx  
+004E2363   pop ecx  
+004E2364   mov dword ptr fs:[eax],edx  
+004E2367   push un-GoodN.004E237C  
+004E236C   mov eax,dword ptr ss:[ebp-14]  
+004E236F   call un-GoodN.00403474  
+004E2374   retn  
+```
+
+### 关键 call 之二：
+
+```
+004E180C   lea edx,dword ptr ss:[ebp-28]  
+004E180F   mov eax,un-GoodN.004E1B00            ;  ASCII "97D31761231075EDB894FF0ADB7"  
+004E1814   call un-GoodN.004DCB68  字符串常数变成数  
+004E1819   lea eax,dword ptr ss:[ebp-28]  
+004E181C   lea edx,dword ptr ss:[ebp-18]  
+004E181F   call un-GoodN.004DCBDC  数变成一个新的字符串"TgdJVMAiTSOATA3i"  
+004E1824   lea edx,dword ptr ss:[ebp-28]  
+004E1827   mov eax,un-GoodN.004E1B24            ;  ASCII "F7C2D6309172AEB32AB5F063061034A5CC48D1AB3"  
+004E182C   call un-GoodN.004DCB68  字符串常数变成数  
+004E1831   lea eax,dword ptr ss:[ebp-28]  
+004E1834   lea edx,dword ptr ss:[ebp-2C]  
+004E1837   call un-GoodN.004DCBDC  数变成一个新的字符串"A0HZK47KDAqB0Dxk"  
+004E183C   lea edx,dword ptr ss:[ebp-28]  
+004E183F   mov eax,dword ptr ss:[ebp-4]  申请码加姓加公司名后缀的第 2 个字  
+004E1842   call un-GoodN.004DCB68  算出一个数  
+004E1847   lea eax,dword ptr ss:[ebp-28]  
+004E184A   lea edx,dword ptr ss:[ebp-10]  
+004E184D   call un-GoodN.004DCBDC  得到字符串"euAnpATS2AFGEBd4"  
+004E1852   lea edx,dword ptr ss:[ebp-28]  
+004E1855   mov eax,un-GoodN.004E1B58            ;  ASCII "ACB1920BA09950750056A8A047A5"  
+004E185A   call un-GoodN.004DCB68  
+004E185F   lea eax,dword ptr ss:[ebp-28]  
+004E1862   lea edx,dword ptr ss:[ebp-30]  
+004E1865   call un-GoodN.004DCBDC  又得到一个字符串"A1SNrtrHV0DqGV1Q"  
+004E186A   lea edx,dword ptr ss:[ebp-14]  
+004E186D   mov eax,dword ptr ss:[ebp-8]  
+004E1870   call un-GoodN.004E2744  注册码各位调整得 "42314235463546756655798"  
+004E1875   lea eax,dword ptr ss:[ebp-14]  
+004E1878   push eax  
+004E1879   mov ecx,10  
+004E187E   mov edx,1  
+004E1883   mov eax,dword ptr ss:[ebp-14]  
+004E1886   call un-GoodN.004047E4  取调整位置后的注册码的前 16 位"4231423546354675"  
+004E188B   lea ecx,dword ptr ss:[ebp-34]  
+004E188E   mov edx,dword ptr ss:[ebp-10]  "euAnpATS2AFGEBd4"  
+004E1891   mov eax,dword ptr ss:[ebp-14]  "4231423546354675"  
+004E1894   call un-GoodN.004DDAD0  计算得一个数  
+004E1899   mov eax,dword ptr ss:[ebp-34]  
+004E189C   lea edx,dword ptr ss:[ebp-28]  
+004E189F   call un-GoodN.004DCB68  计算得数 1  
+004E18A4   lea eax,dword ptr ss:[ebp-28]  
+004E18A7   push eax      数 1 入栈  
+004E18A8   lea edx,dword ptr ss:[ebp-44]  
+004E18AB   mov eax,un-GoodN.004E1B80  内部常数？  
+004E18B0   call un-GoodN.004DCB68  
+004E18B5   lea eax,dword ptr ss:[ebp-44]  常数变来的数  
+004E18B8   pop edx       数 1 出栈  
+004E18B9   call un-GoodN.004DCC58  <====关键比较，大数比较，不相等就会把注册信息修改  
+004E18BE   mov byte ptr ss:[ebp-9],al  存结果，作为一个标志  
+004E18C1   mov eax,dword ptr ss:[ebp-14]  调位后的注册码的前 16 位  
+004E18C4   mov edx,dword ptr ss:[ebp-4]  申请码加姓加公司名后缀的第 2 个字  
+004E18C7   call un-GoodN.004046D0  字符串比较  
+004E18CC   je un-GoodN.004E1A7A  
+004E18D2   mov eax,dword ptr ss:[ebp-10]  由申请码加姓加公司名后缀的第 2 个字变来的字符串  
+004E18D5   mov edx,dword ptr ss:[ebp-14]  调位后的注册码的前 16 位  
+004E18D8   call un-GoodN.004046D0  字符串比较  
+004E18DD   je un-GoodN.004E1A7A  
+004E18E3   cmp byte ptr ss:[ebp-9],0  比较标志  
+004E18E7   je un-GoodN.004E1A71    上面两个数不相等，就去干坏事儿  
+004E18ED   mov eax,dword ptr ds:[edi]  
+004E18EF   mov eax,dword ptr ds:[eax+430]  
+004E18F5   cmp byte ptr ds:[eax+40],0  
+004E18F9   je un-GoodN.004E1A71  
+004E18FF   lea eax,dword ptr ss:[ebp-14]  
+004E1902   push eax  
+004E1903   lea edx,dword ptr ss:[ebp-48]  
+004E1906   mov eax,dword ptr ss:[ebp-4]  
+004E1909   call un-GoodN.00408B18  复制申请码加姓加公司名后缀的第 2 个字  
+004E190E   mov eax,dword ptr ss:[ebp-48]  
+004E1911   call un-GoodN.00404584  查其位数  
+004E1916   mov ecx,eax  
+004E1918   sub ecx,8  
+004E191B   mov edx,9  
+004E1920   mov eax,dword ptr ss:[ebp-4]  
+004E1923   call un-GoodN.004047E4  取姓和公司名后缀的第 2 个字  
+004E1928   lea ecx,dword ptr ss:[ebp-4C]  
+004E192B   mov dl,2D  
+004E192D   mov eax,dword ptr ss:[ebp-14]  
+004E1930   call un-GoodN.004E29C4  去掉其中的'-'，变成“朱司”
+```
+
+
+
+```
+004E1935   mov edx,dword ptr ss:[ebp-4C]  
+004E1938   lea eax,dword ptr ss:[ebp-14]  
+004E193B   call un-GoodN.0040435C  
+004E1940   lea edx,dword ptr ss:[ebp-50]  
+004E1943   mov eax,dword ptr ss:[ebp-14]  
+004E1946   call un-GoodN.00408B18  
+004E194B   mov eax,dword ptr ss:[ebp-50]  
+004E194E   call un-GoodN.00404584  
+004E1953   mov ebx,eax  
+004E1955   sar ebx,1  
+004E1957   jns short un-GoodN.004E195C  
+004E1959   adc ebx,0  
+004E195C   push 0  
+004E195E   push un-GoodN.004E1B94              ;  ASCII "000"  
+004E1963   mov eax,dword ptr ds:[edi]  
+004E1965   mov edx,dword ptr ds:[eax+3D0]  
+004E196B   mov eax,dword ptr ds:[edi]  
+004E196D   mov eax,dword ptr ds:[eax+3D4]  
+004E1973   mov ecx,un-GoodN.004E1BA0            ;  ASCII "del"  
+004E1978   call un-GoodN.004EE158  
+004E197D   test ebx,ebx  
+004E197F   jle short un-GoodN.004E19BF  
+004E1981   mov esi,1  
+004E1986   /push 0  
+004E1988   |push un-GoodN.004E1BAC             ;  ASCII "111"  
+004E198D   |lea eax,dword ptr ss:[ebp-54]  
+004E1990   |push eax  
+004E1991   |mov edx,esi  
+004E1993   |add edx,edx  
+004E1995   |dec edx  
+004E1996   |mov ecx,2  
+004E199B   |mov eax,dword ptr ss:[ebp-14]  
+004E199E   |call un-GoodN.004047E4  
+004E19A3   |mov ecx,dword ptr ss:[ebp-54]  
+004E19A6   |mov eax,dword ptr ds:[edi]  
+004E19A8   |mov edx,dword ptr ds:[eax+3D0]  
+004E19AE   |mov eax,dword ptr ds:[edi]  
+004E19B0   |mov eax,dword ptr ds:[eax+3D4]  
+004E19B6   |call un-GoodN.004EE158  
+004E19BB   |inc esi  
+004E19BC   |dec ebx  
+004E19BD   \jnz short un-GoodN.004E1986  
+004E19BF   lea edx,dword ptr ss:[ebp-5C]  
+004E19C2   mov eax,dword ptr ds:[edi]  
+004E19C4   mov eax,dword ptr ds:[eax+404]  
+004E19CA   call un-GoodN.00457230  取得"009 公司"  
+004E19CF   mov eax,dword ptr ss:[ebp-5C]  
+004E19D2   lea edx,dword ptr ss:[ebp-58]  
+004E19D5   call un-GoodN.00408B18  
+004E19DA   mov eax,dword ptr ss:[ebp-58]  
+004E19DD   call un-GoodN.00404584  
+004E19E2   cmp eax,6  
+004E19E5   jle short un-GoodN.004E1A37  
+004E19E7   push 0  
+004E19E9   push un-GoodN.004E1BB8              ;  ASCII "112"  
+004E19EE   lea eax,dword ptr ss:[ebp-60]  
+004E19F1   push eax  
+004E19F2   lea edx,dword ptr ss:[ebp-68]  
+004E19F5   mov eax,dword ptr ds:[edi]  
+004E19F7   mov eax,dword ptr ds:[eax+404]  
+004E19FD   call un-GoodN.00457230  取得"009 公司"  
+004E1A02   mov eax,dword ptr ss:[ebp-68]  
+004E1A05   lea edx,dword ptr ss:[ebp-64]  
+004E1A08   call un-GoodN.00408B18  
+004E1A0D   mov eax,dword ptr ss:[ebp-64]  
+004E1A10   mov ecx,2  
+004E1A15   mov edx,6  
+004E1A1A   call un-GoodN.004047E4  取出'司'  
+004E1A1F   mov ecx,dword ptr ss:[ebp-60]  
+004E1A22   mov eax,dword ptr ds:[edi]  
+004E1A24   mov edx,dword ptr ds:[eax+3D0]  
+004E1A2A   mov eax,dword ptr ds:[edi]  
+004E1A2C   mov eax,dword ptr ds:[eax+3D4]  
+004E1A32   call un-GoodN.004EE158  
+004E1A37   lea eax,dword ptr ss:[ebp-70]  
+004E1A3A   push eax  
+004E1A3B   mov ecx,8  
+004E1A40   mov edx,1  
+004E1A45   mov eax,dword ptr ss:[ebp-4]  
+004E1A48   call un-GoodN.004047E4  取出申请码  
+004E1A4D   mov eax,dword ptr ss:[ebp-70]  
+004E1A50   lea edx,dword ptr ss:[ebp-6C]  
+004E1A53   call un-GoodN.00408B18  复制申请码  
+004E1A58   mov eax,dword ptr ss:[ebp-6C]  
+004E1A5B   call un-GoodN.00408FEC  申请码变成整数  
+004E1A60   mov edx,eax      暂存到 edx  
+004E1A62   mov eax,dword ptr ds:[edi]  
+004E1A64   mov eax,dword ptr ds:[eax+3D0]  
+004E1A6A   call un-GoodN.004EDEA0  
+004E1A6F   jmp short un-GoodN.004E1A78  
+004E1A71   xor eax,eax  
+004E1A73   call un-GoodN.004E6A44  
+004E1A78   mov bl,1  
+004E1A7A   xor eax,eax    以下是清理堆栈中的数据
+
+004DCA40   /$  C700 68A325C1 MOV DWORD PTR DS:[EAX],C125A368  
+  004DCA46   |.  C740 04 794B0>MOV DWORD PTR DS:[EAX+4],EF0D4B79  
+  004DCA4D   |.  C740 08 FED0B>MOV DWORD PTR DS:[EAX+8],97B4D0FE  
+  004DCA54   \.  C740 0C 1C523>MOV DWORD PTR DS:[EAX+C],863A521C  
+```
+
+这里就是变形的地方!
+
+```
+004DC310   /$  53            PUSH EBX  
+```
+
+这里向下就是 MD5 算法的部分了!看看下面函数的入栈参数和 MD5 的源码进行比较一下你就知道是不是 MD5 了!
+
+### MOON 贴出的算法
+
+```
+004E1F19  mov edx,dword ptr ss:[ebp-88]  "EF9F176831E87F88"  
+004E1F1F  pop eax      "9E4165ADC409583C"  
+004E1F20  call un-GoodN.004046D0  关键比较，字符串比较  
+004E1F25  jnz un-GoodN.004E2382    关键跳，这儿不跳就会将信息写入注册表  
+```
+
+你在看看这 2 串数据是怎么来的!呵呵!在注意一下估计字符串的用途你就知道 `okdodo` 所说的 `DES` 是怎么回事了!而且机器码的生成和中间有部分运算用到了浮点运算,这个软件挺有意思的,看来作者费了很大的心思啊!
+
+`to` `PowerBoy`: 看来你对这个也有兴趣了，好，朋友们大家一起来。
+
+以下是我对 `3.29` 注册算法的分析：
+
+点“注册”以后有两次对注册码的验算，第一次为：
+
+```
+0050930F  mov edx,dword ptr ss:[ebp-74]  注册码  
+00509312  mov ecx,cr-un-Go.00509480        ;  ASCII "111"  
+00509317  mov eax,dword ptr ss:[ebp-10]  申请码加姓加公司名后缀中的两位  
+0050931A  call cr-un-Go.004E1BBC  <====关键 call 之一，比较注册码的后 7 位，正确时写入注册表  
+0050931F  mov byte ptr ss:[ebp-5],al  存结果  
+00509322  cmp byte ptr ss:[ebp-5],0  检查结果  
+00509326  je short cr-un-Go.00509368  
+```
+
+第二次为：
+
+```
+0050935D  mov edx,dword ptr ss:[ebp-80]  注册码  
+00509360  mov eax,dword ptr ss:[ebp-10]  申请码加姓加公司名后缀中的两位  
+00509363  call cr-un-Go.004E17B0  <====关键 call 之二，比较注册码的前 16 位，不对的话注册表又被更改  
+```
+
+跟进 `0050931A` `call` `cr-un-Go.004E1BBC`：
+
+```
+004E1C36  mov ecx,eax  
+004E1C38  xor eax,eax  
+004E1C3A  mov al,cl      申请码加姓的一位  
+004E1C3C  imul dword ptr ss:[ebp-18]  乘以上次的余数  
+004E1C3F  add eax,68911      加上常数 68911  
+004E1C44  mov ecx,0F4240   
+004E1C49  xor edx,edx  
+004E1C4B  div ecx      除以常数 0F4240  
+004E1C4D  mov dword ptr ss:[ebp-18],edx  存余数  
+004E1C50  inc ebx  
+004E1C51  xor eax,eax  
+004E1C53  mov al,bl  
+004E1C55  mov edx,dword ptr ss:[ebp-4]  
+004E1C58  mov al,byte ptr ds:[edx+eax-1]  取申请码加姓的一位，即取"25963613 朱"的一位  
+004E1C5C  test al,al  
+004E1C5E  jnz short un-GoodN.004E1C36  
+004E1C60  mov eax,dword ptr ss:[ebp-18]  上面的结果：000EFC95  
+004E1C63  xor edx,edx  
+004E1C65  push edx                         ; /Arg2 => 00000000  
+004E1C66  push eax                         ; |Arg1  
+004E1C67  lea eax,dword ptr ss:[ebp-30]        ; |  
+004E1C6A  call un-GoodN.00408F6C               ; \按 10 进制打印上面的结果，得到"982165"  
+004E1C6F  lea edx,dword ptr ss:[ebp-44]  
+004E1C72  mov eax,dword ptr ss:[ebp-30]  
+004E1C75  call un-GoodN.00408B18  复制"982165"  
+004E1C7A  mov edx,dword ptr ss:[ebp-44]  
+004E1C7D  lea eax,dword ptr ss:[ebp-30]  
+004E1C80  call un-GoodN.0040435C  没看出什么变化  
+004E1C85  mov dword ptr ss:[ebp-40],28753F59  
+004E1C8C  mov dword ptr ss:[ebp-3C],20681261  
+004E1C93  mov dword ptr ss:[ebp-38],2A316962  
+004E1C9A  mov dword ptr ss:[ebp-34],2E311871  
+004E1CA1  xor esi,esi  
+004E1CA3  mov bl,4  
+004E1CA5  xor eax,eax  
+004E1CA7  mov al,bl  
+004E1CA9  mov edx,dword ptr ss:[ebp-4]  
+004E1CAC  movzx eax,byte ptr ds:[edx+eax-1]  取申请码加姓的一位，但从第四位开始取  
+004E1CB1  add esi,eax  
+004E1CB3  shl esi,8  
+004E1CB6  dec ebx  
+004E1CB7  cmp bl,1  
+004E1CBA  jnz short un-GoodN.004E1CA5  
+004E1CBC  mov eax,dword ptr ss:[ebp-4]  
+004E1CBF  movzx eax,byte ptr ds:[eax]  
+004E1CC2  add esi,eax      到此取出申请码的前四位 36393532，存于 esi 中  
+004E1CC4  xor edi,edi  
+004E1CC6  mov bl,8  
+004E1CC8  xor eax,eax  
+004E1CCA  mov al,bl  
+004E1CCC  mov edx,dword ptr ss:[ebp-4]  
+004E1CCF  movzx eax,byte ptr ds:[edx+eax-1]  
+004E1CD4  add edi,eax  
+004E1CD6  shl edi,8  
+004E1CD9  dec ebx  
+004E1CDA  cmp bl,5  
+004E1CDD  jnz short un-GoodN.004E1CC8  
+004E1CDF  mov eax,dword ptr ss:[ebp-4]  
+004E1CE2  movzx eax,byte ptr ds:[eax+4]  
+004E1CE6  add edi,eax      到此取出申请码的后四位 33313633，存于 edi 中  
+004E1CE8  xor eax,eax  
+004E1CEA  mov dword ptr ss:[ebp-18],eax  
+004E1CED  lea edx,dword ptr ss:[ebp-58]  
+004E1CF0  mov eax,un-GoodN.004E248C            ;  ASCII "718B1C252E2F7E5E8F6328ED65617C95B47DAF"  
+004E1CF5  call un-GoodN.004DCB68  计算 004DCB68，得一数  
+004E1CFA  lea eax,dword ptr ss:[ebp-58]  
+004E1CFD  lea edx,dword ptr ss:[ebp-48]  
+004E1D00  call un-GoodN.004DCBDC  变换 04DCBDC，得一字符串"AStCa3pYweA0PZWK"  
+004E1D05  mov bl,20  
+004E1D07  add dword ptr ss:[ebp-18],9E3719B5  
+```
+
+
+
+```
+004E1D0E  mov eax,edi  
+
+004E1D10  shl eax,4  
+
+004E1D13  add esi,eax  
+
+004E1D15  mov eax,dword ptr ss:\[ebp\-3C\]  
+
+004E1D18  xor eax,edi  
+
+004E1D1A  add esi,eax  
+
+004E1D1C  mov eax,edi  
+
+004E1D1E  shr eax,5  
+
+004E1D21  xor eax,dword ptr ss:\[ebp\-18\]  
+
+004E1D24  add esi,eax  
+
+004E1D26  add esi,dword ptr ss:\[ebp\-40\]  
+
+004E1D29  mov eax,esi  
+
+004E1D2B  shl eax,4  
+
+004E1D2E  add edi,eax  
+
+004E1D30  mov eax,dword ptr ss:\[ebp\-34\]  
+
+004E1D33  xor eax,esi  
+
+004E1D35  add edi,eax  
+
+004E1D37  mov eax,esi  
+
+004E1D39  shr eax,5  
+
+004E1D3C  xor eax,dword ptr ss:\[ebp\-18\]  
+
+004E1D3F  add edi,eax  
+
+004E1D41  add edi,dword ptr ss:\[ebp\-38\]  
+
+004E1D44  dec bl  
+
+004E1D46  jnz short un-GoodN.004E1D07  循环对 esi、edi 中的申请码计算  
+
+004E1D48  mov eax,esi  
+
+004E1D4A  and eax,3FFFFFFF  
+
+004E1D4F  add eax,2  
+
+004E1D52  xor edx,edx  
+
+004E1D54  mov dword ptr ss:\[ebp\-20\],eax  存申请码变换结果  
+
+004E1D57  mov dword ptr ss:\[ebp\-1C\],edx  存申请码变换结果  
+
+004E1D5A  mov eax,esi  
+
+004E1D5C  shr eax,1E  
+
+004E1D5F  add eax,24F80050  
+
+004E1D64  add eax,2  
+
+004E1D67  xor edx,edx  
+
+004E1D69  mov dword ptr ss:\[ebp\-28\],eax  存申请码变换结果  
+
+004E1D6C  mov dword ptr ss:\[ebp\-24\],edx  存申请码变换结果  
+
+004E1D6F  push dword ptr ss:\[ebp\-1C\]            ; /Arg2  
+
+004E1D72  push dword ptr ss:\[ebp\-20\]            ; |Arg1  
+
+004E1D75  call un-GoodN.004E0E00                ; \un-GoodN.004E0E00 计算  
+
+004E1D7A  mov dword ptr ss:\[ebp\-20\],eax  存结果  
+
+004E1D7D  mov dword ptr ss:\[ebp\-1C\],edx  
+
+004E1D80  push dword ptr ss:\[ebp\-24\]            ; /Arg2  
+
+004E1D83  push dword ptr ss:\[ebp\-28\]            ; |Arg1  
+
+004E1D86  call un-GoodN.004E0E00                ; \un-GoodN.004E0E00 计算  
+
+004E1D8B  mov dword ptr ss:\[ebp\-28\],eax 存结果  
+
+004E1D8E  mov dword ptr ss:\[ebp\-24\],edx  
+
+004E1D91  lea edx,dword ptr ss:\[ebp\-58\]  
+
+004E1D94  mov eax,un-GoodN.004E24BC      ;ASCII "CCB3EF10FF82041FEC05EBCB3B523362992AB75ADD33CF49F"  
+
+004E1D99  call un-GoodN.004DCB68  计算 004DCB68，得一数  
+
+004E1D9E  lea eax,dword ptr ss:\[ebp\-58\]  
+
+004E1DA1  lea edx,dword ptr ss:\[ebp\-5C\]  
+
+004E1DA4  call un-GoodN.004DCBDC  变换 004DCBDC，得一字符串 "wsra022ajLlcEEW9"  
+
+004E1DA9  push dword ptr ss:\[ebp\-24\]            ; /Arg2  
+
+004E1DAC  push dword ptr ss:\[ebp\-28\]            ; |Arg1  
+
+004E1DAF  lea edx,dword ptr ss:\[ebp\-64\]         ; |  
+
+004E1DB2  mov eax,8                     ; |  
+
+004E1DB7  call un-GoodN.00408FBC                ; \un-GoodN.00408FBC 按 16 进制打印  
+
+004E1DBC  mov eax,dword ptr ss:\[ebp\-64\]  打印的结果 "50E5BF2B"  
+
+004E1DBF  lea edx,dword ptr ss:\[ebp\-60\]  
+
+004E1DC2  call un-GoodN.00408B18  复制 "50E5BF2B"  
+
+004E1DC7  mov eax,dword ptr ss:\[ebp\-60\]  
+
+004E1DCA  push eax  
+
+004E1DCB  push dword ptr ss:\[ebp\-1C\]            ; /Arg2  
+
+004E1DCE  push dword ptr ss:\[ebp\-20\]            ; |Arg1  
+
+004E1DD1  lea edx,dword ptr ss:\[ebp\-6C\]         ; |  
+
+004E1DD4  mov eax,8                     ; |  
+
+004E1DD9  call un-GoodN.00408FBC                ; \un-GoodN.00408FBC 按 16 进制打印  
+
+004E1DDE  mov eax,dword ptr ss:\[ebp\-6C\]  打印的结果 "5B6BCC3D"  
+
+004E1DE1  lea edx,dword ptr ss:\[ebp\-68\]  
+
+004E1DE4  call un-GoodN.00408B18  复制 "5B6BCC3D"  
+
+004E1DE9  mov edx,dword ptr ss:\[ebp\-68\]  
+
+004E1DEC  lea eax,dword ptr ss:\[ebp\-2C\]  
+
+004E1DEF  pop ecx  
+
+004E1DF0  call un-GoodN.004045D0  连接字符串  
+
+004E1DF5  lea ecx,dword ptr ss:\[ebp\-70\]  
+
+004E1DF8  mov eax,dword ptr ss:\[ebp\-2C\]  连接的结果 "5B6BCC3D50E5BF2B"  
+
+004E1DFB  mov dl,byte ptr ds:\[eax+2\]  '6'  
+
+004E1DFE  mov eax,dword ptr ss:\[ebp\-2C\]  
+
+004E1E01  call un-GoodN.004E29C4  去掉其中的'6'，得到"5BBCC3D50E5BF2B"  
+
+004E1E06  mov edx,dword ptr ss:\[ebp\-70\]   
+
+004E1E09  lea eax,dword ptr ss:\[ebp\-2C\]  
+
+004E1E0C  call un-GoodN.0040435C  没看出什么变化  
+
+004E1E11  lea ecx,dword ptr ss:\[ebp\-74\]  
+
+004E1E14  mov edx,dword ptr ss:\[ebp\-30\]  最开始的变换结果 "982165"  
+
+004E1E17  mov eax,dword ptr ss:\[ebp\-2C\]  上面的结果 "5BBCC3D50E5BF2B"  
+
+004E1E1A  call un-GoodN.004DD8E8  字符串变换 得到"FC3C63988AAA46B00FF5D5DB8131CD3F"  
+
+004E1E1F  mov edx,dword ptr ss:\[ebp\-74\]  
+
+004E1E22  lea eax,dword ptr ss:\[ebp\-30\]  
+
+004E1E25  call un-GoodN.0040435C  
+
+004E1E2A  lea ecx,dword ptr ss:\[ebp\-78\]  
+
+004E1E2D  mov eax,dword ptr ss:\[ebp\-30\]  
+
+004E1E30  mov dl,byte ptr ds:\[eax+D\]  '6'  
+
+004E1E33  mov eax,dword ptr ss:\[ebp\-30\] 字符串         "FC3C63988AAA46B00FF5D5DB8131CD3F"  
+
+004E1E36  call un-GoodN.004E29C4  去掉其中的'6'得"FC3C3988AAA4B00FF5D5DB8131CD3F"  
+
+004E1E3B  mov edx,dword ptr ss:\[ebp\-78\]  
+
+004E1E3E  lea eax,dword ptr ss:\[ebp\-30\]  
+
+004E1E41  call un-GoodN.0040435C  
+
+004E1E46  mov eax,dword ptr ds:\[51B81C\]  
+
+004E1E4B  mov eax,dword ptr ds:\[eax\]  
+
+004E1E4D  mov eax,dword ptr ds:\[eax+430\]  
+
+004E1E53  cmp byte ptr ds:\[eax+40\],0  
+
+004E1E57  je un-GoodN.004E239D  
+
+    以上是对申请码进行变换，很长，不必求逆。  
+
+004E1E5D  lea edx,dword ptr ss:\[ebp\-2C\]  结果的地址 "42318675423186754231576"  
+
+004E1E60  mov eax,dword ptr ss:\[ebp\-8\]  注册码     "12345678123456781234567"  
+
+004E1E63  call un-GoodN.004E2744  注册码变换  变换方法 1-4，5-8 9-12 13-16 17-20 22-23 位互换  
+
+004E1E94  lea eax,dword ptr ss:\[ebp\-80\]  跳到这儿  
+
+004E1E97  push eax  
+
+004E1E98  lea eax,dword ptr ss:\[ebp\-84\]  
+
+004E1E9E  mov ecx,un-GoodN.004E2504          ;  ASCII "     "  
+
+004E1EA3  mov edx,dword ptr ss:\[ebp\-2C\]  "42318675423186754231576"  
+
+004E1EA6  call un-GoodN.004045D0  加 5 个空格，变成 "42318675423186754231576     "  
+
+004E1EAB  mov eax,dword ptr ss:\[ebp\-84\]  
+
+004E1EB1  mov ecx,7  
+
+004E1EB6  mov edx,11  
+
+004E1EBB  call un-GoodN.004047E4  从第 17 位开始取 7 位，得"4231576"  
+
+004E1EC0  mov eax,dword ptr ss:\[ebp\-80\]  "4231576"  
+
+004E1EC3  lea ecx,dword ptr ss:\[ebp\-7C\]  
+
+004E1EC6  mov edx,un-GoodN.004E2514     常数"34A5CC48D1AB3"  
+
+004E1ECB  call un-GoodN.004DD8E8  字符串变换，得 "D27394B424FD17B0"  
+
+004E1ED0  mov eax,dword ptr ss:\[ebp\-7C\]  "D27394B424FD17B0"  
+
+004E1ED3  push eax      入栈  
+
+    以上是对注册码进行变换，只取其后 7 位进行验证。  
+
+004E1ED4  lea eax,dword ptr ss:\[ebp\-8C\]  
+
+004E1EDA  push eax  
+
+004E1EDB  lea eax,dword ptr ss:\[ebp\-90\]  
+
+004E1EE1  mov ecx,un-GoodN.004E252C          ;  ASCII "2AB75ADD"  
+
+004E1EE6  mov edx,dword ptr ss:\[ebp\-30\]  申请码结果"FC3C3988AAA4B00FF5D5DB8131CD3F"  
+
+004E1EE9  call un-GoodN.004045D0  连接成 "FC3C3988AAA4B00FF5D5DB8131CD3F2AB75ADD"  
+
+004E1EEE  mov eax,dword ptr ss:\[ebp\-90\]  
+
+004E1EF4  mov ecx,7  
+
+004E1EF9  mov edx,1  
+
+004E1EFE  call un-GoodN.004047E4  取前 7 位得 "FC3C398"  
+
+004E1F03  mov eax,dword ptr ss:\[ebp\-8C\]  ASCII "FC3C398"  
+
+004E1F09  lea ecx,dword ptr ss:\[ebp\-88\]  
+
+004E1F0F  mov edx,un-GoodN.004E2514          ;  ASCII "34A5CC48D1AB3"  
+
+004E1F14  call un-GoodN.004DD8E8  字符串变换，得 "EF9F176831E87F88"  
+
+004E1F19  mov edx,dword ptr ss:\[ebp\-88\]  申请码结果"EF9F176831E87F88"  
+
+004E1F1F  pop eax      注册码结果"9E4165ADC409583C"  
+
+004E1F20  call un-GoodN.004046D0  <====关键比较，字符串比较  
+
+004E1F25  jnz un-GoodN.004E2382    关键跳，这儿不跳就会将信息写入注册表  
+
+[分析]  
+
+    调位后的注册码后 7 位和申请码变码的前 7 位经相同的变换然后比较是否相同，可以推断，如果它们本身相等，则变换后的结果肯定相等，因此调位后的后 7 位就是"FC3C398"。  
+
+    关键 call 之二：  
+
+004E180C  lea edx,dword ptr ss:\[ebp\-28\]  
+
+004E180F  mov eax,un-GoodN.004E1B00          ;  ASCII "97D31761231075EDB894FF0ADB7"  
+
+004E1814  call un-GoodN.004DCB68  字符串常数变成数  
+
+004E1819  lea eax,dword ptr ss:\[ebp\-28\]  
+
+004E181C  lea edx,dword ptr ss:\[ebp\-18\]  
+
+004E181F  call un-GoodN.004DCBDC  数变成一个新的字符串"TgdJVMAiTSOATA3i"  
+
+004E1824  lea edx,dword ptr ss:\[ebp\-28\]  
+
+004E1827  mov eax,un-GoodN.004E1B24          ;  ASCII "F7C2D6309172AEB32AB5F063061034A5CC48D1AB3"  
+
+004E182C  call un-GoodN.004DCB68  字符串常数变成数  
+
+004E1831  lea eax,dword ptr ss:\[ebp\-28\]  
+
+004E1834  lea edx,dword ptr ss:\[ebp\-2C\]  
+
+004E1837  call un-GoodN.004DCBDC  数变成一个新的字符串"A0HZK47KDAqB0Dxk"  
+
+004E183C  lea edx,dword ptr ss:\[ebp\-28\]  
+
+004E183F  mov eax,dword ptr ss:\[ebp\-4\]  申请码加姓  
+
+004E1842  call un-GoodN.004DCB68  算出一个数  
+
+004E1847  lea eax,dword ptr ss:\[ebp\-28\]  
+
+004E184A  lea edx,dword ptr ss:\[ebp\-10\]  
+```
+
+
+
+`004E184D call un-GoodN.004DCBDC` 得到字符串 `[ebp-10]->"HpSdQp99TTmmaZiW"`
+
+`004E1852 lea edx,dword ptr ss:[ebp-28]`
+
+`004E1855 mov eax,un-GoodN.004E1B58` ; `ASCII "ACB1920BA09950750056A8A047A5"`
+
+`004E185A call un-GoodN.004DCB68`
+
+`004E185F lea eax,dword ptr ss:[ebp-28]`
+
+`004E1862 lea edx,dword ptr ss:[ebp-30]`
+
+`004E1865 call un-GoodN.004DCBDC` 又得到一个字符串 `"A1SNrtrHV0DqGV1Q"`
+
+`004E186A lea edx,dword ptr ss:[ebp-14]`
+
+`004E186D mov eax,dword ptr ss:[ebp-8]`
+
+`004E1870 call un-GoodN.004E2744` 注册码各位调整得 `"42318675423186754231576"` 方法同上
+
+`004E1875 lea eax,dword ptr ss:[ebp-14]`
+
+`004E1878 push eax`
+
+`004E1879 mov ecx,10`
+
+`004E187E mov edx,1`
+
+`004E1883 mov eax,dword ptr ss:[ebp-14]`
+
+`004E1886 call un-GoodN.004047E4` 取调整位置后的注册码的前 16 位 `"4231867542318675"`
+
+`004E188B lea ecx,dword ptr ss:[ebp-34]`
+
+`004E188E mov edx,dword ptr ss:[ebp-10]` 申请码结果 `"HpSdQp99TTmmaZiW"`
+
+`004E1891 mov eax,dword ptr ss:[ebp-14]` 注册码结果 `"4231867542318675"`
+
+`004E1894 call un-GoodN.004DDAD0` 计算得一个数 `C9 7A B7 7A 59 EC FD 27`
+
+`004E1899 mov eax,dword ptr ss:[ebp-34]`
+
+`004E189C lea edx,dword ptr ss:[ebp-28]`
+
+`004E189F call un-GoodN.004DCB68` 计算得数 1
+
+```
+EBP-28   > 4C535DA6
+EBP-24   > E19F86CE
+EBP-20   > 9ED97FF4
+EBP-1C   > 6E611BC5
+```
+
+`004E18A4 lea eax,dword ptr ss:[ebp-28]`
+
+`004E18A7 push eax` 数 1 入栈
+
+`004E18A8 lea edx,dword ptr ss:[ebp-44]`
+
+`004E18AB mov eax,un-GoodN.004E1B80` 内部常数 `02 2D 9B 1D 05 1E 19 48`
+
+`004E18B0 call un-GoodN.004DCB68` 变换，得到
+
+```
+EBP-44   > 0AE260A7
+EBP-40   > CD5125BB
+EBP-3C   > 3AB49665
+EBP-38   > 3B24DC3D
+```
+
+`004E18B5 lea eax,dword ptr ss:[ebp-44]` 常数变来的数
+
+`004E18B8 pop edx` 数 1 出栈
+
+`004E18B9 call un-GoodN.004DCC58` <====关键比较，大数比较，不相等就会把注册信息修改
+
+`004E18BE mov byte ptr ss:[ebp-9],al` 存结果，作为一个标志
+
+### [分析]
+
+注册码前 16 位与申请码结果运算结果和内部常数作相同的变换，再比较是否相等，因此它们本身是应该相等的。即 `004E1894 call un-GoodN.004DDAD0` 一步的结果应为 `02 2D 9B 1D 05 1E 19 48`。
+
+到这里为止，想跟出注册码关键是对 `call un-GoodN.004DDAD0` 求逆，而这个就是又臭又长的计算啦。
+
+`4dd466d0e1e0cc123afbe504da2462ca`
