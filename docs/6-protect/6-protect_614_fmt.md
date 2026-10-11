@@ -1,0 +1,644 @@
+
+# VMP 自动分析与还原
+
+> 原文：[`www.pediy.com/kssd/pediy12/135770.html`](https://www.pediy.com/kssd/pediy12/135770.html)
+
+花了点时间写了个 `VMP` 自动分析与还原，由于还原部分还未完善源码暂不上传。
+
+有兴趣的朋友可以加我一起研究，Q:2237227000
+
+![](img/0fa658b9ed06ac60a5623d7d769cd7da.jpg)
+
+![](img/c37aafadb7604a191f72beddbf6a728b.jpg)
+
+![](img/179383f95c8d73eda2cd00cb8d1156e8.jpg)
+
+虚拟机入口：
+
+```
+------------------------------------------
+01105598     6898B3B812         push 12B8B398h
+0110559D     E88FCD0000         call 01112331h
+01112331     E84BECFFFF         call 01110F81h
+01110F81     E898200000         call 0111301Eh
+0111301E     8D642408           lea esp, dword ptr [esp+08h]
+01113022     0F80D5DFFFFF       jo 01110FFDh
+01113028     9C                 pushfd
+01113029     893424             mov dword ptr [esp], esi
+0111302C     E9892BFFFF         jmp 01105BBAh
+01105BBA     66F7D6             not si
+01105BBD     60                 pushad
+01105BBE     874C241C           xchg dword ptr [esp+1Ch], ecx
+01105BC2     660FB6C9          movzx cx, cl
+01105BC6     FF742404          push dword ptr [esp+04h]
+01105BCA     668B742408        mov si, word ptr [esp+08h]
+01105BCF     E883040000         call 01106057h
+01106057     89542420           mov dword ptr [esp+20h], edx
+0110605B     660FBEF3          movsx si, bl
+0110605F     60                 pushad
+01106060     660FBECB          movsx cx, bl
+01106064     895C243C           mov dword ptr [esp+3Ch], ebx
+01106068     5B                 pop ebx
+01106069     660FBEF2          movsx si, dl
+0110606D     E98D710000         jmp 0110D1FFh
+0110D1FF     8D3485EE5FBF0A    lea esi, dword ptr [0ABF5FEEh+eax*4]
+0110D206     896C2434           mov dword ptr [esp+34h], ebp
+0110D20A     E8272C0000         call 0110FE36h
+0110FE36     8D34A51E30647C    lea esi, dword ptr [7C64301Eh]
+0110FE3D     66F7D5             not bp
+0110FE40     E83B2A0000         call 01112880h
+01112880     89442438           mov dword ptr [esp+38h], eax
+01112884     59                 pop ecx
+01112885     FF742404          push dword ptr [esp+04h]
+01112889     66F7D6             not si
+0111288C     66F7D3             not bx
+0111288F     9C                 pushfd
+01112890     8F442434           pop dword ptr [esp+34h]
+01112894     5B                 pop ebx
+01112895     E9E1EBFFFF         jmp 0111147Bh
+0111147B     E88A1B0000         call 0111300Ah
+0111300A     9C                 pushfd
+0111300B     897C2434           mov dword ptr [esp+34h], edi
+0111300F     0FB6F2             movzx esi, dl
+01113012     0FBDEF            bsr ebp, edi
+01113015     89542430           mov dword ptr [esp+30h], edx
+01113019     E9E29FFFFF         jmp 0110D000h
+0110D000     E9DC520000         jmp 011122E1h
+011122E1     59                 pop ecx
+011122E2     C74424280000B     mov dword ptr [esp+28h], 00B90000h
+011122EA     0FBDF5            bsr esi, ebp
+011122ED     66FFC5            inc bp
+011122F0     660FBEDB          movsx bx, bl
+011122F4     8B742454          mov esi, dword ptr [esp+54h]
+011122F8     45                inc ebp
+011122F9     660FB6E8          movzx bp, al
+011122FD     E9B1FEFFFF        jmp 011121B3h
+011121B3     46                 inc esi
+011121B4     660FB3FD          btr bp, di
+011121B8     E9FE35FFFF        jmp 011057BBh
+011057BB     F7D6              not esi
+011057BD     66C1DF02          rcr di, 0002h
+011057C1     81EE3D394877      sub esi, 7748393Dh
+011057C7     660FB3CF          btr di, cx
+011057CB     0FACCD1E          shrd ebp, ecx, 0000001Eh
+011057CF     FEC0             inc al
+011057D1     66C1ED07          shr bp, 0007h
+011057D5     F7DE             neg esi
+011057D7     E804090000        call 011060E0h
+011060E0     660FB6EB          movzx bp, bl
+011060E4     46                 inc esi
+011060E5     F8                 clc
+011060E6     66F7D5             not bp
+011060E9     894C2408           mov dword ptr [esp+08h], ecx
+011060ED     F9                 stc
+011060EE     C1CE19            ror esi, 19h
+011060F1     E974720000        jmp 0110D36Ah
+0110D36A     D2DB             rcr bl, cl
+0110D36C     8D6C242C          lea ebp, dword ptr [esp+2Ch]
+0110D370     0FCF             bswap edi
+0110D372     0F96C7            setbe bh
+0110D375     349D             xor al, FFFFFF9Dh
+0110D377     81EC94000000      sub esp, 00000094h
+0110D37D     660FB6D9          movzx bx, cl
+0110D381     89E7             mov edi, esp
+0110D383     66D3FB            sar bx, cl
+0110D386     C0FB06            sar bl, 00000006h
+0110D389     660FBDD9          bsr bx, cx
+0110D38D     89F3             mov ebx, esi
+0110D38F     240E             and al, 0000000Eh
+0110D391     38C8             cmp al, cl
+0110D393     38CD             cmp ch, cl
+0110D395     66FFC1            inc cx
+0110D398     037500            add esi, dword ptr [ebp+00h]
+0110D39B     80E151            and cl, 00000051h
+0110D39E     30F0             xor al, dh
+0110D3A0     D2F1             sal cl, cl
+0110D3A2     C0F004            sal al, 00000004h
+0110D3A5     8A46FF            mov al, byte ptr [esi-01h]
+0110D3A8     08ED             or ch, ch
+0110D3AA     49                dec ecx
+0110D3AB     660FB6CA          movzx cx, dl
+0110D3AF     80D5D9            adc ch, FFFFFFD9h
+0110D3B2     00D8             add al, bl
+0110D3B4     8D0CCDC7651598    lea ecx, dword ptr [981565C7h+ecx*8]
+0110D3BB     E9948AFFFF        jmp 01105E54h
+01105E54     2C3C             sub al, 0000003Ch
+01105E56     0F99C1            setns cl
+01105E59     F9                 stc
+01105E5A     F7D1              not ecx
+01105E5C     C0C002            rol al, 00000002h
+01105E5F     F6C126            test cl, 00000026h
+01105E62     66C1C904          ror cx, 0004h
+01105E66     0FACF918          shrd ecx, edi, 00000018h
+01105E6A     10F5             adc ch, dh
+01105E6C     F6D8             neg al
+01105E6E     0FBCCD            bsf ecx, ebp
+01105E71     0FB6CB            movzx ecx, bl
+01105E74     FEC9             dec cl
+01105E76     6681D92DE3        sbb cx, E32Dh
+01105E7B     3412             xor al, 00000012h
+01105E7D     FECD             dec ch
+01105E7F     60                 pushad
+01105E80     F6D5              not ch
+01105E82     0FC9             bswap ecx
+01105E84     00C3             add bl, al
+01105E86     660FBAE40B        bt sp, 000Bh
+01105E8B     9C                 pushfd
+01105E8C     E9A4000000        jmp 01105F35h
+01105F35     660FBBE1          btc cx, sp
+01105F39     0FB6C0            movzx eax, al
+01105F3C     C0D102            rcl cl, 00000002h
+01105F3F     55                 push ebp
+01105F40     B5E1             mov ch, E1h
+01105F42     8B0C85642A1101    mov ecx, dword ptr [01112A64h+eax*4]
+01105F49     9C                 pushfd
+01105F4A     9C                 pushfd
+01105F4B     C1C913            ror ecx, 13h
+01105F4E     0FBAE10A          bt ecx, 0Ah
+01105F52     E9C5BE0000        jmp 01111E1Ch
+01111E1C     81C1B22505EB      add ecx, EB0525B2h
+01111E22     F5                 cmc
+01111E23     38C2             cmp dl, al
+01111E25     F7D9              neg ecx
+01111E27     E8AA42FFFF        call 011060D6h
+011060D6     E83F6E0000        call 0110CF1Ah
+0110CF1A     E83087FFFF        call 0110564Fh
+0110564F     4E                 dec esi
+01105650     85CA             test edx, ecx
+01105652     6849FEB96E        push 6EB9FE49h
+01105657     81F19ED2C1E5      xor ecx, E5C1D29Eh
+0110565D     0FA3DC            bt esp, ebx
+01105660     F9                 stc
+01105661     81C10000B900      add ecx, 00B90000h
+01105667     68488F8842        push 42888F48h
+```
+
+
+
+### 汇编代码片段
+
+```
+0110566C     6689642404        mov word ptr [esp+04h], sp  
+01105671     E91B080000        jmp 01105E91h  
+01105E91     894C2440          mov dword ptr [esp+40h], ecx  
+01105E95     68EE88E91E        push 1EE988EEh  
+01105E9A     FF742444          push dword ptr [esp+44h]  
+01105E9E     C24800            retn 0048h
+```
+
+#### OpCode 指针算法
+
+```
+inc esi
+not esi
+sub esi, 7748393Dh
+neg esi
+inc esi
+ror esi, 19h
+```
+
+#### ByteDate 算法
+
+```
+mov al, byte ptr [esi-01h]
+add al, bl
+sub al, 0000003Ch
+rol al, 00000002h
+neg al
+xor al, 00000012h
+add bl, al
+movzx eax, al
+```
+
+#### Handle 指针算法
+
+```
+mov ecx, dword ptr [01112A64h+eax*4]
+ror ecx, 13h
+add ecx, EB0525B2h
+neg ecx
+dec esi
+xor ecx, E5C1D29Eh
+add ecx, 00B90000h
+```
+
+### VMP 自动分析启动:
+
+#### Handle: 01106011
+
+```
+01106011     8D04752BBF229B    lea eax, dword ptr [9B22BF2Bh+esi*2]  
+01106018     D406              aam 06h  
+0110601A     0F9BC2            setnp dl  
+0110601D     66D3C8            ror ax, cl  
+01106020     8B4500            mov eax, dword ptr [ebp+00h]  
+01106023     F6DA              neg dl  
+01106025     8A5504            mov dl, byte ptr [ebp+04h]  
+01106028     F5                cmc 
+01106029     0FA3C3            bt ebx, eax  
+0110602C     80FF2E            cmp bh, 0000002Eh  
+0110602F     68C6F7DEF2        push F2DEF7C6h  
+01106034     83C506            add ebp, 06h  
+01106037     60                pushad 
+01106038     C60424FD          mov byte ptr [esp], FFFFFFDh  
+0110603C     E96B9D0000        jmp 0110FDACh  
+0110FDAC     368810            mov byte ptr [eax], dl  
+0110FDAF     9C                pushfd 
+0110FDB0     C60424D2          mov byte ptr [esp], FFFFFFD2h  
+0110FDB4     9C                pushfd 
+0110FDB5     FF3424            push dword ptr [esp]  
+0110FDB8     8D642430          lea esp, dword ptr [esp+30h]  
+0110FDBC     E9DAD5FFFF        jmp 0110D39Bh  
+0110D39B     80E151            and cl, 00000051h  
+0110D39E     30F0              xor al, dh  
+0110D3A0     D2F1              sal cl, cl  
+0110D3A2     C0F004            sal al, 00000004h  
+0110D3A5     8A46FF            mov al, byte ptr [esi-01h]  
+......(由于代码太多，中间部分省略。)
+```
+
+#### Handle: 01105B25
+
+```
+01105B25     F8                clc 
+01105B26     8B4500            mov eax, dword ptr [ebp+00h]  
+01105B29     F8                clc 
+01105B2A     8A5504            mov dl, byte ptr [ebp+04h]  
+01105B2D     F5                cmc 
+01105B2E     83C506            add ebp, 06h  
+01105B31     9C                pushfd 
+01105B32     9C                pushfd 
+01105B33     268810            mov byte ptr [eax], dl  
+01105B36     52                push edx  
+01105B37     FF3424            push dword ptr [esp]  
+01105B3A     8D642410          lea esp, dword ptr [esp+10h]  
+01105B3E     E958780000        jmp 0110D39Bh  
+0110D39B     80E151            and cl, 00000051h  
+0110D39E     30F0              xor al, dh  
+0110D3A0     D2F1              sal cl, cl  
+0110D3A2     C0F004            sal al, 00000004h  
+0110D3A5     8A46FF            mov al, byte ptr [esi-01h]  
+```
+
+### 分析结束
+
+`Handler Count`: 52
+
+### 伪指令解析开始:
+
+#### H:(00) - H:(19)
+
+```
+H:(00): 01106011 -> STORE_SS_B
+H:(01): 0110FC58 -> DIV_D
+H:(02): 0110ED66 -> STORE_DS_W
+H:(03): 011113D4 -> STORE_SS_W
+H:(04): 01105C55 -> BRANCH
+H:(05): 0110F6EA -> EXIT_VM
+H:(06): 011115A3 -> STORE_DS_D
+H:(07): 0110FD77 -> LOAD_DS_W
+H:(08): 01113056 -> ADD_W
+H:(09): 011055A2 -> STORE_SS_D
+H:(10): 011060D1 -> NOR_B
+H:(11): 0110573B -> ADD_D
+H:(12): 01110FBF -> LOAD_SS_W
+H:(13): 0110597C -> SHR_W
+H:(14): 01105C41 -> STORE_DS_B
+H:(15): 01112FA8 -> SHLD_D
+H:(16): 0110D20F -> SET_STACK
+H:(17): 011110CE -> SHRD_D
+H:(18): 0110F57A -> SHL_B
+H:(19): 0111240F -> PUSH_I_D_W
+```
+
+```
+mov ax, word ptr [esi-02h]
+xchg al, ah
+xor ax, bx
+sub ax, 00007B74h
+xchg al, ah
+xor ax, 0000D140h
+neg ax
+xor bx, ax
+cwde 
+add esi, FFFFFFFEh
+```
+
+#### H:(20)
+
+```
+H:(20): 01105DB8 -> POP_R_W
+```
+
+```
+mov al, byte ptr [esi-01h]
+sub al, bl
+neg al
+not al
+inc al
+not al
+sub bl, al
+dec esi
+```
+
+#### H:(21) - H:(22)
+
+```
+H:(21): 01105EC7 -> SHR_D
+H:(22): 0111219C -> PUSH_I_D_B
+```
+
+```
+mov al, byte ptr [esi-01h]
+add al, bl
+not al
+sub al, 00000042h
+neg al
+add esi, FFFFFFFFh
+inc al
+add bl, al
+cbw 
+cwde 
+```
+
+#### H:(23) - H:(29)
+
+```
+H:(23): 01112EA9 -> LOAD_DS_D
+H:(24): 0110594E -> LOAD_SS_D
+H:(25): 011060F6 -> LOAD_FS_D
+H:(26): 01105939 -> ADD_B
+H:(27): 01105E3B -> PUSH_STACK_W
+H:(28): 0110FE31 -> SHL_D
+H:(29): 01112901 -> PUSH_R_W
+```
+
+```
+mov al, byte ptr [esi-01h]
+sub esi, 01h
+sub al, bl
+neg al
+not al
+inc al
+not al
+sub bl, al
+```
+
+#### H:(30)
+
+```
+H:(30): 01105C9B -> POP_R_B
+```
+
+```
+mov al, byte ptr [esi-01h]
+add al, bl
+not al
+add al, FFFFFFECh
+rol al, 00000007h
+xor al, 00000038h
+add bl, al
+lea esi, dword ptr [esi-01h]
+```
+
+#### H:(31)
+
+```
+H:(31): 01112214 -> PUSH_R_B
+```
+
+```
+movzx eax, byte ptr [esi-01h]
+add al, bl
+not al
+add al, FFFFFFECh
+rol al, 00000007h
+xor al, 00000038h
+add bl, al
+dec esi
+```
+
+#### H:(32) - H:(36)
+
+```
+H:(32): 011130CE -> NOR_D
+H:(33): 0111238D -> IDIV
+H:(34): 0110CE77 -> MUL_D
+H:(35): 01112E6F -> SHL_W
+H:(36): 01105BEA -> PUSH_R_D
+```
+
+```
+inc al
+not al
+dec al
+xor al, FFFFFF98h
+and al, 0000003Ch
+```
+
+#### H:(37)
+
+```
+H:(37): 01111171 -> POP_R_D
+```
+
+```
+inc al
+not al
+dec al
+xor al, FFFFFF98h
+and al, 0000003Ch
+```
+
+#### H:(38) - H:(39)
+
+```
+H:(38): 0110F6B6 -> SHR_B
+H:(39): 0111156C -> PUSH_I_D
+```
+
+```
+mov eax, dword ptr [esi-04h]
+bswap eax
+xor eax, ebx
+add eax, E0F98A24h
+not eax
+xor eax, 4DFCFC2Fh
+lea esi, dword ptr [esi-04h]
+rol eax, 0Eh
+xor ebx, eax
+```
+
+#### H:(40)
+
+```
+H:(40): 01110EEA -> PUSH_I_W
+```
+
+```
+mov ax, word ptr [esi-02h]
+xchg al, ah
+xor ax, bx
+sub ax, 00007B74h
+xchg al, ah
+sub esi, 02h
+xor ax, 0000D140h
+neg ax
+xor bx, ax
+```
+
+#### H:(41) - H:(42)
+
+```
+H:(41): 011128E2 -> STORE_ES_D
+H:(42): 01112638 -> PUSH_I_B
+```
+
+```
+mov al, byte ptr [esi-01h]
+add al, bl
+not al
+sub al, 00000042h
+neg al
+lea esi, dword ptr [esi-01h]
+inc al
+add bl, al
+```
+
+#### H:(43) - H:(51)
+
+```
+H:(43): 011058B2 -> LOAD_SS_B
+H:(44): 01110F58 -> SET_STACK_W
+H:(45): 0111264A -> NOR_W
+H:(46): 0110FDC1 -> STORE_FS_D
+H:(47): 011114F5 -> LOAD_DS_B
+H:(48): 011115C0 -> POP_FLAG
+H:(49): 01111DDE -> IMUL
+H:(50): 01105F71 -> PUSH_STACK
+H:(51): 01105B25 -> STORE_ES_B
+```
+
+### 解析结束:
+
+未能解析的伪指令个数: 0
+
+### 部分还原:
+
+```
+label_BD16520A: (references=0)
+   tv1792-           = ASSIGN SS:[EBP+8] 
+   tv1797-           = ASSIGN SS:[EBP+8]
+```
+
+
+
+```
+tv1800-         = BITXOR DS:\[tv1792-\], EAX
+
+DS:\[tv1797-\]    = ASSIGN tv1800-
+
+tv1807-         = ASSIGN SS:\[EBP+8\]
+
+SS:\[EBP-16\]     = ASSIGN DS:\[tv1807-\]
+
+EAX           = ADD 4, SS:\[EBP+8\]
+
+EAX           = ASSIGN DS:\[EAX\]
+
+SS:\[EBP-20\]     = ASSIGN EAX
+
+ECX           = ASSIGN SS:\[EBP+8\]
+
+ESP           = ASSIGN DS:\[ECX+8\]
+
+SS:\[EBP-24\]     = ASSIGN ESP
+
+tv1845-, EFLAGS   = COMPARE(NE) 0, global\_1000d044
+
+EDX           = ASSIGN ESP
+
+              CONDITIONALBRANCH(True) tv1845-, label\_1005AAFC, label\_1004F87E
+
+label\_1004AE87: (references=0)
+
+local\_FFFFFFF9   = ASSIGN EDX
+
+local\_FFFFFFF7   = ASSIGN EAX
+
+tv1995-         = BITXOR 138077080(0x083ae398), local\_FFFFFFF5
+
+EDX           = ASSIGN SS:\[EBP+8\]
+
+DS:\[EDX\]      = ASSIGN 3469594061(0xcecdcdcd)
+
+tv2009-         = BITOR 65536(0x00010000), global\_100163d4
+
+EAX           = ASSIGN tv2009-
+
+global\_100163d4  = ASSIGN EAX
+
+tv2020-         = BITXOR 138077080(0x083ae398), tv1995-
+
+local\_FFFFFFF8   = ASSIGN tv2009-
+
+local\_FFFFFFF5   = ASSIGN tv2020-
+
+              GOTO label\_1004ADB9
+
+label\_1005B4FE: (references=0)
+
+SS:\[ESP\], {\&ESP:ESP} = push EBP
+
+tv2150-         = ASSIGN ESP
+
+SS:\[ESP\], {\&ESP:ESP} = push 0
+
+ECX           = ASSIGN SS:\[tv2150-+8\]
+
+tv2162-         = BITAND 255(0x000000ff), ECX
+
+tv2165-, EFLAGS   = COMPARE(LT) 255(0x000000ff), tv2162-
+
+local\_FFFFFFFC   = ASSIGN tv2162-
+
+local\_FFFFFFFB   = ASSIGN EFLAGS
+
+local\_FFFFFFF9   = ASSIGN 0
+
+local\_FFFFFFF8   = ASSIGN EBX
+
+local\_FFFFFFF7   = ASSIGN tv2150-
+
+              CONDITIONALBRANCH(True) tv2165-, label\_1004BD25, label\_10035AE3
+
+label\_1005AAFC: (references=0)
+
+SS:\[ESP\], {\&ESP:ESP} = push \&global\_100101e4
+
+SS:\[ESP\], {\&ESP:ESP} = push 0
+
+SS:\[ESP\], {\&ESP:ESP} = push 0
+
+SS:\[ESP\], {\&ESP:ESP} = push \&global\_10005a30
+
+SS:\[ESP\], {\&ESP:ESP} = push 0
+
+SS:\[ESP\], {\&ESP:ESP} = push 0
+
+tv2404-         = ASSIGN \&global\_1002602d
+
+DS:\[tv2404-\]     = ASSIGN 104(0x68)
+
+DS:\[tv2404-+1\]   = ASSIGN 2568114807(0x99125277)
+
+DS:\[tv2404-+5\]   = ASSIGN 232(0xe8)
+
+DS:\[tv2404-+6\]   = ASSIGN 4294819895(0xfffdc037)
+
+              call KERNEL32.dll.CreateThread
+
+              GOTO label\_99125277
+```
+
+未完待续...
