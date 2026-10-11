@@ -1,0 +1,138 @@
+
+```asm
+0040E63E   . 8B5424 28      MOV EDX,DWORD PTR SS:[ESP+28]  
+
+0040E642   . 51             PUSH ECX  
+
+0040E643   . 52             PUSH EDX  
+
+0040E644   . 8D4424 1C      LEA EAX,DWORD PTR SS:[ESP+1C]  
+
+0040E648   . 68 84914300    PUSH GRADESHE.00439184                ;  ASCII "%I64u"  
+
+0040E64D   . 50             PUSH EAX  
+
+0040E64E   . E8 06E20000    CALL GRADESHE.0041C859                ;  计算机器码很明显是根据 C 盘的自由空间来计算的。  
+
+0040E653   . 83C4 10        ADD ESP,10  
+
+0040E656   . EB 0C          JMP SHORT GRADESHE.0040E664  
+
+0040E658   > 53             PUSH EBX                              ; /Arg3  
+
+0040E659   . 53             PUSH EBX                              ; |Arg2  
+
+0040E65A   . 68 68914300    PUSH GRADESHE.00439168                ; |Arg1 = 00439168  
+
+0040E65F   . E8 56A10100    CALL GRADESHE.004287BA                ; \GRADESHE.004287BA  
+
+0040E664   > 8B4C24 14      MOV ECX,DWORD PTR SS:[ESP+14]  
+
+0040E668   . 8B41 F8        MOV EAX,DWORD PTR DS:[ECX-8]  
+
+0040E66B   . 83F8 08        CMP EAX,8  
+
+0040E66E   . 7D 0C          JGE SHORT GRADESHE.0040E67C  
+
+0040E670   . 53             PUSH EBX                              ; /Arg3  
+
+0040E671   . 53             PUSH EBX                              ; |Arg2  
+
+0040E672   . 68 68914300    PUSH GRADESHE.00439168                ; |Arg1 = 00439168  
+
+0040E677   . E8 3EA10100    CALL GRADESHE.004287BA                ; \GRADESHE.004287BA  
+
+0040E67C   > 8D5424 10      LEA EDX,DWORD PTR SS:[ESP+10]  
+
+0040E680   . 6A 08          PUSH 8  
+
+0040E682   . 52             PUSH EDX  
+
+0040E683   . 8D4C24 1C      LEA ECX,DWORD PTR SS:[ESP+1C]  
+
+0040E687   . E8 F2DD0000    CALL GRADESHE.0041C47E                ;  去掉机器码的后 2 位  
+
+0040E68C   . 50             PUSH EAX  
+
+0040E68D   . 8D4C24 18      LEA ECX,DWORD PTR SS:[ESP+18]  
+
+0040E691   . C68424 D000000>MOV BYTE PTR SS:[ESP+D0],1  
+
+0040E699   . E8 6A060100    CALL GRADESHE.0041ED08  
+
+0040E69E   . 8D4C24 10      LEA ECX,DWORD PTR SS:[ESP+10]  
+
+0040E6A2   . 889C24 CC00000>MOV BYTE PTR SS:[ESP+CC],BL  
+
+0040E6A9   . E8 6D050100    CALL GRADESHE.0041EC1B  
+
+0040E6AE   . 8B4424 14      MOV EAX,DWORD PTR SS:[ESP+14]  
+
+0040E6B2   . 50             PUSH EAX  
+
+0040E6B3   . E8 9C580000    CALL GRADESHE.00413F54                ;  变成 UNICOD  
+
+0040E6B8   . 05 23612D01    ADD EAX,12D6123  
+
+0040E6BD   . 8D4C24 18      LEA ECX,DWORD PTR SS:[ESP+18]         ;  去 2 位后的注册码相减  
+
+0040E6C1   . 50             PUSH EAX  
+
+0040E6C2   . 68 00934300    PUSH GRADESHE.00439300                ;  ASCII "%ld"  
+
+0040E6C7   . 51             PUSH ECX  
+
+0040E6C8   . E8 8CE10000    CALL GRADESHE.0041C859                ;  运算  
+
+0040E6CD   . 83C4 10        ADD ESP,10  
+
+0040E6D0   . 8D4C24 14      LEA ECX,DWORD PTR SS:[ESP+14]  
+
+0040E6D4   . E8 1C0A0100    CALL GRADESHE.0041F0F5                ;  到过来排序  
+
+0040E6D9   . 68 80914300    PUSH GRADESHE.00439180                ;  ASCII "?:\\"  
+
+0040E6DE   . 8D4C24 20      LEA ECX,DWORD PTR SS:[ESP+20]  
+
+0040E6E2   . 895C24 14      MOV DWORD PTR SS:[ESP+14],EBX  
+
+0040E6E6   . 33FF           XOR EDI,EDI  
+
+0040E6E8   . E8 9C050100    CALL GRADESHE.0041EC89  
+
+0040E6ED   . C68424 CC00000>MOV BYTE PTR SS:[ESP+CC],2  
+
+0040E750   . 83C7 12        ADD EDI,12  
+
+0040E753   . 8D5424 18      LEA EDX,DWORD PTR SS:[ESP+18]  
+
+0040E757   . 57             PUSH EDI  
+
+0040E758   . 68 7C914300    PUSH GRADESHE.0043917C                ;  ASCII "%d"  
+
+0040E75D   . 52             PUSH EDX  
+
+0040E75E   . C68424 D800000>MOV BYTE PTR SS:[ESP+D8],3  
+
+0040E766   . E8 EEE00000    CALL GRADESHE.0041C859                ;  计算出注册码的最后 2 位  
+
+0040E76B   . 83C4 0C        ADD ESP,0C  
+
+0040E76E   . 8D4424 18      LEA EAX,DWORD PTR SS:[ESP+18]  
+
+0040E772   . 8D4C24 14      LEA ECX,DWORD PTR SS:[ESP+1C]
+```
+
+由于时间问题（先找个台阶下），就不在往下写了，至于算法部分本人很菜，怕在各位高手面前买弄，不写了。
+
+感兴趣的可以看看。
+
+### 总结
+
+菜鸟总是要从最菜的地方开始。没有办法呀。目前对自己要求不高，能找到正确的注册码就行，算法这个东西，闹不懂。希望各位高手不要见笑。
+
+### 声明
+
+没有版权。
+
+`4dd466d0e1e0cc123afbe504da2462ca`

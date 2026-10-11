@@ -1,0 +1,484 @@
+
+# 商舟@广告直邮群发大师 2002
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50442.htm`](https://www.pediy.com/kssd/pediy05/pediy50442.htm)
+
+简单算法——商舟@广告直邮群发大师 2002
+
+下载地址：  [`www.skycn.com/soft/7694.html`](http://www.skycn.com/soft/7694.html)   
+
+软件大小：  592 KB
+
+软件语言：  简体中文
+
+软件类别：  国产软件 / 共享版 / 邮件群发
+
+应用平台：  `Win9x/NT/2000/XP`
+
+加入时间：  2002-03-17 11:31:00
+
+下载次数：  422
+
+推荐等级：  *****
+
+开 发 商：  [`www.bytesky.com/XMailer/index.html`](http://www.bytesky.com/XMailer/index.html)
+
+【软件简介】： 正如我们去邮局发信一样，网络邮件也有普通邮件和特快专递之分，普通邮件需通过层层中间邮件服务器进行中转，速度慢，而且容易由于网络故障造成丢失，特别是如果您是一次性发送上万封的信件时，很容易被中间的某一个服务器认定为垃圾邮件而被丢弃。商舟@广告直邮群发大师将让你的邮件以"特快专递"的形式发送，所有邮件不经过任何中间的服务器，成功绕过所有中间服务器的反垃圾邮件层层关卡，直奔目标邮箱，把您的广告以即发即收的方式强制塞入用户邮箱，实现了发送结果的即时反馈和邮件收阅的零等待。每分钟可处理 4 万封邮件的发送，支持多达 512 个发信线程同时工作。另外，本软件还支持邮件保存，邮箱地址有效性的实时检验，以及对发送成功邮箱地址、发送失败邮箱地址的导出功能，是一款不可多得的网络广告群发软件。
+
+【软件限制】：功能限制
+
+【作者声明】：初学 Crack，只是感兴趣，没有其它目的。失误之处敬请诸位大侠赐教！
+
+【破解工具】：`TRW2000` 娃娃修改版、`FI2.5`、`AspackDie`、`W32Dasm8.93` 黄金版
+
+---
+
+### 过 程
+
+#### 一、脱壳
+
+`XMailer.exe` 是 `ASPACK2.12` 壳。用 `AspackDie` 脱之，592K->1.49M。`Delphi` 编写。
+
+---
+
+#### 二、反汇编。
+
+1、查找关键提示："对不起，您所输入的注册码不正确"，在 `50DEE5`，呵呵，是由 `50DE1F` 跳来的。顺藤摸瓜吧！
+
+```
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0050DE1F(C) <====由此跳来！
+
+|
+
+:0050DEDE 6A10                            push 00000010
+
+* Possible StringData Ref from Code Obj ->"错误"
+
+                                  |
+
+:0050DEE0 B918E05000                   mov ecx, 0050E018
+
+* Possible StringData Ref from Code Obj ->"对不起，您所输入的注册码不正确"
+
+                                  =====> BAD BOY！
+
+:0050DEE5 BA20E05000                   mov edx, 0050E020
+```
+
+---
+
+2、我们向上分析，可以看看算法。
+
+机器码：`604838662`
+
+试炼码：`13572468`
+
+直接 `BPX 50DD9E` 拦下！OK！开始追踪！
+
+```
+:0050DD9E E85D0A0000                    call 0050E800
+
+                                  =====>我们拦在这儿！
+
+:0050DDA3 8D55D4                       lea edx, dword ptr [ebp-2C]
+
+:0050DDA6 8B8308030000                 mov eax, dword ptr [ebx+00000308]
+
+:0050DDAC E897F2F3FF                   call 0044D048
+
+:0050DDB1 8B45D4                       mov eax, dword ptr [ebp-2C]
+
+                                  =====>D EAX=604838662
+
+604838662 是我的硬盘序列号 240D1B06 的十进制，呵呵，很多软件喜欢用我们的硬盘序列号做机器码，其实有小工具可以查看硬盘序列号，并且可以更改！
+
+:0050DDB4 E80FB5EFFF                   call 004092C8
+
+:0050DDB9 52                           push edx
+
+                                  =====>？EDX=0
+
+:0050DDBA 50                           push eax
+
+                                  =====>？EAX=240D1B06  硬盘序列号
+
+:0050DDBB 6945EC851A0000               imul eax, dword ptr [ebp-14], 00001A85
+
+                                  =====>EAX=1A85
+
+:0050DDC2 99                           cdq
+
+:0050DDC3 030424                       add eax, dword ptr [esp]
+
+                                  =====>EAX=1A85+240D1B06=240D358B
+
+:0050DDC6 13542404                     adc edx, dword ptr [esp+04]
+
+:0050DDCA 83C408                       add esp, 00000008
+
+:0050DDCD 8945F8                       mov dword ptr [ebp-08], eax
+
+                                  =====>240D358B 入[ebp-08]
+
+:0050DDD0 8955FC                       mov dword ptr [ebp-04], edx
+
+                                  =====>0 入[ebp-04]
+
+* Possible StringData Ref from Code Obj ->"44030620021284410"
+
+                                  |
+
+:0050DDD3 B838DF5000                   mov eax, 0050DF38
+
+                                  =====>EAX=44030620021284410
+
+:0050DDD8 E8EBB4EFFF                   call 004092C8
+
+                                  =====>关键 CALL。
+
+此 CALL 对上面程序自给的数值进行运算，得出下面的 EAX、EDX 值。
+
+##############################################
+
+呵呵，看看 TRW 犯的“小错误”！^-^
+
+？EAX
+
+DEC=-1717838278
+
+HEX=999BDE3A
+
+##############################################
+
+:0050DDDD 2B45F8                       sub eax, dword ptr [ebp-08]
+
+                                  =====>EAX=999BDE3A-240D358B=758EA8AF
+
+:0050DDE0 1B55FC                       sbb edx, dword ptr [ebp-04]
+
+                                  =====>EDX=9C6D9D-0=9C6D9D
+
+:0050DDE3 8945F0                       mov dword ptr [ebp-10], eax
+
+                                  =====>758EA8AF 入[ebp-10]
+
+:0050DDE6 8955F4                       mov dword ptr [ebp-0C], edx
+
+                                  =====>9C6D9D 入 [ebp-0C]
+
+:0050DDE9 8D55D0                       lea edx, dword ptr [ebp-30]
+
+:0050DDEC 8B8310030000                 mov eax, dword ptr [ebx+00000310]
+
+:0050DDF2 E851F2F3FF                   call 0044D048
+
+:0050DDF7 8B45D0                       mov eax, dword ptr [ebp-30]
+
+:0050DDFA 50                           push eax
+
+:0050DDFB FF75FC                       push [ebp-04]
+
+:0050DDFE FF75F8                       push [ebp-08]
+
+:0050DE01 8B45F0                       mov eax, dword ptr [ebp-10]
+
+                                  =====>758EA8AF 入 EAX
+
+:0050DE04 8B55F4                       mov edx, dword ptr [ebp-0C]
+
+                                  =====>9C6D9D 入 EDX
+
+:0050DE07 E84C79EFFF                   call 00405758
+
+                                  =====>关键 CALL，记作关键 CALL 2
+
+此 CALL 对上面的 EAX、EDX 通过 64 次循环得出真码的 16 进制值！详细情况见后。
+
+:0050DE0C 52                           push edx
+
+:0050DE0D 50                           push eax
+
+:0050DE0E 8D45CC                       lea eax, dword ptr [ebp-34]
+
+:0050DE11 E8CEB3EFFF                   call 004091E4
+
+:0050DE16 8B55CC                       mov edx, dword ptr [ebp-34]
+
+                                  =====>D EDX=72796479 真码！
+
+:0050DE19 58                           pop eax
+
+:0050DE1A E8016CEFFF                   call 00404A20
+
+                                  ====>比较 CALL！F8 进入！
+
+:0050DE1F 0F85B9000000                 jne 0050DEDE
+
+                                  =====>跳则 OVER！
+
+:0050DE25 B201                         mov dl, 01
+
+:0050DE27 A114364700                   mov eax, dword ptr [00473614]
+
+:0050DE2C E8E358F6FF                   call 00473714
+
+:0050DE31 8945DC                       mov dword ptr [ebp-24], eax
+
+:0050DE34 33C0                         xor eax, eax
+
+:0050DE36 55                           push ebp
+
+:0050DE37 68D7DE5000                   push 0050DED7
+
+:0050DE3C 64FF30                       push dword ptr fs:[eax]
+
+:0050DE3F 648920                       mov dword ptr fs:[eax], esp
+
+:0050DE42 BA02000080                   mov edx, 80000002
+
+:0050DE47 8B45DC                       mov eax, dword ptr [ebp-24]
+
+:0050DE4A E86559F6FF                   call 004737B4
+
+:0050DE4F 8D45D8                       lea eax, dword ptr [ebp-28]
+
+* Possible StringData Ref from Code Obj ->"System\\Services\\ed946c1b-4b05-4070-b56c-d47d82"
+
+                                  ->"37c207"
+
+                                  |
+
+:0050DE52 BA54DF5000                   mov edx, 0050DF54
+
+:0050DE57 E85068EFFF                   call 004046AC
+
+:0050DE5C 8B55D8                       mov edx, dword ptr [ebp-28]
+
+:0050DE5F 8B45DC                       mov eax, dword ptr [ebp-24]
+
+:0050DE62 E8DD61F6FF                   call 00474044
+
+:0050DE67 84C0                         test al, al
+
+:0050DE69 750B                         jne 0050DE76
+
+:0050DE6B 8B55D8                       mov edx, dword ptr [ebp-28]
+
+:0050DE6E 8B45DC                       mov eax, dword ptr [ebp-24]
+
+:0050DE71 E8A659F6FF                   call 0047381C
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0050DE69(C)
+
+|
+
+:0050DE76 B101                         mov cl, 01
+
+:0050DE78 8B55D8                       mov edx, dword ptr [ebp-28]
+
+:0050DE7B 8B45DC                       mov eax, dword ptr [ebp-24]
+
+:0050DE7E E8755AF6FF                   call 004738F8
+
+:0050DE83 B101                         mov cl, 01
+
+:0050DE85 BA94DF5000                   mov edx, 0050DF94
+
+:0050DE8A 8B45DC                       mov eax, dword ptr [ebp-24]
+
+:0050DE8D E8925FF6FF                   call 00473E24
+
+:0050DE92 8B45DC                       mov eax, dword ptr [ebp-24]
+
+:0050DE95 E8EA58F6FF                   call 00473784
+
+:0050DE9A 6A40                         push 00000040
+
+* Possible StringData Ref from Code Obj ->"注册成功"
+
+                                  =====>成功了！
+```
+
+
+
+### 3、F8 进入关键 CALL 2：`50DE07` `call 00405758`
+
+:0050DE9C `B998DF5000` `mov ecx, 0050DF98`
+
+* Possible StringData Ref from Code Obj -> "感谢您购买我们的软件！特别提示：如果您的电脑硬"  
+-> "盘被重新格式化，则必须根据新的机器码向比天国际"  
+-> "获取新的软件注册码。"
+
+:0050DEA1 `BAA4DF5000` `mov edx, 0050DFA4`
+
+* Referenced by a CALL at Addresses:
+| :0041499B, :0050DE07 |
+
+#### :00405758
+```
+:00405758  55                push ebp
+:00405759  53                push ebx
+:0040575A  56                push esi
+:0040575B  57                push edi
+:0040575C  31FF              xor edi, edi
+:0040575E  8B5C2414          mov ebx, dword ptr [esp+14]
+:00405762  8B4C2418          mov ecx, dword ptr [esp+18]
+:00405766  09C9              or ecx, ecx
+:00405768  7508              jne 00405772
+:0040576A  09D2              or edx, edx
+:0040576C  745C              je 004057CA
+:0040576E  09DB              or ebx, ebx
+:00405770  7458              je 004057CA
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+| :00405768(C) |
+
+#### :00405772
+```
+:00405772  09D2              or edx, edx
+:00405774  790A              jns 00405780
+:00405776  F7DA              neg edx
+:00405778  F7D8              neg eax
+:0040577A  83DA00            sbb edx, 00000000
+:0040577D  83CF01            or edi, 00000001
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+| :00405774(C) |
+
+#### :00405780
+```
+:00405780  09C9              or ecx, ecx
+:00405782  790A              jns 0040578E
+:00405784  F7D9              neg ecx
+:00405786  F7DB              neg ebx
+:00405788  83D900            sbb ecx, 00000000
+:0040578B  83F701            xor edi, 00000001
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+| :00405782(C) |
+
+#### :0040578E
+```
+:0040578E  89CD              mov ebp, ecx
+:00405790  B940000000        mov ecx, 00000040
+====> 呵呵，64 次！
+:00405795  57                push edi
+:00405796  31FF              xor edi, edi
+:00405798  31F6              xor esi, esi
+:0040579A  D1E0              shl eax, 1
+====> 758EA8AF 算术左移 64 次
+====> 64 次左移后的结果=456C93E
+:0040579C  D1D2              rcl edx, 1
+====> 9C6D9D 带进位循环左移 64 次
+====> 64 次左移后的结果=0
+:0040579E  D1D6              rcl esi, 1
+====> 64 次左移后的结果=329F8E05
+:004057A0  D1D7              rcl edi, 1
+====> 64 次左移后的结果=0
+:004057A2  39EF              cmp edi, ebp
+:004057A4  720B              jb 004057B1
+:004057A6  7704              ja 004057AC
+:004057A8  39DE              cmp esi, ebx
+:004057AA  7205              jb 004057B1
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+| :004057A6(C) |
+
+#### :004057AC
+```
+:004057AC  29DE              sub esi, ebx
+====> ESI-EBX
+:004057AE  19EF              sbb edi, ebp
+:004057B0  40                inc eax
+====> EAX 增 1
+```
+
+呵呵，64 次循环后的结果：`EAX=456C93E+1=456C93F`，这就是真码的 16 进制值！
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+| :004057A4(C), :004057AA(C) |
+
+#### :004057B1
+```
+:004057B1  E2E7              loop 0040579A
+====> 循环吧！
+:004057B3  5B                pop ebx
+:004057B4  F7C301000000      test ebx, 00000001
+:004057BA  7407              je 004057C3
+:004057BC  F7DA              neg edx
+:004057BE  F7D8              neg eax
+:004057C0  83DA00            sbb edx, 00000000
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+| :004057BA(C), :004057CE(U) |
+
+#### :004057C3
+```
+:004057C3  5F                pop edi
+:004057C4  5E                pop esi
+:004057C5  5B                pop ebx
+:004057C6  5D                pop ebp
+:004057C7  C20800            ret 0008
+```
+
+### 4、F8 进入比较 CALL：`0050DE1A` `call 00404A20`
+
+* Referenced by a CALL at Addresses:
+| :0041D3DB, :004240C6, :00426E73, :0042C93D, :0042DC74 |
+| :00433DBB, :00433DD9, :0043BAE0, :0044BEDA, :0044BF68 |
+
+…… 很多地方 CALL 此处 ……
+
+#### :00404A20
+```
+:00404A20  53                push ebx
+:00404A21  56                push esi
+:00404A22  57                push edi
+:00404A23  89C6              mov esi, eax
+:00404A25  89D7              mov edi, edx
+:00404A27  39D0              cmp eax, edx
+====> D EAX=13572468 试炼码
+====> D EDX=72796479 真码！！
+:00404A29  0F848F000000      je 00404ABE
+```
+
+### 【KeyMake 之内存注册机】
+
+中断地址：`50DE1A`
+中断次数：1
+第一字节：`E8`
+指令长度：5
+
+中断地址：`404A27`
+中断次数：1
+第一字节：`39`
+指令长度：2
+
+内存方式：`EDX`
+
+### 【总结】
+
+程序对自给的 `44030620021284410` 进行运算得出 `999BDE3A`，
+`999BDE3A` - 我的硬盘序列号 - 自给的 `1A85` = `758EA8AF`。
+
+`758EA8AF` 算术左移 64 次 = `456C93E`
+`456C93E` + 1 = `456C93F` —— 这就是真码的 16 进制值！
+
+奇怪了！难道每次都要重新注册？
+
+### 【整理】
+
+机器码：`604838662`
+注册码：`72796479`
+
+Cracked By 巢水工作坊——fly【OCN】
+2003-2-9 18:00 `4dd466d0e1e0cc123afbe504da2462ca`
