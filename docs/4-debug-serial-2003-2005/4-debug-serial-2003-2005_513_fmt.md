@@ -1,0 +1,160 @@
+
+# 网络填表终结者
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6116.htm`](https://www.pediy.com/kssd/pediy06/pediy6116.htm)
+
+**软件名称：** `网络填表终结者`
+
+**软件简介：** 网上智能填表软件，帮助你快速填写网上各种表格，与 `IE` 紧密结合，所有填表操作通过 `IE` 右键实现，填表时无需运行软件，有 3 大功能：
+1. **智能填表**：由程序自动帮你填写表格，只要点击 `IE` 右键菜单即可完成表格的填写；
+2. **网页快照**：对于需要反复填写相同内容的表格，可以用快照功能把第一次填写的内容克隆下来，以后通过 `IE` 右键恢复表格内容；
+3. **填表帮手**：把输入信息添加到网页输入框的右键菜单中，在输入框中点击右键菜单即可输入相应信息。
+
+**下载地址：** [`www.onlinedown.net/soft/8912.htm`](http://www.onlinedown.net/soft/8912.htm)
+
+---
+
+**破解作者：** `冷枫[OCN][CTR]`
+
+**破解工具：** `w32Dasm` `OLLYDBG`
+
+**破解目的：** 学习
+
+---
+
+## [破解过程]
+
+**用户输入：** `冷枫`
+
+**假注册码：** `52225229`
+
+**详细过程：**
+
+```asm
+004ACA52  |> 55            PUSH EBP
+004ACA53  |. 68 25CD4A00  PUSH 1.004ACD25
+004ACA58  |. 64:FF30      PUSH DWORD PTR FS:[EAX]
+004ACA5B  |. 64:8920      MOV DWORD PTR FS:[EAX],ESP
+004ACA5E  |. 8D55 FC      LEA EDX,DWORD PTR SS:[EBP-4]
+004ACA61  |. 8B83 F4020000 MOV EAX,DWORD PTR DS:[EBX+2F4]
+004ACA67  |. E8 BC40F9FF  CALL 1.00440B28
+           |  //取用户名的位数～～～～～
+
+004ACA6C  |. 837D FC 00   CMP DWORD PTR SS:[EBP-4],0
+           |  //比较是否输入～～ eax=4 输入跳走去，不输入弹出提示～～～～～
+
+004ACA70  |. 75 29        JNZ SHORT 1.004ACA9B
+
+004ACA72  |. 68 30100000  PUSH 1030
+004ACA77  |. 68 34CD4A00  PUSH 1.004ACD34
+004ACA7C  |. 68 3CCD4A00  PUSH 1.004ACD3C
+004ACA81  |. 6A 00        PUSH 0
+004ACA83  |. E8 B0ABF5FF  CALL <JMP.&user32.MessageBoxA>
+004ACA88  |. 8B83 F4020000 MOV EAX,DWORD PTR DS:[EBX+2F4]
+004ACA8E  |. 8B10         MOV EDX,DWORD PTR DS:[EAX]
+004ACA90  |. FF92 C0000000 CALL DWORD PTR DS:[EDX+C0]
+004ACA96  |. E9 3A020000  JMP 1.004ACCD5
+
+           |  //从上面到这，来比较注册码位数
+
+004ACA9B  |> 8D55 F8      LEA EDX,DWORD PTR SS:[EBP-8]
+004ACA9E  |. 8B83 F8020000 MOV EAX,DWORD PTR DS:[EBX+2F8]
+004ACAA4  |. E8 7F40F9FF  CALL 1.00440B28
+           |  // 取注册码的位数～～～～～
+
+004ACAA9  |. 837D F8 00   CMP DWORD PTR SS:[EBP-8],0
+           |  //比较是否输入～～ eax=4 输入跳走去，不输入弹出提示～～
+
+004ACAAD  |. 75 29        JNZ SHORT 1.004ACAD8
+004ACAAF  |. 68 30100000  PUSH 1030
+004ACAB4  |. 68 34CD4A00  PUSH 1.004ACD34
+004ACAB9  |. 68 4CCD4A00  PUSH 1.004ACD4C
+004ACABE  |. 6A 00        PUSH 0
+004ACAC0  |. E8 73ABF5FF  CALL <JMP.&user32.MessageBoxA>
+004ACAC5  |. 8B83 F8020000 MOV EAX,DWORD PTR DS:[EBX+2F8]
+004ACACB  |. 8B10         MOV EDX,DWORD PTR DS:[EAX]
+004ACACD  |. FF92 C0000000 CALL DWORD PTR DS:[EDX+C0]
+004ACAD3  |. E9 FD010000  JMP 1.004ACCD5
+
+           |  //从上面到这，哈哈，终于来到要点了～～～睁大眼球哦
+
+004ACAD8  |> 8D45 F0      LEA EAX,DWORD PTR SS:[EBP-10]
+004ACADB  |. 50           PUSH EAX
+004ACADC  |. 8D55 EC      LEA EDX,DWORD PTR SS:[EBP-14]
+004ACADF  |. 8B83 FC020000 MOV EAX,DWORD PTR DS:[EBX+2FC]
+004ACAE5  |. E8 3E40F9FF  CALL 1.00440B28
+           |  //取机器码位数 0A [我的机器码 1439138432]
+
+004ACAEA  |. 8B45 EC      MOV EAX,DWORD PTR SS:[EBP-14]
+           |  // 将机器码 1439138432 移到－－－eax
+
+004ACAED  |. B9 08000000  MOV ECX,8
+           |  //将８移到 ecx
+
+           |  [从后面跟踪发现，是取机器码前８位，有时跟不懂，慢慢跟几次就会好了]
+
+004ACAF2  |. BA 01000000  MOV EDX,1
+           |  //将８移到 edx 应该是从机器码第一位开始取吧～～
+
+004ACAF7  |. E8 1C81F5FF  CALL 1.00404C18
+           |  //取机器码前８位到 14391384－－－－eax
+
+004ACAFC  |. 8B45 F0      MOV EAX,DWORD PTR SS:[EBP-10]
+004ACAFF  |. E8 44C4F5FF  CALL 1.00408F48
+           |  //将机器码前８位的１６进制[DB9858]到 eax
+
+004ACB04  |. 8BF0         MOV ESI,EAX
+           |  // 将 eax１６进制[DB9858]到 esi
+
+004ACB06  |. 8D55 E8      LEA EDX,DWORD PTR SS:[EBP-18]
+004ACB09  |. 8B83 F4020000 MOV EAX,DWORD PTR DS:[EBX+2F4]
+004ACB0F  |. E8 1440F9FF  CALL 1.00440B28
+           |  //取用户的位数 [４]
+
+004ACB14  |. 8B45 E8      MOV EAX,DWORD PTR SS:[EBP-18]
+004ACB17  |. E8 A47EF5FF  CALL 1.004049C0
+004ACB1C  |. 0FAFF0       IMUL ESI,EAX
+           |  //用机器码前８位１６进制乘用户位数＝DB9858*4=36e6160
+
+004ACB1F  |. 8BC6         MOV EAX,ESI
+           |  // 36e6160 －－－＞eax
+
+004ACB21  |. 05 41C20B00  ADD EAX,0BC241
+           |  // eax [36e6160] ADD 0BC241= 37A23A1 -->真正注册码
+
+004ACB26  |. 8D4D F4      LEA ECX,DWORD PTR SS:[EBP-C]
+004ACB29  |. 33D2         XOR EDX,EDX
+004ACB2B  |. E8 DCC3F5FF  CALL 1.00408F0C
+004ACB30  |. 8B45 F4      MOV EAX,DWORD PTR SS:[EBP-C]
+004ACB33  |. 50           PUSH EAX
+004ACB34  |. 8D55 E4      LEA EDX,DWORD PTR SS:[EBP-1C]
+           |  //将真注册码到 eax [37A23A1]
+
+004ACB37  |. 8B83 F8020000 MOV EAX,DWORD PTR DS:[EBX+2F8]
+004ACB3D  |. E8 E63FF9FF  CALL 1.00440B28
+004ACB42  |. 8B55 E4      MOV EDX,DWORD PTR SS:[EBP-1C]
+           |  //我们输入的注册码 [52225229]
+
+004ACB45  |. 58           POP EAX
+004ACB46  |. E8 B97FF5FF  CALL 1.00404B04
+           |  //比较真假注册码的地方
+
+004ACB4B  |. 0F85 60010000 JNZ 1.004ACCB1
+           |  //关键跳转，不跳则ＯＫ，跳则ＯＶＥＲ
+```
+
+**最后得：**
+
+`冷枫`
+
+`37A23A1`
+
+## 破解小结
+
+**算法总结：** 取机器码前 8 位，和用户位数，然后用前 8 位 16 进制和用户位数相乘，再 `ADD` `0BC241` 就得注册码。
+
+---
+
+相信自己，哦哦哦哦~~~~~~~~~~~~~~
+
+`4dd466d0e1e0cc123afbe504da2462ca`
