@@ -1,0 +1,111 @@
+
+# 一个文件句柄标示的文件有且仅有一个文件指针。
+
+> 原文：[`www.pediy.com/kssd/pediy12/141954.html`](https://www.pediy.com/kssd/pediy12/141954.html)
+
+## 问题来源
+
+一个文件可以定位多个文件指针吗
+
+比如说现在有个文件 `10` 个字节
+
+我用 `2` 个线程写
+
+第一个线程从前面写，写前 `5` 个字节
+
+第二个线程从后面开始写，也是 `5` 个字节
+
+能实现吗
+
+## 代码
+
+```
+#include<windows.h>
+#include<process.h>
+#include<iostream>
+using namespace std;
+#define BUFSIZE 5
+HANDLE hFile;
+
+DWORD __stdcall CreateThreadFunc(LPVOID)
+{
+  cout<<"进入子线程"<<endl;
+  SetFilePointer(hFile,5,0,FILE_BEGIN);
+  char chBuffer[BUFSIZE];
+  memcpy(chBuffer,"a boy",5);
+  DWORD dwWriteSize=0;
+  WriteFile(hFile,chBuffer,5,&dwWriteSize,NULL);
+  return 0;
+
+}
+int main()
+{
+  hFile=CreateFile("test.txt",GENERIC_READ|GENERIC_WRITE,FILE_SHARE_READ|FILE_SHARE_WRITE,NULL,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
+  cout<<GetLastError()<<endl;
+  //SetFileValidData(hFile,10);
+  HANDLE hFileMap=CreateFileMapping(hFile,NULL,PAGE_READWRITE,0,10,NULL);
+  cout<<GetLastError()<<endl;
+  char chBuffer[BUFSIZE];
+  memcpy(chBuffer,"yirui",5);
+  DWORD dwWriteSize=0;
+  SetFilePointer(hFile,0,0,FILE_END);
+  WaitForSingleObject(CreateThread(NULL,0,CreateThreadFunc,0,0,0),INFINITE);
+  WriteFile(hFile,chBuffer,5,&dwWriteSize,NULL);
+  CloseHandle(hFileMap);
+  CloseHandle(hFile);
+  return 0;
+}
+
+```
+
+## 输出结果
+
+输出结果证明了确实只有一个文件定位指针。
+
+测试过程中发现不会使用 `SetFileValidData`，所以改用了内存映射,还请大家看看这个函数如何使用，谢谢！
+
+## 代码
+
+```
+#include<windows.h>
+#include<process.h>
+#include<iostream>
+using namespace std;
+#define BUFSIZE 5
+
+DWORD __stdcall CreateThreadFunc(LPVOID)
+{
+  cout<<"进入子线程"<<endl;
+  OFSTRUCT os={sizeof(OFSTRUCT)};
+  HANDLE hFile=(HANDLE)OpenFile("test.txt",&os,OF_READWRITE);
+  cout<<GetLastError()<<endl;
+  SetFilePointer(hFile,5,0,FILE_BEGIN);
+  char chBuffer[BUFSIZE];
+  memcpy(chBuffer,"a boy",5);
+  DWORD dwWriteSize=0;
+  WriteFile(hFile,chBuffer,5,&dwWriteSize,NULL);
+  CloseHandle(hFile);
+  return 0;
+
+}
+int main()
+{
+  HANDLE hFile=CreateFile("test.txt",GENERIC_READ|GENERIC_WRITE,FILE_SHARE_READ|FILE_SHARE_WRITE,NULL,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
+  cout<<GetLastError()<<endl;
+  //SetFileValidData(hFile,4);
+  HANDLE hFileMap=CreateFileMapping(hFile,NULL,PAGE_READWRITE,0,10,NULL);
+  cout<<GetLastError()<<endl;
+  char chBuffer[BUFSIZE];
+  memcpy(chBuffer,"yirui",5);
+  DWORD dwWriteSize=0;
+  SetFilePointer(hFile,0,0,FILE_BEGIN);
+  WaitForSingleObject(CreateThread(NULL,0,CreateThreadFunc,0,0,0),INFINITE);
+  WriteFile(hFile,chBuffer,5,&dwWriteSize,NULL);
+  CloseHandle(hFileMap);
+  CloseHandle(hFile);
+  return 0;
+}
+
+```
+
+一个文件可以定义多个文件指针而互不干扰彼此，但是一个文件句柄就只能对应一个文件指针。
