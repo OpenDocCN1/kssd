@@ -1,0 +1,179 @@
+
+# GreenBrowser2.3 捐助码算法分析
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-71.htm`](https://www.pediy.com/kssd/pediy07/pediy7-71.htm)
+
+【破解作者】 `zmw1224`  
+【作者邮箱】 `zmw1224@yahoo.com.cn`  
+【使用工具】 `OD`, `PEiD`  
+【破解平台】 `Win9x/NT/2000/XP`  
+【软件名称】 `GreenBrowser 2.3(Build 1220)`  
+【下载地址】 `http://www.morequick.com/indexgb.htm`  
+【软件简介】 `GreenBrowser` 是一个多窗口浏览器，它基于 `IE`，并且提供了更多的特色功能。  
+收集器、鼠标手势、鼠标拖放、搜索引擎、页面背景色、工具栏皮肤、代理、标签栏、快捷键、自动滚屏、自动保存、自动填表、自动隐藏工具栏、启动模式、页内链接分析、群组、状态栏显示设定、特定的下载控制方案、搜索栏、扩展工具栏、运行脚本、下载管理器、页面缩放...  
+【软件大小】 `763KB`  
+【加壳方式】 `ASPack 2.12` -> `Alexey Solodovnikov`  
+【破解声明】 本笔记只用于学习交流，初学 `Crack`，只是感兴趣技术，没有其他目的，如有不妥之处希望作者谅解。
+
+\--------------------------------------------------------------------------------
+
+【破解内容】
+
+`GreenBrowser` 是个不错的浏览器，相信不少朋友用它，东东小，而且各方面也都不错。无意中发现，如果不是捐助用户，无捐助码的话，就会显示“副本未捐助”，看上去不怎么舒服，所以就想把这个“未捐助”给解决掉。废话就不多说，开工。
+
+`ASPack 2.12` 的壳，用脱壳机脱了它，脱出庐山真面目，`Microsoft Visual C++ 6.0`，`OD` 载入后，查找字符串，没找到什么有用信息，看来只能下断了，`OD` 载入停在下面：
+
+```
+0048A835  >/$  55             PUSH EBP
+0048A836  |.   8BEC          MOV EBP,ESP
+0048A838  |.   6A FF        PUSH -1
+0048A83A  |.   68 10274D00  PUSH Unpacked.004D2710
+0048A83F  |.   68 F4E14800  PUSH Unpacked.0048E1F4                 ;  SE handler installation
+0048A844  |.   64:A1 0000000>MOV EAX,DWORD PTR FS:\[0\]
+0048A84A  |.   50           PUSH EAX
+0048A84B  |.   64:8925 00000>MOV DWORD PTR FS:\[0\],ESP
+0048A852  |.   83EC 58      SUB ESP,58
+0048A855  |.   53           PUSH EBX
+0048A856  |.   56           PUSH ESI
+0048A857  |.   57           PUSH EDI
+0048A858  |.   8965 E8      MOV DWORD PTR SS:\[EBP-18\],ESP
+```
+
+跳过两次异常，`Shift+F9` 后程序正常启动，输入相关信息：
+
+用户名：`zmw1224`  
+捐助码：`1234567`
+
+然后在命令窗口下断：`bp GetWindowTextA`（大部分 VC 的用这个断点，都能断下。），确定后马上被断停在下面：
+
+堆栈的内容：
+
+```
+0012F4E4   0049D3CE  /CALL 到 GetWindowTextA 来自 Unpacked.0049D3C8
+0012F4E8   001203A4  |hWnd = 001203A4 (class='Edit',parent=000C0356)
+0012F4EC   00BAD2F8  |Buffer = 00BAD2F8
+0012F4F0   00000008  \Count = 8
+0012F4F4   0012FAB8
+0012F4F8   004097B2  返回到 Unpacked.004097B2 来自 Unpacked.0049D3A3
+0012F4FC   0012F508
+0012F500   004C4948  Unpacked.004C4948
+0012F504   004F0A70  Unpacked.004F0A70
+```
+
+`Alt+F9` 返回领空停在下面：
+
+```
+0049D3BE  |.   50           PUSH EAX
+0049D3BF  |.   E8 91340000  CALL Unpacked.004A0855
+0049D3C4  |.   50           PUSH EAX                             ; |Buffer
+0049D3C5  |.   FF76 1C      PUSH DWORD PTR DS:\[ESI+1C\]         ; |hWnd
+0049D3C8  |.   FF15 24354C00 CALL DWORD PTR DS:\[<&USER32.GetWindowTex>; \GetWindowTextA
+0049D3CE  |.   8B4C24 08    MOV ECX,DWORD PTR SS:\[ESP+8\]       返回后停在这。
+0049D3D2  |.   6A FF        PUSH -1
+0049D3D4  |.   E8 54340000  CALL Unpacked.004A082D
+0049D3D9  |.   EB 0C        JMP SHORT Unpacked.0049D3E7
+0049D3DB  |>   8B01         MOV EAX,DWORD PTR DS:\[ECX\]
+0049D3DD  |.   FF7424 08    PUSH DWORD PTR SS:\[ESP+8\]
+0049D3E1  |.   FF90 88000000 CALL DWORD PTR DS:\[EAX+88\]
+0049D3E7  |>   5E           POP ESI
+0049D3E8  \\.  C2 0400      RETN 4
+```
+
+（ 取消断点）`RETN` 后停在这：
+
+```
+004097AD  .   E8 F13B0900   CALL Unpacked.0049D3A3
+004097B2  .   8B4C24 08     MOV ECX,DWORD PTR SS:\[ESP+8\]    获取用户名
+004097B6  .   8379 F8 01    CMP DWORD PTR DS:\[ECX-8\],1    判断用户名是否大于 1，是就跳，不是就住下走，然后 over.
+004097BA  .   7D 0E         JGE SHORT Unpacked.004097CA
+004097BC  .   6A FF        PUSH -1
+004097BE  .   6A 00        PUSH 0
+004097C0  .   68 4FEF0000  PUSH 0EF4F
+004097C5  .   E9 A1000000  JMP Unpacked.0040986B
+004097CA  >   8D5424 04     LEA EDX,DWORD PTR SS:\[ESP+4\]
+004097CE  .   8D8E 98000000 LEA ECX,DWORD PTR DS:\[ESI+98\]
+004097D4  .   52           PUSH EDX
+004097D5  .   E8 C93B0900  CALL Unpacked.0049D3A3         这是获取捐助码
+004097DA  .   8B4424 04     MOV EAX,DWORD PTR SS:\[ESP+4\]
+004097DE  .   8378 F8 01    CMP DWORD PTR DS:\[EAX-8\],1      判断是否小于 1，小就跳
+004097E2  .   7E 7E        JLE SHORT Unpacked.00409862
+004097E4  .   51           PUSH ECX
+004097E5  .   8D5424 08     LEA EDX,DWORD PTR SS:\[ESP+8\]
+004097E9  .   8BCC         MOV ECX,ESP
+004097EB  .   896424 10     MOV DWORD PTR SS:\[ESP+10\],ESP
+004097EF  .   52           PUSH EDX
+004097F0  .   E8 2E690900  CALL Unpacked.004A0123
+004097F5  .   E8 96BF0000  CALL Unpacked.00415790       这是关键 CALL 跟进
+004097FA  .   83C4 04       ADD ESP,4
+004097FD  .   85C0         TEST EAX,EAX
+004097FF  .   74 56        JE SHORT Unpacked.00409857
+00409801  .   E8 8E870A00  CALL Unpacked.004B1F94
+```
+
+关键 CALL：
+
+```
+00415790  /$  6A FF        PUSH -1
+00415792  |.   68 18884B00  PUSH Unpacked.004B8818                 ;  SE handler installation
+00415797  |.   64:A1 0000000>MOV EAX,DWORD PTR FS:\[0\]
+0041579D  |.   50           PUSH EAX
+0041579E  |.   64:8925 00000>MOV DWORD PTR FS:\[0\],ESP
+004157A5  |.   83EC 38      SUB ESP,38
+004157A8  |.   56           PUSH ESI
+004157A9  |.   33F6         XOR ESI,ESI
+004157AB  |.   8D4C24 4C    LEA ECX,DWORD PTR SS:\[ESP+4C\]
+004157AF  |.   897424 44    MOV DWORD PTR SS:\[ESP+44\],ESI
+004157B3  |.   E8 6B300800  CALL Unpacked.00498823           取捐助码
+004157B8  |.   8D4C24 4C    LEA ECX,DWORD PTR SS:\[ESP+4C\]
+004157BC  |.   E8 16300800  CALL Unpacked.004987D7
+004157C1  |.   8B4424 4C    MOV EAX,DWORD PTR SS:\[ESP+4C\]  把捐助码 1234567 送到 EAX，EAX=1234567
+004157C5  |.   8B40 F8      MOV EAX,DWORD PTR DS:\[EAX-8\]   EAX=7
+004157C8  |.   83F8 0A      CMP EAX,0A                       进行判断，捐助码是否等于 10 位，是就跳，不是就 over 了，没办法捐助码不合法，重新输入捐助码 1234567890 后重复上面工作，还来到这。
+004157CB  |.   74 23        JE SHORT Unpacked.004157F0
+004157CD  |.   8D4C24 4C    LEA ECX,DWORD PTR SS:\[ESP+4C\]
+004157D1  |.   C74424 44 FFF>MOV DWORD PTR SS:\[ESP+44\],-1
+004157D9  |.   E8 D0AB0800  CALL Unpacked.004A03AE
+004157DE  |.   33C0         XOR EAX,EAX
+004157E0  |.   5E           POP ESI
+004157E1  |.   8B4C24 38    MOV ECX,DWORD PTR SS:\[ESP+38\]
+004157E5  |.   64:890D 00000>MOV DWORD PTR FS:\[0\],ECX
+004157EC  |.   83C4 44      ADD ESP,44
+```
+
+等于 10 位后就跳到下面：
+
+```
+004157F0  |>  \A1 5C0A4F00   MOV EAX,DWORD PTR DS:\[4F0A5C\]
+004157F5  |.   53           PUSH EBX
+004157F6  |.   57           PUSH EDI
+004157F7  |.   894424 0C    MOV DWORD PTR SS:\[ESP+C\],EAX
+004157FB  |.   894424 10    MOV DWORD PTR SS:\[ESP+10\],EAX
+004157FF  |.   8D4C24 14    LEA ECX,DWORD PTR SS:\[ESP+14\]
+00415803  |.   6A 05        PUSH 5
+00415805  |.   51           PUSH ECX
+00415806  |.   8D4C24 5C    LEA ECX,DWORD PTR SS:\[ESP+5C\]
+0041580A  |.   C64424 54 02  MOV BYTE PTR SS:\[ESP+54\],2
+0041580F  |.   E8 D52B0800  CALL Unpacked.004983E9
+00415814  |.   50           PUSH EAX
+00415815  |.   8D4C24 10    LEA ECX,DWORD PTR SS:\[ESP+10\]
+00415819  |.   C64424 50 03  MOV BYTE PTR SS:\[ESP+50\],3
+0041581E  |.   E8 C4AC0800  CALL Unpacked.004A04E7
+00415823  |.   8D4C24 14    LEA ECX,DWORD PTR SS:\[ESP+14\]
+00415827  |.   C64424 4C 02  MOV BYTE PTR SS:\[ESP+4C\],2
+0041582C  |.   E8 7DAB0800  CALL Unpacked.004A03AE
+00415831  |.   8D5424 18    LEA EDX,DWORD PTR SS:\[ESP+18\]
+00415835  |.   6A 05        PUSH 5
+00415837  |.   52           PUSH EDX
+00415838  |.   8D4C24 5C    LEA ECX,DWORD PTR SS:\[ESP+5C\]
+0041583C  |.   E8 2C2B0800  CALL Unpacked.0049836D
+00415841  |.   50           PUSH EAX
+00415842  |.   8D4C24 14    LEA ECX,DWORD PTR SS:\[ESP+14\]     上面的 CALL 多，不用一个个跟，看堆栈内容分析得，分别取前 5 位和后 5 位
+00415846  |.   C64424 50 04  MOV BYTE PTR SS:\[ESP+50\],4
+0041584B  |.   E8 97AC0800  CALL Unpacked.004A04E7
+00415850  |.   8D4C24 18    LEA ECX,DWORD PTR SS:\[ESP+18\]
+00415854  |.   C64424 4C 02  MOV BYTE PTR SS:\[ESP+4C\],2
+00415859  |.   E8 50AB0800  CALL Unpacked.004A03AE
+0041585E  |.   8D4C24 0C    LEA ECX,DWORD PTR SS:\[ESP+C\]
+00415862  |.   E8 8DB00800  CALL Unpacked.004A08F4       这个取前 5 位，并按第五位、第四位、第三位、第二位、第一位的排列，我的就是 54321    
+00415867  |.   33C0         XOR EAX,EAX                EAX 清 0，下面是赋初值，关键。
+```
