@@ -1,0 +1,1467 @@
+
+# 初次分析 NE 软件 Koohg
+
+> 原文：[`www.pediy.com/kssd/pediy12/144646.html`](https://www.pediy.com/kssd/pediy12/144646.html)
+
+## 文章信息
+
+【文章标题】: 静态分析 NE 文件
+
+【文章作者】: `P\_O\_K\_E\_R`
+
+【作者邮箱】: `p\_o\_k\_e\_r@sohu.com`
+
+【软件名称】: `Koohg` V1.0.4
+
+【下载地址】: `http://chinesecheckers.vegard2.no/koohginst.exe`
+
+【保护方式】: 序列号
+
+【编写语言】: C++
+
+【使用工具】: `W32Dasm`
+
+【操作平台】: WinXP
+
+【软件介绍】: 以花样为主并可自制棋盘的类跳棋游戏
+
+【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
+
+---
+
+## 详细过程
+
+用 `PEiD` 分析成“不是有效的 PE 文件”，但文件可执行；用 `OllyICE` 动态分析时推测它通过 `ntvdm` 解释执行，使用 `W32dasm` 打开后并未发现三十二位寄存器，并依文件时间判断它是为 Win95 以前版本所作的十六位程序，然后用 `eXeScope` 分析发现是 NE 文件。
+
+结果是用 `W32dasm` 进行静态分析，用 `W32dasm` 打开应用程序后参考找不到所愿，细看程序终于找到，问题应该是分析器的参考有毛病或对象程序可能使用了特殊字符造成了影响，又或是程序是十六位的缘故。
+
+注册对话框的是 `DialogID_00F7`，注册按键是 `ControlID:0001`。
+
+用 `eXeScope` 找到对应注册对话框，其编号为 `247.`，并记下其中重要控件：
+
+*   `MC` static `437=1079.` 机器码
+*   `UN` edit `435=1077.` 姓名编辑框
+*   `SN` edit `436=1078.` 序列号输入框
+*   `BT` button `001=0001.` 注册按键
+*   `CC` button `002=0002.` 取消按键
+
+通过对话框参考找到对话框 `F7` 中的 `433` 控件并很幸运地跟踪到其处理代码，向上稍一卷动便发现了：
+
+```
+:0002.1F2A 3D0100     cmp ax, 0001
+:0002.1F2D 7503       jne 1F32
+:0002.1F2F E9B3F4     jmp 13E5
+:0002.1F32 3D0200     cmp ax, 0002
+:0002.1F35 7503       jne 1F3A
+:0002.1F37 E932FC     jmp 1B6C
+```
+
+插说一下，如果不幸运地没找到处理代码，可以通过 `Dialog_ID` 先找到对话框调用：
+
+```
+:0002.0F48 FF363629   push word ptr [2936]           ;模块句柄
+:0002.0F4C B8F700     mov ax, 00F7                   ;
+:0002.0F4F BA0000     mov dx, 0000                   ;
+:0002.0F52 52         push dx                        ;
+:0002.0F53 50         push ax                        ;对话框标识
+:0002.0F54 B80000     mov ax, 0000                   ;
+:0002.0F57 50         push ax                        ;所属窗口
+:0002.0F58 B8FA0F     mov ax, 0FFA                   ;
+:0002.0F5B BA7A0B     mov dx, SEG ADDR of Segment 0002  ;对话框过程
+:0002.0F5E 52         push dx                        ;
+:0002.0F5F 50         push ax                        ;
+:0002.0F60 9AFFFF0000 call USER.DIALOGBOX            ;
+```
+
+再到过程中找到分析。
+
+无置疑地跟到 `0002.13E5`。粗一看便见：
+
+```
+:0002.141C 9AD68CD613 call 0004.8CD6
+:0002.1421 83C404     add sp, 0004
+:0002.1424 3D0000     cmp ax, 0000
+:0002.1427 7403       je 142C
+:0002.1429 E91F00     jmp 144B
+```
+
+有理由相信 `0004.8CD6` 就是注册判断。但 `0002.13E5` 这一部分我们还是要细细从头分析的好。
+
+之后会发现不是的。
+
+得分析
+
+```
+:0002.13E5 FF760E     push word ptr [bp+0E]    ;对话框句柄
+:0002.13E8 B83604     mov ax, 0436            ;
+:0002.13EB 50         push ax                  ;控件 ID
+:0002.13EC 8D46BC     lea ax, [bp-44]          ;
+:0002.13EF 8CD2       mov dx, ss               ;
+:0002.13F1 52         push dx                  ;
+:0002.13F2 50         push ax                  ;缓冲区为 SS: bp-0044=bp-68.
+:0002.13F3 B81400     mov ax, 0014             ;
+:0002.13F6 50         push ax                  ;序列号限长 20.字节
+:0002.13F7 9AFFFF0000 call USER.GETDLGITEMTEXT ;
+:0002.13FC FF760E     push word ptr [bp+0E]    ;对话框句柄
+:0002.13FF B83504     mov ax, 0435             ;
+:0002.1402 50         push ax                  ;控件 ID
+:0002.1403 8D8626FE   lea ax, [bp+FE26]        ;
+:0002.1407 8CD2       mov dx, ss               ;
+:0002.1409 52         push dx                  ;
+:0002.140A 50         push ax                  ;缓冲区为 SS: bp-01DA=bp-474.
+:0002.140B B82800     mov ax, 0028             ;
+:0002.140E 50         push ax                  ;用户名限长 40.字节
+:0002.140F 9AF8130000 call USER.GETDLGITEMTEXT ;
+:0002.1414 8D8626FE   lea ax, [bp+FE26]        ;
+:0002.1418 8CD2       mov dx, ss               ;
+:0002.141A 52         push dx                  ;
+:0002.141B 50         push ax                  ;用户名缓冲区
+:0002.141C 9AD68CD613 call 0004.8CD6           ;获取用户名长度
+:0002.1421 83C404     add sp, 0004             ;平衡堆栈
+:0002.1424 3D0000     cmp ax, 0000             ;
+:0002.1427 7403       je 142C                  ;
+:0002.1429 E91F00     jmp 144B                 ;
+:0002.142C
+... ... ... ...
+:0002.1443 9A610F0000 call USER.DIALOGBOX      ;用户名为空的处理
+:0002.1448 E9020B     jmp 1F4D                 ;出错重来
+```
+
+补充一下，分析 `0004.8CD6` 子程序时，轻易看出它是统计字符串长，为了了解它计算的是哪一个字符串，则要了解 `bp+6` 是何值，回溯查找不果，细想起 `CALL` 有压下一 `CS:IP` 的，于是便知 `bp+6` 正是堆栈中的用户名缓冲区地址。
+
+```
+:0004.8CD6 55         push bp
+:0004.8CD7 8BEC       mov bp, sp
+:0004.8CD9 8BD7       mov dx, di
+:0004.8CDB C47E06     les di, [bp+06]
+:0004.8CDE 33C0       xor ax, ax
+:0004.8CE0 B9FFFF     mov cx, FFFF
+:0004.8CE3 F2         repnz
+:0004.8CE4 AE         scasb
+:0004.8CE5 F7D1       not cx
+:0004.8CE7 7501       jne 8CEA
+:0004.8CE9 49         dec cx
+:0004.8CEA 91         xchg cx
+:0004.8CEB 8BFA       mov di, dx
+:0004.8CED 5D         pop bp
+:0004.8CEE CB         retf
+```
+
+这子过段计算字符串长，空串返回负一，非空则返回包括结尾的字节长（二三四……）。
+
+回过头来继续分析：
+
+```
+:0002.144B B80100     mov ax, 0001
+:0002.144E 50         push ax
+:0002.144F B80100     mov ax, 0001
+:0002.1452 BAD312     mov dx, SEG ADDR of Segment 0005
+:0002.1455 52         push dx
+:0002.1456 50         push ax
+:0002.1457 8D46F8     lea ax, [bp-08]
+:0002.145A 8CD2       mov dx, ss
+:0002.145C 52         push dx
+:0002.145D 50         push ax
+:0002.145E 9AF08C1F14 call 0004.8CF0           ;字符串传送：0005.0001->ss:bp-08
+:0002.1463 83C40A     add sp, 000A
+```
+
+插入该传送函数：
+
+```
+:0004.8CF0 55         push bp
+:0004.8CF1 8BEC       mov bp, sp
+:0004.8CF3 57         push di
+:0004.8CF4 56         push si
+:0004.8CF5 1E         push ds
+:0004.8CF6 C47E06     les di, [bp+06]
+:0004.8CF9 C5760A     lds si, [bp+0A]
+:0004.8CFC 8BDF       mov bx, di
+:0004.8CFE 8B4E0E     mov cx, [bp+0E]
+:0004.8D01 E30C       jcxz 8D0F
+:0004.8D03 AC         lodsb
+:0004.8D04 0AC0       or al , al
+:0004.8D06 7403       je 8D0B
+:0004.8D08 AA         stosb
+:0004.8D09 E2F8       loop 8D03
+:0004.8D0B 32C0       xor al , al
+:0004.8D0D F3AA       rep stosb
+:0004.8D0F 8BC3       mov ax, bx
+:0004.8D11 8CC2       mov dx, es
+:0004.8D13 1F         pop ds
+:0004.8D14 5E         pop si
+:0004.8D15 5F         pop di
+:0004.8D16 8BE5       mov sp, bp
+:0004.8D18 5D         pop bp
+:0004.8D19 CB         retf
+```
+
+本程序段的功能是进行串传送。从左向右的参数为零值不传送而非零值表传送及目标串尾零个数:`byte`；源段址:`word`；源偏址:`word`；目的段址:`word`；目的偏址:`word`。返回值为 `ax=目的偏址`；`dx=目的段址`。
+
+回过头我们可以往下继续分析，然而 `0005.0001` 处有何值我们不知道，虽能猜测那一处应该是机器码之类的，但还是调查一番比较好。
+
+```
+DSEG005  File Offset: 00000000  Size:0000  Flags:0x0C51 -> DATA, MOVEABLE
+```
+
+现有三个线索，一是利用查找找到对 `DSEG005` 调用的地方；二是查看注册对话框的初始化部分；三是机码文本的消息处理。第三者可能性极小。
+
+按第一个查找会发现调用它的地方极多，它可能就一临时数据区，所以希望寄在第二可能。虽然过程的开头有些怪，但是很快就找到了 `0002.1027`，往下略一滚动很幸运就发现：
+
+```
+:0002.1063 BAE00E     mov dx, SEG ADDR of Segment 0005
+```
+
+但这一段看得眼花。天无绝人之路，于是搜索 `3704`，结果只有三处，很快就判断出 `0002.133C` 是所需，往它上面一看，有四个地方调用：
+
+|:0002.10F2(U), :0002.1127(U), :0002.1240(U), :0002.1323(U)
+
+有够麻烦，但看第一个离 `0002.1027` 最近，去看一看，事先记下了 `SS:bp-30` 是机器码所在。
+
+虽然很麻烦，但我们还是要把 `0002.1027` 至 `0002.10F2` 之间的部分细细分析一下。
+
+```
+:0002.1027 FF760E     push word ptr [bp+0E]
+:0002.102A B82E04     mov ax, 042E
+:0002.102D 50         push ax
+:0002.102E 9AFFFF0000 call USER.GETDLGITEM
+:0002.1033 A32E28     mov word ptr [282E], ax
+;获取注册对话框上的图标句柄并存一下
+:0002.1036 B83028     mov ax, 2830
+:0002.1039 8CDA       mov dx, ds
+:0002.103B 52         push dx
+:0002.103C 50         push ax                  ;缓冲区为 DS:2830
+:0002.103D B80401     mov ax, 0104
+:0002.1040 50         push ax                  ;缓冲区限长 104=260.
+:0002.1041 9A0B0C0000 call KERNEL.GETWINDOWSDIRECTORY
+;查找操作系统目录，我返回的是"C:\WINDOWS"。
+:0002.1046 B82B09     mov ax, 092B
+```
+
+
+
+`Possible StringData Ref from Data Seg 007 ->"\\wingk.dll"`
+
+```
+:0002.1049 8CDA       mov dx, ds
+:0002.104B 52         push dx
+:0002.104C 50         push ax
+:0002.104D B83028     mov ax, 2830
+:0002.1050 8CDA       mov dx, ds
+:0002.1052 52         push dx
+:0002.1053 50         push ax
+:0002.1054 9A1C8C1F10 call 0004.8C1C
+:0002.1059 83C408     add sp, 0008
+```
+
+应该是组合成路径`"C:\\WINDOWS\\wingk.dll"`，查看这个文件，果然不是动态链接库，第一行就是机器码，有够可恶，装垃圾到系统里。
+
+但不放心，去看看：
+
+```
+:0004.8C1C 55         push bp           ;
+:0004.8C1D 8BEC       mov bp, sp        ;
+:0004.8C1F 8BD7       mov dx, di        ;
+:0004.8C21 8BDE       mov bx, si        ;
+:0004.8C23 1E         push ds           ;
+:0004.8C24 C47E06     les di, [bp+06]   ;
+:0004.8C27 33C0       xor ax, ax        ;
+:0004.8C29 B9FFFF     mov cx, FFFFF     ;
+:0004.8C2C F2AE       repnz scasb       ;di 移到第一个参数串尾零后一位
+:0004.8C2E 8D75FF     lea si, [di-01]   ;si 指向第一串尾零处
+:0004.8C31 C47E0A     les di, [bp+0A]   ;di 指向第二串首
+:0004.8C34 B9FFFF     mov cx, FFFFF     ;
+:0004.8C37 F2AE       repnz scasb       ;di 移到第二个参数串尾零后一位
+:0004.8C39 F7D1       not cx            ;cx 得算上尾零的第二串长
+:0004.8C3B 7403       je 8C40           ;如果第二串算尾长小于 10000h 就跳
+:0004.8C3D 2BF9       sub di, cx        ;di++
+:0004.8C3F 41         inc cx            ;cx=0
+:0004.8C40 2BF9       sub di, cx        ;di 回到第二串首
+:0004.8C42 8CC0       mov ax, es        ;
+:0004.8C44 8ED8       mov ds, ax        ;
+:0004.8C46 8E4608     mov es, [bp+08]   ;
+:0004.8C49 87FE       xchg si, di       ;si 第二串首； di 第一串尾零处
+:0004.8C4B 8B4606     mov ax, [bp+06]   ;返回值是第一串首址
+:0004.8C4E 0BC9       or cx, cx         ;
+:0004.8C50 7505       jne 8C57          ;若第二串超长就不跳
+:0004.8C52 A5         movsw             ;
+:0004.8C53 49         dec cx            ;
+:0004.8C54 49         dec cx            ;
+:0004.8C55 EB08       jmp 8C5F          ;
+:0004.8C57 F7C60100   test si, 0001     ;
+:0004.8C5B 7402       je 8C5F           ;若第二串长为偶就跳
+:0004.8C5D A4         movsb             ;
+:0004.8C5E 49         dec cx            ;
+:0004.8C5F D1E9       shr cx, 01        ;
+:0004.8C61 F3A5       rep movsw         ;
+:0004.8C63 13C9       adc cx, cx        ;妙，只是罗嗦了
+:0004.8C65 F3A4       rep movsb         ;
+:0004.8C67 8BF3       mov si, bx        ;
+:0004.8C69 8BFA       mov di, dx        ;
+:0004.8C6B 1F         pop ds            ;
+:0004.8C6C 8CC2       mov dx, es        ;
+:0004.8C6E 5D         pop bp            ;
+:0004.8C6F CB         retf             ;
+```
+
+细细看了下来，果然是合并串，只是代码过于复杂了。
+
+```
+:0002.105C B80600     mov ax, 0006
+:0002.105F 50         push ax
+:0002.1060 B80000     mov ax, 0000
+:0002.1063 BAE00E     mov dx, SEG ADDR of Segment 0005
+:0002.1066 52         push dx
+:0002.1067 50         push ax
+:0002.1068 8D46D0     lea ax, [bp-30]
+:0002.106B 8CD2       mov dx, ss
+:0002.106D 52         push dx
+:0002.106E 50         push ax
+:0002.106F 9AF08C5710 call 0004.8CF0            ;字符串传送：0005.0000->ss:bp-30
+:0002.1074 83C40A     add sp, 000A
+```
+
+很好，又绕回来了。往下略略扫描一下，就知道不用再往下分析到 `0002.10F2` 了，在这之前机码就存在于 `0005.0000` 处。想想，在这之前，也就大概两处了，算了，我不想知道机器码怎么来的了。
+
+可是为什么我的机器码是这个啊，其实我是很想知道的啊。那就去我早先料想的地方找找，在程序中努力找找，没发现。
+
+包含机器码的 `wingk.dll` 是在什么时候建的呢？这个得想想。所以，把程序卸载并重新安装运行，不必用工具，直接监视它什么时候产生。
+
+有三个过程，一是自解压缩包，二是安装，三是初运行。很快就发现，该文件在安装过程中产生。
+
+再略一试，就知，若要打绿色包，只需再分析安装程序是如何产生此文件的便可（估计是要 `IS` 分析，留待以后继续）。
+
+思路回到上面提到的 `0005.0001` 处，观察到我的机器码是`"K39801"`，我们就知道传到 `ss:bp-08` 的是`"39801"`啦。继续分析：
+
+```
+:0002.1466 C646F900   mov byte ptr [bp-07], 00
+:0002.146A 8D46F8     lea ax, [bp-08]
+:0002.146D 8CD2       mov dx, ss
+:0002.146F 52         push dx
+:0002.1470 50         push ax
+:0002.1471 9A568D6114 call 0004.8D56
+:0002.1476 83C404     add sp, 0004
+```
+
+是机器码的处理，跟过去看看。
+
+```
+:0004.8DBC 55         push bp           ;
+:0004.8DBD 8BEC       mov bp, sp        ;
+:0004.8DBF 57         push di           ;
+:0004.8DC0 56         push si           ;
+:0004.8DC1 1E         push ds           ;
+:0004.8DC2 C57606     lds si, [bp+06]   ;
+:0004.8DC5 33C0       xor ax, ax        ;
+:0004.8DC7 99         cwd               ;
+:0004.8DC8 33DB       xor bx, bx        ;
+:0004.8DCA AC         lodsb             ;
+:0004.8DCB 3C20       cmp al, 20        ;空格
+:0004.8DCD 74FB       je 8DCA           ;
+:0004.8DCF 3C09       cmp al, 09        ;制表符
+:0004.8DD1 74F7       je 8DCA           ;
+:0004.8DD3 50         push ax           ;
+:0004.8DD4 3C2D       cmp al, 2D        ;正号
+:0004.8DD6 7404       je 8DDC           ;
+:0004.8DD8 3C2B       cmp al, 2B        ;负号
+:0004.8DDA 7501       jne 8DDD          ;
+:0004.8DDC AC         lodsb             ;
+:0004.8DDD 3C39       cmp al, 39        ;
+:0004.8DDF 771F       ja 8E00           ;
+:0004.8DE1 2C30       sub al, 30        ;
+:0004.8DE3 721B       jb 8E00           ;
+:0004.8DE5 D1E3       shl bx, 01        ;
+:0004.8DE7 D1D2       rcl dx, 01        ;
+:0004.8DE9 8BCB       mov cx, bx        ;
+:0004.8DEB 8BFA       mov di, dx        ;
+:0004.8DED D1E3       shl bx, 01        ;
+:0004.8DEF D1D2       rcl dx, 01        ;
+:0004.8DF1 D1E3       shl bx, 01        ;
+:0004.8DF3 D1D2       rcl dx, 01        ;
+:0004.8DF5 03D9       add bx, cx        ;
+:0004.8DF7 13D7       adc dx, di        ;
+:0004.8DF9 03D8       add bx, ax        ;
+:0004.8DFB 83D200     adc dx, 0000      ;
+:0004.8DFE EBDC       jmp 8DDC          ;
+:0004.8E00 58         pop ax            ;
+:0004.8E01 3C2D       cmp al, 2D        ;
+:0004.8E03 93         xchg ax,bx        ;
+:0004.8E04 7507       jne 8E0D          ;
+:0004.8E06 F7D8       neg ax            ;
+:0004.8E08 83D200     adc dx, 0000      ;
+:0004.8E0B F7DA       neg dx            ;
+:0004.8E0D 1F         pop ds            ;
+:0004.8E0E 5E         pop si            ;
+:0004.8E0F 5F         pop di            ;
+:0004.8E10 5D         pop bp            ;
+:0004.8E11 CB         retf             ;
+```
+
+原来是将前面可补白又可带正负号的十进制 `ASCII` 数字字符串转化成十六进制补码形式，该数返回在 `DX:AX` 中。
+
+```
+:0002.1479 054100     add ax, 0041
+:0002.147C 888662FF   mov [bp+FF62], al
+:0002.1480 8A46BC     mov al , [bp-44]
+:0002.1483 98         cbw
+:0002.1484 8986C4FD   mov [bp+FDC4], ax
+:0002.1488 8A8662FF   mov al , [bp+FF62]
+:0002.148C 98         cbw
+:0002.148D 8B8EC4FD   mov cx, [bp+FDC4]
+:0002.1491 3BC8       cmp cx, ax
+:0002.1493 7403       je 1498
+:0002.1495 E9B506     jmp 1B4D
+```
+
+机器码第一个数字和序列号第一位的对应关系是 `0<->A, 1<->B,2<->C, ...` 。不知是否只第一位如此，继续。
+
+```
+:0002.1498 B80100     mov ax, 0001
+:0002.149B 50         push ax
+:0002.149C 8D46BD     lea ax, [bp-43]
+:0002.149F 8CD2       mov dx, ss
+:0002.14A1 52         push dx
+:0002.14A2 50         push ax
+:0002.14A3 8D46D0     lea ax, [bp-30]
+:0002.14A6 8CD2       mov dx, ss
+:0002.14A8 52         push dx
+:0002.14A9 50         push ax
+:0002.14AA 9AF08C7414 call 0004.8CF0            ;字符串传送：ss:bp-43->ss:bp-30
+:0002.14AF 83C40A     add sp, 000A
+:0002.14B2 C646D100   mov byte ptr [bp-2F], 00
+:0002.14B6 B80100     mov ax, 0001
+:0002.14B9 50         push ax
+:0002.14BA B80400     mov ax, 0004
+:0002.14BD BA5314     mov dx, SEG ADDR of Segment 0005
+:0002.14C0 52         push dx
+:0002.14C1 50         push ax
+:0002.14C2 8D46F8     lea ax, [bp-08]
+:0002.14C5 8CD2       mov dx, ss
+:0002.14C7 52         push dx
+:0002.14C8 50         push ax
+:0002.14C9 9AF08CAD14 call 0004.8CF0            ;字符串传送：0005.0004->ss:bp-08
+:0002.14CE 83C40A     add sp, 000A
+:0002.14D1 C646F900   mov byte ptr [bp-07], 00
+:0002.14D5 8D46D0     lea ax, [bp-30]           ;序列号第二位
+```
+
+
+
+```asm
+:0002.14D8 8CD2       mov dx, ss
+:0002.14DA 52         push dx
+:0002.14DB 50         push ax
+:0002.14DC 9A568DCC14 call 0004.8D56 ;进制转换
+:0002.14E1 83C404     add sp, 0004
+:0002.14E4 8986C4FD   mov [bp+FDC4], ax
+:0002.14E8 8D46F8     lea ax, [bp-08] ;机码数字部第四位
+:0002.14EB 8CD2       mov dx, ss
+:0002.14ED 52         push dx
+:0002.14EE 50         push ax
+:0002.14EF 9A568DDF14 call 0004.8D56 ;进制转换
+:0002.14F4 83C404     add sp, 0004
+:0002.14F7 05F9FF     add ax, FFF9
+:0002.14FA 50         push ax
+:0002.14FB 9A7899F214 call 0004.9978
+:0002.1500 83C402     add sp, 0002
+```
+
+插入这个调用：
+
+```asm
+:0004.9978 45         inc bp
+:0004.9979 55         push bp
+:0004.997A 8BEC       mov bp, sp
+:0004.997C 1E         push ds
+:0004.997D 8B4606     mov ax, [bp+06]
+:0004.9980 99         cwd
+:0004.9981 33C2       xor ax, dx
+:0004.9983 2BC2       sub ax, dx
+:0004.9985 8D66FE     lea sp, [bp-02]
+:0004.9988 1F         pop ds
+:0004.9989 5D         pop bp
+:0004.998A 4D         dec bp
+:0004.998B CB         retf
+```
+
+原来是取八位长带符号数的绝对值，做得很巧妙，真是长见识了
+
+```asm
+:0002.1503 8B8EC4FD   mov cx, [bp+FDC4]
+:0002.1507 3BC8       cmp cx, ax
+:0002.1509 7403       je 150E
+:0002.150B E93F06     jmp 1B4D
+```
+
+序列号第二位等于数字码第四位与七的差的绝对值
+
+```asm
+:0002.150E B80100     mov ax, 0001
+:0002.1511 50         push ax
+:0002.1512 8D46BE     lea ax, [bp-42]
+:0002.1515 8CD2       mov dx, ss
+:0002.1517 52         push dx
+:0002.1518 50         push ax
+:0002.1519 8D46D0     lea ax, [bp-30]
+:0002.151C 8CD2       mov dx, ss
+:0002.151E 52         push dx
+:0002.151F 50         push ax
+:0002.1520 9AF08CFE14 call 0004.8CF0 ;字符串传送：ss:bp-42->ss:bp-30
+:0002.1525 83C40A     add sp, 000A
+:0002.1528 C646D100   mov byte ptr [bp-2F], 00
+:0002.152C B80100     mov ax, 0001
+:0002.152F 50         push ax
+:0002.1530 B80300     mov ax, 0003
+:0002.1533 BABE14     mov dx, SEG ADDR of Segment 0005
+:0002.1536 52         push dx
+:0002.1537 50         push ax
+:0002.1538 8D46F8     lea ax, [bp-08]
+:0002.153B 8CD2       mov dx, ss
+:0002.153D 52         push dx
+:0002.153E 50         push ax
+:0002.153F 9AF08C2315 call 0004.8CF0 ;字符串传送：0005.0003->ss:bp-08
+:0002.1544 83C40A     add sp, 000A
+:0002.1547 C646F900   mov byte ptr [bp-07], 00
+:0002.154B 8D46D0     lea ax, [bp-30]
+:0002.154E 8CD2       mov dx, ss
+:0002.1550 52         push dx
+:0002.1551 50         push ax
+:0002.1552 9A568D4215 call 0004.8D56 ;进制转换
+:0002.1557 83C404     add sp, 0004
+:0002.155A 8986C4FD   mov [bp+FDC4], ax
+:0002.155E 8D46F8     lea ax, [bp-08]
+:0002.1561 8CD2       mov dx, ss
+:0002.1563 52         push dx
+:0002.1564 50         push ax
+:0002.1565 9A568D5515 call 0004.8D56 ;进制转换
+:0002.156A 83C404     add sp, 0004
+:0002.156D B90300     mov cx, 0003
+:0002.1570 99         cwd
+:0002.1571 F7F9       idiv cx
+:0002.1573 8B86C4FD   mov ax, [bp+FDC4]
+:0002.1577 3BC2       cmp ax, dx
+:0002.1579 7403       je 157E
+:0002.157B E9CF05     jmp 1B4D
+```
+
+序列号第三位是数字码第三位除以三的余数
+
+```asm
+:0002.157E B80100     mov ax, 0001
+:0002.1581 50         push ax
+:0002.1582 8D46BF     lea ax, [bp-41]
+:0002.1585 8CD2       mov dx, ss
+:0002.1587 52         push dx
+:0002.1588 50         push ax
+:0002.1589 8D46D0     lea ax, [bp-30]
+:0002.158C 8CD2       mov dx, ss
+:0002.158E 52         push dx
+:0002.158F 50         push ax
+:0002.1590 9AF08C6815 call 0004.8CF0 ;字符串传送：ss:bp-41->ss:bp-30
+:0002.1595 83C40A     add sp, 000A
+:0002.1598 C646D100   mov byte ptr [bp-2F], 00
+:0002.159C B80100     mov ax, 0001
+:0002.159F 50         push ax
+:0002.15A0 B80100     mov ax, 0001
+:0002.15A3 BA3415     mov dx, SEG ADDR of Segment 0005
+:0002.15A6 52         push dx
+:0002.15A7 50         push ax
+:0002.15A8 8D46F8     lea ax, [bp-08]
+:0002.15AB 8CD2       mov dx, ss
+:0002.15AD 52         push dx
+:0002.15AE 50         push ax
+:0002.15AF 9AF08C9315 call 0004.8CF0 ;字符串传送：0005.0001->ss:bp-08
+:0002.15B4 83C40A     add sp, 000A
+:0002.15B7 C646F900   mov byte ptr [bp-07], 00
+:0002.15BB B80100     mov ax, 0001
+:0002.15BE 50         push ax
+:0002.15BF B80500     mov ax, 0005
+:0002.15C2 BAA415     mov dx, SEG ADDR of Segment 0005
+:0002.15C5 52         push dx
+:0002.15C6 50         push ax
+:0002.15C7 8D8614FE   lea ax, [bp+FE14]
+:0002.15CB 8CD2       mov dx, ss
+:0002.15CD 52         push dx
+:0002.15CE 50         push ax
+:0002.15CF 9AF08CB215 call 0004.8CF0 ;字符串传送：0005.0005->ss:bp-1EC
+:0002.15D4 83C40A     add sp, 000A
+:0002.15D7 C68615FE00 mov byte ptr [bp-01EB], 00
+:0002.15DC 8D46D0     lea ax, [bp-30] ;序列号第四位
+:0002.15DF 8CD2       mov dx, ss
+:0002.15E1 52         push dx
+:0002.15E2 50         push ax
+:0002.15E3 9A568DD215 call 0004.8D56 ;进制转换
+:0002.15E8 83C404     add sp, 0004
+:0002.15EB 8986C4FD   mov [bp+FDC4], ax
+:0002.15EF 8D46F8     lea ax, [bp-08] ;数字码第一位
+:0002.15F2 8CD2       mov dx, ss
+:0002.15F4 52         push dx
+:0002.15F5 50         push ax
+:0002.15F6 9A568DE615 call 0004.8D56 ;进制转换
+:0002.15FB 83C404     add sp, 0004
+:0002.15FE 8986C2FD   mov [bp+FDC2], ax
+:0002.1602 8D8614FE   lea ax, [bp+FE14] ;数字码第五位
+:0002.1606 8CD2       mov dx, ss
+:0002.1608 52         push dx
+:0002.1609 50         push ax
+:0002.160A 9A568DF915 call 0004.8D56 ;进制转换
+:0002.160F 83C404     add sp, 0004
+:0002.1612 8BC8       mov cx, ax ;数字码第五位
+:0002.1614 8B86C2FD   mov ax, [bp+FDC2] ;数字码第一位
+:0002.1618 F7E9       imul cx
+:0002.161A B90700     mov cx, 0007
+:0002.161D 99         cwd
+:0002.161E F7F9       idiv cx
+:0002.1620 8B86C4FD   mov ax, [bp+FDC4] ;序列号第四位
+:0002.1624 3BC2       cmp ax, dx
+:0002.1626 7403       je 162B
+:0002.1628 E92205     jmp 1B4D
+```
+
+序列号第四位等于数字码第一位和第五位的乘积除以七的余数
+
+```asm
+:0002.162B B80100     mov ax, 0001
+:0002.162E 50         push ax
+:0002.162F B80300     mov ax, 0003
+:0002.1632 BAC315     mov dx, SEG ADDR of Segment 0005
+:0002.1635 52         push dx
+:0002.1636 50         push ax
+:0002.1637 8D46F8     lea ax, [bp-08]
+:0002.163A 8CD2       mov dx, ss
+:0002.163C 52         push dx
+:0002.163D 50         push ax
+:0002.163E 9AF08C0D16 call 0004.8CF0 ;字符串传送：0005.0003->ss:bp-08
+:0002.1643 83C40A     add sp, 000A
+:0002.1646 C646F900   mov byte ptr [bp-07], 00
+:0002.164A 8D46F8     lea ax, [bp-08]
+:0002.164D 8CD2       mov dx, ss
+:0002.164F 52         push dx
+:0002.1650 50         push ax
+:0002.1651 9A568D4116 call 0004.8D56 ;进制转换
+:0002.1656 83C404     add sp, 0004
+:0002.1659 054D00     add ax, 004D
+:0002.165C 888662FF   mov [bp+FF62], al
+:0002.1660 8A46C1     mov al, [bp-3F]
+:0002.1663 98         cbw
+:0002.1664 8986C4FD   mov [bp+FDC4], ax
+:0002.1668 8A8662FF   mov al, [bp+FF62]
+:0002.166C 98         cbw
+:0002.166D 8B8EC4FD   mov cx, [bp+FDC4]
+:0002.1671 3BC8       cmp cx, ax
+:0002.1673 7403       je 1678
+:0002.1675 E9D504     jmp 1B4D
+```
+
+类似于第一位，数字码第三位与序列号第六位存在如下对应：`0<->M`, `1<->N`, `2<->O`, `3<->P`, `4<->Q`, `...` 。
+
+```asm
+:0002.1678 B80100     mov ax, 0001
+:0002.167B 50         push ax
+:0002.167C 8D46C2     lea ax, [bp-3E]
+:0002.167F 8CD2       mov dx, ss
+:0002.1681 52         push dx
+```
+
+
+
+:0002.1682 `50`          `push ax`
+
+:0002.1683 `8D46D0`     `lea ax, [bp-30]`
+
+:0002.1686 `8CD2`       `mov dx, ss`
+
+:0002.1688 `52`         `push dx`
+
+:0002.1689 `50`         `push ax`
+
+:0002.168A `9AF08C5416` `call 0004.8CF0`            ;字符串传送：`ss:bp-3E`->`ss:bp-30`
+
+:0002.168F `83C40A`     `add sp, 000A`
+
+:0002.1692 `C646D100`   `mov byte ptr [bp-2F], 00`
+
+:0002.1696 `B80100`     `mov ax, 0001`
+
+:0002.1699 `50`         `push ax`
+
+:0002.169A `B80200`     `mov ax, 0002`
+
+:0002.169D `BA3316`     `mov dx, SEG ADDR of Segment 0005`
+
+:0002.16A0 `52`         `push dx`
+
+:0002.16A1 `50`         `push ax`
+
+:0002.16A2 `8D46F8`     `lea ax, [bp-08]`
+
+:0002.16A5 `8CD2`       `mov dx, ss`
+
+:0002.16A7 `52`         `push dx`
+
+:0002.16A8 `50`         `push ax`
+
+:0002.16A9 `9AF08C8D16` `call 0004.8CF0`            ;字符串传送：`0005.0002`->`ss:bp-08`
+
+:0002.16AE `83C40A`     `add sp, 000A`
+
+:0002.16B1 `C646F900`   `mov byte ptr [bp-07], 00`
+
+:0002.16B5 `B80100`     `mov ax, 0001`
+
+:0002.16B8 `50`         `push ax`
+
+:0002.16B9 `B80400`     `mov ax, 0004`
+
+:0002.16BC `BA9E16`     `mov dx, SEG ADDR of Segment 0005`
+
+:0002.16BF `52`         `push dx`
+
+:0002.16C0 `50`         `push ax`
+
+:0002.16C1 `8D8614FE`   `lea ax, [bp+FE14]`
+
+:0002.16C5 `8CD2`       `mov dx, ss`
+
+:0002.16C7 `52`         `push dx`
+
+:0002.16C8 `50`         `push ax`
+
+:0002.16C9 `9AF08CAC16` `call 0004.8CF0`            ;字符串传送：`0005.0004`->`ss:bp-1EC`
+
+:0002.16CE `83C40A`     `add sp, 000A`
+
+:0002.16D1 `C68615FE00` `mov byte ptr [bp-01EB], 00`
+
+:0002.16D6 `8D46D0`     `lea ax, [bp-30]`
+
+:0002.16D9 `8CD2`       `mov dx, ss`
+
+:0002.16DB `52`         `push dx`
+
+:0002.16DC `50`         `push ax`
+
+:0002.16DD `9A568DCC16` `call 0004.8D56`            ;进制转换
+
+:0002.16E2 `83C404`     `add sp, 0004`
+
+:0002.16E5 `8986C4FD`   `mov [bp+FDC4], ax`
+
+:0002.16E9 `8D46F8`     `lea ax, [bp-08]`
+
+:0002.16EC `8CD2`       `mov dx, ss`
+
+:0002.16EE `52`         `push dx`
+
+:0002.16EF `50`         `push ax`
+
+:0002.16F0 `9A568DE016` `call 0004.8D56`            ;进制转换
+
+:0002.16F5 `83C404`     `add sp, 0004`
+
+:0002.16F8 `8986C2FD`   `mov [bp+FDC2], ax`
+
+:0002.16FC `8D8614FE`   `lea ax, [bp+FE14]`
+
+:0002.1700 `8CD2`       `mov dx, ss`
+
+:0002.1702 `52`         `push dx`
+
+:0002.1703 `50`         `push ax`
+
+:0002.1704 `9A568DF316` `call 0004.8D56`            ;进制转换
+
+:0002.1709 `83C404`     `add sp, 0004`
+
+:0002.170C `8BC8`       `mov cx, ax`                 ;数字码第四位
+
+:0002.170E `8B86C2FD`   `mov ax, [bp+FDC2]`         ;数字码第二位
+
+:0002.1712 `F7E9`       `imul cx`
+
+:0002.1714 `B90900`     `mov cx, 0009`
+
+:0002.1717 `99`         `cwd`
+
+:0002.1718 `F7F9`       `idiv cx`
+
+:0002.171A `8B86C4FD`   `mov ax, [bp+FDC4]`         ;序列号第七位
+
+:0002.171E `3BC2`       `cmp ax, dx`
+
+:0002.1720 `7403`       `je 1725`
+
+:0002.1722 `E92804`     `jmp 1B4D`
+
+序列号第七位等于数字码第二位和第四位的乘积除以九的余数
+
+:0002.1725 `B80100`     `mov ax, 0001`
+
+:0002.1728 `50`         `push ax`
+
+:0002.1729 `8D46C3`     `lea ax, [bp-3D]`
+
+:0002.172C `8CD2`       `mov dx, ss`
+
+:0002.172E `52`         `push dx`
+
+:0002.172F `50`         `push ax`
+
+:0002.1730 `8D46D0`     `lea ax, [bp-30]`
+
+:0002.1733 `8CD2`       `mov dx, ss`
+
+:0002.1735 `52`         `push dx`
+
+:0002.1736 `50`         `push ax`
+
+:0002.1737 `9AF08C0717` `call 0004.8CF0`            ;字符串传送：`ss:bp-3D`->`ss:bp-30`
+
+:0002.173C `83C40A`     `add sp, 000A`
+
+:0002.173F `C646D100`   `mov byte ptr [bp-2F], 00`
+
+:0002.1743 `B80100`     `mov ax, 0001`
+
+:0002.1746 `50`         `push ax`
+
+:0002.1747 `B80400`     `mov ax, 0004`
+
+:0002.174A `BABD16`     `mov dx, SEG ADDR of Segment 0005`
+
+:0002.174D `52`         `push dx`
+
+:0002.174E `50`         `push ax`
+
+:0002.174F `8D46F8`     `lea ax, [bp-08]`
+
+:0002.1752 `8CD2`       `mov dx, ss`
+
+:0002.1754 `52`         `push dx`
+
+:0002.1755 `50`         `push ax`
+
+:0002.1756 `9AF08C3A17` `call 0004.8CF0`            ;字符串传送：`0005.0004`->`ss:bp-08`
+
+:0002.175B `83C40A`     `add sp, 000A`
+
+:0002.175E `C646F900`   `mov byte ptr [bp-07], 00`
+
+:0002.1762 `B80100`     `mov ax, 0001`
+
+:0002.1765 `50`         `push ax`
+
+:0002.1766 `B80500`     `mov ax, 0005`
+
+:0002.1769 `BA4B17`     `mov dx, SEG ADDR of Segment 0005`
+
+:0002.176C `52`         `push dx`
+
+:0002.176D `50`         `push ax`
+
+:0002.176E `8D8614FE`   `lea ax, [bp+FE14]`
+
+:0002.1772 `8CD2`       `mov dx, ss`
+
+:0002.1774 `52`         `push dx`
+
+:0002.1775 `50`         `push ax`
+
+:0002.1776 `9AF08C5917` `call 0004.8CF0`            ;字符串传送：`0005.0005`->`ss:bp-1EC`
+
+:0002.177B `83C40A`     `add sp, 000A`
+
+:0002.177E `C68615FE00` `mov byte ptr [bp-01EB], 00`
+
+:0002.1783 `8D46D0`     `lea ax, [bp-30]`
+
+:0002.1786 `8CD2`       `mov dx, ss`
+
+:0002.1788 `52`         `push dx`
+
+:0002.1789 `50`         `push ax`
+
+:0002.178A `9A568D7917` `call 0004.8D56`            ;进制转换
+
+:0002.178F `83C404`     `add sp, 0004`
+
+:0002.1792 `8986C4FD`   `mov [bp+FDC4], ax`
+
+:0002.1796 `8D46F8`     `lea ax, [bp-08]`
+
+:0002.1799 `8CD2`       `mov dx, ss`
+
+:0002.179B `52`         `push dx`
+
+:0002.179C `50`         `push ax`
+
+:0002.179D `9A568D8D17` `call 0004.8D56`            ;进制转换
+
+:0002.17A2 `83C404`     `add sp, 0004`
+
+:0002.17A5 `8986C2FD`   `mov [bp+FDC2], ax`
+
+:0002.17A9 `8D8614FE`   `lea ax, [bp+FE14]`
+
+:0002.17AD `8CD2`       `mov dx, ss`
+
+:0002.17AF `52`         `push dx`
+
+:0002.17B0 `50`         `push ax`
+
+:0002.17B1 `9A568DA017` `call 0004.8D56`            ;进制转换
+
+:0002.17B6 `83C404`     `add sp, 0004`
+
+:0002.17B9 `8BC8`       `mov cx, ax`                 ;数字码第五位
+
+:0002.17BB `8B86C2FD`   `mov ax, [bp+FDC2]`         ;数字码第四位
+
+:0002.17BF `F7E9`       `imul cx`
+
+:0002.17C1 `B90800`     `mov cx, 0008`
+
+:0002.17C4 `99`         `cwd`
+
+:0002.17C5 `F7F9`       `idiv cx`
+
+:0002.17C7 `8B86C4FD`   `mov ax, [bp+FDC4]`         ;序列号第八位
+
+:0002.17CB `3BC2`       `cmp ax, dx`
+
+:0002.17CD `7403`       `je 17D2`
+
+:0002.17CF `E97B03`     `jmp 1B4D`
+
+序列号第八位等于数字码第四位和第五位的乘积除以八的余数
+
+:0002.17D2 `B80100`     `mov ax, 0001`
+
+:0002.17D5 `50`         `push ax`
+
+:0002.17D6 `8D46C4`     `lea ax, [bp-3C]`
+
+:0002.17D9 `8CD2`       `mov dx, ss`
+
+:0002.17DB `52`         `push dx`
+
+:0002.17DC `50`         `push ax`
+
+:0002.17DD `8D46D0`     `lea ax, [bp-30]`
+
+:0002.17E0 `8CD2`       `mov dx, ss`
+
+:0002.17E2 `52`         `push dx`
+
+:0002.17E3 `50`         `push ax`
+
+:0002.17E4 `9AF08CB417` `call 0004.8CF0`            ;字符串传送：`ss:bp-3C`->`ss:bp-30`
+
+:0002.17E9 `83C40A`     `add sp, 000A`
+
+:0002.17EC `C646D100`   `mov byte ptr [bp-2F], 00`
+
+:0002.17F0 `B80100`     `mov ax, 0001`
+
+:0002.17F3 `50`         `push ax`
+
+:0002.17F4 `B80200`     `mov ax, 0002`
+
+:0002.17F7 `BA6A17`     `mov dx, SEG ADDR of Segment 0005`
+
+:0002.17FA `52`         `push dx`
+
+:0002.17FB `50`         `push ax`
+
+:0002.17FC `8D46F8`     `lea ax, [bp-08]`
+
+:0002.17FF `8CD2`       `mov dx, ss`
+
+:0002.1801 `52`         `push dx`
+
+:0002.1802 `50`         `push ax`
+
+:0002.1803 `9AF08CE717` `call 0004.8CF0`            ;字符串传送：`0005.0002`->`ss:bp-08`
+
+:0002.1808 `83C40A`     `add sp, 000A`
+
+:0002.180B `C646F900`   `mov byte ptr [bp-07], 00`
+
+:0002.180F `8D46D0`     `lea ax, [bp-30]`
+
+:0002.1812 `8CD2`       `mov dx, ss`
+
+:0002.1814 `52`         `push dx`
+
+:0002.1815 `50`         `push ax`
+
+:0002.1816 `9A568D0618` `call 0004.8D56`            ;进制转换
+
+:0002.181B `83C404`     `add sp, 0004`
+
+:0002.181E `8986C4FD`   `mov [bp+FDC4], ax`
+
+:0002.1822 `8D46F8`     `lea ax, [bp-08]`
+
+:0002.1825 `8CD2`       `mov dx, ss`
+
+:0002.1827 `52`         `push dx`
+
+:0002.1828 `50`         `push ax`
+
+:0002.1829 `9A568D1918` `call 0004.8D56`            ;进制转换
+
+:0002.182E `83C404`     `add sp, 0004`
+
+:0002.1831 `05FDFF`     `add ax, FFFF`
+
+:0002.1834 `50`         `push ax`
+
+:0002.1835 `9A78992C18` `call 0004.9978`            ;取绝对值
+
+:0002.183A `83C402`     `add sp, 0002`
+
+:0002.183D `8B8EC4FD`   `mov cx, [bp+FDC4]`
+
+:0002.1841 `3BC8`       `cmp cx, ax`
+
+:0002.1843 `7403`       `je 1848`
+
+:0002.1845 `E90503`     `jmp 1B4D`
+
+序列号第九位等于数字码第二位与三的差的绝对值
+
+:0002.1848 `B80100`     `mov ax, 0001`
+
+:0002.184B `50`         `push ax`
+
+
+
+```asm
+  :0002.184C B80500     mov ax, 0005  
+
+  :0002.184F BAF817     mov dx, SEG ADDR of Segment 0005  
+
+  :0002.1852 52         push dx  
+
+  :0002.1853 50         push ax  
+
+  :0002.1854 8D46F8     lea ax, [bp-08]  
+
+  :0002.1857 8CD2       mov dx, ss  
+
+  :0002.1859 52         push dx  
+
+  :0002.185A 50         push ax  
+
+  :0002.185B 9AF08C3818 call 0004.8CF0             ;字符串传送：0005.0005->ss:bp-08  
+
+  :0002.1860 83C40A     add sp, 000A  
+
+  :0002.1863 C646F900   mov byte ptr [bp-07], 00  
+
+  :0002.1867 8D46F8     lea ax, [bp-08]  
+
+  :0002.186A 8CD2       mov dx, ss  
+
+  :0002.186C 52         push dx  
+
+  :0002.186D 50         push ax  
+
+  :0002.186E 9A568D5E18 call 0004.8D56             ;进制转换  
+
+  :0002.1873 83C404     add sp, 0004  
+
+  :0002.1876 B95A00     mov cx, 005A  
+
+  :0002.1879 2BC8       sub cx, ax  
+
+  :0002.187B 888E62FF   mov [bp+FF62], cl  
+
+  :0002.187F 8A46C6     mov al , [bp-3A]  
+
+  :0002.1882 98         cbw  
+
+  :0002.1883 8986C4FD   mov [bp+FDC4], ax  
+
+  :0002.1887 8A8662FF   mov al , [bp+FF62]  
+
+  :0002.188B 98         cbw  
+
+  :0002.188C 8B8EC4FD   mov cx, [bp+FDC4]  
+
+  :0002.1890 3BC8       cmp cx, ax  
+
+  :0002.1892 7403       je 1897  
+
+  :0002.1894 E9B602     jmp 1B4D  
+```
+
+类似于第一位，数字码第五位与序列号第十一位存在如下对应：
+
+`0<->Z, 1<->Y, 2<->X ,3<->W ,4<->V ,... 。`
+
+```asm
+  :0002.1897 B80100     mov ax, 0001  
+
+  :0002.189A 50         push ax  
+
+  :0002.189B 8D46C7     lea ax, [bp-39]  
+
+  :0002.189E 8CD2       mov dx, ss  
+
+  :0002.18A0 52         push dx  
+
+  :0002.18A1 50         push ax  
+
+  :0002.18A2 8D46D0     lea ax, [bp-30]  
+
+  :0002.18A5 8CD2       mov dx, ss  
+
+  :0002.18A7 52         push dx  
+
+  :0002.18A8 50         push ax  
+
+  :0002.18A9 9AF08C7118 call 0004.8CF0             ;字符串传送：ss:bp-39->ss:bp-30  
+
+  :0002.18AE 83C40A     add sp, 000A  
+
+  :0002.18B1 C646D100   mov byte ptr [bp-2F], 00  
+
+  :0002.18B5 B80100     mov ax, 0001  
+
+  :0002.18B8 50         push ax  
+
+  :0002.18B9 B80100     mov ax, 0001  
+
+  :0002.18BC BA5018     mov dx, SEG ADDR of Segment 0005  
+
+  :0002.18BF 52         push dx  
+
+  :0002.18C0 50         push ax  
+
+  :0002.18C1 8D46F8     lea ax, [bp-08]  
+
+  :0002.18C4 8CD2       mov dx, ss  
+
+  :0002.18C6 52         push dx  
+
+  :0002.18C7 50         push ax  
+
+  :0002.18C8 9AF08CAC18 call 0004.8CF0             ;字符串传送：0005.0001->ss:bp-08  
+
+  :0002.18CD 83C40A     add sp, 000A  
+
+  :0002.18D0 C646F900   mov byte ptr [bp-07], 00  
+
+  :0002.18D4 8D46D0     lea ax, [bp-30]  
+
+  :0002.18D7 8CD2       mov dx, ss  
+
+  :0002.18D9 52         push dx  
+
+  :0002.18DA 50         push ax  
+
+  :0002.18DB 9A568DCB18 call 0004.8D56             ;进制转换  
+
+  :0002.18E0 83C404     add sp, 0004  
+
+  :0002.18E3 8986C4FD   mov [bp+FDC4], ax  
+
+  :0002.18E7 8D46F8     lea ax, [bp-08]  
+
+  :0002.18EA 8CD2       mov dx, ss  
+
+  :0002.18EC 52         push dx  
+
+  :0002.18ED 50         push ax  
+
+  :0002.18EE 9A568DDE18 call 0004.8D56             ;进制转换  
+
+  :0002.18F3 83C404     add sp, 0004  
+
+  :0002.18F6 B92100     mov cx, 0021  
+
+  :0002.18F9 F7E9       imul cx  
+
+  :0002.18FB B90900     mov cx, 0009  
+
+  :0002.18FE 99         cwd  
+
+  :0002.18FF F7F9       idiv cx  
+
+  :0002.1901 8B86C4FD   mov ax, [bp+FDC4]  
+
+  :0002.1905 3BC2       cmp ax, dx  
+
+  :0002.1907 7403       je 190C  
+
+  :0002.1909 E94102     jmp 1B4D  
+```
+
+序列号第十二位等于数字码第一位与三十三的积除以九所得的余数。
+
+（我初写的注册机就错以为可化简成乘以十一后除以三）
+
+```asm
+  :0002.190C B80100     mov ax, 0001  
+
+  :0002.190F 50         push ax  
+
+  :0002.1910 8D46C8     lea ax, [bp-38]  
+
+  :0002.1913 8CD2       mov dx, ss  
+
+  :0002.1915 52         push dx  
+
+  :0002.1916 50         push ax  
+
+  :0002.1917 8D46D0     lea ax, [bp-30]  
+
+  :0002.191A 8CD2       mov dx, ss  
+
+  :0002.191C 52         push dx  
+
+  :0002.191D 50         push ax  
+
+  :0002.191E 9AF08CF118 call 0004.8CF0             ;字符串传送：ss:bp-38->ss:bp-30  
+
+  :0002.1923 83C40A     add sp, 000A  
+
+  :0002.1926 C646D100   mov byte ptr [bp-2F], 00  
+
+  :0002.192A B80100     mov ax, 0001  
+
+  :0002.192D 50         push ax  
+
+  :0002.192E B80400     mov ax, 0004  
+
+  :0002.1931 BABD18     mov dx, SEG ADDR of Segment 0005  
+
+  :0002.1934 52         push dx  
+
+  :0002.1935 50         push ax  
+
+  :0002.1936 8D46F8     lea ax, [bp-08]  
+
+  :0002.1939 8CD2       mov dx, ss  
+
+  :0002.193B 52         push dx  
+
+  :0002.193C 50         push ax  
+
+  :0002.193D 9AF08C2119 call 0004.8CF0             ;字符串传送：0005.0004->ss:bp-08  
+
+  :0002.1942 83C40A     add sp, 000A  
+
+  :0002.1945 C646F900   mov byte ptr [bp-07], 00  
+
+  :0002.1949 8D46D0     lea ax, [bp-30]  
+
+  :0002.194C 8CD2       mov dx, ss  
+
+  :0002.194E 52         push dx  
+
+  :0002.194F 50         push ax  
+
+  :0002.1950 9A568D4019 call 0004.8D56             ;进制转换  
+
+  :0002.1955 83C404     add sp, 0004  
+
+  :0002.1958 8986C4FD   mov [bp+FDC4], ax  
+
+  :0002.195C 8D46F8     lea ax, [bp-08]  
+
+  :0002.195F 8CD2       mov dx, ss  
+
+  :0002.1961 52         push dx  
+
+  :0002.1962 50         push ax  
+
+  :0002.1963 9A568D5319 call 0004.8D56             ;进制转换  
+
+  :0002.1968 83C404     add sp, 0004  
+
+  :0002.196B B91100     mov cx, 0011  
+
+  :0002.196E F7E9       imul cx  
+
+  :0002.1970 B90600     mov cx, 0006  
+
+  :0002.1973 99         cwd  
+
+  :0002.1974 F7F9       idiv cx  
+
+  :0002.1976 8B86C4FD   mov ax, [bp+FDC4]  
+
+  :0002.197A 3BC2       cmp ax, dx  
+
+  :0002.197C 7403       je 1981  
+
+  :0002.197E E9CC01     jmp 1B4D  
+```
+
+序列号第十三位等于数字码第四位与十七的积除以六所得的余数
+
+```asm
+  :0002.1981 B80100     mov ax, 0001  
+
+  :0002.1984 50         push ax  
+
+  :0002.1985 8D46C9     lea ax, [bp-37]  
+
+  :0002.1988 8CD2       mov dx, ss  
+
+  :0002.198A 52         push dx  
+
+  :0002.198B 50         push ax  
+
+  :0002.198C 8D46D0     lea ax, [bp-30]  
+
+  :0002.198F 8CD2       mov dx, ss  
+
+  :0002.1991 52         push dx  
+
+  :0002.1992 50         push ax  
+
+  :0002.1993 9AF08C6619 call 0004.8CF0             ;字符串传送：ss:bp-37->ss:bp-30  
+
+  :0002.1998 83C40A     add sp, 000A  
+
+  :0002.199B C646D100   mov byte ptr [bp-2F], 00  
+
+  :0002.199F B80100     mov ax, 0001  
+
+  :0002.19A2 50         push ax  
+
+  :0002.19A3 B80100     mov ax, 0001  
+
+  :0002.19A6 BA3219     mov dx, SEG ADDR of Segment 0005  
+
+  :0002.19A9 52         push dx  
+
+  :0002.19AA 50         push ax  
+
+  :0002.19AB 8D46F8     lea ax, [bp-08]  
+
+  :0002.19AE 8CD2       mov dx, ss  
+
+  :0002.19B0 52         push dx  
+
+  :0002.19B1 50         push ax  
+
+  :0002.19B2 9AF08C9619 call 0004.8CF0             ;字符串传送：0005.0001->ss:bp-08  
+
+  :0002.19B7 83C40A     add sp, 000A  
+
+  :0002.19BA C646F900   mov byte ptr [bp-07], 00  
+
+  :0002.19BE B80100     mov ax, 0001  
+
+  :0002.19C1 50         push ax  
+
+  :0002.19C2 B80100     mov ax, 0001  
+
+  :0002.19C5 BAA719     mov dx, SEG ADDR of Segment 0005  
+
+  :0002.19C8 52         push dx  
+
+  :0002.19C9 50         push ax  
+
+  :0002.19CA 8D8614FE   lea ax, [bp+FE14]  
+
+  :0002.19CE 8CD2       mov dx, ss  
+
+  :0002.19D0 52         push dx  
+
+  :0002.19D1 50         push ax  
+
+  :0002.19D2 9AF08CB519 call 0004.8CF0             ;字符串传送：0005.0001->ss:bp-1EC  
+
+  :0002.19D7 83C40A     add sp, 000A  
+
+  :0002.19DA C68615FE00 mov byte ptr [bp-01EB], 00  
+
+  :0002.19DF 8D46D0     lea ax, [bp-30]  
+
+  :0002.19E2 8CD2       mov dx, ss  
+
+  :0002.19E4 52         push dx  
+
+  :0002.19E5 50         push ax  
+
+  :0002.19E6 9A568DD519 call 0004.8D56             ;进制转换  
+
+  :0002.19EB 83C404     add sp, 0004  
+
+  :0002.19EE 8986C4FD   mov [bp+FDC4], ax  
+
+  :0002.19F2 8D46F8     lea ax, [bp-08]  
+
+  :0002.19F5 8CD2       mov dx, ss  
+
+  :0002.19F7 52         push dx  
+
+  :0002.19F8 50         push ax  
+
+  :0002.19F9 9A568DE919 call 0004.8D56             ;进制转换  
+
+  :0002.19FE 83C404     add sp, 0004  
+
+  :0002.1A01 8986C2FD   mov [bp+FDC2], ax  
+
+  :0002.1A05 8D8614FE   lea ax, [bp+FE14]  
+
+  :0002.1A09 8CD2       mov dx, ss  
+
+  :0002.1A0B 52         push dx  
+
+  :0002.1A0C 50         push ax  
+
+  :0002.1A0D 9A568DFC19 call 0004.8D56             ;进制转换  
+
+  :0002.1A12 83C404     add sp, 0004  
+```
+
+
+
+```
+:0002.1A15 8BC8       mov cx, ax                ;数字码第一位  
+:0002.1A17 8B86C2FD   mov ax, [bp+FDC2]        ;数字码第一位  
+:0002.1A1B F7E9       imul cx  
+:0002.1A1D B90800     mov cx, 0008  
+:0002.1A20 99         cwd  
+:0002.1A21 F7F9       idiv cx  
+:0002.1A23 8B86C4FD   mov ax, [bp+FDC4]        ;序列号第十四位  
+:0002.1A27 3BC2       cmp ax, dx  
+:0002.1A29 7403       je 1A2E  
+:0002.1A2B E91F01     jmp 1B4D  
+```
+
+序列号第十四位等于数字码第一位的平方除以八的余数
+
+显而易见，注册码就是 `XXXX-XXXX-XXXX` 的形式。好了，可以写注册机了。我已经写好放到附件中了。
+
+--------------------------------------------------------------------------------
+
+### 经验总结
+
+似乎没有合适的分析工具动态跟踪，只好进行静态分析。
+
+平时直接用运行库函数所进行的串操作等在该软件中会看到，看看这些平时忽略的东西可以提高基础技能。
+
+该软件系十来年前所出，保护机制很弱，很适合于初学者做静态分析学习之用。
+
+--------------------------------------------------------------------------------
+
+### 版权声明
+
+本文原创于看雪技术论坛，转载请注明作者并保持文章的完整，谢谢！
+
+                                                                 20XX 年 12 月 28 日 19:06:18
+
+### 上传的附件
+
+| ![](img/31a2c422ae120fd0b6c241a4e6e83632.jpg) || `kengen.7z`  
+
+ |
