@@ -1,0 +1,365 @@
+
+# 飘雪动画秀 3.02
+
+> 原文：`www.pediy.com/kssd/pediy05/pediy50362.htm`
+
+- 作者：bartchen
+- 时间：2002-12-11
+- 软件：飘雪动画秀 3.02
+- 软件简介：用于制作 GIF 动画的，还可以优化你现有的 GIF 图片，可输出 GIF 图片并且可以支持输出 AVI。做头像 logo 特别好。
+- 下载：《软件王》2002.12 期上面的，不知道哪里有下载。
+- 保护方式：用户名，注册码
+- 破解工具：`trw2000`
+
+要注册，也不知道网上有没有，搞定它先!!
+
+加过壳的，姑且不理它，用 `trw2000` 下 `bpx hmemcpy`，`pmodule` 很容易就到了这里。
+
+```asm
+* Possible Reference to Dialog: DialogID_0064
+                                      |
+:00431979 6A64                       push 00000064
+:0043197B 52                         push edx
+
+* Possible Reference to Dialog: DialogID_0091, CONTROL_ID:0450, ""
+                                      |
+:0043197C 6850040000                 push 00000450
+:00431981 56                         push esi
+:00431982 FFD7                       call edi  <<--获得用户名
+:00431984 50                         push eax
+:00431985 FFD3                       call ebx  <<--获得注册码
+:00431987 8D8424C4000000            lea eax, dword ptr [esp+000000C4]
+:0043198E 8D4C2460                  lea ecx, dword ptr [esp+60]
+:00431992 50                         push eax
+:00431993 51                         push ecx
+:00431994 E8F7FBFFFF                call 00431590  <<--有关比较的 call，进去看看
+:00431999 83C408                     add esp, 00000008
+:0043199C 85C0                       test eax, eax
+:0043199E 0F84AD000000              je 00431A51  <<--跳就完蛋
+:004319A4 8D542410                  lea edx, dword ptr [esp+10]
+:004319A8 8D44240C                  lea eax, dword ptr [esp+0C]
+:004319AC 52                         push edx
+:004319AD 50                         push eax
+:004319AE 6A00                       push 00000000
+:004319B0 683F000F00                 push 000F003F
+:004319B5 6A00                       push 00000000
+:004319B7 6814ED4400                 push 0044ED14
+:004319BC 6A00                       push 00000000
+
+………………………………………………………………………………………………………………
+
+* Referenced by a CALL at Addresses:
+|:004316D9  , :00431994
+|
+:00431590 53                         push ebx
+:00431591 55                         push ebp
+:00431592 8B6C2410                  mov ebp, dword ptr [esp+10]
+:00431596 56                         push esi
+:00431597 57                         push edi
+:00431598 807D006D                  cmp byte ptr [ebp+00], 6D
+:0043159C 0F85A0000000               jne 00431642  <<--第一位是否为 m？
+:004315A2 807D0167                   cmp byte ptr [ebp+01], 67
+:004315A6 0F8596000000               jne 00431642  <<--第二位是否为 g？
+:004315AC 807D0233                   cmp byte ptr [ebp+02], 33
+:004315B0 0F858C000000               jne 00431642  <<--第三位是否为 3？
+:004315B6 807D0337                   cmp byte ptr [ebp+03], 37
+:004315BA 0F8582000000               jne 00431642  <<--第四位是否为 7？
+：：：：：
+：：：：：
+：：：：：
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004315EC(C)
+|
+:004315EF 83C507                      add ebp, 00000007
+:004315F2 55                         push ebp
+:004315F3 E8D0DD0000                 call 0043F3C8  <<--注册码换算的 call，跟进去
+:004315F8 8B542418                   mov edx, dword ptr [esp+18]
+:004315FC 83C404                     add esp, 00000004
+:004315FF 8BFA                       mov edi, edx
+:00431601 33C9                       xor ecx, ecx
+:00431603 8A12                       mov dl, byte ptr [edx]
+:00431605 BEDF0B0000                 mov esi, 00000BDF  <<--基数
+:0043160A 84D2                       test dl, dl  <<--是否算完？
+:0043160C 7426                       je 00431634
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00431632(C)
+|
+:0043160E 0FBED2                      movsx edx, dl  //下面几行是用户的算法
+:00431611 41                         inc ecx
+:00431612 0FAFD1                      imul edx, ecx  <<--按位相乘
+:00431615 03F2                       add esi, edx  <<--加到 esi
+:00431617 81FEBE170000              cmp esi, 000017BE  <<--大于则减去
+:0043161D 7E06                       jle 00431625
+:0043161F 81EEBE170000               sub esi, 000017BE
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0043161D(C)
+|
+:00431625 83F90A                      cmp ecx, 0000000A  <<--用户名 16 位后，重复算法
+:00431628 7E02                       jle 0043162C
+:0043162A 33C9                       xor ecx, ecx
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00431628(C)
+|
+:0043162C 8A5701                      mov dl, byte ptr [edi+01]  <<--到下一位
+:0043162F 47                         inc edi
+:00431630 84D2                       test dl, dl
+:00431632 75DA                       jne 0043160E
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0043160C(C)
+|
+:00431634 3BF0                       cmp esi, eax  <<--比较结果是否一致
+:00431636 750A                       jne 00431642  <<--改这里可以爆破^\_^
+:00431638 5F                         pop edi
+:00431639 5E                         pop esi
+:0043163A 5D                         pop ebp
+:0043163B B801000000                mov eax, 00000001
+:00431640 5B                         pop ebx
+:00431641 C3                         ret
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:0043159C(C), :004315A6(C), :004315B0(C), :004315BA(C), :004315DB(C)
+|:00431636(C)
+|
+:00431642 5F                         pop edi
+:00431643 5E                         pop esi
+:00431644 5D                         pop ebp
+:00431645 33C0                       xor eax, eax
+:00431647 5B                         pop ebx
+:00431648 C3                         ret
+
+………………………………………………………………………………………………………………
+
+* Referenced by a CALL at Addresses:
+|:0041120C  , :00411243  , :004112BE  , :0041146A  , :004114A8
+|:00411530  , :0041247C  , :004124C2  , :004124E5  , :0043136F
+|:004315F3  , :004355AA  , :0043A7AC  , :0043AB1C
+|
+:0043F3C8 FF742404                    push [esp+04]
+:0043F3CC E86CFFFFFF                  call 0043F33D  <<--还得再跟进去
+:0043F3D1 59                         pop ecx
+:0043F3D2 C3                         ret
+
+………………………………………………………………………………………………………………
+
+* Referenced by a CALL at Addresses:
+|:0043F3CC  , :004465BE  , :004465EC  , :00446617
+|
+:0043F33D 53                         push ebx
+:0043F33E 55                         push ebp
+:0043F33F 56                         push esi
+:0043F340 57                         push edi
+:0043F341 8B7C2414                   mov edi, dword ptr [esp+14]  <<--跳过中间 3 位注册码
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0043F371(U)
+|
+:0043F345 833D4CE2440001             cmp dword ptr [0044E24C], 00000001
+:0043F34C 7E0F                       jle 0043F35D  <<--正常情况就跳
+:0043F34E 0FB607                     movzx eax, byte ptr [edi]
+:0043F351 6A08                       push 00000008
+:0043F353 50                         push eax
+:0043F354 E816230000                 call 0044166F
+:0043F359 59                         pop ecx
+:0043F35A 59                         pop ecx
+:0043F35B EB0F                       jmp 0043F36C
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0043F34C(C)
+|
+:0043F35D 0FB607                      movzx eax, byte ptr [edi]
+
+* Possible StringData Ref from Data Obj ->"       (((((                  "
+                                          ->"  H"
+                                          |
+:0043F360 8B0D40E04400                mov ecx, dword ptr [0044E040]
+:0043F366 8A0441                       mov al, byte ptr [ecx+2*eax] <<--跟据输入注册码的 ascii 码换算
+:0043F369 83E008                       and eax, 00000008
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0043F35B(U)
+|
+:0043F36C 85C0                        test eax, eax
+:0043F36E 7403                       je 0043F373  <<--跳走
+```
+
+
+
+```
+:0043F370 47                    inc edi
+
+:0043F371 EBD2                  jmp 0043F345
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0043F36E(C)
+
+|
+
+:0043F373 0FB637                movzx esi, byte ptr [edi]
+
+:0043F376 47                    inc edi
+
+:0043F377 83FE2D                cmp esi, 0000002D <<--肯定不相等
+
+:0043F37A 8BEE                  mov ebp, esi
+
+:0043F37C 7405                  je 0043F383
+
+:0043F37E 83FE2B                cmp esi, 0000002B <<--肯定不相等
+
+:0043F381 7504                  jne 0043F387
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0043F37C(C)
+
+|
+
+:0043F383 0FB637                movzx esi, byte ptr [edi]
+
+:0043F386 47                    inc edi
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0043F381(C)
+
+|
+
+:0043F387 33DB                  xor ebx, ebx  <<--初始化
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0043F3B8(U)
+
+|
+
+:0043F389 833D4CE2440001        cmp dword ptr [0044E24C], 00000001
+
+:0043F390 7E0C                  jle 0043F39E  <<--从程序里看是一定要跳的
+
+:0043F392 6A04                  push 00000004
+
+:0043F394 56                    push esi
+
+:0043F395 E8D5220000            call 0044166F
+
+:0043F39A 59                    pop ecx
+
+:0043F39B 59                    pop ecx
+
+:0043F39C EB0B                  jmp 0043F3A9
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0043F390(C)
+
+|
+
+* Possible StringData Ref from Data Obj -> "        (((((                 "
+
+                                                  ->"  H"
+
+                                                  |
+
+:0043F39E A140E04400            mov eax, dword ptr [0044E040]
+
+:0043F3A3 8A0470                mov al, byte ptr [eax+2*esi]
+
+:0043F3A6 83E004                and eax, 00000004
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0043F39C(U)
+
+|
+
+:0043F3A9 85C0                  test eax, eax  <<--和上面 3 个命令一起判断注册码是否为数字
+
+:0043F3AB 740D                  je 0043F3BA
+
+:0043F3AD 8D049B                lea eax, dword ptr [ebx+4*ebx]
+
+:0043F3B0 8D5C46D0              lea ebx, dword ptr [esi+2*eax-30]
+
+:0043F3B4 0FB637                movzx esi, byte ptr [edi]
+
+:0043F3B7 47                    inc edi  <<--上面几个命令把输入的 ascii 码化为 10 进制数
+
+:0043F3B8 EBCF                  jmp 0043F389
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0043F3AB(C)
+
+|
+
+:0043F3BA 83FD2D                cmp ebp, 0000002D
+
+:0043F3BD 8BC3                  mov eax, ebx  <<--结果保存到 eax
+
+:0043F3BF 7502                  jne 0043F3C3
+
+:0043F3C1 F7D8                  neg eax
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0043F3BF(C)
+
+|
+
+:0043F3C3 5F                    pop edi
+
+:0043F3C4 5E                    pop esi
+
+:0043F3C5 5D                    pop ebp
+
+:0043F3C6 5B                    pop ebx
+
+:0043F3C7 C3                    ret
+```
+
+终于搞定了，顺便贴个 `C` 语言的注册机。
+
+```c
+//keygen for 飘雪动画秀 3.0.2
+
+#include "stdio.h"
+
+main()
+{
+    unsigned char a[16];
+    int d, i, bbbb;
+    int eesi = 3039;
+
+    printf("This keygen is made by Bartchen\nPlease input your name  : ");
+    gets(a);
+
+    d = strlen(a);
+
+    printf("Your Register code is  : ");
+
+    for (i = 0; i < d; i++)
+    {
+        bbbb = a[i];
+        eesi = eesi + bbbb * (i + 1);
+        if (eesi > 6078)
+        {
+            eesi = eesi - 6078;
+        }
+    }
+
+    printf("mg37xxx");
+    printf("%ld", eesi);
+    printf("\nPress Enter key to exit");
+    gets(a);
+}
+```
+
+唉，天快亮了!不睡觉了，直接看“魔电”吧，要不然就挂了。
+
+`Bartchen (for everyone)` `4dd466d0e1e0cc123afbe504da2462ca`
