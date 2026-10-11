@@ -1,0 +1,192 @@
+
+# 【看雪读书月】【学习心得】iRcHaTaN-DeFacer\[VBNative\]\[网络验证\]\[patch\]
+
+> 原文：[`www.pediy.com/kssd/pediy10/68791.html`](https://www.pediy.com/kssd/pediy10/68791.html)
+
+【文章标题】: `iRcHaTaN-DeFacer[VBNative][网络验证][patch]`  
+
+【文章作者】: `NWMonster`  
+
+【作者主页】: `http://nwmonster.blogspot.com`  
+
+【作者 QQ 号】: `414211565`  
+
+【软件名称】: `iRcHaTaN-DeFacer.exe`  
+
+【软件大小】: `130,048 字节`  
+
+【下载地址】: `http://www.irchatan.com/downloads/iRcHaTaN-DeFacer-2.0.zip`  
+
+【加壳方式】: `upx`  
+
+【编写语言】: `VB Native`  
+
+【使用工具】: `VB Decompiler`, `RTA`, `od`  
+
+【操作平台】: `winXP sp2`  
+
+【软件介绍】: 见其官网：`http://www.irchatan.com`  
+
+【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!看了书光盘几个里关于 `vbnative` 的文件还有网络验证的破解然后遍想找个目标试一下。\[其实我没看书，光看盘了，纯粹凑凑热闹而已。\]  
+
+--------------------------------------------------------------------------------  
+
+## 【详细过程】  
+
+先把壳脱掉，`upx -d xxx.exe`  
+
+```
+$ upx -d iRcHaTaN-DeFacer.exe
+
+             Ultimate Packer for eXecutables
+    Copyright (C) 1996,1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007
+ UPX 3.01        Markus Oberhumer, Laszlo Molnar & John Reiser   Jul 31st 2007
+    File size         Ratio      Format      Name
+    --------------------   ------   -----------   -----------
+      413696 <-    130048   31.44%    win32/pe     iRcHaTaN-DeFacer.exe
+ Unpacked 1 file.
+```
+
+把脱壳后的加到 `vbDecompilerPro` 里分析下
+
+发现加载程序后第一个窗口便是 `Form5`
+
+好我们来看看 `Form5` 这个窗口。发现 `Command2_Click_43f210` 就是那个 `Active Full Version` 的功能
+
+进去看看，我一下傻了。。。实话说没看太明白。
+
+然后看看 `Form_Load_440D10`
+
+感觉有发现，来看看：
+
+```
+Private Sub Form_Load() '440D10
+    loc_00440D2E: call MSVBVM60.DLL.__vbaChkstk
+    loc_00440D39: var_14 = &H403350
+    loc_00440D65: var_4 = 1
+    loc_00440D6C: var_4 = 2
+    loc_00440D75: call On Error ...(FFFFFFFFh, edi, esi, ebx)
+    loc_00440D7B: var_4 = 3
+    loc_00440D82: var_64 = "reg delete HKEY_CURRENT_USER\\AppEvents\\Schemes\\Apps\\Explorer\\Navigating\\.Current /f"
+    loc_00440D89: var_6C = 8
+    loc_00440D96: 
+    loc_00440DA2: Shell(var_5C, 00000000h)
+    loc_00440DA8: fstp real8 ptr var_88
+    loc_00440DB7: var_4 = 4
+    loc_00440DCA: call MSVBVM60.DLL.__vbaRecDestruct(0041438Ch, var_9C)
+    loc_00440DD7: Proc_00444010(MSVBVM60.DLL.__vbaRecDestruct(0041438Ch, var_9C), "", var_9C)
+    loc_00440DEC: call MSVBVM60.DLL.__vbaRecAssign(0041438Ch, var_2C, var_9C, var_9C)
+    loc_00440DF2: var_4 = 5
+    loc_00440DFE: call MSVBVM60.DLL.__vbaNew(00409A78h)
+    loc_00440E17: call MSVBVM60.DLL.__vbaObjSetAddref(arg_8, MSVBVM60.DLL.__vbaNew(00409A78h), var_4C, MSVBVM60.DLL.__vbaNew(00409A78h))
+    loc_00440E26: var_4 = 6
+    loc_00440E35: call MSVBVM60.DLL.__vbaStrCopy
+    loc_00440E43: call MSVBVM60.DLL.__vbaStrCopy
+    loc_00440E51: call MSVBVM60.DLL.__vbaStrCopy
+    loc_00440E57: var_80 = 80000001h
+    loc_00440E6E: Proc_00430830(var_80, var_40, var_44)
+    loc_00440E9A: call MSVBVM60.DLL.__vbaStrCopy(var_80, "", 74, "")
+    loc_00440EC1: Form5.%x3 = PropBag.ReadProperty(%x1, %x2)
+    loc_00440F0B: call MSVBVM60.DLL.__vbaStrCopy
+    loc_00440F1A: var_4 = 9
+    loc_00440F28: Proc_0042FDB0(arg_8, "", ecx)
+    loc_00440F32: var_40 = Proc_0042FDB0(arg_8, var_40, ecx)
+    loc_00440F40: call MSVBVM60.DLL.__vbaStrCopy(arg_8)
+    loc_00440F4F: var_4 = 10
+    loc_00440F62: call MSVBVM60.DLL.__vbaStrCopy
+    loc_00440F68: var_4 = 11
+    loc_00440F86: var_40 = Form5.GetPalette & "riza"
+    loc_00440F94: call MSVBVM60.DLL.__vbaStrCopy
+    loc_00440FA3: var_4 = 12
+    loc_00440FC1: var_40 = %x2 & Form5.GetPalette
+    loc_00440FCF: call MSVBVM60.DLL.__vbaStrCopy
+    loc_00440FFF: Form5.%x3 = PropBag.ReadProperty(%x1, %x2)
+    loc_00441049: call MSVBVM60.DLL.__vbaStrCopy
+    loc_00441058: var_4 = 14
+    loc_00441066: Proc_0042FDB0("", arg_8, ecx)
+    loc_00441070: var_40 = Proc_0042FDB0(var_40, arg_8, ecx)
+    loc_0044107E: call MSVBVM60.DLL.__vbaStrCopy(arg_8)
+    loc_0044108D: var_4 = 15
+    loc_0044109C: call MSVBVM60.DLL.__vbaStrCopy
+    loc_004410AA: call MSVBVM60.DLL.__vbaStrCopy
+    loc_004410B0: var_80 = 80000001h
+    loc_004410C7: Proc_00430940("", var_80, "")
+    loc_004410D2: call MSVBVM60.DLL.__vbaVarMove("", var_80, "", var_44)          
+    loc_004410EB: var_4 = 16
+    loc_0044110A: call MSVBVM60.DLL.__vbaVarTstEq(&H8008, var_3C)
+    loc_00441110: movsx ecx, ax
+               If Form5.GetPalette <> 0 Then                 <-----------神奇的条件
+    loc_0044111B:  var_4 = &H11
+    loc_0044112D:  call MSVBVM60.DLL.__vbaStrCopy                  
+    loc_00441133:  var_4 = &H12
+    loc_00441171:  var_8C = var_BC
+    loc_00441186:  call Form5.Hide                  <-----------Hide Form5!!!!!!!!!!!!!
+    loc_004411CD:  var_4 = &H13
+    loc_0044120B:  var_8C = 04
+    loc_00441211:  var_74 = 80020004h
+    loc_00441218:  var_7C = 10
+    loc_0044121F:  var_64 = 80020004h
+    loc_00441226:  var_6C = 10
+    loc_00441232:  call MSVBVM60.DLL.__vbaChkstk
+    loc_00441255:  call MSVBVM60.DLL.__vbaChkstk
+    loc_00441282:  Form5.Show %x1, %x2
+    loc_004412C9: var_10 = 0
+    loc_004412D6: GoTo loc_00441302
+    loc_00441301: Exit Sub
+    loc_00441302: 'Referenced from 004412D6
+    loc_0044130E: call MSVBVM60.DLL.__vbaRecDestruct(0041438Ch, var_9C, 0044132Dh)
+    loc_0044131D: call MSVBVM60.DLL.__vbaRecDestruct(0041438Ch, var_2C)
+    loc_0044132C: Exit Sub
+
+End Sub
+```
+
+看到这里感觉到，这个条件要成立我们就可以通关了
+
+用 `RTA` 看看 `441110` 这里：
+
+```
+441110:
+movsx ecx,ax
+test ecx,ecx
+je 4412c9
+mov dword ptr [ebp-4],11
+..............
+```
+
+没得说 `je` 肯定不的跳。。。`NOP` 掉
+
+保存一下然后打开程序看到成了已经是 `Full Version` 了已经越过了网络验证。
+
+简单的不得了。。。。。
+
+现在来写 `patch`
+
+用 `od` 找到 `upx` 壳的最后一句\[利用堆栈平衡法则很容易找到\]在 `46922c` 是 `jmp 403954`
+
+然后把它改为
+
+```
+46922c：
+mov dword ptr [441115],90909090
+mov word ptr [441115],9090
+jmp 00403954
+```
+
+运行一下成了。:)
+
+然后记下 16 进制指令和 `RVA`: `46922c`
+
+```
+46922c c705151144009090909066c705151144009090e910a7f9ff
+```
+
+写个 `patcher` 或者找个二进制对比补丁工具您应该不在话下了吧。
+
+注意：如果你想尝试动态调试这个程序的话，最好用 `attach` 的方式，因为这个程序很 XXX![](img/e71d9210a215d5b66755d038631e0c83.jpg "恐怖!") ，试下就明白了。
+
+--------------------------------------------------------------------------------  
+
+## 【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!
+
+2008 年 07 月 18 日 17:37:34

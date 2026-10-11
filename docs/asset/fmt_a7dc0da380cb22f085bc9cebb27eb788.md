@@ -1,0 +1,223 @@
+
+# 斗地主 V3.0 Build 215
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue144.htm`](https://www.pediy.com/kssd/pediy04/kanxue144.htm)
+
+## 斗地主 V3.0 Build 215 注册码破解（VB6-Pcode 形式）
+
+**作者**：`PaulYoung[CCG]`（属于中国破解组织 `China Cracking Group`）
+
+**软件**：斗地主 `V3.0 Build 215`（一个比较有名的扑克游戏）
+
+**下载**：`http://61.128.193.30:8080/cgi-bin/dl.pl?url=ftp://61.128.193.30/soft/soft\_games/ddz1.zip` (1451 KB)
+
+**工具**：`Language 2000 v4.5.1.144`, `SoftICE v4.05`
+
+**日期**：2001-10-20
+
+***
+
+呵……好久没写破文了，主要是因为本人水平太鸟，看雪论坛可谓高手云集，自己实在不好意思写。今天闲来无事，把网友求破的斗地主 `V3.0 Build 215` 的注册码给破了，随便写篇破文，不足之处，望各位高手莫要见笑。嘻…… *^_^*
+
+这个斗地主是一机一码形式，机器码是怎么生成的，留给高手们研究吧，哈……
+
+首先，用 `Language 2000` 侦测，可以知道这个软件是用 `VB6` 编写的，用 `WKTVBDebugger` 试试，居然还是讨厌的 `P-code`，`VB` 已经是非常讨厌了，居然还是 `VB6-Pcode`，:~(
+
+把你的 `SoftICE` 目录下的 `WINICE.DAT` 的 `EXP=c:\windows\system\msvbvm60.dll` 这行前面的 `" ; "` 去掉，不然就调试不了 `VB6` 了。（“这个还用你教！” 谁骂我！>:( ）
+
+现在当然是运行斗地主了，选注册，填写用户名、注册码（一定要 10 位，否则“确定”键不激活）。
+
+`Ctrl+D` 激活 `SoftICE`，下 `bpx msvbvm60!Rtcmsgbox`，`F5` 退出，按“确定”，中断了，`F10` 单步跟踪（因为按一次 `F12` 已经出错了）……
+
+各位看官，请看……
+
+```
+015F:660EAB74  PUSH       EBP      //你停在这里，下面一大段，大概是验证注册码是否为 10 位等……诸如此类的，不要管它。
+015F:660EAB75  MOV        EBP,ESP
+015F:660EAB77  SUB        ESP,4C
+015F:660EAB7A  MOV        ECX,[EBP+14]
+015F:660EAB7D  PUSH       EBX
+015F:660EAB7E  PUSH       ESI
+015F:660EAB7F  PUSH       EDI
+015F:660EAB80  CMP        WORD PTR [ECX],0A
+015F:660EAB84  MOV        EAX,80020004
+015F:660EAB89  JNZ        660EAC8B
+015F:660EAB8F  CMP        [ECX+08],EAX
+015F:660EAB92  JNZ        660EAC8B
+015F:660EAB98  OR         DWORD PTR [EBP-04],-01
+015F:660EAB9C  XOR        ESI,ESI
+015F:660EAB9E  MOV        ECX,[EBP+18]
+015F:660EABA1  CMP        WORD PTR [ECX],0A
+015F:660EABA5  JNZ        660EAC95
+015F:660EABAB  CMP        [ECX+08],EAX
+015F:660EABAE  JNZ        660EAC95
+015F:660EABB4  OR         DWORD PTR [EBP-08],-01
+015F:660EABB8  MOV        EDI,[EBP+10]
+015F:660EABBB  CMP        WORD PTR [EDI],0A
+015F:660EABBF  JNZ        660EAC9D
+015F:660EABC5  CMP        [EDI+08],EAX
+015F:660EABC8  JNZ        660EAC9D
+015F:660EABCE  OR         DWORD PTR [EBP-0C],-01
+015F:660EABD2  PUSH       DWORD PTR [EBP+08]
+015F:660EABD5  LEA        EAX,[EBP-2C]
+015F:660EABD8  MOV        [EBP-10],ESI
+015F:660EABDB  PUSH       EAX
+015F:660EABDC  CALL       660EB086
+015F:660EABE1  MOV        EBX,EAX
+015F:660EABE3  MOV        EAX,[EBP-24]
+015F:660EABE6  MOV        [EBP-18],EAX
+015F:660EABE9  MOV        EAX,[EBP+0C]
+015F:660EABEC  AND        EAX,0F
+015F:660EABEF  MOV        [EBP-1C],EBX
+015F:660EABF2  CMP        AL,05
+015F:660EABF4  JG         660EAC12
+015F:660EABF6  MOV        EAX,[EBP+0C]
+015F:660EABF9  AND        EAX,000000F0
+015F:660EABFE  CMP        EAX,40
+015F:660EAC01  JG         660EAC12
+015F:660EAC03  MOV        EAX,[EBP+0C]
+015F:660EAC06  AND        EAX,00000F00
+015F:660EAC0B  CMP        EAX,00000300
+015F:660EAC10  JLE        660EAC15
+015F:660EAC12  MOV        [EBP+0C],ESI
+015F:660EAC15  CMP        [EBP-0C],SI
+015F:660EAC19  MOV        ESI,[660019CC]
+015F:660EAC1F  JZ         660EACA5
+015F:660EAC25  AND        DWORD PTR [EBP+10],00
+015F:660EAC29  AND        DWORD PTR [EBP+08],00
+015F:660EAC2D  XOR        EAX,EAX
+015F:660EAC2F  CMP        [EBP-04],AX
+015F:660EAC33  JZ         660EACE0
+015F:660EAC39  CMP        [EBP-08],AX
+015F:660EAC3D  JZ         660EACDA
+015F:660EAC43  MOV        [EBP-14],EAX
+015F:660EAC46  XOR        EDI,EDI
+015F:660EAC48  MOV        EDX,[EBP-18]
+015F:660EAC4B  TEST       EDX,EDX
+015F:660EAC4D  JNZ        660EAC52
+015F:660EAC4F  LEA        EDX,[EBP-10]
+015F:660EAC52  MOV        ECX,[EBP+08]
+015F:660EAC55  TEST       ECX,ECX
+015F:660EAC57  JNZ        660EAC62
+015F:660EAC59  CMP        [EBP-0C],CX
+015F:660EAC5D  JNZ        660EAC62
+015F:660EAC5F  LEA        ECX,[EBP-10]
+015F:660EAC62  PUSH       01         //下  d ecx+8 （下面几个 PUSH 同样可以，随便你），ALT + ↑ 或 ALT + ↓ ，找找看……找不到？？耐心点！！！呵……找到了吧，看看是不是看到你的机器码、用户名、假注册码（当然，是 WIDE 格式的）！因为注册码是 10 位的，你留意一下，有一个 10 位的阿拉伯数字，不要怀疑，它就是你要的注册码。如我的为 " 6.8.3.6.7.6.0.0.1.4 "
+015F:660EAC64  PUSH       EAX
+015F:660EAC65  PUSH       EDI
+015F:660EAC66  PUSH       DWORD PTR [EBP+0C]
+015F:660EAC69  PUSH       ECX
+015F:660EAC6A  PUSH       EDX
+015F:660EAC6B  CALL       660B33D6            //出错的 CALL...
+015F:660EAC70  PUSH       DWORD PTR [EBP-1C]
+015F:660EAC73  MOV        EDI,EAX
+```
+
+注册成功信息放在注册表的 `[HKEY_LOCAL_MACHINE\Software\DDZ\Infomation]` 处。
+
+真感动，大家居然把我这篇“破”破文看到这里，呵……很菜很菜……浪费了大家不少时间。（有人要扁我，我要溜了！886……）
+
+欢迎光临我的破解小站：`Cracker 初体验`
+
+`http://paulyoung2001.yeah.net`
+
+`My QQ`: `65827779` （不是破解爱好者不要 Q 我哦！）
+
+***
+
+## 斗地主 V3.0 Build 215 注册码破解（二）
+
+**作者**：`crackhl`
+
+**软件**：斗地主 （小草软件工作室 作者：`祝向权`）
+
+**工具**：`fi`, `Trw2000`
+
+***
+
+首先，用 `fi` 侦测，这个软件没有加壳。运行斗地主,点击注册
+
+*   注册姓名：`玩家` （必须填中文）
+*   邮箱地址：`crackhl@21cn.com`
+*   注册码：`7878-7878-7878-7878`
+
+按下 `Ctrl+N` 呼叫出 `trw`,下断点：`bpx hmemcpy`,按 `F5` 回到界面，按下马上注册，立即被 `trw` 拦截，清除断点：`bc *`,跳到程序：`pmodule`,按 `F12,58` 次（因为按 59 此就失败）
+
+```
+:00457698 A148A94500    mov eax, dword ptr [0045A948]
+:0045769D E86A97FFFF    call 00450E0C                〈------下 d eax,看到假的注册码
+:004576A2 A14CA94500    mov eax, dword ptr [0045A94C]
+:004576A7 50            push eax                     〈------下 d eax,看到邮箱地址
+:004576A8 8D45FC        lea eax, dword ptr [ebp-04]
+:004576AB 50            push eax
+:004576AC 8B0D44A94500  mov ecx, dword ptr [0045A944]
+:004576B2 8B55F8        mov edx, dword ptr [ebp-08]
+:004576B5 A19CB94500    mov eax, dword ptr [0045B99C]
+:004576BA E8CD8FFFFF    call 0045068C
+:004576BF 8D4DF4        lea ecx, dword ptr [ebp-0C]
+:004576C2 8B55F8        mov edx, dword ptr [ebp-08]
+:004576C5 8B45FC        mov eax, dword ptr [ebp-04]
+:004576C8 E84B98FFFF    call 00450F18
+:004576CD 8B55F4        mov edx, dword ptr [ebp-0C]
+:004576D0 8D45FC        lea eax, dword ptr [ebp-04]    〈------下 d eax,看到真的注册码
+:004576D3 E874C2FAFF    call 0040394C
+```
+
+**注册器**：
+
+用 `Keymake`
+
+*   中断地址：`4576D0`
+*   中断次数：`1`
+*   第一字节：`8D`
+*   指令长度：`3`
+*   内存方式：`EDX`
+*   注册姓名：`玩家`
+*   邮箱地址：`crackhl@21cn.com`
+*   注册码：`72T2-PYI8-98TQ-7MKT`
+
+。。。
+
+`E-mail`: `crackhl@21cn.com`
+
+`QQ`: `86005867`
+
+## 斗地主 3.0 的快速找注册码的办法
+
+**作者**：`whlj2001`
+
+**工具**：`OllyDbg v1.04`
+
+这个软件的 `2.4` 版破解由 `大唐飞侠` 用 `OllyDbg` 破解并在论坛上发表过，到 `2.5` 版时有人说用这个方法不行了，其实是可以的，请看：
+
+首先打开 `OllyDbg` 调试器，按 `F3` 键，找到 `DDZ.EXE`，打开它运行，程序被中断，按 `F9` 继续，出现第一个 `Entry Point Alert` 警告，是说`'CNSMIN'`模块入口点在代码外，不管它，按确定继续，出现第二个 `Entry Point Alert` 警告，是说`'MSVCRT20'`模块入口点在代码外，按确定继续。
+
+这时进入斗地主程序界面。打开帮助菜单，点“现在注册”，出现注册窗口，这里我的
+
+*   机器码：`DDZ3258972`
+*   填入注册名：`周军`
+*   注册码：`3141592678`
+
+先别急按确定键，回到 `OllyDbg` 调试界面，按 `Alt+E` 键,出现新窗口，将光标移到 `name` 为 `MSVBVM60` 那一行，双击鼠标左键，然后在调试器的第一个窗口按鼠标右键，移动光标到 `Search for ->Name(label)` 那一行，按下鼠标左键，出现一个新窗口，移动鼠标找到 `name` 为 `__vbastrcomp` 的那一行，按 `F2` 键设断点。
+
+回到斗地主 `3.0` 界面，按下确定键，程序被中断，按 2 次 `F9` 键，在 `OllyDbg` 调试器的右下角窗口可以看到你输入的错误注册码：`31415926` 和正确注册码：`1443827498`。
+
+退出调试程序，重新运行斗地主程序进行注册，顺利完成。
+
+**后感**：第一次写破文，觉着很别扭。如果 `BCG` 组织能公开他们的屏幕捕捉软件那该多好啊，这样的破解用 `S-recoder` 作出来一定很漂亮。如果没有破解工具的流传，就谈不上有好的破解方法；如果 `toye` 保守，就没有今天的书和论坛。
+
+## 补充说明
+
+`TOOLS`：`WKTVBDEBUGGER V1.3e` & `HIEW32`
+
+......
+
+......
+
+```
+00443382: 00 LargeBos
+00443384: F4 LitI2_Byte: -> FFh 255
+00443386: 98 FMemStI2
+0044338B: 1E Branch 00443399-------->改跳到 004433B0
+0044338E: 00 LargeBos
+```

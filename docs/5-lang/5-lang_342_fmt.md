@@ -1,0 +1,420 @@
+
+# 三合万年历 0.12
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-659.htm`](https://www.pediy.com/kssd/pediy08/pediy8-659.htm)
+
+**【破文标题】** 非常简单的三合万年历 0.12 注册算法  
+**【破文作者】** XXNB  
+**【作者邮箱】**  
+**【作者主页】** [`free.ys168.com/?binbinbin7456`](http://free.ys168.com/?binbinbin7456)  
+**【破解工具】** `OD`  
+**【破解平台】** `xpsp2`  
+**【软件名称】** 三合万年历 0.12  
+**【软件大小】** 1592KB  
+**【原版下载】** [`www.onlinedown.net/soft/8062.htm`](http://www.onlinedown.net/soft/8062.htm)  
+**【保护方式】** `VB`  
+**【软件简介】** 实用的万年历程序。运行程序后，通过选择“年”、“月”即可查看当月的公历和农历，并显示所选“日”的详细信息，包括公历日期、农历日期、星期、农历干支、本日星座、本日节日等信息…  
+**【破解声明】** 向大侠们学习！！！
+
+---
+
+## 【破解过程】
+
+1. `OD` 载入后，`Ctrl`＋`N`。下断在`__vbaStrCmp`。然后按一次`F9`运行，可以在寄存器窗口看到假码。再按一次`F9`就看到真正的注册码了。
+
+但是我们是研究算法的，所以我们往上找。得到如下关键代码，分析如下：
+
+```
+0043F080   $  55             push    ebp
+0043F081   .  8BEC           mov     ebp, esp
+0043F083   .  83EC 08        sub     esp, 8
+0043F086   .  68 B6204000    push    <jmp.&MSVBVM60.__vbaExceptHandle>;  SE 处理程序安装
+0043F08B   .  64:A1 0000000> mov     eax, fs:[0]
+0043F091   .  50             push    eax
+0043F092   .  64:8925 00000> mov     fs:[0], esp
+0043F099   .  83EC 54        sub     esp, 54
+0043F09C   .  53             push    ebx
+0043F09D   .  56             push    esi
+0043F09E   .  57             push    edi
+0043F09F   .  8965 F8        mov     [ebp-8], esp
+0043F0A2   .  C745 FC F0194> mov     dword ptr [ebp-4], 004019F0
+0043F0A9   .  33C0           xor     eax, eax
+0043F0AB   .  8945 E8        mov     [ebp-18], eax
+0043F0AE   .  8945 E4        mov     [ebp-1C], eax
+0043F0B1   .  8945 D4        mov     [ebp-2C], eax
+0043F0B4   .  8945 C4        mov     [ebp-3C], eax
+0043F0B7   .  8945 B4        mov     [ebp-4C], eax
+0043F0BA   .  8945 A0        mov     [ebp-60], eax
+0043F0BD   .  50             push    eax
+0043F0BE   .  8D45 D4        lea     eax, [ebp-2C]
+0043F0C1   .  50             push    eax
+0043F0C2   .  FF15 A8114000  call    [<&MSVBVM60.#608>]                ;  MSVBVM60.rtcVarBstrFromAnsi
+0043F0C8   .  8D4D D4        lea     ecx, [ebp-2C]
+0043F0CB   .  8D55 C4        lea     edx, [ebp-3C]
+0043F0CE   .  51             push    ecx
+0043F0CF   .  68 FF000000    push    0FF
+0043F0D4   .  52             push    edx
+0043F0D5   .  FF15 9C114000  call    [<&MSVBVM60.#607>]                ;  MSVBVM60.rtcStringVar
+0043F0DB   .  8B1D 2C104000  mov     ebx, [<&MSVBVM60.__vbaStrVarMove>; MSVBVM60.__vbaStrVarMove
+0043F0E1   .  8D45 C4        lea     eax, [ebp-3C]
+0043F0E4   .  50             push    eax
+0043F0E5   .  FFD3           call    ebx                                 ;  <&MSVBVM60.__vbaStrVarMove>
+0043F0E7   .  8B35 6C124000  mov     esi, [<&MSVBVM60.__vbaStrMove>]   ;  MSVBVM60.__vbaStrMove
+0043F0ED   .  8BD0           mov     edx, eax
+0043F0EF   .  B9 28804500    mov     ecx, 00458028
+0043F0F4   .  FFD6           call    esi                                 ;  <&MSVBVM60.__vbaStrMove>
+0043F0F6   .  8D4D C4        lea     ecx, [ebp-3C]
+0043F0F9   .  8D55 D4        lea     edx, [ebp-2C]
+0043F0FC   .  51             push    ecx
+0043F0FD   .  52             push    edx
+0043F0FE   .  6A 02          push    2
+0043F100   .  FF15 38104000  call    [<&MSVBVM60.__vbaFreeVarList>]    ;  MSVBVM60.__vbaFreeVarList
+0043F106   .  8B0D 28804500  mov     ecx, [458028]
+0043F10C   .  83C4 0C        add     esp, 0C
+0043F10F   .  8D45 A0        lea     eax, [ebp-60]
+0043F112   .  8D55 E4        lea     edx, [ebp-1C]
+0043F115   .  50             push    eax
+0043F116   .  51             push    ecx
+0043F117   .  52             push    edx
+0043F118   .  C745 A0 FF000> mov     dword ptr [ebp-60], 0FF
+0043F11F   .  FF15 40124000  call    [<&MSVBVM60.__vbaStrToAnsi>]      ;  MSVBVM60.__vbaStrToAnsi
+0043F125   .  50             push    eax
+0043F126   .  E8 6971FCFF    call    00406294
+0043F12B   .  FF15 7C104000  call    [<&MSVBVM60.__vbaSetSystemError>>; MSVBVM60.__vbaSetSystemError
+0043F131   .  8B45 E4        mov     eax, [ebp-1C]                    ;  机器码出现了
+0043F134   .  50             push    eax
+0043F135   .  68 28804500    push    00458028
+0043F13A   .  FF15 80114000  call    [<&MSVBVM60.__vbaStrToUnicode>]   ;  MSVBVM60.__vbaStrToUnicode
+0043F140   .  8D4D E4        lea     ecx, [ebp-1C]
+0043F143   .  FF15 BC124000  call    [<&MSVBVM60.__vbaFreeStr>]       ;  MSVBVM60.__vbaFreeStr
+0043F149   .  8D4D B4        lea     ecx, [ebp-4C]
+0043F14C   .  68 FF000000    push    0FF
+0043F151   .  8D55 D4        lea     edx, [ebp-2C]
+0043F154   .  51             push    ecx
+0043F155   .  52             push    edx
+0043F156   .  C745 BC 28804> mov     dword ptr [ebp-44], 00458028
+0043F15D   .  C745 B4 08400> mov     dword ptr [ebp-4C], 4008
+0043F164   .  FF15 64124000  call    [<&MSVBVM60.#617>]               ;  MSVBVM60.rtcLeftCharVar
+0043F16A   .  8D45 D4        lea     eax, [ebp-2C]
+0043F16D   .  50             push    eax
+0043F16E   .  FFD3           call    ebx
+0043F170   .  8BD0           mov     edx, eax                           ;  机器码
+0043F172   .  B9 28804500    mov     ecx, 00458028
+0043F177   .  FFD6           call    esi
+0043F179   .  8B3D 20104000  mov     edi, [<&MSVBVM60.__vbaFreeVar>]   ;  MSVBVM60.__vbaFreeVar
+0043F17F   .  8D4D D4        lea     ecx, [ebp-2C]
+0043F182   .  FFD7           call    edi                                 ;  <&MSVBVM60.__vbaFreeVar>
+0043F184   .  8D4D D4        lea     ecx, [ebp-2C]
+0043F187   .  6A 00          push    0
+0043F189   .  51             push    ecx
+0043F18A   .  FF15 A8114000  call    [<&MSVBVM60.#608>]                ;  MSVBVM60.rtcVarBstrFromAnsi
+0043F190   .  6A 00          push    0
+0043F192   .  6A FF          push    -1
+0043F194   .  6A 01          push    1
+0043F196   .  8D55 D4        lea     edx, [ebp-2C]
+0043F199   .  68 44694000    push    00406944
+0043F19E   .  52             push    edx
+0043F19F   .  8D45 E4        lea     eax, [ebp-1C]
+0043F1A2   .  50             push    eax
+0043F1A3   .  FF15 BC114000  call    [<&MSVBVM60.__vbaStrVarVal>]      ;  MSVBVM60.__vbaStrVarVal
+0043F1A9   .  8B0D 28804500  mov     ecx, [458028]                      ;  机器码
+0043F1AF   .  50             push    eax
+0043F1B0   .  51             push    ecx
+0043F1B1   .  FF15 7C114000  call    [<&MSVBVM60.#712>]                ;  MSVBVM60.rtcReplace
+0043F1B7   .  8BD0           mov     edx, eax
+0043F1B9   .  B9 28804500    mov     ecx, 00458028
+0043F1BE   .  FFD6           call    esi
+0043F1C0   .  8D4D E4        lea     ecx, [ebp-1C]
+0043F1C3   .  FF15 BC124000  call    [<&MSVBVM60.__vbaFreeStr>]       ;  MSVBVM60.__vbaFreeStr
+0043F1C9   .  8D4D D4        lea     ecx, [ebp-2C]
+0043F1CC   .  FFD7           call    edi
+0043F1CE   .  8D55 B4        lea     edx, [ebp-4C]
+0043F1D1   .  8D45 D4        lea     eax, [ebp-2C]
+0043F1D4   .  52             push    edx
+0043F1D5   .  50             push    eax
+0043F1D6   .  C745 BC 28804> mov     dword ptr [ebp-44], 00458028
+0043F1DD   .  C745 B4 08400> mov     dword ptr [ebp-4C], 4008
+0043F1E4   .  FF15 C8104000  call    [<&MSVBVM60.#520>]                ;  MSVBVM60.rtcTrimVar
+0043F1EA   .  8D4D D4        lea     ecx, [ebp-2C]
+0043F1ED   .  51             push    ecx
+0043F1EE   .  FFD3           call    ebx
+0043F1F0   .  8BD0           mov     edx, eax
+0043F1F2   .  B9 28804500    mov     ecx, 00458028
+0043F1F7   .  FFD6           call    esi
+0043F1F9   .  8D4D D4        lea     ecx, [ebp-2C]
+0043F1FC   .  FFD7           call    edi
+0043F1FE   .  8D55 B4        lea     edx, [ebp-4C]
+0043F201   .  8D45 D4        lea     eax, [ebp-2C]
+0043F204   .  52             push    edx
+0043F205   .  50             push    eax
+```
+
+
+
+```
+0043F206   .  C745 BC 28804>mov     dword ptr [ebp-44], 00458028  
+
+0043F20D   .  C745 B4 08400>mov     dword ptr [ebp-4C], 4008  
+
+0043F214   .  FF15 54104000 call    [<&MSVBVM60.#518>]              ;  MSVBVM60.rtcLowerCaseVar  
+
+0043F21A   .  8D4D D4       lea     ecx, [ebp-2C]  
+
+0043F21D   .  51           push    ecx  
+
+0043F21E   .  FFD3         call    ebx  
+
+0043F220   .  8BD0         mov     edx, eax                        ;  变成小写了。  
+
+0043F222   .  B9 28804500  mov     ecx, 00458028  
+
+0043F227   .  FFD6         call    esi  
+
+0043F229   .  8D4D D4      lea     ecx, [ebp-2C]  
+
+0043F22C   .  FFD7        call    edi  
+
+0043F22E   .  BA 48864000 mov     edx, 00408648                    ;  0  
+
+0043F233   .  8D4D E8     lea     ecx, [ebp-18]  
+
+0043F236   .  FF15 04124000 call   [<&MSVBVM60.__vbaStrCopy>]       ;  MSVBVM60.__vbaStrCopy  
+
+0043F23C   .  8B15 28804500 mov    edx, [458028]  
+
+0043F242   .  52          push    edx  
+
+0043F243   .  FF15 30104000 call  [<&MSVBVM60.__vbaLenBstr>]       ;  MSVBVM60.__vbaLenBstr  
+
+0043F249   .  8BF8        mov     edi, eax                         ;  得到机器码位数  
+
+0043F24B   >  85FF       test    edi, edi                          ;  循环开始。edi 每次减 1  
+
+0043F24D   .  0F8E 9F000000 jle    0043F2F2  
+
+0043F253   .  8D45 D4     lea     eax, [ebp-2C]  
+
+0043F256   .  8D4D B4     lea     ecx, [ebp-4C]  
+
+0043F259   .  50          push    eax  
+
+0043F25A   .  57          push    edi  
+
+0043F25B   .  8D55 C4     lea     edx, [ebp-3C]                     ;  机器码  
+
+0043F25E   .  51          push    ecx  
+
+0043F25F   .  52          push    edx  
+
+0043F260   .  C745 DC 01000>mov   dword ptr [ebp-24], 1  
+
+0043F267   .  C745 D4 02000>mov   dword ptr [ebp-2C], 2  
+
+0043F26E   .  C745 BC 28804>mov   dword ptr [ebp-44], 00458028  
+
+0043F275   .  C745 B4 08400>mov   dword ptr [ebp-4C], 4008  
+
+0043F27C   .  FF15 F0104000 call   [<&MSVBVM60.#632>]               ;  MSVBVM60.rtcMidCharVar  
+
+0043F282   .  8D45 C4     lea     eax, [ebp-3C]  
+
+0043F285   .  8D4D E4     lea     ecx, [ebp-1C]  
+
+0043F288   .  50          push    eax  
+
+0043F289   .  51          push    ecx  
+
+0043F28A   .  FF15 BC114000 call  [<&MSVBVM60.__vbaStrVarVal>]      ;  MSVBVM60.__vbaStrVarVal  
+
+0043F290   .  50          push    eax  
+
+0043F291   .  FF15 48104000 call  [<&MSVBVM60.#516>]               ;  MSVBVM60.rtcAnsiValueBstr  
+
+0043F297   .  8BC8        mov     ecx, eax                         ;  倒过来取机器码的 ASCII 值。16 进制  
+
+0043F299   .  FF15 5C104000 call  [<&MSVBVM60.__vbaI2Abs>]         ;  MSVBVM60.__vbaI2Abs  
+
+0043F29F   .  8B55 E8     mov     edx, [ebp-18]                    ;  上一次的运算后的累加值  
+
+0043F2A2   .  52          push    edx  
+
+0043F2A3   .  0FBFD8      movsx   ebx, ax  
+
+0043F2A6   .  FF15 0C124000 call  [<&MSVBVM60.__vbaI4Str>]         ;  MSVBVM60.__vbaI4Str  
+
+0043F2AC   .  03D8        add     ebx, eax                         ;  累加起来  
+
+0043F2AE   .  0F80 49010000 jo     0043F3FD                        ;  累加值，如果溢出的话.....就没了  
+
+0043F2B4   .  53          push    ebx  
+
+0043F2B5   .  FF15 18104000 call  [<&MSVBVM60.__vbaStrI4>]         ;  MSVBVM60.__vbaStrI4  
+
+0043F2BB   .  8BD0        mov     edx, eax                         ;  累加后的值转换成 10 进制数  
+
+0043F2BD   .  8D4D E8     lea     ecx, [ebp-18]  
+
+0043F2C0   .  FFD6        call    esi  
+
+0043F2C2   .  8D4D E4     lea     ecx, [ebp-1C]  
+
+0043F2C5   .  FF15 BC124000 call  [<&MSVBVM60.__vbaFreeStr>]      ;  MSVBVM60.__vbaFreeStr  
+
+0043F2CB   .  8D45 C4     lea     eax, [ebp-3C]  
+
+0043F2CE   .  8D4D D4     lea     ecx, [ebp-2C]  
+
+0043F2D1   .  50          push    eax  
+
+0043F2D2   .  51          push    ecx  
+
+0043F2D3   .  6A 02       push    2  
+
+0043F2D5   .  FF15 38104000 call  [<&MSVBVM60.__vbaFreeVarList>]   ;  MSVBVM60.__vbaFreeVarList  
+
+0043F2DB   .  8B1D 2C104000 mov   ebx, [<&MSVBVM60.__vbaStrVarMove>;  MSVBVM60.__vbaStrVarMove  
+
+0043F2E1   .  83C4 0C     add     esp, 0C  
+
+0043F2E4   .  83EF 01     sub     edi, 1  
+
+0043F2E7   .  0F80 10010000 jo     0043F3FD  
+
+0043F2ED   .^ E9 59FFFFFF  jmp    0043F24B                          ;  循环回去。  
+
+0043F2F2   >  8B55 E8     mov     edx, [ebp-18]                     ;  这里就是累加后的 10 进制  
+
+0043F2F5   .  8B3D 64104000 mov    edi, [<&MSVBVM60.__vbaStrCat>]   ;  MSVBVM60.__vbaStrCat  
+
+0043F2FB   .  52          push    edx  
+
+0043F2FC   .  68 50864000 push    00408650                         ;  061028－－这个数是日期，就是第一次使用软件的日期，格式类似“061028”  
+
+0043F301   .  FFD7        call    edi                               ;  <&MSVBVM60.__vbaStrCat>  
+
+0043F303   .  8945 DC     mov     [ebp-24], eax                    ;  机器码 ASCII 累加值的 10 进制连接日期。得到一个字符串  
+
+0043F306   .  8D45 D4     lea     eax, [ebp-2C]  
+
+0043F309   .  6A 06       push    6  
+
+0043F30B   .  8D4D C4     lea     ecx, [ebp-3C]  
+
+0043F30E   .  50          push    eax  
+
+0043F30F   .  51          push    ecx  
+
+0043F310   .  C745 D4 08000>mov   dword ptr [ebp-2C], 8  
+
+0043F317   .  FF15 64124000 call  [<&MSVBVM60.#617>]               ;  MSVBVM60.rtcLeftCharVar  
+
+0043F31D   .  8D55 C4     lea     edx, [ebp-3C]  
+
+0043F320   .  52          push    edx  
+
+0043F321   .  FFD3        call    ebx  
+
+0043F323   .  8BD0        mov     edx, eax                         ;  取前面六位  
+
+0043F325   .  8D4D E8     lea     ecx, [ebp-18]  
+
+0043F328   .  FFD6        call    esi  
+
+0043F32A   .  8D45 C4     lea     eax, [ebp-3C]  
+
+0043F32D   .  8D4D D4     lea     ecx, [ebp-2C]  
+
+0043F330   .  50          push    eax  
+
+0043F331   .  51          push    ecx  
+
+0043F332   .  6A 02       push    2  
+
+0043F334   .  FF15 38104000 call  [<&MSVBVM60.__vbaFreeVarList>]   ;  MSVBVM60.__vbaFreeVarList  
+
+0043F33A   .  8B55 E8     mov     edx, [ebp-18]  
+
+0043F33D   .  83C4 0C     add     esp, 0C  
+
+0043F340   .  52          push    edx  
+
+0043F341   .  FF15 0C124000 call  [<&MSVBVM60.__vbaI4Str>]         ;  MSVBVM60.__vbaI4Str  
+
+0043F347   .  8945 DC     mov     [ebp-24], eax  
+
+0043F34A   .  8D45 D4     lea     eax, [ebp-2C]  
+
+0043F34D   .  8D4D C4     lea     ecx, [ebp-3C]  
+
+0043F350   .  50          push    eax  
+
+0043F351   .  51          push    ecx  
+
+0043F352   .  C745 D4 03000>mov   dword ptr [ebp-2C], 3  
+
+0043F359   .  FF15 00124000 call  [<&MSVBVM60.#573>]               ;  MSVBVM60.rtcHexVarFromVar  
+
+0043F35F   .  8D55 C4     lea     edx, [ebp-3C]  
+
+0043F362   .  52          push    edx  
+
+0043F363   .  FFD3        call    ebx  
+
+0043F365   .  8BD0        mov     edx, eax                         ;  这个字符串是刚才取前面六位后转换成 16 进制。  
+
+0043F367   .  8D4D E8     lea     ecx, [ebp-18]                   ;  以上的字符串将作为真注册码的后面几位  
+
+0043F36A   .  FFD6        call    esi  
+
+0043F36C   .  8D45 C4     lea     eax, [ebp-3C]  
+
+0043F36F   .  8D4D D4     lea     ecx, [ebp-2C]  
+
+0043F372   .  50          push    eax  
+
+0043F373   .  51          push    ecx  
+
+0043F374   .  6A 02       push    2  
+
+0043F376   .  FF15 38104000 call  [<&MSVBVM60.__vbaFreeVarList>]   ;  MSVBVM60.__vbaFreeVarList  
+
+0043F37C   .  8B55 E8     mov     edx, [ebp-18]  
+
+0043F37F   .  83C4 0C     add     esp, 0C  
+
+0043F382   .  68 64864000 push    00408664                         ;  “NL”固定字符串作为真注册码的前两位  
+
+0043F387   .  52          push    edx                                ;  真注册码的后面几位  
+
+0043F388   .  FFD7        call    edi                                ;  字符串连接函数  
+
+0043F38A   .  8BD0        mov     edx, eax                           ;  真码出现。  
+
+0043F38C   .  8D4D E8     lea     ecx, [ebp-18]  
+
+0043F38F   .  FFD6        call    esi  
+
+0043F391   .  8B45 08     mov     eax, [ebp+8]  
+
+0043F394   .  8B55 E8     mov     edx, [ebp-18]  
+```
+
+
+
+```
+0043F397   .  8B08          mov     ecx, [eax]                    ; 假码出现
+0043F399   .  51            push    ecx
+0043F39A   .  52            push    edx                     ; 真码
+0043F39B   .  FF15 18114000 call    [<MSVBVM60.__vbaStrCmp>]       ; MSVBVM60.__vbaStrCmp。断在这里。真假码比较函数。
+```
+
+算法太简单，以致于注册机都懒得写了。
+
+### 算法总结
+
+1. 一但你安装好“三合万年历”，他就会记住你现在的日期，并且把他写到一个文件`C:\WINDOWS\wnl061028.ini`里。
+2. 从最后一位开始（倒过来）计算你的机器码的 `ASCii` 码累加值。然后转成 10 进制。
+3. 累加值的 10 进制连接文件`C:\WINDOWS\wnl061028.ini`里的日期。得到新字符串。
+4. 取上面的新字符串的前六位，转成 16 进制，再加固定字符串`NL`就是真注册码。
+
+`4dd466d0e1e0cc123afbe504da2462ca`
