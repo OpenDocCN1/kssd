@@ -1,0 +1,368 @@
+
+```asm
+0167:0059C7ED  MOV     [EBP-34],EBX   
+
+0167:0059C7F0  MOV     [EBP-0C],ECX       --> Data2   
+
+0167:0059C7F3  MOV     [EBP-08],EDX       --> 机器码   
+
+0167:0059C7F6  MOV     [EBP-04],EAX       --> yitproxy 路径   
+
+0167:0059C7F9  MOV     EAX,[EBP-04]   
+
+0167:0059C7FC  CALL    004041B4   
+
+0167:0059C801  MOV     EAX,[EBP-08]   
+
+0167:0059C804  CALL    004041B4   
+
+0167:0059C809  MOV     EAX,[EBP-0C]   
+
+0167:0059C80C  CALL    004041B4   
+
+0167:0059C811  XOR     EAX,EAX   
+
+0167:0059C813  PUSH    EBP   
+
+0167:0059C814  PUSH    DWORD 0059CAFE   
+
+0167:0059C819  PUSH    DWORD [FS:EAX]   
+
+0167:0059C81C  MOV     [FS:EAX],ESP   
+
+              先填写返回信息，表示未注册   
+
+0167:0059C81F  MOV     EAX,[EBP+14]   
+
+0167:0059C822  XOR     EDX,EDX   
+
+0167:0059C824  MOV     [EAX],EDX   
+
+0167:0059C826  MOV     EAX,[EBP+10]   
+
+0167:0059C829  XOR     EDX,EDX   
+
+0167:0059C82B  MOV     [EAX],EDX   
+
+0167:0059C82D  MOV     EAX,[EBP+0C]   
+
+0167:0059C830  XOR     EDX,EDX   
+
+0167:0059C832  MOV     [EAX],EDX   
+
+0167:0059C834  MOV     EAX,[EBP+08]   
+
+0167:0059C837  XOR     EDX,EDX   
+
+0167:0059C839  MOV     [EAX],EDX   
+
+              看看有没有注册文件?   
+
+0167:0059C83B  LEA     EAX,[EBP-34]   
+
+0167:0059C83E  MOV     ECX,0059CB18    --> "yitproxy.exp"，注册文件名   
+
+0167:0059C843  MOV     EDX,[EBP-04]   
+
+0167:0059C846  CALL    0040404C   
+
+0167:0059C84B  MOV     EAX,[EBP-34]   
+
+0167:0059C84E  CALL    00409D80   
+
+0167:0059C853  TEST    AL,AL           ;注册文件不存在，注册当然不成功   
+
+0167:0059C855  JZ      NEAR 0059CAC9   
+
+              用 TMemoryStream 来访问注册文件   
+
+0167:0059C85B  MOV     DL,01   
+
+0167:0059C85D  MOV     EAX,[004113A8]  ;TMemoryStream   
+
+0167:0059C862  CALL    00403004        ;创建 TMemoryStream 对象   
+
+0167:0059C867  MOV     [EBP-10],EAX    ;新创建的 TMemoryStream 对象指针   
+
+0167:0059C86A  XOR     EDX,EDX   
+
+0167:0059C86C  PUSH    EBP   
+
+0167:0059C86D  PUSH    DWORD 0059CAC2   
+
+0167:0059C872  PUSH    DWORD [FS:EDX]   
+
+0167:0059C875  MOV     [FS:EDX],ESP   
+
+0167:0059C878  MOV     EDX,[EBP-34]    ;-->注册文件   
+
+0167:0059C87B  MOV     EAX,[EBP-10]    ;用 TMemoryStream 打开注册文件 LoadFromFile()   
+
+0167:0059C87E  CALL    00415130   
+
+              用 BlowFish 算法对注册文件的内容解密   
+
+0167:0059C883  MOV     DL,01           ;创建 TCipher_BlowFish 对象   
+
+0167:0059C885  MOV     EAX,[004BCC4C]  ;TCipher_BlowFish   
+
+0167:0059C88A  CALL    004BCF14   
+
+0167:0059C88F  MOV     [EBP-3C],EAX    ;新创建的 TCipher_BlowFish 对象指针   
+
+0167:0059C892  XOR     EAX,EAX   
+
+0167:0059C894  PUSH    EBP   
+
+0167:0059C895  PUSH    DWORD 0059C8E5   
+
+0167:0059C89A  PUSH    DWORD [FS:EAX]   
+
+0167:0059C89D  MOV     [FS:EAX],ESP   
+
+0167:0059C8A0  XOR     ECX,ECX   
+
+0167:0059C8A2  MOV     EDX,[EBP-0C]    ;Data2 是密钥   
+
+0167:0059C8A5  MOV     EAX,[EBP-3C]   
+
+0167:0059C8A8  CALL    004BD000   
+
+0167:0059C8AD  XOR     EDX,EDX   
+
+0167:0059C8AF  MOV     EAX,[EBP-10]    ;移动流指针到文件头   
+
+0167:0059C8B2  CALL    00414C88   
+
+              对注册文件解密   
+
+0167:0059C8B7  PUSH    BYTE -01   
+
+0167:0059C8B9  MOV     ECX,[EBP-10]   
+
+0167:0059C8BC  MOV     EDX,[EBP-10]   ;解密后的数据仍然放在原来的 Stream 中   
+
+0167:0059C8BF  MOV     EAX,[EBP-3C]   
+
+0167:0059C8C2  CALL    004BD5C0       ;DecodeStream()   
+
+              释放 TCipher_BlowFish 对象   
+
+0167:0059C8C7  MOV     EAX,[EBP-3C]   
+
+0167:0059C8CA  MOV     EDX,[EAX]   
+
+0167:0059C8CC  CALL    NEAR [EDX+28]   
+
+0167:0059C8CF  XOR     EAX,EAX   
+
+0167:0059C8D1  POP     EDX   
+
+0167:0059C8D2  POP     ECX   
+
+0167:0059C8D3  POP     ECX   
+
+0167:0059C8D4  MOV     [FS:EAX],EDX   
+
+0167:0059C8D7  PUSH    DWORD 0059C8EC   
+
+0167:0059C8DC  MOV     EAX,[EBP-3C]   
+
+0167:0059C8DF  CALL    00403034   
+
+0167:0059C8E4  RET     
+
+0167:0059C8E5  JMP     00403794   
+
+0167:0059C8EA  JMP     SHORT 0059C8DC   
+
+              判断注册文件的长度是否合法，正常的注册文件长度应该＞=1c00h   
+
+0167:0059C8EC  MOV     EAX,[EBP-10]   
+
+0167:0059C8EF  CALL    00414C94   
+
+0167:0059C8F4  MOV     [EBP-1C],EAX        ;注册文件长度   
+
+0167:0059C8F7  CMP     DWORD [EBP-1C],1C00 ;>=1c00h?   
+
+0167:0059C8FE  JNL     0059C912   
+
+0167:0059C900  MOV     EAX,[EBP-10]   
+
+0167:0059C903  CALL    00403034   
+
+0167:0059C908  CALL    0040386C   
+
+0167:0059C90D  JMP     0059CAC9   
+
+              流指针移到文件头   
+
+0167:0059C912  XOR     EDX,EDX   
+
+0167:0059C914  MOV     EAX,[EBP-10]   
+
+0167:0059C917  CALL    00414C88   
+
+              从注册文件中读出 10 个字节放到一个字符串中 ，[ebp-30]->该字符串   
+
+0167:0059C91C  LEA     EAX,[EBP-30]   
+
+0167:0059C91F  CALL    00403D80   
+
+0167:0059C924  MOV     EBX,0A              ;10   
+
+0167:0059C929  LEA     EDX,[EBP-35]   
+
+0167:0059C92C  MOV     ECX,01              ;读 1 个字节   
+
+0167:0059C931  MOV     EAX,[EBP-10]   
+
+0167:0059C934  MOV     ESI,[EAX]   
+
+0167:0059C936  CALL    NEAR [ESI+04]      ;read   
+
+0167:0059C939  LEA     EAX,[EBP-44]   
+
+0167:0059C93C  MOV     DL,[EBP-35]   
+
+0167:0059C93F  CALL    00403F28   
+
+0167:0059C944  MOV     EDX,[EBP-44]   
+
+0167:0059C947  LEA     EAX,[EBP-30]   
+
+0167:0059C94A  CALL    00404008           
+
+0167:0059C94F  DEC     EBX   
+
+0167:0059C950  JNZ     0059C929   
+
+              [ebp-24] -> 机器码   
+
+0167:0059C952  LEA     EAX,[EBP-24]   
+
+0167:0059C955  MOV     EDX,[EBP-08]   
+
+0167:0059C958  CALL    00403E18   
+
+0167:0059C95D  MOV     DWORD [EBP-18],01    ; 循环计数置初值 1,注册类型   
+
+0167:0059C964  LEA     EDX,[EBP-48]   
+
+0167:0059C967  MOV     EAX,[EBP-18]   
+
+0167:0059C96A  CALL    00409A90         ;IntToStr   
+
+0167:0059C96F  MOV     EDX,[EBP-48]   
+
+0167:0059C972  LEA     EAX,[EBP-08]   
+
+0167:0059C975  MOV     ECX,[EBP-24]   
+
+0167:0059C978  CALL    0040404C         ;[ebp-8] -> IntToStr([ebp-18]) + 机器码   
+
+0167:0059C97D  MOV     DL,01   
+
+0167:0059C97F  MOV     EAX,[004BCC4C]  ;TCipher_BlowFish   
+
+0167:0059C984  CALL    004BCF14   
+
+0167:0059C989  MOV     [EBP-40],EAX   
+
+0167:0059C98C  XOR     EAX,EAX   
+
+0167:0059C98E  PUSH    EBP   
+
+0167:0059C98F  PUSH    DWORD 0059C9F4   
+
+0167:0059C994  PUSH    DWORD [FS:EAX]   
+
+0167:0059C997  MOV     [FS:EAX],ESP   
+
+0167:0059C99A  MOV     EAX,[EBP-40]   
+
+0167:0059C99D  MOV     BYTE [EAX+04],00   
+
+0167:0059C9A1  XOR     ECX,ECX   
+
+0167:0059C9A3  MOV     EDX,[EBP-08]    ; IntToStr([ebp-18]) + 机器码 作为密钥   
+
+0167:0059C9A6  MOV     EAX,[EBP-40]   
+
+0167:0059C9A9  CALL    004BD000   
+
+0167:0059C9AE  LEA     ECX,[EBP-28]   
+
+0167:0059C9B1  MOV     EDX,[EBP-30]    ;对文件头 10 个字节加密   
+
+0167:0059C9B4  MOV     EAX,[EBP-40]   
+
+0167:0059C9B7  CALL    004BD5D4   
+
+              下面对加密后的 10 个字节作变换，但是变换后的数据没用到   
+
+              不知道为什么？无论如何，这方便了注册机的编写：）   
+
+0167:0059C9BC  MOV     EAX,[EBP-28]    ;加密后的数据   
+
+0167:0059C9BF  CALL    00404000        ;length   
+
+0167:0059C9C4  PUSH    EAX   
+
+0167:0059C9C5  MOV     EAX,[EBP-28]    ;pchar()   
+
+0167:0059C9C8  CALL    004041C4   
+
+0167:0059C9CD  LEA     ECX,[EBP-2C]    ;[ebp-2c]->变换后的数据，不过这些数据没有用到   
+
+0167:0059C9D0  POP     EDX   
+
+0167:0059C9D1  CALL    004B860C        ;变换函数   
+
+              释放 TCipher_BlowFish 对象   
+
+0167:0059C9D6  MOV     EAX,[EBP-40]   
+
+0167:0059C9D9  MOV     EDX,[EAX]   
+
+0167:0059C9DB  CALL    NEAR [EDX+28]   
+
+0167:0059C9DE  XOR     EAX,EAX   
+
+0167:0059C9E0  POP     EDX   
+
+0167:0059C9E1  POP     ECX   
+
+0167:0059C9E2  POP     ECX   
+
+0167:0059C9E3  MOV     [FS:EAX],EDX   
+
+0167:0059C9E6  PUSH    DWORD 0059C9FB   
+
+0167:0059C9EB  MOV     EAX,[EBP-40]   
+
+0167:0059C9EE  CALL    00403034   
+
+0167:0059C9F3  RET     
+
+0167:0059C9F4  JMP     00403794   
+
+0167:0059C9F9  JMP     SHORT 0059C9EB   
+
+0167:0059C9FB  XOR     EAX,EAX   
+
+0167:0059C9FD  MOV     [EBP-20],EAX   
+
+0167:0059CA00  XOR     EAX,EAX   
+
+0167:0059CA02  MOV     [EBP-14],EAX   
+
+0167:0059CA05  MOV     EAX,[EBP-28]   
+
+0167:0059CA08  CALL    00404000   
+
+0167:0059CA0D  MOV     ESI,EAX   
+
+0167:0059CA0F  DEC     ESI
+```

@@ -1,0 +1,227 @@
+
+```
+encry(outData, subKey[i], buf);                   //Rn ==Kn==> buf  
+
+  for j := 0 to 3 do outData[j + 4] := temp[j] xor buf[j];  //Rn+1 = Ln^buf  
+
+end;  
+
+  for j := 0 to 3 do temp[j] := outData[j + 4];  
+
+  for j := 0 to 3 do outData[j + 4] := outData[j];  
+
+  for j := 0 to 3 do outData[j] := temp[j];  
+
+end  
+else if desMode = dmDecry then  
+
+begin  
+
+  for i := 15 downto 0 do  
+
+  begin  
+
+    for j := 0 to 3 do temp[j] := outData[j];  
+
+    for j := 0 to 3 do outData[j] := outData[j + 4];  
+
+    encry(outData, subKey[i], buf);  
+
+    for j := 0 to 3 do outData[j + 4] := temp[j] xor buf[j];  
+
+  end;  
+
+  for j := 0 to 3 do temp[j] := outData[j + 4];  
+
+  for j := 0 to 3 do outData[j + 4] := outData[j];  
+
+  for j := 0 to 3 do outData[j] := temp[j];  
+
+end;  
+
+conversePermutation(outData);  
+
+end;  
+
+//////////////////////////////////////////////////////////////  
+
+function EncryStr(Str, Key: String): String;  
+
+var  
+
+  StrByte, OutByte, KeyByte: array[0..7] of Byte;  
+
+  StrResult: String;  
+
+  I, J: Integer;  
+
+begin  
+
+  if (Length(Str) > 0) and (Ord(Str[Length(Str)]) = 0) then  
+    raise Exception.Create('Error: the last char is NULL char.');  
+
+  if Length(Key) < 8 then  
+    while Length(Key) < 8 do Key := Key + Chr(0);  
+
+  while Length(Str) mod 8 <> 0 do Str := Str + Chr(0);  
+
+  for J := 0 to 7 do KeyByte[J] := Ord(Key[J + 1]);  
+
+  makeKey(keyByte, subKey);  
+
+  StrResult := '';  
+
+  for I := 0 to Length(Str) div 8 - 1 do  
+
+  begin  
+
+    for J := 0 to 7 do  
+      StrByte[J] := Ord(Str[I * 8 + J + 1]);  
+
+    desData(dmEncry, StrByte, OutByte);  
+
+    for J := 0 to 7 do  
+      StrResult := StrResult + Chr(OutByte[J]);  
+
+  end;  
+
+  Result := StrResult;  
+
+end;  
+
+function DecryStr(Str, Key: String): String;  
+
+var  
+
+  StrByte, OutByte, KeyByte: array[0..7] of Byte;  
+
+  StrResult: String;  
+
+  I, J: Integer;  
+
+begin  
+
+  if Length(Key) < 8 then  
+    while Length(Key) < 8 do Key := Key + Chr(0);  
+
+  for J := 0 to 7 do KeyByte[J] := Ord(Key[J + 1]);  
+
+  makeKey(keyByte, subKey);  
+
+  StrResult := '';  
+
+  for I := 0 to Length(Str) div 8 - 1 do  
+
+  begin  
+
+    for J := 0 to 7 do StrByte[J] := Ord(Str[I * 8 + J + 1]);  
+
+    desData(dmDecry, StrByte, OutByte);  
+
+    for J := 0 to 7 do  
+      StrResult := StrResult + Chr(OutByte[J]);  
+
+  end;  
+
+  while (Length(StrResult) > 0) and  
+    (Ord(StrResult[Length(StrResult)]) = 0) do  
+    Delete(StrResult, Length(StrResult), 1);  
+
+  Result := StrResult;  
+
+end;  
+
+///////////////////////////////////////////////////////////  
+
+function EncryStrHex(Str, Key: String): String;  
+
+var  
+
+  StrResult, TempResult, Temp: String;  
+
+  I: Integer;  
+
+begin  
+
+  TempResult := EncryStr(Str, Key);  
+
+  StrResult := '';  
+
+  for I := 0 to Length(TempResult) - 1 do  
+
+  begin  
+
+    Temp := Format('%x', [Ord(TempResult[I + 1])]);  
+
+    if Length(Temp) = 1 then Temp := '0' + Temp;  
+
+    StrResult := StrResult + Temp;  
+
+  end;  
+
+  Result := StrResult;  
+
+end;  
+
+function DecryStrHex(StrHex, Key: String): String;  
+
+  function HexToInt(Hex: String): Integer;  
+
+  var  
+
+    I, Res: Integer;  
+
+    ch: Char;  
+
+  begin  
+
+    Res := 0;  
+
+    for I := 0 to Length(Hex) - 1 do  
+
+    begin  
+
+      ch := Hex[I + 1];  
+
+      if (ch >= '0') and (ch <= '9') then  
+        Res := Res * 16 + Ord(ch) - Ord('0')  
+
+      else if (ch >= 'A') and (ch <= 'F') then  
+        Res := Res * 16 + Ord(ch) - Ord('A') + 10  
+
+      else if (ch >= 'a') and (ch <= 'f') then  
+        Res := Res * 16 + Ord(ch) - Ord('a') + 10  
+
+      else raise  Exception.Create('Error: not a Hex String');  
+
+    end;  
+
+    Result := Res;  
+
+  end;  
+
+var  
+
+  Str, Temp: String;  
+
+  I: Integer;  
+
+begin  
+
+  Str := '';  
+
+  for I := 0 to Length(StrHex) div 2 - 1 do  
+
+  begin  
+
+    Temp := Copy(StrHex, I * 2 + 1, 2);  
+
+    Str := Str + Chr(HexToInt(Temp));  
+
+  end;  
+
+  Result := DecryStr(Str, Key);  
+
+end;  
+end.
+```

@@ -1,0 +1,399 @@
+
+### 关键之四，校验 17~22 位
+
+```
+00559E31   call UnPacKed.00506940   关键之四，校验 17~22 位  
+
+00559E36   mov byte ptr ss:[ebp-1],al  
+
+00559E39   cmp byte ptr ss:[ebp-1],0  
+
+00559E3D   je short UnPacKed.00559E4C  
+
+00559E3F   lea eax,dword ptr ss:[ebp-C]  
+
+00559E42   mov edx,UnPacKed.00559FF8         ;  ASCII "111"  
+
+00559E47   call UnPacKed.0040435C  
+
+00559E4C   cmp byte ptr ss:[ebp-1],0  
+
+00559E50   je UnPacKed.00559ED7  
+
+00559E56   mov eax,dword ptr ss:[ebp-C]  
+
+00559E59   mov edx,UnPacKed.00559FF8         ;  ASCII "111"  
+
+00559E5E   call UnPacKed.004046D0  
+
+00559E63   jnz short UnPacKed.00559E6A  
+
+00559E65   call UnPacKed.00503320  关键之五，校验 1~16 位  
+```
+
+跟踪时发现，根据系统计算申请码时用到了 `cpuid` 这个 API，可是在我的电脑上多次运行这个 API，返回值中 `ebx` 的值是在两个值中变的，因此算出的申请码也有两种，程序发现两个申请码不同也会通不过注册，因此跟踪时要注意一下 `00559B66` 这个地方。我觉得这也算是软件的一个 BUG。
+
+对注册码验证前先对注册码调位，调用点如 `00559CDB`。调位的方法是第 1、4 位互换，第 5、8 位互换，`4*i+1` 位和 `4*(i+1)`位互换，`i=0,1,2,...`，末尾不足 4 位时，最后两位互换。以下所讲的除非特别说明的以外，均是调位以后的注册码，程序把注册码分成四段进行校验。
+
+### 【4. 对 23~27 位的校验】
+
+其校验过程大致是：由申请码加上姓得到一个字符串，加密（每位和 `1F` 异或）后，再进行较复杂的运算 `f1()`，得到 `A`。注册码的 23~27 位进行另一种变换 `f2()`，得到 `B`，`A` 和 `B` 进行比较。`f1()`不必求逆，直接用结果就行。跟进 `call UnPacKed.004ED010`，看看 `f2()`是什么：
+
+```
+004F026F   call UnPacKed.0040435C  
+
+004F0274   mov eax,ebx  
+
+004F0276   call UnPacKed.004042C4  
+
+004F027B   mov esi,1  
+
+004F0280   mov eax,edi  
+
+004F0282   call UnPacKed.00404584  查位数  
+
+004F0287   mov dword ptr ss:[ebp-4],eax  
+
+004F028A   mov eax,dword ptr ss:[ebp-4]  
+
+004F028D   mov ecx,5  
+
+004F0292   cdq  
+
+004F0293   idiv ecx  
+
+004F0295   test eax,eax  
+
+004F0297   jle UnPacKed.004F03AD  
+
+004F029D   mov dword ptr ss:[ebp-20],eax  
+
+004F02A0   lea eax,dword ptr ss:[ebp-24]  
+
+004F02A3   mov dl,byte ptr ds:[edi+esi-1]  取出第一位  
+
+004F02A7   call UnPacKed.004044AC  
+
+004F02AC   mov eax,dword ptr ss:[ebp-24]  
+
+004F02AF   mov edx,dword ptr ss:[ebp-1C]  
+
+004F02B2   call UnPacKed.004048C8  查表 EBP-1C   0> 004F060C  ASCII "0KMT1EIJ2AB34FGH56PYZ7NRS89CDUVX"  
+
+004F02B7   dec eax  
+
+004F02B8   mov dword ptr ss:[ebp-8],eax    保存  
+
+004F02BB   lea eax,dword ptr ss:[ebp-28]  
+
+004F02BE   mov dl,byte ptr ds:[edi+esi]    取出第二位  
+
+004F02C1   call UnPacKed.004044AC  
+
+004F02C6   mov eax,dword ptr ss:[ebp-28]  
+
+004F02C9   mov edx,dword ptr ss:[ebp-1C]  
+
+004F02CC   call UnPacKed.004048C8  
+
+004F02D1   dec eax  
+
+004F02D2   mov dword ptr ss:[ebp-C],eax  
+
+004F02D5   lea eax,dword ptr ss:[ebp-2C]  
+
+004F02D8   mov dl,byte ptr ds:[edi+esi+1]  取出第三位  
+
+004F02DC   call UnPacKed.004044AC  
+
+004F02E1   mov eax,dword ptr ss:[ebp-2C]  
+
+004F02E4   mov edx,dword ptr ss:[ebp-1C]  
+
+004F02E7   call UnPacKed.004048C8    查表  
+
+004F02EC   dec eax  
+
+004F02ED   mov dword ptr ss:[ebp-10],eax    保存  
+
+004F02F0   lea eax,dword ptr ss:[ebp-30]  
+
+004F02F3   mov dl,byte ptr ds:[edi+esi+2]  取出第四位  
+
+004F02F7   call UnPacKed.004044AC  
+
+004F02FC   mov eax,dword ptr ss:[ebp-30]  
+
+004F02FF   mov edx,dword ptr ss:[ebp-1C]  
+
+004F0302   call UnPacKed.004048C8  
+
+004F0307   dec eax  
+
+004F0308   mov dword ptr ss:[ebp-14],eax  
+
+004F030B   lea eax,dword ptr ss:[ebp-34]  
+
+004F030E   mov dl,byte ptr ds:[edi+esi+3]  取出第五位  
+
+004F0312   call UnPacKed.004044AC  
+
+004F0317   mov eax,dword ptr ss:[ebp-34]  
+
+004F031A   mov edx,dword ptr ss:[ebp-1C]  
+
+004F031D   call UnPacKed.004048C8  
+
+004F0322   dec eax  
+
+004F0323   mov dword ptr ss:[ebp-18],eax  
+
+004F0326   add esi,5  
+
+004F0329   lea eax,dword ptr ss:[ebp-38]  
+
+004F032C   mov edx,dword ptr ss:[ebp-8]    取出第一位查表得的数  
+
+004F032F   shl edx,3        左移 3 位  
+
+004F0332   and edx,0F8        取高五位  
+
+004F0338   mov ecx,dword ptr ss:[ebp-C]    取第二位的数  
+
+004F033B   shr ecx,2        右移 2 位  
+
+004F033E   and ecx,7        取低 3 位  
+
+004F0341   or edx,ecx        两数取或，这就是结果第一字节，应为 52  
+
+004F0343   call UnPacKed.004044AC    保存  
+
+004F0348   mov edx,dword ptr ss:[ebp-38]  
+
+004F034B   mov eax,ebx  
+
+004F034D   call UnPacKed.0040458C  
+
+004F0352   lea eax,dword ptr ss:[ebp-3C]  
+
+004F0355   mov edx,dword ptr ss:[ebp-14]    取第四位的数  
+
+004F0358   shl edx,3        左移 3 位  
+
+004F035B   and edx,0C0        取高 2 位  
+
+004F0361   mov ecx,dword ptr ss:[ebp-C]    取第 2 位的数  
+
+004F0364   shl ecx,4        左移 4 位  
+
+004F0367   and ecx,30        取高 2 位  
+
+004F036A   or edx,ecx        取或  
+
+004F036C   mov ecx,dword ptr ss:[ebp-10]    取第 3 位的数  
+
+004F036F   and ecx,0F        取低 4 位  
+
+004F0372   or edx,ecx        取或  
+
+004F0374   call UnPacKed.004044AC  
+
+004F0379   mov edx,dword ptr ss:[ebp-3C]  
+
+004F037C   mov eax,ebx  
+
+004F037E   call UnPacKed.0040458C  
+
+004F0383   lea eax,dword ptr ss:[ebp-40]  
+
+004F0386   mov edx,dword ptr ss:[ebp-14]    取第四位的数  
+
+004F0389   shl edx,5        左移 5 位  
+
+004F038C   and edx,0E0        取高 3 位  
+
+004F0392   or edx,dword ptr ss:[ebp-18]    与第五位的数取或  
+
+004F0395   call UnPacKed.004044AC    保存  
+
+004F039A   mov edx,dword ptr ss:[ebp-40]  
+
+004F039D   mov eax,ebx  
+
+004F039F   call UnPacKed.0040458C    连接 52 35 26  
+
+004F03A4   dec dword ptr ss:[ebp-20]  计算结果应为 52 36 46，有时变为 31 4B 4B  
+
+004F03A7   jnz UnPacKed.004F02A0  
+```
+
+总结：`f2()`具体变换是：首先按位在`"0KMT1EIJ2AB34FGH56PYZ7NRS89CDUVX"`中查表，得到数 `a`、`b`、`c`、`d`、`e`，然后对 `a`、`b`、`c`、`d`、`e` 进行移位，重新组合成三个字节即数 `B`，调位方法：
+
+```
+a4,a3,a2,a1,a0,b4,b3,b2  
+
+d4,d3,b1,b0,c3,c2,c1,c0  
+
+d2,d1,d0,e4,e3,e2,e1,e0  
+```
+
+求逆方法：
+
+1.  执行到 `00559D0A`，然后下：`d [ebp-c]`，记下数据区显示的正确值 `x,y,z`；
+2.  对 3 个字节的正确值进行调位，得到 5 个字节 `a,b,c,d,e`，调位方法为：
+
+    ```
+    0,0,0,x7,x6,x5,x4,x3  
+
+    0,0,0,x2,x1,x0,y5,y4  
+
+    0,0,0,0 ,y3,y2,y1,y0  
+
+    0,0,0,y7,y6,z7,z6,z5  
+
+    0,0,0,z4,z3,z2,z1,z0  
+    ```
+3.  根据 5 个字节查表`"0KMT1EIJ2AB34FGH56PYZ7NRS89CDUVX"`，得到 5 位注册码即为 23~27 位。
+
+### 【5. 对 29~31 位的校验】
+
+29~31 位相当于前 28 位的校验和，首先求 29~31 位的值，跟进 `call UnPacKed.004E9BE0`：
+
+```
+004ECE3B   mov eax,dword ptr ss:[ebp-8]  
+
+004ECE3E   call UnPacKed.00404584  查位数  
+
+004ECE43   mov esi,eax  
+
+004ECE45   mov al,byte ptr ds:[edi+esi-1]  
+
+004ECE49   call UnPacKed.004ECFF0  在此表中查位置"0AH6CD3BEF4TRS2PUV5K1MN78YZ9GIJ"  
+
+004ECE4E   mov dword ptr ss:[ebp-4],eax  
+
+004ECE51   cmp esi,1  
+
+004ECE54   jle short UnPacKed.004ECE8E  
+
+004ECE56   mov ebx,esi  
+
+004ECE58   dec ebx  
+
+004ECE59   cmp ebx,1  
+
+004ECE5C   jl short UnPacKed.004ECE8E  
+
+004ECE5E   push 4003  
+
+004ECE63   push F8000000    浮点数 31  
+
+004ECE68   push 0  
+
+004ECE6A   mov eax,esi  
+
+004ECE6C   sub eax,ebx  
+
+004ECE6E   call UnPacKed.0042EE28  计算 31 的 n 次方  
+
+004ECE73   call UnPacKed.00402B80  从浮点栈中弹出计算结果  
+
+004ECE78   push eax  
+
+004ECE79   mov al,byte ptr ds:[edi+ebx-1]  
+
+004ECE7D   call UnPacKed.004ECFF0  
+
+004ECE82   pop edx  
+
+004ECE83   imul edx,eax  
+
+004ECE86   add dword ptr ss:[ebp-4],edx  
+
+004ECE89   dec ebx  
+
+004ECE8A   test ebx,ebx  
+
+004ECE8C   jnz short UnPacKed.004ECE5E  
+```
+
+然后对 1~28 位求和，跟进 `call UnPacKed.004F0748`，当然也可以不看这一段算法：
+
+```
+004F3983   call UnPacKed.00404584  
+
+004F3988   mov edx,eax  
+
+004F398A   test dl,dl  
+
+004F398C   jbe short UnPacKed.004F39A0  
+
+004F398E   mov al,1  
+
+004F3990   xor ecx,ecx  
+
+004F3992   mov cl,al  
+
+004F3994   movzx ecx,byte ptr ds:[edi+ecx-1]  取 1~28 位中的一位  
+
+004F3999   add esi,ecx        累加  
+
+004F399B   inc eax  
+
+004F399C   dec dl  
+
+004F399E   jnz short UnPacKed.004F3990  
+
+004F39A0   xor eax,eax  
+
+004F39A2   mov al,byte ptr ds:[edi+2]  取第 3 位  
+
+004F39A5   mov ecx,0A  
+
+004F39AA   xor edx,edx  
+
+004F39AC   div ecx      除以 10  
+
+004F39AE   mov eax,edx  
+
+004F39B0   test al,al      看余数，如为 0 则置为 10  
+
+004F39B2   jnz short UnPacKed.004F39B6  
+
+004F39B4   mov al,0A  
+
+004F39B6   and eax,0FF  
+
+004F39BB   imul esi      累加和乘以这个余数  
+
+004F39BD   mov esi,eax  
+
+004F39BF   cmp esi,6978      结果与 27000 比较，如大于这个数，则除以这个数取余  
+
+004F39C5   jle short UnPacKed.004F39D3  
+
+004F39C7   mov eax,esi  
+
+004F39C9   mov ecx,6978  
+
+004F39CE   cdq  
+
+004F39CF   idiv ecx  
+
+004F39D1   mov esi,edx  
+```
+
+对 1~28 位各位 `ASCII` 码之累加和，再乘以第 3 位除以 10 的余数，如乘积大于 `27000`，则除以 `27000` 取余；然后把 29~31 位看成是 31 进制数，求 16 进制值，其变换表为：`"0AH6CD3BEF4TRS2PUV5K1MN78YZ9GIJ"`，所得结果和 1~28 位的累加和进行比较。
+
+求逆方法：
+
+1.  执行到 `00559E24`，记下 `eax` 中的值 `x`，或按照上面的方法计算出这个值；
+2.  `x` 除以 31，用余数查表`"0AH6CD3BEF4TRS2PUV5K1MN78YZ9GIJ"`，所得字符作为第 31 位；
+3.  第 2 步的商除以 31，用余数查表，作为第 30 位；
+4.  第 3 步的商查表，作为第 29 位。
+
+由于这一步要先确定前 28 的值，所以这一步可以在把别的码都求出以后再重跟一遍时进行。
+
+### 【6. 对 17~22 位的校验】
+
+跟进 `call UnPacKed.00506940`：

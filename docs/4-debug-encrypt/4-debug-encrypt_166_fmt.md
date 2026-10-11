@@ -1,0 +1,1378 @@
+
+# 逆向分析 Microsoft.Office.2007.Applications.Keygen.Only-MiCROSOFT（修订版）
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-51.htm`](https://www.pediy.com/kssd/pediy09/pediy09-51.htm)
+
+> 逆向分析 `Microsoft.Office.2007.Applications.Keygen.Only-MiCROSOFT`
+
+> 【注意】原贴有错，这是修订版！附件包含了更多内容，请重新下载。谢谢！
+
+> 附件下载链接：`http://bbs.pediy.com/attachment.php?attachmentid=4467&d=1171523739`
+
+> 在最近的 0day 中有两个小玩意儿让我很感兴趣：
+
+> `2006-12-24  Microsoft.Office.2007.Enterprise.Keygen.Only-MiCROSOFT`
+> `2007-01-10  Microsoft.Office.2007.Applications.Keygen.Only-MiCROSOFT`
+
+> 此前曾经逆向分析过 `Microsoft.Windows.Server.2003.x64.Edition.VOL.FIXED.Keymaker.Only-ZWT`，前后花了差不多一个月的时间，基本弄清了注册算法，过程虽然很辛苦但也觉得挺好玩的。所以这次无意中看上这么两个小玩意，正好也有时间，也就不打算放过了。
+
+> 这两个 keygen 都是用 delphi 写的，算法结构完全一样，只是椭圆曲线的参数不同，因此程序结构也几乎完全相同。下面以后者为例，介绍我的分析过程。
+
+### 1. 脱壳
+
+*   用 `PEiD` 检查的结果：`UPX 0.89.6 - 1.02 / 1.05 - 1.24 -> Markus & Laszlo`
+*   用 `PEiD` 的 `UPX` 插件脱壳成功，可是无法运行，只好改手动脱壳。
+*   `OllyDBG` 加载，找到入口点：`0045CFE0`，右键 dump 之，成功！
+*   注意：选中 `Rebuild Import`，选上 `Method2`。
+
+### 2. 脱壳后检查
+
+*   所用开发工具：`Borland Delphi 6.0 - 7.0`
+*   用 `PEiD` 的插件 `KANAL` 检查的结果：
+
+    ```text
+    BASE64 table :: 0005ABFE :: 0045ABFE
+    CRC32 :: 0005B1F1 :: 0045B1F1
+    FGint Base10StringToFGInt :: 0005742C :: 0045742C
+    FGint Base256StringToFGInt :: 00057298 :: 00457298
+    FGint Base2StringToFGInt :: 00057078 :: 00457078
+    FGint FGIntToBase256String :: 000571A4 :: 004571A4
+    FGint FGIntToBase2String :: 00056FC4 :: 00456FC4
+    FGint MontgomeryModExp :: 00058E64 :: 00458E64
+    SHA1 [Compress] :: 0005BB5F :: 0045BB5F
+    ```
+
+### 3. DeDe 分析
+
+找到点击按钮的事件响应代码，如下：
+
+```asm
+0045CCCC   55                 push    ebp
+0045CCCD   8BEC               mov     ebp, esp
+0045CCCF   6A00               push    $00
+0045CCD1   53                 push    ebx
+0045CCD2   8BD8               mov     ebx, eax
+0045CCD4   33C0               xor     eax, eax
+0045CCD6   55                 push    ebp
+0045CCD7   680ECD4500         push    $0045CD0E
+
+****** TRY
+|
+0045CCDC   64FF30             push    dword ptr fs:[eax]
+0045CCDF   648920             mov     fs:[eax], esp
+0045CCE2   8D45FC             lea     eax, [ebp-$04]
+
+|
+0045CCE5   E85EFFFFFF         call    0045CC48            // 这个函数生成注册码
+0045CCEA   8B55FC             mov     edx, [ebp-$04]
+0045CCED   8B830C030000       mov     eax, [ebx+$030C]
+
+* Reference to: Controls.TControl.SetText(TControl;TCaption);
+|
+0045CCF3   E8208DFDFF         call    00435A18            // 输出注册码
+0045CCF8   33C0               xor     eax, eax
+0045CCFA   5A                 pop     edx
+0045CCFB   59                 pop     ecx
+0045CCFC   59                 pop     ecx
+0045CCFD   648910             mov     fs:[eax], edx
+
+****** FINALLY
+|
+0045CD00   6815CD4500         push    $0045CD15
+0045CD05   8D45FC             lea     eax, [ebp-$04]
+
+* Reference to: System.@LStrClr(void;void);
+|
+0045CD08   E89F71FAFF         call    00403EAC
+0045CD0D   C3                 ret
+
+* Reference to: System.@HandleFinally;
+|
+0045CD0E   E99D6BFAFF         jmp     004038B0
+0045CD13   EBF0               jmp     0045CD05
+
+****** END
+|
+0045CD15   5B                 pop     ebx
+0045CD16   59                 pop     ecx
+0045CD17   5D                 pop     ebp
+0045CD18   C3                 ret
+```
+
+用 `DeDe` 分析的这一部分其实也可以不要的，只是在 `DeDe` 中可以很容易找到按钮的响应代码，这样接下来用 `IDA` 分析就可以直奔主题，稍稍方便一些。
+
+### 4. IDA 静态分析
+
+`IDA` 加载，同时载入 `Delphi7.sig`、`FGint.sig`，并手动分析识别未知函数。分析完毕结果如下：
+
+**第一段（事件响应）**
+
+```asm
+seg000:0045CCB8            dd 0FFFFFFFFh, 9
+seg000:0045CCC0  a707000000 db '707000000',0          ; DATA XREF: GenerateKey+20o
+seg000:0045CCCA            align 4
+seg000:0045CCCC            push    ebp
+seg000:0045CCCD            mov     ebp, esp
+seg000:0045CCCF            push    0
+seg000:0045CCD1            push    ebx
+seg000:0045CCD2            mov     ebx, eax
+seg000:0045CCD4            xor     eax, eax
+seg000:0045CCD6            push    ebp
+seg000:0045CCD7            push    offset loc_45CD0E
+seg000:0045CCDC            push    dword ptr fs:[eax]
+seg000:0045CCDF            mov     fs:[eax], esp
+seg000:0045CCE2            lea     eax, [ebp-4]
+seg000:0045CCE5            call    GenerateKey       ; 这个函数生成注册码，见第二段
+seg000:0045CCEA            mov     edx, [ebp-4]      ; 这里存放注册码
+seg000:0045CCED            mov     eax, [ebx+30Ch]   ; 控件句柄，下面输出注册码
+seg000:0045CCF3            call    @Controls@TControl@SetText$qqrx17System@AnsiString
+seg000:0045CCF8            xor     eax, eax
+```
+
+**第二段（上面的代码所调用的函数）**
+
+```asm
+seg000:0045CC48 GenerateKey proc near         ; CODE XREF: seg000:0045CCE5p
+seg000:0045CC48
+seg000:0045CC48 var_C           = dword ptr -0Ch
+seg000:0045CC48 var_8           = dword ptr -8
+seg000:0045CC48 var_4           = dword ptr -4
+seg000:0045CC48
+seg000:0045CC48            push    ebp
+seg000:0045CC49            mov     ebp, esp
+seg000:0045CC4B            push    0
+seg000:0045CC4D            push    0
+seg000:0045CC4F            push    0
+seg000:0045CC51            push    ebx
+seg000:0045CC52            push    esi
+seg000:0045CC53            mov     esi, eax
+seg000:0045CC55            xor     eax, eax
+seg000:0045CC57            push    ebp
+seg000:0045CC58            push    offset sub_45CCAB
+seg000:0045CC5D            push    dword ptr fs:[eax]
+seg000:0045CC60            mov     fs:[eax], esp
+seg000:0045CC63            xor     ebx, ebx
+seg000:0045CC65            lea     eax, [ebp+var_C]
+seg000:0045CC68            mov     edx, offset a707000000 ; "707000000"
+seg000:0045CC6D            call    @System@@LStrLAsg$qqrpvpxv
+seg000:0045CC72            lea     eax, [ebp+var_8]
+seg000:0045CC75            push    eax
+seg000:0045CC76            lea     ecx, [ebp+var_4] ; 存放注册码
+seg000:0045CC79            mov     edx, ebx
+seg000:0045CC7B            mov     eax, [ebp+var_C] ; "707000000"
+seg000:0045CC7E            call    GenKey            ; 生成注册码的函数，见第三段
+seg000:0045CC83            mov     eax, esi
+seg000:0045CC85            mov     edx, [ebp+var_4]
+seg000:0045CC88            call    @System@@LStrAsg$qqrpvpxv
+seg000:0045CC8D            xor     eax, eax
+seg000:0045CC8F            pop     edx
+seg000:0045CC90            pop     ecx
+seg000:0045CC91            pop     ecx
+seg000:0045CC92            mov     fs:[eax], edx
+seg000:0045CC95            push    offset loc_45CCB2
+seg000:0045CC9A
+seg000:0045CC9A loc_45CC9A:                ; CODE XREF: seg000:0045CCB0j
+seg000:0045CC9A            lea     eax, [ebp+var_C]
+seg000:0045CC9D            call    @System@@LStrClr$qqrpv
+seg000:0045CCA2            lea     eax, [ebp+var_4]
+seg000:0045CCA5            call    @System@@LStrClr$qqrpv
+seg000:0045CCAA            retn
+seg000:0045CCAA GenerateKey endp            ; sp = -20h
+```
+
+**第三段（上面的代码所调用的函数）**
+
+```asm
+seg000:0045C0DC GenKey          proc near         ; CODE XREF: GenerateKey+36p
+seg000:0045C0DC
+seg000:0045C0DC tmp_str_7        = dword ptr -204h
+seg000:0045C0DC tmp_str_6        = dword ptr -200h
+```
+
+
+
+```
+seg000:0045C0DC tmp_str_5       = dword ptr -1FCh
+seg000:0045C0DC tmp_str_4       = dword ptr -1F8h
+seg000:0045C0DC tmp_str_3       = dword ptr -1F4h
+seg000:0045C0DC tmp_str_2       = dword ptr -1F0h
+seg000:0045C0DC tmp_str_1       = dword ptr -1ECh
+seg000:0045C0DC str_q           = dword ptr -1E8h
+seg000:0045C0DC str_k           = dword ptr -1E4h
+seg000:0045C0DC str_ky          = dword ptr -1E0h
+seg000:0045C0DC str_kx          = dword ptr -1DCh
+seg000:0045C0DC str_gy          = dword ptr -1D8h
+seg000:0045C0DC str_gx          = dword ptr -1D4h
+seg000:0045C0DC str_p           = dword ptr -1D0h
+seg000:0045C0DC sha_out_0       = dword ptr -1CCh
+seg000:0045C0DC sha_out_4       = dword ptr -1C8h
+seg000:0045C0DC sha_out_16      = dword ptr -1BCh
+seg000:0045C0DC buf             = dword ptr -1B8h
+seg000:0045C0DC sha_ctx         = dword ptr -130h
+seg000:0045C0DC ecc_rx          = dword ptr -0D0h
+seg000:0045C0DC ecc_ry          = dword ptr -0C8h
+seg000:0045C0DC ecc_kx          = dword ptr -0BCh
+seg000:0045C0DC ecc_ky          = dword ptr -0B4h
+seg000:0045C0DC ecc_kinf        = byte ptr -0ACh
+seg000:0045C0DC ecc_gx          = dword ptr -0A8h
+seg000:0045C0DC ecc_gy          = dword ptr -0A0h
+seg000:0045C0DC ecc_ginf        = byte ptr -98h
+seg000:0045C0DC tmp             = dword ptr -92h
+seg000:0045C0DC dwRandint      = dword ptr -8Ch
+seg000:0045C0DC dwVersion      = dword ptr -88h
+seg000:0045C0DC dwHashout      = dword ptr -84h
+seg000:0045C0DC bn8            = dword ptr -80h
+seg000:0045C0DC bn7            = dword ptr -78h
+seg000:0045C0DC bn6            = dword ptr -70h
+seg000:0045C0DC ecc_a          = dword ptr -68h
+seg000:0045C0DC ecc_p          = dword ptr -60h
+seg000:0045C0DC bn0            = dword ptr -58h
+seg000:0045C0DC ecc_k          = dword ptr -50h
+seg000:0045C0DC ecc_q          = dword ptr -48h
+seg000:0045C0DC bn5            = dword ptr -40h
+seg000:0045C0DC bn4            = dword ptr -38h
+seg000:0045C0DC bn3            = dword ptr -30h
+seg000:0045C0DC bn2            = dword ptr -28h
+seg000:0045C0DC bn1            = dword ptr -20h
+seg000:0045C0DC nCount         = dword ptr -18h
+seg000:0045C0DC str3           = dword ptr -14h
+seg000:0045C0DC str2           = dword ptr -10h
+seg000:0045C0DC str1           = dword ptr -0Ch
+seg000:0045C0DC NotUsed        = byte ptr -6
+seg000:0045C0DC bOK            = byte ptr -5
+seg000:0045C0DC str0           = dword ptr -4
+seg000:0045C0DC arg_0          = dword ptr  8
+seg000:0045C0DC
+seg000:0045C0DC               push    ebp
+seg000:0045C0DD               mov     ebp, esp
+seg000:0045C0DF               push    ecx           ; 存放注册码的地方
+seg000:0045C0E0               mov     ecx, 64
+seg000:0045C0E5
+seg000:0045C0E5 loc_45C0E5:   ; CODE XREF: GenKey+Ej
+seg000:0045C0E5               push    0
+seg000:0045C0E7               push    0
+seg000:0045C0E9               dec     ecx
+seg000:0045C0EA               jnz     short loc_45C0E5
+seg000:0045C0EC               xchg    ecx, [ebp+str0]
+seg000:0045C0EF               push    ebx           ; ebx = 0
+seg000:0045C0F0               push    esi
+seg000:0045C0F1               push    edi
+seg000:0045C0F2               mov     edi, ecx
+seg000:0045C0F4               mov     [ebp+bOK], dl   ; edx = 0
+seg000:0045C0F7               mov     [ebp+str0], eax ; 707000000
+seg000:0045C0FA               mov     eax, [ebp+str0]
+seg000:0045C0FD               call    @System@@LStrAddRef$qqrpv
+seg000:0045C102               lea     eax, [ebp+bn1]
+seg000:0045C105               mov     edx, off_456B64
+seg000:0045C10B               call    @System@@InitializeRecord$qqrpvt1
+seg000:0045C110               lea     eax, [ebp+bn2]
+seg000:0045C113               mov     edx, off_456B64
+seg000:0045C119               call    @System@@InitializeRecord$qqrpvt1
+seg000:0045C11E               lea     eax, [ebp+bn3]
+seg000:0045C121               mov     edx, off_456B64
+seg000:0045C127               call    @System@@InitializeRecord$qqrpvt1
+seg000:0045C12C               lea     eax, [ebp+bn4]
+seg000:0045C12F               mov     edx, off_456B64
+seg000:0045C135               call    @System@@InitializeRecord$qqrpvt1
+seg000:0045C13A               lea     eax, [ebp+bn5]
+seg000:0045C13D               mov     edx, off_456B64
+seg000:0045C143               call    @System@@InitializeRecord$qqrpvt1
+seg000:0045C148               lea     eax, [ebp+ecc_q]
+seg000:0045C14B               mov     edx, off_456B64
+seg000:0045C151               call    @System@@InitializeRecord$qqrpvt1
+seg000:0045C156               lea     eax, [ebp+ecc_k]
+seg000:0045C159               mov     edx, off_456B64
+seg000:0045C15F               call    @System@@InitializeRecord$qqrpvt1
+seg000:0045C164               lea     eax, [ebp+bn0]
+seg000:0045C167               mov     edx, off_456B64
+seg000:0045C16D               call    @System@@InitializeRecord$qqrpvt1
+seg000:0045C172               lea     eax, [ebp+ecc_p]
+seg000:0045C175               mov     edx, off_456B64
+seg000:0045C17B               call    @System@@InitializeRecord$qqrpvt1
+seg000:0045C180               lea     eax, [ebp+ecc_a]
+seg000:0045C183               mov     edx, off_456B64
+seg000:0045C189               call    @System@@InitializeRecord$qqrpvt1
+seg000:0045C18E               lea     eax, [ebp+bn6]
+seg000:0045C191               mov     edx, off_456B64
+seg000:0045C197               call    @System@@InitializeRecord$qqrpvt1
+seg000:0045C19C               lea     eax, [ebp+bn7]
+seg000:0045C19F               mov     edx, off_456B64
+seg000:0045C1A5               call    @System@@InitializeRecord$qqrpvt1
+seg000:0045C1AA               lea     eax, [ebp+bn8]
+seg000:0045C1AD               mov     edx, off_456B64
+seg000:0045C1B3               call    @System@@InitializeRecord$qqrpvt1
+seg000:0045C1B8               lea     eax, [ebp+ecc_gx]
+seg000:0045C1BE               mov     edx, off_459A88
+seg000:0045C1C4               call    @System@@InitializeRecord$qqrpvt1
+seg000:0045C1C9               lea     eax, [ebp+ecc_kx]
+seg000:0045C1CF               mov     edx, off_459A88
+seg000:0045C1D5               call    @System@@InitializeRecord$qqrpvt1
+seg000:0045C1DA               lea     eax, [ebp+ecc_rx]
+seg000:0045C1E0               mov     edx, off_459A88
+seg000:0045C1E6               call    @System@@InitializeRecord$qqrpvt1
+seg000:0045C1EB               xor     eax, eax
+seg000:0045C1ED               push    ebp
+seg000:0045C1EE               push    offset sub_45CB91
+seg000:0045C1F3               push    dword ptr fs:[eax]
+seg000:0045C1F6               mov     fs:[eax], esp
+seg000:0045C1F9               mov     byte ptr [ebp+tmp+1], 5Dh
+seg000:0045C200               mov     byte ptr [ebp+tmp], 79h
+seg000:0045C207               mov     eax, edi
+seg000:0045C209               call    @System@@LStrClr$qqrpv
+seg000:0045C20E               lea     eax, [ebp+str1]
+seg000:0045C211               call    @System@@LStrClr$qqrpv
+seg000:0045C216               mov     ebx, 0FFFFFFC0h
+seg000:0045C21B               mov     esi, (offset byte_45EDFC+3Fh)
+seg000:0045C220
+```
+
+
+
+```assembly
+seg000:0045C220 loc_45C220:                             ; CODE XREF: GenKey+161j  
+
+seg000:0045C220                              lea      eax, [ebp+str_p] ; 循环 64 次  
+
+seg000:0045C226                              mov      dl, [esi]  
+
+seg000:0045C228                              call     @System@@LStrFromChar$qqrr17System@AnsiStringc  
+
+seg000:0045C22D                              mov      edx, [ebp+str_p]  
+
+seg000:0045C233                              lea      eax, [ebp+str1]  
+
+seg000:0045C236                              call     @System@@LStrCat$qqrv  
+
+seg000:0045C23B                              dec      esi  
+
+seg000:0045C23C                              inc      ebx  
+
+seg000:0045C23D                              jnz      short loc_45C220  
+
+seg000:0045C23F                              lea      edx, [ebp+ecc_p]  
+
+seg000:0045C242                              mov      eax, [ebp+str1]  
+
+seg000:0045C245                              call     @Base256StringToFGInt  
+
+seg000:0045C24A                              lea      edx, [ebp+ecc_a]  
+
+seg000:0045C24D                              mov      eax, offset byte_45CBAC  
+
+seg000:0045C252                              call     @Base10StringToFGInt  
+
+seg000:0045C257                              lea      eax, [ebp+str1]  
+
+seg000:0045C25A                              call     @System@@LStrClr$qqrpv  
+
+seg000:0045C25F                              mov      ebx, 0FFFFFFC0h  
+
+seg000:0045C264                              mov      esi, (offset byte_45EE3C+3Fh)  
+
+seg000:0045C269  
+
+seg000:0045C269 loc_45C269:                              ; CODE XREF: GenKey+1AAj  
+
+seg000:0045C269                              lea      eax, [ebp+str_gx] ; 循环 64 次  
+
+seg000:0045C26F                              mov      dl, [esi]  
+
+seg000:0045C271                              call     @System@@LStrFromChar$qqrr17System@AnsiStringc  
+
+seg000:0045C276                              mov      edx, [ebp+str_gx]  
+
+seg000:0045C27C                              lea      eax, [ebp+str1]  
+
+seg000:0045C27F                              call     @System@@LStrCat$qqrv  
+
+seg000:0045C284                              dec      esi  
+
+seg000:0045C285                              inc      ebx  
+
+seg000:0045C286                              jnz      short loc_45C269  
+
+seg000:0045C288                              lea      edx, [ebp+ecc_gx]  
+
+seg000:0045C28E                              mov      eax, [ebp+str1]  
+
+seg000:0045C291                              call     @Base256StringToFGInt  
+
+seg000:0045C296                              lea      eax, [ebp+str1]  
+
+seg000:0045C299                              call     @System@@LStrClr$qqrpv  
+
+seg000:0045C29E                              mov      ebx, 0FFFFFFC0h ; 循环 64 次  
+
+seg000:0045C2A3                              mov      esi, (offset byte_45EE7C+3Fh)  
+
+seg000:0045C2A8  
+
+seg000:0045C2A8 loc_45C2A8:                              ; CODE XREF: GenKey+1E9j  
+
+seg000:0045C2A8                              lea      eax, [ebp+str_gy]  
+
+seg000:0045C2AE                              mov      dl, [esi]  
+
+seg000:0045C2B0                              call     @System@@LStrFromChar$qqrr17System@AnsiStringc  
+
+seg000:0045C2B5                              mov      edx, [ebp+str_gy]  
+
+seg000:0045C2BB                              lea      eax, [ebp+str1]  
+
+seg000:0045C2BE                              call     @System@@LStrCat$qqrv  
+
+seg000:0045C2C3                              dec      esi  
+
+seg000:0045C2C4                              inc      ebx  
+
+seg000:0045C2C5                              jnz      short loc_45C2A8  
+
+seg000:0045C2C7                              lea      edx, [ebp+ecc_gy]  
+
+seg000:0045C2CD                              mov      eax, [ebp+str1]  
+
+seg000:0045C2D0                              call     @Base256StringToFGInt  
+
+seg000:0045C2D5                              mov      [ebp+ecc_ginf], 0  
+
+seg000:0045C2DC                              lea      eax, [ebp+str1]  
+
+seg000:0045C2DF                              call     @System@@LStrClr$qqrpv  
+
+seg000:0045C2E4                              mov      ebx, 0FFFFFFC0h ; 循环 64 次  
+
+seg000:0045C2E9                              mov      esi, (offset byte_45EEBC+3Fh)  
+
+seg000:0045C2EE  
+
+seg000:0045C2EE loc_45C2EE:                              ; CODE XREF: GenKey+22Fj  
+
+seg000:0045C2EE                              lea      eax, [ebp+str_kx]  
+
+seg000:0045C2F4                              mov      dl, [esi]  
+
+seg000:0045C2F6                              call     @System@@LStrFromChar$qqrr17System@AnsiStringc  
+
+seg000:0045C2FB                              mov      edx, [ebp+str_kx]  
+
+seg000:0045C301                              lea      eax, [ebp+str1]  
+
+seg000:0045C304                              call     @System@@LStrCat$qqrv  
+
+seg000:0045C309                              dec      esi  
+
+seg000:0045C30A                              inc      ebx  
+
+seg000:0045C30B                              jnz      short loc_45C2EE  
+
+seg000:0045C30D                              lea      edx, [ebp+ecc_kx]  
+
+seg000:0045C313                              mov      eax, [ebp+str1]  
+
+seg000:0045C316                              call     @Base256StringToFGInt  
+
+seg000:0045C31B                              lea      eax, [ebp+str1]  
+
+seg000:0045C31E                              call     @System@@LStrClr$qqrpv  
+
+seg000:0045C323                              mov      ebx, 0FFFFFFC0h ; 循环 64 次  
+
+seg000:0045C328                              mov      esi, (offset byte_45EEFC+3Fh)  
+
+seg000:0045C32D  
+
+seg000:0045C32D loc_45C32D:                              ; CODE XREF: GenKey+26Ej  
+
+seg000:0045C32D                              lea      eax, [ebp+str_ky]  
+
+seg000:0045C333                              mov      dl, [esi]  
+
+seg000:0045C335                              call     @System@@LStrFromChar$qqrr17System@AnsiStringc  
+
+seg000:0045C33A                              mov      edx, [ebp+str_ky]  
+
+seg000:0045C340                              lea      eax, [ebp+str1]  
+
+seg000:0045C343                              call     @System@@LStrCat$qqrv  
+
+seg000:0045C348                              dec      esi  
+
+seg000:0045C349                              inc      ebx  
+
+seg000:0045C34A                              jnz      short loc_45C32D  
+
+seg000:0045C34C                              lea      edx, [ebp+ecc_ky]  
+
+seg000:0045C352                              mov      eax, [ebp+str1]  
+
+seg000:0045C355                              call     @Base256StringToFGInt  
+
+seg000:0045C35A                              mov      [ebp+ecc_kinf], 0  
+
+seg000:0045C361                              lea      eax, [ebp+str1]  
+
+seg000:0045C364                              call     @System@@LStrClr$qqrpv  
+
+seg000:0045C369                              mov      ebx, 0FFFFFFF8h ; 循环 8 次  
+
+seg000:0045C36E                              mov      esi, (offset byte_45EF3C+7)  
+
+seg000:0045C373  
+
+seg000:0045C373 loc_45C373:                              ; CODE XREF: GenKey+2B4j  
+
+seg000:0045C373                              lea      eax, [ebp+str_k]  
+
+seg000:0045C379                              mov      dl, [esi]  
+
+seg000:0045C37B                              call     @System@@LStrFromChar$qqrr17System@AnsiStringc  
+
+seg000:0045C380                              mov      edx, [ebp+str_k]  
+
+seg000:0045C386                              lea      eax, [ebp+str1]  
+
+seg000:0045C389                              call     @System@@LStrCat$qqrv  
+
+seg000:0045C38E                              dec      esi  
+
+seg000:0045C38F                              inc      ebx  
+
+seg000:0045C390                              jnz      short loc_45C373  
+
+seg000:0045C392                              lea      edx, [ebp+ecc_k]  
+
+seg000:0045C395                              mov      eax, [ebp+str1]  
+
+seg000:0045C398                              call     @Base256StringToFGInt  
+
+seg000:0045C39D                              lea      eax, [ebp+str1]  
+
+seg000:0045C3A0                              call     @System@@LStrClr$qqrpv  
+
+seg000:0045C3A5                              mov      ebx, 0FFFFFFF8h ; 循环 8 次  
+
+seg000:0045C3AA                              mov      esi, (offset byte_45EF44+7)  
+
+seg000:0045C3AF  
+
+seg000:0045C3AF loc_45C3AF:                              ; CODE XREF: GenKey+2F0j  
+
+seg000:0045C3AF                              lea      eax, [ebp+str_q]  
+
+seg000:0045C3B5                              mov      dl, [esi]  
+
+seg000:0045C3B7                              call     @System@@LStrFromChar$qqrr17System@AnsiStringc  
+
+seg000:0045C3BC                              mov      edx, [ebp+str_q]  
+
+seg000:0045C3C2                              lea      eax, [ebp+str1]  
+
+seg000:0045C3C5                              call     @System@@LStrCat$qqrv  
+
+seg000:0045C3CA                              dec      esi  
+
+seg000:0045C3CB                              inc      ebx  
+
+seg000:0045C3CC                              jnz      short loc_45C3AF  
+
+seg000:0045C3CE                              lea      edx, [ebp+ecc_q]  
+```
+
+
+
+```asm
+seg000:0045C3D1                   mov     eax, [ebp+str1]
+seg000:0045C3D4                   call    @Base256StringToFGInt
+seg000:0045C3D9                   mov     eax, [ebp+str0]
+seg000:0045C3DC                   call    @Sysutils@StrToInt$qqrx17System@AnsiString
+seg000:0045C3E1                   mov     ecx, 1000000
+seg000:0045C3E6                   cdq
+seg000:0045C3E7                   idiv    ecx
+seg000:0045C3E9                   mov     [ebp+dwVersion], eax
+seg000:0045C3EF                   mov     eax, [ebp+dwVersion]
+seg000:0045C3F5                   shr     eax, 7
+seg000:0045C3F8                   shl     eax, 8
+seg000:0045C3FB                   and     eax, 700h
+seg000:0045C400                   mov     edx, [ebp+dwVersion]
+seg000:0045C406                   and     edx, 7Fh
+seg000:0045C409                   add     edx, edx
+seg000:0045C40B                   add     eax, edx
+seg000:0045C40D                   mov     [ebp+dwVersion], eax
+seg000:0045C413                   cmp     [ebp+bOK], 0
+seg000:0045C417                   jz      short loc_45C41F
+seg000:0045C419                   inc     [ebp+dwVersion]
+seg000:0045C41F
+seg000:0045C41F loc_45C41F:                ; CODE XREF: GenKey+33Bj
+seg000:0045C41F                   call    @System@Randomize$qqrv
+seg000:0045C424                   xor     eax, eax
+seg000:0045C426                   mov     [ebp+nCount], eax
+seg000:0045C429
+seg000:0045C429 loc_45C429:                ; CODE XREF: GenKey+576j
+seg000:0045C429                   lea     eax, [ebp+str1]
+seg000:0045C42C                   call    @System@@LStrClr$qqrpv
+seg000:0045C431                   mov     ebx, 0FFFFFFF7h ; 循环 8 次
+seg000:0045C436
+seg000:0045C436 loc_45C436:                ; CODE XREF: GenKey+380j
+seg000:0045C436                   mov     eax, 256
+seg000:0045C43B                   call    @System@@RandInt$qqrv ; 生成 0..256 之间的随机整数
+seg000:0045C440                   mov     edx, eax
+seg000:0045C442                   lea     eax, [ebp+tmp_str_1]
+seg000:0045C448                   call    @System@@LStrFromChar$qqrr17System@AnsiStringc
+seg000:0045C44D                   mov     edx, [ebp+tmp_str_1]
+seg000:0045C453                   lea     eax, [ebp+str1]
+seg000:0045C456                   call    @System@@LStrCat$qqrv
+seg000:0045C45B                   inc     ebx
+seg000:0045C45C                   jnz     short loc_45C436
+seg000:0045C45E                   lea     edx, [ebp+bn6]
+seg000:0045C461                   mov     eax, [ebp+str1]
+seg000:0045C464                   call    @Base256StringToFGInt
+seg000:0045C469                   lea     ecx, [ebp+bn0]
+seg000:0045C46C                   lea     edx, [ebp+ecc_q]
+seg000:0045C46F                   lea     eax, [ebp+bn6]
+seg000:0045C472                   call    @FGIntMod
+seg000:0045C477                   lea     eax, [ebp+bn6]
+seg000:0045C47A                   call    @FGIntDestroy
+seg000:0045C47F                   lea     eax, [ebp+bn0]
+seg000:0045C482                   push    eax
+seg000:0045C483                   lea     eax, [ebp+ecc_rx]
+seg000:0045C489                   push    eax
+seg000:0045C48A                   lea     ecx, [ebp+ecc_a]
+seg000:0045C48D                   lea     edx, [ebp+ecc_p]
+seg000:0045C490                   lea     eax, [ebp+ecc_gx]
+seg000:0045C496                   call    @ECPointKMultiple ; ECPointKMultiple( G, p, a, r, R );
+seg000:0045C49B                   lea     edx, [ebp+str1]
+seg000:0045C49E                   lea     eax, [ebp+ecc_rx]
+seg000:0045C4A4                   call    @FGIntToBase256String
+seg000:0045C4A9                   lea     edx, [ebp+str2]
+seg000:0045C4AC                   mov     eax, [ebp+str1]
+seg000:0045C4AF                   call    @ConvertBase256StringToHexString
+seg000:0045C4B4                   lea     edx, [ebp+str1]
+seg000:0045C4B7                   lea     eax, [ebp+ecc_ry]
+seg000:0045C4BD                   call    @FGIntToBase256String
+seg000:0045C4C2                   lea     edx, [ebp+str3]
+seg000:0045C4C5                   mov     eax, [ebp+str1]
+seg000:0045C4C8                   call    @ConvertBase256StringToHexString
+seg000:0045C4CD                   jmp     short loc_45C4DF
+seg000:0045C4CF ; ---------------------------
+seg000:0045C4CF
+seg000:0045C4CF loc_45C4CF:                ; CODE XREF: GenKey+410j
+seg000:0045C4CF                   lea     eax, [ebp+str2]
+seg000:0045C4D2                   mov     ecx, [ebp+str2]
+seg000:0045C4D5                   mov     edx, offset dword_45CBB8
+seg000:0045C4DA                   call    @System@@LStrCat3$qqrv
+seg000:0045C4DF
+seg000:0045C4DF loc_45C4DF:                ; CODE XREF: GenKey+3F1j
+seg000:0045C4DF                   mov     eax, [ebp+str2]
+seg000:0045C4E2                   call    GetStrLength    ; 取字符串长度
+seg000:0045C4E7                   cmp     eax, 128
+seg000:0045C4EC                   jl      short loc_45C4CF
+seg000:0045C4EE                   jmp     short loc_45C500
+seg000:0045C4F0 ; ---------------------------
+seg000:0045C4F0
+seg000:0045C4F0 loc_45C4F0:                ; CODE XREF: GenKey+431j
+seg000:0045C4F0                   lea     eax, [ebp+str3]
+seg000:0045C4F3                   mov     ecx, [ebp+str3]
+seg000:0045C4F6                   mov     edx, offset dword_45CBB8
+seg000:0045C4FB                   call    @System@@LStrCat3$qqrv
+seg000:0045C500
+seg000:0045C500 loc_45C500:                ; CODE XREF: GenKey+412j
+seg000:0045C500                   mov     eax, [ebp+str3]
+seg000:0045C503                   call    GetStrLength
+seg000:0045C508                   cmp     eax, 128
+seg000:0045C50D                   jl      short loc_45C4F0
+seg000:0045C50F                   mov     ebx, 1
+seg000:0045C514                   lea     esi, [ebp+buf]
+seg000:0045C51A
+seg000:0045C51A loc_45C51A:                ; CODE XREF: GenKey+488j
+seg000:0045C51A                   lea     eax, [ebp+tmp_str_2] ; 循环 16 次
+seg000:0045C520                   push    eax
+seg000:0045C521                   mov     eax, [ebp+str2]
+seg000:0045C524                   call    GetStrLength
+seg000:0045C529                   mov     edx, eax
+seg000:0045C52B                   mov     eax, ebx
+seg000:0045C52D                   shl     eax, 3
+seg000:0045C530                   sub     edx, eax
+seg000:0045C532                   inc     edx
+seg000:0045C533                   mov     ecx, 8
+seg000:0045C538                   mov     eax, [ebp+str2]
+seg000:0045C53B                   call    @System@@LStrCopy$qqrv
+seg000:0045C540                   mov     ecx, [ebp+tmp_str_2]
+seg000:0045C546                   lea     eax, [ebp+str1]
+seg000:0045C549                   mov     edx, offset byte_45CBC4
+seg000:0045C54E                   call    @System@@LStrCat3$qqrv
+seg000:0045C553                   mov     eax, [ebp+str1]
+seg000:0045C556                   call    @Sysutils@StrToInt$qqrx17System@AnsiString
+seg000:0045C55B                   mov     [esi], eax
+seg000:0045C55D                   inc     ebx
+seg000:0045C55E                   add     esi, 4
+seg000:0045C561                   cmp     ebx, 11h
+seg000:0045C564                   jnz     short loc_45C51A
+seg000:0045C566                   mov     ebx, 1
+seg000:0045C56B
+```
+
+
+
+## 段 `seg000` 反汇编代码
+
+```
+seg000:0045C56B loc_45C56B: ; CODE XREF: GenKey+4DEj
+seg000:0045C56B           lea     eax, [ebp+tmp_str_3] ; 循环 16 次
+seg000:0045C571           push    eax
+seg000:0045C572           mov     eax, [ebp+str3]
+seg000:0045C575           call    GetStrLength
+seg000:0045C57A           mov     edx, eax
+seg000:0045C57C           mov     eax, ebx
+seg000:0045C57E           shl     eax, 3
+seg000:0045C581           sub     edx, eax
+seg000:0045C583           inc     edx
+seg000:0045C584           mov     ecx, 8
+seg000:0045C589           mov     eax, [ebp+str3]
+seg000:0045C58C           call    @System@@LStrCopy$qqrv
+seg000:0045C591           mov     ecx, [ebp+tmp_str_3]
+seg000:0045C597           lea     eax, [ebp+str1]
+seg000:0045C59A           mov     edx, offset byte_45CBC4
+seg000:0045C59F           call    @System@@LStrCat3$qqrv
+seg000:0045C5A4           mov     eax, [ebp+str1]
+seg000:0045C5A7           call    @Sysutils@StrToInt$qqrx17System@AnsiString
+seg000:0045C5AC           lea     edx, [ebx+10h]
+seg000:0045C5AF           mov     [ebp+edx*4+sha_out_16], eax
+seg000:0045C5B6           inc     ebx
+seg000:0045C5B7           cmp     ebx, 17
+seg000:0045C5BA           jnz     short loc_45C56B
+seg000:0045C5BC           lea     eax, [ebp+sha_ctx]
+seg000:0045C5C2           call    SHA1_Init
+seg000:0045C5C7           lea     edx, [ebp+tmp]
+seg000:0045C5CD           lea     eax, [ebp+sha_ctx]
+seg000:0045C5D3           mov     ecx, 1
+seg000:0045C5D8           call    SHA1_Update
+seg000:0045C5DD           lea     edx, [ebp+dwVersion]
+seg000:0045C5E3           lea     eax, [ebp+sha_ctx]
+seg000:0045C5E9           mov     ecx, 2
+seg000:0045C5EE           call    SHA1_Update
+seg000:0045C5F3           lea     edx, [ebp+buf]
+seg000:0045C5F9           lea     eax, [ebp+sha_ctx]
+seg000:0045C5FF           mov     ecx, 128
+seg000:0045C604           call    SHA1_Update
+seg000:0045C609           lea     edx, [ebp+sha_out_0]
+seg000:0045C60F           lea     eax, [ebp+sha_ctx]
+seg000:0045C615           call    SHA1_Final
+seg000:0045C61A           mov     eax, [ebp+sha_out_0]
+seg000:0045C620           mov     edx, eax
+seg000:0045C622           and     edx, 7FFFFFFFh
+seg000:0045C628           mov     [ebp+dwHashout], edx
+seg000:0045C62E           mov     edx, [ebp+sha_out_4]
+seg000:0045C634           shr     edx, 13
+seg000:0045C637           and     edx, 7FFFFh
+seg000:0045C63D           add     edx, edx
+seg000:0045C63F           shr     eax, 31
+seg000:0045C642           add     edx, eax
+seg000:0045C644           mov     eax, [ebp+arg_0] ; arg_0 将返回 edx 的值
+seg000:0045C647           mov     [eax], edx
+seg000:0045C649           mov     eax, [ebp+arg_0]
+seg000:0045C64C           cmp     dword ptr [eax], 1000000 ; edx 与 1000000 比较
+seg000:0045C652           jnb     loc_45C429
+seg000:0045C658           lea     edx, [ebp+str1]
+seg000:0045C65B           mov     eax, offset a40000000000000 ; "4000000000000000"
+seg000:0045C660           call    @ConvertHexStringToBase256String
+seg000:0045C665           lea     edx, [ebp+bn5]
+seg000:0045C668           mov     eax, [ebp+str1]
+seg000:0045C66B           call    @Base256StringToFGInt
+seg000:0045C670
+seg000:0045C670 loc_45C670: ; CODE XREF: GenKey+7F5j
+seg000:0045C670           mov     eax, 1024
+seg000:0045C675           call    @System@@RandInt$qqrv
+seg000:0045C67A           and     eax, 3FFh
+seg000:0045C67F           mov     [ebp+dwRandint], eax
+seg000:0045C685           lea     eax, [ebp+sha_ctx]
+seg000:0045C68B           call    SHA1_Init
+seg000:0045C690           lea     edx, [ebp+tmp+1]
+seg000:0045C696           lea     eax, [ebp+sha_ctx]
+seg000:0045C69C           mov     ecx, 1
+seg000:0045C6A1           call    SHA1_Update
+seg000:0045C6A6           lea     edx, [ebp+dwVersion]
+seg000:0045C6AC           lea     eax, [ebp+sha_ctx]
+seg000:0045C6B2           mov     ecx, 2
+seg000:0045C6B7           call    SHA1_Update
+seg000:0045C6BC           lea     edx, [ebp+dwHashout]
+seg000:0045C6C2           lea     eax, [ebp+sha_ctx]
+seg000:0045C6C8           mov     ecx, 4
+seg000:0045C6CD           call    SHA1_Update
+seg000:0045C6D2           lea     edx, [ebp+dwRandint]
+seg000:0045C6D8           lea     eax, [ebp+sha_ctx]
+seg000:0045C6DE           mov     ecx, 4
+seg000:0045C6E3           call    SHA1_Update
+seg000:0045C6E8           lea     edx, [ebp+sha_out_0]
+seg000:0045C6EE           lea     eax, [ebp+sha_ctx]
+seg000:0045C6F4           call    SHA1_Final
+seg000:0045C6F9           lea     eax, [ebp+str1]
+seg000:0045C6FC           call    @System@@LStrClr$qqrpv
+seg000:0045C701           mov     eax, [ebp+sha_out_0]
+seg000:0045C707           xor     edx, edx
+seg000:0045C709           push    edx
+seg000:0045C70A           push    eax
+seg000:0045C70B           lea     edx, [ebp+str2]
+seg000:0045C70E           mov     eax, 8
+seg000:0045C713           call    @Sysutils@IntToHex$qqrji
+seg000:0045C718           jmp     short loc_45C72A
+seg000:0045C71A ; ---------------------------------------------------------------------------
+seg000:0045C71A
+seg000:0045C71A loc_45C71A: ; CODE XREF: GenKey+659j
+seg000:0045C71A           lea     eax, [ebp+str2]
+seg000:0045C71D           mov     ecx, [ebp+str2]
+seg000:0045C720           mov     edx, offset dword_45CBB8
+seg000:0045C725           call    @System@@LStrCat3$qqrv
+seg000:0045C72A
+seg000:0045C72A loc_45C72A: ; CODE XREF: GenKey+63Cj
+seg000:0045C72A           mov     eax, [ebp+str2]
+seg000:0045C72D           call    GetStrLength
+seg000:0045C732           cmp     eax, 8
+seg000:0045C735           jl      short loc_45C71A
+seg000:0045C737           lea     eax, [ebp+str1]
+seg000:0045C73A           mov     edx, [ebp+str2]
+seg000:0045C73D           call    @System@@LStrLAsg$qqrpvpxv
+seg000:0045C742           mov     eax, [ebp+sha_out_4]
+seg000:0045C748           shr     eax, 2
+seg000:0045C74B           xor     edx, edx
+seg000:0045C74D           push    edx
+seg000:0045C74E           push    eax
+seg000:0045C74F           lea     edx, [ebp+str2]
+seg000:0045C752           mov     eax, 8
+seg000:0045C757           call    @Sysutils@IntToHex$qqrji
+seg000:0045C75C           jmp     short loc_45C76E
+seg000:0045C75E ; ---------------------------------------------------------------------------
+seg000:0045C75E
+seg000:0045C75E loc_45C75E: ; CODE XREF: GenKey+69Dj
+seg000:0045C75E           lea     eax, [ebp+str2]
+```
+
+
+
+```
+seg000:0045C761                mov     ecx, [ebp+str2]  
+seg000:0045C764                mov     edx, offset dword_45CBB8  
+seg000:0045C769                call    @System@@LStrCat3$qqrv  
+seg000:0045C76E  
+
+seg000:0045C76E loc_45C76E:                          ; CODE XREF: GenKey+680j  
+seg000:0045C76E                mov     eax, [ebp+str2]  
+seg000:0045C771                call    GetStrLength  
+seg000:0045C776                cmp     eax, 8  
+seg000:0045C779                jl      short loc_45C75E  
+seg000:0045C77B                lea     eax, [ebp+str1]  
+seg000:0045C77E                mov     ecx, [ebp+str1]  
+seg000:0045C781                mov     edx, [ebp+str2]  
+seg000:0045C784                call    @System@@LStrCat3$qqrv  
+seg000:0045C789                lea     edx, [ebp+str3]  
+seg000:0045C78C                mov     eax, [ebp+str1]  
+seg000:0045C78F                call    @ConvertHexStringToBase256String  
+seg000:0045C794                lea     edx, [ebp+bn4]  
+seg000:0045C797                mov     eax, [ebp+str3]  
+seg000:0045C79A                call    @Base256StringToFGInt  
+seg000:0045C79F                lea     eax, [ebp+bn1]  
+seg000:0045C7A2                push    eax  
+seg000:0045C7A3                lea     ecx, [ebp+ecc_q]  
+seg000:0045C7A6                lea     edx, [ebp+ecc_k]  
+seg000:0045C7A9                lea     eax, [ebp+bn4]  
+seg000:0045C7AC                call    @FGIntMulMod     ; All FGint Signatures  
+seg000:0045C7B1                lea     eax, [ebp+bn6]  
+seg000:0045C7B4                push    eax  
+seg000:0045C7B5                lea     ecx, [ebp+ecc_q]  
+seg000:0045C7B8                lea     edx, [ebp+bn1]  
+seg000:0045C7BB                lea     eax, [ebp+bn1]  
+seg000:0045C7BE                call    @FGIntMulMod     ; All FGint Signatures  
+seg000:0045C7C3                lea     edx, [ebp+bn7]  
+seg000:0045C7C6                mov     eax, offset byte_45CBEC  
+seg000:0045C7CB                call    @Base10StringToFGInt  
+seg000:0045C7D0                lea     eax, [ebp+bn8]  
+seg000:0045C7D3                push    eax  
+seg000:0045C7D4                lea     ecx, [ebp+ecc_q]  
+seg000:0045C7D7                lea     edx, [ebp+bn0]  
+seg000:0045C7DA                lea     eax, [ebp+bn7]  
+seg000:0045C7DD                call    @FGIntMulMod     ; All FGint Signatures  
+seg000:0045C7E2                lea     eax, [ebp+bn3]  
+seg000:0045C7E5                push    eax  
+seg000:0045C7E6                lea     ecx, [ebp+ecc_q]  
+seg000:0045C7E9                lea     edx, [ebp+bn8]  
+seg000:0045C7EC                lea     eax, [ebp+bn6]  
+seg000:0045C7EF                call    @FGIntAddMod     ; All FGint Signatures  
+seg000:0045C7F4                lea     ecx, [ebp+bn6]  
+seg000:0045C7F7                lea     edx, [ebp+ecc_q]  
+seg000:0045C7FA                lea     eax, [ebp+bn3]  
+seg000:0045C7FD                call    @FGIntSquareRootModP  
+seg000:0045C802                lea     eax, [ebp+bn1]  
+seg000:0045C805                call    @FGIntChangeSign  
+seg000:0045C80A                lea     eax, [ebp+bn8]  
+seg000:0045C80D                push    eax  
+seg000:0045C80E                lea     ecx, [ebp+ecc_q]  
+seg000:0045C811                lea     edx, [ebp+bn6]  
+seg000:0045C814                lea     eax, [ebp+bn1]  
+seg000:0045C817                call    @FGIntAddMod     ; All FGint Signatures  
+seg000:0045C81C                lea     edx, [ebp+bn7]  
+seg000:0045C81F                mov     eax, offset byte_45CBF8  
+seg000:0045C824                call    @Base10StringToFGInt  
+seg000:0045C829                lea     ecx, [ebp+bn6]  
+seg000:0045C82C                lea     edx, [ebp+ecc_q]  
+seg000:0045C82F                lea     eax, [ebp+bn7]  
+seg000:0045C832                call    @FGIntModInv  
+seg000:0045C837                lea     eax, [ebp+bn2]  
+seg000:0045C83A                push    eax  
+seg000:0045C83B                lea     ecx, [ebp+ecc_q]  
+seg000:0045C83E                lea     edx, [ebp+bn6]  
+seg000:0045C841                lea     eax, [ebp+bn8]  
+seg000:0045C844                call    @FGIntMulMod     ; All FGint Signatures  
+seg000:0045C849                lea     eax, [ebp+bn6]  
+seg000:0045C84C                push    eax  
+seg000:0045C84D                lea     ecx, [ebp+ecc_q]  
+seg000:0045C850                lea     edx, [ebp+bn2]  
+seg000:0045C853                lea     eax, [ebp+bn2]  
+seg000:0045C856                call    @FGIntMulMod     ; All FGint Signatures  
+seg000:0045C85B                lea     eax, [ebp+bn7]  
+seg000:0045C85E                push    eax  
+seg000:0045C85F                lea     ecx, [ebp+ecc_q]  
+seg000:0045C862                lea     edx, [ebp+bn4]  
+seg000:0045C865                lea     eax, [ebp+bn2]  
+seg000:0045C868                call    @FGIntMulMod     ; All FGint Signatures  
+seg000:0045C86D                lea     eax, [ebp+bn8]  
+seg000:0045C870                push    eax  
+seg000:0045C871                lea     ecx, [ebp+ecc_q]  
+seg000:0045C874                lea     edx, [ebp+ecc_k]  
+seg000:0045C877                lea     eax, [ebp+bn7]  
+seg000:0045C87A                call    @FGIntMulMod     ; All FGint Signatures  
+seg000:0045C87F                lea     eax, [ebp+bn7]  
+seg000:0045C882                push    eax  
+seg000:0045C883                lea     ecx, [ebp+ecc_q]  
+seg000:0045C886                lea     edx, [ebp+bn8]  
+seg000:0045C889                lea     eax, [ebp+bn6]  
+seg000:0045C88C                call    @FGIntAddMod     ; All FGint Signatures  
+seg000:0045C891                lea     ecx, [ebp+bn6]  
+seg000:0045C894                lea     edx, [ebp+bn0]  
+seg000:0045C897                lea     eax, [ebp+bn7]  
+seg000:0045C89A                call    @FGIntSub  
+seg000:0045C89F                lea     edx, [ebp+bn7]  
+seg000:0045C8A2                mov     eax, offset dword_45CBB8  
+seg000:0045C8A7                call    @Base10StringToFGInt  
+seg000:0045C8AC                lea     edx, [ebp+bn6]  
+seg000:0045C8AF                lea     eax, [ebp+bn7]  
+seg000:0045C8B2                call    @FGIntCompareAbs  
+seg000:0045C8B7                cmp     al, 2  
+seg000:0045C8B9                jnz     short loc_45C8CA  
+seg000:0045C8BB                lea     edx, [ebp+bn2]  
+seg000:0045C8BE                lea     eax, [ebp+bn5]  
+seg000:0045C8C1                call    @FGIntCompareAbs  
+seg000:0045C8C6                test    al, al  
+seg000:0045C8C8                jz      short loc_45C8D7  
+seg000:0045C8CA  
+
+seg000:0045C8CA loc_45C8CA:                          ; CODE XREF: GenKey+7DDj  
+seg000:0045C8CA                inc     [ebp+nCount]  
+seg000:0045C8CD                cmp     [ebp+nCount], 100  
+seg000:0045C8D1                jle     loc_45C670  
+seg000:0045C8D7  
+
+seg000:0045C8D7 loc_45C8D7:                          ; CODE XREF: GenKey+7ECj  
+seg000:0045C8D7                lea     eax, [ebp+bn5]  
+seg000:0045C8DA                call    @FGIntDestroy  
+seg000:0045C8DF                lea     eax, [ebp+bn4]  
+seg000:0045C8E2                call    @FGIntDestroy  
+seg000:0045C8E7                lea     eax, [ebp+bn6]  
+seg000:0045C8EA                call    @FGIntDestroy  
+seg000:0045C8EF                lea     eax, [ebp+bn7]  
+seg000:0045C8F2                call    @FGIntDestroy  
+```
+
+
+
+```
+seg000:0045C8F7                     lea     eax, [ebp+bn8]
+
+seg000:0045C8FA                     call    @FGIntDestroy
+
+seg000:0045C8FF                     lea     eax, [ebp+bn1]
+
+seg000:0045C902                     call    @FGIntDestroy
+
+seg000:0045C907                     lea     eax, [ebp+bn3]
+
+seg000:0045C90A                     call    @FGIntDestroy
+
+seg000:0045C90F                     mov     eax, [ebp+dwRandint]
+
+seg000:0045C915                     xor     edx, edx
+
+seg000:0045C917                     push    edx
+
+seg000:0045C918                     push    eax
+
+seg000:0045C919                     lea     eax, [ebp+tmp_str_4]
+
+seg000:0045C91F                     call    @Sysutils@IntToStr$qqrj
+
+seg000:0045C924                     mov     eax, [ebp+tmp_str_4]
+
+seg000:0045C92A                     lea     edx, [ebp+bn6]
+
+seg000:0045C92D                     call    @Base10StringToFGInt
+
+seg000:0045C932                     lea     edx, [ebp+str1]
+
+seg000:0045C935                     mov     eax, offset a40000000000000 ; "4000000000000000"
+
+seg000:0045C93A                     call    @ConvertHexStringToBase256String
+
+seg000:0045C93F                     lea     edx, [ebp+bn7]
+
+seg000:0045C942                     mov     eax, [ebp+str1]
+
+seg000:0045C945                     call    @Base256StringToFGInt
+
+seg000:0045C94A                     lea     ecx, [ebp+bn8]
+
+seg000:0045C94D                     lea     edx, [ebp+bn7]
+
+seg000:0045C950                     lea     eax, [ebp+bn6]
+
+seg000:0045C953                     call    @FGIntMul
+
+seg000:0045C958                     lea     ecx, [ebp+bn6]
+
+seg000:0045C95B                     lea     edx, [ebp+bn2]
+
+seg000:0045C95E                     lea     eax, [ebp+bn8]
+
+seg000:0045C961                     call    @FGIntadd
+
+seg000:0045C966                     lea     edx, [ebp+str1]
+
+seg000:0045C969                     mov     eax, offset a80000000 ; "80000000"
+
+seg000:0045C96E                     call    @ConvertHexStringToBase256String
+
+seg000:0045C973                     lea     edx, [ebp+bn7]
+
+seg000:0045C976                     mov     eax, [ebp+str1]
+
+seg000:0045C979                     call    @Base256StringToFGInt
+
+seg000:0045C97E                     lea     ecx, [ebp+bn8]
+
+seg000:0045C981                     lea     edx, [ebp+bn7]
+
+seg000:0045C984                     lea     eax, [ebp+bn6]
+
+seg000:0045C987                     call    @FGIntMul
+
+seg000:0045C98C                     mov     eax, [ebp+dwHashout]
+
+seg000:0045C992                     xor     edx, edx
+
+seg000:0045C994                     push    edx
+
+seg000:0045C995                     push    eax
+
+seg000:0045C996                     lea     eax, [ebp+tmp_str_5]
+
+seg000:0045C99C                     call    @Sysutils@IntToStr$qqrj
+
+seg000:0045C9A1                     mov     eax, [ebp+tmp_str_5]
+
+seg000:0045C9A7                     lea     edx, [ebp+bn7]
+
+seg000:0045C9AA                     call    @Base10StringToFGInt
+
+seg000:0045C9AF                     lea     ecx, [ebp+bn6]
+
+seg000:0045C9B2                     lea     edx, [ebp+bn7]
+
+seg000:0045C9B5                     lea     eax, [ebp+bn8]
+
+seg000:0045C9B8                     call    @FGIntadd
+
+seg000:0045C9BD                     lea     edx, [ebp+str1]
+
+seg000:0045C9C0                     mov     eax, offset a0800 ; "0800"
+
+seg000:0045C9C5                     call    @ConvertHexStringToBase256String
+
+seg000:0045C9CA                     lea     edx, [ebp+bn7]
+
+seg000:0045C9CD                     mov     eax, [ebp+str1]
+
+seg000:0045C9D0                     call    @Base256StringToFGInt
+
+seg000:0045C9D5                     lea     ecx, [ebp+bn8]
+
+seg000:0045C9D8                     lea     edx, [ebp+bn7]
+
+seg000:0045C9DB                     lea     eax, [ebp+bn6]
+
+seg000:0045C9DE                     call    @FGIntMul
+
+seg000:0045C9E3                     mov     eax, [ebp+dwVersion]
+
+seg000:0045C9E9                     xor     edx, edx
+
+seg000:0045C9EB                     push    edx
+
+seg000:0045C9EC                     push    eax
+
+seg000:0045C9ED                     lea     eax, [ebp+tmp_str_6]
+
+seg000:0045C9F3                     call    @Sysutils@IntToStr$qqrj
+
+seg000:0045C9F8                     mov     eax, [ebp+tmp_str_6]
+
+seg000:0045C9FE                     lea     edx, [ebp+bn7]
+
+seg000:0045CA01                     call    @Base10StringToFGInt
+
+seg000:0045CA06                     lea     ecx, [ebp+bn6]
+
+seg000:0045CA09                     lea     edx, [ebp+bn7]
+
+seg000:0045CA0C                     lea     eax, [ebp+bn8]
+
+seg000:0045CA0F                     call    @FGIntadd
+
+seg000:0045CA14                     mov     eax, edi
+
+seg000:0045CA16                     call    @System@@LStrClr$qqrpv
+
+seg000:0045CA1B                     mov     ebx, 25         ; 循环次数  25
+
+seg000:0045CA20
+
+seg000:0045CA20 loc_45CA20:                               ; CODE XREF: GenKey+9A3j
+
+seg000:0045CA20                     lea     eax, [ebp+tmp+2] ; 以下是 BASE24 编码的过程
+
+seg000:0045CA26                     push    eax
+
+seg000:0045CA27                     lea     edx, [ebp+bn7]
+
+seg000:0045CA2A                     lea     eax, [ebp+bn6]
+
+seg000:0045CA2D                     mov     ecx, 24
+
+seg000:0045CA32                     call    @FGIntDivByInt
+
+seg000:0045CA37                     cmp     [ebp+tmp+2], 23
+
+seg000:0045CA3E                     jbe     short loc_45CA4A
+
+seg000:0045CA40                     mov     eax, offset aOp ; "Op"
+
+seg000:0045CA45                     call    @Dialogs@ShowMessage$qqrx17System@AnsiString
+
+seg000:0045CA4A
+
+seg000:0045CA4A loc_45CA4A:                               ; CODE XREF: GenKey+962j
+
+seg000:0045CA4A                     lea     eax, [ebp+tmp_str_7]
+
+seg000:0045CA50                     mov     edx, off_45EF74
+
+seg000:0045CA56                     mov     ecx, [ebp+tmp+2]
+
+seg000:0045CA5C                     mov     dl, [edx+ecx]
+
+seg000:0045CA5F                     call    @System@@LStrFromChar$qqrr17System@AnsiStringc
+
+seg000:0045CA64                     mov     edx, [ebp+tmp_str_7]
+
+seg000:0045CA6A                     mov     ecx, [edi]
+
+seg000:0045CA6C                     mov     eax, edi
+
+seg000:0045CA6E                     call    @System@@LStrCat3$qqrv
+
+seg000:0045CA73                     lea     edx, [ebp+bn6]
+
+seg000:0045CA76                     lea     eax, [ebp+bn7]
+
+seg000:0045CA79                     call    @FGIntCopy
+
+seg000:0045CA7E                     dec     ebx
+
+seg000:0045CA7F                     jnz     short loc_45CA20 ; 经过这个循环以后，大数被 BASE24 编码
+
+seg000:0045CA81                     mov     edx, edi       ; 以下开始组装注册码，每 5 个字符之间加一个‘－’
+
+seg000:0045CA83                     mov     ecx, 21
+
+seg000:0045CA88                     mov     eax, offset asc_45CC34 ; "-"
+
+seg000:0045CA8D                     call    @System@@LStrInsert$qqrv
+
+seg000:0045CA92                     mov     edx, edi
+
+seg000:0045CA94                     mov     ecx, 16
+
+seg000:0045CA99                     mov     eax, offset asc_45CC34 ; "-"
+
+seg000:0045CA9E                     call    @System@@LStrInsert$qqrv
+
+seg000:0045CAA3                     mov     edx, edi
+
+seg000:0045CAA5                     mov     ecx, 11
+
+seg000:0045CAAA                     mov     eax, offset asc_45CC34 ; "-"
+
+seg000:0045CAAF                     call    @System@@LStrInsert$qqrv
+
+seg000:0045CAB4                     mov     edx, edi
+
+seg000:0045CAB6                     mov     ecx, 6
+
+seg000:0045CABB                     mov     eax, offset asc_45CC34 ; "-"
+
+seg000:0045CAC0                     call    @System@@LStrInsert$qqrv
+
+seg000:0045CAC5                     cmp     [ebp+nCount], 100
+
+seg000:0045CAC9                     jnz     short loc_45CAD7
+
+seg000:0045CACB                     mov     eax, edi
+```
+
+
+
+```
+seg000:0045CACD               mov     edx, offset aError_0 ; "Error"
+seg000:0045CAD2               call    @System@@LStrAsg$qqrpvpxv
+seg000:0045CAD7
+seg000:0045CAD7 loc_45CAD7:                          ; CODE XREF: GenKey+9EDj
+seg000:0045CAD7               lea     eax, [ebp+bn6]
+seg000:0045CADA               call    @FGIntDestroy
+seg000:0045CADF               lea     eax, [ebp+bn7]
+seg000:0045CAE2               call    @FGIntDestroy
+seg000:0045CAE7               lea     eax, [ebp+bn8]
+seg000:0045CAEA               call    @FGIntDestroy
+seg000:0045CAEF               lea     eax, [ebp+bn2]
+seg000:0045CAF2               call    @FGIntDestroy
+seg000:0045CAF7               lea     eax, [ebp+bn0]
+seg000:0045CAFA               call    @FGIntDestroy
+seg000:0045CAFF               lea     eax, [ebp+ecc_k]
+seg000:0045CB02               call    @FGIntDestroy
+seg000:0045CB07               lea     eax, [ebp+ecc_q]
+seg000:0045CB0A               call    @FGIntDestroy
+seg000:0045CB0F               lea     eax, [ebp+ecc_p]
+seg000:0045CB12               call    @FGIntDestroy
+seg000:0045CB17               lea     eax, [ebp+ecc_a]
+seg000:0045CB1A               call    @FGIntDestroy
+seg000:0045CB1F               lea     eax, [ebp+ecc_gx]
+seg000:0045CB25               call    @ECPointDestroy
+seg000:0045CB2A               lea     eax, [ebp+ecc_kx]
+seg000:0045CB30               call    @ECPointDestroy
+seg000:0045CB35               xor     eax, eax
+seg000:0045CB37               pop     edx
+seg000:0045CB38               pop     ecx
+seg000:0045CB39               pop     ecx
+seg000:0045CB3A               mov     fs:[eax], edx
+seg000:0045CB3D               push    offset loc_45CB98
+seg000:0045CB42
+seg000:0045CB42 loc_45CB42:                          ; CODE XREF: seg000:0045CB96j
+seg000:0045CB42               lea     eax, [ebp+tmp_str_7]
+seg000:0045CB48               mov     edx, 14
+seg000:0045CB4D               call    @System@@LStrArrayClr$qqrpvi
+seg000:0045CB52               lea     eax, [ebp+ecc_rx]
+seg000:0045CB58               mov     edx, off_459A88
+seg000:0045CB5E               mov     ecx, 3
+seg000:0045CB63               call    @System@@FinalizeArray$qqrpvt1ui
+seg000:0045CB68               lea     eax, [ebp+bn8]
+seg000:0045CB6B               mov     edx, off_456B64
+seg000:0045CB71               mov     ecx, 13
+seg000:0045CB76               call    @System@@FinalizeArray$qqrpvt1ui
+seg000:0045CB7B               lea     eax, [ebp+str3]
+seg000:0045CB7E               mov     edx, 3
+seg000:0045CB83               call    @System@@LStrArrayClr$qqrpvi
+seg000:0045CB88               lea     eax, [ebp+str0]
+seg000:0045CB8B               call    @System@@LStrClr$qqrpv
+seg000:0045CB90               retn
+seg000:0045CB90 GenKey          endp ; sp = -50h
+```
+
+Delphi 代码的逆向分析要注意几点：
+
+1. 函数调用时参数的传递不完全用栈，而是主要用寄存器，这一点与 `VC` 编译的程序完全不同。一般第一个参数放入 `eax` 寄存器，第二个参数放入 `edx`，第三个参数放入 `ecx` 寄存器，其余参数按照与 `VC` 程序类似的方式压栈。
+2. 栈上给局部变量分配空间的时候，栈是向下增长的，而栈上的数组、字符串、结构体等却是向上增长的。理解这一点可以帮助识别栈上的变量。
+3. `IDA` 自己能够识别的函数有限，对于不能识别的函数，可以借助于源码的上下文手动识别。在分析的过程中，我从网上找到了 `FGInt` 的源代码，借助于源码最后成功识别了所有的函数。
+
+手动识别函数和栈上变量以后，上面的汇编代码变得很清晰了。如果还知道一点算法的话，基本上都可以读懂上面的汇编代码来。假如熟悉 `Delphi`，可以很快写出这个 `keygen` 的主要框架代码。不过要恢复出能用的 `keygen` 也不是一件容易的事，需要花很多事件来动态调试，否则一点小错误都让结果差之千里。
+
+以上三段代码依次逐层调用，核心代码都在第三段中。第一段代码响应点击按钮事件，调用第二段代码，第二段代码调用第三段代码，第三段代码采用椭圆曲线加密技术生成能用的 `key`。整个注册算法基本没怎么变化，就是换了参数。
+
+这几天来，我做了这样几件事：
+
+### 提取椭圆曲线参数
+
+这个比较好办，用到的参数都在这里，总共 336 个字节。
+
+```
+seg000:0045EDFC byte_45EDFC     db 49h, 90h, 4Dh, 44h, 5Eh, 53h, 1Bh, 0BDh, 3Dh, 28h, 0B9h, 0Dh, 75h, 93h, 74h, 0D1h
+seg000:0045EDFC                db 0D5h, 76h, 34h, 6Ah, 58h, 5Eh, 18h, 7Eh, 74h, 0B8h, 0A2h, 2, 6Eh, 26h, 89h, 66h
+seg000:0045EDFC                db 0D7h, 96h, 22h, 0EEh, 8Eh, 0C4h, 0, 12h, 36h, 35h, 97h, 31h, 33h, 75h, 6Bh, 5Fh
+seg000:0045EDFC                db 0F5h, 83h, 98h, 0D5h, 14h, 48h, 12h, 29h, 6Eh, 0FEh, 0Fh, 0D2h, 1Ah, 1Fh, 29h, 0ADh
+seg000:0045EE3C byte_45EE3C     db 0EFh, 13h, 0B9h, 21h, 1Fh, 0FFh, 3Eh, 7Fh, 2Eh, 4Bh, 0A5h, 0BBh, 27h, 0B0h, 19h, 66h
+seg000:0045EE3C                db 25h, 59h, 0C4h, 0D9h, 0A9h, 2Bh, 0EEh, 4Eh, 4Eh, 98h, 99h, 0FCh, 80h, 22h, 2Bh, 26h
+seg000:0045EE3C                db 0DEh, 71h, 0A3h, 0DEh, 95h, 0CFh, 0E0h, 8Ch, 0ECh, 2Ah, 0EDh, 0A5h, 1Bh, 10h, 0B6h, 0A8h
+seg000:0045EE3C                db 9, 72h, 0Eh, 0F2h, 9Ch, 97h, 0FAh, 0FBh, 0D3h, 3Dh, 45h, 0FAh, 0BEh, 0F3h, 13h, 1Eh
+seg000:0045EE7C byte_45EE7C     db 2Eh, 78h, 28h, 37h, 0B3h, 0E7h, 0F7h, 7Fh, 0Bh, 59h, 40h, 9Ch, 0B2h, 3Eh, 0DEh, 0E9h
+seg000:0045EE7C                db 65h, 0AFh, 0FDh, 0Fh, 67h, 68h, 3Bh, 0A2h, 0D5h, 0B0h, 0Eh, 97h, 9, 68h, 0DCh, 3Ah
+seg000:0045EE7C                db 24h, 0Fh, 7Fh, 3Ah, 2Ch, 0D2h, 37h, 68h, 39h, 0C7h, 0E8h, 0BAh, 0D1h, 0FBh, 4Fh, 8Dh
+seg000:0045EE7C                db 0BCh, 4Eh, 23h, 0FCh, 2, 59h, 1Dh, 0E3h, 85h, 0ADh, 2, 73h, 0BBh, 0DDh, 0F9h, 7Eh
+seg000:0045EEBC byte_45EEBC     db 60h, 0B9h, 0B5h, 4Eh, 56h, 42h, 9Ch, 2Dh, 9Eh, 86h, 33h, 93h, 7, 48h, 26h, 0D0h
+seg000:0045EEBC                db 0DFh, 1Fh, 5, 32h, 12h, 54h, 0FDh, 0F3h, 58h, 0Eh, 61h, 4, 0F4h, 0C2h, 1Bh, 69h
+seg000:0045EEBC                db 91h, 3Ch, 8, 1Dh, 0A1h, 5Eh, 2Eh, 67h, 0AFh, 86h, 0ECh, 64h, 2Ah, 9Bh, 4Eh, 1Ch
+seg000:0045EEBC                db 0C6h, 66h, 30h, 72h, 59h, 62h, 7Eh, 1Bh, 0BBh, 0CDh, 0C3h, 11h, 49h, 31h, 0A3h, 80h
+seg000:0045EEFC byte_45EEFC     db 8Ah, 0CEh, 0D9h, 0F5h, 0A3h, 0C1h, 2Ah, 0E7h, 0BFh, 38h, 0C3h, 34h, 0BEh, 0B0h, 25h, 82h
+seg000:0045EEFC                db 9Ah, 0E7h, 5Ch, 0F2h, 41h, 0BEh, 7Ah, 31h, 0DDh, 38h, 3Dh, 9Ch, 0E2h, 0DAh, 0E9h, 0F8h
+seg000:0045EEFC                db 9Ch, 66h, 5Ch, 8Fh, 0E7h, 0F1h, 48h, 0A5h, 84h, 2Eh, 9Eh, 0EFh, 65h, 0B1h, 9, 0D4h
+seg000:0045EEFC                db 0CAh, 39h, 1Bh, 97h, 7, 0E6h, 6Dh, 73h, 24h, 73h, 0B0h, 6Ch, 64h, 6Ch, 0B3h, 7Bh
+seg000:0045EF3C byte_45EF3C     db 0B8h, 56h, 22h, 0CAh, 30h, 6Fh, 0CAh, 8
+seg000:0045EF3C                             ; DATA XREF: GenKey+292o
+seg000:0045EF44 byte_45EF44     db 0Dh, 3Bh, 4, 21h, 73h, 55h, 0F6h, 44h
+seg000:0045EF44                             ; DATA XREF: GenKey+2CEo
+```
+
+我自己写了一段代码，读取并验证以上参数，然后将正确的参数输出到文件中。代码见附件。
+
+### 针对这个 keygen 做一个 KeyVerifier，验证所生成 key 的正确性
+
+加密和解密是对立统一的两个方面，相互之间联系很紧密。如果能够知道加密算法的细节，那么寻找解密算法也容易很多，同样，如果要找加密算法，知道解密算法也会有很大的帮助。我写 `KeyVerifier` 的目的也差不多，既是为了帮助理解解密算法，也是为保证逆向出来的解密算法的正确性。
+
+以前在逆向 `Microsoft.Windows.Server.2003.x64.Edition.VOL.FIXED.Keymaker.Only-ZWT` 的时候曾经写过一个，考虑到算法都是一样的，直接拿来用就可以了。
+
+### 用 Delphi 逆向一个能用的 keygen
+
+刚开始发此贴的时候，我还没有信心用 `Delphi` 写一个 `keygen`。因为我对 `Delphi` 不熟，几乎是从来没有用过。不过后来分析汇编代码，发现 `IDA` 逆向出来的东西实在是太清晰了，于是我想逆向出一个能用的 `keygen` 也许不会很难。然后就这样仓促上手，用了两天多的时间终于搞定。在逆向的过程中也发现最开始发的帖子有些问题。其实这里所用的算法跟以前是完全一样的，作者并没有用什么新技术，只是我自己没有看清罢了。
+
+`Delphi` 的 `keygen` 见附件。代码不是很多，结构很清晰，相信学过计算机的人都能看懂。现在回过头来看，这点玩意儿实在是没什么技术含量，挺失望的，唉。。。
+
+事实上，这一椭圆曲线加密算法在 `M$` 的多个产品中用到，比如 `WIN_XP_PRO`、`WIN_XP_PRO_VLK`、`OFFICE_XP`、`WIN_2003_ENT_VLK`、`WIN_2003_X64_VOL`，也是不同的产品中加密算法参数不同，算法部分改动不多。大家所见过的四合一、五合一、七合一的 `keygen` 都是依据这样的原理来的。可以预测，过不了多久，更多合一的 `keygen` 将会出现在大家面前。
+
+附件是我自己写的验证代码，以及 `Delphi` 逆向的 `Project`。水平有限，不足之处请各路高手多多指教！
+
+关于 `Windows Server` 注册算法的文字描述，可参考`[3]`。文档`[3]`可在网上搜索到，在`[2]`中也能找到。所有的资料都来自于 `Internet`。
+
+### 参考资料
+
+
+
+> [1] `Microsoft.Windows.Server.2003.x64.Edition.VOL.FIXED.Keymaker.Only-ZWT`
+>
+> [2] `Microsoft.Windows.XP.2003.Enterprise.Server.Keygen-YAG`
+>
+> [3] `MSKey4in1 Read Me.doc`
+>
+> [4] `Microsoft 的 25 位 CDKey 里有什么.TXT`
+>
+> [5] `恢复原版 XP.TXT`
+>
+> [6] `Microsoft.Office.2007.Enterprise.Keygen.Only-MiCROSOFT`
+>
+> [7] `Microsoft.Office.2007.Applications.Keygen.Only-MiCROSOFT`
+
+```
+4dd466d0e1e0cc123afbe504da2462ca
+```

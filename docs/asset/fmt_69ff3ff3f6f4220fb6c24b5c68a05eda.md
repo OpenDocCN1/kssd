@@ -1,0 +1,243 @@
+
+# 楚汉棋缘 V1.36
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50658.htm`](https://www.pediy.com/kssd/pediy05/pediy50658.htm)
+
+## 前言
+
+跟踪《楚汉棋缘》的算法只不过三个晚上约 6、7 个小时的时间，而写出注册机却用了近一个月，大量的时间都花在大数运算库的调试上，在这篇教程之后，俺将写一篇针对 `RSA` 算法的详细教程。
+
+俺是一个象棋爱好者，曾用 ID“臭棋篓子”获得联众“大师”级称号，但是俺经常会输给一个象棋程序《将族》。《将族》是 90 年代初中国象棋程序史上划时代的产品，近十年来一直是俺的最爱，可惜随着操作系统不断升级，修改《将族》以让它能够继续工作也越来越困难。于是我一直在寻找一个棋力相当的新产品希望能够代替它，直到碰到《楚汉棋缘 V1.3x》，看来大陆在象棋算法的研究上落后台湾几乎有 10 年之久！
+
+## 研究对象
+
+《楚汉棋缘 V1.36》，这里做个声明：俺的教程使用 `softice` 为唯一工具，无脱壳与静态分析必要。
+
+## 程序特点
+
+重启验证防爆破，`RSA` 防注册机，`Borland C++` 编译，“`Borland` 造”的东西（包括 `BC++`、`C++ Builder`、`DELPHI` 等）都不能通过 `getwindowtext` 之类的断点获得屏幕输入，断点必须下在 `windows` 消息循环上，推荐使用 `bpx callwindowproca`。程序对用户名及假码均进行了多次变换，最终的验证是用户名变码与假码变码之间的验证。
+
+## 前期工作
+
+进入注册界面，填入用户名及假码，切入 `softice`，下断点 `bpx callwindowproca`，`F5` 回到程序，随便动动鼠标即被中断进入 `Sice`，下 `s 0 l ffffff "假码"`，然后 `bpm 假码地址`，`F5` 回到程序，按下“注册”按钮，让假码这把“钥匙”带我们去找验证函数！
+
+## 算法分析
+
+好了，程序对假码开始进行处理的地方就是我们要进行分析的验证函数，找到这一函数的入口并记下地址，这样以后可以直接在这一地址上下断点。
+
+如下所示，这一函数有 900 多行代码，还包含了数不清的 `call`，不过请不要惊慌，如果你仔细看俺的注释，会发现几乎所有的 `call` 俺都是毫不犹豫地用 `F10` 来对付的，对算法的把握完全是通过归纳总结逐步建立起来的。
+
+```
+:u 430be0 L e81  
+001B:00430BE0  PUSH      EBP  
+001B:00430BE1  MOV       EBP,ESP  
+001B:00430BE3  ADD       ESP,FFFFFE94  
+001B:00430BE9  PUSH      EBX  
+001B:00430BEA  PUSH      ESI  
+001B:00430BEB  PUSH      EDI  
+001B:00430BEC  MOV       [EBP-0094],EDX  
+001B:00430BF2  MOV       DWORD PTR [EBP-0088],004EBB08  
+001B:00430BFC  MOV       [EBP-0084],ESP  
+001B:00430C02  MOV       EDI,EAX  
+001B:00430C04  MOV       DWORD PTR [EBP-008C],004A8C0B  
+001B:00430C0E  MOV       WORD PTR [EBP-80],0000  
+001B:00430C14  XOR       EAX,EAX  
+001B:00430C16  MOV       [EBP-74],EAX  
+001B:00430C19  MOV       EDX,FS:[00000000]  
+001B:00430C20  MOV       [EBP-0090],EDX  
+001B:00430C26  LEA       ECX,[EBP-0090]  
+001B:00430C2C  MOV       FS:[00000000],ECX  
+//以上估计是函数调用环境的保存及异常处理入口的设置
+
+001B:00430C33  MOV       WORD PTR [EBP-80],0014  
+//[ebp-xx]通常是属于当前函数体的局部变量  
+//给变量[ebp-80]赋初值为 20  
+
+001B:00430C39  MOV       EDX,004EB5CE  
+//[4eb5ce]="L5WXT6VMB4GE3RUYJ9HASF8KQNPD7CI"，用来干嘛呢？  
+//暂且称之为密码表吧  
+
+001B:00430C3E  LEA       EAX,[EBP-04]  
+//[ebp-04]=[12f80c]=16  
+
+001B:00430C41  CALL      004B7350  
+//eax=12f80c，没有发生变化，而**eax=密码表  
+//edx 发生了变化，=12f780  
+
+001B:00430C46  INC       DWORD PTR [EBP-74]  
+//变量[ebp-74]加 1  
+
+001B:00430C49  XOR       ECX,ECX  
+001B:00430C4B  MOV       WORD PTR [EBP-80],0008  
+001B:00430C51  MOV       WORD PTR [EBP-80],0020  
+001B:00430C57  MOV       [EBP-08],ECX  
+001B:00430C5A  XOR       EAX,EAX  
+001B:00430C5C  INC       DWORD PTR [EBP-74]  
+001B:00430C5F  XOR       EDX,EDX  
+001B:00430C61  MOV       WORD PTR [EBP-80],0008  
+001B:00430C67  MOV       WORD PTR [EBP-80],002C  
+001B:00430C6D  MOV       [EBP-0C],EAX  
+001B:00430C70  XOR       ECX,ECX  
+001B:00430C72  INC       DWORD PTR [EBP-74]  
+001B:00430C75  MOV       WORD PTR [EBP-80],0008  
+001B:00430C7B  MOV       WORD PTR [EBP-80],0038  
+001B:00430C81  MOV       [EBP-10],EDX  
+001B:00430C84  LEA       EDX,[EBP-00C4]  
+001B:00430C8A  INC       DWORD PTR [EBP-74]  
+001B:00430C8D  MOV       WORD PTR [EBP-80],0008  
+001B:00430C93  MOV       WORD PTR [EBP-80],0044  
+001B:00430C99  MOV       [EBP-14],ECX  
+001B:00430C9C  INC       DWORD PTR [EBP-74]  
+001B:00430C9F  XOR       EAX,EAX  
+001B:00430CA1  MOV       WORD PTR [EBP-80],0008  
+001B:00430CA7  MOV       [EBP-0098],EAX  
+//将[ebp-08]到[ebp-14]四个 32 位地址清零  
+//将[ebp-98]也清零  
+//并将计数器[ebp-74]加 5  
+
+001B:00430CAD  PUSH      14  
+001B:00430CAF  PUSH      00  
+001B:00430CB1  PUSH      EDX  
+001B:00430CB2  CALL      004A8778  
+//[eax]=[12f74c]=0  
+//[ecx]=[12f75c]=0  
+//不知道在干什么  
+
+001B:00430CB7  MOV       WORD PTR [EBP-80],0050  
+//变量[ebp-80]在被频繁地赋值，暂不明白有何用  
+
+001B:00430CBD  XOR       ECX,ECX  
+001B:00430CBF  ADD       ESP,0C  
+001B:00430CC2  MOV       [EBP-24],ECX  
+//[ebp-24]=0  
+
+001B:00430CC5  LEA       EDX,[EBP-24]  
+001B:00430CC8  INC       DWORD PTR [EBP-74]  
+001B:00430CCB  MOV       EAX,[EDI+00000308]  
+001B:00430CD1  CALL      004776F4  
+//eax=6  
+//刚刚被赋值为零的[ebp-24]发生了变化  
+//*[ebp-24]="doggie"，是俺输入的用户名！  
+//所以，eax=6 应该是返回用户名的长度  
+
+001B:00430CD6  CMP       DWORD PTR [EBP-24],00  
+001B:00430CDA  JZ        00430CE1  
+001B:00430CDC  MOV       ECX,[EBP-24]  
+001B:00430CDF  JMP       00430CE6  
+001B:00430CE1  MOV       ECX,004EB5EE  
+001B:00430CE6  PUSH      EDI  
+001B:00430CE7  MOV       EDI,ECX  
+//edi=用户名地址  
+
+001B:00430CE9  XOR       EAX,EAX  
+//eax=0  
+
+001B:00430CEB  OR        ECX,-01  
+//ecx=-1  
+
+001B:00430CEE  REPNZ SCASB  
+//循环 edi+1、计数器 ecx-1  
+//直到[edi]=eax 或 ecx=0，而 ecx 一开始就<0  
+
+001B:00430CF0  NOT       ECX  
+//ecx=用户名长度+1  
+
+001B:00430CF2  SUB       EDI,ECX  
+//恢复 edi=用户名地址  
+
+001B:00430CF4  LEA       ESI,[EBP-00C4]  
+001B:00430CFA  XCHG      ESI,EDI  
+001B:00430CFC  MOV       EDX,ECX  
+001B:00430CFE  MOV       EAX,EDI  
+001B:00430D00  SHR       ECX,02  
+//ecx=ecx/4  
+
+001B:00430D03  LEA       EAX,[EBP-24]  
+001B:00430D06  REPZ MOVSD  
+//以双字为单位将 esi 中的用户名拷贝至 edi，即[ebp-c4]  
+
+001B:00430D08  MOV       ECX,EDX  
+001B:00430D0A  MOV       EDX,00000002  
+001B:00430D0F  AND       ECX,03  
+001B:00430D12  REPZ MOVSB  
+//将剩下的字节从 esi 拷贝至 edi  
+
+001B:00430D14  POP       EDI  
+001B:00430D15  DEC       DWORD PTR [EBP-74]  
+001B:00430D18  CALL      004B74A8  
+//*eax，即用户名的源地址[ebp-24]被清零  
+//估计 call 4b74a8 相当于对象 delete  
+//所以在 call 之前减 1 的变量[ebp-74]估计是对象实例计数器  
+
+001B:00430D1D  MOV       DWORD PTR [EDI+00000390],0001E240  
+//1e240 十进制=123456，应该是拿来做变换用的常量  
+
+001B:00430D27  MOV       DWORD PTR [EDI+00000394],00000000  
+001B:00430D31  XOR       ESI,ESI  
+001B:00430D33  LEA       EBX,[EBP-00C4]  
+//[ebp-c4]是前面被装入用户名的地址  
+
+001B:00430D39  XOR       EAX,EAX  
+001B:00430D3B  INC       ESI  
+001B:00430D3C  MOV       AL,[EBX]  
+001B:00430D3E  INC       EBX  
+001B:00430D3F  MOV       EDX,EAX  
+001B:00430D41  IMUL      EDX,EAX  
+001B:00430D44  ADD       EDX,EAX  
+001B:00430D46  ADD       [EBP-0098],EDX  
+001B:00430D4C  CMP       ESI,14  
+001B:00430D4F  JL        00430D39  
+//从 esi=1 到 20 循环  
+//[ebp-98]+=（用户名第 esi 位）*（用户名第 esi 位+1）  
+//[ebp-98]就是用户名的变码  
+//可见用户名只有前 20 位有效  
+
+001B:00430D51  MOV       EAX,[EBP-0098]  
+001B:00430D57  XOR       EDX,EDX  
+001B:00430D59  ADD       [EDI+00000390],EAX  
+//用户名变码再+123456  
+
+001B:00430D5F  ADC       [EDI+00000394],EDX  
+001B:00430D65  PUSH      DWORD PTR [EDI+00000394]  
+001B:00430D6B  PUSH      DWORD PTR [EDI+00000390]  
+001B:00430D71  PUSH      004EB5EF  
+//[4eb5ef]="%ld"，按“长整数”格式化？  
+
+001B:00430D76  LEA       EAX,[EBP-10]  
+001B:00430D79  PUSH      EAX  
+001B:00430D7A  CALL      004B75F8  
+//**eax=*[ebp-10]=用户名变码十进制字符串形式  
+//可见 call 4b75f8 是某种字符串对象的格式化赋值函数  
+
+001B:00430D7F  ADD       ESP,10  
+001B:00430D82  LEA       EDX,[EBP-00D8]  
+001B:00430D88  PUSH      14  
+001B:00430D8A  PUSH      00  
+001B:00430D8C  PUSH      EDX  
+001B:00430D8D  CALL      004A8778  
+//观察结果结合上次调用此函数的记录可知  
+//将 edx，即[ebp-d8]后的 20 个字节清零  
+
+001B:00430D92  ADD       ESP,0C  
+001B:00430D95  LEA       ECX,[EBP-0108]  
+001B:00430D9B  PUSH      2D  
+001B:00430D9D  PUSH      00  
+001B:00430D9F  PUSH      ECX  
+001B:00430DA0  CALL      004A8778  
+//将 ecx，即[ebp-108]后的 45 个字节清零  
+
+001B:00430DA5  ADD       ESP,0C  
+001B:00430DA8  CMP       DWORD PTR [EBP-10],00  
+001B:00430DAC  JZ        00430DB3  
+001B:00430DAE  MOV       EAX,[EBP-10]  
+001B:00430DB1  JMP       00430DB8  
+001B:00430DB3  MOV       EAX,004EB5F3  
+001B:00430DB8  PUSH      EDI  
+001B:00430DB9  MOV       EDI,EAX  
+001B:00430DBB  XOR       EAX,EAX  
+001B:00430DBD  OR        ECX,-01  
+001B:00430DC0  REPNZ SCASB  
+001B:00430DC2  NOT       ECX  
+001B:00430DC4  SUB       EDI,ECX  
+001B:00430DC6  LEA       ESI,[EBP-00D8]  
+```

@@ -1,0 +1,558 @@
+
+# IDEA 中 2¹⁶ + 1 的模乘运算的一种优化实现
+
+> 原文：[`www.pediy.com/kssd/pediy11/106937.html`](https://www.pediy.com/kssd/pediy11/106937.html)
+
+`IDEA` 加密算法中用到一种 2¹⁶ + 1 的模乘运算。
+
+运算规则如下：
+
+1. `a`, `b` 分别为 16 位整数。
+2. 如果 `a` 或 `b` 为 0，则表示 2¹⁶。
+3. 运算结果为 `a * b mod (2¹⁶ + 1)`。
+
+以上规则是我根据自己的理解描述的，如果大家对算法了解得更清楚，可以参考专门介绍 `IDEA` 的文档。
+
+这个运算涉及的模运算，模运算是比除法运算更耗时的一种运算。所以应该避免。
+
+现在我们看怎么优化：
+
+这里分两种情况（我们用 `M` 来代替 2¹⁶ + 1）：
+
+1. `a`, `b` 都不为 0
+
+   `a * b mod M = c * 2¹⁶ + d mod M = c * M - c + d mod M = d - c mod M = M + d - c mod M;`
+
+   可见当 `a`, `b` 都不为 0 时，模乘的结果是乘积的低位字与高位字的差，如果结果为负值则应该加上 `M` 后取低 16 位。
+
+2. `a`, `b` 中有一个为 0，这里假设 `a = 0;`
+
+   `a ^ b mod M = 2¹⁶ * b mod M = M * b - b mod M = M - b mod M = 2¹⁶ + 1 - b mod M`
+
+   `= 1 - b mod M`
+
+这样除法就从运算中彻底消失了。
+
+这里要说的是这个原理并不是我的首创，该思想来源于 `molebox` 中的 `IDEA` 实现。
+
+下面是 `molebox` 中 `IDEA` 的汇编实现。里面多处重复了模乘代码，我把第一处用红色标出来，大家可以参考。
+
+```asm
+0055E868  >/$  55            push    ebp                       ;  zip restor 1
+0055E869   |.  8BEC          mov     ebp, esp
+0055E86B   |.  83EC 48       sub     esp, 48
+0055E86E   |.  53            push    ebx
+0055E86F   |.  894D D0       mov     dword ptr [ebp-30], ecx
+0055E872   |.  C745 FC 08000>mov     dword ptr [ebp-4], 8
+0055E879   |.  8B45 08       mov     eax, dword ptr [ebp+8]
+0055E87C   |.  8945 E8       mov     dword ptr [ebp-18], eax
+0055E87F   |.  8B45 E8       mov     eax, dword ptr [ebp-18]
+0055E882   |.  66:8B00       mov     ax, word ptr [eax]
+0055E885   |.  66:8945 E4    mov     word ptr [ebp-1C], ax
+0055E889   |.  8B45 E8       mov     eax, dword ptr [ebp-18]
+0055E88C   |.  40            inc     eax
+0055E88D   |.  40            inc     eax
+0055E88E   |.  8945 E8       mov     dword ptr [ebp-18], eax
+0055E891   |.  8B45 E8       mov     eax, dword ptr [ebp-18]
+0055E894   |.  66:8B00       mov     ax, word ptr [eax]
+0055E897   |.  66:8945 E0    mov     word ptr [ebp-20], ax
+0055E89B   |.  8B45 E8       mov     eax, dword ptr [ebp-18]
+0055E89E   |.  40            inc     eax
+0055E89F   |.  40            inc     eax
+0055E8A0   |.  8945 E8       mov     dword ptr [ebp-18], eax
+0055E8A3   |.  8B45 E8       mov     eax, dword ptr [ebp-18]
+0055E8A6   |.  66:8B00       mov     ax, word ptr [eax]
+0055E8A9   |.  66:8945 D8    mov     word ptr [ebp-28], ax
+0055E8AD   |.  8B45 E8       mov     eax, dword ptr [ebp-18]
+0055E8B0   |.  40            inc     eax
+0055E8B1   |.  40            inc     eax
+0055E8B2   |.  8945 E8       mov     dword ptr [ebp-18], eax
+0055E8B5   |.  8B45 E8       mov     eax, dword ptr [ebp-18]
+0055E8B8   |.  66:8B00       mov     ax, word ptr [eax]
+0055E8BB   |.  66:8945 D4    mov     word ptr [ebp-2C], ax
+0055E8BF   |.  0FB745 E4     movzx   eax, word ptr [ebp-1C]
+0055E8C3   |.  C1F8 08       sar     eax, 8
+0055E8C6   |.  0FB74D E4     movzx   ecx, word ptr [ebp-1C]
+0055E8CA   |.  C1E1 08       shl     ecx, 8
+0055E8CD   |.  0BC1          or      eax, ecx
+0055E8CF   |.  66:8945 E4    mov     word ptr [ebp-1C], ax
+0055E8D3   |.  0FB745 E0     movzx   eax, word ptr [ebp-20]
+0055E8D7   |.  C1F8 08       sar     eax, 8
+0055E8DA   |.  0FB74D E0     movzx   ecx, word ptr [ebp-20]
+0055E8DE   |.  C1E1 08       shl     ecx, 8
+0055E8E1   |.  0BC1          or      eax, ecx
+0055E8E3   |.  66:8945 E0    mov     word ptr [ebp-20], ax
+0055E8E7   |.  0FB745 D8     movzx   eax, word ptr [ebp-28]
+0055E8EB   |.  C1F8 08       sar     eax, 8
+0055E8EE   |.  0FB74D D8     movzx   ecx, word ptr [ebp-28]
+0055E8F2   |.  C1E1 08       shl     ecx, 8
+0055E8F5   |.  0BC1          or      eax, ecx
+0055E8F7   |.  66:8945 D8    mov     word ptr [ebp-28], ax
+0055E8FB   |.  0FB745 D4     movzx   eax, word ptr [ebp-2C]
+0055E8FF   |.  C1F8 08       sar     eax, 8
+0055E902   |.  0FB74D D4     movzx   ecx, word ptr [ebp-2C]
+0055E906   |.  C1E1 08       shl     ecx, 8
+0055E909   |.  0BC1          or      eax, ecx
+0055E90B   |.  66:8945 D4    mov     word ptr [ebp-2C], ax
+0055E90F   |>   8B45 10       /mov     eax, dword ptr [ebp+10]
+0055E912   |.  66:8B00       |mov     ax, word ptr [eax]
+0055E915   |.  66:8945 F0    |mov     word ptr [ebp-10], ax
+0055E919   |.  0FB745 F0     |movzx   eax, word ptr [ebp-10]
+0055E91D   |.  8B4D 10       |mov     ecx, dword ptr [ebp+10]
+0055E920   |.  41            |inc     ecx
+0055E921   |.  41            |inc     ecx
+0055E922   |.  894D 10       |mov     dword ptr [ebp+10], ecx
+0055E925   |.  85C0          |test    eax, eax
+0055E927   |.  0F84 81000000 |je      0055E9AE
+0055E92D   |.  0FB745 E4     |movzx   eax, word ptr [ebp-1C]
+0055E931   |.  25 FFFF0000   |and     eax, 0FFFF
+0055E936   |.  66:8945 E4    |mov     word ptr [ebp-1C], ax
+0055E93A   |.  0FB745 E4     |movzx   eax, word ptr [ebp-1C]
+0055E93E   |.  85C0          |test    eax, eax
+0055E940   |.  74 4D         |je      short 0055E98F
+0055E942   |.  0FB745 E4     |movzx   eax, word ptr [ebp-1C]
+0055E946   |.  0FB74D F0     |movzx   ecx, word ptr [ebp-10]
+0055E94A   |.  0FAFC1        |imul    eax, ecx
+0055E94D   |.  8945 DC       |mov     dword ptr [ebp-24], eax
+0055E950   |.  8B45 DC       |mov     eax, dword ptr [ebp-24]
+0055E953   |.  25 FFFF0000   |and     eax, 0FFFF
+0055E958   |.  66:8945 E4    |mov     word ptr [ebp-1C], ax
+0055E95C   |.  8B45 DC       |mov     eax, dword ptr [ebp-24]
+0055E95F   |.  C1E8 10       |shr     eax, 10
+0055E962   |.  66:8945 F0    |mov     word ptr [ebp-10], ax
+0055E966   |.  0FB745 E4     |movzx   eax, word ptr [ebp-1C]
+0055E96A   |.  0FB74D F0     |movzx   ecx, word ptr [ebp-10]
+0055E96E   |.  2BC1          |sub     eax, ecx
+0055E970   |.  0FB74D E4     |movzx   ecx, word ptr [ebp-1C]
+0055E974   |.  0FB755 F0     |movzx   edx, word ptr [ebp-10]
+0055E978   |.  33DB         |xor     ebx, ebx
+0055E97A   |.  3BCA         |cmp     ecx, edx
+0055E97C   |.  0F9CC3       |setl    bl
+0055E97F   |.  03C3         |add     eax, ebx
+0055E981   |.  66:8945 E4    |mov     word ptr [ebp-1C], ax
+0055E985   |.  66:8B45 E4    |mov     ax, word ptr [ebp-1C]
+0055E989   |.  66:8945 CE    |mov     word ptr [ebp-32], ax
+0055E98D   |.  EB 15         |jmp     short 0055E9A4
+0055E98F   |>   0FB745 F0     |movzx   eax, word ptr [ebp-10]
+0055E993   |.  6A 01         |push    1
+0055E995   |.  59            |pop     ecx
+0055E996   |.  2BC8          |sub     ecx, eax
+0055E998   |.  66:894D E4    |mov     word ptr [ebp-1C], cx
+0055E99C   |.  66:8B45 E4    |mov     ax, word ptr [ebp-1C]
+0055E9A0   |.  66:8945 CE    |mov     word ptr [ebp-32], ax
+0055E9A4   |>   66:8B45 CE    |mov     ax, word ptr [ebp-32]
+0055E9A8   |.  66:8945 CC    |mov     word ptr [ebp-34], ax
+0055E9AC   |.  EB 15         |jmp     short 0055E9C3
+0055E9AE   |>   0FB745 E4     |movzx   eax, word ptr [ebp-1C]
+0055E9B2   |.  6A 01         |push    1
+0055E9B4   |.  59            |pop     ecx
+0055E9B5   |.  2BC8          |sub     ecx, eax
+0055E9B7   |.  66:894D E4    |mov     word ptr [ebp-1C], cx
+0055E9BB   |.  66:8B45 E4    |mov     ax, word ptr [ebp-1C]
+0055E9BF   |.  66:8945 CC    |mov     word ptr [ebp-34], ax
+0055E9C3   |>   8B45 10       |mov     eax, dword ptr [ebp+10]
+0055E9C6   |.  66:8B4D E0    |mov     cx, word ptr [ebp-20]
+0055E9CA   |.  66:0308       |add     cx, word ptr [eax]
+0055E9CD   |.  66:894D E0    |mov     word ptr [ebp-20], cx
+0055E9D1   |.  8B45 10       |mov     eax, dword ptr [ebp+10]
+0055E9D4   |.  40            |inc     eax
+0055E9D5   |.  40            |inc     eax
+0055E9D6   |.  8945 10       |mov     dword ptr [ebp+10], eax
+0055E9D9   |.  8B45 10       |mov     eax, dword ptr [ebp+10]
+0055E9DC   |.  66:8B4D D8    |mov     cx, word ptr [ebp-28]
+0055E9E0   |.  66:0308       |add     cx, word ptr [eax]
+```
+
+
+
+```
+0055E9E3  |.  66:894D D8    |mov      word ptr [ebp-28], cx  
+0055E9E7  |.  8B45 10       |mov      eax, dword ptr [ebp+10]  
+0055E9EA  |.  40            |inc      eax  
+0055E9EB  |.  40            |inc      eax  
+0055E9EC  |.  8945 10       |mov      dword ptr [ebp+10], eax  
+0055E9EF  |.  8B45 10       |mov      eax, dword ptr [ebp+10]  
+0055E9F2  |.  66:8B00       |mov      ax, word ptr [eax]  
+0055E9F5  |.  66:8945 F0    |mov      word ptr [ebp-10], ax  
+0055E9F9  |.  0FB745 F0     |movzx    eax, word ptr [ebp-10]  
+0055E9FD  |.  8B4D 10       |mov      ecx, dword ptr [ebp+10]  
+0055EA00  |.  41            |inc      ecx  
+0055EA01  |.  41            |inc      ecx  
+0055EA02  |.  894D 10       |mov      dword ptr [ebp+10], ecx  
+0055EA05  |.  85C0          |test     eax, eax  
+0055EA07  |.  0F84 81000000 |je       0055EA8E  
+0055EA0D  |.  0FB745 D4     |movzx    eax, word ptr [ebp-2C]  
+0055EA11  |.  25 FFFF0000   |and      eax, 0FFFF  
+0055EA16  |.  66:8945 D4    |mov      word ptr [ebp-2C], ax  
+0055EA1A  |.  0FB745 D4     |movzx    eax, word ptr [ebp-2C]  
+0055EA1E  |.  85C0          |test     eax, eax  
+0055EA20  |.  74 4D         |je       short 0055EA6F  
+0055EA22  |.  0FB745 D4     |movzx    eax, word ptr [ebp-2C]  
+0055EA26  |.  0FB74D F0     |movzx    ecx, word ptr [ebp-10]  
+0055EA2A  |.  0FAFC1        |imul     eax, ecx  
+0055EA2D  |.  8945 DC       |mov      dword ptr [ebp-24], eax  
+0055EA30  |.  8B45 DC       |mov      eax, dword ptr [ebp-24]  
+0055EA33  |.  25 FFFF0000   |and      eax, 0FFFF  
+0055EA38  |.  66:8945 D4    |mov      word ptr [ebp-2C], ax  
+0055EA3C  |.  8B45 DC       |mov      eax, dword ptr [ebp-24]  
+0055EA3F  |.  C1E8 10       |shr      eax, 10  
+0055EA42  |.  66:8945 F0    |mov      word ptr [ebp-10], ax  
+0055EA46  |.  0FB745 D4     |movzx    eax, word ptr [ebp-2C]  
+0055EA4A  |.  0FB74D F0     |movzx    ecx, word ptr [ebp-10]  
+0055EA4E  |.  2BC1          |sub      eax, ecx  
+0055EA50  |.  0FB74D D4     |movzx    ecx, word ptr [ebp-2C]  
+0055EA54  |.  0FB755 F0     |movzx    edx, word ptr [ebp-10]  
+0055EA58  |.  33DB          |xor      ebx, ebx  
+0055EA5A  |.  3BCA          |cmp      ecx, edx  
+0055EA5C  |.  0F9CC3        |setl     bl  
+0055EA5F  |.  03C3          |add      eax, ebx  
+0055EA61  |.  66:8945 D4    |mov      word ptr [ebp-2C], ax  
+0055EA65  |.  66:8B45 D4    |mov      ax, word ptr [ebp-2C]  
+0055EA69  |.  66:8945 CA    |mov      word ptr [ebp-36], ax  
+0055EA6D  |.  EB 15         |jmp      short 0055EA84  
+0055EA6F  |>  0FB745 F0     |movzx    eax, word ptr [ebp-10]  
+0055EA73  |.  6A 01         |push     1  
+0055EA75  |.  59            |pop      ecx  
+0055EA76  |.  2BC8          |sub      ecx, eax  
+0055EA78  |.  66:894D D4    |mov      word ptr [ebp-2C], cx  
+0055EA7C  |.  66:8B45 D4    |mov      ax, word ptr [ebp-2C]  
+0055EA80  |.  66:8945 CA    |mov      word ptr [ebp-36], ax  
+0055EA84  |>  66:8B45 CA    |mov      ax, word ptr [ebp-36]  
+0055EA88  |.  66:8945 C8    |mov      word ptr [ebp-38], ax  
+0055EA8C  |.  EB 15         |jmp      short 0055EAA3  
+0055EA8E  |>  0FB745 D4     |movzx    eax, word ptr [ebp-2C]  
+0055EA92  |.  6A 01         |push     1  
+0055EA94  |.  59            |pop      ecx  
+0055EA95  |.  2BC8          |sub      ecx, eax  
+0055EA97  |.  66:894D D4    |mov      word ptr [ebp-2C], cx  
+0055EA9B  |.  66:8B45 D4    |mov      ax, word ptr [ebp-2C]  
+0055EA9F  |.  66:8945 C8    |mov      word ptr [ebp-38], ax  
+0055EAA3  |>  66:8B45 D8    |mov      ax, word ptr [ebp-28]  
+0055EAA7  |.  66:8945 EC    |mov      word ptr [ebp-14], ax  
+0055EAAB  |.  66:8B45 D8    |mov      ax, word ptr [ebp-28]  
+0055EAAF  |.  66:3345 E4    |xor      ax, word ptr [ebp-1C]  
+0055EAB3  |.  66:8945 D8    |mov      word ptr [ebp-28], ax  
+0055EAB7  |.  8B45 10       |mov      eax, dword ptr [ebp+10]  
+0055EABA  |.  66:8B00       |mov      ax, word ptr [eax]  
+0055EABD  |.  66:8945 F0    |mov      word ptr [ebp-10], ax  
+0055EAC1  |.  0FB745 F0     |movzx    eax, word ptr [ebp-10]  
+0055EAC5  |.  8B4D 10       |mov      ecx, dword ptr [ebp+10]  
+0055EAC8  |.  41            |inc      ecx  
+0055EAC9  |.  41            |inc      ecx  
+0055EACA  |.  894D 10       |mov      dword ptr [ebp+10], ecx  
+0055EACD  |.  85C0          |test     eax, eax  
+0055EACF  |.  0F84 81000000 |je       0055EB56  
+0055EAD5  |.  0FB745 D8     |movzx    eax, word ptr [ebp-28]  
+0055EAD9  |.  25 FFFF0000   |and      eax, 0FFFF  
+0055EADE  |.  66:8945 D8    |mov      word ptr [ebp-28], ax  
+0055EAE2  |.  0FB745 D8     |movzx    eax, word ptr [ebp-28]  
+0055EAE6  |.  85C0          |test     eax, eax  
+0055EAE8  |.  74 4D         |je       short 0055EB37  
+0055EAEA  |.  0FB745 D8     |movzx    eax, word ptr [ebp-28]  
+0055EAEE  |.  0FB74D F0     |movzx    ecx, word ptr [ebp-10]  
+0055EAF2  |.  0FAFC1        |imul     eax, ecx  
+0055EAF5  |.  8945 DC       |mov      dword ptr [ebp-24], eax  
+0055EAF8  |.  8B45 DC       |mov      eax, dword ptr [ebp-24]  
+0055EAFB  |.  25 FFFF0000   |and      eax, 0FFFF  
+0055EB00  |.  66:8945 D8    |mov      word ptr [ebp-28], ax  
+0055EB04  |.  8B45 DC       |mov      eax, dword ptr [ebp-24]  
+0055EB07  |.  C1E8 10       |shr      eax, 10  
+0055EB0A  |.  66:8945 F0    |mov      word ptr [ebp-10], ax  
+0055EB0E  |.  0FB745 D8     |movzx    eax, word ptr [ebp-28]  
+0055EB12  |.  0FB74D F0     |movzx    ecx, word ptr [ebp-10]  
+0055EB16  |.  2BC1          |sub      eax, ecx  
+0055EB18  |.  0FB74D D8     |movzx    ecx, word ptr [ebp-28]  
+0055EB1C  |.  0FB755 F0     |movzx    edx, word ptr [ebp-10]  
+0055EB20  |.  33DB          |xor      ebx, ebx  
+0055EB22  |.  3BCA          |cmp      ecx, edx  
+0055EB24  |.  0F9CC3        |setl     bl  
+0055EB27  |.  03C3          |add      eax, ebx  
+0055EB29  |.  66:8945 D8    |mov      word ptr [ebp-28], ax  
+0055EB2D  |.  66:8B45 D8    |mov      ax, word ptr [ebp-28]  
+0055EB31  |.  66:8945 C6    |mov      word ptr [ebp-3A], ax  
+0055EB35  |.  EB 15         |jmp      short 0055EB4C  
+0055EB37  |>  0FB745 F0     |movzx    eax, word ptr [ebp-10]  
+0055EB3B  |.  6A 01         |push     1  
+0055EB3D  |.  59            |pop      ecx  
+0055EB3E  |.  2BC8          |sub      ecx, eax  
+0055EB40  |.  66:894D D8    |mov      word ptr [ebp-28], cx  
+0055EB44  |.  66:8B45 D8    |mov      ax, word ptr [ebp-28]  
+0055EB48  |.  66:8945 C6    |mov      word ptr [ebp-3A], ax  
+0055EB4C  |>  66:8B45 C6    |mov      ax, word ptr [ebp-3A]  
+0055EB50  |.  66:8945 C4    |mov      word ptr [ebp-3C], ax  
+0055EB54  |.  EB 15         |jmp      short 0055EB6B  
+0055EB56  |>  0FB745 D8     |movzx    eax, word ptr [ebp-28]  
+0055EB5A  |.  6A 01         |push     1  
+0055EB5C  |.  59            |pop      ecx  
+0055EB5D  |.  2BC8          |sub      ecx, eax  
+0055EB5F  |.  66:894D D8    |mov      word ptr [ebp-28], cx  
+0055EB63  |.  66:8B45 D8    |mov      ax, word ptr [ebp-28]  
+0055EB67  |.  66:8945 C4    |mov      word ptr [ebp-3C], ax  
+0055EB6B  |>  66:8B45 E0    |mov      ax, word ptr [ebp-20]  
+0055EB6F  |.  66:8945 F4    |mov      word ptr [ebp-C], ax  
+0055EB73  |.  66:8B45 E0    |mov      ax, word ptr [ebp-20]  
+0055EB77  |.  66:3345 D4    |xor      ax, word ptr [ebp-2C]  
+0055EB7B  |.  66:8945 E0    |mov      word ptr [ebp-20], ax  
+0055EB7F  |.  66:8B45 E0    |mov      ax, word ptr [ebp-20]  
+0055EB83  |.  66:0345 D8    |add      ax, word ptr [ebp-28]  
+0055EB87  |.  66:8945 E0    |mov      word ptr [ebp-20], ax  
+0055EB8B  |.  8B45 10       |mov      eax, dword ptr [ebp+10]  
+0055EB8E  |.  66:8B00       |mov      ax, word ptr [eax]  
+0055EB91  |.  66:8945 F0    |mov      word ptr [ebp-10], ax  
+0055EB95  |.  0FB745 F0     |movzx    eax, word ptr [ebp-10]  
+0055EB99  |.  8B4D 10       |mov      ecx, dword ptr [ebp+10]  
+0055EB9C  |.  41            |inc      ecx  
+```
+
+
+
+```
+0055EB9D   |.   41             |inc      ecx  
+0055EB9E   |.   894D 10        |mov      dword ptr [ebp+10], ecx  
+0055EBA1   |.   85C0           |test     eax, eax  
+0055EBA3   |.   0F84 81000000  |je       0055EC2A  
+0055EBA9   |.   0FB745 E0      |movzx    eax, word ptr [ebp-20]  
+0055EBAD   |.   25 FFFF0000    |and      eax, 0FFFF  
+0055EBB2   |.   66:8945 E0     |mov      word ptr [ebp-20], ax  
+0055EBB6   |.   0FB745 E0      |movzx    eax, word ptr [ebp-20]  
+0055EBBA   |.   85C0           |test     eax, eax  
+0055EBBC   |.   74 4D          |je       short 0055EC0B  
+0055EBBE   |.   0FB745 E0      |movzx    eax, word ptr [ebp-20]  
+0055EBC2   |.   0FB74D F0      |movzx    ecx, word ptr [ebp-10]  
+0055EBC6   |.   0FAFC1         |imul     eax, ecx  
+0055EBC9   |.   8945 DC        |mov      dword ptr [ebp-24], eax  
+0055EBCC   |.   8B45 DC        |mov      eax, dword ptr [ebp-24]  
+0055EBCF   |.   25 FFFF0000    |and      eax, 0FFFF  
+0055EBD4   |.   66:8945 E0     |mov      word ptr [ebp-20], ax  
+0055EBD8   |.   8B45 DC        |mov      eax, dword ptr [ebp-24]  
+0055EBDB   |.   C1E8 10        |shr      eax, 10  
+0055EBDE   |.   66:8945 F0     |mov      word ptr [ebp-10], ax  
+0055EBE2   |.   0FB745 E0      |movzx    eax, word ptr [ebp-20]  
+0055EBE6   |.   0FB74D F0      |movzx    ecx, word ptr [ebp-10]  
+0055EBEA   |.   2BC1           |sub      eax, ecx  
+0055EBEC   |.   0FB74D E0      |movzx    ecx, word ptr [ebp-20]  
+0055EBF0   |.   0FB755 F0      |movzx    edx, word ptr [ebp-10]  
+0055EBF4   |.   33DB           |xor      ebx, ebx  
+0055EBF6   |.   3BCA           |cmp      ecx, edx  
+0055EBF8   |.   0F9CC3         |setl     bl  
+0055EBFB   |.   03C3           |add      eax, ebx  
+0055EBFD   |.   66:8945 E0     |mov      word ptr [ebp-20], ax  
+0055EC01   |.   66:8B45 E0     |mov      ax, word ptr [ebp-20]  
+0055EC05   |.   66:8945 C2     |mov      word ptr [ebp-3E], ax  
+0055EC09   |.   EB 15          |jmp      short 0055EC20  
+0055EC0B   |>   0FB745 F0      |movzx    eax, word ptr [ebp-10]  
+0055EC0F   |.   6A 01          |push     1  
+0055EC11   |.   59             |pop      ecx  
+0055EC12   |.   2BC8           |sub      ecx, eax  
+0055EC14   |.   66:894D E0     |mov      word ptr [ebp-20], cx  
+0055EC18   |.   66:8B45 E0     |mov      ax, word ptr [ebp-20]  
+0055EC1C   |.   66:8945 C2     |mov      word ptr [ebp-3E], ax  
+0055EC20   |>   66:8B45 C2     |mov      ax, word ptr [ebp-3E]  
+0055EC24   |.   66:8945 C0     |mov      word ptr [ebp-40], ax  
+0055EC28   |.   EB 15          |jmp      short 0055EC3F  
+0055EC2A   |>   0FB745 E0      |movzx    eax, word ptr [ebp-20]  
+0055EC2E   |.   6A 01          |push     1  
+0055EC30   |.   59             |pop      ecx  
+0055EC31   |.   2BC8           |sub      ecx, eax  
+0055EC33   |.   66:894D E0     |mov      word ptr [ebp-20], cx  
+0055EC37   |.   66:8B45 E0     |mov      ax, word ptr [ebp-20]  
+0055EC3B   |.   66:8945 C0     |mov      word ptr [ebp-40], ax  
+0055EC3F   |>   66:8B45 D8     |mov      ax, word ptr [ebp-28]  
+0055EC43   |.   66:0345 E0     |add      ax, word ptr [ebp-20]  
+0055EC47   |.   66:8945 D8     |mov      word ptr [ebp-28], ax  
+0055EC4B   |.   66:8B45 E4     |mov      ax, word ptr [ebp-1C]  
+0055EC4F   |.   66:3345 E0     |xor      ax, word ptr [ebp-20]  
+0055EC53   |.   66:8945 E4     |mov      word ptr [ebp-1C], ax  
+0055EC57   |.   66:8B45 D4     |mov      ax, word ptr [ebp-2C]  
+0055EC5B   |.   66:3345 D8     |xor      ax, word ptr [ebp-28]  
+0055EC5F   |.   66:8945 D4     |mov      word ptr [ebp-2C], ax  
+0055EC63   |.   66:8B45 E0     |mov      ax, word ptr [ebp-20]  
+0055EC67   |.   66:3345 EC     |xor      ax, word ptr [ebp-14]  
+0055EC6B   |.   66:8945 E0     |mov      word ptr [ebp-20], ax  
+0055EC6F   |.   66:8B45 D8     |mov      ax, word ptr [ebp-28]  
+0055EC73   |.   66:3345 F4     |xor      ax, word ptr [ebp-C]  
+0055EC77   |.   66:8945 D8     |mov      word ptr [ebp-28], ax  
+0055EC7B   |.   8B45 FC        |mov      eax, dword ptr [ebp-4]  
+0055EC7E   |.   48             |dec      eax  
+0055EC7F   |.   8945 FC        |mov      dword ptr [ebp-4], eax  
+0055EC82   |.   837D FC 00     |cmp      dword ptr [ebp-4], 0  
+0055EC86   |.^  0F85 83FCFFFF  \jnz     0055E90F  
+0055EC8C   |.   8B45 10        |mov      eax, dword ptr [ebp+10]  
+0055EC8F   |.   66:8B00        |mov      ax, word ptr [eax]  
+0055EC92   |.   66:8945 F0     |mov      word ptr [ebp-10], ax  
+0055EC96   |.   0FB745 F0      |movzx    eax, word ptr [ebp-10]  
+0055EC9A   |.   8B4D 10        |mov      ecx, dword ptr [ebp+10]  
+0055EC9D   |.   41             |inc      ecx  
+0055EC9E   |.   41             |inc      ecx  
+0055EC9F   |.   894D 10        |mov      dword ptr [ebp+10], ecx  
+0055ECA2   |.   85C0           |test     eax, eax  
+0055ECA4   |.   0F84 81000000  |je       0055ED2B  
+0055ECAA   |.   0FB745 E4      |movzx    eax, word ptr [ebp-1C]  
+0055ECAE   |.   25 FFFF0000    |and      eax, 0FFFF  
+0055ECB3   |.   66:8945 E4     |mov      word ptr [ebp-1C], ax  
+0055ECB7   |.   0FB745 E4      |movzx    eax, word ptr [ebp-1C]  
+0055ECBB   |.   85C0           |test     eax, eax  
+0055ECBD   |.   74 4D          |je       short 0055ED0C  
+0055ECBF   |.   0FB745 E4      |movzx    eax, word ptr [ebp-1C]  
+0055ECC3   |.   0FB74D F0      |movzx    ecx, word ptr [ebp-10]  
+0055ECC7   |.   0FAFC1         |imul     eax, ecx  
+0055ECCA   |.   8945 DC        |mov      dword ptr [ebp-24], eax  
+0055ECCD   |.   8B45 DC        |mov      eax, dword ptr [ebp-24]  
+0055ECD0   |.   25 FFFF0000    |and      eax, 0FFFF  
+0055ECD5   |.   66:8945 E4     |mov      word ptr [ebp-1C], ax  
+0055ECD9   |.   8B45 DC        |mov      eax, dword ptr [ebp-24]  
+0055ECDC   |.   C1E8 10        |shr      eax, 10  
+0055ECDF   |.   66:8945 F0     |mov      word ptr [ebp-10], ax  
+0055ECE3   |.   0FB745 E4      |movzx    eax, word ptr [ebp-1C]  
+0055ECE7   |.   0FB74D F0      |movzx    ecx, word ptr [ebp-10]  
+0055ECEB   |.   2BC1           |sub      eax, ecx  
+0055ECED   |.   0FB74D E4      |movzx    ecx, word ptr [ebp-1C]  
+0055ECF1   |.   0FB755 F0      |movzx    edx, word ptr [ebp-10]  
+0055ECF5   |.   33DB           |xor      ebx, ebx  
+0055ECF7   |.   3BCA           |cmp      ecx, edx  
+0055ECF9   |.   0F9CC3         |setl     bl  
+0055ECFC   |.   03C3           |add      eax, ebx  
+0055ECFE   |.   66:8945 E4     |mov      word ptr [ebp-1C], ax  
+0055ED02   |.   66:8B45 E4     |mov      ax, word ptr [ebp-1C]  
+0055ED06   |.   66:8945 BE     |mov      word ptr [ebp-42], ax  
+0055ED0A   |.   EB 15          |jmp      short 0055ED21  
+0055ED0C   |>   0FB745 F0      |movzx    eax, word ptr [ebp-10]  
+0055ED10   |.   6A 01          |push     1  
+0055ED12   |.   59             |pop      ecx  
+0055ED13   |.   2BC8           |sub      ecx, eax  
+0055ED15   |.   66:894D E4     |mov      word ptr [ebp-1C], cx  
+0055ED19   |.   66:8B45 E4     |mov      ax, word ptr [ebp-1C]  
+0055ED1D   |.   66:8945 BE     |mov      word ptr [ebp-42], ax  
+0055ED21   |>   66:8B45 BE     |mov      ax, word ptr [ebp-42]  
+0055ED25   |.   66:8945 BC     |mov      word ptr [ebp-44], ax  
+0055ED29   |.   EB 15          |jmp      short 0055ED40  
+0055ED2B   |>   0FB745 E4      |movzx    eax, word ptr [ebp-1C]  
+0055ED2F   |.   6A 01          |push     1  
+0055ED31   |.   59             |pop      ecx  
+0055ED32   |.   2BC8           |sub      ecx, eax  
+0055ED34   |.   66:894D E4     |mov      word ptr [ebp-1C], cx  
+0055ED38   |.   66:8B45 E4     |mov      ax, word ptr [ebp-1C]  
+0055ED3C   |.   66:8945 BC     |mov      word ptr [ebp-44], ax  
+0055ED40   |>   8B45 10        |mov      eax, dword ptr [ebp+10]  
+0055ED43   |.   66:8B4D D8     |mov      cx, word ptr [ebp-28]  
+0055ED47   |.   66:0308        |add      cx, word ptr [eax]  
+0055ED4A   |.   66:894D D8     |mov      word ptr [ebp-28], cx  
+0055ED4E   |.   8B45 10        |mov      eax, dword ptr [ebp+10]  
+0055ED51   |.   40             |inc      eax  
+0055ED52   |.   40             |inc      eax  
+0055ED53   |.   8945 10        |mov      dword ptr [ebp+10], eax  
+0055ED56   |.   8B45 10        |mov      eax, dword ptr [ebp+10]  
+0055ED59   |.   66:8B4D E0     |mov      cx, word ptr [ebp-20]  
+0055ED5D   |.   66:0308        |add      cx, word ptr [eax]  
+```
+
+
+
+```assembly
+0055ED60  |.  66:894D E0    mov     word ptr [ebp-20], cx  
+0055ED64  |.  8B45 10       mov     eax, dword ptr [ebp+10]  
+0055ED67  |.  40            inc     eax  
+0055ED68  |.  40            inc     eax  
+0055ED69  |.  8945 10       mov     dword ptr [ebp+10], eax  
+0055ED6C  |.  8B45 10       mov     eax, dword ptr [ebp+10]  
+0055ED6F  |.  66:8B00       mov     ax, word ptr [eax]  
+0055ED72  |.  66:8945 F0    mov     word ptr [ebp-10], ax  
+0055ED76  |.  0FB745 F0     movzx   eax, word ptr [ebp-10]  
+0055ED7A  |.  85C0          test    eax, eax  
+0055ED7C  |.  0F84 81000000 je      0055EE03  
+0055ED82  |.  0FB745 D4     movzx   eax, word ptr [ebp-2C]  
+0055ED86  |.  25 FFFF0000   and     eax, 0FFFF  
+0055ED8B  |.  66:8945 D4    mov     word ptr [ebp-2C], ax  
+0055ED8F  |.  0FB745 D4     movzx   eax, word ptr [ebp-2C]  
+0055ED93  |.  85C0          test    eax, eax  
+0055ED95  |.  74 4D         je      short 0055EDE4  
+0055ED97  |.  0FB745 D4     movzx   eax, word ptr [ebp-2C]  
+0055ED9B  |.  0FB74D F0     movzx   ecx, word ptr [ebp-10]  
+0055ED9F  |.  0FAFC1        imul    eax, ecx  
+0055EDA2  |.  8945 DC       mov     dword ptr [ebp-24], eax  
+0055EDA5  |.  8B45 DC       mov     eax, dword ptr [ebp-24]  
+0055EDA8  |.  25 FFFF0000   and     eax, 0FFFF  
+0055EDAD  |.  66:8945 D4    mov     word ptr [ebp-2C], ax  
+0055EDB1  |.  8B45 DC       mov     eax, dword ptr [ebp-24]  
+0055EDB4  |.  C1E8 10       shr     eax, 10  
+0055EDB7  |.  66:8945 F0    mov     word ptr [ebp-10], ax  
+0055EDBB  |.  0FB745 D4     movzx   eax, word ptr [ebp-2C]  
+0055EDBF  |.  0FB74D F0     movzx   ecx, word ptr [ebp-10]  
+0055EDC3  |.  2BC1          sub     eax, ecx  
+0055EDC5  |.  0FB74D D4     movzx   ecx, word ptr [ebp-2C]  
+0055EDC9  |.  0FB755 F0     movzx   edx, word ptr [ebp-10]  
+0055EDCD  |.  33DB          xor     ebx, ebx  
+0055EDCF  |.  3BCA          cmp     ecx, edx  
+0055EDD1  |.  0F9CC3        setl    bl  
+0055EDD4  |.  03C3          add     eax, ebx  
+0055EDD6  |.  66:8945 D4    mov     word ptr [ebp-2C], ax  
+0055EDDA  |.  66:8B45 D4    mov     ax, word ptr [ebp-2C]  
+0055EDDE  |.  66:8945 BA    mov     word ptr [ebp-46], ax  
+0055EDE2  |.  EB 15         jmp     short 0055EDF9  
+0055EDE4  |>  0FB745 F0     movzx   eax, word ptr [ebp-10]  
+0055EDE8  |.  6A 01         push    1  
+0055EDEA  |.  59            pop     ecx  
+0055EDEB  |.  2BC8          sub     ecx, eax  
+0055EDED  |.  66:894D D4    mov     word ptr [ebp-2C], cx  
+0055EDF1  |.  66:8B45 D4    mov     ax, word ptr [ebp-2C]  
+0055EDF5  |.  66:8945 BA    mov     word ptr [ebp-46], ax  
+0055EDF9  |>  66:8B45 BA    mov     ax, word ptr [ebp-46]  
+0055EDFD  |.  66:8945 B8    mov     word ptr [ebp-48], ax  
+0055EE01  |.  EB 15         jmp     short 0055EE18  
+0055EE03  |>  0FB745 D4     movzx   eax, word ptr [ebp-2C]  
+0055EE07  |.  6A 01         push    1  
+0055EE09  |.  59            pop     ecx  
+0055EE0A  |.  2BC8          sub     ecx, eax  
+0055EE0C  |.  66:894D D4    mov     word ptr [ebp-2C], cx  
+0055EE10  |.  66:8B45 D4    mov     ax, word ptr [ebp-2C]  
+0055EE14  |.  66:8945 B8    mov     word ptr [ebp-48], ax  
+0055EE18  |>  8B45 0C       mov     eax, dword ptr [ebp+C]  
+0055EE1B  |.  8945 F8       mov     dword ptr [ebp-8], eax  
+0055EE1E  |.  0FB745 E4     movzx   eax, word ptr [ebp-1C]  
+0055EE22  |.  C1F8 08       sar     eax, 8  
+0055EE25  |.  0FB74D E4     movzx   ecx, word ptr [ebp-1C]  
+0055EE29  |.  C1E1 08       shl     ecx, 8  
+0055EE2C  |.  0BC1          or      eax, ecx  
+0055EE2E  |.  8B4D F8       mov     ecx, dword ptr [ebp-8]  
+0055EE31  |.  66:8901       mov     word ptr [ecx], ax  
+0055EE34  |.  8B45 F8       mov     eax, dword ptr [ebp-8]  
+0055EE37  |.  40            inc     eax  
+0055EE38  |.  40            inc     eax  
+0055EE39  |.  8945 F8       mov     dword ptr [ebp-8], eax  
+0055EE3C  |.  0FB745 D8     movzx   eax, word ptr [ebp-28]  
+0055EE40  |.  C1F8 08       sar     eax, 8  
+0055EE43  |.  0FB74D D8     movzx   ecx, word ptr [ebp-28]  
+0055EE47  |.  C1E1 08       shl     ecx, 8  
+0055EE4A  |.  0BC1          or      eax, ecx  
+0055EE4C  |.  8B4D F8       mov     ecx, dword ptr [ebp-8]  
+0055EE4F  |.  66:8901       mov     word ptr [ecx], ax  
+0055EE52  |.  8B45 F8       mov     eax, dword ptr [ebp-8]  
+0055EE55  |.  40            inc     eax  
+0055EE56  |.  40            inc     eax  
+0055EE57  |.  8945 F8       mov     dword ptr [ebp-8], eax  
+0055EE5A  |.  0FB745 E0     movzx   eax, word ptr [ebp-20]  
+0055EE5E  |.  C1F8 08       sar     eax, 8  
+0055EE61  |.  0FB74D E0     movzx   ecx, word ptr [ebp-20]  
+0055EE65  |.  C1E1 08       shl     ecx, 8  
+0055EE68  |.  0BC1          or      eax, ecx  
+0055EE6A  |.  8B4D F8       mov     ecx, dword ptr [ebp-8]  
+0055EE6D  |.  66:8901       mov     word ptr [ecx], ax  
+0055EE70  |.  8B45 F8       mov     eax, dword ptr [ebp-8]  
+0055EE73  |.  40            inc     eax  
+0055EE74  |.  40            inc     eax  
+0055EE75  |.  8945 F8       mov     dword ptr [ebp-8], eax  
+0055EE78  |.  0FB745 D4     movzx   eax, word ptr [ebp-2C]  
+0055EE7C  |.  C1F8 08       sar     eax, 8  
+0055EE7F  |.  0FB74D D4     movzx   ecx, word ptr [ebp-2C]  
+0055EE83  |.  C1E1 08       shl     ecx, 8  
+0055EE86  |.  0BC1          or      eax, ecx  
+0055EE88  |.  8B4D F8       mov     ecx, dword ptr [ebp-8]  
+0055EE8B  |.  66:8901       mov     word ptr [ecx], ax  
+0055EE8E  |.  5B            pop     ebx  
+0055EE8F  |.  C9            leave   
+0055EE90  \.  C2 0C00       retn    0C  
+```
+
+其实最重要的是，代码中完全没了了`2^16+1`的存在，可以骗过`peid`的识别加密算法插件。
+
+呵呵，春节临近，最后祝大家新年快乐！

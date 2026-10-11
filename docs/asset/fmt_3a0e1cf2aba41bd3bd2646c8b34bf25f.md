@@ -1,0 +1,209 @@
+
+# 亿特代理服务器简易版 1.5 build0626
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50278.htm`](https://www.pediy.com/kssd/pediy05/pediy50278.htm)
+
+**软件**：亿特代理服务器简易版，版本 `1.5 build0626`
+**工具**：`ollydbg`, `w32dasm`, `peditor`
+
+OK，开工。首先习惯性地看看程序有没有加壳（现在发布的程序还有不加壳的么：））。
+
+上网找了一个叫 `peidentifier` 的外壳检测程序，检测之后报告亿特加的外壳是 `pecompact1.66-1.67`。上网看看有没有专门的 `pccompact` 脱壳工具，真还找着了，叫 `UnPECompact 1.32`。它脱壳的时间好长，可能有几分钟吧，脱出来的程序我一运行就出错。我是 `XP` 下脱的，可能是 `XP` 的原因，于是我切换到 `98` 下重新脱壳，经过了同样漫长时间的等待后，脱出来的程序运行 OK。
+
+再用 `FI` 看看程序是用什么编的，噢，是 `Delphi`。好办了：）。
+
+运行壳后的程序，进入注册对话框，可是找不到输入注册码的地方，估计可能是采用注册文件的方法来注册。没有输入注册码，一时还没有合适的切入点，只好追踪`<注册>`菜单项的处理函数。对于，`Delphi` 这比较好办。在亿特的程序文件 `yitproxy.exe` 中搜寻字符串“注册”，发现`<注册>`菜单项的 ID 是 `Submenu4Item5`，那么可知点击这个菜单调用的处理函数是 `Submenu4Item5Click`。在 `yitproxy.exe` 中搜索 `"Submenu4Item5Click"`，在找到的地方往前移 5 个字节，那里的 4 个字节就是函数的地址：`5B9E40`。
+
+在这个地址上下断点跟踪，代码分析附后。作者使用了 `blowfish` 算法生成注册数据，`blowfish` 算法部分采用了网上可下载的公开源代码的 `Delphi Encryption Compendium (DEC Part I)`。我写注册机的时候，同样用了 `Delphi Encryption Compendium V3.0`，可是我加密过数据在亿特程序里解密时得到的明文与原来的不一样，不知道到底是作者改动了 `Blowfish` 算法还是版本的原因。有没有大虾能分析一下它的 `blowfish` 算法：）
+
+没有办法，我最后只好在脱壳后的 `yitproxy.exe` 里附加代码，利用里面的 `blowfish` 代码，作出了注册机，呵呵。
+
+破了简易版，标准版和完全版是类似的，依葫芦画瓢，轻松搞定。
+
+```assembly
+0167:005B9E40  PUSH      EBP
+0167:005B9E41  MOV       EBP,ESP
+
+                分配局部变量空间，局部变量初始化为 0，这段代码有些意思
+
+0167:005B9E43  MOV       ECX,0A
+0167:005B9E48  PUSH      BYTE +00
+0167:005B9E4A  PUSH      BYTE +00
+0167:005B9E4C  DEC       ECX
+0167:005B9E4D  JNZ       005B9E48
+0167:005B9E4F  MOV       [EBP-04],EAX
+0167:005B9E52  XOR       EAX,EAX
+0167:005B9E54  PUSH      EBP
+0167:005B9E55  PUSH      DWORD 005BA28D
+0167:005B9E5A  PUSH      DWORD [FS:EAX]
+0167:005B9E5D  MOV       [FS:EAX],ESP
+
+                创建注册对话框对象，不重要，不管它
+
+0167:005B9E60  MOV       ECX,[EBP-04]
+0167:005B9E63  MOV       DL,01
+0167:005B9E65  MOV       EAX,[005B0A50]
+0167:005B9E6A  CALL      0044F654
+0167:005B9E6F  MOV       [EBP-2C],EAX    ;注册对话框对象指针
+0167:005B9E72  XOR       EAX,EAX
+0167:005B9E74  PUSH      EBP
+0167:005B9E75  PUSH      DWORD 005BA25E
+0167:005B9E7A  PUSH      DWORD [FS:EAX]
+0167:005B9E7D  MOV       [FS:EAX],ESP
+
+                yitproxy 的作者还是蛮仁慈的，马上就直奔主题，开始计算验证注册必须的机器码了
+
+                不象有些软件，里面乱 CALL 一气，搞得你晕头转向：）
+
+                作者使用了 blowfish 加密算法来加密注册信息，使用的代码是网上可以得到的自由的
+
+                Delhpi Encrypt Compendium I。
+
+                作者将 blowfish 算法需要的数据按一个个字节拆开放在程序数据段里，使用的时候
+
+                再拼装起来。下面的这段代码就是拼装数据
+
+0167:005B9E80  LEA       EAX,[EBP-08]
+0167:005B9E83  MOV       EDX,005BA2A0
+0167:005B9E88  CALL      00403E18
+0167:005B9E8D  LEA       EAX,[EBP-08]
+0167:005B9E90  MOV       EDX,005BA2AC
+0167:005B9E95  CALL      00404008
+0167:005B9E9A  LEA       EAX,[EBP-08]
+0167:005B9E9D  MOV       EDX,005BA2B8
+0167:005B9EA2  CALL      00404008
+0167:005B9EA7  LEA       EAX,[EBP-08]
+0167:005B9EAA  MOV       EDX,005BA2C4
+0167:005B9EAF  CALL      00404008
+0167:005B9EB4  LEA       EAX,[EBP-08]
+0167:005B9EB7  MOV       EDX,005BA2D0
+0167:005B9EBC  CALL      00404008
+0167:005B9EC1  LEA       EAX,[EBP-08]
+0167:005B9EC4  MOV       EDX,005BA2DC
+0167:005B9EC9  CALL      00404008
+0167:005B9ECE  LEA       EAX,[EBP-08]
+0167:005B9ED1  MOV       EDX,005BA2E8
+0167:005B9ED6  CALL      00404008
+0167:005B9EDB  LEA       EAX,[EBP-08]
+0167:005B9EDE  MOV       EDX,005BA2F4
+0167:005B9EE3  CALL      00404008
+0167:005B9EE8  LEA       EAX,[EBP-08]
+0167:005B9EEB  MOV       EDX,005BA300
+0167:005B9EF0  CALL      00404008
+0167:005B9EF5  LEA       EAX,[EBP-08]
+0167:005B9EF8  MOV       EDX,005BA2A0
+0167:005B9EFD  CALL      00404008
+
+                自此，得到一个长度是 10 个字节的 string，用十六进制表示是：
+
+                15 0f 79 c7 06 36 12 1c 4d 15
+
+                记为 Data1
+
+                然后开始根据所在的机器的硬件信息计算与机器有关的机器码。
+
+                yitproxy 的硬件信息包括了网卡 MAC 地址，还有其它硬件信息，
+
+                没仔细跟，无所谓
+
+0167:005B9F02  LEA       EAX,[EBP-0C]
+0167:005B9F05  CALL      005B2D40        ;取网卡 MAC 地址
+0167:005B9F0A  CMP       DWORD [EBP-0C],BYTE +00 ;取到 MAC 地址？
+0167:005B9F0E  JNZ       005B9F18
+0167:005B9F10  LEA       EAX,[EBP-0C]
+0167:005B9F13  CALL      005B2A2C        ;再用另外一个算法得到硬件数据
+0167:005B9F18  LEA       EAX,[EBP-38]
+0167:005B9F1B  CALL      005B2EFC        ;两处数据合并到一起？
+0167:005B9F20  MOV       EDX,[EBP-38]
+0167:005B9F23  LEA       EAX,[EBP-0C]
+0167:005B9F26  CALL      00404008
+0167:005B9F2B  CMP       DWORD [EBP-0C],BYTE +00
+0167:005B9F2F  JZ        005B9FAF
+
+                用 BlowFish 算法加密以硬件相关数据为密钥加密 Data1
+
+0167:005B9F31  MOV       DL,01           ;创建 TCipher_Blowfish 对象
+0167:005B9F33  MOV       EAX,[004BCC4C]  ;TCipher_Blowfish
+0167:005B9F38  CALL      004BCF14
+0167:005B9F3D  MOV       [EBP-30],EAX    ;新创建的 TCipher_Blowfish 对象指针
+0167:005B9F40  XOR       EAX,EAX
+0167:005B9F42  PUSH      EBP
+0167:005B9F43  PUSH      DWORD 005B9FA8
+0167:005B9F48  PUSH      DWORD [FS:EAX]
+0167:005B9F4B  MOV       [FS:EAX],ESP
+0167:005B9F4E  MOV       EAX,[EBP-30]
+0167:005B9F51  MOV       BYTE [EAX+04],00
+0167:005B9F55  XOR       ECX,ECX         ;nil，不附加使用其它加密算法
+0167:005B9F57  MOV       EDX,[EBP-0C]    ;硬件相关数据作为算法密钥
+0167:005B9F5A  MOV       EAX,[EBP-30]
+0167:005B9F5D  CALL      004BD000        ;设置密钥
+
+                加密 Data1，[ebp-10]->加密后的字符串
+
+0167:005B9F62  LEA       ECX,[EBP-10]
+0167:005B9F65  MOV       EDX,[EBP-08]    ;-->Data1
+0167:005B9F68  MOV       EAX,[EBP-30]
+0167:005B9F6B  CALL      004BD5D4        ;加密字符串 EncodeString 方法
+
+                再用一个函数将加密后的数据变换得到机器码
+
+0167:005B9F70  MOV       EAX,[EBP-10]    ;加密后的字符串
+0167:005B9F73  CALL      00404000        ;length,长度
+0167:005B9F78  PUSH      EAX
+0167:005B9F79  MOV       EAX,[EBP-10]
+0167:005B9F7C  CALL      004041C4        ;pchar()
+0167:005B9F81  LEA       ECX,[EBP-14]
+0167:005B9F84  POP       EDX
+0167:005B9F85  CALL      004B860C        ;变换函数
+
+                删除 Tcipher_BlowFish 对象
+
+0167:005B9F8A  MOV       EAX,[EBP-30]
+0167:005B9F8D  MOV       EDX,[EAX]
+0167:005B9F8F  CALL      NEAR [EDX+28]
+0167:005B9F92  XOR       EAX,EAX
+0167:005B9F94  POP       EDX
+0167:005B9F95  POP       ECX
+0167:005B9F96  POP       ECX
+0167:005B9F97  MOV       [FS:EAX],EDX
+0167:005B9F9A  PUSH      DWORD 005B9FAF
+0167:005B9F9F  MOV       EAX,[EBP-30]
+0167:005B9FA2  CALL      00403034
+0167:005B9FA7  RET
+0167:005B9FA8  JMP       00403794
+0167:005B9FAD  JMP       SHORT 005B9F9F
+
+                下面对对话框对象操作，包括把刚刚算到的机器码传给里面的控件
+
+0167:005B9FAF  MOV       EAX,[EBP-2C]
+0167:005B9FB2  MOV       EAX,[EAX+02D8]
+0167:005B9FB8  MOV       EDX,[EBP-14]
+0167:005B9FBB  CALL      004CFD78
+0167:005B9FC0  LEA       EDX,[EBP-3C]
+0167:005B9FC3  MOV       EAX,[EBP-04]
+0167:005B9FC6  MOV       EAX,[EAX+0348]
+0167:005B9FCC  CALL      004CFCE4
+0167:005B9FD1  MOV       EAX,[EBP-3C]
+0167:005B9FD4  XOR       EDX,EDX
+0167:005B9FD6  CALL      00409BB0
+0167:005B9FDB  TEST      EAX,EAX
+0167:005B9FDD  JNG       005BA035
+0167:005B9FDF  LEA       EDX,[EBP-40]
+0167:005B9FE2  MOV       EAX,[EBP-04]
+0167:005B9FE5  MOV       EAX,[EAX+0348]
+0167:005B9FEB  CALL      004CFCE4
+0167:005B9FF0  MOV       EAX,[EBP-40]
+0167:005B9FF3  XOR       EDX,EDX
+0167:005B9FF5  CALL      00409BB0
+0167:005B9FFA  MOV       EDX,EAX
+0167:005B9FFC  MOV       EAX,[EBP-2C]
+0167:005B9FFF  MOV       EAX,[EAX+02D0]
+0167:005BA005  CALL      004ADE74
+0167:005BA00A  LEA       EDX,[EBP-44]
+0167:005BA00D  MOV       EAX,[EBP-04]
+0167:005BA010  MOV       EAX,[EAX+034C]
+0167:005BA016  CALL      004CFCE4
+0167:005BA01B  MOV       EAX,[EBP-44]
+0167:005BA01E  XOR       EDX,EDX
+0167:005BA020  CALL      00409BB0
+```

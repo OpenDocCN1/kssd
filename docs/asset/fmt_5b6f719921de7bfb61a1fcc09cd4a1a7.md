@@ -1,0 +1,290 @@
+
+```
+0040510C   |.  83E2 03           and edx,3  
+
+0040510F   |.  74 22             je short 12_.00405133  
+
+00405111   |.  8B0E             mov ecx,dword ptr ds:[esi]  
+
+00405113   |.  8B1F             mov ebx,dword ptr ds:[edi]  
+
+00405115   |.  38D9             cmp cl,bl  
+
+00405117   |.  75 41             jnz short 12_.0040515A  
+
+00405119   |.  4A               dec edx  
+
+0040511A   |.  74 17             je short 12_.00405133  
+
+0040511C   |.  38FD             cmp ch,bh  
+
+0040511E   |.  75 3A             jnz short 12_.0040515A  
+
+00405120   |.  4A               dec edx  
+
+00405121   |.  74 10             je short 12_.00405133  
+
+00405123   |.  81E3 0000FF00     and ebx,0FF0000  
+
+00405129   |.  81E1 0000FF00     and ecx,0FF0000  
+
+0040512F   |.  39D9             cmp ecx,ebx  
+
+00405131   |.  75 27             jnz short 12_.0040515A  
+
+00405133   |>  01C0             add eax,eax  
+
+00405135   |.  EB 23             jmp short 12_.0040515A  
+
+00405137   |>  8B57 FC          mov edx,dword ptr ds:[edi-4]  
+
+0040513A   |.  29D0             sub eax,edx  
+
+0040513C   |.  EB 1C             jmp short 12_.0040515A  
+
+0040513E   |>  8B46 FC          mov eax,dword ptr ds:[esi-4]  
+
+00405141   |.  29D0             sub eax,edx  
+
+00405143   |.  EB 15             jmp short 12_.0040515A  
+
+00405145   |>  5A               pop edx  
+
+00405146   |.  38D9             cmp cl,bl  
+
+00405148   |.  75 10             jnz short 12_.0040515A  
+
+0040514A   |.  38FD             cmp ch,bh  
+
+0040514C   |.  75 0C             jnz short 12_.0040515A  
+
+0040514E   |.  C1E9 10           shr ecx,10  
+
+00405151   |.  C1EB 10           shr ebx,10  
+
+00405154   |.  38D9             cmp cl,bl  
+
+00405156   |.  75 02             jnz short 12_.0040515A  
+
+00405158   |.  38FD             cmp ch,bh  
+
+0040515A   |>  5F               pop edi  
+
+0040515B   |.  5E               pop esi  
+
+0040515C   |.  5B               pop ebx  
+
+0040515D   \.  C3               retn  
+```
+
+…………………………………………………………………………………………………………………………………………………………………
+
+发现了等于：`ESP+8=31353330`        `ESP+4`  `32363635` 这两个值就是我最终计算要得到的结果！！我们准备逆向推理了
+
+…………………………………………………………………………………………………………………………………………………………………
+
+…………………………………………………………………………………………………………………………………………………………………
+
+再进入 `004F0BC7`    `.  E8 2CA70500`       `call 12_.0054B2F8`                     ;  算法进入！！
+
+…………………………………………………………………………………………………………………………………………………………………
+
+```
+0054B2F8   /$  55             push ebp  
+
+0054B2F9   |.  8BEC           mov ebp,esp  
+
+0054B2FB   |.  51             push ecx  
+
+0054B2FC   |.  B9 04000000    mov ecx,4  
+
+0054B301   |>  6A 00         /push 0  
+
+0054B303   |.  6A 00         |push 0  
+
+0054B305   |.  49             |dec ecx  
+
+0054B306   |.^ 75 F9         \jnz short 12_.0054B301  
+
+0054B308   |.  874D FC       xchg dword ptr ss:[ebp-4],ecx  
+
+0054B30B   |.  53             push ebx  
+
+0054B30C   |.  56             push esi  
+
+0054B30D   |.  57             push edi  
+
+0054B30E   |.  894D F8       mov dword ptr ss:[ebp-8],ecx  
+
+0054B311   |.  8BFA           mov edi,edx  
+
+0054B313   |.  8945 FC       mov dword ptr ss:[ebp-4],eax  
+
+0054B316   |.  8B45 FC       mov eax,dword ptr ss:[ebp-4]  
+
+0054B319   |.  E8 429EEBFF    call 12_.00405160  
+
+0054B31E   |.  33C0           xor eax,eax  
+
+0054B320   |.  55             push ebp  
+
+0054B321   |.  68 09B45400    push 12_.0054B409  
+
+0054B326   |.  64:FF30        push dword ptr fs:[eax]  
+
+0054B329   |.  64:8920        mov dword ptr fs:[eax],esp  
+
+0054B32C   |.  8D45 F4        lea eax,dword ptr ss:[ebp-C]  
+
+0054B32F   |.  8B55 FC       mov edx,dword ptr ss:[ebp-4]  
+
+0054B332   |.  E8 219AEBFF    call 12_.00404D58  
+
+0054B337   |.  8B45 F4        mov eax,dword ptr ss:[ebp-C]  
+
+0054B33A   |.  E8 399CEBFF    call 12_.00404F78  
+
+0054B33F   |.  8945 E8        mov dword ptr ss:[ebp-18],eax  
+
+0054B342   |.  DB45 E8        fild dword ptr ss:[ebp-18]  
+
+0054B345   |.  D835 18B45400  fdiv dword ptr ds:[54B418]  
+
+0054B34B   |.  E8 5479EBFF    call 12_.00402CA4  
+
+0054B350   |.  8BD8           mov ebx,eax  
+
+0054B352   |.  8B45 F4        mov eax,dword ptr ss:[ebp-C]  
+
+0054B355   |.  E8 1E9CEBFF    call 12_.00404F78  
+
+0054B35A   |.  8945 E8        mov dword ptr ss:[ebp-18],eax  
+
+0054B35D   |.  DB45 E8        fild dword ptr ss:[ebp-18]  
+
+0054B360   |.  D835 18B45400  fdiv dword ptr ds:[54B418]  
+
+0054B366   |.  895D E4        mov dword ptr ss:[ebp-1C],ebx  
+
+0054B369   |.  DB45 E4        fild dword ptr ss:[ebp-1C]  
+
+0054B36C   |.  DED9           fcompp  
+
+0054B36E   |.  DFE0           fstsw ax  
+
+0054B370   |.  9E             sahf  
+
+0054B371   |.  74 0A          je short 12_.0054B37D  
+
+0054B373   |.  8B45 F8        mov eax,dword ptr ss:[ebp-8]  
+
+0054B376   |.  E8 4599EBFF    call 12_.00404CC0  
+
+0054B37B   |.  EB 5C          jmp short 12_.0054B3D9  
+
+0054B37D   |>  4B             dec ebx  
+
+0054B37E   |.  85DB           test ebx,ebx  
+
+0054B380   |.  7C 36          jl short 12_.0054B3B8  
+
+0054B382   |.  43             inc ebx  
+
+0054B383   |.  33F6           xor esi,esi  
+
+0054B385   |>  8D45 F0       /lea eax,dword ptr ss:[ebp-10]  
+
+0054B388   |.  50             |push eax  
+
+0054B389   |.  8BD6           |mov edx,esi  
+
+0054B38B   |.  C1E2 04        |shl edx,4  
+
+0054B38E   |.  42             |inc edx  
+
+0054B38F   |.  B9 10000000    |mov ecx,10  
+
+0054B394   |.  8B45 F4        |mov eax,dword ptr ss:[ebp-C]  
+
+0054B397   |.  E8 349EEBFF    |call 12_.004051D0  
+
+0054B39C   |.  8D4D E0        |lea ecx,dword ptr ss:[ebp-20]  
+
+0054B39F   |.  8BD7           |mov edx,edi  
+
+0054B3A1   |.  8B45 F0        |mov eax,dword ptr ss:[ebp-10]  
+
+0054B3A4   |.  E8 07FEFFFF    |call 12_.0054B1B0                   算法关键进入  
+
+0054B3A9   |.  8B55 E0        |mov edx,dword ptr ss:[ebp-20]  
+
+0054B3AC   |.  8D45 EC        |lea eax,dword ptr ss:[ebp-14]  
+
+0054B3AF   |.  E8 CC9BEBFF    |call 12_.00404F80  
+
+0054B3B4   |.  46             |inc esi  
+
+0054B3B5   |.  4B             |dec ebx  
+
+0054B3B6   |.^ 75 CD         \jnz short 12_.0054B385  
+
+0054B3B8   |>  8D55 DC       lea edx,dword ptr ss:[ebp-24]  
+
+0054B3BB   |.  8B45 EC        mov eax,dword ptr ss:[ebp-14]  
+
+0054B3BE   |.  E8 15E3EBFF    call 12_.004096D8  
+
+0054B3C3   |.  8B55 DC        mov edx,dword ptr ss:[ebp-24]  
+
+0054B3C6   |.  8D45 EC        lea eax,dword ptr ss:[ebp-14]  
+
+0054B3C9   |.  E8 8A99EBFF    call 12_.00404D58  
+
+0054B3CE   |.  8B45 F8        mov eax,dword ptr ss:[ebp-8]  
+
+0054B3D1   |.  8B55 EC        mov edx,dword ptr ss:[ebp-14]  
+
+0054B3D4   |.  E8 3B99EBFF    call 12_.00404D14  
+
+0054B3D9   |>  33C0           xor eax,eax  
+
+0054B3DB   |.  5A             pop edx  
+
+0054B3DC   |.  59             pop ecx  
+
+0054B3DD   |.  59             pop ecx  
+
+0054B3DE   |.  64:8910        mov dword ptr fs:[eax],edx  
+
+0054B3E1   |.  68 10B45400    push 12_.0054B410  
+
+0054B3E6   |>  8D45 DC        lea eax,dword ptr ss:[ebp-24]  
+
+0054B3E9   |.  BA 02000000    mov edx,2  
+
+0054B3EE   |.  E8 F198EBFF    call 12_.00404CE4  
+
+0054B3F3   |.  8D45 EC        lea eax,dword ptr ss:[ebp-14]  
+
+0054B3F6   |.  BA 03000000    mov edx,3  
+
+0054B3FB   |.  E8 E498EBFF    call 12_.00404CE4  
+
+0054B400   |.  8D45 FC        lea eax,dword ptr ss:[ebp-4]  
+
+0054B403   |.  E8 B898EBFF    call 12_.00404CC0  
+
+0054B408   \.  C3             retn  
+```
+
+…………………………………………………………………………………………………………………………………………………………………
+
+再进入 `0054B3A4`   `|.  E8 07FEFFFF`       `|call 12_.0054B1B0`                   算法关键进入
+
+…………………………………………………………………………………………………………………………………………………………………
+
+```
+0054B1B0   /$  55             push ebp  
+
+0054B1B1   |.  8BEC           mov ebp,esp  
+```

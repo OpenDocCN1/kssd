@@ -1,0 +1,170 @@
+
+# 生活小管家 1.0
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-276.htm`](https://www.pediy.com/kssd/pediy08/pediy8-276.htm)
+
+【文章标题】: 生活小管家 算法分析
+
+【文章作者】: KAN-LI
+
+【作者邮箱】: TOM8147@HOTMAIL.COM
+
+【软件名称】: 生活小管家 1.0
+
+【软件大小】: 960 KB
+
+【下载地址】: `http://www.softreg.com.cn/shareware_view.aspx?id=/9DB89468-EB62-452B-B415-FE5718DFA291/`
+
+【编写语言】: Microsoft Visual C++ 7.0
+
+【使用工具】: 0D PEID
+
+【操作平台】: WINXP SP2
+
+【作者声明】: 只是感兴趣，没有其他目的
+
+---
+
+## 详细过程
+
+昨天在其他论坛，看有人发布这个软件的破解，闲着没事，下载来看看，原来是内存注册机，我们学习破解的人当然想看看它的算法是如何生成的，于是就用 `OD` 跟了一下，难度不高，但走的路有点长，第一次发破文，很多不到地方，大家见谅。
+
+### OD 载入与断点设置
+
+用 `OD` 载入，万能断点很容易跑道算法的地方：
+
+1. 先 `F9` 启动软件，随意输入 16 个字符。
+2. 然后在插件里找到 `ApiBreak` - `API 断点` - `万能断点`，把里面的勾打上。
+3. 从新到注册框，点击 `确定`。
+4. 中断 `ALT+F9` 返回用户代码。
+5. `F8` 跑，当返回系统领空时，也用 `ALT` + `F9` 返回，很快到下面：
+
+```
+0040EA5E   .  E8 02130200   CALL 生活小管.0042FD65                     ；这里下断点
+0040EA63   .  8B46 74       MOV EAX,DWORD PTR DS:[ESI+74]            ;  假码
+0040EA66   .  8378 F4 10    CMP DWORD PTR DS:[EAX-C],10              ;  注册码必须要 16 个数字
+0040EA6A   .  8D7E 74       LEA EDI,DWORD PTR DS:[ESI+74]
+0040EA6D   .  74 24         JE SHORT 生活小管.0040EA93
+0040EA6F   .  6A 00         PUSH 0
+0040EA71   .  68 C8F64300   PUSH 生活小管.0043F6C8
+0040EA76   .  68 FC104400   PUSH 生活小管.004410FC
+0040EA7B   .  8BCE          MOV ECX,ESI
+0040EA7D   .  E8 85120200   CALL 生活小管.0042FD07                   ;  错误
+0040EA82   .  5F           POP EDI
+0040EA83   .  5E           POP ESI
+0040EA84   .  8B4C24 0C     MOV ECX,DWORD PTR SS:[ESP+C]
+0040EA88   .  64:890D 00000>MOV DWORD PTR FS:[0],ECX
+0040EA8F   .  83C4 18       ADD ESP,18
+0040EA92   .  C3           RETN
+0040EA93   >  55           PUSH EBP
+0040EA94   .  E8 75030200   CALL 生活小管.0042EE0E
+0040EA99   .  8B10          MOV EDX,DWORD PTR DS:[EAX]
+0040EA9B   .  8BC8          MOV ECX,EAX
+0040EA9D   .  FF52 0C       CALL DWORD PTR DS:[EDX+C]
+0040EAA0   .  83C0 10       ADD EAX,10
+0040EAA3   .  894424 10     MOV DWORD PTR SS:[ESP+10],EAX
+0040EAA7   .  8D4424 10     LEA EAX,DWORD PTR SS:[ESP+10]
+0040EAAB   .  50           PUSH EAX
+0040EAAC   .  8D6E 70       LEA EBP,DWORD PTR DS:[ESI+70]
+0040EAAF   .  55           PUSH EBP
+0040EAB0   .  8D4C24 1C     LEA ECX,DWORD PTR SS:[ESP+1C]
+0040EAB4   .  C74424 28 000>MOV DWORD PTR SS:[ESP+28],0
+0040EABC   .  E8 0F77FFFF   CALL 生活小管.004061D0                 ;  关键 CALL ,F7 跟进
+0040EAC1   .  8B07          MOV EAX,DWORD PTR DS:[EDI]             ;  假码
+0040EAC3   .  8B4C24 10     MOV ECX,DWORD PTR SS:[ESP+10]          ;  注册码
+0040EAC7   .  50           PUSH EAX
+0040EAC8   .  51           PUSH ECX
+0040EAC9   .  E8 9CE90000   CALL 生活小管.0041D46A
+0040EACE   .  83C4 08       ADD ESP,8
+0040EAD1   .  85C0          TEST EAX,EAX
+0040EAD3   .  74 4B         JE SHORT 生活小管.0040EB20
+0040EAD5   .  6A 00         PUSH 0
+0040EAD7   .  68 C8F64300   PUSH 生活小管.0043F6C8
+0040EADC   .  68 FC104400   PUSH 生活小管.004410FC                 ;  注册码不正确,请检查重试!
+0040EAE1   .  8BCE          MOV ECX,ESI
+0040EAE3   .  E8 1F120200   CALL 生活小管.0042FD07
+0040EAE8   .  6A 00         PUSH 0
+0040EAEA   .  68 F8FA4300   PUSH 生活小管.0043FAF8
+0040EAEF   .  8BCF          MOV ECX,EDI
+0040EAF1   .  E8 3A2FFFFF   CALL 生活小管.00401A30
+0040EAF6   .  6A 00         PUSH 0
+0040EAF8   .  8BCE          MOV ECX,ESI
+0040EAFA   .  E8 66120200   CALL 生活小管.0042FD65
+0040EAFF   .  8B4424 10     MOV EAX,DWORD PTR SS:[ESP+10]
+0040EB03   .  83C0 F0       ADD EAX,-10
+0040EB06   .  C74424 20 FFF>MOV DWORD PTR SS:[ESP+20],-1
+0040EB0E   .  8D50 0C       LEA EDX,DWORD PTR DS:[EAX+C]
+0040EB11   .  83C9 FF       OR ECX,FFFFFFFF
+0040EB14   .  F0:0FC10A     LOCK XADD DWORD PTR DS:[EDX],ECX        ;  锁定前缀
+0040EB18   .  49           DEC ECX
+0040EB19   .  85C9          TEST ECX,ECX
+0040EB1B   .  E9 F5000000   JMP 生活小管.0040EC15
+0040EB20   >  E8 E9020200   CALL 生活小管.0042EE0E
+0040EB25   .  8B10          MOV EDX,DWORD PTR DS:[EAX]
+0040EB27   .  8BC8          MOV ECX,EAX
+0040EB29   .  FF52 0C       CALL DWORD PTR DS:[EDX+C]
+0040EB2C   .  83C0 10       ADD EAX,10
+0040EB2F   .  894424 0C     MOV DWORD PTR SS:[ESP+C],EAX
+0040EB33   .  68 F0F84300   PUSH 生活小管.0043F8F0                 ;  sys_Authorise#
+0040EB38   .  8D4424 10     LEA EAX,DWORD PTR SS:[ESP+10]
+0040EB3C   .  68 E8104400   PUSH 生活小管.004410E8                 ;  delete * from %s
+0040EB41   .  50           PUSH EAX
+0040EB42   .  C64424 2C 01  MOV BYTE PTR SS:[ESP+2C],1
+0040EB47   .  E8 3435FFFF   CALL 生活小管.00402080
+0040EB4C   .  83C4 0C       ADD ESP,0C
+0040EB4F   .  8D4C24 0C     LEA ECX,DWORD PTR SS:[ESP+C]
+0040EB53   .  51           PUSH ECX
+0040EB54   .  B9 80234500   MOV ECX,生活小管.00452380
+0040EB59   .  E8 7253FFFF   CALL 生活小管.00403ED0
+0040EB5E   .  8B17          MOV EDX,DWORD PTR DS:[EDI]
+0040EB60   .  8B45 00       MOV EAX,DWORD PTR SS:[EBP]
+0040EB63   .  52           PUSH EDX
+0040EB64   .  50           PUSH EAX
+0040EB65   .  68 F0F84300   PUSH 生活小管.0043F8F0                 ;  sys_Authorise#
+0040EB6A   .  8D4C24 18     LEA ECX,DWORD PTR SS:[ESP+18]
+0040EB6E   .  68 0CF84300   PUSH 生活小管.0043F80C                 ;  insert into %s values('%s','%s')
+0040EB73   .  51           PUSH ECX
+0040EB74   .  E8 0735FFFF   CALL 生活小管.00402080
+0040EB79   .  83C4 14       ADD ESP,14
+0040EB7C   .  8D5424 0C     LEA EDX,DWORD PTR SS:[ESP+C]
+0040EB80   .  52           PUSH EDX
+0040EB81   .  B9 80234500   MOV ECX,生活小管.00452380
+0040EB86   .  E8 4553FFFF   CALL 生活小管.00403ED0
+0040EB8B   .  84C0          TEST AL,AL
+0040EB8D   .  8BCE          MOV ECX,ESI
+0040EB8F   .  6A 00         PUSH 0
+0040EB91   .  75 26         JNZ SHORT 生活小管.0040EBB9
+0040EB93   .  68 C8F64300   PUSH 生活小管.0043F6C8                 ;  错误
+0040EB98   .  68 C8104400   PUSH 生活小管.004410C8                 ;  注册信息写入失败,请检查重试!
+0040EB9D   .  E8 65110200   CALL 生活小管.0042FD07
+0040EBA2   .  68 F8FA4300   PUSH 生活小管.0043FAF8
+0040EBA7   .  8BCF          MOV ECX,EDI
+0040EBA9   .  E8 023DFFFF   CALL 生活小管.004028B0
+0040EBAE   .  6A 00         PUSH 0
+0040EBB0   .  8BCE          MOV ECX,ESI
+0040EBB2   .  E8 AE110200   CALL 生活小管.0042FD65
+0040EBB7   .  EB 1D         JMP SHORT 生活小管.0040EBD6
+0040EBB9   >  68 CCFE4300   PUSH 生活小管.0043FECC                 ;  提示
+0040EBBE   .  68 98104400   PUSH 生活小管.00441098                 ;  恭喜您,注册已成功!祝你使用愉快,开开心心每一天!
+```
+
+### 算法分析
+
+`F7` 跟进 `0040EABC` 后，省略 N 多代码来到下面：
+
+```
+00406231   .  8B03          MOV EAX,DWORD PTR DS:[EBX]             ;  机器码
+00406233   .  55           PUSH EBP
+00406234   .  50           PUSH EAX
+00406235   .  56           PUSH ESI
+00406236   .  E8 15800100   CALL 生活小管.0041E250
+0040623B   .  83C4 10       ADD ESP,10
+0040623E   .  33C9          XOR ECX,ECX
+00406240   .  85ED          TEST EBP,EBP
+00406242   .  7E 1C         JLE SHORT 生活小管.00406260
+00406244   >  8A0431        MOV AL,BYTE PTR DS:[ECX+ESI]  ;第一段 算法 开始 取机器码字符
+00406247   .  02C1          ADD AL,CL            ；CL 是循环次数
+00406249   .  8AD1          MOV DL,CL            ；循环次数送入 DL
+0040624B   .  FEC0          INC AL               ；AL + 1
+0040624D   .  C0E2 02       SHL DL,2             ；DL * 4
+```

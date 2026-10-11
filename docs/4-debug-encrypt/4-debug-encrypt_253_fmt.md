@@ -1,0 +1,287 @@
+
+# MyVideoConverter 1.18.1
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-172.htm`](https://www.pediy.com/kssd/pediy08/pediy8-172.htm)
+
+`MyVideoConverter` 1.18.1
+
+`Microsoft Visual C++ 6.0`
+
+## 1. `MessageBoxExA` 断下后返回，往上找到关键地方：
+
+```
+004121FA       8B5424 04        mov edx,dword ptr ss:[esp+4]
+004121FE       8B4424 08        mov eax,dword ptr ss:[esp+8]
+00412202       52               push edx
+00412203       50               push eax
+00412204       B9 64984600      mov ecx,MyVideoC.00469864
+00412209       E8 B2720300      call MyVideoC.004494C0          ; 计算
+0041220E       85C0             test eax,eax
+00412210       74 09            je short MyVideoC.0041221B      ; 关键跳转
+```
+
+## 2. 进 `call`：`call MyVideoC.004494C0`
+
+### 加密用户名：
+
+之前检查用户名是否 16 位，如果不够的话用 `00` 补充：
+
+```
+00449537       83F9 10          cmp ecx,10
+```
+
+然后加密：
+
+```
+00449593       E8 F8D0FDFF      call MyVideoC.00426690                    ; 加密用户名
+```
+
+*   用户名：`0012D6E4  63 79 74 6F 00 00 00 00 00 00 00 00 00 00 00 00  cyto............`
+*   加密值：`0012D714  5F 9A 0D 9C E9 D9 66 C4 73 23 DB D0 78 98 97 89  _?滈賔膕#坌 x 槜`
+
+### 注册码的读入：
+
+```
+004495A2       33F6             xor esi,esi
+004495A4       66:897424 5D     mov word ptr ss:[esp+5D],si                ; 以下转换为字节
+004495A9       66:8B17          mov dx,word ptr ds:[edi]
+004495AC       8D4424 14        lea eax,dword ptr ss:[esp+14]
+004495B0       50               push eax
+004495B1       8D4C24 60        lea ecx,dword ptr ss:[esp+60]
+004495B5       68 CC904600      push MyVideoC.004690CC                    ; ASCII "%x"
+004495BA       51               push ecx
+004495BB       66:895424 68     mov word ptr ss:[esp+68],dx
+004495C0       FFD5             call ebp
+004495C2       8A5424 20        mov dl,byte ptr ss:[esp+20]
+004495C6       83C4 0C          add esp,0C
+004495C9       885434 28        mov byte ptr ss:[esp+esi+28],dl
+004495CD       46               inc esi
+004495CE       83C7 02          add edi,2
+004495D1       83FE 10          cmp esi,10                                ; 16 次
+004495D4       ^ 7C D3          jl short MyVideoC.004495A9
+```
+
+转换 16 次，如果输入的注册码位数不够，用 `78` 代替。
+
+所以注册码需要 32 位，练码：`87654321123456788765432112345678`
+
+读入后为：`0012D6F4  87 65 43 21 12 34 56 78 87 65 43 21 12 34 56 78  噀 C!4Vx 噀 C!4Vx`
+
+### 加密注册码：
+
+```
+004495E5       E8 A6D9FDFF      call MyVideoC.00426F90                    ; 加密注册码
+```
+
+*   参数：`0012D6F4  87 65 43 21 12 34 56 78 87 65 43 21 12 34 56 78  噀 C!4Vx 噀 C!4Vx`
+*   加密值：`0012D704  51 6D A0 65 29 FE C8 99 2F 53 5B 3A 0A FF BD B6  Qm_e)?S\[:.#蕉`
+
+### 2 个加密值的比较：
+
+```
+004495EF       8D7C24 38         lea edi,dword ptr ss:[esp+38]        // 注册码加密值
+004495F3       8D7424 48         lea esi,dword ptr ss:[esp+48]        // 用户名加密值
+004495F7       33D2             xor edx,edx
+004495F9       F3:A7            repe cmps dword ptr es:[edi],dword ptr ds:[esi]
+004495FB       5D               pop ebp
+004495FC       75 78            jnz short MyVideoC.00449676
+```
+
+相等就注册成功！
+
+## 3. 其中加密采用了：`IBM` 的 `MARS` 加密算法
+
+### `s-Box`：
+
+```
+004671A4  79 C4 D0 09 E0 FF C8 28 39 6C AA 84 87 72 AD 9D  y 男.??9l 獎噐瓭
+004671B4  E3 9B FF 7D 61 83 26 D4 D4 A1 6D C9 93 CC 74 79  銢?}a?栽蓳蘴 y
+...
+00467964  61 60 B9 AB 5D F8 70 53 37 7E B0 FF FB D0 30 DA  a`公]鴓 S7~?0
+00467974  B6 77 C9 EB 0F B4 98 0B E6 0F 4D 3A 6B C2 4F DF  秝呻礃?M:k 翺
+00467984  2A F2 9C 15 E2 D6 98 C2 6A EF 78 2B C0 4A A9 61  *驕庵樎 j 飜+繨゛
+00467994  87 11 56 AB F0 A0 EE 14 64 41 0D DF EE 70 AF 19  ?V_?dA.哳 p?
+```
+
+## 4. 用户名加密算法过程：
+
+```
+00426690       83EC 08          sub esp,8
+00426693       53               push ebx
+00426694       8B5C24 10        mov ebx,dword ptr ss:[esp+10]
+00426698       55               push ebp
+00426699       8BC1             mov eax,ecx
+0042669B       56               push esi
+0042669C       8B73 04          mov esi,dword ptr ds:[ebx+4]            ; D(1),[ebx]存放待加密的数据 D()
+0042669F       8B48 04          mov ecx,dword ptr ds:[eax+4]            ; K(0),[eax+4]存放加密密钥 K()
+004266A2       57               push edi
+004266A3       8B3B             mov edi,dword ptr ds:[ebx]              ; D(0)
+004266A5       03CF             add ecx,edi                             ; D(0)+K(0)
+004266A7       8B78 08          mov edi,dword ptr ds:[eax+8]            ; K(1)
+004266AA       03F7             add esi,edi                             ; D(1)+K(1)
+004266AC       8BD1             mov edx,ecx
+004266AE       8BF9             mov edi,ecx
+004266B0       C1CA 08          ror edx,8
+004266B3       81E7 FF000000    and edi,0FF
+004266B9       81E2 FF000000    and edx,0FF
+004266BF       8B2CBD A4714600  mov ebp,dword ptr ds:[edi*4+4671A4]     ; 004671A4,S-Box（0）
+004266C6       8B1495 A4754600  mov edx,dword ptr ds:[edx*4+4675A4]     ; 004675A4,S-Box（1）
+004266CD       33F5             xor esi,ebp
+004266CF       8B68 0C          mov ebp,dword ptr ds:[eax+C]            ; K(2)
+004266D2       03D6             add edx,esi
+004266D4       8BF1             mov esi,ecx
+004266D6       C1CE 10          ror esi,10
+004266D9       C1C9 18          ror ecx,18
+004266DC       81E6 FF000000    and esi,0FF
+004266E2       8BF9             mov edi,ecx
+004266E4       8B0CB5 A4714600  mov ecx,dword ptr ds:[esi*4+4671A4]
+004266EB       8B73 08          mov esi,dword ptr ds:[ebx+8]            ; D(2)
+004266EE       03CE             add ecx,esi                             ; D(2)+K(2)
+004266F0       8B73 0C          mov esi,dword ptr ds:[ebx+C]            ; D(3)
+004266F3       8B58 10          mov ebx,dword ptr ds:[eax+10]           ; K(3)
+004266F6       03CD             add ecx,ebp                             ; D(3)+K(3)
+004266F8       03F3             add esi,ebx
+004266FA       8BDF             mov ebx,edi
+004266FC       81E3 FF000000    and ebx,0FF
+00426702       8B2C9D A4754600  mov ebp,dword ptr ds:[ebx*4+4675A4]
+00426709       8BDA             mov ebx,edx
+...
+00426F4F       8B5C24 20        mov ebx,dword ptr ss:[esp+20]
+00426F53       33D5             xor edx,ebp
+00426F55       893B             mov dword ptr ds:[ebx],edi              ; 第 1 个值保存
+00426F57       8BB8 98000000    mov edi,dword ptr ds:[eax+98]
+00426F5D       2BF7             sub esi,edi
+00426F5F       8973 04          mov dword ptr ds:[ebx+4],esi            ; 第 2 个值保存
+00426F62       8BB0 9C000000    mov esi,dword ptr ds:[eax+9C]
+00426F68       2BD6             sub edx,esi
+00426F6A       8953 08          mov dword ptr ds:[ebx+8],edx            ; 第 3 个值保存
+00426F6D       8B90 A0000000    mov edx,dword ptr ds:[eax+A0]
+00426F73       2BCA             sub ecx,edx
+00426F75       5F               pop edi
+00426F76       5E               pop esi
+00426F77       894B 0C          mov dword ptr ds:[ebx+C],ecx            ; 第 4 个值保存
+00426F7A       5D               pop ebp
+00426F7B       5B               pop ebx
+00426F7C       83C4 08          add esp,8
+00426F7F       C2 0800          retn 8
+```
+
+### 用户名加密密钥：
+
+`K[] =`
+
+```
+D2 58 60 2E 3B 96 BD 46 5B FE F3 8D C6 55 56 E6 D4 DB A8 11 4B 2C CD 6D B4 BA 4D 01 83 F1 23 42
+E2 0D 2E 32 77 AE 8B A6 E7 68 22 3A 93 41 E9 E6 5D 26 F7 65 2B 4B 78 D8 C2 56 44 EB 3F 97 30 01
+EF B2 65 65 0B 2C 25 DD E8 5F 79 E7 83 97 8B 01 73 71 B7 78 3B BA 49 F2 DD 79 BD 11 8B 5F 69 40
+22 F9 CF 86 1F E0 48 79 4B 36 34 C8 6B 85 72 9A 31 3A 95 CF 57 0A 0E B2 D9 DB 8C C4 AB B0 62 4B
+5C 97 FB FA FB F6 9E A1 E1 8C 0D BC 6F 56 20 86 04 38 2F 60 9A 46 D8 91 9E 34 3E 4C 9C AE BE 52
+```
+
+## 5. 注册码加密算法过程：
+
+```
+00426F90       83EC 08          sub esp,8
+00426F93       53               push ebx
+00426F94       8B5C24 10        mov ebx,dword ptr ss:[esp+10]
+00426F98       55               push ebp
+00426F99       8BC1             mov eax,ecx
+00426F9B       56               push esi
+00426F9C       57               push edi
+```
+
+
+
+## 汇编代码片段
+
+```
+00426F9D      8B88 A0000000     mov ecx,dword ptr ds:[eax+A0]           ; [EAX+4]保存了密钥  
+00426FA3      8B7B 0C           mov edi,dword ptr ds:[ebx+C]            ; [EBX]保存了待加密的值  
+00426FA6      8BB0 9C000000     mov esi,dword ptr ds:[eax+9C]  
+00426FAC      03CF              add ecx,edi  
+00426FAE      8B7B 08           mov edi,dword ptr ds:[ebx+8]  
+00426FB1      8BD1              mov edx,ecx  
+00426FB3      03F7              add esi,edi  
+00426FB5      8BF9              mov edi,ecx  
+00426FB7      C1CA 08           ror edx,8  
+00426FBA      81E7 FF000000     and edi,0FF  
+00426FC0      81E2 FF000000     and edx,0FF  
+00426FC6      8B2CBD A4714600   mov ebp,dword ptr ds:[edi*4+4671A4]     ; S-Box（0）  
+00426FCD      8B1495 A4754600   mov edx,dword ptr ds:[edx*4+4675A4]     ; S-Box（1）  
+00426FD4      33F5              xor esi,ebp  
+00426FD6      8BA8 98000000     mov ebp,dword ptr ds:[eax+98]  
+00426FDC      03D6              add edx,esi  
+...  
+004278EE      33D5              xor edx,ebp  
+004278F0      890B              mov dword ptr ds:[ebx],ecx             ; 第 1 个值保存  
+004278F2      8B68 08           mov ebp,dword ptr ds:[eax+8]  
+004278F5      2BD5              sub edx,ebp  
+004278F7      8953 04           mov dword ptr ds:[ebx+4],edx           ; 第 2 个值保存  
+004278FA      8B50 0C           mov edx,dword ptr ds:[eax+C]  
+004278FD      2BF2              sub esi,edx  
+004278FF      8973 08           mov dword ptr ds:[ebx+8],esi           ; 第 3 个值保存  
+00427902      8B48 10           mov ecx,dword ptr ds:[eax+10]  
+00427905      2BF9              sub edi,ecx  
+00427907      897B 0C           mov dword ptr ds:[ebx+C],edi           ; 第 4 个值保存  
+0042790A      5F                pop edi  
+0042790B      5E                pop esi  
+0042790C      5D                pop ebp  
+0042790D      5B                pop ebx  
+0042790E      83C4 08           add esp,8  
+00427911      C2 0800           retn 8  
+```
+
+### 注册码加密密钥
+
+`K[]＝`
+
+```
+38 DE E0 3D 29 D0 64 0C B2 92 40 C6 8D 79 DA BF 48 91 DF 59 17 27 67 8C 84 BD B1 B7 63 26 CF 53
+19 A6 39 0F AB EF A9 21 16 BF 77 06 23 58 08 3F 22 A9 7A F7 67 92 FE 73 33 3D 16 2E 73 F3 7B 03
+0E B4 F6 38 BF 2D 86 80 42 E7 AD AA 63 1D 8D 8C 50 12 D9 C4 0F D6 F6 78 B0 18 C3 9E 5B A8 F0 5E
+7A 71 CD D0 33 F7 CD D6 F5 67 D4 4C CB 74 47 F0 59 3D 4C 03 FB 0B B7 DC B3 73 7D 0A 0F 48 9C 17
+E7 ED 72 60 8F 79 6E CA 28 20 29 B4 CF 09 AF DA 73 AE C9 C4 EB 51 6A 7B E6 AA 17 C9 43 01 12 1B
+```
+
+## 反推注册码
+
+其实用户名加密算法与注册码加密算法刚好是加解密的一对。
+
+`call MyVideoC.00426690` // 用户名加密
+`call MyVideoC.00426F90` // 注册码加密
+
+如果 `call MyVideoC.00426690` 是加密的 `call`，那么 `call MyVideoC.00426F90` 就是解密的 `call`。
+
+只要对换 2 者的密钥就能互相反推。
+
+假设用户名：`cyto`，
+
+`call MyVideoC.00426690` 后为：`5F 9A 0D 9C E9 D9 66 C4 73 23 DB D0 78 98 97 89`
+
+假设输入的注册码为 `x`，
+
+`call MyVideoC.00426F90` 后要为：`5F 9A 0D 9C E9 D9 66 C4 73 23 DB D0 78 98 97 89`
+
+那么就用 `call MyVideoC.00426690` 来反推注册码，只要替换 `call MyVideoC.00426690` 使用的密钥就可以了，密钥换为 `call MyVideoC.00426F90` 使用的密钥：
+
+```
+38 DE E0 3D 29 D0 64 0C B2 92 40 C6 8D 79 DA BF 48 91 DF 59 17 27 67 8C 84 BD B1 B7 63 26 CF 53
+19 A6 39 0F AB EF A9 21 16 BF 77 06 23 58 08 3F 22 A9 7A F7 67 92 FE 73 33 3D 16 2E 73 F3 7B 03
+0E B4 F6 38 BF 2D 86 80 42 E7 AD AA 63 1D 8D 8C 50 12 D9 C4 0F D6 F6 78 B0 18 C3 9E 5B A8 F0 5E
+7A 71 CD D0 33 F7 CD D6 F5 67 D4 4C CB 74 47 F0 59 3D 4C 03 FB 0B B7 DC B3 73 7D 0A 0F 48 9C 17
+E7 ED 72 60 8F 79 6E CA 28 20 29 B4 CF 09 AF DA 73 AE C9 C4 EB 51 6A 7B E6 AA 17 C9 43 01 12 1B
+```
+
+参数：`5F 9A 0D 9C E9 D9 66 C4 73 23 DB D0 78 98 97 89`
+
+解密后：`25 8A 13 1D CE FC 8B C7 D0 AC ED D7 0A 2E 81 D9`
+
+即
+
+用户名：`cyto`
+
+注册码：`258A131DCEFC8BC7D0ACEDD70A2E81D9`
+
+注册成功！ 
+
+`4dd466d0e1e0cc123afbe504da2462ca`

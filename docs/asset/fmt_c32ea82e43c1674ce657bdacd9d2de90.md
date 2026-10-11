@@ -1,0 +1,255 @@
+
+# 正确获得同益起名大师 v337 的注册号――解读 moon 帮主的妙文
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-478.htm`](https://www.pediy.com/kssd/pediy07/pediy7-478.htm)
+
+**正确获得同益起名大师 v337 的注册号――解读 moon 帮主的妙文**
+
+【作者】`gzgzlxg`
+
+【声明】只是好奇，没有别的目的，如有，我就把注册机发表了(已经写好了)，不要发信向我要注册机，我不会发表的，这也是看雪老大的要求，其实我觉得这篇文章已经很过分。按这篇文章，你 100％可以得到正确的注册码。
+
+【工具】`IDA`，`OllyDBG`
+
+【软件】使用我在【`ACProtect` 1.41 -- 同益起名大师 v3.36、v3.37、vp3.33(专业版)完美脱壳】中所完美脱壳后的 `GoodName.Exe` v3.37 版。使用脱壳版，跟踪比较容易，当然你也可以直接使用原版，但会困难一些。
+
+`http://bbs.pediy.com/showthread.php?threadid=16204`
+
+【注】读此文前，请先读 moon 帮主的【谜----同益起名大师 3.36 注册算法分析】，
+
+`http://bbs.pediy.com/showthread.php?threadid=14716`
+
+凡是和 moon 相同的部分我就不再多废笔墨。
+
+本文同时发表在看雪论坛和 `DFCG`，转载时请保持完整，版主如果觉得不合适可以删除。
+
+### 前言
+
+同益起名的注册码验证遍布全程序，在主窗体建立，子窗口建立，按键操作，对注册码和注册申请码的验证无所不在，而且计算方法来回重复，例如获取注册申请码就有三个完全相同的过程，`DES` 算法也有完整的两套。我们用来分析注册码取的是注册操作部分，其实在主窗口建立、子窗口建立的过程中都可以进行，因为他们是完全相同的。
+
+这是注册窗口（`Tfxhm`）`VMT` 表中的方法表部分，（全表太长）。这些代码都是在 `IDA` 中分析得到的。
+
+```
+代码:
+
+* * *
+
+......
+0055647F TfxhmMethodTable dw 6
+00556481                dw 16h
+00556483                dd offset Tfxhm@suiButton2Click ;退出按键
+00556487 aSuibutton2click db 0Fh,'suiButton2Click'
+00556497                dw 10h
+00556499                dd offset Tfxhm@FormClose       ;关闭窗口
+0055649D aFormclose_0     db 9,'FormClose'
+005564A7                dw 11h
+005564A9                dd offset Tfxhm@FormCreate      ;建立窗口
+005564AD aFormcreate_0    db 0Ah
+005564AD                db 'FormCreate'
+005564B8                dw 16h
+005564BA                dd offset Tfxhm@suiButton1Click ;注册按键
+005564BE aSuibutton1cli   ck db 0Fh,'suiButton1Click'
+005564CE                dw 0Fh
+005564D0                dd offset Tfxhm@get_text        ;suiButton1Click 调用的校验注册申请码
+;和注册码并注册的子过程
+005564D4 aGet_text        db 8,'get_text'
+005564DD                dw 0Fh
+005564DF                dd offset Tfxhm@FormShow        ;显示窗口
+005564E3 aFormshow_0      db 8,'FormShow'
+005564EC Tfxhm           db 5,'Tfxhm'                   ;类名
+005564F2 word_5564F2      dw 5
+005564F4                dd offset TsuiForm@VMT@Prt      ;父辈 TsuiForm 的 VMT 表指针地址
+......
+
+* * *
+```
+
+我们分析的所有代码都是属于 `Tfxhm@get_text` 过程和它的子过程的。 `Tfxhm@get_text` 起始地址: `0055986C`
+
+### 一、 获取注册码第 28 位
+
+确定你想注册姓氏的正确笔划数（必须和同益数据库中 `slzik` 所查到的相同，以繁体字笔画数为准，同益库中有些字的笔画数并不正确，这时你可以在同益起名的姓名分析中获得姓氏的笔画数）。在下面的字符串中从左到右查寻，得到第 28 位注册码：例如，吕：繁体字为 7 划。(从 0 开始数)
+
+```
+0123456 7 89012345678901234567890
+0AH6CD3 B EF4TRS2PUV5K1MN78YZ9GIJ
+```
+
+得到的字母为 `B`，这样我们的注册码有如下形式：(31 位)下面是我们的起始注册码
+
+```
+123456789012345678901234567 8 901
+123456789ABCDEFGHIJKLMNOPQR S TUV
+```
+
+加入第 28 个字母 `B`，得如下注册码：
+
+```
+123456789ABCDEFGHIJKLMNOPQR B TUV
+```
+
+根据 moon 提出的换位法(4\*i+1 位和 4\*(i+1)位互换，i=0,1,2,...，末尾不足 4 位时，最后两位互换)，25<->28 位对调，这个 `B` 应该在第 25 位
+
+为了便于调位，写了几句 `Delphi` 的小程序来完成:(这种操作，还是汇编容易，所以实际还是汇编写的)
+
+```
+procedure TForm1.Button2Click(Sender: TObject);
+var
+    Str: String;
+begin
+    Str := Edit1.Text;
+    asm
+        PushA
+        Xor  Edx, Edx
+        Mov  Esi, Str
+        Mov  Ecx, 7
+    @1:
+        Mov  Al, [Esi + Edx]
+        Xchg Al, [Esi + Edx + 3]
+        Xchg Al, [Esi + Edx]
+        Dec  Ecx
+        Add  Edx, 4
+        Cmp  Ecx, 0
+        Jnz  @1
+        Mov  Al,    [Esi + Edx + 1]
+        Xchg Al, [Esi + Edx + 2]
+        Xchg Al, [Esi + Edx + 1]
+        PopA
+    end;
+    Edit2.Text := Str;
+end;
+```
+
+在 `Edit1` 中输入 `123456789ABCDEFGHIJKLMNOPQRBTUV`，按 `Button2` 键得到下面的新注册码:
+
+新注册码为：
+
+```
+123456789012345678901234 5 678901
+42318675CAB9GEFDKIJHOMNL B QRPTVU
+```
+
+具体分析请看 moon 的解释。
+
+### 二、 获取注册码 23～27 位注册码
+
+用 `OD` 载如 `UNGDN.exe` (脱壳后的程序)
+
+```
+Tfxhm@get_text
+......
+......
+0055CF7E mov eax, ds:AppIDAndName_CryHex@Prt ;注册申请号加姓氏和 1FH 异或得到的结果
+0055CF83 mov eax, [eax]
+0055CF85 call sub_4FED88                ;EncodeFunction1
+0055CF8A lea eax, [ebp+var_94]          ;这里断下获取计算 23-27 位的三个字符
+0055CF8A ;按照 moon 帮主的给出的算法可以获得
+0055CF90 pus eax
+0055CF91 lea edx, [ebp+var_98]
+0055CF97 mov eax, ds:Serial_CryHex@Prt  ;注册号和 1FH 异或得到的结果
+0055CF9C mov eax, [eax]
+0055CF9E call CycleConversionStr        ;经过 1FH 异或，即还原
+0055CFA3 mov eax, [ebp+var_98]
+0055CFA9 mov ecx, 5
+0055CFAE mov edx, 17h
+0055CFB3 call LStrCopy                 ;取第 23～27 位
+0055CFB8 mov eax, [ebp+var_94]
+0055CFBE lea edx, [ebp+var_90]
+0055CFC4 call sub_4F0048              ;进行计算得到三个字符，如果和上面计算得到的三个字符相同，则过
+0055CFC9 mov edx, [ebp+var_90]
+0055CFCF mov eax, [ebp+var_C]
+0055CFD2 call LStrCmp                 ;关键比较，比较两种方式和数据计算得到的三个字符
+0055CFD7 jnz loc_55D157
+0055CFDD lea eax, [ebp+var_A0]
+0055CFE3 push eax
+0055CFE4 lea edx, [ebp+var_A4]
+0055CFEA mov eax, ds:Serial_CryHex@Prt
+0055CFEF mov eax, [eax]
+0055CFF1 call CycleConversionStr
+0055CFF6 mov eax, [ebp+var_A4]
+0055CFFC mov ecx, 5
+0055D001 mov edx, 17h                ;取注册号 23~27
+0055D006 call LStrCopy
+0055D00B mov eax, [ebp+var_A0]
+0055D011 lea edx, [ebp+var_9C]
+0055D017 call sub_4F0048
+0055D01C mov edx, [ebp+var_9C]
+0055D022 mov eax, [ebp+var_C]
+0055D025 call LStrCmp                 ;关键比较，比较两种方式和数据计算得到的三个字符，和前面相同
+0055D02A jnz loc_55D0EA
+0055D030 lea eax, [ebp+var_A8]
+0055D036 push eax
+0055D037 lea edx, [ebp+var_AC]
+0055D03D mov eax, ds:Serial_CryHex@Prt
+0055D042 mov eax, [eax]
+0055D044 call CycleConversionStr
+0055D049 mov eax, [ebp+var_AC]
+0055D04F mov ecx, 3
+0055D054 mov edx, 1Dh                ;取注册号 29~31 位
+0055D059 call LStrCopy
+0055D05E mov eax, [ebp+var_A8]
+0055D064 call 31decimalToHex          ;对 29～31 位注册码进行 31 进制到十六进制的转换
+0055D069 mov ebx, eax
+0055D06B lea eax, [ebp+var_B0]
+0055D071 push eax
+0055D072 lea edx, [ebp+var_B4]
+0055D078 mov eax, ds:Serial_CryHex@Prt ;取注册号（经过 1FH 异或处理）
+0055D07D mov eax, [eax]
+0055D07F call CycleConversionStr      ;经过相同的过程还原
+0055D084 mov eax, [ebp+var_B4]
+0055D08A mov ecx, 1Ch
+0055D08F mov edx, 1                  ;取注册号 1~28 位
+0055D094 call LStrCopy
+0055D099 mov eax, [ebp+var_B0]
+0055D09F call SumSerial_1to28         ;做 1～28 位累加（中间还有判断是否大于 27000，见 moon 帮主的解释）
+0055D0A4 cmp ebx, eax                 ;关键比较,将前面进制转换得到的数和累加和比较，在这里下断点
+0055D0A6 jnz loc_55D157              ;因为注册码没有完成，为了能够继续，暂时将这句 Nop 掉
+0055D0AC mov eax, offset a111_2       ; "111"
+0055D0B1 call CheckSerial_17to22      ;这里是获取 17～22 位注册码的入口
+0055D0B6 mov [ebp+var_1], al
+0055D0B9 cmp [ebp+var_1], 0
+0055D0BD jz short loc_55D0CC
+0055D0BF lea eax, [ebp+var_C]
+0055D0C2 mov edx, offset a111_2       ;"111"
+0055D0C7 call LStrLAsg
+0055D0CC
+0055D0CC loc_55D0CC:
+0055D0CC cmp [ebp+var_1], 0
+0055D0D0 jz loc_55D157
+0055D0D6 mov eax, [ebp+var_C]
+0055D0D9 mov edx, offset a111_2       ;"111"
+0055D0DE call LStrCmp
+0055D0E3 jnz short loc_55D0EA
+0055D0E5 call CheckSerial_1to16       ;这里是获取 1～16 位注册码的入口
+
+* * *
+```
+
+在 `0055CF8A` 处下断点，`F9` 运行，出现同益启动画面后选‘注册’->‘输入注册码'，注册申请码是不能修改的，由你的机器的 `CPU` 和硬盘的参数变化而来。在【起名的姓氏】中输入你的姓氏，我这里是输入‘吕',在【输入注册码】中将上面的 `123456789ABCDEFGHIJKLMNOBWRSTUV` 注册码拷贝到输入窗口。按【注册】键，中断在 `0055CF8A` ，清除断点(或关闭)，由 `[ebp - c]` 中的内容，得到三个字符 `VRB`，记录下这三个字符，用 moon 帮主给出的方法:
+
+* 
+
+求逆方法：
+
+1. 执行到 `00559D0A`，然后下：`d [ebp-c]`，记下数据区显示的正确值 `x,y,z`；
+
+2. 对 3 个字节的正确值进行调位，得到 5 个字节 `a,b,c,d,e`，调位方法为：
+
+```
+0,0,0,x7,x6,x5,x4,x3
+0,0,0,x2,x1,x0,y5,y4
+0,0,0,0 ,y3,y2,y1,y0
+0,0,0,y7,y6,z7,z6,z5
+0,0,0,z4,z3,z2,z1,z0
+```
+
+3. 根据 5 个字节查表 `"0KMT1EIJ2AB34FGH56PYZ7NRS89CDUVX"`，得到 5 位注册码即为 23~27 位。
+
+－－摘自 moon 帮主文
+
+* 
+
+我用 `Delphi` 写了几句小程序完成这个转换，程序如下：
+
+> 
+> 
