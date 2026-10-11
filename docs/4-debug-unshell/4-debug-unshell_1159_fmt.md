@@ -1,0 +1,534 @@
+
+# Visual Protect V3.54
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6727.htm`](https://www.pediy.com/kssd/pediy06/pediy6727.htm)
+
+【作者声明】：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+【调试环境】：`WinXP`、`Ollydbg V1.10`、`PEiD`、`LordPE`
+
+—————————————————————————————————
+
+## 脱壳过程
+
+前两日看到 `Visual Protect` 加壳的 `dll`，所以演练了一下。
+
+`Visual Protect` 没有加密重定位表，所以 `dll` 脱壳比较简单了。
+
+设置 `Ollydbg` 忽略所有异常选项。
+
+—————————————————————————————————
+
+### 一、重定位表
+
+```
+003B9E90    55             push ebp
+
+//进入 Ollydbg 后暂停在这
+003B9E91    8BEC           mov ebp,esp
+
+003B9E93    51             push ecx
+
+003B9E94    8B45 0C        mov eax,dword ptr ss:[ebp+C]
+
+003B9E97    8945 FC        mov dword ptr ss:[ebp-4],eax
+
+003B9E9A    837D FC 01     cmp dword ptr ss:[ebp-4],1
+
+003B9E9E    74 02          je short EdrLib.003B9EA2
+
+003B9EA0    EB 54          jmp short EdrLib.003B9EF6
+
+003B9EA2    C705 B00E3C00  010>mov dword ptr ds:[3C0EB0],1
+
+003B9EAC    8B4D 08        mov ecx,dword ptr ss:[ebp+8]
+
+003B9EAF    890D EC0E3C00  mov dword ptr ds:[3C0EEC],ecx
+
+003B9EB5    8B15 EC0E3C00  mov edx,dword ptr ds:[3C0EEC]
+
+003B9EBB    52             push edx
+
+003B9EBC    E8 DF060000    call EdrLib.003BA5A0
+
+003B9EC1    83C4 04        add esp,4
+
+003B9EC4    A3 D4F73B00    mov dword ptr ds:[3BF7D4],eax
+
+003B9EC9    833D D4F73B00  00  cmp dword ptr ds:[3BF7D4],0
+
+003B9ED0    75 04          jnz short EdrLib.003B9ED6
+
+003B9ED2    33C0           xor eax,eax
+
+003B9ED4    EB 34          jmp short EdrLib.003B9F0A
+
+003B9ED6    A1 D4F73B00    mov eax,dword ptr ds:[3BF7D4]
+
+003B9EDB    A3 D0F73B00    mov dword ptr ds:[3BF7D0],eax
+
+003B9EE0    8B4D 10        mov ecx,dword ptr ss:[ebp+10]
+
+003B9EE3    51             push ecx
+
+003B9EE4    8B55 0C        mov edx,dword ptr ss:[ebp+C]
+
+003B9EE7    52             push edx
+
+003B9EE8    A1 EC0E3C00    mov eax,dword ptr ds:[3C0EEC]
+
+003B9EED    50             push eax
+
+003B9EEE    FF15 D0F73B00  call dword ptr ds:[3BF7D0]
+
+//这里跳 OEP，下个断点  ★
+003B9EF4    EB 14          jmp short EdrLib.003B9F0A
+```
+
+现在来寻找重定位表数据。
+
+`Ctrl+S` 搜索命令序列：
+
+```
+mov dword ptr ss:[ebp-24],eax
+
+mov ecx,dword ptr ss:[ebp-18]
+```
+
+找到在 `003BA1A1` 处，在上面的 `003BA166` 处下断
+
+`Shift+F9`，出现“`This application was protected using Visual Protect`”的经典 `Visual Protect` 保护画面，`Try` 后中断
+
+```
+003BA166    55             push ebp
+
+003BA167    8BEC           mov ebp,esp
+
+003BA169    83EC 2C        sub esp,2C
+
+003BA16C    A1 EC0E3C00    mov eax,dword ptr ds:[3C0EEC]
+
+003BA171    8945 F4        mov dword ptr ss:[ebp-C],eax
+
+003BA174    8B0D EC0E3C00  mov ecx,dword ptr ds:[3C0EEC]; EdrLib.003B0000
+
+003BA17A    030D FD083C00  add ecx,dword ptr ds:[3C08FD]
+
+//[3C08FD]=00006000     重定位表的 RVA  ★
+003BA180    894D FC        mov dword ptr ss:[ebp-4],ecx ; EdrLib.003B6000
+
+003BA183    8B55 F4        mov edx,dword ptr ss:[ebp-C]
+
+003BA186    8B42 3C        mov eax,dword ptr ds:[edx+3C]
+
+003BA189    8B4D F4        mov ecx,dword ptr ss:[ebp-C]
+
+003BA18C    8B55 F4        mov edx,dword ptr ss:[ebp-C]
+
+003BA18F    2B5401 34      sub edx,dword ptr ds:[ecx+eax+34]
+
+003BA193    8955 E8        mov dword ptr ss:[ebp-18],edx
+
+003BA196    8B45 E8        mov eax,dword ptr ss:[ebp-18]
+
+003BA199    C1F8 10        sar eax,10
+
+003BA19C    25 FFFF0000    and eax,0FFFF
+
+003BA1A1    8945 DC        mov dword ptr ss:[ebp-24],eax
+
+//找到这里
+003BA1A4    8B4D E8        mov ecx,dword ptr ss:[ebp-18]
+
+003BA1A7    81E1 FFFF0000  and ecx,0FFFF
+
+003BA1AD    894D EC        mov dword ptr ss:[ebp-14],ecx
+
+003BA1B0    837D E8 00     cmp dword ptr ss:[ebp-18],0
+
+003BA1B4    75 05          jnz short EdrLib.003BA1BB
+
+//可以改变标志位使这里不跳，脱壳后则无须修改基址  ★
+003BA1B6    E9 DF000000    jmp EdrLib.003BA29A
+
+//重定位处理完毕则跳转  ★
+003BA1BB    8B55 FC        mov edx,dword ptr ss:[ebp-4]
+
+003BA1BE    833A 00        cmp dword ptr ds:[edx],0
+
+003BA1C1    0F84 D3000000  je EdrLib.003BA29A
+
+003BA1C7    8B45 FC        mov eax,dword ptr ss:[ebp-4]
+
+003BA1CA    8B4D F4        mov ecx,dword ptr ss:[ebp-C]
+
+003BA1CD    0308           add ecx,dword ptr ds:[eax]
+
+003BA1CF    894D E4        mov dword ptr ss:[ebp-1C],ecx
+
+003BA1D2    8B55 FC        mov edx,dword ptr ss:[ebp-4]
+
+003BA1D5    8B42 04        mov eax,dword ptr ds:[edx+4]
+
+003BA1D8    83E8 08        sub eax,8
+
+003BA1DB    D1E8           shr eax,1
+
+003BA1DD    8945 F8        mov dword ptr ss:[ebp-8],eax
+
+003BA1E0    C745 D8 00000000  mov dword ptr ss:[ebp-28],0
+
+003BA1E7    EB 09          jmp short EdrLib.003BA1F2
+
+003BA1E9    8B4D D8        mov ecx,dword ptr ss:[ebp-28]
+
+003BA1EC    83C1 01       add ecx,1
+
+003BA1EF    894D D8        mov dword ptr ss:[ebp-28],ecx
+
+003BA1F2    8B55 D8        mov edx,dword ptr ss:[ebp-28]
+
+003BA1F5    3B55 F8        cmp edx,dword ptr ss:[ebp-8]
+
+003BA1F8    0F8D 8B000000 jge EdrLib.003BA289
+
+003BA1FE    8B45 D8        mov eax,dword ptr ss:[ebp-28]
+
+003BA201    8B4D FC        mov ecx,dword ptr ss:[ebp-4]
+
+003BA204    33D2           xor edx,edx
+
+003BA206    66:8B5441 08   mov dx,word ptr ds:[ecx+eax*2+8]
+
+003BA20B    81E2 FF0F0000  and edx,0FFF
+
+003BA211    8955 F0        mov dword ptr ss:[ebp-10],edx
+
+003BA214    8B45 D8        mov eax,dword ptr ss:[ebp-28]
+
+003BA217    8B4D FC        mov ecx,dword ptr ss:[ebp-4]
+
+003BA21A    33D2           xor edx,edx
+
+003BA21C    66:8B5441 08   mov dx,word ptr ds:[ecx+eax*2+8]
+
+003BA221    C1FA 0C        sar edx,0C
+
+003BA224    8955 E0        mov dword ptr ss:[ebp-20],edx
+
+003BA227    8B45 E0        mov eax,dword ptr ss:[ebp-20]
+
+003BA22A    8945 D4        mov dword ptr ss:[ebp-2C],eax
+
+003BA22D    837D D4 01     cmp dword ptr ss:[ebp-2C],1
+
+003BA231    74 0E          je short EdrLib.003BA241
+
+003BA233    837D D4 02     cmp dword ptr ss:[ebp-2C],2
+
+003BA237    74 20          je short EdrLib.003BA259
+
+003BA239    837D D4 03     cmp dword ptr ss:[ebp-2C],3
+
+003BA23D    74 32          je short EdrLib.003BA271
+
+003BA23F    EB 43          jmp short EdrLib.003BA284
+
+003BA241    8B4D E4        mov ecx,dword ptr ss:[ebp-1C]
+
+003BA244    034D F0        add ecx,dword ptr ss:[ebp-10]
+
+003BA247    66:8B11        mov dx,word ptr ds:[ecx]
+
+003BA24A    66:0355 DC     add dx,word ptr ss:[ebp-24]
+
+003BA24E    8B45 E4        mov eax,dword ptr ss:[ebp-1C]
+
+003BA251    0345 F0        add eax,dword ptr ss:[ebp-10]
+
+003BA254    66:8910        mov word ptr ds:[eax],dx
+
+003BA257    EB 2B          jmp short EdrLib.003BA284
+
+003BA259    8B4D E4        mov ecx,dword ptr ss:[ebp-1C]
+
+003BA25C    034D F0        add ecx,dword ptr ss:[ebp-10]
+
+003BA25F    66:8B11        mov dx,word ptr ds:[ecx]
+
+003BA262    66:0355 EC     add dx,word ptr ss:[ebp-14]
+
+003BA266    8B45 E4        mov eax,dword ptr ss:[ebp-1C]
+
+003BA269    0345 F0        add eax,dword ptr ss:[ebp-10]
+
+003BA26C    66:8910        mov word ptr ds:[eax],dx
+
+003BA26F    EB 13          jmp short EdrLib.003BA284
+
+003BA271    8B4D E4        mov ecx,dword ptr ss:[ebp-1C]
+
+003BA274    034D F0        add ecx,dword ptr ss:[ebp-10]
+
+003BA277    8B11           mov edx,dword ptr ds:[ecx]
+
+003BA279    0355 E8        add edx,dword ptr ss:[ebp-18]
+
+003BA27C    8B45 E4        mov eax,dword ptr ss:[ebp-1C]
+
+003BA27F    0345 F0        add eax,dword ptr ss:[ebp-10]
+```
+
+
+
+## 003BA282至003BA29D汇编代码
+
+```
+003BA282     8910               mov dword ptr ds:[eax],edx  
+003BA284     E9 60FFFFFF        jmp EdrLib.003BA1E9  
+003BA289     8B4D FC            mov ecx,dword ptr ss:[ebp-4]  
+003BA28C     8B55 FC            mov edx,dword ptr ss:[ebp-4]  
+003BA28F     0351 04            add edx,dword ptr ds:[ecx+4]  
+003BA292     8955 FC            mov dword ptr ss:[ebp-4],edx  
+003BA295     E9 21FFFFFF        jmp EdrLib.003BA1BB  
+003BA29A     8BE5               mov esp,ebp  
+
+//处理完毕后 EDX=003B63B0   重定位表结束地址  ★  
+
+003BA29C     5D                 pop ebp  
+003BA29D     C3                 retn  
+
+//返回 00915E7E  
+```
+
+### 重定位表信息
+
+`RVA=00006000`  
+
+`Size=003B63B0-003B6000=3B0`  
+
+—————————————————————————————————  
+
+## 二、避开输入表加密  
+
+这个壳可以用 `ImportREC` 的“追踪层次 3”修复无效函数，手动避开加密可以作如下处理。  
+
+```
+00915E6E     B8 FC6A9100        mov eax,VP.00916AFC        ; ASCII "Rellocation"  
+00915E73     E8 C0BDFFFF        call VP.00911C38  
+00915E78     8B45 08            mov eax,dword ptr ss:[ebp+8]  
+00915E7B     FF50 04            call dword ptr ds:[eax+4]  
+00915E7E     A1 C0C09100        mov eax,dword ptr ds:[91C0C0]  
+
+//下面开始处理输入表  
+
+00915E83     8338 02            cmp dword ptr ds:[eax],2  
+00915E86     75 0A              jnz short VP.00915E92  
+00915E88     A1 D8BC9100        mov eax,dword ptr ds:[91BCD8]  
+00915E8D     8338 04            cmp dword ptr ds:[eax],4  
+00915E90     74 14              je short VP.00915EA6  
+00915E92     A1 C0C09100        mov eax,dword ptr ds:[91C0C0]  
+00915E97     8338 01            cmp dword ptr ds:[eax],1  
+00915E9A     75 1C              jnz short VP.00915EB8  
+00915E9C     A1 20BF9100        mov eax,dword ptr ds:[91BF20]  
+00915EA1     8338 00            cmp dword ptr ds:[eax],0  
+00915EA4     75 12              jnz short VP.00915EB8  
+00915EA6     B8 106B9100        mov eax,VP.00916B10         ; ASCII "VC ImportTable Win NT 4.0/Windows 9.x"  
+
+//VC ？  
+
+00915EAB     E8 88BDFFFF        call VP.00911C38  
+00915EB0     8B45 08            mov eax,dword ptr ss:[ebp+8]  
+00915EB3     FF50 08            call dword ptr ds:[eax+8]  
+00915EB6     EB 16              jmp short VP.00915ECE  
+00915EB8     B8 406B9100        mov eax,VP.00916B40         ; ASCII "Delphi ImportTable"  
+
+//Delphi ？  
+
+00915EBD     E8 76BDFFFF        call VP.00911C38  
+00915EC2     A1 84BB9100        mov eax,dword ptr ds:[91BB84]  
+00915EC7     8B00               mov eax,dword ptr ds:[eax]  
+00915EC9     E8 7AA6FEFF        call VP.[NONAME]  
+
+//输入表处理，进入修改  
+
+00915ECE     A1 48BB9100        mov eax,dword ptr ds:[91BB48]  
+00915ED3     8038 00            cmp byte ptr ds:[eax],0  
+00915ED6     74 5F              je short VP.00915F37  
+```
+
+### 修改如下：
+
+```
+00900032     3B35 04FB9100      cmp esi,dword ptr ds:[91FB04] ; kernel32.77E40000  
+
+//kernel32.dll ？  
+
+00900038     74 13              je short VP.0090004D  
+
+//修改①：jmp short 00900042  ★  
+
+0090003A     3B35 08FB9100      cmp esi,dword ptr ds:[91FB08] ; USER32.77D10000  
+
+//USER32.dll ？  
+
+00900040     74 0B              je short VP.0090004D  
+
+00900042     53                 push ebx  
+00900043     56                 push esi  
+00900044     E8 5B6DF7FF        call VP.00876DA4  
+00900049     8BD8               mov ebx,eax  
+0090004B     EB 5A              jmp short VP.009000A7  
+
+00900141     8B45 F8            mov eax,dword ptr ss:[ebp-8]  
+
+//修改②：jmp 00900161  ★  
+
+00900144     BA A4019000        mov edx,VP.009001A4           ; ASCII "GetProcAddress"  
+00900149     E8 4289F7FF        call VP.00878A90  
+
+//比较是否是 GetProcAddress 特殊函数  
+
+0090014E     84C0               test al,al  
+00900150     74 0F              je short VP.00900161  
+00900152     3B35 04FB9100      cmp esi,dword ptr ds:[91FB04]  ; kernel32.77E40000  
+00900158     75 07              jnz short VP.00900161  
+0090015A     BB E0009000        mov ebx,VP.009000E0  
+0090015F     EB 12              jmp short VP.00900173  
+
+00932B1B     68 80649300        push VP.00936480               ; ASCII "GetProcAddress"  
+00932B20     56                 push esi  
+00932B21     E8 7A0B0000        call VP.009336A0  
+00932B26     59                 pop ecx  
+00932B27     85C0               test eax,eax  
+00932B29     8B4424 0C          mov eax,dword ptr ss:[esp+C]  
+00932B2D     59                 pop ecx  
+00932B2E     75 0F              jnz short VP.00932B3F  
+
+//修改③：jmp 00932B3F  ★  
+
+00932B30     3B05 A47D9300      cmp eax,dword ptr ds:[937DA4]  ; kernel32.77E40000  
+00932B36     75 07              jnz short VP.00932B3F  
+00932B38     B8 EF2A9300        mov eax,VP.00932AEF  
+00932B3D     EB 09              jmp short VP.00932B48  
+
+00932B4C     55                 push ebp  
+00932B4D     8BEC               mov ebp,esp  
+00932B4F     8B4D 08            mov ecx,dword ptr ss:[ebp+8]  
+00932B52     3B0D A47D9300      cmp ecx,dword ptr ds:[937DA4]  ; kernel32.77E40000  
+00932B58     74 08              je short VP.00932B62  
+
+//修改④：jmp short 00932B83  ★  
+
+00932B5A     3B0D 447D9300      cmp ecx,dword ptr ds:[937D44]  ; USER32.77D10000  
+00932B60     75 21              jnz short VP.00932B83  
+00932B62     A1 98669300        mov eax,dword ptr ds:[936698]  
+00932B67     83F8 02            cmp eax,2  
+00932B6A     75 09              jnz short VP.00932B75  
+00932B6C     833D 8C669300 04   cmp dword ptr ds:[93668C],4  
+00932B73     74 0E              je short VP.00932B83  
+00932B75     83F8 01            cmp eax,1  
+00932B78     75 15              jnz short VP.00932B8F  
+00932B7A     833D 90669300 00   cmp dword ptr ds:[936690],0  
+00932B81     75 0C              jnz short VP.00932B8F  
+00932B83     FF75 0C            push dword ptr ss:[ebp+C]  
+00932B86     51                 push ecx  
+00932B87     FF15 04409300      call dword ptr ds:[<&KERNEL32.GetPro>; kernel32.GetProcAddress  
+00932B8D     5D                 pop ebp  
+00932B8E     C3                 retn  
+
+00900451     8BD8               mov ebx,eax  
+00900453     8B07               mov eax,dword ptr ds:[edi]  
+00900455     8918               mov dword ptr ds:[eax],ebx ; kernel32.lstrlenW  
+
+//正确的函数进入正确的地址  ★  
+
+00900457     85DB               test ebx,ebx  
+00900459     75 0E              jnz short VP.00900469  
+0090045B     8B45 08            mov eax,dword ptr ss:[ebp+8]  
+0090045E     8B40 E4            mov eax,dword ptr ds:[eax-1C]  
+00900461     83C0 02            add eax,2  
+00900464     E8 EBFDFFFF        call VP.00900254  
+00900469     8306 04            add dword ptr ds:[esi],4  
+0090046C     8307 04            add dword ptr ds:[edi],4  
+0090046F     8B06               mov eax,dword ptr ds:[esi]  
+00900471     8B18               mov ebx,dword ptr ds:[eax]  
+00900473     85DB               test ebx,ebx  
+00900475     0F85 61FFFFFF      jnz VP.009003DC  
+
+//循环  
+
+0090047B     5F                 pop edi  
+0090047C     5E                 pop esi  
+0090047D     5B                 pop ebx  
+0090047E     5D                 pop ebp  
+0090047F     C3                 retn  
+```
+
+输入表处理完毕后，从程序中找个 API 调用，如：
+
+```
+003B10FD     FF15 20403B00      call dword ptr ds:[3B4020]; kernel32.GetVersion  
+```
+
+在转存中跟随 `3B4020`，上下看到许多函数地址，很明显的可以找到 `IAT` 开始和结束的地址。  
+
+### IAT 信息如下
+
+`RVA＝00004000`  
+
+`Size＝C8`  
+
+—————————————————————————————————  
+
+## 三、Dump、PE 修正  
+
+处理完以上部分后，`Shift+F9`，中断在 `003B9EEE` 处
+
+```
+003B9EEE     FF15 D0F73B00      call dword ptr ds:[3BF7D0] ; EdrLib.003B11C9  
+
+//飞向光明之巅  ^O^  
+```
+
+用 `LordPE` 选中 `Ollydbg` 的 `loaddll.exe` 的进程，在下面的列表里选择 `EdrLib.dll`，然后完整脱壳，得到 `dumped.dll`。  
+
+去掉 `ImportREC` 的“使用来自磁盘的 PE 部首”的选项，设置 `ImportREC` 保留“重建原始 FT”选项。  
+
+选中 `Ollydbg` 的 `loaddll.exe` 的进程，然后点“选取 DLL”，选择 `EdrLib.dll`，填入 `RVA＝00004000`、大小＝`000000C8` ，点“`Get Import`”，得到输入表。改 `OEP=000011C9`，`FixDump`！  
+
+用 `LordPE` 修正 `dumped\_.dll` 的重定位表 `RVA=00006000`、大小＝`000003B0`，保存之。  
+
+如果在 `003BA1B4` 处避开了重定位，则无须修改基址，否则要修改 `dumped\_.dll` 基址为 `003B0000`。  
+
+`OK`，脱壳完成啦。  
+
+—————————————————————————————————    
+
+     ,     \_/   
+   /| \_.-~/             \\_     ,        青春都一晌
+  ( /~   /               \\~-.\ |\\
+  \`\\   \_/                 \   ~\\ )          忍把浮名 
+
+
+
+\_~~~-.)  )\_//;;,.            \\\ //′
+  
+ /′\_,\ \ \ --~ \\ ~~~- ,;;\_\_(  (.-~~-.        换了破解轻狂  
+
+ \`~ \\_( ,\_..--\ (     ,;″ /   ~– /.\_\\
+   
+ /~~//′  /′ \`~\\       ) /–..\_, )\_  \`~
+   
+ “  \`~” “      \`”     /~′\`\\    \`\\\\~~\\   
+
+
+                              “     ”   ”~′  ””
+
+
+                      UnPacked By :  fly
+
+
+                       204-10-30 02:00
+
+ 4dd466d0e1e0cc123afbe504da2462ca
