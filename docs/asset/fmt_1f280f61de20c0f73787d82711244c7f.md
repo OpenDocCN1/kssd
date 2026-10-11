@@ -1,0 +1,375 @@
+
+# 影子系统激活算法初步
+
+> 原文：[`www.pediy.com/kssd/pediy10/81747.html`](https://www.pediy.com/kssd/pediy10/81747.html)
+
+影子系统 2008 激活码算法探讨初步
+
+By 小飞 lankerr
+
+废话少说,直入主题。
+
+主程序将输入的激活码发送到驱动中验证，强行修改返回值是不起作用的。
+
+用 `OD` 载入 `PowerMaster.exe`，程序用了三种花指令来隐藏对 `DeviceIoControl` 调用，其间还有四次异常处理，两次为单步来反调试器，只要去下个 `StrongOD.dll`，即 `OD` 的插件就可以躲过检查。外壳程序调用 `DeviceIoControl` 时，`ControlCode` 为 `7C320`，`InBuff` 中为输入的注册码，长度为 `0x1E` 即 30 个字符(必须是大写)，不过我们在输入的是如:`123456789F-123456789L-123456789Y` 程序会将中间的’-‘号删除，然后到驱动 `SnpShot.sys` 中验证。`OD` 是不能跟踪到系统内核的，要用 `SoftIce`（开始我走了弯路，我用 `Wdasm` 来反汇编 `SnpShot.sys` 找不到 `IRP` 分派，用 `SoftIce` 跟踪 `DeviceIoControl` 的调用才到 `SnpShot.sys` 中，后来学用 `IDA` 时，反汇编才看到了 `IRP` 分派情况）。
+
+真正进入主题，驱动中怎么验证计算激活码？
+
+分两步
+
+一、 将激活码用‘查表法’求模得到一个串。
+
+二、 将上面的串用一加密算法得出一加密串，然后与一长为 `0x10` 的串比较，相等则激活成功。
+
+那么我们先说怎样用‘查表法’得出这个串。
+
+a：如下图，我们输入下图这个串“123456789F123456789L123456789Y”
+
+b：用到的表为
+
+```
+CString    GhostKey="D54X379EPJWCYKN1TUFH82VABLSM6QGR";  //查表用到的表,共 32 个字符
+```
+
+方式为依为返回激活码每个字符在上表中的序数，如 `1` 的序数为 `15`，`F` 的序数为 `21`。
+
+C 代码：
+
+```c
+//=========================================
+
+//    查表法返回相应字符的序号
+
+//=========================================
+
+int CMy2008Dlg::ScanKeyTable(char T)
+
+{
+
+  int    i=0;
+
+  for(i=0;i<32;i++)
+
+  {
+
+    if(T == GhostKey.GetAt(i))
+
+      return i;
+
+  }
+
+  return 0;
+
+}
+```
+
+c：将上面返回的值，进行 5 次循环，求余数，返回‘0’或‘1’，作为下一函数的参数。在这我没用 C 代码，因为 `IDIV` 指令好像没有用 C 来表示的，还有位移指如 `rol` 等也不能 C 来表示….，函数名之所以叫 `BB0Mod`，是因为在驱动中这个 `Function` 地址后三位是 `BB0`
+
+```c
+int CMy2008Dlg::BB0Mod(int iii, int sn)
+
+{
+
+  __asm
+
+  {
+
+    cdq
+
+    mov  eax,iii
+
+    mov  ecx,8
+
+    idiv ecx
+
+    mov  ecx,edx
+
+    mov  dl,1
+
+    shl  dl,cl
+
+    mov  eax,sn
+
+    and  dl,al
+
+    neg  dl
+
+    sbb  edx,edx
+
+    neg  edx
+
+    mov  iii,edx
+
+  }
+
+  return iii;
+
+}
+```
+
+d：将循环次数对 8 求余，根据上面的返回值‘1’或‘0’决定是‘与’或是‘或’操作。这里要用到一新字串:
+
+```
+unsigned char XorKey[56]="\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+                   "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";长度不需要这么长的，我测试用多写了。
+```
+
+```c
+void CMy2008Dlg::DDEMod(int KeySnMod, int kkk)
+
+{
+
+  __asm
+
+  {
+
+    mov  eax,kkk
+
+    cdq
+
+    push 8
+
+    pop   ecx
+
+    idiv ecx
+
+    mov  ebx,1
+
+    mov  ecx,edx
+
+    shl  bl,cl
+
+    lea  ecx,XorKey
+
+    add  eax,ecx
+
+    cmp  KeySnMod,0
+
+    jz   AndByte
+
+    or   [eax],bl
+
+    jmp  DDEmodReturn
+
+AndByte:
+
+    not  bl
+
+    and  [eax],bl
+
+DDEmodReturn:
+
+  }
+
+  return;
+
+}
+```
+
+查表和以及上面两个函数调用情况如下：
+
+```c
+For(int j=0;j<30;j++)
+
+{   
+
+  :ScanKeyTable(char T);
+
+    For(int i=0;i<5;i++)
+
+    {
+
+      BB0Mod(int iii, int sn);
+
+      DDEMod(int KeySnMod, int kkk);
+
+    }
+
+}
+```
+
+e：上面执行结束后，情况如下图
+
+```c
+}
+```
+
+激活码”123456789F123456789L123456789Y”生成”AF 12 11 78 A1 46 BE 4A E0 85 9A FC 11 81”，这所以后面的计算，是因为下面的操作会将 81 后面的字符填为 0，可能是不纳入计算（事实上好像是只计算 `0x10` 长度大小）。速个调用如下：
+
+```c
+void CMy2008Dlg::OnCalc() 
+
+{
+
+  UpdateData(TRUE);
+
+  CString showMsg;
+
+  CString ActiveKey;
+
+  ActiveKey=m_Key1+m_Key2+m_Key3;
+
+  int    KeySn=0;
+
+  int    KeySnMod=0;
+
+  int    kkk=0;
+
+  CString temp;
+
+  for(int j=0;j<30;j++)
+
+  {
+
+    KeySn = ScanKeyTable(ActiveKey.GetAt(j));
+
+    temp.Format("%02d   ",KeySn);
+
+    showMsg+=temp;
+
+    for(int j=0;j<5;j++)
+
+    {
+
+//      __asm int 3
+
+      KeySnMod = BB0Mod(j,KeySn);
+
+      DDEMod(KeySnMod,kkk);
+
+      kkk++;
+
+      temp.Format("%d ",KeySnMod);
+
+      showMsg+=temp;
+
+    }
+
+    temp.Format("\r\n",KeySn,KeySnMod);
+
+    showMsg+=temp;
+
+  }
+
+//  showMsg.Format("%s,字串长:%d",ActiveKey,GhostKey.GetLength());
+
+  ::MessageBox(NULL,showMsg,"显示字符",0x1040);
+
+  char  showBuff[512];
+
+  ::wsprintf(showBuff,"%02X %02X %02X %02X %02X %02X %02X %02X-%02X %02X %02X %02X %02X %02X %02X %02X\r\n\
+
+    %02X %02X %02X %02X %02X %02X %02X %02X",
+
+    XorKey[0],XorKey[1],
+
+    XorKey[2],XorKey[3],
+
+    XorKey[4],XorKey[5],
+
+    XorKey[6],XorKey[7],
+
+    XorKey[8],XorKey[9],
+
+    XorKey[10],XorKey[11],
+
+    XorKey[12],XorKey[13],
+
+    XorKey[14],XorKey[15],
+
+    XorKey[16],XorKey[17],
+
+    XorKey[18],XorKey[19],
+
+    XorKey[20],XorKey[21],
+
+    XorKey[22],XorKey[23]);
+
+  ::MessageBox(NULL,showBuff,"显示 Xor 字符",0x1040);
+
+}
+```
+
+以上完了成第一步了。到这有一些想法：
+
+一、 影子系统 2008 在互联网上至今没注册机，全是修改 `SYS` 驱动文件达到激活目的，可能是不能做出注册机，或是通用性差。
+
+二、 激活码经过一系列变化，再和指写的内容比较，如不想修改 `SYS` 文件，好像只能穷举。用密码工具扫描这个 `SYS` 文件时，提示是 `MD5`，经以分析加密函数，发现只是大量的进位乘计算，将结果用于新的计算，进行 32 循环，看样不是 `MD5`。除非知道用于比较的内存串计算方法，否则还是只能穷举。
+
+三、 ……很多
+
+```c
+DWORD    *KeyA=NULL;
+
+DWORD    *KeyB=NULL;
+
+unsigned long TempA=0;
+
+unsigned long MulA=0;
+
+unsigned long MulB=0;
+
+unsigned long MulC=0;
+
+unsigned long MulD=0;
+
+unsigned long TempKeyA=0;
+
+unsigned long TempKeyB=0;
+
+void CMy2008Dlg::OnCalc() 
+
+{               ....
+
+  KeyA=(unsigned long *)XorKey;
+
+  KeyB=(unsigned long *)(XorKey+4);
+
+  MUL802(*KeyA,*KeyB);
+
+}
+
+long CMy2008Dlg::MUL802(unsigned long a, unsigned long b)
+
+{   
+
+  TempA = a;
+
+  //a:参数 1 的高位×参数 2 的低位
+
+  a = a >>16;
+
+  MulA = a * (b & 0xffff);
+
+  //b:参数 1 的低位×参数 2 的低位
+
+  MulB = (TempA & 0xffff) * (b & 0xffff);
+
+  //c:参数 1 的低位×参数 2 的高位
+
+  MulC = (TempA & 0xffff) * (b >>16);
+
+  MulD = MulA + MulC;
+
+  TempKeyA = MulB + (MulD << 16);
+
+  TempKeyB = 0 + (MulD >> 16);
+
+  if(TempKeyA >=(MulD << 16))
+
+  {
+
+    //d:参数 1 的高位×参数 2 的高位
+
+    TempKeyB = a * (b >> 16) + TempKeyB;
+
+  }
+
+//TempKeyA、TempKeyB 就是结果
+
+  return 0;
+
+}
+```
+
+在这儿有点问题，参数 `b` 是参 `a` 的一个 `Copy`，值是一样的？(之所以打？号是只经过了第一执行，还没测试后面的循环）

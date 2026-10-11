@@ -1,0 +1,1701 @@
+
+# 通用数据格式转换工具 `dct` v1.1 算法分析
+
+> 原文：[`www.pediy.com/kssd/pediy10/95159.html`](https://www.pediy.com/kssd/pediy10/95159.html)
+
+由于逆向技术太白菜。所以要多练习。本文是以软件的算法分析，没什么技术含量。纯属小菜练手。高手飘过吧。
+
+- 软件：通用数据格式转换工具 `dct` v1.1
+- 语言：`delphi`
+
+这个软件是明码字符串比较，就一个 `strcmp`。不过目的不是破解，仅仅为了提高自己算法分析能力。所以...
+
+下面是注册按钮的响应函数:
+
+**代码:**
+
+```
+CODE:0055176C _TFrmRegPass_Button1Click proc near     ; CODE XREF: _TFrmRegPass_Edit1KeyPress+5p
+CODE:0055176C                                     ; DATA XREF: CODE:00551697o
+CODE:0055176C
+CODE:0055176C var_24            = dword ptr -24h
+CODE:0055176C pszInputKey       = dword ptr -20h
+CODE:0055176C pszMachineId      = dword ptr -1Ch
+CODE:0055176C pAryTempKey_1     = byte  ptr -18h
+CODE:0055176C pszTempKey_2      = dword ptr -8
+CODE:0055176C pszRealKey        = dword ptr -4
+CODE:0055176C
+CODE:0055176C                         push    ebp
+CODE:0055176D                         mov     ebp, esp
+CODE:0055176F                         mov     ecx, 4
+CODE:00551774
+CODE:00551774 loc_551774:                        ; CODE XREF: _TFrmRegPass_Button1Click+Dj
+CODE:00551774                         push    0
+CODE:00551776                         push    0
+CODE:00551778                         dec     ecx
+CODE:00551779                         jnz     short loc_551774
+CODE:0055177B                         push    ecx
+CODE:0055177C                         push    ebx
+CODE:0055177D                         mov     ebx, eax
+CODE:0055177F                         xor     eax, eax
+CODE:00551781                         push    ebp
+CODE:00551782                         push    offset loc_551837 ; 异常处理
+CODE:00551787                         push    dword ptr fs:[eax]
+CODE:0055178A                         mov     fs:[eax], esp
+CODE:0055178D                         lea     eax, [ebp+pszMachineId]
+CODE:00551790                         call    __get_machine_id ; 获得文本框的硬件 ID
+CODE:00551795                         mov     eax, [ebp+pszMachineId] ; 传入参数
+CODE:00551798                         lea     edx, [ebp+pAryTempKey_1] ; 传出参数
+CODE:0055179B                         call    __account_key_1 ; 第一次 key 计算
+CODE:005517A0                         lea     eax, [ebp+pAryTempKey_1] ; IN
+CODE:005517A3                         lea     edx, [ebp+pszTempKey_2] ; OUT
+CODE:005517A6                         call    __account_key_2 ; 第二次是把第一次计算得到的 int n[4]数组转成字符串
+CODE:005517AB                         mov     eax, [ebp+pszTempKey_2] ; IN
+CODE:005517AE                         lea     edx, [ebp+pszRealKey] ; OUT
+CODE:005517B1                         call    __account_key_3 ; 最终注册码
+CODE:005517B6                         lea     edx, [ebp+pszInputKey]
+CODE:005517B9                         mov     eax, [ebx+304h]
+CODE:005517BF                         call    __get_user_input ; 获得用户输入
+CODE:005517C4                         mov     eax, [ebp+pszInputKey]
+CODE:005517C7                         mov     edx, [ebp+pszRealKey]
+CODE:005517CA                         call    __strcmp        ; 假码和真码比较
+CODE:005517CF                         jnz     short Jmp_To_False
+CODE:005517D1                         mov     eax, offset __str____________4.Text
+CODE:005517D6                         call    __Dialogs_ShowMessage
+CODE:005517DB                         lea     edx, [ebp+var_24]
+CODE:005517DE                         mov     eax, [ebx+304h]
+CODE:005517E4                         call    __get_user_input
+CODE:005517E9                         mov     eax, [ebp+var_24]
+CODE:005517EC                         call    @TIdTCPConnection@GetInternalResponse_0 ; TIdTCPConnection::GetInternalResponse
+CODE:005517F1                         mov     dword ptr [ebx+24Ch], 1
+CODE:005517FB                         jmp     short loc_551807
+CODE:005517FD ; ---------------------------------------------------------------------------
+CODE:005517FD
+CODE:005517FD Jmp_To_False:                   ; CODE XREF: _TFrmRegPass_Button1Click+63j
+CODE:005517FD                         mov     eax, offset __str__________.Text
+CODE:00551802                         call    __Dialogs_ShowMessage
+CODE:00551807
+CODE:00551807 loc_551807:                        ; CODE XREF: _TFrmRegPass_Button1Click+8Fj
+CODE:00551807                         xor     eax, eax
+CODE:00551809                         pop     edx
+CODE:0055180A                         pop     ecx
+CODE:0055180B                         pop     ecx
+CODE:0055180C                         mov     fs:[eax], edx
+CODE:0055180F                         push    offset loc_55183E
+CODE:00551814
+CODE:00551814 loc_551814:                        ; CODE XREF: _TFrmRegPass_Button1Click+D0j
+CODE:00551814                         lea     eax, [ebp+var_24]
+CODE:00551817                         mov     edx, 2
+CODE:0055181C                         call    __LStrArrayClr
+CODE:00551821                         lea     eax, [ebp+pszMachineId]
+CODE:00551824                         call    __LStrClr
+CODE:00551829                         lea     eax, [ebp+pszTempKey_2]
+CODE:0055182C                         mov     edx, 2
+CODE:00551831                         call    __LStrArrayClr
+CODE:00551836                         retn
+CODE:00551837 ; ---------------------------------------------------------------------------
+CODE:00551837
+CODE:00551837 loc_551837:                        ; DATA XREF: _TFrmRegPass_Button1Click+16o
+CODE:00551837                         jmp     unknown_libname_75 ; BDS 2005-2006 and Delphi6-7 Visual Component Library
+CODE:0055183C ; ---------------------------------------------------------------------------
+CODE:0055183C                         jmp     short loc_551814
+CODE:0055183E ; ---------------------------------------------------------------------------
+CODE:0055183E
+CODE:0055183E loc_55183E:                        ; CODE XREF: _TFrmRegPass_Button1Click+CAj
+CODE:0055183E                                     ; DATA XREF: _TFrmRegPass_Button1Click+A3o
+CODE:0055183E                         pop     ebx
+CODE:0055183F                         mov     esp, ebp
+CODE:00551841                         pop     ebp
+CODE:00551842                         retn
+CODE:00551842 _TFrmRegPass_Button1Click endp
+```
+
+**逆向代码:**
+
+**代码:**
+
+```
+void Account_Key(string sId,string& sRealKey)
+{
+  int nAry[16] = {0};
+  Account_Key_1(sId, nAry);
+  string si2a;
+  Account_Key_2(si2a,(char*)&nAry);
+  Account_Key_3(sRealKey,si2a);
+}
+```
+
+`__account_key_1` 函数怀疑是某算法库里的算法，可惜我算法太白菜。所以不知道是什么算法。
+
+**代码:**
+
+
+
+```
+CODE:0054C80C __account_key_1 proc near                     ; CODE XREF: sub_54DE3C+39p
+CODE:0054C80C                               ; _TFrmRegPass_Button1Click+2Fp
+CODE:0054C80C
+CODE:0054C80C stMachine       = byte ptr -5Ch
+CODE:0054C80C pszInStr        = dword ptr -4
+CODE:0054C80C
+CODE:0054C80C                 push    ebp
+CODE:0054C80D                 mov     ebp, esp
+CODE:0054C80F                 add     esp, 0FFFFFFA4h
+CODE:0054C812                 push    ebx
+CODE:0054C813                 mov     ebx, edx        ; pOut
+CODE:0054C815                 mov     [ebp+pszInStr], eax
+CODE:0054C818                 mov     eax, [ebp+pszInStr]
+CODE:0054C81B                 call    __LStrAddRef    ; 引用计数
+CODE:0054C820                 xor     eax, eax
+CODE:0054C822                 push    ebp
+CODE:0054C823                 push    offset loc_54C872 ; 注册异常函数
+CODE:0054C828                 push    dword ptr fs:[eax]
+CODE:0054C82B                 mov     fs:[eax], esp
+CODE:0054C82E                 lea     eax, [ebp+stMachine]
+CODE:0054C831                 call    __Struct_Init   ; st_machine 结构体初始化 = {0x61234509,0xEFCD5B89,0x13BA7CFE,0x18325476,0,0,""}
+CODE:0054C836                 mov     eax, [ebp+pszInStr]
+CODE:0054C839                 call    __get_str_lenth ; delphi 字符串格式是:字符串长度+字符串
+CODE:0054C83E                 push    eax             ; string lenth
+CODE:0054C83F                 mov     eax, [ebp+pszInStr]
+CODE:0054C842                 call    __LStrToPChar
+CODE:0054C847                 mov     edx, eax
+CODE:0054C849                 lea     eax, [ebp+stMachine]
+CODE:0054C84C                 pop     ecx             ; 字符串的长度
+CODE:0054C84D                 call    __Struct_Edit_1 ; 结构体中数据运算
+CODE:0054C852                 mov     edx, ebx
+CODE:0054C854                 lea     eax, [ebp+stMachine]
+CODE:0054C857                 call    __Matrix_Account ; 第一次返回的 key 的计算函数
+CODE:0054C85C                 xor     eax, eax
+CODE:0054C85E                 pop     edx
+CODE:0054C85F                 pop     ecx
+CODE:0054C860                 pop     ecx
+CODE:0054C861                 mov     fs:[eax], edx
+CODE:0054C864                 push    offset loc_54C879
+CODE:0054C869
+CODE:0054C869 loc_54C869:                        ; CODE XREF: __account_key_1+6Bj
+CODE:0054C869                 lea     eax, [ebp+pszInStr]
+CODE:0054C86C                 call    __LStrClr
+CODE:0054C871                 retn
+CODE:0054C872 ; ---------------------------------------------------------------------------
+CODE:0054C872
+CODE:0054C872 loc_54C872:                        ; DATA XREF: __account_key_1+17o
+CODE:0054C872                 jmp     unknown_libname_75 ; BDS 2005-2006 and Delphi6-7 Visual Component Library
+CODE:0054C877 ; ---------------------------------------------------------------------------
+CODE:0054C877                 jmp     short loc_54C869
+CODE:0054C879 ; ---------------------------------------------------------------------------
+CODE:0054C879
+CODE:0054C879 loc_54C879:                        ; CODE XREF: __account_key_1+65j
+CODE:0054C879                               ; DATA XREF: __account_key_1+58o
+CODE:0054C879                 pop     ebx
+CODE:0054C87A                 mov     esp, ebp
+CODE:0054C87C                 pop     ebp
+CODE:0054C87D                 retn
+CODE:0054C87D __account_key_1 endp
+```
+
+逆向代码:  
+
+代码:
+
+```
+void Account_Key_1(string sId, int* pAry)
+{
+  //初始化结构体
+  tagKey stKey = {0x61234509,0xEFCD5B89,0x13BA7CFE,0x18325476,0,0,""};
+  int nLenth = sId.length();
+  
+  Struct_Edit_1((char*)&stKey,(char*)sId.c_str(),nLenth);
+
+  Matrix_Account(stKey,pAry);
+
+  memcpy(pAry, &stKey, 16);
+
+}
+```
+
+代码:
+
+
+
+```asm
+CODE:0054C880 __account_key_2 proc near                ; CODE XREF: sub_54DE3C+44p
+CODE:0054C880                                           ; _TFrmRegPass_Button1Click+3Ap
+CODE:0054C880
+CODE:0054C880 var_18            = dword ptr -18h
+CODE:0054C880 var_14            = dword ptr -14h
+CODE:0054C880 pnAry             = byte ptr -10h
+CODE:0054C880
+CODE:0054C880                     push    ebp
+CODE:0054C881                     mov     ebp, esp
+CODE:0054C883                     add     esp, 0FFFFFFE8h
+CODE:0054C886                     push    ebx
+CODE:0054C887                     push    esi
+CODE:0054C888                     push    edi
+CODE:0054C889                     xor     ecx, ecx
+CODE:0054C88B                     mov     [ebp+var_14], ecx
+CODE:0054C88E                     mov     [ebp+var_18], ecx
+CODE:0054C891                     mov     esi, eax
+CODE:0054C893                     lea     edi, [ebp+pnAry]
+CODE:0054C896                     movsd                 ; 数组拷贝
+CODE:0054C897                     movsd                 ; dword ptr:[esi] -> dword ptr:[edi]
+CODE:0054C898                     movsd
+CODE:0054C899                     movsd
+CODE:0054C89A                     mov     edi, edx
+CODE:0054C89C                     xor     eax, eax
+CODE:0054C89E                     push    ebp
+CODE:0054C89F                     push    offset loc_54C91B ; int
+CODE:0054C8A4                     push    dword ptr fs:[eax] ; int
+CODE:0054C8A7                     mov     fs:[eax], esp
+CODE:0054C8AA                     mov     eax, edi
+CODE:0054C8AC                     call    __LStrClr
+CODE:0054C8B1                     mov     bl, 10h
+CODE:0054C8B3                     lea     esi, [ebp+pnAry] ;
+CODE:0054C8B3                                        ; do
+CODE:0054C8B3                                        ; {
+CODE:0054C8B3                                        ; }while(--16)
+CODE:0054C8B6
+CODE:0054C8B6 loc_54C8B6:                          ; CODE XREF: __account_key_2+7Ej
+CODE:0054C8B6                     push    dword ptr [edi] ; int to string; int 数组转成字符串
+CODE:0054C8B8                     lea     eax, [ebp+var_14]
+CODE:0054C8BB                     xor     edx, edx
+CODE:0054C8BD                     mov     dl, [esi]
+CODE:0054C8BF                     shr     edx, 4
+CODE:0054C8C2                     and     edx, 0Fh
+CODE:0054C8C5                     mov     dl, ds:byte_557F54[edx]
+CODE:0054C8CB                     call    __itoa          ; BDS 2005-2006 and Delphi6-7 Visual Component Library
+CODE:0054C8D0                     push    [ebp+var_14]    ; int
+CODE:0054C8D3                     lea     eax, [ebp+var_18]
+CODE:0054C8D6                     mov     dl, [esi]
+CODE:0054C8D8                     and     dl, 0Fh
+CODE:0054C8DB                     and     edx, 0FFh
+CODE:0054C8E1                     mov     dl, ds:byte_557F54[edx]
+CODE:0054C8E7                     call    __itoa          ; BDS 2005-2006 and Delphi6-7 Visual Component Library
+CODE:0054C8EC                     push    [ebp+var_18]
+CODE:0054C8EF                     mov     eax, edi
+CODE:0054C8F1                     mov     edx, 3
+CODE:0054C8F6                     call    __strcat      ;字符串连接
+CODE:0054C8FB                     inc     esi
+CODE:0054C8FC                     dec     bl
+CODE:0054C8FE                     jnz     short loc_54C8B6
+CODE:0054C900                     xor     eax, eax
+CODE:0054C902                     pop     edx
+CODE:0054C903                     pop     ecx
+CODE:0054C904                     pop     ecx
+CODE:0054C905                     mov     fs:[eax], edx
+CODE:0054C908                     push    offset loc_54C922
+CODE:0054C90D
+CODE:0054C90D loc_54C90D:                          ; CODE XREF: __account_key_2+A0j
+CODE:0054C90D                     lea     eax, [ebp+var_18]
+CODE:0054C910                     mov     edx, 2
+CODE:0054C915                     call    __LStrArrayClr
+CODE:0054C91A                     retn
+CODE:0054C91B ; ---------------------------------------------------------------------------
+CODE:0054C91B
+CODE:0054C91B loc_54C91B:                          ; DATA XREF: __account_key_2+1Fo
+CODE:0054C91B                     jmp     unknown_libname_75 ; BDS 2005-2006 and Delphi6-7 Visual Component Library
+CODE:0054C920 ; ---------------------------------------------------------------------------
+CODE:0054C920                     jmp     short loc_54C90D
+CODE:0054C922 ; ---------------------------------------------------------------------------
+CODE:0054C922
+CODE:0054C922 loc_54C922:                          ; CODE XREF: __account_key_2+9Aj
+CODE:0054C922                                        ; DATA XREF: __account_key_2+88o
+CODE:0054C922                     pop     edi
+CODE:0054C923                     pop     esi
+CODE:0054C924                     pop     ebx
+CODE:0054C925                     mov     esp, ebp
+CODE:0054C927                     pop     ebp
+CODE:0054C928                     retn
+CODE:0054C928 __account_key_2 endp
+```
+
+第二次只是把第一次算 key 得到的一个 4 个 int 的数组转成字符串，所以我自己写了个功能一样的。
+
+逆向代码：
+
+```c
+void Account_Key_2(string& sKey, char* pAry)
+{
+  for (int n = 0; n < 16; n++)
+  {
+    char buffer[5] = {0};
+    //itoa(unsigned char(pAry[n]),buffer,16);
+    sprintf_s(buffer,"%02x",unsigned char(pAry[n]));
+    sKey += buffer;
+  }
+}
+```
+
+第三次传入第二次返回的字符串，传出的是最后的 key
+
+
+
+```
+CODE:0054D3FC  __account_key_3 proc near                 ; CODE XREF: sub_54DE3C+4Fp
+CODE:0054D3FC                                  ; _TFrmRegPass_Button1Click+45p
+CODE:0054D3FC
+CODE:0054D3FC var_C             = dword ptr -0Ch
+CODE:0054D3FC pszTempBuffer     = dword ptr -8
+CODE:0054D3FC pszInStr          = dword ptr -4
+CODE:0054D3FC
+CODE:0054D3FC              push    ebp
+CODE:0054D3FD              mov     ebp, esp
+CODE:0054D3FF              push    0
+CODE:0054D401              push    0
+CODE:0054D403              push    0
+CODE:0054D405              push    ebx
+CODE:0054D406              push    esi
+CODE:0054D407              push    edi
+CODE:0054D408              mov     edi, edx
+CODE:0054D40A              mov     [ebp+pszInStr], eax
+CODE:0054D40D              mov     eax, [ebp+pszInStr]
+CODE:0054D410              call    __LStrAddRef
+CODE:0054D415              xor     eax, eax
+CODE:0054D417              push    ebp             ; int
+CODE:0054D418              push    offset loc_54D4AF ; char *
+CODE:0054D41D              push    dword ptr fs:[eax] ; int
+CODE:0054D420              mov     fs:[eax], esp
+CODE:0054D423              lea     edx, [ebp+pszTempBuffer]
+CODE:0054D426              mov     eax, [ebp+pszInStr]
+CODE:0054D429              call    __clean_letter_from_str ; 去除字符串中的字母(a b c d e f)
+CODE:0054D42E              mov     edx, [ebp+pszTempBuffer]
+CODE:0054D431              lea     eax, [ebp+pszInStr]
+CODE:0054D434              call    __LStrLAsg      ; eax 中字符串和 edx 做交换
+CODE:0054D439              mov     eax, edi
+CODE:0054D43B              call    __LStrClr
+CODE:0054D440              mov     eax, [ebp+pszInStr]
+CODE:0054D443              call    __get_str_lenth
+CODE:0054D448              mov     esi, eax
+CODE:0054D44A              test    esi, esi
+CODE:0054D44C              jle     short loc_54D482
+CODE:0054D44E              mov     ebx, 1          ;
+CODE:0054D44E                              ; do
+CODE:0054D44E                              ; {
+CODE:0054D44E                              ;     //key 算法
+CODE:0054D44E                              ; }while(--string_lenth)
+CODE:0054D453
+CODE:0054D453 loc_54D453:                   ; CODE XREF: __account_key_3+84j
+CODE:0054D453              mov     eax, ebx
+CODE:0054D455              and     eax, 80000001h  ; % 2
+CODE:0054D45A              jns     short loc_54D461
+CODE:0054D45C              dec     eax
+CODE:0054D45D              or      eax, 0FFFFFFFEh
+CODE:0054D460              inc     eax
+CODE:0054D461
+CODE:0054D461 loc_54D461:                   ; CODE XREF: __account_key_3+5Ej
+CODE:0054D461              test    eax, eax
+CODE:0054D463              jnz     short loc_54D47E ; % 2 不等于 0 则跳
+CODE:0054D465              lea     eax, [ebp+var_C]
+CODE:0054D468              mov     edx, [ebp+pszInStr]
+CODE:0054D46B              mov     dl, [edx+ebx-1]
+CODE:0054D46F              call    __itoa          ; BDS 2005-2006 and Delphi6-7 Visual Component Library
+CODE:0054D474              mov     edx, [ebp+var_C]
+CODE:0054D477              mov     eax, edi
+CODE:0054D479              call    __LStrCat
+CODE:0054D47E
+CODE:0054D47E loc_54D47E:                   ; CODE XREF: __account_key_3+67j
+CODE:0054D47E              inc     ebx
+CODE:0054D47F              dec     esi
+CODE:0054D480              jnz     short loc_54D453
+CODE:0054D482
+CODE:0054D482 loc_54D482:                   ; CODE XREF: __account_key_3+50j
+CODE:0054D482              push    edi
+CODE:0054D483              mov     eax, [edi]
+CODE:0054D485              mov     ecx, 0Ch
+CODE:0054D48A              mov     edx, 1
+CODE:0054D48F              call    __LStrCopy
+CODE:0054D494              xor     eax, eax
+CODE:0054D496              pop     edx
+CODE:0054D497              pop     ecx
+CODE:0054D498              pop     ecx
+CODE:0054D499              mov     fs:[eax], edx
+CODE:0054D49C              push    offset loc_54D4B6
+CODE:0054D4A1
+CODE:0054D4A1 loc_54D4A1:                   ; CODE XREF: __account_key_3+B8j
+CODE:0054D4A1              lea     eax, [ebp+var_C]
+CODE:0054D4A4              mov     edx, 3
+CODE:0054D4A9              call    __LStrArrayClr
+CODE:0054D4AE              retn
+CODE:0054D4AF ; ---------------------------------------------------------------------------
+CODE:0054D4AF
+CODE:0054D4AF ; char loc_54D4AF
+CODE:0054D4AF loc_54D4AF:                   ; DATA XREF: __account_key_3+1Co
+CODE:0054D4AF              jmp     unknown_libname_75 ; BDS 2005-2006 and Delphi6-7 Visual Component Library
+CODE:0054D4B4 ; ---------------------------------------------------------------------------
+CODE:0054D4B4              jmp     short loc_54D4A1
+CODE:0054D4B6 ; ---------------------------------------------------------------------------
+CODE:0054D4B6
+CODE:0054D4B6 loc_54D4B6:                   ; CODE XREF: __account_key_3+B2j
+CODE:0054D4B6                              ; DATA XREF: __account_key_3+A0o
+CODE:0054D4B6              pop     edi
+CODE:0054D4B7              pop     esi
+CODE:0054D4B8              pop     ebx
+CODE:0054D4B9              mov     esp, ebp
+CODE:0054D4BB              pop     ebp
+CODE:0054D4BC              retn
+CODE:0054D4BC __account_key_3 endp
+```
+
+### 逆向代码
+
+#### 第三次 key 运算
+
+```cpp
+void Account_Key_3(string& sRealKey, string sKey)
+{
+  string sTempKey;
+  int nLenth = sKey.length();
+  int n;
+  for ( n = 0; n < nLenth; n++)
+  {
+    switch (sKey[n])
+    {
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9':
+      sTempKey += sKey[n];
+      break;
+    default:
+      break;
+    }
+  }
+
+  nLenth = sTempKey.length();
+  if ( nLenth > 0)
+  {
+    int nTemp = 1;
+    char* pTempKey = (char*)sTempKey.c_str();
+    do 
+    {
+      if ( (nTemp % 2) == 0 )
+      {
+        char c = *(char*)(pTempKey + nTemp - 1);
+        sRealKey += c;
+      }
+      nTemp++;
+      nLenth--;
+    } while (nLenth);
+  }
+}
+```
+
+#### `__account_key_1` 中调用的函数
+
+```
+// 此处原注释中未提供具体函数代码，仅保留了标记
+```
+
+
+
+```asm
+CODE:0054C718 __Struct_Edit_1 proc near                 ; CODE XREF: __Matrix_Account+42p
+CODE:0054C718                                      ; __Matrix_Account+50p ...
+CODE:0054C718                  push    ebx
+CODE:0054C719                  push    esi
+CODE:0054C71A                  push    edi
+CODE:0054C71B                  push    ebp
+CODE:0054C71C                  mov     edi, ecx        ; 参数，长度
+CODE:0054C71E                  mov     ebp, edx        ; 参数
+CODE:0054C720                  mov     esi, eax        ; 参数,p
+CODE:0054C722                  mov     eax, [esi+st_machine.nUnknow_5]
+CODE:0054C725                  shr     eax, 3
+CODE:0054C728                  and     eax, 3Fh
+CODE:0054C72B                  mov     edx, edi
+CODE:0054C72D                  shl     edx, 3          ; * 8
+CODE:0054C730                  add     [esi+st_machine.nUnknow_5], edx
+CODE:0054C733                  cmp     edx, [esi+st_machine.nUnknow_5]
+CODE:0054C736                  jbe     short loc_54C73B
+CODE:0054C738                  inc     dword ptr [esi+14h]
+CODE:0054C73B
+CODE:0054C73B loc_54C73B:                          ; CODE XREF: __Struct_Edit_1+1Ej
+CODE:0054C73B                  mov     edx, edi
+CODE:0054C73D                  shr     edx, 1Dh        ;  >> 29
+CODE:0054C740                  add     [esi+14h], edx
+CODE:0054C743                  mov     ebx, 40h
+CODE:0054C748                  sub     ebx, eax
+CODE:0054C74A                  cmp     ebx, edi
+CODE:0054C74C                  ja      short loc_54C780 ; >
+CODE:0054C74E                  lea     eax, [esi+eax+18h]
+CODE:0054C752                  mov     ecx, ebx
+CODE:0054C754                  mov     edx, ebp
+CODE:0054C756                  call    __memcpy
+CODE:0054C75B                  mov     edx, esi
+CODE:0054C75D                  lea     eax, [esi+18h]
+CODE:0054C760                  call    struct_account
+CODE:0054C765                  jmp     short loc_54C775
+CODE:0054C767 ; -------------------------------------------------------------
+CODE:0054C767
+CODE:0054C767 loc_54C767:                          ; CODE XREF: __Struct_Edit_1+62j
+CODE:0054C767                  mov     edx, esi
+CODE:0054C769                  lea     eax, [ebp+ebx+0]
+CODE:0054C76D                  call    struct_account
+CODE:0054C772                  add     ebx, 40h
+CODE:0054C775
+CODE:0054C775 loc_54C775:                          ; CODE XREF: __Struct_Edit_1+4Dj
+CODE:0054C775                  lea     eax, [ebx+3Fh]
+CODE:0054C778                  cmp     edi, eax
+CODE:0054C77A                  ja      short loc_54C767
+CODE:0054C77C                  xor     eax, eax
+CODE:0054C77E                  jmp     short loc_54C782
+CODE:0054C780 ; -------------------------------------------------------------
+CODE:0054C780
+CODE:0054C780 loc_54C780:                          ; CODE XREF: __Struct_Edit_1+34j
+CODE:0054C780                  xor     ebx, ebx
+CODE:0054C782
+CODE:0054C782 loc_54C782:                          ; CODE XREF: __Struct_Edit_1+66j
+CODE:0054C782                  lea     eax, [esi+eax+st_machine.szMachineId]
+CODE:0054C786                  mov     ecx, edi
+CODE:0054C788                  sub     ecx, ebx
+CODE:0054C78A                  lea     edx, [ebp+ebx+0] ; user input string
+CODE:0054C78E                  call    __memcpy
+CODE:0054C793                  pop     ebp
+CODE:0054C794                  pop     edi
+CODE:0054C795                  pop     esi
+CODE:0054C796                  pop     ebx
+CODE:0054C797                  retn
+CODE:0054C797 __Struct_Edit_1 endp
+```
+
+逆向代码：
+
+代码：
+
+```c
+//pv1 = eax, pv2 = edx, nLenth = ecx
+void Struct_Edit_1(char* pv1, char* pv2,int nLenth)
+{
+  int v2 = (*(DWORD*)(pv1 + 16) >> 3) & 0x3F;
+  *(DWORD*)(pv1 + 16) += 8 * nLenth;
+  if ( 8 * nLenth > *(DWORD*)(pv1 + 16) )
+    ++*(DWORD*)(pv1 + 20);
+  *(DWORD*)(pv1 + 20) += nLenth >> 29;
+  int v5 = 64 - v2;
+  if ( v5 <= nLenth )
+  {
+    memcpy((void*)(pv1 + v2 + 0x18),pv2,v5);
+    Struct_Account(pv1, pv1+0x18);
+    //__memcpy();
+    //ary_account();
+    while ( nLenth > v5 + 63 )
+    {
+      Struct_Account(pv1, pv2 + v5);
+      //ary_account();
+      v5 += 64;
+    }
+    v2 = 0;
+  }
+  else
+  {
+    v5 = 0;
+  }
+  memcpy(pv1+v2+0x18, pv2+v5, nLenth - v5);
+}
+```
+
+函数太长，省略一部分。
+
+代码：
+
+
+
+```asm
+CODE:0054BFB4 struct_account  proc near                 ; CODE XREF: __Struct_Edit_1+48p
+CODE:0054BFB4                                ; __Struct_Edit_1+55p
+CODE:0054BFB4
+CODE:0054BFB4            push    ebx
+CODE:0054BFB5            push    esi
+CODE:0054BFB6            push    edi
+CODE:0054BFB7            push    ebp
+CODE:0054BFB8            add     esp, 0FFFFFFA8h
+CODE:0054BFBB            mov     [esp+4], edx
+CODE:0054BFBF            mov     [esp], eax
+CODE:0054BFC2            lea     ebx, [esp+8]
+CODE:0054BFC6            lea     esi, [esp+0Ch]
+CODE:0054BFCA            lea     edi, [esp+10h]
+CODE:0054BFCE            lea     ebp, [esp+14h]
+CODE:0054BFD2            lea     edx, [esp+18h]
+CODE:0054BFD6            mov     ecx, 40h
+CODE:0054BFDB            mov     eax, [esp]
+CODE:0054BFDE            call    Account_Func_1
+CODE:0054BFE3            mov     eax, [esp+4]
+CODE:0054BFE7            mov     eax, [eax]
+CODE:0054BFE9            mov     [ebx], eax
+CODE:0054BFEB            mov     eax, [esp+4]
+CODE:0054BFEF            mov     eax, [eax+4]
+CODE:0054BFF2            mov     [esi], eax
+CODE:0054BFF4            mov     eax, [esp+4]
+CODE:0054BFF8            mov     eax, [eax+8]
+CODE:0054BFFB            mov     [edi], eax
+CODE:0054BFFD            mov     eax, [esp+4]
+CODE:0054C001            mov     eax, [eax+0Ch]
+CODE:0054C004            mov     [ebp+0], eax
+CODE:0054C007            mov     eax, [ebp+0]
+CODE:0054C00A            push    eax
+CODE:0054C00B            mov     eax, [esp+1Ch]
+CODE:0054C00F            push    eax
+CODE:0054C010            push    7
+CODE:0054C012            push    0D76AA478h
+CODE:0054C017            mov     eax, ebx
+CODE:0054C019            mov     ecx, [edi]
+CODE:0054C01B            mov     edx, [esi]
+CODE:0054C01D            call    Account_Func_2
+……(省略)
+CODE:0054C1B3            mov     eax, [ebp+0]
+CODE:0054C1B6            push    eax
+CODE:0054C1B7            mov     eax, [esp+20h]
+CODE:0054C1BB            push    eax
+CODE:0054C1BC            push    5
+CODE:0054C1BE            push    0F61E2562h
+CODE:0054C1C3            mov     eax, ebx
+CODE:0054C1C5            mov     ecx, [edi]
+CODE:0054C1C7            mov     edx, [esi]
+CODE:0054C1C9            call    Account_Func_5
+……(省略)
+CODE:0054C35F            mov     eax, [ebp+0]
+CODE:0054C362            push    eax
+CODE:0054C363            mov     eax, [esp+30h]
+CODE:0054C367            push    eax
+CODE:0054C368            push    4
+CODE:0054C36A            push    0FFFA3942h
+CODE:0054C36F            mov     eax, ebx
+CODE:0054C371            mov     ecx, [edi]
+CODE:0054C373            mov     edx, [esi]
+CODE:0054C375            call    Account_Func_7
+……(省略)
+CODE:0054C50B            mov     eax, [ebp+0]
+CODE:0054C50E            push    eax
+CODE:0054C50F            mov     eax, [esp+1Ch]
+CODE:0054C513            push    eax
+CODE:0054C514            push    6
+CODE:0054C516            push    0F4292244h
+CODE:0054C51B            mov     eax, ebx
+CODE:0054C51D            mov     ecx, [edi]
+CODE:0054C51F            mov     edx, [esi]
+CODE:0054C521            call    Account_Func_9
+……(省略)
+CODE:0054C6B7            mov     eax, [esp+4]
+CODE:0054C6BB            mov     edx, [ebx]
+CODE:0054C6BD            add     [eax], edx
+CODE:0054C6BF            mov     eax, [esp+4]
+CODE:0054C6C3            mov     edx, [esi]
+CODE:0054C6C5            add     [eax+4], edx
+CODE:0054C6C8            mov     eax, [esp+4]
+CODE:0054C6CC            mov     edx, [edi]
+CODE:0054C6CE            add     [eax+8], edx
+CODE:0054C6D1            mov     eax, [esp+4]
+CODE:0054C6D5            mov     edx, [ebp+0]
+CODE:0054C6D8            add     [eax+0Ch], edx
+CODE:0054C6DB            add     esp, 58h
+CODE:0054C6DE            pop     ebp
+CODE:0054C6DF            pop     edi
+CODE:0054C6E0            pop     esi
+CODE:0054C6E1            pop     ebx
+CODE:0054C6E2            retn
+CODE:0054C6E2 struct_account  endp
+```
+
+逆向代码：
+
+```c
+void Struct_Account(char* pEdx, char* pEax)
+{
+  int nAry[22] = {0};
+  nAry[1] = (int)pEdx;
+  nAry[0] = (int)pEax;
+  Account_Func_1((int*)nAry[0], (int*)&nAry[6], 0x40);
+
+  nAry[2] = *(int*)pEdx;
+  nAry[3] = *(int*)(pEdx + 4);
+  nAry[4] = *(int*)(pEdx + 8);
+  nAry[5] = *(int*)(pEdx + 0xC);
+
+  Account_Func_2(0x0D76AA478, 7, nAry[6], nAry[5], &nAry[2], nAry[4], nAry[3]);
+  ……(省略)
+
+  Account_Func_5(0xF61E2562, 5, nAry[7], nAry[5], &nAry[2], nAry[4], nAry[3]);
+  ……(省略)
+
+  Account_Func_7(0xFFFA3942, 4, nAry[11], nAry[5], &nAry[2], nAry[4], nAry[3]);
+  ……(省略)
+
+  Account_Func_9(0xF4292244, 6, nAry[6], nAry[5], &nAry[2], nAry[4], nAry[3]);
+  ……(省略)
+
+  *(DWORD*)pEdx += nAry[2];
+  *(DWORD*)(pEdx + 4) += nAry[3];
+  *(DWORD*)(pEdx + 8) += nAry[4];
+  *(DWORD*)(pEdx + 0xC) += nAry[5];
+}
+```
+
+逆向代码：
+
+```asm
+CODE:0054BF40 Account_Func_1  proc near                 ; CODE XREF: struct_account+2Ap
+CODE:0054BF40            push    ebx
+CODE:0054BF41            shr     ecx, 2
+CODE:0054BF44            test    ecx, ecx
+CODE:0054BF46            jbe     short loc_54BF73
+CODE:0054BF48 loc_54BF48:                       ; CODE XREF: Account_Func_1+31j
+CODE:0054BF48            xor     ebx, ebx
+CODE:0054BF4A            mov     bl, [eax]
+CODE:0054BF4C            mov     [edx], ebx
+CODE:0054BF4E            inc     eax
+CODE:0054BF4F            xor     ebx, ebx
+CODE:0054BF51            mov     bl, [eax]
+CODE:0054BF53            shl     ebx, 8
+CODE:0054BF56            or      [edx], ebx
+CODE:0054BF58            inc     eax
+CODE:0054BF59            xor     ebx, ebx
+CODE:0054BF5B            mov     bl, [eax]
+CODE:0054BF5D            shl     ebx, 10h
+CODE:0054BF60            or      [edx], ebx
+CODE:0054BF62            inc     eax
+CODE:0054BF63            xor     ebx, ebx
+CODE:0054BF65            mov     bl, [eax]
+CODE:0054BF67            shl     ebx, 18h
+CODE:0054BF6A            or      [edx], ebx
+CODE:0054BF6C            inc     eax
+CODE:0054BF6D            add     edx, 4
+CODE:0054BF70            dec     ecx
+CODE:0054BF71            jnz     short loc_54BF48
+CODE:0054BF73 loc_54BF73:                       ; CODE XREF: Account_Func_1+6j
+CODE:0054BF73            pop     ebx
+CODE:0054BF74            retn
+CODE:0054BF74 Account_Func_1  endp
+```
+
+```c
+void Account_Func_1(int* pEax, int* pEdx, int nEcx)
+{
+  int i, v4;
+  for ( i = nEcx >> 2; i; --i )
+  {
+    *(DWORD*)pEdx = *(unsigned char*)pEax;
+    v4 = (int)pEax + 1;
+    *(DWORD*)pEdx |= *(unsigned char*)v4 << 8;
+    v4++;
+    *(DWORD*)pEdx |= *(unsigned char*)v4 << 16;
+    v4++;
+    *(DWORD*)pEdx |= *(unsigned char*)v4 << 24;
+    pEax = (int*)(v4 + 1);
+    //edx += 4;
+    pEdx++;
+  }
+}
+```
+
+
+
+## 汇编代码：`Account_Func_2`
+
+```
+CODE:0054BE70  Account_Func_2  proc near             ; CODE XREF: struct_account+69p
+CODE:0054BE70                               ; struct_account+83p ...
+CODE:0054BE70
+CODE:0054BE70  arg_0            = dword ptr  8
+CODE:0054BE70  arg_4            = byte ptr  0Ch
+CODE:0054BE70  arg_8            = dword ptr  10h
+CODE:0054BE70  arg_C            = dword ptr  14h
+CODE:0054BE70
+CODE:0054BE70                  push    ebp
+CODE:0054BE71                  mov     ebp, esp
+CODE:0054BE73                  push    ebx
+CODE:0054BE74                  push    esi
+CODE:0054BE75                  push    edi
+CODE:0054BE76                  mov     edi, ecx
+CODE:0054BE78                  mov     esi, edx
+CODE:0054BE7A                  mov     ebx, eax
+CODE:0054BE7C                  mov     ecx, [ebp+arg_C]
+CODE:0054BE7F                  mov     edx, edi
+CODE:0054BE81                  mov     eax, esi
+CODE:0054BE83                  call    Account_Func_3
+CODE:0054BE88                  add     eax, [ebp+arg_8]
+CODE:0054BE8B                  add     eax, [ebp+arg_0]
+CODE:0054BE8E                  add     [ebx], eax
+CODE:0054BE90                  mov     eax, ebx
+CODE:0054BE92                  mov     dl, [ebp+arg_4]
+CODE:0054BE95                  call    Account_Func_4
+CODE:0054BE9A                  add     [ebx], esi
+CODE:0054BE9C                  pop     edi
+CODE:0054BE9D                  pop     esi
+CODE:0054BE9E                  pop     ebx
+CODE:0054BE9F                  pop     ebp
+CODE:0054BEA0                  retn    10h
+CODE:0054BEA0  Account_Func_2  endp
+```
+
+### 逆向代码
+
+```c
+void Account_Func_2(unsigned int n, char m, unsigned int i, unsigned int j, int* nEax, int nEcx, int nEdx)
+{
+  //*(\_DWORD \*)v9 += a3 + a5 + Account_Func_3(a2, ecx0, a6);
+  *nEax += i + n + Account_Func_3( nEdx, nEcx, j);
+  Account_Func_4( (int)nEax, m);
+  *nEax += nEdx;
+}
+```
+
+## 汇编代码：`Account_Func_3`
+
+```
+CODE:0054BE24  Account_Func_3  proc near             ; CODE XREF: Account_Func_2+13p
+CODE:0054BE24                  and     edx, eax
+CODE:0054BE26                  not     eax
+CODE:0054BE28                  and     ecx, eax
+CODE:0054BE2A                  or      edx, ecx
+CODE:0054BE2C                  mov     eax, edx
+CODE:0054BE2E                  retn
+CODE:0054BE2E  Account_Func_3  endp
+```
+
+### 逆向代码
+
+```c
+int Account_Func_3(int nEax, int nEdx, int nEcx)
+{
+  return ~nEax & nEcx | nEax & nEdx;
+}
+```
+
+## 汇编代码：`Account_Func_4`
+
+```
+CODE:0054BE50  Account_Func_4  proc near             ; CODE XREF: Account_Func_2+25p
+CODE:0054BE50                               ; Account_Func_5+25p ...
+CODE:0054BE50                  push    ebx
+CODE:0054BE51                  xor     ecx, ecx
+CODE:0054BE53                  mov     cl, dl
+CODE:0054BE55                  push    ecx
+CODE:0054BE56                  mov     ecx, 20h
+CODE:0054BE5B                  pop     ebx
+CODE:0054BE5C                  sub     ecx, ebx
+CODE:0054BE5E                  mov     ebx, [eax]
+CODE:0054BE60                  shr     ebx, cl
+CODE:0054BE62                  mov     ecx, edx
+CODE:0054BE64                  mov     edx, [eax]
+CODE:0054BE66                  shl     edx, cl
+CODE:0054BE68                  or      ebx, edx
+CODE:0054BE6A                  mov     [eax], ebx
+CODE:0054BE6C                  pop     ebx
+CODE:0054BE6D                  retn
+CODE:0054BE6D  Account_Func_4  endp
+```
+
+### 逆向代码
+
+```c
+void Account_Func_4(int nEax, char cEdx)
+{
+  *(DWORD*)nEax = (*(DWORD*)nEax << cEdx) | (*(DWORD*)nEax >> (32 - cEdx));
+}
+```
+
+## 汇编代码：`Account_Func_5`
+
+```
+CODE:0054BEA4  Account_Func_5  proc near             ; CODE XREF: struct_account+215p
+CODE:0054BEA4                               ; struct_account+22Fp ...
+CODE:0054BEA4
+CODE:0054BEA4  arg_0            = dword ptr  8
+CODE:0054BEA4  arg_4            = byte ptr  0Ch
+CODE:0054BEA4  arg_8            = dword ptr  10h
+CODE:0054BEA4  arg_C            = dword ptr  14h
+CODE:0054BEA4
+CODE:0054BEA4                  push    ebp
+CODE:0054BEA5                  mov     ebp, esp
+CODE:0054BEA7                  push    ebx
+CODE:0054BEA8                  push    esi
+CODE:0054BEA9                  push    edi
+CODE:0054BEAA                  mov     edi, ecx
+CODE:0054BEAC                  mov     esi, edx
+CODE:0054BEAE                  mov     ebx, eax
+CODE:0054BEB0                  mov     ecx, [ebp+arg_C]
+CODE:0054BEB3                  mov     edx, edi
+CODE:0054BEB5                  mov     eax, esi
+CODE:0054BEB7                  call    Account_Func_6
+CODE:0054BEBC                  add     eax, [ebp+arg_8]
+CODE:0054BEBF                  add     eax, [ebp+arg_0]
+CODE:0054BEC2                  add     [ebx], eax
+CODE:0054BEC4                  mov     eax, ebx
+CODE:0054BEC6                  mov     dl, [ebp+arg_4]
+CODE:0054BEC9                  call    Account_Func_4
+CODE:0054BECE                  add     [ebx], esi
+CODE:0054BED0                  pop     edi
+CODE:0054BED1                  pop     esi
+CODE:0054BED2                  pop     ebx
+CODE:0054BED3                  pop     ebp
+CODE:0054BED4                  retn    10h
+CODE:0054BED4  Account_Func_5  endp
+```
+
+### 逆向代码
+
+```c
+void Account_Func_5(unsigned int n, char m, unsigned int i, unsigned int j, int* nEax, int nEcx, int nEdx)
+{
+  *(DWORD*)nEax += n + i + Account_Func_6(nEdx, nEcx, j);
+  Account_Func_4( (int)nEax, m);
+  *nEax += nEdx;
+}
+```
+
+## 汇编代码：`Account_Func_6`
+
+```
+CODE:0054BE30  Account_Func_6  proc near             ; CODE XREF: Account_Func_5+13p
+CODE:0054BE30                  and     eax, ecx
+CODE:0054BE32                  not     ecx
+CODE:0054BE34                  and     edx, ecx
+CODE:0054BE36                  or      eax, edx
+CODE:0054BE38                  retn
+CODE:0054BE38  Account_Func_6  endp
+```
+
+### 逆向代码
+
+```c
+int Account_Func_6(int nEax, int nEdx, int nEcx)
+{
+  return ~nEcx & nEdx | nEcx & nEax;
+}
+```
+
+## 汇编代码：`Account_Func_7`
+
+```
+CODE:0054BED8  Account_Func_7  proc near             ; CODE XREF: struct_account+3C1p
+CODE:0054BED8                               ; struct_account+3DBp ...
+CODE:0054BED8
+CODE:0054BED8  arg_0            = dword ptr  8
+CODE:0054BED8  arg_4            = byte ptr  0Ch
+CODE:0054BED8  arg_8            = dword ptr  10h
+CODE:0054BED8  arg_C            = dword ptr  14h
+CODE:0054BED8
+CODE:0054BED8                  push    ebp
+CODE:0054BED9                  mov     ebp, esp
+CODE:0054BEDB                  push    ebx
+CODE:0054BEDC                  push    esi
+CODE:0054BEDD                  push    edi
+CODE:0054BEDE                  mov     edi, ecx
+CODE:0054BEE0                  mov     esi, edx
+CODE:0054BEE2                  mov     ebx, eax
+CODE:0054BEE4                  mov     ecx, [ebp+arg_C]
+CODE:0054BEE7                  mov     edx, edi
+CODE:0054BEE9                  mov     eax, esi
+CODE:0054BEEB                  call    Account_Func_8
+CODE:0054BEF0                  add     eax, [ebp+arg_8]
+CODE:0054BEF3                  add     eax, [ebp+arg_0]
+CODE:0054BEF6                  add     [ebx], eax
+CODE:0054BEF8                  mov     eax, ebx
+CODE:0054BEFA                  mov     dl, [ebp+arg_4]
+CODE:0054BEFD                  call    Account_Func_4
+CODE:0054BF02                  add     [ebx], esi
+CODE:0054BF04                  pop     edi
+CODE:0054BF05                  pop     esi
+CODE:0054BF06                  pop     ebx
+CODE:0054BF07                  pop     ebp
+CODE:0054BF08                  retn    10h
+CODE:0054BF08  Account_Func_7  endp
+```
+
+### 逆向代码
+
+```c
+void Account_Func_7(unsigned int n, char m, unsigned int i, unsigned int j, int* nEax, int nEcx, int nEdx)
+{
+  *(DWORD*)nEax += n + i + Account_Func_8(nEdx, nEcx, j);
+  Account_Func_4( (int)nEax, m);
+  *nEax += nEdx;
+}
+```
+
+## 汇编代码：`Account_Func_8`
+
+```
+CODE:0054BE3C  Account_Func_8  proc near             ; CODE XREF: Account_Func_7+13p
+CODE:0054BE3C                  xor     eax, edx
+CODE:0054BE3E                  xor     ecx, eax
+CODE:0054BE40                  mov     eax, ecx
+CODE:0054BE42                  retn
+CODE:0054BE42  Account_Func_8  endp
+```
+
+
+
+## 逆向代码
+
+### 代码
+
+```
+int Account\_Func\_8(int nEax, int nEdx, int nEcx)
+{
+  return nEdx ^ nEax ^ nEcx;
+}
+```
+
+### 代码
+
+```
+CODE:0054BF0C Account\_Func\_9  proc near               ; CODE XREF: struct\_account+56Dp
+CODE:0054BF0C                             ; struct\_account+587p ...
+CODE:0054BF0C
+CODE:0054BF0C arg\_0           = dword ptr  8
+CODE:0054BF0C arg\_4           = byte ptr  0Ch
+CODE:0054BF0C arg\_8           = dword ptr  10h
+CODE:0054BF0C arg\_C           = dword ptr  14h
+CODE:0054BF0C
+CODE:0054BF0C                 push    ebp
+CODE:0054BF0D                 mov     ebp, esp
+CODE:0054BF0F                 push    ebx
+CODE:0054BF10                 push    esi
+CODE:0054BF11                 push    edi
+CODE:0054BF12                 mov     edi, ecx
+CODE:0054BF14                 mov     esi, edx
+CODE:0054BF16                 mov     ebx, eax
+CODE:0054BF18                 mov     ecx, [ebp+arg\_C]
+CODE:0054BF1B                 mov     edx, edi
+CODE:0054BF1D                 mov     eax, esi
+CODE:0054BF1F                 call    Account\_Func\_10
+CODE:0054BF24                 add     eax, [ebp+arg\_8]
+CODE:0054BF27                 add     eax, [ebp+arg\_0]
+CODE:0054BF2A                 add     [ebx], eax
+CODE:0054BF2C                 mov     eax, ebx
+CODE:0054BF2E                 mov     dl, [ebp+arg\_4]
+CODE:0054BF31                 call    Account\_Func\_4
+CODE:0054BF36                 add     [ebx], esi
+CODE:0054BF38                 pop     edi
+CODE:0054BF39                 pop     esi
+CODE:0054BF3A                 pop     ebx
+CODE:0054BF3B                 pop     ebp
+CODE:0054BF3C                 retn    10h
+CODE:0054BF3C Account\_Func\_9  endp
+```
+
+## 逆向代码
+
+### 代码
+
+```
+void Account\_Func\_9(unsigned int n, char m, unsigned int i, unsigned int j, int\* nEax, int nEcx, int nEdx)
+{
+  \*(DWORD\*)nEax += n + i + Account\_Func\_10(nEdx, nEcx, j);
+  Account\_Func\_4( (int)nEax, m);
+  \*nEax += nEdx;
+}
+```
+
+### 代码
+
+```
+CODE:0054BE44 Account\_Func\_10 proc near               ; CODE XREF: Account\_Func\_9+13p
+CODE:0054BE44                 not     ecx
+CODE:0054BE46                 or      eax, ecx
+CODE:0054BE48                 xor     edx, eax
+CODE:0054BE4A                 mov     eax, edx
+CODE:0054BE4C                 retn
+CODE:0054BE4C Account\_Func\_10 endp
+```
+
+## 逆向代码
+
+### 代码
+
+```
+int Account\_Func\_10(int nEax, int nEdx, int nEcx)
+{
+  return (~nEcx | nEax) ^ nEdx;
+}
+```
+
+### 代码
+
+```
+CODE:0054C798 \_\_Matrix\_Account proc near               ; CODE XREF: \_\_account\_key\_1+4Bp
+CODE:0054C798                 push    ebx
+CODE:0054C799                 push    esi
+CODE:0054C79A                 add     esp, 0FFFFFFF8h ; sub esp, 8  开辟栈空间
+CODE:0054C79D                 mov     esi, edx        ; OUT 参数
+CODE:0054C79F                 mov     ebx, eax        ; IN 参数, st\_mechine 结构体
+CODE:0054C7A1                 mov     edx, esp
+CODE:0054C7A3                 lea     eax, [ebx+st\_machine.nUnknow\_5]
+CODE:0054C7A6                 mov     ecx, 2          ; 循环次数
+CODE:0054C7AB                 call    \_\_Struct\_Edit\_2 ; 结构体数据运算
+CODE:0054C7B0                 mov     eax, [ebx+st\_machine.nUnknow\_5]
+CODE:0054C7B3                 shr     eax, 3          ; >> 3
+CODE:0054C7B6                 and     eax, 3Fh        ; % 64
+CODE:0054C7B9                 cmp     eax, 38h
+CODE:0054C7BC                 jnb     short loc\_54C7C9 ; >=
+CODE:0054C7BE                 mov     edx, 38h
+CODE:0054C7C3                 sub     edx, eax
+CODE:0054C7C5                 mov     eax, edx
+CODE:0054C7C7                 jmp     short loc\_54C7D2
+CODE:0054C7C9 ; ---------------------------------------------------------------------------
+CODE:0054C7C9
+CODE:0054C7C9 loc\_54C7C9:                     ; CODE XREF: \_\_Matrix\_Account+24j
+CODE:0054C7C9                 mov     edx, 78h
+CODE:0054C7CE                 sub     edx, eax
+CODE:0054C7D0                 mov     eax, edx
+CODE:0054C7D2
+CODE:0054C7D2 loc\_54C7D2:                     ; CODE XREF: \_\_Matrix\_Account+2Fj
+CODE:0054C7D2                 mov     edx, offset unk\_557F14
+CODE:0054C7D7                 mov     ecx, ebx
+CODE:0054C7D9                 xchg    eax, ecx
+CODE:0054C7DA                 call    \_\_Struct\_Edit\_1 ; 结构体中值做运算
+CODE:0054C7DF                 mov     edx, esp
+CODE:0054C7E1                 mov     eax, ebx
+CODE:0054C7E3                 mov     ecx, 8
+CODE:0054C7E8                 call    \_\_Struct\_Edit\_1
+CODE:0054C7ED                 mov     edx, esi
+CODE:0054C7EF                 mov     eax, ebx
+CODE:0054C7F1                 mov     ecx, 4
+CODE:0054C7F6                 call    \_\_Struct\_Edit\_2
+CODE:0054C7FB                 mov     eax, ebx
+CODE:0054C7FD                 mov     edx, 58h
+CODE:0054C802                 call    \_\_ZeroMemory
+CODE:0054C807                 pop     ecx
+CODE:0054C808                 pop     edx
+CODE:0054C809                 pop     esi
+CODE:0054C80A                 pop     ebx
+CODE:0054C80B                 retn
+CODE:0054C80B \_\_Matrix\_Account endp
+```
+
+## 逆向代码
+
+### 代码
+
+```
+void Matrix\_Account(tagKey& pSt,int\* pAry)
+{
+  int v7\[2\] = {0};
+
+  int v4 = (int)pAry;
+  int v3 = (int)&pSt;
+  Struct\_Edit\_2((int)&pSt.nUnknow\_5, (int)&v7, 2);
+  int v2 = (\*(DWORD\*)(&pSt.nUnknow\_5) >> 3) & 0x3F;
+  unsigned int v5;
+  if ( (unsigned int)v2 >= 0x38 )
+    v5 = 120 - v2;
+  else
+    v5 = 56 - v2;
+  Struct\_Edit\_1((char\*)v3, (char\*)&g\_nAry, v5);
+  Struct\_Edit\_1((char\*)v3, (char\*)&v7, 8u);
+  Struct\_Edit\_2(v3, v4, 4);
+}
+```
+
+### 代码
+
+```
+CODE:0054BF78 \_\_Struct\_Edit\_2 proc near               ; CODE XREF: \_\_Matrix\_Account+13p
+CODE:0054BF78                             ; \_\_Matrix\_Account+5Ep
+CODE:0054BF78                 push    esi
+CODE:0054BF79                 mov     esi, eax        ; 参数
+CODE:0054BF7B                 mov     eax, edx        ; 参数
+CODE:0054BF7D                 mov     edx, ecx        ; 参数
+CODE:0054BF7F                 test    edx, edx        ; for (int i = ecx; i != 0; i--)
+CODE:0054BF81                 jbe     short loc\_54BFB2 ; <=
+CODE:0054BF83
+CODE:0054BF83 loc\_54BF83:                     ; CODE XREF: \_\_Struct\_Edit\_2+38j
+CODE:0054BF83                 mov     cl, [esi]       ; \*(_BYTE \*)param\_edx = \*(_BYTE \*)param\_eax
+CODE:0054BF85                 and     cl, 0FFh
+CODE:0054BF88                 mov     [eax], cl
+CODE:0054BF8A                 inc     eax           ; param\_edx + 1
+CODE:0054BF8B                 mov     ecx, [esi]
+CODE:0054BF8D                 shr     ecx, 8          ; >> 8
+CODE:0054BF90                 and     cl, 0FFh
+CODE:0054BF93                 mov     [eax], cl
+CODE:0054BF95                 inc     eax           ; param\_edx + 1
+CODE:0054BF96                 mov     ecx, [esi]
+CODE:0054BF98                 shr     ecx, 10h        ; >> 10
+CODE:0054BF9B                 and     cl, 0FFh
+CODE:0054BF9E                 mov     [eax], cl
+CODE:0054BFA0                 inc     eax           ; param\_edx + 1
+CODE:0054BFA1                 mov     ecx, [esi]
+CODE:0054BFA3                 shr     ecx, 18h        ; >> 18
+CODE:0054BFA6                 and     cl, 0FFh
+CODE:0054BFA9                 mov     [eax], cl
+CODE:0054BFAB                 inc     eax           ; param\_edx + 1
+CODE:0054BFAC                 add     esi, 4
+CODE:0054BFAF                 dec     edx
+CODE:0054BFB0                 jnz     short loc\_54BF83
+CODE:0054BFB2
+CODE:0054BFB2 loc\_54BFB2:                     ; CODE XREF: \_\_Struct\_Edit\_2+9j
+CODE:0054BFB2                 pop     esi
+CODE:0054BFB3                 retn
+CODE:0054BFB3 \_\_Struct\_Edit\_2 endp
+```
+
+## 逆向代码
+
+### 代码
+
+
+
+```
+void Struct_Edit_2(int nEax, int nEdx, int nEcx)
+{
+  int i;
+  DWORD dwTemp;
+  for ( i = nEcx; i != 0; --i )
+  {
+    *(char*)nEdx = *(char*)nEax;
+
+    nEdx += 1;
+    dwTemp = *(DWORD*)nEax;
+    dwTemp >>= 8;
+    *(char*)nEdx = char(dwTemp);
+
+    nEdx += 1;
+    dwTemp = *(DWORD*)nEax;
+    dwTemp >>= 16;
+    *(char*)nEdx = char(dwTemp);
+
+    nEdx += 1;
+    dwTemp = *(DWORD*)nEax;
+    dwTemp >>= 24;
+    *(char*)nEdx = char(dwTemp);
+
+    nEax += 4;
+  }
+}
+```
+
+第一次写算法分析。写的很罗嗦。希望对和我一样的新人有帮助。
+
+分析到此结束，文末附上注册机代码。不过希望有经济实力的还是支持正版。程序员写个软件也不容易。
+
+注册机代码：
+
+
+
+```cpp
+#include <iostream>
+
+using namespace std;
+
+typedef unsigned long DWORD;
+typedef unsigned short WORD;
+
+#pragma warning( disable : 4267 4018 4312 4311 4996)
+
+typedef struct
+{
+  int nUnknow_1;
+  int nUnknow_2;
+  int nUnknow_3;
+  int nUnknow_4;
+  int nUnknow_5;
+  int nUnknow_6;
+  char szBuffer[64];
+}tagKey;
+
+int Account_Func_10(int nEax, int nEdx, int nEcx)
+{
+  return (~nEcx | nEax) ^ nEdx;
+}
+
+int Account_Func_8(int nEax, int nEdx, int nEcx)
+{
+  return nEdx ^ nEax ^ nEcx;
+}
+
+int Account_Func_6(int nEax, int nEdx, int nEcx)
+{
+  return ~nEcx & nEdx | nEcx & nEax;
+}
+
+void Account_Func_4(int nEax, char cEdx)
+{
+  *(DWORD*)nEax = (*(DWORD*)nEax << cEdx) | (*(DWORD*)nEax >> (32 - cEdx));
+}
+
+int Account_Func_3(int nEax, int nEdx, int nEcx)
+{
+  return ~nEax & nEcx | nEax & nEdx;
+}
+
+void Account_Func_9(unsigned int n, char m, unsigned int i, unsigned int j, int* nEax, int nEcx, int nEdx)
+{
+  *(DWORD*)nEax += n + i + Account_Func_10(nEdx, nEcx, j);
+  Account_Func_4( (int)nEax, m);
+  *nEax += nEdx;
+}
+
+void Account_Func_7(unsigned int n, char m, unsigned int i, unsigned int j, int* nEax, int nEcx, int nEdx)
+{
+  *(DWORD*)nEax += n + i + Account_Func_8(nEdx, nEcx, j);
+  Account_Func_4( (int)nEax, m);
+  *nEax += nEdx;
+}
+
+void Account_Func_5(unsigned int n, char m, unsigned int i, unsigned int j, int* nEax, int nEcx, int nEdx)
+{
+  *(DWORD*)nEax += n + i + Account_Func_6(nEdx, nEcx, j);
+  Account_Func_4( (int)nEax, m);
+  *nEax += nEdx;
+}
+
+void Account_Func_2(unsigned int n, char m, unsigned int i, unsigned int j, int* nEax, int nEcx, int nEdx)
+{
+  *nEax += i + n + Account_Func_3( nEdx, nEcx, j);
+  Account_Func_4( (int)nEax, m);
+  *nEax += nEdx;
+}
+
+void Account_Func_1(int* pEax, int* pEdx, int nEcx)
+{
+  int i, v4;
+  for ( i = nEcx >> 2; i; --i )
+  {
+    *(DWORD*)pEdx = *(unsigned char*)pEax;
+    v4 = (int)pEax + 1;
+    *(DWORD*)pEdx |= *(unsigned char*)v4 << 8;
+    v4++;
+    *(DWORD*)pEdx |= *(unsigned char*)v4 << 16;
+    v4++;
+    *(DWORD*)pEdx |= *(unsigned char*)v4 << 24;
+    pEax = (int*)(v4 + 1);
+    //edx += 4;
+    pEdx++;
+  }
+
+}
+
+void Struct_Account(char* pEdx, char* pEax)
+{
+  int nAry[22] = {0};
+  nAry[1] = (int)pEdx;
+  nAry[0] = (int)pEax;
+  Account_Func_1((int*)nAry[0], (int*)&nAry[6],0x40);
+
+  nAry[2] = *(int*)pEdx;
+  nAry[3] = *(int*)(pEdx + 4);
+  nAry[4] = *(int*)(pEdx + 8);
+  nAry[5] = *(int*)(pEdx + 0xC);
+
+  Account_Func_2( 0x0D76AA478, 7, nAry[6], nAry[5], &nAry[2], nAry[4], nAry[3]);
+
+  Account_Func_2( 0x0E8C7B756, 0xC, nAry[7], nAry[4], &nAry[5], nAry[3], nAry[2]);
+
+  Account_Func_2( 0x242070DB, 0x11, nAry[8], nAry[3], &nAry[4], nAry[2], nAry[5]);
+
+  Account_Func_2( 0xC1BDCEEE, 0x16, nAry[9], nAry[2], &nAry[3], nAry[5], nAry[4]);
+
+  Account_Func_2( 0xF57C0FAF, 7, nAry[10], nAry[5], &nAry[2], nAry[4], nAry[3]);
+
+  Account_Func_2( 0x4787C62A, 0xC, nAry[11], nAry[4], &nAry[5], nAry[3], nAry[2]);
+
+  Account_Func_2( 0xA8304613, 0x11, nAry[12], nAry[3], &nAry[4], nAry[2], nAry[5]);
+
+  Account_Func_2( 0xFD469501, 0x16, nAry[13], nAry[2], &nAry[3], nAry[5], nAry[4]);
+
+  Account_Func_2( 0x698098D8, 7, nAry[14], nAry[5], &nAry[2], nAry[4], nAry[3]);
+
+  Account_Func_2( 0x8B44F7AF, 0xC, nAry[15], nAry[4], &nAry[5], nAry[3], nAry[2]);
+
+  Account_Func_2( 0xFFFF5BB1, 0x11, nAry[16], nAry[3], &nAry[4], nAry[2], nAry[5]);
+
+  Account_Func_2( 0x895CD7BE, 0x16, nAry[17], nAry[2], &nAry[3], nAry[5], nAry[4]);
+
+  Account_Func_2( 0x6B901122, 7, nAry[18], nAry[5], &nAry[2], nAry[4], nAry[3]);
+
+  Account_Func_2( 0xFD987193, 0xC, nAry[19], nAry[4], &nAry[5], nAry[3], nAry[2]);
+
+  Account_Func_2( 0xA679438E, 0x11, nAry[20], nAry[3], &nAry[4], nAry[2], nAry[5]);
+
+  Account_Func_2( 0x49B40821, 0x16, nAry[21], nAry[2], &nAry[3], nAry[5], nAry[4]);
+
+  //////////////////////////////////////////////////////////////////////
+
+  Account_Func_5( 0xF61E2562, 5, nAry[7], nAry[5], &nAry[2], nAry[4], nAry[3]);
+
+  Account_Func_5( 0xC040B340, 9, nAry[12], nAry[4], &nAry[5], nAry[3], nAry[2]);
+
+  Account_Func_5( 0x265E5A51, 0xE, nAry[17], nAry[3], &nAry[4], nAry[2], nAry[5]);
+
+  Account_Func_5( 0xE9B6C7AA, 0x14, nAry[6], nAry[2], &nAry[3], nAry[5], nAry[4]);
+
+  Account_Func_5( 0xD62F105D, 5, nAry[11], nAry[5], &nAry[2], nAry[4], nAry[3]);
+
+  Account_Func_5( 0x2441453, 9, nAry[16], nAry[4], &nAry[5], nAry[3], nAry[2]);
+
+  Account_Func_5( 0xD8A1E681, 0xE, nAry[21], nAry[3], &nAry[4], nAry[2], nAry[5]);
+
+  Account_Func_5( 0xE7D3FBC8, 0x14, nAry[10], nAry[2], &nAry[3], nAry[5], nAry[4]);
+
+  Account_Func_5( 0x21E1CDE6, 5, nAry[15], nAry[5], &nAry[2], nAry[4], nAry[3]);
+
+  Account_Func_5( 0xC33707D6, 9, nAry[20], nAry[4], &nAry[5], nAry[3], nAry[2]);
+
+  Account_Func_5( 0xF4D50D87, 0xE, nAry[9], nAry[3], &nAry[4], nAry[2], nAry[5]);
+
+  Account_Func_5( 0x455A14ED, 0x14, nAry[14], nAry[2], &nAry[3], nAry[5], nAry[4]);
+
+  Account_Func_5( 0xA9E3E905, 5, nAry[19], nAry[5], &nAry[2], nAry[4], nAry[3]);
+
+  Account_Func_5( 0xFCEFA3F8, 9, nAry[8], nAry[4], &nAry[5], nAry[3], nAry[2]);
+
+  Account_Func_5( 0x676F02D9, 0xE, nAry[13], nAry[3], &nAry[4], nAry[2], nAry[5]);
+
+  Account_Func_5( 0x8D2A4C8A, 0x14, nAry[18], nAry[2], &nAry[3], nAry[5], nAry[4]);
+
+  //////////////////////////////////////////////////////////////////////
+
+  Account_Func_7( 0xFFFA3942, 4, nAry[11], nAry[5], &nAry[2], nAry[4], nAry[3]);
+
+  Account_Func_7( 0x8771F681, 0xB, nAry[14], nAry[4], &nAry[5], nAry[3], nAry[2]);
+
+  Account_Func_7( 0x6D9D6122, 0x10, nAry[17], nAry[3], &nAry[4], nAry[2], nAry[5]);
+
+  Account_Func_7( 0xFDE5380C, 0x17, nAry[20], nAry[2], &nAry[3], nAry[5], nAry[4]);
+
+  Account_Func_7( 0xA4BEEA44, 4, nAry[7], nAry[5], &nAry[2], nAry[4], nAry[3]);
+
+  Account_Func_7( 0x4BDECFA9, 0xB, nAry[10], nAry[4], &nAry[5], nAry[3], nAry[2]);
+
+  Account_Func_7( 0xF6BB4B60, 0x10, nAry[13], nAry[3], &nAry[4], nAry[2], nAry[5]);
+
+  Account_Func_7( 0xBEBFBC70, 0x17, nAry[16], nAry[2], &nAry[3], nAry[5], nAry[4]);
+
+  Account_Func_7( 0x289B7EC6, 4, nAry[19], nAry[5], &nAry[2], nAry[4], nAry[3]);
+
+  Account_Func_7( 0xEAA127FA, 0xB, nAry[6], nAry[4], &nAry[5], nAry[3], nAry[2]);
+
+  Account_Func_7( 0xD4EF3085, 0x10, nAry[9], nAry[3], &nAry[4], nAry[2], nAry[5]);
+
+  Account_Func_7( 0x4881D05, 0x17, nAry[12], nAry[2], &nAry[3], nAry[5], nAry[4]);
+
+  Account_Func_7( 0xD9D4D039, 4, nAry[15], nAry[5], &nAry[2], nAry[4], nAry[3]);
+
+  Account_Func_7( 0xE6DB99E5, 0xB, nAry[18], nAry[4], &nAry[5], nAry[3], nAry[2]);
+
+  Account_Func_7( 0x1FA27CF8, 0x10, nAry[21], nAry[3], &nAry[4], nAry[2], nAry[5]);
+
+  Account_Func_7( 0xC4AC5665, 0x17, nAry[8], nAry[2], &nAry[3], nAry[5], nAry[4]);
+
+  //////////////////////////////////////////////////////////////////////
+
+  Account_Func_9( 0xF4292244, 6, nAry[6], nAry[5], &nAry[2], nAry[4], nAry[3]);
+
+  Account_Func_9( 0x432AFF97, 0xA, nAry[13], nAry[4], &nAry[5], nAry[3], nAry[2]);
+
+  Account_Func_9( 0xAB9423A7, 0xF, nAry[20], nAry[3], &nAry[4], nAry[2], nAry[5]);
+
+  Account_Func_9( 0xFC93A039, 0x15, nAry[11], nAry[2], &nAry[3], nAry[5], nAry[4]);
+
+  Account_Func_9( 0x655B59C3, 6, nAry[18], nAry[5], &nAry[2], nAry[4], nAry[3]);
+
+  Account_Func_9( 0x8F0CCC92, 0xA, nAry[9], nAry[4], &nAry[5], nAry[3], nAry[2]);
+
+  Account_Func_9( 0xFFEFF47D, 0xF, nAry[16], nAry[3], &nAry[4], nAry[2], nAry[5]);
+
+  Account_Func_9( 0x85845DD1, 0x15, nAry[7], nAry[2], &nAry[3], nAry[5], nAry[4]);
+
+  Account_Func_9( 0x6FA87E4F, 6, nAry[14],  nAry[5], &nAry[2], nAry[4], nAry[3]);
+
+  Account_Func_9( 0xFE2CE6E0, 0xA, nAry[21], nAry[4], &nAry[5], nAry[3], nAry[2]);
+
+  Account_Func_9( 0xA3014314, 0xF, nAry[12], nAry[3], &nAry[4], nAry[2], nAry[5]);
+
+  Account_Func_9( 0x4E0811A1, 0x15, nAry[19], nAry[2], &nAry[3], nAry[5], nAry[4]);
+
+  Account_Func_9( 0xF7537E82, 6, nAry[10], nAry[5], &nAry[2], nAry[4], nAry[3]);
+
+  Account_Func_9( 0xBD3AF235, 0xA, nAry[17], nAry[4], &nAry[5], nAry[3], nAry[2]);
+
+  Account_Func_9( 0x2AD7D2BB, 0xF, nAry[8], nAry[3], &nAry[4], nAry[2], nAry[5]);
+
+  Account_Func_9( 0xEB86D391, 0x15, nAry[15], nAry[2], &nAry[3], nAry[5], nAry[4]);
+
+  //////////////////////////////////////////////////////////////////////
+
+  *(DWORD*)pEdx += nAry[2];
+  *(DWORD*)(pEdx + 4) += nAry[3];
+  *(DWORD*)(pEdx + 8) += nAry[4];
+  *(DWORD*)(pEdx + 0xC) += nAry[5];
+}
+
+void Struct_Edit_2(int nEax, int nEdx, int nEcx)
+{
+  int i;
+  DWORD dwTemp;
+  for ( i = nEcx; i != 0; --i )
+  {
+    *(char*)nEdx = *(char*)nEax;
+
+    nEdx += 1;
+    dwTemp = *(DWORD*)nEax;
+    dwTemp >>= 8;
+    *(char*)nEdx = char(dwTemp);
+
+    nEdx += 1;
+    dwTemp = *(DWORD*)nEax;
+    dwTemp >>= 16;
+    *(char*)nEdx = char(dwTemp);
+
+    nEdx += 1;
+    dwTemp = *(DWORD*)nEax;
+    dwTemp >>= 24;
+    *(char*)nEdx = char(dwTemp);
+
+    nEax += 4;
+
+  }
+}
+
+//pv1 = eax, pv2 = edx, nLenth = ecx
+void Struct_Edit_1(char* pv1, char* pv2,int nLenth)
+{
+  int v2 = (*(DWORD*)(pv1 + 16) >> 3) & 0x3F;
+  *(DWORD*)(pv1 + 16) += 8 * nLenth;
+  if ( 8 * nLenth > *(DWORD*)(pv1 + 16) )
+    ++*(DWORD*)(pv1 + 20);
+  *(DWORD*)(pv1 + 20) += nLenth >> 29;
+  int v5 = 64 - v2;
+  if ( v5 <= nLenth )
+  {
+    memcpy((void*)(pv1 + v2 + 0x18),pv2,v5);
+    Struct_Account(pv1, pv1+0x18);
+    while ( nLenth > v5 + 63 )
+    {
+      Struct_Account(pv1, pv2 + v5);
+      //ary_account();
+      v5 += 64;
+    }
+    v2 = 0;
+  }
+  else
+  {
+    v5 = 0;
+  }
+  memcpy(pv1+v2+0x18, pv2+v5, nLenth - v5);
+
+}
+
+int g_nAry[64] = {0x80};
+
+void Matrix_Account(tagKey& pSt,int* pAry)
+{
+  int v7[2] = {0};
+
+  int v4 = (int)pAry;
+  int v3 = (int)&pSt;
+  Struct_Edit_2((int)&pSt.nUnknow_5, (int)&v7, 2);
+  int v2 = (*(DWORD*)(&pSt.nUnknow_5) >> 3) & 0x3F;
+  unsigned int v5;
+  if ( (unsigned int)v2 >= 0x38 )
+    v5 = 120 - v2;
+  else
+    v5 = 56 - v2;
+  Struct_Edit_1((char*)v3, (char*)&g_nAry, v5);
+  Struct_Edit_1((char*)v3, (char*)&v7, 8u);
+  Struct_Edit_2(v3, v4, 4);
+}
+
+//第三次 key 运算
+void Account_Key_3(string& sRealKey, string sKey)
+{
+  string sTempKey;
+  int nLenth = sKey.length();
+  int n;
+  for ( n = 0; n < nLenth; n++)
+  {
+    switch (sKey[n])
+    {
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9':
+      sTempKey += sKey[n];
+      break;
+    default:
+      break;
+    }
+  }
+
+  nLenth = sTempKey.length();
+  if ( nLenth > 0)
+  {
+    int nTemp = 1;
+    char* pTempKey = (char*)sTempKey.c_str();
+    do 
+    {
+      if ( (nTemp % 2) == 0 )
+      {
+        char c = *(char*)(pTempKey + nTemp - 1);
+        sRealKey += c;
+      }
+      nTemp++;
+      nLenth--;
+    } while (nLenth);
+  }
+}
+
+void Account_Key_2(string& sKey, char* pAry)
+{
+   
+  for (int n = 0; n < 16; n++)
+  {
+    char buffer[5] = {0};
+    sprintf_s(buffer,"%02x",unsigned char(pAry[n]));
+    sKey += buffer;
+  }
+}
+
+//第一次 key 运算
+void Account_Key_1(string sId, int* pAry)
+{
+  //初始化结构体
+  tagKey stKey = {0x61234509,0xEFCD5B89,0x13BA7CFE,0x18325476,0,0,""};
+  int nLenth = sId.length();
+  Struct_Edit_1((char*)&stKey,(char*)sId.c_str(),nLenth);
+  Matrix_Account(stKey,pAry);
+  memcpy(pAry, &stKey, 16);
+
+}
+
+void Account_Key(string sId,string& sRealKey)
+{
+  int nAry[16] = {0};
+  Account_Key_1(sId, nAry);
+  string si2a;
+  Account_Key_2(si2a,(char*)&nAry);
+  Account_Key_3(sRealKey,si2a);
+}
+
+int _tmain(int argc, _TCHAR* argv[])
+{
+  cout << "please enter machine id:";
+
+  char szId[40] ={0};
+  cin >> szId;
+  string sId = szId;
+  string sRealKey;
+  try
+  {
+    Account_Key(sId,sRealKey);
+    cout << '\n' << "SN:" << sRealKey.c_str() << '\n';
+  }
+  catch(...)
+  {
+    cout << "error" << endl;
+  }
+  return 0;
+}
+
+```
