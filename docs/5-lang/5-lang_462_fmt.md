@@ -1,0 +1,231 @@
+
+# InstallShield Pro 5
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum987.htm`](https://www.pediy.com/kssd/pediy03/forum987.htm)
+
+## InstallShield Pro 5 Build 221 for Win95
+
+Crack InstallShield International East build 224
+
+1\. 执行从 `InstallShield` ftp 下载的软件包（约 20MB）：
+
+```
+ftp://ftp.installshield.com/is5/intl/east/pftw/is5east.exe
+```
+
+2\. 在密码输入界面启动 `soft-ice`。清除其他所有断点，然后设置 `bpx USER32!GetWindowTextA`。
+
+3\. 退出 `soft-ice`。在密码编辑框中按任意键。
+
+4\. `soft-ice` 将在 `GetWindowTextA` 处触发。
+
+5\. 输入 `p ret` 跳出该过程。此时应停止在以下位置：
+
+```
+00403719    mov    edx, [0040ef90] ; edx->input buffer
+                push    edx           ; PARAMETER_1
+                call    00401090      ; checksum procedure
+                mov    edx, [0040ea88] ; ideal value of return
+                add    esp, 4        ; stack fixup ... late
+                xor    ecx, ecx      ; zero ecx
+                cmp    eax, edx      ; eax = edx?
+                setz    cl            ; yes, cl = 1; no, cl = 0
+                mov    eax, ecx
+                pop    ebp           ; stack frame
+                ret                 ; return in eax
+```
+
+前一条指令是调用 `GetWindowTextA`。
+
+6\. 如上所示，`00401090` 处的过程是我们正在寻找的。它接受一个参数：密码字符串的地址。经过一些处理后，它会在 `eax` 中返回一个由字符串计算出的值。为了便于阅读，以下展示的是该过程的伪代码，而非汇编代码。
+
+```
+accumulation = 0xf143ac
+do
+    ch = *lpPassword++;
+    if (ch == '\0') break;
+    accumulation += 2 * ch;
+loop
+accumulation xor 0x51993;
+return accumulation;
+```
+
+7\. 累加值返回后，程序将其与理想值进行比较。在本例中，该理想值为 `0xF44F75`，存储在地址 `0040ea88`。
+
+8\. 因此，我们可以计算 XOR 之前的累加值，即 `F156E6`。减去初始值 `F143AC`，即可得到循环中添加的值。根据伪代码，添加的值是密码字符串校验和的两倍，即 `0x133a`。
+
+9\. 由于每个字符都按其值的两倍累加，因此密码的实际校验和为 `0x133a / 2 = 0x99d`。
+
+10\. 通过使用一个基本程序来计算校验和，我决定使用 `"asdfasdfasdfasdfasdfasdO"`（5 次 `'asdf'` 加上 `'asd'` 和 `'O'`，区分大小写）作为密码。最后的 `'O'` 只是一个修正值。没有什么特别的。你可以使用任何类似的方法，将你的自定义密码累加到所需的值，用于 `InstallShield International East 5 build 224`。
+
+\* 上述破解技术可应用于 `PackageForTheWeb` 2.00.200 软件包。
+
+## 66、InstallShield Pro 5 Build 221 for Win95
+
+### How to find the password of IS5P221.exe(InstallShield PrfessionalEdition 5.0, build 221)
+
+=========================================================
+
+工具：
+
+1. `SoftIce for NT`。
+2. `Windows NT Workstation 4.0`（英文版本，build 1381 带有 service pack 3）
+
+让我们开始：
+
+运行 `Is5P221.exe`，在关于界面之后，它会要求输入密码以继续。在密码对话框下方，在你输入正确的密码之前，`'Finish'` 按钮将是禁用的。
+
+那么，让我们思考如何找到正确的密码。当我们输入一个字符时，软件包必须将我们输入的字符与正确的密码进行比较。
+
+所以让我们开始：
+
+首先，在密码字段中输入任意数量的字符，例如 `'121212'`，然后按 `Ctrl-D` 切换到 `softice`，输入：
+
+```
+:bpx getwindowtexta
+:Ctrl-D
+```
+
+现在我们回到密码对话框，在密码字段中输入另一个 `'1'`，`softice` 将在 `User32!GetWindowTextA` 处弹出，按 `F12` 返回 `is5p221`。现在，我们尝试搜索栈以找到我们输入的密码：
+
+```
+:s ss:0 lffffffff '121212'
+```
+
+Pattern find at xxxx:01800820
+
+我们需要在任何读取此区域的代码处设置断点，因此输入：
+
+```
+:bpm 018000820 r
+```
+
+按 `F5` 继续运行，`SoftIce` 将在 `KERNEL!CompareStringA` 处弹出：
+
+```
+:77f2b318    mov al, [esi]
+:77f2b31a    cmp [ebx], al  <--- softice pop up at here,
+                                  ebx equal to '01800820'
+:77f2b31c    jnz 77f2b325    <--- if not equal, incorrect password, jump away
+:77f2b31e    inc esi        <--- if equal, increment index
+:77f2b31f    inc ebx
+:77f2b320    cmp byte ptr[esi], 00  <--- test if this is the last character of
+                                           stored password
+:77f2b323    jnz 77f2b318    <--- compare with next character
+```
+
+OK，休息一下，抽支烟。我们找到了存储的密码，这就这么容易吗？
+
+转储 `[ebx]` 和 `[esi]` 处的数据：
+
+```
+:d ebx  <--- 你会看到你输入的密码。
+:d esi  <--- 你会看到存储的密码（我给你一个提示，存储的密码是 "dol???????"，自己试着找出来）
+```
+
+将找到的存储密码写在纸上，然后禁用所有断点：
+
+```
+:bd *
+:Ctrl-D
+```
+
+我们再次回到密码对话框，擦除错误的密码，在密码字段中输入你找到的存储密码，`'Finish'` 按钮将变为可用。
+
+现在，让我们思考如何快速破解这种类型的应用程序？
+
+答案是：
+
+1. 运行这种类型的程序。
+2. 在密码字段中输入任意数量的字符。
+3. 切换到 `SoftIce`。
+4. 通过以下命令在 `KERNEL32!CompareStringA` 处设置断点：
+   ```
+   :bpx CompareStringA
+   ```
+5. 重新运行程序并在密码字段中再输入一个字符。
+6. `softice` 将在 `KERNEL32!CompareStringA` 处弹出。
+7. 单步执行代码，直到停在 `"jnz 77f2b325"`：
+
+   ```
+   :77f2b318      mov al, [esi]
+   :77f2b31a      cmp [ebx], al  <--- softice pop up at here,
+                                       ebx equal to '01800820'
+   :77f2b31c      jnz 77f2b325    <--- if not equal, incorrect password, jump away
+   :77f2b31e      inc esi        <--- if equal, increment index
+   :77f2b31f      inc ebx
+   :77f2b320      cmp byte ptr[esi], 00  <--- test if this is the last character of
+                                                stored password
+   :77f2b323      jnz 77f2b318    <--- compare with next character
+   ```
+
+8. 转储 `[esi]` 指向的数据，你将得到存储的密码。
+
+---
+
+这是很有深度的思考，不过既然要能对所有的密码保护都能所向无敌，应该从密码保护程式设计的角度去观察。当然在做更深入的探讨之前，我赶忙去下载了一份 `InstallShield Pro 5 Build 221`。我以后的软体会用得到。
+
+那麽，这类的边输入边查核的密码保护到底还可以用什麽方式作出来呢？有没有办法不透过 `GetWindowText` 就可以取得使用者在编辑窗的输入呢？答案是肯定的，事实上，有许多方法可以达成。其一，可以以 `SendMessage EM_GETLINE` 拷贝缓冲区。其二，直接利用 `SendMessage EM_SETHANDLE` 指定缓冲区给编辑窗，直接从自己的缓冲区读输入。甚或是直接 `Subclass` 或 `Hook` 编辑窗，直接一个字一个字自己组合起来。前两种范例，都可以利用 `soft-ice` `search` 的功能，再设定 `BPR` (Breakpoint on Range，中断於一记忆体范围) 的 breakpoint 达成拦截，唯最後一者比较棘手，可能要找出 `subclass` 或 `hook` 的程序才加以 breakpoint，并要过滤出 `WM_CHAR` 或相关可以取得使用者输入字元的讯息。头皮发麻了吧？
+
+好吧，来谈谈处理输入、判定密码的问题。一个程式，其实要做密码的判断并不难。可是不知道怎麽搞的，许多程式一窝蜂的使用系统呼叫。其实下列不出 32 bytes 的组合语言片段即可做字串比较。
+
+```
+; 假设 ds=es
+    mov esi, offset 字串 1
+    mov edi, offset 字串 2
+    mov ecx, 字串长度
+    repe cmpsb
+```
+
+
+
+    `jne` 字串不相同
+
+; 字串相同
+
+也可以搞得复杂一点，如下所示，既有简易密码保护，也有简易流程保护：
+
+; 假设 `ds=es`
+
+    `xor ecx, ecx`    ; `ecx=0`
+    `xor ebx, ebx`    ; `ebx=0`
+    `mov ebp, offset 字串 1` ; 密码值
+    `mov esi, offset 字串 2` ; 输入值
+
+`fetch_one_dword:`
+
+    ; 如果索性跳过这一行，会造成堆叠损毁
+    `push dword ptr ds:[ebp + cx]`    ; 可能也可以用 `byte ptr` 吧？我不确定。
+    `pop eax`
+    `xor eax, 55aa55aah`    ; 简易编码过的密码值，再 `xor` 一次以还原
+    `cmp eax, dword ptr [esi + cx]`
+    `jnz password_error`
+    `add ebx, eax`    ; `ebx += eax`
+    `add ecx, 4`
+    `cmp ecx, 字串长度`
+    `jnb done`
+    `jmp short fetch_one_dword`
+
+`done:`
+
+    ; 先把使用者的输入字串和计算好，在此略
+    `call calc_checksum`    ; `esi = 字串 2`, 传回: `eax = checksum`
+    `cmp eax, ebx`             ; 如果你试着要跳过前面的 `cmp` 的话
+    `jne password_error`    ; `ebx` 得到的 `checksum` 在此会不同
+    ; 密码答对了，有奖！
+
+流程保护是指，不论如何，一定要完全检查过密码就是了。不然有得瞧！
+
+当然，也有更高段的保护的。这里示范的只是一个概念，并无意要出题考各位破解的功力。这里我还想得到的保护，还有利用 `soft-ice` 的死角。概念是，因为 `soft-ice` 只能为单一执行绪除错，其他的不是被终止，就是在你执行系统呼叫时才偷偷执行，你无法一次除错或确实终止多重执行绪，所以我就想到利用建立另一个执行绪来帮我比较密码的概念。
+
+嗯，能跟我跟到这里，也要谢谢您的耐心，我希望诸君都一个字一个字地看过一遍，因为我有些句子浓缩了不少（打完字後才发现）。不过我衷心的希望这多多少少对您有帮助。
+
+`--`
+
+Robin Hood
+
+ICQ UIN: 1311717
+
+`mailto:robin.hood@ibm.net`
+
+`-----------------------------------  4dd466d0e1e0cc123afbe504da2462ca`

@@ -1,0 +1,637 @@
+
+# VB Decompiler 暴破 VB P-Code 某背单词软件
+
+> 原文：[`www.pediy.com/kssd/pediy11/109680.html`](https://www.pediy.com/kssd/pediy11/109680.html)
+
+**【文章标题】**: `VB Decompiler` 暴破 `VB P-Code` 某背单词软件
+
+**【软件名称】**: 某背单词软件
+
+**【软件大小】**: `1.14 MB`
+
+**【下载地址】**: 自己搜索下载
+
+**【加壳方式】**: `UPX 0.80 - 0.84 -> Markus & Laszlo`
+
+**【保护方式】**: 壳；字符串加密，注册信息存放加密数据库中
+
+**【编写语言】**: `Microsoft Visual Basic 5.0 / 6.0 (P-code)`
+
+**【使用工具】**: `FFI`，`SmartCheck`，`VB Decompiler V5.0`，`WKTVBDE` (只用到 Help 文件)
+
+**【操作平台】**: `Win32`
+
+**【软件介绍】**: 使用全新记忆理念精心打造的一款高效速记背单词软件
+
+**【作者声明】**: 菜鸟一个，只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
+
+---
+
+## 详细过程
+
+`File Format Identifier (FFI) v1.4` 检测为：`UPX 0.80 - 0.84 -> Markus & Laszlo`
+
+直接 Unpack 得到的 `.EXE` 大小为：`3.49 MB`
+
+`FFI v1.4` 再次检测为：`Microsoft Visual Basic 5.0 / 6.0`
+
+`VB Decompiler V7.6` 无法正常反编译，改用 `VB Decompiler V 5.0 (gold7n)` 修改版能正常反编译
+
+`SmartCheck` 加载，大致了解下程序的运行过程，直接在 `VB Decompiler` 中定位可疑关键点。
+
+```
+代码:
+```
+
+
+
+### Private Sub Form_Load() '7143AC '主窗体加载过程
+
+```vb
+    'Data Table: 44F88C
+    loc_713128: On Error Goto loc_71436E
+    loc_713130: Me.global_224 = &HFF
+    loc_713138: Me.global_226 = 0
+    loc_713143: var_90 = Unknown_647DF0("FMGO", Me.global_226)
+    loc_713146: var_90 = "" 'Ignore this
+    loc_71314C: NewIfNullPr frmHello 'Ignore this
+    loc_71314F: Call frmHello.Loading()
+    loc_713154: DoEvents
+    loc_713161: var_90 = Unknown_647DF0("FMLV")
+    loc_713164: var_90 = "" 'Ignore this
+    loc_713167: var_A4 = "Plan"
+    loc_71316C: PopAdLdVar 'Ignore this
+    loc_713171: var_B8 = Me 'Ignore this
+    loc_713177: LateIdCallLdVar
+    loc_713181: PopAd 'Ignore this
+    loc_713189:   'Ignore this
+    loc_71318D: var_130 = CVar(var_C8) 'Address
+    loc_7131AA: var_CC = Me 'Ignore this
+    loc_7131B0: 0 = frmHello 0, %x2 'Ignore this
+    loc_7131BF:   'Ignore this
+    loc_7131C3: var_134 = tmrMouse.DispID_4 'Ignore this
+    loc_7131C9: Me.ListImages.Add var_D0, 1, ""
+    loc_7131CE: var_B8 = "": var_CC = "": var_D0 = "": var_134 = "" = "" 'Ignore this
+    loc_7131E8: var_A4 = "Finish"
+    loc_7131ED: PopAdLdVar 'Ignore this
+    loc_7131F2: var_B8 = Me 'Ignore this
+    loc_7131F8: LateIdCallLdVar
+    loc_713202: PopAd 'Ignore this
+    loc_71320A:   'Ignore this
+    loc_71320E: var_130 = CVar("": var_E0 = "": var_100 = "": var_120 = "" = "") 'Address
+    loc_71322B: var_CC = Me 'Ignore this
+    loc_713231: 0 = Me 0, %x2 'Ignore this
+    loc_713240:   'Ignore this
+    loc_713244: var_134 = tmrMouse.DispID_4 'Ignore this
+    loc_71324A: Me.ListImages.Add var_D0, 2, ""
+    loc_71324F: var_B8 = "": var_CC = "": var_D0 = "": var_134 = "" = "" 'Ignore this
+    loc_713269: var_A4 = "Deleted"
+    loc_71326E: PopAdLdVar 'Ignore this
+    loc_713273: var_B8 = Me 'Ignore this
+    loc_713279: LateIdCallLdVar
+    loc_713283: PopAd 'Ignore this
+    loc_71328B:   'Ignore this
+    loc_71328F: var_130 = CVar("": var_E0 = "": var_100 = "": var_120 = "" = "") 'Address
+    loc_7132AC: var_CC = Me 'Ignore this
+    loc_7132B2: 0 = Me 0, %x2 'Ignore this
+    loc_7132C1:   'Ignore this
+    loc_7132C5: var_134 = tmrMouse.DispID_4 'Ignore this
+    loc_7132CB: Me.ListImages.Add var_D0, 3, ""
+    loc_7132D0: var_B8 = "": var_CC = "": var_D0 = "": var_134 = "" = "" 'Ignore this
+    loc_7132EA: var_A4 = "Star"
+    loc_7132EF: PopAdLdVar 'Ignore this
+    loc_7132F4: var_B8 = Me 'Ignore this
+    loc_7132FA: LateIdCallLdVar
+    loc_713304: PopAd 'Ignore this
+    loc_71330C:   'Ignore this
+    loc_713310: var_130 = CVar("": var_E0 = "": var_100 = "": var_120 = "" = "") 'Address
+    loc_71332D: var_CC = Me 'Ignore this
+    loc_713333: 0 = Me 0, %x2 'Ignore this
+    loc_713342:   'Ignore this
+    loc_713346: var_134 = tmrMouse.DispID_4 'Ignore this
+    loc_71334C: Me.ListImages.Add var_D0, 4, ""
+    loc_713351: var_B8 = "": var_CC = "": var_D0 = "": var_134 = "" = "" 'Ignore this
+    loc_71336B: var_A4 = "OldPlan"
+    loc_713370: PopAdLdVar 'Ignore this
+    loc_713375: var_B8 = Me 'Ignore this
+    loc_71337B: LateIdCallLdVar
+    loc_713385: PopAd 'Ignore this
+    loc_71338D:   'Ignore this
+    loc_713391: var_130 = CVar("": var_E0 = "": var_100 = "": var_120 = "" = "") 'Address
+    loc_7133AE: var_CC = Me 'Ignore this
+    loc_7133B4: 0 = Me 0, %x2 'Ignore this
+    loc_7133C3:   'Ignore this
+    loc_7133C7: var_134 = tmrMouse.DispID_4 'Ignore this
+    loc_7133CD: Me.ListImages.Add var_D0, 5, ""
+    loc_7133D2: var_B8 = "": var_CC = "": var_D0 = "": var_134 = "" = "" 'Ignore this
+    loc_7133EC: var_A4 = "StarNo"
+    loc_7133F1: PopAdLdVar 'Ignore this
+    loc_7133F6: var_B8 = Me 'Ignore this
+    loc_7133FC: LateIdCallLdVar
+    loc_713406: PopAd 'Ignore this
+    loc_71340E:   'Ignore this
+    loc_713412: var_130 = CVar("": var_E0 = "": var_100 = "": var_120 = "" = "") 'Address
+    loc_71342F: var_CC = Me 'Ignore this
+    loc_713435: 0 = Me 0, %x2 'Ignore this
+    loc_713444:   'Ignore this
+    loc_713448: var_134 = tmrMouse.DispID_4 'Ignore this
+    loc_71344E: Me.ListImages.Add var_D0, 6, ""
+    loc_713453: var_B8 = "": var_CC = "": var_D0 = "": var_134 = "" = "" 'Ignore this
+    loc_713460: var_C8 = "": var_E0 = "": var_100 = "": var_120 = "" = "" 'Ignore this
+    loc_713476: var_B8 = Me 'Ignore this
+    loc_71347C: 0 = Me 0, %x2 'Ignore this
+    loc_713484: var_C8 = CVar(var_CC) 'Address
+    loc_713488: PopAdLdVar 'Ignore this
+    loc_713489: VerifyVarObj
+    loc_71348F: var_D0 = Me 'Ignore this
+    loc_713495: LateIdStAd
+    loc_71349D: var_B8 = "" = "" 'Ignore this
+    loc_7134B3: var_B8 = Me 'Ignore this
+    loc_7134C5: CLng(tmrMouse.DispID_FFFFFDFD) = Unknown_6565B0(&HB, var_D0, "", var_CC)
+    loc_7134CA: var_B8 = vbNull 'Ignore this
+    loc_7134D0: var_A4 = "WordList"
+    loc_7134D5: PopAdLdVar 'Ignore this
+    loc_7134DA: var_B8 = Me 'Ignore this
+    loc_7134E0: LateIdCallLdVar
+    loc_7134EA: PopAd 'Ignore this
+    loc_7134F2:   'Ignore this
+    loc_7134F6: var_130 = CVar("") 'Address
+    loc_713513: var_CC = Me 'Ignore this
+    loc_713519: 1 = Me 1, %x2 'Ignore this
+    loc_713528:   'Ignore this
+    loc_71352C: var_134 = tmrMouse.DispID_4 'Ignore this
+    loc_713532: Me.ListImages.Add var_D0, 1, ""
+    loc_713537: var_B8 = "": var_CC = "": var_D0 = "": var_134 = "" = "" 'Ignore this
+    loc_713551: var_A4 = "Mean"
+    loc_713556: PopAdLdVar 'Ignore this
+    loc_71355B: var_B8 = Me 'Ignore this
+    loc_713561: LateIdCallLdVar
+    loc_71356B: PopAd 'Ignore this
+    loc_713573:   'Ignore this
+    loc_713577: var_130 = CVar("": var_E0 = "": var_100 = "": var_120 = "" = "") 'Address
+    loc_713594: var_CC = Me 'Ignore this
+    loc_71359A: 1 = Me 1, %x2 'Ignore this
+    loc_7135A9:   'Ignore this
+    loc_7135AD: var_134 = tmrMouse.DispID_4 'Ignore this
+    loc_7135B3: Me.ListImages.Add var_D0, 2, ""
+    loc_7135B8: var_B8 = "": var_CC = "": var_D0 = "": var_134 = "" = "" 'Ignore this
+    loc_7135D2: var_A4 = "Spell"
+    loc_7135D7: PopAdLdVar 'Ignore this
+    loc_7135DC: var_B8 = Me 'Ignore this
+    loc_7135E2: LateIdCallLdVar
+    loc_7135EC: PopAd 'Ignore this
+    loc_7135F4:   'Ignore this
+    loc_7135F8: var_130 = CVar("": var_E0 = "": var_100 = "": var_120 = "" = "") 'Address
+    loc_713615: var_CC = Me 'Ignore this
+    loc_71361B: 1 = Me 1, %x2 'Ignore this
+    loc_71362A:   'Ignore this
+    loc_71362E: var_134 = tmrMouse.DispID_4 'Ignore this
+    loc_713634: Me.ListImages.Add var_D0, 3, ""
+    loc_713639: var_B8 = "": var_CC = "": var_D0 = "": var_134 = "" = "" 'Ignore this
+    loc_713653: var_A4 = "Audition"
+    loc_713658: PopAdLdVar 'Ignore this
+    loc_71365D: var_B8 = Me 'Ignore this
+    loc_713663: LateIdCallLdVar
+    loc_71366D: PopAd 'Ignore this
+    loc_713675:   'Ignore this
+    loc_713679: var_130 = CVar("": var_E0 = "": var_100 = "": var_120 = "" = "") 'Address
+    loc_713696: var_CC = Me 'Ignore this
+    loc_71369C: 1 = Me 1, %x2 'Ignore this
+    loc_7136AB:   'Ignore this
+    loc_7136AF: var_134 = tmrMouse.DispID_4 'Ignore this
+    loc_7136B5: Me.ListImages.Add var_D0, 4, ""
+    loc_7136BA: var_B8 = "": var_CC = "": var_D0 = "": var_134 = "" = "" 'Ignore this
+    loc_7136D4: var_A4 = "Browse"
+    loc_7136D9: PopAdLdVar 'Ignore this
+    loc_7136DE: var_B8 = Me 'Ignore this
+    loc_7136E4: LateIdCallLdVar
+    loc_7136EE: PopAd 'Ignore this
+    loc_7136F6:   'Ignore this
+    loc_713717: var_CC = Me 'Ignore this
+    loc_71371D: 1 = Me 1, %x2 'Ignore this
+    loc_71372C:   'Ignore this
+    loc_713730: var_134 = tmrMouse.DispID_4 'Ignore this
+    loc_713736: Me.ListImages.Add var_D0, 5, ""
+    loc_71373B: var_B8 = "": var_CC = "": var_D0 = "": var_134 = "" = "" 'Ignore this
+    loc_713748: var_C8 = "": var_E0 = "": var_100 = "": var_120 = "" = "" 'Ignore this
+    loc_71375E: var_B8 = Me 'Ignore this
+    loc_713764: 1 = Me 1, %x2 'Ignore this
+    loc_71376C: var_C8 = CVar(var_CC) 'Address
+    loc_713770: PopAdLdVar 'Ignore this
+    loc_713775: var_D0 = Me 'Ignore this
+    loc_713780: var_B8 = "" = "" 'Ignore this
+    loc_713792: var_90 = Unknown_647DF0("FMSI", tmrMouse.DispID_68030010, "", var_CC)
+    loc_713795: var_90 = "" 'Ignore this
+    loc_71379B: NewIfNullPr Clocker 'Ignore this
+    loc_71379E: SetPropA
+    loc_7137B1: PopAdLdVar 'Ignore this
+    loc_7137B5: NewIfNullPr Me 'Ignore this
+    loc_7137B8: Call {FCFB3D22-A0FA-1068-A73808002B3371B5}.Method_arg_34 (101, CInt(2), var_B8)
+    loc_7137C7: var_D0 = Me 'Ignore this
+    loc_7137CD: Me.label.Mouseicon = var_B8
+    loc_7137D2: var_CC = "" = "" 'Ignore this
+    loc_7137E0: var_B8 = Me 'Ignore this
+    loc_7137F5: var_134 = Me 'Ignore this
+    loc_7137FB: Me.label.Mouseicon = Me.label.Mouseicon
+    loc_713800: var_B8 = "": var_D0 = "" = "" 'Ignore this
+    loc_713810: var_B8 = Me 'Ignore this
+    loc_713825: var_134 = Me 'Ignore this
+    loc_71382B: Me.label.Mouseicon = Me.label.Mouseicon
+    loc_713830: var_B8 = "": var_D0 = "" = "" 'Ignore this
+    loc_713840: var_B8 = Me 'Ignore this
+    loc_713855: var_134 = Me 'Ignore this
+    loc_71385B: Me.Image.Mouseicon = Me.label.Mouseicon
+    loc_713860: var_B8 = "": var_D0 = "" = "" 'Ignore this
+    loc_71386E: PopAdLdVar 'Ignore this
+    loc_713879: LateIdCallLdVar
+    loc_713883:   'Ignore this
+    loc_713896: var_CC = Me 'Ignore this
+    loc_7138A3:   'Ignore this
+    loc_7138A7: var_D0 = tmrMouse.DispID_3 'Ignore this
+    loc_7138AD: Call {2C787A50-E01C-11CF-8E7400A0C90F26F8}.Method_arg_24 (1, var_134, Me, "LogoIco")
+    loc_7138B5: Me.Panel.Picture = CVar("": var_E0 = "": var_100 = "": var_120 = "" = "")
+    loc_7138BA: var_B8 = "": var_CC = "": var_D0 = "": var_138 = "" = "" 'Ignore this
+    loc_7138C7: var_C8 = "": var_E0 = "" = "" 'Ignore this
+    loc_7138D5: PopAdLdVar 'Ignore this
+    loc_7138E0: LateIdCallLdVar
+    loc_7138EA:   'Ignore this
+    loc_7138FD: var_CC = Me 'Ignore this
+    loc_71390A:   'Ignore this
+    loc_71390E: var_D0 = tmrMouse.DispID_3 'Ignore this
+    loc_713914: Call {2C787A50-E01C-11CF-8E7400A0C90F26F8}.Method_arg_24 (3, var_134, Me)
+    loc_71391C: Me.Panel.Picture = "LogoIco"
+    loc_713921: var_B8 = "": var_CC = "": var_D0 = "": var_138 = "" = "" 'Ignore this
+    loc_71392E: var_C8 = "": var_E0 = "" = "" 'Ignore this
+    loc_713937: var_A4 = "Edit"
+    loc_71393C: PopAdLdVar 'Ignore this
+    loc_713947: LateIdCallLdVar
+    loc_713951:   'Ignore this
+    loc_713955: var_E0 = CVar(Me) 'Address
+    loc_713959: PopAdLdVar 'Ignore this
+    loc_71395A: VerifyVarObj
+    loc_713960: var_CC = Me 'Ignore this
+    loc_713966: LateIdStAd
+    loc_71396E: var_B8 = "" = "" 'Ignore this
+    loc_713975: var_C8 = "" = "" 'Ignore this
+    loc_71397C: var_A4 = "Info"
+    loc_713981: PopAdLdVar 'Ignore this
+    loc_71398C: LateIdCallLdVar
+    loc_713996:   'Ignore this
+    loc_71399A: var_E0 = CVar(Me) 'Address
+    loc_71399E: PopAdLdVar 'Ignore this
+    loc_71399F: VerifyVarObj
+    loc_7139A5: var_CC = Me 'Ignore this
+    loc_7139AB: LateIdStAd
+    loc_7139B3: var_B8 = "" = "" 'Ignore this
+    loc_7139BA: var_C8 = "" = "" 'Ignore this
+    loc_7139C7: NewIfNullPr Clocker 'Ignore this
+    loc_7139CA: GetPropHsz
+                If (var_13C > &H2140) Then '7139E2
+    loc_7139DD:   &HFF = Unknown_6A29E4(var_13C, var_CC, var_E0, var_A4)
+                End If
+    loc_713A06: Me.global_96 = Me.Caption & " (" & "???" & ")"
+    loc_713A0A: var_90 = "": var_144 = "": var_148 = "" = "" 'Ignore this
+    loc_713A1B: NewIfNullPr Clocker 'Ignore this
+    loc_713A1E: GetPropHsz
+                If (var_13C > &H2910) Then '713A36
+    loc_713A31:   &HFF = Unknown_6A29E4(var_13C, var_CC, var_E0)
+                End If
+    loc_713A3E: var_90 = Unknown_647DF0("FMTR", var_A4)
+    loc_713A41: var_90 = "" 'Ignore this
+    loc_713A4A: NewIfNullPr Clocker 'Ignore this
+    loc_713A4D: GetPropHsz
+                If (var_13C > &H38B0) Then '713A65
+    loc_713A60:   &HFF = Unknown_6A29E4(var_13C)
+                End If
+    
+                If Not(Unknown_62DF78(var_A4)) Then '713B07 '未注册激活版，标题显示 未激活。关键可疑过程“Unknown_62DF78”
+    loc_713A7A:   var_B8 = Me 'Ignore this
+    loc_713A80:   Me.label.Caption = Unknown_685B34()
+    loc_713A85:   var_90 = "" 'Ignore this
+    loc_713A88:   var_B8 = vbNull 'Ignore this
+    loc_713AA8:   var_B8 = Me 'Ignore this
+    loc_713AAE:   Me.Menu.Caption = Unknown_6B5A48("5wQwWGt7WUUmmyT5vyxf5w1WlozK5GtyPVZ9qgpr9PLZAjs") '字符串均作了加密处理
+    loc_713AB3:   var_90 = "" = "" 'Ignore this
+    loc_713ABA:   var_B8 = vbNull 'Ignore this
+    loc_713AE3:   Me.global_96 = Me.global_96 & Unknown_6B5A48("5SEFWwcuWw85", &H15A02)  '字符串均作了加密处理
+    loc_713AE7:   var_90 = "": var_144 = "" = "" 'Ignore this
+    loc_713AF6:   var_B8 = Me 'Ignore this
+    loc_713AFC:   Me.Menu.Enabled = 0
+    loc_713B01:   var_B8 = vbNull 'Ignore this
+    loc_713B04:   GoTo loc_713B75
+                End If
+    loc_713B0D: var_B8 = Me 'Ignore this
+    loc_713B13: Me.label.Visible = 0
+    loc_713B18: var_B8 = vbNull 'Ignore this
+    loc_713B38: var_B8 = Me 'Ignore this
+    loc_713B3E: Me.Menu.Caption = Unknown_6B5A48("5SloWGe7WpIomyx3vXbB5SrFl5TJ5S9noU0L5Gty", &H15A02)
+    loc_713B43: var_90 = "" = "" 'Ignore this
+    loc_713B4A: var_B8 = vbNull 'Ignore this
+    loc_713B53: var_B8 = Me 'Ignore this
+    loc_713B59: Me.Menu.Enabled = 0
+    loc_713B5E: var_B8 = vbNull 'Ignore this
+    loc_713B67: var_B8 = Me 'Ignore this
+    loc_713B6D: Me.Menu.Enabled = &HFF
+    loc_713B72: var_B8 = vbNull 'Ignore this
+    loc_713B75: ' Referenced from: 713B04
+    loc_713B7D: var_90 = Unknown_647DF0("FMSF")
+    loc_713B80: var_90 = "" 'Ignore this
+    loc_713B8A: Me.Caption = Me.global_96
+    loc_713B8F: Call SetFonts()
+    loc_713B99: Me.global_208 = 0
+    loc_713BA1: Me.global_92 = &HFF
+    loc_713BA9: Me.global_200 = 0
+    loc_713BB1: Me.global_112 = 0
+    loc_713BB9: Me.global_56 = 0
+    loc_713BC1: Me.global_114 = 0
+    loc_713BCA: NewIfNullPr Clocker 'Ignore this
+    loc_713BCD: GetPropHsz
+                If (var_13C > &H4850) Then '713BE5
+    loc_713BE0:   &HFF = Unknown_6A29E4(var_13C, Me.global_114, Me.global_56, Me.global_112)
+                End If
+    loc_713C0E: Me.global_60 = CInt(Unknown_6DB6CC("SpeechMode", 1, 0, &HFF))
+    loc_713C11: var_C8 = "" 'Ignore this
+    loc_713C18: var_B8 = Me 'Ignore this
+    loc_713C26: var_B8 = vbNull 'Ignore this
+    loc_713C29: var_A4 = True
+    loc_713C2C: PopAdLdVar 'Ignore this
+    loc_713C31: var_B8 = Me 'Ignore this
+    loc_713C3C: var_B8 = vbNull 'Ignore this
+    loc_713C69: Me.global_68 = CBool(Unknown_6DB6CC("ShowCover", 1, 0, &HFF))
+    loc_713C6C: var_C8 = "" 'Ignore this
+    loc_713C75: NewIfNullPr Clocker 'Ignore this
+    loc_713C78: GetPropHsz
+                If (var_13C > &H63A8) Then '713C90
+    loc_713C8B:   &HFF = Unknown_6A29E4(var_13C, Me.global_68, 0)
+                End If
+    loc_713CB5: var_164 = Unknown_6DB6CC("AutoSpeak", 1, 0, &HFF) 'Variant
+    loc_713CC1: HardType 'Ignore this
+                If Not (var_164 = -1) Then '713CD5
+    loc_713CCF:   HardType 'Ignore this
+                  If (var_164 = "True") Then '713CE0
+                  End If
+    loc_713CDA:   Me.global_62 = &HFF
+    loc_713CDD:   GoTo loc_713D1D
+                End If
+    loc_713CE8: HardType 'Ignore this
+                If Not (var_164 = 0) Then '713CFC
+    loc_713CF1:   var_B4 = "False"
+    loc_713CF6:   HardType 'Ignore this
+                  If (var_164 = var_B4) Then '713D07
+                  End If
+    loc_713D01:   Me.global_62 = 0
+    loc_713D04:   GoTo loc_713D1D
+                End If
+    loc_713D0F: HardType 'Ignore this
+                If (var_164 = 1) Then '713D1D
+    loc_713D1A:   Me.global_62 = 1
+    loc_713D1D:   ' Referenced from: 713CDD
+    loc_713D1D:   ' Referenced from: 713D04
+                End If
+    loc_713D56: Me.global_64 = CBool(Unknown_624854(Unknown_6DB6CC("AutoRepeat", 1, 0, &HFF), False, 0))
+    loc_713D59: var_C8 = "": var_E0 = "" = "" 'Ignore this
+    loc_713D6C: var_B8 = Me 'Ignore this
+    loc_713D72: Me.Menu.Checked = Me.global_64
+    loc_713D77: var_B8 = vbNull 'Ignore this
+    loc_713D80: CDargRef 0 'Ignore this
+    loc_713D88: var_B8 = Me 'Ignore this
+    loc_713D93: var_B8 = vbNull 'Ignore this
+    loc_713D9C: NewIfNullPr Clocker 'Ignore this
+    loc_713D9F: GetPropHsz
+                If (var_13C > &H7730) Then '713DB7
+    loc_713DB2:   &HFF = Unknown_6A29E4(var_13C, tmrMouse.DispID_68030019, Me.global_64, Me.global_64)
+                End If
+                For var_16C = 0 To 3: var_8C = var_16C 'Long
+    loc_713DE0:   var_B8 = Me 'Ignore this
+    loc_713DE6:   CInt(var_8C) = Me CInt(var_8C), %x2 'Ignore this
+    loc_713DEE:   Me.Menu.Checked = var_CC
+    loc_713DF3:   var_B8 = "" = "" 'Ignore this
+                Next var_16C 'Long
+                For var_174 = 0 To 2: var_8C = var_174 'Long
+    loc_713E31:   var_B8 = Me 'Ignore this
+    loc_713E37:   CInt(var_8C) = Me CInt(var_8C), %x2 'Ignore this
+    loc_713E3F:   Me.Menu.Checked = var_CC
+    loc_713E44:   var_B8 = "" = "" 'Ignore this
+                Next var_174 'Long
+    loc_713E5D: var_B8 = Me 'Ignore this
+    loc_713E63: Me.Menu.Checked = Me.global_68
+    loc_713E68: var_B8 = vbNull 'Ignore this
+    loc_713E87: HardType 'Ignore this
+    loc_713E92: var_B8 = Me 'Ignore this
+    loc_713E98: Me.Menu.Checked = CBool((Unknown_635190("chkPlayMusic") = 1))
+    loc_713E9D: var_90 = "" 'Ignore this
+    loc_713EA0: var_B8 = vbNull 'Ignore this
+    loc_713EA3: var_C8 = "" 'Ignore this
+    loc_713EB2: var_B8 = Me 'Ignore this
+    loc_713EB8: Me.Menu.Checked = (MemVar_728208 <> "")
+    loc_713EBD: var_B8 = vbNull 'Ignore this
+    loc_713EC9: var_A4 = (Me.global_62 = &HFF)
+    loc_713ECD: PopAdLdVar 'Ignore this
+    loc_713ED7: var_B8 = Me 'Ignore this
+    loc_713EDD: 1 = Me 1, %x2 'Ignore this
+    loc_713EEA: var_B8 = "" = "" 'Ignore this
+    loc_713EF1: var_A4 = "" 'Ignore this
+    loc_713EFB: var_B8 = Me 'Ignore this
+    loc_713F09: var_A4 = Me.Menu.Checked
+    loc_713F0D: PopAdLdVar 'Ignore this
+    loc_713F17: var_CC = Me 'Ignore this
+    loc_713F1D: 2 = Me 2, %x2 'Ignore this
+    loc_713F2A: var_B8 = "": var_CC = "" = "" 'Ignore this
+    loc_713F33: var_A4 = "" 'Ignore this
+    loc_713F3C: CDargRef 0 'Ignore this
+    loc_713F49: var_B8 = Me 'Ignore this
+    loc_713F4F: 3 = Me 3, %x2 'Ignore this
+    loc_713F5C: var_B8 = "" = "" 'Ignore this
+    loc_713F6B: var_90 = Unknown_647DF0("FMSS", tmrMouse.DispID_68030001, var_CC, Me.global_68)
+    loc_713F6E: var_90 = "" 'Ignore this
+    loc_713F75: var_B8 = Me 'Ignore this
+    loc_713F87: Me.global_212 = CDbl(tmrMouse.Width)
+    loc_713F8A: var_B8 = vbNull 'Ignore this
+    loc_713F8D: var_C8 = "" 'Ignore this
+    loc_713F90: Call ArrangeLearnFrames()
+    loc_713F95: Call ArrangeOptAns()
+    loc_713FA2: var_90 = Unknown_647DF0("FMGS", Me.global_212, tmrMouse.DispID_68030001)
+    loc_713FA5: var_90 = "" 'Ignore this
+    loc_713FE9: Me.Width = CDbl(Unknown_62698C(Unknown_6DB6CC("MainWidth", 1, 0, &HFF), 0, 15000, 0))
+    loc_713FEE: var_C8 = "": var_E0 = "" = "" 'Ignore this
+    loc_714038: Me.Height = CDbl(Unknown_62698C(Unknown_6DB6CC("MainHeight", 1, 0, &HFF), 0, 10000, 0))
+    loc_71403D: var_C8 = "": var_E0 = "" = "" 'Ignore this
+    loc_71404E: var_90 = Unknown_647DF0("FMLB", var_D0)
+    loc_714051: var_90 = "" 'Ignore this
+    loc_714054: var_A4 = Unknown_6850C0(tmrMouse.DispID_68030001)
+                If (MemVar_728188 Is Nothing) Then '714064
+    loc_714063:   Exit Sub
+                End If
+    loc_714067: PopAdLdVar 'Ignore this
+    loc_71406B: PopAdLdVar 'Ignore this
+    loc_71406F: NewIfNullPr frmHello 'Ignore this
+    loc_714072: frmHello.Show var_A4, var_B4
+    loc_7140A1: Call OpenUserRs(CStr(Unknown_6DB6CC("CurBook", 1, 0)))
+    loc_7140A6: var_90 = "" 'Ignore this
+    loc_7140A9: var_C8 = "" 'Ignore this
+    loc_7140B1: Call ShowProcess(0)
+    loc_7140BE: var_90 = Unknown_647DF0("FMTT", &HFF)
+    loc_7140C1: var_90 = "" 'Ignore this
+    loc_7140C7: NewIfNullPr Clocker 'Ignore this
+    loc_7140CA: SetPropA
+    loc_7140D5: NewIfNullPr Clocker 'Ignore this
+    loc_7140D8: GetPropHsz
+                If (var_13C > &H4B0) Then '7140F0
+    loc_7140EB:   &HFF = Unknown_6A29E4(var_13C)
+                End If
+    loc_71412E: HardType 'Ignore this
+    loc_714131: var_90 = "" 'Ignore this
+    loc_714134: var_C8 = "" = "" 'Ignore this
+                If CBool(&HFF <> CVar(Unknown_6B1098("uC0hEHWhdAnAUHaKAbx", &H15A02, Unknown_6DB6CC("Pfix2WOWKV", 0, &HFF)))) Then '714155
+    loc_714144:   var_B8 = Me 'Ignore this
+    loc_71414A:   Me.Timer.Enabled = &HFF
+    loc_71414F:   var_B8 = vbNull 'Ignore this
+    loc_714152:   GoTo loc_7141F1
+                End If
+                If Not(Unknown_62DF78(&HFF)) Then '7141F1
+    loc_714190:   Me.global_220 = CInt(Val(CStr(Unknown_6DB6CC("SvO96Q9HLpR", 0, &HFF))))
+    loc_714193:   var_90 = "" 'Ignore this
+    loc_714196:   var_C8 = "" 'Ignore this
+                  If (Me.global_220 > &H1E) Then '7141AD
+    loc_7141AA:     Me.global_220 = &H1E
+                  End If
+    loc_7141D5:   "SvO96Q9HLpR" = Unknown_6C6A64(CStr((Me.global_220 + 1)), 0, &HFF, &HFF)
+    loc_7141DA:   var_90 = "" 'Ignore this
+    loc_7141E3:   var_B8 = Me 'Ignore this
+    loc_7141E9:   Me.Timer.Enabled = &HFF
+    loc_7141EE:   var_B8 = vbNull 'Ignore this
+    loc_7141F1:   ' Referenced from: 714152
+                End If
+    loc_7141F9: var_90 = Unknown_647DF0("FMSK", 0, Me.global_220)
+    loc_7141FC: var_90 = "" 'Ignore this
+    loc_714202:   'Ignore this
+    loc_714205: var_B8 = Me 'Ignore this
+    loc_71420B: var_B8 = Unknown_6E3494(Me.global_220)
+    loc_714210: var_B8 = vbNull 'Ignore this
+    loc_714213: Call SetSplitter()
+    loc_71421C: var_B8 = Me 'Ignore this
+    loc_71422A: var_B8 = vbNull 'Ignore this
+    loc_714235: var_90 = Unknown_647DF0("FMSW", tmrMouse.DispID_6003)
+    loc_714238: var_90 = "" 'Ignore this
+    loc_714258: var_C8 = Unknown_6DB6CC("ShowMenu", 1, 0)
+    loc_71426C: HardType 'Ignore this
+                If (var_C8 = "False") Then '71427F
+    loc_714277:   Call abBar_QueryUnload(5, &HFF)
+    loc_71427C:   GoTo loc_714287
+                End If
+    loc_714284: Me.global_70 = &HFF
+    loc_714287: ' Referenced from: 71427C
+    loc_71428B: var_13C = Me.Hwnd
+    loc_71429E: var_13C = Unknown_65B814(&HFFFFFF, Me.global_70)
+    loc_7142AB: var_90 = Unknown_647DF0("FMSH", 0)
+    loc_7142AE: var_90 = "" 'Ignore this
+    loc_7142B3: Call ShowHome(&HFF)
+    loc_7142BB: NewIfNullPr frmHello 'Ignore this
+    loc_7142BE: Call frmHello.Fade()
+    loc_7142C6: frmHello.Enabled = &HFF
+    loc_7142CB: DoEvents
+    loc_7142D6: var_B8 = Me 'Ignore this
+    loc_7142DC: Me.Timer.Enabled = &HFF
+    loc_7142E1: var_B8 = vbNull 'Ignore this
+    loc_7142EA: var_B8 = Me 'Ignore this
+    loc_7142F0: Me.Timer.Enabled = &HFF
+    loc_7142F5: var_B8 = vbNull 'Ignore this
+    loc_714300: var_90 = Unknown_647DF0("FMOK")
+    loc_714303: var_90 = "" 'Ignore this
+    loc_71430B: Me.global_224 = 0
+    loc_714326: var_18C = 0
+    loc_714353: var_90 = "frmAgent"
+    loc_714359: var_90 = Unknown_702174("-", 5, 0, 0)
+    loc_71435E: var_90 = "": var_144 = "": var_148 = "": var_14C = "": var_18C = "" = "" 'Ignore this
+    loc_71436D: Exit Sub
+    loc_71436E: ' Referenced from: 713128
+    loc_714373: Me.global_224 = 0
+    loc_714392: var_144 = Unknown_647DF0(CStr(Error(var_C8)), 0, Me.global_224, var_18C)
+    loc_714395: var_144 = Unknown_6C05E0(0, 0)
+    loc_71439A: var_90 = "" = "" 'Ignore this
+    loc_7143A1: var_C8 = "" = "" 'Ignore this
+    loc_7143A8: Exit Sub
+    loc_7143A9: Me.global_224.global_-204 = %x2
+  End Sub
+```
+
+### Private sub Unknown_62DF78 ' 是否激活注册用户，整个代码中有 6 处调用该过程
+
+```vb
+    'Data Table: 41BC10
+    loc_62DF6A: HardType 'Ignore this
+    loc_62DF74: var_A4 = "" 'Ignore this
+    loc_62DF77: Result CBool((Unknown_6DB6CC("QgM8lSxYb", 0, &HFF) = 0)): End Sub 'Integer
+  End Sub
+```
+
+
+
+在 `VB Decompile` 选择 `"Decompile to mnemonics"` 方式，即伪代码方式显示 “`Unknown_62DF78`” 过程，如下  
+
+代码:
+
+```
+Private sub Unknown_62DF78
+  'Data Table: 41BC10
+  loc_62DF40: LitI2_Byte 0
+  loc_62DF42: PopTmpLdAd2 var_92
+  loc_62DF45: LitI2_Byte &HFF
+  loc_62DF47: PopTmpLdAd2 var_90
+  loc_62DF4A: LitI2_Byte &HFF
+  loc_62DF4C: PopTmpLdAd2 var_8E
+  loc_62DF4F: LitI4 0
+  loc_62DF54: PopTmpLdAdStr var_8C
+  loc_62DF57: LitStr "QgM8lSxYb"
+  loc_62DF5A: FLdRfVar var_A4
+  loc_62DF5D: ImpAdCallFPR4 Unknown_6DB6CC()
+  loc_62DF62: FLdRfVar var_A4
+  loc_62DF65: LitVarI2 var_B4, 0
+  loc_62DF6A: HardType
+  loc_62DF6B: EqVar var_C4 '判断是否为 0 ,否则 Game Over ，改为 NeVar
+                           '  op   伪码  大小
+                           '  2Fh  EqVar  3  '等于
+                           '  3Ch  NeVar  3  '不等于
+  loc_62DF6F: CBoolVar
+  loc_62DF71: FStI2 var_86
+  loc_62DF77: ExitProcI2
+End Sub
+```
+
+是时候动手术了 “`EqVar`” 等于改为 “`NeVar`” 不相等，以往教程都是用 `WKTVBDE`  
+
+或二进制编辑工具修改。这里直接用 `VB Decompile` 的 `Patch data` 功能直接修改  
+
+`[Tools]` -> `[Patch data]` 填入 `Virtual Address`: `62DF6B` ,`[Get]` ,Data:`00 5D <FB> 2F 3C`  
+
+不对!?? 修改的应为 `2F` ，于是将 `Virtual Address` 改为: `62DF6C`  
+
+`[Get]` ,Data: `5D FB <2F> 3C FF` ，`2F` 改为 `3C` `[Set]` `[Close]`  
+
+试运行软件,没有啦烦人的随机提示注册，单词数量限制等也没有啦  
+
+帮助菜单显示 `"本软件已经授权并激活！"`  
+
+没有精力分析注册算法了，大概看了下应该注册信息是保存在加密的 `.MDB` 数据库里。  
+
+【经验总结】  
+
+软件的所有字符串都作了加密处理，但在 `SmartCheck` 下完全暴露，没有强的干扰作用  
+
+注册判断过程最终只用了 `1` 处判断，有 `6` 处调用注册判断过程，包括用 `timer` 检查  
+
+和各功能限制时检查，但关键处被找到就全军覆没！！！  
+
+`Visual Basic P-Code` 可以直接用 `VB Decompile` 快速打补丁!  
+
+“`EqVar`” 可改为 “`NeVar`” 外也可以改为 “`LeVar`”  
+
+`VB Decompiler` 的 “`Decompile to source`” 更方便阅读理解程序，  
+
+而 “`Decompile to mnemonics`” 就方便修改、打补丁！  
+
+--------------------------------------------------------------------------------  
+
+【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!  
+
+2010 年 03 月 27 日
