@@ -1,0 +1,179 @@
+
+# `ACiD_BuRN2` 的 `crackme`
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum897.htm`](https://www.pediy.com/kssd/pediy03/forum897.htm)
+
+`blowfish` 大虾，请问能否解决掉此 `pcode` 的 `NAG`？
+
+见《论坛精华 II》中：“`ACiD_BuRN2` 的 `crackme`”
+
+`http://go6.163.com/~ddxia/crackme/ACiD_BuRN2.zip`
+
+我去除了其 `anti-smartcheck` 功能如下：
+
+用 `exdec` 反编译之：
+
+`Proc: 42c318`
+
+```
+42C148: f5 LitI4:                  0x4e  78  (...N)
+42C14D: 04 FLdRfVar                local_0098
+42C150: 0a ImpAdCallFPR4:          _rtcVarBstrFromAnsi
+42C155: 04 FLdRfVar                local_0098
+42C158: f5 LitI4:                  0x55  85  (...U)
+42C15D: 04 FLdRfVar                local_00A8
+42C160: 0a ImpAdCallFPR4:          _rtcVarBstrFromAnsi
+42C165: 04 FLdRfVar                local_00A8
+42C168: Lead0/ef ConcatVar
+42C16C: f5 LitI4:                  0x4d  77  (...M)
+42C171: 04 FLdRfVar                local_00C8
+42C174: 0a ImpAdCallFPR4:          _rtcVarBstrFromAnsi
+42C179: 04 FLdRfVar                local_00C8
+42C17C: Lead0/ef ConcatVar
+42C180: f5 LitI4:                  0x45  69  (...E)
+42C185: 04 FLdRfVar                local_00E8
+42C188: 0a ImpAdCallFPR4:          _rtcVarBstrFromAnsi
+42C18D: 04 FLdRfVar                local_00E8
+42C190: Lead0/ef ConcatVar
+42C194: f5 LitI4:                  0x47  71  (...G)
+42C199: 04 FLdRfVar                local_0108
+42C19C: 0a ImpAdCallFPR4:          _rtcVarBstrFromAnsi
+42C1A1: 04 FLdRfVar                local_0108
+42C1A4: Lead0/ef ConcatVar
+42C1A8: f5 LitI4:                  0x41  65  (...A)
+42C1AD: 04 FLdRfVar                local_0128
+42C1B0: 0a ImpAdCallFPR4:          _rtcVarBstrFromAnsi
+42C1B5: 04 FLdRfVar                local_0128
+42C1B8: Lead0/ef ConcatVar
+42C1BC: 3a LitVarStr:              ( local_0148 )
+42C1C1: Lead0/ef ConcatVar
+42C1C5: f5 LitI4:                  0x53  83  (...S)
+42C1CA: 04 FLdRfVar                local_0168
+42C1CD: 0a ImpAdCallFPR4:          _rtcVarBstrFromAnsi
+42C1D2: 04 FLdRfVar                local_0168
+42C1D5: Lead0/ef ConcatVar
+42C1D9: f5 LitI4:                  0x4d  77  (...M)
+42C1DE: 04 FLdRfVar                local_0188
+42C1E1: 0a ImpAdCallFPR4:          _rtcVarBstrFromAnsi
+42C1E6: 04 FLdRfVar                local_0188
+42C1E9: Lead0/ef ConcatVar
+42C1ED: f5 LitI4:                  0x41  65  (...A)
+42C1F2: 04 FLdRfVar                local_01A8
+42C1F5: 0a ImpAdCallFPR4:          _rtcVarBstrFromAnsi
+42C1FA: 04 FLdRfVar                local_01A8
+42C1FD: Lead0/ef ConcatVar
+42C201: f5 LitI4:                  0x52  82  (...R)
+42C206: 04 FLdRfVar                local_01C8
+42C209: 0a ImpAdCallFPR4:          _rtcVarBstrFromAnsi
+42C20E: 04 FLdRfVar                local_01C8
+42C211: Lead0/ef ConcatVar
+42C215: f5 LitI4:                  0x54  84  (...T)
+42C21A: 04 FLdRfVar                local_01E8
+42C21D: 0a ImpAdCallFPR4:          _rtcVarBstrFromAnsi
+42C222: 04 FLdRfVar                local_01E8
+42C225: Lead0/ef ConcatVar
+42C229: f5 LitI4:                  0x43  67  (...C)
+42C22E: 04 FLdRfVar                local_0208
+42C231: 0a ImpAdCallFPR4:          _rtcVarBstrFromAnsi
+42C236: 04 FLdRfVar                local_0208
+42C239: Lead0/ef ConcatVar
+42C23D: f5 LitI4:                  0x48  72  (...H)
+42C242: 04 FLdRfVar                local_0228
+42C245: 0a ImpAdCallFPR4:          _rtcVarBstrFromAnsi
+42C24A: 04 FLdRfVar                local_0228
+42C24D: Lead0/ef ConcatVar
+42C251: f5 LitI4:                  0x45  69  (...E)
+42C256: 04 FLdRfVar                local_0248
+42C259: 0a ImpAdCallFPR4:          _rtcVarBstrFromAnsi
+42C25E: 04 FLdRfVar                local_0248
+42C261: Lead0/ef ConcatVar
+42C265: f5 LitI4:                  0x43  67  (...C)
+42C26A: 04 FLdRfVar                local_0268
+42C26D: 0a ImpAdCallFPR4:          _rtcVarBstrFromAnsi
+42C272: 04 FLdRfVar                local_0268
+42C275: Lead0/ef ConcatVar
+42C279: f5 LitI4:                  0x4b  75  (...K)
+42C27E: 04 FLdRfVar                local_0288
+42C281: 0a ImpAdCallFPR4:          _rtcVarBstrFromAnsi
+42C286: 04 FLdRfVar                local_0288
+42C289: Lead0/ef ConcatVar
+42C28D: 60 CStrVarTmp
+42C28E: 31 FStStr                  local_0088
+42C291: 36 FFreeVar
+42C2D4: 4b OnErrorGoto
+42C2D7: 27 LitVar_Missing
+42C2DA: 04 FLdRfVar                local_0088
+42C2DD: 4d CVarRef:                ( local_0148 ) 4008
+42C2E2: 0a ImpAdCallFPR4:          _rtcAppActivate
+42C2E7: 35 FFree1Var              local_0098
+42C2EA: 63 LitVar_TRUE
+42C2ED: 1b LitStr:                %{F4}
+42C2F0: 0a ImpAdCallFPR4:          _rtcSendKeys
+42C2F5: 35 FFree1Var              local_0098
+42C2F8: 63 LitVar_TRUE
+42C2FB: 1b LitStr:                %{Y}
+42C2FE: 0a ImpAdCallFPR4:          _rtcSendKeys
+42C303: 35 FFree1Var              local_0098
+42C306: 63 LitVar_TRUE
+42C309: 1b LitStr:                %{J}
+42C30C: 0a ImpAdCallFPR4:          _rtcSendKeys
+42C311: 35 FFree1Var              local_0098
+42C314: 1e Branch:                42c2d7
+42C317: 13 ExitProcHresult
+```
+
+上述功能检测此 `crackme` 是否用 `smartcheck` 加载，如加载则用 `alt+F4` 关闭。
+
+我用 `hiew` 找 `42C148` 把 `f5` 改为 `13` 即 `ExitProcHresult` 可去除其 `anti-smartcheck` 功能。
+
+用 `smartcheck` 比较容易跟踪出注册码，也可看看冰毒大虾的文章。
+
+但此 `NAG` 不知如何 `KILL`，用 `exdec` 找不到任何线索，`smartcheck` 跟踪也 `&\*^%&#$^`
+
+我去除不了，求助于大虾！
+
+## 一、去除 `ACiD_BuRN2`'s `crackme` 的 `NAG` 时间延迟
+
+用 `bpx settimer` 跟踪：
+
+修改 `crackme`
+
+`Offset`  0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
+
+```
+00041056  01 00 42 00 24 00 FF 01  1F 00 00 00 02 06 00 54  ..B.$........T
+00041072  69 6D 65 72 31 00 0B 03  A0 0F 00 00 07 F0 00 00  imer1...?...?.
+00041088  00 08 78 00 00 00 FF 02  02 04 00 00 06 00 00 00  ..x...~........
+00041104  54 CD 40 00 07 00 00 00  B0 CC 40 00 07 00 00 00  T 虭.....疤@.....
+00041120  64 CC 40 00 07 00 00 00  20 CC 40 00 56 42 35 21  d 藹..... 藹.VB5!
+00041136  8C 0E 76 62 35 66 72 2E  64 6C 6C 00 00 00 00 00  ?vb5fr.dll.....
+```
+
+`0FA0` 为 4 秒延迟，可改为 `0001` 体会一下瞬时感，如改为 `0000` 则 `NAG` 不消失。
+
+## 二、去除 `ACiD_BuRN2`'s `crackme` 的 `NAG` 显示
+
+用 `bpx showwindow` 跟踪：
+
+位于 `msvbvm50.dll` 中
+
+```
+0167:782785C6 56              PUSH    ESI
+0167:782785C7 57              PUSH    EDI
+0167:782785C8 8B74240C        MOV     ESI,[ESP+0C]
+0167:782785CC FF742410        PUSH    DWORD [ESP+10]---->置 0 后 NAG 消失
+0167:782785D0 FF7634          PUSH    DWORD [ESI+34]
+0167:782785D3 FF15E4142578    CALL    `USER32!ShowWindow`
+0167:782785D9 8BF8            MOV     EDI,EAX
+0167:782785DB 8B442410        MOV     EAX,[ESP+10]
+```
+
+但不知道修改程序何处，可作 `patch`!?
+
+`ZEST`
+
+偶也是用 `SetTimer( )`，也是找到 `000FA0`，而且这个值在文件中只出现过一次。改成 `1` 还是能看见窗口一闪。
+
+总的来说这 `pcode` 还是完全解释型的，微软就是不公布这 `pcode` 指令的资料。
+
+哈哈，搞了半天，也快 12 点了，回家睡觉去罗！ `4dd466d0e1e0cc123afbe504da2462ca`
