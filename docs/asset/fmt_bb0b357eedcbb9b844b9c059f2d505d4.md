@@ -1,0 +1,302 @@
+
+# [脚本+补区段]-ASProtect 2.1x SKE-文件夹保护 2006 2.10
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-578.htm`](https://www.pediy.com/kssd/pediy08/pediy8-578.htm)
+
+在研读了 SYSCOM，machenglin 两位大侠的文章，历经 n 天，动手试验 n 次，终于用补区段的方法搞定一个 Asprotect 壳，发出来给跟我一样菜的人参考。
+
+贴图片比较麻烦，我还是上传附件。
+
+8.15 心血来潮，对此程序进行恢复代码，记录如下：
+
+文件夹保护 2006 2.10
+
+ASProtect 2.1x SKE -> Alexey Solodovnikov
+
+Version: ASProtect 2.11 SKE build 03.13 Release [1]
+
+Microsoft Visual C++ 7.0 Method2 [Debug]
+
+安装后不方便打开文件夹，拷贝地址备用：
+
+`E:\Program Files\文件夹保护 2006\fp.exe`
+
+## 1.OEP+DUMP+IAT：
+
+Volx 脚本 IAT 修复，提示 Stolen code After API，保存在 `SCafAPI.bin`，然后停在伪 OEP：
+
+```
+017002EC      6A 74             push 74                           ; 00040E8BD
+
+017002EE      F2:               prefix repne:
+
+017002EF      EB 01            jmp short 017002F2
+
+0040E8BD d>- E9 2A1A2F01      jmp 017002EC                       ; 真正的 OEP
+```
+
+有 Stolen OEP，上 LordPE 选择进程 dump，保存为 `dump.exe`。
+
+Ctrl＋G 到 401000，Ctrl＋B：`FF25`
+
+```
+0040E052     - FF25 6C404D00      jmp dword ptr ds:[4D406C]        ; crtool.CCRTools::Init
+
+0040E058     - FF25 C4464D00      jmp dword ptr ds:[4D46C4]        ; <jmp.&MSVCR71.free>
+
+0040E05E     - FF25 BC464D00      jmp dword ptr ds:[4D46BC]        ; MFC71.7C1CAE35
+```
+
+数据窗口：`dd 4D46C4`，上下翻翻
+
+```
+004D4000  796D1E76  ADVAPI32.RegCloseKey
+
+004D4004  796D6315  ADVAPI32.RegSetValueA
+
+004D4008  796D33CB  ADVAPI32.RegSetValueExA
+
+...
+
+004D52C0  00000000
+
+004D52C4  77A344BA  OLE32.CoInitialize
+
+004D52C8  77A3435E  OLE32.CoUninitialize
+
+004D52CC  00000000
+```
+
+`RVA=000D4000`，`Size＝12CC`
+
+上 ImportREC，选择进程，填入 `RVA＋Size`，获取函数，全部有效，修改 `OEP＝0000E052`，Refix dump。
+
+## 2.变形跳转及变形 call 的分析：
+
+```
+01700461     68 690C7001     push dumped_1.01700C69             ; 变形 call
+
+01700466     E8 95FB0700     call dumped_1.01780000             ; 进入第一层
+```
+
+第一层：一直 F7 直到第一个 call
+
+```
+01780157    /EB 01          jmp short dumped_1.0178015A
+
+0178015A     FFD3           call ebx                            ; 进入第二层
+
+0178015C     FF7424 04      push dword ptr ss:[esp+4]
+
+01780160     EB 02          jmp short dumped_1.01780164
+```
+
+第二层：经过 Route Check 后来到循环
+
+```
+014D8A87     8B45 F8        mov eax,dword ptr ss:[ebp-8]
+
+014D8A8A     0FB600        movzx eax,byte ptr ds:[eax]
+
+014D8A8D     8B5483 40     mov edx,dword ptr ds:[ebx+eax*4+40]
+
+014D8A91     8BC6          mov eax,esi
+
+014D8A93     FFD2          call edx
+
+014D8A95     3B45 FC       cmp eax,dword ptr ss:[ebp-4]
+
+014D8A98     75 1A         jnz short dumped_1.014D8AB4
+
+014D8A9A     8B45 10       mov eax,dword ptr ss:[ebp+10]
+
+014D8A9D     50           push eax
+
+014D8A9E     8B45 14       mov eax,dword ptr ss:[ebp+14]
+
+014D8AA1     50           push eax
+
+014D8AA2     E8 19FAFFFF   call dumped_1.014D84C0
+
+014D8AA7     50           push eax
+
+014D8AA8     8BCE         mov ecx,esi
+
+014D8AAA     8B55 18      mov edx,dword ptr ss:[ebp+18]
+
+014D8AAD     8BC3         mov eax,ebx
+
+014D8AAF     E8 D4FDFFFF  call dumped_1.014D8888            ; 进入第 3 层
+
+014D8AB4     4F           dec edi
+
+014D8AB5     0373 6C      add esi,dword ptr ds:[ebx+6C]
+
+014D8AB8     85FF        test edi,edi
+
+014D8ABA   ^ 77 CB        ja short dumped_1.014D8A87
+```
+
+第 3 层：变形种类的分类
+
+```
+014D88D8     FFD2          call edx
+
+014D88DA     2C 02         sub al,2                            ; 注意 al 值
+
+014D88DC     72 12         jb short dumped_1.014D88F0
+
+014D88DE     74 3D         je short dumped_1.014D891D
+
+014D88E0     FEC8         dec al
+
+014D88E2     0F84 82000000 je dumped_1.014D896A
+
+014D88E8     E9 DA000000  jmp dumped_1.014D89C7
+
+...
+
+014D89E5     FF75 0C       push dword ptr ss:[ebp+C]
+
+014D89E8     8B45 F8      mov eax,dword ptr ss:[ebp-8]     ; dumped_1.01510E28
+
+014D89EB     FF60 20      jmp dword ptr ds:[eax+20]        ;跟进到第 4 层
+
+014D89EE    /EB 01        jmp short dumped_1.014D89F1
+
+014D89F0    |9A 5F5E5B8B E55D call far 5DE5:8B5B5E5F
+
+014D89F7     C2 0C00       retn 0C
+
+014D89FA     8BC0         mov eax,eax
+```
+
+第 4 层：指向最后的地址
+
+```
+017900AD   - FF6424 FC      jmp dword ptr ss:[esp-4]         ; dumped_1.01700A9B
+```
+
+如果不是 code，那就是 call 里还有 stolen。
+
+## 3.Stolen OEP 的恢复：
+
+```
+0040E8BD c>  6A 74           push 74
+
+0040E8BF     68 20894D00     push cyto-wj.004D8920
+
+0040E8C4     E8 F3010000     call cyto-wj.0040EABC           ; (1)
+
+0040E8C9     33DB           xor ebx,ebx
+
+0040E8CB     895D E0        mov dword ptr ss:[ebp-20],ebx
+
+0040E8CE     53             push ebx
+
+0040E8CF     8B3D AC414D00  mov edi,dword ptr ds:[<&kernel32.GetModuleHandleA>]
+
+0040E8D5     FFD7           call edi
+
+0040E8D7     66:8138 4D5A   cmp word ptr ds:[eax],5A4D
+
+0040E8DC     75 1F          jnz short cyto-wj.0040E8FD
+
+0040E8DE     8B48 3C        mov ecx,dword ptr ds:[eax+3C]
+
+0040E8E1     03C8           add ecx,eax
+
+0040E8E3     8139 50450000  cmp dword ptr ds:[ecx],4550
+
+0040E8E9     75 12         jnz short cyto-wj.0040E8FD
+
+0040E8EB     0FB741 18      movzx eax,word ptr ds:[ecx+18]
+
+0040E8EF     3D 0B010000    cmp eax,10B
+
+0040E8F4     74 1F         je short cyto-wj.0040E915
+
+0040E8F6     3D 0B020000    cmp eax,20B
+
+0040E8FB     74 05         je short cyto-wj.0040E902
+
+0040E8FD     895D E4        mov dword ptr ss:[ebp-1C],ebx
+
+0040E900     EB 27         jmp short cyto-wj.0040E929
+
+0040E902     83B9 84000000 0E cmp dword ptr ds:[ecx+84],0E
+
+0040E909   ^ 76 F2        jbe short cyto-wj.0040E8FD
+
+0040E90B     33C0          xor eax,eax
+
+0040E90D     3999 F8000000  cmp dword ptr ds:[ecx+F8],ebx
+
+0040E913     EB 0E        jmp short cyto-wj.0040E923
+
+0040E915     8379 74 0E    cmp dword ptr ds:[ecx+74],0E
+
+0040E919   ^ 76 E2        jbe short cyto-wj.0040E8FD
+
+0040E91B     33C0          xor eax,eax
+
+0040E91D     3999 E8000000  cmp dword ptr ds:[ecx+E8],ebx
+
+0040E923     0F95C0        setne al
+
+0040E926     8945 E4       mov dword ptr ss:[ebp-1C],eax
+
+0040E929     895D FC       mov dword ptr ss:[ebp-4],ebx
+
+0040E92C     6A 02         push 2
+
+0040E92E     FF15 D04E4D00 call dword ptr ds:[<&msvcr71.__set_app_type>]
+
+0040E934     59             pop ecx
+
+0040E935     830D 1CE34F00 FF or dword ptr ds:[4FE31C],FFFFFFFF
+
+0040E93C     830D 20E34F00 FF or dword ptr ds:[4FE320],FFFFFFFF
+
+0040E943     FF15 D44E4D00 call dword ptr ds:[<&msvcr71.__p__fmode>]
+
+0040E949     8B0D BCCD4F00 mov ecx,dword ptr ds:[4FCDBC]
+
+0040E94F     8908          mov dword ptr ds:[eax],ecx
+
+0040E951     FF15 D84E4D00 call dword ptr ds:[<&msvcr71.__p__commode>]
+
+0040E957     8B0D B8CD4F00 mov ecx,dword ptr ds:[4FCDB8]
+
+0040E95D     8908          mov dword ptr ds:[eax],ecx
+
+0040E95F     A1 DC4E4D00  mov eax,dword ptr ds:[<&msvcr71._adjust_fdiv>]
+
+0040E964     8B00         mov eax,dword ptr ds:[eax]
+
+0040E966     A3 18E34F00  mov dword ptr ds:[4FE318],eax
+
+0040E96B     E8 4A020000  call cyto-wj.0040EBBA            ; (2)
+
+0040E970     E8 E5020000  call cyto-wj.0040EC5A
+
+0040E975     391D B0C34F00 cmp dword ptr ds:[4FC3B0],ebx
+
+0040E97B     75 0C         jnz short cyto-wj.0040E989
+
+0040E97D     68 5AEC4000  push cyto-wj.0040EC5A
+
+0040E982     FF15 E04E4D00 call dword ptr ds:[<&msvcr71.__setusermatherr>]
+
+0040E988     59            pop ecx
+
+0040E989     E8 BA020000  call cyto-wj.0040EC48            ; (3)
+
+0040E98E     68 E0C24F00  push cyto-wj.004FC2E0
+
+0040E993     68 DCC24F00  push cyto-wj.004FC2DC
+
+0040E998     E8 A5020000  call <jmp.&msvcr71._initterm>
+
+0040E99D     68 FEEB4000  push cyto-wj.0040EBFE
+```
