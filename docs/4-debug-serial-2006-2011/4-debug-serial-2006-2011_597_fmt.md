@@ -1,0 +1,1071 @@
+
+# 不用 IDA，从高级语言的角度分析 VSuite Ramdisk（服务器版）的本地注册算法
+
+> 原文：[`www.pediy.com/kssd/pediy12/129940.html`](https://www.pediy.com/kssd/pediy12/129940.html)
+
+【文章标题】: 不用 IDA，从高级语言的角度分析 VSuite Ramdisk（服务器版）的本地注册算法  
+
+【文章作者】: zouzhiyong  
+
+【作者邮箱】: zzydog@foxmail.com  
+
+【软件名称】: VSuite Ramdisk (服务器版)  
+
+【软件大小】: 1.44 MB  
+
+【下载地址】: `http://www.romexsoftware.com/download/VSuite.Ramdisk.Srv.Setup.zip.html`  
+
+【加壳方式】: 没有加壳  
+
+【保护方式】: KeyFile+ID 序列  
+
+【编写语言】: Microsoft Visual Studio .NET 2005 -- 2008  
+
+【使用工具】: OD+Peid+Windows 记事本 Notepad2+破解辅助计算器  
+
+【操作平台】: Windows 7  
+
+【软件介绍】: 是把系统内存划出一部分当作硬盘使用，建立一个虚拟磁盘。
+
+其实有点标题党了，只是在 R3 层的分析。并没有很高深的知识，只是基础知识而已，让大家失望了，请原谅我这个无知的菜鸟吧！
+
+最近买了一条 2G 的内存，内存空间多了，就想到把内存分割成一个硬盘使用，便下载了这个软件，其实有免费版本的，只是自己有点变态，总想“强奸”它的最高级版~，因此便下载了服务器版下来分析。
+
+我看了很多分析文章的都是基于汇编来做说明，经常拿寄存器来做运算说明的，这样是比较抽象和难懂的，因为程序是用高级语言写的嘛。由于程序比较好分析（其实有很多问题没有理解和深究的，在后面我会说明），我尝试不用 IDA，从高级语言的角度去分析软件的注册算法。希望大家喜欢这样的分析。
+
+### 分析过程
+
+使用 PEID 查了一下，Microsoft Visual Studio .NET 2005 -- 2008 写的，没有加壳，心里一下子兴奋起来，这样才不拒人于门外嘛~~~。
+
+好，废话一大堆了，下面是整个过程，其中文字说明的比较少，多数为伪代码的注释。
+
+注册流程比较标准，通过下 `bp MessageBoxW`，不断返回就可以到达注册函数：
+
+***总体流程函数分析***
+
+代码:
+
+```
+00442760  /.  55            PUSH EBP
+00442761  |.  8BEC          MOV EBP,ESP
+00442763  |.  6A FF         PUSH -1
+00442765  |.  68 7B844500   PUSH rxvsrdsr.0045847B
+0044276A  |.  64:A1 0000000>MOV EAX,DWORD PTR FS:\[0\]
+00442770  |.  50            PUSH EAX
+00442771  |.  83EC 14       SUB ESP,14
+00442774  |.  A1 50184700   MOV EAX,DWORD PTR DS:\[471850\]
+00442779  |.  33C5          XOR EAX,EBP
+0044277B  |.  50            PUSH EAX
+0044277C  |.  8D45 F4       LEA EAX,DWORD PTR SS:\[EBP-C\]
+0044277F  |.  64:A3 0000000>MOV DWORD PTR FS:\[0\],EAX
+0044285  |.  894D E8       MOV DWORD PTR SS:\[EBP-18\],ECX
+0044288  |.  6A 01         PUSH 1
+004428A  |.  8B4D E8       MOV ECX,DWORD PTR SS:\[EBP-18\]
+004428D  |.  E8 1961FCFF   CALL rxvsrdsr.004088AB
+0044292  |.  8B45 E8       MOV EAX,DWORD PTR SS:\[EBP-18\]
+0044295  |.  83B8 8C000000>CMP DWORD PTR DS:\[EAX+8C\],0
+004429C  |.  75 0D         JNZ SHORT rxvsrdsr.004427AB
+004429E  |.  8B4D E8       MOV ECX,DWORD PTR SS:\[EBP-18\]
+00442A1  |.  E8 5AFAFFFF   CALL rxvsrdsr.00442200
+00442A6  |.  8945 F0       MOV DWORD PTR SS:\[EBP-10\],EAX
+00442A9  |.  EB 0B         JMP SHORT rxvsrdsr.004427B6
+00442AB  |>  8B4D E8       MOV ECX,DWORD PTR SS:\[EBP-18\]
+00442AE  |.  E8 EDF4FFFF   CALL rxvsrdsr.00441CA0                 ;  //这里是算法 CALL，并且是带有错误提示的
+00442B3  |.  8945 F0       MOV DWORD PTR SS:\[EBP-10\],EAX
+00442B6  |>  837D F0 00    CMP DWORD PTR SS:\[EBP-10\],0           ;  //判断注册是否成功
+00442BA  |.  74 4E         JE SHORT rxvsrdsr.0044280A            ;  //这里是最外部的爆破点，但是不能修改这，因为上面的算法 CALL 已经提示错误了
+00442BC  |.  68 C1000000   PUSH 0C1                               ; /Arg1 = 000000C1
+00442C1  |.  8D4D EC       LEA ECX,DWORD PTR SS:\[EBP-14\]         ; |
+00442C4  |.  E8 E7FAFBFF   CALL rxvsrdsr.004022B0                 ; \\rxvsrdsr.004022B0
+00442C9  |.  8945 E4       MOV DWORD PTR SS:\[EBP-1C\],EAX
+00442CC  |.  8B4D E4       MOV ECX,DWORD PTR SS:\[EBP-1C\]
+00442CF  |.  894D E0       MOV DWORD PTR SS:\[EBP-20\],ECX
+00442D2  |.  C745 FC 00000>MOV DWORD PTR SS:\[EBP-4\],0
+00442D9  |.  6A 00         PUSH 0
+00442DB  |.  6A 00         PUSH 0
+00442DD  |.  8B4D E0       MOV ECX,DWORD PTR SS:\[EBP-20\]
+00442E0  |.  E8 4BFEFBFF   CALL rxvsrdsr.00402630
+00442E5  |.  50            PUSH EAX                                 ; |Arg1
+00442E6  |.  E8 70C2FCFF   CALL rxvsrdsr.0040EA5B                 ; \\rxvsrdsr.0040EA5B
+00442EB  |.  C745 FC FFFFF>MOV DWORD PTR SS:\[EBP-4\],-1
+00442F2  |.  8D4D EC       LEA ECX,DWORD PTR SS:\[EBP-14\]
+00442F5  |.  E8 06F2FBFF   CALL rxvsrdsr.00401A00
+00442FA  |.  8B55 E8       MOV EDX,DWORD PTR SS:\[EBP-18\]
+00442FD  |.  8B02          MOV EAX,DWORD PTR DS:\[EDX\]
+00442FF  |.  8B4D E8       MOV ECX,DWORD PTR SS:\[EBP-18\]
+00442802  |.  8B90 58010000 MOV EDX,DWORD PTR DS:\[EAX+158\]
+00442808  |.  FFD2          CALL EDX
+0044280A  |>  8B4D F4       MOV ECX,DWORD PTR SS:\[EBP-C\]
+0044280D  |.  64:890D 00000>MOV DWORD PTR FS:\[0\],ECX
+00442814  |.  59            POP ECX
+00442815  |.  8BE5          MOV ESP,EBP
+00442817  |.  5D            POP EBP
+00442818  \\.  C3            RETN
+```
+
+跟入上面的算法函数可以来到下面的地方：
+
+***跟入算法函数***
+
+用到的数据结构：
+
+用户 ID 字符串：`InputUserId[35]`
+
+ID 字符串转化为 HEX 数据：`InputUserIdHex[16]`
+
+代码:
+
+
+
+```
+00441CA0  /$  55                    PUSH EBP
+00441CA1  |.  8BEC                  MOV EBP,ESP
+00441CA3  |.  6A FF                 PUSH -1
+00441CA5  |.  68 D5774500           PUSH rxvsrdsr.004577D5
+00441CAA  |.  64:A1 0000000>        MOV EAX,DWORD PTR FS:\[0\]
+00441CB0  |.  50                    PUSH EAX
+00441CB1  |.  81EC F8000000         SUB ESP,0F8
+00441CB7  |.  A1 50184700           MOV EAX,DWORD PTR DS:\[471850\]
+00441CBC  |.  33C5                  XOR EAX,EBP
+00441CBE  |.  8945 F0               MOV DWORD PTR SS:\[EBP-10\],EAX
+00441CC1  |.  50                    PUSH EAX
+00441CC2  |.  8D45 F4               LEA EAX,DWORD PTR SS:\[EBP-C\]
+00441CC5  |.  64:A3 0000000>        MOV DWORD PTR FS:\[0\],EAX
+00441CCB  |.  898D 14FFFFFF         MOV DWORD PTR SS:\[EBP-EC\],ECX
+00441CD1  |.  8B85 14FFFFFF         MOV EAX,DWORD PTR SS:\[EBP-EC\]                    ;  (Initial CPU selection)
+00441CD7  |.  83B8 90000000>        CMP DWORD PTR DS:\[EAX+90\],0
+00441CDE  |.  75 1D                 JNZ SHORT rxvsrdsr.00441CFD
+00441CE0  |.  6A 10                 PUSH 10
+00441CE2  |.  8B8D 14FFFFFF         MOV ECX,DWORD PTR SS:\[EBP-EC\]
+00441CE8  |.  83C1 74               ADD ECX,74
+00441CEB  |.  51                    PUSH ECX
+00441CEC  |.  8D55 E0               LEA EDX,DWORD PTR SS:\[EBP-20\]
+00441CEF  |.  52                    PUSH EDX
+00441CF0  |.  E8 8B4CFEFF           CALL rxvsrdsr.00426980
+00441CF5  |.  83C4 0C               ADD ESP,0C
+00441CF8  |.  E9 61010000           JMP rxvsrdsr.00441E5E
+00441CFD  |>  68 E4154600           PUSH rxvsrdsr.004615E4                            ; /Arg1 = 004615E4
+00441D02  |.  8D8D 34FFFFFF         LEA ECX,DWORD PTR SS:\[EBP-CC\]                   ; |
+00441D08  |.  E8 A305FCFF           CALL rxvsrdsr.004022B0                            ; \\rxvsrdsr.004022B0
+00441D0D  |.  C745 FC 00000>        MOV DWORD PTR SS:\[EBP-4\],0
+00441D14  |.  8D85 34FFFFFF         LEA EAX,DWORD PTR SS:\[EBP-CC\]
+00441D1A  |.  50                    PUSH EAX                                          ; /Arg1
+00441D1B  |.  68 23040000           PUSH 423                                          ; |/Arg1 = 00000423
+00441D20  |.  8B8D 14FFFFFF         MOV ECX,DWORD PTR SS:\[EBP-EC\]                   ; ||
+00441D26  |.  E8 4AA1FCFF           CALL rxvsrdsr.0040BE75                            ; |\\rxvsrdsr.0040BE75
+00441D2B  |.  8BC8                  MOV ECX,EAX                                       ; |
+00441D2D  |.  E8 E284FCFF           CALL rxvsrdsr.0040A214                            ; \\//获取用户 ID
+00441D32  |.  8D8D 34FFFFFF         LEA ECX,DWORD PTR SS:\[EBP-CC\]
+00441D38  |.  51                    PUSH ECX                                          ; /Arg1
+00441D39  |.  E8 722F0100           CALL rxvsrdsr.00454CB0                            ; \\//注册用户 ID 序列合法性检测
+00441D3E  |.  83C4 04               ADD ESP,4
+00441D41  |.  85C0                  TEST EAX,EAX
+00441D43  |.  75 71                 JNZ SHORT rxvsrdsr.00441DB6                       ;  //判断注册用户 ID 是否合法，合法就跳
+00441D45  |.  68 00010000           PUSH 100                                          ; /Arg1 = 00000100
+00441D4A  |.  8D8D 30FFFFFF         LEA ECX,DWORD PTR SS:\[EBP-D0\]                   ; |
+00441D50  |.  E8 5B05FCFF           CALL rxvsrdsr.004022B0                            ; \\rxvsrdsr.004022B0
+00441D55  |.  8985 10FFFFFF         MOV DWORD PTR SS:\[EBP-F0\],EAX
+00441D5B  |.  8B95 10FFFFFF         MOV EDX,DWORD PTR SS:\[EBP-F0\]
+00441D61  |.  8995 0CFFFFFF         MOV DWORD PTR SS:\[EBP-F4\],EDX
+00441D67  |.  C645 FC 01            MOV BYTE PTR SS:\[EBP-4\],1
+00441D6B  |.  6A 00                 PUSH 0
+00441D6D  |.  6A 10                 PUSH 10
+00441D6F  |.  8B8D 0CFFFFFF         MOV ECX,DWORD PTR SS:\[EBP-F4\]
+00441D75  |.  E8 B608FCFF           CALL rxvsrdsr.00402630
+00441D7A  |.  50                    PUSH EAX                                          ; |Arg1
+00441D7B  |.  E8 DBCCFCFF           CALL rxvsrdsr.0040EA5B                            ; \\//这里提示错误，如果注册用户 ID 不合法的就在这里提示错误
+00441D80  |.  C645 FC 00            MOV BYTE PTR SS:\[EBP-4\],0
+00441D84  |.  8D8D 30FFFFFF         LEA ECX,DWORD PTR SS:\[EBP-D0\]
+00441D8A  |.  E8 71FCFBFF           CALL rxvsrdsr.00401A00
+00441D8F  |.  C785 2CFFFFFF>        MOV DWORD PTR SS:\[EBP-D4\],0
+00441D99  |.  C745 FC FFFFF>        MOV DWORD PTR SS:\[EBP-4\],-1
+00441DA0  |.  8D8D 34FFFFFF         LEA ECX,DWORD PTR SS:\[EBP-CC\]
+00441DA6  |.  E8 55FCFBFF           CALL rxvsrdsr.00401A00
+00441DAB  |.  8B85 2CFFFFFF         MOV EAX,DWORD PTR SS:\[EBP-D4\]
+00441DB1  |.  E9 AF010000           JMP rxvsrdsr.00441F65
+00441DB6  |>  8D45 E0               LEA EAX,DWORD PTR SS:\[EBP-20\]
+00441DB9  |.  50                    PUSH EAX                                          ; /Arg2
+00441DBA  |.  8D8D 34FFFFFF         LEA ECX,DWORD PTR SS:\[EBP-CC\]                   ; |
+00441DC0  |.  51                    PUSH ECX                                          ; |Arg1
+00441DC1  |.  E8 7A330100           CALL rxvsrdsr.00455140                            ; \\//将注册码转换成 HEX 数据，假设存放在 InputUserIdHex\[16\]，
+                                                                                     //其实这个函数不用跟入，看返回值 EAX 就可以知道它的功能
+00441DC6  |.  83C4 08               ADD ESP,8
+00441DC9  |.  0FB655 E0             MOVZX EDX,BYTE PTR SS:\[EBP-20\]
+00441DCD  |.  83FA 56               CMP EDX,56                                        ;  //InputUserIdHex\[0\] == 56h? ，表明 InputUserId 前两个字符可以是"56"
+00441DD0  |.  74 7A                 JE SHORT rxvsrdsr.00441E4C                        ;  //符合要求就继续注册
+00441DD2  |.  0FB645 E0             MOVZX EAX,BYTE PTR SS:\[EBP-20\]
+00441DD6  |.  83F8 55               CMP EAX,55                                        ;  //InputUserIdHex\[0\] == 55h?，表明 InputUserId 前两个字符还可以是"55"
+00441DD9  |.  74 71                 JE SHORT rxvsrdsr.00441E4C                        ;  //符合要求就继续注册
+00441DDB  |.  68 00010000           PUSH 100                                          ; /Arg1 = 00000100
+00441DE0  |.  8D8D 28FFFFFF         LEA ECX,DWORD PTR SS:\[EBP-D8\]                   ; |
+00441DE6  |.  E8 C504FCFF           CALL rxvsrdsr.004022B0                            ; \\rxvsrdsr.004022B0
+00441DEB  |.  8985 08FFFFFF         MOV DWORD PTR SS:\[EBP-F8\],EAX
+00441DF1  |.  8B8D 08FFFFFF         MOV ECX,DWORD PTR SS:\[EBP-F8\]
+00441DF7  |.  898D 04FFFFFF         MOV DWORD PTR SS:\[EBP-FC\],ECX
+00441DFD  |.  C645 FC 02            MOV BYTE PTR SS:\[EBP-4\],2
+00441E01  |.  6A 00                 PUSH 0
+00441E03  |.  6A 10                 PUSH 10
+00441E05  |.  8B8D 04FFFFFF         MOV ECX,DWORD PTR SS:\[EBP-FC\]
+00441E0B  |.  E8 2008FCFF           CALL rxvsrdsr.00402630
+00441E10  |.  50                    PUSH EAX                                          ; |Arg1
+00441E11  |.  E8 45CCFCFF           CALL rxvsrdsr.0040EA5B                            ; \\//当 InputUserId 前个字符不为"55"或者是"56"的时候就提示用户 ID 不合法
+00441E16  |.  C645 FC 00            MOV BYTE PTR SS:\[EBP-4\],0
+00441E1A  |.  8D8D 28FFFFFF         LEA ECX,DWORD PTR SS:\[EBP-D8\]
+00441E20  |.  E8 DBFBFBFF           CALL rxvsrdsr.00401A00
+00441E25  |.  C785 24FFFFFF>        MOV DWORD PTR SS:\[EBP-DC\],0
+00441E2F  |.  C745 FC FFFFF>        MOV DWORD PTR SS:\[EBP-4\],-1
+00441E36  |.  8D8D 34FFFFFF         LEA ECX,DWORD PTR SS:\[EBP-CC\]
+00441E3C  |.  E8 BFFBFBFF           CALL rxvsrdsr.00401A00
+00441E41  |.  8B85 24FFFFFF         MOV EAX,DWORD PTR SS:\[EBP-DC\]
+00441E47  |.  E9 19010000           JMP rxvsrdsr.00441F65
+00441E4C  |>  C745 FC FFFFF>        MOV DWORD PTR SS:\[EBP-4\],-1
+00441E53  |.  8D8D 34FFFFFF         LEA ECX,DWORD PTR SS:\[EBP-CC\]
+00441E59  |.  E8 A2FBFBFF           CALL rxvsrdsr.00401A00
+00441E5E  |>  68 E8154600           PUSH rxvsrdsr.004615E8                            ; /Arg1 = 004615E8
+00441E63  |.  8D8D 38FFFFFF         LEA ECX,DWORD PTR SS:\[EBP-C8\]                   ; |
+00441E69  |.  E8 4204FCFF           CALL rxvsrdsr.004022B0                            ; \\rxvsrdsr.004022B0
+00441E6E  |.  C745 FC 03000>        MOV DWORD PTR SS:\[EBP-4\],3
+00441E75  |.  8D95 38FFFFFF         LEA EDX,DWORD PTR SS:\[EBP-C8\]
+00441E7B  |.  52                    PUSH EDX                                          ; /Arg1
+00441E7C  |.  68 20040000           PUSH 420                                          ; |/Arg1 = 00000420
+00441E81  |.  8B8D 14FFFFFF         MOV ECX,DWORD PTR SS:\[EBP-EC\]                   ; ||
+00441E87  |.  E8 E99FFCFF           CALL rxvsrdsr.0040BE75                            ; |\\rxvsrdsr.0040BE75
+00441E8C  |.  8BC8                  MOV ECX,EAX                                       ; |
+00441E8E  |.  E8 8183FCFF           CALL rxvsrdsr.0040A214                            ; \\//读取 KEY 文件所在路径
+00441E93  |.  8D85 3CFFFFFF         LEA EAX,DWORD PTR SS:\[EBP-C4\]
+00441E99  |.  50                    PUSH EAX                                          ; /Arg2
+00441E9A  |.  8D8D 38FFFFFF         LEA ECX,DWORD PTR SS:\[EBP-C8\]                   ; |
+00441EA0  |.  51                    PUSH ECX                                          ; |Arg1
+00441EA1  |.  8B8D 14FFFFFF         MOV ECX,DWORD PTR SS:\[EBP-EC\]                   ; |
+00441EA7  |.  E8 04F1FFFF           CALL rxvsrdsr.00440FB0                            ; \\//读取注册文件数据，对数据有大小，格式的限制，需要跟入
+00441EAC  |.  85C0                  TEST EAX,EAX                                      ;  //KEY 文件数据是否符合要求
+00441EAE  |.  75 6E                 JNZ SHORT rxvsrdsr.00441F1E                       ;  //符合要求的就跳走，继续注册
+00441EB0  |.  68 BF000000           PUSH 0BF                                          ; /Arg1 = 000000BF
+00441EB5  |.  8D8D 20FFFFFF         LEA ECX,DWORD PTR SS:\[EBP-E0\]                   ; |
+00441EBB  |.  E8 F003FCFF           CALL rxvsrdsr.004022B0                            ; \\rxvsrdsr.004022B0
+00441EC0  |.  8985 00FFFFFF         MOV DWORD PTR SS:\[EBP-100\],EAX
+00441EC6  |.  8B95 00FFFFFF         MOV EDX,DWORD PTR SS:\[EBP-100\]
+00441ECC  |.  8995 FCFEFFFF         MOV DWORD PTR SS:\[EBP-104\],EDX
+00441ED2  |.  C645 FC 04            MOV BYTE PTR SS:\[EBP-4\],4
+00441ED6  |.  6A 00                 PUSH 0
+00441ED8  |.  6A 10                 PUSH 10
+00441EDA  |.  8B8D FCFEFFFF         MOV ECX,DWORD PTR SS:\[EBP-104\]
+00441EE0  |.  E8 4B07FCFF           CALL rxvsrdsr.00402630
+00441EE5  |.  50                    PUSH EAX                                          ; |Arg1
+00441EE6  |.  E8 70CBFCFF           CALL rxvsrdsr.0040EA5B                            ; \\//如果 KEY 文件数据格式不符合要求就提示 KEY 文件无效
+00441EEB  |.  C645 FC 03            MOV BYTE PTR SS:\[EBP-4\],3
+00441EEF  |.  8D8D 20FFFFFF         LEA ECX,DWORD PTR SS:\[EBP-E0\]
+00441EF5  |.  E8 06FBFBFF           CALL rxvsrdsr.00401A00
+00441EFA  |.  C785 1CFFFFFF>        MOV DWORD PTR SS:\[EBP-E4\],0
+00441F04  |.  C745 FC FFFFF>        MOV DWORD PTR SS:\[EBP-4\],-1
+00441F0B  |.  8D8D 38FFFFFF         LEA ECX,DWORD PTR SS:\[EBP-C8\]
+00441F11  |.  E8 EAFAFBFF           CALL rxvsrdsr.00401A00
+00441F16  |.  8B85 1CFFFFFF         MOV EAX,DWORD PTR SS:\[EBP-E4\]
+00441F1C  |.  EB 47                 JMP SHORT rxvsrdsr.00441F65
+00441F1E  |>  8B85 14FFFFFF         MOV EAX,DWORD PTR SS:\[EBP-EC\]
+00441F24  |.  33C9                  XOR ECX,ECX
+00441F26  |.  83B8 90000000>        CMP DWORD PTR DS:\[EAX+90\],1
+00441F2D  |.  0F94C1                SETE CL
+00441F30  |.  51                    PUSH ECX
+00441F31  |.  8D55 E0               LEA EDX,DWORD PTR SS:\[EBP-20\]
+00441F34  |.  52                    PUSH EDX
+00441F35  |.  8D85 3CFFFFFF         LEA EAX,DWORD PTR SS:\[EBP-C4\]
+00441F3B  |.  50                    PUSH EAX
+00441F3C  |.  8B8D 14FFFFFF         MOV ECX,DWORD PTR SS:\[EBP-EC\]
+00441F42  |.  E8 F9F6FFFF           CALL rxvsrdsr.00441640                            ;  //************这里是整个本地注册的核心算法************
+00441F47  |.  8985 18FFFFFF         MOV DWORD PTR SS:\[EBP-E8\],EAX
+00441F4D  |.  C745 FC FFFFF>        MOV DWORD PTR SS:\[EBP-4\],-1
+00441F54  |.  8D8D 38FFFFFF         LEA ECX,DWORD PTR SS:\[EBP-C8\]
+00441F5A  |.  E8 A1FAFBFF           CALL rxvsrdsr.00401A00
+00441F5F  |.  8B85 18FFFFFF         MOV EAX,DWORD PTR SS:\[EBP-E8\]
+00441F65  |>  8B4D F4               MOV ECX,DWORD PTR SS:\[EBP-C\]
+00441F68  |.  64:890D 00000>        MOV DWORD PTR FS:\[0\],ECX
+00441F6F  |.  59                    POP ECX
+00441F70  |.  8B4D F0               MOV ECX,DWORD PTR SS:\[EBP-10\]
+00441F73  |.  33CD                  XOR ECX,EBP
+00441F75  |.  E8 1544FEFF           CALL rxvsrdsr.0042638F
+00441F7A  |.  8BE5                  MOV ESP,EBP
+00441F7C  |.  5D                    POP EBP
+00441F7D  \\. C3                    RETN
+```
+
+
+
+### 跟入注册用户 ID 格式限制函数，分析如下：
+
+`****注册用户 ID 格式限制分析****`
+
+用到的数据结构：
+
+- 用户 ID 字符串：`InputUserId[35]`
+- ID 对应的 HEX 数据：`InputUserIdHex[16]`
+- ID 字符串长度：`UserIdLen`
+- 用于索引的：`nIndex`
+- 伪码表指针：`FlagHexData`
+- 伪装码表索引变量：`FlagIndex`
+
+代码:
+
+```
+00454CB0  /$  55            PUSH EBP
+00454CB1  |.  8BEC          MOV EBP,ESP
+00454CB3  |.  83EC 08       SUB ESP,8
+00454CB6  |.  8B4D 08       MOV ECX,DWORD PTR SS:[EBP+8]
+00454CB9  |.  E8 C2C3FAFF   CALL rxvsrdsr.00401080
+00454CBE  |.  0FB6C0        MOVZX EAX,AL
+00454CC1  |.  85C0          TEST EAX,EAX
+00454CC3  |.  74 04         JE SHORT rxvsrdsr.00454CC9
+00454CC5  |.  33C0          XOR EAX,EAX
+00454CC7  |.  EB 6B         JMP SHORT rxvsrdsr.00454D34
+00454CC9  |>  C745 FC 23000>MOV DWORD PTR SS:[EBP-4],23            ; //DWORD UserIdLen = 35，注册用户 ID 为 35 个字符
+00454CD0  |.  8B4D 08       MOV ECX,DWORD PTR SS:[EBP+8]
+00454CD3  |.  E8 A8C4FAFF   CALL rxvsrdsr.00401180                 ; //这里取注册用户 ID 长度
+00454CD8  |.  3B45 FC       CMP EAX,DWORD PTR SS:[EBP-4]           ; //输入的注册用户 ID 长度是否等于 35
+00454CDB  |.  74 04         JE SHORT rxvsrdsr.00454CE1
+00454CDD  |.  33C0          XOR EAX,EAX
+00454CDF  |.  EB 53         JMP SHORT rxvsrdsr.00454D34
+00454CE1  |>  C745 F8 00000>MOV DWORD PTR SS:[EBP-8],0             ; //DWORD nIndex = NULL
+00454CE8  |.  EB 09         JMP SHORT rxvsrdsr.00454CF3
+00454CEA  |>  8B4D F8       /MOV ECX,DWORD PTR SS:[EBP-8]
+00454CED  |.  83C1 01       |ADD ECX,1
+00454CF0  |.  894D F8       |MOV DWORD PTR SS:[EBP-8],ECX
+00454CF3  |>  8B55 F8       MOV EDX,DWORD PTR SS:[EBP-8]
+00454CF6  |.  3B55 FC       |CMP EDX,DWORD PTR SS:[EBP-4]          ; //nIndex >= UserIdLen ?
+00454CF9  |.  7D 34         |JGE SHORT rxvsrdsr.00454D2F
+00454CFB  |.  837D F8 08    |CMP DWORD PTR SS:[EBP-8],8           ; //忽略 InputUserId[8]，字符'-'
+00454CFF  |.  74 2C         |JE SHORT rxvsrdsr.00454D2D
+00454D01  |.  837D F8 11    |CMP DWORD PTR SS:[EBP-8],11          ; //忽略 InputUserId[11h]，字符'-'
+00454D05  |.  74 26         |JE SHORT rxvsrdsr.00454D2D
+00454D07  |.  837D F8 1A    |CMP DWORD PTR SS:[EBP-8],1A          ; //忽略 InputUserId[1AH]，字符'-'
+00454D0B  |.  74 20         |JE SHORT rxvsrdsr.00454D2D
+00454D0D  |.  8B45 F8       |MOV EAX,DWORD PTR SS:[EBP-8]
+00454D10  |.  50            |PUSH EAX                              ; /Arg1
+00454D11  |.  8B4D 08       |MOV ECX,DWORD PTR SS:[EBP+8]          ; |
+00454D14  |.  E8 E7C2FAFF   |CALL rxvsrdsr.00401000                ; \\//DWORD FlagIndex = InputUserId[nIndex]
+00454D19  |.  0FB7C8        |MOVZX ECX,AX
+00454D1C  |.  51            |PUSH ECX                              ; /Arg1
+00454D1D  |.  E8 2F18FDFF   |CALL rxvsrdsr.00426551                ; \\//返回 FlagHexData[FlagIndex] AND 80，
+                                                  //实际上是限制 InputUserId[nIndex]字符范围是：0~9 ,A~F,a~f
+00454D22  |.  83C4 04       |ADD ESP,4
+00454D25  |.  85C0          |TEST EAX,EAX                          ; //判断 InputUserId[nIndex]是否符合范围
+00454D27  |.  75 04         |JNZ SHORT rxvsrdsr.00454D2D
+00454D29  |.  33C0          |XOR EAX,EAX
+00454D2B  |.  EB 07         |JMP SHORT rxvsrdsr.00454D34
+00454D2D  |>^ EB BB         \JMP SHORT rxvsrdsr.00454CEA
+00454D2F  |>  B8 01000000   MOV EAX,1
+00454D34  |>  8BE5          MOV ESP,EBP
+00454D36  |.  5D            POP EBP
+00454D37  \.  C3            RETN
+```
+
+### 跟入 KEY 文件的数据格式限制函数，分析如下：
+
+`****KEY 文件的数据格式限制分析****`
+
+使用的数据结构：
+
+- 存放 KEY 文件数据：`KeyData[156]`
+
+代码:
+
+```
+00440FB0  /$  55            PUSH EBP
+00440FB1  |.  8BEC          MOV EBP,ESP
+00440FB3  |.  6A FF         PUSH -1
+00440FB5  |.  68 AC6E4500   PUSH rxvsrdsr.00456EAC
+00440FBA  |.  64:A1 0000000>MOV EAX,DWORD PTR FS:[0]
+00440FC0  |.  50            PUSH EAX
+00440FC1  |.  83EC 1C       SUB ESP,1C
+00440FC4  |.  A1 50184700   MOV EAX,DWORD PTR DS:[471850]
+00440FC9  |.  33C5          XOR EAX,EBP
+00440FCB  |.  50            PUSH EAX
+00440FCC  |.  8D45 F4       LEA EAX,DWORD PTR SS:[EBP-C]
+00440FCF  |.  64:A3 0000000>MOV DWORD PTR FS:[0],EAX
+00440FD5  |.  894D D8       MOV DWORD PTR SS:[EBP-28],ECX
+00440FD8  |.  C745 E0 00000>MOV DWORD PTR SS:[EBP-20],0
+00440FDF  |.  8D4D E4       LEA ECX,DWORD PTR SS:[EBP-1C]
+00440FE2  |.  E8 5D03FDFF   CALL rxvsrdsr.00411344
+00440FE7  |.  C745 FC 00000>MOV DWORD PTR SS:[EBP-4],0
+00440FEE  |.  6A 04         PUSH 4
+00440FF0  |.  6A 00         PUSH 0
+00440FF2  |.  8B45 0C       MOV EAX,DWORD PTR SS:[EBP+C]
+00440FF5  |.  05 98000000   ADD EAX,98
+00440FFA  |.  50            PUSH EAX
+00440FFB  |.  E8 F05CFEFF   CALL rxvsrdsr.00426CF0
+00441000  |.  83C4 0C       ADD ESP,0C
+00441003  |.  6A 00         PUSH 0
+00441005  |.  6A 00         PUSH 0
+00441007  |.  8B4D 08       MOV ECX,DWORD PTR SS:[EBP+8]
+0044100A  |.  E8 2116FCFF   CALL rxvsrdsr.00402630
+0044100F  |.  50            PUSH EAX                              ; |Arg1
+00441010  |.  8D4D E4       LEA ECX,DWORD PTR SS:[EBP-1C]        ; |
+00441013  |.  E8 1307FDFF   CALL rxvsrdsr.0041172B               ; \\//打开 KEY 文件
+00441018  |.  85C0          TEST EAX,EAX
+0044101A  |.  74 5E         JE SHORT rxvsrdsr.0044107A
+0044101C  |.  68 98000000   PUSH 98                               ; /Arg2 = 00000098
+00441021  |.  8B4D 0C       MOV ECX,DWORD PTR SS:[EBP+C]          ; |
+00441024  |.  51            PUSH ECX                              ; |Arg1
+00441025  |.  8D4D E4       LEA ECX,DWORD PTR SS:[EBP-1C]        ; |
+00441028  |.  E8 0B00FDFF   CALL rxvsrdsr.00411038               ; \\//读取 152 个字节的数据，假设用 KeyData[156]缓冲区存放
+0044102D  |.  3D 98000000   CMP EAX,98                             ; //如果 KEY 文件的数据量不是 152 个字节的就显示无效 KEY
+00441032  |.  75 3E         JNZ SHORT rxvsrdsr.00441072
+00441034  |.  8B55 0C       MOV EDX,DWORD PTR SS:[EBP+C]
+00441037  |.  813A 30848583  CMP DWORD PTR DS:[EDX],83858430       ; //KEY 文件的第一个 DWORD 数据是 83858430H
+0044103D  |.  75 33         JNZ SHORT rxvsrdsr.00441072
+0044103F  |.  C745 E0 01000>MOV DWORD PTR SS:[EBP-20],1
+00441046  |.  8B45 0C       MOV EAX,DWORD PTR SS:[EBP+C]
+00441049  |.  0FB648 15     MOVZX ECX,BYTE PTR DS:[EAX+15]
+0044104D  |.  83E1 01       AND ECX,1                              ; //要求 KeyData[21] and 1 != NULL，可能的情况有：所有的单数
+00441050  |.  74 20         JE SHORT rxvsrdsr.00441072
+00441052  |.  6A 04         PUSH 4                                 ; /Arg2 = 00000004
+00441054  |.  8B55 0C       MOV EDX,DWORD PTR SS:[EBP+C]          ; |
+00441057  |.  81C2 98000000 ADD EDX,98                             ; |
+0044105D  |.  52            PUSH EDX                               ; |Arg1
+0044105E  |.  8D4D E4       LEA ECX,DWORD PTR SS:[EBP-1C]        ; |
+00441061  |.  E8 D2FFFCFF   CALL rxvsrdsr.00411038               ; \\//再从 KEY 文件读取一个 DWORD 数据
+00441066  |.  83F8 04       CMP EAX,4
+00441069  |.  74 07         JE SHORT rxvsrdsr.00441072             ; //如果读取不到一个 DWORD 型的数据就提示错误
+0044106B  |.  C745 E0 00000>MOV DWORD PTR SS:[EBP-20],0
+00441072  |>  8D4D E4       LEA ECX,DWORD PTR SS:[EBP-1C]
+00441075  |.  E8 6402FDFF   CALL rxvsrdsr.004112DE
+0044107A  |>  8B45 E0       MOV EAX,DWORD PTR SS:[EBP-20]
+0044107D  |.  8945 DC       MOV DWORD PTR SS:[EBP-24],EAX
+00441080  |.  C745 FC FFFFF>MOV DWORD PTR SS:[EBP-4],-1
+00441087  |.  8D4D E4       LEA ECX,DWORD PTR SS:[EBP-1C]
+0044108A  |.  E8 9003FDFF   CALL rxvsrdsr.0041141F
+0044108F  |.  8B45 DC       MOV EAX,DWORD PTR SS:[EBP-24]
+00441092  |.  8B4D F4       MOV ECX,DWORD PTR SS:[EBP-C]
+00441095  |.  64:890D 00000>MOV DWORD PTR FS:[0],ECX
+0044109C  |.  59            POP ECX
+0044109D  |.  8BE5          MOV ESP,EBP
+0044109F  |.  5D            POP EBP
+004410A0  \.  C2 0800       RETN 8
+```
+
+### 跟入核心算法函数，分析如下：
+
+
+
+## 本地注册的核心算法分析
+
+用到的数据结构：
+
+- 用户 ID 字符串：`InputUserId[35]`
+- ID 对应的 HEX 数据：`InputUserIdHex[16]`
+- 存放临时结果的：`BYTE TempData`
+- 循环计数器：`DWORD nCount`
+- 对 `KeyData` 加密后存放的缓冲区：`EncryptionData[40]`
+- KEY 文件数据：`KeyData[156]`
+
+代码：
+
+
+
+```
+00441640   $  55                  PUSH EBP                              ;  //下面是算法 Key 文件的处理算法，包含比较
+00441641   .  8BEC                MOV EBP,ESP
+00441643   .  6A FF               PUSH -1
+00441645   .  68 76774500         PUSH rxvsrdsr.00457776
+0044164A   .  64:A1 0000000>     MOV EAX,DWORD PTR FS:\[0\]
+00441650   .  50                  PUSH EAX
+00441651   .  81EC CC000000       SUB ESP,0CC
+00441657   .  A1 50184700         MOV EAX,DWORD PTR DS:\[471850\]
+0044165C   .  33C5                XOR EAX,EBP
+0044165E   .  8945 D0             MOV DWORD PTR SS:\[EBP-30\],EAX
+00441661   .  50                  PUSH EAX
+00441662   .  8D45 F4             LEA EAX,DWORD PTR SS:\[EBP-C\]
+00441665   .  64:A3 0000000>      MOV DWORD PTR FS:\[0\],EAX
+0044166B   .  898D 68FFFFFF       MOV DWORD PTR SS:\[EBP-98\],ECX
+00441671   .  C745 EC 00000>      MOV DWORD PTR SS:\[EBP-14\],0
+00441678   .  8B45 08             MOV EAX,DWORD PTR SS:\[EBP+8\]
+0044167B   .  8138 30848583       CMP DWORD PTR DS:\[EAX\],83858430           ;  //(DWORD)(\*KeyData) == 83858430H ?，即检验 KeyData 的第一个 DWORD 数据是否为 83858430H
+00441681   .  74 51               JE SHORT rxvsrdsr.004416D4
+00441683   .  68 BF000000         PUSH 0BF                                 ; /Arg1 = 000000BF
+00441688   .  8D4D 88             LEA ECX,DWORD PTR SS:\[EBP-78\]             ; |
+0044168B   .  E8 200CFCFF         CALL rxvsrdsr.004022B0                    ; \\rxvsrdsr.004022B0
+00441690   .  8985 64FFFFFF       MOV DWORD PTR SS:\[EBP-9C\],EAX
+00441696   .  8B8D 64FFFFFF       MOV ECX,DWORD PTR SS:\[EBP-9C\]
+0044169C   .  898D 60FFFFFF       MOV DWORD PTR SS:\[EBP-A0\],ECX
+004416A2   .  C745 FC 00000>      MOV DWORD PTR SS:\[EBP-4\],0
+004416A9   .  6A 00               PUSH 0
+004416AB   .  6A 10               PUSH 10
+004416AD   .  8B8D 60FFFFFF       MOV ECX,DWORD PTR SS:\[EBP-A0\]
+004416B3   .  E8 780FFCFF         CALL rxvsrdsr.00402630
+004416B8   .  50                  PUSH EAX                                 ; |Arg1
+004416B9   .  E8 9DD3FCFF         CALL rxvsrdsr.0040EA5B                    ; \\rxvsrdsr.0040EA5B
+004416BE   .  C745 FC FFFFF>      MOV DWORD PTR SS:\[EBP-4\],-1
+004416C5   .  8D4D 88             LEA ECX,DWORD PTR SS:\[EBP-78\]
+004416C8   .  E8 3303FCFF         CALL rxvsrdsr.00401A00
+004416CD   .  33C0                XOR EAX,EAX
+004416CF   .  E9 A8050000         JMP rxvsrdsr.00441C7C
+004416D4   >  C645 E3 00          MOV BYTE PTR SS:\[EBP-1D\],0               ;  //BYTE TempDate = NULL
+004416D8   .  C745 E4 00000>      MOV DWORD PTR SS:\[EBP-1C\],0               ;  //DWORD nCount = NULL;
+004416DF   .  EB 09               JMP SHORT rxvsrdsr.004416EA                ;  //\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*下面是一个循环
+004416E1   >  8B55 E4             MOV EDX,DWORD PTR SS:\[EBP-1C\]
+004416E4   .  83C2 01             ADD EDX,1
+004416E7   .  8955 E4             MOV DWORD PTR SS:\[EBP-1C\],EDX             ;  //nCount++
+004416EA   >  817D E4 80000>      CMP DWORD PTR SS:\[EBP-1C\],80              ;  //nCount >= 80h ?
+004416F1   .  7D 15               JGE SHORT rxvsrdsr.00441708
+004416F3   .  8B45 08             MOV EAX,DWORD PTR SS:\[EBP+8\]
+004416F6   .  0345 E4             ADD EAX,DWORD PTR SS:\[EBP-1C\]
+004416F9   .  0FB648 18           MOVZX ECX,BYTE PTR DS:\[EAX+18\]
+004416FD   .  0FB655 E3           MOVZX EDX,BYTE PTR SS:\[EBP-1D\]
+00441701   .  03D1                ADD EDX,ECX
+00441703   .  8855 E3             MOV BYTE PTR SS:\[EBP-1D\],DL              ;  //TempDate += KeyData\[nCount+18H\]
+00441706   .^ EB D9               JMP SHORT rxvsrdsr.004416E1
+00441708   >  C745 E4 00000>      MOV DWORD PTR SS:\[EBP-1C\],0               ;  //nCount = NULL
+0044170F   .  EB 09               JMP SHORT rxvsrdsr.0044171A                ;  //下面是一个循环
+00441711   >  8B45 E4             MOV EAX,DWORD PTR SS:\[EBP-1C\]
+00441714   .  83C0 01             ADD EAX,1
+00441717   .  8945 E4             MOV DWORD PTR SS:\[EBP-1C\],EAX
+0044171A   >  837D E4 04          CMP DWORD PTR SS:\[EBP-1C\],4               ;  //nCount >= 4 ?
+0044171E   .  7D 18               JGE SHORT rxvsrdsr.00441738
+00441720   .  8B4D 08             MOV ECX,DWORD PTR SS:\[EBP+8\]
+00441723   .  034D E4             ADD ECX,DWORD PTR SS:\[EBP-1C\]
+00441726   .  0FB691 980000>      MOVZX EDX,BYTE PTR DS:\[ECX+98\]
+0044172D   .  0FB645 E3           MOVZX EAX,BYTE PTR SS:\[EBP-1D\]
+00441731   .  03C2                ADD EAX,EDX
+00441733   .  8845 E3             MOV BYTE PTR SS:\[EBP-1D\],AL              ;  //TempData += KeyData\[nCount+98h\]
+00441736   .^ EB D9               JMP SHORT rxvsrdsr.00441711
+00441738   >  0FB64D E3           MOVZX ECX,BYTE PTR SS:\[EBP-1D\]
+0044173C   .  8B55 08             MOV EDX,DWORD PTR SS:\[EBP+8\]
+0044173F   .  0FB642 14           MOVZX EAX,BYTE PTR DS:\[EDX+14\]
+00441743   .  3BC8                CMP ECX,EAX                                ;  //TempData == KeyData\[14H\] ?
+00441745   .  74 51               JE SHORT rxvsrdsr.00441798                 ;  //相等就跳走继续注册
+00441747   .  68 BF000000         PUSH 0BF                                 ; /Arg1 = 000000BF
+0044174C   .  8D4D 84             LEA ECX,DWORD PTR SS:\[EBP-7C\]             ; |
+0044174F   .  E8 5C0BFCFF         CALL rxvsrdsr.004022B0                    ; \\rxvsrdsr.004022B0
+00441754   .  8985 5CFFFFFF       MOV DWORD PTR SS:\[EBP-A4\],EAX
+0044175A   .  8B8D 5CFFFFFF       MOV ECX,DWORD PTR SS:\[EBP-A4\]
+00441760   .  898D 58FFFFFF       MOV DWORD PTR SS:\[EBP-A8\],ECX
+00441766   .  C745 FC 01000>      MOV DWORD PTR SS:\[EBP-4\],1
+0044176D   .  6A 00               PUSH 0
+0044176F   .  6A 10               PUSH 10
+00441771   .  8B8D 58FFFFFF       MOV ECX,DWORD PTR SS:\[EBP-A8\]
+00441777   .  E8 B40EFCFF         CALL rxvsrdsr.00402630
+0044177C   .  50                  PUSH EAX                                 ; |Arg1
+0044177D   .  E8 D9D2FCFF         CALL rxvsrdsr.0040EA5B                    ; \\rxvsrdsr.0040EA5B
+00441782   .  C745 FC FFFFF>      MOV DWORD PTR SS:\[EBP-4\],-1
+00441789   .  8D4D 84             LEA ECX,DWORD PTR SS:\[EBP-7C\]
+0044178C   .  E8 6F02FCFF         CALL rxvsrdsr.00401A00
+00441791   .  33C0                XOR EAX,EAX
+00441793   .  E9 E4040000         JMP rxvsrdsr.00441C7C
+00441798   >  837D 10 00          CMP DWORD PTR SS:\[EBP+10\],0
+0044179C   .  74 0C               JE SHORT rxvsrdsr.004417AA
+0044179E   .  8B55 08             MOV EDX,DWORD PTR SS:\[EBP+8\]
+004417A1   .  0FB642 15           MOVZX EAX,BYTE PTR DS:\[EDX+15\]
+004417A5   .  83E0 04             AND EAX,4                                ;  //前面是 KeyData\[15H\] AND 1 != 0，这里要求 KeyData\[15H\] and 4 != 0，
+                                                                           //说明 KeyData\[15H\] = 排除 1 的单数
+004417A8   .  74 12               JE SHORT rxvsrdsr.004417BC
+004417AA   >  837D 10 00          CMP DWORD PTR SS:\[EBP+10\],0             ;  //判断 ID 类型
+004417AE   .  75 5D               JNZ SHORT rxvsrdsr.0044180D              ;  //如果是自定义的 ID，就跳，因为现在是讨论使用自定义 ID，因此这里跳
+004417B0   .  8B4D 08             MOV ECX,DWORD PTR SS:\[EBP+8\]
+004417B3   .  0FB651 15           MOVZX EDX,BYTE PTR DS:\[ECX+15\]
+004417B7   .  83E2 04             AND EDX,4
+004417BA   .  74 51               JE SHORT rxvsrdsr.0044180D
+004417BC   >  68 02010000         PUSH 102                                 ; /Arg1 = 00000102
+004417C1   .  8D4D 80             LEA ECX,DWORD PTR SS:\[EBP-80\]             ; |
+004417C4   .  E8 E70AFCFF         CALL rxvsrdsr.004022B0                    ; \\rxvsrdsr.004022B0
+004417C9   .  8985 54FFFFFF       MOV DWORD PTR SS:\[EBP-AC\],EAX
+004417CF   .  8B85 54FFFFFF       MOV EAX,DWORD PTR SS:\[EBP-AC\]
+004417D5   .  8985 50FFFFFF       MOV DWORD PTR SS:\[EBP-B0\],EAX
+004417DB   .  C745 FC 02000>      MOV DWORD PTR SS:\[EBP-4\],2
+004417E2   .  6A 00               PUSH 0
+004417E4   .  6A 10               PUSH 10
+004417E6   .  8B8D 50FFFFFF       MOV ECX,DWORD PTR SS:\[EBP-B0\]
+004417EC   .  E8 3F0EFCFF         CALL rxvsrdsr.00402630
+004417F1   .  50                  PUSH EAX                                 ; |Arg1
+004417F2   .  E8 64D2FCFF         CALL rxvsrdsr.0040EA5B                    ; \\rxvsrdsr.0040EA5B
+004417F7   .  C745 FC FFFFF>      MOV DWORD PTR SS:\[EBP-4\],-1
+004417FE   .  8D4D 80             LEA ECX,DWORD PTR SS:\[EBP-80\]
+00441801   .  E8 FA01FCFF         CALL rxvsrdsr.00401A00
+00441806   .  33C0                XOR EAX,EAX
+00441808   .  E9 6F040000         JMP rxvsrdsr.00441C7C
+0044180D   >  8B4D 08             MOV ECX,DWORD PTR SS:\[EBP+8\]
+00441810   .  0FB651 15           MOVZX EDX,BYTE PTR DS:\[ECX+15\]
+00441814   .  83E2 04             AND EDX,4                                ;  //对 KeyData\[15H\] and 4 != 0 进行第 2 次验证
+00441817   .  0F84 F0000000        JE rxvsrdsr.0044190D
+0044181D   .  C745 E4 00000>      MOV DWORD PTR SS:\[EBP-1C\],0               ;  //nCount = NULL;
+00441824   .  EB 09               JMP SHORT rxvsrdsr.0044182F                ;  //\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*下面是一个循环
+00441826   >  8B45 E4             MOV EAX,DWORD PTR SS:\[EBP-1C\]
+00441829   .  83C0 01             ADD EAX,1
+0044182C   .  8945 E4             MOV DWORD PTR SS:\[EBP-1C\],EAX             ;  //nCount++
+0044182F   >  837D E4 10          CMP DWORD PTR SS:\[EBP-1C\],10              ;  //nCount >= 10H ?
+00441833   .  7D 1D               JGE SHORT rxvsrdsr.00441852
+00441835   .  8B4D 08             MOV ECX,DWORD PTR SS:\[EBP+8\]
+00441838   .  034D E4             ADD ECX,DWORD PTR SS:\[EBP-1C\]
+0044183B   .  0FB651 04           MOVZX EDX,BYTE PTR DS:\[ECX+4\]
+0044183F   .  83C2 08             ADD EDX,8
+00441842   .  83F2 5A             XOR EDX,5A
+00441845   .  F7D2                NOT EDX
+00441847   .  8B45 08             MOV EAX,DWORD PTR SS:\[EBP+8\]
+0044184A   .  0345 E4             ADD EAX,DWORD PTR SS:\[EBP-1C\]
+0044184D   .  8850 04             MOV BYTE PTR DS:\[EAX+4\],DL               ;  //KeyData\[nCount+4\] = ~((KeyData\[nCount+4\] + 8) xor 5A)
+00441850   .^ EB D4               JMP SHORT rxvsrdsr.00441826
+00441852   >  C745 E4 0F000>      MOV DWORD PTR SS:\[EBP-1C\],0F              ;  //nCount = 15
+00441859   .  EB 09               JMP SHORT rxvsrdsr.00441864                ;  //\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*下面是一个循环
+0044185B   >  8B4D E4             MOV ECX,DWORD PTR SS:\[EBP-1C\]
+0044185E   .  83E9 01             SUB ECX,1
+00441861   .  894D E4             MOV DWORD PTR SS:\[EBP-1C\],ECX
+00441864   >  837D E4 00          CMP DWORD PTR SS:\[EBP-1C\],0               ;  //nCount <= 0 ?
+00441868   .  7E 21               JLE SHORT rxvsrdsr.0044188B
+0044186A   .  8B55 08             MOV EDX,DWORD PTR SS:\[EBP+8\]
+0044186D   .  0355 E4             ADD EDX,DWORD PTR SS:\[EBP-1C\]
+00441870   .  0FB642 03           MOVZX EAX,BYTE PTR DS:\[EDX+3\]             ;  //KeyData\[nCount+3\]
+00441874   .  8B4D 08             MOV ECX,DWORD PTR SS:\[EBP+8\]
+00441877   .  034D E4             ADD ECX,DWORD PTR SS:\[EBP-1C\]
+0044187A   .  0FB651 04           MOVZX EDX,BYTE PTR DS:\[ECX+4\]             ;  //KeyData\[nCount+4\]
+0044187E   .  2BD0                SUB EDX,EAX
+00441880   .  8B45 08             MOV EAX,DWORD PTR SS:\[EBP+8\]
+00441883   .  0345 E4             ADD EAX,DWORD PTR SS:\[EBP-1C\]
+00441886   .  8850 04             MOV BYTE PTR DS:\[EAX+4\],DL               ;  //KeyData\[nCount+4\] -= KeyData\[nCount+3\]
+00441889   .^ EB D0               JMP SHORT rxvsrdsr.0044185B
+0044188B   >  8B4D 08             MOV ECX,DWORD PTR SS:\[EBP+8\]
+0044188E   .  0FB651 04           MOVZX EDX,BYTE PTR DS:\[ECX+4\]
+00441892   .  83FA 56             CMP EDX,56                                 ;  //KeyData\[4\] == 56h ? ，可以是 56
+00441895   .  74 0C               JE SHORT rxvsrdsr.004418A3                 ;  //符合要求的就继续注册
+00441897   .  8B45 08             MOV EAX,DWORD PTR SS:\[EBP+8\]
+0044189A   .  0FB648 04           MOVZX ECX,BYTE PTR DS:\[EAX+4\]
+0044189E   .  83F9 55             CMP ECX,55                                 ;  //KeyData\[4\] == 56H ? ，也可以是 55
+004418A1   .  75 0C               JNZ SHORT rxvsrdsr.004418AF                ;  //符合要求的就继续注册
+004418A3   >  8B55 08             MOV EDX,DWORD PTR SS:\[EBP+8\]
+004418A6   .  0FB642 15           MOVZX EAX,BYTE PTR DS:\[EDX+15\]
+004418AA   .  83E0 02             AND EAX,2                                  ;  //又限制 KeyData\[15h\] and 2 = 0 ，说明 KeyData\[15h\] = 排除 1、7 的单数
+004418AD   .  74 57               JE SHORT rxvsrdsr.00441906
+004418AF   >  68 BF000000         PUSH 0BF                                 ; /Arg1 = 000000BF
+004418B4   .  8D8D 7CFFFFFF       LEA ECX,DWORD PTR SS:\[EBP-84\]             ; |
+004418BA   .  E8 F109FCFF         CALL rxvsrdsr.004022B0                    ; \\rxvsrdsr.004022B0
+004418BF   .  8985 4CFFFFFF       MOV DWORD PTR SS:\[EBP-B4\],EAX
+004418C5   .  8B8D 4CFFFFFF       MOV ECX,DWORD PTR SS:\[EBP-B4\]
+004418CB   .  898D 48FFFFFF       MOV DWORD PTR SS:\[EBP-B8\],ECX
+004418D1   .  C745 FC 03000>      MOV DWORD PTR SS:\[EBP-4\],3
+004418D8   .  6A 00               PUSH 0
+004418DA   .  6A 10               PUSH 10
+004418DC   .  8B8D 48FFFFFF       MOV ECX,DWORD PTR SS:\[EBP-B8\]
+004418E2   .  E8 490DFCFF         CALL rxvsrdsr.00402630
+004418E7   .  50                  PUSH EAX                                 ; |Arg1
+004418E8   .  E8 6ED1FCFF         CALL rxvsrdsr.0040EA5B                    ; \\rxvsrdsr.0040EA5B
+004418ED   .  C745 FC FFFFF>      MOV DWORD PTR SS:\[EBP-4\],-1
+004418F4   .  8D8D 7CFFFFFF       LEA ECX,DWORD PTR SS:\[EBP-84\]
+004418FA   .  E8 0101FCFF         CALL rxvsrdsr.00401A00
+004418FF   .  33C0                XOR EAX,EAX
+00441901   .  E9 76030000         JMP rxvsrdsr.00441C7C
+00441906   >  C745 EC 01000>      MOV DWORD PTR SS:\[EBP-14\],1
+0044190D   >  C745 F0 01000>      MOV DWORD PTR SS:\[EBP-10\],1
+00441914   .  C745 D8 00000>      MOV DWORD PTR SS:\[EBP-28\],0
+0044191B   .  837D 0C 00          CMP DWORD PTR SS:\[EBP+C\],0
+0044191F   .  74 3A               JE SHORT rxvsrdsr.0044195B
+00441921   .  C745 E4 00000>      MOV DWORD PTR SS:\[EBP-1C\],0               ;  //nCount = NULL
+00441928   .  EB 09               JMP SHORT rxvsrdsr.00441933                ;  //\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*下面是一个循环，一个比较过程~~~
+0044192A   >  8B55 E4             MOV EDX,DWORD PTR SS:\[EBP-1C\]
+0044192D   .  83C2 01             ADD EDX,1
+00441930   .  8955 E4             MOV DWORD PTR SS:\[EBP-1C\],EDX             ;  //nCount++
+00441933   >  837D E4 10          CMP DWORD PTR SS:\[EBP-1C\],10              ;  //nCount >= 10 ?
+00441937   .  7D 22               JGE SHORT rxvsrdsr.0044195B
+00441939   .  8B45 0C             MOV EAX,DWORD PTR SS:\[EBP+C\]
+0044193C   .  0345 E4             ADD EAX,DWORD PTR SS:\[EBP-1C\]
+0044193F   .  0FB608              MOVZX ECX,BYTE PTR DS:\[EAX\]
+00441942   .  8B55 08             MOV EDX,DWORD PTR SS:\[EBP+8\]
+00441945   .  0355 E4             ADD EDX,DWORD PTR SS:\[EBP-1C\]
+00441948   .  0FB642 04           MOVZX EAX,BYTE PTR DS:\[EDX+4\]
+0044194C   .  3BC8                CMP ECX,EAX                                ;  //KeyData\[nCount\] == InputUserIdHex\[nCount+4\] ?
+0044194E   .  74 09               JE SHORT rxvsrdsr.00441959
+00441950   .  C745 F0 00000>      MOV DWORD PTR SS:\[EBP-10\],0
+00441957   .  EB 02               JMP SHORT rxvsrdsr.0044195B
+00441959   >^ EB CF               JMP SHORT rxvsrdsr.0044192A
+0044195B   >  8B4D 08             MOV ECX,DWORD PTR SS:\[EBP+8\]
+0044195E   .  0FB651 15           MOVZX EDX,BYTE PTR DS:\[ECX+15\]
+00441962   .  83E2 02             AND EDX,2                                  ;  //对 KeyData\[15h\] and 2 = 0 进行第 2 次检验
+00441965   .  74 07               JE SHORT rxvsrdsr.0044196E
+00441967   .  C745 D8 01000>      MOV DWORD PTR SS:\[EBP-28\],1
+0044196E   >  837D F0 00          CMP DWORD PTR SS:\[EBP-10\],0
+00441972   .  0F85 D5000000        JNZ rxvsrdsr.00441A4D
+00441978   .  837D EC 00          CMP DWORD PTR SS:\[EBP-14\],0
+0044197C   .  74 59               JE SHORT rxvsrdsr.004419D7
+0044197E   .  68 01010000         PUSH 101                                 ;
+00441983   .  8D8D 78FFFFFF       LEA ECX,DWORD PTR SS:\[EBP-88\]             ;
+00441989   .  E8 2209FCFF         CALL rxvsrdsr.004022B0                    ;
+0044198E   .  8985 44FFFFFF       MOV DWORD PTR SS:\[EBP-BC\],EAX
+00441994   .  8B85 44FFFFFF       MOV EAX,DWORD PTR SS:\[EBP-BC\]
+0044199A   .  8985 40FFFFFF       MOV DWORD PTR SS:\[EBP-C0\],EAX
+004419A0   .  C745 FC 04000>      MOV DWORD PTR SS:\[EBP-4\],4
+004419A7   .  6A 00               PUSH 0
+004419A9   .  6A 10               PUSH 10
+004419AB   .  8B8D 40FFFFFF       MOV ECX,DWORD PTR SS:\[EBP-C0\]
+004419B1   .  E8 7A0CFCFF         CALL rxvsrdsr.00402630
+004419B6   .  50                  PUSH EAX                                 ;
+004419B7   .  E8 9FD0FCFF         CALL rxvsrdsr.0040EA5B                    ;
+004419BC   .  C745 FC FFFFF>      MOV DWORD PTR SS:\[EBP-4\],-1
+004419C3   .  8D8D 78FFFFFF       LEA ECX,DWORD PTR SS:\[EBP-88\]
+004419C9   .  E8 3200FCFF         CALL rxvsrdsr.00401A00
+004419CE   .  33C0                XOR EAX,EAX
+004419D0   .  E9 A7020000         JMP rxvsrdsr.00441C7C
+004419D5   .  EB 76               JMP SHORT rxvsrdsr.00441A4D
+004419D7   >  837D D8 00          CMP DWORD PTR SS:\[EBP-28\],0
+004419DB   .  75 70               JNZ SHORT rxvsrdsr.00441A4D
+004419DD   .  68 EA000000         PUSH 0EA                                 ;
+004419E2   .  8D8D 70FFFFFF       LEA ECX,DWORD PTR SS:\[EBP-90\]             ; 
+004419E8   .  E8 C308FCFF         CALL rxvsrdsr.004022B0                    ; 
+004419ED   .  8985 3CFFFFFF       MOV DWORD PTR SS:\[EBP-C4\],EAX
+004419F3   .  8B8D 3CFFFFFF       MOV ECX,DWORD PTR SS:\[EBP-C4\]
+004419F9   .  898D 38FFFFFF       MOV DWORD PTR SS:\[EBP-C8\],ECX
+004419FF   .  C745 FC 05000>      MOV DWORD PTR SS:\[EBP-4\],5
+00441A06   .  6A 00               PUSH 0
+00441A08   .  6A 34               PUSH 34
+00441A0A   .  8B8D 38FFFFFF       MOV ECX,DWORD PTR SS:\[EBP-C8\]
+00441A10   .  E8 1B0CFCFF         CALL rxvsrdsr.00402630
+00441A15   .  50                  PUSH EAX                                 ; 
+00441A16   .  E8 40D0FCFF         CALL rxvsrdsr.0040EA5B                    ; 
+00441A1B   .  33D2                XOR EDX,EDX
+00441A1D   .  83F8 06             CMP EAX,6
+00441A20   .  0F95C2              SETNE DL
+00441A23   .  8895 77FFFFFF       MOV BYTE PTR SS:\[EBP-89\],DL
+00441A29   .  C745 FC FFFFF>      MOV DWORD PTR SS:\[EBP-4\],-1
+00441A30   .  8D8D 70FFFFFF       LEA ECX,DWORD PTR SS:\[EBP-90\]
+00441A36   .  E8 C5FFFBFF         CALL rxvsrdsr.00401A00
+00441A3B   .  0FB685 77FFFF>      MOVZX EAX,BYTE PTR SS:\[EBP-89\]
+00441A42   .  85C0                TEST EAX,EAX
+00441A44   .  74 07               JE SHORT rxvsrdsr.00441A4D
+00441A46   .  33C0                XOR EAX,EAX
+00441A48   .  E9 2F020000         JMP rxvsrdsr.00441C7C
+00441A4D   >  837D EC 00          CMP DWORD PTR SS:\[EBP-14\],0
+00441A51   .  74 4F               JE SHORT rxvsrdsr.00441AA2
+00441A53   .  C745 E4 00000>      MOV DWORD PTR SS:\[EBP-1C\],0               ;  //nCount = NULL;
+00441A5A   .  EB 09               JMP SHORT rxvsrdsr.00441A65                ;  //\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*下面是一个循环，
+                                                                           //将 KeyData+18h 开始的 80h 个字节的数据进行加密存放
+00441A5C   >  8B4D E4             MOV ECX,DWORD PTR SS:\[EBP-1C\]
+00441A5F   .  83C1 01             ADD ECX,1
+00441A62   .  894D E4             MOV DWORD PTR SS:\[EBP-1C\],ECX             ;  //nCount++
+00441A65   >  817D E4 80000>      CMP DWORD PTR SS:\[EBP-1C\],80              ;  //nCount >= 80h ?
+00441A6C   .  7D 34               JGE SHORT rxvsrdsr.00441AA2
+00441A6E   .  8B55 08             MOV EDX,DWORD PTR SS:\[EBP+8\]
+00441A71   .  0355 E4             ADD EDX,DWORD PTR SS:\[EBP-1C\]
+00441A74   .  0FB642 18           MOVZX EAX,BYTE PTR DS:\[EDX+18\]
+00441A78   .  83E8 02             SUB EAX,2
+00441A7B   .  F7D0                NOT EAX                                  ;  //~(KeyData\[nCount+18h\] - 2)
+00441A7D   .  8B4D E4             MOV ECX,DWORD PTR SS:\[EBP-1C\]
+00441A80   .  81E1 0F000080       AND ECX,8000000F
+00441A86   .  79 05               JNS SHORT rxvsrdsr.00441A8D
+00441A88   .  49                  DEC ECX
+00441A89   .  83C9 F0             OR ECX,FFFFFFF0
+00441A8C   .  41                  INC ECX
+00441A8D   >  8B55 08             MOV EDX,DWORD PTR SS:\[EBP+8\]
+00441A90   .  0FB64C0A 04         MOVZX ECX,BYTE PTR DS:\[EDX+ECX+4\]
+00441A95   .  33C1                XOR EAX,ECX
+00441A97   .  8B55 08             MOV EDX,DWORD PTR SS:\[EBP+8\]
+00441A9A   .  0355 E4             ADD EDX,DWORD PTR SS:\[EBP-1C\]
+00441A9D   .  8842 18             MOV BYTE PTR DS:\[EDX+18\],AL              ;  //KeyData\[nCount+18h\] = (KeyData\[nCount+18h\] - 2) ^ KeyData\[nCount+18h\]
+00441AA0   .^ EB BA               JMP SHORT rxvsrdsr.00441A5C
+00441AA2   >  C745 D4 00000>      MOV DWORD PTR SS:\[EBP-2C\],0
+00441AA9   .  C745 E8 00000>      MOV DWORD PTR SS:\[EBP-18\],0
+00441AB0   .  C745 DC 43514>      MOV DWORD PTR SS:\[EBP-24\],52455143
+00441AB7   .  8D45 E8             LEA EAX,DWORD PTR SS:\[EBP-18\]
+00441ABA   .  50                  PUSH EAX                                 ; /pHandle
+00441ABB   .  68 1F000200         PUSH 2001F                               ; |Access = KEY\_QUERY\_VALUE|KEY\_SET\_VALUE|KEY\_CREATE\_SUB\_KEY|KEY\_ENUMERATE\_SUB\_KEYS|KEY\_NOTIFY|20000
+00441AC0   .  6A 00               PUSH 0                                   ; |Reserved = 0
+00441AC2   .  68 F0154600         PUSH rxvsrdsr.004615F0                   ; |SYSTEM\\CurrentControlSet\\Services\\rxvstor\\Parameters
+00441AC7   .  68 02000080         PUSH 80000002                            ; |hKey = HKEY\_LOCAL\_MACHINE
+00441ACC   .  FF15 40A04500       CALL DWORD PTR DS:\[<&ADVAPI32.RegOpenKeyExW>\]     ; \\RegOpenKeyExW
+00441AD2   .  85C0                TEST EAX,EAX
+00441AD4   .  0F85 43010000       JNZ rxvsrdsr.00441C1D
+00441ADA   .  837D EC 00          CMP DWORD PTR SS:\[EBP-14\],0
+00441ADE   .  74 0C               JE SHORT rxvsrdsr.00441AEC
+00441AE0   .  C785 34FFFFFF>      MOV DWORD PTR SS:\[EBP-CC\],rxvsrdsr.0046165C     ;  Cache1
+00441AEA   .  EB 28               JMP SHORT rxvsrdsr.00441B14
+00441AEC   >  837D D8 00          CMP DWORD PTR SS:\[EBP-28\],0
+00441AF0   .  74 0C               JE SHORT rxvsrdsr.00441AFE
+00441AF2   .  C785 30FFFFFF>      MOV DWORD PTR SS:\[EBP-D0\],rxvsrdsr.0046166C     ;  Key2
+00441AFC   .  EB 0A               JMP SHORT rxvsrdsr.00441B08
+00441AFE   >  C785 30FFFFFF>      MOV DWORD PTR SS:\[EBP-D0\],rxvsrdsr.00461678     ;  Key
+00441B08   >  8B8D 30FFFFFF       MOV ECX,DWORD PTR SS:\[EBP-D0\]
+00441B0E   .  898D 34FFFFFF       MOV DWORD PTR SS:\[EBP-CC\],ECX
+00441B14   >  68 80000000         PUSH 80                                  ; /BufSize = 80 (128.)
+00441B19   .  8B55 08             MOV EDX,DWORD PTR SS:\[EBP+8\]             ; |
+00441B1C   .  83C2 18             ADD EDX,18                               ; |
+00441B1F   .  52                  PUSH EDX                                 ; |Buffer
+00441B20   .  6A 03               PUSH 3                                   ; |ValueType = REG\_BINARY
+00441B22   .  6A 00               PUSH 0                                   ; |Reserved = 0
+00441B24   .  8B85 34FFFFFF       MOV EAX,DWORD PTR SS:\[EBP-CC\]           ; |
+00441B2A   .  50                  PUSH EAX                                 ; |ValueName
+00441B2B   .  8B4D E8             MOV ECX,DWORD PTR SS:\[EBP-18\]           ; |
+00441B2E   .  51                  PUSH ECX                                 ; |hKey
+00441B2F   .  FF15 2CA04500       CALL DWORD PTR DS:\[<&ADVAPI32.RegSetValueExW>\]    ; \\//保存上面对 KeyData+18 开始的 80 个字节的加密数据到 cache1 键值
+00441B35   .  85C0                TEST EAX,EAX
+00441B37   .  74 05               JE SHORT rxvsrdsr.00441B3E
+00441B39   .  E9 D5000000         JMP rxvsrdsr.00441C13
+00441B3E   >  837D EC 00          CMP DWORD PTR SS:\[EBP-14\],0
+00441B42   .  74 27               JE SHORT rxvsrdsr.00441B6B
+00441B44   .  6A 10               PUSH 10                                  ; /BufSize = 10 (16.)
+00441B46   .  8B55 08             MOV EDX,DWORD PTR SS:\[EBP+8\]             ; |
+00441B49   .  83C2 04             ADD EDX,4                                ; |
+00441B4C   .  52                  PUSH EDX                                 ; |Buffer
+00441B4D   .  6A 03               PUSH 3                                   ; |ValueType = REG\_BINARY
+00441B4F   .  6A 00               PUSH 0                                   ; |Reserved = 0
+00441B51   .  68 80164600         PUSH rxvsrdsr.00461680                   ; |Vid
+00441B56   .  8B45 E8             MOV EAX,DWORD PTR SS:\[EBP-18\]           ; |
+00441B59   .  50                  PUSH EAX                                 ; |hKey
+00441B5A   .  FF15 2CA04500       CALL DWORD PTR DS:\[<&ADVAPI32.RegSetValueExW>\]    ; \\//保存用户 ID 对应的 HEX 数据，即 InputUserIdHex
+00441B60   .  85C0                TEST EAX,EAX
+00441B62   .  74 05               JE SHORT rxvsrdsr.00441B69
+00441B64   .  E9 AA000000         JMP rxvsrdsr.00441C13
+00441B69   >  EB 28               JMP SHORT rxvsrdsr.00441B93
+00441B6B   >  6A 04               PUSH 4                                   ; /BufSize = 4
+00441B6D   .  8B4D 08             MOV ECX,DWORD PTR SS:\[EBP+8\]             ; |
+00441B70   .  81C1 98000000       ADD ECX,98                               ; |
+00441B76   .  51                  PUSH ECX                                 ; |Buffer
+00441B77   .  6A 03               PUSH 3                                   ; |ValueType = REG\_BINARY
+00441B79   .  6A 00               PUSH 0                                   ; |Reserved = 0
+00441B7B   .  68 88164600         PUSH rxvsrdsr.00461688                   ; |Uid
+00441B80   .  8B55 E8             MOV EDX,DWORD PTR SS:\[EBP-18\]           ; |
+00441B83   .  52                  PUSH EDX                                 ; |hKey
+00441B84   .  FF15 2CA04500       CALL DWORD PTR DS:\[<&ADVAPI32.RegSetValueExW>\]    ; \\RegSetValueExW
+00441B8A   .  85C0                TEST EAX,EAX
+00441B8C   .  74 05               JE SHORT rxvsrdsr.00441B93
+00441B8E   .  E9 80000000         JMP rxvsrdsr.00441C13
+00441B93   >  6A 04               PUSH 4                                   ; /BufSize = 4
+00441B95   .  8D45 DC             LEA EAX,DWORD PTR SS:\[EBP-24\]           ; |
+00441B98   .  50                  PUSH EAX                                 ; |Buffer
+00441B99   .  6A 04               PUSH 4                                   ; |ValueType = REG\_DWORD
+00441B9B   .  6A 00               PUSH 0                                   ; |Reserved = 0
+00441B9D   .  68 90164600         PUSH rxvsrdsr.00461690                   ; |Check
+00441BA2   .  8B4D E8             MOV ECX,DWORD PTR SS:\[EBP-18\]           ; |
+00441BA5   .  51                  PUSH ECX                                 ; |hKey
+00441BA6   .  FF15 2CA04500       CALL DWORD PTR DS:\[<&ADVAPI32.RegSetValueExW>\]    ; \\RegSetValueExW
+00441BAC   .  85C0                TEST EAX,EAX
+00441BAE   .  74 02               JE SHORT rxvsrdsr.00441BB2
+00441BB0   .  EB 61               JMP SHORT rxvsrdsr.00441C13
+00441BB2   >  C745 E4 00000>      MOV DWORD PTR SS:\[EBP-1C\],0               ;  //nCount = NULL
+00441BB9   .  EB 09               JMP SHORT rxvsrdsr.00441BC4                ;  //\*\*\*\*\*\*下面是一个循环，在上面加密的基础上
+                                                                           //再将 KeyData 前 40 个字节的数据进行加密，假设存放到 EncryptionData
+00441BBB   >  8B55 E4             MOV EDX,DWORD PTR SS:\[EBP-1C\]
+00441BBE   .  83C2 01             ADD EDX,1
+00441BC1   .  8955 E4             MOV DWORD PTR SS:\[EBP-1C\],EDX             ;  //nCount++
+00441BC4   >  837D E4 40          CMP DWORD PTR SS:\[EBP-1C\],40              ;  //nCount >= 40h ?
+00441BC8   .  7D 29               JGE SHORT rxvsrdsr.00441BF3
+00441BCA   .  B8 7F000000         MOV EAX,7F
+00441BCF   .  2B45 E4             SUB EAX,DWORD PTR SS:\[EBP-1C\]             ;  //7A - nCount
+00441BD2   .  8B4D 08             MOV ECX,DWORD PTR SS:\[EBP+8\]
+00441BD5   .  0FB65401 18         MOVZX EDX,BYTE PTR DS:\[ECX+EAX+18\]        ;  //KeyData\[7Ah - nCount + 18h\]
+00441BDA   .  8B45 08             MOV EAX,DWORD PTR SS:\[EBP+8\]
+00441BDD   .  0345 E4             ADD EAX,DWORD PTR SS:\[EBP-1C\]
+00441BE0   .  0FB648 18           MOVZX ECX,BYTE PTR DS:\[EAX+18\]           ;  //KeyData\[nCount + 18h\]
+00441BE4   .  D1F9                SAR ECX,1
+00441BE6   .  03D1                ADD EDX,ECX
+00441BE8   .  F7D2                NOT EDX
+00441BEA   .  8B45 E4             MOV EAX,DWORD PTR SS:\[EBP-1C\]
+00441BED   .  885405 8C           MOV BYTE PTR SS:\[EBP+EAX-74\],DL          ;  //EncryptionData\[nCount\] = ~(KeyData\[7Ah-nCount+18h\] + (KeyData\[nCount+18h\] sar 1))
+00441BF1   .^ EB C8               JMP SHORT rxvsrdsr.00441BBB
+00441BF3   >  6A 40               PUSH 40                                  ; /BufSize = 40 (64.)
+00441BF5   .  8D4D 8C             LEA ECX,DWORD PTR SS:\[EBP-74\]           ; |
+00441BF8   .  51                  PUSH ECX                                 ; |Buffer
+00441BF9   .  6A 03               PUSH 3                                   ; |ValueType = REG\_BINARY
+00441BFB   .  6A 00               PUSH 0                                   ; |Reserved = 0
+00441BFD   .  68 9C164600         PUSH rxvsrdsr.0046169C                   ; |KeyV
+00441C02   .  8B55 E8             MOV EDX,DWORD PTR SS:\[EBP-18\]           ; |
+00441C05   .  52                  PUSH EDX                                 ; |hKey
+00441C06   .  FF15 2CA04500       CALL DWORD PTR DS:\[<&ADVAPI32.RegSetValueExW>\]    ; \\//保存上面加密数据到 KeyV 键值
+00441C0C   .  C745 D4 01000>      MOV DWORD PTR SS:\[EBP-2C\],1
+00441C13   >  8B45 E8             MOV EAX,DWORD PTR SS:\[EBP-18\]
+00441C16   .  50                  PUSH EAX                                 ; /hKey
+00441C17   .  FF15 38A04500       CALL DWORD PTR DS:\[<&ADVAPI32.RegCloseKey>\]      ; \\RegCloseKey
+00441C1D   >  837D D4 00          CMP DWORD PTR SS:\[EBP-2C\],0
+00441C21   .  75 54               JNZ SHORT rxvsrdsr.00441C77
+00441C23   .  68 C0000000         PUSH 0C0                                 ;
+00441C28   .  8D8D 6CFFFFFF       LEA ECX,DWORD PTR SS:\[EBP-94\]             ; 
+00441C2E   .  E8 7D06FCFF         CALL rxvsrdsr.004022B0                    ;
+00441C33   .  8985 2CFFFFFF       MOV DWORD PTR SS:\[EBP-D4\],EAX
+00441C39   .  8B8D 2CFFFFFF       MOV ECX,DWORD PTR SS:\[EBP-D4\]
+00441C3F   .  898D 28FFFFFF       MOV DWORD PTR SS:\[EBP-D8\],ECX
+00441C45   .  C745 FC 06000>      MOV DWORD PTR SS:\[EBP-4\],6
+00441C4C   .  6A 00               PUSH 0
+00441C4E   .  6A 10               PUSH 10
+00441C50   .  8B8D 28FFFFFF       MOV ECX,DWORD PTR SS:\[EBP-D8\]
+00441C56   .  E8 D509FCFF         CALL rxvsrdsr.00402630
+00441C5B   .  50                  PUSH EAX                                 ; |Arg1
+00441C5C   .  E8 FACDFCFF         CALL rxvsrdsr.0040EA5B                    ; \\rxvsrdsr.0040EA5B
+00441C61   .  C745 FC FFFFF>      MOV DWORD PTR SS:\[EBP-4\],-1
+00441C68   .  8D8D 6CFFFFFF       LEA ECX,DWORD PTR SS:\[EBP-94\]
+00441C6E   .  E8 8DFDFBFF         CALL rxvsrdsr.00401A00
+00441C73   .  33C0                XOR EAX,EAX
+00441C75   .  EB 05               JMP SHORT rxvsrdsr.00441C7C
+00441C77   >  B8 01000000         MOV EAX,1
+00441C7C   >  8B4D F4             MOV ECX,DWORD PTR SS:\[EBP-C\]
+00441C7F   .  64:890D 00000>      MOV DWORD PTR FS:\[0\],ECX
+00441C86   .  59                  POP ECX
+00441C87   .  8B4D D0             MOV ECX,DWORD PTR SS:\[EBP-30\]
+00441C8A   .  33CD                XOR ECX,EBP
+00441C8C   .  E8 FE46FEFF         CALL rxvsrdsr.0042638F
+00441C91   .  8BE5                MOV ESP,EBP
+00441C93   .  5D                  POP EBP
+00441C94   .  C2 0C00             RETN 0C
+```
+
+
+
+当理解算法后，会发现，通过构造一个`KEY`文件来计算出用户`ID`会比较方便的。
+
+分析到这里，其实还没有完成整个注册流程的，如果都符合上面分析的要求，程序会提示需要重新启动系统进行认证。它
+
+这里说从新启动系统，估计是在`RO`才是真正的算法。`OD`重载软件，下断点`bp SetDlgItemTextW`（其实是猜测它是用这个函数
+
+来设置那个注册状态标志的），然后点击`Options`（点击这里才会读取注册信息进行认证），中断后不断返回到如下函数：
+
+```
+代码:
+```
+
+
+
+```
+0044EF20  /.  55            PUSH EBP
+0044EF21  |.  8BEC          MOV EBP,ESP
+0044EF23  |.  6A FF        PUSH -1
+0044EF25  |.  68 B5894500  PUSH rxvsrdsr.004589B5
+0044EF2A  |.  64:A1 0000000>MOV EAX,DWORD PTR FS:[0]
+0044EF30  |.  50            PUSH EAX
+0044EF31  |.  81EC F8000000 SUB ESP,0F8
+0044EF37  |.  A1 50184700  MOV EAX,DWORD PTR DS:[471850]
+0044EF3C  |.  33C5         XOR EAX,EBP
+0044EF3E  |.  50            PUSH EAX
+
+    ..............................................
+    ..............................................
+    ..............................................
+    ..............................................
+     
+0044F4FA  |.  C745 D4 00000>MOV DWORD PTR SS:[EBP-2C],0                         ; DWORD InfoValue = NULL
+0044F501  |.  C745 F0 43514>MOV DWORD PTR SS:[EBP-10],52455143
+0044F508  |.  C745 E8 04000>MOV DWORD PTR SS:[EBP-18],4
+0044F50F  |.  8D4D E4       LEA ECX,DWORD PTR SS:[EBP-1C]
+0044F512  |.  E8 8925FBFF  CALL rxvsrdsr.00401AA0
+0044F517  |.  C745 FC 09000>MOV DWORD PTR SS:[EBP-4],9
+0044F51E  |.  8D55 E0       LEA EDX,DWORD PTR SS:[EBP-20]
+0044F521  |.  52            PUSH EDX                                              ; /pHandle
+0044F522  |.  68 19000200  PUSH 20019                                            ; |Access = KEY_READ
+0044F527  |.  6A 00         PUSH 0                                                ; |Reserved = 0
+0044F529  |.  68 901C4600  PUSH rxvsrdsr.00461C90                                ; |SYSTEM\\CurrentControlSet\\Services\\rxvstor\\Parameters
+0044F52E  |.  68 02000080  PUSH 80000002                                           ; |(Initial CPU selection)
+0044F533  |.  FF15 40A04500 CALL DWORD PTR DS:[<&ADVAPI32.RegOpenKeyExW>]       ; \\RegOpenKeyExW
+0044F539  |.  85C0          TEST EAX,EAX
+0044F53B  |.  75 4B        JNZ SHORT rxvsrdsr.0044F588
+0044F53D  |.  8D45 E8      LEA EAX,DWORD PTR SS:[EBP-18]
+0044F540  |.  50            PUSH EAX                                              ; /pBufSize
+0044F541  |.  8D4D D4      LEA ECX,DWORD PTR SS:[EBP-2C]                         ; |
+0044F544  |.  51            PUSH ECX                                              ; |Buffer
+0044F545  |.  6A 00         PUSH 0                                                ; |pValueType = NULL
+0044F547  |.  6A 00         PUSH 0                                                ; |Reserved = NULL
+0044F549  |.  68 FC1C4600  PUSH rxvsrdsr.00461CFC                                ; |Info
+0044F54E  |.  8B55 E0      MOV EDX,DWORD PTR SS:[EBP-20]                         ; |
+0044F551  |.  52            PUSH EDX                                              ; |hKey
+0044F552  |.  FF15 30A04500 CALL DWORD PTR DS:[<&ADVAPI32.RegQueryValueExW>]     ; \\//读取剩余期限，这个值就是判断注册成功的关键，用 InfoValue 存放
+0044F558  |.  85C0          TEST EAX,EAX
+0044F55A  |.  75 07        JNZ SHORT rxvsrdsr.0044F563
+0044F55C  |.  C745 D8 01000>MOV DWORD PTR SS:[EBP-28],1
+0044F563  |>  8D45 E8      LEA EAX,DWORD PTR SS:[EBP-18]
+0044F566  |.  50            PUSH EAX                                              ; /pBufSize
+0044F567  |.  8D4D F0      LEA ECX,DWORD PTR SS:[EBP-10]                         ; |
+0044F56A  |.  51            PUSH ECX                                              ; |Buffer
+0044F56B  |.  6A 00         PUSH 0                                                ; |pValueType = NULL
+0044F56D  |.  6A 00         PUSH 0                                                ; |Reserved = NULL
+0044F56F  |.  68 081D4600  PUSH rxvsrdsr.00461D08                                ; |check
+0044F574  |.  8B55 E0      MOV EDX,DWORD PTR SS:[EBP-20]                         ; |
+0044F577  |.  52            PUSH EDX                                              ; |hKey
+0044F578  |.  FF15 30A04500 CALL DWORD PTR DS:[<&ADVAPI32.RegQueryValueExW>]     ; \\读取 check 键值数据
+0044F57E  |.  8B45 E0      MOV EAX,DWORD PTR SS:[EBP-20]
+0044F581  |.  50            PUSH EAX                                              ; /hKey
+0044F582  |.  FF15 38A04500 CALL DWORD PTR DS:[<&ADVAPI32.RegCloseKey>]          ; \\RegCloseKey
+0044F588  |>  837D D8 00   CMP DWORD PTR SS:[EBP-28],0
+0044F58C  |.  75 43        JNZ SHORT rxvsrdsr.0044F5D1
+0044F58E  |.  68 BC000000  PUSH 0BC                                               ; 
+0044F593  |.  8D4D 94      LEA ECX,DWORD PTR SS:[EBP-6C]                         ;
+0044F596  |.  E8 152DFBFF  CALL rxvsrdsr.004022B0                                 ;
+0044F59B  |.  8985 20FFFFFF MOV DWORD PTR SS:[EBP-E0],EAX
+0044F5A1  |.  8B8D 20FFFFFF MOV ECX,DWORD PTR SS:[EBP-E0]
+0044F5A7  |.  898D 1CFFFFFF MOV DWORD PTR SS:[EBP-E4],ECX
+0044F5AD  |.  C645 FC 0A   MOV BYTE PTR SS:[EBP-4],0A
+0044F5B1  |.  8B95 1CFFFFFF MOV EDX,DWORD PTR SS:[EBP-E4]
+0044F5B7  |.  52            PUSH EDX                                              ;
+0044F5B8  |.  8D4D E4      LEA ECX,DWORD PTR SS:[EBP-1C]                         ; 
+0044F5BB  |.  E8 C02FFBFF  CALL rxvsrdsr.00402580                                 ;
+0044F5C0  |.  C645 FC 09   MOV BYTE PTR SS:[EBP-4],9
+0044F5C4  |.  8D4D 94      LEA ECX,DWORD PTR SS:[EBP-6C]
+0044F5C7  |.  E8 3424FBFF  CALL rxvsrdsr.00401A00
+0044F5CC  |.  E9 38010000  JMP rxvsrdsr.0044F709
+0044F5D1  |>  8B45 D4      MOV EAX,DWORD PTR SS:[EBP-2C]
+0044F5D4  |.  25 00000080  AND EAX,80000000                                      ;  //InfoValue & 80000000 == NULL?
+0044F5D9  |.  0F84 8E000000 JE rxvsrdsr.0044F66D                                 ;  //如果 InfoValue & 80000000 ＝= NULL 就跳走，注册失败
+0044F5DF  |.  68 BB000000  PUSH 0BB                                               ;
+0044F5E4  |.  8D4D 90      LEA ECX,DWORD PTR SS:[EBP-70]                         ; 
+0044F5E7  |.  E8 C42CFBFF  CALL rxvsrdsr.004022B0                                 ; 
+
+    ..............................................
+    ..............................................
+    ..............................................
+    .............................................. 
+
+0044F65C  |.  C645 FC 09   MOV BYTE PTR SS:[EBP-4],9
+0044F660  |.  8D4D 8C      LEA ECX,DWORD PTR SS:[EBP-74]
+0044F663  |.  E8 9823FBFF  CALL rxvsrdsr.00401A00
+0044F668  |.  E9 9C000000  JMP rxvsrdsr.0044F709
+0044F66D  |>  8B4D D4      MOV ECX,DWORD PTR SS:[EBP-2C]
+0044F670  |.  81E1 00000040 AND ECX,40000000                                      ;  //这里提示试用版是否过期
+0044F676  |.  74 40        JE SHORT rxvsrdsr.0044F6B8                             ;  //不过期就跳走继续
+0044F678  |.  68 B9000000  PUSH 0B9                                              ; /Arg1 = 000000B9
+0044F67D  |.  8D4D 88      LEA ECX,DWORD PTR SS:[EBP-78]                         ; |
+0044F680  |.  E8 2B2CFBFF  CALL rxvsrdsr.004022B0                                 ; \\rxvsrdsr.004022B0
+0044F685  |.  8985 08FFFFFF MOV DWORD PTR SS:[EBP-F8],EAX
+0044F68B  |.  8B95 08FFFFFF MOV EDX,DWORD PTR SS:[EBP-F8]
+
+    ..............................................
+    ..............................................
+    ..............................................
+    ..............................................
+     
+0044F709  |>  8D4D E4      LEA ECX,DWORD PTR SS:[EBP-1C]
+0044F70C  |.  E8 1F2FFBFF  CALL rxvsrdsr.00402630
+0044F711  |.  50            PUSH EAX                                              ;
+0044F712  |.  68 1E040000  PUSH 41E                                              ;
+0044F717  |.  8B8D 7CFFFFFF MOV ECX,DWORD PTR SS:[EBP-84]                         ;
+0044F71D  |.  E8 A6C7FBFF  CALL rxvsrdsr.0040BEC8                                 ; \\//这里显示注册相关的信息，显示注册成功与否，读取注册信息状态
+0044F722  |.  6A 01         PUSH 1                                                ; 
+0044F724  |.  68 18040000  PUSH 418                                              ; 
+0044F729  |.  8B8D 7CFFFFFF MOV ECX,DWORD PTR SS:[EBP-84]                         ; 
+0044F72F  |.  E8 41C7FBFF  CALL rxvsrdsr.0040BE75                                 ; 
+0044F734  |.  8BC8          MOV ECX,EAX                                          ; 
+0044F736  |.  E8 32C9FBFF  CALL rxvsrdsr.0040C06D                                 ; 
+0044F73B  |.  C745 80 01000>MOV DWORD PTR SS:[EBP-80],1
+0044F742  |.  C745 FC FFFFF>MOV DWORD PTR SS:[EBP-4],-1
+0044F749  |.  8D4D E4      LEA ECX,DWORD PTR SS:[EBP-1C]
+0044F74C  |.  E8 AF22FBFF  CALL rxvsrdsr.00401A00
+0044F751  |.  8B45 80      MOV EAX,DWORD PTR SS:[EBP-80]
+0044F754  |.  8B4D F4      MOV ECX,DWORD PTR SS:[EBP-C]
+0044F757  |.  64:890D 00000>MOV DWORD PTR FS:[0],ECX
+0044F75E  |.  59            POP ECX
+0044F75F  |.  8BE5          MOV ESP,EBP
+0044F761  |.  5D            POP EBP
+0044F762  \\.  C3           RETN
+```
+
+
+
+分析到这里，你会发现真正影响注册的标志是 `SYSTEM\CurrentControlSet\Services\rxvstor\Parameters` 里的 `info` 这个键值，这个就是记录软件可使用的剩余期限的,按照上面的条件，可以将其修改成 `80000000`，即可显示为注册成功~
+
+这个就是程序的奇怪地方，按照软件的提示，重启软件应该会读取之前保存的 `KEY` 数据，然后再经过一系列的运算判断，然后再修改 `INFO` 这个键值，但是这里直接读取 `info` 这个值就进行判断注册与否。
+
+小弟水平有限，并没有参透过中奥妙，还请指教。
+
+`KEY` 文件内容，`KeyData` 这个数据结构中，为方便，我用一个数组存放。其实从上面算法的过程中猜测，其实使用下面的结构可能会贴切点：
+
+```c
+typedef struct _KeyData{
+    DWORD VersionFlag;
+    BYTE UserIdEncryptionData[16];
+    BYTE SumFlag;
+    BYTE IdFlag;
+    WORD NoUse;
+    BYTE RemainData[128];
+    DWORD EndDword;
+}KEYDATA,*PKEYDATA;
+```
+
+因为找不到真正的算法，因此无法写注册机了，毕竟这个软件做的是不错的，真不希望看到它的注册机满天飞~~
