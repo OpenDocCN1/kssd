@@ -1,0 +1,109 @@
+
+```
+0047D694  /$  55             PUSH EBP
+0047D695  |.  8BEC          MOV EBP,ESP
+0047D697  |.  B9 04000000   MOV ECX,4
+0047D69C  |>  6A 00         /PUSH 0
+0047D69E  |.  6A 00         |PUSH 0
+0047D6A0  |.  49            |DEC ECX
+0047D6A1  |.^ 75 F9         \JNZ SHORT MagicPho.0047D69C
+0047D6A3  |.  51            PUSH ECX
+0047D6A4  |.  53            PUSH EBX
+0047D6A5  |.  8945 FC       MOV DWORD PTR SS:[EBP-4],EAX
+0047D6A8  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]             ;  //假码
+0047D6AB  |.  E8 8471F8FF   CALL MagicPho.00404834
+0047D6B0  |.  33C0          XOR EAX,EAX
+0047D6B2  |.  55            PUSH EBP
+0047D6B3  |.  68 BDD74700   PUSH MagicPho.0047D7BD
+0047D6B8  |.  64:FF30       PUSH DWORD PTR FS:[EAX]
+0047D6BB  |.  64:8920       MOV DWORD PTR FS:[EAX],ESP
+0047D6BE  |.  8D45 F8       LEA EAX,DWORD PTR SS:[EBP-8]
+0047D6C1  |.  E8 B2FDFFFF   CALL MagicPho.0047D478
+0047D6C6  |.  8D4D EC       LEA ECX,DWORD PTR SS:[EBP-14]
+0047D6C9  |.  33D2          XOR EDX,EDX
+0047D6CB  |.  8B45 F8       MOV EAX,DWORD PTR SS:[EBP-8]             ;  //用户名
+0047D6CE  |.  E8 1DFBFFFF   CALL MagicPho.0047D1F0                   ;  //将用户名重新排序
+0047D6D3  |.  8B55 EC       MOV EDX,DWORD PTR SS:[EBP-14]            ;  //重新排序后的用户名
+0047D6D6  |.  8D45 F8       LEA EAX,DWORD PTR SS:[EBP-8]
+0047D6D9  |.  E8 4E6DF8FF   CALL MagicPho.0040442C
+0047D6DE  |.  8D45 FC       LEA EAX,DWORD PTR SS:[EBP-4]
+0047D6E1  |.  50            PUSH EAX
+0047D6E2  |.  B9 0A000000   MOV ECX,0A
+0047D6E7  |.  BA 01000000   MOV EDX,1
+0047D6EC  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]             ;  //假码
+0047D6EF  |.  E8 B071F8FF   CALL MagicPho.004048A4                   ;  //取假码第 1-10 位
+0047D6F4  |.  8D4D E8       LEA ECX,DWORD PTR SS:[EBP-18]
+0047D6F7  |.  66:BA 0001    MOV DX,100                               ;  //DX=100
+0047D6FB  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]             ;  //假码第 1-10 位
+0047D6FE  |.  E8 1DFFFFFF   CALL MagicPho.0047D620                   ;  //将假码变形
+0047D703  |.  8B55 E8       MOV EDX,DWORD PTR SS:[EBP-18]            ;  //变形后的假码
+0047D706  |.  8D45 FC       LEA EAX,DWORD PTR SS:[EBP-4]
+0047D709  |.  E8 1E6DF8FF   CALL MagicPho.0040442C
+0047D70E  |.  8D4D E4       LEA ECX,DWORD PTR SS:[EBP-1C]
+0047D711  |.  33D2          XOR EDX,EDX
+0047D713  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]             ;  //变形后的假码
+0047D716  |.  E8 D5FAFFFF   CALL MagicPho.0047D1F0                   ;  //将变形后的假码重新排序
+0047D71B  |.  8B55 E4       MOV EDX,DWORD PTR SS:[EBP-1C]            ;  //重新排序后的假码
+0047D71E  |.  8D45 FC       LEA EAX,DWORD PTR SS:[EBP-4]
+0047D721  |.  E8 066DF8FF   CALL MagicPho.0040442C
+0047D726  |.  8D45 F4       LEA EAX,DWORD PTR SS:[EBP-C]
+0047D729  |.  50            PUSH EAX
+0047D72A  |.  B9 04000000   MOV ECX,4
+0047D72F  |.  BA 0A000000   MOV EDX,0A
+0047D734  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]             ;  //重新排序后的假码
+0047D737  |.  E8 6871F8FF   CALL MagicPho.004048A4                   ;  //取重新排序后的假码第 10-13 位
+0047D73C  |.  8D45 F0       LEA EAX,DWORD PTR SS:[EBP-10]
+0047D73F  |.  50            PUSH EAX
+0047D740  |.  B9 06000000   MOV ECX,6
+0047D745  |.  BA 05000000   MOV EDX,5
+0047D74A  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]             ;  //重新排序后的假码
+0047D74D  |.  E8 5271F8FF   CALL MagicPho.004048A4                   ;  //取重新排序后的假码第 5-10 位
+0047D752  |.  8D45 E0       LEA EAX,DWORD PTR SS:[EBP-20]
+0047D755  |.  50            PUSH EAX
+0047D756  |.  B9 04000000   MOV ECX,4
+0047D75B  |.  BA 01000000   MOV EDX,1
+0047D760  |.  8B45 F8       MOV EAX,DWORD PTR SS:[EBP-8]             ;  //用户名
+0047D763  |.  E8 3C71F8FF   CALL MagicPho.004048A4                   ;  //取用户名第 1-4 位
+0047D768  |.  8B55 E0       MOV EDX,DWORD PTR SS:[EBP-20]            ;  //用户名第 1-4 位
+0047D76B  |.  8B45 F4       MOV EAX,DWORD PTR SS:[EBP-C]             ;  //重新排序后的假码第 10-13 位
+0047D76E  |.  E8 1572F8FF   CALL MagicPho.00404988
+0047D773  |.  85C0          TEST EAX,EAX
+0047D775  |.  7F 25         JG SHORT MagicPho.0047D79C
+0047D777  |.  8D45 DC       LEA EAX,DWORD PTR SS:[EBP-24]
+0047D77A  |.  50            PUSH EAX
+0047D77B  |.  B9 06000000   MOV ECX,6
+0047D780  |.  BA 05000000   MOV EDX,5
+0047D785  |.  8B45 F8       MOV EAX,DWORD PTR SS:[EBP-8]             ;  //用户名
+0047D788  |.  E8 1771F8FF   CALL MagicPho.004048A4                   ;  //取用户名第 5-10 位
+0047D78D  |.  8B55 DC       MOV EDX,DWORD PTR SS:[EBP-24]            ;  //用户名第 5-10 位
+0047D790  |.  8B45 F0       MOV EAX,DWORD PTR SS:[EBP-10]            ;  //重新排序后的假码第 5-10 位
+0047D793  |.  E8 F071F8FF   CALL MagicPho.00404988                   ;  //关键比较
+0047D798  |.  85C0          TEST EAX,EAX
+0047D79A  |.  7E 04         JLE SHORT MagicPho.0047D7A0             ;  //关键跳转
+0047D79C  |>  B3 01         MOV BL,1
+0047D79E  |.  EB 02         JMP SHORT MagicPho.0047D7A2
+0047D7A0  |>  33DB          XOR EBX,EBX
+0047D7A2  |>  33C0          XOR EAX,EAX
+0047D7A4  |.  5A            POP EDX
+0047D7A5  |.  59            POP ECX
+0047D7A6  |.  59            POP ECX
+0047D7A7  |.  64:8910       MOV DWORD PTR FS:[EAX],EDX
+0047D7AA  |.  68 C4D74700   PUSH MagicPho.0047D7C4
+0047D7AF  |>  8D45 DC       LEA EAX,DWORD PTR SS:[EBP-24]
+0047D7B2  |.  BA 09000000   MOV EDX,9
+0047D7B7  |.  E8 FC6BF8FF   CALL MagicPho.004043B8
+0047D7BC  \\.  C3            RETN
+0047D7BD   .^ E9 FA65F8FF   JMP MagicPho.00403DBC
+0047D7C2   .^ EB EB         JMP SHORT MagicPho.0047D7AF
+0047D7C4   .  8BC3          MOV EAX,EBX
+0047D7C6   .  5B            POP EBX
+0047D7C7   .  8BE5          MOV ESP,EBP
+0047D7C9   .  5D            POP EBP
+0047D7CA   .  C3            RETN
+```
+
+由上可知，软件是将注册码与用户名都变形后进行比较的
+
+==============================================================
+
+代码:
