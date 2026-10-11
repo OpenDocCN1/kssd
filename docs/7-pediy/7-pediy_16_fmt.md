@@ -1,0 +1,427 @@
+
+# 如何访问一个进程中的内存
+
+> 原文：[`www.pediy.com/kssd/pediy02/forum286.htm`](https://www.pediy.com/kssd/pediy02/forum286.htm)
+
+## 原文信息
+
+**标题**：HOW TO ACCESS THE MEMORY OF A PROCESS (i.e. Game Trainer, Process Patcher etc.) / 如何访问一个进程中的内存（比如游戏补丁、进程补丁等）
+
+**作者**：`NaTzGUL` a great cracker (as Quine pointed out long ago)
+**Email**：`natzgul@hotmail.com`
+**译者**：`DDXia[CCG]`
+**英文联接**：`http://gadget.lansg.com/fravia/natz_mp2.htm`
+
+## 丁丁虾前言
+
+在 Crack 工具八宝箱中有一种武器为内存动态补丁制作软件，如果不懂它们的原理，会觉得非常的不可思义，于是在网上无意中看到了这篇教程，揭示了内存动态补丁的原理，以及带有一个简单范例。写的太精彩了。希望大家看了，能有一些启发和想法，俺丁丁虾也知足了 :D 。
+
+在文章中对 API 的详细解释，因为随便找一本中文的 API 大全，就可以看个明白了，何况通晓 API 也是 CrAcKer 基本功哦！所以就没有翻译。
+
+顺便说一声，英语不是俺的母语（好象 tKC 也说过），也比较菜，翻译内容大概的意思应该都对吧！哈哈~~~~ :) 如有误人子弟的地方请指出。谢谢！
+
+## 介绍
+
+是的！我又勤奋了=)
+
+欢迎看我的新的教学篇。
+
+这次的热点：如何访问进程中的内存，比如写 和读。
+
+其实也没有什么新意，但问题是在 `WIN95` 中，一个进程是不能访问另一个进程的内存的。
+
+在这个教程中，我将演示一种方法如何绕过这个问题。
+
+虽然许多人都在谈论这个问题，但是至今还是没有人能解决，无论如何，都是我填补这个问题做一些贡献。
+
+当然也包括一些例子，就是如何使用它去破解。
+
+### 目标
+
+**目标**：任何的 `EXE` (FLAT MODEL !)
+**目标的 URL/FTP**：`KERNEL32!ReadProcessMemory`
+`KERNEL32!WriteProcessMemory`
+
+## 教学
+
+首先列出了我们将要用到的 API （实际上这些 API 是用于调试）
+
+### 1. `ReadProcessMemory`
+
+下面是 `win32.hlp` 中的描述：
+
+`ReadProcessMemory` 功能是读取指定进程的内存。但是被读的区域必须是可以访问的，要不就操作失败。
+
+```c
+BOOL ReadProcessMemory( 
+    HANDLE hProcess,        // 被读内存的进程句柄
+    LPCVOID lpBaseAddress,  // 开始读的地址
+    LPVOID lpBuffer,        // 用于放数据的缓存地址
+    DWORD cbRead,           // 读取的字节数
+    LPDWORD lpNumberOfBytesRead  // 从文件中实际读入的字符数
+);
+```
+
+#### 参数
+
+*   `hProcess`
+    `hProcess`
+    `Identifies an open handle of a process whose memory is read.`
+    `The handle must have PROCESS_VM_READ access to the process.`
+*   `lpBaseAddress`
+    `Points to the base address in the specified process to be read.`
+    `Before any data transfer occurs, the system verifies that all data in the base address and memory of the specified size is accessible for read access.`
+    `If this is the case, the function proceeds; otherwise, the function fails.`
+*   `lpBuffer`
+    `Points to a buffer that receives the contents from the address space of the specified process.`
+*   `cbRead`
+    `Specifies the requested number of bytes to read from the specified process.`
+*   `lpNumberOfBytesRead`
+    `Points to the actual number of bytes transferred into the specified buffer.`
+    `If lpNumberOfBytesRead is NULL, the parameter is ignored.`
+
+#### 返回值
+
+`If the function succeeds, the return value is TRUE.`
+`If the function fails, the return value is FALSE.`
+`To get extended error information, call GetLastError.`
+`The function fails if the requested read operation crosses into an area of the process that is inaccessible.`
+
+#### 备注
+
+`ReadProcessMemory copies the data in the specified address range from the address space of the specified process into the specified buffer of the current process.`
+`Any process that has a handle with PROCESS_VM_READ access can call the function.`
+`The process whose address space is read is typically, but not necessarily, being debugged.`
+`The entire area to be read must be accessible.`
+`If it is not, the function fails as noted previously.`
+
+### 2. `WriteProcessMemory`
+
+`The WriteProcessMemory function writes memory in a specified process.`
+`The entire area to be written to must be accessible, or the operation fails.`
+
+```c
+BOOL WriteProcessMemory( 
+    HANDLE hProcess,       // handle of process whose memory is written to
+    LPVOID lpBaseAddress,  // address to start writing to
+    LPVOID lpBuffer,       // address of buffer to write data to
+    DWORD cbWrite,         // number of bytes to write
+    LPDWORD lpNumberOfBytesWritten  // actual number of bytes written
+);
+```
+
+#### 参数
+
+*   `hProcess`
+    `Identifies an open handle of a process whose memory is to be written to.`
+    `The handle must have PROCESS_VM_WRITE and PROCESS_VM_OPERATION access to the process.`
+*   `lpBaseAddress`
+    `Points to the base address in the specified process to be written to.`
+    `Before any data transfer occurs, the system verifies that all data in the base address and memory of the specified size is accessible for write access.`
+    `If this is the case, the function proceeds; otherwise, the function fails.`
+*   `lpBuffer`
+    `Points to the buffer that supplies data to be written into the address space of the specified process.`
+*   `cbWrite`
+    `Specifies the requested number of bytes to write into the specified process.`
+*   `lpNumberOfBytesWritten`
+    `Points to the actual number of bytes transferred into the specified process.`
+    `This parameter is optional. If lpNumberOfBytesWritten is NULL, the parameter is ignored.`
+
+#### 返回值
+
+`If the function succeeds, the return value is TRUE.`
+`If the function fails, the return value is FALSE.`
+`To get extended error information, call GetLastError.`
+`The function will fail if the requested write operation crosses into an area of the process that is inaccessible.`
+
+#### 备注
+
+`WriteProcessMemory copies the data from the specified buffer in the current process to the address range of the specified process.`
+`Any process that has a handle with PROCESS_VM_WRITE and PROCESS_VM_OPERATION access to the process to be written to can call the function.`
+`The process whose address space is being written to is typically, but not necessarily, being debugged.`
+`The entire area to be written to must be accessible.`
+`If it is not, the function fails as noted previously.`
+
+### 3. 教程：调用它用到的参数
+
+```c
+HANDLE hProcess       = ?          // 进程的句柄
+LPVOID lpBaseAddress  = 自己指定   // 开始读写的地址
+LPVOID lpBuffer       = 自己指定   // 读写数据的缓冲地址
+DWORD cbWrite         = 自己指定   // 需要读写的字节
+LPDWORD lpNumberOfBytesWritten = NULL // 实际上读写的字节
+```
+
+现在看起来已经很有希望了 呵呵~~~~;)
+
+关键是需要得到我们想访问的进程句柄。
+
+一个进程可以通过调用 `"KERNEL32!GetCurrentProcess"` 获得自己的 pseudo-handle (假句柄)。通过这个 pseudo-handle（句柄）可以获得最大的访问权限。
+
+如果我们想访问，我们必须开启另一个不同的进程。
+
+我知道有两种方法可以获得另一个进程的句柄：
+
+1.  使用 `USER32!FindWindowA`, `USER32!GetWindowThreadProcessId` and `KERNEL32!OpenProcess`
+2.  使用 `KERNEL32!CreateProcess`
+
+#### 方法一：
+
+`Game Trainer` 就是通过这种方法（DDXia：可能是一个游戏修改器）
+
+在 `WIN95` 中进程也象其他东东一样是一个对象，这就意味着我们可以通过 `"KERNEL32!OpenProcess"` 得到句柄，最后，不要忘记使用 `"BOOL KERNEL32!CloseHandle (hProcess)"` Close。否则当程序中断时进程的映象会留在内存中浪费空间。
+
+下面是 `win32.hlp` 中的描述：
+
+`功能：返回现有进程对象的句柄`
+
+```c
+HANDLE OpenProcess( 
+    DWORD fdwAccess,    // access flag
+    BOOL fInherit,      // handle inheritance flag
+    DWORD IDProcess     // process identifier
+);
+```
+
+#### 参数
+
+*   `fdwAccess`
+    `Specifies the access to the process object. For operating systems that support security checking, this access is checked against any security descriptor for the target process.`
+    `Any combination of the following access flags can be specified in addition to the STANDARD_RIGHTS_REQUIRED access flags:`
+    `Access Description`
+    `PROCESS_ALL_ACCESS Specifies all possible access flags for the process object.`
+
+
+
+## Process Access Rights
+
+### `PROCESS_CREATE_PROCESS`
+Used internally.
+
+### `PROCESS_CREATE_THREAD`
+Enables using the process handle in the `CreateRemoteThread` function to create a thread in the process.
+
+### `PROCESS_DUP_HANDLE`
+Enables using the process handle as either the source or target process in the `DuplicateHandle` function to duplicate a handle.
+
+### `PROCESS_QUERY_INFORMATION`
+Enables using the process handle in the `GetExitCodeProcess` and `GetPriorityClass` functions to read information from the process object.
+
+### `PROCESS_SET_INFORMATION`
+Enables using the process handle in the `SetPriorityClass` function to set the priority class of the process.
+
+### `PROCESS_TERMINATE`
+Enables using the process handle in the `TerminateProcess` function to terminate the process.
+
+### `PROCESS_VM_OPERATION`
+Enables using the process handle in the `VirtualProtectEx` and `WriteProcessMemory` functions to modify the virtual memory of the process.
+
+### `PROCESS_VM_READ`
+Enables using the process handle in the `ReadProcessMemory` function to read from the virtual memory of the process.
+
+### `PROCESS_VM_WRITE`
+Enables using the process handle in the `WriteProcessMemory` function to write to the virtual memory of the process.
+
+### `SYNCHRONIZE`
+Windows NT: Enables using the process handle in any of the wait functions to wait for the process to terminate.
+
+### `fInherit`
+Specifies whether the returned handle can be inherited by a new process created by the current process. If `TRUE`, the handle is inheritable.
+
+### `IDProcess`
+Specifies the process identifier of the process to open.
+
+### Return Value
+If the function succeeds, the return value is an open handle of the specified process. If the function fails, the return value is `NULL`. To get extended error information, call `GetLastError`.
+
+### Remarks
+The handle returned by the `OpenProcess` function can be used in any function that requires a handle to a process, provided the appropriate access rights were requested.
+
+---
+
+### 教程：调用 `OpenProcess` 用到的参数
+
+```c
+DWORD  fdwAccess = PROCESS_ALL_ACCESS   (Thx to Micro$oft ;) // 访问标志
+BOOL   fInherit  = FALSE               // 句柄继承标志
+DWORD  IDProcess = ?                  // 进程标志
+```
+
+使用 `KERNEL32!GetCurrentProcessId` 得到当前进程的 ID 号。
+
+为了得到另一个进程的 ID 号，我们必须再次执行它。
+
+为了找出现有的某个进程，我们得调用 `USER32!FindWindowA`，它能够通过查找窗口的标题，然后返回该窗口的句柄。利用这个窗口句柄，我们再调用 `GetWindowThreadProcessId` 去获得该进程的 ID。
+
+下面是 `win32.hlp` 中两个 API 的描述：
+
+---
+
+### `FindWindowA`
+
+The `FindWindowA` function retrieves the handle of the top-level window whose class name and window name match the specified strings. This function does not search child windows.
+
+```c
+HWND FindWindowA(
+    LPCTSTR  lpClassName,    // address of class name
+    LPCTSTR  lpWindowName    // address of window name
+);
+```
+
+#### Parameters
+
+**`lpClassName`**
+Points to a null-terminated string that specifies the class name or is an atom that identifies the class-name string. If this parameter is an atom, it must be a global atom created by a previous call to the `GlobalAddAtom` function. The atom, a 16-bit value, must be placed in the low-order word of `lpClassName`; the high-order word must be zero.
+
+**`lpWindowName`**
+Points to a null-terminated string that specifies the window name (the window's title). If this parameter is `NULL`, all window names match.
+
+#### Return Value
+If the function succeeds, the return value is the handle of the window that has the specified class name and window name. If the function fails, the return value is `NULL`. To get extended error information, call `GetLastError`.
+
+---
+
+### 教程：调用 `FindWindowA` 用到的参数
+
+```c
+LPCTSTR  lpClassName  = NIL      // 类名的指针
+LPCTSTR  lpWindowName = 自己指定 // 窗口名的指针
+```
+
+---
+
+### `GetWindowThreadProcessId`
+
+The `GetWindowThreadProcessId` function retrieves the identifier of the thread that created the specified window and, optionally, the identifier of the process that created the window. This function supersedes the `GetWindowTask` function.
+
+```c
+DWORD GetWindowThreadProcessId(
+    HWND      hWnd,       // handle of window
+    LPDWORD   lpdwProcessId // address of variable for process identifier
+);
+```
+
+#### Parameters
+
+**`hWnd`**
+Identifies the window.
+
+**`lpdwProcessId`**
+Points to a 32-bit value that receives the process identifier. If this parameter is not `NULL`, `GetWindowThreadProcessId` copies the identifier of the process to the 32-bit value; otherwise, it does not.
+
+#### Return Value
+The return value is the identifier of the thread that created the window.
+
+---
+
+### 教程：调用 `GetWindowThreadProcessId` 用到的参数
+
+```c
+HWND      hWnd          = 从 FindWindowA 返回的结果 // 窗口的句柄
+LPDWORD   lpdwProcessId = 自己指定                 // 保存进程 ID 变量的地址
+```
+
+现在我们有能力可以写一个函数，使用它来访问进程。这个函数我用 `Delphi3` 写的。如果某人问我要汇编或者是 `C` 版本的，我也会写一个给你的，但这次我实在是太懒了;) 总之，不是很难写的。
+
+以下为 `Delphi` 写的函数：
+
+```delphi
+(This function will in most cases find its use in a trainer i think)
+
+type access_info = record
+    error    :integer;
+    hwindow  :integer;
+    thread_id :integer;
+    process_id :integer;
+    hprocess :integer;
+end;
+
+function AccessProcess ( access_type    :integer;
+                         wtitle      :string;
+                         address    :integer;
+                         buffer     :PByteArray;
+                         b_count    :integer
+                         ):access_info;
+
+var temp :integer;
+
+begin result.error:=0;
+  if wtitle = '' then
+    begin result.hwindow:=FindWindowA (nil,pchar(wtitle));
+      if result.hwindow = 0 then
+      begin result.thread_id:=GetWindowThreadProcessId (result.hwindow,@result.process_id);
+        result.hprocess:=OpenProcess (PROCESS_ALL_ACCESS,false,result.process_id);
+        if result.hprocess = 0 then
+        begin temp:=0;
+            case access_type of
+              0 : ;
+              1 : if not(ReadProcessMemory (result.hprocess,pointer(address),buffer,b_count,temp)) then
+                    result.error:=4;
+              2 : if not(WriteProcessMemory (result.hprocess,pointer(address),buffer,b_count,temp)) then
+                    result.error:=5;
+            else result.error:=6;
+            end;
+            CloseHandle (result.hprocess);
+        end
+        else result.error:=3;
+      end
+      else result.error:=2;
+    end
+    else result.error:=1;
+end;
+```
+
+#### 函数的访问类型
+
+- `0` = 仅仅是获得信息
+- `1` = 读
+- `2` = 写
+
+#### 出错信息代码
+
+- `0` = 正确
+- `1` = 窗口标题是空的。
+- `2` = 不能找到指定标题的窗口
+- `3` = 不能打开进程
+- `4` = 读错误
+- `5` = 写错误
+- `6` = 不支持写类型
+
+---
+
+方法 2：
+
+
+
+在这一节中我们将去写一个进程补丁（`Process Patcher`）。
+
+以下是需要实行的步骤：
+
+- 得到命令行
+- 创建新的进程和处理命令行
+- 等待直到进程初始化完成
+- 补丁进程
+- 最后终止并单独留下新的进程
+
+进程补丁将非常有用，如果：
+
+1. 程序是被压缩的（如`Shrinker`）
+2. 程序是被加密的（如`PE-Crypt`）
+3. 在程序执行过程中有`CRC-Check`
+4. 不在乎用其他的方式修改程序
+
+使用进程补丁工具你不用关心程序本身，因为它会象这个教程中的第一种方法，进行修改进程。不同的是我们不需要再指定窗口的标题，因为我们将通过使用`KERNEL32!CreateProcess`（with `PROCESS_ALL_ACCESS`），从被返回的结果中获得进程的句柄。
+
+现在让我们实现每一步：
+
+### 得到命令行
+
+---
+
+如果你已经把`patcher.exe`重命名为`app.exe`，也许会有些帮助。
+
+这种方法`app`将会从补丁程序中接收到命令行，从而补丁程序对这个子进程是完全透明。
+
+备注：如果在`exe`中`app`执行`CRC-Check`，就不需要更改名字!!!!!
+
+否则它会在补丁程序中进行检测，那也是符合逻辑的;) （`DDXia`：也有点糊涂，于是搬出原文`4dd466d0e1e0cc123afbe504da2462ca`

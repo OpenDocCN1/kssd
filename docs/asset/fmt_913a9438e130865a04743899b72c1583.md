@@ -1,0 +1,125 @@
+
+# arm4.1 主程序 Patch 分析
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-562.htm`](https://www.pediy.com/kssd/pediy07/pediy7-562.htm)
+
+最近，`Patch` 的 `CodeInjection` 大家都可能很想玩！我也来凑个闹！就以 `armadillo.v4.10-res-patch` 这个例子来剖析一下这个 `Patch` 在干什么的，经过反复几次的跟踪后我有了一些额外的收获。由于我没有和作者以及它的组织联系，纯属个人理解，对于壳了解比较少，如有分析错误请指证！实现品是 `Arm 4.10 public` 版，出于安全原因，即使你有真 `KEY`，是不可能破解的，不过可以去 `Nag`！
+
+首先，作者 `AvAtr {RES}` 的 `CodeInjection` 代码和数据是比较紧凑的，我不喜欢这种设计方式，代码和变量流水式见位就用，但我喜欢它的 `Hook` 方式，我另外写了一个版本，参数只需填写很少的，不过由于比较长，不易看懂（我自己就没问题），所以就不举了。作者用 `Hook api` 进行监视，继而定位 `Patch` 点，修复 `CRC`，还原 `Patch` 代码，定位注入代码...注入 `Key` 数据。下面是分析过程：
+
+```text
+004C9105     E8 09000000   call 004C9113                            ; 原来的代码
+004C910A     E8 E8230000   call 004CB4F7                            ; ARMADILL.004CB4F7
+```
+
+`patch` 代码如下：
+
+```text
+004C9105   - E9 F68C1600   jmp 00631E00                            ; // 作接口
+004C910A     E8 E8230000   call 004CB4F7                           ; ARMADILL.004CB4F7
+```
+
+`631A00 -- 631DFF` 是验证后 `Key` 的存放格式。
+
+`631FEF -- 631DFB` 是部分变量、常量
+
+入口 `00631E00` :
+
+`// hook api`
+
+```text
+00631E00     60                    pushad
+00631E01     A1 70904D00           mov eax,dword ptr ds:[4D9070]       // 这个是 KERNEL32.GetProcAddress
+00631E06     A3 F01D6300           mov dword ptr ds:[631DF0],eax
+00631E0B     C705 70904D00 2F1E6300   mov dword ptr ds:[4D9070],631E2F     // 注入 hook 地址
+00631E15     A1 B0904D00           mov eax,dword ptr ds:[4D90B0]       // 这个是 KERNEL32.ReadFile
+00631E1A     A3 F41D6300           mov dword ptr ds:[631DF4],eax
+00631E1F     C705 05914C00 E8090000   mov dword ptr ds:[4C9105],9E8        // 还原壳补丁接口
+00631E29     61                    popad
+00631E2A   - E9 D672E9FF           jmp 004C9105                          // 返回接口
+```
+
+`//下面是 Hook 的处理过程：`
+
+```text
+00631E2F     8B4424 08             mov eax,dword ptr ss:[esp+8]           // 取 API Name 指针
+00631E33     3D 00000100           cmp eax,10000
+00631E38     72 19                 jb short 00631E53                      
+00631E3A     8138 52656164         cmp dword ptr ds:[eax],64616552        // 比较是否是 ReadFile
+00631E40     75 11                 jnz short 00631E53 
+00631E42     8178 04 46696C65      cmp dword ptr ds:[eax+4],656C6946      // 比较是否是 ReadFile
+00631E49     75 08                 jnz short 00631E53
+00631E4B     B8 591E6300           mov eax,631E59                         // 是则 Hook
+00631E50     C2 0800               retn 8
+00631E53     FF25 F01D6300         jmp dword ptr ds:[631DF0]             // 跳去 GetProcAddress 入口
+00631E59     8B0424               mov eax,dword ptr ss:[esp]           // 传送返回地址
+00631E5C     A3 F81D6300           mov dword ptr ds:[631DF8],eax        // 保存返回地址
+00631E61     C70424 6E1E6300       mov dword ptr ss:[esp],631E6E        // 返回处换取我们继续处理的入口
+00631E68     FF25 F41D6300         jmp dword ptr ds:[631DF4]             // 跳去 ReadFile 入口
+00631E6E     FE0D EF1D6300         dec byte ptr ds:[631DEF]            // 统计 ReadFile 激活的次数
+00631E74     75 35                 jnz short 00631EAB                  // 为 0 则封判断
+00631E76     C605 741E6300 EB      mov byte ptr ds:[631E74],0EB          // Hooked 3 次后不再比较判断
+00631E7D     3E:8B4424 F0          mov eax,dword ptr ds:[esp-10]         // 取子进程入口
+00631E82     C780 05010000 E8090000   mov dword ptr ds:[eax+105],9E8      // 还原子进程 Patch 接口
+00631E8C     C745 D8 6F56B3FD      mov dword ptr ss:[ebp-28],FDB3566F     // 填充 正确的 CRC
+00631E93     A1 F81D6300           mov eax,dword ptr ds:[631DF8]
+00631E98     C780 B5820000 FF15B21E   mov dword ptr ds:[eax+82B5],1EB215FF   //补丁 Jmp [631EB2]
+00631EA2     66:C780 B9820000 6300    mov word ptr ds:[eax+82B9],63
+00631EAB     FF35 F81D6300         push dword ptr ds:[631DF8]          //压入保存的返回地址
+00631EB1     C3                    retn
+00631EB2     B7 1E                 DD 00631EB7
+00631EB6     00                    ??
+```
+
+`//上面是父进程能做的事`
+
+`//检测是否子进程 Code 段要打补的地方已经解码（猜应该是子进程里发生的，OD 调试器无法视，父进程无法中断）`
+
+```text
+00631EB7     3002                 xor byte ptr ds:[edx],al              // 因补丁失去的代码
+00631EB9     42                   inc edx
+00631EBA     3BD1                 cmp edx,ecx
+00631EBC   ^ 72 F9               jb short 00631EB7
+00631EBE     FF0424               inc dword ptr ss:[esp]                // 跳过一个补丁造成的坏指令
+00631EC1     81FA 00204400        cmp edx,442000                        // 比较是否已经解码要补丁的地方
+00631EC7     72 1A                jb short 00631EE3                     // 判断封口
+00631EC9     C605 C71E6300 EB     mov byte ptr ds:[631EC7],0EB           // 补丁完 则封判断
+00631ED0     C705 31114400 FF25021F   mov dword ptr ds:[441131],1F0225FF       // 补丁 Jmp [00631F02]
+00631EDA     66:C705 35114400 6300    mov word ptr ds:[441135],63
+00631EE3     C3                   retn
+00631EE4     00                   ??
+```
+
+`// 复制 Key 到目的地`
+
+```text
+00631EE5     60                   pushad
+00631EE6     BE 001A6300          mov esi,631A00                       ; ASCII "AvAtAr {RES}" //复制后还是有用的
+00631EEB     BF B4334700          mov edi,4733B4                       // Key 存放格式的目的地址
+00631EF0     B9 C4000000          mov ecx,0C4                          // 复制长度
+00631EF5     F3:A5               rep movs dword ptr es:[edi],dword ptr ds:[esi]
+00631EF7     61                   popad
+00631EF8     8D41 FC              lea eax,dword ptr ds:[ecx-4]                  // 因补丁失去的 Code 段代码，它在 441000-442000 的之内，块解码是 1000 为长度，故上面填 442000
+00631EFB     8B4C24 04            mov ecx,dword ptr ss:[esp+4]
+00631EFF     2BC1                 sub eax,ecx
+00631F01     C3                   retn
+00631F02     E51E6300             DD 00631EE5
+```
+
+跟踪心得：
+
+1. `Armadillo` 的 `CRC` 自校验是对程序的主要部分代码计算的，也就是说它不是对整个文件进行 `CRC` 校验，不信，你试试找出 `.pdata` 这个节，在其 `Offset` 的连续 `00` 空间随便填充数据，保存后，再运行程序，你会发现程序运行得很好，没有表示不满和指证你损坏它的“名节”，无需改这个节的属性，所以作者选用这个部分为主体的 `CodeInjection` 。
+
+2. 作者只在壳的 代码节 `.text1` 作了一个接口，可以减少比较多的 `Patch` 还原！
+
+3. `CRC` 值是很容易找的事，经过 3 次激活 `ReadFile` 后那个值就是我们需要的（当然可以是 `Hook` 其它的 `API`，如：`SetFilePointer`），它是在一个为 `Dword:[ebp-x] = 2800` 的上一个 `Dowrd` 地址（即 `[ebp-x-4]`），注意它不一定是`[ebp-24]`的，但多数可能是这个。
+
+4. 跟踪一下 `Patch` 代码是很有趣的事，不难发现，壳的 `IAT` 的 `API` 排列是比较固定的，`[IAT +70]` 是 `GetProcAddress`，`[IAT+B0]` 是 `ReadFile` 等等。子进程才是我们 `Patch` 的主要目标（脱壳也是），`Patch` 代码分两部分，前菜是主进程，主菜是子进程，它们可以分开来进行监视，这适用用双进程转单进程来跟踪的方式。
+
+5. `Patch` 是一种无奈的选择，脱壳要比它来得快（`StolenCode`， 完美修复输入表，解码 `Dump` 已经是再简单不过的事），不过 `CC` 修复给我们不少麻烦，那么它或者是一种不错的选择（在没有 `Key` 锁定代码的情况）。
+
+6.`Patch` 的方式是多种多样的，不要绑死自己，做自己喜欢的方式...
+
+后续废话：如果谁有 `3.7x` 的客户版，请有空时发到这个邮箱 `askformore_mail#126.com` ，让我有得研究研究，没空没有不要勉强，正所谓勉强无幸福。 
+
+`4dd466d0e1e0cc123afbe504da2462ca`
