@@ -1,0 +1,655 @@
+
+# 法语助手 1.5.3 版
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6157.htm`](https://www.pediy.com/kssd/pediy06/pediy6157.htm)
+
+这是我的第二篇破文，在下菜鸟一只，写如此文章，希望没污染大家的眼睛。
+
+现在 `.net` 开始流行起来，网上许多共享软件开始用 `.net` 编写。我们 `Cracker` 也应该与时俱进，至少要能够对付简单的 `.net` 软件吧！曾经看到过 `GREENLEMON`(菩提！) `\`FCG\` 写的破文，获益良多！经过一番摸索，本人也试着破破 `.net` 的软件，于是有了下文。
+
+目标软件：法语助手 1.5.3 版
+
+下载地址：`www.francochinois.com`
+
+编程语言：`VB.NET`
+
+破解工具：`ILDasm`，还没找到比较好的动态分析软件，就静态将就着吧！该工具微软提供的 `dotnetsdk` 软件包中可以找到。想在此说一句，我曾试着用 `softice` 和 `Ollydbg` 跟踪了一次，没把我累了个半死，除了知道注册码为 10 位外，其它一无所获。我还用过 `apis32.25` 监视过该软件调用过哪些 `api`，不幸的是 `apis` 一个 `api` 都没有捕捉到，难道 `.net` 下不调用 `winapi32`？还请各位大侠指正。
+
+破解方式：爆破，想找算法的自己试试吧！
+
+要求：要对 `.net` 和 `IL` 语言有一定的了解！
+
+目的：学习，练手，交流。
+
+## 破解过程
+
+1、安装完本软件后，进入软件注册的菜单，点注册，会知道软件根据提供的机器码判断输入的注册是否正确。随便输入注册码，提示“注册失败”或“注册错误”。由于 `.net` 采用 `Unicode` 保存字符，在程序中是找不到现成的中文字串的。也就是说，如果还希望通过 `Ollydbg` 运行程序后找中文提示字符串是不可行的，不仅找中文字串不行，就是找 `winapi` 也行不能。`W32Dasm` 就更不行了。（希望高手不要笑哦！）不要紧，把 `ASCII` 转 `Unicode`，用 `UltraEdit` 把“注册失败”或“注册错误”分别转成 `Unicode` 为“`e8 6c 8c 51 31 59 25 8d`”和“`e8 6c 8c 51 19 95 ef 8b`”。
+
+2、反编译主程序 `frhelper15.exe`。即在开始－－＞运行内输入 `ildasm`，对其反编译。发现作者为了加大破解难度，所有的方法、类全部用小写字母 `a`、`b`、`c` 表示，而不是用平常用的英文单词。（我靠，这也做得出来！）这样就无法从方法、类的名称上大致判断其作用是什么了。那我们就采用最笨的办法吧，呵呵！将反编译结果保存为 `il` 文件，然后用记事本或其他的文本工具打开，在其中查找“`e8 6c 8c 51 31 59 25 8d`”和“`e8 6c 8c 51 19 95 ef 8b`”。`FT`！居然也没有。猜想程序还调用了 `DLL` 来判断注册码了。到安装目录找找吧，`DLL` 文件还真多，你看 `commondll.dll`，看他这张脸都像！就他了。依然对其反编译，保存为 `il` 文件，然后用记事本打开，找“`e8 6c 8c 51 31 59 25 8d`”和“`e8 6c 8c 51 19 95 ef 8b`”，太妙，果然在这里。
+
+```il
+.method private instance bool  a() cil managed
+{
+   // Code size         171 (0xab)
+   .maxstack  3
+   .locals init (bool V_0,
+                  unsigned int8[] V_1,
+                  unsigned int8[] V_2,
+                  class [mscorlib]System.Security.Cryptography.RSACryptoServiceProvider V_3,
+                  class [mscorlib]System.Security.Cryptography.RSAPKCS1SignatureDeformatter V_4,
+                  class [mscorlib]System.Security.Cryptography.SHA1CryptoServiceProvider V_5,
+                  unsigned int8[] V_6)
+   .try
+   {
+      IL_0000:  newobj      instance void class [mscorlib]System.Security.Cryptography.RSACryptoServiceProvider::.ctor()
+      IL_0005:  stloc.3
+      IL_0006:  ldloc.3
+      IL_0007:   ldstr       "<RSAKeyvalue><Modulus>mdmndcaDp9uHf27E+FDS5rrUfVUs"
+      + "gasF83/P4RX2kzyVRyF+ugpazMc5X2sx9QsCrbeZ6VwLu4YzitMWNBuATQ==</Modulus><"
+      + "Exponent>AQAB</Exponent></RSAKeyvalue>"
+      IL_000c:  callvirt    instance void class [mscorlib]System.Security.Cryptography.RSA::FromXmlString(string)
+      IL_0011:  ldloc.3
+      IL_0012:  newobj      instance void class [mscorlib]System.Security.Cryptography.RSAPKCS1SignatureDeformatter::.ctor(class [mscorlib]System.Security.Cryptography.AsymmetricAlgorithm)
+      IL_0017:  stloc.s     V_4
+      IL_0019:  ldloc.s     V_4
+      IL_001b:  ldstr       "SHA1"
+      IL_0020:  callvirt    instance void class [mscorlib]System.Security.Cryptography.RSAPKCS1SignatureDeformatter::SetHashAlgorithm(string)
+      IL_0025:  call        class [mscorlib]System.Text.Encoding class [mscorlib]System.Text.Encoding::get_Unicode()
+      IL_002a:  ldarg.0
+      IL_002b:  callvirt    instance class [System.Windows.forms]System.Windows.forms.TextBox class r::j()
+      IL_0030:  callvirt    instance string class [System.Windows.forms]System.Windows.forms.TextBox::get_Text()
+      IL_0035:  callvirt    instance string string::Trim()
+      IL_003a:  callvirt    instance unsigned int8[] class [mscorlib]System.Text.Encoding::GetBytes(string)
+      IL_003f:  stloc.1
+      IL_0040:  newobj      instance void class [mscorlib]System.Security.Cryptography.SHA1CryptoServiceProvider::.ctor()
+      IL_0045:  stloc.s     V_5
+      IL_0047:  ldloc.s     V_5
+      IL_0049:  ldloc.1
+      IL_004a:  callvirt    instance unsigned int8[] class [mscorlib]System.Security.Cryptography.HashAlgorithm::ComputeHash(unsigned int8[])
+      IL_004f:  stloc.2
+      IL_0050:  ldarg.0
+      IL_0051:  callvirt    instance class [System.Windows.forms]System.Windows.forms.TextBox class r::c()
+      IL_0056:  callvirt    instance string class [System.Windows.forms]System.Windows.forms.TextBox::get_Text()
+      IL_005b:  callvirt    instance string string::Trim()
+      IL_0060:  call        unsigned int8[] class [mscorlib]System.Convert::FromBase64String(string)
+      IL_0065:  stloc.s     V_6
+      IL_0067:  ldloc.s     V_4
+      IL_0069:  ldloc.2
+      IL_006a:  ldloc.s     V_6
+      IL_006c:  callvirt    instance bool class [mscorlib]System.Security.Cryptography.RSAPKCS1SignatureDeformatter::VerifySignature(unsigned int8[],unsigned int8[])
+      IL_0071:  brfalse.s   IL_0077           看到这里没有？呵呵！
+      IL_0073:  ldc.i4.1                验证通过就推 1，否则到 0077 行
+      IL_0074:  stloc.0
+      IL_0075:  leave.s    IL_00a9
+      IL_0077:  ldstr       bytearray (E8 6C 8C 51 31 59 25 8D )                // .l.Q1Y%.     这就是“注册失败”
+      IL_007c:  ldc.i4.s   16
+      IL_007e:  ldstr       bytearray (D5 6C ED 8B A9 52 4B 62 )                // .l...RKb       “法语助手”
+      IL_0083:  call        valuetype [Microsoft.VisualBasic]Microsoft.VisualBasic.MsgBoxResult class [Microsoft.VisualBasic]Microsoft.VisualBasic.Interaction::MsgBox(object, valuetype [Microsoft.VisualBasic]Microsoft.VisualBasic.MsgBoxstyle, object)               显示注册失败对话框
+      IL_0088:  pop
+      IL_0089:  ldc.i4.0   验证失败推 0
+      IL_008a:  stloc.0
+      IL_008b:  leave.s    IL_00a9
+   }  // end .try
+   catch [mscorlib]System.Exception          程序异常
+   {
+      IL_008d:  call        void class [Microsoft.VisualBasic]Microsoft.VisualBasic.CompilerServices.ProjectData::SetProjectError(class [mscorlib]System.Exception)
+      IL_0092:  ldstr       bytearray (E8 6C 8C 51 19 95 EF 8B )                // .l.Q....             这就是“注册错误”
+      IL_0097:  ldc.i4.s   16
+      IL_0099:  ldnull
+      IL_009a:  call        valuetype [Microsoft.VisualBasic]Microsoft.VisualBasic.MsgBoxResult class [Microsoft.VisualBasic]Microsoft.VisualBasic.Interaction::MsgBox(object, valuetype [Microsoft.VisualBasic]Microsoft.VisualBasic.MsgBoxstyle, object)               显示注册错误对话框
+      IL_009f:  pop
+      IL_00a0:  ldc.i4.0   验证错误推 0
+      IL_00a1:  stloc.0
+      IL_00a2:  call        void class [Microsoft.VisualBasic]Microsoft.VisualBasic.CompilerServices.ProjectData::ClearProjectError()
+      IL_00a7:  leave.s    IL_00a9
+   }  // end handler
+   IL_00a9:  ldloc.0
+   IL_00aa:  ret
+} // end of method r::a
+```
+
+靠，这也太简单了吧，想爆破的话就让程序不管验证通过与否都推 1 就行了，把 `IL_0089: ldc.i4.0` 改成 `IL_0089: ldc.i4.1`，把 `IL_00a0: ldc.i4.0` 改成 `IL_00a0: ldc.i4.1`。爽死了！哈哈！
+
+3、看看效果如何，把修改过的 `il` 文件编译一下吧，
+
+运行 `ilasm /resource=commondll.res commondll.il /dll`
+
+编译完成覆盖原来的那个（注意备份），运行程序，注册，随便输入长度为 10 的注册码，因为软件注册码为 10 位字母和数字的组合，实际上可以在 `commondll.dll` 中去掉这个限制，但本文的目的主要是抛砖引玉，就不想太麻烦了，知道注册码为 10 位就行了。点确定，告知重启就可以完成注册，心中狂喜啊!
+
+4、重新启动，查 3－4 个词后，程序提示“您的注册信息有错误”，又要注册，看来程序启动后还要对注册码进行验证。在 `frhelper15.exe` 的反编译文件中找“`A8 60 84 76 E8 6C 8C 51 E1 4F 6F 60 09 67 19 95`”（即您的注册信息有错误）。发现有三处，但这三处的程序大体上是一致的，我猜想是程序在运行过程中还要对检查注册码正确与否，发现不对了立即中止运行。为简述起见，本文仅对其中一处进行说明，其他两处就由读者依葫芦画瓢了。关键程序如下：
+
+```il
+   IL_00b2:  ldc.i4.s   50
+   IL_00b4:  stloc.s    V_5
+   IL_00b6:  ldc.i4.s   50
+   IL_00b8:  stloc.s    V_6
+   IL_00ba:  ldstr      "..\\application.config"    注册信息文件哦！位于 program Files 目录
+   IL_00bf:  call       bool class [mscorlib]System.IO.file::Exists(string)   判断在不在
+   IL_00c4:  brfalse    IL_014d            不在就跳走
+   IL_00c9:  ldstr      "..\\application.config"
+   IL_00ce:  call       class [mscorlib]System.IO.StreamReader class [mscorlib]System.IO.file::OpenText(string)          在的话就打开
+```
+
+
+
+`IL_00d3: stloc.s V_4` 下面读文件，同时将内容转换成数字
+
+```
+IL_00d5: call class [mscorlib]System.Text.Encoding class [mscorlib]System.Text.Encoding::get_Unicode()
+IL_00da: ldloc.s V_4
+IL_00dc: callvirt instance string class [mscorlib]System.IO.StreamReader::ReadLine()
+IL_00e1: call unsigned int8[] class [mscorlib]System.Convert::FromBase64String(string)
+IL_00e6: callvirt instance string class [mscorlib]System.Text.Encoding::GetString(unsigned int8[])
+IL_00eb: call float64 class [Microsoft.VisualBasic]Microsoft.VisualBasic.Conversion::Val(string)
+IL_00f0: call float64 class [mscorlib]System.Math::Round(float64)
+IL_00f5: conv.ovf.i4
+```
+
+`IL_00f6: stloc.s V_5` 保存转换结果（1）
+
+```
+IL_00f8: ldloc.s V_4
+IL_00fa: callvirt instance void class [mscorlib]System.IO.StreamReader::Close()
+IL_00ff: ldloc.s V_5
+IL_0101: ldc.i4 0xc85e7　十进制 820711
+IL_0106: beq.s IL_014d　相等的话就跳
+IL_0108: ldloc.s V_5
+IL_010a: box class [mscorlib]System.Int32
+IL_010f: ldarg.0　以下修改注册表
+IL_0110: ldfld class [CommonDll]x k::ap
+IL_0115: ldstr "TimesLeft"
+IL_011a: ldc.i4.s 50
+IL_011c: box class [mscorlib]System.Int32
+IL_0121: callvirt instance object class [CommonDll]x::a(string, object)
+IL_0126: ldc.i4.1
+IL_0127: call int32 class [Microsoft.VisualBasic]Microsoft.VisualBasic.CompilerServices.ObjectType::ObjTst(object, object, bool)
+IL_012c: ldc.i4.0
+IL_012d: ble.s IL_014d
+IL_012f: ldarg.0
+IL_0130: ldfld class [CommonDll]x k::ap
+IL_0135: ldstr "TimesLeft"
+IL_013a: ldc.i4.s 50
+IL_013c: box class [mscorlib]System.Int32
+IL_0141: callvirt instance object class [CommonDll]x::a(string, object)
+IL_0146: call int32 class [Microsoft.VisualBasic]Microsoft.VisualBasic.CompilerServices.IntegerType::FromObject(object)
+IL_014b: stloc.s V_5
+```
+
+`IL_014d: ldarg.0`
+
+```
+IL_014e: ldfld class [CommonDll]x k::ap
+IL_0153: callvirt instance string class [CommonDll]x::c() 另一个同名注册信息文件
+IL_0158: call bool class [mscorlib]System.IO.file::Exists(string) 存在？
+IL_015d: brfalse.s IL_019b 不存在则跳走，下面再读文件并转换
+IL_015f: ldarg.0
+IL_0160: ldfld class [CommonDll]x k::ap
+IL_0165: callvirt instance string class [CommonDll]x::c()
+IL_016a: call class [mscorlib]System.IO.StreamReader class [mscorlib]System.IO.file::OpenText(string)
+IL_016f: stloc.s V_4
+IL_0171: call class [mscorlib]System.Text.Encoding class [mscorlib]System.Text.Encoding::get_Unicode()
+IL_0176: ldloc.s V_4
+IL_0178: callvirt instance string class [mscorlib]System.IO.StreamReader::ReadLine()
+IL_017d: call unsigned int8[] class [mscorlib]System.Convert::FromBase64String(string)
+IL_0182: callvirt instance string class [mscorlib]System.Text.Encoding::GetString(unsigned int8[])
+IL_0187: call float64 class [Microsoft.VisualBasic]Microsoft.VisualBasic.Conversion::Val(string)
+IL_018c: call float64 class [mscorlib]System.Math::Round(float64)
+IL_0191: conv.ovf.i4
+```
+
+`IL_0192: stloc.s V_6` 保存转换结果（2）
+
+```
+IL_0194: ldloc.s V_4
+IL_0196: callvirt instance void class [mscorlib]System.IO.StreamReader::Close()
+IL_019b: ldloc.s V_6
+IL_019d: ldloc.s V_5
+IL_019f: bge.s IL_01a5 比较转换结果（1）（2），取其中较小一个
+IL_01a1: ldloc.s V_6
+IL_01a3: stloc.s V_5
+IL_01a5: ldloc.s V_5
+IL_01a7: ldc.i4.0
+IL_01a8: bgt.s IL_01d4 较小一个转换结果如果大于 0，就跳
+IL_01aa: ldarg.0 以下修改注册表后退出程序
+IL_01ab: ldfld class [CommonDll]x k::ap
+IL_01b0: ldstr "TimesLeft"
+IL_01b5: ldc.i4.0
+IL_01b6: call string class [Microsoft.VisualBasic]Microsoft.VisualBasic.CompilerServices.StringType::FromInteger(int32)
+IL_01bb: callvirt instance void class [CommonDll]x::a(string, string)
+IL_01c0: newobj instance void class [CommonDll]r::.ctor()
+IL_01c5: stloc.s V_7
+IL_01c7: ldloc.s V_7
+IL_01c9: callvirt instance valuetype [System.Windows.forms]System.Windows.forms.DialogResult class [System.Windows.forms]System.Windows.forms.form::ShowDialog()
+IL_01ce: pop
+IL_01cf: call void class [Microsoft.VisualBasic]Microsoft.VisualBasic.CompilerServices.ProjectData::EndApp()
+```
+
+`IL_01d4: ldloc.s V_5`
+
+```
+IL_01d6: ldc.i4 0xc85e7
+IL_01db: beq IL_0266 是否等于 820711，等于则跳
+IL_01e0: ldloc.s V_5
+IL_01e2: ldc.i4.1
+IL_01e3: sub.ovf 否则使用次数减 1
+IL_01e4: stloc.s V_5
+```
+
+`IL_01e6: ldstr "..\\application.config"` 以下修改注册信息文件
+
+```
+IL_01eb: ldc.i4.4
+IL_01ec: ldc.i4.2
+IL_01ed: ldc.i4.1
+IL_01ee: newobj instance void class [mscorlib]System.IO.FileStream::.ctor(string, valuetype [mscorlib]System.IO.FileMode, valuetype [mscorlib]System.IO.FileAccess, valuetype [mscorlib]System.IO.FileShare)
+IL_01f3: call class [mscorlib]System.Text.Encoding class [mscorlib]System.Text.Encoding::get_UTF8()
+IL_01f8: newobj instance void class [mscorlib]System.IO.StreamWriter::.ctor(class [mscorlib]System.IO.Stream, class [mscorlib]System.Text.Encoding)
+IL_01fd: stloc.s V_8
+IL_01ff: ldloc.s V_8
+IL_0201: call class [mscorlib]System.Text.Encoding class [mscorlib]System.Text.Encoding::get_Unicode()
+IL_0206: ldloca.s V_5
+IL_0208: call instance string class [mscorlib]System.Int32::ToString()
+IL_020d: callvirt instance unsigned int8[] class [mscorlib]System.Text.Encoding::GetBytes(string)
+IL_0212: call string class [mscorlib]System.Convert::ToBase64String(unsigned int8[])
+IL_0217: callvirt instance void class [mscorlib]System.IO.TextWriter::WriteLine(string)
+IL_021c: ldloc.s V_8
+IL_021e: callvirt instance void class [mscorlib]System.IO.StreamWriter::Close()
+IL_0223: ldarg.0
+IL_0224: ldfld class [CommonDll]x k::ap
+IL_0229: callvirt instance string class [CommonDll]x::c()
+IL_022e: ldc.i4.4
+IL_022f: ldc.i4.2
+IL_0230: ldc.i4.1
+IL_0231: newobj instance void class [mscorlib]System.IO.FileStream::.ctor(string, valuetype [mscorlib]System.IO.FileMode, valuetype [mscorlib]System.IO.FileAccess
+
+
+
+```
+valuetype [mscorlib]System.IO.FileShare)
+
+IL_0236:  call       class [mscorlib]System.Text.Encoding class [mscorlib]System.Text.Encoding::get_UTF8()
+IL_023b:  newobj     instance void class [mscorlib]System.IO.StreamWriter::.ctor(class [mscorlib]System.IO.Stream,
+                     class [mscorlib]System.Text.Encoding)
+IL_0240:  stloc.s    V_8
+IL_0242:  ldloc.s    V_8
+IL_0244:  call       class [mscorlib]System.Text.Encoding class [mscorlib]System.Text.Encoding::get_Unicode()
+IL_0249:  ldloca.s   V_5
+IL_024b:  call       instance string class [mscorlib]System.Int32::ToString()
+IL_0250:  callvirt   instance unsigned int8[] class [mscorlib]System.Text.Encoding::GetBytes(string)
+IL_0255:  call       string class [mscorlib]System.Convert::ToBase64String(unsigned int8[])
+IL_025a:  callvirt   instance void class [mscorlib]System.IO.TextWriter::WriteLine(string)
+IL_025f:  ldloc.s    V_8
+IL_0261:  callvirt   instance void class [mscorlib]System.IO.StreamWriter::Close()
+IL_0266:  leave.s    IL_0295　　　　　　　跳出
+}  // end .try
+catch [mscorlib]System.Exception 　　　　　　　　程序异常处理
+{
+  IL_0268:  dup
+  IL_0269:  call       void class [Microsoft.VisualBasic]Microsoft.VisualBasic.CompilerServices.ProjectData::SetProjectError(class [mscorlib]System.Exception)
+  IL_026e:  stloc.s    V_9
+  IL_0270:  ldloc.s    V_9
+  IL_0272:  ldc.i4.0
+  IL_0273:  ldnull
+  IL_0274:  call       valuetype [Microsoft.VisualBasic]Microsoft.VisualBasic.MsgBoxResult class [Microsoft.VisualBasic]Microsoft.VisualBasic.Interaction::MsgBox(object,
+                       valuetype [Microsoft.VisualBasic]Microsoft.VisualBasic.MsgBoxstyle,
+                       object)
+  IL_0279:  pop
+  IL_027a:  newobj     instance void class [CommonDll]r::.ctor()
+  IL_027f:  stloc.s    V_10
+  IL_0281:  ldloc.s    V_10
+  IL_0283:  callvirt   instance valuetype [System.Windows.forms]System.Windows.forms.DialogResult class [System.Windows.forms]System.Windows.forms.form::ShowDialog()
+  IL_0288:  pop
+  IL_0289:  call       void class [Microsoft.VisualBasic]Microsoft.VisualBasic.CompilerServices.ProjectData::EndApp()
+  IL_028e:  call       void class [Microsoft.VisualBasic]Microsoft.VisualBasic.CompilerServices.ProjectData::ClearProjectError()
+  IL_0293:  leave.s    IL_0295
+}  // end handler
+IL_0295:  ldarg.0
+IL_0296:  ldfld      class [CommonDll]x k::ap　　　取注册表值
+IL_029b:  ldstr      "TimesLeft"
+IL_02a0:  ldstr      ""
+IL_02a5:  callvirt   instance object class [CommonDll]x::a(string,
+                     object)
+IL_02aa:  ldstr      "820711"
+IL_02af:  ldc.i4.1
+IL_02b0:  call       int32 class [Microsoft.VisualBasic]Microsoft.VisualBasic.CompilerServices.ObjectType::ObjTst(object,
+                     object,
+                     bool)
+IL_02b5:  ldc.i4.0
+IL_02b6:  bne.un     IL_040e　　判断使用剩余次数是否为 820711，不等则跳
+.try
+{　　　这是就是在 commondll.dll 中的判断过程
+  IL_02bb:  newobj     instance void class [mscorlib]System.Security.Cryptography.RSACryptoServiceProvider::.ctor()
+  IL_02c0:  stloc.s    V_15
+  IL_02c2:  ldloc.s    V_15
+  IL_02c4:  ldstr      "<RSAKeyvalue><Modulus>mdmndcaDp9uHf27E+FDS5rrUfVUs"
+  + "gasF83/P4RX2kzyVRyF+ugpazMc5X2sx9QsCrbeZ6VwLu4YzitMWNBuATQ==</Modulus><"
+  + "Exponent>AQAB</Exponent></RSAKeyvalue>"
+  IL_02c9:  callvirt   instance void class [mscorlib]System.Security.Cryptography.RSA::FromXmlString(string)
+  IL_02ce:  ldloc.s    V_15
+  IL_02d0:  newobj     instance void class [mscorlib]System.Security.Cryptography.RSAPKCS1SignatureDeformatter::.ctor(class [mscorlib]System.Security.Cryptography.AsymmetricAlgorithm)
+  IL_02d5:  stloc.s    V_16
+  IL_02d7:  ldloc.s    V_16
+  IL_02d9:  ldstr      "SHA1"
+  IL_02de:  callvirt   instance void class [mscorlib]System.Security.Cryptography.RSAPKCS1SignatureDeformatter::SetHashAlgorithm(string)
+  IL_02e3:  ldarg.0
+  IL_02e4:  ldfld      class [CommonDll]x k::ap
+  IL_02e9:  callvirt   instance int64 class [CommonDll]x::a()
+  IL_02ee:  stloc.s    V_13
+  IL_02f0:  ldloc.s    V_13
+  IL_02f2:  ldc.i8     0x1869f
+  IL_02fb:  bge.s      IL_030f
+  IL_02fd:  ldstr      bytearray (E8 6C 8C 51 87 65 F6 4E 5F 63 4F 57 )         // .l.Q.e.N_cOW
+  IL_0302:  ldc.i4.0
+  IL_0303:  ldnull
+  IL_0304:  call       valuetype [Microsoft.VisualBasic]Microsoft.VisualBasic.MsgBoxResult class [Microsoft.VisualBasic]Microsoft.VisualBasic.Interaction::MsgBox(object,
+                       valuetype [Microsoft.VisualBasic]Microsoft.VisualBasic.MsgBoxstyle,
+                       object)
+  IL_0309:  pop
+  IL_030a:  call       void class [Microsoft.VisualBasic]Microsoft.VisualBasic.CompilerServices.ProjectData::EndApp()
+  IL_030f:  ldarg.0
+  IL_0310:  ldfld      class [CommonDll]x k::ap
+  IL_0315:  ldstr      "SerialCode"
+  IL_031a:  ldstr      "a"
+  IL_031f:  callvirt   instance object class [CommonDll]x::a(string,
+                     object)
+  IL_0324:  call       string class [Microsoft.VisualBasic]Microsoft.VisualBasic.CompilerServices.StringType::FromObject(object)
+  IL_0329:  stloc.s    V_14
+  IL_032b:  call       class [mscorlib]System.Text.Encoding class [mscorlib]System.Text.Encoding::get_Unicode()
+  IL_0330:  ldloca.s   V_13
+  IL_0332:  call       instance string class [mscorlib]System.Int64::ToString()
+  IL_0337:  callvirt   instance unsigned int8[] class [mscorlib]System.Text.Encoding::GetBytes(string)
+  IL_033c:  stloc.s    V_11
+  IL_033e:  newobj     instance void class [mscorlib]System.Security.Cryptography.SHA1CryptoServiceProvider::.ctor()
+  IL_0343:  stloc.s    V_17
+  IL_0345:  ldloc.s    V_17
+  IL_0347:  ldloc.s    V_11
+  IL_0349:  callvirt   instance unsigned int8[] class [mscorlib]System.Security.Cryptography.HashAlgorithm::ComputeHash(unsigned int8[])
+  IL_034e:  stloc.s    V_12
+  IL_0350:  ldloc.s    V_14
+  IL_0352:  call       unsigned int8[] class [mscorlib]System.Convert::FromBase64String(string)
+  IL_0357:  stloc.s    V_18
+  IL_0359:  ldloc.s    V_16
+  IL_035b:  ldloc.s    V_12
+  IL_035d:  ldloc.s    V_18
+```
+
+
+
+`IL_035f: callvirt instance bool class [mscorlib]System.Security.Cryptography.RSAPKCS1SignatureDeformatter::VerifySignature(unsigned int8[], unsigned int8[])` 关键判断
+
+`IL_0364: brtrue.s IL_03d0` 验证通过则跳，否则下面修改注册信息并退出
+
+`IL_0366: ldarg.0`
+
+`IL_0367: ldfld class [CommonDll]x k::ap`
+
+`IL_036c: ldstr "TimesLeft"`
+
+`IL_0371: ldc.i4.0`
+
+`IL_0372: call string class [Microsoft.VisualBasic]Microsoft.VisualBasic.CompilerServices.StringType::FromInteger(int32)`
+
+`IL_0377: callvirt instance void class [CommonDll]x::a(string, string)`
+
+`IL_037c: ldstr "..\\application.config"`
+
+`IL_0381: ldc.i4.4`
+
+`IL_0382: ldc.i4.2`
+
+`IL_0383: ldc.i4.1`
+
+`IL_0384: newobj instance void class [mscorlib]System.IO.FileStream::.ctor(string, valuetype [mscorlib]System.IO.FileMode, valuetype [mscorlib]System.IO.FileAccess, valuetype [mscorlib]System.IO.FileShare)`
+
+`IL_0389: call class [mscorlib]System.Text.Encoding class [mscorlib]System.Text.Encoding::get_UTF8()`
+
+`IL_038e: newobj instance void class [mscorlib]System.IO.StreamWriter::.ctor(class [mscorlib]System.IO.Stream, class [mscorlib]System.Text.Encoding)`
+
+`IL_0393: stloc.s V_20`
+
+`IL_0395: ldloc.s V_20`
+
+`IL_0397: call class [mscorlib]System.Text.Encoding class [mscorlib]System.Text.Encoding::get_Unicode()`
+
+`IL_039c: ldstr "0"`
+
+`IL_03a1: callvirt instance string string::ToString()`
+
+`IL_03a6: callvirt instance unsigned int8[] class [mscorlib]System.Text.Encoding::GetBytes(string)`
+
+`IL_03ab: call string class [mscorlib]System.Convert::ToBase64String(unsigned int8[])`
+
+`IL_03b0: callvirt instance void class [mscorlib]System.IO.TextWriter::WriteLine(string)`
+
+`IL_03b5: ldloc.s V_20`
+
+`IL_03b7: callvirt instance void class [mscorlib]System.IO.StreamWriter::Close()`
+
+`IL_03bc: newobj instance void class [CommonDll]r::.ctor()`
+
+`IL_03c1: stloc.s V_19`
+
+`IL_03c3: ldloc.s V_19`
+
+`IL_03c5: callvirt instance valuetype [System.Windows.forms]System.Windows.forms.DialogResult class [System.Windows.forms]System.Windows.forms.form::ShowDialog()`
+
+`IL_03ca: pop`
+
+`IL_03cb: call void class [Microsoft.VisualBasic]Microsoft.VisualBasic.CompilerServices.ProjectData::EndApp()`
+
+`IL_03d0: leave IL_056d` 跳出
+
+} // end .try
+
+catch `[mscorlib]System.Exception`
+
+{
+
+`IL_03d5: call void class [Microsoft.VisualBasic]Microsoft.VisualBasic.CompilerServices.ProjectData::SetProjectError(class [mscorlib]System.Exception)`
+
+`IL_03da: ldarg.0`
+
+`IL_03db: ldfld class [CommonDll]x k::ap`
+
+`IL_03e0: ldstr "TimesLeft"`
+
+`IL_03e5: ldc.i4.0`
+
+`IL_03e6: call string class [Microsoft.VisualBasic]Microsoft.VisualBasic.CompilerServices.StringType::FromInteger(int32)`
+
+`IL_03eb: callvirt instance void class [CommonDll]x::a(string, string)`
+
+`IL_03f0: newobj instance void class [CommonDll]r::.ctor()`
+
+`IL_03f5: stloc.s V_21`
+
+`IL_03f7: ldloc.s V_21`
+
+`IL_03f9: callvirt instance valuetype [System.Windows.forms]System.Windows.forms.DialogResult class [System.Windows.forms]System.Windows.forms.form::ShowDialog()`
+
+`IL_03fe: pop`
+
+`IL_03ff: call void class [Microsoft.VisualBasic]Microsoft.VisualBasic.CompilerServices.ProjectData::EndApp()`
+
+`IL_0404: call void class [Microsoft.VisualBasic]Microsoft.VisualBasic.CompilerServices.ProjectData::ClearProjectError()`
+
+`IL_0409: leave IL_056d`
+
+} // end handler
+
+`IL_040e: ldarg.0`
+
+`IL_040f: ldfld class [CommonDll]x k::ap`
+
+`IL_0414: ldstr "TimesLeft"`
+
+`IL_0419: ldstr ""`
+
+`IL_041e: callvirt instance object class [CommonDll]x::a(string, object)`
+
+`IL_0423: ldstr "820711 "`
+
+`IL_0428: ldc.i4.1`
+
+`IL_0429: call int32 class [Microsoft.VisualBasic]Microsoft.VisualBasic.CompilerServices.ObjectType::ObjTst(object, object, bool)`
+
+`IL_042e: ldc.i4.0`
+
+`IL_042f: bne.un IL_056d`
+
+.try
+
+{
+
+`IL_0434: ldarg.0`
+
+`IL_0435: ldfld class [CommonDll]x k::ap`
+
+`IL_043a: callvirt instance int64 class [CommonDll]x::a()`
+
+`IL_043f: stloc.s V_23`
+
+`IL_0441: ldloc.s V_23`
+
+`IL_0443: ldc.i8 0x1869f` 十进制 99999
+
+`IL_044c: bge.s IL_0460`
+
+`IL_044e: ldstr bytearray (E8 6C 8C 51 87 65 F6 4E 5F 63 4F 57)` // .l.Q.e.N_cOW “注册文件损坏“
+
+`IL_0453: ldc.i4.0`
+
+`IL_0454: ldnull`
+
+`IL_0455: call valuetype [Microsoft.VisualBasic]Microsoft.VisualBasic.MsgBoxResult class [Microsoft.VisualBasic]Microsoft.VisualBasic.Interaction::MsgBox(object, valuetype [Microsoft.VisualBasic]Microsoft.VisualBasic.MsgBoxstyle, object)`
+
+`IL_045a: pop`
+
+`IL_045b: call void class [Microsoft.VisualBasic]Microsoft.VisualBasic.CompilerServices.ProjectData::EndApp()`
+
+`IL_0460: ldarg.0`
+
+`IL_0461: ldfld class [CommonDll]l k::am`
+
+`IL_0466: ldc.i4.0`
+
+`IL_0467: callvirt instance valuetype [CommonDll]l/a class [CommonDll]l::a(int32)`
+
+`IL_046c: stloc.s V_22`
+
+`IL_046e: ldarg.0`
+
+`IL_046f: ldfld class [CommonDll]l k::am`
+
+`IL_0474: ldloc.s V_22`
+
+`IL_0476: callvirt instance string class [CommonDll]l::b(valuetype [CommonDll]l/a)`
+
+`IL_047b: stloc.s V_24`
+
+`IL_047d: ldloc.s V_24`
+
+`IL_047f: ldstr "@"`
+
+`IL_0484: ldloca.s V_23`
+
+`IL_0486: call instance string class [mscorlib]System.Int64::ToString()`
+
+`IL_048b: call string string::Concat(string, string)`
+
+`IL_0490: ldc.i4.1`
+
+`IL_0491: call int32 class [Microsoft.VisualBasic]Microsoft.VisualBasic.Strings::InStr(string, string, valuetype [Microsoft.VisualBasic]Microsoft.VisualBasic.CompareMethod)`
+
+`IL_0496: ldc.i4.0` 第二关键点
+
+`IL_0497: ble.s IL_049e` 第二关键点：看结果是不是小于 0
+
+`IL_0499: leave IL_056d` 不小于 0 跳出
+
+`IL_049e: ldarg.0` 小于 0 则跳到这里，下面修改注册信息
+
+
+
+```
+IL_049f:  ldfld      class [CommonDll]x k::ap
+IL_04a4:  ldstr      "TimesLeft"
+IL_04a9:  ldc.i4.0
+IL_04aa:  call       string class [Microsoft.VisualBasic]Microsoft.VisualBasic.CompilerServices.StringType::FromInteger(int32)
+IL_04af:  callvirt   instance void class [CommonDll]x::a(string, string)
+IL_04b4:  ldarg.0
+IL_04b5:  ldfld      class [CommonDll]x k::ap
+IL_04ba:  ldstr      "SerialCode"
+IL_04bf:  ldstr      ""
+IL_04c4:  callvirt   instance void class [CommonDll]x::a(string, string)
+IL_04c9:  ldstr      "..\\application.config"
+IL_04ce:  ldc.i4.4
+IL_04cf:  ldc.i4.2
+IL_04d0:  ldc.i4.1
+IL_04d1:  newobj     instance void class [mscorlib]System.IO.FileStream::.ctor(string, valuetype [mscorlib]System.IO.FileMode, valuetype [mscorlib]System.IO.FileAccess, valuetype [mscorlib]System.IO.FileShare)
+IL_04d6:  call       class [mscorlib]System.Text.Encoding class [mscorlib]System.Text.Encoding::get_UTF8()
+IL_04db:  newobj     instance void class [mscorlib]System.IO.StreamWriter::.ctor(class [mscorlib]System.IO.Stream, class [mscorlib]System.Text.Encoding)
+IL_04e0:  stloc.s    V_26
+IL_04e2:  ldloc.s    V_26
+IL_04e4:  call       class [mscorlib]System.Text.Encoding class [mscorlib]System.Text.Encoding::get_Unicode()
+IL_04e9:  ldstr      "0"
+IL_04ee:  callvirt   instance string string::ToString()
+IL_04f3:  callvirt   instance unsigned int8[] class [mscorlib]System.Text.Encoding::GetBytes(string)
+IL_04f8:  call       string class [mscorlib]System.Convert::ToBase64String(unsigned int8[])
+IL_04fd:  callvirt   instance void class [mscorlib]System.IO.TextWriter::WriteLine(string)
+IL_0502:  ldloc.s    V_26
+IL_0504:  callvirt   instance void class [mscorlib]System.IO.StreamWriter::Close()
+IL_0509:  ldstr      bytearray (A8 60 84 76 E8 6C 8C 51 E1 4F 6F 60 09 67 19 95  // .`.v.l.Q.Oo`.g..  “您的注册信息有错误。。。。。。”
+                       EF 8B 0C FF F7 8B 65 67 E1 4F 4A 54 E5 77 A8 60  // ......eg.OJT.w.`
+                       2D 8D 70 4E F6 65 40 62 59 75 0B 4E 84 76 D3 59  // -.pN.e@bYu.N.v.Y
+                       0D 54 CA 53 B0 73 28 57 84 76 33 75 F7 8B 01 78  // .T.S.s(W.v3u...x
+                       0C FF 6E 78 A4 8B 0E 54 11 62 EC 4E 8C 54 1A 4F  // ..nx...T.b.N.T.O
+                       CA 53 F6 65 C4 5B D9 7E A8 60 B0 65 84 76 E8 6C  // .S.e.[.~.`.e.v.l
+                       8C 51 01 78 02 30 20 00 31 75 64 6B 26 5E 65 67  // .Q.x.0 .1udk&^eg
+                       84 76 0D 4E BF 4F 11 62 EC 4E 68 88 3A 79 B1 62  // .v.N.O.b.Nh.:y.b
+                       49 6B 02 30 )                                  // Ik.0
+IL_050e:  ldc.i4.s   48
+IL_0510:  ldstr      bytearray (D5 6C ED 8B A9 52 4B 62 )             // .l...RKb
+IL_0515:  call       valuetype [Microsoft.VisualBasic]Microsoft.VisualBasic.MsgBoxResult class [Microsoft.VisualBasic]Microsoft.VisualBasic.Interaction::MsgBox(object, valuetype [Microsoft.VisualBasic]Microsoft.VisualBasic.MsgBoxstyle, object)
+IL_051a:  pop
+IL_051b:  newobj     instance void class [CommonDll]r::.ctor()
+IL_0520:  stloc.s    V_25
+IL_0522:  ldloc.s    V_25
+IL_0524:  callvirt   instance valuetype [System.Windows.forms]System.Windows.forms.DialogResult class [System.Windows.forms]System.Windows.forms.form::ShowDialog()
+IL_0529:  pop
+IL_052a:  call       void class [Microsoft.VisualBasic]Microsoft.VisualBasic.CompilerServices.ProjectData::EndApp()
+IL_052f:  leave.s    IL_056d
+ }  // end .try
+ catch [mscorlib]System.Exception  程序异常处理
+ {
+   IL_0531:  call       void class [Microsoft.VisualBasic]Microsoft.VisualBasic.CompilerServices.ProjectData::SetProjectError(class [mscorlib]System.Exception)
+   IL_0536:  ldarg.0    只要注册信息不正确就修改注册表及 application.config
+   IL_0537:  ldfld      class [CommonDll]x k::ap
+   IL_053c:  ldstr      "TimesLeft"
+   IL_0541:  ldc.i4.0
+   IL_0542:  call       string class [Microsoft.VisualBasic]Microsoft.VisualBasic.CompilerServices.StringType::FromInteger(int32)
+   IL_0547:  callvirt   instance void class [CommonDll]x::a(string, string)
+   IL_054c:  ldarg.0
+   IL_054d:  ldfld      class [CommonDll]x k::ap
+   IL_0552:  ldstr      "SerialCode"
+   IL_0557:  ldstr      ""
+   IL_055c:  callvirt   instance void class [CommonDll]x::a(string, string)
+   IL_0561:  call       void class [Microsoft.VisualBasic]Microsoft.VisualBasic.CompilerServices.ProjectData::EndApp()
+   IL_0566:  call       void class [Microsoft.VisualBasic]Microsoft.VisualBasic.CompilerServices.ProjectData::ClearProjectError()
+   IL_056b:  leave.s    IL_056d
+ }  // end handler
+```
+
+上面的注册过程虽然很长，但还是比较容易理解的，该程序把注册信息存放在三处，其中一处在注册表，还有两处在不同目录下的两个同名文件中。程序启动时检查注册表，使用次数小于 50 则以未注册方式运行，使用次数为 820711 则以注册方式运行。程序在运行过程中，不时检查存于`application.config`文件中的注册信息，发现信息不正确立即中止运行，并要求输入正确的注册码，否则修改注册信息（包括注册表及注册文件）并退出。
+
+从上面的分析过程可以轻易找到两个关键跳转，一处在`IL_0364`，一处在`IL_0497`。爆破的话可以做如下修改：将`IL_0364: brtrue.s IL_03d0`改成`br.s IL_03d0`；将`IL_0497: ble.s IL_049e`改成`ble.s IL_0499`。
+
+程序中的另两处注册信息判断过程大致相同，在此不再赘述。读者可做相同之修改。存盘后进行编译，覆盖原文件（做好备份），破解基本完成。由于本人只是大略地破了一下该程序，对其还有没有其它的暗桩就不大清楚了，还希望有发现者告诉我一声，呵呵！
+
+4、制作出破解的文件，就可以制作文件补丁了。用`keymaker`吧，很简单！
+
+补充：上面的分析过程是基于`IL`文件的，要对`IL`有一定的了解，修改后再进行编译，以达到修改原程序的目的，当然也可以直接修改原程序，这样就要用到十六进制修改工具了。具体方法参见`GREENLEMON`(菩提！)`[FCG]`写的`winxp`总管破解笔记。
+
+就这样吧，休息，休息一会儿。
+
+`4dd466d0e1e0cc123afbe504da2462ca`
