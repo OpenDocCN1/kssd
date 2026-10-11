@@ -1,0 +1,173 @@
+
+# 为 OllyIce 增加附加隐藏进程的功能----PeDiy 入门教程
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-459.htm`](https://www.pediy.com/kssd/pediy08/pediy8-459.htm)
+
+【文章标题】: 【原创】为 OllyIce 增加附加隐藏进程的功能----PeDiy 入门教程
+
+【文章作者】: 笨笨雄
+
+【作者邮箱】: nemo314@gmail.com
+
+【工具】: `OllyIce` `PE Tools`
+
+最近学习脱壳，喜欢上了 `Attach` 法到 `OEP`，这样有很多好处，但是局限性也很大，例如隐藏进程。有留意过一些手动查杀木马的朋友一定有看过使用 `Ntsd –P PID Q` 命令关进程的文章，`Ntsd` 其实就是系统附带的调试器。手上有一个旧版的灰鸽子，`Ring 3` 下的 `RootKit`，加载之后便 `DLL` 注入 `Explorer`，并把该进程隐藏。经 `IceSword` 查得 `Explorer` 的 `Pid` 后，能顺利用 `Ntsd` 把该进程关掉，于是我就想，如果 `OllyIce` 也能使用 `Pid` 直接 `Attach` 进程，那多好。下面我将以这个例子来介绍如何进行 `PeDiy`。
+
+在这个例子中，我希望为程序添加 `Pid Attach` 功能，所以找了相关资料，一个 `Ring3` 调试器 `Attach` 进程的基本流程结构：
+
+![](img/81a015669253008085723f179d978b2a.jpg)
+
+显然 `DebugActiveProcess` 是关键，它的原型如下：
+
+```
+BOOL DebugActiveProcess(
+DWORD dwProcessId   // process to be debugged
+);
+```
+
+只有一个参数，而且是 `Pid`。好了，现在我们知道如何实现 `Pid Attach`，可以开始动手修改 `OllyIce` 了。首先打开 `PE tools` 先看看 `OllyIce` 的导入表，这将帮助我们寻找合适的 `API` 下断，方便定位消息环和窗口初始化代码。如果必要的 `API` 不存在，我们必须添加上去，这里要注意部分软件是区分大小写的。
+
+我找到了 `CreateDialogParamA`，`CreateWindowExA` 和 `DialogBoxParamA`。这 3 个 `API` 都是建立窗口的，其中 `CreateWindowExA` 也能用于建立一个按钮和文本框，获取文本框导入的 `GetDlgItemTextA` 也在导入表中。
+
+我们知道 `OllyIce` 支持插件，为了方便与插件互动，程序必须提供导出函数。否则插件便不叫插件，而是内存补丁了。我在导出表里找到`_Attachtoactiveprocess`，`RVA=77D8C`。这让事情变得很简单，也许查看关于 `Ollydbg` 的插件编写帮助就能找出关于它的调用规则。
+
+这里非常幸运，需要的 `API` 都有了，需要的函数也放在导出表了。假如没有这个导出函数怎么办？就这个例子来说在 `DebugActiveProcess` 下断，定位目标函数，分析它的输入参数和返回数值。最坏的情况，调试器根本不提供 `Attach` 功能，我们必须编写代码来实现它。为了和程序的其他功能互动，我们必须分析调试器加载目标程序的过程，找出相关的数据结构，并在我们自己的代码中填充它。当然，假如遇到最坏的情况，该程序是否还值得 `Pe Diy`？我想大多数情况都不值得。回到正题，打开 `OllyIce` 调试自己，`RVA+Image Base` 来到`_Attachtoactiveprocess`。现在假设我们在 `DebugActiveProcess` 下断，`Attach` 进程后停在未知函数内部。向上滚动窗口直到看到：
+
+```
+00477D8C >/$  55           push    ebp
+00477D8D  |.  8BEC         mov     ebp, esp
+00477D8F  |.  81C4 ACFAFFFF add    esp, -554
+00477D95  |.  53           push    ebx
+00477D96  |.  56           push    esi
+00477D97  |.  57           push    edi
+```
+
+这是 `OEP` 的标志，也是每个函数开头的标志。必须注意的是 `dword ptr [ebp+X]`，`X` 为未知数，对应初始栈
+
+```
+EBP     EBP
+EBP+4   函数的返回地址
+EBP+8   第一个参数
+EBP+C   第二个参数
+```
+
+如此类推，假如你在函数返回之前看到 `EBP+20`，则代表该函数有 7 个参数，当然这里只有一个。只要留意参数都用在什么地方，我们便知道该传入什么参数。另外一个要注意的地方就是返回值，高级语言编译出的函数一般以 `EAX` 保存返回值，要注意跳转之前的代码。当然并不是什么跳转都得留意，主要看机器码，看到 `jmp`，假如机械码是 `EB`，那么这是一个短跳转，一般函数都没这么短的，可以忽略。假如看到 `jcc`(条件跳转)，看到第一个机械码为 `OF` 的，都留意一下，这是一个近跳转。函数完结之前，我找到下面代码：
+
+```
+00477D98  |.  8B75 08      mov     esi, dword ptr [ebp+8]     ；第一个参数转到 ESI
+00477D9B  |.  6A 01        push    1                            ; /Arg1 = 00000001
+00477D9D  |.  E8 02DBFFFF  call    004758A4                     ; \\OllyDBG.004758A4
+00477DA2  |.  59          pop     ecx
+00477DA3  |.  85C0        test    eax, eax
+00477DA5  |.  74 08       je      short 00477DAF
+00477DA7  |.  83C8 FF     or      eax, FFFFFFFF        ；EAX=-1
+00477DAA  |.  E9 EF010000 jmp     00477F9E          ；这里跳到最后
+00477DAF  |>  E8 58D6FFFF call    0047540C
+00477DB4  |.  85C0        test    eax, eax
+00477DB6  |.  74 13       je      short 00477DCB
+00477DB8  |.  68 9F1F4C00 push    004C1F9F                   ; /Arg1 = 004C1F9F ASCII "Unable to allocate enough memory"
+00477DBD  |.  E8 5AC2FDFF call    _Error                     ; \\_Error
+00477DC2  |.  59          pop     ecx
+00477DC3  |.  83C8 FF     or      eax, FFFFFFFF
+00477DC6  |.  E9 D3010000 jmp     00477F9E
+00477DCB  |>  8BDE        mov     ebx, esi    ；第一个参数又从 ESI 转到 EBX
+00477DCD  |.  53          push    ebx          ; /ProcessId
+00477DCE  |.  E8 03720300 call    <jmp.&KERNEL32.DebugActiveProces>; \\DebugActiveProcess
+00477DD3  |.  85C0        test    eax, eax
+00477DD5  |.  75 08       jnz     short 00477DDF
+00477DD7  |.  83C8 FF     or      eax, FFFFFFFF
+00477DDA  |.  E9 BF010000 jmp     00477F9E
+```
+
+`call 004758A4` 和 `call 0047540C` 返回值为 0 则函数返回-1。`DebugActiveProces` 调用失败则函数返回-1。从 `API` 的调用来看，可以肯定如果该函数返回-1 就是调用失败了。同样从 `API` 的调用反推，可知传入参数是 `Pid`。这个函数的调用相关的参数处理都放在前面了，现在来看看函数的结尾部分。
+
+```
+00477F9C  |.  33C0        xor     eax, eax
+00477F9E  |>  5F          pop     edi    ；EAX=-1 之后的跳转是来到这里的
+00477F9F  |.  5E          pop     esi
+00477FA0  |.  5B          pop     ebx
+00477FA1  |.  8BE5        mov     esp, ebp
+00477FA3  |.  5D          pop     ebp
+00477FA4  \\  C3          retn       ；这就结束了，没有释放参数占用的堆栈
+```
+
+从这里可以得到两个信息，一是函数正常工作，则 `EAX=0`，二是参数占用的堆栈得由调用者自己释放。通过上面的分析，我想大家都知道该怎么编写代码了。为了存放我们将要编写的代码，需要在程序的最后增加一个区段。
+
+![](img/e17b0e4c236718d6b96858efcc656465.jpg)
+
+很多 `PE` 工具都有类似的界面。需要注意的是一般工具（包括 `PE Tools`）编辑区段，增加 `Raw Size` 都会导致文件不可用。因为系统加载 `PE` 时读取文件数据超出文件大小就会报错。在 `PE Tools` 中增加区段会自动增加相应的文件大小和自动修正 `Image Size`。如果你用的工具修改后报错，那么你还得自己手动去做这个工作。例如增加文件大小，你需要使用 `WinHex` 这样的工具。在本例中，我先增加一个区段，然后把新增的区段 `Kill section(from header)`，编辑 `PACTH` 区段的大小。这样做是因为，你们看到，该文件的区段已经够多了。
+
+现在来看看该在哪里插入我们自己的代码。运行 `OllyIce`，对 `CreateDialogParamA`，`CreateWindowExA` 和 `DialogBoxParamA` 下断。主菜单中的“文件”=>“附加”，中断后看堆栈：
+
+```
+0012E16C  004786AA /CALL 到 DialogBoxParamA 来自 OllyICE.004786A5
+0012E170  00400000 |hInst = 00400000
+0012E174  004C2198 |pTemplate = "DIA_GET_PROC"
+0012E178  00020244 |hOwner = 00020244 (class='MDIClient',parent=0003024E)
+0012E17C  00477FA8 |DlgProc = OllyICE.00477FA8
+0012E180  00000000 \\lParam = NULL
+0012E184  00433A9D 返回到 OllyICE.00433A9D 来自 OllyICE.0047868C
+```
+
+注意`|pTemplate` 参数，它指向一个对话框资源脚本。如果对话框足够简单，数据窗口跟随到该地址，你便能看到对话框中所有子控件的定义。假如你希望修改某些控件的外观，应该在这里动手。`|DlgProc` 指向消息处理的例程 `00477FA8`，跟随，并下断，`F9`。停下来之后仍然是看堆栈
+
+```
+0012DFAC  77DF2CA8 返回到 USER32.77DF2CA8
+0012DFB0  003C0316 ；hWnd
+0012DFB4  00000030 ；wMsg
+0012DFB8  8F0A07B3 ；wParam
+0012DFBC  00000000 ；lParam
+```
+
+对照`|DlgProc` 的定义，我们知道堆栈中各数值的用途。在这个例子中，你需要注意两个参数：
+
+```
+hWnd    创建子空间时需要这个参数以填充 hWndParent。
+wMsg    这将帮助我们找到插入代码的地方。
+```
+
+当前 `wMsg` 的值对应常量 `WM_SETFONT`，跟了一下发现程序没有处理这个消息。再次 `F9` 后，我们看到
+
+```
+0012DFAC  77DF2CA8 返回到 USER32.77DF2CA8
+0012DFB0  003C0316
+0012DFB4  00000110
+0012DFB8  0078031C
+0012DFBC  00000000
+```
+
+`110` 对应 `WM_INITDIALOG`，看看下面代码：
+
+```
+00477FB4   .  8B5D 08      mov     ebx, dword ptr [ebp+8]    ；EBX=hWnd
+00477FB7   .  8B45 0C      mov     eax, dword ptr [ebp+C]    ；EAX=wMsg
+00477FBA   .  3D 10010000  cmp     eax, 110                         ;  Switch (cases 5..112)
+00477FBF   .  7F 19         jg      short 00477FDA
+00477FC1   .  74 2E         je      short 00477FF1
+00477FC3   .  83E8 05       sub     eax, 5
+00477FC6   .  0F84 5B030000 je      00478327
+00477FCC   .  83E8 1F       sub     eax, 1F
+00477FCF   .  0F84 3A030000 je      0047830F
+00477FD5   .  E9 9D060000  jmp     00478677
+00477FDA   >  2D 11010000  sub     eax, 111        ；111 对应 WM_COMMAND
+00477FDF   .  0F84 99040000 je      0047847E
+00477FE5   .  48           dec     eax
+00477FE6   .  0F84 6E060000 je      0047865A
+00477FEC   .  E9 86060000  jmp     00478677
+```
+
+注意到当控件被点击的时候，系统便会产生一个 `WM_COMMAND` 消息。显然它会带我们到达控件的主要功能代码。来到 `0047847E`，并下断，以后需要用到。一路跟踪 `WM_INITDIALOG` 的处理过程，我看到
+
+```
+0047812F  |.  8B0D 783B4D00 mov     ecx, dword ptr [4D3B78]      ; |OllyDBG.00400000
+00478135  |.  51           push    ecx                  ; |hInst => 00400000
+00478136  |.  68 AD0D0000  push    0DAD                 ; |hMenu = 00000DAD
+0047813B  |.  53           push    ebx                  ; |hParent
+0047813C  |.  6A 0A        push    0A                   ; |Height = A (10.)
+0047813E  |.  6A 0A        push    0A                   ; |Width = A (10.)
+00478140  |.  68 18FCFFFF  push    -3E8                 ; |Y = FFFFFC18 (-1000.)
+00478145  |.  68 18FCFFFF  push    -3E8                 ; |X = FFFFFC18 (-1000.)
+0047814A  |.  68 0000B050  push    50B00000                       ; |Style = WS_CHILD|WS_VISIBLE|WS_VSCROLL|WS_HSCROLL|WS_BORDER
+0047814F  |.  68 00174C00  push    004C1700           ; |WindowName = ""
+00478154  |.  68 00214C00  push    004C2100           ; |Class = "APROCESS"
+```
