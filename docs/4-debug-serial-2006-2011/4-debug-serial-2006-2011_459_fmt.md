@@ -1,0 +1,234 @@
+
+# 闲聊新兵入门 Crack
+
+> 原文：[`www.pediy.com/kssd/pediy10/58183.html`](https://www.pediy.com/kssd/pediy10/58183.html)
+
+**【文章标题】**: 闲聊新兵入门 Crack
+
+**【文章作者】**: petnt
+
+**【作者邮箱】**: petnt@sohu.com
+
+**【作者声明】**: 我也是个新兵，我没有能力指导任何人入门。下面仅是个人学习体会，如果你能从中收获点什么，那是我的荣幸。
+
+---
+
+你是不是想学破解却又不知从何下手呢？如果你真的是对这些问题感到疑惑的新兵，继续往下看看吧。但如果你是属于下列两种情况，则请三思而行。
+
+1. 你完全不懂破解，但却想通过在论坛上观望 10 分钟就能破掉某软件的。
+2. 你懂一点点破解，想在短时间内破掉某知名软件的。
+
+如果你是想在论坛获取知识却不知道从哪里起步的新兵，请继续跟我走。
+
+做好任何事情，兴趣是关键，`Crack` 也不例外。如果你是刚刚涉足 `Crack`，也肯定是带着浓厚的兴趣来到这里的。那么接下来的问题，就是如何保持住这种兴趣，一直到你成为一名真正的知识渊博的 `Cracker`。
+
+要保持住兴趣，一定的激励又成了关键。假想你对某一种工作非常喜欢，但当你很长时间也看不到成果的时候，他在你心目中的位置也会慢慢淡化，这时候的成果就是一种激励。对 `Cracker` 的激励当然就是获取到知识的满足感与 `Crack` 成功之后的成就感。
+
+新兵的成就可能对大侠们来说根本就是不屑一提的东西，但对我们新兵来说这却非常重要。好了，我们现在从零开始，去发现对我们来说非常非常重要的 1。
+
+在 `Crack` 之前，我们最好准备一些东西：基础的汇编知识和调试工具。
+
+### 1. 基础的汇编知识
+
+当然，在这里我不是要准备讲解复杂的汇编基础知识，目前来说我没有这个能力：）。如果你学过汇编，那很好，这将是对你来说非常有用的东西，如果你没学过，那也没关系，只要你接触过编程，接触过语言，看懂一个简单汇编程序也根本就不是什么难题（注意简单二字）。什么，你根本就不懂什么是语言？也没关系，`Mov`、`JMP`、`Cmp`、`Je` 这些命令我们从字面也能了解一个大概。更何况网上有大量的教程存在，你现查现学也能来得及。如果你真的对我所说一个字也听不懂，但又恰好看到了这里，也没关系，你赶紧关了电脑去买**吧。或者你跟帖说明，看到后我就会去买**。
+
+### 2. 调试工具
+
+这里推荐最常用的 `OllyDbg`（简称 `OD`），本论坛就有下载。不会用也没关系，因为天生下来就会用的人并不多：），而且论坛里有教程，现学现用慢慢的就熟练了。
+
+其实，下面我们不得不面对另一个非常重要的问题：如何选择好我们的对手。有些时候的失败，不是因为我们无能，是对手太强大了。：）
+
+好了，现在假设我们对汇编和调试一窍不通，我们来找个对手。（见附件）
+
+找到“试着爆破我”，先运行看看。打开 `OD`，载入。
+
+```assembly
+00401000  >/$  33C0           xor     eax, eax
+00401002  |.   0BC0           or      eax, eax
+00401004  |.   74 15          je      short 0040101B
+00401006  |.   6A 40          push    40                       ; /Style = MB_OK|MB_ICONASTERISK|MB_APPLMODAL
+00401008  |.   68 00304000   push    00403000                 ; |Title = "提示"
+0040100D  |.   68 2E304000   push    0040302E                 ; |Text = ""
+00401012  |.   6A 00          push    0                        ; |hOwner = NULL
+00401014  |.   E8 1D000000   call    <jmp.&user32.MessageBoxA> ; \MessageBoxA
+00401019  |.   EB 13          jmp     short 0040102E
+0040101B  |>   6A 10          push    10                       ; /Style = MB_OK|MB_ICONHAND|MB_APPLMODAL
+0040101D  |.   68 00304000   push    00403000                 ; |Title = "提示"
+00401022  |.   68 05304000   push    00403005                 ; |Text = ""
+00401027  |.   6A 00          push    0                        ; |hOwner = NULL
+00401029  |.   E8 08000000   call    <jmp.&user32.MessageBoxA> ; \MessageBoxA
+0040102E  |>   6A 00          push    0                        ; /ExitCode = 0
+00401030  \.   E8 07000000   call    <jmp.&kernel32.ExitProcess> \ExitProcess
+```
+
+你可以查一查前 3 行指令是什么意思，不管你懂不懂，下面跟着我做。双击 `je short 0040101B` 将 `je` 改成 `jnz`，汇编。右键->复制到可执行文件->所有修改->全部复制。右键->保存文件，另外一个文件名保存。关掉 `OD`，运行我们保存的文件，看到变化了吗？
+
+这就是传说中的“爆破”，呵呵。或许你说这来的太简单了，可爆破的原理就是这样，找到关键的比较跳转，然后改掉它。是不是理解呢？其实其他软件也是如此，只不过我们并不能很容易就发现他的关键跳转。
+
+现在假设你已经理解了我上面所说的，下面请出一个稍微复杂的对手：-） 。（见附件）。
+
+找到 `CrackMe`，先运行看看。打开 `OD`，载入。
+
+`Command` 栏中输入 `bpx MessageBoxA` （注意大小写），`F9` 运行，随便输入用户名，注册码，点击注册。程序被断了下来，上下翻翻程序，找到爆破点对你来说还难吗？
+
+```assembly
+00401000  /$  55            push    ebp
+00401001  |.   8BEC         mov     ebp, esp
+00401003  |.   83C4 D8      add     esp, -28
+00401006  |.   57            push    edi
+00401007  |.   837D 0C 01   cmp     dword ptr [ebp+C], 1
+0040100B  |.   73 18         jnb     short 00401025
+0040100D  |.   6A 00         push    0                        ; /Style = MB_OK|MB_APPLMODAL
+0040100F  |.   68 30304000   push    00403030                 ; |提示
+00401014  |.   68 35304000   push    00403035                 ; |用户名不能为空！
+00401019  |.   6A 00         push    0                        ; |hOwner = NULL
+0040101B  |.   E8 36030000   call    <jmp.&user32.MessageBoxA> ; \MessageBoxA
+00401020  |.   5F            pop     edi
+00401021  |.   C9            leave
+00401022  |.   C2 1400       retn    14
+00401025  |>   8B75 08       mov     esi, dword ptr [ebp+8]
+00401028  |.   8D7D D8       lea     edi, dword ptr [ebp-28]
+0040102B  |.   33C9          xor     ecx, ecx
+0040102D  |.   8B45 0C       mov     eax, dword ptr [ebp+C]
+00401030  |.   C60438 00     mov     byte ptr [eax+edi], 0
+00401034  |.   EB 0A         jmp     short 00401040
+00401036  |>   0FB60431      /movzx   eax, byte ptr [ecx+esi]
+0040103A  |.   04 01         |add     al, 1
+0040103C  |.   880439        |mov     byte ptr [ecx+edi], al
+0040103F  |.   41            |inc     ecx
+00401040  |>   3B4D 0C       cmp     ecx, dword ptr [ebp+C]
+00401043  |.^  72 F1         \jb      short 00401036
+00401045  |.   FF75 10       push    dword ptr [ebp+10]       ; /String2
+00401048  |.   8D45 D8       lea     eax, dword ptr [ebp-28]  ; |
+0040104B  |.   50            push    eax                      ; |String1     *
+0040104C  |.   E8 47030000   call    <jmp.&kernel32.lstrcmpA> ; \lstrcmpA
+00401051  |.   0BC0          or      eax, eax
+00401053  |.   75 15         jnz     short 0040106A           ;  *
+00401055  |.   6A 00         push    0                        ; /Style = MB_OK|MB_APPLMODAL
+00401057  |.   68 30304000   push    00403030                 ; |提示
+0040105C  |.   68 46304000   push    00403046                 ; |恭喜你，注册成功！
+00401061  |.   6A 00         push    0                        ; |hOwner = NULL
+00401063  |.   E8 EE020000   call    <jmp.&user32.MessageBoxA> ; \MessageBoxA
+00401068  |.   EB 13         jmp     short 0040107D
+0040106A  |>   6A 00         push    0                        ; /Style = MB_OK|MB_APPLMODAL
+0040106C  |.   68 30304000   push    00403030                 ; |提示
+00401071  |.   68 59304000   push    00403059                 ; |注册失败，请继续努力！
+00401076  |.   6A 00         push    0                        ; |hOwner = NULL
+00401078  |.   E8 D9020000   call    <jmp.&user32.MessageBoxA> ; \MessageBoxA
+0040107D  |>   33C0          xor     eax, eax
+0040107F  |.   5F            pop     edi
+00401080  |.   C9            leave
+00401081  \.   C2 1400       retn    14
+```
+
+在其他地方下断试试，`F8` 单步跟踪试试，能发现正确的注册码吗？
+
+是的，对付这个 `CrackMe` 对你来说就是这样的易如反掌。慢慢去明白原理，慢慢的增加难度，展现在你面前的就是一个精彩的世界。
+
+**【后    记】**:
+
+其实如何让我们这样的新兵产生兴趣并尽快入门，不但是我等新兵的个人进步问题，更是事关论坛长远发展的重要问题。初练 `CrackMe`，就是对着破文练，有时候也不得要领，又经常看到新兵看似束手无策的发问，故写了两个简单的程序和此文。如果此文能恰巧留住一个新兵的脚步，也算是为我忠爱的论坛作了一点点的贡献。
+
+**【版权声明】**: 本文原创于看雪技术论坛，转载请注明作者并保持文章的完整，谢谢!
+
+2008 年 01 月 12 日 14:39:23
+
+**上传的附件**
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) | `test.rar` |
+
+弄出了
+
+`lunglungyu`
+
+`mvohmvohzv`
+
+```assembly
+00401001  |.   8BEC          mov     ebp, esp
+00401003  |.   83C4 D8      add     esp, -28
+00401006  |.   57            push    edi
+00401007  |.   837D 0C 01   cmp     dword ptr [ebp+C], 1           ; 用名必大於 2
+0040100B  |.   73 18         jnb     short 00401025               ; 跳
+0040100D  |.   6A 00         push    0                        ; /Style = MB_OK|MB_APPLMODAL
+0040100F  |.   68 30304000   push    00403030                 ; |提示
+00401014  |.   68 35304000   push    00403035                 ; |用户名不能为空！
+00401019  |.   6A 00         push    0                        ; |hOwner = NULL
+0040101B  |.   E8 36030000   call    <jmp.&user32.MessageBoxA> ; \MessageBoxA
+00401020  |.   5F            pop     edi
+00401021  |.   C9            leave
+00401022  |.   C2 1400       retn    14
+00401025  |>   8B75 08       mov     esi, dword ptr [ebp+8]
+00401028  |.   8D7D D8       lea     edi, dword ptr [ebp-28]          ; 用名到 ESI
+0040102B  |.   33C9          xor     ecx, ecx                     ; 清空 ECX
+0040102D  |.   8B45 0C       mov     eax, dword ptr [ebp+C]            ; 用名位数 入 eax
+```
+
+
+
+00401030  |.  C60438 00      mov     byte ptr [eax+edi], 0  
+
+00401034  |.  EB 0A          jmp     short 00401040  
+
+00401036  |>  0FB60431      /movzx  eax, byte ptr [ecx+esi]         ;  ..开始计算  
+
+0040103A  |.  04 01         |add     al, 1  
+
+0040103C  |.  880439        |mov     byte ptr [ecx+edi], al  
+
+0040103F  |.  41            |inc     ecx  
+
+00401040  |>  3B4D 0C       cmp     ecx, dword ptr [ebp+C]          ;  是否比用名短  
+
+00401043  |.^ 72 F1         \jb     short 00401036                  ;  继续。。   用 `USERNAME` 弄 `KEY` 的。。我的给弄成 `mvohmvohzv` 了  
+
+00401045  |.  FF75 10       push    dword ptr [ebp+10]              ; /弄 `pass` 了  
+
+00401048  |.  8D45 D8       lea     eax, dword ptr [ebp-28]          ; |  
+
+0040104B  |.  50            push    eax                               ; |`String1`  
+
+0040104C  |.  E8 47030000   call    <jmp.&kernel32.lstrcmpA>         ; \lstrcmpA  
+
+00401051  |.  0BC0          or      eax, eax  
+
+00401053  |.  75 15         jnz     short 0040106A  
+
+00401055  |.  6A 00         push    0                                 ; /Style = `MB_OK|MB_APPLMODAL`  
+
+00401057  |.  68 30304000   push    00403030                          ; |提示  
+
+0040105C  |.  68 46304000   push    00403046                          ; |恭喜你，注册成功！  
+
+00401061  |.  6A 00         push    0                                 ; |hOwner = `NULL`  
+
+00401063  |.  E8 EE020000   call    <jmp.&user32.MessageBoxA>        ; \`MessageBoxA`  
+
+00401068  |.  EB 13         jmp     short 0040107D  
+
+0040106A  |>  6A 00         push    0                                 ; /Style = `MB_OK|MB_APPLMODAL`  
+
+0040106C  |.  68 30304000   push    00403030                          ; |提示  
+
+00401071  |.  68 59304000   push    00403059                          ; |注册失败，请继续努力！  
+
+00401076  |.  6A 00         push    0                                 ; |hOwner = `NULL`  
+
+00401078  |.  E8 D9020000   call    <jmp.&user32.MessageBoxA>        ; \`MessageBoxA`  
+
+0040107D  |>  33C0          xor     eax, eax 
+
+呵呵 第一次在论坛发言 一直断断续续的学习破解 唉 没时间啊 兴趣很浓啊 看了刚刚的那个 `TEST`  算法是找到了 真的是激动啊  算法就是 ：  
+
+00401036  |>  0FB60431      /movzx  eax, byte ptr [ecx+esi]         这里开始 取用户名第一位  
+
+0040103A  |.  04 01         |add     al, 1                           取出的用户名加 1  
+
+0040103C  |.  880439        |mov     byte ptr [ecx+edi], al   把算出来的密码放了指定内存地址  
+
+0040103F  |.  41            |inc     ecx     取用户名下一个字符  
+
+00401040  |>  3B4D 0C       cmp     ecx, dword ptr [ebp+C]  累加器和输入用户名长度比较 这里实现循环结束          
+
+00401043  |.^ 72 F1         \jb     short 00401036  返回取用户名处  
+
+第一次 写的不好的地方 请多多指教！(^\_^)……
