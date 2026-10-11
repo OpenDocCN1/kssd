@@ -1,0 +1,123 @@
+
+# 星空电影院 V2.16 注册算法分析－超级简单
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-157.htm`](https://www.pediy.com/kssd/pediy07/pediy7-157.htm)
+
+星空电影院 V2.16 注册算法分析
+
+软件下载地址: `http://219.129.216.109/zhencui/xkdy.htm`
+
+《星空电影院》:是娱乐所属在线软件，包罗了全国和海外引进的 3000 多部动画片、电影、港台、大陆、日韩 、欧美电影，并设为独特的秘密观看区，足以使您一饱眼福。1000M 光纤接入，IBM 专业服务器组，提供在线观看使您即刻体验极速的全方位视觉感受。关于软件的更多特色介绍,速度快质量高的精彩视频，专人实时跟踪更新升级,本软件具有自动升级功能。 通过独特的合作资源，提供超过 400 套超高清晰的卫星电视节目，高速 HBO 大片，BBC 新闻，日本 MM、港台凤凰、华娱、星空、TVB 系列，国内中央及各省卫星电视节目；
+
+---
+
+```
+004E09A8 >   55              push ebp                              ; <-TForm1@Button1Click
+004E09A9    8BEC            mov ebp,esp
+004E09AB    B9 08000000     mov ecx,8
+004E09B0    6A 00           push 0
+004E09B2    6A 00           push 0
+004E09B4    49              dec ecx
+004E09B5  ^ 75 F9           jnz short 星空电影.004E09B0
+004E09B7    53              push ebx
+004E09B8    56              push esi
+004E09B9    57              push edi
+004E09BA    8945 FC         mov dword ptr ss:[ebp-4],eax
+004E09BD    33C0            xor eax,eax
+004E09BF    55              push ebp
+004E09C0    68 490C4E00     push <星空电影.->System.@HandleFinally;>
+004E09C5    64:FF30         push dword ptr fs:[eax]
+004E09C8    64:8920         mov dword ptr fs:[eax],esp
+004E09CB    803D D8605800 0>cmp byte ptr ds:[5860D8],0
+004E09D2    74 1A           je short 星空电影.004E09EE
+004E09D4    6A 00           push 0
+004E09D6    66:8B0D 580C4E0>mov cx,word ptr ds:[4E0C58]
+004E09DD    B2 02           mov dl,2
+004E09DF    B8 640C4E00     mov eax,星空电影.004E0C64
+004E09E4    E8 8B00F5FF     call 星空电影.00430A74
+004E09E9    E9 FE010000     jmp 星空电影.004E0BEC
+004E09EE    8D55 F0         lea edx,dword ptr ss:[ebp-10]
+004E09F1    8B45 FC         mov eax,dword ptr ss:[ebp-4]
+004E09F4 >   8B80 38030000   mov eax,dword ptr ds:[eax+338]          ; *Edit1:N.A.
+004E09FA >   E8 CD69F6FF     call 星空电影.004473CC                  ; ->Controls.TControl.GetText(TControl):TCaption;
+004E09FF    837D F0 00      cmp dword ptr ss:[ebp-10],0             ; 注册码
+004E0A03    74 1E           je short 星空电影.004E0A23                ; 注册码为空 Over!
+004E0A05    8D55 EC         lea edx,dword ptr ss:[ebp-14]
+004E0A08    8B45 FC         mov eax,dword ptr ss:[ebp-4]
+004E0A0B >   8B80 38030000   mov eax,dword ptr ds:[eax+338]          ; *Edit1:N.A.
+004E0A11 >   E8 B669F6FF     call 星空电影.004473CC                  ; ->Controls.TControl.GetText(TControl):TCaption;
+004E0A16    8B45 EC         mov eax,dword ptr ss:[ebp-14]           ; 注册码
+004E0A19 >   E8 763AF2FF     call 星空电影.00404494                  ; ->System.@LStrLen(String):Integer;<+>
+004E0A1E    83F8 08         cmp eax,8                                 ; 注册码长度
+004E0A21    7E 0F           jle short 星空电影.004E0A32               ; 注册码长度<8 over!
+004E0A23    B8 8C0C4E00     mov eax,星空电影.004E0C8C
+004E0A28 >   E8 3F01F5FF     call 星空电影.00430B6C                  ; ->Dialogs.ShowMessage(AnsiString);
+004E0A2D    E9 BA010000     jmp 星空电影.004E0BEC
+004E0A32    8D45 E4         lea eax,dword ptr ss:[ebp-1C]
+004E0A35    50              push eax
+004E0A36    8D55 E0         lea edx,dword ptr ss:[ebp-20]
+004E0A39    8B45 FC         mov eax,dword ptr ss:[ebp-4]
+004E0A3C >   8B80 3C030000   mov eax,dword ptr ds:[eax+33C]          ; *Edit2:N.A.
+004E0A42 >   E8 8569F6FF     call 星空电影.004473CC                  ; ->Controls.TControl.GetText(TControl):TCaption;
+004E0A47    8B45 E0         mov eax,dword ptr ss:[ebp-20]           ; 机器码
+004E0A4A    B9 06000000     mov ecx,6
+004E0A4F    BA 01000000     mov edx,1
+004E0A54 >   E8 9B3CF2FF     call 星空电影.004046F4                  ; ->System.@LStrCopy;
+004E0A59    8B4D E4         mov ecx,dword ptr ss:[ebp-1C]           ; 机器码 1-6 位
+004E0A5C    8D45 E8         lea eax,dword ptr ss:[ebp-18]
+004E0A5F    BA B80C4E00     mov edx,星空电影.004E0CB8                 ; ASCII "0x"
+004E0A64 >   E8 773AF2FF     call 星空电影.004044E0                  ; ->System.@LStrCat3;
+004E0A69    8B45 E8         mov eax,dword ptr ss:[ebp-18]
+004E0A6C >   E8 BF82F2FF     call 星空电影.00408D30                  ; ->SysUtils.StrToInt(AnsiString):Integer;
+004E0A71    8BF0            mov esi,eax                           ; 机器码 1-6 位转换成数值 记为 M
+004E0A73    33C0            xor eax,eax
+004E0A75    55              push ebp
+004E0A76    68 A30B4E00     push <星空电影.->System.@HandleOnExceptio>
+004E0A7B    64:FF30         push dword ptr fs:[eax]
+004E0A7E    64:8920         mov dword ptr fs:[eax],esp
+004E0A81    8D55 DC         lea edx,dword ptr ss:[ebp-24]
+004E0A84    8B45 FC         mov eax,dword ptr ss:[ebp-4]
+004E0A87 >   8B80 38030000   mov eax,dword ptr ds:[eax+338]          ; *Edit1:N.A.
+004E0A8D >   E8 3A69F6FF     call 星空电影.004473CC                  ; ->Controls.TControl.GetText(TControl):TCaption;
+004E0A92    8B45 DC         mov eax,dword ptr ss:[ebp-24]           ; 注册码
+004E0A95 >   E8 9682F2FF     call 星空电影.00408D30                  ; ->SysUtils.StrToInt(AnsiString):Integer;
+004E0A9A    8BD8            mov ebx,eax                           ; 注册码转换为数值 记为 N
+004E0A9C    8BC3            mov eax,ebx
+004E0A9E    2BC6            sub eax,esi                           ; N-M
+004E0AA0    3B05 D43A5800   cmp eax,dword ptr ds:[583AD4]           ; N-M=0003F141
+004E0AA6    74 38           je short 星空电影.004E0AE0                ; 不相等提示注册码错误信息
+004E0AA8    68 C40C4E00     push 星空电影.004E0CC4
+004E0AAD    8D55 D4         lea edx,dword ptr ss:[ebp-2C]
+004E0AB0    8B45 FC         mov eax,dword ptr ss:[ebp-4]
+004E0AB3 >   8B80 38030000   mov eax,dword ptr ds:[eax+338]          ; *Edit1:N.A.
+004E0AB9 >   E8 0E69F6FF     call 星空电影.004473CC                  ; ->Controls.TControl.GetText(TControl):TCaption;
+004E0ABE    FF75 D4         push dword ptr ss:[ebp-2C]
+004E0AC1    68 E00C4E00     push 星空电影.004E0CE0
+004E0AC6    8D45 D8         lea eax,dword ptr ss:[ebp-28]
+004E0AC9    BA 03000000     mov edx,3
+004E0ACE >   E8 813AF2FF     call 星空电影.00404554                  ; ->System.@LStrCatN;
+004E0AD3    8B45 D8         mov eax,dword ptr ss:[ebp-28]
+004E0AD6 >   E8 9100F5FF     call 星空电影.00430B6C                  ; ->Dialogs.ShowMessage(AnsiString);
+004E0ADB    E9 B9000000     jmp 星空电影.004E0B99
+004E0AE0    8D55 F4         lea edx,dword ptr ss:[ebp-C]            ; 开始保存注册信息
+004E0AE3    A1 D83A5800     mov eax,dword ptr ds:[583AD8]
+004E0AE8    03C3            add eax,ebx
+004E0AEA >   E8 0581F2FF     call 星空电影.00408BF4                  ; ->SysUtils.IntToStr(Integer):AnsiString;overload;
+004E0AEF    8D55 C8         lea edx,dword ptr ss:[ebp-38]
+004E0AF2    A1 74405800     mov eax,dword ptr ds:[584074]
+004E0AF7    8B00            mov eax,dword ptr ds:[eax]
+004E0AF9 >   E8 DE6EF8FF     call 星空电影.004679DC                  ; ->DdeMan.TDdeMgr.GetExeName(TDdeMgr):AnsiString;<+>
+004E0AFE    8B45 C8         mov eax,dword ptr ss:[ebp-38]
+004E0B01    8D55 CC         lea edx,dword ptr ss:[ebp-34]
+004E0B04 >   E8 8386F2FF     call 星空电影.0040918C                  ; ->SysUtils.ExtractFilePath(AnsiString):AnsiString;
+004E0B09    FF75 CC         push dword ptr ss:[ebp-34]
+004E0B0C    68 000D4E00     push 星空电影.004E0D00                    ; ASCII "set"
+004E0B11    FF75 F4         push dword ptr ss:[ebp-C]
+004E0B14    68 0C0D4E00     push 星空电影.004E0D0C                    ; ASCII ".ini"
+004E0B19    8D45 D0         lea eax,dword ptr ss:[ebp-30]
+004E0B1C    BA 04000000     mov edx,4
+004E0B21 >   E8 2E3AF2FF     call 星空电影.00404554                  ; ->System.@LStrCatN;
+004E0B26    8B4D D0         mov ecx,dword ptr ss:[ebp-30]
+004E0B29    B2 01           mov dl,1
+004E0B2B    A1 98624300     mov eax,dword ptr ds:[436298]
+```

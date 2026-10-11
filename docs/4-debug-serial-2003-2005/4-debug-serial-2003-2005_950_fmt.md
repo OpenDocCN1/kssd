@@ -1,0 +1,692 @@
+
+# 心理测试小精灵 V4.22 的注册
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-228.htm`](https://www.pediy.com/kssd/pediy07/pediy7-228.htm)
+
+## 破文信息
+
+- 【破文作者】`Rdsnow[BCG][PYG]`
+- 【E-mail】`RDSNOW@163.COM`
+- 【作者 QQ】`83757177`
+- 【文章题目】心理测试小精灵 V4.22 的注册
+- 【下载地址】
+  - [`www1.skycn.com/soft/4712.html`](http://www1.skycn.com/soft/4712.html)
+  - [`nj.onlinedown.net/soft/1356.htm`](http://nj.onlinedown.net/soft/1356.htm)
+
+## 加密与破解分析
+
+- 【加密方式】注册码
+- 【破解工具】`FLYOD V1.10`、`W32DASM V8.93`
+- 【软件限制】功能限制
+- 【破解平台】`Windows XP SP2` 简体中文版
+
+## 软件简介
+
+包纳天下所有趣味测试题。有心理、爱情、搞笑、个性、魅力、智力、情商、工作、能力、两性、健康财运、脑筋急转弯、家庭婚姻等几百道趣味测试题，题库可每月上网更新。用这个软件的神奇功能还可以让你偷偷测知到其他人的内心世界！新版增加心理文章和幽默文集等精彩栏目。
+
+## 文章简介
+
+班上期中考试没有完成学校的任务，作为班主任压力巨大，于是找到了这样一个程序，`Borland Delphi 6.0 - 7.0` 编写，无壳，真是难得遇到，心里感到一阵轻松，压力减小了不少。程序明码比较，为什么还是有这么多的作者喜欢把注册码暴露出来呢！非明码的延长一下被破解的时间也是好的呀！不过我还是看了看程序的注册过程。
+
+## 破解过程
+
+`FLYOD` 载入程序调试，输入用户名：`rdsnow[BCG]` 和试探注册码：`978654abcd`
+
+```
+004FF552  |.  8B55 F8      MOV EDX,DWORD PTR SS:[EBP-8]
+004FF555  |.  8D4D FC      LEA ECX,DWORD PTR SS:[EBP-4]
+004FF558  |.  8BC3         MOV EAX,EBX
+004FF55A  |.  E8 35020000  CALL Xlcs.004FF794                  ;  计算注册码
+004FF55F  |.  8D55 F4      LEA EDX,DWORD PTR SS:[EBP-C]
+004FF562  |.  8B83 F4020000 MOV EAX,DWORD PTR DS:[EBX+2F4]
+004FF568  |.  E8 57C0F4FF  CALL Xlcs.0044B5C4
+004FF56D  |.  8B45 F4      MOV EAX,DWORD PTR SS:[EBP-C]
+004FF570  |.  8B55 FC      MOV EDX,DWORD PTR SS:[EBP-4]
+004FF573  |.  E8 5456F0FF  CALL Xlcs.00404BCC                  ;  将真假注册码进行比对
+004FF578  |.  0F85 AE000000 JNZ Xlcs.004FF62C                   ;  到这里爆破手就知道该怎么办了！！
+004FF57E  |.  8B0D 80035100 MOV ECX,DWORD PTR DS:[510380]     ;  Xlcs.00511EE0
+004FF584  |.  8B09         MOV ECX,DWORD PTR DS:[ECX]
+004FF586  |.  B2 01        MOV DL,1
+004FF588  |.  A1 E4A24700  MOV EAX,DWORD PTR DS:[47A2E4]
+004FF58D  |.  E8 02AEF7FF  CALL Xlcs.0047A394
+004FF592  |.  8BF0         MOV ESI,EAX
+004FF594  |.  8D55 F0      LEA EDX,DWORD PTR SS:[EBP-10]
+004FF597  |.  8B83 F0020000 MOV EAX,DWORD PTR DS:[EBX+2F0]
+004FF59D  |.  E8 22C0F4FF  CALL Xlcs.0044B5C4
+004FF5A2  |.  8B45 F0      MOV EAX,DWORD PTR SS:[EBP-10]
+004FF5A5  |.  50          PUSH EAX
+004FF5A6  |.  B9 B4F64F00  MOV ECX,Xlcs.004FF6B4                ;  ASCII "username"
+004FF5AB  |.  BA C8F64F00  MOV EDX,Xlcs.004FF6C8                ;  ASCII "inifile"
+004FF5B0  |.  8BC6         MOV EAX,ESI
+004FF5B2  |.  8B38         MOV EDI,DWORD PTR DS:[EAX]
+004FF5B4  |.  FF57 04      CALL DWORD PTR DS:[EDI+4]
+004FF5B7  |.  8B45 FC      MOV EAX,DWORD PTR SS:[EBP-4]
+004FF5BA  |.  50          PUSH EAX
+004FF5BB  |.  B9 D8F64F00  MOV ECX,Xlcs.004FF6D8                ;  ASCII "regcode"
+004FF5C0  |.  BA C8F64F00  MOV EDX,Xlcs.004FF6C8                ;  ASCII "inifile"
+004FF5C5  |.  8BC6         MOV EAX,ESI
+004FF5C7  |.  8B38         MOV EDI,DWORD PTR DS:[EAX]
+004FF5C9  |.  FF57 04      CALL DWORD PTR DS:[EDI+4]
+004FF5CC  |.  8BC6         MOV EAX,ESI
+004FF5CE  |.  E8 B143F0FF  CALL Xlcs.00403984
+004FF5D3  |.  A1 AC035100  MOV EAX,DWORD PTR DS:[5103AC]
+004FF5D8  |.  C600 01      MOV BYTE PTR DS:[EAX],1
+004FF5DB  |.  8B15 88005100 MOV EDX,DWORD PTR DS:[510088]     ;  Xlcs.00510008
+004FF5E1  |.  8B12         MOV EDX,DWORD PTR DS:[EDX]
+004FF5E3  |.  A1 18065100  MOV EAX,DWORD PTR DS:[510618]
+004FF5E8  |.  8B00         MOV EAX,DWORD PTR DS:[EAX]
+004FF5EA  |.  E8 05C0F4FF  CALL Xlcs.0044B5F4
+004FF5EF  |.  A1 48005100  MOV EAX,DWORD PTR DS:[510048]
+004FF5F4  |.  8B00         MOV EAX,DWORD PTR DS:[EAX]
+004FF5F6  |.  BA E8F64F00  MOV EDX,Xlcs.004FF6E8                ;  注册成功
+004FF5FB  |.  E8 F4BFF4FF  CALL Xlcs.0044B5F4
+004FF600  |.  A1 48005100  MOV EAX,DWORD PTR DS:[510048]
+004FF605  |.  8B00         MOV EAX,DWORD PTR DS:[EAX]
+004FF607  |.  8B80 F0020000 MOV EAX,DWORD PTR DS:[EAX+2F0]
+004FF60D  |.  BA FCF64F00  MOV EDX,Xlcs.004FF6FC                ;  注册成功！感谢您的购买，关闭程序后再次打开注册生效。
+004FF612  |.  E8 DDBFF4FF  CALL Xlcs.0044B5F4
+004FF617  |.  A1 48005100  MOV EAX,DWORD PTR DS:[510048]
+004FF61C  |.  8B00         MOV EAX,DWORD PTR DS:[EAX]
+004FF61E  |.  E8 8D9AF6FF  CALL Xlcs.004690B0
+004FF623  |.  8BC3         MOV EAX,EBX
+004FF625  |.  E8 DE98F6FF  CALL Xlcs.00468F08
+004FF62A  |.  EB 34        JMP SHORT Xlcs.004FF660
+004FF62C  |>  A1 48005100  MOV EAX,DWORD PTR DS:[510048]
+004FF631  |.  8B00         MOV EAX,DWORD PTR DS:[EAX]
+004FF633  |.  BA 3CF74F00  MOV EDX,Xlcs.004FF73C                ;  注册失败
+004FF638  |.  E8 B7BFF4FF  CALL Xlcs.0044B5F4
+004FF63D  |.  A1 48005100  MOV EAX,DWORD PTR DS:[510048]
+004FF642  |.  8B00         MOV EAX,DWORD PTR DS:[EAX]
+004FF644  |.  8B80 F0020000 MOV EAX,DWORD PTR DS:[EAX+2F0]
+004FF64A  |.  BA 50F74F00  MOV EDX,Xlcs.004FF750                ;  你输入的注册码有错误，建议你跟作者联系！
+004FF64F  |.  E8 A0BFF4FF  CALL Xlcs.0044B5F4
+```
+
+要看注册过程，在 `004FF55A CALL Xlcs.004FF794` 跟进了：
+
+```
+004FF794  /$  55          PUSH EBP
+004FF795  |.  8BEC       MOV EBP,ESP
+004FF797  |.  51          PUSH ECX
+004FF798  |.  B9 06000000 MOV ECX,6
+004FF79D  |>  6A 00       /PUSH 0
+004FF79F  |.  6A 00       |PUSH 0
+004FF7A1  |.  49          |DEC ECX
+004FF7A2  |.^ 75 F9       \JNZ SHORT Xlcs.004FF79D
+004FF7A4  |.  51          PUSH ECX
+004FF7A5  |.  874D FC     XCHG DWORD PTR SS:[EBP-4],ECX
+004FF7A8  |.  53          PUSH EBX
+004FF7A9  |.  56          PUSH ESI
+004FF7AA  |.  57          PUSH EDI
+004FF7AB  |.  894D F8     MOV DWORD PTR SS:[EBP-8],ECX
+004FF7AE  |.  8955 FC     MOV DWORD PTR SS:[EBP-4],EDX
+004FF7B1  |.  8BD8        MOV EBX,EAX
+004FF7B3  |.  8B45 FC     MOV EAX,DWORD PTR SS:[EBP-4]
+004FF7B6  |.  E8 B554F0FF CALL Xlcs.00404C70
+004FF7BB  |.  33C0        XOR EAX,EAX
+004FF7BD  |.  55          PUSH EBP
+004FF7BE  |.  68 64FA4F00 PUSH Xlcs.004FFA64
+004FF7C3  |.  64:FF30     PUSH DWORD PTR FS:[EAX]
+004FF7C6  |.  64:8920     MOV DWORD PTR FS:[EAX],ESP
+004FF7C9  |.  8D55 D8     LEA EDX,DWORD PTR SS:[EBP-28]
+004FF7CC  |.  8B45 FC     MOV EAX,DWORD PTR SS:[EBP-4]
+004FF7CF  |.  E8 1C98F0FF CALL Xlcs.00408FF0
+004FF7D4  |.  8B55 D8     MOV EDX,DWORD PTR SS:[EBP-28]
+004FF7D7  |.  8D45 FC     LEA EAX,DWORD PTR SS:[EBP-4]
+004FF7DA  |.  E8 8950F0FF CALL Xlcs.00404868
+004FF7DF  |.  8B45 FC     MOV EAX,DWORD PTR SS:[EBP-4]
+004FF7E2  |.  E8 A152F0FF CALL Xlcs.00404A88
+004FF7E7  |.  8BF8        MOV EDI,EAX
+004FF7E9  |.  BE EE8D1E00 MOV ESI,1E8DEE                  ;  ESI 等于一个常数 0x1E8DEE，下面会用到
+004FF7EE  |.  85FF        TEST EDI,EDI
+004FF7F0  |.  75 15       JNZ SHORT Xlcs.004FF807
+004FF7F2  |.  8B83 F0020000 MOV EAX,DWORD PTR DS:[EBX+2F0]
+004FF7F8  |.  BA 7CFA4F00 MOV EDX,Xlcs.004FFA7C            ;  你输入的用户名不能为空！
+004FF7FD  |.  E8 F2BDF4FF CALL Xlcs.0044B5F4
+004FF802  |.  E9 2D020000 JMP Xlcs.004FFA34
+004FF807  |>  83FF 32     CMP EDI,32
+004FF80A  |.  7E 1B       JLE SHORT Xlcs.004FF827          ;  用户名的长度不超过 50
+004FF80C  |.  8D45 FC     LEA EAX,DWORD PTR SS:[EBP-4]
+004FF80F  |.  50          PUSH EAX
+004FF810  |.  B9 32000000 MOV ECX,32
+004FF815  |.  BA 01000000 MOV EDX,1
+004FF81A  |.  8B45 FC     MOV EAX,DWORD PTR SS:[EBP-4]
+```
+
+
+
+```
+004FF81D  |.  E8 BE54F0FF    CALL Xlcs.00404CE0  
+
+004FF822  |.  BF 32000000    MOV EDI,32  
+
+004FF827  |>  85FF          TEST EDI,EDI  
+
+004FF829  |.  0F8E FA010000 JLE Xlcs.004FFA29  
+
+004FF82F  |.  83FF 32       CMP EDI,32  
+
+004FF832  |.  0F8F F1010000 JG Xlcs.004FFA29  
+
+004FF838  |.  8B45 FC       MOV EAX,DWORD PTR SS:\[EBP-4\]  
+
+004FF83B  |.  8A18          MOV BL,BYTE PTR DS:\[EAX\]  
+
+004FF83D  |.  8B45 FC       MOV EAX,DWORD PTR SS:\[EBP-4\]  
+
+004FF840  |.  8A4438 FF     MOV AL,BYTE PTR DS:\[EAX+EDI-1\]  
+
+004FF844  |.  8845 F7       MOV BYTE PTR SS:\[EBP-9\],AL  
+
+004FF847  |.  8D55 F0       LEA EDX,DWORD PTR SS:\[EBP-10\]  
+
+004FF84A  |.  33C0          XOR EAX,EAX  
+
+004FF84C  |.  8AC3          MOV AL,BL  
+
+004FF84E  |.  E8 B99AF0FF   CALL Xlcs.0040930C                     ;  "r"的 ASC 码转化成十进制文本，得到"114"  
+
+004FF853  |.  8D55 EC       LEA EDX,DWORD PTR SS:\[EBP-14\]  
+
+004FF856  |.  33C0          XOR EAX,EAX  
+
+004FF858  |.  8A45 F7       MOV AL,BYTE PTR SS:\[EBP-9\]  
+
+004FF85B  |.  E8 AC9AF0FF   CALL Xlcs.0040930C                     ;  "\]"的 ASC 码转化成十进制文本，得到"93"  
+
+004FF860  |.  8D45 D4       LEA EAX,DWORD PTR SS:\[EBP-2C\]  
+
+004FF863  |.  50            PUSH EAX  
+
+004FF864  |.  8B45 F0       MOV EAX,DWORD PTR SS:\[EBP-10\]  
+
+004FF867  |.  E8 1C52F0FF   CALL Xlcs.00404A88                     ;  "114"的长度，得到 3  
+
+004FF86C  |.  8BD0          MOV EDX,EAX  
+
+004FF86E  |.  B9 01000000   MOV ECX,1  
+
+004FF873  |.  8B45 F0       MOV EAX,DWORD PTR SS:\[EBP-10\]  
+
+004FF876  |.  E8 6554F0FF   CALL Xlcs.00404CE0                     ;  取出"114"的最后一位，得到"4"  
+
+004FF87B  |.  8B45 D4       MOV EAX,DWORD PTR SS:\[EBP-2C\]  
+
+004FF87E  |.  E8 299BF0FF   CALL Xlcs.004093AC                     ;  转换为数字 4  
+
+004FF883  |.  8BD8          MOV EBX,EAX  
+
+004FF885  |.  8D45 D0       LEA EAX,DWORD PTR SS:\[EBP-30\]  
+
+004FF888  |.  50            PUSH EAX  
+
+004FF889  |.  8B45 EC       MOV EAX,DWORD PTR SS:\[EBP-14\]  
+
+004FF88C  |.  E8 F751F0FF   CALL Xlcs.00404A88                     ;  "93"的长度，得到 2  
+
+004FF891  |.  8BD0          MOV EDX,EAX  
+
+004FF893  |.  B9 01000000   MOV ECX,1  
+
+004FF898  |.  8B45 EC       MOV EAX,DWORD PTR SS:\[EBP-14\]  
+
+004FF89B  |.  E8 4054F0FF   CALL Xlcs.00404CE0                     ;  取出"93"的最后一位，得到"3"  
+
+004FF8A0  |.  8B45 D0       MOV EAX,DWORD PTR SS:\[EBP-30\]  
+
+004FF8A3  |.  E8 049BF0FF   CALL Xlcs.004093AC                     ;  转换为数字 3  
+
+004FF8A8  |.  33D2          XOR EDX,EDX  
+
+004FF8AA  |.  8AD3          MOV DL,BL  
+
+004FF8AC  |.  69D2 BD070000 IMUL EDX,EDX,7BD                       ;  0x7BD 乘以 4，得到 0x1EF4  
+
+004FF8B2  |.  25 FF000000   AND EAX,0FF  
+
+004FF8B7  |.  0FAFD0        IMUL EDX,EAX                             ;  0x1EF4 乘以 3，得到 0x5CDC  
+
+004FF8BA  |.  8955 E0       MOV DWORD PTR SS:\[EBP-20\],EDX  
+
+004FF8BD  |.  8BC7          MOV EAX,EDI  
+
+004FF8BF  |.  84C0          TEST AL,AL  
+
+004FF8C1  |.  76 3C         JBE SHORT Xlcs.004FF8FF  
+
+004FF8C3  |.  8845 DF       MOV BYTE PTR SS:\[EBP-21\],AL  
+
+004FF8C6  |.  B3 01         MOV BL,1  
+
+004FF8C8  |>  8BC3          /MOV EAX,EBX  
+
+004FF8CA  |.  48            |DEC EAX  
+
+004FF8CB  |.  2C 05         |SUB AL,5                                 ;  Switch (cases 0..31)  
+
+004FF8CD  |.  72 06         |JB SHORT Xlcs.004FF8D5                 ;  判断是不是前五个字符  
+
+004FF8CF  |.  2C 2D         |SUB AL,2D  
+
+004FF8D1  |.  72 18         |JB SHORT Xlcs.004FF8EB                 ;  判断是不是从第五位向后的字符  
+
+004FF8D3  |.  EB 24         |JMP SHORT Xlcs.004FF8F9  
+
+004FF8D5  |>  33C0          |XOR EAX,EAX                              ;  Cases 0,1,2,3,4 of switch 004FF8CB  
+
+004FF8D7  |.  8AC3          |MOV AL,BL  
+
+004FF8D9  |.  8B55 FC       |MOV EDX,DWORD PTR SS:\[EBP-4\]  
+
+004FF8DC  |.  0FB64402 FF   |MOVZX EAX,BYTE PTR DS:\[EDX+EAX-1\]  
+
+004FF8E1  |.  33D2          |XOR EDX,EDX  
+
+004FF8E3  |.  8AD3          |MOV DL,BL  
+
+004FF8E5  |.  F7EA          |IMUL EDX  
+
+004FF8E7  |.  03F0          |ADD ESI,EAX  
+
+004FF8E9  |.  EB 0E         |JMP SHORT Xlcs.004FF8F9  
+
+004FF8EB  |>  33C0          |XOR EAX,EAX                              ;  Cases 5,6,7,8,9,A,B,C,D,E,F,10,11,12,13,14,15,16,17,18,19,1A,1B,1C,1D,1E,1F,20,21,22,23,24,25,26,27,28,29,2A,2B,2C,2D,2E,2F,30,31 of switch 004FF8CB  
+
+004FF8ED  |.  8AC3          |MOV AL,BL  
+
+004FF8EF  |.  8B55 FC       |MOV EDX,DWORD PTR SS:\[EBP-4\]  
+
+004FF8F2  |.  0FB64402 FF   |MOVZX EAX,BYTE PTR DS:\[EDX+EAX-1\]  
+
+004FF8F7  |.  03F0          |ADD ESI,EAX  
+
+004FF8F9  |>  43            |INC EBX                                    ;  Default case of switch 004FF8CB  
+
+004FF8FA  |.  FE4D DF       |DEC BYTE PTR SS:\[EBP-21\]  
+
+004FF8FD  |.^ 75 C9         \JNZ SHORT Xlcs.004FF8C8                 ;  以上循环的作用：基数 0x1E8DEE+前五个字符每一位的 ASC 乘以所在位置(1~5)+从第五位向后所有字符的 ASC 的总和, 得到 0x1E965F  
+
+004FF8FF  |>  8BC6          MOV EAX,ESI  
+
+004FF901  |.  33D2          XOR EDX,EDX  
+
+004FF903  |.  52            PUSH EDX                                    ; /Arg2 => 00000000  
+
+004FF904  |.  50            PUSH EAX                                    ; |Arg1  
+
+004FF905  |.  8D45 CC       LEA EAX,DWORD PTR SS:\[EBP-34\]           ; |  
+
+004FF908  |.  E8 2F9AF0FF   CALL Xlcs.0040933C                     ; \循环结果转换为十进制文本，得到"2004575"  
+
+004FF90D  |.  8B45 CC       MOV EAX,DWORD PTR SS:\[EBP-34\]  
+
+004FF910  |.  50            PUSH EAX  
+
+004FF911  |.  8B45 E0       MOV EAX,DWORD PTR SS:\[EBP-20\]  
+
+004FF914  |.  33D2          XOR EDX,EDX  
+
+004FF916  |.  52            PUSH EDX                                    ; /Arg2 => 00000000  
+
+004FF917  |.  50            PUSH EAX                                    ; |Arg1  
+
+004FF918  |.  8D45 C8       LEA EAX,DWORD PTR SS:\[EBP-38\]           ; |  
+
+004FF91B  |.  E8 1C9AF0FF   CALL Xlcs.0040933C                     ; \0x5CDC 转换为十进制文本，得到"23772"  
+
+004FF920  |.  8B55 C8       MOV EDX,DWORD PTR SS:\[EBP-38\]  
+
+004FF923  |.  8D45 E8       LEA EAX,DWORD PTR SS:\[EBP-18\]  
+
+004FF926  |.  59            POP ECX  
+
+004FF927  |.  E8 A851F0FF   CALL Xlcs.00404AD4                     ;  连接两个十进制文本，得到"237722004575"  
+
+004FF92C  |.  8B45 E8       MOV EAX,DWORD PTR SS:\[EBP-18\]  
+
+004FF92F  |.  E8 5451F0FF   CALL Xlcs.00404A88                     ;  所得字符串的长度，得到 0xC  
+
+004FF934  |.  84C0          TEST AL,AL  
+
+004FF936  |.  0F86 ED000000 JBE Xlcs.004FFA29  
+
+004FF93C  |.  8845 DF       MOV BYTE PTR SS:\[EBP-21\],AL  
+
+004FF93F  |.  B3 01         MOV BL,1  
+
+004FF941  |>  33C0          /XOR EAX,EAX  
+
+004FF943  |.  8AC3          |MOV AL,BL  
+
+004FF945  |.  8B55 E8       |MOV EDX,DWORD PTR SS:\[EBP-18\]  
+
+004FF948  |.  0FB64402 FF   |MOVZX EAX,BYTE PTR DS:\[EDX+EAX-1\]  
+
+004FF94D  |.  83C0 D0       |ADD EAX,-30                              ;  Switch (cases 30..39)  
+
+004FF950  |.  83F8 09       |CMP EAX,9  
+
+004FF953  |.  0F87 C6000000 |JA Xlcs.004FFA1F  
+
+004FF959  |.  FF2485 60F94F> |JMP DWORD PTR DS:\[EAX*4+4FF960\]  
+
+004FF960  |.  88F94F00      |DD Xlcs.004FF988                          ;  Switch table used at 004FF959  
+
+004FF964  |.  9AF94F00      |DD Xlcs.004FF99A  
+
+004FF968  |.  A9F94F00      |DD Xlcs.004FF9A9  
+
+004FF96C  |.  B8F94F00      |DD Xlcs.004FF9B8  
+
+004FF970  |.  C7F94F00      |DD Xlcs.004FF9C7  
+
+004FF974  |.  D6F94F00      |DD Xlcs.004FF9D6  
+
+004FF978  |.  E5F94F00      |DD Xlcs.004FF9E5  
+
+004FF97C  |.  F4F94F00      |DD Xlcs.004FF9F4  
+
+004FF980  |.  03FA4F00      |DD Xlcs.004FFA03  
+
+004FF984  |.  12FA4F00      |DD Xlcs.004FFA12  
+
+004FF988  |>  8D45 E4       |LEA EAX,DWORD PTR SS:\[EBP-1C\]        ;  Case 30 ('0') of switch 004FF94D  
+
+004FF98B  |.  BA A0FA4F00   |MOV EDX,Xlcs.004FFAA0  
+
+004FF990  |.  E8 FB50F0FF   |CALL Xlcs.00404A90  
+
+004FF995  |.  E9 85000000   |JMP Xlcs.004FFA1F  
+
+004FF99A  |>  8D45 E4       |LEA EAX,DWORD PTR SS:\[EBP-1C\]        ;  Case 31 ('1') of switch 004FF94D  
+
+004FF99D  |.  BA ACFA4F00   |MOV EDX,Xlcs.004FFAAC  
+
+004FF9A2  |.  E8 E950F0FF   |CALL Xlcs.00404A90  
+
+004FF9A7  |.  EB 76         |JMP SHORT Xlcs.004FFA1F
+```
+
+
+
+# 004FF9A9 |> 8D45 E4 |LEA EAX,DWORD PTR SS:\[EBP-1C\] ; Case 32 ('2') of switch 004FF94D
+
+```
+004FF9A9  |>  8D45 E4       |LEA EAX,DWORD PTR SS:\[EBP-1C\]          ;  Case 32 ('2') of switch 004FF94D
+
+004FF9AC  |.  BA B8FA4F00   |MOV EDX,Xlcs.004FFAB8
+
+004FF9B1  |.  E8 DA50F0FF   |CALL Xlcs.00404A90
+
+004FF9B6  |.  EB 67         |JMP SHORT Xlcs.004FFA1F
+
+004FF9B8  |>  8D45 E4       |LEA EAX,DWORD PTR SS:\[EBP-1C\]          ;  Case 33 ('3') of switch 004FF94D
+
+004FF9BB  |.  BA C4FA4F00   |MOV EDX,Xlcs.004FFAC4
+
+004FF9C0  |.  E8 CB50F0FF   |CALL Xlcs.00404A90
+
+004FF9C5  |.  EB 58         |JMP SHORT Xlcs.004FFA1F
+
+004FF9C7  |>  8D45 E4       |LEA EAX,DWORD PTR SS:\[EBP-1C\]          ;  Case 34 ('4') of switch 004FF94D
+
+004FF9CA  |.  BA D0FA4F00   |MOV EDX,Xlcs.004FFAD0
+
+004FF9CF  |.  E8 BC50F0FF   |CALL Xlcs.00404A90
+
+004FF9D4  |.  EB 49         |JMP SHORT Xlcs.004FFA1F
+
+004FF9D6  |>  8D45 E4       |LEA EAX,DWORD PTR SS:\[EBP-1C\]          ;  Case 35 ('5') of switch 004FF94D
+
+004FF9D9  |.  BA DCFA4F00   |MOV EDX,Xlcs.004FFADC
+
+004FF9DE  |.  E8 AD50F0FF   |CALL Xlcs.00404A90
+
+004FF9E3  |.  EB 3A         |JMP SHORT Xlcs.004FFA1F
+
+004FF9E5  |>  8D45 E4       |LEA EAX,DWORD PTR SS:\[EBP-1C\]          ;  Case 36 ('6') of switch 004FF94D
+
+004FF9E8  |.  BA E8FA4F00   |MOV EDX,Xlcs.004FFAE8
+
+004FF9ED  |.  E8 9E50F0FF   |CALL Xlcs.00404A90
+
+004FF9F2  |.  EB 2B         |JMP SHORT Xlcs.004FFA1F
+
+004FF9F4  |>  8D45 E4       |LEA EAX,DWORD PTR SS:\[EBP-1C\]          ;  Case 37 ('7') of switch 004FF94D
+
+004FF9F7  |.  BA F4FA4F00   |MOV EDX,Xlcs.004FFAF4
+
+004FF9FC  |.  E8 8F50F0FF   |CALL Xlcs.00404A90
+
+004FFA01  |.  EB 1C         |JMP SHORT Xlcs.004FFA1F
+
+004FFA03  |>  8D45 E4       |LEA EAX,DWORD PTR SS:\[EBP-1C\]          ;  Case 38 ('8') of switch 004FF94D
+
+004FFA06  |.  BA 00FB4F00   |MOV EDX,Xlcs.004FFB00
+
+004FFA0B  |.  E8 8050F0FF   |CALL Xlcs.00404A90
+
+004FFA10  |.  EB 0D         |JMP SHORT Xlcs.004FFA1F
+
+004FFA12  |>  8D45 E4       |LEA EAX,DWORD PTR SS:\[EBP-1C\]          ;  Case 39 ('9') of switch 004FF94D
+
+004FFA15  |.  BA 0CFB4F00   |MOV EDX,Xlcs.004FFB0C
+
+004FFA1A  |.  E8 7150F0FF   |CALL Xlcs.00404A90
+
+004FFA1F  |>  43            |INC EBX                                   ;  Default case of switch 004FF94D
+
+004FFA20  |.  FE4D DF       |DEC BYTE PTR SS:\[EBP-21\]
+
+004FFA23  |.^ 0F85 18FFFFFF \JNZ Xlcs.004FF941
+```
+
+上面 OD 注释了那么多的 Case，我没有跟进去看，但是每循环一次会出现一位注册码，猜想一下，很可能是在查表，每个 Call 都压入不同的内存地址，就是到哪里去取数字，到内存窗口察看一下，很容易找到对应关系：
+
+"0"、"1"、"2"、"3"、"4"、"5"、"6"、"7"、"8"、"9"
+
+"4"、"0"、"5"、"9"、"6"、"1"、"7"、"3"、"8"、"2"
+
+```
+004FFA29  |>  8B45 F8       MOV EAX,DWORD PTR SS:\[EBP-8\]
+
+004FFA2C  |.  8B55 E4       MOV EDX,DWORD PTR SS:\[EBP-1C\]
+
+004FFA2F  |.  E8 F04DF0FF   CALL Xlcs.00404824
+
+004FFA34  |>  33C0          XOR EAX,EAX
+
+004FFA36  |.  5A            POP EDX
+
+004FFA37  |.  59            POP ECX
+
+004FFA38  |>  59            POP ECX
+
+004FFA39  |.  64:8910       MOV DWORD PTR FS:\[EAX\],EDX
+
+004FFA3C  |.  68 6BFA4F00   PUSH Xlcs.004FFA6B
+
+004FFA41  |>  8D45 C8       LEA EAX,DWORD PTR SS:\[EBP-38\]
+
+004FFA44  |.  BA 05000000   MOV EDX,5
+
+004FFA49  |>  E8 A64DF0FF   CALL Xlcs.004047F4
+
+004FFA4E  |.  8D45 E4       LEA EAX,DWORD PTR SS:\[EBP-1C\]
+
+004FFA51  |.  BA 04000000   MOV EDX,4
+
+004FFA56  |.  E8 994DF0FF   CALL Xlcs.004047F4
+
+004FFA5B  |.  8D45 FC       LEA EAX,DWORD PTR SS:\[EBP-4\]
+
+004FFA5E  |.  E8 6D4DF0FF   CALL Xlcs.004047D0
+
+004FFA63  \\.  C3            RETN
+
+004FFA64   .^ E9 AF46F0FF   JMP Xlcs.00404118
+
+004FFA69   .^ EB D6         JMP SHORT Xlcs.004FFA41
+
+004FFA6B   .  5F            POP EDI
+
+004FFA6C   .  5E            POP ESI
+
+004FFA6D   .  5B            POP EBX
+
+004FFA6E   .  8BE5          MOV ESP,EBP
+
+004FFA70   .  5D            POP EBP
+
+004FFA71   .  C3            RETN
+```
+
+---
+
+## 【破解心得】
+
+注册码是这样形成的：(计算过程用十进制描述)
+
+取得用户名`rdsnow\[BCG\]`的第一个字符`r`和最后一个字符`\]`的十进制 ASC 码，分别得到`114`、`93`，取`114`、`93`的最后一位`4`、`3`，然后`1981 * 4 * 3 = 23772`
+
+然后`2002414 + ASC(r) * 1 + ASC(d) * 2 + ASC(s) * 3 + ASC(n) * 4 + ASC(o) * 5 + ASC(w) + ASC(\[) + ASC(B) + ASC(C) + ASC(G) + ASC(\]) = 2004575`
+
+上面两个结果连接得到`237722004575`
+
+每个数字按下了对应关系查表
+
+`0`、`1`、`2`、`3`、`4`、`5`、`6`、`7`、`8`、`9`
+
+`4`、`0`、`5`、`9`、`6`、`1`、`7`、`3`、`8`、`2`
+
+得到结果`593355446131`这就是注册码了。
+
+用户名：`rdsnow\[BCG\]`
+
+注册码：`593355446131`
+
+---
+
+## 【注册机源码】
+
+Microsoft Visual C++ 6.0 编写：
+
+```cpp
+void CMy001Dlg::OnOK() 
+
+{ 
+
+  // TODO: Add extra validation here 
+
+  //CDialog::OnOK(); 
+
+  UpdateData(true); 
+
+  char cName\[50\],cSN1\[100\],cSN2\[100\]; 
+
+  int i,j,n,SN1,SN2; 
+
+  //检查用户名的长度 
+
+  n=m\_Edit1.GetLength (); 
+
+  if (n>50) { 
+
+    MessageBox("用户名的长度不超过 50","提示",MB\_OK); 
+
+    return; 
+
+  } 
+
+  //生成中间结果 1 
+
+  strcpy(cName,m\_Edit1); 
+
+  SN1=cName\[0\]; 
+
+  SN2=cName\[n-1\]; 
+
+  SN1 %= 10; 
+
+  SN2 %= 10; 
+
+  SN1 = 1981*SN1*SN2; 
+
+  \_itoa(SN1,cSN1,10); 
+
+  //生成中间结果 2 
+
+  SN2=2002414; 
+
+  for (i=0;i<n;i++){ 
+
+    if(i<5) j=i+1; 
+
+    else j=1; 
+
+    SN2 += cName\[i\] *j; 
+
+  } 
+
+  \_itoa(SN2,cSN2,10); 
+
+  //连接两个结果，生成字符串 
+
+  strcat(cSN1,cSN2); 
+
+  //查表，得到注册码 
+
+  n=strlen(cSN1); 
+
+  for (i=0;i<n;i++){ 
+
+    switch(cSN1\[i\]){ 
+
+    case '0':cSN1\[i\]='4';break; 
+
+    case '1':cSN1\[i\]='0';break; 
+
+    case '2':cSN1\[i\]='5';break; 
+
+    case '3':cSN1\[i\]='9';break; 
+
+    case '4':cSN1\[i\]='6';break; 
+
+    case '5':cSN1\[i\]='1';break; 
+
+    case '6':cSN1\[i\]='7';break; 
+
+    case '7':cSN1\[i\]='3';break; 
+
+    case '8':cSN1\[i\]='8';break; 
+
+    case '9':cSN1\[i\]='2';break; 
+
+    } 
+
+  } 
+
+  //输出注册码 
+
+  m\_Edit2=cSN1; 
+
+  UpdateData(false); 
+
+}
+```
+
+---
+
+## 【破解声明】
+
+我是一只小菜鸟，偶得一点心得，愿与大家分享:)
+
+## 【版权声明】
+
+本文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢!
+
+---
+
+文章写于 2005-5-16 11:54:09
+
+`4dd466d0e1e0cc123afbe504da2462ca`
