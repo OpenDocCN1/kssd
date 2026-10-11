@@ -1,0 +1,381 @@
+
+# 菜鸟之第一次游戏分析
+
+> 原文：[`www.pediy.com/kssd/pediy12/130349.html`](https://www.pediy.com/kssd/pediy12/130349.html)
+
+**【使用工具】**: `OD`
+
+**【操作平台】**: `Windows XP`
+
+**【作者声明】**: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教
+
+发帖之前先发发牢骚 本人 18 在校中专生 虽然还有 2 个月就可以闪人 顺便讲讲自己的经历
+
+由于初三沉迷编程 结果上了个中专 说起某中专 我不晓得是不是全国最烂中专 说说自己所经历的情况 以供大家借鉴
+
+2 年了每天都是混日子 度日如年 在这里没有人权 进机房老师是穿鞋的 学生是拖掉鞋的
+
+电脑可以说是古董级了（可能是这城市 IT 太落后了 整个城市没有个软件公司）
+
+10 台电脑 运气好点 2~3 台坏 电脑坏了你交不了作业 你就得挂科 你得 100 分也是假（要看老师心情好不好）因此我也挂了一些科目
+
+你所能做的就是整天听部分“老师”吹吹牛 晒晒辐射
+
+说起课程我介绍一些 画画 `html` 语言 `flash` `PS3` `CAD` == 基本都是学不到一半课程就完了
+
+天天待在闷热的机房 眼睛都坏了 - -
+
+学了一大堆皮毛 还想在这 IT 界找工作 要信这学校鬼话 那还是真 SB 了
+
+（想想谁叫自己没本事呢) 上过中专的朋友都知道 只不过情况比我好点罢了
+
+-------------------------------相信坛子里应该没有比我跟悲剧的了
+
+说下自己的学习经历吧：16 岁当年迷上了编程 但是不知怎么从哪学 百度一下 然后就从 C 语言开始学 学完后 然后学习 `c++` 不懂看 `MSDN` 百度 再不行请教一些老手（这里一些朋友会问 `MSDN` 全都是英文的 那不是要学好英语）(英语是非常重要的 不仅是在 IT 方面 还是其他方面)说实话我英语很差 当时我是在线翻译 --慢慢理解 多了就熟悉了 其实人每天都在学习 比如看一部欧美电影 或许你是当做娱乐 你也可以当做娱乐和学习 就好比给你一件物品 要看你怎么利用它发挥最大功效
+
+（我当时学习是断网的 `QQ` 神马都不开的）（一有时间基本都是窝在家里疯狂学习 - -）
+
+都是打基础 这 2 年断断续续的学了汇编 逆向 说实话我逆向很差 用手指都可以数出分析过的程序
+
+总结：学编程 1 年 熟悉 `c++` 了解 `MFC` 常用数据结构算法
+
+为了变得比别人更强 还得付出更多
+
+觉得自己除了编程基础还好些 其他没什么优势 驱动 算法 以及猥琐的 `HOOK` 技术 要学的太多了
+
+牢骚发够了 发正文吧
+
+本来是打算分析游戏明码的 结果 `password` `MD5` 加密了 就试着尝试下分析游戏下数据
+
+这些数据都是每天用一个小时在网吧分析的 一部分数据也只能是大概分析 （平常只有周末才能摸到机器）
+
+说自己分析数据的一些经验 断发包函数 先看堆栈 如果堆栈没你要的数据 猜测可能是用发包实现的
+
+有的游戏是- 动作->发包
+
+有的游戏是 发包->动作
+
+分析游戏不到一天 经验太浅 如有不对 高手多多指教
+
+## 创建角色
+
+```
+005F35C3    8B8E 8C020000   mov ecx,dword ptr ds:\[esi+0x28C\]
+005F35C9    8B96 90020000   mov edx,dword ptr ds:\[esi+0x290\]
+005F35CF    83C1 01         add ecx,0x1
+005F35D2    F7DA            neg edx
+005F35D4    51              push ecx
+005F35D5    1BD2            sbb edx,edx
+005F35D7    83C2 02         add edx,0x2
+005F35DA    52              push edx
+005F35DB    50              push eax
+005F35DC    68 DCB98300     push asktao.0083B9DC          ; ASCII "char\_name = %s, gender = %d, polar = %d"
+005F35E1    68 5C200000     push 0x205C
+005F35E6    E8 85ECF9FF     call asktao.00592270
+005F35EB    83C4 14         add esp,0x14
+```
+
+## 选线
+
+```
+0065991E    8B4424 10       mov eax,dword ptr ss:\[esp+0x10\]
+00659922    50              push eax
+00659923    57              push edi
+00659924    8BCE            mov ecx,esi
+00659926    E8 057FFCFF     call asktao.00621830
+0092D314    009334E0 帐号 imgbase
+
+x 0302F820
+y 0302F824
+92d354+200+54 战斗标识 1 遇敌 0 不遇敌
+```
+
+## 选择角色
+
+```
+005F1D37    8B86 A8020000   mov eax,dword ptr ds:\[esi+0x2A8\]
+005F1D3D    8B0CB8          mov ecx,dword ptr ds:\[eax+edi\*4\]
+005F1D40    8D04B8          lea eax,dword ptr ds:\[eax+edi\*4\]
+005F1D43    68 E9278000     push asktao.008027E9
+005F1D48    68 E0488000     push asktao.008048E0        ; ASCII "name"
+005F1D4D    E8 9E92FCFF     call asktao.005BAFF0
+005F1D52    50              push eax
+005F1D53    68 00B68300     push asktao.0083B600        ; ASCII "char\_name=%s"
+005F1D58    68 60100000     push 0x1060
+005F1D5D    E8 0E05FAFF     call asktao.00592270
+005F1D62    83C4 0C         add esp,0xC
+```
+
+## 喊话
+
+```
+005F9308    50              push eax
+005F9309    8B4424 40       mov eax,dword ptr ss:\[esp+0x40\]
+005F930D    50              push eax
+005F930E    57              push edi
+005F930F    E8 8CCBE7FF      call asktao.00475EA0
+005F9314    83C4 04         add esp,0x4
+```
+
+## 登陆
+
+由于密文 `MD5` 加密了 有兴趣可以继续分析
+
+```
+00629886    50              push eax
+00629887    8B4424 18       mov eax,dword ptr ss:\[esp+0x18\]
+0062988B    50              push eax
+0062988C    68 E9278000     push asktao.008027E9
+00629891    8D8C24 64020000 lea ecx,dword ptr ss:\[esp+0x264\]
+00629898    51              push ecx
+00629899    8D5424 68       lea edx,dword ptr ss:\[esp+0x68\]
+0062989D    52              push edx
+0062989E    57              push edi
+0062989F    68 68468400     push asktao.00844668          ; ASCII "account=%s, password=%s, id=%s, data = %s, lock = %s, dist=%s"
+006298A4    68 50230000     push 0x2350
+006298A9    E8 C289F6FF     call asktao.00592270
+006298AE    8B0D 0CD39200   mov ecx,dword ptr ds:\[0x92D30C\]
+006298B4    83C4 20         add esp,0x20
+```
+
+## 走路
+
+```
+00589980        83EC 10          sub esp,0x10
+00589983        56               push esi
+00589984        8BF1             mov esi,ecx
+00589986        8B06             mov eax,dword ptr ds:\[esi\]
+00589988        8B90 6C010000    mov edx,dword ptr ds:\[eax+0x16C\]
+0058998E        FFD2             call edx
+00589990        85C0             test eax,eax
+00589992        8BCE             mov ecx,esi
+00589994        75 2C            jnz short asktao.005899C2
+00589996        8D4424 04        lea eax,dword ptr ss:\[esp+0x4\]
+0058999A        50               push eax
+0058999B        E8 0087FFFF      call asktao.005820A0
+005899A0        8B08             mov ecx,dword ptr ds:\[eax\]
+005899A2        8D5424 04        lea edx,dword ptr ss:\[esp+0x4\]
+005899A6        898E 50020000    mov dword ptr ds:\[esi+0x250\],ecx
+005899AC        52               push edx
+005899AD        8BCE             mov ecx,esi
+005899AF        E8 EC86FFFF      call asktao.005820A0
+005899B4        8B40 04          mov eax,dword ptr ds:\[eax+0x4\]
+005899B7        8986 54020000    mov dword ptr ds:\[esi+0x254\],eax
+005899BD        5E               pop esi
+005899BE        83C4 10          add esp,0x10
+005899C1        C3               retn
+```
+
+## 战斗相光
+
+```
+0046E47D        8B6C24 48        mov ebp,dword ptr ss:\[esp+0x48\]
+0046E481        50               push eax
+0046E482        56               push esi
+0046E483        53               push ebx
+0046E484        55               push ebp
+0046E485        57               push edi
+0046E486        68 60E48000      push asktao.0080E460           ; ASCII "id = %d, victim\_id = %d, action = %d, para = %d, skill\_talk = %s"
+0046E48B        68 02320000      push 0x3202
+0046E490        E8 DB3D1200      call asktao.00592270
+0046E495        83C4 1C          add esp,0x1C
+
+00480230    56               push esi
+00480231    8B7424 08        mov esi,dword ptr ss:\[esp+0x8\]
+00480235    56               push esi
+00480236    68 3CFC8000      push asktao.0080FC3C           ; ASCII "pos = %d"
+0048023B    68 2C200000      push 0x202C
+00480240    E8 2B201100      call asktao.00592270
+00480245    83C4 0C          add esp,0xC
+```
+
+## 非战斗吃药
+
+```
+00592361    8B7424 40        mov esi,dword ptr ss:\[esp+0x40\]
+00592365    68 ECF09200      push asktao.0092F0EC
+0059236A    56               push esi
+0059236B    E8 C008F2FF      call asktao.004B2C30
+00592370    8B0D F4D29200    mov ecx,dword ptr ds:\[0x92D2F4\]
+00592376    83C4 08          add esp,0x8
+```
+
+## 战斗吃药
+
+```
+0058D33A    50               push eax
+0058D33B    68 A4E48000      push asktao.0080E4A4           ; ASCII "id = %d"
+0058D340    68 08220000      push 0x2208
+0058D345    E8 264F0000      call asktao.00592270
+0058D34A    83C4 0C          add esp,0xC
+```
+
+## 非战斗挖矿开箱
+
+### 背包相关
+
+```
+005A4BD0        55               push ebp
+005A4BD1        8BEC             mov ebp,esp
+005A4BD3        6A FF            push -0x1
+005A4BD5        68 A0327C00      push asktao.007C32A0
+005A4BDA        64:A1 00000000   mov eax,dword ptr fs:\[0\]
+005A4BE0        50               push eax
+005A4BE1        81EC A0000000    sub esp,0xA0
+005A4BE7        A1 C48D9200      mov eax,dword ptr ds:\[0x928DC4\]
+005A4BEC        33C5             xor eax,ebp
+005A4BEE        8945 EC          mov dword ptr ss:\[ebp-0x14\],eax
+005A4BF1        53               push ebx
+005A4BF2        56               push esi
+005A4BF3        57               push edi
+005A4BF4        50               push eax
+005A4BF5        8D45 F4          lea eax,dword ptr ss:\[ebp-0xC\]
+```
+
+
+
+# 005A4BF8 汇编指令
+
+```
+005A4BF8        64:A3 00000000   mov dword ptr fs:[0],eax  
+005A4BFE        8965 F0          mov dword ptr ss:[ebp-0x10],esp  
+005A4C01        8B45 14          mov eax,dword ptr ss:[ebp+0x14]  
+005A4C04        8B7D 10          mov edi,dword ptr ss:[ebp+0x10]  
+005A4C07        8BF1             mov esi,ecx  
+005A4C09        33DB            xor ebx,ebx  
+005A4C0B        89B5 5CFFFFFF   mov dword ptr ss:[ebp-0xA4],esi  
+005A4C11        891E            mov dword ptr ds:[esi],ebx  
+005A4C13        895E 20         mov dword ptr ds:[esi+0x20],ebx  
+005A4C16        8946 04         mov dword ptr ds:[esi+0x4],eax  
+005A4C19        897E 08         mov dword ptr ds:[esi+0x8],edi  
+```
+
+## 宠物相关
+
+### 宠物加点
+
+```
+00692396    68 24958200     push asktao.00829524                 ; ASCII "con"  
+0069239B    FFD0            call eax  
+0069239D    50              push eax  
+0069239E    68 90C48300     push asktao.0083C490                 ; ASCII "id = %d, attribute_name = %s"  
+006923A3    68 3E200000     push 0x203E  
+006923A8    E8 C3FEEFFF     call asktao.00592270  
+006923AD    83C4 10         add esp,0x10                           加体质属性  
+0069234C    8B10            mov edx,dword ptr ds:[eax]  
+0069234E    8BC8            mov ecx,eax  
+00692350    8B82 C8000000   mov eax,dword ptr ds:[edx+0xC8]  
+00692356    68 0C958200     push asktao.0082950C                   ; ASCII "wiz"  
+0069235B    FFD0            call eax  
+0069235D    50              push eax  
+0069235E    68 90C48300     push asktao.0083C490                   ; ASCII "id = %d, attribute_name = %s"  
+00692363    68 3E200000     push 0x203E  
+00692368    E8 03FFEFFF     call asktao.00592270                   加灵力  
+0069236D    83C4 10         add esp,0x10  
+0069230C    8B10            mov edx,dword ptr ds:[eax]  
+0069230E    8BC8            mov ecx,eax  
+00692310    8B82 C8000000   mov eax,dword ptr ds:[edx+0xC8]  
+00692316    68 5CE58000     push asktao.0080E55C                   ; ASCII "str"  
+0069231B    FFD0            call eax  
+0069231D    50              push eax  
+0069231E    68 90C48300     push asktao.0083C490                   ; ASCII "id = %d, attribute_name = %s"  
+00692323    68 3E200000     push 0x203E  
+00692328    E8 43FFEFFF     call asktao.00592270  
+0069232D    83C4 10         add esp,0x10                             加力量  
+006923CC    8B10            mov edx,dword ptr ds:[eax]  
+006923CE    8BC8            mov ecx,eax  
+006923D0    8B82 C8000000   mov eax,dword ptr ds:[edx+0xC8]  
+006923D6    68 EC948200     push asktao.008294EC                   ; ASCII "dex"  
+006923DB    FFD0            call eax  
+006923DD    50              push eax  
+006923DE    68 90C48300     push asktao.0083C490                   ; ASCII "id = %d, attribute_name = %s"  
+006923E3    68 3E200000     push 0x203E  
+006923E8    E8 83FEEFFF     call asktao.00592270  
+006923ED    83C4 10         add esp,0x10  
+```
+
+### 驯养
+
+```
+00692459    8B10            mov edx,dword ptr ds:[eax]  
+0069245B    8BC8            mov ecx,eax  
+0069245D    8B82 C8000000   mov eax,dword ptr ds:[edx+0xC8]  
+00692463    FFD0            call eax  
+00692465    50              push eax  
+00692466    68 A4E48000     push asktao.0080E4A4                   ; ASCII "id = %d"  
+0069246B    68 9A100000     push 0x109A  
+00692470    E8 FBFDEFFF     call asktao.00592270  
+00692475    83C4 0C         add esp,0xC  
+```
+
+## 人物相关
+
+```
+005F6CA0    56              push esi  
+005F6CA1    68 24958200     push asktao.00829524                     ; ASCII "con"  
+005F6CA6    6A 00           push 0x0  
+005F6CA8    68 90C48300     push asktao.0083C490                     ; ASCII "id = %d, attribute_name = %s"  
+005F6CAD    68 3E200000     push 0x203E  
+005F6CB2    8BF1            mov esi,ecx  
+005F6CB4    E8 B7B5F9FF     call asktao.00592270  
+005F6CB9    83C4 10         add esp,0x10  
+005F6CBC    8BCE            mov ecx,esi  
+005F6CBE    E8 DDFABFFFF     call asktao.005F67A0  
+005F6CC3    33C0            xor eax,eax  
+005F6CC5    5E              pop esi  
+005F6CC6    C2 0800         retn 0x8  
+005F6CD0    56              push esi  
+005F6CD1    68 0C958200     push asktao.0082950C                     ; ASCII "wiz"  
+005F6CD6    6A 00           push 0x0  
+005F6CD8    68 90C48300     push asktao.0083C490                     ; ASCII "id = %d, attribute_name = %s"  
+005F6CDD    68 3E200000     push 0x203E  
+005F6CE2    8BF1            mov esi,ecx  
+005F6CE4    E8 87B5F9FF     call asktao.00592270  
+005F6CE9    83C4 10         add esp,0x10  
+005F6CEC    8BCE            mov ecx,esi  
+005F6CEE    E8 ADFAFFFF     call asktao.005F67A0  
+005F6CF3    33C0            xor eax,eax  
+005F6CF5    5E              pop esi  
+005F6CF6    C2 0800         retn 0x8  
+005F6D00    56              push esi  
+005F6D01    68 5CE58000     push asktao.0080E55C                     ; ASCII "str"  
+005F6D06    6A 00           push 0x0  
+005F6D08    68 90C48300     push asktao.0083C490                     ; ASCII "id = %d, attribute_name = %s"  
+005F6D0D    68 3E200000     push 0x203E  
+005F6D12    8BF1            mov esi,ecx  
+005F6D14    E8 57B5F9FF     call asktao.00592270  
+005F6D19    83C4 10         add esp,0x10  
+005F6D1C    8BCE            mov ecx,esi  
+005F6D1E    E8 7DFAFFFF     call asktao.005F67A0  
+005F6D23    33C0            xor eax,eax  
+005F6D25    5E              pop esi  
+005F6D26    C2 0800         retn 0x8  
+005F6D30    56              push esi  
+005F6D31    68 EC948200     push asktao.008294EC                     ; ASCII "dex"  
+005F6D36    6A 00           push 0x0  
+005F6D38    68 90C48300     push asktao.0083C490                     ; ASCII "id = %d, attribute_name = %s"  
+005F6D3D    68 3E200000     push 0x203E  
+005F6D42    8BF1            mov esi,ecx  
+005F6D44    E8 27B5F9FF     call asktao.00592270  
+005F6D49    83C4 10         add esp,0x10  
+005F6D4C    8BCE            mov ecx,esi  
+005F6D4E    E8 4DFAFFFF     call asktao.005F67A0  
+005F6D53    33C0            xor eax,eax  
+005F6D55    5E              pop esi  
+005F6D56    C2 0800         retn 0x8  
+006594A0    50              push eax  
+006594A1    68 ECCD8400     push asktao.0084CDEC                     ; ASCII "account=%s, auth_key=%d, server=%s"  
+006594A6    68 56330000     push 0x3356  
+006594AB    E8 C08DF3FF     call asktao.00592270  
+006594B0    83C4 14         add esp,0x14  
+```
+
+## 其他
+
+```
+0059236A    56              push esi  
+00532FC7    53              push ebx  
+00532FC8    55              push ebp  
+00532FC9    50              push eax  
+00532FCA    E8 01FBFFFF     call asktao.00532AD0
+```

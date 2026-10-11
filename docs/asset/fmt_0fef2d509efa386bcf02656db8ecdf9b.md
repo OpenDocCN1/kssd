@@ -1,0 +1,223 @@
+
+# QQGame 浅析系列 - 多开大厅刷分你也可以
+
+> 原文：[`www.pediy.com/kssd/pediy10/63266.html`](https://www.pediy.com/kssd/pediy10/63266.html)
+
+## QQGame 浅析系列 (1) -- 多开大厅刷分你也可以
+
+**本系列仅以学习交流使用，非法使用者，后果自负。**
+
+最近闲来无聊就陪朋友一起打打牌，是 `QQ` 游戏斗地主游戏，我们通常在一个桌 (`Table`) 打牌，这样配合胜率会高一点。有一次他正在和别人打牌，四人已满，我就不能和他一起打了，就随便点了一下发现能进得此桌，原来游戏提供了"旁观"的功能，不过是当时才知道的。于是我就一个个地"旁观"别人的牌，将牌符告诉我的朋友，他果然"运筹帷幄,决胜千里",呵呵....
+
+于是想到了一个"坏点子"：自己开两个号打牌，一个用来旁观，另一个用来打牌，岂不是很容易就取胜？当我兴冲冲地准备"作祟"时，发现 `QQGame` 并不能同时运行两个实例，所以我上述的想法就暂时不能实现了。要想实现，就要突破这一关，于是抱着试试看的心理分析下"QQGame 不能同时运行两个实例"的原理。
+
+程序实现只能运行一个实例的原理通常是使用互斥元、临界区、信号量等机制。
+
+于是用 OD 载入，下断：
+
+```
+bp CreateMutexA
+```
+
+F9 运行，中断，再次 F9......若干次后会看到堆栈提示：
+
+```
+0013FE90   100118DF  /CALL 到 CreateMutexA 来自 Utility.100118D9
+0013FE94   00000000  |pSecurity = NULL
+0013FE98   00000001  |InitialOwner = TRUE
+0013FE9C   00F88700  \MutexName = "QQGame\_Mutex03/01/2003"
+```
+
+**`MutexName` 为 "QQGame\_Mutex03/01/2003" 的就是我们所关心的.**
+
+如果知道了这一点，那么要想绕过 "QQGame 不能同时运行两个实例" 就很简单了，我这里采用的是在不破坏原程序完整性的方法，现介绍如下：
+
+`MutexName` 为 "QQGame\_Mutex03/01/2003" 的串存放在一个叫做 `MainLogi.dll` 文件中，在游戏安装目录下的 `Logic` 文件夹里。如果每次运行游戏程序 `MutexName` 与上次的都不相同，不就可以绕过了吗？也就是每次运行程序前偷偷地改变 `MainLogi.dll` 文件中的 `MutexName`。具体实现见代码及分析：
+
+```
+program QQgameSpy;
+
+uses
+  windows, dialogs, sysutils, classes, graphics, shellapi , registry;
+
+var
+reg : TRegistry;
+
+strPath : string;
+strFileName : string;
+strNewFile : string;
+strGameFile : string;
+strMutex : string;
+i : integer;
+hMutex : DWORD;
+hFile : DWORD;
+dwBytesOfRW : Cardinal;
+buffer : BYTE;
+DstFile : TFileStream;
+hwnd : DWORD;
+
+{$r QQgameSpy.RES}
+
+function   RenameFile ( hdl : THandle ; lpOrgName , lpNewName : PAnsichar ) : boolean ;
+var
+        shf : TSHFILEOPSTRUCT ;
+begin
+        try
+          FillChar ( shf , SizeOf ( shf ) , 0 ) ;
+          shf . Wnd      := hdl ;
+          shf . wFunc    := FO_RENAME ;
+          shf . pFrom    := lpOrgName ;
+          shf . pTo      := lpNewName ;
+          shf . fFlags   := FOF_NOCONFIRMATION + FOF_SILENT ;
+          Result := ( 0 = SHFileOperation ( shf ) ) ;
+        except
+                Result := false ;
+        end ;
+end ;
+
+{ 主程序开始 }
+begin
+        reg :=  TRegistry . Create ;
+        reg . RootKey := HKEY_CURRENT_USER ;
+        if  reg . OpenKeyReadOnly ( '\\Software\\Tencent\\QQGame\\SYS' ) =  false  then
+                exit ;
+        strPath := reg . ReadString ( 'GameDirectory' ) ;
+        //showmessage ( strPath ) ;
+        reg . CloseKey ;
+        reg . Free ;
+        strFileName := strPath + 'Logic\\MainLogi.dll' ;
+        strMutex := 'QQGame\_Mutex03/01/2000' ;
+        for  i := 0  to  3  do begin
+                hMutex := CreateMutex ( nil , false , pchar ( strMutex ) ) ;
+                if  hMutex = 0  then
+                        continue ;
+                if  GetLastError <> ERROR_ALREADY_EXISTS  then
+                        break ;
+                Inc (  strMutex [ Length ( strMutex ) ]  ) ;
+        end ;
+        //showmessage ( strMutex ) ;
+        buffer := BYTE ( strMutex [ Length ( strMutex ) ] ) ;
+        if  hMutex = 0  then
+                exit ;
+        CloseHandle ( hMutex ) ;
+        //DstFile := TFileStream . Create ( strFileName , fmOpenReadWrite ) ;
+        //DstFile . Seek ( $581C1 , FILE_BEGIN ) ;
+        //DstFile . WriteBuffer ( buffer , sizeof ( buffer ) ) ;
+        for  i := 0  to  2  do begin
+                strNewFile := strFileName + inttostr ( i ) ;
+                DeleteFile ( strNewFile ) ;
+        end ;
+        for  i := 0  to  2  do begin
+                strNewFile := strFileName + inttostr ( i ) ;
+                if  FileExists ( strNewFile ) = false  then
+                        break ;
+        end ;
+        RenameFile ( 0 , pchar ( strFileName ) , pchar ( strNewFile ) ) ;
+        CopyFile ( pchar ( strNewFile ) , pchar ( strFileName ) , true ) ;
+        hFile := CreateFile ( pchar ( strFileName ) , GENERIC_WRITE  or  GENERIC_READ , FILE_SHARE_WRITE  or  FILE_SHARE_READ ,
+                            nil , OPEN_EXISTING , FILE_ATTRIBUTE_NORMAL , 0 ) ;
+        if  hFile = INVALID_HANDLE_VALUE  then
+                exit ;
+        SetFilePointer ( hFile , $581C1 , nil , FILE_BEGIN ) ;
+        WriteFile ( hFile , buffer , sizeof ( buffer ) , dwBytesOfRW , nil ) ;
+        CloseHandle ( hFile ) ;
+        strGameFile := strPath + 'QQGame.exe' ;
+        //showmessage ( strGameFile ) ;
+        ShellExecute ( 0 , 'Open' , pchar ( strGameFile ) , nil , nil , SW_SHOWNORMAL ) ;
+end .
+```
+
+解释：当程序运行时通过注册表查询 `QQGame` 的安装目录，进而获取 `MainLogi.dll` 文件的完整文件名。由于 `QQ` 游戏一般来说没桌最多不超过四人，所以每次运行前首先查看 `MutexName` 为：
+
+'QQGame\_Mutex03/01/2000';
+'QQGame\_Mutex03/01/2001';
+'QQGame\_Mutex03/01/2002';
+'QQGame\_Mutex03/01/2000';
+
+的互斥元是否存在，如果遇到有不存在的，说明可以以此互斥元名运行 `QQ` 游戏，就改写原 `MainLogi.dll` 文件名为其他，复制一份 `MainLogi.dll` 文件并更换其中的 `MutexName`，最后 `ShellExecute` `QQ` 游戏，这样当 `QQ` 游戏运行检测时就会使用我们更改过的 `MutexName`，由于我们实现已经检测过这个 `MutexName` 还没有被使用，当然可以成功运行了。
+
+这里你可能很诧异：`MainLogi.dll` 文件被游戏加载过一次，下次还能被改名吗？我试过了，删除此文件不可以，但是可以对其重命名。上面声明的 `RenameFile` 就是实现更改文件名功能的。
+
+运行后，可以开 N 个大厅，于是乎狂玩了一下午，很快刷到了 600 多分，胜负率高达 60%以上啊！不过也就是当时一会的劲头，再后来就没有玩过了，现在将此方法公布与大家分享一下，希望玩得愉快！
+
+说明：在我欲发此贴时，`QQGame` 有所更新，使用上述方法不行了，如果不给出一个新的解决方法，总感觉不甚完美，于是重新又跟了一次。思路如下：
+
+如果已有一个登录窗体运行了，那么再运行实例会给那个已运行的实例一个焦点，让用户知道“你已经运行啦”，然后退出。
+
+于是：
+
+```
+Bp FindWindowA
+Bp FindWindowExA
+```
+
+F9 运行，中断一个，看堆栈提示：
+
+```
+0013FE7C   100119A3  /CALL 到 FindWindowExA 来自 Utility.1001199D
+0013FE80   00000000  |hParent = NULL
+0013FE84   00000000  |hAfterWnd = NULL
+0013FE88   01069BD0  |Class = "QQGame\_MainFrame"
+0013FE8C   00000000  \Title = NULL
+```
+
+返回到调用的过程：
+
+《Utility 领空》
+
+```
+1001199D    FF15 18920110   call    dword ptr [<&USER32.FindWindowEx>; USER32.FindWindowExA
+100119A3    8BF8            mov     edi, eax
+100119A5    57              push    edi
+100119A6    FF15 78920110   call    dword ptr [<&USER32.IsWindow>]   ; USER32.IsWindow
+100119AC    85C0            test    eax, eax
+100119AE    74 0E           je      short 100119BE
+100119B0    53              push    ebx
+100119B1    53              push    ebx
+100119B2    FF76 50         push    dword ptr [esi+50]
+100119B5    57              push    edi
+100119B6    FF15 7C920110   call    dword ptr [<&USER32.PostMessageA>; USER32.PostMessageA
+100119BC    EB 10           jmp     short 100119CE
+100119BE    83C6 14         add     esi, 14
+100119C1    68 1CE70110     push    1001E71C
+100119C6    56              push    esi
+100119C7    E8 4A4FFFFF     call    10006916
+100119CC    59              pop     ecx
+100119CD    59              pop     ecx
+100119CE    5F              pop     edi
+100119CF    5E              pop     esi
+100119D0    5B              pop     ebx
+100119D1    C3              retn
+```
+
+执行流程是这样的，检测是否已有窗体运行了，如果有找到它，给它发个消息（这个消息估计就是让那个窗体拥有焦点的）然后退出。
+
+我们由此过程再次返回，发现是：
+
+```
+100118F5    E8 92000000     call    1001198C
+```
+
+调用的上述过程，前后浏览一下代码：
+
+《Utility 领空》
+
+```
+10011846    55              push    ebp
+10011847    8BEC            mov     ebp, esp
+10011849    51              push    ecx
+1001184A    8B45 18         mov     eax, dword ptr [ebp+18]
+1001184D    8365 FC 00      and     dword ptr [ebp-4], 0
+10011851    53              push    ebx
+10011852    56              push    esi
+10011853    8BF1            mov     esi, ecx
+10011855    57              push    edi
+10011856    BB 00010000     mov     ebx, 100
+1001185B    8946 54         mov     dword ptr [esi+54], eax
+1001185E    8B45 14         mov     eax, dword ptr [ebp+14]
+10011861    8DBE 58010000   lea     edi, dword ptr [esi+158]
+10011867    8946 50         mov     dword ptr [esi+50], eax
+1001186A    85FF            test    edi, edi
+1001186C    74 21           je      short 1001188F
+1001186E    837D 10 00      cmp     dword ptr [ebp+10], 0
+```
