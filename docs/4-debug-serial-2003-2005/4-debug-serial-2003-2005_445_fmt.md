@@ -1,0 +1,737 @@
+
+# 迷你日历 V2.2
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50425.htm`](https://www.pediy.com/kssd/pediy05/pediy50425.htm)
+
+算法分析——迷你日历 V2.2(`MiniCalendar`)
+
+**基本信息**
+
+*   下载地址： [`www.skycn.com/soft/9249.html`](http://www.skycn.com/soft/9249.html)
+*   软件大小： `814 KB`
+*   软件语言： 简体中文
+*   软件类别： 国产软件 / 共享版 / 时钟日历
+*   应用平台： `Win9x` / `NT` / `2000` / `XP`
+*   加入时间： `2003-02-07 11:06:35`
+*   下载次数： `15122`
+*   推荐等级： ***
+*   开发商： [`asp2.6to23.com/gar/`](http://asp2.6to23.com/gar/)
+
+### 【软件简介】
+
+迷你日历是集公历农历(`1901-2099` 年)双界面对照查询、记事栏、记事查询、重要记事动态提醒、自定义节日、节日预告、日历打印和多种日历信息(节气、节日、九九、三伏、生肖、时辰等)查询于一身的多功能日历软件。其具体特点简述如下：
+
+1.  **公历、农历双界面**：可按照以公历为主或以农历为主的两种界面显示日历，两种界面可随意切换，在任一界面中均可进行农历和公历的对照查询，这对以农历为主计算日期的人们来说尤为方便。
+2.  **记事栏、记事查询**：软件为每一日期安排有记事栏，你可以将日程安排或备忘等写入记事栏；当日久天长记事很多时，可利用记事查询功能方便地找到以往的记事。
+3.  **重要记事动态提醒**：可将你认为重要的记事定义为动态提醒记事，这样软件会定时动态地在屏幕上用醒目的游动提醒窗显示重要记事，并伴有铃声及动画提醒。
+4.  **界面配置魔术师**：能满足不同网友的个人爱好，可随意改变界面不同区域的色彩、字体、换肤、贴图等等，定制出变化无穷、丰富多采的日历界面。
+5.  **自定义节日**：可将你喜欢的节日或你的生日定义到日历当中，使日历更具个性化。
+6.  **节日预告**：可分别对各类节日进行预告，这将更加方便你对节日的安排。
+7.  **打印日历**：可打印任意尺寸、独具特色的精美日历。
+
+### 【软件限制】
+
+功能限制
+
+### 【作者声明】
+
+小弟初学 Crack，只是感兴趣，没有其它目的。失误之处敬请各大侠赐教！
+
+### 【破解工具】
+
+`TRW2000` 娃娃修改版、`W32Dasm8.93` 黄金版、`Ollydbg1.09`
+
+---
+
+### 【过程】
+
+准备好一杯浓茶、一盒烟、一支笔、一本草稿纸、一颗安静的心……
+
+呵呵，我们开工吧！唉！^-^^-^ 我的水平很低，许多地方表达的有问题，烦请各位老师指教！
+
+*   机器码：`A8F4W303XY`
+*   试炼码：`BCDEFGHIJKSTUVWXCDEF`
+
+（试炼码须 `20` 位，且有限制。单是试炼码就不太好填 ^-^）
+
+程序无壳，`Delphi` 编写。反汇编。还好，重要提示都在。
+
+---
+
+```
+:004A8F86 E8FD0BFAFF                  call 00449B88
+:004A8F8B 8B45F0                      mov eax, dword ptr [ebp-10]
+:004A8F8E 8D55F4                      lea edx, dword ptr [ebp-0C]
+:004A8F91 E8CAF8FEFF                  call 00498860
+:004A8F96 8B45F4                      mov eax, dword ptr [ebp-0C]
+:004A8F99 8D55F8                      lea edx, dword ptr [ebp-08]
+:004A8F9C E8DB00F6FF                  call 0040907C
+:004A8FA1 8B45F8                      mov eax, dword ptr [ebp-08]
+:004A8FA4 E897BEF5FF                  call 00404E40
+:004A8FA9 83F814                      cmp eax, 00000014
+                                      ====>试炼码是否 20 位？
+:004A8FAC 741D                       je 004A8FCB
+                                      ====>应跳！
+:004A8FAE 6A00                       push 00000000
+:004A8FB0 B914914A00                 mov ecx, 004A9114
+* Possible StringData Ref from Code Obj ->"注册码输入长度非法 ！"
+                                      |
+:004A8FB5 BA20914A00                 mov edx, 004A9120
+:004A8FBA A194314F00                 mov eax, dword ptr [004F3194]
+:004A8FBF 8B00                       mov eax, dword ptr [eax]
+:004A8FC1 E8360EFCFF                 call 00469DFC
+:004A8FC6 E90C010000                 jmp 004A90D7
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004A8FAC(C)
+|
+:004A8FCB 33FF                       xor edi, edi
+:004A8FCD B801000000                 mov eax, 00000001
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004A8FF9(C)
+```
+
+下面是检查输入的注册码是否在 `BCDEFGHIJKSTUVWX` 之中，如不在，则为“非法字符”！
+
+```
+:004A8FD2 8B55F8                      mov edx, dword ptr [ebp-08]
+:004A8FD5 8A5402FF                   mov dl, byte ptr [edx+eax-01]
+:004A8FD9 8BCA                       mov ecx, edx
+:004A8FDB 80C1BE                     add cl, BE
+:004A8FDE 80E90A                     sub cl, 0A
+:004A8FE1 7212                       jb 004A8FF5
+:004A8FE3 8B4DF8                     mov ecx, dword ptr [ebp-08]
+:004A8FE6 80C2AD                     add dl, AD
+:004A8FE9 80EA06                     sub dl, 06
+:004A8FEC 7207                       jb 004A8FF5
+:004A8FEE BF01000000                 mov edi, 00000001
+:004A8FF3 EB06                       jmp 004A8FFB
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:004A8FE1(C), :004A8FEC(C)
+|
+:004A8FF5 40                         inc eax
+:004A8FF6 83F815                    cmp eax, 00000015
+:004A8FF9 75D7                       jne 004A8FD2
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004A8FF3(U)
+|
+:004A8FFB 4F                         dec edi
+:004A8FFC 751D                       jne 004A901B
+                                      ====>应跳！
+:004A8FFE 6A00                       push 00000000
+:004A9000 B914914A00                 mov ecx, 004A9114
+* Possible StringData Ref from Code Obj ->"注册码中输入了非法字符 ！"
+                                      |
+:004A9005 BA38914A00                 mov edx, 004A9138
+:004A900A A194314F00                 mov eax, dword ptr [004F3194]
+:004A900F 8B00                       mov eax, dword ptr [eax]
+:004A9011 E8E60DFCFF                 call 00469DFC
+:004A9016 E9BC000000                 jmp 004A90D7
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004A8FFC(C)
+|
+:004A901B 8D45EC                     lea eax, dword ptr [ebp-14]
+:004A901E E88102FFFF                 call 004992A4
+:004A9023 8B45EC                     mov eax, dword ptr [ebp-14]
+:004A9026 50                         push eax
+:004A9027 8D55E8                     lea edx, dword ptr [ebp-18]
+:004A902A 8B45F8                     mov eax, dword ptr [ebp-08]
+:004A902D E8B2EEFEFF                 call 00497EE4
+                                      ====>关键 CALL！F8 进入！
+:004A9032 8B55E8                     mov edx, dword ptr [ebp-18]
+                                      ====>D EDX=1BDAC2999555E7B2EBB6
+:004A9035 58                         pop eax
+                                      ====>D EAX=A8F4W303XY
+:004A9036 E849BFF5FF                 call 00404F84
+                                      ====>比较 CALL！F8 进入！
+:004A903B 756E                       jne 004A90AB
+                                      ====>跳则 OVER！
+:004A903D 8B45F8                     mov eax, dword ptr [ebp-08]
+:004A9040 E807ECFEFF                 call 00497C4C
+:004A9045 A1DC304F00                 mov eax, dword ptr [004F30DC]
+:004A904A C70001000000               mov dword ptr [eax], 00000001
+:004A9050 A1F42E4F00                 mov eax, dword ptr [004F2EF4]
+:004A9055 C70001000000               mov dword ptr [eax], 00000001
+:004A905B A16C2F4F00                 mov eax, dword ptr [004F2F6C]
+:004A9060 C70001000000               mov dword ptr [eax], 00000001
+:004A9066 A1842C4F00                 mov eax, dword ptr [004F2C84]
+:004A906B C70001000000               mov dword ptr [eax], 00000001
+:004A9071 A1A8324F00                 mov eax, dword ptr [004F32A8]
+:004A9076 C70001000000               mov dword ptr [eax], 00000001
+:004A907C A19C334F00                 mov eax, dword ptr [004F339C]
+:004A9081 C70058020000               mov dword ptr [eax], 00000258
+:004A9087 6A00                       push 00000000
+* Possible StringData Ref from Code Obj ->"注册《迷你日历》提醒 ！！！"
+                                      |
+:004A9089 B954914A00                 mov ecx, 004A9154
+* Possible StringData Ref from Code Obj ->"真诚地感谢您对《迷你日历》开发工作的支持 "
+                                      ->"！
+请注意：您现在使用的是共享免费版，功能受到"
+                                      ->"限制，
+只有使用我们发给您的真正共享版进行注册"
+                                      ->"，才能得到全部功能。
+      "
+                                      ->"             祝您注册顺利 ！   
+"
+                                      |
+:004A908E BA70914A00                 mov edx, 004A9170
+:004A9093 A194314F00                 mov eax, dword ptr [004F3194]
+:004A9098 8B00                       mov eax, dword ptr [eax]
+:004A909A E85D0DFCFF                 call 00469DFC
+:004A909F 8B55FC                     mov edx, dword ptr [ebp-04]
+:004A90A2 8BC6                       mov eax, esi
+:004A90A4 E80BFEFFFF                 call 004A8EB4
+:004A90A9 EB2C                       jmp 004A90D7
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004A903B(C)
+|
+:004A90AB A1DC304F00                 mov eax, dword ptr [004F30DC]
+:004A90B0 33D2                       xor edx, edx
+:004A90B2 8910                       mov dword ptr [eax], edx
+:004A90B4 A19C334F00                 mov eax, dword ptr [004F339C]
+:004A90B9 C70006000000               mov dword ptr [eax], 00000006
+```
+
+
+
+## 1. 字符串引用分析
+
+```asm
+:004A90BF  6A00          push 00000000
+* Possible StringData Ref from Code Obj ->" 注册失败 ！"
+
+:004A90C1  B934924A00    mov ecx, 004A9234
+* Possible StringData Ref from Code Obj ->"注册没有通过，再试一试。"
+
+:004A90C6  BA44924A00    mov edx, 004A9244
+:004A90CB  A194314F00    mov eax, dword ptr [004F3194]
+:004A90D0  8B00          mov eax, dword ptr [eax]
+:004A90D2  E8250DFCFF    call 00469DFC
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:004A8FC6(U), :004A9016(U), :004A90A9(U)
+
+:004A90D7  33C0          xor eax, eax
+```
+
+---
+
+## 2. 进入关键 CALL：`004A902D` `call` `00497EE4`
+
+### 2.1 函数入口与设置
+
+```asm
+* Referenced by a CALL at Addresses:
+|:004A902D , :004A9339 , :004ED991
+
+:00497EE4  55            push ebp
+:00497EE5  8BEC          mov ebp, esp
+:00497EE7  B906000000    mov ecx, 00000006
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00497EF1(C)
+
+:00497EEC  6A00          push 00000000
+:00497EEE  6A00          push 00000000
+:00497EF0  49            dec ecx
+:00497EF1  75F9          jne 00497EEC
+:00497EF3  51            push ecx
+:00497EF4  53            push ebx
+:00497EF5  56            push esi
+:00497EF6  57            push edi
+:00497EF7  8955F8        mov dword ptr [ebp-08], edx
+:00497EFA  8945FC        mov dword ptr [ebp-04], eax
+:00497EFD  8B45FC        mov eax, dword ptr [ebp-04]
+:00497F00  E823D1F6FF    call 00405028
+:00497F05  33C0          xor eax, eax
+:00497F07  55            push ebp
+:00497F08  68FD804900    push 004980FD
+:00497F0D  64FF30        push dword ptr fs:[eax]
+:00497F10  648920        mov dword ptr fs:[eax], esp
+```
+
+### 2.2 试炼码处理
+
+```asm
+:00497F13  8D55E0        lea edx, dword ptr [ebp-20]
+:00497F16  8B45FC        mov eax, dword ptr [ebp-04]
+                          ==== > D EAX=BCDEFGHIJKSTUVWXCDEF
+
+:00497F19  E89A11F7FF    call 004090B8
+                          ==== > 此 CALL 将试炼码转成小写！
+
+:00497F1E  8D45EC        lea eax, dword ptr [ebp-14]
+:00497F21  8B55E0        mov edx, dword ptr [ebp-20]
+                          ==== > D EDX=bcdefghijkstuvwxcdef
+
+:00497F24  E8F7CCF6FF    call 00404C20
+:00497F29  8D45F0        lea eax, dword ptr [ebp-10]
+:00497F2C  E857CCF6FF    call 00404B88
+:00497F31  BB01000000    mov ebx, 00000001
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00497F58(C)
+```
+
+#### 1. 循环：HEX 值减去 32
+
+```asm
+:00497F36  8D45E8        lea eax, dword ptr [ebp-18]
+:00497F39  8B55EC        mov edx, dword ptr [ebp-14]
+:00497F3C  0FB6541AFF    movzx edx, byte ptr [edx+ebx-01]
+                          ==== > 依次取小写字母字符对应的 HEX 值
+
+:00497F41  83EA32        sub edx, 00000032
+                          ==== > 依次减 32
+
+:00497F44  E81FCEF6FF    call 00404D68
+:00497F49  8D45F0        lea eax, dword ptr [ebp-10]
+:00497F4C  8B55E8        mov edx, dword ptr [ebp-18]
+:00497F4F  E8F4CEF6FF    call 00404E48
+:00497F54  43            inc ebx
+:00497F55  83FB15        cmp ebx, 00000015
+:00497F58  75DC          jne 00497F36
+                          ==== > 循环结束
+```
+
+#### 2. 循环：HEX 值转为字符
+
+```asm
+:00497F5A  8D45EC        lea eax, dword ptr [ebp-14]
+:00497F5D  E826CCF6FF    call 00404B88
+                          ==== > 将上面循环所得的 HEX 值转为字符
+
+:00497F62  BB01000000    mov ebx, 00000001
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00497F95(C)
+
+:00497F67  8D45E8        lea eax, dword ptr [ebp-18]
+:00497F6A  8B55F0        mov edx, dword ptr [ebp-10]
+                          ==== > D EDX=0123456789ABCDEF1234
+                          ==== > 这就是我的试炼码转化的结果！
+```
+
+#### 3. 循环：字符转二进制表示
+
+```asm
+:00497F6D  8A541AFF      mov dl, byte ptr [edx+ebx-01]
+                          ==== > 依次取新得的字符
+
+:00497F71  E8F2CDF6FF    call 00404D68
+:00497F76  8D4DE4        lea ecx, dword ptr [ebp-1C]
+:00497F79  BA03000000    mov edx, 00000003
+:00497F7E  8B45E8        mov eax, dword ptr [ebp-18]
+:00497F81  E8E2030000    call 00498368
+:00497F86  8D45EC        lea eax, dword ptr [ebp-14]
+:00497F89  8B55E4        mov edx, dword ptr [ebp-1C]
+:00497F8C  E8B7CEF6FF    call 00404E48
+:00497F91  43            inc ebx
+:00497F92  83FB15        cmp ebx, 00000015
+:00497F95  75D0          jne 00497F67
+                          ==== > 循环结束
+```
+
+循环所得的二进制结果：
+
+```text
+00000001001000110100010101100111100010011010101111001101111011110001001000110100
+```
+
+> **调试技巧提问**：
+> 请教一下：`OllyDbg` 中直接执行到光标所在位置是什么命令？（相当于 `TRW` 中的 `F7` 命令），`ALT+F9` 不好使。面对这么多循环，只能在循环外下断，然后按 `CTRL+F9` 了，否则会累趴下。
+
+#### 4. 奇偶位交替取数并倒序存放
+
+```asm
+:00497F97  8D45F0        lea eax, dword ptr [ebp-10]
+:00497F9A  E8E9CBF6FF    call 00404B88
+:00497F9F  8D45E8        lea eax, dword ptr [ebp-18]
+:00497FA2  E8E1CBF6FF    call 00404B88
+:00497FA7  8D45E4        lea eax, dword ptr [ebp-1C]
+:00497FAA  E8D9CBF6FF    call 00404B88
+:00497FAF  BE01000000    mov esi, 00000001
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00497FF9(C)
+
+:00497FB4  8BC6          mov eax, esi
+:00497FB6  48            dec eax
+:00497FB7  8BD8          mov ebx, eax
+:00497FB9  03DB          add ebx, ebx
+:00497FBB  43            inc ebx
+:00497FBC  8D45D8        lea eax, dword ptr [ebp-28]
+:00497FBF  8B55EC        mov edx, dword ptr [ebp-14]
+                          ==== > D EDX=00000001001000110100010101100111100010011010101111001101111011110001001000110100
+                          ==== > 这就是我的试炼码第 2 次转化的结果！
+
+:00497FC2  8A541AFF      mov dl, byte ptr [edx+ebx-01]
+                          ==== > 从上面的二进制码按奇数位依次取数！
+                          即：取 1、3、5、7…… 位
+
+:00497FC6  E89DCDF6FF    call 00404D68
+:00497FCB  8B55D8        mov edx, dword ptr [ebp-28]
+:00497FCE  8D45E8        lea eax, dword ptr [ebp-18]
+                          ==== > 结果倒序放 [ebp-18]
+
+:00497FD1  8B4DE8        mov ecx, dword ptr [ebp-18]
+                          ==== > 循环结果
+                          ECX=0010100011110101111101011010000010100000
+
+:00497FD4  E8B3CEF6FF    call 00404E8C
+:00497FD9  8D45D4        lea eax, dword ptr [ebp-2C]
+:00497FDC  8B55EC        mov edx, dword ptr [ebp-14]
+                          ==== > D EDX=00000001001000110100010101100111100010091010101111001101111011110001001000110100
+
+:00497FDF  8A141A        mov dl, byte ptr [edx+ebx]
+                          ==== > 从上面的二进制码按偶数位依次取数！
+                          即：取 2、4、6、8…… 位
+
+:00497FE2  E881CDF6FF    call 00404D68
+```
+
+
+
+```asm
+:00497FE7 8B55D4                         mov edx, dword ptr [ebp-2C]
+:00497FEA 8D45E4                         lea eax, dword ptr [ebp-1C]
+                                        ====>结果 倒序 放[ebp-1C]
+                                        * * * *
+
+:00497FED 8B4DE4                         mov ecx, dword ptr [ebp-1C]
+                                        ====>循环结果
+                                        ECX=0110001011011101100010001101110110001000
+
+:00497FF0 E897CEF6FF                     call 00404E8C
+:00497FF5 46                             inc esi
+:00497FF6 83FE29                         cmp esi, 00000029
+                                        ====>40 次
+:00497FF9 75B9                           jne 00497FB4
+                                        ====>呵呵，“没完没了”的循环！
+
+:00497FFB 8D45F0                         lea eax, dword ptr [ebp-10]
+:00497FFE 8B4DE4                         mov ecx, dword ptr [ebp-1C]
+        D ECX=0110001011011101100010001101110110001000
+
+:00498001 8B55E8                         mov edx, dword ptr [ebp-18]
+        D EDX=0010100011110101111101011010000010100000
+
+:00498004 E883CEF6FF                     call 00404E8C
+:00498009 8D45EC                         lea eax, dword ptr [ebp-14]
+:0049800C E877CBF6FF                     call 00404B88
+:00498011 BE01000000                     mov esi, 00000001
+```
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+### 5. 循环作用：将二进制码每 4 位转化为对应的 16 进制码
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+  * `:00498055(C)`
+
+```asm
+:00498016 8BC6                           mov eax, esi
+:00498018 48                             dec eax
+:00498019 8BD8                           mov ebx, eax
+:0049801B C1E303                         shl ebx, 03
+:0049801E 43                             inc ebx
+:0049801F 8D45E8                         lea eax, dword ptr [ebp-18]
+:00498022 50                             push eax
+:00498023 B908000000                     mov ecx, 00000008
+:00498028 8BD3                           mov edx, ebx
+:0049802A 8B45F0                         mov eax, dword ptr [ebp-10]
+                                        ====>EAX=00101000111101011111010110
+        100000121000000110001011011101100010001101110110001000
+
+:0049802D E866D0F6FF                     call 00405098
+:00498032 8B45E8                         mov eax, dword ptr [ebp-18]
+:00498035 E822FEFFFF                     call 00497E5C
+:0049803A 8BD8                           mov ebx, eax
+:0049803C 8D45D0                         lea eax, dword ptr [ebp-30]
+:0049803F 8BD3                           mov edx, ebx
+:00498041 E822CDF6FF                     call 00404D68
+:00498046 8B55D0                         mov edx, dword ptr [ebp-30]
+:00498049 8D45EC                         lea eax, dword ptr [ebp-14]
+:0049804C E8F7CDF6FF                     call 00404E48
+:00498051 46                             inc esi
+:00498052 83FE0B                         cmp esi, 0000000B
+:00498055 75BF                           jne 00498016
+                                        ====>呵呵，循环吧。
+```
+
+第 5 步得出：`28 F5 F5 A0 A0 62 DD 88 DD`
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+```asm
+:00498057 C745DC07000000                 mov [ebp-24], 00000007
+:0049805E BE01000000                     mov esi, 00000001
+:00498063 8D45F0                         lea eax, dword ptr [ebp-10]
+:00498066 E81DCBF6FF                     call 00404B88
+:0049806B BB01000000                     mov ebx, 00000001
+```
+
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
+### 6. 从程序自给的 `5078346` 中取数运算，与上面所得的值异或
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+  * `:004980C0(C)`
+
+```asm
+:00498070 8B45EC                         mov eax, dword ptr [ebp-14]
+:00498073 0FB67C18FF                     movzx edi, byte ptr [eax+ebx-01]
+                                        ====>分别取数！
+                                        ====>1、EDI=28
+                                        ====>2、EDI=F5
+                                        ====>3、EDI=F5
+                                        ====>4、EDI=A0
+                                        ====>5、EDI=A0
+                                        ====>6、EDI=62
+                                        ====>7、EDI=DD
+                                        ====>8、EDI=88
+                                        ====>9、EDI=DD
+                                        ====>10、EDI=88
+
+:00498078 8D45CC                         lea eax, dword ptr [ebp-34]
+:0049807B 50                             push eax
+:0049807C B901000000                     mov ecx, 00000001
+:00498081 8BD6                           mov edx, esi
+
+* Possible StringData Ref from Code Obj ->"5078346"
+                                        ====>注意 5078346
+后来发现下面的 CALL 从 5078346 中取数是固定的！呵呵，总算是捡了点“便宜”
+
+:00498083 B814814900                     mov eax, 00498114
+:00498088 E80BD0F6FF                     call 00405098
+:0049808D 8B45CC                         mov eax, dword ptr [ebp-34]
+:00498090 E8D715F7FF                     call 0040966C
+:00498095 03C3                           add eax, ebx
+                                        ====>1、1+5=6
+                                        ====>2、0+2=2
+                                        ====>3、7+3=A
+                                        ====>4、8+4=C
+                                        ====>5、3+5=8
+                                        ====>6、4+6=A
+                                        ====>7、6+7=D
+                                        ====>8、5+8=D
+                                        ====>9、0+9=9
+                                        ====>10、7+A=11
+
+:00498097 83C02D                         add eax, 0000002D
+                                        ====>1、6+2D=33
+                                        ====>2、2+2D=2F
+                                        ====>3、A+2D=37
+                                        ====>4、C+2D=39
+                                        ====>5、8+2D=35
+                                        ====>6、A+2D=37
+                                        ====>7、D+2D=3A
+                                        ====>8、D+2D=3A
+                                        ====>9、9+2D=36
+                                        ====>10、11+2D=3E
+
+:0049809A 33F8                           xor edi, eax
+                                        ====>分别与第 5 步得到的值异或！
+                                        ====>1、28 XOR 33=1B
+                                        ====>2、F5 XOR 2F=DA
+                                        ====>3、F5 XOR 37=C2
+                                        ====>4、A0 XOR 39=99
+                                        ====>5、A0 XOR 35=95
+                                        ====>6、62 XOR 37=55
+                                        ====>7、DD XOR 3A=E7
+                                        ====>8、88 XOR 3A=B2
+                                        ====>9、DD XOR 36=EB
+                                        ====>10、88 XOR 3E=B6
+
+异或后所得的结果：`1BDAC2999555E7B2EBB6` 将和我们的机器码进行比较，
+如果相同就注册成功了！
+
+:0049809C 8D45F4                         lea eax, dword ptr [ebp-0C]
+:0049809F 8BD7                           mov edx, edi
+:004980A1 E8C2CCF6FF                     call 00404D68
+:004980A6 8D45F0                         lea eax, dword ptr [ebp-10]
+:004980A9 8B55F4                         mov edx, dword ptr [ebp-0C]
+:004980AC E897CDF6FF                     call 00404E48
+:004980B1 46                             inc esi
+:004980B2 3B75DC                         cmp esi, dword ptr [ebp-24]
+:004980B5 7E05                           jle 004980BC
+:004980B7 BE01000000                     mov esi, 00000001
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+  * `:004980B5(C)`
+
+:004980BC 43                             inc ebx
+:004980BD 83FB0B                         cmp ebx, 0000000B
+:004980C0 75AE                           jne 00498070
+                                        ====>循环！
+```
+
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
+```asm
+:004980C2 8B45F8                         mov eax, dword ptr [ebp-08]
+:004980C5 8B55F0                         mov edx, dword ptr [ebp-10]
+:004980C8 E80FCBF6FF                     call 00404BDC
+:004980CD 33C0                           xor eax, eax
+:004980CF 5A                             pop edx
+:004980D0 59                             pop ecx
+:004980D1 59                             pop ecx
+```
+
+
+
+# 一、汇编代码分析
+
+:004980D2 648910  mov dword ptr fs:[eax], edx
+
+:004980D5 6804814900  push 00498104
+
+*   Referenced by a (U)nconditional or (C)onditional Jump at Address:
+    *   :00498102(U)
+
+:004980DA 8D45CC  lea eax, dword ptr [ebp-34]
+
+:004980DD BA04000000  mov edx, 00000004
+
+:004980E2 E8C5CAF6FF  call 00404BAC
+
+:004980E7 8D45E0  lea eax, dword ptr [ebp-20]
+
+:004980EA BA06000000  mov edx, 00000006
+
+:004980EF E8B8CAF6FF  call 00404BAC
+
+:004980F4 8D45FC  lea eax, dword ptr [ebp-04]
+
+:004980F7 E88CCAF6FF  call 00404B88
+
+:004980FC C3  ret
+
+# 二、F8 进入比较 CALL：`004A9036 call 00404F84`
+
+:00404F84 53  push ebx
+
+:00404F85 56  push esi
+
+:00404F86 57  push edi
+
+:00404F87 89C6  mov esi, eax
+
+:00404F89 89D7  mov edi, edx
+
+:00404F8B 39D0  cmp eax, edx
+
+:00404F8D 0F848F000000  je 00405022
+
+:00404F93 85F6  test esi, esi
+
+:00404F95 7468  je 00404FFF
+
+:00404F97 85FF  test edi, edi
+
+:00404F99 746B  je 00405006
+
+:00404F9B 8B46FC  mov eax, dword ptr [esi-04]
+
+:00404F9E 8B57FC  mov edx, dword ptr [edi-04]
+
+:00404FA1 29D0  sub eax, edx
+
+:00404FA3 7702  ja 00404FA7
+
+====> D `EDX=1BDAC2999555E7B2EBB6`
+
+====> D `EAX=A8F4W303XY`
+
+呵呵，把我们输入的试炼码经过“千折百转”折腾后得到的字符与机器码比较，如果相同就 OK，不同则 OVER！有线索了！！！
+
+# 三、总结与逆向分析
+
+OK！虽然我现在已是头晕眼花了，但还是乘胜追击！“不可沽名学霸王”，呵呵，说不定一觉睡后算法忘了大半，岂不可惜！
+
+算法已经知道了，我们就来对它进行逆反追击！
+
+## 1. 逆向计算过程
+
+一、现在知道：我们输入的试炼码经过层层转化后必须与我们的机器码 `A8F4W303XY` 相同！所以，从第 6 步的循环开始逆转！
+
+`A8F4W303XY` 所对应的 `HEX` 值为 `41384634573330335859`
+
+1.  `28 XOR 33=1B`      (1)、`33 XOR 41=72`
+2.  `F5 XOR 2F=DA`      (2)、`2F XOR 38=17`
+3.  `F5 XOR 37=C2`      (3)、`37 XOR 46=71`
+4.  `A0 XOR 39=99`      (4)、`39 XOR 34=0D`
+5.  `A0 XOR 35=95`      (5)、`35 XOR 57=62`
+6.  `62 XOR 37=55`      (6)、`37 XOR 33=04`
+7.  `DD XOR 3A=E7`      (7)、`3A XOR 30=0A`
+8.  `88 XOR 3A=B2`      (8)、`3A XOR 33=09`
+9.  `DD XOR 36=EB`      (9)、`36 XOR 58=6E`
+10. `88 XOR 3E=B6`       (10)、`3E XOR 59=67`
+
+呵呵，得出了第 5 个循环的另个结果：`7217710D62040A096E67`
+
+二、逆反第 5 步的循环！
+
+把 `7217710D62 040A096E67` 作为十六进制数转化为二进制数：
+
+```
+0111 0010 0001 0111 0111 0001 0000 1101 0110 0010
+0000 0100 0000 1010 0000 1001 0110 1110 0110 0111
+```
+
+三、逆反第 4 步！
+
+先把上面的二进制码次序变反：
+
+```
+0100 0110 1011 0000 1000 1110 1110 1000 0100 1110
+1110 0110 0111 0110 1001 0000 0101 0000 0010 0000
+```
+
+然后再把奇、偶位的次序恢复！得到第 3 步循环的另个结果：
+
+```
+0111 0100 0011 1100 1001 1111 0001 0100 1100 0001 1010 1000 1011 1001 1000 0000 0010 0100 1010 1000
+```
+
+四、逆反我们的第 3 步！
+
+上面二进制码转化为字符：
+
+`7 4 3 C 9 F 1 4 C 1 A 8 B 9 8 0 2 4 A 8`
+
+五、逆反我们的第 2 步、第 1 步！
+
+呵呵，偷点巧，我们不用再转化为 `HEX` 值再分别加上 `32` 再转化为大写字母。
+
+看看程序是如何转化我们的试炼码吧：
+
+`BCDEFGHIJKSTUVWXCDEF ====> 0123456789ABCDEF1234`
+
+所以：我们简单的就找到对应关系了！
+
+`IFEUKXCFUCSJTKJBDFSJ <===> 743C9F14C1A8B98024A8`
+
+呵呵，`IFEUKXCFUCSJTKJBDFSJ` 就是我“千辛万苦”所追击的真码了！
+
+“大功”告成！我也该休息了。^-^
+
+从下载到现在完成，用了一下午加大半个晚上，哦，10 个小时才饶幸解开了这个家伙。这应该是我学破解以来分析过的最“复杂”的算法了。
+
+# 四、注册信息保存
+
+程序文件夹下的 `Encode.ini` 中。
+
+# 五、整理
+
+*   机器码：`A8F4W303XY`
+*   注册码：`IFEUKXCFUCSJTKJBDFSJ`
+
+OK！我们成功了！但是程序会提示：“请注意：您现在使用的是共享免费版，功能受到限制，只有使用我们发给您的真正共享版进行注册才能得到全部功能。”
+
+呵呵，这可不是我的错呀！作者很精明的。
+
+不过我没打算要使用这个软件。^-^^-^
+
+`Cracked By 巢水工作坊——fly【OCN】`
+
+`2003-2-11 凌晨 2:30`
+
+`4dd466d0e1e0cc123afbe504da2462ca`

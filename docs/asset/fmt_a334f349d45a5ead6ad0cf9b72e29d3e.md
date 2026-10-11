@@ -1,0 +1,181 @@
+
+# 梦幻邮件制作 v1.2
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50458.htm`](https://www.pediy.com/kssd/pediy05/pediy50458.htm)
+
+简单算法——梦幻邮件制作 v1.2 ！
+
+软件大小： 1.36M
+
+适用平台: Win9x, WinNT, Win2000
+
+下载页面： [`www.softreg.com.cn/shareware\_view.asp?id=/EFD448C3-92B3-48C4-9B32-CD553CFEB53F/`](http://www.softreg.com.cn/shareware_view.asp?id=/EFD448C3-92B3-48C4-9B32-CD553CFEB53F/)
+
+【软件简介】：梦幻邮件制作用于制作无附件方式的样式邮件，帮助用户进行独特风格的电子邮件制作。梦幻邮件制作可以插入文本框、图像、线条、表格等对象，并进行 MIME 编码，生成不需要任何附件即可在对方计算机上正常显示的电子邮件。用户可以使用本软件进行电子私人信函、商业信函、明信片、贺卡、产品宣传单的制作。梦幻邮件制作内含的模板功能使电子邮件的制作更加方便且富有情趣。
+
+梦幻邮件制作内嵌了一个非常实用的编辑器进行电子邮件的制作，并将这些电子邮件编码导入成可以使用 `OutLook`，`Foxmail` 发送的电子邮件格式。制作好的电子邮件可以在 `Outlook`、`Foxmail`、`Eudora` 等具有解码能力的电子邮件收发软件中显示。
+
+梦幻邮件制作同时提供了网页编译功能，可以将编辑好的电子邮件导出成网页文件。
+
+【软件限制】：30 次试用
+
+【作者声明】：初学 Crack，只是感兴趣，没有其它目的。失误之处敬请诸位大侠赐教！
+
+【破解工具】：`TRW2000` 娃娃修改版、`FI2.5`、`AspackDie`、`W32Dasm8.93` 黄金版
+
+【过 程】：
+
+用户名：`fly`
+
+试炼码：`13572468901234567`
+
+`MMMaker.exe` 是 `ASPACK` 2.11 壳，用 `AspackDie` 脱之。`504K` -> `1.52M`。
+
+反汇编。关键提示都在，省点事。
+
+```
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:004BFB88(C)
+
+|
+
+:004BFBFA 8B45FC                 mov eax, dword ptr [ebp-04]
+:004BFBFD 8B80E0020000           mov eax, dword ptr [eax+000002E0]
+:004BFC03 E83839F7FF             call 00433540
+:004BFC08 8D45F8                 lea eax, dword ptr [ebp-08]
+:004BFC0B E844F6FEFF             call 004AF254
+                                  ==== >关键 CALL！F8 进入！
+
+:004BFC10 84C0                   test al, al
+:004BFC12 750F                   jne 004BFC23
+                                  ==== >不跳则 OVER！
+
+* Possible StringData Ref from Code Obj -> "无效的注册码！"
+                                  ==== >BAD BOY！
+
+:004BFC14 B8C8FD4B00             mov eax, 004BFDC8
+:004BFC19 E82295F9FF             call 00459140
+:004BFC1E E919010000             jmp 004BFD3C
+```
+
+`F8` 进入关键 `CALL`：`4BFC0B call 004AF254`
+
+```
+* Referenced by a CALL at Addresses:
+
+|:004BFC0B   , :004C1D71   , :004CEBBA   
+
+|
+
+:004AF254 55                     push ebp
+:004AF255 8BEC                   mov ebp, esp
+:004AF257 83C4CC                 add esp, FFFFFFCC
+:004AF25A 53                     push ebx
+:004AF25B 56                     push esi
+:004AF25C 57                     push edi
+:004AF25D 33D2                   xor edx, edx
+:004AF25F 8955CC                 mov dword ptr [ebp-34], edx
+:004AF262 8955D0                 mov dword ptr [ebp-30], edx
+:004AF265 8955E0                 mov dword ptr [ebp-20], edx
+:004AF268 8955F0                 mov dword ptr [ebp-10], edx
+:004AF26B 8955F8                 mov dword ptr [ebp-08], edx
+:004AF26E 8955F4                 mov dword ptr [ebp-0C], edx
+:004AF271 8BF0                   mov esi, eax
+:004AF273 33C0                   xor eax, eax
+:004AF275 55                     push ebp
+:004AF276 68B6F44A00             push 004AF4B6
+:004AF27B 64FF30                 push dword ptr fs:[eax]
+:004AF27E 648920                 mov dword ptr fs:[eax], esp
+:004AF281 C645FF00               mov [ebp-01], 00
+:004AF285 33FF                   xor edi, edi
+:004AF287 33C0                   xor eax, eax
+:004AF289 55                     push ebp
+:004AF28A 686CF44A00             push 004AF46C
+:004AF28F 64FF30                 push dword ptr fs:[eax]
+:004AF292 648920                 mov dword ptr fs:[eax], esp
+:004AF295 8D45EC                 lea eax, dword ptr [ebp-14]
+:004AF298 8B16                   mov edx, dword ptr [esi]
+                                  ==== >EDX=13572468901234567
+
+:004AF29A 8A5209                 mov dl, byte ptr [edx+09]
+                                  ==== >取试炼码的第 10 位！DL=0
+
+:004AF29D 885001                 mov byte ptr [eax+01], dl
+:004AF2A0 C60001                 mov byte ptr [eax], 01
+:004AF2A3 8D55EC                 lea edx, dword ptr [ebp-14]
+:004AF2A6 8D45E8                 lea eax, dword ptr [ebp-18]
+:004AF2A9 E88A37F5FF             call 00402A38
+:004AF2AE 8D45E4                 lea eax, dword ptr [ebp-1C]
+:004AF2B1 8B16                   mov edx, dword ptr [esi]
+                                  ==== >EDX=13572468901234567
+
+:004AF2B3 8A5206                 mov dl, byte ptr [edx+06]
+                                  ==== >取试炼码的第 7 位！DL=6
+
+:004AF2B6 885001                 mov byte ptr [eax+01], dl
+:004AF2B9 C60001                 mov byte ptr [eax], 01
+:004AF2BC 8D55E4                 lea edx, dword ptr [ebp-1C]
+:004AF2BF 8D45E8                 lea eax, dword ptr [ebp-18]
+:004AF2C2 B102                   mov cl, 02
+:004AF2C4 E83F37F5FF             call 00402A08
+:004AF2C9 8D55E8                 lea edx, dword ptr [ebp-18]
+:004AF2CC 8D45F0                 lea eax, dword ptr [ebp-10]
+:004AF2CF E8584BF5FF             call 00403E2C
+:004AF2D4 8B45F0                 mov eax, dword ptr [ebp-10]
+:004AF2D7 E8C09DF5FF             call 0040909C
+:004AF2DC 8BD8                   mov ebx, eax
+                                  ==== >把上面所取的 2 个数连接起来：06
+                                  并取其 HEX 值 06 入 EBX，以备下面相乘！
+
+:004AF2DE 8D45EC                 lea eax, dword ptr [ebp-14]
+:004AF2E1 8B16                   mov edx, dword ptr [esi]
+                                  ==== >EDX=13572468901234567
+
+:004AF2E3 8A520D                 mov dl, byte ptr [edx+0D]
+                                  ==== >取试炼码的第 14 位！DL=4
+
+:004AF2E6 885001                 mov byte ptr [eax+01], dl
+:004AF2E9 C60001                 mov byte ptr [eax], 01
+:004AF2EC 8D55EC                 lea edx, dword ptr [ebp-14]
+:004AF2EF 8D45E8                 lea eax, dword ptr [ebp-18]
+:004AF2F2 E84137F5FF             call 00402A38
+:004AF2F7 8D45E4                 lea eax, dword ptr [ebp-1C]
+:004AF2FA 8B16                   mov edx, dword ptr [esi]
+                                  ==== >EDX=13572468901234567
+
+:004AF2FC 8A5207                 mov dl, byte ptr [edx+07]
+                                  ==== >取试炼码的第 8 位！DL=8
+
+:004AF2FF 885001                 mov byte ptr [eax+01], dl
+:004AF302 C60001                 mov byte ptr [eax], 01
+:004AF305 8D55E4                 lea edx, dword ptr [ebp-1C]
+:004AF308 8D45E8                 lea eax, dword ptr [ebp-18]
+:004AF30B B102                   mov cl, 02
+:004AF30D E8F636F5FF             call 00402A08
+:004AF312 8D55E8                 lea edx, dword ptr [ebp-18]
+:004AF315 8D45DC                 lea eax, dword ptr [ebp-24]
+:004AF318 E81B37F5FF             call 00402A38
+:004AF31D 8D45E4                 lea eax, dword ptr [ebp-1C]
+:004AF320 8B16                   mov edx, dword ptr [esi]
+                                  ==== >EDX=13572468901234567
+
+:004AF322 8A5210                 mov dl, byte ptr [edx+10]
+                                  ==== >取试炼码的第 17 位！7
+
+:004AF325 885001                 mov byte ptr [eax+01], dl
+:004AF328 C60001                 mov byte ptr [eax], 01
+:004AF32B 8D55E4                 lea edx, dword ptr [ebp-1C]
+:004AF32E 8D45DC                 lea eax, dword ptr [ebp-24]
+:004AF331 B103                   mov cl, 03
+:004AF333 E8D036F5FF             call 00402A08
+:004AF338 8D55DC                 lea edx, dword ptr [ebp-24]
+:004AF33B 8D45D4                 lea eax, dword ptr [ebp-2C]
+:004AF33E E8F536F5FF             call 00402A38
+:004AF343 8D45E4                 lea eax, dword ptr [ebp-1C]
+:004AF346 8B16                   mov edx, dword ptr [esi]
+                                  ==== >EDX=13572468901234567
+
+:004AF348 8A5203                 mov dl, byte ptr [edx+03]
+                                  ==== >取试炼码的第 4 位！7
+```
