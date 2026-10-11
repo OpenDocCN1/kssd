@@ -1,0 +1,354 @@
+
+# VMProtect 1.6x 的一点心得
+
+> 原文：[`www.pediy.com/kssd/pediy10/63844.html`](https://www.pediy.com/kssd/pediy10/63844.html)
+
+VMP1.22 以上的版本都没有看过，周末几天有幸看了海风月影兄弟发的 1.6x 加的 Notepad，刚拿到手时候，根本没有任何头绪，仔细琢磨一下，还是有规律可寻的。
+
+为了方便起见，我拿这个和 1.22 的比较，所以看这篇冬冬的话，最好还是要对 1.22 有所了解，首先我说一下，这篇的目的，是把 1.6x 版本的 VM 能够转化成 1.22 版本的结构，因为在 1.22 下，本人做了些尝试，可以比较完整的跟踪出所有的 PCode，以及当时的相关环境，在完成这一步的基础上，通过人工识别的方法(工作量非常大)，可以还原一部分代码出来，所以，我这里的目的，就是希望能够把 1.6x 降级，降级到 1.22，再进行分析。
+
+## 对比:
+
+### 1.
+
+跟过 1.22(包括 1.22)以前版本的都知道,VMP 是通过自身堆栈来进行运算的，程序进入 VM 前，相关的寄存器以及 VM 所需的一些数据保存在一个全局数组中，对自身堆栈的操作是通过 `esp` 来完成。
+
+在 1.6x 中，情况发生变化了，VMP 同样是通过堆栈进行运算，但是这里出现了两个层面上的堆栈，一个是 `esp` 维护的堆栈，一个是 `ebp` 维护的堆栈，虽然都是在一个地址区域里面，但是作用却不一样，`esp` 维护的堆栈是用来迷惑跟踪者的，出了一些 `pushfd` 有用之外，其余的一切在这个堆栈上的操作都是垃圾代码，真正的用来执行的是 `ebp` 指向的堆栈，这个堆栈，就相当于 1.22 的 `esp` 指向的堆栈，所以看 `dispatch_code` 的关键代码，关键留意操作 `ebp` 的代码,`esp` 的几乎全是垃圾代码，并且它在退出 `dispatch_code` 时候，会平衡掉自己。在 1.6x 里面，如果我没有特别说明,我所说的 `vm_esp` 指的都是 `ebp`。
+
+### 2.
+
+`VM_Data` 的获取：
+
+和 1.22 一样，进入 `vm` 循环后，`esi` 指向的是 `VM_Data`，不同的地方是，1.6x 的 `esi` 不单单是朝着 `esi` 增大的方向进行，很多时候是朝着减少的方向进行。
+
+### 3.
+
+`VM_Data` 地址的保护
+
+1.22 版本,`VM_Data` 的地址是明文传进去的
+
+```
+push offset VM_Data
+jmp VM_Init
+```
+
+这是最常见的情况，到了 1.6x，不在是这样的
+
+```
+push keydata
+jmp VM_init
+```
+
+经过解密运算，会把 `keydata` 变成，一个真实的地址。
+
+### 4.
+
+`dispatch_table` 的保护
+
+`dispatch_table` 里面 256 的地址，全部加密，通过固定算法解密，这里有我写的程序，解密所有的 `dispatch_code_addr`。
+
+### 5.
+
+`vm` 前环境变量的保护
+
+1.22 是保护在一个全局变量中，1.6x 是保护在堆栈里面，地址在 `ebp` 的上面，大小为 `0x50`，同样都是通过 `edi` 指向的，如果进行进栈操作的话，`ebp` 地址要小于 `edi+0x50` 的话，会重新引发分配保存 `vm` 的环境变量
+
+这个在很多 `dispatch_code` 中都有体现，如果有进栈操作，都会跳到 `jmp     VM_CHECK_STACK_OVERFLOW`，进行检查。
+
+### 6.
+
+1.6x 的 `dispatch_code` 不像 1.22 那样干净了，里面有大量的垃圾代码，`jcc`,`fake_call`，`jcc` 的话，走哪个分支都一样，`fake_call` 跟进去就行，这些都会在出 `dispatch_code` 时候，被平衡掉，有一个原则就是，看操做
+
+`esi`,`ebx`,`ebp`,`edi` 的代码，以及与之相关的代码，这些代码是关键，
+
+`esi` 指向当前 `vm_data`
+
+`edi` 指向 `vm` 前的环境
+
+`ebx` 用来计算 `dispatch_no` 的
+
+`ebp` 是运算堆栈。
+
+主要差别好像就这些，如果有不足的，希望大家补充。
+
+## 下面介绍一下进入 VM 的流程
+
+```
+newlaos1:0102C346 start:                                   ; keydata
+newlaos1:0102C346                 push    0C9440AF1h       ;这个就是上面说的 keydata
+newlaos1:0102C34B                 call    fake_call
+
+newlaos1:0103ACEB fake_call       proc near                ; CODE XREF: newlaos1:0102C34Bp
+newlaos1:0103ACEB                 jmp     VM_Init          ; 前面
+newlaos1:0103ACEB fake_call       endp
+
+newlaos1:0103995C VM_Init         proc near                ; CODE XREF: fake_callj
+newlaos1:0103995C
+
+newlaos1:0103995C                 push    ebp              ; *
+newlaos1:0103995D                 pusha
+newlaos1:0103995E                 pusha
+newlaos1:0103995F                 push    esi
+newlaos1:01039960                 mov     [esp+40h], ecx   ; fuck 掉最初的 eax
+newlaos1:01039964                 call    Fake_01
+
+newlaos1:01039F03
+
+newlaos1:01039F03                 pushf
+newlaos1:01039F04                 push    ebp
+newlaos1:01039F05                 mov     [esp+48h], ebx   ; *
+newlaos1:01039F09                 pushf
+newlaos1:01039F0A                 pushf
+newlaos1:01039F0B                 mov     [esp+4Ch], edi   ; *
+newlaos1:01039F0F                 jmp     loc_103AB16
+
+newlaos1:01038E2C                 mov     [esp+54h], edx   ; *
+newlaos1:01038E30                 call    fake_call_33
+
+newlaos1:01039A6E                 mov     [esp+54h], esi   ; *
+newlaos1:01039A72                 mov     [esp+4], si
+newlaos1:01039B1E                 mov     [esp+4], ah
+newlaos1:01039B22                 mov     [esp+54h], ebx   ; *
+newlaos1:01039B26                 mov     [esp+8], bl
+newlaos1:01039B2A                 mov     word ptr [esp+4], 0A44Bh
+newlaos1:01039B31                 mov     word ptr [esp+0], 4D52h
+newlaos1:01039B37                 lea     esp, [esp+54h]   ; 平衡堆栈
+newlaos1:01039B3B                 jmp     loc_1039991      ;
+newlaos1:01039B3B sub_1039B1E     endp ; sp-analysis failed ;
+newlaos1:01039B3B                             ; 0007FF78   7C930738   ntdll.7C930738
+newlaos1:01039B3B                             ; 0007FF7C   FFFFFFFF
+newlaos1:01039B3B                             ; 0007FF80   0007FFF0
+newlaos1:01039B3B                             ; 0007FF84   0007FF98
+newlaos1:01039B3B                             ; 0007FF88   7FFDE000
+newlaos1:01039B3B                             ; 0007FF8C   7C92EB94   ntdll.KiFastSystemCallRet
+newlaos1:01039B3B                             ; 0007FF90   0007FFB0
+newlaos1:01039B3B                             ; 0007FF94   00000000
+newlaos1:01039B3B                             ;
+newlaos1:01039B3B                             ; 0007FFA0   7FFDE000                         ebx
+newlaos1:01039B3B                             ; 0007FFA4   FFFFFFFF                         esi
+newlaos1:01039B3B                             ; 0007FFA8   7C92EB94   ntdll.KiFastSystemCallRet  edx
+newlaos1:01039B3B                             ; 0007FFAC   7C930738   ntdll.7C930738         edi
+newlaos1:01039B3B                             ; 0007FFB0   7FFDE000                         ebx
+newlaos1:01039B3B                             ; 0007FFB4   0007FFB0                         ecx
+newlaos1:01039B3B                             ; 0007FFB8   0007FFF0                         ebp
+newlaos1:01039B3B                             ;
+newlaos1:01039B3B                             ; eax 没有保存 直接在寄存器中
+```
+
+带星号的都是关键代码，上面都是在寄存器进栈操作。
+
+```
+newlaos1:01039991                 push    411EC39Ah
+newlaos1:01039996                 xchg    si, bp
+newlaos1:01039999                 not     dh
+newlaos1:0103999B                 mov     [esp], eax       ; * 这里保存 eax 了
+newlaos1:0103999B                             ; 前面都保存了别的 regs 了
+newlaos1:0103999E                 lea     esi, [ecx+1243303Ch]
+newlaos1:010399A4                 pushf                   ; 保存 eflags
+newlaos1:010399A5                 inc     si
+newlaos1:010399A8                 neg     ebp
+newlaos1:010399AA                 push    0               ; 这个 0 应该是 ImageDelta
+
+newlaos1:0103A3B4                 xor     bp, 0E390h
+newlaos1:0103A3B9                 rol     al, 4
+newlaos1:0103A3BC                 and     di, 0C24Ch
+
+//下面开始取 keydata 计算 vm_data 地址了
+
+newlaos1:0103A3C1                 mov     esi, [esp+30h]   ; keydata
+newlaos1:0103A3C5                 bsf     di, dx
+newlaos1:0103A3C9                 sub     bp, 2EBAh
+newlaos1:0103A3CE                 lea     edi, [edx*8+0E847F6A0h]
+newlaos1:0103A3D5                 not     esi              ; not keydata
+newlaos1:0103A3D7                 rcl     di, 9
+newlaos1:0103A3DB                 shl     dl, 1
+newlaos1:0103A3DD                 bswap  esi              ; bswap keydata
+newlaos1:0103A3DF                 neg     bp
+newlaos1:0103A3E2                 dec     bh
+newlaos1:0103A3E4                 add     esp, 4           ; 平衡了堆栈
+newlaos1:0103A3E7                 jb      fake_jxx_01    ;这里是个假跳
+newlaos1:0103A3ED                 add     esi, 0E0B43246h ; add E0B43246h
+newlaos1:0103A3F3                 xchg    edi, ebp
+newlaos1:0103A3F5                 clc
+newlaos1:0103A3F6                 rol     esi, 0Dh
+newlaos1:0103A3F9                 rol     di, 6
+newlaos1:0103A3FD                 neg     esi
+newlaos1:0103A3FF                 shr     bx, cl
+newlaos1:0103A402                 neg     ebp
+newlaos1:0103A404                 shr     bp, 4
+newlaos1:0103A408                 sal     bl, cl
+newlaos1:0103A40A                 add     esi, 3EB2B05Bh
+newlaos1:0103A410                 or      ebp, esi
+newlaos1:0103A412                 pushf
+newlaos1:0103A413                 clc
+newlaos1:0103A414                 lea     ebp, [esp+4]     ; ebp 指向 ImageDelta
+```
+
+
+
+## VM 初始化
+
+`newlaos1:0103A414` ; `ImageDelta`
+`newlaos1:0103A414` ; `Eflags`
+`newlaos1:0103A414` ; 8 个 regs
+`newlaos1:0103A414` ; `addr_no_use`
+`newlaos1:0103A414` ; `Keydata`
+
+// 这里就很清楚的表明了 `ebp` 是指向参与真实运算的堆栈
+
+```
+newlaos1:0103A418    pusha
+newlaos1:0103A419    bts     edi, eax
+newlaos1:0103A41C    inc     edi
+newlaos1:0103A41D    sub     bh, bl
+newlaos1:0103A41F    sub     esp, 9Ch  ;这是再开辟一个空间 用来保存 vm 前环境
+newlaos1:0103A425    xchg    dh, bl
+newlaos1:0103A427    sar     bx, 1
+newlaos1:0103A42A    mov     edi, esp  ;把这个地址给 edi
+newlaos1:0103A42C  VM_Pre_Start:                ; CODE XREF: newlaos1:0103A3AFj
+newlaos1:0103A42C            clc
+newlaos1:0103A42D            mov     ebx, esi        ; 用来计算 PCode 的
+newlaos1:0103A42F            not     al
+newlaos1:0103A431            add     esi, [ebp+0]    ; + ImageDelta
+newlaos1:0103A431                                ; ebx  VM_Data Org
+newlaos1:0103A431                                ; esi  VM_Data
+newlaos1:0103A431                                ; edi  指向 VM_Struct
+newlaos1:0103A431                                ; ebp  指向 ImageDelta
+```
+
+## VM 循环
+
+下面就是 VM 的循环了:
+
+```
+newlaos1:0103A434  VM_Start:                   ; CODE XREF: fake_04-FADj
+newlaos1:0103A434                                ; newlaos1:010390CDj ...
+newlaos1:0103A434            cmp     cx, bp
+newlaos1:0103A437            shr     dh, cl
+newlaos1:0103A439            pusha
+newlaos1:0103A43A            mov     al, [esi-1]     ; 用来计算 dispatch_no 了
+newlaos1:0103A43D            shl     dx, 2
+newlaos1:0103A441            or      dx, 0B38Dh
+newlaos1:0103A446            xor     al, bl          ; * 运算
+newlaos1:0103A448            movsx   dx, al
+newlaos1:0103A44C            mov     [esp], al
+newlaos1:0103A44F            bsr     dx, dx
+newlaos1:0103A453            pushf
+newlaos1:0103A454            not     al              ; * 运算
+newlaos1:0103A456            movsx   edx, dl
+newlaos1:0103A459            pop     edx
+newlaos1:0103A45A            db      66h
+newlaos1:0103A45A            bswap   edx
+newlaos1:0103A45D            inc     al              ; * 运算
+newlaos1:0103A45F            dec     dh
+newlaos1:0103A461            shr     dh, 1
+newlaos1:0103A463            jmp     loc_103AA7F
+newlaos1:0103AA7F            btc     dx, ax
+newlaos1:0103AA83            xor     al, 76h         ; * 运算
+newlaos1:0103AA85            shrd    edx, esp, 5
+newlaos1:0103AA89            not     edx
+newlaos1:0103AA8B            sub     al, 22h         ; * 运算
+newlaos1:0103AA8D            cmp     al, 7Eh
+newlaos1:0103AA8F            cmc
+newlaos1:0103AA90            shrd    dx, ax, cl
+newlaos1:0103AA94            xor     bl, al          ; * 修改 ebx
+newlaos1:0103AA96            stc
+newlaos1:0103AA97            setns   dh
+newlaos1:0103AA9A            bt      ax, 0Ch
+newlaos1:0103AA9F            rcr     dx, cl
+newlaos1:0103AAA2            movzx   eax, al         ; 取得 dispatch_no
+newlaos1:01039A24            mov     edx, ds:dispath_table[eax*4] ; * 取加密的 dipatch_code 数据
+newlaos1:01039A2B            pushf
+newlaos1:01039A2C            bt      cx, sp
+newlaos1:01039A30            ror     edx, 19h        ; * 运算
+newlaos1:01039A33            cmp     bl, bh
+newlaos1:01039A35            bt      si, 0Dh
+newlaos1:01039BBA            test    si, sp
+newlaos1:01039BBD            lea     esi, [esi-1]  ;可以明显看出 esi 是朝着递减的方向进行的
+newlaos1:01039BC0            jmp     loc_103AC32
+newlaos1:0103AC32            clc
+newlaos1:0103AC33            stc
+newlaos1:0103AC34            neg     edx             ; *运算
+newlaos1:0103AC36            clc
+newlaos1:0103AC37            jmp     loc_103A944
+newlaos1:0103A944            clc
+newlaos1:0103A945            rol     edx, 7          ; *运算
+newlaos1:0103937F            mov     dword ptr [esp+4], 0DC426B8Ah
+newlaos1:01039387            mov     word ptr [esp+0Ch], 74B5h
+newlaos1:0103938E            not     edx             ; * 运算
+newlaos1:01039390            mov     byte ptr [esp+0], 29h
+newlaos1:01039394            push    9CB0A2BBh
+newlaos1:01039399            mov     [esp+34h], edx  ; dispath_code 地址
+newlaos1:0103939D            pushf
+newlaos1:0103939E            pushf
+newlaos1:0103939F            push    0C56A1E5Ch
+newlaos1:010393A4            pushf
+newlaos1:010393A5            push    dword ptr [esp+44h] ; dispath_code 地址
+newlaos1:010393A9            retn    48h             ; 平衡堆栈
+```
+
+然后进入对应的 `dispatch_code`
+
+## 分析与工具
+
+256 个 `dispatch_no`，一共识别出来了 44 条 `dispatch_code`，和 1.22 很接近，指令几乎一样，这也为降级成 1.22 提供了一个条件。识别出来的地址，都可以参考附件。
+
+到这里，基本上就和 1.22 的东西对应起来了，可以模拟的写出程序，来跟踪这些代码，不过工作量还是很大:(
+
+大概就这些，欢迎大家补充。
+
+### 附件
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || VMP16x.rar
+
+### IDC 脚本
+
+转了个 `idc` 脚本。
+
+```
+//copy from ryosuke,2008.04.27
+#include <idc.idc>
+
+//------------------------------------------------------------------------
+static decrypt(from,size) {
+  auto i;
+  auto value;
+  auto tmpname;
+
+  for ( i=0; i < size; i=i+1 )
+  {
+    value=Dword(from+i*4);
+    Message("%x:%x",from+i*4,value);
+    if(value!=0)
+    {
+        value=rotate_dword(value,7);//ror dword ptr [temp],0x19
+        Message("=>%x",value);
+        value=value^0xffffffff;//neg dword ptr [temp]
+        Message("=>%x",value);
+        value=value+1;
+        Message("=>%x",value);
+    value=rotate_dword(value,7);//rol dword ptr [temp],0x7
+    Message("=>%x",value);
+    value=value^0xffffffff;//not dword ptr [temp]
+    Message("=>%x",value);
+    if(value!=BADADDR)
+    {
+      MakeNameEx(value,form("vm_opcode_%d",i),0x100);
+      MakeRptCmt(from+i*4,form("%08x",value));
+    }
+    }
+    //AskYN(1,"pause");
+  }
+}
+
+//------------------------------------------------------------------------
+static main(void) {
+  auto vm_table_addr,size;
+  size=400;
+  //vm_table_addr = 0x103947a;
+  //vm_table_addr = ScreenEA();
+  vm_table_addr = AskAddr(here, "Please enter the vm_table_addr");
+  if ( vm_table_addr == BADADDR ) return;
+  decrypt(vm_table_addr,256);
+}
+```
