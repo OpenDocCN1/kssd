@@ -1,0 +1,55 @@
+
+# 利用 WPN 与 ROP 绕过 DEP 保护机制
+
+> 原文：[`www.pediy.com/kssd/pediy11/119300.html`](https://www.pediy.com/kssd/pediy11/119300.html)
+
+作者：Sud0
+
+译者：riusksk (泉哥：`http://riusksk.blogbus.com`)
+
+## 前言
+
+对于本教程，假设读者具备以下条件：
+
+1. 在电脑拥有各项所需工具的实验环境；
+2. 具备编写栈溢出利用程序的基础；
+3. 掌握 SEH 概念及利用 SEH 编写 exploit 的基础知识。
+
+## 基础概念
+
+DEP（Data Execution Prevention）：防止一些内存位置执行代码的一种保护机制，特别是堆栈，因此在 windows 中利用栈返回技术攻击溢出的方法已不再适用了。
+
+ROP（Return Oriented Programming）：连续调用程序代码本身的内存地址，以逐步地创建一连串欲执行的指令序列。
+
+WPM（Write Process Memory）：利用微软在 `kernel32.dll` 中定义的函数比如：`WriteProcessMemory` 函数可将数据写入到指定进程的内存中。但整个内存区域必须是可访问的，否则将操作失败。函数原型：
+
+```
+WriteProcessMemory: procedure
+
+(
+  hProcess: dword;
+  // Handle to the process whose memory is to be modified
+
+  var lpBaseAddress: var;
+  // Pointer to the base address in the specified process to which data will be written
+
+  var lpBuffer: var;
+  // Pointer to the buffer that contains data to be written into the address space of the specified process
+
+  nSize: dword;
+  // Specifies the requested number of bytes to write into the specified process
+
+  var lpNumberOfBytesWritten: dword
+  // Pointer to a variable that receives the number of bytes transferred.
+);
+```
+
+## 目标
+
+我们的目标是利用 ROP 技术来调用 WPM，以便将 shellcode 写入地址 `0x7C8022CF`，这样当从 `ntdll.ZwWriteVirtualMemory` 函数中返回时可正确地执行 shellcode。
+
+……
+
+具体内容参见附件：
+
+`利用 WPN 与 ROP 绕过 DEP 保护机制.doc`

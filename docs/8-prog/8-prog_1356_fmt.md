@@ -1,0 +1,212 @@
+
+# 利用导出表来禁止一些驱动程序的加载
+
+> 原文：[`www.pediy.com/kssd/pediy10/62531.html`](https://www.pediy.com/kssd/pediy10/62531.html)
+
+今天再弄导出表时，发现修改 `ntkrnlpa.exe` 导入表里 `AdressOfNames` 指向的数组里面的函数名可以达到禁止一些驱动程序加载的目的。比如把 `PsGetCurrentProcessId` 改成其他名字，这样一些驱动程序如果想调用这个函数就不成功了，这样驱动程序就加载失败。试了几个 anti-rootkit、冰刃等都不能正常运行，呵呵。
+
+代码如下：
+
+```
+#include "ntddk.h"
+#include "hookiat.h"
+#pragma comment(lib,"ntdll.lib")
+
+PVOID GetDriverBaseAdress(char* driverName)
+{
+  ULONG size,index;
+  PULONG buf;
+  NTSTATUS status;
+  PSYSTEM_MODULE_INFORMATION module;
+  PVOID driverAddress=0;
+  
+  ZwQuerySystemInformation(SystemModuleInformation,&size, 0, &size);
+  
+  if(NULL==(buf = (PULONG)ExAllocatePool(PagedPool, size)))
+  {
+    DbgPrint("failed alloc memory failed  \n");
+    return 0;
+  }
+  
+  status=ZwQuerySystemInformation(SystemModuleInformation,buf, size , 0);
+  if(!NT_SUCCESS( status ))
+  {
+       DbgPrint("failed  query\n");
+      return 0;
+  }
+  
+  module = (PSYSTEM_MODULE_INFORMATION)(( PULONG )buf + 1);
+  for (index = 0; index < *buf; index++)
+  if (_stricmp(module[index].ImageName + module[index].ModuleNameOffset, driverName) == 0)   
+  {
+        driverAddress = module[index].Base;
+        DbgPrint("Module found at:%x\n",driverAddress);
+  }
+  
+  ExFreePool(buf);
+  return driverAddress;
+}
+
+PVOID CreateMapFileAndReturnBaseAddress(PUNICODE_STRING pDriverName)
+{
+  HANDLE  hFile;
+    HANDLE  hSection;
+    char *pszModName;
+    PVOID MapFileBaseAddress = NULL;
+  SIZE_T size=0;
+    IO_STATUS_BLOCK stataus;
+    OBJECT_ATTRIBUTES oa ;
+  
+  InitializeObjectAttributes(
+    &oa,
+  pDriverName,
+    OBJ_CASE_INSENSITIVE,
+    0,
+    0
+    );
+    
+    ZwOpenFile(&hFile, 
+           FILE_EXECUTE | SYNCHRONIZE, 
+           &oa, 
+           &stataus, 
+           FILE_SHARE_READ, 
+           FILE_SYNCHRONOUS_IO_NONALERT);
+    
+    oa.ObjectName = 0;
+    ZwCreateSection(&hSection,
+            SECTION_ALL_ACCESS, 
+            &oa, 
+            0, 
+            PAGE_EXECUTE, 
+            SEC_IMAGE, 
+            hFile);
+    
+    ZwMapViewOfSection(hSection,
+               PsGetCurrentProcessId(),
+               &MapFileBaseAddress, 
+               0, 
+               1024, 
+               0, 
+               &size, 
+               ViewShare, 
+               MEM_TOP_DOWN, 
+               PAGE_READWRITE); 
+  
+     ZwClose(hFile);
+     
+     DbgPrint("baseadress:%x\n",MapFileBaseAddress);
+     
+     return MapFileBaseAddress;
+}   
+
+  DWORD GetpAddressOfNames(IN PCSTR funName) 
+{
+  HANDLE   hMod;
+    PVOID BaseAddress = NULL;
+  IMAGE_DOS_HEADER * dosheader;
+  IMAGE_OPTIONAL_HEADER * opthdr;
+    PIMAGE_EXPORT_DIRECTORY exports;
+    ULONG addr, i , index ;
+  PVOID FuncNameRVA;
+    PUCHAR pFuncName = NULL;
+  PULONG pAddressOfFunctions,pAddressOfNames,pAddressOfNameOrdinals;
+  UNICODE_STRING driverName;
+    
+    RtlInitUnicodeString(&driverName, L"\\Device\\HarddiskVolume1\\Windows\\System32\\ntkrnlpa.exe");
+    
+    BaseAddress=  CreateMapFileAndReturnBaseAddress(&driverName);
+    
+    DbgPrint("Map BaseAddress is:%x\n",BaseAddress);
+    
+    hMod = BaseAddress;
+  
+  //定位 IMAGE_EXport_DESCRIPTOR pDataEntryAddress 是导出表的 RAV
+  
+  dosheader = (IMAGE_DOS_HEADER *)hMod;
+    
+    opthdr =(IMAGE_OPTIONAL_HEADER *) ((BYTE*)hMod+dosheader->e_lfanew+24);
+    
+    exports = (PIMAGE_EXPORT_DIRECTORY)((BYTE*)dosheader+ opthdr->DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
+    
+    pAddressOfFunctions=(ULONG*)((BYTE*)hMod+exports->AddressOfFunctions);   
+    
+  pAddressOfNames=(ULONG*)((BYTE*)hMod+exports->AddressOfNames);            //指向的函数名称地址表的第一项
+  
+  pAddressOfNameOrdinals=(ULONG*)((BYTE*)hMod+exports->AddressOfNameOrdinals); //指向函数名序号表的 RVA
+    
+    //下面的先别加,编译一下,输出了 1483,也就是导出了 1483 个函数,用 Dependency walker 查看,也是这个数,那说明我们前面的工作没问题   
+    
+    DbgPrint("%\n",exports->NumberOfNames);   
+    
+for (i = 0; i < exports->NumberOfNames; i++) 
+{
+pFuncName = (PUCHAR)( (BYTE*)hMod + pAddressOfNames[i]); 
+if (_stricmp( (char*)pFuncName,funName) == 0) 
+{
+DbgPrint("%s is found !!\n",pFuncName); 
+break; 
+}
+}
+
+return pAddressOfNames[i]; 
+
+} 
+
+NTSTATUS 
+MyPsGetCurrentProcessId() 
+{ 
+  DbgPrint("HOOK_PsGetCurrentProcessId called!\n");
+}   
+
+VOID Unload(PDRIVER_OBJECT DriverObject) 
+{ 
+  DbgPrint("Unload Callled\n"); 
+} 
+
+NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING str) 
+{ 
+  ULONG FuncRav; 
+    DWORD base = NULL; 
+    PCSTR myfunName=  "PsGetCurrentProcessId"; 
+     
+     base = GetDriverBaseAdress("ntkrnlpa.exe"); 
+     
+    if(NULL==base) 
+  { 
+    DbgPrint("base not found"); 
+    return STATUS_SUCCESS; 
+  }
+  
+    DbgPrint("ntoskrnl.exe is found at:%x\n",base); 
+  FuncRav=GetpAddressOfNames(myfunName); 
+    DbgPrint("pAddressOfNames[i] is :%x\n",FuncRav); 
+
+_asm 
+  { 
+    CLI         
+    MOV  EAX, CR0     
+    AND EAX, NOT 10000H  
+    MOV  CR0, EAX      
+  }
+  
+  *(PVOID*) ( base + FuncRav ) = MyPsGetCurrentProcessId;
+  
+  DbgPrint("HOOK SUCESS"); 
+
+_asm  
+  { 
+    MOV  EAX, CR0      
+    OR  EAX, 10000H       
+    MOV  CR0, EAX        
+    STI         
+  }
+    
+    DriverObject->DriverUnload = Unload;
+  
+  return STATUS_SUCCESS; 
+}
+```
+
+效果是这样：
+
+![](img/724b6a9c73ea998f88a60469df7b72bc.jpg)
