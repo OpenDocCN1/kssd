@@ -1,0 +1,178 @@
+
+# Armadillo 4.2 加壳的 DLL
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-679.htm`](https://www.pediy.com/kssd/pediy07/pediy7-679.htm)
+
+## 一、破解目标
+`Armadillo 4.2` 加壳的 DLL（用 `KEY` 保护）
+
+## 二、破解工具
+`OllyDbg v1.10`，`ImportREC 1.6 Final`，`LordPE`
+
+## 三、破解作者
+`DarkBull@email.com.cn`
+
+## 四、破解过程
+
+### 1. 分析机器码
+
+用 `OD` 载入，入口如下：
+
+```
+KingFor3.>/$ 55        PUSH EBP
+00948958  .| 8BEC      MOV EBP,ESP
+0094895A  .| 53        PUSH EBX
+0094895B  .| 8B5D 08   MOV EBX,[ARG.1]
+0094895E  .| 56        PUSH ESI
+0094895F  .| 8B75 0C   MOV ESI,[ARG.2]
+00948962  .| 57        PUSH EDI
+00948963  .| 8B7D 10   MOV EDI,[ARG.3]
+00948966  .| 85F6      TEST ESI,ESI
+00948968  .| 75 09     JNZ SHORT KingFor3.00948973
+0094896A  .| 833D 7C46>CMP DWORD PTR DS:[96467C],0
+00948971  .| EB 26     JMP SHORT KingFor3.00948999
+00948973  .> 83FE 01   CMP ESI,1                                 ; DLL_PROCESS_ATTACH
+00948976  .| 74 05     JE SHORT KingFor3.0094897D
+00948978  .| 83FE 02   CMP ESI,2                                 ; DLL_THREAD_ATTACH
+0094897B  .| 75 22     JNZ SHORT KingFor3.0094899F
+0094897D  .> A1 8C4696>MOV EAX,DWORD PTR DS:[96468C]
+00948982  .| 85C0      TEST EAX,EAX
+00948984  .| 74 09     JE SHORT KingFor3.0094898F
+00948986  .| 57        PUSH EDI
+00948987  .| 56        PUSH ESI
+00948988  .| 53        PUSH EBX
+00948989  .| FFD0      CALL NEAR EAX
+```
+
+下断点 `BP VirtualAlloc`，执行到返回 `EAX=00B10000`，大小为 `51000`，然后 `ARM4.2` 在该地址写入 `Security.dll` 的代码。
+
+`ARM` 对一些硬件信息进行了 `CRC32` 计算，形成计算机指纹，以计算机名为例：
+
+```
+00B23D34    50          PUSH EAX
+00B23D35    8D45 D4     LEA EAX,DWORD PTR SS:[EBP-2C]
+00B23D38    50          PUSH EAX
+00B23D39    FF15 D840B4>CALL NEAR DWORD PTR DS:[B440D8]      ; kernel32.GetComputerNameA
+00B23D3F    85C0        TEST EAX,EAX
+00B23D41    74 26       JE SHORT 00B23D69
+00B23D43    FF75 08     PUSH DWORD PTR SS:[EBP+8]
+00B23D46    8D45 D4     LEA EAX,DWORD PTR SS:[EBP-2C]
+00B23D49    50          PUSH EAX
+00B23D4A    E8 AFF30100 CALL 00B430FE                        ; JMP to MSVCRT.strlen
+00B23D4F    59          POP ECX
+00B23D50    50          PUSH EAX
+00B23D51    8D45 D4     LEA EAX,DWORD PTR SS:[EBP-2C]
+00B23D54    50          PUSH EAX
+00B23D55    E8 0DD9FFFF CALL 00B21667                        ; CRC32 校验
+00B23D5A    83C4 0C     ADD ESP,0C
+00B23D5D    8945 08     MOV DWORD PTR SS:[EBP+8],EAX
+00B23D60    EB 07       JMP SHORT 00B23D69
+```
+
+`F7` 进入 `CRC32` 的过程，代码如下：
+
+```
+00B21667    FF7424 0C   PUSH DWORD PTR SS:[ESP+C]            ; Arg3 (FFFFFFFF)
+00B2166B    FF7424 0C   PUSH DWORD PTR SS:[ESP+C]            ; Arg2 (nSize)
+00B2166F    FF7424 0C   PUSH DWORD PTR SS:[ESP+C]            ; Arg1 (ComputerName)
+00B21673    FF15 58D6B4>CALL NEAR DWORD PTR DS:[B4D658]      ; F7 进入 00913980
+00B21679    83C4 0C     ADD ESP,0C
+00B2167C    C3          RETN
+00913980  /$ 55        PUSH EBP
+00913981  .| 8BEC      MOV EBP,ESP
+00913983  .| 8B45 0C   MOV EAX,[ARG.2]
+00913986  .| 50        PUSH EAX                                ; /Arg3 (nSize)
+00913987  .| 8B4D 08   MOV ECX,[ARG.1]                         ; |
+0091398A  .| 51        PUSH ECX                                ; |Arg2 (ComputerName)
+0091398B  .| 8B55 10   MOV EDX,[ARG.3]                         ; |
+0091398E  .| 83F2 FF   XOR EDX,FFFFFFFF                        ; |
+00913991  .| 52        PUSH EDX                                ; |Arg1 (0)
+00913992  .| E8 63DD02>CALL KingFor3.009416FA                 ; \KingFor3.009416FA(F7 进入)
+00913997  .| 83C4 0C   ADD ESP,0C
+0091399A  .| 83F0 FF   XOR EAX,FFFFFFFF
+0091399D  .| 5D        POP EBP
+0091399E  .\ C3        RETN
+009416FA  /$ 55        PUSH EBP
+009416FB  .| 8BEC      MOV EBP,ESP
+009416FD  .| 837D 0C 0>CMP [ARG.2],0                           ; 计算机名是否为空
+00941701  .| 75 07     JNZ SHORT KingFor3.0094170A
+00941703  .| 33C0      XOR EAX,EAX
+00941705  .| E9 C90100>JMP KingFor3.009418D3
+0094170A  .> 8B45 08   MOV EAX,[ARG.1]
+0094170D  .| 83F0 FF   XOR EAX,FFFFFFFF                        ; 进行异或运算
+00941710  .| 8945 08   MOV [ARG.1],EAX
+00941713  .> 837D 10 0>CMP [ARG.3],8                           ; 计算机名以 8 个字节为一组
+00941717  .| 0F82 6E01>|JB KingFor3.0094188B
+0094171D  .| 8B4D 0C   |MOV ECX,[ARG.2]
+00941720  .| 33D2      |XOR EDX,EDX
+00941722  .| 8A11      |MOV DL,BYTE PTR DS:[ECX]              ; 取计算机名的第一个字节
+00941724  .| 8B45 08   |MOV EAX,[ARG.1]                       ; 初始为 FFFFFFFF
+00941727  .| 33C2      |XOR EAX,EDX                           ; 第一次进行异或运算
+00941729  .| 25 FF0000>|AND EAX,0FF                           ; 只取一个字节
+0094172E  .| 8B4D 08   |MOV ECX,[ARG.1]
+00941731  .| C1E9 08   |SHR ECX,8
+00941734  .| 8B1485 0C>|MOV EDX,DWORD PTR DS:[EAX*4+96240C]  ; 进行查表
+0094173B  .| 33D1      |XOR EDX,ECX                           ; 第二次异或运算
+0094173D  .| 8955 08   |MOV [ARG.1],EDX                       ; 保存结果
+00941740  .| 8B45 0C   |MOV EAX,[ARG.2]
+00941743  .| 83C0 01   |ADD EAX,1
+00941746  .| 8945 0C   |MOV [ARG.2],EAX
+00941749  .| 8B4D 0C   |MOV ECX,[ARG.2]
+0094174C  .| 33D2      |XOR EDX,EDX
+0094174E  .| 8A11      |MOV DL,BYTE PTR DS:[ECX]              ; 取计算机名的第二个字节
+00941750  .| 8B45 08   |MOV EAX,[ARG.1]                       ; 第一个字节运算的结果
+00941753  .| 33C2      |XOR EAX,EDX
+00941755  .| 25 FF0000>|AND EAX,0FF
+0094175A  .| 8B4D 08   |MOV ECX,[ARG.1]
+0094175D  .| C1E9 08   |SHR ECX,8
+00941760  .| 8B1485 0C>|MOV EDX,DWORD PTR DS:[EAX*4+96240C]  ; 进行查表
+00941767  .| 33D1      |XOR EDX,ECX
+00941769  .| 8955 08   |MOV [ARG.1],EDX
+... 然后取第三到第七字节进行运算。
+00941848  .| 8B45 0C   |MOV EAX,[ARG.2]
+0094184B  .| 83C0 01   |ADD EAX,1
+0094184E  .| 8945 0C   |MOV [ARG.2],EAX
+00941851  .| 8B4D 0C   |MOV ECX,[ARG.2]
+00941854  .| 33D2      |XOR EDX,EDX
+00941856  .| 8A11      |MOV DL,BYTE PTR DS:[ECX]              ; 取第八个字节
+00941858  .| 8B45 08   |MOV EAX,[ARG.1]
+0094185B  .| 33C2      |XOR EAX,EDX
+0094185D  .| 25 FF0000>|AND EAX,0FF
+00941862  .| 8B4D 08   |MOV ECX,[ARG.1]
+00941865  .| C1E9 08   |SHR ECX,8
+00941868  .| 8B1485 0C>|MOV EDX,DWORD PTR DS:[EAX*4+96240C]
+0094186F  .| 33D1      |XOR EDX,ECX
+00941871  .| 8955 08   |MOV [ARG.1],EDX                       ; 保存第八个字节运算结果
+00941874  .| 8B45 0C   |MOV EAX,[ARG.2]
+00941877  .| 83C0 01   |ADD EAX,1
+0094187A  .| 8945 0C   |MOV [ARG.2],EAX
+0094187D  .| 8B4D 10   |MOV ECX,[ARG.3]
+00941880  .| 83E9 08   |SUB ECX,8
+00941883  .| 894D 10   |MOV [ARG.3],ECX
+00941886  .^. E9 88FEFF>\JMP KingFor3.00941713                 ; 循环
+0094188B  .> 837D 10 0>CMP [ARG.3],0
+0094188F  .| 74 3C     JE SHORT KingFor3.009418CD
+00941891  .> 8B55 0C   /MOV EDX,[ARG.2]
+00941894  .| 33C0      |XOR EAX,EAX
+00941896  .| 8A02      |MOV AL,BYTE PTR DS:[EDX]               ; 分组后剩余的第一个字节
+00941898  .| 8B4D 08   |MOV ECX,[ARG.1]
+0094189B  .| 33C8      |XOR ECX,EAX
+0094189D  .| 81E1 FF00>|AND ECX,0FF
+009418A3  .| 8B55 08   |MOV EDX,[ARG.1]
+009418A6  .| C1EA 08   |SHR EDX,8
+009418A9  .| 8B048D 0C>|MOV EAX,DWORD PTR DS:[ECX*4+96240C]  ; 进行查表
+009418B0  .| 33C2      |XOR EAX,EDX
+009418B2  .| 8945 08   |MOV [ARG.1],EAX                         ; 保存结果
+009418B5  .| 8B4D 0C   |MOV ECX,[ARG.2]
+009418B8  .| 83C1 01   |ADD ECX,1
+009418BB  .| 894D 0C   |MOV [ARG.2],ECX
+009418BE  .| 8B55 10   |MOV EDX,[ARG.3]
+009418C1  .| 83EA 01   |SUB EDX,1
+009418C4  .| 8955 10   |MOV [ARG.3],EDX
+009418C7  .| 837D 10 0>|CMP [ARG.3],0
+009418CB  .^. 75 C4     \JNZ SHORT KingFor3.00941891
+009418CD  .> 8B45 08   MOV EAX,[ARG.1]
+009418D0  .| 83F0 FF   XOR EAX,FFFFFFFF                        ; 进行异或运算得到 CRC32 的值
+009418D3  .> 5D        POP EBP
+009418D4  .\ C3        RETN
+```
