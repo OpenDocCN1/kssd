@@ -1,0 +1,636 @@
+
+# 记一游戏修改器的制作
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-16.htm`](https://www.pediy.com/kssd/pediy08/pediy8-16.htm)
+
+前语：近来人比较懒，看雪真是人才辈出啊，发现自己落后太多了，看来以后要加紧学习了...
+
+这个游戏是 `ToHeart2 XRATED` 附带的一个小游戏，一日无聊就拿它开刀了（最后有游戏的截图）
+
+使用工具：`OllyDbg`, `金山游侠 2002`
+
+用 `OD` 载入游戏（小提醒一下：最好打开 `OD` 后，把 `OD` 的优先级调低，再载入游戏，不然的话 `OD` 的分析时间太长了），
+
+就会停在 `OEP` 上：
+
+```
+00463D30  >  $  6A 60         push 60                            ;  (initial cpu selection) //OD 停在这里
+00463D32   .  68 F0316200    push SSS.006231F0
+00463D37   .  E8 E01A0000    call SSS.0046581C
+00463D3C   .  BF 94000000    mov edi,94
+00463D41   .  8BC7           mov eax,edi
+00463D43   .  E8 78FEFFFF    call SSS.00463BC0
+00463D48   .  8965 E8        mov dword ptr ss:[ebp-18],esp
+00463D4B   .  8BF4           mov esi,esp
+00463D4D   .  893E           mov dword ptr ds:[esi],edi
+00463D4F   .  56             push esi                             ; /pVersionInformation
+00463D50   .  FF15 78F05F00  call dword ptr ds:[<&KERNEL32.GetVersion>; \GetVersionExA
+```
+
+嗯，程序应该是没壳的，直接调试就可以了。
+
+打开金山游戏侠后按 `OD` 的 `F9` 键，运行程序，
+
+游戏开始后，按 `OD` 的暂停键，再用金山游侠找数字 3（一开始是 3 条命的）。
+
+为什么要暂停游戏呢？因为此东西比较 `BT`，呼出金山游戏侠后还不能暂停的，
+
+我把这个情况说给我一个经常玩游戏的同学，他也说："不是吧，这么厉害的游戏，金山游侠也停不住"。
+
+找到数字 3 后回到 `OD`，继续游戏，等生命数少一次后再找，找了两次后，就找到这里了：
+
+| 地址 | 单字节 | 双字节 | 四字节 |
+| :--- | :--- | :--- | :--- |
+| | | | |
+| :--- | :--- | :--- | :--- |
+| `092EAD81` | `[001]` | `[49921]` | `[3087909633]` |
+| `092B119D` | `[001]` | `[24321]` | `[1560633089]` |
+| `06D6C2EC` | `[001]` | `[00001]` | `[0000000001]` |
+| `01488A88` | `[001]` | `[21249]` | `[4244460289]` |
+| `01488988` | `[001]` | `[19457]` | `[4244458497]` |
+| `01488888` | `[001]` | `[17665]` | `[4244456705]` |
+| `00CFCA50` | `[001]` | `[00001]` | `[0000000001]` |
+
+看到 `DWORD` 是 1 的只有两个，`6D6C2EC` 和 `CFCA50`，我直觉的想人物的生命值应该是个 `static` 常量，
+
+应该是高一点的地址所以就试着更改 `6D6C2EC` 地址上面的数值，结果是成功的，可以修改生命数了，
+
+之后在此地址上面下 `DWORD` 的 `ACCESS` 中断，继续游戏，
+
+不到半秒后，游戏再次被断下：
+
+```
+0042AED7  |.  897424 28     mov dword ptr ss:[esp+28],esi
+0042AEDB  |.  E8 400B0300   call SSS.0045BA20
+0042AEE0  |.  E9 D9010000   jmp SSS.0042B0BE
+0042AEE5  |>  399F 94000000 cmp dword ptr ds:[edi+94],ebx        ;  中断在此
+0042AEEB  |.  0F8F A9000000 jg SSS.0042AF9A
+0042AEF1  |.  B9 A0DE7200   mov ecx,SSS.0072DEA0
+0042AEF6  |.  E8 858EFDFF   call SSS.00403D80
+0042AEFB  |.  A1 44736A00   mov eax,dword ptr ds:[6A7344]
+0042AF00  |.  3858 41       cmp byte ptr ds:[eax+41],bl
+```
+
+即然是这里判断的，在 `CALL` 的尾改就可以
+
+按翻页键，很快就找到此 `CALL` 的尾了：
+
+```
+0042B141  |.  8B15 44736A00 mov edx,dword ptr ds:[6A7344]
+0042B147  |.  89B2 F40C0000 mov dword ptr ds:[edx+CF4],esi
+0042B14D  |.  8BB7 94000000 mov esi,dword ptr ds:[edi+94]        ;  第 2 次内存中断
+0042B153  |.  B9 A0DE7200   mov ecx,SSS.0072DEA0
+0042B158  |.  E8 238CFDFF   call SSS.00403D80
+0042B15D  |.  A1 44736A00   mov eax,dword ptr ds:[6A7344]
+0042B162  |.  89B0 F80C0000 mov dword ptr ds:[eax+CF8],esi
+0042B168  |.  8BBF 8C000000 mov edi,dword ptr ds:[edi+8C]
+0042B16E  |.  B9 A0DE7200   mov ecx,SSS.0072DEA0
+0042B173  |.  E8 088CFDFF   call SSS.00403D80
+0042B178  |.  8B0D 44736A00 mov ecx,dword ptr ds:[6A7344]
+0042B17E  |.  89B9 FC0C0000 mov dword ptr ds:[ecx+CFC],edi
+0042B184  |.  8B4C24 20     mov ecx,dword ptr ss:[esp+20]
+0042B188  |.  5F            pop edi
+0042B189  |.  5E            pop esi
+0042B18A  |.  5D            pop ebp
+0042B18B  |.  64:890D 00000>mov dword ptr fs:[0],ecx
+0042B192  |.  5B            pop ebx
+0042B193  |.  83C4 1C       add esp,1C
+0042B196  \\.  C3            retn
+0042B197      CC            int3
+0042B198      CC            int3
+0042B199      CC            int3
+0042B19A      CC            int3
+0042B19B      CC            int3
+```
+
+在 `42B14D` 断下后，寄存器的值是：
+
+`EAX` `00CFBD60`
+
+`ECX` `059DFD18`
+
+`EDX` `00CFBD60`
+
+`EBX` `00000000`
+
+`ESP` `059DFCF8`
+
+`EBP` `0043FB10 SSS.0043FB10`
+
+`ESI` `00000000`
+
+`EDI` `06D6B0A8`
+
+`EIP` `0042B14D SSS.0042B14D`
+
+`EDI` 是 `6D6B0A8`，习惯性的看了一下堆栈：
+
+```
+059DFCF8   059EA48C
+059DFCFC   06D6B0A8
+059DFD00   0043FB10  SSS.0043FB10
+059DFD04   059DFD68
+059DFD08   77FB7E64  ntdll.77FB7E64
+059DFD0C   004784AA  RETURN to SSS.004784AA from ntdll.RtlLeaveCriticalSection
+059DFD10   00CFBB14
+```
+
+`[ESP+4]` = `EDI`，一个很有利用价值的情报 `:D`
+
+按 `F8` 单步运行到 `42B188` 处，`EDI` 已经被清 0 了，可是堆栈依然没变，
+
+可以用堆栈的这个地址来改内存了 `:)`
+
+已经没有空间写代码了，所以直接往下跳，找到程序尾的空白处：
+
+```
+0042B188     /E9 C3331D00   jmp SSS.005FE550
+0042B18D     |90            nop
+0042B18E     |90            nop
+0042B18F     |90            nop
+0042B190     |90            nop
+0042B191     |90            nop
+```
+
+二进制码是 `E9 C3 33 1D 00 90 90 90 90 90`
+
+```
+005FE545      00            db 00
+005FE546      00            db 00                             ;  保存生命数
+005FE547      00            db 00
+005FE548      00            db 00                             ;  保存 Level 级数
+005FE549      00            db 00
+005FE54A      00            db 00
+005FE54B      00            db 00
+005FE54C      00            db 00
+005FE54D      00            db 00
+005FE54E      00            db 00
+005FE54F      00            db 00
+005FE550      60            pushad                            ;  保存现场
+005FE551      9C            pushfd                            ;  保存现场
+005FE552      8B7C24 28     mov edi,dword ptr ss:[esp+28]     ;  把这个 EDI = [ESP+4]的值取出,要注意 PUSHAD 和 PUSHFD 后堆栈的值
+005FE556      33C0          xor eax,eax                       ;  EAX 清 0
+005FE558      33DB          xor ebx,ebx                       ;  EBX 清 0
+005FE55A      A0 46E55F00   mov al,byte ptr ds:[5FE546]       ;  生命数放入 AL,要注意的是前面的 EAX 已经清 0 了
+005FE55F      8A1D 48E55F00 mov bl,byte ptr ds:[5FE548]       ;  Level 级数放入 BL,要注意前面的 EBX 已经清 0 了
+005FE565      85FF          test edi,edi                       ;  测试 EDI 指针是否为空
+005FE567      74 0C         je short SSS.005FE575             ;  是空指针就不处理,跳走
+005FE569      8987 94000000 mov dword ptr ds:[edi+94],eax     ;  更改生命值
+005FE56F      899F 80000000 mov dword ptr ds:[edi+80],ebx     ;  更改 Level 级数
+005FE575      9D            popfd                             ;  恢复现场
+005FE576      61            popad                             ;  恢复现场
+005FE577      5F            pop edi                           ;  到下面都是原来程序的代码
+005FE578      5E            pop esi
+005FE579      5D            pop ebp
+005FE57A      64:890D 00000>mov dword ptr fs:[0],ecx
+005FE581      5B            pop ebx
+005FE582      83C4 1C       add esp,1C
+005FE585      C3            retn
+005FE586      00            db 00
+005FE587      00            db 00
+```
+
+二进制码是 `60 9C 8B 7C 24 28 33 C0 33 DB A0 46 E5 5F 00 8A 1D 48 E5 5F 00 85 FF 74 0C 89 87 94 00 00 00 89 9F 80 00 00 00 9D 61 5F 5E 5D 64 89 0D 00 00 00 00 5B 83 C4 1C C3`
+
+测试了一下，`OK`，成功；
+
+这一次有别与上次，上一次修改类似游戏的方法是改 `EXE` 文件，
+
+这一次就做个外挂吧，现在流行外挂 `:D`
+
+外挂的原理也不难，可以通过寻找窗口名的方法来找到游戏窗口，
+
+再用 `GetWindowThreadProcessID()`得到进程的 `ID`，接着用 `OpenProcess()`
+
+打开进程，最后用 `WriteProcessMemory()`改写内存数值就行了
+
+这几个 `API` 最容易出错的是 `WriteProcessMemory()`了，所以大家小心点 `:)`
+
+```c
+//定义一下要修改的内容
+
+BYTE mem1[10] = { 0xE9, 0xBF, 0x33, 0x1D, 0x00, 0x90, 0x90, 0x90, 0x90, 0x90 }; //0042B188
+BYTE mem2[54] = { 0x60, 0x9C, 0x8B, 0x7C, 0x24, 0x28, 0x33, 0xC0, 0x33, 0xDB, 0xA0,
+     0x46, 0xE5, 0x5F, 0x00, 0x8A, 0x1D, 0x48, 0xE5, 0x5F, 0x00, 0x85,
+     0xFF, 0x74, 0x0C, 0x89, 0x87, 0x94, 0x00, 0x00, 0x00, 0x89, 0x9F,
+```
+
+
+
+## 内存数据定义
+```
+0x80, 0x00, 0x00, 0x00, 0x9D, 0x61, 0x5F, 0x5E, 0x5D, 0x64, 0x89, 
+0x0D, 0x00, 0x00, 0x00, 0x00, 0x5B, 0x83, 0xC4, 0x1C, 0xC3 
+}; //005FE550
+```
+
+## 窗口查找与进程打开逻辑
+```
+HWND hWinWnd, hWinWnd1 = 0, hWinWnd2 = 0; 
+DWORD DWinProcID, DMemWrite1 = 0, DMemWrite2 = 0; 
+DWORD Daddr1 = 0x42B188, Daddr2 = 0x5FE550, DMemRead; 
+DWORD DKey[5] = { 0x4570AE, 0x4570BF, 0x4570D1, 0x4570E2, 0x4570F4 }; //更改键位,下面会说到的 
+hWinWnd1  = ::FindWindow( NULL, CSWinTitleJP ); //分两种标题 
+hWinWnd2  = ::FindWindow( NULL, CSWinTitleCN ); 
+
+if( (hWinWnd1 == NULL) && (hWinWnd2 == NULL) ) //如果两个标题都没有发现 
+{ 
+  MessageBox("无法找到窗口,游戏是否打开中?", NULL, MB_OK|MB_ICONSTOP ); 
+  PostQuitMessage( 0 ); 
+} 
+else 
+{ 
+  hWinWnd1 == NULL ? hWinWnd = hWinWnd2 : hWinWnd = hWinWnd1; //把不为 NULL 的标题赋与 hWinWnd 
+  GetWindowThreadProcessId( hWinWnd, &DWinProcID ); //得到进程 ID 
+  hPrc = OpenProcess( PROCESS_ALL_ACCESS, FALSE, DWinProcID ); //打开进程,注意要用 PROCESS_ALL_ACCESS,不然的话有些内存区域不可改写的 
+  if( hWinWnd != NULL ) ::SetWindowText( hWinWnd , CSWinTitleCN ); //更改窗口标题,后来加上去的 
+  if( hPrc != NULL ) //如果打开进程成功的话就改写内存 
+  { 
+    WriteProcessMemory( hPrc, (void*)Daddr1, mem1, 10, &DMemWrite1 ); 
+    WriteProcessMemory( hPrc, (void*)Daddr2, mem2, 54, &DMemWrite2 ); 
+    //BYTE Key[5]; //left,right,up,down,fire 
+    WriteProcessMemory( hPrc, (void*)DKey[0], &left  , 1, &DMemRead ); //这是更改键位的,下面会说到 
+    WriteProcessMemory( hPrc, (void*)DKey[1], &right, 1, &DMemRead ); 
+    WriteProcessMemory( hPrc, (void*)DKey[2], &up  , 1, &DMemRead ); 
+    WriteProcessMemory( hPrc, (void*)DKey[3], &down  , 1, &DMemRead ); 
+    WriteProcessMemory( hPrc, (void*)DKey[4], &fire  , 1, &DMemRead ); 
+    ShowKey(); //显示按键 
+    if( DMemWrite1 != 10 || DMemWrite2 != 54 ) //看写入内存数据的 SIZE 对不对 
+    { 
+      MessageBox( " 写入内存出错", NULL, MB_OK|MB_ICONSTOP ); 
+    } 
+  } 
+  else 
+  { 
+    MessageBox( "打开进程出错", NULL, MB_OK|MB_ICONSTOP ); 
+    PostQuitMessage( 0 ); 
+  } 
+}
+```
+
+### 改写生命数与 `Level` 数
+```
+005FE55A      A0 46E55F00   mov al,byte ptr ds:[5FE546]                ;  生命数放入 AL,要注意的是前面的 EAX 已经清 0 了 
+005FE55F      8A1D 48E55F00 mov bl,byte ptr ds:[5FE548]                ;  Level 级数放入 BL,要注意前面的 EBX 已经清 0 了 
+```
+生命数与 `Level` 数都放在这两个 `BYTE` 空间上面,更改的话改这两个地址就行了:
+
+```
+BOOL CSSSEditorDlg::Write(UINT iLife, UINT iLevel) 
+{ 
+  DWORD Dadd1 = 0x5FE546, Dadd2 = 0x5FE548; 
+  DWORD DMemWrite1 = 0, DMemWrite2 = 0; 
+  WriteProcessMemory( hPrc, (void*)Dadd1, &iLife, 1, &DMemWrite1 ); 
+  WriteProcessMemory( hPrc, (void*)Dadd2, &iLevel, 1, &DMemWrite2 ); 
+  if( DMemWrite1 != 1 || DMemWrite2 != 1 ) 
+  { 
+    return FALSE; 
+  } 
+  else return TRUE; 
+}
+```
+/////////////////////////////////////////////////////////////////////////////////// 
+`OK`，生命数与 `Level` 数的更改都已完成了 
+
+## 解决键位不顺手的问题
+这个游戏比较 `BT`，方向键是键盘的上下左右，`shot` 键是空格， 
+这对于大部分国内游戏玩家来说是非常的不顺手，国内的玩家 
+习惯了 `ASDW JKL;` 这种键位，看来有必要改一下. 
+
+先来说 `OD` 的一个弱点，如下面的:
+```
+00444333   .  48            dec eax                                   ;  Switch (cases 1..2) 
+00444334   .  74 48         je short SSS.0044437E 
+00444336   .  48            dec eax 
+00444337   .  0F85 1F010000 jnz SSS.0044445C 
+0044433D   .  8B46 2C       mov eax,dword ptr ds:[esi+2C]            ;  Case 2 of switch 00444333 
+```
+没有办法找 `Switch (cases 1..2)` 之类的注释，无奈，(很希望 `OD2.0` 会加入这样的注释搜寻功能) 
+
+全部导出代码后打开(千万不要想用 `Noteped` 打开，导出来的东西有 `27MB`，我用 `EmEditor` 打开). 
+
+静下来想想后，发现如果是要判断按键的话应该用到虚拟键盘影射，如 `VK_LEFT` 之类的， 
+就在 `EM` 里面找 `VK_` 结果找到下面的:
+```
+004570AD  |.  6A 25         push 25                                   ; /Key = VK_LEFT 
+004570AF  |.  FFD5        call ebp                                   ; \\GetAsyncKeyState 
+004570B1  |.  84E4        test ah,ah 
+004570B3  |.  79 09         jns short SSS.004570BE 
+004570B5  |.  C746 24 FFFFF>mov dword ptr ds:[esi+24],-1 
+004570BC  |.  EB 0F         jmp short SSS.004570CD 
+004570BE  |>  6A 27         push 27 
+004570C0  |.  FFD5        call ebp 
+004570C2  |.  84E4        test ah,ah 
+004570C4  |.  79 0A         jns short SSS.004570D0 
+004570C6  |.  C746 24 01000>mov dword ptr ds:[esi+24],1 
+004570CD  |>  897E 08       mov dword ptr ds:[esi+8],edi 
+004570D0  |>  6A 26         push 26 
+004570D2  |.  FFD5        call ebp 
+004570D4  |.  84E4        test ah,ah 
+004570D6  |.  79 09         jns short SSS.004570E1 
+004570D8  |.  C746 28 FFFFF>mov dword ptr ds:[esi+28],-1 
+004570DF  |.  EB 0F         jmp short SSS.004570F0 
+004570E1  |>  6A 28         push 28 
+004570E3  |.  FFD5        call ebp 
+004570E5  |.  84E4        test ah,ah 
+004570E7  |.  79 0A         jns short SSS.004570F3 
+004570E9  |.  C746 28 01000>mov dword ptr ds:[esi+28],1 
+004570F0  |>  897E 08       mov dword ptr ds:[esi+8],edi 
+004570F3  |>  6A 20         push 20 
+004570F5  |.  FFD5        call ebp 
+004570F7  |.  84E4        test ah,ah 
+004570F9  |.  79 0B         jns short SSS.00457106 
+004570FB  |.  8B46 2C       mov eax,dword ptr ds:[esi+2C] 
+004570FE  |.  C64430 30 01  mov byte ptr ds:[eax+esi+30],1 
+00457103  |.  897E 08       mov dword ptr ds:[esi+8],edi 
+00457106  |>  6A 0D         push 0D 
+00457108  |.  FFD5        call ebp 
+0045710A  |.  84E4        test ah,ah 
+0045710C  |.  79 0B         jns short SSS.00457119 
+```
+
+键盘影射表....到哪找啊，在 `GOOGLE` 找上半天没发现..郁闷，是不是我的寻找方法有问题啊... 
+
+在 `Visual Studio` 的 `H` 文件里面找吧.. 
+
+一般常用的东西都是在 `winuser.h` 里面，就在这里面找吧，寻找以后发现这些:
+```c
+/* 
+ * Virtual Keys, Standard Set 
+ */ 
+#define VK_LBUTTON        0x01 
+#define VK_RBUTTON        0x02 
+#define VK_CANCEL         0x03 
+#define VK_MBUTTON        0x04    /* NOT contiguous with L & RBUTTON */ 
+#define VK_BACK          0x08 
+#define VK_TAB           0x09 
+#define VK_CLEAR         0x0C 
+#define VK_RETURN        0x0D 
+#define VK_SHIFT         0x10 
+#define VK_CONTROL       0x11 
+#define VK_MENU          0x12 
+#define VK_PAUSE         0x13 
+#define VK_CAPITAL       0x14 
+#define VK_KANA          0x15 
+#define VK_HANGEUL       0x15  /* old name - should be here for compatibility */ 
+#define VK_HANGUL        0x15 
+#define VK_JUNJA         0x17 
+#define VK_FINAL         0x18 
+#define VK_HANJA         0x19 
+#define VK_KANJI         0x19 
+#define VK_ESCAPE        0x1B 
+#define VK_CONVERT       0x1C 
+#define VK_NONCONVERT    0x1D 
+#define VK_ACCEPT        0x1E 
+#define VK_MODECHANGE    0x1F 
+#define VK_SPACE         0x20 
+#define VK_PRIOR         0x21 
+#define VK_NEXT          0x22 
+#define VK_END           0x23 
+#define VK_HOME          0x24 
+#define VK_LEFT          0x25 
+#define VK_UP            0x26 
+#define VK_RIGHT         0x27 
+#define VK_DOWN          0x28 
+#define VK_SELECT        0x29 
+#define VK_PRINT         0x2A 
+#define VK_EXECUTE       0x2B 
+#define VK_SNAPSHOT      0x2C 
+#define VK_INSERT        0x2D 
+#define VK_DELETE        0x2E 
+#define VK_HELP          0x2F 
+/* VK_0 thru VK_9 are the same as ASCII '0' thru '9' (0x30 - 0x39) */ 
+/* VK_A thru VK_Z are the same as ASCII 'A' thru 'Z' (0x41 - 0x5A) */ 
+#define VK_LWIN          0x5B 
+#define VK_RWIN          0x5C 
+#define VK_APPS          0x5D 
+```
+不错的东西 :)
+```
+004570AD  |.  6A 25         push 25                                   ; /Key = VK_LEFT 
+004570AF  |.  FFD5        call ebp                                   ; \\GetAsyncKeyState 
+004570B1  |.  84E4        test ah,ah 
+004570B3  |.  79 09         jns short SSS.004570BE 
+```
+只要把 `push 25` 改成 `push 41`(`A` 的 `ASCII` 码)就能把方向键左变为 `A` 了，下面的不顺手的按键同样是可以改的. 
+
+修改代码在上面已经有了，请往上看 :) 
+
+## 3: 激活隐藏人物
+把该游戏放在网上给人下载玩的时候，听到有不少人抱怨说是游戏不能选用所有的人物， 
+我就觉得奇怪了，所有的 `10` 个人物我都能用啊，抱着试一试的心态把游戏 `COPY` 到另外一个 
+目录下，果然，除了第 `1` 个人物"このみ"可选的外，其它的人都是问号，且是不可选的.得想个办法解决. 
+
+
+
+想了一下子，即然游戏 `COPY` 到另一个目录下就会有人物不可全选的现象，那应该记录的地方不是在注册表里面。不是在注册表里面，那就很有可能是在文件里面，试试下 `CreateFileA` 看看有没有什么东西可用的：
+
+经过 1 个中断，断在一个很可疑的地方，此时的堆栈是：
+
+```
+0558FB9C   0047B3B3  /CALL to CreateFileA from SSS.0047B3AD
+0558FBA0   0559B5D0  |FileName = "I:\ToHeart2 XRATED\sys.sav"
+0558FBA4   80000000  |Access = GENERIC_READ
+0558FBA8   00000001  |ShareMode = FILE_SHARE_READ
+0558FBAC   00000000  |pSecurity = NULL
+0558FBB0   00000003  |Mode = OPEN_EXISTING
+0558FBB4   00000080  |Attributes = NORMAL
+0558FBB8   00000000  \hTemplateFile = NULL
+```
+
+我的游戏目录明明是在 `i:\ToHeart2 XRATED\sss\` 下面的，它干嘛要去上一层目录去找 `SAV` 文件啊？
+
+按 `Alt+F9` 返回用户代码
+
+```
+0047B39C  |> \53            push ebx                              ; /hTemplateFile
+0047B39D  |.  68 80000000  push 80                                 ; |Attributes = NORMAL
+0047B3A2  |.  6A 03         push 3                                  ; |Mode = OPEN_EXISTING
+0047B3A4  |.  53            push ebx                                ; |pSecurity
+0047B3A5  |.  6A 01         push 1                                  ; |ShareMode = FILE_SHARE_READ
+0047B3A7  |.  68 00000080   push 80000000                           ; |Access = GENERIC_READ
+0047B3AC  |.  50            push eax                                ; |FileName
+0047B3AD  |.  FF15 44F05F00 call dword ptr ds:[<&KERNEL32.CreateFile>; \CreateFileA
+0047B3B3  |.  8BF8          mov edi,eax
+0047B3B5  |.  83FF FF      cmp edi,-1
+0047B3B8  |.  0F85 01030000 jnz SSS.0047B6BF
+0047B3BE  |.  50            push eax
+0047B3BF  |.  53            push ebx
+0047B3C0  |.  8D4C24 3C     lea ecx,dword ptr ss:[esp+3C]
+```
+
+之后走出几个 `CALL` 后：
+
+```
+00454348  |.  8D4C24 58     lea ecx,dword ptr ss:[esp+58]
+0045434C  |.  E8 6F740200   call SSS.0047B7C0
+00454351  |.  3BC7          cmp eax,edi
+00454353  |.  74 33         je short SSS.00454388
+00454355  |.  8D4C24 3C     lea ecx,dword ptr ss:[esp+3C]
+```
+
+往下走几步后，发现这个比较可疑的：
+
+```
+004543B3  |.  8BF3          mov esi,ebx
+004543B5  |>  8B44B4 14     /mov eax,dword ptr ss:[esp+esi*4+14]
+004543B9  |.  05 6E180000   |add eax,186E
+004543BE  |.  3BC7          |cmp eax,edi
+004543C0  |.  73 25         |jnb short SSS.004543E7
+004543C2  |.  395C85 00     |cmp dword ptr ss:[ebp+eax*4],ebx
+004543C6  |.  75 1F         |jnz short SSS.004543E7
+004543C8  |.  85F6          |test esi,esi
+004543CA  |.  7C 1B         |jl short SSS.004543E7
+004543CC  |.  83FE 0A       |cmp esi,0A
+004543CF  |.  7D 16         |jge short SSS.004543E7
+004543D1  |.  B9 A0DE7200   |mov ecx,SSS.0072DEA0
+004543D6  |.  E8 A5F9FAFF   |call SSS.00403D80
+004543DB  |.  A1 44736A00   |mov eax,dword ptr ds:[6A7344]
+004543E0  |.  889C06 210D00>|mov byte ptr ds:[esi+eax+D21],bl
+004543E7  |>  46            |inc esi
+004543E8  |.  83FE 0A       |cmp esi,0A
+004543EB  |.^ 7C C8         \jl short SSS.004543B5
+004543ED  |.  8D4C24 3C     lea ecx,dword ptr ss:[esp+3C]
+```
+
+这一段有一行代码是很有可疑的
+
+```
+004543E8  |.  83FE 0A       |cmp esi,0A
+```
+
+因为人物是 10 个，它又刚好的循环 `0xA`(10)次
+
+```
+004543C2  |.  395C85 00     |cmp dword ptr ss:[ebp+eax*4],ebx
+```
+
+走到这一句时，`EBX` 则为 0，下面又有一个 `JNZ` 的条件跳转
+
+```
+004543DB  |.  A1 44736A00   |mov eax,dword ptr ds:[6A7344]
+004543E0  |.  889C06 210D00>|mov byte ptr ds:[esi+eax+D21],bl
+004543E7  |>  46            |inc esi                              ;  JNZ 跳到这里
+004543E0  |.  889C06 210D00>|mov byte ptr ds:[esi+eax+D21],bl
+```
+
+走到这一句时，`BL` 为 1，貌似是把 `[esi+eax+D21]` 置为 1，很可疑，`EAX` 的值是个定数（上一行代码可知），`ESI` 就是一个人物个数的计数器，第 1 个人物时，`ESI == 1`，第 2 个人物时，`ESI == 2`；
+
+把 `JNZ` 改为 `NOP`，使它不跳，继续运行
+
+发现这样以后人物都可以选择了，看来关键点就在这里；
+
+可是很快又发现一个问题了，我写的是一个外挂，不是一个 `LOADER`，所以在运行这个外挂的时候这一句代码早就运行过了，不可能再次跳到这里运行了，
+
+所以还得想另一种方法。
+
+既然 `ESI+EAX+D21` 是一个 `static` 指针，那地址就应该是相对稳定的，
+
+刚才还记录了第 1 个地址是 `0xCFCA82`，直接在该地址上面下 `byte` 的断点
+
+再次运行程序，在选择人物时程序中断在一个新的点上：
+
+```
+0040D8D3  |.  E8 A864FFFF   call SSS.00403D80
+0040D8D8  |.  A1 44736A00   mov eax,dword ptr ds:[6A7344]
+0040D8DD  |.  8A8430 210D00>mov al,byte ptr ds:[eax+esi+D21]         ;  断在这里
+0040D8E4  |.  5E            pop esi
+0040D8E5  |.  C3            retn
+0040D8E6  |>  32C0          xor al,al
+0040D8E8  |.  5E            pop esi
+0040D8E9  \.  C3            retn
+```
+
+`retn` 后就是这里了：
+
+```
+0040FD80   .  8B8E BC000000 mov ecx,dword ptr ds:[esi+BC]
+0040FD86   .  51            push ecx
+0040FD87   .  E8 34DBFFFF   call SSS.0040D8C0
+0040FD8C   .  83C4 04       add esp,4
+0040FD8F   .  84C0          test al,al
+0040FD91   .  75 07         jnz short SSS.0040FD9A
+0040FD93   .  C746 24 25000>mov dword ptr ds:[esi+24],25
+0040FD9A   >  8B46 24       mov eax,dword ptr ds:[esi+24]
+0040FD9D   .  C1E0 04       shl eax,4
+```
+
+嗯，在 `40D8DD` 里面改就可以了；
+
+一句老话，还要跳到空白代码上：
+
+```
+0040D8DD   /E9 1E0D1F00     jmp SSS.005FE600
+0040D8E2   |90              nop
+0040D8E3   |90              nop
+0040D8E4   |5E              pop esi
+0040D8E5   |C3              retn
+```
+
+其二进制代码是 `E9 1E 0D 1F 00 90 90`
+
+```
+005FE5FF     00            db 00
+005FE600     B0 01         mov al,1                              ;  AL 置 1
+005FE602     888430 210D00>mov byte ptr ds:[eax+esi+D21],al      ;  使人物变为可选
+005FE609     56            push esi                                ;  保存 ESI 指针
+005FE60A     50            push eax                                ;  保存 EAX 数据
+005FE60B     A1 44736A00   mov eax,dword ptr ds:[6A7344]           ;  取得 Static 变量的地址
+005FE610     83C6 01       add esi,1                               ;  人物指针+1
+005FE613     C68430 210D00>mov byte ptr ds:[eax+esi+D21],1         ;  激活人物
+005FE61B     58            pop eax                                 ;  恢复 EAX 数据
+005FE61C     5E            pop esi                                 ;  恢复 ESI 指针
+005FE61D     5E            pop esi                                 ;  原代码
+005FE61E     C3            retn                                    ;  原代码
+005FE61F     00            db 00
+```
+
+其二进制代码是 `B0 01 88 84 30 21 0D 00 00 56 50 A1 44 73 6A 00 83 C6 01 C6 84 30 21 0D 00 00 01 58 5E 5E C3`
+
+不过这也有个缺点：在选择人物前就要更改代码了，不然的话还是没用，
+
+不是 `loader` 真是受限制啊 :(`
+
+`VC` 中的代码：
+
+```cpp
+void CSSSEditorDlg::OnButtonactive()
+
+{
+
+  BYTE mem[7] =  { 0xE9, 0x1E, 0x0D, 0x1F, 0x00, 0x90, 0x90 };
+
+  BYTE mem2[31] = { 0xB0, 0x01, 0x88, 0x84, 0x30, 0x21, 0x0D, 0x00, 0x00, 0x56,
+
+            0x50, 0xA1, 0x44, 0x73, 0x6A, 0x00, 0x83, 0xC6, 0x01, 0xC6,
+
+            0x84, 0x30, 0x21, 0x0D, 0x00, 0x00, 0x01, 0x58, 0x5E, 0x5E,
+
+            0xC3
+
+          };
+
+  DWORD addr = 0x40D8DD, addr2 = 0x5FE600, DMemWrite;
+
+  MessageBox( "在选择人物前就要激活", "SSSEDitor", MB_OK|MB_ICONINFORMATION );
+
+  WriteProcessMemory( hPrc, (void*)addr, &mem, 7, &DMemWrite );
+
+  WriteProcessMemory( hPrc, (void*)addr2, &mem2, 31, &DMemWrite );
+
+}
+```
+
+[KFC]fish (Pr0Zel)
+
+编译好的修改器可以到这里下载：[`www.keyfc.net/bbs/disp.asp?titleid=13592`](http://www.keyfc.net/bbs/disp.asp?titleid=13592)
+
+游戏可以去 `MO` 上面下载 `www.mofile.com`
+
+提取码是 `4164151347219943`
+
+大小是 `19MB`
+
+`BTW`:有一个朋友对我说“21 世纪有技术的年代，所以作弊也要选一种有技术的作弊方法”，我倒....... ![](img/77a5f7cfd3ec840c98be3aecc80df838.jpg)
+
+`4dd466d0e1e0cc123afbe504da2462ca`
