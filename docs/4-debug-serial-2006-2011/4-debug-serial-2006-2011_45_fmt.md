@@ -1,0 +1,258 @@
+
+# EEV\_Pro6.59T
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-391.htm`](https://www.pediy.com/kssd/pediy08/pediy8-391.htm)
+
+## EEV\_Pro6.59 简单算法分析-菜鸟篇
+
+**【文章作者】**: `tzl`  
+**【作者邮箱】**: 无  
+**【软件名称】**: `EEV\_Pro6.59T`  
+**【软件大小】**: 9.07 MB  
+**【下载地址】**: `http://www.adonsoft.com/Download/EEV\_Pro6.59T\_Sky.zip`  
+**【加壳方式】**: 无  
+**【保护方式】**: 注册码  
+**【编写语言】**: Borland Delphi 6.0 - 7.0  
+**【使用工具】**: `OD`, `PEID`  
+**【操作平台】**: XP SP2  
+**【软件介绍】**: 房地产开发项目经济评价可行性研究及概预决算管理系统
+
+今天空闲下来了，找了几个软柿子尝尝，是个适合菜鸟学习的好软件，这里与大家分享，菜鸟共同进步。
+`![](img/dd27b7eb3e47f4f9a8b69ac3c32485f5.jpg)`
+
+### 一、查壳
+无
+
+### 二、根据字符串相关信息，我们可以在这里下断开始分析，试练码：`123456789`
+
+```assembly
+0068FB96    55          push ebp
+0068FB97    68 1CFD680> push EEV.0068FD1C
+0068FB9C    64:FF30     push dword ptr fs:[eax]
+0068FB9F    64:8920     mov dword ptr fs:[eax],esp
+0068FBA2    A1 5C86710> mov eax,dword ptr ds:[71865C]
+0068FBA7    8B15 9C8F7> mov edx,dword ptr ds:[718F9C]        ; EEV.0071B43C
+0068FBAD    8B12        mov edx,dword ptr ds:[edx]
+0068FBAF    E8 604DD7F> call EEV.00404914
+0068FBB4    A1 5C86710> mov eax,dword ptr ds:[71865C]
+0068FBB9    8B00        mov eax,dword ptr ds:[eax]
+0068FBBB    50          push eax
+0068FBBC    B9 8CFD680> mov ecx,EEV.0068FD8C                  ; ASCII "PrgDir"
+0068FBC1    BA 9CFD680> mov edx,EEV.0068FD9C                  ; ASCII "EstaExplValue 6.0\\"
+0068FBC6    8B45 F8     mov eax,dword ptr ss:[ebp-8]
+0068FBC9    E8 12ABDBF> call EEV.0044A6E0
+0068FBCE    8D55 F4     lea edx,dword ptr ss:[ebp-C]
+0068FBD1    8B45 FC     mov eax,dword ptr ss:[ebp-4]
+0068FBD4    8B80 00030> mov eax,dword ptr ds:[eax+300]
+0068FBDA    E8 1D31DFF> call EEV.00482CFC
+0068FBDF    8B55 F4     mov edx,dword ptr ss:[ebp-C]          ; 机器码送 edx，"886EA-AEF73-EB5BB-904FD"
+0068FBE2    A1 3C8C710> mov eax,dword ptr ds:[718C3C]          ; eax=17（十进制为 23），
+0068FBE7    E8 284DD7F> call EEV.00404914
+0068FBEC    A1 3C8C710> mov eax,dword ptr ds:[718C3C]
+0068FBF1    8B00        mov eax,dword ptr ds:[eax]
+0068FBF3    50          push eax                                ; eax="886EA-AEF73-EB5BB-904FD"
+0068FBF4    BA 9CFD680> mov edx,EEV.0068FD9C                  ; ASCII "EstaExplValue 6.0\\"
+0068FBF9    B9 B8FD680> mov ecx,EEV.0068FDB8                  ; ASCII "User"
+0068FBFE    8B45 F8     mov eax,dword ptr ss:[ebp-8]
+0068FC01    E8 DAAADBF> call EEV.0044A6E0
+0068FC06    A1 3C8C710> mov eax,dword ptr ds:[718C3C]
+0068FC0B    8B00        mov eax,dword ptr ds:[eax]
+0068FC0D    50          push eax
+0068FC0E    BA 9CFD680> mov edx,EEV.0068FD9C                  ; ASCII "EstaExplValue 6.0\\"
+0068FC13    B9 C8FD680> mov ecx,EEV.0068FDC8                  ; ASCII "Organization"
+0068FC18    8B45 F8     mov eax,dword ptr ss:[ebp-8]
+0068FC1B    E8 C0AADBF> call EEV.0044A6E0
+0068FC20    8D55 F0     lea edx,dword ptr ss:[ebp-10]
+0068FC23    8B45 FC     mov eax,dword ptr ss:[ebp-4]
+0068FC26    8B80 0C030> mov eax,dword ptr ds:[eax+30C]
+0068FC2C    E8 CB30DFF> call EEV.00482CFC
+0068FC31    8B55 F0     mov edx,dword ptr ss:[ebp-10]          ; 试练码 123456789 送 edx
+0068FC34    A1 FC88710> mov eax,dword ptr ds:[7188FC]          ; eax=试练码位数 9
+0068FC39    E8 D64CD7F> call EEV.00404914
+0068FC3E    A1 FC88710> mov eax,dword ptr ds:[7188FC]
+0068FC43    8B00        mov eax,dword ptr ds:[eax]
+0068FC45    50          push eax                                ; eax=123456789
+0068FC46    BA 9CFD680> mov edx,EEV.0068FD9C                  ; ASCII "EstaExplValue 6.0\\"
+0068FC4B    B9 E0FD680> mov ecx,EEV.0068FDE0                  ; ASCII "Code"
+0068FC50    8B45 F8     mov eax,dword ptr ss:[ebp-8]
+0068FC53    E8 88AADBF> call EEV.0044A6E0
+0068FC58    8B15 3C8C7> mov edx,dword ptr ds:[718C3C]          ; EEV.0071B488
+0068FC5E    8B12        mov edx,dword ptr ds:[edx]              ; edx（机器码）=886EA-AEF73-EB5BB-904FD
+0068FC60    B8 F0FD680> mov eax,EEV.0068FDF0                  ; ASCII "75EA2-2D12A-AA55A-FBCC7"
+0068FC65    E8 6A52D7F> call EEV.00404ED4                      ; edx（机器码）=886EA-AEF73-EB5BB-904FD，eax（固定码）=75EA2-2D12A-AA55A-FBCC7
+0068FC6A    85C0        test eax,eax                            ; 检查机器码是否与固定码格式一致，不一致则失败跳转
+0068FC6C    74 0A       je short EEV.0068FC78
+0068FC6E    E8 F146D7F> call EEV.00404364
+0068FC73    E9 B300000> jmp EEV.0068FD2B
+0068FC78    8D55 DC     lea edx,dword ptr ss:[ebp-24]
+0068FC7B    A1 3C8C710> mov eax,dword ptr ds:[718C3C]
+0068FC80    8B00        mov eax,dword ptr ds:[eax]
+0068FC82    E8 1D93F1F> call EEV.005A8FA4
+0068FC87    8D45 DC     lea eax,dword ptr ss:[ebp-24]
+0068FC8A    8D55 EC     lea edx,dword ptr ss:[ebp-14]
+0068FC8D    E8 B607000> call EEV.00690448                      ; 算法分析 call
+0068FC92    8B45 EC     mov eax,dword ptr ss:[ebp-14]          ; ebp-14=A2B1-1334，即为真正注册码
+0068FC95    8B15 FC887> mov edx,dword ptr ds:[7188FC]          ; EEV.0071B48C
+0068FC9B    8B12        mov edx,dword ptr ds:[edx]
+0068FC9D    E8 3252D7F> call EEV.00404ED4                      ; eax=注册码，edx=试练码，检测试练码是否正确，可以跟进看看
+0068FCA2    85C0        test eax,eax
+0068FCA4    7E 2E       jle short EEV.0068FCD4
+0068FCA6    6A 40       push 40
+0068FCA8    8D55 D8     lea edx,dword ptr ss:[ebp-28]
+0068FCAB    A1 5C8D710> mov eax,dword ptr ds:[718D5C]
+0068FCB0    8B00        mov eax,dword ptr ds:[eax]
+0068FCB2    E8 F94EE1F> call EEV.004A4BB0
+0068FCB7    8B45 D8     mov eax,dword ptr ss:[ebp-28]
+0068FCBA    E8 D150D7F> call EEV.00404D90
+0068FCBF    8BC8        mov ecx,eax
+0068FCC1    BA 08FE680> mov edx,EEV.0068FE08
+0068FCC6    A1 5C8D710> mov eax,dword ptr ds:[718D5C]
+0068FCCB    8B00        mov eax,dword ptr ds:[eax]
+0068FCCD    E8 6A55E1F> call EEV.004A523C
+0068FCD2    EB 2C       jmp short EEV.0068FD00
+0068FCD4    6A 10       push 10
+0068FCD6    8D55 D4     lea edx,dword ptr ss:[ebp-2C]
+0068FCD9    A1 5C8D710> mov eax,dword ptr ds:[718D5C]
+0068FCDE    8B00        mov eax,dword ptr ds:[eax]
+0068FCE0    E8 CB4EE1F> call EEV.004A4BB0
+0068FCE5    8B45 D4     mov eax,dword ptr ss:[ebp-2C]
+0068FCE8    E8 A350D7F> call EEV.00404D90
+0068FCED    8BC8        mov ecx,eax
+0068FCEF    BA 50FE680> mov edx,EEV.0068FE50
+0068FCF4    A1 5C8D710> mov eax,dword ptr ds:[718D5C]
+0068FCF9    8B00        mov eax,dword ptr ds:[eax]
+0068FCFB    E8 3C55E1F> call EEV.004A523C                      ; 注册失败提示处
+0068FD00    33C0        xor eax,eax                             ; 注册成功则跳转到此
+0068FD02    5A          pop edx
+0068FD03    59          pop ecx
+0068FD04    59          pop ecx
+0068FD05    64:8910     mov dword ptr fs:[eax],edx
+0068FD08    68 23FD680> push EEV.0068FD23
+0068FD0D    837D F8 00  cmp dword ptr ss:[ebp-8],0
+0068FD11    74 08       je short EEV.0068FD1B
+0068FD13    8B45 F8     mov eax,dword ptr ss:[ebp-8]
+0068FD16    E8 F93CD7F> call EEV.00403A14
+0068FD1B    C3          retn
+```
+
+跟进算法 `call EEV.00690448`，来到这里：
+
+```assembly
+0069046C    55          push ebp
+0069046D    68 2A05690> push EEV.0069052A
+00690472    64:FF30     push dword ptr fs:[eax]
+00690475    64:8920     mov dword ptr fs:[eax],esp
+00690478    8D45 E8     lea eax,dword ptr ss:[ebp-18]
+0069047B    50          push eax
+0069047C    8D55 DC     lea edx,dword ptr ss:[ebp-24]
+0069047F    8D45 EC     lea eax,dword ptr ss:[ebp-14]
+00690482    E8 918BF1F> call EEV.005A9018
+00690487    8B45 DC     mov eax,dword ptr ss:[ebp-24]    ; MD5（886EA-AEF73-EB5BB-904FD）=a2b1334c5bf63029fa17728b232466bc
+0069048A    8945 E0     mov dword ptr ss:[ebp-20],eax    ; eax=“a2b1334c5bf63029fa17728b232466bc”
+0069048D    C645 E4 0B  mov byte ptr ss:[ebp-1C],0B      ; 0B=ss:[ebp-1C]
+00690491    8D55 E0     lea edx,dword ptr ss:[ebp-20]
+```
+
+
+
+### 00690494 33C9 xor ecx,ecx
+
+`00690494    33C9       xor ecx,ecx                  ; ecx 清零`  
+`00690496    B8 4005690> mov eax,EEV.00690540         ; ASCII "%s"`  
+`0069049B    E8 6CA6D7F> call EEV.0040AB0C            ; 将“a2b1334c5bf63029fa17728b232466bc”转成大写字母`  
+`006904A0    8B45 E8     mov eax,dword ptr ss:\[ebp\-18\]   ; ss:\[ebp-18\]=a2b1334c5bf63029fa17728b232466bc`  
+`006904A3    8D55 FC     lea edx,dword ptr ss:\[ebp\-4\]    ; eax=a2b1334c5bf63029fa17728b232466bc`  
+`006904A6    E8 698ED7F> call EEV.00409314`  
+`006904AB    8BC6        mov eax,esi`  
+`006904AD    E8 0E44D7F> call EEV.004048C0`  
+`006904B2    33DB        xor ebx,ebx                  ; ebx 清零`  
+`006904B4    85DB        test ebx,ebx`  
+`006904B6    75 15       jnz short EEV.006904CD`  
+`006904B8    56          push esi`  
+`006904B9    8BD3        mov edx,ebx`  
+`006904BB    C1E2 02     shl edx,2                    ; edx 左移 2`  
+`006904BE    B9 0400000> mov ecx,4                    ; 4 送 ecx`  
+`006904C3    8B45 FC     mov eax,dword ptr ss:\[ebp\-4\]    ; ebp-4=A2B1334C5BF63029FA17728B232466BC，送 eax`  
+`006904C6    E8 2549D7F> call EEV.00404DF0`  
+`006904CB    EB 2C       jmp short EEV.006904F9`  
+`006904CD    FF36        push dword ptr ds:\[esi\]       ; ds:\[esi\]=A2B1，即第一部分注册码`  
+`006904CF    68 4C05690> push EEV.0069054C`  
+`006904D4    8D45 D8     lea eax,dword ptr ss:\[ebp\-28\]`  
+`006904D7    50          push eax`  
+`006904D8    8BD3        mov edx,ebx`  
+`006904DA    C1E2 02     shl edx,2`  
+`006904DD    B9 0400000> mov ecx,4`  
+`006904E2    8B45 FC     mov eax,dword ptr ss:\[ebp\-4\]`  
+`006904E5    E8 0649D7F> call EEV.00404DF0`  
+`006904EA    FF75 D8     push dword ptr ss:\[ebp\-28\]      ; ss:\[ebp-28\]=1344，即第二部分注册码`  
+`006904ED    8BC6        mov eax,esi`  
+`006904EF    BA 0300000> mov edx,3`  
+`006904F4    E8 5747D7F> call EEV.00404C50`  
+`006904F9    43          inc ebx                      ; ebx+1`  
+`006904FA    83FB 02     cmp ebx,2                    ; ebx 与 2 比较`  
+`006904FD   ^ 75 B5      jnz short EEV.006904B4       ; 循环 2 次`  
+`006904FF    33C0        xor eax,eax`  
+`00690501    5A          pop edx`  
+`00690502    59          pop ecx`  
+`00690503    59          pop ecx`  
+`00690504    64:8910     mov dword ptr fs:\[eax\],edx`  
+`00690507    68 3105690> push EEV.00690531`  
+`0069050C    8D45 D8     lea eax,dword ptr ss:\[ebp\-28\]`  
+`0069050F    BA 0200000> mov edx,2`  
+`00690514    E8 CB43D7F> call EEV.004048E4`  
+`00690519    8D45 E8     lea eax,dword ptr ss:\[ebp\-18\]`  
+`0069051C    E8 9F43D7F> call EEV.004048C0`  
+`00690521    8D45 FC     lea eax,dword ptr ss:\[ebp\-4\]`  
+`00690524    E8 9743D7F> call EEV.004048C0`  
+`00690529    C3          retn`
+
+#### 跟进 call EEV.00404ED4
+
+`00404ED4    85C0        test eax,eax`  
+`00404ED6    74 40       je short EEV.00404F18`  
+`00404ED8    85D2        test edx,edx`  
+`00404EDA    74 31       je short EEV.00404F0D`  
+`00404EDC    53          push ebx`  
+`00404EDD    56          push esi`  
+`00404EDE    57          push edi`  
+`00404EDF    89C6        mov esi,eax                  ; 注册码送 esi`  
+`00404EE1    89D7        mov edi,edx                  ; 试练码送 edi`  
+`00404EE3    8B4F FC     mov ecx,dword ptr ds:\[edi\-4\]    ; ds:\[edi-4\]=9，送 ecx`  
+`00404EE6    57          push edi`  
+`00404EE7    8B56 FC     mov edx,dword ptr ds:\[esi\-4\]    ; ds:\[esi-4\]=9，送 edx`  
+`00404EEA    4A          dec edx                      ; edx-1`  
+`00404EEB    78 1B       js short EEV.00404F08`  
+`00404EED    8A06        mov al,byte ptr ds:\[esi\]      ; 机器码 ascii 码逐位送 al`  
+`00404EEF    46          inc esi                      ; esi+1`  
+`00404EF0    29D1        sub ecx,edx                  ; ecx-edx`  
+`00404EF2    7E 14       jle short EEV.00404F08`  
+`00404EF4    F2:AE       repne scas byte ptr es:\[edi\]    ; 循环比较注册码与试练码是否一致`  
+`00404EF6    75 10       jnz short EEV.00404F08       ; 不等则跳出`  
+`00404EF8    89CB        mov ebx,ecx`  
+`00404EFA    56          push esi`  
+`00404EFB    57          push edi`  
+`00404EFC    89D1        mov ecx,edx`  
+`00404EFE    F3:A6       repe cmps byte ptr es:\[edi\],byt>`  
+`00404F00    5F          pop edi`  
+`00404F01    5E          pop esi`  
+`00404F02    74 0C       je short EEV.00404F10`  
+`00404F04    89D9        mov ecx,ebx`  
+`00404F06   ^ EB EC      jmp short EEV.00404EF4`  
+`00404F08    5A          pop edx`  
+`00404F09    31C0        xor eax,eax`  
+`00404F0B    EB 08       jmp short EEV.00404F15`  
+`00404F0D    31C0        xor eax,eax`  
+`00404F0F    C3          retn`
+
+### 算法总结
+
+软件采用了 MD5 算法，但也是很简单的，主要思路如下：
+
+将机器码进行 MD5 运算，结果为 `a2b1334c5bf63029fa17728b232466bc`（记做 `codeA`），转成大写为 `A2B1334C5BF63029FA17728B232466BC`（记做 `codeB`），注册码为两部分：第一部分取 `codeB` 的 1-4 位；第二部分取注册码的 4-7 位；两部分和起来中间加上“-”，即为真正注册码。
+
+我这里是：`MD5(886EA-AEF73-EB5BB-904FD)=a2b1334c5bf63029fa17728b232466bc`，注册码为 `A2B1-1334`。
+
+特别说明： 本文仅是一些破解的心得和思路，完全是个人对程序的研究，无其他目的。
+![image](img/45777b5dbd6b901752ab7df42fce6892.jpg)
+
+`4dd466d0e1e0cc123afbe504da2462ca`
