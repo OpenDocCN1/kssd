@@ -1,0 +1,207 @@
+
+# 调试与逆向工程手记
+
+## 初步尝试与困难
+
+`378` 已经试过了
+
+`3BC` 这个 `;)`
+
+`278` 这个也是 `;o)`
+
+`OK`, 运行软件, 但是却没有拦截 `;(` 我的天啊!
+
+因为它是一个 `VDX`, 所以我也试了 `bpx CreateFileA`, 但是走不了多久......
+
+那么, 为什么不反汇编它呢? 运气好说不定能找到一些在字符串中找到一些关于出错的信息 (不要做梦了, 那是不可能有的! `!!:p`) 现在你能用工具中的啤酒了 `;)` 因为我们
+
+要花很长时间去反汇编 `!!!!` 那就是我为什么不用 `IDA` 的原因了! `BTW`, 我们的目标可
+
+执行文件大概是 `7.24 mb`! 好了, 现在你知道为什么要花这么多时间了吧..
+
+## 反汇编过程
+
+喝过酒后, 一觉醒来.
+
+经过这么长的时间, 终于反汇编好了! 首先, 保存结果! 我们不希望再等那么多时间, 不是
+
+吗? 如果你的电脑死机或者其它原因, 你只有再等那么多时间了! 再喝一次酒, 呵呵!
+
+完了吗? `Ok`!
+
+我们愚蠢的想法是去找字符串, 运气不佳, 没有, 其实是意料之中 `:p` 那么让我们想想!
+
+我们怎样攻击它呢? 我们看看 `Import` 表吧! 看看狗到底调用了什么函数 `:)` 我们可以找
+
+到一个 `"l33t0"` `API` 函数! 哈哈, 我想会有一些好东西了, 我们来看看内核......
+
+太太太好了 `:)` 我找到一些有趣的东西了:
+
+`DeviceIoControl`
+
+从没有看过, 但是名称, 听起来非常好, 不是吗?
+
+呵呵! 去除所有的断点只在 `softice` 中输入: `'bc \*'` 和: `'BPX DeviceIocontrol'`
+
+现在运行我们的软件! 哈哈, 它拦截下来了 `:)` 按 `F12`, 我们跳出了 `dll` 文件来到了 `ACAD.exe`
+
+`)` 让我们和代码玩耍吧.......
+
+## 代码分析
+
+先看代码, 我按 `F12` 几次直到在一个好位置. 下面是来自我的 `winice.log` 的一部分:
+
+`:bl`
+
+```
+00) BPX KERNEL32!DeviceIoControl  // Damn good :)
+
+Break due to BPX KERNEL32!DeviceIoControl
+Break due to BPX KERNEL32!DeviceIoControl
+Break due to BPX KERNEL32!DeviceIoControl
+Break due to BPX KERNEL32!DeviceIoControl
+Break due to BPX KERNEL32!DeviceIoControl
+Break due to BPX KERNEL32!DeviceIoControl
+
+// 你在这可以看到我在找到好地方之前被拦截下来多少次
+// 你用这个 bpx 的时候,你按 F5 3 次,一会有拦截下来,
+// 你再按两次后停在了这儿 :
+
+025F:0098B1AF  668B442402    MOV    AX,[ESP+02] ; EAX = 一些值
+025F:0098B1B4  83C404        ADD    ESP,04
+025F:0098B1B7  C20800        RET    0008
+025F:0098B1BA  8D9B00000000  LEA    EBX,[EBX+00000000]
+025F:0098B1C0  33C0          XOR    EAX,EAX
+025F:0098B1C2  8A442408      MOV    AL,[ESP+08]
+025F:0098B1C6  83F801        CMP    EAX,01
+025F:0098B1C9  7415         JZ      0098B1E0
+025F:0098B1CB  83F802        CMP    EAX,02
+025F:0098B1CE  7456         JZ      0098B226
+025F:0098B1D0  83F803        CMP    EAX,03
+025F:0098B1D3  0F8497000000 JZ      0098B270
+025F:0098B1D9  C20800        RET    0008
+
+// 通过 RET 后,我们落在这儿:
+
+025F:006ABE9A  0FBFC0          MOVSX  EAX,AX  ; 呵呵 :)
+025F:006ABE9D  83F8FF          CMP    EAX,-01  ; EAX = FFFF ?!
+025F:006ABEA0  7405           JZ      006ABEA7 ; 跳转到 6abea7
+025F:006ABEA2  25FFFF0000     AND    EAX,0000FFFF
+025F:006ABEA7  5F             POP    EDI
+025F:006ABEA8  C3             RET    ; 返回 ....
+
+// 这是最重要的部分 :
+
+025F:006ABD94  83C404        ADD    ESP,04
+025F:006ABD97  85C0          TEST   EAX,EAX
+025F:006ABD99  7C36         JL      006ABDD1
+025F:006ABD9B  8D44240C      LEA    EAX,[ESP+0C]
+025F:006ABD9F  50            PUSH   EAX
+025F:006ABDA0  E8DB000000    CALL   006ABE80
+025F:006ABDA5  83C404        ADD    ESP,04
+025F:006ABDA8  85C0          TEST   EAX,EAX
+025F:006ABDAA  7C25         JL      006ABDD1
+025F:006ABDAC  686071A700    PUSH   00A77160
+025F:006ABDB1  E8CA000000    CALL   006ABE80
+025F:006ABDB6  83C404        ADD    ESP,04
+025F:006ABDB9  85C0          TEST   EAX,EAX
+025F:006ABDBB  7C14         JL      006ABDD1
+025F:006ABDBD  68F470A700    PUSH   00A770F4
+025F:006ABDC2  E8B9000000    CALL   006ABE80
+025F:006ABDC7  83C404        ADD    ESP,04
+025F:006ABDCA  3DFDDC0000    CMP    EAX,0000DCFD ; eax= DCFD?
+025F:006ABDCF  7408         JZ      006ABDD9   ; 好! 狗
+025F:006ABDD1  47            INC    EDI        ; 锁住了 :)
+025F:006ABDD2  83FF04        CMP    EDI,04
+025F:006ABDD5  7EA3         JLE     006ABD7A
+025F:006ABDD7  EB17         JMP     006ABDF0   ; 知道吗?
+025F:006ABDD9  8B0D8871A700 MOV    ECX,[00A77188] ;狗在这儿
+025F:006ABDDF  6633F6      XOR    SI,SI
+025F:006ABDE2  A18471A700  MOV    EAX,[00A77184]
+025F:006ABDE7  8B1481      MOV    EDX,[EAX*4+ECX]
+025F:006ABDEA  C70202000000 MOV  DWORD PTR [EDX],00000002
+025F:006ABDF0  8B0D8471A700 MOV  ECX,[00A77184]  ;没有狗:/
+025F:006ABDF6  A18871A700  MOV    EAX,[00A77188]
+025F:006ABDFB  8B1488      MOV    EDX,[ECX*4+EAX]
+025F:006ABDFE  8D0C88      LEA    ECX,[ECX*4+EAX]
+025F:006ABE01  8B1D8471A700 MOV  EBX,[00A77184]
+025F:006ABE07  8B02        MOV    EAX,[EDX]
+025F:006ABE09  35A9B50000  XOR    EAX,0000B5A9
+025F:006ABE0E  03C3        ADD    EAX,EBX
+025F:006ABE10  A3A471A700  MOV    [00A771A4],EAX
+025F:006ABE15  8B11        MOV    EDX,[ECX]
+025F:006ABE17  833A00      CMP    DWORD PTR [EDX],00
+025F:006ABE1A  752F       JNZ     006ABE4B
+025F:006ABE1C  E81F010000  CALL   006ABF40
+025F:006ABE21  35A9B50000  XOR    EAX,0000B5A9
+025F:006ABE26  3D564AFFFF  CMP    EAX,FFFF4A56
+025F:006ABE2B  741E       JZ      006ABE4B
+```
+
+`\--------------------------- 8< ---------------------- 截取 :p`
+
+## 补丁修改
+
+`Ok`, 我首先想到的是改变:
+
+```
+025F:006ABDCA  3DFDDC0000    CMP    EAX,0000DCFD ; 是 eax= DCFD ?
+025F:006ABDCF  7408          JZ      006ABDD9   ; 好的! 狗锁住了
+```
+
+成为:
+
+```
+025F:006ABDCA  3DFDDC0000    CMP    EAX,0000DCFD
+025F:006ABDCF  EB08          JMP    006ABDD9 ;不管 EAX 了,我跳 :p
+```
+
+但是, `EAX` 的值很重要, 否则是会崩溃的 `:(` 我们也看到了很多处都调用了 `EAX` 寄存器
+
+, 检查了好几次哦! 那么, 我们只有暴力使 `EAX` 的值等于 `DCFD` 了!
+
+你还不清除吗, 新手? `EAX` 的值为什么要等于 `DCFD`? 你没看到: `CMP EAX,0000DCFD`
+
+吗? 先在大家都清楚了吧!
+
+我们到哪去修改目标呢? 想想什么时候对 `AX` 赋值的? 我清理一下内存, 整理出下面这段
+
+代码:
+
+```
+025F:0098B1AF  668B442402    MOV    AX,[ESP+02] ; EAX = 一些值.
+025F:0098B1B4  83C404        ADD    ESP,04
+025F:0098B1B7  C20800        RET    0008
+025F:0098B1BA  8D9B00000000  LEA    EBX,[EBX+00000000]
+025F:0098B1C0  33C0          XOR    EAX,EAX
+025F:0098B1C2  8A442408      MOV    AL,[ESP+08]
+025F:0098B1C6  83F801        CMP    EAX,01
+025F:0098B1C9  7415         JZ      0098B1E0
+025F:0098B1CB  83F802        CMP    EAX,02
+025F:0098B1CE  7456         JZ      0098B226
+025F:0098B1D0  83F803        CMP    EAX,03
+025F:0098B1D3  0F8497000000 JZ      0098B270
+025F:0098B1D9  C20800        RET    0008
+```
+
+`'是的!就是你说过的那个地方! \*SLAP\*!!'`
+
+呵呵, 我们只要使 `EAX` 的值永远等于 `DCFD` 就行了, 代码就变成:
+
+```
+66B8FDDC      MOV    AX,DCFD ; 你知道这是干什么,对吗? ;)
+90            NOP             ; 一个 NOP 就是什么都不干!
+C20800        RET    0008    ; 不变
+```
+
+`Ok`, 很简单吧? `BTW` 当你修改的时候不要忘了把代码倒一下, 比如: `B8FDCD` 是 `CDFD`,
+
+你应该知道我是什么意思, 对吗? 不??
+
+现在给你的目标打上补丁, 运行试试看!
+
+下面就是说软件破解的非常成功, 我就不翻译了.
+
+原文作者: `ACiD BuRN [ECLiPSE / Immortal Descendants]`
+
+`-=-=-=-=-=-=-=-=-=-=-=-[EOF]-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= 梦经第四期-=-=-=-=-=-=-=-` `4dd466d0e1e0cc123afbe504da2462ca`
