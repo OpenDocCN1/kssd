@@ -1,0 +1,229 @@
+
+# 环球电影电视剧 1.13 简单算法分析+VB 注册机
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-241.htm`](https://www.pediy.com/kssd/pediy07/pediy7-241.htm)
+
+### 基本信息
+
+- **破文标题**：环球电影电视剧 1.13 简单算法分析+VB 注册机
+- **破文作者**：KuNgBiM\[DFCG\]
+- **作者邮箱**：`gb_1227@163.com`
+- **软件名称**：环球电影电视剧 1.13
+- **软件大小**：2253 KB
+- **软件类别**：国产软件/共享版/网络音视
+- **整理时间**：2005-5-19
+- **下载地址**：[`www.cn0660.com/xiaer/lianxuju/12.htm`](http://www.cn0660.com/xiaer/lianxuju/12.htm)
+- **软件简介**：环球电影电视剧为广大观众提供 500 部连续剧，包括台湾、香港、大陆、日本、韩国等几个地区影片；1 千部电影，包括动作片、卡通片、喜剧片、科幻片、恐怖片等。精彩连续剧、电影任你选择，每星期更新一次影片，免费升级，方便好用。
+- **保护方式**：注册码+功能限制
+- **编译语言**：`Borland Delphi 6.0 - 7.0`
+- **调试环境**：`WinXP`、`PEiD`、`W32Dasm`、`Ollydbg`
+- **破解日期**：2005-05-19
+- **破解目的**：研究算法分析
+- **作者声明**：初学 Crack，只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+### 破解过程
+
+1. **侦测**：用 `PEiD` 查壳，无壳，`Borland Delphi 6.0 - 7.0` 编译。
+2. **试探**：运行主程序注册，输入试炼码，确认！程序提示：" 注册码无效。"
+3. **初步下药**：使出法宝，用 `W32Dasm` 进行静态反汇编，查找" 注册码无效。"字符串，结果找到 `004AAA20` 处，确定断点应下在 `004AA9F7` 处。
+4. **对症下药**：`Ollydbg` 载入主程序，来到 `004AA9F7` 处下断，`F9` 运行，输入试炼信息：
+
+```text
+***** 试炼信息 *****
+
+机器码：BD258095
+注册码：78787878
+
+************************************
+```
+
+5. 点击确定后 `OD` 断下:（这里我采用的是 `W32Dasm` 的反汇编信息，比较干净清楚！）
+
+```asm
+:004AA9EB 8D55F0               lea edx, dword ptr [ebp-10]
+:004AA9EE 8B45FC               mov eax, dword ptr [ebp-04]
+:004AA9F1 8B801C030000         mov eax, dword ptr [eax+0000031C]
+:004AA9F7 E88C21FCFF           call 0046CB88
+:004AA9FC 837DF000             cmp dword ptr [ebp-10], 00000000     //比较注册码是否为 0
+:004AAA00 741E                 je 004AAA20                           //等于 0 则跳死
+:004AAA02 8D55EC               lea edx, dword ptr [ebp-14]
+:004AAA05 8B45FC               mov eax, dword ptr [ebp-04]          //向 eax 赋值 010C0EC4
+:004AAA08 8B801C030000         mov eax, dword ptr [eax+0000031C]    //向 eax 赋值 010BBF08
+:004AAA0E E87521FCFF           call 0046CB88
+:004AAA13 8B45EC               mov eax, dword ptr [ebp-14]          //试炼码赋值给 EAX
+:004AAA16 E8119AF5FF           call 0040442C
+:004AAA1B 83F808               cmp eax, 00000008                    //注册码位数是否为 8
+:004AAA1E 7E30                 jle 004AAA50                         //大于小于则跳死
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004AAA00(C)
+|
+* Possible StringData Ref from Code Obj ->" 注册码无效。"
+                      |
+:004AAA20 B814AD4A00         mov eax, 004AAD14
+:004AAA25 E88238F8FF         call 0042E2AC
+:004AAA2A 8B45FC             mov eax, dword ptr [ebp-04]
+:004AAA2D 8B801C030000       mov eax, dword ptr [eax+0000031C]
+:004AAA33 33D2               xor edx, edx
+:004AAA35 E8E221FCFF         call 0046CC1C
+:004AAA3A 8B45FC             mov eax, dword ptr [ebp-04]
+:004AAA3D 8B801C030000       mov eax, dword ptr [eax+0000031C]
+:004AAA43 8B10               mov edx, dword ptr [eax]
+:004AAA45 FF92C4000000       call dword ptr [edx+000000C4]
+:004AAA4B E923020000         jmp 004AAC73
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004AAA1E(C)
+|
+:004AAA50 8D45E4             lea eax, dword ptr [ebp-1C]          //注册码位数等于 8
+:004AAA53 50                 push eax
+:004AAA54 8D55E0             lea edx, dword ptr [ebp-20]
+:004AAA57 8B45FC             mov eax, dword ptr [ebp-04]
+:004AAA5A 8B8018030000       mov eax, dword ptr [eax+00000318]
+:004AAA60 E82321FCFF         call 0046CB88
+:004AAA65 8B45E0             mov eax, dword ptr [ebp-20]          //机器码入 EAX（ASCII "BD258095"）
+:004AAA68 B906000000         mov ecx, 00000006                    //ECX 给予 6 位空间
+:004AAA6D BA01000000         mov edx, 00000001
+:004AAA72 E8159CF5FF         call 0040468C                         //取机器码前 6 位
+:004AAA77 8B4DE4             mov ecx, dword ptr [ebp-1C]          //机器码前 6 位入 ECX（ASCII "BD2580"）
+:004AAA7A 8D45E8             lea eax, dword ptr [ebp-18]
+:004AAA7D BA2CAD4A00         mov edx, 004AAD2C                    //规定 EDX 为 16 进制数（ASCII "0x"）
+:004AAA82 E8F199F5FF         call 00404478
+:004AAA87 8B45E8             mov eax, dword ptr [ebp-18]          //机器码前 6 位变为 16 进制数（ASCII "0xBD2580"）
+:004AAA8A E805DFF5FF         call 00408994
+:004AAA8F 8BF0               mov esi, eax                          //将机器码前 6 位的字符串转换成 16 进制后存放在 ESI 中
+:004AAA91 33C0               xor eax, eax                          //异或清空
+:004AAA93 55                 push ebp
+:004AAA94 682AAC4A00         push 004AAC2A
+:004AAA99 64FF30             push dword ptr fs:[eax]
+:004AAA9C 648920             mov dword ptr fs:[eax], esp
+:004AAA9F 8D55DC             lea edx, dword ptr [ebp-24]
+:004AAAA2 8B45FC             mov eax, dword ptr [ebp-04]
+:004AAAA5 8B801C030000       mov eax, dword ptr [eax+0000031C]
+:004AAAAB E8D820FCFF         call 0046CB88
+:004AAAB0 8B45DC             mov eax, dword ptr [ebp-24]          //假码赋值给 EAX （ASCII "78787878"）
+:004AAAB3 E8DCDEF5FF         call 00408994                         //将假码转为 16 进制
+:004AAAB8 8BD8               mov ebx, eax                          //假码赋值给 EBX （eax=04B23526  ebx=010BC14C）
+:004AAABA 8BC3               mov eax, ebx                          //EBX 又赋值给 EAX（ebx=04B23526  eax=04B23526）
+:004AAABC 2BC6               sub eax, esi                          //EAX=EAX-ESI   （esi=00BD2580  eax=04B23526）
+:004AAABE 3B05F4AD4C00       cmp eax, dword ptr [004CADF4]         //比较 EAX 与 004CADF4 中的值是否相等（常量值=BC614E） 
+:004AAAC4 7459               je 004AAB1F                           //EAX 值若不等于 BC614E 就跳死
+                                                //（BC614E 十进制数就是 12345678，呵呵~）
+
+* Possible StringData Ref from Code Obj ->" 你输入的注册码 "
+                      |
+:004AAAC6 6838AD4A00         push 004AAD38
+:004AAACB 8D55D4             lea edx, dword ptr [ebp-2C]
+:004AAACE 8B45FC             mov eax, dword ptr [ebp-04]
+:004AAAD1 8B801C030000       mov eax, dword ptr [eax+0000031C]
+:004AAAD7 E8AC20FCFF         call 0046CB88
+:004AAADC FF75D4             push [ebp-2C]
+
+* Possible StringData Ref from Code Obj ->" 不正确。"
+                      |
+:004AAADF 6854AD4A00         push 004AAD54
+:004AAAE4 8D45D8             lea eax, dword ptr [ebp-28]
+:004AAAE7 BA03000000         mov edx, 00000003
+:004AAAEC E8FB99F5FF         call 004044EC
+:004AAAF1 8B45D8             mov eax, dword ptr [ebp-28]
+:004AAAF4 E8B337F8FF         call 0042E2AC
+:004AAAF9 8B45FC             mov eax, dword ptr [ebp-04]
+:004AAAFC 8B801C030000       mov eax, dword ptr [eax+0000031C]
+:004AAB02 33D2               xor edx, edx
+:004AAB04 E81321FCFF         call 0046CC1C
+:004AAB09 8B45FC             mov eax, dword ptr [ebp-04]
+:004AAB0C 8B801C030000       mov eax, dword ptr [eax+0000031C]
+:004AAB12 8B10               mov edx, dword ptr [eax]
+:004AAB14 FF92C4000000       call dword ptr [edx+000000C4]
+:004AAB1A E901010000         jmp 004AAC20
+```
+
+### 算法总结
+
+注册验证非常简单：
+
+`注册码 = 十进制（机器码前 6 位 + BC614E）`
+
+### VB6 算法注册机源码
+
+```vb
+Private Sub Text1_Change()
+
+Dim jqm, z, a, b, m As String
+
+x = Text1.Text
+
+If x = "" Then            '未输入的机器码则不计算
+
+Else
+
+If Len(x) = 8 Then        '输入的机器码等于 8 位后才开始计算
+
+a = "BC614E"
+
+z = Mid(x, 1, 6)
+
+m = Format("&h" + z)
+
+b = Format("&h" + a)
+
+zcm = Val(m) + Val(b)
+
+Text2.Text = zcm
+
+End If
+
+End If
+
+End Sub
+```
+
+
+
+注册信息:
+
+机器码：`BD258095`
+
+注册码：`24741582`
+
+--------------------------------------------------------------------------
+
+（本文完）
+
+版权所有（C）2005 KuNgBiM[DFCG] Copyright (C) 2005 KuNgBiM[DFCG]
+
+--------------------------------------------------------------------------
+
+Cracked BY KuNgBiM[DFCG]
+
+2005-05-19
+
+18:30:18 PM
+
+支持~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+```c
+#include<stdio.h>
+
+main()
+
+{
+
+    int sum=0;
+
+    int jq;
+
+    int b=0xBC614E;
+
+    printf("\\n 请输入机器码的前 6 位 \t");
+
+    scanf("%x",&jq);
+
+    sum=jq+b;
+
+    printf("\\n 得到的注册码是 %d\n\n",sum);
+
+}
+```
+
+`4dd466d0e1e0cc123afbe504da2462ca`
