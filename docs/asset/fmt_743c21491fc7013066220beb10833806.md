@@ -1,0 +1,76 @@
+
+# 在内核里查看所有的快捷键
+
+> 原文：[`www.pediy.com/kssd/pediy11/111585.html`](https://www.pediy.com/kssd/pediy11/111585.html)
+
+`xuetr0.33` 版本增加了进程的快捷键的查看，
+
+于是乎查了下资料，找到了实现的方法，不敢独享和大家分享一下～～～
+
+其实 Windows 的所有的快捷键保存在 `win32k` 里面的一个单向连表里面，
+
+链表里面的结构体如下：
+
+```
+typedef struct _HOT_KEY_ITEM
+{
+  LIST_ENTRY ListEntry;
+  struct _ETHREAD *Thread;
+  HWND hWnd;
+  int id;
+  UINT fsModifiers;
+  UINT vk;
+} HOT_KEY_ITEM, *PHOT_KEY_ITEM;
+```
+
+从 `_KTHREAD` 结构可以得到进程，`fsModifiers` 和 `vk` 加起来就是组合键了。
+
+所以关键是怎么找到那个单向链表
+
+可以通过从导出函数查找内存的方法找到这个单向链表
+
+首先是从 `shadow ssdt` 里的 `NtUserUnregisterHotKey` 函数开始查找
+
+```
+win32k!NtUserUnregisterHotKey：
+
+（大段省略...）
+
+912d32f8 e888ffffff       call    win32k!_UnregisterHotKey (912d3285)
+
+（大段省略...）
+```
+
+然后在 `_UnregisterHotKey` 里面找 `FindHotKey` 函数
+
+```
+win32k!_UnregisterHotKey:
+
+（大段省略...）
+
+912d32a0 e8cffaffff       call    win32k!FindHotKey (912d2d74)
+
+（大段省略...）
+```
+
+最后从 `FindHotKey` 函数里面找到那个单向链表
+
+这个时候 XP 和 Win7 的处理有所不同
+
+```
+win32k!FindHotKey:
+
+（大段省略...）
+
+XP 的时候
+bf89e4b4 8b35d4cb9abf     mov     esi,dword ptr [win32k!gphkFirst (bf9acbd4)]
+
+Win7 的时候
+912d2d84 8b3495009b4891 mov     esi,dword ptr win32k!gphkHashTable (91489b00)[edx*4]
+
+（大段省略...）
+```
+
+`gphkFirst` / `gphkHashTable` 就是那个单向链表了，
+
+最后只要循环这个单向链表就可以枚举所有的快捷键了～～～
