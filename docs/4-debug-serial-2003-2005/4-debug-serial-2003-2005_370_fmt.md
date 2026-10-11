@@ -1,0 +1,554 @@
+
+# 光盘出租销售管理软件
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50459.htm`](https://www.pediy.com/kssd/pediy05/pediy50459.htm)
+
+一个光盘管理软件算法分析。
+
+【作者声明】：初学 Crack，只是感兴趣，没有其它目的。失误之处敬请诸位大侠赐教！
+
+如果作者看到，请加强软件自身加密力度，不敬之处请海涵。
+
+## 过程
+
+侦察无壳 `DELPHI` 编写。动用 `DEDE` 细细查看，发现蛛丝马迹，调用 `OLLYDBG`（我最爱用的 `^\_^`）下断拦截。
+
+`* Reference to control edRegCode : TdxEdit [15]`
+
+```
+005D33B1   8B8310030000             mov     eax, [ebx+$0310]
+```
+
+```
+005D33B7   E8482FE6FF             call    00436304
+
+005D33BC   8B45FC                 mov     eax, [ebp-$04]
+```
+
+`* Reference to : TRentalFm._PROC_005D2E28()`
+
+```
+005D33BF   E864FAFFFF             call    005D2E28             杀进去瞧瞧.^_^
+
+005D33C4   84C0                   test    al, al             进去看看上面的 CALL 怎么能出
+
+005D33C6   743B                   jz      005D3403
+
+005D33C8   A174CE6200             mov     eax, dword ptr [$0062CE74]
+
+005D33CD   8B00                   mov     eax, [eax]
+
+005D33CF   8B55FC                 mov     edx, [ebp-$04]
+```
+
+```
+005D33D2   E80D6EFBFF             call    0058A1E4
+
+005D33D7   6A00                   push    $00
+
+005D33D9   668B0D48345D00         mov     cx, word ptr [$005D3448]
+
+005D33E0   B202                   mov     dl, $02
+```
+
+`* Possible String Reference to: '祝贺您,注册成功！'`
+
+```
+005D33E2   B854345D00             mov     eax, $005D3454
+```
+
+```
+005D33E7   E8DCE2E8FF             call    004616C8
+
+005D33EC   8D8320030000           lea     eax, [ebx+$0320]
+
+005D33F2   8B55FC                 mov     edx, [ebp-$04]
+```
+
+```
+005D33F5   E8060BE3FF             call    00403F00
+
+005D33FA   8BC3                   mov     eax, ebx
+```
+
+```
+005D33FC   E897FEFFFF             call    005D3298
+
+005D3401   EB23                   jmp     005D3426
+
+005D3403   6A00                   push    $00
+
+005D3405   668B0D48345D00         mov     cx, word ptr [$005D3448]
+
+005D340C   B201                   mov     dl, $01
+```
+
+`* Possible String Reference to: '对不起，注册失败,请校对注册码'`
+
+```
+005D340E   B870345D00             mov     eax, $005D3470
+```
+
+```
+005D3413   E8B0E2E8FF             call    004616C8
+```
+
+`* Reference to control edRegCode : TdxEdit [15]`
+
+```
+005D3418   8B8310030000           mov     eax, [ebx+$0310]
+
+005D341E   8B10                   mov     edx, [eax]
+
+005D3420   FF92B0000000           call    dword ptr [edx+$00B0]
+
+005D3426   33C0                   xor     eax, eax
+
+005D3428   5A                     pop     edx
+
+005D3429   59                     pop     ecx
+
+005D342A   59                     pop     ecx
+
+005D342B   648910                 mov     fs:[eax], edx
+```
+
+`****** FINALLY`
+
+`!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!`
+
+进来 `call 005D2E28`
+
+`.........................`
+
+```
+005D2E53  |.  8B45 F4            MOV     EAX, DWORD PTR SS:[EBP-C]        ;  机器码＝》EAXAX, D
+
+005D2E56  |.  8D55 F8            LEA     EDX, DWORD PTR SS:[EBP-8]
+
+005D2E59  |.  E8 46FFFFFF        CALL    CdBoss.005D2DA4                 进去瞅瞅 .呵呵.
+
+005D2E5E  |.  8B45 F8            MOV     EAX, DWORD PTR SS:[EBP-8]       这明码已经看到
+
+005D2E61  |.  E8 FAFCFFFF        CALL    CdBoss.005D2B60                 进去求的真码的值.
+
+005D2E66  |.  8BD8               MOV     EBX, EAX
+
+005D2E68  |.  8B45 FC            MOV     EAX, DWORD PTR SS:[EBP-4]
+
+005D2E6B  |.  E8 F0FCFFFF        CALL    CdBoss.005D2B60                 假码运算的值
+
+005D2E70  |.  85C0               TEST    EAX, EAX                         不为零.哪跳...
+
+005D2E72  |.  75 04              JNZ     SHORT CdBoss.005D2E78
+
+005D2E74  |.  33DB               XOR     EBX, EBX
+
+005D2E76  |.  EB 0A              JMP     SHORT CdBoss.005D2E82
+
+005D2E78  |>  3BC3               CMP     EAX, EBX                         真假码的运算结果值相等吗?
+
+005D2E7A  |.  75 04              JNZ     SHORT CdBoss.005D2E80           不等?:( 你该可怜了.
+
+005D2E7C  |.  B3 01              MOV     BL, 1                            相等?:) 给你个糖吃.
+
+005D2E7E  |.  EB 02              JMP     SHORT CdBoss.005D2E82
+
+005D2E80  |>  33DB               XOR     EBX, EBX
+
+005D2E82  |>  33C0               XOR     EAX, EAX
+
+005D2E84  |.  5A                 POP     EDX
+
+005D2E85  |.  59                 POP     ECX
+
+005D2E86  |.  59                 POP     ECX
+
+005D2E87  |.  64:8910            MOV     DWORD PTR FS:[EAX], EDX
+
+005D2E8A  |.  68 A42E5D00        PUSH    CdBoss.005D2EA4                 EBX=EAX .呵呵.爽吧.
+
+005D2E8F  |>  8D45 F4            LEA     EAX, DWORD PTR SS:[EBP-C]
+
+005D2E92  |.  BA 03000000        MOV     EDX, 3
+
+005D2E97  |.  E8 3410E3FF        CALL    CdBoss.00403ED0
+
+005D2E9C  \\.  C3                RETN
+```
+
+`~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`
+
+进来瞅瞅了.
+
+```
+005D2DA4  /$  55                 PUSH    EBP
+
+005D2DA5  |.  8BEC               MOV     EBP, ESP
+
+005D2DA7  |.  83C4 F4            ADD     ESP, -0C
+
+005D2DAA  |.  53                 PUSH    EBX
+
+005D2DAB  |.  56                 PUSH    ESI
+
+005D2DAC  |.  8BF2               MOV     ESI, EDX
+
+005D2DAE  |.  8945 FC            MOV     DWORD PTR SS:[EBP-4], EAX
+
+005D2DB1  |.  8B45 FC            MOV     EAX, DWORD PTR SS:[EBP-4]
+
+005D2DB4  |.  E8 3715E3FF        CALL    CdBoss.004042F0
+
+005D2DB9  |.  33C0               XOR     EAX, EAX
+
+005D2DBB  |.  55                 PUSH    EBP
+
+005D2DBC  |.  68 1B2E5D00        PUSH    CdBoss.005D2E1B
+
+005D2DC1  |.  64:FF30            PUSH    DWORD PTR FS:[EAX]
+
+005D2DC4  |.  64:8920            MOV     DWORD PTR FS:[EAX], ESP
+
+005D2DC7  |.  8B45 FC            MOV     EAX, DWORD PTR SS:[EBP-4]
+
+005D2DCA  |.  E8 91FDFFFF        CALL    CdBoss.005D2B60                ?(1)  进去瞧瞧
+
+005D2DCF  |.  8BD8               MOV     EBX, EAX    (1)里出来的 EAX=EBX
+
+005D2DD1  |.  85DB               TEST    EBX, EBX
+
+005D2DD3  |.  75 09              JNZ     SHORT CdBoss.005D2DDE 跳
+
+005D2DD5  |.  8BC6               MOV     EAX, ESI
+
+005D2DD7  |.  E8 D010E3FF        CALL    CdBoss.00403EAC
+
+005D2DDC  |.  EB 27              JMP     SHORT CdBoss.005D2E05
+
+005D2DDE  |>  2B1D 78CA6200      SUB     EBX, DWORD PTR DS:[62CA78]      EBX-034D82E6(固定值)
+
+005D2DE4  |.  895D F4            MOV     DWORD PTR SS:[EBP-C], EBX      ;  EBX=FCB4304F
+
+005D2DE7  |.  33C0               XOR     EAX, EAX
+
+005D2DE9  |.  8945 F8            MOV     DWORD PTR SS:[EBP-8], EAX
+
+005D2DEC  |.  DF6D F4            FILD    QWORD PTR SS:[EBP-C]           常数 FCB4304F 入 ST(0)
+
+005D2DEF  |.  DC0D 7CCA6200      FMUL    QWORD PTR DS:[62CA7C]       ST(0)= ST(0)*0.940428140000
+
+005D2DF5  |.  E8 76FDE2FF        CALL    CdBoss.00402B70
+
+005D2DFA  |.  8BD8               MOV     EBX, EAX                     ;转换浮点前整数为 16 位值 EDA65ACD
+
+005D2DFC  |.  8BD6               MOV     EDX, ESI
+
+005D2DFE  |.  8BC3               MOV     EAX, EBX
+
+005D2E00  |.  E8 67FCFFFF        CALL    CdBoss.005D2A6C     ?(2) 在去看看吧.^_^
+
+005D2E05  |>  33C0               XOR     EAX, EAX
+
+005D2E07  |.  5A                 POP     EDX
+
+005D2E08  |.  59                 POP     ECX
+
+005D2E09  |.  59                 POP     ECX
+
+005D2E0A  |.  64:8910            MOV     DWORD PTR FS:[EAX], EDX
+
+005D2E0D  |.  68 222E5D00        PUSH    CdBoss.005D2E22
+
+005D2E12  |>  8D45 FC            LEA     EAX, DWORD PTR SS:[EBP-4]
+
+005D2E15  |.  E8 9210E3FF        CALL    CdBoss.00403EAC
+
+005D2E1A  \\.  C3                 RETN
+```
+
+`##################################################################`
+
+(1)
+
+```
+005D2B60  /$  55                 PUSH    EBP
+
+005D2B61  |.  8BEC               MOV     EBP, ESP
+
+005D2B63  |.  83C4 F8            ADD     ESP, -8
+
+005D2B66  |.  53                 PUSH    EBX
+
+005D2B67  |.  56                 PUSH    ESI
+
+005D2B68  |.  33D2               XOR     EDX, EDX
+
+005D2B6A  |.  8955 F8            MOV     DWORD PTR SS:[EBP-8], EDX
+
+005D2B6D  |.  8945 FC            MOV     DWORD PTR SS:[EBP-4], EAX
+
+005D2B70  |.  8B45 FC            MOV     EAX, DWORD PTR SS:[EBP-4]
+
+005D2B73  |.  E8 7817E3FF        CALL    CdBoss.004042F0
+
+005D2B78  |.  33C0               XOR     EAX, EAX
+```
+
+
+
+005D2B7A  |.  55               PUSH   EBP  
+
+005D2B7B  |.  68 3A2C5D00       PUSH   CdBoss.005D2C3A  
+
+005D2B80  |.  64:FF30          PUSH   DWORD PTR FS:[EAX]  
+
+005D2B83  |.  64:8920          MOV    DWORD PTR FS:[EAX], ESP  
+
+005D2B86  |.  8B55 FC          MOV    EDX, DWORD PTR SS:[EBP-4]  
+
+005D2B89  |.  B8 542C5D00      MOV    EAX, CdBoss.005D2C54  
+
+005D2B8E  |.  E8 9518E3FF      CALL   CdBoss.00404428  
+
+005D2B93  |.  85C0             TEST   EAX, EAX  
+
+005D2B95  |.  76 1F            JBE    SHORT CdBoss.005D2BB6  
+
+005D2B97  |>  8D55 FC          /LEA     EDX, DWORD PTR SS:[EBP-4]  
+
+005D2B9A  |.  B9 01000000      |MOV     ECX, 1               此处循环将  
+
+005D2B9F  |.  92               |XCHG    EAX, EDX             注册码中的  
+
+005D2BA0  |.  E8 DF17E3FF      |CALL    CdBoss.00404384      "-"去掉!  
+
+005D2BA5  |.  8B55 FC          |MOV     EDX, DWORD PTR SS:[EBP-4]  
+
+005D2BA8  |.  B8 542C5D00      |MOV     EAX, CdBoss.005D2C54  
+
+005D2BAD  |.  E8 7618E3FF      |CALL    CdBoss.00404428  
+
+005D2BB2  |.  85C0             |TEST    EAX, EAX  
+
+005D2BB4  |.^ 77 E1            \JA      SHORT CdBoss.005D2B97  
+
+005D2BB6  |>  8B45 FC          MOV     EAX, DWORD PTR SS:[EBP-4]  去掉-的假码入 EAX  
+
+005D2BB9  |.  E8 7E15E3FF      CALL   CdBoss.0040413C  
+
+005D2BBE  |.  83F8 08          CMP    EAX, 8               比较是否是 8 位.注册码需要的位数  
+
+005D2BC1  |.  74 04            JE     SHORT CdBoss.005D2BC7  
+
+005D2BC3  |.  33DB             XOR    EBX, EBX  
+
+005D2BC5  |.  EB 58            JMP    SHORT CdBoss.005D2C1F  
+
+005D2BC7  |>  8D55 F8          LEA     EDX, DWORD PTR SS:[EBP-8]  
+
+005D2BCA  |.  8B45 FC          MOV     EAX, DWORD PTR SS:[EBP-4]  
+
+005D2BCD  |.  E8 E66CE3FF      CALL    CdBoss.004098B8  
+
+005D2BD2  |.  33C9             XOR     ECX, ECX   ECX=0  
+
+005D2BD4  |.  33F6             XOR     ESI, ESI   ESI=0  
+
+005D2BD6  |.  B8 06000000      MOV     EAX, 6           ;  eax=6  
+
+005D2BDB  |>  8B55 F8          /MOV     EDX, DWORD PTR SS:[EBP-8]  1 机器码 2 真码 3 假码入 EDX  
+
+005D2BDE  |.  0FB65402 FF      |MOVZX   EDX, BYTE PTR DS:[EDX+EAX-1]   
+
+                                 依次取第 6 位-1 位的 HEX 值                       
+
+005D2BE3  |.  83EA 30          |SUB     EDX, 30      EDX=EDX-30  
+
+005D2BE6  |.  03F2             |ADD     ESI, EDX     ESI=ESI+EDX  
+
+005D2BE8  |.  03C9             |ADD     ECX, ECX  
+
+005D2BEA  |.  8D0C89           |LEA     ECX, DWORD PTR DS:[ECX+ECX*4]   
+
+005D2BED  |.  03D1             |ADD     EDX, ECX     总值赋予 EDX  
+
+005D2BEF  |.  8BCA             |MOV     ECX, EDX     ECX=EDX  
+
+005D2BF1  |.  48               |DEC     EAX  
+
+005D2BF2  |.  85C0             |TEST    EAX, EAX   比较是否取完.  
+
+005D2BF4  |.^ 75 E5            \JNZ     SHORT CdBoss.005D2BDB  
+
+005D2BF6  |.  33D2             XOR     EDX, EDX  
+
+005D2BF8  |.  B8 08000000      MOV     EAX, 8         EAX=8  
+
+005D2BFD  |>  03D2             /ADD     EDX, EDX  
+
+005D2BFF  |.  8D1492           |LEA     EDX, DWORD PTR DS:[EDX+EDX*4]  
+
+005D2C02  |.  8B5D F8          |MOV     EBX, DWORD PTR SS:[EBP-8]  
+
+005D2C05  |.  0FB65C03 FF      |MOVZX   EBX, BYTE PTR DS:[EBX+EAX-1]  
+
+                                 依次取 8 位和 7 位的 HEX 值.  
+
+005D2C0A  |.  83EB 30          |SUB     EBX, 30  
+
+005D2C0D  |.  03D3             |ADD     EDX, EBX  
+
+005D2C0F  |.  48               |DEC     EAX  
+
+005D2C10  |.  83F8 06          |CMP     EAX, 6  
+
+005D2C13  |.^ 75 E8            \JNZ     SHORT CdBoss.005D2BFD  
+
+005D2C15  |.  3BF2             CMP     ESI, EDX         
+
+005D2C17  |.  74 04             JE      SHORT CdBoss.005D2C1D  
+
+005D2C19  |.  33DB             XOR     EBX, EBX  
+
+005D2C1B  |.  EB 02            JMP     SHORT CdBoss.005D2C1F  
+
+005D2C1D  |>  8BD9             MOV     EBX, ECX     ECX=EBX  第一次这个值后面需要  
+
+005D2C1F  |>  33C0             XOR     EAX, EAX  
+
+005D2C21  |.  5A               POP     EDX  
+
+005D2C22  |.  59               POP     ECX  
+
+005D2C23  |.  59               POP     ECX  
+
+005D2C24  |.  64:8910          MOV     DWORD PTR FS:[EAX], EDX  
+
+005D2C27  |.  68 412C5D00      PUSH    CdBoss.005D2C41      
+
+005D2C2C  |>  8D45 F8          LEA     EAX, DWORD PTR SS:[EBP-8]  EAX=ECX 的值  
+
+005D2C2F  |.  BA 02000000      MOV     EDX, 2  
+
+005D2C34  |.  E8 9712E3FF      CALL    CdBoss.00403ED0  
+
+005D2C39  \\.  C3              RETN
+
+# (2)
+
+```
+005D2A97  |.  BB 06000000      MOV     EBX, 6          EBX=6  
+
+005D2A9C  |>  8B45 FC          /MOV     EAX, DWORD PTR SS:[EBP-4]    EDA65ACD=EAX  
+
+005D2A9F  |.  B9 0A000000      |MOV     ECX, 0A           ECX=A  
+
+005D2AA4  |.  33D2             |XOR     EDX, EDX  
+
+005D2AA6  |.  F7F1             |DIV     ECX           EAX/ECX   
+
+005D2AA8  |.  8BF2             |MOV     ESI, EDX       取 6 次,为注册码前 6 位  
+
+005D2AAA  |.  03FE             |ADD     EDI, ESI       将余数相加存入 EDI=B  
+
+005D2AAC  |.  8D45 F0          |LEA     EAX, DWORD PTR SS:[EBP-10]  
+
+005D2AAF  |.  8D56 30          |LEA     EDX, DWORD PTR DS:[ESI+30]  
+
+005D2AB2  |.  E8 9D15E3FF      |CALL    CdBoss.00404054  
+
+005D2AB7  |.  8B55 F0          |MOV     EDX, DWORD PTR SS:[EBP-10]  
+
+005D2ABA  |.  8D45 F4          |LEA     EAX, DWORD PTR SS:[EBP-C]  
+
+005D2ABD  |.  E8 8216E3FF      |CALL    CdBoss.00404144  
+
+005D2AC2  |.  8B45 FC          |MOV     EAX, DWORD PTR SS:[EBP-4]     EDA65ACD=EAX  
+
+005D2AC5  |.  B9 0A000000      |MOV     ECX, 0A  
+
+005D2ACA  |.  33D2             |XOR     EDX, EDX  
+
+005D2ACC  |.  F7F1             |DIV     ECX  
+
+005D2ACE  |.  8945 FC          |MOV     DWORD PTR SS:[EBP-4], EAX   商放入 EBP-4  
+
+005D2AD1  |.  4B               |DEC     EBX  
+
+005D2AD2  |.^ 75 C8            \JNZ     SHORT CdBoss.005D2A9C    除完 6 次.就出来了.  
+
+005D2AD4  |.  BB 02000000      MOV     EBX, 2          EBX=2  
+
+005D2AD9  |>  8BC7             /MOV     EAX, EDI        EDI=EAX  
+
+005D2ADB  |.  B9 0A000000      |MOV     ECX, 0A       
+
+005D2AE0  |.  33D2             |XOR     EDX, EDX  
+
+005D2AE2  |.  F7F1             |DIV     ECX       
+
+005D2AE4  |.  8BF2             |MOV     ESI, EDX 余数放入 ESI 取 2 次,为注册码后 2 位  
+
+005D2AE6  |.  8D45 EC          |LEA     EAX, DWORD PTR SS:[EBP-14]  
+
+005D2AE9  |.  8D56 30          |LEA     EDX, DWORD PTR DS:[ESI+30]  
+
+005D2AEC  |.  E8 6315E3FF      |CALL    CdBoss.00404054  
+
+005D2AF1  |.  8B55 EC          |MOV     EDX, DWORD PTR SS:[EBP-14]  
+
+005D2AF4  |.  8D45 F4          |LEA     EAX, DWORD PTR SS:[EBP-C]  
+
+005D2AF7  |.  E8 4816E3FF      |CALL    CdBoss.00404144  
+
+005D2AFC  |.  8BC7             |MOV     EAX, EDI  
+
+005D2AFE  |.  B9 0A000000      |MOV     ECX, 0A  
+
+005D2B03  |.  33D2             |XOR     EDX, EDX  
+
+005D2B05  |.  F7F1             |DIV     ECX  
+
+005D2B07  |.  8BF8             |MOV     EDI, EAX       把商放入 EDI  
+
+005D2B09  |.  4B               |DEC     EBX  
+
+005D2B0A  |.^ 75 CD            \JNZ     SHORT CdBoss.005D2AD9  
+
+005D2B0C  |.  8D55 F4          LEA     EDX, DWORD PTR SS:[EBP-C]  
+
+005D2B0F  |.  B9 05000000      MOV     ECX, 5  
+
+005D2B14  |.  B8 5C2B5D00      MOV     EAX, CdBoss.005D2B5C  
+
+005D2B19  |.  E8 AE18E3FF      CALL    CdBoss.004043CC  
+
+005D2B1E  |.  8B45 F8          MOV     EAX, DWORD PTR SS:[EBP-8] 真码前 4 位后加－  
+
+005D2B21  |.  8B55 F4          MOV     EDX, DWORD PTR SS:[EBP-C]   组成真码全部.  
+
+005D2B24  |.  E8 D713E3FF      CALL    CdBoss.00403F00  
+
+005D2B29  |.  33C0             XOR     EAX, EAX  
+
+005D2B2B  |.  5A               POP     EDX  
+
+005D2B2C  |.  59               POP     ECX  
+
+005D2B2D  |.  59               POP     ECX  
+
+005D2B2E  |.  64:8910          MOV     DWORD PTR FS:[EAX], EDX  
+
+005D2B31  |.  68 4B2B5D00      PUSH    CdBoss.005D2B4B  
+
+005D2B36  |>  8D45 EC          LEA     EAX, DWORD PTR SS:[EBP-14]  
+
+005D2B39  |.  BA 03000000      MOV     EDX, 3  
+```
+
+
+
+`005D2B3E`  |.  `E8 8D13E3FF`       `CALL`    `CdBoss.00403ED0`  
+
+`005D2B43`  \\.  `C3`                 `RETN`  `4dd466d0e1e0cc123afbe504da2462ca`

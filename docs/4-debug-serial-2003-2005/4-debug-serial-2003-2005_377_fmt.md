@@ -1,0 +1,778 @@
+
+# 豪杰超级解霸 3000[英雄版]
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50382.htm`](https://www.pediy.com/kssd/pediy05/pediy50382.htm)
+
+看见有朋友分析了一下 `XXXXX3000` 英雄版的注册码的比较过程的分析，就想也分析一下，写出它的注册码的生成的算法过程,也写了一个注册机。
+
+所用工具:`TRW2000`,`W32DASM`
+
+`Referenced by a CALL at Addresses:`
+
+|:00401C93 , :00401EF9 |
+|---|
+
+```
+:00402840 83EC20                  sub esp, 00000020
+:00402843 56                      push esi
+:00402844 57                      push edi
+:00402845 B908000000              mov ecx, 00000008
+:0040284A 33C0                    xor eax, eax
+:0040284C 8D7C2408                lea edi, dword ptr [esp+08] <----存入第一组注册码的局部变量，以下记为 reg1，是一个 DWORD 类型，也可以看成 4 个字符形式。
+:00402850 F3                      repz
+:00402851 AB                      stosd
+:00402852 8B44242C                mov eax, dword ptr [esp+2C]  <----得到用户名的地址
+:00402856 50                      push eax  <----将用户名作为参数传入
+:00402857 E8B4010000              call 00402A10 <----此 CALL（记为 CALL 1）内将用户名进行变化后在 EAX 以长整数返回,按 F8 进入.
+:0040285C 83C404                  add esp, 00000004
+:0040285F 89442408                mov dword ptr [esp+08], eax <----将返回的值放入 reg1 中
+:00402863 33F6                    xor esi, esi
+```
+
+`* Referenced by a (U)nconditional or (C)onditional Jump at Address:`
+
+|:00402888(C) |
+|---|
+
+```
+:00402865 0FBE443408              movsx eax, byte ptr [esp+esi+08]
+:0040286A 83F841                  cmp eax, 00000041
+:0040286D 7C08                    jl 00402877
+:0040286F 83F85A                  cmp eax, 0000005A
+:00402872 7F03                    jg 00402877
+:00402874 83C020                  add eax, 00000020 <---- 如果是大写的，则变为小写。
+```
+
+`* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:`
+
+|:0040286D(C), :00402872(C) |
+|---|
+
+```
+:00402877 50                      push eax
+:00402878 E863020000              call 00402AE0 <---- 将 EAX 转化为一个字符。（记为 CALL 3）
+:0040287D 83C404                  add esp, 00000004
+:00402880 88443408                mov byte ptr [esp+esi+08], <----保存这个字符到 reg1 中。
+:00402884 46                      inc esi
+:00402885 83FE04                  cmp esi, 00000004
+:00402888 7CDB                    jl 00402865  <----是否完成第一组
+:0040288A 8B7C2430                mov edi, dword ptr [esp+30]
+:0040288E 8D4C2408                lea ecx, dword ptr [esp+08]
+:00402892 8BF7                    mov esi, edi
+:00402894 33D2                    xor edx, edx
+:00402896 2BF1                    sub esi, ecx
+```
+
+`* Referenced by a (U)nconditional or (C)onditional Jump at Address:`
+
+|:004028BC(C) |
+|---|
+
+```
+:00402898 8D4C1408                lea ecx, dword ptr [esp+edx+08]
+:0040289C 0FBE040E                movsx eax, byte ptr [esi+ecx]
+:004028A0 83F841                  cmp eax, 00000041
+:004028A3 7C08                    jl 004028AD
+:004028A5 83F85A                  cmp eax, 0000005A
+:004028A8 7F03                    jg 004028AD
+:004028AA 83C020                  add eax, 00000020
+```
+
+`* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:`
+
+|:004028A3(C), :004028A8(C) |
+|---|
+
+```
+:004028AD 0FBE09                  movsx ecx, byte ptr [ecx]
+:004028B0 3BC1                    cmp eax, ecx <----比较第一组注册码
+:004028B2 0F8520010000            jne 004029D8
+:004028B8 42                      inc edx
+:004028B9 83FA04                  cmp edx, 00000004
+:004028BC 7CDA                    jl 00402898
+:004028BE 8B442408                mov eax, dword ptr [esp+08]
+:004028C2 8D1480                  lea edx, dword ptr [eax+4*eax]
+:004028C5 8D0450                  lea eax, dword ptr [eax+2*edx]
+:004028C8 03C0                    add eax, eax
+:004028CA 33F6                    xor esi, esi
+:004028CC 8944240C                mov dword ptr [esp+0C], eax <----将 reg1 的值进行第二次变化.放入第二个地址中，以下记为 reg2, reg2 = reg1 *22;
+```
+
+`* Referenced by a (U)nconditional or (C)onditional Jump at Address:`
+
+|:004028F1(C) |
+|---|
+
+```
+:004028D0 8A4C340C                mov cl, byte ptr [esp+esi+0C]
+:004028D4 51                      push ecx
+:004028D5 56                      push esi
+:004028D6 E815010000              call 004029F0
+:004028DB 25FF000000              and eax, 000000FF
+:004028E0 50                      push eax
+:004028E1 E8FA010000              call 00402AE0 <----转化成第二组注册码
+:004028E6 83C40C                  add esp, 0000000C
+:004028E9 8844340C                mov byte ptr [esp+esi+0C], al
+:004028ED 46                      inc esi
+:004028EE 83FE04                  cmp esi, 00000004
+:004028F1 7CDD                    jl 004028D0
+:004028F3 33C9                    xor ecx, ecx
+```
+
+`* Referenced by a (U)nconditional or (C)onditional Jump at Address:`
+
+|:00402918(C) |
+|---|
+
+```
+:004028F5 0FBE440F05              movsx eax, byte ptr [edi+ecx+05]
+:004028FA 83F841                  cmp eax, 00000041
+:004028FD 7C08                    jl 00402907
+:004028FF 83F85A                  cmp eax, 0000005A
+:00402902 7F03                    jg 00402907
+:00402904 83C020                  add eax, 00000020
+```
+
+`* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:`
+
+|:004028FD(C), :00402902(C) |
+|---|
+
+```
+:00402907 0FBE540C0C              movsx edx, byte ptr [esp+ecx+0C]
+:0040290C 3BC2                    cmp eax, edx <----比较第二组注册码
+:0040290E 0F85C4000000            jne 004029D8
+:00402914 41                      inc ecx
+:00402915 83F904                  cmp ecx, 00000004
+:00402918 7CDB                    jl 004028F5
+:0040291A 8B44240C                mov eax, dword ptr [esp+0C]
+:0040291E 8B4C2408                mov ecx, dword ptr [esp+08]
+:00402922 8BD0                    mov edx, eax
+:00402924 33D1                    xor edx, ecx
+:00402926 8D0440                  lea eax, dword ptr [eax+2*eax]
+:00402929 83C208                  add edx, 00000008
+:0040292C 0FAFD1                  imul edx, ecx
+:0040292F 03D0                    add edx, eax
+:00402931 33F6                    xor esi, esi
+:00402933 89542410                mov dword ptr [esp+10], edx <----将用户名转化的值进行第三次变化记为 reg3 = reg2*3 + ((reg2 ^ reg1)+8)*reg1;
+```
+
+`* Referenced by a (U)nconditional or (C)onditional Jump at Address:`
+
+|:0040294D(C) |
+|---|
+
+```
+:00402937 0FBE4C3410              movsx ecx, byte ptr [esp+esi+10]
+:0040293C 51                      push ecx
+:0040293D E89E010000              call 00402AE0 <----转化成第三组注册码
+:00402942 83C404                  add esp, 00000004
+:00402945 88443410                mov byte ptr [esp+esi+10], al
+:00402949 46                      inc esi
+:0040294A 83FE04                  cmp esi, 00000004
+:0040294D 7CE8                    jl 00402937
+:0040294F 33C9                    xor ecx, ecx
+```
+
+`* Referenced by a (U)nconditional or (C)onditional Jump at Address:`
+
+|:00402970(C) |
+|---|
+
+```
+:00402951 0FBE440F0A              movsx eax, byte ptr [edi+ecx+0A]
+:00402956 83F841                  cmp eax, 00000041
+:00402959 7C08                    jl 00402963
+:0040295B 83F85A                  cmp eax, 0000005A
+:0040295E 7F03                    jg 00402963
+:00402960 83C020                  add eax, 00000020
+```
+
+`* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:`
+
+|:00402959(C), :0040295E(C) |
+|---|
+
+```
+:00402963 0FBE540C10              movsx edx, byte ptr [esp+ecx+10]
+:00402968 3BC2                    cmp eax, edx <----比较第三组注册码
+:0040296A 756C                    jne 004029D8
+:0040296C 41                      inc ecx
+:0040296D 83F904                  cmp ecx, 00000004
+:00402970 7CDF                    jl 00402951
+:00402972 8B4C240C                mov ecx, dword ptr [esp+0C]
+:00402976 8B442408                mov eax, dword ptr [esp+08]
+:0040297A 0FAFC8                  imul ecx, eax
+```
+
+
+
+```asm
+:0040297D 83C106             add ecx, 00000006
+
+:00402980 8D1480             lea edx, dword ptr [eax+4*eax]
+
+:00402983 0FAF4C2410         imul ecx, dword ptr [esp+10]
+
+:00402988 03CA               add ecx, edx
+
+:0040298A 33F6               xor esi, esi
+
+:0040298C 894C2414           mov dword ptr [esp+14], ecx <----将用户名转化的值进行第四次变化.记为 reg4 = reg1*5 + ((reg2 * reg1)+6)*reg3;
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:004029A6(C)
+
+|
+
+:00402990 0FBE443414         movsx eax, byte ptr [esp+esi+14]
+
+:00402995 50                 push eax
+
+:00402996 E845010000         call 00402AE0 <----转化出第 4 组注册码
+
+:0040299B 83C404             add esp, 00000004
+
+:0040299E 88443414           mov byte ptr [esp+esi+14], al
+
+:004029A2 46                 inc esi
+
+:004029A3 83FE04             cmp esi, 00000004
+
+:004029A6 7CE8               jl 00402990
+
+:004029A8 33C9               xor ecx, ecx
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:004029C9(C)
+
+|
+
+:004029AA 0FBE440F0F         movsx eax, byte ptr [edi+ecx+0F]
+
+:004029AF 83F841             cmp eax, 00000041
+
+:004029B2 7C08               jl 004029BC
+
+:004029B4 83F85A             cmp eax, 0000005A
+
+:004029B7 7F03               jg 004029BC
+
+:004029B9 83C020             add eax, 00000020
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:004029B2(C), :004029B7(C)
+
+|
+
+:004029BC 0FBE540C14         movsx edx, byte ptr [esp+ecx+14]
+
+:004029C1 3BC2               cmp eax, edx <----比较第四组注册码
+
+:004029C3 7513               jne 004029D8
+
+:004029C5 41                 inc ecx
+
+:004029C6 83F904             cmp ecx, 00000004
+
+:004029C9 7CDF               jl 004029AA
+
+:004029CB 5F                 pop edi
+
+* Possible Reference to String Resource ID=00001: "Register Success"
+
+                                                  |
+
+:004029CC B801000000         mov eax, 00000001
+
+:004029D1 5E                 pop esi
+
+:004029D2 83C420             add esp, 00000020
+
+:004029D5 C20800             ret 0008
+```
+
+-----------------以下是进入 CALL 1 后的内容--------------------------------------------------
+
+```asm
+00402A10 81EC00020000       sub esp, 00000200
+
+:00402A16 B980000000         mov ecx, 00000080
+
+:00402A1B 33C0               xor eax, eax
+
+:00402A1D 53                 push ebx
+
+:00402A1E 55                 push ebp
+
+:00402A1F 56                 push esi
+
+:00402A20 8BB42410020000     mov esi, dword ptr [esp+00000210]
+
+:00402A27 57                 push edi
+
+:00402A28 8D7C2410           lea edi, dword ptr [esp+10]
+
+:00402A2C F3                 repz
+
+:00402A2D AB                 stosd
+
+:00402A2E 56                 push esi
+
+:00402A2F 33ED               xor ebp, ebp
+
+* Reference To: KERNEL32.lstrlenA, Ord:0308h
+
+                                                  |
+
+:00402A31 FF1590704000       Call dword ptr [00407090] <----取用户名长度
+
+:00402A37 8BD8               mov ebx, eax
+
+:00402A39 81FB00020000       cmp ebx, 00000200 <----比较用户名是否超过 512 字符
+
+:00402A3F 7612               jbe 00402A53
+
+:00402A41 B980000000         mov ecx, 00000080
+
+:00402A46 8D7C2410           lea edi, dword ptr [esp+10]
+
+:00402A4A BB00020000         mov ebx, 00000200
+
+:00402A4F F3                 repz
+
+:00402A50 A5                 movsd
+
+:00402A51 EB0C               jmp 00402A5F
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00402A3F(C)
+
+|
+
+:00402A53 8D442410           lea eax, dword ptr [esp+10]
+
+:00402A57 56                 push esi
+
+:00402A58 50                 push eax
+
+* Reference To: KERNEL32.lstrcpyA, Ord:0302h
+
+                                                  |
+
+:00402A59 FF1528704000       Call dword ptr [00407028] <----将用户名复制到另一地址(以下记作地址 1).
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00402A51(U)
+
+|
+
+:00402A5F 8BC3               mov eax, ebx
+
+:00402A61 99                 cdq
+
+:00402A62 83E203             and edx, 00000003
+
+:00402A65 03C2               add eax, edx
+
+:00402A67 8BF8               mov edi, eax
+
+:00402A69 C1FF02             sar edi, 02 <----EDI 为用户名长度除 4 后取整
+
+:00402A6C F6C303             test bl, 03
+
+:00402A6F 7401               je 00402A72
+
+:00402A71 47                 inc edi <----如果有余数,再加 1,该值用于第二次变化的循环变量.
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00402A6F(C)
+
+|
+
+:00402A72 33C9               xor ecx, ecx
+
+:00402A74 85DB               test ebx, ebx
+
+:00402A76 7E17               jle 00402A8F
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00402A8D(C)
+
+|
+
+:00402A78 8A540C10           mov dl, byte ptr [esp+ecx+10] <----取出地址 1 中用户名的一位.
+
+:00402A7C 52                 push edx
+
+:00402A7D 51                 push ecx <----压入两个参数,ECX 为循环变量,第一次时是 0;
+
+:00402A7E E86DFFFFFF         call 004029F0 <----此 CALL（记为 CALL 2）将取出的字符进行变化,按 F8 可进入分析;
+
+:00402A83 83C408             add esp, 00000008
+
+:00402A86 88440C10           mov byte ptr [esp+ecx+10], al <----将处理后的字符再次写入
+
+:00402A8A 41                 inc ecx
+
+:00402A8B 3BCB               cmp ecx, ebx <----是否将用户名的第一位都处理了.
+
+:00402A8D 7CE9               jl 00402A78 <----没有处理完就继续.
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00402A76(C)
+
+|
+
+:00402A8F 33F6               xor esi, esi
+
+:00402A91 85FF               test edi, edi
+
+:00402A93 7E1C               jle 00402AB1
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00402AAF(C)
+
+|
+
+:00402A95 8B5CB410           mov ebx, dword ptr [esp+4*esi+10] <----取出第一次处理后用户名的 4 位。
+
+:00402A99 8BC6               mov eax, esi
+
+:00402A9B 83E01F             and eax, 0000001F
+
+:00402A9E 03EB               add ebp, ebx <----将处理的结果进行累加。
+
+:00402AA0 50                 push eax
+
+:00402AA1 55                 push ebp
+
+:00402AA2 E819000000         call 00402AC0 <----此 CALL 内比较简单，是将 EBP 的值通过 CF 进行循环移位 EAX 次。
+
+:00402AA7 83C408             add esp, 00000008
+
+:00402AAA 46                 inc esi
+
+:00402AAB 3BF7               cmp esi, edi
+
+:00402AAD 8BE8               mov ebp, eax <----是否处理完
+
+:00402AAF 7CE4               jl 00402A95
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00402A93(C)
+
+|
+
+:00402AB1 5F                 pop edi
+
+:00402AB2 8BC5               mov eax, ebp <----将最后累加的值放入 EAX 后返回。
+
+:00402AB4 5E                 pop esi
+
+:00402AB5 5D                 pop ebp
+
+:00402AB6 5B                 pop ebx
+
+:00402AB7 81C400020000       add esp, 00000200
+
+:00402ABD C3                 ret
+```
+
+-----------------------------------------------------------------------------
+
+-----------------CALL 2 分析--------------------------------------
+
+-----------------------------------------------------------------
+
+```asm
+:004029F0 55                 push ebp
+
+:004029F1 8BEC               mov ebp, esp
+
+:004029F3 53                 push ebx
+
+:004029F4 8A4508             mov al, byte ptr [ebp+08] <----取第一个参数,即上面 ECX 的值
+
+:004029F7 8A5D0C             mov bl, byte ptr [ebp+0C] <----取第二个参数,即上面 DL 的值
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00402A04(C)
+
+|
+```
+
+
+
+:004029FA F6C3C3 <----将 BL 与 C3 进行逻辑与后看结果是否为偶数
+
+:004029FD 7A01 jpe 00402A00 <----是偶数就不跳.
+
+:004029FF F9 stc <----将 CF 置 1
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address: |:004029FD(C) |
+
+:00402A00 D0DB rcr bl, 1 <----通过 CF 进行向右位移
+
+:00402A02 FEC8 dec al
+
+:00402A04 75F4 jne 004029FA <----循环,直到 AL 为 0
+
+:00402A06 885D0C mov byte ptr [ebp+0C], bl
+
+:00402A09 8A450C mov al, byte ptr [ebp+0C] <----将结果放入 AL 中返回
+
+:00402A0C 5B pop ebx
+
+:00402A0D 5D pop ebp
+
+:00402A0E C3 ret
+
+---
+
+----------------此 CALL 结束-----------------------------------------
+
+----------------------------进入 CALL 3--------------------------------
+
+----------------------------------------------------------------------
+
+----------------------------------------------------------------------
+
+:00402AE0 8B442404 mov eax, dword ptr [esp+04] <----取出参数到 EAX
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses: |:00402B02(U), :00402B13(U), :00402B2E(U) |
+
+:00402AE4 83E07F and eax, 0000007F
+
+:00402AE7 83F841 cmp eax, 00000041
+
+:00402AEA 7C07 jl 00402AF3
+
+:00402AEC 83F85A cmp eax, 0000005A
+
+:00402AEF 7F02 jg 00402AF3
+
+:00402AF1 0C20 or al, 20 <----如果是大写,则转为小写
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses: |:00402AEA(C), :00402AEF(C) |
+
+:00402AF3 83F86F cmp eax, 0000006F <----如果是 o,再继续
+
+:00402AF6 750C jne 00402B04
+
+:00402AF8 B890000000 mov eax, 00000090
+
+:00402AFD 83F00E xor eax, 0000000E
+
+:00402B00 0C31 or al, 31
+
+:00402B02 EBE0 jmp 00402AE4
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address: |:00402AF6(C) |
+
+:00402B04 83F830 cmp eax, 00000030 <----如果是 0,再继续
+
+:00402B07 750C jne 00402B15
+
+:00402B09 B8CF000000 mov eax, 000000CF
+
+:00402B0E 83F00E xor eax, 0000000E
+
+:00402B11 0C31 or al, 31
+
+:00402B13 EBCF jmp 00402AE4
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address: |:00402B07(C) |
+
+:00402B15 83F861 cmp eax, 00000061
+
+:00402B18 7C05 jl 00402B1F
+
+:00402B1A 83F87A cmp eax, 0000007A
+
+:00402B1D 7E11 jle 00402B30 <----如果是小写字母,则返回
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address: |:00402B18(C) |
+
+:00402B1F 83F831 cmp eax, 00000031
+
+:00402B22 7C05 jl 00402B29
+
+:00402B24 83F839 cmp eax, 00000039
+
+:00402B27 7E07 jle 00402B30 <----如果是数学,则返回
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address: |:00402B22(C) |
+
+:00402B29 83F00E xor eax, 0000000E
+
+:00402B2C 0C31 or al, 31
+
+:00402B2E EBB4 jmp 00402AE4 <----再继续处理.
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses: |:00402B1D(C), :00402B27(C) |
+
+:00402B30 C3 ret
+
+---------------------------------------------------------------
+
+---------------------------------------------------------------
+
+---------------------------------------------------------------
+
+注册算法
+
+1. 将用户名转化为 `DWORD` 值;
+
+2. 将 `DWORD` 值的 4 个字节依次转化为字符形式,得到第一组注册码
+
+3. 再进行 3 次变化,依次得到后面 3 组注册码.
+
+-----------------VC++ 6.0 通过------------------
+
+```cpp
+void CHero3000Dlg::OnOK()
+
+{
+    char name[512];
+    unsigned char code1[5];
+    unsigned char code2[5];
+    unsigned char code3[5];
+    unsigned char code4[5];
+    int namelen;
+    long reg1,reg2,reg3,reg4,temp;
+    int i,n;
+    this->UpdateData();
+    memset(name,0,512);
+    namelen = this->m_name.GetLength();
+    strcpy(name,this->m_name);
+    for(i=0;i<namelen;i++)
+    {
+        name[i] = change(i,name[i]);
+    }
+    i = (namelen / 4);
+    if((namelen % 4)>0) i++;
+    reg1 = 0;
+    for(n=0;n<i;n++)
+    {
+        memcpy(&temp,&name[n*4],4);
+        reg1 += temp;
+        _asm mov eax,reg1;
+        _asm mov ecx,n;
+        _asm ror eax,cl;
+        _asm mov reg1,eax;
+    }
+    memcpy(code1,&reg1,4);
+    for(i=0;i<4;i++)
+    {
+        code1[i] = this->regtoa(code1[i]);
+    }
+    code1[4]=0; //处理完第一组注册码
+    memcpy(&reg1,code1,4);
+    reg2 = reg1 * 22;
+    memcpy(code2,&reg2,4);
+    for(i=0;i<4;i++)
+    {
+        code2[i] = this->change(i,code2[i]);
+        code2[i] = this->regtoa(code2[i]);
+    }
+    code2[4] =0; //处理完第二组注册码
+    memcpy(&reg2,code2,4);
+    reg3 = reg2*3 + ((reg2 ^ reg1)+8)*reg1;
+    memcpy(code3,&reg3,4);
+    for(i=0;i<4;i++)
+    {
+        code3[i] = this->regtoa(code3[i]);
+    }
+    code3[4] =0; //处理完第三组注册码
+    memcpy(&reg3,code3,4);
+    reg4 = reg1*5 + ((reg2 * reg1)+6)*reg3;
+    memcpy(code4,&reg4,4);
+    for(i=0;i<4;i++)
+    {
+        code4[i] = this->regtoa(code4[i]);
+    }
+    code4[4] =0; //处理完第四组注册码
+    this->m_regcode = code1;
+    this->m_regcode += "-";
+    this->m_regcode += code2;
+    this->m_regcode += "-";
+    this->m_regcode += code3;
+    this->m_regcode += "-";
+    this->m_regcode += code4;
+    this->UpdateData(false);
+
+//    CDialog::OnOK();
+}
+
+char CHero3000Dlg::change(unsigned char a, char b)
+
+{
+    do
+    {
+        _asm mov bl,b;
+        _asm test bl,0xC3;
+        _asm jpe st0;
+        _asm stc;
+st0:
+        _asm rcr bl,1;
+        _asm mov b,bl;
+        if(a==0)
+            a=0xff;
+        else
+            a--;
+    }
+    while(a>0);
+    return b;
+}
+
+unsigned char CHero3000Dlg::regtoa(unsigned char a)
+
+{
+    for(;1;)
+    {
+        a = a & 0x7f;
+        if(a>='A' && a<='Z' )
+        {
+            a = a | 0x20; //转为小写
+        }
+        if(a == 0x6f) //如果是字符'o'则不要它。可能是'o'与'0'比较相似，在注册码中会去除。
+        {
+            a = 0x90;
+            a = a ^ 0x0e;
+            a = a | 0x31;
+            continue ;
+        }
+        if(a == 0x30) //如果是字符'0'，就不要它
+        {
+            a = 0xcf;
+            a = a ^ 0x0e;
+            a = a | 0x31;
+            continue;
+        }
+        if(a>='a' && a<='z')
+        {
+            return a;
+        }
+        if(a>='1' && a<='9')
+        {
+            return a;
+        }
+        a = a ^ 0x0e;
+        a = a | 0x31;
+    }
+}
+
+---------------------------------------------------------  4dd466d0e1e0cc123afbe504da2462ca
+```
