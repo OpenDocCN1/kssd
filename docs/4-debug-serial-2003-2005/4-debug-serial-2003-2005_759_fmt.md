@@ -1,0 +1,605 @@
+
+# Multi Clipboard m9.75.01 破解（另类注册机）
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-114.htm`](https://www.pediy.com/kssd/pediy07/pediy7-114.htm)
+
+【破解作者】`Bmzy`
+
+【作者主页】`http://www.9ycn.com/`
+
+【使用工具】`OllyDbg v1.10`, `PEiD v0.92`, `HexWorkshop v4.23`
+
+【破解平台】`WinXP SP2`
+
+【软件名称】`Multi Clipboard m9.75.01`
+
+【下载地址】`http://www.skycn.com/soft/3865.html`
+
+【软件简介】一个小巧简单易用的剪贴板增强程序。它提供了每个可以保存 10240 个字符的多达 33 个保存区域，在您需要粘贴的时候，只需要轻松点击该区域的按钮即可，真正让您随心贴。您还可以自定义按钮的名称和顺序，支持多种数据格式，您可以保存多种不同格式的文本资源，尤其适用于烦琐单一的资料填写，不愧是您网络填表的好帮手。
+
+【软件大小】`349 KB`
+
+【破解声明】学习交流并快乐着......
+
+\---------------------------------------------------------------------------------------------------------------------
+
+【破解内容】
+
+`PEiD`检查，程序的编程语言是 `Microsoft Visual C++ 7.0`，无壳。
+
+`od` 载入，软件开始，到注册处，填入 `1234abcd`。设断 `MessageBoxA`，按确定按钮，停下后按 `Ctrl+F9` 往上返，返到 `4070EB`，向上拉判断应是确定按钮的处理函数，开始分析。
+
+这个软件是明码比较，做内存注册机很简单，我在这里使用修改代码使程序自己显示注册码的方法，当作练习。
+
+\---------------------------------------------------------------------------------------------------------------------
+
+```asm
+00406C61  mov eax,dword ptr ss:[esp+8]
+00406C65  push ebx
+00406C66  and eax,0FFFF
+00406C6B  push esi
+00406C6C  cmp eax,486
+00406C71  push edi
+00406C72  mov dword ptr ss:[esp+C],ecx
+00406C76  jl MLTCLIP.004070D4
+00406C7C  cmp eax,487
+00406C81  jg MLTCLIP.004070D4
+00406C87  push 50                                          ; /Arg3 = 00000050
+00406C89  push MLTCLIP.00451760                           ; |Arg2 = 00451760 ASCII "Bmzy"
+00406C8E  push 484                                         ; |Arg1 = 00000484
+00406C93  mov ecx,MLTCLIP.0044B350                         ; |ASCII "4cC"
+00406C98  call MLTCLIP.0042C56B                             ; \MLTCLIP.0042C56B
+00406C9D  mov edi,MLTCLIP.00451760                         ;  ASCII "Bmzy"
+00406CA2  or ecx,FFFFFFFF
+00406CA5  xor eax,eax
+00406CA7  repne scas byte ptr es:[edi]
+00406CA9  not ecx
+00406CAB  dec ecx
+00406CAC  cmp ecx,3                                         ; 检测 Register Name 字串长不能小于等于 3
+00406CAF  jnb short MLTCLIP.00406D07
+00406CB1  push MLTCLIP.00451760                           ;  ASCII "Bmzy"
+00406CB6  push MLTCLIP.00446A2C                           ;  ASCII "The name (%s) that you are attempting to register is not valid, because it is too short."
+00406CBB  push MLTCLIP.0044B71C                           ;  ASCII "303438373B3B"
+00406CC0  call MLTCLIP.00418D55
+00406CC5  add esp,0C
+00406CC8  mov ecx,MLTCLIP.0044B350                         ;  ASCII "4cC"
+00406CCD  push 40
+00406CCF  push MLTCLIP.0044450C                           ;  ASCII "Multi Clipboard"
+00406CD4  push MLTCLIP.0044B71C                           ;  ASCII "303438373B3B"
+00406CD9  call MLTCLIP.0042B41F
+00406CDE  push 484
+00406CE3  mov ecx,MLTCLIP.0044B350                         ;  ASCII "4cC"
+00406CE8  call MLTCLIP.0042C513
+00406CED  mov eax,dword ptr ds:[eax+1C]
+00406CF0  mov ecx,dword ptr ds:[44B36C]
+00406CF6  push 1                                           ; /lParam = 1
+00406CF8  push eax                                         ; |wParam
+00406CF9  push 28                                          ; |Message = WM_NEXTDLGCTL
+00406CFB  push ecx                                         ; |hWnd => 1509D8
+00406CFC  call dword ptr ds:[<&USER32.SendMessageA>]      ; \SendMessageA
+00406D02  jmp MLTCLIP.004070D4
+00406D07  push 50                                          ; /Arg3 = 00000050
+00406D09  push MLTCLIP.004517B0                           ; |Arg2 = 004517B0 ASCII "Bmzy@PCG.com"
+00406D0E  push 485                                         ; |Arg1 = 00000485
+00406D13  mov ecx,MLTCLIP.0044B350                         ; |ASCII "4cC"
+00406D18  call MLTCLIP.0042C56B                             ; \MLTCLIP.0042C56B
+00406D1D  mov edx,dword ptr ds:[4A6498]
+00406D23  push 1
+00406D25  push MLTCLIP.004517B0                           ;  ASCII "Bmzy@PCG.com"
+00406D2A  push edx
+00406D2B  call MLTCLIP.0040D7A0
+00406D30  add esp,0C
+00406D33  cmp eax,1                                         ; 检测 Register Email 填的是否符合要求
+00406D36  je short MLTCLIP.00406D8E
+00406D38  push MLTCLIP.0044450C                           ;  ASCII "Multi Clipboard"
+00406D3D  push MLTCLIP.00445D34                           ;  ASCII "%s, Your Email Address"
+00406D42  push MLTCLIP.00451074
+00406D47  call MLTCLIP.00418D55
+00406D4C  push MLTCLIP.0043F35C                           ;  ASCII "Enter your [tech-support]...."
+00406D51  push 50
+00406D53  push MLTCLIP.004517B0                           ;  ASCII "Bmzy@PCG.com"
+00406D58  call MLTCLIP.004091C0
+00406D5D  add esp,18
+00406D60  mov ecx,MLTCLIP.0044B350                         ;  ASCII "4cC"
+00406D65  push MLTCLIP.004517B0                           ;  ASCII "Bmzy@PCG.com"
+00406D6A  push 485
+00406D6F  call MLTCLIP.0042C60A
+00406D74  mov eax,dword ptr ds:[4A6498]
+00406D79  push 1
+00406D7B  push MLTCLIP.004517B0                           ;  ASCII "Bmzy@PCG.com"
+00406D80  push eax
+00406D81  call MLTCLIP.0040D7A0
+00406D86  add esp,0C
+00406D89  cmp eax,1
+00406D8C  jnz short MLTCLIP.00406D38
+00406D8E  push 0
+00406D90  push 1
+00406D92  call MLTCLIP.00409480
+00406D97  add esp,8
+00406D9A  mov ecx,8
+00406D9F  xor eax,eax
+00406DA1  mov edi,MLTCLIP.00453110                         ;  ASCII "1111"
+00406DA6  rep stos dword ptr es:[edi]
+00406DA8  push 20                                          ; /Arg3 = 00000020
+00406DAA  push MLTCLIP.00453110                           ; |Arg2 = 00453110 ASCII "1111"
+00406DAF  push 483                                         ; |Arg1 = 00000483
+00406DB4  mov ecx,MLTCLIP.0044B350                         ; |ASCII "4cC"
+00406DB9  call MLTCLIP.0042C56B                             ; \MLTCLIP.0042C56B
+00406DBE  mov ecx,40
+00406DC3  xor eax,eax
+00406DC5  mov edi,MLTCLIP.0044B41C                         ;  ASCII "303438373B3B"
+00406DCA  push MLTCLIP.0044B41C                           ;  ASCII "303438373B3B"
+00406DCF  push MLTCLIP.0044450C                           ;  ASCII "Multi Clipboard"
+00406DD4  push MLTCLIP.00451760                           ;  ASCII "Bmzy"
+00406DD9  rep stos dword ptr es:[edi]
+00406DDB  call MLTCLIP.00408C60
+00406DE0  push MLTCLIP.0044B41C                           ;  ASCII "303438373B3B"
+00406DE5  call MLTCLIP.00408BE0
+00406DEA  push MLTCLIP.00453110                           ;  ASCII "1111"
+00406DEF  call MLTCLIP.00408BE0
+00406DF4  mov edi,MLTCLIP.00453110                         ;  ASCII "1111"
+00406DF9  or ecx,FFFFFFFF
+00406DFC  xor eax,eax
+00406DFE  add esp,14
+00406E01  repne scas byte ptr es:[edi]
+00406E03  not ecx
+00406E05  sub edi,ecx
+00406E07  mov ebx,dword ptr ds:[<&KERNEL32.WritePrivateProfil>;  kernel32.WritePrivateProfileStringA
+00406E0D  mov edx,ecx
+00406E0F  mov esi,edi
+00406E11  mov edi,MLTCLIP.0043F488                         ;  ASCII "1111"
+00406E16  push MLTCLIP.00450F70                           ; /FileName = "D:\WINDOWS\MLTCLIP.INI"
+00406E1B  shr ecx,2                                       ; |
+00406E1E  rep movs dword ptr es:[edi],dword ptr ds:[esi]  ; |
+00406E20  mov ecx,edx                                     ; |
+00406E22  push MLTCLIP.0043F488                           ; |String = "1111"
+00406E27  and ecx,3                                       ; |
+00406E2A  push MLTCLIP.00444274                           ; |Key = "CurrentUserStatus"
+00406E2F  rep movs byte ptr es:[edi],byte ptr ds:[esi]    ; |
+```
+
+
+
+```
+00406E31  push MLTCLIP.004441B8                     ; |Section = "Configure"  
+
+00406E36  call ebx                                  ; \\WritePrivateProfileStringA  
+
+00406E38  mov edi,MLTCLIP.0044B41C                   ;  ASCII "303438373B3B"  
+
+00406E3D  or ecx,FFFFFFFF  
+
+00406E40  xor eax,eax  
+
+00406E42  mov esi,MLTCLIP.00453110                   ;  ASCII "1111"  
+
+00406E47  repne scas byte ptr es:[edi]  
+
+00406E49  not ecx  
+
+00406E4B  dec ecx  
+
+00406E4C  mov edi,MLTCLIP.0044B41C                   ;  ASCII "303438373B3B"  
+
+00406E51  xor eax,eax  
+
+00406E53  repe cmps byte ptr es:[edi],byte ptr ds:[esi]  
+
+---------------------------------------------------------------------------------------------  
+
+00406E55  jnz short MLTCLIP.00406ECC      这两句被我改为      00406E55  jnz MLTCLIP.00400350  
+
+00406E57  mov edi,MLTCLIP.0044B41C                 00406E5B  nop  
+
+这里是比较注册码，然后跳转。正确的注册码在[edi]中，我在这里修改，如果填的注册码不对，就  
+
+跳到我在 400350 处填的语句，显示一个对话框，显示出正确的注册码。这里占用了 406E57，因此，到  
+
+400350 处要补上。在 400350 处执行完毕后，再跳回下面的 406E5C 继续执行。  
+
+---------------------------------------------------------------------------------------------  
+
+00406E5C  or ecx,FFFFFFFF  
+
+00406E5F  repne scas byte ptr es:[edi]  
+
+00406E61  not ecx  
+
+00406E63  dec ecx  
+
+00406E64  mov edi,MLTCLIP.00453110                   ;  ASCII "1111"  
+
+00406E69  mov edx,ecx  
+
+00406E6B  or ecx,FFFFFFFF  
+
+00406E6E  repne scas byte ptr es:[edi]  
+
+00406E70  not ecx  
+
+00406E72  dec ecx  
+
+00406E73  cmp ecx,edx  
+
+00406E75  jnz short MLTCLIP.00406ECC  
+
+00406E77  push MLTCLIP.0044450C                    ;  ASCII "Multi Clipboard"  
+
+00406E7C  push MLTCLIP.004431F4                    ;  ASCII "Thank you for registering "  
+
+00406E81  push MLTCLIP.00446A24                    ;  ASCII "%s%s!"  
+
+00406E86  push MLTCLIP.0044B71C                    ;  ASCII "303438373B3B"  
+
+00406E8B  mov dword ptr ds:[4A62D4],1  
+
+00406E95  call MLTCLIP.00418D55  
+
+00406E9A  add esp,10  
+
+00406E9D  mov ecx,MLTCLIP.0044B350                   ;  ASCII "4cC"  
+
+00406EA2  push 40  
+
+00406EA4  push MLTCLIP.0044450C                    ;  ASCII "Multi Clipboard"  
+
+00406EA9  push MLTCLIP.0044B71C                    ;  ASCII "303438373B3B"  
+
+00406EAE  call MLTCLIP.0042B41F  
+
+00406EB3  mov ecx,MLTCLIP.0044B350                   ;  ASCII "4cC"  
+
+00406EB8  mov dword ptr ds:[4A632C],0  
+
+00406EC2  call MLTCLIP.0042987D  
+
+00406EC7  jmp MLTCLIP.004070D4  
+
+00406ECC  push 20                                  ; /Arg3 = 00000020  
+
+00406ECE  push MLTCLIP.00453110                    ; |Arg2 = 00453110 ASCII "1111"  
+
+00406ED3  push 483                                 ; |Arg1 = 00000483  
+
+00406ED8  mov ecx,MLTCLIP.0044B350                   ; |ASCII "4cC"  
+
+00406EDD  call MLTCLIP.0042C56B                    ; \\MLTCLIP.0042C56B  
+
+00406EE2  push MLTCLIP.00453110                    ;  ASCII "1111"  
+
+00406EE7  call MLTCLIP.0040B2A0  
+
+00406EEC  add esp,4  
+
+00406EEF  mov dword ptr ds:[451488],eax  
+
+00406EF4  test eax,eax  
+
+00406EF6  jle MLTCLIP.004070A5                         注册码将被在这里写入 ini 文件  
+
+00406EFC  push MLTCLIP.00450F70                    ; /IniFileName = "D:\WINDOWS\MLTCLIP.INI"  
+
+00406F01  push 2800                                ; |BufSize = 2800 (10240.)  
+
+00406F06  push MLTCLIP.0044B71C                    ; |ReturnBuffer = MLTCLIP.0044B71C  
+
+00406F0B  mov ecx,0A00                             ; |  
+
+00406F10  xor eax,eax                              ; |  
+
+00406F12  mov edi,MLTCLIP.0044B71C                   ; |ASCII "303438373B3B"  
+
+00406F17  push MLTCLIP.0044B71C                    ; |Default = "303438373B3B"  
+
+00406F1C  push MLTCLIP.00444288                    ; |Key = "CurrentUserTmpReg"  
+
+00406F21  rep stos dword ptr es:[edi]                ; |  
+
+00406F23  push MLTCLIP.004441B8                    ; |Section = "Configure"  
+
+00406F28  call dword ptr ds:[<&KERNEL32.GetPrivateProfileStri>; \\GetPrivateProfileStringA  
+
+00406F2E  push MLTCLIP.0044B71C                    ;  ASCII "303438373B3B"  
+
+00406F33  call MLTCLIP.0040B2A0  
+
+00406F38  add esp,4  
+
+00406F3B  test eax,eax  
+
+00406F3D  jnz MLTCLIP.00406FE6  
+
+00406F43  mov edi,MLTCLIP.00453110                   ;  ASCII "1111"  
+
+00406F48  or ecx,FFFFFFFF  
+
+00406F4B  repne scas byte ptr es:[edi]  
+
+00406F4D  not ecx  
+
+00406F4F  sub edi,ecx  
+
+00406F51  push MLTCLIP.004A6350  
+
+00406F56  mov eax,ecx  
+
+00406F58  mov esi,edi  
+
+00406F5A  mov edi,MLTCLIP.0044B71C                   ;  ASCII "303438373B3B"  
+
+00406F5F  shr ecx,2  
+
+00406F62  rep movs dword ptr es:[edi],dword ptr ds:[esi]  
+
+00406F64  mov ecx,eax  
+
+00406F66  and ecx,3  
+
+00406F69  rep movs byte ptr es:[edi],byte ptr ds:[esi]  
+
+00406F6B  call MLTCLIP.004192DE  
+
+00406F70  mov eax,dword ptr ds:[451488]  
+
+00406F75  lea eax,dword ptr ds:[eax+eax*2]  
+
+00406F78  lea eax,dword ptr ds:[eax+eax*4]  
+
+00406F7B  lea eax,dword ptr ds:[eax+eax*4]  
+
+00406F7E  lea ecx,dword ptr ds:[eax+eax*8]  
+
+00406F81  mov eax,dword ptr ds:[4A6350]  
+
+00406F86  shl ecx,7  
+
+00406F89  add eax,ecx  
+
+00406F8B  push eax  
+
+00406F8C  push MLTCLIP.00445D4C                    ;  ASCII "%lu"  
+
+00406F91  push MLTCLIP.0044B41C                    ;  ASCII "303438373B3B"  
+
+00406F96  mov dword ptr ds:[4A6350],eax  
+
+00406F9B  call MLTCLIP.00418D55  
+
+00406FA0  mov edi,MLTCLIP.0044B41C                   ;  ASCII "303438373B3B"  
+
+00406FA5  or ecx,FFFFFFFF  
+
+00406FA8  xor eax,eax  
+
+00406FAA  add esp,10  
+
+00406FAD  repne scas byte ptr es:[edi]  
+
+00406FAF  not ecx  
+
+00406FB1  sub edi,ecx  
+
+00406FB3  push MLTCLIP.00450F70                    ;  ASCII "D:\WINDOWS\MLTCLIP.INI"  
+
+00406FB8  mov esi,edi  
+
+00406FBA  mov edx,ecx  
+
+00406FBC  mov edi,MLTCLIP.0044B71C                   ;  ASCII "303438373B3B"  
+
+00406FC1  or ecx,FFFFFFFF  
+
+00406FC4  repne scas byte ptr es:[edi]  
+
+00406FC6  mov ecx,edx  
+
+00406FC8  dec edi  
+
+00406FC9  shr ecx,2  
+
+00406FCC  rep movs dword ptr es:[edi],dword ptr ds:[esi]  
+
+00406FCE  mov ecx,edx  
+
+00406FD0  push MLTCLIP.0044B71C                    ;  ASCII "303438373B3B"  
+
+00406FD5  and ecx,3  
+
+00406FD8  push MLTCLIP.00444288                    ;  ASCII "CurrentUserTmpReg"  
+
+00406FDD  rep movs byte ptr es:[edi],byte ptr ds:[esi]  
+
+00406FDF  push MLTCLIP.004441B8                    ;  ASCII "Configure"  
+
+00406FE4  call ebx  
+
+00406FE6  push MLTCLIP.0044B71C                    ;  ASCII "303438373B3B"  
+
+00406FEB  call MLTCLIP.0040B2A0  
+
+00406FF0  add esp,4  
+
+00406FF3  test eax,eax  
+
+00406FF5  jle MLTCLIP.004070A5  
+
+00406FFB  mov edi,MLTCLIP.00443210                   ;  ASCII "T1M1PMC"  
+
+00407000  or ecx,FFFFFFFF  
+
+00407003  xor eax,eax  
+
+00407005  repne scas byte ptr es:[edi]  
+
+00407007  not ecx  
+
+00407009  dec ecx  
+
+0040700A  add ecx,MLTCLIP.0044B71C                   ;  ASCII "303438373B3B"  
+
+00407010  push ecx  
+
+00407011  call MLTCLIP.00419248  
+
+00407016  push MLTCLIP.004A6354  
+
+0040701B  mov dword ptr ds:[4A6350],eax  
+
+00407020  call MLTCLIP.004192DE  
+
+00407025  mov eax,dword ptr ds:[4A6354]  
+
+0040702A  mov ecx,dword ptr ds:[4A6350]  
+
+00407030  add eax,32  
+
+00407033  add esp,8  
+
+00407036  mov dword ptr ds:[4A6354],eax  
+
+0040703B  lea edx,dword ptr ds:[eax+BDD80]  
+
+00407041  cmp ecx,edx  
+
+00407043  jnb short MLTCLIP.0040709B  
+
+00407045  cmp eax,ecx  
+
+00407047  jnb short MLTCLIP.0040709B  
+
+00407049  push MLTCLIP.0044450C                    ;  ASCII "Multi Clipboard"  
+```
+
+
+
+```
+0040704E  push MLTCLIP.004431F4                       ;  ASCII "Thank you for registering "  
+
+00407053  push MLTCLIP.00446A24                       ;  ASCII "%s%s!"  
+
+00407058  push MLTCLIP.0044B71C                       ;  ASCII "303438373B3B"  
+
+0040705D  mov dword ptr ds:[4A62D4],2  
+
+00407067  call MLTCLIP.00418D55  
+
+0040706C  add esp,10  
+
+0040706F  mov ecx,MLTCLIP.0044B350                     ;  ASCII "4cC"  
+
+00407074  push 40  
+
+00407076  push MLTCLIP.0044450C                       ;  ASCII "Multi Clipboard"  
+
+0040707B  push MLTCLIP.0044B71C                       ;  ASCII "303438373B3B"  
+
+00407080  call MLTCLIP.0042B41F  
+
+00407085  mov ecx,MLTCLIP.0044B350                     ;  ASCII "4cC"  
+
+0040708A  mov dword ptr ds:[4A632C],0  
+
+00407094  call MLTCLIP.0042987D  
+
+00407099  jmp short MLTCLIP.004070D4  
+
+0040709B  mov dword ptr ds:[4A632C],1  
+
+004070A5  cmp word ptr ss:[esp+14],487  
+
+004070AC  jnz short MLTCLIP.004070C0  
+
+004070AE  push MLTCLIP.0044B350                       ;  ASCII "4cC"  
+
+004070B3  call MLTCLIP.00410F90                     错误会走到这里，出错误提示消息  
+
+004070B8  add esp,4  
+
+004070BB  cmp eax,6  
+
+004070BE  je short MLTCLIP.004070D4  
+
+004070C0  mov ecx,MLTCLIP.0044B350                     ;  ASCII "4cC"  
+
+004070C5  mov dword ptr ds:[44E274],1  
+
+004070CF  call MLTCLIP.00406940  
+
+004070D4  mov eax,dword ptr ss:[esp+18]  
+
+004070D8  mov ecx,dword ptr ss:[esp+14]  
+
+004070DC  push eax                                    ; /Arg2  
+
+004070DD  push ecx                                    ; |Arg1  
+
+004070DE  mov ecx,dword ptr ss:[esp+14]                  ; |  
+
+004070E2  call MLTCLIP.0042B22D                       ; \\MLTCLIP.0042B22D  
+
+004070E7  pop edi  
+
+004070E8  pop esi  
+
+004070E9  pop ebx  
+
+004070EA  pop ecx  
+
+004070EB  retn 8  
+
+---------------------------------------------------------------------------------------------------
+```
+
+要调用 `MessageBox`，一般程序都会调用，找到导入表这个函数的地址就行了，如果程序没有调用，可以自己添加导入函数，`PEedit` 就有这个功能。
+
+我将自己为了显示消息框的代码和数据放到了程序前面，`dos` 头的后面。`400300` 处放了一个字串。我添加的代码从 `400350` 开始，首先保存寄存器。因为这个注册对话框的属性是总在最前，如果调用 `MessageBox` 的父窗口参数传 `0`，消息框为桌面窗口的子窗口，消息框将显示在注册对话框的后面，必须给这个参数传对话框窗口的句柄，这样我要显示的对话框才能在前面。那对话框窗口的句柄在哪里呢,经过分析当执行到这句时堆栈栈顶指向的是一个结构的指针，在它偏移 `1C` 处就是注册对话框的句柄。好，因为我调用了 `pushad`，因此，我要从`[esp+20]`处取这个结构的指针，然后就可以调 `MessageBox` 了。调用后，恢复寄存器，再重写原改动跳转占用的 `406E57` 一句，最后跳回。
+
+```
+00400300  B1 F0 CF B9 CA D4 C1 CB A3 A1 C4 E3 B5 C4 D7 A2   别瞎试了！你的注  
+
+00400310  B2 E1 C2 EB D3 A6 B8 C3 CA C7 00 00 00 00 00 00   册码应该是......  
+
+00400350   60             pushad                                     保存寄存器  
+
+00400351   8B4424 20      mov eax,dword ptr ss:[esp+20]               获得结构地址  
+
+00400355   8B40 1C       mov eax,dword ptr ds:[eax+1C]               获得偏移 1C 处的注册对话框窗口句柄  
+
+00400358   6A 00         push 0                                       对话框样式传 0，只要确定按钮  
+
+0040035A   68 00034000   push MLTCLIP.00400300                         窗口标题传我的字串  
+
+0040035F   57            push edi                                       消息内容传正确的注册码字串的地址  
+
+00400360   50            push eax                                       传注册对话框窗口句柄  
+
+00400361   FF15 98544300 call dword ptr ds:[<&USER32.MessageBoxA>]     调用 USER32.MessageBoxA  
+
+00400367   61            popad                                        恢复寄存器  
+
+00400368   BF 1CB44400   mov edi,MLTCLIP.0044B41C                   重写被覆盖的语句          
+
+0040036D   E9 EA6A0000   jmp MLTCLIP.00406E5C                         跳回
+```
+
+好，用 `HexWorkshop` 打开程序，写入，保存。运行程序，随便填一个注册码，显示消息框，注册码是 `303438373B3B`，
+
+填入，成功。
+
+`----------------------------------------------------------------------------------------------------`
+
+得到的一个可用的注册码为：
+
+```
+Register Name ：    Bmzy
+
+Register Email ：   Bmzy@PCG.com
+
+Registration Code ：303438373B3B
+```
+
+这个程序是注册名、`Email` 和注册码相对应的。
+
+`----------------------------------------------------------------------------------------------------` 
+
+`4dd466d0e1e0cc123afbe504da2462ca`
