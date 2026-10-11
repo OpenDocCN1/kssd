@@ -1,0 +1,309 @@
+
+# “破解”QQ 找茬
+
+> 原文：[`www.pediy.com/kssd/pediy11/121127.html`](https://www.pediy.com/kssd/pediy11/121127.html)
+
+前几天寝室里几个哥们玩 QQ，找茬，我们六人还找不过一人，甚是郁闷，于是我决定编写一个找茬程序。
+
+效果图如下。配置菜单里是相关参数的设置，点击截图菜单项后窗口自动移动，并显示出两幅图的不同。技术含量不是很高。
+
+我传了一个效果图，`1.jpg`，那个紫色圆形是随着鼠标动而动产生的，方便定位。
+
+注释确实太少了。
+
+我说一下思路吧，先把窗口移到右边，截取桌面左边图像，再移到左边，截取右边图像，并进行异或操作，这样不同的地方就显示出来了。
+
+我本想给游戏窗口发鼠标消息的，可一想，这个图片较小，不同之处也少，干脆又人来定位得了。如果要自动定位的话，我想用内存设备描述表中位图句柄来得到图像像素数据，不知道有更好的方法没。还请高人指教！
+
+上传附件不太方便，贴代码吧
+
+```c
+#include <windows.h>
+#include "resource.h"
+
+#define   ID_TIMER 1
+
+LRESULT CALLBACK WndProc (HWND, UINT, WPARAM, LPARAM) ;
+
+POINT  left,right;
+int   height,width;
+int    cxSize,cySize;
+HDC  hdcMem;/////////////////////////内存 DC
+HBITMAP hBitmap;
+POINT    pt;
+
+int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance,
+                    PSTR szCmdLine, int iCmdShow)
+{
+    static TCHAR szAppName[] = TEXT ("SCR_COPY") ;
+    HWND         hwnd ;
+    MSG          msg ;
+    WNDCLASS     wndclass ;
+    wndclass.style         = CS_HREDRAW | CS_VREDRAW ;
+    wndclass.lpfnWndProc   = WndProc ;
+    wndclass.cbClsExtra    = 0 ;
+    wndclass.cbWndExtra    = 0 ;
+    wndclass.hInstance     = hInstance ;
+    wndclass.hIcon         = LoadIcon (hInstance,szAppName) ;
+    wndclass.hCursor       = LoadCursor (NULL, IDC_ARROW) ;
+    wndclass.hbrBackground = (HBRUSH) GetStockObject (WHITE_BRUSH) ;
+    wndclass.lpszMenuName  = szAppName ;
+    wndclass.lpszClassName = szAppName ;
+    if (!RegisterClass (&wndclass))
+    {
+        MessageBox (NULL, TEXT ("This program requires Windows NT!"),
+                   szAppName, MB_ICONERROR) ;
+        return 0 ;
+    }
+    hwnd = CreateWindow (szAppName,                    // window class name
+                        TEXT ("SCR_COPY"), // window caption
+                        WS_OVERLAPPEDWINDOW,        // window style
+                        CW_USEDEFAULT,               // initial x position
+                        CW_USEDEFAULT,               // initial y position
+                        CW_USEDEFAULT,               // initial x size
+                        CW_USEDEFAULT,               // initial y size
+                        NULL,                        // parent window handle
+                        NULL,                        // window menu handle
+                        hInstance,                   // program instance handle
+                        NULL) ;                       // creation parameters
+    ShowWindow (hwnd, iCmdShow) ;
+    UpdateWindow (hwnd) ;
+    while (GetMessage (&msg, NULL, 0, 0))
+    {
+        TranslateMessage (&msg) ;
+        DispatchMessage (&msg) ;
+    }
+    return msg.wParam ;
+}
+
+///////////////////////////////////////////////////////////////////
+void CALLBACK TimerProc(HWND hwnd,UINT message,UINT iTimerID,DWORD dwTime)
+{
+  HDC  hdc_me = GetDC(hwnd);
+  POINT  pos,pos2;
+  HBRUSH  hBrush;
+  BitBlt(hdc_me,0,pt.y,width,height,
+         hdcMem,0,0,SRCCOPY);
+  hBrush = CreateSolidBrush(RGB(255,100,255));
+  SelectObject(hdc_me,hBrush);
+  GetCursorPos(&pos);
+  pos2 = pos;
+  ScreenToClient(hwnd,&pos2);
+  Ellipse(hdc_me,pos.x-cxSize/2-5,pos2.y-5,pos.x-cxSize/2+5,pos2.y+5);
+  DeleteObject(hBrush);
+  ReleaseDC(hwnd,hdc_me);
+}
+
+///////////////////////////////////////////////////////////////////
+BOOL CALLBACK AboutDlgProc(HWND hDlg,UINT message,WPARAM wParam,LPARAM lParam)
+{
+  switch(message)
+  {
+  case WM_INITDIALOG:
+    return TRUE;
+  case WM_COMMAND:
+    switch(LOWORD(wParam))
+    {
+    case IDOK:
+      EndDialog(hDlg,0);
+      return TRUE;
+    }
+    break;
+  }
+  return FALSE;
+}
+
+///////////////////////////////////////////////////////////////////
+BOOL CALLBACK DlgProc(HWND hDlg,UINT message,
+            WPARAM wParam,LPARAM lParam)
+{
+  switch(message)
+  {
+    case WM_INITDIALOG:
+      SetDlgItemInt(hDlg,IDC_L_X,left.x,0);
+      SetDlgItemInt(hDlg,IDC_L_Y,left.y,0);
+      SetDlgItemInt(hDlg,IDC_R_X,right.x,0);
+      SetDlgItemInt(hDlg,IDC_R_Y,right.y,0);
+      SetDlgItemInt(hDlg,IDC_HEIGHT,height,0);
+      SetDlgItemInt(hDlg,IDC_WIDTH, width,0);
+        return 0;
+    case WM_CLOSE:
+      EndDialog(hDlg,FALSE);
+      return 0;
+    case WM_COMMAND:
+      switch(LOWORD(wParam))
+      {
+      case IDOK:
+        left.x  = GetDlgItemInt(hDlg,IDC_L_X,NULL,0);
+        left.y  = GetDlgItemInt(hDlg,IDC_L_Y,NULL,0);
+        right.x  = GetDlgItemInt(hDlg,IDC_R_X,NULL,0);
+        right.y  = GetDlgItemInt(hDlg,IDC_R_Y,NULL,0);
+        height  = GetDlgItemInt(hDlg,IDC_HEIGHT,NULL,0);
+        width  = GetDlgItemInt(hDlg,IDC_WIDTH,NULL,0);
+        EndDialog(hDlg,TRUE);
+        return TRUE;
+      }
+  }
+  return 0;
+}
+
+TCHAR szString[] = TEXT ("Hello, 千里眼") ;
+
+LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+
+   static    HINSTANCE  hInstance;
+   static    count  = 0;
+   static    flag = 0;
+   HDC    hdc_me,hdc;//依次为窗口设备描述表，桌面 DC
+   PAINTSTRUCT ps ;
+   HWND    desk_hwnd = GetDesktopWindow();
+   switch (message)
+   {
+
+      case WM_CREATE:
+       left.x  = 8;
+       left.y  = 192;
+       right.x  = 517;
+       right.y  = 192;
+       cxSize = GetSystemMetrics(SM_CXSCREEN);
+       cySize = GetSystemMetrics(SM_CYSCREEN);
+       width = cxSize/2;
+       height = cySize;
+
+        hInstance = ((LPCREATESTRUCT)lParam)->hInstance;
+       RegisterHotKey(hwnd,100,0,VK_F4);
+       SetWindowPos(hwnd,HWND_TOPMOST,
+          0,0,0,0,SWP_NOMOVE|SWP_NOSIZE);
+      return 0;
+     case WM_COMMAND:
+         switch(LOWORD(wParam))
+         {
+          case IDM_START:
+             if(DialogBox(hInstance,TEXT("SCR_COPY"),hwnd,DlgProc))
+            InvalidateRect(hwnd,NULL,TRUE);
+            return 0;
+          case IDM_CUT:
+            MoveWindow(hwnd,cxSize/2,0,width,height,TRUE);//窗口移到右边
+            Sleep(200);//稍等一下
+            hdc_me = GetDC(hwnd);
+            hdcMem = CreateCompatibleDC(hdc_me);//内存设备描述表
+            if(hBitmap)
+            {
+              DeleteObject(hBitmap);
+              hBitmap = NULL;
+            }
+            hBitmap = CreateCompatibleBitmap(hdc_me,width,height);
+            SelectObject(hdcMem,hBitmap);
+            hdc = GetDCEx(desk_hwnd,0,DCX_LOCKWINDOWUPDATE);
+            pt = left;
+            ScreenToClient(hwnd,&pt);
+
+            //BitBlt(hdc_me,0,pt.y,width,height,
+            //      hdc,left.x,left.y,SRCCOPY);
+            BitBlt(hdcMem,0,0,width,height,
+               hdc,left.x,left.y,SRCCOPY);//桌面左边图像放入内存
+
+            MoveWindow(hwnd,0,0,width,height,TRUE);//窗口移到右边
+            Sleep(200);
+            //右边图像放入内存并进行异或操作
+               BitBlt(hdcMem,0,0,width,height,
+                hdc,right.x,right.y,SRCINVERT);
+            BitBlt(hdc_me,0,pt.y,width,height,
+                hdcMem,0,0,SRCCOPY);
+            // BitBlt(hdc_me,0,0,width,height,
+            //    hdcMem,0,0,SRCCOPY);  //程序编写时测试代码
+            if(flag)
+             KillTimer(hwnd,ID_TIMER);
+            flag = 1;
+            SetTimer(hwnd,ID_TIMER,50,TimerProc);
+            ReleaseDC(hwnd,hdc_me);
+            ReleaseDC(desk_hwnd,hdc);
+             return 0;
+          case IDM_ABOUT:
+            DialogBox(hInstance,TEXT("AboutBox"),hwnd,AboutDlgProc);
+            return 0;
+         }
+
+         break;
+    case WM_PAINT:
+          hdc = BeginPaint (hwnd, &ps) ;
+      TextOut(hdc,50,50,szString,lstrlen(szString));
+```
+
+
+
+`EndPaint (hwnd, &ps) ;`
+
+`return 0 ;`
+
+`case WM_HOTKEY:`
+
+`if(IsWindowVisible(hwnd))`
+
+`ShowWindow(hwnd,SW_HIDE);`
+
+`else`
+
+`ShowWindow(hwnd,SW_SHOW);`
+
+`SendMessage(hwnd,WM_COMMAND,IDM_CUT,0);`
+
+`return 0;`
+
+`case WM_DESTROY:`
+
+`KillTimer(hwnd,ID_TIMER);`
+
+`PostQuitMessage (0) ;`
+
+`return 0 ;`
+
+`}`
+
+`return DefWindowProc (hwnd, message, wParam, lParam) ;`
+
+`}`
+
+代码简单，就不多说了。各位看官莫笑。
+
+```
+EndPaint (hwnd, &ps) ;
+
+return 0 ;
+
+case WM_HOTKEY:
+
+if(IsWindowVisible(hwnd))
+
+ShowWindow(hwnd,SW_HIDE);
+
+else 
+
+ShowWindow(hwnd,SW_SHOW);
+
+SendMessage(hwnd,WM_COMMAND,IDM_CUT,0);
+
+return 0;
+
+case WM_DESTROY:
+
+KillTimer(hwnd,ID_TIMER);
+
+PostQuitMessage (0) ;
+
+return 0 ;
+
+}
+
+return DefWindowProc (hwnd, message, wParam, lParam) ;
+
+}
+```
+
+![](img/a7b3196110291182cdf00d7df0dcf1e6.jpg)
+
+上传的附件
+
+| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) | `SCR_COPY.rar` |
+| :--- | :--- |
