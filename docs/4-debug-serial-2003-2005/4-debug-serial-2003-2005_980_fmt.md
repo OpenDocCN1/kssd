@@ -1,0 +1,689 @@
+
+# 桌面天气秀 V3.2 注册算法
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-220.htm`](https://www.pediy.com/kssd/pediy07/pediy7-220.htm)
+
+此软件已升级，算法已经改变，而且增添了网络验证，故此放出 3.2 的算法，相信作者也不会介意吧
+
+原来的程序代码没做记录，只是记录了具体的加密算法
+
+## 1. 使用了变形 base64
+
+```
+BASES1 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+BASES2 = "\`!"#$%&'()\*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ\[\\\]^\_"
+BASES3 = "+-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+```
+
+## 2. 使用了 md5 算法
+
+## 3. 暗桩检测
+
+具体算法表述如下：
+
+```
+"h"+base64en2("@"+base64en1(lcase(md5("h"+base64en2(base64en1("@"+str(md5(lCASE(str(md5(用户名)))+"cfishsoft"+lCASE(str(md5(base64de(机器码))))+"lovedongdong"))))))))=注册码
+```
+
+其中 `basede` 对应 `BASES1` 的变形 base64
+
+`baseen1` 对应 `BASES2` 的变形 base64
+
+`baseen2` 对应 `BASES3` 的变形 base64
+
+### 暗桩检测
+
+1. 注册码的第六位若为 0-9 的字符，检测注册码的第 12 位是否为 `DYQ126` 中的字符
+2. 注册码的第六位不为 0-9 的字符，检测注册码的第 12 位是否为 `FISH82TCY` 中的字符。
+
+由此可以看出不是任意的用户名都能满足注册条件。
+
+找到原来的具体分析，如下：
+
+```
+004CF6BB    > \8D55 E0             lea edx,dword ptr ss:[ebp-20]
+004CF6BE    .  8B86 E0030000       mov eax,dword ptr ds:[esi+3E0]
+004CF6C4    .  E8 3BBBF7FF        call XDeskWeather.0044B204
+004CF6C9    .  8B45 E0            mov eax,dword ptr ss:[ebp-20]
+004CF6CC    .  8D55 E4            lea edx,dword ptr ss:[ebp-1C]
+004CF6CF    .  E8 AC8FF3FF        call XDeskWeather.00408680
+004CF6D4    .  8B55 E4            mov edx,dword ptr ss:[ebp-1C]
+004CF6D7    .  A1 986D4D00        mov eax,dword ptr ds:[4D6D98]
+004CF6DC    .  E8 774BF3FF        call XDeskWeather.00404258
+004CF6E1    .  8D55 D8            lea edx,dword ptr ss:[ebp-28]
+004CF6E4    .  8B86 D0030000      mov eax,dword ptr ds:[esi+3D0]
+004CF6EA    .  E8 15BBF7FF       call XDeskWeather.0044B204
+004CF6EF    .  8B45 D8            mov eax,dword ptr ss:[ebp-28]
+
+;用户名
+004CF6F2    .  8D55 DC            lea edx,dword ptr ss:[ebp-24]
+004CF6F5    .  E8 868FF3FF       call XDeskWeather.00408680
+004CF6FA    .  8B55 DC            mov edx,dword ptr ss:[ebp-24]
+004CF6FD    .  A1 F46F4D00       mov eax,dword ptr ds:[4D6FF4]
+004CF702    .  E8 514BF3FF       call XDeskWeather.00404258
+004CF707    .  A1 986D4D00       mov eax,dword ptr ds:[4D6D98]
+004CF70C    .  8B00              mov eax,dword ptr ds:[eax]
+004CF70E    .  E8 09ABFFFF       call XDeskWeather.004CA21C
+004CF713    .  8D45 FC           lea eax,dword ptr ss:[ebp-4]
+004CF716    .  8B15 986D4D00     mov edx,dword ptr ds:[4D6D98]        ;  XDeskWeather.004D958C
+004CF71C    .  8B12              mov edx,dword ptr ds:[edx]
+004CF71E    .  E8 794BF3FF       call XDeskWeather.0040429C
+004CF723    .  8D55 C4           lea edx,dword ptr ss:[ebp-3C]
+004CF726    .  A1 F46F4D00       mov eax,dword ptr ds:[4D6FF4]
+004CF72B    .  8B00              mov eax,dword ptr ds:[eax]
+004CF72D    .  E8 4E8FF3FF       call XDeskWeather.00408680
+004CF732    .  8B45 C4           mov eax,dword ptr ss:[ebp-3C]
+004CF735    .  8D55 C8           lea edx,dword ptr ss:[ebp-38]
+004CF738    .  E8 9FDAF9FF       call XDeskWeather.0046D1DC
+004CF73D    .  8D45 C8           lea eax,dword ptr ss:[ebp-38]
+004CF740    .  8D55 F8           lea edx,dword ptr ss:[ebp-8]
+004CF743    .  E8 08DBF9FF       call XDeskWeather.0046D250
+004CF748    .  FF75 F8          push dword ptr ss:[ebp-8]
+
+;S1=md5("lajiaolz5788")=cc67cac8bd1cc4e7eee8c9db74d64f0d
+004CF74B    .  68 44FA4C00       push XDeskWeather.004CFA44
+
+;S2  ASCII "cfishsoft"
+004CF750    .  8D55 BC           lea edx,dword ptr ss:[ebp-44]
+004CF753    .  A1 44704D00       mov eax,dword ptr ds:[4D7044]
+004CF758    .  8B00              mov eax,dword ptr ds:[eax]
+
+;base64de(机器码)=45e9bd2137496e705bf16dc534a2db32
+004CF75A    .  E8 218FF3FF       call XDeskWeather.00408680
+004CF75F    .  8B45 BC           mov eax,dword ptr ss:[ebp-44]
+004CF762    .  8D55 C8           lea edx,dword ptr ss:[ebp-38]
+004CF765    .  E8 72DAF9FF       call XDeskWeather.0046D1DC
+004CF76A    .  8D45 C8           lea eax,dword ptr ss:[ebp-38]
+004CF76D    .  8D55 C0           lea edx,dword ptr ss:[ebp-40]
+004CF770    .  E8 DBDAF9FF       call XDeskWeather.0046D250
+004CF775    .  FF75 C0          push dword ptr ss:[ebp-40]
+
+;S3=md5("45e9bd2137496e705bf16dc534a2db32")=7fd1510e8ababb4cd5e4e6e29d23d499
+004CF778    .  68 58FA4C00       push XDeskWeather.004CFA58
+
+;S4  ASCII "lovedongdong"
+004CF77D    .  8D45 F8           lea eax,dword ptr ss:[ebp-8]
+004CF780    .  BA 04000000      mov edx,4
+004CF785    .  E8 FA4DF3FF       call XDeskWeather.00404584
+004CF78A    .  8D55 B4           lea edx,dword ptr ss:[ebp-4C]
+
+S=S1+S2+S3+S4=cc67cac8bd1cc4e7eee8c9db74d64f0dcfishsoft7fd1510e8ababb4cd5e4e6e29d23d499lovedongdong
+
+004CF78D    .  8B45 F8          mov eax,dword ptr ss:[ebp-8]
+004CF790    .  E8 EB8EF3FF       call XDeskWeather.00408680
+004CF795    .  8B45 B4          mov eax,dword ptr ss:[ebp-4C]
+004CF798    .  8D55 C8          lea edx,dword ptr ss:[ebp-38]
+004CF79B    .  E8 3CDAF9FF       call XDeskWeather.0046D1DC
+004CF7A0    .  8D45 C8          lea eax,dword ptr ss:[ebp-38]
+004CF7A3    .  8D55 B8          lea edx,dword ptr ss:[ebp-48]
+004CF7A6    .  E8 A5DAF9FF       call XDeskWeather.0046D250
+
+;md5("cc67cac8bd1cc4e7eee8c9db74d64f0dcfishsoft7fd1510e8ababb4cd5e4e6e29d23d499lovedongdong")=f93ea854239ed7ac2450da3d0984759b
+004CF7AB    .  8B55 B8          mov edx,dword ptr ss:[ebp-48]
+004CF7AE    .  8D45 F8          lea eax,dword ptr ss:[ebp-8]
+004CF7B1    .  E8 E64AF3FF       call XDeskWeather.0040429C
+004CF7B6    .  33C9             xor ecx,ecx
+004CF7B8    .  B2 01           mov dl,1
+004CF7BA    .  A1 48544800     mov eax,dword ptr ds:[485448]
+004CF7BF    .  E8 8C5DFBFF      call XDeskWeather.00485550
+004CF7C4    .  8BD8             mov ebx,eax
+004CF7C6    .  33C9             xor ecx,ecx
+004CF7C8    .  B2 01           mov dl,1
+004CF7CA    .  A1 2C204900     mov eax,dword ptr ds:[49202C]
+004CF7CF    .  E8 6029FCFF      call XDeskWeather.00492134
+004CF7D4    .  8BF8             mov edi,eax
+004CF7D6    .  8D4D AC          lea ecx,dword ptr ss:[ebp-54]
+004CF7D9    .  8B55 F8          mov edx,dword ptr ss:[ebp-8]
+004CF7DC    .  8BC3             mov eax,ebx
+004CF7DE    .  E8 8D9AFAFF      call XDeskWeather.00479270
+004CF7E3    .  8B55 AC          mov edx,dword ptr ss:[ebp-54]
+
+;"@"+base64en1("f93ea854239ed7ac2450da3d0984759b")=@9CDS96$X-30R,SEE9#=A8S(T-3!D83-D,#DX-#<U.6(\`
+004CF7E6    .  8D4D B0          lea ecx,dword ptr ss:[ebp-50]
+004CF7E9    .  8BC7             mov eax,edi
+004CF7EB    .  E8 809AFAFF      call XDeskWeather.00479270
+004CF7F0    .  8B55 B0          mov edx,dword ptr ss:[ebp-50]
+
+;"h"+base64en2("@9CDS96$X-30R,SEE9#=A8S(T-3!D83-D,#DX-#<U.6(\`")=hE1Z1F3AtBWFM9HAkIWlHFIIt6np-C3AcJ0on6IEsAmp290B2K0oXD3IiBWVU
+004CF7F3    .  8D45 F8          lea eax,dword ptr ss:[ebp-8]
+004CF7F6    .  E8 A14AF3FF      call XDeskWeather.0040429C
+004CF7FB    .  8D55 A4          lea edx,dword ptr ss:[ebp-5C]
+004CF7FE    .  8B45 F8          mov eax,dword ptr ss:[ebp-8]
+004CF801    .  E8 7A8EF3FF      call XDeskWeather.00408680
+004CF806    .  8B45 A4          mov eax,dword ptr ss:[ebp-5C]
+004CF809    .  8D55 C8          lea edx,dword ptr ss:[ebp-38]
+004CF80C    .  E8 CBD9F9FF      call XDeskWeather.0046D1DC
+004CF811    .  8D45 C8          lea eax,dword ptr ss:[ebp-38]
+```
+
+
+
+```
+004CF814     .  8D55 A8               lea edx,dword ptr ss:[ebp-58]  
+
+004CF817     .  E8 34DAF9FF         call XDeskWeather.0046D250  
+
+004CF81C     .  8B55 A8             mov edx,dword ptr ss:[ebp-58]  
+
+;md5("hE1Z1F3AtBWFM9HAkIWlHFIIt6np-C3AcJ0on6IEsAmp290B2K0oXD3IiBWVU")=13b413c402f2909ab363a620c2919a90  
+
+004CF81F     .  8D45 F8             lea eax,dword ptr ss:[ebp-8]  
+
+004CF822     .  E8 754AF3FF         call XDeskWeather.0040429C  
+
+004CF827     .  8D4D 9C             lea ecx,dword ptr ss:[ebp-64]  
+
+004CF82A     .  8B55 F8             mov edx,dword ptr ss:[ebp-8]  
+
+004CF82D     .  8BC3                mov eax,ebx  
+
+004CF82F     .  E8 3C9AFAFF         call XDeskWeather.00479270  
+
+004CF834     .  8B55 9C             mov edx,dword ptr ss:[ebp-64]  
+
+;"@"+base64en1("13b413c402f2909ab363a620c2919a90")=@,3-B-#$S8S0P,F8R.3`Y86(S-C-A-C(P8S(Y,3EA.3``  
+
+004CF837     .  8D4D A0             lea ecx,dword ptr ss:[ebp-60]  
+
+004CF83A     .  8BC7                mov eax,edi  
+
+004CF83C     .  E8 2F9AFAFF         call XDeskWeather.00479270  
+
+004CF841     .  8B55 A0             mov edx,dword ptr ss:[ebp-60]  
+
+;"h"+base64en2("@,3-B-#$S8S0P,F8R.3`Y86(S-C-A-C(P8S(Y,3EA.3``")=hE0kn9I6h6mFHC3AkI0l4C36iAq-NC1McImp19I2hEmVEC3AcKGknFI2iAq-U  
+
+004CF844     .  8D45 F8             lea eax,dword ptr ss:[ebp-8]  
+
+004CF847     .  E8 504AF3FF         call XDeskWeather.0040429C  
+
+004CF84C     .  8BC7                mov eax,edi  
+
+004CF84E     .  E8 DD3BF3FF         call XDeskWeather.00403430  
+
+004CF853     .  8BC3                mov eax,ebx  
+
+004CF855     .  E8 D63BF3FF         call XDeskWeather.00403430  
+
+004CF85A     .  8D45 FC             lea eax,dword ptr ss:[ebp-4]  
+
+004CF85D     .  50                  push eax  
+
+004CF85E     .  B9 0A000000         mov ecx,0A  
+
+004CF863     .  BA 01000000         mov edx,1  
+
+004CF868     .  8B45 FC             mov eax,dword ptr ss:[ebp-4]  
+
+004CF86B     .  E8 B44EF3FF         call XDeskWeather.00404724  
+
+004CF870     .  8D45 F8             lea eax,dword ptr ss:[ebp-8]  
+
+004CF873     .  50                  push eax  
+
+004CF874     .  B9 0A000000         mov ecx,0A  
+
+004CF879     .  BA 01000000         mov edx,1  
+
+004CF87E     .  8B45 F8             mov eax,dword ptr ss:[ebp-8]  
+
+004CF881     .  E8 9E4EF3FF         call XDeskWeather.00404724  
+
+004CF886     .  33DB                xor ebx,ebx  
+
+004CF888     >  81FB 3C030000       cmp ebx,33C  
+
+004CF88E     .  75 79              jnz short XDeskWeather.004CF909  
+
+004CF890     .  68 E8030000         push 3E8                              ; /Timeout = 1000. ms  
+
+004CF895     .  E8 A6E1F3FF         call <jmp.&kernel32.Sleep>           ; \\Sleep  
+
+004CF89A     .  8B45 FC             mov eax,dword ptr ss:[ebp-4]  
+
+004CF89D     .  8B55 F8             mov edx,dword ptr ss:[ebp-8]  
+
+004CF8A0     .  E8 6B4DF3FF         call XDeskWeather.00404610  
+
+004CF8A5     .  75 42              jnz short XDeskWeather.004CF8E9  
+
+004CF8A7     .  8B86 EC030000      mov eax,dword ptr ds:[esi+3EC]  
+
+004CF8AD     .  BA 0C000000         mov edx,0C  
+
+004CF8B2     .  E8 BDB0F7FF         call XDeskWeather.0044A974  
+
+004CF8B7     .  8B15 F46F4D00       mov edx,dword ptr ds:[4D6FF4]        ;  XDeskWeather.004DAA10  
+
+004CF8BD     .  8B12                mov edx,dword ptr ds:[edx]  
+
+004CF8BF     .  8B86 F4030000      mov eax,dword ptr ds:[esi+3F4]  
+
+004CF8C5     .  E8 6AB9F7FF         call XDeskWeather.0044B234  
+
+004CF8CA     .  8B86 EC030000      mov eax,dword ptr ds:[esi+3EC]  
+
+004CF8D0     .  B2 01               mov dl,1  
+
+004CF8D2     .  E8 4DB8F7FF         call XDeskWeather.0044B124  
+
+004CF8D7     .  8B86 E8030000      mov eax,dword ptr ds:[esi+3E8]  
+
+004CF8DD     .  BA 70FA4C00         mov edx,XDeskWeather.004CFA70  
+
+004CF8E2     .  E8 4DB9F7FF         call XDeskWeather.0044B234  
+
+004CF8E7     .  EB 20               jmp short XDeskWeather.004CF909  
+
+004CF8E9     >  BA F4F94C00         mov edx,XDeskWeather.004CF9F4         ;  ASCII "hint"
+```
+
+## 暗桩检测
+
+```
+004CB82C   /$  55                  push ebp  
+
+004CB82D   |.  8BEC                mov ebp,esp  
+
+004CB82F   |.  51                  push ecx  
+
+004CB830   |.  53                  push ebx  
+
+004CB831   |.  8945 FC             mov dword ptr ss:[ebp-4],eax  
+
+004CB834   |.  8B45 FC             mov eax,dword ptr ss:[ebp-4]  
+
+004CB837   |.  E8 788EF3FF         call XDeskWeather.004046B4  
+
+004CB83C   |.  33C0                xor eax,eax  
+
+004CB83E   |.  55                  push ebp  
+
+004CB83F   |.  68 EDB84C00         push XDeskWeather.004CB8ED  
+
+004CB844   |.  64:FF30             push dword ptr fs:[eax]  
+
+004CB847   |.  64:8920             mov dword ptr fs:[eax],esp  
+
+004CB84A   |.  8B45 FC             mov eax,dword ptr ss:[ebp-4]  
+
+004CB84D   |.  BA 04B94C00         mov edx,XDeskWeather.004CB904  
+
+004CB852   |.  E8 B98DF3FF         call XDeskWeather.00404610  
+
+004CB857   |.  74 78               je short XDeskWeather.004CB8D1  
+
+004CB859   |.  8B45 FC             mov eax,dword ptr ss:[ebp-4]  
+
+004CB85C   |.  BA 10B94C00         mov edx,XDeskWeather.004CB910  
+
+004CB861   |.  E8 AA8DF3FF         call XDeskWeather.00404610  
+
+004CB866   |.  74 69               je short XDeskWeather.004CB8D1  
+
+004CB868   |.  8B45 FC             mov eax,dword ptr ss:[ebp-4]  
+
+004CB86B   |.  BA 1CB94C00         mov edx,XDeskWeather.004CB91C  
+
+004CB870   |.  E8 9B8DF3FF         call XDeskWeather.00404610  
+
+004CB875   |.  74 5A               je short XDeskWeather.004CB8D1  
+
+004CB877   |.  8B45 FC             mov eax,dword ptr ss:[ebp-4]  
+
+004CB87A   |.  BA 28B94C00         mov edx,XDeskWeather.004CB928  
+
+004CB87F   |.  E8 8C8DF3FF         call XDeskWeather.00404610  
+
+004CB884   |.  74 4B               je short XDeskWeather.004CB8D1  
+
+004CB886   |.  8B45 FC             mov eax,dword ptr ss:[ebp-4]  
+
+004CB889   |.  BA 34B94C00         mov edx,XDeskWeather.004CB934  
+
+004CB88E   |.  E8 7D8DF3FF         call XDeskWeather.00404610  
+
+004CB893   |.  74 3C               je short XDeskWeather.004CB8D1  
+
+004CB895   |.  8B45 FC             mov eax,dword ptr ss:[ebp-4]  
+
+004CB898   |.  BA 40B94C00         mov edx,XDeskWeather.004CB940  
+
+004CB89D   |.  E8 6E8DF3FF         call XDeskWeather.00404610  
+
+004CB8A2   |.  74 2D               je short XDeskWeather.004CB8D1  
+
+004CB8A4   |.  8B45 FC             mov eax,dword ptr ss:[ebp-4]  
+
+004CB8A7   |.  BA 4CB94C00         mov edx,XDeskWeather.004CB94C  
+
+004CB8AC   |.  E8 5F8DF3FF         call XDeskWeather.00404610  
+
+004CB8B1   |.  74 1E               je short XDeskWeather.004CB8D1  
+
+004CB8B3   |.  8B45 FC             mov eax,dword ptr ss:[ebp-4]  
+
+004CB8B6   |.  BA 58B94C00         mov edx,XDeskWeather.004CB958  
+
+004CB8BB   |.  E8 508DF3FF         call XDeskWeather.00404610  
+
+004CB8C0   |.  74 0F               je short XDeskWeather.004CB8D1  
+
+004CB8C2   |.  8B45 FC             mov eax,dword ptr ss:[ebp-4]  
+
+004CB8C5   |.  BA 64B94C00         mov edx,XDeskWeather.004CB964  
+
+004CB8CA   |.  E8 418DF3FF         call XDeskWeather.00404610  
+
+004CB8CF   |.  75 04               jnz short XDeskWeather.004CB8D5  
+
+004CB8D1   |>  B3 01               mov bl,1  
+
+004CB8D3   |.  EB 02               jmp short XDeskWeather.004CB8D7  
+
+004CB8D5   |>  B3 01               mov bl,1  
+
+004CB8D7   |>  33C0                xor eax,eax  
+
+004CB8D9   |.  5A                  pop edx  
+
+004CB8DA   |.  59                  pop ecx  
+
+004CB8DB   |.  59                  pop ecx  
+
+004CB8DC   |.  64:8910             mov dword ptr fs:[eax],edx  
+
+004CB8DF   |.  68 F4B84C00         push XDeskWeather.004CB8F4  
+
+004CB8E4   |>  8D45 FC             lea eax,dword ptr ss:[ebp-4]  
+
+004CB8E7   |.  E8 1889F3FF         call XDeskWeather.00404204  
+
+004CB8EC   \\.  C3                  retn  
+
+004CB8ED    .^ E9 9282F3FF         jmp XDeskWeather.00403B84
+```
+
+
+
+```
+004CB8F2    .^ EB F0                jmp short XDeskWeather.004CB8E4
+
+004CB8F4    .  8BC3                mov eax,ebx
+
+004CB8F6    .  5B                 pop ebx
+
+004CB8F7    .  59                 pop ecx
+
+004CB8F8    .  5D                 pop ebp
+
+004CB8F9    .  C3                 retn
+
+004CB8FA       00                 db 00
+
+004CB8FB       00                 db 00
+
+004CB8FC    .  FFFFFFFF           dd FFFFFFFF
+
+004CB900    .  01000000           dd 00000001
+
+004CB904    .  46 00             ascii "F",0
+
+004CB906       00                 db 00
+
+004CB907       00                 db 00
+
+004CB908    .  FFFFFFFF           dd FFFFFFFF
+
+004CB90C    .  01000000           dd 00000001
+
+004CB910    .  49 00             ascii "I",0
+
+004CB912       00                 db 00
+
+004CB913       00                 db 00
+
+004CB914    .  FFFFFFFF           dd FFFFFFFF
+
+004CB918    .  01000000           dd 00000001
+
+004CB91C    .  53 00             ascii "S",0
+
+004CB91E       00                 db 00
+
+004CB91F       00                 db 00
+
+004CB920    .  FFFFFFFF           dd FFFFFFFF
+
+004CB924    .  01000000           dd 00000001
+
+004CB928    .  48 00             ascii "H",0
+
+004CB92A       00                 db 00
+
+004CB92B       00                 db 00
+
+004CB92C    .  FFFFFFFF           dd FFFFFFFF
+
+004CB930    .  01000000           dd 00000001
+
+004CB934    .  38 00             ascii "8",0
+
+004CB936       00                 db 00
+
+004CB937       00                 db 00
+
+004CB938    .  FFFFFFFF           dd FFFFFFFF
+
+004CB93C    .  01000000           dd 00000001
+
+004CB940    .  32 00             ascii "2",0
+
+004CB942       00                 db 00
+
+004CB943       00                 db 00
+
+004CB944    .  FFFFFFFF           dd FFFFFFFF
+
+004CB948    .  01000000           dd 00000001
+
+004CB94C    .  54 00             ascii "T",0
+
+004CB94E       00                 db 00
+
+004CB94F       00                 db 00
+
+004CB950    .  FFFFFFFF           dd FFFFFFFF
+
+004CB954    .  01000000           dd 00000001
+
+004CB958    .  43 00             ascii "C",0
+
+004CB95A       00                 db 00
+
+004CB95B       00                 db 00
+
+004CB95C    .  FFFFFFFF           dd FFFFFFFF
+
+004CB960    .  01000000           dd 00000001
+
+004CB964    .  59 00             ascii "Y",0
+
+004CB966       00                 db 00
+
+004CB967       00                 db 00
+
+004CB968  /$  55                 push ebp
+
+004CB969  |.  8BEC                mov ebp,esp
+
+004CB96B  |.  51                 push ecx
+
+004CB96C  |.  53                 push ebx
+
+004CB96D  |.  8945 FC           mov dword ptr ss:[ebp-4],eax
+
+004CB970  |.  8B45 FC           mov eax,dword ptr ss:[ebp-4]
+
+004CB973  |.  E8 3C8DF3FF       call XDeskWeather.004046B4
+
+004CB978  |.  33C0               xor eax,eax
+
+004CB97A  |.  55                 push ebp
+
+004CB97B  |.  68 FCB94C00       push XDeskWeather.004CB9FC
+
+004CB980  |.  64:FF30           push dword ptr fs:[eax]
+
+004CB983  |.  64:8920           mov dword ptr fs:[eax],esp
+
+004CB986  |.  8B45 FC           mov eax,dword ptr ss:[ebp-4]
+
+004CB989  |.  BA 14BA4C00       mov edx,XDeskWeather.004CBA14
+
+004CB98E  |.  E8 7D8CF3FF       call XDeskWeather.00404610
+
+004CB993  |.  74 4B              je short XDeskWeather.004CB9E0
+
+004CB995  |.  8B45 FC           mov eax,dword ptr ss:[ebp-4]
+
+004CB998  |.  BA 20BA4C00       mov edx,XDeskWeather.004CBA20
+
+004CB99D  |.  E8 6E8CF3FF       call XDeskWeather.00404610
+
+004CB9A2  |.  74 3C              je short XDeskWeather.004CB9E0
+
+004CB9A4  |.  8B45 FC           mov eax,dword ptr ss:[ebp-4]
+
+004CB9A7  |.  BA 2CBA4C00       mov edx,XDeskWeather.004CBA2C
+
+004CB9AC  |.  E8 5F8CF3FF       call XDeskWeather.00404610
+
+004CB9B1  |.  74 2D              je short XDeskWeather.004CB9E0
+
+004CB9B3  |.  8B45 FC           mov eax,dword ptr ss:[ebp-4]
+
+004CB9B6  |.  BA 38BA4C00       mov edx,XDeskWeather.004CBA38
+
+004CB9BB  |.  E8 508CF3FF       call XDeskWeather.00404610
+
+004CB9C0  |.  74 1E              je short XDeskWeather.004CB9E0
+
+004CB9C2  |.  8B45 FC           mov eax,dword ptr ss:[ebp-4]
+
+004CB9C5  |.  BA 44BA4C00       mov edx,XDeskWeather.004CBA44
+
+004CB9CA  |.  E8 418CF3FF       call XDeskWeather.00404610
+
+004CB9CF  |.  74 0F              je short XDeskWeather.004CB9E0
+
+004CB9D1  |.  8B45 FC           mov eax,dword ptr ss:[ebp-4]
+
+004CB9D4  |.  BA 50BA4C00       mov edx,XDeskWeather.004CBA50
+
+004CB9D9  |.  E8 328CF3FF       call XDeskWeather.00404610
+
+004CB9DE  |.  75 04              jnz short XDeskWeather.004CB9E4
+
+004CB9E0  |>  B3 01              mov bl,1
+
+004CB9E2  |.  EB 02              jmp short XDeskWeather.004CB9E6
+
+004CB9E4  |>  B3 01              mov bl,1
+
+004CB9E6  |>  33C0               xor eax,eax
+
+004CB9E8  |.  5A                 pop edx
+
+004CB9E9  |.  59                 pop ecx
+
+004CB9EA  |.  59                 pop ecx
+
+004CB9EB  |.  64:8910           mov dword ptr fs:[eax],edx
+
+004CB9EE  |.  68 03BA4C00       push XDeskWeather.004CBA03
+
+004CB9F3  |>  8D45 FC           lea eax,dword ptr ss:[ebp-4]
+
+004CB9F6  |.  E8 0988F3FF       call XDeskWeather.00404204
+
+004CB9FB  \\  C3                 retn
+
+004CB9FC    .^ E9 8381F3FF       jmp XDeskWeather.00403B84
+
+004CBA01    .^ EB F0              jmp short XDeskWeather.004CB9F3
+
+004CBA03    .  8BC3                mov eax,ebx
+
+004CBA05    .  5B                 pop ebx
+
+004CBA06    .  59                 pop ecx
+
+004CBA07    .  5D                 pop ebp
+
+004CBA08    .  C3                 retn
+
+004CBA09       00                 db 00
+
+004CBA0A       00                 db 00
+
+004CBA0B       00                 db 00
+
+004CBA0C    .  FFFFFFFF           dd FFFFFFFF
+
+004CBA10    .  01000000           dd 00000001
+
+004CBA14    .  44 00             ascii "D",0
+
+004CBA16       00                 db 00
+
+004CBA17       00                 db 00
+
+004CBA18    .  FFFFFFFF           dd FFFFFFFF
+
+004CBA1C    .  01000000           dd 00000001
+
+004CBA20    .  59 00             ascii "Y",0
+
+004CBA22       00                 db 00
+
+004CBA23       00                 db 00
+
+004CBA24    .  FFFFFFFF           dd FFFFFFFF
+
+004CBA28    .  01000000           dd 00000001
+
+004CBA2C    .  51 00             ascii "Q",0
+
+004CBA2E       00                 db 00
+
+004CBA2F       00                 db 00
+
+004CBA30    .  FFFFFFFF           dd FFFFFFFF
+
+004CBA34    .  01000000           dd 00000001
+
+004CBA38    .  31 00             ascii "1",0
+
+004CBA3A       00                 db 00
+
+004CBA3B       00                 db 00
+
+004CBA3C    .  FFFFFFFF           dd FFFFFFFF
+
+004CBA40    .  01000000           dd 00000001
+
+004CBA44    .  32 00             ascii "2",0
+
+004CBA46       00                 db 00
+
+004CBA47       00                 db 00
+
+004CBA48    .  FFFFFFFF           dd FFFFFFFF
+
+004CBA4C    .  01000000           dd 00000001
+
+004CBA50    .  36 00             ascii "6",0
+
+4dd466d0e1e0cc123afbe504da2462ca
+```
