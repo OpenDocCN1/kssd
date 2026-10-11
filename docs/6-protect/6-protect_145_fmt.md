@@ -1,0 +1,195 @@
+
+# TDSD 狗
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6189.htm`](https://www.pediy.com/kssd/pediy06/pediy6189.htm)
+
+【软件名称】健康软件（商业，为了避免麻烦不写了）
+
+【下载地址】`http://`
+
+【应用平台】`Win9x/NT/2000/XP`
+
+【软件大小】未知
+
+【软件限制】加密狗
+
+【破解声明】应朋友委托，只是炼手，从不从事赢利性质的破解。注：因为太菜：）
+
+【破解工具】`ollydbg`, `ws2dasm`, `fi`, `hiew`, `CASPR`
+
+【软件简介】无狗可安装，运行有提示。彩虹的 `TDSD` 狗。
+
+========================================================================================
+
+### 分析过程
+
+先 `FI` 看看是 `ASPack` 的壳，脱壳后，反汇编，找到无狗提示处。`2` 处。用 `OLLYDBG` 动态跟踪得到如下结果。
+
+```
+0052AE27   . E8 E4030000     CALL 23234 脱?0052B210                   ;第一次判断是否有狗，跟进 
+0052AE2C   . 837D F8 00      CMP DWORD PTR SS:[EBP-8],0                ; 必须非 0 
+0052AE30   . 74 10           JE SHORT 23234 脱?0052AE42                ；跳就 OVER 了 
+0052AE32   . 8B45 F8         MOV EAX,DWORD PTR SS:[EBP-8] 
+0052AE35   . 8B15 F0415F00   MOV EDX,DWORD PTR DS:[5F41F0]            ;  23234 脱?0052AD6C 
+0052AE3B   . E8 B895EDFF     CALL 23234 脱?004043F8 
+0052AE40   . 74 18           JE SHORT 23234 脱?0052AE5A               ;  必须 jump 
+0052AE42   > C645 FF 00      MOV BYTE PTR SS:[EBP-1],0 
+0052AE46   . B8 5CAF5200     MOV EAX,23234 脱?0052AF5C 
+0052AE4B   . E8 504EF3FF     CALL 23234 脱?0045FCA0 
+0052AE50   . E8 C78CEDFF     CALL 23234 脱?00403B1C 
+0052AE55   . E9 C5000000     JMP 23234 脱?0052AF1F 
+0052AE5A   > 807B 55 00      CMP BYTE PTR DS:[EBX+55],0 
+0052AE5E   . 75 28           JNZ SHORT 23234 脱?0052AE88              ;  必须 JUMP 
+0052AE60   . 8D55 F4         LEA EDX,DWORD PTR SS:[EBP-C] 
+0052AE63   . 8BC3            MOV EAX,EBX 
+0052AE65   . E8 E6010000     CALL 23234 脱?0052B050 
+0052AE6A   . 837D F4 00      CMP DWORD PTR SS:[EBP-C],0 
+0052AE6E   . 75 26           JNZ SHORT 23234 脱?0052AE96              
+0052AE70   . C645 FF 00      MOV BYTE PTR SS:[EBP-1],0 
+0052AE74   . B8 78AF5200     MOV EAX,23234 脱?0052AF78 
+0052AE79   . E8 224EF3FF     CALL 23234 脱?0045FCA0                   ;  提示未找到狗的序列号 
+0052AE7E   . E8 998CEDFF     CALL 23234 脱?00403B1C 
+0052AE83   . E9 97000000     JMP 23234 脱?0052AF1F 
+0052AE88   > 8D45 F4         LEA EAX,DWORD PTR SS:[EBP-C] 
+0052AE8B   . 8B15 F4415F00   MOV EDX,DWORD PTR DS:[5F41F4]            ;  23234 脱?0052AD7C 
+0052AE91   . E8 6A92EDFF     CALL 23234 脱?00404100 
+0052AE96   > 8D55 F8         LEA EDX,DWORD PTR SS:[EBP-8] 
+0052AE99   . 8BC3            MOV EAX,EBX 
+0052AE9B   . E8 CC020000     CALL 23234 脱?0052B16C                   ;  跟进,读狗，再次判断是否有狗并读取狗内数据 
+0052AEA0   . 837D F8 00      CMP DWORD PTR SS:[EBP-8],0               ；这里就是狗内的数据，无狗当然为 0 
+0052AEA4   . 75 15           JNZ SHORT 23234 脱?0052AEBB             ；必须 JUMP 
+0052AEA6   . C645 FF 00      MOV BYTE PTR SS:[EBP-1],0 
+0052AEAA   . B8 A0AF5200     MOV EAX,23234 脱?0052AFA0 
+0052AEAF   . E8 EC4DF3FF     CALL 23234 脱?0045FCA0 
+0052AEB4   . E8 638CEDFF     CALL 23234 脱?00403B1C 
+0052AEB9   . EB 64           JMP SHORT 23234 脱?0052AF1F 
+0052AEBB   > 8B45 F8         MOV EAX,DWORD PTR SS:[EBP-8]             ;  将狗内读出的数据赋值 EAX 
+0052AEBE   . 8B55 F4         MOV EDX,DWORD PTR SS:[EBP-C]             ；正确的狗内数据，明文 
+0052AEC1   . E8 3295EDFF     CALL 23234 脱?004043F8                   ;  比较两个数据是否相等 
+0052AEC6   . 74 35           JE SHORT 23234 脱?0052AEFD               ;  当然 JUMP 
+0052AEC8   . C645 FF 00      MOV BYTE PTR SS:[EBP-1],0 
+0052AECC   . 68 CCAF5200     PUSH 23234 脱?0052AFCC 
+0052AED1   . FF75 F4         PUSH DWORD PTR SS:[EBP-C] 
+0052AED4   . 68 FCAF5200     PUSH 23234 脱?0052AFFC 
+0052AED9   . 68 08B05200     PUSH 23234 脱?0052B008 
+0052AEDE   . FF75 F8         PUSH DWORD PTR SS:[EBP-8] 
+0052AEE1   . 8D45 EC         LEA EAX,DWORD PTR SS:[EBP-14] 
+0052AEE4   . BA 05000000     MOV EDX,5 
+0052AEE9   . E8 BA94EDFF     CALL 23234 脱?004043A8 
+0052AEEE   . 8B45 EC         MOV EAX,DWORD PTR SS:[EBP-14] 
+0052AEF1   . E8 AA4DF3FF     CALL 23234 脱?0045FCA0                   ;  出错。提示软件狗的许可证号错误 
+0052AEF6   . E8 218CEDFF     CALL 23234 脱?00403B1C 
+0052AEFB   . EB 22           JMP SHORT 23234 脱?0052AF1F 
+0052AEFD   > 33C0            XOR EAX,EAX 
+0052AEFF   . 5A              POP EDX 
+0052AF00   . 59              POP ECX 
+0052AF01   . 59              POP ECX 
+0052AF02   . 64:8910         MOV DWORD PTR FS:[EAX],EDX 
+0052AF05   . 68 1FAF5200     PUSH 23234 脱?0052AF1F 
+0052AF0A   > 8A55 F3         MOV DL,BYTE PTR SS:[EBP-D] 
+0052AF0D   . A1 107B5F00     MOV EAX,DWORD PTR DS:[5F7B10] 
+0052AF12   . E8 ED020000     CALL 23234 脱?0052B204 
+0052AF17   . C3              RETN 
+0052AF18   .^E9 678AEDFF     JMP 23234 脱?00403984 
+0052AF1D   .^EB EB           JMP SHORT 23234 脱?0052AF0A 
+0052AF1F   > 33C0            XOR EAX,EAX 
+0052AF21   . 5A              POP EDX 
+0052AF22   . 59              POP ECX 
+0052AF23   . 59              POP ECX 
+0052AF24   . 64:8910         MOV DWORD PTR FS:[EAX],EDX 
+0052AF27   . 68 49AF5200     PUSH 23234 脱?0052AF49 
+0052AF2C   > 8D45 EC         LEA EAX,DWORD PTR SS:[EBP-14] 
+0052AF2F   . E8 3491EDFF     CALL 23234 脱?00404068 
+0052AF34   . 8D45 F4         LEA EAX,DWORD PTR SS:[EBP-C] 
+0052AF37   . BA 02000000     MOV EDX,2 
+0052AF3C   . E8 4B91EDFF     CALL 23234 脱?0040408C 
+0052AF41   . C3              RETN 
+```
+
+从 `0052AE27 . E8 E4030000 CALL 23234 脱?0052B210` 到达这里关键处
+
+```
+0052B210  /$ 53             PUSH EBX 
+0052B211  |. 51             PUSH ECX 
+0052B212  |. 8BDA           MOV EBX,EDX 
+0052B214  |. 8BC4           MOV EAX,ESP 
+0052B216  |. A3 1C7B5F00    MOV DWORD PTR DS:[5F7B1C],EAX 
+0052B21B  |. 33C0           XOR EAX,EAX 
+0052B21D  |. A3 187B5F00    MOV DWORD PTR DS:[5F7B18],EAX 
+0052B222  |. E8 B8450000    CALL 23234 脱?0052F7DF 
+0052B227  |. 85C0           TEST EAX,EAX                         ; 有狗为 0，改为 XOR EAX 
+0052B229  |. 75 0D          JNZ SHORT 23234 脱?0052B238           ；改为 NOP 
+0052B22B  |. 8BD3           MOV EDX,EBX 
+0052B22D  |. 8B0424         MOV EAX,DWORD PTR SS:[ESP] 
+0052B230  |. E8 67EEEDFF    CALL 23234 脱?0040A09C:[ 
+0052B235  |. 5A             POP EDX 
+0052B236  |. 5B             POP EBX 
+0052B237  |. C3             RETN 
+0052B238  |> 8BC3           MOV EAX,EBX 
+0052B23A  |. E8 298EEDFF    CALL 23234 脱?00404068 
+0052B23F  |. 5A             POP EDX 
+0052B240  |. 5B             POP EBX 
+0052B241  \\. C3            RETN 
+```
+
+`0052AE9B . E8 CC020000 CALL 23234 脱?0052B16C` 跟进到这里
+
+```
+0052B16C  /$ 53             PUSH EBX 
+0052B16D  |. 83C4 F4        ADD ESP,-0C 
+0052B170  |. 8BDA           MOV EBX,EDX 
+0052B172  |. A1 107B5F00    MOV EAX,DWORD PTR DS:[5F7B10] 
+0052B177  |. E8 FC000000    CALL 23234 脱?0052B278:[ 
+0052B17C  |. 84C0           TEST AL,AL                           ；必须为非 0 改为 1 
+0052B17E  |. 75 13          JNZ SHORT 23234 脱?0052B193           ;  必须 jump 
+0052B180  |. 8BC3           MOV EAX,EBX 
+0052B182  |. E8 E18EEDFF    CALL 23234 脱?00404068 
+0052B187  |. B8 ECB15200    MOV EAX,23234 脱?0052B1EC 
+0052B18C  |. E8 0F4BF3FF    CALL 23234 脱?0045FCA01E 
+0052B191  |. EB 49          JMP SHORT 23234 脱?0052B1DC 
+0052B193  |> 8BC4           MOV EAX,ESP 
+0052B195  |. B9 20000000    MOV ECX,20 
+0052B19A  |. BA 0A000000    MOV EDX,0A 
+0052B19F  |. E8 807CEDFF    CALL 23234 脱?00402E24 
+0052B1A4  |. 8BC4           MOV EAX,ESP 
+0052B1A6  |. A3 1C7B5F00    MOV DWORD PTR DS:[5F7B1C],EAX 
+0052B1AB  |. 33C0           XOR EAX,EAX 
+0052B1AD  |. A3 147B5F00    MOV DWORD PTR DS:[5F7B14],EAX 
+0052B1B2  |. C705 187B5F00  MOV DWORD PTR DS:[5F7B18],0A 
+0052B1BC  |. E8 1E460000    CALL 23234 脱?0052F7DF 
+0052B1C1  |. 85C0           TEST EAX,EAX                         ；必须为 0 
+0052B1C3  |. 74 09          JE SHORT 23234 脱?0052B1CE           ；必须 JUMP 
+0052B1C5  |. 8BC3           MOV EAX,EBX 
+0052B1C7  |. E8 9C8EEDFF    CALL 23234 脱?00404068 
+0052B1CC  |. EB 0E          JMP SHORT 23234 脱?0052B1DC 
+0052B1CE  |> 8BC3           MOV EAX,EBX 
+0052B1D0  |. 8BD4           MOV EDX,ESP 
+0052B1D2  |. B9 0A000000    MOV ECX,0A 
+0052B1D7  |. E8 748FEDFF    CALL 23234 脱?00404150 
+0052B1DC  |> 83C4 0C        ADD ESP,0C 
+0052B1DF  |. 5B             POP EBX 
+```
+
+
+
+```
+0052B1E0  \\ . C3             RETN
+```
+
+至于修改很简单了，方法也很多，就不多说了。注：脱——是在脱壳时命名新文件时加上的，只是文件名。
+
+\========================================================================================
+
+【分析总结】
+
+这个狗破解很简单，相对来说`TDSD`、`TDMD`、`GS-MH`等这样的狗好破。但是如果软件作者使用充分的话，也很困难。但是总是能破解的，关键是要有信心和耐心。&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`nahum[FCG]`
+
+\========================================================================================
+
+【版权信息】自由破解联盟 版权所有
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`2003-08-12`
+
+```
+4dd466d0e1e0cc123afbe504da2462ca
+```
