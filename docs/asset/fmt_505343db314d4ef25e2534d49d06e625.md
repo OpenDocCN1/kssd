@@ -1,0 +1,38 @@
+
+# Turbo browser
+
+> 原文：[`www.pediy.com/kssd/pediy01/forum045.htm`](https://www.pediy.com/kssd/pediy01/forum045.htm)
+
+`Turbo browser` like explore and add web function.
+
+No place to input name and serial number.
+
+First try to use `bpx showwindow` interrupt when time expired screen display. But it is difficult for me.
+
+So i try to use `W32dasm`.
+
+After disassemble, i find one item "your turbo browser will expired soon". I guess that expire determine maybe near it.
+
+Double click.
+
+Yes find some `jnz` and `jz`.
+
+One of them is jump to display the above item.
+
+Others was jump to a place where use `xor ax,ax` and the final jump is to a place where use `push 1, pop ax`.
+
+Ok, nomally the `ax` is used as flag for registered/not register.
+
+So use `WinHex` edit `exe` file.
+
+```
+83 E8 00
+74 35  -->90 90
+48     -->90
+74 32  -->90 90
+48     -->90
+74 05  -->90 90
+48     -->90 90
+75 2C  -->90 90
+EB 25
+```

@@ -1,0 +1,146 @@
+
+# Teleport Pro TM 1.29
+
+> 原文：[`www.pediy.com/kssd/pediy02/forum242.htm`](https://www.pediy.com/kssd/pediy02/forum242.htm)
+
+**Teleport Pro TM** 中文版 版本 1.29 Build 431
+
+Name: Peter
+com:home
+sn: 89898989
+
+1. 下 `bpx getwindowtexta`
+2. `F12` 4 下
+3. `F10` 24 下
+
+来到这里:
+
+```
+0167:00421951 EB4E             JMP      SHORT 004219A1
+0167:00421953 FFB7D5000000     PUSH     DWORD [EDI+D5]
+0167:00421959 E829090000       CALL     00422287 (这就是比较的地方)
+0167:0042195E 3945EC           CMP      [EBP-14],EAX(这是就是注册码比较)
+0167:00421961 59               POP      ECX
+0167:00421962 0F85E4000000     JNZ      NEAR 00421A4C
+0167:00421968 8D4DF0           LEA      ECX,[EBP-10]
+0167:0042196B E8CFE50100       CALL     0043FF3F
+0167:00421970 68410C0000       PUSH     DWORD 0C41
+0167:00421975 8D4DF0           LEA      ECX,[EBP-10]
+0167:00421978 C745FC02000000   MOV      DWORD [EBP-04],02
+0167:0042197F E84FEC0100       CALL     004405D3
+0167:00421984 53               PUSH     EBX
+0167:00421985 53               PUSH     EBX
+0167:00421986 FF75F0           PUSH     DWORD [EBP-10]
+0167:00421989 C745FC03000000   MOV      DWORD [EBP-04],03
+0167:00421990 E81B5D0200       CALL     004476B0
+0167:00421995 834DFCFF         OR       DWORD [EBP-04],BYTE -01
+0167:00421999 8D4DF0           LEA      ECX,[EBP-10]
+0167:0042199C E8E9E60100       CALL     0044008A
+0167:004219A1 A144BD4700       MOV      EAX,[0047BD44]
+0167:004219A6 8898AC020000     MOV      [EAX+02AC],BL
+0167:004219AC A144BD4700       MOV      EAX,[0047BD44]
+0167:004219B1 8898AD020000     MOV      [EAX+02AD],BL
+0167:004219B7 A140BD4700       MOV      EAX,[0047BD40]
+0167:004219BC 3BC3             CMP      EAX,EBX
+0167:004219BE 7406             JZ       004219C6
+0167:004219C0 88985A0F0000     MOV      [EAX+0F5A],BL
+0167:004219C6 FF75EC           PUSH     DWORD [EBP-14]
+0167:004219C9 8B0D44BD4700     MOV      ECX,[0047BD44]
+0167:004219CF 6834584700       PUSH     DWORD 00475834
+0167:004219D4 56               PUSH     ESI
+0167:004219D5 E8485E0200       CALL     00447822
+0167:004219DA FFB7D5000000     PUSH     DWORD [EDI+D5]
+0167:004219E0 8B0D44BD4700     MOV      ECX,[0047BD44]
+0167:004219E6 8D9FD5000000     LEA      EBX,[EDI+D5]
+0167:004219EC 6838574700       PUSH     DWORD 00475738
+0167:004219F1 56               PUSH     ESI
+0167:004219F2 E8A05E0200       CALL     00447897
+0167:004219F7 FFB7D9000000     PUSH     DWORD [EDI+D9]
+0167:004219FD 8B0D44BD4700     MOV      ECX,[0047BD44]
+0167:00421A03 6830574700       PUSH     DWORD 00475730
+0167:00421A08 56               PUSH     ESI
+0167:00421A09 E8895E0200       CALL     00447897
+0167:00421A0E A144BD4700       MOV      EAX,[0047BD44]
+0167:00421A13 53               PUSH     EBX
+0167:00421A14 8D88CE020000     LEA      ECX,[EAX+02CE]
+0167:00421A1A E864E70100       CALL     00440183
+0167:00421A1F 8D87D9000000     LEA      EAX,[EDI+D9]
+0167:00421A25 50               PUSH     EAX
+0167:00421A26 A144BD4700       MOV      EAX,[0047BD44]
+0167:00421A2B 8D88D2020000     LEA      ECX,[EAX+02D2]
+0167:00421A31 E84DE70100       CALL     00440183
+0167:00421A36 8BCF             MOV      ECX,EDI
+0167:00421A38 E85BA90100       CALL     0043C398
+0167:00421A3D 8B4DF4           MOV      ECX,[EBP-0C]
+0167:00421A40 5F               POP      EDI
+0167:00421A41 5E               POP      ESI
+0167:00421A42 64890D00000000   MOV      [FS:00],ECX
+0167:00421A49 5B               POP      EBX
+0167:00421A4A C9               LEAVE
+0167:00421A4B C3               RET
+0167:00421A4C 8BBFD5000000     MOV      EDI,[EDI+D5]
+0167:0042195E 3945EC           CMP      [EBP-14],EAX
+```
+
+当光条走到这里,就有
+
+```
+ss:[6FF480]=055BBFED
+```
+
+我不是很会计算，不过我试地十进与十六进制转换太麻烦。
+
+用 `windows` 的计算，破解解时不方便。
+
+`trw2000`, `soft-ice` 自带计算器而且比较 `windows` 更准确。
+
+就以刚才的"055bbfed" 只要输入 `? 55bbfed`
+
+```
+一会儿就出显(十进制) Dec=89898989(这就是我用的假 Sn)
+(十六进制) Hex=055bbfed
+```
+
+不用说真的当在"`EAX`"，`? EAX` （同上面的）
+
+```
+CMP      [EBP-14],EAX
+```
+
+有人可能问不是 `? [ebp-14]` 才对吗？
+
+```
+ss:[6FF480]=055BBFED
+```
+
+我好像在汇编看，这是一等式。（如果有请指出？）
+
+就是 `[ebp-14]=ss:[6ff480]=055bbfed`
+
+不就是同十进与十六进制转换差不多？
+
+这个软件，我很快就破解完过是我破解过程中最快的方法。
+
+我开始不是想自己破解，因为很就有人破解了我也有这个教程。
+
+教程中是用 `bpx hmemcpy`,我无中想试一下 `bpx getwindowtexta`。
+
+结果能中断，不久就 `Crack it!`
+
+最后本版不同，教程的核心全部了。只好自己也写一下过程。
+
+教程的方法也行不过，比较麻烦。
+
+我用许多方法，一开始是利用自己一点汇编知识分析破解出来。
+
+就是让 `JNZ`, `JMP`....等跳跃到的地方再分析，最后来
+
+```
+0167:0042195E 3945EC           CMP      [EBP-14],EAX
+```
+
+这是就是注册码比较（分析出来）
+
+可以说是我比较最快的方法。 如果什么错误的地方请指出修正？
+
+`4dd466d0e1e0cc123afbe504da2462ca`
