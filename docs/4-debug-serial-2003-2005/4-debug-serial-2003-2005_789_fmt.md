@@ -1,0 +1,873 @@
+
+# 申请加入 DFCG NO.1－Replay Video Suite 10.2 注册算法分析
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-426.htm`](https://www.pediy.com/kssd/pediy07/pediy7-426.htm)
+
+Replay Video Suite 10.2 注册算法分析
+
+**【破解作者】** `winndy[FCG][PYG]`
+
+**【作者邮箱】** `CNwinndy@hotmail.com`
+
+**【使用工具】** `OllyDbg` v1.10 fly 修改版
+
+**【破解平台】** `Winxp`
+
+**【软件名称】** `Replay Video Suite 10.2`
+
+**【官方网址】** `http://www.applian.com/wmr/index.php?src=all-streaming-media.com`
+
+**【编写语言】** `Microsoft VC 5.00` and `6.00`
+
+**【软件介绍】** There's no easier way to record Online Videos than with the `Replay Video Suite`, featuring `WM Recorder` (for `Windows Media?`), `RM Recorder` (for `Real?`) and `WM VCR`.
+
+用 `PPlive` 看网络电视时，突然想到有没有工具可以把电视录下来呢？`google` 找到此软件。
+
+**【破解声明】** For Study ,For Fun
+
+**【保护方式】** 序列号
+
+**【破解过程】**
+
+无壳，安装目录下面有个 `Registration.exe`，分析它没错了。
+
+`OD` 载入，搜索字符串参考，很容易找到突破口。
+
+`"RWMR1a-517"` 是输入的假注册码。
+
+### 1. 整体着手，找准突破口
+
+```assembly
+代码:
+
+00401F71    .  A1 6C384200       mov eax,dword ptr ds:[42386C]
+00401F76    .  6A 40             push 40                        ; /Count = 40 (64.)
+00401F78    .  50               push eax                       ; |Buffer => 0012FC10
+00401F79    .  68 CA000000      push 0CA                       ; |ControlID = CA (202.)
+00401F7E    .  53               push ebx                       ; |hWnd
+00401F7F    .  FF15 C0734100    call dword ptr ds:[<&USER32.GetDlgItemTextA>]    ; \GetDlgItemTextA
+00401F85    .  8B0D 6C384200    mov ecx,dword ptr ds:[42386C]              ;ECX 0012FC10 ASCII "RWMR1a-517"
+00401F8B    .  51               push ecx
+00401F8C    .  E8 4FFAFFFF      call Registra.004019E0               ;校验 call，返回 eax，等于 2 则注册码合法
+                                ; 这个过程分析见后面
+00401F91    .  83C4 04          add esp,4
+00401F94    .  83F8 02          cmp eax,2                        ;
+00401F97    .  75 70            jnz short Registra.00402009            ;  No jump
+00401F99    .  8B15 6C384200    mov edx,dword ptr ds:[42386C]
+00401F9F    .  83C9 FF          or ecx,FFFFFFFF
+00401FA2    .  8BFA            mov edi,edx
+00401FA4    .  33C0            xor eax,eax
+00401FA6    .  F2:AE           repne scas byte ptr es:[edi]
+00401FA8    .  F7D1           not ecx
+00401FAA    .  2BF9           sub edi,ecx
+00401FAC    .  52             push edx
+00401FAD    .  8BC1           mov eax,ecx
+00401FAF    .  8BF7           mov esi,edi
+00401FB1    .  BF 782E4200     mov edi,Registra.00422E78
+00401FB6    .  C1E9 02         shr ecx,2
+00401FB9    .  F3:A5          rep movs dword ptr es:[edi],dword ptr ds:[esi]
+00401FBB    .  8BC8           mov ecx,eax
+00401FBD    .  83E1 03        and ecx,3
+00401FC0    .  F3:A4         rep movs byte ptr es:[edi],byte ptr ds:[esi]
+00401FC2    .  C705 D4334200 020>mov dword ptr ds:[4233D4],2
+00401FCC    .  E8 4FFCFFFF     call Registra.00401C20
+{
+功能：将注册码保存到注册表中去。
+通过检查注册表，发现注册码保存在两个地方，`HKEY_CURRENT_USER` 以及 `HKEY_LOCAL_MACHINE` 这两个树下面都有。
+
+00401C20   /$  A1 702E4200  mov eax,dword ptr ds:[422E70]
+00401C25   |.  83F8 01      cmp eax,1
+00401C28   |.  75 0C        jnz short Registra.00401C36
+00401C2A   |.  8B4424 04    mov eax,dword ptr ss:[esp+4]
+00401C2E   |.  68 B8E04100  push Registra.0041E0B8              ;  ASCII "Software\\WMR10"
+00401C33   |.  50           push eax
+00401C34   |.  EB 0F        jmp short Registra.00401C45
+00401C36   |>  83F8 02      cmp eax,2
+00401C39   |.  75 17        jnz short Registra.00401C52
+00401C3B   |.  8B4C24 04    mov ecx,dword ptr ss:[esp+4]
+00401C3F   |.  68 A8E04100  push Registra.0041E0A8              ;  ASCII "Software\\RMR10"
+00401C44   |.  51           push ecx
+00401C45   |>  68 60E14100  push Registra.0041E160              ;  ASCII "RegCode"
+00401C4A   |.  E8 B1F3FFFF  call Registra.00401000
+00401C4F   |.  83C4 0C      add esp,0C
+00401C52   |>  C705 603842> mov dword ptr ds:[423860],1
+00401C5C   \\.  C3           retn
+
+}
+00401FD1    .  83C4 04          add esp,4
+00401FD4    .  6A 00             push 0                           ; /Style = MB_OK|MB_APPLMODAL
+00401FD6    .  68 F0324200      push Registra.004232F0           ; |Title = ""
+00401FDB    .  68 D4E14100      push Registra.0041E1D4           ; |Text = "Registation Code Accepted"
+00401FE0    .  53               push ebx                       ; |hOwner
+00401FE1    .  FF15 08744100    call dword ptr ds:[<&USER32.MessageBoxA>]      ; \MessageBoxA
+00401FE7    .  6A 01             push 1                           ; /Result = 1
+00401FE9    .  53               push ebx                       ; |hWnd
+00401FEA    .  C705 68384200 010>mov dword ptr ds:[423868],1               ; |
+00401FF4    .  FF15 C4734100    call dword ptr ds:[<&USER32.EndDialog>]       ; \EndDialog
+00401FFA    .  B8 01000000      mov eax,1
+00401FFF    .  5F               pop edi
+00402000    .  5E               pop esi
+00402001    .  5D               pop ebp
+00402002    .  5B               pop ebx
+00402003    .  83C4 40          add esp,40
+00402006    .  C2 1000          retn 10
+00402009    >  6A 00             push 0                           ; /Style = MB_OK|MB_APPLMODAL
+0040200B    .  68 F0324200      push Registra.004232F0           ; |Title = ""
+00402010    .  68 B8E14100      push Registra.0041E1B8           ; |Text = "Invalid Registration Code"
+00402015    .  53               push ebx                       ; |hOwner
+00402016    .  C705 D4334200 000>mov dword ptr ds:[4233D4],0               ; |
+00402020    .  FF15 08744100    call dword ptr ds:[<&USER32.MessageBoxA>]      ; \MessageBoxA
+00402026    >  57               push edi
+00402027    .  8D4C24 44        lea ecx,dword ptr ss:[esp+44]
+0040202B    .  56               push esi
+0040202C    .  51               push ecx
+0040202D    .  FFD5             call ebp
+0040202F    .  85C0             test eax,eax
+00402031    .  74 09            je short Registra.0040203C
+00402033    .  6A 00             push 0                           ; /Result = 0
+00402035    .  53               push ebx                       ; |hWnd
+00402036    .  FF15 C4734100    call dword ptr ds:[<&USER32.EndDialog>]       ; \EndDialog
+0040203C    >  33C0             xor eax,eax
+0040203E    .  5F               pop edi
+0040203F    .  5E               pop esi
+00402040    .  5D               pop ebp
+00402041    .  5B               pop ebx
+00402042    .  83C4 40          add esp,40
+00402045    .  C2 1000          retn 10
+```
+
+### 2. 深入分析注册码校验 call
+
+```assembly
+00401F8C    .  E8 4FFAFFFF      call Registra.004019E0   
+```
+
+这里，F7 进入 `call`。
+
+
+
+```
+代码:
+
+004019E0   /$  81EC C4000000      sub esp,0C4                             ;  Main call
+004019E6   |.  55                push ebp
+004019E7   |.  8BAC24 CC000000   mov ebp,dword ptr ss:[esp+CC]
+004019EE   |.  56                push esi
+004019EF   |.  57                push edi
+004019F0   |.  55                push ebp
+004019F1   |.  E8 2A1B0000       call Registra.00403520                  ;  ToUpperCase
+{sub_00403520 begin
+ 功能：小写字母转为大写字母。
+ 
+   00403520   /$  51                push ecx
+   00403521   |.  A1 085A4200       mov eax,dword ptr ds:[425A08]      ；[[425A08]]=0
+   00403526   |.  53                push ebx
+   00403527   |.  55                push ebp
+   00403528   |.  33ED              xor ebp,ebp
+   0040352A   |.  56                push esi
+   0040352B   |.  57                push edi
+   0040352C   |.  85C0              test eax,eax
+   0040352E   |.  75 2E             jnz short Registra.0040355E
+   00403530   |.  8B4424 18         mov eax,dword ptr ss:[esp+18]     ；EAX 0012FC10 ASCII "RWMR1a-517"
+                                                   ；EAX 是注册码字符串的指针，指向首地址
+   00403534   |.  8BD0              mov edx,eax
+   00403536   |.  8038 00           cmp byte ptr ds:[eax],0
+   00403539   |.  0F84 56010000    je Registra.00403695
+   @@@@Begin LOOP:
+   0040353F   |>  8A0A              /mov cl,byte ptr ds:[edx]         ;  小写转为大写，ToUpperCase
+   00403541   |.  80F9 61           |cmp cl,61                         ;  asc(a)=61
+   00403544   |.  7C 0A             |jl short Registra.00403550
+   00403546   |.  80F9 7A           |cmp cl,7A                         ;  asc(z)=7A
+   00403549   |.  7F 05             |jg short Registra.00403550
+   0040354B   |.  80E9 20           |sub cl,20                         ；61-20=41，asc(A)=41,
+ ；同时也要注意若是其他可打印字符，减去 20 以后又会是什么样的结果呢？
+ ；20(Space)是 ascii 值最小的可打印字符，20+20=40=asc(@)
+ ；带着疑惑，可以故意在假码中设置一些特定字符，继续往下分析。
+ 
+   0040354E   |.  880A              |mov byte ptr ds:[edx],cl         ;写回，这个 call 的功能一目了然
+   00403550   |>  8A4A 01           |mov cl,byte ptr ds:[edx+1]       ；取下一个字母
+   00403553   |.  42                |inc edx                         ；指针后移
+   00403554   |.  84C9              |test cl,cl
+   00403556   |.^ 75 E7             \jnz short Registra.0040353F
+   @@@@END LOOP.
+   00403558   |.  5F                pop edi
+   00403559   |.  5E                pop esi
+   0040355A   |.  5D                pop ebp
+   0040355B   |.  5B                pop ebx
+   0040355C   |.  59                pop ecx
+   0040355D   |.  C3                retn
+sub_00403520 end
+
+}
+004019F6   |.  8A4D 00           mov cl,byte ptr ss:[ebp]             ；cl=52，这是注册码第一个字母的 ascii 值
+004019F9   |.  83C4 04           add esp,4
+004019FC   |.  80F9 20           cmp cl,20                             ；是否等于空格
+004019FF   |.  8BC5              mov eax,ebp
+00401A01   |.  75 0F             jnz short Registra.00401A12          ；跳！
+00401A03   |.  B1 20             mov cl,20
+00401A05   |>  84C9              /test cl,cl
+00401A07   |.  74 09             |je short Registra.00401A12
+00401A09   |.  8A48 01           |mov cl,byte ptr ds:[eax+1]
+00401A0C   |.  40                |inc eax
+00401A0D   |.  80F9 20           |cmp cl,20
+00401A10   |.^ 74 F3             \je short Registra.00401A05
+00401A12   |>  8A08              mov cl,byte ptr ds:[eax]             ；eax 仍是注册码的首地址
+00401A14   |.  8BD0              mov edx,eax
+00401A16   |.  84C9              test cl,cl
+00401A18   |.  74 2E             je short Registra.00401A48
+00401A1A   |>  80F9 49           /cmp cl,49                            ;  asc(I)=49
+00401A1D   |.  75 03             |jnz short Registra.00401A22        ；如果遇到"I",则用"1"代替。
+00401A1F   |.  C600 31           |mov byte ptr ds:[eax],31            ;asc(1)=31
+00401A22   |>  8038 4F           |cmp byte ptr ds:[eax],4F            ;  asc(O)=4F
+00401A25   |.  75 03             |jnz short Registra.00401A2A
+00401A27   |.  C600 30           |mov byte ptr ds:[eax],30            ；遇到"O",则用"0"代替。
+00401A2A   |>  8A08              |mov cl,byte ptr ds:[eax]            ；取出，与空格比较
+00401A2C   |.  80F9 20           |cmp cl,20
+00401A2F   |.  74 14             |je short Registra.00401A45         ；是空格就跳
+00401A31   |.  80F9 0A           |cmp cl,0A                           ；asc(0A)=LF,line feed,换行
+00401A34   |.  74 0F             |je short Registra.00401A45
+00401A36   |.  80F9 0D           |cmp cl,0D                           ；asc(0D)=CR,换行
+00401A39   |.  74 0A             |je short Registra.00401A45
+00401A3B   |.  8A48 01           |mov cl,byte ptr ds:[eax+1]          ；取下一个
+00401A3E   |.  40                |inc eax                             ；指针后移
+00401A3F   |.  84C9              |test cl,cl
+00401A41   |.^ 75 D7             \jnz short Registra.00401A1A
+00401A43   |.  EB 03             jmp short Registra.00401A48          ；跳
+00401A45   |>  C600 00           mov byte ptr ds:[eax],0
+00401A48   |>  8BFA              mov edi,edx                         ；EDI 0012FC10 ASCII "RWMR1a-517"
+00401A4A   |.  83C9 FF           or ecx,FFFFFFFF                     ；ECX 置为 FFFFFFFF
+00401A4D   |.  33C0              xor eax,eax
+00401A4F   |.  8D7424 10         lea esi,dword ptr ss:[esp+10]
+00401A53   |.  F2:AE             repne scas byte ptr es:[edi]
+00401A55   |.  F7D1              not ecx                             ;  这几句的意思是得到注册码长度，存入 ECX
+00401A57   |.  2BF9              sub edi,ecx                         ;  恢复 EDI，重新指向注册码
+00401A59   |.  897424 0C         mov dword ptr ss:[esp+C],esi
+00401A5D   |.  8BC1              mov eax,ecx                         ;  length
+00401A5F   |.  8BF7              mov esi,edi
+00401A61   |.  8B7C24 0C         mov edi,dword ptr ss:[esp+C]        ;  0012F6CC
+00401A65   |.  C1E9 02           shr ecx,2
+00401A68   |.  F3:A5             rep movs dword ptr es:[edi],dword p>;  move code from esi to edi
+00401A6A   |.  8BC8              mov ecx,eax
+00401A6C   |.  33C0              xor eax,eax
+00401A6E   |.  83E1 03           and ecx,3
+00401A71   |.  F3:A4             rep movs byte ptr es:[edi],byte ptr>
+00401A73   |.  8BFA              mov edi,edx
+00401A75   |.  83C9 FF           or ecx,FFFFFFFF
+00401A78   |.  F2:AE             repne scas byte ptr es:[edi]
+00401A7A   |.  F7D1              not ecx                             ;  length
+00401A7C   |.  2BF9              sub edi,ecx
+00401A7E   |.  8BD1              mov edx,ecx
+00401A80   |.  8BF7              mov esi,edi
+00401A82   |.  8BFD              mov edi,ebp
+00401A84   |.  C1E9 02           shr ecx,2
+00401A87   |.  F3:A5             rep movs dword ptr es:[edi],dword p>
+00401A89   |.  8BCA              mov ecx,edx
+00401A8B   |.  83E1 03           and ecx,3
+00401A8E   |.  F3:A4             rep movs byte ptr es:[edi],byte ptr>
+00401A90   |.  A1 702E4200       mov eax,dword ptr ds:[422E70]       ; 
+```
+
+；我们加载的是 `Registration.exe`，而实际上应该由 `WMR.exe` 来加载，  
+
+；我们发现如果 `eax` 应或为 `1` 或为 `2`，不能为 `0`，可以验证为 `0` 就挂了。  
+
+；猜测的情况是像 `WMR.exe` 这样的程序来调用 `Registration.exe`，然后相应在地址 `422E70` 置 `1` 或 `2`。  
+
+；因此，要跟踪下去，在这里要修改 `eax`，通过观察下面的 ascii 串，以及我们分析的 `WMR`，显然 `eax` 要置 `1`.  
+
+
+
+```
+代码:
+
+* * *
+
+00401A95   |.  83F8 01             cmp eax,1
+00401A98   |.  75 78              jnz short Registra.00401B12
+00401A9A   |.  6A 04              push 4                         ；"RWMR"的长度
+00401A9C   |.  8D4424 14          lea eax,dword ptr ss:[esp+14]
+00401AA0   |.  68 58E14100        push Registra.0041E158         ;  ASCII "RWMR"
+00401AA5   |.  50                 push eax                       ；EAX 0012F6CC ASCII "RWMR1A-517"
+00401AA6   |.  E8 65190000        call Registra.00403410         ；跟进，见后面
+00401AAB   |.  83C4 0C            add esp,0C
+00401AAE   |.  F7D8               neg eax
+00401AB0   |.  1BC0               sbb eax,eax
+00401AB2   |.  40                 inc eax
+00401AB3   |.  75 19              jnz short Registra.00401ACE     ；跳了，若注册码前 4 位不是"RWMR"，则继续往下检测
+00401AB5   |.  6A 03              push 3
+00401AB7   |.  8D4C24 14          lea ecx,dword ptr ss:[esp+14]
+00401ABB   |.  68 54E14100        push Registra.0041E154         ;  ASCII "RAV"
+00401AC0   |.  51                 push ecx
+00401AC1   |.  E8 4A190000        call Registra.00403410
+00401AC6   |.  83C4 0C            add esp,0C
+00401AC9   |.  F7D8               neg eax
+00401ACB   |.  1BC0               sbb eax,eax
+00401ACD   |.  40                 inc eax
+00401ACE   |>  85C0               test eax,eax    
+00401AD0   |.  0F85 B9000000      jnz Registra.00401B8F          ；跳
+00401AD6   |.  6A 03              push 3
+00401AD8   |.  8D5424 14          lea edx,dword ptr ss:[esp+14]
+00401ADC   |.  68 50E14100        push Registra.0041E150         ;  ASCII "RVS"
+00401AE1   |.  52                 push edx
+00401AE2   |.  E8 29190000        call Registra.00403410
+00401AE7   |.  83C4 0C            add esp,0C
+00401AEA   |.  F7D8               neg eax
+00401AEC   |.  1BC0               sbb eax,eax
+00401AEE   |.  40                 inc eax
+00401AEF   |.  85C0               test eax,eax
+00401AF1   |.  0F85 98000000      jnz Registra.00401B8F
+00401AF7   |.  6A 03              push 3
+00401AF9   |.  8D4424 14          lea eax,dword ptr ss:[esp+14]
+00401AFD   |.  68 4CE14100        push Registra.0041E14C         ;  ASCII "RMC"
+00401B02   |.  50                 push eax
+00401B03   |.  E8 08190000        call Registra.00403410
+00401B08   |.  83C4 0C            add esp,0C
+00401B0B   |.  F7D8               neg eax
+00401B0D   |.  1BC0               sbb eax,eax
+00401B0F   |.  40                 inc eax
+00401B10   |.  EB 79              jmp short Registra.00401B8B
+
+00401B12   |>  83F8 02            cmp eax,2
+00401B15   |.  75 70              jnz short Registra.00401B87
+00401B17   |.  6A 04              push 4
+00401B19   |.  8D4C24 14          lea ecx,dword ptr ss:[esp+14]
+00401B1D   |.  68 44E14100        push Registra.0041E144         ;  ASCII "RWMX"
+00401B22   |.  51                 push ecx
+00401B23   |.  E8 E8180000        call Registra.00403410
+00401B28   |.  83C4 0C            add esp,0C
+00401B2B   |.  F7D8               neg eax
+00401B2D   |.  1BC0               sbb eax,eax
+00401B2F   |.  40                 inc eax
+00401B30   |.  75 19              jnz short Registra.00401B4B
+00401B32   |.  6A 03              push 3
+00401B34   |.  8D5424 14          lea edx,dword ptr ss:[esp+14]
+00401B38   |.  68 54E14100        push Registra.0041E154         ;  ASCII "RAV"
+00401B3D   |.  52                 push edx
+00401B3E   |.  E8 CD180000        call Registra.00403410
+00401B43   |.  83C4 0C            add esp,0C
+00401B46   |.  F7D8               neg eax
+00401B48   |.  1BC0               sbb eax,eax
+00401B4A   |.  40                 inc eax
+00401B4B   |>  85C0               test eax,eax
+00401B4D   |.  75 40              jnz short Registra.00401B8F
+00401B4F   |.  6A 03              push 3
+00401B51   |.  8D4424 14          lea eax,dword ptr ss:[esp+14]
+00401B55   |.  68 50E14100        push Registra.0041E150         ;  ASCII "RVS"
+00401B5A   |.  50                 push eax
+00401B5B   |.  E8 B0180000        call Registra.00403410
+00401B60   |.  83C4 0C            add esp,0C
+00401B63   |.  F7D8               neg eax
+00401B65   |.  1BC0               sbb eax,eax
+00401B67   |.  40                 inc eax
+00401B68   |.  85C0               test eax,eax
+00401B6A   |.  75 23              jnz short Registra.00401B8F
+00401B6C   |.  6A 03              push 3
+00401B6E   |.  8D4C24 14          lea ecx,dword ptr ss:[esp+14]
+00401B72   |.  68 4CE14100        push Registra.0041E14C         ;  ASCII "RMC"
+00401B77   |.  51                 push ecx
+00401B78   |.  E8 93180000        call Registra.00403410
+00401B7D   |.  83C4 0C            add esp,0C
+00401B80   |.  F7D8               neg eax
+00401B82   |.  1BC0               sbb eax,eax
+00401B84   |.  40                 inc eax
+00401B85   |.  EB 04              jmp short Registra.00401B8B
+
+00401B87   |>  8B4424 0C          mov eax,dword ptr ss:[esp+C]
+00401B8B   |>  85C0               test eax,eax
+00401B8D   |.  74 6D              je short Registra.00401BFC
+00401B8F   |>  8D5424 10          lea edx,dword ptr ss:[esp+10]     ; EDX 0012F6CC ASCII "RWMR1A-517"
+00401B93   |.  8D4424 50          lea eax,dword ptr ss:[esp+50]     ;  0012F70C
+00401B97   |.  52                 push edx                         ; /String2
+00401B98   |.  50                 push eax                         ; |String1
+00401B99   |.  FF15 E4714100      call dword ptr ds:[<&KERNEL32.lstrc>; \lstrcpyA
+00401B9F   |.  8D4C24 50          lea ecx,dword ptr ss:[esp+50]     ;  ECX 0012F70C ASCII "RWMR1A-517"
+00401BA3   |.  6A 2D              push 2D                           ;  asc(2D)="-"
+00401BA5   |.  51                 push ecx
+00401BA6   |.  E8 A5170000        call Registra.00403350           ;  check "-"，见后面分析
+00401BAB   |.  83C4 08            add esp,8
+00401BAE   |.  85C0               test eax,eax                     ;  eax !=0
+00401BB0   |.  74 5F              je short Registra.00401C11
+00401BB2   |.  C600 00            mov byte ptr ds:[eax],0          ;  clear "-"
+00401BB5   |.  8D9424 90000000    lea edx,dword ptr ss:[esp+90]    ； EDX=0012F74C
+00401BBC   |.  8D4424 50          lea eax,dword ptr ss:[esp+50]    ;  EAX 0012F70C ASCII "RWMR1A"
+00401BC0   |.  52                 push edx
+00401BC1   |.  50                 push eax
+00401BC2   |.  E8 E9FDFFFF        call Registra.004019B0           ;  见分析
+00401BC7   |.  83C4 08            add esp,8
+00401BCA   |.  8D4C24 10          lea ecx,dword ptr ss:[esp+10]    ;  ECX 0012F6CC ASCII "RWMR1A-517"
+00401BCE   |.  8D9424 90000000    lea edx,dword ptr ss:[esp+90]    ;  EDX 0012F74C ASCII "RWMR1A-631"，这是真正的注册码.
+00401BD5   |.  51                 push ecx
+00401BD6   |.  52                 push edx
+00401BD7   |.  E8 94160000        call Registra.00403270          ；见分析，the last one!
+00401BDC   |.  83C4 08            add esp,8
+00401BDF   |.  85C0               test eax,eax                    ；eax 为 0
+00401BE1   |.  75 19              jnz short Registra.00401BFC     ;  No jump
+00401BE3   |.  C705 D4334200 020>mov dword ptr ds:[4233D4],2
+00401BED   |.  B8 02000000        mov eax,2                        ；标志
+00401BF2   |.  5F                 pop edi
+00401BF3   |.  5E                 pop esi
+00401BF4   |.  5D                 pop ebp
+00401BF5   |.  81C4 C4000000      add esp,0C4
+00401BFB   |.  C3                 retn
+
+00401BFC   |>  68 E8030000        push 3E8                         ; /Timeout = 1000. ms
+00401C01   |.  FF15 E8714100      call dword ptr ds:[<&KERNEL32.Sleep>; \Sleep
+00401C07   |.  C705 D4334200 000>mov dword ptr ds:[4233D4],0
+00401C11   |>  5F                 pop edi
+00401C12   |.  5E                 pop esi
+00401C13   |.  33C0               xor eax,eax
+00401C15   |.  5D                 pop ebp
+00401C16   |.  81C4 C4000000      add esp,0C4
+00401C1C   \.  C3                 retn
+
+* * *
+```
+
+
+
+### 3. 一个比较关键的 call：`Registra.00403410`
+
+功能：验证注册码的前四个字符是不是"RWMR"。
+
+```text
+00403410   /$  55                   push ebp
+00403411   |.  8BEC                 mov ebp,esp
+00403413   |.  57                   push edi
+00403414   |.  56                   push esi
+00403415   |.  53                   push ebx
+00403416   |.  8B4D 10             mov ecx,dword ptr ss:[ebp+10]
+00403419   |.  0BC9                or ecx,ecx
+0040341B   |.  0F84 E9000000      je Registra.0040350A
+00403421   |.  8B75 08             mov esi,dword ptr ss:[ebp+8]            ;  ESI 0012F6CC ASCII "RWMR1A-517"
+00403424   |.  8B7D 0C             mov edi,dword ptr ss:[ebp+C]            ;  EDI 0041E158 ASCII "RWMR"
+00403427   |.  8D05 005A4200      lea eax,dword ptr ds:[425A00]             ;  eax=00425A00
+0040342D   |.  8378 08 00         cmp dword ptr ds:[eax+8],0              ; [eax+8]=0
+00403431   |.  75 4E              jnz short Registra.00403481
+00403433   |.  B7 41              mov bh,41                                 ;  asc(41)=A
+00403435   |.  B3 5A              mov bl,5A                                 ;  asc(5A)=Z
+00403437   |.  B6 20              mov dh,20                                 ;  asc(20)=Space
+00403439   |.  2E:8BC0            mov eax,eax
+0040343C   |>  8A26               /mov ah,byte ptr ds:[esi]                 ; 假码
+0040343E   |.  0AE4              |or ah,ah
+00403440   |.  8A07              |mov al,byte ptr ds:[edi]                 ; 常数字符串"RWMR"
+00403442   |.  74 21             |je short Registra.00403465
+00403444   |.  0AC0              |or al,al
+00403446   |.  74 1D             |je short Registra.00403465
+00403448   |.  46                |inc esi
+00403449   |.  47                |inc edi
+0040344A   |.  38FC              |cmp ah,bh                                 ; 与"A"比较
+0040344C   |.  72 06             |jb short Registra.00403454
+0040344E   |.  38DC              |cmp ah,bl                                 ; 与"Z"比较
+00403450   |.  77 02             |ja short Registra.00403454
+00403452   |.  02E6              |add ah,dh                                 ; 变为小写
+00403454   |>  38F8              |cmp al,bh                                 ; 与"A"比较
+00403456   |.  72 06             |jb short Registra.0040345E
+00403458   |.  38D8              |cmp al,bl                                 ; 与"Z"比较
+0040345A   |.  77 02             |ja short Registra.0040345E
+0040345C   |.  02C6              |add al,dh                                 ; 变成小写
+0040345E   |>  38C4              |cmp ah,al                                 ; 假码与常数串相比较
+00403460   |.  75 0D             |jnz short Registra.0040346F
+00403462   |.  49                |dec ecx                                   ; 计数器-1，初值 4，即常数串的长度
+00403463   |.^ 75 D7             \jnz short Registra.0040343C
+00403465   |>  33C9              xor ecx,ecx                                 ; 置 0，下面有置-1 的语句，这是一个 BOOL 参数
+00403467   |.  38C4              cmp ah,al
+00403469   |.  0F84 9B000000    je Registra.0040350A                          ; 跳
+0040346F   |>  B9 FFFFFFFF       mov ecx,-1
+00403474   |.  0F82 90000000    jb Registra.0040350A
+0040347A   |.  F7D9              neg ecx
+0040347C   |.  E9 89000000      jmp Registra.0040350A
+00403481   |>  F0:FF05 E86D4200 lock inc dword ptr ds:[426DE8]
+00403488   |.  833D E46D4200 00  cmp dword ptr ds:[426DE4],0
+0040348F   |.  7F 04              jg short Registra.00403495
+00403491   |.  6A 00              push 0
+00403493   |.  EB 19              jmp short Registra.004034AE
+00403495   |>  F0:FF0D E86D4200 lock dec dword ptr ds:[426DE8]
+0040349C   |.  8BD9              mov ebx,ecx
+0040349E   |.  6A 13              push 13
+004034A0   |.  E8 2B360000       call Registra.00406AD0
+004034A5   |.  C70424 01000000   mov dword ptr ss:[esp],1
+004034AC   |.  8BCB              mov ecx,ebx
+004034AE   |>  33C0              xor eax,eax
+004034B0   |.  33DB              xor ebx,ebx
+004034B2   |.  8BC0              mov eax,eax
+004034B4   |>  8A06              /mov al,byte ptr ds:[esi]
+004034B6   |.  0BC0              |or eax,eax
+004034B8   |.  8A1F              |mov bl,byte ptr ds:[edi]
+004034BA   |.  74 23             |je short Registra.004034DF
+004034BC   |.  0BDB              |or ebx,ebx
+004034BE   |.  74 1F             |je short Registra.004034DF
+004034C0   |.  46                |inc esi
+004034C1   |.  47                |inc edi
+004034C2   |.  51                |push ecx
+004034C3   |.  50                |push eax
+004034C4   |.  53                |push ebx
+004034C5   |.  E8 96370000       |call Registra.00406C60
+004034CA   |.  8BD8              |mov ebx,eax
+004034CC   |.  83C4 04           |add esp,4
+004034CF   |.  E8 8C370000       |call Registra.00406C60
+004034D4   |.  83C4 04           |add esp,4
+004034D7   |.  59                |pop ecx
+004034D8   |.  3BC3              |cmp eax,ebx
+004034DA   |.  75 09             |jnz short Registra.004034E5
+004034DC   |.  49                |dec ecx
+004034DD   |.^ 75 D5             \jnz short Registra.004034B4
+004034DF   |>  33C9              xor ecx,ecx
+004034E1   |.  3BC3              cmp eax,ebx
+004034E3   |.  74 09             je short Registra.004034EE
+004034E5   |>  B9 FFFFFFFF       mov ecx,-1
+004034EA   |.  72 02             jb short Registra.004034EE
+004034EC   |.  F7D9              neg ecx
+004034EE   |>  58                pop eax
+004034EF   |.  0BC0              or eax,eax
+004034F1   |.  75 09             jnz short Registra.004034FC
+004034F3   |.  F0:FF0D E86D4200 lock dec dword ptr ds:[426DE8]
+004034FA   |.  EB 0E             jmp short Registra.0040350A
+004034FC   |>  8BD9              mov ebx,ecx
+004034FE   |.  6A 13              push 13                                   ; /Arg1 = 00000013
+00403500   |.  E8 4B360000       call Registra.00406B50                      ; \\Registra.00406B50
+00403505   |.  83C4 04           add esp,4
+00403508   |.  8BCB              mov ecx,ebx
+0040350A   |>  8BC1              mov eax,ecx                                 ; Bool 参数到 eax，程序返回后根据 eax 决定流程
+0040350C   |.  5B                pop ebx
+0040350D   |.  5E                pop esi
+0040350E   |.  5F                pop edi
+0040350F   |.  C9                leave
+00403510   \\.  C3                retn
+```
+
+### 4. 又一个比较关键的 call：`Registra.00403350`
+
+功能：
+
+返回值：`eax`，应该不为 0。`eax` 指向`"-"`。
+
+
+
+### 代码:
+
+```
+00403340   /> /8D42 FF      lea eax,dword ptr ds:[edx-1]
+00403343   |. |5B          pop ebx
+00403344   |. |C3          retn
+00403345   |  |2E          db 2E                               ;  CHAR '.'
+00403346   |  |8BC0        mov eax,eax
+00403348   |  |2E          db 2E                               ;  CHAR '.'
+00403349   |  |8BC0        mov eax,eax
+0040334B   |  |2E          db 2E                               ;  CHAR '.'
+0040334C   |  |8BC0        mov eax,eax
+0040334E   |  |8BC0        mov eax,eax
+00403350   |$ |33C0        xor eax,eax                           ；F7，进来后，land here
+00403352   |. |8A4424 08   mov al,byte ptr ss:[esp+8]           ；2D
+00403356   |> |53          push ebx
+00403357   |. |8BD8        mov ebx,eax                         ；ebx=002D
+00403359   |. |C1E0 08     shl eax,8                           ；eax=002D00
+0040335C   |. |8B5424 08   mov edx,dword ptr ss:[esp+8]       ；EDX 0012F70C ASCII "RWMR1A-517"
+00403360   |. |F7C2 030000>test edx,3
+00403366   |. |74 13       je short Registra.0040337B         ；跳了
+00403368   |> |8A0A        /mov cl,byte ptr ds:[edx]           ；
+0040336A   |. |42          |inc edx
+0040336B   |. |38D9        |cmp cl,bl                         ；
+0040336D   |.^\\74 D1       |je short Registra.00403340
+0040336F   |.  84C9        |test cl,cl
+00403371   |.  74 51       |je short Registra.004033C4
+00403373   |.  F7C2 030000>|test edx,3
+00403379   |.^ 75 ED       \\jnz short Registra.00403368
+0040337B   |>  0BD8        or ebx,eax                          ；
+0040337D   |.  57          push edi
+0040337E   |.  8BC3        mov eax,ebx                         ;  eax=2D2D
+00403380   |.  C1E3 10     shl ebx,10                          ;
+00403383   |.  56          push esi
+00403384   |.  0BD8        or ebx,eax                          ；ebx=2D2D2D2D
+00403386   |>  8B0A        /mov ecx,dword ptr ds:[edx]
+00403388   |.  BF FFFEFE7E |mov edi,7EFEFEFF
+0040338D   |.  8BC1        |mov eax,ecx
+0040338F   |.  8BF7        |mov esi,edi                         ;  7EFEFEFF
+00403391   |.  33CB        |xor ecx,ebx
+00403393   |.  03F0        |add esi,eax
+00403395   |.  03F9        |add edi,ecx
+00403397   |.  83F1 FF     |xor ecx,FFFFFFFF
+0040339A   |.  83F0 FF     |xor eax,FFFFFFFF
+0040339D   |.  33CF        |xor ecx,edi
+0040339F   |.  33C6        |xor eax,esi
+004033A1   |.  83C2 04     |add edx,4
+004033A4   |.  81E1 000101>|and ecx,81010100
+004033AA   |.  75 1C       |jnz short Registra.004033C8         ;  Must jump
+```
+
+若注册码中有`"-"`，就跳了。
+
+这段代码很难理解，但是注意到`asc(2D)="-"`，很容易猜想到注册码中是不是需要有`"-"`。
+
+### 代码:
+
+```
+004033AC   |.  25 00010181 |and eax,81010100
+004033B1   |.^ 74 D3       |je short Registra.00403386
+004033B3   |.  25 00010101 |and eax,1010100
+004033B8   |.  75 08       |jnz short Registra.004033C2
+004033BA   |.  81E6 000000>|and esi,80000000
+004033C0   |.^ 75 C4       \\jnz short Registra.00403386
+004033C2   |>  5E          pop esi
+004033C3   |.  5F          pop edi
+004033C4   |>  5B          pop ebx
+004033C5   |.  33C0        xor eax,eax                         ；这里将 eax 清零，故不能跳到 004033C2.
+004033C7   |.  C3          retn
+004033C8   |>  8B42 FC     mov eax,dword ptr ds:[edx-4]        ；EAX=352D4131
+004033CB   |.  38D8        cmp al,bl                           ；这几个比较用来确定"-"的位置
+004033CD   |.  74 36       je short Registra.00403405
+004033CF   |.  84C0        test al,al
+004033D1   |.^ 74 EF       je short Registra.004033C2          ;  No jump
+004033D3   |.  38DC        cmp ah,bl
+004033D5   |.  74 27       je short Registra.004033FE
+004033D7   |.  84E4        test ah,ah
+004033D9   |.^ 74 E7       je short Registra.004033C2          ;  No jump
+004033DB   |.  C1E8 10     shr eax,10                          ；右移 16 位
+004033DE   |.  38D8        cmp al,bl
+004033E0   |.  74 15       je short Registra.004033F7
+004033E2   |.  84C0        test al,al
+004033E4   |.^ 74 DC       je short Registra.004033C2          ;  No jump
+004033E6   |.  38DC        cmp ah,bl
+004033E8   |.  74 06       je short Registra.004033F0
+004033EA   |.  84E4        test ah,ah
+004033EC   |.^ 74 D4       je short Registra.004033C2          ;  No jump
+004033EE   |.^ EB 96       jmp short Registra.00403386
+004033F0   |>  5E          pop esi
+004033F1   |.  5F          pop edi
+004033F2   |.  8D42 FF     lea eax,dword ptr ds:[edx-1]
+004033F5   |.  5B          pop ebx
+004033F6   |.  C3          retn
+004033F7   |>  8D42 FE     lea eax,dword ptr ds:[edx-2]       ；EAX 0012F712 ASCII "-517"，
+                                                              ；EAX 指向"-"，找到"-"
+004033FA   |.  5E          pop esi
+004033FB   |.  5F          pop edi
+004033FC   |.  5B          pop ebx
+004033FD   |.  C3          retn
+004033FE   |>  8D42 FD     lea eax,dword ptr ds:[edx-3]
+00403401   |.  5E          pop esi
+00403402   |.  5F          pop edi
+00403403   |.  5B          pop ebx
+00403404   |.  C3          retn
+00403405   |>  8D42 FC     lea eax,dword ptr ds:[edx-4]
+00403408   |.  5E          pop esi
+00403409   |.  5F          pop edi
+0040340A   |.  5B          pop ebx
+0040340B   \\   .  C3       retn
+```
+
+#### 5. `Registra.004019B0` ：计算 `sum`
+
+**功能**：计算注册码`"-"`前面的字母的 `ascii` 码之和+`0BD`。
+
+### 代码:
+
+```
+00401990   /$  8B5424 04   mov edx,dword ptr ss:[esp+4]    ；EDX 0012F70C ASCII "RWMR1A"
+00401994   |.  B8 BD000000 mov eax,0BD                     ；常数
+00401999   |.  8A0A        mov cl,byte ptr ds:[edx]
+0040199B   |.  84C9        test cl,cl
+0040199D   |.  74 0D       je short Registra.004019AC
+0040199F   |>  0FBEC9      /movsx ecx,cl
+004019A2   |.  03C1        |add eax,ecx                     ；累加和
+004019A4   |.  8A4A 01     |mov cl,byte ptr ds:[edx+1]      ；取下一个
+004019A7   |.  42          |inc edx
+004019A8   |.  84C9        |test cl,cl
+004019AA   |.^ 75 F3       \\jnz short Registra.0040199F
+004019AC   \\>  C3         retn
+004019AD      90          nop
+004019AE      90          nop
+004019AF      90          nop
+004019B0   /$  56          push esi
+004019B1   |.  8B7424 08   mov esi,dword ptr ss:[esp+8]
+004019B5   |.  56          push esi
+004019B6   |.  E8 D5FFFFFF call Registra.00401990          ; return eax=sum
+004019BB   |.  83C4 04     add esp,4                       ;  <%d>=hex(Decimal)
+004019BE   |.  50          push eax                        ; /<%d>
+004019BF   |.  8B4424 10   mov eax,dword ptr ss:[esp+10]   ; |
+004019C3   |.  56          push esi                        ; |<%s>
+004019C4   |.  68 3CE14100 push Registra.0041E13C          ; |Format = "%s-%d"
+004019C9   |.  50          push eax                        ; |s
+004019CA   |.  FF15 D47341>call dword ptr ds:[<&USER32.wsprintfA>] ; \\wsprintfA
+004019D0   |.  83C4 10     add esp,10
+004019D3   |.  5E          pop esi
+004019D4   \\  C3          retn
+```
+
+#### 6. 最后一个 `call`：`Registra.00403270`
+
+**功能**：比较注册码
+
+
+
+## 汇编代码分析
+
+```assembly
+00403270   /$  55             push ebp
+00403271   |.  8BEC           mov ebp,esp
+00403273   |.  57             push edi
+00403274   |.  56             push esi
+00403275   |.  53             push ebx
+00403276   |.  8B75 0C        mov esi,dword ptr ss:[ebp+C]      ; ESI 0012F6CC ASCII "RWMR1A-517"
+00403279   |.  8B7D 08        mov edi,dword ptr ss:[ebp+8]      ; EDI 0012F74C ASCII "RWMR1A-631"
+0040327C   |.  8D05 005A42>   lea eax,dword ptr ds:[425A00]     ; EAX 00425A00 Registra.00425A00
+00403282   |.  8378 08 00     cmp dword ptr ds:[eax+8],0        ; [eax+8]=0。
+00403286   |.  75 3B          jnz short Registra.004032C3
+00403288   |.  B0 FF          mov al,0FF
+0040328A   |.  8BC0           mov eax,eax
+0040328C   |>  0AC0           /or al,al
+0040328E   |.  74 2E          |je short Registra.004032BE        ; 比较完后就跳
+00403290   |.  8A06           |mov al,byte ptr ds:[esi]          ; 取假码到 al
+00403292   |.  46             |inc esi
+00403293   |.  8A27           |mov ah,byte ptr ds:[edi]          ; 取真码到 ah
+00403295   |.  47             |inc edi
+00403296   |.  38C4           |cmp ah,al                         ; 比较假码和真码
+00403298   |.^ 74 F2         |je short Registra.0040328C        ; 相等就继续比较，我们要修改内存，使之相等。
+0040329A   |.  2C 41          |sub al,41                         ; 41=asc(A)
+0040329C   |.  3C 1A          |cmp al,1A                         ; 1A=26，26 个字母
+0040329E   |.  1AC9           |sbb cl,cl
+004032A0   |.  80E1 20        |and cl,20
+004032A3   |.  02C1           |add al,cl
+004032A5   |.  04 41          |add al,41                         ; 41-->61
+004032A7   |.  86E0           |xchg al,ah
+004032A9   |.  2C 41          |sub al,41
+004032AB   |.  3C 1A          |cmp al,1A
+004032AD   |.  1AC9           |sbb cl,cl
+004032AF   |.  80E1 20        |and cl,20
+004032B2   |.  02C1           |add al,cl
+004032B4   |.  04 41          |add al,41                         ; 35=asc(5)
+004032B6   |.  38E0           |cmp al,ah
+004032B8   |.^ 74 D2          \je short Registra.0040328C
+004032BA   |.  1AC0           sbb al,al
+004032BC   |.  1C FF          sbb al,0FF                        ; 不相等的话，我想应该是置 eax 为 FF
+004032BE   |>  0FBEC0         movsx eax,al                      ; 跳到这里，eax 置 0
+004032C1   |.  EB 78          jmp short Registra.0040333B       ; 收工咯！
+004032C3   |>  F0:FF05 E86>   lock inc dword ptr ds:[426DE8]
+004032CA   |.  833D E46D42>   cmp dword ptr ds:[426DE4],0
+004032D1   |.  7F 04          jg short Registra.004032D7
+004032D3   |.  6A 00          push 0
+004032D5   |.  EB 15          jmp short Registra.004032EC
+004032D7   |>  F0:FF0D E86>   lock dec dword ptr ds:[426DE8]
+004032DE   |.  6A 13          push 13
+004032E0   |.  E8 EB370000    call Registra.00406AD0
+004032E5   |.  C70424 0100>   mov dword ptr ss:[esp],1
+004032EC   |>  B8 FF000000    mov eax,0FF
+004032F1   |.  33DB           xor ebx,ebx
+004032F3   |.  90             nop
+004032F4   |>  0AC0           /or al,al
+004032F6   |.  74 27          |je short Registra.0040331F
+004032F8   |.  8A06           |mov al,byte ptr ds:[esi]
+004032FA   |.  46             |inc esi
+004032FB   |.  8A1F           |mov bl,byte ptr ds:[edi]
+004032FD   |.  47             |inc edi
+004032FE   |.  38D8           |cmp al,bl
+00403300   |.^ 74 F2          |je short Registra.004032F4
+00403302   |.  50             |push eax
+00403303   |.  53             |push ebx
+00403304   |.  E8 57390000    |call Registra.00406C60
+00403309   |.  8BD8           |mov ebx,eax
+0040330B   |.  83C4 04        |add esp,4
+0040330E   |.  E8 4D390000    |call Registra.00406C60
+00403313   |.  83C4 04        |add esp,4
+00403316   |.  38C3           |cmp bl,al
+00403318   |.^ 74 DA          \je short Registra.004032F4
+0040331A   |.  1BC0           sbb eax,eax
+0040331C   |.  83D8 FF        sbb eax,-1
+0040331F   |>  8BD8           mov ebx,eax
+00403321   |.  58             pop eax
+00403322   |.  0BC0           or eax,eax
+00403324   |.  75 09          jnz short Registra.0040332F
+00403326   |.  F0:FF0D E86>   lock dec dword ptr ds:[426DE8]
+0040332D   |.  EB 0A          jmp short Registra.00403339
+0040332F   |>  6A 13          push 13                           ; /Arg1 = 00000013
+00403331   |.  E8 1A380000    call Registra.00406B50            ; \Registra.00406B50
+00403336   |.  83C4 04        add esp,4
+00403339   |>  8BC3           mov eax,ebx
+0040333B   |>  5B             pop ebx
+0040333C   |.  5E             pop esi
+0040333D   |.  5F             pop edi
+0040333E   |.  C9             leave
+0040333F   \.  C3             retn
+```
+
+7. 容易看到这一个系列的都是这样注册。
+
+但是当你注册 `WMVCR.exe` 时，就不是那么一回事了。
+
+分析一下 `WMVCR.exe`，发现这个程序自己有注册码验证的过程，自己也加了一些小花样，但不难分析。
+
+过程基本相同，在找到 `"-"` 后的一段比较，稍有改变，如下：
+
+```assembly
+00403B47   |.  4E           dec esi                          ; esi 指向"-"的位置，但已被置为 00
+                                                   ; esi 减 1 后指向"-"前面的字符
+```
+
+```assembly
+00403B48   |.  8806         mov byte ptr ds:[esi],al          ; 再置 0
+00403B4A   |.  8A4E FB      mov cl,byte ptr ds:[esi-5]        ; "-"前面的第 6 个字符
+00403B4D   |.  83EE 05      sub esi,5
+00403B50   |.  B0 47        mov al,47                         ; asc(47)="G"
+00403B52   |.  3AC8         cmp cl,al                         ; 是"G"吗？
+00403B54   |.  74 32        je short WMVCR.00403B88           ; Must jump
+00403B56   |.  3846 01      cmp byte ptr ds:[esi+1],al        ; "-"前面的第 5 个字符
+00403B59   |.  74 2D        je short WMVCR.00403B88           ; Must jump
+00403B5B   |.  3846 03      cmp byte ptr ds:[esi+3],al        ; "-"前面的第 3 个字符
+00403B5E   |.  74 28        je short WMVCR.00403B88           ; Must jump
+```
+
+如果注册码的 `"-"` 前面的第 6、5 或 3 个字符是 `"G"`，则跳到正确的地方置 `eax=2`。
+
+但前面 4 个字符串又必须是 `"RWMV"`，这两个条件同时满足，`"-"` 前的长度最小为 7。
+
+如果 `eax` 不为 2，分析下面的流程，发现有一个办法可以跳到 `00403B88`：
+
+要满足：`edx>2` 或 `eax<=2`，但 `eax>=6F20503B`。
+
+通过跟踪 `WMVCR.0040FA30`，发现这个 `call` 是计算 `"-"` 前的字母的和，和保存在：`edx:eax`，这是多大的数啊！死路！
+
+```assembly
+00403B60   |.  8D4C24 10    lea ecx,dword ptr ss:[esp+10]
+00403B64   |>  8A01          /mov al,byte ptr ds:[ecx]
+00403B66   |.  3C 30         |cmp al,30
+00403B68   |.  7C 04         |jl short WMVCR.00403B6E
+00403B6A   |.  3C 39         |cmp al,39
+00403B6C   |.  7E 03         |jle short WMVCR.00403B71
+00403B6E   |>  41            |inc ecx
+00403B6F   |.^ EB F3         \jmp short WMVCR.00403B64
+00403B71   |>  51            push ecx
+00403B72   |.  E8 B9BE0000  call WMVCR.0040FA30               ; ****,edx>2
+00403B77   |.  83C4 04       add esp,4
+00403B7A   |.  83FA 02       cmp edx,2
+00403B7D   |.  7C 19         jl short WMVCR.00403B98           ; No Jump
+00403B7F   |.  7F 07         jg short WMVCR.00403B88
+00403B81   |.  3D 3B50206F  cmp eax,6F20503B
+00403B86   |.  76 10         jbe short WMVCR.00403B98          ; No JUMP
+00403B88   |>  5F            pop edi
+00403B89   |.  5E            pop esi
+00403B8A   |.  5D            pop ebp
+00403B8B   |.  B8 02000000   mov eax,2
+00403B90   |.  5B            pop ebx
+00403B91   |.  81C4 C00000> add esp,0C0
+00403B97   |.  C3            retn
+```
+
+### 破解总结
+
+Too easy.
+
+注册机用 `win32 c` 编写。国庆节期破解完，这两天学习很忙，挤时间写的。另外两篇也会陆续写出来。
+
+### Greetings
+
+看雪论坛, FCG 论坛, DFCG 论坛, PYG 论坛等
+
+### 完稿时间等
+
+2005.10.8，下午 16:45，天气: 晴
+
+武汉
+
+### 注册机源码
+
+附件: `source.rar`
+
+`4dd466d0e1e0cc123afbe504da2462ca`
