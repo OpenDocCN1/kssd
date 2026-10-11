@@ -1,0 +1,263 @@
+
+# 新华字典词典简单算法分析
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-174.htm`](https://www.pediy.com/kssd/pediy09/pediy09-174.htm)
+>
+> 【破文标题】新华字典词典简单算法分析
+>
+> 【破文作者】`wuhanqi[CR][ICY][48PG]`
+>
+> 【作者邮箱】`wuhanqi@qq.com`
+>
+> 【作者主页】`http://www.edisk.org/?wuhanqi`
+>
+> \------------------------------------------------------------------------
+>
+> 【破解过程】一、脱壳 `WASPACK` 轻松解决
+>
+> 二、分析，通过查找字符串很快来到：
+
+```
+005444E8   .  55            push    ebp
+005444E9   .  8BEC          mov     ebp, esp
+005444EB   .  81C4 98FEFFFF add     esp, -168
+005444F1   .  33C9          xor     ecx, ecx
+005444F3   .  898D 9CFEFFFF mov     dword ptr [ebp-164], ecx
+005444F9   .  898D 98FEFFFF mov     dword ptr [ebp-168], ecx
+005444FF   .  898D A8FEFFFF mov     dword ptr [ebp-158], ecx
+00544505   .  898D A4FEFFFF mov     dword ptr [ebp-15C], ecx
+0054450B   .  898D A0FEFFFF mov     dword ptr [ebp-160], ecx
+00544511   .  8945 FC       mov     dword ptr [ebp-4], eax
+00544514   .  33C0          xor     eax, eax
+00544516   .  55            push    ebp
+00544517   .  68 0F475400   push    0054470F
+0054451C   .  64:FF30       push    dword ptr fs:[eax]
+0054451F   .  64:8920       mov     dword ptr fs:[eax], esp
+00544522   .  8D95 A8FEFFFF lea     edx, dword ptr [ebp-158]
+00544528   .  8B45 FC       mov     eax, dword ptr [ebp-4]
+0054452B   .  8B80 78040000 mov     eax, dword ptr [eax+478]
+00544531   .  E8 E630F0FF   call    0044761C
+00544536   .  8B85 A8FEFFFF mov     eax, dword ptr [ebp-158]
+0054453C   .  50            push    eax
+0054453D   .  8D95 A0FEFFFF lea     edx, dword ptr [ebp-160]
+00544543   .  8B45 FC       mov     eax, dword ptr [ebp-4]
+00544546   .  8B80 74040000 mov     eax, dword ptr [eax+474]
+0054454C   .  E8 CB30F0FF   call    0044761C
+00544551   .  8B85 A0FEFFFF mov     eax, dword ptr [ebp-160]         ;  验证码到 EAX
+00544557   .  E8 6052ECFF   call    004097BC
+0054455C   .  05 83030000   add     eax, 383                          ;  验证码加 16 进制 383，结果设为 A
+00544561   .  8D95 A4FEFFFF lea     edx, dword ptr [ebp-15C]
+00544567   .  E8 9CFEFFFF   call    00544408                          ;  算法 CALL 跟进
+0054456C   .  8B95 A4FEFFFF mov     edx, dword ptr [ebp-15C]         ;  真码到 EDX
+00544572   .  58            pop     eax                               ;  假码到 EAX
+00544573   .  E8 740AECFF   call    00404FEC                          ;  经典比较，可作注册机
+00544578   .  0F85 48010000 jnz     005446C6
+0054457E   .  8D95 98FEFFFF lea     edx, dword ptr [ebp-168]
+00544584   .  A1 94B05400   mov     eax, dword ptr [54B094]
+00544589   .  8B00          mov     eax, dword ptr [eax]
+0054458B   .  E8 AC47F2FF   call    00468D3C
+00544590   .  8B85 98FEFFFF mov     eax, dword ptr [ebp-168]
+00544596   .  8D95 9CFEFFFF lea     edx, dword ptr [ebp-164]
+0054459C   .  E8 C755ECFF   call    00409B68
+005445A1   .  8D85 9CFEFFFF lea     eax, dword ptr [ebp-164]
+005445A7   .  BA 24475400   mov     edx, 00544724                     ;  skins\8.skn
+005445AC   .  E8 FF08ECFF   call    00404EB0
+005445B1   .  8B95 9CFEFFFF mov     edx, dword ptr [ebp-164]
+005445B7   .  8D85 ACFEFFFF lea     eax, dword ptr [ebp-154]
+005445BD   .  E8 82E9EBFF   call    00402F44
+005445C2   .  BA 01000000   mov     edx, 1
+005445C7   .  8D85 ACFEFFFF lea     eax, dword ptr [ebp-154]
+005445CD   .  E8 26EFEBFF   call    004034F8
+005445D2   .  E8 A5E3EBFF   call    0040297C
+005445D7   .  33C0          xor     eax, eax
+005445D9   .  55            push    ebp
+005445DA   .  68 4C465400   push    0054464C
+005445DF   .  64:FF30       push    dword ptr fs:[eax]
+005445E2   .  64:8920       mov     dword ptr fs:[eax], esp
+005445E5   .  6A 00         push    0                                 ; /Arg1 = 00000000
+005445E7   .  8D55 FB       lea     edx, dword ptr [ebp-5]            ; |
+005445EA   .  B9 01000000   mov     ecx, 1                            ; |
+005445EF   .  8D85 ACFEFFFF lea     eax, dword ptr [ebp-154]          ; |
+005445F5   .  E8 A6EAEBFF   call    004030A0                          ; \\_UnPacke.004030A0
+005445FA   .  E8 7DE3EBFF   call    0040297C
+005445FF   .  BA 05000000   mov     edx, 5
+00544604   .  8D85 ACFEFFFF lea     eax, dword ptr [ebp-154]
+0054460A   .  E8 F5EEEBFF   call    00403504
+0054460F   .  E8 68E3EBFF   call    0040297C
+00544614   .  6A 00         push    0                                 ; /Arg1 = 00000000
+00544616   .  8D55 FB       lea     edx, dword ptr [ebp-5]            ; |
+00544619   .  B9 01000000   mov     ecx, 1                            ; |
+0054461E   .  8D85 ACFEFFFF lea     eax, dword ptr [ebp-154]          ; |
+00544624   .  E8 77EAEBFF   call    004030A0                          ; \\_UnPacke.004030A0
+00544629   .  E8 4EE3EBFF   call    0040297C
+0054462E   .  33C0          xor     eax, eax
+00544630   .  5A            pop     edx
+00544631   .  59            pop     ecx
+00544632   .  59            pop     ecx
+00544633   .  64:8910       mov     dword ptr fs:[eax], edx
+00544636   .  68 53465400   push    00544653
+0054463B   >  8D85 ACFEFFFF lea     eax, dword ptr [ebp-154]
+00544641   .  E8 7AEAEBFF   call    004030C0
+00544646   .  E8 31E3EBFF   call    0040297C
+0054464B   .  C3            retn
+0054464C   .^ E9 43FEEBFF   jmp     00404494
+00544651   .^ EB E8         jmp     short 0054463B
+00544653   .  B8 38475400   mov     eax, 00544738                     ;  软件注册成功！
+00544658   .  E8 A7C1EFFF   call    00440804
+0054465D   .  8B45 FC       mov     eax, dword ptr [ebp-4]
+00544660   .  8B80 6C040000 mov     eax, dword ptr [eax+46C]
+00544666   .  BA 50475400   mov     edx, 00544750                     ;  软件已注册
+0054466B   .  E8 DC2FF0FF   call    0044764C
+00544670   .  8B45 FC       mov     eax, dword ptr [ebp-4]
+00544673   .  8B90 B0040000 mov     edx, dword ptr [eax+4B0]
+00544679   .  8B45 FC       mov     eax, dword ptr [ebp-4]
+0054467C   .  8B80 C8040000 mov     eax, dword ptr [eax+4C8]
+00544682   .  E8 A58BFAFF   call    004ED22C
+00544687   .  8B45 FC       mov     eax, dword ptr [ebp-4]
+0054468A   .  8B80 C8040000 mov     eax, dword ptr [eax+4C8]
+00544690   .  BA 64475400   mov     edx, 00544764                     ;  解释
+00544695   .  E8 DE8BFAFF   call    004ED278
+0054469A   .  8B45 FC       mov     eax, dword ptr [ebp-4]
+0054469D   .  8B90 F0020000 mov     edx, dword ptr [eax+2F0]
+005446A3   .  8B45 FC       mov     eax, dword ptr [ebp-4]
+005446A6   .  8B80 34050000 mov     eax, dword ptr [eax+534]
+005446AC   .  E8 9F8FFAFF   call    004ED650
+005446B1   .  8B45 FC       mov     eax, dword ptr [ebp-4]
+005446B4   .  8B80 34050000 mov     eax, dword ptr [eax+534]
+005446BA   .  BA 74475400   mov     edx, 00544774                     ;  content
+005446BF   .  E8 D88FFAFF   call    004ED69C
+005446C4   .  EB 0A         jmp     short 005446D0
+005446C6   >  B8 84475400   mov     eax, 00544784                     ;  注册失败，请重试！\n\n 注册用户重试失败请与作者联系！
+005446CB   .  E8 34C1EFFF   call    00440804
+005446D0   >  33C0          xor     eax, eax
+005446D2   .  5A            pop     edx
+005446D3   .  59            pop     ecx
+005446D4   .  59            pop     ecx
+005446D5   .  64:8910       mov     dword ptr fs:[eax], edx
+005446D8   .  68 16475400   push    00544716
+005446DD   >  8D85 98FEFFFF lea     eax, dword ptr [ebp-168]
+005446E3   .  BA 02000000   mov     edx, 2
+005446E8   .  E8 2705ECFF   call    00404C14
+```
+
+
+
+```asm
+005446ED   .  8D85 A0FEFFFF lea     eax, dword ptr [ebp-160]
+005446F3   .  E8 F804ECFF  call    00404BF0
+005446F8   .  8D85 A4FEFFFF lea     eax, dword ptr [ebp-15C]
+005446FE   .  E8 ED04ECFF  call    00404BF0
+00544703   .  8D85 A8FEFFFF lea     eax, dword ptr [ebp-158]
+00544709   .  E8 E204ECFF  call    00404BF0
+0054470E   .  C3           retn
+0054470F   .^ E9 80FDEBFF  jmp     00404494
+00544714   .^ EB C7        jmp     short 005446DD
+00544716   .  8BE5         mov     esp, ebp
+00544718   .  5D           pop     ebp
+00544719   .  C3           retn
+```
+
+```
+－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
+```
+
+```asm
+00544567   .  E8 9CFEFFFF  call    00544408   ; 来到
+```
+
+```
+－－－－－－－－－－－－－－－－────────────────────────────────────────
+```
+
+```asm
+00544408  /$  55           push    ebp
+00544409  |.  8BEC         mov     ebp, esp
+0054440B  |.  33C9         xor     ecx, ecx
+0054440D  |.  51           push    ecx
+0054440E  |.  51           push    ecx
+0054440F  |.  51           push    ecx
+00544410  |.  51           push    ecx
+00544411  |.  53           push    ebx
+00544412  |.  56           push    esi
+00544413  |.  8BF2         mov     esi, edx
+00544415  |.  8BD8         mov     ebx, eax                ;  A 到 EBX
+00544417  |.  33C0         xor     eax, eax
+00544419  |.  55           push    ebp
+0054441A  |.  68 D8445400  push    005444D8
+0054441F  |.  64:FF30      push    dword ptr fs:[eax]
+00544422  |.  64:8920      mov     dword ptr fs:[eax], esp
+00544425  |.  81F3 F1250B00 xor    ebx, 0B25F1             ;  A 与 0B25F1 做异或运算，结果设为 B
+0054442B  |.  8BC3         mov     eax, ebx                ;  B 到 EAX
+0054442D  |.  33D2         xor     edx, edx
+0054442F  |.  52           push    edx                     ;  /Arg2 => 00000000
+00544430  |.  50           push    eax                     ;  |Arg1
+00544431  |.  8D45 FC      lea     eax, dword ptr [ebp-4]  ;  |
+00544434  |.  E8 4F53ECFF  call    00409788                ;  \\\_UnPacke.00409788
+00544439  |.  8B45 FC      mov     eax, dword ptr [ebp-4]  ;  将 B 送到 EAX
+0054443C  |.  0FB600       movzx   eax, byte ptr [eax]     ;  取其第一位 ASCII 码值，到 EAX
+0054443F  |.  8B55 FC      mov     edx, dword ptr [ebp-4]  ;  将 B 送到 EDX
+00544442  |.  0FB652 01    movzx   edx, byte ptr [edx+1]   ;  取其第二位 ASCII 码值，到 EDX
+00544446  |.  03C2         add     eax, edx                ;  第一位 ASCII 码值与第二位 ASCII 码值相加
+00544448  |.  B9 05000000  mov     ecx, 5                  ;  除数 5 到 ECX
+0054444D  |.  99           cdq
+0054444E  |.  F7F9         idiv    ecx                     ;  EAX 除以 5，求余，余数到 EDX
+00544450  |.  80C2 34      add     dl, 34                  ;  余数加 16 进制 34，结果设为 C
+00544453  |.  8855 F8      mov     byte ptr [ebp-8], dl
+00544456  |.  8B45 FC      mov     eax, dword ptr [ebp-4]  ;  将 B 送到 EAX
+00544459  |.  0FB640 02    movzx   eax, byte ptr [eax+2]   ;  取其第三位 ASCII 码值，到 EAX
+0054445D  |.  8B55 FC      mov     edx, dword ptr [ebp-4]  ;  将 B 送到 EDX
+00544460  |.  0FB652 03    movzx   edx, byte ptr [edx+3]   ;  取其第四位 ASCII 码值，到 EDX
+00544464  |.  03C2         add     eax, edx                ;  第三位 ASCII 码值与第四位 ASCII 码值相加
+00544466  |.  B9 05000000  mov     ecx, 5                  ;  除数 5 到 ECX
+0054446B  |.  99           cdq
+0054446C  |.  F7F9         idiv    ecx                     ;  EAX 除以 5，求余，余数到 EDX
+0054446E  |.  8BDA         mov     ebx, edx                ;  余数到 EBX
+00544470  |.  80C3 33      add     bl, 33                  ;  余数加 16 进制 33，结果设为 D
+00544473  |.  885D F9      mov     byte ptr [ebp-7], bl
+00544476  |.  8D45 F4      lea     eax, dword ptr [ebp-C]
+00544479  |.  8A55 F8      mov     dl, byte ptr [ebp-8]
+0054447C  |.  E8 4F09ECFF  call    00404DD0
+00544481  |.  8B45 F4      mov     eax, dword ptr [ebp-C]
+00544484  |.  8D55 FC      lea     edx, dword ptr [ebp-4]
+00544487  |.  B9 1B000000  mov     ecx, 1B
+0054448C  |.  E8 F70CECFF  call    00405188                ;  将 B 与 C 串起来，结果设为 E
+00544491  |.  8D45 F0      lea     eax, dword ptr [ebp-10]
+00544494  |.  8BD3         mov     edx, ebx
+00544496  |.  E8 3509ECFF  call    00404DD0
+0054449B  |.  8B45 F0      mov     eax, dword ptr [ebp-10]
+0054449E  |.  8D55 FC      lea     edx, dword ptr [ebp-4]
+005444A1  |.  B9 19000000  mov     ecx, 19
+005444A6  |.  E8 DD0CECFF  call    00405188                ;  将 E 与 D 串起来，结果设为 F，即为真码
+005444AB  |.  8BC6         mov     eax, esi
+005444AD  |.  8B55 FC      mov     edx, dword ptr [ebp-4]
+005444B0  |.  E8 8F07ECFF  call    00404C44
+005444B5  |.  33C0         xor     eax, eax
+005444B7  |.  5A           pop     edx
+005444B8  |.  59           pop     ecx
+005444B9  |.  59           pop     ecx
+005444BA  |.  64:8910      mov     dword ptr fs:[eax], edx
+005444BD  |.  68 DF445400  push    005444DF
+005444C2  |>  8D45 F0      lea     eax, dword ptr [ebp-10]
+005444C5  |.  BA 02000000  mov     edx, 2
+005444CA  |.  E8 4507ECFF  call    00404C14
+005444CF  |.  8D45 FC      lea     eax, dword ptr [ebp-4]
+005444D2  |.  E8 1907ECFF  call    00404BF0
+005444D7  \\. C3           retn
+```
+
+`------------------------------------------------------------------------`
+
+### 【破解总结】算法很简单
+
+- 验证码加 `16` 进制 `383`（`10` 进制 `899`）结果设为 `A`
+- `A` 与 `16` 进制 `0B25F1`（`10` 进制 `730609`）做异或运算 结果为 `B`
+- 取 `B` 第一位与第二位，相加，结果除以 `5`，求余，设余数为 `C`
+- 取 `B` 第三位与第四位，相加，结果除以 `5`，求余，设余数为 `D`
+- 将 `B` 与 `C` 串起来，结果设为 `E`
+- 将 `E` 与 `D` 串起来，结果设为 `F`，即为真码
+
+`------------------------------------------------------------------------`
+
+### 【版权声明】原创破文，仍需学习
+
+`4dd466d0e1e0cc123afbe504da2462ca`

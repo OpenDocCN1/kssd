@@ -1,0 +1,452 @@
+
+# VPN 服务器软件算法分析
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-149.htm`](https://www.pediy.com/kssd/pediy09/pediy09-149.htm)
+
+> 【文章标题】: VPN 服务器软件算法分析
+> 【文章作者】: `sam`
+> 【作者邮箱】: `samcbc@gmail.com`
+> 【作者主页】: `http://hexun.com/steak`
+> 【作者 QQ 号】: `******`
+> 【软件名称】: 遥志 VPN 服务器软件
+> 【下载地址】: `http://www.vpnshare.com/vpnshare.rar`
+> 【加壳方式】: 无
+> 【保护方式】: `KEY`
+> 【编写语言】: `VC6.0`
+> 【使用工具】: `OD`
+> 【软件介绍】: `VPNShare` 主要用于实现远程安全访问、企业远程安全
+> 【作者声明】: 只是感兴趣，没有其他目的。
+>
+> ---------------------------------------------------------------------
+
+### 详细过程
+
+见会弹注册窗。
+
+下 `He MESSAGEBOXA` 开工!!
+
+```
+004207F3   |.   50             push eax                     ; |PathBuffer
+004207F4   |.   6A 00          push 0                         ; |hModule = NULL
+004207F6   |.   8DBD ECFEFFFF lea edi,dword ptr ss:[ebp-114] ; |
+004207FC   |.   FF15 A4624200 call dword ptr ds:[<&KERNEL32.GetModuleFileNa>; \GetModuleFileNameA
+00420802   |>   53             push ebx                       ; /Style
+00420803   |.   57             push edi                       ; |Title
+00420804   |.   FF75 08       push dword ptr ss:[ebp+8]      ; |Text
+00420807   |.   FF75 F4       push dword ptr ss:[ebp-C]      ; |hOwner
+0042080A   |.   FF15 50644200 call dword ptr ds:[<&USER32.MessageBoxA>] ; \MessageBoxA
+00420810   |.   85F6         test esi,esi                     ; 断在这里.直觉告诉我.下面那一堆都应该窗口.应该向上找
+00420812   |.   8BF8         mov edi,eax
+00420814   |.   74 05        je short CC_VPN_S.0042081B
+00420816   |.   8B45 F8      mov eax,dword ptr ss:[ebp-8]
+00420819   |.   8906         mov dword ptr ds:[esi],eax
+0042081B   |>   837D FC 00   cmp dword ptr ss:[ebp-4],0
+0042081F   |.   74 0B        je short CC_VPN_S.0042082C
+00420821   |.   6A 01        push 1                           ; /Enable = TRUE
+00420823   |.   FF75 FC      push dword ptr ss:[ebp-4]        ; |hWnd
+00420826   |.   FF15 60644200 call dword ptr ds:[<&USER32.EnableWindow>] ; \EnableWindow
+0042082C   |>   8B4D F0      mov ecx,dword ptr ss:[ebp-10]
+0042082F   |.   6A 01        push 1
+00420831   |.   E8 F4FEFFFF  call CC_VPN_S.0042072A
+00420836   |.   8BC7         mov eax,edi
+00420838   |.   5F           pop edi
+00420839   |.   5E           pop esi
+0042083A   |.   5B           pop ebx
+0042083B   |.   C9           leave
+0042083C   \.   C2 0C00      retn 0C
+```
+
+来到模块入口 `420758` 处下断。
+
+再次按输入。看堆栈。
+
+```
+0012F2B8    00420861     返回到 CC_VPN_S.00420861
+0012F2BC    00430374     ASCII "Register failed."
+```
+
+之前已有注册失败了。很明显我的直觉是对的。去 `420861` 处再找。
+
+```
+0042083F   /$   55             push ebp
+00420840   |.   8BEC           mov ebp,esp
+00420842   |.   E8 E3140000    call CC_VPN_S.00421D2A
+00420847   |.   8B40 04      mov eax,dword ptr ds:[eax+4]
+0042084A   |.   85C0           test eax,eax
+0042084C   |.   74 15          je short CC_VPN_S.00420863
+0042084E   |.   FF75 10       push dword ptr ss:[ebp+10]
+00420851   |.   8B10           mov edx,dword ptr ds:[eax]
+00420853   |.   8BC8           mov ecx,eax
+00420855   |.   FF75 0C       push dword ptr ss:[ebp+C]
+00420858   |.   FF75 08       push dword ptr ss:[ebp+8]
+0042085B   |.   FF92 8C000000 call dword ptr ds:[edx+8C]          ;这里调用那个 CALL 再对上一层逆向.对 42083F 下断
+00420861   |.   EB 10          jmp short CC_VPN_S.00420873
+00420863   |>   FF75 10       push dword ptr ss:[ebp+10]          ; /Arg3
+00420866   |.   33C9           xor ecx,ecx                         ; |
+00420868   |.   FF75 0C       push dword ptr ss:[ebp+C]           ; |Arg2
+0042086B   |.   FF75 08       push dword ptr ss:[ebp+8]           ; |Arg1
+0042086E   |.   E8 E5FEFFFF    call CC_VPN_S.00420758              ; \CC_VPN_S.00420758
+00420873   |>   5D             pop ebp
+00420874   \.   C2 0C00       retn 0C
+```
+
+再来一次注册。
+
+断下后看看堆栈。
+
+```
+0012F2CC    00402941     返回到 CC_VPN_S.00402941 来自 CC_VPN_S.0042083F
+0012F2D0    00430374     ASCII "Register failed."
+```
+
+又是失败的。再上多一层吧。 对 `00402941` 下断。
+
+终于来到核心了。
+
+```
+00402830    .   6A FF          push -1
+00402832    .   68 F64E4200    push CC_VPN_S.00424EF6                ;  SE 处理程序安装
+00402837    .   64:A1 00000000 mov eax,dword ptr fs:[0]
+0040283D    .   50             push eax
+0040283E    .   64:8925 00000000 mov dword ptr fs:[0],esp
+00402845    .   81EC 68010000 sub esp,168
+0040284B    .   53             push ebx
+0040284C    .   8BD9           mov ebx,ecx
+0040284E    .   6A 00          push 0
+00402850    .   8D4C24 08      lea ecx,dword ptr ss:[esp+8]
+00402854    .   E8 87070000    call CC_VPN_S.00402FE0
+00402859    .   8D4C24 04      lea ecx,dword ptr ss:[esp+4]
+0040285D    .   C78424 74010000 00 mov dword ptr ss:[esp+174],0
+00402868    .   E8 9A810100    call CC_VPN_S.0041AA07
+0040286D    .   83F8 01        cmp eax,1                           ;  EAX 如果是 1 就是以前注册过了
+00402870    .   0F85 CB000000  jnz CC_VPN_S.00402941
+00402876    .   8B4424 60      mov eax,dword ptr ss:[esp+60]       ;  把序列号压入 EAX
+0040287A    .   50             push eax                             ;  压入堆栈.后面好明显就是处理了
+0040287B    .   E8 40E9FFFF    call CC_VPN_S.004011C0              ;算法 CALL!!!
+00402880    .   83C4 04        add esp,4
+00402883    .   85C0           test eax,eax                         ;  EAX 如果是空的就跳向失败
+00402885    .   0F84 A8000000 je CC_VPN_S.00402933                 ;  后面就是写入 WIN.INI.步向成功罗
+0040288B    .   8A0D 64244300  mov cl,byte ptr ds:[432464]
+00402891    .   55             push ebp
+00402892    .   56             push esi
+00402893    .   57             push edi
+00402894    .   884C24 70      mov byte ptr ss:[esp+70],cl
+00402898    .   B9 41000000    mov ecx,41
+0040289D    .   33C0           xor eax,eax
+0040289F    .   8D7C24 71      lea edi,dword ptr ss:[esp+71]
+004028A3    .   8D5424 70      lea edx,dword ptr ss:[esp+70]
+004028A7    .   68 04010000    push 104                              ; /BufSize = 104 (260.)
+004028AC    .   F3:AB          rep stos dword ptr es:[edi]           ; |
+004028AE    .   52             push edx                                ; |Buffer
+004028AF    .   FF15 BC624200 call dword ptr ds:[<&KERNEL32.GetWindowsDirec>; \GetWindowsDirectoryA
+004028B5    .   BF D8004300    mov edi,CC_VPN_S.004300D8              ;  ASCII "\Win.ini"
+004028BA    .   83C9 FF        or ecx,FFFFFFFF
+004028BD    .   33C0           xor eax,eax
+004028BF    .   8D5424 70      lea edx,dword ptr ss:[esp+70]
+004028C3    .   F2:AE          repne scas byte ptr es:[edi]
+004028C5    .   F7D1           not ecx
+004028C7    .   2BF9           sub edi,ecx
+004028C9    .   8BF7           mov esi,edi
+```
+
+
+
+```
+> 004028CB . 8BE9 mov ebp,ecx  
+
+> 004028CD . 8BFA mov edi,edx  
+
+> 004028CF . 83C9 FF or ecx,FFFFFFFF  
+
+> 004028D2 . F2:AE repne scas byte ptr es:\[edi\]  
+
+> 004028D4 . 8BCD mov ecx,ebp  
+
+> 004028D6 . 4F dec edi  
+
+> 004028D7 . C1E9 02 shr ecx,2  
+
+> 004028DA . F3:A5 rep movs dword ptr es:\[edi\],dword ptr ds:\[esi>  
+
+> 004028DC . 8BCD mov ecx,ebp  
+
+> 004028DE . 8D4424 70 lea eax,dword ptr ss:\[esp+70\]  
+
+> 004028E2 . 83E1 03 and ecx,3  
+
+> 004028E5 . 50 push eax ; /FileName  
+
+> 004028E6 . F3:A4 rep movs byte ptr es:\[edi\],byte ptr ds:\[esi\] ; |  
+
+> 004028E8 . 8B4C24 70 mov ecx,dword ptr ss:\[esp+70\] ; |  
+
+> 004028EC . 51 push ecx ; |String  
+
+> 004028ED . 68 C8004300 push CC_VPN_S.004300C8 ; |Key = "VPNShareRegCode"  
+
+> 004028F2 . 68 C0004300 push CC_VPN_S.004300C0 ; |Section = "Product"  
+
+> 004028F7 . FF15 7C624200 call dword ptr ds:\[<&KERNEL32.WritePrivatePro>; \\WritePrivateProfileStringA  
+
+> 004028FD . 6A 00 push 0  
+
+> 004028FF . 68 F7030000 push 3F7  
+
+> 00402904 . 8BCB mov ecx,ebx  
+
+> 00402906 . E8 CEAF0100 call CC_VPN_S.0041D8D9  
+
+> 0040290B . 8BC8 mov ecx,eax  
+
+> 0040290D . E8 87B10100 call CC_VPN_S.0041DA99  
+
+> 00402912 . 8BCB mov ecx,ebx  
+
+> 00402914 . E8 87FAFFFF call CC_VPN_S.004023A0  
+
+> 00402919 . 8BCB mov ecx,ebx  
+
+> 0040291B . E8 50FAFFFF call CC_VPN_S.00402370  
+
+> 00402920 . 6A 00 push 0 ; /Arg3 = 00000000  
+
+> 00402922 . 6A 40 push 40 ; |Arg2 = 00000040  
+
+> 00402924 . 68 88034300 push CC_VPN_S.00430388 ; |Arg1 = 00430388 ASCII "Register success."  
+
+> 00402929 . E8 11DF0100 call CC_VPN_S.0042083F ; \\CC_VPN_S.0042083F  
+
+> 0040292E . 5F pop edi  
+
+> 0040292F . 5E pop esi  
+
+> 00402930 . 5D pop ebp  
+
+> 00402931 . EB 0E jmp short CC_VPN_S.00402941  
+
+> 00402933 > 6A 00 push 0 ; /Arg3 = 00000000  
+
+> 00402935 . 6A 40 push 40 ; |Arg2 = 00000040  
+
+> 00402937 . 68 74034300 push CC_VPN_S.00430374 ; |Arg1 = 00430374 ASCII "Register failed."  
+
+> 0040293C . E8 FEDE0100 call CC_VPN_S.0042083F ; \\CC_VPN_S.0042083F  
+
+> 00402941 > 8D4C24 60 lea ecx,dword ptr ss:\[esp+60\] ; 这里就是失败那句话的源头了.  
+
+> 00402830 . 6A FF push -1  
+
+> 00402832 . 68 F64E4200 push CC_VPN_S.00424EF6 ; SE 处理程序安装  
+
+> 00402837 . 64:A1 00000000 mov eax,dword ptr fs:\[0\]  
+
+> 0040283D . 50 push eax  
+
+> 0040283E . 64:8925 00000000 mov dword ptr fs:\[0\],esp  
+
+> 00402845 . 81EC 68010000 sub esp,168  
+
+> 0040284B . 53 push ebx  
+
+> 0040284C . 8BD9 mov ebx,ecx  
+
+> 0040284E . 6A 00 push 0  
+
+> 00402850 . 8D4C24 08 lea ecx,dword ptr ss:\[esp+8\]  
+
+> 00402854 . E8 87070000 call CC_VPN_S.00402FE0  
+
+> 00402859 . 8D4C24 04 lea ecx,dword ptr ss:\[esp+4\]  
+
+> 0040285D . C78424 74010000 00>mov dword ptr ss:\[esp+174\],0  
+
+> 00402868 . E8 9A810100 call CC_VPN_S.0041AA07  
+
+> 0040286D . 83F8 01 cmp eax,1 ; EAX 如果是 1 就是以前处理过了  
+
+> 00402870 . 0F85 CB000000 jnz CC_VPN_S.00402941  
+
+> 00402876 . 8B4424 60 mov eax,dword ptr ss:\[esp+60\] ; 把序列号压入 EAX  
+
+> 0040287A . 50 push eax ; 压入堆栈.后面好明显就是处理了  
+
+> 0040287B . E8 40E9FFFF call CC_VPN_S.004011C0  
+
+> 00402880 . 83C4 04 add esp,4  
+
+> 00402883 . 85C0 test eax,eax ; EAX 如果是空的就跳向失败  
+
+> 00402885 . 0F84 A8000000 je CC_VPN_S.00402933 ; 后面就是写入 WIN.INI.步向成功罗  
+
+> 0040288B . 8A0D 64244300 mov cl,byte ptr ds:\[432464\]  
+
+> 00402891 . 55 push ebp  
+
+> 00402892 . 56 push esi  
+
+> 00402893 . 57 push edi  
+
+> 00402894 . 884C24 70 mov byte ptr ss:\[esp+70\],cl  
+
+> 00402898 . B9 41000000 mov ecx,41  
+
+> 0040289D . 33C0 xor eax,eax  
+
+> 0040289F . 8D7C24 71 lea edi,dword ptr ss:\[esp+71\]  
+
+> 004028A3 . 8D5424 70 lea edx,dword ptr ss:\[esp+70\]  
+
+> 004028A7 . 68 04010000 push 104 ; /BufSize = 104 (260.)  
+
+> 004028AC . F3:AB rep stos dword ptr es:\[edi\] ; |  
+
+> 004028AE . 52 push edx ; |Buffer  
+
+> 004028AF . FF15 BC624200 call dword ptr ds:\[<&KERNEL32.GetWindowsDirec>; \\GetWindowsDirectoryA  
+
+> 004028B5 . BF D8004300 mov edi,CC_VPN_S.004300D8 ; ASCII "\\Win.ini"  
+
+> 004028BA . 83C9 FF or ecx,FFFFFFFF  
+
+> 004028BD . 33C0 xor eax,eax  
+
+> 004028BF . 8D5424 70 lea edx,dword ptr ss:\[esp+70\]  
+
+> 004028C3 . F2:AE repne scas byte ptr es:\[edi\]  
+
+> 004028C5 . F7D1 not ecx  
+
+> 004028C7 . 2BF9 sub edi,ecx  
+
+> 004028C9 . 8BF7 mov esi,edi  
+
+> 004028CB . 8BE9 mov ebp,ecx  
+
+> 004028CD . 8BFA mov edi,edx  
+
+> 004028CF . 83C9 FF or ecx,FFFFFFFF  
+
+> 004028D2 . F2:AE repne scas byte ptr es:\[edi\]  
+
+> 004028D4 . 8BCD mov ecx,ebp  
+
+> 004028D6 . 4F dec edi  
+
+> 004028D7 . C1E9 02 shr ecx,2  
+
+> 004028DA . F3:A5 rep movs dword ptr es:\[edi\],dword ptr ds:\[esi>  
+
+> 004028DC . 8BCD mov ecx,ebp  
+
+> 004028DE . 8D4424 70 lea eax,dword ptr ss:\[esp+70\]  
+
+> 004028E2 . 83E1 03 and ecx,3  
+
+> 004028E5 . 50 push eax ; /FileName  
+
+> 004028E6 . F3:A4 rep movs byte ptr es:\[edi\],byte ptr ds:\[esi\] ; |  
+
+> 004028E8 . 8B4C24 70 mov ecx,dword ptr ss:\[esp+70\] ; |  
+
+> 004028EC . 51 push ecx ; |String  
+
+> 004028ED . 68 C8004300 push CC_VPN_S.004300C8 ; |Key = "VPNShareRegCode"  
+
+> 004028F2 . 68 C0004300 push CC_VPN_S.004300C0 ; |Section = "Product"  
+
+> 004028F7 . FF15 7C624200 call dword ptr ds:\[<&KERNEL32.WritePrivatePro>; \\WritePrivateProfileStringA  
+
+> 004028FD . 6A 00 push 0  
+
+> 004028FF . 68 F7030000 push 3F7  
+
+> 00402904 . 8BCB mov ecx,ebx  
+
+> 00402906 . E8 CEAF0100 call CC_VPN_S.0041D8D9  
+
+> 0040290B . 8BC8 mov ecx,eax
+```
+
+
+
+## 0040290D - 00402950 汇编指令片段
+
+```
+0040290D    .  E8 87B10100        call CC_VPN_S.0041DA99  
+00402912    .  8BCB               mov ecx,ebx  
+00402914    .  E8 87FAFFFF        call CC_VPN_S.004023A0  
+00402919    .  8BCB               mov ecx,ebx  
+0040291B    .  E8 50FAFFFF        call CC_VPN_S.00402370  
+00402920    .  6A 00              push 0                                ; /Arg3 = 00000000  
+00402922    .  6A 40              push 40                               ; |Arg2 = 00000040  
+00402924    .  68 88034300        push CC_VPN_S.00430388                ; |Arg1 = 00430388 ASCII "Register success."  
+00402929    .  E8 11DF0100        call CC_VPN_S.0042083F                ; \CC_VPN_S.0042083F  
+0040292E    .  5F                 pop edi  
+0040292F    .  5E                 pop esi                               ;  CC_VPN_S.004300E1  
+00402930    .  5D                 pop ebp  
+00402931    .  EB 0E              jmp short CC_VPN_S.00402941  
+00402933    >  6A 00              push 0                                ; /Arg3 = 00000000  
+00402935    .  6A 40              push 40                               ; |Arg2 = 00000040  
+00402937    .  68 74034300        push CC_VPN_S.00430374                ; |Arg1 = 00430374 ASCII "Register failed."  
+0040293C    .  E8 FEDE0100        call CC_VPN_S.0042083F                ; \CC_VPN_S.0042083F  
+00402941    >  8D4C24 60          lea ecx,dword ptr ss:[esp+60]  
+00402945    .  C78424 74010000 01>mov dword ptr ss:[esp+174],1  
+00402950    .  E8 2CB50100        call CC_VPN_S.0041DE81  
+```
+
+## 算法分析
+
+`CALL` 结构很容易看懂。我输入的测试码是 `1234567890`，因此对每一位数值的处理都非常直观。
+
+### 004011C0 - 00401205 验证算法片段
+
+```
+004011C0   /$  8B4424 04          mov eax,dword ptr ss:[esp+4]  
+004011C4   |.  0FBE08             movsx ecx,byte ptr ds:[eax]               ;  把第一位压入 ECX  
+004011C7   |.  0FBE50 04          movsx edx,byte ptr ds:[eax+4]             ;  第 5 位压入 EDX  
+004011CB   |.  41                 inc ecx                                   ;  第一位+1 看看是否等于第 5 位  
+004011CC   |.  3BCA               cmp ecx,edx                               ;  比较一下是否相等  
+004011CE   |.  75 33              jnz short CC_VPN_S.00401203               ;  下面任何一个转跳都是清空 EAX.结果当然是失败  
+004011D0   |.  0FBE48 01          movsx ecx,byte ptr ds:[eax+1]             ;  第 2 位  
+004011D4   |.  0FBE50 05          movsx edx,byte ptr ds:[eax+5]             ;  第 6 位  
+004011D8   |.  83C1 09            add ecx,9                                 ;  第 2 位加 9 是否等于第 6 位  
+004011DB   |.  3BCA               cmp ecx,edx  
+004011DD   |.  75 24              jnz short CC_VPN_S.00401203  
+004011DF   |.  0FBE48 02          movsx ecx,byte ptr ds:[eax+2]             ;  第 3 位  
+004011E3   |.  0FBE50 06          movsx edx,byte ptr ds:[eax+6]             ;  第 7 位  
+004011E7   |.  83C1 07            add ecx,7                                 ;  第 3 位+7 是否与第 7 位相等  
+004011EA   |.  3BCA               cmp ecx,edx  
+004011EC   |.  75 15              jnz short CC_VPN_S.00401203  
+004011EE   |.  0FBE48 03          movsx ecx,byte ptr ds:[eax+3]             ;  第 4 位  
+004011F2   |.  0FBE50 07          movsx edx,byte ptr ds:[eax+7]             ;  第 8 位  
+004011F6   |.  83C1 06            add ecx,6                                 ;  第 4 位加 6 是否等于第 8 位  
+004011F9   |.  3BCA               cmp ecx,edx  
+004011FB   |.  75 06              jnz short CC_VPN_S.00401203  
+004011FD   |.  B8 01000000        mov eax,1                                 ;  验证成功压 1  
+00401202   |.  C3                 retn  
+00401203   |>  33C0               xor eax,eax                               ; 失败通通来这里报到  
+00401205   \\.  C3                 retn  
+```
+
+## 通用注册码推导
+
+根据上述算法：
+
+- `1 位 + 1 = 5 位`
+- `2 位 + 9 = 6 位`
+- `3 位 + 7 = 7 位`
+- `4 位 + 6 = 8 位`
+
+假设输入序列为 `1 2 3 4 5 6 7 8`（示例展示），实际通用计算得出注册码 `10002976`。
+
+## 经验总结
+
+这个软件算法比较直观，较复杂的部分本文未深入展开。很明显这个软件爆破难度高于算法分析难度。它将注册码写入 `WIN.INI`，后续很多逻辑都对上述 `CALL` 算法进行调用以产生 NAG 提示。建议新手尝试此目标。
+
+## 版权声明
+
+转载请注明作者并保持文章完整，谢谢！
+
+日期：`2007 年 05 月 21 日 AM 06:34:27`
+
+哈希值：`4dd466d0e1e0cc123afbe504da2462ca`
