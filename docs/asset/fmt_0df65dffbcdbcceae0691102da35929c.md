@@ -1,0 +1,154 @@
+
+# 黑名单
+
+`0047FE18` `6D 67 33 37 34 33 34 34 37 37 37 00 6D 67 33 37` `mg374344777.mg37`
+
+`0047FE28` `39 33 34 32 36 38 39 00 6D 67 33 37 37 37 35 33` `9342689.mg377753`
+
+`0047FE38` `39 33 31 00 6D 67 33 37 37 36 34 33 38 36 33 00` `931.mg377643863.`
+
+`0047FE48` `6D 67 33 37 30 37 30 34 37 38 38 00 6D 67 33 37` `mg370704788.mg37`
+
+`0047FE58` `36 38 37 31 34 33 34 00 6D 67 33 37 36 34 38 34` `6871434.mg376484`
+
+`0047FE68` `30 33 39 00 6D 67 33 37 30 33 34 32 36 39 32 00` `039.mg370342692.`
+
+`0047FE78` `6D 67 33 37 36 34 34 39 35 37 00 00 6D 67 33 37` `mg37644957..mg37`
+
+`0047FE88` `37 35 38 33 34 35 34 00 6D 67 33 37 33 32 32 33` `7583454.mg373223`
+
+`0047FE98` `35 35 34 00 6D 67 33 37 31 38 39 35 32 36 36 00` `554.mg371895266.`
+
+`0047FEA8` `6D 67 33 37 39 37 37 33 36 35 31 00 6D 67 33 37` `mg379773651.mg37`
+
+`0047FEB8` `31 30 37 33 34 37 38 00 6D 67 33 37 34 33 39 34` `1073478.mg374394`
+
+`0047FEC8` `39 38 37 00 6D 67 33 37 38 38 32 32 34 36 39 00` `987.mg378822469.`
+
+`0047FED8` `6D 67 33 37 30 36 34 33 34 38 00 00 6D 67 33 37` `mg37064348..mg37`
+
+`0047FEE8` `30 34 37 33 37 31 30 00 6D 67 33 37 38 35 34 32` `0473710.mg378542`
+
+`0047FEF8` `35 34 34 00 6D 67 33 37 33 34 37 33 37 35 39 00` `544.mg373473759.`
+
+`0047FF08` `6D 67 33 37 39 32 32 33 39 35 33 00 6D 67 33 37` `mg379223953.mg37`
+
+`0047FF18` `35 39 35 33 32 34 38 00 6D 67 33 37 32 30 32 31` `5953248.mg372021`
+
+`0047FF28` `34 32 34 00 6D 67 33 37 30 33 35 33 30 30 38 00` `424.mg370353008.`
+
+`0047FF38` `6D 67 33 37 30 31 35 31 33 34 37 00 6D 67 33 37` `mg370151347.mg37`
+
+`0047FF48` `39 38 34 33 31 34 39 00 6D 67 33 37 32 35 30 33` `9843149.mg372503`
+
+`0047FF58` `39 35 38 00 6D 67 33 37 4E 54 69 00 6D 67 33 37` `958.mg37NTi.mg37`
+
+`0047FF68` `33 34 36 35 32 34 31 00 6D 67 33 37 30 35 33 34` `3465241.mg370534`
+
+`0047FF78` `30 33 35 00 6D 67 33 37 34 36 30 34 33 34 32 00` `035.mg374604342.`
+
+`0047FF88` `6D 76 67 32 31 39 35 31 37 33 36` `mvg21951736`
+
+# 破解总结
+
+# 算法总结
+
+分两种算法，1 种是 8 位以上，1 种是 9 位以上，前面分别为 `"mg37"` 和 `"mg37s"`
+
+# 算法注册机
+
+## 注册机 1
+
+`keygen1.rek`
+
+```
+.const
+.data
+szHomePage db "http://www.chinapyg.com",0
+szEmail db "mailto:tianxj_2007@126.com",0
+szErrMess db "请输入用户名！",0
+szBuffer db 50 dup (0)
+szFMT db "mg37***%d",0
+
+.code
+MOV EBX,eax
+MOV DL,BYTE PTR DS:[EBX]
+XOR ECX,ECX
+MOV EDI,EBX
+MOV ESI,0BDFh
+tianxj:
+MOVSX EDX,DL
+INC ECX
+IMUL EDX,ECX
+ADD ESI,EDX
+CMP ESI,17BEh
+JLE n1
+SUB ESI,17BEh
+n1:
+CMP ECX,0Ah
+JLE n2
+XOR ECX,ECX
+n2:
+MOV DL,BYTE PTR DS:[EDI+1]
+INC EDI
+TEST DL,DL
+JNZ tianxj
+invoke wsprintf,addr szBuffer,addr szFMT,esi
+lea eax,szBuffer
+```
+
+## 注册机 2
+
+`keygen2.rek`
+
+```
+.const
+.data
+szHomePage db "http://www.chinapyg.com",0
+szEmail db "mailto:tianxj_2007@126.com",0
+szErrMess db "请输入用户名！",0
+szBuffer db 50 dup (0)
+szFMT db "mg37s***%d",0
+
+.code
+MOV EBX,eax
+MOV DL,BYTE PTR DS:[EBX]
+XOR ECX,ECX
+MOV EDI,EBX
+MOV ESI,0BDFh
+tianxj:
+MOVSX EDX,DL
+INC ECX
+IMUL EDX,ECX
+ADD ESI,EDX
+CMP ESI,17BEh
+JLE n1
+SUB ESI,17BEh
+n1:
+CMP ECX,0Ah
+JLE n2
+XOR ECX,ECX
+n2:
+MOV DL,BYTE PTR DS:[EDI+1]
+INC EDI
+TEST DL,DL
+JNZ tianxj
+invoke wsprintf,addr szBuffer,addr szFMT,esi
+lea eax,szBuffer
+```
+
+# 注册信息
+
+用户名：`tianxj`
+
+注册码：`mg37***5332` 或 `mg37s***5332` （`*`为任意字符）
+
+保存在
+
+`[HKEY_LOCAL_MACHINE\SOFTWARE\gamani\GIFMovieGear\2.0]`
+
+感谢飘云老大、猫老大、`Nisy` 老大以及很多前辈们的学习教程以及所有帮助过我的论坛兄弟姐妹们！谢谢
+
+# 版权声明
+
+破文是学习的手记，兴趣是成功的源泉；本破文纯属技术交流，转载请注明作者并保持文章的完整，谢谢!

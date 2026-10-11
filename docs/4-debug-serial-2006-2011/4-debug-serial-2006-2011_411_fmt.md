@@ -1,0 +1,355 @@
+
+# Falco Icon Studio 2.8 算法分析
+
+> 原文：[`www.pediy.com/kssd/pediy10/67205.html`](https://www.pediy.com/kssd/pediy10/67205.html)
+
+【破文标题】Falco Icon Studio 2.8 算法分析
+
+【破文作者】tianxj
+
+【作者邮箱】tianxj_2007@126.com
+
+【作者主页】www.chinapyg.com
+
+【破解工具】PEiD, OD
+
+【破解平台】Windows XP
+
+【软件名称】Falco Icon Studio 2.8
+
+【软件大小】1915KB
+
+【软件类别】国外软件/图标工具
+
+【软件语言】英文
+
+【更新时间】2008-6-23
+
+【原版下载】华军软件园
+
+【保护方式】注册码
+
+【软件简介】是一个制作、编辑和导出图标的工具，可以轻松的制作出专业的图标。
+
+【破解声明】我是一只小菜鸟，偶得一点心得，愿与大家分享：）
+
+--------------------------------------------------------------
+
+【破解内容】
+
+--------------------------------------------------------------
+
+一、运行程序，进行注册，输入错误的注册信息进行检测，有提示信息 "You have entered the wrong info!"
+
+二、用 `PEiD` 对 `Falco Icon Studio` 查壳，为"什么也没发现"
+
+三、运行 `OD`，打开 `Falco Icon Studio`，输入注册信息注册，用 `F12` 暂停法, `F8` 来到
+
+代码:
+
+
+
+```
+0042EC50  /$  6A FF         PUSH -1
+0042EC52  |.  68 CB754900   PUSH Falco_Ic.004975CB
+0042EC57  |.  64:A1 0000000>MOV EAX,DWORD PTR FS:[0]
+0042EC5D  |.  50            PUSH EAX
+0042EC5E  |.  81EC 30010000 SUB ESP,130
+0042EC64  |.  56            PUSH ESI
+0042EC65  |.  57            PUSH EDI
+0042EC66  |.  A1 48EC4B00   MOV EAX,DWORD PTR DS:[4BEC48]
+0042EC6B  |.  33C4          XOR EAX,ESP
+0042EC6D  |.  50            PUSH EAX
+0042EC6E  |.  8D8424 3C0100>LEA EAX,DWORD PTR SS:[ESP+13C]
+0042EC75  |.  64:A3 0000000>MOV DWORD PTR FS:[0],EAX
+0042EC7B  |.  8D4424 10     LEA EAX,DWORD PTR SS:[ESP+10]
+0042EC7F  |.  50            PUSH EAX
+0042EC80  |.  E8 4BF8FFFF   CALL Falco_Ic.0042E4D0
+0042EC85  |.  C78424 440100>MOV DWORD PTR SS:[ESP+144],0
+0042EC90  |.  8B0D 90394C00 MOV ECX,DWORD PTR DS:[4C3990]
+0042EC96  |.  898C24 300100>MOV DWORD PTR SS:[ESP+130],ECX
+0042EC9D  |.  8D4C24 10     LEA ECX,DWORD PTR SS:[ESP+10]
+0042ECA1  |.  E8 93A10100   CALL Falco_Ic.00448E39                   ;  //启动注册对话框
+0042ECA6  |.  83F8 01       CMP EAX,1
+0042ECA9  |.  0F85 61010000 JNZ Falco_Ic.0042EE10
+0042ECAF  |.  8B9424 2C0100>MOV EDX,DWORD PTR SS:[ESP+12C]           ;  //试练码
+0042ECB6  |.  52            PUSH EDX
+0042ECB7  |.  E8 AAD10400   CALL Falco_Ic.0047BE66                   ;  //试练码转 16 进制送入 EAX
+0042ECBC  |.  8B8C24 500100>MOV ECX,DWORD PTR SS:[ESP+150]
+0042ECC3  |.  83C4 04       ADD ESP,4
+0042ECC6  |.  50            PUSH EAX                                  ; /Arg1
+0042ECC7  |.  E8 74010000   CALL Falco_Ic.0042EE40                   ; \\Falco_Ic.0042EE40   //关键 CALL
+0042ECCC  |.  85C0          TEST EAX,EAX
+0042ECCE  |.  0F84 2E010000 JE Falco_Ic.0042EE02                     ; //关键跳转
+0042ECD4  |.  8B8424 2C0100>MOV EAX,DWORD PTR SS:[ESP+12C]
+0042ECDB  |.  8378 F4 00    CMP DWORD PTR DS:[EAX-C],0
+0042ECDF  |.  0F84 1D010000 JE Falco_Ic.0042EE02
+0042ECE5  |.  E8 3F300200   CALL Falco_Ic.00451D29
+0042ECEA  |.  8B40 04       MOV EAX,DWORD PTR DS:[EAX+4]
+0042ECED  |.  C680 18010000>MOV BYTE PTR DS:[EAX+118],1
+0042ECF4  |.  E8 95DB0100   CALL Falco_Ic.0044C88E
+0042ECF9  |.  85C0          TEST EAX,EAX
+0042ECFB  |.  74 0D         JE SHORT Falco_Ic.0042ED0A
+0042ECFD  |.  8B10          MOV EDX,DWORD PTR DS:[EAX]
+0042ECFF  |.  8BC8          MOV ECX,EAX
+0042ED01  |.  8B42 74       MOV EAX,DWORD PTR DS:[EDX+74]
+0042ED04  |.  FFD0          CALL EAX
+0042ED06  |.  8BF0          MOV ESI,EAX
+0042ED08  |.  EB 02         JMP SHORT Falco_Ic.0042ED0C
+0042ED0A  |>  33F6          XOR ESI,ESI
+0042ED0C  |>  83BE 08080000>CMP DWORD PTR DS:[ESI+808],0
+0042ED13  |.  0F84 F7000000 JE Falco_Ic.0042EE10
+0042ED19  |.  8DBE D0030000 LEA EDI,DWORD PTR DS:[ESI+3D0]
+0042ED1F  |.  6A 00         PUSH 0
+0042ED21  |.  8BCF          MOV ECX,EDI
+0042ED23  |.  E8 CF900100   CALL Falco_Ic.00447DF7
+0042ED28  |.  8B4E 20       MOV ECX,DWORD PTR DS:[ESI+20]
+0042ED2B  |.  68 05010000   PUSH 105                                  ; /Redraw = RDW_INVALIDATE|RDW_ERASE|RDW_UPDATENOW
+0042ED30  |.  6A 00         PUSH 0                                    ; |hUpdateRgn = NULL
+0042ED32  |.  6A 00         PUSH 0                                    ; |pRect = NULL
+0042ED34  |.  51            PUSH ECX                                  ; |hWnd
+0042ED35  |.  FF15 7C974900 CALL DWORD PTR DS:[<&USER32.RedrawWindow>; \RedrawWindow
+0042ED3B  |.  8B17          MOV EDX,DWORD PTR DS:[EDI]
+0042ED3D  |.  8B42 60       MOV EAX,DWORD PTR DS:[EDX+60]
+0042ED40  |.  8BCF          MOV ECX,EDI
+0042ED42  |.  FFD0          CALL EAX
+0042ED44  |.  8B17          MOV EDX,DWORD PTR DS:[EDI]
+0042ED46  |.  8B82 68010000 MOV EAX,DWORD PTR DS:[EDX+168]
+0042ED4C  |.  68 AC000000   PUSH 0AC
+0042ED51  |.  68 00410000   PUSH 4100
+0042ED56  |.  68 AC000000   PUSH 0AC
+0042ED5B  |.  56            PUSH ESI
+0042ED5C  |.  8BCF          MOV ECX,EDI
+0042ED5E  |.  FFD0          CALL EAX
+0042ED60  |.  8B96 D0040000 MOV EDX,DWORD PTR DS:[ESI+4D0]
+0042ED66  |.  8B42 60       MOV EAX,DWORD PTR DS:[EDX+60]
+0042ED69  |.  8D8E D0040000 LEA ECX,DWORD PTR DS:[ESI+4D0]
+0042ED6F  |.  C786 B8050000>MOV DWORD PTR DS:[ESI+5B8],0
+0042ED79  |.  FFD0          CALL EAX
+0042ED7B  |.  68 1C844A00   PUSH Falco_Ic.004A841C                   ;  c
+0042ED80  |.  8BCF          MOV ECX,EDI
+0042ED82  |.  E8 B38F0100   CALL Falco_Ic.00447D3A
+0042ED87  |.  68 00500000   PUSH 5000
+0042ED8C  |.  8BCF          MOV ECX,EDI
+0042ED8E  |.  E8 72F90200   CALL Falco_Ic.0045E705
+0042ED93  |.  6A 00         PUSH 0
+0042ED95  |.  6A 00         PUSH 0
+0042ED97  |.  57            PUSH EDI
+0042ED98  |.  8BCE          MOV ECX,ESI
+0042ED9A  |.  E8 14280300   CALL Falco_Ic.004615B3
+0042ED9F  |.  68 82000000   PUSH 82
+0042EDA4  |.  8D8E 48020000 LEA ECX,DWORD PTR DS:[ESI+248]
+0042EDAA  |.  E8 8B200300   CALL Falco_Ic.00460E3A
+0042EDAF  |.  68 AE000000   PUSH 0AE
+0042EDB4  |.  8D8E C0050000 LEA ECX,DWORD PTR DS:[ESI+5C0]
+0042EDBA  |.  E8 7B200300   CALL Falco_Ic.00460E3A
+0042EDBF  |.  68 B0000000   PUSH 0B0
+0042EDC4  |.  8D8E 78060000 LEA ECX,DWORD PTR DS:[ESI+678]
+0042EDCA  |.  E8 6B200300   CALL Falco_Ic.00460E3A
+0042EDCF  |.  68 B2000000   PUSH 0B2
+0042EDD4  |.  8D8E 30070000 LEA ECX,DWORD PTR DS:[ESI+730]
+0042EDDA  |.  E8 5B200300   CALL Falco_Ic.00460E3A
+0042EDDF  |.  E8 452F0200   CALL Falco_Ic.00451D29
+0042EDE4  |.  8B40 04       MOV EAX,DWORD PTR DS:[EAX+4]
+0042EDE7  |.  8B48 68       MOV ECX,DWORD PTR DS:[EAX+68]
+0042EDEA  |.  51            PUSH ECX                                  ; /Arg1
+0042EDEB  |.  8BCE          MOV ECX,ESI                               ; |
+0042EDED  |.  E8 62400300   CALL Falco_Ic.00462E54                   ; \\Falco_Ic.00462E54
+0042EDF2  |.  8B16          MOV EDX,DWORD PTR DS:[ESI]
+0042EDF4  |.  8B82 48010000 MOV EAX,DWORD PTR DS:[EDX+148]
+0042EDFA  |.  6A 01         PUSH 1
+0042EDFC  |.  8BCE          MOV ECX,ESI
+0042EDFE  |.  FFD0          CALL EAX
+0042EE00  |.  EB 0E         JMP SHORT Falco_Ic.0042EE10
+0042EE02  |>  6A 00         PUSH 0                                    ; /Arg3 = 00000000
+0042EE04  |.  6A 00         PUSH 0                                    ; |Arg2 = 00000000
+0042EE06  |.  68 A08C4A00   PUSH Falco_Ic.004A8CA0                   ; |y
+0042EE0B  |.  E8 285D0200   CALL Falco_Ic.00454B38                   ; \\Falco_Ic.00454B38
+0042EE10  |>  8D4C24 10     LEA ECX,DWORD PTR SS:[ESP+10]
+0042EE14  |.  C78424 440100>MOV DWORD PTR SS:[ESP+144],-1
+0042EE1F  |.  E8 7CF7FFFF   CALL Falco_Ic.0042E5A0
+0042EE24  |.  8B8C24 3C0100>MOV ECX,DWORD PTR SS:[ESP+13C]
+0042EE2B  |.  64:890D 00000>MOV DWORD PTR FS:[0],ECX
+0042EE32  |.  59            POP ECX
+0042EE33  |.  5F            POP EDI
+0042EE34  |.  5E            POP ESI
+0042EE35  |.  81C4 3C010000 ADD ESP,13C
+0042EE3B  \.  C2 0400       RETN 4
+\==============================================================
+0042EE40  /$  81EC 18020000 SUB ESP,218
+0042EE46  |.  A1 48EC4B00   MOV EAX,DWORD PTR DS:[4BEC48]
+0042EE4B  |.  33C4          XOR EAX,ESP
+0042EE4D  |.  898424 140200>MOV DWORD PTR SS:[ESP+214],EAX
+0042EE54  |.  DD05 10BA4A00 FLD QWORD PTR DS:[4ABA10]   
+0042EE5A  |.  53            PUSH EBX
+0042EE5B  |.  56            PUSH ESI
+0042EE5C  |.  8BF1          MOV ESI,ECX
+0042EE5E  |.  E8 5D320600   CALL Falco_Ic.004920C0
+0042EE63  |.  D95C24 0C     FSTP DWORD PTR SS:[ESP+C]
+0042EE67  |.  8B0D 90394C00 MOV ECX,DWORD PTR DS:[4C3990]            ;  //ECX=[4C3990]=机器码 16 进制
+0042EE6D  |.  D94424 0C     FLD DWORD PTR SS:[ESP+C] 
+0042EE71  |.  B8 83DE1B43   MOV EAX,431BDE83                         ;  //EAX=431BDE83
+0042EE76  |.  F7E1          MUL ECX                                   ;  //EAX*ECX
+0042EE78  |.  C1EA 13       SHR EDX,13                                ;  //EDX 右移 13 位
+0042EE7B  |.  69D2 80841E00 IMUL EDX,EDX,1E8480                       ;  //EDX=EDX*1E8480
+0042EE81  |.  2BCA          SUB ECX,EDX                               ;  //ECX=ECX-EDX
+0042EE83  |.  85C9          TEST ECX,ECX
+0042EE85  |.  894C24 0C     MOV DWORD PTR SS:[ESP+C],ECX             ;  //[ESP+C]=[ESP+C]-ECX
+0042EE89  |.  DB4424 0C     FILD DWORD PTR SS:[ESP+C]
+0042EE8D  |.  7D 06         JGE SHORT Falco_Ic.0042EE95
+0042EE8F  |.  D805 08BA4A00 FADD DWORD PTR DS:[4ABA08]               ;  //+4294967296
+0042EE95  |>  DC35 00BA4A00 FDIV QWORD PTR DS:[4ABA00]               ;  //ST0/3.141592741012573
+0042EE9B  |.  DCC0          FADD ST,ST                                ;  //ST0+ST0
+0042EE9D  |.  DEC9          FMULP ST(1),ST                           ;  //ST0*0.9963974952697753600
+0042EE9F  |.  DC0D F8B94A00 FMUL QWORD PTR DS:[4AB9F8]               ;  //ST0*112.5999984741211
+0042EEA5  |.  E8 16E10400   CALL Falco_Ic.0047CFC0                   ;  //将计算数值送入 EAX
+0042EEAA  |.  99            CDQ
+0042EEAB  |.  33C2          XOR EAX,EDX
+0042EEAD  |.  2BC2          SUB EAX,EDX
+0042EEAF  |.  398424 240200>CMP DWORD PTR SS:[ESP+224],EAX           ;  (初始 cpu 选择)//关键比较
+0042EEB6  |.  0F85 0E010000 JNZ Falco_Ic.0042EFCA                    ;  //关键跳转
+0042EEBC  |.  DD05 F0B94A00 FLD QWORD PTR DS:[4AB9F0]
+0042EEC2  |.  33C0          XOR EAX,EAX
+0042EEC4  |.  888424 040100>MOV BYTE PTR SS:[ESP+104],AL
+0042EECB  |.  DD9C24 900000>FSTP QWORD PTR SS:[ESP+90]
+0042EED2  |.  898424 050100>MOV DWORD PTR SS:[ESP+105],EAX
+0042EED9  |.  898424 090100>MOV DWORD PTR SS:[ESP+109],EAX
+0042EEE0  |.  66:898424 0D0>MOV WORD PTR SS:[ESP+10D],AX
+0042EEE8  |.  888424 0F0100>MOV BYTE PTR SS:[ESP+10F],AL
+0042EEEF  |.  B0 EC         MOV AL,0EC
+0042EEF1  |.  B1 8B         MOV CL,8B
+0042EEF3  |.  B2 7D         MOV DL,7D
+0042EEF5  |.  B3 82         MOV BL,82
+0042EEF7  |.  C68424 FF0000>MOV BYTE PTR SS:[ESP+FF],49
+0042EEFF  |.  008424 FF0000>ADD BYTE PTR SS:[ESP+FF],AL
+0042EF06  |.  C68424 000100>MOV BYTE PTR SS:[ESP+100],42
+0042EF0E  |.  008424 000100>ADD BYTE PTR SS:[ESP+100],AL
+0042EF15  |.  C68424 010100>MOV BYTE PTR SS:[ESP+101],84
+0042EF1D  |.  008424 010100>ADD BYTE PTR SS:[ESP+101],AL
+0042EF24  |.  C68424 020100>MOV BYTE PTR SS:[ESP+102],7F
+0042EF2C  |.  008424 020100>ADD BYTE PTR SS:[ESP+102],AL
+0042EF33  |.  C68424 030100>MOV BYTE PTR SS:[ESP+103],7B
+0042EF3B  |.  008424 030100>ADD BYTE PTR SS:[ESP+103],AL
+0042EF42  |.  02C8          ADD CL,AL
+0042EF44  |.  02D0          ADD DL,AL
+0042EF46  |.  02D8          ADD BL,AL
+0042EF48  |.  68 04010000   PUSH 104                                  ; /BufSize = 104 (260.)
+0042EF4D  |.  8D8424 140100>LEA EAX,DWORD PTR SS:[ESP+114]           ; |
+0042EF54  |.  50            PUSH EAX                                  ; |Buffer
+0042EF55  |.  C746 04 01000>MOV DWORD PTR DS:[ESI+4],1               ; |
+0042EF5C  |.  888C24 040100>MOV BYTE PTR SS:[ESP+104],CL             ; |
+0042EF63  |.  889424 050100>MOV BYTE PTR SS:[ESP+105],DL             ; |
+0042EF6A  |.  889C24 060100>MOV BYTE PTR SS:[ESP+106],BL             ; |
+0042EF71  |.  FF15 0C944900 CALL DWORD PTR DS:[<&KERNEL32.GetSystemD>; \GetSystemDirectoryA
+0042EF77  |.  8D8C24 FC0000>LEA ECX,DWORD PTR SS:[ESP+FC]
+0042EF7E  |.  51            PUSH ECX
+0042EF7F  |.  8D9424 140100>LEA EDX,DWORD PTR SS:[ESP+114]
+0042EF86  |.  52            PUSH EDX
+0042EF87  |.  8BC2          MOV EAX,EDX
+0042EF89  |.  68 E48C4A00   PUSH Falco_Ic.004A8CE4                   ;  %s\%s
+0042EF8E  |.  50            PUSH EAX
+0042EF8F  |.  E8 0CD50400   CALL Falco_Ic.0047C4A0
+0042EF94  |.  8D8C24 200100>LEA ECX,DWORD PTR SS:[ESP+120]
+0042EF9B  |.  68 54524A00   PUSH Falco_Ic.004A5254                   ;  wb
+0042EFA0  |.  51            PUSH ECX
+0042EFA1  |.  E8 C2BB0400   CALL Falco_Ic.0047AB68
+0042EFA6  |.  8BF0          MOV ESI,EAX
+0042EFA8  |.  56            PUSH ESI
+0042EFA9  |.  6A 01         PUSH 1
+0042EFAB  |.  8D5424 30     LEA EDX,DWORD PTR SS:[ESP+30]
+0042EFAF  |.  68 E8000000   PUSH 0E8
+0042EFB4  |.  52            PUSH EDX
+0042EFB5  |.  E8 20BD0400   CALL Falco_Ic.0047ACDA
+0042EFBA  |.  56            PUSH ESI
+0042EFBB  |.  E8 0EBE0400   CALL Falco_Ic.0047ADCE
+0042EFC0  |.  83C4 2C       ADD ESP,2C
+0042EFC3  |.  B8 01000000   MOV EAX,1
+0042EFC8  |.  EB 02         JMP SHORT Falco_Ic.0042EFCC
+0042EFCA  |>  33C0          XOR EAX,EAX
+0042EFCC  |>  8B8C24 1C0200>MOV ECX,DWORD PTR SS:[ESP+21C]
+0042EFD3  |.  5E            POP ESI
+0042EFD4  |.  5B            POP EBX
+0042EFD5  |.  33CC          XOR ECX,ESP
+0042EFD7  |.  E8 B1B60400   CALL Falco_Ic.0047A68D
+0042EFDC  |.  81C4 18020000 ADD ESP,218
+0042EFE2  \.  C2 0400       RETN 4
+```
+
+
+
+## 破解总结
+
+有部分是浮点运算
+
+---
+
+## 算法总结
+
+如果 `(机器码 - (机器码 * 1125899907) \ 4294967295 \ (2^19) * 2000000) > 0`，则：
+`注册码 = 取整数部分((机器码 - (机器码 * 1125899907) \ 4294967295 \ (2^19) * 2000000) / 3.14159274101257 * 2 * 0.996397495269775 * 112.599998474121)`
+
+否则：
+`注册码 = 取整数部分((机器码 - (机器码 * 1125899907) \ 4294967295 \ (2^19) * 2000000 + 4294967296) / 3.14159274101257 * 2 * 0.996397495269775 * 112.599998474121)`
+
+---
+
+## 算法注册机
+
+### VB 代码
+
+```vb
+Private Sub Command1_Click()
+    If Len(Text1.Text) = 0 Then
+        Text2.Text = "请输入机器码！"
+    Else
+        A = BigMultiplication(Text1.Text, "1125899907")
+        B = BigDivisionMod(A, "4294967295", False)
+        C = 2 ^ 19
+        D = (B \\ C)
+        E = D * 2000000
+        E = (Val(Text1.Text) - E)
+        
+        If E >= 0 Then
+            F = E
+        Else
+            F = E + 4294967296#
+        End If
+        
+        F = F / 3.14159274101257
+        F = F + F
+        F = F * 0.996397495269775
+        F = F * 112.599998474121
+        F = Fix(F)
+        Text2.Text = F
+    End If
+End Sub
+```
+
+---
+
+## 内存注册机
+
+- 中断地址：`0042EEAF`
+- 中断次数：`1`
+- 第一字节：`39`
+- 指令长度：`6`
+- 寄存器方式：`EAX`
+- 数值格式：十进制
+
+---
+
+## 爆破地址
+
+`0042EEB6` `. 0F85 0E010000 JNZ Falco_Ic.0042EFCA`
+
+将 `JNZ` 改为 `JE`
+
+---
+
+感谢飘云老大、猫老大、Nisy 老大以及很多前辈们的学习教程以及所有帮助过我的论坛兄弟姐妹们！谢谢
+
+---
+
+## 版权声明
+
+破文是学习的手记，兴趣是成功的源泉；本破文纯属技术交流，转载请注明作者并保持文章的完整，谢谢!
