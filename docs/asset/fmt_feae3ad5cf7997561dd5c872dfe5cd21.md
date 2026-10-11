@@ -1,0 +1,229 @@
+
+# 汇编分析
+
+00411AED   . 50                push    eax                  |Arg1
+
+00411AEE   . E8 3DF20B00       call    004D0D30             \bt.004D0D30
+
+00411AF3   . 83C4 08           add     esp, 8
+
+00411AF6   . 8D45 F8           lea     eax, dword ptr ss:[ebp-8]
+
+00411AF9   . E8 BEF60B00       call    004D11BC              edx = new_user_name
+
+00411AFE   . 8B55 F8           mov     edx, dword ptr ss:[ebp-8]
+
+00411B01   . 03FA              add     edi, edx
+
+00411B03   . 4F                dec     edi                   edi = new_user_name [i++], i=0,...
+
+00411B04   . 0FBE0F            movsx   ecx, byte ptr ds:[edi]
+
+00411B07   . 8BC1              mov     eax, ecx
+
+00411B09   . 895D 90           mov     dword ptr ss:[ebp-70], ebx       = ebx
+
+00411B0C   . C1E0 03           shl     eax, 3
+
+00411B0F   . 8B55 90           mov     edx, dword ptr ss:[ebp-70]
+
+00411B12   . 2BC1              sub     eax, ecx
+
+00411B14   . 8D4D F8           lea     ecx, dword ptr ss:[ebp-8]
+
+00411B17   . 52                push    edx                  /Arg2
+
+00411B18   . 51                push    ecx                  |Arg1
+
+00411B19   . 03F0              add     esi, eax              |reg_code_A(N) += eax
+
+00411B1B   . E8 10F20B00       call    004D0D30             \bt.004D0D30
+
+; 第一步过
+
+;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+00411B20   . 83C4 08           add     esp, 8
+
+00411B23   . 8D45 F8           lea     eax, dword ptr ss:[ebp-8]
+
+00411B26   . E8 91F60B00       call    004D11BC              ecx = new_user_name
+
+00411B2B   . 8B55 90           mov     edx, dword ptr ss:[ebp-70]       还记得这个吗？
+
+00411B2E   . 8B4D F8           mov     ecx, dword ptr ss:[ebp-8]
+
+00411B31   . 03D1              add     edx, ecx
+
+00411B33   . 4A                dec     edx                   edx = new_user_name [i++], i=0,...
+
+00411B34   . 0FBE02            movsx   eax, byte ptr ds:[edx]
+
+00411B37   . 8BD0              mov     edx, eax
+
+00411B39   . 895D 8C           mov     dword ptr ss:[ebp-74], ebx
+
+00411B3C   . C1E2 04           shl     edx, 4
+
+00411B3F   . 8B4D 8C           mov     ecx, dword ptr ss:[ebp-74]
+
+00411B42   . 2BD0              sub     edx, eax
+
+00411B44   . 51                push    ecx                  /Arg2
+
+00411B45   . 8D1490            lea     edx, dword ptr ds:[eax+edx*4]      |edx = eax+edx*4
+
+00411B48   . 8D45 F8           lea     eax, dword ptr ss:[ebp-8]          |
+
+00411B4B   . 50                push    eax                  |Arg1
+
+00411B4C   . 03F2              add     esi, edx              |reg_code_A(N) += edx
+
+00411B4E   . E8 DDF10B00       call    004D0D30             \bt.004D0D30
+
+; 第二步过
+
+;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+00411B53   . 83C4 08           add     esp, 8
+
+00411B56   . 8D45 F8           lea     eax, dword ptr ss:[ebp-8]
+
+00411B59   . E8 5EF60B00       call    004D11BC              bt.004D11BC
+
+00411B5E   . 8B55 8C           mov     edx, dword ptr ss:[ebp-74]
+
+00411B61   . 8B4D F8           mov     ecx, dword ptr ss:[ebp-8]
+
+00411B64   . 03D1              add     edx, ecx
+
+00411B66   . 4A                dec     edx                   edx = new_user_name [i++], i=0,...
+
+00411B67   . 0FBE02            movsx   eax, byte ptr ds:[edx]
+
+00411B6A   . 8D1440            lea     edx, dword ptr ds:[eax+eax*2]       edx = eax+eax*2
+
+00411B6D   . C1E2 05           shl     edx, 5
+
+00411B70   . 2BD0              sub     edx, eax
+
+00411B72   . C1E2 04           shl     edx, 4
+
+00411B75   . 03D0              add     edx, eax
+
+00411B77   . 03F2              add     esi, edx              reg_code_A(N) += edx
+
+; 第三步过
+
+;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+00411B79   . 43                inc     ebx
+
+00411B7A   > 8D45 F8           lea     eax, dword ptr ss:[ebp-8]           new_user_name_addr
+
+00411B7D   . E8 A6F40B00       call    004D1028              eax = new_user_name_len
+
+00411B82   . 3BD8              cmp     ebx, eax
+
+00411B84   .⁰F8E 5DFFFFFF      jle     00411AE7              bt.00411AE7
+
+;=======================================================================================================================
+
+00411B8A   . E8 41FB0B00       call    004D16D0             [GetTickCount]
+
+00411B8F   . 8B55 94           mov     edx, dword ptr ss:[ebp-6C]
+
+00411B92   . 2BC2              sub     eax, edx
+
+00411B94   . 3D E8030000       cmp     eax, 3E8
+
+00411B99   . 76 0D             jbe     short 00411BA8        bt.00411BA8
+
+00411B9B   . 8B0D FCDF4D00    mov     ecx, dword ptr ds:[4DDFFC]        bt.004DE7AC
+
+00411BA1   . 8B01              mov     eax, dword ptr ds:[ecx]
+
+00411BA3   . E8 1C1C0700       call    004837C4              bt.004837C4
+
+00411BA8   > 66:C745 A8 800>mov    word ptr ss:[ebp-58], 80
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+; 下面是连接 "BJ" 和 reg_code_A ，这就是我们所要得到的
+
+00411BAE   . BA 4A5A4D00       mov     edx, 4D5A4A           ASCII "BJ"
+
+00411BB3   . 8D45 F0           lea     eax, dword ptr ss:[ebp-10]        reg_code(F)_addr
+
+00411BB6   . E8 F9F10B00       call    004D0DB4              reg_code = "BJ"
+
+00411BBB   . FF45 B4           inc     dword ptr ss:[ebp-4C]
+
+00411BBE   . 33D2              xor     edx, edx
+
+00411BC0   . 66:C745 A8 080>mov    word ptr ss:[ebp-58], 8
+
+00411BC6   . 66:C745 A8 8C0>mov    word ptr ss:[ebp-58], 8C
+
+00411BCC   . 8955 C0           mov     dword ptr ss:[ebp-40], edx
+
+00411BCF   . 8D55 C0           lea     edx, dword ptr ss:[ebp-40]
+
+00411BD2   . FF45 B4           inc     dword ptr ss:[ebp-4C]
+
+00411BD5   . 8BC6              mov     eax, esi              eax = reg_code_A(N)
+
+00411BD7   . E8 A4910A00       call    004BAD80              reg_code_A(N) : Hex2Dec2Str
+
+00411BDC   . 8D55 C0           lea     edx, dword ptr ss:[ebp-40]        reg_code_A(S)
+
+00411BDF   . 8D45 F0           lea     eax, dword ptr ss:[ebp-10]        reg_code
+
+00411BE2   . E8 15F30B00       call    004D0EFC              reg_code += reg_code_A(S)
+
+00411BE7   . FF4D B4           dec     dword ptr ss:[ebp-4C]
+
+; ……
+
+00411C1D   . E8 96F20B00       call    004D0EB8              edx = reg_code
+
+;……
+
+00411C5C   . C3                retn
+
+## 总结
+
+我想上面应该讲的比较清楚，这里归纳一下：
+
+1. 软件获得用户输入后，比较用户名长度(`user_name_len`)是否小/等于 8；是，则在后面添上 8 个 `0x20`，得到 `new_user_name`
+2. 对 `new_user_name` 与 `string` 依次作 XOR ，将其结果(十进制)转为字符再调换前后位置；
+   - 这里要注意，不管你的用户名多长，它总只取到 8 并且取奇数位；
+   - 其次，程序还判断 XOR 的结果是否 `<= 0`，只有一位数，和有两位但个位是 0 等三种情况，这需要一些经验(`ASM`, `CRACK`)
+3. 接下来就比较简单了，两个循环依次从 `new_user_name` 取值运算(各具体操作不同，见前)，并累加到 `reg_code_A(N)`，然后累加到 `reg_code_A(N)`；
+   - 第二次循环有这样的三步。(`S`)表示这是字符串，(`N`)表示是值
+4. 连接 `"BJ"` 和 `reg_code_A(S)`，就是 `reg_code`
+
+注册成功，则没有启动画面，并在注册表中写入信息：
+
+`[HKEY\CURRENT_USER\Software\ADCSotf\BJigsaw]`
+
+`"RegCode"="BJ74029154"`
+
+`"UserName"="lq7972"`
+
+软件给出的字符串：`string` : `"awgsJiBtAANrPNYOntA"`
+
+## 注册机
+
+```c
+/* BJigsaw V 7.7 KeyGen */
+/* with C Language */
+/* by lq7972 */
+/* bruceyu13@sina.com */
+
+#include <windows.h>
+#include <stdio.h>
+#include <string.h>
+
+/*///////////////////////////////////////////////////////*/
+```
