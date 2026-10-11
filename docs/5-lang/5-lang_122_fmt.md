@@ -1,0 +1,16 @@
+
+# 跟踪调试 COM 组件的接口
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-183.htm`](https://www.pediy.com/kssd/pediy09/pediy09-183.htm)
+
+> 跟踪调试 COM 组件的接口，具体内容请看附件
+
+> `email:kisser1@126.com`
+
+> `IDA pro` 有个插件 `Com Plugin` 可以加载 COM 组件后根据 `typelib` 来定位每个接口函数的地址。
+
+> 不过是 `for` 老版本的 IDA 的，不能在 `v5.1` 上编译。有兴趣的可以改一下。
+
+> `http://www.openrce.org/downloads/details/10/Com_Plugin_v1.2`
+
+`4dd466d0e1e0cc123afbe504da2462ca`

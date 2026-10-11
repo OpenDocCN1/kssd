@@ -1,0 +1,374 @@
+
+# 比较两款 C# 的本地代码加密软件
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-355.htm`](https://www.pediy.com/kssd/pediy07/pediy7-355.htm)
+
+**【标题】** 比较两款 C# 的本地代码加密软件
+
+**【作者】** `henryouly`
+
+**【声明】** 本文纯粹技术探讨性质，转载时请保留作者信息。本人才疏学浅，最近才初步接触破解和 `.NET` 平台，对当前的最新技术了解也不充分，分析难免有失偏颇，请大家指教。
+
+上几篇文章对 C# 的加密技术作了详细探讨，其中主要研究了混淆器保护 `.NET` 程序的一般原理以及破解方法。显然 IL 语言本身的特点使得单纯在 IL 层面上做的保护十分苍白无力。于是另外一类软件保护的产品产生了——本地代码编译。
+
+`Remotesoft Protector` 是国外某软件公司的加密产品，`MaxtoCode` 则是国人 `Jason.NET` 的力作。这两款产品共有的特点都是，a)需要带一个本地编译的 dll 文件发布，b)功能代码不再在类里面直接实现，用任何 IL 反汇编器看到的都是空的方法。
+
+`[函数体哪里去了？]`
+
+当然，程序执行的时候，函数体还是要被变戏法一样把内容填充回去的。下来我们具体研究到底这类保护软件耍了什么把戏。
+
+先看看 `Remotesoft Protecter` 加密过的 `WebGrid.NET 3.5`。这个 ASP.NET 程序需要 `ISNet.WebUI.WebGrid.dll` 和 `rscoree.dll` 一起放到 `bin` 下才能运行。先用 `Reflector` 打开 `ISNet.WebUI.WebGrid.dll`，留意到这些地方
+
+`internal class <PrivateImplementationDetails>`
+
+`{`
+`// Methods`
+`[MethodImpl(MethodImplOptions.NoInlining)]`
+`internal static void $$method-1();`
+`[MethodImpl(MethodImplOptions.NoInlining)]`
+`internal static void $$method-2();`
+`[MethodImpl(MethodImplOptions.ForwardRef), DllImport("rscoree.dll", CharSet=CharSet.Ansi, ExactSpelling=true)]`
+`private static extern void _RSEEStartup(int A_0);`
+`[MethodImpl(MethodImplOptions.ForwardRef), DllImport("rscoree.dll", CharSet=CharSet.Ansi, ExactSpelling=true)]`
+`private static extern void _RSEEUpdate(IntPtr A_0);`
+`// Fields`
+`private static bool $$started-1;`
+`private static bool $$started-2;`
+`}`
+
+`[MethodImpl(MethodImplOptions.NoInlining)]`
+`internal static unsafe void $$method-1()`
+`{`
+`if (!<PrivateImplementationDetails>.$$started-1)//保证初始化只进行一次`
+`{`
+`fixed (char* local1 = "")`
+`{`
+`<PrivateImplementationDetails>._RSEEStartup((int) local1);`
+`//这里用到一个小技巧，通过 local1 来得到代码段在内存中的 RVA，传给_RSEEStartup`
+`}`
+`<PrivateImplementationDetails>.$$started-1 = true;`
+`}`
+`}`
+
+`[MethodImpl(MethodImplOptions.NoInlining)]`
+`internal static void $$method-2()`
+`//注：这个类原来是混淆过的（而且非流程混淆，是构造特殊堆栈结构来阻止 Reflector 解释成 C#语句`
+`//是 Remotesoft Protector 作者有意手动编写的，用前几篇文章介绍的方法反混淆出 C#代码`
+`{`
+`if (!<PrivateImplementationDetails>.$$started-2) //保证初始化只进行一次`
+`{`
+`StackTrace trace1 = new StackTrace();`
+`if (trace1.FrameCount > 2)`
+`{`
+`<PrivateImplementationDetails>._RSEEUpdate(trace1.GetFrame(2).GetMethod().MethodHandle.Value);`
+`//获得调用栈中的方法名字，作为参数传递给_RSEEUpdate，稍后解释为什么`
+`<PrivateImplementationDetails>.$$started-2 = true;`
+`}`
+`}`
+`}`
+
+另外一个特别的地方是，我们留意到不少类当中都加入了一个静态构造函数，内容均一样，如下：
+
+`[MethodImpl(MethodImplOptions.NoInlining)]`
+`static WebGrid()`
+`{`
+`<PrivateImplementationDetails>.$$method-1();`
+`<PrivateImplementationDetails>.$$method-2();`
+`}`
+
+这个构造函数仅仅在该类第一次被使用的时候调用。作用就是把该类被抽走的部分回填到内存中的 assembly 当中。
+
+看到这里已经很明显了，每个类在第一次使用前，静态构造函数首先被调用，用于调用 `method-1()` 和 `method-2()`，`method-1` 的作用是定位当前的代码在内存中的位置，而 `method-2` 中的 `GetFrame(2)` 是取出该类（比如 `WebGrid`）的构造函数的句柄。这两个功能联合起来即可实现类似 Win32 PE 文件的 `stolen byte` 的工作原理，在使用类以前修改构造函数，利用构造函数来把其他代码填回去。
+
+我稍微尝试了一下，发现把内存中的 assembly 提取出来并不容易。`.NET` 框架没有提供直接访问内存中的 IL code 的办法，所以不可能得到函数体。而尝试用 `LordPE` 把内存 dump 出来，发现函数体内依然是空的，显然 `Remotesoft` 并不直接填充该内存区域，而是采用类似 `ResolveHandler` 的办法来实现动态加入的代码和原 Assembly 的链接。
+
+另外，通过查看 `rscoree.dll` 和 `ISNet.WebUI.WebGrid.dll`，发现两者修改日期一样，相信函数功能是被静态编译到 `rscoree.dll` 当中去。`ISNet.WebUI.WebGrid.dll` 纯粹是一个不包含任何功能的躯壳。
+
+再来分析一下 `MaxtoCode` 的原理。上网下载了 `MaxtoCode 2.0` 试用版。`MaxtoCode` 的下载页面说明运行依赖于 `ilasm` 和 `ildasm`，明显感觉到 `MaxtoCode` 需要先把 assembly 文件 dasm 成 IL 文件，然后加入自己的功能，再重新组装为 assembly。
+
+简单分析了一下，`MaxtoCode` 的构造原理应该为：
+
+1.  调用 `ildasm` 把 assembly 文件反编译成 IL 代码
+2.  清除 IL 文件中所有注释
+3.  在 IL 文件中增加一个新的 `entry point`
+
+    ```
+    .method private hidebysig static void
+    _1() cil managed
+    {
+    .entrypoint
+    .custom instance void [mscorlib]System.STAThreadAttribute::.ctor() = ( 01 00 00 00 )
+     .maxstack 5
+     .locals init (string Jason_0)
+     IL_0000: ldsfld int32 'Reflector'.'Application'::Locate__Assembly__Images__1
+     IL_0007: ldc.i4.0
+     IL_0008: bne.un.s IL_0021
+     IL_000a: call class [mscorlib]System.Reflection.Assembly [mscorlib]System.Reflection.Assembly::GetExecutingAssembly()
+     IL_000f: callvirt instance string [mscorlib]System.Reflection.Assembly::get_Location()
+     IL_0014: stloc.s Jason_0
+     IL_0015: ldloca.s Jason_0
+     IL_0017: call int32 'Reflector'.'Application'::AABBCCDDEE12345(string&)
+     IL_001c: stsfld int32 'Reflector'.'Application'::Locate__Assembly__Images__1
+     IL_0021: ldsfld int32 'Reflector'.'Application'::Locate__Assembly__Images__1
+     IL_0026: call bool 'Reflector'.'Application'::JasonIsGood_Actions(int32)
+     IL_0028: pop
+     IL_0029: ldsfld int32 'Reflector'.'Application'::Locate__Assembly__Images__1
+     IL_002d: ldc.i4 0x86da
+     IL_0032: ldc.i4.2
+     IL_0036: ldc.i4.0
+     IL_0037: ldc.i4.1
+     IL_0038: call bool 'Reflector'.'Application'::JasonIsGood_Actions_1(int32,
+                                                 int32,
+                                                 int32,
+                                                 int32,
+                                                 int32)
+     IL_003d: pop
+     IL_0042: call void 'Reflector'.'Application'::MTC___000086DA()
+     IL_0043: ret
+    }
+    ```
+
+4.  原 `entry point` 改名为 `MTC___000086DA`，并增加如下内容
+
+    ```
+    .method private hidebysig static void
+    MTC___000086DA() cil managed
+    {
+     .locals init (class Reflector.Application V_0,string Jason_0)
+     IL_0000: ldsfld int32 'Reflector'.'Application'::Locate__Assembly__Images__1
+     IL_0007: ldc.i4.0
+     IL_0008: bne.un.s IL_0021
+     IL_000a: call class [mscorlib]System.Reflection.Assembly [mscorlib]System.Reflection.Assembly::GetExecutingAssembly()
+     IL_000f: callvirt instance string [mscorlib]System.Reflection.Assembly::get_Location()
+     IL_0014: stloc.s Jason_0
+     IL_0015: ldloca.s Jason_0
+     IL_0017: call int32 'Reflector'.'Application'::AABBCCDDEE12345(string&)
+     IL_001c: stsfld int32 'Reflector'.'Application'::Locate__Assembly__Images__1
+     IL_0021: nop
+     IL_0028: ldsfld int32 'Reflector'.'Application'::Locate__Assembly__Images__1
+     IL_002d: ldc.i4 0x86da
+     IL_0032: ldc.i4.2
+     IL_0036: ldc.i4.0
+     IL_0037: ldc.i4.0
+     IL_0038: call bool 'Reflector'.'Application'::JasonIsGood_Actions_1(int32,
+                                                 int32,
+                                                 int32,
+                                                 int32,
+                                                 int32)
+     IL_003d: stsfld bool 'Reflector'.'Application'::MTC___000086DA_field
+     ……Main 原来的内容……
+    ```
+
+5.  在待加密的类当中加入：
+
+    ```
+     .field private static int32 Locate__Assembly__Images__1
+     .field private static bool Locate__Assembly__Images__2
+       .method private hidebysig static pinvokeimpl("kernel32" as "GetModuleHandleA" nomangle ansi lasterr winapi)
+       int32  'AABBCCDDEE12345'(string&  marshal( byvalstr) 'lpModuleName') cil managed preservesig
+       {
+       }
+       .method private hidebysig static pinvokeimpl("MShare.dll" as "EC1DB9C1620C48588C4701045B242FA9" nomangle ansi lasterr winapi)
+       bool  'JasonIsGood_Actions'(int32 'a') cil managed preservesig
+       {
+       }
+       .method private hidebysig static pinvokeimpl("MShare.dll" as "F1B0C9B05CF2496c8873B60602A22743" nomangle ansi lasterr winapi)
+    ```
+
+
+
+`bool 'JasonIsGood_Actions_1'(int32 'a',int32 'b',int32 'c',int32 'd',int32 'e') cil managed preservesig`
+
+```
+{
+
+}
+```
+
+6、 加入 `PrivateImplementationDetails`，后面详细讲。
+
+7、 混淆，把类名、变量名、方法名替换为不可见字符（如后面的`'\r\n'`）
+
+8、 重新编译回去，并把安装目录下的`Attick.dll` 复制为`MShare.dll`
+
+前 5 步是直接用 `Reflector` 的主程序所分析出来的，还记得 `Reflector` 会使得`ildasm` 崩溃吗？哈哈，就是利用它的崩溃等待按确定的时间慢慢翻查临时文件。
+
+因为 `Reflector` 会引起崩溃，不可能得到最后的`exe` 文件，所以我又另外写了一个小`demo` 文件用作测试。用 `Reflector` 查看加密后的结果：
+
+```csharp
+internal class <PrivateImplementationDetails>
+
+{
+
+  // Methods
+
+  [DllImport("kernel32", EntryPoint="GetModuleHandleA", CharSet=CharSet.Ansi, SetLastError=true, ExactSpelling=true)]
+
+  private static extern int   //这个函数名字是“\r\n”，下面的名字均是这种情况导致换行
+
+([MarshalAs(UnmanagedType.VBByRefStr)] ref string lpModuleName);
+
+  [DllImport("MShare.dll", EntryPoint="EC1DB9C1620C48588C4701045B242FA9", CharSet=CharSet.Ansi, SetLastError=true, ExactSpelling=true)]
+
+  private static extern bool   //同上
+
+(int a);
+
+  [DllImport("MShare.dll", EntryPoint="F1B0C9B05CF2496c8873B60602A22743", CharSet=CharSet.Ansi, SetLastError=true, ExactSpelling=true)]
+
+  private static extern bool
+
+(int a, int b, int c, int d, int e);
+
+  // Fields
+
+  private static bool
+
+;
+
+  private static int
+
+;
+
+  internal static $$struct0x6000001-1 $$method0x6000001-1 = { 0x35, 0x46, 0x42, 0x32, 0x38, 0x31, 0x46, 0x36 };
+
+  // Nested Types
+
+  [StructLayout(LayoutKind.Explicit, Size=8, Pack=1)]
+
+  private struct $$struct0x6000001-1
+
+  {
+
+  }
+
+}
+
+internal class Class1
+
+{
+
+  // Methods
+
+  private static void
+
+();
+
+  [DllImport("kernel32", EntryPoint="GetModuleHandleA", CharSet=CharSet.Ansi, SetLastError=true, ExactSpelling=true)]
+
+  private static extern int
+
+([MarshalAs(UnmanagedType.VBByRefStr)] ref string lpModuleName);
+
+  [DllImport("MShare.dll", EntryPoint="EC1DB9C1620C48588C4701045B242FA9", CharSet=CharSet.Ansi, SetLastError=true, ExactSpelling=true)]
+
+  private static extern bool
+
+(int a);
+
+  [DllImport("MShare.dll", EntryPoint="F1B0C9B05CF2496c8873B60602A22743", CharSet=CharSet.Ansi, SetLastError=true, ExactSpelling=true)]
+
+  private static extern bool
+
+(int a, int b, int c, int d, int e);
+
+  public Class1();
+
+  [STAThread]
+
+  private static void Main();
+
+  // Fields
+
+  private static bool
+
+;
+
+  private static bool
+
+;
+
+  private static int
+
+;
+
+}
+
+[STAThread]
+
+private static void Main()
+
+{
+
+  if (Class1.
+
+ == 0)
+
+  {
+
+    Class1.
+
+ = Class1.
+
+(ref Assembly.GetExecutingAssembly().Location);
+
+  }
+
+  Class1.
+
+(Class1.
+
+);
+
+  Class1.
+
+(Class1.
+
+, 0x2e, 2, 0, 1);
+
+  Class1.
+
+();
+
+}
+```
+
+其中`method0x6000001-1` 应该就是加密后的函数体了。`MaxtoCode` 思想上和`Remotesoft` 是类似的，不过实现手法上有所不同。`MaxtoCode` 的`Mshare.dll` 文件是 `MaxtoCode` 作者预先写好的，不包含任何被加密软件的功能，仅仅是确定解密的算法并进行解密（据作者的介绍，企业版共有 7 种不同的加密算法或变体）。被抽取的功能（即`stolen byte`）是经过加密变换后用静态的方式直接保存在`assembly` 当中。于是，`MaxtoCode` 的加密强度在于分析出函数体的解密算法的困难性。
+
+对这两种加密办法，目前我并未找到方便的破解办法（但并不代表一定没有，也许只是我不知道）。`.NET` 框架并不提供把内存中的`Assembly` 内容转换到本地`exe/dll` 的办法。如果是`.NET` 的`exe` 文件，还可以通过`OD` 进行调试（当然此时`IL code` 已经经过`CLR` 自动编译，变成本地代码了），如果是`ASP.NET` 的`dll` 文件，似乎就无法从`exe` 调用进去，只能通过静态分析加密软件产生的对应`dll` 文件。也许`.NET` 的动态跟踪技术发展成熟后，就能出现破解这类本地代码编译的保护壳的通用办法。
+
+## 【后记】
+
+在`JasonNET` 兄的提醒下，发现`Remotesoft Protector` 把类的内容保存在`rscoree.dll`，这个说法太武断了。经过进一步分析，确实很有可能类的内容还是保存在原`dll` 中，依据如下
+
+1）查看`ISNet.WebUI.WebGrid.dll` 的节区表，发现比正常编译出来的`dll` 多了`.rdata` 一节，大小为 100 多`k`
+
+2）用`ildasm` 反编译后，再用`ilasm` 重新编译，文件大小明显减少，显然`.NET` 的`ildasm` 直接忽略处理`.rdata` 的内容
+
+3）查看`rscoree.dll`，所有模块间调用，发现`ImageRvaToVa`，`ImageNtHeader`，`VirtualAlloc` 等`API`
+
+4）`__abstract.__abstract` 当中有不明含义的加密字段以及大量和程序结构有关的`Hashtable`
+
+各种依据表明，被抽调函数内容很可能依然保存在`IsNet.WebUI.WebGrid.dll` 当中，特别进行加入此后记，加以更正。
+
+非常感谢`henryouly` 兄的这篇贴子
+
+前二天刚刚知道有`Remotesoft Protector` 这么个东西,以前好象也看过,当时心为之一动,说可以编译成本机代码...后来连个试用版也找不到,非常可惜...他为什么不敢发布试用版.
+
+后来听说`Remotesoft Protector` 加密过一个`WebGrid.net` 马上去官方网站上下载了一个,想研究研究,看看有什么可以补给到`MaxtoCode` 上面的,又非常可惜,`WebGrid4.0` 没有用`Remotesoft Protector` 进行加密.
+
+刚刚同事在脱壳版放贴子,我顺便过来走走,看到了你的大作,非常高兴.
+
+能让我对`Remotesoft Protector` 的原理有一个大概的认识,还真是有惊人相似之处.
+
+不过 据原理来看`Remotesoft Protector` 在`New` 里面对方法进行`IL` 填充的方法是个好方法,可以减少`Maxtocode` 加密后的体积.但是,可能造成更多的不兼.
+
+不知那里有`WebGrid3.5` 版,我想再深入的分析一下.
+
+:),希望经常看到你的各种分析文章.
+
+`JasonNET` 大侠不愧是`cracker` 出身，软件的实现思路不错。并且大方给大家研究，这种胸襟更加值得赞赏。`![](img/1a550ccb7245757838a4f08fc220b787.jpg)` `![](img/1a550ccb7245757838a4f08fc220b787.jpg)`
+
+我一个星期前在`http://www.evget.com/`下载还是`3.5`，刚刚上去看原来也换`4.0` 了，`JasonNET` 大侠可以留一个邮件地址给我，我发给你，软件总共`17M`
+
+`4dd466d0e1e0cc123afbe504da2462ca`
