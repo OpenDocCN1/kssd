@@ -1,0 +1,655 @@
+
+# 老顽童汽车租赁管理 V3.03
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-456.htm`](https://www.pediy.com/kssd/pediy08/pediy8-456.htm)
+
+## 破文标题
+
+老顽童汽车租赁管理 V3.03 注册算法
+
+## 破文作者
+
+XXNB
+
+## 作者邮箱
+
+学习算法为了写出更好的算法
+
+## 作者主页
+
+http://free.ys168.com/?binbinbin7456
+
+## 破解工具
+
+`OD`
+
+## 破解平台
+
+`xpsp2`
+
+## 软件名称
+
+老顽童汽车租赁管理 V3.03
+
+## 软件大小
+
+4338 KB
+
+## 原版下载
+
+http://www.skycn.com/soft/25722.html
+
+## 保护方式
+
+注册码
+
+## 软件简介
+
+本软件是针对国内汽车租赁企业策划的软件，软件界面简单，操作方便。
+
+此次升级添加了即时的视频录制功能，能即时的录制下租赁者的言行举止，进一步保证租赁行业的安全性。
+
+软件有两个记算费用模式，适合大多数地区的管理模式
+
+有损坏车辆零部件价格查询
+
+自定义网络查询违章按扭
+
+自定义网络身份查询按扭
+
+违章押金等更多功能。
+
+## 破解声明
+
+向大侠们学习！！！只为学习！请尊重作者的劳动成功！
+
+## 破解过程
+
+这个软件保护得比较好（我这么认为，比我厉害多了），非常希望能有作者的编程水平。
+
+刚用 `OD` 载入的时候字符串搜索是找不到东西的。只有让程序跑起来后，它的所有字符串都现型了。然后我们可以用看雪主页上的易语言反编译软件轻松找到“注册”按钮的事件。得到下面的代码：
+
+```
+0058F67D    55                push    ebp
+0058F67E    8BEC              mov     ebp, esp
+0058F680    81EC 14000000     sub     esp, 14
+0058F686    68 0C000000       push    0C
+0058F68B    E8 8FC30000       call    0059BA1F
+0058F690    83C4 04           add     esp, 4
+0058F693    8945 FC           mov     dword ptr [ebp-4], eax
+0058F696    8BF8              mov     edi, eax
+0058F698    BE 6CA74000       mov     esi, 0040A76C
+0058F69D    AD                lods    dword ptr [esi]
+0058F69E    AB                stos    dword ptr es:[edi]
+0058F69F    AD                lods    dword ptr [esi]
+0058F6A0    AB                stos    dword ptr es:[edi]
+0058F6A1    8BDF              mov     ebx, edi
+0058F6A3    B9 01000000       mov     ecx, 1
+0058F6A8    51                push    ecx
+0058F6A9    53                push    ebx
+0058F6AA    68 0C000000       push    0C
+0058F6AF    E8 6BC30000       call    0059BA1F
+0058F6B4    83C4 04           add     esp, 4
+0058F6B7    5B                pop     ebx
+0058F6B8    53                push    ebx
+0058F6B9    8903              mov     dword ptr [ebx], eax
+0058F6BB    8BD8              mov     ebx, eax
+0058F6BD    C703 00000000     mov     dword ptr [ebx], 0
+0058F6C3    C743 04 0000000  mov     dword ptr [ebx+4], 0
+0058F6CA    C743 08 0000000  mov     dword ptr [ebx+8], 0
+0058F6D1    83C3 08           add     ebx, 8
+0058F6D4    B8 14000000       mov     eax, 14
+0058F6D9    8903              mov     dword ptr [ebx], eax
+0058F6DB    5B                pop     ebx
+0058F6DC    59                pop     ecx
+0058F6DD    83C3 04           add     ebx, 4
+0058F6E0    49                dec     ecx
+0058F6E1    75 C5             jnz     short 0058F6A8
+0058F6E3    6A FF             push    -1
+0058F6E5    6A 08             push    8
+0058F6E7    68 520B0116       push    16010B52
+0058F6EC    68 4F0B0152       push    52010B4F
+0058F6F1    E8 41C30000       call    0059BA37
+0058F6F6    83C4 10           add     esp, 10
+0058F6F9    8945 F8           mov     dword ptr [ebp-8], eax           ; 假码出现了
+0058F6FC    68 01030080       push    80000301
+0058F701    6A 00             push    0
+0058F703    68 01000000       push    1
+0058F708    68 04000080       push    80000004
+0058F70D    6A 00             push    0
+0058F70F    8B45 F8           mov     eax, dword ptr [ebp-8]
+0058F712    85C0              test    eax, eax
+0058F714    75 05             jnz     short 0058F71B
+0058F716    B8 E4614000       mov     eax, 004061E4
+0058F71B    50                push    eax
+0058F71C    68 02000000       push    2
+0058F721    BB 38010000       mov     ebx, 138
+0058F726    E8 FAC20000       call    0059BA25                           ; 这个 call
+0058F72B    83C4 1C           add     esp, 1C
+0058F72E    8945 F4           mov     dword ptr [ebp-C], eax
+0058F731    8B5D F8           mov     ebx, dword ptr [ebp-8]
+0058F734    85DB              test    ebx, ebx
+0058F736    74 09             je      short 0058F741
+0058F738    53                push    ebx
+0058F739    E8 DBC20000       call    0059BA19                           ; 这个
+0058F73E    83C4 04           add     esp, 4
+0058F741    68 2FA74000       push    0040A72F                           ; t
+0058F746    FF75 F4           push    dword ptr [ebp-C]
+0058F749    E8 5D1AFFFF       call    005811AB                           ; no
+0058F74E    83C4 08           add     esp, 8
+0058F751    83F8 00           cmp     eax, 0
+0058F754    B8 00000000       mov     eax, 0
+0058F759    0F95C0            setne   al
+0058F75C    8945 F0           mov     dword ptr [ebp-10], eax
+0058F75F    8B5D F4           mov     ebx, dword ptr [ebp-C]
+0058F762    85DB              test    ebx, ebx
+0058F764    74 09             je      short 0058F76F
+0058F766    53                push    ebx
+0058F767    E8 ADC20000       call    0059BA19                           ; 2
+0058F76C    83C4 04           add     esp, 4
+0058F76F    837D F0 00        cmp     dword ptr [ebp-10], 0
+0058F773    0F84 3B000000     je      0058F7B4                           ; 这里是关键跳了。
+0058F779    68 04000080       push    80000004
+0058F77E    6A 00             push    0
+0058F780    68 DB624000       push    004062DB                           ; 老顽童
+0058F785    68 01030080       push    80000301
+0058F78A    6A 00             push    0
+0058F78C    68 40000000       push    40
+0058F791    68 04000080       push    80000004
+0058F796    6A 00             push    0
+0058F798    68 31A74000       push    0040A731                           ; 您输入的注册码不正确
+0058F79D    68 03000000       push    3
+0058F7A2    BB 00030000       mov     ebx, 300
+0058F7A7    E8 79C20000       call    0059BA25
+0058F7AC    83C4 28           add     esp, 28
+0058F7AF    E9 EA020000       jmp     0058FA9E
+0058F7B4    8B5D FC           mov     ebx, dword ptr [ebp-4]
+0058F7B7    E8 7420FFFF       call    00581830
+0058F7BC    B8 00000000       mov     eax, 0
+0058F7C1    3BC1              cmp     eax, ecx
+0058F7C3    7C 0D             jl      short 0058F7D2
+0058F7C5    68 01000000       push    1
+0058F7CA    E8 62C20000       call    0059BA31
+0058F7CF    83C4 04           add     esp, 4
+0058F7D2    C1E0 02           shl     eax, 2
+0058F7D5    03D8              add     ebx, eax
+0058F7D7    8B1B              mov     ebx, dword ptr [ebx]
+0058F7D9    895D F8           mov     dword ptr [ebp-8], ebx
+0058F7DC    B8 2E634000       mov     eax, 0040632E                      ; 注册码
+0058F7E1    50                push    eax
+0058F7E2    8B5D F8           mov     ebx, dword ptr [ebp-8]
+0058F7E5    8B1B              mov     ebx, dword ptr [ebx]
+0058F7E7    85DB              test    ebx, ebx
+0058F7E9    74 09             je      short 0058F7F4
+0058F7EB    53                push    ebx
+0058F7EC    E8 28C20000       call    0059BA19
+0058F7F1    83C4 04           add     esp, 4
+0058F7F4    58                pop     eax
+0058F7F5    8B5D F8           mov     ebx, dword ptr [ebp-8]
+0058F7F8    8903              mov     dword ptr [ebx], eax
+0058F7FA    8B5D FC           mov     ebx, dword ptr [ebp-4]
+0058F7FD    E8 2E20FFFF       call    00581830
+0058F802    B8 00000000       mov     eax, 0
+0058F807    3BC1              cmp     eax, ecx
+0058F809    7C 0D             jl      short 0058F818
+0058F80B    68 01000000       push    1
+0058F810    E8 1CC20000       call    0059BA31
+0058F815    83C4 04           add     esp, 4
+0058F818    C1E0 02           shl     eax, 2
+0058F81B    03D8              add     ebx, eax
+0058F81D    8B1B              mov     ebx, dword ptr [ebx]
+0058F81F    83C3 04           add     ebx, 4
+0058F822    895D F8           mov     dword ptr [ebp-8], ebx
+0058F825    8B5D F8           mov     ebx, dword ptr [ebp-8]
+0058F828    C703 0B000000     mov     dword ptr [ebx], 0B
+0058F82E    68 00000000       push    0
+0058F833    BB 04010000       mov     ebx, 104
+0058F838    E8 E8C10000       call    0059BA25
+0058F83D    83C4 04           add     esp, 4
+0058F840    8945 F8           mov     dword ptr [ebp-8], eax
+```
+
+
+
+```
+0058F843    68 15634000     push    00406315                     ; \zcsjk.lwt   这个文件。我就是找不到在哪里！  
+
+0058F848    FF75 F8        push    dword ptr [ebp-8]            ；非常佩服作者能藏这么好，  
+
+0058F84B    B9 02000000    mov     ecx, 2                       ；也许是临时的隐藏文件。  
+
+0058F850    E8 5E1AFFFF    call    005812B3  
+
+0058F855    83C4 08        add     esp, 8  
+
+0058F858    8945 F4        mov     dword ptr [ebp-C], eax  
+
+0058F85B    8B5D F8        mov     ebx, dword ptr [ebp-8]  
+
+0058F85E    85DB           test    ebx, ebx  
+
+0058F860    74 09         je      short 0058F86B  
+
+0058F862    53            push    ebx  
+
+0058F863    E8 B1C10000   call    0059BA19  
+
+0058F868    83C4 04        add     esp, 4  
+
+0058F86B    68 22000100    push    10022                         ; UNICODE ":\\Documents and Settings\\All Users"  
+
+0058F870    6A 00         push    0  
+
+0058F872    FF75 FC        push    dword ptr [ebp-4]  
+
+0058F875    68 04000080    push    80000004  
+
+0058F87A    6A 00         push    0  
+
+0058F87C    8B45 F4        mov     eax, dword ptr [ebp-C]  
+
+0058F87F    85C0           test    eax, eax  
+
+0058F881    75 05         jnz     short 0058F888  
+
+0058F883    B8 E4614000    mov     eax, 004061E4  
+
+0058F888    50            push    eax  
+
+0058F889    68 02000000    push    2  
+
+0058F88E    BB 4C050000   mov     ebx, 54C  
+
+0058F893    E8 8DC10000   call    0059BA25  
+
+0058F898    83C4 1C        add     esp, 1C  
+
+0058F89B    8B5D F4        mov     ebx, dword ptr [ebp-C]  
+
+0058F89E    85DB           test    ebx, ebx  
+
+0058F8A0    74 09         je      short 0058F8AB  
+
+0058F8A2    53            push    ebx  
+
+0058F8A3    E8 71C10000   call    0059BA19  
+
+0058F8A8    83C4 04        add     esp, 4  
+
+0058F8AB    68 00000000    push    0  
+
+0058F8B0    BB 04010000   mov     ebx, 104  
+
+0058F8B5    E8 6BC10000   call    0059BA25  
+
+0058F8BA    83C4 04        add     esp, 4  
+
+0058F8BD    8945 F8        mov     dword ptr [ebp-8], eax  
+
+0058F8C0    68 15634000    push    00406315                     ; \\zcsjk.lwt  
+
+0058F8C5    FF75 F8        push    dword ptr [ebp-8]  
+
+0058F8C8    B9 02000000    mov     ecx, 2  
+
+0058F8CD    E8 E119FFFF    call    005812B3  
+
+0058F8D2    83C4 08        add     esp, 8  
+
+0058F8D5    8945 F4        mov     dword ptr [ebp-C], eax  
+
+0058F8D8    8B5D F8        mov     ebx, dword ptr [ebp-8]  
+
+0058F8DB    85DB           test    ebx, ebx  
+
+0058F8DD    74 09         je      short 0058F8E8  
+
+0058F8DF    53            push    ebx  
+
+0058F8E0    E8 34C10000   call    0059BA19  
+
+0058F8E5    83C4 04        add     esp, 4  
+
+0058F8E8    BB 0F000000   mov     ebx, 0F  
+
+0058F8ED    E8 1D1FFFFF   call    0058180F  
+
+0058F8F2    68 04000080    push    80000004  
+
+0058F8F7    6A 00         push    0  
+
+0058F8F9    68 27634000    push    00406327                     ; 注册库  
+
+0058F8FE    68 04000080    push    80000004  
+
+0058F903    6A 00         push    0  
+
+0058F905    8B45 F4        mov     eax, dword ptr [ebp-C]  
+
+0058F908    85C0           test    eax, eax  
+
+0058F90A    75 05         jnz     short 0058F911  
+
+0058F90C    B8 E4614000    mov     eax, 004061E4  
+
+0058F911    50            push    eax  
+
+0058F912    68 07000000    push    7  
+
+0058F917    BB 50050000   mov     ebx, 550  
+
+0058F91C    E8 04C10000   call    0059BA25  
+
+0058F921    83C4 58        add     esp, 58  
+
+0058F924    8B5D F4        mov     ebx, dword ptr [ebp-C]  
+
+0058F927    85DB           test    ebx, ebx  
+
+0058F929    74 09         je      short 0058F934  
+
+0058F92B    53            push    ebx  
+
+0058F92C    E8 E8C00000   call    0059BA19  
+
+0058F931    83C4 04        add     esp, 4  
+
+0058F934    68 04000080    push    80000004  
+
+0058F939    6A 00         push    0  
+
+0058F93B    68 27634000    push    00406327                     ; 注册库  
+
+0058F940    68 01000000    push    1  
+
+0058F945    BB 58050000   mov     ebx, 558  
+
+0058F94A    E8 D6C00000   call    0059BA25  
+
+0058F94F    83C4 10        add     esp, 10  
+
+0058F952    68 04000080    push    80000004  
+
+0058F957    6A 00         push    0  
+
+0058F959    68 20634000    push    00406320                     ; xjslwt  
+
+0058F95E    68 01000000    push    1  
+
+0058F963    BB E0080000   mov     ebx, 8E0  
+
+0058F968    E8 B8C00000   call    0059BA25  
+
+0058F96D    83C4 10        add     esp, 10  
+
+0058F970    6A FF         push    -1  
+
+0058F972    6A 08         push    8  
+
+0058F974    68 520B0116   push    16010B52  
+
+0058F979    68 4F0B0152   push    52010B4F  
+
+0058F97E    E8 B4C00000   call    0059BA37  
+
+0058F983    83C4 10        add     esp, 10  
+
+0058F986    8945 F8        mov     dword ptr [ebp-8], eax  
+
+0058F989    68 04000080    push    80000004  
+
+0058F98E    6A 00         push    0  
+
+0058F990    8B45 F8        mov     eax, dword ptr [ebp-8]  
+
+0058F993    85C0           test    eax, eax  
+
+0058F995    75 05         jnz     short 0058F99C  
+
+0058F997    B8 E4614000    mov     eax, 004061E4  
+
+0058F99C    50            push    eax  
+
+0058F99D    68 01000000    push    1  
+
+0058F9A2    BB 98010000   mov     ebx, 198  
+
+0058F9A7    E8 79C00000   call    0059BA25  
+
+0058F9AC    83C4 10        add     esp, 10  
+
+0058F9AF    8945 F4        mov     dword ptr [ebp-C], eax  
+
+0058F9B2    8B5D F8        mov     ebx, dword ptr [ebp-8]  
+
+0058F9B5    85DB           test    ebx, ebx  
+
+0058F9B7    74 09         je      short 0058F9C2  
+
+0058F9B9    53            push    ebx  
+
+0058F9BA    E8 5AC00000   call    0059BA19  
+
+0058F9BF    83C4 04        add     esp, 4  
+
+0058F9C2    68 05000080    push    80000005  
+
+0058F9C7    6A 00         push    0  
+
+0058F9C9    8B45 F4        mov     eax, dword ptr [ebp-C]  
+
+0058F9CC    85C0           test    eax, eax  
+
+0058F9CE    75 05         jnz     short 0058F9D5  
+
+0058F9D0    B8 F2614000    mov     eax, 004061F2  
+
+0058F9D5    50            push    eax  
+
+0058F9D6    68 01000000    push    1  
+
+0058F9DB    BB FC050000   mov     ebx, 5FC  
+
+0058F9E0    E8 40C00000   call    0059BA25  
+
+0058F9E5    83C4 10        add     esp, 10  
+
+0058F9E8    8945 F0        mov     dword ptr [ebp-10], eax  
+
+0058F9EB    8B5D F4        mov     ebx, dword ptr [ebp-C]  
+
+0058F9EE    85DB           test    ebx, ebx  
+
+0058F9F0    74 09         je      short 0058F9FB  
+
+0058F9F2    53            push    ebx  
+
+0058F9F3    E8 21C00000   call    0059BA19  
+
+0058F9F8    83C4 04        add     esp, 4  
+
+0058F9FB    837D F0 00     cmp     dword ptr [ebp-10], 0  
+
+0058F9FF    0F85 3B000000 jnz     0058FA40  
+
+0058FA05    68 04000080    push    80000004  
+
+0058FA0A    6A 00         push    0  
+
+0058FA0C    68 DB624000   push    004062DB                     ; 老顽童  
+
+0058FA11    68 01030080   push    80000301  
+
+0058FA16    6A 00         push    0  
+
+0058FA18    68 40000000   push    40  
+
+0058FA1D    68 04000080    push    80000004  
+
+0058FA22    6A 00         push    0  
+
+0058FA24    68 46A74000   push    0040A746                     ; 注册失败  
+
+0058FA29    68 03000000   push    3  
+
+0058FA2E    BB 00030000   mov     ebx, 300  
+
+0058FA33    E8 EDBF0000   call    0059BA25  
+
+0058FA38    83C4 28        add     esp, 28  
+
+0058FA3B    E9 5E000000   jmp     0058FA9E  
+
+0058FA40    68 04000080    push    80000004  
+
+0058FA45    6A 00         push    0  
+
+0058FA47    68 27634000   push    00406327                     ; 注册库  
+
+0058FA4C    68 01000000   push    1  
+
+0058FA51    BB 60050000   mov     ebx, 560  
+
+0058FA56    E8 CABF0000   call    0059BA25  
+
+0058FA5B    83C4 10        add     esp, 10  
+
+0058FA5E    68 04000080    push    80000004  
+
+0058FA63    6A 00         push    0  
+
+0058FA65    68 DB624000   push    004062DB                     ; 老顽童
+```
+
+
+
+```
+0058FA6A    68 01030080     push    80000301
+0058FA6F    6A 00           push    0
+0058FA71    68 40000000     push    40
+0058FA76    68 04000080     push    80000004
+0058FA7B    6A 00           push    0
+0058FA7D    68 4FA74000     push    0040A74F          ; 注册成功，请重新启动本软件。
+0058FA82    68 03000000     push    3
+0058FA87    BB 00030000     mov     ebx, 300
+0058FA8C    E8 94BF0000     call    0059BA25          ; (Initial CPU selection)
+```
+
+从上面的代码我们看出，根本就没有对我们输入的假码进行运算。也许有，但是以我的水平我就没有发现。所以我猜测它是重启验证的软件。
+
+因为上面出现过一个临时文件“`zcsjk.lwt`”，虽然我没有找到这个文件放在哪里，但我知道它是关键。
+
+于是，字符串查找 `zcsjk.lwt`。很容易就找到了关键：
+
+```
+00582B66    55              push    ebp
+00582B67    8BEC            mov     ebp, esp          ; (Initial CPU selection)
+00582B69    81EC 54000000   sub     esp, 54
+00582B6F    C745 FC 0000000>mov     dword ptr [ebp-4], 0
+00582B76    68 00000000     push    0
+00582B7B    BB 04010000     mov     ebx, 104
+00582B80    E8 A08E0100     call    0059BA25
+00582B85    83C4 04         add     esp, 4
+00582B88    8945 F8         mov     dword ptr [ebp-8], eax
+00582B8B    68 15634000     push    00406315          ; \\zcsjk.lwt
+00582B90    FF75 F8         push    dword ptr [ebp-8] ; 读取这个文件
+00582B93    B9 02000000     mov     ecx, 2
+00582B98    E8 16E7FFFF     call    005812B3
+......省略好多代码.....................
+然后
+00582EAD    85DB            test    ebx, ebx
+00582EAF    74 09           je      short 00582EBA
+00582EB1    53              push    ebx
+00582EB2    E8 628B0100     call    0059BA19
+00582EB7    83C4 04         add     esp, 4
+00582EBA    837D FC 00      cmp     dword ptr [ebp-4], 0     ; 这里如果你从来没有输入过注册码就会跳走。
+00582EBE    0F84 14030000   je      005831D8          ; 所以，先运行软件输入一次注册码
+00582EC4    68 00000000     push    0
+00582EC9    BB C4060000     mov     ebx, 6C4          ; 下面就是对机器码的运算得到注册码的代码
+00582ECE    E8 528B0100     call    0059BA25
+00582ED3    83C4 04         add     esp, 4
+00582ED6    8945 F0         mov     dword ptr [ebp-10], eax
+00582ED9    DB45 F0         fild    dword ptr [ebp-10] ; 机器码转成实数
+00582EDC    DD5D F0         fstp    qword ptr [ebp-10]
+00582EDF    DD45 F0         fld     qword ptr [ebp-10]
+00582EE2    DC0D 62634000   fmul    qword ptr [406362]  ; 机器码*5
+00582EE8    DD5D E8         fstp    qword ptr [ebp-18]
+00582EEB    68 00000000     push    0
+00582EF0    BB C4060000     mov     ebx, 6C4
+00582EF5    E8 2B8B0100     call    0059BA25
+00582EFA    83C4 04         add     esp, 4
+00582EFD    68 01030080     push    80000301
+00582F02    6A 00           push    0
+00582F04    50              push    eax
+00582F05    68 01000000     push    1
+00582F0A    BB 68010000     mov     ebx, 168
+00582F0F    E8 118B0100     call    0059BA25          ; 机器码字符串
+00582F14    83C4 10         add     esp, 10
+00582F17    8945 E0         mov     dword ptr [ebp-20], eax
+00582F1A    68 04000080     push    80000004
+00582F1F    6A 00           push    0
+00582F21    8B45 E0         mov     eax, dword ptr [ebp-20]
+00582F24    85C0            test    eax, eax
+00582F26    75 05           jnz     short 00582F2D
+00582F28    B8 E4614000     mov     eax, 004061E4
+00582F2D    50              push    eax
+00582F2E    68 01000000     push    1
+00582F33    BB 30010000     mov     ebx, 130
+00582F38    E8 E88A0100     call    0059BA25          ; 计算为数
+00582F3D    83C4 10         add     esp, 10
+00582F40    8945 DC         mov     dword ptr [ebp-24], eax
+00582F43    8B5D E0         mov     ebx, dword ptr [ebp-20]
+00582F46    85DB            test    ebx, ebx
+00582F48    74 09           je      short 00582F53
+00582F4A    53              push    ebx
+00582F4B    E8 C98A0100     call    0059BA19
+00582F50    83C4 04         add     esp, 4
+00582F53    DD45 E8         fld     qword ptr [ebp-18] ; 刚才*5 后的结果
+00582F56    DB45 DC         fild    dword ptr [ebp-24]
+00582F59    DD5D D4         fstp    qword ptr [ebp-2C]
+00582F5C    DC45 D4         fadd    qword ptr [ebp-2C]  ; +上机器码的位数
+00582F5F    DD5D CC         fstp    qword ptr [ebp-34]
+00582F62    68 01060080     push    80000601
+00582F67    FF75 D0         push    dword ptr [ebp-30]
+00582F6A    FF75 CC         push    dword ptr [ebp-34]
+00582F6D    68 01000000     push    1
+00582F72    BB 68010000     mov     ebx, 168
+00582F77    E8 A98A0100     call    0059BA25
+00582F7C    83C4 10         add     esp, 10
+00582F7F    8945 C8         mov     dword ptr [ebp-38], eax ; 这里就是最后结果了
+00582F82    68 6A634000     push    0040636A          ; lwt
+00582F87    FF75 C8         push    dword ptr [ebp-38]
+00582F8A    B9 02000000     mov     ecx, 2
+00582F8F    E8 1FE3FFFF     call    005812B3
+00582F94    83C4 08         add     esp, 8
+00582F97    8945 C4         mov     dword ptr [ebp-3C], eax ; 连接字符串得到"6738706325lwt"
+00582F9A    8B5D C8         mov     ebx, dword ptr [ebp-38] ; 这个字符串就是真码了。简单吧
+00582F9D    85DB            test    ebx, ebx
+00582F9F    74 09           je      short 00582FAA
+00582FA1    53              push    ebx
+00582FA2    E8 728A0100     call    0059BA19
+00582FA7    83C4 04         add     esp, 4
+00582FAA    68 04000080     push    80000004
+00582FAF    6A 00           push    0
+```
+
+既然是用易语言写的，那就：
+
+```
+.版本 2
+.程序集 窗口程序集 1
+.子程序 _ 按钮 1_ 被单击
+.局部变量 jiqima, 文本型
+.局部变量 len, 整数型
+.局部变量 code, 长整数型
+
+jiqima ＝ 编辑框 1.内容
+len ＝ 取文本长度 (jiqima)
+code ＝ 到数值 (jiqima) × 5
+code ＝ code ＋ len
+编辑框 2.内容 ＝ 到文本 (code) ＋ “lwt”
+```
+
+这个软件学到的是隐藏计算注册码的算法。
+
+`4dd466d0e1e0cc123afbe504da2462ca`

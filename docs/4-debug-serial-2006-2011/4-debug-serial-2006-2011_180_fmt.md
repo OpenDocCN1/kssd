@@ -1,0 +1,318 @@
+
+# 佳宜电器售后服务管理软件
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-38.htm`](https://www.pediy.com/kssd/pediy08/pediy8-38.htm)
+
+刚学破解，很佩服密界那些传说中的人物,没什么好奉献给看雪的，把自己的算法处女作拿来与大家分享，请大家多多指教，俺在这里有礼了，祝大家新的一年里破解技术更上一层楼。
+
+## 破解信息
+
+- **【破解工具】**：`PEiD` `v0.93` 汉化版, `OllyICE` `v1.10`, `注册机生成器` `v1.0`，`W32Dasm` - `wjx`
+- **【软件名称】**：佳宜电器售后服务管理软件 `v1.25`
+- **【软件限制】**：注册码 + 试用时间 `45` 天 + 部分功能限制
+- **【操作系统】**：`WinXP`, `SP2`
+
+## 破解过程
+
+### 侦壳
+
+`PEiD` `v0.93` 汉化版出马，`Borland` `Delphi` `6.0` - `7.0`，软件作者很体谅我等菜鸟。
+
+### 试炼信息
+
+- 用户名称：`xinren`
+- 产品编号：`Y2KJTWYE`
+- 授权编号：`7777777`（某位高人习惯的输入方法，俺也学学）
+
+出现错误提示 "系统注册失败，请检查注册是否有误！"
+
+调出 `W32Dasm`-`wjx`，(没办法, `OD` 的中文字符串在俺机子上一直支持不理想,请斑竹指点)，字符串参考找到 "系统注册失败，请检查注册是否有误！"，双击向上找到出错关键下断，开始断点设在了 `5e62b0`，经过 `30` 几次 `Shift+F7` (忽略异常), `F9` 后断下。
+
+后改设在 `5e6284` 处：
+
+```assembly
+005E625C   . 837D EC 00   cmp   dword ptr [ebp-14], 0  ≈检查用户名输入是否为空
+005E6260   . 75 22       jnz   short 005E6284
+005E6262   . 6A 00       push   0
+005E6264   . 68 78645E00   push   005E6478
+005E6269   . E8 5A12FFFF   call   <jmp.&PunUnitLib.ShowMess>   ≈检查授权编号位数
+005E626E   . 8B45 FC   mov   eax, [ebp-4]
+005E6271   . 8B80 FC020000 mov   eax, [eax+2FC]
+005E6277   . 8B10      mov   edx, [eax]
+005E6279   . FF92 C0000000 call   [edx+C0]
+005E627F   . E9 6D010000   jmp   005E63F1
+005E6284   > A1 18A56100   mov   eax, [61A518]
+005E6289   . 8B00      mov   eax, [eax]   ≈读取固定字符串，ASCII "DQ86-R1F8"
+005E628B   . E8 F0EDE1FF   call   00405080
+005E6290   . 50        push   eax       ≈字符串压栈给 EAX，ASCII "DQ86-R1F8"
+005E6291   . 8D55 E4   lea   edx, [ebp-1C]
+005E6294   . 8B45 FC   mov   eax, [ebp-4]
+005E6297   . 8B80 F4020000 mov   eax, [eax+2F4]
+005E629D   . E8 D28DE6FF   call   0044F074
+005E62A2   . 8B45 E4   mov   eax, [ebp-1C]
+005E62A5   . E8 D6EDE1FF   call   00405080     ≈取产品编号
+005E62AA   . 50        push   eax
+005E62AB   . E8 4812FFFF   call   <jmp.&PunUnitLib.GetRegPass>   ★★≈调用注册码计算，看名就应知道,关键 call,F7 跟进！★★
+005E62B0   . 8BD0      mov   edx, eax   ≈出现真码"DQ86-5495-R1F8-7545",明码啊,呵呵
+005E62B2   . 8D45 F8   lea   eax, [ebp-8]
+005E62B5   . E8 06EBE1FF   call   00404DC0
+005E62BA   . 8D55 DC   lea   edx, [ebp-24]
+005E62BD   . 8B45 FC   mov   eax, [ebp-4]
+005E62C0   . 8B80 FC020000 mov   eax, [eax+2FC]
+005E62C6   . E8 A98DE6FF   call   0044F074
+005E62CB   . 8B45 DC   mov   eax, [ebp-24]
+005E62CE   . 8D55 E0   lea   edx, [ebp-20]
+005E62D1   . E8 0235E2FF   call   004097D8
+005E62D6   . 8B45 E0   mov   eax, [ebp-20]   ≈假码赋值给 EAX，ASCII "7777777"
+005E62D9   . 8B55 F8   mov   edx, [ebp-8]   ≈真码赋值给 EDX，ASCII "DQ86-5495-R1F8-7545"
+005E62DC   . E8 EBECE1FF   call   00404FCC     ≈经典,关键 call
+005E62E1   . 0F85 FE000000 jnz   005E63E5     ★★≈爆破点★★,84 改 85 即可
+```
+
+另在 `W32Dasm` 中可看到如下信息：
+
+- `* Possible StringData Ref from Code Obj -> "software\\jy\\service"`
+- `* Possible StringData Ref from Code Obj -> "UserName"`
+- `* Possible StringData Ref from Code Obj -> "SignCode"`
+- `* Possible StringData Ref from Code Obj -> "RegCode"`
+
+记录了该软件在注册表中的位置及内容
+
+### F7 跟进的算法 call
+
+```assembly
+005D74F8   $- FF25 4CEB6100 jmp   [<PunUnitLib.GetRegPass>] ,   ; PunUnitL.GetRegPass   F8 跟进
+003E9024 > 55        push   ebp
+003E9025   8BEC       mov   ebp, esp
+003E9027   B9 06000000   mov   ecx, 6
+003E902C   6A 00     push   0
+003E902E   6A 00     push   0
+003E9030   49        dec   ecx
+003E9031 ^ 75 F9     jnz   short 003E902C   ≈向上循环检查 6 次
+003E9033   53        push   ebx
+003E9034   56        push   esi
+003E9035   33C0       xor   eax, eax
+003E9037   55        push   ebp
+003E9038   68 F2913E00   push   003E91F2
+003E903D   64:FF30     push   dword ptr fs:[eax]
+003E9040   64:8920     mov   fs:[eax], esp
+003E9043   8D45 EC     lea   eax, [ebp-14]
+003E9046   E8 65B5F8FF   call   003745B0
+003E904B   8D45 F0     lea   eax, [ebp-10]
+003E904E   8B55 08     mov   edx, [ebp+8]
+003E9051   E8 4AB7F8FF   call   003747A0   ≈取产品编号，ASCII "Y2KJTWYE"
+003E9056   8B45 F0     mov   eax, [ebp-10]
+003E9059   E8 0AB8F8FF   call   00374868
+003E905E   8BF0       mov   esi, eax
+003E9060   85F6       test   esi, esi   ≈验证产品编号位数，eax=8,感觉这点没必要
+003E9062   7E 26     jle   short 003E908A
+003E9064   BB 01000000   mov   ebx, 1
+003E9069   8D4D E8     lea   ecx, [ebp-18]
+003E906C   8B45 F0     mov   eax, [ebp-10]
+003E906F   0FB64418 FF   movzx   eax, byte ptr [eax+ebx-1]   ≈依次取产品编号的 hex 值,如先取 Y 的,eax=59
+003E9074   33D2       xor   edx, edx   ≈edx 清零
+003E9076   E8 F905F9FF   call   00379674
+003E907B   8B55 E8     mov   edx, [ebp-18]
+003E907E   8D45 FC     lea   eax, [ebp-4]
+003E9081   E8 EAB7F8FF   call   00374870
+003E9086   43        inc   ebx
+003E9087   4E        dec   esi       ≈计数器
+003E9088 ^ 75 DF     jnz   short 003E9069   ≈循环取 hex 值, 直到 8 位取完
+003E908A   8B45 FC     mov   eax, [ebp-4]   ≈将取得的 hex 值连起来,为"59324b4a54575945"
+003E908D   E8 D6B7F8FF   call   00374868
+003E9092   8BF0       mov   esi, eax
+003E9094   85F6       test   esi, esi
+003E9096   7E 2C     jle   short 003E90C4
+003E9098   BB 01000000   mov   ebx, 1       ≈将取得的 hex 值 59324b4a54575945,依次取倒值
+003E909D   8B45 FC     mov   eax, [ebp-4]
+003E90A0   E8 C3B7F8FF   call   00374868
+003E90A5   2BC3       sub   eax, ebx
+003E90A7   8B55 FC     mov   edx, [ebp-4]
+003E90AA   8A1402     mov   dl, [edx+eax]
+003E90AD   8D45 E4     lea   eax, [ebp-1C]
+003E90B0   E8 DBB6F8FF   call   00374790
+003E90B5   8B55 E4     mov   edx, [ebp-1C]
+003E90B8   8D45 F8     lea   eax, [ebp-8]
+003E90BB   E8 B0B7F8FF   call   00374870
+003E90C0   43        inc   ebx
+003E90C1   4E        dec   esi       ≈计数器,共 16 位
+003E90C2 ^ 75 D9     jnz   short 003E909D
+003E90C4   8D45 FC     lea   eax, [ebp-4]
+003E90C7   50        push   eax
+003E90C8   B9 04000000   mov   ecx, 4
+003E90CD   BA 01000000   mov   edx, 1
+003E90D2   8B45 F8     mov   eax, [ebp-8]   ≈将取倒后的 HEX 值连起来，eax=54957545A4B42395
+003E90D5   E8 E6B9F8FF   call   00374AC0
+003E90DA   8D45 F8     lea   eax, [ebp-8]
+003E90DD   50        push   eax
+003E90DE   B9 04000000   mov   ecx, 4
+003E90E3   BA 05000000   mov   edx, 5
+003E90E8   8B45 F8     mov   eax, [ebp-8]
+003E90EB   E8 D0B9F8FF   call   00374AC0
+003E90F0   8B45 FC     mov   eax, [ebp-4]   ≈取 eax 前 4 位,ASCII "5495" ,此处记为 SN2
+003E90F3   E8 70B7F8FF   call   00374868
+003E90F8   83F8 04     cmp   eax, 4
+003E90FB   7D 2F     jge   short 003E912C   ≈判断是否取了 4 位
+003E90FD   8B45 FC     mov   eax, [ebp-4]
+003E9100   E8 63B7F8FF   call   00374868
+003E9105   8BD8       mov   ebx, eax
+003E9107   83FB 03     cmp   ebx, 3
+003E910A   7F 20     jg   short 003E912C
+003E910C   8D4D E0     lea   ecx, [ebp-20]
+003E910F   8BC3       mov   eax, ebx
+003E9111   C1E0 02     shl   eax, 2
+003E9114   33D2       xor   edx, edx
+003E9116   E8 5905F9FF   call   00379674
+003E911B   8B55 E0     mov   edx, [ebp-20]
+003E911E   8D45 FC     lea   eax, [ebp-4]
+003E9121   E8 4AB7F8FF   call   00374870
+003E9126   43        inc   ebx
+003E9127   83FB 04     cmp   ebx, 4
+003E912A ^ 75 E0     jnz   short 003E910C
+003E912C   8B45 F8     mov   eax, [ebp-8]   ≈取 eax5 到 8 位,ASCII "7545" ,此处记为 SN4
+003E912F   E8 34B7F8FF   call   00374868
+003E9134   83F8 04     cmp   eax, 4
+003E9137   7D 2F     jge   short 003E9168   同上
+003E9139   8B45 F8     mov   eax, [ebp-8]
+003E913C   E8 27B7F8FF   call   00374868
+003E9141   8BD8       mov   ebx, eax
+003E9143   83FB 03     cmp   ebx, 3
+003E9146   7F 20     jg   short 003E9168
+003E9148   8D4D DC     lea   ecx, [ebp-24]
+003E914B   8BC3       mov   eax, ebx
+003E914D   C1E0 02     shl   eax, 2
+003E9150   33D2       xor   edx, edx
+003E9152   E8 1D05F9FF   call   00379674
+```
+
+
+
+```
+003E9157   8B55 DC     mov   edx, [ebp-24]
+
+003E915A   8D45 F8     lea   eax, [ebp-8]
+
+003E915D   E8 0EB7F8FF call   00374870
+
+003E9162   43       inc   ebx
+
+003E9163   83FB 04   cmp   ebx, 4
+
+003E9166 ^ 75 E0     jnz   short 003E9148
+
+003E9168   8D45 D8   lea   eax, [ebp-28]
+
+003E916B   8B55 0C   mov   edx, [ebp+C]  ≈取固定字符串 ASCII "DQ86-R1F8"
+
+003E916E   E8 2DB6F8FF call   003747A0
+
+003E9173   8B45 D8   mov   eax, [ebp-28]
+
+003E9176   8D55 F4   lea   edx, [ebp-C]
+
+003E9179   E8 DE03F9FF call   0037955C
+
+003E917E   8D45 D4   lea   eax, [ebp-2C]
+
+003E9181   50       push  eax
+
+003E9182   B9 04000000 mov   ecx, 4
+
+003E9187   BA 01000000 mov   edx, 1
+
+003E918C   8B45 F4   mov   eax, [ebp-C]
+
+003E918F   E8 2CB9F8FF call   00374AC0
+
+003E9194   FF75 D4   push  dword ptr [ebp-2C]  ≈得到注册码的前 4 位，DQ86，记为 SN1
+
+003E9197   68 0C923E00 push  003E920C
+
+003E919C   FF75 FC   push  dword ptr [ebp-4]  ≈SN2
+
+003E919F   8D45 D0   lea   eax, [ebp-30]
+
+003E91A2   50       push  eax
+
+003E91A3   B9 05000000 mov   ecx, 5
+
+003E91A8   BA 05000000 mov   edx, 5
+
+003E91AD   8B45 F4   mov   eax, [ebp-C]    ≈取固定字符串
+
+003E91B0   E8 0BB9F8FF call   00374AC0
+
+003E91B5   FF75 D0   push  dword ptr [ebp-30]  ≈固定字符的后 5 位 -R1F8,记为 SN3
+
+003E91B8   68 0C923E00 push  003E920C
+
+003E91BD   FF75 F8   push  dword ptr [ebp-8]  ≈SN4
+
+003E91C0   8D45 EC   lea   eax, [ebp-14]
+
+003E91C3   BA 06000000 mov   edx, 6       ≈应该为连接次数
+
+003E91C8   E8 5BB7F8FF call   00374928
+
+003E91CD   8B45 EC   mov   eax, [ebp-14]  ≈连接后的字符，ASCII "DQ86-5495-R1F8-7545"以上这段就是调整组合顺序
+
+003E91D5   8BD8      mov   ebx, eax
+
+003E91D7   33C0      xor   eax, eax
+
+003E91D9   5A       pop   edx
+
+003E91DA   59       pop   ecx
+
+003E91DB   59       pop   ecx
+
+003E91DC   64:8910   mov   fs:[eax], edx
+
+003E91DF   68 F9913E00 push  003E91F9
+
+003E91E4   8D45 D0   lea   eax, [ebp-30]
+
+003E91E7   BA 0C000000 mov   edx, 0C
+
+003E91EC   E8 E3B3F8FF call   003745D4
+
+003E91F1   C3       retn
+
+003E91F2 ^ E9 1DADF8FF jmp   00373F14
+
+003E91F7 ^ EB EB     jmp   short 003E91E4
+
+003E91F9   8BC3      mov   eax, ebx
+
+003E91FB   5E       pop   esi
+
+003E91FC   5B       pop   ebx
+
+003E91FD   8BE5      mov   esp, ebp
+
+003E91FF   5D       pop   ebp
+
+003E9200   C2 0800   retn  8
+```
+
+## 算法总结
+
+首先，用户名不参与注册码计算！
+
+再次，取得固定字符串，ASCII `"DQ86-R1F8"`，及得到产品编号，ASCII `"Y2KJTWYE"` 的 `HEX` 取倒值
+
+再将固定码与取倒值 `HEX(机器码倒数 1、2 位)`，`HEX(机器码倒数 3、4 位)` 进行组合即可，即顺序为 `SN1-SN2-SN3-SN4`
+
+## 【内存注册机】
+
+中断地址：`5E62DC`
+
+中断次数：`1`
+
+第一字节：`E8`
+
+指令长度：`5`
+
+保存方式：内存方式--->`EDX`
+
+`4dd466d0e1e0cc123afbe504da2462ca`
