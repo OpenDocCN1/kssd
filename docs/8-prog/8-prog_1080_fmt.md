@@ -1,0 +1,280 @@
+
+# 乱侃 Windows NT 内核之内存管理
+
+> 原文：[`www.pediy.com/kssd/pediy11/111508.html`](https://www.pediy.com/kssd/pediy11/111508.html)
+
+**标 题**:【原创】乱侃 WindowsNT 内核之内存管理  
+**作 者**: xxxdebug  
+**时 间**: 2010-04-22,18:10:50  
+**链 接**: `http://bbs.pediy.com/showthread.php?t=111508`
+
+## 题外话
+
+假设大家都已经了解了 x86 体系的内存管理机制，知道什么是 flat 模式，知道运算部件 AU 和存储管理部件 MMU 的含义，知道什么是虚拟地址（flat 模式下线性地址和虚拟地址是等同的，不考虑分段情况），什么是物理地址（内存、IO 端口）；知道什么是页表，什么是页表项 pte，什么是页目录 pde 等等。
+
+本文为做特别说明，都是基于 x80 体系，非 PAE 的 4k 分页的情况讨论。
+
+## 页表在系统空间的映射
+
+Windows 采用的是将整个页表映射到一段连续的地址，在非 PAE 的 4k 分页的情况下（PAE 模式下页表项的大小是 8 个字节），页表映射开始于系统空间的 `0xc0000000` 的 `0x400000` 个字节。虚拟地址相邻的页表所映射的虚拟地址也是连续的，即 `0xc0000000` 指向的 PTE 所映射的是用户空间的 `0～0xfff`；`0xc0000004` 指向的 PTE 所描述的是 `0x1000～0x1fff`…
+
+Windows 对页表的这种精心安排，好处是不言而喻的，比如对于一个确定的虚拟地址，其对应的页表位置也就确定了，如对于虚拟空间的某一地址 `x`，其 PTE 的地址就是 `x/0x1000*4+0xc000000`，如页表本身所对应的 PTE 地址（也称 PDE）= `0xc0000000/0x1000*4+0xc00000000= 0xc0300000`；反过来转换也很简单，对于也个 PTE 的地址 `x`，其所映射的页的起始地址是 `(x-0xc0000000)/4*0x1000`。
+
+`0xc0000000` 开始映射页表是唯一选择么？我觉得未必，其实页表在虚拟空间映射的位置是可以浮动的，但有一个要求，必须映射在系统空间。如果将页表映射在用户空间会出什么问题呢？用户空间是属于进程的私有财产，操作系统有时候是没有进程上下文的，所以如果将页表映射在用户空间将导致系统无法进行内存管理。
+
+页表可以映射到不连续的空间么？当然可以，只是这样做页表项的地址和其所对应的虚拟地址之间就不那么容易转换了。
+
+从 MMU 的角度来看，在地址转换过程中，只和物理地址打交道，因为页表保存的是物理地址，所以页表甚至不需映射到虚拟空间中的。
+
+但是 AU 只能对已经映射的地址进行访问，而且建立和取消映射需要对页表项（PTE、PDE）进行读写操作，如果页表项没有映射就无法读写，所以将整个页表保持一个固定的映射是一个不错的选择，当然也可以每次都进行临时映射，但这样做的效率可想而知。
+
+还有一点，页表的映射区是独立于进程的，在系统空间中有两块区域在不同的进程中所保存的内容是不一样的，一块就是页表映射区域，还有一块是被称作超级空间（hyperspace）的地方，超级空间是系统用来做临时映射（打草稿）用的，这两块地方在进程切换是需要更新，其他空间在所有进程看来都是一样的，即所谓公用区域，比如各个系统模块的映射区，包括系统缓冲区（pool）等等。
+
+## 页表的初始化
+
+我们知道，在启动分页以后，`CR3` 指向的物理地址指向页目录
+
+如果我们已经将页目录映射到了一个确定的地址，下面的工作就不是问题了
+
+也许你会问，我们如何将页目录映射到一个确定的地址呢？这似乎是一个先有鸡还是先有蛋的问题
+
+其实很简单，两句话，子进程的页目录映射由父进程代劳，老祖宗进程的页目录的映射工作由实模式代劳。
+
+对于子进程，父进程会在其 hyperspace 上将子进程的页表映射构造好，然后将页目录对应的物理地址写道子进程的 `EProcess` 里就一切 OK 了。
+
+而对于第一个进程的页表是在启动分页前设置好的。
+
+其实 windows 的做法是子进程的页表映射数据是直接从父进程中拷贝而来的，上面已经说过，所有进程的系统空间的映射除了页表和 hyperspace 两块区块外都是相同的，所以所要做的工作就是申请两个页面，映射到父进程的 hyperspace，这样父进程就可以读写这两个页面了，其中一个页面用于保存页目录，其高半部分直接从父进程的 pde 的高半部分拷贝，一页用于保存 hyperspace 的页表项，并修改保存目录页面中的两个 pte 的值，一个是指向其自身的 pte（pde），一个是指向 hyperspace 的 pte。至于这两个 pte 在页目录页面中的偏移是容易计算的，而且是固定不变的。
+
+其实让页目录页面中的某一项的 pte 值指向其自身也就完成了页目录页面本身的映射，比如要想将页目录页面映射到 `0xc0300000`，只需将偏移 `0xc00` 除的 pte 指向其自身即可，计算公式：`0xc0300000/1000*4+0xc0000000-0xc0300000=0xc00`。 
+
+## 虚拟空间管理
+
+一块内存在变得可以使用之前，需要经过以下步骤：
+
+1. 分配虚拟空间，所有程序只能读写虚拟空间
+2. 分配物理内存
+3. 建立虚拟内存和物理之间的映射
+
+下面先说说虚拟空间的管理：
+
+### 用户空间管理
+
+为了高效快速检索、分配、释放一个内存区块（`MMADDRESS_NODE`），Windows 使用一个称作 AVL 的二叉树结构管理整个用户空间，Windows 将所有已经分配或保留的内存区块记录在二叉树的结构中，该二叉树定义如下：
+
+```c
+typedef struct _MMADDRESS_NODE {
+    union {
+        LONG_PTR Balance : 2;
+        struct _MMADDRESS_NODE *Parent;
+    } u1;
+    struct _MMADDRESS_NODE *LeftChild;
+    struct _MMADDRESS_NODE *RightChild;
+    ULONG_PTR StartingVpn;
+    ULONG_PTR EndingVpn;
+} MMADDRESS_NODE, *PMMADDRESS_NODE;
+```
+
+使用这种管理策略管理用户空间是一个很自然的事，如果让我写一个这样的模块，可能实现的方法是一样的，就不多说了呵呵。
+
+### 系统空间的管理
+
+系统空间的使用者是内核本身（当然也包含驱动程序），所以内核开发人员对系统空间的内存的需求是很清楚的，所以对系统空间的管理策略应该是针对内核的需求特点进行精心考虑的
+
+看了 wrk 系统空间管理部分的源代码，不得不佩服 windows 开发人员的智慧
+
+我们知道页表的元素称为 pte，整个页表被映射在系统空间的 `0xc000000` 到 `0xc03ffffff` 的地方，每一页占有四个字节，其定义如下：
+
+```c
+typedef struct _MMPTE {
+    union {
+        ULONG_PTR Long;
+        MMPTE_HARDWARE Hard;
+        MMPTE_HARDWARE_LARGEPAGE HardLarge;
+        HARDWARE_PTE Flush;
+        MMPTE_PROTOTYPE Proto;
+        MMPTE_SOFTWARE Soft;
+        MMPTE_TRANSITION Trans;
+        MMPTE_SUBSECTION Subsect;
+        MMPTE_LIST List;
+    } u;
+} MMPTE;
+```
+
+我们看到 windows 对 mmpte 的定义是由多种解释的，硬件对其解释如下：
+
+```c
+typedef struct _MMPTE_HARDWARE {
+    ULONG Valid : 1;
+#if defined(NT_UP)
+    ULONG Write : 1; // UP version
+#else
+    ULONG Writable : 1; // changed for MP version
+#endif
+    ULONG Owner : 1;
+    ULONG WriteThrough : 1;
+    ULONG CacheDisable : 1;
+    ULONG Accessed : 1;
+    ULONG Dirty : 1;
+    ULONG LargePage : 1;
+    ULONG Global : 1;
+    ULONG CopyOnWrite : 1; // software field
+    ULONG Prototype : 1; // software field
+#if defined(NT_UP)
+    ULONG reserved : 1; // software field
+#else
+    ULONG Write : 1; // software field - MP change
+#endif
+    ULONG PageFrameNumber : 20;
+} MMPTE_HARDWARE, *PMMPTE_HARDWARE;
+```
+
+其最重要的是最低位的 valid 位，如果对写的地址的 pte 的 valid 等于 0 将引发缺页硬件异常，该地址会通过 `cr2` 传给中断处理程序。
+
+其高 20 位用来保存物理页框架号，还有其他位现的意义就不说了，以上的定义除了高 20 位和低 8 位之间的 4 位保留可以自由定义外，其它为都是由硬件定义的。
+
+windows 对 pte 还有另外的定义，如 `MMPTE_LIST List;` 大家知道其用途么？呵呵，这就是用来管理系统空间的。
+
+windows 将整个页表被映射在系统空间的 `0xc000000` 到 `0xc03ffffff` 的地方后，带给我们的最大的好处是什么？
+
+对了，虚拟地址和该地址在页表中的 pte 的地址的相互转换变得很容易了，所以 windows 将系统空间的分配和释放就转换成对 pte 的分配和释放了，这种想想法真是太高明了，呵呵。
+
+windows 将未使用（空闲页）的 ptes 根据用途分别链入一个链表，实现方法就是 pte 的另一种解释：
+
+```c
+typedef struct _MMPTE_LIST {
+    ULONG Valid : 1;
+    ULONG OneEntry : 1;
+    ULONG filler0 : 8;
+    //
+    // Note the Prototype bit must not be used for lists like freed nonpaged
+    // pool because lookaside pops can legitimately reference bogus addresses
+    // (since the pop is unsynchronized) and the fault handler must be able to
+    // distinguish lists from protos so a retry status can be returned (vs a
+    // fatal bugcheck).
+    //
+    ULONG Prototype : 1; // MUST BE ZERO as per above comment.
+    ULONG filler1 : 1;
+    ULONG NextEntry : 20;
+} MMPTE_LIST;
+```
+
+对应空闲 ptes 的表头用一个全局变量保存，连续空闲区块的第一个 pte 的高 20 位指向下一个空闲连续区块的第一个 pte，第二个 pte 的高 20 位用来保存该连续空间的大小（页数、pte 个数）
+
+也许你会问了，假如一个空闲块只有一个页面，那空闲区块的大小保存在那里呢？嘿嘿，这就是 `OneEntry` 的作用！当 `OneEntry` 等于 1 时，表示该空闲块只有 1 页。
+
+windows 开发人员聪明吧，他直接将管理空闲空间的链表建立在页表上面，既高效，又节省空间，而且该链表的元素还是静态分配的，高明啊，哈哈。
+
+还有，ptes 的分配是从一个空闲 pte 区的后面开始分配的，知道这一点可以帮助你看懂该部分源代码。
+
+详细的请大家看 wrk 啦，比如非分页内存的分配例程是 `MiReserveAlignedSystemPtes`。
+
+非分页内存其实有两种，除了上面讨论的一种外，还有一种是在初始化时就已经分配好的，该区域已经建立了物理映射，被称为非分页池，该区域是可以直接使用的，Windows 以一般“池”的方法管理该区域，类似用户空间的 heap 的管理，及空闲链表法，由于被管理的页面是可以直接使用的，所以空闲链表就建立在这些页面上，总共有四个空闲链表，分别记录 1、2、3、4 及以上个页面大小的空闲内存块，没有什么亮点，就不多说了。
+
+除了非分页内存外，还有一种称为分页内存的空间，这些页面是可以交换到磁盘上的，所以不能保证这些页面是有物理映射的，所以 windows 用一个数据结构来描述这些页面的分配状态：
+
+```c
+typedef struct _MM_PAGED_POOL_INFO {  
+    PRTL_BITMAP PagedPoolAllocationMap;  
+    PRTL_BITMAP EndOfPagedPoolBitmap;  
+    PMMPTE FirstPteForPagedPool;  
+    PMMPTE LastPteForPagedPool;  
+    PMMPTE NextPdeForPagedPoolExpansion;  
+    ULONG PagedPoolHint;  
+    SIZE_T PagedPoolCommit;  
+    SIZE_T AllocatedPagedPool;  
+} MM_PAGED_POOL_INFO, *PMM_PAGED_POOL_INFO;  
+```
+
+从 `PagedPoolAllocationMap` 项可以看出，Windows 是使用位图法记录各个页面的分配状态，有点类似 fat 文件系统，呵呵。
+
+也许你要问了，Windows 分别使用 `MMPTE_LIST`、位图、空闲链表记录系统空间的分配状态，在释放一块内存时，如何知道使用哪一个数据结构呢？其实很简单，从要释放的地址就可以确定了，windows 使用不同的数据结构管理的可是系统不同的区域，地址属于哪个区域可是一目了然啊，呵呵。 
+
+## 物理内存管理
+
+Windows 将物理地址空间分成 4k（`0x1000`）字节大小的页，以页为单位分配物理内存
+
+因为 windows 以物理页的形式分配物理内存，所有要管理这些页，必须建立这些页的描述，显然对于一个确定的页来说，最重要的信息应该是：
+
+1.  起始地址
+2.  大小
+3.  是否可用等等
+
+我们来看看 Windows 对物理内存资源的描述：
+
+```c
+typedef struct _MMPFN {
+    union {
+        PFN_NUMBER Flink;
+        WSLE_NUMBER WsIndex;
+        PKEVENT Event;
+        NTSTATUS ReadStatus;
+        struct _MMPFN *NextStackPfn;
+    } u1;
+    PMMPTE PteAddress;
+    union {
+        PFN_NUMBER Blink;
+        ULONG ShareCount;
+        ULONG SecondaryColorFlink;
+    } u2;
+    union {
+        MMPFNENTRY e1;
+        struct {
+            USHORT ShortFlags;
+            USHORT ReferenceCount;
+        } e2;
+    } u3;
+#if defined (_WIN64)
+    ULONG UsedPageTableEntries;
+#endif
+    MMPTE OriginalPte;
+    PFN_NUMBER PteFrame;
+} MMPFN, *PMMPFN;
+
+PMMPFN MmPfnDatabase;
+```
+
+上面是 windows 对一个物理页的描述，`MMPFN` 用来表示一个物理页，`MmFfnDatabase` 就是一个 `MMPFN` 的数组；
+
+你也许奇怪，`MMPFN` 中并没有诸如开始地址、页大小等等信息，其实 `MMPFN` 中最重要的数据是：
+
+1) `u1.Flink`；`u2.Blink` 这两个字段其实就是组成一个 `LIST_ENTRY`，用来将该页链入某个链表
+
+2) `PteAddress`，用来指向一个页表项。
+
+
+
+那么如何知道该 `MMPFN` 所代表的那块内存的开始地址和页大小呢，其实很简单。
+
+首先，页大小是固定的，就是 `4k`，没必要每个 `PFN` 都记录，而开始地址的计算如下：
+
+设 `x` 为一个 `MMPFN`，那么对应的开始页号就是 `&x - MmPfnDatabae`，起始地址就是 `(&x - MmPfnDatabae) * 0x1000`。
+
+`MMPFN` 数据只存在于数组 `MmPfnDatabase` 中，而且按其所代表的页是连续的，即 `MmPfnDatabase[0]` 代表 `0~0xfff`，`MmPfnDatabase[1]` 代表 `0x1000~0x1fff`，...。
+
+而对其使用也就是将其挂入相应的链表，期间除了改变 `u1.Flink;u2.Blink` 的指向外，没有数据拷贝，其实这才是其高明之处，它给了我们一个在静态数组之上建立复杂数据结构的范例，这才是我看这部分代码的最大收获（个人认为，使用静态内存就是安心，就是爽，呵呵）。
+
+对于物理内存的管理就是根据不同需求，将存在于 `MmPfnDatabase` 数组中的 `MMPFN` 数据挂入不同的链表，`Windows` 用于物理内存管理的链表如下，其意义可从其名字上看出，就不多说了：
+
+1. `MMPFNLIST MmZeroedPageListHead;`
+2. `MMPFNLIST MmFreePageListHead;`
+3. `MMPFNLIST MmStandbyPageListHead;`
+4. `MMPFNLIST MmModifiedPageListHead;`
+5. `MMPFNLIST MmModifiedNoWritePageListHead;`
+6. `MMPFNLIST MmBadPageListHead;`
+
+### 结束语
+
+看了一段时间的 `wrk`，觉得自己对 `nt` 内核有了一点了解，一时兴起，想和大家分享一下自己的收获和心得，所以才有此贴。
+
+苦于本人对 `NT` 内核理解还不深、加上最近工作比较忙，写的比较随意，没有好好组织，写的比较乱。再加上关注（感兴趣）本帖的人不多，所有这个贴子也不想继续了。
+
+在没有指导下看 `nt` 内核源码的确比较难，近来听说潘爱民的大作《windows 内核原理与实现》已经出版了，在网上一找，居然找到了部分章节，发现该书的确对阅读 `wrk` 有很大的帮助，在这个贴子中我想说的内容，书里居然都是有的，这个贴子也没有必要了。
+
+下面附上《windows 内核原理和实现》部分章节，献给关心该贴的朋友：
+
+### 上传的附件
+
+| ![](img/668feaf58c8e7ddb6fbdbf839a5a19db.jpg) || `Windows 内核原理与实现.pdf`
+
+ |

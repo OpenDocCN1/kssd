@@ -1,0 +1,256 @@
+
+# 通俗解析 IRP 和 I/O 设备栈在内核程序中的作用
+
+> 原文：`www.pediy.com/kssd/pediy11/111559.html`
+
+**楔子**
+
+申请看雪已经将要满一年了，可是发现还是临时用户，很惭愧。现在正在写毕业论文，刚好可以整理一下思路。一直都在研究 Windows 内核驱动程序，对驱动程序有自己的一点看法，不知道是否能够申请到邀请码。
+
+**正文**
+
+言归正传，所有的 I/O 请求都是以 `IRP`（I/O 请求包）的形式来提交的，同时内核程序的所有分发函数（`Dispatch Function`）的第二个参数都是 `PIRP`（也即是指向 `IRP` 的指针）。为了说明问题，防止跳跃性太大，先解释几个名词（都按自己理解的），可以帮助会的人复习，不会的人学习。
+
+## 1. DRIVER_OBJECT
+
+驱动对象，由即插即用管理创建和传递到 `DriverEntry`，作为 `DriverEntry` 的第一个参数，函数原型如下：
+
+```c
+NTSTATUS DriverEntry(IN PDRIVER_OBJECT pDriverObject,
+            IN PUNICODE_STRING pRegistryPath);
+```
+
+代表了一个内核驱动程序，一个驱动程序有且只有一个 `DRIVER_OBJECT`，在 `wdm.h` 里有定义，也可以使用 `WinDbg` 查看其结构（保留最重要的，并作了注释）：
+
+```c
+////////////////DRIVER_OBJECT//////////////////////////////////////////////////////
+typedef struct _DRIVER_OBJECT {
+   。。。。
+    PDEVICE_OBJECT DeviceObject;//指向驱动程序中创建的第一个设备对象
+。。。     
+    PDRIVER_EXTENSION DriverExtension;//驱动扩展，里面有一个 AddDevice，对于 WDM 程序很重要
+。。。
+   PDRIVER_STARTIO DriverStartIo;//很重要，IRP 串行化
+    PDRIVER_DISPATCH MajorFunction[IRP_MJ_MAXIMUM_FUNCTION + 1];//0x1E 个分发函数，是内核驱动程序的核心，可以理解为回调函数（
+只需要告诉驱动程序的分发函数名，并且编写函数实体，由系统 I/O 管理器完成调用）。若有机会，我会专门写一篇关于回调函数的文章
+
+} DRIVER_OBJECT;
+typedef struct _DRIVER_OBJECT *PDRIVER_OBJECT; 
+```
+
+## 2. DEVICE_OBJECT
+
+设备对象，和 `IRP` 一样重要，一开始说道的每个分发函数有两个参数，第二个是 `PIRP`，那么第一个就是 `PDEVICE_OBJECT`，如下所示：
+
+```c
+NTSTATUS WdmDefaultDispachRoutine(IN PDEVICE_OBJECT pFdo, 
+            IN PIRP pIrp) 
+```
+
+设备对象的重要在于：一个驱动程序光有驱动对象是玩不转的，为什么？若是编写过 `Win32` 应用程序都知道，消息的重要性，但是光有消息而没有窗口也是玩不转的，窗口是用来接收消息的。同样的道理，设备对象是唯一能够接受 `IRP` 的实体（若是理解了这个，那么你就将迈进了内核编程的门槛）。不干他如何如何的重要，先看一下结构，也只列出重要的（其他的也很重要，感兴趣的可以自己查看），而且都有注释：
+
+```c
+   /////////////////////DEVICE_OBJECT//////////////////////////////////
+typedef struct _DEVICE_OBJECT {
+........   
+    struct _DRIVER_OBJECT *DriverObject;//指出设备对象归属于哪个驱动程序（驱动对象）
+    struct _DEVICE_OBJECT *NextDevice;//下一个设备对象（一个驱动程序可以创建多个设备对象），这个设备对象是同一层的（为了对比设备栈）
+    struct _DEVICE_OBJECT *AttachedDevice;//指向下一层驱动程序的设备对象（可以理解被挂载的设备对象）
+    struct _IRP *CurrentIrp;//使用 IRP 串行化时很重要，用来决策当前 IRP 完成还是挂起等
+
+    CCHAR StackSize;//设备栈的个数
+
+     PVOID DeviceExtension;// 设备扩展，是一个自定义的大小的结构，很重要。因为驱动程序中的每个分发例程都有可能工作在不同的线程和进程中，所以全局变量很危险，为了防止这一点，把全局变量都定义到设备扩展里，而设备对象又作为每个分发例程都带有设备对象，所以都可以通过设备对象得到设备扩展里面的信息（在这一点上，个人认为有点像 C++的封装性       
+} DEVICE_OBJECT;
+typedef struct _DEVICE_OBJECT *PDEVICE_OBJECT; 
+```
+
+## 3. IRP
+
+I/O 请求包，很重要，若把设备对象理解为窗口，那么 `IRP` 就可以理解为消息。I/O 请求包一般由 I/O 管理器构建，但是也可以用户在程序中使用 DDK 函数来构建（`Io` 开头的函数），后面重点讲解这个，也是这篇文章的核心。`IRP` 是一个复杂的结构体（比之 `MSG` 复杂多了），看部分结构（本来想放图，不过需要超链接，很麻烦）。
+
+```c
+   /////////////////////IRP////////////////////////////////////////////////////////////
+typedef struct _IRP {
+ 
+    PMDL MdlAddress;//MDL 地址，内存描述符表。用来建立一块虚拟地址空间与物理地址页面之间的映射（具体有机会我会专门写一篇关于虚拟内存和实际物理内存在内核程序中的使用）。实际应用中，在使用 DO_DIRECT_IO 方式和应用程序读写数据时采取的一种内存映射的方式，速度快，一般设备驱动程序都采用这种方式通信，尤其是 WriteFile 和 ReadFile 中
+
+/*下面是一个共用体，很重要，联合的 IRP，里面的 SystemBuffer 是指向应用层传递来的数据，采用的是 DO_BUFFER_IO 缓冲区拷贝的方式通信，速度慢，一般在 DeviceIoControl 小数据使用*/
+    union {
+        struct _IRP *MasterIrp;
+        LONG IrpCount;
+        PVOID SystemBuffer;
+    } AssociatedIrp;
+
+ /*里面有两个结构，一个 Status 是 IRP 完成的状态，一个是 Infotmation 存放数据传输的个数*/
+    IO_STATUS_BLOCK IoStatus;
+
+    CHAR StackCount;//栈的个数，可以由设备对象中 StackSize 的值决定
+
+    CHAR CurrentLocation;//当前的设备栈位置，很重要，过滤器驱动需要判断是否大于 0，否则直接蓝屏处理
+
+    PKEVENT UserEvent;//构建 IRP 时很重要，同步事件，后面会讲到。
+
+
+       } Overlay;
+
+    PVOID UserBuffer;//用户缓冲区，第三种方式和应用程序共享数据。这种速度最快，但也是最不安全，内核程序直接读取用户的内存，必须保证在相同设备上下文中访问才不会出错。   
+
+    union {
+
+        struct {
+            struct {
+                union {
+
+
+                    struct _IO_STACK_LOCATION *CurrentStackLocation;//IO 设备栈指针，他是一个设备栈数组。说了这么久其实主要是为了讲他。后面会详细讲解。
+                    
+                };
+            };
+
+        } Overlay;
+
+
+    } Tail;
+
+} IRP, *PIRP;
+
+```
+
+由上面的结构可得知，创建一个 `IRP` 时，会同时带着创建一个和他关联的 `IO_STACK_LOCATION` 数组，他们形成一个栈的形式（满足先入后出的原则），具体关于 `IO_STACK_LOCATION` 看下一个。
+
+## 4. IO_STACK_LOCATION
+
+I/O 设备栈。结构体很复杂，但是里面的东西包罗万象，有些字段和 `IRP` 的结构重复。那么 IO 设备栈有什么作用？先看一下他的结构：
+
+```c
+   ////////////////////////////IO_STACK_LOCATION/////////////////////////////////
+typedef struct _IO_STACK_LOCATION {
+    UCHAR MajorFunction;//IRP 主功能码
+    UCHAR MinorFunction;//IRP 次功能码，尤其是 Pnp 的 IRP 尤为重要
+    UCHAR Flags;
+    UCHAR Control;//DeviceControl 的控制码
+
+    
+/*以下是一个联合体，非常重要，几乎所有的用户 API 的请求都在这里面体现出来，记录了所有的用户请求信息，例如读写的长度信息等。下面只保留了几个*/
+    union {
+
+
+        struct {
+            ULONG Length;
+            ULONG POINTER_ALIGNMENT Key;
+            LARGE_INTEGER ByteOffset;
+        } Read;//NtReadFile（也即是 ReadFile 的实现的）
+
+        struct {
+            ULONG Length;
+            ULONG POINTER_ALIGNMENT Key;
+            LARGE_INTEGER ByteOffset;
+        } Write;//NtWriteFile
+
+
+        struct {
+            ULONG OutputBufferLength;
+            ULONG POINTER_ALIGNMENT InputBufferLength;
+            ULONG POINTER_ALIGNMENT IoControlCode;
+            PVOID Type3InputBuffer;
+        } DeviceIoControl;//NtDeviceIoControlFile
+
+
+        struct {
+            PCM_RESOURCE_LIST AllocatedResources;
+            PCM_RESOURCE_LIST AllocatedResourcesTranslated;
+        } StartDevice;//为什么保留这个，原因在于我自己是做硬件设备驱动的，而这个是启动设备的 PnP 能够获取到硬件的设备资源。如果是纯内核开发不需要关心。
+
+
+    
+        struct {
+            PVOID Argument1;
+            PVOID Argument2;
+            PVOID Argument3;
+            PVOID Argument4;
+        } Others;//这个的重要性在于，若没有列举的结构都可以用强类型转换这几个字段。很灵活
+
+    } Parameters;
+
+
+    PDEVICE_OBJECT DeviceObject;//指向的设备对象，很重要，从设备对象中可以获得驱动对象，然后再得到相应的分发函数
+
+
+    PFILE_OBJECT FileObject;//文件对象，文件系统之类的信息安全内核编程很重要。
+ 
+    PIO_COMPLETION_ROUTINE CompletionRoutine;
+ 
+    PVOID Context;
+
+} IO_STACK_LOCATION, *PIO_STACK_LOCATION;
+
+```
+
+`IO_STACK_LOCATION` 里面存放着需要处理的 `IRP` 信息，联合 `IRP` 就可以找到下一个设备驱动处理 `IRP` 的分发函数（具体可以参考 `IoCallDriver()` 的反汇编代码，有机会专门讲述）。
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+
+其实说了这么多，上面的都不是本帖子要讲的，但是又不得不说的。下面回到重点：
+
+这里要讲到的其实是驱动程序调用驱动程序以及 `WDM` 分层驱动的东西。
+
+不管是 I/O 管理器构建的 `IRP` 还是自己手动构建的 `IRP`，对 `IRP` 的操作都有以下 4 种情况：
+
+1. 直接完成 `IRP`，返回。
+2. 放入 `IRP` 队列中，调用 `StartIO` 完成 `IRP` 串行化。
+3. 传递 `IRP` 到下一层，由下一层（或者再下一层完成）并且不需要获得 `IRP` 完成的情况
+4. 传递 `IRP` 到下一层，同时需要得到获得下一层处理完 `IRP` 的信息（键盘过滤器等很多 `FilterDriver` 就这么干）
+
+其实可以把第 1 点和第 2 点归为一起，都是本层处理，把第 4 点归结到第 3 点上，都是下一层处理，但是这两者之间的 IO 设备栈的处理有点差异。
+
+接下来说明一个驱动程序的创建一般过程：
+
+`DriverEntry` 和 `AddDevice` 两个函数由即插即用管理器调用，`DriverEntry` 里面完成分发函数的注册，`AddDevice` 用来创建一个设备对象并且挂载到下一层设备对象上。一般的 `WDM` 驱动程序都有一个总线设备驱动程序，负责枚举和分配设备资源。为了说明问题，假设存在设备 A 和设备 B，设备 B 挂载到设备 A 上，现在你要创建设备 C 也要挂载到 A 上，那么使用 `IoAttatchDeviceToDeviceStack` 函数挂载到 A 时，返回的是 B 的设备对象。也就是从上往下看 `IRP` 的传递是 `C->B->A` 的流向。到这里就可以讨论 IO 设备栈了！！！
+
+回到一开始说的当收到一个 `IRP` 时，本层驱动需要做什么处理，4 种情况处理 `IRP` 不同，如下：
+
+1. 直接完成 `IRP`：`IoCompleteRequest()`
+2. 放入 `IRP` 队列：`IoMarkIrpPending()` 和 `IoStartPacket()`
+3. 传递 `IRP` 到下一层：`IoSkipCurrentIrpStackLocation()` 和 `IoCallDriver()`
+4. 需要获取完成信息：`IoCopyCurrentIrpStackLocationToNext()` 和 `IoCallDriver()`
+
+到这里也许很多驱动的资料都会这么讲，但为什么需要这么做？？
+
+每一层设备对象都需要一个设备栈，用来保存上一层创建或者传递 `IRP` 的信息，使用 `IoGetCurrentIrpStackLocation()` 可以获得当前设备栈，也即获得里面的 `IRP` 信息。当前设备首先获得 `IRP` 处理的权利，可以完成，可以放入队列，也可以传递到下一层。而是用 `IoCallDriver` 完成 `IRP` 的传递，可以使用反汇编查看 `IoCallDriver()` 或者看 DDK 文档就会知道，`IoCallDriver` 里面首先会将 `CurrentLocation` 减 1（汇编指令为 `dec`），然后再去和 0 进行判断比较跳转，当当前值比 0 大，那么会去将当前设备栈指针移动到前一个设备栈（结合 stack 结构的概念，先入后出）。
+
+那么如果当前设备不关心 `IRP` 的完成，那么也就不需要当前设备栈，那么为了让底层驱动处理这个 `IRP`，就必须应该把当前设备栈信息告诉底层设备，可以采取两种方式，使用 `IoSkipCurrentIrpStackLocation()` 把指针拨回去（和 `IoCallDriver()` 方向相反），也就是下一层的设备栈其实为本层的设备栈（速度快，另外一种是拷贝的方式，见下面）。一般不是很关心的 `IRP` 都这么做，例如 PnP 的，电源管理的（记住，电源管理的传递 `IRP` 使用的是 `PoCallDriver()`）。但是作为过滤器驱动，都不会放过 `Read` 和 `Write` 的，`Rootkit` 不会，`HIPS` 也不会（现在的攻防问题，也许不再是这么简单的 Hook 了，但是思想都是一样，看谁最先获得 `IRP` 的主控权）。那么 `IoCopyCurrentIrpStackLocationToNext()` 的好处就在于，把本层的设备栈拷贝到下一层，那么拷贝完之后呢？？如何第一时间得到下一层完成了 `IRP`，也就是数据已经有效了？？
+
+
+
+可以使用同步或者异步方式，同步方式是等待 `IoCallDriver()` 返回，异步方式采用的是完成例程和事件通知的方式。一般都是采用完成例程+事件通知方式（具体实现可以参考一些 `DDK` 例子），若是在 `IRP` 总设置了完成例程，那么下一层驱动程序完成 `IRP` 后会直接去调用完成例程（回调函数概念），`Hook` 就达到，你就可以在这个例程中为所欲为了（例如我直接从 `IRP` 中获得读缓冲区地址和长度，然后加密数据，想搞破坏的人可能会原封不动的把数据上传，但是他会备份一份，![](img/234a76e67df951b6551d305c177a8b78.jpg "扮鬼脸")）。
+
+## 创建 IRP 的方式
+
+前面一直提到了 `IRP` 的创建，创建 `IRP` 的方式有以下几种：
+
+1. `IoAllocateIrp` 常用，创建人一类型的 `IRP`。（其实下面的方式都封装了这个函数），但一定记住了，需要 `IoFreeIrp`（一般在完成函数里调用），否则内存泄露。
+2. `IoBuildAsynchronousFsdRequest`, `IoBuildSynchronousFsdRequest`。创建 `IRP_MJ_PNP`, `IRP_MJ_READ`, `IRP_MJ_WRITE`, `IRP_MJ_FLUSH_BUFFERS`, `IRP_MJ_SHUTDOWN` 这些类型的 `IRP`，分同步和异步，异步 `IRP` 可以工作在任意设备上下文中。
+3. `IoBuildDeviceIoControlRequest` 编写 `USB` 设备驱动时用过。创建 `IRP_MJ_INTERNAL_DEVICE_CONTROL` 和 `IRP_MJ_DEVICE_CONTROL`
+
+## 总结
+
+后面在总结一下。按我个人理解的，（只是理解啊，千万别误解了![](img/45dd044a2743704cbb333715eae4a5f6.jpg "狂笑")），把内核驱动程序和一般 `Win32` 应用程序比较，得到下面的：
+
+驱动对象可以理解为进程，设备对象可以理解为带用户界面的线程（因为需要接收消息），`IRP` 可以理解为消息，`IO` 设备栈可以理解为堆栈。
+
+那么在 `Win32` 应用程序中是这样的：一个运行的应用程序可以认为是一个进程，必须要一个线程才能工作（可以有多个，叫多线程），用户界面线程可以创建消息循环同时接收处理消息，每个线程都会有一个堆栈，用来保存当前的上下文信息。（跟讲故事似的![](img/c1376e2bd59b6be48d07a70822c7e47d.jpg "伤心")）。
+
+那么内核驱动程序呢？
+
+一个驱动程序只能有一个驱动对象，但是可以有多个设备对象，驱动程序都是靠 `IRP` 来运转的，接收 `IRP` 的实体只有设备对象，`IRP` 也有 `IRP` 队列，叫做串行化 `IRP`，每一层设备驱动都有一个设备栈来保存当前 `IRP` 信息。这么看起来是不是内核驱动程序不是很难。
+
+## 后记
+
+写完这篇已经是 12 点了，有点困意。这里面涉及到的内核知识远比我提到的要多，但是只要记住 `IRP` 的走向，我想问题就简单很多了，当然了内核内存管理和同步问题是最头疼的事情了。写着写着有点像一篇内核编程入门篇，既然这样，就介绍一下入门的方式，多做，多想，多看。
+
+开发驱动程序最关键的是使用好调试工具了 `DriverMoniter/DbgView`, `WinDbg/SoftICE`, `IRPTrace`, `DeviceTree` 等等，若喜欢 `C++` 开发的朋友可以不直接用 `DDK` 开发，使用 `DriverStudio`。另外国内开发驱动书籍比较少，推荐张帆和楚狂人的，另外若是想用 `DriverStudio`，武安河的书是首选，其他国外的书籍有很多很经典的，有翻译过来的，有英文原版的（有时间总结一下打包发上来）。论坛也是不可缺少了，驱动开发网毫无疑问是最全的 `Windows` 内核开发的 `BBS`，看雪也不错（并不是为了获得邀请码这么说的，在这个论坛中真的活得很多知识），`DebugMan`，邪恶八进制，`CSDN`（不过很少）。另外一些如 `Upk`，绿色兵团，甲壳虫等一些免杀论坛也会有一些意想不到的资料和信息。`QQ` 群也是不错的交流地方。
+
+说了这么多，其实别人的永远是别人的，怎么转化成为自己的那才是最关键的。本人不是计算机科班出生，到目前为止我都没有看过编译原理，软件工程是什么，算法压根就不会，数据结构也是翻了几页，操作系统也没有系统学过，真正的课程就是 `C` 语言和汇编语言两门课程。但是唯一的一个优点就是硬件底子扎实，开发设备驱动比较有优势。希望各位初学者学习时千万不能浮躁，一定学踏实了，碰到蓝屏等问题别气馁，多调试，多分析，多问，肯定最后都能够解决问题。希望一起交流，---------七叶疯君
