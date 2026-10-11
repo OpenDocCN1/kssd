@@ -1,0 +1,210 @@
+
+# 开心知识问答 V3.0 版
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50572.htm`](https://www.pediy.com/kssd/pediy05/pediy50572.htm)
+
+**破解软件**：开心知识问答 V3.0 版
+
+**下载网址**：`http://count.skycn.com/softdown.php?id=4703&url=http://on165-down.skycn.net/down/kxqaV30.exe`
+
+**破解难度**：易
+
+**破解工具**：`TRW1.22`
+
+**软件说明**：本软件是一款别俱特色的智力问答游戏，内容涉及到历史，经济，风情，民俗、地理、人文等多个古今中外各方面的知识，多达 4000 余题，并在不断扩充。让您在轻松娱乐，益智，搞笑的时候，不知不觉的增长知识！
+
+任意输入用户名 `ShenGe` 和注册码 `12345678`，下 `BPX HMEMCPY`，点注册，程序被中断，`BC *`，按 7 次 `F12`，再按 `F10`，来到如下代码处：
+
+```
+0167:00500209  MOV      EAX,[EBP-10]  
+0167:0050020C  CALL     00404B64                <---取输入用户名的长度  
+0167:00500211  MOV      [EBP-08],EAX  
+0167:00500214  MOV      EBX,[EBP-08]  
+0167:00500217  TEST     EBX,EBX  
+0167:00500219  JNG      00500244  
+0167:0050021B  MOV      ESI,01  
+0167:00500220  LEA      EAX,[EBP-14]  
+0167:00500223  PUSH     EAX  
+0167:00500224  MOV      ECX,01  
+0167:00500229  MOV      EDX,ESI  
+0167:0050022B  MOV      EAX,[EBP-10]  
+0167:0050022E  CALL     00404DBC  
+0167:00500233  MOV      EAX,[EBP-14]  
+0167:00500236  MOV      AL,[EAX]                <---取输入用户名的第一个字符  
+0167:00500238  AND      EAX,FF                   <---扩展成字  
+0167:0050023D  ADD      [EBP-0C],EAX             <---各个字符的和累加到 EBP-0C 中  
+0167:00500240  INC      ESI  
+0167:00500241  DEC      EBX  
+0167:00500242  JNZ      00500220                <---是否取完  
+0167:00500244  MOV      EAX,[EBP-0C]             <---取前面算得的累加值   
+0167:00500247  IMUL     DWORD [EBP-08]           <---累加值乘以用户名长度  
+0167:0050024A  ADD      EAX,613E                 <---乘积加 613E  
+0167:0050024F  ADD      EAX,03DB                 <---再加 03DB,我的为 7275      
+0167:00500254  MOV      [EBP-0C],EAX             <---结果存入 EBP-0C 中  
+0167:00500257  LEA      EDX,[EBP-18]  
+0167:0050025A  MOV      EAX,[EBP-04]  
+0167:0050025D  MOV      EAX,[EAX+068C]  
+0167:00500263  CALL     00448850                <---取输入的假码  
+0167:00500268  MOV      EAX,[EBP-18]  
+0167:0050026B  PUSH     EAX  
+0167:0050026C  LEA      EDX,[EBP-20]  
+0167:0050026F  MOV      EAX,[EBP-0C]         <---取上面的值 7275 到 EAX 中  
+0167:00500272  CALL     0040932C           <---7275 的十进制值 29301 的每位字符转换  
+0167:00500277  MOV      EAX,[EBP-20]        成十六进制，即 32 39 33 30 31，存入 EAX 中  
+0167:0050027A  LEA      EDX,[EBP-1C]  
+0167:0050027D  CALL     004EFD8C              <---计算注册码的 Call  
+0167:00500282  MOV      EDX,[EBP-1C]          <---此时 D EDX 可看到真注册码   
+0167:00500285  POP      EAX                   <---EAX 中为输入的假注册码  
+0167:00500286  CALL     00404CA8  
+0167:0050028B  JNZ      005002AF               
+0167:0050028D  PUSH     BYTE +40  
+0167:0050028F  MOV      ECX,00500304  
+0167:00500294  MOV      EDX,00500310  
+0167:00500299  MOV      EAX,[0050374C]  
+0167:0050029E  MOV      EAX,[EAX]  
+0167:005002A0  CALL     004689F4                <---显示注册成功  
+0167:005002A5  MOV      EAX,[EBP-04]  
+0167:005002A8  CALL     00500054  
+0167:005002AD  JMP      SHORT 005002C7  
+0167:005002AF  PUSH     BYTE +10  
+0167:005002B1  MOV      ECX,0050034C  
+0167:005002B6  MOV      EDX,0050035C  
+0167:005002BB  MOV      EAX,[0050374C]  
+0167:005002C0  MOV      EAX,[EAX]  
+0167:005002C2  CALL     004689F4                <---显示注册失败   
+0167:005002C7  XOR      EAX,EAX  
+0167:005002C9  POP      EDX  
+0167:005002CA  POP      ECX  
+0167:005002CB  POP      ECX  
+```
+
+我们跟进上面计算注册码的 `Call`，可以看到如下代码：
+
+```
+0167:004EFD8C  PUSH     EBP   
+0167:004EFD8D  MOV      EBP,ESP  
+0167:004EFD8F  XOR      ECX,ECX  
+0167:004EFD91  PUSH     ECX  
+0167:004EFD92  PUSH     ECX  
+0167:004EFD93  PUSH     ECX  
+0167:004EFD94  PUSH     ECX  
+0167:004EFD95  PUSH     ECX  
+0167:004EFD96  PUSH     ECX  
+0167:004EFD97  PUSH     ECX  
+0167:004EFD98  PUSH     EBX  
+0167:004EFD99  PUSH     ESI  
+0167:004EFD9A  PUSH     EDI  
+0167:004EFD9B  MOV      [EBP-08],EDX  
+0167:004EFD9E  MOV      [EBP-04],EAX  
+0167:004EFDA1  MOV      EAX,[EBP-04]  
+0167:004EFDA4  CALL     00404D4C  
+0167:004EFDA9  XOR      EAX,EAX  
+0167:004EFDAB  PUSH     EBP  
+0167:004EFDAC  PUSH     DWORD 004EFEA2  
+0167:004EFDB1  PUSH     DWORD [FS:EAX]  
+0167:004EFDB4  MOV      [FS:EAX],ESP  
+0167:004EFDB7  LEA      EAX,[EBP-0C]  
+0167:004EFDBA  MOV      EDX,[EBP-04]  
+0167:004EFDBD  CALL     00404944  
+0167:004EFDC2  MOV      EAX,[EBP-0C]           <---D EAX 可在数据区看到为 29301  
+0167:004EFDC5  CALL     00404B64                <---取 EAX 的位数   
+0167:004EFDCA  TEST     EAX,EAX  
+0167:004EFDCC  JNG      NEAR 004EFE67  
+0167:004EFDD2  MOV      [EBP-14],EAX  
+0167:004EFDD5  MOV      EBX,01                  <---EBX=1  
+0167:004EFDDA  MOV      EDI,EBX                 <---EDI=EBX  
+0167:004EFDDC  IMUL     EDI,EBX                 <---EDI=EDI*EBX  
+0167:004EFDDF  MOV      EAX,EDI                 <---EAX=EDI  
+0167:004EFDE1  IMUL     EBX                     <---EAX=EAX*EBX  
+0167:004EFDE3  LEA      EDX,[EBX+14]            <---EDX=EBX+14   
+0167:004EFDE6  MOV      ECX,EDX                 <---ECX=EDX  
+0167:004EFDE8  CDQ                               <---EDX=0  
+0167:004EFDE9  IDIV     ECX                     
+0167:004EFDEB  MOV      ESI,EDX                 <---ESI=EDX=EAX mod ECX  
+0167:004EFDED  MOV      EAX,EDI                 <---EAX=EDI  
+0167:004EFDEF  LEA      EDX,[EBX+0A]            <---EDX=EBX+0A  
+0167:004EFDF2  MOV      ECX,EDX                 <---ECX=EDX  
+0167:004EFDF4  CDQ                               
+0167:004EFDF5  IDIV     ECX  
+0167:004EFDF7  ADD      ESI,EDX                 <---ESI=EAX mod ECX +ESI  
+0167:004EFDF9  MOV      EAX,EBX                 <---EAX=EBX  
+0167:004EFDFB  ADD      EAX,EAX                 <---EAX=EAX*2  
+0167:004EFDFD  ADD      ESI,EAX                 <---ESI=ESI+EAX   
+0167:004EFDFF  INC      ESI                     <---ESI 加 1  
+0167:004EFE00  LEA      EAX,[EBP-18]  
+0167:004EFE03  MOV      EDX,[EBP-0C]  
+0167:004EFE06  MOVZX    EDX,BYTE [EDX+EBX-01] <---按位取转换后的值 29301  
+0167:004EFE0B  ADD      EDX,ESI                 <---EDX=EDX+ESI  
+0167:004EFE0D  CALL     00404A8C           <---将 EDX 中的十六进制值转换为相应的字符  
+0167:004EFE12  MOV      EDX,[EBP-18]           <---结果放在 EDX 中  
+0167:004EFE15  LEA      EAX,[EBP-10]  
+0167:004EFE18  CALL     00404B6C  
+0167:004EFE1D  MOV      EAX,EBX                 <---EAX=EBX  
+0167:004EFE1F  IMUL     EBX                     <---EAX=EAX*EBX  
+0167:004EFE21  IMUL     EBX                     <---EAX=EAX*EBX  
+0167:004EFE23  LEA      EDX,[EBX+0A]            <---EDX=EBX+0A  
+0167:004EFE26  MOV      ECX,EDX                 <---ECX=EDX  
+0167:004EFE28  CDQ                               
+0167:004EFE29  IDIV     ECX  
+0167:004EFE2B  MOV      ESI,EDX                 <---ESI=EAX mod ECX  
+0167:004EFE2D  MOV      EAX,EDI                 <---EAX=EDI  
+0167:004EFE2F  LEA      EDX,[EBX+14]            <---EDX=EBX+14  
+0167:004EFE32  MOV      ECX,EDX                 <---ECX=EDX  
+0167:004EFE34  CDQ                               
+0167:004EFE35  IDIV     ECX  
+0167:004EFE37  ADD      ESI,EDX                 <---ESI=ESI+EAX mod ECX  
+0167:004EFE39  MOV      EAX,EBX                 <---EAX=EBX  
+0167:004EFE3B  ADD      EAX,EAX                 <---EAX=EAX*2  
+0167:004EFE3D  ADD      ESI,EAX                 <---ESI=ESI+EAX  
+0167:004EFE3F  INC      ESI                     <---ESI=ESI+1  
+0167:004EFE40  LEA      EAX,[EBP-1C]  
+0167:004EFE43  MOV      EDX,[EBP-0C]  
+0167:004EFE46  MOVZX    EDX,BYTE [EDX+EBX-01]  
+0167:004EFE4B  ADD      EDX,ESI                 <---EDX=EDX+ESI   
+0167:004EFE4D  CALL     00404A8C           <---将 EDX 中的十六进制值转换为相应的字符  
+0167:004EFE52  MOV      EDX,[EBP-1C]  
+0167:004EFE55  LEA      EAX,[EBP-10]             <----------------------------  
+0167:004EFE58  CALL     00404B6C  
+0167:004EFE5D  INC      EBX                       
+0167:004EFE5E  DEC      DWORD [EBP-14]       <---通过[EBP-14]中的值进行循环控制   
+0167:004EFE61  JNZ      NEAR 004EFDDA         <---是否取完“29301”      
+0167:004EFE67  MOV      EAX,[EBP-08]  
+0167:004EFE6A  MOV      EDX,[EBP-10]           <---D EDX 可看到计算得到的正确注册码  
+0167:004EFE6D  CALL     00404900  
+0167:004EFE72  XOR      EAX,EAX  
+```
+
+
+
+```
+0167:004EFE74  POP      EDX
+0167:004EFE75  POP      ECX
+0167:004EFE76  POP      ECX
+0167:004EFE77  MOV      [FS:EAX],EDX
+0167:004EFE7A  PUSH     DWORD 004EFEA9
+0167:004EFE7F  LEA      EAX,[EBP-1C]
+0167:004EFE82  MOV      EDX,02
+0167:004EFE87  CALL     004048D0
+0167:004EFE8C  LEA      EAX,[EBP-10]
+0167:004EFE8F  MOV      EDX,02
+0167:004EFE94  CALL     004048D0
+0167:004EFE99  LEA      EAX,[EBP-04]
+0167:004EFE9C  CALL     004048AC
+0167:004EFEA1  RET
+0167:004EFEA2  JMP      00404170
+0167:004EFEA7  JMP      SHORT 004EFE7F
+0167:004EFEA9  POP      EDI
+0167:004EFEAA  POP      ESI
+0167:004EFEAB  POP      EBX
+0167:004EFEAC  MOV      ESP,EBP
+0167:004EFEAE  POP      EBP
+0167:004EFEAF  RET
+```
+
+该程序注册成功后将注册信息保存在注册表的`HKEY_CURRENT_USER/Software/SysRegistry`中。
+
+我得到的注册码为：
+
+用户名：`ShenGe`
+
+注册码：`77JJGDKQFA  4dd466d0e1e0cc123afbe504da2462ca`

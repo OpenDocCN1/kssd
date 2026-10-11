@@ -1,0 +1,131 @@
+
+转化成十进制字符串 ASCII "61753195"
+
+```
+004975A8  .| 8B45 DC        |MOV EAX,DWORD PTR SS:[EBP-24]
+004975AB  .| E8 C4D3F6FF    |CALL unpak.00404974 得到字符串的长度
+004975B0  .| 83F8 06        |CMP EAX,6
+004975B3  .| 7C E4          |JL SHORT unpak.00497599 小于 6 跳走
+```
+
+如果长度小于 6 则将 `EBX` 的值乘上 3 继续转化
+
+```
+004975B5  .| 8D55 EC        |LEA EDX,DWORD PTR SS:[EBP-14]
+004975B8  .| 8BC3           |MOV EAX,EBX
+004975BA  .| E8 2D17F7FF    |CALL unpak.00408CEC
+004975BF  .| 8D45 EC        |LEA EAX,DWORD PTR SS:[EBP-14]
+004975C2  .| 50             |PUSH EAX
+004975C3  .| B9 06000000    |MOV ECX,6
+004975C8  .| BA 01000000    |MOV EDX,1
+004975CD  .| 8B45 EC        |MOV EAX,DWORD PTR SS:[EBP-14]
+004975D0  .| E8 F7D5F6FF    |CALL unpak.00404BCC 因为上面字符串长度为 8>6 所以取上面字符串从第一位开始长度为 6 的子字符串结果为 ASCII "617531"
+004975D5  .| 8D45 F4        |LEA EAX,DWORD PTR SS:[EBP-C]
+004975D8  .| 8B4D EC        |MOV ECX,DWORD PTR SS:[EBP-14]
+004975DB  .| 8B55 F0        |MOV EDX,DWORD PTR SS:[EBP-10]取前 6 位
+004975DE  .| E8 DDD3F6FF    |CALL unpak.004049C0 将上面求得的字符串连接起来
+0012F9AC  0119B724  ASCII "207002617531"
+004975E3  .| 8D45 F0        |LEA EAX,DWORD PTR SS:[EBP-10]
+004975E6  .| E8 D1D0F6FF    |CALL unpak.004046BC
+004975EB  .| 8D45 EC        |LEA EAX,DWORD PTR SS:[EBP-14]
+004975EE  .| E8 C9D0F6FF    |CALL unpak.004046BC
+004975F3  .| BB 01000000    |MOV EBX,1
+```
+
+下面计算注册吗的第一部分，前面取偶数位连接起来
+
+```
+004975F8  |> 8BC3           |/MOV EAX,EBX
+004975FA  .| D1F8           |SAR EAX,1 算术右移 1 位 EAX＝EAX/2
+004975FC  .| 79 03          |JNS SHORT unpak.00497601
+004975FE  .| 83D0 00        |ADC EAX,0
+00497601  |> 03C0           |ADD EAX,EAX 也就是 EAX*2 因为大家知道在 C++或者 DELPHI 中，如果对一个整数进行先除以 2 再乘 2，若是偶数其结果和原来数据的相同，若是奇数则结果不想等，这里就是根据这个来得
+00497603  .| 3BD8           |CMP EBX,EAX
+00497605  .| 75 37          |JNZ SHORT unpak.0049763E
+00497607  .| 8D45 D0        |LEA EAX,DWORD PTR SS:[EBP-30]
+0049760A  .| 50             |PUSH EAX
+0049760B  .| B9 01000000    |MOV ECX,1
+00497610  .| 8BD3           |MOV EDX,EBX
+00497612  .| 8B45 F4        |MOV EAX,DWORD PTR SS:[EBP-C]
+00497615  .| E8 B2D5F6FF    |CALL unpak.00404BCC
+0049761A  .| 8B4D D0        |MOV ECX,DWORD PTR SS:[EBP-30]
+0049761D  .| 8D45 D4        |LEA EAX,DWORD PTR SS:[EBP-2C]
+00497620  .| 8B55 F0        |MOV EDX,DWORD PTR SS:[EBP-10]
+00497623  .| E8 98D3F6FF    |CALL unpak.004049C0 连接函数
+00497628  .| 8B45 D4        |MOV EAX,DWORD PTR SS:[EBP-2C]
+0049762B  .| 8D55 D8        |LEA EDX,DWORD PTR SS:[EBP-28]
+0049762E  .| E8 6914F7FF    |CALL unpak.00408A9C
+00497633  .| 8B55 D8        |MOV EDX,DWORD PTR SS:[EBP-28]
+00497636  .| 8D45 F0        |LEA EAX,DWORD PTR SS:[EBP-10]
+00497639  .| E8 16D1F6FF    |CALL unpak.00404754 连接求得的每位字符
+0049763E  |> 43             |INC EBX
+0049763F  .| 83FB 0D        |CMP EBX,0D 看看是否已经完成
+00497642  .| 75 B4          |JNZ SHORT unpak.004975F8
+00497644  .| BB 01000000    |MOV EBX,1
+```
+
+取字符串的偶数位（注意第一位下标为 1），并逐位连接结果为： ASCII "002151"
+
+```
+00497649  |> 8BC3           |/MOV EAX,EBX
+0049764B  .| D1F8           |SAR EAX,1 右移 1 位
+0049764D  .| 79 03          |JNS SHORT unpak.00497652
+0049764F  .| 83D0 00        |ADC EAX,0
+00497652  |> 03C0           |ADD EAX,EAX
+00497654  .| 3BD8           |CMP EBX,EAX 和上面一样这里取奇数位然后连接
+00497656  .| 74 37          |JE SHORT unpak.0049768F
+00497658  .| 8D45 C4        |LEA EAX,DWORD PTR SS:[EBP-3C]
+0049765B  .| 50             |PUSH EAX
+0049765C  .| B9 01000000    |MOV ECX,1
+00497661  .| 8BD3           |MOV EDX,EBX
+00497663  .| 8B45 F4        |MOV EAX,DWORD PTR SS:[EBP-C]
+00497666  .| E8 61D5F6FF    |CALL unpak.00404BCC
+0049766B  .| 8B4D C4        |MOV ECX,DWORD PTR SS:[EBP-3C]
+0049766E  .| 8D45 C8        |LEA EAX,DWORD PTR SS:[EBP-38]
+00497671  .| 8B55 EC        |MOV EDX,DWORD PTR SS:[EBP-14]
+00497674  .| E8 47D3F6FF    |CALL unpak.004049C0
+00497679  .| 8B45 C8        |MOV EAX,DWORD PTR SS:[EBP-38]
+0049767C  .| 8D55 CC        |LEA EDX,DWORD PTR SS:[EBP-34]
+0049767F  .| E8 1814F7FF    |CALL unpak.00408A9C
+00497684  .| 8B55 CC        |MOV EDX,DWORD PTR SS:[EBP-34]
+00497687  .| 8D45 EC        |LEA EAX,DWORD PTR SS:[EBP-14]
+0049768A  .| E8 C5D0F6FF    |CALL unpak.00404754
+0049768F  |> 43             |INC EBX
+00497690  .| 83FB 0D        |CMP EBX,0D 比较
+00497693  .| 75 B4          |JNZ SHORT unpak.00497649 循环 2
+```
+
+结果位 ASCII "270673"
+
+```
+00497695  .| 8BC6           |MOV EAX,ESI
+00497697  .| 8B4D EC        |MOV ECX,DWORD PTR SS:[EBP-14]
+0049769A  .| 8B55 F0        |MOV EDX,DWORD PTR SS:[EBP-10]
+0049769D  .| E8 1ED3F6FF    |CALL unpak.004049C0 将上面两部分连接起来
+004976A2  .| 33C0           |XOR EAX,EAX
+004976A4  .| 5A             |POP EDX
+004976A5  .| 59             |POP ECX
+004976A6  .| 59             |POP ECX
+004976A7  .| 64:8910        |MOV DWORD PTR FS:[EAX],EDX
+004976AA  .| 68 C4764900    |PUSH unpak.004976C4
+004976AF  |> 8D45 C4        |LEA EAX,DWORD PTR SS:[EBP-3C]
+004976B2  .| BA 0F000000    |MOV EDX,0F
+004976B7  .| E8 24D0F6FF    |CALL unpak.004046E0
+004976BC  .  C3             |RETN
+```
+
+--------------------------------------------------------------------------------
+
+## 破解总结
+
+算法总结：先得到软件序列号，然后去掉编号的前两位得到一个新的字符串 `1`，从字符串 `1` 的第 `1` 个开始 `5` 个字符作为第一部分记为字符串 `A`，从第 `6` 位开始的 `6` 个字符做为第二部分记为字符串 `B`，如果还有多余的字符串则抛弃掉。然后将 `B` 转化为十六进制，除以 `3` 的商在转化为十进制的字符串 `C`，并通过转化将 `C` 串的长度最终大于等于 `6`，若 `>6` 再取前六个字符记为 `G`。接着取输入注册码的第一部分数字转化成十六进制，接着将字符串 `A` 转化成十六进制，并将这两个数加起来除以 `2`，再转化成十进制字符串，取前六位记为 `H`，然后将 `G` 和 `H` 连接起来记为 `M`。然后将 `M` 按顺序先取所有偶数位，再取所有奇数位，重新连接成新的字符串，这就是你的注册码的第二部分。
+
+注册信息保存在安装目录下的 `data3` 文件中。删去该文件可重新注册。
+
+--------------------------------------------------------------------------------
+
+## 版权声明
+
+本文纯属技术交流，转载请注明作者并保持文章的完整，谢谢！
+
+`4dd466d0e1e0cc123afbe504da2462ca`
