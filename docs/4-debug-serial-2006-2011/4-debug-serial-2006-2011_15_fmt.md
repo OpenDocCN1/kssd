@@ -1,0 +1,828 @@
+
+# ATani 3.8.10
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-299.htm`](https://www.pediy.com/kssd/pediy08/pediy8-299.htm)
+
+【破解软件】`ATani 3.8.10`
+
+【下载地址】`http://www.newhua.com/soft/31663.htm`
+
+【运行环境】`Win9x/Me/NT/2000/XP/2003`
+
+【软件类别】国外软件/共享版/动画制作
+
+【保护方式】注册码
+
+【编写语言】`Borland C++ 1999`
+
+【调试工具】`OllyDbg`、`PEiD`
+
+【软件信息】动画 `GIF` 制作软件，制作动画只需五个步骤。你可以使用 `BMP`、`GIF`、`JPG`、`ICO`、`PNG` 文件作为动画帧。完成后可保存为 `GIF` 或 `AVI` 文件。
+
+【作者声明】初学 `Crack`，只是感兴趣，消遣业余时间，错误之处敬请诸位前辈不吝赐教。
+
+## 一、追码过程
+
+`OD` 载入，字串参考：`your registration code is wrong. restart the program and repeat the registration once again.`
+
+在 `0043DFC4` 处下断，`F9` 运行程序断下。
+
+```
+0043DFC4   .   55                 PUSH EBP                   ;  (初始 cpu 选择)
+0043DFC5   .   8BEC               MOV EBP,ESP
+0043DFC7   .   83C4 8C            ADD ESP,-74
+0043DFCA   .   53                 PUSH EBX
+0043DFCB   .   56                 PUSH ESI
+0043DFCC   .   57                 PUSH EDI
+0043DFCD   .   8BD8               MOV EBX,EAX
+0043DFCF   .   B8 18AB6100        MOV EAX,atani.0061AB18
+0043DFD4   .   E8 C32E1B00        CALL atani.005F0E9C
+0043DFD9   .   66:C745 B4 0800    MOV WORD PTR SS:[EBP-4C],8
+0043DFDF   .   8B15 A8236500      MOV EDX,DWORD PTR DS:[6523A8]     ;  atani.00652FF8
+0043DFE5   .   8B0A               MOV ECX,DWORD PTR DS:[EDX]
+0043DFE7   .   B2 01              MOV DL,1
+0043DFE9   .   A1 0C0E6400        MOV EAX,DWORD PTR DS:[640E0C]
+0043DFEE   .   E8 A9A70E00        CALL atani.0052879C
+0043DFF3   .   8BF0               MOV ESI,EAX
+0043DFF5   .   8975 FC            MOV DWORD PTR SS:[EBP-4],ESI
+0043DFF8   .   8BC6               MOV EAX,ESI
+0043DFFA   .   FF45 C0            INC DWORD PTR SS:[EBP-40]
+0043DFFD   .   66:C745 B4 1400    MOV WORD PTR SS:[EBP-4C],14
+0043E003   .   8B10               MOV EDX,DWORD PTR DS:[EAX]
+0043E005   .   FF92 D8000000      CALL NEAR DWORD PTR DS:[EDX+D8]   ;  注册框是否输入注册码？
+0043E00B   .   48                 DEC EAX
+0043E00C   .   0F85 15040000      JNZ atani.0043E427                 ;  注册框未输入注册码跳走
+0043E012   .   8BC3               MOV EAX,EBX
+\-------------------------中间省略-----------------------------------
+0043E06B   .   53                 PUSH EBX
+0043E06C   .   E8 7B040000        CALL atani.0043E4EC               ;  关键 Call
+0043E071   .   59                 POP ECX
+0043E072   .   84C0               TEST AL,AL                         ;  AL=0 注册失败
+0043E074   .   75 52              JNZ SHORT atani.0043E0C8           ;  跳注册成功
+0043E076   .   6A 00              PUSH 0
+0043E078   .   BA DA3A6100        MOV EDX,atani.00613ADA            ;  your registration code is wrong. restart the
+ program and repeat the registration once again.
+0043E07D   .   66:C745 B4 2C00    MOV WORD PTR SS:[EBP-4C],2C
+0043E083   .   8D45 F8            LEA EAX,DWORD PTR SS:[EBP-8]
+```
+
+`F7` 进入 `0043E06C` 处关键 `Call`
+
+设假码为 `S`，由三部分组成 `S1+S2+S3`，`S1` 为假码第 1 位，`S2` 是从第 2 位起长度是 `S1` 的值，剩余部分是 `S3`。
+
+```
+0043E4EC  /$   55                 PUSH EBP
+0043E4ED  |.   8BEC               MOV EBP,ESP
+0043E4EF  |.   83C4 CC            ADD ESP,-34
+0043E4F2  |.   B8 48AC6100        MOV EAX,atani.0061AC48
+0043E4F7  |.   53                 PUSH EBX
+0043E4F8  |.   56                 PUSH ESI
+0043E4F9  |.   57                 PUSH EDI
+0043E4FA  |.   8B5D 08            MOV EBX,DWORD PTR SS:[EBP+8]
+0043E4FD  |.   E8 9A291B00        CALL atani.005F0E9C
+0043E502  |.   66:C745 DC 1400    MOV WORD PTR SS:[EBP-24],14
+0043E508  |.   33D2               XOR EDX,EDX
+0043E50A  |.   8D4D F4            LEA ECX,DWORD PTR SS:[EBP-C]
+0043E50D  |.   8955 F4            MOV DWORD PTR SS:[EBP-C],EDX
+0043E510  |.   51                 PUSH ECX
+0043E511  |.   FF45 E8            INC DWORD PTR SS:[EBP-18]
+0043E514  |.   8DBB B80A0000      LEA EDI,DWORD PTR DS:[EBX+AB8]
+0043E51A  |.   8BC7               MOV EAX,EDI
+0043E51C  |.   B9 01000000        MOV ECX,1
+0043E521  |.   BA 01000000        MOV EDX,1
+0043E526  |.   E8 2DDB1B00        CALL atani.005FC058               ;  取出 S1
+0043E52B  |.   8D45 F4            LEA EAX,DWORD PTR SS:[EBP-C]      ;  [EBP-C]S1 地址
+0043E52E  |.   33D2               XOR EDX,EDX
+0043E530  |.   E8 57DC1B00        CALL atani.005FC18C               ;  检查 S1 是否 <=9
+0043E535  |.   8BF0               MOV ESI,EAX                       ;  满足条件 EAX=S1 否则 EAX=0
+0043E537  |.   FF4D E8            DEC DWORD PTR SS:[EBP-18]
+0043E53A  |.   8D45 F4            LEA EAX,DWORD PTR SS:[EBP-C]
+0043E53D  |.   BA 02000000        MOV EDX,2
+0043E542  |.   E8 A1D71B00        CALL atani.005FBCE8
+0043E547  |.   66:C745 DC 0800    MOV WORD PTR SS:[EBP-24],8
+0043E54D  |.   83FE 04            CMP ESI,4                          ;  ESI=S1
+0043E550  |.   7D 11              JGE SHORT atani.0043E563           ;  S1 要大于等于 4
+0043E552  |.   33C0               XOR EAX,EAX
+0043E554  |.   8B55 CC            MOV EDX,DWORD PTR SS:[EBP-34]
+0043E557  |.   64:8915 00000000   MOV DWORD PTR FS:[0],EDX
+0043E55E  |.   E9 FD000000        JMP atani.0043E660
+0043E563  |>   66:C745 DC 2000    MOV WORD PTR SS:[EBP-24],20
+0043E569  |.   33C9               XOR ECX,ECX
+0043E56B  |.   8D45 FC            LEA EAX,DWORD PTR SS:[EBP-4]
+0043E56E  |.   894D FC            MOV DWORD PTR SS:[EBP-4],ECX
+0043E571  |.   50                 PUSH EAX
+0043E572  |.   FF45 E8            INC DWORD PTR SS:[EBP-18]
+0043E575  |.   8BC7               MOV EAX,EDI                       ;  EDI 假码地址
+0043E577  |.   8BCE               MOV ECX,ESI
+0043E579  |.   BA 02000000        MOV EDX,2
+0043E57E  |.   E8 D5DA1B00        CALL atani.005FC058               ;  取 S2(从第 2 位起，长度是第 1 位假码)
+0043E583  |.   66:C745 DC 0800    MOV WORD PTR SS:[EBP-24],8
+0043E589  |.   837D FC 00         CMP DWORD PTR SS:[EBP-4],0        ;  [EBP-4]=copy(S,2,s1)
+0043E58D  |.   74 08              JE SHORT atani.0043E597
+0043E58F  |.   8B45 FC            MOV EAX,DWORD PTR SS:[EBP-4]
+0043E592  |.   8B50 FC            MOV EDX,DWORD PTR DS:[EAX-4]
+0043E595  |.   EB 02              JMP SHORT atani.0043E599
+0043E597  |>   33D2               XOR EDX,EDX
+0043E599  |>   3BF2               CMP ESI,EDX                       ;  比较 S1 的值与 S2 的长度
+0043E59B  |.   74 23              JE SHORT atani.0043E5C0           ;  要跳
+0043E59D  |.   33C0               XOR EAX,EAX
+0043E59F  |.   BA 02000000        MOV EDX,2
+0043E5A4  |.   50                 PUSH EAX
+0043E5A5  |.   8D45 FC            LEA EAX,DWORD PTR SS:[EBP-4]
+0043E5A8  |.   FF4D E8            DEC DWORD PTR SS:[EBP-18]
+0043E5AB  |.   E8 38D71B00        CALL atani.005FBCE8
+0043E5B0  |.   58                 POP EAX
+0043E5B1  |.   8B55 CC            MOV EDX,DWORD PTR SS:[EBP-34]
+0043E5B4  |.   64:8915 00000000   MOV DWORD PTR FS:[0],EDX
+0043E5BB  |.   E9 A0000000        JMP atani.0043E660
+0043E5C0  |>   66:C745 DC 2C00    MOV WORD PTR SS:[EBP-24],2C
+0043E5C6  |.   8D4D FC            LEA ECX,DWORD PTR SS:[EBP-4]
+0043E5C9  |.   33C0               XOR EAX,EAX
+0043E5CB  |.   51                 PUSH ECX
+0043E5CC  |.   53                 PUSH EBX
+0043E5CD  |.   8945 F8            MOV DWORD PTR SS:[EBP-8],EAX
+0043E5D0  |.   8D55 F8            LEA EDX,DWORD PTR SS:[EBP-8]
+0043E5D3  |.   52                 PUSH EDX
+0043E5D4  |.   FF45 E8            INC DWORD PTR SS:[EBP-18]
+0043E5D7  |.   E8 8C000000        CALL atani.0043E668               ;  运算假码 F7 进入
+0043E5DC  |.   66:C745 DC 0800    MOV WORD PTR SS:[EBP-24],8
+0043E5E2  |.   66:C745 DC 3800    MOV WORD PTR SS:[EBP-24],38
+```
+
+
+
+```
+0043E5E8   |.   83C4 0C            ADD ESP,0C  
+
+0043E5EB   |.   33C9             XOR ECX,ECX  
+
+0043E5ED   |.   894D F0          MOV DWORD PTR SS:[EBP-10],ECX  
+
+0043E5F0   |.   8D45 F0          LEA EAX,DWORD PTR SS:[EBP-10]  
+
+0043E5F3   |.   50             PUSH EAX  
+
+0043E5F4   |.   8DBB B80A0000    LEA EDI,DWORD PTR DS:[EBX+AB8]  
+
+0043E5FA   |.   FF45 E8          INC DWORD PTR SS:[EBP-18]  
+
+0043E5FD   |.   833F 00          CMP DWORD PTR DS:[EDI],0           ;  [EDI]=假码  
+
+0043E600   |.   74 07            JE SHORT atani.0043E609  
+
+0043E602   |.   8B07             MOV EAX,DWORD PTR DS:[EDI]         ;  [EDI]=假码  
+
+0043E604   |.   8B48 FC          MOV ECX,DWORD PTR DS:[EAX-4]       ;  [EAX-4]假码位数  
+
+0043E607   |.   EB 02            JMP SHORT atani.0043E60B  
+
+0043E609   |>   33C9             XOR ECX,ECX  
+
+0043E60B   |>   8D56 02          LEA EDX,DWORD PTR DS:[ESI+2]       ;  [ESI+2]=S1+2  
+
+0043E60E   |.   8D83 B80A0000    LEA EAX,DWORD PTR DS:[EBX+AB8]     ;  [EBX+AB8]假码地址  
+
+0043E614   |.   E8 3FDA1B00      CALL atani.005FC058                ;  取出 S3  
+
+0043E619   |.   8D55 F0          LEA EDX,DWORD PTR SS:[EBP-10]      ;  [EBP-10]=S3  
+
+0043E61C   |.   8D45 F8          LEA EAX,DWORD PTR SS:[EBP-8]       ;  [EBP-8]=S2 的计算结果  
+
+0043E61F   |.   E8 A8D71B00      CALL atani.005FBDCC                ;  验证 S3 是否等于 S2 的计算结果  
+
+0043E624   |.   50             PUSH EAX                            ;  相等 EAX=1  
+
+0043E625   |.   FF4D E8          DEC DWORD PTR SS:[EBP-18]  
+
+0043E628   |.   8D45 F0          LEA EAX,DWORD PTR SS:[EBP-10]  
+
+0043E62B   |.   BA 02000000      MOV EDX,2  
+
+0043E630   |.   E8 B3D61B00      CALL atani.005FBCE8  
+
+0043E635   |.   FF4D E8          DEC DWORD PTR SS:[EBP-18]  
+
+0043E638   |.   8D45 F8          LEA EAX,DWORD PTR SS:[EBP-8]  
+
+0043E63B   |.   BA 02000000      MOV EDX,2  
+
+0043E640   |.   E8 A3D61B00      CALL atani.005FBCE8  
+
+0043E645   |.   FF4D E8          DEC DWORD PTR SS:[EBP-18]  
+
+0043E648   |.   8D45 FC          LEA EAX,DWORD PTR SS:[EBP-4]  
+
+0043E64B   |.   BA 02000000      MOV EDX,2  
+
+0043E650   |.   E8 93D61B00      CALL atani.005FBCE8  
+
+0043E655   |.   58             POP EAX  
+
+0043E656   |.   8B55 CC          MOV EDX,DWORD PTR SS:[EBP-34]  
+
+0043E659   |.   64:8915 00000000 MOV DWORD PTR FS:[0],EDX  
+
+0043E660   |>   5F             POP EDI  
+
+0043E661   |.   5E             POP ESI  
+
+0043E662   |.   5B             POP EBX  
+
+0043E663   |.   8BE5            MOV ESP,EBP  
+
+0043E665   |.   5D             POP EBP  
+
+0043E666   \.   C3             RETN                              ;  返回到 0043E071  
+
+在 0043E5D7 处 F7 进入 运算假码  
+
+0043E668   /$   55             PUSH EBP  
+
+0043E669   |.   8BEC            MOV EBP,ESP  
+
+0043E66B   |.   81C4 58FEFFFF    ADD ESP,-1A8  
+
+0043E671   |.   B8 50AF6100      MOV EAX,atani.0061AF50  
+
+0043E676   |.   53             PUSH EBX  
+
+0043E677   |.   56             PUSH ESI  
+
+0043E678   |.   57             PUSH EDI  
+
+0043E679   |.   E8 1E281B00      CALL atani.005F0E9C  
+
+0043E67E   |.   66:C785 2CFFFFFF 0>MOV WORD PTR SS:[EBP-D4],8  
+
+0043E687   |.   BA E33B6100      MOV EDX,atani.00613BE3           ;  87  
+
+0043E68C   |.   8D85 70FFFFFF    LEA EAX,DWORD PTR SS:[EBP-90]  
+
+0043E692   |.   E8 69D31B00      CALL atani.005FBA00  
+
+0043E697   |.   FF85 38FFFFFF    INC DWORD PTR SS:[EBP-C8]  
+
+0043E69D   |.   BA E63B6100      MOV EDX,atani.00613BE6           ;  74  
+
+0043E6A2   |.   8D85 74FFFFFF    LEA EAX,DWORD PTR SS:[EBP-8C]  
+
+0043E6A8   |.   E8 53D31B00      CALL atani.005FBA00  
+
+----------------表 1 字符入栈，部分省略-------------------------  
+
+0043E8F8   |.   8D45 F0          LEA EAX,DWORD PTR SS:[EBP-10]  
+
+0043E8FB   |.   E8 00D11B00      CALL atani.005FBA00  
+
+0043E900   |.   FF85 38FFFFFF    INC DWORD PTR SS:[EBP-C8]  
+
+0043E906   |.   BA 463C6100      MOV EDX,atani.00613C46           ;  ASCII "33"  
+
+0043E90B   |.   8D45 F4          LEA EAX,DWORD PTR SS:[EBP-C]  
+
+0043E90E   |.   E8 EDD01B00      CALL atani.005FBA00  
+
+0043E913   |.   FF85 38FFFFFF    INC DWORD PTR SS:[EBP-C8]  
+
+0043E919   |.   BA 493C6100      MOV EDX,atani.00613C49           ;  ASCII "25"  
+
+0043E91E   |.   8D45 F8          LEA EAX,DWORD PTR SS:[EBP-8]  
+
+0043E921   |.   E8 DAD01B00      CALL atani.005FBA00  
+
+0043E926   |.   FF85 38FFFFFF    INC DWORD PTR SS:[EBP-C8]  
+
+0043E92C   |.   BA 4C3C6100      MOV EDX,atani.00613C4C           ;  ASCII "10"  
+
+0043E931   |.   8D45 FC          LEA EAX,DWORD PTR SS:[EBP-4]  
+
+0043E934   |.   E8 C7D01B00      CALL atani.005FBA00  
+
+0043E939   |.   FF85 38FFFFFF    INC DWORD PTR SS:[EBP-C8]  
+
+0043E93F   |.   BE 481A6100      MOV ESI,atani.00611A48           ;  表 2['0'..'9','A'..'Z']地址入 ESI  
+
+0043E944   |.   8DBD E8FEFFFF    LEA EDI,DWORD PTR SS:[EBP-118]  
+
+0043E94A   |.   B9 09000000      MOV ECX,9  
+
+0043E94F   |.   F3:A5            REP MOVS DWORD PTR ES:[EDI],DWORD >;  表 2 入栈  
+
+0043E951   |.   BE 6C1A6100      MOV ESI,atani.00611A6C  
+
+0043E956   |.   8DBD 58FEFFFF    LEA EDI,DWORD PTR SS:[EBP-1A8]    ;  表 3 地址入 EDI  
+
+0043E95C   |.   B9 24000000      MOV ECX,24  
+
+0043E961   |.   F3:A5            REP MOVS DWORD PTR ES:[EDI],DWORD >;  表 3 入栈  
+
+0043E963   |.   66:C785 2CFFFFFF 1>MOV WORD PTR SS:[EBP-D4],14  
+
+0043E96C   |.   33C0             XOR EAX,EAX  
+
+0043E96E   |.   8985 6CFFFFFF    MOV DWORD PTR SS:[EBP-94],EAX  
+
+0043E974   |.   8D95 6CFFFFFF    LEA EDX,DWORD PTR SS:[EBP-94]  
+
+0043E97A   |.   FF85 38FFFFFF    INC DWORD PTR SS:[EBP-C8]  
+
+0043E980   |.   8B45 10          MOV EAX,DWORD PTR SS:[EBP+10]     ;  [EBP+10]=S2 地址  
+
+0043E983   |.   E8 48D61B00      CALL atani.005FBFD0  
+
+0043E988   |.   66:C785 2CFFFFFF 0>MOV WORD PTR SS:[EBP-D4],8  
+
+0043E991   |.   33D2             XOR EDX,EDX  
+
+0043E993   |.   33C9             XOR ECX,ECX  
+
+0043E995   |.   8995 18FFFFFF    MOV DWORD PTR SS:[EBP-E8],EDX  
+
+0043E99B   |.   898D 14FFFFFF    MOV DWORD PTR SS:[EBP-EC],ECX  
+
+0043E9A1   |.   66:C785 2CFFFFFF 2>MOV WORD PTR SS:[EBP-D4],20  
+
+0043E9AA   |.   BA 4F3C6100      MOV EDX,atani.00613C4F  
+
+0043E9AF   |.   8D85 68FFFFFF    LEA EAX,DWORD PTR SS:[EBP-98]  
+
+0043E9B5   |.   E8 46D01B00      CALL atani.005FBA00  
+
+0043E9BA   |.   FF85 38FFFFFF    INC DWORD PTR SS:[EBP-C8]  
+
+0043E9C0   |.   BA 503C6100      MOV EDX,atani.00613C50  
+
+0043E9C5   |.   66:C785 2CFFFFFF 0>MOV WORD PTR SS:[EBP-D4],8  
+
+0043E9CE   |.   66:C785 2CFFFFFF 2>MOV WORD PTR SS:[EBP-D4],2C  
+
+0043E9D7   |.   8D85 64FFFFFF    LEA EAX,DWORD PTR SS:[EBP-9C]  
+
+0043E9DD   |.   E8 1ED01B00      CALL atani.005FBA00  
+
+0043E9E2   |.   FF85 38FFFFFF    INC DWORD PTR SS:[EBP-C8]  
+
+0043E9E8   |.   66:C785 2CFFFFFF 0>MOV WORD PTR SS:[EBP-D4],8  
+
+0043E9F1   |.   C785 10FFFFFF 0100>MOV DWORD PTR SS:[EBP-F0],1  
+
+0043E9FB   |.   E9 85000000      JMP atani.0043EA85  
+
+0043EA00   |>   66:C785 2CFFFFFF 0>/MOV WORD PTR SS:[EBP-D4],8  
+
+0043EA09   |.   8D85 58FEFFFF    |LEA EAX,DWORD PTR SS:[EBP-1A8]    ;  [EBP-1A8]表 3 地址  
+
+0043EA0F   |.   33F6             |XOR ESI,ESI  
+
+0043EA11   |.   8985 0CFFFFFF    |MOV DWORD PTR SS:[EBP-F4],EAX  
+
+0043EA17   |.   8DBD E8FEFFFF    |LEA EDI,DWORD PTR SS:[EBP-118]    ;  [EBP-118]表 2 地址  
+
+0043EA1D   |>   8B9D 10FFFFFF    |/MOV EBX,DWORD PTR SS:[EBP-F0]  
+
+0043EA23   |.   53             ||PUSH EBX                          
+
+0043EA24   |.   8D85 6CFFFFFF    ||LEA EAX,DWORD PTR SS:[EBP-94]    
+
+0043EA2A   |.   50             ||PUSH EAX                          
+
+0043EA2B   |.   E8 4CCF1B00      ||CALL atani.005FB97C              
+
+0043EA30   |.   83C4 08          ||ADD ESP,8  
+
+0043EA33   |.   8D85 6CFFFFFF    ||LEA EAX,DWORD PTR SS:[EBP-94]  
+
+0043EA39   |.   E8 8AD41B00      ||CALL atani.005FBEC8  
+
+0043EA3E   |.   039D 6CFFFFFF    ||ADD EBX,DWORD PTR SS:[EBP-94]  
+
+0043EA44   |.   4B             ||DEC EBX  
+
+0043EA45   |.   8A13             ||MOV DL,BYTE PTR DS:[EBX]         ;  [EBX]=S2  
+```
+
+
+
+```
+0043EA47   |.  3A17               ||CMP DL,BYTE PTR DS:\[EDI\]          ;  \[EDI\]=表 2  
+
+0043EA49   |.  75 26              ||JNZ SHORT atani.0043EA71  
+
+0043EA4B   |.  8BD6               ||MOV EDX,ESI                        ;  ESI 循环次数  
+
+0043EA4D   |.  C1E2 02            ||SHL EDX,2                          ;  相当于次数乘 4  
+
+0043EA50   |.  8D85 70FFFFFF      ||LEA EAX,DWORD PTR SS:\[EBP-90\]     ;  \[EBP-90\]表 1 地址  
+
+0043EA56   |.  03D0               ||ADD EDX,EAX                        ;  定位表 1 地址  
+
+0043EA58   |.  8D85 64FFFFFF      ||LEA EAX,DWORD PTR SS:\[EBP-9C\]  
+
+0043EA5E   |.  E8 C9D21B00        ||CALL atani.005FBD2C                ;  根据 S2 取出表 1 中字符  
+
+0043EA63   |.  8B95 0CFFFFFF      ||MOV EDX,DWORD PTR SS:\[EBP-F4\]     ;  \[EBP-F4\]根据 S2 取表 3 中对应地址  
+
+0043EA69   |.  8B0A               ||MOV ECX,DWORD PTR DS:\[EDX\]        ;  ECX=表 3 取出的数  
+
+0043EA6B   |.  018D 18FFFFFF      ||ADD DWORD PTR SS:\[EBP-E8\],ECX     ;  表 3 中取出的数相加，设为 B3  
+
+0043EA71   |>  8385 0CFFFFFF 04   ||ADD DWORD PTR SS:\[EBP-F4\],4  
+
+0043EA78   |.  46                 ||INC ESI  
+
+0043EA79   |.  47                 ||INC EDI  
+
+0043EA7A   |.  83FE 24            ||CMP ESI,24                         ;  表 2 中元素个数是小循环次数  
+
+0043EA7D   |.^ 7C 9E              |\\JL SHORT atani.0043EA1D  
+
+0043EA7F   |.  FF85 10FFFFFF      |INC DWORD PTR SS:\[EBP-F0\]  
+
+0043EA85   |>  83BD 6CFFFFFF 00    CMP DWORD PTR SS:\[EBP-94\],0  
+
+0043EA8C   |.  74 0B              |JE SHORT atani.0043EA99  
+
+0043EA8E   |.  8B85 6CFFFFFF      |MOV EAX,DWORD PTR SS:\[EBP-94\]  
+
+0043EA94   |.  8B50 FC            |MOV EDX,DWORD PTR DS:\[EAX-4\]  
+
+0043EA97   |.  EB 02              |JMP SHORT atani.0043EA9B  
+
+0043EA99   |>  33D2               |XOR EDX,EDX  
+
+0043EA9B   |>  3B95 10FFFFFF      |CMP EDX,DWORD PTR SS:\[EBP-F0\]     ;  EDX=s1 大循环次数  
+
+0043EAA1   |.^ 0F8D 59FFFFFF      \\JGE atani.0043EA00  
+
+0043EAA7   |.  83BD 64FFFFFF 00   CMP DWORD PTR SS:\[EBP-9C\],0        ;  \[EBP-9C\]=表 1 选出的字符，设为 B1  
+
+0043EAAE   |.  74 0B              JE SHORT atani.0043EABB  
+
+0043EAB0   |.  8B85 64FFFFFF      MOV EAX,DWORD PTR SS:\[EBP-9C\]  
+
+0043EAB6   |.  8B58 FC            MOV EBX,DWORD PTR DS:\[EAX-4\]       ;  \[EAX-4\]=B1 的长度  
+
+0043EAB9   |.  EB 02              JMP SHORT atani.0043EABD  
+
+0043EABB   |>  33DB               XOR EBX,EBX  
+
+0043EABD   |>  66:C785 2CFFFFFF 0>MOV WORD PTR SS:\[EBP-D4\],8  
+
+0043EAC6   |.  83FB 08            CMP EBX,8  
+
+0043EAC9   |.  7E 46              JLE SHORT atani.0043EB11            ;  Length(B1) <=8 跳到下面处理  
+
+0043EACB   |.  83FB 12            CMP EBX,12  
+
+0043EACE   |.  7F 41              JG SHORT atani.0043EB11             ;  大于 12 到下面处理  
+
+0043EAD0   |.  83EB 08            SUB EBX,8  
+
+0043EAD3   |.  8D85 64FFFFFF      LEA EAX,DWORD PTR SS:\[EBP-9C\]  
+
+0043EAD9   |.  8BCB               MOV ECX,EBX  
+
+0043EADB   |.  BA 01000000        MOV EDX,1  
+
+0043EAE0   |.  E8 F7D31B00        CALL atani.005FBEDC                 ;  取 B1 后半部分  
+
+0043EAE5   |.  8BD0               MOV EDX,EAX  
+
+0043EAE7   |.  8D85 64FFFFFF      LEA EAX,DWORD PTR SS:\[EBP-9C\]     ;  \[EBP-9C\]B1 后半部分地址  
+
+0043EAED   |.  E8 26D21B00        CALL atani.005FBD18  
+
+0043EAF2   |.  8B85 64FFFFFF      MOV EAX,DWORD PTR SS:\[EBP-9C\]     ;  \[0012F858\]=01172528, (ASCII "53979956")  
+
+0043EAF8   |.  E8 174B1A00        CALL atani.005E3614                 ;  转成 16 进制  
+
+0043EAFD   |.  83C3 07            ADD EBX,7                           ;  B1 后半部分长度+7  
+
+0043EB00   |.  99                 CDQ  
+
+0043EB01   |.  F7FB               IDIV EBX                            ;  B1 后半部分除长度加 7 的商  
+
+0043EB03   |.  0385 18FFFFFF      ADD EAX,DWORD PTR SS:\[EBP-E8\]      ;  EAX=商+B3  
+
+0043EB09   |.  8985 14FFFFFF      MOV DWORD PTR SS:\[EBP-EC\],EAX  
+
+0043EB0F   |.  EB 49              JMP SHORT atani.0043EB5A  
+
+0043EB11   |>  83FB 04            CMP EBX,4  
+
+0043EB14   |.  7C 44              JL SHORT atani.0043EB5A  
+
+0043EB16   |.  83FB 08            CMP EBX,8  
+
+0043EB19   |.  7F 3F              JG SHORT atani.0043EB5A  
+
+0043EB1B   |.  83EB 04            SUB EBX,4  
+
+0043EB1E   |.  8D85 64FFFFFF      LEA EAX,DWORD PTR SS:\[EBP-9C\]  
+
+0043EB24   |.  8BCB               MOV ECX,EBX  
+
+0043EB26   |.  BA 01000000        MOV EDX,1  
+
+0043EB2B   |.  E8 ACD31B00        CALL atani.005FBEDC                 ;  取 B1 后半部分  
+
+0043EB30   |.  8BD0               MOV EDX,EAX  
+
+0043EB32   |.  8D85 64FFFFFF      LEA EAX,DWORD PTR SS:\[EBP-9C\]  
+
+0043EB38   |.  E8 DBD1B00        CALL atani.005FBD18  
+
+0043EB3D   |.  8B85 64FFFFFF      MOV EAX,DWORD PTR SS:\[EBP-9C\]     ;  \[EBP-9C\]B1 后半部分地址  
+
+0043EB43   |.  E8 CC4A1A00        CALL atani.005E3614                 ;  将 B1 后半部分转成 16 进制数  
+
+0043EB48   |.  83C3 02            ADD EBX,2                           ;  B1 后半部分长度+2  
+
+0043EB4B   |.  99                 CDQ  
+
+0043EB4C   |.  F7FB               IDIV EBX                            ;  B1 后半部分除长度加 2 的商  
+
+0043EB4E   |.  0385 18FFFFFF      ADD EAX,DWORD PTR SS:\[EBP-E8\]      ;  EAX=商+B3  
+
+0043EB54   |.  8985 14FFFFFF      MOV DWORD PTR SS:\[EBP-EC\],EAX  
+
+0043EB5A   |>  66:C785 2CFFFFFF 3>MOV WORD PTR SS:\[EBP-D4\],38  
+
+0043EB63   |.  8D85 60FFFFFF      LEA EAX,DWORD PTR SS:\[EBP-A0\]  
+
+0043EB69   |.  8B95 14FFFFFF      MOV EDX,DWORD PTR SS:\[EBP-EC\]  
+
+0043EB6F   |.  E8 64D01B00        CALL atani.005FBBD8                 ;  转成 10 进制(商+B3)  
+
+0043EB74   |.  FF85 38FFFFFF      INC DWORD PTR SS:\[EBP-C8\]  
+
+0043EB7A   |.  66:C785 2CFFFFFF 0>MOV WORD PTR SS:\[EBP-D4\],8  
+
+0043EB83   |.  E9 81000000        JMP atani.0043EC09  
+
+0043EB88   |>  66:C785 2CFFFFFF 4>/MOV WORD PTR SS:\[EBP-D4\],44  
+
+0043EB91   |.  BA 513C6100        |MOV EDX,atani.00613C51  
+
+0043EB96   |.  8D85 5CFFFFFF      |LEA EAX,DWORD PTR SS:\[EBP-A4\]  
+
+0043EB9C   |.  E8 5FCE1B00        |CALL atani.005FBA00  
+
+0043EBA1   |.  FF85 38FFFFFF      |INC DWORD PTR SS:\[EBP-C8\]  
+
+0043EBA7   |.  33C0               |XOR EAX,EAX  
+
+0043EBA9   |.  8985 58FFFFFF      |MOV DWORD PTR SS:\[EBP-A8\],EAX  
+
+0043EBAF   |.  8D85 60FFFFFF      |LEA EAX,DWORD PTR SS:\[EBP-A0\]  
+
+0043EBB5   |.  FF85 38FFFFFF      |INC DWORD PTR SS:\[EBP-C8\]  
+
+0043EBBB   |.  8D95 5CFFFFFF      |LEA EDX,DWORD PTR SS:\[EBP-A4\]  
+
+0043EBC1   |.  8D8D 58FFFFFF      |LEA ECX,DWORD PTR SS:\[EBP-A8\]  
+
+0043EBC7   |.  E8 74D11B00        |CALL atani.005FBD40  
+
+0043EBCC   |.  8D95 58FFFFFF      |LEA EDX,DWORD PTR SS:\[EBP-A8\]  
+
+0043EBD2   |.  8D85 60FFFFFF      |LEA EAX,DWORD PTR SS:\[EBP-A0\]  
+
+0043EBD8   |.  E8 3BD11B00        |CALL atani.005FBD18  
+
+0043EBDD   |.  FF8D 38FFFFFF      |DEC DWORD PTR SS:\[EBP-C8\]  
+
+0043EBE3   |.  8D85 58FFFFFF      |LEA EAX,DWORD PTR SS:\[EBP-A8\]  
+
+0043EBE9   |.  BA 02000000        |MOV EDX,2  
+
+0043EBEE   |.  E8 F5D01B00        |CALL atani.005FBCE8  
+
+0043EBF3   |.  FF8D 38FFFFFF      |DEC DWORD PTR SS:\[EBP-C8\]  
+
+0043EBF9   |.  8D85 5CFFFFFF      |LEA EAX,DWORD PTR SS:\[EBP-A4\]  
+
+0043EBFF   |.  BA 02000000        |MOV EDX,2  
+
+0043EC04   |.  E8 DFD01B00        |CALL atani.005FBCE8  
+
+0043EC09   |>  83BD 60FFFFFF 00    CMP DWORD PTR SS:\[EBP-A0\],0       
+
+0043EC10   |.  74 0B              |JE SHORT atani.0043EC1D  
+
+0043EC12   |.  8B8D 60FFFFFF      |MOV ECX,DWORD PTR SS:\[EBP-A0\]  
+
+0043EC18   |.  8B41 FC            |MOV EAX,DWORD PTR DS:\[ECX-4\]  
+
+0043EC1B   |.  EB 02              |JMP SHORT atani.0043EC1F  
+
+0043EC1D   |>  33C0               |XOR EAX,EAX  
+
+0043EC1F   |>  83F8 09            |CMP EAX,9  
+
+0043EC22   |.^ 0F8C 60FFFFFF      \\JL atani.0043EB88  
+
+0043EC28   |.  66:C785 2CFFFFFF 5>MOV WORD PTR SS:\[EBP-D4\],50  
+
+0043EC31   |.  BA 533C6100        MOV EDX,atani.00613C53  
+
+0043EC36   |.  8D85 54FFFFFF      LEA EAX,DWORD PTR SS:\[EBP-AC\]  
+
+0043EC3C   |.  E8 BFCD1B00        CALL atani.005FBA00  
+
+0043EC41   |.  FF85 38FFFFFF      INC DWORD PTR SS:\[EBP-C8\]  
+
+0043EC47   |.  8D95 54FFFFFF      LEA EDX,DWORD PTR SS:\[EBP-AC\]  
+
+0043EC4D   |.  8D85 68FFFFFF      LEA EAX,DWORD PTR SS:\[EBP-98\]  
+
+0043EC53   |.  E8 C0D01B00        CALL atani.005FBD18  
+
+0043EC58   |.  FF8D 38FFFFFF      DEC DWORD PTR SS:\[EBP-C8\]  
+```
+
+
+
+# 汇编代码分析
+
+```asm
+0043EC5E  |.  8D85 54FFFFFF      LEA EAX,DWORD PTR SS:[EBP-AC]
+0043EC64  |.  BA 02000000        MOV EDX,2
+0043EC69  |.  E8 7AD01B00        CALL atani.005FBCE8
+0043EC6E  |.  66:C785 2CFFFFFF 0>MOV WORD PTR SS:[EBP-D4],8
+0043EC77  |.  BB 01000000        MOV EBX,1                         ; EBX 赋初值
+0043EC7C  |>  66:C785 2CFFFFFF 6>/MOV WORD PTR SS:[EBP-D4],68      ; 循环得到注册码第三部分
+0043EC85  |.  33C0               |XOR EAX,EAX
+0043EC87  |.  8D95 50FFFFFF      |LEA EDX,DWORD PTR SS:[EBP-B0]
+0043EC8D  |.  8985 50FFFFFF      |MOV DWORD PTR SS:[EBP-B0],EAX
+0043EC93  |.  52                 |PUSH EDX
+0043EC94  |.  FF85 38FFFFFF      |INC DWORD PTR SS:[EBP-C8]
+0043EC9A  |.  8BD3               |MOV EDX,EBX
+0043EC9C  |.  8D85 60FFFFFF      |LEA EAX,DWORD PTR SS:[EBP-A0]
+0043ECA2  |.  B9 02000000        |MOV ECX,2
+0043ECA7  |.  E8 ACD31B00        |CALL atani.005FC058              ; 2 位 1 组取出转成 10 进制的(商+B3)
+0043ECAC  |.  8D85 50FFFFFF      |LEA EAX,DWORD PTR SS:[EBP-B0]
+0043ECB2  |.  E8 85D41B00        |CALL atani.005FC13C              ; 转成 16 进制数
+0043ECB7  |.  8BF0               |MOV ESI,EAX
+0043ECB9  |.  FF8D 38FFFFFF      |DEC DWORD PTR SS:[EBP-C8]
+0043ECBF  |.  8D85 50FFFFFF      |LEA EAX,DWORD PTR SS:[EBP-B0]
+0043ECC5  |.  BA 02000000        |MOV EDX,2
+0043ECCA  |.  E8 19D01B00        |CALL atani.005FBCE8
+0043ECCF  |.  66:C785 2CFFFFFF 5>|MOV WORD PTR SS:[EBP-D4],5C
+0043ECD8  |.  83FE 24            |CMP ESI,24
+0043ECDB  |.  0F8D 84000000      |JGE atani.0043ED65               ; 大于 24 跳到下面处理
+0043ECE1  |.  66:C785 2CFFFFFF 7>|MOV WORD PTR SS:[EBP-D4],74
+0043ECEA  |.  8A9435 E8FEFFFF    |MOV DL,BYTE PTR SS:[EBP+ESI-118] ; 取出表 2 中对应字符
+0043ECF1  |.  8D85 4CFFFFFF      |LEA EAX,DWORD PTR SS:[EBP-B4]
+0043ECF7  |.  E8 48CE1B00        |CALL atani.005FBB44
+0043ECFC  |.  FF85 38FFFFFF      |INC DWORD PTR SS:[EBP-C8]
+0043ED02  |.  8BD0               |MOV EDX,EAX
+0043ED04  |.  33C0               |XOR EAX,EAX
+0043ED06  |.  8D8D 48FFFFFF      |LEA ECX,DWORD PTR SS:[EBP-B8]
+0043ED0C  |.  8985 48FFFFFF      |MOV DWORD PTR SS:[EBP-B8],EAX
+0043ED12  |.  8D85 68FFFFFF      |LEA EAX,DWORD PTR SS:[EBP-98]
+0043ED18  |.  FF85 38FFFFFF      |INC DWORD PTR SS:[EBP-C8]
+0043ED1E  |.  E8 1DD01B00        |CALL atani.005FBD40              ; 得到的字符连成串
+0043ED23  |.  8D95 48FFFFFF      |LEA EDX,DWORD PTR SS:[EBP-B8]
+0043ED29  |.  8D85 68FFFFFF      |LEA EAX,DWORD PTR SS:[EBP-98]
+0043ED2F  |.  E8 E4CF1B00        |CALL atani.005FBD18
+0043ED34  |.  FF8D 38FFFFFF      |DEC DWORD PTR SS:[EBP-C8]
+0043ED3A  |.  8D85 48FFFFFF      |LEA EAX,DWORD PTR SS:[EBP-B8]
+0043ED40  |.  BA 02000000        |MOV EDX,2
+0043ED45  |.  E8 9ECF1B00        |CALL atani.005FBCE8
+0043ED4A  |.  FF8D 38FFFFFF      |DEC DWORD PTR SS:[EBP-C8]
+0043ED50  |.  8D85 4CFFFFFF      |LEA EAX,DWORD PTR SS:[EBP-B4]
+0043ED56  |.  BA 02000000        |MOV EDX,2
+0043ED5B  |.  E8 88CF1B00        |CALL atani.005FBCE8
+0043ED60  |.  E9 92000000        |JMP atani.0043EDF7
+0043ED65  |>  66:C785 2CFFFFFF 8>|MOV WORD PTR SS:[EBP-D4],80
+0043ED6E  |.  33C9               |XOR ECX,ECX
+0043ED70  |.  8D85 44FFFFFF      |LEA EAX,DWORD PTR SS:[EBP-BC]
+0043ED76  |.  898D 44FFFFFF      |MOV DWORD PTR SS:[EBP-BC],ECX
+0043ED7C  |.  50                 |PUSH EAX
+0043ED7D  |.  FF85 38FFFFFF      |INC DWORD PTR SS:[EBP-C8]
+0043ED83  |.  8D85 60FFFFFF      |LEA EAX,DWORD PTR SS:[EBP-A0]
+0043ED89  |.  B9 01000000        |MOV ECX,1
+0043ED8E  |.  8BD3               |MOV EDX,EBX
+0043ED90  |.  E8 C3D21B00        |CALL atani.005FC058              ; 还原成 10 进制保留高位数
+0043ED95  |.  8D95 44FFFFFF      |LEA EDX,DWORD PTR SS:[EBP-BC]    ; [EBP-BC]保留数地址
+0043ED9B  |.  33C0               |XOR EAX,EAX
+0043ED9D  |.  8985 40FFFFFF      |MOV DWORD PTR SS:[EBP-C0],EAX
+0043EDA3  |.  8D8D 40FFFFFF      |LEA ECX,DWORD PTR SS:[EBP-C0]
+0043EDA9  |.  FF85 38FFFFFF      |INC DWORD PTR SS:[EBP-C8]
+0043EDAF  |.  8D85 68FFFFFF      |LEA EAX,DWORD PTR SS:[EBP-98]
+0043EDB5  |.  E8 86CF1B00        |CALL atani.005FBD40              ; 保留的数连成串
+0043EDBA  |.  8D95 40FFFFFF      |LEA EDX,DWORD PTR SS:[EBP-C0]
+0043EDC0  |.  8D85 68FFFFFF      |LEA EAX,DWORD PTR SS:[EBP-98]
+0043EDC6  |.  E8 4DCF1B00        |CALL atani.005FBD18
+0043EDCB  |.  FF8D 38FFFFFF      |DEC DWORD PTR SS:[EBP-C8]
+0043EDD1  |.  8D85 40FFFFFF      |LEA EAX,DWORD PTR SS:[EBP-C0]
+0043EDD7  |.  BA 02000000        |MOV EDX,2
+0043EDDC  |.  E8 07CF1B00        |CALL atani.005FBCE8
+0043EDE1  |.  FF8D 38FFFFFF      |DEC DWORD PTR SS:[EBP-C8]
+0043EDE7  |.  8D85 44FFFFFF      |LEA EAX,DWORD PTR SS:[EBP-BC]
+0043EDED  |.  BA 02000000        |MOV EDX,2
+0043EDF2  |.  E8 F1CE1B00        |CALL atani.005FBCE8
+0043EDF7  |>  66:C785 2CFFFFFF 0>|MOV WORD PTR SS:[EBP-D4],8
+0043EE00  |.  83C3 02            |ADD EBX,2
+0043EE03  |.  83FB 09            |CMP EBX,9                         ; EBX 计数器
+0043EE06  |.^ 0F8C 70FEFFFF      \JL atani.0043EC7C                 ; 取完 4 组结束循环
+0043EE0C  |.  66:C785 2CFFFFFF 8>MOV WORD PTR SS:[EBP-D4],8C
+
+------------------------中间省略-------------------------------
+
+0043EEC6  |.  5F                 POP EDI
+0043EEC7  |.  5E                 POP ESI
+0043EEC8  |.  5B                 POP EBX
+0043EEC9  |.  8BE5               MOV ESP,EBP
+0043EECB  |.  5D                 POP EBP
+0043EECC  |\.  C3                 RETN                              ; 返回到 0043E5DC
+```
+
+## 数据表结构
+
+### 表 1 与 表 3
+
+| 地址 1 | 值 1 (Hex) | 说明 1 | 索引 1 | 地址 2 | 值 2 (Hex) |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `0012F864` | `01162D74` | `ASCII "87"` | `0` | `0012F74C` | `03233C1C` |
+| `0012F868` | `0114AC9C` | `ASCII "74"` | `1` | `0012F750` | `02568005` |
+| `0012F86C` | `0114250C` | `ASCII "90"` | `2` | `0012F754` | `0534C840` |
+| `0012F870` | `0114D7F8` | `ASCII "39"` | `3` | `0012F758` | `05E2635B` |
+| `0012F874` | `011548A0` | `ASCII "64"` | `4` | `0012F75C` | `016E3B35` |
+| `0012F878` | `0114F624` | `ASCII "53"` | `5` | `0012F760` | `020C0463` |
+| `0012F87C` | `01171ED0` | `ASCII "97"` | `6` | `0012F764` | `0295FE04` |
+| `0012F880` | `0116B894` | `ASCII "99"` | `7` | `0012F768` | `033ED42E` |
+| `0012F884` | `0115D870` | `ASCII "56"` | `8` | `0012F76C` | `04FBF23F` |
+| `0012F888` | `0115D914` | `ASCII "72"` | - | `0012F770` | `0245E91D` |
+| `0012F88C` | `01134FF4` | `ASCII "30"` | - | `0012F774` | `0548C712` |
+| `0012F890` | `0116E020` | `ASCII "24"` | - | `0012F778` | `02E78C04` |
+| `0012F894` | `0116BEF0` | `ASCII "41"` | - | `0012F77C` | `0414A321` |
+| `0012F898` | `0116BF00` | `ASCII "15"` | - | `0012F780` | `03018034` |
+| `0012F89C` | `0116CFFC` | `ASCII "69"` | - | `0012F784` | `03B867F7` |
+| `0012F8A0` | `0116D00C` | `ASCII "92"` | - | `0012F788` | `02DD7056` |
+| `0012F8A4` | `0116D01C` | `ASCII "85"` | - | `0012F78C` | `00AB6018` |
+| `0012F8A8` | `011721A8` | `ASCII "98"` | - | `0012F790` | `00C1F973` |
+| `0012F8AC` | `011721B8` | `ASCII "55"` | - | `0012F794` | `01DCAF80` |
+| `0012F8B0` | `011721C8` | `ASCII "19"` | `19` | `0012F798` | `02F4B07D` |
+| `0012F8B4` | `011721D8` | `ASCII "57"` | `20` | `0012F79C` | `036C2448` |
+| `0012F8B8` | `011721E8` | `ASCII "23"` | - | `0012F7A0` | `010A2495` |
+| `0012F8BC` | `0116DE1C` | `ASCII "32"` | - | `0012F7A4` | `02EA3DE5` |
+| `0012F8C0` | `0116DE2C` | `ASCII "21"` | - | `0012F7A8` | `017F0173` |
+| `0012F8C4` | `0116DE3C` | `ASCII "27"` | - | `0012F7AC` | `0291A3D8` |
+| `0012F8C8` | `0116DE4C` | `ASCII "35"` | - | `0012F7B0` | `014B5972` |
+| `0012F8CC` | `0116DE5C` | `ASCII "44"` | - | `0012F7B4` | `02BA1862` |
+| `0012F8D0` | `0116DE6C` | `ASCII "42"` | - | `0012F7B8` | `00C96F57` |
+| `0012F8D4` | `0116DE7C` | `ASCII "14"` | - | `0012F7BC` | `055AF110` |
+| `0012F8D8` | `0116DE8C` | `ASCII "11"` | - | `0012F7C0` | `04B58276` |
+| `0012F8DC` | `0116DE9C` | `ASCII "43"` | - | `0012F7C4` | `04ECE169` |
+| `0012F8E0` | `0116DEAC` | `ASCII "80"` | - | `0012F7C8` | `0235E960` |
+
+
+
+## 查表数据
+
+```
+0012F8E4   0116DEBC  ASCII "84"           0012F7CC   01BCC78A  
+
+0012F8E8   011724D0  ASCII "33"           0012F7D0   03B382B2  
+
+0012F8EC   011724E0  ASCII "25"           0012F7D4   03486CAF  
+
+0012F8F0   011724F0  ASCII "10"    35     0012F7D8   056B8B6F  
+```
+
+## 表 2
+
+```
+0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ  
+```
+
+## 二、算法小结
+
+1. 注册码由三部分组成，`S1`、`S2`、`S3`。
+2. `S1` 是注册码第一位，`9 <= S1 >= 4`。
+3. `S2` 是从第 2 位起长度是 `S1` 的值的注册码部分，`S2` 中最少要有 2 个表 2 中的字符，非表 2 中字符不参与运算。
+4. `S2` 查表运算结果等于 `S3`，注册成功。
+5. 注册信息保存在：`HKEY_CURRENT_USER\\Software\\Atani v3.8\\Info`
+
+## 三、算法验证
+
+1. `S=41234*****` `S1=4` `S2=1234` `S3=S2` 查表运算结果
+
+2. `S2=1234` 查表 1: `1:74 90 39 64` ---保留后半部分---> `3964`
+   ---转成 16 进制---> `F7C` ---除后半部分长度加 2(6)---> `294` (商)
+   (如果查表 1 字符长度大于 8 小于 12，除后半部分长度加 7)
+
+   `S2=1234` 查表 3: `02568005+0534C840+05E2635B+016E3B35=0EDBE6D5`
+   `0EDBE6D5` + `294` = `0EDBE969`
+   ---转成 10 进制---> `249293161`
+   `249293455` 二位一组,取完 4 组结束。`24 92 93 45` 转成 16 进制，`18 5C 5D 10`
+   4 个数与 `24(H)`比,小于 24 的数，查表 2 对应字符：`18 --> O` `10 --> G`
+   大于 24 的数，还原成 10 进制数，保留 10 位数查表 2 对应字符：`92 --> 9` `93 --> 9`
+
+3. 连接查表 2 结果：`O99G` `S3=O99G`
+
+4. 注册码：`41234O99G`
+
+`4dd466d0e1e0cc123afbe504da2462ca`
