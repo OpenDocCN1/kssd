@@ -1,0 +1,207 @@
+
+# 象棋桥 2.1
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50345.htm`](https://www.pediy.com/kssd/pediy05/pediy50345.htm)
+
+软 件：象棋桥 2.1
+
+作 者：nzinzi
+
+破解工具：TRW 1.22
+
+难 度：易
+
+如果想试一试学习可以到下载地址 `http://www.softreg.com.cn/download.asp?id={FD40E2F5-C31E-4A96-B31C-9D6EA03F08D8}` 下载
+
+拿到软件以后我看用 FI 看了下没壳，轻松多了~
+
+开始用 TRW 调试，随便输入一个注册码下一个 bpx hmemcpy 的断点，pmodule 一下回到程序领空，然后 F12 几下就来到了下面
+
+```
+:0051E377 E8A05CF1FF             call 0043401C   读取注册名 call
+
+:0051E37C 8B55EC                 mov edx, dword ptr [ebp-14]  把注册名的地址输入 EDX d ebp-14
+
+:0051E37F 8B45FC                 mov eax, dword ptr [ebp-04]
+
+:0051E382 0570090000             add eax, 00000970
+
+:0051E387 E81859EEFF             call 00403CA4
+
+:0051E38C 8D55E8                 lea edx, dword ptr [ebp-18]
+
+:0051E38F A13C915400             mov eax, dword ptr [0054913C]
+
+:0051E394 8B80E0020000           mov eax, dword ptr [eax+000002E0]
+
+:0051E39A E87D5CF1FF             call 0043401C   读取我们输入注册码 call
+
+:0051E39F 8B45E8                 mov eax, dword ptr [ebp-18]  把注册码的地址输入 EAX
+
+:0051E3A2 8D55F4                 lea edx, dword ptr [ebp-0C]
+
+......
+
+:0051E3AF E81C5BEEFF             call 00403ED0 读取注册码的长度 CALL
+
+:0051E3B4 83F80C                 cmp eax, 0000000C
+
+:0051E3B7 7560                   jne 0051E419 看看是否等于 12 位如果不等跳转到错误消息框
+
+......
+
+:0051E3E8 8B45F4                 mov eax, dword ptr [ebp-0C] 把我们的注册码的前七位的地址移入 EAX
+
+* Possible StringData Ref from Code Obj ->"CCB21R-"
+
+                                   |
+
+:0051E3EB BA70E65100             mov edx, 0051E670 把真实的前七位移入就是上面的"CCB21R-"
+
+:0051E3F0 E8EB5BEEFF             call 00403FE0 比较的 CALL
+
+:0051E3F5 751E                   jne 0051E415  不等跳转错误提示
+
+:0051E3F7 8D55E4                 lea edx, dword ptr [ebp-1C]
+
+:0051E3FA 8B45FC                 mov eax, dword ptr [ebp-04]
+
+:0051E3FD 8B8070090000           mov eax, dword ptr [eax+00000970]
+
+:0051E403 E85462F6FF             call 0048465C  生成注册码的 CALL 底下具体分析
+
+:0051E408 8B55E4                 mov edx, dword ptr [ebp-1C] 正确的注册码 D EBP-1C 就可以看到了~
+
+:0051E40B 8B45F0                 mov eax, dword ptr [ebp-10] 我们的注册码
+
+:0051E40E E8CD5BEEFF             call 00403FE0 比较后五位的 CALL
+
+:0051E413 7406                   je 0051E41B 正确跳转成功
+```
+
+F8 跟进 0051E403 的那个 CALL
+
+```
+:0048465C 55                     push ebp
+
+:0048465D 8BEC                   mov ebp, esp
+
+:0048465F 83C4F0                 add esp, FFFFFFF0
+
+:00484662 53                     push ebx
+
+:00484663 56                     push esi
+
+:00484664 57                     push edi
+
+......
+
+:0048469A 8BD8                   mov ebx, eax
+
+:0048469C 83FB05                 cmp ebx, 00000005
+
+:0048469F 7F13                   jg 004846B4 比较我们的注册名是否有五位对就开始运算注册码
+
+......
+
+:004846B4 8B45F4                 mov eax, dword ptr [ebp-0C] 把注册码的地址移入 eax
+
+:004846B7 33C9                   xor ecx, ecx 对 ECX 进行清零
+
+:004846B9 8A08                   mov cl, byte ptr [eax] 移入注册码的第一位到 CL
+
+:004846BB 8B45F4                 mov eax, dword ptr [ebp-0C]
+
+:004846BE 33DB                   xor ebx, ebx
+
+:004846C0 8A5801                 mov bl, byte ptr [eax+01] 移入注册码的第二位到 BL
+
+:004846C3 8B45F4                 mov eax, dword ptr [ebp-0C]
+
+:004846C6 0FB67002               movzx esi, byte ptr [eax+02] 移入注册码的第三位到 SI
+
+:004846CA 8B45F4                 mov eax, dword ptr [ebp-0C]
+
+:004846CD 0FB67803               movzx edi, byte ptr [eax+03] 移入注册码的第四位到 DI
+
+:004846D1 8B45F4                 mov eax, dword ptr [ebp-0C]
+
+:004846D4 0FB64004               movzx eax, byte ptr [eax+04] 移入注册码的第五位到 AX
+
+:004846D8 8945F0                 mov dword ptr [ebp-10], eax 把第五位保存到 EBP-10 的内存里面，等等下使用
+
+:004846DB 8D040B                 lea eax, dword ptr [ebx+ecx] 1 位 2 位相加
+
+:004846DE 03FE                   add edi, esi 3 位 4 位相加
+
+:004846E0 F7EF                   imul edi （1 位+2 位）*（3 位*4 位）
+
+:004846E2 F76DF0                 imul [ebp-10] 除以 5 位
+
+:004846E5 B9A0860100             mov ecx, 000186A0
+
+:004846EA 99                     cdq
+
+:004846EB F7F9                   idiv ecx 然后 （1 位+2 位）*（3 位*4 位）/186a0
+
+:004846ED 8BDA                   mov ebx, edx 余数就是的 10 进制就是注册码的后五位了 用 ? edx 命令就可以看到了~
+```
+
+我用的注册名是 NZINZI 注册码是： CCB21R-83120
+
+我总算写完了，算化简单让初学者试试手的~~
+
+不想贴注册机因为每个人学的语言不同，贴出来意义不大~而却损害作者利益~~
+
+（1 位+2 位）*（3 位+4 位）*5 位/0x186a0
+
+也不知道以前怎么会写错的~~
+
+```c
+#include "stdio.h"
+
+#include "string.h"
+
+main()
+
+{
+
+char string[20];
+
+unsigned long i,a=0,b=0;
+
+unsigned c;
+
+int d;
+
+start:printf("******CCBridge******\\nThis keygen is maked by Pretender\\nPlease input your name\\n");
+
+gets(string);
+
+d=strlen(string);
+
+if(d<5) {printf("Your username must be at least five lettres long!!!\\n");goto start;}
+
+for(i=0;i<5;i++)
+
+{c=string[i];
+
+if(i<2) a+=c;
+
+if(i>=2&&i<4) b+=c;
+
+if(i==3) a*=b;
+
+if(i==4) a*=c;
+
+}
+
+printf("Your name is ");
+
+puts(string);
+
+printf("Your Register code is CCB21R-%ld\\n",a%0x186a0);
+
+printf("QQ:65817715\\n");}
+```
+4dd466d0e1e0cc123afbe504da2462ca

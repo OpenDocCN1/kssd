@@ -1,0 +1,239 @@
+
+# 现场实录 v1.02
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50643.htm`](https://www.pediy.com/kssd/pediy05/pediy50643.htm)
+
+## 软件信息
+
+- **软件名称**：`现场实录 v1.02`
+- **软件语言**：简体中文
+- **界面预览**：
+- **软件类型**：共享软件 / 多媒体类 / 录音程序
+- **运行环境**：`WinXP`, `Win2000`, `NT`, `WinME`, `Win9X`
+- **授权方式**：共享软件
+- **软件大小**：`2.47 MB`
+- **软件等级**：
+- **整理时间**：`2003-4-21 17:20:00`
+- **下载地址**：[`www.ttdown.com/SoftView_12745.htm`](http://www.ttdown.com/SoftView_12745.htm)
+- **下载次数**：本日：`7` 本周：`22` 本月：`69` 总计：`69`
+
+## 软件简介
+
+构思创新的一款录音软件，可以实现 `Mp3` 实时录音，并对录音进行管理。在录音过程中可以分段并对录音段进行文字标注。有声控功能。带声谱分析与波形显示，监控手段方便，支持声卡的所有音源。操作简单。帮助文档十分详尽。
+
+## 作者声明
+
+本人只是对 `Crack` 感兴趣，没有其它目的。
+
+## 破解工具
+
+`Ollydbg1.09` 中文版
+
+---
+
+## 过程
+
+这个软件是断点也不好下，我用 `Ollydbg` 的搜索字符串参考功能，发现有如下的字符：
+
+`0041DEA7` `PUSH` `recordin.00473CBC` ; `ASCII "%02X"` 就怀疑是注册码的格式，选择 `0041DEA7` 然后用 `F2` 下中断，填试验码：`zxcvbnmasdfghjl`，然后按注册键，真的被 `OD` 中断了。看来 `OD` 的功能真不错。
+
+```
+|
+0041DD12   PUSH    EBP
+0041DD13   MOV     EBP, ESP
+0041DD15   PUSH    -1
+0041DD17   PUSH    recordin.0045F0D0
+0041DD1C   MOV     EAX, DWORD PTR FS:[0]
+0041DD22   PUSH    EAX
+0041DD23   MOV     DWORD PTR FS:[0], ESP
+0041DD2A   SUB     ESP, 6C
+0041DD2D   MOV     [LOCAL.19], ECX
+0041DD30   LEA     ECX, [LOCAL.5]
+0041DD33   CALL    <JMP.&MFC42.#540>
+0041DD38   MOV     [LOCAL.1], 0
+0041DD3F   PUSH    recordin.004757FC
+0041DD44   LEA     ECX, [LOCAL.5]
+0041DD47   CALL    <JMP.&MFC42.#860>
+0041DD4C   MOV     ECX, [ARG.1]
+0041DD4F   CALL    recordin.0041CD80
+0041DD54   TEST    EAX, EAX        <--注册码不能位空
+0041DD56   JNZ     SHORT recordin.0041DD76
+0041DD58   MOV     [LOCAL.9], 0
+0041DD5F   MOV     [LOCAL.1], -1
+0041DD66   LEA     ECX, [LOCAL.5]
+0041DD69   CALL    <JMP.&MFC42.#800>
+0041DD6E   MOV     EAX, [LOCAL.9]
+0041DD71   JMP     recordin.0041DF94
+0041DD76   PUSH    ECX
+0041DD77   MOV     ECX, ESP
+0041DD79   MOV     [LOCAL.10], ESP
+0041DD7C   MOV     EAX, [ARG.1]
+0041DD7F   PUSH    EAX
+0041DD80   CALL    <JMP.&MFC42.#535>
+0041DD85   MOV     [LOCAL.20], EAX
+0041DD88   LEA     ECX, [LOCAL.11]
+0041DD8B   PUSH    ECX
+0041DD8C   MOV     ECX, [LOCAL.19]
+0041DD8F   CALL    recordin.0041DFA4      <--把试验码重新排列
+```
+
+---
+
+### 第一部分：注册码处理
+
+```
+0041DFA4  PUSH    EBP
+0041DFA5  MOV     EBP, ESP
+0041DFA7  PUSH    -1
+0041DFA9  PUSH    recordin.0045F10C
+0041DFAE  MOV     EAX, DWORD PTR FS:[0]
+0041DFB4  PUSH    EAX
+0041DFB5  MOV     DWORD PTR FS:[0], ESP
+0041DFBC  SUB     ESP, 28
+0041DFBF  MOV     [LOCAL.10], ECX
+0041DFC2  MOV     [LOCAL.9], 0
+0041DFC9  MOV     [LOCAL.1], 1
+0041DFD0  LEA     ECX, [LOCAL.5]
+0041DFD3  CALL    <JMP.&MFC42.#540>
+0041DFD8  MOV     BYTE PTR SS:[EBP-4], 2
+0041DFDC  LEA     ECX, [ARG.2]
+0041DFDF  CALL    recordin.0041CD80
+0041DFE4  MOV     [LOCAL.7], EAX   ; EAX=10<--长度
+0041DFE7  MOV     [LOCAL.6], 0
+0041DFEE  JMP     SHORT recordin.0041DFF9
+0041DFF0  /MOV    EAX, [LOCAL.6]
+0041DFF3  |ADD    EAX, 2
+0041DFF6  |MOV    [LOCAL.6], EAX
+0041DFF9   MOV    ECX, [LOCAL.6]
+0041DFFC  |CMP    ECX, [LOCAL.7]     ; ECX=0
+0041DFFF  |JGE    SHORT recordin.0041E062
+0041E001  |MOV    EDX, [LOCAL.6]
+0041E004  |ADD    EDX, 3
+0041E007  |CMP    EDX, [LOCAL.7]
+0041E00A  |JGE    SHORT recordin.0041E05E
+0041E00C  |LEA    EAX, [ARG.2]
+0041E00F  |PUSH   EAX
+0041E010  |LEA    ECX, [LOCAL.5]
+0041E013  |CALL   <JMP.&MFC42.#858>
+0041E018  |MOV    ECX, [LOCAL.6]
+0041E01B  |ADD    ECX, 3
+0041E01E  |PUSH   ECX
+0041E01F  |LEA    ECX, [ARG.2]
+0041E022  |CALL   recordin.0041E2F0
+0041E027  |PUSH   EAX
+0041E028  |MOV    EDX, [LOCAL.6]
+0041E02B  |PUSH   EDX
+0041E02C  |LEA    ECX, [LOCAL.5]
+0041E02F  |CALL   <JMP.&MFC42.#5856>  ; <--把第 4 位覆盖第一位
+0041E034  |MOV    EAX, [LOCAL.6]
+0041E037  |PUSH   EAX
+0041E038  |LEA    ECX, [ARG.2]
+0041E03B  |CALL   recordin.0041E2F0
+0041E040  |PUSH   EAX
+0041E041  |MOV    ECX, [LOCAL.6]
+0041E044  |ADD    ECX, 3
+0041E047  |PUSH   ECX
+0041E048  |LEA    ECX, [LOCAL.5]
+0041E04B  |CALL   <JMP.&MFC42.#5856>  ; <--把原第 1 位覆盖第 4 位
+0041E050  |LEA    EDX, [LOCAL.5]
+0041E053  |PUSH   EDX
+0041E054  |LEA    ECX, [ARG.2]
+0041E057  |CALL   <JMP.&MFC42.#858>
+0041E05C  |JMP    SHORT recordin.0041E060
+0041E05E  |JMP    SHORT recordin.0041E062
+0041E060  \JMP    SHORT recordin.0041DFF0
+```
+
+`; <--00B046F8  ASCII "vxnzacdbgmjslfkh"`
+
+### 算法小结
+
+把注册码的 `1<->4,3<->6,5<->8,...` 交换，共计长度次
+
+---
+
+```
+|
+0041E062  MOV     [LOCAL.6], 0
+0041E069  JMP     SHORT recordin.0041E074
+0041E06B  /MOV    EAX, [LOCAL.6]
+0041E06E  |ADD    EAX, 1
+0041E071  |MOV    [LOCAL.6], EAX
+0041E074   MOV    ECX, [LOCAL.6]
+0041E077  |CMP    ECX, [LOCAL.7]
+0041E07A  |JGE    recordin.0041E155
+0041E080  |MOV    EDX, [LOCAL.6]
+0041E083  |PUSH   EDX
+0041E084  |LEA    ECX, [ARG.2]
+0041E087  |CALL   recordin.0041E2F0 <--依次取字符串 "vxnzacdbgmjslfkh"的每一位
+0041E08C  |MOVSX  EAX, AL
+0041E08F  |MOV    [LOCAL.11], EAX
+0041E092  |MOV    ECX, [LOCAL.11]
+0041E095  |SUB    ECX, 47         ; ECX=76-47=2F
+0041E098  |MOV    [LOCAL.11], ECX
+0041E09B  |CMP    [LOCAL.11], 13
+```
+
+`; <--[LOCAL.11]>13 直接用;<=13 就用 EDX*4 做指针在内存基地址 0041E210 里寻找跳转的地址`
+
+```
+0041E09F  |JA     recordin.0041E150
+0041E0A5  |MOV    EDX, [LOCAL.11]
+0041E0A8  |JMP    DWORD PTR DS:[EDX*4+41E210]
+```
+
+### 内存值：`DS:[EDX*4+41E210]`
+
+```
+|
+0041E210  AF E0 41 00 C2 E0 41 00  A.锣 A.
+0041E218  D2 E0 41 00 E2 E0 41 00  亦 A.忄 A.
+0041E220  F2 E0 41 00 02 E1 41 00  蜞 A.酇.
+0041E228  12 E1 41 00 22 E1 41 00  酇."酇.
+0041E230  32 E1 41 00 42 E1 41 00  2 酇.B 酇.
+0041E238  AF E0 41 00 C2 E0 41 00  A.锣 A.
+0041E240  D2 E0 41 00 E2 E0 41 00  亦 A.忄 A.
+0041E248  F2 E0 41 00 02 E1 41 00  蜞 A.酇.
+0041E250  12 E1 41 00 22 E1 41 00  酇."酇.
+0041E258  32 E1 41 00 42 E1 41 00  2 酇.B 酇.
+```
+
+---
+
+```
+|
+0041E0AF  |PUSH    30       <--变换 1--到这里把值改为 30
+0041E0B1  |MOV     EAX, [LOCAL.6]
+0041E0B4  |PUSH    EAX
+0041E0B5  |LEA     ECX, [ARG.2]
+0041E0B8  |CALL    <JMP.&MFC42.#5856>
+0041E0BD  |JMP     recordin.0041E150
+0041E0C2  |PUSH    31       <--变换 2--到这里把值改为 31
+0041E0C4  |MOV     ECX, [LOCAL.6]
+0041E0C7  |PUSH    ECX
+0041E0C8  |LEA     ECX, [ARG.2]
+0041E0CB  |CALL    <JMP.&MFC42.#5856>
+0041E0D0  |JMP     SHORT recordin.0041E150
+0041E0D2  |PUSH    32       <--变换 3--到这里把值改为 32
+0041E0D4  |MOV     EDX, [LOCAL.6]
+0041E0D7  |PUSH    EDX
+0041E0D8  |LEA     ECX, [ARG.2]
+0041E0DB  |CALL    <JMP.&MFC42.#5856>
+0041E0E0  |JMP     SHORT recordin.0041E150
+0041E0E2  |PUSH    33       <--变换 4--到这里把值改为 33
+0041E0E4  |MOV     EAX, [LOCAL.6]
+0041E0E7  |PUSH    EAX
+0041E0E8  |LEA     ECX, [ARG.2]
+0041E0EB  |CALL    <JMP.&MFC42.#5856>
+0041E0F0  |JMP     SHORT recordin.0041E150
+0041E0F2  |PUSH    34       <--变换 5--到这里把值改为 34
+0041E0F4  |MOV     ECX, [LOCAL.6]
+0041E0F7  |PUSH    ECX
+0041E0F8  |LEA     ECX, [ARG.2]
+0041E0FB  |CALL    <JMP.&MFC42.#5856>
+0041E100  |JMP     SHORT recordin.0041E150
+0041E102  |PUSH    35       <--变换 6--到这里把值改为 35
+0041E104  |MOV     EDX, [LOCAL.6]
+0041E107  |PUSH    EDX
+0041E108  |LEA     ECX, [ARG.2]
+```
