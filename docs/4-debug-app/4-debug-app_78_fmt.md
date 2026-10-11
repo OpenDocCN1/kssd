@@ -1,0 +1,74 @@
+
+# WINZIP 的密码校对原理
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum1273.htm`](https://www.pediy.com/kssd/pediy03/forum1273.htm)
+
+WINZIP 的密码校对用 CRC，看输入密码经过计算同加密文件中的 CRC 是否相同，调用程序是 WINZIP8.0 的 `WZ32.DLL`，过程如下：
+
+```asm
+:20001E8A A1CC4D0620             mov eax, dword ptr [20064DCC] （密码）
+:20001E8F 85C0                   test eax, eax
+:20001E91 7416                   je 20001EA9
+:20001E93 8D45F4                 lea eax, dword ptr [ebp-0C]
+:20001E96 50                     push eax
+:20001E97 E824000000             call 20001EC0 （CRC 校对开始）
+
+...
+
+:20001EC0 55                     push ebp
+:20001EC1 8BEC                   mov ebp, esp
+:20001EC3 83EC0C                 sub esp, 0000000C
+:20001EC6 A1CC4D0620             mov eax, dword ptr [20064DCC]
+:20001ECB 56                     push esi
+:20001ECC 50                     push eax
+:20001ECD E83EFDFFFF             call 20001C10 （第一计算）
+:20001ED2 8B4D08                 mov ecx, dword ptr [ebp+08]
+:20001ED5 83C404                 add esp, 00000004
+:20001ED8 33F6                   xor esi, esi
+:20001EDA 8B11                   mov edx, dword ptr [ecx]
+:20001EDC 8955F4                 mov dword ptr [ebp-0C], edx
+:20001EDF 8B4104                 mov eax, dword ptr [ecx+04]
+:20001EE2 8945F8                 mov dword ptr [ebp-08], eax
+:20001EE5 8B4908                 mov ecx, dword ptr [ecx+08]
+:20001EE8 894DFC                 mov dword ptr [ebp-04], ecx
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:20001F0E(C)
+|
+
+:20001EEB E890FCFFFF             call 20001B80 （第 2 计算）
+:20001EF0 8A5435F4               mov dl, byte ptr [ebp+esi-0C]
+:20001EF4 32D0                   xor dl, al
+:20001EF6 8AC2                   mov al, dl
+:20001EF8 885435F4               mov byte ptr [ebp+esi-0C], dl
+:20001EFC 25FF000000             and eax, 000000FF
+:20001F01 50                     push eax
+:20001F02 E899FCFFFF             call 20001BA0   （第 3 计算）
+:20001F07 83C404                 add esp, 00000004
+:20001F0A 46                     inc esi
+:20001F0B 83FE0C                 cmp esi, 0000000C
+:20001F0E 7CDB                   jl 20001EEB      （按密码长度反复计算）
+
+:20001F10 8B15240F0320           mov edx, dword ptr [20030F24]
+:20001F16 660FB645FF             movzx ax, byte ptr [ebp-01] （计算结果）
+:20001F1B F6422002               test [edx+20], 02
+:20001F1F 7414                   je 20001F35 -------》JUMP
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:20001F1F(C)
+|
+
+:20001F35 8B156A170820           mov edx, dword ptr [2008176A] （文件的 CRC 码）
+:20001F3B C1EA18                 shr edx, 18
+:20001F3E 663BC2                 cmp ax, dx
+
+:20001F41 7407                   je 20001F4A --相等就合法 JUMP
+```
+
+文件的 CRC 码在 WINZIP 中查看属性，或文件的 HEX 地址：`0000000E`---`00000011`
+
+关键问题：谁能写一个程序，按照文件的 CRC 码反计算密码，普度众生！
+
+KINGSUN
+
+2001-08-29 版权所有 `4dd466d0e1e0cc123afbe504da2462ca`

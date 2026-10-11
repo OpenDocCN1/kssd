@@ -1,0 +1,197 @@
+
+# 台版潘朵拉多開
+
+> 原文：[`www.pediy.com/kssd/pediy12/132986.html`](https://www.pediy.com/kssd/pediy12/132986.html)
+
+明天台版的潘朵拉傳奇就要 OB 了，在這兒發個 CB 能用的多開。
+
+抱歉我住台灣，所以貼的是繁體字。如有需要…請自行轉為簡體。
+
+這次 `iplayer` 代理的這個潘朵拉並沒有神盾，所以也就給了我機會。希望可以弄個精華變成正式會員囉！
+
+首先看看程式的入口點：
+
+```
+.text:0040D6E0     public fakeoep
+.text:0040D6E0     fakeoep proc near
+.text:0040D6E0 000 push    offset realoep
+.text:0040D6E5 004 push    offset fakeoep
+.text:0040D6EA 008 call    launcher
+.text:0040D6EF 008 add     esp, 8
+.text:0040D6F2 000 retn
+.text:0040D6F2     fakeoep endp
+```
+
+在 `launcher` 這個函數中則會用除錯模式建立一個新的進程，在該進程的 `fakeoep` 寫入 `0xCC`(`int3`)，而在該中斷觸發後，將 `eip` 修改為 `realoep`。而且，因為新的進程已經處於除錯模式，使得無法再對其進行除錯，因此略過 `launcher` 直接跳到 `realoep` 勢在必行，可以將程式入口改成下面這樣，或者直接將 `oep` 指向 `realoep`。
+
+```
+.text:0040D6E0 000 jmp     realoep
+```
+
+順便貼一下 `launcher` 大概的內容，這是按照裡面的內容重寫出來的：
+
+```
+if (!CreateProcess(NULL, szExeCmd, NULL, NULL, FALSE, DEBUG\_PROCESS | DEBUG\_ONLY\_THIS\_PROCESS,
+                   NULL, szExeDir, &startInfo, &procInfo))
+    return EXIT\_FAILURE;
+ 
+DEBUG\_EVENT debugEvent;
+DWORD nStatus;
+CONTEXT context;
+LPVOID startAddr; // fakeoep
+LPVOID targetAddr; // realoep
+BYTE bStart = 0xCC;
+BOOL blFirstTime = TRUE;
+ 
+while (WaitForDebugEvent(&debugEvent, INFINITE))
+{
+    nStatus = DBG\_EXCEPTION\_NOT\_HANDLED;
+ 
+    if (debugEvent.dwDebugEventCode == EXIT\_PROCESS\_DEBUG\_EVENT)
+        break;
+    else if (debugEvent.dwDebugEventCode == EXCEPTION\_DEBUG\_EVENT)
+    {
+        if (debugEvent.u.Exception.ExceptionRecord.ExceptionCode == EXCEPTION\_BREAKPOINT)
+        {
+            if (blFirstTime)
+            {
+                // ...
+                
+                blFirstTime = FALSE;
+            }
+            else if (debugEvent.u.Exception.ExceptionRecord.ExceptionAddress == startAddr)
+            {
+                // ...
+ 
+                context.ContextFlags = CONTEXT\_CONTROL;
+                GetThreadContext(procInfo.hThread, &context);
+                
+                context.Eip = (DWORD)targetAddr;
+                SetThreadContext(procInfo.hThread, &context);
+            }
+        }
+ 
+        nStatus = DBG\_CONTINUE;
+    }
+ 
+    if (!ContinueDebugEvent(procInfo.dwProcessId, procInfo.dwThreadId, nStatus))
+        break;
+}
+```
+
+其實利用上面的程式碼，就可以改出個雙開啟動器了，而且也不用修改到主程式，不會有檔案驗證的問題。
+
+如果直接修改執行檔的內容，會發現無論如何，都會跳出「請從客戶端文件啟動」的視窗，這其實是因為 `CRC` 檔案驗證的關係。
+
+在 `MessageBoxW` 下斷點，觸發後可以看到：
+
+```
+.text:0040D464     loc\_40D464:             ; uType
+.text:0040D464 994 push    ebx
+.text:0040D465 998 push    offset Caption  ; lpCaption
+.text:0040D46A 99C push    eax             ; lpText
+.text:0040D46B 9A0 push    ebx             ; hWnd
+.text:0040D46C 9A4 call    ds:MessageBoxW
+```
+
+向上找到分支點：
+
+```
+.text:0040D43E     loc\_40D43E:
+.text:0040D43E 994 cmp     al, bl
+.text:0040D440 994 jz      short loc\_40D491
+```
+
+將 `jz` 改為 `jmp` 後，程式跑了一陣，莫名奇妙就結束了。因此換成在 `CreateFileW` 下斷點，觀察 `FileName` 參數(堆疊中可以看見)，直到其為程式的執行檔為止：
+
+```
+.text:007AC0E5     loc\_7AC0E5:
+.text:007AC0E5 030 mov     eax, \[ebp+arg\_0\]
+.text:007AC0E8 030 push    0               ; hTemplateFile
+.text:007AC0EA 034 push    esi             ; dwFlagsAndAttributes
+.text:007AC0EB 038 push    \[ebp+dwCreationDisposition\] ; dwCreationDisposition
+.text:007AC0EE 03C mov     dword ptr \[eax\], 1
+.text:007AC0F4 03C mov     eax, \[ebp+arg\_4\]
+.text:007AC0F7 03C mov     \[eax\], edi
+.text:007AC0F9 03C lea     eax, \[ebp+SecurityAttributes\]
+.text:007AC0FC 03C push    eax             ; lpSecurityAttributes
+.text:007AC0FD 040 push    \[ebp+dwShareMode\] ; dwShareMode
+.text:007AC100 044 push    \[ebp+lDistanceToMove\] ; dwDesiredAccess
+.text:007AC103 048 push    \[ebp+lpFileName\] ; lpFileName
+.text:007AC106 04C call    ds:CreateFileW
+```
+
+一直返回直到最上層：
+
+```
+.text:0079747B     loc\_79747B:
+.text:0079747B 22C mov     \[ebp+var\_1C\], 0
+.text:00797481 22C push    offset off\_83AF48 ; wchar\_t \*
+.text:00797486 230 lea     eax, \[ebp+var\_21C\]
+.text:0079748C 230 push    eax             ; wchar\_t \*
+.text:0079748D 234 call    \_\_wfopen
+```
+
+這是一個很明顯的 `fopen` 指令，向下則 `fseek` 了三次用來取得檔案大小之類的東西。接下來可以看到一個迴圈：
+
+```
+.text:0079751B 22C mov     word ptr \[eax\], 0FFFFh
+; ...
+ 
+.text:00797530     loc\_797530:
+.text:00797530 22C movzx   cx, byte ptr \[edx+edi\]
+.text:00797535 22C xor     \[eax\], cx
+.text:00797538 22C xor     ecx, ecx
+.text:0079753A 22C mov     cx, \[eax\]
+; ...
+ 
+.text:00797542 22C shr     cx, 1
+.text:00797545 22C xor     ecx, 8408h
+; ...
+ 
+.text:0079760D     loc\_79760D:
+.text:0079760D 22C mov     \[eax\], cx
+.text:00797610 22C inc     edx
+.text:00797611 22C cmp     edx, ebx
+.text:00797613 22C jb      loc\_797530
+```
+
+看起來像是在做某種驗證，`Google` 了一下 `shr xor 8408h` 發現是 `CRC`。其中 `word ptr [eax]` 放的是運算的結果，`byte ptr [edx+edi]` 則是執行檔內的每個位元組的值。繼續追蹤到上一層：
+
+```
+.text:007981AB 048 mov     ecx, \[esp+48h+arg\_C\]
+.text:007981AF 048 push    edi
+.text:007981B0 04C lea     eax, \[esi+0B4h\]
+.text:007981B6 04C push    eax
+.text:007981B7 050 push    ecx
+.text:007981B8 054 call    sub\_7973D0
+```
+
+在這裡 `lea eax, [esi+0B4h]` 是存放 `CRC` 運算結果的地方，向下沒有看到明顯的比較加跳轉的指令，上一層也沒有。用設記憶體斷點的方式則發現它被讀取了兩三次…追到我頭暈了。決定直接寫入正確的 `CRC` 值，這樣就不用管它之後怎麼比對了。
+
+```
+.text:007981B8 054 mov     word ptr \[eax\], 929h
+```
+
+如上，其中 `929h` 是正確的 `CRC` 值，修改完後就不會一直跳出錯誤視窗囉。
+
+解除了檔案的驗證之後，接下來要啟用多開的功能，簡單來說呢，就是當 `CreateMutex` 時，將參數 `MutexName` 改為 `NULL` 就可以了。首先，在 `CreateMutexW` 設斷點：
+
+```
+.text:00759B48 004 mov     ecx, \[esp+4+lpName\]
+.text:00759B4C 004 movzx   edx, \[esp+4+arg\_0\]
+.text:00759B51 004 push    ecx             ; lpName
+.text:00759B52 008 push    edx             ; bInitialOwner
+.text:00759B53 00C push    0               ; lpMutexAttributes
+.text:00759B55 010 call    ds:CreateMutexW
+```
+
+看一下 `ecx` 指向的內容，確定後修改為：
+
+```
+.text:00759B48 004 xor     ecx, ecx
+.text:00759B4A 004 nop
+.text:00759B4B 004 nop
+```
+
+如此，就可以多開囉。
