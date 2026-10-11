@@ -1,0 +1,279 @@
+
+# 随便反汇编 Delphi 程序段整理
+
+> 原文：`[www.pediy.com/kssd/pediy09/pediy09-138.htm](https://www.pediy.com/kssd/pediy09/pediy09-138.htm)`
+
+> 标题：随便反汇编 Delphi 程序段整理
+
+> 作者：神杀中龙
+
+用 `OllyDBG` 反 Delphi 写的程序，一些 Delphi 的函数反不出来。
+
+引用看学 `foxabu` 说的 `Sig` ... `LIB` 函数。
+
+或者可以说，Delphi 内有不少 `SysUtils` 的函数。
+
+我就把这些识别不了的叫做 `Sig...Lib` 函数吧。我整理下，并确定下各种 Delphi 特殊的指令序列是怎么出来的。
+
+分下类：
+
+1. 函数调用函数参数
+2. 顺序语句
+3. 分支语句
+4. 循环语句
+5. Delphi 自动添加语句，一般是添加在函数头和函数尾，已经语句指令中间。
+
+### 默认 Delphi 入口
+
+```
+0040338C > $  55           push    ebp
+0040338D   .  8BEC         mov     ebp, esp
+0040338F   .  83C4 F0      add     esp, -10
+00403392   .  B8 6C334000   mov     eax, 0040336C
+00403397   .  E8 2CFFFFFF   call    004032C8
+0040339C   .  E8 5BFAFFFF   call    00402DFC
+```
+
+### [源]
+
+```
+begin
+end;
+```
+
+这是什么也没加的情形。
+
+### [源]
+
+```
+Writeln('Hello World');
+```
+
+### [反]
+
+这五行一般是 `Writeln` 写出来的。
+
+```
+00403890   .  A1 A4404000   mov     eax, dword ptr [4040A4]
+00403895   .  BA BC384000   mov     edx, 004038BC            ;  ASCII "Hello World"
+0040389A   .  E8 B1FBFFFF   call    00403450
+0040389F   .  E8 38F2FFFF   call    00402ADC
+004038A4   .  E8 73ECFFFF   call    0040251C
+```
+
+当从主函数调用一个无参数函数时程序头就变成这样了。
+
+```
+00403394 > $  55           push    ebp
+00403395   .  8BEC         mov     ebp, esp
+00403397   .  83C4 F0      add     esp, -10
+0040339A   .  B8 74334000   mov     eax, 00403374
+0040339F   .  E8 24FFFFFF   call    004032C8
+004033A4   .  E8 9BFFFFFF   call    00403344
+004033A9   .  E8 4EFAFFFF   call    00402DFC
+```
+
+其中，第二个 `call` 就是你中转的函数。要步入才行。
+
+```
+00403344  /$  89C0         mov     eax, eax
+00403346  |.  89C0         mov     eax, eax
+00403348  \\. C3           retn
+```
+
+那个函数是个空函数，我加了两条汇编指令以区分结尾，另外也可以再加两条指令以区分头。等会儿我们就那样做。
+
+目前的任务是将 Delphi 一些调用整理以下。关键是整理 `call` 的部分。
+
+这样当我们写了某个形式的代码，遇见那样的序列就不需要步进了。
+
+为了逆向我们先练习反高级语言写的代码，然后再先有代码后逆。
+
+```
+00403838  /$  89C0         mov     eax, eax     =>这就是我用
+                                                  asm mov eax,ax; mov eax,eax; end;加的，以识别
+0040383A  |.  89C0         mov     eax, eax
+```
+
+#### #Writeln 开始
+
+```
+0040383C  |.  A1 A4404000   mov     eax, dword ptr [4040A4]
+00403841  |.  BA 64384000   mov     edx, 00403864            ;  ASCII "Hello World"
+00403846  |.  E8 05FCFFFF   call    00403450
+0040384B  |.  E8 8CF2FFFF   call    00402ADC
+00403850  |.  E8 C7ECFFFF   call    0040251C
+```
+
+#### #结束
+
+```
+00403855  |.  89C0         mov     eax, eax
+00403857  |.  89C0         mov     eax, eax
+```
+
+```
+00403859  |.  33C0         xor     eax, eax                   ;这条指令就是多出的指令
+                                                             ;是 Delphi 自动加的。其实
+```
+
+这句是由于调用的是 `function` 的原因，返回值，而如果调用 `procedure` 是没有这句的。
+
+好既然 Delphi 会自动来加指令，我们就来看看 `procedure` 和各种不同返回值的情形。
+
+```
+0040385B  \\. C3           retn
+```
+
+```
+00403838  /$  89C0         mov     eax, eax
+0040383A  |.  89C0         mov     eax, eax
+0040383C  |.  A1 A4404000   mov     eax, dword ptr [4040A4]
+00403841  |.  BA 64384000   mov     edx, 00403864            ;  ASCII "Hello World"
+00403846  |.  E8 05FCFFFF   call    00403450
+0040384B  |.  E8 8CF2FFFF   call    00402ADC
+00403850  |.  E8 C7ECFFFF   call    0040251C
+00403855  |.  89C0         mov     eax, eax
+00403857  |.  89C0         mov     eax, eax
+00403859  \\. C3           retn
+```
+
+这就是一个 `procedure` 的情形，这里就没有 `xor eax, eax;` 了。`procedure` 就相当与 `void` 类型的函数。
+
+```
+00403838  /$  53           push    ebx
+00403839  |.  89C0         mov     eax, eax
+0040383B  |.  89C0         mov     eax, eax
+0040383D  |.  A1 A4404000   mov     eax, dword ptr [4040A4]
+00403842  |.  BA 68384000   mov     edx, 00403868            ;  ASCII "Hello World"
+00403847  |.  E8 04FCFFFF   call    00403450
+0040384C  |.  E8 8BF2FFFF   call    00402ADC
+00403851  |.  E8 C6ECFFFF   call    0040251C
+00403856  |.  89C0         mov     eax, eax
+00403858  |.  89C0         mov     eax, eax
+0040385A  |.  8BC3         mov     eax, ebx
+0040385C  |.  5B           pop     ebx
+0040385D  \\. C3           retn
+```
+
+这种情形是我没有加 `result := 0` 或别的。
+
+```
+function PWinMain():Integer;
+begin
+      asm
+        mov eax,eax;
+        mov eax,eax;
+    end;
+    Writeln('Hello World');
+    asm
+        mov eax,eax;
+        mov eax,eax;
+    end;
+end;
+```
+
+我加上 `result` 后又会如何呢？
+
+```
+00403838  /$  89C0         mov     eax, eax
+0040383A  |.  89C0         mov     eax, eax
+0040383C  |.  A1 A4404000   mov     eax, dword ptr [4040A4]
+00403841  |.  BA 64384000   mov     edx, 00403864            ;  ASCII "Hello World"
+00403846  |.  E8 05FCFFFF   call    00403450
+0040384B  |.  E8 8CF2FFFF   call    00402ADC
+00403850  |.  E8 C7ECFFFF   call    0040251C
+00403855  |.  89C0         mov     eax, eax
+00403857  |.  89C0         mov     eax, eax
+00403859  |.  33C0         xor     eax, eax
+0040385B  \\. C3           retn
+```
+
+加上后就没有 `mov eax, ebx`
+
+```
+0040385C  |.  5B           pop     ebx
+```
+
+这样的结尾指令了，而换成了 `xor eax, eax;`。`xor` 是在做逻辑与，就是清零。
+
+```
+00403838  /$  89C0         mov     eax, eax
+0040383A  |.  89C0         mov     eax, eax
+0040383C  |.  A1 A4404000   mov     eax, dword ptr [4040A4]
+00403841  |.  BA 68384000   mov     edx, 00403868            ;  ASCII "Hello World"
+00403846  |.  E8 05FCFFFF   call    00403450
+0040384B  |.  E8 8CF2FFFF   call    00402ADC
+00403850  |.  E8 C7ECFFFF   call    0040251C
+00403855  |.  89C0         mov     eax, eax
+00403857  |.  89C0         mov     eax, eax
+00403859  |.  B8 01000000   mov     eax, 1        ; result := 1
+0040385E  \\. C3           retn
+```
+
+函数的返回值默认用 `eax` 返回。
+
+```
+00403838  /$  89C0         mov     eax, eax
+0040383A  |.  89C0         mov     eax, eax
+0040383C  |.  A1 A4404000   mov     eax, dword ptr [4040A4]
+00403841  |.  BA 68384000   mov     edx, 00403868            ;  ASCII "Hello World"
+00403846  |.  E8 05FCFFFF   call    00403450
+0040384B  |.  E8 8CF2FFFF   call    00402ADC
+00403850  |.  E8 C7ECFFFF   call    0040251C
+00403855  |.  89C0         mov     eax, eax
+00403857  |.  89C0         mov     eax, eax
+00403859  |.  B8 0A000000   mov     eax, 0A       ; result := $A;
+0040385E  \\. C3           retn
+```
+
+还是像上面说的，我们先关注高级语言，然后看反汇编，而不是看反汇编像高级语言。
+
+### [源]
+
+```
+var MyMessage :string;
+
+function PWinMain():Integer;
+begin
+      asm
+        mov eax,eax;
+        mov eax,eax;
+    end;
+    MyMessage := 'Hello world!';
+    Writeln(MyMessage);
+    asm
+        mov eax,eax;
+        mov eax,eax;
+    end;
+    result := $A;
+end;
+```
+
+### [反]
+
+```
+0040387C  /$  89C0         mov     eax, eax
+0040387E  |.  89C0         mov     eax, eax
+```
+
+```
+00403880  |.  B8 5C564000   mov     eax, 0040565C
+00403885  |.  BA BC384000   mov     edx, 004038BC            ;  ASCII "Hello world!"
+0040388A  |.  E8 4DFBFFFF   call    004033DC                 ;  给一个全局 string 赋值
+```
+
+```
+0040388F  |.  A1 A4404000   mov     eax, dword ptr [4040A4]
+00403894  |.  8B15 5C564000 mov     edx, dword ptr [40565C]    ;这里一个立即数地址，被
+```
+
+替换成了一个存储器操作数。
+
+```
+0040389A  |.  E8 F5FBFFFF   call    00403494
+0040389F  |.  E8 38F2FFFF   call    00402ADC
+004038A4  |.  E8 73ECFFFF   call    0040251C
+004038A9  |.  89C0         mov     eax, eax
+004038AB  |.  89C0         mov     eax, eax
+```
