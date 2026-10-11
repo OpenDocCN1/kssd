@@ -1,0 +1,93 @@
+
+```asm
+00408F00   .  83EC 08       sub     esp, 8                              段首
+  00408F03   .  53          push    ebx
+  00408F04   .  56          push    esi
+  00408F05   .  8BF1        mov     esi, ecx
+  00408F07   .  68 FF000000 push    0FF
+  00408F0C   .  68 68994600 push    00469968                              ;  abcdefghijk
+  00408F11   .  8D8E A8040000 lea    ecx, dword ptr [esi+4A8]
+  00408F17   .  E8 9F990200 call    004328BB
+  00408F1C   .  68 FF000000 push    0FF
+  00408F21   .  68 689A4600 push    00469A68                              ;  12345678
+  00408F26   .  8D8E 6C040000 lea    ecx, dword ptr [esi+46C]
+  00408F2C   .  E8 8A990200 call    004328BB
+  00408F31   .  68 68994600 push    00469968                              ;  abcdefghijk
+  00408F36   .  8D4C24 0C   lea     ecx, dword ptr [esp+C]
+  00408F3A   .  E8 12600200 call    0042EF51
+  00408F3F   .  8B00        mov     eax, dword ptr [eax]
+  00408F41   .  68 98414600 push    00464198                              ;  unregistered user
+  00408F46   .  50          push    eax
+  00408F47   .  E8 33330100 call    0041C27F                              ;  比较用户名是否是“UNREGISTERED USER”？
+  00408F4C   .  83C4 08     add     esp, 8
+  00408F4F   .  8D4C24 08   lea     ecx, dword ptr [esp+8]
+  00408F53   .  85C0        test    eax, eax                              ;  (initial cpu selection)
+  00408F55   .  0F94C3      sete    bl                                    ;  是则置 bl=1.否则为 0
+  00408F58   .  E8 865F0200 call    0042EEE3
+  00408F5D   .  84DB        test    bl, bl
+  00408F5F   .  74 0F       je      short 00408F70                        ;  bl=1 则程序直接跳向退出
+  00408F61   .  6A 01       push    1
+  00408F63   .  8BCE        mov     ecx, esi
+  00408F65   .  E8 93A70200 call    004336FD
+  00408F6A   .  5E          pop     esi
+  00408F6B   .  5B          pop     ebx
+  00408F6C   .  83C4 08     add     esp, 8
+  00408F6F   .  C3          retn
+  00408F70   >  E8 1BFCFFFF call    00408B90                              ;  算法 call，可以再向上找按钮事件代码开始处
+  00408F75   .  85C0        test    eax, eax
+  00408F77   .  0F84 AB000000 je    00409028                              ;  关键跳转
+  00408F7D   .  8B15 509C4600 mov    edx, dword ptr [469C50]
+  00408F83   .  8D4424 0C   lea     eax, dword ptr [esp+C]
+  00408F87   .  8D4C24 08   lea     ecx, dword ptr [esp+8]
+  00408F8B   .  33DB        xor     ebx, ebx
+  00408F8D   .  50          push    eax                                   ; /pDisposition
+  00408F8E   .  51          push    ecx                                   ; |pHandle
+  00408F8F   .  53          push    ebx                                   ; |pSecurity => NULL
+  00408F90   .  68 3F000F00  push    0F003F                              ; |Access = KEY_ALL_ACCESS
+  00408F95   .  53          push    ebx                                   ; |Options => REG_OPTION_NON_VOLATILE
+  00408F96   .  53          push    ebx                                   ; |Class => NULL
+  00408F97   .  53          push    ebx                                   ; |Reserved => 0
+  00408F98   .  52          push    edx                                   ; |Subkey => "Software\\4Developers\\COMExp"
+  00408F99   .  68 02000080 push    80000002                              ; |hKey = HKEY_LOCAL_MACHINE
+  00408F9E   .  895C24 30   mov     dword ptr [esp+30], ebx             ; |
+  00408FA2   .  895C24 2C   mov     dword ptr [esp+2C], ebx             ; |
+  00408FA6   .  FF15 14004500 call    dword ptr [<&ADVAPI32.RegCreateK>; \\RegCreateKeyExA
+  00408FAC   .  3BC3        cmp     eax, ebx
+  00408FAE   .  75 31       jnz     short 00408FE1
+  00408FB0   .  A1 503E4600 mov     eax, dword ptr [463E50]
+  00408FB5   .  8B4C24 08   mov     ecx, dword ptr [esp+8]
+  00408FB9   .  57          push    edi
+  00408FBA   .  68 00020000 push    200                                   ; /BufSize = 200 (512.)
+  00408FBF   .  68 68994600 push    00469968                              ; |abcdefghijk
+  00408FC4   .  6A 03       push    3                                     ; |ValueType = REG_BINARY
+  00408FC6   .  53          push    ebx                                   ; |Reserved => 0
+  00408FC7   .  50          push    eax                                   ; |ValueName => "4D"
+  00408FC8   .  51          push    ecx                                   ; |hKey
+  00408FC9   .  FF15 10004500 call    dword ptr [<&ADVAPI32.RegSetValu>; \\RegSetValueExA
+  00408FCF   .  8B5424 0C   mov     edx, dword ptr [esp+C]
+  00408FD3   .  8BF8        mov     edi, eax
+  00408FD5   .  52          push    edx                                   ; /hKey
+  00408FD6   .  FF15 40004500 call    dword ptr [<&ADVAPI32.RegCloseKe>; \\RegCloseKey
+  00408FDC   .  3BFB        cmp     edi, ebx
+  00408FDE   .  5F          pop     edi
+  00408FDF   .  74 1B       je      short 00408FFC
+  00408FE1   >  53          push    ebx
+  00408FE2   .  53          push    ebx
+  00408FE3   .  68 B4444600 push    004644B4                              ;  failed to record license information.\n\nplease contact support@4dev.com
+  00408FE8   .  E8 E8200300 call    0043B0D5
+  00408FED   .  6A 01       push    1
+  00408FEF   .  8BCE        mov     ecx, esi
+  00408FF1   .  E8 07A70200 call    004336FD
+  00408FF6   .  5E          pop     esi
+  00408FF7   .  5B          pop     ebx
+  00408FF8   .  83C4 08     add     esp, 8
+  00408FFB   .  C3          retn
+```
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+段首下断，输入输入试炼码“abcdefghijk,123456”后中断在这里，就可以调试了。单步，`00408F70`处进入算法 `call` `00408B90`
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+代码:
