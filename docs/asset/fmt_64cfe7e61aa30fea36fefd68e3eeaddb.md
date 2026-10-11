@@ -1,0 +1,183 @@
+
+```
+00407D88  |.   5B          POP EBX  
+00407D89  |.   83C4 3C     ADD ESP,3C  
+00407D8C  |.   C2 0800     RETN 8  
+00407D8F  |>.  81F9 A6D3B201 CMP ECX,1B2D3A6  
+00407D95  |.   75 0C       JNZ SHORT sfld.00407DA3  
+00407D97  |.   5F          POP EDI  
+00407D98  |.   5E          POP ESI  
+00407D99  |.   5D          POP EBP  
+00407D9A  |.   33C0        XOR EAX,EAX  
+00407D9C  |.   5B          POP EBX  
+00407D9D  |.   83C4 3C     ADD ESP,3C  
+00407DA0  |.   C2 0800     RETN 8  
+00407DA3  |>.  81F9 F6C5D122 CMP ECX,22D1C5F6  
+00407DA9  |.   75 0C       JNZ SHORT sfld.00407DB7  
+00407DAB  |.   5F          POP EDI  
+00407DAC  |.   5E          POP ESI  
+00407DAD  |.   5D          POP EBP  
+00407DAE  |.   33C0        XOR EAX,EAX  
+00407DB0  |.   5B          POP EBX  
+00407DB1  |.   83C4 3C     ADD ESP,3C  
+00407DB4  |.   C2 0800     RETN 8  
+00407DB7  |>.  81F9 287B9A26 CMP ECX,269A7B28  
+00407DBD  |.   75 0C       JNZ SHORT sfld.00407DCB  
+00407DBF  |.   5F          POP EDI  
+00407DC0  |.   5E          POP ESI  
+00407DC1  |.   5D          POP EBP  
+00407DC2  |.   33C0        XOR EAX,EAX  
+00407DC4  |.   5B          POP EBX  
+00407DC5  |.   83C4 3C     ADD ESP,3C  
+00407DC8  |.   C2 0800     RETN 8  
+00407DCB  |>.  81F9 05F8970F CMP ECX,0F97F805  
+00407DD1  |.   75 0C       JNZ SHORT sfld.00407DDF  
+00407DD3  |.   5F          POP EDI  
+00407DD4  |.   5E          POP ESI  
+00407DD5  |.   5D          POP EBP  
+00407DD6  |.   33C0        XOR EAX,EAX  
+00407DD8  |.   5B          POP EBX  
+00407DD9  |.   83C4 3C     ADD ESP,3C  
+00407DDC  |.   C2 0800     RETN 8  
+00407DDF  |>.  81F9 E95B8800 CMP ECX,885BE9  
+00407DE5  |.   75 0C       JNZ SHORT sfld.00407DF3  
+00407DE7  |.   5F          POP EDI  
+00407DE8  |.   5E          POP ESI  
+00407DE9  |.   5D          POP EBP  
+00407DEA  |.   33C0        XOR EAX,EAX  
+00407DEC  |.   5B          POP EBX  
+00407DED  |.   83C4 3C     ADD ESP,3C  
+00407DF0  |.   C2 0800     RETN 8  
+00407DF3  |>.  81F9 3C7CBD2E CMP ECX,2EBD7C3C  
+00407DF9  |.   75 0C       JNZ SHORT sfld.00407E07  
+00407DFB  |.   5F          POP EDI  
+00407DFC  |.   5E          POP ESI  
+00407DFD  |.   5D          POP EBP  
+00407DFE  |.   33C0        XOR EAX,EAX  
+00407E00  |.   5B          POP EBX  
+00407E01  |.   83C4 3C     ADD ESP,3C  
+00407E04  |.   C2 0800     RETN 8  
+00407E07  |>.  81F9 38B40D1F CMP ECX,1F0DB438  
+00407E0D  |.   75 0C       JNZ SHORT sfld.00407E1B  
+00407E0F  |.   5F          POP EDI  
+00407E10  |.   5E          POP ESI  
+00407E11  |.   5D          POP EBP  
+00407E12  |.   33C0        XOR EAX,EAX  
+00407E14  |.   5B          POP EBX  
+00407E15  |.   83C4 3C     ADD ESP,3C  
+00407E18  |.   C2 0800     RETN 8  
+00407E1B  |>.  81F9 3EC13F18 CMP ECX,183FC13E  
+00407E21  |.   75 0C       JNZ SHORT sfld.00407E2F  
+00407E23  |.   5F          POP EDI  
+00407E24  |.   5E          POP ESI  
+00407E25  |.   5D          POP EBP  
+00407E26  |.   33C0        XOR EAX,EAX  
+00407E28  |.   5B          POP EBX  
+00407E29  |.   83C4 3C     ADD ESP,3C  
+00407E2C  |.   C2 0800     RETN 8  
+00407E2F  |>.  81F9 ECA0D41B CMP ECX,1BD4A0EC  
+00407E35  |.   75 0C       JNZ SHORT sfld.00407E43  
+00407E37  |.   5F          POP EDI  
+00407E38  |.   5E          POP ESI  
+00407E39  |.   5D          POP EBP  
+00407E3A  |.   33C0        XOR EAX,EAX  
+00407E3C  |.   5B          POP EBX  
+00407E3D  |.   83C4 3C     ADD ESP,3C  
+00407E40  |.   C2 0800     RETN 8  
+00407E43  |>.  81F9 05843306 CMP ECX,6338405  
+00407E49  |.   75 0C       JNZ SHORT sfld.00407E57  
+00407E4B  |.   5F          POP EDI  
+00407E4C  |.   5E          POP ESI  
+00407E4D  |.   5D          POP EBP  
+00407E4E  |.   33C0        XOR EAX,EAX  
+00407E50  |.   5B          POP EBX  
+00407E51  |.   83C4 3C     ADD ESP,3C  
+00407E54  |.   C2 0800     RETN 8  
+00407E57  |>.  81F9 2D9CB621 CMP ECX,21B69C2D  
+00407E5D  |.   75 0C       JNZ SHORT sfld.00407E6B  
+00407E5F  |.   5F          POP EDI  
+00407E60  |.   5E          POP ESI  
+00407E61  |.   5D          POP EBP  
+00407E62  |.   33C0        XOR EAX,EAX  
+00407E64  |.   5B          POP EBX  
+00407E65  |.   83C4 3C     ADD ESP,3C  
+00407E68  |.   C2 0800     RETN 8  
+00407E6B  |>.  81F9 9C012D12 CMP ECX,122D019C  
+00407E71  |.   75 0C       JNZ SHORT sfld.00407E7F  
+00407E73  |.   5F          POP EDI  
+00407E74  |.   5E          POP ESI  
+00407E75  |.   5D          POP EBP  
+00407E76  |.   33C0        XOR EAX,EAX  
+00407E78  |.   5B          POP EBX  
+00407E79  |.   83C4 3C     ADD ESP,3C  
+00407E7C  |.   C2 0800     RETN 8  
+00407E7F  |>.  81F9 8D42D72F CMP ECX,2FD7428D  
+00407E85  |.   75 0C       JNZ SHORT sfld.00407E93  
+00407E87  |.   5F          POP EDI  
+00407E88  |.   5E          POP ESI  
+00407E89  |.   5D          POP EBP  
+00407E8A  |.   33C0        XOR EAX,EAX  
+00407E8C  |.   5B          POP EBX  
+00407E8D  |.   83C4 3C     ADD ESP,3C  
+00407E90  |.   C2 0800     RETN 8  
+00407E93  |>.  81F9 205BD034 CMP ECX,34D05B20  
+00407E99  |.   75 0C       JNZ SHORT sfld.00407EA7  
+00407E9B  |.   5F          POP EDI  
+00407E9C  |.   5E          POP ESI  
+00407E9D  |.   5D          POP EBP  
+00407E9E  |.   33C0        XOR EAX,EAX  
+00407EA0  |.   5B          POP EBX  
+00407EA1  |.   83C4 3C     ADD ESP,3C  
+00407EA4  |.   C2 0800     RETN 8  
+00407EA7  |>.  81F9 1BCAD735 CMP ECX,35D7CA1B  
+00407EAD  |.   75 0C       JNZ SHORT sfld.00407EBB  
+00407EAF  |.   5F          POP EDI  
+00407EB0  |.   5E          POP ESI  
+00407EB1  |.   5D          POP EBP  
+00407EB2  |.   33C0        XOR EAX,EAX  
+00407EB4  |.   5B          POP EBX  
+00407EB5  |.   83C4 3C     ADD ESP,3C  
+00407EB8  |.   C2 0800     RETN 8  
+00407EBB  |>.  81F9 858A9033 CMP ECX,33908A85  
+00407EC1  |.   75 0C       JNZ SHORT sfld.00407ECF  
+00407EC3  |.   5F          POP EDI  
+00407EC4  |.   5E          POP ESI  
+00407EC5  |.   5D          POP EBP  
+00407EC6  |.   33C0        XOR EAX,EAX  
+00407EC8  |.   5B          POP EBX  
+00407EC9  |.   83C4 3C     ADD ESP,3C  
+00407ECC  |.   C2 0800     RETN 8  
+00407ECF  |>.  81F9 609D9A1B CMP ECX,1B9A9D60  
+00407ED5  |.   75 0C       JNZ SHORT sfld.00407EE3  
+00407ED7  |.   5F          POP EDI  
+00407ED8  |.   5E          POP ESI  
+00407ED9  |.   5D          POP EBP  
+00407EDA  |.   33C0        XOR EAX,EAX  
+00407EDC  |.   5B          POP EBX  
+00407EDD  |.   83C4 3C     ADD ESP,3C  
+00407EE0  |.   C2 0800     RETN 8  
+00407EE3  |>.  81F9 677B7B3A CMP ECX,3A7B7B67  
+00407EE9  |.   75 0C       JNZ SHORT sfld.00407EF7  
+00407EEB  |.   5F          POP EDI  
+00407EEC  |.   5E          POP ESI  
+00407EED  |.   5D          POP EBP  
+00407EEE  |.   33C0        XOR EAX,EAX  
+00407EF0  |.   5B          POP EBX  
+00407EF1  |.   83C4 3C     ADD ESP,3C  
+00407EF4  |.   C2 0800     RETN 8  
+00407EF7  |>.  81F9 A87A1C19 CMP ECX,191C7AA8  
+00407EFD  |.   75 0C       JNZ SHORT sfld.00407F0B  
+00407EFF  |.   5F          POP EDI  
+00407F00  |.   5E          POP ESI  
+00407F01  |.   5D          POP EBP  
+00407F02  |.   33C0        XOR EAX,EAX  
+00407F04  |.   5B          POP EBX  
+00407F05  |.   83C4 3C     ADD ESP,3C  
+00407F08  |.   C2 0800     RETN 8  
+00407F0B  |>.  81F9 20C8082B CMP ECX,2B08C820  
+00407F11  |.   75 0C       JNZ SHORT sfld.00407F1F  
+00407F13  |.   5F          POP EDI  
+00407F14  |.   5E          POP ESI  
+00407F15  |.   5D          POP EBP  
+00407F16  |.   33C0        XOR EAX,EAX  
+```
