@@ -1,0 +1,235 @@
+
+# 简单壳分析流程
+
+> 原文：[`www.pediy.com/kssd/pediy12/137881.html`](https://www.pediy.com/kssd/pediy12/137881.html)
+
+- **文章标题**: `AHpack` 分析
+- **文章作者**: `witkey`
+- **下载地址**: 自己搜索下载
+- **加壳方式**: `Ahpack`
+- **保护方式**: `Ahpack`
+- **编写语言**: `Asm`
+- **使用工具**: `OD LoadPe`
+- **操作平台**: `winxp`
+- **作者声明**: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
+
+---
+
+## 详细过程
+
+夜雨无眠，特来简单分析简单压缩壳流程，简单但分析和写脚本过程，堪称痛苦，因为老是给小问题阻挡。.. 因此也增添了兴趣，学到了很多思路。
+
+以及熟练脚本写法，脚本测试的是已加壳程序，未测试其他语言加此壳是否通过！~~~~~
+
+`OD` 载入：
+
+```
+代码:
+```
+
+
+
+```text
+004040FF   60                      pushad                         ; 保存 FPU 寄存器
+00404100    68 54404000           push    00404054                 ; 直接硬件地址
+00404105    B8 48404000           mov     eax, <&KERNEL32.GetModuleHandleA>
+0040410A    FF10                  call    dword ptr [eax]          ; kernel32.GetModuleHandleA
+0040410C    68 B3404000           push    004040B3                 ; 硬件编码，GlobalAlloc
+00404111    50                    push    eax
+00404112    B8 44404000           mov     eax, <&KERNEL32.GetProcAddress>
+00404117    FF10                  call    dword ptr [eax]          ; 获取函数后，直接调用
+00404119    68 00080000           push    800                      ; 分配 Size
+0040411E    6A 40                 push    40                       ; 分配属性
+00404120    FFD0                  call    eax
+00404122    8905 CA404000        mov     dword ptr [4040CA], eax  ; Bak Flags
+00404128    89C7                  mov     edi, eax                 ; Edi 作目的地址
+0040412A    BE 00104000           mov     esi, 00401000            ; 源地址
+0040412F    60                    pushad                           ; 这里就是 Aplib 压缩算法
+00404130    FC                    cld
+00404131    B2 80                 mov     dl, 80
+00404133    31DB                  xor     ebx, ebx
+00404135    A4                    movs    byte ptr es:[edi], byte ptr [esi]
+00404136    B3 02                 mov     bl, 2
+00404138    E8 6D000000           call    004041AA
+0040413D  ^ 73 F6                 jnb     short 00404135
+0040413F    31C9                  xor     ecx, ecx
+00404141    E8 64000000           call    004041AA
+00404146    73 1C                 jnb     short 00404164
+00404148    31C0                  xor     eax, eax
+0040414A    E8 5B000000           call    004041AA
+0040414F    73 23                 jnb     short 00404174
+00404151    B3 02                 mov     bl, 2
+00404153    41                    inc     ecx
+00404154    B0 10                 mov     al, 10
+00404156    E8 4F000000           call    004041AA
+0040415B    10C0                  adc     al, al
+0040415D  ^ 73 F7                 jnb     short 00404156
+0040415F    75 3F                 jnz     short 004041A0
+00404161    AA                    stos    byte ptr es:[edi]
+00404162  ^ EB D4                 jmp     short 00404138
+00404164    E8 4D000000           call    004041B6
+00404169    29D9                  sub     ecx, ebx
+0040416B    75 10                 jnz     short 0040417D
+0040416D    E8 42000000           call    004041B4
+00404172    EB 28                 jmp     short 0040419C
+00404174    AC                    lods    byte ptr [esi]
+00404175    D1E8                  shr     eax, 1
+00404177    74 4D                 je      short 004041C6
+00404179    11C9                  adc     ecx, ecx
+0040417B    EB 1C                 jmp     short 00404199
+0040417D    91                    xchg    eax, ecx
+0040417E    48                    dec     eax
+0040417F    C1E0 08               shl     eax, 8
+00404182    AC                    lods    byte ptr [esi]
+00404183    E8 2C000000           call    004041B4
+00404188    3D 007D0000           cmp     eax, 7D00
+0040418D    73 0A                 jnb     short 00404199
+0040418F    80FC 05               cmp     ah, 5
+00404192    73 06                 jnb     short 0040419A
+00404194    83F8 7F               cmp     eax, 7F
+00404197    77 02                 ja      short 0040419B
+00404199    41                    inc     ecx
+0040419A    41                    inc     ecx
+0040419B    95                    xchg    eax, ebp
+0040419C    89E8                  mov     eax, ebp
+0040419E    B3 01                 mov     bl, 1
+004041A0    56                    push    esi
+004041A1    89FE                  mov     esi, edi
+004041A3    29C6                  sub     esi, eax
+004041A5    F3:A4                 rep     movs byte ptr es:[edi], byte ptr>
+004041A7    5E                    pop     esi
+004041A8  ^ EB 8E                 jmp     short 00404138
+004041AA    00D2                  add     dl, dl
+004041AC    75 05                 jnz     short 004041B3
+004041AE    8A16                  mov     dl, byte ptr [esi]
+004041B0    46                    inc     esi
+004041B1    10D2                  adc     dl, dl
+004041B3    C3                    retn
+004041B4    31C9                  xor     ecx, ecx
+004041B6    41                    inc     ecx
+004041B7    E8 EFFFFFFF           call    004041AA
+004041BC    11C9                  adc     ecx, ecx
+004041BE    E8 E7FFFFFF           call    004041AA
+004041C3  ^ 72 F2                 jb      short 004041B7
+004041C5    C3                    retn
+004041C6    61                    popad
+004041C7    B9 FC070000           mov     ecx, 7FC                   ; 直接赋值硬件 Size
+004041CC    8B1C08               mov     ebx, dword ptr [eax+ecx]
+004041CF    8999 00104000        mov     dword ptr [ecx+401000], ebx
+004041D5  ^ E2 F5                 loopd   short 004041CC             ; 解码
+004041D7    90                    nop
+004041D8    90                    nop
+004041D9    BA 00004000           mov     edx, 00400000
+004041DE    BE 70200000           mov     esi, 2070                  ; 直接引用 IAT 地址
+004041E3    01D6                  add     esi, edx
+004041E5    8B46 0C               mov     eax, dword ptr [esi+C]     ; 获取 IID NAME
+004041E8    85C0                  test    eax, eax
+004041EA    0F84 87000000        je      00404277
+004041F0    01D0                  add     eax, edx
+004041F2    89C3                  mov     ebx, eax
+004041F4    50                    push    eax
+004041F5    B8 48404000           mov     eax, <&KERNEL32.GetModuleHandleA>
+004041FA    FF10                  call    dword ptr [eax]            ; 获取 NAME 模块句柄
+004041FC    85C0                  test    eax, eax
+004041FE    75 08                 jnz     short 00404208             ; 获取不到调用 LoadLibraryA
+00404200    53                    push    ebx
+00404201    B8 4C404000           mov     eax, <&KERNEL32.LoadLibraryA>
+00404206    FF10                  call    dword ptr [eax]
+00404208    8905 CE404000        mov     dword ptr [4040CE], eax    ; 作者作一次判断就决定 LoadLibraryA 肯定获取得到！当前作 Flags
+0040420E    C705 D2404000 0     mov     dword ptr [4040D2], 0      ; 将模块句柄作标志 Flags 区分
+00404218    BA 00004000           mov     edx, 00400000
+0040421D    8B06                  mov     eax, dword ptr [esi]       ; 获取 OriginalFirstThunk
+0040421F    85C0                  test    eax, eax
+00404221    75 03                 jnz     short 00404226             ; 如果获取不到就获取 FirstThunk
+00404223    8B46 10               mov     eax, dword ptr [esi+10]
+00404226    01D0                  add     eax, edx
+00404228    0305 D2404000        add     eax, dword ptr [4040D2]    ; 加上模块句柄的 Flags
+0040422E    8B18                  mov     ebx, dword ptr [eax]       ; 取这个是作判断
+00404230    8B7E 10               mov     edi, dword ptr [esi+10]    ; 最后还是使用 FirstThunk
+00404233    01D7                  add     edi, edx
+00404235    033D D2404000        add     edi, dword ptr [4040D2]
+0040423B    85DB                  test    ebx, ebx                   ; 奇怪？？？？ 呵呵 (判断 DLL)
+0040423D    74 2B                 je      short 0040426A
+0040423F    F7C3 00000080        test    ebx, 80000000              ; 判断高位
+00404245    75 04                 jnz     short 0040424B
+00404247    01D3                  add     ebx, edx
+00404249    43                    inc     ebx
+0040424A    43                    inc     ebx
+0040424B    81E3 FFFFFFF0F       and     ebx, 0FFFFFFF              ; 与是否符合位
+00404251    53                    push    ebx
+00404252    FF35 CE404000        push    dword ptr [4040CE]
+00404258    B8 44404000           mov     eax, <&KERNEL32.GetProcAddress>
+0040425D    FF10                  call    dword ptr [eax]
+0040425F    8907                  mov     dword ptr [edi], eax
+00404261    8305 D2404000 0     add     dword ptr [4040D2], 4
+00404268  ^ EB AE                 jmp     short 00404218
+0040426A    83C6 14               add     esi, 14
+0040426D    BA 00004000           mov     edx, 00400000
+00404272  ^ E9 6EFFFFFF           jmp     004041E5
+00404277    68 54404000           push    00404054                 ; ASCII "KERNEL32.DLL"
+0040427C    B8 48404000           mov     eax, <&KERNEL32.GetModuleHandleA>
+00404281    FF10                  call    dword ptr [eax]
+00404283    68 BF404000           push    004040BF                 ; ASCII "GlobalFree"
+00404288    50                    push    eax
+00404289    B8 44404000           mov     eax, <&KERNEL32.GetProcAddress>
+0040428E    FF10                  call    dword ptr [eax]
+00404290    8B15 CA404000        mov     edx, dword ptr [4040CA]
+00404296    52                    push    edx
+00404297    FFD0                  call    eax                      ; GlobalFree
+00404299    61                    popad
+0040429A    BA 00104000           mov     edx, 00401000
+0040429F    FFE2                  jmp     edx
+```
+
+
+
+一、壳采用固定编码来调用壳所需要用到的函数。
+
+二、采用`aplib`压缩，通过固定`Size`解码到原程序。
+
+三、获取`IID Name` —— `GetModuleHandleA` --> `Jnz` <-- `LoadLibraryA` -- Save
+
+设置`Flags`判断 —— 获取`OriginalFirstThunk` --> `jnz` <-- 获取`TirstThunk` 无论结果如何还是选择`TirstThunk` -- 填充
+
+个人理解可能有误，希望路过的看过的指点，因为接触并不多~~~ `(*^_^*)` 嘻嘻……
+
+简单脚本：
+
+代码：
+
+```
+  Var Oep
+  Var IatRva
+  Var Iatva
+  Var ImageBase
+  
+  Strat:
+    BPHWCALL
+    Find eip,#BE????????#
+    mov ImageBase,\[$RESULT+1\]
+    sub ImageBase,1000
+    Find eip,#BA????????BE????0000#
+    go $RESULT
+    mov IatRva,\[$RESULT+6\]
+    mov Iatva,ImageBase+IatRva
+    cmt eip,"IatRva"
+    Find eip,#61BA????????FFE2#
+    go $RESULT
+    Sto
+    Sto
+    Sto
+    mov Oep,eip
+    cmt eip,"查看 LOG 的 IATRVA 使用 LoadPe 修改 IatRVA 即可运行"
+    an eip
+    DPE "Dump.exe",eip
+  Log:
+    LOG ImageBase,"ImageBase="
+    LOG IatRva,"IatRva="
+    LOG Oep,"Oep="
+    
+    
+  End:
+    ret
+```
+
+2011 年 07 月 28 日 23:21:01 ![](img/c1d8523a7842d7b67917c210ac6dcf18.jpg "微笑")
