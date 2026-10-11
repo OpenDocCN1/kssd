@@ -1,0 +1,314 @@
+
+# inline hook 未导出函数 `PspTerminateProcess`
+
+> 原文：[`www.pediy.com/kssd/pediy10/62450.html`](https://www.pediy.com/kssd/pediy10/62450.html)
+
+已经把代码附上了....以前的没什么修改,在搜索特征码时没有在非分页内存搜.可能会蓝屏,不过你应该做下适当修改--`sysnap`
+
+之前 inline Hook `SSDT` 中的一些函数学,感觉比较容易,可是想 hook 一些未导出的函数时,却发现还有点难,开始是蓝了 `N` 次屏,最后 `HOOK` 成功了,用一些 anti-rootkit 的工具却查不出来,以为没成功.郁闷了好久,最后用 `windbg` 看,原来是成功,于是写下这篇文章,很多东西应该讲的不太好,还请矫正
+
+今天就是要 inline hook `PspTerminateProcess`,这是一个没有被导出的函数,这个会了,基本什么函数都会 hook,呵呵,先看下它的定义吧
+
+```
+NTSTATUS
+PspTerminateProcess(
+PEPROCESS Process,
+NTSTATUS ExitStatus
+)
+```
+
+由于没有被导出的函数,那只能内存搜索定位了,先用 `windbg` 看(本机的情况,后面的图是虚拟机的)
+
+```
+lkd> u PspTerminateProcess
+nt!PspTerminateProcess:
+805d23a0 8bff mov edi,edi
+805d23a2 55 push ebp
+805d23a3 8bec mov ebp,esp
+805d23a5 56 push esi
+805d23a6 64a124010000 mov eax,dword ptr fs:\[00000124h\]
+805d23ac 8b7508 mov esi,dword ptr \[ebp+8\]
+805d23af 3b7044 cmp esi,dword ptr \[eax+44h\]
+805d23b2 7507 jne nt!PspTerminateProcess+0x1b (805d23bb)
+```
+
+再用 `dd` 命令
+
+```
+lkd> dd PspTerminateProcess
+805d23a0 8b55ff8b a16456ec 00000124 3b08758b
+805d23b0 07754470 00000db8 575aebc0 0248be8d
+805d23c0 47f60000 12742001 0174868d 56500000
+805d23d0 5d237268 ef50e880 086affff 0709f058
+805d23e0 e856006a 00004f78 ff85f88b 75ff1e74
+805d23f0 07e8570c 57fffffd 4f62e856 f88b0000
+805d2400 ea75ff85 00bc8639 06740000 ff04e856
+805d2410 c033fffe c25d5e5f cccc0008 cccccccc
+```
+
+那它的特征码是 `8b55ff8b a16456ec 00000124 3b08758b`,内存搜索吧,找到地址之后我们就重写其开头的 `5` 个字节,也就是修改
+
+```
+mov edi,edi
+push ebp
+mov ebp,esp
+```
+
+(现在一般的函数学编译之后都是这样子,个别例外)
+
+为一条 `jmp` 指令,这条指令将跳到我们自己的函数学里执行,这就是 inline hook
+
+好了,搜索地址吧,怎么搜索,当然是用一种通用的方法来定位,在 `<<学习笔记之钩住驱动程序导入表>>` 中修改一下 `GetDriverBaseAdress` 这个函数就可以了,,用 `ZwQuerySystemInformation` 枚举内核模块,第一个模块就是我们要的,`PspTerminateThreadByPointer` 就是在里面
+
+```
+#include "ntddk.h"
+#include "InlineHook.h"
+
+PVOID GetUndocumentFunctionAdress()
+{
+ULONG size,index;
+PULONG buf;
+ULONG i;
+PSYSTEM_MODULE_INFORMATION module;
+PVOID driverAddress=0;
+ULONG ntosknlBase;
+ULONG ntosknlEndAddr;
+ULONG curAddr;
+NTSTATUS status;
+ULONG retAddr;
+ULONG code1_sp2=0x8b55ff8b,code2_sp2=0xa16456ec,code3_sp2=0x00000124,code4_sp2=0x3b08758b;
+ZwQuerySystemInformation(SystemModuleInformation,&size, 0, &size);
+if(NULL==(buf = (PULONG)ExAllocatePool(PagedPool, size)))
+{
+DbgPrint("failed alloc memory failed \n");
+return 0;
+}
+status=ZwQuerySystemInformation(SystemModuleInformation,buf, size , 0);
+if(!NT_SUCCESS( status ))
+{
+DbgPrint("failed query\n");
+return 0;
+}
+module = (PSYSTEM_MODULE_INFORMATION)(( PULONG )buf + 1);
+ntosknlEndAddr=(ULONG)module->Base+(ULONG)module->Size;
+ntosknlBase=(ULONG)module->Base;
+curAddr=ntosknlBase;
+ExFreePool(buf);
+for (i=curAddr;i<=ntosknlEndAddr;i++)
+{
+if ((*((ULONG \*)i)==code1_sp2)&&(*((ULONG \*)(i+4))==code2_sp2)&&(*((ULONG \*)(i+8))==code3_sp2)&&(((ULONG\*)(i+12))==code4_sp2))
+{
+retAddr=i;
+DbgPrint("adress is:%x",retAddr);
+return retAddr;
+}
+}
+}
+
+VOID Unload(PDRIVER_OBJECT DriverObject)
+{
+DbgPrint("Unload Called \r\n");
+}
+
+NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING str)
+{
+DriverObject->DriverUnload = Unload;
+PspTerminateProcess = GetUndocumentFunctionAdress();
+return STATUS_SUCCESS;
+}
+```
+
+编译一下,加载运行,嗯,`DebugView` 输出了:`adress is:805c8620`
+
+那就是我们的函数地址找到了,找到地址当然是引用拉
+
+只需这样声明一下:
+
+```
+typedef NTSTATUS (*PSPTERMINATETPROCESS)(
+PEPROCESS Process,
+NTSTATUS ExitStatus
+);
+
+PSPTERMINATETPROCESS PspTerminateProcess;
+
+PspTerminateProcess=(PSPTERMINATETPROCESS)PspTerminateThreadByPointerAdrr;
+```
+
+好了,至此我们就获得了 `PspTerminateThreadByPointer` 在内存中的地址,也做了一些工作,现在 `PspTerminateThreadByPointer` 就可以像正常的导出函数一样直接使用了,不过我们是要它的地址就可以,如果你想用 `PspTerminateProcess` 就可以按上面的声明,就可以用.
+
+好了,解决了地址问题,接着就是修改这个地址开始的 `5` 个字节
+
+```
+805d23a0 8bff mov edi,edi
+805d23a2 55 push ebp
+805d23a3 8bec mov ebp,esp
+```
+
+在修改之前应该做一下检查,看我们要 `HOOK` 的函数有没有被别人先 `HOOK` 了,这是必要的,否则有可能导致系统崩溃
+
+检查只需要添加一个函数就可以
+
+```
+NTSTATUS CheckPspTerminateProcessIsHook()
+{
+int i=0;
+char *addr = (char *)PspTerminateProcess;
+char code[] = { 0x8b, 0xff, 0x55, 0x8b, 0xec};
+while(i<5)
+{
+DbgPrint(" - 0x%02X ", (unsigned char)addr\[i\]);
+if(addr\[i\] != code\[i\])
+{
+return STATUS_UNSUCCESSFUL;
+}
+i++;
+}
+return STATUS_SUCCESS;
+}
+```
+
+嗯,`DriverEntry` 添加
+
+```
+if(STATUS_SUCCESS != CheckPspTerminateProcessIsHook())
+{
+DbgPrint("PspTerminateProcess Match Failed !");
+return STATUS_UNSUCCESSFUL;
+}
+```
+
+编译测试一下,嗯正常没问题,既然没什么问题,那下面我们就开始对这个函数进行 inline hook 了,
+
+接着开始核心部分
+
+添加函数
+
+```
+_declspec(naked) T_PspTerminateProcess(
+PEPROCESS Process,
+NTSTATUS ExitStatus
+)
+{
+_asm
+{
+mov edi, edi
+push ebp
+mov ebp ,esp
+push \[ebp+0ch\]
+push \[ebp+8\]
+call MyPspTerminateProcess
+cmp eax,1
+jz end
+mov eax,PspTerminateProcess
+add eax,5
+jmp eax
+end:
+pop ebp
+retn 8
+}
+}
+}
+```
+
+我们就是要修改 `PspTerminateProcess` 的前 `5` 个字节,代替为一条近 `jmp` 指令,跳转到我们的这个函数里来,在 `T_PspTerminateProcess` 里 `call MyPspTerminateProcess`,`MyPspTerminateProcess` 是我们的功能函数,就是你 hook 后想做什么事情,这里我们简单的输出点字符就好
+
+那怎样改 `PspTerminateProcess` 的前 `5` 个字节,代替为一条 `jmp` 指令,跳到 `T_PspTerminateProcess` 里面来呢????????带着问题开始吧
+
+```
+VOID InlineHookPspTerminateProcess()
+{
+int JmpOffSet;
+unsigned char JmpCode\[5\] = { 0xe9, 0x00, 0x00, 0x00, 0x00 };
+KIRQL oldIrql;
+if (PspTerminateProcess == 0)
+{
+DbgPrint("PspTerminateProcess NOT FOUND\n");
+return;
+}
+DbgPrint( "PspTerminateProcess is found at:0x%08x\n", (ULONG)PspTerminateProcess );
+DbgPrint("T_PspTerminateProcess is:%x\n",T_PspTerminateProcess);
+JmpOffSet= (char\*)T_PspTerminateProcess - (char\*)PspTerminateProcess - 5;
+DbgPrint("JmpOffSet is:%x\n",JmpOffSet);
+RtlCopyMemory ( JmpCode+1, &JmpOffSet, 4 );
+_asm
+{
+CLI
+MOV EAX, CR0
+AND EAX, NOT 10000H
+MOV CR0, EAX
+}
+oldIrql = KeRaiseIrqlToDpcLevel();
+RtlCopyMemory ( PspTerminateProcess, JmpCode, 5 );
+DbgPrint("PspTerminateProcess is hook now \n");
+KeLowerIrql(oldIrql);
+_asm
+{
+MOV EAX, CR0
+OR EAX, 10000H
+MOV CR0, EAX
+STI
+}
+}
+```
+
+好了,测试一下,只需要在 `DriverEntry` 添加
+
+```
+InlineHookPspTerminateThreadByPointer();
+```
+
+嗯,运行正常,没有蓝屏,呵呵,那就继续
+
+既然在 `T_PspTerminateProcess` 里面调用了 `MyPspTerminateProcess`,那就写这个函数吧,这里只是简单的输出 `PspTerminateProcess hello`,你可以根据需要重写这个函数
+
+```
+int MyPspTerminateProcess(
+PEPROCESS Process,
+NTSTATUS ExitStatus
+)
+{
+DbgPrint("PspTerminateProcess hello\n");
+return 1;
+}
+```
+
+返回了 `1`,那 `cmp eax,1`,呵呵放行原来的函数执行
+
+好了,现在基本工作都完成了,就写卸载驱动部分
+
+```
+VOID Unload(PDRIVER_OBJECT DriverObject)
+{
+unsigned char Code\[5\]={0x8b,0xff,0x55,0x8b,0xec};
+_asm
+{
+CLI
+MOV eax, CR0
+AND eax, NOT 10000H
+MOV CR0, eax
+pushad
+mov edi, PspTerminateProcess
+mov eax, dword ptr Code\[0\]
+mov \[edi\], eax
+mov al, byte ptr Code\[4\]
+mov \[edi+4\], al
+popad
+MOV eax, CR0
+OR eax, 10000H
+MOV CR0, eax
+STI
+}
+DbgPrint("Unload Called \r\n");
+}
+```
+
+到此,我们的工作基本完成了,不过这只是一个测试的,有待加强,运行后就是下面这样
+
+![](img/25f5ca79beb6fce3c0e7a2b4c97996d3.jpg)
+
+上传的附件
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || `src.rar`
+
+ |
