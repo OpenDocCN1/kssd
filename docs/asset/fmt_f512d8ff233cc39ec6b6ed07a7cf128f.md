@@ -1,0 +1,108 @@
+
+```
+004C3847   |>  8BC6               mov eax,esi  
+
+004C3849   |.  E8 3A02F4FF       call wlock.00403A88  
+
+004C384E   |.  DD05 DCA14C00     fld qword ptr ds:[4CA1DC]  
+
+004C3854   |.  D81D 04394C00     fcomp dword ptr ds:[4C3904]  
+
+004C385A   |.  DFE0              fstsw ax  
+
+004C385C   |.  9E                sahf  
+
+004C385D   |.  74 56             je short wlock.004C38B5  
+
+004C385F   |>  8B07              mov eax,dword ptr ds:[edi]           ;  ds:[edi]指向假码,这里相当于把假码移到 eax 去参与运算  
+
+004C3861   |.  E8 CA12F4FF       call wlock.00404B30                   ;  取注册码的位数 call，结果送 eax  
+
+004C3866   |.  83F8 0C           cmp eax,0C                            ;  注册码小于 12 位吗？  
+
+004C3869   |.  7C 43             jl short wlock.004C38AE               ;  小于跳走  
+
+004C386B   |.  8B07              mov eax,dword ptr ds:[edi]           ;  ds:[edi]指向假码,这里相当于把假码移到 eax 去参与运算  
+
+004C386D   |.  8038 37           cmp byte ptr ds:[eax],37              ;  第一位是不是 7?这里我们要改，右击=>修改数据  
+
+004C3870   |.  75 3C             jnz short wlock.004C38AE              ;  不是跳走  
+
+004C3872   |.  8B07              mov eax,dword ptr ds:[edi]           ;  723456789abcdef=>eax  
+
+004C3874   |.  8078 01 30        cmp byte ptr ds:[eax+1],30            ;  第二位是不是 0?所以也要改  
+
+004C3878   |.  75 34             jnz short wlock.004C38AE  
+
+004C387A   |.  8B07              mov eax,dword ptr ds:[edi]           ;  703456789abcdef=>eax  
+
+004C387C   |.  8078 02 37        cmp byte ptr ds:[eax+2],37            ;  第三位是不是 7?  
+
+004C3880   |.  75 2C             jnz short wlock.004C38AE  
+
+004C3882   |.  8B07              mov eax,dword ptr ds:[edi]           ;  707456789abcdef=>eax  
+
+004C3884   |.  8078 03 32        cmp byte ptr ds:[eax+3],32            ;  第四位是不是 2?  
+
+004C3888   |.  75 24             jnz short wlock.004C38AE  
+
+004C388A   |.  8B07              mov eax,dword ptr ds:[edi]           ;  707256789abcdef=>eax  
+
+004C388C   |.  8078 04 31        cmp byte ptr ds:[eax+4],31            ;  第五位是不是 1?  
+
+004C3890   |.  75 1C             jnz short wlock.004C38AE  
+
+004C3892   |.  8B07              mov eax,dword ptr ds:[edi]  
+
+004C3894   |.  8078 09 43        cmp byte ptr ds:[eax+9],43            ;  第十位是不是 C?  
+
+004C3898   |.  75 14             jnz short wlock.004C38AE  
+
+004C389A   |.  8B07              mov eax,dword ptr ds:[edi]  
+
+004C389C   |.  8078 0A 57        cmp byte ptr ds:[eax+A],57            ;  第十一位是不是 W?  
+
+004C38A0   |.  75 0C             jnz short wlock.004C38AE  
+
+004C38A2   |.  8B07              mov eax,dword ptr ds:[edi]  
+
+004C38A4   |.  8078 0B 4C        cmp byte ptr ds:[eax+B],4C            ;  第十二位是不是 L?  
+
+004C38A8   |.  75 04             jnz short wlock.004C38AE  
+
+004C38AA   |.  B3 01             mov bl,1                              ;  注册成功标记？  
+
+004C38AC   |.  EB 07             jmp short wlock.004C38B5              ;  跳过出错的地方  
+
+004C38AE   |>  8BC7              mov eax,edi  
+
+004C38B0   |.  E8 C30FF4FF       call wlock.00404878  
+
+004C38B5   |>  33C0              xor eax,eax                           ;  eax 清零  
+
+004C38B7   |.  5A                pop edx  
+
+004C38B8   |.  59                pop ecx  
+
+004C38B9   |.  59                pop ecx  
+
+004C38BA   |.  64:8910           mov dword ptr fs:[eax],edx  
+
+004C38BD   |.  68 D7384C00       push wlock.004C38D7  
+
+004C38C2   |>  8D45 F4           lea eax,dword ptr ss:[ebp-C]  
+
+004C38C5   |.  BA 02000000       mov edx,2  
+
+004C38CA   |.  E8 CD0FF4FF       call wlock.0040489C                   ;这个是？？  
+
+004C38CF   \.  C3                retn  
+```
+
+呵呵，返回后呢，我们的 `eax=01`，那么 `al=1` 了，也就是注册码是正确的，也就说
+
+只要我们的注册码满足上面的几个判断条件就可以啦。
+
+注册信息放在 `Windows Lockup` 目录下的 `wlock.dat` 文件里，是加过密的，有兴趣的可以看看加密算法，在上面的几个 `call` 里。
+
+`4dd466d0e1e0cc123afbe504da2462ca`

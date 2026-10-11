@@ -1,0 +1,261 @@
+
+# (Windows Lockup V2.0
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6565.htm`](https://www.pediy.com/kssd/pediy06/pediy6565.htm)
+
+Ixis Research LTD 是一家软件公司，以电脑安全为主要方向
+
+官方主页：[`www.softheap.com`](http://www.softheap.com)
+
+Windows Lockup 是其公司开发的一个电脑安全防护软件，当你离开电脑时，可以设定密码，防止别人乱动你的电脑。可以设置自动手动启动密码保护，还支持省电功能、密码保护的屏幕程序、网络使用者确认等等。试用者请在序列号输入对对话框不输入就可以了。
+
+最新版本 2.0
+
+-------------------------------------------------------------
+
+小弟初学破解，只是感兴趣，放上来只是为了多交流，请不吝赐教
+
+-------------------------------------------------------------
+
+用 PeiD 查无壳，Delphi 编写，
+
+注册时候在 `Enter Your Registation Code :` 里填上 `123456789abcdefg` 共十六位，我随便输入的，点 `OK`, 这个时候出现一错误对话框，对话框标题是 `Error`, 内容是：`Sorry,this registration code is invalid.`
+
+好了，我们知道出错提示就可以用这个来找到关键的地方
+
+用 `OD` 加载主程序 `wlock.exe`，右击=>搜索=>字符参考, 然后我们找到上面的那个出错提示，呵呵，就一处，而且连 `Thank you for support !` 也找到了。双击到了对应代码处，如下
+
+```
+004C3928   |.  E8 9F0FF4FF       call wlock.004048CC
+004C392D   |.  33C0             xor eax,eax
+004C392F   |.  E8 58FEFFFF      call wlock.004C378C;这 是关键 Call,我们在此下断，直接跟进去看看
+004C3934   |.  84C0             test al,al           ; al 与自身相与，只影响标志位也就是看看 al 是否为 0
+004C3936   |.  74 77            je short wlock.004C39AF ;如果 ZF=1，即 al 为 0,那么就跳到下面的出错提示，否则就注册成功
+004C3938   |.  B3 01            mov bl,1
+004C393A   |.  A0 F47B4C00      mov al,byte ptr ds:[4C7BF4]
+004C393F   |.  50               push eax
+004C3940   |.  8B0D D4A14C00    mov ecx,dword ptr ds:[4CA1D4]
+004C3946   |.  B2 01            mov dl,1
+004C3948   |.  A1 687D4B00      mov eax,dword ptr ds:[4B7D68]
+004C394D   |.  E8 E24BFFFF      call wlock.004B8534
+004C3952   |.  8BF0             mov esi,eax
+004C3954   |.  E8 E372F4FF      call wlock.0040AC3C
+004C3959   |.  83C4 F4          add esp,-0C
+004C395C   |.  DB3C24           fstp tbyte ptr ss:[esp]            ; |浮点运算？
+004C395F   |.  9B               wait                               ; |这附近有个 call 是加密我们的注册码的，呵呵
+004C3960   |.  8D45 FC          lea eax,dword ptr ss:[ebp-4]       ; |
+004C3963   |.  E8 686CF4FF      call wlock.0040A5D0                ; \\wlock.0040A5D0
+004C3968   |.  8B45 FC          mov eax,dword ptr ss:[ebp-4]
+004C396B   |.  50               push eax
+004C396C   |.  B9 F4394C00      mov ecx,wlock.004C39F4             ;  ASCII "DT"
+004C3971   |.  33D2             xor edx,edx
+004C3973   |.  8BC6             mov eax,esi
+004C3975   |.  E8 2650FFFF      call wlock.004B89A0
+004C397A   |.  A1 D0A14C00      mov eax,dword ptr ds:[4CA1D0]
+004C397F   |.  50               push eax
+004C3980   |.  B9 003A4C00      mov ecx,wlock.004C3A00
+004C3985   |.  33D2             xor edx,edx
+004C3987   |.  8BC6             mov eax,esi
+004C3989   |.  E8 1250FFFF      call wlock.004B89A0
+004C398E   |.  8BC6             mov eax,esi
+004C3990   |.  E8 F300F4FF      call wlock.00403A88
+004C3995   |.  6A 40            push 40
+004C3997   |.  B9 043A4C00      mov ecx,wlock.004C3A04             ;  ASCII "Information"
+004C399C   |.  BA 103A4C00      mov edx,wlock.004C3A10             ;  ASCII "Thank you for support !"
+004C39A1   |.  A1 407F4C00      mov eax,dword ptr ds:[4C7F40]
+004C39A6   |.  8B00             mov eax,dword ptr ds:[eax]
+004C39A8   |.  E8 1338FAFF      call wlock.004671C0
+004C39AD   |.  EB 18            jmp short wlock.004C39C7
+004C39AF   |>  6A 10            push 10
+004C39B1   |.  B9 283A4C00      mov ecx,wlock.004C3A28             ;  ASCII "Error"
+004C39B6   |.  BA 303A4C00      mov edx,wlock.004C3A30             ;  ASCII "Sorry, this registration code is invalid."
+004C39BB   |.  A1 407F4C00      mov eax,dword ptr ds:[4C7F40]
+004C39C0   |.  8B00             mov eax,dword ptr ds:[eax]
+004C39C2   |.  E8 F937FAFF      call wlock.004671C0
+004C39C7   |>  33C0             xor eax,eax
+004C39C9   |.  5A               pop edx
+004C39CA   |.  59               pop ecx
+004C39CB   |.  59               pop ecx
+004C39CC   |.  64:8910         mov dword ptr fs:[eax],edx
+004C39CF   |.  68 E4394C00      push wlock.004C39E4
+004C39D4   |>  8D45 FC         lea eax,dword ptr ss:[ebp-4]
+004C39D7   |.  E8 9C0EF4FF      call wlock.00404878
+004C39DC   \\  C3               retn
+```
+
+好，我们就在上面那个关键 `call F2` 设断
+
+`F9` 运行，填上 `Registration Code:123456789abcdefg`，然后点 `OK`，被 `OD` 拦下，看来我们断点设对了。这个时候我们观察一下寄存器的值：`eax=0`, `esi` 指向我们输入假码的首地址, `edx\=0`, 现在我们跟进 `004C392F` 处的这个 `call F7` 我们来到
+
+```
+004C378C   /$  55               push ebp
+004C378D   |.  8BEC             mov ebp,esp
+004C378F   |.  6A 00            push 0
+004C3791   |.  6A 00            push 0
+004C3793   |.  6A 00            push 0
+004C3795   |.  53               push ebx
+004C3796   |.  56               push esi
+004C3797   |.  57               push edi
+004C3798   |.  8845 FF          mov byte ptr ss:[ebp-1],al         ;  把 0 送到 ss:[ebp-1]
+004C379B   |.  BF D0A14C00      mov edi,wlock.004CA1D0
+004C37A0   |.  33C0             xor eax,eax
+004C37A2   |.  55               push ebp
+004C37A3   |.  68 D0384C00      push wlock.004C38D0
+004C37A8   |.  64:FF30         push dword ptr fs:[eax]
+004C37AB   |.  64:8920         mov dword ptr fs:[eax],esp
+004C37AE   |.  33DB             xor ebx,ebx
+004C37B0   |.  807D FF 00       cmp byte ptr ss:[ebp-1],0          ;  ss:[ebp-1]是刚刚被置 0 的
+004C37B4   |.  0F84 A5000000    je wlock.004C385F                  ;  跳过去
+004C37BA   |.  A0 F47B4C00      mov al,byte ptr ds:[4C7BF4]
+004C37BF   |.  50               push eax
+004C37C0   |.  8B0D D4A14C00    mov ecx,dword ptr ds:[4CA1D4]
+004C37C6   |.  B2 01            mov dl,1
+004C37C8   |.  A1 687D4B00      mov eax,dword ptr ds:[4B7D68]
+004C37CD   |.  E8 624DFFFF      call wlock.004B8534
+004C37D2   |.  8BF0             mov esi,eax
+004C37D4   |.  57               push edi
+004C37D5   |.  B9 E8384C00      mov ecx,wlock.004C38E8             ;  ASCII "DT"
+004C37DA   |.  33D2             xor edx,edx
+004C37DC   |.  8BC6             mov eax,esi
+004C37DE   |.  E8 2156FFFF      call wlock.004B8E04
+004C37E3   |.  8D45 F8          lea eax,dword ptr ss:[ebp-8]
+004C37E6   |.  8B0F             mov ecx,dword ptr ds:[edi]
+004C37E8   |.  BA F4384C00      mov edx,wlock.004C38F4
+004C37ED   |.  E8 8A13F4FF      call wlock.00404B7C
+004C37F2   |.  8B45 F8          mov eax,dword ptr ss:[ebp-8]
+004C37F5   |.  E8 DA6EF4FF      call wlock.0040A6D4
+004C37FA   |.  DD1D DCA14C00    fstp qword ptr ds:[4CA1DC]
+004C3800   |.  9B               wait
+004C3801   |.  57               push edi
+004C3802   |.  B9 00394C00      mov ecx,wlock.004C3900
+004C3807   |.  33D2             xor edx,edx
+004C3809   |.  8BC6             mov eax,esi
+004C380B   |.  E8 F455FFFF      call wlock.004B8E04
+004C3810   |.  DD05 DCA14C00    fld qword ptr ds:[4CA1DC]
+004C3816   |.  D81D 04394C00    fcomp dword ptr ds:[4C3904]
+004C381C   |.  DFE0             fstsw ax
+004C381E   |.  9E               sahf
+004C381F   |.  75 26            jnz short wlock.004C3847
+004C3821   |.  E8 1674F4FF      call wlock.0040AC3C
+004C3826   |.  83C4 F4          add esp,-0C
+004C3829   |.  DB3C24           fstp tbyte ptr ss:[esp]            ; |
+004C382C   |.  9B               wait                                 ; |
+004C382D   |.  8D45 F4          lea eax,dword ptr ss:[ebp-C]        ; |
+004C3830   |.  E8 9B6DF4FF      call wlock.0040A5D0                ; \\wlock.0040A5D0
+004C3835   |.  8B45 F4          mov eax,dword ptr ss:[ebp-C]
+004C3838   |.  50               push eax
+004C3839   |.  B9 E8384C00      mov ecx,wlock.004C38E8             ;  ASCII "DT"
+004C383E   |.  33D2             xor edx,edx
+004C3840   |.  8BC6             mov eax,esi
+004C3842   |.  E8 5951FFFF      call wlock.004B89A0
+```
+
+
+
+```
+004C3847   |>  8BC6               mov eax,esi  
+
+004C3849   |.  E8 3A02F4FF       call wlock.00403A88  
+
+004C384E   |.  DD05 DCA14C00     fld qword ptr ds:[4CA1DC]  
+
+004C3854   |.  D81D 04394C00     fcomp dword ptr ds:[4C3904]  
+
+004C385A   |.  DFE0              fstsw ax  
+
+004C385C   |.  9E                sahf  
+
+004C385D   |.  74 56             je short wlock.004C38B5  
+
+004C385F   |>  8B07              mov eax,dword ptr ds:[edi]           ;  ds:[edi]指向假码,这里相当于把假码移到 eax 去参与运算  
+
+004C3861   |.  E8 CA12F4FF       call wlock.00404B30                   ;  取注册码的位数 call，结果送 eax  
+
+004C3866   |.  83F8 0C           cmp eax,0C                            ;  注册码小于 12 位吗？  
+
+004C3869   |.  7C 43             jl short wlock.004C38AE               ;  小于跳走  
+
+004C386B   |.  8B07              mov eax,dword ptr ds:[edi]           ;  ds:[edi]指向假码,这里相当于把假码移到 eax 去参与运算  
+
+004C386D   |.  8038 37           cmp byte ptr ds:[eax],37              ;  第一位是不是 7?这里我们要改，右击=>修改数据  
+
+004C3870   |.  75 3C             jnz short wlock.004C38AE              ;  不是跳走  
+
+004C3872   |.  8B07              mov eax,dword ptr ds:[edi]           ;  723456789abcdef=>eax  
+
+004C3874   |.  8078 01 30        cmp byte ptr ds:[eax+1],30            ;  第二位是不是 0?所以也要改  
+
+004C3878   |.  75 34             jnz short wlock.004C38AE  
+
+004C387A   |.  8B07              mov eax,dword ptr ds:[edi]           ;  703456789abcdef=>eax  
+
+004C387C   |.  8078 02 37        cmp byte ptr ds:[eax+2],37            ;  第三位是不是 7?  
+
+004C3880   |.  75 2C             jnz short wlock.004C38AE  
+
+004C3882   |.  8B07              mov eax,dword ptr ds:[edi]           ;  707456789abcdef=>eax  
+
+004C3884   |.  8078 03 32        cmp byte ptr ds:[eax+3],32            ;  第四位是不是 2?  
+
+004C3888   |.  75 24             jnz short wlock.004C38AE  
+
+004C388A   |.  8B07              mov eax,dword ptr ds:[edi]           ;  707256789abcdef=>eax  
+
+004C388C   |.  8078 04 31        cmp byte ptr ds:[eax+4],31            ;  第五位是不是 1?  
+
+004C3890   |.  75 1C             jnz short wlock.004C38AE  
+
+004C3892   |.  8B07              mov eax,dword ptr ds:[edi]  
+
+004C3894   |.  8078 09 43        cmp byte ptr ds:[eax+9],43            ;  第十位是不是 C?  
+
+004C3898   |.  75 14             jnz short wlock.004C38AE  
+
+004C389A   |.  8B07              mov eax,dword ptr ds:[edi]  
+
+004C389C   |.  8078 0A 57        cmp byte ptr ds:[eax+A],57            ;  第十一位是不是 W?  
+
+004C38A0   |.  75 0C             jnz short wlock.004C38AE  
+
+004C38A2   |.  8B07              mov eax,dword ptr ds:[edi]  
+
+004C38A4   |.  8078 0B 4C        cmp byte ptr ds:[eax+B],4C            ;  第十二位是不是 L?  
+
+004C38A8   |.  75 04             jnz short wlock.004C38AE  
+
+004C38AA   |.  B3 01             mov bl,1                              ;  注册成功标记？  
+
+004C38AC   |.  EB 07             jmp short wlock.004C38B5              ;  跳过出错的地方  
+
+004C38AE   |>  8BC7              mov eax,edi  
+
+004C38B0   |.  E8 C30FF4FF       call wlock.00404878  
+
+004C38B5   |>  33C0              xor eax,eax                           ;  eax 清零  
+
+004C38B7   |.  5A                pop edx  
+
+004C38B8   |.  59                pop ecx  
+
+004C38B9   |.  59                pop ecx  
+
+004C38BA   |.  64:8910           mov dword ptr fs:[eax],edx  
+
+004C38BD   |.  68 D7384C00       push wlock.004C38D7  
+
+004C38C2   |>  8D45 F4           lea eax,dword ptr ss:[ebp-C]  
+
+004C38C5   |.  BA 02000000       mov edx,2  
+
+004C38CA   |.  E8 CD0FF4FF       call wlock.0040489C                   ;这个是？？  
+
+004C38CF   \.  C3                retn  
+```
+
+呵呵，返回后呢，我们的 `eax=01`，那么 `al=1` 了，也就是注册码是正确的，也就说
+
+只要我们的注册码满足上面的几个判断条件就可以啦。
+
+注册信息放在 `Windows Lockup` 目录下的 `wlock.dat` 文件里，是加过密的，有兴趣的可以看看加密算法，在上面的几个 `call` 里。
+
+`4dd466d0e1e0cc123afbe504da2462ca`
