@@ -1,0 +1,1801 @@
+
+# 晕倒，永远也没有合法的……说 `DISKdata.exe`
+
+> 原文：[www.pediy.com/kssd/pediy07/pediy7-268.htm](https://www.pediy.com/kssd/pediy07/pediy7-268.htm)
+
+软件名称：`DISKdata.exe`
+
+下载地址：`http://www.digallery.com/download/ddsetup.exe`
+
+软件功能：不太明白，没用过
+
+编译语言：Borland Delphi 4.0 - 5.0
+
+破解作者：`wofan[OCN][PYG]`
+
+`00491738=DISKdata.00491738` (ASCII "The license is invalid! Be sure to enter the "Licensed To" and the "License Key" information exactly as supplied in your license.")
+
+Jumps from `004911E5`, `00491248`, `004912CA`
+
+软件启动时有 Nag 延时，OD 载入，先找个断点，这个软件有未注册成功的提示，见上面！
+
+注册码要 22 位！！！！当然开始并不知道，所以折腾了一些时间，并且因为打雷闪电，又要上班，并未在我预定的 6.1 儿童节完成。
+
+输入：
+
+```
+Licensed to:wofan
+License key:1234123412341234563478 
+```
+
+（试验码 1） `******` 暂定为 22 位,如果选取的注册码在运算中出现不可见字符，就增加了分析的难度。
+
+在断点在 `F2` 断下后，点击 `Set` 按钮，断下：
+
+```
+0049115A  .  E8 61F5F9FF       call DISKdata.004306C0      ******取得注册码长度 0x16
+0049115F  .  8B45 F0           mov eax,dword ptr ss:[ebp-10]******假注册码 1234123412341234563478
+00491162  .  8D55 F4           lea edx,dword ptr ss:[ebp-C]
+00491165  .  E8 AA74F7FF       call DISKdata.00408614
+0049116A  .  8B45 F4           mov eax,dword ptr ss:[ebp-C]******假注册码地地址
+0049116D  .  8D4D FC           lea ecx,dword ptr ss:[ebp-4]
+00491170  .  BA 20164900       mov edx,DISKdata.00491620             ;  ASCII "DISKdata"
+00491175  .  E8 4E03FEFF       call DISKdata.004714C8      ******第一处按 F7 跟进！！！！！
+0049117A  .  84C0              test al,al                    ******这里是第一处判断，不能通过就会弹出未成功注册的信息：The license is invalid!……
+0049117C  .  0F84 C7030000     je DISKdata.00491549
+00491182  .  8D45 E8           lea eax,dword ptr ss:[ebp-18]
+00491185  .  50                push eax
+00491186  .  B9 02000000       mov ecx,2                      ***ECX=2
+0049118B  .  BA 05000000       mov edx,5                      ***EDX=5
+00491190  .  8B45 FC           mov eax,dword ptr ss:[ebp-4]   ******新字串 3:V}A?vUfU{p（上面如果不跳，这里开始效验）
+00491193  .  E8 102FF7FF       call DISKdata.004040A8          ******取新字串 3 的第五六位：Stack ss:[0012F67C]=00DBA290, (ASCII "vU")
+00491198  .  8B4D E8           mov ecx,dword ptr ss:[ebp-18]
+0049119B  .  8D45 EC           lea eax,dword ptr ss:[ebp-14]
+0049119E  .  BA 34164900       mov edx,DISKdata.00491634
+004911A3  .  E8 442DF7FF       call DISKdata.00403EEC          *****Stack ss:[0012F680]=00DBA2A0, (ASCII "$vU")  在前面加上一个$
+004911A8  .  8B45 EC           mov eax,dword ptr ss:[ebp-14]
+004911AB  .  E8 C475F7FF       call DISKdata.00408774           *****开始效验之一，不成功会返回：“''is not a valid integer value”******
+004911B0  .  8BF0              mov esi,eax                    ××××以修改后的注册码 12341234050012345634B2(试验码 2），会使 ESI＝EAX=AA×××××××
+004911B2  .  8D55 DC           lea edx,dword ptr ss:[ebp-24]
+004911B5  .  8B83 48040000     mov eax,dword ptr ds:[ebx+448]  
+004911BB  .  E8 00F5F9FF       call DISKdata.004306C0           ××××注册名：wofan
+004911C0  .  8B45 DC           mov eax,dword ptr ss:[ebp-24]
+004911C3  .  8D55 E0           lea edx,dword ptr ss:[ebp-20]
+004911C6  .  E8 0572F7FF       call DISKdata.004083D0           ××××开始处理注册名：wofan，注册名大写化
+004911CB  .  8B45 E0           mov eax,dword ptr ss:[ebp-20]   ××××WOFAN
+004911CE  .  8D55 E4           lea edx,dword ptr ss:[ebp-1C]
+004911D1  .  E8 3E74F7FF       call DISKdata.00408614
+004911D6  .  8B45 E4           mov eax,dword ptr ss:[ebp-1C]
+004911D9  .  E8 F604FEFF       call DISKdata.004716D4         ×××处理注册名之二，得到注册名大写化后 ASCII 累加值，（保留低八位）7B 送 EAX
+004911DE  .  25 FF000000       and eax,0FF                    ×××EAX=7B
+004911E3  .  3BF0              cmp esi,eax                    ×××ESI=AA，EAX=7B
+004911E5  .  0F85 52030000     jnz DISKdata.0049153D           ×××可不能跳呀！原来新字串 3，的第五，六位是 7B
+```
+
+××××××××××××××××××××××××××××××
+
+通过注册名 `wofan` 得到 `7B`，
+
+`37`(7) xor `64`(d)=`53`
+
+`42`(B) xor `61`(a)=`23`
+
+注册码的 9-12 位就是 `5323`
+
+××××××××××××××××××××××××××××××
+
+```
+004911EB  .  8D45 D4           lea eax,dword ptr ss:[ebp-2C]
+004911EE  .  50                push eax
+004911EF  .  8D55 CC           lea edx,dword ptr ss:[ebp-34]
+004911F2  .  8B83 48040000     mov eax,dword ptr ds:[ebx+448]
+004911F8  .  E8 C3F4F9FF       call DISKdata.004306C0          ×××注册名长度 5
+004911FD  .  8B45 CC           mov eax,dword ptr ss:[ebp-34]   ×××注册名 wofan
+00491200  .  8D55 D0           lea edx,dword ptr ss:[ebp-30]
+00491203  .  E8 0C74F7FF       call DISKdata.00408614          ×××注册名 wofan
+00491208  .  8B45 D0           mov eax,dword ptr ss:[ebp-30]
+0049120B  .  B9 02000000       mov ecx,2                       ×××ECX=2
+00491210  .  BA 01000000       mov edx,1                       ×××EDX=1
+00491215  .  E8 8E2EF7FF       call DISKdata.004040A8           ×××取 wofan 的前两位 wo
+0049121A  .  8B45 D4           mov eax,dword ptr ss:[ebp-2C]
+0049121D  .  8D55 D8           lea edx,dword ptr ss:[ebp-28]
+00491220  .  E8 AB71F7FF       call DISKdata.004083D0           ×××大写化成为 WO
+00491225  .  8B45 D8           mov eax,dword ptr ss:[ebp-28]
+00491228  .  50                push eax                          ×××Push
+00491229  .  8D45 C8           lea eax,dword ptr ss:[ebp-38]
+0049122C  .  50                push eax
+0049122D  .  B9 02000000       mov ecx,2                       ×××ECX=2
+00491232  .  BA 01000000       mov edx,1                       ×××EDX=1
+00491237  .  8B45 FC           mov eax,dword ptr ss:[ebp-4]
+0049123A  .  E8 692EF7FF       call DISKdata.004040A8          ×××取新字串 3 的前两位，应该记得是 "V}"
+0049123F  .  8B55 C8           mov edx,dword ptr ss:[ebp-38]
+00491242  .  58                pop eax                           ×××pop,使 EAX 得到 WO
+00491243  .  E8 682DF7FF       call DISKdata.00403FB0          ×××比较
+00491248  .  0F85 EF020000     jnz DISKdata.0049153D             ×××当然要相等才行！
+```
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+可见注册码前四位应该是：`1306`
+
+`44`(D) xor `57`(W)=`13`
+
+`49`(I) xor `4F`(O)=`06`
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+```
+0049124E  .  8D45 C0           lea eax,dword ptr ss:[ebp-40]
+00491251  .  50                push eax
+00491252  .  8D55 B8           lea edx,dword ptr ss:[ebp-48]
+00491255  .  8B83 48040000     mov eax,dword ptr ds:[ebx+448]
+0049125B  .  E8 60F4F9FF       call DISKdata.004306C0
+00491260  .  8B45 B8           mov eax,dword ptr ss:[ebp-48]
+00491263  .  8D55 BC           lea edx,dword ptr ss:[ebp-44]
+00491266  .  E8 A973F7FF       call DISKdata.00408614            
+0049126B  .  8B45 BC           mov eax,dword ptr ss:[ebp-44]
+0049126E  .  E8 2D2CF7FF       call DISKdata.00403EA0          ×××注册名长度 5 送 EAX
+00491273  .  48                dec eax                         ×××EAX=EAX-1＝4（用它确定，从注册名后取两位）
+00491274  .  50                push eax
+00491275  .  8D55 B0           lea edx,dword ptr ss:[ebp-50]
+00491278  .  8B83 48040000     mov eax,dword ptr ds:[ebx+448]
+0049127E  .  E8 3DF4F9FF       call DISKdata.004306C0
+00491283  .  8B45 B0           mov eax,dword ptr ss:[ebp-50]
+00491286  .  8D55 B4           lea edx,dword ptr ss:[ebp-4C]
+00491289  .  E8 8673F7FF       call DISKdata.00408614
+0049128E  .  8B45 B4           mov eax,dword ptr ss:[ebp-4C]     ×××注册名 wofan
+00491291  .  B9 02000000       mov ecx,2                        ×××ECX=2
+00491296  .  5A                pop edx                           ×××Pop，使 EDX=4
+00491297  .  E8 0C2EF7FF       call DISKdata.004040A8            ×××取注册名的后两位 an
+0049129C  .  8B45 C0           mov eax,dword ptr ss:[ebp-40]
+0049129F  .  8D55 C4           lea edx,dword ptr ss:[ebp-3C]
+```
+
+
+
+004912A2    .  E8 2971F7FF       call DISKdata.004083D0            ×××大写化变成 AN  
+
+004912A7    .  8B45 C4          mov eax,dword ptr ss:\[ebp-3C\]  
+
+004912AA    .  50               push eax  
+
+004912AB    .  8D45 AC         lea eax,dword ptr ss:\[ebp-54\]  
+
+004912AE    .  50               push eax                           ×××Push  
+
+004912AF    .  B9 02000000      mov ecx,2                          ×××ECX=2  
+
+004912B4    .  BA 03000000      mov edx,3                          ×××EDX=3  
+
+004912B9    .  8B45 FC         mov eax,dword ptr ss:\[ebp-4\]  
+
+004912BC    .  E8 E72DF7FF      call DISKdata.004040A8             ×××新字串 3 的第三，四位  
+
+004912C1    .  8B55 AC         mov edx,dword ptr ss:\[ebp-54\]  
+
+004912C4    .  58               pop eax                            ×××Pop，使 EAX 得到 AN  
+
+004912C5    .  E8 E62CF7FF      call DISKdata.00403FB0             ×××又是比较  
+
+××××××××××××××××××  
+
+注册码的 5-8 位，应该是：1205  
+
+53(S) xor 41(A)=12  
+
+4B(K) xor 4E(N)=05  
+
+可见注册码前四位应该是：1306  
+
+44(D) xor 57(W)=13  
+
+49(I) xor 4F(O)=06  
+
+注册码的 9-12 位就是 5323  
+
+7B  
+
+37(7) xor 64(d)=53  
+
+42(B) xor 61(a)=23  
+
+生成一个新的注册码：  
+
+130612055323123456341D    试验码 3  
+
+新字串 3 变为：WOAN7BfU{p  
+
+××××××××××××××××××  
+
+004912CA    .  0F85 6D020000    jnz DISKdata.0049153D             ×××不能跳！！  
+
+004912D0    .  8D45 A8         lea eax,dword ptr ss:\[ebp-58\]  
+
+004912D3    .  50               push eax  
+
+004912D4    .  B9 02000000      mov ecx,2                         ×××ECX=2  
+
+004912D9    .  BA 0B000000      mov edx,0B                        ××× EDX=B  （从这里与下面一个 Call 才知道注册码要 26 位！！！累呀！）  
+
+004912DE    .  8B45 FC         mov eax,dword ptr ss:\[ebp-4\]    ×××新字串 3：WOAN7BfU{p（试验码三：130612055323123456341D 得到的！）   
+
+004912E1    .  E8 C22DF7FF      call DISKdata.004040A8     \*\*\*\*\*\*\*\*\*开始效验之二（效验注册码位数），不成功会返回：“''is not a valid integer value”\*\*\*\*\*\*\*  
+
+                                                             效验通过，则取试验码四所得到的新字串 3 的末两位：}g   
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+没办法，制造试验码四（26 位）：  
+
+13061205532312345634343473  
+
+经它产生的新字串 3：WOAN7BfU{p}g  
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*         
+
+004912E6    .  8B45 A8         mov eax,dword ptr ss:\[ebp-58\]  
+
+004912E9    .  E8 8674F7FF      call DISKdata.00408774        ××看看新字串 3 的末两位（注册码 21-24 位）是否合法（应该只能是数字！，如果合法，就运算）  
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+只好再度修改得到试验码五：  
+
+13061205532312345634706A8D  
+
+DISKdata-DISK  
+
+假设就为 9 吧：  
+
+于是有：49(I) xor 39=70  
+
+        53(S) xor 39=6A  
+
+得到新字串 3 为：  
+
+WOAN7BfU{p99  
+
+调试运行到 00491322，发现 99 的十六进制形式 63，要<=0xC,才能进行下去！  
+
+故重新修改注册码为：能够通过验证的组合，只有 01,02,03……10,11,12  
+
+49(I) xor 31=78  
+
+53(S) xor 31=62  
+
+130612055323123456347862FD   试验码六  
+
+得到新字串 3：  
+
+WOAN7BfU{p11  
+
+试验码七：  
+
+74(t) xor 39=4D  
+
+61(a) xor 39=58  
+
+2D(-) xor 39=14  
+
+44(D) xor 39=7D  
+
+试验码七：  
+
+1306120553234D58147D7861BE  
+
+由此产生的新字串 3：  
+
+WOAN7B999912  
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+004912EE    .  50               push eax              \*\*\*通过试验码六，得到返回值为((31-30)\*A+(31-30)=B（11 的十六进制形式）  
+
+004912EF    .  8D45 A0         lea eax,dword ptr ss:\[ebp-60\]  
+
+004912F2    .  50               push eax  
+
+004912F3    .  B9 02000000      mov ecx,2             ×××ECX=2  
+
+004912F8    .  BA 0D000000      mov edx,0D            ×××EDX=D  
+
+004912FD    .  8B45 FC         mov eax,dword ptr ss:\[ebp-4\] ×××新字串 3：WOAN7BfU{p11  
+
+00491300    .  E8 A32DF7FF      call DISKdata.004040A8  
+
+00491305    .  8B4D A0         mov ecx,dword ptr ss:\[ebp-60\]  
+
+00491308    .  8D45 A4         lea eax,dword ptr ss:\[ebp-5C\]  
+
+0049130B    .  BA 40164900      mov edx,DISKdata.00491640          ;  ASCII "20"一个字串  
+
+00491310    .  E8 D72BF7FF      call DISKdata.00403EEC  
+
+00491315    .  8B45 A4         mov eax,dword ptr ss:\[ebp-5C\]  
+
+00491318    .  E8 5774F7FF      call DISKdata.00408774         ×××处理字串：20，取它的十六进制形式 14××  
+
+0049131D    .  66:B9 0100        mov cx,1                  ××××CX=1  
+
+00491321    .  5A               pop edx                 ××××Pop：B（11 的十六进制值）  
+
+00491322    .  E8 4584F7FF      call DISKdata.0040976C      ×××验证是否合法，不合法就玩完，弹出：Invalid argument to date encode ×××     
+
+00491327    .  DD5D 98         fstp qword ptr ss:\[ebp-68\]     ×××居然还要进行浮点运算！！！  
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+如果 11 的十六进制数 B 不大于 0xC，就通过验证，继续下去：  
+
+st=-686349.00000000000000  
+
+Stack ss:\[0012F62C\]=0.0  
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+0049132A    .  9B               wait  
+
+0049132B    .  E8 AC86F7FF      call DISKdata.004099DC     ××××通过取 Local time，得到一个浮点数  
+
+00491330    .  DC5D 98         fcomp qword ptr ss:\[ebp-68\]   \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*不通过就会弹出：The license has expired!  
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+st=38505.000000000000000                 ××××通过 Local time 得到一个值，只要系统时间不变，这是个固定值！！  
+
+Stack ss:\[0012F62C\]=-686349.00000000000000  
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+00491333    .  DFE0            fstsw ax  
+
+00491335    .  9E              sahf  
+
+00491336    .  0F83 F5010000    jnb DISKdata.00491531       \*\*\*\*\*\*\*\*\*\*\*\*\*\*跳到 00491531，弹出 The license has expired!，Nop 掉！！！  
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+用最大的能通过验证的 C，也得不到一个正数！！！！这一定是个陷阱！！！！！  
+
+将这一行 Nop 掉，会提示：注册给：Site，Expired time :11/20  
+
+晕倒！！！！！  
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+0049133C    .  8D45 94         lea eax,dword ptr ss:\[ebp-6C\]  
+
+0049133F    .  50               push eax  
+
+00491340    .  B9 04000000      mov ecx,4                     \*\*\*\*ECX=4  
+
+00491345    .  BA 07000000      mov edx,7                     \*\*\*\*EDX=7  （从新字串 3 中的第七位起，取四位）  
+
+0049134A    .  8B45 FC         mov eax,dword ptr ss:\[ebp-4\]  
+
+0049134D    .  E8 562DF7FF      call DISKdata.004040A8  
+
+00491352    .  8B45 94         mov eax,dword ptr ss:\[ebp-6C\]  
+
+00491355    .  BA 4C164900      mov edx,DISKdata.0049164C          ;  ASCII "9999"又一个字串，以后就与新字串的 7-10 相比较  
+
+0049135A    .  E8 512CF7FF      call DISKdata.00403FB0  
+
+0049135F    .  75 12           jnz short DISKdata.00491373             \*\*\*\*\*可见新字串 3 的 7-10 就是 9999  
+
+00491361    .  8B83 64040000    mov eax,dword ptr ds:\[ebx+464\]  
+
+00491367    .  BA 5C164900      mov edx,DISKdata.0049165C          ;  ASCII "Site"  
+
+0049136C    .  E8 7FF3F9FF      call DISKdata.004306F0  
+
+00491371    .  EB 24           jmp short DISKdata.00491397  
+
+00491373    >  8D45 90         lea eax,dword ptr ss:\[ebp-70\]  
+
+00491376    .  50               push eax  
+
+00491377    .  B9 04000000      mov ecx,4  
+
+0049137C    .  BA 07000000      mov edx,7  
+
+00491381    .  8B45 FC         mov eax,dword ptr ss:\[ebp-4\]  
+
+00491384    .  E8 1F2DF7FF      call DISKdata.004040A8  
+
+00491389    .  8B55 90         mov edx,dword ptr ss:\[ebp-70\]  
+
+0049138C    .  8B83 64040000    mov eax,dword ptr ds:\[ebx+464\]  
+
+00491392    .  E8 59F3F9FF      call DISKdata.004306F0  
+
+00491397    >  8D45 88         lea eax,dword ptr ss:\[ebp-78\]  
+
+0049139A    .  50               push eax  
+
+0049139B    .  B9 02000000      mov ecx,2  
+
+004913A0    .  BA 0B000000      mov edx,0B  
+
+004913A5    .  8B45 FC         mov eax,dword ptr ss:\[ebp-4\]  
+
+004913A8    .  E8 FB2CF7FF      call DISKdata.004040A8           
+
+004913AD    .  FF75 88         push dword ptr ss:\[ebp-78\]       
+
+
+
+```asm
+004913B0    .   68 6C164900       push DISKdata.0049166C  
+004913B5    .   8D45 84           lea eax,dword ptr ss:[ebp-7C]  
+004913B8    .   50                push eax  
+004913B9    .   B9 02000000       mov ecx,2  
+004913BE    .   BA 0D000000       mov edx,0D  
+004913C3    .   8B45 FC           mov eax,dword ptr ss:[ebp-4]  
+004913C6    .   E8 DD2CF7FF       call DISKdata.004040A8  
+004913CB    .   FF75 84           push dword ptr ss:[ebp-7C]  
+004913CE    .   8D45 8C           lea eax,dword ptr ss:[ebp-74]  
+004913D1    .   BA 03000000       mov edx,3  
+004913D6    .   E8 852BF7FF       call DISKdata.00403F60  
+004913DB    .   8B45 8C           mov eax,dword ptr ss:[ebp-74]  
+004913DE    .   BA 78164900       mov edx,DISKdata.00491678                ;  ASCII "12/99"  
+004913E3    .   E8 C82BF7FF       call DISKdata.00403FB0  
+004913E8    .   75 12             jnz short DISKdata.004913FC  
+004913EA    .   8B83 60040000     mov eax,dword ptr ds:[ebx+460]  
+004913F0    .   BA 88164900       mov edx,DISKdata.00491688                ;  ASCII "None"  
+004913F5    .   E8 F6F2F9FF       call DISKdata.004306F0  
+004913FA    .   EB 63             jmp short DISKdata.0049145F  
+004913FC    >   8D85 7CFFFFFF     lea eax,dword ptr ss:[ebp-84]  
+00491402    .   50                push eax  
+00491403    .   B9 02000000       mov ecx,2  
+00491408    .   BA 0B000000       mov edx,0B  
+0049140D    .   8B45 FC           mov eax,dword ptr ss:[ebp-4]  
+00491410    .   E8 932CF7FF       call DISKdata.004040A8  
+00491415    .   FFB5 7CFFFFFF     push dword ptr ss:[ebp-84]  
+0049141B    .   68 6C164900       push DISKdata.0049166C  
+00491420    .   68 40164900       push DISKdata.00491640                    ;  ASCII "20"  
+00491425    .   8D85 78FFFFFF     lea eax,dword ptr ss:[ebp-88]  
+0049142B    .   50                push eax  
+0049142C    .   B9 02000000       mov ecx,2  
+00491431    .   BA 0D000000       mov edx,0D  
+00491436    .   8B45 FC           mov eax,dword ptr ss:[ebp-4]  
+00491439    .   E8 6A2CF7FF       call DISKdata.004040A8  
+0049143E    .   FFB5 78FFFFFF     push dword ptr ss:[ebp-88]  
+00491444    .   8D45 80           lea eax,dword ptr ss:[ebp-80]  
+00491447    .   BA 04000000       mov edx,4  
+0049144C    .   E8 0F2BF7FF       call DISKdata.00403F60  
+00491451    .   8B55 80           mov edx,dword ptr ss:[ebp-80]  
+00491454    .   8B83 60040000     mov eax,dword ptr ds:[ebx+460]  
+0049145A    .   E8 91F2F9FF       call DISKdata.004306F0  
+0049145F    >   8B83 30030000     mov eax,dword ptr ds:[ebx+330]  
+00491465    .   BA 98164900       mov edx,DISKdata.00491698                ;  ASCII "About"  
+0049146A    .   E8 81F2F9FF       call DISKdata.004306F0  
+0049146F    .   B9 A8164900       mov ecx,DISKdata.004916A8                ;  ASCII "\Software\Digital Information Gallery\DiskData"  
+00491474    .   B2 01             mov dl,1  
+00491476    .   A1 2CEB4600       mov eax,dword ptr ds:[46EB2C]  
+0049147B    .   E8 94DFFDFF       call DISKdata.0046F414  
+00491480    .   8945 F8           mov dword ptr ss:[ebp-8],eax  
+00491483    .   8B83 88030000     mov eax,dword ptr ds:[ebx+388]  
+00491489    .   33D2             xor edx,edx  
+0049148B    .   E8 48F1F9FF       call DISKdata.004305D8  
+00491490    .   33C0             xor eax,eax  
+00491492    .   55                push ebp  
+00491493    .   68 2A154900       push DISKdata.0049152A  
+00491498    .   64:FF30          push dword ptr fs:[eax]  
+0049149B    .   64:8920          mov dword ptr fs:[eax],esp  
+0049149E    .   8D95 70FFFFFF    lea edx,dword ptr ss:[ebp-90]  
+004914A4    .   8B83 48040000    mov eax,dword ptr ds:[ebx+448]  
+004914AA    .   E8 11F2F9FF       call DISKdata.004306C0  
+004914AF    .   8B85 70FFFFFF    mov eax,dword ptr ss:[ebp-90]  
+004914B5    .   8D95 74FFFFFF    lea edx,dword ptr ss:[ebp-8C]  
+004914BB    .   E8 5471F7FF      call DISKdata.00408614  
+004914C0    .   8B85 74FFFFFF    mov eax,dword ptr ss:[ebp-8C]  
+004914C6    .   50                push eax  
+004914C7    .   B9 E0164900       mov ecx,DISKdata.004916E0                ;  ASCII "Licensee"  
+004914CC    .   BA F4164900       mov edx,DISKdata.004916F4                ;  ASCII "Settings"  
+004914D1    .   8B45 F8           mov eax,dword ptr ss:[ebp-8]  
+004914D4    .   E8 9BE0FDFF       call DISKdata.0046F574  
+004914D9    .   8D95 68FFFFFF     lea edx,dword ptr ss:[ebp-98]  
+004914DF    .   8B83 4C040000     mov eax,dword ptr ds:[ebx+44C]  
+004914E5    .   E8 D6F1F9FF       call DISKdata.004306C0  
+004914EA    .   8B85 68FFFFFF     mov eax,dword ptr ss:[ebp-98]  
+004914F0    .   8D95 6CFFFFFF     lea edx,dword ptr ss:[ebp-94]  
+004914F6    .   E8 1971F7FF       call DISKdata.00408614  
+004914FB    .   8B85 6CFFFFFF     mov eax,dword ptr ss:[ebp-94]  
+00491501    .   50                push eax  
+00491502    .   BA F4164900       mov edx,DISKdata.004916F4                ;  ASCII "Settings"  
+00491507    .   B9 08174900       mov ecx,DISKdata.00491708                ;  ASCII "Key"  
+0049150C    .   8B45 F8           mov eax,dword ptr ss:[ebp-8]  
+0049150F    .   E8 60E0FDFF       call DISKdata.0046F574  
+00491514    .   33C0             xor eax,eax  
+00491516    .   5A                pop edx  
+00491517    .   59                pop ecx  
+00491518    .   59                pop ecx  
+00491519    .   64:8910          mov dword ptr fs:[eax],edx  
+0049151C    .   68 53154900       push DISKdata.00491553  
+00491521    >   8B45 F8           mov eax,dword ptr ss:[ebp-8]  
+00491524    .   E8 2F1AF7FF       call DISKdata.00402F58  
+00491529    .   C3                retn  
+0049152A    .^  E9 8921F7FF       jmp DISKdata.004036B8  
+0049152F    .^  EB F0             jmp short DISKdata.00491521  
+00491531    >   B8 14174900       mov eax,DISKdata.00491714                ;  ASCII "The license has expired!"  
+00491536    .   E8 4149FCFF       call DISKdata.00455E7C  
+0049153B    .   EB 16             jmp short DISKdata.00491553  
+0049153D    >   B8 38174900       mov eax,DISKdata.00491738                ;  ASCII "The license is invalid! Be sure to enter the "Licensed To" and the "License Key" information exactly as supplied in your license."  
+00491542    .   E8 3549FCFF       call DISKdata.00455E7C  
+00491547    .   EB 0A             jmp short DISKdata.00491553  
+00491549    >   B8 38174900       mov eax,DISKdata.00491738                ;  ASCII "The license is invalid! Be sure to enter the "Licensed To" and the "License Key" information exactly as supplied in your license."  
+```
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*第一处按 `F7` 跟进！！！！！\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+```asm
+004714D1    .   33DB             xor ebx,ebx                            \*\*\*\*\*\*`xor` 异或，异或的作用与赋值 `0` 相同  
+004714D3    .   895D D8          mov dword ptr ss:[ebp-28],ebx          \*\*\*\*\*\*这样，以下就初始化了  
+004714D6    .   895D DC          mov dword ptr ss:[ebp-24],ebx  
+004714D9    .   895D E0          mov dword ptr ss:[ebp-20],ebx  
+004714DC    .   895D E8          mov dword ptr ss:[ebp-18],ebx  
+004714DF    .   895D E4          mov dword ptr ss:[ebp-1C],ebx          
+004714E2    .   894D F4          mov dword ptr ss:[ebp-C],ecx  
+004714E5    .   8955 F8          mov dword ptr ss:[ebp-8],edx          \*\*\*\*\*\*一个字串：`ASCII "DISKdata"`，好像很有用，这是本程序的程序名  
+004714E8    .   8945 FC          mov dword ptr ss:[ebp-4],eax          \*\*\*\*\*\*假注册码：`1234123412341234563478`  
+004714EB    .   8B45 FC          mov eax,dword ptr ss:[ebp-4]          \*\*\*\*\*假注册码的地址送 `EAX`  
+004714EE    .   E8 612BF9FF      call DISKdata.00404054  
+004714F3    .   8B45 F8          mov eax,dword ptr ss:[ebp-8]  
+004714F6    .   E8 592BF9FF      call DISKdata.00404054  
+004714FB    .   33C0             xor eax,eax  
+004714FD    .   55                push ebp  
+004714FE    .   68 B3164700       push DISKdata.004716B3  
+00471503    .   64:FF30          push dword ptr fs:[eax]  
+```
+
+
+
+```
+00471506    .  64:8920           mov dword ptr fs:[eax],esp  
+00471509    .  33C0            xor eax,eax  
+0047150B    .  55              push ebp  
+0047150C    .  68 7F164700     push DISKdata.0047167F  
+00471511    .  64:FF30        push dword ptr fs:[eax]  
+00471514    .  64:8920        mov dword ptr fs:[eax],esp  
+00471517    .  8B45 FC        mov eax,dword ptr ss:[ebp-4]  
+0047151A    .  E8 8129F9FF    call DISKdata.00403EA0 ****取假注册码的位数 16  
+0047151F    .  85C0           test eax,eax           ****Test 一下，也就是进行与运算，但是只改变标志位  
+00471521    .  0F8E 4C010000 jle DISKdata.00471673  ****当然不跳  
+00471527    .  8D45 E0        lea eax,dword ptr ss:[ebp-20]  
+0047152A    .  B9 CC164700    mov ecx,DISKdata.004716CC  
+0047152F    .  8B55 F8        mov edx,dword ptr ss:[ebp-8]  ****字串 DISKdata  
+00471532    .  E8 B529F9FF    call DISKdata.00403EEC        ****在它后面加上个“－”，变成新字串 1：DISKdata-  
+00471537    .  8B45 E0        mov eax,dword ptr ss:[ebp-20] ****新字串 1 地址送 EAX  
+0047153A    .  E8 6129F9FF    call DISKdata.00403EA0        ****取新字串 1 长度 9 送 EAX  
+0047153F    .  8BF0          mov esi,eax               ****复制到 ESI  
+00471541    .  8B45 FC        mov eax,dword ptr ss:[ebp-4]  ****记得 dword ptr ss:[ebp-4]放的是假注册码的地址  
+00471544    .  E8 5729F9FF    call DISKdata.00403EA0        ****这个 Call，也要记得，是取字串长度，  
+00471549    .  8BF8          mov edi,eax               ****假码长度 16 复制到 EDI  
+0047154B    .  D1FF          sar edi,1                 ****Sar EdI,1 （右移一次，相当除以 2） 使 EDI=B  
+0047154D    .  79 03         jns short DISKdata.00471552  
+0047154F    .  83D7 00       adc edi,0  
+00471552    >  85FF          test edi,edi  
+00471554    .  0F8E D8000000 jle DISKdata.00471632  
+0047155A    .  C745 F0 01000000  mov dword ptr ss:[ebp-10],1 ****dword ptr ss:[ebp-10]=1  
+00471561    >  8B5D F0        mov ebx,dword ptr ss:[ebp-10]****同样，EBX=1  
+00471564    .  03DB          add ebx,ebx               ****EBX=2  
+00471566    .  4B            dec ebx                   ****EBX=1 （转到原地，干什么呀！）  
+00471567    .  8D43 01        lea eax,dword ptr ds:[ebx+1] ****地址传送，EAX=2  
+0047156A    .  D1F8          sar eax,1                 **** 除 2,EAX=1  
+0047156C    .  79 03         jns short DISKdata.00471571  
+0047156E    .  83D0 00       adc eax,0  
+00471571    >  99            cdq                       ****双字变四字,相当于，EDX 清零  
+00471572    .  F7FE          idiv esi                 ****idiv,主要是为了取余，第一次，EDX=1 mod B=1  
+00471574    .  8BC2          mov eax,edx               ****EAX=EDX  
+00471576    .  E8 41FFFFFF    call DISKdata.004714BC       ****这个 Call 会将 EAX 清零  
+0047157B    .  F7EE          imul esi                  ****imul esi   即 0*9=0  
+0047157D    .  50            push eax                  ****push 压栈  
+0047157E    .  8D43 01        lea eax,dword ptr ds:[ebx+1]   EAX=2,以下同上  
+00471581    .  D1F8          sar eax,1  
+00471583    .  79 03         jns short DISKdata.00471588  
+00471585    .  83D0 00       adc eax,0  
+00471588    >  99            cdq  
+00471589    .  F7FE          idiv esi               ****EDX=1  
+0047158B    .  58            pop eax                ****将刚才 Push 的值弹出到 EAX，记得是 Push 了一个 0  
+0047158C    .  2BD0          sub edx,eax              ****EDX=EDX-EAX=1-0=1  
+0047158E    .  52            push edx             ****再 Push  
+0047158F    .  8D45 DC        lea eax,dword ptr ss:[ebp-24]  
+00471592    .  B9 CC164700    mov ecx,DISKdata.004716CC  
+00471597    .  8B55 F8        mov edx,dword ptr ss:[ebp-8]  ****字串 DISKdata  
+0047159A    .  E8 4D29F9FF    call DISKdata.00403EEC        ****还是在它后面加上“－”，这不都重复了吗？  
+0047159F    .  8B45 DC        mov eax,dword ptr ss:[ebp-24] ****新字串 1 地址  
+004715A2    .  5A            pop edx                   ****将前面 Push 的值 1 弹出到 EDX  
+004715A3    .  8A4410 FF      mov al,byte ptr ds:[eax+edx-1] ****终于等到 ASCII 传送，DISKdata- 第一个是 D，ASCII 码是 44  
+004715A7    .  8845 EF        mov byte ptr ss:[ebp-11],al    ****保存  
+004715AA    .  BA D0164700    mov edx,DISKdata.004716D0  
+004715AF    .  8D45 D4        lea eax,dword ptr ss:[ebp-2C]  
+004715B2    .  E8 7915F9FF    call DISKdata.00402B30  
+004715B7    .  8D45 D0        lea eax,dword ptr ss:[ebp-30]  
+004715BA    .  8B55 FC        mov edx,dword ptr ss:[ebp-4]  ****假码 1234123412341234563478  
+004715BD    .  8A541A FF      mov dl,byte ptr ds:[edx+ebx-1]****也是 ASCII 逐个传送，DL，第一个自然是 31(1)  
+004715C1    .  8850 01        mov byte ptr ds:[eax+1],dl    ****EAX+1 地址指向 0012F5B1，保存  
+004715C4    .  C600 01        mov byte ptr ds:[eax],1        ****0012F5B0 给一个固定值 1  
+004715C7    .  8D55 D0        lea edx,dword ptr ss:[ebp-30]  ****dword ptr ss:[ebp-30]保存的就是 0012F5B0  
+004715CA    .  8D45 D4        lea eax,dword ptr ss:[ebp-2C]  ****dword ptr ss:[ebp-2C]=0012F5B4  
+004715CD    .  B1 02         mov cl,2                   ****使 CL=2  
+004715CF    .  E8 2C15F9FF    call DISKdata.00402B00  
+004715D4    .  8D55 D4        lea edx,dword ptr ss:[ebp-2C]  
+004715D7    .  8D45 CC        lea eax,dword ptr ss:[ebp-34]  
+004715DA    .  E8 5115F9FF    call DISKdata.00402B30  
+004715DF    .  8D45 D0        lea eax,dword ptr ss:[ebp-30]  
+004715E2    .  8B55 FC        mov edx,dword ptr ss:[ebp-4]  
+004715E5    .  8A141A         mov dl,byte ptr ds:[edx+ebx]  ****取假码第二位 32(2)  
+004715E8    .  8850 01        mov byte ptr ds:[eax+1],dl  
+004715EB    .  C600 01        mov byte ptr ds:[eax],1  
+004715EE    .  8D55 D0        lea edx,dword ptr ss:[ebp-30]  
+004715F1    .  8D45 CC        lea eax,dword ptr ss:[ebp-34]  
+004715F4    .  B1 03         mov cl,3  
+004715F6    .  E8 0515F9FF    call DISKdata.00402B00  
+004715FB    .  8D55 CC        lea edx,dword ptr ss:[ebp-34]  
+004715FE    .  8D45 D8        lea eax,dword ptr ss:[ebp-28]  
+00471601    .  E8 3E28F9FF    call DISKdata.00403E44  
+00471606    .  8B45 D8        mov eax,dword ptr ss:[ebp-28]  
+00471609    .  E8 6671F9FF    call DISKdata.00408774       ****以上取假码，两位两位的取，第一次取的 12  
+0047160E    .  8BD0          mov edx,eax  
+00471610    .  8A45 EF        mov al,byte ptr ss:[ebp-11]  ****新字串 DISKdata-第一位 D(44)  
+00471613    .  32D0          xor dl,al                  ****xor  DL xor Al=12 xor 44=56  
+00471615    .  8D45 E8        lea eax,dword ptr ss:[ebp-18]  
+00471618    .  E8 AB27F9FF    call DISKdata.00403DC8  
+0047161D    .  8D45 E4        lea eax,dword ptr ss:[ebp-1C]  
+00471620    .  8B55 E8        mov edx,dword ptr ss:[ebp-18]  
+00471623    .  E8 8028F9FF    call DISKdata.00403EA8  
+00471628    .  FF45 F0        inc dword ptr ss:[ebp-10]  
+0047162B    .  4F            dec edi                    ****EDI 初值是 B（假码位数 16 div 2=B）  
+0047162C    .^ 0F85 2FFFFFFF  jnz DISKdata.00471561       ****jnz,循环
+```
+
+这个循环，就是假码两位两位的取，然后与固定字串 `DISKdata-`的 ASCII 码异或，
+
+也就是说，注册码要 18 位才对呀！
+
+`DISKdata-`的 ASCII 码分别是：`44 49 53 4B 64 61 74 61 2D`
+
+`12 xor 44(D)=56 (V)`
+
+`34 xor 49(I)=7D (})`
+
+`12 xor 53(S)=41 (A)`
+
+`34 xor 4B(K)=7F ()`
+
+`12 xor 64(d)=76 (v)`
+
+`34 xor 61(a)=55 (U)`
+
+`12 xor 74(t)=66 (f)`
+
+`34 xor 61(a)=55（U)`
+
+`56 xor 2D(-)=7B（{）`
+
+`34 xor 44(D)=70（p）`
+
+`78 xor 49(I)=31（1）`
+
+生成了一个新字串 2：`V}AvUfU{p1`    `长度为 0xB`
+
+
+
+```
+00471632    >   8B45 F4          mov eax,dword ptr ss:[ebp-C]  
+
+00471635    .   50             push eax  
+
+00471636    .   8B45 E4        mov eax,dword ptr ss:[ebp-1C]  
+
+00471639    .   E8 6228F9FF    call DISKdata.00403EA0  
+
+0047163E    .   8BC8          mov ecx,eax  
+
+00471640    .   49             dec ecx  
+
+00471641    .   BA 01000000    mov edx,1  
+
+00471646    .   8B45 E4        mov eax,dword ptr ss:[ebp-1C]  
+
+00471649    .   E8 5A2AF9FF    call DISKdata.004040A8  
+
+0047164E    .   8B45 E4        mov eax,dword ptr ss:[ebp-1C]  
+
+00471651    .   E8 4A28F9FF    call DISKdata.00403EA0  
+
+00471656    .   8B55 E4        mov edx,dword ptr ss:[ebp-1C]  
+
+00471659    .   8A5C02 FF      mov bl,byte ptr ds:[edx+eax-1]   新字串 2 的末位的 ASCII 码送 BL，它是 1(31)  
+
+0047165D    .   8B45 F4        mov eax,dword ptr ss:[ebp-C]     把一个地址 0012F690 送到 EAX  
+
+00471660    .   8B00          mov eax,dword ptr ds:[eax]       把该地址中的数据 00DBA278 送到 EAX  
+
+*****************************************************************  
+
+看内存：  
+
+00DBA278  V}A?vUfU{p       这可是我们刚才异或得到的数据呀，不过最后一位被去掉了哟！只保有 0xA 位。我叫它新字串 3  
+
+*****************************************************************  
+
+00471662    .   E8 6D000000    call DISKdata.004716D4         如此，这里一定要看一下哟  
+
+00471667    .   3AD8          cmp bl,al                      因为这里就比较了，AL=04,BL=31  
+
+00471669    .   74 04         je short DISKdata.0047166F      应该要相等才成  
+
+0047166B    .   33DB          xor ebx,ebx                      使 EBX 等于 0  
+
+0047166D    .   EB 06         jmp short DISKdata.00471675  
+
+0047166F    >   B3 01         mov bl,1                         使 BL 等于 1  ，这难道不是在设置标志位吗？  
+
+00471671    .   EB 02         jmp short DISKdata.00471675  
+
+00471673    >   33DB          xor ebx,ebx  
+
+00471675    >   33C0          xor eax,eax  
+
+00471677    .   5A             pop edx  
+
+00471678    .   59             pop ecx  
+
+00471679    .   59             pop ecx  
+
+0047167A    .   64:8910       mov dword ptr fs:[eax],edx  
+
+0047167D    .   EB 0C         jmp short DISKdata.0047168B  
+
+0047167F    .^  E9 801DF9FF    jmp DISKdata.00403404  
+
+00471684    .   33DB          xor ebx,ebx  
+
+00471686    .   E8 D520F9FF    call DISKdata.00403760  
+
+0047168B    >   33C0          xor eax,eax  
+
+0047168D    .   5A             pop edx  
+
+0047168E    .   59             pop ecx  
+
+0047168F    .   59             pop ecx  
+
+00471690    .   64:8910       mov dword ptr fs:[eax],edx  
+
+00471693    .   68 BA164700    push DISKdata.004716BA           ;  ASCII "嬅_^嬪"?  
+
+00471698    >   8D45 D8        lea eax,dword ptr ss:[ebp-28]  
+
+0047169B    .   BA 05000000    mov edx,5  
+
+004716A0    .   E8 9F25F9FF    call DISKdata.00403C44  
+
+004716A5    .   8D45 F8        lea eax,dword ptr ss:[ebp-8]  
+
+004716A8    .   BA 02000000    mov edx,2  
+
+004716AD    .   E8 9225F9FF    call DISKdata.00403C44  
+
+004716B2    .   C3             retn  
+
+×××00471662    .   E8 6D000000    call DISKdata.004716D4 如此，这里一定要看一下哟××  
+
+004716D4   /$  55             push ebp  
+
+004716D5   |.   8BEC          mov ebp,esp  
+
+004716D7   |.   51             push ecx  
+
+004716D8   |.   53             push ebx  
+
+004716D9   |.   8945 FC       mov dword ptr ss:[ebp-4],eax  新字串 2 地址保存  
+
+004716DC   |.   8B45 FC       mov eax,dword ptr ss:[ebp-4]  
+
+004716DF   |.   E8 7029F9FF    call DISKdata.00404054  
+
+004716E4   |.   33C0          xor eax,eax  
+
+004716E6   |.   55             push ebp  
+
+004716E7   |.   68 37174700    push DISKdata.00471737  
+
+004716EC   |.   64:FF30       push dword ptr fs:[eax]  
+
+004716EF   |.   64:8920      mov dword ptr fs:[eax],esp  
+
+004716F2   |.   33DB          xor ebx,ebx                    EBX 清零。以后要用的  
+
+004716F4   |.   8B45 FC       mov eax,dword ptr ss:[ebp-4]  
+
+004716F7   |.   E8 A427F9FF    call DISKdata.00403EA0         取新字串 3 的长度 8 送 EAX  
+
+004716FC   |.   85C0          test eax,eax  
+
+004716FE   |.   7E 21         jle short DISKdata.00471721  
+
+00471700   |.   BA 01000000    mov edx,1                      EDX=1  
+
+00471705   |>   8B4D FC      /mov ecx,dword ptr ss:[ebp-4]    新字串 2（刚才异或生成的）  
+
+00471708   |.   0FB64C11 FF  |movzx ecx,byte ptr ds:[ecx+edx-1] 很熟悉的 ASCII 传送，第一位是 56(V)  
+
+0047170D   |.   81E3 FF000000 |and ebx,0FF                     and 取 EBX 的低八位  
+
+00471713   |.   03CB         |add ecx,ebx                     Add  两者加起来  
+
+00471715   |.   81E1 FF000000 |and ecx,0FF                     保留加起来的结果的低八位  
+
+0047171B   |.   8BD9         |mov ebx,ecx                     保存中间结果到 EBX  
+
+0047171D   |.   42           |inc edx                           EDX++  
+
+0047171E   |.   48           |dec eax                           EAX++  
+
+0047171F   |.^ 75 E4        \jnz short DISKdata.00471705      jnz 循环  
+
+*****************************************************************************************  
+
+总结一下，为了好看：  
+
+V}A?vUfU{p  
+
+56 7D 41 7F 76 55 66 55 7B 70  
+
+56+7D+41+7F+76+55+66+55+7B+70=404  
+
+保留后两位即 04  
+
+*****************************************************************************************  
+
+00471721   |>   33C0          xor eax,eax  
+
+00471723   |.   5A             pop edx  
+
+00471724   |.   59             pop ecx  
+
+00471725   |.   59             pop ecx  
+
+00471726   |.   64:8910       mov dword ptr fs:[eax],edx  
+
+00471729   |.   68 3E174700    push DISKdata.0047173E  
+
+0047172E   |>   8D45 FC       lea eax,dword ptr ss:[ebp-4]  
+
+00471731   |.   E8 EA24F9FF    call DISKdata.00403C20  
+
+00471736   \\.   C3             retn  
+
+00471737    .^\\E9 7C1FF9FF     jmp DISKdata.004036B8  
+
+0047173C    .^  EB F0          jmp short DISKdata.0047172E  
+
+0047173E    .   8BC3          mov eax,ebx                   EAX=EBX=04  
+
+00471740    .   5B             pop ebx  
+
+00471741    .   59             pop ecx  
+
+00471742    .   5D             pop ebp  
+
+00471743    .   C3             retn  
+
+把 04 返回去，与新字串末位 1(31)相比较  
+
+可见，以 1234123412341234563478 为注册码，最后两位应该是：04 xor 49(I)=4D  
+
+即：123412341234123456344D  
+
+×××××××××××××××××××××××××××××××××××××××××  
+
+开始效验之一  
+
+……  
+
+00402D2E   |> /80FB 61        /cmp bl,61                    $vU 因为$（24)je 到这里，将 v 的 ASCII 与 61 比较  
+
+00402D31   |.|72 03          |jb short DISKdata.00402D36  
+
+00402D33   |.|80EB 20        |sub bl,20  
+
+00402D36   |> |80EB 30       |sub bl,30                      ;  Switch (cases 30..46)sub 20,再 sub 30 得到 26（如果少于 61，则只 Sub 30）  
+
+00402D39   |.|80FB 09        |cmp bl,9                       与 9 比较大于 9  
+
+00402D3C   |.|76 0B         |jbe short DISKdata.00402D49  
+
+00402D3E   |.|80EB 11       |sub bl,11                         再 sub 11 得到 15                       
+
+00402D41   |.|80FB 05       |cmp bl,5                         与 5 比较，大于 5                       
+
+00402D44   |.^|77 D0        |ja short DISKdata.00402D16     不能跳  
+
+00402D46   |.|80C3 0A       |add bl,0A                   否则 Add A        ;  Cases 41 ('A'),42 ('B'),43 ('C'),44 ('D'),45 ('E'),46 ('F') of switch 00402D36  
+
+00402D49   |> |39F8         |cmp eax,edi               再 Cmp EAX,Edi    ;  Cases 30 ('0'),31 ('1'),32 ('2'),33 ('3'),34 ('4'),35 ('5'),36 ('6'),37 ('7'),38 ('8'),39 ('9') of switch 00402D36  
+
+00402D4B   |.^|77 C9        |ja short DISKdata.00402D16  不能跳
+```
+
+
+
+## 汇编代码分析：新字串生成
+
+00402D4D |. |C1E0 04 |`shl eax,4` \*\*\*\*\*都没有跳，就 `Shl EAX,4` ，清了 `EAX`  
+
+00402D50 |. |01D8 |`add eax,ebx` \*\*\*\*\*`ADD` ，累加  
+
+00402D52 |. |8A1E |`mov bl,byte ptr ds:[esi]` \*\*\*\*\*取下一位 U  
+
+00402D54 |. |46 |`inc esi`  
+
+00402D55 |. |84DB |`test bl,bl`  
+
+00402D57 |.^ \75 D5 |\`jnz short DISKdata.00402D2E` \*\*\*\*\*循环  
+
+00402D59 \\.^ EB A9 |`jmp short DISKdata.00402D04` \*\*\*\*\*强行跳  
+
+00402D5B . C3 |`retn`  
+
+……
+
+### 总结
+
+新字串 3
+
+`V}AvUfU{p`
+
+的第五、六位要满足条件，才行：
+
+ASCII 码与 61(a)相比，如果少于 61 则 `Sub 30`，否则 `Sub 50` 之后要少于或等于 9
+
+或者 `Sub 50`，再 `Sub 11` 之后，不能大于 5，这时，再 `Add A`
+
+结果先 `SHl`，然后累加！
+
+也就是说，第五、第六位的 ASCII 码不大于 59 时，直接作为结果累加
+
+就假定为 61 吧：
+
+那么有：
+
+`61(a) xor 64=05`
+
+`61(a) xor 61=00`
+
+### 制作一个合格的注册码
+
+1. `12341234050012345634B2` （试验码 2）相应的新字串 3 就是：`V}AaafU{p`
+
+2. `1234123453233456AE` （试验码 3）
+
+××××××××××××××××××××××××××××××××××××××××××
+
+××××××××××××××××××××××××××××××××××××××××××
+
+### 开始处理注册名：将注册名大写化
+
+004083D9 |. E8 C2BAFFFF |`call DISKdata.00403EA0` ×××取注册名长度 5 送 `EAX`
+
+004083DE |. 8BD8 |`mov ebx,eax`
+
+004083E0 |. 8BC7 |`mov eax,edi`
+
+004083E2 |. 8BD3 |`mov edx,ebx`
+
+004083E4 |. E8 EBBDFFFF |`call DISKdata.004041D4`
+
+004083E9 |. 8BD6 |`mov edx,esi`
+
+004083EB |. 8B37 |`mov esi,dword ptr ds:[edi]`
+
+004083ED |. 85DB |`test ebx,ebx`
+
+004083EF |. 74 15 |`je short DISKdata.00408406`
+
+004083F1 |> 8A02 |`/mov al,byte ptr ds:[edx]` ×××注册名 ASCII 依次送 `AL`，第一位是 77(w)
+
+004083F3 |. 3C 61 |`|cmp al,61`
+
+004083F5 |. 72 06 |`|jb short DISKdata.004083FD`
+
+004083F7 |. 3C 7A |`|cmp al,7A`
+
+004083F9 |. 77 02 |`|ja short DISKdata.004083FD`
+
+004083FB |. 2C 20 |`|sub al,20` ××××典型的大写化
+
+004083FD |> 8806 |`|mov byte ptr ds:[esi],al`
+
+004083FF |. 42 |`|inc edx` ×××`EDX++` 指向下一个注册名
+
+00408400 |. 46 |`|inc esi`
+
+00408401 |. 4B |`|dec ebx` ×××`EBX--` `EBX` 初值是注册名长度，控制循环
+
+00408402 |. 85DB |`|test ebx,ebx`
+
+00408404 |.^ 75 EB |\`jnz short DISKdata.004083F1` ×××很明显，这是一个大写化的程序，将注册名大写化
+
+00408406 |> 5F |`pop edi`
+
+00408407 |. 5E |`pop esi`
+
+00408408 |. 5B |`pop ebx`
+
+00408409 \\. C3 |`retn`
+
+××××××××××××处理注册名之二，得到累加值 7B 送 EAX×××××××××
+
+×××004911D9 . E8 F604FEFF |`call DISKdata.004716D4`×××××××
+
+……
+
+004716F2 |. 33DB |`xor ebx,ebx` ×××`EBX` 清零
+
+004716F4 |. 8B45 FC |`mov eax,dword ptr ss:[ebp-4]`
+
+004716F7 |. E8 A427F9FF |`call DISKdata.00403EA0`
+
+004716FC |. 85C0 |`test eax,eax`
+
+004716FE |. 7E 21 |`jle short DISKdata.00471721`
+
+00471700 |. BA 01000000 |`mov edx,1` ×××`EDX=1`
+
+00471705 |> 8B4D FC |`/mov ecx,dword ptr ss:[ebp-4]` ×××大写化后的注册名：`WOFAN`
+
+00471708 |. 0FB64C11 FF |`|movzx ecx,byte ptr ds:[ecx+edx-1]` ×××ASCII 码逐位送 `ECX`
+
+0047170D |. 81E3 FF000000 |`|and ebx,0FF` ×××`and` ,保留低八位
+
+00471713 |. 03CB |`|add ecx,ebx` ×××`ADD`，累加
+
+00471715 |. 81E1 FF000000 |`|and ecx,0FF` ×××依然保留低八位
+
+0047171B |. 8BD9 |`|mov ebx,ecx` ×××复制，用作累加的中间数
+
+0047171D |. 42 |`|inc edx` ×××`EDX++`
+
+0047171E |. 48 |`|dec eax` ×××`EAX--`
+
+0047171F |.^ 75 E4 |\`jnz short DISKdata.00471705`
+
+`WOFAN`
+
+`57+4F+41+46+4E＝17B`
+
+即使 `EBX=7B`
+
+…
+
+××××××××××××××××××××××××××××××××××××××××××
+
+\*\*\*\*\*开始效验之二（效验注册码的位数是 26 位），不成功会返回：“''is not a valid integer value”\*\*\*\*\*\*\*
+
+004040A5 8D40 00 |`lea eax,dword ptr ds:[eax]`
+
+004040A8 /$ 53 |`push ebx`
+
+004040A9 |. 85C0 |`test eax,eax` \*\*\*\*`EAX` 保存新字串 3 的地址
+
+004040AB |. 74 2D |`je short DISKdata.004040DA` \*\*\*\*跳到 `004040DA` 就玩完！
+
+004040AD |. 8B58 FC |`mov ebx,dword ptr ds:[eax-4]` \*\*\*`EBX=A` (新字串 3 的长度)
+
+004040B0 |. 85DB |`test ebx,ebx`
+
+004040B2 |. 74 26 |`je short DISKdata.004040DA`
+
+004040B4 |. 4A |`dec edx` \*\*\*\*`EDX=B-1=A`
+
+004040B5 |. 7C 1B |`jl short DISKdata.004040D2`
+
+004040B7 |. 39DA |`cmp edx,ebx` \*\*\*\*`cmp`，所以新字串 3 要大于 `0xA`
+
+004040B9 |. 7D 1F |`jge short DISKdata.004040DA` \*\*\*\*大于或等于就跳，一跳就完
+
+004040BB |> 29D3 |`sub ebx,edx` \*\*\*\*要少多少呢？`Sub` 一下
+
+004040BD |. 85C9 |`test ecx,ecx` \*\*\*\*`ECX=2`
+
+004040BF |. 7C 19 |`jl short DISKdata.004040DA`
+
+004040C1 |. 39D9 |`cmp ecx,ebx` \*\*\*`Sub` 之后，与 `ECX＝2` 相比
+
+004040C3 |. 7F 11 |`jg short DISKdata.004040D6` \*\*\*\*`Sub` 之后，如果 `EBX=1`，就跳走到 `004040D6`，初步看来，注册码应该是 26 位（会得到新字串 3 的位数是 `0xC` 位）才对！
+
+004040C5 |> 01C2 |`add edx,eax` \*\*\*\*否则 `Add`，`EAX` 中保留新字串 3 的地址
+
+004040C7 |. 8B4424 08 |`mov eax,dword ptr ss:[esp+8]`
+
+004040CB |. E8 38FCFFFF |`call DISKdata.00403D08` \*\*\*\*取得新字串的最后两位
+
+004040D0 |. EB 11 |`jmp short DISKdata.004040E3`
+
+004040D2 |> 31D2 |`xor edx,edx`
+
+004040D4 |.^ EB E5 |`jmp short DISKdata.004040BB`
+
+004040D6 |> 89D9 |`mov ecx,ebx`
+
+004040D8 |.^ EB EB |`jmp short DISKdata.004040C5`
+
+004040DA |> 8B4424 08 |`mov eax,dword ptr ss:[esp+8]`
+
+004040DE |. E8 3DFBFFFF |`call DISKdata.00403C20`
+
+004040E3 |> 5B |`pop ebx`
+
+004040E4 \\. C2 0400 |`retn 4`
+
+××××××××××××××××××××××××××××××××××××××××××××××××××××
+
+×××××××××××××看看末两位是否合法××××××××××××××××××××××
+
+……
+
+试验码四所得到的新字串 3 的末两位：`}g`
+
+(})7D (g)67
+
+00402CE2 |> 80EB 30 |`/sub bl,30` \*\*\*\*(BL=7D) `7D-30=4D`
+
+00402CE5 |. |80FB 09 |`|cmp bl,9` \*\*\*\*\*与 9 相比较，
+
+00402CE8 |. |77 2C |`|ja short DISKdata.00402D16` \*\*\*\*\*大于 9 就玩蛋！
+
+00402CEA |. |39F8 |`|cmp eax,edi`
+
+00402CEC |. |77 28 |`|ja short DISKdata.00402D16`
+
+00402CEE |. |8D0480 |`|lea eax,dword ptr ds:[eax+eax*4]` \*\*\*`EAX=EAX*5`
+
+00402CF1 |. |01C0 |`|add eax,eax` \*\*\*`EAX=EAX*2`
+
+00402CF3 |. |01D8 |`|add eax,ebx` \*\*\*\*\*否则就累加
+
+00402CF5 |. |8A1E |`|mov bl,byte ptr ds:[esi]`
+
+00402CF7 |. |46 |`|inc esi`
+
+00402CF8 |. |84DB |`|test bl,bl`
+
+00402CFA |.^ \75 E6 |\`jnz short DISKdata.00402CE2`
+
+……
+
+可见末两位只能是数字！！！
+
+当然，`}g` 都不是合法，修改 Z 标志，看下结果：
+
+`（（7D-30）*A）＋（67-30）＝339`
+
+×××××××××××××××××××××××××××××××××××××××××××××
+
+××××××××××××处理字串：20××××××
+
+……
+
+00402CE2 |> 80EB 30 |`/sub bl,30`
+
+00402CE5 |. |80FB 09 |`|cmp bl,9`
+
+00402CE8 |. |77 2C |`|ja short DISKdata.00402D16`
+
+00402CEA |. |39F8 |`|cmp eax,edi`
+
+00402CEC |. |77 28 |`|ja short DISKdata.00402D16`
+
+00402CEE |. |8D0480 |`|lea eax,dword ptr ds:[eax+eax*4]`
+
+00402CF1 |. |01C0 |`|add eax,eax`
+
+00402CF3 |. |01D8 |`|add eax,ebx`
+
+00402CF5 |. |8A1E |`|mov bl,byte ptr ds:[esi]`
+
+00402CF7 |. |46 |`|inc esi`
+
+00402CF8 |. |84DB |`|test bl,bl`
+
+00402CFA |.^ \75 E6 |\`jnz short DISKdata.00402CE2`
+
+……
+
+取 20 的十六进制形式：`14`
+
+×××××××××××××××××××××××××××××××××××××××××
+
+
+
+验证 `14,B` 是否合法，不合法就玩完，弹出：`Invalid argument to date encode ×××`  
+
+……  
+
+```
+004096B9   |.  66:8B45 FE        mov ax,word ptr ss:[ebp-2]    *****AX=14  
+
+004096BD   |.  E8 A6FFFFFF       call DISKdata.00409668    
+
+004096C2   |.  83E0 7F           and eax,7F                  ***********EAX=1 and 7F=1  
+
+004096C5   |.  8D0440            lea eax,dword ptr ds:[eax+eax*2]  *****EAX=1*3=3  
+
+004096C8   |.  8D34C5 34214900   lea esi,dword ptr ds:[eax*8+492134]***传一个地址：eax*8+492134＝49214C  
+
+************************************************************************************************************************************
+
+看内存：  
+
+0049214C  1F 00 1D 00 1F 00 1E 00  ....  
+
+00492154  1F 00 1E 00 1F 00 1F 00  ....  
+
+0049215C  1E 00 1F 00 1E 00 1F 00  ....  
+
+************************************************************************************************************************************
+
+004096CF   |.  66:837D FE 01     cmp word ptr ss:[ebp-2],1  *****word ptr ss:[ebp-2]=14  
+
+004096D4   |.  0F82 86000000     jb DISKdata.00409760        *****一跳就玩完  
+
+004096DA   |.  66:817D FE 0F27   cmp word ptr ss:[ebp-2],270F****word ptr ss:[ebp-2]=14  
+
+004096E0   |.  77 7E             ja short DISKdata.00409760  
+
+004096E2   |.  66:83FF 01        cmp di,1                    ***Di=B  
+
+004096E6   |.  72 78             jb short DISKdata.00409760  
+
+004096E8   |.  66:83FF 0C        cmp di,0C                   ****di>0xC 就完了！！！*能通过的就只有 1,2,3……A,B,C***  
+
+004096EC   |.  77 72             ja short DISKdata.00409760  
+
+004096EE   |.  66:83FB 01        cmp bx,1                     ***BX=1  
+
+004096F2   |.  72 6C             jb short DISKdata.00409760  
+
+004096F4   |.  0FB7C7            movzx eax,di                  ****EAX=di=B   (11 的十六进制形式）  
+
+004096F7   |.  66:3B5C46 FE      cmp bx,word ptr ds:[esi+eax*2-2]****word ptr ds:[esi+eax*2-2]=1E     
+
+004096FC   |.  77 62             ja short DISKdata.00409760  
+
+004096FE   |.  0FB7C7            movzx eax,di                  ****EAX=di=B  
+
+00409701   |.  48                dec eax                        *****EAX=B-1=A  
+
+00409702   |.  85C0              test eax,eax                   ******测试一下，当 di=1 时，直接到 00409714  
+
+00409704   |.  7E 0E             jle short DISKdata.00409714  
+
+00409706   |.  B9 01000000       mov ecx,1                      ******ECX=1  
+
+0040970B   |>  66:035C4E FE      /add bx,word ptr ds:[esi+ecx*2-2]******word ptr ds:[esi+ecx*2-2]=1F  ,BX 初值是 1  
+
+00409710   |.  41                |inc ecx  
+
+00409711   |.  48                |dec eax                         *****EAX 初值为 B  
+
+00409712   |.^ 75 F7             \\jnz short DISKdata.0040970B        ************这个循环，累加，因为 EAX=B，得到 BX=132  
+
+************************************************************************************************************************************
+
+1+1F+1D+1F+1E+1F+1E+1F+1F+1E+1F ＝132     从地址所指内存中取十个数相加得到 132  
+
+************************************************************************************************************************************
+
+00409714   |>  0FB74D FE         movzx ecx,word ptr ss:[ebp-2] ****ECX=14  
+
+00409718   |.  49                dec ecx                         *****ECX=14-1=13  
+
+00409719   |.  8BC1              mov eax,ecx  
+
+0040971B   |.  BE 64000000       mov esi,64                       ***ECX=64  
+
+00409720   |.  99                cdq  
+
+00409721   |.  F7FE              idiv esi                    *****EAX idiv ESi＝13 idiv 64=0----13  
+
+00409723   |.  69F1 6D010000     imul esi,ecx,16D            ******ESI=ECX imul 16D=13 * 16D=1B17  
+
+00409729   |.  8BD1              mov edx,ecx  
+
+0040972B   |.  85D2              test edx,edx  
+
+0040972D   |.  79 03             jns short DISKdata.00409732  
+
+0040972F   |.  83C2 03           add edx,3  
+
+00409732   |>  C1FA 02           sar edx,2                 *****EDX sar 2=13 sar 2=4  
+
+00409735   |.  03F2              add esi,edx             *****ESI=1B17+4=1B1B  
+
+00409737   |.  2BF0              sub esi,eax  
+
+00409739   |.  8BC1              mov eax,ecx             ***EAX=ECX=13  
+
+0040973B   |.  B9 90010000       mov ecx,190             ****ECX=190  
+
+00409740   |.  99                cdq  
+
+00409741   |.  F7F9              idiv ecx                  ****idiv 使 EAX=0,EDX=13  
+
+00409743   |.  03F0              add esi,eax  
+
+00409745   |.  0FB7C3            movzx eax,bx        *****EAX=BX=132    （EBX=DB0132）  
+
+00409748   |.  03F0              add esi,eax         *****ADD ESI=1B1B+132=1C4D  
+
+0040974A   |.  81EE 5A950A00     sub esi,0A955A      *****Sub  ESi=FFF586F3  
+
+00409750   |.  8975 F8           mov dword ptr ss:[ebp-8],esi  
+
+00409753   |.  DB45 F8           fild dword ptr ss:[ebp-8] ***浮点运算，装入整数  
+
+**********************************************************************
+
+Stack ss:[0012F5A8]=FFF586F3 (十进制 -686349.)  
+
+**********************************************************************
+
+00409756   |.  8B45 08           mov eax,dword ptr ss:[ebp+8]  
+
+00409759   |.  DD18              fstp qword ptr ds:[eax]  
+
+********************************************************************
+
+st=-686349.00000000000000                  ********************返回去与一个固定数 38505 去比较！！！  
+
+Stack ds:[0012F5D8]=1.486724818696458e-304  
+
+**********************************************************************
+
+0040975B   |.  9B                wait  
+
+0040975C   |.  C645 FD 01        mov byte ptr ss:[ebp-3],1  
+
+00409760   |>  8A45 FD           mov al,byte ptr ss:[ebp-3]  
+
+00409763   |.  5F                pop edi  
+
+00409764   |.  5E                pop esi  
+
+00409765   |.  5B                pop ebx  
+
+00409766   |.  59                pop ecx  
+
+00409767   |.  59                pop ecx  
+
+00409768   |.  5D                pop ebp  
+
+00409769   \\.  C2 0400           retn 4  
+
+那好，通过这一段，来逆向一下：  
+
+`38505` 的十六进制是 `9669`  
+
+`ESI=9669＋0A955A=B2BC3`  
+
+`ESI=B2BC3－1B1B=B10A8`  
+
+无法得到所要的数值！！！！！！！  
+
+我的天呀！  
+
+××××××××××××××××××××××××××××××××××××××××  
+
+结语：  
+
+将下面一行 `Nop` 掉！！！！  
+
+```
+00491336    .  0F83 F5010000     jnb DISKdata.00491531  
+
+一个注册码，就是试验码七啦！  
+
+注册名：`wofan`  
+
+注册码：`1306120553234D58147D7861BE`  
+
+这也行，那就是鬼来了！看来是跟到了假比较中去了！！！！可是为什么又接受了 `Click` 事件呢？？？？  
+
+难道是重启验证？？？？？  
+
+    by `wofan[OCN][PYG]`  
+
+ 传言说：西有张家界，东有酒埠江，我就在酒仙湖身旁！ 
+
+实在是受不了！！！！  
+
+重来！  
+
+重启也会验证，流程差不多！！！！！  
+
+```
+0048B431    .  E8 9260FEFF        call DISKdata.004714C8    
+
+************************************************************************************************************************************
+
+在这里下断，重启，就断在这儿！！看看上一篇，就知道  
+
+在这里效验进行的是：从注册表中读取注册码：`1306120553234D58147D786178573A`，  
+
+`DISKdata-DISKda`  
+
+```
+44 49 53 4B 64 61 74 61 2D 44 49 53 4B 64 61  
+13 06 12 05 53 23 4D 58 14 7D 78 61 78 57 3A  
+```
+相对应 `Xor` 之后：  
+
+```
+57 4F 41 4E 37 42 39 39 39 39 31 32 33 33 5B  
+W   O   A   N   7   B   9   9   9   9   1  2    3   3   [  
+```
+由它产生的“新字串 2”为：`WOAN7B99991233[`  
+
+即“新字串 3”为：`WOAN7B99991233`  
+
+`AscII(W)+ASCII(O)+……+ASCII(3)=5B`  
+
+  就通过验证！使 `AL=1`  
+
+************************************************************************************************************************************
+
+```
+0048B436    .  84C0              test al,al  
+
+0048B438    .  0F84 6C030000     je DISKdata.0048B7AA  
+
+0048B43E    .  8D45 94           lea eax,dword ptr ss:[ebp-6C]  
+
+0048B441    .  50                push eax  
+
+0048B442    .  B9 02000000       mov ecx,2  
+
+0048B447    .  BA 05000000       mov edx,5  
+
+0048B44C    .  8B45 E8           mov eax,dword ptr ss:[ebp-18]  
+
+0048B44F    .  E8 548CF7FF       call DISKdata.004040A8          *****从新字串 3：WOAN7B99991233 的第五位起，取两位：7B  
+
+0048B454    .  8B4D 94           mov ecx,dword ptr ss:[ebp-6C]  
+
+0048B457    .  8D45 98           lea eax,dword ptr ss:[ebp-68]  
+
+0048B45A    .  BA 50BD4800       mov edx,DISKdata.0048BD50  
+
+0048B45F    .  E8 888AF7FF       call DISKdata.00403EEC  
+
+0048B464    .  8B45 98           mov eax,dword ptr ss:[ebp-68]  
+```
+
+
+
+## 0048B467-0048B79E 代码段
+
+```asm
+0048B467    .  E8 08D3F7FF       call DISKdata.00408774        *****验证：7B 是合法的
+0048B46C    .  8BD8              mov ebx,eax
+0048B46E    .  8D55 90          lea edx,dword ptr ss:[ebp-70]
+0048B471    .  8B45 EC          mov eax,dword ptr ss:[ebp-14]
+0048B474    .  E8 57CFF7FF      call DISKdata.004083D0         ***取注册名 wofan,将它大写化为：WOFAN
+0048B479    .  8B45 90          mov eax,dword ptr ss:[ebp-70]
+0048B47C    .  E8 5362FEFF      call DISKdata.004716D4         *****ASCII 码累加，并保留低八位，一个新的 ASCII 码值：7B
+0048B481    .  25 FF000000      and eax,0FF                    ***确定是低八位
+0048B486    .  3BD8             cmp ebx,eax                    *****比较，7B=7B 通过！！！
+0048B488    .  0F85 10030000    jnz DISKdata.0048B79E
+0048B48E    .  8D45 8C          lea eax,dword ptr ss:[ebp-74]
+0048B491    .  50              push eax
+0048B492    .  8D55 88          lea edx,dword ptr ss:[ebp-78]
+0048B495    .  8B45 EC          mov eax,dword ptr ss:[ebp-14]
+0048B498    .  E8 33CFF7FF      call DISKdata.004083D0
+0048B49D    .  8B45 88          mov eax,dword ptr ss:[ebp-78]
+0048B4A0    .  B9 02000000      mov ecx,2
+0048B4A5    .  BA 01000000      mov edx,1
+0048B4AA    .  E8 F98BF7FF      call DISKdata.004040A8         *****从大写化后的 WOFAN 第一位起，取两位：WO
+0048B4AF    .  8B45 8C          mov eax,dword ptr ss:[ebp-74]
+0048B4B2    .  50              push eax
+0048B4B3    .  8D45 84          lea eax,dword ptr ss:[ebp-7C]
+0048B4B6    .  50              push eax
+0048B4B7    .  B9 02000000      mov ecx,2
+0048B4BC    .  BA 01000000      mov edx,1
+0048B4C1    .  8B45 E8          mov eax,dword ptr ss:[ebp-18]
+0048B4C4    .  E8 DF8BF7FF      call DISKdata.004040A8         *****从新字串 3：WOAN7B99991233 中的第一位起取两位：WO
+0048B4C9    .  8B55 84          mov edx,dword ptr ss:[ebp-7C]
+0048B4CC    .  58              pop eax
+0048B4CD    .  E8 DE8AF7FF      call DISKdata.00403FB0         *****比较得到通过！
+0048B4D2    .  0F85 C6020000    jnz DISKdata.0048B79E
+0048B4D8    .  8D45 80          lea eax,dword ptr ss:[ebp-80]
+0048B4DB    .  50              push eax
+0048B4DC    .  8D95 7CFFFFFF    lea edx,dword ptr ss:[ebp-84]
+0048B4E2    .  8B45 EC          mov eax,dword ptr ss:[ebp-14]
+0048B4E5    .  E8 E6CEF7FF      call DISKdata.004083D0
+0048B4EA    .  8B85 7CFFFFFF    mov eax,dword ptr ss:[ebp-84]
+0048B4F0    .  E8 AB89F7FF      call DISKdata.00403EA0         ***取 WOFAN 位数 5 送 EAX
+0048B4F5    .  48              dec eax                          ***Dec EAX 以确保是从倒数第二位取两位
+0048B4F6    .  50              push eax
+0048B4F7    .  8D95 78FFFFFF    lea edx,dword ptr ss:[ebp-88]
+0048B4FD    .  8B45 EC          mov eax,dword ptr ss:[ebp-14]
+0048B500    .  E8 CBCEF7FF      call DISKdata.004083D0
+0048B505    .  8B85 78FFFFFF    mov eax,dword ptr ss:[ebp-88]
+0048B50B    .  B9 02000000      mov ecx,2
+0048B510    .  5A              pop edx
+0048B511    .  E8 928BF7FF      call DISKdata.004040A8         *****取 WOFAN 的末两位 AN
+0048B516    .  8B45 80          mov eax,dword ptr ss:[ebp-80]
+0048B519    .  50              push eax
+0048B51A    .  8D85 74FFFFFF    lea eax,dword ptr ss:[ebp-8C]
+0048B520    .  50              push eax
+0048B521    .  B9 02000000      mov ecx,2
+0048B526    .  BA 03000000      mov edx,3
+0048B52B    .  8B45 E8          mov eax,dword ptr ss:[ebp-18]
+0048B52E    .  E8 758BF7FF      call DISKdata.004040A8         *****新字串 3：WOAN7B99991233 的第三位起，取两位 AN
+0048B533    .  8B95 74FFFFFF    mov edx,dword ptr ss:[ebp-8C]
+0048B539    .  58              pop eax
+0048B53A    .  E8 718AF7FF      call DISKdata.00403FB0         *****比较可以通过！！！
+0048B53F    .  0F85 59020000    jnz DISKdata.0048B79E
+0048B545    .  8D85 70FFFFFF    lea eax,dword ptr ss:[ebp-90]
+0048B54B    .  50              push eax
+0048B54C    .  B9 02000000      mov ecx,2
+0048B551    .  BA 0B000000      mov edx,0B                     *****B(12)
+0048B556    .  8B45 E8          mov eax,dword ptr ss:[ebp-18]
+0048B559    .  E8 4A8BF7FF      call DISKdata.004040A8          *****取新字串 3：WOAN7B99991233 从第 12 位起取两位是 12
+0048B55E    .  8B85 70FFFFFF    mov eax,dword ptr ss:[ebp-90]
+0048B564    .  E8 0BD2F7FF      call DISKdata.00408774         *****12 的十六进制形式是 C，它要满足条件 Not ja 0xC,如果 ja 则出错！！！
+0048B569    .  50              push eax
+0048B56A    .  8D85 68FFFFFF    lea eax,dword ptr ss:[ebp-98]
+0048B570    .  50              push eax
+0048B571    .  B9 02000000      mov ecx,2                      *****ECX=2
+0048B576    .  BA 0D000000      mov edx,0D                     *****0xD(13) （从这里知道真正的注册码长度是要 30 位呀！！！D+2=F(15)，15*2=30（位）
+0048B57B    .  8B45 E8          mov eax,dword ptr ss:[ebp-18]
+0048B57E    .  E8 258BF7FF      call DISKdata.004040A8          *****从新字串 3 的 13 位起，取两位是 33，这里只要求它位是数字！！
+0048B583    .  8B8D 68FFFFFF    mov ecx,dword ptr ss:[ebp-98]
+0048B589    .  8D85 6CFFFFFF    lea eax,dword ptr ss:[ebp-94]
+0048B58F    .  BA 5CBD4800      mov edx,DISKdata.0048BD5C      ;  ASCII "20"  一个字串
+0048B594    .  E8 5389F7FF      call DISKdata.00403EEC          连接起来：得到 2033
+0048B599    .  8B85 6CFFFFFF    mov eax,dword ptr ss:[ebp-94]
+0048B59F    .  E8 D0D1F7FF      call DISKdata.00408774          *****取 2033 的十六进制形式是 0x7F1
+0048B5A4    .  66:B9 0100       mov cx,1                        *****这个 Mov，使得本软件只能在第月的第一天输入注册码才能注册成功，这真是一种奇怪的注册方式！！！！！
+0048B5A8    .  5A              pop edx                          *****Pop，使 EDX=C  （要记得 C 是 12 的十六进制形式）
+0048B5A9    .  E8 BEE1F7FF      call DISKdata.0040976C         *****得到一个浮点数！！
+0048B5AE    .  DD9D 60FFFFFF    fstp qword ptr ss:[ebp-A0]
+0048B5B4    .  9B              wait
+0048B5B5    .  E8 22E4F7FF      call DISKdata.004099DC          *****取 Local time 得到另一个浮点数
+0048B5BA    .  DC9D 60FFFFFF    fcomp qword ptr ss:[ebp-A0]     *****浮点比较，通过就 OK
+0048B5C0    .  DFE0            fstsw ax
+0048B5C2    .  9E              sahf
+0048B5C3    .  0F83 C9010000    jnb DISKdata.0048B792
+```
+
+--------------------------------------------------------------------------------
+
+### 算浮点数
+
+```asm
+004096CF   |.  66:837D FE 01    cmp word ptr ss:[ebp-2],1      *****word ptr ss:[ebp-2]=7F1 （7F1 是 2033 的十六进制数）
+004096D4   |.  0F82 86000000    jb DISKdata.00409760
+004096DA   |.  66:817D FE 0F27  cmp word ptr ss:[ebp-2],270F   *****7F1<=270F    (270F 是个极限）
+004096E0   |.  77 7E            ja short DISKdata.00409760
+004096E2   |.  66:83FF 01       cmp di,1                       *****Di=C  （C 是 12 的十六进制）
+004096E6   |.  72 78            jb short DISKdata.00409760
+004096E8   |.  66:83FF 0C       cmp di,0C                       ***（C 是个极限）
+004096EC   |.  77 72            ja short DISKdata.00409760
+004096EE   |.  66:83FB 01       cmp bx,1                       ***BX=1
+004096F2   |.  72 6C            jb short DISKdata.00409760
+004096F4   |.  0FB7C7           movzx eax,di                   ***EAX=Di=C
+004096F7   |.  66:3B5C46 FE     cmp bx,word ptr ds:[esi+eax*2-2]***esi+eax*2-2=ESI+C*2-2 通过 C 查表得到 1F
+```
+
+### 表
+
+```
+00492134   1F 00 1C 00 1F 00 1E 00   ....
+0049213C   1F 00 1E 00 1F 00 1F 00   ....
+00492144   1E 00 1F 00 1E 00 1F 00   ....
+0049214C   1F 00 1D 00 1F 00 1E 00   ....
+00492154   1F 00 1E 00 1F 00 1F 00   ....
+0049215C   1E 00 1F 00 1E 00 1F 00   ....
+```
+
+```asm
+004096FC   |.  77 62            ja short DISKdata.00409760
+004096FE   |.  0FB7C7           movzx eax,di             *****EAX=di=C
+```
+
+
+
+```assembly
+00409701   |.  48                dec eax                       *****EAX=C-1=B
+00409702   |.  85C0             test eax,eax
+00409704   |.  7E 0E            jle short DISKdata.00409714
+00409706   |.  B9 01000000      mov ecx,1                     *****ECX=1
+0040970B   |>  66:035C4E FE     /add bx,word ptr ds:[esi+ecx*2-2]  *****开始累加一个数
+00409710   |.  41               |inc ecx
+00409711   |.  48               |dec eax                      *****EAX 是要累加的次数 B，得到累加值是 14F，存于 BX 中
+00409712   |.^ 75 F7            \jnz short DISKdata.0040970B
+00409714   |>  0FB74D FE        movzx ecx,word ptr ss:[ebp-2] *****ECX=7F1
+00409718   |.  49               dec ecx                       *****ECX=7F1-1=7F0
+00409719   |.  8BC1             mov eax,ecx                   *****EAX=ECX=7F0
+0040971B   |.  BE 64000000      mov esi,64                    *****ESI=64
+00409720   |.  99               cdq
+00409721   |.  F7FE             idiv esi                      *****IDIV:7F0 IDIV 64=00000014 r 00000020
+00409723   |.  69F1 6D010000    imul esi,ecx,16D              *****IMUL:ESI=7F0 * 16D=000B5130
+00409729   |.  8BD1             mov edx,ecx                   *****EDX=ECX=7F0
+0040972B   |.  85D2             test edx,edx                  *****测试一下
+0040972D   |.  79 03            jns short DISKdata.00409732   没有符号就跳到 00409732
+0040972F   |.  83C2 03          add edx,3
+00409732   |>  C1FA 02          sar edx,2                     *****Sar:7F0/2²=1FC
+00409735   |.  03F2             add esi,edx                   *****ADD:B5130+1FC=B532C
+00409737   |.  2BF0             sub esi,eax                   *****Sub:B532C-14=B5318
+00409739   |.  8BC1             mov eax,ecx                   *****EAX=ECX=7F0
+0040973B   |.  B9 9000000       mov ecx,190                   *****ECX=190
+00409740   |.  99               cdq
+00409741   |.  F7F9             idiv ecx                      *****idiv:7F0 idiv 190=00000005 r 00000020
+00409743   |.  03F0             add esi,eax                   *****ADD:ESI=B5318+5=B531D
+00409745   |.  0FB7C3           movzx eax,bx                  *****BX=14F
+00409748   |.  03F0             add esi,eax                   *****ADD:ESI=B531D+14F=B546C
+0040974A   |.  81EE 5A950A00    sub esi,0A955A                *****Sub:ESI=B546C-0A955A=BF12
+00409750   |.  8975 F8          mov dword ptr ss:[ebp-8],esi
+00409753   |.  DB45 F8          fild dword ptr ss:[ebp-8]     *****浮点，装入整数
+```
+
+Stack ss:`[0012F5A8]`=0000BF12 (十进制 48914.)
+
+```assembly
+00409756   |.  8B45 08          mov eax,dword ptr ss:[ebp+8]
+00409759   |.  DD18             fstp qword ptr ds:[eax]       *****上托出栈
+```
+
+st=48914.000000000000000                       ××××××××全靠它了！！！！！！！！！！
+
+Stack ds:`[0012F5D8]`=1.486724818696458e-304
+
+```assembly
+0040975B   |.  9B               wait
+0040975C   |.  C645 FD 01       mov byte ptr ss:[ebp-3],1
+00409760   |>  8A45 FD          mov al,byte ptr ss:[ebp-3]
+00409763   |.  5F               pop edi
+00409764   |.  5E               pop esi
+00409765   |.  5B               pop ebx
+00409766   |.  59               pop ecx
+00409767   |.  59               pop ecx
+00409768   |.  5D               pop ebp
+00409769   \.  C2 0400          retn 4
+```
+
+××××××××××××××××××××××××××××××××××××
+
+```assembly
+004099E3   |.  50               push eax                           ; /pLocaltime
+004099E4   |.  E8 8FCFFFFF      call <jmp.&kernel32.GetLocalTime>   ; \GetLocalTime  *****取得日期，今天是 3 号
+004099E9   |.  66:8B4C24 0E     mov cx,word ptr ss:[esp+E]         *****word ptr ss:[esp+E]=3（今天是 3 号）
+004099EE   |.  66:8B5424 0A     mov dx,word ptr ss:[esp+A]         *****word ptr ss:[esp+A]=6 （6 月）
+004099F3   |.  66:8B4424 08     mov ax,word ptr ss:[esp+8]         *****word ptr ss:[esp+8]=07D5（2005）（今年是 2005 年）
+004099F8   |.  E8 6FFDFFFF      call DISKdata.0040976C             ****************************通过日期算出一个浮点数
+004099FD   |.  DD1C24           fstp qword ptr ss:[esp]
+00409A00   |.  9B               wait
+00409A01   |.  DD0424           fld qword ptr ss:[esp]
+00409A04   |.  83C4 18          add esp,18
+00409A07   \.  C3               retn
+```
+
+```assembly
+004096CF   |.  66:837D FE 01    cmp word ptr ss:[ebp-2],1          *****word ptr ss:[ebp-2]=7D5
+004096D4   |.  0F82 86000000    jb DISKdata.00409760
+004096DA   |.  66:817D FE 0F27  cmp word ptr ss:[ebp-2],270F
+004096E0   |.  77 7E            ja short DISKdata.00409760
+004096E2   |.  66:83FF 01       cmp di,1                            *****DI=6
+004096E6   |.  72 78            jb short DISKdata.00409760
+004096E8   |.  66:83FF 0C       cmp di,0C                           *****现在知道为什么极限数是 C(12),有效数是 1--12（因为这是一个月份值呀！）
+004096EC   |.  77 72            ja short DISKdata.00409760
+004096EE   |.  66:83FB 01       cmp bx,1                            *****为什么 BX 要与 1 比较？因为没有人见过日期是 0 的呀！！！！
+004096F2   |.  72 6C            jb short DISKdata.00409760
+004096F4   |.  0FB7C7           movzx eax,di
+004096F7   |.  66:3B5C46 FE     cmp bx,word ptr ds:[esi+eax*2-2]   *****这里查表的数据全是 1E（30）,1F（31）这都是月份有关的数！
+004096FC   |.  77 62            ja short DISKdata.00409760
+004096FE   |.  0FB7C7           movzx eax,di
+00409701   |.  48               dec eax
+00409702   |.  85C0             test eax,eax
+00409704   |.  7E 0E            jle short DISKdata.00409714
+00409706   |.  B9 01000000      mov ecx,1
+0040970B   |>  66:035C4E FE     /add bx,word ptr ds:[esi+ecx*2-2]
+00409710   |.  41               |inc ecx
+00409711   |.  48               |dec eax
+00409712   |.^ 75 F7            \jnz short DISKdata.0040970B
+00409714   |>  0FB74D FE        movzx ecx,word ptr ss:[ebp-2]
+00409718   |.  49               dec ecx
+00409719   |.  8BC1             mov eax,ecx
+0040971B   |.  BE 64000000      mov esi,64
+00409720   |.  99               cdq
+00409721   |.  F7FE             idiv esi
+00409723   |.  69F1 6D010000    imul esi,ecx,16D
+00409729   |.  8BD1             mov edx,ecx
+0040972B   |.  85D2             test edx,edx
+0040972D   |.  79 03            jns short DISKdata.00409732
+0040972F   |.  83C2 03          add edx,3
+00409732   |>  C1FA 02          sar edx,2
+00409735   |.  03F2             add esi,edx
+00409737   |.  2BF0             sub esi,eax
+00409739   |.  8BC1             mov eax,ecx
+0040973B   |.  B9 9000000       mov ecx,190
+00409740   |.  99               cdq
+00409741   |.  F7F9             idiv ecx
+00409743   |.  03F0             add esi,eax
+00409745   |.  0FB7C3           movzx eax,bx
+00409748   |.  03F0             add esi,eax
+0040974A   |.  81EE 5A950A00    sub esi,0A955A
+00409750   |.  8975 F8          mov dword ptr ss:[ebp-8],esi
+00409753   |.  DB45 F8          fild dword ptr ss:[ebp-8]
+00409756   |.  8B45 08          mov eax,dword ptr ss:[ebp+8]
+00409759   |.  DD18             fstp qword ptr ds:[eax]
+0040975B   |.  9B               wait
+```
+
+
+
+```
+0040975C   |.  C645 FD 01        mov byte ptr ss:[ebp-3],1
+00409760   |>  8A45 FD          mov al,byte ptr ss:[ebp-3]
+00409763   |.  5F              pop edi
+00409764   |.  5E              pop esi
+00409765   |.  5B              pop ebx
+00409766   |.  59              pop ecx
+00409767   |.  59              pop ecx
+00409768   |.  5D              pop ebp
+00409769   \.  C2 0400         retn 4
+```
+
+###### 总结
+
+注册码长度要 30 位！！！！！
+
+注册码前四位是注册名 `wofan` 大写化后 `WOFAN` 的前两位的 ASCII 码与字串 `DISKdata-DISKda` 前两位的 ASCII 异或
+
+`WOFAN`
+
+`DISKdata-DISKda`
+
+`57 xor 44=13 4F xor 49=06`
+
+第五到第八位是注册名的后两位…… `41 xor 53 =12 4E xor 4B=05`
+
+第九到第十二位：
+
+注册名 `WOFAN` 的 ASCII 码累加，保留低八位
+
+`57+4F+46+41+4E=17B` 取 `7B` `37 xor 64=53 42 xor 61=23`
+
+第十三到二十位是与字串 `9999` 相异或：`74 61 2D 44` 与 `39 39 39 39` 异或之后：`4D 58 14 7D`
+
+第二十一到二十四位是注册日期中的月份：现在是 6 月 `06:30 36 与 49 53` 异或之后：`79 65`
+
+第二十五到二十八位是年份：现在是 2005 年,让它可以用到 2008 年，可好？那就用 `08:30 38 与 4B 64` 异或之后：`7B 5C`
+
+第二十九到第三十位：
+
+`57＋4F＋41＋4E＋37＋42＋39＋39+39＋39＋30＋36＋30＋38＝360` 也取低八位，得到 `60`
+
+与字串 `DISKdata-DISKda` 末位 `a` 的 ASCII 码 `61` 异或：
+
+`60 xor 61=01`
+
+注册名：`wofan`
+
+在今天获得注册码：
+
+注册码：`1306120553234D58147D79657B5C01` （这个注册码可以用到 2008 年，就是奥运年哟！）
+
+`by wofan[OCN][PYG]`
+
+传言说：西有张家界，东有酒埠江，我就在酒仙湖身旁！
+
+如有雷同，纯属偶然，如有侵权，我一定不是有意的！！！
+
+`11:48 2005-6-3`
+
+`4dd466d0e1e0cc123afbe504da2462ca`
