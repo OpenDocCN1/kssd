@@ -1,0 +1,50 @@
+
+# PopUp Killer 1.41
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue332.htm`](https://www.pediy.com/kssd/pediy04/kanxue332.htm)
+
+程序名称：`PopUp Killer 1.41`
+
+软件简介：该软件可以关闭浏览器中自动弹出的窗口。并可以自定义黑名单。
+
+下载地址：`http://202.102.249.209/files/ftproot/4/puksetup141d3.exe`
+
+破解目的：找出注册码。
+
+工具：`NuMega SmartCheck 6.20 (Build 1286) RC2`
+
+下载地址：`http://www.crackbest.net/unlock/debug/smartcheck6_2.zip`
+
+说明：该软件是自由软件(免费软件?)，`VB 5.0` 编译，`PECompact` 压缩。软件说明中明确指出可以不注册。我当初破解它是为了学习 `SmartCheck` 的用法。
+
+进入主题：用 `SmartCheck` 载入 `PopUp Killer`，设置好 `SmartCheck` 的选项(参考看雪兄的《加密与解密》`P189-190`)，按 `F5` 键，然后.....喝一杯水去吧，很慢的:)。看见你的电脑时间前面是不是出现一个‘闪电’图标，双击它，会出现一个对话框，点击 `About` 选择注册，填写：
+
+```
+Your Name:oake
+Product Serial Number:8448844865495448454894 <==软件自动生成
+License Code:abcdefghijklmnop
+```
+
+点击 `OK`，会弹出一个错误对话框，选择 `SmartCheck` `Program/End` 命令 <=重点
+
+`SmartCheck` 会问是否停止程序，点击确定。我们返回到 `SmartCheck` 选择 `Events` 页，拉到最后，可以看到 `_Click.`。点击它，点击 `View/Show All Events` 命令，再点击`_Click` 前面的 `+`展开。
+
+来到最后，可以看到第一个 `_vbaStrCmo` returns `DWORD:1`
+
+点击它看到什么？`I65-J6JP-OL56I` 和 `abcdefghijklmnop`
+
+再看看第二个 `_vbaStrCmP` returns `DWORD:1`
+
+看到什么？`$J45-6KI6-HL654I` 和 `abcdefghijklmnop`
+
+重新运行 `PopUp Killer` 填入 `I65-J6JP-OL56I` 或 `$J45-6KI6-HL654I` 成功！
+
+总结：
+
+```
+Your Name:oake
+Product Serial Number:8448844865495448454894
+License Code:I65-J6JP-OL56I 或 $J45-6KI6-HL654I
+```
+
+该软件的注册码与 `Product Serial Number` 有关，与注册名无关。 `4dd466d0e1e0cc123afbe504da2462ca`

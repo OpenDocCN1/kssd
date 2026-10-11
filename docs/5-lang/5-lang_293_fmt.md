@@ -1,0 +1,240 @@
+
+# 浅谈 VB6 逆向工程(4)
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6883.htm`](https://www.pediy.com/kssd/pediy06/pediy6883.htm)
+
+## 4. VB 内部函数
+
+### 1) 自定义函数的调用
+
+这里我们看看和 VB 的内部函数有关的一些内容。
+
+老规矩，先看一段代码：
+
+```
+Function myadd(ByVal a As Variant, b As Variant)
+    myadd = a + b
+End Function
+
+Sub myprint(ByVal a As Variant)
+    Print a
+End Sub
+
+Private Sub Command1_Click()
+    Dim a, b, c
+    a = 10
+    b = 20
+    c = myadd(a, b)
+    myprint c
+End Sub
+```
+
+这段代码里包含了自定义的过程，函数及函数的两种参数传递方式。下面的反汇编代码是过程 `Command1_Click()`的。自定义的函数和过程的反汇编代码和这相仿，可以字节反汇编对比看一下。
+
+反汇编代码如下，默认方式（速度优化）编译的，这次给出的是完整的汇编代码：
+
+```
+00401C50   PUSH EBP
+00401C51   MOV EBP,ESP
+00401C53   SUB ESP,0C
+00401C56   PUSH <JMP.&MSVBVM60.__vbaExceptHandler>
+00401C5B   MOV EAX,DWORD PTR FS:[0]
+00401C61   PUSH EAX
+00401C62   MOV DWORD PTR FS:[0],ESP  //安装局部线程异常
+00401C69   SUB ESP,5C                //下面这一段和 vb 编译器有关
+00401C6C   PUSH EBX                  //因为 vb 是基于 com 技术实现的
+00401C6D   PUSH ESI                  //更详细的内容可以参考
+00401C6E   PUSH EDI                  //<<软件加密技术内幕>>一书
+00401C6F   MOV DWORD PTR SS:[EBP-C],ESP
+00401C72   MOV DWORD PTR SS:[EBP-8],工程 2.004010B0
+00401C79   MOV ESI,DWORD PTR SS:[EBP+8]
+00401C7C   MOV EAX,ESI
+00401C7E   AND EAX,1
+00401C81   MOV DWORD PTR SS:[EBP-4],EAX
+00401C84   AND ESI,FFFFFFFE
+00401C87   PUSH ESI
+00401C88   MOV DWORD PTR SS:[EBP+8],ESI  //me
+00401C8B   MOV ECX,DWORD PTR DS:[ESI]
+00401C8D   CALL DWORD PTR DS:[ECX+4]   ;MSVBVM60.Zombie_AddRef
+00401C90   MOV EDI,DWORD PTR DS:[<&MSVBVM60.__vbaVarMove>]
+00401C96   XOR EBX,EBX
+00401C98   MOV DWORD PTR SS:[EBP-64],EBX
+00401C9B   LEA EDX,DWORD PTR SS:[EBP-64]
+00401C9E   LEA ECX,DWORD PTR SS:[EBP-24]
+00401CA1   MOV DWORD PTR SS:[EBP-24],EBX
+00401CA4   MOV DWORD PTR SS:[EBP-34],EBX
+00401CA7   MOV DWORD PTR SS:[EBP-44],EBX
+00401CAA   MOV DWORD PTR SS:[EBP-54],EBX
+00401CAD   MOV DWORD PTR SS:[EBP-5C],0A  //10
+00401CB4   MOV DWORD PTR SS:[EBP-64],2   //integer
+00401CBB   CALL EDI
+                            //a = 10
+00401CBD   LEA EDX,DWORD PTR SS:[EBP-64]
+00401CC0   LEA ECX,DWORD PTR SS:[EBP-34]
+00401CC3   MOV DWORD PTR SS:[EBP-5C],14  //20
+00401CCA   MOV DWORD PTR SS:[EBP-64],2   //integer
+00401CD1   CALL EDI
+                            // b = 20
+00401CD3   LEA EAX,DWORD PTR SS:[EBP-54]
+00401CD6   LEA ECX,DWORD PTR SS:[EBP-34]
+00401CD9   PUSH EAX                //存放函数的返回值
+00401CDA   PUSH ECX                //引用参数 b
+00401CDB   MOV ECX,DWORD PTR SS:[EBP-24]
+00401CDE   SUB ESP,10              //这个空间复制变量参数 a
+00401CE1   MOV EAX,ESP             //变体类型,所以要 16 个字节
+00401CE3   MOV EDX,DWORD PTR DS:[ESI]
+00401CE5   PUSH ESI                //me
+00401CE6   MOV DWORD PTR DS:[EAX],ECX
+00401CE8   MOV ECX,DWORD PTR SS:[EBP-20]
+00401CEB   MOV DWORD PTR DS:[EAX+4],ECX
+00401CEE   MOV ECX,DWORD PTR SS:[EBP-1C]
+00401CF1   MOV DWORD PTR DS:[EAX+8],ECX
+00401CF4   MOV ECX,DWORD PTR SS:[EBP-18]
+00401CF7   MOV DWORD PTR DS:[EAX+C],ECX
+00401CFA   CALL DWORD PTR DS:[EDX+6F8]    //调用函数 myadd
+00401D00   CMP EAX,EBX
+00401D02   JGE SHORT 工程 2.00401D16
+00401D04   PUSH 6F8
+00401D09   PUSH 工程 2.00401644
+00401D0E   PUSH ESI
+00401D0F   PUSH EAX
+00401D10   CALL DWORD PTR DS:[<&MSVBVM60.__vbaHresultCheckObj>]
+00401D16   LEA EDX,DWORD PTR SS:[EBP-54]
+00401D19   LEA ECX,DWORD PTR SS:[EBP-44]
+00401D1C   CALL EDI
+                        //把结果赋值给变量 c
+00401D1E   MOV ECX,DWORD PTR SS:[EBP-44]  //c 作为变量参数传递
+00401D21   SUB ESP,10              //所以这里要分配 16 个字节
+00401D24   MOV EAX,ESP
+00401D26   MOV EDX,DWORD PTR DS:[ESI]
+00401D28   PUSH ESI                //me
+00401D29   MOV DWORD PTR DS:[EAX],ECX
+00401D2B   MOV ECX,DWORD PTR SS:[EBP-40]
+00401D2E   MOV DWORD PTR DS:[EAX+4],ECX
+00401D31   MOV ECX,DWORD PTR SS:[EBP-3C]
+00401D34   MOV DWORD PTR DS:[EAX+8],ECX
+00401D37   MOV ECX,DWORD PTR SS:[EBP-38]
+00401D3A   MOV DWORD PTR DS:[EAX+C],ECX
+00401D3D   CALL DWORD PTR DS:[EDX+6FC]    //调用 myprint
+00401D43   CMP EAX,EBX
+00401D45   JGE SHORT 工程 2.00401D59
+00401D47   PUSH 6FC
+00401D4C   PUSH 工程 2.00401644
+00401D51   PUSH ESI
+00401D52   PUSH EAX
+00401D53   CALL DWORD PTR DS:[<&MSVBVM60.__vbaHresultCheckObj>]
+00401D59   MOV DWORD PTR SS:[EBP-4],EBX
+00401D5C   PUSH 工程 2.00401D83            //这里压入返回地址
+00401D61   JMP SHORT 工程 2.00401D6D
+00401D63   LEA ECX,DWORD PTR SS:[EBP-54]
+00401D66   CALL DWORD PTR DS:[<&MSVBVM60.__vbaFreeVar>]
+00401D6C   RETN
+00401D6D   MOV ESI,DWORD PTR DS:[<&MSVBVM60.__vbaFreeVar>]
+00401D73   LEA ECX,DWORD PTR SS:[EBP-24]
+00401D76   CALL ESI
+00401D78   LEA ECX,DWORD PTR SS:[EBP-34]
+00401D7B   CALL ESI
+00401D7D   LEA ECX,DWORD PTR SS:[EBP-44]
+00401D80   CALL ESI
+00401D82   RETN                    //上面这里释放变量 a,b,c
+00401D83   MOV EAX,DWORD PTR SS:[EBP+8]   //返回到这里做善后处理
+00401D86   PUSH EAX
+00401D87   MOV EDX,DWORD PTR DS:[EAX]
+00401D89   CALL DWORD PTR DS:[EDX+8]  ;  MSVBVM60.Zombie_Release
+00401D8C   MOV EAX,DWORD PTR SS:[EBP-4]
+00401D8F   MOV ECX,DWORD PTR SS:[EBP-14]
+00401D92   POP EDI
+00401D93   POP ESI
+00401D94   MOV DWORD PTR FS:[0],ECX       //恢复局部线程异常
+00401D9B   POP EBX
+00401D9C   MOV ESP,EBP
+00401D9E   POP EBP
+00401D9F   RETN 4
+```
+
+从这里可以看出，在调用自程序时还要传递一个 `me` 参数。对于函数来说，还有一个返回结果要传递过去。
+
+### 2) VB 的内部函数
+
+VB 的内部函数在反汇编代码中看起来和我们熟悉的函数名并不一样。这一点跟踪过 VB 程序的人一定深有体会。大多数函数名都可以从名字上猜出来。但也有相差太多的。我整理了一份函数列表。不是全部，但包含了大多数内部函数，应该能应付一般的应用。函数列表在这个贴子的附件中。
+
+VB 的运算符大多是用函数实现的。这是一个好消息。这意味着我们不必费力去分析过多的代码而只要能辨别出那些函数名即可。
+
+VB 的内部函数并不都是以 `Stdcall` 的方式传递参数，尽管大部分是这样的。分析 VB 程序时要注意这点。
+
+VB 的反汇编代码中大部分的函数都要传递一个存放返回值的变量，而且返回值也会在 `EAX` 中或者浮点栈中返回。
+
+这里只举一个例子。其他的可以参考我整理的列表。
+
+这是函数 `instr`，常用的一个：
+
+```
+__vbaInStrVar        ;函数 InStr(起始位置,源字符串,目标字符串,比较方式)
+
+LEA EDX,DWORD PTR SS:[EBP-24]
+
+PUSH 1                  ;起始位置,从 1 开始
+
+LEA EAX,DWORD PTR SS:[EBP-34]
+
+PUSH EDX                ;被搜索的字符串
+
+PUSH EAX                ;要搜的字符串
+
+LEA ECX,DWORD PTR SS:[EBP-54]
+
+PUSH 1                  ;比较方式
+
+PUSH ECX                ;返回的结果
+
+CALL DWORD PTR DS:[<&MSVBVM60.__vbaInStrVar>]
+MOV EDX,EAX              ;结果同时在 eax 中返回
+```
+
+### 3) VB 的外部函数调用
+
+VB 对外部函数的调用是如何实现的呢？先看看下面的代码：
+
+```
+Private Declare Function MessageBeep Lib "user32" (ByVal wType As Long) As Long
+Private Sub Command1_Click()
+    MessageBeep 0
+End Sub
+```
+
+对应的反汇编代码如下：
+
+```
+00401A2F   PUSH 0              //这里压入参数
+00401A31   CALL 工程 2.004016C8 //这个 Call 我们要继续跟进才知道调用的什么函数
+00401A36   CALL DWORD PTR DS:[<&MSVBVM60.__vbaSetSystemError>]
+
+004016C8   MOV EAX,DWORD PTR DS:[4022DC] //第一次调用时为 0,以后就调用这里
+004016CD   OR EAX,EAX                //这个程序里为 0
+004016CF   JE SHORT 工程 2.004016D3
+004016D1   JMP EAX
+004016D3   PUSH 工程 2.004016B0            //注意这个地址,这是指向代码段的
+                                //我们先看看这里有什么
+004016B0  98 16 40 00 A4 16 40 00  ?@.?@.
+                                //再跟进
+00401698  75 73 65 72 33 32 00 00  user32..
+004016A0  0C 00 00 00 4D 65 73 73  ....Mess
+004016A8  61 67 65 42 65 65 70 00  ageBeep.
+                                //是不是看到了要调用的函数了^\_^
+                                //其实不用这么麻烦
+```
+
+
+
+```
+004016D8   MOV EAX,<JMP.&MSVBVM60.DllFunctionCall>
+004016DD   CALL EAX                       //执行完这一行看 eax,看到什么了
+                                           //EAX 84936A78 Thunk to USER32.MessageBeep
+004016DF   JMP EAX                        //这里就是真正的调用了
+```
+
+注意：调用的外部函数名不在程序的导入表里，而是在代码段里。程序是调用函数 `MSVBVM60.DllFunctionCall` 来取得外部函数的地址的。
+
+附件：`vb 函数.rar`
+
+`4dd466d0e1e0cc123afbe504da2462ca`
