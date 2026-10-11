@@ -1,0 +1,237 @@
+
+# Blaze Media Pro 5.05
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6499.htm`](https://www.pediy.com/kssd/pediy06/pediy6499.htm)
+
+## 一、脱壳 (Armadillo) 与基本修复 CC (INT3)
+
+Blaze Media Pro 是一款造型新颖，功能齐全的多媒体工具。5.05 是它的最新版。它的脱壳不算太难。我搞过它的 4.6 版、5.03 直到 5.05 版，但 cc 一直没法搞定。到现在也不能说是完全修复了。我觉得现在的 `armadillo` 壳的 cc 应该没有什么办法可以完美修复。当然这是我个人的看法，请大侠高手们指正。我修复 cc 的方法完全没有技术性，高手们莫笑啊。
+
+- **下载地址**：google 或百度找
+- **工具**：`ollydbg`、`ultraedit`、`winhex`、`lordpe`、`ImportREC1.6f` 等。
+- **平台**：`winxp`
+
+### 1. 寻找 OEP 与解压代码
+
+这个软件是 `vb` 编写的，IAT 从 `401000` 开始。因此不好用 `mysqladm` 大侠的方法，但可以使用 `Ricardo Narvaja` 或 `tDasm` 的方法。`Ricardo Narvaja` 的方法是经典方法，但太麻烦且有限制。这儿我用 `tDasm` 的方法（参见文章 `Armadillo 3_6 主程序脱壳`）。谢谢 `tDasm` 大侠。
+
+先找 `oep`，下 `he WaitForDebugEvent` 和 `he WriteProcessMemory` 能很快找到 `oep=41a528`。
+
+在 `OD` 中重开程序，下硬件断点：`he WaitForDebugEvent`，运行停住。回到壳空间，查找常数 `FFFFFFF8`，得到结果：
+
+```
+009EAE36   OR EAX, FFFFFFF8
+009EAE51   OR EDX, FFFFFFF8
+009EAE7A   OR ECX, FFFFFFF8
+009EB350   OR EDX, FFFFFFF8
+009EB36B   OR ECX, FFFFFFF8
+009EB393   OR EAX, FFFFFFF8
+```
+
+在 `009EAE36` 上双击，来到这代码处，朝上几行看：
+
+```
+009EADEA    CMP DWORD PTR SS:[EBP-A30], 0       //这就是 tDasm 大侠文中提到的关键代码。
+009EADF1    JL BMP.009EB0A0
+009EADF7    MOV ECX, DWORD PTR SS:[EBP-A30]
+009EADFD    CMP ECX, DWORD PTR DS:[A177BC]
+009EAE03    JGE BMP.009EB0A0
+009EAE09    MOV EDX, DWORD PTR SS:[EBP-9BC]
+009EAE0F    AND EDX, 0FF
+009EAE15    TEST EDX, EDX
+009EAE17    JE BMP.009EAECA
+009EAE1D    PUSH 0
+009EAE1F    MOV ESI, DWORD PTR SS:[EBP-A30]
+009EAE25    SHL ESI, 4
+009EAE28    MOV EAX, DWORD PTR SS:[EBP-A30]
+009EAE2E    AND EAX, 80000007
+009EAE33    JNS SHORT BMP.009EAE3A
+009EAE35    DEC EAX
+009EAE36    OR EAX, FFFFFFF8
+009EAE39    INC EAX
+009EAE3A    XOR ECX, ECX
+.....
+009EAEA4    MOV EDX, DWORD PTR DS:[A177AC]
+009EAEAA    LEA EAX, DWORD PTR DS:[EDX+ESI*4]
+009EAEAD    PUSH EAX
+009EAEAE    MOV ECX, DWORD PTR SS:[EBP-A30]
+009EAEB4    PUSH ECX
+009EAEB5    CALL BMP.009ECFCA
+009EAEBA    ADD ESP, 0C
+009EAEBD    AND EAX, 0FF
+009EAEC2    TEST EAX, EAX
+```
+
+在 `009EADEA` 处下一硬件执行断点，运行停住。 按照 `tDasm` 的方法，修改代码为：
+
+```
+009EAEBD    INC DWORD PTR DS:[12EB40]
+009EAEC3    MOV DWORD PTR DS:[A177C0], 1
+009EAECD    JMP BMP.009EADEA
+009EAED2    NOP
+```
+
+把 `12EB40` 处置 0，去掉所有硬件断点，并在 `9eb0a0` 处下断，运行，停住。好，所有代码都强制解压完成。
+
+如果你是 `xp` 系统，那么你可以用 `DebugActiveProcessStop` 把子进程和父进程脱开。如果你是 `2000` 系统，你就直接 `dump` 吧。我这儿脱离子进程：
+
+```
+009EB0A0    PUSH 0D44
+009EB0A5    CALL kernel32.DebugActiveProcessStop
+009EB0AA    NOP
+```
+
+这时系统会出现错误提示框，你可以选调试(当然事先要把 `ollydbg` 设置为 just-in-time debugger)，或者不理提示，直接打开另一个 `OD` 来 `attach` 子进程。附加上后程序后，会出错，到不了程序空间。没关系，你要记住代码已经完全解压。`ctrl+g`，输入 `41a528`，来到 `oep` 处。
+
+### 2. 修复 IAT、Dump 主程序与动态解压代码
+
+接下来我们有三件事要做：修复 IAT、`dump` 主程序、`dump` 动态解压代码。查一下即知，IAT 在 `401000`～`40150c`。打开 `ImportREC1.6f`，选上子进程看看，只有一个错误指针：`13cd485`（`401064` 处）。回到 `OD`，`ctrl+g` 来到 `13cd485` 处：
+
+```
+013CD485    PUSH EBP
+013CD486    MOV EBP, ESP
+013CD488    PUSH -1
+013CD48A    PUSH 13EB680
+013CD48F    PUSH 13EA7F0                       ; JMP to msvcrt._except_handler3
+013CD494    MOV EAX, DWORD PTR FS:[0]
+013CD49A    PUSH EAX
+013CD49B    MOV DWORD PTR FS:[0], ESP
+013CD4A2    SUB ESP, 10
+013CD4A5    PUSH EBX
+013CD4A6    PUSH ESI
+013CD4A7    PUSH EDI
+013CD4A8    MOV DWORD PTR SS:[EBP-18], ESP
+013CD4AB    XOR ESI, ESI
+013CD4AD    PUSH 13F0B48                       ; ASCII "MSVBVM60.DLL"
+013CD4B2    CALL DWORD PTR DS:[13EB0C8]         ; kernel32.GetModuleHandleA
+013CD4B8    TEST EAX, EAX
+013CD4BA    JE SHORT 013CD4CA
+013CD4BC    PUSH 13F0B3C                       ; ASCII "__vbaEnd"
+013CD4C1    PUSH EAX
+013CD4C2    CALL DWORD PTR DS:[13EB0CC]         ; kernel32.GetProcAddress
+013CD4C8    MOV ESI, EAX
+013CD4CA    AND DWORD PTR SS:[EBP-4], 0
+013CD4CE    TEST ESI, ESI
+013CD4D0    JE SHORT 013CD4E8
+013CD4D2    CALL ESI
+013CD4D4    JMP SHORT 013CD4E8
+013CD4D6    PUSH 1
+013CD4D8    POP EAX
+013CD4D9    RETN
+```
+
+很显然这是函数`__vbaEnd`，OK，IAT 可以修复了。
+
+下面用 `lordpe` 把主程序 `dump` 出来吧，但别急着把 `od` 关掉。好，再回到 `OD`，`alt＋m` 打开内存窗口，找到用户空间的最高段，我这儿是 `20c0000`，大小 `20000`。`cltr＋g` 来到这：
+
+```
+020C0000    XCHG ECX, ESI
+020C0002    XCHG EBX, ECX
+020C0004    JPE SHORT 020C0008
+020C0006    JPE SHORT 020C001F
+020C0008    XCHG EBX, ECX
+020C000A    JA SHORT 020C000E
+020C000C    JA SHORT 020C0020
+020C000E    XCHG ECX, ESI
+020C0010    PUSH 419D96                        ; JMP to MSVBVM60.__vbaExceptHandler
+020C0015    JMP BMP.005FE66B
+020C001A    NOT ECX
+020C001C    JGE SHORT 020C001E
+020C001E    XCHG EAX, ECX
+020C001F    JNB SHORT 020C0021
+020C0021    BSWAP EDX
+020C0023    JBE SHORT 020C0027
+020C0025    JBE SHORT 020C005D
+020C0027    NOT EDX
+020C0029    XCHG AX, CX
+020C002B    XCHG SI, SI
+020C002E    XCHG AX, CX
+020C0030    MOV ECX, ECX
+020C0032    NOT EDX
+```
+
+看看，`armadillo` 把程序中的一部分代码加上垃圾代码移到一动态空间，`dump` 出来的主程序没有这些代码是不可能运行的。因此把这些代码也 `dump` 出来吧。
+
+现在的任务就要把这些重组起来。用 `lordpe` 在主程序中加一个 section，VOffset 设置为 `020C0000`，大小设置为 `10000`。用 `winhex` 把 `dump` 出来的 `020C0000` 处代码放回主程序。这样可以保证其中的跳转地址不会改变。具体操作我就不说了，请参考有关的资料。
+
+现在程序脱壳工作已经结束，接下来就是最麻烦的 cc 修复了。
+
+## 二、CC 修复
+
+下面我尝试着来修复 CC。cc 实际上就是 `int3` 指令，`armadillo` 把程序中的一些跳转指令改成 `int3`。子进程运行到 `int3` 时发生异常，父进程可以捕捉到，然后计算出子进程该不该跳转，如果跳转，跳转量是多少，如果不跳转，下一条指令应从哪里开始。通过 `getthreadcontext` 和 `setthreadcontext` 函数来干预子进程的运行。因此程序脱壳后，里面的 `int3` 指令不修复成原本的跳转指令，程序是不可能运行起来的。
+
+但问题是：脱壳程序中哪些 cc 是 `int3` 指令，哪些 cc 是数据呢？原先版本的 `armardillo` 可以完全区分开来，但现在的版本好像不能够区分，至少我没有找到方法，不知高手们是采用什么办法的。从技术角度来讲，`armadillo` 可以不用区分。我们试想一下：`armardillo` 可以把原程序中所有跳转指令都改成 `int3`，然后连同程序中的 cc 数据一起进行计算得到一张总表。在加壳时却只随机选一些跳转指令改成 `int3`，但使用的还是那张总表。程序完全可以运行。但我们怎么才能知道总表中哪些是跳转指令呢？我觉得不能，因此也就很难完美修复。
+
+我想到修复的方法有两种，一是在 `OD` 中运行加壳程序，设置条件记录断点，然后把程序所有的功能都运行一遍，得到子进程发生 `int3` 的地址。二是设计一代码分析器，分析脱壳程序中哪些是 `int3` 指令，哪些不是。这两种方法都不能算是完美修复。我的方法是借用 `OD` 来找到 `int3`。
+
+我们的目标是得到四个表：`int3` 地址表、跳转类型表、跳转量表及跳转指令长度表。有了这四个表，我们就可以修复 cc 了。
+
+### 1. 获取 INT3 地址表
+
+我们先看第一张 `int3` 地址表。在 `od` 中打开脱壳程序，从 `401000`～`98cfff` 都是程序的内容，包括代码和资源。`armadillo` 把它们放在同一节中。查找二进制 `55 8b ec`（`PUSH EBP MOV EBP, ESP`）找到代码开始的部分在 `5fe660`。把 `5fe660`～`98cfff` 选上然后复制到文件中，用 `ultraedit` 打开文件，选上“列出包含字符串的行”，查找文本 `int3`。ok，找到如下形式的 `int3`：
+
+```
+0060063E    CC           INT3
+0060063F    CC           INT3
+0060D481    CC           INT3
+0060D482    CC           INT3
+0060D483    CC           INT3
+.....
+```
+
+使用 `ultraedit` 的列编辑功能编辑成：
+
+```
+3E 06 60 00
+3F 06 60 00
+81 D4 60 00
+82 D4 60 00
+83 D4 60 00
+84 D4 60 00
+.....
+```
+
+当然这里面有很多都是不符合条件的，是 `int3` 原始表。先保存好，下面要用。
+
+### 2. 分析 GetThreadContext 流程
+
+在 `OD` 中重新打开 `BMP.exe`。下 `he GetThreadContext`，运行，第二次停住时，看堆栈窗：
+
+```
+0012DA78   009EBC88  /CALL to GetThreadContext from BMP.009EBC82
+0012DA7C   00000050  |hThread = 00000050 (window)
+0012DA80   0012E10C  pContext = 0012E10C
+```
+
+在 follow in dump 来到 `0012E10C`。按 `alt＋f9` 回到用户空间。
+
+```
+0012E1AC  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+0012E1BC  00 00 00 00 64 EE 12 00 DC 37 79 00 1B 00 00 00  ....d?.?y....
+0012E1CC  46 02 00 00 24 EE 12 00 23 00 00 00 00 00 00 00  F..$?.#.......
+```
+
+`12e1c4` 处的 `7937dc` 就是子进程发生的第一个 `int3` 地址＋1，我们可以用 `OD` 把脱壳程序打开看看，运行出的第一个错也是那。 `0012E1CC` 处的 `246` 是子进程的 Flag 寄存器内容。
+
+```
+009EBC82    CALL DWORD PTR DS:[<&KERNEL32.GetThreadC>;
+009EBC88    PUSH EAX                       //停在这，这条指令到 009EBCCA 都是垃圾指令
+009EBC89    NOT EAX
+009EBC8B    BSWAP EAX
+009EBC8D    POP EAX
+009EBC8E    JNB SHORT BMP.009EBC90
+009EBC90    PUSHFD
+009EBC91    PUSHAD
+009EBCC1    MOV EAX, C80F9D61
+009EBCC6    NOT ECX
+009EBCC8    BSWAP EAX
+009EBCCA    NOT ECX
+009EBCCC    MOV DWORD PTR SS:[EBP-1468], 0
+009EBCD6    PUSH -1
+009EBCD8    PUSH 4
+009EBCDA    LEA EDX, DWORD PTR SS:[EBP-13AC]      ; [12e1c4]=7937dc,子进程发生 int3 的地址+1
+009EBCE0    PUSH EDX
+009EBCE1    CALL BMP.009D4F90                  ; 对 int3 地址运算
+009EBCE6    ADD ESP, 0C
+009EBCE9    MOV DWORD PTR SS:[EBP-1194], EAX     ; 运算结果
+```
