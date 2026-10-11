@@ -1,0 +1,158 @@
+
+### 0056A7B3 处代码
+
+```
+  0056A7B3   .^ EB F0          JMP SHORT Arial_CD.0056A7A5  
+  0056A7B5   .  5B            POP EBX  
+  0056A7B6   .  8BE5          MOV ESP,EBP  
+  0056A7B8   .  5D            POP EBP  
+  0056A7B9   .  C3            RETN                          ;  返回到 005879E1  
+```
+
+### 0056A76D 处 F7 来到 (初始化变量)
+
+```
+   0056A620  /$  C700 01234567 MOV DWORD PTR DS:[EAX],67452301   ------> A  
+   0056A626  |.  C740 04 89ABC>MOV DWORD PTR DS:[EAX+4],EFCDAB89  ------> B  
+   0056A62D  |.  C740 08 FEDCB>MOV DWORD PTR DS:[EAX+8],98BADCFE  ------> C  
+   0056A634  |.  C740 0C 76543>MOV DWORD PTR DS:[EAX+C],10325476  ------> D  
+   0056A63B  |.  33D2           XOR EDX,EDX  
+   0056A63D  |.  8950 10        MOV DWORD PTR DS:[EAX+10],EDX     ; 堆栈空出空间  
+   0056A640  |.  33D2           XOR EDX,EDX  
+   0056A642  |.  8950 14        MOV DWORD PTR DS:[EAX+14],EDX     ; 堆栈空出空间  
+   0056A645  |.  83C0 18        ADD EAX,18  
+   0056A648  |.  BA 40000000    MOV EDX,40  
+   0056A64D  |.  E8 86DDE9FF    CALL Arial_CD.004083D8  
+   0056A652  \\.  C3            RETN                            ;返回到 0056A772  
+```
+
+### 0056A793 处 F7 来到
+
+```
+  0056A6D4  /$  53            PUSH EBX  
+   0056A6D5  |.  56            PUSH ESI  
+   0056A6D6  |.  83C4 F8       ADD ESP,-8  
+   0056A6D9  |.  8BF2          MOV ESI,EDX  
+   0056A6DB  |.  8BD8          MOV EBX,EAX  
+   0056A6DD  |.  8BD4          MOV EDX,ESP  
+   0056A6DF  |.  8D43 10       LEA EAX,DWORD PTR DS:[EBX+10]  
+   0056A6E2  |.  B9 02000000   MOV ECX,2  
+   0056A6E7  |.  E8 C8F7FFFF   CALL Arial_CD.00569EB4  
+   0056A6EC  |.  8B43 10       MOV EAX,DWORD PTR DS:[EBX+10]       ;  [EBX+10]=28  
+   0056A6EF  |.  C1E8 03       SHR EAX,3                             ;  EAX=28 -> 5  
+   0056A6F2  |.  83E0 3F       AND EAX,3F  
+   0056A6F5  |.  83F8 38       CMP EAX,38  
+   0056A6F8  |.  73 0B         JNB SHORT Arial_CD.0056A705  
+   0056A6FA  |.  BA 38000000   MOV EDX,38  
+   0056A6FF  |.  2BD0          SUB EDX,EAX                             ;  EDX=38-5=33  
+   0056A701  |.  8BC2          MOV EAX,EDX  
+   0056A703  |.  EB 09         JMP SHORT Arial_CD.0056A70E  
+   0056A705  |>  BA 78000000   MOV EDX,78  
+   0056A70A  |.  2BD0          SUB EDX,EAX  
+   0056A70C  |.  8BC2          MOV EAX,EDX  
+   0056A70E  |>  BA 7CAD5800   MOV EDX,Arial_CD.0058AD7C  
+   0056A713  |.  8BCB          MOV ECX,EBX  
+   0056A715  |.  91            XCHG EAX,ECX  
+   0056A716  |.  E8 39FFFFFF   CALL Arial_CD.0056A654  
+   0056A71B  |.  8BD4          MOV EDX,ESP  
+   0056A71D  |.  8BC3          MOV EAX,EBX  
+   0056A71F  |.  B9 08000000   MOV ECX,8  
+   0056A724  |.  E8 2BFFFFFF   CALL Arial_CD.0056A654                  ;  数据处理 F7  
+   0056A729  |.  8BD6          MOV EDX,ESI                             ;  0056A6D3 处返回  
+   0056A72B  |.  8BC3          MOV EAX,EBX  
+   0056A72D  |.  B9 04000000   MOV ECX,4  
+   0056A732  |.  E8 7DF7FFFF   CALL Arial_CD.00569EB4  
+   0056A737  |.  8BC3          MOV EAX,EBX  
+   0056A739  |.  BA 58000000   MOV EDX,58  
+   0056A73E  |.  E8 95DCE9FF   CALL Arial_CD.004083D8  
+   0056A743  |.  59            POP ECX  
+   0056A744  |.  5A            POP EDX  
+   0056A745  |.  5E            POP ESI  
+   0056A746  |.  5B            POP EBX  
+   0056A747  \\.  C3           RETN                                  ;  返回到 0056A798  
+```
+
+### 0056A724 处 F7 来到 (数据处理)
+
+```
+    0056A654  /$  53            PUSH EBX  
+    0056A655  |.  56            PUSH ESI  
+    0056A656  |.  57            PUSH EDI  
+    0056A657  |.  55            PUSH EBP  
+    0056A658  |.  8BF9          MOV EDI,ECX  
+    0056A65A  |.  8BEA          MOV EBP,EDX  
+    0056A65C  |.  8BF0          MOV ESI,EAX  
+    0056A65E  |.  8B46 10       MOV EAX,DWORD PTR DS:[ESI+10]          ;  28  
+    0056A661  |.  C1E8 03       SHR EAX,3                              ;  EAX=28 -> 5  
+    0056A664  |.  83E0 3F       AND EAX,3F  
+    0056A667  |.  8BD7          MOV EDX,EDI  
+    0056A669  |.  C1E2 03       SHL EDX,3                              ;  EDX=33 -> 198  
+    0056A66C  |.  0156 10       ADD DWORD PTR DS:[ESI+10],EDX          ;  [ESI+10]=28 add 198=1C0  
+    0056A66F  |.  3B56 10       CMP EDX,DWORD PTR DS:[ESI+10]          ;  198 < 1C0  
+    0056A672  |.  76 03         JBE SHORT Arial_CD.0056A677  
+    0056A674  |.  FF46 14       INC DWORD PTR DS:[ESI+14]  
+    0056A677  |>  8BD7          MOV EDX,EDI  
+    0056A679  |.  C1EA 1D       SHR EDX,1D                             ;  EDX=33 -> 0  
+    0056A67C  |.  0156 14       ADD DWORD PTR DS:[ESI+14],EDX  
+    0056A67F  |.  BB 40000000   MOV EBX,40  
+    0056A684  |.  2BD8          SUB EBX,EAX                            ;  EBX=40-5=3B  
+    0056A686  |.  3BDF          CMP EBX,EDI                            ;  3B > 33  
+    0056A688  |.  77 32         JA SHORT Arial_CD.0056A6BC  
+    0056A68A  |.  8D4406 18     LEA EAX,DWORD PTR DS:[ESI+EAX+18]  
+    0056A68E  |.  8BCB          MOV ECX,EBX  
+    0056A690  |.  8BD5          MOV EDX,EBP  
+    0056A692  |.  E8 39DDE9FF   CALL Arial_CD.004083D0  
+    0056A697  |.  8BD6          MOV EDX,ESI  
+    0056A699  |.  8D46 18       LEA EAX,DWORD PTR DS:[ESI+18]  
+    0056A69C  |.  E8 4FF8FFFF   CALL Arial_CD.00569EF0                 ;  数据处理 F7  
+    0056A6A1  |.  /EB 0E        JMP SHORT Arial_CD.0056A6B1            ;  数据处理完后返回到此  
+    0056A6A3  |>  8BD6          /MOV EDX,ESI  
+    0056A6A5  |.  8D441D 00     |LEA EAX,DWORD PTR SS:[EBP+EBX]  
+    0056A6A9  |.  E8 42F8FFFF   |CALL Arial_CD.00569EF0  
+    0056A6AE  |.  83C3 40       |ADD EBX,40  
+    0056A6B1  |>  8D43 3F       LEA EAX,DWORD PTR DS:[EBX+3F]  
+    0056A6B4  |.  3BF8          |CMP EDI,EAX  
+    0056A6B6  |.^ 77 EB         \JA SHORT Arial_CD.0056A6A3  
+    0056A6B8  |.  33C0          XOR EAX,EAX  
+    0056A6BA  |.  EB 02         JMP SHORT Arial_CD.0056A6BE  
+    0056A6BC  |>  33DB          XOR EBX,EBX  
+    0056A6BE  |>  8D4406 18     LEA EAX,DWORD PTR DS:[ESI+EAX+18]  
+    0056A6C2  |.  8BCF          MOV ECX,EDI  
+    0056A6C4  |.  2BCB          SUB ECX,EBX  
+    0056A6C6  |.  8D541D 00     LEA EDX,DWORD PTR SS:[EBP+EBX]  
+    0056A6CA  |.  E8 01DDE9FF   CALL Arial_CD.004083D0  
+    0056A6CF  |.  5D            POP EBP  
+    0056A6D0  |.  5F            POP EDI  
+    0056A6D1  |.  5E            POP ESI  
+    0056A6D2  |.  5B            POP EBX  
+    0056A6D3  \\.  C3           RETN                                  ;  返回到 0056A729  
+```
+
+### 0056A69C 处 F7 来到 (数据处理)
+
+MD5 加密用户名，`wzwgp` 的 16 进制数是 `(77 7A 77 67 70)`
+
+```
+     00569EF0  /$  53            PUSH EBX  
+     00569EF1  |.  56            PUSH ESI  
+     00569EF2  |.  57            PUSH EDI  
+     00569EF3  |.  55            PUSH EBP  
+     00569EF4  |.  83C4 A8       ADD ESP,-58  
+     00569EF7  |.  895424 04     MOV DWORD PTR SS:[ESP+4],EDX  
+     00569EFB  |.  890424        MOV DWORD PTR SS:[ESP],EAX  
+     00569EFE  |.  8D5C24 08     LEA EBX,DWORD PTR SS:[ESP+8]  
+     00569F02  |.  8D7424 0C     LEA ESI,DWORD PTR SS:[ESP+C]  
+     00569F06  |.  8D7C24 10     LEA EDI,DWORD PTR SS:[ESP+10]  
+     00569F0A  |.  8D6C24 14     LEA EBP,DWORD PTR SS:[ESP+14]  
+     00569F0E  |.  8D5424 18     LEA EDX,DWORD PTR SS:[ESP+18]  
+     00569F12  |.  B9 40000000   MOV ECX,40  
+     00569F17  |.  8B0424        MOV EAX,DWORD PTR SS:[ESP]  
+     00569F1A  |.  E8 5DFFFFFF   CALL Arial_CD.00569E7C               ;  取用户名地址  
+     00569F1F  |.  8B4424 04     MOV EAX,DWORD PTR SS:[ESP+4]  
+     00569F23  |.  8B00          MOV EAX,DWORD PTR DS:[EAX]           ;  [EAX]=A  
+     00569F25  |.  8903          MOV DWORD PTR DS:[EBX],EAX  
+     00569F27  |.  8B4424 04     MOV EAX,DWORD PTR SS:[ESP+4]  
+     00569F2B  |.  8B40 04       MOV EAX,DWORD PTR DS:[EAX+4]         ;  [EAX+4]=B  
+     00569F2E  |.  8906          MOV DWORD PTR DS:[ESI],EAX  
+     00569F30  |.  8B4424 04     MOV EAX,DWORD PTR SS:[ESP+4]  
+```
