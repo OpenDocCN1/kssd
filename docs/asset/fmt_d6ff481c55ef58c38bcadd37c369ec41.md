@@ -1,0 +1,288 @@
+
+## 006218B9 汇编代码段
+
+```
+006218B9  |.  3B43 4C       CMP EAX,DWORD PTR DS:[EBX+4C]  
+
+006218BC  |.  7F 19         JG SHORT MeiRong.006218D7  
+
+006218BE  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]  
+
+006218C1  |.  E8 7A35DEFF   CALL MeiRong.00404E40  
+
+006218C6  |.  3B43 50       CMP EAX,DWORD PTR DS:[EBX+50]  
+
+006218C9  |.  7C 0C         JL SHORT MeiRong.006218D7  
+
+006218CB  |.  8B45 08       MOV EAX,DWORD PTR SS:[EBP+8]          ;  试练码！！！  
+
+006218CE  |.  E8 6D35DEFF   CALL MeiRong.00404E40  
+
+006218D3  |.  85C0          TEST EAX,EAX  
+
+006218D5  |.  75 04         JNZ SHORT MeiRong.006218DB  
+
+006218D7  |>  33DB          XOR EBX,EBX  
+
+006218D9  |.  EB 60         JMP SHORT MeiRong.0062193B  
+
+006218DB  |>  8D55 F4       LEA EDX,DWORD PTR SS:[EBP-C]  
+
+006218DE  |.  8B45 08       MOV EAX,DWORD PTR SS:[EBP+8]  
+
+006218E1  |.  E8 327DDEFF   CALL MeiRong.00409618  
+
+006218E6  |.  8B55 F4       MOV EDX,DWORD PTR SS:[EBP-C]          ;  转为大写后的试练码！！！无用不用管他。  
+
+006218E9  |.  8D45 08       LEA EAX,DWORD PTR SS:[EBP+8]  
+
+006218EC  |.  E8 2733DEFF   CALL MeiRong.00404C18  
+
+006218F1  |.  8D4D F0       LEA ECX,DWORD PTR SS:[EBP-10]  
+
+006218F4  |.  8B55 FC       MOV EDX,DWORD PTR SS:[EBP-4]  
+
+006218F7  |.  8BC3          MOV EAX,EBX  
+
+006218F9  |.  E8 46FBFFFF   CALL MeiRong.00621444                ;  又是一个关键 CALL 跟进！！！  
+
+006218FE  |.  8B45 F0       MOV EAX,DWORD PTR SS:[EBP-10]        ;  这里就出现真正的注册码！！！！那上面的 CALL 是关键  
+
+00621901  |.  8B55 08       MOV EDX,DWORD PTR SS:[EBP+8]  
+
+00621904  |.  E8 877DDEFF   CALL MeiRong.00409690  
+
+00621909  |.  85C0          TEST EAX,EAX  
+
+0062190B  |.  74 04         JE SHORT MeiRong.00621911  
+
+0062190D  |.  33DB          XOR EBX,EBX  
+
+0062190F  |.  EB 2A         JMP SHORT MeiRong.0062193B  
+
+00621911  |>  8D43 48       LEA EAX,DWORD PTR DS:[EBX+48]  
+
+00621914  |.  8B55 FC       MOV EDX,DWORD PTR SS:[EBP-4]  
+
+00621917  |.  E8 B832DEFF   CALL MeiRong.00404BD4  
+
+0062191C  |.  8D43 54       LEA EAX,DWORD PTR DS:[EBX+54]  
+
+0062191F  |.  8B55 F8       MOV EDX,DWORD PTR SS:[EBP-8]  
+
+00621922  |.  E8 AD32DEFF   CALL MeiRong.00404BD4  
+
+00621927  |.  8D43 5C       LEA EAX,DWORD PTR DS:[EBX+5C]  
+
+0062192A  |.  8B55 08       MOV EDX,DWORD PTR SS:[EBP+8]  
+
+0062192D  |.  E8 A232DEFF   CALL MeiRong.00404BD4  
+
+00621932  |.  8BC3          MOV EAX,EBX  
+
+00621934  |.  E8 5B020000   CALL MeiRong.00621B94  
+
+00621939  |.  B3 01         MOV BL,1  
+
+0062193B  |>  33C0          XOR EAX,EAX  
+
+0062193D  |.  5A            POP EDX  
+
+0062193E  |.  59            POP ECX  
+
+0062193F  |.  59            POP ECX  
+
+00621940  |.  64:8910       MOV DWORD PTR FS:[EAX],EDX  
+
+00621943  |.  68 65196200   PUSH MeiRong.00621965  
+
+00621948  |>  8D45 F0       LEA EAX,DWORD PTR SS:[EBP-10]  
+
+0062194B  |.  BA 04000000   MOV EDX,4  
+
+00621950  |.  E8 4F32DEFF   CALL MeiRong.00404BA4  
+
+00621955  |.  8D45 08       LEA EAX,DWORD PTR SS:[EBP+8]  
+
+00621958  |.  E8 2332DEFF   CALL MeiRong.00404B80  
+
+0062195D  \.  C3            RETN  
+```
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++  
+
+### 第二次 CALL 算法跟进  
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++  
+
+```
+00621444  /$  55            PUSH EBP  
+
+00621445  |.  8BEC          MOV EBP,ESP  
+
+00621447  |.  51            PUSH ECX  
+
+00621448  |.  B9 04000000   MOV ECX,4  
+
+0062144D  |>  6A 00         /PUSH 0  
+
+0062144F  |.  6A 00         |PUSH 0  
+
+00621451  |.  49            |DEC ECX  
+
+00621452  |.^ 75 F9         \JNZ SHORT MeiRong.0062144D  
+
+00621454  |.  874D FC       XCHG DWORD PTR SS:[EBP-4],ECX  
+
+00621457  |.  53            PUSH EBX  
+
+00621458  |.  56            PUSH ESI  
+
+00621459  |.  57            PUSH EDI  
+
+0062145A  |.  8BF9          MOV EDI,ECX  
+
+0062145C  |.  8955 FC       MOV DWORD PTR SS:[EBP-4],EDX  
+
+0062145F  |.  8BF0          MOV ESI,EAX  
+
+00621461  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]  
+
+00621464  |.  E8 C73BDEFF   CALL MeiRong.00405030  
+
+00621469  |.  33C0          XOR EAX,EAX  
+
+0062146B  |.  55            PUSH EBP  
+
+0062146C  |.  68 E4156200   PUSH MeiRong.006215E4  
+
+00621471  |.  64:FF30       PUSH DWORD PTR FS:[EAX]  
+
+00621474  |.  64:8920       MOV DWORD PTR FS:[EAX],ESP  
+
+00621477  |.  8D55 DC       LEA EDX,DWORD PTR SS:[EBP-24]  
+
+0062147A  |.  8BC6          MOV EAX,ESI  
+
+0062147C  |.  E8 070F0000   CALL MeiRong.00622388  
+
+00621481  |.  8B45 DC       MOV EAX,DWORD PTR SS:[EBP-24]        ;  这里是取的机器码！！！！  
+
+00621484  |.  8D55 EC       LEA EDX,DWORD PTR SS:[EBP-14]  
+
+00621487  |.  E8 FC83DEFF   CALL MeiRong.00409888  
+
+0062148C  |.  837D EC 00    CMP DWORD PTR SS:[EBP-14],0          ;  机器与 0 比较。  
+
+00621490  |.  75 0D         JNZ SHORT MeiRong.0062149F  
+
+00621492  |.  8D45 E0       LEA EAX,DWORD PTR SS:[EBP-20]  
+
+00621495  |.  8B55 FC       MOV EDX,DWORD PTR SS:[EBP-4]  
+
+00621498  |.  E8 7B37DEFF   CALL MeiRong.00404C18  
+
+0062149D  |.  EB 5D         JMP SHORT MeiRong.006214FC  
+
+0062149F  |>  8B45 EC       MOV EAX,DWORD PTR SS:[EBP-14]        ;  机器码！！！！  
+
+006214A2  |.  E8 9939DEFF   CALL MeiRong.00404E40  
+
+006214A7  |.  8BD8          MOV EBX,EAX  
+
+006214A9  |.  8D45 E8       LEA EAX,DWORD PTR SS:[EBP-18]  
+
+006214AC  |.  50            PUSH EAX  
+
+006214AD  |.  8BCB          MOV ECX,EBX  
+
+006214AF  |.  D1F9          SAR ECX,1  
+
+006214B1  |.  79 03         JNS SHORT MeiRong.006214B6  
+
+006214B3  |.  83D1 00       ADC ECX,0  
+
+006214B6  |>  BA 01000000   MOV EDX,1  
+
+006214BB  |.  8B45 EC       MOV EAX,DWORD PTR SS:[EBP-14]        ;  机器码送 EAX 中。  
+
+006214BE  |.  E8 DD3BDEFF   CALL MeiRong.004050A0  
+
+006214C3  |.  8D45 E4       LEA EAX,DWORD PTR SS:[EBP-1C]  
+
+006214C6  |.  50            PUSH EAX  
+
+006214C7  |.  8BC3          MOV EAX,EBX  
+
+006214C9  |.  D1F8          SAR EAX,1  
+
+006214CB  |.  79 03         JNS SHORT MeiRong.006214D0  
+
+006214CD  |.  83D0 00       ADC EAX,0  
+
+006214D0  |>  8BCB          MOV ECX,EBX  
+
+006214D2  |.  2BC8          SUB ECX,EAX  
+
+006214D4  |.  8BD3          MOV EDX,EBX  
+
+006214D6  |.  D1FA          SAR EDX,1  
+
+006214D8  |.  79 03         JNS SHORT MeiRong.006214DD  
+
+006214DA  |.  83D2 00       ADC EDX,0  
+
+006214DD  |>  42            INC EDX  
+
+006214DE  |.  8B45 EC       MOV EAX,DWORD PTR SS:[EBP-14]        ;  机器码！！  
+
+006214E1  |.  E8 BA3BDEFF   CALL MeiRong.004050A0                ;  这个 CALL 是取得机器前六位。  
+
+006214E6  |.  FF75 E8       PUSH DWORD PTR SS:[EBP-18]           ;  机器码的前六位！！！  
+
+006214E9  |.  FF75 FC       PUSH DWORD PTR SS:[EBP-4]            ;  预设字符串  
+
+006214EC  |.  FF75 E4       PUSH DWORD PTR SS:[EBP-1C]          ;  机器码后六位  
+
+006214EF  |.  8D45 E0       LEA EAX,DWORD PTR SS:[EBP-20]  
+
+006214F2  |.  BA 03000000   MOV EDX,3  
+
+006214F7  |.  E8 043ADEFF   CALL MeiRong.00404F00  
+
+006214FC  |>  C745 F0 00000>MOV DWORD PTR SS:[EBP-10],0  
+
+00621503  |.  C745 F4 00000>MOV DWORD PTR SS:[EBP-C],0  
+
+0062150A  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]  
+
+0062150D  |.  E8 2E39DEFF   CALL MeiRong.00404E40  
+
+00621512  |.  3B46 4C       CMP EAX,DWORD PTR DS:[ESI+4C]  
+
+00621515  |.  7F 0D         JG SHORT MeiRong.00621524            ;  预设字符  
+
+00621517  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]  
+
+0062151A  |.  E8 2139DEFF   CALL MeiRong.00404E40  
+
+0062151F  |.  3B46 50       CMP EAX,DWORD PTR DS:[ESI+50]  
+
+00621522  |.  7D 0C         JGE SHORT MeiRong.00621530  
+
+00621524  |>  8BC7          MOV EAX,EDI  
+
+00621526  |.  E8 5536DEFF   CALL MeiRong.00404B80  
+
+0062152B  |.  E9 91000000   JMP MeiRong.006215C1  
+
+00621530  |>  8B45 E0       MOV EAX,DWORD PTR SS:[EBP-20]        ;  原来这里把机器码前六位与预设字相连再连接上机器码后六位。  
+
+00621533  |.  E8 0839DEFF   CALL MeiRong.00404E40  
+
+00621538  |.  8BD8          MOV EBX,EAX  
+
+0062153A  |.  EB 37         JMP SHORT MeiRong.00621573  
+
+0062153C  |>  8B45 F0       /MOV EAX,DWORD PTR SS:[EBP-10]       ;  这里又是一个次关键！！！大家要看好，算法。  
+```
