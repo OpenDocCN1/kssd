@@ -1,0 +1,265 @@
+
+# 菜鸟也算法分析 -- 局域网查看工具 (LanSee V1.52)
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-10.htm`](https://www.pediy.com/kssd/pediy07/pediy7-10.htm)
+
+## 软件说明
+
+局域网查看工具（`LanSee`）是一款主要用于对局域网 (Internet 上也适用) 上的各种信息进行查看的工具。采用多线程技术，搜索速度很快。它将局域网上比较实用的功能完美地融合在一起，比如搜索计算机（包括计算机名，IP 地址，`MAC` 地址，所在工作组，用户），搜索共享资源，搜索共享文件，多线程复制文件（支持断点传输），发短消息，高速端口扫描，捕获指定计算机上的数据包，查看本地计算机上活动的端口，远程重启/关闭计算机等，功能十分强大。该软件是一款绿色软件，解压后直接打开运行，无需安装。
+
+## 软件信息
+
+- 未加壳，用 `Delphi` 编译器编写。
+- 平台：`Windows XP SP1`
+- 工具：`W32Dasm 8.93`，`OLLYDBG1.10`
+
+## 分析说明
+
+- 仅仅分析算法，进行技术交流，不做商业用途。如果你条件允许并喜欢这个软件的话，请支持正版。
+- Cracker: `prince`
+- E-mail: `Cracker_prince@163.com`
+- `V1.52` 版下载地址：[`www.yqdown.com/soft/7854.htm`](http://www.yqdown.com/soft/7854.htm)
+
+`W32Dasm` 加载反汇编，根据提示信息很容易找到爆破点。根据提示来到这里（然后用 `OD` 下断 `00492307`，`F9` 运行调试，输入用户名 `prince`，注册码：`987654321012`）：
+
+```asm
+................................................
+:00492307 55                   push ebp
+:00492308 68FD234900           push 004923FD
+:0049230D 64FF30               push dword ptr fs:[eax]
+:00492310 648920               mov dword ptr fs:[eax], esp
+:00492313 8D55FC               lea edx, dword ptr [ebp-04]
+:00492316 8B83FC020000         mov eax, dword ptr [ebx+000002FC]
+:0049231C E83B14FBFF           call 0044375C             <--- 获得用户输入的注册码个数
+:00492321 8B45FC               mov eax, dword ptr [ebp-04]        <--- [ebp-04]中是用户输入的注册码
+:00492324 E82FFFFFFF           call 00492258             <--- 像这种下面比较完就跳的 CALL 最可疑，跟进
+:00492329 84C0                 test al, al
+:0049232B 0F84A7000000         je 004923D8               <--- 这里跳到错误提示(爆破点之一)
+:00492331 8D55F8               lea edx, dword ptr [ebp-08]
+:00492334 8B830C030000         mov eax, dword ptr [ebx+0000030C]
+:0049233A E81D14FBFF           call 0044375C             <--- 得到用户名的长度
+:0049233F 8B45F8               mov eax, dword ptr [ebp-08]
+:00492342 E8CDFDFFFF           call 00492114             <--- 关键 CALL，跟进
+:00492347 84C0                 test al, al
+:00492349 0F8489000000         je 004923D8               <--- 这里跳到错误提示(爆破点之一)
+:0049234F B201                 mov dl, 01
+:00492351 A1AC014700           mov eax, dword ptr [004701AC]
+...................................................................
+```
+
+根据省力不蛮干的原则，前几遍跟踪都是粗跟，不是十分可疑的 `CALL` 都 `F8` 带过，但是要注意 `CALL` 过之后寄存器的变化，尤其是 `EAX` 寄存器的值，必要时把值注释在旁边。这个软件检测注册的地方交互调用很多，如果上来就都 `F7` 跟进的话，呵呵，很快你就会晕了。继续分析上面的代码，在 `0049231C` 这个 `CALL` 时，`F8` 带过，看 `EAX` 寄存器，变成了多少？`0XC`，嘿嘿，`0XC` 不就是十进制的 `12` 吗？我们“恰好”也输入了 `12` 个字符作为注册码，明白了吧？这个 `CALL` 就是用来计算用户输入的注册码个数的。执行完下面那一句，`EAX` 中就是我们输入的假码了。再往下又是一个 `CALL`，而且下面比较完会跳到出错的地方，足够可疑！跟进！来到这里：
+
+```asm
+...................................................................
+:00492258 55                   push ebp
+:00492259 8BEC                 mov ebp, esp
+:0049225B 83C4F8               add esp, FFFFFFFF8
+:0049225E 53                   push ebx
+:0049225F 33D2                 xor edx, edx
+:00492261 8955F8               mov dword ptr [ebp-08], edx
+:00492264 8945FC               mov dword ptr [ebp-04], eax
+:00492267 8B45FC               mov eax, dword ptr [ebp-04]
+:0049226A E85527F7FF           call 004049C4             <--- 这个 CALL 是干什么的？不管它，先 F8 带过
+:0049226F 33C0                 xor eax, eax
+:00492271 55                   push ebp
+:00492272 68E1224900           push 004922E1
+:00492277 64FF30               push dword ptr fs:[eax]
+:0049227A 648920               mov dword ptr fs:[eax], esp
+:0049227D 33DB                 xor ebx, ebx
+:0049227F 8D55F8               lea edx, dword ptr [ebp-08]
+:00492282 8B45FC               mov eax, dword ptr [ebp-04]
+:00492285 E84E68F7FF           call 00408AD8             <--- 未知，先带过
+:0049228A 8B45F8               mov eax, dword ptr [ebp-08]
+:0049228D E84A25F7FF           call 004047DC             <--- 未知，同样带过，但是注意 EAX 变成了 0XC，也就是用户输入的注册码的个数
+:00492292 83F80C               cmp eax, 0000000C         <--- 个数同 0XC(12)进行比较，
+:00492295 7C2F                 jl 004922C6               <--- 小于 12 个就跳走，哈哈，这下知道为什么输入 12 个字符作为注册码了吧？
+:00492297 8B45F8               mov eax, dword ptr [ebp-08]      <--- [ebp-8]为假码
+:0049229A 80780131             cmp byte ptr [eax+01], 31        <--- 将假码的第 2 位同 ASCII 码 0X31(数字 1)进行比较
+:0049229E 7526                 jne 004922C6              <--- 不等就失败啦！
+:004922A0 8B45F8               mov eax, dword ptr [ebp-08]
+:004922A3 80780439             cmp byte ptr [eax+04], 39        <--- 将假码的第 5 位同 ASCII 码 0X39(数字 9)进行比较
+:004922A7 751D                 jne 004922C6
+:004922A9 8B45F8               mov eax, dword ptr [ebp-08]
+:004922AC 80780639             cmp byte ptr [eax+06], 39        <--- 将假码的第 7 位同 ASCII 码 0X39(数字 9)进行比较
+:004922B0 7514                 jne 004922C6
+:004922B2 8B45F8               mov eax, dword ptr [ebp-08]
+:004922B5 80780737             cmp byte ptr [eax+07], 37        <--- 将假码的第 8 位同 ASCII 码 0X37(数字 7)进行比较
+:004922B9 750B                 jne 004922C6
+:004922BB 8B45F8               mov eax, dword ptr [ebp-08]
+:004922BE 80780935             cmp byte ptr [eax+09], 35        <--- 将假码的第 10 位同 ASCII 码 0X35(数字 5)进行比较
+:004922C2 7502                 jne 004922C6
+:004922C4 B301                 mov bl, 01
+...................................................................
+```
+
+看到这里你可能感到奇怪：怎么不用根据用户名计算注册码吗？怎么直接就比较用户输入的注册码了？呵呵，其实这个软件的注册码比较部分到这就全部结束了。别急，`00492342` 处还有一个 `CALL` 呢，下面也会跳到错误提示的地方啊！让我们继续跟。`0049233A` 这个 `CALL` 同样用 `F8` 带过，`EAX` 变成了 `6`，有了上一次的经验，你应该知道了吧？这个是得到用户名的长度。接下来来到 `00492342` 第 `2` 个关键 `CALL`，`F7` 跟进，来到这里：
+
+```asm
+...................................................................
+```
+
+首先不要被这么长的代码吓到，很多是我们不需要了解的，如果你看到代码很长就放弃的话，你就永远也不会有提高。
+
+```asm
+:00492342
+|
+:00492114 55                   push ebp                <--- 保护现场原来的 EBP 指针
+:00492115 8BEC                 mov ebp, esp            <--- 设置新的 EBP 指针，指向栈顶 ESP
+:00492117 83C4D4               add esp, FFFFFFFD4     <--- 在堆栈中留出空间放局部变量，这三句都是子程序的老套路了，如果不懂，记住也行。
+:0049211A 53                   push ebx
+:0049211B 33D2                 xor edx, edx            <--- EDX 清零
+:0049211D 8955F4               mov dword ptr [ebp-0C], edx   <--- [EBP-0C]清零
+:00492120 8955D4               mov dword ptr [ebp-2C], edx   <--- [EBP-2C]清零
+:00492123 8955F0               mov dword ptr [ebp-10], edx   <--- [EBP-10]清零
+:00492126 8955F8               mov dword ptr [ebp-08], edx   <--- [EBP-08]清零
+:00492129 8945FC               mov dword ptr [ebp-04], eax   <--- 用户名写入[EBP-04]
+:0049212C 8B45FC               mov eax, dword ptr [ebp-04]    <--- 这句很奇怪，EAX 本来就是用户名，干吗写进写出的？
+:0049212F E89028F7FF           call 004049C4           <--- 这个 CALL 很短，你也可以跟进去看看。它是计算出用户名地址-8 的内存数据然后放到 EDX 中
+:00492134 33C0                 xor eax, eax
+:00492136 55                   push ebp
+:00492137 683A224900           push 0049223A
+:0049213C 64FF30               push dword ptr fs:[eax]
+:0049213F 648920               mov dword ptr fs:[eax], esp
+:00492142 33DB                 xor ebx, ebx
+:00492144 8D55F8               lea edx, dword ptr [ebp-08]
+:00492147 8B45FC               mov eax, dword ptr [ebp-04]    <--- 用户名放入 EAX 中，准备给下面的 CALL 用
+:0049214A E88969F7FF           call 00408AD8           <--- 可以带过，它是用来检查用户名中是否含有非法字符(ASCII 码小于等于 20h 的它就认为是非法字符)
+:0049214F 8B45F8               mov eax, dword ptr [ebp-08]    <--- 用户名放入 EAX 中，准备给下面的 CALL 用
+:00492152 E88526F7FF           call 004047DC           <--- 带过，看寄存器，EAX 变化了，变成了 6(我的用户名长度)，对了，就是用来得到用户名长度的
+```
+
+
+
+# Reverse Engineering Notes
+
+## Initial Analysis
+
+```
+:00492157 83F804             cmp eax, 0000004             <--- 这句很明显吧，用户名长度同 4 比较  
+:0049215A 0F8CB7000000       jl 00492217                  <--- 小于 4 就没的玩了  
+:00492160 8D45EC             lea eax, dword ptr [ebp-14]  <--- 保存返回地址  
+:00492163 8B55F8             mov edx, dword ptr [ebp-08]   <--- 用户名送至 EDX  
+:00492166 8A12               mov dl, byte ptr [edx]         <--- 将用户名的第 1 个字符存入 DL  
+:00492168 885001             mov byte ptr [eax+01], dl      <--- 将 DL 写入内存[EAX+01]中  
+:0049216B C60001             mov byte ptr [eax], 01         <--- 把 1 写入内存[EAX]中  
+:0049216E 8D55EC             lea edx, dword ptr [ebp-14]     
+:00492171 8D45E8             lea eax, dword ptr [ebp-18]  
+:00492174 E85B0DF7FF         call 00402ED4                  <--- 先带过，这种下面还要经常调用的 CALL 通常都是“大战之前的准备”，不要在无谓的地方浪费时间，大不了回头再跟。 :)  
+:00492179 8D45E4             lea eax, dword ptr [ebp-1C]  
+:0049217C 8B55F8             mov edx, dword ptr [ebp-08]   <--- 用户名送至 EDX  
+:0049217F 8A5201             mov dl, byte ptr [edx+01]      <--- 将用户名的第 2 个字符送入 DL  
+:00492182 885001             mov byte ptr [eax+01], dl      <--- DL 写入内存[EAX+01]处  
+:00492185 C60001             mov byte ptr [eax], 01         <--- 1 写入[EAX]所指的内存中  
+:00492188 8D55E4             lea edx, dword ptr [ebp-1C]  
+:0049218B 8D45E8             lea eax, dword ptr [ebp-18]  
+:0049218E B102               mov cl, 02                     <--- 注意这里，执行下面 CALL 之前 CL 赋值为 2  
+:00492190 E80F0DF7FF         call 00402EA4                  <--- 先带过，因为下面还要调用，走几遍再猜  
+:00492195 8D55E8             lea edx, dword ptr [ebp-18]    <--- 这里执行完，EDX 里是什么？哈，“02，"pr" (用户名的前两位)”  
+:00492198 8D45E0             lea eax, dword ptr [ebp-20]  
+:0049219B E8340DF7FF         call 00402ED4                  <--- 这个 CALL 上面已经调用过了，不妨再带过，因为下面还有嘛，但是注意，EAX 有变化，EAX=3  
+:004921A0 8D45E4             lea eax, dword ptr [ebp-1C]  
+:004921A3 8B55F8             mov edx, dword ptr [ebp-08]    <--- 用户名存至 EDX  
+:004921A6 8A5202             mov dl, byte ptr [edx+02]      <--- 熟悉吧？将用户名的第 3 个字符送到 DL 中  
+:004921A9 885001             mov byte ptr [eax+01], dl      <--- 写入内存[EAX+01]中  
+:004921AC C60001             mov byte ptr [eax], 01         <--- 内存[EAX]写入 1  
+:004921AF 8D55E4             lea edx, dword ptr [ebp-1C]  
+:004921B2 8D45E0             lea eax, dword ptr [ebp-20]  
+:004921B5 B103               mov cl, 03                     <--- 好象见过？对了，上面调用 CALL 00402EA4 之前 CL 送入的值是 2，这次是 3，呵呵，明白了吧？下面这个 CALL 就是用来取用户名的 CL 个字符的  
+:004921B7 E8E80CF7FF         call 00402EA4                  <--- 现在知道了，取用户名的某些字符  
+:004921BC 8D55E0             lea edx, dword ptr [ebp-20]    <--- 这里执行完 EDX 内容为：03，"pri"  
+:004921BF 8D45D8             lea eax, dword ptr [ebp-28]  
+:004921C2 E80D0DF7FF         call 00402ED4                  <--- 又是它！带过看 EAX，EAX=4，结合上面看看，哦，原来它是用来取它需要的第 EAX 个字符的！  
+:004921C7 8D45E4             lea eax, dword ptr [ebp-1C]  
+:004921CA 8B55F8             mov edx, dword ptr [ebp-08]    <--- 用户名送至 EDX  
+:004921CD 8A5205             mov dl, byte ptr [edx+05]      <--- 注意这里，上面取的是用户名的第 3 个字符，这里没有继续按顺序往下取，而是取用户名的第 6 个字符！  
+:004921D0 885001             mov byte ptr [eax+01], dl      <--- 第 6 个字符写入内存[EAX+01]  
+:004921D3 C60001             mov byte ptr [eax], 01         <--- 1 写入[EAX]  
+:004921D6 8D55E4             lea edx, dword ptr [ebp-1C]  
+:004921D9 8D45D8             lea eax, dword ptr [ebp-28]    <--- 执行完 EAX 是：03, "pri"  
+:004921DC B104               mov cl, 04                     <--- 看，又来了吧！取它需要的第 4 个字符啦！  
+:004921DE E8C10CF7FF         call 00402EA4                  <--- 取它需要的第 4 个字符，注意是它需要的，不是用户名的第 4 个字符  
+:004921E3 8D55D8             lea edx, dword ptr [ebp-28]    <--- 果然吧，EDX：04, "prie"，因为它取了用户名的第 6 个字符，所以这里是"e"  
+:004921E6 8D45F0             lea eax, dword ptr [ebp-10]     
+:004921E9 E89225F7FF         call 00404780                  <--- 这个 CALL 没见过，省力原则先带过，EDX 被清零  
+:004921EE 8B45F0             mov eax, dword ptr [ebp-10]    <--- 将它需要的四个字符"prie"送入 EAX  
+:004921F1 8D55F4             lea edx, dword ptr [ebp-0C]  
+:004921F4 E88F66F7FF         call 00408888                  <--- 这个是干什么的呢？看到下面还要调用，先带过  
+:004921F9 8B45F4             mov eax, dword ptr [ebp-0C]    <--- 执行完，EAX= ASCII "PRIE",哈哈，原来是小写转大写用的  
+:004921FC 50                 push eax                       <--- 准备工作做完了，压栈准备“开战”了，呵呵  
+:004921FD 8D55D4             lea edx, dword ptr [ebp-2C]  
+
+* Possible StringData Ref from Code Obj ->"lane"  
+
+:00492200 B850224900         mov eax, 00492250              <--- 将字符串常量"lane"送至 EAX  
+:00492205 E87E66F7FF         call 00408888                  <--- 上面用过的，小写转大写  
+:0049220A 8B55D4             mov edx, dword ptr [ebp-2C]    <--- 转换结果送至 EDX  
+:0049220D 58                 pop eax                        <--- EAX 出栈，哼哼，危险信号，EAX 就是已经取完的用户名啊！  
+:0049220E E80D27F7FF         call 00404920                  <--- 上面这么敏感，下面又有跳转！还不够关键吗？跟进！  
+:00492213 7502               jne 00492217  
+:00492215 B301               mov bl, 01  
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
+:0049215A(C), :00492213(C)  
+
+:00492217 33C0               xor eax, eax  
+:00492219 5A                 pop edx  
+:0049221A 59                 pop ecx  
+:0049221B 59                 pop ecx  
+:0049221C 648910             mov dword ptr fs:[eax], edx  
+:0049221F 6841224900         push 00492241  
+```
+
+只是粗跟就已经得到这么多有用的信息了，对于不是很复杂的算法来说有时就足够了！我们接着看，`0049220E`处的关键`CALL`跟进来到这里：
+
+```
+:00404920 53                 push ebx  
+:00404921 56                 push esi  
+:00404922 57                 push edi  
+:00404923 89C6               mov esi, eax                   <--- EAX 是什么来着？"PRIE"  
+:00404925 89D7               mov edi, edx                   <--- EDX: "LANE"  
+:00404927 39D0               cmp eax, edx                   <--- 比较是否相等  
+:00404929 0F848F000000       je 004049BE                    <--- 相等就跳了！不过跳了是好事还是坏事呢？试试看才知道嘛。双击 Z flag 改变跳转标志，F9 运行，看到什么了？嘿嘿，感谢注册！好，先高兴会儿，等下回头总结。  
+:0040492F 85F6               test esi, esi  
+:00404931 7468               je 0040499B  
+:00404933 85FF               test edi, edi  
+:00404935 746B               je 004049A2  
+:00404937 8B46FC             mov eax, dword ptr [esi-04]  
+:0040493A 8B57FC             mov edx, dword ptr [edi-04]  
+:0040493D 29D0               sub eax, edx  
+:0040493F 7702               ja 00404943  
+:00404941 01C2               add edx, eax  
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+:0040493F(C)  
+
+:00404943 52                 push edx  
+:00404944 C1EA02             shr edx, 02  
+:00404947 7426               je 0040496F  
+```
+
+刚拿到这个软件的时候看到没有加壳，爆破点又清晰明了，就想他肯定是明码比较注册码，就搜内存，堆栈，结果不行。于是我以为是非明码比较的注册算法，所以拿出`OD`...可是没想到，“算法”竟然是这样的。
+
+## Summary
+
+### Judgment Condition 1
+
+- 用户名不得少于 4 个字符(程序里这么写的)，但我想应该是不能少于 6 个字符吧？其中前三个字符必须为：`lan`，随后两个字符随便填，第 6 个字符必须为`e`，然后就随便填了。
+
+### Judgment Condition 2
+
+- 注册码不得少于 12 个字符，其中第 2，5，7，8，10 个字符必须分别为：`1`，`9`，`9`，`7`，`5`，其他字符就随便填了。
+
+只要以上两个条件都满足，注册成功！简单清晰明了，注册机就不用写了吧？
+
+### Note
+
+- 最新版`V1.59`注册算法已经更改，如果你有兴趣可以自己分析。
+- `V1.59`版下载地址：[`www1.skycn.com/soft/14357.html`](http://www1.skycn.com/soft/14357.html)
+
+### Author
+
+菜鸟写菜文，欢迎高手指正。
+
+`prince 2005.01.13`
+
+`4dd466d0e1e0cc123afbe504da2462ca`
