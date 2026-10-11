@@ -1,0 +1,260 @@
+
+# How to begin to write an Os（有兴趣的看看）
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-709.htm`](https://www.pediy.com/kssd/pediy07/pediy7-709.htm)
+
+英文原文：
+
+How to begin to write an Os
+
+---------------------------
+
+This tutorial is meant for those who are familiar with assembly languges and some knowledge of system internal. Writing an Os is a challenging project. The initial step of writing one is to code an efficient boot loader to load the kernel.
+
+What happens when you boot a computer?
+
+- The Bios is started first
+- It read the boot sector and loads it into the memory
+
+The boot sector is the first sector of the disk. A sector contain 512 bytes and that is the limitation to write our boot loader. So the boot loader must be at the most 512 bytes. So we must load the real program or the kernel using the loader. The boot sector is loaded at the physical address `0000:7c00`.
+
+And how does the Bios knows whether the disk has a valid bootsector?
+
+The final two bytes of the bootsector ie; bytes 511 and 512 should be `Aah` and `55h` respectively. In other words, the last word in the bootsector should be `AA55h`.
+
+Tools required:
+
+- `NASM` or any other good assembler
+- Interrupt list like Ralf Brown's interrupt list
+- PC Emulator like `Bochs` will help you and avoid frequent reboot of the system. But this is not a compulsory requirement.
+
+Now we will move into the coding part. Let's start with a simple boot loader.
+
+```
+;** A simple bootloader-bl.asm
+;****************************
+org 0x7c00 ; Bios loads our loader at this point
+
+mov si, msg ; Displays a message on the screen
+call displaystring
+
+mov ah, 0 ; Wait for key
+int 016h
+
+db 0EAh ; Machine reboot
+dw 0000h
+dw 0FFFFh
+
+displaystring: ; Function to display string
+lodsb
+or al,al
+jz short finish
+mov ah,0x0E ; Echo a char
+mov bx,0x0007
+int 0x10
+jmp displaystring
+
+finish:
+retn
+
+msg db 'Press Any Key …', 13, 10, 0
+times 510-($-$$) db 0 ; Fills the rest of the space except the last two bytes with zero
+dw 0AA55h ; Magic word for a valid bootsector
+;****************************
+
+; The End
+;****************************
+```
+
+Now we have to compile this to plain binary. And then write the `bl.bin` into the bootsector.
+
+`NASM bl.asm -f bin -o bl.bin`
+
+You can use any programs to write the binary file onto the bootsector. Even the good old `Debug.exe` can also be used for that.
+
+```
+c:\>debug bl.bin
+
+-w 100 0 0 1 ; writes bl.bin into the floppy bootsector
+-q
+
+c:\>
+```
+
+Set the defualt boot to floppy and boot the machine.
+
+If you are using a `Bochs` freedos emulator, you will have to do the following steps;
+
+- Edit file `'bochsrc'` and change `boot` to `'a'` ie; `boot: a`
+- Copy the binary file `'bl.bin'` into the `Bochs` directory and rename as `'a.img'`
+- Run `'Bochs.exe'`
+
+You will see the message `'Press Any Key …'`
+
+He he….Did I hear you screaming in joy? Yes, you have written a successful bootloader.
+
+This is not the end. The main purpose of a bootloader is not yet sattisfied. And what is it?
+
+You will have to load the kernel into the memory because a 512 bytes of code will not run a machine with all its power. The next step is to load a simple kernel into the memory.
+
+I have used many interrupt calls in the following example code. Each of them is properly commented.
+
+First of all we have to allocate stack for our program. Then load the kernel into any know address. I have loaded the kernel into `7c00h + 512` for the simplicity of compiling the loader and kernel in the same program. Before loading we have to reset the disk ie; bringing the disk head to the track zero. This is same like seeking the file descriptor to beginning of the file. Then load the kernel into memory. And what mext? Ofcourse jump into the loaded kernel. So simple…isn't it? Try studying this example code given below.
+
+```
+;********************************
+;** Boot Loader
+;** A simple bootloader-bl.asm
+;********************************
+; Boot Loader by Fajib
+; This is the boot sector….
+; This will load the real os from the disk into the memory
+org 0x7c00
+
+start:
+; setting the stack for loading the program
+cli
+mov ax, 0x9000
+mov ss, ax
+mov sp, 0xffff
+sti
+
+mov [bootdrv], dl ; dl contains the bootdisk name ie; dl = 0 if floppy a:\
+call load ; function to load the kernel from disk into memory
+
+mov si, msgloadsuccess
+call putstr
+jmp loadkernel ; I can directly jump into kernel becoz I load the kernel
+; at 7c00 + 512
+;hangs if kernel not loaded
+
+oops:
+mov si, msghang
+call putstr
+jmp oops
+retf
+
+; loader variables
+bootdrv db 0
+msgresetfail db 'Disk Reset Failure!', 13, 10, 0
+msgresetsuccess db 'Disk reset success…', 13, 10, 0
+msgkernelload db 'Loading kernel…', 13, 10, 0
+msgloadsuccess db 'Kernel loaded successfully…', 13, 10, 0
+msghang db '.', 0
+
+; loader functions
+load:
+; we have to reset the disk before it move to the loaded program
+; say our real program is stored in sector 2
+; let's load it
+push ds ; reset disk system
+mov ax, 0 ; forces controller to recalibrate drive heads (seek to track 0)
+mov dl, [bootdrv]
+int 13h
+pop ds
+jc resetfail
+
+mov si, msgresetsuccess
+call putstr
+
+mov ax,0 ; loads sector into memory
+mov es,ax
+mov ah,2
+mov al,1 ; loading 1 sector-kernel will be loaded. Increase al for loading more
+mov dx,0
+mov cx,2 ; ch = cylinder number and cl = sector number 1-63
+mov bx,7e00h ; 7e00h = 7c00h + 512 … loading my program here makes it easy for me
+int 13h ; we can directly compile bootsector and kernel together in a single
+; program
+jc load ; if fail then try to load it again
+mov si, msgkernelload
+call putstr
+retn
+
+resetfail:
+mov si, msgresetfail
+call putstr
+retn
+
+putstr:
+lodsb
+or al,al
+jz short putstrd
+mov ah,0x0E
+mov bx,0x0007
+int 0x10
+jmp putstr
+
+putstrd:
+retn
+
+times 510-($-$$) db 0 ; Filling the remaining free space in the sector
+dw 0AA55h
+
+;********************************
+;** End Boot Loader
+;** A simple bootloader-bl.asm
+;********************************
+
+;********************************
+;** Start Kernel
+;** A simple bootloader-bl.asm
+;********************************
+;Kernel stored in Sector 2
+loadkernel:
+
+mov si, mymsg
+call putstr
+call Console ; Simple Console
+db 0EAh ; machine reboot
+dw 0000h
+dw 0FFFFh
+
+mymsg db "Message from Fajib's Simple Kernel…", 13, 10, 0
+
+Console:
+mov si, msgconsole
+call putstr
+
+mov si, prompt
+call putstr
+
+Waitkey:
+mov ah, 00h ; Wait for key
+int 016h
+cmp al, 27 ; Check for ESC key
+je Finish
+cmp al, 13 ; Check for ENTER key
+je NewLine
+jmp EchoChar
+
+NewLine:
+mov si, prompt
+call putstr
+jmp Waitkey
+
+EchoChar:
+mov ah, 0x0E ; Display the char with out attribute
+mov bx, 0x0007
+int 10h
+jmp Waitkey
+
+Finish:
+retn
+
+prompt db 13, 10, 'C:\>', 0
+msgconsole db 13, 10, 'Console: Press ESC to reboot', 13, 10, 0
+
+;********************************
+;** End Kernel
+;** A simple bootloader-bl.asm
+;********************************
+```
+
+Wow! You have now loaded a kernel successfully… But do not stop here… Improvise your kernel as good possible… Experimentation is the best learning method… Do inform me about your improvements and bugs in my code to me at;
+
+Email: `fajib@mail.com`
+
+Irc: I will be there in `#osdev` as `Devil_liveD`
+
+中文翻译：
