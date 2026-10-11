@@ -1,0 +1,137 @@
+
+### 00498711 汇编指令
+```
+00498711  |.  8B45 F8       MOV     EAX, DWORD PTR SS:[EBP-8]        ;  //试炼码  
+00498714  |.  E8 BB04F7FF   CALL    EaseMP3R.00408BD4                ;  //将试炼码转 16 进制送入 EAX  
+00498719  |.  3BF0          CMP     ESI, EAX                         ;  //关键比较,ESI 为真码,EAX 为假码  
+0049871B  |.  0F85 87000000 JNZ     EaseMP3R.004987A8                ;  //关键跳转  
+00498721  |.  B2 01         MOV     DL, 1  
+00498723  |.  A1 C4144700   MOV     EAX, DWORD PTR DS:[4714C4]  
+00498728  |.  E8 978EFDFF   CALL    EaseMP3R.004715C4  
+0049872D  |.  8BF8          MOV     EDI, EAX  
+0049872F  |.  BA 02000080   MOV     EDX, 80000002  
+00498734  |.  8BC7          MOV     EAX, EDI  
+00498736  |.  E8 298FFDFF   CALL    EaseMP3R.00471664  
+0049873B  |.  B1 01         MOV     CL, 1  
+0049873D  |.  BA 90884900   MOV     EDX, EaseMP3R.00498890           ;  ASCII "\SOFTWARE\EASETECH\EASEMP3RECORDER"  
+00498742  |.  8BC7          MOV     EAX, EDI  
+00498744  |.  E8 5B90FDFF   CALL    EaseMP3R.004717A4  
+00498749  |.  8B4D FC       MOV     ECX, DWORD PTR SS:[EBP-4]  
+0049874C  |.  BA BC884900   MOV     EDX, EaseMP3R.004988BC           ;  ASCII "registry name"  
+00498751  |.  8BC7          MOV     EAX, EDI  
+00498753  |.  E8 E891FDFF   CALL    EaseMP3R.00471940  
+00498758  |.  8BCE          MOV     ECX, ESI  
+0049875A  |.  BA D4884900   MOV     EDX, EaseMP3R.004988D4           ;  ASCII "registry code"  
+0049875F  |.  8BC7          MOV     EAX, EDI  
+00498761  |.  E8 7E92FDFF   CALL    EaseMP3R.004719E4  
+00498766  |.  B1 01         MOV     CL, 1  
+00498768  |.  BA EC884900   MOV     EDX, EaseMP3R.004988EC           ;  ASCII "regsuccess"  
+0049876D  |.  8BC7          MOV     EAX, EDI  
+0049876F  |.  E8 B492FDFF   CALL    EaseMP3R.00471A28  
+00498774  |.  8BC7          MOV     EAX, EDI  
+00498776  |.  E8 B98EFDFF   CALL    EaseMP3R.00471634  
+0049877B  |.  8BC7          MOV     EAX, EDI  
+0049877D  |.  E8 0EB0F6FF   CALL    EaseMP3R.00403790  
+00498782  |.  6A 00         PUSH    0  
+00498784  |.  66:8B0D 34884>MOV     CX, WORD PTR DS:[498834]  
+0049878B  |.  B2 02         MOV     DL, 2  
+0049878D  |.  B8 00894900   MOV     EAX, EaseMP3R.00498900           ;  ASCII "Congratuation! You have registered!"  
+00498792  |.  E8 C521FAFF   CALL    EaseMP3R.0043A95C  
+00498797  |.  A1 94784A00   MOV     EAX, DWORD PTR DS:[4A7894]  
+0049879C  |.  C600 01       MOV     BYTE PTR DS:[EAX], 1  
+0049879F  |.  8BC3          MOV     EAX, EBX  
+004987A1  |.  E8 C654FCFF   CALL    EaseMP3R.0045DC6C  
+004987A6  |.  EB 43         JMP     SHORT EaseMP3R.004987EB  
+004987A8  |>  6A 00         PUSH    0  
+004987AA  |.  66:8B0D 34884>MOV     CX, WORD PTR DS:[498834]  
+004987B1  |.  B2 02         MOV     DL, 2  
+004987B3  |.  B8 2C894900   MOV     EAX, EaseMP3R.0049892C           ;  ASCII "Invalid register code!Please retry!"  
+004987B8  |.  E8 9F21FAFF   CALL    EaseMP3R.0043A95C  
+004987BD  |.  EB 2C         JMP     SHORT EaseMP3R.004987EB  
+004987BF  |>  6A 00         PUSH    0  
+004987C1  |.  66:8B0D 34884>MOV     CX, WORD PTR DS:[498834]  
+004987C8  |.  33D2          XOR     EDX, EDX  
+004987CA  |.  B8 58894900   MOV     EAX, EaseMP3R.00498958           ;  ASCII "The code is overload!Please retry!"  
+004987CF  |.  E8 8821FAFF   CALL    EaseMP3R.0043A95C  
+004987D4  |.  EB 15         JMP     SHORT EaseMP3R.004987EB  
+004987D6  |>  6A 00         PUSH    0  
+004987D8  |.  66:8B0D 34884>MOV     CX, WORD PTR DS:[498834]  
+004987DF  |.  33D2          XOR     EDX, EDX  
+004987E1  |.  B8 58894900   MOV     EAX, EaseMP3R.00498958           ;  ASCII "The code is overload!Please retry!"  
+004987E6  |.  E8 7121FAFF   CALL    EaseMP3R.0043A95C  
+004987EB  |>  33C0          XOR     EAX, EAX  
+004987ED  |.  5A            POP     EDX  
+004987EE  |.  59            POP     ECX  
+004987EF  |.  59            POP     ECX  
+004987F0  |.  64:8910       MOV     DWORD PTR FS:[EAX], EDX  
+004987F3  |.  68 2D884900   PUSH    EaseMP3R.0049882D  
+004987F8  |>  8D45 E8       LEA     EAX, DWORD PTR SS:[EBP-18]  
+004987FB  |.  E8 A0BDF6FF   CALL    EaseMP3R.004045A0  
+00498800  |.  8D45 EC       LEA     EAX, DWORD PTR SS:[EBP-14]  
+00498803  |.  E8 98BDF6FF   CALL    EaseMP3R.004045A0  
+00498808  |.  8D45 F0       LEA     EAX, DWORD PTR SS:[EBP-10]  
+0049880B  |.  E8 90BDF6FF   CALL    EaseMP3R.004045A0  
+00498810  |.  8D45 F4       LEA     EAX, DWORD PTR SS:[EBP-C]  
+00498813  |.  E8 88BDF6FF   CALL    EaseMP3R.004045A0  
+00498818  |.  8D45 F8       LEA     EAX, DWORD PTR SS:[EBP-8]  
+0049881B  |.  BA 02000000   MOV     EDX, 2  
+00498820  |.  E8 9FBDF6FF   CALL    EaseMP3R.004045C4  
+00498825  \\.  C3            RETN  
+00498826   .^ E9 F9B6F6FF   JMP     EaseMP3R.00403F24  
+0049882B   .^ EB CB         JMP     SHORT EaseMP3R.004987F8  
+0049882D   .  5F            POP     EDI  
+0049882E   .  5E            POP     ESI  
+0049882F   .  5B            POP     EBX  
+00498830   .  8BE5          MOV     ESP, EBP  
+00498832   .  5D            POP     EBP  
+00498833   .  C3            RETN  
+```
+
+### 破解总结
+
+### 算法总结
+注册码 = (用户名 ASCII 码累加值 + 1) * 1432 + 89621
+
+### 算法注册机
+`KeyGen.rek`
+
+```
+.const
+.data
+szHomePage db "http://www.chinapyg.com",0
+szEmail    db "mailto:tianxj_2007@126.com",0
+szErrMess  db "请输入用户名！",0
+szFMT      db "%u",0
+szBuffer1  db 50 dup (0)
+.code
+invoke **lstrlen**,eax
+MOV     ESI, 1
+MOV     EDX, 1
+n1:
+LEA     ECX, hInput1
+MOVZX   ECX, BYTE PTR DS:[ECX+EDX-1]
+ADD     ESI, ECX
+INC     EDX
+DEC     EAX
+JNZ     n1
+IMUL    EAX, ESI, 598h
+ADD     EAX, 15E15h
+invoke **wsprintf**,addr szBuffer1,addr szFMT,eax
+lea eax,szBuffer1
+```
+
+### 内存注册机
+中断地址 `00498719`
+中断次数 `1`
+第一字节 `3B`
+指令长度 `2`
+寄存器方式-ESI
+十进制
+
+### 注册信息
+保存在 `[HKEY_LOCAL_MACHINE\SOFTWARE\EASETECH\EASEMP3RECORDER]`
+
+感谢飘云老大、猫老大、Nisy 老大以及很多前辈们的学习教程以及王者之剑、云龙等所有帮助过我的论坛兄弟姐妹们！谢谢
+
+### 版权声明
+破文是学习的手记，兴趣是成功的源泉；本破文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢!
