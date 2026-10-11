@@ -1,0 +1,330 @@
+
+# Picture to Icon V1.918
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-179.htm`](https://www.pediy.com/kssd/pediy08/pediy8-179.htm)
+
+## 标题：Picture to Icon V1.918 注册算法分析
+
+## 作者
+`forever[RCT]`
+
+## 语言
+`BC`
+
+## 保护
+`aspack`, `注册码`
+
+## 难度
+`简单`
+
+## 简介
+能将图片或屏幕的一部分转化为 `ICON` 图标，调整图标大小以及从资源库中提取 `icon`。支持 `BMP`, `JPEG`, `GIF`, `CUR`, `WMF`。
+
+## 下载
+`http://www6.skycn.com/soft/27005.html`
+
+## 正文
+
+这篇帖子没什么技术含量，纯为练手所作。:)
+
+`peid` 查看 `aspack` 加壳。用 `UnAspack` 脱壳，发现不能运行。不过没关系，`ida` 能分析就成。我主要是想用 `ida` 导出个 `map` 文件，这样在 `od` 中好分析。
+
+用 `od` 加载程序，跟过壳的代码后用 `LoadMapEx` 加载从 `ida` 中导出的 `map` 文件。然后尝试着在注册窗口随便输入点什么，有提示了：
+
+`Your registration code is invalid.` 呵呵，这个正是我想要的。在 `od` 中搜索字符串 `"Your"`，共有一次，双击这个字符串，来到 `CPU` 窗口。
+
+见图：
+
+![](img/925369fe8d827d9d921880eb29faa8b0.jpg)
+
+向上翻，直到来到这里：
+
+![](img/f0c0cd87367ad33cb82a5c34b567dbd6.jpg)
+
+这个 `4210F0` 的 `call` 就是关键了，这里要下个断点。再次输入用户名和密码后来到下面：
+
+```asm
+004210F0 >  55              PUSH EBP                    ; sub_4210F0
+004210F1     8BEC           MOV EBP,ESP
+004210F3     81C4 74FFFFFF  ADD ESP,-8C
+004210F9     56             PUSH ESI
+004210FA     57             PUSH EDI
+004210FB     B8 C0285100    MOV EAX,<stru_5128C0>
+00421100     E8 7B760C00    CALL <@__InitExceptBlockLDTC>
+00421105     C745 F8 0100000>MOV DWORD PTR SS:[EBP-8],1
+0042110C     8D55 08        LEA EDX,DWORD PTR SS:[EBP+8]
+0042110F     8D45 08        LEA EAX,DWORD PTR SS:[EBP+8]
+00421112     E8 DD260D00    CALL <System::AnsiString::AnsiString(Sys>
+00421117     FF45 F8        INC DWORD PTR SS:[EBP-8]
+0042111A     66:C745 EC 0800 MOV WORD PTR SS:[EBP-14],8
+00421120     C645 DB 00     MOV BYTE PTR SS:[EBP-25],0
+00421124     8D45 08        LEA EAX,DWORD PTR SS:[EBP+8]
+00421127     E8 704AFEFF    CALL <System::AnsiString::Length(void)>
+0042112C     83F8 2C        CMP EAX,2C                   ; 注册码长度是否 44 位
+0042112F     0F85 3E020000  JNZ <loc_421373>
+00421135     BE D6245100    MOV ESI,<a1z1h2a0n0g8y9a>     ; ASCII "1z1h+2a0n-0g8y*9a1n|"
+0042113A     8D7D 88        LEA EDI,DWORD PTR SS:[EBP-78]
+0042113D     B9 05000000    MOV ECX,5
+00421142     F3:A5          REP MOVS DWORD PTR ES:[EDI],DWORD PTR DS>
+00421144     A4             MOVS BYTE PTR ES:[EDI],BYTE PTR DS:[ESI]
+00421145     8D45 08        LEA EAX,DWORD PTR SS:[EBP+8]
+00421148     E8 2B10FEFF    CALL <System::AnsiString::c_str(void)>
+0042114D     0FBE50 28      MOVSX EDX,BYTE PTR DS:[EAX+28]   ; 第 41 位是否等于 50h
+00421151     83FA 50        CMP EDX,50
+00421154     74 23          JE SHORT <loc_421179>
+00421156     33C0           XOR EAX,EAX
+00421158     50             PUSH EAX
+00421159     FF4D F8        DEC DWORD PTR SS:[EBP-8]
+0042115C     8D45 08        LEA EAX,DWORD PTR SS:[EBP+8]
+0042115F     BA 02000000    MOV EDX,2
+00421164     E8 0B270D00    CALL <System::AnsiString::~AnsiString(vo>
+00421169     58             POP EAX
+0042116A     8B55 DC        MOV EDX,DWORD PTR SS:[EBP-24]
+0042116D     64:8915 0000000>MOV DWORD PTR FS:[0],EDX
+00421174     E9 19020000    JMP <loc_421392>
+00421179 >   8D45 08        LEA EAX,DWORD PTR SS:[EBP+8]     ; loc_421179
+0042117C     E8 F70FFEFF    CALL <System::AnsiString::c_str(void)>
+00421181     0FBE50 29      MOVSX EDX,BYTE PTR DS:[EAX+29]
+00421185     83FA 32        CMP EDX,32                   ; 第 42 位是否等于 32h
+00421188     74 23          JE SHORT <loc_4211AD>
+0042118A     33C0           XOR EAX,EAX
+0042118C     50             PUSH EAX
+0042118D     FF4D F8        DEC DWORD PTR SS:[EBP-8]
+00421190     8D45 08        LEA EAX,DWORD PTR SS:[EBP+8]
+00421193     BA 02000000    MOV EDX,2
+00421198     E8 D7260D00    CALL <System::AnsiString::~AnsiString(vo>
+0042119D     58             POP EAX
+0042119E     8B55 DC        MOV EDX,DWORD PTR SS:[EBP-24]
+004211A1     64:8915 0000000>MOV DWORD PTR FS:[0],EDX
+004211A8     E9 E5010000    JMP <loc_421392>
+004211AD >   8D45 08        LEA EAX,DWORD PTR SS:[EBP+8]     ; loc_4211AD
+004211B0     E8 C30FFEFF    CALL <System::AnsiString::c_str(void)>
+004211B5     0FBE50 2A      MOVSX EDX,BYTE PTR DS:[EAX+2A]
+004211B9     83FA 49        CMP EDX,49                   ; 第 43 位是否等于 49h
+004211BC     74 23          JE SHORT <loc_4211E1>
+004211BE     33C0           XOR EAX,EAX
+004211C0     50             PUSH EAX
+004211C1     FF4D F8        DEC DWORD PTR SS:[EBP-8]
+004211C4     8D45 08        LEA EAX,DWORD PTR SS:[EBP+8]
+004211C7     BA 02000000    MOV EDX,2
+004211CC     E8 A3260D00    CALL <System::AnsiString::~AnsiString(vo>
+004211D1     58             POP EAX
+004211D2     8B55 DC        MOV EDX,DWORD PTR SS:[EBP-24]
+004211D5     64:8915 0000000>MOV DWORD PTR FS:[0],EDX
+004211DC     E9 B1010000    JMP <loc_421392>
+004211E1 >   8D45 08        LEA EAX,DWORD PTR SS:[EBP+8]     ; loc_4211E1
+004211E4     E8 8F0FFEFF    CALL <System::AnsiString::c_str(void)>
+004211E9     0FBE50 2B      MOVSX EDX,BYTE PTR DS:[EAX+2B]
+004211ED     83FA 31        CMP EDX,31                   ; 第 44 位是否等于 31h
+004211F0     74 23          JE SHORT <loc_421215>
+004211F2     33C0           XOR EAX,EAX
+004211F4     50             PUSH EAX
+004211F5     FF4D F8        DEC DWORD PTR SS:[EBP-8]
+004211F8     8D45 08        LEA EAX,DWORD PTR SS:[EBP+8]
+004211FB     BA 02000000    MOV EDX,2
+00421200     E8 6F260D00    CALL <System::AnsiString::~AnsiString(vo>
+00421205     58             POP EAX
+00421206     8B55 DC        MOV EDX,DWORD PTR SS:[EBP-24]
+00421209     64:8915 0000000>MOV DWORD PTR FS:[0],EDX
+00421210     E9 7D010000    JMP <loc_421392>
+00421215 >   8D45 08        LEA EAX,DWORD PTR SS:[EBP+8]     ; loc_421215
+00421218     E8 5B0FFEFF    CALL <System::AnsiString::c_str(void)>
+0042121D     50             PUSH EAX
+0042121E     8D55 A0        LEA EDX,DWORD PTR SS:[EBP-60]
+00421221     52             PUSH EDX
+00421222     E8 B5720C00    CALL <_strcpy>
+00421227     83C4 08        ADD ESP,8
+0042122A     0FBE4D A1      MOVSX ECX,BYTE PTR SS:[EBP-5F]
+0042122E     83F9 30        CMP ECX,30                   ; 第 2 位是否等于 30h
+00421231     0F85 3C010000  JNZ <loc_421373>
+00421237     C645 A1 23     MOV BYTE PTR SS:[EBP-5F],23     ; 第 2 位替换成'#'
+0042123B     C645 DB 01     MOV BYTE PTR SS:[EBP-25],1
+0042123F     C745 D4 0200000>MOV DWORD PTR SS:[EBP-2C],2     ; 初始化索引
+00421246 >   8B45 D4        MOV EAX,DWORD PTR SS:[EBP-2C]
+00421249     0FBE5405 88    MOVSX EDX,BYTE PTR SS:[EBP+EAX-78]   ; 取常量字符串中一个字符,位置 3 开始
+0042124E     8B4D D4        MOV ECX,DWORD PTR SS:[EBP-2C]
+00421251     0FBE440D 9F    MOVSX EAX,BYTE PTR SS:[EBP+ECX-61]   ; 取注册码中一个字符，位置 2 开始
+00421256     03D0           ADD EDX,EAX                  ; 相加
+00421258     8B4D D4        MOV ECX,DWORD PTR SS:[EBP-2C]
+0042125B     0FBE440D A0    MOVSX EAX,BYTE PTR SS:[EBP+ECX-60]   ; 取注册码中一个字符，位置 3 开始
+00421260     33D0           XOR EDX,EAX                  ; 异或
+00421262     8B4D D4        MOV ECX,DWORD PTR SS:[EBP-2C]
+00421265     0FBE440D 88    MOVSX EAX,BYTE PTR SS:[EBP+ECX-78]   ; 取常量字符串中一个字符，位置 3 开始
+0042126A     33D0           XOR EDX,EAX                  ; 异或
+0042126C     52             PUSH EDX
+0042126D     E8 26010000    CALL <sub_421398>
+00421272     59             POP ECX
+00421273     B9 1A000000    MOV ECX,1A
+00421278     99             CDQ
+00421279     F7F9           IDIV ECX                     ; 除以 26
+0042127B     83C2 41        ADD EDX,41                   ; 加上'A'
+0042127E     8B45 D4        MOV EAX,DWORD PTR SS:[EBP-2C]
+```
+
+
+
+00421281 0FBE4C05 A9 MOVSX ECX,BYTE PTR SS:[EBP+EAX-57] ; 和第 12 个字符开始比较  
+00421286 3BD1 CMP EDX,ECX  
+00421288 74 06 JE SHORT <loc_421290>  
+0042128A C645 DB 00 MOV BYTE PTR SS:[EBP-25],0  
+0042128E EB 09 JMP SHORT <loc_421299>  
+00421290 > FF45 D4 INC DWORD PTR SS:[EBP-2C] ; 索引加 1  
+00421293 837D D4 0A CMP DWORD PTR SS:[EBP-2C],0A ; 循环 10 次  
+00421297 ^ 7C AD JL SHORT <loc_421246>  
+00421299 > 807D DB 00 CMP BYTE PTR SS:[EBP-25],0 ; loc_421299  
+0042129D 0F84 C3000000 JE <loc_421366>  
+004212A3 C745 D0 1800000>MOV DWORD PTR SS:[EBP-30],18  
+004212AA 66:C745 EC 0800 MOV WORD PTR SS:[EBP-14],8  
+004212B0 837D D0 28 CMP DWORD PTR SS:[EBP-30],28  
+004212B4 7D 4B JGE SHORT <loc_421301>  
+004212B6 > 8B55 D0 MOV EDX,DWORD PTR SS:[EBP-30] ; loc_4212B6  
+004212B9 0FBE4415 89 MOVSX EAX,BYTE PTR SS:[EBP+EDX-77] ; 取注册码中一个字符，第 2 个字符开始  
+004212BE B9 06000000 MOV ECX,6  
+004212C3 99 CDQ  
+004212C4 F7F9 IDIV ECX  
+004212C6 8BCA MOV ECX,EDX ; 模 6  
+004212C8 8B45 D0 MOV EAX,DWORD PTR SS:[EBP-30]  
+004212CB 0FBE5405 8A MOVSX EDX,BYTE PTR SS:[EBP+EAX-76] ; 取注册码中一个字符，第 3 个字符开始  
+004212D0 D3E2 SHL EDX,CL ; 逻辑左移  
+004212D2 8B45 D0 MOV EAX,DWORD PTR SS:[EBP-30]  
+004212D5 0FBE4C05 8B MOVSX ECX,BYTE PTR SS:[EBP+EAX-75] ; 取注册码中一个字符，第 4 个字符开始  
+004212DA 0BD1 OR EDX,ECX ; 或  
+004212DC 52 PUSH EDX  
+004212DD E8 B6000000 CALL <sub_421398>  
+004212E2 59 POP ECX  
+004212E3 B9 1A000000 MOV ECX,1A  
+004212E8 99 CDQ  
+004212E9 F7F9 IDIV ECX ; 模 26  
+004212EB 80C2 61 ADD DL,61 ; 加上'a'  
+004212EE 8B45 D0 MOV EAX,DWORD PTR SS:[EBP-30]  
+004212F1 889405 5CFFFFFF MOV BYTE PTR SS:[EBP+EAX-A4],DL ; 保存结果  
+004212F8 FF45 D0 INC DWORD PTR SS:[EBP-30]  
+004212FB 837D D0 28 CMP DWORD PTR SS:[EBP-30],28  
+004212FF ^ 7C B5 JL SHORT <loc_4212B6>  
+00421301 > C645 84 5A MOV BYTE PTR SS:[EBP-7C],5A ; loc_421301  
+00421305 C645 85 59 MOV BYTE PTR SS:[EBP-7B],59  
+00421309 C745 CC 1800000>MOV DWORD PTR SS:[EBP-34],18  
+00421310 66:C745 EC 0800 MOV WORD PTR SS:[EBP-14],8  
+00421316 837D CC 28 CMP DWORD PTR SS:[EBP-34],28  
+0042131A 7D 4A JGE SHORT <loc_421366>  
+0042131C > 8B55 CC MOV EDX,DWORD PTR SS:[EBP-34] ; loc_42131C  
+0042131F 0FBE8415 5CFFFF>MOVSX EAX,BYTE PTR SS:[EBP+EDX-A4] ; 上面保存的结果中取一个字符，第一个开始  
+00421327 C1E0 04 SHL EAX,4 ; 逻辑左移 4 位  
+0042132A 8B55 CC MOV EDX,DWORD PTR SS:[EBP-34]  
+0042132D 0FBE8C15 5DFFFF>MOVSX ECX,BYTE PTR SS:[EBP+EDX-A3] ; 上面保存的结果中取一个字符，第二个开始  
+00421335 D1F9 SAR ECX,1 ; 逻辑右移 1 位  
+00421337 33C1 XOR EAX,ECX ; 异或  
+00421339 50 PUSH EAX  
+0042133A E8 59000000 CALL <sub_421398>  
+0042133F 59 POP ECX  
+00421340 B9 1A000000 MOV ECX,1A  
+00421345 99 CDQ  
+00421346 F7F9 IDIV ECX ; 模 26  
+00421348 83C2 41 ADD EDX,41 ; 加上'A'  
+0042134B 8B45 CC MOV EAX,DWORD PTR SS:[EBP-34]  
+0042134E 0FBE4405 A0 MOVSX EAX,BYTE PTR SS:[EBP+EAX-60] ; 取注册码中一个字符，第 25 个字符开始  
+00421353 3BD0 CMP EDX,EAX  
+00421355 74 06 JE SHORT <loc_42135D>  
+00421357 C645 DB 00 MOV BYTE PTR SS:[EBP-25],0  
+0042135B EB 09 JMP SHORT <loc_421366>  
+0042135D > FF45 CC INC DWORD PTR SS:[EBP-34] ; loc_42135D  
+00421360 837D CC 28 CMP DWORD PTR SS:[EBP-34],28  
+00421364 ^ 7C B6 JL SHORT <loc_42131C>  
+00421366 > 0FBE55 AA MOVSX EDX,BYTE PTR SS:[EBP-56] ; 取注册码第 11 个字符  
+0042136A 83FA 59 CMP EDX,59  
+0042136D 74 04 JE SHORT <loc_421373>  
+0042136F C645 DB 00 MOV BYTE PTR SS:[EBP-25],0  
+00421373 > 8A45 DB MOV AL,BYTE PTR SS:[EBP-25] ; loc_421373  
+00421376 50 PUSH EAX  
+00421377 FF4D F8 DEC DWORD PTR SS:[EBP-8]  
+0042137A 8D45 08 LEA EAX,DWORD PTR SS:[EBP+8]  
+0042137D BA 02000000 MOV EDX,2  
+00421382 E8 ED240D00 CALL <System::AnsiString::~AnsiString(vo>  
+00421387 58 POP EAX  
+00421388 8B55 DC MOV EDX,DWORD PTR SS:[EBP-24]  
+0042138B 64:8915 0000000>MOV DWORD PTR FS:[0],EDX  
+00421392 > 5F POP EDI ; loc_421392  
+00421393 5E POP ESI  
+00421394 8BE5 MOV ESP,EBP  
+00421396 5D POP EBP  
+00421397 C3 RETN  
+00421398 > 55 PUSH EBP ; sub_421398  
+00421399 8BEC MOV EBP,ESP  
+0042139B 8B45 08 MOV EAX,DWORD PTR SS:[EBP+8]  
+0042139E 99 CDQ  
+0042139F 33C2 XOR EAX,EDX  
+004213A1 2BC2 SUB EAX,EDX  
+004213A3 5D POP EBP  
+004213A4 C3 RETN
+
+先总结一下上面：
+
+```c
+int Veriry(unsigned char regcode[44])
+{
+    const unsigned char c,str[] = "1z1h+2a0n-0g8y*9a1n|";
+    const unsigned char tmpstr[20] = {0};
+    int i;
+
+    if(strlen(regcode) != 44)return;
+    if(regcode[40] != 'P')return 0;
+    if(regcode[41] != '2')return 0;
+    if(regcode[42] != 'I')return 0;
+    if(regcode[43] != '1')return 0;
+    if(regcode[1] != '0')return 0;
+    regcode[1] = '#';
+
+    //检查 regcode[11]-regcode[18]
+    for(i = 2; i < 10; i ++)
+    {
+        c = ((str[i] + regcode[i-1]) ^ regcode[i] ^ str[i]) % 26 + 'A';
+        if( c != regcode[i+10])return 0);
+    }
+
+    //生成一个临时字符串
+    for(i = 24; i < 40; i ++)
+    {
+        c = regcode[i-23] % 6;
+        tmpstr[i-24] = ((regcode[i-22] << c) | regcode[i-21]) % 26 + 'a';
+    }
+    tmpstr[i] = 0x5a;
+    tmpstr[i+1] = 0x59;
+
+    //检查 regcode[24]-regcode[39]
+    for(i = 24; i < 40; i ++)
+    {
+        c = ((tmpstr[i-24] << 4) ^ (tmpstr[i-23] >> 1)) % 26 + 'A';
+        if(c != regcode[i])return 0;
+    }
+
+    //检查 regcode[10]
+    if(regcode[10] != 0x59)return 0;
+
+    return 1;
+}
+```
+
+这并没有完，仔细看第二个图，还有一处验证呢：
+
+00422A4D 0FBE50 17 MOVSX EDX,BYTE PTR DS:[EAX+17] ; 取注册码第 24 个字符  
+00422A51 83FA 30 CMP EDX,30  
+00422A54 7C 16 JL SHORT <loc_422A6C> ; 小于'0'则失败  
+00422A56 8B45 A4 MOV EAX,DWORD PTR SS:[EBP-5C]  
+00422A59 05 20030000 ADD EAX,320  
+00422A5E E8 15F7FDFF CALL <System::AnsiString::c_str(void)>  
+00422A63 0FBE50 17 MOVSX EDX,BYTE PTR DS:[EAX+17]  
+00422A67 83FA 39 CMP EDX,39  
+00422A6A 7E 0F JLE SHORT <loc_422A7B> ; 大于'9'则失败  
+00422A6C > 8B0D FCAE5100 MOV ECX,DWORD PTR DS:[<off_51AEFC>] ; loc_422A6C  
+00422A72 8B01 MOV EAX,DWORD PTR DS:[ECX]  
+00422A74 C680 E4030000 0>MOV BYTE PTR DS:[EAX+3E4],0 ; 置失败标准
+
+因此注册码验证还得加上一句：
+
+`(regcode[23] >= '0') && (regcode[23] <= '9')`
+
+到这里位置这个软件的注册部分就分析完了。:)
+
+[完]
+
+`4dd466d0e1e0cc123afbe504da2462ca`
