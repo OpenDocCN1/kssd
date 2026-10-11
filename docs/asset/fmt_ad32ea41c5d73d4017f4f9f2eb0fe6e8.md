@@ -1,0 +1,166 @@
+
+# MSN 的外挂器 V1.0
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-383.htm`](https://www.pediy.com/kssd/pediy08/pediy8-383.htm)
+
+**【破解日期】** 2006 年 5 月 16 日
+**【破解作者】** Ryosuke
+**【作者邮箱】** 没有
+**【作者主页】** 没有
+**【使用工具】** `OD`
+**【破解平台】** `Windows 95/98/ME/2000/XP`
+**【软件名称】** 运行多个 MSN 的外挂器 `V1.0`
+**【下载地址】** `http://www.skycn.com/soft/26790.html`
+**【软件简介】** MSN 多开外挂 `1.0` 本软件绿色软件，无需安装。使用方法: 直接点击运行。然后每次点击再运行一个 MSN,就可以多开一个 msn 了
+**【软件大小】** `95 KB`
+**【加壳方式】** 无壳
+**【破解声明】** 我是一只小菜鸟，偶得一点心得，愿与大家分享：）
+
+---
+
+**【破解内容】**
+
+MSN 不能象 QQ 那样能同时开几个，正好在网上看见了一款这样的软件，想分析一下如何破解 MSN 的单进程。
+
+先破解注册码，点击注册，随便输入。分析之来到下面
+
+```
+00402C60   .   6A FF           push    -1
+00402C62   .   68 B8354200     push    004235B8                    ;  SE 处理程序安装
+00402C67   .   64:A1 0000000>  mov     eax, fs:[0]
+00402C6D   .   50              push    eax
+00402C6E   .   64:8925 00000>  mov     fs:[0], esp
+00402C75   .   83EC 08         sub     esp, 8
+00402C78   .   56              push    esi
+00402C79   .   8BF1            mov     esi, ecx
+00402C7B   .   6A 01           push    1
+00402C7D   .   E8 C6720100     call    00419F48
+00402C82   .   A1 CCF54200     mov     eax, [42F5CC]
+00402C87   .   894424 04       mov     [esp+4], eax
+00402C8B   .   8D8E 1C010000   lea     ecx, [esi+11C]
+00402C91   .   C74424 14 000>  mov     dword ptr [esp+14], 0
+00402C99   .   51              push    ecx
+00402C9A   .   8D4C24 08       lea     ecx, [esp+8]
+00402C9E   .   E8 64870100     call    0041B407
+00402CA3   .   51              push    ecx
+00402CA4   .   8D5424 08       lea     edx, [esp+8]
+00402CA8   .   8BCC            mov     ecx, esp
+00402CAA   .   896424 0C       mov     [esp+C], esp
+00402CAE   .   52              push    edx
+00402CAF   .   E8 D3830100     call    0041B087
+00402CB4   .   E8 77FEFFFF     call    00402B30                    ;关键 CALL
+00402CB9   .   83C4 04         add     esp, 4
+00402CBC   .   85C0            test    eax, eax
+00402CBE   .   74 1C           je      short 00402CDC
+00402CC0   .   6A 00           push    0
+00402CC2   .   68 5CF24200     push    0042F25C                    ;  ngnsss
+00402CC7   .   68 78F24200     push    0042F278                    ;  注册成功
+00402CCC   .   8BCE            mov     ecx, esi
+00402CCE   .   E8 196B0100     call    004197EC
+00402CD3   .   8BCE            mov     ecx, esi
+00402CD5   .   E8 509A0100     call    0041C72A
+00402CDA   .   EB 75           jmp     short 00402D51
+00402CDC   >   6A 08           push    8
+00402CDE   .   68 64F24200     push    0042F264                    ;  1163659294813585
+00402CE3   .   6A 08           push    8
+00402CE5   .   8D4C24 10       lea     ecx, [esp+10]
+00402CE9   .   E8 FB890100     call    0041B6E9
+00402CEE   .   50              push    eax
+00402CEF   .   E8 FC800000     call    0040ADF0
+00402CF4   .   83C4 0C         add     esp, 0C
+00402CF7   .   85C0            test    eax, eax
+00402CF9   .   75 12           jnz     short 00402D0D
+00402CFB   .   50              push    eax
+00402CFC   .   68 5CF24200     push    0042F25C                    ;  ngnsss
+00402D01   .   68 38F24200     push    0042F238                    ;  这是个盗版的注册号，请注册正式版本
+00402D06   .   8BCE            mov     ecx, esi
+00402D08   .   E8 DF6A0100     call    004197EC
+00402D0D   >   6A 08           push    8
+00402D0F   .   68 24F24200     push    0042F224                    ;  0386848021608060
+00402D14   .   6A 08           push    8
+00402D16   .   8D4C24 10       lea     ecx, [esp+10]
+00402D1A   .   E8 CA890100     call    0041B6E9
+00402D1F   .   50              push    eax
+00402D20   .   E8 CB800000     call    0040ADF0
+00402D25   .   83C4 0C         add     esp, 0C
+00402D28   .   85C0            test    eax, eax
+00402D2A   .   75 12           jnz     short 00402D3E
+00402D2C   .   50              push    eax
+00402D2D   .   68 5CF24200     push    0042F25C                    ;  ngnsss
+00402D32   .   68 38F24200     push    0042F238                    ;  这是个盗版的注册号，请注册正式版本
+00402D37   .   8BCE            mov     ecx, esi
+00402D39   .   E8 AE6A0100     call    004197EC
+00402D3E   >   6A 00           push    0
+00402D40   .   68 5CF24200     push    0042F25C                    ;  ngnsss
+00402D45   .   68 18F24200     push    0042F218                    ;  注册号无效
+00402D4A   .   8BCE            mov     ecx, esi
+00402D4C   .   E8 9B6A0100     call    004197EC
+00402D51   >   8D4C24 04       lea     ecx, [esp+4]
+00402D55   .   C74424 14 FFF>  mov     dword ptr [esp+14], -1
+00402D5D   .   E8 B0850100     call    0041B312
+00402D62   .   8B4C24 0C       mov     ecx, [esp+C]
+00402D66   .   5E              pop     esi
+00402D67   .   64:890D 00000>  mov     fs:[0], ecx
+00402D6E   .   83C4 14         add     esp, 14
+00402D71   .   C3              retn
+```
+
+跟进关键 CALL
+
+```
+00402B30   /$  6A FF           push    -1
+00402B32   |.  68 98354200     push    00423598                ;  SE 处理程序安装
+00402B37   |.  64:A1 0000000>  mov     eax, fs:[0]
+00402B3D   |.  50              push    eax
+00402B3E   |.  64:8925 00000>  mov     fs:[0], esp
+00402B45   |.  83EC 18         sub     esp, 18
+00402B48   |.  53              push    ebx
+00402B49   |.  8B4C24 2C       mov     ecx, [esp+2C]           ;输入的注册码
+00402B4D   |.  33C0            xor     eax, eax
+00402B4F   |.  894424 05       mov     [esp+5], eax
+00402B53   |.  33DB            xor     ebx, ebx
+00402B55   |.  66:894424 09    mov     [esp+9], ax
+00402B5A   |.  895C24 24       mov     [esp+24], ebx
+00402B5E   |.  884424 0B       mov     [esp+B], al
+00402B62   |.  8B41 F8         mov     eax, [ecx-8]            ;注册码长度
+00402B65   |.  83F8 10         cmp     eax, 10                 ;必须为 0x10，16 个字符大小
+00402B68   |.  885C24 04       mov     [esp+4], bl
+00402B6C   |.  0F8C C0000000   jl      00402C32
+00402B72   |.  56              push    esi
+00402B73   |.  68 04010000     push    104
+00402B78   |.  8D4C24 34       lea     ecx, [esp+34]
+00402B7C   |.  E8 688B0100     call    0041B6E9                ;分配内存
+00402B81   |.  8B10            mov     edx, [eax]              ;注册码 1-4 位
+00402B83   |.  33F6            xor     esi, esi
+00402B85   |.  895424 10       mov     [esp+10], edx           ;保存 1-4 位
+00402B89   |.  8B48 04         mov     ecx, [eax+4]
+00402B8C   |.  894C24 14       mov     [esp+14], ecx           ;保存 5－8 位
+00402B90   |.  8B50 08         mov     edx, [eax+8]
+00402B93   |.  895424 18       mov     [esp+18], edx           ;保存 9－12 位
+00402B97   |.  8B40 0C         mov     eax, [eax+C]
+00402B9A   |.  894424 1C       mov     [esp+1C], eax           ;保存 13－16 位
+00402B9E   |>  8A4C34 10       /mov    cl, [esp+esi+10]
+00402BA2   |.  51              |push    ecx
+00402BA3   |.  E8 68FFFFFF     |call    00402B10          ;将注册码对应的字符转成对应的值
+00402BA8   |.  83C4 04         |add     esp, 4
+00402BAB   |.  884434 10       |mov     [esp+esi+10], al    ;保存值
+00402BAF   |.  46              |inc     esi
+00402BB0   |.  83FE 10         |cmp     esi, 10
+00402BB3   |.^ 7C E9           \jl     short 00402B9E
+00402BB5   |.  33C0            xor     eax, eax
+00402BB7   |.  8D4C24 10       lea     ecx, [esp+10]
+00402BBB   |.  5E              pop     esi
+00402BBC   |>  8A51 01         /mov    dl, [ecx+1]
+00402BBF   |.  8A19            |mov     bl, [ecx]
+00402BC1   |.  C0E2 04         |shl     dl, 4
+00402BC4   |.  02D3            |add     dl, bl
+00402BC6   |.  83C1 02         |add     ecx, 2
+00402BC9   |.  885404 04       |mov     [esp+eax+4], dl
+00402BCD   |.  40              |inc     eax
+00402BCE   |.  83F8 08         |cmp     eax, 8
+00402BD1   |.^ 7C E9           \jl     short 00402BBC      //这一段将保存值转成两个 DWORD,8 个 BYTE
+                                  //从低到高用 a,b,c,d,e,f,g,h 表示
+00402BD3   |.  8A4424 07       mov     al, [esp+7]         //取 d
+00402BD7   |.  8A5C24 04       mov     bl, [esp+4]         //取 a
+00402BDB   |.  8A4C24 0B       mov     cl, [esp+B]         //取 h
+```
