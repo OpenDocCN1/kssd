@@ -1,0 +1,18 @@
+
+# Professional.Rootkits 笫七章：过滤驱动
+
+> 原文：[`www.pediy.com/kssd/pediy12/125833.html`](https://www.pediy.com/kssd/pediy12/125833.html)
+
+这本书之前是由 `kuang110` 翻译的，不过到了笫 6 章他就就没发布了，后来知道是他不小心把硬盘给格了，结果悲了个具。![](img/afde35a5f3b3a4675abb3221cf07c6d1.jpg "124.gif")
+
+看了只有一半觉得很可惜，遂准备接着翻译下去。![](img/2aa97d64a7e0b211d2f8f207eb382aa7.jpg "酷")
+
+下面附件是笫七章的内容，和书附带源码。
+
+在看这章之前建议先看一下之前的章节，至少也要看一下之前章节的附带的源码，因为这章的代码都是在之前章节代码的基础上通过修改添加后形成的产物。
+
+上传的附件
+
+| ![](img/67af4f1ef9c98996f43e89e749c7dcf5.jpg) || 笫 7 章 过滤驱动.rar |
+
+| ![](img/b7e61e3627e1e92d7b948dd8fdd24fa6.jpg) || Professional Rootkits Code |

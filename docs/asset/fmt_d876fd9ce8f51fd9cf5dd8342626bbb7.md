@@ -1,0 +1,10 @@
+
+# Professional.Rootkits 笫十二章 Ghost 跟踪器
+
+> 原文：[`www.pediy.com/kssd/pediy12/126778.html`](https://www.pediy.com/kssd/pediy12/126778.html)
+
+123456
+
+上传的附件
+
+| ![](img/b7e61e3627e1e92d7b948dd8fdd24fa6.jpg) || `笫 12 章 Ghost 跟踪器.doc` |
