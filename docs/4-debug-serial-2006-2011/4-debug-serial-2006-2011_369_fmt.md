@@ -1,0 +1,351 @@
+
+# 1 Click & Lock 3.27 简单分析
+
+> 原文：[`www.pediy.com/kssd/pediy10/71751.html`](https://www.pediy.com/kssd/pediy10/71751.html)
+
+- **【破文标题】**：1 Click & Lock 3.27 简单分析
+- **【破文作者】**：tianxj
+- **【作者邮箱】**：tianxj_2007@126.com
+- **【作者主页】**：WwW.ChiNaPYG.CoM
+- **【破解工具】**：`PEiD`, `OD`
+- **【破解平台】**：Windows XP
+- **【软件名称】**：1 Click & Lock 3.27
+- **【软件大小】**：809 KB
+- **【软件语言】**：英文
+- **【软件类别】**：国外软件 / 免费软件 / 系统安全
+- **【更新时间】**：2008-08-30
+- **【原版下载】**：自己找一下
+- **【保护方式】**：注册码
+- **【软件简介】**：1 Click And Lock 可以帮助你在有事离开时，用密码保护你的计算机,可以选择在启动时自动运行对计算机加锁,非常容易操作!
+- **【破解声明】**：我是一只小菜鸟，偶得一点心得，愿与大家分享：）
+
+----------------------------------------------------------------
+
+### 【破解内容】
+
+一、运行程序，进行注册，输入错误的注册信息进行检测，有提示信息
+"Registration key is not valid"
+
+二、用 `PEiD` 对 `1cl` 查壳，为 Borland Delphi 6.0 - 7.0
+
+三、运行 `OD`，打开 `1cl`，右键超级字串参考查找 ASCII.
+发现"registration key is not valid"
+
+================================================================
+
+```
+代码:
+```
+
+
+
+# 机器码逆向工程记录
+
+## 函数 00512E40
+
+```
+00512E40  /$  55            PUSH EBP
+00512E41  |.  8BEC          MOV EBP,ESP
+00512E43  |.  83C4 F8       ADD ESP,-8
+00512E46  |.  8945 FC       MOV DWORD PTR SS:[EBP-4],EAX
+00512E49  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]             
+00512E4C  |.  E8 A322EFFF   CALL 1cl.004050F4
+00512E51  |.  33C0          XOR EAX,EAX
+00512E53  |.  55            PUSH EBP
+00512E54  |.  68 CB2E5100   PUSH 1cl.00512ECB
+00512E59  |.  64:FF30       PUSH DWORD PTR FS:[EAX]
+00512E5C  |.  64:8920       MOV DWORD PTR FS:[EAX],ESP
+00512E5F  |.  C645 FB 00    MOV BYTE PTR SS:[EBP-5],0
+00512E63  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]             ;  //试练码
+00512E66  |.  E8 515BFBFF   CALL 1cl.004C89BC                        ;  //关键 CALL
+00512E6B  |.  84C0          TEST AL,AL
+00512E6D  |.  74 23         JE SHORT 1cl.00512E92                    ;  //关键跳转
+00512E6F  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]
+00512E72  |.  E8 090EFAFF   CALL 1cl.004B3C80
+00512E77  |.  6A 00         PUSH 0                                   ; /Arg1 = 00000000
+00512E79  |.  66:8B0D DC2E5>MOV CX,WORD PTR DS:[512EDC]             ; |
+00512E80  |.  B2 02         MOV DL,2                                 ; |
+00512E82  |.  B8 E82E5100   MOV EAX,1cl.00512EE8                     ; |registration key is ok
+00512E87  |.  E8 9083F2FF   CALL 1cl.0043B21C                         ; \1cl.0043B21C
+00512E8C  |.  C645 FB 01    MOV BYTE PTR SS:[EBP-5],1
+00512E90  |.  EB 23         JMP SHORT 1cl.00512EB5
+00512E92  |>  6A 00         PUSH 0                                   ; /Arg1 = 00000000
+00512E94  |.  66:8B0D DC2E5>MOV CX,WORD PTR DS:[512EDC]             ; |
+00512E9B  |.  B2 01         MOV DL,1                                 ; |
+00512E9D  |.  B8 082F5100   MOV EAX,1cl.00512F08                     ; |registration key is not valid
+00512EA2  |.  E8 7583F2FF   CALL 1cl.0043B21C                         ; \1cl.0043B21C
+00512EA7  |.  A1 B0785100   MOV EAX,DWORD PTR DS:[5178B0]
+00512EAC  |.  8B00          MOV EAX,DWORD PTR DS:[EAX]
+00512EAE  |.  C680 C9030000>MOV BYTE PTR DS:[EAX+3C9],1
+00512EB5  |>  33C0          XOR EAX,EAX
+00512EB7  |.  5A            POP EDX
+00512EB8  |.  59            POP ECX
+00512EB9  |.  59            POP ECX
+00512EBA  |.  64:8910       MOV DWORD PTR FS:[EAX],EDX
+00512EBD  |.  68 D22E5100   PUSH 1cl.00512ED2
+00512EC2  |>  8D45 FC       LEA EAX,DWORD PTR SS:[EBP-4]
+00512EC5  |.  E8 7A1DEFFF   CALL 1cl.00404C44
+00512ECA  \.  C3            RETN
+00512ECB    .^ E9 CC16EFFF   JMP 1cl.0040459C
+00512ED0    .^ EB F0         JMP SHORT 1cl.00512EC2
+00512ED2    .  8A45 FB       MOV AL,BYTE PTR SS:[EBP-5]
+00512ED5    .  59            POP ECX
+00512ED6    .  59            POP ECX
+00512ED7    .  5D            POP EBP
+\==============================================================
+```
+
+## 函数 004C89BC
+
+```
+004C89BC  /$  55            PUSH EBP
+004C89BD  |.  8BEC          MOV EBP,ESP
+004C89BF  |.  83C4 DC       ADD ESP,-24
+004C89C2  |.  33D2          XOR EDX,EDX
+004C89C4  |.  8955 E4       MOV DWORD PTR SS:[EBP-1C],EDX
+004C89C7  |.  8955 E0       MOV DWORD PTR SS:[EBP-20],EDX
+004C89CA  |.  8945 FC       MOV DWORD PTR SS:[EBP-4],EAX
+004C89CD  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]             
+004C89D0  |.  E8 1FC7F3FF   CALL 1cl.004050F4
+004C89D5  |.  33C0          XOR EAX,EAX
+004C89D7  |.  55            PUSH EBP
+004C89D8  |.  68 E48A4C00   PUSH 1cl.004C8AE4
+004C89DD  |.  64:FF30       PUSH DWORD PTR FS:[EAX]
+004C89E0  |.  64:8920       MOV DWORD PTR FS:[EAX],ESP
+004C89E3  |.  C645 FB 00    MOV BYTE PTR SS:[EBP-5],0
+004C89E7  |.  E8 3CAAFEFF   CALL 1cl.004B3428
+004C89EC  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]             ;  //试练码
+004C89EF  |.  E8 10C5F3FF   CALL 1cl.00404F04                        ;  //取试练码长度
+004C89F4  |.  83F8 10       CMP EAX,10
+004C89F7  |.  0F85 C4000000 JNZ 1cl.004C8AC1                         ;  //试练码长度不等与 10h 则跳
+004C89FD  |.  8D45 E4       LEA EAX,DWORD PTR SS:[EBP-1C]
+004C8A00  |.  50            PUSH EAX
+004C8A01  |.  B9 08000000   MOV ECX,8
+004C8A06  |.  BA 01000000   MOV EDX,1
+004C8A0B  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]             ;  //试练码
+004C8A0E  |.  E8 51C7F3FF   CALL 1cl.00405164
+004C8A13  |.  8D45 E0       LEA EAX,DWORD PTR SS:[EBP-20]
+004C8A16  |.  50            PUSH EAX
+004C8A17  |.  B9 08000000   MOV ECX,8
+004C8A1C  |.  BA 09000000   MOV EDX,9
+004C8A21  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]             ;  //试练码
+004C8A24  |.  E8 3BC7F3FF   CALL 1cl.00405164
+004C8A29  |.  8D55 EC       LEA EDX,DWORD PTR SS:[EBP-14]
+004C8A2C  |.  8B45 E4       MOV EAX,DWORD PTR SS:[EBP-1C]            ;  //试练码 1-8 位
+004C8A2F  |.  E8 98ADF3FF   CALL 1cl.004037CC                        ;  //试练码 1-8 位转 16 进制送入 EAX
+004C8A34  |.  8945 E8       MOV DWORD PTR SS:[EBP-18],EAX
+004C8A37  |.  837D EC 00    CMP DWORD PTR SS:[EBP-14],0
+004C8A3B  |.  0F85 80000000 JNZ 1cl.004C8AC1
+004C8A41  |.  8D55 EC       LEA EDX,DWORD PTR SS:[EBP-14]
+004C8A44  |.  8B45 E0       MOV EAX,DWORD PTR SS:[EBP-20]            ;  //试练码 9-16 位
+004C8A47  |.  E8 80ADF3FF   CALL 1cl.004037CC                        ;  //试练码 9-16 位转 16 进制送入 EAX
+004C8A4C  |.  8945 E8       MOV DWORD PTR SS:[EBP-18],EAX
+004C8A4F  |.  837D EC 00    CMP DWORD PTR SS:[EBP-14],0
+004C8A53  |.  75 6C         JNZ SHORT 1cl.004C8AC1
+004C8A55  |.  C745 F4 30000>MOV DWORD PTR SS:[EBP-C],30             ;  //[EBP-C]=30h
+004C8A5C  |>  33C0          /XOR EAX,EAX                             
+004C8A5E  |.  8945 EC       |MOV DWORD PTR SS:[EBP-14],EAX          
+004C8A61  |.  8B45 FC       |MOV EAX,DWORD PTR SS:[EBP-4]           
+004C8A64  |.  E8 9BC4F3FF   |CALL 1cl.00404F04                      
+004C8A69  |.  85C0          |TEST EAX,EAX
+004C8A6B  |.  7E 24         |JLE SHORT 1cl.004C8A91
+004C8A6D  |.  8945 DC       |MOV DWORD PTR SS:[EBP-24],EAX          
+004C8A70  |.  C745 F0 01000>|MOV DWORD PTR SS:[EBP-10],1            
+004C8A77  |>  8A45 F4       |/MOV AL,BYTE PTR SS:[EBP-C]            
+004C8A7A  |.  8B55 FC       ||MOV EDX,DWORD PTR SS:[EBP-4]          
+004C8A7D  |.  8B4D F0       ||MOV ECX,DWORD PTR SS:[EBP-10]         
+004C8A80  |.  3A440A FF     ||CMP AL,BYTE PTR DS:[EDX+ECX-1]       
+004C8A84  |.  75 03         ||JNZ SHORT 1cl.004C8A89               
+004C8A86  |.  FF45 EC       ||INC DWORD PTR SS:[EBP-14]            
+004C8A89  |>  FF45 F0       ||INC DWORD PTR SS:[EBP-10]            
+004C8A8C  |.  FF4D DC       ||DEC DWORD PTR SS:[EBP-24]            
+004C8A8F  |.^ 75 E6         |\JNZ SHORT 1cl.004C8A77               
+004C8A91  |>  837D EC 05    |CMP DWORD PTR SS:[EBP-14],5
+004C8A95  |.  7E 09         |JLE SHORT 1cl.004C8AA0               ;  //试练码内"0"的数量小于等于 5 则跳
+004C8A97  |.  C745 EC FFFFF>|MOV DWORD PTR SS:[EBP-14],-1
+004C8A9E  |.  EB 09         |JMP SHORT 1cl.004C8AA9
+004C8AA0  |>  FF45 F4       |INC DWORD PTR SS:[EBP-C]             
+004C8AA3  |.  837D F4 3A    |CMP DWORD PTR SS:[EBP-C],3A
+004C8AA7  |.^ 75 B3         \JNZ SHORT 1cl.004C8A5C
+004C8AA9  |>  837D EC 00    CMP DWORD PTR SS:[EBP-14],0
+004C8AAD  |.  7C 12         JL SHORT 1cl.004C8AC1                 ;  //[EBP-14]小于 0 则跳
+004C8AAF  |.  55            PUSH EBP
+004C8AB0  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]             ;  //试练码
+004C8AB3  |.  E8 70FDFFFF   CALL 1cl.004C8828                        ;  //关键 CALL
+004C8AB8  |.  59            POP ECX
+004C8AB9  |.  84C0          TEST AL,AL
+004C8ABB  |.  74 04         JE SHORT 1cl.004C8AC1                    ;  //关键跳转
+004C8ABD  |.  C645 FB 01    MOV BYTE PTR SS:[EBP-5],1
+004C8AC1  |>  33C0          XOR EAX,EAX
+004C8AC3  |.  5A            POP EDX
+004C8AC4  |.  59            POP ECX
+004C8AC5  |.  59            POP ECX
+004C8AC6  |.  64:8910       MOV DWORD PTR FS:[EAX],EDX
+004C8AC9  |.  68 EB8A4C00   PUSH 1cl.004C8AEB
+004C8ACE  |>  8D45 E0       LEA EAX,DWORD PTR SS:[EBP-20]
+004C8AD1  |.  BA 02000000   MOV EDX,2
+004C8AD6  |.  E8 8DC1F3FF   CALL 1cl.00404C68
+004C8ADB  |.  8D45 FC       LEA EAX,DWORD PTR SS:[EBP-4]
+004C8ADE  |.  E8 61C1F3FF   CALL 1cl.00404C44
+004C8AE3  \.  C3            RETN
+004C8AE4    .^ E9 B3BAF3FF   JMP 1cl.0040459C
+004C8AE9    .^ EB E3         JMP SHORT 1cl.004C8ACE
+004C8AEB    .  8A45 FB       MOV AL,BYTE PTR SS:[EBP-5]
+004C8AEE    .  8BE5          MOV ESP,EBP
+004C8AF0    .  5D            POP EBP
+004C8AF1    .  C3            RETN
+\==============================================================
+```
+
+## 函数 004C8828
+
+```
+004C8828  /$  55            PUSH EBP
+004C8829  |.  8BEC          MOV EBP,ESP
+004C882B  |.  B9 07000000   MOV ECX,7
+004C8830  |>  6A 00         /PUSH 0
+004C8832  |.  6A 00         |PUSH 0
+004C8834  |.  49            |DEC ECX
+004C8835  |.^ 75 F9         \JNZ SHORT 1cl.004C8830
+004C8837  |.  53            PUSH EBX
+004C8838  |.  8945 FC       MOV DWORD PTR SS:[EBP-4],EAX
+004C883B  |.  33C0          XOR EAX,EAX
+004C883D  |.  55            PUSH EBP
+004C883E  |.  68 AB894C00   PUSH 1cl.004C89AB
+004C8843  |.  64:FF30       PUSH DWORD PTR FS:[EAX]
+004C8846  |.  64:8920       MOV DWORD PTR FS:[EAX],ESP
+004C8849  |.  8D45 F4       LEA EAX,DWORD PTR SS:[EBP-C]
+004C884C  |.  8B55 FC       MOV EDX,DWORD PTR SS:[EBP-4]             ;  //试练码
+004C884F  |.  8A12          MOV DL,BYTE PTR DS:[EDX]                 ;  //取试练码第 1 位 ASC 值
+004C8851  |.  E8 D6C5F3FF   CALL 1cl.00404E2C
+004C8856  |.  8B45 F4       MOV EAX,DWORD PTR SS:[EBP-C]
+004C8859  |.  E8 9E13F4FF   CALL 1cl.00409BFC
+004C885E  |.  8BD8          MOV EBX,EAX                              
+004C8860  |.  8D45 F0       LEA EAX,DWORD PTR SS:[EBP-10]
+004C8863  |.  8B55 FC       MOV EDX,DWORD PTR SS:[EBP-4]
+004C8866  |.  8A52 01       MOV DL,BYTE PTR DS:[EDX+1]              
+004C8869  |.  E8 BEC5F3FF   CALL 1cl.00404E2C
+004C886E  |.  8B45 F0       MOV EAX,DWORD PTR SS:[EBP-10]
+004C8871  |.  E8 8613F4FF   CALL 1cl.00409BFC
+004C8876  |.  03D8          ADD EBX,EAX                              
+004C8878  |.  8D45 EC       LEA EAX,DWORD PTR SS:[EBP-14]
+004C887B  |.  8B55 FC       MOV EDX,DWORD PTR SS:[EBP-4]
+004C887E  |.  8A52 02       MOV DL,BYTE PTR DS:[EDX+2]              ;  //取试练码第 3 位 ASC 值
+004C8881  |.  E8 A6C5F3FF   CALL 1cl.00404E2C
+004C8886  |.  8B45 EC       MOV EAX,DWORD PTR SS:[EBP-14]
+004C8889  |.  E8 6E13F4FF   CALL 1cl.00409BFC
+004C888E  |.  03D8          ADD EBX,EAX                              
+004C8890  |.  8D45 E8       LEA EAX,DWORD PTR SS:[EBP-18]
+004C8893  |.  8B55 FC       MOV EDX,DWORD PTR SS:[EBP-4]
+004C8896  |.  8A52 03       MOV DL,BYTE PTR DS:[EDX+3]              ;  //取试练码第 4 位 ASC 值
+004C8899  |.  E8 8EC5F3FF   CALL 1cl.00404E2C
+004C889E  |.  8B45 E8       MOV EAX,DWORD PTR SS:[EBP-18]
+004C88A1  |.  E8 5613F4FF   CALL 1cl.00409BFC
+004C88A6  |.  03D8          ADD EBX,EAX                              
+004C88A8  |.  A1 C07C5100   MOV EAX,DWORD PTR DS:[517CC0]
+004C88AD  |.  3B18          CMP EBX,DWORD PTR DS:[EAX]
+004C88AF  |.  0F85 D2000000 JNZ 1cl.004C8987                        ;  //前 4 位的和与 17h 比较,不等则跳
+004C88B5  |.  8D45 E4       LEA EAX,DWORD PTR SS:[EBP-1C]
+004C88B8  |.  8B55 FC       MOV EDX,DWORD PTR SS:[EBP-4]
+004C88BB  |.  8A52 04       MOV DL,BYTE PTR DS:[EDX+4]              ;  //取试练码第 5 位 ASC 值
+004C88BE  |.  E8 69C5F3FF   CALL 1cl.00404E2C
+004C88C3  |.  8B45 E4       MOV EAX,DWORD PTR SS:[EBP-1C]
+004C88C6  |.  E8 3113F4FF   CALL 1cl.00409BFC
+004C88CB  |.  8BD8          MOV EBX,EAX
+004C88CD  |.  8D45 E0       LEA EAX,DWORD PTR SS:[EBP-20]
+004C88D0  |.  8B55 FC       MOV EDX,DWORD PTR SS:[EBP-4]
+004C88D3  |.  8A52 07       MOV DL,BYTE PTR DS:[EDX+7]              ;  //取试练码第 8 位 ASC 值
+004C88D6  |.  E8 51C5F3FF   CALL 1cl.00404E2C
+004C88DB  |.  8B45 E0       MOV EAX,DWORD PTR SS:[EBP-20]
+004C88DE  |.  E8 1913F4FF   CALL 1cl.00409BFC
+004C88E3  |.  03D8          ADD EBX,EAX
+004C88E5  |.  8D45 DC       LEA EAX,DWORD PTR SS:[EBP-24]
+004C88E8  |.  8B55 FC       MOV EDX,DWORD PTR SS:[EBP-4]
+004C88EB  |.  8A52 0A       MOV DL,BYTE PTR DS:[EDX+A]              ;  //取试练码第 11 位 ASC 值
+004C88EE  |.  E8 39C5F3FF   CALL 1cl.00404E2C
+004C88F3  |.  8B45 DC       MOV EAX,DWORD PTR SS:[EBP-24]
+004C88F6  |.  E8 0113F4FF   CALL 1cl.00409BFC
+004C88FB  |.  03D8          ADD EBX,EAX
+004C88FD  |.  8D45 D8       LEA EAX,DWORD PTR SS:[EBP-28]
+004C8900  |.  8B55 FC       MOV EDX,DWORD PTR SS:[EBP-4]
+004C8903  |.  8A52 0D       MOV DL,BYTE PTR DS:[EDX+D]              ;  //取试练码第 14 位 ASC 值
+004C8906  |.  E8 21C5F3FF   CALL 1cl.00404E2C
+004C890B  |.  8B45 D8       MOV EAX,DWORD PTR SS:[EBP-28]
+004C890E  |.  E8 E912F4FF   CALL 1cl.00409BFC
+004C8913  |.  03D8          ADD EBX,EAX
+004C8915  |.  A1 007D5100   MOV EAX,DWORD PTR DS:[517D00]
+004C891A  |.  3B18          CMP EBX,DWORD PTR DS:[EAX]
+004C891C  |.  75 69         JNZ SHORT 1cl.004C8987                  ;  //第 5、8、11、14 位的和与 1Eh 比较,不等则跳
+004C891E  |.  8D45 D4       LEA EAX,DWORD PTR SS:[EBP-2C]
+004C8921  |.  8B55 FC       MOV EDX,DWORD PTR SS:[EBP-4]
+004C8924  |.  8A52 06       MOV DL,BYTE PTR DS:[EDX+6]              ;  //取试练码第 7 位 ASC 值
+004C8927  |.  E8 00C5F3FF   CALL 1cl.00404E2C
+004C892C  |.  8B45 D4       MOV EAX,DWORD PTR SS:[EBP-2C]
+004C892F  |.  E8 C812F4FF   CALL 1cl.00409BFC
+004C8934  |.  8BD8          MOV EBX,EAX
+004C8936  |.  8D45 D0       LEA EAX,DWORD PTR SS:[EBP-30]
+004C8939  |.  8B55 FC       MOV EDX,DWORD PTR SS:[EBP-4]
+004C893C  |.  8A52 09       MOV DL,BYTE PTR DS:[EDX+9]              ;  //取试练码第 10 位 ASC 值
+004C893F  |.  E8 E8C4F3FF   CALL 1cl.00404E2C
+004C8944  |.  8B45 D0       MOV EAX,DWORD PTR SS:[EBP-30]
+004C8947  |.  E8 B012F4FF   CALL 1cl.00409BFC
+004C894C  |.  03D8          ADD EBX,EAX
+004C894E  |.  8D45 CC       LEA EAX,DWORD PTR SS:[EBP-34]
+004C8951  |.  8B55 FC       MOV EDX,DWORD PTR SS:[EBP-4]
+004C8954  |.  8A52 0C       MOV DL,BYTE PTR DS:[EDX+C]              ;  //取试练码第 13 位 ASC 值
+004C8957  |.  E8 D0C4F3FF   CALL 1cl.00404E2C
+004C895C  |.  8B45 CC       MOV EAX,DWORD PTR SS:[EBP-34]
+004C895F  |.  E8 9812F4FF   CALL 1cl.00409BFC
+004C8964  |.  03D8          ADD EBX,EAX
+004C8966  |.  8D45 C8       LEA EAX,DWORD PTR SS:[EBP-38]
+004C8969  |.  8B55 FC       MOV EDX,DWORD PTR SS:[EBP-4]
+004C896C  |.  8A52 0F       MOV DL,BYTE PTR DS:[EDX+F]              ;  //取试练码第 16 位 ASC 值
+004C896F  |.  E8 B8C4F3FF   CALL 1cl.00404E2C
+004C8974  |.  8B45 C8       MOV EAX,DWORD PTR SS:[EBP-38]
+004C8977  |.  E8 8012F4FF   CALL 1cl.00409BFC
+004C897C  |.  03D8          ADD EBX,EAX
+004C897E  |.  A1 BC785100   MOV EAX,DWORD PTR DS:[5178BC]
+004C8983  |.  3B18          CMP EBX,DWORD PTR DS:[EAX]
+004C8985  |.  74 04         JE SHORT 1cl.004C898B                   ;  //第 7、10、13、16 位的和与 9h 比较,相等则跳
+004C8987  |>  33C0          XOR EAX,EAX
+004C8989  |.  EB 02         JMP SHORT 1cl.004C898D
+004C898B  |>  B0 01         MOV AL,1
+004C898D  |>  8845 FB       MOV BYTE PTR SS:[EBP-5],AL
+004C8990  |.  33C0          XOR EAX,EAX
+004C8992  |.  5A            POP EDX
+004C8993  |.  59            POP ECX
+004C8994  |.  59            POP ECX
+004C8995  |.  64:8910       MOV DWORD PTR FS:[EAX],EDX
+004C8998  |.  68 B2894C00   PUSH 1cl.004C89B2
+004C899D  |>  8D45 C8       LEA EAX,DWORD PTR SS:[EBP-38]
+004C89A0  |.  BA 0C000000   MOV EDX,0C
+004C89A5  |.  E8 BEC2F3FF   CALL 1cl.00404C68
+004C89AA  \.  C3            RETN
+004C89AB    .^ E9 ECBBF3FF   JMP 1cl.0040459C
+004C89B0    .^ EB EB         JMP SHORT 1cl.004C899D
+004C89B2    .  8A45 FB       MOV AL,BYTE PTR SS:[EBP-5]
+004C89B5    .  5B            POP EBX
+004C89B6    .  8BE5          MOV ESP,EBP
+004C89B8    .  5D            POP EBP
+004C89B9    .  C3            RETN
+```
+
+
+
+# 破解总结
+
+## 算法总结
+
+1. 注册码长度必须是 16 位。
+2. 注册码内 `"0"` 的数量小于等于 5 则跳。
+3. 注册码前 4 位的和必须等于 23；第 5、8、11、14 位的和必须等于 30；第 7、10、13、16 位的和必须等于 9。
+
+## 注册信息
+
+一组可用注册码：`2678601702803903`
+
+感谢飘云老大、猫老大、Nisy 老大以及很多前辈们的学习教程以及所有帮助过我的论坛兄弟姐妹们！谢谢
+
+## 版权声明
+
+破文是学习的手记，兴趣是成功的源泉；本破文纯属技术交流，转载请注明作者并保持文章的完整，谢谢!

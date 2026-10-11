@@ -1,0 +1,42 @@
+
+# 4U AVI MPEG Converter 5.3.8 算法分析
+
+> 原文：[`www.pediy.com/kssd/pediy10/71275.html`](https://www.pediy.com/kssd/pediy10/71275.html)
+
+**【破文标题】** `4U AVI MPEG Converter 5.3.8 算法分析`  
+**【破文作者】** `tianxj`  
+**【作者邮箱】** `tianxj_2007@126.com`  
+**【作者主页】** `WwW.ChiNaPYG.CoM`  
+**【破解工具】** `PEiD`, `OD`  
+**【破解平台】** `Windows XP`  
+**【软件名称】** `4U AVI MPEG Converter 5.3.8`  
+**【软件大小】** `11338KB`  
+**【软件类别】** 国外软件/视频转换  
+**【软件语言】** 英文  
+**【更新时间】** `2008-3-6`  
+**【原版下载】** 网上找一下  
+**【保护方式】** 注册码  
+
+**【软件简介】** `4U AVI MPEG Converter` 是一功能强大的视频转换工具，它可以将 `AVI`、`MPEG`、`WMV`、`ASF`、`MOV`、`QuickTime` 转换成 `AVI`、`DivX`、`XviD`、`MPEG-1/MPEG-2/DVD/VCD/SVCD`、`WMV`、`RM` 等常用的视频格式、或者抽音频成 `MP3` 格式。它支持批量文件转换可以一次点击转换多个文件，带有多种解码器；自定义输出视频和帧大小。使用简单，支持资源管理器中点击右键自动进行转换，而不用手动运行本软件。  
+
+**【破解声明】** 我是一只小菜鸟，偶得一点心得，愿与大家分享：）  
+
+初学破解与编程，只是感兴趣，没有其它目的。失误之处敬请诸位大侠赐教！  
+
+--------------------------------------------------------------
+
+**【破解内容】**
+
+--------------------------------------------------------------
+
+一、运行程序，进行注册，输入错误的注册信息进行检测，有提示信息  
+
+`"Invalid Registration Code! Please enter an available Registration Code."`  
+
+二、用 `PEiD` 对 `AVIMPEGConverter.exe` 查壳，为 `Borland Delphi 6.0 - 7.0`  
+
+三、运行 `OD`，打开 `AVIMPEGConverter.exe`，右键超级字串参考查找 `ASCII`.  
+
+发现 `"Invalid Registration Code! Please enter an available Registration Code."`  
+
+代码:

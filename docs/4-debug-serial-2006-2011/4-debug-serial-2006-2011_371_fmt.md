@@ -1,0 +1,566 @@
+
+# 1st Email Address Verifier V4.99 注册算法浅析
+
+> 原文：[`www.pediy.com/kssd/pediy10/73109.html`](https://www.pediy.com/kssd/pediy10/73109.html)
+
+**文章标题**：1st Email Address Verifier V4.99 注册算法浅析
+
+**文章作者**：蚊香
+
+**作者邮箱**：xpi386com@gmail.com
+
+**作者主页**：http://www.xpi386.com
+
+**软件大小**：1.23MB
+
+**下载地址**：http://www.skycn.com/soft/29878.html
+
+**使用工具**：`PEiD`, `OllyDBG`, 计算器
+
+**操作平台**：D 版 XP-SP3
+
+**软件介绍**：一款对邮件列表中的电子邮件地址进行验证的工具。
+
+**作者声明**：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
+
+---
+
+**详细过程**
+
+`PEiD` 瞄了一下，Delphi~~~ `OD` 载入时发现卡的很~~~ 换个版本的 `OD` 情况依然~~~ 于是改为 `OD` 附加进程..这回成功了，哈~~
+
+试注册发现弹框提示错误，于是用 `F12` 暂停找堆栈调用的方法很快找到关键的地方~~~~~
+
+代码:
+
+
+
+```assembly
+  005C29F3    55                 PUSH EBP                                  ; 用 F12 暂停法找到这里下断
+  005C29F4    68 CF2B5C00        PUSH XVerifie.005C2BCF
+  005C29F9    64:FF30            PUSH DWORD PTR FS:[EAX]
+  005C29FC    64:8920            MOV DWORD PTR FS:[EAX],ESP
+  005C29FF    8D55 F0            LEA EDX,DWORD PTR SS:[EBP-10]
+  005C2A02    8B45 FC            MOV EAX,DWORD PTR SS:[EBP-4]
+  005C2A05    8B80 08030000      MOV EAX,DWORD PTR DS:[EAX+308]
+  005C2A0B    E8 940AECFF        CALL XVerifie.004834A4                    ; 取用户名
+  005C2A10    8B45 F0            MOV EAX,DWORD PTR SS:[EBP-10]
+  005C2A13    8D55 F4            LEA EDX,DWORD PTR SS:[EBP-C]
+  005C2A16    E8 1169E4FF        CALL XVerifie.0040932C
+  005C2A1B    837D F4 00         CMP DWORD PTR SS:[EBP-C],0
+  005C2A1F    0F84 5A010000      JE XVerifie.005C2B7F
+  005C2A25    8D55 E8            LEA EDX,DWORD PTR SS:[EBP-18]
+  005C2A28    8B45 FC            MOV EAX,DWORD PTR SS:[EBP-4]
+  005C2A2B    8B80 10030000      MOV EAX,DWORD PTR DS:[EAX+310]
+  005C2A31    E8 6E0AECFF        CALL XVerifie.004834A4                    ; 取注册码
+  005C2A36    8B45 E8            MOV EAX,DWORD PTR SS:[EBP-18]
+  005C2A39    8D55 EC            LEA EDX,DWORD PTR SS:[EBP-14]
+  005C2A3C    E8 EB68E4FF        CALL XVerifie.0040932C
+  005C2A41    837D EC 00         CMP DWORD PTR SS:[EBP-14],0
+  005C2A45    0F84 34010000      JE XVerifie.005C2B7F
+  005C2A4B    8D55 E0            LEA EDX,DWORD PTR SS:[EBP-20]
+  005C2A4E    8B45 FC            MOV EAX,DWORD PTR SS:[EBP-4]
+  005C2A51    8B80 10030000      MOV EAX,DWORD PTR DS:[EAX+310]
+  005C2A57    E8 480AECFF        CALL XVerifie.004834A4                    ; 注册码位数
+  005C2A5C    8B45 E0            MOV EAX,DWORD PTR SS:[EBP-20]
+  005C2A5F    8D55 E4            LEA EDX,DWORD PTR SS:[EBP-1C]
+  005C2A62    E8 C568E4FF        CALL XVerifie.0040932C
+  005C2A67    8B45 E4            MOV EAX,DWORD PTR SS:[EBP-1C]
+  005C2A6A    50                 PUSH EAX
+  005C2A6B    8D55 DC            LEA EDX,DWORD PTR SS:[EBP-24]
+  005C2A6E    8B45 FC            MOV EAX,DWORD PTR SS:[EBP-4]
+  005C2A71    8B80 08030000      MOV EAX,DWORD PTR DS:[EAX+308]
+  005C2A77    E8 280AECFF        CALL XVerifie.004834A4                    ; 用户名位数
+  005C2A7C    8B55 DC            MOV EDX,DWORD PTR SS:[EBP-24]
+  005C2A7F    A1 6C995C00        MOV EAX,DWORD PTR DS:[5C996C]
+  005C2A84    8B00               MOV EAX,DWORD PTR DS:[EAX]
+  005C2A86    8B80 44030000      MOV EAX,DWORD PTR DS:[EAX+344]
+  005C2A8C    33C9               XOR ECX,ECX
+  005C2A8E    E8 5573FAFF        CALL XVerifie.00569DE8                    ; 关键 CALL，F7 进
+  005C2A93    84C0               TEST AL,AL
+  005C2A95    74 6A              JE SHORT XVerifie.005C2B01                ; 跳向失败
+  005C2A97    A1 3C975C00        MOV EAX,DWORD PTR DS:[5C973C]
+  005C2A9C    C600 01            MOV BYTE PTR DS:[EAX],1
+  005C2A9F    6A 40              PUSH 40
+  005C2AA1    8D55 D8            LEA EDX,DWORD PTR SS:[EBP-28]
+  005C2AA4    A1 189B5C00        MOV EAX,DWORD PTR DS:[5C9B18]
+  005C2AA9    8B00               MOV EAX,DWORD PTR DS:[EAX]
+  005C2AAB    E8 C009EEFF        CALL XVerifie.004A3470
+  005C2AB0    8B45 D8            MOV EAX,DWORD PTR SS:[EBP-28]
+  005C2AB3    E8 E422E4FF        CALL XVerifie.00404D9C
+  005C2AB8    50                 PUSH EAX
+  005C2AB9    8D55 D4            LEA EDX,DWORD PTR SS:[EBP-2C]
+  005C2ABC    A1 4C9B5C00        MOV EAX,DWORD PTR DS:[5C9B4C]
+  005C2AC1    E8 FE41E4FF        CALL XVerifie.00406CC4
+  005C2AC6    8B45 D4            MOV EAX,DWORD PTR SS:[EBP-2C]
+  005C2AC9    E8 CE22E4FF        CALL XVerifie.00404D9C
+  005C2ACE    8BD0               MOV EDX,EAX
+  005C2AD0    A1 189B5C00        MOV EAX,DWORD PTR DS:[5C9B18]
+  005C2AD5    8B00               MOV EAX,DWORD PTR DS:[EAX]
+  005C2AD7    59                 POP ECX
+  005C2AD8    E8 FB0FEEFF        CALL XVerifie.004A3AD8                    ; 正确提示
+  005C2ADD    8B15 3C975C00      MOV EDX,DWORD PTR DS:[5C973C]             ; XVerifie.005CCFB8
+  005C2AE3    8A12               MOV DL,BYTE PTR DS:[EDX]
+  005C2AE5    A1 6C995C00        MOV EAX,DWORD PTR DS:[5C996C]
+  005C2AEA    8B00               MOV EAX,DWORD PTR DS:[EAX]
+  005C2AEC    8B80 CC030000      MOV EAX,DWORD PTR DS:[EAX+3CC]
+  005C2AF2    E8 BD4FFFFF        CALL XVerifie.005B7AB4
+  005C2AF7    8B45 FC            MOV EAX,DWORD PTR SS:[EBP-4]
+  005C2AFA    E8 85D7EDFF        CALL XVerifie.004A0284
+  005C2AFF    EB 3C              JMP SHORT XVerifie.005C2B3D
+  005C2B01    6A 10              PUSH 10
+  005C2B03    8D55 D0            LEA EDX,DWORD PTR SS:[EBP-30]
+  005C2B06    A1 D0955C00        MOV EAX,DWORD PTR DS:[5C95D0]
+  005C2B0B    E8 B441E4FF        CALL XVerifie.00406CC4
+  005C2B10    8B45 D0            MOV EAX,DWORD PTR SS:[EBP-30]
+  005C2B13    E8 8422E4FF        CALL XVerifie.00404D9C
+  005C2B18    50                 PUSH EAX
+  005C2B19    8D55 CC            LEA EDX,DWORD PTR SS:[EBP-34]
+  005C2B1C    A1 B4965C00        MOV EAX,DWORD PTR DS:[5C96B4]
+  005C2B21    E8 9E41E4FF        CALL XVerifie.00406CC4
+  005C2B26    8B45 CC            MOV EAX,DWORD PTR SS:[EBP-34]
+  005C2B29    E8 6E22E4FF        CALL XVerifie.00404D9C
+  005C2B2E    8BD0               MOV EDX,EAX
+  005C2B30    A1 189B5C00        MOV EAX,DWORD PTR DS:[5C9B18]
+  005C2B35    8B00               MOV EAX,DWORD PTR DS:[EAX]
+  005C2B37    59                 POP ECX
+  005C2B38    E8 9B0FEEFF        CALL XVerifie.004A3AD8                    ; 错误提示
+  005C2B3D    A1 6C995C00        MOV EAX,DWORD PTR DS:[5C996C]
+  005C2B42    8B00               MOV EAX,DWORD PTR DS:[EAX]
+  005C2B44    8B80 44030000      MOV EAX,DWORD PTR DS:[EAX+344]
+  005C2B4A    FF70 48            PUSH DWORD PTR DS:[EAX+48]
+  005C2B4D    68 E42B5C00        PUSH XVerifie.005C2BE4
+  005C2B52    A1 6C995C00        MOV EAX,DWORD PTR DS:[5C996C]
+  005C2B57    8B00               MOV EAX,DWORD PTR DS:[EAX]
+  005C2B59    8B80 44030000      MOV EAX,DWORD PTR DS:[EAX+344]
+  005C2B5F    FF70 5C            PUSH DWORD PTR DS:[EAX+5C]
+  005C2B62    8D45 C8            LEA EAX,DWORD PTR SS:[EBP-38]
+  005C2B65    BA 03000000        MOV EDX,3
+  005C2B6A    E8 F520E4FF        CALL XVerifie.00404C64
+  005C2B6F    8B45 C8            MOV EAX,DWORD PTR SS:[EBP-38]
+  005C2B72    8B15 3C975C00      MOV EDX,DWORD PTR DS:[5C973C]             ; XVerifie.005CCFB8
+  005C2B78    8A12               MOV DL,BYTE PTR DS:[EDX]
+  005C2B7A    E8 5553FFFF        CALL XVerifie.005B7ED4
+  005C2B7F    33C0               XOR EAX,EAX
+  005C2B81    5A                 POP EDX
+  005C2B82    59                 POP ECX
+  005C2B83    59                 POP ECX
+  005C2B84    64:8910            MOV DWORD PTR FS:[EAX],EDX
+  005C2B87    68 D62B5C00        PUSH XVerifie.005C2BD6
+  005C2B8C    8D45 C8            LEA EAX,DWORD PTR SS:[EBP-38]
+  005C2B8F    BA 05000000        MOV EDX,5
+  005C2B94    E8 4B1DE4FF        CALL XVerifie.004048E4
+  005C2B99    8D45 DC            LEA EAX,DWORD PTR SS:[EBP-24]
+  005C2B9C    BA 02000000        MOV EDX,2
+  005C2BA1    E8 3E1DE4FF        CALL XVerifie.004048E4
+  005C2BA6    8D45 E4            LEA EAX,DWORD PTR SS:[EBP-1C]
+  005C2BA9    E8 121DE4FF        CALL XVerifie.004048C0
+  005C2BAE    8D45 E8            LEA EAX,DWORD PTR SS:[EBP-18]
+  005C2BB1    E8 0A1DE4FF        CALL XVerifie.004048C0
+  005C2BB6    8D45 EC            LEA EAX,DWORD PTR SS:[EBP-14]
+  005C2BB9    E8 021DE4FF        CALL XVerifie.004048C0
+  005C2BBE    8D45 F0            LEA EAX,DWORD PTR SS:[EBP-10]
+  005C2BC1    E8 FA1CE4FF        CALL XVerifie.004048C0
+  005C2BC6    8D45 F4            LEA EAX,DWORD PTR SS:[EBP-C]
+  005C2BC9    E8 F21CE4FF        CALL XVerifie.004048C0
+  005C2BCE    C3                 RETN
+  005C2BCF   ^ E9 AC15E4FF       JMP XVerifie.00404180
+  005C2BD4   ^ EB B6            JMP SHORT XVerifie.005C2B8C
+  005C2BD6    8BE5               MOV ESP,EBP
+  005C2BD8    5D                 POP EBP
+  005C2BD9    C3                 RETN
+```
+
+进入`005C2A8E`。
+
+代码：
+
+
+
+```
+  00569DE8    55                 PUSH EBP
+  00569DE9    8BEC               MOV EBP,ESP
+  00569DEB    83C4 E8            ADD ESP,-18
+  00569DEE    53                 PUSH EBX
+  00569DEF    33DB               XOR EBX,EBX
+  00569DF1    895D E8            MOV DWORD PTR SS:[EBP-18],EBX
+  00569DF4    895D EC            MOV DWORD PTR SS:[EBP-14],EBX
+  00569DF7    894D F4            MOV DWORD PTR SS:[EBP-C],ECX
+  00569DFA    8955 F8            MOV DWORD PTR SS:[EBP-8],EDX
+  00569DFD    8945 FC            MOV DWORD PTR SS:[EBP-4],EAX
+  00569E00    8B45 F8            MOV EAX,DWORD PTR SS:[EBP-8]
+  00569E03    E8 84AFE9FF        CALL XVerifie.00404D8C
+  00569E08    8B45 F4            MOV EAX,DWORD PTR SS:[EBP-C]
+  00569E0B    E8 7CAFE9FF        CALL XVerifie.00404D8C
+  00569E10    8B45 08            MOV EAX,DWORD PTR SS:[EBP+8]
+  00569E13    E8 74AFE9FF        CALL XVerifie.00404D8C
+  00569E18    33C0               XOR EAX,EAX
+  00569E1A    55                 PUSH EBP
+  00569E1B    68 F79E5600        PUSH XVerifie.00569EF7
+  00569E20    64:FF30            PUSH DWORD PTR FS:[EAX]
+  00569E23    64:8920            MOV DWORD PTR FS:[EAX],ESP
+  00569E26    8B45 F8            MOV EAX,DWORD PTR SS:[EBP-8]
+  00569E29    E8 76ADE9FF        CALL XVerifie.00404BA4
+  00569E2E    8B55 FC            MOV EDX,DWORD PTR SS:[EBP-4]
+  00569E31    3B42 4C            CMP EAX,DWORD PTR DS:[EDX+4C]            ; 用户名位数必须小于 64H
+  00569E34    7F 1C              JG SHORT XVerifie.00569E52
+  00569E36    8B45 F8            MOV EAX,DWORD PTR SS:[EBP-8]
+  00569E39    E8 66ADE9FF        CALL XVerifie.00404BA4
+  00569E3E    8B55 FC            MOV EDX,DWORD PTR SS:[EBP-4]
+  00569E41    3B42 50            CMP EAX,DWORD PTR DS:[EDX+50]            ; 用户名位数必须大于等于 3
+  00569E44    7C 0C              JL SHORT XVerifie.00569E52
+  00569E46    8B45 08            MOV EAX,DWORD PTR SS:[EBP+8]
+  00569E49    E8 56ADE9FF        CALL XVerifie.00404BA4
+  00569E4E    85C0               TEST EAX,EAX
+  00569E50    75 06              JNZ SHORT XVerifie.00569E58
+  00569E52    C645 F3 00         MOV BYTE PTR SS:[EBP-D],0
+  00569E56    EB 6F              JMP SHORT XVerifie.00569EC7
+  00569E58    8D55 EC            LEA EDX,DWORD PTR SS:[EBP-14]
+  00569E5B    8B45 08            MOV EAX,DWORD PTR SS:[EBP+8]
+  00569E5E    E8 59F2E9FF        CALL XVerifie.004090BC
+  00569E63    8B55 EC            MOV EDX,DWORD PTR SS:[EBP-14]
+  00569E66    8D45 08            LEA EAX,DWORD PTR SS:[EBP+8]
+  00569E69    E8 EAAAE9FF        CALL XVerifie.00404958
+  00569E6E    8D4D E8            LEA ECX,DWORD PTR SS:[EBP-18]
+  00569E71    8B55 F8            MOV EDX,DWORD PTR SS:[EBP-8]
+  00569E74    8B45 FC            MOV EAX,DWORD PTR SS:[EBP-4]
+  00569E77    E8 D4FBFFFF        CALL XVerifie.00569A50                   ; 经过此 CALL 后出现真码，F7 进去
+  00569E7C    8B45 E8            MOV EAX,DWORD PTR SS:[EBP-18]
+  00569E7F    8B55 08            MOV EDX,DWORD PTR SS:[EBP+8]
+  00569E82    E8 ADF2E9FF        CALL XVerifie.00409134                   ; 真假码比较
+  00569E87    85C0               TEST EAX,EAX
+  00569E89    74 06              JE SHORT XVerifie.00569E91               ; 关键跳转
+  00569E8B    C645 F3 00         MOV BYTE PTR SS:[EBP-D],0
+  00569E8F    EB 36              JMP SHORT XVerifie.00569EC7
+  00569E91    8B45 FC            MOV EAX,DWORD PTR SS:[EBP-4]
+  00569E94    83C0 48            ADD EAX,48
+  00569E97    8B55 F8            MOV EDX,DWORD PTR SS:[EBP-8]
+  00569E9A    E8 75AAE9FF        CALL XVerifie.00404914
+  00569E9F    8B45 FC            MOV EAX,DWORD PTR SS:[EBP-4]
+  00569EA2    83C0 54            ADD EAX,54
+  00569EA5    8B55 F4            MOV EDX,DWORD PTR SS:[EBP-C]
+  00569EA8    E8 67AAE9FF        CALL XVerifie.00404914
+  00569EAD    8B45 FC            MOV EAX,DWORD PTR SS:[EBP-4]
+  00569EB0    83C0 5C            ADD EAX,5C
+  00569EB3    8B55 08            MOV EDX,DWORD PTR SS:[EBP+8]
+  00569EB6    E8 59AAE9FF        CALL XVerifie.00404914
+  00569EBB    8B45 FC            MOV EAX,DWORD PTR SS:[EBP-4]
+  00569EBE    E8 49020000        CALL XVerifie.0056A10C
+  00569EC3    C645 F3 01         MOV BYTE PTR SS:[EBP-D],1
+  00569EC7    33C0               XOR EAX,EAX
+  00569EC9    5A                 POP EDX
+  00569ECA    59                 POP ECX
+  00569ECB    59                 POP ECX
+  00569ECC    64:8910            MOV DWORD PTR FS:[EAX],EDX
+  00569ECF    68 FE9E5600        PUSH XVerifie.00569EFE
+  00569ED4    8D45 E8            LEA EAX,DWORD PTR SS:[EBP-18]
+  00569ED7    BA 02000000        MOV EDX,2
+  00569EDC    E8 03AAE9FF        CALL XVerifie.004048E4
+  00569EE1    8D45 F4            LEA EAX,DWORD PTR SS:[EBP-C]
+  00569EE4    BA 02000000        MOV EDX,2
+  00569EE9    E8 F6A9E9FF        CALL XVerifie.004048E4
+  00569EEE    8D45 08            LEA EAX,DWORD PTR SS:[EBP+8]
+  00569EF1    E8 CAA9E9FF        CALL XVerifie.004048C0
+  00569EF6    C3                 RETN
+  00569EF7   ^ E9 84A2E9FF       JMP XVerifie.00404180
+  00569EFC   ^ EB D6            JMP SHORT XVerifie.00569ED4
+  00569EFE    8A45 F3            MOV AL,BYTE PTR SS:[EBP-D]
+  00569F01    5B                 POP EBX
+  00569F02    8BE5               MOV ESP,EBP
+  00569F04    5D                 POP EBP
+  00569F05    C2 0400            RETN 4
+```
+
+进入 `00569E77`
+
+代码:
+
+
+
+```
+  00569A50    55                PUSH EBP
+  00569A51    8BEC              MOV EBP,ESP
+  00569A53    83C4 DC           ADD ESP,-24
+  00569A56    53                PUSH EBX
+  00569A57    33DB              XOR EBX,EBX
+  00569A59    895D DC           MOV DWORD PTR SS:[EBP-24],EBX
+  00569A5C    895D E8           MOV DWORD PTR SS:[EBP-18],EBX
+  00569A5F    894D F4           MOV DWORD PTR SS:[EBP-C],ECX
+  00569A62    8955 F8           MOV DWORD PTR SS:[EBP-8],EDX
+  00569A65    8945 FC           MOV DWORD PTR SS:[EBP-4],EAX
+  00569A68    8B45 F8           MOV EAX,DWORD PTR SS:[EBP-8]
+  00569A6B    E8 1CB3E9FF       CALL XVerifie.00404D8C
+  00569A70    33C0              XOR EAX,EAX
+  00569A72    55                PUSH EBP
+  00569A73    68 8E9B5600       PUSH XVerifie.00569B8E
+  00569A78    64:FF30           PUSH DWORD PTR FS:[EAX]
+  00569A7B    64:8920           MOV DWORD PTR FS:[EAX],ESP
+  00569A7E    8B45 F8           MOV EAX,DWORD PTR SS:[EBP-8]
+  00569A81    E8 1EB1E9FF       CALL XVerifie.00404BA4
+  00569A86    8B55 FC           MOV EDX,DWORD PTR SS:[EBP-4]
+  00569A89    3B42 4C           CMP EAX,DWORD PTR DS:[EDX+4C]                ; 用户名位数小于 64H
+  00569A8C    7F 10             JG SHORT XVerifie.00569A9E
+  00569A8E    8B45 F8           MOV EAX,DWORD PTR SS:[EBP-8]
+  00569A91    E8 0EB1E9FF       CALL XVerifie.00404BA4
+  00569A96    8B55 FC           MOV EDX,DWORD PTR SS:[EBP-4]
+  00569A99    3B42 50           CMP EAX,DWORD PTR DS:[EDX+50]                ; 用户名位数大于等于 3
+  00569A9C    7D 0D             JGE SHORT XVerifie.00569AAB
+  00569A9E    8B45 F4           MOV EAX,DWORD PTR SS:[EBP-C]
+  00569AA1    E8 1AAEE9FF       CALL XVerifie.004048C0
+  00569AA6    E9 BD000000       JMP XVerifie.00569B68
+  00569AAB    8B45 F8           MOV EAX,DWORD PTR SS:[EBP-8]
+  00569AAE    E8 F1B0E9FF       CALL XVerifie.00404BA4
+  00569AB3    8945 F0           MOV DWORD PTR SS:[EBP-10],EAX
+  00569AB6    EB 39             JMP SHORT XVerifie.00569AF1
+  00569AB8    8B45 F8           MOV EAX,DWORD PTR SS:[EBP-8]
+  00569ABB    8B55 F0           MOV EDX,DWORD PTR SS:[EBP-10]
+  00569ABE    8A4410 FF         MOV AL,BYTE PTR DS:[EAX+EDX-1]             ; 从右至左依次用户名 ASCII
+  00569AC2    25 FF000000       AND EAX,0FF
+  00569AC7    33D2              XOR EDX,EDX
+  00569AC9    52                PUSH EDX
+  00569ACA    50                PUSH EAX
+  00569ACB    8B45 FC           MOV EAX,DWORD PTR SS:[EBP-4]
+  00569ACE    8B50 6C           MOV EDX,DWORD PTR DS:[EAX+6C]
+  00569AD1    8B40 68           MOV EAX,DWORD PTR DS:[EAX+68]
+  00569AD4    E8 0BC0E9FF       CALL XVerifie.00405AE4                     ; 分别被常数 04B234EEH 取余
+  00569AD9    52                PUSH EDX
+  00569ADA    50                PUSH EAX
+  00569ADB    8D45 DC           LEA EAX,DWORD PTR SS:[EBP-24]
+  00569ADE    E8 21FDE9FF       CALL XVerifie.00409804                     ; 转 10 进制
+  00569AE3    8B55 DC           MOV EDX,DWORD PTR SS:[EBP-24]
+  00569AE6    8D45 E8           LEA EAX,DWORD PTR SS:[EBP-18]
+  00569AE9    E8 BEB0E9FF       CALL XVerifie.00404BAC
+  00569AEE    FF4D F0           DEC DWORD PTR SS:[EBP-10]
+  00569AF1    8B45 F8           MOV EAX,DWORD PTR SS:[EBP-8]
+  00569AF4    E8 ABB0E9FF       CALL XVerifie.00404BA4
+  00569AF9    83E8 06           SUB EAX,6
+  00569AFC    3B45 F0           CMP EAX,DWORD PTR SS:[EBP-10]
+  00569AFF    7F 06             JG SHORT XVerifie.00569B07
+  00569B01    837D F0 00        CMP DWORD PTR SS:[EBP-10],0               ; 控制循环，从右至左取 7 位（如果够 7 位的话）
+  00569B05    ^ 7F B1           JG SHORT XVerifie.00569AB8
+  00569B07    8D55 EC           LEA EDX,DWORD PTR SS:[EBP-14]
+  00569B0A    8B45 E8           MOV EAX,DWORD PTR SS:[EBP-18]             ; 连接上面得到的（小于等于）7 组数字，作为一个 10 进制整数，设为 sn1
+  00569B0D    E8 DEC0E9FF       CALL XVerifie.00405BF0
+  00569B12    8945 E0           MOV DWORD PTR SS:[EBP-20],EAX
+  00569B15    8955 E4           MOV DWORD PTR SS:[EBP-1C],EDX
+  00569B18    8B45 FC           MOV EAX,DWORD PTR SS:[EBP-4]
+  00569B1B    8378 60 00        CMP DWORD PTR DS:[EAX+60],0
+  00569B1F    7F 12             JG SHORT XVerifie.00569B33
+  00569B21    FF75 E4           PUSH DWORD PTR SS:[EBP-1C]
+  00569B24    FF75 E0           PUSH DWORD PTR SS:[EBP-20]
+  00569B27    8B55 F4           MOV EDX,DWORD PTR SS:[EBP-C]
+  00569B2A    33C0              XOR EAX,EAX
+  00569B2C    E8 43FDE9FF       CALL XVerifie.00409874
+  00569B31    EB 35             JMP SHORT XVerifie.00569B68
+  00569B33    FF75 E4           PUSH DWORD PTR SS:[EBP-1C]
+  00569B36    FF75 E0           PUSH DWORD PTR SS:[EBP-20]
+  00569B39    8B55 F4           MOV EDX,DWORD PTR SS:[EBP-C]
+  00569B3C    8B45 FC           MOV EAX,DWORD PTR SS:[EBP-4]
+  00569B3F    8B40 60           MOV EAX,DWORD PTR DS:[EAX+60]
+  00569B42    E8 2DFDE9FF       CALL XVerifie.00409874
+  00569B47    8B45 F4           MOV EAX,DWORD PTR SS:[EBP-C]
+  00569B4A    8B00              MOV EAX,DWORD PTR DS:[EAX]               ; 将上面得到的 sn1 转换成 16 进制（若不足 12 位，则前面补 0 至 12 位），设为 sn2（最终注册码）
+  00569B4C    E8 53B0E9FF       CALL XVerifie.00404BA4
+  00569B51    8BC8              MOV ECX,EAX
+  00569B53    8B45 FC           MOV EAX,DWORD PTR SS:[EBP-4]
+  00569B56    2B48 60           SUB ECX,DWORD PTR DS:[EAX+60]
+  00569B59    8B45 FC           MOV EAX,DWORD PTR SS:[EBP-4]
+  00569B5C    8B50 60           MOV EDX,DWORD PTR DS:[EAX+60]
+  00569B5F    42                INC EDX
+  00569B60    8B45 F4           MOV EAX,DWORD PTR SS:[EBP-C]
+  00569B63    E8 D4B2E9FF       CALL XVerifie.00404E3C
+  00569B68    33C0              XOR EAX,EAX
+  00569B6A    5A                POP EDX
+  00569B6B    59                POP ECX
+  00569B6C    59                POP ECX
+  00569B6D    64:8910           MOV DWORD PTR FS:[EAX],EDX
+  00569B70    68 959B5600       PUSH XVerifie.00569B95
+  00569B75    8D45 DC           LEA EAX,DWORD PTR SS:[EBP-24]
+  00569B78    E8 43ADE9FF       CALL XVerifie.004048C0
+  00569B7D    8D45 E8           LEA EAX,DWORD PTR SS:[EBP-18]
+  00569B80    E8 3BADE9FF       CALL XVerifie.004048C0
+  00569B85    8D45 F8           LEA EAX,DWORD PTR SS:[EBP-8]
+  00569B88    E8 33ADE9FF       CALL XVerifie.004048C0
+  00569B8D    C3                RETN
+  00569B8E    ^ E9 EDA5E9FF     JMP XVerifie.00404180
+  00569B93    ^ EB E0           JMP SHORT XVerifie.00569B75
+  00569B95    5B                POP EBX
+  00569B96    8BE5              MOV ESP,EBP
+  00569B98    5D                POP EBP
+  00569B99    C3                RETN
+```
+
+---
+
+### 【算法总结】
+
+首先用户名长度 `L` 必须满足 `3≤L<100`. 如果大于 7 位, 则只取后 7 位.
+
+从右至左取用户名的 ASCII, 分别被 `78787822`(`04B234EEH`) 取余, 余数依次连接作为一个 10 进制整数 `sn1`.
+
+将 `sn1` 转成 16 进制数 `sn2`. 若 `sn2` 长度不足 12, 则在其前面补 0 至 12 位(最终注册码).
+
+注册信息以加密的形式保存在注册表中
+
+### `KeyGen` 核心源码(VB Code):
+
+```
+'需要添加一个支持 10 进制天文数字转 16 进制的模块.
+'两个文本框，一个 Command 按钮.
+Private Sub Command1_Click()
+Dim Name, Name1, Name2 As String
+Dim L, I As Integer
+Dim sn1, sn2 As String
+Name = CStr(Text1.Text)
+Name1 = StrReverse(Name)
+L = Len(Name)
+If L < 3 Or L >= 100 Then
+   Text2.Text = "用户名位数大于等于 3,小于 100"
+ElseIf L >= 3 And L < 8 Then
+   For I = 1 To L
+   sn1 = sn1 & (78787822 Mod Asc(Mid(Name1, I, 1)))
+   Next I
+   sn2 = dectohex(sn1)
+   For I = 1 To (12 - Len(sn2))
+   sn2 = "0" & sn2
+   Next I
+   Text2.Text = sn2
+
+Else
+   Name2 = Left(Name1, 7)
+   For I = 1 To 7
+   sn1 = sn1 & (78787822 Mod Asc(Mid(Name2, I, 1)))
+   Next I
+   sn2 = dectohex(sn1)
+   For I = 1 To (12 - Len(sn2))
+   sn2 = "0" & sn2
+   Next I
+   Text2.Text = sn2
+End If
+End Sub
+```
+
+附: 网上找的一个支持 10 进制天文数字转 16 进制的模块代码:
+
+
+
+```vb
+Dim largehex As String, largedec As String, start As Long, Y(20) As String
+
+'预备函数
+Function sums(ByVal X As String, ByVal Y As String) As String ' sum of two hugehexnum（两个大数之和）
+    Dim max As Long, temp As Long, I As Long, result As Variant
+    max = IIf(Len(X) >= Len(Y), Len(X), Len(Y))
+    X = Right(String(max, "0") & X, max)
+    Y = Right(String(max, "0") & Y, max)
+    ReDim result(0 To max)
+    For I = max To 1 Step -1
+        result(I) = Val(Mid(X, I, 1)) + Val(Mid(Y, I, 1))
+    Next
+    For I = max To 1 Step -1
+        temp = result(I) \ 10
+        result(I) = result(I) Mod 10
+        result(I - 1) = result(I - 1) + temp
+    Next
+    If result(0) = 0 Then result(0) = ""
+    sums = Join(result, "")
+    Erase result
+
+End Function
+
+Function multi(ByVal X As String, ByVal Y As String) As String 'multi of two huge hexnum（两个大数之积）
+    Dim result As Variant
+    Dim xl As Long, yl As Long, temp As Long, I As Long
+    xl = Len(Trim(X))
+    yl = Len(Trim(Y))
+
+    ReDim result(1 To xl + yl)
+    For I = 1 To xl
+        For temp = 1 To yl
+            result(I + temp) = result(I + temp) + Val(Mid(X, I, 1)) * Val(Mid(Y, temp, 1))
+        Next
+    Next
+
+    For I = xl + yl To 2 Step -1
+        temp = result(I) \ 10
+        result(I) = result(I) Mod 10
+        result(I - 1) = result(I - 1) + temp
+    Next
+
+    If result(1) = "0" Then result(1) = ""
+    multi = Join(result, "")
+    Erase result
+
+End Function
+Function POWERS(ByVal X As Integer) As String ' GET 16777216^X,ie 16^(6*x)（16777216 的 X 次方）
+    POWERS = 1
+    Dim I As Integer
+    For I = 1 To X
+        POWERS = multi(POWERS, CLng(&H1000000))
+    Next
+End Function
+Function half(ByVal X As String) As String 'get half of x（取半）
+    X = 0 & X
+    Dim I As Long
+    ReDim result(2 To Len(X)) As String
+    For I = 2 To Len(X)
+        result(I) = CStr(Val(Mid(X, I, 1)) \ 2 + IIf(Val(Mid(X, I - 1, 1)) Mod 2 = 1, 5, 0))
+    Next
+    half = Join(result, "")
+    If Left(half, 1) = "0" Then half = Right(half, Len(half) - 1) ' no zero ahead
+End Function
+
+'另一个有用的函数：
+Function POWERXY(ByVal X As Integer, ByVal Y As Integer) As String 'GET   X^Y（X 的 Y 次方）
+    Dim I As Integer
+    POWERXY = X
+    For I = 2 To Y
+        POWERXY = multi(POWERXY, X)
+    Next
+End Function
+
+'进制转换函数：
+
+'16 to 10
+Function HEXTODEC(ByVal X As String) As String
+    Dim A() As String, I As Long, UNIT As Integer
+    For I = 1 To Len(X)
+        If Not IsNumeric("&h" & Mid(X, I, 1)) Then MsgBox "NOT A HEX FORMAT!", 64, "INFO": Exit Function
+    Next
+    X = String((6 - Len(X) Mod 6) Mod 6, "0") & X
+
+    UNIT = Len(X) \ 6 - 1
+    ReDim A(UNIT)
+    For I = 0 To UNIT
+        A(I) = CLng("&h" & Mid(X, I * 6 + 1, 6))
+    Next
+    For I = 0 To UNIT
+        A(I) = multi(A(I), POWERS(UNIT - I))
+        HEXTODEC = sums(HEXTODEC, A(I))
+    Next
+End Function
+
+' 10 to 16
+Function dectohex(ByVal hugenum As String) As String ' trans hugenum to hex
+    Do While Len(hugenum) > 2
+        dectohex = Hex(Val(Right(hugenum, 4)) Mod 16) & dectohex
+        For I = 1 To 4 'devide hugenum   by 16
+            hugenum = half(hugenum)
+        Next
+    Loop
+    dectohex = Hex(Val(hugenum)) & dectohex
+End Function
+
+Private Sub Form_Load()
+    For I = 0 To 20
+        Y(I) = "1234567890ABCDEF"
+    Next
+
+    largehex = Join(Y, "")
+End Sub
+
+```
+
+\--------------------------------------------------------------------------------  
+
+【版权声明】: 本文由 `蚊香` 原创,转载请注明作者并保持文章的完整,谢谢!
