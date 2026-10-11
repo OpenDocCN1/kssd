@@ -1,0 +1,172 @@
+
+```
+  10001610 hProcess  = dword ptr -54h  
+  10001610 StartupInfo= _STARTUPINFOA ptr -44h  
+  10001610 hWnd      = dword ptr  4  
+  10001610 dwBytes   = dword ptr  8  
+  10001610 NumberOfBytesRead= dword ptr  0Ch  
+  10001610  
+
+  10001610           sub   esp, 54h  
+  10001613           push  esi  
+  10001614           push  edi  
+  10001615           mov   ecx, 11h  
+  1000161A           xor   eax, eax  
+  1000161C           lea   edi, [esp+5Ch+StartupInfo]  
+  10001620           lea   edx, [esp+5Ch+StartupInfo]  
+  10001624           rep stosd  
+  10001626           mov   [esp+5Ch+hProcess], eax  
+  1000162A           lea   ecx, [esp+5Ch+hProcess]  
+  1000162E           mov   [esp+0Ch], eax  
+  10001632           push  ecx                   ; lpProcessInformation  
+  10001633           mov   [esp+14h], eax  
+  10001637           push  edx                   ; lpStartupInfo  
+  10001638           push  eax                   ; lpCurrentDirectory  
+  10001639           push  eax                   ; lpEnvironment  
+  1000163A           push  20h                   ; dwCreationFlags  
+  1000163C           push  eax                   ; bInheritHandles  
+  1000163D           push  eax                   ; lpThreadAttributes  
+  1000163E           push  eax                   ; lpProcessAttributes  
+  1000163F           mov   [esp+34h], eax  
+  10001643           push  eax                   ; lpCommandLine  
+  10001644           mov   eax, [esp+80h+NumberOfBytesRead]  
+  1000164B           mov   [esp+80h+StartupInfo.cb], 44h  
+  10001653           push  eax                   ; lpApplicationName  
+  10001654           call  ds:CreateProcessA       ; 启动待检测进程  
+
+            注意这里并没有设调试标志，GenOEP 是用普通方式启动进程的，  
+
+            所以调试器检测型的反跟踪对 PEid 无效，但是父进程检测还是有效的  
+
+  1000165A           test  eax, eax  
+  1000165C           jnz   short ProcessCreated  
+  1000165E           mov   ecx, [esp+5Ch+hWnd]  
+  10001662           push  40000h                ; uType  
+  10001667           push  offset szError        ; lpCaption  
+  1000166C           push  offset szErrorWhileCrea ; lpText  
+  10001671           push  ecx                   ; hWnd  
+  10001672           call  ds:MessageBoxA  
+  10001678  
+
+  10001678 ExitGetOEP:                    ; ...  
+  10001678           pop   edi  
+  10001679           xor   eax, eax  
+  1000167B           pop   esi  
+  1000167C           add   esp, 54h  
+  1000167F           retn  
+  10001680 ; ----------------------------------------------------------------------------  
+  10001680  
+
+  10001680 ProcessCreated:                 ; ...  
+  10001680           mov   edx, [esp+5Ch+hProcess]  
+  10001684           push  0FFFFFFFFh        ; dwMilliseconds  
+  10001686           push  edx             ; hProcess  
+  10001687           call  ds:WaitForInputIdle ; 当待检测程序进入空闲  
+  10001687                                ; 状态时再进行内存扫描  
+  1000168D           mov   eax, [esp+0Ch]  
+  10001691           push  eax             ; hThread  
+  10001692           call  ds:SuspendThread ; 挂起待检测程序，避免  
+  10001692                                ; 扫描过程中代码被修改  
+  10001698           mov   edi, [esp+5Ch+dwBytes] ; SizeOfImage  
+  1000169C           push  edi             ; dwBytes  
+  1000169D           push  0               ; uFlags  
+  1000169F           call  ds:GlobalAlloc   ；分配内存准备读取文件映象  
+  100016A5           mov   edx, ds:BaseAddress  
+  100016AB           lea   ecx, [esp+5Ch+NumberOfBytesRead]  
+  100016AF           push  ecx             ; lpNumberOfBytesRead  
+  100016B0           push  edi             ; nSize  
+  100016B1           mov   ds:hMem, eax  
+  100016B6           push  eax             ; lpBuffer  
+  100016B7           mov   eax, [esp+68h+hProcess]  
+  100016BB           push  edx             ; lpBaseAddress  
+  100016BC           push  eax             ; hProcess  
+  100016BD           call  ds:ReadProcessMemory    ; 读取整个映象到内存  
+  100016C3           test  eax, eax  
+  100016C5           jnz   short ErrorMemAccess  
+  100016C7           mov   ecx, [esp+5Ch+hWnd]  
+  100016CB           push  40000h                ; uType  
+  100016D0           push  offset szError        ; lpCaption  
+  100016D5           push  offset szErrorWhileRead ; lpText  
+  100016DA           push  ecx                   ; hWnd  
+  100016DB           call  ds:MessageBoxA  
+  100016E1           pop   edi  
+  100016E2           xor   eax, eax  
+  100016E4           pop   esi  
+  100016E5           add   esp, 54h  
+  100016E8           retn  
+  100016E9 ; ----------------------------------------------------------------------------  
+  100016E9  
+
+  100016E9 ErrorMemAccess:                 ; ...  
+  100016E9           mov   edx, [esp+5Ch+hProcess]  
+  100016ED           push  0               ; uExitCode  
+  100016EF           push  edx             ; hProcess  
+  100016F0           call  ds:TerminateProcess ; 可以结束被调试进程了  
+  100016F6           push  1  
+  100016F8           push  28h           ; 特征码长度  
+  100016FA           push  offset FeatureCode_1  
+  100016FF           push  edi             ; 映象大小  
+  10001700           call  ScanForFeatureCode  
+  10001705           mov   esi, eax  
+  10001707           add   esp, 10h  
+  1000170A           test  esi, esi  
+  1000170C           jnz   FeatureCodeFound  
+  10001712           push  9  
+  10001714           push  24h  
+  10001716           push  offset FeatureCode_2  
+  1000171B           push  edi  
+  1000171C           call  ScanForFeatureCode  
+  10001721           mov   esi, eax  
+  10001723           add   esp, 10h  
+  10001726           test  esi, esi  
+  10001728           jnz   FeatureCodeFound  
+  1000172E           push  8  
+  10001730           push  20h  
+  10001732           push  offset FeatureCode_3  
+  10001737           push  edi  
+  10001738           call  ScanForFeatureCode  
+  1000173D           mov   esi, eax  
+  1000173F           add   esp, 10h  
+  10001742           test  esi, esi  
+  10001744           jnz   FeatureCodeFound  
+  1000174A           push  4  
+  1000174C           push  20h  
+  1000174E           push  offset FeatureCode_4  
+  10001753           push  edi  
+  10001754           call  ScanForFeatureCode  
+  10001759           mov   esi, eax  
+  1000175B           add   esp, 10h  
+  1000175E           test  esi, esi  
+  10001760           jnz   FeatureCodeFound  
+  10001766           push  5  
+  10001768           push  28h  
+  1000176A           push  offset FeatureCode_5  
+  1000176F           push  edi  
+  10001770           call  ScanForFeatureCode  
+  10001775           mov   esi, eax  
+  10001777           add   esp, 10h  
+  1000177A           test  esi, esi  
+  1000177C           jnz   FeatureCodeFound  
+  10001782           push  5  
+  10001784           push  20h  
+  10001786           push  offset FeatureCode_6  
+  1000178B           push  edi  
+  1000178C           call  ScanForFeatureCode  
+  10001791           mov   esi, eax  
+  10001793           add   esp, 10h  
+  10001796           test  esi, esi  
+  10001798           jnz   FeatureCodeFound  
+  1000179E           push  3  
+  100017A0           push  1Bh  
+  100017A2           push  offset FeatureCode_7  
+  100017A7           push  edi  
+  100017A8           call  ScanForFeatureCode  
+  100017AD           mov   esi, eax  
+  100017AF           add   esp, 10h  
+  100017B2           test  esi, esi  
+  100017B4           jnz   FeatureCodeFound  
+  100017BA           push  0Ah  
+  100017BC           push  13h  
+  100017BE           push  offset FeatureCode_8  
+  100017C3           push  edi  
+```
