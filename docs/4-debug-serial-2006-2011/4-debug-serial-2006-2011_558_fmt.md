@@ -1,0 +1,195 @@
+
+# 笨笨家庭记账本破解笔记
+
+> 原文：[`www.pediy.com/kssd/pediy11/124942.html`](https://www.pediy.com/kssd/pediy11/124942.html)
+
+**【破文标题】** 笨笨家庭记账本破解笔记
+
+**【破文作者】** 踏雪流云
+
+**【破解工具】** `OD`、`Advanced Office Password Recovery`
+
+**【破解平台】** `Windows XP`
+
+**【软件名称】** 笨笨家庭记账本
+
+**【软件类别】** 国内软件/家庭记账
+
+**【软件授权】** 共享版
+
+**【软件语言】** 中文
+
+**【更新时间】** 2010-11-17
+
+**【原版下载】** `http://www.qdhao.net/`
+
+**【保护方式】** 序列号
+
+**【软件简介】** 笨笨家庭记账本是一款小巧实用的家庭记账软件，无须安装，纯绿色软件，可放在 U 盘随身携带，带有丰富的统计分析功能，让你对自己的开支了如指掌，图形化界面操作更简单，非常容易上手,非常适合家庭理财、记账，非常容易上手。
+
+**【作者声明】** 初学破解与编程，只是感兴趣，没有其它目的。失误之处敬请诸位大侠赐教！
+
+**【致谢声明】** 感谢 `winnip` 兄，提供的软件，并和我一起破解。
+
+**【破解内容】**
+
+`OD` 载入运行，了解到是根据注册码计算出序列号的方式进行注册。输入假码，注册后，弹出提示“序列号已记录，请重新登录！”消息框，原来是重启验证。
+
+重新加载，`MessageBoxA` 上设断，输入假码后断下：
+
+```
+005F6414   .  68 10655F00   push    005F6510                       ;  update sys\_sys set  xvalue=
+005F6419   .  8D55 F4       lea     edx, dword ptr [ebp-C]
+005F641C   .  8B83 30070000 mov     eax, dword ptr [ebx+730]
+005F6422   .  E8 1134E7FF   call    00469838
+005F6427   .  FF75 F4       push    dword ptr [ebp-C]
+005F642A   .  68 34655F00   push    005F6534                       ;   where id =1
+005F642F   .  8D45 F8       lea     eax, dword ptr [ebp-8]
+005F6432   .  BA 03000000   mov     edx, 3
+005F6437   .  E8 C4E7E0FF   call    00404C00
+005F643C   .  8B45 F8       mov     eax, dword ptr [ebp-8]         ;  将序列号写到数据库中
+005F643F   .  50            push    eax
+005F6440   .  8B83 10040000 mov     eax, dword ptr [ebx+410]
+005F6446   .  E8 C5A5EDFF   call    004D0A10
+005F644B   .  5A            pop     edx
+005F644C   .  8B08          mov     ecx, dword ptr [eax]
+005F644E   .  FF51 38       call    dword ptr [ecx+38]
+005F6451   .  8B83 10040000 mov     eax, dword ptr [ebx+410]
+005F6457   .  E8 DCA4EDFF   call    004D0938
+005F645C   .  6A 00         push    0
+005F645E   .  68 C4645F00   push    005F64C4                       ;  系统提示
+005F6463   .  68 44655F00   push    005F6544                       ;  序列号已记录，请重新登陆！
+005F6468   .  8BC3          mov     eax, ebx
+005F646A   .  E8 A19DE7FF   call    00470210
+005F646F   .  50            push    eax                  ; |hOwner
+005F6470   .  E8 C718E1FF   call    <jmp.&user32.MessageBoxA>        ; \\(initial cpu selection)
+```
+
+分析得知，程序将序列号写入到了数据库的 `xvalue` 字段中（数据库文件为 `FMY.dll`，密码：`fmy213344lzh`，不要被后缀迷惑）。
+
+既然写入到了数据库，那么在注册验证的时候肯定会先读取；查找`select sys\_sys where id=1`相关的的字符串，果然找到`Select * from sys\_sys where id=1`；重新加载后，断下：
+
+```
+005F9673   .  BA D89A5F00   mov     edx, 005F9AD8                    ;  select \* from sys\_sys where id=1
+005F9678   .  8B08          mov     ecx, dword ptr [eax]
+005F967A   .  FF51 38       call    dword ptr [ecx+38]
+005F967D   .  8B45 FC       mov     eax, dword ptr [ebp-4]
+005F9680   .  8B80 14030000 mov     eax, dword ptr [eax+314]
+005F9686   .  E8 D1F2EBFF   call    004B895C
+005F968B   .  8D4D D4       lea     ecx, dword ptr [ebp-2C]
+005F968E   .  8B45 FC       mov     eax, dword ptr [ebp-4]
+005F9691   .  8B80 14030000 mov     eax, dword ptr [eax+314]
+005F9697   .  BA 049B5F00   mov     edx, 005F9B04                    ;  xvalue
+005F969C   .  E8 B301ECFF   call    004B9854                         ;  读取序列号
+005F96A1      8D55 D4       lea     edx, dword ptr [ebp-2C]
+005F96A4   .  A1 B02C6000   mov     eax, dword ptr [602CB0]
+005F96A9   .  E8 BEB5E1FF   call    00414C6C
+005F96AE   .  8B45 FC       mov     eax, dword ptr [ebp-4]
+005F96B1   .  8B80 14030000 mov     eax, dword ptr [eax+314]
+005F96B7   .  BA 149B5F00   mov     edx, 005F9B14                    ;  x2value
+005F96BC   .  E8 A303ECFF   call    004B9A64
+005F96C1   .  8D55 D0       lea     edx, dword ptr [ebp-30]
+005F96C4   .  8B08          mov     ecx, dword ptr [eax]
+005F96C6   .  FF51 60       call    dword ptr [ecx+60]
+005F96C9   .  8B55 D0       mov     edx, dword ptr [ebp-30]
+005F96CC   .  B8 24546000   mov     eax, 00605424                    ;  t 剞
+005F96D1   .  E8 FEB1E0FF   call    004048D4
+005F96D6   .  8B45 FC       mov     eax, dword ptr [ebp-4]
+005F96D9   .  8B80 14030000 mov     eax, dword ptr [eax+314]
+005F96DF   .  BA 249B5F00   mov     edx, 005F9B24                    ;  skinx
+005F96E4   .  E8 7B03ECFF   call    004B9A64
+005F96E9   .  8D55 CC       lea     edx, dword ptr [ebp-34]
+005F96EC   .  8B08          mov     ecx, dword ptr [eax]
+005F96EE   .  FF51 60       call    dword ptr [ecx+60]
+005F96F1   .  8B55 CC       mov     edx, dword ptr [ebp-34]
+005F96F4   .  B8 20546000   mov     eax, 00605420
+005F96F9   .  E8 D6B1E0FF   call    004048D4
+005F96FE   .  8B45 FC       mov     eax, dword ptr [ebp-4]
+005F9701   .  8B80 14030000 mov     eax, dword ptr [eax+314]
+005F9707   .  BA 349B5F00   mov     edx, 005F9B34                    ;  isji
+005F970C   .  E8 5303ECFF   call    004B9A64
+005F9711   .  8D55 C8       lea     edx, dword ptr [ebp-38]
+005F9714   .  8B08          mov     ecx, dword ptr [eax]
+005F9716   .  FF51 60       call    dword ptr [ecx+60]
+005F9719   .  8B45 C8       mov     eax, dword ptr [ebp-38]
+005F971C   .  BA 449B5F00   mov     edx, 005F9B44                    ;  1
+005F9721   .  E8 66B5E0FF   call    00404C8C
+005F9726   .  75 7D         jnz     short 005F97A5
+005F9728   .  8B45 FC       mov     eax, dword ptr [ebp-4]
+005F972B   .  8B80 0C030000 mov     eax, dword ptr [eax+30C]
+005F9731   .  B2 01         mov     dl, 1
+005F9733   .  8B08          mov     ecx, dword ptr [eax]
+005F9735   .  FF91 CC000000 call    dword ptr [ecx+CC]
+005F973B   .  8B45 FC       mov     eax, dword ptr [ebp-4]
+005F973E   .  8B80 14030000 mov     eax, dword ptr [eax+314]
+005F9744   .  BA 509B5F00   mov     edx, 005F9B50                    ;  isuser
+005F9749   .  E8 1603ECFF   call    004B9A64                         ;  读取用户
+005F974E   .  8D55 C4       lea     edx, dword ptr [ebp-3C]
+005F9751   .  8B08          mov     ecx, dword ptr [eax]
+005F9753   .  FF51 60       call    dword ptr [ecx+60]
+005F9756   .  8B55 C4       mov     edx, dword ptr [ebp-3C]
+005F9759   .  8B45 FC       mov     eax, dword ptr [ebp-4]
+005F975C   .  8B98 00030000 mov     ebx, dword ptr [eax+300]
+005F9762   .  8B83 3C020000 mov     eax, dword ptr [ebx+23C]
+005F9768   .  8B08          mov     ecx, dword ptr [eax]
+005F976A   .  FF51 54       call    dword ptr [ecx+54]
+005F976D   .  8BD0          mov     edx, eax
+005F976F   .  8BC3          mov     eax, ebx
+005F9771   .  8B08          mov     ecx, dword ptr [eax]
+005F9773   .  FF91 D0000000 call    dword ptr [ecx+D0]
+005F9779   .  8B45 FC       mov     eax, dword ptr [ebp-4]
+005F977C   .  8B80 14030000 mov     eax, dword ptr [eax+314]
+005F9782   .  BA 609B5F00   mov     edx, 005F9B60                    ;  ispwd
+005F9787   .  E8 D802ECFF   call    004B9A64                         ;  读取密码
+005F978C   .  8D55 C0       lea     edx, dword ptr [ebp-40]
+005F978F   .  8B08          mov     ecx, dword ptr [eax]
+005F9791   .  FF51 60       call    dword ptr [ecx+60]
+005F9794   .  8B55 C0       mov     edx, dword ptr [ebp-40]
+005F9797   .  8B45 FC       mov     eax, dword ptr [ebp-4]
+005F979A   .  8B80 FC020000 mov     eax, dword ptr [eax+2FC]
+005F97A0   .  E8 C300E7FF   call    00469868
+005F97A5   >  33C0          xor     eax, eax
+005F97A7   .  55           push    ebp
+005F97A8   .  68 E3975F00   push    005F97E3
+005F97AD   .  64:FF30       push    dword ptr fs:[eax]
+005F97B0   .  64:8920       mov     dword ptr fs:[eax], esp
+005F97B3   .  8D45 BC       lea     eax, dword ptr [ebp-44]
+005F97B6   .  50            push    eax
+005F97B7   .  B9 709B5F00   mov     ecx, 005F9B70                    ;  fmy
+005F97BC   .  8B15 24546000 mov     edx, dword ptr [605424]
+005F97C2   .  8B45 FC       mov     eax, dword ptr [ebp-4]
+005F97C5   .  E8 A2050000   call    005F9D6C                         ;  读取第一次记录时间，用来判断试用期
+005F97CA   .  8B45 BC       mov     eax, dword ptr [ebp-44]
+005F97CD   .  E8 5239E1FF   call    0040D124
+```
+
+
+
+得到序列号后，我们就需要找到注册算法位置；首先，找关键跳转，找到关键跳转后，注册算法应该就在附近了（需要先将系统时间向后调一个月，使试用过期）；查找字符串，看到“您的软件试用过期，请注册后再使用,联系 qq:176716887”，断下后，向上找关键跳转，很快就发现了：
+
+代码:
+
+```
+005EDB27  |> \A1 08546000   mov     eax, dword ptr \[605408\]           ;  假码
+005EDB2C  |.   8B15 04546000 mov     edx, dword ptr \[605404\]           ;  序列号
+005EDB32  |.   E8 5571E1FF   call    00404C8C                           ;  比较是否相等
+005EDB37  |.   0F84 8F010000 je      005EDCCC                           ;  关键跳转
+```
+
+看到序列号后，我们就需要找到序列号的生成算法了，继续向上看，找到：
+
+代码:
+
+```
+005ED976  |.   D80D A0DF5E00 fmul    dword ptr \[5EDFA0\]              ;  浮点型的注册码*5
+005ED97C  |.   D825 A4DF5E00 fsub    dword ptr \[5EDFA4\]              ;  浮点型的注册码*5-1982
+005ED982  |.   83C4 F4       add     esp, -0C
+005ED985  |.   DB3C24        fstp    tbyte ptr \[esp\]
+005ED988  |.   9B            wait
+005ED989  |.   8D45 F8       lea     eax, dword ptr \[ebp-8\]
+005ED98C  |.   E8 9FD8E1FF   call    0040B230                           ;  将浮点型序列号转换成字符串
+```
+
+这个就是注册算法了，是不是很简单，只需将 `注册码*5-1982` 就得到了序列号，连注册机都省了。
+
+总结，`序列号=注册码*5-1982`。
