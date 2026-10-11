@@ -1,0 +1,137 @@
+
+```asm
+0054A48E  |.  8B45 F8       mov     eax, dword ptr [ebp-8]            ; 假码  
+0054A491  |.  E8 06A7EBFF   call    00404B9C  
+0054A496  |.  83F8 16       cmp     eax, 16  
+0054A499  |.  0F85 72020000 jnz     0054A711  
+0054A49F  |.  8B45 F8       mov     eax, dword ptr [ebp-8]  
+0054A4A2  |.  E8 F5A6EBFF   call    00404B9C                         ; 好像不用检测这么多次吧！！  
+0054A4A7  |.  83F8 16       cmp     eax, 16                          ; 作者的用意我想不通  
+0054A4AA  |.  0F85 61020000 jnz     0054A711  
+0054A4B0  |.  8B45 F8       mov     eax, dword ptr [ebp-8]  
+0054A4B3  |.  E8 E4A6EBFF   call    00404B9C  
+0054A4B8  |.  83F8 16       cmp     eax, 16  
+0054A4BB  |.  0F85 50020000 jnz     0054A711  
+0054A4C1  |.  8D4D EC       lea     ecx, dword ptr [ebp-14]  
+0054A4C4  |.  BA 03000000   mov     edx, 3  
+0054A4C9  |.  8B83 84040000 mov     eax, dword ptr [ebx+484]  
+0054A4CF  |.  E8 C43FEFFF   call    0043E498  
+0054A4D4  |.  8B45 EC       mov     eax, dword ptr [ebp-14]          ; "ACM"  
+0054A4D7  |.  BA 44A75400   mov     edx, 0054A744                    ; acm  
+0054A4DC  |.  E8 07A8EBFF   call    00404CE8                         ; 头三位应当为“ACM”  
+0054A4E1  |.  0F85 2A020000 jnz     0054A711  
+0054A4E7  |.  8B45 F8       mov     eax, dword ptr [ebp-8]           ; (ASCII "ACM-123456-123456-1234")  
+0054A4EA  |.  E8 ADA6EBFF   call    00404B9C  
+0054A4EF  |.  83F8 16       cmp     eax, 16                          ; 又检测  
+0054A4F2  |.  0F85 19020000 jnz     0054A711  
+0054A4F8  |.  8D4D E8       lea     ecx, dword ptr [ebp-18]  
+0054A4FB  |.  BA 03000000   mov     edx, 3  
+0054A500  |.  8B83 84040000 mov     eax, dword ptr [ebx+484]  
+0054A506  |.  E8 8D3FEFFF   call    0043E498                         ; 取字符函数  
+0054A50B  |.  8B45 E8       mov     eax, dword ptr [ebp-18]  
+0054A50E  |.  BA 44A75400   mov     edx, 0054A744                    ; acm  
+0054A513  |.  E8 D0A7EBFF   call    00404CE8  
+0054A518  |.  0F85 F3010000 jnz     0054A711  
+0054A51E  |.  8B45 F8       mov     eax, dword ptr [ebp-8]  
+0054A521  |.  E8 76A6EBFF   call    00404B9C  
+0054A526  |.  83F8 16       cmp     eax, 16  
+0054A529  |.  0F85 E2010000 jnz     0054A711  
+0054A52F  |.  8D4D E4       lea     ecx, dword ptr [ebp-1C]  
+0054A532  |.  BA 03000000   mov     edx, 3  
+0054A537  |.  8B83 84040000 mov     eax, dword ptr [ebx+484]          ; 作者很喜欢重复重复重复的比较  
+0054A53D  |.  E8 563FEFFF   call    0043E498  
+0054A542  |.  8B45 E4       mov     eax, dword ptr [ebp-1C]  
+0054A545  |.  BA 44A75400   mov     edx, 0054A744                    ; acm  
+0054A54A  |.  E8 99A7EBFF   call    00404CE8  
+0054A54F  |.  0F85 BC010000 jnz     0054A711  
+0054A555  |.  8D4D F8       lea     ecx, dword ptr [ebp-8]  
+0054A558  |.  BA 13000000   mov     edx, 13                          ; 常数  
+0054A55D  |.  8B83 84040000 mov     eax, dword ptr [ebx+484]  
+0054A563  |.  E8 A83FEFFF   call    0043E510  
+0054A568  |.  837D FC 00    cmp     dword ptr [ebp-4], 0             ; 用户名输入没有  
+0054A56C  |.  0F84 9F010000 je      0054A711  
+0054A572  |.  837D F8 00    cmp     dword ptr [ebp-8], 0            ; 后面那部分有没有东西  
+0054A576  |.  0F84 95010000 je      0054A711  
+0054A57C  |.  33DB          xor     ebx, ebx  
+0054A57E  |>  8BFB          /mov    edi, ebx                         ; 循环开始  
+0054A580  |.  83C7 01       |add     edi, 1                          ; 计数器  
+0054A583  |.  71 05         |jno     short 0054A58A  
+0054A585  |.  E8 3294EBFF   |call    004039BC  
+0054A58A  |>  8B45 F8       |mov     eax, dword ptr [ebp-8]          ; 后面那部分  
+0054A58D  |.  4F           |dec     edi  
+0054A58E  |.  85C0         |test    eax, eax  
+0054A590  |.  74 05        |je      short 0054A597  
+0054A592  |.  3B78 FC       |cmp     edi, dword ptr [eax-4]  
+0054A595  |.  72 05        |jb      short 0054A59C  
+0054A597  |>  E8 1894EBFF   |call    004039B4  
+0054A59C  |>  47           |inc     edi  
+0054A59D  |.  807C38 FF 2D  |cmp     byte ptr [eax+edi-1], 2D         ; 和 2D“-”比较  
+0054A5A2  |.  74 2A        |je      short 0054A5CE  
+0054A5A4  |.  8D45 E0       |lea     eax, dword ptr [ebp-20]  
+0054A5A7  |.  8B55 F8       |mov     edx, dword ptr [ebp-8]  
+0054A5AA  |.  4F           |dec     edi  
+0054A5AB  |.  85D2         |test    edx, edx  
+0054A5AD  |.  74 05        |je      short 0054A5B4  
+0054A5AF  |.  3B7A FC       |cmp     edi, dword ptr [edx-4]  
+0054A5B2  |.  72 05        |jb      short 0054A5B9  
+0054A5B4  |>  E8 FB93EBFF   |call    004039B4  
+0054A5B9  |>  47           |inc     edi  
+0054A5BA  |.  8A543A FF     |mov     dl, byte ptr [edx+edi-1]  
+0054A5BE  |.  E8 F1A4EBFF   |call    00404AB4  
+0054A5C3  |.  8B55 E0       |mov     edx, dword ptr [ebp-20]  
+0054A5C6  |.  8D45 F4       |lea     eax, dword ptr [ebp-C]  
+0054A5C9  |.  E8 D6A5EBFF   |call    00404BA4  
+0054A5CE  |>  43           |inc     ebx  
+0054A5CF  |.  83FB 13       |cmp     ebx, 13  
+0054A5D2  |.^ 75 AA         \jnz     short 0054A57E                   ; 这个循环是检测和去掉这个符号“-”间隔符号  
+0054A5D4  |.  8D45 F8       lea     eax, dword ptr [ebp-8]  
+0054A5D7  |.  8B55 F4       mov     edx, dword ptr [ebp-C]           ; 去掉符号后 的字符串："1234561234561234"  
+0054A5DA  |.  E8 85A3EBFF   call    00404964  
+0054A5DF  |.  8D45 F4       lea     eax, dword ptr [ebp-C]  
+0054A5E2  |.  E8 E5A2EBFF   call    004048CC  
+0054A5E7  |.  8B45 F8       mov     eax, dword ptr [ebp-8]  
+0054A5EA  |.  E8 ADA5EBFF   call    00404B9C                         ; 计算位数  
+0054A5EF  |.  83F8 10       cmp     eax, 10                          ; 从这里我们看出，输入的假码要应该有 3 个“-”。哈哈  
+0054A5F2      0F85 19010000 jnz     0054A711                         ; 这个 10H 害我想了好长时间。  
+0054A5F8  |.  33DB          xor     ebx, ebx  
+0054A5FA  |>  8BC3          /mov    eax, ebx  
+0054A5FC  |.  25 01000080   |and     eax, 80000001  
+0054A601  |.  79 05         |jns     short 0054A608  
+0054A603  |.  48           |dec     eax  
+0054A604  |.  83C8 FE      |or      eax, FFFFFFFE  
+0054A607  |.  40           |inc     eax  
+0054A608  |>  85C0          |test    eax, eax  
+0054A60A  |.  75 38        |jnz     short 0054A644  
+0054A60C  |.  8D45 DC       |lea     eax, dword ptr [ebp-24]  
+0054A60F  |.  8BD3          |mov     edx, ebx  
+0054A611  |.  83C2 01       |add     edx, 1  
+0054A614  |.  71 05        |jno     short 0054A61B  
+0054A616  |.  E8 A193EBFF   |call    004039BC  
+0054A61B  |>  8B4D F8       |mov     ecx, dword ptr [ebp-8]  
+0054A61E  |.  4A           |dec     edx  
+0054A61F  |.  85C9         |test    ecx, ecx  
+0054A621  |.  74 05        |je      short 0054A628  
+0054A623  |.  3B51 FC       |cmp     edx, dword ptr [ecx-4]  
+0054A626  |.  72 05        |jb      short 0054A62D  
+0054A628  |>  E8 8793EBFF   |call    004039B4  
+0054A62D  |>  42           |inc     edx  
+0054A62E  |.  8A5411 FF     |mov     dl, byte ptr [ecx+edx-1]         ; 取字符  
+0054A632  |.  E8 7DA4EBFF   |call    00404AB4  
+0054A637  |.  8B55 DC       |mov     edx, dword ptr [ebp-24]  
+0054A63A  |.  8D45 F0       |lea     eax, dword ptr [ebp-10]  
+0054A63D  |.  E8 62A5EBFF   |call    00404BA4  
+0054A642  |.  EB 36         |jmp     short 0054A67A  
+0054A644  |>  8D45 D8       |lea     eax, dword ptr [ebp-28]  
+0054A647  |.  8BD3          |mov     edx, ebx  
+0054A649  |.  83C2 01       |add     edx, 1  
+0054A64C  |.  71 05        |jno     short 0054A653  
+0054A64E  |.  E8 6993EBFF   |call    004039BC  
+0054A653  |>  8B4D F8       |mov     ecx, dword ptr [ebp-8]  
+0054A656  |.  4A           |dec     edx  
+0054A657  |.  85C9         |test    ecx, ecx  
+0054A659  |.  74 05        |je      short 0054A660  
+0054A65B  |.  3B51 FC       |cmp     edx, dword ptr [ecx-4]  
+0054A65E  |.  72 05        |jb      short 0054A665  
+0054A660  |>  E8 4F93EBFF   |call    004039B4  
+0054A665  |>  42           |inc     edx  
+```
