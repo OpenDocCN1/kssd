@@ -1,0 +1,847 @@
+
+# 极速传真 `SpeedFax` 2.4
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50493.htm`](https://www.pediy.com/kssd/pediy05/pediy50493.htm)
+
+**极速传真 `SpeedFax` 2.4 破解手记--程序逆向分析算法**
+
+- 作者：`newlaos`
+- 整理日期：2003.3.14（华军网）
+- 最新版本：2.4
+- 文件大小：681KB
+- 软件授权：共享软件
+- 使用平台：`Win9x/Me/NT/2000`
+- 发布公司：[http://www.speedfax.onchina.net/](http://www.speedfax.onchina.net/)
+
+**软件简介**：快捷高效的通过电脑收发传真精典工具，功能特色如下：
+1. ◆可视化拖放式传真封面文件编辑、设计，真正图文并茂；
+2. ◆支持 `Class1`/`class2`/`class2.0` 等多类传真卡并可自动侦测；
+3. ◆功能强大的字符宏替换，轻松创建各类传真标注；
+4. ◆可导入多种图像格式文件，方便实现传真图片和印章盖戳；
+5. ◆一次添加数百个传真任务，极适合商务传真群发广播；
+6. ◆可以手动方式接收传真，也可自动监控并接收传真；
+7. ◆支持传真文件翻转、放大、缩小、压缩等方式浏览；
+8. ◆轻松打印传真文件，支持一边接收传真一边自动打印传真；
+9. ◆支持 `WORD`/`WPS` 等各类文字办公处理系统直接转发传真；
+10. ◆真正绿色软件，无需安装即可使用，操作简便，界面美观。
+
+**加密方式**：注册码
+
+**功能限制**：次数限制
+
+**`PJ` 工具**：`TRW20001.23` 注册版、`PE-SCAN3.31`、`W32Dasm8.93` 黄金版，`FI2.5`
+
+**`PJ` 日期**：2003-03-17
+
+**作者 `newlaos` 申明**：只是学习，请不用于商业用途或是将本文方法制作的注册机任意传播，造成后果，本人一概不负。
+
+## 分析过程
+
+1. 先用 `FI2.5` 看一下主程序 `speedfaxV24.exe`，没有加壳
+2. 用 `W32Dasm8.93` 黄金版对主程序进行静态反汇编，再用串式数据参考，找到 `"软件登记注册成功!"`(很经典的句子)，双击来到下面代码段。这样就找到注册码的计算部分。
+3. 再用 `TRW20001.23` 注册版进行动态跟踪，下断 `BPX 4FF938`(通常在注册成功与否前面一些下断，这样，才能找到关键部分)，先输入假码 `78787878`
+
+......
+
+......
+
+```
+:004FF924 8D4DF4                    lea ecx, dword ptr [ebp-0C]
+
+* Possible StringData Ref from Code Obj -> "请输入您的软件注册码"
+                              |
+:004FF927 BA2CFA4F00              mov edx, 004FFA2C
+
+* Possible StringData Ref from Code Obj -> "登记注册"
+                              |
+:004FF92C B84CFA4F00              mov eax, 004FFA4C
+:004FF931 E87A36F4FF              call 00442FB0
+:004FF936 3C01                    cmp al, 01             <===看你是点了确定还是放弃
+:004FF938 0F85A8000000            jne 004FF9E6           <===如果是点的放弃，则跳到后面去了。
+:004FF93E 8D55D4                  lea edx, dword ptr [ebp-2C]
+:004FF941 8B45F4                  mov eax, dword ptr [ebp-0C]  <===EAX=78787878
+:004FF944 E87B9DF0FF              call 004096C4
+
+                   <===EAX 放了一个地址指针，正好指向我们输入的假码
+:004FF949 8B45D4                  mov eax, dword ptr [ebp-2C]  <===EAX=78787878
+:004FF94C E8C3A0F0FF              call 00409A14
+
+                   <===将注册码进行第一次加工，当输入假码是 78787878 时，这里 EAX=4B23526，从下面推上来，EAX 应该等于 199FF22，才能注册成功，F8 跟进看个究竟
+:004FF951 8945F8                  mov dword ptr [ebp-08], eax
+:004FF954 8955FC                  mov dword ptr [ebp-04], edx
+:004FF957 6A00                    push 00000000
+:004FF959 6A1B                    push 0000001B
+:004FF95B 8B45F8                  mov eax, dword ptr [ebp-08]   <===上个 CALL 计算出来的 EAX=4B23526
+:004FF95E 8B55FC                  mov edx, dword ptr [ebp-04]   <===EDX=0
+:004FF961 E88266F0FF              call 00405FE8
+
+                   <===将注册码进行第二次加工，当输入假码是 78787878 时，这里 EAX=2C86B5，从下面推上来，EAX 应该等于 F2F6，才能注册成功，F8 跟进看个究竟
+:004FF966 8945F8                  mov dword ptr [ebp-08], eax   <===这里就算出了 EAX，这里要正确则 EAX=686+EC70=F2F6
+:004FF969 8955FC                  mov dword ptr [ebp-04], edx
+:004FF96C 8B45F8                  mov eax, dword ptr [ebp-08]
+:004FF96F 8B55FC                  mov edx, dword ptr [ebp-04]
+:004FF972 2D70EC0000              sub eax, 0000EC70
+
+                   <===第二次计算出来的 EAX 再减去 EC70，成功的关键就是要等于 686
+:004FF977 83DA00                  sbb edx, 00000000       <===EDX=0
+:004FF97A 8945F8                  mov dword ptr [ebp-08], eax
+:004FF97D 8955FC                  mov dword ptr [ebp-04], edx
+:004FF980 8D45D8                  lea eax, dword ptr [ebp-28]
+:004FF983 E8CCEDFFFF              call 004FE754
+:004FF988 8B45D8                  mov eax, dword ptr [ebp-28]  <===这里的值是经过上面计算好的，是固定的 686
+:004FF98B 99                       cdq                         <===这里 EDX 被清 0
+:004FF98C 8945E8                  mov dword ptr [ebp-18], eax
+:004FF98F 8955EC                  mov dword ptr [ebp-14], edx
+:004FF992 8B45F8                  mov eax, dword ptr [ebp-08]   <===这里说明，[EBP-08]必须和[EBP-18]相等
+:004FF995 8B55FC                  mov edx, dword ptr [ebp-04]   <===这里说明，[EBP-04]必须和[ebp-14]相等
+:004FF998 3B55EC                  cmp edx, dword ptr [ebp-14]    <===必须相等
+:004FF99B 7534                    jne 004FF9D1       <===都是 0，所以不会跳过去的。
+:004FF99D 3B45E8                  cmp eax, dword ptr [ebp-18]
+
+                   <===必须相等(EAX 要等于 686)， 这个 686 好象是计算机的 CPU ID
+:004FF9A0 752F                    jne 004FF9D1       <===跳过去就 OVER 了
+:004FF9A2 8B83B4030000            mov eax, dword ptr [ebx+000003B4]
+:004FF9A8 E8037BFCFF              call 004C74B0
+:004FF9AD 6A00                    push 00000000
+:004FF9AF 668B0D58FA4F00          mov cx, word ptr [004FFA58]
+:004FF9B6 B202                    mov dl, 02
+
+* Possible StringData Ref from Code Obj -> "软件登记注册成功!"
+                              |
+:004FF9B8 B864FA4F00              mov eax, 004FFA64
+:004FF9BD E8D234F4FF              call 00442E94
+:004FF9C2 33D2                    xor edx, edx
+:004FF9C4 8B838C030000            mov eax, dword ptr [ebx+0000038C]
+:004FF9CA E839C3F5FF              call 0045BD08
+:004FF9CF EB15                    jmp 004FF9E6
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:004FF99B(C), :004FF9A0(C)
+|
+:004FF9D1 6A00                    push 00000000
+:004FF9D3 668B0D58FA4F00          mov cx, word ptr [004FFA58]
+:004FF9DA B201                    mov dl, 01
+
+* Possible StringData Ref from Code Obj -> "软件注册号错误!"
+                              |
+:004FF9DC B880FA4F00              mov eax, 004FFA80
+:004FF9E1 E8AE34F4FF              call 00442E94
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:004FF938(C), :004FF9CF(U)
+|
+:004FF9E6 33C0                    xor eax, eax
+:004FF9E8 5A                      pop edx
+:004FF9E9 59                      pop ecx
+:004FF9EA 59                      pop ecx
+:004FF9EB 648910                  mov dword ptr fs:[eax], edx
+:004FF9EE 680BFA4F00              push 004FFA0B
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004FFA09(U)
+|
+:004FF9F3 8D45D4                  lea eax, dword ptr [ebp-2C]
+:004FF9F6 E8F555F0FF              call 00404FF0
+:004FF9FB 8D45F4                  lea eax, dword ptr [ebp-0C]
+:004FF9FE E8ED55F0FF              call 00404FF0
+:004FFA03 C3                      ret
+
+:004FFA04 E98B4FF0FF              jmp 00404994
+:004FFA09 EBE8                    jmp 004FF9F3
+:004FFA0B 5B                      pop ebx
+:004FFA0C 8BE5                    mov esp, ebp
+:004FFA0E 5D                      pop ebp
+:004FFA0F C3                      ret
+```
+
+`---------将注册码进行第二次加工的 CALL ，F8 跟进(004FF961 call 00405FE8)-------------------------`
+
+`------------------注，要想正确，则 EAX 的返回值应该是 F2F6-------------------------`
+
+```
+:00405FE8 55                      push ebp
+:00405FE9 53                      push ebx
+:00405FEA 56                      push esi
+:00405FEB 57                      push edi
+:00405FEC 31FF                    xor edi, edi
+:00405FEE 8B5C2414                mov ebx, dword ptr [esp+14]     <===EBX=1B(固定)
+:00405FF2 8B4C2418                mov ecx, dword ptr [esp+18]
+:00405FF6 09C9                    or ecx, ecx
+:00405FF8 7508                    jne 00406002     <===不跳
+:00405FFA 09D2                    or edx, edx
+:00405FFC 745C                    je 0040605A      <===跳
+:00405FFE 09DB                    or ebx, ebx
+:00406000 7458                    je 0040605A
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00405FF8(C)
+|
+:00406002 09D2                    or edx, edx
+:00406004 790A                    jns 00406010
+:00406006 F7DA                    neg edx
+:00406008 F7D8                    neg eax
+:0040600A 83DA00                  sbb edx, 00000000
+:0040600D 83CF01                  or edi, 00000001
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+
+
+## 汇编代码段 1
+
+```
+|:00406004(C)
+
+|
+
+:00406010 09C9                   or ecx, ecx
+:00406012 790A                   jns 0040601E
+:00406014 F7D9                   neg ecx
+:00406016 F7DB                   neg ebx
+:00406018 83D900                 sbb ecx, 00000000
+:0040601B 83F701                 xor edi, 00000001
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00406012(C)
+
+|
+
+:0040601E 89CD                   mov ebp, ecx
+:00406020 B940000000             mov ecx, 00000040
+:00406025 57                     push edi
+:00406026 31FF                   xor edi, edi
+:00406028 31F6                   xor esi, esi
+:0040602A D1E0                   shl eax, 1
+:0040602C D1D2                   rcl edx, 1
+:0040602E D1D6                   rcl esi, 1
+:00406030 D1D7                   rcl edi, 1
+:00406032 39EF                   cmp edi, ebp
+:00406034 720B                   jb 00406041
+:00406036 7704                   ja 0040603C
+:00406038 39DE                   cmp esi, ebx
+:0040603A 7205                   jb 00406041
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00406036(C)
+
+|
+
+:0040603C 29DE                   sub esi, ebx
+:0040603E 19EF                   sbb edi, ebp
+:00406040 40                     inc eax
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:00406034(C), :0040603A(C)
+
+|
+
+:00406041 E2E7                   loop 0040602A
+:00406043 5B                     pop ebx
+:00406044 F7C301000000           test ebx, 00000001
+:0040604A 7407                   je 00406053
+:0040604C F7DA                   neg edx
+:0040604E F7D8                   neg eax
+:00406050 83DA00                 sbb edx, 00000000
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:0040604A(C), :0040605E(U)
+
+|
+
+:00406053 5F                     pop edi
+:00406054 5E                     pop esi
+:00406055 5B                     pop ebx
+:00406056 5D                     pop ebp
+:00406057 C20800                 ret 0008
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:00405FFC(C), :00406000(C)
+
+|
+
+:0040605A F7F3                   div ebx
+    <===一下子跳到这里 EBX=1B，要求正确则 EAX 返回 F2F6，所以这之前 EAX 应该等于 199FF2(双字运算)
+:0040605C 31D2                   xor edx, edx
+:0040605E EBF3                   jmp 00406053
+:00406060 C3                     ret
+
+------将注册码进行第一次加工的 CALL ，F8 跟进(:004FF94C call 00409A14)-------------------------
+------------------注，要想正确，则 EAX 的返回值应该是 199FF2------------------------------------
+```
+
+## 函数 `00409A14` 分析
+
+```
+:00409A14 53                     push ebx
+:00409A15 83C4EC                 add esp, FFFFFFEC
+:00409A18 8BD8                   mov ebx, eax
+:00409A1A 8D542408               lea edx, dword ptr [esp+08]
+:00409A1E 8BC3                   mov eax, ebx      <===EAX=EBX=78787878
+:00409A20 E897C7FFFF             call 004061BC     <===这个 CALL，就可以算出 EAX=4B23526 出来，F8 进去
+:00409A25 890424                 mov dword ptr [esp], eax
+:00409A28 89542404               mov dword ptr [esp+04], edx
+:00409A2C 837C240800             cmp dword ptr [esp+08], 00000000
+:00409A31 7419                   je 00409A4C       <===输入假码 78787878 时，这个就跳走
+:00409A33 895C240C               mov dword ptr [esp+0C], ebx
+:00409A37 C64424100B             mov [esp+10], 0B
+:00409A3C 8D54240C               lea edx, dword ptr [esp+0C]
+:00409A40 A1C8555000             mov eax, dword ptr [005055C8]
+:00409A45 33C9                   xor ecx, ecx
+:00409A47 E86CF9FFFF             call 004093B8
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00409A31(C)
+
+|
+
+:00409A4C 8B0424                 mov eax, dword ptr [esp]
+:00409A4F 8B542404               mov edx, dword ptr [esp+04]
+:00409A53 83C414                 add esp, 00000014
+:00409A56 5B                     pop ebx
+:00409A57 C3                     ret
+
+------------------------------------------------------------------------------------------
+:00409A20  call 004061BC    这个 CALL，就可以算出 EAX=4B23526 出来(要求 EAX=199FF2)，
+F8 进去来到下面代码段：
+```
+
+## 函数 `004061BC` 分析
+
+```
+:004061BC 53                     push ebx      <===EBX=78787878
+:004061BD 56                     push esi
+:004061BE 57                     push edi
+:004061BF 55                     push ebp
+:004061C0 83C4EC                 add esp, FFFFFFEC
+:004061C3 891424                 mov dword ptr [esp], edx
+:004061C6 8BF0                   mov esi, eax  <===ESI=EAX=78787878
+:004061C8 BD01000000             mov ebp, 00000001
+:004061CD 33FF                   xor edi, edi
+:004061CF C744240800000000       mov [esp+08], 00000000
+:004061D7 C744240C00000000       mov [esp+0C], 00000000
+:004061DF 85F6                   test esi, esi <===当然不为零了
+:004061E1 750B                   jne 004061EE  <===这里跳走，说时我们输入不为空
+:004061E3 8B0424                 mov eax, dword ptr [esp]
+:004061E6 8928                   mov dword ptr [eax], ebp
+:004061E8 E9E1010000             jmp 004063CE
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:004061F3(C)
+
+|
+
+:004061ED 45                     inc ebp
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:004061E1(C)
+
+|
+
+:004061EE 807C2EFF20             cmp byte ptr [esi+ebp-01], 20 <===从 004061E1 跳到这一行
+:004061F3 74F8                   je 004061ED     <===这好象是去掉输入字符串中的空格，如果第一个不是空格，就不跳了!
+:004061F5 C644241000             mov [esp+10], 00
+:004061FA 8A442EFF               mov al, byte ptr [esi+ebp-01]
+:004061FE 3C2D                   cmp al, 2D        <===这里是看第一个字符是不是“-”
+:00406200 7508                   jne 0040620A      <===不是则跳走
+:00406202 C644241001             mov [esp+10], 01
+:00406207 45                     inc ebp
+:00406208 EB05                   jmp 0040620F
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00406200(C)
+
+|
+
+:0040620A 3C2B                   cmp al, 2B        <===这里是看第一个字符是不是“+”
+:0040620C 7501                   jne 0040620F      <===不是则跳走
+:0040620E 45                     inc ebp
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:00406208(U), :0040620C(C)
+
+|
+
+:0040620F B301                   mov bl, 01        <===再次跳到这一行。
+:00406211 807C2EFF24             cmp byte ptr [esi+ebp-01], 24 <===这里是看第一个字符是不是“$”
+:00406216 741B                   je 00406233              <===不跳
+:00406218 807C2EFF30             cmp byte ptr [esi+ebp-01], 30 <===这里是看第一个字符是不是“0”
+:0040621D 0F85DA000000           jne 004062FD              <===不是，则跳走
+:00406223 8A042E                 mov al, byte ptr [esi+ebp]
+:00406226 E8A9CAFFFF             call 00402CD4
+:0040622B 3C58                   cmp al, 58                  <===是不 x(小写)
+:0040622D 0F85CA000000           jne 004062FD
+
+*** 注：这里好几个判断跳转，试一下，最后确定正确的注册码应该为 0x??????的形式，把注册码改为 0x787878 重新来。
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00406216(C)
+
+|
+
+:00406233 807C2EFF30             cmp byte ptr [esi+ebp-01], 30 <==看第一个字符是不是 0
+:00406238 7501                   jne 0040623B              <==是所以不跳
+:0040623A 45                     inc ebp
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00406238(C)
+
+|
+
+:0040623B 45                     inc ebp
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:004062D1(U)
+
+|
+
+:0040623C 8A442EFF               mov al, byte ptr [esi+ebp-01] <==依次取注册码的第 3 位到第 8 位
+:00406240 8BD0                   mov edx, eax
+:00406242 80C2D0                 add dl, D0
+:00406245 80EA0A                 sub dl, 0A
+:00406248 7212                   jb 0040625C
+:0040624A 80C2F9                 add dl, F9
+```
+
+
+
+:0040624D 80EA06  sub dl, 06
+
+:00406250 7217  jb 00406269
+
+:00406252 80C2E6  add dl, E6
+
+:00406255 80EA06  sub dl, 06
+
+:00406258 721C  jb 00406276
+
+:0040625A EB7A  jmp 004062D6 <==循环了 5 次后，就这里跳出
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00406248(C)
+
+|
+
+:0040625C 8BF8  mov edi, eax
+
+:0040625E 81E7FF000000  and edi, 000000FF
+
+:00406264 83EF30  sub edi, 00000030
+
+:00406267 EB18  jmp 00406281
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00406250(C)
+
+|
+
+:00406269 8BF8  mov edi, eax
+
+:0040626B 81E7FF000000  and edi, 000000FF
+
+:00406271 83EF37  sub edi, 00000037
+
+:00406274 EB0B  jmp 00406281
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00406258(C)
+
+|
+
+:00406276 8BF8  mov edi, eax
+
+:00406278 81E7FF000000  and edi, 000000FF
+
+:0040627E 83EF57  sub edi, 00000057
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:00406267(U), :00406274(U)
+
+|
+
+:00406281 837C240C00  cmp dword ptr [esp+0C], 00000000
+
+:00406286 7509  jne 00406291
+
+:00406288 837C240800  cmp dword ptr [esp+08], 00000000
+
+:0040628D 7247  jb 004062D6
+
+:0040628F EB02  jmp 00406293
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00406286(C)
+
+|
+
+:00406291 7C43  jl 004062D6
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0040628F(U)
+
+|
+
+:00406293 817C240CFFFFFF07  cmp dword ptr [esp+0C], 07FFFFFF
+
+:0040629B 7509  jne 004062A6
+
+:0040629D 837C2408FF  cmp dword ptr [esp+08], FFFFFFFF
+
+:004062A2 7604  jbe 004062A8
+
+:004062A4 EB30  jmp 004062D6
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0040629B(C)
+
+|
+
+:004062A6 7F2E  jg 004062D6
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:004062A2(C)
+
+|
+
+:004062A8 8BC7  mov eax, edi
+
+:004062AA 99  cdq
+
+:004062AB 52  push edx
+
+:004062AC 50  push eax
+
+:004062AD 8B442410  mov eax, dword ptr [esp+10]
+
+:004062B1 8B542414  mov edx, dword ptr [esp+14]
+
+:004062B5 0FA4C204  shld edx, eax, 04
+
+:004062B9 C1E004  shl eax, 04
+
+:004062BC 030424  add eax, dword ptr [esp]
+
+:004062BF 13542404  adc edx, dword ptr [esp+04]
+
+:004062C3 83C408  add esp, 00000008
+
+:004062C6 89442408  mov dword ptr [esp+08], eax
+
+:004062CA 8954240C  mov dword ptr [esp+0C], edx
+
+:004062CE 45  inc ebp
+
+:004062CF 33DB  xor ebx, ebx
+
+:004062D1 E966FFFFFF  jmp 0040623C  <===从这里往上跳构成循环，5 次
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:0040625A(U), :0040628D(C), :00406291(C), :004062A4(U), :004062A6(C)
+
+|
+
+:004062D6 807C241000  cmp byte ptr [esp+10], 00  <==从 0040625A 行跳到这里
+
+:004062DB 0F84D3000000  je 004063B4  <==是 0，所以再次跳走
+
+:004062E1 8B442408  mov eax, dword ptr [esp+08]
+
+:004062E5 8B54240C  mov edx, dword ptr [esp+0C]
+
+:004062E9 F7D8  neg eax
+
+:004062EB 83D200  adc edx, 00000000
+
+:004062EE F7DA  neg edx
+
+:004062F0 89442408  mov dword ptr [esp+08], eax
+
+:004062F4 8954240C  mov dword ptr [esp+0C], edx
+
+:004062F8 E9B7000000  jmp 004063B4
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:0040621D(C), :0040622D(C), :0040636B(U)
+
+|
+
+:004062FD 8A442EFF  mov al, byte ptr [esi+ebp\-01]
+
+\*\*\*\*\*\* 如果，前两位不是 0x，则从 0040621D 跳到这一行，依次取注册码的值，放入 AL
+
+:00406301 8BD0  mov edx, eax
+
+:00406303 80C2D0  add dl, D0
+
+:00406306 80EA0A  sub dl, 0A
+
+:00406309 7362  jnb 0040636D
+
+:0040630B 8BF8  mov edi, eax
+
+:0040630D 81E7FF000000  and edi, 000000FF
+
+:00406313 83EF30  sub edi, 00000030
+
+:00406316 837C240C00  cmp dword ptr [esp+0C], 00000000
+
+:0040631B 7509  jne 00406326
+
+:0040631D 837C240800  cmp dword ptr [esp+08], 00000000
+
+:00406322 7249  jb 0040636D
+
+:00406324 EB02  jmp 00406328
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0040631B(C)
+
+|
+
+:00406326 7C45  jl 0040636D
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00406324(U)
+
+|
+
+:00406328 817C240CCCCCCC0C  cmp dword ptr [esp+0C], 0CCCCCCC
+
+:00406330 750C  jne 0040633E
+
+:00406332 817C2408CCCCCCCC  cmp dword ptr [esp+08], CCCCCCCC
+
+:0040633A 7604  jbe 00406340
+
+:0040633C EB2F  jmp 0040636D
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00406330(C)
+
+|
+
+:0040633E 7F2D  jg 0040636D
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0040633A(C)
+
+|
+
+:00406340 6A00  push 00000000
+
+:00406342 6A0A  push 0000000A
+
+:00406344 8B442410  mov eax, dword ptr [esp+10]
+
+:00406348 8B542414  mov edx, dword ptr [esp+14]
+
+:0040634C E873FCFFFF  call 00405FC4
+
+:00406351 52  push edx
+
+:00406352 50  push eax
+
+:00406353 8BC7  mov eax, edi
+
+:00406355 99  cdq
+
+:00406356 030424  add eax, dword ptr [esp]
+
+:00406359 13542404  adc edx, dword ptr [esp+04]
+
+:0040635D 83C408  add esp, 00000008
+
+:00406360 89442408  mov dword ptr [esp+08], eax
+
+:00406364 8954240C  mov dword ptr [esp+0C], edx
+
+:00406368 45  inc ebp
+
+:00406369 33DB  xor ebx, ebx
+
+:0040636B EB90  jmp 004062FD
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:00406309(C), :00406322(C), :00406326(C), :0040633C(U), :0040633E(C)
+
+|
+
+:0040636D 807C241000  cmp byte ptr [esp+10], 00
+
+:00406372 7417  je 0040638B
+
+:00406374 8B442408  mov eax, dword ptr [esp+08]
+
+:00406378 8B54240C  mov edx, dword ptr [esp+0C]
+
+:0040637C F7D8  neg eax
+
+:0040637E 83D200  adc edx, 00000000
+
+:00406381 F7DA  neg edx
+
+:00406383 89442408  mov dword ptr [esp+08], eax
+
+:00406387 8954240C  mov dword ptr [esp+0C], edx
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00406372(C)
+
+|
+
+:0040638B 837C240C00  cmp dword ptr [esp+0C], 00000000
+
+:00406390 7505  jne 00406397
+
+:00406392 837C240800  cmp dword ptr [esp+08], 00000000
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00406390(C)
+
+|
+
+:00406397 741B  je 004063B4
+
+:00406399 837C240C00  cmp dword ptr [esp+0C], 00000000
+
+:0040639E 750A  jne 004063AA
+
+:004063A0 837C240800  cmp dword ptr [esp+08], 00000000
+
+:004063A5 0F92C0  setb al
+
+
+
+```asm
+:004063A8 EB03                 jmp 004063AD
+```
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+
+`|:0040639E(C)`
+
+`|`
+
+```asm
+:004063AA 0F9CC0               setl al
+```
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+
+`|:004063A8(U)`
+
+`|`
+
+```asm
+:004063AD 3A442410             cmp al, byte ptr [esp+10]
+:004063B1 7401                 je 004063B4
+:004063B3 4D                   dec ebp
+```
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
+
+`|:004062DB(C), :004062F8(U), :00406397(C), :004063B1(C)`
+
+`|`
+
+```asm
+:004063B4 807C2EFF00          cmp byte ptr [esi+ebp-01], 00  <==从 004062DB 跳到这里
+:004063B9 0F95C0              setne al
+:004063BC 0AD8                or bl, al
+:004063BE 7407                je 004063C7
+:004063C0 8B0424              mov eax, dword ptr [esp]
+:004063C3 8928                mov dword ptr [eax], ebp
+:004063C5 EB07                jmp 004063CE
+```
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+
+`|:004063BE(C)`
+
+`|`
+
+```asm
+:004063C7 8B0424              mov eax, dword ptr [esp]
+:004063CA 33D2                xor edx, edx
+:004063CC 8910                mov dword ptr [eax], edx
+```
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
+
+`|:004061E8(U), :004063C5(U)`
+
+`|`
+
+```asm
+:004063CE 8B442408            mov eax, dword ptr [esp+08]
+```
+
+<===如果前面位是 0x 的话则，这里 EAX 的值正好等于 787878，要 EAX=199FF2，到这里我们可以判断出注册码了，它就是 0x199ff2(均为小写)。退出程序一试，呵呵，“注册完成”
+
+```asm
+:004063D2 8B54240C            mov edx, dword ptr [esp+0C]
+:004063D6 83C414              add esp, 00000014
+:004063D9 5D                  pop ebp
+:004063DA 5F                  pop edi
+:004063DB 5E                  pop esi
+:004063DC 5B                  pop ebx
+:004063DD C3                  ret
+```
+
+------------------------------------------------------------------------------------------
+
+4、软件还有一种是，前两位不是 0x 的情况，我跟踪出来，但不知怎么返回到注册码，把它的算法写在下面：
+
+```c
+eax=0;
+string=输入的注册码;
+for(i=0;i=strlen(string);i++)
+{eax=eax*10+string[i]
+}
+printf("%d",eax);
+```
+
+最后 EAX 应该等于 EAX=199FF2(16 进制)=1679346(10 进制)
+
+呵呵，算出来了，还有一个注册码就是 1679346
+
+5、注册信息保存在注册表
+
+`[HKEY_LOCAL_MACHINE\Software\CLASSES\CLSID\{1AE69D60-73D0-11D4-BD52-38A480C50000}]`
+
+`"224951124"="224951124"`
+
+这个键值为 1-10，是尚余的使用次数，如果是上面的数值时，就是注册版的了。
+
+删除键值，就成为未注册版本了。
+
+(我没学过汇编，C 语言自学了一段时间，没学完，如有不对的地方请大家指正)  4dd466d0e1e0cc123afbe504da2462ca
