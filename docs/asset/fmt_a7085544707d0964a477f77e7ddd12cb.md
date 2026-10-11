@@ -1,0 +1,99 @@
+
+# GaitCD
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6827.htm`](https://www.pediy.com/kssd/pediy06/pediy6827.htm)
+
+软件名称 : `GaitCD`
+
+软件介绍 ：标题：\[求助\]谁会算 serial???   内容："有盘 CD,SERIAL 丢了,现在公司也关了,谁会算 SERIAL,       谢谢。。。 "
+
+So,我只是帮忙,也不知道这个软件是作什么的?:P
+
+网址:[`www.google.com`](http://www.google.com)
+
+破解人:BurSH (于 2004.1.29)
+
+所属组织:FCG-CCG-BCG-OCN-DFCG
+
+破解工具:`isDcc 2.10`
+
+## 1. 使用 `isDcc 2.10` 反编译 `installshield` 脚本 `setup.ins`
+
+## 2. 查找字符 `Serial`
+
+`label11`: `//Ref: 000F99  001040  001079`
+
+```
+000FB0:00B5:             function105();------------------->调用 function105()
+000FB8:0021:             lNumber0 = LAST\_RESULT;---------->lNumber0=返回值
+000FC0:0128:             lNumber1 = lNumber0 = 12;-------->lNumber0 是否等于 12?
+000FD2:0022:             if (lNumber1 = 0) then----------->不相等就跳到下面,提示出错!!(0=False,1=True)
+                             goto label12;
+                     endif;
+000FE0:002C:             goto label10;-------------------->否则继续安装!!
+label12: //Ref: 000FD2  ----------------------------->说明是从 000FD2 来的,就在上面.....
+000FE9:0128:             lNumber1 = lNumber0 = 0;
+000FFB:0022:             if (lNumber1 = 0) then
+                             goto label13;
+                     endif;
+001009:002A:             MessageBox("Serial number is incorrect. Check and retype.", -65534);
+001040:002C:             goto label11;
+```
+
+## 3. 进入 `function105()` 分析
+
+`label11`: `//Ref: 000F99  001040  001079`
+
+```
+000FB0:00B5:             function105();
+000FB8:0021:             lNumber0 = LAST\_RESULT;
+000FC0:0128:             lNumber1 = lNumber0 = 12;
+000FD2:0022:             if (lNumber1 = 0) then
+                             goto label12;
+                     endif;
+000FE0:002C:             goto label10;
+
+    // ------------- FUNCTION function105 --------------
+    function function105()
+        number lNumber0;
+        number lNumber1;
+        string lString0;
+        string lString1;
+        string lString2;
+    begin
+001BCD:0013:             string5 = "";
+001BD5:0013:             string6 = "";
+001BDD:0013:             lString0 = "";
+001BE5:0013:             lString1 = "";
+001BED:0013:             lString2 = "7907-8206-5207";--------------------------------->这串字符像什么?!
+001C03:00B5:             function1(lString0, lString1, string5, string6, string7);---->经过分析 function1 是用来读取姓名(string5),公司(string6),序列号(string7)的
+001C1A:0021:             lNumber0 = LAST\_RESULT;-------------------------------------->lNumber0=返回值
+001C22:0128:             lNumber1 = lNumber0 = 12;------------------------------------>lNumber0 是否等于 12?
+001C34:0022:             if (lNumber1 = 0) then
+                             goto label46;
+                     endif;
+001C42:0021:             lNumber0 = 12;
+001C4C:002C:             goto label48;
+label46: //Ref: 001C34
+001C55:0128:             lNumber1 = lNumber0 = 1;
+001C67:0022:             if (lNumber1 = 0) then
+                             goto label48;
+                     endif;
+001C75:0023:             StrCompare(lString2, string7);-------------------------------->字符串比较!lString2 就是上面 001BED 赋值的字符串!而 string7 就是我们输入的序列号!
+001C7D:0021:             lNumber1 = LAST\_RESULT;--------------------------------------->lNumber1=返回值
+001C85:0128:             lNumber1 = lNumber1 = 0;
+001C97:0022:             if (lNumber1 = 0) then
+                             goto label47;
+                     endif;
+001CA5:0021:             lNumber0 = 1;001CAF:002C:             goto label48;
+label47: //Ref: 001C97
+001CB8:0021:             lNumber0 = 0;
+label48: //Ref: 001C4C  001C67  001CAF
+001CC6:012F:             return(lNumber0);
+001CCD:00B8:             return;
+    end;
+```
+
+## 4. 结论
+
+`function105` 的作用是得到并比较我们输入的序列号的合法性!正确的序列号是 `7907-8206-5207`!

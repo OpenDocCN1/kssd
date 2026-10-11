@@ -1,0 +1,412 @@
+
+# Installshield5.0
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50327.htm`](https://www.pediy.com/kssd/pediy05/pediy50327.htm)
+
+工具: `ISDCC v2.10(Modified)`
+
+破解者: `smartsl`
+
+时间: `2002-10-21`
+
+软件: `XXXXXX 管理系统 2000`
+
+首先，在安装目录找到一个 `setup.ins` 文件，用原版的 `isdcc21.exe` 反编译出错，提示：
+
+```
+!!!!Unknown opcode (0x168) at (0xD0D)
+```
+
+幸好这个 `isdcc` 的作者提供有源码，找到 `decode.c` 里面有这行:
+
+```
+if (decodeTable[opcode] == NULL)
+    error("\n!!!!Unknown opcode (0x%x) at (0x%x)\n", opcode, tell(fd));
+```
+
+再看看 `decodetable.h` 这个文件，里面很多类似下面的定义:
+
+```
+static char* rawDecodeTable[][4] = {
+......
+{(char*) 0x0068, "PlaceWindow", (char*) 4, (char*) (*parseSystemFunction)},
+......
+};
+```
+
+搜索一下发现没有 `0x0168` 的定义，不管它，加上一行，后面的参数个数只好慢慢试，直到不出错为止，试出来应该是 `3` 个参数。
+
+同样，需要再加一个 `0x0167` 的定义，参数个数也是 `3`。
+
+这样，就可以正常反编译了。
+
+因为不知道这两个函数名，暂时定为:
+
+```
+{(char*) 0x0168, "UnknowFunction_1", (char*) 3, (char*) (*parseSystemFunction)},
+{(char*) 0x0167, "UnknowFunction_2", (char*) 3, (char*) (*parseSystemFunction)},
+```
+
+反编译后大体浏览一下，很多 `lNumberXX`、`lStringXX` 的临时变量，因为这个基本是按顺序执行的，而这个软件安装出现 `license` 提示后马上就要输入序号，否则弹出提示框，不向下继续安装。所以在前面就能找到如下关键点：
+
+```
+004E58:015D:        SilentReadData(string1, "szName", 1, pString2, lNumber3);
+004E71:015D:        SilentReadData(string1, "szCompany", 1, pString3, lNumber3);
+004E8D:015D:        SilentReadData(string1, "szSerial", 1, pString4, lNumber3);
+```
+
+这段在 `function1()`里面，`function1()`在 `function103()`里面，如下：
+
+```
+    // ------------- FUNCTION function103 --------------
+    function function103()
+        number lNumber0;
+        string lString0;
+        string lString1;
+    begin
+002872:0013:        string4 = "";
+00287A:0013:        string5 = "";
+002882:0013:        lString0 = "";
+00288A:0013:        lString1 = "";
+002892:00B5:        function1(lString0, lString1, string4, string5, string6);
+0028A9:0021:        lNumber0 = LAST_RESULT;
+0028B1:012F:        return(lNumber0);
+0028B8:00B8:        return;
+    end;
+```
+
+`function103()`又在 `function89()`里面，这回发现找到地方了，下面列出关键的一段:
+
+这段完整的程序是:
+
+```
+    // ------------- FUNCTION function89 --------------
+    function function89()
+        number lNumber0;
+        number lNumber1;
+        number lNumber2;
+        number lNumber3;
+        number lNumber4;
+        number lNumber5;
+        number lNumber6;
+        number lNumber7;
+        number lNumber8;
+        number lNumber9;
+        string lString0;
+        string lString1;
+        string lString2;
+        string lString3;
+        string lString4;
+        string lString5;
+        string lString6;
+        string lString7;
+        string lString8;
+        string lString9;
+    begin
+001143:0021:        lNumber5 = 0;
+label17: //Ref: 001181  0011BA  
+001151:00B5:        function100();
+001159:0021:        lNumber0 = LAST_RESULT;
+001161:0128:        lNumber8 = lNumber0 = 12;
+001173:0022:        if (lNumber8 = 0) then
+                                goto label18;
+                            endif;
+001181:002C:        goto label17;
+label18: //Ref: 001173  001275  
+00118A:00B5:        function101();        ;显示"license.txt"
+001192:0021:        lNumber0 = LAST_RESULT;
+00119A:0128:        lNumber8 = lNumber0 = 12;
+0011AC:0022:        if (lNumber8 = 0) then
+                                goto label19;
+                            endif;
+0011BA:002C:        goto label17;
+label19: //Ref: 0011AC  
+0011C3:0021:        number49 = 0;
+0011CD:0021:        number42 = 0;
+label20: //Ref: 0012C2  00132C  0013DA  00161C  001682  
+0011DB:0022:        if (number42 = 0) then
+                                goto label21;
+                            endif;
+0011E9:002A:        MessageBox("\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff!", -65534);
+label21: //Ref: 0011DB  
+00120E:0128:        lNumber8 = number49 > 3;
+001220:0022:        if (lNumber8 = 0) then
+                                goto label22;
+                            endif;
+00122E:012F:        return(-1);
+label22: //Ref: 001220  
+00123B:00B5:        function103();
+001243:0021:        lNumber0 = LAST_RESULT;
+00124B:0128:        lNumber8 = lNumber0 = 12;
+00125D:0022:        if (lNumber8 = 0) then
+                                goto label23;        ;按"继续"按钮就跳
+                            endif;
+00126B:0021:        number42 = 1;
+001275:002C:        goto label18;
+label23: //Ref: 00125D  
+00127E:0119:        number49 = number49 + 1;
+00128B:002F:        StrLength(string6);        ;序列号长度
+001290:0021:        lNumber8 = LAST_RESULT;
+001298:0128:        lNumber8 = lNumber8 != 14;        ;长度不是 14 位
+0012AA:0022:        if (lNumber8 = 0) then
+                                goto label24;        ;为假则跳(长度就是 14 位)
+                            endif;
+0012B8:0021:        number42 = 1;
+0012C2:002C:        goto label20;
+label24: //Ref: 0012AA  
+0012CB:007A:        GetByte(lNumber8, string6, 0);        ;取序列号第 1 位
+0012D8:0128:        lNumber8 = lNumber8 != 56;        ;56='8'
+0012EA:007A:        GetByte(lNumber9, string6, 1);        ;取序列号第 2 位
+0012F7:0128:        lNumber9 = lNumber9 != 45;        ;45='-'
+001309:0126:        lNumber8 = lNumber8 || lNumber9;
+001314:0022:        if (lNumber8 = 0) then
+                                goto label25;        ;为假则跳(不用解释了：)
+                            endif;
+001322:0021:        number42 = 1;
+00132C:002C:        goto label20;
+label25: //Ref: 001314  
+001335:0021:        number38 = 0;        ;循环变量初始化(i=0;)
+label26: //Ref: 001413  
+001343:0128:        lNumber8 = number38 <= 11;        ;12 位的循环(i<12;)
+001355:0022:        if (lNumber8 = 0) then
+                                goto label28;        ;循环结束，跳出
+                            endif;
+001363:0119:        lNumber8 = number38 + 2;
+001370:007A:        GetByte(lNumber8, string6, lNumber8);        ;serial[i+2]
+00137B:0128:        lNumber8 = lNumber8 < 48;        ;<'0'
+00138D:0119:        lNumber9 = number38 + 2;
+00139A:007A:        GetByte(lNumber9, string6, lNumber9);        ;serial[i+2]
+0013A5:0128:        lNumber9 = lNumber9 > 57;        ;>'9'
+0013B7:0126:        lNumber8 = lNumber8 || lNumber9;
+0013C2:0022:        if (lNumber8 = 0) then
+                                goto label27;        ;检查是数字就跳
+                            endif;
+0013D0:0021:        number42 = 1;
+0013DA:002C:        goto label20;        ;####################################
+                                    ;   GetByte(lOutput,&str,i);
+label27: //Ref: 0013C2               ;   SetByte(&str,i,lInput);
+0013E3:0119:        lNumber8 = number38 + 2;        ;####################################
+0013F0:007A:        GetByte(lNumber8, string6, lNumber8);
+0013FB:007B:        SetByte(string15, number38, lNumber8);        ;serial 后面 12 位-->string15
+001406:0119:        number38 = number38 + 1;        ;循环变量递增(i++;)
+001413:002C:        goto label26;
+label28: //Ref: 001355  
+00141C:007B:        SetByte(string15, 12, 0);        ;<---序列号全是数字就到这里,string15[12]='\0';
+00142B:0021:        number39 = 0;
+001435:0021:        number38 = 0;
+label29: //Ref: 0014C3  
+001443:0128:        lNumber8 = number38 <= 5;        ;循环开始
+001455:0022:        if (lNumber8 = 0) then
+                                goto label30;        ;循环结束
+                            endif;
+001463:007A:        GetByte(lNumber8, string15, number38);        
+00146E:007B:        SetByte(string12, number39, lNumber8);        ;string12 是 string15 的前 3 个奇数位
+001479:0119:        lNumber8 = number39 + 3;
+```
+
+
+
+```
+001486:0119:        lNumber9 = number38 + 1;   
+001493:007A:        GetByte(lNumber9, string15, lNumber9);   
+00149E:007B:        SetByte(string13, lNumber8, lNumber9);     ;string13 从第 4 位起是 string15 的前 3 个偶数位   
+0014A9:0119:        number39 = number39 + 1;   
+0014B6:0119:        number38 = number38 + 2;   
+0014C3:002C:        goto label29;                   ;循环继续   
+
+label30: //Ref: 001455  
+0014CC:007A:        GetByte(lNumber8, string15, 11);   
+0014D9:007B:        SetByte(string12, 3, lNumber8);   
+0014E6:007A:        GetByte(lNumber8, string15, 9);   
+0014F3:007B:        SetByte(string12, 4, lNumber8);   
+001500:007A:        GetByte(lNumber8, string15, 8);   
+00150D:007B:        SetByte(string12, 5, lNumber8);     ;设置 string12 的 4、5、6 位为 string15 的第 12、10、9 位   
+00151A:007A:        GetByte(lNumber8, string15, 6);   
+001527:007B:        SetByte(string13, 0, lNumber8);   
+001534:007A:        GetByte(lNumber8, string15, 10);   
+001541:007B:        SetByte(string13, 1, lNumber8);   
+00154E:007A:        GetByte(lNumber8, string15, 7);   
+00155B:007B:        SetByte(string13, 2, lNumber8);     ;设置 string13 的 1、2、3 位为 string15 的第 7、11、8 位   
+001568:0021:        number38 = 0;   
+
+label31: //Ref: 00163F  
+001576:0128:        lNumber8 = number38 <= 5;           ;循环开始   
+001588:0022:        if (lNumber8 = 0) then   
+        goto label33;                   ;循环结束   
+    endif;   
+001596:007A:        GetByte(number46, string12, number38);   
+0015A1:011A:        number43 = number46 - 48;   
+0015AE:007A:        GetByte(number47, string13, number38);   
+0015B9:011A:        number44 = number47 - 48;   
+0015C6:0167:        UnknowFunction_2(lNumber8, string10, number43);   ;???   
+0015D1:011B:        lNumber8 = lNumber8 * 10;   
+0015DE:0119:        lNumber8 = lNumber8 + number38;   
+0015E9:0167:        UnknowFunction_2(number45, string11, lNumber8);   ;???   
+0015F4:0128:        lNumber8 = number45 != number44;   
+001604:0022:        if (lNumber8 = 0) then   
+        goto label32;                   ;相等就跳   
+    endif;   
+001612:0021:        number42 = 1;   
+00161C:002C:        goto label20;                   ;不满足条件，返回   
+
+label32: //Ref: 001604  
+001625:0119:        number48 = number45 + 48;   
+001632:0119:        number38 = number38 + 1;   
+00163F:002C:        goto label31;                   ;循环继续   
+
+label33: //Ref: 001588  0016BB  0017A6  
+001648:0021:        number42 = 0;   
+001652:00B5:        function104();                  ;<---   
+00165A:0021:        lNumber0 = LAST_RESULT;   
+001662:0128:        lNumber8 = lNumber0 = 12;   
+001674:0022:        if (lNumber8 = 0) then   
+        goto label34;   
+    endif;   
+001682:002C:        goto label20;   
+
+label34: //Ref: 001674  001734  00176D  
+00168B:00B5:        function105();   
+001693:0021:        lNumber0 = LAST_RESULT;   
+00169B:0128:        lNumber8 = lNumber0 = 12;   
+0016AD:0022:        if (lNumber8 = 0) then   
+        goto label35;   
+    endif;   
+0016BB:002C:        goto label33;   
+
+label35: //Ref: 0016AD  
+0016C4:0128:        lNumber8 = lNumber0 = 12;   
+0016D6:0023:        StrCompare(string9, "Custom");   
+0016E4:0128:        lNumber9 = LAST_RESULT != 0;   
+0016F6:0127:        lNumber8 = lNumber8 && lNumber9;   
+001701:0023:        StrCompare(string9, "");   
+001709:0128:        lNumber9 = LAST_RESULT != 0;   
+00171B:0127:        lNumber8 = lNumber8 && lNumber9;   
+001726:0022:        if (lNumber8 = 0) then   
+        goto label36;   
+    endif;   
+001734:002C:        goto label34;   
+
+label36: //Ref: 001726  
+00173D:00B5:        function106();   
+001745:0021:        lNumber0 = LAST_RESULT;   
+00174D:0128:        lNumber8 = lNumber0 = 12;   
+00175F:0022:        if (lNumber8 = 0) then   
+        goto label37;   
+    endif;   
+00176D:002C:        goto label34;   
+
+label37: //Ref: 00175F  
+001776:00B5:        function107();   
+00177E:0021:        lNumber0 = LAST_RESULT;   
+001786:0128:        lNumber8 = lNumber0 = 12;   
+001798:0022:        if (lNumber8 = 0) then   
+        goto label38;   
+    endif;   
+0017A6:002C:        goto label33;   
+
+label38: //Ref: 001798  
+0017AF:012F:        return(0);   
+0017B8:00B8:        return;   
+end;
+```
+
+`function101()` 是显示 `license.txt` 的，这个进去看看就知道：
+
+```
+    // ------------- FUNCTION function101 --------------  
+    function function101()  
+        number lNumber0;  
+        string lString0;  
+        string lString1;  
+        string lString2;  
+        string lString3;  
+    begin  
+00278F:0125:        lString3 = SUPPORTDIR ^ "license.txt";   
+0027A5:0013:        lString0 = "";   
+0027AD:0013:        lString1 = "";   
+0027B5:0013:        lString2 = "";   
+0027BD:00B5:        function27(lString0, lString1, lString2, lString3);   
+0027D1:0021:        lNumber0 = LAST_RESULT;   
+0027D9:012F:        return(lNumber0);   
+0027E0:00B8:        return;   
+end;
+```
+
+其他的我的注释就写得很清楚了。
+
+最后有一个关键循环比较的地方用到了这个未知函数，因为跟上面反复用到的两个 `GetByte()` 和 `SetByte()` 很像，所以就猜测着去作。用到了一个变量 `string11`，在全部反编译里面搜索发现，仅这一次调用，初始化处在前面开头：
+
+```
+000DC5:0021:    number40 = 0;   
+000DCF:0021:    number38 = 0;   
+
+label2: //Ref: 000E96  
+000DDD:0128:    number52 = number38 <= 9;   
+000DEF:0022:    if (number52 = 0) then   
+        goto label5;   
+    endif;   
+000DFD:0119:    number40 = number40 + 1;   
+000E0A:0021:    number39 = 0;   
+
+label3: //Ref: 000E80  
+000E18:0128:    number52 = number39 <= 9;   
+000E2A:0022:    if (number52 = 0) then   
+        goto label4;   
+    endif;   
+000E38:011B:    number52 = number38 * 10;   
+000E45:0119:    number52 = number52 + number39;   
+000E50:0119:    number53 = number40 + number39;   
+000E5B:0123:    number53 = number53 % 10;   
+000E68:0168:    UnknowFunction_1(string11, number52, number53);   
+000E73:0119:    number39 = number39 + 1;   
+000E80:002C:    goto label3;   
+
+label4: //Ref: 000E2A  
+000E89:0119:    number38 = number38 + 1;   
+000E96:002C:    goto label2;
+```
+
+这些算法都很简单，仔细看就行。
+
+最后附上我做的注册机主要源码，可以结合起来分析：
+
+```
+#define MAXINPUTLEN 12   
+
+char szFormat[] = "8-%s";   
+
+char serial[MAXINPUTLEN+1],s1[MAXINPUTLEN+1]="123456789012";   
+
+int t1[6]={0,2,4,11,9,8},t2[6]={6,10,7,1,3,5},MagicTable[10]={6,2,9,5,1,4,1,3,8,7};   
+
+int i,x,y;   
+
+for(i=0;i<6;i++)   
+
+{   
+    //x=t3[i];//DEBUG   
+    x=rand()%10;   
+    y=MagicTable[x]*10+i;   
+    s1[t1[i]]=48+x;   
+    s1[t2[i]]=48+(y/10+y%10+1)%10;   
+
+}   
+
+sprintf(serial,szFormat,s1);
+```
+
+最后，我们可以认为：
+
+`UnknowFunction_1()` ===> `SetByte()`
+`UnknowFunction_2()` ===> `GetByte()`
+
+于是可以在 `decodetable.h` 里面加上这两行：
+
+```
+{(char*) 0x0167, "GetByte__", (char*) 3, (char*) (*parseSystemFunction)},
+{(char*) 0x0168, "SetByte__", (char*) 3, (char*) (*parseSystemFunction)},
+```
+
+这就是前面那个 `ISDCC v2.10(Modified)` 的来源，加上 `__` 是为了跟原有的函数区别开来，我现在反正不知道区别是什么。
+
+-=over=- `4dd466d0e1e0cc123afbe504da2462ca`
