@@ -1,0 +1,126 @@
+
+# 贪吃豆豆龙
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6301.htm`](https://www.pediy.com/kssd/pediy06/pediy6301.htm)
+
+软件大小： 152 KB  
+软件语言： 简体中文  
+软件类别： 国产软件 / 共享版 / 益智游戏  
+应用平台： `Win9x/NT/2000/XP`  
+界面预览： 无  
+下载地址： `http://www.skycn.net/soft/13584.html`
+
+## 软件简介
+
+贪吃豆豆龙是一款值得珍藏的经典游戏，它是传统贪吃蛇游戏的全新升级，并支持乐趣无穷的双人对战！本次发行的 2.0 版本较上一版本有了大幅度的改进：
+1. 全新的游戏界面
+2. 增加排行榜功能
+3. 更加科学的计分方式
+4. 级别分数实时显示
+5. 菜单设置游戏速度
+6. 可改变地图尺寸
+7. 豆豆龙的颜色可由玩家自己选择
+8. 输入注册码自动注册
+
+## 工具
+
+- `0llydbg1.09d` 汉化版
+- `peid 0.9` (因为跟踪时比较简单所以也就不用 `w32dasm`)
+
+## 分析过程
+
+假码: `77585201314`
+机器码: `84940800`
+
+用 `peid0.9` 发现它是用 C 写的。
+
+开始下断点 `getdlgitemtexta`, 有两处调用，正确的是在第一个下断，好了，断下来到这里：
+
+```
+00403AE6   .  FF15 34B14000   CALL DWORD PTR DS:[<&USER32.GetDlgItemTe>; GetDlgItemTextA
+00403AEC   .  68 98E94000     PUSH DDL.0040E998                    ;   ASCII "77585201314"
+00403AF1   .  E8 9AF7FFFF     CALL DDL.00403290
+00403AF6   .  83C4 04         ADD ESP,4
+00403AF9   .  E8 02F8FFFF     CALL DDL.00403300  '这里就是传说中的关键处按 F8 切入
+00403AFE   .  803D 7CEF4000 0>CMP BYTE PTR DS:[40EF7C],1
+00403B05   .  75 44          JNZ SHORT DDL.00403B4B '这里一跳就 Game over,改成 JZ 00403B4B 就暴破
+00403B07   .  E8 14FFFFFF     CALL DDL.00403A20
+00403B0C   .  A1 B8E74000     MOV EAX,DWORD PTR DS:[40E7B8]
+```
+
+上面那个 `call` 进入后就到了这里:
+
+```
+00403300  /$  83EC 2C         SUB ESP,2C
+00403303  |.  A0 80EF4000     MOV AL,BYTE PTR DS:[40EF80]
+00403308  |.  57              PUSH EDI
+00403309  |.  884424 10       MOV BYTE PTR SS:[ESP+10],AL
+0040330D  |.  B9 07000000     MOV ECX,7
+00403312  |.  33C0            XOR EAX,EAX
+00403314  |.  8D7C24 11       LEA EDI,DWORD PTR SS:[ESP+11]
+00403318  |.  F3:AB           REP STOS DWORD PTR ES:[EDI]
+0040331A  |.  8D4C24 04       LEA ECX,DWORD PTR SS:[ESP+4]
+0040331E  |.  C74424 04 00000>MOV DWORD PTR SS:[ESP+4],0
+00403326  |.  51              PUSH ECX                              ; /pHandle
+00403327  |.  68 D4C44000     PUSH DDL.0040C4D4                     ; |Subkey = "SoftwareDdl"
+0040332C  |.  68 01000080     PUSH 80000001                         ; |hKey = HKEY_CURRENT_USER
+00403331  |.  C74424 18 1E000>MOV DWORD PTR SS:[ESP+18],1E          ; |
+00403339  |.  AA              STOS BYTE PTR ES:[EDI]                ; |
+0040333A  |.  FF15 08B04000   CALL DWORD PTR DS:[<&ADVAPI32.RegCreateK>; RegCreateKeyA
+00403340  |.  85C0            TEST EAX,EAX
+00403342  |.  5F              POP EDI
+00403343  |.  75 79           JNZ SHORT DDL.004033BE
+00403345  |.  8B4C24 00       MOV ECX,DWORD PTR SS:[ESP]
+00403349  |.  8D5424 08       LEA EDX,DWORD PTR SS:[ESP+8]
+0040334D  |.  8D4424 0C       LEA EAX,DWORD PTR SS:[ESP+C]
+00403351  |.  52              PUSH EDX                              ; /pBufSize
+00403352  |.  50              PUSH EAX                              ; |Buffer
+00403353  |.  6A 00           PUSH 0                                ; |pValueType = NULL
+00403355  |.  6A 00           PUSH 0                                ; |Reserved = NULL
+00403357  |.  68 CCC44000     PUSH DDL.0040C4CC                     ; |ValueName = "RegID"
+0040335C  |.  51              PUSH ECX                              ; |hKey
+0040335D  |.  FF15 00B04000   CALL DWORD PTR DS:[<&ADVAPI32.RegQueryVa>; RegQueryValueExA
+00403363  |.  85C0            TEST EAX,EAX
+00403365  |.  75 57           JNZ SHORT DDL.004033BE
+00403367  |.  8B5424 00       MOV EDX,DWORD PTR SS:[ESP]
+0040336B  |.  52              PUSH EDX                              ; /hKey
+0040336C  |.  FF15 04B04000   CALL DWORD PTR DS:[<&ADVAPI32.RegCloseKe>; RegCloseKey
+00403372  |.  6A 0A           PUSH 0A                               ; /pFileSystemNameSize = 0000000A
+00403374  |.  6A 00           PUSH 0                                ; |pFileSystemNameBuffer = NULL
+00403376  |.  6A 00           PUSH 0                                ; |pFileSystemFlags = NULL
+00403378  |.  8D4424 10       LEA EAX,DWORD PTR SS:[ESP+10]         ; |
+0040337C  |.  6A 00           PUSH 0                                ; |pMaxFilenameLength = NULL
+0040337E  |.  50              PUSH EAX                              ; |pVolumeSerialNumber
+0040337F  |.  6A 0C           PUSH 0C                               ; |MaxVolumeNameSize = C (12.)
+00403381  |.  6A 00           PUSH 0                                ; |VolumeNameBuffer = NULL
+00403383  |.  68 E4C44000     PUSH DDL.0040C4E4                     ; |RootPathName = "c:"
+00403388  |.  FF15 A4B04000   CALL DWORD PTR DS:[<&KERNEL32.GetVolumeI>; GetVolumeInformationA '看到了这里就有希望了，离成功不远了，取 c 盘的序列号
+
+我的是 492576481 也就是十六进制的 1D5C1EE1
+
+0040338E  |.  8B4C24 04       MOV ECX,DWORD PTR SS:[ESP+4] '这里就是把 1D5C1EE1 入 ECX
+00403392  |.  8D5424 0C       LEA EDX,DWORD PTR SS:[ESP+C] '假注册码 77585201314 将会到 EDX 中
+00403396  |.  81E1 10789207   AND ECX,7927810 '这里用序列号 1D5C1EE1 加上 7927810
+0040339C  |.  52              PUSH EDX '假注册码入栈
+0040339D  |.  81F1 92078107   XOR ECX,7810792 '这里 ECX=1D5C1EE1+7927810=05101800
+004033A3  |.  894C24 08       MOV DWORD PTR SS:[ESP+8],ECX '这里 ecx=05101800 xor 7810792=02911f92
+004033A7  |.  E8 28140000     CALL DDL.004047D4
+004033AC  |.  8B4C24 08       MOV ECX,DWORD PTR SS:[ESP+8]
+004033B0  |.  83C4 04         ADD ESP,4
+004033B3  |.  3BC1            CMP EAX,ECX '这里用假注册码和 0291f92 比较如果相等就注册成功
+004033B5  |.  75 07           JNZ SHORT DDL.004033BE '这里也是暴破点
+004033B7  |.  C605 7CEF4000 0>MOV BYTE PTR DS:[40EF7C],1
+004033BE  |>  33C0            XOR EAX,EAX
+004033C0  |.  83C4 2C         ADD ESP,2C
+004033C3  .  C3              RETN
+```
+
+最后得出正确的注册码就是 `0291f92` 的十进制 `43065234`
+
+## 总结
+
+它那个机器码是用于作者得到你的 c 盘序列号，我们可以不用管它。
+
+算法：`注册码=(c 盘序列号+7927810)xor 7810792`
+
+`4dd466d0e1e0cc123afbe504da2462ca`
