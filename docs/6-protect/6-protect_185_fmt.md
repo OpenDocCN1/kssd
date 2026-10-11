@@ -1,0 +1,264 @@
+
+# 带狗杀 TDSD 狗
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50650.htm`](https://www.pediy.com/kssd/pediy05/pediy50650.htm)
+
+使用工具 `TRW2000`，`WIN32DSAM`，`HIEW`，`PE-SCAN`。菜鸟没办法，靠工具了。
+
+某公司条码打印软件，先判断狗的类型发现是 `TDSD` 的，看看没有壳。没狗的时候有提示！
+
+先反汇编找到提示地址如下：
+
+```
+:00419F00 6AFF                      push FFFFFFFF
+:00419F02 68902A4800                push 00482A90
+:00419F07 64A100000000              mov eax, dword ptr fs:[00000000]
+:00419F0D 50                        push eax
+:00419F0E 64892500000000            mov dword ptr fs:[00000000], esp
+:00419F15 83EC08                    sub esp, 00000008
+:00419F18 A1A89D4A00                mov eax, dword ptr [004A9DA8]
+:00419F1D 56                        push esi
+:00419F1E 8BF1                      mov esi, ecx
+:00419F20 89442404                  mov dword ptr [esp+04], eax
+:00419F24 C744241400000000          mov [esp+14], 00000000
+:00419F2C 89442408                  mov dword ptr [esp+08], eax
+:00419F30 A1BCC64A00                mov eax, dword ptr [004AC6BC] 有狗时是 0 无狗为 1
+:00419F35 C644241401                mov [esp+14], 01
+:00419F3A 85C0                      test eax, eax
+:00419F3C 744F                      je 00419F8D 关键跳转
+:00419F3E 8B0DC0C64A00              mov ecx, dword ptr [004AC6C0]
+:00419F44 85C9                      test ecx, ecx
+:00419F46 7545                      jne 00419F8D
+:00419F48 83F801                    cmp eax, 00000001
+:00419F4B 7507                      jne 00419F54
+
+* Possible StringData Ref from Data Obj -> "没有安装软件狗或软件狗不对应! "
+                                  -> "本软件只能运行在演示模式。"
+                                  |
+:00419F4D 682C924A00                push 004A922C
+:00419F52 EB05                      jmp 00419F59
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00419F4B(C)
+|
+
+* Possible StringData Ref from Data Obj -> "没有安装软件狗驱动程序! 本软件只能运行在演示模"
+                                  -> "式。"
+                                  |
+:00419F54 68F8914A00                push 004A91F8
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00419F52(U)
+|
+
+:00419F59 8D4C2408                  lea ecx, dword ptr [esp+08]
+:00419F5D E80DFE0300                call 00459D6F
+
+* Possible StringData Ref from Data Obj -> "警告"
+                                  |
+:00419F62 68F0914A00                push 004A91F0
+:00419F67 8D4C240C                  lea ecx, dword ptr [esp+0C]
+:00419F6B E8FFFD0300                call 00459D6F
+:00419F70 8B442408                  mov eax, dword ptr [esp+08]
+:00419F74 8B4C2404                  mov ecx, dword ptr [esp+04]
+:00419F78 6A30                      push 00000030
+:00419F7A 50                        push eax
+:00419F7B 51                        push ecx
+:00419F7C 8BCE                      mov ecx, esi
+:00419F7E C705C0C64A0001000000      mov dword ptr [004AC6C0], 00000001
+:00419F88 E8B4CE0300                call 00456E41
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:00419F3C(C), :00419F46(C)
+|
+
+:00419F8D 8B561C                    mov edx, dword ptr [esi+1C] 有狗到这里。
+:00419F90 6A01                      push 00000001
+:00419F92 52                        push edx
+```
+
+更改以上中的关键跳转为“754f”。
+
+不行，没有破解过狗，没有经验，错误提示是没有了，但是仍然不能正确显示汉字。郁闷了 2 周，期间用 `TRW2000` 反复跟踪有狗和无狗的变化，经常饿着肚子哟。
+
+用 `BPIO 378` 下断点没有收获。忘记了 `VXD` 的狗是 0 级的，用该断点没有意义。换之。
+
+使用 `BPX DEVICEIOCONTROL` 有两次分别如下：
+
+```
+0167:00402D4B FFD6                CALL      ESI——调用 DEVICEIOCONTROL
+0167:00402D4D 85C0                TEST      EAX,EAX
+0167:00402D4F 7507                JNZ       00402D58 无狗跳，故改为 NOP
+0167:00402D51 C7458C08000000      MOV       DWORD [EBP-74],08 改为 0
+0167:00402D58 837D8C00            CMP       DWORD [EBP-74],BYTE +00
+0167:00402D5C 741D                JZ        00402D7B 跳
+0167:00402D5E EB01                JMP       SHORT 00402D61
+0167:00402D60 43                  INC       EBX
+0167:00402D61 FF75FC              PUSH      DWORD [EBP-04]
+0167:00402D64 FF1548844800        CALL      `KERNEL32!FindCloseChangeNotification`
+0167:00402D6A EB01                JMP       SHORT 00402D6D
+0167:00402D6C 76FF                JNA       00402D6D
+0167:00402D6E 75F8                JNZ       00402D68
+0167:00402D70 E835010000          CALL      00402EAA
+0167:00402D75 59                  POP       ECX
+0167:00402D76 E927010000          JMP       00402EA2
+0167:00402D7B EB01                JMP       SHORT 00402D7E
+0167:00402D7D 8D DB 8D
+0167:00402D7E EB0B                JMP       SHORT 00402D8B 跳
+0167:00402D80 0BE7                OR        ESP,EDI
+0167:00402D82 8E                  DB        8E
+0167:00402D83 BE685C4EBE          MOV       ESI,BE4E5C68
+0167:00402D88 51                  PUSH      ECX
+0167:00402D89 1F                  POP       DS
+0167:00402D8E A318104B00          MOV       [004B1018],EAX 原来的
+0167:00402D93 EB01                JMP       SHORT 00402D96
+0167:00402D95 1E                  PUSH      DS
+0167:00402D8B                     MOV       EAX，[EBP-70] 改为 20167
+0167:00402D8E                     mov 4b1018,eas
+0167:00402D95                     nop 改为
+0167:00402D96 C60500104B0001      MOV       BYTE [004B1000],01
+0167:00402D9D EB01                JMP       SHORT 00402DA0
+0167:00402D9F EC                  IN        AL,DX
+0167:00402DA0 8B8508FFFFFF        MOV       EAX,[EBP+FFFFFF08] 改为：mov eax,1 补上一个 NOP
+0167:00402DA6 A304104B00          MOV       [004B1004],EAX
+0167:00402DAB EB01                JMP       SHORT 00402DAE
+0167:00402DAD 43                  INC       EBX
+0167:00402DAE A0B4C64A00          MOV       AL,[004AC6B4]
+0167:00402DB3 50                  PUSH      EAX
+0167:00402DB4 E898FAFFFF          CALL      00402851
+0167:00402DB9 898514FFFFFF        MOV       [EBP+FFFFFF14],EAX
+0167:00402DBF EB01                JMP       SHORT 00402DC2
+0167:00402DC1 09E8                OR        EAX,EBP
+0167:00402DC3 28FA                SUB       DL,BH
+0167:00402DC5 FF                  DB        FF
+0167:00402DC6 FF0F                DEC       DWORD [EDI]
+0167:00402DC8 B7D8                MOV       BH,D8
+0167:00402DCA C1E310              SHL       EBX,10
+0167:00402DCD E81DFAFFFF          CALL      004027EF
+0167:00402DD2 0FB7C0              MOVZX     EAX,AX
+0167:00402DD5 0BD8                OR        EBX,EAX
+0167:00402DD7 899D0CFFFFFF        MOV       [EBP+FFFFFF0C],EBX
+0167:00402DDD EB01                JMP       SHORT 00402DE0
+0167:00402DDF 09E8                OR        EAX,EBP
+0167:00402DE1 CC                  INT3
+0167:00402DE2 FA                  CLI
+0167:00402DE3 FF                  DB        FF
+0167:00402DE4 FF                  DB        FF
+0167:00402DE5 EB01                JMP       SHORT 00402DE8
+0167:00402DE7 34A0                XOR       AL,A0
+0167:00402DE9 B8C64A0050          MOV       EAX,50004AC6
+0167:00402DEE E85EFAFFFF          CALL      00402851
+0167:00402DF3 59                  POP       ECX
+0167:00402DF4 898510FFFFFF        MOV       [EBP+FFFFFF10],EAX
+0167:00402DFA 59                  POP       ECX
+0167:00402DFB EB0B                JMP       SHORT 00402E08
+0167:00402DFD 0B6769              OR        ESP,[EDI+69]
+0167:00402E00 03E9                ADD       EBP,ECX
+0167:00402E02 70C2                JO        00402DC6
+0167:00402E04 AB                  STOSD
+0167:00402E05 362632A118104B00    XOR       AH,[ES:ECX+004B1018]
+0167:00402E0D 898520FFFFFF        MOV       [EBP+FFFFFF20],EAX
+0167:00402E13 EB01                JMP       SHORT 00402E16
+0167:00402E15 65EB01              JMP       SHORT 00402E19
+0167:00402E18 07                  POP       ES
+0167:00402E19 8D45F4              LEA       EAX,[EBP-0C]
+0167:00402E1C 6A00                PUSH      BYTE +00
+0167:00402E1E 50                  PUSH      EAX
+0167:00402E1F 8D458C              LEA       EAX,[EBP-74]
+0167:00402E22 6A68                PUSH      BYTE +68
+0167:00402E24 50                  PUSH      EAX
+0167:00402E25 8D8504FFFFFF        LEA       EAX,[EBP+FFFFFF04]
+0167:00402E2B 57                  PUSH      EDI
+0167:00402E2C 50                  PUSH      EAX
+0167:00402E2D 6A01                PUSH      BYTE +01
+```
+
+
+
+第二处：
+
+```
+0167:00402E32 FFD6             CALL     ESI
+0167:00402E34 FF75FC           PUSH     DWORD [EBP-04]
+0167:00402E37 8BF0             MOV      ESI,EAX
+0167:00402E39 FF1548844800     CALL     `KERNEL32!FindCloseChangeNotification`
+0167:00402E3F EB0B             JMP      SHORT 00402E4C
+0167:00402E41 0B2B             OR       EBP,[EBX]
+0167:00402E43 C48D2D92948D     LES      ECX,[EBP+8D94922D]
+0167:00402E49 195161           SBB      [ECX+61],EDX
+0167:00402E4C FF75F8           PUSH     DWORD [EBP-08] 改为 push 48
+0167:00402E4F E856000000       CALL     00402EAA
+0167:00402E54 59               POP      ECX
+0167:00402E55 EB01             JMP      SHORT 00402E58
+0167:00402E57 3285F6743C83     XOR      AL,[EBP+833C74F6]
+0167:00402E5D 7D8C             JNL      00402DEB
+0167:00402E5F 00753D           ADD      [EBP+3D],DH
+0167:00402E62 8B7588           MOV      ESI,[EBP-78]
+0167:00402E65 85F6             TEST     ESI,ESI
+0167:00402E67 7503             JNZ      00402E6C
+0167:00402E69 6A04             PUSH     BYTE +04
+0167:00402E6B 5E               POP      ESI
+0167:00402E6C 33C9             XOR      ECX,ECX
+0167:00402E6E 85F6             TEST     ESI,ESI
+0167:00402E70 7E2D             JNG      00402E9F
+0167:00402E72 EB01             JMP      SHORT 00402E75
+0167:00402E74 008BC16A0499     ADD      [EBX+99046AC1],CL
+0167:00402E7A 5F               POP      EDI
+0167:00402E7B F7FF             IDIV     EDI
+0167:00402E7D 8A842A0CFFFFFF   MOV      AL,[EDX+EBP+FFFFFF0C]
+0167:00402E84 8B15B0C64A00     MOV      EDX,[004AC6B0]
+0167:00402E8A 32442990         XOR      AL,[ECX+EBP-70]
+0167:00402E8E 880411           MOV      [ECX+EDX],AL
+0167:00402E91 41               INC      ECX
+0167:00402E92 3BCE             CMP      ECX,ESI
+0167:00402E94 7CDC             JL       00402E72         (JUMP)
+0167:00402E96 EB07             JMP      SHORT 00402E9F
+0167:00402E98 C7458C08000000   MOV      DWORD [EBP-74],08
+0167:00402E9F EB01             JMP      SHORT 00402EA2
+0167:00402EA1 43               INC      EBX
+0167:00402EA2 8B458C           MOV      EAX,[EBP-74]
+0167:00402EA5 5F               POP      EDI
+0167:00402EA6 5E               POP      ESI
+0167:00402EA7 5B               POP      EBX
+0167:00402EA8 C9               LEAVE
+```
+
+改完后还是补能用，怎么问题。重新找到报错的地址：
+
+```
+:00419F02 68902A4800           push 00482A90
+:00419F07 64A100000000         mov eax, dword ptr fs:[00000000]
+:00419F0D 50                   push eax
+:00419F0E 64892500000000       mov dword ptr fs:[00000000], esp
+:00419F15 83EC08               sub esp, 00000008
+:00419F18 A1A89D4A00           mov eax, dword ptr [004A9DA8]
+:00419F1D 56                   push esi
+:00419F1E 8BF1                 mov esi, ecx 更改为：mov esi,2321480
+:00419F20 89442404             mov dword ptr [esp+04], eax
+:00419F24 C744241400000000     mov [esp+14], 00000000
+:00419F2C 89442408             mov dword ptr [esp+08], eax
+:00419F30 A1BCC64A00           mov eax, dword ptr [004AC6BC]有狗时是 0 无狗为 1
+```
+
+关键在这里，如何更改内存地址的值呢？
+
+```
+:00419F35 C644241401           mov [esp+14], 01
+:00419F3A 85C0                 test eax, eax
+:00419F3C 744F                 je 00419F8D 关键跳转
+:00419F3E 8B0DC0C64A00         mov ecx, dword ptr [004AC6C0]
+:00419F44 85C9                 test ecx, ecx
+:00419F46 7545                 jne 00419F8D
+:00419F48 83F801               cmp eax, 00000001
+:00419F4B 7507                 jne 00419F54
+```
+
+反汇编，查找：`mov dword ptr [004AC6BC]` 发现有四处，其中两处分别给内存赋值 1 和 2。
+
+省下两个地址是有寄存器赋值。更改相应地址 `419ea3` 和 `419f92` 全部替换为 `NOP`。
+
+最后破解成功经验证可用。
+
+从以上破解过成可能走了不少弯路，但是每次付出总是有收获的，请高手指教洗耳恭听。肚子饿了去吃饭了。再见各位。
+
+`4dd466d0e1e0cc123afbe504da2462ca`

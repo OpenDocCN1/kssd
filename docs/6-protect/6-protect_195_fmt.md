@@ -1,0 +1,57 @@
+
+# 打狗 CAXA2000 电子图板，只改半字节
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum549.htm`](https://www.pediy.com/kssd/pediy03/forum549.htm)
+
+打狗 CAXA2000 电子图板，只改半字节!!!!!!!!!!!!!!!!!!!!!!!!!
+
+2XXX 年 X 月 X 日，头喜画图，买一 6 元 XXXX 精华版 D 碟。
+
+内软件均破唯此 DOG===>CAXA2000
+
+一声犬吠,
+
+我打！
+
+无狗不能 SAVE!!!!!!岂有犬理????????
+
+内 `eb.exe` 1881KB
+
+找 `c:\windows\system\keypro.dll`
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:100010BE(C), :100010E7(C)
+
+|
+
+```
+:10001102 33DB                 xor ebx, ebx
+:10001104 66891E               mov word ptr [esi], bx
+:10001107 66895E02             mov word ptr [esi+02], bx
+:1000110B 66895E04             mov word ptr [esi+04], bx
+:1000110F 66895E06             mov word ptr [esi+06], bx
+:10001113 66895E08             mov word ptr [esi+08], bx
+:10001117 66895E0A             mov word ptr [esi+0A], bx
+:1000111B 66895E0C             mov word ptr [esi+0C], bx
+:1000111F 66895E0E             mov word ptr [esi+0E], bx
+:10001123 66895E10             mov word ptr [esi+10], bx
+:10001127 66C7070300           mov word ptr [edi], 0003
+                   ^^^^                               ^^^^
+                    改 0000                           0000
+:1000112C 5F                   pop edi
+:1000112D 5E                   pop esi
+:1000112E 5B                   pop ebx
+:1000112F C20400               ret 0004
+```
+
+不但狗骨头被啃光，序列号也被干掉了，我哈哈哈哈！
+
+不要问我为什么？我还要去跪算盘！
+
+可由提示窗口着手，
+
+也可 `BPIO` 378 着脚。
+
+                /\\zest/\\
+                2001.1  4dd466d0e1e0cc123afbe504da2462ca
