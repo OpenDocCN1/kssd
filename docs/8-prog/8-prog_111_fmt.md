@@ -1,0 +1,1090 @@
+
+# 《精通 UNIX 下 C 语言编程及项目实践》学习笔记 03 并发程序设计
+
+> 原文：[`www.pediy.com/kssd/pediy10/86641.html`](https://www.pediy.com/kssd/pediy10/86641.html)
+
+《精通 UNIX 下 C 语言编程及项目实践》学习笔记目录
+
+[`bbs.pediy.com/showthread.php?t=86392`](http://bbs.pediy.com/showthread.php?t=86392)
+
+## 第三篇 并发程序设计
+
+业精于勤, 而荒于嬉.
+
+### 九、进程控制
+
+进程是程序的一次执行, 是运行在自己的虚拟地址空间的一个具有独立功能的程序. 进程是分配和释放资源的基本单位, 当程序执行时, 系统创建进程, 分配内存和 CPU 等资源; 进程结束时, 系统回收这些资源.
+
+#### 线程与进程
+
+线程又名轻负荷进程, 它是在进程基础上程序的一次执行, 一个进程可以拥有多个线程.
+
+线程没有独立的资源, 它共享进程的 `ID`, 共享进程的资源.
+
+线程是 `UNIX` 中最小的调度单位, 目前有系统级调度和进程级调度两种线程调度实行方式: 系统级调度的操作系统以线程为单位进行调度; 进程级调度的操作系统仍以进程为单位进行调度, 进程再为其上运行的线程提供调度控制.
+
+#### 环境变量
+
+`UNIX` 中, 存储了一系列的变量, 在 `shell` 下执行 `'env'` 命令, 就可以得到环境变量列表.
+
+环境变量分为系统环境变量和用户环境变量两种. 系统环境变量在注册时自动设置, 大部分具有特定的含义; 用户环境变量在 `Shell` 中使用赋值命令和 `export` 命令设置. 如下例先设置了变量 `XYZ`, 再将其转化为用户环境变量:
+
+代码:
+
+```
+[bill@billstone Unix_study]$ XYZ=/home/bill
+[bill@billstone Unix_study]$ env | grep XYZ
+[bill@billstone Unix_study]$ export XYZ
+[bill@billstone Unix_study]$ env | grep XYZ
+XYZ=/home/bill
+[bill@billstone Unix_study]$
+```
+
+`UNIX` 下 `C` 程序中有两种获取环境变量值的方法: 全局变量法和函数调用法
+
+**(a) 全局变量法**
+
+`UNIX` 系统中采用一个指针数组来存储全部环境值:
+
+代码:
+
+```
+extern char **environ;
+```
+
+该法常用于将 `environ` 作为参数传递的语句中, 比如后面提到的 `execve` 函数等.
+
+代码:
+
+```
+[bill@billstone Unix_study]$ cat env1.c
+#include <stdio.h>
+extern char **environ;
+
+int main()
+{
+        char **p = environ;
+
+        while(*p){
+                fprintf(stderr, "%s\n", *p);
+                p++;
+        }
+
+        return 0;
+}
+[bill@billstone Unix_study]$ make env1
+cc     env1.c   -o env1
+[bill@billstone Unix_study]$ ./env1
+SSH_AGENT_PID=1392
+HOSTNAME=billstone
+DESKTOP_STARTUP_ID=
+SHELL=/bin/bash
+TERM=xterm
+... ... ... ...
+[bill@billstone Unix_study]
+```
+
+**(b) 函数调用法**
+
+`UNIX` 环境下操作环境变量的函数如下:
+
+代码:
+
+```
+#include <stdlib.h>
+char *getenv(char *name);
+int putenv(const char *string);
+```
+
+函数 `getenv` 以字符串形式返回环境变量 `name` 的取值, 因此每次只能获取一个环境变量的值; 而且要使用该函数, 必须知道要获取环境变量的名字.
+
+代码:
+
+```
+[bill@billstone Unix_study]$ cat env2.c
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(int argc, char **argv)
+{
+        int i;
+
+        for(i=1;i<argc;i++)
+                fprintf(stderr, "%s=%s\n", argv[i], getenv(argv[i]));
+
+        return 0;
+}
+[bill@billstone Unix_study]$ make env2
+cc     env2.c   -o env2
+[bill@billstone Unix_study]$ ./env2 HOME LOGNAME rp
+HOME=/home/bill
+LOGNAME=bill
+rp=(null)
+[bill@billstone Unix_study]$
+```
+
+#### 在进程中执行新程序的三种方法
+
+进程和人类一样, 都有创建、发展、休眠和死亡等各种生命形态. 其中, 函数 `fork` 创建新进程, 函数 `exec` 执行新程序, 函数 `sleep` 休眠进程, 函数 `wait` 同步进程和函数 `exit` 结束进程.
+
+**(1) fork-exec**
+
+调用 `fork` 创建的子进程, 将共享父进程的代码空间, 复制父进程数据空间, 如堆栈等. 调用 `exec` 族函数将使用新程序的代码覆盖进程中原来的程序代码, 并使进程使用函数提供的命令行参数和环境变量去执行新的程序.
+
+`exec` 函数族有六个函数如下:
+
+代码:
+
+```
+#include <unistd.h>
+int execl(const char *path, const char *arg0, ..., (char *)0);
+int execle(const char *path, const char *arg0, ..., (char *)0, char *const envp[]);
+int execlp(const char *file, const char *arg0, ..., (char *)0);
+int execv(const char *path, const char *argv[]);
+int execve(const char *path, const char *argv[], const char *envp[]);
+int execvp(const char *file, const char *argv[]);
+extern char **environ;
+```
+
+如何用 `Fork-exec` 方式执行程序 `'uname -a`?
+
+代码:
+
+```
+[bill@billstone Unix_study]$ cat exec1.c
+#include <sys/types.h>
+#include <unistd.h>
+#include <stdio.h>
+
+int main()
+{
+        pid_t pid;
+
+        if((pid = fork()) == 0){
+                fprintf(stderr, "---- begin ----\n");
+                // sleep(3);                // 睡眠 3 秒会导致子进程成为僵死进程
+                execl("/bin/uname", "uname", "-a", 0);
+                fprintf(stderr, "----   end   ----\n");
+        }
+        else if(pid > 0)
+                fprintf(stderr, "fork child pid = [%d]\n", pid);
+        else
+                fprintf(stderr, "Fork failed.\n");
+
+        return 0;
+}
+[bill@billstone Unix_study]$ make exec1
+cc     exec1.c   -o exec1
+[bill@billstone Unix_study]$ ./exec1
+---- begin ----
+Linux billstone 2.4.20-8 #1 Thu Mar 13 17:18:24 EST 2003 i686 athlon i386 GNU/Linux
+fork child pid = [13276]
+[bill@billstone Unix_study]$ ./exec1
+---- begin ----
+fork child pid = [13278]
+[bill@billstone Unix_study]$ Linux billstone 2.4.20-8 #1 Thu Mar 13 17:18:24 EST 2003 i686 athlon i386 GNU/Linux
+```
+
+**(2) vfork-exec**
+
+`vfork` 比起 `fork` 函数更快, 二者的区别如下:
+
+a) `vfork` 创建的子进程并不复制父进程的数据, 在随后的 `exec` 调用中系统会复制新程序的数据到内存, 继而避免了一次数据复制过程
+
+b) 父进程以 `vfork` 方式创建子进程后将被阻塞, 知道子进程退出或执行 `exec` 调用后才能继续运行.
+
+当子进程只用来执行新程序时, `vfork-exec` 模型比 `fork-exec` 模型具有更高的效率, 这种方法也是 `Shell` 创建新进程的方式.
+
+代码:
+
+```
+[bill@billstone Unix_study]$ cat exec2.c
+#include <sys/types.h>
+#include <unistd.h>
+#include <stdio.h>
+
+int main()
+{
+        pid_t pid;
+
+        if((pid = vfork()) == 0){
+                fprintf(stderr, "---- begin ----\n");
+                sleep(3);
+                execl("/bin/uname", "uname", "-a", 0);
+                fprintf(stderr, "----   end   ----\n");
+        }
+        else if(pid > 0)
+                fprintf(stderr, "fork child pid = [%d]\n", pid);
+        else
+                fprintf(stderr, "Fork failed.\n");
+
+        return 0;
+}
+[bill@billstone Unix_study]$ make exec2
+make: `exec2' is up to date.
+[bill@billstone Unix_study]$ ./exec2
+---- begin ----
+fork child pid = [13293]
+[bill@billstone Unix_study]$ Linux billstone 2.4.20-8 #1 Thu Mar 13 17:18:24 EST 2003 i686 athlon i386 GNU/Linux
+```
+
+**(3) system**
+
+在 `UNIX` 中, 我们也可以使用 `system` 函数完成新程序的执行.
+
+函数 `system` 会阻塞调用它的进程, 并执行字符串 `string` 中的 `shell` 命令.
+
+代码:
+
+```
+[bill@billstone Unix_study]$ cat exec3.c
+#include <unistd.h>
+#include <stdio.h>
+
+int main()
+{
+        char cmd[] = {"/bin/uname -a"};
+
+        system(cmd);
+
+        return 0;
+}
+[bill@billstone Unix_study]$ make exec3
+cc     exec3.c   -o exec3
+[bill@billstone Unix_study]$ ./exec3
+Linux billstone 2.4.20-8 #1 Thu Mar 13 17:18:24 EST 2003 i686 athlon i386 GNU/Linux
+[bill@billstone Unix_study]$
+```
+
+#### 僵死进程
+
+僵死进程是已经终止, 但没有从进程表中清除的进程, 下面是一个僵死进程的实例
+
+代码:
+
+```
+[bill@billstone Unix_study]$ cat szomb1.c
+#include <unistd.h>
+#include <stdio.h>
+#include <sys/types.h>
+
+int main()
+{
+        pid_t pid;
+
+        if((pid = fork()) == 0){
+                printf("child[%d]\n", getpid());
+                exit(0);
+        }
+        // wait();
+        printf("parent[%d]\n", getpid());
+        sleep(10);
+
+        return 0;
+}
+[bill@billstone Unix_study]$
+```
+
+后台运行程序 `szobm1`, 并在子进程结束后, 父进程没有结束前, 运行命令查询进程情况:
+
+代码:
+
+```
+[bill@billstone Unix_study]$ make szomb1
+cc     szomb1.c   -o szomb1
+[bill@billstone Unix_study]$ ./szomb1 &
+[2] 13707
+child[13708]
+[bill@billstone Unix_study]$ parent[13707]
+ps -ef | grep 13707
+bill     13707  1441  0 04:17 pts/0    00:00:00 ./szomb1
+bill     13708 13707  0 04:17 pts/0    00:00:00 [szomb1 <defunct>]     // 僵死进程
+bill     13710  1441  0 04:17 pts/0    00:00:00 grep 13707
+[bill@billstone Unix_study]$
+```
+
+其中, `'defunct'` 代表僵死进程. 对于僵死进程, 不能奢望通过 `kill` 命令杀死之, 因为它已经 `'死'` 了, 不再接收任何系统信号.
+
+当子进程终止时, 它释放资源, 并且发送 `SIGCHLD` 信号通知父进程. 父进程接收 `SIGCHLD` 信号, 调用 `wait` 返回子进程的状态, 并且释放系统进程表资源. 故如果子进程先于父进程终止, 而父进程没有调用 `wait` 接收子进程信息, 则子进程将转化为僵死进程, 直到其父进程结束.
+
+一旦知道了僵死进程的成因, 我们可以采用如下方法预防僵死进程:
+
+**(1) wait 法**
+
+父进程主动调用 `wait` 接收子进程的死亡报告, 释放子进程占用的系统进程表资源.
+
+**(2) 托管法**
+
+如果父进程先于子进程而死亡, 则它的所有子进程转由进程 `init` 领养, 即它所有子进程的父进程 `ID` 号变为 `1`. 当子进程结束时 `init` 为其释放进程表资源.
+
+**(3) 忽略 SIGC(H)LD 信号**
+
+当父进程忽略 `SIGC(H)LD` 信号后, 即使不执行 `wait`, 子进程结束时也不会产生僵死进程.
+
+**(4) 捕获 SIGC(H)LD 信号**
+
+当父进程捕获 `SIGC(H)LD` 信号, 并在捕获函数代码中等待 (`wait`) 子进程
+
+#### 守护进程
+
+所谓守护进程是一个在后台长期运行的进程, 它们独立于控制终端, 周期性地执行某项任务, 或者阻塞直到事件发生, 默默地守护着计算机系统的正常运行. 在 `UNIX` 应用中, 大部分 `socket` 通信服务程序都是以守护进程方式执行.
+
+完成一个守护进程的编写至少包括以下几项:
+
+**(1) 后台执行**
+
+后台运行的最大特点是不再接收终端输入, 托管法可以实现这一点
+
+代码:
+
+```
+pid_t pid;
+pid = fork();
+if(pid > 0) exit(0);       // 父进程退出
+/* 子进程继续运行  */
+父进程结束, shell 重新接管终端控制权, 子进程移交 init 托管
+```
+
+**(2) 独立于控制终端**
+
+在后台进程的基础上, 脱离原来 `shell` 的进程组和 `session` 组, 自立门户为新进程组的会话组长进程, 与原终端脱离关系
+
+代码:
+
+
+
+# 函数 `setsid()` 与文件创建掩码
+
+## 1. 创建会话与进程组
+```
+#include <unistd.h>
+pid_t setsid();
+```
+函数 `setsid()` 创建一个新的 session 和进程组。
+
+## 2. 清除文件创建掩码
+进程清除文件创建掩码，代码如下：
+
+```
+umask(0);
+```
+
+# 处理信号
+为了预防父进程不等待子进程结束而导致子进程僵死，必须忽略或者处理 `SIGCHLD` 信号，其中忽略该信号的方法为：
+
+```
+signal(SIGCHLD, SIG_IGN);
+```
+
+# 守护进程实例 `InitServer()`
+守护进程独立于控制终端，它们一般以文件日志的方式进行信息输出。下面是一个简单的守护进程实例 `InitServer()`。
+
+```
+[bill@billstone Unix_study]$ cat initServer.c
+#include <assert.h>
+#include <signal.h>
+#include <sys/wait.h>
+#include <sys/types.h>
+
+void ClearChild(int nSignal){
+    pid_t pid;
+    int nState;
+                //  WNOHANG 非阻塞调用 waitpid, 防止子进程成为僵死进程
+    while((pid = waitpid(-1, &nState, WNOHANG)) > 0);
+    signal(SIGCLD, ClearChild);    // 重新绑定 SIGCLD 信号
+}
+
+int InitServer(){
+    pid_t pid;
+
+    assert((pid = fork()) >= 0);        // 创建子进程
+    if(pid != 0){               // 父进程退出, 子进程被 init 托管
+        sleep(1);
+        exit(0);
+    }
+    assert(setsid() >= 0);           // 子进程脱离终端
+    umask(0);              // 清除文件创建掩码
+    signal(SIGINT, SIG_IGN);     // 忽略 SIGINT 信号
+    signal(SIGCLD, ClearChild);     // 处理 SIGCLD 信号,预防子进程僵死
+
+    return 0;
+}
+
+int main()
+{
+    InitServer();
+    sleep(100);
+
+    return 0;
+}
+[bill@billstone Unix_study]$ make initServer
+cc     initServer.c   -o initServer
+[bill@billstone Unix_study]$ ./initServer
+[bill@billstone Unix_study]$ ps -ef | grep initServer
+bill     13721     1  0 04:40 ?        00:00:00 ./initServer      // '?'代表 initServer 独立于终端
+bill     13725  1441  0 04:41 pts/0    00:00:00 grep initServer
+[bill@billstone Unix_study]$
+```
+
+程序在接收到 `SIGCLD` 信号后立即执行函数 `ClearChild()`，并调用非阻塞的 `waitpid()` 函数结束子进程结束信息。如果结束到子进程结束信息则释放该子进程占用的进程表资源，否则函数立刻返回。这样既保证了不增加守护进程负担，又成功地预防了僵死进程的产生。
+
+《精通 UNIX 下 C 语言编程及项目实践》学习笔记目录
+
+[`bbs.pediy.com/showthread.php?t=86392`](http://bbs.pediy.com/showthread.php?t=86392)
+
+# 十、时钟与信号
+
+## 获取时钟
+UNIX 的时间系统存在一个基点，就是格林威治时间 1970 年 1 月 1 日凌晨 0 点 0 分 0 秒，也是传说中 UNIX 的生日。
+
+UNIX 中存在三种格式的时间：
+
+1.  **系统时间**：UNIX 从出生到现在的秒数，表现为一个 `time_t` 类型的变量。
+2.  **高分辨率时间**：精确到微秒的时间，表现为一个 `timeval` 结构的变量。
+3.  **日历时间**：以'年、月、日、时、分、秒'结构表示的时间，表现为 `tm` 结构。
+
+### 系统时间
+它是 UNIX 中最基本的时间形式。用于系统时间的函数如下：
+
+```
+#include <time.h>
+time_t time(time_t *tloc);
+double difftime(time_t time2, time_t time1);
+```
+
+函数 `difftime()` 获取两次 `time()` 调用返回的系统时间差。
+
+秒数往往很难读懂，UNIX 中更改系统时间为日历时间的函数如下：
+
+```
+#include <time.h>
+struct tm *localtime(const time_t *clock);
+time_t mktime(struct tm*timeptr);
+```
+
+函数 `localtime()` 转换系统时间，`clock` 为当地时间，并以 `tm` 结构返回。
+
+函数 `mktime()` 实现函数 `localtime()` 的反功能。
+
+下面给出一个打印本地时间的例子：
+
+```
+[bill@billstone Unix_study]$ cat time1.c
+#include <time.h>
+#include <stdio.h>
+
+int main()
+{
+    struct tm when;
+    time_t now;
+
+    time(&now);
+    when = *localtime(&now);
+    printf("now=[%d] [%04d %02d %02d %02d:%02d:%02d]\n", now, \
+        when.tm_year+1900, when.tm_mon+1, when.tm_mday, \
+        when.tm_hour, when.tm_min, when.tm_sec);
+
+    return 0;
+}
+[bill@billstone Unix_study]$ make time1
+cc     time1.c   -o time1
+[bill@billstone Unix_study]$ ./time1
+now=[1239927129] [2009 04 17 08:12:09]
+[bill@billstone Unix_study]$
+```
+
+## 信号的概念
+信号是传送给进程的事件通知，它可以完成进程间异步事件的通信。
+
+导致信号产生的原因很多，但总体说来有三种可能：
+
+1.  **程序错误**：当硬件出现异常，除数为 0 或者软件非法访问等情况时发生。
+2.  **外部事件**：当定时器到达，用户按健中断或者进程调用 `abort()` 等信号发送函数时方生。
+3.  **显式请求**：当进程调用 `kill()`, `raise()` 等信号发送函数或者用户执行 shell 命令 `kill` 传递信号时发生。
+
+同样的，当进程收到信号时有三种处理方式：
+
+1.  **系统默认**：系统针对不同的信号有不同的默认处理方式。
+2.  **忽略信号**：信号收到后，立即丢弃。注意信号 `SIGSTOP` 和 `SIGKILL` 不能忽略。
+3.  **捕获信号**：进程接收信号，并调用自定义的代码响应之。
+
+## 信号操作
+函数 `signal()` 设置对信号的操作动作，原型如下：
+
+```
+#include <signal.h>
+void (*signal (int sig, void (*f) (int()) (int);
+```
+
+这是个复杂的函数原型，不妨可以分开看：
+
+```
+typedef void (*func)(int);
+func signal(int sig, func f);
+```
+
+其中，`func` 参数有三种选择：`SIG_DFL`(恢复信号默认处理机制)、`SIG_IGN`(忽略信号处理)和函数地址(调用信号捕获函数执行处理)。
+
+### 忽略终止信号 `SIGINT` 的例子
+首先看一个忽略终止信号 `SIGINT` 的例子。
+
+```
+[bill@billstone Unix_study]$ cat sig1.c
+#include <signal.h>
+#include <stdio.h>
+
+int main()
+{
+    signal(SIGINT, SIG_IGN);
+    sleep(10);            // 睡眠 10 秒
+
+    return 0;
+}
+[bill@billstone Unix_study]$ make sig1
+cc     sig1.c   -o sig1
+[bill@billstone Unix_study]$ ./sig1
+[bill@billstone Unix_study]$
+```
+
+在程序运行的 10 秒内，即使你键入 `Ctrl+C` 中断命令，进程也不退出。
+
+### 捕获自定义信号的例子
+再看一个捕获自定义信号的例子。
+
+```
+[bill@billstone Unix_study]$ cat sig2.c
+#include <signal.h>
+#include <stdio.h>
+
+int usr1 = 0, usr2 = 0;
+void func(int);
+
+int main()
+{
+    signal(SIGUSR1, func);
+    signal(SIGUSR2, func);
+    for(;;)
+        sleep(1);          //  死循环, 方便运行观察
+
+    return 0;
+}
+
+void func(int sig){
+    if(sig == SIGUSR1)
+        usr1++;
+    if(sig == SIGUSR2)
+        usr2++;
+    fprintf(stderr, "SIGUSR1[%d], SIGUSR2[%d]\n", usr1, usr2);
+    signal(SIGUSR1, func);
+    signal(SIGUSR2, func);
+}
+```
+
+在后台运行，结果如下：
+
+```
+[bill@billstone Unix_study]$ make sig2
+cc     sig2.c   -o sig2
+[bill@billstone Unix_study]$ ./sig2&       // 后台运行
+[2] 13822
+[bill@billstone Unix_study]$ kill -USR1 13822    // 发送信号 SIGUSR1
+SIGUSR1[1], SIGUSR2[0]
+[bill@billstone Unix_study]$ kill -USR2 13822     // 发送信号 SIGUSR2
+SIGUSR1[1], SIGUSR2[1]
+[bill@billstone Unix_study]$ kill -USR2 13822     // 发送信号 SIGUSR2
+SIGUSR1[1], SIGUSR2[2]
+[bill@billstone Unix_study]$ kill -9 13822        //  发送信号 SIGSTOP, 杀死进程
+[bill@billstone Unix_study]$
+[2]+  已杀死                ./sig2
+[bill@billstone Unix_study]$
+```
+
+UNIX 应用程序可以向进程显式发送任意信号，原型如下：
+
+```
+#include <sys/types.h>
+#include <signal.h>
+int kill(pid_t pid, int signo);
+int raise(int signo);
+```
+
+### 发送和捕获 `SIGTERM` 终止信号的例子
+看一个发送和捕获 `SIGTERM` 终止信号的例子：
+
+```
+[bill@billstone Unix_study]$ cat sig3.c
+#include <signal.h>
+#include <stdio.h>
+#include <assert.h>
+#include <unistd.h>
+#include <sys/types.h>
+
+void childfunc(int sig){
+    fprintf(stderr, "Get Sig\n");
+}
+
+int main()
+{
+    pid_t pid;
+    int status;
+
+    assert((pid = fork()) >= 0);
+    if(pid == 0){
+        signal(SIGTERM, childfunc);
+        sleep(30);
+        exit(0);
+    }
+    fprintf(stderr, "Parent [%d] Fork child pid=[%d]\n", getpid(), pid);
+    sleep(1);
+    kill(pid, SIGTERM);
+    wait(&status);
+    fprintf(stderr, "Kill child pid=[%d], exit status[%d]\n", pid, status>>8);
+
+    return 0;
+}
+[bill@billstone Unix_study]$ make sig3
+cc     sig3.c   -o sig3
+[bill@billstone Unix_study]$ ./sig3
+Parent [13898] Fork child pid=[13899]
+Get Sig
+Kill child pid=[13899], exit status[0]
+[bill@billstone Unix_study]$
+```
+
+## 定时器
+UNIX 下定时器可以分为普通的定时器和精确的定时器。
+
+### 普通定时器
+普通定时器通过 `alarm()` 函数实现，它的精度是秒，而且每调用一次 `alarm()` 函数只能产生一次定时操作。如果需要反复定时，就要多次调用 `alarm()`。调用 `fork()` 后，子进程中的定时器将被取消，但调用 `exec()` 后，定时器仍然有效。
+
+在 UNIX 中使用普通定时器需要三个步骤：
+
+1.  调用 `signal()` 函数设置捕获定时信号。
+2.  调用函数 `alarm()` 定时。
+3.  编写响应定时信号函数。
+
+下面是一个定时器的例子，每隔 1 秒向进程发送定时信号，用户可键入 `Ctrl+C` 或 `Delete` 结束程序。
+
+```
+[bill@billstone Unix_study]$ cat time2.c
+#include <stdio.h>
+#include <unistd.h>
+#include <signal.h>
+
+int n = 0;
+
+void timefunc(int sig){
+    fprintf(stderr, "Alarm %d\n", n++);
+    signal(SIGALRM, timefunc);
+    alarm(1);
+}
+
+int main()
+{
+    int status;
+
+    signal(SIGALRM, timefunc);
+    alarm(1);
+    while(1);
+
+    return 0;
+}
+[bill@billstone Unix_study]$ make time2
+cc     time2.c   -o time2
+[bill@billstone Unix_study]$ ./time2
+Alarm 0
+Alarm 1
+Alarm 2
+                // 按 Ctrl+C 结束
+[bill@billstone Unix_study]$
+```
+
+### 精确定时器
+函数 `alarm()` 设置的定时器只能精确到秒，而下面函数理论上可以精确到毫秒：
+
+```
+#include <sys/select.h>
+#include <sys/time.h>
+int getitimer(int which, struct itimerval *value);
+int setitimer(int which, const struct itimerval value, struct itimerval *ovalue);
+```
+
+函数 `setitimer()` 可以提供三种定时器，它们相互独立，任意一个定时完成都将发送定时信号到进程，并且重新计时。参数 `which` 确定了定时器的类型。
+
+
+
+(1) `ITIMER_REAL`. 定时真实时间, 与 `alarm` 类型相同. 对应信号为 `SIGALRM`.
+
+(2) `ITIMER_VIRT`. 定时进程在用户态下的实际执行时间. 对应信号为 `SIGVTALRM`.
+
+(3) `ITIMER_PROF`. 定时进程在用户态和核心态下的实际执行时间. 对应信号为 `SIGPROF`.
+
+在一个 UNIX 进程中, 不能同时使用 `alarm` 和 `ITIMER_REAL` 类定时器.
+
+结构 `itimerval` 描述了定时器的组成:
+
+```
+struct itimerval{
+      struct timeval it_interval;
+      struct timeval it_value;
+}
+```
+
+结构成员 `it_value` 指定首次定时的时间, 结构成员 `it_interval` 指定下次定时的时间. 定时器工作时, 先将 `it_value` 的时间值减到 0, 发送一个信号, 再将 `it_value` 赋值为 `it_interval` 的值, 重新开始定时, 如此反复. 如果 `it_value` 值被设置为 0, 则定时器停止定时.
+
+结构 `timeval` 秒数了一个精确到微秒的时间:
+
+```
+struct timeval{
+      long tv_sec;
+      long tv_usec;
+}
+```
+
+下面设计了一个精确定时器的例子, 进程每 1.5 秒发送定时信号 `SIGPROF`, 用户可键入 `Ctrl+C` 或 `Delete` 结束程序.
+
+```
+[bill@billstone Unix_study]$ cat time3.c
+#include <sys/select.h>
+#include <sys/time.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <signal.h>
+
+int n = 0;
+
+void timefunc(int sig){
+        fprintf(stderr, "ITIMER_PROF[%d]\n", n++);
+        signal(SIGPROF, timefunc);
+}
+
+int main()
+{
+        struct itimerval value;
+
+        value.it_value.tv_sec = 1;
+        value.it_value.tv_usec = 500000;
+        value.it_interval.tv_sec = 1;
+        value.it_interval.tv_usec = 500000;
+        signal(SIGPROF, timefunc);
+        setitimer(ITIMER_PROF, &value, NULL);
+        while(1);
+
+        return 0;
+}
+[bill@billstone Unix_study]$ make time3
+cc      time3.c   -o time3
+[bill@billstone Unix_study]$ ./time3
+ITIMER_PROF[0]
+ITIMER_PROF[1]
+ITIMER_PROF[2]
+
+[bill@billstone Unix_study]$
+```
+
+欢迎转载，请保留作者信息
+
+bill@华中科技大学
+
+http://billstone.cublog.cn
+
+### 全局跳转
+
+UNIX 下的 C 语言中,有一对特殊的调用:跳转函数, 原型如下:
+
+```
+#include <setjmp.h>
+int setjmp(jmp_buf env);
+void longjump(jmp_buf env, int val);
+```
+
+函数 `setjmp` 存储当前的堆栈环境(包括程序的当前执行位置)到参数 `env` 中,当函数正常调用成功时返回 0. 函数 `longjmp` 恢复保存在 `env` 中堆栈信息, 并使程序转移到 `env` 中保存的位置处重新执行. 这两个函数联合使用, 可以实现程序的重复执行.
+
+函数 `longjmp` 调用成功后, 程序转移到函数 `setjmp` 处执行, 函数 `setjmp` 返回 `val`. 如果参数 `val` 的取值为 0, 为了与上次正常调用 `setjmp` 相区别,函数 `setjmp` 将自动返回 1.
+
+下面是一个使用了跳转语句的例子, 它跳转两次后退出.
+
+```
+[bill@billstone Unix_study]$ cat jmp1.c
+#include <setjmp.h>
+
+int j = 0;
+jmp_buf env;
+
+int main()
+{
+        auto int i, k = 0;
+
+        i = setjmp(env);
+        printf("setjmp = [%d], j = [%d], k = [%d]\n", i, j++, k++);
+        if(j > 2)
+                exit(0);
+        sleep(1);
+        longjmp(env, 1);
+
+        return 0;
+}
+[bill@billstone Unix_study]$ make jmp1
+cc      jmp1.c   -o jmp1
+[bill@billstone Unix_study]$ ./jmp1
+setjmp = [0], j = [0], k = [0]
+setjmp = [1], j = [1], k = [1]
+setjmp = [1], j = [2], k = [2]
+[bill@billstone Unix_study]$
+```
+
+其中, `j` 记录了程序的执行次数. 按理说, `k` 的值应该保持不变, 因为当返回到 `setjmp` 重新执行时, 保存的堆栈中 `k` 应该保持 0 不变, 但实际上却变化了. 请高手指点, 是不是 `setjmp` 本身实现的问题(我用的环境是 Red Hat 9)?
+
+### 单线程 I/O 超时处理
+
+UNIX 下的 I/O 超时处理是一个很常见的问题, 它的通常做法是接收输入(或发送输出)后立刻返回, 如果无输入(或输出)则 n 秒后定时返回.
+
+一般情况下, 处理 UNIX 中 I/O 超时的方式有终端方式, 信号跳转方式和多路复用方式等三种. 本节设计一个定时 I/O 的例子, 它从文件描述符 0 中读取一个字符, 当有输入时继续, 或者 3 秒钟后超时退出,并打印超时信息.
+
+#### (1) 终端 I/O 超时方式
+
+利用 `ioctl` 函数, 设置文件描述符对应的标准输入文件属性为”接收输入后立刻返回, 如无输入则 3 秒后定时返回.
+
+```
+[bill@billstone Unix_study]$ cat timeout1.c
+#include <unistd.h>
+#include <termio.h>
+#include <fcntl.h>
+
+int main()
+{
+        struct termio old, new;
+        char c = 0;
+
+        ioctl(0, TCGETA, &old);
+        new = old;
+        new.c_lflag &= ~ICANON;
+        new.c_cc[VMIN] = 0;
+        new.c_cc[VTIME] = 30;         // 设置文件的超时时间为 3 秒
+        ioctl(0, TCSETA, &new);
+        if((read(0, &c, 1)) != 1)
+                printf("timeout\n");
+        else
+                printf("\n%d\n", c);
+        ioctl(0, TCSETA, &old);
+
+        return 0;
+}
+[bill@billstone Unix_study]$ make timeout1
+cc      timeout1.c   -o timeout1
+[bill@billstone Unix_study]$ ./timeout1
+x
+120
+[bill@billstone Unix_study]$ ./timeout1
+timeout
+[bill@billstone Unix_study]$
+```
+
+#### (2) 信号与跳转 I/O 超时方式
+
+在 `read` 函数前调用 `setjmp` 保存堆栈数据并使用 `alarm` 设定 3 秒定时.
+
+```
+[bill@billstone Unix_study]$ cat timeout2.c
+#include <setjmp.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <signal.h>
+
+int timeout = 0;
+jmp_buf env;
+
+void timefunc(int sig){
+        timeout = 1;
+        longjmp(env, 1);
+}
+
+int main()
+{
+        char c;
+
+        signal(SIGALRM, timefunc);
+        setjmp(env);
+        if(timeout == 0){
+                alarm(3);
+                read(0, &c, 1);
+                alarm(0);
+                printf("%d\n", c);
+        }
+        else
+                printf("timeout\n");
+
+        return 0;
+}
+[bill@billstone Unix_study]$ make timeout2
+cc      timeout2.c   -o timeout2
+[bill@billstone Unix_study]$ ./timeout2
+v                     // 需要按 Enter 健激活输入
+118
+[bill@billstone Unix_study]$ ./timeout2
+timeout
+[bill@billstone Unix_study]$
+```
+
+#### (3) 多路复用 I/O 超时方式
+
+一个进程可能同时打开多个文件, UNIX 中函数 `select` 可以同时监控多个文件描述符的输入输出, 进程将一直阻塞, 直到超时或产生 I/O 为止, 此时函数返回, 通知进程读取或发送数据.
+
+函数 `select` 的原型如下:
+
+```
+#include <sys/types.h>
+#include <sys/times.h>
+#include <sys/select.h>
+int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
+FD_CLR(int fd, fd_set *fdset);    // 从 fdset 中删去文件描述符 fd
+FD_ISSET(int fd, fd_set *fdset);   // 查询文件描述符是否在 fdset 中
+FD_SET(int fd, fd_set *fdset);     // 在 fdset 中插入文件描述符 fd
+FD_ZERO(fd_set *fdset);        // 清空 fdset
+```
+
+参数 `nfds` 是 `select` 监控的文件描述符的时间, 一般为监控的最大描述符编号加 1.
+
+类型 `fd_set` 是文件描述符集合, 其元素为监控的文件描述符.
+
+参数 `timeout` 是描述精确时间的 `timeval` 结构,它确定了函数的超时时间,有三种取值情况:
+
+a) `NULL`. 函数永远等待, 直到文件描述符就绪.
+
+b) `0`. 函数不等待, 检查文件描述符状态后立即返回.
+
+c) 其他值. 函数等待文件描述符就绪, 或者定时完成时返回.
+
+函数 `select` 将返回文件描述符集合中已准备好的文件总个数. 函数 `select` 返回就绪文件描述符数量后, 必须执行 `read` 等函数, 否则函数继续返回就绪文件数.
+
+```
+[bill@billstone Unix_study]$ cat timeout3.c
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/times.h>
+#include <sys/select.h>
+
+int main()
+{
+        struct timeval timeout;
+        fd_set readfds;
+        int i;
+        char c;
+
+        timeout.tv_sec = 3;
+        timeout.tv_usec = 0;
+        FD_ZERO(&readfds);
+        FD_SET(0, &readfds);
+        i = select (1, &readfds, NULL, NULL, &timeout);
+        if(i > 0){
+                read(0, &c, 1);
+                printf("%d\n", c);
+        }
+        else if(i == 0)
+                printf("timeout\n");
+        else
+                printf("error\n");
+
+        return 0;
+}
+[bill@billstone Unix_study]$ make timeout3
+cc      timeout3.c   -o timeout3
+[bill@billstone Unix_study]$ ./timeout3
+x
+120
+[bill@billstone Unix_study]$
+[bill@billstone Unix_study]$ ./timeout3
+timeout
+[bill@billstone Unix_study]$
+```
+
+回答“全局跳转”要点中的问题<红色标记>:
+
+我重新阅读了 APUE 中关于 `setjmp` 的章节，截出关于该问题的解答：
+
+"what are the states of the automatic variables and register variables in the main function?" When main is returned to by the `longjmp`, do these variables have values corresponding to when the `setjmp` was previously called, or are their values left alone so that their values left alone so that their values are whatever they were when `do_line` was called? Unfortunately, the answer is **"it depends."**
+
+下面以一个实例看下具体情况：
+
+
+
+
+```c
+#include <setjmp.h>
+#include <stdio.h>
+
+static void f1(int, int, int, int);
+static void f2(void);
+
+static jmp_buf jmpbuffer;
+static int globval;
+
+int main(void)
+{
+    int autoval;
+    register int regival;
+    volatile int volaval;
+    static int statval;
+
+    globval = 1;
+    autoval = 2;
+    regival = 3;
+    volaval = 4;
+    statval = 5;
+    if(setjmp(jmpbuffer) != 0){
+        printf("after longjmp: \n");
+        printf("globval = %d, autoval = %d, regival = %d, volaval = %d, statval = %d\n", globval, autoval, regival, volaval, statval);
+        exit(0);
+    }
+         globval = 91;
+        autoval = 92;
+        regival = 93;
+        volaval = 94;
+        statval = 95;
+
+    f1(autoval, regival, volaval, statval);
+    exit(0);
+}
+
+static void f1(int i, int j, int k, int l){
+    printf("in f1():\n");
+    printf("globval = %d, autoval = %d, regival = %d, volaval = %d, statval = %d\n", globval, i, j, k, l);
+    f2();
+}
+
+static void f2(void){
+    longjmp(jmpbuffer, 1);
+}
+```
+
+下面是在`Red Hat9`上的运行结果：
+
+代码:
+
+```bash
+[bill@billstone Unix_study]$ uname -a
+Linux billstone 2.4.20-8 #1 Thu Mar 13 17:18:24 EST 2003 i686 athlon i386 GNU/Linux
+[bill@billstone Unix_study]$ ./testjmp
+in f1():
+globval = 91, autoval = 92, regival = 93, volaval = 94, statval = 95
+after longjmp:
+globval = 91, autoval = 92, regival = 93, volaval = 94, statval = 95
+[bill@billstone Unix_study]$
+```
+
+在`Ubuntu`上的测试结果：
+
+代码:
+
+```bash
+billstone@ubuntu:~/Unix_C$ uname -a
+Linux ubuntu 2.6.24-22-generic #1 SMP Mon Nov 24 19:35:06 UTC 2008 x86_64 GNU/Linux
+billstone@ubuntu:~/Unix_C$ ./testjmp 
+in f1():
+globval = 91, autoval = 92, regival = 93, volaval = 94, statval = 95
+after longjmp: 
+globval = 91, autoval = 92, regival = 93, volaval = 94, statval = 95
+billstone@ubuntu:~/Unix_C$
+```
+
+可以看到在这两个系统上`setjmp`并没有将自动变量和寄存器变量回复到之前的状态。大家如果使用了其他系统，请测试一下并将结果发上来一起探讨。

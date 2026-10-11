@@ -1,0 +1,422 @@
+
+# Windows 内存隐藏技术初探
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-348.htm`](https://www.pediy.com/kssd/pediy09/pediy09-348.htm)
+
+> NetRoc/cc682 最早看到 Shadow Walker 这种隐藏内存数据的技术的时间忘了，呵呵。大约是一年多或者两年以前吧。当时还只是提出了理论性的东西，没有人实现出来。前段时间搞 NP 玩的时候，对 Themida 和虚拟机深恶痛绝，遂想，干脆把内存数据隐藏得了，省得挂个钩子还得缩手缩脚，找个一劳永逸的办法。于是 google 了一把网上的代码，自己也花了几天时间实现了一下。虽然不太完美，不支持 PAE，目前也只能隐藏 ring3 的代码，不过对这项技术的原理和实现也算是摸清楚了。由于对现在的安全软件具有极度破坏性的杀伤力，开始没想写这篇文章，不过最近确实比较无聊，NMAKE 的文章又比较难写，so 还是写写玩吧，权当练文笔了，呵呵。
+
+> 关于内存隐藏的概念。有时候我们会面临这么一个问题，如果我们有一段内存中的代码，不想被别人发现，但是又要它能确确实实的执行起来起作用，怎么办？或许有很多办法，比如自我变形之类的。但是，如果可以完完全全把这段代码的痕迹从内存中“抹消”，岂不是很舒坦的事情？hoho。简单来说，就是让内存中的一段数据，执行的时候是一个样子，但是 read/write 的时候又是另外一个样子。是不是有点玄妙了？呵呵。
+
+> 一切都要从 Petium 架构 CPU 提供的 TLBS 说起。TLBS 的全称是 Translation Lookaside Buffers。为了加速处理器内存在分页模式下的访问速度，从 P6 family 的 cpu 开始就支持这样一种特性。处理器会将最近访问过的页目录(page-directory)和页表(page-table)存储在芯片内部称为 translation lookaside buffers 的缓存中。P6 family 处理器分别为 4K 页面和 4M 页面分别保留不同的 TLBs。绝大多数对分页的访问，都可以通过 TLBs 的内容完成，只有在缓存中找不到所访问的页面的信息时，才会去访问实际的页目录和页表。Ring0 的代码通过重新装载 CR3 或者使用 INVLPG 指令，可以将 TLB 里面某些页表的入口无效化。而 CPU 分别为内存的执行和读写保存了不同的 TLB，即 DTLB 和 ITLB。对于 DTLB，在执行数据访问指令的时候，会更新 DTLB 中被访问页面的入口；而对于 ITLB，在执行某个页面代码的时候，会更新 ITLB 内的入口。通常情况下，DTLB 和 ITLB 的内容是同步的，但是我们可以通过操作这两种 TLB，实现对某段内存的读写/执行控制。
+
+> 如何才能在某个内存地址被读写或者访问的时候获得控制呢？很明显，当内存访问出错的时候，系统会触发页面异常，即 Trap0E。通过钩挂 Trap0E，并且将我们要控制的内存页面 PTE 标记为不存在，并且通过 INVLPG 指令清空 TLB 中该页的入口，这样，当对这个页面进行读写/执行访问的时候，TLB 中不存在该页的入口信息，并且页面不存在，能够触发 Trap0E，使得我们可以获得系统的控制权。
+
+> 接下来，我们需要区分触发异常是由于读写访问还是执行访问。通过比较发生异常的页面地址，和出现异常的代码地址，我们可以区分异常类型。如果出现异常的地址就是发生异常时正执行的代码地址，那么说明是一次执行访问；反之则是读写访问。在捕获到异常并区分出异常类型之后，就可以通过分别手动装载 DTLB 和 ITLB 使得读写/执行数据的过滤。TLB 被装载之后，只要没有被清除出去，对这些页面的访问就通过 TLB 里面的内容实现。这样使得 Hook 页面之后的访问速度，比未 Hook 之前并不会有明显的损失。
+
+> 基本的思想就是这样了，后面贴出来一些我的代码实现，其中很多直接“参考”了 OllyBone 和网上其他公布出来的代码。
+
+> 由于目的是想做对目标进程的 Hook，并且隐藏被修改的代码，仅需要支持对 ring3 代码的隐藏即可。我的流程是在驱动中提供了一个接口，将应用层传进去的一段代码复制到要 hook 的地址，并保存原始内容。通过内存伪装，使得该地址执行的是新代码，而读写操作得到的是旧代码。为了在自己 Trap0E 里面区分是哪个进程触发的异常，采用了比较奇怪的办法，即通过对比 CR3 寄存器的值来判断，至于为什么这么做，忘了……。另外，为了装载 ITLB，需要调用一下伪装页面内的代码，所以我们在被 Hook 的页面内需要找到一条 retn 指令，并把这个地址传递给驱动，在装载 ITLB 的时候，驱动程序直接 call 这句 retn。
+
+> 下面的代码还有一些问题，只是当时写的实验性的代码，所以也比较零乱。不过大致的流程是清楚的。
+
+> 这段是 `IoCtrl` 里面的
+
+```
+case IOCTL_SHADOWHOOK:
+
+    //Shadow Hook!!
+
+    g_ulHookPid = (ULONG)PsGetCurrentProcessId();
+
+    g_ulHookProcessCr3 = GetCR3();
+
+    if( g_pbyCode == NULL)
+
+    {
+
+      g_pbyCode = ExAllocatePoolWithTag( PagedPool, 4*1024, 'SWHK');
+
+      g_pMdl = IoAllocateMdl( g_pbyCode, 4*1024, FALSE, FALSE, NULL);
+
+      if ( g_pMdl == NULL)
+
+      {
+
+        ExFreePool( g_pbyCode);
+
+        g_pbyCode = NULL;
+
+        break;
+
+      }
+
+      else
+
+      {
+
+        __try
+
+        {
+
+          MmProbeAndLockPages( g_pMdl, KernelMode, IoReadAccess);
+
+          g_blIsLocked = TRUE;
+
+        }
+
+        __except( EXCEPTION_EXECUTE_HANDLER)
+
+        {
+
+          IoFreeMdl(g_pMdl);
+
+          g_pMdl = NULL;
+
+          ExFreePool( g_pbyCode);
+
+          g_pbyCode = NULL;
+
+          g_blIsLocked = FALSE;
+
+        }
+
+      }
+
+    }
+
+    RtlZeroMemory( g_pbyCode, 4*1024);
+
+    pstShadowHookInfo = (PSHADOW_HOOK_INFO)Irp->AssociatedIrp.SystemBuffer;
+
+    RtlCopyMemory( g_pbyCode, (PVOID)(pstShadowHookInfo->ulStartAddr & 0xFFFFF000), 4*1024);
+
+    SetCopyOnWrite( (PVOID)pstShadowHookInfo->ulStartAddr);
+
+    g_ulHookCodeLen = pstShadowHookInfo->ulLength;
+
+
+    _asm
+
+    {//关闭内存写保护
+
+      cli;
+
+      mov eax,cr0;
+
+      and eax,0fffeffffh;
+
+      mov cr0,eax;
+
+    }
+
+    RtlCopyMemory( (PVOID)pstShadowHookInfo->ulStartAddr, (PVOID)pstShadowHookInfo->pbyHookCode, pstShadowHookInfo->ulLength);
+
+     
+
+      _asm
+
+      {//重新打开内存写保护
+
+        mov eax,cr0;
+
+        or eax,0x10000;
+
+        mov cr0, eax;
+
+        sti;
+
+      }
+
+      
+
+     
+
+    CpuCount = *KeNumberProcessors;
+
+    while( CpuCount > 0)
+
+    {
+
+      KeSetAffinityThread( KeGetCurrentThread(), CpuCount);//绑定 CPU
+
+       HookMemoryPage( (PVOID)pstShadowHookInfo->ulStartAddr, g_pbyCode, (PVOID)pstShadowHookInfo->pfnNullSub);
+
+       CpuCount--;
+
+    }
+
+    g_blIsHookedPage = TRUE;
+
+     ntStatus = HookTrap0E();
+
+     if( !NT_SUCCESS(ntStatus))
+
+     {
+
+       DbgPrint( "HookTrap0E fail.\r\n");
+
+     }
+
+    break;
+```
+
+下面是钩挂 `Trap0E`
+
+`Hook Trap0E`
+
+```
+NTSTATUS HookTrap0E()
+
+{
+
+  CCHAR CpuCount = 0;
+
+  PIDTENTRY    IdtEntry = NULL;
+
+  IDTR stIdtr = {0};
+
+   
+
+  if( g_blIsHookTrapE0)
+
+    return STATUS_UNSUCCESSFUL;
+
+   
+
+  CpuCount = *KeNumberProcessors;
+
+  while( CpuCount > 0)
+
+  {
+
+    KeSetAffinityThread( KeGetCurrentThread(), CpuCount);//绑定 CPU
+
+     
+
+    //得到 IDTR 中得段界限与基地址
+
+    _asm sidt stIdtr;
+
+    IdtEntry = (PIDTENTRY)stIdtr.Base;
+
+     
+
+    //保存原有得 IDT
+
+    RtlCopyMemory(&g_IdtEntryOld, &IdtEntry[0x0E], sizeof(g_IdtEntryOld));
+
+   
+
+    _asm cli;//禁止中断
+
+    g_ulOldTrap0E = (ULONG)IdtEntry[0x0E].OffsetLow | ((ULONG)IdtEntry[0x0E].OffsetHigh<<16);     
+    
+    IdtEntry[0x0E].OffsetLow   = (unsigned short)NewTrap0E;                                   
+    
+    IdtEntry[0x0E].OffsetHigh  = (unsigned short)((unsigned int)NewTrap0E>>16);
+
+    _asm sti;//开中断
+
+   
+
+    CpuCount--;
+
+  }
+
+  g_blIsHookTrapE0 = TRUE;
+
+  return STATUS_SUCCESS;
+
+}
+```
+
+这是 `Hook` 一个页面
+
+```
+void HookMemoryPage( PVOID pExecutePage, PVOID pReadWritePage, 
+
+             PVOID pfnCallIntoHookedPage)                               
+
+{                                   
+
+  PPTE ExecutePte;
+
+  g_pExecutePage = pExecutePage;                           
+
+  g_pReadWritePage = pReadWritePage;                         
+
+  g_pfnCallIntoHookedPage = pfnCallIntoHookedPage;    
+
+  __asm cli; //关中断                                                               
+
+  ExecutePte = GetPteAddress( pExecutePage);
+
+  g_pReadWritePTE = GetPteAddress( pReadWritePage);
+
+  g_ExecutePTE = ExecutePte;
+
+   
+
+  //这里因为我们是 Hook ring3 页面，所以不用 EnableGlobalPageFeature
+
+    //EnableGlobalPageFeature( ExecutePte);
+
+   
+
+    //标记页面为不存在                      
+
+    MarkPageNotPresent( ExecutePte);
+
+   
+
+    //清空 TLB 入口 
+
+    __asm invlpg pExecutePage
+
+   
+
+  __asm sti //reenable interrupts             
+
+}//end HookMemoryPage  
+```
+
+下面是钩挂的 `Trap0E` 的代码了。关键就在这里。
+
+```
+#pragma optimize( "", off )
+
+void __declspec (naked) NewTrap0E(void)
+
+{
+
+  __asm                                         
+
+        {                                       
+                pushad                           
+                
+                mov edx, dword ptr [esp+0x20] //PageFault.ErrorCode
+
+        test edx, 1  //不是缺页错误
+
+          jne PassDown
+
+   
+
+    //通过 CR3 判断当前进程
+
+    mov eax, cr3
+
+    cmp eax, g_ulHookProcessCr3
+
+    jnz PassDown
+
+   
+
+                mov eax,cr2     //faulting virtual address 
+
+                //////////////////////////////////////////
+
+                //判断是否是 Hook 掉的 page
+
+                ///////////////////////////////////////////////////
+
+    mov ebx, g_pExecutePage
+
+                  and  ebx, 0xFFFFF000
+
+                   and  eax, 0xFFFFF000
+
+                  cmp eax, ebx
+
+    mov eax, cr2   
+    
+                  jnz PassDown  //不是，传下去
+
+   
+
+                ///////////////////////////////////          
+                
+                //下面处理 Hook 掉的页面了 
+
+                ////////////////
+
+
+
+```asm
+mov ebx, eax  //ebx = pPte
+pop eax
+cmp [esp+0x24], eax     //判断是执行出错还是读写时出错?
+je LoadITLB
+
+//判断是否是 Hook 的那些字节
+cmp eax, g_pExecutePage
+jb  LoadDTLB
+sub eax, g_pExecutePage
+cmp eax, g_ulHookCodeLen
+jg  LoadDTLB
+jmp LoadFakeFrame
+
+LoadITLB:
+////////////////////////////////
+//是一次执行操作，所以 Load ITLB
+///////////////////////////////
+cli
+or dword ptr [ebx], 0x01         //标志页面为存在
+call g_pfnCallIntoHookedPage //通过调用一下那个页面内的代码，装载 ITLB
+and dword ptr [ebx], 0xFFFFFFFE  //重新标记为不存在
+//sti
+jmp ReturnWithoutPassdown
+
+////////////////////////////////
+// 这是读写造成的异常，并且不在我们要隐藏的代码范围内，Load DTLB
+///////////////////////////////
+LoadDTLB:
+cli
+mov eax,cr2
+or dword ptr [ebx], 0x01           //mark the page present
+mov eax, dword ptr [eax]           //load the DTLB
+and dword ptr [ebx], 0xFFFFFFFE    //mark page not present
+//sti
+jmp ReturnWithoutPassdown
+
+/////////////////////////////////
+//需要隐藏这段代码，所以 Load 伪装的页面
+/////////////////////////////////
+
+LoadFakeFrame:
+mov eax, cr2
+mov esi, g_pReadWritePTE
+mov ecx, dword ptr [esi]             //ecx = PTE of the      //read / write page
+//把页面替换为假的
+mov edi, [ebx]
+and edi, 0x00000FFF //preserve the lower 12 bits of the      //faulting page's PTE
+and ecx, 0xFFFFF000 //isolate the physical address in         //"fake" page's PTE
+or ecx, edi
+mov edx, [ebx]     //save the old PTE so we can replace it
+cli
+mov [ebx], ecx    //replace the faulting page's phys frame      //address w/ the fake one
+//load DTLB
+or dword ptr [ebx], 0x01   //标志为存在
+mov eax, cr2               //faulting virtual address
+mov eax, dword ptr [eax]    //访问一次页面的数据，Load DTLB
+and dword ptr [ebx], 0xFFFFFFFE //重新标志为不存在
+//Finally, restore the original PTE
+mov [ebx], edx
+//sti
+
+ReturnWithoutPassDown:
+popad
+add esp,4
+sti
+iretd
+
+PassDown:
+popad
+jmp g_ulOldTrap0E
+}//end asm
+}
+```
+
+`#pragma optimize("", on)`
+
+`4dd466d0e1e0cc123afbe504da2462ca`
