@@ -1,0 +1,124 @@
+
+00417C03 `. `FF15 C4544B00 CALL DWORD PTR DS:[<&user32.MessageBoxA>>; MessageBoxA
+
+00417C09 `. `8A0424 MOV AL,BYTE PTR SS:[ESP]
+
+00417C0C `. `84C0 TEST AL,AL; // 关键比较 2
+
+00417C0E `. `74 37 JE SHORT cx4.00417C47
+
+00417C10 `. `8D9424 E80400>LEA EDX,DWORD PTR SS:[ESP+4E8]
+
+00417C17 `. `8D0424 LEA EAX,DWORD PTR SS:[ESP]
+
+00417C1A `. `50 PUSH EAX
+
+00417C1B `. `FF35 84EB4B00 PUSH DWORD PTR DS:[4BEB84]; cx4.007F71A8
+
+00417C21 `. `68 E0CD7F00 PUSH cx4.007FCDE0; ASCII "%s> Licensed to %s"
+
+00417C26 `. `52 PUSH EDX
+
+00417C27 `. `E8 66D90700 CALL cx4.00495592
+
+00417C2C `. `83C4 10 ADD ESP,10
+
+00417C2F `. `8D8424 E80400>LEA EAX,DWORD PTR SS:[ESP+4E8]
+
+00417C36 `. `8BCF MOV ECX,EDI
+
+00417C38 `. `50 PUSH EAX
+
+00417C39 `. `E8 E0B60800 CALL cx4.004A331E
+
+00417C3E `. `81C4 D0080000 ADD ESP,8D0
+
+00417C44 `. `5E POP ESI
+
+00417C45 `. `5F POP EDI
+
+00417C46 `. `C3 RETN
+
+00417C47 `> `8D8424 000100>LEA EAX,DWORD PTR SS:[ESP+100]
+
+00417C4E `. `FF35 84EB4B00 PUSH DWORD PTR DS:[4BEB84]; cx4.007F71A8
+
+00417C54 `. `68 F4CD7F00 PUSH cx4.007FCDF4; ASCII "%s> Unregistered version"
+
+00417C59 `. `50 PUSH EAX
+
+00417C5A `. `E8 33D90700 CALL cx4.00495592
+
+```
+// 第三个关键比较
+
+// 重新运行, 走棋, 断在 4A5232, 看看 STACK
+
+0012FBE0   0024011C  |hOwner = 0024011C ('XieXieMaster 1.0.10> License...',class='AfxFrameOrView42s')
+0012FBE4   007FE5AC  |Text = "Incorrect registration code !"
+0012FBE8   007FCE3C  |Title = "XieXie Error"
+0012FBEC   00000030  Style = MB_OK|MB_ICONEXCLAMATION|MB_APPLMODAL
+0012FBF0   006B006A  cx4.006B006A
+0012FBF4   0041FE4F  RETURN to cx4.0041FE4F from cx4.004A520A
+
+// 41FE4F
+
+0041FE0E    61             POPAD
+0041FE0F    A1 40184C00    MOV EAX,DWORD PTR DS:[4C1840]
+0041FE14    85C0           TEST EAX,EAX; // 关键比较 3
+0041FE16    0F85 8A000000  JNZ cx4.0041FEA6
+0041FE1C    E8 6B3CFFFF    CALL cx4.00413A8C
+0041FE21    8B15 081B4C00  MOV EDX,DWORD PTR DS:[4C1B08]
+0041FE27    8B45 D0        MOV EAX,DWORD PTR SS:[EBP-30]
+0041FE2A    85D2           TEST EDX,EDX
+0041FE2C    8990 1C030000  MOV DWORD PTR DS:[EAX+31C],EDX
+0041FE32    75 72          JNZ SHORT cx4.0041FEA6
+0041FE34    A1 20F14B00    MOV EAX,DWORD PTR DS:[4BF120]
+0041FE39    8B4D D0        MOV ECX,DWORD PTR SS:[EBP-30]
+0041FE3C    6A 30          PUSH 30
+0041FE3E    68 3CCE7F00    PUSH cx4.007FCE3C; ASCII "XieXie Error"
+0041FE43    FF3485 B0EF4B00 PUSH DWORD PTR DS:[EAX*4+4BEFB0]
+0041FE4A    E8 BB530800    CALL cx4.004A520A
+0041FE4F    8B4D D0        MOV ECX,DWORD PTR SS:[EBP-30]
+0041FE52    E8 4D8AFFFF    CALL cx4.004188A4
+```
+
+`//` 这里要注意, 不能直接改 `0041FE0F` 为 `MOV EAX, 1`
+
+`//` 因为这段代码是 `SMC` 动态生成的. 怎么办?
+
+`//` 跟踪一下, 得知过程如下:
+
+`//` `1` 先 `SMC` 解密代码, 从 `41FE0E` 开始, `4` 字节一组
+
+`//` `2` 执行
+
+`//` `3` 再 `SMC` 加密代码
+
+`//` 有了, 利用内存断点
+
+`//` 第一步后, 修改 `0041FE0F` 处 为 `MOV EAX, 1`
+
+`//` 第三步后, 记下 `0041FE0E` 开始 `8` 个字节 `22 1A 0D 6B F1 26 A6 AA`
+
+`//` 得来全不费功夫, 知道怎么改了吧?
+
+`//` 终于结束了, `CX4.EXE`
+
+`//` 要写出注册机生成注册码也可以, 留给大家练习一下吧.
+
+`//` 先要经过变态的花指令 `SMC` 考验, 然后还有 `64Bit Int`, 密码表等着你呢.
+
+`//` 呵呵
+
+`//` 不过要突破 `AcProtect` 的 `RSA` 保护, 生成 `Key.dat`, 我还做不到.
+
+`//` 希望有大侠指点.
+
+`//` 一点感慨: 希望大家看了贴, 能给点意见, 不管是批评, 还是赞扬, 我都欢迎.
+
+`//` 我没有 `XP`, 请大家帮我测试跨平台. 使用过程中有问题, 请告诉我, 非常感谢.
+
+`//` 总之, 不要沉默, 搞的我心里一点底都没有.
+
+`4dd466d0e1e0cc123afbe504da2462ca`
