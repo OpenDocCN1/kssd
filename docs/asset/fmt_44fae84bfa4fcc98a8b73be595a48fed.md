@@ -1,0 +1,156 @@
+
+# 堀北压缩 0.28 beta 脱壳
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-508.htm`](https://www.pediy.com/kssd/pediy09/pediy09-508.htm)
+
+> 【 标题 】 堀北压缩 0.28 beta 脱壳  
+> 【 作者 】 `linxer`  
+> 【 Q Q 】 `3568599`  
+> 【 破解平台 】 盗版 `xp` `sp2`  
+> 【 脱壳工具 】 `OllyICE` + `OllyDump` 插件  
+> 【 待脱软件 】 `mouserate.exe` 见附件(用堀北压缩 0.28 beta 加壳)  
+> 【 声明 】 初学脱壳，只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+这款壳，脱法很简单，不过，在网上搜了下，貌似还没人写这个脱文，这里就粗略写一篇出来吧
+
+`OD` 加载程序，程序停留在入口
+
+```
+00401000  >/$  68 37A34000   push    0040A337  
+00401005  |.   E8 01000000   call    0040100B        ;调用一个空函数  
+0040100A  \\.   C3            retn          ;F7 后 到 0x0040A337 处执行  
+0040100B   $  C3            retn
+```
+
+```
+0040A337    B8 49A30000     mov     eax, 0A349        ;随着指令的执行，等下这个指令的立即数会改变，目前不管，F7  
+0040A33C    BA 00004000     mov     edx, 00400000  
+0040A341    03C2            add     eax, edx  
+0040A343    FFE0            jmp     eax           ;跳到 0x0040A349 执行  
+0040A345    B1 15           mov     cl, 15        ;它和下一条指令，其实是代码中夹杂的一个 4 字节数据  
+0040A347    0000            add     byte ptr [eax], al  
+0040A349    60              pushad  
+0040A34A    E8 00000000     call    0040A34F        ;这个地方应该在重定位程序上有用吧  
+0040A34F    5E              pop     esi                         ; mouserat.0040A34F  
+0040A350    83EE 0A         sub     esi, 0A  
+0040A353    8B06            mov     eax, dword ptr [esi]  
+0040A355    03C2            add     eax, edx  
+0040A357    8B08            mov     ecx, dword ptr [eax]  
+0040A359    894E F3         mov     dword ptr [esi-D], ecx  
+0040A35C    83EE 0F         sub     esi, 0F  
+0040A35F    56              push    esi  
+0040A360    52              push    edx  
+0040A361    8BF0            mov     esi, eax  
+0040A363    AD              lods    dword ptr [esi]  
+0040A364    AD              lods    dword ptr [esi]  
+0040A365    03C2            add     eax, edx  
+0040A367    8BD8            mov     ebx, eax  
+0040A369    6A 04           push    4  
+0040A36B    BF 00100000     mov     edi, 1000  
+0040A370    57              push    edi  
+0040A371    57              push    edi  
+0040A372    6A 00           push    0  
+0040A374    FF53 08         call    dword ptr [ebx+8]      ;VirtualAlloc 调用  
+0040A377    5A              pop     edx  
+0040A378    59              pop     ecx  
+0040A379    BD 00800000     mov     ebp, 8000  
+0040A37E    55              push    ebp  
+0040A37F    6A 00           push    0  
+0040A381    50              push    eax  
+0040A382    51              push    ecx  
+0040A383    52              push    edx  
+0040A384    50              push    eax  
+0040A385    8906            mov     dword ptr [esi], eax  
+0040A387    AD              lods    dword ptr [esi]  
+0040A388    AD              lods    dword ptr [esi]  
+0040A389    03C2            add     eax, edx  
+0040A38B    50              push    eax  
+0040A38C    AD              lods    dword ptr [esi]  
+0040A38D    03C2            add     eax, edx  
+0040A38F    FFD0            call    eax           ;F8 步过(这里解密出来一部分代码到刚分配内存中)  
+0040A391    6A 04           push    4  
+0040A393    57              push    edi  
+0040A394    AD              lods    dword ptr [esi]  
+0040A395    50              push    eax  
+0040A396    6A 00           push    0  
+0040A398    FF53 08         call    dword ptr [ebx+8]      ;VirtualAlloc 调用  
+0040A39B    5A              pop     edx  
+0040A39C    55              push    ebp  
+0040A39D    6A 00           push    0  
+0040A39F    50              push    eax           ;压入 VirtualFree 的参数  
+0040A3A0    FF73 0C         push    dword ptr [ebx+C]      ;压入 VirtualFree 地址，在处理完导入表后，用 ret 指令触发这个函数释放内存  
+0040A3A3    52              push    edx  
+0040A3A4    6A 04           push    4  
+0040A3A6    57              push    edi  
+0040A3A7    8BF8            mov     edi, eax  
+0040A3A9    55              push    ebp  
+0040A3AA    6A 00           push    0  
+0040A3AC    FF53 08         call    dword ptr [ebx+8]      ;VirtualAlloc 调用  
+0040A3AF    5A              pop     edx  
+0040A3B0    55              push    ebp  
+0040A3B1    6A 00           push    0  
+0040A3B3    50              push    eax           ;压入 VirtualFree 的参数  
+0040A3B4    FF73 0C         push    dword ptr [ebx+C]      ;压入 VirtualFree 地址，在处理完导入表后，用 ret 指令触发这个函数释放内存  
+0040A3B7    FF3424          push    dword ptr [esp]      ;再次压入 VirtualFree 地址  
+0040A3BA    8BC8            mov     ecx, eax  
+0040A3BC    50              push    eax  
+0040A3BD    54              push    esp  
+0040A3BE    FF76 FC         push    dword ptr [esi-4]  
+0040A3C1    57              push    edi  
+0040A3C2    AD              lods    dword ptr [esi]  
+0040A3C3    50              push    eax  
+0040A3C4    AD              lods    dword ptr [esi]  
+0040A3C5    03C2            add     eax, edx  
+0040A3C7    50              push    eax  
+0040A3C8    55              push    ebp  
+0040A3C9    51              push    ecx  
+0040A3CA    8BEA            mov     ebp, edx  
+0040A3CC    FF56 E8         call    dword ptr [esi-18]      ;F8 步过(这里跳到第一次分的内存中执行,里面貌似在解压代码到第二次分配内存)  
+0040A3CF    58              pop     eax  
+0040A3D0    012E            add     dword ptr [esi], ebp  
+0040A3D2    8B3E            mov     edi, dword ptr [esi]  
+0040A3D4    AD              lods    dword ptr [esi]  
+0040A3D5    50              push    eax  
+0040A3D6    AD              lods    dword ptr [esi]  
+0040A3D7    50              push    eax  
+0040A3D8    AD              lods    dword ptr [esi]  
+0040A3D9    50              push    eax  
+0040A3DA    AD              lods    dword ptr [esi]  
+0040A3DB    50              push    eax  
+0040A3DC    33C0            xor     eax, eax  
+0040A3DE    B9 80010000     mov     ecx, 180  
+0040A3E3    F3:AB           rep     stos dword ptr es:[edi]  
+0040A3E5    8B7424 28       mov     esi, dword ptr [esp+28]  
+0040A3E9    AC              lods    byte ptr [esi]  
+0040A3EA    8BD0            mov     edx, eax  
+0040A3EC    AD              lods    dword ptr [esi]  
+0040A3ED    8BF8            mov     edi, eax  
+0040A3EF    03FD            add     edi, ebp  
+0040A3F1    AD              lods    dword ptr [esi]  
+0040A3F2    8BC8            mov     ecx, eax  
+0040A3F4    F3:A4           rep     movs byte ptr es:[edi], byte ptr [esi]  ;拷解压代码到程序中  
+0040A3F6    4A              dec     edx  
+0040A3F7  ^ 75 F3          jnz     short 0040A3EC        ;这里一个小循环，在它下一指令 F4  
+0040A3F9    59              pop     ecx            ;F4  
+0040A3FA    5A              pop     edx  
+0040A3FB    58              pop     eax  
+0040A3FC    5F              pop     edi  
+0040A3FD    85C0            test    eax, eax          ；又要出现循环了，到 0x0040A41D 处 F4  
+0040A3FF    74 1C           je      short 0040A41D  
+0040A401    57              push    edi  
+0040A402    8A07            mov     al, byte ptr [edi]  
+0040A404    47              inc     edi  
+0040A405    2C E8           sub     al, 0E8  
+0040A407    3C 01           cmp     al, 1  
+0040A409  ^ 77 F7          ja      short 0040A402  
+0040A40B    8B07            mov     eax, dword ptr [edi]  
+0040A40D    3AC2            cmp     al, dl  
+0040A40F  ^ 75 F1          jnz     short 0040A402  
+0040A411    32C0            xor     al, al  
+0040A413    0FC8            bswap   eax  
+0040A415    030424          add     eax, dword ptr [esp]  
+0040A418    2BC7            sub     eax, edi  
+0040A41A    AB              stos    dword ptr es:[edi]  
+0040A41B  ^ E2 E5          loopd   short 0040A402        ;循环里的代码在搞啥东东，俺不知道  
+0040A41D    55              push    ebp            ;F4
+```
