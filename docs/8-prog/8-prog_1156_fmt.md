@@ -1,0 +1,514 @@
+
+# 枚举进程：ring3->ring0(求邀请码)
+
+> 原文：[`www.pediy.com/kssd/pediy11/106745.html`](https://www.pediy.com/kssd/pediy11/106745.html)
+
+用 `google` 搜索了几天相关内容的资料，将所提到的逐一实现。哎，不禁感叹自己太菜了。居然用了几天的时间。没啥新思想、内容，只是总结，当然还有其他方法没总结到。但经常提到的 `ring3` 下的快照、`psapi` 的 `EnumProcesses`、暴力 `OpenProcess`;`ring0` 下的 `ZwQuerySystemInformation`、`activprocess` 链、暴力搜索内存、`PspCidTable`、`Csrss` 进程的 `ObjectTable`、进程的 `SessionProcessList`、`ZwQuerySystemInformation` 的全局句柄表、`hook SwapContext`。就这么多吧，大牛飘过。算一个枚举进程的科普吧。废话不多说，直接上代码：
+
+## ring3
+
+### 1. ring3 下的快照
+
+```c
+void main()
+{
+    HANDLE hSnap = CreateToolhelp32Snapshot( TH32CS_SNAPPROCESS, 0 );
+    if( hSnap == INVALID_HANDLE_VALUE )
+    {
+        cout<<"Create Toolhelp false"<<endl;
+        return;
+    }
+    PROCESSENTRY32 pEntry32 = {0};
+    pEntry32.dwSize = sizeof(PROCESSENTRY32);
+    bool bRes = Process32First( hSnap, &pEntry32 );
+    int pNums = 0;
+    while( bRes )
+    {
+        pNums++;
+        cout<<"PID:"<<pEntry32.th32ProcessID<<"\t"<<"Path:"<<pEntry32.szExeFile<<endl;
+        bRes = Process32Next( hSnap, &pEntry32 );
+    }
+    CloseHandle( hSnap );
+    cout<<"Process Nums:"<<pNums<<endl;
+}
+```
+
+效果：
+
+![](img/ba3f813a04b708aa93aac5019453770f.jpg)
+
+### 2. psapi 的 EnumProcesses
+
+```c
+DWORD dProcessIds[1024] = {0};
+DWORD dRet = 0;
+DWORD dRes = 0;
+dRes = EnumProcesses( dProcessIds, sizeof(dProcessIds), &dRet );
+if( dRes == 0 )
+{
+    cout<<"EnumProcesses1 False"<<endl;
+    return;
+}
+int ProcessNums = dRet/sizeof(DWORD);
+for( int i = 0; i < ProcessNums; i++ )
+    GetProcessPathById( dProcessIds[i] );
+cout<<"Process Nums:"<<ProcessNums<<endl;
+```
+
+效果：
+
+![](img/8a3bd0d20df826b4daf1fd197f1a7a48.jpg)
+
+### 3. ring3 下的暴力枚举
+
+```c
+RaisePrivileges();
+for( int i = 0; i <0xffff; i++ )
+{
+    HANDLE hProcess = OpenProcess( PROCESS_ALL_ACCESS, false, i );
+    if( hProcess )
+    {
+        char ProcessName[MAX_PATH] = {0};
+        GetProcessImageFileName( hProcess, ProcessName, MAX_PATH );
+        cout<<"PID:"<<i<<"\t"<<"Path:"<<ProcessName<<endl;
+    }
+}
+```
+
+效果：
+
+![](img/d849cd8937539ee08b443efcd301e224.jpg)
+
+## ring0
+
+### 1. 利用 ZwQuerySystemInformation 的第 5 号功能，获取系统进程表
+
+```c
+NTSTATUS Status = STATUS_SUCCESS;
+NtQuerySystemInformation( 5, pBuff, 0, &uRet );
+pBuff = (PCHAR)ExAllocatePool( NonPagedPool, uRet );
+pTemp = pBuff;
+Status = NtQuerySystemInformation( 5, pBuff, uRet, NULL );
+if( NT_SUCCESS(Status) )
+{
+    while( 1 )
+    {
+        PSYSTEM_PROCESS_INFORMATION pSystemProcessInfo = (PSYSTEM_PROCESS_INFORMATION)pTemp;
+        RtlUnicodeStringToAnsiString( &ansi, &pSystemProcessInfo->ImageName, TRUE );
+        DbgPrint("PId:%d\t", pSystemProcessInfo->ProcessId);
+        DbgPrint("Path:%s\n", ansi.Buffer );
+        RtlFreeAnsiString( &ansi );
+        if( pSystemProcessInfo->NextEntryOffset == 0 )
+            break;
+        pTemp = pTemp+pSystemProcessInfo->NextEntryOffset;
+    }
+}
+```
+
+效果：
+
+![](img/cd22048b609f504142e0154186c373d9.jpg)
+
+### 2. 利用 ZwQuerySystemInformation 的第 16 号功能，获取系统进程表
+
+```c
+void DisplayInfo()
+{
+    NTSTATUS Status = STATUS_SUCCESS;
+    PCHAR pBuff = NULL;
+    ULONG uNums = 0;
+    ULONG uRet = 0;
+    PSYSTEM_HANDLE_INFORMATION_EX pSystemHandle = NULL;
+    pBuff = (PCHAR)ExAllocatePool( NonPagedPool, 100 );
+    Status = ZwQuerySystemInformation( 16, pBuff, 100, &uRet );
+    ExFreePool( pBuff );
+    pBuff = (PCHAR)ExAllocatePool( NonPagedPool, uRet );
+    Status = ZwQuerySystemInformation( 16, pBuff, uRet, NULL );
+    if( NT_SUCCESS(Status) )
+    {
+        ULONG index = 0;
+        LONG PId = -1;
+        pSystemHandle = (PSYSTEM_HANDLE_INFORMATION_EX)pBuff;
+        uNums = pSystemHandle->NumberOfHandles;
+        for(; index < uNums; index++ )
+        {
+            if( pSystemHandle->Information[index].ProcessId != PId )
+            {
+                PId = pSystemHandle->Information[index].ProcessId;
+                Display( pSystemHandle->Information[index].ProcessId );
+            }
+        }
+    }
+    else
+    {
+        DbgPrint("NtQuerySystemInformation False");
+        return;
+    }
+}
+```
+
+效果：
+
+![](img/f7e1cd4ca31cc6c4e88e916f99df4170.jpg)
+
+### 3. 利用进程的 ActiveProcessList
+
+```c
+void DisplayInfo()
+{
+    PEPROCESS pEprocess = NULL, pTemp = NULL;
+    pEprocess = PsGetCurrentProcess();
+    pTemp = pEprocess;
+    do
+    {
+        DbgPrint("PId:%d\t", *(PULONG)((ULONG)pTemp+0x084) );
+        DbgPrint("Path:%s\n", (PUCHAR)((ULONG)pTemp+0x174 ));
+        pTemp = (PEPROCESS)( (ULONG)(*(PULONG)((ULONG)pTemp+0x088)) - 0x088 );
+    } while ( pTemp != pEprocess );
+}
+```
+
+效果：
+
+![](img/1d0885550e842081c8224aed929cf760.jpg)
+
+### 4. ring0 下暴力搜索内存
+
+```c
+void DisplayInfo()
+{
+    ULONG uStartAddr = 0x80000000;
+    PEPROCESS pCurrent = PsGetCurrentProcess();
+    // ULONG uPetAddr = (ULONG)PsGetProcessPeb( pCurrent );
+    DbgPrint("PId:%d\tPath:%s\n", *(PULONG)((ULONG)pCurrent+0x084), (PUCHAR)((ULONG)pCurrent+0x174));
+    for(; uStartAddr < (ULONG)pCurrent+0x800000; uStartAddr += 4 )
+    {
+        ULONG uRet = IsValidAddr( uStartAddr );
+        if( uRet == VALID_PAGE )
+        {
+            if( ( *(PULONG)uStartAddr & 0xffff0000) == 0x7ffd0000 )
+            {
+                if( IsRealProcess(uStartAddr - 0x1b0) )
+                {
+                    PLARGE_INTEGER pExitTime = (PLARGE_INTEGER)(uStartAddr-0x1b0+0x078);
+                    if( pExitTime->QuadPart == 0 )
+                    {
+                        DbgPrint("PId:%d\tPath:%s\n", *(PULONG)(uStartAddr-0x1b0+0x084), (PUCHAR)(uStartAddr-0x1b0+0x174));
+                    }
+                    uStartAddr -= 4;
+                    uStartAddr += 0x25c;
+                }
+            }
+        }
+        else if( uRet == PDEINVALID )
+        {
+            uStartAddr -= 4;
+            uStartAddr += 0x400000;
+        }
+        else
+        {
+            uStartAddr -= 4;
+            uStartAddr += 0x1000;
+        }
+    }
+}
+```
+
+效果：
+
+![](img/db585c06a1e857cea8143f03c8dec8da.jpg)
+
+### 5. PspCidTable
+
+```c
+void DisplayInfo()
+{
+    ULONG pCidTableAddr = 0;
+    PHANDLE_TABLE pCidHandleTable = NULL;
+    PHANDLE_TABLE_ENTRY *pTable1, **pTable2, ***pTable3;
+    ULONG pRealHandleTable = 0;
+    ULONG level = 0;
+    ULONG uMax_Handle = 0;
+    pCidTableAddr = GetCidTableAddr();
+    pCidHandleTable = (PHANDLE_TABLE)(*(PULONG)pCidTableAddr);
+    level = (pCidHandleTable->TableCode) & 0x3;
+    pRealHandleTable = (pCidHandleTable->TableCode) & ~0x3;
+    uMax_Handle = pCidHandleTable->NextHandleNeedingPool;
+    switch( level )
+    {
+    case 0:
+        {
+            ULONG index = 0;
+            pTable1 = (PHANDLE_TABLE_ENTRY)(pRealHandleTable);
+            for( index = 0; index < MAX_ENT_CNT; index++ )
+            {
+                if( pTable1[index].Object != NULL )
+                {
+                    ULONG pObject = (ULONG)(pTable1[index].Object) & ~7 ;
+                    if( MmIsAddressValid((PULONG)(pObject - 0x10)) )
+                    {
+                        POBJECT_TYPE pType = (POBJECT_TYPE)(*(PULONG)(pObject - 0x10));
+                        if( pType == *PsProcessType )
+                        {
+                            DbgPrint("PId:%d\tPath:%s\n", index*4, PsGetProcessImageFileName((PEPROCESS)pObject) );
+                        }
+                    }
+                }
+            }
+            break;
+        }
+    case 1:
+        {
+            ULONG index = 0;
+            pTable2 = (PHANDLE_TABLE_ENTRY*)(pRealHandleTable);
+            for( index = 0; index < uMax_Handle/(4*MAX_ENT_CNT); index++ )
+            {
+                pTable1 = pTable2[index];
+                if( pTable1 == NULL )
+                    break;
+                else
+                {
+                    ULONG i = 0;
+                    for( i = 0; i < MAX_ENT_CNT; i++ )
+                    {
+                        if( pTable1[i].Object != NULL )
+                        {
+                            ULONG pObject = (ULONG)(pTable1[i].Object) & ~7;
+                            if( MmIsAddressValid( (PULONG)(pObject-0x10) ) )
+                            {
+                                POBJECT_TYPE pType = (POBJECT_TYPE)(*(PULONG)(pObject-0x10));
+                                if( pType == *PsProcessType )
+                                {
+                                    DbgPrint("PId:%d\tPath:%s\n", index*MAX_ENT_CNT*4+i*4, PsGetProcessImageFileName((PEPROCESS)pObject) );
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            break;
+        }
+    case 2:
+        {
+            ULONG index = 0;
+            pTable3 = (PHANDLE_TABLE_ENTRY**)(pRealHandleTable);
+            for( index = 0; index < uMax_Handle/(MAX_ADD_CNT*MAX_ENT_CNT*4); index++ )
+            {
+                ULONG i = 0;
+```
+
+
+
+## 6. Inline Hook KiSwapContext
+
+```c
+pTable2 = (PHANDLE_TABLE_ENTRY*)((ULONG)pTable3[index] & ~0x3);  
+
+if( pTable2 == NULL )  
+ break;  
+for( i = 0; i < MAX_ADD_CNT; i++ )  
+{  
+ pTable1 = pTable2[i];  
+ if( pTable1 == NULL )  
+  break;  
+ else  
+{  
+  ULONG j = 0;  
+  for( j = 0; j < MAX_ENT_CNT; j++ )  
+{  
+   if( pTable1[j].Object != NULL )  
+{  
+  ULONG pObject = (ULONG)(pTable1[j].Object) & ~7;  
+  if( MmIsAddressValid( (PULONG)(pObject-0x10) ) )  
+{  
+   POBJECT_TYPE pType = (POBJECT_TYPE)(*(PULONG)(pObject-0x10));  
+   if( pType == *PsProcessType )  
+  {  
+   DbgPrint("PId:%d\tPath:%s\n", index*MAX_ADD_CNT*MAX_ENT_CNT*4+i*MAX_ENT_CNT*4+j*4,  
+    PsGetProcessImageFileName((PEPROCESS)pObject) );  
+  }  
+}  
+}  
+}  
+}  
+}  
+}  
+ break;  
+}  
+}  
+```
+
+效果：
+
+![image](img/7e3bdc12fc906dcb26fbdfd57dafdc52.jpg)
+
+```c
+_declspec(naked) void MySwapContext()  
+{  
+ _asm  
+{  
+  pushad  
+  pushfd  
+  cli  
+}  
+ _asm  
+{  
+  push esi  
+  push edi  
+  call ShowProcess  
+}  
+ _asm  
+{  
+  sti  
+  popfd  
+  popad  
+}  
+ _asm jmp DWORD PTR[pBackAddr]  
+}  
+```
+
+效果：
+
+![image](img/6a7dd99666863fef9c63cc79e50824c5.jpg)
+
+## 7. Csrss 进程中枚举进程
+
+```c
+void DisplayInfo()  
+{  
+PEPROCESS pEProcess = NULL;  
+NTSTATUS Status = STATUS_SUCCESS;  
+PHANDLE_TABLE pObjectTable = NULL;  
+PHANDLE_TABLE_ENTRY table1, *table2, **table3;  
+ULONG level;  
+ULONG pRealHandleTable;  
+ULONG uHandleCount;  
+pEProcess = GetCsrssObject();  
+pObjectTable = (PHANDLE_TABLE)(*(PULONG)((ULONG)pEProcess + 0xc4));  
+level = pObjectTable->TableCode & 3;  
+pRealHandleTable = pObjectTable->TableCode & ~3;  
+uHandleCount = pObjectTable->NextHandleNeedingPool;  
+switch( level )  
+{  
+case 0:  
+  {  
+   ULONG index = 0;  
+   table1 = (PHANDLE_TABLE_ENTRY)pRealHandleTable;  
+   for( index = 0; index < MAX_ENT_CNT; index++ )  
+   {  
+    ULONG pObject = (ULONG)(table1[index].Object) & ~7;  
+    if( MmIsAddressValid( (PULONG)(pObject+0x8) ) )  
+    {  
+     POBJECT_TYPE pType = (POBJECT_TYPE)(*(PULONG)(pObject+0x8));  
+     if( pType == *PsProcessType )  
+     {  
+      PEPROCESS pAddr = (PEPROCESS)(pObject+0x18);  
+      DbgPrint("PId:%d\tPath:%s\n", *(PULONG)((ULONG)pAddr+0x84), (PUCHAR)((ULONG)pAddr+0x174) );  
+     }  
+    }  
+   }  
+   break;  
+  }  
+case 1:  
+  {  
+   ULONG index = 0;  
+   table2 = (PHANDLE_TABLE_ENTRY*)pRealHandleTable;  
+   for( index = 0; index < uHandleCount/MAX_ENT_CNT; index++ )  
+   {  
+    ULONG i = 0;  
+    table1 = table2[index];  
+    if( table1 == NULL )  
+     break;  
+    for( i = 0; i < MAX_ENT_CNT; i++ )  
+    {  
+     ULONG pObject = (ULONG)(table1[i].Object) & ~7;  
+     if( MmIsAddressValid( (PULONG)(pObject+0x8) ) )  
+     {  
+      POBJECT_TYPE pType = (POBJECT_TYPE)(*(PULONG)(pObject+0x8));  
+      if( pType == *PsProcessType )  
+      {  
+       ULONG pAddr = (ULONG)(pObject+0x18);  
+       DbgPrint("PId:%d\tPath:%s\n", *(PULONG)(pAddr+0x84), (PUCHAR)(pAddr+0x174) );  
+      }  
+     }  
+    }  
+   }  
+   break;  
+  }  
+case 2:  
+  {  
+   ULONG index = 0;  
+   table3 = (PHANDLE_TABLE_ENTRY**)pRealHandleTable;  
+   for( index = 0; index < uHandleCount/(MAX_ENT_CNT*MAX_ADD_CNT); index++ )  
+   {  
+    ULONG i = 0;  
+    table2 = table3[index];  
+    if( table2 == NULL )  
+     break;  
+    for( i = 0; i < MAX_ADD_CNT; i++ )  
+    {  
+     ULONG j = 0;  
+     table1 = table2[i];  
+     if( table1 == NULL )  
+      break;  
+     for( j = 0; j < MAX_ENT_CNT; j++ )  
+     {  
+      ULONG pObject = (ULONG)(table1[j].Object) & ~7;  
+      if( MmIsAddressValid( (PULONG)(pObject+0x8) ) )  
+      {  
+       POBJECT_TYPE pType = (POBJECT_TYPE)(*(PULONG)(pObject+0x8));  
+       if( pType == *PsProcessType )  
+       {  
+        ULONG pAddr = (ULONG)(pObject+0x18);  
+        DbgPrint("PId:%d\tPath:%s\n", *(PULONG)(pAddr+0x84), (PUCHAR)(pAddr+0x174) );  
+       }  
+      }  
+     }  
+    }  
+   }  
+   break;  
+  }  
+}  
+}  
+```
+
+效果：
+
+![image](img/0d0e173fc71db61d9ba6daf5897798b7.jpg)
+
+## 8. SessionProcessList 枚举
+
+```c
+void DisplayInfo()  
+{  
+PEPROCESS pEProcess = PsGetCurrentProcess();  
+PEPROCESS pTemp = pEProcess;  
+DbgPrint("PId:%d\tPath:%s\n", *(PULONG)((ULONG)pTemp+0x84), (PUCHAR)((ULONG)pTemp+0x174) );  
+ pTemp = (PEPROCESS)( *(PULONG)(*(PULONG)((ULONG)pTemp + 0x8c) + 0x4) - 0x88 ); //取用户进程  
+pEProcess = pTemp;  
+do  
+{  
+ if( MmIsAddressValid(pTemp) )  
+ {  
+  DbgPrint("PId:%d\tPath:%s\n", *(PLONG)((LONG)pTemp+0x84), (PUCHAR)((ULONG)pTemp+0x174) );  
+  pTemp = (PEPROCESS)(*(PULONG)((ULONG)pTemp+0xb4) - 0xb4 );  
+ }  
+ else  
+  break;  
+} while ( pEProcess != pTemp );  
+}  
+```
+
+效果：
+
+![image](img/5514f47ff124874946583d0f8c9f3241.jpg)
+
+就总结了这些。一直以来自己都是零零散散地学习，最近想系统地对内核进行学习，就先从进程开始了。下次再针对以上的枚举方法，进程隐藏。
+
+`ring0`：
+
+`ring0.rar`
+
+`ring3`：
+
+`ring3.rar`
