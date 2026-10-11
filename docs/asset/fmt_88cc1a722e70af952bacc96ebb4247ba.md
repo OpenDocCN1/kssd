@@ -1,0 +1,154 @@
+
+# 图片吸血鬼 V1.30
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-354.htm`](https://www.pediy.com/kssd/pediy08/pediy8-354.htm)
+
+【文章作者】: `tzl`
+【作者邮箱】: `tigerisme@126.com`
+【软件名称】: 图片吸血鬼 `V1.30`
+【软件大小】: `966KB`
+【下载地址】: `http://www.skycn.com/soft/17808.html`
+【加壳方式】: 无
+【保护方式】: 注册码，时间限制
+【编写语言】: `Borland Delphi 6.0 - 7.0`
+【使用工具】: `OD`, `PEID`
+【操作平台】: `XP SP2`
+【更新时间】: `2006-09-30 10:03:02`
+
+**软件介绍：**
+
+图片吸血鬼是一款从网站上下载图片的共享软件，它可以把网站上的图片都下载下来。特点：
+1. 设定下载图片的格式（如 `jpg`, `gif` 或 `swf`）；
+2. 可自己设置下载图片的大小；
+3. 搜索准确度高，可以把下级页面的图片都搜索出来。
+
+**分析过程如下：**
+
+这个软件有使用时间上的限制，注册后需要重新启动以验证注册码是否正确。我们 `od` 加载后观察到第一次填写的注册名及假码的信息不会被清除而是保存着。既然是这样，我们利用这个保存信息开始着手，即第一步先运行 `od` 加载程序，一直运行到注册窗口，然后注册，记住注册名就可以；第二步关闭程序，重新加载，搜索“未注册版 还剩 天”信息，然后向上找到入口点进行分析：
+
+我用的注册名：`tigerisme`
+试练码：`1234567890`
+
+```
+0051D03C    .   55            push ebp                       ;     入口点，从这里开始分析
+0051D03D    .   68 36D15100   push Down.0051D136
+0051D042    .   64:FF30       push dword ptr fs:[eax]
+0051D045    .   64:8920       mov dword ptr fs:[eax],esp
+0051D048    .   B2 01         mov dl,1
+0051D04A    .   A1 28C14300   mov eax,dword ptr ds:[43C128]
+0051D04F    .   E8 D4F1F1FF   call Down.0043C228
+0051D054    .   8945 F0       mov dword ptr ss:[ebp-10],eax
+0051D057    .   BA 02000080   mov edx,80000002
+0051D05C    .   8B45 F0       mov eax,dword ptr ss:[ebp-10]
+0051D05F    .   E8 64F2F1FF   call Down.0043C2C8
+0051D064    .   8D45 EC       lea eax,dword ptr ss:[ebp-14]
+0051D067    .   BA 74D35100   mov edx,Down.0051D374          ;  software\\zy\\pic
+0051D06C    .   E8 B37AEEFF   call Down.00404B24
+0051D071    .   B1 01         mov cl,1
+0051D073    .   8B55 EC       mov edx,dword ptr ss:[ebp-14]
+0051D076    .   8B45 F0       mov eax,dword ptr ss:[ebp-10]
+0051D079    .   E8 AEF2F1FF   call Down.0043C32C
+0051D07E    .   84C0          test al,al
+0051D080    .   0F84 92000000 je Down.0051D118
+0051D086    .   8D4D C0       lea ecx,dword ptr ss:[ebp-40]
+0051D089    .   BA 8CD35100   mov edx,Down.0051D38C          ;  name
+0051D08E    .   8B45 F0       mov eax,dword ptr ss:[ebp-10]
+0051D091    .   E8 5EF4F1FF   call Down.0043C4F4
+0051D096    .   8B55 C0       mov edx,dword ptr ss:[ebp-40]   ;       ebp-40=注册名“tigerisme”，送 edx
+0051D099    .   8B45 FC       mov eax,dword ptr ss:[ebp-4]    ;       tigerisme=edx
+0051D09C    .   05 FC030000   add eax,3FC
+0051D0A1    .   E8 3A7AEEFF   call Down.00404AE0
+0051D0A6    .   8D4D BC       lea ecx,dword ptr ss:[ebp-44]
+0051D0A9    .   BA 9CD35100   mov edx,Down.0051D39C          ;  pass
+0051D0AE    .   8B45 F0       mov eax,dword ptr ss:[ebp-10]
+0051D0B1    .   E8 3EF4F1FF   call Down.0043C4F4
+0051D0B6    .   8B55 BC       mov edx,dword ptr ss:[ebp-44]   ;       ebp-44=试练码“1234567890”，送 edx
+0051D0B9    .   8B45 FC       mov eax,dword ptr ss:[ebp-4]    ;       1234567890=edx
+0051D0BC    .   05 00040000   add eax,400
+0051D0C1    .   E8 1A7AEEFF   call Down.00404AE0
+0051D0C6    .   33C0          xor eax,eax
+0051D0C8    .   55            push ebp
+0051D0C9    .   68 EFD05100   push Down.0051D0EF
+0051D0CE    .   64:FF30       push dword ptr fs:[eax]
+0051D0D1    .   64:8920       mov dword ptr fs:[eax],esp
+0051D0D4    .   BA ACD35100   mov edx,Down.0051D3AC          ;  date
+0051D0D9    .   8B45 F0       mov eax,dword ptr ss:[ebp-10]
+0051D0DC    .   E8 FBF4F1FF   call Down.0043C5DC
+0051D0E1    .   DD5D E0       fstp qword ptr ss:[ebp-20]
+0051D0E4    .   9B            wait
+0051D0E5    .   33C0          xor eax,eax
+0051D0E7    .   5A            pop edx
+0051D0E8    .   59            pop ecx
+0051D0E9    .   59            pop ecx
+0051D0EA    .   64:8910       mov dword ptr fs:[eax],edx
+0051D0ED    .   EB 29         jmp short Down.0051D118
+0051D0EF    .^ E9 6470EEFF    jmp Down.00404158
+0051D0F4    .   FF75 DC       push dword ptr ss:[ebp-24]      ; /Arg2
+0051D0F7    .   FF75 D8       push dword ptr ss:[ebp-28]      ; |Arg1
+0051D0FA    .   BA ACD35100   mov edx,Down.0051D3AC          ; |date
+0051D0FF    .   8B45 F0       mov eax,dword ptr ss:[ebp-10]   ; |
+0051D102    .   E8 C1F4F1FF   call Down.0043C5C8             ; \\Down.0043C5C8
+0051D107    .   8B45 D8       mov eax,dword ptr ss:[ebp-28]
+0051D10A    .   8945 E0       mov dword ptr ss:[ebp-20],eax
+0051D10D    .   8B45 DC       mov eax,dword ptr ss:[ebp-24]
+0051D110    .   8945 E4       mov dword ptr ss:[ebp-1C],eax
+0051D113    .   E8 A873EEFF   call Down.004044C0
+0051D118    >   8B45 F0       mov eax,dword ptr ss:[ebp-10]
+0051D11B    .   E8 78F1F1FF   call Down.0043C298
+0051D120    .   33C0          xor eax,eax
+0051D122    .   5A            pop edx
+0051D123    .   59            pop ecx
+0051D124    .   59            pop ecx
+0051D125    .   64:8910       mov dword ptr fs:[eax],edx
+0051D128    .   68 3DD15100   push Down.0051D13D
+0051D12D    >   8B45 F0       mov eax,dword ptr ss:[ebp-10]
+0051D130    .   E8 436BEEFF   call Down.00403C78
+0051D135    .   C3            retn
+0051D136    .^ E9 D172EEFF    jmp Down.0040440C
+0051D13B    .^ EB F0          jmp short Down.0051D12D
+0051D13D    .   8D4D B8       lea ecx,dword ptr ss:[ebp-48]
+0051D140    .   8B45 FC       mov eax,dword ptr ss:[ebp-4]
+0051D143    .   8B90 FC030000 mov edx,dword ptr ds:[eax+3FC]  ;       edx=“tigerisme”
+0051D149    .   A1 44295200   mov eax,dword ptr ds:[522944]
+0051D14E    .   8B00          mov eax,dword ptr ds:[eax]
+0051D150    .   E8 3BDBFFFF   call Down.0051AC90             ;       算法分析 call
+0051D155    .   8B55 B8       mov edx,dword ptr ss:[ebp-48]   ;       注册码出现"Pic4-56D6ei8es-3796"，即注册码=Pic4+“-”+codeB 前四位及 ei8es 组合+“-”codeB 第 5 至 8 位
+0051D158    .   8B45 FC       mov eax,dword ptr ss:[ebp-4]
+0051D15B    .   8B80 00040000 mov eax,dword ptr ds:[eax+400]
+0051D161    .   E8 327DEEFF   call Down.00404E98             ;       试练码与注册码比较
+0051D166    .   75 25         jnz short Down.0051D18D         ;       关键跳转，即传说总的爆破点：）
+0051D168    .   8B45 FC       mov eax,dword ptr ss:[ebp-4]
+0051D16B    .   C680 F4030000>mov byte ptr ds:[eax+3F4],0
+0051D172    .   8B55 F4       mov edx,dword ptr ss:[ebp-C]
+0051D175    .   8B45 FC       mov eax,dword ptr ss:[ebp-4]
+0051D178    .   E8 E7CAF4FF   call Down.00469C64
+0051D17D    .   8B45 FC       mov eax,dword ptr ss:[ebp-4]
+0051D180    .   8B80 68030000 mov eax,dword ptr ds:[eax+368]
+0051D186    .   33D2          xor edx,edx
+0051D188    .   E8 ABEFF5FF   call Down.0047C038
+0051D18D    >   8B45 FC       mov eax,dword ptr ss:[ebp-4]
+0051D190    .   80B8 F4030000>cmp byte ptr ds:[eax+3F4],0
+0051D197    .   0F84 BE000000 je Down.0051D25B
+0051D19D    .   DD45 D8       fld qword ptr ss:[ebp-28]
+0051D1A0    .   DC65 E0       fsub qword ptr ss:[ebp-20]
+0051D1A3    .   DD5D D0       fstp qword ptr ss:[ebp-30]
+0051D1A6    .   9B            wait
+0051D1A7    .   D905 B4D35100 fld dword ptr ds:[51D3B4]
+0051D1AD    .   DC65 D0       fsub qword ptr ss:[ebp-30]
+0051D1B0    .   E8 0F5BEEFF   call Down.00402CC4
+0051D1B5    .   8BD8          mov ebx,eax
+0051D1B7    .   8B45 FC       mov eax,dword ptr ss:[ebp-4]
+0051D1BA    .   8998 04040000 mov dword ptr ds:[eax+404],ebx
+0051D1C0    .   85DB          test ebx,ebx
+0051D1C2    .   7D 0B         jge short Down.0051D1CF
+0051D1C4    .   8B45 FC       mov eax,dword ptr ss:[ebp-4]
+0051D1C7    .   33D2          xor edx,edx
+0051D1C9    .   8990 04040000 mov dword ptr ds:[eax+404],edx
+0051D1CF    >   FF75 F4       push dword ptr ss:[ebp-C]
+0051D1D2    .   68 C0D35100   push Down.0051D3C0             ;   (未注册版 还剩
+0051D1D7    .   8B45 FC       mov eax,dword ptr ss:[ebp-4]
+0051D1DA    .   DB80 04040000 fild dword ptr ds:[eax+404]
+0051D1E0    .   83C4 F4       add esp,-0C
+0051D1E3    .   DB3C24        fstp tbyte ptr ss:[esp]         ; |
+0051D1E6    .   9B            wait                           ; |
+```
