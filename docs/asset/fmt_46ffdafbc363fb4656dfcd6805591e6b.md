@@ -1,0 +1,134 @@
+
+```
+005E7E75     FF15 48104000     call dword ptr ds:[<&MSVBVM60.__vbaStrVarMove>]   ; MSVBVM60.__vbaStrVarMove
+
+005E7E7B     8B1D 28144000     mov ebx,dword ptr ds:[<&MSVBVM60.__vbaStrMove>]   ; MSVBVM60.__vbaStrMove
+
+005E7E81     8BD0              mov edx,eax
+
+005E7E83     8D4D DC           lea ecx,dword ptr ss:[ebp-24]                     ; 真码转移
+
+005E7E86     FFD3              call ebx
+
+005E7E88     8B3D 38104000     mov edi,dword ptr ds:[<&MSVBVM60.__vbaFreeVar>]   ; MSVBVM60.__vbaFreeVar
+
+005E7E8E     8D4D C4           lea ecx,dword ptr ss:[ebp-3C]
+
+005E7E91     FFD7              call edi
+
+005E7E93     8D4D 84           lea ecx,dword ptr ss:[ebp-7C]
+
+005E7E96     6A 0E             push 0E
+
+005E7E98     8D55 C4           lea edx,dword ptr ss:[ebp-3C]
+
+005E7E9B     8D45 DC           lea eax,dword ptr ss:[ebp-24]
+
+005E7E9E     51                push ecx
+
+005E7E9F     52                push edx
+
+005E7EA0     8945 8C           mov dword ptr ss:[ebp-74],eax
+
+005E7EA3     C745 84 08400000  mov dword ptr ss:[ebp-7C],4008
+
+005E7EAA     FFD6              call esi
+
+005E7EAC     8D45 C4           lea eax,dword ptr ss:[ebp-3C]
+
+005E7EAF     50                push eax
+
+005E7EB0     FF15 48104000     call dword ptr ds:[<&MSVBVM60.__vbaStrVarMove>]   ; MSVBVM60.__vbaStrVarMove
+
+005E7EB6     8BD0              mov edx,eax
+
+005E7EB8     8D4D D8           lea ecx,dword ptr ss:[ebp-28]
+
+005E7EBB     FFD3              call ebx
+
+005E7EBD     8D4D C4           lea ecx,dword ptr ss:[ebp-3C]
+
+005E7EC0     FFD7              call edi
+
+005E7EC2     68 0E7F5E00       push Syncroni.005E7F0E
+
+005E7EC7     EB 34             jmp short Syncroni.005E7EFD
+
+005E7EC9     F645 FC 04        test byte ptr ss:[ebp-4],4
+
+005E7ECD     74 09             je short Syncroni.005E7ED8
+
+005E7ECF     8D4D D8           lea ecx,dword ptr ss:[ebp-28]
+
+005E7ED2     FF15 8C144000     call dword ptr ds:[<&MSVBVM60.__vbaFreeStr>]      ; MSVBVM60.__vbaFreeStr
+
+005E7ED8     8D4D D4           lea ecx,dword ptr ss:[ebp-2C]
+
+005E7EDB     FF15 8C144000     call dword ptr ds:[<&MSVBVM60.__vbaFreeStr>]      ; MSVBVM60.__vbaFreeStr
+
+005E7EE1     8D4D 94           lea ecx,dword ptr ss:[ebp-6C]
+
+005E7EE4     8D55 A4           lea edx,dword ptr ss:[ebp-5C]
+
+005E7EE7     51                push ecx
+
+005E7EE8     8D45 B4           lea eax,dword ptr ss:[ebp-4C]
+
+005E7EEB     52                push edx
+
+005E7EEC     8D4D C4           lea ecx,dword ptr ss:[ebp-3C]
+
+005E7EEF     50                push eax
+
+005E7EF0     51                push ecx
+
+005E7EF1     6A 04             push 4
+
+005E7EF3     FF15 58104000     call dword ptr ds:[<&MSVBVM60.__vbaFreeVarList>]  ; MSVBVM60.__vbaFreeVarList
+
+005E7EF9     83C4 14           add esp,14
+
+005E7EFC     C3                retn
+
+005E7EFD     8B35 8C144000     mov esi,dword ptr ds:[<&MSVBVM60.__vbaFreeStr>]   ; MSVBVM60.__vbaFreeStr
+
+005E7F03     8D4D E4           lea ecx,dword ptr ss:[ebp-1C]
+
+005E7F06     FFD6              call esi
+
+005E7F08     8D4D DC           lea ecx,dword ptr ss:[ebp-24]
+
+005E7F0B     FFD6              call esi
+
+005E7F0D     C3                retn
+```
+
+### 算法总结
+
+1. `[(机器码长度+10)*(机器码+2)]+(机器码+2) + 机器码长度`
+2. 结果 `1` 转化为十进制后逆向
+3. 结果 `2` 第五，十，十五位使用 `-` 代替，但注册码只取前面十四位
+
+---
+
+### 破解心得
+
+没啥心得，纯属娱乐一下~~
+
+---
+
+### 破解声明
+
+我是一只小菜鸟，偶得一点心得，愿与大家分享 :)
+
+### 版权声明
+
+本文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢!
+
+---
+
+文章写于
+
+`2006-06-09 10:42:27` 感谢 `rdsnow` 大哥空间上的破文生成器，呵呵
+
+`4dd466d0e1e0cc123afbe504da2462ca`

@@ -1,0 +1,120 @@
+
+```
+0046A084     .  8D45 D4           lea     eax, dword ptr [ebp-2C]
+0046A087     .  50               push    eax
+0046A088     .  56               push    esi
+0046A089     .  8B16             mov     edx, dword ptr [esi]
+0046A08B     .  FF92 A0000000    call    dword ptr [edx+A0]
+0046A091     .  85C0             test    eax, eax
+0046A093     .  7D 12            jge     short 0046A0A7
+0046A095     .  68 A0000000      push    0A0
+0046A09A     .  68 C0F04000      push    0040F0C0
+0046A09F     .  56               push    esi
+0046A0A0     .  50               push    eax
+0046A0A1     .  FF15 50834A00    call    dword ptr [<&MSVBVM50.__vbaHres>;  MSVBVM50.__vbaHresultCheckObj
+0046A0A7     >  57               push    edi
+0046A0A8     .  FF95 18FFFFFF    call    dword ptr [ebp-E8]
+0046A0AE     .  8D4D BC          lea     ecx, dword ptr [ebp-44]
+0046A0B1     .  50               push    eax
+0046A0B2     .  51               push    ecx
+0046A0B3     .  FF15 84834A00    call    dword ptr [<&MSVBVM50.__vbaObjS>;  MSVBVM50.__vbaObjSet
+0046A0B9     .  8BF0             mov     esi, eax
+0046A0BB     .  8D45 D0          lea     eax, dword ptr [ebp-30]
+0046A0BE     .  50               push    eax
+0046A0BF     .  56               push    esi
+0046A0C0     .  8B16             mov     edx, dword ptr [esi]
+0046A0C2     .  FF92 A0000000    call    dword ptr [edx+A0]
+0046A0C8     .  85C0             test    eax, eax
+0046A0CA     .  7D 12            jge     short 0046A0DE
+0046A0CC     .  68 A0000000      push    0A0
+0046A0D1     .  68 C0F04000      push    0040F0C0
+0046A0D6     .  56               push    esi
+0046A0D7     .  50               push    eax
+0046A0D8     .  FF15 50834A00    call    dword ptr [<&MSVBVM50.__vbaHres>;  MSVBVM50.__vbaHresultCheckObj
+0046A0DE     >  8B4D D0          mov     ecx, dword ptr [ebp-30]
+0046A0E1     .  51               push    ecx
+0046A0E2     .  68 BCF04000      push    0040F0BC
+0046A0E7     .  FF15 DC834A00    call    dword ptr [<&MSVBVM50.__vbaStrC>;  MSVBVM50.__vbaStrCmp
+0046A0ED     .  8B55 D4          mov     edx, dword ptr [ebp-2C]         ;  strcmp 注册码的比较
+0046A0F0     .  8BF0             mov     esi, eax
+0046A0F2     .  8B45 DC          mov     eax, dword ptr [ebp-24]
+0046A0F5     .  52               push    edx
+0046A0F6     .  F7DE             neg     esi
+0046A0F8     .  1BF6             sbb     esi, esi
+0046A0FA     .  50               push    eax
+0046A0FB     .  F7DE             neg     esi
+0046A0FD     .  F7DE             neg     esi
+0046A0FF     .  FF15 DC834A00    call    dword ptr [<&MSVBVM50.__vbaStrC>;  MSVBVM50.__vbaStrCmp
+0046A105     .  8B4D E4          mov     ecx, dword ptr [ebp-1C]
+0046A108     .  F7D8             neg     eax
+0046A10A     .  1BC0             sbb     eax, eax
+0046A10C     .  51               push    ecx
+0046A10D     .  40               inc     eax
+0046A10E     .  F7D8             neg     eax
+0046A110     .  23F0             and     esi, eax
+0046A112     .  FF15 F4824A00    call    dword ptr [<&MSVBVM50.__vbaLenB>;  MSVBVM50.__vbaLenBstr
+0046A118     .  33D2             xor     edx, edx
+0046A11A     .  83F8 08          cmp     eax, 8                         ;  注册名不小于八位
+0046A11D     .  8D45 D0          lea     eax, dword ptr [ebp-30]
+0046A120     .  8D4D D4          lea     ecx, dword ptr [ebp-2C]
+0046A123     .  0F9DC2           setge   dl
+0046A126     .  50               push    eax
+0046A127     .  51               push    ecx
+0046A128     .  F7DA             neg     edx
+0046A12A     .  6A 02            push    2
+0046A12C     .  23F2             and     esi, edx
+0046A12E     .  FF15 D0844A00    call    dword ptr [<&MSVBVM50.__vbaFree>;  MSVBVM50.__vbaFreeStrList
+0046A134     .  83C4 0C          add     esp, 0C
+0046A137     .  8D55 BC          lea     edx, dword ptr [ebp-44]
+0046A13A     .  8D45 C0          lea     eax, dword ptr [ebp-40]
+0046A13D     .  52               push    edx
+0046A13E     .  50               push    eax
+0046A13F     .  6A 02            push    2
+0046A141     .  FF15 0C834A00    call    dword ptr [<&MSVBVM50.__vbaFree>;  MSVBVM50.__vbaFreeObjList
+0046A147     .  83C4 0C          add     esp, 0C
+0046A14A     .  66:85F6         test    si, si
+0046A14D        0F84 9B020000   je      0046A3EE                     ;  不能跳，否则就失败
+0046A153     .  8B07             mov     eax, dword ptr [edi]
+0046A155     .  57               push    edi
+0046A156     .  FF90 10030000    call    dword ptr [eax+310]
+0046A15C     .  8D4D C0          lea     ecx, dword ptr [ebp-40]
+0046A15F     .  50               push    eax
+0046A160     .  51               push    ecx
+0046A161     .  FF15 84834A00    call    dword ptr [<&MSVBVM50.__vbaObjS>;  MSVBVM50.__vbaObjSet
+0046A167     .  8BF0             mov     esi, eax
+0046A169     .  8D45 D4          lea     eax, dword ptr [ebp-2C]
+0046A16C     .  50               push    eax
+0046A16D     .  56               push    esi
+0046A16E     .  8B16             mov     edx, dword ptr [esi]
+0046A170     .  FF92 A0000000    call    dword ptr [edx+A0]
+0046A176     .  85C0             test    eax, eax
+0046A178     .  7D 12            jge     short 0046A18C
+0046A17A     .  68 A0000000      push    0A0
+0046A17F     .  68 C0F04000      push    0040F0C0
+0046A184     .  56               push    esi
+0046A185     .  50               push    eax
+0046A186     .  FF15 50834A00    call    dword ptr [<&MSVBVM50.__vbaHres>;  MSVBVM50.__vbaHresultCheckObj
+0046A18C     >  8B0D 50B04900    mov     ecx, dword ptr [49B050]       ;  C:\windows\RegisterRSM.ini,注册文件路径出现，看来是重启靠这个来储存注册信息的
+0046A192     .  8B35 10854A00    mov     esi, dword ptr [<&MSVBVM50.__vb>;  MSVBVM50.__vbaStrToAnsi
+0046A198     .  8D55 C4          lea     edx, dword ptr [ebp-3C]
+0046A19B     .  51               push    ecx
+0046A19C     .  52               push    edx
+0046A19D     .  FFD6             call    esi                           ;  <&MSVBVM50.__vbaStrToAnsi>
+0046A19F     .  50               push    eax
+0046A1A0     .  8B45 D4          mov     eax, dword ptr [ebp-2C]
+0046A1A3     .  8D4D C8          lea     ecx, dword ptr [ebp-38]
+0046A1A6     .  50               push    eax
+0046A1A7     .  51               push    ecx
+0046A1A8     .  FFD6             call    esi
+0046A1AA     .  50               push    eax
+0046A1AB     .  8D55 CC          lea     edx, dword ptr [ebp-34]
+0046A1AE     .  68 EC424100      push    004142EC                     ;  Registration Name
+0046A1B3     .  52               push    edx
+0046A1B4     .  FFD6             call    esi
+0046A1B6     .  50               push    eax
+0046A1B7     .  8D45 D0          lea     eax, dword ptr [ebp-30]
+0046A1BA     .  68 D8424100      push    004142D8                     ;  Confirm
+0046A1BF     .  50               push    eax
+0046A1C0     .  FFD6             call    esi
+0046A1C2     .  50               push    eax
+```
