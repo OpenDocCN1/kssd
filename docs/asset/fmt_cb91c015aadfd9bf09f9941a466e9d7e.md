@@ -1,0 +1,230 @@
+
+```
+00426364    F685 219E4000 2>TEST BYTE PTR SS:[EBP+409E21],21
+
+00426396   /0F84 17060000   JE EmbedPE.004269B3
+
+004263C5    33C0            XOR EAX,EAX                          ; EmbedPE.0040D000
+
+004263F0    8D9D 019E4000  LEA EBX,DWORD PTR SS:[EBP+409E01]     ; "SetUnhandledExceptionFilter"
+
+00426421    F0:0FC7C8      LOCK CMPXCHG8B EAX                   ; 异常计算该函数地址
+
+0042644E    B8 00000080    MOV EAX,80000000
+
+0042647E    F0:0FC7C8      LOCK CMPXCHG8B EAX                   ; 异常取出该函数地址到 EAX
+
+004264AB    BF 7E544000    MOV EDI,EmbedPE.0040547E
+
+004264DB    03FD           ADD EDI,EBP
+
+00426508    8137 7BDA5758  XOR DWORD PTR DS:[EDI],5857DA7B
+
+00426539    81C2 B3594000  ADD EDX,EmbedPE.004059B3
+
+00426568    BB E77C4000    MOV EBX,EmbedPE.00407CE7
+
+00426596    03DD           ADD EBX,EBP
+
+004265C3    53             PUSH EBX                              ; EmbedPE.00428CE7
+
+     0012FF44   004269B3  /CALL to SetUnhandledExceptionFilter
+
+     0012FF48   00428CE7  \pTopLevelFilter = EmbedPE.00428CE7
+```
+
+### (七) 恢复 `IAT`
+
+```
+0042698E    F685 219E4000 0>TEST BYTE PTR SS:[EBP+409E21],2
+
+004269C0   /0F84 A5030000   JE EmbedPE.00426D6B
+
+00426D47    8B95 3A9E4000  MOV EDX,DWORD PTR SS:[EBP+409E3A]    ; EmbedPE.00400000
+
+00426D76    8BB5 4E9E4000  MOV ESI,DWORD PTR SS:[EBP+409E4E]    ; 130F0
+
+00426DA5    03F2           ADD ESI,EDX                           ; EmbedPE.00400000
+
+00426DD2    8B46 0C        MOV EAX,DWORD PTR DS:[ESI+C]          ; 1333C
+
+00426DFE    85C0           TEST EAX,EAX
+
+00426E2B   /0F84 3E150000   JE EmbedPE.0042836F                  ; // 大循环出口, 所有 DLL 都处理完了
+
+00426E5A    03C2           ADD EAX,EDX                           ; EmbedPE.00400000
+
+00426E87    8BD8           MOV EBX,EAX                           ; EmbedPE.0041333C = "kernel32.dll"
+
+00426EB4    50             PUSH EAX                              ; EmbedPE.0041333C
+
+00426EDE    8B85 ECAC4000  MOV EAX,DWORD PTR SS:[EBP+40ACEC]    ; KERNEL32.GetModuleHandleA
+
+00426F0D    BA 27634000    MOV EDX,EmbedPE.00406327
+
+00426F3B    03D5           ADD EDX,EBP
+
+00426F66    B1 CC          MOV CL,0CC
+
+00426F91    3A08           CMP CL,BYTE PTR DS:[EAX]
+
+00427xxx    3A48 01        CMP CL,BYTE PTR DS:[EAX+5]
+
+004272B0    52             PUSH EDX                              ; EmbedPE.00427327
+
+004272DC  - FFE0          JMP EAX                               ; KERNEL32.GetModuleHandleA
+
+00427307    85C0           TEST EAX,EAX                          ; KERNEL32.7C570000
+
+00427334   /0F85 A4040000   JNZ EmbedPE.004277DE                 ; DLL 已经加载跳到 004277BA, 否则要加载
+
+00427365    53             PUSH EBX                               ; EmbedPE.00413468
+
+0042738F    8B85 F0AC4000  MOV EAX,DWORD PTR SS:[EBP+40ACF0]      ; KERNEL32.LoadLibraryA
+
+004273BE    BA DE674000    MOV EDX,EmbedPE.004067DE
+
+004273EC    03D5           ADD EDX,EBP
+
+00427417    B1 CC          MOV CL,0CC
+
+00427761    52             PUSH EDX                               ; EmbedPE.004277DE
+
+0042778D  - FFE0          JMP EAX                                 ; KERNEL32.LoadLibraryA
+
+004277BA    8985 469E4000  MOV DWORD PTR SS:[EBP+409E46],EAX     ; KERNEL32.7C570000
+
+004277E9    C785 529E4000 0>MOV DWORD PTR SS:[EBP+409E52],0
+
+0042781E    8B95 3A9E4000  MOV EDX,DWORD PTR SS:[EBP+409E3A]     ; EmbedPE.00400000
+
+0042784F    8B06           MOV EAX,DWORD PTR DS:[ESI]
+
+0042787A    85C0           TEST EAX,EAX
+
+004278A7   /75 75          JNZ SHORT EmbedPE.0042791E
+
+004278FE    03C2           ADD EAX,EDX                             ; EmbedPE.00400000
+
+00427929    0385 529E4000  ADD EAX,DWORD PTR SS:[EBP+409E52]
+
+00427958    8B18           MOV EBX,DWORD PTR DS:[EAX]
+
+00427985    8B7E 10        MOV EDI,DWORD PTR DS:[ESI+10]
+
+004279B3    03FA           ADD EDI,EDX                             ; EmbedPE.00400000
+
+004279E0    03BD 529E4000  ADD EDI,DWORD PTR SS:[EBP+409E52]
+
+00427A0F    85DB           TEST EBX,EBX
+
+00427A3C   /0F84 CB080000   JE EmbedPE.0042830D                   ; // 小循环出口, 一个 DLL 的函数处理完了
+
+00427A6D    53             PUSH EBX
+
+00427A97    F7C3 00000080  TEST EBX,80000000
+
+00427AC8   /0F85 D2000000   JNZ EmbedPE.00427BA0
+
+00427AF7    03DA           ADD EBX,EDX                             ; EmbedPE.00400000
+
+00427B24    43             INC EBX                                 ; EmbedPE.00413274
+
+00427B50    43             INC EBX
+
+00427B7C    81E3 FFFFFF0F  AND EBX,0FFFFFFF
+
+00427BAD    53             PUSH EBX                                ; EmbedPE.00413276 "CreateMutexA"
+
+00427BD9    FFB5 469E4000  PUSH DWORD PTR SS:[EBP+409E46]          ; KERNEL32.7C570000
+
+00427C08    8B85 E8AC4000  MOV EAX,DWORD PTR SS:[EBP+40ACE8]       ; KERNEL32.GetProcAddress
+
+00427C37    BA 53704000    MOV EDX,EmbedPE.00407053
+
+00427C65    03D5           ADD EDX,EBP
+
+00427C90    B1 CC          MOV CL,0CC
+
+00427CBB    3A08           CMP CL,BYTE PTR DS:[EAX]
+
+00427XXX    3A08           CMP CL,BYTE PTR DS:[EAX+5]
+
+00428006  - FFE0          JMP EAX                                  ; KERNEL32.GetProcAddress
+
+00428033    8907           MOV DWORD PTR DS:[EDI],EAX              ; 写入 API 地址, 这句 dump 时可以 NOP 掉.
+
+0042805E    8385 529E4000 0>ADD DWORD PTR SS:[EBP+409E52],4
+
+00428090    5B             POP EBX                                   ; EmbedPE.00413276
+
+004280BA    F7C3 00000080  TEST EBX,80000000
+
+004280EB   /0F85 F0010000   JNZ EmbedPE.004282E1
+
+0042811C    F685 219E4000 0>TEST BYTE PTR SS:[EBP+409E21],8
+
+0042814E   /0F84 8D010000   JE EmbedPE.004282E1
+
+0042817F    83C3 02        ADD EBX,2
+
+004281AD    039D 3A9E4000  ADD EBX,DWORD PTR SS:[EBP+409E3A]       ; EmbedPE.00400000
+
+004281DC    33C0           XOR EAX,EAX
+
+00428207    8903           MOV DWORD PTR DS:[EBX],EAX              ; //破坏, NOP 掉这句=============================================NOP
+
+00428234    43             INC EBX                                   ; EmbedPE.00413276
+
+00428260    3903           CMP DWORD PTR DS:[EBX],EAX
+
+0042828D  ^\0F85 69FFFFFF   JNZ EmbedPE.004281FC                    ; 实际到 4281DC
+
+004282BE  ^\E9 7FF5FFFF     JMP EmbedPE.00427842                    ; // 小循环, 实际到 42781E
+
+0042830D    51             PUSH ECX                                  ; // 小循环结束到这里
+
+0042830E    E8 EEFFFFFF    CALL EmbedPE.00428301
+
+004282EC    83C6 14        ADD ESI,14
+
+0042831A  ^\E9 D4EAFFFF     JMP EmbedPE.00426DF3                    ; // 大循环, 实际到 426DD2
+
+0042836F    51             PUSH ECX                                  ; // 大循环结束到这里
+
+00428370    E8 EEFFFFFF    CALL EmbedPE.00428363
+```
+
+### (八) 小花招之后, 从分配的空间里恢复 `STACK`, 跳到 `OEP`
+
+```
+0042834A    64:8F05 0000000>POP DWORD PTR FS:[0]                    ; 恢复 SEH
+
+0042837A    83C4 04        ADD ESP,4
+
+004283A8    8B85 C89D4000  MOV EAX,DWORD PTR SS:[EBP+409DC8]
+
+004283D9    0385 3A9E4000  ADD EAX,DWORD PTR SS:[EBP+409E3A]       ; EmbedPE.00400000
+
+00428408    B9 00010000    MOV ECX,100
+
+00428436    B3 C3          MOV BL,0C3
+
+00428461    8BF0           MOV ESI,EAX                             ; EmbedPE.0040D000
+
+0042848E    83C6 02        ADD ESI,2
+
+004284BC    861E           XCHG BYTE PTR DS:[ESI],BL
+
+004284E9    FFD6           CALL ESI                               ; EmbedPE.0040D002
+
+00428514    861E           XCHG BYTE PTR DS:[ESI],BL
+
+00428541    49             DEC ECX
+
+0042856D  ^\0F85 3CFFFFFF   JNZ EmbedPE.004284AF
+
+0042859E    8B85 269E4000  MOV EAX,DWORD PTR SS:[EBP+409E26]
+
+004285CF    0385 3A9E4000  ADD EAX,DWORD PTR SS:[EBP+409E3A]       ; EmbedPE.00400000
+```

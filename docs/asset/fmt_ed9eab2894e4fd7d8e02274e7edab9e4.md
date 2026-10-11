@@ -1,0 +1,149 @@
+
+## 异常处理结束, 4224B9 下断, F9
+
+```
+00429CC4    C746 04 0000000>MOV DWORD PTR DS:[ESI+4],0               ; regDr0
+00429CF6    C746 08 0000000>MOV DWORD PTR DS:[ESI+8],0               ; regDr1
+00429D26    C746 0C 0000000>MOV DWORD PTR DS:[ESI+C],0               ; regDr2
+00429D58    8BBE B8000000   MOV EDI,DWORD PTR DS:[ESI+B8]            ; regEIP=4224B9
+00429D87    8137 609F5758   XOR DWORD PTR DS:[EDI],58579F60          ; 把 4224B9 变成 90909090
+00429DB6    B8 00000000     MOV EAX,0                                ; ExceptionContinueExecution,已经复 CONTEXT,可从异常发生处继续执行
+00429DE6   /EB 7D           JMP SHORT EmbedPE.00429E65
+00429E41    5F             POP EDI                                    ; EmbedPE.0042200A
+00429E42    5E             POP ESI
+00429E43    C9             LEAVE
+00429E44    C2 1000        RETN 10
+
+004224B9    90             NOP
+004224BA    90             NOP
+004224BB    90             NOP
+004224BC    90             NOP
+004224BD    EB 4A          JMP SHORT EmbedPE.00422509
+004224E8    83C4 10        ADD ESP,10
+00422516    64:8F05 0000000>POP DWORD PTR FS:[0]                       ; 0012FF4C, 恢复 SEH 链
+```
+
+### (三) 关键的第二个异常处理程序 429EA4
+
+这段异常处理程序以后会经常用到, 很重要
+
+```
+00429EA4    55             PUSH EBP                                   ; SEH handler
+00429EA5    8BEC           MOV EBP,ESP
+00429EA7    53             PUSH EBX
+00429EA8    56             PUSH ESI
+00429EA9    57             PUSH EDI
+00429EB1    8B75 08        MOV ESI,DWORD PTR SS:[EBP+8]               ; pEXCEPTION_RECORD
+00429EDF    813E 1E0000C0  CMP DWORD PTR DS:[ESI],C000001E            ; 异常码
+00429F10   /0F85 4E020000  JNZ EmbedPE.00429E34
+00429F41    8B75 10        MOV ESI,DWORD PTR SS:[EBP+10]              ; pContext
+00429F6D    8B86 B0000000  MOV EAX,DWORD PTR DS:[ESI+B0]              ; regEAX
+00429F9E    A9 00000080    TEST EAX,80000000
+00429FCE   /0F85 2E060000  JNZ EmbedPE.0042A602                       ; 实际上到 42A5DE
+```
+
+```
+// EAX = 0000000X, 计算 EBX 处函数地址并保存到 Stack
+00429FFD    8B9E B4000000  MOV EBX,DWORD PTR DS:[ESI+B4]              ; regEBP
+0042A02E    FFB6 A4000000  PUSH DWORD PTR DS:[ESI+A4]                 ; regEBX
+0042A05F    FFB3 429E4000  PUSH DWORD PTR DS:[EBX+409E42]             ; KERNEL32.7C570000
+0042A090    B8 26944000    MOV EAX,EmbedPE.00409426
+0042A0BE    03C3           ADD EAX,EBX                                 ; EAX = 42A426
+0042A0EB    50             PUSH EAX                                    ; EmbedPE.0042A426, GetProcAddress 的返回地址
+0042A117    55             PUSH EBP                                    ; GetProcAddress 的 第一句在这里执行
+0042A143    8B83 E8AC4000  MOV EAX,DWORD PTR DS:[EBX+40ACE8]          ; KERNEL32.GetProcAddress
+0042A174    83C0 01        ADD EAX,1
+0042A1A2    8038 CC        CMP BYTE PTR DS:[EAX],0CC                   ; 前 7 字节都不能下断点
+0042A1D0   /0F84 50020000  JE EmbedPE.0042A426
+0042A201    8078 01 CC     CMP BYTE PTR DS:[EAX+1],0CC
+0042A230   /0F84 F0010000  JE EmbedPE.0042A426
+0042A25F    8078 02 CC     CMP BYTE PTR DS:[EAX+2],0CC
+0042A28E   /0F84 92010000  JE EmbedPE.0042A426
+0042A2BD    8078 03 CC     CMP BYTE PTR DS:[EAX+3],0CC
+0042A2EC   /0F84 34010000  JE EmbedPE.0042A426
+0042A31D    8078 04 CC     CMP BYTE PTR DS:[EAX+4],0CC
+0042A34C   /0F84 D4000000  JE EmbedPE.0042A426
+0042A37B    8078 05 CC     CMP BYTE PTR DS:[EAX+5],0CC
+0042A3AA   /74 7A          JE SHORT EmbedPE.0042A426
+0042A3D7   - FFE0          JMP EAX                                     ; KERNEL32.7C590C60
+0042A402    8BBE B0000000  MOV EDI,DWORD PTR DS:[ESI+B0]              ; regEAX, 表示第 X 个函数
+0042A431    C1E7 02        SHL EDI,2                                   ; 4 个字节一个地址
+0042A45D    037E 10        ADD EDI,DWORD PTR DS:[ESI+10]               ; + regDr3
+0042A48B    8907           MOV DWORD PTR DS:[EDI],EAX                  ; 保存 GetProcAddress 得到的函数地址
+```
+
+这里很特别, 在 `OD` 里 `regDr3 = 0`, `EDI=0`, 不能继续, 但实际上我们在前面给 `regDr3` 赋了一个值 `12FF84`, 把 `EDI` 改成 `12FF84`, `OK` 了.
+
+道理也很简单, `OD` 是根据我们的要求来设置 `DRx` 的, 如果你没下硬件断点, `Dr3` 当然等于 `0`. 可以在 `12FF84` 设一硬件断点, 这样就不用手动修改了.
+
+```
+0042A4B8    C746 04 0000000>MOV DWORD PTR DS:[ESI+4],0
+0042A4EA    C746 08 0000000>MOV DWORD PTR DS:[ESI+8],0
+0042A51A    C746 0C 0000000>MOV DWORD PTR DS:[ESI+C],0
+0042A54C    8BBE B8000000  MOV EDI,DWORD PTR DS:[ESI+B8]              ; regEIP=00422A7C
+0042A57D    8137 609F5758  XOR DWORD PTR DS:[EDI],58579F60            ; 90909090
+0042A5AE   /E9 5A020000    JMP EmbedPE.0042A80D                       ; 实际到 42A7EA
+```
+
+```
+// EAX = 8000000X, 取出函数地址到 EAX
+0042A5DE    8BBE B0000000  MOV EDI,DWORD PTR DS:[ESI+B0]              ; regEAX
+0042A60D    C1E7 02        SHL EDI,2
+0042A63B    037E 10        ADD EDI,DWORD PTR DS:[ESI+10]              ; + regDr3
+0042A669    8B07           MOV EAX,DWORD PTR DS:[EDI]                 ; 取函数地址到 regEAX
+0042A694    8986 B0000000  MOV DWORD PTR DS:[ESI+B0],EAX
+0042A6C5    C746 04 0000000>MOV DWORD PTR DS:[ESI+4],0
+0042A6F7    C746 08 0000000>MOV DWORD PTR DS:[ESI+8],0
+0042A727    C746 0C 0000000>MOV DWORD PTR DS:[ESI+C],0
+0042A759    8BBE B8000000  MOV EDI,DWORD PTR DS:[ESI+B8]              ; regEIP
+0042A788    8137 7BDA5758  XOR DWORD PTR DS:[EDI],5857DA7B            ; MOV EDX,EBP (不是 NOP)
+0042A7B7    C786 A8000000 0>MOV DWORD PTR DS:[ESI+A8],0               ; regEDX
+0042A7EA    B8 00000000    MOV EAX,0
+0042A87A    5F             POP EDI                                     ; EmbedPE.0042200A
+0042A87B    5E             POP ESI
+0042A87C    5B             POP EBX
+0042A87D    C9             LEAVE
+0042A87E    C2 1000        RETN 10
+```
+
+异常处理完毕后从异常发生处继续
+
+### (四) 原程序 PE Section 解码, 注意异常处理中 Dr3 的使用
+
+尽管程序对 `INT3` 断点有很多校验, 但对硬件执行断点却不检查, 多利用吧
+
+```
+00422546    B1 CC          MOV CL,0CC
+00422571    8D85 CC9D4000  LEA EAX,DWORD PTR SS:[EBP+409DCC]          ; 42ADCC, 看下面
+```
+
+```
+     0042ADCC  6B 65 72 6E 65 6C 33 32 2E 64 6C 6C 00 56 69 72  kernel32.dll.Vir
+     0042ADDC  74 75 61 6C 41 6C 6C 6F 63 00 56 69 72 74 75 61  tualAlloc.Virtua
+     0042ADEC  6C 46 72 65 65 00 56 69 72 74 75 61 6C 50 72 6F  lFree.VirtualPro
+     0042ADFC  74 65 63 74 00 53 65 74 55 6E 68 61 6E 64 6C 65  pect.SetUnhandle
+     0042AE0C  64 45 78 63 65 70 74 69 6F 6E 46 69 6C 74 65 72  dExceptionFilter
+```
+
+```
+004225A2    50             PUSH EAX                                    ; EmbedPE.0042ADCC
+004225CC    8B85 ECAC4000  MOV EAX,DWORD PTR SS:[EBP+40ACEC]          ; KERNEL32.GetModuleHandleA
+004225FB    BA E4194000    MOV EDX,EmbedPE.004019E4
+00422629    03D5           ADD EDX,EBP
+00422654    3A08           CMP CL,BYTE PTR DS:[EAX]                   ; 断点检查, 前 5 字节
+00422681   /75 75          JNZ SHORT EmbedPE.004226F8
+004226D7    3A48 01        CMP CL,BYTE PTR DS:[EAX+1]
+00422705   /75 75          JNZ SHORT EmbedPE.0042277C
+0042275B    3A48 02        CMP CL,BYTE PTR DS:[EAX+2]
+00422789   /75 75          JNZ SHORT EmbedPE.00422800
+004227DF    3A48 03        CMP CL,BYTE PTR DS:[EAX+3]
+0042280D   /75 75          JNZ SHORT EmbedPE.00422884
+00422863    3A48 04        CMP CL,BYTE PTR DS:[EAX+4]
+00422891   /75 75          JNZ SHORT EmbedPE.00422908
+004228E7    3A48 05        CMP CL,BYTE PTR DS:[EAX+5]
+00422915   /75 75          JNZ SHORT EmbedPE.0042298C
+0042296D    52             PUSH EDX                                    ; EmbedPE.004229E4, 返回地址
+00422999   - FFE0          JMP EAX                                     ; KERNEL32.GetModuleHandleA
+004229C4    8BD0           MOV EDX,EAX                                 ; KERNEL32.7C570000
+004229F1    8985 429E4000  MOV DWORD PTR SS:[EBP+409E42],EAX          ; KERNEL32.7C570000
+```
