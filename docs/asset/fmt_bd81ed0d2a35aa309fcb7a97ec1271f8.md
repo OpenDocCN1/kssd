@@ -1,0 +1,27 @@
+
+# 【作品提交】帖子编辑器(可视化编辑 UUB 和 html)
+
+> 原文：[`www.pediy.com/kssd/pediy10/66531.html`](https://www.pediy.com/kssd/pediy10/66531.html)
+
+已补上缺少的控件。
+
+**我爱看雪**
+
+**我爱看雪论坛**
+
+**我爱看雪论坛**
+
+彩虹文字彩虹文字彩虹文字彩虹文字彩虹文字
+
+以上是生成的`UBB`代码，详细说明我就不写了，大家一看就明白。
+
+这个程序是我以前在创想咨询和逸正咨询做的，所以里面有这些，大家不要误认为是盗版哈。
+
+### 上传的附件
+
+|   |   |
+|---|---|
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) | `帖子编辑器(VB 代码).part1.rar` [附件请到论坛下载：[`bbs.pediy.com/showthread.php?t=66531`](http://bbs.pediy.com/showthread.php?t=66531) ] |
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) | `帖子编辑器(VB 代码).part2.rar` |
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) | `ClrPckr.rar` |
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) | `RICHTX32.rar` |

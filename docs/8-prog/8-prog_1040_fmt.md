@@ -1,0 +1,21 @@
+
+# DELL 风扇控制 I8kfanGUI v3.1 源码
+
+> 原文：[`www.pediy.com/kssd/pediy12/133552.html`](https://www.pediy.com/kssd/pediy12/133552.html)
+
+![](img/906f120cfe711ccbc8463fd6eb86eee9.jpg "尴尬")
+
+作者不更新了..
+
+坛子里应该有不少人用的是 DELL 的吧,新机器是 I8kfanGUI 不支持的..
+
+既然作者开源了,我们就拿来自己改吧.
+
+附带一个 `dseo13b` 便于 win7 进入测试模式,不用为数字签名烦恼
+
+ps:1464 的风扇烦死了..
+
+## 上传的附件
+
+| ![](img/67af4f1ef9c98996f43e89e749c7dcf5.jpg) || I8kfanGUI v3.1 源码--DELL 风扇控制程序.rar  
+|

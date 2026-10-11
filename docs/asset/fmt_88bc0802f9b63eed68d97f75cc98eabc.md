@@ -1,0 +1,208 @@
+
+# MiniSPY V1.0 (小小间谍)
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue472.htm`](https://www.pediy.com/kssd/pediy04/kanxue472.htm)
+>
+> 这里调用的一些 `API` 函数可能对大家有点启发
+
+```asm
+;****************************************************************
+;*      Author: 一块三毛钱
+;*      E_mail: crazy_soft@163.net
+;*   Homepage: zhongts.yeah.net
+;****************************************************************
+;*      Compile: Hutch's Masm32
+;* Create Time: 2001.10.20
+;*      Modify: 2001.10.20
+;* Description: MiniSPY V1.0 (小小间谍)
+;*               捕捉桌面上的窗口（或子窗口）各窗口的属性，改
+;*               变各窗口的状态
+;****************************************************************
+
+.386
+.model flat,stdcall
+option casemap:none
+
+;****************************************************************
+
+include     d:\masm32\include\windows.inc
+include     d:\masm32\include\user32.inc
+include     d:\masm32\include\kernel32.inc
+include     d:\masm32\include\gdi32.inc
+include     d:\masm32\include\winmm.inc
+
+includelib  d:\masm32\lib\user32.lib
+includelib  d:\masm32\lib\kernel32.lib
+includelib  d:\masm32\lib\gdi32.lib
+includelib  d:\masm32\lib\winmm.lib
+
+;****************************************************************
+
+DlgProc  proto :DWORD,:DWORD,:DWORD,:DWORD
+SHWnd  proto :DWORD
+DrawFocus  proto :DWORD
+GetP   proto :DWORD,:DWORD
+
+;****************************************************************
+
+.data
+ClassName    db "MiniSPYClass",0
+AppName      db "MiniSPY",0
+DlgName      db "DLG_MAIN",0        ;资源文件中所定义的对话框模板名称
+szCaptureS   db "显示 &>>",0        ;对话框 收拢/展开 时对应的按钮文本
+szCaptureH   db "<&< 隐藏",0
+szCombo1     db "最大化",0          ;组合框中的项目
+szCombo2     db "最小化",0
+szCombo3     db "最顶层",0
+szCombo4     db "失效",0
+szCombo5     db "恢复",0
+FORMat1      db "%08X",0
+FORMat2      db "(%d,%d)(%d,%d) %d×%d",0
+szSysMenu    db "关于(&A)...",0
+szAbout      db "编程：一块三毛钱",13,10
+             db "主页：http://zhongts.yeah.net",13,10
+     db "信箱：crazy_soft@163.net",13,10,13,10
+     db "欢迎各位来我的主页溜达溜达",0
+ws_Style     dd WS_BORDER,          ;窗口风格常数
+WS_CAPTION,
+WS_CHILD,
+WS_CHILDWINDOW,
+WS_CLIPCHILDREN,
+WS_CLIPSIBLINGS,
+WS_DISABLED,
+WS_DLGFRAME,
+WS_GROUP,
+WS_HSCROLL,
+WS_ICONIC,
+WS_MAXIMIZE,
+WS_MAXIMIZEBOX,
+WS_MINIMIZE,
+WS_MINIMIZEBOX,
+WS_OVERLAPPED,
+WS_OVERLAPPEDWINDOW,
+WS_POPUP,
+WS_POPUPWINDOW,
+WS_SIZEBOX,
+WS_SYSMENU,
+WS_TABSTOP,
+WS_THICKFRAME,
+WS_TILED,
+WS_TILEDWINDOW,
+WS_VISIBLE,
+WS_VSCROLL
+szws_Style   db "WS_BORDER          ",0
+     db "WS_CAPTION           ",0
+     db "WS_CHILD             ",0
+     db "WS_CHILDWINDOW       ",0
+     db "WS_CLIPCHILDREN      ",0
+     db "WS_CLIPSIBLINGS      ",0
+     db "WS_DISABLED          ",0
+     db "WS_DLGFRAME          ",0
+     db "WS_GROUP             ",0
+     db "WS_HSCROLL           ",0
+     db "WS_ICONIC            ",0
+     db "WS_MAXIMIZE          ",0
+     db "WS_MAXIMIZEBOX       ",0
+     db "WS_MINIMIZE          ",0
+     db "WS_MINIMIZEBOX       ",0
+     db "WS_OVERLAPPED        ",0
+     db "WS_OVERLAPPEDWINDOW",0
+     db "WS_POPUP             ",0
+     db "WS_POPUPWINDOW       ",0
+     db "WS_SIZEBOX           ",0
+     db "WS_SYSMENU           ",0
+     db "WS_TABSTOP           ",0
+     db "WS_THICKFRAME        ",0
+     db "WS_TILED             ",0
+     db "WS_TILEDWINDOW       ",0
+     db "WS_VISIBLE           ",0
+     db "WS_VSCROLL           ",0
+ws_ExStyle   dd WS_EX_ACCEPTFILES,   ;窗口扩展风格常数
+WS_EX_APPWINDOW,
+WS_EX_CLIENTEDGE,
+WS_EX_CONTEXTHELP,
+WS_EX_CONTROLPARENT,
+WS_EX_DLGMODALFRAME,
+WS_EX_LEFT,
+WS_EX_LEFTSCROLLBAR,
+WS_EX_LTRREADING,
+WS_EX_MDICHILD,
+WS_EX_NOPARENTNOTIFY,
+WS_EX_OVERLAPPEDWINDOW,
+WS_EX_PALETTEWINDOW,
+WS_EX_RIGHT,
+WS_EX_RIGHTSCROLLBAR,
+WS_EX_RTLREADING,
+WS_EX_STATICEDGE,
+WS_EX_TOOLWINDOW,
+WS_EX_TOPMOST,
+WS_EX_TRANSPARENT,
+WS_EX_WINDOWEDGE
+szws_ExStyle db "WS_EX_ACCEPTFILES     ",0
+     db "WS_EX_APPWINDOW        ",0
+     db "WS_EX_CLIENTEDGE       ",0
+     db "WS_EX_CONTEXTHELP      ",0
+     db "WS_EX_CONTROLPARENT    ",0
+     db "WS_EX_DLGMODALFRAME    ",0
+     db "WS_EX_LEFT             ",0
+     db "WS_EX_LEFTSCROLLBAR    ",0
+     db "WS_EX_LTRREADING       ",0
+     db "WS_EX_MDICHILD         ",0
+     db "WS_EX_NOPARENTNOTIFY   ",0
+     db "WS_EX_OVERLAPPEDWINDOW",0
+     db "WS_EX_PALETTEWINDOW    ",0
+     db "WS_EX_RIGHT            ",0
+     db "WS_EX_RIGHTSCROLLBAR   ",0
+     db "WS_EX_RTLREADING       ",0
+     db "WS_EX_STATICEDGE       ",0
+     db "WS_EX_TOOLWINDOW       ",0
+     db "WS_EX_TOPMOST          ",0
+     db "WS_EX_TRANSPARENT      ",0
+     db "WS_EX_WINDOWEDGE       ",0
+
+.data?
+hInstance     HINSTANCE ?
+hSysMenu      dd    ?               ;系统菜单的句柄
+hBtnShowHide  dd    ?   ;"显示/隐藏"按钮的句柄
+hBtnCatch     dd    ?               ;图象框的句柄
+hBtnIcon      dd    ?               ;图象框 2 的句柄
+hCombo        dd    ?               ;组合框的句柄
+hListStyle    dd    ?               ;窗口风格列表框的句柄
+hListExtStyle dd    ?               ;窗口扩展风格列表框的句柄
+hWndOver      dd    ?               ;捕捉时当前控件（或窗口）的句柄
+hWndPre       dd    ?               ;捕捉时前一控件（或窗口）的句柄
+bSHWnd        BOOL  ?               ;是否展开窗口的标志
+bMouseDown    BOOL  ?               ;鼠标是否按下
+bHideWnd      BOOL  ?               ;捕捉时是否隐藏主窗口
+bFillFocus    BOOL  ?               ;是否以块方式捕捉
+rectFull      RECT  <?>             ;对话框展开后的大小
+rectHalf      RECT  <?>             ;对话框收拢后的大小
+rectSH        RECT  <?>             ;"显示/隐藏"按钮的大小
+WndStyle      dd    ?               ;窗口风格
+
+.const
+IDI_ICON_MAIN            equ      1000
+IDI_ICON_CATCH1          equ      1001
+IDI_ICON_CATCH2          equ      1002
+
+IDC_CURSOR_CAPTURE       equ      1003
+
+IDS_SOUND                equ      1004
+
+IDC_EDIT_HANDLE          equ      2010
+IDC_EDIT_CAPTION         equ      2011
+IDC_EDIT_CLASS           equ      2012
+IDC_EDIT_RECT            equ      2013
+IDC_LIST_STYLE           equ      2014
+IDC_LIST_EXTSTYLE        equ      2015
+IDC_PICTURE_CATCH        equ      2016
+IDC_PICTURE_ICON         equ      2017
+IDC_COMBO_SEND           equ      2018
+IDC_BUTTON_APPLY         equ      2019
+IDC_BUTTON_FLASH         equ      2020
+IDC_BUTTON_SHOWHIDE      equ      2021
+IDC_CHECK_HIDEWINDOW     equ      2022
+IDC_CHECK_BLOCK          equ      2023
+
+IDM_ABOUT                equ      3000
+```
