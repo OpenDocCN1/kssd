@@ -1,0 +1,330 @@
+
+### .text:01001985
+
+```
+.text:01001985                    mov     edx, dword_1005B34  
+
+.text:0100198B                    add     edx, eax  
+
+.text:0100198D                    mov     eax, hMenu  
+
+.text:01001992                    cmp     eax, ebp  
+
+.text:01001994                    mov     dword_1005B88, edx  
+
+.text:0100199A                    jz      short loc_10019DB  
+
+.text:0100199C                    lea     edx, [esp+40h+rcItem]  
+
+.text:010019A0                    push    edx             ; lprcItem  
+
+.text:010019A1                    push    ebp             ; uItem  
+
+.text:010019A2                    push    eax             ; hMenu  
+
+.text:010019A3                    push    ecx             ; hWnd  
+
+.text:010019A4                    call    edi ; GetMenuItemRect  
+
+.text:010019A6                    test    eax, eax  
+
+.text:010019A8                    jz      short loc_10019DB  
+
+.text:010019AA                    lea     eax, [esp+40h+var_20]  
+
+.text:010019AE                    push    eax             ; lprcItem  
+
+.text:010019AF                    push    ebx             ; uItem  
+
+.text:010019B0                    push    hMenu           ; hMenu  
+
+.text:010019B6                    push    hWnd            ; hWnd  
+
+.text:010019BC                    call    edi ; GetMenuItemRect  
+
+....  
+
+....  
+```
+
+从函数上看，是处理菜单那一块的东西，（如果错了，请各位指正，我当时一看函数不像，就没仔细看）。这个函数不像，那就下一个 `sub_1002B14`：
+
+```
+.text:01002B14 sub_1002B14     proc near               ; CODE XREF: Main+13Bp  
+
+.text:01002B14                   call    sub_1002414  
+
+.text:01002B19                   test    eax, eax  
+
+.text:01002B1B                   jnz     short loc_1002B1E  
+
+.text:01002B1D                   retn  
+```
+
+她居然 call 了另外一个函数，`sub_1002414`。进入 `sub_1002414` 看了就知道，是处理 resource 的，就不贴了，很明显的。
+
+下一个函数，`sub_1003CE5`：
+
+```
+.text:01003CE5 arg_0           = dword ptr  4  
+
+.text:01003CE5  
+
+.text:01003CE5                   mov     eax, [esp+arg_0]  
+
+.text:01003CE9                   mov     dword_10056C4, eax  
+
+.text:01003CEE                   call    sub_1001516  
+
+.text:01003CF3                   mov     eax, dword_10056C4  
+
+.text:01003CF8                   and     al, 1  
+
+.text:01003CFA                   neg     al  
+
+.text:01003CFC                   sbb     eax, eax  
+
+.text:01003CFE                   not     eax  
+
+.text:01003D00                   and     eax, hMenu  
+
+.text:01003D06                   push    eax             ; hMenu  
+
+.text:01003D07                   push    hWnd            ; hWnd  
+
+.text:01003D0D                   call    ds:SetMenu      ; Assign a new menu to the specified window  
+
+.text:01003D13                   push    2  
+
+.text:01003D15                   call    sub_1001950  
+
+.text:01003D1A                   retn    4  
+```
+
+注意到一个 `SetMenu`，应该是设置菜单的，其中，call 了一个函数 `sub_1001516`。不放心的话，就进去看看。
+
+`sub_1001516`：
+
+```
+.text:01001516 sub_1001516     proc near               ; CODE XREF: sub_1001B49+24p  
+
+.text:01001516                                ; sub_1003CE5+9p  
+
+.text:01001516                   xor     eax, eax  
+
+.text:01001518                   cmp     word ptr dword_10056A0, ax  
+
+.text:0100151F                   setz    al  
+
+.text:01001522                   push    eax  
+
+.text:01001523                   push    209h            ;521  
+
+.text:01001528                   call    sub_1003CC4  
+
+.text:0100152D                   xor     eax, eax  
+
+.text:0100152F                   cmp     word ptr dword_10056A0, 1  
+
+.text:01001537                   setz    al  
+
+.text:0100153A                   push    eax  
+
+.text:0100153B                   push    20Ah            ;522  
+
+.text:01001540                   call    sub_1003CC4  
+
+.text:01001545                   xor     eax, eax  
+
+.text:01001547                   cmp     word ptr dword_10056A0, 2  
+
+.text:0100154F                   setz    al  
+
+.text:01001552                   push    eax  
+
+.text:01001553                   push    20Bh            ;523  
+
+.text:01001558                   call    sub_1003CC4  
+
+.text:0100155D                   xor     eax, eax  
+
+.text:0100155F                   cmp     word ptr dword_10056A0, 3  
+
+.text:01001567                   setz    al  
+
+.text:0100156A                   push    eax  
+
+.text:0100156B                   push    20Ch            ;524  
+
+.text:01001570                   call    sub_1003CC4  
+
+.text:01001575                   push    dword_10056C8  
+
+.text:0100157B                   push    211h            ;529  
+
+.text:01001580                   call    sub_1003CC4  
+
+.text:01001585                   push    Data  
+
+.text:0100158B                   push    20Fh            ;527  
+
+.text:01001590                   call    sub_1003CC4  
+
+.text:01001595                   push    dword_10056B8  
+
+.text:0100159B                   push    20Eh            ;526  
+
+.text:010015A0                   call    sub_1003CC4  
+
+.text:010015A5                   retn  
+
+.text:010015A5 sub_1001516     endp  
+```
+
+发现每次都是压入一个数，然后 call `sub_1003CC4`。因为她的父函数是处理菜单的，因此，我们怀疑压入的数是控件 ID，用 resource hacker 看看。
+
+果不其然：
+
+```
+500 MENU  
+
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US  
+
+{  
+
+POPUP "&Game"  
+
+{  
+
+  MENUITEM "&New\tF2",  510  
+
+  MENUITEM SEPARATOR  
+
+  MENUITEM "&Beginner",  521  
+
+  MENUITEM "&Intermediate",  522  
+
+  MENUITEM "&Expert",  523  
+
+  MENUITEM "&Custom...",  524  
+
+  MENUITEM SEPARATOR  
+
+  MENUITEM "&Marks (?)",  527  
+
+  MENUITEM "Co&lor",  529  
+
+  MENUITEM "&Sound",  526  
+
+  MENUITEM SEPARATOR  
+
+  MENUITEM "Best &Times...",  528  
+
+  MENUITEM SEPARATOR  
+
+  MENUITEM "E&xit",  512  
+
+}  
+
+POPUP "&Help"  
+
+{  
+
+  MENUITEM "&Contents\tF1",  590  
+
+  MENUITEM "&Search for Help on...",  591  
+
+  MENUITEM "Using &Help",  592  
+
+  MENUITEM SEPARATOR  
+
+  MENUITEM "&About Minesweeper...",  593  
+
+}  
+
+}  
+```
+
+是处理用户选的是初级，中级，高级之类的。所以，`sub_1003CE5` 也不是。就剩下 `sub_100367A` 了：
+
+`sub_100367A` 函数很长，慢慢分析吧：
+
+```
+.text:0100367A sub_100367A     proc near               ; CODE XREF: sub_100140C+CAp  
+
+.text:0100367A                                ; sub_1001B49+33j ...  
+
+.text:0100367A                   mov     eax, dword_10056AC  
+
+.text:0100367F                   mov     ecx, uValue  
+
+.text:01003685                   push    ebx  
+
+.text:01003686                   push    esi  
+
+.text:01003687                   push    edi  
+
+.text:01003688                   xor     edi, edi  
+
+.text:0100368A                   cmp     eax, dword_1005334  
+
+.text:01003690                   mov     dword_1005164, edi  
+
+.text:01003696                   jnz     short loc_10036A4  
+
+.text:01003698                   cmp     ecx, dword_1005338  
+
+.text:0100369E                   jnz     short loc_10036A4  
+
+.text:010036A0                   push    4  
+
+.text:010036A2                   jmp     short loc_10036A6  
+```
+
+发现最终会进入 `loc_10036A6`，走着：
+
+```
+.text:010036A6 loc_10036A6:                  ; CODE XREF: sub_100367A+28j  
+
+.text:010036A6                   pop     ebx  
+
+.text:010036A7                   mov     dword_1005334, eax  
+
+.text:010036AC                   mov     dword_1005338, ecx  
+
+.text:010036B2                   call    sub_1002ED5  
+
+.text:010036B7                   mov     eax, dword_10056A4  
+
+.text:010036BC                   mov     dword_1005160, edi  
+
+.text:010036C2                   mov     dword_1005330, eax  
+
+.text:010036C7  
+
+.text:010036C7 loc_10036C7:                  ; CODE XREF: sub_100367A+74j  
+
+.text:010036C7                                ; sub_100367A+89j  
+
+.text:010036C7                   push    dword_1005334  
+
+.text:010036CD                   call    RandomReminder  
+
+.text:010036D2                   push    dword_1005338  
+
+.text:010036D8                   mov     esi, eax  
+
+.text:010036DA                   inc     esi  
+
+.text:010036DB                   call    RandomReminder  
+
+.text:010036E0                   inc     eax  
+
+.text:010036E1                   mov     ecx, eax  
+
+.text:010036E3                   shl     ecx, 5  
+
+.text:010036E6                   test    byte ptr dword_1005340[ecx+esi], 80h  
+
+.text:010036EE                   jnz     short loc_10036C7  
+```
