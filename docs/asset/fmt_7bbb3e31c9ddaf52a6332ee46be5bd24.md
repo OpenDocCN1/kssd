@@ -1,0 +1,448 @@
+
+上面的程序定义了 `2` 个类，生成了两个对象数组，`fuck` 类构造函数有 `2` 个参数，而 `test` 类只有一个参数，因此在初始化时有所不同，如果类只有一个成员需要初始化则可以像内置类型数组那样初始化对象数组，如果是多个则必须显示调用相关的构造函数以实现初始化，即对象数组的初始必须与其构造函数相匹配！
+
+数组是一种最简单的线性表，一般有两种元素操作方式，一种是通过序号用数学公式操作，一种是通过指针接合数学公式进行操作！下面的程序演示了通过对象指针访问对象数组的过程：
+
+```cpp
+//对象指针
+#include "head.h"
+
+class test
+{
+    int i;
+public:
+    test(int i){this->i=i;}
+    void show()const{cout<<i<<endl;};
+};
+
+int main()
+{
+    //显示调用构造函数初始化，我觉得养成这种习惯比较好
+    test a[3]={
+        test(1),
+        test(2),
+        test(3)
+    };
+    test *p=a;
+    for(int i=0;i!=3;++i)
+    {
+        p->show();
+        ++p;
+    }
+    return 0;
+}
+```
+
+但是对象指针与一般的内置类型指针还有些许区别，即任何指向基类对象的指针，都可以指向派生类对象，这种特性在 C++ 中称为多态！在后面讨论多态时进行讨论！在 C++ 中还提供了一种成员指针的方法，下面的程序演示了成员指针的使用方法：
+
+```cpp
+//理解成员指针
+#include "head.h"
+
+class test
+{
+public:
+    int i;
+    test(int i){this->i=i;}
+    void show(){cout<<i<<endl;};
+};
+
+int main()
+{
+    int test::*p;
+    void (test::*pfunc)();
+    test cao(1),dan(2);
+    p=&test::i;
+    pfunc=&test::show;
+    cout<<cao.*p<<" "<<dan.*p<<endl;
+    (cao.*pfunc)();
+    (dan.*pfunc)();
+    return 0;
+}
+```
+
+在上面的程序中，我们定义了两个成员指针一个是 `int test::*p`，一个是 `void (test::*pfunc)()` 函数指针，然后通过对象调用这两个指针！越学习 C++，你会越觉得它像中国人的，不偏不倚不盈不空，`b.stroustrup` 真是太伟大了！
+
+## 三：访问限定
+
+### 3.1：常规访问限定
+
+如你所看到上面的 N 多示例程序，在 C++ 中提供了默认的访问限定符 `public`、`protected`、`private`，`public` 成员只要是能看到类的地方都可以访问，`protected` 在基类中相当于私有成员，它和 `private` 成员只能被 `public` 成员、友元访问！
+
+在继续下面的内容前，我想有两句话朋友们需要理解第一：任何你看到的文字都是理论，您需要实践。第二：任何规则性的东西都是一种静态的东西，这违背了自然界事物本身最基本的特性变化，因此不会长久！
+
+常规访问限定是静态的，是死的，那有没有什么方法打破这种常规的访问限定！
+
+### 3.2：对象无限定的访问类成员友元
+
+友元可以实现无限定的访问，这有利于将对象的数据结构与算法进行全局处理，突破封装性，即封装性不一定时刻都是好的，所以让友元来实现封装性的完全突破，也可以理解为面向对象与结构化程序设计的结合，从这一点再看 C++，不偏不倚不盈不空，无满无不满，终是圆满，再次向 `b.stroustrup` 及那些默默无闻的 C++ “母亲”致敬！
+
+```cpp
+//理解友元函数
+//#define FAST
+#include "head.h"
+
+class test
+{
+    int x;
+public:
+    test(int x){this->x=x;}
+    friend void set_value(test &p,int x);
+    void show();
+};
+
+void test::show()
+{
+    cout<<hex<<x<<endl;
+}
+
+//对比 show()的定义方式即友元不是类的成员
+void set_value(test &p,int x)
+{
+    p.x=x;
+}
+
+int main()
+{
+    test caodan(1);
+    set_value(caodan,0x78);
+    caodan.show();
+    return 0;
+}
+```
+
+```cpp
+//友元类
+//#define FAST
+#include "head.h"
+
+class fuck;
+
+class test
+{
+    int x;
+public:
+    test(int x){this->x=x;}
+    friend class fuck;
+    void show() const{cout<<hex<<x<<endl;}
+};
+
+class fuck
+{
+    int y;
+public:
+    void set_value(test &p,int x);
+    fuck(int y){this->y=y;
+};
+
+void fuck::set_value(test &p,int x)
+{
+    p.x=x;
+}
+
+int main()
+{
+    fuck _fuck(0x79);
+    test _test(0x78);
+    _fuck.set_value(_test,0x79);
+    _test.show();
+    return 0;
+}
+```
+
+友元需要注意两点，一友元不是类的成员，二在对函数重载使用友元时，必须将所有的重载函数依次 `friend` 进行声明！
+
+### 3.3：对象半限定的访问类成员继承
+
+#### 3.3.1：继承的本质
+
+**为什么引入继承？**
+
+在面向对象程序设计中解决问题的是对象，即通过对象与对象的配合解决问题，那么对象与对象的关系即为类与类的关系，类与类最基本的关系不外乎，完全不同、有些相同、完全相同，完全不同时通过各个对象调用相应的函数成员通过相应的控制结构解决问题，有些相同时即有类与类有些交集，这些交集在 C++ 中通过继承的方式来实现，体现在特性上即为多态性，即一个类的交集有多个类所共有，表现在对象上即为一个类的交集有不同的对象，完全相同的类（行为和属性的完全相同），即可抽象为模板！
+
+**继承的本质是什么？**
+
+继承的本质是基类成员在子类中的访问限定重组。这句话有两点内容，其一继承中子类继承基类的所有成员，其二，子类会对基类的所有成员再次进行访问限定重组，这有继承方式决定，因此继承的语法格式为：
+
+```cpp
+Class derived:access base
+{
+};
+```
+
+访问限定 `access` 有三种方式为 `public` `protected` `private`
+
+`Public` 继承：基类的所有 `public` 成员和 `protected` 成员在子类中的访问限定不变
+
+`Protected` 继承：基类的所有 `public` 成员和 `protected` 成员都将成为子类的 `protected` 成员
+
+`Private` 继承：无继承方式指明时，默认为 `private` 继承，基类的所有 `public` 成员和 `protected` 成员都将成为子类的 `private` 成员
+
+因为继承的访问限定重级，所以这一节的标题是半限定方式访问限定！
+
+```cpp
+//理解继承的本质
+#include "head.h"
+
+//基类有三个 int 数据
+class base
+{
+    int a;
+protected:
+    int b;
+public:
+    int c;
+};
+
+class d1:public base
+{
+};
+
+class d2:protected base
+{
+};
+
+class d3:base
+{
+};
+
+int main()
+{
+    d1 _d1;
+    d2 _d2;
+    d3 _d3;
+    cout<<sizeof(_d1)<<" "<<sizeof(_d2)<<" "<<sizeof(_d3)<<endl;
+    return 0;
+}
+```
+
+上面的三个派生类都从基类中继承，所以输出的对象所占内存空间相等都为 `3` 个 `int` 类型的内存大小 `12`。然后我们使用了三种继承方式 `public` `protected` `private`，每个派生类根据继承方式对基类的成员进行了访问限定的再重组！
+
+#### 3.3.2：继承的分类神奇的倒平行四边形
+
+/\
+\// 我们用一个倒平行四边形来说明继承的分类，从上端到中间位置，一个基类可以派生多个子类，这称为单一继承，从中间到下端，多个基类可以派生出一个子类，这称为多继承，从上端到下端的过程中因为子类会复制所有基类的所有成员，所以最底端的子类会有多个最上端基类的成员，因此这里牵涉到一个继承二义性的问题，即虚基类！这里主要讨论虚基类
+
+```cpp
+//虚基类引入的原因倒平行四边形效应
+#include "head.h"
+
+class base
+{
+public:
+    int a;
+};
+
+class d1:public base
+{
+public:
+    int b;
+};
+
+class d2:public base
+{
+public:
+    int c;
+};
+
+class d3:public d1,public d2
+{
+public:
+    int sum;
+};
+
+int main()
+{
+    d3 ob3;
+    ob3.a=10;
+    ob3.b=20;
+    ob3.c=30;
+    ob3.sum=ob3.a+ob3.b+ob3.c;
+    cout<<ob3.sum<<endl;
+    return 0;
+}
+```
+
+因为 `d1` `d2` 继承了 `base` 的副本，而 `d3` 继承于 `d1` `d2` 的副本，所以无法知道 `ob3` 对象中的 `ob3.a` 到底是 `d1` 中的 `a` 还是 `d2` 中的 `a`，所以无法编译成功（上面的程序是错误的）。
+
+```cpp
+//第一种解决方法通过范围限定符指明其值
+#include "head.h"
+
+class base
+{
+public:
+    int a;
+};
+
+class d1:public base
+{
+public:
+    int b;
+};
+
+class d2:public base
+{
+public:
+    int c;
+};
+
+class d3:public d1,public d2
+{
+public:
+    int sum;
+};
+
+int main()
+{
+    d3 ob3;
+    ob3.d1::a=10;
+    ob3.b=20;
+    ob3.c=30;
+    ob3.sum=ob3.d1::a+ob3.b+ob3.c;
+    cout<<ob3.sum<<endl;
+    return 0;
+}
+```
+
+通过指明类的作用域可以治标，即让程序知道给哪个成员副本进行赋值，但这不能解决 `ob3` 有多个副本的根本，即不能治本！
+
+```cpp
+//第二种解决方法使用 virtual 关键字使多类继承只保留一个基类的副本
+#include "head.h"
+
+class base
+{
+public:
+    int a;
+};
+
+class d1:virtual public base
+{
+public:
+    int b;
+};
+
+class d2:virtual public base
+{
+public:
+    int c;
+};
+
+class d3:public d1,public d2
+{
+public:
+    int sum;
+};
+
+int main()
+{
+    d3 ob3;
+    ob3.a=10;
+    ob3.b=20;
+    ob3.c=30;
+    ob3.sum=ob3.a+ob3.b+ob3.c;
+    cout<<ob3.sum<<endl;
+    return 0;
+}
+```
+
+通过在继承的过程中加上 `virtual` 关键字，说明是一个虚基类，虚基类在发生多重继承时，只会保留一个相同的类成员，从而从根本上解决了倒平行四边形效应！
+
+```cpp
+//探究 virtual 的机制
+#include "head.h"
+
+class base
+{
+public:
+    int a;
+};
+
+class d1:virtual public base
+{
+public:
+    int b;
+};
+
+class d2:virtual public base
+{
+public:
+    int c;
+};
+
+class d3:public d1,public d2
+{
+public:
+    int sum;
+};
+
+int main()
+{
+    d1 _d1;
+    d2 _d2;
+    d3 _d3;
+    base _base;
+    cout<<sizeof(_base)<<" "<<sizeof(_d1)<<" "<<sizeof(_d2)<<" "<<sizeof(_d3)<<endl;
+    return 0;
+}
+```
+
+程序结果为 `4 12 12 24`
+
+```cpp
+//去掉 virtual 关键字
+```
+
+程序结果为 `4 8 8 20`
+
+反汇编上面的带 `virtual` 关键字程序：
+
+执行到下面的代码处
+
+```
+004012AE >   6A 01              push 1
+004012B0 >   8D4D F4            lea ecx,dword ptr ss:[ebp-C]
+004012B3     E8 5CFDFFFF        call api.00401014
+004012B8 >   6A 01              push 1
+004012BA >   8D4D E8            lea ecx,dword ptr ss:[ebp-18]
+004012BD     E8 43FDFFFF        call api.00401005
+```
+
+执行完构造函数的，直接跳到在 `OD` 的栈区，`ctrl+G`，跳转到 `ebp-c` 中，栈区内容为：
+
+```
+0012FF40 > 00413020            offset api.d1::`vbtable'
+0012FF44 > CCCCCCCC
+0012FF48 > CCCCCCCC
+```
+
+最上面的 `vbtable` 即为多出的四字节的内容，它是 `vritual base table` 的简称，即虚基类表，即虚基类通过这个表实现只有一个类成员副本的功能！
+
+进入相应的构造函数
+
+```
+00401419     59                 pop ecx                                ; this 指针出栈
+0040141A >   894D FC            mov dword ptr ss:[ebp-4],ecx           ; 保存 this 指针
+0040141D     837D 08 00         cmp dword ptr ss:[ebp+8],0             ; 比较编译器合成参数是否为 0
+00401421     74 09              je short api._onexit                   ; 跳到 this 指针返回处
+00401423     8B45 FC            mov eax,dword ptr ss:[ebp-4]           ; 虚基类表使用的开始代码处
+00401426 >   C700 20304100      mov dword ptr ds:[eax],offset api.d1::`vbtable'   ; 保存虚基类表的内存地址到对象数据成员
+0040142C >   8B45 FC            mov eax,dword ptr ss:[ebp-4]           ; this 指针作为返回值保存到 eax 中
+```
+
+上面是使用虚基类表的过程。即将虚基类表作为对象的数据成员保存，所以上面的程序执行后都会多出 `4` 字节来！即 `VC 6.0` 的编译器通过 `vbtable` 来实现虚基类的功能，这与虚函数有一拼，接下来讨论的虚函数是通过 `vftable`，虚拟函数表来完成的！
+
+#### 3.3.3：继承时构造函数与析构函数的调用顺序
+
+```cpp
+//理解顺序与向基类传递参数
+#include "head.h"
+
+class derived;
+
+class base
+{
+    int x;
+public:
+```
