@@ -1,0 +1,814 @@
+
+# Asprotect 1.23RC4
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6718.htm`](https://www.pediy.com/kssd/pediy06/pediy6718.htm)
+
+原文链接：`http://bbs.pediy.com/showthread.php?s=&threadid=5876`
+
+昨天终于把 `Asprotect 1.23RC4` 加密的 `Notepad` 脱壳了，太激动了！这是我第一次凭自己的能力脱的！
+
+虽然以前就脱过这个壳，不过以前仅仅只知道 `Trace N` 次后 `Dump` 后开 `AsprDbgr` 修复 `IAT`... 为什么要这样做却完全不懂，现在不仅知道 `HOW` 而且知道 `WHY` 了！
+
+下面是脱壳过程，就算是我的第一篇脱文吧
+
+我脱这个壳用了 8 个小时（网吧上网好贵....），走了 N 条弯路，那些弯路我就不写了，只记下怎样找到正确的方法的
+
+目标：`Asprotect 1.23RC4` 加密的 `Notepad`：点击此处下载或鼠标右键另存为。
+
+操作系统是 `Win98`
+
+对这个壳我已经知道一些情况，`Asprotect` 会用 20 多次 `SEH`，然后把程序入口的一些代码移动别的地方（`StolenCode`），并且 `IAT` 表没有指向正确的 `API`，而是指到了壳 `HookAPI` 的代码
+
+我的思路是找到入口点，然后 `Dump`，再修复 `IAT`，至于 `StolenCode` 到时候再考虑
+
+首先用 `OD` 加载 `Notepady.exe`
+
+在 选项->调试选项 里把"忽略(传递到程序)以下的异常"的 6 个钩去掉
+
+表示当这些异常发生时就中断下来，这样就可以跟踪到壳激活 `SEH` 的地方
+
+这么做的原因是一个没有错误的程序不会激活 `SEH`，假设记事本就是这么个程序
+
+这样 `SEH` 就一般只会在壳的代码里被激活了，所以跟到最后一个 `SEH` 时表示已经接近程序入口点了
+
+（看到很多篇脱文里都只拦截内存异常，而不是所有异常都拦截，一直没有想同这是为什么，谁可以提示一下吗？）
+
+然后按 `F9` 运行程序，会中断下来，因为壳制造异常来激活 `SEH`，按 `Shift+F9` 忽略异常继续执行
+
+在 14 个 `SEH` 时再按一下 `Shift+F9` 就出现对话框提示检测到调试器（现在知道是 `IsDebug` 的 `Hide` 在 `Win98` 下无效），所以要手工避开检测
+
+按几下 `F8` 单步运行，来到下面的代码：
+
+```
+010C3EFE      74 09                je short 010C3F09
+
+010C3F00      E8 4BD7FFFF          call 010C1650
+
+010C3F05      8BD8                 mov ebx,eax
+
+010C3F07      EB 07               jmp short 010C3F10
+
+010C3F09      E8 B6D6FFFF          call 010C15C4
+
+010C3F0E      8BD8                 mov ebx,eax
+
+010C3F10      84DB                test bl,bl
+
+010C3F12      75 09               jnz short 010C3F1D
+
+010C3F14      E8 3BD7FFFF          call 010C1654           //可能是检测函数
+
+010C3F19      84C0                test al,al           //返回 0 就跳过 call 010C2678
+
+010C3F1B      74 10               je short 010C3F2D
+
+010C3F1D      A1 A47E0C01         mov eax,dword ptr ds:[10C7EA4]
+
+010C3F22      50                  push eax           //运行到这里发现 eax->"Debugger detected...."
+
+010C3F23      68 6C3F0C01         push 10C3F6C                 ; ASCII "Protection Error"
+
+010C3F28      E8 4BE7FFFF         call 010C2678           //由上面的字符串猜测这里应该是产生对话框并中断程序的 CALL
+
+010C3F2D      E8 7EE6FFFF         call 010C25B0
+
+010C3F32      33C0                xor eax,eax
+```
+
+分析一下发现 `call 010C1654` 可能是检测函数，当这个函数返回 `0` 时就跳过 "Protection Error" 的对话框
+
+验证一下上面的猜测：重新运行，到 `test al,al` 这里就把 `eax` 的值改为 `0`，然后狂按 `Shift+F9`，发现记事本正确运行了
+
+这样就避开了检测，以后每次运行 `Notepady.exe` 都要在这里中断下来修改 `eax`，下面就不再重复说明
+
+再次加载程序，按 `Shift+F9`，发现按了 29 次就打开记事本了（所以第 28 次时是最后一个 `SEH`）
+
+然后按 `F12` 暂停程序，这时执行的代码就是程序的代码了，跟踪一下发现是在
+
+```
+while(GetMessage(....))
+{
+    TranslateMessage();
+    DispatchMessage();
+}
+```
+
+这个循环里，代码如下：
+
+```
+0040213F      50                  push eax
+
+00402140      FF15 98644000       call dword ptr ds:[406498] //TranslateMessage
+
+00402146      8D45 E4            lea eax,dword ptr ss:[ebp-1C]
+
+00402149      50                  push eax
+
+0040214A      FF15 9C644000       call dword ptr ds:[40649C] //DispatchMessage
+
+00402150      56                  push esi
+
+00402151      8D45 E4            lea eax,dword ptr ss:[ebp-1C]
+
+00402154      56                  push esi
+
+00402155      56                  push esi
+
+00402156      50                  push eax
+
+00402157      FF15 A0644000       call dword ptr ds:[4064A0] //GetMessage
+
+0040215D      85C0                test eax,eax
+
+0040215F    ^ 75 A5               jnz short NOTEPADY.00402106
+```
+
+`TranslateMessage`, `DispatchMessage`, `GetMessage` 都被 `OD` 识别出来，说明壳没有加密这 3 个函数
+
+从中还可以看出程序的代码段地址大概是在 `402000` 左右（猜测可能就是 `VC` 生成的 `.text` 段，从 `401000` 开始）
+
+另外，`IAT` 应该在 `406400` 附近
+
+重新加载程序，在最后一个 `SEH` 时按 `F7` 跟踪
+
+如果 `EIP` 从 `010*****` 跳到 `0040****` 就说明壳已经把控制权交给了程序的代码
+
+```
+010C39EC      3100                xor dword ptr ds:[eax],eax //最后一个异常,按 Shfit+F8 单步执行
+
+010C39EE      64:8F05 00000000    pop dword ptr fs:[0]
+
+010C39F5      58                  pop eax
+
+010C39F6      833D B07E0C01 00    cmp dword ptr ds:[10C7EB0],0
+
+010C39FD      74 14               je short 010C3A13
+
+010C39FF      6A 0C               push 0C
+
+010C3A01      B9 B07E0C01         mov ecx,10C7EB0
+
+010C3A06      8D45 F8             lea eax,dword ptr ss:[ebp-8]
+
+010C3A09      BA 04000000         mov edx,4
+
+010C3A0E      E8 2DD1FFFF         call 010C0B40 //到这里按 F8 跳过去,因为跳过这个 CALL 并没有显示记事本的窗口,说明程序入口点还在下面
+
+010C3A13      FF75 FC             push dword ptr ss:[ebp-4] //从这里以后按 F7 单步跟踪
+
+010C3A16      FF75 F8             push dword ptr ss:[ebp-8]
+
+010C3A19      8B45 F4             mov eax,dword ptr ss:[ebp-C]
+
+010C3A1C      8338 00             cmp dword ptr ds:[eax],0
+
+010C3A1F      74 02               je short 010C3A23
+
+010C3A21      FF30                push dword ptr ds:[eax]
+
+010C3A23      FF75 F0             push dword ptr ss:[ebp-10]
+
+010C3A26      FF75 EC             push dword ptr ss:[ebp-14]
+
+010C3A29      C3                  retn
+```
+
+按下 `F7` 不放，过了一段时间发现似乎是在一个复杂的循环里，几个 `CALL` 相互调用着循环
+
+既然我们已经知道程序代码大概是 `402000` 附近
+
+就可以用 调试->跟踪进入 来让 `OD` 自动跟踪
+
+具体这样操作：
+
+点 调试->设置条件 在"EIP 位于范围内"打上钩，后面填入 `00400000,00403000`（这样当 `EIP` 在这里面就会中断下来）点确定
+
+点 调试->开始或清除运行跟踪 然后点 调试->跟踪进入 （我怎么知道这样操作？ N 次尝试后发现的...）
+
+![](img/8c1a47a0ac57860fe881c180c59cac0f.jpg)
+
+等待几秒钟，`OD` 中断下来：
+
+```
+004010C5      0000                add byte ptr ds:[eax],al
+
+004010C7      000D 0A000000       add byte ptr ds:[A],cl
+
+004010CD      0000                add byte ptr ds:[eax],al
+
+004010CF      0000                add byte ptr ds:[eax],al
+
+004010D1      0000                add byte ptr ds:[eax],al
+
+004010D3      FF15 E4634000       call dword ptr ds:[4063E4] //OD 中断在这里,可以看出上面的代码显然没有意义
+
+004010D9      8BF0                mov esi,eax
+
+004010DB      8A00                mov al,byte ptr ds:[eax]
+
+004010DD      3C 22               cmp al,22
+
+004010DF      75 1B               jnz short NOTEPADY.004010FC
+
+004010E1      56                  push esi
+
+004010E2      FF15 F4644000       call dword ptr ds:[4064F4]
+
+004010E8      8BF0                mov esi,eax
+
+004010EA      8A00                mov al,byte ptr ds:[eax]
+
+004010EC      84C0                test al,al
+
+004010EE      74 04               je short NOTEPADY.004010F4
+
+004010F0      3C 22               cmp al,22
+```
+
+点 查看->运行跟踪 可以查看刚才 `OD` 记录的全部运行过程，拉到最下面看到壳是在 `010D3A88` `retn` 这里跳到上面的代码（`004010D3`）
+
+![](img/e2770ca4f33f728dc9c2034418c2bfaf.jpg)
+
+点 调试->关闭运行跟踪
+
+这时我们已经找到了程序入口点 `OEP=004010D3`
+
+不过正确的入口点应该是在 `0x401000`（`VC` 默认生成的入口点）
+
+而且应该是 `push ebp;mov ebp,esp` 开头的
+
+所以 `OEP=004010D3` 前面肯定有一部分代码被壳搬到别的地方去执行了
+
+从跟踪运行里可以看到这些被搬掉的代码（如果按上面说的执行，那么已经关闭运行跟踪，没关系，再 `Trace` 一遍...）
+
+![](img/a42a3f467340f33320c045faee61b9cf.jpg)
+
+所以正确的 `OEP` 应该是 `010D3A75`（图中黄的那行），因为下面有很多 `rep stos`，跟踪一个 `VC6` 程序会发现 `VC` 总是在每个函数开头都加上一句 `rep stos` 来初始化栈区，所以猜测 `010D3A75` 是原来的 `OEP`
+
+这时应该可以把 `010D3A75` 这里的代码搬到 `0401000` 来就行了，不过我不是这么做
+
+既然 `Notepad` 是 `VC` 写的，那么应该有一段 `VC` 生成的入口代码来调用 `WinMain`
+
+我的想法是不去修补入口代码，而是自己写一段代码来 `call WinMain`，就象这样：
+
+`WinMain(GetModuleHandle(NULL), NULL, GetCommandLine(), SW_SHOWNORMAL);`
+
+用汇编就是
+
+```
+push 0A
+call GetCommandLineA
+push eax
+push 0
+push 0
+call GetModuleHandle
+push eax
+call WinMain
+```
+
+所以只要在下面找 `WinMain` 就行（不过我最后发现这样实际上绕了弯路）
+
+从 `004010D3` 这个 `OEP` 开始 `F8` 跟踪：
+
+```
+004010D3      FF15 E4634000       call dword ptr ds:[4063E4]
+004010D9      8BF0                mov esi,eax
+```
+
+`0x4010D3` 这个 `CALL` 的地址应该是在 `IAT` 里（想想刚才看到的 `GetMessage` 的地址）
+
+但是 `OD` 没有识别出来，可能是被壳加了密的 `API`，先不跟踪它，等修复 `IAT` 时再研究
+
+不过这个 `call` 返回了 `eax=81D6DB44`, (ASCII `"E:\Crack\NOTEPADy.EXE"`)
+
+由此猜测这个 `API` 可能是 `CommandLineA`，等修复 `IAT` 时再检验是不是
+
+`F8` 几步以后进入一个循环，从寄存器窗口看出这个循环好象在处理命令行参数
+
+过了这个循环就来到这里：
+
+```
+00401146      50                  push eax
+00401147      56                  push esi
+00401148      6A 00               push 0
+0040114A      6A 00               push 0
+0040114C      FF15 9C634000       call dword ptr ds:[40639C] //从 40639C 来看应该是 API
+00401152      50                  push eax
+00401153      E8 760F0000         call NOTEPADY.004020CE //可能是 WinMain
+00401158      50                  push eax
+00401159      8BF0                mov esi,eax
+0040115B      FF15 A0634000       call dword ptr ds:[4063A0] //KERNEL32.ExitProcess
+```
+
+
+
+```
+00401161      8BC6                 mov eax,esi  
+00401163      5E                   pop esi  
+00401164      8BE5                 mov esp,ebp  
+00401166      5D                   pop ebp  
+00401167      C3                   retn  
+```
+
+跳过 `call dword ptr ds:[4063A0]` 这个 `call`,结果看到记事本的窗口弹出来了!`WinMain` 有可能就是这里!
+
+重新跟踪到这里,注意 `call NOTEPADY.004020CE` 的参数,最后一个是 `40000`,就是当前的模块!
+
+而下面 `call dword ptr ds:[4063A0]` 指向 `KERNEL32.ExitProcess`
+
+说明过了 `call NOTEPADY.004020CE` 程序就结束了!
+
+现在完全有理由猜测这里就是 `WinMain`(最后发现猜错了....)
+
+现在在 `EIP=00401153` 这里开 `LordPE` 把 `notepady.exe` 完全脱壳保存成 `dumped.exe`
+
+(奇怪,点 `OllyDump` 提示"没有可以脱壳的进程",谁知道这是怎么回事?是不是 `OllyDump` 在 `win98` 下会失效?)
+
+现在 `dump` 结束,接下来要修复 `IAT`,还要自己写段代码来 `jmp` 到
+
+先修复 `IAT`,感觉修复 `IAT` 好象是个相对独立的过程
+
+关闭 `OD`,把 `notepady.exe` 复制后改名为 `notepady_bak.exe`
+
+运行 `notepady_bak.exe`(注意这里是直接在浏览器里双击运行,不是用 `OD` 加载)
+
+然后再用 `OD` 加载 `notepady.exe`,跟踪到程序代码里
+
+(因为 `OD` 调试 `notepady.exe` 时无法复制 `notepady.exe`)
+
+打开 `RecImport`,选择 `notepady_bak.exe`
+
+(如果选择正在调试的进程将无法读取数据)
+
+以前发现的 `GetMessage` 的地址是 `ds:[4064A0]`
+
+切换到 `OD` 看 `4064A0` 的内存:
+
+![](img/b992bfa5d7d0ca5ebc29fa2eee9a655f.jpg)
+
+向上拉内存,来到 `406000` 都一直有数据,再往上就不再这个模块里了
+
+所以 `IAT` 的开始地址肯定不可能在 `406000` 前面
+
+在 `RecImport` 里填入 `006000` 作为 `IAT` 的开始地址 `RAV`(先这么填)
+
+(发现这里 `RecImport` 好象拼错了,应该是 `RVA` 吧?)
+
+向下拉发现到 `406E00` 就没有数据了,所以 `IAT` 大小填入 `E00`(=`406E00`-`406000`)
+
+点 获得输入表 ,得到的 `IAT` 数据如下(保存树文件的数据):
+
+```
+0   00006000   ?   0000   ECEDF09B //这里是最开始
+0   00006004   ?   0000   DCCFDDBC
+0   00006008   ?   0000   6FFA3DDF //一直往下拉
+.....
+0   000062D4   ?   0000   F8F71C33
+0   000062D8   ?   0000   CAD26836
+0   000062DC   ?   0000   A0569B26
+0   000062E0   ?   0000   CDDA23E0 //这里以上的显然无效
+
+1   000062E4   advapi32.dll   00F7   RegQueryValueExA
+1   000062E8   advapi32.dll   00D8   RegCloseKey
+1   000062EC   advapi32.dll   0103   RegSetValueExA
+.....
+
+1   00006518   comdlg32.dll   0070   GetSaveFileNameA
+1   0000651C   comdlg32.dll   0069   CommDlgExtendedError
+1   00006520   comdlg32.dll   006C   GetFileTitleA
+
+0   00006524   ?   0000   5188AEDE //下面的也没有意义
+0   00006528   ?   0000   D10692B9
+0   0000652C   ?   0000   21413DDA
+.....
+```
+
+分析一下这些数据,显然 `000062E0`(这里是 `RVA` 地址)这个指针以前的都是没有意义的数据(不是有效的内存地址)
+
+所以 `IAT` 的开始地址应该是 `000062E4`
+
+`00006524` 以后的数据也没有意义,所以 `00006524` 是 `IAT` 结束地址
+
+计算一下,大小=`00006524`-`000062E4`=`240`
+
+点 清除输入表 ,然后重新填入 `RAV=000062E4` 大小=`240` ,点 获得输入表
+
+发现还有很多函数没有被识别出来
+
+另外发现两个 `dll` 之间会有一个无效指针:
+
+```
+1   000062F0   advapi32.dll   00EE   RegOpenKeyA
+1   000062F4   advapi32.dll   00DB   RegCreateKeyA
+0   000062F8   ?   0000   A32F18E7 //这个地址显然是无效的内存地址
+
+1   000062FC   gdi32.dll   011A   GetObjectA
+1   00006300   gdi32.dll   00FA   GetDeviceCaps
+```
+
+我猜测可能每两个 `DLL` 的 `IAT` 表之间有 4 个字节的空隙吧
+
+找到第一个无法识别的指针:
+
+```
+1   0000634C   gdi32.dll   012F   GetTextCharset
+1   00006350   gdi32.dll   00B0   DeleteObject
+1   00006354   gdi32.dll   0129   GetStockObject
+0   00006358   ?   0000   C6AFBA7C //空隙
+0   0000635C   ?   0000   010D0334 //第一个无法识别的指针
+0   00006360   ?   0000   010D04F0
+0   00006364   ?   0000   010D6F3C
+```
+
+这里有个问题,我也不知道怎么回事:
+
+在 `OD` 里 `Alt+G` 跳到 `010D0334` 这里的代码,发现完全没有意义:
+
+```
+010D0334      3003                 xor byte ptr ds:[ebx],al
+010D0336      0D 01240000          or eax,2401
+010D033B      0010                 add byte ptr ds:[eax],dl
+010D033D      0000                 add byte ptr ds:[eax],al
+010D033F      0017                 add byte ptr ds:[edi],dl
+```
+
+而在 `OD` 里查看 `0040635C`(`0000635C`+基址 `00400000`),发现值是 `010D6F3C`,不是 `010D0334`!
+
+(这时 `OD` 加载的 `notepady` 也是在运行状态,记事本已经打开了) 
+
+我也想不通为什么这样?难道是 `RecImport` 出错了?
+
+暂时不管它了,反正既然 `010D0334` 的地址是错的,就以 `OD` 的为准好了
+
+在 `OD` 里 `Alt+G` 跳到 `010D6F3C`:
+
+```
+010D6F3C      68 3B0CFABF          push KERNEL32._lwrite
+010D6F41      68 DD4F158E          push 8E154FDD
+010D6F46      C3                   retn //这里是变形 CALL 到 8E154FDD
+```
+
+在 `OD` 里 `Alt+G` 跳到 `8E154FDD`:
+
+```
+8E154FDD  - E9 250BE431            jmp KERNEL32.BFF95B07
+```
+
+在上面这一行按回车就跳到 `BFF95B07`:
+
+```
+BFF95B07      9C                   pushfd //压入标志
+BFF95B08      FC                   cld
+BFF95B09      50                   push eax
+BFF95B0A      53                   push ebx
+BFF95B0B      52                   push edx // 3 次压栈
+BFF95B0C      64:8B15 20000000     mov edx,dword ptr fs:[20] //检查调试器
+BFF95B13      0BD2                 or edx,edx
+BFF95B15      74 09                je short KERNEL32.BFF95B20
+BFF95B17      8B42 04              mov eax,dword ptr ds:[edx+4]
+BFF95B1A      0BC0                 or eax,eax
+BFF95B1C      74 07                je short KERNEL32.BFF95B25
+BFF95B1E      EB 42                jmp short KERNEL32.BFF95B62
+BFF95B20      5A                   pop edx
+BFF95B21      5B                   pop ebx
+BFF95B22      58                   pop eax //3 次弹栈
+BFF95B23      9D                   popfd //弹出标志
+BFF95B24      C3                   retn
+```
+
+从上面可以看出堆栈最后还是不变,所以
+
+```
+push XXXXXXXX
+push 8E154FDD
+retn
+```
+
+最终还是去执行 `XXXXXXXX`
+
+`8E154FDD` 是在系统空间里,可能是 `Asprotect` 在 `KERNEL32` 的某个代码空隙里造了那段代码,用来检查调试器
+
+(奇怪的是 `Asprotect` 检查调试器时为什么没有发现 `OD`?)
+
+好了,现在已经知道 `ds:[40635C]` 这里是 `KERNEL32._lwrite`
+
+在 `RecImport` 里双击 `RVA:0000635C ptr:010D0334` ,`DLL` 那里选择 `kernel32.dll`,函数选择 `_lwrite`
+
+好了,第一个函数修补完成,接着来下一个:
+
+```
+0   00006360   ?   0000   010D04F0
+```
+
+查看 `010D04F0`:
+
+```
+010D04F0      68 591EFABF          push KERNEL32.DeleteFileA
+010D04F5  - E9 F34A088D            jmp 8E154FED
+```
+
+跳到 `8E154FED`:
+
+```
+8E154FED  - E9 150BE431            jmp KERNEL32.BFF95B07
+```
+
+又是 `KERNEL32.BFF95B07`,上面分析过了,所以 `00006360` 是 `KERNEL32.DeleteFileA`,修复它
+
+然后是下一个....坚持住!胜利属于我们!
+
+```
+0   00006364   ?   0000   010D6F3C
+```
+
+```
+010D6F3C      68 3B0CFABF          push KERNEL32._lwrite
+010D6F41      68 DD4F158E          push 8E154FDD
+010D6F46      C3                   retn
+8E154FDD  - E9 250BE431            jmp KERNEL32.BFF95B07
+```
+
+都是一模一样的做法,修复 `00006364=KERNEL32._lwrite`,然后是下一个.....
+
+(几乎 `RecImport` 不能识别的函数都是通过 `BFF95B07` 来跳转的)
+
+这样经过漫长的修复....................终于修复了 `BFF95B07` 保护的全部函数
+
+(我是全部手工修复的,谁知道这里有什么简便的方法吗???)
+
+不过还有两个例外的函数:
+
+```
+0   0000639C   ?   0000   010C1C64
+```
+
+查看 `010C1C64`
+
+```
+010C1C64      55                   push ebp
+010C1C65      8BEC                 mov ebp,esp
+010C1C67      8B45 08              mov eax,dword ptr ss:[ebp+8] //第一个参数
+010C1C6A      85C0                 test eax,eax
+010C1C6C      75 13                jnz short 010C1C81  //不为 0 就压入这个参数然后 call 010B51B8
+010C1C6E      813D A47A0C01 00004>cmp dword ptr ds:[10C7AA4],400000 //为 0 就判断 ds:[10C7AA4]是不是 400000  
+010C1C78      75 07                jnz short 010C1C81 //如果是就返回 400000,否则就调用 010B51B8
+010C1C7A      A1 A47A0C01          mov eax,dword ptr ds:[10C7AA4]
+010C1C7F      EB 06                jmp short 010C1C87
+010C1C81      50                   push eax
+010C1C82      E8 3135FFFF          call 010B51B8
+010C1C87      5D                   pop ebp
+010C1C88      C2 0400              retn 4 //说明只有一个参数
+```
+
+查看 `010B51B8`:
+
+```
+010B51B8  - FF25 08820C01          jmp dword ptr ds:[10C8208]
+```
+
+查看 `ds:[10C8208]=8E154E68`
+
+查看 `8E154E68`:
+
+```
+8E154E68      68 9677F7BF          push KERNEL32.GetModuleHandleA
+8E154E6D  - E9 950CE431            jmp KERNEL32.BFF95B07 //又是这个
+```
+
+很明显,`0000639C` 这里就是 `KERNEL32.GetModuleHandleA`
+
+如果参数是 `NULL`(表示当前模块),他就判断一下 `ds:[10C7AA4]`,然后返回 `40000`
+
+如果不是 `NULL` 就乖乖的调用 `GetModuleHandleA`
+
+好了,修复它
+
+另一个函数是:
+
+```
+0   000063E4   ?   0000   010C1CD8
+```
+
+等等!还记得那个偷掉一部分代码后的 `OEP` 吗?
+
+```
+004010D3      FF15 E4634000        call dword ptr ds:[4063E4]
+```
+
+上面调试的时候已经发现这里返回的就是命令行
+
+查看 `010C1CD8`:
+
+```
+010C1CD8      6A 00                push 0
+010C1CDA      E8 D934FFFF          call 010B51B8
+010C1CDF      FF35 147E0C01        push dword ptr ds:[10C7E14]
+010C1CE5      58                   pop eax
+010C1CE6      8B05 247E0C01        mov eax,dword ptr ds:[10C7E24]  
+010C1CEC      C3                   retn
+```
+
+最后的返回值=`ds:[10C7E24]`,和 `call 010B51B8`,下面也验证了这一点:
+
+查看 `010B51B8`:
+
+```
+010B51B8  - FF25 08820C01          jmp dword ptr ds:[10C8208]
+```
+
+查看 `ds:[010C8208]=8E154E68`, (Thunk to `KERNEL32.GetModuleHandleA`)
+
+壳有必要调用 `GetModuleHandleA(NULL)` 吗?
+
+再看一下已经修复的函数,里面没有 `GetCommandLineA`
+
+所以现在只能认为 `010C1CD8` 是命令行
+
+(用 `OD` 加载时输入命令行也能严整这一点)
+
+在 `RecImport` 里修复 `010C1CD8=kernel32.GetCommandLineA`
+
+最后,还有两个 `DLL` 之间的间隙是无效的,右击它们,点 减切指针数据 ,这样就全部有效了
+
+
+
+打开 `LordPE`，设置选项里的重建，选"状态窗口"、"脱壳修复"、"重组文件"、"验证 PE 文件"，然后重建 `dumped.exe`。
+
+（我也不知道这么做对不对，不过上面说的都是默认选项，默认选的还有"重建输入表"，我觉得既然手工重建了就应该可以把它取消了）
+
+然后用 `RecImport` 点 修复抓取文件，这样就修复好 `IAT` 了，终于....
+
+现在准备手工构造入口点
+
+先用 `LordPE` 把入口点改为 `1000`，因为查看 `0x401000` 没有发现有意义的代码，就在这里加入修补的入口
+
+现在再看一下 `00401153 call NOTEPADY.004020CE` 附近的代码：
+
+```
+0040113B     B8 0A000000         mov eax,0A
+00401140     74 04               je short NOTEPADY.00401146
+00401142     0FB745 EC           movzx eax,word ptr ss:[ebp-14]
+00401146     50                  push eax  //eax=0A
+00401147     56                  push esi
+00401148     6A 00               push 0
+0040114A     6A 00               push 0
+0040114C     FF15 9C634000       call dword ptr ds:[40639C]
+00401152     50                  push eax
+00401153     E8 760F0000         call NOTEPADY.004020CE
+```
+
+第一个参数就是 `0A`，第二个是 `esi`，第三个是 `0`，第四个是 `GetModuleHandle(0)`
+
+为了确定 `esi` 是不是 `GetCommandLineA`，用 `OD` 打开加壳的程序，参数那里输入 `a.txt`
+
+运行到 `00401147 push esi` 这一行，结果发现 `esi->"a.txt"`!
+
+所以 `esi` 不能用 `GetCommandLineA` 来代替!
+
+再看一下前面的代码：
+
+```
+004010D3     FF15 E4634000       call dword ptr ds:[4063E4] //这是偷了代码后的 OEP,=GetCommandLineA
+004010D9     8BF0               mov esi,eax //esi=char*ptr;
+004010DB     8A00               mov al,byte ptr ds:[eax]
+004010DD     3C 22              cmp al,22 //判断第一个字符是不是"号("ASC 码 22)
+004010DF     75 1B              jnz short NOTEPADY.004010FC
+004010E1     56                 push esi
+004010E2     FF15 F4644000      call dword ptr ds:[4064F4] //CharNext,获取下一个字符
+004010E8     8BF0               mov esi,eax
+004010EA     8A00               mov al,byte ptr ds:[eax]
+004010EC     84C0               test al,al //判断下一个字符是不是\0
+004010EE     74 04              je short NOTEPADY.004010F4
+004010F0     3C 22              cmp al,22 //判断下一个字符是不是"
+004010F2   ^ 75 ED             jnz short NOTEPADY.004010E1 //不是就跳转,判断再下一个
+004010F4     803E 22            cmp byte ptr ds:[esi],22
+004010F7     75 15             jnz short NOTEPADY.0040110E //直到找到了"
+004010F9     46                inc esi //加 1,指向"号下一个字符
+004010FA     EB 12             jmp short NOTEPADY.0040110E
+004010FC     3C 20             cmp al,20
+004010FE     7E 0E             jle short NOTEPADY.0040110E
+00401100     56                push esi
+00401101     FF15 F4644000     call dword ptr ds:[4064F4]
+00401107     8038 20           cmp byte ptr ds:[eax],20
+0040110A     8BF0              mov esi,eax
+0040110C   ^ 7F F2            jg short NOTEPADY.00401100
+0040110E     803E 00           cmp byte ptr ds:[esi],0 //判断是不是\0,如果是就跳到下一段程序
+00401111     74 13             je short NOTEPADY.00401126
+00401113     803E 20           cmp byte ptr ds:[esi],20 //判断空格
+00401116     77 0E             ja short NOTEPADY.00401126
+00401118     56                push esi
+00401119     FF15 F4644000     call dword ptr ds:[4064F4]
+0040111F     8038 00          cmp byte ptr ds:[eax],0
+00401122     8BF0              mov esi,eax
+00401124   ^ 75 ED            jnz short NOTEPADY.00401113
+```
+
+经过这一段代码后 `eax` 就指向命令行的参数
+
+比如 `GetCommandLineA` 的结果是 `"E:\\Crack\\Notepady.exe" a.txt`
+
+那么到了这里 `esi->a.txt`，所以还要在入口点加上这段代码
+
+里面全部都是短跳转（相对跳转），只要把这些字节原样复制过去就可以了
+
+用 `HIEW` 跳到 `400`（`401000` 的文件偏移），输入下面的代码：
+
+```
+push 0A
+call d,[4063E4]          //这里调用 GetCommandLineA
+```
+
+然后在 `OD` 里按住 `Shift` 选中从 `004010D9` 到 `00401124` 的代码，右击，选 在转存中跟随->选择部分
+
+这时内存里显示了上面这段代码的数据：
+
+```
+8B F0 8A 00 3C 22 75 1B 56 FF 15 F4 64 40 00 8B F0 8A 00 84 C0 74 04 3C 22 75 ED 80 3E 22 75 15
+46 EB 12 3C 20 7E 0E 56 FF 15 F4 64 40 00 80 38 20 8B F0 7F F2 80 3E 00 74 13 80 3E 20 77 0E 56
+FF 15 F4 64 40 00 80 38 00 8B F0 75 ED
+```
+
+现在要把这部分搬到修补了 `IAT` 的程序里，但是发现 `LordPE` 里的 16 进制编辑器不能粘贴!
+
+我最后是把这部分手工输入的（就当是练习打字好了，我们的上机课就天天练习这个....）
+
+谁知道有什么好点的方法吗？（不过我估计谁要是有耐心看到这里肯定会有些精神崩溃...）
+
+注意 `push 0A; call d,[4063E4];` 这两句已经占了 8 个字节，所以要从 `401008` 开始输入
+
+好了，现在打开 `HIEW`，拉到 `401055` 这里，加上一句：
+
+```
+push esi
+push 0
+push 0
+call d,[0040639C]  //KERNEL32.GetModuleHandleA
+push eax
+jmp 553
+```
+
+这里压入参数，然后跳转到 `WinMain` 那里（`553=00401153-401000+400`，`HIEW` 里要输入文件偏移）
+
+现在终于修补好了，运行修改后的 `dumped\_.exe`.......
+
+没有显示记事本!!! 可恶!!!
+
+重新用 `OD` 加载 `dumped\_.exe`，在开一个 `OD` 加载加壳的 `notepady.exe`，对比运行，看那里不一样
+
+发现进入 `WinMain` 后的第一个 `CALL` 就不同：
+
+```
+004020CE   /$  55              push ebp
+004020CF   |.  8BEC           mov ebp,esp
+004020D1   |.  83EC 1C        sub esp,1C
+004020D4   |.  56             push esi
+004020D5   |.  FF75 14        push dword ptr ss:[ebp+14]        ; /Arg4
+004020D8   |.  FF75 10        push dword ptr ss:[ebp+10]        ; |Arg3 = 81D60F0E
+004020DB   |.  FF75 0C        push dword ptr ss:[ebp+C]         ; |Arg2
+004020DE   |.  FF75 08        push dword ptr ss:[ebp+8]         ; |Arg1
+004020E1   |.  E8 BB0B0000    call DUMPED\_.00402CA1            ; \DUMPED\_.00402CA1
+004020E6   |.  85C0          test eax,eax           //dumped\_.exe 这里是 eax=0,notepady.exe 是 1
+```
+
+跟进 `00402CA1`，发现记事本加载了很多资源文件，然后调用 `CreateWindowsExA`，到这里两个程序都是一样的
+
+再往下，又到了一个 `CreateWindowsExA`：
+
+```
+00402DC3   |.  50             push eax                       ; |Style
+00402DC4   |.  68 00104000   push DUMPED\_.<ModuleEntryPoint> ; |WindowName = "j
+00402DC9   |.  68 54104000   push DUMPED\_.00401054           ; |Class = "鞻 j"
+00402DCE   |.  68 00020000   push 200                         ; |ExtStyle = WS_EX_CLIENTEDGE
+00402DD3   |.  FF15 3C644000  call dword ptr ds:[<&user32.Creat>; \CreateWindowExA
+```
+
+而加壳的 `notepady.exe` 运行到这里 `push DUMPED\_.00401054->"Edit"`!!!!
+
+原来壳把 `"Edit\0"` 保存在 `00401054` 了，刚才修补入口点时占用了 `00401054`
+
+所以没有正确的 `Class`，导致这个 `CreateWindowExA` 失败了!
+
+还有 `WindowName` 也是错误的，壳里 `WindowName` 指向-> `"\0"`
+
+重新用 `HIEW` 打开 `dumped\_.exe`，跳到 `401070` (`F5 470`)，换成 16 进制编辑
+
+在 `401070` 输入 `00 00` (这里是 `WindowName="\0"`)
+
+在 `401080` 输入 `45 64 69 74 00` (这里是 `class="Edit\0"`)
+
+`F5` 到 `21C4` (`21C4=00402DC4-401000+400`)，修改代码为
+
+```
+push 401070
+push 401080
+```
+
+`F9` 保存
+
+运行 `dumped\_.exe`，正确弹出了记事本!!! 脱壳成功了!!!!
+
+整个脱壳过程很麻烦，但思路很清晰，就是 隐藏 `OD`，找到 `OEP`，修复 `IAT`，找个适合的地点 `DUMP`，修复入口点，最后检查错误
+
+不过这个版本的 `Asprotect` 很旧了，而且已经有脱壳机和 `N` 篇脱文了，所以我写的这篇也没什么价值，就算是纪念一下第一次真正的脱壳成功吧!
+
+4dd466d0e1e0cc123afbe504da2462ca
