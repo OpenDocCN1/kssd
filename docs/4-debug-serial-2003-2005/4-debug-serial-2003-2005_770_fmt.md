@@ -1,0 +1,327 @@
+
+# PCTimerExpert v1.4.7.8 注册算法分析
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-277.htm`](https://www.pediy.com/kssd/pediy07/pediy7-277.htm)
+
+### 基本信息
+
+- **【破文标题】**：`PCTimerExpert v1.4.7.8` 注册算法分析
+- **【破文作者】**：KuNgBiM[DFCG]
+- **【作者邮箱】**：gb_1227@163.com
+- **【软件名称】**：`PCTimerExpert 1.4.7.8`
+- **【编译语言】**：Microsoft Visual C++ 6.0
+- **【作者声明】**：初学 Crack，只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+---
+
+### 破解过程
+
+**侦测**：用 `PEiD` 查壳，无壳，Microsoft Visual C++ 6.0 编译。
+
+**试探**：运行主程序注册，输入注册码（试炼码），确认！程序提示"注册失败，请检查注册码是否正确!"
+
+**初步下药**：使出法宝，用 `W32Dasm` 进行静态反汇编，失望的是，改程序为 `MFC42` 的程序，并且带有 `Anti-Loder` 功能，看来 `W32Dasm` 是没戏咯~
+
+**对症下药**：`Ollydbg` 载入主程序，加载完毕后，下命令：`bp GetWindowTextA`，然后 `F9` 运行：
+
+```assembly
+77DF768E >  55              push ebp                        //第 1 次断下，F9 继续
+77DF768F    8BEC            mov ebp,esp
+77DF7691    6A FF           push -1
+77DF7693    68 8034DF77     push USER32.77DF3480
+77DF7698    68 4CC7E377     push USER32.77E3C74C
+........
+77DF768E >  55              push ebp                        //第 2 次断下，同样 F9 继续
+77DF768F    8BEC            mov ebp,esp
+77DF7691    6A FF           push -1
+77DF7693    68 8034DF77     push USER32.77DF3480
+77DF7698    68 4CC7E377     push USER32.77E3C74C
+........
+77DF768E >  55              push ebp                        //第 3 次断下，同样 F9 继续，USER32.SendMessageA
+77DF768F    8BEC            mov ebp,esp
+77DF7691    6A FF           push -1
+77DF7693    68 8034DF77     push USER32.77DF3480
+77DF7698    68 4CC7E377     push USER32.77E3C74C
+........
+77DF768E >  55              push ebp                        //第 4 次断下，同样 F9 继续
+77DF768F    8BEC            mov ebp,esp
+77DF7691    6A FF           push -1
+77DF7693    68 8034DF77     push USER32.77DF3480
+77DF7698    68 4CC7E377     push USER32.77E3C74C
+........
+```
+
+经过 5 次的 `F9` 后，程序终于来到了注册界面，输入试炼信息：
+
+```
+***** 试炼信息 *****
+机器码：1757386560
+注册码：9876543210
+******************
+```
+
+点击“注册”后 `OD` 中断在:
+
+```assembly
+77DF768E >  55              push ebp                        //中断在此！
+77DF768F    8BEC            mov ebp,esp
+77DF7691    6A FF           push -1
+77DF7693    68 8034DF77     push USER32.77DF3480
+77DF7698    68 4CC7E377     push USER32.77E3C74C
+77DF769D    64:A1 00000000  mov eax,dword ptr fs:[0]
+77DF76A3    50              push eax
+77DF76A4    64:8925 000000> mov dword ptr fs:[0],esp
+77DF76AB    51              push ecx
+77DF76AC    51              push ecx
+77DF76AD    51              push ecx
+77DF76AE    53              push ebx
+77DF76AF    56              push esi
+77DF76B0    57              push edi
+77DF76B1    8965 E8         mov dword ptr ss:[ebp-18],esp
+77DF76B4    8B7D 0C         mov edi,dword ptr ss:[ebp+C]
+77DF76B7    85FF            test edi,edi
+77DF76B9    74 58           je short USER32.77DF7713
+77DF76BB    837D 10 00      cmp dword ptr ss:[ebp+10],0
+77DF76BF    74 52           je short USER32.77DF7713
+77DF76C1    8365 FC 00      and dword ptr ss:[ebp-4],0
+77DF76C5    8027 00         and byte ptr ds:[edi],0
+77DF76C8    8B4D 08         mov ecx,dword ptr ss:[ebp+8]
+77DF76CB    E8 31CCFFFF     call USER32.77DF4301
+77DF76D0    8BF0            mov esi,eax
+77DF76D2    8975 E4         mov dword ptr ss:[ebp-1C],esi
+77DF76D5    85F6            test esi,esi
+77DF76D7    74 36           je short USER32.77DF770F
+77DF76D9    56              push esi
+77DF76DA    E8 59FFFFFF     call USER32.77DF7638
+77DF76DF    85C0            test eax,eax
+77DF76E1    6A 01           push 1
+77DF76E3    57              push edi
+77DF76E4    FF75 10         push dword ptr ss:[ebp+10]
+77DF76E7    6A 0D           push 0D
+77DF76E9    56              push esi
+77DF76EA    74 07           je short USER32.77DF76F3
+77DF76EC    E8 72E9FFFF     call USER32.77DF6063
+77DF76F1    EB 05           jmp short USER32.77DF76F8
+77DF76F3    E8 CCD1FFFF     call USER32.77DF48C4
+77DF76F8    834D FC FF      or dword ptr ss:[ebp-4],FFFFFFFF
+77DF76FC    EB 17           jmp short USER32.77DF7715
+77DF76FE    6A 01           push 1
+77DF7700    58              pop eax
+77DF7701    C3              retn
+77DF7702    8B65 E8         mov esp,dword ptr ss:[ebp-18]
+77DF7705    68 78050000     push 578
+77DF770A    E8 935E0100     call USER32.77E0D5A2
+77DF770F    834D FC FF      or dword ptr ss:[ebp-4],FFFFFFFF
+77DF7713    33C0            xor eax,eax
+77DF7715    8B4D F0         mov ecx,dword ptr ss:[ebp-10]
+77DF7718    64:890D 000000> mov dword ptr fs:[0],ecx
+77DF771F    5F              pop edi                       //edi=00898730, (ASCII "9876543210")
+77DF7720    5E              pop esi                       //esi=00591F38
+77DF7721    5B              pop ebx
+77DF7722    C9              leave
+77DF7723    C2 0C00         retn 0C                       //返回到下面
+........
+6BC894AA    6A FF           push -1
+6BC894AC    8BCF            mov ecx,edi
+6BC894AE    E8 22EEFFFF     call MFC42.#5572              //取注册码
+6BC894B3    EB 13           jmp short MFC42.6BC894C8
+6BC894B5    8BCE            mov ecx,esi
+6BC894B7    E8 5D3D0000     call MFC42.#3092
+6BC894BC    85C0            test eax,eax
+6BC894BE    74 08           je short MFC42.6BC894C8
+6BC894C0    57              push edi
+6BC894C1    8BC8            mov ecx,eax
+6BC894C3    E8 52FFFFFF     call MFC42.#3874              //取注册码长度
+6BC894C8    8B07            mov eax,dword ptr ds:[edi]      //ASCII "9876543210"，eax=0A
+6BC894CA    5F              pop edi
+6BC894CB    5E              pop esi
+6BC894CC    8B40 F8         mov eax,dword ptr ds:[eax-8]    //ds:[00898728]=0000000A
+6BC894CF    C2 0800         retn 8                        //返回到下面关键计算部分！★
+........
+```
+
+### 关键计算分析
+
+```assembly
+00404B9E    8B4424 08       mov eax,dword ptr ss:[esp+8]    //取试炼码长度，ASCII "9876543210"，eax=0A
+00404BA2    8B48 F8         mov ecx,dword ptr ds:[eax-8]    //把试炼码长度赋值给 ECX
+00404BA5    85C9            test ecx,ecx                    //判断注册码是否为空
+00404BA7    75 0B           jnz short PCTimerE.00404BB4     //不跳则死！
+00404BA9    6A FF           push -1
+00404BAB    6A 40           push 40
+00404BAD    6A 78           push 78
+00404BAF    E9 C5000000     jmp PCTimerE.00404C79           //跳到注册失败
+00404BB4    50              push eax                        //eax=00898730, (ASCII "9876543210")
+00404BB5    FF15 C8C54000   call dword ptr ds:[<&MSVCRT.atol>] ; MSVCRT.atol
+00404BBB    8BF0            mov esi,eax                     //eax=4CB016EA，esi=6BCE2078
+00404BBD    83C4 04         add esp,4
+00404BC0    85F6            test esi,esi                    //esi=4CB016EA（转换值）
+00404BC2    0F84 AB000000   je PCTimerE.00404C73            //转换失败则跳死！
+00404BC8    6A 00           push 0                          //pFileSystemNameSize = NULL
+00404BCA    6A 00           push 0                          //pFileSystemNameBuffer = NULL
+00404BCC    6A 00           push 0                          //pFileSystemFlags = NULL
+00404BCE    8D4C24 18       lea ecx,dword ptr ss:[esp+18]
+00404BD2    6A 00           push 0                          //pMaxFilenameLength = NULL
+00404BD4    51              push ecx                        //pVolumeSerialNumber
+00404BD5    6A 00           push 0                          //MaxVolumeNameSize = 0
+00404BD7    6A 00           push 0                          //VolumeNameBuffer = NULL
+00404BD9    68 D4034100     push PCTimerE.004103D4          //RootPathName = "c:\"
+00404BDE    C74424 2C 0000> mov dword ptr ss:[esp+2C],0
+```
+
+
+
+```
+00404BE6    FF15 6CC04000   call dword ptr ds:[<&KERNEL32.GetVolumeInfo>//KERNEL32.GetVolumeInformationA（取 C 盘序列号）  
+
+00404BEC    85C0            test eax,eax                                    //取值成功记为 1，eax=1  
+
+00404BEE    75 11           jnz short PCTimerE.00404C01                     //成功则跳向计算部分！  
+
+00404BF0    50              push eax  
+
+00404BF1    6A 30           push 30  
+
+00404BF3    68 B0034100     push PCTimerE.004103B0  
+
+00404BF8    E8 AD4E0000     call <jmp.&MFC42.#1200>  
+
+00404BFD    33C0            xor eax,eax  
+
+00404BFF    EB 15           jmp short PCTimerE.00404C16  
+
+00404C01    8B4C24 0C       mov ecx,dword ptr ss:[esp+C]                   //成功后就跳到这里，并把序列号赋值给 ECX  
+
+00404C05    8BD1            mov edx,ecx                                    //ecx=68C0884D，edx=00130608（取高 16 位）  
+
+00404C07    8BC1            mov eax,ecx                                    //ecx=68C0884D，eax=00000001（取低 16 位）  
+
+00404C09    C1EA 10         shr edx,10                                     //取高 16 位  
+
+00404C0C    2BC2            sub eax,edx                                    //减去高 16 位的值  
+
+00404C0E    81E1 FFFF0000   and ecx,0FFFF                                   //取低 16 位  
+
+00404C14    2BC1            sub eax,ecx                                    //减去低 16 位的值  
+
+00404C16    8B15 C4D94000   mov edx,dword ptr ds:[40D9C4]                 //再取一个常数值 34D944EA，ds:[0040D9C4]=34D944EA  
+
+00404C1C    8BC8            mov ecx,eax                                    //上面的结果也保存到 ECX 中，eax=68BF9740，ecx=0000884D  
+
+00404C1E    C1E9 10         shr ecx,10                                     //取结果的高 16 位，ecx=68BF9740  
+
+00404C21    33D0            xor edx,eax                                    //将 34D944EA 与上面的结果作异或运算，eax Xor edx  
+
+00404C23    25 FFFF0000     and eax,0FFFF                                  //取结果的低 16 位，eax=68BF9740  
+
+00404C28    2BD1            sub edx,ecx                                    //再减去高 16 位，ecx=000068BF，edx=5C66D3AA  
+
+00404C2A    2BD0            sub edx,eax                                    //再减去低 16 位，EDX 就是注册码，eax=00009740，edx=5C666AEB  
+
+00404C2C    33C0            xor eax,eax  
+
+00404C2E    3BD6            cmp edx,esi                                    //关键比较！  
+
+00404C30    0F94C0          sete al  
+
+00404C33    85C0            test eax,eax  
+
+00404C35    74 3C           je short PCTimerE.00404C73                     //不相等的话，就跳向注册失败！★爆破点★  
+
+00404C37    E8 3A4C0000     call <jmp.&MFC42.#1168>                        // AfxGetModuleState(void)  
+
+00404C3C    8B40 04         mov eax,dword ptr ds:[eax+4]  
+
+00404C3F    56              push esi  
+
+00404C40    68 8C034100     push PCTimerE.0041038C                         //ASCII "REGCODE"  
+
+00404C45    68 7C034100     push PCTimerE.0041037C                         //ASCII "Registration"  
+
+00404C4A    8BC8            mov ecx,eax  
+
+00404C4C    E8 5F4E0000     call <jmp.&MFC42.#6402>                        // WriteProfileInt(char const *,char const *,int)  
+
+00404C51    85C0            test eax,eax  
+
+00404C53    74 15           je short PCTimerE.00404C6A  
+
+00404C55    6A FF           push -1  
+
+00404C57    6A 40           push 40  
+
+00404C59    6A 79           push 79  
+
+00404C5B    E8 CE4B0000     call <jmp.&MFC42.#1199>                        // AfxMessageBox(“注册成功”)  
+
+00404C60    C705 780C4100 0>mov dword ptr ds:[410C78],1  
+
+00404C6A    8BCB            mov ecx,ebx  
+
+00404C6C    E8 274E0000     call <jmp.&MFC42.#4853>                       // CDialog::OnOK(void)  
+
+00404C71    EB 0B           jmp short PCTimerE.00404C7E  
+
+00404C73    6A FF           push -1  
+
+00404C75    6A 40           push 40  
+
+00404C77    6A 7A           push 7A  
+
+00404C79    E8 B04B0000     call <jmp.&MFC42.#1199>                       // AfxMessageBox(“注册失败”)  
+
+00404C7E    8D4C24 08       lea ecx,dword ptr ss:[esp+8]  
+
+00404C82    C74424 18 FFFFF>mov dword ptr ss:[esp+18],-1  
+
+00404C8A    E8 A54B0000     call <jmp.&MFC42.#800>  
+
+00404C8F    8B4C24 10       mov ecx,dword ptr ss:[esp+10]  
+
+00404C93    5E              pop esi  
+
+00404C94    5B              pop ebx  
+
+00404C95    64:890D 0000000>mov dword ptr fs:[0],ecx  
+
+00404C9C    83C4 14         add esp,14  
+
+00404C9F    C3              retn                                           //返回程序  
+```
+
+## 算法总结
+
+注册验证非常简单：
+
+1. 先把十进制的机器码转换为 16 进制代码，记作`ZHM1`。（例：`1757386560 = 68BF9740`）
+
+2. 接着用`ZHM1`与一个常数（`34D944EA`）异或，再减去`ZHM1`的高 16 位和低 16 位，记作`ZHM2`。
+
+   （例：即`68BF9740 Xor 34D944EA - 68BF - 9740 = 5C65D3AB`）
+
+3. 最后把`ZHM2`再转换成十进制数，作为注册码`SN`。
+
+---
+
+## 注册信息
+
+- 机器码：`1757386560`
+- 注册码：`1550177195`
+
+---
+
+〓本文完〓
+
+---
+
+版权所有（C）2005 `KuNgBiM[DFCG]` &nbsp;&nbsp;&nbsp;&nbsp; `Copyright (C) 2005 KuNgBiM[DFCG]`
+
+---
+
+`Cracked BY KuNgBiM[DFCG]`
+
+`2005-06-12`
+
+`4:07:27 AM`
+
+`4dd466d0e1e0cc123afbe504da2462ca`

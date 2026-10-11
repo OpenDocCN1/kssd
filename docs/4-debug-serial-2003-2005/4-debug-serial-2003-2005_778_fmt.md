@@ -1,0 +1,717 @@
+
+# PopChar Win V1.2 注册算法详细分析
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-127.htm`](https://www.pediy.com/kssd/pediy07/pediy7-127.htm)
+
+## 破解信息
+
+【破解作者】 Bmzy  
+【作者主页】 [`www.9ycn.com/`](http://www.9ycn.com/)  
+【使用工具】 `OllyDbg` `v1.10` , `PEiD` `v0.92`  
+【破解平台】 `WinXP` `SP2`  
+【软件名称】 `PopChar` `Win` `V1.2`  
+【下载地址】 [`www.skycn.com/soft/20579.html`](http://www.skycn.com/soft/20579.html)  
+【软件简介】 这个工具让你插入各种字体的字和 `HTML` 标识，到你的文件中。  
+【软件大小】 `995` `KB`  
+【破解声明】 学习交流并快乐着......
+
+--------------------------------------------------------------------------------
+
+## 破解内容
+
+`PEiD` 检查，程序的编程语言是 `Microsoft` `Visual` `C++` `7.0`，无壳。
+
+`od` 载入，软件开始，到注册处，填入 `1234abcd`。设断 `MessageBoxA`，按确定按钮，停下后按 `Ctrl+F9` 往上返，返到 `405D2D`，
+
+向上拉判断应是确定按钮的处理函数，开始分析。
+
+--------------------------------------------------------------------------------
+
+```
+00405BAC   push 100                       ; /Count = 100 (256.) 
+00405BB1   push PopChar.0042D4D8          ; |Buffer = PopChar.0042D4D8 
+00405BB6   push 3F0                       ; |ControlID = 3F0 (1008.) 
+00405BBB   push esi                       ; |hWnd 
+00405BBC   call dword ptr ds:[<&USER32.GetDlgIte>; \\GetDlgItemTextA         这里是函数调用获取字串 
+00405BC2   push PopChar.0042D4D8          ;  ASCII "1234abcd"     
+00405BC7   call PopChar.0040EDB0                     复制一个字串，eax 返回指针 
+00405BCC   push eax 
+00405BCD   call PopChar.0040CBE0          ;       将注册码存注册表，后面验证如错误， 
+00405BD2   push 0                         ;       还会将注册表中的键值清空 
+00405BD4   call PopChar.0040CC40 ---------- ------------分析发现，这就是验证函数 
+00405BD9   mov eax,dword ptr ds:[42D7E8] 
+00405BDE   add esp,0C 
+00405BE1   test eax,eax   
+00405BE3   je PopChar.00405C7A                          并不是真正的判断跳转， 
+00405BE9   mov eax,PopChar.0042D4D8     ;ASCII "1234abcd"     真正的在 405C7A 处 
+00405BEE   lea edx,dword ptr ds:[eax+1] 
+00405BF1   mov cl,byte ptr ds:[eax] 
+00405BF3   inc eax 
+00405BF4   test cl,cl 
+00405BF6   jnz short PopChar.00405BF1 
+00405BF8   sub eax,edx 
+00405BFA   mov dword ptr ss:[esp+C],eax 
+00405BFE   jnz short PopChar.00405C7A 
+00405C00   push 0B4                       ; /Result = B4 (180.) 
+00405C05   push esi                       ; |hWnd 
+00405C06   call dword ptr ds:[<&USER32.EndDialog>; \\EndDialog 
+00405C0C   push 0 
+00405C0E   push esi 
+00405C0F   call PopChar.004058B0 
+00405C14   push 0 
+00405C16   call PopChar.0040CBE0 
+00405C1B   call PopChar.004022C0 
+00405C20   call PopChar.0040FFB0 
+00405C25   push 272D 
+00405C2A   call PopChar.0040F480 
+00405C2F   mov ecx,dword ptr ds:[42E9D0] 
+00405C35   add esp,10 
+00405C38   push eax                       ; /Text 
+00405C39   push ecx                       ; |hWnd => 0004046A ('PopChar - Unregistered',class='PCW') 
+00405C3A   call dword ptr ds:[<&USER32.SetWindow>; \\SetWindowTextA 
+00405C40   call PopChar.00409660 
+00405C45   mov edx,dword ptr ds:[42BBF8]         ;  PopChar.0042057C 
+00405C4B   push edx 
+00405C4C   push 2725 
+00405C51   call PopChar.0040F480 
+00405C56   add esp,4 
+00405C59   push eax 
+00405C5A   push 2711 
+00405C5F   call PopChar.0040F480 
+00405C64   add esp,4 
+00405C67   push eax 
+00405C68   call PopChar.00406D80 
+00405C6D   add esp,0C 
+00405C70   pop edi 
+00405C71   mov eax,1 
+00405C76   pop esi 
+00405C77   retn 10 
+00405C7A   call PopChar.004015B0                                              这里是检查注册码验证完的结果， 
+00405C7F   test eax,eax                                                  然后分支 
+00405C81   je short PopChar.00405CD6 
+     -------------------------------------------------------------------- 
+     4015B0 函数很简单，在这里说明。函数判断[42DC94]中的值如果是 
+     7 或 6，函数返回真，否则返回假，代表注册码错误。 
+     -------------------------------------------------------------------- 
+00405C83   push 0B4                       ; /Result = B4 (180.) 
+00405C88   push esi                       ; |hWnd 
+00405C89   call dword ptr ds:[<&USER32.EndDialog>; \\EndDialog       如果注册码正确，将关闭注册对话框 
+00405C8F   push 0 
+00405C91   push esi 
+00405C92   call PopChar.004058B0 
+00405C97   call PopChar.004022C0                      这里还会再验证一遍，也是调用 40CC40 
+00405C9C   call PopChar.0040DCA0 
+00405CA1   call PopChar.0040FFB0 
+00405CA6   push 272C 
+00405CAB   call PopChar.0040F480 
+00405CB0   add esp,0C                           如果注册码正确，将会将主窗口标题 
+00405CB3   push eax                       ; /Text          改为“PopChar”，并做其它相应处理 
+00405CB4   mov eax,dword ptr ds:[42E9D0]         ; |                  
+00405CB9   push eax                       ; |hWnd => 0004046A ('PopChar - Unregistered',class='PCW') 
+00405CBA   call dword ptr ds:[<&USER32.SetWindow>; \\SetWindowTextA 
+00405CC0   call PopChar.00409660 
+00405CC5   mov ecx,dword ptr ds:[42BBF8]         ;  PopChar.0042057C 
+00405CCB   push ecx 
+00405CCC   push 2726 
+00405CD1   jmp PopChar.00405C51 
+00405CD6   push 0                        如果注册码错误，主窗口标题在下面 
+00405CD8   call PopChar.0040CBE0          仍设为“PopChar - Unregistered” 
+00405CDD   call PopChar.0040FFB0 
+00405CE2   push 272D 
+00405CE7   call PopChar.0040F480 
+00405CEC   mov edx,dword ptr ds:[42E9D0] 
+00405CF2   add esp,8 
+00405CF5   push eax                       ; /Text 
+00405CF6   push edx                       ; |hWnd => 0004046A ('PopChar - Unregistered',class='PCW') 
+00405CF7   call dword ptr ds:[<&USER32.SetWindow>; \\SetWindowTextA 
+00405CFD   call PopChar.00409660 
+00405D02   push 2727 
+00405D07   call PopChar.0040F480 
+00405D0C   add esp,4 
+00405D0F   push eax 
+00405D10   push 2711 
+00405D15   call PopChar.0040F480 
+00405D1A   add esp,4 
+00405D1D   push eax 
+00405D1E   call PopChar.00406EE0 
+00405D23   add esp,8 
+00405D26   pop edi 
+00405D27   mov eax,1 
+00405D2C   pop esi 
+00405D2D   retn 10 
+```
+
+--------------------------------------------------------------------------------
+
+在这一层分析后发现：
+
+1. 验证函数是 `405BD4` 处调用的 `40CC40`。
+2. 验证后的结果标志放在`[42DC94]`中，函数 `4015B0` 调用判断正确的值应该是 `7` 或 `6`，但通过实际改内存发现：`7` 才是正确无限制的。
+3. 注册码验证通过的后，明码存在注册表 `HKEY_CURRENT_USER\Software\ergonis\PopChar\user` 下名为 `license` 的键值中。
+   实际刚获得注册码就会存到该键值，但如果验证码错误，就会将该值清空。
+4. 通过在`[42DC94]`处下内存读写断点，发现程序会多次调用检查，每次调用主窗口时都会检查。
+   分析认为是，程序的限制在未注册时部分字符不允许使用，并灰色显示，因此在主窗口刷新的时候和点击字符的时候
+   都要检查这个值，以确定如何显示，是否限制，如点击灰色的字符，将跳出注册对话框。
+
+下面进入验证函数 `40CC40` 进行分析。
+
+--------------------------------------------------------------------------------
+
+### 函数 `40CC40` 中：
+
+```
+0040CC10   mov edx,dword ptr ds:[42DC90] 
+0040CC16   sub esp,8 
+0040CC19   push 0 
+0040CC1B   lea eax,dword ptr ss:[esp+4] 
+0040CC1F   push eax 
+0040CC20   lea ecx,dword ptr ss:[esp+C] 
+0040CC24   push ecx 
+0040CC25   push edx 
+0040CC26   call PopChar.0040CA50                   验证函数 
+0040CC2B   mov dword ptr ds:[42DC94],eax           验证完后将把结果存入[42DC94] 
+0040CC30   add esp,18 
+0040CC33   retn 
+0040CC34   nop 
+0040CC35   nop 
+0040CC36   nop 
+0040CC37   nop 
+0040CC38   nop 
+0040CC39   nop 
+0040CC3A   nop 
+0040CC3B   nop 
+0040CC3C   nop 
+0040CC3D   nop 
+0040CC3E   nop 
+0040CC3F   nop 
+```
+
+函数进入后在这里，下面 `jmp` 之前的几个调用是始化几个值，在后面验证中使用。这几个函数很简单，未列出，下面进行了说明。
+
+```
+0040CC40   push 5B31                       
+0040CC45   call PopChar.0040CCC0          常数 0x5B31 存[42BB20] 
+0040CC4A   push 40                        
+0040CC4C   push PopChar.0042BA20          
+0040CC51   call PopChar.0040CCD0          常数 0x40 存[42DCA4]，地址 42BA20 存[42DC20]，42BA20 是一个码表的地址 
+0040CC56   push PopChar.004203D4        ;ASCII "FORUSEBYMACDINGQWTZLKJHPXV" 
+0040CC5B   call PopChar.0040CCF0          字串地址 4203D4 存[42BB24] 
+0040CC60   push PopChar.0040C9F0
+```
+
+
+
+### 代码段 1
+
+```
+0040CC65   call PopChar.0040CD00          地址 40C9F0(用于验证的函数的地址)存[42BB2C]
+0040CC6A   push PopChar.0040CA40
+0040CC6F   call PopChar.0040CD10          地址 40CA40(用于验证的函数的地址)存[42BB30]
+0040CC74   add esp,18
+0040CC77   jmp PopChar.0040CC10
+```
+
+在这一层分析后发现：
+
+1.  验证函数仍在下一层调用中，是 `40CC26` 处调用的 `40CA50`。
+2.  确认验证后的结果是标志放在 `[42DC94]` 中。
+3.  `40CA70` 处调用的 `40CFF0` 中，先将 `[42DCA8]` 中写入 0，然后启动一个线程，线程执行 `seelp`，暂停 2000ms 后，将 `[42DCA8]` 写入 3，在验证过程中将使用这个变量，在验证函数执行后在 `40CA8F` 处调用 `40CC90`，再将 `[42DCA8]` 恢复为 0。这似乎是软件作者的保护措施，但实际上这个机制不起作用，在验证的时候 `[42DCA8]` 将总为 0，有关此，将在文章最后讨论。
+
+下面进入验证函数 `40CA50` 进行分析。
+
+### 代码段 2
+
+函数 `40CC50` 中：
+
+```
+0040CA50   sub esp,18
+0040CA53   push esi
+0040CA54   mov esi,dword ptr ss:[esp+20]
+0040CA58   test esi,esi
+0040CA5A   je short PopChar.0040CA69
+0040CA5C   push esi
+0040CA5D   call PopChar.0040EC40         查长度
+0040CA62   add esp,4
+0040CA65   test eax,eax
+0040CA67   jnz short PopChar.0040CA70
+0040CA69   xor eax,eax
+0040CA6B   pop esi
+0040CA6C   add esp,18
+0040CA6F   retn
+0040CA70   call PopChar.0040CFF0         启动一个线程，有意思的一个地方，涉及时间锁，最后讨论
+0040CA75   lea eax,dword ptr ss:[esp+20]
+0040CA79   push eax
+0040CA7A   lea ecx,dword ptr ss:[esp+C]
+0040CA7E   push ecx
+0040CA7F   lea edx,dword ptr ss:[esp+C]
+0040CA83   push edx
+0040CA84   push esi
+0040CA85   call PopChar.0040CE20         验证函数
+0040CA8A   add esp,10
+0040CA8D   mov esi,eax
+0040CA8F   call PopChar.0040CC90         涉及时间锁，后面讨论
+0040CA94   test esi,esi
+0040CA96   jnz short PopChar.0040CAA2    如注册码错误则不跳，正确跳，继续验证与时间有关的信息
+0040CA98   mov eax,1
+0040CA9D   pop esi
+0040CA9E   add esp,18
+0040CAA1   retn
+0040CAA2   lea eax,dword ptr ss:[esp+C]
+0040CAA6   push eax                      ; /pLocalTime      获得时间，注册码中的信息与时间有关，
+0040CAA7   call dword ptr ds:[<&KERNEL32.GetLoca>; \GetLocalTime    40CA85 调 40CE20 验证完还要在下面进行验证
+0040CAAD   movzx eax,word ptr ss:[esp+C]          取出时间的年数
+0040CAB2   movzx edx,word ptr ss:[esp+E]          取出时间的月数
+0040CAB7   lea ecx,dword ptr ds:[eax+eax*2]        这句和下句等同于 年数*0xC+月数
+0040CABA   lea eax,dword ptr ds:[edx+ecx*4-19]
+0040CABE   mov ecx,dword ptr ss:[esp+20]          40CE20 中计算的 t3*0xc+t2 存在这里，取出
+0040CAC2   cmp ecx,eax                           比较，等同于要求 t3 和 t2 代表的年月不能
+0040CAC4   jl short PopChar.0040CADB             大于当前时间，否则错误
+0040CAC6   mov eax,dword ptr ds:[42BC00]          为 0x7D5
+0040CACB   lea edx,dword ptr ds:[eax+eax*2]
+0040CACE   mov eax,dword ptr ds:[42BC04]          为 0x2
+0040CAD3   lea edx,dword ptr ds:[eax+edx*4+23]    如上面的方法计算，后比较等同于要求
+0040CAD7   cmp ecx,edx                           t3 和 t2 代表的年月不能大于这个年月
+0040CAD9   jle short PopChar.0040CAE5            [42BC00]，[42BC04]这两个地址里的量不是
+0040CADB   mov eax,8                             程序动态写入的，可能是安装程序写入的
+0040CAE0   pop esi                               代表程序安装的时间，我的是 2005 年 2 月
+0040CAE1   add esp,18
+0040CAE4   retn
+0040CAE5   mov eax,dword ptr ss:[esp+24]
+0040CAE9   test eax,eax
+0040CAEB   je short PopChar.0040CAF3
+0040CAED   mov edx,dword ptr ss:[esp+4]
+0040CAF1   mov dword ptr ds:[eax],edx
+0040CAF3   mov eax,dword ptr ss:[esp+28]
+0040CAF7   test eax,eax
+0040CAF9   je short PopChar.0040CB01
+0040CAFB   mov edx,dword ptr ss:[esp+8]
+0040CAFF   mov dword ptr ds:[eax],edx
+0040CB01   mov eax,dword ptr ss:[esp+2C]
+0040CB05   test eax,eax
+0040CB07   je short PopChar.0040CB0B
+0040CB09   mov dword ptr ds:[eax],ecx
+0040CB0B   mov eax,7
+0040CB10   pop esi
+0040CB11   add esp,18
+0040CB14   retn
+```
+
+在这一层分析后发现：
+
+1.  `40CA85` 处调 `40CE20` 先进行验证，通过后 `40CA96` 处跳 `40CAA2`，继续验证与时间有关的信息，时间信息正确后 `40CAD9` 处跳 `40CAE5` 然后走到 `40CB0B`，给 `eax` 送值 7 然后返回，上一层将这个值送 `[42DC94]` 中。如不正确将在 `40CA98` 处 `eax` 送值 1 后返回，或在 `40CADB` 处 `eax` 送值 8 后返回。
+2.  `40CA85` 处调用 `40CE20` 验证后，如正确在 `40CA96` 处将跳 `40CAA2`，后面还有和时间相关的验证。
+
+下面进入验证函数 `40CE20` 进行分析。
+
+### 代码段 3
+
+函数 `40CE20` 中：
+
+```
+0040CE20   push ecx
+0040CE21   xor eax,eax
+0040CE23   mov dword ptr ds:[42EA2C],eax
+0040CE28   mov dword ptr ds:[42EA28],eax
+0040CE2D   mov eax,dword ptr ss:[esp+8]
+0040CE31   mov dword ptr ds:[42DC9C],eax
+0040CE36   call PopChar.0040CD20
+0040CE3B   call PopChar.0040CD90
+```
+
+函数 `40CD20` 和函数 `40CD90` 两个一组调用，实际上是一个循环，为看得清楚，将这两个函数 `40CD20` 的代码插在这里，并加以说明。
+
+```
+0040CD20   mov ecx,dword ptr ds:[42DC9C]
+0040CD26   mov al,byte ptr ds:[ecx]
+0040CD28   test al,al
+0040CD2A   mov byte ptr ds:[42DC98],al
+0040CD2F   jle short PopChar.0040CD52
+0040CD31   cmp al,20                                  (0x20,是空格)
+0040CD33   jle short PopChar.0040CD3D
+0040CD35   cmp al,22                                  (0x22,是英文双引号)
+0040CD37   je short PopChar.0040CD3D
+0040CD39   cmp al,27                                  (0x27,是英文单引号)
+0040CD3B   jnz short PopChar.0040CD45
+0040CD3D   mov al,byte ptr ds:[ecx+1]
+0040CD40   inc ecx
+0040CD41   test al,al
+0040CD43   jg short PopChar.0040CD31
+0040CD45   mov byte ptr ds:[42DC98],al
+0040CD4A   mov dword ptr ds:[42DC9C],ecx
+0040CD50   test al,al
+0040CD52   je short PopChar.0040CD5B
+0040CD54   inc ecx
+0040CD55   mov dword ptr ds:[42DC9C],ecx
+0040CD5B   retn
+```
+
+函数 `40CD20` 从字串中取一个字符（不能是空格、单引号和双引号），放到 `AL` 中返回。注册码字串地址在 `[42DC9C]`，这个函数取一个字符后，同时将 `[42DC9C]` 中的字串地址加 1。
+
+```
+0040CD90   mov dl,byte ptr ds:[42DC98]
+0040CD96   push esi
+0040CD97   push edi
+0040CD98   xor edi,edi              edi 初始化为 0，作为累加器
+0040CD9A   call PopChar.0040CD60    查 dl 传入的字符在字串表的位置，eax 返回位置
+0040CD9F   mov esi,eax              如果字符不在表中，返回 0
+0040CDA1   test esi,esi
+0040CDA3   je short PopChar.0040CDCC
+0040CDA5   mov eax,dword ptr ds:[42BB24]
+0040CDAA   push eax
+0040CDAB   call PopChar.0040EC40    查表字串表的长度，是 0x1A，就是 26
+0040CDB0   imul eax,edi             eax（总是 0x1A）乘以 edi
+0040CDB3   add eax,esi              加上字符在字串表的位置
+0040CDB5   add esp,4
+0040CDB8   mov edi,eax              存入累加器 edi
+0040CDBA   call PopChar.0040CD20    取字符
+0040CDBF   mov dl,al
+0040CDC1   call PopChar.0040CD60    查位置
+0040CDC6   mov esi,eax
+0040CDC8   test esi,esi
+0040CDCA   jnz short PopChar.0040CDA5    循环，如果字符不在表中，退出循环
+0040CDCC   mov eax,edi
+0040CDCE   pop edi
+0040CDCF   pop esi
+0040CDD0   retn
+```
+
+字串表在前面 `40CC5B` 处初始化的时候放入，字串表是“FORUSEBYMACDINGQWTZLKJHPXV”，26 个大字母乱序排列的。
+
+这两个函数连在一起可以如下描述：
+
+```
+char sn[];          //注册码
+int  j=0;           //累加器，循环结束后，j 就是结果
+int  temp=0;
+for(int i=0;;i++)
+{
+    temp=40CD60(sn[i]); //调用 40CD60 查字符在字串表的位置，如字符不在表中，返回 0
+    if(temp==0)
+      break;
+    j=0x1A*j+temp;
+}
+```
+
+
+
+```
+0040CE40   mov dword ptr ss:[esp+8],eax             调用后将结果存入临时变量
+0040CE44   cmp byte ptr ds:[42DC98],2D               查上面调用后第一个不在码表中的字符是否是“-”，
+0040CE4B   je short PopChar.0040CE51                 否则不跳，码错
+0040CE4D   xor eax,eax                                分析到此可以初步认定注册码前面应是“ABCD-”的形式
+0040CE4F   pop ecx                                    “-”前的必须是大写字母，几个没有限制
+0040CE50   retn
+
+0040CE51   push ebx
+0040CE52   push ebp
+0040CE53   push esi
+0040CE54   push edi
+0040CE55   call PopChar.0040CD20                      又调用这两个函数，进行循环
+0040CE5A   call PopChar.0040CD90                      结果存入临时变量，可以认定注册码是前面是“ABCD-ABCD”
+0040CE5F   mov dword ptr ss:[esp+10],eax              的形式
+```
+
+下面连续调用 `40CDE0` 五次，`40CDE0` 的代码插在这里，并加以说明。
+
+```
+0040CDE0   mov al,byte ptr ds:[42DC98]
+0040CDE5   xor edx,edx                                edx 是累加器，初始化为 0x0
+0040CDE7   cmp al,2D                                  查字符是否是“-”，否则码错，返回
+0040CDE9   je short PopChar.0040CDEE
+0040CDEB   xor eax,eax
+0040CDED   retn
+0040CDEE   call PopChar.0040CD20                      调用 40CD20 取一个字符
+0040CDF3   mov al,byte ptr ds:[42DC98]
+0040CDF8   cmp al,30                                  检查字符的 ASCII 值是否小于 0x30
+0040CDFA   jl short PopChar.0040CE1C
+0040CDFC   lea esp,dword ptr ss:[esp]
+0040CE00   cmp al,39                                  检查字符的 ASCII 值是否大于 0x39
+0040CE02   jg short PopChar.0040CE1C
+0040CE04   lea ecx,dword ptr ds:[edx+edx*4]
+0040CE07   movsx edx,al
+0040CE0A   lea edx,dword ptr ds:[edx+ecx*2-30]
+0040CE0E   call PopChar.0040CD20
+0040CE13   mov al,byte ptr ds:[42DC98]
+0040CE18   cmp al,30                                  检查字符的 ASCII 值是否大于 0x39
+0040CE1A   jge short PopChar.0040CE00
+0040CE1C   mov eax,edx
+0040CE1E   retn
+```
+
+`40CDE0` 这个函数负责取字符，查是“-”后开始循环取字符，检查字符是否是数字字符，转换为数字进行运算和累加，当字符不是数字时，循环结束。
+
+循环计算实际上就是将连续的数字字符（如“-1234-”）转换为数字 1234。
+
+```
+0040CE63   call PopChar.0040CDE0                      第一次调用 40CDE0，检查是否“-”开始，
+0040CE68   mov ebp,eax                                 并取连续的数字字符变为数字，存入临时变量
+0040CE6A   call PopChar.0040CDE0                      第二次调用 40CDE0
+0040CE6F   mov esi,eax
+0040CE71   call PopChar.0040CDE0                      第三次调用 40CDE0
+0040CE76   mov ebx,dword ptr ss:[esp+1C]
+0040CE7A   mov dword ptr ds:[ebx],eax
+0040CE7C   call PopChar.0040CDE0                      第四次调用 40CDE0
+0040CE81   mov edi,eax
+0040CE83   call PopChar.0040CDE0                      第五次调用 40CDE0
+0040CE88   mov ecx,dword ptr ss:[esp+20]
+0040CE8C   mov dword ptr ds:[ecx],eax
+```
+
+至此，可以认定码为“ABCD-EFGH-1234-5678-9012-3456-7890”的形式，为下面叙述和描述算法方便，以下我将注册码中“-”隔开的小码转换后的结果按顺序称为 `sn1`, `sn2`, `sn3`, `sn4`, `sn5`, `sn6`, `sn7`，同时定义四个代表中间结果的变量 `t1`，`t2`，`t3`，`t4`，`t5`。
+
+```
+0040CE8E   mov ecx,dword ptr ds:[ebx]
+0040CE90   test ecx,ecx                               sn5 是否为空
+0040CE92   je PopChar.0040CFC5
+0040CE98   test esi,esi                               sn4 是否为空
+0040CE9A   je PopChar.0040CFC5
+0040CEA0   test edi,edi                               sn6 是否为空
+0040CEA2   je PopChar.0040CFC5
+0040CEA8   test eax,eax                               sn7 是否为空
+0040CEAA   je PopChar.0040CFC5
+0040CEB0   mov al,byte ptr ds:[42DC98]               查整个注册码字串后面是否还有字符
+0040CEB5   test al,al
+0040CEB7   jnz PopChar.0040CFC5
+0040CEBD   mov eax,edi
+0040CEBF   cdq
+0040CEC0   idiv dword ptr ds:[42DCA4]                 sn6 除以 0x40, [42DCA4]在开始初始化是被写入常数 0x40
+0040CEC6   mov eax,dword ptr ds:[42DCA0]              [42DCA0]初始化时写入 42BA20，是一个码表
+0040CECB   sub ecx,dword ptr ds:[eax+edx*4]           sn5 减去码表中取的数 ：sn5－码表[(sn6 mod 0x40)*0x4]
+0040CECE   mov eax,dword ptr ds:[42DCA8]              变量，与时间锁有关，可以认为总为 0x0
+0040CED3   mov edx,dword ptr ds:[42BB20]              [42BB20]在开始初始化时被写入常数 0x5B31
+0040CED9   sub ecx,eax                                减去 0x0
+0040CEDB   sub ecx,edx                                减去 0x5B31，
+0040CEDD   mov eax,ebp
+0040CEDF   mov dword ptr ds:[ebx],ecx                 临时结果存入变量，我用 t1 表示这个中间结果
+0040CEE1   cdq
+0040CEE2   mov ebx,2710
+0040CEE7   idiv ebx                                   eax 是 sn3，就是 sn3 除以 0x2710
+0040CEE9   test ecx,ecx
+0040CEEB   mov ebp,edx                                余数送 ebp，我用 t3 表示这个中间结果
+0040CEED   mov ebx,eax                                商送 ebx，我用 t2 表示这个中间结果
+0040CEEF   jle PopChar.0040CFC5                       检测 ecx 不能为 0，也就是 t1 不能为 0
+0040CEF5   cmp ebp,7D2                                要求余数>=0x7D2
+0040CEFB   jl PopChar.0040CFC5
+0040CF01   cmp ebp,802                                要求余数<=0x802
+0040CF07   jg PopChar.0040CFC5
+0040CF0D   test ebx,ebx
+0040CF0F   jle PopChar.0040CFC5                       要求商<0xD
+0040CF15   cmp ebx,0D
+0040CF18   jge PopChar.0040CFC5                       以上几个比较 0x7D2 是 2002，0x802 是 2050，0xD 是 13
+0040CF1E   mov edx,dword ptr ss:[esp+20]              可以推测认定，sn3 中的信息为年和月
+0040CF22   mov eax,dword ptr ds:[edx]                 取 sn7 送 eax，并检测不能为 0
+0040CF24   test eax,eax
+0040CF26   jle PopChar.0040CFC5
+0040CF2C   cmp eax,esi                                 si 中是 sn4，这里比较，要求 sn7<=sn4
+0040CF2E   jg PopChar.0040CFC5
+0040CF34   mov edx,dword ptr ss:[esp+18]              取 sn1 送 eax
+0040CF38   lea eax,dword ptr ds:[ecx+ecx*2]            这句和下句加起来等同于 eax=eax*0xC+t2（这时 ebx 中是
+0040CF3B   lea eax,dword ptr ds:[ebx+eax*4]            上面 40CEE7 除运算的商）
+0040CF3E   imul eax,eax,7                              上面计算的结果乘以 0x7
+0040CF41   add eax,esi                                 上面计算的结果加上 sn4
+0040CF43   lea edx,dword ptr ds:[edx+eax*2]            这句和下句加起来等同于 eax=eax*2+sn3（这时 edx 中是
+0040CF46   add eax,edx                                 sn3）
+0040CF48   mov edx,dword ptr ss:[esp+10]              sn2 送 edx
+0040CF4C   lea eax,dword ptr ss:[ebp+eax*2-7A5]        eax=t3+eax*2-0x7A5,（ebp 中是上面 40CEE7 除运算的余数）
+0040CF53   lea edx,dword ptr ds:[edx+eax*4]            这句和下句加起来等同于 eax=eax*5+sn2
+0040CF56   add eax,edx
+0040CF58   cdq
+0040CF59   mov esi,0D59D3
+0040CF5E   idiv esi                                   上面计算的结果除以 0xD59D3
+0040CF60   mov esi,edx                                余数送 esi
+0040CF62   add esi,2D187                              余数加上 0x2d187
+0040CF68   mov eax,esi                                结果送 eax，这个中间结果我用 t4 表示
+0040CF6A   cdq
+0040CF6B   idiv dword ptr ds:[42DCA4]                 t4 除以 0x40, [42DCA4]在开始初始化是被写入常数 0x40
+0040CF71   mov eax,dword ptr ds:[42DCA0]              码表开始，[42DCA0]初始化时写入的 42BA20
+0040CF76   mov edx,dword ptr ds:[eax+edx*4]            用 t4 除以 0x40 的余数在码表中取数: 码表[(t4 mod 0x40)*0x4]
+0040CF79   add edx,dword ptr ds:[42DCA8]              加上变量，与时间锁有关，可以认为总为 0x0
+0040CF7F   add edx,esi                                加上 t4
+0040CF81   cmp edx,edi                                比较结果（我用 t5 表示）是否等于 sn6，此时 edi 中是 sn6
+0040CF83   jnz short PopChar.0040CFC5                如果不等，注册码错误，跳走
+0040CF85   push ecx                                   t1 入栈传给函数
+0040CF86   call dword ptr ds:[42BB2C]                ;  PopChar.0040C9F0
+0040CF8C   mov esi,eax
+0040CF8E   mov eax,dword ptr ss:[esp+1C]
+0040CF92   push eax                                   sn1 入栈传给函数
+0040CF93   call dword ptr ds:[42BB30]                ;  PopChar.0040CA40
+0040CF99   add esp,8
+0040CF9C   cmp esi,eax
+0040CF9E   jge short PopChar.0040CFC5
+```
+
+`40CF86` 处调用的 `40C9F0` 和 `40CF93` 处调用的 `40CA40` 的很简单，在这里说明。
+
+
+
+`40C9F0` 中判断传入的 `t1`，如果 (`t1 <= 1`) or (`t1 == 0x4ED1`) or (`t1 == 0x5609`) or (`t1 == 0x5bF7`) 为真，则 `eax` 返回 1，否则返回 0。
+
+`40CA40` 中判断传入 `sn1`，如果 (`sn1 == 0x408F`) 为真，则 `eax` 返回 1，否则返回 0。
+
+和调用后的比较合起来，等于要求 `t1` 必须大于 1 并且不能等于 `0x4ED1`、`0x5609` 和 `0x5bF7`，同时，`sn1` 必须等于 `0x408F`，否则错误。
+
+---
+
+```
+0040CFA0   mov eax,dword ptr ss:[esp+24]
+0040CFA4   lea ecx,dword ptr ss:[ebp+ebp*2]              这句加上 40CFA9 这句，等同于 t3*0xC+t2
+0040CFA8   pop edi
+0040CFA9   lea edx,dword ptr ds:[ebx+ecx*4-1]
+0040CFAD   mov dword ptr ds:[eax],edx                     结果放入堆栈，这层出去后，还有验证
+0040CFAF   pop esi
+0040CFB0   mov dword ptr ds:[42EA2C],ebp                  t3 存入变量，这层出去后，还有验证
+0040CFB6   pop ebp
+0040CFB7   mov dword ptr ds:[42EA28],ebx                  t2 存入变量，这层出去后，还有验证
+0040CFBD   mov eax,1                                       eax 送 1，代表本层函数验证正确
+0040CFC2   pop ebx
+0040CFC3   pop ecx
+0040CFC4   retn
+0040CFC5   pop edi                                        前面验证一旦错误就会跳到这里
+0040CFC6   pop esi
+0040CFC7   pop ebp
+0040CFC8   xor eax,eax                                     eax 送 0，代表本层函数验证错误
+0040CFCA   pop ebx
+0040CFCB   pop ecx
+0040CFCC   retn
+```
+
+---
+
+总结一下验证算法：
+
+1. 注册码应该是“ABCD-EFGH-1234-5678-9012-3456-7890”的形式，前两串必须是大写字母，后边五串是数字字符串，否则错。
+2. 将注册码“-”隔开的七串分别转换为数字。
+   前两串大写字母串调用如下的算法变成数字：
+   字串表是“FORUSEBYMACDINGQWTZLKJHPXV”
+
+   ```c
+   char sn[];      //注册码
+   int  j=0;       //累加器，循环结束后，j 就是结果
+   int  temp=0;
+   for(int i=0;;i++)
+   {      
+       temp=40CD60(sn[i]); //调用 40CD60 查字符在字串表的位置，如字符不在表中，返回 0
+       if(temp==0)
+           break;
+       j=0x1A*j+temp;
+   }    
+   ```
+
+   后五串数字字符串，转换为相应的数字。
+   注册码转换得出的 7 个数字用 `sn1`, `sn2`, `sn3`, `sn4`, `sn5`, `sn6`, `sn7` 表示。
+3. 算法：
+
+   码表
+   ```c
+   unsigned int table[64]={
+                           000054EA    0000AE16    00005BA6    0000650A
+                           00006D1E    000163F7    00011B80    000161E6
+                           00016C5B    00012F07    0000F7B3    0000E844
+                           0000A35A    000074EF    00001B92    000150B7
+                           0000D9AA    00007140    0000FF6D    00017AAA
+                           00008EE1    0000D1C4    0000A971    00008F78
+                           0001685D    00002C25    00006078    0000F13E
+                           0001224E    0000FE81    00007BAD    0000696C
+                           0001467A    0000085A    00004B5A    00001A5A
+                           00011830    0000A1E1    00000B06    00004955
+                           00004DD4    0000FA05    00007525    000060F1
+                           0001550E    000069E9    00014D45    0000589D
+                           0000D6EF    00011E7F    000127C1    00002262
+                           00005B86    0001611A    0000DF49    00001805
+                           000088F9    000093E4    0000235A    00015823
+                           00015894    0001486C    00012BFF    0000355B
+                          }
+   ```
+
+   中间变量
+   `unsigned int t1, t2, t3, t4, t5`
+
+   计算逻辑：
+   `t1 = sn5 - table[(sn6 mod 0x40)*4] - 0x5B31;`
+   `t2 = sn3 / 0x2710;`
+   `t3 = sn3 mod 0x2710;`
+   `t4 = (((((t1*0xc)+t2)*7+sn4)*3+sn1)*2+t3-0x7A5)*5+sn2) mod 0xD59D3 + 0x2D187;`
+   `t5 = table[(t4 mod 0x40)*4] + t4;`
+
+   如果 `t5 == sn6`，验证通过。
+
+   同时要求：
+   1. `t2 < 0xD`
+   2. `t3 >= 0x7D2`
+   3. `t3 <= 0x802`
+   4. `sn7 <= sn4`
+   5. (`t1 > 1`) and (`t1 != 0x4ED1`) and (`t1 != 0x5609`) and (`t1 != 0x5BF7`)
+   6. `sn1 == 0x408F`
+   7. `t3`、`t2` 所表示的年和月要小于软件安装时间的年和月，以及当前时间的年和月
+
+   算法就是这样，有 7 个变量，分析发现：
+   1. `sn1` 必须等于 `0x408F`，通过猜测验证，发现软件的内部名称“PCW”按它取字母转换算法得出的就是 `0x408F`，因此确定注册码第一小串是“PCW”。
+   2. `sn2` 可以是任何大写字母串，但不能太长（有溢出的问题），我用的是我们小组织的名字“PCG”。
+   3. `sn3` 分析后可以知道，`sn3/0x2710` (十进制 10000) 后，余数代表年，商代表月，且这个年和月不能大于软件安装的年月且不能大于当前时间的年月，我直接用 12004，既 2004 年 1 月。
+   4. `sn4` 可以是任何整数（也要考虑溢出的问题，不能太大），参考 `sn3`，我用 12005。
+   5. `sn7` 不参与运算，只要小于等于 `sn4` 就可以了，我用 12002。
+   6. 这样就只剩 `sn5` 和 `sn6` 两个变量，也就是两个变量的方程了。
+
+   按以上分析，我计算出的一个注册码是：`PCW-PCG-12004-12005-109424-621821-12002`
+
+   我数学不太好，以上算法，我觉得应该有无限多个注册码（如不考虑溢出的问题），还望高手指点。
+
+   本程序的注册码与用户名、硬件码无关，有一个注册码就可以了。
+
+---
+
+有关程序中时间锁的讨论：
+
+追踪过程中发现软件作者使用了这样一个机制进行保护：
+
+1. 在执行验证函数前调用 `40CFF0`，代码如下：
+
+   ```
+   0040CFF0   sub esp,8
+   0040CFF3   lea eax,dword ptr ss:[esp+4]
+   0040CFF7   push eax                        
+   0040CFF8   push 0                          
+   0040CFFA   lea ecx,dword ptr ss:[esp+8]    
+   0040CFFE   push ecx                        
+   0040CFFF   push PopChar.0040CFD0           
+   0040D004   push 0                          
+   0040D006   push 0                          
+   0040D008   mov dword ptr ds:[42DCA8],0     [42DCA8]中置 0
+   0040D012   mov dword ptr ss:[esp+18],1     
+   0040D01A   call dword ptr ds:[<&KERNEL32.CreateT]  启动线程
+   0040D020   test eax,eax
+   0040D022   jnz short PopChar.0040D02C
+   0040D024   add esp,8
+   0040D027   jmp PopChar.0040CC80
+   0040D02C   push eax                        
+   0040D02D   call dword ptr ds:[<&KERNEL32.CloseHa>
+   0040D033   add esp,8
+   0040D036   retn
+   ```
+
+   这个函数先将 `[42DCA8]` 置 0，然后启动线程（执行 `40CFD0`），再结束。
+
+   `40CFD0` 处的代码：
+
+   ```
+   0040CFD0   push 7D0            ; /Timeout = 2000. ms
+   0040CFD5   call dword ptr ds:[<&KERNEL32.Sleep>] ; \Sleep
+   0040CFDB   call PopChar.0040CC80      这里很简单，就是将[42DCA8]写入 3
+   0040CFE0   xor eax,eax
+   0040CFE2   retn 4
+   ```
+
+2. 执行验证函数，验证过程中使用 `[42DCA8]` 中的值参与计算。
+3. 验证函数执行后，在 `40CA8F` 处调用 `40CC90`，再将 `[42DCA8]` 恢复为 0。
+
+我想作者是这样考虑的：如果验证函数被单步中断跟踪调试，将至少超过 2000ms，这样，另一线程将 `[42DCA8]` 写入 3，将导致计算变化，和程序自己执行时 `[42DCA8]` 中为 0 不一样，以此进行保护。
+
+但我认为这种方法是无效的，因为调试器在单步追踪的情况下会将被调试程序的其它线程都挂起的（在 `od` 中是这样，在 `softice` 中，所有其它线程都被挂起的，其它调试器我不是很清楚），因此在单步追踪验证函数的时候，这个修改 `[42DCA8]` 的线程不会被执行，验证函数执行过程中，`[42DCA8]` 中总是等于 0，同程序自己执行时一样。
+
+这是我对此的分析，还望各位高手大侠给予指点。
+
+---
+
+【版权声明】 本文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢!
+
+`4dd466d0e1e0cc123afbe504da2462ca`
