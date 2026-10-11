@@ -1,0 +1,180 @@
+
+# 分析了一下 360 安全卫士的 HOOK
+
+> 原文：[`www.pediy.com/kssd/pediy10/99128.html`](https://www.pediy.com/kssd/pediy10/99128.html)
+
+分析了一下 360 的 HOOK，通过直接 hook `KiFastCallEntry` 实现以所有系统调用的过滤。
+
+我分析的版本如下：
+
+*   主程序版本: `6.0.1.1003`
+*   `HookPort.sys` 版本: `1, 0, 0, 1005`
+*   `HookPort.sys` 的 `TimeStamp`: `4A8D4AB8`
+
+简单说明：360 把所有被 hook 的系统服务的过滤函数放在了一个表里，索引即对应的系统服务在该过滤函数表中的索引。
+
+所有列出来的函数都会被 hook 掉的，是否处理指某个系统服务有没有相应的过滤函数进行处理，拒绝还是放行就是在过滤函数中完成判断的。
+
+不处理的系统服务，将会直接调用原始服务例程。
+
+函数如下：
+
+```
+服务名称          索引    是否处理   备注
+
+\==============================================================================
+
+NtCreateKey            0x00   否
+
+NtQueryValueKey        0x01   是
+
+NtDeleteKey            0x02   是
+
+NtDeleteValueKey       0x03   是
+
+NtRenameKey            0x04   是
+
+NtReplaceKey           0x05   是
+
+NtRestoreKey           0x06   是
+
+NtSetValueKey          0x07   是
+
+NtCreateFile           0x08   是
+
+NtFsControl            0x09   是
+
+NtSetInformationFile   0x0A   是
+
+NtWriteFile            0x0B   是
+
+NtWriteFileGather      0x0B   是    //和 NtWriteFile 共用一个过滤函数
+
+NtCreateProcess        0x0D   是
+
+NtCreateProcessEx      0x0E   是
+
+NtCreateUserProcess    0x0F   是    //Only on Vista or later
+
+NtCreateThread         0x10   是
+
+NtCreateThreadEx       0x10   是    //和 NtCreateThread 共用一个过滤函数,for vista or later
+
+NtOpenThread           0x11   是
+
+NtDeleteFile           0x12   是
+
+NtOpenFile             0x13   是
+
+NtReadVirtualMemory    0x14   否
+
+NtTerminateProcess     0x15   是
+
+NtQueueApcThread       0x16   是
+
+NtSetContextThread     0x17   是
+
+NtSetInformationThread  0x18   否
+
+NtProtectVirtualMemory  0x19   否
+
+NtWriteVirtualMemory   0x1A   是
+
+NtAdjustGroupToken     0x1B   否
+
+NtAdjustPrivilegesToken  0x1C   否
+
+NtRequestWaitReplyPort  0x1D   是
+
+NtCreateSection        0x1E   是
+
+NtOpenSecton           0x1F   是
+
+NtCreateSymbolicLinkObject  0x20   是
+
+NtOpenSymbolicLinkObject  0x21   否
+
+NtLoadDriver           0x22   是
+
+NtUnloadDriver         0x22   是    //和 NtLoadDriver 共用一个过滤函数
+
+NtQuerySystemInformation  0x23   是
+
+NtSetSystemTime        0x25   否
+
+NtSystemDebugControl   0x26   是
+
+NtUserBuildHwndList    0x27   是
+
+NtUserQueryWindow      0x28   是
+
+NtUserFindWindowEx     0x29   是
+
+NtUserWindowFromPoint  0x2A   是
+
+NtUserMessageCall      0x2B   是
+
+NtUserPostMessage      0x2C   是
+
+NtUserSetWindowsHookEx  0x2D   是
+
+NtUserPostThreadMessage  0x2E   是
+
+NtOpenProcess          0x2F   是
+
+NtDeviceIoControlFile  0x30   是
+
+NtUserSetParent        0x31   是
+
+NtOpenKey              0x32   是
+
+NtDuplicateObject      0x33   是
+
+NtResumeThread         0x34   否
+
+NtUserChildWindowFromPointEx 0x35   是
+
+NtUserDestroyWindow    0x36   是
+
+NtUserInternalGetWindowText  0x37   否
+
+NtUserMoveWindow       0x38   是    //和 NtSetParent 共用一个过滤函数
+
+NtUserRealChildWindowFromPoint 0x39 是    //和 NtUserChildWindowFromPointEx 共用一个过滤函数
+
+NtUserSetInformationThread  0x3A   否
+
+NtUserSetInternalWindowPos  0x3B   是    //和 NtSetParent 共用一个过滤函数
+
+NtUserSetWindowLong    0x3C   是    //和 NtSetParent 共用一个过滤函数
+
+NtUserSetWindowPlacement  0x3D   是    //和 NtSetParent 共用一个过滤函数
+
+NtUserSetWindowPos     0x3E   是    //和 NtSetParent 共用一个过滤函数
+
+NtUserSetWindowRgn     0x3F   是    //和 NtSetParent 共用一个过滤函数
+
+NtUserShowWindow       0x40   是
+
+NtUserShowWindowAsync  0x41   是    //和 NtUserShowWindow 共用一个过滤函数
+
+NtQueryAttributesFile  0x42   否
+
+NtUserSendInput        0x43   否
+
+NtAlpcSendWaitReceivePort  0x44   是    //for vista or later
+
+NtUnmapViewOfSection   0x46   是
+
+NtUserSetWinEventHook  0x47   否
+
+NtSetSecurityObject     0x48   是
+
+NtUserCallHwndParamLock  0x49   是
+
+NtUserRegisterUserApiHok  0x4A   否
+```
+
+本来很整齐的，贴上来有点乱~~
+
+`MJ` 如果不介意，我继续~~
