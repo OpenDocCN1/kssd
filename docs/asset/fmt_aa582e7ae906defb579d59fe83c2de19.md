@@ -1,0 +1,155 @@
+
+# 豪情唐诗大全 v1.0
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6216.htm`](https://www.pediy.com/kssd/pediy06/pediy6216.htm)
+
+**豪情唐诗大全 v1.0 注册算法**
+
+- 作者：`HaIlDuZ [CcG]`
+- 软件名称：豪情唐诗大全 `v1.0`
+- 整理日期：`2003.9.2`
+- 软件授权：共享软件
+- 加密方式：注册码
+- 研究难度：明码比较，难度易。
+- 使用工具：`OllDbG`；`W32Dasm 10.0`
+- 作者申明：纯技术交流，无任何商业目的，转贴请保持完整。
+- 评价：该软件不错，那天忽然想起“野径云俱黑，江船火独明。”忘了作者了一查找到。
+
+**开始：**
+注册要求输入一个 `mail` 地址（最后看来无所谓一组字符即可），和注册码。
+
+**算法分析：**
+
+输入找到关键 `call` 后。分析过程如下：
+
+```assembly
+/////////////////////////////////////////////////////////////////////
+* Possible StringData Ref from Code Obj ->"body"
+                    |
+:0054503E BAD4515400           mov edx, 005451D4
+:00545043 8B86FC020000        mov eax, dword ptr [esi+000002FC]
+:00545049 E87609F5FF          call 004959C4
+:0054504E 8D55F0             lea edx, dword ptr [ebp-10]
+:00545051 8B08               mov ecx, dword ptr [eax]
+:00545053 FF5160             call [ecx+60]
+:00545056 8B45F0             mov eax, dword ptr [ebp-10]
+:00545059 50                 push eax
+:0054505A 8D55EC             lea edx, dword ptr [ebp-14]
+:0054505D A110885400         mov eax, dword ptr [00548810]
+:00545062 8B00               mov eax, dword ptr [eax]
+:00545064 8B8018030000       mov eax, dword ptr [eax+00000318]
+:0054506A E8E501F0FF         call 00445254
+:0054506F 8B55EC             mov edx, dword ptr [ebp-14]  //15 位机器码。
+:00545072 8BC6               mov eax, esi
+:00545074 59                 pop ecx                 //输入 mail
+:00545075 E8CAFAFFFF         call 00544B44           //关键 call 跟进见下面关键 call 分析
+:0054507A BAE4515400         mov edx, 005451E4
+:0054507F 8B86FC020000       mov eax, dword ptr [esi+000002FC]
+:00545085 E83A09F5FF         call 004959C4
+:0054508A 8D55E8             lea edx, dword ptr [ebp-18]
+:0054508D 8B08               mov ecx, dword ptr [eax]
+:0054508F FF5160             call [ecx+60]
+:00545092 8B55E8             mov edx, dword ptr [ebp-18]
+:00545095 8B45FC             mov eax, dword ptr [ebp-04]
+:00545098 E893FAEBFF         call 00404B30
+:0054509D 7559               jne 005450F8
+:0054509F BAE4515400         mov edx, 005451E4
+:005450A4 8B86FC020000       mov eax, dword ptr [esi+000002FC]
+:005450AA E81509F5FF         call 004959C4
+:005450AF 8D55E4             lea edx, dword ptr [ebp-1C]
+:005450B2 8B08               mov ecx, dword ptr [eax]
+:005450B4 FF5160             call [ecx+60]
+:005450B7 8B55E4             mov edx, dword ptr [ebp-1C]
+:005450BA A110885400         mov eax, dword ptr [00548810]
+:005450BF 8B00               mov eax, dword ptr [eax]
+:005450C1 8B801C030000       mov eax, dword ptr [eax+0000031C]
+:005450C7 E8B801F0FF         call 00445284
+:005450CC A110885400         mov eax, dword ptr [00548810]
+:005450D1 8B00               mov eax, dword ptr [eax]
+:005450D3 8B8014030000       mov eax, dword ptr [eax+00000314]
+:005450D9 33D2               xor edx, edx
+:005450DB E89400F0FF         call 00445174
+:005450E0 A110885400         mov eax, dword ptr [00548810]
+:005450E5 8B00               mov eax, dword ptr [eax]
+:005450E7 8B8000030000       mov eax, dword ptr [eax+00000300]
+:005450ED 33D2               xor edx, edx
+:005450EF E88000F0FF         call 00445174
+:005450F4 B301               mov bl, 01
+:005450F6 EB52               jmp 0054514A
+
+///////////////////////////////关键 call 分析///////////////////////////////////////
+
+* Referenced by a CALL at Address:
+|:00545075
+|
+
+:00544B44 55                   push ebp
+:00544B45 8BEC                 mov ebp, esp
+:00544B47 81C4D0FDFFFF         add esp, FFFFFDD0
+:00544B4D 53                   push ebx
+:00544B4E 56                   push esi
+:00544B4F 33DB                 xor ebx, ebx
+:00544B51 899DD4FEFFFF         mov dword ptr [ebp+FFFFFED4], ebx
+:00544B57 899DD0FEFFFF         mov dword ptr [ebp+FFFFFED0], ebx
+:00544B5D 899DD8FEFFFF         mov dword ptr [ebp+FFFFFED8], ebx
+:00544B63 899DE0FEFFFF         mov dword ptr [ebp+FFFFFEE0], ebx
+:00544B69 899DDCFEFFFF         mov dword ptr [ebp+FFFFFEDC], ebx
+:00544B6F 899DE8FEFFFF         mov dword ptr [ebp+FFFFFEE8], ebx
+:00544B75 899DE4FEFFFF         mov dword ptr [ebp+FFFFFEE4], ebx
+:00544B7B 895DF0               mov dword ptr [ebp-10], ebx
+:00544B7E 894DF8               mov dword ptr [ebp-08], ecx
+:00544B81 8955FC               mov dword ptr [ebp-04], edx
+:00544B84 8B45FC               mov eax, dword ptr [ebp-04]
+:00544B87 E84800ECFF           call 00404BD4
+:00544B8C 8B45F8               mov eax, dword ptr [ebp-08]
+:00544B8F E84000ECFF           call 00404BD4
+:00544B94 33C0                 xor eax, eax
+:00544B96 55                   push ebp
+:00544B97 682C4E5400           push 00544E2C
+:00544B9C 64FF30               push dword ptr fs:[eax]
+:00544B9F 648920               mov dword ptr fs:[eax], esp
+:00544BA2 8D45F0               lea eax, dword ptr [ebp-10]
+:00544BA5 8B55F8               mov edx, dword ptr [ebp-08]
+:00544BA8 E81FFCEBFF           call 004047CC
+:00544BAD 8D85EFFEFFFF         lea eax, dword ptr [ebp+FFFFFEEF]
+:00544BB3 8B55FC               mov edx, dword ptr [ebp-04]
+:00544BB6 B9FF000000           mov ecx, 000000FF
+:00544BBB E808FEEBFF           call 004049C8
+:00544BC0 B301                 mov bl, 01
+:00544BC2 8B45F0               mov eax, dword ptr [ebp-10]
+:00544BC5 E822FEEBFF           call 004049EC
+:00544BCA 8845F6               mov byte ptr [ebp-0A], al
+:00544BCD 8D85E4FEFFFF         lea eax, dword ptr [ebp+FFFFFEE4]
+:00544BD3 8D95EFFEFFFF         lea edx, dword ptr [ebp+FFFFFEEF]
+:00544BD9 E8B2FDEBFF           call 00404990
+:00544BDE 8B85E4FEFFFF         mov eax, dword ptr [ebp+FFFFFEE4]
+:00544BE4 8D95E8FEFFFF         lea edx, dword ptr [ebp+FFFFFEE8]
+:00544BEA E8E144ECFF           call 004090D0
+:00544BEF 8B85E8FEFFFF         mov eax, dword ptr [ebp+FFFFFEE8]
+:00544BF5 E8F2FDEBFF           call 004049EC
+:00544BFA 84C0                 test al, al
+:00544BFC 7665                 jbe 00544C63
+:00544BFE 8845EF               mov byte ptr [ebp-11], al
+:00544C01 C645F701             mov [ebp-09], 01
+:00544C05 8D8DF0FEFFFF         lea ecx, dword ptr [ebp+FFFFFEF0]
+
+//来到这里进行第一次注册变码生成
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00544C61(C)
+|
+
+:00544C0B 33C0                 xor eax, eax
+:00544C0D 8AC3                 mov al, bl                  //首次 bl=1
+:00544C0F 33D2                 xor edx, edx
+:00544C11 8A55F6               mov dl, byte ptr [ebp-0A]    //输入 mail 长度进 dl
+:00544C14 8BDA                 mov ebx, edx
+:00544C16 33D2                 xor edx, edx
+:00544C18 F7F3                 div ebx                      //除 ebx
+:00544C1A 8BDA                 mov ebx, edx
+:00544C1C 33C0                 xor eax, eax
+:00544C1E 8AC3                 mov al, bl                    //取余数 k
+:00544C20 8B55F0               mov edx, dword ptr [ebp-10]   //mail 地址
+:00544C23 0FB64402FF           movzx eax, byte ptr [edx+eax-01] //选取 mail 中一个字符与 k 相关
+:00544C28 BE09000000           mov esi, 00000009
+```

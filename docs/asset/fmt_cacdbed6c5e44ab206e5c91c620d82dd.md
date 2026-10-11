@@ -1,0 +1,213 @@
+
+# 豪杰大眼睛 2.1
+
+> 原文：`www.pediy.com/kssd/pediy05/pediy50595.htm`
+
+这是我第一次发帖子，请各位大侠多多指点！谢谢！
+
+## 破解豪杰大眼睛 2.1
+
+工具：`TRW1.22` 娃娃修正版，`Wdasm8.93` 黄金汉化版，`keymake1.73`
+
+`豪杰大眼睛 2.1` 是一款优秀的国产看图软件，它育 `ACDSee` 相比具有个头小，功能全等特点。
+
+安装完后，在目录下有 `Bigeye.exe` 和 `AuthReg.exe`，其中 `AuthReg.exe` 是注册的文件，
+
+每次运行大眼睛都会调用 `AuthReg.exe` 来检查你是否注册了。
+
+运行 `Trw1.22`，再运行 `AuthReg.exe`，按 `CTRL+N` 呼出 `TRW1.22`，
+
+下 `bpx hmemcpy`
+
+`g`
+
+拦截后 `bc*`
+
+`pmodule`
+
+一路按 `F10` 到下面的地址：
+
+```
+:0040243F 8D442404               lea eax, dword ptr [esp+04]
+:00402443 50                     push eax
+:00402444 6860AD4000             push 0040AD60
+:00402449 E8F20F0000             call 00403440/*跟进去，不然就 game over 了*/
+:0040244E F7D8                   neg eax
+:00402450 1BC0                   sbb eax, eax
+:00402452 8D4C2404               lea ecx, dword ptr [esp+04]
+:00402456 F7D8                   neg eax
+:00402458 51                     push ecx
+:00402459 6860AD4000             push 0040AD60
+:0040245E A320D84000             mov dword ptr [0040D820], eax
+:00402463 E838000000             call 004024A0   
+:00402468 8B442450               mov eax, dword ptr [esp+50]
+:0040246C 8B0D44AD4000           mov ecx, dword ptr [0040AD44]
+:00402472 83C408                 add esp, 00000008
+:00402475 8D542404               lea edx, dword ptr [esp+04]
+:00402479 52                     push edx
+:0040247A 6830234000             push 00402330
+:0040247F 50                     push eax
+
+:00403440 83EC20                 sub esp, 00000020
+:00403443 56                     push esi
+:00403444 57                     push edi
+:00403445 B908000000             mov ecx, 00000008
+:0040344A 33C0                   xor eax, eax
+:0040344C 8D7C2408               lea edi, dword ptr [esp+08]
+:00403450 F3                     repz
+:00403451 AB                     stosd
+:00403452 8B44242C               mov eax, dword ptr [esp+2C]
+:00403456 50                     push eax
+:00403457 E8A4010000             call 00403600
+:0040345C 83C404                 add esp, 00000004
+:0040345F 89442408               mov dword ptr [esp+08], eax
+:00403463 33F6                   xor esi, esi
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00403488(C)
+
+|
+
+:00403465 0FBE443408             movsx eax, byte ptr [esp+esi+08]
+:0040346A 83F841                 cmp eax, 00000041
+:0040346D 7C08                   jl 00403477
+:0040346F 83F85A                 cmp eax, 0000005A
+:00403472 7F03                   jg 00403477
+:00403474 83C020                 add eax, 00000020
+
+一路按 F10 到下面的地址：
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:0040346D(C), :00403472(C)
+
+|
+
+:00403477 50                     push eax
+:00403478 E853020000             call 004036D0
+:0040347D 83C404                 add esp, 00000004
+:00403480 88443408               mov byte ptr [esp+esi+08], al
+:00403484 46                     inc esi
+:00403485 83FE04                 cmp esi, 00000004
+:00403488 7CDB                   jl 00403465
+:0040348A 8B7C2430               mov edi, dword ptr [esp+30]
+:0040348E 8D4C2408               lea ecx, dword ptr [esp+08]
+:00403492 8BF7                   mov esi, edi
+:00403494 33D2                   xor edx, edx
+:00403496 2BF1                   sub esi, ecx
+:00403498 8D4C1408               lea ecx, dword ptr [esp+edx+08]
+:0040349C 0FBE040E               movsx eax, byte ptr [esi+ecx]/*注册码比较的第一部分，
+在这下 D ECX 就会看到注册码的第一部分*/
+:004034A0 83F841                 cmp eax, 00000041
+:004034A3 7C08                   jl 004034AD
+:004034A5 83F85A                 cmp eax, 0000005A
+:004034A8 7F03                   jg 004034AD
+:004034AA 83C020                 add eax, 00000020
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:004034A3(C), :004034A8(C)
+
+|
+
+:004034AD 0FBE09                 movsx ecx, byte ptr [ecx]
+:004034B0 3BC1                   cmp eax, ecx
+:004034B2 0F8514010000           jne 004035CC/*在执行这一行之前，r fl z，不然就 over 了！*/
+:004034B8 42                     inc edx
+:004034B9 83FA04                 cmp edx, 00000004
+:004034BC 7CDA                   jl 00403498
+:004034BE 8B442408               mov eax, dword ptr [esp+08]
+:004034C2 8D5008                 lea edx, dword ptr [eax+08]
+:004034C5 0FAFD0                 imul edx, eax
+:004034C8 8954240C               mov dword ptr [esp+0C], edx
+:004034CC 33F6                   xor esi, esi
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:004034EF(C)
+
+|
+
+:004034CE 8A44340C               mov al, byte ptr [esp+esi+0C]
+:004034D2 50                     push eax
+:004034D3 56                     push esi
+:004034D4 E807010000             call 004035E0
+:004034D9 25FF000000             and eax, 000000FF
+:004034DE 50                     push eax
+:004034DF E8EC010000             call 004036D0
+:004034E4 83C40C                 add esp, 0000000C
+:004034E7 8844340C               mov byte ptr [esp+esi+0C], al
+:004034EB 46                     inc esi
+:004034EC 83FE04                 cmp esi, 00000004
+:004034EF 7CDD                   jl 004034CE
+:004034F1 33C9                   xor ecx, ecx
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00403516(C)
+
+|
+
+:004034F3 0FBE440F05             movsx eax, byte ptr [edi+ecx+05]
+:004034F8 83F841                 cmp eax, 00000041
+:004034FB 7C08                   jl 00403505
+:004034FD 83F85A                 cmp eax, 0000005A
+:00403500 7F03                   jg 00403505
+:00403502 83C020                 add eax, 00000020
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:004034FB(C), :00403500(C)
+
+|
+
+:00403505 0FBE540C0C             movsx edx, byte ptr [esp+ecx+0C]
+:0040350A 3BC2                   cmp eax, edx/*下 D dsp+ecx+0c 看到注册码的第二部分*/
+:0040350C 0F85BA000000           jne 004035CC/*在执行这一行之前，r fl z，不然就 over 了！*/
+:00403512 41                     inc ecx
+:00403513 83F904                 cmp ecx, 00000004
+:00403516 7CDB                   jl 004034F3
+:00403518 8B44240C               mov eax, dword ptr [esp+0C]
+:0040351C 8B4C2408               mov ecx, dword ptr [esp+08]
+:00403520 8BD0                   mov edx, eax
+:00403522 33D1                   xor edx, ecx
+:00403524 42                     inc edx
+:00403525 0FAFD1                 imul edx, ecx
+:00403528 03D0                   add edx, eax
+:0040352A 33F6                   xor esi, esi
+:0040352C 89542410               mov dword ptr [esp+10], edx
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00403546(C)
+
+|
+
+:00403530 0FBE443410             movsx eax, byte ptr [esp+esi+10]
+:00403535 50                     push eax
+:00403536 E895010000             call 004036D0
+:0040353B 83C404                 add esp, 00000004
+:0040353E 88443410               mov byte ptr [esp+esi+10], al
+:00403542 46                     inc esi
+:00403543 83FE04                 cmp esi, 00000004
+:00403546 7CE8                   jl 00403530
+:00403548 33C9                   xor ecx, ecx
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00403569(C)
+
+|
+
+:0040354A 0FBE440F0A             movsx eax, byte ptr [edi+ecx+0A]
+:0040354F 83F841                 cmp eax, 00000041
+:00403552 7C08                   jl 0040355C
+:00403554 83F85A                 cmp eax, 0000005A
+:00403557 7F03                   jg 0040355C
+:00403559 83C020                 add eax, 00000020
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:00403552(C), :00403557(C)
+```
