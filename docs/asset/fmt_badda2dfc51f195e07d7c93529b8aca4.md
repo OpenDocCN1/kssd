@@ -1,0 +1,270 @@
+
+壳处理完全部 IAT 后，用 `ImportREC` 可获得完整的 IAT。
+
+### 3. 修复 Reloc Table
+
+壳处理地址重定位的代码如下：
+
+```
+003DD5CD    0FB606      MOVZX EAX,BYTE PTR DS:[ESI]                 ; 读加密后的重定位表
+
+003DD5D0    EB 2F       JMP SHORT 003DD601
+
+003DD5D2    3C 01       CMP AL,1                                    ; 是否为 1
+
+003DD5D4    75 15       JNZ SHORT 003DD5EB
+
+003DD5D6    46          INC ESI
+
+003DD5D7    0FB606      MOVZX EAX,BYTE PTR DS:[ESI]
+
+003DD5DA    3C 02       CMP AL,2
+
+003DD5DC    75 08       JNZ SHORT 003DD5E6
+
+003DD5DE    46          INC ESI
+
+003DD5DF    031E        ADD EBX,DWORD PTR DS:[ESI]
+
+003DD5E1    83C6 04     ADD ESI,4
+
+003DD5E4    EB 18       JMP SHORT 003DD5FE
+
+003DD5E6    46          INC ESI
+
+003DD5E7    03D8        ADD EBX,EAX
+
+003DD5E9    EB 13       JMP SHORT 003DD5FE
+
+003DD5EB    3C 02       CMP AL,2                                    ; 是否为 2
+
+003DD5ED    75 0A       JNZ SHORT 003DD5F9
+
+003DD5EF    46          INC ESI
+
+003DD5F0    031E        ADD EBX,DWORD PTR DS:[ESI]
+
+003DD5F2    013B        ADD DWORD PTR DS:[EBX],EDI                  ; 地址重定位
+
+003DD5F4    83C6 04     ADD ESI,4
+
+003DD5F7    EB 05       JMP SHORT 003DD5FE
+
+003DD5F9    46          INC ESI                                     ; 缺省方式
+
+003DD5FA    03D8        ADD EBX,EAX
+
+003DD5FC    013B        ADD DWORD PTR DS:[EBX],EDI                  ; 地址重定位
+
+003DD5FE    0FB606      MOVZX EAX,BYTE PTR DS:[ESI]
+
+003DD601    0AC0        OR AL,AL
+
+003DD603  ^ 75 CD       JNZ SHORT 003DD5D2
+```
+
+重定位从模块的基址开始，如果为 `1` 则重定位表的指针加 `1`，为 `2` 则重定位地址加上读出的 `4` 个字节数字，缺省加上读出的 `1` 个字节数字。
+
+写一段还原 `Reloc Table` 的代码如下：
+
+```
+00401000 > $ 60          PUSHAD
+
+00401001  . 33C0        XOR EAX,EAX
+
+00401003  . 33C9        XOR ECX,ECX
+
+00401005  . 33D2        XOR EDX,EDX
+
+00401007  . 33DB        XOR EBX,EBX
+
+00401009  . 33ED        XOR EBP,EBP
+
+0040100B  . BE 00005C>  MOV ESI,15C0000                             ; 加密后的重定位表
+
+00401010  . BF 000074>  MOV EDI,1740000                             ; 自己分配一块空间
+
+00401015  > 0FB606      MOVZX EAX,BYTE PTR DS:[ESI]                 ; 读加密后的重定位表
+
+00401018  . 0AC0        OR AL,AL
+
+0040101A  . 74 68       JE SHORT 00401084
+
+0040101C  . 3C 02       CMP AL,2                                    ; 因为调试时没有等于 1 的情况
+
+0040101E  . 75 08       JNZ SHORT 00401028
+
+00401020  . 46          INC ESI
+
+00401021  . 031E        ADD EBX,DWORD PTR DS:[ESI]
+
+00401023  . 83C6 04     ADD ESI,4
+
+00401026  . EB 03       JMP SHORT 0040102B
+
+00401028  > 03D8        ADD EBX,EAX                                 ; 不等于 2
+
+0040102A  . 46          INC ESI
+
+0040102B  > 8BCB        MOV ECX,EBX
+
+0040102D  . 81E1 00F0>  AND ECX,FFFFF000
+
+00401033  . 3BCA        CMP ECX,EDX
+
+00401035  . 74 3D       JE SHORT 00401074                           ; 是否为新的一节
+
+00401037  . 50          PUSH EAX
+
+00401038  . 51          PUSH ECX
+
+00401039  . 52          PUSH EDX
+
+0040103A  . 8BC7        MOV EAX,EDI
+
+0040103C  . 33D2        XOR EDX,EDX
+
+0040103E  . B9 040000>  MOV ECX,4
+
+00401043  . F7F1        DIV ECX
+
+00401045  . 84D2        TEST DL,DL
+
+00401047  . 74 03       JE SHORT 0040104C                           ; 每一节以 4 字节对齐
+
+00401049  . 83C7 02     ADD EDI,2
+
+0040104C  > 5A          POP EDX
+
+0040104D  . 59          POP ECX
+
+0040104E  . 58          POP EAX
+
+0040104F  . 890F        MOV DWORD PTR DS:[EDI],ECX                  ; 写入每一节的 RVA
+
+00401051  . 8BD1        MOV EDX,ECX
+
+00401053  . 85ED        TEST EBP,EBP
+
+00401055  . 74 08       JE SHORT 0040105F
+
+00401057  . 8BC7        MOV EAX,EDI
+
+00401059  . 2BC5        SUB EAX,EBP
+
+0040105B  . 3E:8945 0>  MOV DWORD PTR DS:[EBP+4],EAX                ; 写入每一节大小
+
+0040105F  > 8BEF        MOV EBP,EDI
+
+00401061  . 83C7 08     ADD EDI,8
+
+00401064  . 8BC3        MOV EAX,EBX
+
+00401066  . 25 FF0F00>  AND EAX,0FFF
+
+0040106B  . 0D 003000>  OR EAX,3000
+
+00401070  . 66:AB       STOS                                        ; 写入类型和地址
+
+00401072  .^ EB A1      JMP SHORT 00401015
+
+00401074  > 8BC3        MOV EAX,EBX
+
+00401076  . 25 FF0F00>  AND EAX,0FFF
+
+0040107B  . 0D 003000>  OR EAX,3000
+
+00401080  . 66:AB       STOS                                        ; 写入类型和地址
+
+00401082  .^ EB 91      JMP SHORT 00401015
+
+00401084  > 8BC7        MOV EAX,EDI
+
+00401086  . 33D2        XOR EDX,EDX
+
+00401088  . B9 040000>  MOV ECX,4
+
+0040108D  . F7F1        DIV ECX
+
+0040108F  . 84D2        TEST DL,DL
+
+00401091  . 74 03       JE SHORT 00401096                           ; 每一节以 4 字节对齐
+
+00401093  . 83C7 02     ADD EDI,2
+
+00401096  > 8BC7        MOV EAX,EDI
+
+00401098  . 2BC5        SUB EAX,EBP
+
+0040109A  . 3E:8945 0>  MOV DWORD PTR DS:[EBP+4],EAX                ; 写入每一节大小
+
+0040109E  . 61          POPAD
+```
+
+执行完后，就可以得到大部分的 `Reloc Table`，剩下的一小部分（这里是 `5` 个）是被偷的 `OEP` 用的，只好手动还原了。
+
+### 4. 还原 OEP
+
+通过最后一个异常（Array bounds exceeded），很快就到变形的 `OEP` 了，代码如下：
+
+```
+003E335F    FFF5        PUSH EBP                                    ; OEP
+
+003E3361    EB 03       JMP SHORT 003E3366
+
+003E3363    4F          DEC EDI
+
+003E3364    64:CF       IRETD
+
+003E3366    54          PUSH ESP
+
+003E3367    5D          POP EBP                                     ; MOV EBP,ESP
+
+003E3368    EB 00       JMP SHORT 003E336A
+
+003E336A    54          PUSH ESP
+
+003E336B    830424 C4   ADD DWORD PTR SS:[ESP],-3C                  ; ADD ESP,-3C
+
+003E336F    5C          POP ESP
+
+003E3370    EB 03       JMP SHORT 003E3375
+
+003E3372    59          POP ECX
+
+003E3373    64:CF       IRETD
+
+003E3375    68 70779500 PUSH 957770
+
+003E337A    58          POP EAX                                     ; MOV EAX,957770
+
+003E337B    EB 03       JMP SHORT 003E3380
+
+003E337D    AA          STOSB
+
+003E337E    64:CF       IRETD
+
+003E3380    E8 02000000 CALL 003E3387
+
+003E3385    EB 11       JMP SHORT 003E3398
+
+003E3387    50          PUSH EAX
+
+003E3388    E8 04000000 CALL 003E3391
+
+........
+
+003E3391    58          POP EAX
+
+003E3392    8B00        MOV EAX,DWORD PTR DS:[EAX]
+
+003E3394    870424      XCHG DWORD PTR SS:[ESP],EAX
+
+003E3397    C3          RET                                         ; 到原程序的第一个 PROC
+
+........
+```
+
+跟一下就能还原 `OEP` 了，壳把原来的 `OEP` 全部清零，手动添加后，即可 `DUMP`。
+
+`4dd466d0e1e0cc123afbe504da2462ca`
