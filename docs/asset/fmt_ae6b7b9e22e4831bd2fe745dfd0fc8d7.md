@@ -1,0 +1,260 @@
+
+### 汇编代码分析：计算 7 次方模运算
+
+```assembly
+  00405324  |.  C74424 14 070>|mov     dword ptr [esp+14], 7           ;  arg1  
+
+  0040532C  |.  8A1437        |mov     dl, byte ptr [edi+esi]  
+
+  0040532F  |.  8BFA          |mov     edi, edx  
+
+  ;求一个数的 7 次方％0x8899 的结果  
+
+  00405331  |>  8BD7          |/mov    edx, edi  
+
+  00405333  |.  0FAFC2        ||imul    eax, edx  
+
+  00405336  |.  3D 99880000   ||cmp     eax, 8899  
+
+  0040533B  |.  7E 0A         ||jle     short 00405347  
+
+  0040533D  |.  99            ||cdq   
+
+  0040533E  |.  BB 99880000   ||mov     ebx, 8899  
+
+  00405343  |.  F7FB          ||idiv    ebx  
+
+  00405345  |.  8BC2          ||mov     eax, edx  
+
+  00405347  |>  8B5424 14     ||mov     edx, dword ptr [esp+14]  
+
+  0040534B  |.  4A            ||dec     edx  
+
+  0040534C  |.  895424 14     ||mov     dword ptr [esp+14], edx  
+
+  00405350  |.^ 75 DF         |\jnz     short 00405331  
+
+  00405352  |.  99            |cdq   
+
+  00405353  |.  BF BB000000   |mov     edi, 0BB  
+
+  00405358  |.  F7FF          |idiv    edi  
+
+  0040535A  |.  41            |inc     ecx  
+
+  0040535B  |.  83F9 08       |cmp     ecx, 8  
+
+  0040535E  |.  8816          |mov     byte ptr [esi], dl  
+
+  00405360  |.  C60429 00     |mov     byte ptr [ecx+ebp], 0  
+
+  00405364  |.^ 7C B0         \\jl      short 00405316  
+
+  00405366  |.  5F            pop     edi  
+
+  00405367  |.  5E            pop     esi  
+
+  00405368  |.  5D            pop     ebp  
+
+  00405369  |.  5B            pop     ebx  
+
+  0040536A  \\.  C3           retn  
+```
+
+该函数实际是把参数 1 中的每个字节的 7 次方模 `0x8899` 的结果再模 `0xBB` 的结果保存在参数 2 中相应的位置。
+
+### StrToHex 函数实现分析
+
+```assembly
+9、我们再来看看程序中的 StrToHex 的实现  
+
+  004052D0 >/$  8B4C24 04     mov     ecx, dword ptr [esp+4]  
+
+  004052D4  |.  8A01          mov     al, byte ptr [ecx]  
+
+  004052D6  |.  3C 39         cmp     al, 39  
+
+  004052D8  |.  7E 04         jle     short 004052DE  
+
+  004052DA  |.  04 C9         add     al, 0C9  
+
+  004052DC  |.  EB 02         jmp     short 004052E0  
+
+  004052DE  |>  04 D0         add     al, 0D0  
+
+  004052E0  |>  8A49 01       mov     cl, byte ptr [ecx+1]  
+
+  004052E3  |.  80F9 39       cmp     cl, 39  
+
+  004052E6  |.  7E 09         jle     short 004052F1  
+
+  004052E8  |.  C0E0 04       shl     al, 4  
+
+  004052EB  |.  80E9 37       sub     cl, 37  
+
+  004052EE  |.  0AC1          or      al, cl  
+
+  004052F0  |.  C3            retn  
+
+  004052F1  |>  C0E0 04       shl     al, 4  
+
+  004052F4  |.  80E9 30       sub     cl, 30  
+
+  004052F7  |.  0AC1          or      al, cl  
+
+  004052F9  \\.  C3           retn  
+```
+
+可见这个函数功能并不完善，它要求 `str` 只能是数字或大写字母
+
+### 注册算法逻辑
+
+10、先在注册算法清楚了  
+
+ a、用户名需要大于等于 5 各字节，序列号为 17 个以上字节  
+
+ b、用户名小于 8 个字符时，需要连接自己组成长于 8 个字符的串，用户名只使用前 8 个字符。我们称为 `name`。  
+
+ c、注册码的第 9 个字符将被抛弃。  
+
+ d、把注册码当作 16 进制数串恢复为 8 个字节值，多余的抛弃。我们称为 `code`，  
+
+ e、`(pow(code[i] ^ (0x50 + i), 7) % 0x8899 ) % 0xBB == name[i]`
+
+### 注册机参考实现
+
+11、一个注册机参考实现如下：  
+
+```c
+int APIs32KeyGen(char* name)  
+
+{  
+
+  int len = strlen(name);  
+
+  if(len < 5)  
+
+  {  
+
+    printf("用户名长度必须大于 4.\n");  
+
+    return 1;  
+
+  }  
+
+  char* lName = new char[len * 2 + 1];  
+
+  if(lName == NULL)  
+
+  {  
+
+    printf("内存不足.\n");  
+
+    return 1;  
+
+  }  
+
+  //TODO check 是否全为小写字母  
+
+  ::strcpy(lName, name);  
+
+  ::strcpy(lName + len, name);  
+
+  lName[len * 2] = '\0';  
+
+  unsigned char res[8];  
+
+  bool find = true;  
+
+  for(int n=0; n <8; n++)  
+
+  {  
+
+    find = false;  
+
+    for(unsigned char i=2; i<=0xFF; i++)  
+
+    {  
+
+      unsigned int k = 1;  
+
+      for(int m=0; m<7; m++)  
+
+      {  
+
+        k *= i;  
+
+        if(k > 0x8899)  
+
+        {  
+
+          k %= 0x8899;  
+
+        }  
+
+      }  
+
+      if((k % 0xBB) == lName[n])  
+
+      {  
+
+        res[n] = i ^ (0x50 + n);  
+
+        find = true;  
+
+        break;  
+
+      }  
+
+    }  
+
+    if(find == false)  
+
+    {  
+
+      break;  
+
+    }  
+
+  }  
+
+  if(find)  
+
+  {  
+
+    printf("用户名%s 的注册码为:", name);  
+
+    char buf[18];  
+
+    ::sprintf(buf, "%02x%02x%02x%02x=%02x%02x%02x%02x", res[0], res[1], res[2], res[3], res[4], res[5], res[6], res[7]);  
+
+    ::strupr(buf);  
+
+    printf("%s", buf);  
+
+  }  
+
+  else  
+
+  {  
+
+    printf("未能为用户名%s 找到注册码", name);  
+
+  }  
+
+  printf("\n");  
+
+  delete [] lName;  
+
+  return 0;  
+
+}  
+```
+
+12、终于完成了。  
+
+--------------------------------------------------------------------------------  
+
+【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!  
+
+  2009 年 01 月 07 日 下午 07:36:12
