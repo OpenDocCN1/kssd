@@ -1,0 +1,122 @@
+
+# Assembly Code Snippet
+
+```asm
+00536B21   .  51          PUSH    ECX  
+00536B22   .  8D55 A0     LEA     EDX, DWORD PTR SS:[EBP-60]  
+00536B25   .  52          PUSH    EDX  
+00536B26   .  6A 04       PUSH    4  
+00536B28   .  FF15 84124000 CALL  DWORD PTR DS:[<&MSVBVM60.__vbaFree>;  MSVBVM60.__vbaFreeStrList
+00536B2E   .  8D85 70FFFFFF LEA   EAX, DWORD PTR SS:[EBP-90]  
+00536B34   .  50          PUSH    EAX  
+00536B35   .  8D4D 80     LEA     ECX, DWORD PTR SS:[EBP-80]  
+00536B38   .  51          PUSH    ECX  
+00536B39   .  6A 02       PUSH    2  
+00536B3B   .  FF15 3C104000 CALL  DWORD PTR DS:[<&MSVBVM60.__vbaFree>;  MSVBVM60.__vbaFreeVarList
+00536B41   .  83C4 20     ADD     ESP, 20  
+00536B44   .  66:85DB     TEST    BX, BX  
+00536B47   .  74 5B       JE      SHORT 00536BA4                    ;  这里要跳（要爆就改为 JMP）  
+00536B49   .  8B45 A4     MOV     EAX, DWORD PTR SS:[EBP-5C]  
+00536B4C   .  85C0        TEST    EAX, EAX  
+00536B4E   .  75 12       JNZ     SHORT 00536B62  
+00536B50   .  8D55 A4     LEA     EDX, DWORD PTR SS:[EBP-5C]  
+00536B53   .  52          PUSH    EDX  
+00536B54   >  68 88774000 PUSH    00407788  
+00536B59   .  FF15 58124000 CALL  DWORD PTR DS:[<&MSVBVM60.__vbaNew2>;  MSVBVM60.__vbaNew2
+00536B5F   .  8B45 A4     MOV     EAX, DWORD PTR SS:[EBP-5C]  
+00536B62   >  8BF0        MOV     ESI, EAX  
+00536B64   .  C785 0CFFFFFF>MOV   DWORD PTR SS:[EBP-F4], 0  
+00536B6E   .  8B08        MOV     ECX, DWORD PTR DS:[EAX]  
+00536B70   .  8D95 08FFFFFF LEA   EDX, DWORD PTR SS:[EBP-F8]  
+00536B76   .  52          PUSH    EDX  
+00536B77   .  8D95 0CFFFFFF LEA   EDX, DWORD PTR SS:[EBP-F4]  
+00536B7D   .  52          PUSH    EDX  
+00536B7E   .  8D55 DC     LEA     EDX, DWORD PTR SS:[EBP-24]  
+00536B81   .  52          PUSH    EDX  
+00536B82   .  50          PUSH    EAX  
+00536B83   .  FF51 24     CALL    DWORD PTR DS:[ECX+24]  
+00536B86   >  DBE2        FCLEX  
+00536B88   .  85C0        TEST    EAX, EAX  
+00536B8A   .  0F8D 39070000 JGE   005372C9  
+00536B90   .  6A 24       PUSH    24  
+00536B92   .  68 F0684100 PUSH    004168F0  
+00536B97   .  56          PUSH    ESI  
+00536B98   .  50          PUSH    EAX  
+00536B99   .  FF15 A8104000 CALL  DWORD PTR DS:[<&MSVBVM60.__vbaHres>;  MSVBVM60.__vbaHresultCheckObj
+00536B9F   .  E9 25070000 JMP     005372C9  
+00536BA4   >  C745 88 04000>MOV  DWORD PTR SS:[EBP-78], 80020004  
+00536BAB   .  C745 80 0A000>MOV  DWORD PTR SS:[EBP-80], 0A  
+00536BB2   .  8D45 80     LEA     EAX, DWORD PTR SS:[EBP-80]  
+00536BB5   .  50          PUSH    EAX  
+00536BB6   .  6A 03       PUSH    3  
+00536BB8   .  8B4D A8     MOV     ECX, DWORD PTR SS:[EBP-58]  
+00536BBB   .  51          PUSH    ECX  
+00536BBC   .  FFD7        CALL    EDI                                  ;  从注册码第 3 位起取 10 位（不足就取到尾）  
+00536BBE   .  8BD0        MOV     EDX, EAX  
+00536BC0   .  8D4D A0     LEA     ECX, DWORD PTR SS:[EBP-60]  
+00536BC3   .  FFD6        CALL    ESI  
+00536BC5   .  50          PUSH    EAX  
+00536BC6   .  FF15 70134000 CALL  DWORD PTR DS:[<&MSVBVM60.rtcR8ValF>;  转化为浮点数  
+00536BCC   .  FF15 E8124000 CALL  DWORD PTR DS:[<&MSVBVM60.__vbaFpI4>;  转为整数  
+00536BD2   .  8BD8        MOV     EBX, EAX  
+00536BD4   .  895D C8     MOV     DWORD PTR SS:[EBP-38], EBX  
+00536BD7   .  8D4D A0     LEA     ECX, DWORD PTR SS:[EBP-60]  
+00536BDA   .  FF15 68134000 CALL  DWORD PTR DS:[<&MSVBVM60.__vbaFree>;  MSVBVM60.__vbaFreeStr  
+00536BE0   .  8D4D 80     LEA     ECX, DWORD PTR SS:[EBP-80]  
+00536BE3   .  FF15 20104000 CALL  DWORD PTR DS:[<&MSVBVM60.__vbaFree>;  MSVBVM60.__vbaFreeVar  
+00536BE9   .  8B55 E0     MOV     EDX, DWORD PTR SS:[EBP-20]  
+00536BEC   .  52          PUSH    EDX  
+00536BED   .  FF15 30104000 CALL  DWORD PTR DS:[<&MSVBVM60.__vbaLenB>;  取用户名长度  
+00536BF3   .  83F8 01     CMP     EAX, 1                               ;  长度与 1 比较  
+00536BF6   .  7E 0C       JLE     SHORT 00536C04  
+00536BF8   .  81FB 3F420F00 CMP   EBX, 0F423F                          ;  注册码后几位与 0xf423f=999999 比较  
+00536BFE   .  7E 04       JLE     SHORT 00536C04  
+00536C00   .  33DB        XOR     EBX, EBX                             ;  大于则 EBX=0  
+00536C02   .  EB 05       JMP     SHORT 00536C09  
+00536C04   >  BB 01000000 MOV     EBX, 1                               ;  小于等于则 EBX=1  
+00536C09   >  8B45 AC     MOV     EAX, DWORD PTR SS:[EBP-54]  
+00536C0C   .  50          PUSH    EAX  
+00536C0D   .  FF15 54124000 CALL  DWORD PTR DS:[<&MSVBVM60.__vbaR8St>;  机器码转为浮点数  
+00536C13   .  DC1D 38244000 FCOMP QWORD PTR DS:[402438]               ;  与 101.0 比较  
+00536C19   .  DFE0        FSTSW   AX  
+00536C1B   .  F6C4 41     TEST    AH, 41  
+00536C1E   .  74 07       JE      SHORT 00536C27  
+00536C20   .  B8 01000000 MOV     EAX, 1                               ;  机器码＝101 则 EAX=1  
+00536C25   .  EB 02       JMP     SHORT 00536C29  
+00536C27   >  33C0        XOR     EAX, EAX                             ;  机器码不等于 101 则 EAX=0  
+00536C29   >  0BD8        OR      EBX, EAX  
+00536C2B     0F85 98060000 JNZ     005372C9                           ;  不能跳（注册码应该在 9 位以上），要爆就 NOP 掉  
+00536C31   .  C785 48FFFFFF>MOV   DWORD PTR SS:[EBP-B8], 1  
+00536C3B   .  C785 40FFFFFF>MOV   DWORD PTR SS:[EBP-C0], 2  
+00536C45   .  8D95 40FFFFFF LEA   EDX, DWORD PTR SS:[EBP-C0]  
+00536C4B   .  8D4D B8     LEA     ECX, DWORD PTR SS:[EBP-48]  
+00536C4E   .  FF15 14104000 CALL  DWORD PTR DS:[<&MSVBVM60.__vbaVarM>;  MSVBVM60.__vbaVarMove  
+00536C54   .  C785 DCFEFFFF>MOV  DWORD PTR SS:[EBP-124], 3  
+00536C5E   .  BB 01000000 MOV     EBX, 1                               ;  循环变量 BX 初始置 1  
+00536C63   >  66:3B9D DCFEF>CMP   BX, WORD PTR SS:[EBP-124]  
+00536C6A   .  7F 7C       JG      SHORT 00536CE8                    ;  BX 大于 3 退出循环  
+00536C6C   .  C745 88 01000>MOV  DWORD PTR SS:[EBP-78], 1  
+00536C73   .  C745 80 02000>MOV  DWORD PTR SS:[EBP-80], 2  
+00536C7A   .  8D4D 80     LEA     ECX, DWORD PTR SS:[EBP-80]  
+00536C7D   .  51          PUSH    ECX  
+00536C7E   .  0FBFD3      MOVSX   EDX, BX  
+00536C81   .  52          PUSH    EDX  
+00536C82   .  8B45 AC     MOV     EAX, DWORD PTR SS:[EBP-54]  
+00536C85   .  50          PUSH    EAX  
+00536C86   .  FFD7        CALL    EDI                                  ;  机器码从第 BX 位起取 1 位  
+00536C88   .  8BD0        MOV     EDX, EAX  
+00536C8A   .  8D4D A0     LEA     ECX, DWORD PTR SS:[EBP-60]  
+00536C8D   .  FFD6        CALL    ESI  
+00536C8F   .  50          PUSH    EAX  
+00536C90   .  FF15 50104000 CALL  DWORD PTR DS:[<&MSVBVM60.rtcAnsiVa>;  得其 ASCII  
+00536C96   .  66:8985 38FFF>MOV  WORD PTR SS:[EBP-C8], AX  
+00536C9D   .  C785 30FFFFFF>MOV  DWORD PTR SS:[EBP-D0], 2  
+00536CA7   .  8D4D B8     LEA     ECX, DWORD PTR SS:[EBP-48]  
+00536CAA   .  51          PUSH    ECX  
+00536CAB   .  8D95 30FFFFFF LEA   EDX, DWORD PTR SS:[EBP-D0]  
+00536CB1   .  52          PUSH    EDX  
+00536CB2   .  8D85 70FFFFFF LEA   EAX, DWORD PTR SS:[EBP-90]  
+00536CB8   .  50          PUSH    EAX  
+00536CB9   .  FF15 BC124000 CALL  DWORD PTR DS:[<&MSVBVM60.__vbaVarA>;  ASCII 累加（初始为 1）,得数 A  
+00536CBF   .  8BD0        MOV     EDX, EAX
+```

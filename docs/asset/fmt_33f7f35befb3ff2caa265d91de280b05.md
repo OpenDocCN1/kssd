@@ -1,0 +1,51 @@
+
+```c
+0xE52CA2EF,    0x4A5965DB,    0x94B2CBB7,    0xA965B76A,
+0x2596BDA5,    0x4B2D7B4A,    0x965AF695,    0xACB5CD2F,
+0xD96BBA5B,    0x32D754B3,    0xD2CB4ED0,    0x65AEA967,
+0xCB5D52CE,    0x2D750B30,    0x16BA8598,    0x5AEA1660,
+0xB5D42CC0,    0x5750D30E,    0xAEA1A61D,    0xDD436C3E,
+0x3A86F879,    0x750DF0F2,    0xEA1BE1E5,    0x5437E3CF,
+0xEBA87985,    0x21BF7E74,    0x437EFCE8,    0xA86FC79E,
+0xD0DFAF38,    0x86FDF9D1,    0x8DFBD3A7,    0x9BF7874A,
+};
+
+unsigned long Table_4[64]={
+0xDFCF8EDF,    0xFE7C76FE,    0xFCF8EDFC,    0xF9F1DBF9,
+0xF3E3B7F2,    0xBF9F1DBF,    0x7F3E3B7F,    0xE7C76FE5,
+0xCF8EDFCB,    0x7C76FE5F,    0xF8EDFCBE,    0x9F1DBF97,
+0x3E3B7F2F,    0x8EDFCBE0,    0x1DBF97C1,    0xC76FE5F0,
+0xF1DBF97C,    0xE3B7F2F8,    0x3B7F2F82,    0x76FE5F05,
+0xBF97C156,    0x6FE5F055,    0xDBF97C15,    0xB7F2F82A,
+0xDFCBE0AB,    0xEDFCBE0A,    0xF97C1561,    0xF2F82AC3,
+0xE5F05586,    0x7F2F82AC,    0xFE5F0558,    0xFCBE0AB0,
+0xCBE0AB0C,    0x97C15619,    0x2F82AC32,    0x5F055865,
+0x7C156197,    0xF82AC32E,    0xF055865C,    0xE0AB0CB9,
+0xC1561973,    0x82AC32E7,    0xBE0AB0CB,    0x055865CE,
+0x0AB0CB9C,    0x2AC32E72,    0x15619739,    0x55865CE4,
+0xAB0CB9C8,    0xAC32E723,    0x5865CE46,    0xB0CB9C8D,
+0x6197391B,    0xC32E7236,    0x865CE46C,    0x0CB9C8D9,
+0x56197391,    0x65CE46CB,    0xCB9C8D96,    0x197391B2,
+0x32E72365,    0x97391B2C,    0x2E723659,    0x5CE46CB3,
+};
+```
+
+每个数组转换成两个矩阵，分别应用在两个不同的循环迭代中。这些数据，都可以从程序中找出来的。
+
+请大家自己熟悉编写如下几个函数：矩阵转换，向量转换，矩阵求逆，矩阵(向量)乘法.
+
+有了上面几个函数的支撑之后，编写出注册机轻而易举！其实上面的函数实现起来也很简单。
+
+好了，全部讲完了，由于论坛不准发注册机，我就不贴代码了，但是为了大家学习练习方便，我这里给出一组正确的注册对：
+
+注册名：`drcool`
+
+注册码：`12343fda2f2e0700feceea3a8adacbf912e1fb94db27d3ad`
+
+终于写完了，最后总结一下,程序作者的注册算法还是很有新意的，首先用假的运算来迷惑混淆破解者，然后再利用两道关卡来验证
+
+注册码，而第二关的算法实际上就是古典的代数矩阵加密算法的变形而已。同时我们也注意到，其实所有的 24 字节注册码，全部是由
+
+前面的两字节来生成的，由此我们可以知道，一个注册名可以对应至多 2¹⁶ 组注册码，呵呵。欢迎大家一起来讨论！ 
+
+`4dd466d0e1e0cc123afbe504da2462ca`

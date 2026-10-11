@@ -1,0 +1,440 @@
+
+# 卡特会员卡管理 1.1 解码分析
+
+> 原文：`[www.pediy.com/kssd/pediy09/pediy09-274.htm](https://www.pediy.com/kssd/pediy09/pediy09-274.htm)`
+
+> 【破文标题】卡特会员卡管理 1.1 解码分析
+
+> 【破文作者】`lzq1973[PYG][CZG][OCN][DFCG]`
+
+> 【作者邮箱】`lzq9888@126.com`
+
+> 【作者主页】`http://my.winzheng.com/?455397`
+
+> 【破解工具】`OD`、`PEiD`、`C32Asm`
+
+> 【破解平台】`WinXP`
+
+> 【软件名称】卡特会员卡管理 1.1
+
+> 【软件大小】`672K`
+
+> 【原版下载】`http://www.card95.com/download.asp?n=卡特会员卡管理(单机 IC 明华版).rar`
+
+> 【保护方式】`SN`
+
+> 【软件简介】本系统为绿色软件，解压即可使用。该操作简单，功能强大，包括基本会员资料，商品管理。可以设置积分卡，记次卡，储值卡，折扣卡。有会员生日提醒功能。
+
+> 【破解声明】俺是只小小鸟，纯为学习，愿与大家分享！
+
+> ------------------------------------------------------------------------
+
+> 【破解过程】运行之，假注册，有提示，记住备用。
+
+> 老规矩，`PEiD` 查壳，无，暗喜；`OD` 载入，查相关字符串，找到相关提示，乐。在这里下断
+
+> `004DF4DC . 55 push ebp`
+
+> `004DF4DD . 8BEC mov ebp, esp`
+
+> `004DF4DF . B9 06000000 mov ecx, 6`
+
+> `004DF4E4 > 6A 00 push 0`
+
+> `004DF4E6 . 6A 00 push 0`
+
+> `004DF4E8 . 49 dec ecx`
+
+> `004DF4E9 . ^ 75 F9 jnz short 004DF4E4`
+
+> `004DF4EB . 51 push ecx`
+
+> `004DF4EC . 8945 FC mov [ebp-4], eax`
+
+> `004DF4EF . 33C0 xor eax, eax`
+
+> `004DF4F1 . 55 push ebp`
+
+> `004DF4F2 . 68 0BF74D00 push 004DF70B`
+
+> `004DF4F7 . 64:FF30 push dword ptr fs:[eax]`
+
+> `004DF4FA . 64:8920 mov fs:[eax], esp`
+
+> `004DF4FD . 8D55 EC lea edx, [ebp-14]`
+
+> `004DF500 . 8B45 FC mov eax, [ebp-4]`
+
+> `004DF503 . 8B80 04030000 mov eax, [eax+304]`
+
+> `004DF509 . E8 BEB1F7FF call 0045A6CC`
+
+> `004DF50E . 8B45 EC mov eax, [ebp-14] ; (ASCII "lzq1973")`
+
+> `004DF511 . 8D55 F0 lea edx, [ebp-10]`
+
+> `004DF514 . E8 1F96F2FF call 00408B38`
+
+> `004DF519 . 837D F0 00 cmp dword ptr [ebp-10], 0`
+
+> `004DF51D . 75 1D jnz short 004DF53C`
+
+> `004DF51F . 6A 40 push 40`
+
+> `004DF521 . B9 18F74D00 mov ecx, 004DF718 ; 提示`
+
+> `004DF526 . BA 20F74D00 mov edx, 004DF720 ; 请输入用户名`
+
+> `004DF52B . A1 D8F64E00 mov eax, [4EF6D8]`
+
+> `004DF530 . 8B00 mov eax, [eax]`
+
+> `004DF532 . E8 81B3F9FF call 0047A8B8`
+
+> `004DF537 . E9 77010000 jmp 004DF6B3`
+
+> `004DF53C > 8D55 E4 lea edx, [ebp-1C]`
+
+> `004DF53F . 8B45 FC mov eax, [ebp-4]`
+
+> `004DF542 . 8B80 0C030000 mov eax, [eax+30C]`
+
+> `004DF548 . E8 7FB1F7FF call 0045A6CC`
+
+> `004DF54D . 8B45 E4 mov eax, [ebp-1C]`
+
+> `004DF550 . 8D55 E8 lea edx, [ebp-18]`
+
+> `004DF553 . E8 E095F2FF call 00408B38`
+
+> `004DF558 . 837D E8 00 cmp dword ptr [ebp-18], 0`
+
+> `004DF55C . 75 1D jnz short 004DF57B`
+
+> `004DF55E . 6A 40 push 40`
+
+> `004DF560 . B9 18F74D00 mov ecx, 004DF718 ; 提示`
+
+> `004DF565 . BA 30F74D00 mov edx, 004DF730 ; 请输入注册码`
+
+> `004DF56A . A1 D8F64E00 mov eax, [4EF6D8]`
+
+> `004DF56F . 8B00 mov eax, [eax]`
+
+> `004DF571 . E8 42B3F9FF call 0047A8B8`
+
+> `004DF576 . E9 38010000 jmp 004DF6B3`
+
+> `004DF57B > 8D55 DC lea edx, [ebp-24]`
+
+> `004DF57E . 8B45 FC mov eax, [ebp-4]`
+
+> `004DF581 . 8B80 0C030000 mov eax, [eax+30C]`
+
+> `004DF587 . E8 40B1F7FF call 0045A6CC`
+
+> `004DF58C . 8B45 DC mov eax, [ebp-24]`
+
+> `004DF58F . 8D55 E0 lea edx, [ebp-20]`
+
+> `004DF592 . E8 A195F2FF call 00408B38`
+
+> `004DF597 . 8B45 E0 mov eax, [ebp-20]`
+
+> `004DF59A . 50 push eax`
+
+> `004DF59B . 8D55 D4 lea edx, [ebp-2C]`
+
+> `004DF59E . 8B45 FC mov eax, [ebp-4]`
+
+> `004DF5A1 . 8B80 04030000 mov eax, [eax+304]`
+
+> `004DF5A7 . E8 20B1F7FF call 0045A6CC`
+
+> `004DF5AC . 8B45 D4 mov eax, [ebp-2C]`
+
+> `004DF5AF . 8D55 D8 lea edx, [ebp-28]`
+
+> `004DF5B2 . E8 514AFFFF call 004D4008 ; 算法关键处`
+
+> `004DF5B7 . 8B55 D8 mov edx, [ebp-28] ; 注册码(ASCII "591148")`
+
+> `004DF5BA . 58 pop eax`
+
+> `004DF5BB . E8 5451F2FF call 00404714`
+
+> `004DF5C0 . 74 1D je short 004DF5DF`
+
+> `004DF5C2 . 6A 40 push 40`
+
+> `004DF5C4 . B9 18F74D00 mov ecx, 004DF718 ; 提示`
+
+> `004DF5C9 . BA 40F74D00 mov edx, 004DF740 ; 注册码不对,注册未成功`
+
+> `004DF5CE . A1 D8F64E00 mov eax, [4EF6D8]`
+
+> `004DF5D3 . 8B00 mov eax, [eax]`
+
+> `004DF5D5 . E8 DEB2F9FF call 0047A8B8`
+
+> `004DF5DA . E9 D4000000 jmp 004DF6B3`
+
+> `004DF5DF > 33C0 xor eax, eax`
+
+> `004DF5E1 . 55 push ebp`
+
+> `004DF5E2 . 68 87F64D00 push 004DF687`
+
+> `004DF5E7 . 64:FF30 push dword ptr fs:[eax]`
+
+> `004DF5EA . 64:8920 mov fs:[eax], esp`
+
+> `004DF5ED . B2 01 mov dl, 1`
+
+> `004DF5EF . A1 64E04300 mov eax, [43E064]`
+
+> `004DF5F4 . E8 6BEBF5FF call 0043E164`
+
+> `004DF5F9 . 8945 F8 mov [ebp-8], eax`
+
+> `004DF5FC . BA 02000080 mov edx, 80000002`
+
+> `004DF601 . 8B45 F8 mov eax, [ebp-8]`
+
+> `004DF604 . E8 FBEBF5FF call 0043E204`
+
+> `004DF609 . 8D45 F4 lea eax, [ebp-C]`
+
+> `004DF60C . BA 60F74D00 mov edx, 004DF760 ; software\czkgl\mrmf`
+
+> `004DF611 . E8 8A4DF2FF call 004043A0`
+
+> `004DF616 . B1 01 mov cl, 1`
+
+> `004DF618 . 8B55 F4 mov edx, [ebp-C]`
+
+> `004DF61B . 8B45 F8 mov eax, [ebp-8]`
+
+> `004DF61E . E8 45ECF5FF call 0043E268`
+
+> `004DF623 . 84C0 test al, al`
+
+> `004DF625 . 74 42 je short 004DF669`
+
+> `004DF627 . 8D55 D0 lea edx, [ebp-30]`
+
+> `004DF62A . 8B45 FC mov eax, [ebp-4]`
+
+> `004DF62D . 8B80 0C030000 mov eax, [eax+30C]`
+
+> `004DF633 . E8 94B0F7FF call 0045A6CC`
+
+> `004DF638 . 8B4D D0 mov ecx, [ebp-30]`
+
+> `004DF63B . BA 7CF74D00 mov edx, 004DF77C ; passwd`
+
+> `004DF640 . 8B45 F8 mov eax, [ebp-8]`
+
+> `004DF643 . E8 BCEDF5FF call 0043E404`
+
+> `004DF648 . 8D55 CC lea edx, [ebp-34]`
+
+> `004DF64B . 8B45 FC mov eax, [ebp-4]`
+
+> `004DF64E . 8B80 04030000 mov eax, [eax+304]`
+
+> `004DF654 . E8 73B0F7FF call 0045A6CC`
+
+> `004DF659 . 8B4D CC mov ecx, [ebp-34]`
+
+> `004DF65C . BA 8CF74D00 mov edx, 004DF78C ; username`
+
+> `004DF661 . 8B45 F8 mov eax, [ebp-8]`
+
+> `004DF664 . E8 9BEDF5FF call 0043E404`
+
+> `004DF669 > 8B45 F8 mov eax, [ebp-8]`
+
+> `004DF66C . E8 63EBF5FF call 0043E1D4`
+
+> `004DF671 . 33C0 xor eax, eax`
+
+> `004DF673 . 5A pop edx`
+
+> `004DF674 . 59 pop ecx`
+
+> `004DF675 . 59 pop ecx`
+
+> `004DF676 . 64:8910 mov fs:[eax], edx`
+
+> `004DF679 . 68 8EF64D00 push 004DF68E`
+
+> `004DF67E > 8B45 F8 mov eax, [ebp-8]`
+
+> `004DF681 . E8 123EF2FF call 00403498`
+
+> `004DF686 . C3 retn`
+
+> `004DF687 . ^ E9 A045F2FF jmp 00403C2C`
+
+> `004DF68C . ^ EB F0 jmp short 004DF67E`
+
+> `004DF68E . 6A 30 push 30`
+
+> `004DF690 . B9 18F74D00 mov ecx, 004DF718 ; 提示`
+
+> `004DF695 . BA 98F74D00 mov edx, 004DF798 ; 注册成功`
+
+> `004DF69A . A1 D8F64E00 mov eax, [4EF6D8]`
+
+> `004DF69F . 8B00 mov eax, [eax]`
+
+> `004DF6A1 . E8 12B2F9FF call 0047A8B8`
+
+
+
+```assembly
+004DF6A6   .  8B45 FC       mov     eax, [ebp-4]  
+004DF6A9   .  C780 4C020000>mov     dword ptr [eax+24C], 1  
+004DF6B3   >  33C0         xor     eax, eax  
+004DF6B5   .  5A         pop     edx  
+004DF6B6   .  59         pop     ecx  
+004DF6B7   .  59         pop     ecx  
+004DF6B8   .  64:8910    mov     fs:[eax], edx  
+004DF6BB   .  68 12F74D00  push    004DF712  
+004DF6C0   >  8D45 CC    lea     eax, [ebp-34]  
+004DF6C3   .  BA 03000000 mov     edx, 3  
+004DF6C8   .  E8 5F4CF2FF call    0040432C  
+004DF6CD   .  8D45 D8    lea     eax, [ebp-28]  
+004DF6D0   .  E8 334CF2FF call    00404308  
+004DF6D5   .  8D45 DC    lea     eax, [ebp-24]  
+004DF6D8   .  E8 2B4CF2FF call    00404308  
+004DF6DD   .  8D45 E0    lea     eax, [ebp-20]  
+004DF6E0   .  E8 234CF2FF call    00404308  
+004DF6E5   .  8D45 E4    lea     eax, [ebp-1C]  
+004DF6E8   .  E8 1B4CF2FF call    00404308  
+004DF6ED   >  8D45 E8    lea     eax, [ebp-18]  
+004DF6F0   .  E8 134CF2FF call    00404308  
+004DF6F5   .  8D45 EC    lea     eax, [ebp-14]  
+004DF6F8   .  E8 0B4CF2FF call    00404308  
+004DF6FD   >  8D45 F0    lea     eax, [ebp-10]  
+004DF700   .  BA 02000000 mov     edx, 2  
+004DF705   .  E8 224CF2FF call    00404308  
+004DF70A   .  C3         retn  
+004DF70B   .^ E9 1C45F2FF  jmp     00403C2C  
+004DF710   .^ EB AE     jmp     short 004DF6C0  
+004DF712   .  8BE5       mov     esp, ebp  
+004DF714   .  5D         pop     ebp  
+004DF715   .  C3         retn  
+```
+
+================ `004DF5B2` `. ` `E8 514AFFFF` `call` `004D4008` ================
+
+```assembly
+004D4008  /$  55         push    ebp                       ; 来到这里  
+004D4009  |.  8BEC       mov     ebp, esp  
+004D400B  |.  83C4 F0    add     esp, -10  
+004D400E  |.  53         push    ebx  
+004D400F  |.  56         push    esi  
+004D4010  |.  57         push    edi  
+004D4011  |.  33C9       xor     ecx, ecx  
+004D4013  |.  894D F4    mov     [ebp-C], ecx  
+004D4016  |.  8955 F8    mov     [ebp-8], edx  
+004D4019  |.  8945 FC    mov     [ebp-4], eax              ; (ASCII "lzq1973")  
+004D401C  |.  8B45 FC    mov     eax, [ebp-4]  
+004D401F  |.  E8 9407F3FF call    004047B8  
+004D4024  |.  33C0       xor     eax, eax  
+004D4026  |.  55         push    ebp  
+004D4027  |.  68 AF404D00 push    004D40AF  
+004D402C  |.  64:FF30    push    dword ptr fs:[eax]  
+004D402F  |.  64:8920    mov     fs:[eax], esp  
+004D4032  |.  8D45 F4    lea     eax, [ebp-C]  
+004D4035  |.  BA C8404D00 mov     edx, 004D40C8           ; 字符串常量(ASCII "qwertyuiopasdfghjklzxcvbnm")  
+004D403A  |.  E8 6103F3FF call    004043A0  
+004D403F  |.  BE F57E0800 mov     esi, 87EF5               ; 常数（87EF5）赋给 ESI  
+004D4044  |.  8B45 FC    mov     eax, [ebp-4]  
+004D4047  |.  E8 7C05F3FF call    004045C8  
+004D404C  |.  85C0       test    eax, eax                  ; 取用户名长度  
+004D404E  |.  7E 37      jle     short 004D4087  
+004D4050  |.  8945 F0    mov     [ebp-10], eax  
+004D4053  |.  BB 01000000 mov     ebx, 1  
+004D4058  |>  8B45 F4    /mov     eax, [ebp-C]             ; 常量赋给 EAX  
+004D405B  |.  E8 6805F3FF |call     004045C8  
+004D4060  |.  85C0       |test    eax, eax                ; 取字符串常量长度  
+004D4062  |.  7E 1D      |jle     short 004D4081  
+004D4064  |.  BA 01000000|mov     edx, 1  
+004D4069  |.  8B4D FC    |.mov     ecx, [ebp-4]            ; 用户名赋给 ECX  
+004D406C  |.  0FB64C19 FF||movzx   ecx, byte ptr [ecx+ebx-1]  ; 取当前字符  
+004D4071  |.  8B7D F4    ||mov     edi, [ebp-C]  
+004D4074  |.  0FB67C17 FF||movzx   edi, byte ptr [edi+edx-1]  
+004D4079  |.  03CF       ||add     ecx, edi               ; 用户名首字符 16 进制＋当前常量的 16 进制（从左至右逐位取）  
+004D407B  |.  03F1       ||add     esi, ecx               ; ESI＝ESI＋ECX  
+004D407D  |.  42         ||inc     edx                    ; 递增  
+004D407E  |.  48         ||dec     eax                    ; 递减  
+004D407F  |.^ 75 E8      |\jnz     short 004D4069  
+004D4081  |>  43         |inc     ebx                    ; 逐位取用户名  
+004D4082  |.  FF4D F0    |dec     dword ptr [ebp-10]       ; 还剩几位  
+004D4085  |.^ 75 D1      \jnz     short 004D4058  
+004D4087  |>  8B55 F8    mov     edx, [ebp-8]  
+004D408A  |.  8BC6       mov     eax, esi  
+004D408C  |.  E8 074DF3FF call    00408D98  
+004D4091  |.  33C0       xor     eax, eax  
+004D4093  |.  5A         pop     edx  
+004D4094  |.  59         pop     ecx  
+004D4095  |.  59         pop     ecx  
+004D4096  |.  64:8910    mov     fs:[eax], edx  
+004D4099  |.  68 B6404D00 push    004D40B6  
+004D409E  |>  8D45 F4    lea     eax, [ebp-C]  
+004D40A1  |.  E8 6202F3FF call    00404308  
+004D40A6  |.  8D45 FC    lea     eax, [ebp-4]  
+004D40A9  |.  E8 5A02F3FF call    00404308  
+004D40AE  \\.  C3        retn  
+004D40AF   .^ E9 78FBF2FF jmp     00403C2C  
+004D40B4   .^ EB E8     jmp     short 004D409E  
+004D40B6   .  5F        pop     edi  
+004D40B7   .  5E        pop     esi  
+004D40B8   .  5B        pop     ebx  
+004D40B9   .  8BE5      mov     esp, ebp  
+004D40BB   .  5D        pop     ebp  
+004D40BC   .  C3        retn  
+```
+
+------------------------------------------------------------------------
+
+**【破解总结】**
+
+名码比较，算法也简单，如下：
+
+用户名各字符的 16 进制依次与字串（`qwertyuiopasdfghjklzxcvbnm`）的各字符 16 进制和累加后再加上常数（`87EF5`）后转为 10 进制就是注册码。
+
+根据飘云老大的注册机教程，试了试，代码如下：
+
+```
+.如果 (编辑框 1.内容 ≠ "")  
+    用户名长度 ＝ 取文本长度 (编辑框 1.内容)  
+    字符串常量 ＝ “qwertyuiopasdfghjklzxcvbnm”  
+    字符串常量长度 ＝ 取文本长度 (字符串常量)  
+    .计次循环首 (用户名长度, i)  
+        c ＝ 取代码 (编辑框 1.内容, i)  
+        .计次循环首 (字符串常量长度, ii)  
+            cc ＝ 取代码 (字符串常量, ii)  
+            Sn ＝ Sn ＋ c ＋ cc  
+        .计次循环尾 ()  
+    .计次循环尾 ()  
+.否则  
+    信息框 (“请输入用户名”, 0, )  
+.如果结束  
+编辑框 2.内容 ＝ 到文本 (Sn ＋ 556789)  
+
+.子程序 _按钮 2_ 被单击  
+
+信息框 (“制作：lzq1973[PYG][CZG][OCN][DFCG][D.4s]”, 0, “感谢飘云老大”)  
+```
+
+收工，首次作算法注册机，痛快～～
+
+------------------------------------------------------------------------
+
+**【版权声明】** 本文纯属技术交流, 转载请注明作者信息并保持文章的完整, 谢谢!
+
+`4dd466d0e1e0cc123afbe504da2462ca`
