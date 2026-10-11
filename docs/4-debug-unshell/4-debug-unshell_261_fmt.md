@@ -1,0 +1,209 @@
+
+# Armadillo 3.7
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6449.htm`](https://www.pediy.com/kssd/pediy06/pediy6449.htm)
+
+`Arma` 升级了，3.7，`jwh51` 说他那里对用 3.7 和 3.6 加壳的程序的 `dump` 过程差不多，我这里却有些不同，是不是我哪里操作不对？还有就是对 `iat` 的修复，不知下面的方法是否可取，看官，自己斟酌吧，不是之处，海涵。
+
+`OS`: `XP`
+
+工具: (改了名的) `od`
+
+对象: `goodmorning` 上传的经 3.7 加壳的 `notepad`
+
+## 1. anti `od`
+
+程序利用 `Process32Next` `anti` 以下进程：
+
+- `ollydbg`
+- `nrec.exe`
+- `n-rec.Vx` ;应该是 `n-rec.Vxd`，它只核对文件名前 8 个字节
+- `n rec.Vx`
+- `agoblin`
+- `lordpe`
+
+典型代码如：
+
+```
+...
+0103DC33   LODS DWORD PTR DS:[ESI]              ;开始 esi 指向得到的进程名
+0103DC34   OR EAX,20202020                      ;大写字符－>小写字符
+0103DC39   STOS DWORD PTR ES:[EDI]
+0103DC3A   LOOPD SHORT notepad.0103DC33
+...
+0103DCC4   CMP DWORD PTR DS:[EDI],796C6C6F       ;是 olly 吗？
+0103DCCA   JNZ SHORT notepad.0103DCDA
+0103DCCC   CMP DWORD PTR DS:[EDI+3],67626479     ;ydbg？
+0103DCD3   JNZ SHORT notepad.0103DCDA
+0103DCD5   JMP notepad.0103DECE
+0103DCDA   MOV EDI,84C0
+0103DCDF   ADD EDI,EBP
+0103DCE1   CMP DWORD PTR DS:[EDI],6365726E
+0103DCE7   JNZ SHORT notepad.0103DCF7
+0103DCE9   CMP DWORD PTR DS:[EDI+4],6578652E
+...
+```
+
+对付 `arma` 的这一招，你只要把 `od` 的名字改一改就可以了，暂时不要启动 `lordpe`（或改名）。
+
+## 2. oep
+
+我这里用“传统”方法查找 `oep` 失败：
+
+对 `WaitForDebugEvent` 下断，得到 `pDebugEvent = 0012DA6C`
+
+再对 `WriteProcessMemory`，断下后堆栈数据：
+
+```
+0012D8EC   00000050   |hProcess = 00000050 (window)
+0012D8F0   01006000   |Address = 01006000
+0012D8F4   00881FB0   |Buffer = 00881FB0
+0012D8F8   00001000   |BytesToWrite = 00001000
+0012D8FC   0012D91C   pBytesWritten = 0012D91C
+```
+
+这时 `0012DA6C` 处数据：
+
+```
+0012DA6C  70 F5 12 00 70 F5 12 00 CA 44 02 01 05 00 00 00  p?.p?.蔇...
+0012DA7C  D8 1E 88 00 00 00 00 00 FC FE 12 00 00 00 00 00  ??....       .
+0012DA8C  19 3B 03 01 00 00 00 00 04 00 00 80 00 00 00 00  ;......€....
+0012DA9C  8C F7 56 5A 00 00 00 00 00 00 00 00 00 00 00 00  岟 VZ............
+```
+
+`1006420`（`oep`）在哪里？看来 `arma` 这次升级对此法找 `oep` 有所防备了。另寻它法吧，总不能搜索它的二进制值！
+
+重新载入这个东东，隐藏 `od` 后对 `WaitForDebugEvent` 下断，断下后去掉断点再 `bp GetThreadContext`，呵呵，来了：
+
+```
+0012D79C   01028408  /CALL to GetThreadContext from notepad.01028402
+0012D7A0   00000058  |hThread = 00000058
+0012D7A4   0012D7A8  pContext = 0012E86C
+```
+
+执行到函数结束时（`retn 8`）在 `od` 的 `Command` 处键入：`d 12E86C+0b8`，看到了:
+
+```
+0012E924  20 64 00 01 1B 00 00 00 02 02 01 00 54 F5 12 00   d.....T?.
+```
+
+记下 `oep=1006420`
+
+有了 `oep`，`dump` 时利用插件（谢谢 `jwh51`），的确很方便。对 `WriteProcessMemory` 下断，断下后，
+
+把 `8823D0`（`881FB0+(1006420-1006000)`）处的 `55 8b` 改成 `eb fe`，把 `1026d2d` 处的 `call 1026da5` `nop` 掉，执行程序，
+
+这时可以 `dump` 了。
+
+（[详细说明参见 jwh51 的文章](http://tongtian.net/pediybbs/viewtopic.php?t=5357&sid=1992cacd331890c16dd4c00d93196ed1)）
+
+`dump` 后记住把那个 `eb fe` 改回来（`55 8b`）。
+
+## 3. iat
+
+`od` 载入 `dump` 下来的东东，代码窗口转到 `1006420`，下滚鼠标看到：
+
+```
+01006549   CALL DWORD PTR DS:[100109C]               ; kernel32.GetStartupInfoA
+```
+
+`100109C` 应该位于 `iat` 中了，`follow in dump` 后可以看到从 `1001000` 开始的 `iat`:
+
+```
+01001000  CA 60 DF 77 70 DA 9A 00 65 1B DD 77 0B 58 DD 77  蔪遷 p 跉.e 輜 X 輜
+01001010  EA 22 DD 77 D7 23 DD 77 78 D8 9A 00 D6 A6 9A 00  ?輜?輜 x 貧.枝?
+01001020  1C 3A C7 77 F9 89 C8 77 1D 53 C7 77 B0 1B C7 77  :莣鶋葁 S 莣?莣
+...
+```
+
+用 `ImportRec` 处理这段数据，稍加整理得到涉及 8 个 `dll`，57 个未解析出函数指针的 `iat` 表，这 8 个 `dll` 分别是：
+
+1）`advapi32.dll`
+2）`gdi32.dll`
+3）`kernel32.dll`
+4）? ;从 `1001144` 开始第一个指针指向 `77C379DB`
+5）? ;从 `1001194` 开始第一个指针指向 `7740FB28`
+6）`user32.dll`
+7）? ;从 `10012c4` 开始第一个指针指向 `73006818`
+8）? ;从 `10012d4` 开始第一个指针指向 `763D6AC8`
+
+记下这个顺序，修复 `iat` 有用。`let's go`
+
+`od` 再次载入这个 `notepad`，对 `WaitForDebugEvent` 设断，执行程序，中断，这时不断按 `f9`，当 `edi` 的值连续发生如下变化，`pause`
+
+`0012E0DC->0104E8C8->0012E0DC` (注意要连续)
+
+这时用 `pupe`（我用自己写的小工具）把子进程中 `Api` 函数 `VirtualProtect` 的 `Retn 10`（`c2 10 00`）语句前 2 字节改成 `eb fe`, `alt+f9` 将父进程从 `WaitForDebugEvent` 返回，再按“经典”方法使父进程与子进程断开，让 `od` `attach` 上子进程，完成后按 `alt+f9` 走到 `eb fe` 处，改回来：`eb fe->c2 10`，再 `f8` 来到：
+
+```
+009C465F  PUSH 1
+009C4661  POP EAX
+009C4662  TEST EAX,EAX
+009C4664  JE 009C4929
+009C466A  AND WORD PTR SS:[EBP-1D7C],0
+009C4672  AND DWORD PTR SS:[EBP-1D84],0
+009C4679  AND DWORD PTR SS:[EBP-1D80],0
+009C4680  MOV EAX,DWORD PTR SS:[EBP-1780]
+009C4686  MOVSX EAX,BYTE PTR DS:[EAX]
+009C4689  TEST EAX,EAX
+009C468B  JNZ SHORT 009C46D1
+009C468D  LEA ECX,DWORD PTR SS:[EBP-17C0]
+009C4693  CALL 009A1040
+...
+```
+
+这正是我们希望来到的代码区－－处理 `iat` 的地方！作如下修改：
+
+1）`9C46AE` 处的 `MOV[EAX],ECX` `nop` 掉
+2）`9C4813` 的 `JNZ 9C4854` 也 `nop`
+3）`9C4847` 处
+
+```
+   009C4847   CALL 009A9C72
+   009C484C   POP ECX
+   009C484D   POP ECX
+```
+
+改成：
+
+```
+   009C4847   CALL kernel32.GetProcAddress
+   009C484C   NOP
+   009C484D   NOP
+```
+
+在 `9C4913`(`MOV[EAX],ECX`)和 `9C49ed`（`CALL [9CB138] ; kernel32.VirtualProtect`）设断，`f9`,断在 `9C4913` 时看到：
+
+```
+009C4913  MOV DWORD PTR DS:[EAX],ECX               ; comdlg32.FindTextW
+```
+
+此时的 `eax=009F9200`，`ecx=763CA8A5`，结合前面 `ImportRec` 得到的顺序，看出它最先处理的是最后一个（第八个）`dll`（`comdlg32.dll`），`arma` 并没有把它直接放到 `10012d4`，而是 `009F9200`！按 `f8`，`hex dump` 窗口转到 `9f9200`
+
+把这里的 `A5 A8 3C 76` 按二进制方式 `copy`，去掉 `9C4913` 的断点，`f9`，断在 `CALL [9CB138]`处，这时你可以从 `hex dump` 中看到对 `comdlg32` 已经处理完毕，但 `9f9200` 处已经变成 `00 00 00 00`，这就是刚才 `copy` 的原因，`paste it`，`ok`，再选定那里的数据块，`Binary copy`，打开记事本，粘贴，结果如此
+
+```
+A5 A8 3C 76 58 A8 3C 76 FC A7 3C 76 C8 6A 3D 76 B5 A8 3C 76 59 1A 3B 76 3F DE 3C 76 08 1E 3D 76
+B7 44 3C 76 00 00 00 00
+```
+
+再次在 `9C4913` 下断，`f9`，看到：
+
+```
+009C4913    MOV DWORD PTR DS:[EAX],ECX               ; SHELL32.DragQueryFileW
+(eax=009F9230 ecx=7740FB28)
+```
+
+呵呵，这次处理的是 `SHELL32.DLL`，第一个函数指针 `7740FB28`，对照 `ecx` 的值知道，这应该放到第五个位置！
+
+同前，处理完这个 `dll` 后粘贴到记事本中的是：
+
+```
+28 FB 40 77 CE 8A 4A 77 DB E3 49 77 41 52 41 77 00 00 00 00
+```
+
+要放到第一次粘贴到记事本数据的前面哦，第五个位置呀！（建议在前面标记上 5）
+
+好了，每个 `dll` 都可以从名称或 `ecx` 的值找到自己的位置，这样的操作只是简单重复进行就可以了。最后当 `arma` 异常时把记事本中的数据复制到 `1001000`，再借助 `ImpotREC`，没有什么值得一说的了。
+
+对了，如果要跨系统，把 `RestoreLastErr` 改成 `SetLatErr` 就行。

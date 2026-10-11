@@ -1,0 +1,241 @@
+
+# Armadillo V3.40
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6339.htm`](https://www.pediy.com/kssd/pediy06/pediy6339.htm)
+
+Armadillo V3.40 标准加壳方式的脱壳——Win98 的 `Notepad`
+
+下载地址： `http://www.siliconrealms.com/download/Armd340.exe`
+
+软件大小： 1.63M
+
+【软件简介】：`Armadillo` is a powerful software protection system. It wraps around your program like an armored shell, defending your work from pirates and program crackers with state-of-the-art encryption, data compression, and other security features. It allows you to design and add a complete software protection and registration-key system to your existing programs in five minutes or less, with no changes to your program's code! And it works with any language that produces a 32-bit Windows `EXE` file.
+
+【作者声明】：初学 `Crack`，只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+【调试环境】：`WinXP`、`Ollydbg1.09`、`PEiD`、`LordPE`、`ImportREC`
+
+—————————————————————————————————
+
+【脱壳过程】：
+
+从其主页下载了 `Armadillo V3.40`，应该是目前的最新版吧？
+
+试炼品：用 `Armadillo V3.40` 标准方式（`Standard Protections Only`）加壳的 `Win98` 的 `Notepad`，想试试就自己加吧。
+
+`Armadillo` 是当今猛壳之一啦。其 `CopyMem-II`+`Debug-Blocker` 的加壳方式是非常强劲的，其标准加壳方式相对来说则容易的多。无聊时偶来捏捏软柿子，:-) 看看 `V3.40` 的标准加壳有无变化。
+
+用 `IsDebug 1.4` 插件去掉 `Ollydbg` 的调试器标志。设置忽略所有的异常选项。`Let's Go`！
+
+```
+00425869   55                   push ebp
+                   ==>进入 OD 后断在这！
+```
+
+`F9` 运行，弹出“未授权”的 `Armadillo` 保护提示。偶们下断：`BP GetModuleHandleA+5`  点 `OK` 后断下。当然，对于用注册版加壳的没有这个提示，可以直接在 `GetModuleHandleA+5` 处下 硬件执行 断点。断下后看看堆栈：
+
+```
+77E59F93     837C24 04 00       cmp dword ptr ss:[esp+4],0
+77E59F98     0F84 23060000      je kernel32.77E5A5C1
+                   ==>断在这！按 7 次 F9，然后取消断点，Ctrl+F9 执行到返回
+```
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+`BP GetModuleHandleA+5`  中断后的堆栈变化：
+
+```
+0012BE84    00AA6A5E   返回到 00AA6A5E 来自 kernel32.GetModuleHandleA
+0012BE88    0012BFC0   ASCII "kernel32.dll"
+0012BE84    00AA6A5E   返回到 00AA6A5E 来自 kernel32.GetModuleHandleA
+0012BE88    0012BFC0   ASCII "user32.dll"
+0012BE84    00AA6A5E  返回到 00AA6A5E 来自 kernel32.GetModuleHandleA
+0012BE88    0012BFC0  ASCII "MSVBVM60.DLL"
+0012B77C    66001BB1   返回到 66001BB1 来自 kernel32.GetModuleHandleA
+0012B780    66003DA8   ASCII "kernel32.dll"
+0012B770    66002848   返回到 66002848 来自 kernel32.GetModuleHandleA
+0012B774    66003DD4   ASCII "KERNEL32"
+0012B768    660031FB   返回到 660031FB 来自 kernel32.GetModuleHandleA
+0012B76C    00000000
+0012BE84    00AA6A5E   返回到 00AA6A5E 来自 kernel32.GetModuleHandleA
+0012BE88    0012BFC0   ASCII "advapi32.dll"
+0012C110    00ABE6C1   返回到 00ABE6C1 来自 kernel32.GetModuleHandleA
+0012C114    00000000   //好了，到此为止吧 :-) 再来几次就运行了
+```
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+```
+77E59F9E     FF7424 04          push dword ptr ss:[esp+4]
+77E59FA2     E8 55080000        call kernel32.77E5A7FC
+77E59FA7     85C0               test eax,eax
+77E59FA9     74 08              je short kernel32.77E59FB3
+77E59FAB     FF70 04            push dword ptr ds:[eax+4]
+77E59FAE     E8 B0060000        call kernel32.GetModuleHandleW
+77E59FB3     C2 0400            retn 4
+                   ==>返回到 00ABE6C1
+```
+
+————————————————————————
+
+```
+00ABE6BB     FF15 C4C0AC00      call dword ptr ds:[ACC0C4]                ; kernel32.GetModuleHandleA
+00ABE6C1     3985 B0E9FFFF      cmp dword ptr ss:[ebp-1650], eax         ; Notepad.00400000
+00ABE6C7     75 0F              jnz short 00ABE6D8
+00ABE6C9     C785ACE9FFFF4002AD00 mov dword ptr ss:[ebp-1654], 0AD0240
+00ABE6D3     E9 C4000000        jmp 00ABE79C
+00ABE6D8     83A5 84E7FFFF 00    and dword ptr ss:[ebp-187C], 0
+00ABE6DF     C78580E7FFFF5008AD00 mov dword ptr ss:[ebp-1880], 0AD0850
+00ABE6E9     EB 1C              jmp short 00ABE707
+00ABE6EB     8B85 80E7FFFF      mov eax, dword ptr ss:[ebp-1880]
+00ABE6F1     83C0 0C            add eax, 0C
+00ABE6F4     8985 80E7FFFF      mov dword ptr ss:[ebp-1880], eax
+00ABE6FA     8B85 84E7FFFF      mov eax, dword ptr ss:[ebp-187C]
+00ABE700     40                 inc eax
+00ABE701     8985 84E7FFFF      mov dword ptr ss:[ebp-187C], eax
+00ABE707     8B85 80E7FFFF      mov eax, dword ptr ss:[ebp-1880]
+00ABE70D     8338 00            cmp dword ptr ds:[eax], 0
+00ABE710     0F84 86000000      je 00ABE79C   //在这里偶中断了 6 次
+                   ==>这就是那个 Magic Jump   :-)
+```
+
+此处下 硬件执行 断点，每次断下后改标志 `Z=1`，使其 `JMP`，就能得到未被破坏的输入表了
+
+接着下断：`BP GetCurrentThreadId`  断下后取消断点，`Ctrl+F9` 执行到返回
+
+```
+77E57CC4     64:A1 18000000       mov eax, dword ptr fs:[18]
+77E57CCA     8B40 24              mov eax, dword ptr ds:[eax+24]
+77E57CCD     C3                   retn
+                   ==>返回到 00AC1351
+
+00AC134B     FF15 14C1AC00        call dword ptr ds:[ACC114]   ; kernel32.GetCurrentThreadId
+00AC1351     A3 F0B8AD00          mov dword ptr ds:[ADB8F0], eax
+                   ==>返回到这里  向下找 CALL EDI，在 00AC13E4 处，F2 下断
+```
+
+```
+00AC1356     E8 E759FeFF          call 00AA6D42
+00AC135B     6A 00                push 0
+00AC135D     E8 FBB1FeFF          call 00AAC55D
+00AC1362     6A 00                push 0
+00AC1364     C7054418AD008022AD00 mov dword ptr ds:[AD1844], 0AD2280     ; ASCII "RC"
+00AC136E     E8 A22D0000          call 00AC4115
+00AC1373     59                   pop ecx
+00AC1374     59                   pop ecx
+00AC1375     E8 1B2BFFFF          call 00AB3E95
+00AC137A     8BF8                 mov edi, eax
+00AC137C     A1 DCB8AD00          mov eax, dword ptr ds:[ADB8DC]
+00AC1381     8B48 78              mov ecx, dword ptr ds:[eax+78]
+00AC1384     3348 3C              xor ecx, dword ptr ds:[eax+3C]
+00AC1387     3348 38              xor ecx, dword ptr ds:[eax+38]
+00AC138A     03F9                 add edi, ecx
+00AC138C     8B0E                 mov ecx, dword ptr ds:[esi]
+00AC138E     85C9                 test ecx, ecx
+00AC1390     75 2F               jnz short 00AC13C1
+00AC1392     8B78 3C             mov edi, dword ptr ds:[eax+3C]
+00AC1395     E8 FB2AFFFF         call 00AB3E95
+00AC139A     8B0D DCB8AD00       mov ecx, dword ptr ds:[ADB8DC]          ; Notepad.0043D260
+00AC13A0     FF76 14             push dword ptr ds:[esi+14]
+00AC13A3     8B51 78             mov edx, dword ptr ds:[ecx+78]
+00AC13A6     FF76 10             push dword ptr ds:[esi+10]
+00AC13A9     3351 38             xor edx, dword ptr ds:[ecx+38]
+00AC13AC     FF76 0C             push dword ptr ds:[esi+C]
+00AC13AF     33D7                xor edx, edi
+00AC13B1     03C2                add eax, edx
+00AC13B3     8B51 6C             mov edx, dword ptr ds:[ecx+6C]
+00AC13B6     3351 28             xor edx, dword ptr ds:[ecx+28]
+00AC13B9     33D7                xor edx, edi
+00AC13BB     2BC2                sub eax, edx
+00AC13BD     FFD0                call eax
+00AC13BF     EB 25               jmp short 00AC13E6
+00AC13C1     83F9 01             cmp ecx, 1
+00AC13C4     75 22               jnz short 00AC13E8
+00AC13C6     FF76 04             push dword ptr ds:[esi+4]
+00AC13C9     FF76 08             push dword ptr ds:[esi+8]
+00AC13CC     6A 00               push 0
+00AC13CE     E8 C22AFFFF         call 00AB3E95
+00AC13D3     50                  push eax
+00AC13D4     A1 DCB8AD00         mov eax, dword ptr ds:[ADB8DC]
+                   ==>EAX=0043D260
+00AC13D9     8B48 6C             mov ecx, dword ptr ds:[eax+6C]
+                   ==>ECX=CE6D8D16
+00AC13DC     3348 3C             xor ecx, dword ptr ds:[eax+3C]
+                   ==>ECX=CE6D8D16 XOR 0423AE82=CA4E2394
+00AC13DF     3348 28             xor ecx, dword ptr ds:[eax+28]
+```
+
+
+
+### 00AC13E2
+
+```asm
+00AC13E2     2BF9             sub edi, ecx
+                      ====>ECX=CA4E2394 XOR 8A844884=40CA6B10
+                      ====>EDI=410A7BDC  -  40CA6B10=004010CC
+```
+
+### 00AC13E4
+
+```asm
+00AC13E4     FFD7             call edi         ; Notepad.004010CC
+                      ====>此处下断！F7 进入！！  飞向光明之巅！GO GO GO  :-)
+```
+
+### 00AC13E6
+
+```asm
+00AC13E6     8BD8             mov ebx, eax
+00AC13E8     5F               pop edi
+00AC13E9     8BC3             mov eax, ebx
+00AC13EB     5E               pop esi
+00AC13EC     5B               pop ebx
+00AC13ED     C3               retn
+```
+
+---
+
+### 004010CC
+
+```asm
+004010CC     55               push ebp
+                      ====>在这儿用 LordPE 完全 DUMP 这个进程
+004010CD     8BEC             mov ebp,esp
+004010CF     83EC 44          sub esp,44
+004010D2     56               push esi
+004010D3     FF15 E4634000    call dword ptr ds:[4063E4]  ; kernel32.GetCommandLineA
+004010D9     8BF0             mov esi,eax
+004010DB     8A00             mov al,byte ptr ds:[eax]
+004010DD     3C 22            cmp al,22
+004010DF     75 1B            jnz short Notepad.004010FC
+004010E1     56               push esi
+004010E2     FF15 F4644000    call dword ptr ds:[4064F4]  ; USER32.CharNextA
+```
+
+---
+
+### 运行步骤
+
+运行 `ImportREC`，选择这个进程。把 `OEP` 改为 `000010CC`，点 `IT AutoSearch`，点“Get Import”，放心 CUT 掉 6 个无效的指针，`FixDump`，正常运行！
+
+---
+
+```text
+       ,      \_/
+      /| \_.-~/          \_     ,        青春都一饷
+     ( /~   /             ~-.|
+     \`\\   \_/                   ~ )          忍把浮名
+  _-~~~-.)  )\_\_/;;,.           \_  //'/
+ /'\_,   --~     ~~~-  ,;;\_\_\_(  (.-~~~-.        换了破解轻狂
+\`~ _( ,\_..-- (       ,;''/    ~--   /._\`
+ /~~//'   /' \`~           ) /--..\_, )\_  \`~
+ "  \`~"  "       \`"       /~'\`    \`\\~~
+
+                "     "   "~'  ""
+
+          Cracked By 巢水工作坊——fly [OCN][FCG][NUKE]
+
+                 2003-11-25  20:20
+```
+
+`4dd466d0e1e0cc123afbe504da2462ca`
