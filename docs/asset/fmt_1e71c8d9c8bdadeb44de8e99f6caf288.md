@@ -1,0 +1,246 @@
+
+```
+0055D7A0   |.  837D EC 00        cmp dword ptr ss:[ebp-14],0                   
+  
+0055D7A4   |.  75 51             jnz short unpacked.0055D7F7                   
+  
+0055D7A6   |.  A1 D86F5600       mov eax,dword ptr ds:[566FD8]  
+
+0055D7AB   |.  8B00             mov eax,dword ptr ds:[eax]  
+
+0055D7AD   |.  8B40 5C         mov eax,dword ptr ds:[eax+5C]  
+
+0055D7B0   |.  E8 6F34F6FF      call unpacked.004C0C24  
+
+0055D7B5   |.  8D4D E8         lea ecx,dword ptr ss:[ebp-18]  
+
+0055D7B8   |.  BA C8D95500      mov edx,unpacked.0055D9C8                         ;  ASCII "60"  
+
+0055D7BD   |.  8BC3             mov eax,ebx  
+
+0055D7BF   |.  E8 74030000      call unpacked.0055DB38  
+
+0055D7C4   |.  8B45 E8         mov eax,dword ptr ss:[ebp-18]  
+
+0055D7C7   |.  50               push eax  
+
+0055D7C8   |.  A1 D86F5600      mov eax,dword ptr ds:[566FD8]  
+
+0055D7CD   |.  8B00             mov eax,dword ptr ds:[eax]  
+
+0055D7CF   |.  8B40 5C         mov eax,dword ptr ds:[eax+5C]  
+
+0055D7D2   |.  BA B8D95500      mov edx,unpacked.0055D9B8                         ;  ASCII "regid"  
+
+0055D7D7   |.  E8 881CF6FF      call unpacked.004BF464  
+
+0055D7DC   |.  5A               pop edx  
+
+0055D7DD   |.  8B08             mov ecx,dword ptr ds:[eax]  
+
+0055D7DF   |.  FF91 B0000000    call dword ptr ds:[ecx+B0]  
+
+0055D7E5   |.  A1 D86F5600      mov eax,dword ptr ds:[566FD8]  
+
+0055D7EA   |.  8B00             mov eax,dword ptr ds:[eax]  
+
+0055D7EC   |.  8B40 5C         mov eax,dword ptr ds:[eax+5C]  
+
+0055D7EF   |.  8B10             mov edx,dword ptr ds:[eax]  
+
+0055D7F1   |.  FF92 4C020000    call dword ptr ds:[edx+24C]  
+
+0055D7F7   |>  A1 D86F5600      mov eax,dword ptr ds:[566FD8]  
+
+0055D7FC   |.  8B00             mov eax,dword ptr ds:[eax]  
+
+0055D7FE   |.  8B40 5C         mov eax,dword ptr ds:[eax+5C]  
+
+0055D801   |.  BA D4D95500      mov edx,unpacked.0055D9D4                         ;  ASCII "regdata"  
+
+0055D806   |.  E8 591CF6FF      call unpacked.004BF464  
+
+0055D80B   |.  8D55 E4         lea edx,dword ptr ss:[ebp-1C]  
+
+0055D80E   |.  8B08             mov ecx,dword ptr ds:[eax]  
+
+0055D810   |.  FF51 60         call dword ptr ds:[ecx+60]  
+
+0055D813   |.  8B55 E4         mov edx,dword ptr ss:[ebp-1C]  
+
+0055D816   |.  8D4D F4         lea ecx,dword ptr ss:[ebp-C]  
+
+0055D819   |.  8BC3             mov eax,ebx  
+
+0055D81B   |.  E8 18030000      call unpacked.0055DB38        ××××看这个 call unpacked.0055DB38 将从 wofan.cty 中读取的假码，又进行了一次运算，所以前面我说了那个在制作注册机时陷阱  
+```
+
+********************************************************************
+
+它将 `r<+,mnm,%$|` 又变回了 `|<*-lol-/.|` 用它去与 `1481617136` 比较，相等则注册成功！
+
+********************************************************************
+
+```
+0055D820   |.  A1 D86F5600      mov eax,dword ptr ds:[566FD8]  
+
+0055D825   |.  8B00             mov eax,dword ptr ds:[eax]  
+
+0055D849   |.  8B45 FC         mov eax,dword ptr ss:[ebp-4]  
+
+0055D84C   |.  8B55 F4         mov edx,dword ptr ss:[ebp-C]  
+
+0055D84F   |.  E8 1070EAFF      call unpacked.00404864          ××× 这个就是关键比较 Call 6  
+
+0055D854   |.  0F84 0F010000    je unpacked.0055D969              ×××跳走，就不会有 60 次限制了，但是修改是没用的。因为软件脱后就无法使用！  
+
+0055D85A   |.  8B45 F8         mov eax,dword ptr ss:[ebp-8]  
+
+0055D85D   |.  E8 86BCEAFF      call unpacked.004094E8  
+
+0055D862   |.  48               dec eax  
+
+0055D863   |.  7C 0D            jl short unpacked.0055D872  
+
+0055D865   |.  8B45 F8         mov eax,dword ptr ss:[ebp-8]  
+
+0055D868   |.  E8 7BBCEAFF      call unpacked.004094E8  
+
+0055D86D   |.  83F8 3C         cmp eax,3C                          3C 就是十进制 60  
+
+0055D870   |.  7E 50            jle short unpacked.0055D8C2  
+
+省略  
+
+0055D8EA   |.  8D45 F8         lea eax,dword ptr ss:[ebp-8]  
+
+0055D8ED   |.  E8 FE6BEAFF      call unpacked.004044F0  
+
+0055D8F2   |.  68 E4D95500      push unpacked.0055D9E4                     ;  ASCII "剩余"  
+
+0055D8F7   |.  FF75 F8         push dword ptr ss:[ebp-8]  
+
+0055D8FA   |.  68 F4D95500      push unpacked.0055D9F4                     ;  ASCII "次"  
+
+××××××××这个 Call 4 将 584FAEF0 变成有符号的十进制数×××××××××××××××  
+
+004093AC   /$  56               push esi  
+
+004093AD   |.  89E6             mov esi,esp  
+
+004093AF   |.  83EC 10         sub esp,10  
+
+004093B2   |.  31C9             xor ecx,ecx  
+
+004093B4   |.  52               push edx  
+
+004093B5   |.  31D2             xor edx,edx  
+
+004093B7   |.  E8 A4FFFFFF      call unpacked.00409360      这一个 Call 5 要进去  
+
+004093BC   |.  89F2             mov edx,esi  
+
+004093BE   |.  58               pop eax  
+
+004093BF   |.  E8 84B1FFFF      call unpacked.00404548      
+
+004093C4   |.  83C4 10         add esp,10  
+
+004093C7   |.  5E               pop esi  
+
+004093C8   \.  C3               retn  
+
+         ×××××  这一个 Call 5 要进去×××××××  
+```
+
+省略一部分
+
+```
+00409364   |.  09C0             or eax,eax                 EAX＝584FAEF0  
+
+00409366   |.  79 0E            jns short unpacked.00409366     没有符号就跳，这里就跳了  
+
+00409368   |.  F7D8             neg eax                  （ 如果不跳，就 neg 一下，让它变成无符号  
+
+0040936A   |.  E8 07000000      call unpacked.00409376  
+
+0040936F   |.  B0 2D            mov al,2D                  再加上符号，2D 就是“-”）  
+
+00409371   |.  41               inc ecx  
+
+00409372   |.  4E               dec esi  
+
+00409373   |.  8806             mov byte ptr ds:[esi],al  
+
+00409375   |.  C3               retn  
+
+00409376   |$  B9 0A000000      mov ecx,0A                 跳到这里，看这个&HA，就知道是在变换成十进制  
+
+0040937B   |>  52               push edx  
+
+0040937C   |.  56               push esi  
+
+0040937D   |>  31D2             /xor edx,edx  
+
+0040937F   |.  F7F1             |div ecx                  EAX＝584FAEF0，让它不断 Div &HA   
+
+00409381   |.  4E               |dec esi  
+
+00409382   |.  80C2 30          |add dl,30                  余数 ADD 30 变成 ASCII 形式  
+
+00409385   |.  80FA 3A          |cmp dl,3A                   然后与&H3D 相比  
+
+00409388   |.  72 03            |jb short unpacked.0040938D    少于&H3D  跳到 0040938D  
+
+0040938A   |.  80C2 07          |add dl,7                   否则就 再 ADD 7  
+
+0040938D   |>  8816             |mov byte ptr ds:[esi],dl     少于&H3D，到这里，不 ADD 7，直接送 byte ptr ds:[esi]  
+
+0040938F   |.  09C0             |or eax,eax                  商 或一下  到最后是 1 div A 商为 0，余数为 1，  0 or 0=0 表示循环结束  
+
+00409391   |.^ 75 EA           \jnz short unpacked.0040937D     不为零就循环  
+
+00409393   |.  59               pop ecx  
+
+00409394   |.  5A               pop edx  
+
+00409395   |.  29F1             sub ecx,esi  
+
+00409397   |.  29CA             sub edx,ecx  
+
+00409399   |.  76 10            jbe short unpacked.004093AB         
+
+0040939B   |.  01D1             add ecx,edx                   
+
+0040939D   |.  B0 30            mov al,30  
+
+0040939F   |.  29D6             sub esi,edx  
+
+004093A1   |.  EB 03            jmp short unpacked.004093A6  
+
+004093A3   |>  880432           /mov byte ptr ds:[edx+esi],al  
+
+004093A6   |>  4A               dec edx  
+
+004093A7   |.^ 75 FA           \jnz short unpacked.004093A3  
+
+004093A9   |.  8806             mov byte ptr ds:[esi],al  
+
+004093AB   \>  C3               retn  
+```
+
+原来是将它变成有符号的十进制数！！！！！
+
+×××××××××××××××××××××××××××××××××××××××××
+
+××××××××××××××××这个就是关键比较 Call  6×××××××××××××××××
+
+```
+00404867   |.  89C6             mov esi,eax                1481617136  
+
+00404869   |.  89D7             mov edi,edx                |<*-lol-/.|                   
+
+0040486B   |.  39D0             cmp eax,edx  
+
+0040486D   |.  0F84 8F000000    je unpacked.00404902  
+```
