@@ -1,0 +1,372 @@
+
+```
+004DA8CF     8B86 28030000        mov eax,dword ptr ds:[esi+328]  
+
+004DA8D5     E8 7EB4F6FF         call Dump_.00445D58  
+
+004DA8DA     B2 01               mov dl,1  
+
+004DA8DC     A1 34CB4600        mov eax,dword ptr ds:[46CB34]  
+
+004DA8E1     E8 4E23F9FF        call Dump_.0046CC34  
+
+004DA8E6     8BD8                mov ebx,eax  
+
+004DA8E8     BA 01000080        mov edx,80000001  
+
+004DA8ED     8BC3                mov eax,ebx  
+
+004DA8EF     E8 E023F9FF        call Dump_.0046CCD4  
+
+004DA8F4     33C9                xor ecx,ecx  
+
+004DA8F6     BA D4A94D00        mov edx,Dump_.004DA9D4              ; ASCII "\Software\FixVideo\VideoFixer\"  
+
+004DA8FB     8BC3                mov eax,ebx  
+
+004DA8FD     E8 3624F9FF        call Dump_.0046CD38  
+
+004DA902     84C0                test al,al  
+
+004DA904     74 79               je short Dump_.004DA97F  
+
+004DA906     8D4D C0             lea ecx,dword ptr ss:[ebp-40]  
+
+004DA909     BA 1CAA4D00        mov edx,Dump_.004DAA1C              ; ASCII "UserName"  
+
+.........................................................................................  
+
+自毁代码  
+
+004DA97A     E8 E9C2F8FF        call Dump_.00466C68  
+
+004DA97F     60                  pushad          //开始  
+
+004DA980     E8 00000000        call Dump_.004DA985  
+
+004DA985     5F                  pop edi  
+
+004DA986     81EF BB330000      sub edi,33BB  
+
+004DA98C     B9 B9330000        mov ecx,33B9  
+
+004DA991     0F31                rdtsc  
+
+004DA993     8907                mov dword ptr ds:[edi],eax  
+
+004DA995     83C7 04             add edi,4  
+
+004DA998     83E9 04             sub ecx,4  
+
+004DA99B     83F9 04             cmp ecx,4  
+
+004DA99E   ^ 73 F1               jnb short Dump_.004DA991  
+
+004DA9A0     61                  popad           //结束  
+
+004DA9A1     33C0                xor eax,eax  
+
+对付很容易，修改  
+
+004DA97F     60                  pushad          
+
+为  
+
+004DA97F    /EB 20               jmp short Dump_.004DA9A1  
+
+004DA981    |90                  nop  
+
+004DA982    |90                  nop  
+
+004DA983    |90                  nop  
+
+004DA984    |90                  nop  
+
+我们再确认刚才保护的代码范围  
+
+..................................................................................  
+
+004DA712     90                  nop   //开始，必须全力保证这段不被重新解码  
+
+004DA713     90                  nop  
+
+004DA714     90                  nop  
+
+004DA715     90                  nop  
+
+004DA716     90                  nop  
+
+004DA717     90                  nop  
+
+004DA718     90                  nop  
+
+004DA719     90                  nop  
+
+004DA71A     90                  nop  
+
+004DA71B     90                  nop  
+
+004DA71C     90                  nop  
+
+004DA71D     90                  nop  
+
+004DA71E     90                  nop  
+
+004DA71F     90                  nop  
+
+004DA720     90                  nop  
+
+004DA721     90                  nop  
+
+004DA722     90                  nop  
+
+004DA723     90                  nop  
+
+004DA724     90                  nop  
+
+004DA725     90                  nop  
+
+004DA726     90                  nop  
+
+004DA727     90                  nop  
+
+004DA728     90                  nop  
+
+004DA729     90                  nop  
+
+004DA72A     90                  nop  
+
+004DA72B     90                  nop  
+
+004DA72C     90                  nop  
+
+004DA72D     90                  nop  
+
+004DA72E     90                  nop  
+
+004DA72F     90                  nop  
+
+004DA730     90                  nop  
+
+004DA731     90                  nop  
+
+004DA732     90                  nop  
+
+004DA733     90                  nop  
+
+004DA734     90                  nop  
+
+004DA735     90                  nop  
+
+004DA736     90                  nop  
+
+004DA737     90                  nop  
+
+004DA738     90                  nop  
+
+004DA739     90                  nop  
+
+004DA73A     90                  nop  
+
+004DA73B     90                  nop  
+
+004DA73C     90                  nop  
+
+004DA73D     90                  nop  
+
+004DA73E     90                  nop  
+
+004DA73F     90                  nop  
+
+004DA740     90                  nop  
+
+004DA741     90                  nop  
+
+004DA742     90                  nop  
+
+004DA743     90                  nop  
+
+004DA744     90                  nop  
+
+004DA745     90                  nop  
+
+004DA746     90                  nop  
+
+004DA747     90                  nop  
+
+004DA748     90                  nop  
+
+004DA749     90                  nop  
+
+004DA74A     90                  nop  
+
+004DA74B     90                  nop  
+
+004DA74C     90                  nop  
+
+004DA74D     90                  nop  
+
+004DA74E     90                  nop  
+
+004DA74F     90                  nop  
+
+004DA750     90                  nop  
+
+004DA751     90                  nop  
+
+004DA752     90                  nop  
+
+004DA753     90                  nop  
+
+004DA754     90                  nop  
+
+004DA755     90                  nop  
+
+004DA756     90                  nop  
+
+004DA757     90                  nop  
+
+004DA758     90                  nop  
+
+004DA759     90                  nop  
+
+004DA75A     90                  nop  
+
+004DA75B     90                  nop  
+
+004DA75C     90                  nop  
+
+004DA75D     90                  nop  
+
+004DA75E     90                  nop  
+
+004DA75F     90                  nop  
+
+004DA760     90                  nop  
+
+004DA761     90                  nop  
+
+004DA762     90                  nop  
+
+004DA763     90                  nop  
+
+004DA764     90                  nop  
+
+004DA765     90                  nop  
+
+004DA766     90                  nop  
+
+004DA767     90                  nop  
+
+004DA768     90                  nop  
+
+004DA769     90                  nop  
+
+004DA76A     90                  nop  
+
+004DA76B     90                  nop  
+
+004DA76C     90                  nop  
+
+004DA76D     90                  nop  
+
+004DA76E     90                  nop  
+
+004DA76F     90                  nop  
+
+004DA770     90                  nop  
+
+004DA771     90                  nop  
+
+004DA772     90                  nop  
+
+004DA773     90                  nop  
+
+004DA774     90                  nop  
+
+004DA775     90                  nop  
+
+004DA776     90                  nop  
+
+004DA777     90                  nop  
+
+004DA778     90                  nop  
+
+004DA779     90                  nop  
+
+004DA77A     90                  nop  
+
+004DA77B     90                  nop  
+
+004DA77C     90                  nop  
+
+004DA77D     90                  nop  
+
+004DA77E     90                  nop  
+
+004DA77F     90                  nop  
+
+004DA780     90                  nop  
+
+004DA781     90                  nop  
+
+004DA782     90                  nop  
+
+004DA783     90                  nop  
+
+004DA784     90                  nop  
+
+004DA785     90                  nop  
+
+004DA786     90                  nop  
+
+004DA787     90                  nop  
+
+004DA788     90                  nop  
+
+004DA789     90                  nop  
+
+004DA78A     90                  nop  
+
+004DA78B     90                  nop  
+
+004DA78C     90                  nop  
+
+004DA78D     90                  nop  
+
+004DA78E     90                  nop  
+
+004DA78F     90                  nop  
+
+004DA790     90                  nop  
+
+004DA791     90                  nop  
+
+004DA792     90                  nop  
+
+004DA793     90                  nop  
+
+004DA794     90                  nop  
+
+004DA795     90                  nop  
+
+004DA796     90                  nop  
+
+004DA797     90                  nop  
+
+004DA798     90                  nop  
+
+004DA799     90                  nop  
+
+004DA79A     90                  nop  
+
+004DA79B     90                  nop  
+
+004DA79C     90                  nop  
+
+004DA79D     90                  nop  
+
+004DA79E     90                  nop  
+
+004DA79F     90                  nop
+```
