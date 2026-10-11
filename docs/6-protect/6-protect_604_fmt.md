@@ -1,0 +1,267 @@
+
+# VMProtect 逆向分析
+
+> 原文：[`www.pediy.com/kssd/pediy10/70192.html`](https://www.pediy.com/kssd/pediy10/70192.html)
+
+## Part 0: Basics
+
+Author: `RolfRolles`
+
+`VMProtect` 是一种虚拟化保护壳。与其他类似 `ReWolf's x86 Virtualizer` 和 `CodeVirtualizer` 的保护手段一样，它的工作原理是反汇编目标可执行文件的 `x86` 字节码，并将其编译为一种专有的、多态的字节码，该字节码在运行时由自定义解释器执行。这与传统的加壳概念不同，在传统的加壳中，`x86` 字节码仅仅被加密和/或压缩：而在虚拟化中，受保护区域内的原始 `x86` 字节码已消失，永远不会再被看到。至少这是设计者的初衷。
+
+如果你从未研究过 `VMProtect`，我鼓励你花五分钟时间在 `IDA` 中查看（这里有一个样本加壳的二进制文件）。就虚拟机而言，它的结构非常简洁且易于理解。难点在于从虚拟机字节码重建可用的 `x86` 字节码。以下是其调度器的两分钟分析。
+
+```assembly
+push edi ; push all registers
+push ecx
+push edx
+push esi
+push ebp
+push ebx
+push eax
+push edx
+pushf
+push 0 ; imagebase fixup
+mov esi, [esp+8+arg_0] ; esi = pointer to VM bytecode
+mov ebp, esp ; ebp = VM's "stack" pointer
+sub esp, 0C0h
+mov edi, esp ; edi = "scratch" data area
+
+VM__FOLLOW_Update:
+add esi, [ebp+0]
+
+VM__FOLLOW_Regular:
+mov al, [esi] ; read a byte from EIP
+movzx eax, al
+sub esi, -1 ; increment EIP
+jmp ds:VM_HandlerTable[eax*4] ; execute instruction handler
+```
+
+一个值得讨论的特性是“scratch space”（暂存空间），它在整个调度循环中由寄存器 `edi` 引用。这是堆栈上一个 16 双字大小的区域，`VMProtect` 在进入虚拟机时在此保存寄存器，在基本块执行过程中对其进行修改，并在退出时从中恢复寄存器。对于每个由虚拟机保护的基本块，暂存空间中寄存器的布局可能不同。
+
+以下是部分指令处理器的反汇编。请注意：A) `VMProtect` 是一台堆栈机器；B) 尽管每个处理器仅由少量指令组成，但它执行多项任务，例如弹出多个值，执行多个操作，以及压入一个或多个值。
+
+```assembly
+#00: x = [EIP-1] & 0x3C; y = popd; [edi+x] = y
+.text:00427251 and al, 3Ch ; al = instruction number
+.text:00427254 mov edx, [ebp+0] ; grab a dword off the stack
+.text:00427257 add ebp, 4 ; pop the stack
+.text:0042725A mov [edi+eax], edx ; store the dword in the scratch space
+
+#01: x = [EIP-1] & 0x3C; y = [edi+x]; pushd y
+.vmp0:0046B0EB and al, 3Ch ; al = instruction number
+.vmp0:0046B0EE mov edx, [edi+eax] ; grab a dword out of the scratch space
+.vmp0:0046B0F1 sub ebp, 4 ; subtract 4 from the stack pointer
+.vmp0:0046B0F4 mov [ebp+0], edx ; push the dword onto the stack
+
+#02: x = popw, y = popw, z = x + y, pushw z, pushf
+.text:004271FB mov ax, [ebp+0] ; pop a word off the stack
+.text:004271FF sub ebp, 2
+.text:00427202 add [ebp+4], ax ; add it to another word on the stack
+.text:00427206 pushf
+.text:00427207 pop dword ptr [ebp+0] ; push the flags
+
+#03: x = [EIP++]; w = popw; [edi+x] = Byte(w)
+.vmp0:0046B02A movzx eax, byte ptr [esi] ; read a byte from EIP
+.vmp0:0046B02D mov dx, [ebp+0] ; pop a word off the stack
+.vmp0:0046B031 inc esi ; EIP++
+.vmp0:0046B032 add ebp, 2 ; adjust stack pointer
+.vmp0:0046B035 mov [edi+eax], dl ; write a byte into the scratch area
+
+#04: x = popd, y = popw, z = x << y, pushd z, pushf
+.vmp0:0046B095 mov eax, [ebp+0] ; pop a dword off the stack
+.vmp0:0046B098 mov cl, [ebp+4] ; pop a word off the stack
+.vmp0:0046B09B sub ebp, 2
+.vmp0:0046B09E shr eax, cl ; shr the dword by the word
+.vmp0:0046B0A0 mov [ebp+4], eax ; push the result
+.vmp0:0046B0A3 pushf
+.vmp0:0046B0A4 pop dword ptr [ebp+0] ; push the flags
+
+#05: x = popd, pushd ss:[x]
+.vmp0:0046B5F7 mov eax, [ebp+0] ; pop a dword off the stack
+.vmp0:0046B5FA mov eax, ss:[eax] ; read a dword from ss
+.vmp0:0046B5FD mov [ebp+0], eax ; push that dword
+```
+
+## Part 2: Introduction to Optimization
+
+Author: `RolfRolles`
+
+基本上，`VMProtect` 字节码和 IR 与 `x86` 汇编语言有四个不同之处：
+
+1. 它是一台堆栈机器；
+2. IR 包含“临时变量”；
+3. 它包含一个我称之为“scratch”（暂存）的区域，计算在该区域上进行，而不是在寄存器中进行；
+4. 对于 `VMProtect Ultra`，它在某些方面被混淆（或更确切地说是“去优化”）。
+
+事实证明，从 IR 中移除这四个方面是编译成合理 `x86` 代码的充分准备。我们通过将标准的编译器优化局部应用于每个基本块来实现这一点。通常，在这个过程中使用了几种主要的编译器优化。第一种是“常量传播”。考虑以下 C 代码：
+
+```c
+int x = 1;
+function(x);
+```
+
+显然，当调用 `function` 时，`x` 始终为 1：它在第一行定义，且在第二行使用之前未被重新定义（第一行的定义“到达”了第二行的使用；或者换种说法，这两条语句之间相对于 `x` 是“定义清晰的”）。因此，该代码可以安全地转换为 `"function(1)"`。
+
+如果第一行是变量 `x` 的唯一定义，那么我们可以将 `x` 的所有使用替换为整数 1。如果第二行是变量 `x` 的唯一使用，那么我们可以消除该变量。
+
+下一个是“常量折叠”。考虑以下 C 代码：
+
+```c
+int x = 1024;
+function(x*1024);
+```
+
+根据上述说明，我们知道可以将第二行转换为 `"function(1024*1024);"`。生成实际在运行时执行此乘法代码是愚蠢的：该值在编译时已知，并且应该在当时计算。我们可以将第二行替换为 `"function(1048576);"`，通常我们可以将任何对常量值执行的二元运算替换为该运算的计算结果。
+
+与常量传播类似的是“复制传播”，如下所示：
+
+```c
+void f(int i) {
+  int j = i;
+  g(j);
+}
+```
+
+变量 `j` 仅仅是变量 `i` 的副本，因此可以用 `i` 替代 `j`，直到其中任何一个被重新定义为止。如果没有重新定义，`j` 可以被完全消除。
+
+下一个优化是“死存储消除”。考虑以下 C 代码：
+
+```c
+int y = 2;
+y = 1;
+```
+
+变量 `y` 在第一行的定义立即被第二行的定义所撤销。因此，实际上没有理由将值 2 分配给该变量；对 `y` 的第一次存储是一个“死存储”，可以通过标准的基于活性的编译器优化“死存储消除”（或更普遍地称为“死代码消除”）来消除。以下是 `VMProtect` IR 中的一个示例：
+
+```
+ecx = DWORD Scratch:[Dword(44)]
+ecx = DWORD Scratch:[Dword(20)]
+```
+
+在对第一条指令进行死存储消除后，发现没有其他指令使用 `Scratch:[Dword(44)]`，因此可以消除其先前的定义。
+
+## Part 3: Optimizing and Compiling
+
+Author: `RolfRolles`
+
+读者应该在继续阅读之前检查这个未优化的 IR 列表。为了不让这篇文章变得不必要地长，示例片段将很小，但为了完整性，正文中链接了一个更完整的运行示例。
+
+我们通过移除 IR 的堆栈机器特性开始。由于 `VMProtect` 操作于反汇编的 `x86` 代码，而 `x86` 本身不是堆栈机器，因此保护的这一方面...
+
+
+
+is unnatural and easily removed. Here is a 15-line fragment of VMProtect IR.
+
+```
+push Dword(-88)
+
+push esp
+
+push Dword(4)
+
+pop t3
+
+pop t4
+
+t5 = t3 + t4
+
+push t5
+
+push flags t5
+
+pop DWORD Scratch:\[Dword(52)\]
+
+pop t6
+
+pop t7
+
+t8 = t6 + t7
+
+push t8
+
+push flags t8
+
+pop DWORD Scratch:\[Dword(12)\]
+
+pop esp
+```
+
+All but two instructions are pushes or pops, and the pushes can be easily matched up with the pops. Tracking the stack pointer, we see that, for example, `t3 = Dword(4)`.
+
+A simple analysis allows us to "optimize away" the push/pop pairs into assignment statements. Simply iterate through each instruction in a basic block and keep a stack describing the source of each push. For every pop, ensure that the sizes match and record the location of the corresponding push. We wish to replace the pop with an assignment to the popped expression from the pushed expression, as in
+
+```
+t3 = Dword(4)
+
+t4 = esp
+
+t7 = Dword(-88)
+```
+
+With the stack aspects removed, we are left with a more conventional listing containing many assignment statements. This optimization substantially reduces the number of instructions in a given basic block (~40% for the linked example) and opens the door for other optimizations.
+
+The newly optimized code is eight lines, roughly half of the original:
+
+```
+t3 = Dword(4)
+
+t4 = esp
+
+t5 = t3 + t4
+
+DWORD Scratch:\[Dword(52)\] = flags t5
+
+t6 = t5
+
+t7 = Dword(-88)
+
+t8 = t6 + t7
+
+DWORD Scratch:\[Dword(12)\] = flags t8
+
+esp = t8
+```
+
+A complete listing of the unoptimized IR versus the one with the stack machine features removed is here, which should be perused before proceeding.
+
+Now we turn our attention to the temporary variables and the scratch area. Recall that the former were not part of the pre-protected x86 code, nor the VMProtect bytecode -- they were introduced in order to ease the IR translation. The latter is part of the VMProtect bytecode, but was not part of the original pre-protected x86 code. Since these are not part of the languages we are modelling, we shall eliminate them wholesale. On a high level, we treat each temporary variable, each byte of the scratch space, and each register as being a variable defined within a basic block, and then eliminate the former two via the compiler optimizations previously discussed.
+
+Looking again at the last snippet of IR, we can see several areas for improvement. First, consider the variable `t6`. It is clearly just a copy of `t5`, neither of which are redefined before the next use in the assignment to `t8`. Copy propagation will replace variable `t6` with `t5` and eliminate the former. More generally, `t3`, `t4`, and `t7` contain either constants or values that are not modified between their uses. Constant and copy propagation will substitute the assignments to these variables in for their uses and eliminate them.
+
+The newly optimized code is a slender three lines compared to the original 15; we have removed 80% of the IR for the running example.
+
+```
+DWORD Scratch:\[Dword(52)\] = flags Dword(4) + esp
+
+esp = Dword(4) + esp + Dword(-88)
+
+DWORD Scratch:\[Dword(12)\] = flags Dword(4) + esp + Dword(-88)
+```
+
+The side-by-side comparison can be found here.
+
+The IR now looks closer to x86, with the exception that the results of computations are being stored in the scratch area, not into registers. As before, we apply dead-store elimination, copy and constant propagation to the scratch area, removing dependence upon it entirely in the process. See here for a comparison with the last phase.
+
+Here is a comparison of the final, optimized code against the original x86:
+
+```
+push ebp                         push    ebp
+ebp = esp                        mov     ebp, esp
+push Dword(-1)                   push    0FFFFFFFFh
+push Dword(4525664)              push    450E60h
+push Dword(4362952)              push    offset sub_4292C8
+eax = DWORD FS:\[Dword(0)\]       mov     eax, large fs:0
+push eax                         push    eax
+DWORD FS:\[Dword(0)\] = esp       mov     large fs:0, esp
+eflags = flags esp + Dword(-88)
+esp = esp + Dword(-88)           add     esp, 0FFFFFFA8h
+push ebx                         push    ebx
+push esi                         push    esi
+push edi                         push    edi
+DWORD SS:\[Dword(-24) + ebp\] = esp   mov     [ebp-18h], esp
+call DWORD [Dword(4590300)]      call    dword ptr ds:unk_460ADC
+vmreturn Dword(0) + Dword(4638392)
+```
+
+Code generation is an afterthought.
