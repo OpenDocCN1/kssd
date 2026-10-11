@@ -1,0 +1,15 @@
+
+# 一个内核调试器代码
+
+> 原文：[`www.pediy.com/kssd/pediy11/121781.html`](https://www.pediy.com/kssd/pediy11/121781.html)
+
+这是大三的时候写的，翻电脑翻出来，代码比较生硬，将就看。
+
+![](img/37a32ab5e263d4293693673807b36c55.jpg)
+
+![](img/aea4d678cd12db5d15b0550004938686.jpg)
+
+上传的附件
+
+| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) | | `YasDebugger.rar` |
+| :--- | :--- | :--- |
