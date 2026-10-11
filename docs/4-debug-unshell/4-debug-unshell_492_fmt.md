@@ -1,0 +1,821 @@
+
+# Asprotect v2.0 6.23 输入表修复
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-533.htm`](https://www.pediy.com/kssd/pediy07/pediy7-533.htm)
+
+## 元信息
+
+- **【目标】**: `xxxx`（外挂程序，不便写出名字）
+- **【工具】**: `Olydbg1.1` (diy 版)、`LORDPE`、`ImportREC1.6F`
+- **【任务】**: 修复输入表
+- **【操作平台】**: `WinXP sp2`
+- **【作者】**: `LOVEBOOM[DFCG][FCG][US]`
+
+## 简要说明
+
+人生就是一个脱壳破解过程，当你脱壳过程中遇到很多问题不能解决的时候，人会苦烦，当人生有挫折的时候人会有无助，有伤心（自己都没有底你怎么去答应你的那个她呢，如何给对方，给自己的一个承诺）。当你的基础高的时候你会脱了，你又会发现其中的乐趣。人生路漫长曲折，脱壳软件，破解人生（心情不是很好，看到自己的现在，很有失落的感觉，因此在人生路上做个标记）。
+
+以前写过一篇这个版本的文章，现在补上一篇，为自己加深点记忆。这篇文章之所以没有写怎么样找回 `STOLEN CODE` 的原因是 `stolen code` 没有什么技巧可言，也没有什么弯路可走。只能 `Step by step` 的来。
+
+## 详细过程
+
+### 1. 设置
+
+- 忽略除 `INT3` 之外的全部异常项。
+- 隐藏好 `OD`。
+
+### 2. 载入后分析
+
+```text
+00401000  >  68 01604800      PUSH 00486001                       ; 壳 EP
+00401005    E8 01000000      CALL 0040100B
+```
+
+`F9` 运行一次 `INT3` 异常中断：
+
+```text
+009F341F    90               NOP                                   ; INT 3 Exception
+009F3420    EB 01            JMP SHORT 009F3423
+……
+```
+
+这里向下找到第一个 `RETN`:
+
+```text
+……
+009F34C2    5B               POP EBX                               ; 找到这里
+009F34C3    5A               POP EDX
+009F34C4    59               POP ECX
+009F34C5    C3               RETN                                  ; 在这里下断
+```
+
+在 `009F34C5` 处下断，这里下断的作用是方便后面到 `STOLEN CODE` 处。`CTRL+F` 查找命令 `CMP AL,2` 找到那个远程条件跳：
+
+```text
+009ECCCC    84C0             TEST AL,AL                            ; AL ==0 的情况
+009ECCCE    75 20            JNZ SHORT 009ECCF0                    ; 找到后在这里下断
+009ECCD0    68 48C79E00      PUSH 9EC748
+009ECCD5    68 08BB9E00      PUSH 9EBB08
+009ECCDA    68 60C79E00      PUSH 9EC760
+009ECCDF    56               PUSH ESI
+009ECCE0    8D43 08          LEA EAX,DWORD PTR DS:[EBX+8]
+009ECCE3    50               PUSH EAX
+009ECCE4    8B4424 28        MOV EAX,DWORD PTR SS:[ESP+28]
+009ECCE8    50               PUSH EAX
+009ECCE9    E8 82FAFFFF      CALL 009EC770
+009ECCEE  ^ EB 83            JMP SHORT 009ECC73
+009ECCF0    3C 02            CMP AL,2                              ; 找到这里,这里判断 AL == 2 的情况
+009ECCF2    0F85 14010000    JNZ 009ECE0C
+```
+
+在 `009ECCCE` 处下断，然后 `shift+f9` 运行，这样就会中断 `009ECCCE` 处了。
+
+在这个程序里壳也只出现过 `AL=0124` 的情况，没有 `AL=35` 的情况。
+
+### 3. 中断后分析
+
+中断后慢慢分析，分析完再修改代码：
+
+```text
+009ECCCC    84C0             TEST AL,AL                            ; AL ==0 的情况
+009ECCCE    75 20            JNZ SHORT 009ECCF0                    ; 找到后在这里下断
+009ECCD0    68 48C79E00      PUSH 9EC748
+009ECCD5    68 08BB9E00      PUSH 9EBB08
+009ECCDA    68 60C79E00      PUSH 9EC760
+009ECCDF    56               PUSH ESI
+009ECCE0    8D43 08          LEA EAX,DWORD PTR DS:[EBX+8]
+009ECCE3    50               PUSH EAX
+009ECCE4    8B4424 28        MOV EAX,DWORD PTR SS:[ESP+28]
+009ECCE8    50               PUSH EAX
+009ECCE9    E8 82FAFFFF      CALL 009EC770                         ; AL＝0 里的处理，这里要跟进,上次的的那篇没有 al=0 的情况
+```
+
+跟进看一下：
+
+```text
+009EC770    55               PUSH EBP
+009EC771    8BEC             MOV EBP,ESP
+009EC773    53               PUSH EBX
+009EC774    56               PUSH ESI
+009EC775    8B45 0C          MOV EAX,DWORD PTR SS:[EBP+C]
+009EC778    EB 01            JMP SHORT 009EC77B
+009EC77A    9A 8B108B32 830> CALL FAR 0083:328B108B                ; Far call
+009EC781    04 6A            ADD AL,6A
+009EC783    04 FF            ADD AL,0FF
+009EC785    55               PUSH EBP
+009EC786    14 8B            ADC AL,8B
+009EC788    D8EB             FSUBR ST,ST(3)
+009EC78A    01E9             ADD ECX,EBP
+009EC78C    56               PUSH ESI
+009EC78D    8B45 08          MOV EAX,DWORD PTR SS:[EBP+8]
+009EC790    50               PUSH EAX
+009EC791    FF55 18          CALL DWORD PTR SS:[EBP+18]
+009EC794    90               NOP
+009EC795    90               NOP
+009EC796    90               NOP
+009EC797    8903             MOV DWORD PTR DS:[EBX],EAX            ; 这里开始填充壳申请的地址，所以这里要改一下代码
+009EC799    8B45 10          MOV EAX,DWORD PTR SS:[EBP+10]
+009EC79C    8918             MOV DWORD PTR DS:[EAX],EBX
+009EC79E    5E               POP ESI
+009EC79F    5B               POP EBX
+009EC7A0    5D               POP EBP
+009EC7A1    C2 1800          RETN 18
+……
+```
+
+```text
+009ECCEE  ^\\ EB 83          JMP SHORT 009ECC73
+009ECCF0    3C 02            CMP AL,2                              ; 找到这里,这里判断 AL == 2 的情况
+009ECCF2    0F85 14010000    JNZ 009ECE0C
+009ECCF8    33C0             XOR EAX,EAX
+009ECCFA    894424 20        MOV DWORD PTR SS:[ESP+20],EAX
+009ECCFE    8B43 08          MOV EAX,DWORD PTR DS:[EBX+8]
+009ECD01    8A00             MOV AL,BYTE PTR DS:[EAX]
+009ECD03    FF43 08          INC DWORD PTR DS:[EBX+8]
+009ECD06    EB 01            JMP SHORT 009ECD09
+009ECD08    C7               ???                                   ; Unknown command
+009ECD09    2C 01            SUB AL,1
+009ECD0B    73 34            JNB SHORT 009ECD41
+009ECD0D    8BC3             MOV EAX,EBX
+009ECD0F    E8 08F1FFFF      CALL 009EBE1C
+009ECD14    8B43 08          MOV EAX,DWORD PTR DS:[EBX+8]
+009ECD17    0FB600           MOVZX EAX,BYTE PTR DS:[EAX]
+009ECD1A    FF43 08          INC DWORD PTR DS:[EBX+8]
+009ECD1D    8B53 08          MOV EDX,DWORD PTR DS:[EBX+8]
+009ECD20    8B12             MOV EDX,DWORD PTR DS:[EDX]
+009ECD22    8343 08 04       ADD DWORD PTR DS:[EBX+8],4
+009ECD26    8D4C24 24        LEA ECX,DWORD PTR SS:[ESP+24]
+009ECD2A    51               PUSH ECX
+009ECD2B    8A4C24 0B        MOV CL,BYTE PTR SS:[ESP+B]
+009ECD2F    51               PUSH ECX
+009ECD30    8BCA             MOV ECX,EDX
+009ECD32    8BD3             MOV EDX,EBX
+009ECD34    92               XCHG EAX,EDX
+009ECD35    E8 26F8FFFF      CALL 009EC560
+009ECD3A    894424 20        MOV DWORD PTR SS:[ESP+20],EAX
+009ECD3E    EB 01            JMP SHORT 009ECD41
+009ECD40    9A 8B43088B 288> CALL FAR 8328:8B08438B                ; Far call
+009ECD47    43               INC EBX
+009ECD48    08048B           OR BYTE PTR DS:[EBX+ECX*4],AL
+009ECD4B    44               INC ESP
+009ECD4C    24 10            AND AL,10
+009ECD4E    E8 F957FEFF      CALL 009D254C
+009ECD53    894424 0C        MOV DWORD PTR SS:[ESP+C],EAX
+009ECD57    8BD5             MOV EDX,EBP
+009ECD59    8B4424 14        MOV EAX,DWORD PTR SS:[ESP+14]
+009ECD5D    E8 DEECFFFF      CALL 009EBA40                         ; GetProcAddress
+009ECD62    8BE8             MOV EBP,EAX
+009ECD64    85ED             TEST EBP,EBP
+009ECD66    75 0A            JNZ SHORT 009ECD72
+009ECD68    68 C8D09E00      PUSH 9ED0C8                            ; ASCII "10\n"
+009ECD6D    E8 BE6DFFFF      CALL 009E3B30
+009ECD72    837C24 20 00     CMP DWORD PTR SS:[ESP+20],0
+009ECD77    74 44            JE SHORT 009ECDBD
+009ECD79    8B4424 0C        MOV EAX,DWORD PTR SS:[ESP+C]
+009ECD7D    8B5424 20        MOV EDX,DWORD PTR SS:[ESP+20]
+009ECD81    8910             MOV DWORD PTR DS:[EAX],EDX
+009ECD83    8B4424 20        MOV EAX,DWORD PTR SS:[ESP+20]
+009ECD87    034424 24        ADD EAX,DWORD PTR SS:[ESP+24]
+009ECD8B    C600 68          MOV BYTE PTR DS:[EAX],68
+009ECD8E    6A 00            PUSH 0
+009ECD90    68 08BC9E00      PUSH 9EBC08
+009ECD95    8D4C24 20        LEA ECX,DWORD PTR SS:[ESP+20]
+009ECD99    8BD5             MOV EDX,EBP
+009ECD9B    8BC3             MOV EAX,EBX
+009ECD9D    E8 CAF5FFFF      CALL 009EC36C
+009ECDA2    8B5424 20        MOV EDX,DWORD PTR SS:[ESP+20]
+009ECDA6    035424 24        ADD EDX,DWORD PTR SS:[ESP+24]
+009ECDAA    42               INC EDX
+009ECDAB    8902             MOV DWORD PTR DS:[EDX],EAX
+009ECDAD    8B4424 20        MOV EAX,DWORD PTR SS:[ESP+20]
+009ECDB1    034424 24        ADD EAX,DWORD PTR SS:[ESP+24]
+009ECDB5    83C0 05          ADD EAX,5
+009ECDB8    C600 C3          MOV BYTE PTR DS:[EAX],0C3
+009ECDBB    EB 29            JMP SHORT 009ECDE6
+009ECDBD    6A 00            PUSH 0
+009ECDBF    68 08BC9E00      PUSH 9EBC08
+```
+
+
+
+```
+009ECDC4    8D4C24 20       LEA ECX,DWORD PTR SS:[ESP+20]
+
+009ECDC8    8BD5          MOV EDX,EBP
+
+009ECDCA    8BC3          MOV EAX,EBX
+
+009ECDCC    E8 9BF5FFFF   CALL 009EC36C
+
+009ECDD1    8B5424 0C     MOV EDX,DWORD PTR SS:[ESP+C]
+
+009ECDD5    8902          MOV DWORD PTR DS:[EDX],EAX
+
+009ECDD7    8D4C24 0C     LEA ECX,DWORD PTR SS:[ESP+C]
+
+009ECDDB    8A5424 07     MOV DL,BYTE PTR SS:[ESP+7]
+
+009ECDDF    8BC3          MOV EAX,EBX
+
+009ECDE1    E8 FAF7FFFF   CALL 009EC5E0
+
+009ECDE6    8BC6          MOV EAX,ESI
+
+009ECDE8    83E8 02       SUB EAX,2
+
+009ECDEB    66:8338 00    CMP WORD PTR DS:[EAX],0
+
+009ECDEF    75 10         JNZ SHORT 009ECE01
+
+009ECDF1    8B5424 0C     MOV EDX,DWORD PTR SS:[ESP+C]
+
+009ECDF5    8B12          MOV EDX,DWORD PTR DS:[EDX]
+
+009ECDF7    E8 8469FFFF   CALL 009E3780            ; AL ==2 时的处理,这里也跟进
+```
+
+跟进：
+
+```
+009E3780    53            PUSH EBX
+
+009E3781    8BD8          MOV EBX,EAX
+
+009E3783    8BC3          MOV EAX,EBX
+
+009E3785    E8 56FFFFFF   CALL 009E36E0
+
+009E378A    C603 E8       MOV BYTE PTR DS:[EBX],0E8             ; 改成 Call xxx 的方式,这里也要修改下
+
+009E378D    43            INC EBX
+
+009E378E    8903          MOV DWORD PTR DS:[EBX],EAX
+
+009E3790    5B            POP EBX
+
+009E3791    C3            RETN
+```
+
+……
+
+```
+009ECDFC  ^\E9 72FEFFFF   JMP 009ECC73
+
+009ECE01    8B4424 0C     MOV EAX,DWORD PTR SS:[ESP+C]
+
+009ECE05    8906          MOV DWORD PTR DS:[ESI],EAX
+
+009ECE07  ^ E9 67FEFFFF   JMP 009ECC73
+
+009ECE0C    3C 01         CMP AL,1                              ; AL == 1 时的情况
+
+009ECE0E    0F85 B2000000 JNZ 009ECEC6
+
+009ECE14    EB 01         JMP SHORT 009ECE17
+
+009ECE16    9A 8B43088B 008>CALL FAR 8900:8B08438B           ; Far call
+
+009ECE1D    04 24         ADD AL,24
+
+009ECE1F    8343 08 04    ADD DWORD PTR DS:[EBX+8],4
+
+009ECE23    837B 44 00    CMP DWORD PTR DS:[EBX+44],0
+
+009ECE27    74 09         JE SHORT 009ECE32
+
+009ECE29    8B0424        MOV EAX,DWORD PTR SS:[ESP]
+
+009ECE2C    FF53 44       CALL DWORD PTR DS:[EBX+44]
+
+009ECE2F    890424        MOV DWORD PTR SS:[ESP],EAX
+
+009ECE32    8B43 08       MOV EAX,DWORD PTR DS:[EBX+8]
+
+009ECE35    66:8B00       MOV AX,WORD PTR DS:[EAX]
+
+009ECE38    66:894424 04  MOV WORD PTR SS:[ESP+4],AX
+
+009ECE3D    8343 08 02    ADD DWORD PTR DS:[EBX+8],2
+
+009ECE41    807C24 1C 00  CMP BYTE PTR SS:[ESP+1C],0
+
+009ECE46    74 0B         JE SHORT 009ECE53
+
+009ECE48    8B4424 28     MOV EAX,DWORD PTR SS:[ESP+28]
+
+009ECE4C    C64424 1C 00  MOV BYTE PTR SS:[ESP+1C],0
+
+009ECE51    EB 06         JMP SHORT 009ECE59
+
+009ECE53    8B4424 18     MOV EAX,DWORD PTR SS:[ESP+18]
+
+009ECE57    8B00          MOV EAX,DWORD PTR DS:[EAX]
+
+009ECE59    8BC8          MOV ECX,EAX
+
+009ECE5B    66:8B5424 04  MOV DX,WORD PTR SS:[ESP+4]
+
+009ECE60    8B43 08       MOV EAX,DWORD PTR DS:[EBX+8]
+
+009ECE63    E8 8CACFFFF   CALL 009E7AF4
+
+009ECE68    8B4424 10     MOV EAX,DWORD PTR SS:[ESP+10]
+
+009ECE6C    E8 DB56FEFF   CALL 009D254C
+
+009ECE71    894424 0C     MOV DWORD PTR SS:[ESP+C],EAX
+
+009ECE75    8B43 08       MOV EAX,DWORD PTR DS:[EBX+8]
+
+009ECE78    50            PUSH EAX
+
+009ECE79    8B4424 18     MOV EAX,DWORD PTR SS:[ESP+18]
+
+009ECE7D    50            PUSH EAX
+
+009ECE7E    A1 B8A69F00   MOV EAX,DWORD PTR DS:[9FA6B8]
+
+009ECE83    8B00          MOV EAX,DWORD PTR DS:[EAX]
+
+009ECE85    FFD0          CALL EAX                            ; GetProcAddress
+
+009ECE87    8BE8          MOV EBP,EAX
+
+009ECE89    85ED          TEST EBP,EBP
+
+009ECE8B    75 0A         JNZ SHORT 009ECE97                  ; 如果获取失败就 over 了
+
+009ECE8D    68 D8D09E00   PUSH 9ED0D8                         ; ASCII "11
+
+"
+
+009ECE92    E8 996CFFFF   CALL 009E3B30
+
+009ECE97    8B0424        MOV EAX,DWORD PTR SS:[ESP]
+
+009ECE9A    50            PUSH EAX
+
+009ECE9B    68 08BC9E00   PUSH 9EBC08
+
+009ECEA0    8D4C24 20     LEA ECX,DWORD PTR SS:[ESP+20]
+
+009ECEA4    8BD5          MOV EDX,EBP
+
+009ECEA6    8BC3          MOV EAX,EBX
+
+009ECEA8    E8 BFF4FFFF   CALL 009EC36C
+
+009ECEAD    8B5424 0C     MOV EDX,DWORD PTR SS:[ESP+C]       ; AL ==1 时的处理
+
+009ECEB1    8902          MOV DWORD PTR DS:[EDX],EAX          ; 这里也要修改才行
+
+009ECEB3    8B4424 0C     MOV EAX,DWORD PTR SS:[ESP+C]
+
+009ECEB7    8906          MOV DWORD PTR DS:[ESI],EAX
+
+009ECEB9    0FB74424 04   MOVZX EAX,WORD PTR SS:[ESP+4]
+
+009ECEBE    0143 08       ADD DWORD PTR DS:[EBX+8],EAX
+
+009ECEC1  ^ E9 ADFDFFFF   JMP 009ECC73
+
+009ECEC6    3C 04         CMP AL,4                              ; AL ==4 时的情况
+
+009ECEC8    0F85 F4000000 JNZ 009ECFC2
+
+009ECECE    90            NOP
+
+009ECECF    90            NOP
+
+009ECED0    90            NOP
+
+009ECED1    8B43 08       MOV EAX,DWORD PTR DS:[EBX+8]
+
+009ECED4    8A00          MOV AL,BYTE PTR DS:[EAX]
+
+009ECED6    FF43 08       INC DWORD PTR DS:[EBX+8]
+
+009ECED9    84C0          TEST AL,AL
+
+009ECEDB    75 5B         JNZ SHORT 009ECF38                  ; 如果不相等则跳去 AL==4 的第二个分支处理
+
+009ECEDD    8B43 08       MOV EAX,DWORD PTR DS:[EBX+8]
+
+009ECEE0    8B30          MOV ESI,DWORD PTR DS:[EAX]
+
+009ECEE2    8343 08 04    ADD DWORD PTR DS:[EBX+8],4
+
+009ECEE6    8B43 08       MOV EAX,DWORD PTR DS:[EBX+8]
+
+009ECEE9    8B28          MOV EBP,DWORD PTR DS:[EAX]
+
+009ECEEB    8343 08 04    ADD DWORD PTR DS:[EBX+8],4
+
+009ECEEF    8B43 08       MOV EAX,DWORD PTR DS:[EBX+8]
+
+009ECEF2    8B00          MOV EAX,DWORD PTR DS:[EAX]
+
+009ECEF4    894424 2C     MOV DWORD PTR SS:[ESP+2C],EAX
+
+009ECEF8    8343 08 04    ADD DWORD PTR DS:[EBX+8],4
+
+009ECEFC    837B 30 00    CMP DWORD PTR DS:[EBX+30],0
+
+009ECF00    75 0A         JNZ SHORT 009ECF0C
+
+009ECF02    68 E8D09E00   PUSH 9ED0E8                         ; ASCII "81
+
+"
+
+009ECF07    E8 246CFFFF   CALL 009E3B30
+
+009ECF0C    8D5424 30     LEA EDX,DWORD PTR SS:[ESP+30]
+
+009ECF10    8BC3          MOV EAX,EBX
+
+009ECF12    E8 8DF8FFFF   CALL 009EC7A4                       ; AL ==4 的第一个分支处理情况，这里跟进
+```
+
+跟进：
+
+```
+009EC7A4    53            PUSH EBX
+
+009EC7A5    56            PUSH ESI
+
+009EC7A6    8BF2          MOV ESI,EDX
+
+009EC7A8    8BD8          MOV EBX,EAX
+
+009EC7AA    B8 04000000   MOV EAX,4
+
+009EC7AF    E8 985DFEFF   CALL 009D254C
+
+009EC7B4    8906          MOV DWORD PTR DS:[ESI],EAX          ; 这里要修改
+
+009EC7B6    8B43 40       MOV EAX,DWORD PTR DS:[EBX+40]
+
+009EC7B9    8946 04       MOV DWORD PTR DS:[ESI+4],EAX
+
+009EC7BC    5E            POP ESI
+
+009EC7BD    5B            POP EBX
+
+009EC7BE    C3            RETN
+```
+
+……
+
+```
+009ECF17    8B4424 2C     MOV EAX,DWORD PTR SS:[ESP+2C]
+
+009ECF1B    50            PUSH EAX
+
+009ECF1C    8D4424 34     LEA EAX,DWORD PTR SS:[ESP+34]
+
+009ECF20    50            PUSH EAX
+
+009ECF21    55            PUSH EBP
+
+009ECF22    A1 70A59F00   MOV EAX,DWORD PTR DS:[9FA570]
+
+009ECF27    8B00          MOV EAX,DWORD PTR DS:[EAX]
+
+009ECF29    50            PUSH EAX
+
+009ECF2A    56            PUSH ESI
+
+009ECF2B    8B4424 28     MOV EAX,DWORD PTR SS:[ESP+28]
+
+009ECF2F    50            PUSH EAX
+
+009ECF30    FF53 30       CALL DWORD PTR DS:[EBX+30]
+
+009ECF33  ^ E9 3BFDFFFF   JMP 009ECC73
+
+009ECF38    8B43 08       MOV EAX,DWORD PTR DS:[EBX+8]
+
+009ECF3B    8B00          MOV EAX,DWORD PTR DS:[EAX]
+
+009ECF3D    890424        MOV DWORD PTR SS:[ESP],EAX
+
+009ECF40    8343 08 04    ADD DWORD PTR DS:[EBX+8],4
+
+009ECF44    8B43 08       MOV EAX,DWORD PTR DS:[EBX+8]
+```
+
+
+
+## 009ECF47 - 009ECFBF
+
+```
+009ECF47    66:8B00         MOV AX,WORD PTR DS:[EAX]  
+009ECF4A    66:894424 04    MOV WORD PTR SS:[ESP+4],AX  
+009ECF4F    8343 08 02      ADD DWORD PTR DS:[EBX+8],2  
+009ECF53    8B0C24          MOV ECX,DWORD PTR SS:[ESP]  
+009ECF56    66:8B5424 04    MOV DX,WORD PTR SS:[ESP+4]  
+009ECF5B    8B43 08         MOV EAX,DWORD PTR DS:[EBX+8]  
+009ECF5E    E8 91ABFFFF     CALL 009E7AF4  
+009ECF63    8B4424 10       MOV EAX,DWORD PTR SS:[ESP+10]  
+009ECF67    E8 E055FEFF     CALL 009D254C  
+009ECF6C    894424 0C       MOV DWORD PTR SS:[ESP+C],EAX  
+009ECF70    8B43 08         MOV EAX,DWORD PTR DS:[EBX+8]  
+009ECF73    50              PUSH EAX  
+009ECF74    8B4424 18       MOV EAX,DWORD PTR SS:[ESP+18]  
+009ECF78    50              PUSH EAX  
+009ECF79    A1 B8A69F00     MOV EAX,DWORD PTR DS:[9FA6B8]  
+009ECF7E    8B00            MOV EAX,DWORD PTR DS:[EAX]  
+009ECF80    FFD0            CALL EAX                       ; GetProcAddress  
+009ECF82    8BE8            MOV EBP,EAX  
+009ECF84    85ED            TEST EBP,EBP  
+009ECF86    75 0C           JNZ SHORT 009ECF94  
+009ECF88    68 F8D09E00     PUSH 9ED0F8                    ; ASCII "250\n"  
+009ECF8D    E8 9E6BFFFF     CALL 009E3B30  
+009ECF92    EB 15           JMP SHORT 009ECFA9  
+009ECF94    A1 ECA59F00     MOV EAX,DWORD PTR DS:[9FA5EC]  
+009ECF99    3B28            CMP EBP,DWORD PTR DS:[EAX]  
+009ECF9B    75 0C           JNZ SHORT 009ECFA9  
+009ECF9D    837B 34 00      CMP DWORD PTR DS:[EBX+34],0  
+009ECFA1    74 06           JE SHORT 009ECFA9  
+009ECFA3    8B6B 34         MOV EBP,DWORD PTR DS:[EBX+34]  
+009ECFA6    036B 40         ADD EBP,DWORD PTR DS:[EBX+40]  
+009ECFA9    8B4424 0C       MOV EAX,DWORD PTR SS:[ESP+C]     ; AL ==4 的第二个分支处理，这里和 al==1 的处理一样  
+009ECFAD    8928            MOV DWORD PTR DS:[EAX],EBP  
+009ECFAF    8B4424 0C       MOV EAX,DWORD PTR SS:[ESP+C]  
+009ECFB3    8906            MOV DWORD PTR DS:[ESI],EAX  
+009ECFB5    0FB74424 04     MOVZX EAX,WORD PTR SS:[ESP+4]  
+009ECFBA    0143 08         ADD DWORD PTR DS:[EBX+8],EAX  
+009ECFBD    ^ E9 B1FCFFFF   JMP 009ECC73  
+009ECFC2    3C 03           CMP AL,3                       ; AL＝＝3 和下面的 5 没有发生，所以我也就不写  
+```
+
+到这里输入表处理部分基本分析完,现在申请空间，我这里申请到的空间为：`00C10000`。写上一点修复代码：
+
+------------------------------------------------------------
+
+### AL == 0 时的处理：
+
+```
+009ECCE9    E8 82FAFFFF     CALL 009EC770                   ; AL == 0 时的处理  
+009ECCEE    ^ EB 83         JMP SHORT 009ECC73  
+```
+
+进入后代码：
+
+```
+009EC797    8903            MOV DWORD PTR DS:[EBX],EAX       ; API 函数保存在第一层地址处  
+009EC799    8B45 10         MOV EAX,DWORD PTR SS:[EBP+10]  
+009EC79C    8918            MOV DWORD PTR DS:[EAX],EBX       ; 把存放第一层地址保存到 IAT 中  
+```
+
+;修复代码：
+
+```
+009EC797    E8 14392200     CALL 00C100B0    ;全部改成 CALL 方便代码直接写到一块去,方便调用  
+009EC79C    90              NOP  
+009EC79D    90              NOP  
+```
+
+------------------------------------------------------------
+
+------------------------------------------------------------
+
+### AL==1 时的处理:
+
+```
+009ECEA8    E8 BFF4FFFF     CALL 009EC36C                   ; 对 AL=1 进的处理  
+009ECEAD    8B5424 0C       MOV EDX,DWORD PTR SS:[ESP+C]  
+```
+
+;修复
+
+```
+009ECEA8    E8 BFF4FFFF     CALL 009EC36C                   ; 对 AL=1 进的处理  
+009ECEAD    E8 8E312200     CALL 00C10040  
+009ECEB2    90              NOP  
+009ECEB3    90              NOP  
+009ECEB4    90              NOP  
+009ECEB5    90              NOP  
+009ECEB6    90              NOP  
+009ECEB7    90              NOP  
+009ECEB8    90              NOP  
+```
+
+------------------------------------------------------------
+
+------------------------------------------------------------
+
+### AL==2 时的处理:
+
+```
+009ECDF7    E8 8469FFFF     CALL 009E3780       ;跟进  
+009ECDFC    ^ E9 72FEFFFF   JMP 009ECC73  
+```
+
+;修复
+
+```
+009E378A    E8 71C82200     CALL 00C10000  ;修改一  
+009E378F    90              NOP  
+```
+
+------------------------------------------------------------
+
+------------------------------------------------------------
+
+### AL==4 时的处理:
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+```
+009EC7AF    E8 985DFEFF     CALL 009D254C                   ; AL == 4 的第一个分支处理  
+009EC7B4    8906            MOV DWORD PTR DS:[ESI],EAX  
+```
+
+//修复代码:
+
+```
+009EC7AF    E8 985DFEFF     CALL 009D254C                   ; AL == 4 的第一个分支处理  
+009EC7B4    E8 C1382200     CALL 00C1007A  
+009EC7B9    8946 04         MOV DWORD PTR DS:[ESI+4],EAX     ; UnKillEr.00400000  
+009EC7BC    5E              POP ESI  
+009EC7BD    5B              POP EBX  
+009EC7BE    C3              RETN  
+```
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+```
+009ECFA9    8B4424 0C       MOV EAX,DWORD PTR SS:[ESP+C]     ; AL==4 的第二个分支  
+009ECFAD    8928            MOV DWORD PTR DS:[EAX],EBP  
+009ECFAF    8B4424 0C       MOV EAX,DWORD PTR SS:[ESP+C]  
+009ECFB3    8906            MOV DWORD PTR DS:[ESI],EAX  
+009ECFB5    0FB74424 04     MOVZX EAX,WORD PTR SS:[ESP+4]  
+009ECFBA    0143 08         ADD DWORD PTR DS:[EBX+8],EAX  
+```
+
+;修复代码：
+
+```
+009ECFA9    E8 92302200     CALL 00C10040                   ; AL==4 的第二个分支  
+009ECFAE    90              NOP  
+009ECFAF    90              NOP  
+009ECFB0    90              NOP  
+009ECFB1    90              NOP  
+009ECFB2    90              NOP  
+009ECFB3    90              NOP  
+009ECFB4    90              NOP  
+```
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+--------------------------------------------------------------------------------------
+
+现在把代码集中写在一个地方,代码比较简单，我也不过多的写注释：
+
+▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+
+### 全部修复代码：
+
+```
+00C10000    51              PUSH ECX                         ; AL ==2 时的修复代码  
+00C10001    52              PUSH EDX  
+00C10002    8B5424 28       MOV EDX,DWORD PTR SS:[ESP+28]  
+00C10006    3B15 0020C100   CMP EDX,DWORD PTR DS:[C12000]    ; 判断是否处理完当前 DLL 的函数  
+00C1000C    74 0D           JE SHORT 00C1001B  
+00C1000E    8915 0020C100   MOV DWORD PTR DS:[C12000],EDX  
+00C10014    8305 1020C100 0>ADD DWORD PTR DS:[C12010],4  
+00C1001B    8B0D 1020C100   MOV ECX,DWORD PTR DS:[C12010]    ; UnKillEr.0047E0A4  
+00C10021    8929            MOV DWORD PTR DS:[ECX],EBP       ; 写入正确的 API  
+00C10023    66:C703 FF25    MOV WORD PTR DS:[EBX],25FF      ; JMP [address]  
+00C10028    890E            MOV DWORD PTR DS:[ESI],ECX       ; 写入正确的 IAT  
+00C1002A    8305 1020C100 0>ADD DWORD PTR DS:[C12010],4     
+00C10031    5A              POP EDX  
+00C10032    59              POP ECX  
+00C10033    C3              RETN  
+00C10034    90              NOP  
+00C10035    90              NOP  
+00C10036    90              NOP  
+00C10037    90              NOP  
+00C10038    90              NOP  
+00C10039    90              NOP  
+00C1003A    90              NOP  
+00C1003B    90              NOP  
+00C1003C    90              NOP  
+00C1003D    90              NOP  
+00C1003E    90              NOP  
+00C1003F    90              NOP  
+00C10040    51              PUSH ECX                         ; AL==1 时的修复代码  
+00C10041    52              PUSH EDX  
+00C10042    8B5424 20       MOV EDX,DWORD PTR SS:[ESP+20]  
+00C10046    3B15 0020C100   CMP EDX,DWORD PTR DS:[C12000]    ; wsock32.#1139  
+00C1004C    74 0D           JE SHORT 00C1005B  
+00C1004E    8915 0020C100   MOV DWORD PTR DS:[C12000],EDX  
+00C10054    8305 1020C100 0>ADD DWORD PTR DS:[C12010],4  
+00C1005B    8B0D 1020C100   MOV ECX,DWORD PTR DS:[C12010]    ; UnKillEr.0047E0A4  
+00C10061    8929            MOV DWORD PTR DS:[ECX],EBP  
+```
+
+
+
+```
+00C10063    890E            MOV DWORD PTR DS:[ESI],ECX  
+00C10065    8305 1020C100 0>ADD DWORD PTR DS:[C12010],4  
+00C1006C    5A              POP EDX  
+00C1006D    59              POP ECX  
+00C1006E    C3              RETN  
+00C1006F    90              NOP  
+00C10070    90              NOP  
+00C10071    90              NOP  
+00C10072    90              NOP  
+00C10073    90              NOP  
+00C10074    90              NOP  
+00C10075    90              NOP  
+00C10076    90              NOP  
+00C10077    90              NOP  
+00C10078    90              NOP  
+00C10079    90              NOP  
+00C1007A    51              PUSH ECX                         ; AL==4 的第一个分支修复代码，第二个分支调用 AL==1 的代码  
+00C1007B    52              PUSH EDX  
+00C1007C    8B5424 2C       MOV EDX,DWORD PTR SS:[ESP+2C]  
+00C10080    3B15 0020C100   CMP EDX,DWORD PTR DS:[C12000]          ; wsock32.#1139  
+00C10086    74 0D           JE SHORT 00C10095  
+00C10088    8915 0020C100   MOV DWORD PTR DS:[C12000],EDX  
+00C1008E    8305 1020C100 0>ADD DWORD PTR DS:[C12010],4  
+00C10095    8B0D 1020C100   MOV ECX,DWORD PTR DS:[C12010]          ; UnKillEr.0047E0A4  
+00C1009B    890E            MOV DWORD PTR DS:[ESI],ECX  
+00C1009D    8305 1020C100 0>ADD DWORD PTR DS:[C12010],4  
+00C100A4    5A              POP EDX  
+00C100A5    59              POP ECX  
+00C100A6    8B43 40         MOV EAX,DWORD PTR DS:[EBX+40]  
+00C100A9    C3              RETN  
+00C100AA    90              NOP  
+00C100AB    90              NOP  
+00C100AC    90              NOP  
+00C100AD    90              NOP  
+00C100AE    90              NOP  
+00C100AF    90              NOP  
+00C100B0    51              PUSH ECX                         ; AL == 0 时的修复代码  
+00C100B1    52              PUSH EDX  
+00C100B2    8B5424 1C       MOV EDX,DWORD PTR SS:[ESP+1C]  
+00C100B6    3B15 0020C100   CMP EDX,DWORD PTR DS:[C12000]          ; wsock32.#1139  
+00C100BC    74 0D           JE SHORT 00C100CB  
+00C100BE    8915 0020C100   MOV DWORD PTR DS:[C12000],EDX  
+00C100C4    8305 1020C100 0>ADD DWORD PTR DS:[C12010],4  
+00C100CB    8B4D 10         MOV ECX,DWORD PTR SS:[EBP+10]  
+00C100CE    8B15 1020C100   MOV EDX,DWORD PTR DS:[C12010]          ; UnKillEr.0047E0A4  
+00C100D4    8911            MOV DWORD PTR DS:[ECX],EDX            
+00C100D6    8902            MOV DWORD PTR DS:[EDX],EAX  
+00C100D8    8305 1020C100 0>ADD DWORD PTR DS:[C12010],4  
+00C100DF    5A              POP EDX  
+00C100E0    59              POP ECX  
+00C100E1    C3              RETN  
+00C100E2    90              NOP  
+```
+
+代码写完后，记得先在`C12010`处写上一个起始地址，否则会异常的^\_^。
+
+现在取消`009ECCCE`处的断点，忽略全部异常。运行中断在我们第一次设断处中断。断下后，取消内存异常，`F9`运行发生异常：
+
+```
+009F6807    C700 7F0677B9   MOV DWORD PTR DS:[EAX],B977067F        ; 异常发生在这里  
+009F680D    FB              STI  
+```
+
+异常后`CTRL+B`查找二进制`FF35`，可以找到几地方，正确的地方应该是:
+
+```
+push [addr]
+ret
+```
+
+找到下面的地址后下断，`shift+f9`，中断后`ret`返回的地址就是`Stolen code`的开始处。
+
+```
+009F6AF0    FF35 4024A000   PUSH DWORD PTR DS:[A02440]     
+009F6AF6    C3              RETN  
+```
+
+后面的`Stolen code`只能用手工慢慢找，当然你也可以用`fly`的方法来做的:-P.
+
+修复之类的和本文无关，所以不写了:- )。这个方法对`2.0.6.23`的以上版本无效的说。
+
+最后我想对所以的新们说的：
+
+很多初学者喜欢崇洋眉外，说什么国内的文章写没有国外的好之类的，国内的文章多数写`How to do it`，而不是`why?`多数写怎么做，而不是说为什么要这么做。对此我说一下自己的意见，如果你连尖字都不会写，连汉语都不会写，你会知道尖字为什么是这样写吗?你会理解汉字中的深澳吗?如果连`mov eax,edx`之类的都不知道，你会知道`why?`吗，于其去问点解倒不如去做。
+
+Greetz:
+
+Fly.Jingulong,yock,tDasm.David.hexer,hmimys,ahao.UFO(brother).alan(sister).all of my friends and you!
+
+By loveboom[DFCG][FCG][US]
+
+Email:loveboom#163.com
+
+http://bulo.163.com/-BPEl.html
+
+Date:4/9/2005 12:56:00 PM
+
+4dd466d0e1e0cc123afbe504da2462ca

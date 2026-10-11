@@ -1,0 +1,309 @@
+
+# aspr2.0 脱壳之超级转换秀 8.0 (OEP+IAT 修复)
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-548.htm`](https://www.pediy.com/kssd/pediy07/pediy7-548.htm)
+
+## 一、破解目标
+`Asprotect 2.0` 加壳的 `超级转换秀 v8.0`
+
+## 二、破解工具
+`OllyDbg v1.10`，`ImportREC 1.6 Final`，`WinHex 11.2`
+
+## 三、破解作者
+`DarkBull@email.com.cn`
+
+## 四、破解过程
+
+### 1. 寻找 OEP
+
+用 `OllyDbg` 载入，选 `IsDebuggerPresent` 插件隐藏 `OD`，入口如下：
+
+```
+Conversi.>   68 01809100  PUSH  Conversi.00918001
+
+00401005     E8 01000000  CALL  Conversi.0040100B
+
+0040100A     C3           RETN
+
+0040100B     C3           RETN
+```
+
+通过最后一个异常后，下断 `HE 0012FFC0`，拦截后代码如下：
+
+```
+011A6AF0     FF35 40241B > PUSH  DWORD  PTR DS:[11B2440]
+
+011A6AF6     C3           RETN          ; 返回到变形的 OEP
+
+********************************************************************************
+
+013A02D6     55           PUSH  EBP         ; 1.OEP 一般都长成这样
+
+013A02D7     03EF         ADD   EBP,EDI
+
+013A02D9     81DD F05200 > SBB   EBP,FE0052F0
+
+013A02DF     8D6C24 1B    LEA   EBP,DWORD  PTR SS:[ESP+1B]
+
+013A02E3     8D6C0D E5    LEA   EBP,DWORD  PTR SS:[EBP+ECX-1B]
+
+013A02E7     64:EB 02     JMP   SHORT 013A02EC                  
+
+013A02EA     CD 20        INT   20
+
+013A02EC     2BE9         SUB   EBP,ECX         ; 2.MOV  EBP,ESP
+
+013A02EE     6A FF        PUSH  -1            ; 3.PUSH -1
+
+013A02F0     6A BE        PUSH  -42
+
+013A02F2     66:9C        PUSHF
+
+013A02F4     51           PUSH  ECX
+
+013A02F5     F2:          PREFIX  REPNE:                  
+
+013A02F6     EB 01        JMP   SHORT 013A02F9
+
+013A02F8     F2:          PREFIX  REPNE:                  
+
+013A02F9     8D4C75 70    LEA   ECX,DWORD  PTR SS:[EBP+ESI*2+70]
+
+013A02FD     EB 01        JMP   SHORT 013A0300
+
+013A02FF     F0:8D4C19 9 > LOCK  LEA   ECX,DWORD  PTR DS:[ECX+EBX-7 >
+
+013A0304     2BCB         SUB   ECX,EBX
+
+013A0306     B9 EEF64200  MOV   ECX,42F6EE
+
+013A030B     034C24 18    ADD   ECX,DWORD  PTR SS:[ESP+18]
+
+013A030F     8D4C24 0F    LEA   ECX,DWORD  PTR SS:[ESP+F]
+
+013A0313     F3:          PREFIX  REP:                    
+
+013A0314     EB 02        JMP   SHORT 013A0318
+
+013A0316     CD 20        INT   20
+
+013A0318     65:EB 01     JMP   SHORT 013A031C                  
+
+013A031B     9A 8D4C21F1 > CALL  FAR 4C8D:F1214C8D                 
+
+013A0322     0106         ADD   DWORD  PTR DS:[ESI],EAX
+
+013A0324     2BC8         SUB   ECX,EAX
+
+013A0326     EB 02        JMP   SHORT 013A032A
+
+013A0328     CD 20        INT   20
+
+013A032A     FF7424 18    PUSH  DWORD  PTR SS:[ESP+18]
+
+013A032E     50           PUSH  EAX
+
+013A032F     334424 08    XOR   EAX,DWORD  PTR SS:[ESP+8]
+
+013A0333     B8 AABA4200  MOV   EAX,42BAAA
+
+013A0338     C1C0 0D      ROL   EAX,0D
+
+013A033B     F2:          PREFIX  REPNE:                  
+
+013A033C     EB 01        JMP   SHORT 013A033F
+
+013A033E     F0:83E8 BF   LOCK  SUB   EAX,-41                    
+
+013A0342     8D4424 5E    LEA   EAX,DWORD  PTR SS:[ESP+5E]
+
+013A0346     EB 02        JMP   SHORT 013A034A
+
+013A0348     CD 20        INT   20
+
+013A034A     8D4408 A2    LEA   EAX,DWORD  PTR DS:[EAX+ECX-5E]
+
+013A034E     2BC1         SUB   EAX,ECX
+
+013A0350     83C0 04      ADD   EAX,4
+
+013A0353     C700 30154D > MOV   DWORD  PTR DS:[EAX],4D1530     ; 4.PUSH 004D1530
+
+013A0359     58           POP   EAX
+
+013A035A     EB 02        JMP   SHORT 013A035E
+
+013A035C     CD 20        INT   20
+
+013A035E     8F4421 00    POP   DWORD  PTR DS:[ECX]
+
+013A0362     59           POP   ECX
+
+013A0363     66:9D        POPF
+
+013A0365     E9 15000000  JMP   013A037F
+
+013A036A     F2:          PREFIX  REPNE:                  
+
+013A036B     EB 01        JMP   SHORT 013A036E
+
+013A036D     C7           ???                      
+
+013A036E     FF31         PUSH  DWORD  PTR DS:[ECX]
+
+013A0370     B9 82334200  MOV   ECX,423382
+
+013A0375     334C24 28    XOR   ECX,DWORD  PTR SS:[ESP+28]
+
+013A0379     59           POP   ECX
+
+013A037A     E9 C0030000  JMP   013A073F
+
+013A037F     68 5458F46F  PUSH  6FF45854
+
+013A0384     F2:          PREFIX  REPNE:                 
+
+013A0385     EB 01        JMP   SHORT 013A0388
+
+013A0387     9A 669C5513 > CALL  FAR EBE9:13559C66               
+
+013A038E     02CD         ADD   CL,CH
+
+013A0390     2081 E58FFD > AND   BYTE  PTR DS:[ECX+74FD8FE5],AL
+
+013A0396   ^ 79 8D        JNS   SHORT 013A0325
+
+013A0398     6C           INS   BYTE  PTR ES:[EDI],DX           
+
+013A0399     24 0C        AND   AL,0C
+
+013A039B     83ED 0C      SUB   EBP,0C
+
+013A039E     8D6C05 06    LEA   EBP,DWORD  PTR SS:[EBP+EAX+6]
+
+013A03A2     2BE8         SUB   EBP,EAX
+
+013A03A4     F2:          PREFIX  REPNE:                  
+
+013A03A5     EB 01        JMP   SHORT 013A03A8
+
+013A03A7  - E9 568D3407  JMP   086E9102
+
+013A03AC     81DE FA2005 > SBB   ESI,F40520FA
+
+013A03B2     8DB42B A4D1 > LEA   ESI,DWORD  PTR DS:[EBX+EBP+45D1A4]  ; 5.PUSH 0045D1A4
+
+013A03B9     2BF5         SUB   ESI,EBP
+
+013A03BB     2BF3         SUB   ESI,EBX
+
+013A03BD     F2:          PREFIX  REPNE:                  
+
+013A03BE     EB 01        JMP   SHORT 013A03C1
+
+013A03C0  - E9 F3EB02CD  JMP   CE3CEFB8
+
+013A03C5     2056 8F      AND   BYTE  PTR DS:[ESI-71],DL
+
+013A03C8     44           INC   ESP                     
+
+013A03C9     25 005E5D66  AND   EAX,665D5E00
+
+013A03CE     9D           POPFD
+
+013A03CF     64:A1 00000 > MOV   EAX,DWORD  PTR FS:[0]    ; 6. \
+
+013A03D5     50           PUSH  EAX         ; 7. |
+
+013A03D6     64:8925 000 > MOV   DWORD  PTR FS:[0],ESP    ; 8. |
+
+013A03DD     83EC 68      SUB   ESP,68        ; 9. |
+
+013A03E0     53           PUSH  EBX         ; 10 |
+
+013A03E1     56           PUSH  ESI         ; 11  =-原代码
+
+013A03E2     57           PUSH  EDI         ; 12 |
+
+013A03E3     8965 E8      MOV   DWORD  PTR SS:[EBP-18],ESP    ; 13 |
+
+013A03E6     33DB         XOR   EBX,EBX        ; 14 |
+
+013A03E8     895D FC      MOV   DWORD  PTR SS:[EBP-4],EBX    ; 15 |
+
+013A03EB     6A 02        PUSH  2           ; 16 /
+
+013A03ED     FF15 68BA4C > CALL  NEAR  DWORD  PTR DS:[4CBA68]           ; 17.msvcrt.__set_app_type
+
+013A03F3     59           POP   ECX           ; 18 \
+
+013A03F4     830D A4A366 > OR    DWORD  PTR DS:[66A3A4],FFFFFFFF  ; 19  =-原代码
+
+013A03FB     830D A8A366 > OR    DWORD  PTR DS:[66A3A8],FFFFFFFF  ; 20 /
+
+013A0402     FF15 6CBA4C > CALL  NEAR  DWORD  PTR DS:[4CBA6C]          ; 21.msvcrt.__p__fmode
+
+013A0408     03CF         ADD   ECX,EDI
+
+013A040A     81E1 984DC8 > AND   ECX,B1C84D98
+
+013A0410     8D8B F03B66 > LEA   ECX,DWORD  PTR DS:[EBX+663BF0]  ; 22.MOV ECX,DWORD PTR DS:[663BF0]
+
+013A0416     EB 01        JMP   SHORT 013A0419
+
+013A0418     E8 2BCBFF31  CALL  3339CF48
+
+013A041D     B9 4E714A00  MOV   ECX,4A714E
+
+013A0422     EB 01        JMP   SHORT 013A0425
+
+013A0424     9A 334C2408 > CALL  FAR 8959:08244C33               
+
+013A042B     08FF         OR    BH,BH         ; 23.MOV DWORD PTR DS:[EAX],ECX
+
+013A042D     15 70BA4C00  ADC   EAX,4CBA70        ; 24.CALL NEAR DWORD PTR DS:[4CBA70]
+
+013A0432     B9 C2EA4A00  MOV   ECX,4AEAC2
+
+013A0437     C1C9 DD      ROR   ECX,0DD                   
+
+013A043A     034C24 18    ADD   ECX,DWORD  PTR SS:[ESP+18]
+
+013A043E     83C9 87      OR    ECX,FFFFFF87
+
+013A0441     EB 02        JMP   SHORT 013A0445
+
+013A0443     CD 20        INT   20
+
+013A0445     8D8A EC3B66 > LEA   ECX,DWORD  PTR DS:[EDX+663BEC]  ; 25.MOV ECX,DWORD PTR DS:[663BEC]
+
+013A044B     F2:          PREFIX  REPNE:                  
+
+013A044C     EB 01        JMP   SHORT 013A044F
+
+013A044E     F2:          PREFIX  REPNE:                  
+
+013A044F     2BCA         SUB   ECX,EDX
+
+013A0451     FF31         PUSH  DWORD  PTR DS:[ECX]
+
+013A0453     034C24 38    ADD   ECX,DWORD  PTR SS:[ESP+38]
+
+013A0457     65:EB 01     JMP   SHORT 013A045B                  
+
+013A045A     E8 B9C47E45  CALL  46B8C918
+
+013A045F     0059 89      ADD   BYTE  PTR DS:[ECX-77],BL
+
+013A0462     08B8 62D748 > OR    BYTE  PTR DS:[EAX+48D762],BH    ; 26.MOV DWORD PTR DS:[EAX],ECX
+
+013A0468     B8 5ACC4500  MOV   EAX,45CC5A
+
+013A046D     26:EB 02     JMP   SHORT 013A0472                  
+
+013A0470     CD 20        INT   20
+
+013A0472     B8 F6C64200  MOV   EAX,42C6F6
+
+013A0477     034424 38    ADD   EAX,DWORD  PTR SS:[ESP+38]
+```
