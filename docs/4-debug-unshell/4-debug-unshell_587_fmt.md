@@ -1,0 +1,280 @@
+
+# DAEMON Protect 0.6.7
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6469.htm`](https://www.pediy.com/kssd/pediy06/pediy6469.htm)
+
+## DAEMON Protect 0.6.7 脱壳——protect beta-last.exe 主程序
+
+**下载地址**：`http://daemon.anticrack.de/protect%20last%20beta.zip`
+
+**软件大小**：229 KB
+
+**【软件简介】**：DAEMON 在 2002 年发布的壳。新版 DAEMON Protect 壳主程序没有公开发布。
+
+**【作者声明】**：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+**【调试环境】**：`WinXP`、`Ollydbg`、`PEiD`、`LordPE`、`ImportREC`
+
+## 【脱壳过程】
+
+DAEMON Protect 是“传说中的人物” DAEMON 在 2002 年发布的壳。“people don't cry, it's damn incompatible so be warned... use it only @ tasm generated files!!! otherwise it will fail in 90% :))) ”
+
+呵呵，这个旧版是没有最终完成的作品。只能自己运行，加壳后的程序无法运行。
+
+索性就以这个能够运行的主程序看看 DAEMON Protect 0.6.7 壳吧！ :-)
+
+### 一、避开 IAT 加密
+
+设置 `Ollydbg` 忽略除了“内存访问异常”之外的所有其它异常选项。老规矩：用 `IsDebug 1.4` 插件去掉调试器标志。
+
+```
+00429065     60                 pushad//进入 OD 后停在这
+00429066     60                 pushad
+00429067     9C                 pushfd
+00429068     8CC9             mov cx,cs
+0042906A     32C9             xor cl,cl
+0042906C     E3 0C            jecxz short protect\_.0042907A
+0042907A     9D                 popfd
+0042907B     61                 popad
+0042907C     0FC0FF            xadd bh,bh
+0042907F     0FA4EB 12        shld ebx,ebp,12
+00429083     8B7424 18        mov esi,dword ptr ss:[esp+18]
+00429087     0FBF2D CE444300  movsx ebp,word ptr ds:[4344CE]
+0042908E     23C0             and eax,eax
+00429090     83CA 15          or edx,15
+00429093     83D7 DF          adc edi,-21
+00429096     66:83C8 E0       or ax,0FFE0
+0042909A     BE 0BAC933F      mov esi,3F93AC0B
+0042909F     034424 08        add eax,dword ptr ss:[esp+8]
+004290A3     0F8E 3B010000    jle protect\_.004291E4
+```
+
+`F9` 运行，程序中断在内存异常处
+
+```
+00429C85     8921             mov dword ptr ds:[ecx],esp//第 1 次异常
+0042A3B2     CD 68            int 68//第 2 次异常
+```
+
+这次异常时间较长，DAEMON 放了一些干扰的异常代码，耐心点，去沏壶茶吧，呵呵 :-)
+
+```
+0042B641     8B00             mov eax,dword ptr ds:[eax]//第 3 次异常，我们开始工作了！ 8)
+0042B643     FF95 9E694000    call dword ptr ss:[ebp+40699E] ; kernel32.LoadLibraryA
+0042B649     8985 35C94000    mov dword ptr ss:[ebp+40C935],eax
+```
+
+`//下断，Shift+F9 断下后就可以把 0042B641 处的第 3 次异常代码 NOP 掉了，省点时间 ★`
+
+```
+0042B64F     8BB5 41C94000    mov esi,dword ptr ss:[ebp+40C941]; Protect.0042CCA8
+```
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+可以看见将要处理的函数名： 8)
+
+```
+0042CCA8  47 6C 6F 62 61 6C 46 72 65 65 00 43 72 65 61 74 GlobalFree.Creat
+0042CCB8  65 46 69 6C 65 41 00 41 6C 6C 6F 63 43 6F 6E 73  eFileA.AllocCons
+0042CCC8  6F 6C 65 00 47 65 74 46 69 6C 65 53 69 7A 65 00  ole.GetFileSize.
+0042CCD8  47 65 74 53 74 64 48 61 6E 64 6C 65 00 47 65 74  GetStdHandle.Get
+0042CCE8  54 69 63 6B 43 6F 75 6E 74 00 45 78 69 74 50 72  TickCount.ExitPr
+0042CCF8  6F 63 65 73 73 00 43 6C 6F 73 65 48 61 6E 64 6C  ocess.CloseHandl
+0042CD08  65 00 52 65 61 64 46 69 6C 65 00 53 65 74 46 69   e.ReadFile.SetFi
+0042CD18  6C 65 41 74 74 72 69 62 75 74 65 73 41 00 53 65  leAttributesA.Se
+0042CD28  74 46 69 6C 65 50 6F 69 6E 74 65 72 00 56 69 72   tFilePointer.Vir
+0042CD38  74 75 61 6C 41 6C 6C 6F 63 00 56 69 72 74 75 61  tualAlloc.Virtua
+0042CD48  6C 46 72 65 65 00 57 72 69 74 65 43 6F 6E 73 6F  lFree.WriteConso
+0042CD58  6C 65 41 00 57 72 69 74 65 46 69 6C 65 00 47 6C  leA.WriteFile.Gl
+0042CD68  6F 62 61 6C 41 6C 6C 6F 63 00 4D 65 73 73 61 67  obalAlloc.Messag
+0042CD78  65 42 6F 78 41 00 47 65 74 4F 70 65 6E 46 69 6C   eBoxA.GetOpenFil
+0042CD88  65 4E 61 6D 65 41 00                             eNameA.
+```
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+```
+0042B655     56                 push esi
+0042B656     AC                 lods byte ptr ds:[esi]
+0042B657     84C0             test al,al
+0042B659     75 FB            jnz short Protect.0042B656
+```
+
+`//依次处理 kernel32.dll、user32.dll、comdlg32.dll 共三个 DLL 的函数，呵呵，幸好不多 :-)`
+
+```
+0042B65B     89B5 41C94000    mov dword ptr ss:[ebp+40C941],esi
+0042B661     5E                 pop esi
+0042B662     89B5 45C94000    mov dword ptr ss:[ebp+40C945],esi
+0042B668     56                 push esi
+0042B669     FFB5 35C94000    push dword ptr ss:[ebp+40C935]
+0042B66F     60                 pushad
+0042B670     B9 2D000000      mov ecx,2D
+0042B675     8D85 FF8F4000    lea eax,dword ptr ss:[ebp+408FFF]
+0042B67B     803408 01        xor byte ptr ds:[eax+ecx],1
+0042B67F     E2 FA            loopd short Protect.0042B67B
+0042B681     C685 F48F4000 00 mov byte ptr ss:[ebp+408FF4],0
+0042B688     61                 popad
+0042B689     8B85 A2694000    mov eax,dword ptr ss:[ebp+4069A2]; kernel32.GetProcAddress
+0042B68F     BB 10000000      mov ebx,10
+0042B694     803C18 CC        cmp byte ptr ds:[eax+ebx],0CC//检测 GetProcAddress 前 16 个字节有无被下断
+0042B698     74 1C            je short Protect.0042B6B6
+0042B69A     4B                 dec ebx//EBX=10
+0042B69B     79 F7            jns short Protect.0042B694
+0042B69D     33C0             xor eax,eax
+0042B69F     8B00             mov eax,dword ptr ds:[eax]//异常！可以 NOP 掉！:-)
+0042B6A1     FF95 A2694000    call dword ptr ss:[ebp+4069A2]; kernel32.GetProcAddress
+0042B6A7     85C0             test eax,eax//得到函数地址
+0042B6A9     75 0B            jnz short Protect.0042B6B6
+0042B6AB     89B5 41C94000    mov dword ptr ss:[ebp+40C941],esi
+0042B6B1     E9 47FFFFFF      jmp Protect.0042B5FD
+0042B6B6     8BBD 3DC94000    mov edi,dword ptr ss:[ebp+40C93D]
+0042B6BC     8B7C3D 00        mov edi,dword ptr ss:[ebp+edi]
+0042B6C0     03BD 22C84000    add edi,dword ptr ss:[ebp+40C822]//算出 IAT 地址 ★
+0042B6C6     51                 push ecx
+0042B6C7     8BCF             mov ecx,edi//准备重定位地址
+0042B6C9     8BBD 49C94000    mov edi,dword ptr ss:[ebp+40C949]
+0042B6CF     03BD 2DC94000    add edi,dword ptr ss:[ebp+40C92D]
+0042B6D5     57                 push edi
+0042B6D6     83E7 0F          and edi,0F
+0042B6D9     83FF 05          cmp edi,5
+0042B6DC     0F82 1C010000    jb Protect.0042B7FE//①、改为 JMP 0042B7FE★
+0042B6E2     83FF 0A          cmp edi,0A
+0042B6E5     0F82 A5000000    jb Protect.0042B790//混乱 IAT！
+0042B7FE     5F                 pop edi//准备 重定位
+0042B7FF     C607 B8          mov byte ptr ds:[edi],0B8
+0042B802     3385 41C94000    xor eax,dword ptr ss:[ebp+40C941]//加密函数
+//②、修改为：mov dword ptr ds:[ecx],eax   放入正确的函数 ★
+0042B808     8947 01          mov dword ptr ds:[edi+1],eax
+0042B80B     8B85 41C94000    mov eax,dword ptr ss:[ebp+40C941]
+0042B811     C647 05 35       mov byte ptr ds:[edi+5],35
+0042B815     8947 06          mov dword ptr ds:[edi+6],eax
+0042B818     66:C747 0A 50C3 mov word ptr ds:[edi+A],0C350
+0042B81E     57                 push edi
+0042B81F     51                 push ecx
+0042B820     83E7 0F          and edi,0F
+0042B823     83E1 0F          and ecx,0F
+0042B826     33F9             xor edi,ecx
+0042B828     03F9             add edi,ecx
+0042B82A     01BD 2DC94000    add dword ptr ss:[ebp+40C92D],edi
+0042B830     59                 pop ecx
+0042B831     5F                 pop edi
+0042B832     8385 2DC94000 15 add dword ptr ss:[ebp+40C92D],15
+0042B839     8939             mov dword ptr ds:[ecx],edi//写入重定位地址 ③、修改：NOP 掉！★
+0042B83B     59                 pop ecx
+0042B83C     8385 3DC94000 04 add dword ptr ss:[ebp+40C93D],4
+0042B843     8BBD 3DC94000    mov edi,dword ptr ss:[ebp+40C93D]
+```
+
+
+
+## 0042B849 - 0042B87A 汇编代码块
+
+```
+0042B849     8B7C3D 00              mov  edi,dword ptr ss:[ebp+edi]   
+
+0042B84D     60                    pushad   
+
+0042B84E     B9 F1000000          mov  ecx,0F1   
+
+0042B853     8D85 DD914000        lea  eax,dword ptr ss:[ebp+4091DD]   
+
+0042B859     803408 01            xor  byte ptr ds:[eax+ecx],1   
+
+0042B85D     E2 FA                loopd short Protect.0042B859//解出下步代码    
+
+0042B85F     C685 D2914000 00     mov  byte ptr ss:[ebp+4091D2],0   
+
+0042B866     61                    popad   
+
+0042B867     83FF 00              cmp  edi,0   
+
+0042B86A     0F85 DFFDFFFF        jnz  Protect.0042B64F//循环处理每个 DLL 的函数    
+
+0042B870     33C0                 xor  eax,eax//到这里输入表就处理完毕了  :-)    
+
+0042B872     8B00                 mov  eax,dword ptr ds:[eax]   
+
+0042B874     8CC9                 mov  cx,cs   
+
+0042B876     32C9                 xor  cl,cl   
+
+0042B878     E3 02                jecxz short Protect.0042B87C   
+
+0042B87A     EB 05                jmp  short Protect.0042B881   
+```
+
+在`0042B870`中断后输入表就处理结束了，为了防止程序有自校验，我们把上面修改的几处代码再还原， :-) 其实这个`DAEMON Protect 0.6.7`旧版没有自校验的。OK，输入表修复完毕，得到完整的输入表。下一步就是`OEP`的问题啦
+
+## 二、寻找 OEP、DUMP 程序完成脱壳
+
+呵呵，这里就用快速方法吧。`Ctrl+F`在当前位置搜索命令：`add esp,4`
+
+```
+0042B8D6     83C4 04              add  esp,4//找到第 1 处    
+0042BEB4     83C4 04              add  esp,4//找到第 2 处   下断！    
+```
+
+取消以前的所有断点。在`0042BEB4`处下断，现在设置`Ollydbg`忽略所有异常选项，★ `Shift+F9`运行！
+
+```
+0042BEAE     64:67:8F06 0000      pop  dword ptr fs:[0]  ; Protect.004059F7   
+
+0042BEB4     83C4 04              add  esp,4//断下！    
+
+0042BEB7     C3                    retn//飞向光明之巅！:-)    
+
+004059F7     6A 00                push 0//用 LordPE 纠正 ImageSize 后完全 DUMP 这个进程    
+
+004059F9     68 80000000          push 80   
+
+004059FE     6A 03                push 3   
+
+00405A00     6A 00                push 0   
+
+00405A02     6A 00                push 0   
+
+00405A04     68 000000C0          push C0000000   
+
+00405A09     68 90404200          push Protect.00424090 ; ASCII "cr.ini"   
+
+00405A0E     E8 CD950200         call Protect.0042EFE0 ; jmp to kernel32.CreateFileA   
+
+00405A13     A3 5E454200         mov  dword ptr ds:[42455E],eax   
+
+00405A18     83F8 FF             cmp  eax,-1   
+
+00405A1B     75 18               jnz  short Protect.00405A35   
+
+00405A1D     6A 00               push 0   
+
+00405A1F     68 C8404200         push Protect.004240C8; ASCII "SHIT!!!"   
+
+00405A24     68 01414200         push Protect.00424101; ASCII "hmmm couldn't open the cr.ini :(((   
+
+00405A29     6A 00               push 0   
+
+00405A2B     E8 ED870000         call Protect.0040E21D; jmp to user32.MessageBoxA   
+```
+
+运行`ImportREC`，选择这个进程。把`OEP`改为`000059F7`，`IATRVA`＝`000250A0` `IATSize`＝`00000058`，点`IT AutoSearch`，点“`Get Import`”，函数全部是有效的。`FixDump`，正常运行！
+
+```
+   ,     \_/ 
+  /| \_.-~/      \_  ,        青春都一晌
+ ( /~   /         ~-.\_ |
+ \`\\  \_/             ~ )          忍把浮名 
+ _-~~~-.)  )\_\_/;;,.   \_  //'
+/'\_,   --~    ~~~- ,;;\_\_\_( (.-~~~-.    换了破解轻狂 
+ \`~ \_( ,\_..-- (  ,;'' /  ~--  /\_\` 
+ /~~//'  /' \`~      ) /--..\_, )\_ \`~  
+ "  \`~"  "      \`"    /~'\`    \`\\~~    
+                  "   "   "~'  ""
+     
+Cracked By 巢水工作坊——fly [OCN][FCG][NUKE][DCM]
+             
+2004-03-26  03:00
+
+4dd466d0e1e0cc123afbe504da2462ca
+```
