@@ -1,0 +1,1595 @@
+
+# 电脑故障、软件一查通 V1.2
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6101.htm`](https://www.pediy.com/kssd/pediy06/pediy6101.htm)
+
+*   下载页面：[`www.skycn.com/soft/10483.html`](http://www.skycn.com/soft/10483.html)
+*   软件大小：6660 KB
+*   软件语言：简体中文
+*   软件类别：国产软件 / 共享版 / 电脑学习
+*   应用平台：`Win9x/NT/2000/XP`
+*   加入时间：2003-05-30 11:16:30
+*   下载次数：20983
+*   推荐等级：`***`
+*   开发商：[`www.simble.com/`](http://www.simble.com/)
+
+### 软件简介
+该软件汇集了电脑常用软件使用说明，电脑经常出现的问题，以及解决方法，并提供分类查询。现有资料 400 余篇。
+1. 故障类有两种查询方法：分别是按故障现象和组成部分，自定义查询分类，故障现象又分为无法启动，系统黑屏，运行异常，组成部分分为硬盘，内存，声卡，显卡，主板，其他。
+2. 我们将常用软件分为系统、网络、图形图像、光盘工具、黑客工具五大类。
+3. 自定义查询分为标题查询，全文查询。您还可以自己添加资料，《电脑故障、软件一查通》是解决电脑故障、查找资料的好帮手。
+
+### 软件限制
+21 天试用、NAG
+
+### 作者声明
+初学 Crack，只是感兴趣，没有其它目的。失误之处敬请诸位大侠赐教！
+
+### 破解工具
+`TRW2000` 娃娃修改版、`Ollydbg1.09`、`PEiD`、`W32Dasm 9.0` 白金版
+
+---
+
+### 过程
+
+碰到了一个怪事，这个东东安装时需要替换我的几个系统 `DLL` 文件，重启后我的 `Win98SE` 就非法操作而“壮烈牺牲”了。^O^ ^O^ 恢复注册表也不行。虽然用 `GHOST` 恢复了系统，却也丢失了一些资料。唉，记得其 `V1.1` 版本没有这个问题的。
+
+其实这个程序仅仅爆破的话是很简单的，^O^ ^O^ 但是追注册码和算法就有点麻烦了。因为我的水平太低，再加上我也不想再次 `GHOST` 恢复系统（痛苦），所以我只是简单跟踪了一下程序运算的流程，找到了注册码，算法就只有期待高手来完成了。 ^O^ ^O^
+
+`fix.exe` 无壳。 `VB` 编写。
+
+*   序列号：`7A52D81D93844813`
+*   试炼码：`13572468`
+
+---
+
+### 启动时比较是否注册及过期
+
+```assembly
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00441563(C)
+|
+:00441576 8B10                   mov edx, dword ptr [eax]
+:00441578 50                     push eax
+:00441579 FF921C030000           call dword ptr [edx+0000031C]
+:0044157F 50                     push eax
+:00441580 8D8560FFFFFF           lea eax, dword ptr [ebp+FFFFFF60]
+:00441586 50                     push eax
+* Reference To: MSVBVM60.__vbaObjSet, Ord:0000h
+                                                  |
+:00441587 FF1584104000           Call dword ptr [00401084]
+:0044158D 8B8D60FFFFFF           mov ecx, dword ptr [ebp+FFFFFF60]
+* Reference To: MSVBVM60.__vbaLateIdCallLd, Ord:0000h
+                                                  |
+:00441593 8B3D04114000           mov edi, dword ptr [00401104]
+:00441599 6A00                   push 00000000
+:0044159B 6806000368             push 68030006
+:004415A0 8D55DC                 lea edx, dword ptr [ebp-24]
+:004415A3 51                     push ecx
+:004415A4 52                     push edx
+:004415A5 FFD7                   call edi
+:004415A7 83C410                 add esp, 00000010
+:004415AA 50                     push eax
+* Reference To: MSVBVM60.__vbaBoolVar, Ord:0000h
+                                                  |
+:004415AB FF15A4104000           Call dword ptr [004010A4]
+                                                  ====>是否已注册？
+* Reference To: MSVBVM60.__vbaFreeVar, Ord:0000h
+                                                  |
+:004415B1 8B1D14104000           mov ebx, dword ptr [00401014]
+:004415B7 8D4DDC                 lea ecx, dword ptr [ebp-24]
+:004415BA 668BF0                 mov si, ax
+:004415BD FFD3                   call ebx
+:004415BF 6685F6                 test si, si
+:004415C2 0F8490000000           je 00441658
+                                                  ====>爆破点！
+…… ……省略…… ……
+* Reference To: MSVBVM60.__vbaI4Var, Ord:0000h
+                                                  |
+:00441670 FF15BC114000           Call dword ptr [004011BC]
+:00441676 33D2                   xor edx, edx
+:00441678 83F815                 cmp eax, 00000015
+                                                  ====>比较是否已超过 21 天试用期！
+:0044167B 0F9CC2                 setl dl
+:0044167E F7DA                   neg edx
+:00441680 8D4DDC                 lea ecx, dword ptr [ebp-24]
+:00441683 668BF2                 mov si, dx
+:00441686 FFD3                   call ebx
+:00441688 6685F6                 test si, si
+:0044168B 0F84A0000000           je 00441731
+                                                  ====>跳则 OVER！
+:00441691 A188304600             mov eax, dword ptr [00463088]
+:00441696 85C0                   test eax, eax
+:00441698 7510                   jne 004416AA
+:0044169A 6888304600             push 00463088
+:0044169F 6838354000             push 00403538
+```
+
+---
+
+### 注册时的比较
+
+```assembly
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00441B3D(C)
+|
+:00441B57 8B55E8                   mov edx, dword ptr [ebp-18]
+                                                  ===>EAX=13572468           试炼码
+:00441B5A 52                       push edx
+:00441B5B 6860A54000               push 0040A560
+* Reference To: MSVBVM60.__vbaStrCmp, Ord:0000h
+                                                  |
+:00441B60 FF15D4104000           Call dword ptr [004010D4]
+                                                  ===>比较是否输入注册码？
+:00441B66 8BF8                   mov edi, eax
+:00441B68 8D4DE8                 lea ecx, dword ptr [ebp-18]
+:00441B6B F7DF                   neg edi
+:00441B6D 1BFF                   sbb edi, edi
+:00441B6F 47                     inc edi
+:00441B70 F7DF                   neg edi
+* Reference To: MSVBVM60.__vbaFreeStr, Ord:0000h
+                                                  |
+:00441B72 FF1534124000           Call dword ptr [00401234]
+:00441B78 8D4DE4                 lea ecx, dword ptr [ebp-1C]
+* Reference To: MSVBVM60.__vbaFreeObj, Ord:0000h
+                                                  |
+:00441B7B FF1538124000           Call dword ptr [00401238]
+:00441B81 6685FF                 test di, di
+:00441B84 747D                   je 00441C03
+                                                  ===>有试炼码则跳！
+* Reference To: MSVBVM60.__vbaVarDup, Ord:0000h
+                                                  |
+:00441B86 8B35CC114000           mov esi, dword ptr [004011CC]
+:00441B8C B904000280             mov ecx, 80020004
+:00441B91 894DA8                 mov dword ptr [ebp-58], ecx
+:00441B94 B80A000000             mov eax, 0000000A
+:00441B99 894DB8                 mov dword ptr [ebp-48], ecx
+:00441B9C BF08000000             mov edi, 00000008
+:00441BA1 8D5580                 lea edx, dword ptr [ebp-80]
+:00441BA4 8D4DC0                 lea ecx, dword ptr [ebp-40]
+:00441BA7 8945A0                 mov dword ptr [ebp-60], eax
+:00441BAA 8945B0                 mov dword ptr [ebp-50], eax
+* Possible StringData Ref from Code Obj ->"?l?Q"
+                                                  |
+:00441BAD C745884CC14000         mov [ebp-78], 0040C14C
+:00441BB4 897D80                 mov dword ptr [ebp-80], edi
+:00441BB7 FFD6                   call esi
+:00441BB9 8D5590                 lea edx, dword ptr [ebp-70]
+:00441BBC 8D4DD0                 lea ecx, dword ptr [ebp-30]
+* Possible StringData Ref from Code Obj ->"????eQ?l?Qx"
+                                                  |
+:00441BBF C7459838C14000         mov [ebp-68], 0040C138
+:00441BC6 897D90                 mov dword ptr [ebp-70], edi
+:00441BC9 FFD6                   call esi
+:00441BCB 8D45A0                 lea eax, dword ptr [ebp-60]
+:00441BCE 8D4DB0                 lea ecx, dword ptr [ebp-50]
+:00441BD1 50                     push eax
+:00441BD2 8D55C0                 lea edx, dword ptr [ebp-40]
+:00441BD5 51                     push ecx
+:00441BD6 52                     push edx
+:00441BD7 8D45D0                 lea eax, dword ptr [ebp-30]
+:00441BDA 6A40                   push 00000040
+:00441BDC 50                     push eax
+* Reference To: MSVBVM60.rtcMsgBox, Ord:0253h
+                                                  |
+:00441BDD FF1588104000           Call dword ptr [00401088]
+                                                  ===>没有则提示输入注册码！
+:00441BE3 8D4DA0                 lea ecx, dword ptr [ebp-60]
+:00441BE6 8D55B0                 lea edx, dword ptr [ebp-50]
+:00441BE9 51                     push ecx
+:00441BEA 8D45C0                 lea eax, dword ptr [ebp-40]
+:00441BED 52                     push edx
+```
+
+
+
+:00441BEE 8D4DD0 `lea ecx, dword ptr [ebp-30]`
+
+:00441BF1 50 `push eax`
+
+:00441BF2 51 `push ecx`
+
+:00441BF3 6A04 `push 00000004`
+
+* Reference To: `MSVBVM60.__vbaFreeVarList`, Ord:0000h
+
+`|`
+
+:00441BF5 FF152C104000 `Call dword ptr [0040102C]`
+
+:00441BFB 83C414 `add esp, 00000014`
+
+:00441BFE E909020000 `jmp 00441E0C`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00441B84(C)
+
+|
+
+:00441C03 8B16 `mov edx, dword ptr [esi]`
+
+:00441C05 56 `push esi`
+
+:00441C06 FF9204030000 `call dword ptr [edx+00000304]`
+
+:00441C0C 50 `push eax`
+
+:00441C0D 8D45E4 `lea eax, dword ptr [ebp-1C]`
+
+:00441C10 50 `push eax`
+
+:00441C11 FFD3 `call ebx`
+
+:00441C13 8BF8 `mov edi, eax`
+
+:00441C15 8D55E8 `lea edx, dword ptr [ebp-18]`
+
+:00441C18 52 `push edx`
+
+:00441C19 57 `push edi`
+
+:00441C1A 8B0F `mov ecx, dword ptr [edi]`
+
+:00441C1C FF91A0000000 `call dword ptr [ecx+000000A0]`
+
+:00441C22 85C0 `test eax, eax`
+
+:00441C24 DBE2 `fclex`
+
+:00441C26 7D12 `jge 00441C3A`
+
+:00441C28 68A0000000 `push 000000A0`
+
+* Possible StringData Ref from Code Obj ->`"?N?3?f??"`
+
+`|`
+
+:00441C2D 6808A54000 `push 0040A508`
+
+:00441C32 57 `push edi`
+
+:00441C33 50 `push eax`
+
+* Reference To: `MSVBVM60.__vbaHresultCheckObj`, Ord:0000h
+
+`|`
+
+:00441C34 FF1568104000 `Call dword ptr [00401068]`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00441C26(C)
+
+|
+
+:00441C3A 83EC10 `sub esp, 00000010`
+
+:00441C3D 8B45E8 `mov eax, dword ptr [ebp-18]`
+
+`====>EAX=13572468` 试炼码
+
+:00441C40 8BD4 `mov edx, esp`
+
+:00441C42 B908000000 `mov ecx, 00000008`
+
+:00441C47 894DD0 `mov dword ptr [ebp-30], ecx`
+
+:00441C4A 8945D8 `mov dword ptr [ebp-28], eax`
+
+:00441C4D 890A `mov dword ptr [edx], ecx`
+
+:00441C4F 8B4DD4 `mov ecx, dword ptr [ebp-2C]`
+
+:00441C52 6807000368 `push 68030007`
+
+:00441C57 56 `push esi`
+
+:00441C58 894A04 `mov dword ptr [edx+04], ecx`
+
+:00441C5B 8B0E `mov ecx, dword ptr [esi]`
+
+:00441C5D C745E800000000 `mov [ebp-18], 00000000`
+
+:00441C64 894208 `mov dword ptr [edx+08], eax`
+
+:00441C67 8B45DC `mov eax, dword ptr [ebp-24]`
+
+:00441C6A 89420C `mov dword ptr [edx+0C], eax`
+
+:00441C6D FF911C030000 `call dword ptr [ecx+0000031C]`
+
+:00441C73 8D55E0 `lea edx, dword ptr [ebp-20]`
+
+:00441C76 50 `push eax`
+
+:00441C77 52 `push edx`
+
+:00441C78 FFD3 `call ebx`
+
+:00441C7A 50 `push eax`
+
+* Reference To: `MSVBVM60.__vbaLateIdSt`, Ord:0000h
+
+`|`
+
+:00441C7B FF1520124000 `Call dword ptr [00401220]`
+
+`====>几组字符和“//\/e7C0$0fT\/\/ArE”运算生成注册表里的信息`
+
+:00441C81 8D45E0 `lea eax, dword ptr [ebp-20]`
+
+:00441C84 8D4DE4 `lea ecx, dword ptr [ebp-1C]`
+
+:00441C87 50 `push eax`
+
+:00441C88 51 `push ecx`
+
+:00441C89 6A02 `push 00000002`
+
+* Reference To: `MSVBVM60.__vbaFreeObjList`, Ord:0000h
+
+`|`
+
+:00441C8B FF153C104000 `Call dword ptr [0040103C]`
+
+:00441C91 83C40C `add esp, 0000000C`
+
+:00441C94 8D4DD0 `lea ecx, dword ptr [ebp-30]`
+
+* Reference To: `MSVBVM60.__vbaFreeVar`, Ord:0000h
+
+`|`
+
+:00441C97 FF1514104000 `Call dword ptr [00401014]`
+
+:00441C9D 8B16 `mov edx, dword ptr [esi]`
+
+:00441C9F 6A00 `push 00000000`
+
+:00441CA1 6806000368 `push 68030006`
+
+:00441CA6 56 `push esi`
+
+:00441CA7 FF921C030000 `call dword ptr [edx+0000031C]`
+
+:00441CAD 50 `push eax`
+
+:00441CAE 8D45E4 `lea eax, dword ptr [ebp-1C]`
+
+:00441CB1 50 `push eax`
+
+:00441CB2 FFD3 `call ebx`
+
+:00441CB4 8D4DD0 `lea ecx, dword ptr [ebp-30]`
+
+:00441CB7 50 `push eax`
+
+:00441CB8 51 `push ecx`
+
+* Reference To: `MSVBVM60.__vbaLateIdCallLd`, Ord:0000h
+
+`|`
+
+:00441CB9 FF1504114000 `Call dword ptr [00401104]`
+
+`====>关键 CALL！这里会进入新的“天空” ^O^ ^O^`
+
+:00441CBF 83C410 `add esp, 00000010`
+
+:00441CC2 50 `push eax`
+
+* Reference To: `MSVBVM60.__vbaBoolVar`, Ord:0000h
+
+`|`
+
+:00441CC3 FF15A4104000 `Call dword ptr [004010A4]`
+
+:00441CC9 668BF8 `mov di, ax`
+
+:00441CCC 8D4DE4 `lea ecx, dword ptr [ebp-1C]`
+
+:00441CCF F7D7 `not edi`
+
+* Reference To: `MSVBVM60.__vbaFreeObj`, Ord:0000h
+
+`|`
+
+:00441CD1 FF1538124000 `Call dword ptr [00401238]`
+
+:00441CD7 8D4DD0 `lea ecx, dword ptr [ebp-30]`
+
+* Reference To: `MSVBVM60.__vbaFreeVar`, Ord:0000h
+
+`|`
+
+:00441CDA FF1514104000 `Call dword ptr [00401014]`
+
+:00441CE0 B904000280 `mov ecx, 80020004`
+
+:00441CE5 B80A000000 `mov eax, 0000000A`
+
+:00441CEA 6685FF `test di, di`
+
+:00441CED 894DA8 `mov dword ptr [ebp-58], ecx`
+
+:00441CF0 8945A0 `mov dword ptr [ebp-60], eax`
+
+:00441CF3 894DB8 `mov dword ptr [ebp-48], ecx`
+
+:00441CF6 8945B0 `mov dword ptr [ebp-50], eax`
+
+* Possible StringData Ref from Code Obj ->`"?Oo\`"`
+
+`|`
+
+:00441CF9 C74588ECA94000 `mov [ebp-78], 0040A9EC`
+
+:00441D00 7460 `je 00441D62`
+
+`====>不跳则 OVER！`
+
+* Reference To: `MSVBVM60.__vbaVarDup`, Ord:0000h
+
+`|`
+
+:00441D02 8B35CC114000 `mov esi, dword ptr [004011CC]`
+
+:00441D08 BF08000000 `mov edi, 00000008`
+
+:00441D0D 8D5580 `lea edx, dword ptr [ebp-80]`
+
+:00441D10 8D4DC0 `lea ecx, dword ptr [ebp-40]`
+
+:00441D13 897D80 `mov dword ptr [ebp-80], edi`
+
+:00441D16 FFD6 `call esi`
+
+:00441D18 8D5590 `lea edx, dword ptr [ebp-70]`
+
+:00441D1B 8D4DD0 `lea ecx, dword ptr [ebp-30]`
+
+* Possible StringData Ref from Code Obj ->`"?l?Qx 曪?`
+
+`??N\O€T€?|“"`
+
+`|`
+
+:00441D1E C7459858C14000 `mov [ebp-68], 0040C158`
+
+:00441D25 897D90 `mov dword ptr [ebp-70], edi`
+
+:00441D28 FFD6 `call esi`
+
+:00441D2A 8D55A0 `lea edx, dword ptr [ebp-60]`
+
+:00441D2D 8D45B0 `lea eax, dword ptr [ebp-50]`
+
+:00441D30 52 `push edx`
+
+:00441D31 8D4DC0 `lea ecx, dword ptr [ebp-40]`
+
+:00441D34 50 `push eax`
+
+:00441D35 51 `push ecx`
+
+:00441D36 8D55D0 `lea edx, dword ptr [ebp-30]`
+
+
+
+```
+:00441D39 6A10                  push 00000010
+
+:00441D3B 52                    push edx
+
+* Reference To: MSVBVM60.rtcMsgBox, Ord:0253h
+                         |
+
+:00441D3C FF1588104000          Call dword ptr [00401088]
+                         ====>BAD BOY！
+
+:00441D42 8D45A0                lea eax, dword ptr [ebp-60]
+
+:00441D45 8D4DB0                lea ecx, dword ptr [ebp-50]
+
+:00441D48 50                    push eax
+
+:00441D49 8D55C0                lea edx, dword ptr [ebp-40]
+
+:00441D4C 51                    push ecx
+
+:00441D4D 8D45D0                lea eax, dword ptr [ebp-30]
+
+:00441D50 52                    push edx
+
+:00441D51 50                    push eax
+
+:00441D52 6A04                  push 00000004
+
+* Reference To: MSVBVM60.__vbaFreeVarList, Ord:0000h
+                         |
+
+:00441D54 FF152C104000          Call dword ptr [0040102C]
+
+:00441D5A 83C414                add esp, 00000014
+
+:00441D5D E9AA000000            jmp 00441E0C
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00441D00(C)
+|
+
+* Reference To: MSVBVM60.__vbaVarDup, Ord:0000h
+                         |
+
+:00441D62 8B3DCC114000          mov edi, dword ptr [004011CC]
+
+:00441D68 BB08000000            mov ebx, 00000008
+
+:00441D6D 8D5580                lea edx, dword ptr [ebp-80]
+
+:00441D70 8D4DC0                lea ecx, dword ptr [ebp-40]
+
+:00441D73 895D80                mov dword ptr [ebp-80], ebx
+
+:00441D76 FFD7                  call edi
+
+:00441D78 8D5590                lea edx, dword ptr [ebp-70]
+
+:00441D7B 8D4DD0                lea ecx, dword ptr [ebp-30]
+
+* Possible StringData Ref from Code Obj ->"a"尐`/ec,go 忲 N“"
+                         |
+
+:00441D7E C7459878C14000        mov [ebp-68], 0040C178
+
+:00441D85 895D90                mov dword ptr [ebp-70], ebx
+
+:00441D88 FFD7                  call edi
+
+:00441D8A 8D4DA0                lea ecx, dword ptr [ebp-60]
+
+:00441D8D 8D55B0                lea edx, dword ptr [ebp-50]
+
+:00441D90 51                    push ecx
+
+:00441D91 8D45C0                lea eax, dword ptr [ebp-40]
+
+:00441D94 52                    push edx
+
+:00441D95 50                    push eax
+
+:00441D96 8D4DD0                lea ecx, dword ptr [ebp-30]
+
+:00441D99 6A40                  push 00000040
+
+:00441D9B 51                    push ecx
+
+* Reference To: MSVBVM60.rtcMsgBox, Ord:0253h
+                         |
+
+:00441D9C FF1588104000          Call dword ptr [00401088]
+                         ====>呵呵，胜利女神！
+
+—————————————————————————————————
+
+这个地方有点奇特了，用“S 大法”加 `BPM` 会来到下面的地方。
+
+最后发现是 `C:\WINDOWS\SYSTEM` 下的 `autolp.ocx` 领空。呵呵，不太容易找到呀。
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:16468576(C)
+|
+
+:16468582 8D45C8                lea eax, dword ptr [ebp-38]
+
+:16468585 6A10                  push 00000010
+
+:16468587 8D4DD8                lea ecx, dword ptr [ebp-28]
+
+:1646858A 8D55E8                lea edx, dword ptr [ebp-18]
+
+:1646858D 50                    push eax
+
+:1646858E 51                    push ecx
+
+:1646858F 8955D0                mov dword ptr [ebp-30], edx
+
+:16468592 C745C808400000        mov [ebp-38], 00004008
+
+* Reference To: MSVBVM50.rtcLeftCharVar, Ord:0269h
+                         |
+
+:16468599 FF15A0634716          Call dword ptr [164763A0]
+                         ====>取试炼码的前 16 位最后进行比较
+
+:1646859F 8D55D8                lea edx, dword ptr [ebp-28]
+
+:164685A2 52                    push edx
+
+* Reference To: MSVBVM50.__vbaStrVarMove, Ord:0000h
+                         |
+
+:164685A3 FF152C624716          Call dword ptr [1647622C]
+
+:164685A9 8BD0                  mov edx, eax
+                         ====>EDX=13572468 试炼码 我只有 8 位 ^-^
+
+:164685AB 8D4DE8                lea ecx, dword ptr [ebp-18]
+
+* Reference To: MSVBVM50.__vbaStrMove, Ord:0000h
+                         |
+
+:164685AE FF15AC634716          Call dword ptr [164763AC]
+
+:164685B4 8D4DD8                lea ecx, dword ptr [ebp-28]
+
+* Reference To: MSVBVM50.__vbaFreeVar, Ord:0000h
+                         |
+
+:164685B7 FF1524624716          Call dword ptr [16476224]
+
+:164685BD 8B5E40                mov ebx, dword ptr [esi+40]
+
+:164685C0 83EC10                sub esp, 00000010
+
+:164685C3 8B45E8                mov eax, dword ptr [ebp-18]
+
+:164685C6 895DD0                mov dword ptr [ebp-30], ebx
+
+:164685C9 8BDC                  mov ebx, esp
+
+:164685CB B908000000            mov ecx, 00000008
+
+:164685D0 8BF9                  mov edi, ecx
+
+:164685D2 894DC8                mov dword ptr [ebp-38], ecx
+
+:164685D5 890B                  mov dword ptr [ebx], ecx
+
+:164685D7 8B4D9C                mov ecx, dword ptr [ebp-64]
+
+:164685DA 83EC10                sub esp, 00000010
+
+* Possible StringData Ref from Code Obj ->"LLiberationKey"
+                         |
+
+:164685DD BA3C3E4616            mov edx, 16463E3C
+
+:164685E2 894B04                mov dword ptr [ebx+04], ecx
+
+:164685E5 8BCC                  mov ecx, esp
+
+:164685E7 83EC10                sub esp, 00000010
+
+:164685EA 894308                mov dword ptr [ebx+08], eax
+
+:164685ED 8B45A4                mov eax, dword ptr [ebp-5C]
+
+:164685F0 89430C                mov dword ptr [ebx+0C], eax
+
+:164685F3 8B45AC                mov eax, dword ptr [ebp-54]
+
+:164685F6 8939                  mov dword ptr [ecx], edi
+
+:164685F8 894104                mov dword ptr [ecx+04], eax
+
+:164685FB 8BC7                  mov eax, edi
+
+:164685FD 895108                mov dword ptr [ecx+08], edx
+
+:16468600 8B55B4                mov edx, dword ptr [ebp-4C]
+
+:16468603 89510C                mov dword ptr [ecx+0C], edx
+
+:16468606 8B55BC                mov edx, dword ptr [ebp-44]
+
+:16468609 8BCC                  mov ecx, esp
+
+:1646860B 83EC10                sub esp, 00000010
+
+:1646860E 8901                  mov dword ptr [ecx], eax
+
+* Possible StringData Ref from Code Obj ->"AActiveLock"
+                         |
+
+:16468610 B8D03D4616            mov eax, 16463DD0
+
+:16468615 895104                mov dword ptr [ecx+04], edx
+
+:16468618 8BD7                  mov edx, edi
+
+:1646861A 894108                mov dword ptr [ecx+08], eax
+
+:1646861D 8B45C4                mov eax, dword ptr [ebp-3C]
+
+:16468620 89410C                mov dword ptr [ecx+0C], eax
+
+:16468623 8B45CC                mov eax, dword ptr [ebp-34]
+
+:16468626 8BCC                  mov ecx, esp
+
+:16468628 8911                  mov dword ptr [ecx], edx
+
+:1646862A 8B55D0                mov edx, dword ptr [ebp-30]
+
+:1646862D 894104                mov dword ptr [ecx+04], eax
+
+:16468630 8B45D4                mov eax, dword ptr [ebp-2C]
+
+:16468633 895108                mov dword ptr [ecx+08], edx
+
+:16468636 89410C                mov dword ptr [ecx+0C], eax
+
+:16468639 E892940000            call 16471AD0
+                         ====>关键 CALL！进入！
+
+—————————————————————————————————
+
+进入关键 `CALL`：`16468639 call 16471AD0`
+
+…… ……省略…… ……
+
+* Reference To: MSVBVM50.__vbaStrVarMove, Ord:0000h
+                         |
+
+:16472272 FF152C624716          Call dword ptr [1647622C]
+
+:16472278 8BD0                  mov edx, eax
+                         ====>EDX=1E6417570672051C04
+                         ====>这是`//\/e7C0$0fT\/\/ArE` 和某个随机数运算的结果
+```
+
+
+
+:1647227A 8D4DB0 lea ecx, dword ptr \[ebp\-50\]
+
+\* Reference To: MSVBVM50.\_\_vbaStrMove, Ord:0000h
+
+:1647227D FF15AC634716 Call dword ptr \[164763AC\]
+
+:16472283 8D4D88 lea ecx, dword ptr \[ebp\-78\]
+
+\* Reference To: MSVBVM50.\_\_vbaFreeVar, Ord:0000h
+
+:16472286 FF1524624716 Call dword ptr \[16476224\]
+
+\* Reference To: MSVBVM50.\_\_vbaStrCopy, Ord:0000h
+
+:1647228C 8B3D44634716 mov edi, dword ptr \[16476344\]
+
+\* Possible StringData Ref from Code Obj -> "//\\/e7C0$0fT\\/\\/ArE"
+
+:16472292 BA1C3B4616 mov edx, 16463B1C
+
+:16472297 8D4D9C lea ecx, dword ptr \[ebp\-64\]
+
+:1647229A FFD7 call edi
+
+:1647229C 8D4D9C lea ecx, dword ptr \[ebp\-64\]
+
+:1647229F 8D55B0 lea edx, dword ptr \[ebp\-50\]
+
+:164722A2 51 push ecx
+
+:164722A3 52 push edx
+
+:164722A4 E857060000 call 16472900
+
+====>//\\/e7C0$0fT\\/\\/ArE 和 1E6417570672051C04 运算
+
+:164722A9 8BD0 mov edx, eax
+
+====>EDX\=188211584 运算的结果！
+
+—————————————————————————————————
+
+进入：`164722A4` `call 16472900` 这里只是简单的异或运算
+
+\* Referenced by a CALL at Address:
+
+`|:164722A4`
+
+:16472900 55 push ebp
+
+:16472901 8BEC mov ebp, esp
+
+:16472903 83EC0C sub esp, 0000000C
+
+:16472906 68A6144616 push 164614A6
+
+:1647290B 64A100000000 mov eax, dword ptr fs:\[00000000\]
+
+:16472911 50 push eax
+
+:16472912 64892500000000 mov dword ptr fs:\[00000000\], esp
+
+:16472919 83EC4C sub esp, 0000004C
+
+:1647291C 53 push ebx
+
+:1647291D 8B5D08 mov ebx, dword ptr \[ebp+08\]
+
+:16472920 56 push esi
+
+:16472921 57 push edi
+
+:16472922 8965F4 mov dword ptr \[ebp\-0C\], esp
+
+:16472925 33C0 xor eax, eax
+
+:16472927 53 push ebx
+
+:16472928 C745F870144616 mov \[ebp\-08\], 16461470
+
+:1647292F 8945E4 mov dword ptr \[ebp\-1C\], eax
+
+:16472932 8945E0 mov dword ptr \[ebp\-20\], eax
+
+:16472935 8945D4 mov dword ptr \[ebp\-2C\], eax
+
+:16472938 8945D0 mov dword ptr \[ebp\-30\], eax
+
+:1647293B 8945C0 mov dword ptr \[ebp\-40\], eax
+
+:1647293E E8CD030000 call 16472D10
+
+\* Reference To: MSVBVM50.\_\_vbaStrMove, Ord:0000h
+
+:16472943 8B3DAC634716 mov edi, dword ptr \[164763AC\]
+
+:16472949 8BD0 mov edx, eax
+
+====>EDX\=下面内存中的值
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+\[004758A8\]内存处的值
+
+004758A8 1E 00 64 00 17 00 57 00 06 00 72 00 05 00 1C 00
+
+004758B8 04
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+:1647294B 8BCB mov ecx, ebx
+
+:1647294D FFD7 call edi
+
+:1647294F 8B450C mov eax, dword ptr \[ebp+0C\]
+
+\* Reference To: MSVBVM50.\_\_vbaLenBstr, Ord:0000h
+
+:16472952 8B3528624716 mov esi, dword ptr \[16476228\]
+
+:16472958 8B08 mov ecx, dword ptr \[eax\]
+
+:1647295A 51 push ecx
+
+:1647295B FFD6 call esi
+
+:1647295D 8BC8 mov ecx, eax
+
+\* Reference To: MSVBVM50.\_\_vbaI2I4, Ord:0000h
+
+:1647295F FF15C4624716 Call dword ptr \[164762C4\]
+
+:16472965 8B13 mov edx, dword ptr \[ebx\]
+
+:16472967 8945E8 mov dword ptr \[ebp\-18\], eax
+
+:1647296A 52 push edx
+
+:1647296B FFD6 call esi
+
+:1647296D 8BC8 mov ecx, eax
+
+\* Reference To: MSVBVM50.\_\_vbaI2I4, Ord:0000h
+
+:1647296F FF15C4624716 Call dword ptr \[164762C4\]
+
+:16472975 8945A8 mov dword ptr \[ebp\-58\], eax
+
+:16472978 BE01000000 mov esi, 00000001
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`|:16472A81(U)`
+
+:1647297D 663B75A8 cmp si, word ptr \[ebp\-58\]
+
+:16472981 0F8FFF000000 jg 16472A86
+
+:16472987 8B4DE8 mov ecx, dword ptr \[ebp\-18\]
+
+:1647298A 668BC6 mov ax, si
+
+:1647298D 6699 cwd
+
+:1647298F 66F7F9 idiv cx
+
+:16472992 8D45C0 lea eax, dword ptr \[ebp\-40\]
+
+:16472995 C745C801000000 mov \[ebp\-38\], 00000001
+
+:1647299C 50 push eax
+
+:1647299D 33C0 xor eax, eax
+
+:1647299F C745C002000000 mov \[ebp\-40\], 00000002
+
+:164729A6 6685D2 test dx, dx
+
+:164729A9 0F94C0 sete al
+
+:164729AC 0FAFC1 imul eax, ecx
+
+:164729AF 66F7D8 neg ax
+
+:164729B2 0F802C010000 jo 16472AE4
+
+:164729B8 662BD0 sub dx, ax
+
+:164729BB 0F8023010000 jo 16472AE4
+
+:164729C1 0FBFCA movsx ecx, dx
+
+:164729C4 8B550C mov edx, dword ptr \[ebp+0C\]
+
+:164729C7 51 push ecx
+
+:164729C8 8B02 mov eax, dword ptr \[edx\]
+
+:164729CA 50 push eax
+
+====>EAX\=//\\/e7C0$0fT\\/\\/ArE
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+内存中的值 `//\\/e7C0$0fT\\/\\/ArE` 是程序给的固定值
+
+004762D0 2F 00 5C 00 2F 00 65 00 37 00 43 00 30 00 24 00 /.\\./.e.7.C.0.$.
+
+004762E0 30 00 66 00 54 00 5C 00 2F 00 5C 00 2F 00 41 00 0.f.T.\\./.\\./.A.
+
+004762F0 72 00 45 r.E
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+\* Reference To: MSVBVM50.rtcMidCharBstr, Ord:0277h
+
+:164729CB FF15A0624716 Call dword ptr \[164762A0\]
+
+====>依次取//\\/e7C0$0fT\\/\\/ArE 字符
+
+:164729D1 8BD0 mov edx, eax
+
+:164729D3 8D4DD4 lea ecx, dword ptr \[ebp\-2C\]
+
+:164729D6 FFD7 call edi
+
+:164729D8 50 push eax
+
+\* Reference To: MSVBVM50.rtcAnsivalueBstr, Ord:0204h
+
+:164729D9 FF153C624716 Call dword ptr \[1647623C\]
+
+====>依次取其字符所对应的 HEX 值
+
+:164729DF 50 push eax
+
+\* Reference To: MSVBVM50.\_\_vbaStrI2, Ord:0000h
+
+:164729E0 FF1508624716 Call dword ptr \[16476208\]
+
+:164729E6 8BD0 mov edx, eax
+
+:164729E8 8D4DE0 lea ecx, dword ptr \[ebp\-20\]
+
+:164729EB FFD7 call edi
+
+:164729ED 8D4DD4 lea ecx, dword ptr \[ebp\-2C\]
+
+\* Reference To: MSVBVM50.\_\_vbaFreeStr, Ord:0000h
+
+:164729F0 FF15D4634716 Call dword ptr \[164763D4\]
+
+:164729F6 8D4DC0 lea ecx, dword ptr \[ebp\-40\]
+
+\* Reference To: MSVBVM50.\_\_vbaFreeVar, Ord:0000h
+
+:164729F9 FF1524624716 Call dword ptr \[16476224\]
+
+:164729FF 8B13 mov edx, dword ptr \[ebx\]
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+\[ebx\]内存处的值
+
+004758A8 1E 00 64 00 17 00 57 00 06 00 72 00 05 00 1C 00
+
+004758B8 04
+
+
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆ 
+
+```
+:16472A01 53                 push ebx  
+:16472A02 0FBFC6             movsx eax, si  
+:16472A05 50                 push eax  
+:16472A06 8D4DC0             lea ecx, dword ptr [ebp-40]  
+:16472A09 6A01               push 00000001  
+:16472A0B 51                 push ecx  
+:16472A0C 50                 push eax  
+:16472A0D 52                 push edx  
+:16472A0E C745C801000000     mov [ebp-38], 00000001  
+:16472A15 C745C002000000     mov [ebp-40], 00000002 
+
+* Reference To: MSVBVM50.rtcMidCharBstr, Ord:0277h 
+                     |  
+
+:16472A1C FF15A0624716       Call dword ptr [164762A0] 
+                     =====>依次取上面内存处的值 
+
+:16472A22 8BD0               mov edx, eax  
+:16472A24 8D4DD4             lea ecx, dword ptr [ebp-2C]  
+:16472A27 FFD7               call edi  
+:16472A29 50                 push eax 
+
+* Reference To: MSVBVM50.rtcAnsivalueBstr, Ord:0204h  
+                     |  
+
+:16472A2A FF153C624716       Call dword ptr [1647623C]  
+
+:16472A30 0FBFD8             movsx ebx, ax  
+
+:16472A33 8B45E0             mov eax, dword ptr [ebp-20]  
+
+:16472A36 50                 push eax 
+
+* Reference To: MSVBVM50.__vbaI4Str, Ord:0000h  
+                     |  
+
+:16472A37 FF1548634716       Call dword ptr [16476348]  
+
+:16472A3D 33D8               xor ebx, eax  
+                     =====>依次异或运算！  
+
+1E、64、17、57、06、72、05、1C、04 依次异或 2F、5C、2F、65、37、43、30、24、30 
+
+:16472A3F 53                 push ebx 
+
+* Reference To: MSVBVM50.rtcBstrFromAnsi, Ord:0219h  
+                     |  
+
+:16472A40 FF151C634716       Call dword ptr [1647631C]  
+                     =====>转换成字符！ 
+
+:16472A46 8BD0               mov edx, eax  
+:16472A48 8D4DD0             lea ecx, dword ptr [ebp-30]  
+:16472A4B FFD7               call edi  
+:16472A4D 50                 push eax  
+:16472A4E 6A00               push 00000000 
+
+* Reference To: MSVBVM50.__vbaMidStmtBstr, Ord:0000h  
+                     |  
+
+:16472A50 FF15D0634716       Call dword ptr [164763D0]  
+
+:16472A56 8D4DD0             lea ecx, dword ptr [ebp-30]  
+:16472A59 8D55D4             lea edx, dword ptr [ebp-2C]  
+:16472A5C 51                 push ecx  
+:16472A5D 52                 push edx  
+:16472A5E 6A02               push 00000002 
+
+* Reference To: MSVBVM50.__vbaFreeStrList, Ord:0000h  
+                     |  
+
+:16472A60 FF154C634716       Call dword ptr [1647634C]  
+
+:16472A66 83C40C             add esp, 0000000C  
+:16472A69 8D4DC0             lea ecx, dword ptr [ebp-40] 
+
+* Reference To: MSVBVM50.__vbaFreeVar, Ord:0000h  
+                     |  
+
+:16472A6C FF1524624716       Call dword ptr [16476224]  
+
+:16472A72 8B5D08             mov ebx, dword ptr [ebp+08]  
+:16472A75 B801000000         mov eax, 00000001  
+:16472A7A 6603C6             add ax, si  
+:16472A7D 7065               jo 16472AE4  
+:16472A7F 8BF0               mov esi, eax  
+:16472A81 E9F7FEFFFF         jmp 1647297D  
+                     =====>循环！ 
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+
+|:16472981(C)  
+
+|  
+
+:16472A86 8B13               mov edx, dword ptr [ebx]  
+                     =====>EDX=188211584      上面运算的结果！ 
+
+—————————————————————————————————  
+
+继续跟踪： 
+
+:164689D5 FF91F8070000       call dword ptr [ecx+000007F8]  
+
+:164689DB 8B45E0             mov eax, dword ptr [ebp-20]  
+                     =====>EAX=188211584 
+
+:164689DE 8B4DDC             mov ecx, dword ptr [ebp-24]  
+                     =====>ECX=WHWGP-XDR8Y-GR9X3-863RP-67J2T 固定值 
+
+:164689E1 50                 push eax  
+:164689E2 51                 push ecx 
+
+* Reference To: MSVBVM50.__vbaStrCat, Ord:0000h  
+                     |  
+
+:164689E3 FF1550624716       Call dword ptr [16476250]  
+                     =====>把上面 2 组字符连接起来！ 
+
+* Reference To: MSVBVM50.__vbaStrMove, Ord:0000h  
+                     |  
+
+:164689E9 8B1DAC634716       mov ebx, dword ptr [164763AC]  
+
+:164689EF 8BD0               mov edx, eax  
+                     =====>EDX=188211584WHWGP-XDR8Y-GR9X3-863RP-67J2T 
+
+:164689F1 8D4DD8             lea ecx, dword ptr [ebp-28]  
+:164689F4 FFD3               call ebx  
+:164689F6 50                 push eax  
+:164689F7 E874710000         call 1646FB70  
+                     =====>这个关键运算没看明白  ^-^ 得出下面的值 
+
+:164689FC 8BD0               mov edx, eax  
+                     =====>EDX=7A52D81D93844813944FF3100F51D07BDA75DD5F 
+
+:164689FE 8D4DE8             lea ecx, dword ptr [ebp-18]  
+:16468A01 FFD3               call ebx  
+:16468A03 8D55D8             lea edx, dword ptr [ebp-28]  
+:16468A06 8D45DC             lea eax, dword ptr [ebp-24]  
+:16468A09 52                 push edx  
+:16468A0A 8D4DE0             lea ecx, dword ptr [ebp-20]  
+:16468A0D 50                 push eax  
+:16468A0E 51                 push ecx  
+:16468A0F 6A03               push 00000003 
+
+* Reference To: MSVBVM50.__vbaFreeStrList, Ord:0000h  
+                     |  
+
+:16468A11 FF154C634716       Call dword ptr [1647634C]  
+
+:16468A17 0FBF4646           movsx eax, word ptr [esi+46]  
+:16468A1B 83C410             add esp, 00000010  
+:16468A1E 8D55E8             lea edx, dword ptr [ebp-18]  
+:16468A21 8955C0             mov dword ptr [ebp-40], edx  
+:16468A24 8D4DB8             lea ecx, dword ptr [ebp-48]  
+:16468A27 50                 push eax  
+:16468A28 8D55C8             lea edx, dword ptr [ebp-38]  
+:16468A2B 51                 push ecx  
+:16468A2C 52                 push edx  
+:16468A2D C745B808400000     mov [ebp-48], 00004008 
+
+* Reference To: MSVBVM50.rtcLeftCharVar, Ord:0269h  
+                     |  
+
+:16468A34 FF15A0634716       Call dword ptr [164763A0]  
+                     =====>取上面所得字符串的前 16 位！ 
+
+:16468A3A 8D45C8             lea eax, dword ptr [ebp-38]  
+:16468A3D 50                 push eax 
+
+* Reference To: MSVBVM50.__vbaStrVarMove, Ord:0000h  
+                     |  
+
+:16468A3E FF152C624716       Call dword ptr [1647622C]  
+
+:16468A44 8BD0               mov edx, eax  
+                     =====>EDX=7A52D81D93844813   前 16 位 
+
+:16468A46 8D4DE4             lea ecx, dword ptr [ebp-1C]  
+:16468A49 FFD3               call ebx  
+:16468A4B 8D4DC8             lea ecx, dword ptr [ebp-38] 
+
+* Reference To: MSVBVM50.__vbaFreeVar, Ord:0000h  
+                     |  
+
+:16468A4E FF1524624716       Call dword ptr [16476224]  
+
+:16468A54 8B16               mov edx, dword ptr [esi]  
+:16468A56 83EC10             sub esp, 00000010  
+:16468A59 8BDC               mov ebx, esp  
+:16468A5B B908000000         mov ecx, 00000008  
+:16468A60 894DB8             mov dword ptr [ebp-48], ecx 
+
+* Possible StringData Ref from Code Obj -> "SSoftwareCode"  
+                     |  
+
+:16468A63 B88C3E4616         mov eax, 16463E8C  
+:16468A68 890B               mov dword ptr [ebx], ecx  
+:16468A6A 8B4DBC             mov ecx, dword ptr [ebp-44]  
+:16468A6D 8945C0             mov dword ptr [ebp-40], eax  
+:16468A70 894B04             mov dword ptr [ebx+04], ecx  
+:16468A73 894308             mov dword ptr [ebx+08], eax  
+```
+
+
+
+:16468A76 8B45C4 mov eax, dword ptr \[ebp-3C\]
+
+:16468A79 56 push esi
+
+:16468A7A 89430C mov dword ptr \[ebx+0C\], eax
+
+:16468A7D FF9290030000 call dword ptr \[edx+00000390\]
+
+:16468A83 3BC7 cmp eax, edi
+
+:16468A85 7D12 jge 16468A99
+
+:16468A87 6890030000 push 00000390
+
+Possible StringData Ref from Code Obj ->"+}0€m 艘曉?a\IY?~0€m 艘曉?a\IY\*}0€m 艘曉?a\I"
+
+->"Y?~0€m 艘曉?a\IY?~0€m 艘曉?a\IYP?3?f??
+
+:16468A8C 68443B4616 push 16463B44
+
+:16468A91 56 push esi
+
+:16468A92 50 push eax
+
+Reference To: `MSVBVM50.__vbaHResultCheckObj`, Ord:0000h
+
+:16468A93 FF1558624716 Call dword ptr \[16476258\]
+
+Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:16468A85(C)
+
+:16468A99 68DA8A4616 push 16468ADA
+
+:16468A9E EB30 jmp 16468AD0
+
+:16468AA0 F645FC04 test \[ebp-04\], 04
+
+:16468AA4 7409 je 16468AAF
+
+:16468AA6 8D4DE4 lea ecx, dword ptr \[ebp-1C\]
+
+Reference To: `MSVBVM50.__vbaFreeStr`, Ord:0000h
+
+:16468AA9 FF15D4634716 Call dword ptr \[164763D4\]
+
+Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:16468AA4(C)
+
+:16468AAF 8D4DD8 lea ecx, dword ptr \[ebp-28\]
+
+:16468AB2 8D55DC lea edx, dword ptr \[ebp-24\]
+
+:16468AB5 51 push ecx
+
+:16468AB6 8D45E0 lea eax, dword ptr \[ebp-20\]
+
+:16468AB9 52 push edx
+
+:16468ABA 50 push eax
+
+:16468ABB 6A03 push 00000003
+
+Reference To: `MSVBVM50.__vbaFreeStrList`, Ord:0000h
+
+:16468ABD FF154C634716 Call dword ptr \[1647634C\]
+
+:16468AC3 83C410 add esp, 00000010
+
+:16468AC6 8D4DC8 lea ecx, dword ptr \[ebp-38\]
+
+Reference To: `MSVBVM50.__vbaFreeVar`, Ord:0000h
+
+:16468AC9 FF1524624716 Call dword ptr \[16476224\]
+
+:16468ACF C3 ret
+
+—————————————————————————————————
+
+继续跟踪：GO GO GO ^O^ ^O^
+
+Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:16468768(C)
+
+:1646877C 8B55DC mov edx, dword ptr \[ebp-24\]
+
+:1646877F 8B463C mov eax, dword ptr \[esi+3C\]
+
+Reference To: `MSVBVM50.__vbaStrCat`, Ord:0000h
+
+:16468782 8B1D50624716 mov ebx, dword ptr \[16476250\]
+
+:16468788 52 push edx
+
+:16468789 50 push eax
+
+:1646878A FFD3 call ebx
+
+Reference To: `MSVBVM50.__vbaStrMove`, Ord:0000h
+
+:1646878C 8B3DAC634716 mov edi, dword ptr \[164763AC\]
+
+:16468792 8BD0 mov edx, eax
+
+:16468794 8D4DD8 lea ecx, dword ptr \[ebp-28\]
+
+:16468797 FFD7 call edi
+
+:16468799 50 push eax
+
+Possible StringData Ref from Code Obj ->"1123"
+
+:1646879A 685C3E4616 push 16463E5C
+
+:1646879F FFD3 call ebx
+
+:164687A1 8BD0 mov edx, eax
+
+:164687A3 8D4DD4 lea ecx, dword ptr \[ebp-2C\]
+
+:164687A6 FFD7 call edi
+
+:164687A8 50 push eax
+
+====>上面把 `7A52D81D93844813` 和几个固定字符连接起来进入下面的运算
+
+:164687A9 E8C2730000 call 1646FB70
+
+====>这个关键运算没看明白 ^O^ ^O^ Sorry
+
+:164687AE 8BD0 mov edx, eax
+
+====>EDX=832527F686CBC42CF57A8BC38FED3A369438D092
+
+:164687B0 8D4DE8 lea ecx, dword ptr \[ebp-18\]
+
+:164687B3 FFD7 call edi
+
+:164687B5 8D4DD4 lea ecx, dword ptr \[ebp-2C\]
+
+:164687B8 8D55D8 lea edx, dword ptr \[ebp-28\]
+
+:164687BB 51 push ecx
+
+:164687BC 8D45DC lea eax, dword ptr \[ebp-24\]
+
+:164687BF 52 push edx
+
+:164687C0 50 push eax
+
+:164687C1 6A03 push 00000003
+
+Reference To: `MSVBVM50.__vbaFreeStrList`, Ord:0000h
+
+:164687C3 FF154C634716 Call dword ptr \[1647634C\]
+
+:164687C9 8B5E40 mov ebx, dword ptr \[esi+40\]
+
+:164687CC 83C410 add esp, 00000010
+
+:164687CF 83EC10 sub esp, 00000010
+
+:164687D2 895DAC mov dword ptr \[ebp-54\], ebx
+
+:164687D5 8BDC mov ebx, esp
+
+:164687D7 B90A000000 mov ecx, 0000000A
+
+:164687DC B804000280 mov eax, 80020004
+
+:164687E1 83EC10 sub esp, 00000010
+
+:164687E4 890B mov dword ptr \[ebx\], ecx
+
+:164687E6 8B8D78FFFFFF mov ecx, dword ptr \[ebp+FFFFFF78\]
+
+Possible StringData Ref from Code Obj ->"LLiberationKey"
+
+:164687EC BA3C3E4616 mov edx, 16463E3C
+
+:164687F1 C7459408000000 mov \[ebp-6C\], 00000008
+
+:164687F8 894B04 mov dword ptr \[ebx+04\], ecx
+
+:164687FB 8BCC mov ecx, esp
+
+:164687FD 83EC10 sub esp, 00000010
+
+Possible StringData Ref from Code Obj ->"AActiveLock"
+
+:16468800 C7459CD03D4616 mov \[ebp-64\], 16463DD0
+
+:16468807 894308 mov dword ptr \[ebx+08\], eax
+
+:1646880A 8B4580 mov eax, dword ptr \[ebp-80\]
+
+:1646880D C745A408000000 mov \[ebp-5C\], 00000008
+
+:16468814 89430C mov dword ptr \[ebx+0C\], eax
+
+:16468817 B808000000 mov eax, 00000008
+
+:1646881C 8901 mov dword ptr \[ecx\], eax
+
+:1646881E 8B4588 mov eax, dword ptr \[ebp-78\]
+
+:16468821 894104 mov dword ptr \[ecx+04\], eax
+
+:16468824 8BC4 mov eax, esp
+
+:16468826 83EC10 sub esp, 00000010
+
+:16468829 895108 mov dword ptr \[ecx+08\], edx
+
+:1646882C 8B5590 mov edx, dword ptr \[ebp-70\]
+
+:1646882F 89510C mov dword ptr \[ecx+0C\], edx
+
+:16468832 8B4D94 mov ecx, dword ptr \[ebp-6C\]
+
+:16468835 8B5598 mov edx, dword ptr \[ebp-68\]
+
+:16468838 8908 mov dword ptr \[eax\], ecx
+
+:1646883A 8B4D9C mov ecx, dword ptr \[ebp-64\]
+
+:1646883D 895004 mov dword ptr \[eax+04\], edx
+
+:16468840 8B55A0 mov edx, dword ptr \[ebp-60\]
+
+:16468843 894808 mov dword ptr \[eax+08\], ecx
+
+:16468846 8B4DA4 mov ecx, dword ptr \[ebp-5C\]
+
+:16468849 89500C mov dword ptr \[eax+0C\], edx
+
+:1646884C 8B55A8 mov edx, dword ptr \[ebp-58\]
+
+:1646884F 8BC4 mov eax, esp
+
+:16468851 8908 mov dword ptr \[eax\], ecx
+
+:16468853 8B4DAC mov ecx, dword ptr \[ebp-54\]
+
+:16468856 895004 mov dword ptr \[eax+04\], edx
+
+:16468859 8B55B0 mov edx, dword ptr \[ebp-50\]
+
+:1646885C 894808 mov dword ptr \[eax+08\], ecx
+
+:1646885F 89500C mov dword ptr \[eax+0C\], edx
+
+:16468862 E879960000 call 16471EE0
+
+:16468867 8BD0 mov edx, eax
+
+====>EDX=13572468 试炼码
+
+
+
+:16468869 8D4DE0           `lea ecx, dword ptr [ebp-20]`
+
+:1646886C FFD7            `call edi`
+
+:1646886E 8D45E8         `lea eax, dword ptr [ebp-18]`
+
+:16468871 8945AC         `mov dword ptr [ebp-54], eax`
+
+:16468874 0FBF4E44       `movsx ecx, word ptr [esi+44]`
+
+:16468878 8D55A4         `lea edx, dword ptr [ebp-5C]`
+
+:1646887B 51            `push ecx`
+
+:1646887C 8D45C4         `lea eax, dword ptr [ebp-3C]`
+
+:1646887F 52            `push edx`
+
+:16468880 50            `push eax`
+
+:16468881 C745A408400000 `mov [ebp-5C], 00004008`
+
+\* Reference To: `MSVBVM50.rtcLeftCharVar`, Ord:0269h
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
+
+:16468888 FF15A0634716   `Call dword ptr [164763A0]`
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `====>` 用 `MSVBVM50.rtcLeftCharVar` 取 `832527F686CBC42CF57A8BC38FED3A369438D092` 的左边 16 位
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `====>` `832527F686CBC42C` 这个就是注册码！ ^O^ ^O^
+
+:1646888E 8B4DE0         `mov ecx, dword ptr [ebp-20]`
+
+:16468891 8D55C4         `lea edx, dword ptr [ebp-3C]`
+
+:16468894 8D4594         `lea eax, dword ptr [ebp-6C]`
+
+:16468897 52            `push edx`
+
+:16468898 50            `push eax`
+
+:16468899 894D9C         `mov dword ptr [ebp-64], ecx`
+
+:1646889C C7459408800000 `mov [ebp-6C], 00008008`
+
+\* Reference To: `MSVBVM50.__vbaVarTstEq`, Ord:0000h
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
+
+:164688A3 FF15C0624716   `Call dword ptr [164762C0]`
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `====>` 呵呵，`MSVBVM50.__vbaVarTstEq` 比较 CALL！
+
+—————————————————————————————————
+
+【完 美 爆 破】：
+
+`004415C2 0F8490000000     je 00441658`
+
+改为： `909090909090` NOP 掉
+
+—————————————————————————————————
+
+【注册信息保存】：
+
+`REGEDIT4`
+
+`[HKEY_LOCAL_MACHINE\Software\Nelco\693557215513424B103065721D\6E3F5B0C41267C4B530D]`
+
+`"7D3D4101582E7B4149"="1E6417570672051C04"`
+
+`"663246115E225C60511231"="1F6F02531A771015055C6165156C1C"`
+
+`"63354D004522444D5F081F3956"="176F1D50057476120850171E6C681D02"`
+
+程序似乎是采用随机数来生成序列号参与运算的，所以可以用以上信息替换掉注册表中相应的键值，或许可以注册其他机子上的这个程序。有兴趣的朋友可以试试。无法注册就自己找一下注册码吧…… ^O^ ^O^
+
+—————————————————————————————————
+
+【整 理】：
+
+序列号：`7A52D81D93844813`
+
+注册码：`832527F686CBC42C`
+
+—————————————————————————————————
+
+```
+      ,     _/ 
+     /| \_.-~/          \__   ,        青春都一饷
+     ( /~   /            \~-._ |\
+     `\\\   _/             \   ~\ )       忍把浮名
+     _-~~~-.)  )_/_;;,.          \__  //'
+     /'\_,\   --~   \ ~~~-  ,;;\__\_(  (.-~~~-.     换了破解轻狂
+    `~ _( ,_.--\ (    ,;'' /   ~--   /.\_`\
+   /~~//'   /' `~\          ) /--..\_, )_  `~
+   "  `~"  "     `"     /~'`\   `\~~\   
+                       "     "   "~'  ""
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `Cracked By 巢水工作坊——fly [OCN][FCG]`
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `2003-06-05  14:00`
+
+`4dd466d0e1e0cc123afbe504da2462ca`

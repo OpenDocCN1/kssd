@@ -1,0 +1,158 @@
+
+# 注册亮点压缩
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum1060.htm`](https://www.pediy.com/kssd/pediy03/forum1060.htm)
+
+注册亮点压缩实录
+
+by 6767 \[BCG\] @2001/06
+
+工具：`SoftIce`, `IceDump 6.023`, `RegMon`, `FrogIce`
+
+下载：`http://sd.onlinedown.net/down/nbz20c.exe`
+
+受朋友之托，写这个，呵呵。其实机器上有 `winzip`、`rar`，还有 `wincommand` 自带解压，压缩软件在我机器上没有市场。
+
+它加了壳，`UPX` 的，在这个例子中是否脱壳不重要，但有必要给象我一样的初学者讲一下：手动脱 `UPX` 的壳很容易。
+
+1. 先运行 `frogice`，这个应养成习惯；再运行 `IceDump 6.023`；用 `Symble Loader` 载入 `bzip.exe`。差点忘了需要先用 `PE` 编辑功能记下它的 `Size of Image:1FF000`、`Image of Base:400000`。
+
+程序入口在这里：
+
+```
+017F:005FB370  60                     PUSHAD                            <- 停在这
+017F:005FB371  BE30605600             MOV     ESI,00566030
+017F:005FB376  8DBED0AFE9FF           LEA     EDI,[ESI+FFE9AFD0]
+017F:005FB37C  57                     PUSH    EDI
+017F:005FB37D  83CDFF               OR      EBP,-01
+017F:005FB380  EB10                 JMP     005FB392
+017F:005FB382  90                     NOP
+017F:005FB383  90                     NOP
+017F:005FB384  90                     NOP
+017F:005FB385  90                     NOP
+```
+
+2. 看官们记住了，这就是被 `UPX` 压过的特征，脱壳很简单：按 `Ctrl+PageDown`(不要告诉我你找不到)向下翻页，直到这里：
+
+```
+017F:005FB4CE  8903                   MOV     [EBX],EAX
+017F:005FB4D0  83C304               ADD     EBX,04
+017F:005FB4D3  EBD8                 JMP     005FB4AD
+017F:005FB4D5  FF9654DC1F00          CALL    [ESI+001FDC54]
+017F:005FB4DB  61                     POPAD                             <- 恢复现场
+017F:005FB4DC  E91F5BE0FF           JMP     00401000                  <- 跳向 Original Entry Point
+017F:005FB4E1  0000                 ADD     [EAX],AL
+017F:005FB4E3  00FC                 ADD     AH,BH
+017F:005FB4E5  B45F                 MOV     AH,5F
+017F:005FB4E7  00B0B55F0024         ADD     [EAX+24005FB5],DH
+```
+
+下面是一些 00
+
+3. 你只要下：`g 5FB4DC`，按一次 `F5`，再按一次 `F10` 就到了 OEP，可以脱壳了。
+
+```
+017F:00401000  EB10                   JMP     00401012                <- 这里就是 OEP 了(不知它为什么还跳，不管它)
+017F:00401002  66623A               BOUND   DI,[EDX]
+017F:00401005  43                     INC     EBX
+017F:00401006  2B2B                 SUB     EBP,[EBX]
+017F:00401008  48                     DEC     EAX
+017F:00401009  4F                     DEC     EDI
+017F:0040100A  4F                     DEC     EDI
+017F:0040100B  4B                     DEC     EBX
+017F:0040100C  90                     NOP
+```
+
+4. 在 401000 处下：`/dump 400000 1ff000 bz_unpck.exe` 就能得到脱壳后的文件，不过还不能用。用 `PE Edit` 功能打开它，将每一 section 的 `psize` 改为与 `vsize` 值相等，`offset` 改为与 `RVA` 相等，保存后就可用了(不过这次没法子用 `WDASM`，DAMN!)。
+
+我们是想找出注册码，消灭这个大 BUG 是吧？继续。
+
+5. 用 `RegMon` 得知它在这里保存注册信息：
+
+```
+REGEDIT4
+
+[HKEY_CURRENT_USER\Software\NSC\BrilliantZIP\Registered]
+
+"a1"="6767"
+"a2"="73E26-3789B-3ABC2-2DCE7"
+"a3"="80D2A-43A38-D5D17-A56C4"
+"a4"="BCG"
+```
+
+分别为破解者姓名、机器码、注册码、破解组织名。好了，有线索就有办法。
+
+6. 下 `BPX RegQueryValueExA  DO "d esp->8"` ，然后不停的按 `F5`，直到看到 `a1` 出现，继续按 `F5`，看到 `a3` 时下 `bd *` 阻断，之后小心的按几次 `F12` 返回程序主线(`BORLAND` 编译器的特征很明显)，到这里：
+
+```
+017F:0049CB25  8BC6                   MOV     EAX,ESI
+017F:0049CB27  E898FFFFFF           CALL    0049CAC4
+017F:0049CB2C  8BD8                   MOV     EBX,EAX
+017F:0049CB2E  85DB                   TEST    EBX,EBX
+017F:0049CB30  7E4F                   JLE     0049CB81
+017F:0049CB32  8BC7                   MOV     EAX,EDI
+017F:0049CB34  8BCB                   MOV     ECX,EBX
+017F:0049CB36  33D2                   XOR     EDX,EDX
+017F:0049CB38  E8A3C50600           CALL    005090E0
+017F:0049CB3D  53                     PUSH    EBX
+```
+
+再向下不远：
+
+```
+017F:0049CB55  803C2401             CMP     BYTE PTR [ESP],01
+017F:0049CB59  7406                   JZ      0049CB61
+017F:0049CB5B  803C2402             CMP     BYTE PTR [ESP],02
+017F:0049CB5F  7517                   JNZ     0049CB78
+017F:0049CB61  8B07                   MOV     EAX,[EDI]               <- eax 为输入注册码的偏移址
+                                    <- 记下这地址并下 BPM
+017F:0049CB63  E8D4C80600           CALL    0050943C
+017F:0049CB68  E867430600           CALL    00500ED4
+017F:0049CB6D  8BD0                   MOV     EDX,EAX
+017F:0049CB6F  8BC7                   MOV     EAX,EDI
+017F:0049CB71  E836CA0600           CALL    005095AC
+```
+
+7. 设好 `bpm` 后，按 `F5` 继续运行，第一次中断是取长度的，再按一次 `F5`，到这里：
+
+```
+\-----KERNEL32!CompareStringA?---------------------------------------PROT32-
+017F:BFFA20F7  8A01                   MOV     AL,[ECX]
+017F:BFFA20F9  648F02               POP     DWORD PTR FS:[EDX]
+017F:BFFA20FC  83C404               ADD     ESP,04
+017F:BFFA20FF  E96485FDFF           JMP     BFF7A668
+017F:BFFA2104  57                     PUSH    EDI
+017F:BFFA2105  6A23                   PUSH    23
+017F:BFFA2107  2BD2                   SUB     EDX,EDX
+017F:BFFA2109  68CB21FABF           PUSH    BFFA21CB
+017F:BFFA210E  64FF32               PUSH    DWORD PTR FS:[EDX]
+017F:BFFA2111  648922               MOV     FS:[EDX],ESP
+--------------------------------------------------------------------------------
+
+MSR LastBranchFromIp=00536E46
+
+MSR LastBranchToIp=BFFA20E0
+
+:/screendump d:bz07.htm
+```
+
+8. 看到那个绿字 `KERNEL32!CompareStringA` 了？我是第一次见到这个函数，那么你猜猜它是什么意思呢？按几次 `F12` 返回到程序里：
+
+```
+017F:0050032A  8BC3                   MOV     EAX,EBX
+017F:0050032C  E80B910000           CALL    0050943C
+017F:00500331  50                     PUSH    EAX                     <- 这里是大家都想看到的
+017F:00500332  6A01                   PUSH    01
+017F:00500334  6800040000           PUSH    00000400
+017F:00500339  E8086B0300           CALL    KERNEL32!CompareStringA
+017F:0050033E  83E802               SUB     EAX,02
+017F:00500341  5E                     POP     ESI
+017F:00500342  5B                     POP     EBX
+017F:00500343  C3                     RET
+```
+
+好了，大侠重新来过吧，载入后进行上述 6 的跟踪历程，见到目标 `a3` 后下 `bpx 500332 do "d eax"`，记下数据窗里显示的那些样子怪怪的，再用它来注册就可以了。
+
+收工。
+
+补记：`icedump` 真是好东东，可以截图。想看我截的图 just feel free to ask me for it. `4dd466d0e1e0cc123afbe504da2462ca`

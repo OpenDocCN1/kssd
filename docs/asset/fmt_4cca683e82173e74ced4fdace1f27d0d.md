@@ -1,0 +1,259 @@
+
+```
+:0046557F 8D4B06                lea ecx, dword ptr [ebx+06]
+
+:00465582 51                    push ecx
+
+:00465583 8D45F0                lea eax, dword ptr [ebp-10]
+
+:00465586 50                    push eax
+
+:00465587 E81CFC0A00            call 005151A8
+
+:0046558C 83C40C                add esp, 0000000C
+
+:0046558F 6A05                  push 00000005
+
+:00465591 8D530C                lea edx, dword ptr [ebx+0C]
+
+:00465594 52                    push edx
+
+:00465595 8D4DE8                lea ecx, dword ptr [ebp-18]
+
+:00465598 51                    push ecx
+
+:00465599 E80AFC0A00            call 005151A8
+
+:0046559E 83C40C                add esp, 0000000C
+
+:004655A1 6A05                  push 00000005
+
+:004655A3 8D4312                lea eax, dword ptr [ebx+12]
+
+:004655A6 50                    push eax
+
+:004655A7 8D55E0                lea edx, dword ptr [ebp-20]
+
+:004655AA 52                    push edx
+
+:004655AB E8F8FB0A00            call 005151A8
+
+:004655B0 83C40C                add esp, 0000000C
+
+:004655B3 6A05                  push 00000005
+
+:004655B5 83C318                add ebx, 00000018
+
+:004655B8 53                    push ebx
+
+:004655B9 8D45D8                lea eax, dword ptr [ebp-28]
+
+:004655BC 50                    push eax
+
+:004655BD E8E6FB0A00            call 005151A8
+
+:004655C2 83C40C                add esp, 0000000C
+
+:004655C5 33D2                  xor edx, edx
+
+:004655C7 8D45F0                lea eax, dword ptr [ebp-10]
+```
+
+将 6, 12, 18, 24 位的 `-` 去掉组成 `SN1`, `SN2`, `SN3`, `SN4` 四个数
+
+```
+////////////////////////////////////////////////////////////////////
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004655E6(C)
+|
+:004655CA 0FBE08                movsx ecx, byte ptr [eax]
+
+:004655CD 83F930                cmp ecx, 00000030
+
+:004655D0 7C05                  jl 004655D7
+
+:004655D2 83F939                cmp ecx, 00000039
+
+:004655D5 7E0A                  jle 004655E1
+```
+
+```
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004655D0(C)
+|
+:004655D7 B803000000            mov eax, 00000003
+
+:004655DC E9EB030000            jmp 004659CC
+```
+
+```
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004655D5(C)
+|
+:004655E1 42                    inc edx
+
+:004655E2 40                    inc eax
+
+:004655E3 83FA05                cmp edx, 00000005
+
+:004655E6 7CE2                  jl 004655CA
+```
+
+比较 `SN2` 各位是否全部是数字
+
+```
+//////////////////////////////////////////////////////////////////////
+:004655E8 0FBE55E9              movsx edx, byte ptr [ebp-17] //SN3.2
+
+:004655EC 0FBE4DEA              movsx ecx, byte ptr [ebp-16] //SN3.3
+
+:004655F0 03D2                  add edx, edx                 //SN3.2=2*SN3.2
+
+:004655F2 0FBE45E8              movsx eax, byte ptr [ebp-18] //SN3.1
+
+:004655F6 8D1492                lea edx, dword ptr [edx+4*edx]//SN3.2=SN3.2+4*SN3.2
+
+:004655F9 83C0D0                add eax, FFFFFFD0            //SN3.1=SN3.1-$30
+
+:004655FC 03D1                  add edx, ecx                 //SN3.2=SN3.2+SN3.3
+
+:004655FE 0FBE4DEB              movsx ecx, byte ptr [ebp-15] //SN3.4
+
+:00465602 8BD9                  mov ebx, ecx                
+
+:00465604 81C2F0FDFFFF          add edx, FFFFFDF0            //SN3.2=SN3.2-$210 
+
+:0046560A 0FBE4DEC              movsx ecx, byte ptr [ebp-14]//SN3.5
+
+:0046560E 03DB                  add ebx, ebx                 //SN3.4=SN3.4*2
+
+:00465610 8D1C9B                lea ebx, dword ptr [ebx+4*ebx]//SN3.4=SN3.4+4*SN3.4
+
+:00465613 03D9                  add ebx, ecx                  //SN3.4=SN3.4+SN3.5
+
+:00465615 81C3F0FDFFFF          add ebx, FFFFFDF0            //SN3.4=SN3.4-$210
+
+:0046561B 85C0                  test eax, eax
+
+:0046561D 7C17                  jl 00465636
+
+:0046561F 83F809                cmp eax, 00000009
+
+:00465622 7F12                  jg 00465636
+```
+
+`SN3.1-$30` 要在 `[1-9]` 范围
+
+```
+///////////////////////////////////////////////////////
+:00465624 85D2                  test edx, edx
+
+:00465626 7C0E                  jl 00465636
+
+:00465628 83FA0C                cmp edx, 0000000C
+
+:0046562B 7F09                  jg 00465636
+```
+
+`(10*SN3.2+SN3.3)-$210` 要在 `[1-$C]` 范围
+
+```
+///////////////////////////////////////////////////////
+:0046562D 85DB                  test ebx, ebx
+
+:0046562F 7C05                  jl 00465636
+
+:00465631 83FB1F                cmp ebx, 0000001F
+
+:00465634 7E0A                  jle 00465640
+```
+
+`(10*SN3.4+SN3.5)-$210` 要在 `[1-$1F]` 范围
+
+```
+////////////////////////////////////////////////////////
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:0046561D(C), :00465622(C), :00465626(C), :0046562B(C), :0046562F(C)
+|
+:00465636 B804000000            mov eax, 00000004
+
+:0046563B E98C030000            jmp 004659CC
+```
+
+```
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00465634(C)
+|
+:00465640 0FBE55F8              movsx edx, byte ptr [ebp-08]//SN1.1
+
+:00465644 0FBE45F0              movsx eax, byte ptr [ebp-10]//SN2.1
+
+:00465648 03D0                  add edx, eax                 //SN1.1=SN1.1+SN2.1
+
+:0046564A 0FBE4DE8              movsx ecx, byte ptr [ebp-18]//SN3.1
+
+:0046564E 03D1                  add edx, ecx                 //SN1.1=SN1.1+SN3.1
+
+:00465650 42                    inc edx                        //SN1.1=SN1.1+1
+
+:00465651 8955C4                mov dword ptr [ebp-3C], edx
+
+:00465654 DB45C4                fild dword ptr [ebp-3C]       //把 SN1.1 装入浮点寄存器
+
+:00465657 83C4F8                add esp, FFFFFFF8
+
+:0046565A DD1C24                fstp qword ptr [esp]//SN1.1 进栈
+
+:0046565D E8BA490B00            call 0051A01C      //将 ST(O)按弧度计算 SN1.1=SIN(SN1.1)
+
+:00465662 83C408                add esp, 00000008
+
+:00465665 83C4F8                add esp, FFFFFFF8
+
+:00465668 DD1C24                fstp qword ptr [esp]
+
+:0046566B E8D4350B00            call 00518C44      //SN1.1=ABS(ST(SN1.1))
+
+:00465670 83C408                add esp, 00000008
+
+:00465673 D80DD4594600          fmul dword ptr [004659D4]//SN1.1=SN1.1*1101
+
+:00465679 E8EE350B00            call 00518C6C              //将 SN1.1 取整并转化成十六进制
+
+:0046567E B91A000000            mov ecx, 0000001A
+
+:00465683 99                    cdq
+
+:00465684 F7F9                  idiv ecx               //EDX=SN1.1 MOD $1A
+
+:00465686 80C241                add dl, 41             //EDX=EDX+$41
+```
+
+`SN4.1=(HEX(INT(ABS(SIN(SN1.1+SN2.1+SN3.1+1))*1101)) MOD $1A)+$41`
+
+```
+///////////////////////////////////////////////////////////////////////////////////////
+:00465689 8855D0                mov byte ptr [ebp-30], dl
+
+:0046568C 0FBE45F9              movsx eax, byte ptr [ebp-07]//SN1.2
+
+:00465690 0FBE55F1              movsx edx, byte ptr [ebp-0F]//SN2.2
+
+:00465694 03C2                  add eax, edx               
+
+:00465696 0FBE4DE9              movsx ecx, byte ptr [ebp-17]//SN3.2
+
+:0046569A 03C1                  add eax, ecx
+
+:0046569C 83C002                add eax, 00000002
+
+:0046569F 8945C0                mov dword ptr [ebp-40], eax
+
+:004656A2 DB45C0                fild dword ptr [ebp-40]
+
+:004656A5 83C4F8                add esp, FFFFFFF8
+
+:004656A8 DD1C24                fstp qword ptr [esp]
+
+:004656AB E86C490B00            call 0051A01C
+```

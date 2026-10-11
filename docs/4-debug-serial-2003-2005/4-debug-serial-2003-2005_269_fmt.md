@@ -1,0 +1,279 @@
+
+# SuperCleaner v2.5
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50462.htm`](https://www.pediy.com/kssd/pediy05/pediy50462.htm)
+
+SuperCleaner V2.50 汉化版的算法跟踪
+
+软件大小：430 KB
+软件语言：简体中文
+软件类别：汉化补丁 / 共享版 / 卸载清除
+应用平台：Win9x/NT/2000/XP
+
+软件介绍：
+
+是帮助用户清洗他们的计算机硬盘内不必要的文件的程序。它能扫描你的系统让你选择不再需要的文件进行删除。并能备份文件以避免你误删除有用的文件，此备份功能将不必要的文件扔进回收站，这样可以让你必要的时候恢复信息。
+
+【作者声明】：本人是个初学者，只是感兴趣，没有其它目的。失误之处敬请诸位大侠赐教！
+
+【破解工具】：`0llydbg_cn v1.09`
+
+【过 程】：
+
+这个软件的算法比较简单，用 `0llydbg` 加载后，`ctrl+N` 打开"模块中的名称"窗口，找到 `USER32.GetDlgItemTextA` 回车。在所有的地址下断点，运行程序出现启动窗口进入注册框。填好用户名: `fxyang`；序列号: `7894561230123456` 注册，被 `0llydbg` 中断。
+
+不久后来到这里：
+
+```
+================================================================================
+00417250   SUB      ESP, 100
+00417256   MOV      AL, BYTE PTR DS:[42F3E0]
+0041725B   PUSH     EBX
+0041725C   PUSH     EBP
+0041725D   PUSH     ESI
+0041725E   PUSH     EDI
+0041725F   MOV      BYTE PTR SS:[ESP+10], AL
+00417263   MOV      ECX, 3F
+00417268   XOR      EAX, EAX
+0041726A   LEA      EDI, DWORD PTR SS:[ESP+11]
+0041726E   REP      STOS DWORD PTR ES:[EDI]
+00417270   STOS     WORD PTR ES:[EDI]
+00417272   STOS     BYTE PTR ES:[EDI]
+00417273   MOV      EDI, DWORD PTR SS:[ESP+114]    ;  EDI <==SS:[12E818]=0012EA3C,(ASCII "fxyang")
+0041727A   PUSH     EDI                             ; /String
+0041727B   CALL     DWORD PTR DS:[<&KERNEL32.lstr]; \lstrlenA
+00417281   MOV      ESI, EAX                       ;  ESI<==6 (用户名长度)
+00417283   XOR      ECX, ECX
+00417285   XOR      EAX, EAX
+00417287   TEST     ESI, ESI
+00417289   JLE      SHORT SuperCle.0041729E
+0041728B   MOV      EDX, DWORD PTR DS:[42C3E8]     ;  EDX <== DS:[42C3E8]=0026
+00417291  /MOVSX    EBX, BYTE PTR DS:[EAX+EDI]     ;  EBX <==DS:[12EA3C]=66 ('f')
+00417295  |ADD       EBX, EDX                      ;  EBX =EBX+EDX=66+26=8C
+00417297  |ADD       ECX, EBX                      ;  ECX =ECX+EBX=0+8C=8C
+00417299  |INC       EAX                            ;  //这是把用户名的各位 hex 值+26 后相加==>ECX
+0041729A  |CMP       EAX, ESI
+0041729C  \JL       SHORT SuperCle.00417291
+0041729E  MOV      EBX, DWORD PTR SS:[ESP+118]
+004172A5  PUSH     ECX                              ; /ECX=用户名的各位 hex 值+26 后相加=371
+004172A6  PUSH     SuperCle.0042C3FC               ; |format ="%ld-"
+004172AB  PUSH     EBX                               ; |s
+004172AC  CALL     DWORD PTR DS:[<&USER32.wsprin>; \这个函数把上面计算的值按上面的格式变换成"881-"放在 DS:[12E828]内存中
+004172B2  ADD      ESP, 0C
+004172B5  XOR      ECX, ECX
+004172B7  XOR      EAX, EAX
+004172B9  TEST     ESI, ESI
+004172BB  JLE      SHORT SuperCle.004172D1
+004172BD  MOV      EDX, DWORD PTR DS:[42C3EC]       ;  EDX <==DS:[42C3EC]=0034
+004172C3  /MOVSX    EBP, BYTE PTR DS:[EAX+EDI]      ;  EBP<==DS:[12EA3C]=66 ('f')
+004172C7  |IMUL     EBP, EDX                        ;  EBP =EBP*EDX=66*34
+004172CA  |ADD      ECX, EBP                        ;  ECX=ECX+EBP=0+14B8
+004172CC  |INC      EAX                             ;  //这是把用户名的各位 hex 值*34 后相加==>ECX
+004172CD  |CMP      EAX, ESI
+004172CF  \JL      SHORT SuperCle.004172C3
+004172D1  PUSH     ECX                              ; /ECX=84A4
+004172D2  LEA      ECX, DWORD PTR SS:[ESP+14]        ; |
+004172D6  PUSH     SuperCle.0042C3FC                ; |format ="%ld_"
+004172DB  PUSH     ECX                               ; |s
+004172DC  CALL     DWORD PTR DS:[<&USER32.wsprin>; \这个函数把上面计算的值按上面的格式变换成十进制"33956-"放在 SS:[12E714]内存中
+004172E2  ADD      ESP, 0C
+004172E5  LEA      EDX, DWORD PTR SS:[ESP+10]        ;  EDX <== 0012E714,(ASCII "33956-")
+004172E9  PUSH     EDX                               ; /EDX <== 0012E714,(ASCII "33956-")
+004172EA  PUSH     EBX                               ; |EBX =0012E828,(ASCII "881-")
+004172EB  CALL     DWORD PTR DS:[<&KERNEL32.lstr>; \把上面式子连接
+004172F1  XOR      ECX, ECX
+004172F3  XOR      EAX, EAX
+004172F5  TEST     ESI, ESI
+004172F7  JLE      SHORT SuperCle.0041730C
+004172F9  MOV      EDX, DWORD PTR DS:[42C3F0]        ;  EDX <==DS:[42C3F0]=0C
+004172FF  /MOVSX    EBP, BYTE PTR DS:[EAX+EDI]       ;  EBP<==DS:[12EA3C]=66 ('f')
+00417303  |ADD      EBP, EDX                         ;  EBP=EBP+EDX=66+C=72
+00417305  |ADD      ECX, EBP                         ;  ECX=ECX+EBP=0+72=72
+00417307  |INC      EAX                              ;  //这是把用户名的各位 hex 值+0C 后相加==>ECX
+00417308  |CMP      EAX, ESI
+0041730A  \JL      SHORT SuperCle.004172FF
+0041730C  PUSH     ECX                               ; /ECX=2D5
+0041730D  LEA      EAX, DWORD PTR SS:[ESP+14]        ; |EAX<==SS:[12E714]
+00417311  PUSH     SuperCle.0042C3FC                 ; |format ="%ld-"
+00417316  PUSH     EAX                                ; |s
+00417317  CALL     DWORD PTR DS:[<&USER32.wsprin>; \这个函数把上面计算的值按上面的格式变换成十进制"725-"放在 SS:[12E714]内存中
+0041731D  ADD      ESP, 0C
+00417320  LEA      ECX, DWORD PTR SS:[ESP+10]         ;  ECX<==SS:[12E714]"725-"
+00417324  PUSH     ECX                                ; /StringToAdd
+00417325  PUSH     EBX                                ; |EBX =0012E828,(ASCII "881-33956-")
+00417326  CALL     DWORD PTR DS:[<&KERNEL32.lstr>; \把上面式子连接
+0041732C  XOR      ECX, ECX
+0041732E  XOR      EAX, EAX
+00417330  TEST     ESI, ESI
+00417332  JLE      SHORT SuperCle.00417348
+00417334  MOV      EDX, DWORD PTR DS:[42C3F4]         ;  EDX<== DS:[42C3F4]=0E
+0041733A  /MOVSX    EBP, BYTE PTR DS:[EAX+EDI]        ;  EBP<==DS:[12EA3C]=66 ('f')
+0041733E  |IMUL     EBP, EDX                          ;  EBP =EBP*EDX=66*0E
+00417341  |ADD      ECX, EBP                         ;  ECX=ECX+EBP=0+594=594
+00417343  |INC      EAX                               ;  //这是把用户名的各位 hex 值*0E 后相加==>ECX
+00417344  |CMP      EAX, ESI
+00417346  \JL      SHORT SuperCle.0041733A
+00417348   PUSH    ECX                                ; /ECX= ; /<%ld> = 23B6 (9142.)
+00417349   LEA     EDX, DWORD PTR SS:[ESP+14]         ; |
+0041734D   PUSH    SuperCle.0042C3F8                  ; |format ="%ld"
+00417352   PUSH    EDX                                 ; |s
+00417353   CALL    DWORD PTR DS:[<&USER32.wsprin>; \这个函数把上面计算的值按上面的格式变换成十进制"9142-"放在 SS:[12E714]内存中
+00417359   ADD     ESP, 0C
+0041735C   LEA     EAX, DWORD PTR SS:[ESP+10]         ;  EAX <==0012E714,(ASCII "9142")
+00417360   PUSH    EAX                                 ; /StringToAdd
+00417361   PUSH    EBX                                 ; |EBX=; |ConcatString = "881-33956-725-"
+00417362   CALL    DWORD PTR DS:[<&KERNEL32.lstr>; \把上面式子连接
+00417368   POP     EDI
+00417369   POP     ESI
+0041736A   POP     EBP
+0041736B   POP     EBX
+0041736C   ADD     ESP, 100
+00417372   RETN
+================================================================================
+```
+
+注册码计算的总结： 条件注册码由四组数字组成
+
+1. 用户名的各位 hex 值 `+26` 后相加后变换成十进制数就是第一组注册码
+2. 用户名的各位 hex 值 `*34` 后相加后变换成十进制数就是第二组注册码
+3. 用户名的各位 hex 值 `+0C` 后相加后变换成十进制数就是第三组注册码
+4. 用户名的各位 hex 值 `*0E` 后相加后变换成十进制数就是第四组注册码
+5. 把上面各组用 `"-"` 连接就是正确的注册码
+
+例如：
+
+用户名：`fxyang`
+得到的注册码：`881-33956-725-9142`
+
+```
+===============================================================================
+```
+
+下面看看注册码的比较部分：
+
+```
+00417120   PUSH     EBX
+00417121   MOV      EBX, DWORD PTR DS:[<&KERNEL32>;  KERNEL32.lstrlenA
+00417127   PUSH     EBP
+00417128   MOV      EBP, DWORD PTR SS:[ESP+C]       ;  EBP <==SS:[12E930]=0012E93C,(ASCII "789456123123456")
+0041712C   PUSH     ESI
+0041712D   PUSH     EDI
+0041712E   PUSH     EBP                               ; /String
+0041712F   CALL     EBX                               ; \lstrlenA
+00417131   MOV      EDI, DWORD PTR SS:[ESP+18]        ;  EDI <==SS:[ESP+10]=0012E828,(ASCII "881-33956-725-9142")
+00417135   MOV      ESI, EAX
+00417137   PUSH     EDI                               ; /String
+00417138   CALL     EBX                               ; \lstrlenA
+0041713A   CMP      ESI, EAX                          ;  ESI=10  EAX=12 (长度比较)
+0041713C   JNZ      SHORT SuperCle.00417145           <==一定要跳
+0041713E   POP      EDI
+0041713F   POP      ESI
+```
+
+
+
+```
+00417140   POP     EBP
+
+00417141   XOR     EAX, EAX
+
+----------------------------------------------
+
+00417143   POP     EBX
+
+00417144   RETN
+
+00417145   XOR     ECX, ECX
+
+00417147   TEST    ESI, ESI
+
+00417149   JLE     SHORT SuperCle.0041715E
+
+0041714B   MOV     EAX, EDI
+
+0041714D   SUB     EBP, EDI
+
+0041714F   /MOV    DL, BYTE PTR DS:[EAX+EBP]   ;  注册码的逐位比较
+
+00417152   |MOV    BL, BYTE PTR DS:[EAX]
+
+00417154   |CMP    DL, BL
+
+00417156   |JNZ    SHORT SuperCle.0041713E
+
+00417158   |INC    ECX
+
+00417159   |INC    EAX
+
+0041715A   |CMP    ECX, ESI
+
+0041715C   \JL     SHORT SuperCle.0041714F
+
+0041715E   POP     EDI
+
+0041715F   POP     ESI
+
+00417160   POP     EBP
+
+00417161   MOV     EAX, 1
+
+00417166   POP     EBX
+
+00417167   RETN
+```
+
+<div align="right">
+fxyang<br>
+2003.3.5
+</div>
+
+`CB` `v6.0` 在 `win98 SE` 下调试通过。
+
+```cpp
+//---------------------------------------------------------------------------
+
+void __fastcall Tform1::okbtnClick(TObject *Sender)
+
+{
+
+  if(form1->UEdit->Text=="")
+
+  {CEdit->Text="请输入你的注册名！";return;}
+
+  if(form1->UEdit->Text!="")
+
+  {
+    temp=form1->UEdit->Text;
+
+    b=temp.Length();
+
+    while(a<=b)
+
+    {
+      c=temp[a];
+
+      e=c+e;a++;
+    }
+  }
+
+  a1=e+(a-1)*0x26;
+
+  a2=e*0x34;
+
+  a3=e+(a-1)*0xc;
+
+  a4=e*0xe;
+
+  CEdit->Text=a1;
+
+  CEdit->Text=CEdit->Text+"-"+a2;
+
+  CEdit->Text=CEdit->Text+"-"+a3;
+
+  CEdit->Text=CEdit->Text+"-"+a4;
+}
+```
+
+这个注册机老早就写出来了，作者是不打算换算法了。根据你得到的注册码我用注册机算了一下，可以用，所以就贴上来了。
+
+`4dd466d0e1e0cc123afbe504da2462ca`

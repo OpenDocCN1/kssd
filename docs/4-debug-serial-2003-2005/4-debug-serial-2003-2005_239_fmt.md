@@ -1,0 +1,539 @@
+
+# Registry Crawler 4.0
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50058.htm`](https://www.pediy.com/kssd/pediy05/pediy50058.htm)
+
+## 软件简介
+
+Registry Crawler 是强大的用户和开发者快速定位并配置注册表的工具软件。一个强大的搜索引擎允许你基于搜索标准查找注册信息。允许你单击超链接显示条目。支持书签功能，可在注册表中的任何键中添加书签并直接从系统托盘读取。此特征允许你访问你经常存取的注册键而无需手工打开 `REGEDIT`。每天需要操作注册表的用户会发现 Registry Crawler 是一个节约时间的工具。
+
+## 破解分析
+
+### 环境与参数
+
+- **破解工具**：`SOFTICE`，`W32DASM`
+- **验证方式**：本软件采用用户名、注册码的验证方式，不注册的话会有 30 天的试用期，过期会提示用户注册，还未注册的话，将不能继续使用。
+- **功能限制**：此软件无功能限制。
+- **测试参数**：
+  - 用户名：`alphakk/OCG`
+  - 注册码：`98765432`
+
+### 断点分析
+
+用 `GETWINDOWTEXT` 作断点，点击“解锁”，被 `SOFTICE` 中断，接着按 `F11` 跳出 `GETWINDOWTEXT` 函数，来到：
+
+```assembly
+* Reference To: USER32.GetWindowTextA, Ord:015Eh
+                  |
+:0042DA07 FF1550844400              Call dword ptr [00448450]
+:0042DA0D EB12                      jmp 0042DA21    <<-------按 F11 后来到的地方
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0042D9FA(C)
+|
+:0042DA0F FF742408                  push [esp+08]
+:0042DA13 8B10                      mov edx, dword ptr [eax]
+:0042DA15 8BC8                      mov ecx, eax
+:0042DA17 FF742408                  push [esp+08]
+:0042DA1B FF9284000000             call dword ptr [edx+00000084]
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0042DA0D(U)
+|
+:0042DA21 C20800                    ret 0008
+```
+
+### 代码跟踪
+
+F10 单步跟踪过上面后，来到：
+
+```assembly
+* Possible Reference to Dialog:
+                  |
+:0040AFDC 6810E54500                push 0045E510
+:0040AFE1 8D8EBC030000              lea ecx, dword ptr [esi+000003BC]
+:0040AFE7 E8092A0200                call 0042D9F5
+:0040AFEC 68FF000000                push 000000FF
+
+* Possible Reference to Dialog:
+                  |
+:0040AFF1 6810E64500                push 0045E610      <<-----输入的注册码入栈
+:0040AFF6 8D8E80030000              lea ecx, dword ptr [esi+00000380]
+:0040AFFC E8F4290200                call 0042D9F5
+
+* Possible Reference to Dialog:
+                  |
+:0040B001 6810E54500                push 0045E510       <<------用户名入栈
+:0040B006 8D4C240C                  lea ecx, dword ptr [esp+0C]
+:0040B00A E8F6330200                call 0042E405
+:0040B00F 8B00                      mov eax, dword ptr [eax]  <<------用户名首地址－＞EAX
+
+* Possible Reference to Dialog:
+                  |
+:0040B011 68848C4500                push 00458C84       <<------“TRIAL USER”入栈
+:0040B016 50                        push eax          <<------用户名入栈
+:0040B017 E8BFE60000                call 004196DB       <<------比较函数，不同则 EAX＝1
+:0040B01C 83C408                    add esp, 00000008
+:0040B01F 8D4C2408                  lea ecx, dword ptr [esp+08]
+:0040B023 85C0                      test eax, eax
+:0040B025 0F94C3                    sete bl           <<------BL 置 0
+:0040B028 E86A330200                call 0042E397
+:0040B02D 84DB                      test bl, bl
+:0040B02F 740F                      je 0040B040       <<------跳
+:0040B031 6A01                      push 00000001
+:0040B033 8BCE                      mov ecx, esi
+:0040B035 E8DB3F0200                call 0042F015
+:0040B03A 5E                        pop esi
+:0040B03B 5B                        pop ebx
+:0040B03C 83C408                    add esp, 00000008
+:0040B03F C3                        ret
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0040B02F(C)
+|
+:0040B040 E8ABFCFFFF                call 0040ACF0       <<-----注意这个 CALL，此处先用 F10 带过
+:0040B045 85C0                      test eax, eax
+:0040B047 0F849D000000              je 0040B0EA       <<-------上面的 CALL 用 F10 过的话，这里就会跳
+
+* Possible StringData Ref from Data Obj ->"Software\4Developers\RCrawler"
+                  |
+:0040B04D 8B15F88A4500              mov edx, dword ptr [00458AF8]
+:0040B053 8D44240C                  lea eax, dword ptr [esp+0C]
+:0040B057 8D4C2408                  lea ecx, dword ptr [esp+08]
+:0040B05B 33DB                      xor ebx, ebx
+:0040B05D 50                        push eax
+:0040B05E 51                        push ecx
+:0040B05F 53                        push ebx
+:0040B060 683F000F00                push 000F003F
+:0040B065 53                        push ebx
+:0040B066 53                        push ebx
+:0040B067 53                        push ebx
+:0040B068 52                        push edx
+:0040B069 6802000080                push 80000002
+:0040B06E 895C2430                  mov dword ptr [esp+30], ebx
+:0040B072 895C242C                  mov dword ptr [esp+2C], ebx
+
+* Reference To: ADVAPI32.RegCreateKeyExA, Ord:015Fh
+                  |
+:0040B076 FF1534804400              Call dword ptr [00448034]
+:0040B07C 3BC3                      cmp eax, ebx
+:0040B07E 7531                      jne 0040B0B1
+
+* Possible StringData Ref from Data Obj ->"4D"
+                  |
+:0040B080 A1048B4500                mov eax, dword ptr [00458B04]
+:0040B085 8B4C2408                  mov ecx, dword ptr [esp+08]
+:0040B089 57                        push edi
+:0040B08A 6800020000                push 00000200
+:0040B08F 6810E54500                push 0045E510
+:0040B094 6A03                      push 00000003
+:0040B096 53                        push ebx
+:0040B097 50                        push eax
+:0040B098 51                        push ecx
+
+* Reference To: ADVAPI32.RegSetvalueExA, Ord:0186h
+                  |
+:0040B099 FF1524804400              Call dword ptr [00448024]
+:0040B09F 8B54240C                  mov edx, dword ptr [esp+0C]
+:0040B0A3 8BF8                      mov edi, eax
+:0040B0A5 52                        push edx
+
+* Reference To: ADVAPI32.RegCloseKey, Ord:015Bh
+                  |
+:0040B0A6 FF1520804400              Call dword ptr [00448020]
+:0040B0AC 3BFB                      cmp edi, ebx
+:0040B0AE 5F                        pop edi
+:0040B0AF 7419                      je 0040B0CA
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0040B07E(C)
+|
+:0040B0B1 53                        push ebx
+:0040B0B2 53                        push ebx
+
+* Possible StringData Ref from Data Obj ->"无法记录注册信息.
+请联系 crawler@4dev.com"
+                  |
+:0040B0B3 68A88F4500                push 00458FA8
+:0040B0B8 E866B50200                call 00436623
+:0040B0BD 8BCE                      mov ecx, esi
+:0040B0BF E8DE400200                call 0042F1A2
+:0040B0C4 5E                        pop esi
+:0040B0C5 5B                        pop ebx
+:0040B0C6 83C408                    add esp, 00000008
+:0040B0C9 C3                        ret
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0040B0AF(C)
+|
+:0040B0CA 6A40                      push 00000040
+
+* Possible Reference to Dialog:
+                  |
+:0040B0CC 68988F4500                push 00458F98
+
+* Possible StringData Ref from Data Obj ->"欢迎使用 Registry Crawler 的完整版本. "
+                  ->"感谢你注册软件.
+请重新启动程序,以解除所有未注"
+                  ->"册版本的功能限制."
+                  |
+:0040B0D1 68FC8E4500                push 00458EFC
+:0040B0D6 8BCE                      mov ecx, esi
+:0040B0D8 E80F110200                call 0042C1EC
+:0040B0DD 8BCE                      mov ecx, esi
+:0040B0DF E8BE400200                call 0042F1A2
+:0040B0E4 5E                        pop esi
+```
+
+
+
+```
+:0040B0E5 5B                     pop ebx
+:0040B0E6 83C408                 add esp, 00000008
+:0040B0E9 C3                     ret
+```
+
+#### 看看 0040B047 处的跳转是到哪儿了：
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+| :0040B047(C)
+|
+
+```
+:0040B0EA 8BCE                   mov ecx, esi
+:0040B0EC E80FFAFFFF             call 0040AB00　<<-------注意这个 CALL，F10 带过的话，EAX＝0
+:0040B0F1 85C0                   test eax, eax
+:0040B0F3 7419                   je 0040B10E　　<<------跳
+:0040B0F5 6A40                   push 00000040
+```
+
+* Possible Reference to Dialog:
+|
+```
+:0040B0F7 68E88E4500             push 00458EE8
+```
+
+* Possible StringData Ref from Data Obj ->
+"你输入的注册信息仅能用于 Registry "
+-> "Crawler 3.x 版本."
+-> "要注册 4.0 "
+-> "以上版本,你需要新的注册信息.请与我们联系,将你?"
+-> "淖⒉崧肷?Registry Crawler "
+-> "4.0 (E-mail sales@4dev.com). 注意在 "
+-> "E-mail 中你必须提供旧版本的注册码."
+-> "谢谢, 4Dev"
+-> "elopers Team."
+|
+
+```
+:0040B0FC 68AC8D4500             push 00458DAC
+:0040B101 8BCE                   mov ecx, esi
+:0040B103 E8E4100200             call 0042C1EC
+:0040B108 5E                     pop esi
+:0040B109 5B                     pop ebx
+:0040B10A 83C408                 add esp, 00000008
+:0040B10D C3                     ret
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+| :0040B0F3(C)
+|
+
+```
+:0040B10E 6A30                   push 00000030
+```
+
+* Possible Reference to Dialog:
+|
+```
+:0040B110 68A08D4500             push 00458DA0
+```
+
+* Possible StringData Ref from Data Obj ->
+"你输入的注册信息是无效的."
+-> "请重新输入你从 "
+-> "4Developers LLC 得到的用户 ID "
+-> "及相应的注册码."
+-> "如果你尚未注册,你可以点击下面"
+-> "的 '马上定购' 软件.如果你需要帮助，请发 "
+-> "E-mail 到: crawler@4dev.com"
+|
+
+```
+:0040B115 68908C4500             push 00458C90
+:0040B11A 8BCE                   mov ecx, esi
+:0040B11C E8CB100200             call 0042C1EC
+:0040B121 5E                     pop esi
+:0040B122 5B                     pop ebx
+:0040B123 83C408                 add esp, 00000008
+:0040B126 C3                     ret
+```
+
+#### 分析注册码运算逻辑
+
+由上面这段代码不难看出，`Registry Crawler` 的注册码运算有两处：`0040B040` 处的 `CALL`，`0040B0EC` 处的 `CALL`，其中前者为 4.0 版的注册码运算，而后者为 3.x 版注册码的运算，3.x 版的注册码运算与 4.0 版的有点像。注册码验证流程为：先将用户名用 4.0 版的注册码算法进行运算，并与用户输入的注册码进行比较，不同的话，再将用户名用 3.x 版的注册码算法进行运算，并与用户输入的注册码进行比较，如果相同，则提示用户更新注册码，如果不同，则跳出注册失败对话框。本文只是对 4.0 版的注册码运算进行分析，不讨论 3.x 版的算法，因此不进入第二个 `CALL`。
+
+#### 初步分析完成，进入第二次分析：
+
+来到 `0040B040` 处，按 `F8` 进入 `CALL`，此时来到：
+
+* Referenced by a CALL at Addresses:
+| :0040AAF3 , :0040B040
+|
+
+```
+:0040ACF0 83EC24                 sub esp, 00000024
+:0040ACF3 83C9FF                 or ecx, FFFFFFFF
+:0040ACF6 33C0                   xor eax, eax
+:0040ACF8 55                     push ebp
+:0040ACF9 57                     push edi
+```
+
+* Possible Reference to Dialog:
+|
+```
+:0040ACFA BF10E54500             mov edi, 0045E510　<<------0045E510 为用户名首地址 \\
+:0040ACFF F2                     repnz
+:0040AD00 AE                     scasb            测试用户名长度－＞ECX
+:0040AD01 F7D1                   not ecx
+:0040AD03 49                     dec ecx
+:0040AD04 8BE9                   mov ebp, ecx
+:0040AD06 83FD08                 cmp ebp, 00000008
+:0040AD09 7D06                   jge 0040AD11　　　<--------大于或等于 8 则跳，如果不跳，则不进行 4.0 版的注册码算法（此例中的用户名符合条件）
+:0040AD0B 5F                     pop edi
+:0040AD0C 5D                     pop ebp
+:0040AD0D 83C424                 add esp, 00000024
+:0040AD10 C3                     ret
+```
+
+##### 下面开始注册码算法
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+| :0040AD09(C)
+|
+
+```
+:0040AD11 53                     push ebx
+:0040AD12 56                     push esi
+:0040AD13 6810E54500             push 0045E510　　　<<-------用户名入栈
+:0040AD18 E845D00100             call 00427D62　　　　　<<-------将用户名中所有的大写字母转成小写字母
+:0040AD1D B907000000             mov ecx, 00000007
+:0040AD22 33C0                   xor eax, eax
+:0040AD24 8D7C2419               lea edi, dword ptr [esp+19]
+:0040AD28 C644241800             mov [esp+18], 00
+:0040AD2D F3                     repz
+:0040AD2E AB                     stosd
+:0040AD2F 66AB                   stosw
+:0040AD31 83C404                 add esp, 00000004
+:0040AD34 AA                     stosb
+:0040AD35 8D442414               lea eax, dword ptr [esp+14]
+```
+
+* Possible Reference to Dialog:
+|
+```
+:0040AD39 68E48B4500             push 00458BE4　　<<---------“8267－”入栈
+:0040AD3E 50                     push eax
+```
+
+* Reference To: `KERNEL32.lstrcpyA`, Ord:0302h
+|
+```
+:0040AD3F FF155C834400           Call dword ptr [0044835C]　 <<-------“8267－”首地址－＞EAX
+:0040AD45 33DB                   xor ebx, ebx　　<<-------EBX 清零，准备计数
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+| :0040ADFA(C)
+|
+
+* Possible StringData Ref from Data Obj -> "0123456789"
+|
+```
+:0040AD47 8B35FC8A4500           mov esi, dword ptr [00458AFC]　　　<<--------字符串“0123456789”的首地址－＞ESI
+:0040AD4D 83C9FF                 or ecx, FFFFFFFF
+:0040AD50 8BFE                   mov edi, esi　　\\
+:0040AD52 33C0                   xor eax, eax    \\
+:0040AD54 F2                     repnz           \\
+:0040AD55 AE                     scasb           测试“0123456789”的长度－＞ECX
+:0040AD56 F7D1                   not ecx         /
+:0040AD58 49                     dec ecx         /
+:0040AD59 8BC3                   mov eax, ebx
+:0040AD5B 33D2                   xor edx, edx
+:0040AD5D 8BFE                   mov edi, esi
+:0040AD5F F7F1                   div ecx　　　　<<--------此处运算后，EDX 存放余数
+:0040AD61 8BC3                   mov eax, ebx
+:0040AD63 6A01                   push 00000001
+:0040AD65 0FBE0C32               movsx ecx, byte ptr [edx+esi]　　<<-------字符串“0123456789”的每个字符按顺序依次送入 ECX，每次循环送入一个
+:0040AD69 33D2                   xor edx, edx
+:0040AD6B F7F5                   div ebp　　　　　<<=======EBP 存放用户名长度，始终不变
+:0040AD6D 0FBE8210E54500         movsx eax, byte ptr [edx+0045E510]　　<<---------用户名的第个字符按顺序依次送入 EAX，每次循环送入一个，如果用户名长度小于循环次数，则遍历完一次用户名后，重新从用户名的第一位开始
+:0040AD74 8BD0                   mov edx, eax
+:0040AD76 C1E205                 shl edx, 05
+:0040AD79 03D0                   add edx, eax
+:0040AD7B 8D0450                 lea eax, dword ptr [eax+2*edx]
+:0040AD7E 03C8                   add ecx, eax
+:0040AD80 8BC3                   mov eax, ebx
+:0040AD82 0FAFC3                 imul eax, ebx
+:0040AD85 0FAFC3                 imul eax, ebx
+:0040AD8B 8D1480                 lea edx, dword ptr [eax+4*eax]
+:0040AD8E 8D0450                 lea eax, dword ptr [eax+2*edx]
+:0040AD91 03C8                   add ecx, eax
+:0040AD93 33C0                   xor eax, eax
+:0040AD95 8BD1                   mov edx, ecx
+:0040AD97 83C9FF                 or ecx, FFFFFFFF　　\\
+```
+
+
+
+# Registry Crawler 4.0 注册码算法分析
+## CrAcKeD BY alphakk/OCG
+
+```asm
+:0040AD9A F2                  repnz             \   
+:0040AD9B AE                  scasb             测试“0123456789”的长度－＞ECX   
+
+:0040AD9C F7D1                not ecx           /   
+
+:0040AD9E 8BC2                mov eax, edx      /   
+
+:0040ADA0 49                  dec ecx           /   
+
+:0040ADA1 33D2                xor edx, edx   
+
+:0040ADA3 F7F1                div ecx           <<------运算的余数－＞EDX   
+
+:0040ADA5 8D442418            lea eax, dword ptr [esp+18]   
+
+:0040ADA9 03D6                add edx, esi      <<-------ESI 为“0123456789”的首地址   
+
+:0040ADAB 52                  push edx   
+
+:0040ADAC 50                  push eax   
+
+:0040ADAD E82EEB0000          call 004198E0   
+
+:0040ADB2 83C40C              add esp, 0000000C   
+
+:0040ADB5 85DB                test ebx, ebx   
+
+:0040ADB7 743D                je 0040ADF6       <<------------仅第一次循环时（EBX＝0）跳    \   
+
+:0040ADB9 8BC3                mov eax, ebx      \   
+
+:0040ADBB 33D2                xor edx, edx      \   
+
+:0040ADBD B903000000          mov ecx, 00000003 此处控制注册码的形式   
+
+:0040ADC2 F7F1                div ecx           /   
+
+:0040ADC4 85D2                test edx, edx     /   
+
+:0040ADC6 752E                jne 0040ADF6      <<---------余数不为 0 则跳               /   
+
+* Possible Reference to Dialog:   
+
+                             |   
+
+:0040ADC8 BFEC8B4500          mov edi, 00458BEC   
+
+:0040ADCD 83C9FF              or ecx, FFFFFFFF   
+
+:0040ADD0 33C0                xor eax, eax   
+
+:0040ADD2 8D542414            lea edx, dword ptr [esp+14]   
+
+:0040ADD6 F2                  repnz   
+
+:0040ADD7 AE                  scasb   
+
+:0040ADD8 F7D1                not ecx   
+
+:0040ADDA 2BF9                sub edi, ecx   
+
+:0040ADDC 8BF7                mov esi, edi   
+
+:0040ADDE 8BFA                mov edi, edx   
+
+:0040ADE0 8BD1                mov edx, ecx   
+
+:0040ADE2 83C9FF              or ecx, FFFFFFFF   
+
+:0040ADE5 F2                  repnz   
+
+:0040ADE6 AE                  scasb   
+
+:0040ADE7 8BCA                mov ecx, edx   
+
+:0040ADE9 4F                  dec edi   
+
+:0040ADEA C1E902              shr ecx, 02   
+
+:0040ADED F3                  repz   
+
+:0040ADEE A5                  movsd   
+
+:0040ADEF 8BCA                mov ecx, edx   
+
+:0040ADF1 83E103              and ecx, 00000003   
+
+:0040ADF4 F3                  repz   
+
+:0040ADF5 A4                  movsb   
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
+
+|:0040ADB7(C), :0040ADC6(C)   
+
+|   
+
+:0040ADF6 43                  inc ebx   
+
+:0040ADF7 83FB09              cmp ebx, 00000009   
+
+:0040ADFA 0F8247FFFFFF        jb 0040AD47   
+
+:0040AE00 8D442414            lea eax, dword ptr [esp+14]   
+
+:0040AE04 6810E64500          push 0045E610   
+
+:0040AE09 50                  push eax   
+
+:0040AE0A E801570100          call 00420510   
+
+:0040AE0F 83C408              add esp, 00000008   
+
+:0040AE12 F7D8                neg eax   
+
+:0040AE14 5E                  pop esi   
+
+:0040AE15 5B                  pop ebx   
+
+:0040AE16 1BC0                sbb eax, eax   
+
+:0040AE18 5F                  pop edi   
+
+:0040AE19 40                  inc eax   
+
+:0040AE1A 5D                  pop ebp   
+
+:0040AE1B 83C424              add esp, 00000024   
+
+:0040AE1E C3                  ret   
+
+```
+
+## 算法思想
+
+将用户名与固定字符串`"0123456789"`进行运算，以运算结果的`EDX`（余数）中的值为偏移量，取得此偏移量所指向的`"0123456789"`中的值并输出，共循环`9`次。注册码形式为：`8267-XXXX-XXX-XX`
+
+### 本例中
+
+- 用户名：`alphakk/OCG`
+- 注册码：`8267-7626-579-75`
+
+---
+
+**Open Cracking Group**
+
+注册机在：`http://www.newclw.com/lllufh/cgi-bin/leoboard.cgi` (`4dd466d0e1e0cc123afbe504da2462ca`)

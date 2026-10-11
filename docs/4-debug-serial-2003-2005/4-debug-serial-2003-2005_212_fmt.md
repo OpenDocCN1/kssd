@@ -1,0 +1,774 @@
+
+# NS-TOWER
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6084.htm`](https://www.pediy.com/kssd/pediy06/pediy6084.htm)
+
+**作者**: FTBirthday
+
+**目标**: NS-TOWER (上 100 层) seeker 汉化版
+
+**描述**: 未加壳
+
+**工具**: `trw2000`, `w32dasmgold`
+
+**下载地址**: `ftp://172.16.240.6/游戏/是男人就上一百层/HA_NS-TOWER_seekr.rar`
+
+运行程序，输入用户名，注册码。
+
+下段点：`bpx GetDlgItemTextA`
+
+按下确定，中断如下：
+
+关键代码如下：
+
+```text
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004030BB(C)
+|
+:00402FC6 6800010000                 push 00000100
+:00402FCB 8D85FCFDFFFF               lea eax, dword ptr [ebp+FFFFFDFC]
+:00402FD1 50                         push eax
+
+* Possible Reference to Dialog: DialogID_008C, CONTROL_ID:03EB, ""
+                                      |
+:00402FD2 68EB030000                 push 000003EB
+:00402FD7 8B4508                     mov eax, dword ptr [ebp+08]
+:00402FDA 50                        push eax
+
+* Reference To: USER32.GetDlgItemTextA, Ord:00EFh
+------读注册码                                  |
+:00402FDB FF1578F34000               Call dword ptr [0040F378]
+:00402FE1 8D85FCFDFFFF               lea eax, dword ptr [ebp+FFFFFDFC]
+:00402FE7 50                         push eax
+:00402FE8  E8C0010000                call 004031AD    ------处理注册码
+:00402FED 83C404                     add esp, 00000004
+:00402FF0 85C0                       test eax, eax
+:00402FF2 0F8537000000               jne 0040302F      ------必须跳过否则失败
+:00402FF8 6800010000                 push 00000100
+:00402FFD 8D85FCFEFFFF               lea eax, dword ptr [ebp+FFFFFEFC]
+:00403003 50                         push eax
+
+* Possible Reference to String Resource ID=00004: "鑼?"
+                                      |
+:00403004 6A04                       push 00000004
+:00403006 A198D24000                 mov eax, dword ptr [0040D298]
+:0040300B 50                         push eax
+
+* Reference To: USER32.LoadStringA, Ord:0186h
+                                      |
+:0040300C FF15BCF34000               Call dword ptr [0040F3BC]
+
+* Possible Reference to String Resource ID=00016: "俓(&P)"
+                                      |
+:00403012 6A10                       push 00000010
+
+* Possible StringData Ref from Data Obj ->"NS-TOWER"
+                                      |
+:00403014 686CC24000                 push 0040C26C
+:00403019 8D85FCFEFFFF               lea eax, dword ptr [ebp+FFFFFEFC]
+:0040301F 50                         push eax
+:00403020 8B4508                     mov eax, dword ptr [ebp+08]
+:00403023 50                         push eax
+
+* Reference To: USER32.MessageBoxA, Ord:0197h
+------失败提示框                                 |
+:00403024 FF15B8F34000               Call dword ptr [0040F3B8]
+:0040302A E941000000                 jmp 00403070
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00402FF2(C)
+|
+:0040302F 6800010000                 push 00000100
+:00403034 8B45FC                     mov eax, dword ptr [ebp-04]
+:00403037 83C010                     add eax, 00000010
+:0040303A 50                         push eax
+
+* Possible Reference to Dialog: DialogID_008A, CONTROL_ID:03EA, ""
+                                      |
+:0040303B 68EA030000                 push 000003EA
+:00403040 8B4508                     mov eax, dword ptr [ebp+08]
+:00403043 50                         push eax
+
+* Reference To: USER32.GetDlgItemTextA, Ord:00EFh-----读取用户名
+                                      |
+:00403044 FF1578F34000               Call dword ptr [0040F378]
+:0040304A 6A08                       push 00000008
+:0040304C 8B45FC                     mov eax, dword ptr [ebp-04]
+:0040304F 0510010000                 add eax, 00000110
+:00403054 50                         push eax
+
+* Possible Reference to Dialog: DialogID_008C, CONTROL_ID:03EB, ""
+                                      |
+:00403055 68EB030000                 push 000003EB
+:0040305A 8B4508                     mov eax, dword ptr [ebp+08]
+:0040305D 50                         push eax
+
+* Reference To: USER32.GetDlgItemTextA, Ord:00EFh
+                                      |
+:0040305E FF1578F34000               Call dword ptr [0040F378]
+:00403064 6A00                       push 00000000
+:00403066 8B4508                     mov eax, dword ptr [ebp+08]
+:00403069 50                         push eax
+
+* Reference To: USER32.EndDialog, Ord:00AFh
+                                      |
+:0040306A FF157CF34000               Call dword ptr [0040F37C]
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0040302A(U)
+|
+
+* Possible Reference to String Resource ID=00001: "NS-TOWER"
+                                      |
+:00403070 B801000000                 mov eax, 00000001
+:00403075 E9B5000000                 jmp 0040312F
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004030C8(C)
+|
+:0040307A 6A00                       push 00000000
+:0040307C 8B4508                     mov eax, dword ptr [ebp+08]
+:0040307F 50                         push eax
+
+* Reference To: USER32.EndDialog, Ord:00AFh
+                                      |
+:00403080 FF157CF34000               Call dword ptr [0040F37C]
+
+* Possible Reference to String Resource ID=00001: "NS-TOWER"
+                                      |
+:00403086 B801000000                 mov eax, 00000001
+:0040308B E99F000000                 jmp 0040312F
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004030D8(C)
+|
+:00403090 6A00                       push 00000000
+:00403092 6A08                       push 00000008
+
+* Possible StringData Ref from Data Obj ->"NSTOWER.HLP"
+                                      |
+:00403094 6878C24000                 push 0040C278
+:00403099 8B45FC                     mov eax, dword ptr [ebp-04]
+:0040309C 8B00                       mov eax, dword ptr [eax]
+:0040309E 50                         push eax
+
+* Reference To: USER32.WinHelpA, Ord:0266h
+                                      |
+:0040309F FF1584F34000               Call dword ptr [0040F384]
+
+* Possible Reference to String Resource ID=00001: "NS-TOWER"
+                                      |
+:004030A5 B801000000                 mov eax, 00000001
+:004030AA E980000000                 jmp 0040312F
+:004030AF E92F000000                 jmp 004030E3
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00402FC1(U)
+|
+:004030B4 83BDF4FDFFFF01             cmp dword ptr [ebp+FFFFFDF4], 00000001
+:004030BB 0F8405FFFFFF               je 00402FC6
+:004030C1 83BDF4FDFFFF02             cmp dword ptr [ebp+FFFFFDF4], 00000002
+:004030C8 0F84ACFFFFFF               je 0040307A
+:004030CE 81BDF4FDFFFFE8030000       cmp dword ptr [ebp+FFFFFDF4], 000003E8
+:004030D8 0F84B2FFFFFF               je 00403090
+:004030DE E900000000                 jmp 004030E3
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:004030AF(U), :004030DE(U)
+|
+:004030E3 E940000000                 jmp 00403128
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0040310D(C)
+|
+:004030E8 8B4508                     mov eax, dword ptr [ebp+08]
+:004030EB 50                         push eax
+:004030EC E845000000                 call 00403136
+:004030F1 83C404                     add esp, 00000004
+
+* Possible Reference to String Resource ID=00001: "NS-TOWER"
+                                      |
+:004030F4 B801000000                 mov eax, 00000001
+:004030F9 E931000000                 jmp 0040312F
+:004030FE E925000000                 jmp 00403128
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00402FAE(U)
+|
+:00403103 81BDF8FDFFFF10010000       cmp dword ptr [ebp+FFFFFDF8], 00000110
+:0040310D 0F84D5FFFFFF               je 004030E8
+:00403113 81BDF8FDFFFF11010000       cmp dword ptr [ebp+FFFFFDF8], 00000111
+:0040311D 0F8490FEFFFFFF             je 00402FB3
+:00403123 E900000000                 jmp 00403128
+```
+
+
+
+# 汇编代码分析与注册码逻辑
+
+## 前置代码段
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
+  `:004030E3(U)`, `:004030FE(U)`, `:00403123(U)`
+
+```assembly
+:00403128 33C0                xor eax, eax
+:0040312A E900000000          jmp 0040312F
+```
+
+## 堆栈恢复与返回
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
+  `:00403075(U)`, `:0040308B(U)`, `:004030AA(U)`, `:004030F9(U)`, `:0040312A(U)`
+
+```assembly
+:0040312F 5F                  pop edi
+:00403130 5E                  pop esi
+:00403131 5B                  pop ebx
+:00403132 C9                  leave
+:00403133 C21000              ret 001
+```
+
+---
+
+## 详细分析
+
+进入处理注册码的 `call 004031AD`
+
+* Referenced by a CALL at Addresses:  
+  `:004021FF`, `:0040272A`, `:00402FE8`
+
+### 函数入口与长度检查
+
+```assembly
+:004031AD 55                  push ebp
+:004031AE 8BEC                mov ebp, esp
+:004031B0 83EC04              sub esp, 00000004
+:004031B3 53                  push ebx
+:004031B4 56                  push esi
+:004031B5 57                  push edi
+:004031B6 8B4508              mov eax, dword ptr [ebp+08]
+:004031B9 33C9                xor ecx, ecx
+:004031BB 8A4807              mov cl, byte ptr [eax+07]
+:004031BE 85C9                test ecx, ecx   ; 注册码必须为 7 位
+:004031C0 0F8407000000        je 004031CD
+:004031C6 33C0                xor eax, eax
+:004031C8 E945010000          jmp 00403312    ; 跳往 00403312 那就完了
+```
+
+若 `je 004031CD` 跳过去看看：
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+  `:004031C0(C)`
+
+```assembly
+:004031CD C745FC00000000      mov [ebp-04], 00000000   ; [ebp-04] 清零
+:004031D4 E903000000          jmp 004031DC
+```
+
+### 循环初始化与边界检查
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+  `:0040320C(U)`
+
+```assembly
+:004031D9 FF45FC             inc [ebp-04]
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+  `:004031D4(U)`
+
+```assembly
+:004031DC 837DFC07           cmp dword ptr [ebp-04], 00000007 ; [ebp-04] 与 7 比较
+:004031E0 0F8D2B000000       jnl 00403211                   ; 大于 7 就跳, 循环结束
+```
+
+### 循环体：处理注册码前 4 位
+
+```assembly
+:004031E6 8B45FC             mov eax, dword ptr [ebp-04]   ; [ebp-04] 赋给 eax
+:004031E9 8B4D08             mov ecx, dword ptr [ebp+08]   ; [ebp+08] 存有注册码赋给 ecx
+:004031EC 8A0408             mov al, byte ptr [eax+ecx]    ; 注册码首字符给 al
+:004031EF 50                 push eax
+:004031F0 E822010000         call 00403317
+:004031F5 83C404             add esp, 00000004
+:004031F8 33C9               xor ecx, ecx
+:004031FA 8AC8               mov cl, al
+:004031FC 83F924             cmp ecx, 00000024              ; 24 即 '$'
+:004031FF 0F8E07000000       jle 0040320C                   ; 小于或等于则跳回继续循环
+:00403205 33C0               xor eax, eax
+:00403207 E906010000         jmp 00403312                   ; 跳往 00403312 那就完了
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+  `:004031FF(C)`
+
+```assembly
+:0040320C E9C8FFFFFF         jmp 004031D9                   ; 跳回继续循环
+```
+
+### 循环结束后的返回处理
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
+  `:004031C8(U)`, `:00403207(U)`, `:00403301(U)`, `:00403306(U)`, `:0040330D(U)`
+
+```assembly
+:00403312 5F                 pop edi
+:00403313 5E                 pop esi
+:00403314 5B                 pop ebx
+:00403315 C9                 leave
+:00403316 C3                 ret
+```
+
+---
+
+### 后续验证逻辑
+
+上一个循环结束后，从 `:004031E0 0F8D2B0000 jnl 00403211` 跳过来的：
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+  `:004031E0(C)`
+
+```assembly
+:00403211 8B4508             mov eax, dword ptr [ebp+08]   ; 以 [ebp+08] 处的值作为地址的地方存有注册码, 此(作为地址的)值赋给 eax
+:00403214 8A4005             mov al, byte ptr [eax+05]     ; 以 [eax+05] 处的值作为地址的地方的一个字节值赋给 al
+                                                          ; 注册码第六位进入 call 00403317 运算, 结果放入 bl
+:00403217 50                 push eax
+:00403218 E8FA000000         call 00403317                  ; 地址 6AF48C 处存有注册码 mjmABCD
+:0040321D 83C404             add esp, 00000004
+:00403220 33DB               xor ebx, ebx
+:00403222 8AD8               mov bl, al
+```
+
+```assembly
+:00403224 8B4508             mov eax, dword ptr [ebp+08]   ; 以 [ebp+08] 处的值作为地址的地方存有注册码, 此作为地址的值赋给 eax
+:00403227 8A4002             mov al, byte ptr [eax+02]     ; 以 [eax+02] 处的值作为地址的地方的一个字节值赋给 al
+                                                          ; 注册码第三位进入 call 00403317 运算, 结果放入 cl
+:0040322A 50                 push eax
+:0040322B E8E7000000         call 00403317
+:00403230 83C404             add esp, 00000004
+:00403233 33C9               xor ecx, ecx
+:00403235 8AC8               mov cl, al
+```
+
+* Possible Reference to String Resource ID=00036: ","
+
+```assembly
+:00403237 BE24000000         mov esi, 00000024
+:0040323C 8D44591C           lea eax, dword ptr [ecx+2*ebx+1C]
+:00403240 99                 cdq    ; 双字扩展. (把 EAX 中的字的符号扩展到 EDX 中去)
+:00403241 F7FE               idiv esi ; 整数除法, 以上两条, 结果回送: 商回送 AL, 余数回送 AH (字节运算); 或商回送 AX, 余数回送 DX (字运算). div 源 (eax=eax/源, edx=余数)
+```
+
+```assembly
+:00403243 8BDA               mov ebx, edx
+:00403245 8B4508             mov eax, dword ptr [ebp+08]
+:00403248 8A00               mov al, byte ptr [eax]
+                                                          ; 注册码第一位进入 call 00403317 运算, 结果放入 cl
+:0040324A 50                 push eax
+:0040324B E8C7000000         call 00403317
+:00403250 83C404             add esp, 00000004
+:00403253 33C9               xor ecx, ecx
+:00403255 8AC8               mov cl, al
+:00403257 3BD9               cmp ebx, ecx                  ; 比较
+:00403259 0F85AC000000       jne 0040330B                  ; 失败跳往 0040330B 把未注册标志位 0 送入 eax
+```
+
+```assembly
+:0040325F 8B4508             mov eax, dword ptr [ebp+08]
+:00403262 8A4004             mov al, byte ptr [eax+04]
+                                                          ; 注册码第五位进入 call 00403317 运算, 结果放入 bl
+:00403265 50                 push eax
+:00403266 E8AC000000         call 00403317
+:0040326B 83C404             add esp, 00000004
+:0040326E 33DB               xor ebx, ebx
+:00403270 8AD8               mov bl, al
+```
+
+```assembly
+:00403272 8B4508             mov eax, dword ptr [ebp+08]
+:00403275 8A4001             mov al, byte ptr [eax+01]
+                                                          ; 注册码第二位进入 call 00403317 运算, 结果放入 cl
+:00403278 50                 push eax
+:00403279 E899000000         call 00403317
+:0040327E 83C404             add esp, 00000004
+:00403281 33C9               xor ecx, ecx
+:00403283 8AC8               mov cl, al
+```
+
+* Possible Reference to String Resource ID=00036: ","
+
+```assembly
+:00403285 BE24000000         mov esi, 00000024
+:0040328A 8D44591C           lea eax, dword ptr [ecx+2*ebx+1C]
+:0040328E 99                 cdq
+:0040328F F7FE               idiv esi
+:00403291 8BDA               mov ebx, edx
+:00403293 8B4508             mov eax, dword ptr [ebp+08]
+:00403296 8A4006             mov al, byte ptr [eax+06]
+                                                          ; 注册码第七位进入 call 00403317 运算, 结果放入 cl
+:00403299 50                 push eax
+:0040329A E878000000         call 00403317
+:0040329F 83C404             add esp, 00000004
+:004032A2 33C9               xor ecx, ecx
+:004032A4 8AC8               mov cl, al
+:004032A6 3BD9               cmp ebx, ecx                  ; 比较
+:004032A8 0F855D000000       jne 0040330B                  ; 失败跳往 0040330B 把未注册标志位 0 送入 eax
+```
+
+
+
+:004032AE 8B4508 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`mov eax, dword ptr [ebp+08]`
+
+:004032B1 8A4006 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`mov al, byte ptr [eax+06]`
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;------注册码第七位进入 `call 00403317` 运算,结果放入 `bl`
+
+:004032B4 50 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`push eax`
+
+:004032B5 E85D000000 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`call 00403317`
+
+:004032BA 83C404 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`add esp, 00000004`
+
+:004032BD 33DB &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`xor ebx, ebx`
+
+:004032BF 8AD8 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`mov bl, al`
+
+:004032C1 8B4508 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`mov eax, dword ptr [ebp+08]`
+
+:004032C4 8A00 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`mov al, byte ptr [eax]`
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;------注册码第一位进入 `call 00403317` 运算,结果放入 `cl`
+
+:004032C6 50 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`push eax`
+
+:004032C7 E84B000000 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`call 00403317`
+
+:004032CC 83C404 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`add esp, 00000004`
+
+:004032CF 33C9 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`xor ecx, ecx`
+
+:004032D1 8AC8 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`mov cl, al`
+
+`* Possible Reference to String Resource ID=00036: ","`
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`|`
+
+:004032D3 BE24000000 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`mov esi, 00000024`
+
+:004032D8 8D44591C &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`lea eax, dword ptr [ecx+2*ebx+1C]`
+
+:004032DC 99 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`cdq`
+
+:004032DD F7FE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`idiv esi`
+
+:004032DF 8BDA &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`mov ebx, edx`
+
+:004032E1 8B4508 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`mov eax, dword ptr [ebp+08]`
+
+:004032E4 8A4003 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`mov al, byte ptr [eax+03]`
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;------注册码第四位进入 `call 00403317` 运算,结果放入 `cl`
+
+:004032E7 50 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`push eax`
+
+:004032E8 E82A000000 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`call 00403317`
+
+:004032ED 83C404 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`add esp, 00000004`
+
+:004032F0 33C9 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`xor ecx, ecx`
+
+:004032F2 8AC8 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`mov cl, al`
+
+:004032F4 3BD9 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`cmp ebx, ecx` &nbsp;&nbsp;&nbsp;-----比较
+
+:004032F6 0F850F000000 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`jne 0040330B` &nbsp;&nbsp;&nbsp;-----失败跳往 `0040330B` 把未注册标志位 `0` 送入 `eax`
+
+`* Possible Reference to String Resource ID=00001: "NS-TOWER"`
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`|`
+
+:004032FC B801000000 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`mov eax, 00000001` &nbsp;-----注册标志位 `1` 送入 `eax`
+
+:00403301 E90C000000 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`jmp 00403312`
+
+:00403306 E907000000 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`jmp 00403312`
+
+`* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:`
+
+`|:00403259(C), :004032A8(C), :004032F6(C)`
+
+`|`
+
+:0040330B 33C0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`xor eax, eax` &nbsp;&nbsp;&nbsp; -----未注册标志位 `0` 送入 `eax`
+
+:0040330D E900000000 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`jmp 00403312`
+
+`* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:`
+
+`|:004031C8(U), :00403207(U), :00403301(U), :00403306(U), :0040330D(U)`
+
+`|`
+
+:00403312 5F &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`pop edi`
+
+:00403313 5E &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`pop esi`
+
+:00403314 5B &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`pop ebx`
+
+:00403315 C9 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`leave`
+
+:00403316 C3 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`ret` &nbsp;&nbsp;---------返回到 `4021FF` 和 `40272A` 和 `00402FE8`
+
+注意有如下三处调用了处理注册码的 `call 004031AD`
+
+`* Referenced by a CALL at Addresses:`
+
+`|:004021FF &nbsp; , :0040272A &nbsp; , :00402FE8 &nbsp; `
+
+爆破的话只须改三处 `cmp` 后的跳转。
+
+来看看三处调用处理注册码的 `call`
+
+`* Referenced by a CALL at Addresses:`
+
+`|:00402F2C &nbsp; , :00403F40 &nbsp; , :00407482 &nbsp; , :004079ED &nbsp; `
+
+`|`
+
+:004021F0 55 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`push ebp`
+
+:004021F1 8BEC &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`mov ebp, esp`
+
+:004021F3 53 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`push ebx`
+
+:004021F4 56 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`push esi`
+
+:004021F5 57 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`push edi`
+
+:004021F6 8B4508 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`mov eax, dword ptr [ebp+08]`
+
+:004021F9 0510010000 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`add eax, 00000110`
+
+:004021FE 50 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`push eax`
+
+:004021FF E8A90F0000 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`call 004031AD` &nbsp;&nbsp; -----第一处
+
+:00402204 83C404 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`add esp, 00000004`
+
+:00402207 85C0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`test eax, eax` &nbsp;&nbsp;-----判断注册标志位
+
+:00402209 0F8428000000 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`je 00402237`
+
+`* Reference To: GDI32.SelectObject, Ord:0147h`
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`|`
+
+:00402715 FF156CF24000 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`Call dword ptr [0040F26C]`
+
+:0040271B 8985ECFEFFFF &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`mov dword ptr [ebp+FFFFFEEC], eax`
+
+:00402721 8B4508 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`mov eax, dword ptr [ebp+08]`
+
+:00402724 0510010000 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`add eax, 00000110`
+
+:00402729 50 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`push eax`
+
+:0040272A E87E0A0000 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`call 004031AD` &nbsp;&nbsp; &nbsp;&nbsp;-----第二处
+
+:0040272F 83C404 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`add esp, 00000004`
+
+:00402732 85C0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`test eax, eax` &nbsp;&nbsp;-----判断注册标志位
+
+:00402734 0F843A000000 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`je 00402774`
+
+第三处就是一开始那段关键代码
+
+其中前两处是程序在开始运行时进行检测的，第三处是在注册时检测。
+
+\----------------------------------------------------------------------------
+
+\----------------------------------------------------------------------------
+
+进入处理注册码的 `call 00403317`
+
+`* Referenced by a CALL at Addresses:`
+
+`|:004031F0 &nbsp; , :00403218 &nbsp; , :0040322B &nbsp; , :0040324B &nbsp; , :00403266 &nbsp; `
+
+`|:00403279 &nbsp; , :0040329A &nbsp; , :004032B5 &nbsp; , :004032C7 &nbsp; , :004032E8 &nbsp; `
+
+`|`
+
+:00403317 55 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`push ebp`
+
+:00403318 8BEC &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`mov ebp, esp`
+
+:0040331A 53 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`push ebx`
+
+:0040331B 56 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`push esi`
+
+:0040331C 57 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`push edi`
+
+:0040331D 33C0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`xor eax, eax`
+
+:0040331F 8A4508 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`mov al, byte ptr [ebp+08]` &nbsp;----注册码首字符给 `al`
+
+:00403322 83F861 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`cmp eax, 00000061` &nbsp;&nbsp;&nbsp;-----和 `61` 对应和 `a` 比较
+
+:00403325 0F8C0B000000 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`jl 00403336` &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-----小于则跳往 `00403336`
+
+:0040332B 33C0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`xor eax, eax`
+
+:0040332D 8A4508 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`mov al, byte ptr [ebp+08]`
+
+:00403330 83E820 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`sub eax, 00000020` &nbsp;&nbsp;-----小写字母转换成大写
+
+:00403333 884508 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`mov byte ptr [ebp+08], al`
+
+`* Referenced by a (U)nconditional or (C)onditional Jump at Address:`
+
+`|:00403325(C)`
+
+`|-------到这里注册码中的小写字母全被转换成大写了`
+
+:00403336 33C0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`xor eax, eax`
+
+:00403338 8A4508 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`mov al, byte ptr [ebp+08]`-----注册码首字符给 `al`
+
+:0040333B 83F841 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`cmp eax, 00000041` &nbsp;&nbsp;&nbsp;-----和 `41` 对应和 `A` 比较
+
+:0040333E 0F8C0B000000 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`jl 0040334F` &nbsp;&nbsp;&nbsp; &nbsp;-----小于则跳往 `0040334F`
+
+:00403344 33C0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`xor eax, eax`
+
+:00403346 8A4508 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`mov al, byte ptr [ebp+08]`
+
+:00403349 83E807 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`sub eax, 00000007`
+
+:0040334C 884508 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`mov byte ptr [ebp+08], al`
+
+`* Referenced by a (U)nconditional or (C)onditional Jump at Address:`
+
+`|:0040333E(C)`
+
+`|`
+
+:0040334F 33C0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`xor eax, eax`
+
+:00403351 8A4508 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`mov al, byte ptr [ebp+08]`
+
+:00403354 83E830 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`sub eax, 00000030`
+
+:00403357 E900000000 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`jmp 0040335C`
+
+`* Referenced by a (U)nconditional or (C)onditional Jump at Address:`
+
+`|:00403357(U)`
+
+`|`
+
+:0040335C 5F &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`pop edi`
+
+:0040335D 5E &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`pop esi`
+
+:0040335E 5B &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`pop ebx`
+
+:0040335F C9 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`leave`
+
+:00403360 C3 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`ret` &nbsp;&nbsp;
+
+\----`call 00403317` 的处理过程如下:
+
+```
+serials[*]=注册码字符;
+
+if(serials[*]>='a')
+ {serials[*]=serials[*]-20};
+elseif('A'<=serials[*]<='a')
+ {serials[*]=serials[*]-07-30};
+  else {serials[*]=serials[*]-30};
+```
+
+\----------------------------------------------------------------------------
+
+\----------------------------------------------------------------------------
+
+注册机制总结:
+
+注册码与用户名无关,注册码为 `7` 位
+
+令注册码为字符数组 `serials[7]`,`call 00403317` 为函数 `f(x)`
+
+检测过程为:
+
+```
+x1=f(serials[2])+2*f(serials[5])+1C
+y1=x1%24(hex)
+z1=f(serials[0])
+if(y1=z1)
+
+x2=f(serials[1])+2*f(serials[4])+1C
+y2=x2%24(hex)
+z2=f(serials[6])
+if(y2=z2)
+
+x3=f(serials[0])+2*f(serials[6])+1C
+y3=x3%24(hex)
+z3=f(serials[3])
+if(y3=z3)
+```
+
+只要满足这三组条件,就是正确的注册码.
+
+相当于解方程组七元三次方程组.
+
+设七位注册码字符对应的 `ASCII` 码十进制数为:
+
+`a0 b0 c0 d0 e0 f0 g0`
+
+首先通过 `call 00403317` 的处理得
+
+`a1 b1 c1 d1 e1 f1 g1` 且都须`<=24(hex)/36(dec)`
+
+然后代入如下七元三次方程组解出注册码.
+
+用十进制算
+
+```
+a1=(c1+2*f1+28)%36
+g1=(b1+2*e1+28)%36
+d1=(a1+2*g1+28)%36
+```
+
+\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
+
+`631 527 714`
+
+由于我最近很忙,注册机就不写了,找出一个注册码看看
+
+下式满足条件
+
+
+
+30=(10+2\*32+28)%36  
+
+30=(10+2\*32+28)%36  
+
+10=(30+2\*30+28)%36  
+
+可得出 `a1=30,b1=10,c1=10,d1=10,e1=32,f1=32,g1=30`  
+
+由 `call 00403317` 的逆运算可得.(都是十进制)  
+
+`a0=85,b0=5,c0=58,d0=58,e0=87,f0=87,g0=85` 
+
+对应 ASCII 为 U : : : W W U  
+
+一个注册码为 `U:::WWU`，用户名任意.  
+
+如有错误,敬请指正!!!!  
+
+__________________________________________________
+
+4dd466d0e1e0cc123afbe504da2462ca

@@ -1,0 +1,140 @@
+
+# sitman2.0x
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue274.htm`](https://www.pediy.com/kssd/pediy04/kanxue274.htm)
+
+文章标题： `sitman2.0x` 的注册机
+
+`sitman2.0x` 是一个不错的英语复读机软件，`2.0beta1` 出来后有一位大客做了注册机，但作者很快就在推出正式版时改变了算法，，等了好久也没看见那位大客发布新注册机，只好自己动手了，很简单，程序如下
+
+```c
+#include <windows.h>
+
+#include "resource.h"
+
+void GenRegCode( HWND hDlg )
+
+{
+
+unsigned char name[31];
+
+static unsigned char constr[37]={'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','\0'};
+
+unsigned char snstr[19]={'i','y','b','1','0','0','0','0','0','8','8','8','4','8','8','8','4','8'};/*假注册码*/
+
+unsigned int i,j,k,temp,ebx,edi,len;
+
+len=GetDlgItemTextA(hDlg,EDIT_NAME,name,30);
+
+if(len<3 || len >20){
+
+MessageBoxA(NULL,"Length of Name should between 3 and 20! ","Warning",MB_ICONEXCLAMATION|MB_OK);
+
+--return;
+
+}
+
+for(i=1;i<4;i++){
+
+-- ebx=1;
+
+-- for(j=len,k=1;j>0;k++,j--){
+
+---- temp=name[k-1]*ebx+i+k;
+
+---- ebx=temp % 0x165;
+
+-- }
+
+-- temp=ebx%0x24;
+
+-- snstr[i-1]=constr[temp];
+
+}
+
+ebx=edi=1;
+
+for(i=0x0a;i<0x13;i++){
+
+-- for(j=1;j<0x0a;j++)
+
+---- ebx=(snstr[j-1]*ebx+j+i)%0x179;
+
+-- temp=ebx%0x24;
+
+snstr[i-1]=constr[temp];
+
+-- temp=(temp*i+i)%0x25;
+
+-- temp=temp+edi%0x23;
+
+-- edi=temp;
+
+}
+
+SetDlgItemTextA( hDlg, EDIT_REGNO, snstr);
+
+}
+
+BOOL CALLBACK DlgProc( HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam )
+
+{
+
+--switch( msg )
+
+--{
+
+----case WM_INITDIALOG:
+
+------SendDlgItemMessageA( hDlg, EDIT_NAME, EM_SETLIMITTEXT, (WPARAM)30, 0);
+
+------SetWindowTextA( hDlg, "KeyGen of Sitman2.0x By stkman[CCG]");
+
+------SetDlgItemTextA(hDlg, EDIT_NAME, "stkman[CCG]" );
+
+------return TRUE;
+
+----case WM_COMMAND:
+
+------switch( LOWORD( wParam ) )
+
+------{
+
+--------case BT_GENERATE:
+
+----------GenRegCode( hDlg );------
+
+----------SetFocus( GetDlgItem( hDlg, EDIT_NAME ) );
+
+----------break;
+
+--------case BT_EXIT:
+
+----------EndDialog (hDlg, 0);
+
+----------break;
+
+------}
+
+------break;
+
+--}
+
+--return( FALSE );
+
+}
+
+int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
+
+PSTR szCmdLine, int iCmdShow )
+
+{
+
+--DialogBoxA( hInstance, MAKEINTRESOURCE( DLG_MAIN ), 0, DlgProc );
+
+--return 0;
+
+}----
+```
+
+该软件至少有三个关键点，一是注册码输入框内容变化时马上就会算出一个值，二是按“注册“时再计算注册码的正确性，三是软件启动时读注册表中保存的注册信息再验证一次。作者在软件中可能还有其他地方验证，因为我算的注册码 4-6 位是随意取的，作者还可以验证 4-6 位的值来判断是否是真的注册码。  `4dd466d0e1e0cc123afbe504da2462ca`

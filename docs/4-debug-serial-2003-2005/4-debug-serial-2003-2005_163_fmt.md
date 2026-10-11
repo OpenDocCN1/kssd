@@ -1,0 +1,496 @@
+
+# HNM Web Gallery Creator V2.12
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6182.htm`](https://www.pediy.com/kssd/pediy06/pediy6182.htm)
+
+- **【软件名称】**： HNM Web Gallery Creator V2.12
+- **【软件大小】**： 941 KB
+- **【软件语言】**： 英文
+- **【软件类别】**： 国外软件 / 共享版 / 网页辅助
+- **【应用平台】**： `Win9x/NT/2000/XP`
+- **【加入时间】**： 2003-08-03 15:01:24
+- **【软件简介】**： 该软件为每一张图片建立一个页面，该页面含有上一张、下一张和索引文件的连接，使用者可以选择页面的颜色、字体、样式。(可使用模板)
+- **【作者】**： `cyclotron[BCG]`
+
+### 【破解过程】
+
+用 `Ollydbg` 载入，通过出错信息找到关键点,注册码形式 `sn1-WG2-sn2` ：
+
+```asm
+004BA684  MOV EAX,DWORD PTR DS:[4E2274]  
+004BA689  MOV EAX,DWORD PTR DS:[EAX]  
+004BA68B  POP ECX  
+004BA68C  CALL HNMWEBGA.0047736C             ;  关键 call(1)，追入  
+004BA691  TEST AL,AL  
+004BA693  JNZ SHORT HNMWEBGA.004BA6A4  
+004BA695  MOV EAX,DWORD PTR DS:[EBX+304]  
+004BA69B  MOV DL,1  
+004BA69D  CALL HNMWEBGA.00453004  
+004BA6A2  JMP SHORT HNMWEBGA.004BA6C3  
+004BA6A4  MOV EAX,EBX  
+004BA6A6  CALL HNMWEBGA.0044C0E8  
+004BA6AB  PUSH 1  
+004BA6AD  MOV ECX,HNMWEBGA.004BA738  
+004BA6B2  MOV EDX,HNMWEBGA.004BA73C           ;  ASCII "Registration was successful. Thank you!"  
+004BA6B7  MOV EAX,DWORD PTR DS:[4E20CC]  
+004BA6BC  MOV EAX,DWORD PTR DS:[EAX]  
+004BA6BE  CALL HNMWEBGA.0044F444
+```
+
+---------------------------------------------------------------------
+
+`call(1)`：
+
+```asm
+0047736C  PUSH EBP  
+0047736D  MOV EBP,ESP  
+0047736F  ADD ESP,-24  
+00477372  PUSH EBX  
+00477373  PUSH ESI  
+00477374  PUSH EDI  
+00477375  XOR EBX,EBX  
+00477377  MOV DWORD PTR SS:[EBP-24],EBX  
+0047737A  MOV DWORD PTR SS:[EBP-20],EBX  
+0047737D  MOV DWORD PTR SS:[EBP-18],EBX  
+00477380  MOV DWORD PTR SS:[EBP-1C],EBX  
+00477383  MOV DWORD PTR SS:[EBP-8],ECX  
+00477386  MOV DWORD PTR SS:[EBP-4],EDX  
+00477389  MOV ESI,EAX  
+0047738B  MOV EAX,DWORD PTR SS:[EBP-4]  
+0047738E  CALL HNMWEBGA.0040400C  
+00477393  MOV EAX,DWORD PTR SS:[EBP-8]  
+00477396  CALL HNMWEBGA.0040400C  
+0047739B  XOR EAX,EAX  
+0047739D  PUSH EBP  
+0047739E  PUSH HNMWEBGA.00477693  
+004773A3  PUSH DWORD PTR FS:[EAX]  
+004773A6  MOV DWORD PTR FS:[EAX],ESP  
+004773A9  MOV DWORD PTR DS:[4E3CE4],1  
+004773B3  PUSH 4                           ; /Arg7 = 00000004  
+004773B5  PUSH 4                           ; |Arg6 = 00000004  
+004773B7  PUSH 4                           ; |Arg5 = 00000004  
+004773B9  PUSH 1                           ; |Arg4 = 00000001  
+004773BB  PUSH 1                           ; |Arg3 = 00000001  
+004773BD  LEA EAX,DWORD PTR SS:[EBP-C]     ; |  
+004773C0  PUSH EAX                         ; |Arg2  
+004773C1  LEA EAX,DWORD PTR SS:[EBP-14]    ; |  
+004773C4  PUSH EAX                         ; |Arg1  
+004773C5  MOV ECX,4                        ; |  
+004773CA  MOV EDX,1                        ; |  
+004773CF  MOV EAX,1                        ; |  
+004773D4  CALL HNMWEBGA.00476D9C           ; \HNMWEBGA.00476D9C  
+004773D9  LEA EAX,DWORD PTR SS:[EBP-18]  
+004773DC  PUSH EAX  
+004773DD  MOV EDX,DWORD PTR SS:[EBP-8]  
+004773E0  MOV EAX,HNMWEBGA.004776AC        ;  ASCII "-WG2-"  
+004773E5  CALL HNMWEBGA.00404144           ;  eax 返回“-WG2-”在试炼码中的位置  
+004773EA  MOV ECX,EAX                    ;  ecx=eax  
+004773EC  DEC ECX  
+004773ED  MOV EDX,1  
+004773F2  MOV EAX,DWORD PTR SS:[EBP-8]  
+004773F5  CALL HNMWEBGA.00404060  
+004773FA  LEA EAX,DWORD PTR SS:[EBP-1C]  
+004773FD  PUSH EAX  
+004773FE  MOV EDX,DWORD PTR SS:[EBP-8]  
+00477401  MOV EAX,HNMWEBGA.004776AC        ;  ASCII "-WG2-"  
+00477406  CALL HNMWEBGA.00404144           ;  eax 返回“-WG2-”在试炼码中的位置  
+0047740B  MOV EDX,EAX                    ;  edx=eax  
+0047740D  ADD EDX,5                      ;  edx=eax+5  
+00477410  MOV ECX,5                      ;  ecx=5  
+00477415  MOV EAX,DWORD PTR SS:[EBP-8]  
+00477418  CALL HNMWEBGA.00404060  
+0047741D  CALL HNMWEBGA.00476AD4  
+00477422  PUSH 4                           ; /Arg7 = 00000004  
+00477424  PUSH 4                           ; |Arg6 = 00000004  
+00477426  PUSH 4                           ; |Arg5 = 00000004  
+00477428  PUSH 1                           ; |Arg4 = 00000001  
+0047742A  PUSH 1                           ; |Arg3 = 00000001  
+0047742C  LEA EAX,DWORD PTR SS:[EBP-C]     ; |  
+0047742F  PUSH EAX                         ; |Arg2  
+00477430  LEA EAX,DWORD PTR SS:[EBP-14]    ; |  
+00477433  PUSH EAX                         ; |Arg1  
+00477434  MOV ECX,4                        ; |  
+00477439  MOV EDX,1                        ; |  
+0047743E  MOV EAX,1                        ; |  
+00477443  CALL HNMWEBGA.00476D9C           ; \HNMWEBGA.00476D9C  
+00477448  LEA EDX,DWORD PTR SS:[EBP-10]  
+0047744B  MOV EAX,DWORD PTR SS:[EBP-18]     ;  eax 指向 sn1  
+0047744E  CALL HNMWEBGA.00402C20           ;  取得 sn1 的十六进制值，返回至 eax  
+00477453  MOV DWORD PTR SS:[EBP-C],EAX  
+00477456  CMP DWORD PTR SS:[EBP-10],0  
+0047745A  JLE SHORT HNMWEBGA.00477467  
+0047745C  MOV BYTE PTR DS:[ESI+10],0  
+00477460  XOR EBX,EBX  
+00477462  JMP HNMWEBGA.0047766B            ;  BadBoy  
+00477467  LEA EDX,DWORD PTR SS:[EBP-10]  
+0047746A  MOV EAX,DWORD PTR SS:[EBP-1C]     ;  eax 指向 sn2  
+0047746D  CALL HNMWEBGA.00402C20           ;  取得 sn2 的十六进制值，返回至 eax  
+00477472  MOV DWORD PTR SS:[EBP-14],EAX  
+00477475  CMP DWORD PTR SS:[EBP-10],0  
+00477479  JLE SHORT HNMWEBGA.004774D2  
+0047747B  MOV BYTE PTR DS:[ESI+10],0  
+0047747F  PUSH 4                           ; /Arg7 = 00000004  
+00477481  PUSH 4                           ; |Arg6 = 00000004  
+00477483  PUSH 4                           ; |Arg5 = 00000004  
+00477485  PUSH 1                           ; |Arg4 = 00000001  
+00477487  PUSH 1                           ; |Arg3 = 00000001  
+00477489  LEA EAX,DWORD PTR SS:[EBP-C]     ; |  
+0047748C  PUSH EAX                         ; |Arg2  
+0047748D  LEA EAX,DWORD PTR SS:[EBP-14]    ; |  
+00477490  PUSH EAX                         ; |Arg1  
+00477491  MOV ECX,4                        ; |  
+00477496  MOV EDX,1                        ; |  
+0047749B  MOV EAX,1                        ; |  
+004774A0  CALL HNMWEBGA.00476D9C           ; \HNMWEBGA.00476D9C  
+004774A5  XOR EBX,EBX  
+004774A7  PUSH 4                           ; /Arg7 = 00000004  
+004774A9  PUSH 4                           ; |Arg6 = 00000004  
+004774AB  PUSH 4                           ; |Arg5 = 00000004  
+004774AD  PUSH 1                           ; |Arg4 = 00000001  
+004774AF  PUSH 1                           ; |Arg3 = 00000001  
+004774B1  LEA EAX,DWORD PTR SS:[EBP-C]     ; |  
+004774B4  PUSH EAX                         ; |Arg2  
+004774B5  LEA EAX,DWORD PTR SS:[EBP-14]    ; |  
+004774B8  PUSH EAX                         ; |Arg1  
+004774B9  MOV ECX,4                        ; |  
+004774BE  MOV EDX,1                        ; |  
+004774C3  MOV EAX,1                        ; |  
+004774C8  CALL HNMWEBGA.00476D9C           ; \HNMWEBGA.00476D9C  
+004774CD  JMP HNMWEBGA.0047766B            ;  BadBoy  
+004774D2  MOV EAX,3E8                      ;  eax=3E8h  
+004774D7  CALL HNMWEBGA.00402C08           ;  call(2)  
+004774DC  MOV DWORD PTR DS:[4E3CE0],EAX     ;  dword[4E3CE0]=eax  
+004774E1  MOV EAX,DWORD PTR SS:[EBP-C]     ;  取 sn1 的十六进制值  
+004774E4  MOV ECX,2BD                     ;  ecx=2BDh  
+004774E9  CDQ                              ;  edx 清零  
+004774EA  IDIV ECX                         ;  eax/ecx,商送 eax，余数送 edx  
+004774EC  ADD EDX,63                       ;  edx=edx+63h  
+004774EF  CMP EDX,DWORD PTR SS:[EBP-14]     ;  取 sn2 的十六进制值比较  
+004774F2  JE SHORT HNMWEBGA.00477564        ;  相等就跳（正确路线）
+```
+
+
+
+## 代码段
+
+```asm
+004774F4  PUSH 4                  ; /Arg7 = 00000004  
+004774F6  PUSH 4                  ; |Arg6 = 00000004  
+004774F8  PUSH 4                  ; |Arg5 = 00000004  
+004774FA  PUSH 1                  ; |Arg4 = 00000001  
+004774FC  PUSH 1                  ; |Arg3 = 00000001  
+004774FE  LEA EAX,DWORD PTR SS:[EBP-C]       ; |  
+00477501  PUSH EAX                ; |Arg2  
+00477502  LEA EAX,DWORD PTR SS:[EBP-14]      ; |  
+00477505  PUSH EAX                ; |Arg1  
+00477506  MOV ECX,4               ; |  
+0047750B  MOV EDX,1               ; |  
+00477510  MOV EAX,1               ; |  
+00477515  CALL HNMWEBGA.00476D9C  ; \HNMWEBGA.00476D9C  
+0047751A  MOV BYTE PTR DS:[ESI+10],0  
+0047751E  XOR EBX,EBX  
+00477520  MOV DL,1  
+00477522  MOV EAX,DWORD PTR DS:[476348]  
+00477527  CALL HNMWEBGA.00476448  
+0047752C  MOV EDI,EAX  
+0047752E  MOV CL,1  
+00477530  MOV EDX,HNMWEBGA.004776BC           ;  ASCII "Software\\HNM_Freeware\\WebGallery"  
+00477535  MOV EAX,EDI  
+00477537  CALL HNMWEBGA.0047654C  
+0047753C  XOR ECX,ECX  
+0047753E  MOV EDX,HNMWEBGA.004776E8           ;  ASCII "User"  
+00477543  MOV EAX,EDI  
+00477545  CALL HNMWEBGA.0047670C  
+0047754A  XOR ECX,ECX  
+0047754C  MOV EDX,HNMWEBGA.004776F8           ;  ASCII "Code"  
+00477551  MOV EAX,EDI  
+00477553  CALL HNMWEBGA.004767B0  
+00477558  MOV EAX,EDI  
+0047755A  CALL HNMWEBGA.00402F34  
+0047755F  JMP HNMWEBGA.0047766B  
+00477564  CALL HNMWEBGA.00476AD4  
+00477569  LEA EDX,DWORD PTR SS:[EBP-20]  
+0047756C  MOV EAX,DWORD PTR SS:[EBP-4]  
+0047756F  CALL HNMWEBGA.0040851C  
+00477574  MOV EDX,DWORD PTR SS:[EBP-20]  
+00477577  MOV EAX,ESI  
+00477579  CALL HNMWEBGA.00477700             ;  根据用户名算出一个值，追入 call(3)  
+0047757E  MOV EDX,EAX  
+00477580  MOV EAX,DWORD PTR SS:[EBP-C]  
+00477583  CALL HNMWEBGA.00477118             ;  比较用户名的计算值是否与 sn1 的十六进制值相等  
+00477588  TEST AL,AL  
+0047758A  JE HNMWEBGA.00477620  
+00477590  MOV EAX,3E8  
+00477595  CALL HNMWEBGA.00402C08  
+0047759A  MOV DWORD PTR DS:[4E3CE0],EAX  
+0047759F  PUSH 4                  ; /Arg7 = 00000004  
+004775A1  PUSH 4                  ; |Arg6 = 00000004  
+004775A3  PUSH 4                  ; |Arg5 = 00000004  
+004775A5  PUSH 1                  ; |Arg4 = 00000001  
+004775A7  PUSH 1                  ; |Arg3 = 00000001  
+004775A9  LEA EAX,DWORD PTR SS:[EBP-C]       ; |  
+004775AC  PUSH EAX                ; |Arg2  
+004775AD  LEA EAX,DWORD PTR SS:[EBP-14]      ; |  
+004775B0  PUSH EAX                ; |Arg1  
+004775B1  MOV ECX,4               ; |  
+004775B6  MOV EDX,1               ; |  
+004775BB  MOV EAX,1               ; |  
+004775C0  CALL HNMWEBGA.00476D9C  ; \HNMWEBGA.00476D9C  
+004775C5  MOV BYTE PTR DS:[ESI+10],1  
+004775C9  MOV DL,1  
+004775CB  MOV EAX,DWORD PTR DS:[476348]  
+004775D0  CALL HNMWEBGA.00476448  
+004775D5  MOV EDI,EAX  
+004775D7  MOV CL,1               ;  以下代码将注册信息写入注册表  
+004775D9  MOV EDX,HNMWEBGA.004776BC           ;  ASCII "Software\\HNM_Freeware\\WebGallery"  
+004775DE  MOV EAX,EDI  
+004775E0  CALL HNMWEBGA.0047654C  
+004775E5  MOV ECX,DWORD PTR SS:[EBP-4]  
+004775E8  MOV EDX,HNMWEBGA.004776E8           ;  ASCII "User"  
+004775ED  MOV EAX,EDI  
+004775EF  CALL HNMWEBGA.0047670C  
+004775F4  LEA EDX,DWORD PTR SS:[EBP-24]  
+004775F7  MOV EAX,DWORD PTR SS:[EBP-4]  
+004775FA  CALL HNMWEBGA.0040851C  
+004775FF  MOV EDX,DWORD PTR SS:[EBP-24]  
+00477602  MOV EAX,ESI  
+00477604  CALL HNMWEBGA.00477820  
+00477609  MOV ECX,EAX  
+0047760B  MOV EDX,HNMWEBGA.004776F8           ;  ASCII "Code"  
+00477610  MOV EAX,EDI  
+00477612  CALL HNMWEBGA.004767B0  
+00477617  MOV EAX,EDI  
+00477619  CALL HNMWEBGA.00402F34  
+0047761E  JMP SHORT HNMWEBGA.00477668  
+00477620  CALL HNMWEBGA.00476AD4  
+00477625  MOV BYTE PTR DS:[ESI+10],0  
+00477629  MOV DL,1  
+0047762B  MOV EAX,DWORD PTR DS:[476348]  
+00477630  CALL HNMWEBGA.00476448  
+00477635  MOV EDI,EAX  
+00477637  MOV CL,1  
+00477639  MOV EDX,HNMWEBGA.004776BC           ;  ASCII "Software\\HNM_Freeware\\WebGallery"  
+0047763E  MOV EAX,EDI  
+00477640  CALL HNMWEBGA.0047654C  
+00477645  XOR ECX,ECX  
+00477647  MOV EDX,HNMWEBGA.004776E8           ;  ASCII "User"  
+0047764C  MOV EAX,EDI  
+0047764E  CALL HNMWEBGA.0047670C  
+00477653  XOR ECX,ECX  
+00477655  MOV EDX,HNMWEBGA.004776F8           ;  ASCII "Code"  
+0047765A  MOV EAX,EDI  
+0047765C  CALL HNMWEBGA.004767B0  
+00477661  MOV EAX,EDI  
+00477663  CALL HNMWEBGA.00402F34  
+00477668  MOV BL,BYTE PTR DS:[ESI+10]  
+0047766B  XOR EAX,EAX  
+0047766D  POP EDX  
+0047766E  POP ECX  
+0047766F  POP ECX  
+00477670  MOV DWORD PTR FS:[EAX],EDX  
+00477673  PUSH HNMWEBGA.0047769A  
+00477678  LEA EAX,DWORD PTR SS:[EBP-24]  
+0047767B  MOV EDX,4  
+00477680  CALL HNMWEBGA.00403BFC  
+00477685  LEA EAX,DWORD PTR SS:[EBP-8]  
+00477688  MOV EDX,2  
+0047768D  CALL HNMWEBGA.00403BFC  
+00477692  RETN  
+00477693  JMP HNMWEBGA.00403654  
+00477698  JMP SHORT HNMWEBGA.00477678  
+0047769A  MOV EAX,EBX  
+0047769C  POP EDI  
+0047769D  POP ESI  
+0047769E  POP EBX  
+0047769F  MOV ESP,EBP  
+004776A1  POP EBP  
+004776A2  RETN  
+```
+
+***
+
+### `call(2)`
+
+```asm
+00402C08  IMUL EDX,DWORD PTR DS:[4E3044],8088405  ;  edx=dword[4E3044]*8088405h,其中[4E3034]的值是动态变化的，不过对最后的运算结果没有影响，写注册机时可以任取它的一个随机值  
+00402C12  INC EDX                                  ;  edx++  
+00402C13  MOV DWORD PTR DS:[4E3044],EDX            ;  dword[4E3044]=edx  
+00402C19  MUL EDX                                  ;  eax*edx,低位送 eax,高位送 edx  
+00402C1B  MOV EAX,EDX                              ;  eax=edx  
+00402C1D  RETN  
+```
+
+***
+
+### `call(3)`
+
+```asm
+00477700  PUSH EBP  
+00477701  MOV EBP,ESP  
+00477703  PUSH ECX  
+00477704  PUSH EBX  
+00477705  PUSH ESI  
+00477706  PUSH EDI  
+00477707  MOV DWORD PTR SS:[EBP-4],EDX  
+0047770A  MOV EAX,DWORD PTR SS:[EBP-4]  
+0047770D  CALL HNMWEBGA.0040400C  
+00477712  XOR EAX,EAX  
+00477714  PUSH EBP  
+00477715  PUSH HNMWEBGA.004777FB  
+0047771A  PUSH DWORD PTR FS:[EAX]  
+0047771D  MOV DWORD PTR FS:[EAX],ESP  
+00477720  MOV EAX,DWORD PTR SS:[EBP-4]  
+00477723  CALL HNMWEBGA.00403E58                  ;  取用户名长度  
+00477728  CMP EAX,5                                ;  是否大于等于 5  
+0047772B  JGE SHORT HNMWEBGA.0047773A  
+0047772D  LEA EAX,DWORD PTR SS:[EBP-4]  
+00477730  MOV EDX,HNMWEBGA.00477814                ;  ASCII "fghdjghdh"  
+00477735  CALL HNMWEBGA.00403E60  
+0047773A  PUSH DWORD PTR SS:[EBP-4]  
+0047773D  PUSH DWORD PTR SS:[EBP-4]  
+00477740  PUSH DWORD PTR SS:[EBP-4]  
+00477743  LEA EAX,DWORD PTR SS:[EBP-4]  
+00477746  MOV EDX,3  
+0047774B  CALL HNMWEBGA.00403F18                  ;  把整个用户名复制两遍并连在一起  
+00477750  XOR ESI,ESI  
+00477752  MOV EAX,DWORD PTR SS:[EBP-4]  
+00477755  CALL HNMWEBGA.00403E58                  ;  再取其长度  
+0047775A  MOV ECX,EAX                              ;  长度送 ecx  
+0047775C  TEST ECX,ECX  
+0047775E  JLE SHORT HNMWEBGA.00477796  
+00477760  MOV EBX,1  
+00477765  /MOV EAX,EBX  
+00477767  |MOV EDI,9  
+0047776C  |CDQ  
+0047776D  |IDIV EDI  
+0047776F  |MOV EAX,DWORD PTR DS:[EDX*4+4E1674]     ;  根据密码表取值（附表见后）  
+00477776  |MOV EDX,DWORD PTR SS:[EBP-4]  
+00477779  |MOVZX EDX,BYTE PTR DS:[EDX+EBX-1]       ;  依次取用户名每一位送 edx  
+0047777E  |IMUL EDX,EDX,182C5                      ;  edx=edx*182C5h  
+00477784  |IMUL EDX                                 ;  edx*eax,低位送 eax，高位送 edx  
+```
+
+
+
+### 汇编代码段
+
+```assembly
+00477786  |ADD EAX,ESI                       ; eax=eax+esi
+00477788  |MOV ESI,0DE6FD                    ; esi=0DE6FDh
+0047778D  |CDQ                               ; edx 清零
+0047778E  |IDIV ESI                          ; eax/esi,商送 eax，余数送 edx
+00477790  |MOV ESI,EDX                       ; 余数送 esi
+00477792  |INC EBX                           ; ebx++
+00477793  |DEC ECX                           ; ecx--
+00477794  \JNZ SHORT HNMWEBGA.00477765        ; 未取完则返回继续
+00477796  MOV EAX,ESI                         ; 最后的结果送 eax
+00477798  MOV ECX,0DE6FD                     ; ecx=0DE6FDh
+0047779D  CDQ                                 ; edx 清零
+0047779E  IDIV ECX                            ; eax/ecx
+004777A0  MOV ESI,EDX                         ; 余数送 esi
+004777A2  CMP ESI,2710                        ; 是否大于等于 2710h?
+004777A8  JGE SHORT HNMWEBGA.004777B3         ; 是则跳
+004777AA  MOV EAX,182C5                       ; eax=182C5h
+004777AF  SUB EAX,ESI                         ; eax=eax-esi
+004777B1  MOV ESI,EAX                         ; esi=eax
+004777B3  MOV EBX,2                           ; ebx=2
+004777B8  MOV EDI,HNMWEBGA.004E1698
+004777BD  /MOV EAX,ESI                        ; eax=esi
+004777BF  |MOV ECX,0A                         ; ecx=0Ah
+004777C4  |CDQ                                ; edx 清零
+004777C5  |IDIV ECX                           ; eax/ecx
+004777C7  |CMP EAX,DWORD PTR DS:[EDI]         ; 商是否等于 D92Dh(第二次是 171F2h)?
+004777C9  |JNZ SHORT HNMWEBGA.004777DD        ; 不等就跳
+004777CB  |MOV EAX,0E5588                     ; eax=0E5588h
+004777D0  |CALL HNMWEBGA.00402C08             ; 这个就是 call(2)
+004777D5  |MOV ESI,EAX                        ; 返回值送 esi
+004777D7  |ADD ESI,270F                       ; esi=esi+270Fh
+004777DD  |ADD EDI,4                          ; edi=edi+4
+004777E0  |DEC EBX                            ; ebx--
+004777E1  \JNZ SHORT HNMWEBGA.004777BD        ; 不为零则返回继续
+004777E3  MOV EBX,ESI                         ; 最后的返回值
+004777E5  XOR EAX,EAX
+004777E7  POP EDX
+004777E8  POP ECX
+004777E9  POP ECX
+004777EA  MOV DWORD PTR FS:[EAX],EDX
+004777ED  PUSH HNMWEBGA.00477802
+004777F2  LEA EAX,DWORD PTR SS:[EBP-4]
+004777F5  CALL HNMWEBGA.00403BD8
+004777FA  RETN
+004777FB  JMP HNMWEBGA.00403654
+00477800  JMP SHORT HNMWEBGA.004777F2
+00477802  MOV EAX,EBX                         ; 最后的返回值
+00477804  POP EDI
+00477805  POP ESI
+00477806  POP EBX
+00477807  POP ECX
+00477808  POP EBP
+00477809  RETN
+```
+
+### 附表
+
+```text
+004E1674  95 02 00 00 D3 00 00 00 C5 02 00 00 A3 01 00 00
+004E1684  E5 03 00 00 65 00 00 00 7B 01 00 00 D3 01 00 00
+004E1694  BD 02 00 00 2D D9 00 00 F2 71 01 00 5F 8D 40 00
+```
+
+### 整理信息
+
+`Regname`: `cyclotron[BCG]`
+`Regcode`: `536956-WG2-790`
+
+### 算法总结
+
+1. `sn1` 与 `sn2` 必须满足下列关系：
+   `sn1 % 2BDh + 63h = sn2`
+
+2. 对用户名的计算(用户名必须大于等于 5 位)：
+   a. 将用户名复制两遍并连接起来，如 `cyclotroncyclotroncyclotron`
+   b. 计数器 `i` 从 0 开始，根据计数器取密码表的 `dword` 值 `table[(i+1)%9]`，根据计数器取用户名串 `cyclotroncyclotroncyclotron` 每一位的 ASCII 值 `name[i]`。
+      `{tmp=table[i+1]*name[i]*182C5h; tmp+=sn1; val=tmp%0xDE6FD;}`
+      循环用户名长度 * 3 次。
+   c. `val = val % DE6FDh`，判断 `sn1` 是否大于等于 `2710h`，是则 `val = 182C5h - val`，否则继续。
+
+3. 最终的 `val` 必须与 `sn1` 相等。
+
+### Turbo C 注册机
+
+```c
+#include "stdio.h"
+#include "string.h"
+
+void main()
+{
+    int table[9]={0x295,0xD3,0x2C5,0x1A3,0x3E5,0x65,0x17B,0x1D3,0x2BD},i,length;
+    long sn1=0,tmp=1;
+    char regname[30];
+
+    printf("\t**********************************************\n");
+    printf("\n\t\tKeyGen for HNM Web Gallery Creator V2.12\n\t\t\tProduced by cyclotron\n");
+    printf("\n\t**********************************************\n");
+
+    do
+        printf("\n\tPlease input your Regname(>4 chars):");
+    while((length=strlen(gets(regname)))<=5);
+
+    for(i=0;i<length*3;i++)
+    {
+        tmp=regname[i%length]*0x182C5*table[(i+1)%9];
+        tmp+=sn1;
+        sn1=tmp%0xDE6FD;
+    }
+
+    sn1=sn1%0xDE6FD;
+    sn1=sn1>=0x2710?sn1:0x182C5-sn1;
+
+    printf("\n\tYour Regcode is:\t%ld-WG2-%ld\n\n\tThank you for your use!\n",sn1,sn1%0x2BD+0x63);
+    getchar();
+}
+```
+
+`cyclotron[BCG]`
+2003.8.4
+`4dd466d0e1e0cc123afbe504da2462ca`

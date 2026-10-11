@@ -1,0 +1,786 @@
+
+# eBook Edit Pro 3.21
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50484.htm`](https://www.pediy.com/kssd/pediy05/pediy50484.htm)
+
+破解者：`HMILY[CCG][BCG]`
+
+说明：该软件注册码的查找，已经有人破解了，我来补充算法分析。
+
+下载了它的汉化版后，感觉还不错，就分析了一下它的注册过程，
+
+算法并不难，只是过于复杂。
+
+备注：在调试过程中，不知道是哪里错了，注册名只能支持到 `10` 位。
+
+```
+:00478097 E810FEFFFF              call 00477EAC ->注册码的计算 call
+
+:0047809C 8D95FCFEFFFF            lea edx, dword ptr [ebp+FFFFFEFC]
+
+:004780A2 8D45FC                  lea eax, dword ptr [ebp-04]
+
+:004780A5 E81EBDF8FF              call 00403DC8
+
+:004780AA 8B45FC                  mov eax, dword ptr [ebp-04]
+
+:004780AD 8BD6                    mov edx, esi
+
+:004780AF E880BEF8FF              call 00403F34
+
+:004780B4 0F94C0                  sete al
+
+:004780B7 8BD8                    mov ebx, eax
+
+:004780B9 33C0                    xor eax, eax
+
+:004780BB 5A                      pop edx
+
+:004780BC 59                      pop ecx
+
+:004780BD 59                      pop ecx
+
+:004780BE 648910                  mov dword ptr fs:[eax], edx
+
+:004780C1 68DE804700              push 004780DE
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+  :004780DC(U)
+
+:004780C6 8D45FC                  lea eax, dword ptr [ebp-04]
+
+:004780C9 E8D6BAF8FF              call 00403BA4
+
+:004780CE 8D4508                  lea eax, dword ptr [ebp+08]
+
+:004780D1 E8CEBAF8FF              call 00403BA4
+
+:004780D6 C3                      ret
+
+========================================================================
+
+* Referenced by a CALL at Address:
+  :00478097
+
+:00477EAC 55                      push ebp ->跟进上面那个 call，来到这里
+
+:00477EAD 8BEC                    mov ebp, esp
+
+:00477EAF 83C4DC                  add esp, FFFFFFDC
+
+:00477EB2 53                      push ebx
+
+:00477EB3 56                      push esi
+
+:00477EB4 57                      push edi
+
+:00477EB5 33DB                    xor ebx, ebx
+
+:00477EB7 895DDC                  mov dword ptr [ebp-24], ebx
+
+:00477EBA 895DE0                  mov dword ptr [ebp-20], ebx
+
+:00477EBD 895DF0                  mov dword ptr [ebp-10], ebx
+
+:00477EC0 894DF4                  mov dword ptr [ebp-0C], ecx
+
+:00477EC3 8955F8                  mov dword ptr [ebp-08], edx
+
+:00477EC6 8945FC                  mov dword ptr [ebp-04], eax
+
+:00477EC9 8B45FC                  mov eax, dword ptr [ebp-04]
+
+:00477ECC E807C1F8FF              call 00403FD8
+
+:00477ED1 8B45F8                  mov eax, dword ptr [ebp-08]
+
+:00477ED4 E8FFC0F8FF              call 00403FD8
+
+:00477ED9 8B45F4                  mov eax, dword ptr [ebp-0C]
+
+:00477EDC E8F7C0F8FF              call 00403FD8
+
+:00477EE1 33C0                    xor eax, eax
+
+:00477EE3 55                      push ebp
+
+:00477EE4 684C804700              push 0047804C
+
+:00477EE9 64FF30                  push dword ptr fs:[eax]
+
+:00477EEC 648920                  mov dword ptr fs:[eax], esp
+
+:00477EEF 837DFC00                cmp dword ptr [ebp-04], 00000000
+
+:00477EF3 746D                    je 00477F62
+
+:00477EF5 BB01000000              mov ebx, 00000001 ->ebx 置 1 先
+
+:00477EFA 8D75E4                  lea esi, dword ptr [ebp-1C]
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+  :00477F2A(C)
+
+:00477EFD 8B45FC                  mov eax, dword ptr [ebp-04]
+
+:00477F00 E81FBFF8FF              call 00403E24 |
+
+:00477F05 50                      push eax       |
+
+:00477F06 8BC3                    mov eax, ebx   |
+
+:00477F08 48                      dec eax        无
+
+:00477F09 5A                     pop edx        用
+
+:00477F0A 8BCA                   mov ecx, edx   |
+
+:00477F0C 99                      cdq          |
+
+:00477F0D F7F9                    idiv ecx       |
+
+:00477F0F 8B45FC                  mov eax, dword ptr [ebp-04] ->注册名传入 eax
+
+:00477F12 8A0410                  mov al, byte ptr [eax+edx] ->依次取注册名
+
+:00477F15 50                      push eax       ->注册名入栈
+
+:00477F16 8B45FC                  mov eax, dword ptr [ebp-04] ->注册名传入 eax
+
+:00477F19 E806BFF8FF              call 00403E24 ->取注册名位数
+
+:00477F1E 5A                      pop edx        ->注册名出栈
+
+:00477F1F 32D0                    xor dl, al     ->dl=位数^依次取的注册名
+
+:00477F21 32D3                    xor dl, bl     ->dl=dl^bl
+
+:00477F23 8816                    mov byte ptr [esi], dl ->保存 dl
+
+:00477F25 43                      inc ebx        ->ebx++
+
+:00477F26 46                      inc esi        ->esi++
+
+:00477F27 83FB0D                  cmp ebx, 0000000D ->比较 ebx 是否等于 13
+
+:00477F2A 75D1                    jne 00477EFD ->不相等继续循环
+
+:00477F2C 8B45FC                  mov eax, dword ptr [ebp-04]
+
+:00477F2F E8F0BEF8FF              call 00403E24
+
+:00477F34 8BF0                    mov esi, eax
+
+:00477F36 85F6                    test esi, esi
+
+:00477F38 7E28                    jle 00477F62
+
+:00477F3A BB01000000              mov ebx, 00000001
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+  :00477F60(C)
+
+:00477F3F 8B45FC                  mov eax, dword ptr [ebp-04]
+
+:00477F42 E8DDBEF8FF              call 00403E24
+
+:00477F47 2BC3                    sub eax, ebx
+
+:00477F49 8B55FC                  mov edx, dword ptr [ebp-04] ->注册名传入 edx
+
+:00477F4C 8A0C02                  mov cl, byte ptr [edx+eax] ->依次取取反的注册名
+
+:00477F4F 8BC3                    mov eax, ebx       |
+
+:00477F51 48                      dec eax            无
+
+:00477F52 BF0C000000              mov edi, 0000000C 用
+
+:00477F57 99                      cdq                |
+
+:00477F58 F7FF                    idiv edi           |
+
+:00477F5A 304C15E4                xor byte ptr [ebp+edx-1C], cl ->将上面计算出来的字符串与取反的注册名依次做异或运算
+
+:00477F5E 43                      inc ebx
+
+:00477F5F 4E                      dec esi
+
+:00477F60 75DD                    jne 00477F3F ->注册名没取完，继续
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+  :00477EF3(C), :00477F38(C)
+
+:00477F62 837DF800                cmp dword ptr [ebp-08], 00000000
+
+:00477F66 7439                    je 00477FA1
+
+:00477F68 BB01000000              mov ebx, 00000001 ->ebx 置 1 先
+
+:00477F6D 8D75E4                  lea esi, dword ptr [ebp-1C]
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+  :00477F9F(C)
+
+:00477F70 8B45F8                  mov eax, dword ptr [ebp-08] ->计算基数传入 eax
+
+:00477F73 E8ACBEF8FF              call 00403E24 ->这里面是取 eax-04，没有字符，所以取 0x30
+
+:00477F78 50                      push eax
+
+:00477F79 8BC3                    mov eax, ebx
+
+:00477F7B 48                      dec eax
+
+:00477F7C 5A                     pop edx
+
+:00477F7D 8BCA                   mov ecx, edx
+
+:00477F7F 99                      cdq
+
+:00477F80 F7F9                    idiv ecx
+
+:00477F82 8B45F8                  mov eax, dword ptr [ebp-08] ->基数传入 eax
+
+:00477F85 8A0410                  mov al, byte ptr [eax+edx] ->依次取基数到 al
+
+:00477F88 3206                    xor al, byte ptr [esi] ->al 与第二次计算出来的字符串做异或运算
+
+:00477F8A 50                      push eax       ->计算结果入栈
+
+:00477F8B 8B45F8                  mov eax, dword ptr [ebp-08]
+
+:00477F8E E891BEF8FF              call 00403E24 ->这里面是取 eax-04，没有字符，所以取 0x30
+
+:00477F93 5A                      pop edx        ->计算结果出栈
+
+:00477F94 32D0                    xor dl, al     ->dl=dl^al
+
+:00477F96 32D3                    xor dl, bl     ->dl=dl^bl
+
+:00477F98 8816                    mov byte ptr [esi], dl ->保存计算结果
+```
+
+
+
+## 汇编代码片段
+
+```
+:00477F9A 43                 inc ebx                  ->ebx++
+
+:00477F9B 46                 inc esi                  ->esi++
+
+:00477F9C 83FB0D             cmp ebx, 0000000D        ->比较 ebx 是否等于 13
+
+:00477F9F 75CF               jne 00477F70             ->不等，继续
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00477F66(C)
+|
+
+:00477FA1 837DF400           cmp dword ptr [ebp-0C], 00000000
+
+:00477FA5 7439               je 00477FE0              ->这里跳走
+
+:00477FA7 BB01000000         mov ebx, 00000001
+
+:00477FAC 8D75E4             lea esi, dword ptr [ebp-1C]
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00477FDE(C)
+|
+
+:00477FAF 8B45F4             mov eax, dword ptr [ebp-0C]
+
+:00477FB2 E86DBEF8FF         call 00403E24
+
+:00477FB7 50                 push eax
+
+:00477FB8 8BC3               mov eax, ebx
+
+:00477FBA 48                 dec eax
+
+:00477FBB 5A                 pop edx
+
+:00477FBC 8BCA               mov ecx, edx
+
+:00477FBE 99                 cdq
+
+:00477FBF F7F9               idiv ecx
+
+:00477FC1 8B45F4             mov eax, dword ptr [ebp-0C]
+
+:00477FC4 8A0410             mov al, byte ptr [eax+edx]
+
+:00477FC7 3206               xor al, byte ptr [esi]
+
+:00477FC9 50                 push eax
+
+:00477FCA 8B45F4             mov eax, dword ptr [ebp-0C]
+
+:00477FCD E852BEF8FF         call 00403E24
+
+:00477FD2 5A                 pop edx
+
+:00477FD3 32D0               xor dl, al
+
+:00477FD5 32D3               xor dl, bl
+
+:00477FD7 8816               mov byte ptr [esi], dl
+
+:00477FD9 43                 inc ebx
+
+:00477FDA 46                 inc esi
+
+:00477FDB 83FB0D             cmp ebx, 0000000D
+
+:00477FDE 75CF               jne 00477FAF
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00477FA5(C)
+|
+
+:00477FE0 8D45F0             lea eax, dword ptr [ebp-10] ->上面那个跳转到这里
+
+:00477FE3 E8BCBBF8FF         call 00403BA4
+
+:00477FE8 BB0C000000         mov ebx, 0000000C
+
+:00477FED 8D75E4             lea esi, dword ptr [ebp-1C]
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00478007(C)
+|
+
+:00477FF0 8D45E0             lea eax, dword ptr [ebp-20]
+
+:00477FF3 8A16               mov dl, byte ptr [esi]
+
+:00477FF5 E852BDF8FF         call 00403D4C
+
+:00477FFA 8B55E0             mov edx, dword ptr [ebp-20]
+
+:00477FFD 8D45F0             lea eax, dword ptr [ebp-10]
+
+:00478000 E827BEF8FF         call 00403E2C
+
+:00478005 46                 inc esi
+
+:00478006 4B                 dec ebx
+
+:00478007 75E7               jne 00477FF0
+
+:00478009 8D55DC             lea edx, dword ptr [ebp-24]
+
+:0047800C 8B45F0             mov eax, dword ptr [ebp-10] ->这里 d eax 可看到计算后的字符串->计为(end)
+
+:0047800F E83CFBFFFF         call 00477B50 ->最后注册码的计算->跟进去
+
+:00478014 8B55DC             mov edx, dword ptr [ebp-24]
+
+:00478017 8B4508             mov eax, dword ptr [ebp+08]
+
+:0047801A B9FF000000         mov ecx, 000000FF
+
+:0047801F E8DCBDF8FF         call 00403E00
+
+:00478024 33C0               xor eax, eax
+
+:00478026 5A                 pop edx
+
+:00478027 59                 pop ecx
+
+:00478028 59                 pop ecx
+
+:00478029 648910             mov dword ptr fs:[eax], edx
+
+:0047802C 6853804700         push 00478053
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00478051(U)
+|
+
+:00478031 8D45DC             lea eax, dword ptr [ebp-24]
+
+:00478034 BA02000000         mov edx, 00000002
+
+:00478039 E88ABBF8FF         call 00403BC8
+
+:0047803E 8D45F0             lea eax, dword ptr [ebp-10]
+
+:00478041 BA04000000         mov edx, 00000004
+
+:00478046 E87DBBF8FF         call 00403BC8
+
+:0047804B C3                 ret
+
+\===================================================================
+
+* Referenced by a CALL at Addresses:
+
+|:00477DB1   , :0047800F
+
+|
+
+:00477B50 55                 push ebp ->跟进 0047800F 到这里
+
+:00477B51 8BEC               mov ebp, esp
+
+:00477B53 83C4F0             add esp, FFFFFFF0
+
+:00477B56 53                 push ebx
+
+:00477B57 56                 push esi
+
+:00477B58 57                 push edi
+
+:00477B59 33C9               xor ecx, ecx
+
+:00477B5B 894DF0             mov dword ptr [ebp-10], ecx
+
+:00477B5E 8BFA               mov edi, edx
+
+:00477B60 8945FC             mov dword ptr [ebp-04], eax
+
+:00477B63 8B45FC             mov eax, dword ptr [ebp-04]
+
+:00477B66 E86DC4F8FF         call 00403FD8
+
+:00477B6B 33C0               xor eax, eax
+
+:00477B6D 55                 push ebp
+
+:00477B6E 68847C4700         push 00477C84
+
+:00477B73 64FF30             push dword ptr fs:[eax]
+
+:00477B76 648920             mov dword ptr fs:[eax], esp
+
+:00477B79 8BC7               mov eax, edi
+
+:00477B7B E824C0F8FF         call 00403BA4
+
+:00477B80 E9D7000000         jmp 00477C5C
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00477C60(C)
+|
+
+:00477B85 8B45FC             mov eax, dword ptr [ebp-04]
+
+:00477B88 E897C2F8FF         call 00403E24
+
+:00477B8D 8BC8               mov ecx, eax
+
+:00477B8F 8BC1               mov eax, ecx
+
+:00477B91 BB03000000         mov ebx, 00000003
+
+:00477B96 99                 cdq
+
+:00477B97 F7FB               idiv ebx
+
+:00477B99 85C0               test eax, eax
+
+:00477B9B 7E07               jle 00477BA4
+
+:00477B9D BB03000000         mov ebx, 00000003
+
+:00477BA2 EB02               jmp 00477BA6
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00477B9B(C)
+|
+
+:00477BA4 8BD9               mov ebx, ecx
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00477BA2(U)
+|
+
+:00477BA6 8D45F9             lea eax, dword ptr [ebp-07]
+
+:00477BA9 33C9               xor ecx, ecx
+
+:00477BAB BA03000000         mov edx, 00000003
+
+:00477BB0 E8B3AFF8FF         call 00402B68
+
+:00477BB5 8D45F5             lea eax, dword ptr [ebp-0B]
+
+:00477BB8 B940000000         mov ecx, 00000040
+
+:00477BBD BA04000000         mov edx, 00000004
+
+:00477BC2 E8A1AFF8FF         call 00402B68
+
+:00477BC7 8D45FC             lea eax, dword ptr [ebp-04]
+
+:00477BCA E825C4F8FF         call 00403FF4
+
+:00477BCF 8D55F9             lea edx, dword ptr [ebp-07]
+
+:00477BD2 8BCB               mov ecx, ebx
+
+:00477BD4 E8B7ACF8FF         call 00402890
+
+:00477BD9 83FB03             cmp ebx, 00000003
+
+:00477BDC 7C08               jl 00477BE6
+
+:00477BDE 8A45FB             mov al, byte ptr [ebp-05] ->计算从这里开始，取 end 的第三位
+
+:00477BE1 243F               and al, 3F ->和 0x3f 做与运算，al=al&0x3f
+
+:00477BE3 8845F8             mov byte ptr [ebp-08], al    ->保存 al
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00477BDC(C)
+|
+
+:00477BE6 83FB02             cmp ebx, 00000002
+
+:00477BE9 7C15               jl 00477C00
+
+:00477BEB 8A45FA             mov al, byte ptr [ebp-06] ->取 end 的第二位到 al
+
+:00477BEE C1E002             shl eax, 02                ->eax=eax<<2
+
+:00477BF1 33D2               xor edx, edx
+
+:00477BF3 8A55FB             mov dl, byte ptr [ebp-05] ->取 end 的第三位到 dl
+
+:00477BF6 C1EA06             shr edx, 06                ->edx=edx>>6
+```
+
+
+
+#### 逆向分析汇编代码
+
+```asm
+:00477BF9 0AC2          or al, dl           -> al=al|dl
+:00477BFB 243F          and al, 3F          -> al=al&0x3f
+:00477BFD 8845F7        mov byte ptr [ebp-09], al -> 保存 al
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+| :00477BE9(C)
+
+:00477C00 8A45F9        mov al, byte ptr [ebp-07] -> 取 end 的第一位
+:00477C03 8BD0          mov edx, eax        -> edx=eax
+:00477C05 C1E204        shl edx, 04         -> edx=edx<<4
+:00477C08 33C9          xor ecx, ecx
+:00477C0A 8A4DFA        mov cl, byte ptr [ebp-06] -> 取 end 的第二位到 cl
+:00477C0D C1E904        shr ecx, 04         -> ecx=ecx>>4
+:00477C10 0AD1          or dl, cl           -> dl=dl|cl
+:00477C12 80E23F        and dl, 3F          -> dl=dl&0x3f
+:00477C15 8855F6        mov byte ptr [ebp-0A], dl -> 保存 dl
+:00477C18 25FF000000    and eax, 000000FF   -> eax=eax&0xff
+:00477C1D C1E802        shr eax, 02         -> eax=eax>>2
+:00477C20 243F          and al, 3F          -> al=al&0x3f
+:00477C22 8845F5        mov byte ptr [ebp-0B], al -> 保存 al
+:00477C25 8D45FC        lea eax, dword ptr [ebp-04]
+:00477C28 8BCB          mov ecx, ebx
+:00477C2A BA01000000    mov edx, 00000001
+:00477C2F E838C4F8FF    call 0040406C
+:00477C34 BE04000000    mov esi, 00000004
+:00477C39 8D5DF5        lea ebx, dword ptr [ebp-0B]
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+| :00477C5A(C)
+
+:00477C3C 8D45F0        lea eax, dword ptr [ebp-10]
+:00477C3F 33D2          xor edx, edx
+:00477C41 8A13          mov dl, byte ptr [ebx] -> 依次取计算的结果
+:00477C43 8A929DE44700  mov dl, byte ptr [edx+0047E49D] -> 用结果在基数相对位置上的字符
+:00477C49 E8FEC0F8FF    call 00403D4C
+:00477C4E 8B55F0        mov edx, dword ptr [ebp-10] -> 将找到的字符传到 edx
+:00477C51 8BC7          mov eax, edi
+:00477C53 E8D4C1F8FF    call 00403E2C
+:00477C58 43            inc ebx
+:00477C59 4E            dec esi
+:00477C5A 75E0          jne 00477C3C -> 比较是否取完，没有继续
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+| :00477B80(U)
+
+:00477C5C 837DFC00      cmp dword ptr [ebp-04], 00000000 -> 比较 end 是否取完
+:00477C60 0F851FFFFFFF  jne 00477B85        -> 没有则继续，后面位数的取法，见注册机源码
+:00477C66 33C0          xor eax, eax
+:00477C68 5A            pop edx
+:00477C69 59            pop ecx
+:00477C6A 59            pop ecx
+:00477C6B 648910        mov dword ptr fs:[eax], edx
+:00477C6E 688B7C4700    push 00477C8B
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+| :00477C89(U)
+
+:00477C73 8D45F0        lea eax, dword ptr [ebp-10]
+:00477C76 E829BFF8FF    call 00403BA4
+:00477C7B 8D45FC        lea eax, dword ptr [ebp-04]
+:00477C7E E821BFF8FF    call 00403BA4
+:00477C83 C3            ret
+```
+
+#### 注册机源码
+
+以下是在 `CB v6.0 win98 SE` 下调试通过的注册机源码：
+
+```cpp
+void __fastcall Tform1::OKBtnClick(TObject *Sender)
+{
+    int key_11[29] = {'~','T','u','r','n','I','d','e','@','$','I',
+                      'n','t','o','P','r','o','f','i','t','$','w',
+                      '/','e','B','o','o','k'}, *p = key_11;
+    int key_22[15] = {'0','0','0','0','0','0','0','0','0','0','0',
+                      '0','0','0','0'}, *p1 = key_22;
+    
+    String name, key_1, key_2, T, key_3, name_key, code_1, code_2, code_3,
+           code_4, code_5, code_6, code_7, code_8, code_9,
+           code_10, code_11, code_12, code_13, code_14,
+           code_15, code_16;
+           
+    int a, b = 1, c = 1, d = 0, d_1 = 0, j = 1, k = 1;
+    unsigned long e = 0, f = 0, g = 0, h = 0, i = 0, l = 0, m = 0, x = 0;
+
+    if (UEdit->Text == "") { CEdit->Text = "未输入注册名！"; return; }
+    if (UEdit->Text.Length() > 10) { CEdit->Text = "注册名不能大于 10 位！"; return; }
+
+    if (UEdit->Text != "")
+    {
+        name = UEdit->Text;
+        a = UEdit->Text.Length();
+        
+        while (c <= 12)
+        {
+            if (c > a) { name = name + name; d++; e = name[d]; }
+            else e = name[c];
+            f = e ^ a;
+            g = f ^ b;
+            c++;
+            b++;
+            key_1 = key_1 + char(g);
+        }
+        
+        while (a >= 1)
+        {
+            h = name[a] ^ key_1[j];
+            a--;
+            j++;
+            key_2 = key_2 + char(h);
+        }
+        
+        if (j < 12)
+        {
+            while (j <= 12)
+            {
+                x = key_1[j];
+                name_key = name_key + char(x);
+                j++;
+            }
+            key_2 = key_2 + name_key;
+            
+            while (k <= 12)
+            {
+                i = key_2[k] ^ *p1;
+                l = i ^ *p;
+                m = l ^ k;
+                k++;
+                p++;
+                p1++;
+                key_3 = key_3 + char(m);
+            }
+            
+            unsigned long a_1 = 0, b_1 = 0, c_1 = 0, a_11 = 0, b_11 = 0, c_11 = 0,
+                           c_12 = 0, c_13 = 0, c_14 = 0, c_15 = 0;
+            
+            a_1 = key_3[3] & 0x3f;
+            b_1 = key_3[2] << 2;
+            b_11 = key_3[2] >> 6;
+            c_15 = ((b_11 | b_1) ^ 0x100) & 0x3f;
+            c_1 = ((b_11 | b_1) & 0x100) + key_3[1];
+            c_11 = c_1 << 4;
+            c_12 = key_3[2] >> 4;
+            c_13 = (c_11 | c_12) & 0x3f;
+            c_14 = (c_1 & 0xff) >> 2;
+            
+            char key_111[] = {'I','Y','A','G','P','X','D','J','Q','W',
+                              'M','H','V','C','N','F','U','Z','R','B',
+                              'K','E','S','O','L','T','t','f','k','y',
+                              's','b','o','h','l','u','j','w','e','c',
+                              'p','m','i','a','q','n','d','x','z','v',
+                              'g','r','4','6','+','0','2','5','7','3',
+                              '/','8','1','=','9'};
+            
+            code_1 = key_111[c_14];
+            code_2 = key_111[c_13];
+            code_3 = key_111[c_15];
+            code_4 = key_111[a_1];
+            
+            unsigned long aa_1 = 0, ab_1 = 0, ac_1 = 0, aa_11 = 0, ab_11 = 0, ac_11 = 0,
+                           ac_12 = 0, ac_13 = 0, ac_14 = 0, ac_15 = 0;
+            aa_1 = key_3[6] & 0x3f;
+            ab_1 = key_3[5] << 2;
+            ab_11 = key_3[6] >> 6;
+            ac_15 = ((ab_11 | ab_1) ^ 0x100) & 0x3f;
+            ac_1 = ((ab_11 | ab_1) & 0x100) + key_3[4];
+            ac_11 = ac_1 << 4;
+            ac_12 = key_3[5] >> 4;
+            ac_13 = (ac_11 | ac_12) & 0x3f;
+            ac_14 = (ac_1 & 0xff) >> 2;
+            
+            code_5 = key_111[ac_14];
+            code_6 = key_111[ac_13];
+            code_7 = key_111[ac_15];
+            code_8 = key_111[aa_1];
+            
+            unsigned long ba_1 = 0, bb_1 = 0, bc_1 = 0, ba_11 = 0, bb_11 = 0, bc_11 = 0,
+                           bc_12 = 0, bc_13 = 0, bc_14 = 0, bc_15 = 0;
+            ba_1 = key_3[9] & 0x3f;
+            bb_1 = key_3[8] << 2;
+            bb_11 = key_3[9] >> 6;
+            bc_15 = ((bb_11 | bb_1) ^ 0x100) & 0x3f;
+            bc_1 = ((bb_11 | bb_1) & 0x100) + key_3[7];
+            bc_11 = bc_1 << 4;
+            bc_12 = key_3[8] >> 4;
+            bc_13 = (bc_11 | bc_12) & 0x3f;
+            bc_14 = (bc_1 & 0xff) >> 2;
+            
+            code_9 = key_111[bc_14];
+            code_10 = key_111[bc_13];
+            code_11 = key_111[bc_15];
+            code_12 = key_111[ba_1];
+            
+            unsigned long ca_1 = 0, cb_1 = 0, cc_1 = 0, ca_11 = 0, cb_11 = 0, cc_11 = 0,
+                           cc_12 = 0, cc_13 = 0, cc_14 = 0, cc_15 = 0;
+            ca_1 = key_3[12] & 0x3f;
+            cb_1 = key_3[11] << 2;
+            cb_11 = key_3[12] >> 6;
+            cc_15 = ((cb_11 | cb_1) ^ 0x100) & 0x3f;
+            cc_1 = ((cb_11 | cb_1) & 0x100) + key_3[10];
+            cc_11 = cc_1 << 4;
+            cc_12 = key_3[11] >> 4;
+            cc_13 = (cc_11 | cc_12) & 0x3f;
+            cc_14 = (cc_1 & 0xff) >> 2;
+            
+            code_13 = key_111[cc_14];
+            code_14 = key_111[cc_13];
+            code_15 = key_111[cc_15];
+            code_16 = key_111[ca_1];
+            
+            CEdit->Text = CEdit->Text + code_1 + code_2 + code_3 + code_4
+                         + code_5 + code_6 + code_7 + code_8 + code_9 + code_10 + code_11
+                         + code_12 + code_13 + code_14 + code_15 + code_16;
+        }
+    }
+}
+```

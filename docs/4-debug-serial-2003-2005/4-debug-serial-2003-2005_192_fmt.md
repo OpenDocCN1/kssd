@@ -1,0 +1,404 @@
+
+# Messenger Helper 2.10 (Build 30124)
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50506.htm`](https://www.pediy.com/kssd/pediy05/pediy50506.htm)
+
+简单算法——Messenger Helper 2.10（Build 30124）
+
+下载页面：`http://www.helperstudio.com/Software/Messenger/gb/Download.asp`
+
+软件大小：630K
+
+**【软件简介】**：`Messenger Helper` 是基于 `MSN`/`Windows Messenger` 的工具。它能自动记录聊天信息，并能完美的再现聊天内容，如表情符号等。同时它还有更多丰富的功能。
+
+**【软件限制】**：免费注册
+
+**【作者声明】**：初学 `Crack`，只是感兴趣，没有其它目的。失误之处敬请诸位大侠赐教！
+
+**【破解工具】**：`TRW2000` 娃娃修改版、`Ollydbg1.09`、`FI2.5`、`W32Dasm8.93` 黄金版
+
+### 过程
+
+作者 风无痕/红山 先生的《开发历程随笔》可能是许多软件作者的共同体会，开发一个软件需要耗费作者无数的心血，的确不容易。因为这个软件还是免费提供注册的，所以我简单写了写算法过程，希望作者能够谅解。
+
+`MSNBrowser.exe` 无壳。`Visual C++ 6.0` 编写。
+
+E Mail：`fly@hotmail.com`（因为我不用 `MSN`，所以随便填个帐号^-^^-^）
+
+试炼码：`13572468` （需要 8 位数字）
+
+用 `TRW` 下 `BPX HMEMCPY` 断点，`PMODULE`，再过几个 `RET`，很容易就到达核心了。
+
+```assembly
+:00403631 E8C62E0300           call 004364FC
+:00403636 8D7D60               lea edi, dword ptr [ebp+60]
+:00403639 8BCF                 mov ecx, edi
+:0040363B E8BC2E0300           call 004364FC
+:00403640 8B07                 mov eax, dword ptr [edi]
+                                ==>EAX=13572468
+:00403642 8B0E                 mov ecx, dword ptr [esi]
+                                ==>ECX=fly@hotmail.com
+:00403644 8B40F8               mov eax, dword ptr [eax-08]
+                                ==>EAX=8 取试炼码位数
+:00403647 8B59F8               mov ebx, dword ptr [ecx-08]
+                                ==>EBX=F 取 E Mail 位数
+:0040364A 50                   push eax
+:0040364B 8BCF                 mov ecx, edi
+:0040364D E850A60300           call 0043DCA2
+:00403652 50                   push eax
+:00403653 53                   push ebx
+:00403654 8BCE                 mov ecx, esi
+:00403656 E847A60300           call 0043DCA2
+:0040365B 50                   push eax
+:0040365C E8AF090000           call 00404010
+                                ==>关键 CALL！进入！
+:00403661 83C408               add esp, 00000008
+:00403664 85C0                 test eax, eax
+                                ==>EAX 是否为 0？
+:00403666 7421                 je 00403689
+                                ==>不跳则 OVER！
+
+* Possible Reference to String Resource ID=00255: "z 坥 "
+
+                                |
+:00403668 6AFF                 push FFFFFFFF
+:0040366A 6A00                 push 00000000
+
+* Possible Reference to String Resource ID=00209: "鑼鲹 e?魍皳 e"
+
+                                |
+:0040366C 68D1000000           push 000000D1
+:00403671 E8EC1F0400           call 00445662
+                                ==>BAD BOY！
+:00403676 5F                   pop edi
+:00403677 5E                   pop esi
+:00403678 5D                   pop ebp
+:00403679 5B                   pop ebx
+:0040367A 8B4C2408             mov ecx, dword ptr [esp+08]
+:0040367E 64890D00000000       mov dword ptr fs:[00000000], ecx
+:00403685 83C414               add esp, 00000014
+:00403688 C3                   ret
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00403666(C)
+
+|
+:00403689 E8F2130500           call 00454A80
+:0040368E 8B4004               mov eax, dword ptr [eax+04]
+:00403691 8D4C2410             lea ecx, dword ptr [esp+10]
+:00403695 8B908C000000         mov edx, dword ptr [eax+0000008C]
+:0040369B 52                   push edx
+:0040369C E83FA20300           call 0043D8E0
+:004036A1 33DB                 xor ebx, ebx
+:004036A3 6A5C                 push 0000005C
+:004036A5 8D4C2414             lea ecx, dword ptr [esp+14]
+:004036A9 895C2424             mov dword ptr [esp+24], ebx
+:004036AD E8462A0300           call 004360F8
+:004036B2 40                   inc eax
+:004036B3 8D4C2410             lea ecx, dword ptr [esp+10]
+:004036B7 50                   push eax
+:004036B8 8D442418             lea eax, dword ptr [esp+18]
+:004036BC 50                   push eax
+:004036BD E8BE290300           call 00436080
+:004036C2 50                   push eax
+:004036C3 8D4C2414             lea ecx, dword ptr [esp+14]
+:004036C7 C644242401           mov [esp+24], 01
+:004036CC E8DAA20300           call 0043D9AB
+:004036D1 8D4C2414             lea ecx, dword ptr [esp+14]
+:004036D5 885C2420             mov byte ptr [esp+20], bl
+:004036D9 E894A10300           call 0043D872
+
+* Possible StringData Ref from Data Obj ->"AccReg.dat"
+                                ==>注册信息保存
+:004036DE 6840B24700           push 0047B240
+:004036E3 8D4C2414             lea ecx, dword ptr [esp+14]
+:004036E7 E862A50300           call 0043DC4E
+:004036EC 8B542410             mov edx, dword ptr [esp+10]
+:004036F0 8B07                 mov eax, dword ptr [edi]
+:004036F2 8B0E                 mov ecx, dword ptr [esi]
+:004036F4 52                   push edx
+:004036F5 50                   push eax
+:004036F6 51                   push ecx
+
+* Possible StringData Ref from Data Obj ->"RegData"
+:004036F7 6838B24700           push 0047B238
+
+* Reference To: KERNEL32.WritePrivateProfileStringA, Ord:02E5h
+                                |
+:004036FC FF1500344600         Call dword ptr [00463400]
+
+* Possible Reference to String Resource ID=00255: "z 坥 "
+                                |
+:00403702 6AFF                 push FFFFFFFF
+:00403704 53                   push ebx
+
+* Possible Reference to String Resource ID=00210: ",黩翔??彗龛寁??"
+                                |
+:00403705 68D2000000           push 000000D2
+:0040370A E8531F0400           call 00445662
+                                ==>呵呵，胜利女神！
+
+进入关键 CALL：`40365C   call 00404010`
+
+* Referenced by a CALL at Address:
+|:0040365C
+|
+:00404010 83EC0C               sub esp, 0000000C
+:00404013 53                   push ebx
+
+* Reference To: KERNEL32.lstrlenA, Ord:0308h
+                                |
+:00404014 8B1D10344600         mov ebx, dword ptr [00463410]
+:0040401A 57                   push edi
+:0040401B 8B7C241C             mov edi, dword ptr [esp+1C]
+:0040401F 57                   push edi
+:00404020 FFD3                 call ebx
+:00404022 83F808               cmp eax, 00000008
+                                ==>注册号是否 8 位？
+:00404025 740B                 je 00404032
+                                ==>不跳则 OVER
+:00404027 5F                   pop edi
+
+* Possible Reference to String Resource ID=00135: "猆;p:"
+                                |
+:00404028 B887000000           mov eax, 00000087
+:0040402D 5B                   pop ebx
+:0040402E 83C40C               add esp, 0000000C
+:00404031 C3                   ret
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00404025(C)
+|
+:00404032 55                   push ebp
+:00404033 56                   push esi
+:00404034 8B742420             mov esi, dword ptr [esp+20]
+:00404038 33ED                 xor ebp, ebp
+:0040403A 56                   push esi
+:0040403B FFD3                 call ebx
+:0040403D 33C9                 xor ecx, ecx
+:0040403F 85C0                 test eax, eax
+:00404041 760B                 jbe 0040404E
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0040404C(C)
+|
+:00404043 0FBE1431             movsx edx, byte ptr [ecx+esi]
+一、  ==>依次取 E Mail 的 HEX 值
+1、  ==>EDX=66
+2、  ==>EDX=6C
+3、  ==>EDX=79
+```
+
+
+
+…… …… 省 略 …… ……
+
+15、 `EBP=6D`
+
+```
+:00404047 03EA                 add ebp, edx
+```
+====>累加！
+
+1、 `EBP=66 + 00=66`
+2、 `EBP=66 + 6C=D2`
+3、 `EBP=D2 + 79=14B`
+
+…… …… 省 略 …… ……
+
+15、 `EBP=579 + 6D=5E6`
+
+```
+:00404049 41                   inc ecx
+:0040404A 3BC8                 cmp ecx, eax
+:0040404C 72F5                 jb 00404043
+```
+====>循环 E Mail 位数次 15 次
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00404041(C)
+|
+
+```
+:0040404E 0FBE7707            movsx esi, byte ptr [edi+07]
+```
+二、 `ESI=38` 取试炼码第 8 位的 HEX 值
+
+```
+:00404052 0FBE4701            movsx eax, byte ptr [edi+01]
+```
+====>EAX=33 取试炼码第 2 位的 HEX 值
+
+```
+:00404056 2BF0                sub esi, eax
+```
+====>ESI=38 - 33=5
+
+```
+:00404058 B800000000         mov eax, 00000000
+:0040405D 7414                je 00404073
+```
+```
+:0040405F 8A0F                mov cl, byte ptr [edi]
+```
+三、 `CL=31` 取试炼码第 1 位的 HEX 值
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00404071(C)
+|
+
+```
+:00404061 8A540702            mov dl, byte ptr [edi+eax+02]
+```
+1、 `DL=35` 取试炼码第 3 位的 HEX 值
+2、 `DL=37` 取试炼码第 4 位的 HEX 值
+3、 `DL=32` 取试炼码第 5 位的 HEX 值
+4、 `DL=34` 取试炼码第 6 位的 HEX 值
+5、 `DL=36` 取试炼码第 7 位的 HEX 值
+
+```
+:00404065 2AD1                sub dl, cl
+```
+1、 `DL=35 - 31=4`
+2、 `DL=37 - 31=6`
+3、 `DL=32 - 31=1`
+4、 `DL=34 - 31=3`
+5、 `DL=36 - 31=5`
+
+```
+:00404067 80C230              add dl, 30
+```
+1、 `DL=4 + 30=34`
+2、 `DL=6 + 30=36`
+3、 `DL=1 + 30=31`
+4、 `DL=3 + 30=33`
+5、 `DL=5 + 30=35`
+
+```
+:0040406A 88540410            mov byte ptr [esp+eax+10], dl
+```
+====>DL 入 [esp+eax+10]处
+
+```
+:0040406E 40                  inc eax
+```
+====>EAX 依次增 1
+
+```
+:0040406F 3BC6                cmp eax, esi
+```
+====>ESI=5
+
+```
+:00404071 72EE                jb 00404061
+```
+====>循环 5 次
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0040405D(C)
+|
+
+```
+:00404073 C644041000          mov [esp+eax+10], 00
+:00404078 8D442410            lea eax, dword ptr [esp+10]
+```
+====>EAX=46135 （上面运算的结果）
+
+```
+:0040407C 50                  push eax
+:0040407D E8372D0200          call 00426DB9
+```
+====>将 46135 转换成 16 进制值 EAX=46135（D）=B437（H）
+
+```
+:00404082 83C404              add esp, 00000004
+:00404085 2BC5                sub eax, ebp
+```
+四、 `EAX=B437-5E6=AE51`
+实际是比较上面运算的结果与 fly@hotmail.com 帐号 HEX 值累加的结果是否相等？
+
+```
+:00404087 5E                  pop esi
+:00404088 5D                  pop ebp
+:00404089 5F                  pop edi
+:0040408A 5B                  pop ebx
+:0040408B 83C40C              add esp, 0000000C
+:0040408E C3                  ret
+```
+
+—————————————————————————————————
+
+【算 法 总 结】：
+
+一、将 `fly@hotmail.com` 的 HEX 值累加结果为 `5E6（H）=1510（D）`
+对试炼码 `13572468` 运算得出 `B437（H）=46135（D）`
+如果这两者相等则 OK
+
+二、第二部分运算取试炼码的第 8 位-第 2 位=5，5 是第三部分循环的次数。
+因为我要得到的结果是 `5E6（H）=1510（D）`，所以只要循环 4 次，因此改第 8 位 8 为 7。
+37-33=4，这样第三部分运算就循环 4 次了。
+
+三、看看第三部分的运算：
+
+```
+:0040405F 8A0F                mov cl, byte ptr [edi]
+```
+三、 `CL=31` 取试炼码第 1 位的 HEX 值
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00404071(C)
+|
+
+```
+:00404061 8A540702            mov dl, byte ptr [edi+eax+02]
+```
+1、 `DL=35` 取试炼码第 3 位的 HEX 值
+2、 `DL=37` 取试炼码第 4 位的 HEX 值
+3、 `DL=32` 取试炼码第 5 位的 HEX 值
+4、 `DL=34` 取试炼码第 6 位的 HEX 值
+5、 `DL=36` 取试炼码第 7 位的 HEX 值
+
+```
+:00404065 2AD1                sub dl, cl
+```
+1、 `DL=35 - 31=4`
+2、 `DL=37 - 31=6`
+3、 `DL=32 - 31=1`
+4、 `DL=34 - 31=3`
+5、 `DL=36 - 31=5`
+
+—————————————————
+
+我的简单求逆：（结果为 1510）
+
+1、 `DL=1=32 - 31` 所以：注册号第 3 位是 2
+2、 `DL=5=36 - 31` 所以：注册号第 4 位是 6
+3、 `DL=1=32 - 31` 所以：注册号第 5 位是 2
+4、 `DL=0=31 - 31` 所以：注册号第 6 位是 1
+因为只循环 4 次，所以我的注册号第 7 位可以是任意数字。
+
+所以：我的注册号=`13262167`
+
+—————————————————————————————————
+
+【注册信息保存】：
+
+同文件夹下的 `AccReg.dat` 文件中：
+
+```
+[RegData]
+fly@hotmail.com=13262167
+```
+
+—————————————————————————————————
+
+【整 理】：
+
+E Mail：`fly@hotmail.com`
+注册号：`13262167`
+
+—————————————————————————————————
+
+Cracked By 巢水工作坊——fly【OCN】
+16:28 03-3-23 4dd466d0e1e0cc123afbe504da2462ca

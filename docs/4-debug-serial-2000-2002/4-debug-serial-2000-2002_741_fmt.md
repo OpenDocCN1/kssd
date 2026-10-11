@@ -1,0 +1,311 @@
+
+# 鹦鹉螺网络助手 1.70
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum598.htm`](https://www.pediy.com/kssd/pediy03/forum598.htm)
+
+## 软件信息
+
+- **网络工具** | **IP 工具** | 本站首页
+- **软件名称**：鹦鹉螺网络助手 `Nautilus NetKit`
+- **整理日期**：2001.1.8
+- **最新版本**：`1.70`
+- **文件大小**：`708KB`
+- **软件授权**：共享软件
+- **使用平台**：`Win9x`
+- **发布公司**：`Home Page`
+- **下载地址**：`http://newhua.centurytop.net/search.asp?keyword=%F0%D0%F0%C4%C2%DD%CD%F8%C2%E7%D6%FA%CA%D6&Submit=%CB%D1%CB%F7`
+
+## 软件简介
+
+- **全线程化的电邮助手!**
+  现在重新实现的电邮助手再也不会发生阻塞主窗口操作的情况。同时通过使用可调整的线程数大幅提高了检查邮件的速度。例如你可以把线程数设成与电邮账号数相同，这就意味着在检查电邮时，对应每一个账号都将有一个线程同时独立地进行检查。这样可以成十倍地提高速度。
+
+- **全新设计的端口扫描!**
+  **多线程化**：现在你可以使用最多达一百个线程来高速同步地进行端口扫描。线程数可以在该工具页中设置。
+  **可随意扩充的列表文件**：现在你可以随意创建自己的端口列表文件（扩展名为 `.pts`），或使用系统提供的多个缺省端口列表文件。新版的网络助手附带了三个列表文件：
+  - `常用端口.pts`：列出了各种电脑系统中最常用的服务端口
+  - `代理端口.pts`：列出了常用的代理服务端口
+  - `木马端口.pts`：列出了相当完整的现有各种木马程序使用的服务端口
+
+- **IP 地址扫描!**
+  `IP` 扫描工具可以用来对当前在该工具页中列出的所有 `IP` 地址进行循环的 `ping` 工作，并显示其平均响应时间或当前状态（激活或未启动）。同时 `IP` 地址扫描工具支持 `IP` 地址列表文件以方便使用。`IP` 地址列表文件使用扩展名 `.ips`。你可以将当前列表中的所有 `IP` 地址存入文件，也可以从一个列表文件中读出所有记录并加入当前 `IP` 地址列表。
+
+## 注册破解步骤
+
+1. 在注册名上填上：`LINUX`
+   注册号填上：`12345678`
+2. `CTRL+D` 呼出 `SIOTICE` 下 `BPX HMEMCPY` 后按 `F5` 回到注册窗口点确定后拦住了
+3. 在 `SIOTICE` 中下 `BD*` 按大约是十三下 `F12` 左右就跳出一个注册错误的窗口来
+4. 重复 1-2 的方法再来一次，这次就按少一下 `F12` 后来到这里，因为计算注册码的地方在上面
+
+## 汇编代码分析
+
+```
+* Possible Reference to String Resource ID=00001: ""
+                            |
+:0041A72C 6A01                     push 00000001
+:0041A72E E8FDFB0100               call 0043A330
+:0041A733 8B4660                   mov eax, dword ptr [esi+60]----------------------------来到这里
+:0041A736 8D7E60                   lea edi, dword ptr [esi+60]
+:0041A739 8B40F8                   mov eax, dword ptr [eax-08]-------------------------在 EAX 中看到我的名字
+:0041A73C 85C0                     test eax, eax
+:0041A73E 7524                     jne 0041A764
+:0041A740 6A30                     push 00000030
+
+* Possible StringData Ref from Data Obj ->
+                            |
+:0041A742 6868534600                 push 00465368
+
+* Possible StringData Ref from Data Obj ->
+                            |
+:0041A747 68387D4600                 push 00467D38
+:0041A74C 8BCE                       mov ecx, esi
+:0041A74E E8ADF20100                 call 00439A00
+:0041A753 8B4C2418                   mov ecx, dword ptr [esp+18]
+:0041A757 64890D00000000             mov dword ptr fs:[00000000], ecx
+:0041A75E 5F                         pop edi
+:0041A75F 5E                         pop esi
+:0041A760 83C41C                     add esp, 0000001C
+:0041A763 C3                         ret
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0041A73E(C)
+|
+:0041A764 8D4C240C                   lea ecx, dword ptr [esp+0C]
+:0041A768 E803010000                 call 0041A870
+:0041A76D 8B0D2C844600               mov ecx, dword ptr [0046842C]
+:0041A773 C744242000000000           mov [esp+20], 00000000
+:0041A77B 894C2408                   mov dword ptr [esp+08], ecx
+
+* Possible Reference to String Resource ID=00115: "1.75"
+                            |
+:0041A77F 6A73                     push 00000073
+:0041A781 8D4C240C                   lea ecx, dword ptr [esp+0C]
+:0041A785 C644242401                 mov [esp+24], 01
+:0041A78A E8A5160200                 call 0043BE34
+:0041A78F 8B4664                     mov eax, dword ptr [esi+64]
+:0041A792 8D542408                   lea edx, dword ptr [esp+08]
+:0041A796 50                         push eax------------------------------------在这里看到假 CODE
+:0041A797 51                         push ecx
+:0041A798 8BCC                       mov ecx, esp
+:0041A79A 89642418                   mov dword ptr [esp+18], esp
+:0041A79E 52                         push edx
+:0041A79F E8600F0200                 call 0043B704
+:0041A7A4 51                         push ecx
+:0041A7A5 C644242C02                 mov [esp+2C], 02
+:0041A7AA 8BCC                       mov ecx, esp
+:0041A7AC 89642420                   mov dword ptr [esp+20], esp
+:0041A7B0 57                         push edi
+:0041A7B1 E84E0F0200                 call 0043B704
+:0041A7B6 8D4C2418                   lea ecx, dword ptr [esp+18]
+:0041A7BA C644242C01                 mov [esp+2C], 01
+:0041A7BF E8CC010000                 call 0041A990--------------------------------------这里看起来好像是算注册码的地方，按 F8 进去看看
+:0041A7C4 85C0                       test eax, eax
+:0041A7C6 745C                       je 0041A824
+:0041A7C8 8B3F                       mov edi, dword ptr [edi]
+:0041A7CA E8C9D40200                 call 00447C98
+:0041A7CF 8B4004                     mov eax, dword ptr [eax+04]
+:0041A7D2 57                         push edi
+
+* Possible StringData Ref from Data Obj ->"UserName"
+                            |
+:0041A7D3 680C6A4600                   push 00466A0C
+
+* Possible StringData Ref from Data Obj ->"General"
+                            |
+:0041A7D8 68046A4600                   push 00466A04
+:0041A7DD 8BC8                       mov ecx, eax
+:0041A7DF E87D680200                 call 00441061
+:0041A7E4 8B7E64                     mov edi, dword ptr [esi+64]
+:0041A7E7 E8ACD40200                 call 00447C98
+:0041A7EC 8B4004                     mov eax, dword ptr [eax+04]
+:0041A7EF 57                         push edi
+
+* Possible StringData Ref from Data Obj ->"SerialCode"
+                            |
+:0041A7F0 68F8694600                   push 004669F8
+
+* Possible StringData Ref from Data Obj ->"General"
+                            |
+:0041A7F5 68046A4600                   push 00466A04
+:0041A7FA 8BC8                       mov ecx, eax
+:0041A7FC E860680200                 call 00441061
+:0041A801 6A40                       push 00000040
+
+* Possible StringData Ref from Data Obj ->
+                            |
+:0041A803 6868534600                   push 00465368
+
+* Possible StringData Ref from Data Obj ->"
+                            |
+:0041A808 68147D4600                   push 00467D14
+:0041A80D 8BCE                       mov ecx, esi
+:0041A80F E8ECF10100                 call 00439A00
+:0041A814 8BCE                       mov ecx, esi
+
+* Possible Ref to Menu: MenuID_0066, Item: ""
+                            |
+
+* Possible Reference to String Resource ID=00001: ""
+                            |
+:0041A816 C7465C01000000             mov [esi+5C], 00000001
+:0041A81D E80D1F0200                 call 0043C72F
+:0041A822 EB13                       jmp 0041A837
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0041A7C6(C)
+|
+
+* Possible Ref to Menu: MenuID_0066, Item: "s 嶲堠 K(A)"
+                            |
+
+* Possible Reference to String Resource ID=00016: "s?
+                            |
+:0041A824 6A10                     push 00000010
+
+* Possible StringData Ref from Data Obj ->
+                            |
+:0041A826 6868534600                   push 00465368
+
+* Possible StringData Ref from Data Obj ->
+                            |
+:0041A82B 68007D4600                   push 00467D00
+:0041A830 8BCE                       mov ecx, esi
+:0041A832 E8C9F10100                 call 00439A00----------------------------------走过这个 CALL 的话就玩完
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0041A822(U)
+|
+:0041A837 8D4C2408                   lea ecx, dword ptr [esp+08]
+:0041A83B C644242000                 mov [esp+20], 00
+:0041A840 E84A110200                 call 0043B98F
+:0041A845 8D4C240C                   lea ecx, dword ptr [esp+0C]
+:0041A849 C7442420FFFFFFFF           mov [esp+20], FFFFFFFF
+:0041A851 E84A000000                 call 0041A8A0
+:0041A856 8B4C2418                   mov ecx, dword ptr [esp+18]
+:0041A85A 5F                         pop edi
+:0041A85B 64890D00000000             mov dword ptr fs:[00000000], ecx
+```
+
+
+
+:0041A862 5E `pop esi`
+:0041A863 83C41C `add esp, 0000001C`
+:0041A866 C3 `ret`
+:0041A867 90 `nop`
+:0041A868 90 `nop`
+:0041A869 90 `nop`
+:0041A86A 90 `nop`
+:0041A86B 90 `nop`
+:0041A86C 90 `nop`
+:0041A86D 90 `nop`
+:0041A86E 90 `nop`
+:0041A86F 90 `nop`
+
+* Referenced by a CALL at Addresses:
+`|:0040DB2C`, `:0041A7BF`
+`|`
+
+:0041A990 6AFF `push FFFFFFFF`-------------------------------------按 F8 后来到这里
+:0041A992 6848EB4400 `push 0044EB48`
+:0041A997 64A100000000 `mov eax, dword ptr fs:[00000000]`
+:0041A99D 50 `push eax`
+:0041A99E 64892500000000 `mov dword ptr fs:[00000000], esp`
+:0041A9A5 83EC14 `sub esp, 00000014`
+:0041A9A8 56 `push esi`
+:0041A9A9 8BF1 `mov esi, ecx`
+:0041A9AB 8D44240C `lea eax, dword ptr [esp+0C]`
+:0041A9AF 8D54242C `lea edx, dword ptr [esp+2C]`
+:0041A9B3 50 `push eax`
+:0041A9B4 51 `push ecx`
+:0041A9B5 8BCC `mov ecx, esp`
+:0041A9B7 8964240C `mov dword ptr [esp+0C], esp`
+:0041A9BB 52 `push edx`
+
+* Possible Ref to Menu: `MenuID_0066`, Item: ""
+`|`
+
+* Possible Reference to String Resource `ID=00001`: ""
+`|`
+
+:0041A9BC C744242C01000000 `mov [esp+2C], 00000001`
+:0041A9C4 E83B0D0200 `call 0043B704`
+:0041A9C9 51 `push ecx`
+:0041A9CA 8D442434 `lea eax, dword ptr [esp+34]`
+:0041A9CE 8BCC `mov ecx, esp`
+:0041A9D0 89642414 `mov dword ptr [esp+14], esp`
+:0041A9D4 50 `push eax`
+:0041A9D5 C644243002 `mov [esp+30], 02`
+:0041A9DA E8250D0200 `call 0043B704`
+:0041A9DF 8BCE `mov ecx, esi`
+:0041A9E1 C644242C01 `mov [esp+2C], 01`
+:0041A9E6 E8C5FeFFFF `call 0041A8B0`
+:0041A9EB 8B4C2430 `mov ecx, dword ptr [esp+30]`
+:0041A9EF 6A0A `push 0000000A`
+:0041A9F1 8D542410 `lea edx, dword ptr [esp+10]`--------------------------------真 CODE
+:0041A9F5 51 `push ecx`-----------------------------------假 CODE
+:0041A9F6 52 `push edx`----------------------------------------也是刚才看到的真 CODE
+:0041A9F7 E834B60000 `call 00426030`
+:0041A9FC 83C40C `add esp, 0000000C`
+:0041A9FF C644242000 `mov [esp+20], 00`
+:0041AA04 85C0 `test eax, eax`
+:0041AA06 8D4C2428 `lea ecx, dword ptr [esp+28]`
+:0041AA0A 752D `jne 0041AA39`
+:0041AA0C E87E0F0200 `call 0043B98F`
+:0041AA11 8D4C242C `lea ecx, dword ptr [esp+2C]`
+:0041AA15 C7442420FFFFFFFF `mov [esp+20], FFFFFFFF`
+:0041AA1D E86D0F0200 `call 0043B98F`
+
+OK 啦！我没有仔细去分析注册的地方，因为今天我高中时的同学聚会，喝多了两杯，现在的头还在痛呢，所以嗅到注册码就算了，这是一个不错的软件（我可不是作者的枪手哟!）真的很不错。但请不要用这个软件嗅人家的端口！后果自负！！！
+
+0167:0041A908 `MOVSX ECX,BYTE [ESP+EAX+14]` 将你的用户名第一个字符放入 `ECX`
+0167:0041A90D `ADD ESI,ECX` `ESI=ESI+ECX`（第一次时 `ESI=0`）
+0167:0041A90F `INC EAX` `EAX=EAX+1`
+0167:0041A910 `CMP EAX,EDI` 比较 `EAX`, `EDI`（`EDI` 中是你用户名的长度）
+0167:0041A912 `JL 0041A908` `EAX<EDI` 时往上跳
+0167:0041A914 `MOV [ESP+10],ESI` 以上几行的作用是将你的用户名累加
+0167:0041A918 `XOR ECX,ECX` 清空 `ECX`
+0167:0041A91A `XOR ESI,ESI` 清空 `ESI`
+0167:0041A91C `TEST EDI,EDI`
+0167:0041A91E `JNG 0041A953`
+0167:0041A920 `CMP ECX,BYTE +0A` 比较 `ECX` 是否小于 10
+0167:0041A923 `JNL 0041A958` ***这边是第一次的*** |***这边是以后的***
+0167:0041A925 `TEST ECX,ECX` 由于第一次 `ECX=0` 所以 |以后 `ECX` 不为 0
+0167:0041A927 `JNG 0041A930` 直接跳止 `41A930` |所以这不跳
+0167:0041A929 `MOVSX EAX,BYTE [ECX+EBP-01]` |将上次计算的结果放入 `EAX` 中
+0167:0041A92E `JMP SHORT 0041A93F` |直接蹦到 `41A93F`
+0167:0041A930 `MOVSX EDX,BYTE [ESP+ESI+14]` 取你的用户名的第一个字符放入 `EDX` 中 |XXXXXXXXXXXXXXXXXXXXXXX
+0167:0041A935 `MOV EAX,[ESP+10]` `ESP+10` 中存放的是你用户名累加后的结果 |XXXXXXXXXXXXXXXXXXXXXXX
+0167:0041A939 `ADD EDX,ECX` `EDX=EDX+ECX` |XXXXXXXXXXXXXXXXXXXXXXX
+0167:0041A93B `LEA EAX,[EDX+EAX+68]` `EAX=用户名累加后的结果+第一个字符+104` |XXXXXXXXXXXXXXXXXXXXXXX
+0167:0041A93F `CDQ` |以后同左边
+0167:0041A940 `MOV EBX,1A` `EAX÷26` 整数部分放入 `EAX`
+0167:0041A945 `IDIV EBX` 余数放入 `EDX`
+0167:0041A947 `ADD EDX,BYTE +61` `EDX+97`
+0167:0041A94A `INC ESI` `ESI+1`
+0167:0041A94B `MOV [ECX+EBP],DL` 将 `DL` 放入 `ECX+EBP` 的值中
+0167:0041A94E `INC ECX` `ECX+1`
+0167:0041A94F `CMP ESI,EDI` 比较 `ESI`, `EDI`（`EDI` 是你用户名的长度）
+
+示例：用户名 `masiqi` 用户名累加得 644，累加结果+第一个字符（即“m”）+104=857
+
+859÷26 整数为 32，余 25，余数+97=122 查 `ASCII` 表得“z”
+
+第二次 122÷26 余 18，余数+97=115 查 `ASCII` 表得“s”
+
+第 3 次 115÷26 余 11，余数+97=108 查 `ASCII` 表得“l”
+
+第 4 次 108÷26 余 4，余数+97=101 查 `ASCII` 表得“e”
+
+第 5 次 101÷26 余 23，余数+97=120 查 `ASCII` 表得“x”
+
+第 6 次 120÷26 余 16，余数+97=113 查 `ASCII` 表得“q”
+
+第 7 次 113÷26 余 9，余数+97=106 查 `ASCII` 表得“j”
+
+第 8 次 106÷26 余 2，余数+97=99 查 `ASCII` 表得“c”
+
+第 9 次 99÷26 余 21，余数+97=118 查 `ASCII` 表得“v”
+
+第 10 次 118÷26 余 14，余数+97=111 查 `ASCII` 表得“o”
+`4dd466d0e1e0cc123afbe504da2462ca`

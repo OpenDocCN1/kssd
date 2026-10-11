@@ -1,0 +1,396 @@
+
+# CCProxy 4.30
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue372.htm`](https://www.pediy.com/kssd/pediy04/kanxue372.htm)
+
+`!URL http://bj.onlinedown.net/down/ccproxysetup.zip`
+
+1、找关键提示！
+
+```
+\=====================================================================
+
+\* Reference To: KERNEL32.GetPrivateProfileStringA, Ord:013Ah---------->CCproxy.ini
+
+:00404914 8B3538224400             mov esi, dwordptr [00442238]
+:0040491A F3                       repz
+:0040491B AB                       stosd
+:0040491C 68E82A4500              push 00452AE8
+:00404921 8D8C2488080000          lea ecx, dwordptr [esp+00000888]
+
+\* Possible Reference to Dialog: DialogID_0085, CONTROL_ID:0400, ""
+
+:00404928 6800040000              push 00000400
+:0040492D 51                      push ecx
+:0040492E 66AB                    stosw
+:00404930 68C02A4500              push 00452AC0
+
+\* Possible StringData Ref from Data Obj ->"RegCode"
+
+:00404935 6838F34400              push 0044F338
+
+\* Possible StringData Ref from Data Obj ->"System"
+
+:0040493A 6868F24400              push 0044F268
+:0040493F AA                      stosb
+:00404940 FFD6                    call esi
+:00404942 68E82A4500              push 00452AE8
+:00404947 8D942484040000          lea edx, dwordptr [esp+00000484]
+
+\* Possible Reference to Dialog: DialogID_0085, CONTROL_ID:0400, ""
+
+:0040494E 6800040000              push 00000400
+:00404953 52                      push edx
+:00404954 68C02A4500              push 00452AC0
+
+\* Possible StringData Ref from Data Obj ->"UserName"
+
+:00404959 682CF34400              push 0044F32C
+
+\* Possible StringData Ref from Data Obj ->"System"
+
+:0040495E 6868F24400              push 0044F268
+:00404963 FFD6                    call esi
+:00404965 8D842480040000          lea eax, dwordptr [esp+00000480]
+:0040496C 8D8C2484080000          lea ecx, dwordptr [esp+00000884]
+:00404973 50                      push eax
+:00404974 51                      push ecx
+:00404975 E8D6010000              call 00404B50---------->呵呵，这才是关键的 call！进入！
+:0040497A A3F45A4500              mov dwordptr [00455AF4], eax---------->反推到这里，好家伙！
+:0040497F B043                    mov al, 43
+:00404981 88442424                mov byteptr [esp+24], al
+:00404985 88442425                mov byteptr [esp+25], al
+
+\* Possible StringData Ref from Data Obj ->" "
+
+:00404989 BF28F34400              mov edi, 0044F328
+:0040498E 83C9FF                  or ecx, FFFFFFFF
+:00404991 33C0                    xor eax, eax
+:00404993 33DB                    xor ebx, ebx
+:00404995 F2                      repnz
+:00404996 AE                      scasb
+:00404997 F7D1                    not ecx
+:00404999 2BF9                    sub edi, ecx
+:0040499B 8D542424                lea edx, dwordptr [esp+24]
+:0040499F 8BF7                    mov esi, edi
+:004049A1 8BE9                    mov ebp, ecx
+:004049A3 8BFA                    mov edi, edx
+:004049A5 83C9FF                  or ecx, FFFFFFFF
+:004049A8 C644242650              mov [esp+26], 50
+:004049AD C644242772              mov [esp+27], 72
+:004049B2 C64424286F              mov [esp+28], 6F
+:004049B7 C644242978              mov [esp+29], 78
+:004049BC C644242A79              mov [esp+2A], 79
+:004049C1 885C242B                mov byteptr [esp+2B], bl
+:004049C5 F2                      repnz
+:004049C6 AE                      scasb
+:004049C7 8BCD                    mov ecx, ebp
+:004049C9 4F                      dec edi
+:004049CA C1E902                  shr ecx, 02
+:004049CD F3                      repz
+:004049CE A5                      movsd
+:004049CF 8BCD                    mov ecx, ebp
+:004049D1 8D44241C                lea eax, dwordptr [esp+1C]
+:004049D5 83E103                  and ecx, 00000003
+:004049D8 50                      push eax
+:004049D9 F3                      repz
+:004049DA A4                      movsb
+:004049DB E860FEFFFF              call 00404840
+:004049E0 8B00                    mov eax, dwordptr [eax]
+:004049E2 83C9FF                  or ecx, FFFFFFFF
+:004049E5 8BF8                    mov edi, eax
+:004049E7 33C0                    xor eax, eax
+:004049E9 83C40C                  add esp, 0000000C
+:004049EC 8D54241C                lea edx, dwordptr [esp+1C]
+:004049F0 F2                      repnz
+:004049F1 AE                      scasb
+:004049F2 F7D1                    not ecx
+:004049F4 2BF9                    sub edi, ecx
+:004049F6 8BF7                    mov esi, edi
+:004049F8 8BE9                    mov ebp, ecx
+:004049FA 8BFA                    mov edi, edx
+:004049FC 83C9FF                  or ecx, FFFFFFFF
+:004049FF F2                      repnz
+:00404A00 AE                      scasb
+:00404A01 8BCD                    mov ecx, ebp
+:00404A03 4F                      dec edi
+:00404A04 C1E902                  shr ecx, 02
+:00404A07 F3                      repz
+:00404A08 A5                      movsd
+:00404A09 8BCD                    mov ecx, ebp
+:00404A0B 83E103                  and ecx, 00000003
+:00404A0E F3                      repz
+:00404A0F A4                      movsb
+:00404A10 8D4C2414                lea ecx, dwordptr [esp+14]
+:00404A14 E8F8270300              call 00437211---------->并不是关键 call！
+:00404A19 A1040C4500              mov eax, dwordptr [00450C04]
+:00404A1E 89442410                mov dwordptr [esp+10], eax
+:00404A22 A1F45A4500              mov eax, dwordptr [00455AF4]---------->赋值给 eax，关键！可 bpm 00455AF4 反推！
+:00404A27 899C24900C0000          mov dwordptr [esp+00000C90], ebx
+:00404A2E 3BC3                    cmp eax, ebx---------->比较！
+:00404A30 7465                    je 00404A97---------->不能跳！
+:00404A32 8D4C2414                lea ecx, dwordptr [esp+14]
+
+\* Possible Reference to String Resource ID=00127: "%s"
+
+:00404A36 6A7F                    push 0000007F
+:00404A38 51                      push ecx
+:00404A39 E862F7FFFF              call 004041A0
+:00404A3E 83C408                  add esp, 00000008
+:00404A41 50                      push eax
+:00404A42 8D4C2414                lea ecx, dwordptr [esp+14]
+:00404A46 C68424940C000001        mov byteptr [esp+00000C94], 01
+:00404A4E E8F7280300              call 0043734A
+:00404A53 8D4C2414                lea ecx, dwordptr [esp+14]
+:00404A57 889C24900C0000          mov byteptr [esp+00000C90], bl
+:00404A5E E8AE270300              call 00437211
+:00404A63 8B442410                mov eax, dwordptr [esp+10]
+:00404A67 8D54241C                lea edx, dwordptr [esp+1C]
+:00404A6B 52                      push edx
+:00404A6C 8D8C2484000000          lea ecx, dwordptr [esp+00000084]
+:00404A73 50                      push eax
+:00404A74 51                      push ecx
+:00404A75 E88AD50100              call 00422004
+:00404A7A 83C40C                  add esp, 0000000C
+:00404A7D E8612E0300              call 004378E3
+:00404A82 3BC3                    cmp eax, ebx
+:00404A84 0F8481000000            je 00404B0B
+:00404A8A 8B10                    mov edx, dwordptr [eax]
+:00404A8C 8BC8                    mov ecx, eax
+:00404A8E FF5274                  call [edx+74]
+:00404A91 3BC3                    cmp eax, ebx
+:00404A93 7476                    je 00404B0B
+:00404A95 EB62                    jmp 00404AF9
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+```
+
+
+
+```
+:00404A30(C)
+```
+
+```
+:00404A97 8D542418 leaedx, dwordptr [esp+18]
+```
+
+* Possible Reference to String Resource ID=00128: "%s(Evaluation Version Can Only Support No More Than 5 Users)"---------->关键提示！
+
+```
+:00404A9B 6880000000 push 00000080
+```
+
+=====================================================================
+
+## 2、进入关键 call！
+
+=====================================================================
+
+* Referenced by a CALL at Address:
+
+```
+:00404975
+```
+
+```
+:00404B50 64A100000000 mov eax, dword ptr fs:[00000000]
+:00404B56 6AFF push FFFFFFFF
+:00404B58 688B024400 push 0044028B
+:00404B5D 50 push eax
+:00404B5E 64892500000000 mov dword ptr fs:[00000000], esp
+:00404B65 81EC04080000 sub esp, 00000804
+:00404B6B 83C9FF or ecx, FFFFFFFF
+:00404B6E 33C0 xor eax, eax
+:00404B70 53 push ebx
+:00404B71 8B9C2418080000 mov ebx, dword ptr [esp+00000818]
+:00404B78 57 push edi
+:00404B79 8BFB mov edi, ebx
+:00404B7B F2 repnz
+:00404B7C AE scasb
+:00404B7D F7D1 not ecx
+:00404B7F 49 dec ecx
+:00404B80 0F8426010000 je 00404CAC
+:00404B86 8B942420080000 mov edx, dword ptr [esp+00000820]
+:00404B8D 83C9FF or ecx, FFFFFFFF
+:00404B90 8BFA mov edi, edx
+:00404B92 F2 repnz
+:00404B93 AE scasb
+:00404B94 F7D1 not ecx
+:00404B96 49 dec ecx
+:00404B97 0F840F010000 je 00404CAC
+:00404B9D 56 push esi
+:00404B9E 52 push edx
+:00404B9F 52 push edx
+:00404BA0 E8AB160100 call 00416250
+:00404BA5 8BF8 mov edi, eax
+:00404BA7 83C9FF or ecx, FFFFFFFF
+:00404BAA 33C0 xor eax, eax
+:00404BAC 8D942418040000 lea edx, dword ptr [esp+00000418]
+:00404BB3 F2 repnz
+:00404BB4 AE scasb
+:00404BB5 F7D1 not ecx
+:00404BB7 2BF9 sub edi, ecx
+:00404BB9 8BC1 mov eax, ecx
+:00404BBB 8BF7 mov esi, edi
+:00404BBD 8BFA mov edi, edx
+:00404BBF C1E902 shr ecx, 02
+:00404BC2 F3 repz
+:00404BC3 A5 movsd
+:00404BC4 8BC8 mov ecx, eax
+:00404BC6 83E103 and ecx, 00000003
+:00404BC9 F3 repz
+:00404BCA A4 movsb
+:00404BCB 8D4C2418 lea ecx, dword ptr [esp+18]
+:00404BCF 51 push ecx
+:00404BD0 E85BF4FFFF call 00404030
+:00404BD5 8D54241C lea edx, dword ptr [esp+1C]
+:00404BD9 8D84241C040000 lea eax, dword ptr [esp+0000041C]
+:00404BE0 52 push edx
+:00404BE1 50 push eax
+:00404BE2 E869160100 call 00416250
+:00404BE7 8B0D040C4500 mov ecx, dword ptr [00450C04]
+:00404BED 83C414 add esp, 00000014
+:00404BF0 894C240C mov dword ptr [esp+0C], ecx
+:00404BF4 50 push eax
+:00404BF5 8D4C2410 lea ecx, dword ptr [esp+10]
+:00404BF9 C784241C08000000000000 mov dword ptr [esp+0000081C], 00000000
+:00404C04 E891270300 call 0043739A
+```
+
+* Possible StringData Ref from Data Obj ->"yy"
+
+```
+:00404C09 6850F34400 push 0044F350
+```
+
+* Possible StringData Ref from Data Obj ->".."
+
+```
+:00404C0E 6850F14400 push 0044F150
+:00404C13 8D4C2414 lea ecx, dword ptr [esp+14]
+:00404C17 E84ACC0200 call 00431866
+```
+
+* Possible StringData Ref from Data Obj ->"aa"
+
+```
+:00404C1C 684CF34400 push 0044F34C
+```
+
+* Possible StringData Ref from Data Obj ->"//"
+
+```
+:00404C21 6848F34400 push 0044F348
+:00404C26 8D4C2414 lea ecx, dword ptr [esp+14]
+:00404C2A E837CC0200 call 00431866
+```
+
+* Possible StringData Ref from Data Obj ->"oo"
+
+```
+:00404C2F 6844F34400 push 0044F344
+```
+
+* Possible StringData Ref from Data Obj ->"$$"
+
+```
+:00404C34 6840F34400 push 0044F340
+:00404C39 8D4C2414 lea ecx, dword ptr [esp+14]
+:00404C3D E824CC0200 call 00431866---------->计算正确注册码的 call，你可进去看看！
+:00404C42 8B44240C mov eax, dword ptr [esp+0C]
+:00404C46 8BF3 mov esi, ebx
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+```
+:00404C6A(C)
+```
+
+```
+:00404C48 8A10 mov dl, byte ptr [eax]---------->d eax 正确注册码！
+:00404C4A 8A1E mov bl, byte ptr [esi]---------->d esi 错误注册码！
+:00404C4C 8ACA mov cl, dl
+:00404C4E 3AD3 cmp dl, bl---------->比较！
+:00404C50 751E jne 00404C70
+:00404C52 84C9 test cl, cl
+:00404C54 7416 je 00404C6C
+:00404C56 8A5001 mov dl, byte ptr [eax+01]
+:00404C59 8A5E01 mov bl, byte ptr [esi+01]
+:00404C5C 8ACA mov cl, dl
+:00404C5E 3AD3 cmp dl, bl---------->比较！
+:00404C60 750E jne 00404C70
+:00404C62 83C002 add eax, 00000002
+:00404C65 83C602 add esi, 00000002
+:00404C68 84C9 test cl, cl
+:00404C6A 75DC jne 00404C48
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+```
+:00404C54(C)
+```
+
+```
+:00404C6C 33C0 xor eax, eax
+:00404C6E EB05 jmp 00404C75
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+```
+:00404C50(C), :00404C60(C)
+```
+
+```
+:00404C70 1BC0 sbb eax, eax
+:00404C72 83D8FF sbb eax, FFFFFFFF
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+```
+:00404C6E(U)
+```
+
+```
+:00404C75 33C9 xor ecx, ecx
+:00404C77 C7842418080000FFFFFFFF mov dword ptr [esp+00000818], FFFFFFFF
+:00404C82 85C0 test eax, eax
+:00404C84 0F94C1 sete cl
+:00404C87 8BF1 mov esi, ecx
+:00404C89 8D4C240C lea ecx, dword ptr [esp+0C]
+:00404C8D E87F250300 call 00437211
+:00404C92 8BC6 mov eax, esi
+:00404C94 5E pop esi
+:00404C95 5F pop edi
+:00404C96 5B pop ebx
+:00404C97 8B8C2404080000 mov ecx, dword ptr [esp+00000804]
+:00404C9E 64890D00000000 mov dword ptr fs:[00000000], ecx
+:00404CA5 81C410080000 add esp, 00000810
+:00404CAB C3 ret
+```
+
+
+
+# 3、小结！
+
+## CCProxy.ini 内容
+
+```ini
+[System]
+Language=ChineseGB
+Setup=1
+RegCode=o1o37490023oLElm3dhCxqjUz44UJajSca
+UserName=CCProxy
+```
+
+我的特征码：`374900232070`
+
+`bpx GetPrivateProfileStringA`
+
+```
+4dd466d0e1e0cc123afbe504da2462ca
+```

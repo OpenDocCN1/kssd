@@ -1,0 +1,278 @@
+
+# Guitar Pro v3.0
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue022.htm`](https://www.pediy.com/kssd/pediy04/kanxue022.htm)
+
+下载：`http://211.152.134.220/guitarpp/yu/GuitarPro300.zip`
+
+用`dede`找出“确定”按钮的地址`004CEC8C`，用`trw2k`下断。
+
+输入注册信息，用户名：`LANCELOT[CCG]`，注册码：`12345-67890-434343`。
+
+按确定到这里：
+
+```
+\=================================================================================================
+004CEC8C  55                         push      ebp
+          ...... 略 ......
+\* Reference to control TFLicence.Cle1 : TEdit
+|
+004CECC5  8B83E4020000               mov       eax, [ebx+$02E4]
+\* Reference to: controls.TControl.GetText(TControl):System.String;<-------读取注册码的第 1 段
+|                                                                                   12345
+004CECCB  E81C74F6FF                 call      004360EC
+004CECD0  FF75F8                     push      dword ptr [ebp-$08]
+004CECD3  8D55F4                     lea       edx, [ebp-$0C]
+\* Reference to control TFLicence.Cle2 : TEdit
+|
+004CECD6  8B83EC020000               mov       eax, [ebx+$02EC]
+\* Reference to: controls.TControl.GetText(TControl):System.String;<-------读取注册码的第 2 段
+|                                                                                   67890
+004CECDC  E80B74F6FF                 call      004360EC
+004CECE1  FF75F4                     push      dword ptr [ebp-$0C]
+004CECE4  8D55F0                     lea       edx, [ebp-$10]
+\* Reference to control TFLicence.Cle3 : TEdit
+|
+004CECE7  8B83F4020000               mov       eax, [ebx+$02F4]
+\* Reference to: controls.TControl.GetText(TControl):System.String;<-------读取注册码的第 3 段
+|                                                                                   43434
+004CECED  E8FA73F6FF                 call      004360EC
+004CECF2  FF75F0                     push      dword ptr [ebp-$10]
+004CECF5  8D45FC                     lea       eax, [ebp-$04]
+004CECF8  BA03000000                 mov       edx, $00000003
+\* Reference to: system.@LStrCatN;<----------------------------------------连接在一起
+|                                                                                   123456789043434
+004CECFD  E8DA52F3FF                 call      00403FDC
+004CED02  8B45FC                     mov       eax, [ebp-$04]
+004CED05  50                         push      eax
+004CED06  8D55F8                     lea       edx, [ebp-$08]
+\* Reference to control TFLicence.Nom : TLabel
+|
+004CED09  8B83CC020000               mov       eax, [ebx+$02CC]
+\* Reference to: controls.TControl.GetText(TControl):System.String;<--------读取用户名
+|
+004CED0F  E8D873F6FF                 call      004360EC
+004CED14  8B45F8                     mov       eax, [ebp-$08]
+004CED17  B92C010000                 mov       ecx, $0000012C
+004CED1C  5A                         pop       edx
+|
+004CED1D  E8EECC0800                 call      0055BA10<-------------------------核心计算，跟进去
+004CED22  84C0                       test      al, al
+004CED24  0F8460010000               jz        004CEE8A
+\===============================================================================================
+
+0055BA10  55                         push      ebp
+          ...... 略 ......
+\* Reference to: system.@LStrLen:Integer;
+|   or: system.@DynArrayLength;
+|   or: system.DynArraySize(Pointer):Integer;
+|
+0055BA69  E8AE84EAFF                 call      00403F1C
+0055BA6E  8BF0                       mov       esi, eax
+0055BA70  85F6                       test      esi, esi
+0055BA72  7E21                       jle       0055BA95
+0055BA74  B901000000                 mov       ecx, $00000001
+0055BA79  8B45FC                     mov       eax, [ebp-$04]
+0055BA7C  0FB64408FF                 movzx     eax, byte ptr [eax+ecx-$01]<-------用户名的第一个字 L==0x4c
+0055BA81  F7E9                       imul      ecx<-------------------------------乘上序号
+0055BA83  03F8                       add       edi, eax<--------------------------和加上 edi 中的值
+0055BA85  8BC7                       mov       eax, edi
+0055BA87  BFE8030000                 mov       edi, $000003E8
+0055BA8C  99                         cdq
+0055BA8D  F7FF                       idiv      edi<-------------------------------和除去 0x3e8
+0055BA8F  8BFA                       mov       edi, edx<--------------------------余数放到 edi
+0055BA91  41                         inc       ecx
+0055BA92  4E                         dec       esi
+0055BA93  75E4                       jnz       0055BA79<--------------------------循环计算，用户名的 13 个字母
+0055BA95  85FF                       test      edi, edi
+0055BA97  7505                       jnz       0055BA9E
+0055BA99  BF01000000                 mov       edi, $00000001
+0055BA9E  8B45F4                     mov       eax, [ebp-$0C]<---------------------0x12c
+0055BAA1  2DDC000000                 sub       eax, $000000DC<---------------------0x12c-0xdc==0x50
+0055BAA6  03C7                       add       eax, edi<---------------------------0x50+0x15==0x65
+0055BAA8  40                         inc       eax<--------------------------------0x65+0x1==0x66
+0055BAA9  B9E8030000                 mov       ecx, $000003E8
+0055BAAE  99                         cdq
+0055BAAF  F7F9                       idiv      ecx
+0055BAB1  8BFA                       mov       edi, edx<-------------------------- 0x66
+0055BAB3  8D45F0                     lea       eax, [ebp-$10]
+0055BAB6  8B55F8                     mov       edx, [ebp-$08]
+0055BAB9  8A520A                     mov       dl, byte ptr [edx+$0A]<--------------注册码的第 11 位
+\* Reference to: system.@LStrFromChar(String;Char);
+|   or: system.@LStrFromWChar(String;WideChar);
+|   or: system.@WStrFromChar(WideString;Char);
+|   or: system.@WStrFromWChar(WideString;WideChar);
+|
+0055BABC  E88383EAFF                 call      00403E44
+0055BAC1  8B45F0                     mov       eax, [ebp-$10]
+0055BAC4  50                         push      eax
+0055BAC5  8D45EC                     lea       eax, [ebp-$14]
+0055BAC8  8B55F8                     mov       edx, [ebp-$08]
+0055BACB  8A12                       mov       dl, byte ptr [edx]<--------------注册码的第 1 位
+\* Reference to: system.@LStrFromChar(String;Char);
+|   or: system.@LStrFromWChar(String;WideChar);
+|   or: system.@WStrFromChar(WideString;Char);
+|   or: system.@WStrFromWChar(WideString;WideChar);
+|
+0055BACD  E87283EAFF                 call      00403E44
+0055BAD2  8B45EC                     mov       eax, [ebp-$14]
+\* Reference to: sysutils.StrToInt(System.AnsiString):System.Integer;
+|
+0055BAD5  E8CAD4EAFF                 call      00408FA4
+0055BADA  8BF0                       mov       esi, eax
+0055BADC  8D45EC                     lea       eax, [ebp-$14]
+0055BADF  8B55F8                     mov       edx, [ebp-$08]
+0055BAE2  8A5201                     mov       dl, byte ptr [edx+$01]<--------------注册码的第 2 位
+\* Reference to: system.@LStrFromChar(String;Char);
+|   or: system.@LStrFromWChar(String;WideChar);
+|   or: system.@WStrFromChar(WideString;Char);
+|   or: system.@WStrFromWChar(WideString;WideChar);
+|
+0055BAE5  E85A83EAFF                 call      00403E44
+0055BAEA  8B45EC                     mov       eax, [ebp-$14]
+\* Reference to: sysutils.StrToInt(System.AnsiString):System.Integer;
+|
+0055BAED  E8B2D4EAFF                 call      00408FA4
+0055BAF2  03F0                       add       esi, eax<--------------注册码的第 1，2 位之和
+0055BAF4  8BC6                       mov       eax, esi
+0055BAF6  F7EF                       imul      edi<-------------------乘上 0x66
+0055BAF8  B90A000000                 mov       ecx, $0000000A<--------除与 0xa
+0055BAFD  99                         cdq
+0055BAFE  F7F9                       idiv      ecx
+0055BB00  8BC2                       mov       eax, edx<-------------余数放在 eax
+0055BB02  8D55EC                     lea       edx, [ebp-$14]
+\* Reference to: sysutils.IntToStr(System.Integer):System.AnsiString;overload;
+|
+0055BB05  E836D4EAFF                 call      00408F40
+0055BB0A  8B55EC                     mov       edx, [ebp-$14]
+```
+
+
+
+# 汇编代码分析与注册码计算
+
+## 1. 关键指令分析
+
+```
+0055BB0D  58                          pop     eax
+\* Reference to: system.@LStrCmp;<-------------------------------余数在与注册码的第 10 位比较
+
+0055BB0E  E81985EAFF                 call    0040402C
+
+0055BB13  0F8596010000               jnz     0055BCAF<-------------不相等就完蛋了下面循环计算略
+```
+
+## 2. 初步总结
+
+1. 用户名：`LANCELOT[CCG]` ==> `0x4c,0x41,0x4e,0x43,0x45,0x4c,0x4f,0x54,0x5b,0x43,0x43,0x47,0x5d`
+
+2. 计算过程：
+
+```
+(0x4c*0x1+0x0  ) % 0x3e8==0x4c
+(0x41*0x2+0x4c ) % 0x3e8==0xce
+(0x4e*0x3+0xce ) % 0x3e8==0x1b8
+(0x43*0x4+0x1b8) % 0x3e8==0x2c4
+(0x45*0x5+0x2c4) % 0x3e8==0x35
+(0x4c*0x6+0x35 ) % 0x3e8==0x1fd
+(0x4f*0x7+0x1fd) % 0x3e8==0x3e
+(0x54*0x8+0x3e ) % 0x3e8==0x2de
+(0x5b*0x9+0x2de) % 0x3e8==0x229
+(0x43*0xa+0x229) % 0x3e8==0xdf
+(0x43*0xb+0xdf ) % 0x3e8==0x3c0
+(0x47*0xc+0x3c0) % 0x3e8==0x32c
+(0x5d*0xd+0x32c) % 0x3e8==0x15<-------这个值如果为 0，就用 1 代入
+```
+
+3. `((0x12c-0xdc+0x15+0x1) % 0x3e8) == 0x66`
+
+4. 注册码：`123456789043434`
+
+5. 后续计算：
+
+```
+((0x1+0x2)*0x66) % 0xa==0x6<----------注册码的第 11 位
+((0x3+0x4)*0x66) % 0xa==0x4<----------注册码的第 12 位
+((0x5+0x6)*0x66) % 0xa==0x2<----------注册码的第 13 位
+((0x7+0x8)*0x66) % 0xa==0x0<----------注册码的第 14 位
+((0x9+0x0)*0x66) % 0xa==0x8<----------注册码的第 15 位
+```
+
+所以：
+
+- 用户名：`LANCELOT[CCG]`
+- 注册码：`12345-67890-64208` `<--------完了吗，还没有`
+
+## 3. 问题排查
+
+用这个注册码会有 NAG，`recently open file` 无法显示，主界面上有错误提示，也就是说这册码的前 10 位不是任意的。
+
+估计程序将注册码的前 10 位，换算后当作给主界面和 NAG 窗口的 `Message`......
+
+修改了几次注册码后得知：注册码的第 10 位如果为 0，主界面上有错误提示，不为 0 则主界面一闪就消失了，注册码第 9 位却可以任意。
+
+于是就输入 用户名: `LANCELOT[CCG]` 注册码：`12345-67818-64208`
+
+这一次一进入主画面，马上就退出。
+
+其后跟踪多日无果......
+
+今天突然想到，程序要退出，应该会调用 `PostQuitMessage` 的 API，于是下中断 `bpx postquitmessage`
+
+用 `W32Dasm` + `trw2k` 不断的找啊找啊，在 `:00566549 mov eax,dword ptr [ebp-08]` 的地方，
+
+习惯性的下 `d *(ebp-08)`，看到了什么，“`12345678`”
+
+## 4. 深度代码分析
+
+```
+:00566535  8BC6                       mov     eax, esi<------------0x12c
+:00566537  2DDC000000                sub     eax, 000000DC<-------0x12c-0xdc==0x50
+:0056653C  03C7                      add     eax, edi<------------0x50+0x15==0x65
+:0056653E  40                       inc     eax<-----------------0x65+1==0x66
+:0056653F  B9E8030000               mov     ecx, 000003E8
+:00566544  99                       cdq
+:00566545  F7F9                      idiv    ecx
+:00566547  8BFA                      mov     edi, edx<------------0x66
+:00566549  8B45F8                    mov     eax, dword ptr [ebp-08]<------12345678  似曾相识哦
+:0056654C  E8532AEAFF                call    00408FA4<--------------------转换成 16 进制
+:00566551  8945B8                    mov     dword ptr [ebp-48], eax<------0xbc614e
+:00566554  DB45B8                    fild    dword ptr [ebp-48]
+:00566557  897DB4                    mov     dword ptr [ebp-4C], edi<------0x66
+:0056655A  DB45B4                    fild    dword ptr [ebp-4C]
+:0056655D  DEF9                      fdivp   st(1), st(0)<---------------0xbc614e/0x66==0x1d8cc
+:0056655F  E8F8C5E9FF                call    00402B5C
+:00566564  8BD8                      mov     ebx, eax
+:00566566  81FBA0860100             cmp     ebx, 000186A0<----------------要大于或等于 0x186a0
+:0056656C  7C23                     jl      00566591
+:0056656E  8B45F8                    mov     eax, dword ptr [ebp-08]<------
+:00566571  E82E2AEAFF                call    00408FA4                     |
+:00566576  8945B8                    mov     dword ptr [ebp-48], eax      |  这一段的意思是
+:00566579  DB45B8                    fild    dword ptr [ebp-48]           |  注册码的前 8 位
+:0056657C  897DB4                    mov     dword ptr [ebp-4C], edi      |  转换成 16 进制后的
+:0056657F  DB45B4                    fild    dword ptr [ebp-4C]           |  数要能被 0x66 整除
+:00566582  DEF9                      fdivp   st(1), st(0)                |<--至于 0x66 重何而来
+:00566584  895DB0                    mov     dword ptr [ebp-50], ebx      |  请看上面的第一次总结
+:00566587  DB45B0                    fild    dword ptr [ebp-50]           |
+:0056658A  DED9                      fcompp
+:0056658C  DFE0                      fstsw   ax                          |
+:0056658E  9E                       sahf                                  |
+:0056658F  740A                     je      0056659B<-----------------------
+```
+
+## 5. 最终总结
+
+再总结一下：(这个人怎么这么喜欢总结)
+
+假设：注册码的前 8 位转换成 16 进制后的值为 `x` 则 `x/0x66` 要能整除，其商要不小于 `0x186a0`
+
+偷懒一下 `0x186a0*0x66==0x9ba3c0==10200000`
+
+于是：
+
+- 用户名：`LANCELOT[CCG]`
+- 注册码：`102000001824008`
+
+搞定，好累啊，用了整整 4 个晚上，走了不少弯路。
+
+Crack by `lancelot[CCG][FCG]` `2001.09.14` `4dd466d0e1e0cc123afbe504da2462ca`

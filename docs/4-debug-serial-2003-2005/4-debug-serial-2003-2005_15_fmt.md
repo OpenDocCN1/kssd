@@ -1,0 +1,494 @@
+
+# 32bit Convert It 9.52.01
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50583.htm`](https://www.pediy.com/kssd/pediy05/pediy50583.htm)
+
+## 32bit Convert It 9.52.01 破解手记--找到注册码
+
+- **作者**：`newlaos` `[CCG]` `[DFCG]`
+- **软件名称**：`32bit Convert It 9.52.01` (理科工具)
+- **整理日期**：`2003.4.4`
+- **最新版本**：`9.52.01`
+- **文件大小**：`343KB`
+- **软件授权**：共享软件
+- **使用平台**：`Win9x/Me/NT/2000/XP`
+- **发布公司**：`http://www.electrasoft.com/`
+- **软件简介**：`32bit Convert It` 让你不用再翻遍单位换算表就能直接在软件上面执行单位换算的工作，有相当多种类的单位换算功能。
+- **加密方式**：注册码
+- **功能限制**：未注册信息提示
+- **PJ 工具**：`TRW20001.23` 注册版，`W32Dasm8.93` 黄金版，`FI2.5`
+- **PJ 日期**：`2003-04-09`
+
+**作者 `newlaos` 申明**：只是学习，请不用于商业用途或是将本文方法制作的注册机任意传播，造成后果，本人一概不负。
+
+### 分析过程
+
+1.  先用 `FI2.5` 看一下主文件 `32bc.exe`，没加壳。程序是用 `VC++6.0` 编的。
+2.  用 `W32Dasm8.93` 黄金版对 `32bc.exe` 进行静态反汇编，再用串式数据参考，找到 `"Thank you for registering"`。
+3.  再用 `TRW20001.23` 注册版进行动态跟踪，下断 `BPX 0040B3A8` (通常在注册成功与否的前面一些下断，这样，才能找到关键部分)。
+
+    先输入姓名：`newlaos`
+    假码：`78787878`
+
+```
+.......
+
+:0040B3A8 E870F70100          call 0042AB1D <===ECX\=7(注册名的长度) EDX\=newlaos EAX\=1(说明输入了注册名)
+
+:0040B3AD A144CE4400          mov eax, dword ptr [0044CE44]
+
+:0040B3B2 6A01                push 00000001
+
+:0040B3B4 683CA74400          push 0044A73C
+
+:0040B3B9 50                  push eax
+
+:0040B3BA E8B11A0000          call 0040CE70
+
+:0040B3BF 83C40C              add esp, 0000000C
+
+:0040B3C2 33DB                xor ebx, ebx
+
+:0040B3C4 83F801              cmp eax, 00000001
+
+:0040B3C7 746A                je 0040B433  <===我跳
+
+.......
+
+此处略一段无关代码
+
+.......
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0040B3C7(C)
+|
+:0040B433 6A51                push 00000051 <===跳到这
+:0040B435 68E8A64400          push 0044A6E8
+
+\* Possible Reference to Dialog: DialogID\_0093, CONTROL\_ID:03F1, ""
+                               |
+:0040B43A 68F1030000          push 000003F1
+:0040B43F B988A64400          mov ecx, 0044A688
+:0040B444 E8D4F60100          call 0042AB1D
+:0040B449 8B0D44CE4400        mov ecx, dword ptr [0044CE44]
+:0040B44F 6A01                push 00000001
+:0040B451 68E8A64400          push 0044A6E8
+:0040B456 51                  push ecx
+:0040B457 E8A41A0000          call 0040CF00
+:0040B45C 83C40C              add esp, 0000000C
+:0040B45F 83F801              cmp eax, 00000001
+:0040B462 746A                je 0040B4CE  <===呵呵，我再跳
+.......
+
+此处略一段无关代码
+
+.......
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0040B462(C)
+|
+:0040B4CE 53                  push ebx      <===跳到这
+:0040B4CF 6A01                push 00000001
+:0040B4D1 E8EAE6FFFF          call 00409BC0
+:0040B4D6 83C408              add esp, 00000008
+:0040B4D9 B908000000          mov ecx, 00000008
+:0040B4DE 33C0                xor eax, eax
+:0040B4E0 BF90A74400          mov edi, 0044A790
+:0040B4E5 F3                  repz
+:0040B4E6 AB                  stosd
+:0040B4E7 6A20                push 00000020
+:0040B4E9 6890A74400          push 0044A790
+
+\* Possible Reference to Dialog: DialogID\_0093, CONTROL\_ID:03EF, ""
+                               |
+:0040B4EE 68EF030000          push 000003EF
+:0040B4F3 B988A64400          mov ecx, 0044A688
+:0040B4F8 E820F60100          call 0042AB1D <===EAX\=8，这里下命令 S 0 FFFFFFFF '78787878'发现它已经位于程序的数据区
+:0040B4FD B940000000          mov ecx, 00000040
+:0040B502 33C0                xor eax, eax
+:0040B504 BF4CB54400          mov edi, 0044B54C
+:0040B509 684CB54400          push 0044B54C
+
+\* Possible StringData Ref from Data Obj ->"32bit Convert It"
+:0040B50E 6890DD4300          push 0043DD90
+:0040B513 683CA74400          push 0044A73C
+:0040B518 F3                  repz
+:0040B519 AB                  stosd
+:0040B51A E8D1E9FFFF          call 00409EF0   <===关键的 CALL，F8 跟进
+:0040B51F 684CB54400          push 0044B54C
+:0040B524 E887E9FFFF          call 00409EB0
+:0040B529 6890A74400          push 0044A790
+:0040B52E E87DE9FFFF          call 00409EB0
+:0040B533 BF4CB54400          mov edi, 0044B54C <===呵呵，EDI=303533373D36 真正的注册码)
+:0040B538 83C9FF              or ecx, FFFFFFFF  <===这里就可以用 KEYMAKE 做内存注册机了
+:0040B53B 33C0                xor eax, eax
+:0040B53D 83C414              add esp, 00000014
+:0040B540 F2                  repnz
+:0040B541 AE                  scasb
+:0040B542 F7D1                not ecx
+:0040B544 49                  dec ecx
+:0040B545 BF4CB54400          mov edi, 0044B54C
+:0040B54A BE90A74400          mov esi, 0044A790
+:0040B54F 33D2                xor edx, edx
+:0040B551 F3                  repz
+:0040B552 A6                  cmpsb
+:0040B553 0F85B2000000        jne 0040B60B      <===第一个关键跳转，跳了就 OVER
+:0040B559 BF4CB54400          mov edi, 0044B54C
+:0040B55E 83C9FF              or ecx, FFFFFFFF
+:0040B561 F2                  repnz
+:0040B562 AE                  scasb
+:0040B563 F7D1                not ecx
+:0040B565 49                  dec ecx
+:0040B566 BF90A74400          mov edi, 0044A790
+:0040B56B 8BD1                mov edx, ecx
+:0040B56D 83C9FF              or ecx, FFFFFFFF
+:0040B570 F2                  repnz
+:0040B571 AE                  scasb
+:0040B572 F7D1                not ecx
+:0040B574 49                  dec ecx
+:0040B575 3BCA                cmp ecx, edx
+:0040B577 0F858E000000        jne 0040B60B    <===第二个关键跳转，跳了就 OVER
+:0040B57D BF90A74400          mov edi, 0044A790
+:0040B582 83C9FF              or ecx, FFFFFFFF
+:0040B585 F2                  repnz
+:0040B586 AE                  scasb
+.......
+
+此处略一段注册信息保存代码
+
+.......
+
+\* Possible StringData Ref from Data Obj ->"32bit Convert It"
+                               |
+:0040B5C4 6890DD4300          push 0043DD90
+
+\* Possible StringData Ref from Data Obj ->"Thank you for registering "
+                               |
+:0040B5C9 6818294400          push 00442918      <===感谢你的注册(注册成功)
+
+\* Possible StringData Ref from Data Obj ->"%s%s!"
+                               |
+:0040B5CE 68443F4400          push 00443F44
+:0040B5D3 684CAB4400          push 0044AB4C
+:0040B5D8 E840C80000          call 00417E1D
+:0040B5DD 83C410              add esp, 00000010
+:0040B5E0 B988A64400          mov ecx, 0044A688
+:0040B5E5 6A40                push 00000040
+
+\* Possible StringData Ref from Data Obj ->"32bit Convert It"
+                               |
+:0040B5E7 6890DD4300          push 0043DD90
+:0040B5EC 684CAB4400          push 0044AB4C
+:0040B5F1 E8D6E30100          call 004299CC
+:0040B5F6 B988A64400          mov ecx, 0044A688
+:0040B5FB 891DF8CD4400        mov dword ptr [0044CDF8], ebx
+:0040B601 E821C80100          call 00427E27
+:0040B606 E9ED010000          jmp 0040B7F8
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:0040B553(C), :0040B577(C)     <===这里可以看见有两个关键跳转
+|
+:0040B60B 6A0A                push 0000000A
+:0040B60D 6890A74400          push 0044A790
+
+\* Possible Reference to Dialog: DialogID\_0093, CONTROL\_ID:03EF, ""
+                               |   <===exescope6.30 看注册信息对话框时 ID=148(十六进制就是 93)
+:0040B612 68EF030000          push 000003EF       <===注册信息错误对话框
+:0040B617 B988A64400          mov ecx, 0044A688
+:0040B61C E8FCF40100          call 0042AB1D
+:0040B621 6890A74400          push 0044A790
+:0040B626 E865F4FFFF          call 0040AA90
+:0040B62B 83C404              add esp, 00000004
+:0040B62E 3BC3                cmp eax, ebx
+:0040B630 A348AB4400          mov dword ptr [0044AB48], eax
+```
+
+
+
+:0040B635 0F8EA9010000 jle 0040B7E4
+
+\* Possible StringData Ref from Data Obj ->`"32BITCVT.INI"`
+
+:0040B63B 68A4DD4300 push 0043DDA4
+:0040B640 6800080000 push 00000800
+:0040B645 684CAB4400 push 0044AB4C
+:0040B64A B900020000 mov ecx, 00000200
+:0040B64F 33C0 xor eax, eax
+:0040B651 BF4CAB4400 mov edi, 0044AB4C
+:0040B656 684CAB4400 push 0044AB4C
+
+\---------------------------------------------------------------------------
+
+:00409EF0 51 push ecx
+:00409EF1 53 push ebx
+:00409EF2 8B54240C mov edx, dword ptr [esp+0C]
+:00409EF6 55 push ebp
+:00409EF7 56 push esi
+:00409EF8 57 push edi
+:00409EF9 B900020000 mov ecx, 00000200
+:00409EFE 33C0 xor eax, eax
+:00409F00 BF4CAB4400 mov edi, 0044AB4C
+:00409F05 33DB xor ebx, ebx
+:00409F07 33F6 xor esi, esi
+:00409F09 F3 repz
+:00409F0A AB stosd
+:00409F0B 89742410 mov dword ptr [esp+10], esi
+:00409F0F BF4CAB4400 mov edi, 0044AB4C
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00409FAA(C)
+.......
+.......
+
+此处略一段代码主要功能是查找注册名是不是用非常用字符，例：`~!@#$%^&*()+|}{""：`等
+
+.......
+.......
+
+:00409FA6 89742410 mov dword ptr [esp+10], esi
+:00409FAA 0F8C64FFFFFF jl 00409F14
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00409F9F(C)
+
+:00409FB0 B914000000 mov ecx, 00000014
+:00409FB5 33C0 xor eax, eax
+:00409FB7 8BFA mov edi, edx
+:00409FB9 684CAB4400 push 0044AB4C
+:00409FBE F3 repz
+:00409FBF AB stosd
+:00409FC0 BF4CAB4400 mov edi, 0044AB4C
+:00409FC5 83C9FF or ecx, FFFFFFFF
+:00409FC8 F2 repnz
+:00409FC9 AE scasb
+:00409FCA F7D1 not ecx
+:00409FCC 2BF9 sub edi, ecx
+:00409FCE 8BC1 mov eax, ecx
+:00409FD0 8BF7 mov esi, edi
+:00409FD2 8BFA mov edi, edx
+:00409FD4 C1E902 shr ecx, 02
+:00409FD7 F3 repz
+:00409FD8 A5 movsd
+:00409FD9 8BC8 mov ecx, eax
+:00409FDB 83E103 and ecx, 00000003
+:00409FDE F3 repz
+:00409FDF A4 movsb
+:00409FE0 E8E2EB0000 call 00418BC7
+:00409FE5 8D4C2414 lea ecx, dword ptr [esp+14]
+:00409FE9 8D54241C lea edx, dword ptr [esp+1C]
+:00409FED 51 push ecx
+:00409FEE 52 push edx
+:00409FEF 895C2424 mov dword ptr [esp+24], ebx
+:00409FF3 C744241C01000000 mov [esp+1C], 00000001
+:00409FFB E880010000 call 0040A180
+:0040A000 8B7C2428 mov edi, dword ptr [esp+28]
+:0040A004 83C9FF or ecx, FFFFFFFF
+:0040A007 33C0 xor eax, eax
+:0040A009 83C40C add esp, 0000000C
+:0040A00C F2 repnz
+:0040A00D AE scasb
+:0040A00E F7D1 not ecx
+:0040A010 2BF9 sub edi, ecx
+:0040A012 8BF7 mov esi, edi
+:0040A014 8BD1 mov edx, ecx
+:0040A016 BF4CAB4400 mov edi, 0044AB4C
+:0040A01B 83C9FF or ecx, FFFFFFFF
+:0040A01E F2 repnz
+:0040A01F AE scasb
+:0040A020 8BCA mov ecx, edx
+:0040A022 4F dec edi
+:0040A023 C1E902 shr ecx, 02
+:0040A026 F3 repz
+:0040A027 A5 movsd
+:0040A028 8BCA mov ecx, edx
+:0040A02A 8B542418 mov edx, dword ptr [esp+18]
+:0040A02E 83E103 and ecx, 00000003
+:0040A031 F3 repz
+:0040A032 A4 movsb
+:0040A033 8A0D4CAB4400 mov cl, byte ptr [0044AB4C]
+<===你会发现`[0044AB4C]`位置上，输入的注册名已经和`"32bit convert it"`合在一起了
+:0040A039 33F6 xor esi, esi
+:0040A03B 3ACB cmp cl, bl
+:0040A03D 89742410 mov dword ptr [esp+10], esi
+:0040A041 7431 je 0040A074
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0040A06A(C) <===从这里开始循环结构
+
+:0040A043 8BC1 mov eax, ecx
+:0040A045 25FF000000 and eax, 000000FF
+:0040A04A 8D3CC0 lea edi, dword ptr [eax+8*eax]
+:0040A04D 03C6 add eax, esi
+:0040A04F 8D0478 lea eax, dword ptr [eax+2*edi]
+:0040A052 03D0 add edx, eax
+:0040A054 80F960 cmp cl, 60
+:0040A057 7305 jnb 0040A05E
+:0040A059 83C215 add edx, 00000015
+:0040A05C EB03 jmp 0040A061
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0040A057(C)
+
+:0040A05E 83EA15 sub edx, 00000015
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0040A05C(U)
+
+:0040A061 8A8E4DAB4400 mov cl, byte ptr [esi+0044AB4D]
+:0040A067 46 inc esi
+:0040A068 3ACB cmp cl, bl
+:0040A06A 75D7 jne 0040A043
+<===这一循环结构，对`"newlaos32bit convert it"`，进行初步计算
+:0040A06C 89742410 mov dword ptr [esp+10], esi <===这个为整个字符串的长度 17(十进制 23 个)
+:0040A070 89542418 mov dword ptr [esp+18], edx <===这里上一循环计算出的结果(A213)
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0040A041(C)
+
+:0040A074 B980000000 mov ecx, 00000080
+:0040A079 33C0 xor eax, eax
+:0040A07B BF4CB34400 mov edi, 0044B34C
+:0040A080 52 push edx
+
+\* Possible StringData Ref from Data Obj ->`"%06lu"`
+
+:0040A081 6854394400 push 00443954
+:0040A086 684CB34400 push 0044B34C
+:0040A08B F3 repz
+:0040A08C AB stosd
+:0040A08D E88BDD0000 call 00417E1D <===这里算出第一步的计算结果 041491
+
+\* Reference To: KERNEL32.lstrlenA, Ord:0308h
+
+:0040A092 8B2DC8314300 mov ebp, dword ptr [004331C8]
+:0040A098 83C40C add esp, 0000000C
+:0040A09B B900020000 mov ecx, 00000200
+:0040A0A0 33C0 xor eax, eax
+:0040A0A2 BF4CAB4400 mov edi, 0044AB4C
+:0040A0A7 684CB34400 push 0044B34C
+:0040A0AC F3 repz
+:0040A0AD AB stosd
+:0040A0AE 895C2414 mov dword ptr [esp+14], ebx
+:0040A0B2 FFD5 call ebp
+:0040A0B4 8B4C2410 mov ecx, dword ptr [esp+10]
+:0040A0B8 3BC8 cmp ecx, eax
+:0040A0BA 7D37 jge 0040A0F3
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0040A0F1(C) <===从这里开始循环结构
+
+:0040A0BC 0FBE914CB34400 movsx edx, byte ptr [ecx+0044B34C] <===依次取出 041491 的每个值的 ASC 码值
+:0040A0C3 03D1 add edx, ecx
+:0040A0C5 8D044D4CAB4400 lea eax, dword ptr [2*ecx+0044AB4C]
+:0040A0CC 52 push edx
+
+
+
+# 逆向分析笔记
+
+## 1. 代码片段分析
+
+*   Possible StringData Ref from Data Obj -> `"%02X"`
+
+```asm
+:0040A0CD 684C394400                  push 0044394C
+:0040A0D2 50                          push eax
+:0040A0D3 E845DD0000                  call 00417E1D <===每经过一次，计算出两位注册码
+:0040A0D8 8B7C241C                    mov edi, dword ptr [esp+1C]
+:0040A0DC 83C40C                      add esp, 0000000C
+:0040A0DF 47                          inc edi
+:0040A0E0 684CB34400                  push 0044B34C
+:0040A0E5 897C2414                    mov dword ptr [esp+14], edi
+:0040A0E9 FFD5                        call ebp
+:0040A0EB 8B4C2410                    mov ecx, dword ptr [esp+10]
+:0040A0EF 3BC8                        cmp ecx, eax  <===循环 6 次
+:0040A0F1 7CC9                        jl 0040A0BC   <===这个循环结构就算出最后的注册码
+.......
+.......
+此处省略一段代码，与算法无关
+.......
+.......
+:0040A16D F3                          repz
+:0040A16E A4                          movsb
+:0040A16F 5F                          pop edi
+:0040A170 5E                          pop esi
+:0040A171 5D                          pop ebp
+:0040A172 5B                          pop ebx
+:0040A173 59                          pop ecx
+:0040A174 C3                          ret
+```
+
+---
+
+```asm
+:00417E1D 55                          push ebp
+:00417E1E 8BEC                        mov ebp, esp
+:00417E20 83EC20                      sub esp, 00000020
+:00417E23 8B4508                      mov eax, dword ptr [ebp+08]
+:00417E26 56                          push esi
+:00417E27 8945E8                      mov dword ptr [ebp-18], eax
+:00417E2A 8945E0                      mov dword ptr [ebp-20], eax
+:00417E2D 8D4510                      lea eax, dword ptr [ebp+10]
+:00417E30 C745EC42000000              mov [ebp-14], 00000042
+:00417E37 50                          push eax
+:00417E38 8D45E0                      lea eax, dword ptr [ebp-20]
+:00417E3B FF750C                      push [ebp+0C]
+:00417E3E C745E4FFFFFF7F              mov [ebp-1C], 7FFFFFFF
+:00417E45 50                          push eax
+:00417E46 E8004E0000                  call 0041CC4B  <===这里就已经算出我们所要的值了，F8 跟进(不用进去了，天大一串，呵呵)
+:00417E4B 83C40C                      add esp, 0000000C
+:00417E4E FF4DE4                      dec [ebp-1C]
+:00417E51 8BF0                        mov esi, eax
+:00417E53 7808                        js 00417E5D
+:00417E55 8B45E0                      mov eax, dword ptr [ebp-20]
+:00417E58 802000                      and byte ptr [eax], 00
+:00417E5B EB0D                        jmp 00417E6A
+```
+
+*   Referenced by a (U)nconditional or (C)onditional Jump at Address:
+    *   `:00417E53(C)`
+
+```asm
+:00417E5D 8D45E0                      lea eax, dword ptr [ebp-20]
+:00417E60 50                          push eax
+:00417E61 6A00                        push 00000000
+:00417E63 E8CB4C0000                  call 0041CB33
+:00417E68 59                          pop ecx
+:00417E69 59                          pop ecx
+```
+
+*   Referenced by a (U)nconditional or (C)onditional Jump at Address:
+    *   `:00417E5B(U)`
+
+```asm
+:00417E6A 8BC6                        mov eax, esi
+:00417E6C 5E                          pop esi
+:00417E6D C9                          leave
+:00417E6E C3                          ret
+```
+
+---------------------------------------------------------------------
+
+## 2. 使用 KEYMAKE 1.73 制作内存注册机
+
+一、选择 `F8` -> 另类注册机！
+
+*   程序名称：`32bc.exe`
+*   添加数据：
+    *   中断地址：`0040B538`
+    *   中断次数：`1`
+    *   第一字节：`83`
+    *   指令长度：`3`
+    *   保存下列信息为注册码 -> 内存方式 -> 寄存器 -> `EDI`
+
+二、选择内存方式：内存地址 -> `0044B54C` -> 点生成，就有你乐的了
+
+## 3. 注册信息
+
+我的注册信息保存在 `32bitcvt.ini` 文件里:
+
+*   `NAME:newlaos[CCG]`
+*   `CODE:30353935353E`
+*   `EMAIL:newlaos@km169.net`
+*   `4dd466d0e1e0cc123afbe504da2462ca`

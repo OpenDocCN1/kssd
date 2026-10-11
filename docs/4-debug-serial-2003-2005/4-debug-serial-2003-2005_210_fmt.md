@@ -1,0 +1,189 @@
+
+# Netsuper
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50132.htm`](https://www.pediy.com/kssd/pediy05/pediy50132.htm)
+
+软件： `netsuper`
+
+版本： `2002-4-23`
+
+破解者: `火翼[CCG]`
+
+组织 : `[CCG]` (China Cracking Group)
+
+使用软件: `w32dasm` + `trw2000`
+
+软件没有加壳，`trw2000` 载入，选注册
+
+用户名: `firewings`
+
+注册码: `78787878`
+
+设 `BPX hmemcpy` (或者 `getwindowtexta`), 点击确定后断下来
+
+```
+bd *
+pmodule
+```
+
+返回在 `call getwindowtexta` 的下一行
+
+一直向下，注意在每个 `call` 前都压入了什么和各个寄存器得值和指向的内存地址
+
+直到看到下面的代码
+
+```
+:004049B5 E80BB90100             call 004202C5
+:004049BA 8B4660                 mov eax, dword ptr [esi+60]
+:004049BD 8378F819               cmp dword ptr [eax-08], 00000019 //输入的注册码是否
+                                                                        //大于 25 位，下于则
+                                                                        //弹出错误对话框
+:004049C1 7C50                   jl 00404A13
+:004049C3 50                     push eax
+:004049C4 B9C8174400             mov ecx, 004417C8
+:004049C9 E872750100             call 0041BF40     //具体比较的 call
+:004049CE 83F8FF                 cmp eax, FFFFFFFF
+:004049D1 7440                   je 00404A13
+```
+
+在 `004049c1` 处 `r fl o` (改变比较结果)，继续进入 `0041bf40`
+
+```
+:0041BF40 6A00                   push 00000000
+:0041BF42 FF742408               push [esp+08]
+:0041BF46 E803000000             call 0041BF4E
+:0041BF4B C20400                 ret 0004
+```
+
+继续进入 `0041bf4e`
+
+\* Referenced by a CALL at Address:
+
+```
+:0041BF46
+```
+
+```
+:0041BF4E 56                     push esi
+:0041BF4F 8BF1                   mov esi, ecx
+:0041BF51 8B4C240C               mov ecx, dword ptr [esp+0C]
+:0041BF55 8B06                   mov eax, dword ptr [esi]
+:0041BF57 3B48F8                 cmp ecx, dword ptr [eax-08]
+:0041BF5A 7F12                   jg 0041BF6E
+:0041BF5C FF742408               push [esp+08]
+:0041BF60 03C1                   add eax, ecx
+:0041BF62 50                     push eax
+:0041BF63 E8902BFFFF             call 0040EAF8 //这里是关键
+:0041BF68 59                     pop ecx
+:0041BF69 85C0                   test eax, eax
+:0041BF6B 59                     pop ecx
+:0041BF6C 7505                   jne 0041BF73
+```
+
+继续进入 `40eaf8`
+
+关键比较在 `0040eb30` 到 `0040EB61` 处
+
+有点复杂的循环，很多语句写的不间接，看上去很乱，其实
+
+是在判断内存中的密码表里是否包含输入的注册码
+
+```
+:0040EB30 381E                   cmp byte ptr [esi], bl//esi 是指向密码表的指针，开始时指向第一个字符
+                                                        //判断密码表是否结束
+:0040EB32 7433                   je 0040EB67// 结束则跳
+:0040EB34 3BF7                   cmp esi, edi //edi 为密码表结尾减去输入的注册码的字符数
+:0040EB36 772F                   ja 0040EB67 //如果当前密码表指针超过 EDI 则跳出
+:0040EB38 381E                   cmp byte ptr [esi], bl //没用的一句，前面比较过了
+:0040EB3A 8B450C                 mov eax, dword ptr [ebp+0C]//把输入的密码的第一个字符的
+                                                        //地址赋给 EAX
+:0040EB3D 7415                   je 0040EB54 //没用的，永远也不会跳
+:0040EB3F 8BD6                   mov edx, esi //把地址运算了一下
+:0040EB41 2BD0                   sub edx, eax //用 EAX+EDX 代替了 ESI
+                                             //使 INC  EAX 时，指向密码表的指针(EAX+EDX）也增加
+```
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+```
+:0040EB52(C)
+```
+
+```
+:0040EB43 8A08                   mov cl, byte ptr [eax]//把俄 EAX 指向的字符赋给 CL
+:0040EB45 3ACB                   cmp cl, bl               //cl 是否为 0
+:0040EB47 740B                   je 0040EB54              //为０则跳
+:0040EB49 380C02                 cmp byte ptr [edx+eax], cl //比较和 EAX+EDX 指向的密码表里的
+                                                        //那个字符是否相等
+:0040EB4C 7506                   jne 0040EB54 //不等则跳
+:0040EB4E 40                     inc eax//相等， 指针 EAX 加 1
+:0040EB4F 381C02                 cmp byte ptr [edx+eax], bl//密码表是否结束
+:0040EB52 75EF                   jne 0040EB43//没结束则跳
+```
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+```
+:0040EB3D(C), :0040EB47(C), :0040EB4C(C)
+```
+
+```
+:0040EB54 3818                   cmp byte ptr [eax], bl//输入的密码是否结束
+:0040EB56 740B                   je 0040EB63//结束则跳
+:0040EB58 56                     push esi//把指向密码表的指针压入
+:0040EB59 E883FFFFFF             call 0040EAE1//密码表的指针加 1，返回在 EAX 里
+:0040EB5E 59                     pop ecx
+:0040EB5F 8BF0                   mov esi, eax//把指针传给 ESI
+:0040EB61 EBCD                   jmp 0040EB30//返回 30 处重新比较
+```
+
+### 算法整理&爆破
+
+取密码表第一位和用户输入密码第一位比较，相同，则比较下一位，直到用户输入的密码结束，不同，则
+
+比较密码表的第二位和用户输入密码第一位，相同，就继续比较，直到用户输入的密码结束。
+
+如此循环，直到密码表指针指向的位置到密码表尾部不足用户输入的密码字符数。
+
+密码表如下
+
+```
+{D8E353B0-4202-457d-0CB3-82C1A86AC2AC}
+{D8E353B0-4202-457d-1CB3-82C1A86AC2AC}
+{D8E353B0-4202-457d-2CB3-82C1A86AC2AC}
+{D8E353B0-4202-457d-3CB3-82C1A86AC2AC}
+{D8E353B0-4202-457d-4CB3-82C1A86AC2AC}
+{D8E353B0-4202-457d-5CB3-82C1A86AC2AC}
+{D8E353B0-4202-457d-6CB3-82C1A86AC2AC}
+{D8E353B0-4202-457d-7CB3-82C1A86AC2AC}
+{D8E353B0-4202-457d-8CB3-82C1A86AC2AC}
+{D8E353B0-4202-457d-9CB3-82C1A86AC2AC}
+```
+
+密码和用户名无关
+
+只要密码大于 25 位并且包含于密码表中任意一个就可以
+
+### 爆破方法如下
+
+关键 `call`
+
+`0041bf40`
+
+有三处调用
+
+`40159a`
+
+`4015c5`
+
+`4049c9`
+
+### 爆破
+
+```
+004015a4 setne cl // 改为 sete cl
+0040a5cd jne 00401672 //改为 jmp 00401672
+004049d1 je 00404a13 //改为 nop,nop
+```
+
+`4dd466d0e1e0cc123afbe504da2462ca`

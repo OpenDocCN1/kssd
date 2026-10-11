@@ -1,0 +1,580 @@
+
+# Cleaner 3.2
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue284.htm`](https://www.pediy.com/kssd/pediy04/kanxue284.htm)
+
+Cleaner 3.2 注册分析
+
+by Fpc/CCG&BCG @2001/12
+
+tools: `trw1.22`
+
+**[info]**
+
+软件名称：The Cleaner
+
+整理日期：2001.12.8
+
+最新版本：`3.2 Build 3213`
+
+文件大小：`1833KB`
+
+软件授权：共享软件
+
+使用平台：`Win9x/Me/NT/2000`
+
+发布公司：Home Page
+
+软件简介：
+
+一个专门检测和清除侵入您系统中的特洛伊木马的专业程序，内置 `3093` 个木马标识。可在线升级版本和病毒数据库，操作简单，功能强大！查杀的各类特洛伊木马种类最多，几乎所有较出名的这里都有，如 `Netspy`、`BO`、`Netbus`、`Girlfriend`、`Happy99`、`BackDoor` 以及它们的一些不同版本。还有很多种我们大多数网友听都没听过，有了它我们可以将电脑“清洁”得干干净净，放心大胆地上网。将毒数据库 `cleaner.cdb` 复制到 The Cleaner 的安装目录下，就可以完成升级了。
+
+**[protection]**
+
+NAG, serial
+
+**[level]**
+
+`1.5/5`
+
+**[essay]**
+
+好久没有什么破解了，找到这个软件，估计会有点用，下载后安装、运行。一个 NAG 跳出来：“你还有 30 天试用时间”**\_\_**呵呵，还可以输入注册码。好了，用户名：`Fpc/CCG&BCG`，注册码：`123654`，点注册，@$%#$%#@!@%&，不正确。它首先检查注册码长度应该是 `19`，还与两个黑名单比较。这些我们不关心，看它如何计算：其实注册名用不到，是对输入的注册码作一些转换和验证，如果通过即注册。
+
+由 `delphi` 或 `bcb` 编译，`UPX` 加的壳，懒得脱了~~注册信息好象是写在文件时，每次运行时检查。另外不清楚它有没有网上检验。
+
+输入注册码后跟踪，很容易到这里：
+
+```
+...
+017F:004933B2  MOV     EAX,[004B50B0]
+017F:004933B7  MOV     EAX,[EAX]
+017F:004933B9  CALL    004B043C       <- 检验注册码，重要
+017F:004933BE  TEST    AL,AL          <- al==0 表示注册失败
+017F:004933C0  JZ      004933D9       (JUMP)
+017F:004933C2  MOV     EAX,[EBX+01F4]
+017F:004933C8  CALL    00492474
+017F:004933CD  MOV     DWORD [EBX+0150],01
+017F:004933D7  JMP     SHORT 004933F9
+017F:004933D9  ADD     BYTE [EBX+0200],01
+017F:004933E0  JNC     004933E7
+017F:004933E2  CALL    00402E5C
+017F:004933E7  PUSH    BYTE +30
+017F:004933E9  CALL    `USER32!MessageBeep`       <- 呵呵，小喇叭响一声
+017F:004933EE  MOV     EAX,[EBX+01F8]
+017F:004933F4  CALL    00492B84
+017F:004933F9  XOR     EAX,EAX
+017F:004933FB  POP     EDX
+017F:004933FC  POP     ECX
+017F:004933DA  ADD     DWORD [EAX],BYTE +02
+017F:004933DD  ADD     [EAX],AL
+017F:004933DF  ADD     [EBX+05],ESI
+017F:004933E2  CALL    00402E5C
+017F:004933E7  PUSH    BYTE +30
+017F:004933E9  CALL    `USER32!MessageBeep`
+017F:004933EE  MOV     EAX,[EBX+01F8]
+017F:004933F4  CALL    00492B84
+017F:004933F9  XOR     EAX,EAX
+017F:004933FB  POP     EDX
+017F:004933FC  POP     ECX
+...
+```
+
+显然得追进 `CALL 004B043`：
+
+```
+017F:004B043C  PUSH    EBP
+017F:004B043D  MOV     EBP,ESP
+017F:004B043F  ADD     ESP,FFFFFDF0
+017F:004B0445  PUSH    EBX
+017F:004B0446  PUSH    ESI
+017F:004B0447  PUSH    EDI
+017F:004B0448  XOR     EDX,EDX
+017F:004B044A  MOV     [EBP+FFFFFDF4],EDX
+017F:004B0450  MOV     [EBP+FFFFFDF0],EDX
+017F:004B0456  MOV     [EBP-04],EDX
+017F:004B0459  MOV     [EBP-08],EDX
+017F:004B045C  MOV     EDI,EAX
+017F:004B045E  MOV     ECX,08
+017F:004B0463  LEA     EAX,[EBP+FFFFFE08]
+017F:004B0469  MOV     EDX,[004010AC]
+017F:004B046F  CALL    004042A8
+017F:004B0474  XOR     EAX,EAX
+017F:004B0476  PUSH    EBP
+017F:004B0477  PUSH    DWORD 004B0801
+017F:004B047C  PUSH    DWORD [FS:EAX]
+017F:004B047F  MOV     [FS:EAX],ESP
+017F:004B0482  XOR     EAX,EAX
+017F:004B0484  PUSH    EBP
+017F:004B0485  PUSH    DWORD 004B07B4
+017F:004B048A  PUSH    DWORD [FS:EAX]
+017F:004B048D  MOV     [FS:EAX],ESP
+017F:004B0490  MOV     EDX,[EDI+534C]
+017F:004B0496  LEA     EAX,[EBP-04]
+017F:004B0499  MOV     ECX,004B081C
+017F:004B049E  CALL    00403D88
+017F:004B04A3  LEA     EAX,[EDI+0151B36C]
+017F:004B04A9  MOV     EDX,004B082C
+017F:004B04AE  CALL    00403B14
+017F:004B04B3  LEA     EAX,[EDI+0151B370]
+017F:004B04B9  CALL    00403AC0
+017F:004B04BE  MOV     EAX,[EBP-04]
+017F:004B04C1  CALL    00407B4C       <- 上面的许多 call 都不重要
+017F:004B04C6  TEST    AL,AL          <- 这里不会跳走
+017F:004B04C8  JZ      NEAR 004B0788
+017F:004B04CE  MOV     EDX,[EBP-04]
+017F:004B04D1  LEA     EAX,[EBP+FFFFFE28]
+017F:004B04D7  CALL    00405222
+```
+
+经验：
+
+`borland` 编译结果就是这个特征，你经常可见到：
+
+```
+mov/lea eax, [SomeAddress]
+mov/lea edx, [SomeAddress]
+call SomeFuntion
+mov...
+```
+
+`eax`, `edx` 是重要的两个寄存器，根据它的 `__fastcall` 调用规则，函数参数首先是通过 `eax`, `edx`, `ecx`(通常是记录字节个数)，如果还有其它的参数，就会用到 `push` 压入堆栈。关于 `borland` 逆向工程，你最好有一些 `delphi`/`BCB` 的编程经验，`DEDE` 可以提供丰富的反编译信息~~不算是作广告。动态跟踪时，多用这些命令：`d eax`, `d edx`, `d *eax`, `d *edx`, 通常的 `call` 不要追进去，因为就算跟进那个 `call` 你也看不明白，而遇到参数较多的 `call`，极有可能是作者自己写的，需要追进，注册码的计算可能就在里面哦~
+
+```
+017F:004B04DC  LEA     EAX,[EBP+FFFFFE28]
+017F:004B04E2  CALL    00405527
+017F:004B04E7  LEA     EDX,[EDI+0151B36C]
+017F:004B04ED  LEA     EAX,[EBP+FFFFFE28]
+017F:004B04F3  CALL    004040F8
+017F:004B04F8  LEA     EAX,[EBP+FFFFFE28]
+017F:004B04FE  CALL    004054C4
+017F:004B0503  LEA     EDX,[EBP-08]
+017F:004B0506  LEA     EAX,[EBP+FFFFFE28]
+017F:004B050C  CALL    004040F8
+017F:004B0511  LEA     EAX,[EBP+FFFFFE28]
+017F:004B0517  CALL    004054C4
+017F:004B051C  LEA     EAX,[EBP+FFFFFE28]
+017F:004B0522  CALL    00405328
+017F:004B0527  LEA     EAX,[EDI+0151B370]   <- a buffer
+017F:004B052D  MOV     EDX,[EBP-08]         <- 输入的注册码，我用 Irc 来代替
+017F:004B0530  CALL    00403B14           <- 复制字符串或复制一个字符串的指针
+017F:004B0535  MOV     EAX,[EBP-08]         <- Irc
+017F:004B0538  MOV     EDX,004B084C         <- 一个黑名单上的注册码
+017F:004B053D  CALL    00403E4C           <- 比较
+017F:004B0542  JZ      004B0553           <- 一致就去死
+017F:004B0544  MOV     EAX,[EBP-08]
+017F:004B0547  MOV     EDX,004B0868
+017F:004B054C  CALL    00403E4C           <- 比较另一个黑名单
+017F:004B0551  JNZ     004B057D           <- 不在其上则继续
+017F:004B0553  LEA     EAX,[EDI+0151B36C]
+017F:004B0559  MOV     EDX,004B082C
+017F:004B055E  CALL    00403B14
+017F:004B0563  LEA     EAX,[EDI+0151B370]
+017F:004B0569  CALL    00403AC0
+017F:004B056E  XOR     EBX,EBX
+017F:004B0570  XOR     EAX,EAX
+017F:004B0572  POP     EDX
+017F:004B0573  POP     ECX
+017F:004B0574  POP     ECX
+017F:004B0575  MOV     [FS:EAX],EDX
+017F:004B0578  JMP     004B07C0
+017F:004B057D  MOV     EAX,[EBP-08]         <- 好了，到这里
+017F:004B0580  CALL    00403D3C           <- eax=[eax-4]，取 Irc 长度
+017F:004B0585  CMP     EAX,BYTE +13
+017F:004B0588  JZ      004B05B4           <- 为 19 则继续
+017F:004B058A  LEA     EAX,[EDI+0151B36C]   <- 否则继续
+017F:004B0590  MOV     EDX,004B082C
+017F:004B0595  CALL    00403B14
+017F:004B059A  LEA     EAX,[EDI+0151B370]
+017F:004B05A0  CALL    00403AC0
+017F:004B05A5  XOR     EBX,EBX
+017F:004B05A7  XOR     EAX,EAX
+017F:004B05A9  POP     EDX
+017F:004B05AA  POP     ECX
+017F:004B05AB  POP     ECX
+017F:004B05AC  MOV     [FS:EAX],EDX
+017F:004B05AF  JMP     004B07C0
+017F:004B05B4  MOV     EAX,[EBP-08]         <- 继续
+017F:004B05B7  CALL    00403D3C
+017F:004B05BC  MOV     ESI,EAX             <- Irc 长度保存到 esi
+017F:004B05BE  TEST    ESI,ESI
+017F:004B05C0  JNG     004B05E4           <- 不会跳
+017F:004B05C2  MOV     EBX,01             <- ebx 作为循环变量
+017F:004B05C7  MOV     EAX,[EBP-08]
+017F:004B05CA  CMP     BYTE [EAX+EBX-01],2D   <- Irc[i]=='-'?
+017F:004B05CF  JNZ     004B05E0           <- 不等比较下一个
+017F:004B05D1  LEA     EAX,[EBP-08]
+017F:004B05D4  MOV     ECX,01
+017F:004B05D9  MOV     EDX,EBX
+017F:004B05DB  CALL    00403F80           <- 这个 call 删除当前位置的字符('-')，位置由 edx 决定，个数由 ecx 决定
+017F:004B05E0  INC     EBX
+017F:004B05E1  DEC     ESI
+017F:004B05E2  JNZ     004B05C7           <- 未完继续，此循环删除 Irc 中的'-'，如果有的话
+                                           <- 下面这一段会按顺序取出 Irc 中的字符，每次取 2 字节，共 8 次
+017F:004B05E4  LEA     EAX,[EBP+FFFFFE08]
+017F:004B05EA  PUSH    EAX               <- eax 是指向缓冲区的指针
+017F:004B05EB  MOV     ECX,02            <- ecx=2
+017F:004B05F0  MOV     EDX,01            <- edx=1
+```
+
+
+
+### 汇编代码段
+
+```
+017F:004B05F5  MOV      EAX,[EBP-08]     <- Irc   
+017F:004B05F8  CALL   00403F40     <- 取字符到缓冲区去，位置由 edx 决定，长度由 ecx 决定   
+017F:004B05FD  LEA      EAX,[EBP+FFFFFE0C]   
+017F:004B0603  PUSH   EAX   
+017F:004B0604  MOV      ECX,02   
+017F:004B0609  MOV      EDX,03   
+017F:004B060E  MOV      EAX,[EBP-08]   
+017F:004B0611  CALL   00403F40     <-   
+017F:004B0616  LEA      EAX,[EBP+FFFFFE10]   
+017F:004B061C  PUSH   EAX   
+017F:004B061D  MOV      ECX,02   
+017F:004B0622  MOV      EDX,05   
+017F:004B0627  MOV      EAX,[EBP-08]   
+017F:004B062A  CALL   00403F40   
+017F:004B062F  LEA      EAX,[EBP+FFFFFE14]   
+017F:004B0635  PUSH   EAX   
+017F:004B0636  MOV      ECX,02   
+017F:004B063B  MOV      EDX,07   
+017F:004B0640  MOV      EAX,[EBP-08]   
+017F:004B0643  CALL   00403F40   
+017F:004B0648  LEA      EAX,[EBP+FFFFFE18]   
+017F:004B064E  PUSH   EAX   
+017F:004B064F  MOV      ECX,02   
+017F:004B0654  MOV      EDX,09   
+017F:004B0659  MOV      EAX,[EBP-08]   
+017F:004B065C  CALL   00403F40   
+017F:004B0661  LEA      EAX,[EBP+FFFFFE1C]   
+017F:004B0667  PUSH   EAX   
+017F:004B0668  MOV      ECX,02   
+017F:004B066D  MOV      EDX,0B   
+017F:004B0672  MOV      EAX,[EBP-08]   
+017F:004B0675  CALL   00403F40   
+017F:004B067A  LEA      EAX,[EBP+FFFFFE20]   
+017F:004B0680  PUSH   EAX   
+017F:004B0681  MOV      ECX,02   
+017F:004B0686  MOV      EDX,0D   
+017F:004B068B  MOV      EAX,[EBP-08]   
+017F:004B068E  CALL   00403F40   
+017F:004B0693  LEA      EAX,[EBP+FFFFFE24]   
+017F:004B0699  PUSH   EAX   
+017F:004B069A  MOV      ECX,02   
+017F:004B069F  MOV      EDX,0F   
+017F:004B06A4  MOV      EAX,[EBP-08]   
+017F:004B06A7  CALL   00403F40     <- 取字符到这里完成了   
+017F:004B06AC  LEA      EAX,[EBP-08]   
+017F:004B06AF  CALL   00403AC0     <- 初始化   
+017F:004B06B4  PUSH   EDI   
+017F:004B06B5  MOV      ESI,004B087C     <- 这里是 16 字节的 0x0   
+017F:004B06BA  LEA      EDI,[EBP+FFFFFDF8]   
+017F:004B06C0  MOV      ECX,04   
+017F:004B06C5  REP MOVSD       <- 数组初始化   
+017F:004B06C7  POP      EDI   
+017F:004B06C8  MOV      EBX,08   
+017F:004B06CD  LEA      ESI,[EBP+FFFFFE08]   <- esi 初始化为指向 Irc 的前两个字节，见上面   
+017F:004B06D3  PUSH   BYTE +0A   
+017F:004B06D5  LEA      EAX,[EBP-0C]   
+017F:004B06D8  PUSH   EAX       <- 缓冲区   
+017F:004B06D9  MOV      EAX,[ESI]     <- eax 指向 Irc 的两个字节   
+017F:004B06DB  CALL   00403F00   
+017F:004B06E0  LEA      ECX,[EBP+FFFFFDF8]   
+017F:004B06E6  MOV      EDX,10   
+017F:004B06EB  CALL   004B023C   
+017F:004B06F0  LEA      EAX,[EBP+FFFFFDF0]   
+017F:004B06F6  LEA      EDX,[EBP+FFFFFDF8]   
+017F:004B06FC  MOV      ECX,10   
+017F:004B0701  CALL   00403CEC   
+017F:004B0706  MOV      EAX,[EBP+FFFFFDF0]   
+017F:004B070C  CALL   00407904     <- 这几个 call 实现 str->Hex, 结果在 eax，即：假设这两字节是"FA"，则 eax=0xFA   
+017F:004B0711  MOV      EDX,EAX   
+017F:004B0713  LEA      EAX,[EBP+FFFFFDF4]   <- 缓冲区   
+017F:004B0719  CALL   00403C64     <- 保存 edx   
+017F:004B071E  MOV      EDX,[EBP+FFFFFDF4]   
+017F:004B0724  LEA      EAX,[EBP-08]     <- 目标位置   
+017F:004B0727  CALL   00403D44     <- strcat   
+017F:004B072C  ADD      ESI,BYTE +04   
+017F:004B072F  DEC      EBX   
+017F:004B0730  JNZ      004B06D3   
+```
+
+到这里，`Irc` 变成了 Hex 值，并保存在`[ebp-8]`，称为 `IrcA`。我输入的是：`1236-5465-4123-1236`，`[ebp-8]=12 36 54 65 41 23 12 36`
+
+继续：
+
+```
+017F:004B0732  PUSH   DWORD 8C33     <- 参数   
+017F:004B0737  LEA      EAX,[EBP+FFFFFDF4]   
+017F:004B073D  PUSH   EAX       <- 目标缓冲区，称为 IrcB   
+017F:004B073E  MOV      ECX,3182     <- 参数   
+017F:004B0743  MOV      EDX,03D5     <- 参数   
+017F:004B0748  MOV      EAX,[EBP-08]     <- IrcA   
+017F:004B074B  CALL   00474658     <- (1)这里计算注册的关键，需要跟进去   
+017F:004B0750  MOV      EDX,[EBP+FFFFFDF4]   <- IrcB   
+017F:004B0756  LEA      EAX,[EBP-08]   
+017F:004B0759  CALL   00403B58     <- 又是复制一个指针   
+017F:004B075E  XOR      EDX,EDX   
+017F:004B0760  MOV      EAX,[EBP-08]     <- eax 指向一个转换后的 8 字节数据   
+017F:004B0763  CALL   0040797C     <- (2)验证注册数据，追进   
+017F:004B0768  MOV      [EBP-0C],EAX     <- eax 是错误值，否则相当于 str->int   
+017F:004B076B  CMP      DWORD [EBP-0C],BYTE +00   
+017F:004B076F  JZ      004B0780     <- jump to BAD CRAcker   
+017F:004B0771  MOV      EAX,[EBP-0C]   
+017F:004B0774  MOV      ECX,7A   
+017F:004B0779  CDQ    
+017F:004B077A  IDIV   ECX   
+017F:004B077C  TEST   EDX,EDX   
+017F:004B077E  JZ      004B0784     <- 还需要能被 122 整除   
+017F:004B0780  XOR      EBX,EBX       <- BAD Guy   
+017F:004B0782  JMP      SHORT 004B078A   
+017F:004B0784  MOV      BL,01       <- Good Guy   
+017F:004B0786  JMP      SHORT 004B078A   
+017F:004B0788  XOR      EBX,EBX   
+017F:004B078A  MOV      EDX,EBX   
+... 不重要了   
+```
+
+#### (1) 先看 `CALL 00474658`
+
+```
+017F:0047465E  PUSH   EBX   
+017F:0047465F  PUSH   ESI   
+017F:00474660  PUSH   EDI   
+017F:00474661  XOR      EBX,EBX       <- 初始化   
+017F:00474663  MOV      [EBP-0C],EBX     <- [ebp-c]=0   
+017F:00474666  MOV      [EBP-04],ECX     <- [ebp-4]=0x3182   
+017F:00474669  MOV      ESI,EDX       <- esi=0x3D5   
+017F:0047466B  MOV      EDI,EAX       <- [edi]=IrcA   
+017F:0047466D  XOR      EAX,EAX       <- eax=0   
+017F:0047466F  PUSH   EBP   
+017F:00474670  PUSH   DWORD 004746E6   
+017F:00474675  PUSH   DWORD [FS:EAX]   
+017F:00474678  MOV      [FS:EAX],ESP   
+017F:0047467B  MOV      EAX,[EBP+08]   
+017F:0047467E  CALL   00403AC0   
+017F:00474683  MOV      EAX,EDI   
+017F:00474685  CALL   00403D3C     <- 取长度   
+017F:0047468A  TEST   AL,AL       <- al=8   
+017F:0047468C  JNA      004746D0     <- 不跳   
+017F:0047468E  MOV      [EBP-05],AL     <- [ebp-5]=8   
+017F:00474691  MOV      BL,01       <- bl=1，循环变量   
+017F:00474693  LEA      EAX,[EBP-0C]     <- 缓冲区   
+017F:00474696  XOR      EDX,EDX   
+017F:00474698  MOV      DL,BL   
+017F:0047469A  MOV      DL,[EDI+EDX-01]       <- dl=IrcA[i]   
+017F:0047469E  MOV      ECX,ESI       <- ecx=esi   
+017F:004746A0  SHR      ECX,08       <- ecx>>=8   
+017F:004746A3  XOR      DL,CL       <- dl^=cl   
+017F:004746A5  CALL   00403C64     <- 保存 edx 到缓冲区   
+017F:004746AA  MOV      EDX,[EBP-0C]   
+017F:004746AD  MOV      EAX,[EBP+08]   
+017F:004746B0  CALL   00403D44     <- strcat   
+017F:004746B5  MOV      EAX,[EBP+08]     <- 无用的指令，可能是为对齐   
+017F:004746B8  XOR      EAX,EAX   
+017F:004746BA  MOV      AL,BL   
+017F:004746BC  MOVZX   EAX,BYTE [EDI+EAX-01]   <- eax=IrcA[i]   
+017F:004746C1  ADD      ESI,EAX       <- esi+=eax   
+017F:004746C3  IMUL   ESI,[EBP-04]     <- esi*=0x3182   
+017F:004746C7  ADD      ESI,[EBP+0C]     <- esi+=0x8C33   
+017F:004746CA  INC      EBX   
+017F:004746CB  DEC      BYTE [EBP-05]   
+017F:004746CE  JNZ      00474693     <- 未完继续   
+...   
+```
+
+不清楚这一段是否可逆，可以描述为：
+
+```c
+int esi=0x3D5;
+char IrcA[8]="....";
+char IrcB[8];
+for(short i=0; i<8; i++) {
+    IrcB[i]=IrcA[i]^(esi>>8&0xFF);
+    esi+=IrcA[i];
+    esi*=0x3182;
+    esi+=0x8C33;
+}
+```
+
+#### (2) 继续看 `CALL 0040797C`
+
+```
+017F:0040797C  PUSH   EBX   
+017F:0040797D  PUSH   ECX   
+017F:0040797E  MOV      EBX,EDX   
+017F:00407980  MOV      EDX,ESP   
+017F:00407982  CALL   00402C40       <- trace into   
+017F:00407987  CMP      DWORD [ESP],BYTE +00   
+017F:0040798B  JZ      0040798F   
+017F:0040798D  MOV      EAX,EBX   
+017F:0040798F  POP      EDX   
+017F:00407990  POP      EBX   
+017F:00407991  RET    
+```
+
+> 简单起见，这段代码检查 `IrcB` 每个字符是否是数字，不是则失败，并将其转为 `int` 到 `eax`，结果要小于 `0x0CCCCCCC`：
+
+```
+017F:00402C40  PUSH   EBX   
+017F:00402C41  PUSH   ESI   
+017F:00402C42  PUSH   EDI   
+017F:00402C43  MOV      ESI,EAX   
+017F:00402C45  PUSH   EAX   
+```
+
+
+
+```
+017F:00402C46  TEST   EAX,EAX
+017F:00402C48  JZ     00402C9B
+017F:00402C4A  XOR    EAX,EAX
+017F:00402C4C  XOR    EBX,EBX
+017F:00402C4E  MOV    EDI,0CCCCCCC
+017F:00402C53  MOV    BL,[ESI]
+017F:00402C55  INC    ESI
+017F:00402C56  CMP    BL,20
+017F:00402C59  JZ     00402C53
+017F:00402C5B  MOV    CH,00
+017F:00402C5D  CMP    BL,2D
+017F:00402C60  JZ     00402CA7
+017F:00402C62  CMP    BL,2B
+017F:00402C65  JZ     00402CA9
+017F:00402C67  CMP    BL,24
+017F:00402C6A  JZ     00402CAE
+017F:00402C6C  TEST   BL,BL
+017F:00402C6E  JZ     00402CA2          <- 这里不能去
+
+017F:00402C70  SUB    BL,30
+017F:00402C73  CMP    BL,09            <- 是否为数字
+017F:00402C76  JA     00402CA2
+017F:00402C78  CMP    EAX,EDI          <- eax 不能比 edi 大
+017F:00402C7A  JA     00402CA2
+
+017F:00402C7C  LEA    EAX,[EAX+EAX*4]
+017F:00402C7F  ADD    EAX,EAX
+017F:00402C81  ADD    EAX,EBX          <- eax=eax*10+bl
+017F:00402C83  MOV    BL,[ESI]
+017F:00402C85  INC    ESI
+017F:00402C86  TEST   BL,BL
+017F:00402C88  JNZ    00402C70
+017F:00402C8A  DEC    CH
+017F:00402C8C  JZ     00402C9E
+017F:00402C8E  TEST   EAX,EAX
+017F:00402C90  JL     00402CA2
+017F:00402C92  POP    ECX
+017F:00402C93  XOR    ESI,ESI
+017F:00402C95  MOV    [EDX],ESI
+017F:00402C97  POP    EDI
+017F:00402C98  POP    ESI
+017F:00402C99  POP    EBX
+017F:00402C9A  RET
+
+017F:00402C9B  INC    ESI
+017F:00402C9C  JMP    SHORT 00402CA2
+017F:00402C9E  NEG    EAX
+017F:00402CA0  JNG    00402C92
+017F:00402CA2  POP    EBX
+017F:00402CA3  SUB    ESI,EBX
+017F:00402CA5  JMP    SHORT 00402C95
+017F:00402CA7  INC    CH
+017F:00402CA9  MOV    BL,[ESI]
+017F:00402CAB  INC    ESI
+017F:00402CAC  JMP    SHORT 00402C6C
+017F:00402CAE  MOV    EDI,0FFFFFFF
+017F:00402CB3  MOV    BL,[ESI]
+017F:00402CB5  INC    ESI
+017F:00402CB6  TEST   BL,BL
+017F:00402CB8  JZ     00402C9B
+017F:00402CBA  CMP    BL,61
+017F:00402CBD  JC     00402CC2
+017F:00402CBF  SUB    BL,20
+017F:00402CC2  SUB    BL,30
+017F:00402CC5  CMP    BL,09
+017F:00402CC8  JNA    00402CD5
+017F:00402CCA  SUB    BL,11
+017F:00402CCD  CMP    BL,05
+017F:00402CD0  JA     00402CA2
+017F:00402CD2  ADD    BL,0A
+017F:00402CD5  CMP    EAX,EDI
+017F:00402CD7  JA     00402CA2
+017F:00402CD9  SHL    EAX,04
+017F:00402CDC  ADD    EAX,EBX
+017F:00402CDE  MOV    BL,[ESI]
+017F:00402CE0  INC    ESI
+017F:00402CE1  TEST   BL,BL
+017F:00402CE3  JNZ    00402CBA
+017F:00402CE5  JMP    SHORT 00402C92
+```
+
+很明显，我们需要找一个数，能被 `122` 整除，比 `0x0CCCCCCC` 小，这个数作为 `IrcB`，反推出 `IrcA`，从而得到注册码。
+
+随机找到一个数：`95830268=0x5B640FC`，则 `IrcB[8]="95830268"`，将上面的程序稍动一下：
+
+```
+int esi=0x3D5;
+char IrcA[8];
+char IrcB[8]="95830268";
+for(short i=0; i<8; i++)
+{
+    IrcA[i]=IrcB[i]^(esi>>8&0xFF);
+    esi+=IrcA[i];
+    esi*=0x3182;
+    esi+=0x8C33;
+}
+```
+
+运行后得到注册码，注册通过。
+
+附：
+
+```
+//注册机，BCB 5.0 编译通过
+//---------------------------------------------------------------------------
+#include <vcl.h>
+//--- head added
+#include <iostream.h>
+#include <conio.h>
+#include <stdlib.h>
+//--- added stoped
+#pragma hdrstop
+
+//---------------------------------------------------------------------------
+
+#pragma argsused
+int main(int argc, char* argv[])
+{
+    int Acc=0x3D5;
+    unsigned int Nul=0;               //多余的变量防止出现符号扩展
+    char buff[100];
+    unsigned char IrcA[9];             //需要定义为 unsigned
+    char IrcB[9]="95830268";
+    cout<<"The Cleaner 3.2 Build 3213 KeyMaker"<<endl;
+    cout<<"cracked by Fpc/CCG&BCG"<<endl<<endl;;
+    cout<<"InPut Your Name: ";
+    cin>>buff;
+    cout<<"Your Code is  : ";
+    randomize();
+    Nul=122*rand()%819600;
+    sprintf(IrcB, "%08d", Nul);
+    for(short i=0; i<8; i++)
+    {
+        Nul=0;
+        IrcA[i]=IrcB[i]^((Acc>>8)&0xFF);
+        Nul=IrcA[i];
+        Acc+=Nul;
+        Acc*=0x3182;
+        Acc+=0x8C33;
+        sprintf(buff, "%02X", IrcA[i]);
+        cout<<buff;
+        if(i%2 && i!=7)
+        cout<<'-';
+    }
+    cout<<endl<<endl<<"any key to quit...";
+    getch();
+    return 0;
+}
+4dd466d0e1e0cc123afbe504da2462ca
+```

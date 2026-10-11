@@ -1,0 +1,547 @@
+
+# SitMan v2.0 beta
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue173.htm`](https://www.pediy.com/kssd/pediy04/kanxue173.htm)
+
+在看了上回的 SitMan v2.0 的注册机后，不会用，好像作者是写成 QB 的一个 `Function` 函数吧！:-)
+
+自己跟踪了一下，然后用 TC2.0 写了一个，支持中文注册名哟。
+
+下面是注册机：
+
+```
+===========================================
+
+#include <stdio.h>
+
+#include <math.h>
+
+main()
+
+{ int SL; /* edi is SL as NamestrLength */
+
+  unsigned long int ecx,esi,edi; /*这里一定要是 unsigned long int 型，否则将不支持中文注册名 */
+
+  unsigned long int edx,ebx,eax;  /*同上 */
+
+  unsigned char Namestr[20];      /*定义一个长 20 的数组来存放注册名,下面的数组是程序提供的一个字符串 */
+
+  static unsigned char Conststr[37]={'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','\0'};
+
+  unsigned char SNstr[19]={'h','s','F','9','8','0','2','1','4','m','e','e','t','M','i','s','s','Y'};/*假注册码 */
+
+  /* 这个假注册码的 4－9 位必需是数字，其它可以为数字也可为字母，我随便写了一个，由于这 4－9 位将是你 */
+
+　/* 的正确的注册码中的数字，而且它影响后面的 9 位注册码，你可以改成你喜欢的数字，而不用我的 */
+
+　/* 这个软件的注册码生成很怪吧？它先用你的注册名算出注册码的前 3 位，然后再用你的假注册码的 4－9 位 */
+
+　/* （一定要是数字）和前 3 位组成新的字符串来算出注册码的后 9 位，注册码一共是 18 位 */
+
+printf ("This is a CrAck program for ----\n    SitMan v2.0 Beta \n");
+
+input:
+
+printf("Your Name is: ");  /*  支持中文名，当然也支持英文名 */
+
+gets(Namestr);             /*得到你的注册名 */
+
+SL=strlen(Namestr);                 /* 注册名的长度 */
+
+if(SL<3)                              /* 注册名长度小于 3 ,提示重新输入 */
+
+{printf("Name 's Length MUST great than 3\n Try Again  ");
+
+goto input;};
+
+if (SL>20)
+
+{printf("Why you like such a long Name? \n Try Short Name Again  ");
+
+goto input;};
+
+/*开始计算你的注册码 */
+
+ecx=1 ; /* mov ecx,01 */
+
+esi=1 ; /* mov esi,01     b62f */
+
+do
+
+{
+
+ebx=1;/*mov ebx,01 */
+
+edi=SL; /* mov edi,eax */
+
+ecx=1; /* mov ecx,01 */
+
+/* b64c */do
+
+{
+
+eax=Namestr[ecx-1];
+
+eax=eax*ebx;
+
+edx=0;
+
+eax=eax+esi;
+
+eax=eax+ecx;
+
+ebx=0x165;
+
+edx=eax&0xffff0000;  /*cdq */
+
+/*edx=(int)eax%(int)ebx;eax=eax/ebx; */
+
+edx=eax-eax/ebx*ebx;
+
+ebx=edx;
+
+ecx=ecx+1;
+
+edi=edi-1;}
+
+while (edi>0);
+
+eax=ebx;
+
+ecx=0x24;
+
+edx=eax&0xffff0000; /*cdq */
+
+/*edx=(int)eax%(int)ecx;eax=eax/ecx;  idiv ecx */
+
+edx=eax-eax/ecx*ecx;
+
+eax=Conststr[edx];
+
+SNstr[esi-1]=eax;
+
+esi=esi+1;
+
+}while (esi<4); /* jnz b634 esi<4? */
+
+/*上面是计算你的注册码的前 3 位，下面的将计算你的注册码的后 9 位 */
+
+ebx=1;   /*mov ebx,01 */
+
+esi=10;  /*mov esi.0a */
+
+do{
+
+  ecx=1;
+
+  do{
+
+eax=SNstr[ecx-1];
+
+eax=eax*ebx; edx=0; /* imul ebx */
+
+eax=eax+ecx;
+
+eax=eax+esi;
+
+ebx=0x179;
+
+edx=eax&0xffff0000; /*cdq */
+
+edx=eax-eax/ebx*ebx;
+
+ebx=edx;
+
+ecx=ecx+1;}
+
+while(ecx<10);
+
+eax=ebx;
+
+ecx=0x24;
+
+edx=eax&0xffff0000; /*cdq */
+
+edx=eax-eax/ecx*ecx;
+
+eax=Conststr[edx];
+
+SNstr[esi-1]=eax;
+
+esi=esi+1;}
+
+while(esi<19);
+
+/*算完了，大功告成，打个 Kiss! */
+
+printf("Your SN is:%s \n ",SNstr);  /*这就是你的注册码 */
+
+printf("  \n Enjoy it! \n");
+
+printf("        ----Cracked By HSF(hsFang) 2001.10.28\n");
+
+}
+
+=============================================
+```
+
+        大功告成，打个 Kiss!
+
+                                      hsf0214
+
+### 标题: 有朋友劝我换个开发平台，换个 Win MASM 如何？再贴注册机（masmv5.2 编译），输入汉字不再麻烦，因为是 windows 下的注册机嘛！
+
+**内容:**
+
+没事到罗云彬同志的编程乐园 `http://asm.yeah.net` 上玩了一趟，看了会儿 windows 下的汇编编程方法，借了一个老的注册机的壳，花了一个下午的时间，改成了自己的，呵呵呵。。。
+
+这下输入汉字不再麻烦了吧。
+
+这下你们该满足了吧。。。
+
+```
+;****************************************
+
+    include c:\masm32\include\windows.inc
+
+    include c:\masm32\include\user32.inc
+
+    include c:\masm32\include\kernel32.inc
+
+    include c:\masm32\include\gdi32.inc
+
+    include c:\masm32\include\comctl32.inc
+
+    include c:\masm32\include\comdlg32.inc
+
+    include c:\masm32\include\shell32.inc
+
+    includelib c:\masm32\lib\user32.lib
+
+    includelib c:\masm32\lib\kernel32.lib
+
+    includelib c:\masm32\lib\gdi32.lib
+
+    includelib c:\masm32\lib\comctl32.lib
+
+    includelib c:\masm32\lib\comdlg32.lib
+
+    includelib c:\masm32\lib\shell32.lib
+
+＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+
+;****************************************
+```
+
+```
+#include <c:\masm32\include\resource.h>
+
+#define IDC_IN    1004
+
+#define ID_GEN    1003
+
+#define ID_EXIT  1002
+
+#define IDC_OUT  1001
+
+#define DLG_MAIN  1000
+
+DLG_MAIN DIALOG 37, 61, 282, 59
+
+STYLE DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+
+CAPTION "SitManv2.0 beta Keygen(in Win32 ASM), By HSF 10.31.2001"
+
+FONT 8, "MS Sans Serif"
+
+{
+
+DEFPUSHBUTTON "Generate", ID_GEN, 209, 14, 50, 14
+
+PUSHBUTTON "Exit", ID_EXIT, 209, 36, 50, 14
+
+LTEXT "NAME:", -1, 15, 8, 36, 8
+
+LTEXT "(Must>=3)",-1, 160,8,50,8
+
+LTEXT "COMPANY:", -1, 15, 25, 39, 8
+
+LTEXT "PRODUCT SN:", -1, 15, 43, 49, 10
+
+CONTROL "Kiss--Keep it simple and stupid",-1,"EDIT"  ES_READONLY | WS_BORDER | WS_TABSTOP, 67, 23, 100, 13
+
+EDITTEXT IDC_IN ,67, 6, 85, 13 , ES_MULTILINE | WS_BORDER | WS_TABSTOP,
+
+EDITTEXT IDC_OUT, 67, 42, 130, 12, ES_READONLY | WS_BORDER | WS_TABSTOP
+
+}
+```
+
+```
+;****************************************
+
+.386
+
+.model flat,stdcall
+
+option casemap:none
+
+include hd.h
+
+_ProcDlg proto :DWORD,:DWORD,:DWORD,:DWORD
+
+;Mycal proto :dword,:dword
+
+; rand proto :DWORD
+
+;->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>data seg
+
+        .data
+
+Namestr db 16h dup(?)
+
+Namelength db  ?
+
+Conststr db '0123456789abcdefghijklmnopqrstuvwxyz'  ;程序提供的一个字符串
+
+SNstr db  'hsf980214meetMissY' ;这个是假注册码,你可以改成自己的，但第 4－9 位一定要是数字
+
+        .data?
+
+hInstance  HANDLE ?
+
+        .const
+
+IDC_IN  equ  1004
+
+ID_GEN    equ  1003
+
+ID_EXIT equ    1002
+
+IDC_OUT equ    1001
+
+DLG_MAIN equ    1000
+
+ ;-->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>code seg
+
+        .code
+
+start:
+
+    invoke    GetModuleHandle,NULL
+
+    mov    hInstance,eax
+
+    invoke    DialogBoxParam,hInstance,DLG_MAIN,NULL,offset _ProcDlg,0
+
+    invoke    ExitProcess,NULL
+
+_ProcDlg    proc    uses ebx edi esi, \
+
+        hWnd:DWORD,wMsg:DWORD,wParam:DWORD,lParam:DWORD
+
+        mov    eax,wMsg
+
+        .if    eax == WM_CLOSE
+
+            invoke    EndDialog,hWnd,NULL
+
+        .elseif    eax == WM_COMMAND
+
+          mov eax,wParam
+
+          .IF lParam!=0
+
+            .if ax==ID_GEN
+
+            ; invoke RtlZeroMemory,addr SNstr,20h
+
+            invoke GetDlgItemText,hWnd,IDC_IN,addr Namestr,20h
+
+            invoke SetDlgItemText,hWnd,IDC_IN,addr Namestr
+
+            invoke lstrlen ,addr Namestr
+
+            mov Namelength,al
+
+            call Mycal
+
+            invoke SetDlgItemText,hWnd,IDC_OUT,addr SNstr
+
+            .elseif ax==ID_EXIT
+
+            invoke SendMessage,hWnd,WM_CLOSE,NULL,NULL
+
+            .endif
+
+          .ENDIF
+
+        .else
+
+        mov eax,FALSE
+
+        ret
+
+          .endif
+
+        mov eax,TRUE
+
+        ret
+
+_ProcDlg    ENDP
+
+ Mycal  proc
+
+  pushad
+
+  mov ecx,01
+
+  mov esi,01
+
+ localB634:
+
+  mov ebx,01
+
+  lea eax,Namelength
+
+  movzx edi,byte ptr [eax]
+
+  mov ecx,01
+
+ localB64C:
+
+  lea       EAX,  Namestr
+
+  MOVZX    EAX,BYTE ptr [EAX+ECX-01]
+
+  IMUL    EBX
+
+  ADD      EAX,ESI
+
+  ADD      EAX,ECX
+
+  MOV      EBX,0165h
+
+  CDQ
+
+  IDIV    EBX
+
+  MOV      EBX,EDX
+
+  INC      ECX
+
+  DEC      EDI
+
+  JNZ      localB64C
+
+  MOV      EAX,EBX
+
+  MOV      ECX,24h
+
+  CDQ
+
+  IDIV    ECX
+
+  lea      EAX,  Conststr
+
+  MOV      AL,[EAX+EDX]
+
+  mov      dl,al
+
+  lea      EaX, SNstr
+
+  mov      [eax+esi-01],dl
+
+  INC      ESI
+
+  CMP      ESI,BYTE +03
+```
+
+
+
+```asm
+    JNZ       localB634     
+    
+    MOV       EBX,01   
+    
+    MOV       ESI,0Ah   
+    
+localB693:   
+    
+    MOV       ECX,01   
+    
+localB698:   
+    
+    lea       eax,  SNstr   
+    
+    MOVZX      EAX,BYTE ptr [EAX+ECX-01]   
+    
+    IMUL      EBX         
+    
+    ADD       EAX,ECX   
+    
+    ADD       EAX,ESI   
+    
+    MOV       EBX,0179h   
+    
+    CDQ                 
+    
+    IDIV      EBX   
+    
+    MOV       EBX,EDX   
+    
+    INC       ECX         
+    
+    CMP       ECX,BYTE +09h   
+    
+    JNZ       localB698   
+    
+    MOV       EAX,EBX   
+    
+    MOV       ECX,24h         
+    
+    CDQ   
+    
+    IDIV      ECX   
+    
+    lea       eax,  Conststr   
+    
+    MOV       AL,[EAX+EDX]   
+    
+    mov       dl,al   
+    
+    lea       EaX,SNstr   
+    
+    mov       [eax+esi-01],dl   
+    
+    INC       ESI           
+    
+    CMP       ESI,BYTE +12h   
+    
+    JNZ       localB693   
+    
+    popad   
+    
+    ret   
+    
+Mycal  ENDP   
+   
+end start   
+```
+————————————————————————————————
+
+把这三部分分别存为`hd.h`, `snsitman.rc`, `snsitman.asm`，然后在`masmv5.2`下编译，生成注册机`snsitman.exe`。
+
+使用时注意：
+
+1. `name`一定不能为空，否则会出错！！！
+2. `name`长度要大于等于 3，小于等于 20。我已在界面上提示要大于等于 3，至于要小于等于 20，我提供的文本框只够输入 20 个字符，所以不怕你多输入，就怕你少输入或不输入。呵呵呵。。。
+3. 由于这个软件的注册码生成的特殊性，我在注册机内是事先放了一个假的注册码让程序去计算真的注册码，这个假注册码你可以自己在源程序中修改。但第 4－9 位一定要是数字，其它是数字或字母都可以，没有特别的要求。
+
+这个注册机做好了是好用，可以直接在`window`下运行，输入汉字不再麻烦了，可这个注册机要做出来可不容易，我花了好久才把`masmv5.2`设置好，学会怎么来编译，链接，和生成`exe`文件...倒底谁麻烦？？？
+
+好了，大功告成，打个 Kiss!
+
+`hsf0214` 于 2001.10.31. 下午
+
+`4dd466d0e1e0cc123afbe504da2462ca`

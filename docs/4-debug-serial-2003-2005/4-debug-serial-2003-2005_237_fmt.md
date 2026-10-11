@@ -1,0 +1,96 @@
+
+# Readbook 1.42
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6783.htm`](https://www.pediy.com/kssd/pediy06/pediy6783.htm)
+
+1. 用 `fi` 查看，其是用 `VC 6.0` 编写，无壳。
+
+2. 用 `W32Dasm` 反汇编，发现关键函数 `loadresource`。
+
+   ```assembly
+   bpx loadresource
+   40a160 cmp [ebp-8],esi ;ebp-8 是我输入的假码，esi 中是真码！
+   40a163 jz 40a182 ;
+   ```
+
+3. `flt 3444902694`
+
+   注册成功会在 `readbook.ini` 的 `[File]` 中写入相应的值，删除其内容后又变成未注册了 :)
+
+   `User=flt`
+   `Register=848598617` ?为什么不是 3444902694 我没深思过 :(
+
+4. 算法分析
+
+   ```assembly
+   016F:0040A089     LEA       EAX,[EBP-00BC]
+   016F:0040A08F     PUSH      EAX ;eax 中是注册名
+   016F:0040A090     CALL      00434386 ;!注册名以 ASCII 码 00 结束
+   016F:0040A095     MOV       EAX,[EBP-00B4] ;将输入的注册名 4 个字节一组
+   016F:0040A09B     MOV       ECX,[EBP-00B8] ;空格为 20H,最多四组。
+   016F:0040A0A1     MOV       ESI,[EBP-00BC] ;将第二组,第三组和第四组相加
+   016F:0040A0A7     ADD       ECX,EAX ;然后*7531-->ecx,
+   016F:0040A0A9     ADD       ECX,[EBP-00B0]
+   016F:0040A0AF     IMUL      ESI,ESI,00007531 ;将第一组*7531，-->esi
+   016F:0040A0B5     IMUL      ECX,ECX,00007531 ;esi-ecx 的值就是注册码！
+   016F:0040A0BB     MOV       DWORD PTR [ESP],0046430C
+   016F:0040A0C2     PUSH      000000B5 ;记得将结果转换成 10 进制数^^
+   016F:0040A0C7     PUSH      EBX
+   016F:0040A0C8     SUB       ESI,ECX
+   016F:0040A0CA     CALL      [KERNEL32!FindResourceA]
+   016F:0040A0D0     PUSH      EAX
+   016F:0040A0D1     PUSH      EBX
+   016F:0040A0D2     CALL      [KERNEL32!LoadResource]
+   016F:0040A0D8     PUSH      00464894
+   016F:0040A0DD     PUSH      EDI
+   016F:0040A0DE     MOV       [EBP-14],EAX
+   016F:0040A0E1     CALL      004173D8
+   016F:0040A0E6     PUSH      00464880
+   ```
+
+   `flt-------66 6c 74` 注册名以 `ASCII` 码 `00` 结束
+
+   ```text
+   00 74 6c 66  20 20 20 20  20 20 20 20  20 20 20 20
+   -----------  ----------   -----------  -----------
+   A  B  C  D
+   ```
+
+   注册码 = `A*7531-(B+C+D)*7531`
+
+   `=746c66*7531-60606060*7531`
+   `=4BD35D86-7E7E5260`
+   `=CD550B26H`,转为 10 进制 `3444902694`
+
+   记住乘法运算只取 32 位，4 个字节的数据!
+
+5. 附 C 语言注册机
+
+   ```c
+   #include <stdio.h>
+   #include <string.h>
+
+   main()
+   {
+       int len,i,j,m,n,temp;
+       char str[15];
+       unsigned long reg,*p,a,b,c,d;
+       printf("\n\nYshsoft(R) little Program ver 1.0\n ");
+       printf("       (C)Copryright Yshsoft Corp 2001-2004.\n");
+       printf("\nEnter a name (less than 16 char):");
+       scanf("%s",&str);
+       len=strlen(str);    /*输入的字符不足 16 个字节的用空格填 20H */
+       for(i=len+1;i<=15;i++)
+           str[i]=' ';
+       p=str;
+       a=*p; /*取第 1 组数*/
+       b=*(p+1); /*取第 2 组数*/
+       c=*(p+2); /*取第 3 组数*/
+       d=*(p+3); /*取第 4 组数*/
+       a*=0x7531;
+       reg=a-(b+c+d)*0x7531;
+       printf("The regeister code is: %lu ,and good lunck ^^!\n",reg);
+   }
+   ```
+
+   `4dd466d0e1e0cc123afbe504da2462ca`

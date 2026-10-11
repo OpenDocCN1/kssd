@@ -1,0 +1,488 @@
+
+# ezConverter V1.0.596 Build 2003.04.24
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50672.htm`](https://www.pediy.com/kssd/pediy05/pediy50672.htm)
+
+下载页面： [`www.skycn.com/soft/11099.html`](http://www.skycn.com/soft/11099.html)
+
+软件大小： 591 KB
+
+软件语言： 简体中文
+
+软件类别： 国产软件 / 共享版 / 音频转换
+
+应用平台： `Win9x/NT/2000/XP`
+
+加入时间： 2003-04-25 09:51:42
+
+下载次数： 11062
+
+推荐等级： \*\*\*
+
+开 发 商： [`www.goldlimit.com/`](http://www.goldlimit.com/)
+
+【软件简介】： 1: 支持的格式多,可将 `asf`,`wmv`,`wma`,`wav`,`mp3`、`mpeg`,`dat`,`dvd`,`avi`、cd 音轨,磁带,话筒等 转换为：`wma`,`mp3`,`wav` 及 20 多种音频格式；2: 可从音频硬件采集声音(包括话筒,线路输入,混音器、磁带等)然后存为 20 多种格式,你甚至可以将录音机里的广播录制到电脑里并存成 `mp3` 文件！ 3: 完全支持第三方免费编解码器，将你电脑潜在的转换，功能发挥到极致。 4: 速度极快,比一般的转换器快出 30%； 5: 没有复杂的操作,极易使用。
+
+【软件限制】：`NAG`、试用 30 次。
+
+【作者声明】：初学 Crack，只是感兴趣，没有其它目的。失误之处敬请诸位大侠赐教！
+
+【破解工具】：`TRW2000` 娃娃修改版、`Ollydbg1.09`、`PEiD`、`W32Dasm` 9.0 白金版
+
+***
+
+【过 程】：
+
+`ezConverter.exe` 无壳。 `Visual C++` 6.0 编写。
+
+软件把试炼码保存在同目录下的 `erf.dat` 文件中重启时验证，简单的方法是在反汇编代码里查找蛛丝马迹。
+
+注册名：`flysky` （提示要求至少 6 位）
+
+试炼码：`13572468`
+
+***
+
+```
+* Reference To: KERNEL32.FreeLibrary, Ord:00B4h
+                                |
+:00404EBA FF1534D04000          Call dword ptr [0040D034]
+:00404EC0 83CDFF                or ebp, FFFFFFFF
+:00404EC3 8D7C2440              lea edi, dword ptr [esp+40]
+                                ==== >EDI=flysky             注册名
+
+:00404EC7 8BCD                  mov ecx, ebp
+:00404EC9 33C0                  xor eax, eax
+:00404ECB F2                    repnz
+:00404ECC AE                    scasb
+:00404ECD F7D1                  not ecx
+:00404ECF 49                    dec ecx
+                                ==== >取用户名长度 ECX=6
+
+:00404ED0 83F901                cmp ecx, 00000001
+:00404ED3 0F82BC010000          jb 00405095
+:00404ED9 8D7C2464              lea edi, dword ptr [esp+64]
+                                ==== >EDI=13572468           试炼码
+
+:00404EDD 8BCD                  mov ecx, ebp
+:00404EDF F2                    repnz
+:00404EE0 AE                    scasb
+:00404EE1 F7D1                  not ecx
+:00404EE3 49                    dec ecx
+:00404EE4 83F901                cmp ecx, 00000001
+:00404EE7 0F82A8010000          jb 00405095
+:00404EED 8D7C2440              lea edi, dword ptr [esp+40]
+:00404EF1 8BCD                  mov ecx, ebp
+:00404EF3 F2                    repnz
+:00404EF4 AE                    scasb
+
+* Reference To: USER32.CharUpperA, Ord:002Fh
+                                |
+:00404EF5 8B1D9CD44000          mov ebx, dword ptr [0040D49C]
+:00404EFB 8BF5                  mov esi, ebp
+:00404EFD F7D1                  not ecx
+:00404EFF 49                    dec ecx
+:00404F00 8BF9                  mov edi, ecx
+:00404F02 8D4C2440              lea ecx, dword ptr [esp+40]
+:00404F06 51                    push ecx
+:00404F07 FFD3                  call ebx
+                                ==== >EDI=把 flysky 转化为大写 FLYSKY
+
+:00404F09 33C9                  xor ecx, ecx
+:00404F0B 85FF                  test edi, edi
+:00404F0D 7E6B                  jle 00404F7A
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00404F75(C)
+|
+:00404F0F 8BC1                  mov eax, ecx
+                                ==== >从 0 开始计数。与 3 求模，根据余数值进行相应运算。
+
+:00404F11 BD03000000            mov ebp, 00000003
+                                ==== >EBP=3
+
+:00404F16 99                    cdq
+:00404F17 F7FD                  idiv ebp
+:00404F19 46                    inc esi
+:00404F1A 85D2                  test edx, edx
+:00404F1C 7517                  jne 00404F35
+                                ==== >余数不为 0 就跳
+
+:00404F1E 8A440C40              mov al, byte ptr [esp+ecx+40]
+                                ==== >EDI=[esp+ecx+40]=FLYSKY
+
+:00404F22 0FBED0                movsx edx, al
+:00404F25 83EA05                sub edx, 00000005
+:00404F28 83FA41                cmp edx, 00000041
+:00404F2B 7E04                  jle 00404F31
+                                ==== >-5 后不大于 41 则跳跳下去+5
+
+:00404F2D 2C05                  sub al, 05
+                                ==== >第 4 位此处-5      即：循环计数的第 3 次
+                                4、    ==== >AL=53 - 5=4E    即：N
+
+:00404F2F EB3A                  jmp 00404F6B
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00404F2B(C)
+|
+:00404F31 0405                  add al, 05
+                                ==== >第 1 位此处加 5
+
+                                1、    ==== >AL=46 + 5=4B    即：K
+
+:00404F33 EB36                  jmp 00404F6B
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00404F1C(C)
+|
+:00404F35 83FA01                cmp edx, 00000001
+:00404F38 7517                  jne 00404F51
+:00404F3A 8A440C40              mov al, byte ptr [esp+ecx+40]
+:00404F3E 0FBED0                movsx edx, al
+:00404F41 83C207                add edx, 00000007
+:00404F44 83FA5A                cmp edx, 0000005A
+:00404F47 7D04                  jge 00404F4D
+                                ==== >+7 后不小于 5A 则跳跳下去-7
+
+:00404F49 0407                  add al, 07
+                                ==== >第 2、5 位此处加 7
+
+                                2、    ==== >AL=4C + 7=53    即：S
+                                5、    ==== >AL=4B + 7=52    即：R
+
+:00404F4B EB1E                  jmp 00404F6B
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00404F47(C)
+|
+:00404F4D 2C07                  sub al, 07
+:00404F4F EB1A                  jmp 00404F6B
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00404F38(C)
+|
+:00404F51 83FA02                cmp edx, 00000002
+:00404F54 751C                  jne 00404F72
+:00404F56 8A440C40              mov al, byte ptr [esp+ecx+40]
+:00404F5A 0FBED0                movsx edx, al
+:00404F5D 83EA09                sub edx, 00000009
+:00404F60 83FA41                cmp edx, 00000041
+:00404F63 7E04                  jle 00404F69
+                                ==== >-9 后不大于 41 则跳下去+9
+
+:00404F65 2C09                  sub al, 09
+                                ==== >第 3、6 位此处-9
+
+                                3、    ==== >AL=59 - 9=50    即：P
+                                6、    ==== >AL=59 - 9=50    即：P
+
+:00404F67 EB02                  jmp 00404F6B
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00404F63(C)
+|
+:00404F69 0409                  add al, 09
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:00404F2F(U), :00404F33(U), :00404F4B(U), :00404F4F(U), :00404F67(U)
+|
+:00404F6B 88843488000000        mov byte ptr [esp+esi+00000088], al
+                                ==== >保存结果      FLYSKY 转化为 KSPNRP
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00404F54(C)
+|
+:00404F72 41                    inc ecx
+:00404F73 3BCF                  cmp ecx, edi
+:00404F75 7C98                  jl 00404F0F
+                                ==== >循环
+
+:00404F77 83CDFF                or ebp, FFFFFFFF
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00404F0D(C)
+|
+:00404F7A DD05D8DD4000          fld qword ptr [0040DDD8]
+:00404F80 33C0                  xor eax, eax
+:00404F82 85F6                  test esi, esi
+                                ==== >ESI=5
+
+:00404F84 7E17                  jle 00404F9D
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00404F9B(C)
+|
+:00404F86 0FBE8C0488000000      movsx ecx, byte ptr [esp+eax+00000088]
+                                ==== >依次取 KSPNRP 字符 HEX 值的 10 进制值
+
+:00404F8E 894C2414              mov dword ptr [esp+14], ecx
+:00404F92 40                    inc eax
+```
+
+
+
+```
+:00404F93 DB442414                  fild dword ptr [esp+14]  
+                                     ==>EAX 增 1
+:00404F97 3BC6                      cmp eax, esi  
+                                     ==>EAX 已增 1，所以只取前 5 位的值累加
+:00404F99 DEC1                      faddp st(1), st(0)  
+                                     ==>其实是浮点数累加  
+                                     ==>st(0)=75+83+80+78+82=398.00000000000000000
+:00404F9B 7CE9                      jl 00404F86  
+                                     ==>循环
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:00404F84(C)  
+|  
+
+```
+:00404F9D D9C0                      fld st(0), st(0)  
+:00404F9F D9FE                      fsin  
+                                     ==>取 SIN 值 398.00000000000000000=0.8317580087191733248
+:00404FA1 D9FF                      fcos  
+                                     ==>取 COS 值 0.8317580087191733248=0.6735774280714966016
+:00404FA3 D9FE                      fsin  
+                                     ==>取 SIN 值 0.6735774280714966016=0.6237860730035777536
+:00404FA5 D9FF                      fcos  
+                                     ==>取 COS 值 0.6237860730035777536=0.8116727871807730688
+:00404FA7 D9FE                      fsin  
+                                     ==>取 SIN 值 0.8116727871807730688=0.7254395446159557632
+:00404FA9 DD542414                  fst qword ptr [esp+14]  
+:00404FAD DC1DD8DD4000              fcomp qword ptr [0040DDD8]  
+:00404FB3 DFE0                      fstsw ax  
+:00404FB5 F6C401                   test ah, 01  
+:00404FB8 7423                      je 00404FDD  
+                                     ==>跳了下去 这个测试不清楚。
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:00404FDB(C)  
+|  
+
+```
+:00404FBA DC0DD0DD4000              fmul qword ptr [0040DDD0]  
+:00404FC0 D9C0                      fld st(0), st(0)  
+:00404FC2 D9FE                      fsin  
+:00404FC4 D9FF                      fcos  
+:00404FC6 D9FE                      fsin  
+:00404FC8 D9FF                      fcos  
+:00404FCA D9FE                      fsin  
+:00404FCC DD542414                  fst qword ptr [esp+14]  
+:00404FD0 DC1DD8DD4000              fcomp qword ptr [0040DDD8]  
+:00404FD6 DFE0                      fstsw ax  
+:00404FD8 F6C401                   test ah, 01  
+:00404FDB 75DD                      jne 00404FBA
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:00404FB8(C)  
+|  
+
+```
+:00404FDD 8B542418                  mov edx, dword ptr [esp+18]  
+:00404FE1 8B442414                  mov eax, dword ptr [esp+14]  
+:00404FE5 52                        push edx  
+:00404FE6 50                        push eax  
+:00404FE7 8D8C24E0000000            lea ecx, dword ptr [esp+000000E0]
+
+* Possible StringData Ref from Data Obj ->"%.14f"  
+                                     |
+:00404FEE 6874134100                push 00411374  
+:00404FF3 51                        push ecx  
+:00404FF4 DDD8                      fstp st(0)
+
+* Reference To: MSVCRT.sprintf, Ord:02B2h  
+                                     |
+:00404FF6 FF1528D44000              Call dword ptr [0040D428]  
+                                     ==>四舍五入取 0.7254395446159557632 的前 16 位
+:00404FFC 8DBC24E8000000            lea edi, dword ptr [esp+000000E8]  
+                                     ==>EDI=0.72543954461596
+:00405003 8BCD                      mov ecx, ebp  
+:00405005 33C0                      xor eax, eax  
+:00405007 83C410                    add esp, 00000010  
+:0040500A 33D2                      xor edx, edx  
+:0040500C F2                       repnz  
+:0040500D AE                        scasb  
+:0040500E F7D1                     not ecx  
+:00405010 49                       dec ecx  
+:00405011 83E902                    sub ecx, 00000002  
+:00405014 7427                      je 0040503D
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:0040503B(C)  
+|  
+
+```
+:00405016 8A8414DA000000            mov al, byte ptr [esp+edx+000000DA]  
+                                     ==>依次取 0.725439544615956 小数点后字符的 HEX 值
+:0040501D 8DBC24D8000000            lea edi, dword ptr [esp+000000D8]  
+:00405024 0441                      add al, 41  
+                                     ==>依次+41 只记 5 位了，因为后面只取 5 位。即：用户名位数-1  
+                                     1、    ==>37 + 41=78    即：x  
+                                     2、    ==>32 + 41=73    即：s  
+                                     3、    ==>35 + 41=76    即：v  
+                                     4、    ==>34 + 41=75    即：u  
+                                     5、    ==>33 + 41=74    即：t
+:00405026 8BCD                      mov ecx, ebp  
+:00405028 88841488000000            mov byte ptr [esp+edx+00000088], al  
+                                     ==>保存在 [esp+edx+00000088]
+:0040502F 33C0                      xor eax, eax  
+:00405031 42                       inc edx  
+:00405032 F2                       repnz  
+:00405033 AE                       scasb  
+:00405034 F7D1                     not ecx  
+:00405036 83C1FD                    add ecx, FFFFFFFD  
+:00405039 3BD1                      cmp edx, ecx  
+:0040503B 72D9                      jb 00405016  
+                                     ==>循环
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:00405014(C)  
+|  
+
+```
+:0040503D 8D8C2488000000            lea ecx, dword ptr [esp+00000088]  
+:00405044 C684348800000000           mov byte ptr [esp+esi+00000088], 00  
+                                     ==>多于 5 位的换成 00 了。只取用户名位数-1
+:0040504C 51                        push ecx  
+                                     ==>ECX=xsvut
+:0040504D FFD3                      call ebx  
+                                     ==>把 xsvut 转换成大写字母 XSVUT
+:0040504F 8D7C2464                  lea edi, dword ptr [esp+64]  
+                                     ==>EDI=13572468           试炼码
+:00405053 8BCD                      mov ecx, ebp  
+:00405055 33C0                      xor eax, eax  
+:00405057 8DB42488000000            lea esi, dword ptr [esp+00000088]  
+                                     ==>ESI=XSVUT               注册码
+:0040505E F2                       repnz  
+:0040505F AE                       scasb  
+:00405060 F7D1                     not ecx  
+:00405062 49                       dec ecx  
+:00405063 8D7C2464                  lea edi, dword ptr [esp+64]  
+:00405067 33D2                      xor edx, edx  
+:00405069 89AC2430010000            mov dword ptr [esp+00000130], ebp  
+:00405070 F3                       repz  
+:00405071 A6                       cmpsb  
+                                     ==>逐位比较。有一处不同就 OVER 了。
+:00405072 8D4C2410                  lea ecx, dword ptr [esp+10]  
+:00405076 7528                      jne 004050A0  
+                                     ==>跳则 OVER！
+```
+
+* Reference To: MFC42.Ordinal:0320, Ord:0320h  
+|  
+```
+:00405078 E8D3640000                Call 0040B550  
+:0040507D B001                      mov al, 01  
+                                     ==>置 1 则 OK！
+:0040507F 8B8C2428010000            mov ecx, dword ptr [esp+00000128]  
+:00405086 64890D00000000            mov dword ptr fs:[00000000], ecx  
+:0040508D 5F                        pop edi  
+:0040508E 5E                        pop esi  
+:0040508F 5D                        pop ebp  
+:00405090 5B                        pop ebx  
+:00405091 8BE5                      mov esp, ebp  
+:00405093 5D                        pop ebp  
+:00405094 C3                        ret
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
+|:00404ED3(C), :00404EE7(C)  
+|  
+```
+:00405095 89AC2430010000            mov dword ptr [esp+00000130], ebp
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:00404E0A(U)  
+|  
+```
+:0040509C 8D4C2410                  lea ecx, dword ptr [esp+10]
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+|:00405076(C)  
+|
+
+* Reference To: MFC42.Ordinal:0320, Ord:0320h  
+|  
+```
+:004050A0 E8AB640000                Call 0040B550
+```
+
+
+
+*   Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+```
+|:00404D86(C)
+|
+:004050A5 8B8C2428010000        mov ecx, dword ptr [esp+00000128]
+:004050AC 5F                     pop edi
+:004050AD 32C0                   xor al, al
+                                 ==== > 清 0 则 OVER！爆破点！
+:004050AF 64890D00000000        mov dword ptr fs:[00000000], ecx
+:004050B6 5E                     pop esi
+:004050B7 5D                     pop ebp
+:004050B8 5B                     pop ebx
+:004050B9 8BE5                   mov esp, ebp
+:004050BB 5D                     pop ebp
+:004050BC C3                     ret
+```
+
+---
+
+**【完美爆破】：**
+
+```
+004050AD   32C0     xor al, al
+改为：    B001      mov al, 01
+```
+与 `0040507D` 处相映成趣！让其永远返回 1。
+
+---
+
+**【KeyMake 之{74th}内存注册机】：**
+
+*   中断地址：`00405067`
+*   中断次数：`1`
+*   第一字节：`33`
+*   指令长度：`2`
+*   内存方式：`ESI`
+
+---
+
+**【注册信息保存】：**
+
+同目录下的 `erf.dat` 文件中。
+
+---
+
+**【整理】：**
+
+*   注册名：`flysky`
+*   注册号：`XSVUT`
+
+---
+
+```
+       ,     _/
+       /| \_.-~/           \\_     ,          青春都一饷
+       ( /~   /              ~-. |\\
+       \\   _/                   \   ~\ )          忍把浮名
+       _-~~~-.)  )__/;;,.        \\_  //'
+    '/_\,\   --~   \ ~~~-  ,;;____ (.-~~~-.       换了破解轻狂
+   `~ _( ,_..--\ (    ,;'' /    ~--   /._\`
+    /~~//'    /' \`~        ) /--..\_, )_  `~
+    "  `~"  "     `"       /~'\`   \\~~\
+                           "     "   "~'  ""
+```
+
+                Cracked By 巢水工作坊——fly [OCN][FCG]
+
+                             2003-04-28  23:31  `4dd466d0e1e0cc123afbe504da2462ca`

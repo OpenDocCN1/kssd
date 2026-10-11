@@ -1,0 +1,600 @@
+
+# ResTools
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue432.htm`](https://www.pediy.com/kssd/pediy04/kanxue432.htm)
+
+今天无意中发现 `ResTools` 的四个软件：`ResScope1.35`、`freeRes0.94`、`HexEdit0.20`、`GetVBRes0.51` 都还不错。
+
+全部下载进行研究，凭我以前用过 `freeRes0.94` 的经验，知道这些软件都需要输入四○位的注册码〔太恐怖，手都要打麻了！〕这次我就不再找注册码了，直接修改软件，免得我每次输的麻烦。
+
+下面开始一个个的开刀！
+
+第一个是 `ResScope1.35`，发现是用 `ASPack` 加的壳，轻松干掉。
+
+脱壳后用 `W32Dasm` 打开 `ResScope.exe`，查找字串 `"regcode"` 找到以下代码：
+
+```
+* Possible StringData Ref from Code Obj ->"regcode"…………………………向下看↓↓↓
+
+                        |
+
+:004B9B4E BA249C4B00              mov edx, 004B9C24
+:004B9B53 8B45F8                  mov eax, dword ptr [ebp-08]
+:004B9B56 E80DFAFFFF              call 004B9568
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:004B9B49(C)
+|
+:004B9B5B 8B45F0                  mov eax, dword ptr [ebp-10]
+:004B9B5E E87DA3F4FF              call 00403EE0
+:004B9B63 83F828                  cmp eax, 00000028…………………………这里是比较你输入的注册码是否为四○位〔28 转换十进制为 40〕。
+:004B9B66 7538                    jne 004B9BA0…………………………注册码不是四○位就跳走。
+:004B9B68 8B45F4                  mov eax, dword ptr [ebp-0C]
+:004B9B6B E870A3F4FF              call 00403EE0
+:004B9B70 85C0                    test eax, eax
+:004B9B72 7E2C                    jle 004B9BA0
+:004B9B74 68338C0000              push 00008C33
+:004B9B79 8D45EC                  lea eax, dword ptr [ebp-14]
+:004B9B7C 50                      push eax
+:004B9B7D B982310000              mov ecx, 00003182
+:004B9B82 BAD5030000              mov edx, 000003D5
+:004B9B87 8B45F4                  mov eax, dword ptr [ebp-0C]
+:004B9B8A E80DFCFFFF              call 004B979C
+:004B9B8F 8B45EC                  mov eax, dword ptr [ebp-14]
+:004B9B92 8B55F0                  mov edx, dword ptr [ebp-10]
+:004B9B95 E856A4F4FF              call 00403FF0
+:004B9B9A 7504                    jne 004B9BA0…………………………这个数字和上面注册码不为四○位时跳到地方一样，不用说当然是跳到注册失败的位置。
+:004B9B9C C645FF01                mov [ebp-01], 01
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:004B9B03(C), :004B9B66(C), :004B9B72(C), :004B9B9A(C)
+|
+:004B9BA0 33C0                    xor eax, eax
+:004B9BA2 5A                      pop edx
+:004B9BA3 59                      pop ecx
+:004B9BA4 59                      pop ecx
+:004B9BA5 648910                  mov dword ptr fs:[eax], edx
+:004B9BA8 68BD9B4B00              push 004B9BBD
+```
+
+看来这个程序的注册码有四○位之多，即便是找到正确的注册码抄下来也要累得半死。干脆让它什么码都认多省事！嘻嘻
+
+决定将上面两个跳给它 `NOP` 掉！这样随意输入用户名和若干位注册码〔包括零位注册码－就是不输注册码〕
+
+于是用 `UltraEdit` 将上面两个跳转 `7538` 和 `7504` 都改为 `9090`，现在输入任意用户名都可以成功注册了！
+
+注意看中间还有个跳：
+
+```
+:004B9B72 7E2C                    jle 004B9BA0
+```
+
+这也是跳到注册失败的位置，这里也可以 `NOP` 调，不过这里改了后就没有输入注册信息的乐趣了！
+
+现在试试，随意填入注册信息，哈，注册成功！
+
+搞定第一个，下面几个想必大同小异吧！
+
+下面就拿 `GetVBRes0.51` 开刀了！
+
+还是那种壳，轻松搞定！
+
+脱壳后用 `W32Dasm` 打开 `GetVBRes.exe`，还是查找字串 `"regcode"` 找到以下代码：
+
+```
+* Possible StringData Ref from Code Obj ->"regcode"…………………………向下看↓↓↓
+
+                        |
+
+:0049AE74 BAA8AF4900              mov edx, 0049AFA8
+:0049AE79 8B45F8                  mov eax, dword ptr [ebp-08]
+:0049AE7C E8BFA3FCFF              call 00465240
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0049AE6F(C)
+|
+:0049AE81 8B45F0                  mov eax, dword ptr [ebp-10]
+:0049AE84 E83B8FF6FF              call 00403DC4
+:0049AE89 83F828                  cmp eax, 00000028…………………………这里是比较你输入的注册码是否为四○位〔28 转换十进制为 40〕。
+:0049AE8C 0F8591000000             jne 0049AF23…………………………注册码不是四○位就跳走。
+:0049AE92 8B45F4                  mov eax, dword ptr [ebp-0C]
+:0049AE95 E82A8FF6FF              call 00403DC4
+:0049AE9A 85C0                    test eax, eax
+:0049AE9C 0F8E81000000             jle 0049AF23
+:0049AEA2 68368C0000              push 00008C36
+:0049AEA7 8D45EC                  lea eax, dword ptr [ebp-14]
+:0049AEAA 50                      push eax
+:0049AEAB B985310000              mov ecx, 00003185
+:0049AEB0 BAD8030000              mov edx, 000003D8
+:0049AEB5 8B45F4                  mov eax, dword ptr [ebp-0C]
+:0049AEB8 E847FBFFFF              call 0049AA04
+:0049AEBD 8B55EC                  mov edx, dword ptr [ebp-14]
+:0049AEC0 8D45F4                  lea eax, dword ptr [ebp-0C]
+:0049AEC3 E8148DF6FF              call 00403BDC
+:0049AEC8 8D55E8                  lea edx, dword ptr [ebp-18]
+:0049AECB 8B45F4                  mov eax, dword ptr [ebp-0C]
+:0049AECE E8C1F9FFFF              call 0049A894
+:0049AED3 8B45E8                  mov eax, dword ptr [ebp-18]
+:0049AED6 8B55F0                  mov edx, dword ptr [ebp-10]
+:0049AED9 E8F68FF6FF              call 00403ED4
+:0049AEDE 750C                    jne 0049AEEC…………………………别看走了眼，不是这里！这里可不能 NOP 掉，不然就没得玩了。
+:0049AEE0 A1F0CA4A00              mov eax, dword ptr [004ACAF0]
+:0049AEE5 8B00                    mov eax, dword ptr [eax]
+:0049AEE7 E85CFEFAFF              call 0044AD48
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0049AEDE(C)
+|
+:0049AEEC 68368C0000              push 00008C36
+:0049AEF1 8D45E4                  lea eax, dword ptr [ebp-1C]
+:0049AEF4 50                      push eax
+:0049AEF5 B985310000              mov ecx, 00003185
+:0049AEFA BAD8030000              mov edx, 000003D8
+:0049AEFF 8B45F0                  mov eax, dword ptr [ebp-10]
+:0049AF02 E8EDF8FFFF              call 0049A7F4
+:0049AF07 8B55E4                  mov edx, dword ptr [ebp-1C]
+:0049AF0A 8D45F0                  lea eax, dword ptr [ebp-10]
+:0049AF0D E8CA8CF6FF              call 00403BDC
+:0049AF12 8B45F4                  mov eax, dword ptr [ebp-0C]
+:0049AF15 8B55F0                  mov edx, dword ptr [ebp-10]
+:0049AF18 E8B78FF6FF              call 00403ED4
+:0049AF1D 7504                    jne 0049AF23…………………………这个数字和上面注册码不为四○位时跳到地方一样，不用说当然是跳到注册失败的位置。
+:0049AF1F C645FF01                mov [ebp-01], 01
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:0049AE29(C), :0049AE8C(C), :0049AE9C(C), :0049AF1D(C)
+|
+:0049AF23 33C0                    xor eax, eax
+:0049AF25 5A                      pop edx
+:0049AF26 59                      pop ecx
+:0049AF27 59                      pop ecx
+:0049AF28 648910                  mov dword ptr fs:[eax], edx
+:0049AF2B 6840AF4900              push 0049AF40
+```
+
+一样的，连我的注释都不用改！
+
+再用 `UltraEdit` 将上面两个跳转 `0F8591000000` 和 `7504` 都改为 `9090`，现在输入任意用户名又注册成功了！
+
+现在是 `HexEdit0.20` 了。
+
+同样的方法找到以下代码：
+
+```
+* Possible StringData Ref from Code Obj ->"regcode"
+
+                        |
+
+:0045F1B8 BAECF24500              mov edx, 0045F2EC
+:0045F1BD 8B45F8                  mov eax, dword ptr [ebp-08]
+:0045F1C0 E80FF6FFFF              call 0045E7D4
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0045F1B3(C)
+|
+:0045F1C5 8B45F0                  mov eax, dword ptr [ebp-10]
+:0045F1C8 E80F4BFAFF              call 00403CDC
+:0045F1CD 83F828                  cmp eax, 00000028
+:0045F1D0 0F8591000000             jne 0045F267
+:0045F1D6 8B45F4                  mov eax, dword ptr [ebp-0C]
+:0045F1D9 E8FE4AFAFF              call 00403CDC
+:0045F1DE 85C0                    test eax, eax
+:0045F1E0 0F8E81000000             jle 0045F267
+:0045F1E6 68358C0000              push 00008C35
+:0045F1EB 8D45EC                  lea eax, dword ptr [ebp-14]
+:0045F1EE 50                      push eax
+:0045F1EF B984310000              mov ecx, 00003184
+:0045F1F4 BAD7030000              mov edx, 000003D7
+:0045F1F9 8B45F4                  mov eax, dword ptr [ebp-0C]
+:0045F1FC E823FCFFFF              call 0045EE24
+```
+
+
+
+#### 汇编代码片段 1
+
+```assembly
+:0045F201 8B55EC                 mov edx, dword ptr [ebp-14]
+
+:0045F204 8D45F4                 lea eax, dword ptr [ebp-0C]
+
+:0045F207 E8E848FAFF             call 00403AF4
+
+:0045F20C 8D55E8                 lea edx, dword ptr [ebp-18]
+
+:0045F20F 8B45F4                 mov eax, dword ptr [ebp-0C]
+
+:0045F212 E89DFAFFFF             call 0045ECB4
+
+:0045F217 8B45E8                 mov eax, dword ptr [ebp-18]
+
+:0045F21A 8B55F0                 mov edx, dword ptr [ebp-10]
+
+:0045F21D E8CA4BFAFF             call 00403DEC
+
+:0045F222 750C                   jne 0045F230
+
+:0045F224 A1DC774800             mov eax, dword ptr [004877DC]
+
+:0045F229 8B00                   mov eax, dword ptr [eax]
+
+:0045F22B E8A8CFFEFF             call 0044C1D8
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0045F222(C)
+
+|
+
+:0045F230 68358C0000             push 00008C35
+
+:0045F235 8D45E4                 lea eax, dword ptr [ebp-1C]
+
+:0045F238 50                     push eax
+
+:0045F239 B984310000             mov ecx, 00003184
+
+:0045F23E BAD7030000             mov edx, 000003D7
+
+:0045F243 8B45F0                 mov eax, dword ptr [ebp-10]
+
+:0045F246 E8C9F9FFFF             call 0045EC14
+
+:0045F24B 8B55E4                 mov edx, dword ptr [ebp-1C]
+
+:0045F24E 8D45F0                 lea eax, dword ptr [ebp-10]
+
+:0045F251 E89E48FAFF             call 00403AF4
+
+:0045F256 8B45F4                 mov eax, dword ptr [ebp-0C]
+
+:0045F259 8B55F0                 mov edx, dword ptr [ebp-10]
+
+:0045F25C E88B4BFAFF             call 00403DEC
+
+:0045F261 7504                   jne 0045F267
+
+:0045F263 C645FF01               mov [ebp-01], 01
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:0045F16D(C), :0045F1D0(C), :0045F1E0(C), :0045F261(C)
+
+|
+
+:0045F267 33C0                   xor eax, eax
+
+:0045F269 5A                     pop edx
+
+:0045F26A 59                     pop ecx
+
+:0045F26B 59                     pop ecx
+
+:0045F26C 648910                 mov dword ptr fs:[eax], edx
+
+:0045F26F 6884F24500             push 0045F284
+```
+
+现在知道改哪了吧！
+
+最后一个是 `freeRes0.94`，它的修改方法是一样的，就是用 `TRW` 脱壳后不能运行，这样即使修改也不起作用了！幸好我有 `KeyMake1.6`，用它制作内存补丁就可以了！
+
+打开 `KeyMake`，按 `F6` 键，出现“制作内存补丁”窗口。填入程序名 `freeRes.exe`，在内存数据中单击“添加”按钮，出现“添加数据”窗口。在修改地址中填入：`4BBCBC`；修改长度：`6`；原始指令：`0F8591000000`；修改指令：`909090909090`，再按“添加”按钮再次输入修改地址：`4BBD4D`；修改长度：`2`；原始指令：`7504`；修改指令：`9090`。保存退出，将它拷贝到 `freeRes.exe` 同一目录下运行，输入任意用户名再次注册成功了！
+
+搞完！
+
+`leeyam`
+
+`http://leeyam.126.com/`
+
+`http://leeyam.yeah.net/`
+
+本不想写这个文章，一来因为现在好象好多前辈越来越保守，不愿意再多讲什么，我也不愿意在这种环境里多讲话，二来，`RESTOOLS` 系列的工具编的实在不错，作者肯定花了不少心血，而且注册费也不是很贵，所以发表破解有点不好意思。但我的关于破解方面的一点浅薄的知识大部分来源于看学论坛的各位前辈的无私奉献，所以既然有人问起，就只好写上一写，为看学论坛出点小力，还请前辈高手指教
+
+使用工具：`trw2000`(娃娃版，致谢），`DEDE3.0`，`HIEW676`
+
+以下是 `dede` 反译出 `getvbres` 的部分代码：
+
+```assembly
+0049AE05  64FF30                 push    dword ptr fs:[eax]
+
+0049AE08  648920                 mov     fs:[eax], esp
+
+0049AE0B  BA02000080             mov     edx, $80000002
+
+0049AE10  8B45F8                 mov     eax, [ebp-$08]
+
+* Reference to: registry.TRegistry.SetRootKey(TRegistry;Windows.HKEY);
+
+|
+
+0049AE13  E8749EFCFF             call    00464C8C
+
+0049AE18  B101                   mov     cl, $01
+
+* Possible String Reference to: 'SOFTWARE\\RESTOOLS\\GetVBRes'
+
+|
+
+0049AE1A  BA74AF4900             mov     edx, $0049AF74
+
+0049AE1F  8B45F8                 mov     eax, [ebp-$08]
+
+* Reference to: registry.TRegistry.OpenKey(TRegistry;System.AnsiString;System.Boolean):System.Boolean;
+
+|
+
+0049AE22  E8A99FFCFF             call    00464DD0
+
+0049AE27  84C0                   test    al, al
+
+0049AE29  0F84F4000000           jz      0049AF23
+
+0049AE2F  8D45F4                 lea     eax, [ebp-$0C]
+
+* Reference to: system.@LStrClr(String);
+
+|
+
+0049AE32  E80D8DF6FF             call    00403B44
+
+0049AE37  8D45F0                 lea     eax, [ebp-$10]
+
+* Reference to: system.@LStrClr(String);
+
+|
+
+0049AE3A  E8058DF6FF             call    00403B44
+
+* Possible String Reference to: 'reguser'
+
+|
+
+0049AE3F  BA98AF4900             mov     edx, $0049AF98
+
+0049AE44  8B45F8                 mov     eax, [ebp-$08]
+
+* Reference to: registry.TRegistry.ValueExists(TRegistry;System.AnsiString):System.Boolean;
+
+|
+
+0049AE47  E8B0A5FCFF             call    004653FC
+
+0049AE4C  84C0                   test    al, al
+
+0049AE4E  7410                   jz      0049AE60
+
+0049AE50  8D4DF4                 lea     ecx, [ebp-$0C]
+
+* Possible String Reference to: 'reguser'
+
+|
+
+0049AE53  BA98AF4900             mov     edx, $0049AF98
+
+0049AE58  8B45F8                 mov     eax, [ebp-$08]
+
+* Reference to: registry.TRegistry.ReadString(TRegistry;System.AnsiString):System.AnsiString;
+
+|
+
+0049AE5B  E8E0A3FCFF             call    00465240
+
+* Possible String Reference to: 'regcode'
+
+|
+
+0049AE60  BAA8AF4900             mov     edx, $0049AFA8
+
+0049AE65  8B45F8                 mov     eax, [ebp-$08]
+
+* Reference to: registry.TRegistry.ValueExists(TRegistry;System.AnsiString):System.Boolean;
+
+|
+
+0049AE68  E88FA5FCFF             call    004653FC
+
+0049AE6D  84C0                   test    al, al
+
+0049AE6F  7410                   jz      0049AE81
+
+0049AE71  8D4DF0                 lea     ecx, [ebp-$10]
+
+* Possible String Reference to: 'regcode'
+
+|
+
+0049AE74  BAA8AF4900             mov     edx, $0049AFA8
+
+0049AE79  8B45F8                 mov     eax, [ebp-$08]
+
+* Reference to: registry.TRegistry.ReadString(TRegistry;System.AnsiString):System.AnsiString;
+
+|
+
+0049AE7C  E8BFA3FCFF             call    00465240
+
+0049AE81  8B45F0                 mov     eax, [ebp-$10]
+
+* Reference to: system.@LStrLen:Integer;
+
+|         or: system.@DynArrayLength;
+
+|         or: system.DynArraySize(Pointer):Integer;
+
+|
+
+0049AE84  E83B8FF6FF             call    00403DC4
+
+0049AE89  83F828                 cmp     eax, +$28  判断长度
+
+0049AE8C  0F8591000000           jnz     0049AF23
+
+0049AE92  8B45F4                 mov     eax, [ebp-$0C]
+
+* Reference to: system.@LStrLen:Integer;
+
+|         or: system.@DynArrayLength;
+
+|         or: system.DynArraySize(Pointer):Integer;
+
+|
+
+0049AE95  E82A8FF6FF             call    00403DC4
+
+0049AE9A  85C0                   test    eax, eax
+
+0049AE9C  0F8E81000000           jle     0049AF23
+
+0049AEA2  68368C0000             push    $00008C36
+
+0049AEA7  8D45EC                 lea     eax, [ebp-$14]
+
+0049AEAA  50                     push    eax
+
+0049AEAB  B985310000             mov     ecx, $00003185
+
+0049AEB0  BAD8030000             mov     edx, $000003D8
+
+0049AEB5  8B45F4                 mov     eax, [ebp-$0C]
+
+|
+
+0049AEB8  E847FBFFFF             call    0049AA04
+
+0049AEBD  8B55EC                 mov     edx, [ebp-$14]
+
+0049AEC0  8D45F4                 lea     eax, [ebp-$0C]
+
+* Reference to: system.@LStrLAsg;
+
+|
+
+0049AEC3  E8148DF6FF             call    00403BDC
+
+0049AEC8  8D55E8                 lea     edx, [ebp-$18]
+
+0049AECB  8B45F4                 mov     eax, [ebp-$0C]
+
+|
+
+0049AECE  E8C1F9FFFF             call    0049A894
+
+0049AED3  8B45E8                 mov     eax, [ebp-$18]
+
+0049AED6  8B55F0                 mov     edx, [ebp-$10]
+
+* Reference to: system.@LStrCmp;------》这个函数是不是很好猜？
+
+|
+
+0049AED9  E8F68FF6FF             call    00403ED4
+
+0049AEDE  750C                   jnz     0049AEEC  判断是不是假码，不等就对了
+
+0049AEE0  A1F0CA4A00             mov     eax, dword ptr [$4ACAF0]
+
+0049AEE5  8B00                   mov     eax, [eax]
+
+* Reference to: forms.TApplication.Terminate(TApplication);相等就完蛋
+
+|
+
+0049AEE7  E85CFEFAFF             call    0044AD48
+
+0049AEEC  68368C0000             push    $00008C36    从这里开始
+```
+
+
+
+```
+0049AEF1  8D45E4             lea     eax, [ebp-$1C]
+
+0049AEF4  50                 push    eax
+
+0049AEF5  B985310000         mov     ecx, $00003185
+
+0049AEFA  BAD8030000         mov     edx, $000003D8
+
+0049AEFF  8B45F0             mov     eax, [ebp-$10]
+
+|
+
+0049AF02  E8EDF8FFFF         call    0049A7F4
+
+0049AF07  8B55E4             mov     edx, [ebp-$1C]
+
+0049AF0A  8D45F0             lea     eax, [ebp-$10]
+
+* Reference to: system.@LStrLAsg;
+
+|
+
+0049AF0D  E8CA8CF6FF         call    00403BDC      到这里结束，算出真正的注册码(我很懒，
+
+                                怕烦，只大概看了一下，好象和前面那个
+
+                                假码有点关系，另算的 20 位码子）
+
+0049AF12  8B45F0             mov     eax, [ebp-$10]这里
+
+0049AF15  8B55F0             mov     edx, [ebp-$10]和这里就是真正要比较的东西
+
+* Reference to: system.@LStrCmp;又看到熟面孔了
+
+|
+
+0049AF18  E8B78FF6FF         call    00403ED4
+
+0049AF1D  7504               jnz     0049AF23      不同就表示未注册
+
+0049AF1F  C645FF01           mov     byte ptr [ebp-$01], $01 相同就写上已注册标记
+
+0049AF23  33C0               xor     eax, eax
+
+0049AF25  5A                 pop     edx
+
+0049AF26  59                 pop     ecx
+
+0049AF27  59                 pop     ecx
+
+0049AF28  648910             mov     fs:[eax], edx
+```
+
+过程就是如此，很简单，我是用 `SMC` 解决这个问题的，具体怎么做，请参考精华 III 中 `mercury` 写的
+
+大作，《SMC 体会》一文，相信劳动得来的果实最香甜。谢谢看完。
+
+`hello!`
+
+`FREERES0`。94 的注册大致如下：
+
+而在程序里，
+
+`a: NAME+HARDCODE`（补成 20 位）------算法 A------识别 `CODE1`（20 位）；
+
+`b: NAME+HARDCODE`（补成 20 位）------算法 B------假 `REGCODE`（40 位）；
+
+`c: INPUT REGCODE`------B 逆算法----识别 `CODE2`（20 位）；
+
+`CODE1=CODE2` 注册成功。
+
+在跟踪时，你一定看到过个假注册码！（先要谢谢作者了！等下有大用处）。
+
+`keygen` 的算法就是：
+
+`NAME+HARDCODE`(补成 20 位)-----算法 A------识别 `CODE1`------算法 B------TURE `REGCODE`；
+
+如果你不是想写注册机，那你只要在跟踪程序时，
+
+在程序运行到 `b` 时，把内存里的 `NAME+HARDCODE`（补成 20 位）改成识别 `CODE1`（20 位）；
+
+那么，到时候里看到的那个注册码，就是真的了! `^_^` !
+
+`MINBIN/CCG`
+
+最难的是最后一步逆推，按分析情况来看，几乎是不可逆的。如果用穷举法，出几乎实现不了。但作者给我们留了一条后路，就是那个假注册码，不然，我相信，没几个人能做出它的注册机。所以，这也是我不让 `fish` 公开我注册机的原因。 `4dd466d0e1e0cc123afbe504da2462ca`

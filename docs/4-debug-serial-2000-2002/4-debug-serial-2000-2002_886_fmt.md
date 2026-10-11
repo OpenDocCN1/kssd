@@ -1,0 +1,332 @@
+
+# UltraEdit32 v8.10
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue376.htm`](https://www.pediy.com/kssd/pediy04/kanxue376.htm)
+
+- **软件**: `UltraEdit32` v8.10
+- **下载**: 随处可下.
+- **工具**: `SoftIce` 4.05, `W32Dasm`.
+
+此软件的用途可不用我多说了吧! 网上也有很多它的注册机,新手可用它来练练手,呵呵! 今次主要来看看它的注册校验. 它的注册码经过加密后放在安装路径下的 `Uedit32.reg` 文件里,注意这不是注册表文件.
+
+程序在每次起动,运行时和关闭时检测注册码的正确性. 下:`bpx createfilea do "d *(esp+4)"` 就可以拦截到它读这个文件,回到程序的领空后再经 `readfile` 后就可见到你的经过加密后的注册码,经过解密运算后,再按 `N` 次 `F10` 就来到如下的程序段:
+
+```
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00414927(C)
+|
+:0041483A 8B45F8             mov eax, dword ptr [ebp-08]
+:0041483D 8D740DB0          lea esi, dword ptr [ebp+ecx-50]
+:00414841 03C6              add eax, esi
+:00414843 83F83C            cmp eax, 0000003C
+:00414846 7D42              jge 0041488A
+:00414848 8BC1              mov eax, ecx
+
+* Possible Reference to String Resource ID=00004: "*.MAC"
+                          |
+:0041484A 6A04              push 00000004
+:0041484C 99                cdq
+:0041484D 5F                pop edi
+:0041484E F7FF              idiv edi
+:00414850 8BC1              mov eax, ecx
+
+* Possible Reference to String Resource ID=00032: "
+Any changes will be lost and the file deleted!"
+                          |
+:00414852 6A20              push 00000020
+:00414854 5B                pop ebx
+
+* Possible Reference to String Resource ID=00059: "Select File to Compare"
+                          |
+:00414855 6A3B              push 0000003B
+:00414857 8BFA              mov edi, edx
+:00414859 99                cdq
+:0041485A F7FB              idiv ebx
+:0041485C 8BC2              mov eax, edx
+:0041485E 99                cdq
+:0041485F 2BC2              sub eax, edx
+:00414861 8B14BD9C225000    mov edx, dword ptr [4*edi+0050229C]
+:00414868 D1F8              sar eax, 1
+:0041486A 5F                pop edi
+:0041486B 0FB60402          movzx eax, byte ptr [edx+eax]
+:0041486F 8AD1              mov dl, cl
+:00414871 0255FC            add dl, byte ptr [ebp-04]
+:00414874 0FB6D2            movzx edx, dl
+:00414877 33C2              xor eax, edx
+:00414879 99                cdq
+:0041487A F7FF              idiv edi
+:0041487C 8B7D10            mov edi, dword ptr [ebp+10]
+:0041487F 8A4415B0          mov al, byte ptr [ebp+edx-50]
+:00414883 02C1              add al, cl
+:00414885 324601            xor al, byte ptr [esi+01]
+:00414888 8806              mov byte ptr [esi], al
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00414846(C)
+|
+:0041488A 83FF3C            cmp edi, 0000003C
+:0041488D 7D71              jge 00414900
+:0041488F 8BC1              mov eax, ecx
+
+* Possible Reference to String Resource ID=00005: "ULTRAEDT.MAC"
+                          |
+:00414891 6A05              push 00000005
+:00414893 99                cdq
+:00414894 5B                pop ebx
+:00414895 F7FB              idiv ebx
+:00414897 8BDA              mov ebx, edx
+:00414899 85DB              test ebx, ebx
+:0041489B 895DF0            mov dword ptr [ebp-10], ebx
+:0041489E 740A              je 004148AA
+:004148A0 83FB02            cmp ebx, 00000002
+:004148A3 7405              je 004148AA
+:004148A5 83FB04            cmp ebx, 00000004
+:004148A8 751A              jne 004148C4
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:0041489E(C), :004148A3(C)
+|
+:004148AA 0FB606            movzx eax, byte ptr [esi]
+
+* Possible Reference to String Resource ID=00026: "Run Windows Program"
+                          |
+:004148AD 6A1A              push 0000001A
+:004148AF 99                cdq
+:004148B0 5B                pop ebx
+:004148B1 F7FB              idiv ebx
+:004148B3 8B5DF0            mov ebx, dword ptr [ebp-10]
+:004148B6 80C241            add dl, 41
+:004148B9 88943D30FFFFFF    mov byte ptr [ebp+edi-000000D0], dl
+:004148C0 47                inc edi
+:004148C1 897D10            mov dword ptr [ebp+10], edi
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004148A8(C)
+|
+:004148C4 83FF3C            cmp edi, 0000003C
+:004148C7 7D37              jge 00414900
+:004148C9 83FB01            cmp ebx, 00000001
+:004148CC 7405              je 004148D3
+:004148CE 83FB03            cmp ebx, 00000003
+:004148D1 7517              jne 004148EA
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004148CC(C)
+|
+:004148D3 0FB606            movzx eax, byte ptr [esi]
+
+* Possible Reference to String Resource ID=00010: "
+  Thank you for supporting Shareware."
+                          |
+:004148D6 6A0A              push 0000000A
+:004148D8 99                cdq
+:004148D9 5E                pop esi
+:004148DA F7FE              idiv esi
+:004148DC 80C230            add dl, 30
+:004148DF 88943D30FFFFFF    mov byte ptr [ebp+edi-000000D0], dl-->计算所得的注册码.
+:004148E6 47                inc edi
+:004148E7 897D10            mov dword ptr [ebp+10], edi
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004148D1(C)
+|
+:004148EA 83FF3C            cmp edi, 0000003C
+:004148ED 7D11              jge 00414900
+:004148EF 83FB04            cmp ebx, 00000004-->检查是否每组注册码的第 5 位.
+:004148F2 750C              jne 00414900
+:004148F4 C6843D30FFFFFF2D  mov byte ptr [ebp+edi-000000D0], 2D-->蓬 5 后面插"-".
+:004148FC 47                inc edi
+:004148FD 897D10            mov dword ptr [ebp+10], edi
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:0041488D(C), :004148C7(C), :004148ED(C), :004148F2(C)
+|
+:00414900 85C9              test ecx, ecx
+:00414902 7E1F              jle 00414923
+:00414904 3B4DF4            cmp ecx, dword ptr [ebp-0C]
+:00414907 7D1A              jge 00414923
+:00414909 3B7DF4            cmp edi, dword ptr [ebp-0C]
+:0041490C 7D15              jge 00414923
+:0041490E 8B4508            mov eax, dword ptr [ebp+08]
+:00414911 0FBE5401FF        movsx edx, byte ptr [ecx+eax-01]
+:00414916 0FBE0407          movsx eax, byte ptr [edi+eax]
+:0041491A 0FAFD0            imul edx, eax
+:0041491D 011554C85000       add dword ptr [0050C854], edx
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:00414902(C), :00414907(C), :0041490C(C)
+|
+:00414923 41                inc ecx
+:00414924 83F93C            cmp ecx, 0000003C----->检查是否够 60 位?
+:00414927 0F8C0DFFFFFF       jl 0041483A
+:0041492D 33D2              xor edx, edx
+```
+
+上面的这段算法就是注册码的算法,程序的算法也不算是很复杂,有兴趣可以研究上面的算法,它主要是用用注册名的 `ASC` 码和与 `0`-----`3C`(前面几位是用注册名代替)之间的 `ASC` 码值再加上查表作数学运算,每算一位得一位注册码,名字>=6 个,注册码>15 个(后面可见到),注册码形式:`AAAAA-BBBBB-XXXXX-YYYYY`.
+
+```
+* Possible Reference to String Resource ID=00006: "Load Macro"
+                          |
+:0041498A 6A06              push 00000006
+:0041498C 8065BF00          and byte ptr [ebp-41], 00
+:00414990 80A547FFFFFF00    and byte ptr [ebp+FFFFFF47], 00--->此处选定所需的注册码位数.
+```
+
+
+
+#### 汇编代码分析：注册码比较逻辑
+
+```
+:00414997 59  pop ecx
+:00414998 8D8570FFFFFF lea eax, dword ptr [ebp+FFFFFF70]
+:0041499E 50  push eax
+:0041499F 8DBD70FFFFFF lea edi, dword ptr [ebp+FFFFFF70]--->此处要放的就是假注册码.
+:004149A5 FF750C  push [ebp+0C]
+:004149A8 C68537FFFFFF30 mov byte ptr [ebp+FFFFFF37], 30--->真码第 8 位置为 0;
+:004149AF F3  repz
+:004149B0 A5  movsd
+:004149B1 80658700 and byte ptr [ebp-79], 00
+:004149B5 C68577FFFFFF30 mov byte ptr [ebp+FFFFFF77], 30--->假码第 8 位置为 0.
+:004149BC C6857CFFFFFF30 mov byte ptr [ebp+FFFFFF7C], 30--->假码第 13 位置为 0.
+:004149C3 C6458630 mov [ebp-7A], 30------------------>假码最后一位置为 0.
+:004149C7 C6853CFFFFFF30 mov byte ptr [ebp+FFFFFF3C], 30--->真码第 13 位置为 0.
+:004149CE C68546FFFFFF30 mov byte ptr [ebp+FFFFFF46], 30--->真码最后一位置为 0.
+:004149D5 E8E65A0800 call 0049A4C0
+:004149DA 59  pop ecx
+:004149DB 59  pop ecx
+:004149DC 5E  pop esi
+:004149DD 85C0 test eax, eax
+:004149DF 7523 jne 00414A04
+:004149E1 8D8570FFFFFF lea eax, dword ptr [ebp+FFFFFF70]
+:004149E7 50  push eax
+:004149E8 FF750C push [ebp+0C]
+:004149EB E8D05A0800 call 0049A4C0
+:004149F0 59  pop ecx
+:004149F1 85C0 test eax, eax
+:004149F3 59  pop ecx
+:004149F4 7554 jne 00414A4A
+:004149F6 FF750C push [ebp+0C]
+:004149F9 E8B2430800 call 00498DB0
+:004149FE 83F80C cmp eax, 0000000C
+:00414A01 59  pop ecx
+:00414A02 7446 je 00414A4A
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+:004149DF(C)
+
+:00414A04 8D45B0 lea eax, dword ptr [ebp-50]
+:00414A07 50  push eax
+:00414A08 8D8570FFFFFF lea eax, dword ptr [ebp+FFFFFF70]
+:00414A0E 50  push eax
+:00414A0F E8AC5A0800 call 0049A4C0
+:00414A14 59  pop ecx
+:00414A15 85C0 test eax, eax
+:00414A17 59  pop ecx
+:00414A18 7429 je 00414A43
+:00414A1A 8D8530FFFFFF lea eax, dword ptr [ebp+FFFFFF30]
+:00414A20 50  push eax
+:00414A21 8D8570FFFFFF lea eax, dword ptr [ebp+FFFFFF70]
+:00414A27 50  push eax
+:00414A28 E8935A0800 call 0049A4C0----->此 CALL 为真假码相比较.
+:00414A2D 59  pop ecx
+:00414A2E 85C0 test eax, eax----->注册码相等则 EAX==0.
+:00414A30 59  pop ecx
+:00414A31 7410 je 00414A43
+:00414A33 C70558C8500001000000 mov dword ptr [0050C858], 00000001---->未注册标志.
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+:0041479C(C), :004147A5(C), :004147BD(C)
+
+:00414A3D 33C0 xor eax, eax
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+:00414A4D(U)
+
+:00414A3F 5F  pop edi
+:00414A40 5B  pop ebx
+:00414A41 C9  leave
+:00414A42 C3  ret
+```
+
+注意上面这段代码，它选择要比较的注册码，此处只比较 20 位，就是第 8、13 和最后一位不作比较，形式如下：
+
+```
+A A A A A - B B B B B - X X X X X - Y Y Y Y Y
+                              |_________|_________________|
+                                      这三位不作比较.
+```
+
+如果你到此处就收工大吉了的话，那么恭喜你了！`^O^` 下次起动后它不会叫你注册了，但是它在关闭的时候会把你的 `Uedit32.reg` 给删掉，再下次的话，你又得.......！呵呵！
+
+#### 汇编代码分析：关闭时最后一次检测
+
+```
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+:0046D830(C)
+
+:0046D839 66813D28535100D007 cmp word ptr [00515328], 07D0
+:0046D842 0F8656010000 jbe 0046D99E
+:0046D848 66833D2A53510001 cmp word ptr [0051532A], 0001
+:0046D850 0F8648010000 jbe 0046D99E
+:0046D856 6854C75000 push 0050C754
+:0046D85B 8D4DE4 lea ecx, dword ptr [ebp-1C]
+:0046D85E E8E83E0400 call 004B174B
+:0046D863 FF75E4 push [ebp-1C]
+:0046D866 895DFC mov dword ptr [ebp-04], ebx
+:0046D869 E842B50200 call 00498DB0
+:0046D86E A154C85000 mov eax, dword ptr [0050C854]
+:0046D873 FF3548C75000 push dword ptr [0050C748]
+:0046D879 8945F0 mov dword ptr [ebp-10], eax
+:0046D87C E82FB50200 call 00498DB0
+:0046D881 59  pop ecx
+:0046D882 83F80F cmp eax, 0000000F----------->检查注册码的位数(>=15).
+:0046D885 59  pop ecx
+:0046D886 0F8206010000 jb 0046D992
+:0046D88C 391DB4525100 cmp dword ptr [005152B4], ebx--->此处为注册标志.
+:0046D892 0F85FA000000 jne 0046D992
+:0046D898 391DB8525100 cmp dword ptr [005152B8], ebx
+:0046D89E 0F84EE000000 je 0046D992
+:0046D8A4 0FB645F0 movzx eax, byte ptr [ebp-10]---->计算参数(4D).
+
+* Possible Reference to String Resource ID=00025: "Dos Command"
+
+:0046D8A8 6A19 push 00000019
+:0046D8AA 8B3D48C75000 mov edi, dword ptr [0050C748]
+:0046D8B0 99  cdq
+:0046D8B1 59  pop ecx
+:0046D8B2 F7F9 idiv ecx
+:0046D8B4 0FBE4716 movsx eax, byte ptr [edi+16]-->注册码最后一位.
+:0046D8B8 83C241 add edx, 00000041
+:0046D8BB 3BC2 cmp eax, edx
+:0046D8BD 7530 jne 0046D8EF
+:0046D8BF 0FB645F0 movzx eax, byte ptr [ebp-10]
+
+* Possible Reference to String Resource ID=00009: "
+This copy of UltraEdit-32 is licensed to :"
+
+:0046D8C3 6A09 push 00000009
+:0046D8C5 99  cdq
+:0046D8C6 59  pop ecx
+:0046D8C7 F7F9 idiv ecx
+:0046D8C9 0FBE4707 movsx eax, byte ptr [edi+07]-->注册码第 8 位.
+:0046D8CD 83C230 add edx, 00000030
+:0046D8D0 3BC2 cmp eax, edx
+:0046D8D2 751B jne 0046D8EF
+:0046D8D4 0FB645F0 movzx eax, byte ptr [ebp-10]
+:0046D8D8 8A4F0C mov cl, byte ptr [edi+0C]------>注册码第 13 位.
+
+* Possible Reference to String Resource ID=00013: "Mod: "
+
+:0046D8DB 6A0D push 0000000D
+:0046D8DD 99  cdq
+:0046D8DE 5F  pop edi
+:0046D8DF F7FF idiv edi
+:0046D8E1 0FBEC1 movsx eax, cl
+:0046D8E4 83C241 add edx, 00000041
+:0046D8E7 3BC2 cmp eax, edx
+:0046D8E9 0F84A3000000 je 0046D992--------------->这是最后一次机会了!!!
+```
+
+上面的代码则为程序在关闭时最后一次检测注册码，如不等，则干掉你的 `Uedit32.reg` 文件，使你又变成未注册版本。实际上也是它比较起动时没检查的三位注册码，利用计算参数 `D(44)` 分别除以 `0x19`、`0x9`、`0xD` 的余数再加上 `30` 或 `41` 所得的值来作为注册码。
+
+如何才能在程序关闭时中断得到上面的代码？呵呵，见到上面的注册标志了么？用它设断就行了。`Good Luck!!!` `4dd466d0e1e0cc123afbe504da2462ca`

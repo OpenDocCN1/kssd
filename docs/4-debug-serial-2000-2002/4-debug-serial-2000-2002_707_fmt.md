@@ -1,0 +1,356 @@
+
+# 网际飞鹰之极速 FTP1.0
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum1129.htm`](https://www.pediy.com/kssd/pediy03/forum1129.htm)
+
+## DEDE 的作用
+
+----网际飞鹰之极速 FTP1.0 keygen
+
+主程序为 `NetEagle.exe`。据说用 `language` 知道这个程序是 Delphi 编译的，但 `fileinfo` 不能识别。用 `dede2.5` 可以反编译。
+
+`dede` 反编译成功后，在 `Forms` 栏，有如下：
+
+```
+        Classes Info        Offset
+-----------------------------
+TAboutForm        000d81dc
+TChangeDirForm    000da4b0
+.....             ......
+.....             ......
+TInputSerialForm  000ea244
+......            ......
+```
+
+很明显，`TInputSerialForm` 窗口与处理注册码有关，鼠标点击，显示这个窗口的细节。由运行 `NetEagle.exe` 知道，注册窗有 `edit1`（用户名），`edit2`（序列号），`button1`（注册），`button2`（取消）等组件，所以在 `TInputSerialForm` 窗口中找“`button1`（注册）”，发现
+
+```
+object FlatButton1: TFlatButton
+
+  Left = 72
+
+  Top = 80
+
+  Width = 73
+
+  Height = 25
+
+  Caption = '注  册(&R)'
+
+  TabOrder = 2
+
+  OnClick = FlatButton1Click  <--“注册”按钮按下后的事件。
+
+end
+```
+
+然后，回到 `dede` 的 `Procedures` 栏，这包括了 `Forms` 栏所有窗口的事件代码。
+
+```
+        Unit Name           Class Name
+--------------------------------------
+AboutFrm            TAboutForm
+......              ......
+......              ......
+InputSerialFrm      TInputSerialForm
+......              ......
+```
+
+鼠标左键点击 `InputSerialFrm`，展示此窗口内包含的所有事件。其中有
+
+```
+        Event                       RVA         Hint
+------------------------------------------
+FlatButton1Click      004a1b7c      0017
+FlatButton2Click      004a1b84      0017
+......                ......
+......                ......
+```
+
+鼠标双击 `FlatButton1Click`，显示事件的反编译代码：
+
+```
+......
+004A1BBD  E83A000000  call    004A1BFC  <--关键
+004A1BC2  84C0        test    al, al
+004A1BC4  740E        jz      004A1BD4
+......
+```
+
+鼠标双击 `004A1BBD E83A000000 call 004A1BFC` 进入：
+
+```
+* Possible String Reference to: 'NE-'     <-------
+|                                                                     |
+004A1C7F  BA341E4A00  mov     edx, $004A1E34  |
+                                               |
+* Reference to: system.@LStrCmp;              |
+|                                                                     |
+004A1C84  E85723F6FF  call    00403FE0  <--注册码起始部分为“NE-”
+004A1C89  750F        jnz     004A1C9A
+004A1C8B  8B45EC      mov     eax, [ebp-$14]
+* Possible String Reference to: '-EWD'  <--------
+|                                                                     |
+004A1C8E  BA401E4A00  mov     edx, $004A1E40  |
+                                               |
+* Reference to: system.@LStrCmp;              |
+|                                                                     |
+004A1C93  E84823F6FF  call    00403FE0  <--注册码结束部分为“-EWD”
+004A1C98  740D        jz      004A1CA7
+004A1C9A  8B45FC      mov     eax, [ebp-$04]
+004A1C9D  E8A6010000  call    004A1E48
+004A1CA2  E92B010000  jmp     004A1DD2
+......
+......
+......
+004A1CFF  81FB00E1F505 cmp    ebx, $05F5E100 <--注册码数字部分必须在
+004A1D05  7C08        jl      004A1D0F        |  100000000 至
+004A1D07  81FBFFC99A3B cmp    ebx, $3B9AC9FF  |  999999999 之间
+004A1D0D  7E0D        jle     004A1D1C        <--
+004A1D0F  8B45FC      mov     eax, [ebp-$04]
+004A1D12  E831010000  call    004A1E48
+004A1D17  E9B6000000  jmp     004A1DD2
+004A1D1C  8BC3        mov     eax, ebx
+004A1D1E  B94D000000  mov     ecx, $0000004D
+004A1D23  99          cdq
+004A1D24  F7F9        idiv    ecx             <--注册码除以 77
+004A1D26  05C0169430  add     eax, +$309416C0<--商+815011520
+004A1D2B  B94D000000  mov     ecx, $0000004D
+004A1D30  99          cdq
+004A1D31  F7F9        idiv    ecx             <--和除以 77
+004A1D33  85D2        test    edx, edx
+004A1D35  0F858B000000 jnz     004A1DC6      <--余数为 0，注册码数字正确。
+```
+
+随后就是写注册机了，用穷举办法，我用 `delphi5.0` 及控件 `KOL&MCK0.82` 编译。注册机界面中有 `editbox1`（输入用户名），`editbox2`（注册码），`button1`（生成注册码），`button2`（退出）等组件。
+
+`keygen.pas` 中：
+
+```
+var code:integer;
+
+procedure TForm1.Button1Click(Sender: PObj);
+
+begin
+  if length(editbox1.text)=0 then editbox2.text:='请输入用户名！'
+  else begin
+  Randomize;
+  code:=random(800000000)+100000000;
+  while (((code div 77)+$309416c0) mod 77)<>0 do
+    begin
+      code:=code+1;
+    end;
+  editbox2.text:='NE-'+int2str(code)+'-EWD';
+end;
+
+end;
+
+procedure TForm1.Button2Click(Sender: PObj);
+
+begin
+form.close;
+
+end;
+
+end.
+```
+
+谁说 `dede` 没用？`dede` 有大用！
+
+```
+#include <stdlib.h>
+#include <stdio.h>
+#include <time.h>
+
+void main()
+{
+  long i,c;
+  char name[81];
+  randomize();
+  printf(" ****************************************\n *KeyGen by TAE![CCG]*\n ****************************************\n\n");
+  printf("Please input your name:");
+  gets(name);
+f:  c=rand()*100000;
+  if (c>999999999 || c<100000000)goto f;
+  {while ((c/0x4d+0x309416c0)%0x4d!=0)
+    c++;}
+    printf("Your code is:NE-%ld-EWD",c);
+}
+```
+
+练练手，很久没用汇编写东西了。
+
+另外，都 `Win` 时代了注册机是不是该换换皮肤了，老是 `dos` 界面总使人觉得与时代脱节。。。
+
+如何写随机数生成代码？有没有对应 `Api`？这里没有随机部分，望高手指教。。。
+
+汇编写注册有时最方便不过，如果算法较复杂，就可分析出入口和出口，然后将反汇编代码修改一下粘贴过来，加上 `GUI` 部分就可以了，最大的优点是速度快，体积小，`win32` 汇编编程几乎与 `C` 一样方便，只可惜，时间太有限了，人的生命太短暂了......
+
+`COMPILE`:
+
+```
+cls
+ml /c /coff /Cp  wf.asm
+rc /v wf.rc
+link /SUBSYSTEM:WINDOWS /LIBPATH:c:\\masm32\\lib wf.obj wf.res
+```
+
+`wf.asm` 内容如下：
+
+```
+******************************************
+.386
+.model flat,stdcall
+option casemap:none
+include hd.h
+_ProcDlg proto :DWORD,:DWORD,:DWORD,:DWORD 
+
+;->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>data seg
+    .data
+CurrentEbx dd 99999999
+flg_found  dd 0
+MsgMesaage1 db "All possible Keys have been passed,restart the program! ",0
+MsgCap     db "By (C)hume,July,2001",0
+szBuf1     db 20 dup(0)
+szBuf2     db "NE-%d-EWD",0
+    .data?
+hInstance  HANDLE ?
+    .const
+DLG_MAIN equ    1000
+GEN      equ    1001
+XIT      equ    1002
+EDIT_COD equ    1003
+ ;-->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>code seg
+    .code
+start: 
+
+    invoke    GetModuleHandle,NULL
+    mov     hInstance,eax
+    invoke    DialogBoxParam,hInstance,DLG_MAIN,NULL,offset _ProcDlg,0
+    invoke    ExitProcess,NULL
+
+_ProcDlg   proc    uses ebx edi esi, \
+    hWnd:DWORD,wMsg:DWORD,wParam:DWORD,lParam:DWORD
+    mov     eax,wMsg
+    .if     eax == WM_CLOSE
+        invoke    EndDialog,hWnd,NULL
+    .elseif    eax == WM_COMMAND
+    mov eax,wParam
+    .IF lParam!=0
+        .if ax==GEN
+        mov ebx,CurrentEbx
+lopcal:    inc ebx
+        cmp   ebx, 5F5E100h  ;<--注册码数字部分必须在
+        jl    New_over       ;  |  100000000 至
+        cmp   ebx, 3B9AC9FFh ; |  999999999 之间
+        jge     New_over       ;<--
+        call Cal
+        cmp   flg_found,1
+        jnz   lopcal
+        mov   CurrentEbx,ebx
+        invoke RtlZeroMemory,addr szBuf1,20
+        invoke wsprintf,addr szBuf1,addr szBuf2,ebx
+        invoke SetDlgItemText,hWnd,EDIT_COD,addr szBuf1
+        .elseif ax==XIT
+        invoke SendMessage,hWnd,WM_CLOSE,NULL,NULL
+        .endif
+    .ENDIF
+    .else
+    mov eax,FALSE
+    ret
+      .endif
+    mov eax,TRUE
+    ret
+
+    New_over:
+    invoke MessageBox,NULL,addr MsgMesaage1,addr MsgCap,MB_OK or MB_ICONEXCLAMATION
+    ret
+
+_ProcDlg   ENDP
+
+Cal   PROC  uses eax ebx
+    mov   eax, ebx
+    mov   ecx, 4Dh
+    cdq
+    idiv  ecx             ;<--注册码除以 77
+    add   eax, 309416C0h ;<--商+815011520
+    mov   ecx, 4Dh
+    cdq
+```
+
+
+
+```asm
+    idiv    ecx         ;<--和除以 77   
+    test    edx, edx   
+    jnz     ToEit   
+
+Found:   
+    mov flg_found,1   
+
+ToEit:    ret   
+
+Cal     endp   
+
+;-->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>end all   
+
+end start
+```
+
+`wf.rc`
+
+```
+************************************
+
+#include <c:\masm32\include\resource.h>
+
+#define DLG_MAIN 1000
+
+#define GEN      1001
+
+#define XIT      1002
+
+#define EDIT_COD 1003
+
+DLG_MAIN DIALOG 62, 39, 200, 45
+
+STYLE DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+
+CAPTION "网际飞鹰之极速 FTP1.0 keygen By Hume"
+
+FONT 8, "MS Sans Serif"
+
+{
+
+DEFPUSHBUTTON "Generate", GEN, 148, 6, 50, 14
+
+PUSHBUTTON "EXIT", XIT, 148, 24, 50, 14
+
+LTEXT "USERNAME:Random", -1, 7, 6, 76, 8
+
+LTEXT "REGCODE:", -1, 7, 21, 38, 8
+
+EDITTEXT EDIT_COD, 47, 20, 72, 11, WS_BORDER | WS_TABSTOP
+
+}
+```
+
+`hd.h`
+
+```
+    include c:\masm32\include\windows.inc
+    include c:\masm32\include\user32.inc
+    include c:\masm32\include\kernel32.inc
+    include c:\masm32\include\gdi32.inc
+    include c:\masm32\include\comctl32.inc
+    include c:\masm32\include\comdlg32.inc
+    include c:\masm32\include\shell32.inc
+    includelib c:\masm32\lib\user32.lib
+    includelib c:\masm32\lib\kernel32.lib
+    includelib c:\masm32\lib\gdi32.lib
+    includelib c:\masm32\lib\comctl32.lib
+    includelib c:\masm32\lib\comdlg32.lib
+    includelib c:\masm32\lib\shell32.lib
+```
+
+`4dd466d0e1e0cc123afbe504da2462ca`

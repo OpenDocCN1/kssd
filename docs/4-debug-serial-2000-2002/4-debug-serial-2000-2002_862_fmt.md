@@ -1,0 +1,227 @@
+
+# RealFox V1.0.0.17
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue465.htm`](https://www.pediy.com/kssd/pediy04/kanxue465.htm)
+
+RealPlayer 之狐朋(`RealFox`) V1.0.0.17 Build 011008 破解经历
+
+首先要脱掉 `RealFox.exe` 的壳。
+
+第一次我用 `UnPECompact1.32` 自动脱壳，竟然不能运行！用 `W32Dasm` 反编出现错误！在放弃与继续间徘徊了一阵决定再脱一次。这次用 `TRW2000`+`BW2000` 脱掉后仍然不能运行，但可以反编了，虽然不能直接破解但最终还是可以用内存补丁解决\[SMC 我没成功过\]
+
+开始查找字串，看见：
+
+\* Possible StringData Ref from Code Obj ->"来说破解这个小软件非常容易，但是请体谅作者的辛"
+
+&nbsp;->"劳，"
+
+:0041A64A 68A4D04600&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; push 0046D0A4
+:0041A64F 8D4C2410&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; lea ecx, dword ptr \[esp+10\]
+:0041A653 E8EF070300&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; call 0044AE47
+
+\* Possible StringData Ref from Code Obj ->"如果没有任何资金的支持，优秀的共享软件将会越来"
+
+&nbsp;->"越"
+
+:0041A658 6870D04600&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; push 0046D070
+:0041A65D 8D4C2410&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; lea ecx, dword ptr \[esp+10\]
+:0041A661 E8E1070300&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; call 0044AE47
+
+\* Possible StringData Ref from Code Obj ->"少，相信您并不希望这种情况出现吧？"
+
+:0041A666 684CD04600&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; push 0046D04C
+:0041A66B 8D4C2410&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; lea ecx, dword ptr \[esp+10\]
+:0041A66F E8D3070300&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; call 0044AE47
+:0041A674 8B4C240C&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mov ecx, dword ptr \[esp+0C\]
+:0041A678 6A00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; push 00000000
+
+显然有点过意不去……但为了学习与研究我还是决定做这一次！！
+
+此软件输入注册信息后需要重新启动来验证注册码。既然如此想必该软件会在输入注册码后将输入的注册码存放到某个位置，等软件下次运行时再来检测该位置判断注册码！
+
+\* Possible StringData Ref from Code Obj ->"RegisterCode"
+
+:00425733 688CE84600&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; push 0046E88C
+
+\* Possible StringData Ref from Code Obj ->"Software\\HotFox(Vision Soft)\\REALFOX"
+
+:00425738 6864E84600&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; push 0046E864
+:0042573D 6801000080&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; push 80000001
+:00425742 8BCE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mov ecx, esi
+:00425744 E8B7F8FFFF&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; call 00425000
+:00425749 8BF0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mov esi, eax
+:0042574B 85F6&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; test esi, esi
+:0042574D 740E&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; je 0042575D
+:0042574F 6A00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; push 00000000
+:00425751 6A00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; push 00000000
+
+\* Possible StringData Ref from Code Obj ->"请退出并重新启动本程序以验证注册码"…………………………在这之前一定会将我填写的注册码存放到了某个位置！于是向上看。哈哈，没错吧！在注册表里。
+
+:00425753 689CE84600&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; push 0046E89C
+:00425758 E811960200&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; call 0044ED6E
+
+下面我开始搜索字串"RegisterCode"看看程序会在别的什么地方调用它！果然找到以下代码：
+
+\* Possible StringData Ref from Code Obj ->"RegisterCode"
+
+:00424EB2 688CE84600&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; push 0046E88C
+
+\* Possible StringData Ref from Code Obj ->"Software\\HotFox(Vision Soft)\\REALFOX"
+
+:00424EB7 6864E84600&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; push 0046E864
+:00424EBC 8D44241C&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; lea eax, dword ptr \[esp+1C\]
+:00424EC0 B302&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mov bl, 02
+:00424EC2 6801000080&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; push 80000001
+:00424EC7 50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; push eax
+:00424EC8 8BCE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mov ecx, esi
+:00424ECA 885C2430&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mov byte ptr \[esp+30\], bl
+:00424ECE E80D020000&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; call 004250E0
+:00424ED3 50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; push eax
+:00424ED4 8D4C240C&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; lea ecx, dword ptr \[esp+0C\]
+:00424ED8 C644242403&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mov \[esp+24\], 03
+:00424EDD E8C25C0200&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; call 0044ABA4
+:00424EE2 8D4C2414&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; lea ecx, dword ptr \[esp+14\]
+:00424EE6 885C2420&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mov byte ptr \[esp+20\], bl
+:00424EEA E87C5B0200&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; call 0044AA6B
+:00424EEF 8B4C2408&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mov ecx, dword ptr \[esp+08\]
+:00424EF3 8B41F8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mov eax, dword ptr \[ecx\-08\]
+:00424EF6 85C0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; test eax, eax
+:00424EF8 0F84B9000000&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; je 00424FB7…………………………可疑！
+:00424EFE 8D542414&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; lea edx, dword ptr \[esp+14\]
+:00424F02 8BCE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mov ecx, esi
+:00424F04 52&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; push edx
+:00424F05 E826F7FFFF&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; call 00424630
+:00424F0A 50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; push eax
+:00424F0B 8D4C2414&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; lea ecx, dword ptr \[esp+14\]
+:00424F0F C644242404&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mov \[esp+24\], 04
+:00424F14 E88B5C0200&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; call 0044ABA4
+:00424F19 8D4C2414&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; lea ecx, dword ptr \[esp+14\]
+:00424F1D 885C2420&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mov byte ptr \[esp+20\], bl
+:00424F21 E8455B0200&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; call 0044AA6B
+:00424F26 8B442408&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mov eax, dword ptr \[esp+08\]
+:00424F2A 8D4C2414&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; lea ecx, dword ptr \[esp+14\]
+:00424F2E 50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; push eax
+:00424F2F 51&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; push ecx
+:00424F30 8BCE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mov ecx, esi
+:00424F32 E819030000&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; call 00425250
+:00424F37 50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; push eax
+:00424F38 8D4C2410&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; lea ecx, dword ptr \[esp+10\]
+:00424F3C C644242405&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mov \[esp+24\], 05
+:00424F41 E85E5C0200&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; call 0044ABA4
+:00424F46 8D4C2414&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; lea ecx, dword ptr \[esp+14\]
+:00424F4A 885C2420&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mov byte ptr \[esp+20\], bl
+:00424F4E E8185B0200&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; call 0044AA6B
+:00424F53 8B44240C&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mov eax, dword ptr \[esp+0C\]
+:00424F57 8B48F8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mov ecx, dword ptr \[eax\-08\]
+:00424F5A 85C9&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; test ecx, ecx
+:00424F5C 7459&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; je 00424FB7…………………………可疑！
+:00424F5E 8B542410&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mov edx, dword ptr \[esp+10\]
+:00424F62 50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; push eax
+:00424F63 52&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; push edx
+:00424F64 E81E180100&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; call 00436787
+:00424F69 83C408&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; add esp, 00000008
+:00424F6C 85C0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; test eax, eax
+:00424F6E 7547&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; jne 00424FB7…………………………可疑！
+
+\* Possible Ref to Menu: MenuID\_0105, Item: "?@&nbsp;6?&nbsp;Enter"
+
+\* Possible Reference to String Resource ID=00001: "S"
+
+:00424F70 BB01000000&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mov ebx, 00000001
+:00424F75 8D4C240C&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; lea ecx, dword ptr \[esp+0C\]
+
+这里有三个跳很可疑！用 `TRW2000` 下中断 `BPX 424EF8` 运行 `RealFox.exe`\[事先准备了一个没有脱壳的\]，哈哈！拦下来了。分别在三个跳的位置下命令 `r fl z` 全部改成了不跳！`F5` 运行，注册成功！试了试全部功能都可以用。
+
+现在轮到 `RealDog.exe` 了，老方法脱壳，反编看看，是一样的！
+
+\* Possible StringData Ref from Code Obj ->"RegisterCode"
+
+:0040C302 6804574400&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; push 00445704
+
+\* Possible StringData Ref from Code Obj ->"Software\\HotFox(Vision Soft)\\REALFOX"
+
+:0040C307 68DC564400&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; push 004456DC
+:0040C30C 8D44241C&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; lea eax, dword ptr \[esp+1C\]
+:0040C310 B302&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mov bl, 02
+:0040C312 6801000080&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; push 80000001
+:0040C317 50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; push eax
+:0040C318 8BCE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mov ecx, esi
+:0040C31A 885C2430&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mov byte ptr \[esp+30\], bl
+:0040C31E E87D020000&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; call 0040C5A0
+:0040C323 50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; push eax
+:0040C324 8D4C240C&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; lea ecx, dword ptr \[esp+0C\]
+:0040C328 C644242403&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mov \[esp+24\], 03
+:0040C32D E8C1B40100&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; call 004277F3
+:0040C332 8D4C2414&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; lea ecx, dword ptr \[esp+14\]
+:0040C336 885C2420&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mov byte ptr \[esp+20\], bl
+:0040C33A E87BB30100&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; call 004276BA
+:0040C33F 8B4C2408&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mov ecx, dword ptr \[esp+08\]
+:0040C343 8B41F8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; mov eax, dword ptr \[ecx\-08\]
+:0040C346 85C0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; test eax, eax
+:0040C348 0F84B9000000&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; je 0040C407…………………………NOP 掉！
+:0040C34E 8D542414&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; lea edx, dword ptr \[esp+14\]
+
+
+
+```
+:0040C352 8BCE                   mov ecx, esi
+:0040C354 52                     push edx
+:0040C355 E826F7FFFF             call 0040BA80
+:0040C35A 50                     push eax
+:0040C35B 8D4C2414               lea ecx, dword ptr [esp+14]
+:0040C35F C644242404             mov [esp+24], 04
+:0040C364 E88AB40100             call 004277F3
+:0040C369 8D4C2414               lea ecx, dword ptr [esp+14]
+:0040C36D 885C2420               mov byte ptr [esp+20], bl
+:0040C371 E844B30100             call 004276BA
+:0040C376 8B442408               mov eax, dword ptr [esp+08]
+:0040C37A 8D4C2414               lea ecx, dword ptr [esp+14]
+:0040C37E 50                     push eax
+:0040C37F 51                     push ecx
+:0040C380 8BCE                   mov ecx, esi
+:0040C382 E889030000             call 0040C710
+:0040C387 50                     push eax
+:0040C388 8D4C2410               lea ecx, dword ptr [esp+10]
+:0040C38C C644242405             mov [esp+24], 05
+:0040C391 E85DB40100             call 004277F3
+:0040C396 8D4C2414               lea ecx, dword ptr [esp+14]
+:0040C39A 885C2420               mov byte ptr [esp+20], bl
+:0040C39E E817B30100             call 004276BA
+:0040C3A3 8B44240C               mov eax, dword ptr [esp+0C]
+:0040C3A7 8B48F8                 mov ecx, dword ptr [eax-08]
+:0040C3AA 85C9                   test ecx, ecx
+:0040C3AC 7459                   je 0040C407…………………………NOP 掉！
+:0040C3AE 8B542410               mov edx, dword ptr [esp+10]
+:0040C3B2 50                     push eax
+:0040C3B3 52                     push edx
+:0040C3B4 E832B20000             call 004175EB
+:0040C3B9 83C408                 add esp, 00000008
+:0040C3BC 85C0                   test eax, eax
+:0040C3BE 7547                   jne 0040C407…………………………NOP 掉！
+:0040C3C0 BB01000000             mov ebx, 00000001
+:0040C3C5 8D4C240C               lea ecx, dword ptr [esp+0C]
+:0040C3C9 895E2C                 mov dword ptr [esi+2C], ebx
+:0040C3CC 885C2420               mov byte ptr [esp+20], bl
+:0040C3D0 E8E5B20100             call 004276BA
+:0040C3D5 8D4C2410               lea ecx, dword ptr [esp+10]
+:0040C3D9 C644242000             mov [esp+20], 00
+:0040C3DE E8D7B20100             call 004276BA
+:0040C3E3 8D4C2408               lea ecx, dword ptr [esp+08]
+:0040C3E7 C7442420FFFFFFFF       mov [esp+20], FFFFFFFF
+:0040C3EF E8C6B20100             call 004276BA
+:0040C3F4 8BC3                   mov eax, ebx
+:0040C3F6 5E                     pop esi
+:0040C3F7 5B                     pop ebx
+:0040C3F8 8B4C2410               mov ecx, dword ptr [esp+10]
+:0040C3FC 64890D00000000         mov dword ptr fs:[00000000], ecx
+:0040C403 83C41C                 add esp, 0000001C
+:0040C406 C3                     ret
+```
+
+这个程序脱壳后可以正常使用！试了试，可惜我没有装`RealProducer`，只能看到一个提示，但注册界面已经没有了！
+
+完工！
+
+多多指教！
+
+`4dd466d0e1e0cc123afbe504da2462ca`

@@ -1,0 +1,359 @@
+
+# SWFExplorer 2.5.2003.1009
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6266.htm`](https://www.pediy.com/kssd/pediy06/pediy6266.htm)
+
+- **软件名称**：`SWFExplorer`
+- **最新版本**：`2.5.2003.1009`
+- **适用平台**：`Win9x`, `WinME`, `WinNT`, `Win2000`, `WinXP`
+- **作者主页**：[http://www.xenotrix.com/](http://www.xenotrix.com/)
+
+### 软件简介
+`SWFExplorer` 系列是一套功能全面、实用方便的 `Flash` 动画工具的集成软件包，拥有从 `Flash` 欣赏、收藏管理到辅助制作的全部功能，软件包中的产品之间高度整合，是闪客和 `Flash` 爱好者的绝佳装备。
+
+### 难度
+非常简单，适合初学者练手。
+
+### 软件限制
+功能限制。
+
+### 作者声明
+初学 Crack，只是感兴趣，没有其它目的。失误之处敬请诸位大侠赐教！
+
+### 破解工具
+`Ollydbg1.09`、`PEiD`、`DeDe`、`UnPECompact 1.32`
+
+---
+
+### 过程
+
+首先 `Peid` 查看壳信息，`PECompact 1.68 - 1.84` -> `Jeremy Collake`，用 `UnPECompact 1.32` 脱壳，`ImportREC` 修复输入表。然而还是非法操作，`OEP` 不知为何不对，最后使用 `Peid` 查到的 `OEP`，OK 了。
+
+`Delphi` 程序当然是用 `DEDE`，在 `frmSWFPlayer` 的 `OnCreate` 事件：
+
+\* Reference to: `TPlayListView._PROC_004C98B0()`
+
+```
+004CF7FE   E8ADA0FFFF          call    004C98B0       // 很可疑哦，跟入
+004CF803   84C0               test    al, al
+004CF805   7410               jz      004CF817
+004CF807   8B45FC             mov     eax, [ebp-$04]
+
+\* Reference to control `TfrmSWFPlayer.lblUnregPlayList`: `TLabel`
+
+004CF80A   8B80DC040000       mov     eax, [eax+$04DC]
+
+\* Reference to: `Controls.TControl.Hide(TControl);`
+or: `QControls.TControl.Hide(TControl);`
+
+004CF810   E8D71EFAFF         call    004716EC
+004CF815   EB43               jmp     004CF85A
+004CF817   8D55F4             lea     edx, [ebp-$0C]
+004CF81A   8B45FC             mov     eax, [ebp-$04]
+
+\* Reference to: `Controls.TControl.GetText(TControl):TCaption;`
+
+004CF81D   E8A219FAFF         call    004711C4
+004CF822   FF75F4             push    dword ptr [ebp-$0C]
+
+\* Possible String Reference to: ' - '
+
+004CF825   68E0F84C00         push    $004CF8E0
+
+\* Possible String Reference to: '未注册'
+
+004CF82A   68ECF84C00         push    $004CF8EC
+...
+```
+
+来看看 `004C98B0`：
+
+```
+004C98B0   55                 push    ebp
+004C98B1   8BEC               mov     ebp, esp
+004C98B3   B905000000         mov     ecx, $00000005
+004C98B8   6A00               push    $00
+004C98BA   6A00               push    $00
+004C98BC   49                 dec     ecx
+004C98BD   75F9               jnz     004C98B8
+004C98BF   51                 push    ecx
+004C98C0   53                 push    ebx
+004C98C1   BBC07D4D00         mov     ebx, $004D7DC0
+004C98C6   33C0               xor     eax, eax
+004C98C8   55                 push    ebp
+
+\* Possible String Reference to: '？？？？？？'
+
+004C98C9   68FD994C00         push    $004C99FD
+
+***** TRY
+
+004C98CE   64FF30             push    dword ptr fs:[eax]
+004C98D1   648920             mov     fs:[eax], esp
+004C98D4   8D4DF8             lea     ecx, [ebp-$08]
+004C98D7   BA01000000         mov     edx, $00000001
+004C98DC   8B03               mov     eax, [ebx]
+
+\* Reference to: `StrUtils.LeftStr(AnsiString;Integer):AnsiString;overload;`
+
+004C98DE   E8E507F7FF         call    0043A0C8
+004C98E3   FF75F8             push    dword ptr [ebp-$08]
+004C98E6   8D45F4             lea     eax, [ebp-$0C]
+004C98E9   50                 push    eax
+004C98EA   B901000000         mov     ecx, $00000001
+004C98EF   BA05000000         mov     edx, $00000005
+004C98F4   8B03               mov     eax, [ebx]
+
+\* Reference to: `StrUtils.MidStr(AnsiString;Integer;Integer):AnsiString;overload;`
+
+004C98F6   E8C108F7FF         call    0043A1BC
+004C98FB   FF75F4             push    dword ptr [ebp-$0C]
+004C98FE   8D45F0             lea     eax, [ebp-$10]
+004C9901   50                 push    eax
+004C9902   B901000000         mov     ecx, $00000001
+004C9907   BA09000000         mov     edx, $00000009
+004C990C   8B03               mov     eax, [ebx]
+
+\* Reference to: `StrUtils.MidStr(AnsiString;Integer;Integer):AnsiString;overload;`
+
+004C990E   E8A908F7FF         call    0043A1BC
+004C9913   FF75F0             push    dword ptr [ebp-$10]
+004C9916   8D45EC             lea     eax, [ebp-$14]
+004C9919   50                 push    eax
+004C991A   B901000000         mov     ecx, $00000001
+004C991F   BA0D000000         mov     edx, $0000000D
+004C9924   8B03               mov     eax, [ebx]
+
+\* Reference to: `StrUtils.MidStr(AnsiString;Integer;Integer):AnsiString;overload;`
+
+004C9926   E89108F7FF         call    0043A1BC
+004C992B   FF75EC             push    dword ptr [ebp-$14]
+004C992E   8D45E8             lea     eax, [ebp-$18]
+004C9931   50                 push    eax
+004C9932   B901000000         mov     ecx, $00000001
+004C9937   BA03000000         mov     edx, $00000003
+004C993C   8B03               mov     eax, [ebx]
+
+\* Reference to: `StrUtils.MidStr(AnsiString;Integer;Integer):AnsiString;overload;`
+
+004C993E   E87908F7FF         call    0043A1BC
+004C9943   FF75E8             push    dword ptr [ebp-$18]
+004C9946   8D45E4             lea     eax, [ebp-$1C]
+004C9949   50                 push    eax
+004C994A   B901000000         mov     ecx, $00000001
+004C994F   BA07000000         mov     edx, $00000007
+004C9954   8B03               mov     eax, [ebx]
+
+\* Reference to: `StrUtils.MidStr(AnsiString;Integer;Integer):AnsiString;overload;`
+
+004C9956   E86108F7FF         call    0043A1BC
+004C995B   FF75E4             push    dword ptr [ebp-$1C]
+004C995E   8D45E0             lea     eax, [ebp-$20]
+004C9961   50                 push    eax
+004C9962   B901000000         mov     ecx, $00000001
+004C9967   BA0B000000         mov     edx, $0000000B
+004C996C   8B03               mov     eax, [ebx]
+
+\* Reference to: `StrUtils.MidStr(AnsiString;Integer;Integer):AnsiString;overload;`
+
+004C996E   E84908F7FF         call    0043A1BC
+004C9973   FF75E0             push    dword ptr [ebp-$20]
+004C9976   8D45DC             lea     eax, [ebp-$24]
+004C9979   50                 push    eax
+004C997A   B901000000         mov     ecx, $00000001
+004C997F   BA0F000000         mov     edx, $0000000F
+004C9984   8B03               mov     eax, [ebx]
+
+\* Reference to: `StrUtils.MidStr(AnsiString;Integer;Integer):AnsiString;overload;`
+
+004C9986   E83108F7FF         call    0043A1BC
+004C998B   FF75DC             push    dword ptr [ebp-$24]
+004C998E   8D45FC             lea     eax, [ebp-$04]
+004C9991   BA08000000         mov     edx, $00000008
+
+\* Reference to: `System.@LStrCatN;`
+
+004C9996   E89DB2F3FF         call    00404C38
+004C999B   8B45FC             mov     eax, [ebp-$04]
+004C999E   50                 push    eax
+004C999F   A1AC7D4D00         mov     eax, dword ptr [$004D7DAC]
+004C99A4   50                 push    eax
+004C99A5   8D4DD4             lea     ecx, [ebp-$2C]
+004C99A8   BA01000000         mov     edx, $00000001
+004C99AD   A1B07D4D00         mov     eax, dword ptr [$004D7DB0]
+
+\* Reference to: `StrUtils.LeftStr(AnsiString;Integer):AnsiString;overload;`
+
+004C99B2   E81107F7FF         call    0043A0C8
+004C99B7   8B45D4             mov     eax, [ebp-$2C]
+004C99BA   50                 push    eax
+004C99BB   8D45D8             lea     eax, [ebp-$28]
+004C99BE   50                 push    eax
+
+\* Possible String Reference to: 'Cloud Lee'
+
+|
+
+
+
+```
+004C99BF   B9149A4C00              mov     ecx, $004C9A14
+
+004C99C4   8B15BC7D4D00            mov     edx, [$004D7DBC]
+
+004C99CA   A1B87D4D00              mov     eax, dword ptr [$004D7DB8]
+
+* Reference to : `TPlayListView._PROC_004C97EC()`
+
+|
+
+004C99CF   E818FEFFFF              call    004C97EC               // 用户信息及版本号软件名称联合生成注册码
+
+004C99D4   8B55D8                  mov     edx, [ebp-$28]
+
+004C99D7   58                      pop     eax
+
+* Reference to: `System.@LStrCmp;`
+
+|
+
+004C99D8   E8E7B2F3FF              call    00404CC4               // 明码比较
+
+004C99DD   0F94C0                  setz    al
+
+004C99E0   8BD8                    mov     ebx, eax
+
+004C99E2   33C0                    xor     eax, eax
+
+004C99E4   5A                      pop     edx
+
+004C99E5   59                      pop     ecx
+
+004C99E6   59                      pop     ecx
+
+004C99E7   648910                  mov     fs:[eax], edx
+
+****** FINALLY
+```
+
+一目了然，取注册码 1 5 9 13 3 7 11 15 组成新字符串与 `004C97EC` 计算出字符串值比较。
+
+`sub_004C97EC` 好像调用了 `CRC32` 算法来生成注册码
+
+...
+
+```
+004C977F   8A5437FF                mov     dl, byte ptr [edi+esi-$01]
+
+004C9783   32D3                    xor     dl, bl
+
+004C9785   81E2FF000000            and     edx, $000000FF
+
+004C978B   8B149544524D00          mov     edx, [$4D5244+edx*4]
+
+004C9792   C1EB08                  shr     ebx, $08
+
+004C9795   81E3FFFFFF00            and     ebx, $00FFFFFF
+
+004C979B   33D3                    xor     edx, ebx
+
+004C979D   8BDA                    mov     ebx, edx
+
+004C979F   46                      inc     esi
+
+004C97A0   48                      dec     eax
+
+004C97A1   75DC                    jnz     004C977F
+
+...
+```
+
+`4D5244` 处是一张标准的 `crc32` 数据表。
+
+等等，这只是奇数位还有偶数呢，别急，继续看 `frmAbout` 窗体的 `FormCreate` 事件
+
+```
+004CD278   E8A3C7FFFF              call    004C9A20               // 同样可疑，都快成定式了,
+
+004CD27D   84C0                    test    al, al
+
+004CD27F   7425                    jz      004CD2A6
+
+004CD281   8B15585A4D00            mov     edx, [$004D5A58]
+
+004CD287   8B12                    mov     edx, [edx]
+
+* Reference to control `TfrmAbout.stxLicensed` : `TStaticText`
+
+|
+
+004CD289   8B8314030000            mov     eax, [ebx+$0314]
+
+* Reference to: `Controls.TControl.SetText(TControl;TCaption);`
+
+|
+
+004CD28F   E8603FFAFF              call    004711F4
+
+* Reference to control `TfrmAbout.bvlAbout` : `TBevel`
+
+|
+
+004CD294   8B831C030000            mov     eax, [ebx+$031C]
+
+* Reference to field `TBevel.Top` : `Integer`
+
+|
+
+004CD29A   8B5044                  mov     edx, [eax+$44]
+
+004CD29D   8BC3                    mov     eax, ebx
+
+* Reference to: `Forms.TCustomForm.SetClientWidth(TCustomForm;Integer);`
+
+|           or: `Forms.TCustomForm.SetClientHeight(TCustomForm;Integer);`
+
+|
+
+004CD29F   E8B0DDFBFF              call    0048B054
+
+004CD2A4   5B                      pop     ebx
+
+004CD2A5   C3                      ret
+
+* Possible String Reference to: '未注册'
+
+|
+
+004CD2A6   BAC0D24C00              mov     edx, $004CD2C0
+
+* Reference to control `stxLicensed` : `TStaticText`
+
+|
+
+004CD2AB   8B8314030000            mov     eax, [ebx+$0314]
+
+* Reference to: `Controls.TControl.SetText(TControl;TCaption);`
+```
+
+`sub_004C9A20` 的内容和前面的差不多
+
+是将取注册码 2 6 10 14 4 8 13 16 组成新字符串与 `004C97EC` 计算出字符串值比较。
+
+很简单吧，明码比较的，懒得写注册机了，^_^。
+
+------------------
+
+给一组可用的注册码
+
+用户名：`test`
+
+邮 箱：`aa@sina.com`
+
+注册码：`cfe3cd20830e0bf4`
+
+------------------
+
+by `yesky1[BCG]`
+
+`4dd466d0e1e0cc123afbe504da2462ca`

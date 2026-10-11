@@ -1,0 +1,590 @@
+
+# 花猫时间精灵 v1.0
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue170.htm`](https://www.pediy.com/kssd/pediy04/kanxue170.htm)
+
+## 两种破解花猫时间精灵 v1.0 功能限制的方法
+
+**软件名称**：花猫时间精灵 V1.0
+
+**软件简介**：本软件具有万年历、定时关机、定时提醒、网上校正时间、关闭网络计算机、立即关机、立即重启、立即注销(重新登录)等功能，还能对软件本身的文字颜色、字体、背景颜色进行设置，实现了软件 DIY。
+
+**破解工具**：`TRW2000` `1.22` 汉化版、`W32DASM` `8.93` 汉化版、`FI` `2.5`、`Hiew` `6.76`。
+
+**破解人**：飞鹰[BCG]
+
+**E-mail**：flithawk@263.net
+
+**网址**：http://flithawk.longcity.net
+
+### 一、爆力破解：
+
+#### 1、去掉软件的未注册提示信息和时间限制：
+
+首先，用 `exescope` 查找这些限制的提示信息，找到如下的字符及对应的 `ID` 号：
+
+`200,对不起 ！您所使用的软件已经超过了 15 天的试用期，有些功能将不能使用。$0A$0A 如果您想继续使用本软件的全部功能，请进入关于对话框进行注册，在您注册后将可以重新使用全部功能。`
+
+`201,您使用的软件未经注册 ！$0A$0A 未注册的软件只有 15 天的试用期，在试用期过后，您将不能正常使用此软件 ！$0A$0A 如果您想注册软件，请进入关于对话框进行注册。`
+
+`202,未注册的软件`
+
+在这里我们知道 `ID` 号为 `200` 是软件过期提示信息，`201` 与 `202` 是软件未注册提示信息。在 `W32DASM` 反汇编该软件，并分别在 `W32DASM` 中找到与这些字符串 `ID` 号对应在位置，如下所示：
+
+```
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+:0040107B(U), :00401215(U)
+
+:00401221 833D28D6410000        cmp dword ptr [0041D628], 00000000==>判断是否已注册，0 表示未注册，1 表示已注册
+:00401228 0F85DD010000          jne 0040140B==>跳转则表示软件已注册
+:0040122E E8CFEB0000            call 0040FE02
+:00401233 898564FBFFFF          mov dword ptr [ebp+FFFFFB64], eax
+:00401239 8B9564FBFFFF          mov edx, dword ptr [ebp+FFFFFB64]
+:0040123F 899558FBFFFF          mov dword ptr [ebp+FFFFFB58], edx
+:00401245 83BD58FBFFFF00        cmp dword ptr [ebp+FFFFFB58], 00000000
+:0040124C 741B                  je 00401269==>跳转则显示过期提示信息
+:0040124E 83BD58FBFFFF01        cmp dword ptr [ebp+FFFFFB58], 00000001
+:00401255 7474                  je 004012CB==>跳转则显示未注册提示信息
+:00401257 83BD58FBFFFF02        cmp dword ptr [ebp+FFFFFB58], 00000002
+:0040125E 0F8409010000          je 0040136D==>跳转则显示未注册提示信息
+:00401264 E9A0010000            jmp 00401409
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+:0040124C(C)
+
+:00401269 C7052CD6410000000000  mov dword ptr [0041D62C], 00000000
+:00401273 6804010000            push 00000104
+:00401278 8D8568FBFFFF          lea eax, dword ptr [ebp+FFFFFB68]
+:0040127E 50                   push eax
+
+\* Possible Reference to String Resource ID=00200: "w ˊ(勥鲵搮 N?15 )刦(    洘??(倻|(,喏刪锜??e"==>软件过期提示信息
+
+:0040127F 68C8000000            push 000000C8
+:00401284 8B0D48D64100          mov ecx, dword ptr [0041D648]
+:0040128A 51                   push ecx
+
+\* Reference To: USER32.LoadStringA, Ord:0000h
+
+:0040128B FF1520624100          Call dword ptr [00416220]
+:00401291 6804010000            push 00000104
+:00401296 8D957CFCFFFF          lea edx, dword ptr [ebp+FFFFFC7C]
+:0040129C 52                   push edx
+
+\* Possible Reference to String Resource ID=00202: "*鑺勥?
+
+:0040129D 68CA000000            push 000000CA
+:004012A2 A148D64100            mov eax, dword ptr [0041D648]
+:004012A7 50                   push eax
+
+\* Reference To: USER32.LoadStringA, Ord:0000h
+
+:004012A8 FF1520624100          Call dword ptr [00416220]
+
+\* Possible Reference to String Resource ID=00016: "\\b ||"
+
+:004012AE 6A10                 push 00000010
+:004012B0 8D8D7CFCFFFF          lea ecx, dword ptr [ebp+FFFFFC7C]
+:004012B6 51                   push ecx
+:004012B7 8D9568FBFFFF          lea edx, dword ptr [ebp+FFFFFB68]
+:004012BD 52                   push edx
+:004012BE 6A00                 push 00000000
+
+\* Reference To: USER32.MessageBoxA, Ord:0000h
+
+:004012C0 FF15E4614100          Call dword ptr [004161E4]
+:004012C6 E93E010000            jmp 00401409
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+:00401255(C)
+
+\* Possible Reference to String Resource ID=00001: "廫 b 鱈? 髐 2e<?B?n>2L-n"
+
+:004012CB C7052CD6410001000000  mov dword ptr [0041D62C], 00000001
+:004012D5 8D856CFCFFFF          lea eax, dword ptr [ebp+FFFFFC6C]
+:004012DB 50                   push eax
+
+\* Reference To: KERNEL32.GetLocalTime, Ord:0000h
+
+:004012DC FF1554614100          Call dword ptr [00416154]
+
+\* Possible Reference to String Resource ID=00001: "廫 b 鱈? 髐 2e<?B?n>2L-n"
+
+:004012E2 6A01                 push 00000001
+:004012E4 83EC10               sub esp, 00000010
+:004012E7 8BCC                 mov ecx, esp
+:004012E9 8B956CFCFFFF          mov edx, dword ptr [ebp+FFFFFC6C]
+:004012EF 8911                 mov dword ptr [ecx], edx
+:004012F1 8B8570FCFFFF          mov eax, dword ptr [ebp+FFFFFC70]
+:004012F7 894104               mov dword ptr [ecx+04], eax
+:004012FA 8B9574FCFFFF          mov edx, dword ptr [ebp+FFFFFC74]
+:00401300 895108               mov dword ptr [ecx+08], edx
+:00401303 8B8578FCFFFF          mov eax, dword ptr [ebp+FFFFFC78]
+:00401309 89410C               mov dword ptr [ecx+0C], eax
+:0040130C E85CE40000            call 0040F76D
+:00401311 83C414               add esp, 00000014
+:00401314 6804010000            push 00000104
+:00401319 8D8D68FBFFFF          lea ecx, dword ptr [ebp+FFFFFB68]
+:0040131F 51                   push ecx
+
+\* Possible Reference to String Resource ID=00201: "? (勥?撹?*鑺勥鲫      15 )刦((f(N?齝 8(d 喏 倻|?==>软件未注册提示信息
+
+:00401320 68C9000000            push 000000C9
+:00401325 8B1548D64100          mov edx, dword ptr [0041D648]
+:0040132B 52                   push edx
+
+\* Reference To: USER32.LoadStringA, Ord:0000h
+
+:0040132C FF1520624100          Call dword ptr [00416220]
+:00401332 6804010000            push 00000104
+:00401337 8D857CFCFFFF          lea eax, dword ptr [ebp+FFFFFC7C]
+:0040133D 50                   push eax
+
+\* Possible Reference to String Resource ID=00202: "*鑺勥?==>软件未注册提示信息
+
+:0040133E 68CA000000            push 000000CA
+:00401343 8B0D48D64100          mov ecx, dword ptr [0041D648]
+:00401349 51                   push ecx
+
+\* Reference To: USER32.LoadStringA, Ord:0000h
+
+:0040134A FF1520624100          Call dword ptr [00416220]
+
+\* Possible Reference to String Resource ID=00064: "yyyy t M "
+
+:00401350 6A40                 push 00000040
+:00401352 8D957CFCFFFF          lea edx, dword ptr [ebp+FFFFFC7C]
+:00401358 52                   push edx
+:00401359 8D8568FBFFFF          lea eax, dword ptr [ebp+FFFFFB68]
+:0040135F 50                   push eax
+:00401360 6A00                 push 00000000
+
+\* Reference To: USER32.MessageBoxA, Ord:0000h
+
+:00401362 FF15E4614100          Call dword ptr [004161E4]
+:00401368 E99C000000            jmp 00401409
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+:0040125E(C)
+
+\* Possible Reference to String Resource ID=00001: "廫 b 鱈? 髐 2e<?B?n>2L-n"
+
+:0040136D C7052CD6410001000000  mov dword ptr [0041D62C], 00000001
+:00401377 8D8D6CFCFFFF          lea ecx, dword ptr [ebp+FFFFFC6C]
+:0040137D 51                   push ecx
+
+\* Reference To: KERNEL32.GetLocalTime, Ord:0000h
+
+:0040137E FF1554614100          Call dword ptr [00416154]
+```
+
+
+
+### 0. 反汇编代码片段 1
+
+```
+:00401384 6A00                    push 00000000   
+:00401386 83EC10                  sub esp, 00000010   
+:00401389 8BD4                    mov edx, esp   
+:0040138B 8B856CFCFFFF            mov eax, dword ptr [ebp+FFFFFC6C]   
+:00401391 8902                    mov dword ptr [edx], eax   
+:00401393 8B8D70FCFFFF            mov ecx, dword ptr [ebp+FFFFFC70]   
+:00401399 894A04                  mov dword ptr [edx+04], ecx   
+:0040139C 8B8574FCFFFF            mov eax, dword ptr [ebp+FFFFFC74]   
+:004013A2 894208                  mov dword ptr [edx+08], eax   
+:004013A5 8B8D78FCFFFF            mov ecx, dword ptr [ebp+FFFFFC78]   
+:004013AB 894A0C                  mov dword ptr [edx+0C], ecx   
+:004013AE E8BAE30000              call 0040F76D   
+:004013B3 83C414                  add esp, 00000014   
+:004013B6 6804010000              push 00000104   
+:004013BB 8D9568FBFFFF            lea edx, dword ptr [ebp+FFFFFB68]   
+:004013C1 52                      push edx   
+```
+
+* 可能引用字符串资源 ID=00201: `"?(*勥?撹?*鑺勥鲫 15 )刦((f(N?齝 8(d 喏 倻|?==>软件未注册提示信息"`
+
+```
+:004013C2 68C9000000              push 000000C9   
+:004013C7 A148D64100              mov eax, dword ptr [0041D648]   
+:004013CC 50                      push eax   
+```
+
+* 引用: `USER32.LoadStringA`, Ord:0000h
+
+```
+:004013CD FF1520624100            Call dword ptr [00416220]   
+:004013D3 6804010000              push 00000104   
+:004013D8 8D8D7CFCFFFF            lea ecx, dword ptr [ebp+FFFFFC7C]   
+:004013DE 51                      push ecx   
+```
+
+* 可能引用字符串资源 ID=00202: `"*鑺勥?==>软件未注册提示信息"`
+
+```
+:004013DF 68CA000000              push 000000CA   
+:004013E4 8B1548D64100            mov edx, dword ptr [0041D648]   
+:004013EA 52                      push edx   
+```
+
+* 引用: `USER32.LoadStringA`, Ord:0000h
+
+```
+:004013EB FF1520624100            Call dword ptr [00416220]   
+```
+
+* 可能引用字符串资源 ID=00064: `"yyyy t M "`
+
+```
+:004013F1 6A40                    push 00000040   
+:004013F3 8D857CFCFFFF            lea eax, dword ptr [ebp+FFFFFC7C]   
+:004013F9 50                      push eax   
+:004013FA 8D8D68FBFFFF            lea ecx, dword ptr [ebp+FFFFFB68]   
+:00401400 51                      push ecx   
+:00401401 6A00                    push 00000000   
+```
+
+* 引用: `USER32.MessageBoxA`, Ord:0000h
+
+```
+:00401403 FF15E4614100            Call dword ptr [004161E4]   
+```
+
+* 被地址 (U)无条件或 (C)条件跳转引用: `:00401264(U), :004012C6(U), :00401368(U)`
+
+```
+:00401409 EB0A                    jmp 00401415   
+```
+
+* 被地址 (U)无条件或 (C)条件跳转引用: `:00401228(C)`
+
+* 可能引用字符串资源 ID=00001: `"廫 b 鱈? 髐 2e<?B?n>2L-n"`
+
+```
+:0040140B C7052CD6410001000000     mov dword ptr [0041D62C], 00000001   
+```
+
+* 被地址 (U)无条件或 (C)条件跳转引用: `:00401409(U)`
+
+```
+:00401415 8B5508                  mov edx, dword ptr [ebp+08]   
+:00401418 891548D64100             mov dword ptr [0041D648], edx   
+```
+
+使用 `Hiew` 将地址 `00401221` 处的 `833D28D6410000` 修改为 `833D28D6410001`，即可去除软件的未注册提示信息和时间限制。当然，如果不怕修改麻烦，也可以分别将地址 `0040124C`、`00401255`、`0040125E` 处的 `741B`、`7474`、`0F8409010000` 修改为 `751B`、`7574`、`0F8509010000`，这种修改方式同样可以达到预期目标，但显得非常麻烦。
+
+### 2. 去除软件“关于”对话框中的“软件未授权”字样
+
+首先，使用 `exescope` 查找这些限制的提示信息，找到如下的字符及对应的 ID 号：
+
+```
+191,本产品使用权属于：$0D$0A%s$0D$0A 序列号:%04x-%04x-%04x-%04x
+192,您所使用的产品没有获得授权。$0D$0A 如果您想获得授权，$0A 请点击以下注册按钮进行注册。
+```
+
+在此可知，ID `191` 用于显示软件注册后的用户名和序列号，ID `192` 用于显示软件未授权等字样。在 `W32DASM` 中反汇编该软件，并分别在 `W32DASM` 中找到与这些字符串 ID 号对应的位置，如下所示：
+
+* 被地址 (U)无条件或 (C)条件跳转引用: `:00408816(C)`
+
+```
+:00408928 833D28D6410000           cmp dword ptr [0041D628], 00000000
+:0040892F 0F84B8000000             je 004089ED==>跳转则显示软件未授权等字样
+:00408935 6804010000               push 00000104
+:0040893A 8D85DCFDFFFF             lea eax, dword ptr [ebp+FFFFFDDC]
+:00408940 50                       push eax
+```
+
+* 可能引用字符串资源 ID=00191: `","?(l?%s?_:%04x-%04x-%04x-%04x"==>显示软件注册后的用户名和序列号`
+
+```
+:00408941 68BF000000               push 000000BF
+:00408946 8B0D48D64100             mov ecx, dword ptr [0041D648]
+:0040894C 51                       push ecx
+```
+
+* 引用: `USER32.LoadStringA`, Ord:0000h
+
+```
+:0040894D FF1520624100             Call dword ptr [00416220]
+:00408953 8D55F8                   lea edx, dword ptr [ebp-08]
+:00408956 52                       push edx
+:00408957 8D85F4FEFFFF             lea eax, dword ptr [ebp+FFFFFEF4]
+:0040895D 50                       push eax
+```
+
+* 引用: `KERNEL32.GetComputerNameA`, Ord:0000h
+
+```
+:0040895E FF15BC604100             Call dword ptr [004160BC]
+:00408964 E82C510000               call 0040DA95
+:00408969 89859CFCFFFF             mov dword ptr [ebp+FFFFFC9C], eax
+:0040896F 8995A0FCFFFF             mov dword ptr [ebp+FFFFFCA0], edx
+:00408975 8B8D9CFCFFFF             mov ecx, dword ptr [ebp+FFFFFC9C]
+:0040897B 898DA4FCFFFF             mov dword ptr [ebp+FFFFFCA4], ecx
+:00408981 8B95A0FCFFFF             mov edx, dword ptr [ebp+FFFFFCA0]
+:00408987 8995A8FCFFFF             mov dword ptr [ebp+FFFFFCA8], edx
+:0040898D 8B85AAFCFFFF             mov eax, dword ptr [ebp+FFFFFCAA]
+:00408993 25FFFF0000               and eax, 0000FFFF
+:00408998 50                       push eax
+:00408999 8B8DA8FCFFFF             mov ecx, dword ptr [ebp+FFFFFCA8]
+:0040899F 81E1FFFF0000             and ecx, 0000FFFF
+:004089A5 51                       push ecx
+:004089A6 8B95A6FCFFFF             mov edx, dword ptr [ebp+FFFFFCA6]
+:004089AC 81E2FFFF0000             and edx, 0000FFFF
+:004089B2 52                       push edx
+:004089B3 8B85A4FCFFFF             mov eax, dword ptr [ebp+FFFFFCA4]
+:004089B9 25FFFF0000               and eax, 0000FFFF
+:004089BE 50                       push eax
+:004089BF 8D8DF4FEFFFF             lea ecx, dword ptr [ebp+FFFFFEF4]
+:004089C5 51                       push ecx
+:004089C6 8D95DCFDFFFF             lea edx, dword ptr [ebp+FFFFFDDC]
+:004089CC 52                       push edx
+:004089CD 8D85B8FCFFFF             lea eax, dword ptr [ebp+FFFFFCB8]
+:004089D3 50                       push eax
+:004089D4 E8367E0000               call 0041080F
+:004089D9 83C41C                   add esp, 0000001C
+:004089DC 8D8DB8FCFFFF             lea ecx, dword ptr [ebp+FFFFFCB8]
+:004089E2 51                       push ecx
+:004089E3 E8FEC50000               call 00414FE6
+:004089E8 83C404                   add esp, 00000004
+:004089EB EB1D                     jmp 00408A0A
+```
+
+* 被地址 (U)无条件或 (C)条件跳转引用: `:0040892F(C)`
+
+```
+:004089ED 6804010000               push 00000104
+:004089F2 8D95B8FCFFFF             lea edx, dword ptr [ebp+FFFFFCB8]
+:004089F8 52                       push edx
+```
+
+* 可能引用字符串资源 ID=00192: `"ˊ?(?翏 r 棃倻r 棃 藊清鑺 2L 鑺"==>显示软件未授权等字样`
+
+```
+:004089F9 68C0000000               push 000000C0
+:004089FE A148D64100               mov eax, dword ptr [0041D648]
+:00408A03 50                       push eax
+```
+
+使用 `Hiew` 将地址 `00408928` 处的 `833D28D6410000` 修改为 `833D28D6410001`，即可去除软件“关于”对话框中的“软件未授权”字样，显示软件注册后的用户名和序列号。
+
+> ### 二、追出注册码
+>
+> 首先，使用 `exescope` 查找注册成功和注册失败等提示信息，可找到如下的字符及对应的 ID 号：
+>
+> ```
+> 198,您所输入的序列号不正确，请重新输入正确的序列号！
+> 199,注册成功 ！
+> ```
+
+
+
+### 注册逻辑分析
+
+在这里我们知道 `ID` 号为 `198` 是注册错误提示信息，`199` 是注册成功提示信息。在 `W32DASM` 反汇编该软件，并分别在 `W32DASM` 中找到与这些字符串 `ID` 号对应在位置，如下所示：
+
+```
+* Possible StringData Ref from Data Obj ->"%02x%02x%02x%02x%02x%02x%02x%02x"
+                                                                                   |
+:0040E7DD 68AC9E4100                    push 00419EAC
+:0040E7E2 8D8DF8FEFFFF                  lea ecx, dword ptr [ebp+FFFFFEF8]
+:0040E7E8 51                            push ecx
+:0040E7E9 E821200000                    call 0041080F
+:0040E7EE 83C428                        add esp, 00000028
+:0040E7F1 8D95F8FEFFFF                  lea edx, dword ptr [ebp+FFFFFEF8]
+:0040E7F7 52                            push edx
+:0040E7F8 E8E9670000                    call 00414FE6
+:0040E7FD 83C404                        add esp, 00000004
+:0040E800 8D85CCFCFFFF                  lea eax, dword ptr [ebp+FFFFFCCC]
+:0040E806 50                            push eax
+:0040E807 E8DA670000                    call 00414FE6
+:0040E80C 83C404                        add esp, 00000004
+:0040E80F 8D8DF8FEFFFF                  lea ecx, dword ptr [ebp+FFFFFEF8]
+:0040E815 51                            push ecx
+:0040E816 8D95CCFCFFFF                  lea edx, dword ptr [ebp+FFFFFCCC]
+:0040E81C 52                            push edx
+:0040E81D E84E230000                    call 00410B70==>关键点，应该跟进去看看
+:0040E822 83C408                        add esp, 00000008
+:0040E825 85C0                          test eax, eax
+:0040E827 0F84B9000000                  je 0040E8E6==>跳转则显示注册成功提示信息
+:0040E82D 6804010000                    push 00000104
+:0040E832 8D85CCFCFFFF                  lea eax, dword ptr [ebp+FFFFFCCC]
+:0040E838 50                            push eax
+
+* Possible Reference to String Resource ID=00198: "ˊ8e 剰_cn 送?ecn 剰_"==>注册错误提示信息
+                                                                                   |
+:0040E839 68C6000000                    push 000000C6
+:0040E83E 8B0D48D64100                  mov ecx, dword ptr [0041D648]
+:0040E844 51                            push ecx
+
+* Reference To: USER32.LoadStringA, Ord:0000h
+                                                                                   |
+:0040E845 FF1520624100                  Call dword ptr [00416220]
+:0040E84B 6804010000                    push 00000104
+:0040E850 8D95D0FDFFFF                  lea edx, dword ptr [ebp+FFFFFDD0]
+:0040E856 52                            push edx
+
+* Possible Reference to String Resource ID=00059: "睋 B 摼 H"
+                                                                                   |
+:0040E857 6A3B                          push 0000003B
+:0040E859 A148D64100                    mov eax, dword ptr [0041D648]
+:0040E85E 50                            push eax
+
+* Reference To: USER32.LoadStringA, Ord:0000h
+                                                                                   |
+:0040E85F FF1520624100                  Call dword ptr [00416220]
+
+* Possible Reference to String Resource ID=00016: "\b ||"
+                                                                                   |
+:0040E865 6A10                          push 00000010
+:0040E867 8D8DD0FDFFFF                  lea ecx, dword ptr [ebp+FFFFFDD0]
+:0040E86D 51                            push ecx
+:0040E86E 8D95CCFCFFFF                  lea edx, dword ptr [ebp+FFFFFCCC]
+:0040E874 52                            push edx
+:0040E875 8B4508                        mov eax, dword ptr [ebp+08]
+:0040E878 50                            push eax
+
+* Reference To: USER32.MessageBoxA, Ord:0000h
+                                                                                   |
+:0040E879 FF15E4614100                  Call dword ptr [004161E4]
+:0040E87F 6A00                          push 00000000
+:0040E881 6856040000                    push 00000456
+:0040E886 8B4D08                        mov ecx, dword ptr [ebp+08]
+:0040E889 51                            push ecx
+
+* Reference To: USER32.GetDlgItem, Ord:0000h
+                                                                                   |
+:0040E88A FF1548624100                  Call dword ptr [00416248]
+:0040E890 50                            push eax
+
+* Reference To: USER32.SetWindowTextA, Ord:0000h
+                                                                                   |
+:0040E891 FF1544624100                  Call dword ptr [00416244]
+:0040E897 6A00                          push 00000000
+:0040E899 6857040000                    push 00000457
+:0040E89E 8B5508                        mov edx, dword ptr [ebp+08]
+:0040E8A1 52                            push edx
+
+* Reference To: USER32.GetDlgItem, Ord:0000h
+                                                                                   |
+:0040E8A2 FF1548624100                  Call dword ptr [00416248]
+:0040E8A8 50                            push eax
+
+* Reference To: USER32.SetWindowTextA, Ord:0000h
+                                                                                   |
+:0040E8A9 FF1544624100                  Call dword ptr [00416244]
+:0040E8AF 6A00                          push 00000000
+:0040E8B1 6858040000                    push 00000458
+:0040E8B6 8B4508                        mov eax, dword ptr [ebp+08]
+:0040E8B9 50                            push eax
+
+* Reference To: USER32.GetDlgItem, Ord:0000h
+                                                                                   |
+:0040E8BA FF1548624100                  Call dword ptr [00416248]
+:0040E8C0 50                            push eax
+
+* Reference To: USER32.SetWindowTextA, Ord:0000h
+                                                                                   |
+:0040E8C1 FF1544624100                  Call dword ptr [00416244]
+:0040E8C7 6A00                          push 00000000
+:0040E8C9 6859040000                    push 00000459
+:0040E8CE 8B4D08                        mov ecx, dword ptr [ebp+08]
+:0040E8D1 51                            push ecx
+
+* Reference To: USER32.GetDlgItem, Ord:0000h
+                                                                                   |
+:0040E8D2 FF1548624100                  Call dword ptr [00416248]
+:0040E8D8 50                            push eax
+
+* Reference To: USER32.SetWindowTextA, Ord:0000h
+                                                                                   |
+:0040E8D9 FF1544624100                  Call dword ptr [00416244]
+:0040E8DF 33C0                          xor eax, eax
+:0040E8E1 E9A4000000                    jmp 0040E98A
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0040E827(C)
+|
+:0040E8E6 8D95D8FEFFFF                  lea edx, dword ptr [ebp+FFFFFED8]
+:0040E8EC 52                            push edx
+:0040E8ED E8A70D0000                    call 0040F699
+:0040E8F2 83C404                        add esp, 00000004
+
+* Possible Reference to String Resource ID=00001: "廫 b 鱈? 髐 2e<?B?n>2L-n"
+                                                                                   |
+:0040E8F5 C70528D6410001000000          mov dword ptr [0041D628], 00000001
+
+* Possible Reference to String Resource ID=00001: "廫 b 鱈? 髐 2e<?B?n>2L-n"
+                                                                                   |
+:0040E8FF C7052CD6410001000000          mov dword ptr [0041D62C], 00000001
+:0040E909 6804010000                    push 00000104
+:0040E90E 8D85CCFCFFFF                  lea eax, dword ptr [ebp+FFFFFCCC]
+:0040E914 50                            push eax
+
+* Possible Reference to String Resource ID=00199: "鑺?"==>注册成功提示信息
+                                                                                   |
+:0040E915 68C7000000                    push 000000C7
+:0040E91A 8B0D48D64100                  mov ecx, dword ptr [0041D648]
+:0040E920 51                            push ecx
+```
+
+### 关键调用点分析
+
+跟踪进入 `call 00410B70` 后，汇编代码如下：
+
+```
+* Referenced by a CALL at Address:
+|:0040E81D
+|
+:00410B70 8B542404                      mov edx, dword ptr [esp+04]==>edx 中放着你输入的注册码
+:00410B74 8B4C2408                      mov ecx, dword ptr [esp+08]==>ecx 中放着真的注册码
+
+* Possible Reference to String Resource ID=00003: ""
+                                                                                   |
+:00410B78 F7C203000000                  test edx, 00000003
+:00410B7E 753C                          jne 00410BBC
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:00410BAC(C), :00410BD6(C), :00410BF2(U)
+|
+```
+
+
+
+> `:00410B80` `8B02`                 `mov eax, dword ptr [edx]`
+> `:00410B82` `3A01`                 `cmp al, byte ptr [ecx]`
+> `:00410B84` `752E`                 `jne 00410BB4`
+> `:00410B86` `0AC0`                 `or al, al`
+> `:00410B88` `7426`                 `je 00410BB0`
+> `:00410B8A` `3A6101`               `cmp ah, byte ptr [ecx+01]`
+> `:00410B8D` `7525`                 `jne 00410BB4`
+> `:00410B8F` `0AE4`                 `or ah, ah`
+> `:00410B91` `741D`                 `je 00410BB0`
+> `:00410B93` `C1E810`               `shr eax, 10`
+> `:00410B96` `3A4102`               `cmp al, byte ptr [ecx+02]`
+> `:00410B99` `7519`                 `jne 00410BB4`
+> `:00410B9B` `0AC0`                 `or al, al`
+> `:00410B9D` `7411`                 `je 00410BB0`
+> `:00410B9F` `3A6103`               `cmp ah, byte ptr [ecx+03]`
+> `:00410BA2` `7510`                 `jne 00410BB4`
+> `:00410BA4` `83C104`               `add ecx, 00000004`
+> `:00410BA7` `83C204`               `add edx, 00000004`
+> `:00410BAA` `0AE4`                 `or ah, ah`
+> `:00410BAC` `75D2`                 `jne 00410B80`
+> `:00410BAE` `8BFF`                 `mov edi, edi`
+
+`* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:`
+`:` `:00410B88` `(C),` `:00410B91` `(C),` `:00410B9D` `(C),` `:00410BCE` `(C),` `:00410BE4` `(C)`
+`:` `:00410BED` `(C)`
+`:`
+
+> `:00410BB0` `33C0`                 `xor eax, eax`
+> `:00410BB2` `C3`                   `ret`
+
+用`TRW2000`在`00410B78`处下断后，用`d ecx`命令就可以知道真的注册码。
+
+我的用户名是：`FLITHAWK`，机器号是：`574B-3147-3735-3935`，注册号是：`C1D7-B567-6484-F9E2`
+
+至此，该软件的破解全部结束，希望此篇能对破解初学者有所帮助！
+
+`Crack by 飞鹰[BCG] flithawk@263.net 2001.10.25`
+
+`欢迎光临汉化新世纪: http://www.hanzify.org 4dd466d0e1e0cc123afbe504da2462ca`

@@ -1,0 +1,194 @@
+
+# Super Text Search v2.5
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6080.htm`](https://www.pediy.com/kssd/pediy06/pediy6080.htm)
+
+----软件介绍 Super Text Search 2.5------------
+
+Super Text Search 是一个功能强大的文字查找工具，可以快速在文件中查找文字，包括程序源代码文件、批处理文件、HTML 文件等等，并且二进制的文件（文字处理和电子表格文件、数据库、甚至可执行的程序）能可以被查找，允许你使用正则表达式进行查找。
+
+厂商：`http://www.galcott.com`
+
+----------------------------------------------
+
+这个软件吸引偶的地方就是正则表达式查找功能，所以偶就.................
+
+后来发现该软件的加密方法非常简单而且典型，所以就干脆写成初学者教程，作为初学者熟悉`OllyDbg`破解的一个入门文章，各位高手不要见笑，呵呵：）
+
+进入正题，该软件加了`UPX1.2`壳，用`UPX`很好脱（`upx -d textsrch.exe`），脱壳后`exe`由`520K`变成了`1.51M`，用`OllyDbg`打开脱过壳的`textsrch.exe`，然后开始正式进入我们的破解过程————
+
+### (1) 寻找切入点
+
+`F9`运行程序，随便输入一个注册码，发现弹出消息框“`Incorrect registration code`”，
+
+哈~~，这个程序真老土，居然还用消息框来告诉用户注册码错误，埃~~~~....
+
+毋庸置疑，这个`MessageBox`就是最好的切入点了!!!!!
+
+在程序中调用`MessageBoxA`的地方设置断点：
+
+（步骤：右键-->搜索-->当前模块中的名称； 找到`MessageBoxA`,右键->在每个参考设置断点）
+
+输入假注册码`"4545454545"` ,确定，程序被`OllyDbg`拦下来：
+
+```
+005272FA  |.  6A 40          PUSH 40
+005272FC  |.  68 D0735200    PUSH textsrch.005273D0         ;  ASCII "Success"
+00527301  |.  68 D8735200    PUSH textsrch.005273D8         ;  ASCII "You have been successfully registered."
+00527306  |.  8BC3           MOV EAX,EBX
+00527308  |.  E8 B750F1FF    CALL textsrch.0043C3C4
+0052730D  |.  50             PUSH EAX                  ; |hOwner
+0052730E  |.  E8 FD13EEFF    CALL <JMP.&user32.MessageBoxA> ; \\MessageBoxA
+```
+
+这段代码最常见不过了，翻译成 C 代码为：
+
+```c
+hOwner = 000E0230 ('Register',class='TfrmRegister',parent=00AC014A);
+
+Text = "Incorrect registration code";
+
+Title = "Error";
+
+style = MB_OK|MB_ICONEXCLAMATION|MB_APPLMODAL;
+
+MessageBox(hOwner,Text,Title,style);
+```
+
+### (2) 跟踪—— 判断注册码的关键点
+
+在刚才的“注册码错误提示”的地方上下求索，便可以找到另外一个我们想要的东西：
+
+“注册码正确提示”：
+
+```
+005272FA  |.  6A 40          PUSH 40
+005272FC  |.  68 D0735200    PUSH textsrch.005273D0         ;  ASCII "Success"
+00527301  |.  68 D8735200    PUSH textsrch.005273D8         ;  ASCII "You have been successfully registered."
+00527306  |.  8BC3           MOV EAX,EBX
+00527308  |.  E8 B750F1FF    CALL textsrch.0043C3C4
+0052730D  |.  50             PUSH EAX                  ; |hOwner
+0052730E  |.  E8 FD13EEFF    CALL <JMP.&user32.MessageBoxA> ; \\MessageBoxA
+```
+
+一般来说，在“注册码错误提示”和“注册码正确提示”中间肯定会有一个`JMP`，
+
+也就是`if else`语句了，哈哈^\_^
+
+```c
+if(判断注册码() == 成功)
+{
+   “注册码正确提示”
+}
+else
+{
+   “注册码错误提示”
+}
+```
+
+这个软件就是这么写的！
+
+果然在`00527341`处有个`JMP`来自`0x0052725F`
+
+```
+00527341  |>  6A 30          PUSH 30
+```
+
+~~ 看到这个`">"`号没有，就是表示有个`JMP`跳到这里
+
+接下来我们来到`0x0052725F`
+
+```
+0052725A  |.  E8 D9D0EDFF    CALL textsrch.00404338 ;判断注册码是否正确
+0052725F  |.  0F85 DC000000  JNZ textsrch.00527341  ;关键跳转
+```
+
+那么这个`JNZ textsrch.00527341`的上方就是注册码的计算算法，下方就是正确注册以后，注册信息的保存，一切明朗了！
+
+### (3) 跟踪——注册码算法
+
+向上找，不远处看到一大堆的`PUSH`，就是函数的入口了（确切的说，应该是`OnButtonOKClick`函数），呵呵^\_^
+
+所以在那一大堆`PUSH`下面的第一个`CALL`设断点，为什么？一般来说，这个`CALL`是取的用户输入的注册码（比如`GetWindowText`），我们把断点设在这里：
+
+```
+00527210  |.  E8 A3EFF0FF    CALL textsrch.004361B8
+```
+
+接下来一步步跟踪吧：）
+
+代码不是很长，大家看看注释便一目了然：
+
+```
+00527210  |.  E8 A3EFF0FF    CALL textsrch.004361B8         ;  读入用户输入的注册码 ch.004361B
+00527215  |.  8B45 F4        MOV EAX,DWORD PTR SS:[EBP-C]   ;  [EBP-C]->用户输入注册码 SS:[EB
+00527218  |.  8D55 F8        LEA EDX,DWORD PTR SS:[EBP-8]
+0052721B  |.  E8 142CEEFF    CALL textsrch.00409E34         ;  复制，strcpy([EBP-8],[EBP-C])
+00527220  |.  8B45 F8        MOV EAX,DWORD PTR SS:[EBP-8]
+00527223  |.  8D55 FC        LEA EDX,DWORD PTR SS:[EBP-4]
+00527226  |.  E8 7529EEFF    CALL textsrch.00409BA0         ;  大小写转换:[EBP-4]->大写的假注册码
+0052722B  |.  8B45 FC        MOV EAX,DWORD PTR SS:[EBP-4]
+0052722E  |.  50             PUSH EAX
+0052722F  |.  68 A0735200    PUSH textsrch.005273A0         ;  字符串"AG"tsr
+00527234  |.  8D55 EC        LEA EDX,DWORD PTR SS:[EBP-14]
+00527237  |.  B8 560C0000    MOV EAX,0C56
+0052723C  |.  E8 A72EEEFF    CALL textsrch.0040A0E8         ;  sprintf([EBP-14],"%d",0x0C56)
+00527241  |.  FF75 EC        PUSH DWORD PTR SS:[EBP-14]
+00527244  |.  68 AC735200    PUSH textsrch.005273AC         ;  字符串"NK"tsr
+00527249  |.  8D45 F0        LEA EAX,DWORD PTR SS:[EBP-10]
+0052724C  |.  BA 03000000    MOV EDX,3
+00527251  |.  E8 92D0EDFF    CALL textsrch.004042E8         ;  3 个字符串相联(AG,"3158","NK")
+00527256  |.  8B55 F0        MOV EDX,DWORD PTR SS:[EBP-10]
+00527259  |.  58             POP EAX
+0052725A  |.  E8 D9D0EDFF    CALL textsrch.00404338         ;  判断注册码是否正确 rch.00404
+0052725F  |.  0F85 DC000000  JNZ textsrch.00527341          ;  关键跳转 exts
+```
+
+### (4) 跟踪——注册信息保存
+
+如果跳转
+
+```
+0052725F |. 0F85 DC000000 JNZ textsrch.00527341 ; 关键跳转 exts
+```
+
+没有发生，那么就该进入注册信息保存的代码了，这段代码很简单，从压入堆栈的参数，便可以知道是注册表操作了，有兴趣的朋友可以看看，我就不赘述了。
+
+### (5) 总结
+
+该软件的验证方法相当原始，是个典型的教程，写本文的目的就是教初学者如何用`OllyDbg`来破解一个最简单的软件，本人水平有限，还请高手们多多批评指正！！
+
+有兴趣研究`OllyDbg`者，可以一起探讨: `QQ:85436`
+
+`WinHack[CCG][OCN]`
+
+`2003-5-28`
+
+### 附录:
+
+#### ----------------注册码算法------------------>
+
+```c
+const char szStr1[] = "AG";
+const char szStr2[] = "NK";
+char szText[8],szSn[128] = "";
+sprintf(szText,"%d",0x0C56);
+strcat(szSn,szStr1);
+strcat(szSn,szText);
+strcat(szSn,szStr2);
+printf("Register Code is : %s\n",szSn);
+```
+
+//结果:`Register Code is : AG3158NK`
+
+#### ----------------注册信息保存---------------->
+
+注册表路径：
+
+`HKEY_CURRENT_USER\Software\NKT`
+
+下找到了`Reg`键值：
+
+`Reg REG_DWORD 0x00000007`
+
+`4dd466d0e1e0cc123afbe504da2462ca`

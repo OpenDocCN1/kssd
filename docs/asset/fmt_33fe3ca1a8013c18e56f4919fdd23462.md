@@ -1,0 +1,71 @@
+
+# UniView 1.62
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50060.htm`](https://www.pediy.com/kssd/pediy05/pediy50060.htm)
+
+**软件名称**：`UniView 1.62`
+
+**破解工具**：`ollydbg 1.06`, `W32DSM`
+
+**破解方法**：爆破法
+
+**声明**：
+
+此文仅用于学习之用，转载请注明出处。本人对读者阅读本文之后的行为不负任何责任。请尊重软件开发者的权利，如果你真的喜欢一个软件，请支持它！
+
+### 破解过程
+
+该软件是用 `upx` 加壳的，如果用去壳再反编译破的话也很快，但太烦了。所以，就用 `ollydbg` 直接跟了。
+
+1. 打开 `uniview.exe` 和 `ollydbg`，attach 到 `uniview`
+2. `Alt＋E` 选 `uniview`，进入主领空
+3. `Analyse Code` 后，再切到注册窗口，随便输入名字和注册码，跳出错误窗口
+4. 在 `ollydbg` 里按 `F12`，暂停，然后在 `memory window` 寻找出错信息 `"Invalid Registration Code!"`，没有找到。不要紧，因为 `ollydbg` 的 `memory window` 只显示一个 `block`，再在程序段里看看，发现一些 `ASCII` 码来自 `52XXXX`，于是 `go to expression` 到 `520000`，(或者打开 `memory map` 窗口（`View－>memory`），可以见到 `uniview` 的 `code` 段位于 `507000`，`Dump in CPU` 就可以了)再 `search` `"Invalid"`，oops 找到了。在高亮显示处，`find refrence`，ok！只找到一处，双击进入
+5. 大家看看下面的程序，随便你喜欢暴破或者找算法都没问题
+6. 其实注册码是多少都无所谓，关键是注册表里的主键，用一下 `regmon` 就知道了
+
+```asm
+* Possible StringData Ref from Code Obj ->"System Information"
+                          |
+:00524B51 B9CC4B5200       mov ecx, 00524BCC
+
+* Possible StringData Ref from Code Obj ->"Thank you for registering UniView
+All "
+                                      ->"upgrades are free to registered "
+                                      ->"UniView users"
+                          |
+:00524B56 BAE04B5200       mov edx, 00524BE0
+:00524B5B A11CD95400       mov eax, dword ptr [0054D91C]
+:00524B60 8B00             mov eax, dword ptr [eax]
+:00524B62 E881E1F2FF       call 00452CE8
+:00524B67 A1F4D75400       mov eax, dword ptr [0054D7F4]
+:00524B6C 8B00             mov eax, dword ptr [eax]
+:00524B6E C6400401         mov [eax+04], 01
+:00524B72 A1F4D75400       mov eax, dword ptr [0054D7F4]
+:00524B77 8B00             mov eax, dword ptr [eax]
+:00524B79 E8BE8FFCFF       call 004EDB3C
+:00524B7E C7833402000001000000 mov dword ptr [ebx+00000234], 00000001
+:00524B88 EB18             jmp 00524BA2
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00524B4D(C)
+|
+:00524B8A 6A10             push 00000010
+
+* Possible StringData Ref from Code Obj ->"Error"
+                          |
+:00524B8C B9344C5200       mov ecx, 00524C34
+
+* Possible StringData Ref from Code Obj ->"Invalid Registration Code!"
+                          |
+:00524B91 BA3C4C5200       mov edx, 00524C3C
+:00524B96 A11CD95400       mov eax, dword ptr [0054D91C]
+:00524B9B 8B00             mov eax, dword ptr [eax]
+:00524B9D E846E1F2FF       call 00452CE8
+```
+
+### 小结
+
+我很懒，所以我用有了 `ollydbg`
+
+`by slimbou[BCG] 4dd466d0e1e0cc123afbe504da2462ca`

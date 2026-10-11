@@ -1,0 +1,174 @@
+
+# Lemmy v4.4
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50169.htm`](https://www.pediy.com/kssd/pediy05/pediy50169.htm)
+
+## Lemmy v4.4 注册码分析
+
+**作者**：`bbbsl`
+
+**软件介绍**：这是一款在`windows`下模拟`unix`/`linux`下`vi`的一个工具，我们系没有用`unix`/`linux`做实验的条件，所以让我们用这玩意体验一下，超级恶心！！！没发现用它有什么有意义的地方，但居然还有时间限制，所以，就拿它做个`crackme`吧！
+
+**平台**：`windows 2000 advanced server`
+
+**所用工具**：`softice for nt 4.05`,`calc`(window 自带计算器）
+
+`//运行 lemmyreg 后下断点 bpx getwindowtexta 后，按 F10 一直走到这一段代码（当然，前提是你得先输入了你的 ID 和 SN^\_^)`：
+
+```
+:0040178F 8B17                 mov edx, dword ptr [edi]
+:00401791 50                   push eax        //你输入的假注册码
+:00401792 52                   push edx        //你的 ID
+:00401793 8D4E68               lea ecx, dword ptr [esi+68]   //我一直不明白这个数是怎么来的，程序中用它加 14 得到一个地址，用这个地址的数做运算,高手给指点指点吧
+:00401796 E865020000           call 00401A00   //关键！！！
+:0040179B 85C0                 test eax, eax   //正确否？
+:0040179D 7457                 je 004017F6     //正确则跳过！
+:0040179F 6A00                 push 00000000
+:004017A1 6A30                 push 00000030
+
+* Possible StringData Ref from Data Obj ->"Check the values supplied"
+
+:004017A3 68B0E04200           push 0042E0B0
+:004017A8 E8FFD60100           call 0041EEAC
+
+//下面是 401A00 的代码：
+
+:00401A00 53                   push ebx
+:00401A01 55                   push ebp
+:00401A02 56                   push esi
+:00401A03 57                   push edi
+:00401A04 8BF9                 mov edi, ecx
+:00401A06 6A08                 push 00000008
+:00401A08 83CDFF               or ebp, FFFFFFFF
+:00401A0B E816650100           call 00417F26
+:00401A10 8B74241C             mov esi, dword ptr [esp+1C]
+:00401A14 83C404               add esp, 00000004
+:00401A17 8BD8                 mov ebx, eax
+:00401A19 33D2                 xor edx, edx
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00401A71(C)
+
+:00401A1B 0FBE06               movsx eax, byte ptr [esi]     //esi 中是你是输入的假注册码
+:00401A1E 0FBE4E01             movsx ecx, byte ptr [esi+01]   //两位两位处理
+:00401A22 83F830               cmp eax, 00000030             //是数字否？
+:00401A25 7C0A                 jl 00401A31                   //如果小于‘0’则非数字..
+:00401A27 83F839               cmp eax, 00000039
+:00401A2A 7F05                 jg 00401A31                   //如果大于‘9’则非数字..
+:00401A2C 83E830               sub eax, 00000030             //转成 16 进制中相应数字
+:00401A2F EB11                 jmp 00401A42                  //下一位判断
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:00401A25(C), :00401A2A(C)
+
+:00401A31 83F841               cmp eax, 00000041             //不是数字，那是不是大写字母 A-F 中的一个呢？
+:00401A34 7C0A                 jl 00401A40                   //小则清 eax
+:00401A36 83F846               cmp eax, 00000046             //大也清 eax
+:00401A39 7F05                 jg 00401A40
+:00401A3B 83E837               sub eax, 00000037             //如果是则转成 16 进制中相应字符
+:00401A3E EB02                 jmp 00401A42
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:00401A34(C), :00401A39(C)
+
+:00401A40 33C0                 xor eax, eax
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:00401A2F(U), :00401A3E(U)
+
+:00401A42 83F930               cmp ecx, 00000030             //第二位判断，以下均同第一位
+:00401A45 7C0A                 jl 00401A51
+:00401A47 83F939               cmp ecx, 00000039
+:00401A4A 7F05                 jg 00401A51
+:00401A4C 83E930               sub ecx, 00000030
+:00401A4F EB11                 jmp 00401A62
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:00401A45(C), :00401A4A(C)
+
+:00401A51 83F941               cmp ecx, 00000041
+:00401A54 7C0A                 jl 00401A60
+:00401A56 83F946               cmp ecx, 00000046
+:00401A59 7F05                 jg 00401A60
+:00401A5B 83E937               sub ecx, 00000037
+:00401A5E EB02                 jmp 00401A62
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:00401A54(C), :00401A59(C)
+
+:00401A60 33C9                 xor ecx, ecx
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:00401A4F(U), :00401A5E(U)
+
+:00401A62 C0E004               shl al, 04                    //合并刚刚处理过的两位假注册码
+:00401A65 02C1                 add al, cl                    //即你输入的东西，假设为‘77’则变为 16 进制数 77 放入 al 中
+:00401A67 83C602               add esi, 00000002
+:00401A6A 880413               mov byte ptr [ebx+edx], al    //存入 ebx 所指向空间中
+:00401A6D 42                   inc edx                       //edx 为计数器
+:00401A6E 83FA08               cmp edx, 00000008             //循环是否结束
+:00401A71 7CA8                 jl 00401A1B                   //不结束继续。。
+:00401A73 53                   push ebx                      //保存转换过的东东所在地
+:00401A74 8BCF                 mov ecx, edi                  //就是刚才那个数
+:00401A76 E8E5F5FFFF           call 00401060                 //进一步处理，关键！！！
+:00401A7B 8B542414             mov edx, dword ptr [esp+14]
+:00401A7F 83C9FF               or ecx, FFFFFFFF              //再往下是判断你的 ID 和用注册码算出来的 ID 是否一致的一个 CALL
+:00401A82 8BFA                 mov edi, edx
+:00401A84 33C0                 xor eax, eax
+:00401A86 F2                   repnz
+:00401A87 AE                   scasb
+:00401A88 F7D1                 not ecx
+:00401A8A 49                   dec ecx
+:00401A8B 83F908               cmp ecx, 00000008             //判断名字的位数是否大于 8
+:00401A8E 7607                 jbe 00401A97                  //是就继续不是截断
+:00401A90 B908000000           mov ecx, 00000008
+:00401A95 EB0C                 jmp 00401AA3
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00401A8E(C)
+
+:00401A97 8BFA                 mov edi, edx
+:00401A99 83C9FF               or ecx, FFFFFFFF
+:00401A9C 33C0                 xor eax, eax
+:00401A9E F2                   repnz
+:00401A9F AE                   scasb
+:00401AA0 F7D1                 not ecx
+:00401AA2 49                   dec ecx
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00401A95(U)
+
+:00401AA3 85C9                 test ecx, ecx                 //位数是否为零
+:00401AA5 7E11                 jle 00401AB8
+:00401AA7 51                   push ecx                      //这是位数
+:00401AA8 53                   push ebx                      //这是用注册码推出来的 ID
+:00401AA9 52                   push edx                      //这是你输入的 ID
+:00401AAA E8515F0000           call 00407A00                 //是否相同？
+:00401AAF 83C40C               add esp, 0000000C
+:00401AB2 85C0                 test eax, eax
+:00401AB4 7502                 jne 00401AB8                  //如相同清 ebp 不然则相反，从而导致最后返回的 eax 值不同
+:00401AB6 33ED                 xor ebp, ebp
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:00401AA5(C), :00401AB4(C)
+
+:00401AB8 53                   push ebx
+:00401AB9 E8A4640100           call 00417F62
+:00401ABE 83C404               add esp, 00000004
+:00401AC1 8BC5                 mov eax, ebp                  //eax<==ebp
+:00401AC3 5F                   pop edi
+:00401AC4 5E                   pop esi
+:00401AC5 5D                   pop ebp
+:00401AC6 5B                   pop ebx
+:00401AC7 C20800               ret 0008
+```

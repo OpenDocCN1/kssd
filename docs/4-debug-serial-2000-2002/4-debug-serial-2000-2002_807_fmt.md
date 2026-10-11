@@ -1,0 +1,234 @@
+
+# FreeRes.exe V0.94
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue333.htm`](https://www.pediy.com/kssd/pediy04/kanxue333.htm)
+
+程序名称：`FreeRes.exe V0.94`
+
+软件简介：摘录软件说明
+
+现在的加壳压缩工具越来越多，而且国内外越来越多的共享软件制作者都喜欢用这些工具（包括我在内，`ResTools` 系列工具软件也经过 `ASPack` 压缩），令到 `ASPack`，`UPX` 之流的软件大行其道，但国内汉化界所面对的问题却越来越严重，因为被压缩的资源无法正常编辑。而在这时候，相继出现了一部分脱壳工具，收到不错的效果，解决了不少问题；同时，也出现了一些只分析压缩资源而非脱壳工具之流的工具。针对压缩资源，我开发了 `ResTools` 系列工具的一员：`freeRes`
+
+下载地址：`http://go6.163.com/restools/fr011110.zip`
+
+破解目的：找出注册码。 用 `Keymake 1.33` 版本做它的注册机！
+
+工具：`Trw2000 1.22` , `w32dsm89` 黄金版 , `Procdump V1.62`
+
+说明：原 `exe` 文件是加壳的，用 `fi` 可以看出来，用相应的程序(`Procdump` 等，后附 `script.ini` 的扩展) 可以去掉壳。 程序在你输入注册码后，把你输入的注册名和注册码存储在注册表里的同时进行注册码 比较。
+
+启动 `Trw2000` 载入 `FreeRes.exe`
+
+下断点 `bpx regqueryvalueexa`
+
+f5 返回程序
+
+点击程序 `Help` 菜单，点击注册输入注册名字和注册码，确定。
+
+“啪”断下来了吧！！
+
+`bc *` 清除断点
+
+`pmodule` 返回程序领空
+
+慢慢按 `F10` 来到如下地方:
+
+`* Possible StringData Ref from Data Obj ->"SOFTWARE\RESTOOLS\freeRes"`
+
+|
+
+`:004BBC4A BAA4BD4B00 mov edx, 004BBDA4`
+`:004BBC4F 8B45F8 mov eax, dword ptr [ebp-08]`
+`:004BBC52 E8A1F4FFFF call 004BB0F8`
+`:004BBC57 84C0 test al, al`
+`:004BBC59 0F84F4000000 je 004BBD53`
+`:004BBC5F 8D45F4 lea eax, dword ptr [ebp-0C]`
+`:004BBC62 E82580F4FF call 00403C8C`
+`:004BBC67 8D45F0 lea eax, dword ptr [ebp-10]`
+`:004BBC6A E81D80F4FF call 00403C8C`
+
+`* Possible StringData Ref from Data Obj ->"reguser"`
+
+|
+
+`:004BBC6F BAC8BD4B00 mov edx, 004BBDC8`
+`:004BBC74 8B45F8 mov eax, dword ptr [ebp-08]`
+`:004BBC77 E898F7FFFF call 004BB414`
+`:004BBC7C 84C0 test al, al`
+`:004BBC7E 7410 je 004BBC90`
+`:004BBC80 8D4DF4 lea ecx, dword ptr [ebp-0C]`
+
+`* Possible StringData Ref from Data Obj ->"reguser"`
+
+|
+
+`:004BBC83 BAC8BD4B00 mov edx, 004BBDC8`
+`:004BBC88 8B45F8 mov eax, dword ptr [ebp-08]`
+`:004BBC8B E830F6FFFF call 004BB2C0`
+
+`* Referenced by a (U)nconditional or (C)onditional Jump at Address:`
+
+|`:004BBC7E(C)`
+
+|
+
+`* Possible StringData Ref from Data Obj ->"regcode"`
+
+|
+
+`:004BBC90 BAD8BD4B00 mov edx, 004BBDD8`
+`:004BBC95 8B45F8 mov eax, dword ptr [ebp-08]`
+`:004BBC98 E877F7FFFF call 004BB414`
+`:004BBC9D 84C0 test al, al`
+`:004BBC9F 7410 je 004BBCB1`
+`:004BBCA1 8D4DF0 lea ecx, dword ptr [ebp-10]`
+
+`* Possible StringData Ref from Data Obj ->"regcode"`
+
+|
+
+`:004BBCA4 BAD8BD4B00 mov edx, 004BBDD8`
+`:004BBCA9 8B45F8 mov eax, dword ptr [ebp-08]`
+`:004BBCAC E80FF6FFFF call 004BB2C0`
+
+`* Referenced by a (U)nconditional or (C)onditional Jump at Address:`
+
+|`:004BBC9F(C)`
+
+|
+
+`:004BBCB1 8B45F0 mov eax, dword ptr [ebp-10] ;<-输入的假注册码`
+`:004BBCB4 E85382F4FF call 00403F0C`
+`:004BBCB9 83F828 cmp eax, 00000028 ;<-注册码的长度 40`
+`:004BBCBC 0F8591000000 jne 004BBD53 ;<-不等就跳，注册失败`
+`:004BBCC2 8B45F4 mov eax, dword ptr [ebp-0C]`
+`:004BBCC5 E84282F4FF call 00403F0C`
+`:004BBCCA 85C0 test eax, eax`
+`:004BBCCC 0F8E81000000 jle 004BBD53`
+`:004BBCD2 68348C0000 push 00008C34`
+`:004BBCD7 8D45EC lea eax, dword ptr [ebp-14]`
+`:004BBCDA 50 push eax`
+`:004BBCDB B983310000 mov ecx, 00003183`
+`:004BBCE0 BAD6030000 mov edx, 000003D6`
+`:004BBCE5 8B45F4 mov eax, dword ptr [ebp-0C]`
+`:004BBCE8 E823FCFFFF call 004BB910`
+`:004BBCED 8B55EC mov edx, dword ptr [ebp-14]`
+`:004BBCF0 8D45F4 lea eax, dword ptr [ebp-0C]`
+`:004BBCF3 E82C80F4FF call 00403D24`
+`:004BBCF8 8D55E8 lea edx, dword ptr [ebp-18]`
+`:004BBCFB 8B45F4 mov eax, dword ptr [ebp-0C]`
+`:004BBCFE E89DFAFFFF call 004BB7A0`
+`:004BBD03 8B45E8 mov eax, dword ptr [ebp-18] ;<-真注册码`
+`:004BBD06 8B55F0 mov edx, dword ptr [ebp-10] ;<-输入的假注册码`
+`:004BBD09 E80E83F4FF call 0040401C <<==关键比较`
+`:004BBD0E 750C jne 004BBD1C`
+`:004BBD10 A100144D00 mov eax, dword ptr [004D1400]`
+`:004BBD15 8B00 mov eax, dword ptr [eax]`
+`:004BBD17 E87049F9FF call 0045068C`
+`:0040401C 53 push ebx`
+`:0040401D 56 push esi`
+`:0040401E 57 push edi`
+`:0040401F 89C6 mov esi, eax`
+`:00404021 89D7 mov edi, edx`
+`:00404023 39D0 cmp eax, edx D EAX 真注册码 D edx 假注册码`
+`:00404025 0F848F000000 je 004040BA`
+
+＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+
+用 `Keymake 1.33` 版本做它的注册机！
+
+一）选择 `F8`－另类注册机！
+
+1、程序名称：`freeRes.exe`(脱壳后)
+
+2、添加数据：
+
+中断地址：`4bbd0`
+
+中断次数：`1`
+
+第一字节：`E8`
+
+指令长度：`5`
+
+再次添加数据：
+
+中断地址：`404023`
+
+中断次数：`1`
+
+第一字节：`39`
+
+指令长度：`2`
+
+二、选择寄存器方式 `EAX`
+
+先第一次运行注册信息后，再运行本注册机！一切 `OK`！能显示 `40` 位长注册码！！！
+
+＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+
+\==> 一点题外话：程序注册后，一起动就退出。谁能把它砍翻？
+
+用 `Procdump` 脱 `Asppack` 壳的 `script.ini` 扩展
+
+在`[INDEX]`后添加
+
+`pXX=Aspack (XX 为十六进制)`
+
+`[Aspack]`
+
+```
+L1=OBJR
+L2=LOOK EB,?
+L3=JZ 5
+L4=QUIT
+L5=BP
+L6=WALK
+L7=OBJR
+L8=LOOK 61,75
+L9=BP
+LA=STEP
+OPTL1=00000000
+OPTL2=01010001
+OPTL3=01010001
+OPTL4=00030000
+OPTL5=00000000
+```
+
+这样一来 `Procdump` 就可以脱掉到目前为止所有 `Asppack` 的壳了。
+
+```
+:004BBD03 8B45E8 mov eax, dword ptr [ebp-18]
+:004BBD06 8B55F0 mov edx, dword ptr [ebp-10]
+:004BBD09 E80E83F4FF call 0040401C--------->暗桩！“假假”注册码对比，如相等则作者发觉你在破解它然后退出！
+:004BBD0E 750C jne 004BBD1C---------->一定要跳才行，不能让“假假”注册码相等！
+:004BBD10 A100144D00 mov eax, dword ptr [004D1400]
+:004BBD15 8B00 mov eax, dword ptr [eax]
+:004BBD17 E87049F9FF call 0045068C
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004BBD0E(C)
+|
+:004BBD1C 68348C0000 push 00008C34
+:004BBD21 8D45E4 lea eax, dword ptr [ebp-1C]
+:004BBD24 50 push eax
+:004BBD25 B983310000 mov ecx, 00003183
+:004BBD2A BAD6030000 mov edx, 000003D6
+:004BBD2F 8B45F0 mov eax, dword ptr [ebp-10]
+:004BBD32 E8C9F9FFFF call 004BB700
+:004BBD37 8B55E4 mov edx, dword ptr [ebp-1C]
+:004BBD3A 8D45F0 lea eax, dword ptr [ebp-10]
+:004BBD3D E8E27FF4FF call 00403D24
+:004BBD42 8B45F4 mov eax, dword ptr [ebp-0C]
+:004BBD45 8B55F0 mov edx, dword ptr [ebp-10]
+:004BBD48 E8CF82F4FF call 0040401C--------------->注册名与注册码变形后之值对比！
+:004BBD4D 7504 jne 004BBD53---------------->一定不能跳！即值要相等。
+:004BBD4F C645FF01 mov [ebp-01], 01------->!!
+```
+
+注册码可不那么好找！
+
+我的帖子确实中了 `freeRes V0.94` 的暗桩，软件作者可能是发现 `V0.6` 版被破解 后设的。跟踪后发现它是把注册名和机器码进行两种转换，真正对比的是转换 后的两个八位十进制数，我不想再破解它了，给国产软件作者一点支持！
+
+如果你喜欢 `freeRes V0.94` 请注册(人民币 `8` 元).
+
+作为补偿，我把 `PopUp Killer 1.41` 的注册方法帖出 `4dd466d0e1e0cc123afbe504da2462ca`

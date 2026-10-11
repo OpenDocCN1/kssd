@@ -1,0 +1,202 @@
+
+# PacWorld v 1.3
+
+> 原文：`www.pediy.com/kssd/pediy05/pediy50099.htm`
+
+软件名称：`PacWorld v 1.3`
+
+大小：`423K`
+
+下载：`http://gd.skycn.net/down/pacworld.zip`
+
+简介:
+
+一个外国游戏，在大型机台和电视游乐器都很受欢迎的古典游戏－小精灵大嘴吃豆，你是否很怀念呢？
+
+现在有了 `PacWorld` 这个旧酒装新瓶的小精灵游戏，可以让你在 `PC` 上回味一下过去的感觉。`PacWorld` 完全重新设计关卡、奖金制度、美丽的图形和音效等。
+
+`URL: http://gd.skycn.net/down/PacWorld.exe`
+
+保护方式：`vc++6.0` 编写，未加壳,未注册有功能限制。
+
+破解人　：龙笑天\[BCG\]
+
+破解时间：`2002.4.23`
+
+破解工具：`trw2000 v1.22` `w32dasm`
+
+破解流程：
+
+1. 用 `trw` 载入 `PacWorld v 1.3` ，输入假码 `13141314`
+
+   2. `ctrl+N` 呼出 `trw`,下 `bpx __HMEMCPY`　`F5` 返回到程序，按下注册按钮
+
+   3. 拦下后，再按 `9` 次 `F12`（第 `10` 次失败）
+
+   4. 来到程序下面段：
+
+```
+:0042057C 8B06                   mov eax, dword ptr [esi]
+:0042057E 8BCE                   mov ecx, esi
+:00420580 FF5070                 call [eax+70]
+:00420583 85C0                   test eax, eax
+:00420585 743C                   je 004205C3
+:00420587 E8A1150000             call 00421B2D
+:0042058C 8B10                   mov edx, dword ptr [eax]------->下 dedx 即得到注册码
+:0042058E 55                     push ebp
+:0042058F 8BC8                   mov ecx, eax
+:00420591 FF5264                 call [edx+64]
+:00420594 85C0                   test eax, eax
+:00420596 740C                   je 004205A4
+:00420598 C744241801000000       mov [esp+18], 00000001
+:004205A0 897C2414               mov dword ptr [esp+14], edi
+```
+
+详细分析：
+
+用 `w32dasm` 载入，按串式参考“Get a valid password for $10”，双击来到以下程序段：
+
+```
+* Reference To: USER32.DeleteMenu, Ord:0087h
+
+:00407739 FF15F4934200           Call dword ptr [004293F4]------>可疑 call，追入!!
+:0040773F EB1D                   jmp 0040775E
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004076D9(C)
+* Possible StringData Ref from Data Obj ->"Get a valid password for $10"
+
+:00407741 68DC134300             push 004313DC
+:00407746 8D4DEC                 lea ecx, dword ptr [ebp-14]
+:00407749 885DE8                 mov byte ptr [ebp-18], bl
+:0040774C E8539E0100             call 004215A4
+```
+
+追入 `call` 来到：
+
+```
+* Possible StringData Ref from Data Obj ->"Password"
+
+:0040765D 6888134300             push 00431388
+:00407662 53                     push ebx
+:00407663 FFD7                   call edi
+:00407665 5F                     pop edi
+:00407666 5E                     pop esi
+:00407667 5B                     pop ebx
+:00407668 C9                     leave
+:00407669 C3                     ret
+:0040766A B8D77D4200             mov eax, 00427DD7
+:0040766F E8EC940000             call 00410B60------------>可疑 call，追入!!
+:00407674 81EC78010000           sub esp, 00000178
+:0040767A 53                     push ebx
+:0040767B 56                     push esi
+:0040767C 8BF1                   mov esi, ecx
+:0040767E 33DB                   xor ebx, ebx
+:00407680 53                     push ebx
+:00407681 8D8D7CFEFFFF           lea ecx, dword ptr [ebp+FFFFFE7C]
+:00407687 E856180000             call 00408EE2
+:0040768C 8D8D7CFEFFFF           lea ecx, dword ptr [ebp+FFFFFE7C]
+:00407692 895DFC                 mov dword ptr [ebp-04], ebx
+:00407695 E801620100             call 0041D89B
+:0040769A 83F801                 cmp eax, 00000001
+:0040769D 0F85CE000000           jne 00407771
+:004076A3 68784F4300             push 00434F78
+:004076A8 FF7588                 push [ebp-78]
+:004076AB E817990000             call 00410FC7
+:004076B0 59                     pop ecx
+:004076B1 85C0                   test eax, eax
+:004076B3 59                     pop ecx
+:004076B4 0F84B7000000           je 00407771
+:004076BA 53                     push ebx
+:004076BB 8D4D8C                 lea ecx, dword ptr [ebp-74]
+:004076BE E8561A0000             call 00409119
+:004076C3 FF3558504300           push dword ptr [00435058]
+:004076C9 C645FC01               mov [ebp-04], 01
+:004076CD FF7588                 push [ebp-78]
+:004076D0 E8F2980000             call 00410FC7
+:004076D5 59                     pop ecx
+:004076D6 85C0                   test eax, eax
+:004076D8 59                     pop ecx
+:004076D9 7566                   jne 00407741
+* Possible StringData Ref from Data Obj ->"Thank you for registering"
+
+:004076DB 681C144300             push 0043141C
+:004076E0 8D4DEC                 lea ecx, dword ptr [ebp-14]
+:004076E3 C645E801               mov [ebp-18], 01
+:004076E7 E8B89E0100             call 004215A4
+* Possible StringData Ref from Data Obj ->"You can now play all 12 Levels"
+```
+
+又追入 `call` 来到（此时心中一喜，好像找到算法啦!!)：
+
+```
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00410B9F(C)
+
+:00410BA9 8BC8                   mov ecx, eax-------->把 eax 的值赋给 ecx
+:00410BAB C1E008                  shl eax, 08-------->eax 左移 8 位
+:00410BAE 03C1                    add eax, ecx-------->eax 和 eax 相加
+:00410BB0 8BC8                   mov ecx, eax-------->把 eax 的值赋给 ecx
+:00410BB2 C1E010                  shl eax, 10-------->eax 再左移 10 位
+:00410BB5 03C1                    add eax, ecx-------->eax 和 eax 相加
+:00410BB7 8BCA                   mov ecx, edx-------->把 edx 的值赋给 ecx
+:00410BB9 83E203                  and edx, 00000003-------->edx 和 3 进行与运算
+:00410BBC C1E902                  shr ecx, 02-------->ecx 右移 8 位
+:00410BBF 7406                   je 00410BC7-------->比较大小
+:00410BC1 F3                     repz
+:00410BC2 AB                     stosd
+:00410BC3 85D2                   test edx, edx
+:00410BC5 7406                   je 00410BCD
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:00410B98(C), :00410BBF(C), :00410BCB(C)
+
+:00410BC7 8807                   mov byte ptr [edi], al
+:00410BC9 47                     inc edi
+:00410BCA 4A                     dec edx
+:00410BCB 75FA                   jne 00410BC7
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00410BC5(C)
+
+:00410BCD 8B442408               mov eax, dword ptr [esp+08]
+:00410BD1 5F                     pop edi
+:00410BD2 C3                     ret
+```
+
+既然找到算法,就分析寄存器的值,又用 `trw2000` 载入,来到以下程序段:
+
+```
+:00410BA9 8BC8                   mov ecx, eax
+:00410BAB C1E008                  shl eax, 08
+:00410BAE 03C1                    add eax, ecx
+:00410BB0 8BC8                   mov ecx, eax
+:00410BB2 C1E010                  shl eax, 10
+:00410BB5 03C1                    add eax, ecx
+:00410BB7 8BCA                   mov ecx, edx
+:00410BB9 83E203                  and edx, 00000003
+:00410BBC C1E902                  shr ecx, 02
+:00410BBF 7406                   je 00410BC7
+:00410BC1 F3                     repz
+```
+
+在此段连下 `deax`,`decx`,`dedx` 都发现 `eax`,`ecx` 为空操作数,因此刚才的不是找注册码的算法,我晕!!
+
+再回去追入几个 `call` 都徒劳无功!＠＾＠
+
+只好再参考"串式参考"，突然，我看到注册码竟然在串式参考里！哈哈！！看来这个程序的注册方法是绝对的明码比较．双击"`k9B8PT4z81U49i`"来到明码比较以下程序段就是的程序段：
+
+以下程序段就是拿输入的假码和真码比较！！^O^^O^
+
+```
+* Referenced by a CALL at Address:
+|:004026C5
+* Possible StringData Ref from Data Obj ->"k9B8PT4z81U49i"
+
+:004026CF 6894114300             push 00431194
+:004026D4 B958504300             mov ecx, 00435058
+:004026D9 E8F7ED0100             call 004214D5
+:004026DE C3                     ret
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004026CA(U)
+
+:004026DF 68EB264000             push 004026EB
+:004026E4 E89DE80000             call 00410F86
+```

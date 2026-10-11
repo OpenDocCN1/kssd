@@ -1,0 +1,78 @@
+
+# FAR 3.X
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue394.htm`](https://www.pediy.com/kssd/pediy04/kanxue394.htm)
+
+`FAR 3.X` 的 `pj`。
+
+进入注册窗口，输入所需的相关信息，下断点 `bpx hmemcpy`。
+
+1. 点击 `OK` 按钮后设置断点：`bpx hmemcpy`
+2. 按 `F12` 键 14 次
+3. 按 `F10` 键若干次，直到到达以下位置：
+
+```text
+015F:005AFC40 50                PUSH      EAX
+015F:005AFC41 8B4DF4            MOV       ECX,[EBP-0C]
+015F:005AFC44 8B55F8            MOV       EDX,[EBP-08]
+015F:005AFC47 8B45FC            MOV       EAX,[EBP-04]
+015F:005AFC4A E885B9F4FF        CALL      004FB5D4 <---interesting call, we step in[1]
+015F:005AFC4F 8806              MOV       [ESI],AL <----旗帜
+015F:005AFC51 803E00            CMP       BYTE [ESI],00 <---对旗帜进行比较
+015F:005AFC54 744D              JZ        005AFCA3
+015F:005AFC56 8B45F4            MOV       EAX,[EBP-0C]
+015F:005AFC59 E87EB2F4FF        CALL      004FAEDC
+015F:005AFC5E 8B15E0355D00      MOV       EDX,[005D35E0]
+015F:005AFC64 52                PUSH      EDX
+015F:005AFC65 50                PUSH      EAX
+015F:005AFC66 8D45E8            LEA       EAX,[EBP-18]
+015F:005AFC69 50                PUSH      EAX
+015F:005AFC6A 8B0D90165D00      MOV       ECX,[005D1690]
+```
+
+**[1]:** 我们在这里继续：
+
+```text
+015F:004FB64D 8975E8            MOV       [EBP-18],ESI
+015F:004FB650 C645EC00         MOV       BYTE [EBP-14],00
+015F:004FB654 8D55C8            LEA       EDX,[EBP-38]
+015F:004FB657 B904000000        MOV       ECX,04
+015F:004FB65C B8E8B64F00        MOV       EAX,004FB6E8
+015F:004FB661 E8F209FBFF       CALL      004AC058
+015F:004FB666 8B45F4            MOV       EAX,[EBP-0C]
+015F:004FB669 8945B8            MOV       [EBP-48],EAX
+015F:004FB66C C645BC0B         MOV       BYTE [EBP-44],0B
+015F:004FB670 895DC0            MOV       [EBP-40],EBX
+015F:004FB673 C645C400         MOV       BYTE [EBP-3C],00
+015F:004FB677 8D55B8            LEA       EDX,[EBP-48]
+015F:004FB67A B901000000        MOV       ECX,01
+...
+...
+015F:004FB689 53                PUSH      EBX
+015F:004FB68A 8D45F0            LEA       EAX,[EBP-10]
+015F:004FB68D 50                PUSH      EAX
+015F:004FB68E 8BCE              MOV       ECX,ESI
+015F:004FB690 8B55F8            MOV       EDX,[EBP-08]
+015F:004FB693 8B45FC            MOV       EAX,[EBP-04]
+015F:004FB696 E8A9F9FFFF       CALL      004FB044
+015F:004FB69B 8B55F4            MOV       EDX,[EBP-0C]
+015F:004FB69E 8B45F0            MOV       EAX,[EBP-10]
+015F:004FB6A1 E82EE1F0FF       CALL      004097D4 <---this call is the baby!!!
+```
+
+对该指针执行 `d eax`，我们将得到注册码。
+
+```text
+015F:004FB6A6 85C0              TEST      EAX,EAX
+015F:004FB6A8 0F94C3            SETZ      BL
+015F:004FB6AB 33C0              XOR       EAX,EAX
+015F:004FB6AD 5A                POP       EDX
+015F:004FB6AE 59                POP       ECX
+```
+
+现在得到密码：`FAR22-DOLPH-00000-14320`
+
+`NAME`: `dola`
+`EMAIL`: `dolphinzh@cmmail.com`
+
+`4dd466d0e1e0cc123afbe504da2462ca`

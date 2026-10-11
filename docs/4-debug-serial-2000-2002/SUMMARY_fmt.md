@@ -1,0 +1,1390 @@
+
+## 第4篇 调试篇：序列号保护实例分析 2000-2002
+
++   [第4篇 调试篇：序列号保护实例分析 2000-2002](README.md)
++   [KSSD 第 4 篇 调试篇：序列号保护实例分析 2000-2002](4-debug-serial-2000-2002_1.md)
++   [Animated Screen](4-debug-serial-2000-2002_10.md)
++   [ScreenTaker2.21](4-debug-serial-2000-2002_100.md)
++   [Second Copy 97 version 5.31](4-debug-serial-2000-2002_101.md)
++   [see This](4-debug-serial-2000-2002_102.md)
++   [See This 1.07](4-debug-serial-2000-2002_103.md)
++   [ShowDep 4.0 beta 1](4-debug-serial-2000-2002_104.md)
++   [ShowDep 4.0 beta 1](4-debug-serial-2000-2002_105.md)
++   [S-Spline](4-debug-serial-2000-2002_106.md)
++   [SubmitWolf Enterprise V4.02](4-debug-serial-2000-2002_107.md)
++   [system mechanic 3.5](4-debug-serial-2000-2002_108.md)
++   [system menachinc](4-debug-serial-2000-2002_109.md)
++   [AutoDialogs](4-debug-serial-2000-2002_11.md)
++   [Teleport Pro 1.29](4-debug-serial-2000-2002_110.md)
++   [teleport pro tm 1,29](4-debug-serial-2000-2002_111.md)
++   [The Cleaner 3.1](4-debug-serial-2000-2002_112.md)
++   [ToggleMOUSE 4.4.6](4-debug-serial-2000-2002_113.md)
++   [Touch Typing version 98 3.3](4-debug-serial-2000-2002_114.md)
++   [tumesg](4-debug-serial-2000-2002_115.md)
++   [Turbo browser](4-debug-serial-2000-2002_116.md)
++   [Unfoxall 2.0](4-debug-serial-2000-2002_117.md)
++   [Update Now 2.0](4-debug-serial-2000-2002_118.md)
++   [update now 2.0/SPAN>](4-debug-serial-2000-2002_119.md)
++   [AutoZip 98 v4.0](4-debug-serial-2000-2002_12.md)
++   [Visual Zip Password Recovery Processor v3.2](4-debug-serial-2000-2002_120.md)
++   [VoxPhone Pro V3.0 Build 36](4-debug-serial-2000-2002_121.md)
++   [wall paper changer 3.5](4-debug-serial-2000-2002_122.md)
++   [WebZIP 3.71.508](4-debug-serial-2000-2002_123.md)
++   [WebZIP V2.72.135](4-debug-serial-2000-2002_124.md)
++   [Winamp 2.04](4-debug-serial-2000-2002_125.md)
++   [WinAmp Skin Maker v1.05](4-debug-serial-2000-2002_126.md)
++   [WinBoost 2000 Gold](4-debug-serial-2000-2002_127.md)
++   [wincrack](4-debug-serial-2000-2002_128.md)
++   [Windows 优化大师 2.5 的 patch](4-debug-serial-2000-2002_129.md)
++   [AxMan3.10](4-debug-serial-2000-2002_13.md)
++   [WinGlobe2.0](4-debug-serial-2000-2002_130.md)
++   [winhex v9.3](4-debug-serial-2000-2002_131.md)
++   [谁有 winhex9.4 的注册码？](4-debug-serial-2000-2002_132.md)
++   [winimp1.11](4-debug-serial-2000-2002_133.md)
++   [WinOKE](4-debug-serial-2000-2002_134.md)
++   [WinRescue 98 v4.16](4-debug-serial-2000-2002_135.md)
++   [Wintility Lite](4-debug-serial-2000-2002_136.md)
++   [winzip self-extractor2.1](4-debug-serial-2000-2002_137.md)
++   [WinZip8.0](4-debug-serial-2000-2002_138.md)
++   [xara 3d4 4.0](4-debug-serial-2000-2002_139.md)
++   [BackupXpress Pro](4-debug-serial-2000-2002_14.md)
++   [XMLwriter 1.21](4-debug-serial-2000-2002_140.md)
++   [Zappee 2.01](4-debug-serial-2000-2002_141.md)
++   [超级点击机器 II　V0.63](4-debug-serial-2000-2002_142.md)
++   [超级电话通 3.05](4-debug-serial-2000-2002_143.md)
++   [超级信封打印工具 v3.2](4-debug-serial-2000-2002_144.md)
++   [炒股理财 v1.13](4-debug-serial-2000-2002_145.md)
++   [程式猎人 1.2](4-debug-serial-2000-2002_146.md)
++   [词汇终结者](4-debug-serial-2000-2002_147.md)
++   [打字高手 V3.0](4-debug-serial-2000-2002_148.md)
++   [单词抓取器 V1.71](4-debug-serial-2000-2002_149.md)
++   [Bannermaker](4-debug-serial-2000-2002_15.md)
++   [斗地主 V1.1](4-debug-serial-2000-2002_150.md)
++   [通用电脑语音系统](4-debug-serial-2000-2002_151.md)
++   [疯狂单词](4-debug-serial-2000-2002_152.md)
++   [疯狂单词 Wordslover 1.0](4-debug-serial-2000-2002_153.md)
++   [Resource Explorer](4-debug-serial-2000-2002_154.md)
++   [黑马输入法 2000](4-debug-serial-2000-2002_155.md)
++   [呼吸小秘](4-debug-serial-2000-2002_156.md)
++   [护花使者](4-debug-serial-2000-2002_157.md)
++   [美萍网管大师 v5.2](4-debug-serial-2000-2002_158.md)
++   [木马逆向分析](4-debug-serial-2000-2002_159.md)
++   [Barcode Magic](4-debug-serial-2000-2002_16.md)
++   [批量文件设置器 2.05](4-debug-serial-2000-2002_160.md)
++   [拼音加加 2.0](4-debug-serial-2000-2002_161.md)
++   [人体生物节律查询 7.09](4-debug-serial-2000-2002_162.md)
++   [鼠标锁 V2.5](4-debug-serial-2000-2002_163.md)
++   [文字录入速度测试系统 V3.0](4-debug-serial-2000-2002_164.md)
++   [Win2000/Hex Workshop/打字高手](4-debug-serial-2000-2000-2002_165.md)
++   [侠客系统修改 1.21](4-debug-serial-2000-2002_166.md)
++   [象棋桥 2000](4-debug-serial-2000-2002_167.md)
++   [象棋桥 V1.2](4-debug-serial-2000-2002_168.md)
++   [虚幻立体制作 1.0](4-debug-serial-2000-2002_169.md)
++   [System View 4.05](4-debug-serial-2000-2002_17.md)
++   [选号王一号 v1.5](4-debug-serial-2000-2002_170.md)
++   [有声有色 3.10](4-debug-serial-2000-2002_171.md)
++   [咨讯人公司产品](4-debug-serial-2000-2002_172.md)
+
+### ====2001 年====
+
++   [\====2001 年====](4-debug-serial-2000-2002_173.md)
++   [32BITFTP](4-debug-serial-2000-2002_174.md)
++   [3DMark2001](4-debug-serial-2000-2002_175.md)
++   [5StarZip 2001](4-debug-serial-2000-2002_176.md)
++   [ACDSEE 2.3](4-debug-serial-2000-2002_177.md)
++   [Ace FTP 1.30](4-debug-serial-2000-2002_178.md)
++   [ACiD\_BuRN2 的 crackme](4-debug-serial-2000-2002_179.md)
+
+### ====2000 年====
+
++   [MP3 音乐管理大师](4-debug-serial-2000-2002_18.md)
++   [AcqURL 5.1](4-debug-serial-2000-2002_180.md)
++   [AT2000](4-debug-serial-2000-2002_181.md)
++   [Embird32](4-debug-serial-2000-2002_182.md)
++   [Crunch v1.1](4-debug-serial-2000-2002_183.md)
++   [Acrobat Reader 5.0](4-debug-serial-2000-2002_184.md)
++   [Active Ebook Compiler4.01](4-debug-serial-2000-2002_185.md)
++   [Active Registry Monitor](4-debug-serial-2000-2002_186.md)
++   [adbin 1.2](4-debug-serial-2000-2002_187.md)
++   [ADC 公司游戏](4-debug-serial-2000-2002_188.md)
++   [Visual CHM2.x](4-debug-serial-2000-2002_189.md)
++   [jslwl](4-debug-serial-2000-2002_19.md)
++   [Add/Remove 4Good 2](4-debug-serial-2000-2002_190.md)
++   [股霸 5.0](4-debug-serial-2000-2002_191.md)
++   [美萍反黄专家 版本 2.41](4-debug-serial-2000-2002_192.md)
++   [美萍反黄专家 2.36 暗桩分析](4-debug-serial-2000-2002_193.md)
++   [ADD/Remove v2.0](4-debug-serial-2000-2002_194.md)
++   [统一个人 KTV 点播系统 v6.0](4-debug-serial-2000-2002_195.md)
++   [flashfxp v1.3](4-debug-serial-2000-2002_196.md)
++   [共创校园办公系统](4-debug-serial-2000-2002_197.md)
++   [超级魔法兔子设置 V3.8](4-debug-serial-2000-2002_198.md)
++   [ADSubstract v2.10](4-debug-serial-2000-2002_199.md)
+
++   [\====2000 年====](4-debug-serial-2000-2002_2.md)
++   [ACiD\_BuRN2](4-debug-serial-2000-2002_20.md)
++   [voptme](4-debug-serial-2000-2002_200.md)
++   [Advanced Batch Converter v2.3](4-debug-serial-2000-2002_201.md)
++   [Advanced Email Searcher1.1](4-debug-serial-2000-2002_202.md)
++   [Advanced Evaluator 3.5](4-debug-serial-2000-2002_203.md)
++   [Advanced Launcher 1.3](4-debug-serial-2000-2002_204.md)
++   [Aesop GIF Creator v1.02.302](4-debug-serial-2000-2002_205.md)
++   [ajpegcompr](4-debug-serial-2000-2002_206.md)
++   [AlgoLab PtVector](4-debug-serial-2000-2002_207.md)
++   [All Aboard! SE 完全破解实战](4-debug-serial-2000-2002_208.md)
++   [aLoNg-crackme](4-debug-serial-2000-2002_209.md)
++   [CORE 的 official crackme](4-debug-serial-2000-2002_21.md)
++   [AltoMP3 Maker](4-debug-serial-2000-2002_210.md)
++   [Altomp3maker 2.11](4-debug-serial-2000-2002_211.md)
++   [AmazingMIDI v 1.60](4-debug-serial-2000-2002_212.md)
++   [APIS32](4-debug-serial-2000-2002_213.md)
++   [APIS32NT v1.4](4-debug-serial-2000-2002_214.md)
++   [APISpy32 2.5](4-debug-serial-2000-2002_215.md)
++   [AppBuilder for mfc 3.07](4-debug-serial-2000-2002_216.md)
++   [Applet Marquee Wizard v3.5](4-debug-serial-2000-2002_217.md)
++   [Aqua 3D Screen Saver v1.5](4-debug-serial-2000-2002_218.md)
++   [ARMADILLO2.0](4-debug-serial-2000-2002_219.md)
++   [Battery Bar 1.07](4-debug-serial-2000-2002_22.md)
++   [asmstudio5.0](4-debug-serial-2000-2002_220.md)
++   [ASP2DLL V3.3.14](4-debug-serial-2000-2002_221.md)
++   [Ativa Pro v3.18](4-debug-serial-2000-2002_222.md)
++   [Audio Companion 1.14](4-debug-serial-2000-2002_223.md)
++   [Audio Companion v1.11](4-debug-serial-2000-2002_224.md)
++   [Audio Companion Ver1.13](4-debug-serial-2000-2002_225.md)
++   [Award BIOS 密码](4-debug-serial-2000-2002_226.md)
++   [BabyGame v2.10](4-debug-serial-2000-2002_227.md)
+
+
+
+## 软件列表
+
+- `BananaSplitter 1.0`
+- `Banner Maker Professional 3.0.1.0`
+- `BlindRead`
+- `BCWipe v2.34.2`
+- `Beyond compare 1.9e`
+- `Beyond Compare v1.9d`
+- `B-Jigsaw6.02`
+- `BrainsBreaker3.0`
+- `CCProxy 4.11`
+- `CCProxy v3.94`
+- `CCProxy4.0`
+- `CD Keeper 1.0`
+- `CDR Inspector v1.0`
+- `BrainsBreaker`
+- `CDRWin 4.0A BETA`
+- `CDSpace Power+`
+- `CDSPACE1.95`
+- `ChinaRen 校友录伴侣 v1.01`
+- `ChinaZip 5.0`
+- `ChinaZip v2.0`
+- `ChinaZip V7.0`
+- `chm 帮助编辑器 v2.6`
+- `chm 帮助编辑器 v2.61`
+- `chn-boy`
+- `BuddyPhone`
+- `ClassExplorer`
+- `Clipmate 5.3.05 Build 268`
+- `ClockWise 3.03`
+- `CMailServer 2.6+`
+- `CMailServer V3.2`
+- `CmailServer3.2`
+- `color pilot`
+- `Cool ASCII Art Maker V1.21`
+- `Cool Tray 2001 (2.0.0)`
+- `CopyFaster 1.0`
+- `Cache and cookie washer`
+- `CPUCOOL 5.1000`
+- `cpucool 6.1x`
+- `Cpukiller 2.0`
+- `CrackMe 01`
+- `CrackMe v.x01e Cmos`
+- `CrackMe1.0`
+- `Crkme12`
+- `CSharp`
+- `Cute FTP Ver 4.0 build 19`
+- `CUTEFTP`
+- `CacheX`
+- `cuteftp4.0.19`
+- `CYBERsitter 2000`
+- `Deep Finesse`
+- `dfx V4.0`
+- `dfx3.3`
+- `Dialup Constructor 3.70`
+- `DirectMediaXtra.x32 V2.01`
+- `Diskbase 5.11`
+- `DISKdata v3.2.0`
+- `DISKdata v3.3.2`
+- `CCED2000`
+- `DLLShow V4.6`
+- `Don't Panic 3.2`
+- `Don't Panic! 4.0`
+- `Don't Panic! 40`
+- `DubIt V2.01`
+- `duelist crackme 1`
+- `duelist crackme 2`
+- `duelist crackme 3`
+- `duelist crackme 4`
+- `DUN Meter 2.`
+- `CD Box Labeler Pro`
+- `Easy Applet Builder 1.5`
+- `Easy CD 2.0`
+- `Easy CD-DA Extractor V4.3.2`
+- `EASY MP3 2.2`
+- `Easymail3.102`
+- `1tox`
+- `CD/Spectrum Pro V3.6.3603`
+- `E-ditor 2`
+- `EditorPro Suite 2.0`
+- `Email 地址搜索器`
+- `EmEditor v3 Version 3.09`
+- `EMEDITOR V3.0`
+- `EmEditor v3.x`
+- `ePublisher Gold v1.3`
+- `ePublisher Gold v1.4`
+- `Exe Protect 1.0`
+- `EXE Protector v2.01a`
+- `CDCOPY v4.745`
+- `eXeScope`
+- `eXeScope ver6.00`
+- `FAQGenie`
+- `FAR`
+- `Fashget(Jetcat) 0.96a china`
+- `Fast Email Searcher V1.0`
+- `Fast Email Spider V1.06`
+- `FastBrowser 3.4`
+- `File Protector 2000`
+- `File Protector 2000 v2.02`
+- `CDSpace 1.95`
+- `fileaxe v1.00`
+- `Fine Print 2000`
+- `fireworx.12 破解教程`
+- `FISH 精美屏保`
+- `Flagimation1.02`
+- `Flash ActionScript Tool`
+- `FlashGet(JetCar Ver0.77)`
+- `flashget0.95`
+- `FlashSoft1.05`
+- `Flashsoft1.05`
+- `ClapSE 3.0`
+- `flashsoft1.07`
+- `FlashSoft1.07`
+- `FlaxFX v1.31`
+- `FolderView 3.0`
+- `FontTwister Version 1.1`
+- `foxmail3.11(build0108)`
+- `FoxMAIL 口令`
+- `Freeceltool`
+- `fulldisk A32`
+- `GetSmar`
+- `cleanPC`
+- `GetSmart`
+- `Gifline`
+- `Guitar Pro v3.0`
+- `Gypsee Pro 1.6`
+- `HAPPYEO 电子琴 2.4`
+- `HAPPYEO 电子琴 2.31`
+- `HappyIcon 2.53`
+- `HEdit 2.0`
+- `hellfire2000`
+- `HelpBuilder 1.00`
+- `CleanReg 3.2.6`
+- `Holiday Lights V5.0`
+- `HOSTMONITOR 1.31`
+- `HostSeek1.1`
+- `HTMLEncryptor1.1`
+- `Hyper Maker 2000`
+- `HyperCam Version 1.20.04`
+- `H****** 4.01.11`
+- `IAMixSetup: 1.34`
+- `icnbat`
+- `ICONSCAN 2.4`
+- `CloneCD`
+- `IconToy 3.1`
+
+
+
++   [Icontoy3.1](4-debug-serial-2000-2002_361.md)
+
++   [Internet Maniac ver 1.2b](4-debug-serial-2000-2002_362.md)
+
++   [Ip tools v1.10](4-debug-serial-2000-2002_363.md)
+
++   [IPARMOR 3.51](4-debug-serial-2000-2002_364.md)
+
++   [IPTOOLS 1.11](4-debug-serial-2000-2002_365.md)
+
++   [Irfan View 32 v3.0](4-debug-serial-2000-2002_366.md)
+
++   [Irfanview](4-debug-serial-2000-2002_367.md)
+
++   [IrfanView3.36](4-debug-serial-2000-2002_368.md)
+
++   [IrfanView32](4-debug-serial-2000-2002_369.md)
+
++   [CuteFTP 4.0](4-debug-serial-2000-2002_37.md)
+
++   [Iris 1.00 beta](4-debug-serial-2000-2002_370.md)
+
++   [i-view32](4-debug-serial-2000-2002_371.md)
+
++   [Ize 2.04 from Gadgetware](4-debug-serial-2000-2002_372.md)
+
++   [Jammer1.95](4-debug-serial-2000-2002_373.md)
+
++   [jetcar0.91](4-debug-serial-2000-2002_374.md)
+
++   [JPEG Optimizer Version 3.00](4-debug-serial-2000-2002_375.md)
+
++   [KanjiWeb 3.0 (汉字通)](4-debug-serial-2000-2002_376.md)
+
++   [KEYGENNING4NEWBIES #7](4-debug-serial-2000-2002_377.md)
+
++   [keygenning4newbies keygenme #3](4-debug-serial-2000-2002_378.md)
+
++   [KingCopy 2.5 Beta](4-debug-serial-2000-2002_379.md)
+
++   [cutepage](4-debug-serial-2000-2002_38.md)
+
++   [KoolMoves V1.33](4-debug-serial-2000-2002_380.md)
+
++   [L0phtcrack v2.5](4-debug-serial-2000-2002_381.md)
+
++   [Leap2.7](4-debug-serial-2000-2002_382.md)
+
++   [LeapFTP 2.7.0.550](4-debug-serial-2000-2002_383.md)
+
++   [LeapFTP2.7.0(FileVersion: 2.7.0.550)](4-debug-serial-2000-2002_384.md)
+
++   [lockdown2000 v7.0.0.6](4-debug-serial-2000-2002_385.md)
+
++   [login](4-debug-serial-2000-2002_386.md)
+
++   [LyricsShow! for Winamp v1.2](4-debug-serial-2000-2002_387.md)
+
++   [LyricsShow! for Winamp v1.2](4-debug-serial-2000-2002_388.md)
+
++   [Macromedia Flash 3](4-debug-serial-2000-2002_389.md)
+
++   [DBPE 注册码判断核心](4-debug-serial-2000-2002_39.md)
+
++   [MagicWin 98 1.30f](4-debug-serial-2000-2002_390.md)
+
++   [MAGICWIN RELEASE 1.2](4-debug-serial-2000-2002_391.md)
+
++   [MailScan V3.5.1.2](4-debug-serial-2000-2002_392.md)
+
++   [MakeCDRom V4.21](4-debug-serial-2000-2002_393.md)
+
++   [Micro Bridge](4-debug-serial-2000-2002_394.md)
+
++   [MightyFax](4-debug-serial-2000-2002_395.md)
+
++   [MiniPad 2000](4-debug-serial-2000-2002_396.md)
+
++   [mIRC v5.81](4-debug-serial-2000-2002_398.md)
+
++   [mirc v5.9](4-debug-serial-2000-2002_399.md)
+
++   [1toX 1.63](4-debug-serial-2000-2002_4.md)
+
++   [Help](4-debug-serial-2000-2002_40.md)
+
++   [Mouse Odometer v2.0](4-debug-serial-2000-2002_400.md)
+
++   [Mover98 V3.1](4-debug-serial-2000-2002_401.md)
+
++   [Mp3 Tag Clinic 1.50](4-debug-serial-2000-2002_402.md)
+
++   [Mp3 to All Convertor 1.22](4-debug-serial-2000-2000-2002_403.md)
+
++   [MP3 to EXE v 2.6](4-debug-serial-2000-2002_404.md)
+
++   [Mpeg TV player](4-debug-serial-2000-2002_405.md)
+
++   [Mulitword ver 3.0](4-debug-serial-2000-2002_406.md)
+
++   [mymahj 3.2](4-debug-serial-2000-2002_407.md)
+
++   [Net Vampire v3.3](4-debug-serial-2000-2002_408.md)
+
++   [NetAnts 1.22](4-debug-serial-2000-2002_409.md)
+
++   [DlgXRSizer 4.2.1.2](4-debug-serial-2000-2002_41.md)
+
++   [NetStat4.0](4-debug-serial-2000-2002_410.md)
+
++   [NetTerm 4.2.c](4-debug-serial-2000-2002_411.md)
+
++   [NewsReactor 1.0 Build 5009](4-debug-serial-2000-2002_412.md)
+
++   [Nokia 手机工具箱 v1.1.9](4-debug-serial-2000-2002_413.md)
+
++   [Numerology Star Reader](4-debug-serial-2000-2002_414.md)
+
++   [office2000](4-debug-serial-2000-2002_415.md)
+
++   [OFFLINE EXPLORER 1.0](4-debug-serial-2000-2002_416.md)
+
++   [offline explorer 1.4](4-debug-serial-2000-2002_417.md)
+
++   [offline explorer v 1.9](4-debug-serial-2000-2002_418.md)
+
++   [Offline Explorer1.3](4-debug-serial-2000-2002_419.md)
+
++   [DLL EXPLORER 2.2.2](4-debug-serial-2000-2002_42.md)
+
++   [OICQ HACK 1.0](4-debug-serial-2000-2002_420.md)
+
++   [OICQ 图形留言系统 v3.2](4-debug-serial-2000-2002_421.md)
+
++   [OicqSend Ver 2.01.903](4-debug-serial-2000-2002_422.md)
+
++   [OICQ 图形留言系统](4-debug-serial-2000-2002_423.md)
+
++   [OICQ 图形留言系统](4-debug-serial-2000-2002_424.md)
+
++   [OSR DDK](4-debug-serial-2000-2002_425.md)
+
++   [PageBuilder V3.0c1](4-debug-serial-2000-2002_426.md)
+
++   [Paraben's Mah-jong v2.2](4-debug-serial-2000-2002_427.md)
+
++   [PBackhomev 1.02](4-debug-serial-2000-2002_428.md)
+
++   [pcGhost](4-debug-serial-2000-2002_429.md)
+
++   [dll show4.4](4-debug-serial-2000-2002_43.md)
+
++   [pcGhost4.0](4-debug-serial-2000-2002_430.md)
+
++   [PE EXPLORER 1.2](4-debug-serial-2000-2002_431.md)
+
++   [PE EXPLORER 1.3](4-debug-serial-2000-2002_432.md)
+
++   [PE Explorer Version 1.40](4-debug-serial-2000-2002_433.md)
+
++   [PE-explorer 1.4](4-debug-serial-2000-2002_434.md)
+
++   [Picturetoexe v3.60 beta #2](4-debug-serial-2000-2002_435.md)
+
++   [Platypus Animator v5.4](4-debug-serial-2000-2002_436.md)
+
++   [PolyView 3.00.b5](4-debug-serial-2000-2002_437.md)
+
++   [PolyView v3.61](4-debug-serial-2000-2002_438.md)
+
++   [PolyView3.41](4-debug-serial-2000-2002_439.md)
+
++   [Drag And View v4.50](4-debug-serial-2000-2002_44.md)
+
++   [popfix1.07](4-debug-serial-2000-2002_440.md)
+
++   [post NOW!](4-debug-serial-2000-2002_441.md)
+
++   [PSXVIDEO Ver1.12](4-debug-serial-2000-2002_442.md)
+
++   [pusi Crackme 1.0](4-debug-serial-2000-2002_443.md)
+
++   [QQ 图形留言器 3.0](4-debug-serial-2000-2002_444.md)
+
++   [R Folder Guard 5.1STD](4-debug-serial-2000-2002_445.md)
+
++   [rackMe v.a01](4-debug-serial-2000-2002_446.md)
+
++   [Read Book 1.2](4-debug-serial-2000-2002_447.md)
+
++   [ReadBook v1.41](4-debug-serial-2000-2002_448.md)
+
++   [readbook v1.41](4-debug-serial-2000-2002_449.md)
+
++   [DremEdit2.28](4-debug-serial-2000-2002_45.md)
+
++   [ReadBOOK v1.43](4-debug-serial-2000-2002_450.md)
+
++   [READBOOK141](4-debug-serial-2000-2002_451.md)
+
++   [Recover4All v1.03](4-debug-serial-2000-2002_452.md)
+
++   [RegEditor V1.2](4-debug-serial-2000-2002_453.md)
+
++   [register PC\_Shield 1.0](4-debug-serial-2000-2002_454.md)
+
++   [Registering Trojan Remover 4.2.1](4-debug-serial-2000-2002_455.md)
+
++   [Reptile V2.01](4-debug-serial-2000-2002_456.md)
+
++   [Roger's PostScript(RoPS)](4-debug-serial-2000-2002_457.md)
+
++   [roundclock 3.00 beta4](4-debug-serial-2000-2002_458.md)
+
++   [SafeClean V3.02](4-debug-serial-2000-2002_459.md)
+
++   [drip](4-debug-serial-2000-2002_46.md)
+
++   [Scanline Swiftsearch 2.0](4-debug-serial-2000-2002_460.md)
+
++   [Screen logger manager v1.](4-debug-serial-2000-2002_461.md)
+
++   [CS V.J 破解实录](4-debug-serial-2000-2002_462.md)
+
++   [Search32V5.08](4-debug-serial-2000-2002_463.md)
+
++   [Security Administrator 7.1](4-debug-serial-2000-2002_464.md)
+
++   [SHOWURL](4-debug-serial-2000-2002_465.md)
+
++   [smadinst](4-debug-serial-2000-2002_466.md)
+
++   [SMailserver2.5](4-debug-serial-2000-2002_467.md)
+
++   [Small HTTP server 1.212](4-debug-serial-2000-2002_468.md)
+
++   [SmartCheck v6.03](4-debug-serial-2000-2002_469.md)
+
++   [EditPlus v2.01](4-debug-serial-2000-2002_47.md)
+
++   [SmartWhoIs 3.0 (build 21)](4-debug-serial-2000-2002_470.md)
+
++   [SMYNES1.2e](4-debug-serial-2000-2002_471.md)
+
++   [SN Calculator v2.2](4-debug-serial-2000-2002_472.md)
+
++   [SnagIt! v5.2.1](4-debug-serial-2000-2002_473.md)
+
++   [SNAGIT32 5.10](4-debug-serial-2000-2002_474.md)
+
++   [Snappy Fax 2000](4-debug-serial-2000-2002_475.md)
+
++   [SoftSol Ativa DUN Meter 2.3](4-debug-serial-2000-2002_476.md)
+
++   [SolSuite v8.0](4-debug-serial-2000-2002_477.md)
+
++   [Sorbet V1.1](4-debug-serial-2000-2002_478.md)
+
++   [SPQuery v4.2 build 4237](4-debug-serial-2000-2002_479.md)
+
++   [Emblaze.Audio 1.01](4-debug-serial-2000-2002_48.md)
+
++   [s-spline2.03](4-debug-serial-2000-2002_480.md)
+
++   [S-SPLINE 的](4-debug-serial-2000-2002_481.md)
+
++   [ssreader3.54](4-debug-serial-2000-2002_482.md)
+
++   [ssreader352](4-debug-serial-2000-2002_483.md)
+
++   [Stealth Anonymizer 2.6](4-debug-serial-2000-2002_484.md)
+
++   [supercleaner 2.0 (1)](4-debug-serial-2000-2002_485.md)
+
++   [SWF Browser v2.93](4-debug-serial-2000-2002_486.md)
+
++   [SWFBrowser 2.93](4-debug-serial-2000-2002_487.md)
+
++   [SWFBROWSER280](4-debug-serial-2000-2002_488.md)
+
++   [Swish 2.0 alpha 1](4-debug-serial-2000-2002_489.md)
+
+
+
+# EmEditor v3.00 b3
+
+# sygate 3.0
+
+# SyGate 4.0 build712
+
+# system cleaner 98
+
+# System Mechanic 3.6b
+
+# system mechanic3.5
+
+# Tag&Rename 1.7
+
+# Takagoraku v1.0
+
+# Talisman 1.76
+
+# teleport pro 1.28
+
+# Teleport Pro 1.29.1590
+
+# 3DMark2000 1.0
+
+# EXEscope 5.0
+
+# Teleport pro 1.29.1590
+
+# TempClean 3.04
+
+# Terminal Overdrive 2000
+
+# Terrapin FTP Browser 2.2
+
+# TEXme v1.0
+
+# The Cleaner 3.2 BUILD 3205
+
+# The JPEG Wizard 1.40
+
+# ThemeFreak 1.6
+
+# ThemeFreak V1.6
+
+# traceboy2.0
+
+# exescope6.0
+
+# Traceboy2.1
+
+# Transoft's Server All 1.02
+
+# Trojan Remover 4.3.0
+
+# TurboLaunch 4.04
+
+# TxEdit 4.6
+
+# TypingMaster98(Version: 4.0)
+
+# Uedit32 8.0
+
+# ultimate zip cracker6.2
+
+# UltraEdit-32 8.10.1.0
+
+# UltraEdit-32 v8.10.a
+
+# EXESCOPE5.12
+
+# unfoxall 2.1
+
+# UNFOXALL 2.1 注册机
+
+# UNFOXALL2.0 注册机
+
+# Update NOW 2000
+
+# URL Manager2.42
+
+# Vcd Cutter 4.03
+
+# VCDCUT 4.03
+
+# VFP&EXE1.72C
+
+# VirTime HTMLock V1.4.0
+
+# Virtual Driver 2000 (tm) Version 5.0
+
+# FINAL DATA
+
+# Visual Zip Password Recovery 4.0
+
+# VoptME
+
+# webclaw
+
+# webeasymail
+
+# WebMirror
+
+# WebZIP 3.80(FileVersion:3.80.0.530)
+
+# WebZIP 3.80
+
+# win98 屏保密码
+
+# Winace v2.0b5
+
+# WinAmp Skin Maker
+
+# FlashFXP 1.2.602
+
+# WinAmp V2.11
+
+# winamp 的皮肤制作软件 skinner
+
+# WinBoost2001 Standard Edion
+
+# WindowBlinds 2.0
+
+# windows help designed pro v 2.3.3.0
+
+# windows 进程管理大师!V3.0.1
+
+# windows 优化大师 v1.0.2.7
+
+# WINDOWS 整容专家 V1.000
+
+# WingGroov0.9E_E
+
+# WinHex
+
+# Font Creator Program
+
+# winhex ver9.53
+
+# WinHex9.6
+
+# winhex9.73
+
+# winhex9.82
+
+# winhex9.9
+
+# winimage
+
+# WinImage
+
+# WinImage v5.00.5007
+
+# WinImage4.0(FileVersion:4.00.4000)
+
+# WinImage5.0(FileVersion: 5.00.5000)
+
+# FTP Control 4.2.0.0
+
+# WinImp1.11
+
+# WinISO v4.0
+
+# winrar2.71
+
+# WinRescure 98 3.07
+
+# WinTopo Pro 2.11
+
+# winzip
+
+# WinZIP.Self.Extractor.v2.2.Final.W9xNT2K.Incl.Keymaker.Source.Code-CORE
+
+# WINZIP8.0(FileVersion:13.0 32bit) Winzip32.EXE 1,393KB
+
+# Winzip8.0
+
+# Xara3d 4.0(Version: 4.0)
+
+# GIF Construction Set Pro
+
+# XNETECH FTP Server 0.1.1.616
+
+# YATS32 v8.1 build 6
+
+# Zero Popup 1.05
+
+# Z-FILE 试用版
+
+# ZTZ-IE
+
+# ZTZ-IE 网络浏览器 1.
+
+# 背单词 2.0
+
+# 冰盾 IV
+
+# 冰河 2.2
+
+# Green Tea 2.60
+
+# 博奥彩票
+
+# 卜算子_ 权谋个人彩票分析助理软件 V6.00
+
+# 财神电话薄
+
+# 财智家庭理财 2001
+
+# 财智家庭理财 2001
+
+# 财智老板通正式板
+
+# 财智系列破解
+
+# 财智证券结算软件 2.5
+
+# 彩票快车
+
+# 彩票快车 V1.07
+
+# GWD Text Editor 3.0
+
+# 彩票快车黄金版
+
+# 彩票选号分析系统 v5.0
+
+# 超级光盘管理员 1.
+
+# 超级屏捕 3.0
+
+# 超级兔仔注册表优化软件 v2.2
+
+# 超级小精灵 ver1.0
+
+# 超级小精灵 Ver 1.00
+
+# 炒股理财
+
+# 炒股理财 1.65
+
+# 大英自学辅导
+
+# A Day in the Life 1.51
+
+# GWD Text Editor 3.0
+
+# 代码算法
+
+# 登陆奇兵 3.0
+
+# 登录奇兵 v3.01
+
+# 电脑室网吧集中管理软件
+
+# 电脑幽灵 pcGhost4.0
+
+# 电脑字体秀
+
+# 电子收藏家 4.0
+
+# 电子邮件地址搜索器
+
+# 丁氏彩票电脑预测软件密码解除
+
+# HomeWatcher v1.2
+
+# 东胜算码机
+
+# 斗地主
+
+# 斗地主 1.0
+
+# 五子棋 3.22
+
+# 斗地主 v2.4
+
+# 度量衡 1.0
+
+# 多彩开机 1.0
+
+# 飞天餐饮娱乐管理系统
+
+# 沸点邮件群发系统 v1.2 标准版
+
+# 分析家数据批量转换器
+
+
+
+* [伏羲服装鞋业购销存管理系统 V3.02(Build0418)](4-debug-serial-2000-2002_620.md)
+* [个人破解小结](4-debug-serial-2000-2002_621.md)
+* [股海点金 2.1](4-debug-serial-2000-2002_622.md)
+* [观察者 1.6](4-debug-serial-2000-2002_623.md)
+* [光盘伴侣 2.0](4-debug-serial-2000-2002_624.md)
+* [光驱精灵.NET](4-debug-serial-2000-2002_625.md)
+* [汉字通](4-debug-serial-2000-2002_626.md)
+* [汉字通 KanjiWEB](4-debug-serial-2000-2002_627.md)
+* [豪杰大眼睛共享版](4-debug-serial-2000-2002_628.md)
+* [红外遥控编码分析仪 3.0](4-debug-serial-2000-2002_629.md)
+* [iceplayer 1.80](4-debug-serial-2000-2002_63.md)
+* [红外遥控编码分析仪 3.0](4-debug-serial-2000-2002_630.md)
+* [虹狗破解工具](4-debug-serial-2000-2002_631.md)
+* [华表 3.34 专业版](4-debug-serial-2000-2002_632.md)
+* [话费清单](4-debug-serial-2000-2002_633.md)
+* [环球商务信息发布系统 2.0](4-debug-serial-2000-2002_634.md)
+* [极速火龙 CD 压缩器](4-debug-serial-2000-2002_636.md)
+* [简易电子琴](4-debug-serial-2000-2002_637.md)
+* [金锋邮件群发 V2.4](4-debug-serial-2000-2002_638.md)
+* [金庸群侠传外挂程序](4-debug-serial-2000-2002_639.md)
+* [Icon Clock 5.0](4-debug-serial-2000-2002_64.md)
+* [精诚 MP3 多功能播放器 V2.0+](4-debug-serial-2000-2002_640.md)
+* [局域网数据库快易通](4-debug-serial-2000-2002_641.md)
+* [卡片专家 1.0](4-debug-serial-2000-2002_642.md)
+* [开心斗地主 1.7S4](4-debug-serial-2000-2002_643.md)
+* [快速邮件地址搜索器 3.0](4-debug-serial-2000-2002_644.md)
+* [聊天圣手 2.0](4-debug-serial-2000-2002_645.md)
+* [流光 2001](4-debug-serial-2000-2002_646.md)
+* [乱刀](4-debug-serial-2000-2002_647.md)
+* [媒体 2000V6.0-高级复唱机](4-debug-serial-2000-2002_649.md)
+* [impex 2.0,3.0](4-debug-serial-2000-2002_65.md)
+* [美萍安全卫士 8.2](4-debug-serial-2000-2002_650.md)
+* [美萍安全卫士 v6.9](4-debug-serial-2000-2002_651.md)
+* [美萍电脑安全卫士 V7.52](4-debug-serial-2000-2002_652.md)
+* [密码大师 4.0](4-debug-serial-2000-2002_653.md)
+* [密码管理软件](4-debug-serial-2000-2002_654.md)
+* [密码截取网络版 1.0](4-debug-serial-2000-2002_655.md)
+* [敏思法律文书编辑](4-debug-serial-2000-2002_656.md)
+* [敏思硬盘卫士 2.2](4-debug-serial-2000-2002_657.md)
+* [敏思硬盘卫士 1.0](4-debug-serial-2000-2002_658.md)
+* [魔法转换](4-debug-serial-2000-2002_659.md)
+* [IP Tools v1.07](4-debug-serial-2000-2002_66.md)
+* [魔法转换 1.5](4-debug-serial-2000-2002_660.md)
+* [魔法转换 2.0 beta 1](4-debug-serial-2000-2002_661.md)
+* [木马克星 3.13](4-debug-serial-2000-2002_662.md)
+* [木马克星 IPARMOR4.0 30](4-debug-serial-2000-2002_663.md)
+* [南极星 2.23](4-debug-serial-2000-2002_664.md)
+* [欧阳邮址搜索星 3.0](4-debug-serial-2000-2002_665.md)
+* [批量文件设置器 V2.2a](4-debug-serial-2000-2002_666.md)
+* [漂叶网吧管理系统 4.0](4-debug-serial-2000-2002_667.md)
+* [平安全息万年历 1.0.4](4-debug-serial-2000-2002_668.md)
+* [评语编辑室 v5.0](4-debug-serial-2000-2002_669.md)
+* [IP 搜索客 1.61](4-debug-serial-2000-2002_67.md)
+* [棋隐](4-debug-serial-2000-2002_670.md)
+* [起名正宗 (Version: 1.3)](4-debug-serial-2000-2002_671.md)
+* [全功能数字时钟](4-debug-serial-2000-2002_672.md)
+* [商务奇兵](4-debug-serial-2000-2002_673.md)
+* [商务奇兵 2.0](4-debug-serial-2000-2002_674.md)
+* [商务邮件专家 2.0](4-debug-serial-2000-2002_676.md)
+* [深入地心(Game)](4-debug-serial-2000-2002_677.md)
+* [神奇注册](4-debug-serial-2000-2002_678.md)
+* [神奇注册表](4-debug-serial-2000-2002_679.md)
+* [IQ 网际搜寻家 99](4-debug-serial-2000-2002_68.md)
+* [神奇注册表 0.6](4-debug-serial-2000-2002_680.md)
+* [视窗锁王 ver4.8](4-debug-serial-2000-2002_681.md)
+* [视窗锁王 ver4.8](4-debug-serial-2000-2002_682.md)
+* [鼠标增强工具 MouseStar 2.1](4-debug-serial-2000-2002_683.md)
+* [水芯 Flash 播放器 v1.0](4-debug-serial-2000-2002_684.md)
+* [太阳镜++](4-debug-serial-2000-2002_685.md)
+* [腾博条形码生产-管理系统](4-debug-serial-2000-2002_686.md)
+* [体育彩票随机号码产生器 v3.3](4-debug-serial-2000-2002_687.md)
+* [天网防火墙个人版 2.0(beta)](4-debug-serial-2000-2002_688.md)
+* [天网防火墙个人版 2.0.2.98](4-debug-serial-2000-2002_689.md)
+* [JPEG Optimizer 4.0](4-debug-serial-2000-2002_69.md)
+* [天音怒放 2.15](4-debug-serial-2000-2002_690.md)
+* [天音怒放的注册机](4-debug-serial-2000-2002_691.md)
+* [通用电脑语音系统](4-debug-serial-2000-2002_692.md)
+* [通用文档微机管理系统 V1.0](4-debug-serial-2000-2002_693.md)
+* [推箱子 202（275）](4-debug-serial-2000-2002_694.md)
+* [五子棋 3.22](4-debug-serial-2000-2002_695.md)
+* [推箱子 1.6](4-debug-serial-2000-2002_696.md)
+* [推箱子 1.9](4-debug-serial-2000-2002_697.md)
+* [推箱子 2.32](4-debug-serial-2000-2002_698.md)
+* [推箱子 v1.6](4-debug-serial-2000-2002_699.md)
+* [Advanced Find and Replace V1.2](4-debug-serial-2000-2002_7.md)
+* [JPEG Optimizer3.15](4-debug-serial-2000-2002_70.md)
+* [推箱子 Ver:1.6](4-debug-serial-2000-2002_700.md)
+* [万能五笔](4-debug-serial-2000-2002_701.md)
+* [万能五笔](4-debug-serial-2000-2000_702.md)
+* [万能五笔 2000a+](4-debug-serial-2000-2002_703.md)
+* [万能五笔 2001](4-debug-serial-2000-2002_704.md)
+* [网吧管理专家 9.5](4-debug-serial-2000-2002_705.md)
+* [网吧计费软件专用版 2.0](4-debug-serial-2000-2002_706.md)
+* [网际飞鹰之极速 FTP1.0](4-debug-serial-2000-2002_707.md)
+* [网凯公路招投标版](4-debug-serial-2000-2002_708.md)
+* [网络传神 2.02(build 0310)](4-debug-serial-2000-2002_709.md)
+* [KeyGhost V3.2](4-debug-serial-2000-2002_71.md)
+* [网络吸血鬼 3.3](4-debug-serial-2000-2002_710.md)
+* [文件斧头 1.0](4-debug-serial-2000-2002_711.md)
+* [文件管理器](4-debug-serial-2000-2002_712.md)
+* [文件加密工具 fedt2.40](4-debug-serial-2000-2002_713.md)
+* [文件密使 2.0](4-debug-serial-2000-2002_714.md)
+* [文件密使 2.1](4-debug-serial-2000-2002_715.md)
+* [我的代码宝典](4-debug-serial-2000-2002_716.md)
+* [五子棋 3.22](4-debug-serial-2000-2002_717.md)
+* [五子棋 99 V2.0](4-debug-serial-2000-2002_718.md)
+* [喜悦加密器 v1.0](4-debug-serial-2000-2002_719.md)
+* [LeapFTP 2.62](4-debug-serial-2000-2002_72.md)
+* [系统机械师 SysMechanic 3.6d](4-debug-serial-2000-2002_720.md)
+* [侠客系统修改器 V1.21](4-debug-serial-2000-2002_721.md)
+* [象棋大战](4-debug-serial-2000-2002_722.md)
+* [新纪元财务、进销存一体化软件](4-debug-serial-2000-2002_723.md)
+* [虚拟光驱 2000 V5.1 网络版](4-debug-serial-2000-2002_725.md)
+* [雪花屏保](4-debug-serial-2000-2002_726.md)
+* [雅信 2.5](4-debug-serial-2000-2002_727.md)
+* [赝画鉴赏家 1.0](4-debug-serial-2000-2002_728.md)
+* [伊妹捕神中文版](4-debug-serial-2000-2002_729.md)
+* [LockDown 2000 3.0](4-debug-serial-2000-2002_73.md)
+* [易经八卦彩票占卜程序.V6.3](4-debug-serial-2000-2002_730.md)
+* [易经八卦彩票占卜程序.V6.3](4-debug-serial-2000-2002_731.md)
+* [易经八卦占卜](4-debug-serial-2000-2002_732.md)
+* [易经八卦占卜程序 7.0](4-debug-serial-2000-2002_733.md)
+* [音乐贺卡厂 4.04](4-debug-serial-2000-2002_734.md)
+* [音乐贺卡厂 4.10](4-debug-serial-2000-2002_735.md)
+* [音乐无限 V2.2](4-debug-serial-2000-2002_736.md)
+* [隐藏目录的加密光盘](4-debug-serial-2000-2002_737.md)
+* [鹦鹉螺网络助手](4-debug-serial-2000-2002_738.md)
+* [鹦鹉螺网络助手 2.22](4-debug-serial-2000-2002_739.md)
+* [Lockdown2000\_7.0.0.1](4-debug-serial-2000-2002_74.md)
+* [鹦鹉螺网络助手 1.70](4-debug-serial-2000-2002_741.md)
+* [鹦鹉螺网络助手 1.75](4-debug-serial-2000-2002_742.md)
+* [鹦鹉螺网络助手 v1.68](4-debug-serial-2000-2002_743.md)
+* [赢家股票盘后分析 1.2](4-debug-serial-2000-2002_744.md)
+* [赢证股市分析软件 V2.01](4-debug-serial-2000-2002_745.md)
+* [硬盘清道夫 1.00](4-debug-serial-2000-2002_746.md)
+* [邮件巡捕 v1.62](4-debug-serial-2000-2002_747.md)
+* [有声有色 3.33](4-debug-serial-2000-2002_748.md)
+* [有声有色 3.36](4-debug-serial-2000-2002_749.md)
+* [Macro Magic4.1](4-debug-serial-2000-2002_75.md)
+* [有声有色 4.0](4-debug-serial-2000-2002_750.md)
+* [有声有色 4.0](4-debug-serial-2000-2002_751.md)
+* [有声有色 7.0](4-debug-serial-2000-2002_752.md)
+* [源江科技出的源代码(VB 篇)](4-debug-serial-2000-2002_753.md)
+* [远程控制程式](4-debug-serial-2000-2002_754.md)
+* [至嘉 DB Tools V2.1](4-debug-serial-2000-2002_755.md)
+* [智能狂拼](4-debug-serial-2000-2002_756.md)
+* [智能五笔 v5.0](4-debug-serial-2000-2002_757.md)
+* [智能五笔 v5.04](4-debug-serial-2000-2002_758.md)
+* [中华压缩 6.01](4-debug-serial-2000-2002_759.md)
+* [Magic Note Desktop utility V2.6b](4-debug-serial-2000-2002_76.md)
+* [竹影棋友](4-debug-serial-2000-2002_760.md)
+* [注册亮点压缩](4-debug-serial-2000-2002_761.md)
+* [专业扫雷 1.2](4-debug-serial-2000-2002_762.md)
+* [\====2002 年====](4-debug-serial-2000-2002_763.md)
+
+
+
+- [`Any Where 5.1`](4-debug-serial-2000-2002_764.md)
+- [`BootStar v7.33`](4-debug-serial-2000-2002_765.md)
+- [`bootstart6.02`](4-debug-serial-2000-2002_766.md)
+- [`B-Puzzle Version 5.0`](4-debug-serial-2000-2002_767.md)
+- [`CCProxy 4.30`](4-debug-serial-2000-2002_768.md)
+- [`CD Data Rescue1.1`](4-debug-serial-2000-2002_769.md)
+- [`Mail Scan`](4-debug-serial-2000-2002_77.md)
+- [`cdrwin 4.0`](4-debug-serial-2000-2002_770.md)
+- [`CHMmaker v2.87`](4-debug-serial-2000-2002_771.md)
+- [`CHMMaker（耶書制造）v2.87`](4-debug-serial-2000-2002_772.md)
+- [`CJSFormater0.7`](4-debug-serial-2000-2002_773.md)
+- [`Cleaner 3.2`](4-debug-serial-2000-2002_774.md)
+- [`COMPOSER 2.0`](4-debug-serial-2000-2002_775.md)
+- [`Composer for Ring Tone`](4-debug-serial-2000-2002_776.md)
+- [`Do!Link`](4-debug-serial-2000-2002_777.md)
+- [`CTris 2000 Version2.0`](4-debug-serial-2000-2002_778.md)
+- [`Cute Email Searcher2.2`](4-debug-serial-2000-2002_779.md)
+- [`Mail Scan V3.5.1.2`](4-debug-serial-2000-2002_78.md)
+- [`CUTEVIDEO 1.0`](4-debug-serial-2000-2002_780.md)
+- [`Dance Dance Revlution for winamp`](4-debug-serial-2000-2002_781.md)
+- [`金锋文件加密器 4.0`](4-debug-serial-2000-2002_782.md)
+- [`DataFit V7.0.36`](4-debug-serial-2000-2002_783.md)
+- [`DrawingHand v4.0`](4-debug-serial-2000-2002_784.md)
+- [`DreamWaver3.0`](4-debug-serial-2000-2002_785.md)
+- [`Easy CD-DA Extractor 3`](4-debug-serial-2000-2002_786.md)
+- [`easyoffice 2001`](4-debug-serial-2000-2002_787.md)
+- [`EditPlus 2.01b`](4-debug-serial-2000-2002_788.md)
+- [`EmailKey2.0`](4-debug-serial-2000-2002_789.md)
+- [`mIRC V5.71`](4-debug-serial-2000-2002_79.md)
+- [`estiprojm`](4-debug-serial-2000-2002_790.md)
+- [`EVC.SerialMe Beta`](4-debug-serial-2000-2002_791.md)
+- [`eXeScope`](4-debug-serial-2000-2002_792.md)
+- [`exescope v6.00`](4-debug-serial-2000-2002_793.md)
+- [`eXeScope6.10`](4-debug-serial-2000-2002_794.md)
+- [`EZ Extract Resource v1.3`](4-debug-serial-2000-2002_795.md)
+- [`FAR 3.X`](4-debug-serial-2000-2002_796.md)
+- [`Fast Browser`](4-debug-serial-2000-2002_797.md)
+- [`Fast Browser4.01`](4-debug-serial-2000-2002_798.md)
+- [`FASTNET`](4-debug-serial-2000-2002_799.md)
+- [`AmazimgMIDI 1.60`](4-debug-serial-2000-2002_8.md)
+- [`MP3 explorer 破解和注册机的制作`](4-debug-serial-2000-2002_80.md)
+- [`File?Protector 2001?v2.05`](4-debug-serial-2000-2002_800.md)
+- [`FileSplit2X`](4-debug-serial-2000-2002_801.md)
+- [`FINDITNOW!1.25 or 102`](4-debug-serial-2000-2002_802.md)
+- [`FlashGet1.1`](4-debug-serial-2000-2002_803.md)
+- [`Flash 转屏保 1.0 注册机`](4-debug-serial-2000-2002_804.md)
+- [`Fpc 的 crackme`](4-debug-serial-2000-2002_805.md)
+- [`FreeMen Professional Trial Version`](4-debug-serial-2000-2002_806.md)
+- [`FreeRes.exe V0.94`](4-debug-serial-2000-2002_807.md)
+- [`freeResV0.94`](4-debug-serial-2000-2002_808.md)
+- [`getPassword2.3`](4-debug-serial-2000-2002_809.md)
+- [`'net PAL 1.2C`](4-debug-serial-2000-2002_81.md)
+- [`GetRight 4.5b`](4-debug-serial-2000-2002_810.md)
+- [`GIF Movie Gear 3.01`](4-debug-serial-2000-2002_811.md)
+- [`Gif Movie Gear3.0`](4-debug-serial-2000-2002_812.md)
+- [`Gif2Swf Ver 2.1`](4-debug-serial-2000-2002_813.md)
+- [`GIF2SWF2.1`](4-debug-serial-2000-2002_814.md)
+- [`Gif2Swf2.1`](4-debug-serial-2000-2002_815.md)
+- [`GoldView32 2.0 Build168`](4-debug-serial-2000-2002_816.md)
+- [`Guitar Pro v3.0`](4-debug-serial-2000-2002_817.md)
+- [`HappyEO 电子琴 203 版`](4-debug-serial-2000-2002_818.md)
+- [`HappyIcon v2.55`](4-debug-serial-2000-2002_819.md)
+- [`netspy3.12`](4-debug-serial-2000-2002_82.md)
+- [`Hedit 2.0`](4-debug-serial-2000-2002_820.md)
+- [`Hex Mines V4.01title> <!-- -->`](4-debug-serial-2000-2002_821.md)
+- [`HTMLVIEW1.68`](4-debug-serial-2000-2002_822.md)
+- [`Icontoy 2`](4-debug-serial-2000-2002_823.md)
+- [`IP\_tools2.06`](4-debug-serial-2000-2002_824.md)
+- [`Iparmor 5.32.05`](4-debug-serial-2000-2002_825.md)
+- [`ip-tools2.04`](4-debug-serial-2000-2002_826.md)
+- [`Kalua Cocktails 1.1`](4-debug-serial-2000-2002_827.md)
+- [`Kugle Regediter 1.0`](4-debug-serial-2000-2002_828.md)
+- [`LC3`](4-debug-serial-2000-2002_829.md)
+- [`NMI's Java Code Viewer 4.8.2`](4-debug-serial-2000-2002_83.md)
+- [`LeapFTP 2.7`](4-debug-serial-2000-2002_830.md)
+- [`LocalWEB2000 Professional 2.1.0`](4-debug-serial-2000-2002_831.md)
+- [`Lockup2000 v4.0`](4-debug-serial-2000-2002_832.md)
+- [`MagicTweak`](4-debug-serial-2000-2002_833.md)
+- [`Midi 简谱输入系统(version 0.8.0 Build 4)]`](4-debug-serial-2000-2002_834.md)
+- [`MIrc v5.82`](4-debug-serial-2000-2002_835.md)
+- [`Multi Clipboard Ver m9.34.01`](4-debug-serial-2000-2002_836.md)
+- [`Multimedia Builder MP3 4.7b`](4-debug-serial-2000-2002_837.md)
+- [`My Flash player 1.3`](4-debug-serial-2000-2002_838.md)
+- [`My Flasher Play 1.4`](4-debug-serial-2000-2002_839.md)
+- [`Noterpro V1.1`](4-debug-serial-2000-2002_84.md)
+- [`mybase v4.52 8`](4-debug-serial-2000-2002_840.md)
+- [`NetTalk`](4-debug-serial-2000-2002_841.md)
+- [`NICEMC MEDIA PLUGIN FOR WINAMP 1.8`](4-debug-serial-2000-2002_842.md)
+- [`Nullz CrackMe 1.1`](4-debug-serial-2000-2002_843.md)
+- [`OICQ 精灵 1.3`](4-debug-serial-2000-2002_844.md)
+- [`OpenExpert1.03`](4-debug-serial-2000-2002_845.md)
+- [`Outlook Express Backup v3.0`](4-debug-serial-2000-2002_846.md)
+- [`OverNimble Localize Plus 1.2`](4-debug-serial-2000-2002_847.md)
+- [`OverNimble Localize Plus v1.2`](4-debug-serial-2000-2002_848.md)
+- [`PassWD2000 2.85`](4-debug-serial-2000-2002_849.md)
+- [`NoteWorthy Composer 1.55b`](4-debug-serial-2000-2002_85.md)
+- [`password2000 v2.7.0`](4-debug-serial-2000-2002_850.md)
+- [`PC Security 5.1`](4-debug-serial-2000-2002_851.md)
+- [`PC 安全虎\[Beta 1\]`](4-debug-serial-2000-2002_852.md)
+- [`Photocaster xtra v3.0.3`](4-debug-serial-2000-2002_853.md)
+- [`PUZZLER1.20`](4-debug-serial-2000-2002_854.md)
+- [`QQ 密码侦探终结者`](4-debug-serial-2000-2002_855.md)
+- [`QQ 图形留言器 8.0`](4-debug-serial-2000-2002_856.md)
+- [`QuickSave`](4-debug-serial-2000-2002_857.md)
+- [`RAMCheat v1.2`](4-debug-serial-2000-2002_858.md)
+- [`Readbook`](4-debug-serial-2000-2002_859.md)
+- [`Offline Explorer 1.3 230`](4-debug-serial-2000-2002_86.md)
+- [`readbook 1.42`](4-debug-serial-2000-2002_860.md)
+- [`readbook1.46`](4-debug-serial-2000-2002_861.md)
+- [`RealFox V1.0.0.17`](4-debug-serial-2000-2002_862.md)
+- [`Regediter 1.3`](4-debug-serial-2000-2002_863.md)
+- [`Registry Crawler 4.0.0.3`](4-debug-serial-2000-2002_864.md)
+- [`ResScope V1.35`](4-debug-serial-2000-2002_865.md)
+- [`ResScope1.35`](4-debug-serial-2000-2002_866.md)
+- [`ResTools`](4-debug-serial-2000-2002_867.md)
+- [`Restools 系列 by Sam.com`](4-debug-serial-2000-2002_868.md)
+- [`rOYALaCCEZZ Trial Crackme 3.2`](4-debug-serial-2000-2002_869.md)
+- [`OicqPassOver.exe Ver1.`](4-debug-serial-2000-2002_87.md)
+- [`S-Demo2.0`](4-debug-serial-2000-2002_870.md)
+- [`ShowDep(3.0 Beta)]`](4-debug-serial-2000-2002_871.md)
+- [`SitMan PC 复读机 2.0 beta 2`](4-debug-serial-2000-2002_872.md)
+- [`SitMan v2.0 beta`](4-debug-serial-2000-2002_873.md)
+- [`sitman2.0x`](4-debug-serial-2000-2002_874.md)
+- [`Soundnailsd`](4-debug-serial-2000-2002_875.md)
+- [`Super Vidoe CD Verifier`](4-debug-serial-2000-2000-2002_876.md)
+- [`SuperCapture 3.04`](4-debug-serial-2000-2002_877.md)
+- [`SuperCleaner 2.26`](4-debug-serial-2000-2002_878.md)
+- [`SuperCleaner2.30`](4-debug-serial-2000-2002_879.md)
+- [`Opera 4.`](4-debug-serial-2000-2002_88.md)
+- [`SWF BROWSER 2.93`](4-debug-serial-2000-2002_880.md)
+- [`SWF Browser v2.93`](4-debug-serial-2000-2002_881.md)
+- [`Teleport Pro`](4-debug-serial-2000-2002_882.md)
+- [`Turbolaunch4.04`](4-debug-serial-2000-2002_883.md)
+- [`UIN Converter`](4-debug-serial-2000-2002_884.md)
+- [`UltraEdit v9.0`](4-debug-serial-2000-2002_885.md)
+- [`UltraEdit32 v8.10`](4-debug-serial-2000-2002_886.md)
+- [`Universe 1.63`](4-debug-serial-2000-2002_887.md)
+- [`UniView 1.62`](4-debug-serial-2000-2002_888.md)
+- [`crackme`](4-debug-serial-2000-2002_889.md)
+- [`Opera 4.0 Final`](4-debug-serial-2000-2002_89.md)
+
+
+
+- [vis\_ddr v1.11](4-debug-serial-2000-2002_890.md)
+
+- [WeaveMaker 7.55](4-debug-serial-2000-2002_891.md)
+
+- [Web Browser w9.37.01](4-debug-serial-2000-2002_892.md)
+
+- [Web Scripting Editor V2.4](4-debug-serial-2000-2002_893.md)
+
+- [WindowBlinds v3.0 enhanced](4-debug-serial-2000-2002_894.md)
+
+- [Windows LockUp 1.4](4-debug-serial-2000-2002_895.md)
+
+- [Winimage6.00.6000](4-debug-serial-2000-2002_896.md)
+
+- [Winzip](4-debug-serial-2000-2002_897.md)
+
+- [WinZIP7.0（SR-1)](4-debug-serial-2000-2002_898.md)
+
+- [wplaypro2.0](4-debug-serial-2000-2002_899.md)
+
+- [animagic32](4-debug-serial-2000-2002_9.md)
+
+- [PacMania v1.5](4-debug-serial-2000-2002_90.md)
+
+- [XARA 3D V4.0](4-debug-serial-2000-2002_900.md)
+
+- [yonc v1.12](4-debug-serial-2000-2002_901.md)
+
+- [Zero Popup 1.05](4-debug-serial-2000-2002_902.md)
+
+- [ZTZ-IE 网络浏览器 2.0](4-debug-serial-2000-2002_903.md)
+
+- [安全卫士注册机（masm6.0）](4-debug-serial-2000-2002_904.md)
+
+- [博奥彩票白金版](4-debug-serial-2000-2002_905.md)
+
+- [财智 2001 家庭理财](4-debug-serial-2000-2002_906.md)
+
+- [财智老板通 2.0](4-debug-serial-2000-2002_907.md)
+
+- [彩票探索者之神投手 R2001.10.18](4-debug-serial-2000-2002_908.md)
+
+- [超级个人软件 V2.5](4-debug-serial-2000-2002_909.md)
+
+- [Particle Fire V1.1a](4-debug-serial-2000-2002_91.md)
+
+- [超级魔法兔子设置](4-debug-serial-2000-2002_910.md)
+
+- [超级屏捕 v3.41](4-debug-serial-2000-2002_911.md)
+
+- [超级兔子魔法设置 4.17](4-debug-serial-2000-2002_912.md)
+
+- [超級屏捕 v3.30](4-debug-serial-2000-2002_913.md)
+
+- [程式猎人(Phunter) V1.30](4-debug-serial-2000-2002_914.md)
+
+- [单词跑马灯](4-debug-serial-2000-2002_915.md)
+
+- [单词跑马灯 1.0](4-debug-serial-2000-2002_916.md)
+
+- [电子小说阅读器](4-debug-serial-2000-2002_917.md)
+
+- [飞马魔法壁纸 V3.0](4-debug-serial-2000-2002_918.md)
+
+- [分析家 v4.01](4-debug-serial-2000-2002_919.md)
+
+- [Pegtop XFader 4.02](4-debug-serial-2000-2002_92.md)
+
+- [风之纹章 v2.02](4-debug-serial-2000-2002_920.md)
+
+- [疯狂单词 v1.6](4-debug-serial-2000-2002_921.md)
+
+- [公务员之路 3.0](4-debug-serial-2000-2002_922.md)
+
+- [古今大战 80](4-debug-serial-2000-2002_923.md)
+
+- [国图图书下载系统 9.0](4-debug-serial-2000-2002_924.md)
+
+- [国图图书下载系统 9.0](4-debug-serial-2000-2002_925.md)
+
+- [黑马课表管理系统 2.6](4-debug-serial-2000-2002_926.md)
+
+- [花猫时间精灵 v1.0](4-debug-serial-2000-2002_927.md)
+
+- [慧琦网通-IE 安全卫士 1.2](4-debug-serial-2000-2002_928.md)
+
+- [计算机专业词汇学习 1.0](4-debug-serial-2000-2002_929.md)
+
+- [polyview](4-debug-serial-2000-2002_93.md)
+
+- [加密金刚锁 V3.00](4-debug-serial-2000-2002_930.md)
+
+- [加密精灵 V2.2](4-debug-serial-2000-2002_931.md)
+
+- [捷径点点通 2.00](4-debug-serial-2000-2002_932.md)
+
+- [解魔法转换 v2.1 Beta 2](4-debug-serial-2000-2002_933.md)
+
+- [浪漫情书 v3.0](4-debug-serial-2000-2002_934.md)
+
+- [冷雨飘心 crackme2](4-debug-serial-2000-2002_935.md)
+
+- [聊天圣手之增强版 2.0 For OICQ2000](4-debug-serial-2000-2002_936.md)
+
+- [凌云邮神](4-debug-serial-2000-2002_937.md)
+
+- [盲打之友 V2.5](4-debug-serial-2000-2002_938.md)
+
+- [美萍安全卫士 V8.45](4-debug-serial-2000-2002_939.md)
+
+- [PowerStrip 2.67](4-debug-serial-2000-2002_94.md)
+
+- [美萍反黄专家 版本 3.2](4-debug-serial-2000-2002_940.md)
+
+- [密码监听器 v1.4](4-debug-serial-2000-2002_941.md)
+
+- [密码截取(getpassword)2.8](4-debug-serial-2000-2002_942.md)
+
+- [命理研究 1.01](4-debug-serial-2000-2002_943.md)
+
+- [魔法转换 v2.5](4-debug-serial-2000-2002_944.md)
+
+- [木瓜破解入门教程——傻瓜篇](4-debug-serial-2000-2002_945.md)
+
+- [屏保自己做 2.61](4-debug-serial-2000-2002_946.md)
+
+- [起名向导 5.1](4-debug-serial-2000-2002_947.md)
+
+- [轻松试卷 V4.50](4-debug-serial-2000-2002_948.md)
+
+- [轻松试卷 4.5](4-debug-serial-2000-2002_949.md)
+
+- [PSXPLAY1.40](4-debug-serial-2000-2002_95.md)
+
+- [商务王](4-debug-serial-2000-2002_950.md)
+
+- [神通 2001 豪华版](4-debug-serial-2000-2002_951.md)
+
+- [生日字典密码生成器 v3.7](4-debug-serial-2000-2002_952.md)
+
+- [世界主要城市与北京时差表](4-debug-serial-2000-2002_953.md)
+
+- [试卷生成系统 II 2.36](4-debug-serial-2000-2002_954.md)
+
+- [天音怒放 3.0](4-debug-serial-2000-2002_955.md)
+
+- [天音总管 2.15](4-debug-serial-2000-2002_956.md)
+
+- [听力之友 1.0](4-debug-serial-2000-2002_957.md)
+
+- [完美卸载 V5.01](4-debug-serial-2000-2002_958.md)
+
+- [完美卸载 6.0](4-debug-serial-2000-2002_959.md)
+
+- [RCCD and RCCDPlus](4-debug-serial-2000-2002_96.md)
+
+- [完美卸载 7.00](4-debug-serial-2000-2002_960.md)
+
+- [完美卸载软件](4-debug-serial-2000-2002_961.md)
+
+- [万能五笔 2001A](4-debug-serial-2000-2002_962.md)
+
+- [网吧维护系统 1.03](4-debug-serial-2000-2002_963.md)
+
+- [网际营销 V2.4](4-debug-serial-2000-2002_964.md)
+
+- [网页下载专家](4-debug-serial-2000-2002_965.md)
+
+- [文档管理助手](4-debug-serial-2000-2002_966.md)
+
+- [文件密使 2.6](4-debug-serial-2000-2002_967.md)
+
+- [我也爱背单词 2001+ 3.1](4-debug-serial-2000-2002_968.md)
+
+- [小李注册表大师](4-debug-serial-2000-2002_969.md)
+
+- [Readbook 1.31](4-debug-serial-2000-2002_97.md)
+
+- [小李注册表大师 1.2](4-debug-serial-2000-2002_970.md)
+
+- [小李注册表大师 v1.41](4-debug-serial-2000-2002_971.md)
+
+- [小李注册表大师 1.11](4-debug-serial-2000-2002_972.md)
+
+- [卸载精灵 v1.20 注册算法/SPAN>](4-debug-serial-2000-2002_973.md)
+
+- [信息技术教育考核注册机](4-debug-serial-2000-2002_974.md)
+
+- [旋转矩阵 1.99](4-debug-serial-2000-2002_975.md)
+
+- [学生评语系统](4-debug-serial-2000-2002_976.md)
+
+- [易吉八字算命](4-debug-serial-2000-2002_977.md)
+
+- [隐私保护神 3.0](4-debug-serial-2000-2002_978.md)
+
+- [英语八哥 v1.5](4-debug-serial-2000-2002_979.md)
+
+- [Recover 4 all version 0.3](4-debug-serial-2000-2002_98.md)
+
+- [英语听力通 v2.1](4-debug-serial-2000-2002_980.md)
+
+- [优软精灵画笔之大天使 3.0](4-debug-serial-2000-2002_981.md)
+
+- [争分夺秒背单词 V1.5.01.12.11](4-debug-serial-2000-2002_982.md)
+
+- [智能切割机 3.03](4-debug-serial-2000-2002_983.md)
+
+- [中国计算机软件水平考试测试系统 2.0 版(](4-debug-serial-2000-2002_984.md)
+
+- [紫禁城反黄卫士个人版](4-debug-serial-2000-2002_985.md)
+
+- [Screen Taker V2.31](4-debug-serial-2000-2002_99.md)

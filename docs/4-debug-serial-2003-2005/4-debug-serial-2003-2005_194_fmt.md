@@ -1,0 +1,298 @@
+
+# mIRC6.02
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50254.htm`](https://www.pediy.com/kssd/pediy05/pediy50254.htm)
+
+暑假里迷起了 `irc`，所以拿到了 `mIRC` 就顺便把它 `keygen` 了。我用的是 `mIRC` 6.02 版。此软件采用的是用户名/注册码的保护，在软件的帮助菜单里有注册选项。
+
+首先我们看看基本的注册情况。填好相关的注册码和用户名之后，点注册会发现提示错误。之后自动清除了输入的内容，但是还是可以继续注册。了解这些就够了。
+
+现在开始我们的破解之旅。
+
+输入好注册码和用户名之后，进入 `trw`，下断点，`bpx GetDlgItemTextA,bpx GetWindowTextA`。
+
+因为这两个是常用的获取 `EDIT` 控件文本内容的函数啦。
+
+点注册，发现没有拦截下来。
+
+那么就有两种可能性了：第一，程序采用了其他的方法获得文本内容，比如除了刚才的两个断点之外，还可以向 `EDIT` 控件发送 `WM_GETTEXT` 消息来获得文本；第二，程序是用 `delphi` 编写的，有自己独立的获取方式而不依靠 `windows` 提供的函数。
+
+无论是哪种可能性，都可以用一种方法来解决，那就是下断点 `bpx hmemcpy`。这个号称是 9x 平台下的万能断点，只要是输入注册码的，都可以用这个断点来拦截。
+
+下断点，点注册。终于拦截下来了。拦下后，下命令 `pmodule`，回到 `mIRC` 程序里，发现我们在 `call SendDlgItemMessageA` 的下面，原来它是用这个函数给对话框里的 `EDIT` 控件发送 `WM_GETTEXT` 消息。
+
+```
+016F:004C688D 68A8A85700      PUSH    DWORD 0057A8A8 <==============以后名字存放的地点   
+016F:004C6892 68E7030000      PUSH    DWORD 03E7   
+016F:004C6897 6A0D            PUSH    BYTE +0D <====================WM_GETTEXT 的值   
+016F:004C6899 6883000000      PUSH    DWORD 83   
+016F:004C689E FF7508          PUSH    DWORD [EBP+08]   
+016F:004C68A1 E8284B0900      CALL    `USER32!SendDlgItemMessageA`   
+016F:004C68A6 688FAC5700      PUSH    DWORD 0057AC8F <=======+=======pmodule 后我们就在这里了   
+016F:004C68AB 68E7030000      PUSH    DWORD 03E7                  |\_\_\_\_\_\_\_ 以后我们输入的注册码   
+016F:004C68B0 6A0D            PUSH    BYTE +0D                          存放的地点   
+016F:004C68B2 6882000000      PUSH    DWORD 82   
+016F:004C68B7 FF7508          PUSH    DWORD [EBP+08]   
+016F:004C68BA E80F4B0900      CALL    `USER32!SendDlgItemMessageA`   
+016F:004C68BF 688FAC5700      PUSH    DWORD 0057AC8F <==============注册码作为参数二   
+016F:004C68C4 68A8A85700      PUSH    DWORD 0057A8A8 <==============姓名作为参数一   
+016F:004C68C9 E88FFBFFFF      CALL    004C645D <====================调用函数(关键的函数)!!   
+016F:004C68CE 85C0            TEST    EAX,EAX  <====================测试函数返回值   
+016F:004C68D0 0F84B7000000    JZ      NEAR 004C698D <===============返回值如果等于 0   
+                                                                 就跳走(出错的地方)   
+```
+
+从我们看到的代码来看，`004c645d` 处函数肯定是产生注册码并且进行比较的函数。因此我们应当跟进去，走到 `004C68C9` 的时候，`F8` 跟进去。看到：
+
+```
+016F:004C645D 55              PUSH    EBP   
+016F:004C645E 8BEC           MOV       EBP,ESP   
+016F:004C6460 53              PUSH    EBX   
+016F:004C6461 56              PUSH    ESI   
+016F:004C6462 57              PUSH    EDI   
+016F:004C6463 8B750C          MOV       ESI,[EBP+0C]   
+016F:004C6466 8B5D08          MOV       EBX,[EBP+08]   
+016F:004C6469 BF440E5800      MOV       EDI,00580E44   
+016F:004C646E 6804010000      PUSH    DWORD 0104   
+016F:004C6473 6A00            PUSH    BYTE +00   
+016F:004C6475 57              PUSH    EDI   
+016F:004C6476 E8D55C0800      CALL    0054C150   
+016F:004C647B 83C40C          ADD       ESP,BYTE +0C   
+016F:004C647E 6804010000      PUSH    DWORD 0104   
+016F:004C6483 6A00            PUSH    BYTE +00   
+016F:004C6485 68480F5800      PUSH    DWORD 00580F48   
+016F:004C648A E8C15C0800      CALL    0054C150   
+016F:004C648F 83C40C          ADD       ESP,BYTE +0C   
+016F:004C6492 56              PUSH    ESI   
+016F:004C6493 57              PUSH    EDI   
+016F:004C6494 8BF7            MOV       ESI,EDI   
+016F:004C6496 8BFB            MOV       EDI,EBX   
+016F:004C6498 33C0            XOR       EAX,EAX   
+016F:004C649A 83C9FF          OR        ECX,BYTE -01   
+016F:004C649D F2AE            REPNE SCASB   
+016F:004C649F F7D1            NOT       ECX   
+016F:004C64A1 2BF9            SUB       EDI,ECX   
+016F:004C64A3 87F7            XCHG      ESI,EDI   
+016F:004C64A5 8BC7            MOV       EAX,EDI   
+016F:004C64A7 8BD1            MOV       EDX,ECX   
+016F:004C64A9 C1E902          SHR       ECX,02   
+016F:004C64AC F3A5            REP MOVSD   
+016F:004C64AE 8BCA            MOV       ECX,EDX   
+016F:004C64B0 83E103          AND       ECX,BYTE +03   
+016F:004C64B3 F3A4            REP MOVSB   
+016F:004C64B5 5F              POP       EDI   
+016F:004C64B6 5E              POP       ESI   
+016F:004C64B7 56              PUSH    ESI   
+016F:004C64B8 57              PUSH    EDI   
+016F:004C64B9 8BFE            MOV       EDI,ESI   
+016F:004C64BB BE480F5800      MOV       ESI,00580F48   
+016F:004C64C0 33C0            XOR       EAX,EAX   
+016F:004C64C2 83C9FF          OR        ECX,BYTE -01   
+016F:004C64C5 F2AE            REPNE SCASB   
+016F:004C64C7 F7D1            NOT       ECX   
+016F:004C64C9 2BF9            SUB       EDI,ECX   
+016F:004C64CB 87F7            XCHG      ESI,EDI   
+016F:004C64CD 8BC7            MOV       EAX,EDI   
+016F:004C64CF 8BD1            MOV       EDX,ECX   
+016F:004C64D1 C1E902          SHR       ECX,02   
+016F:004C64D4 F3A5            REP MOVSD   
+016F:004C64D6 8BCA            MOV       ECX,EDX   
+016F:004C64D8 83E103          AND       ECX,BYTE +03   
+016F:004C64DB F3A4            REP MOVSB   
+016F:004C64DD 5F              POP       EDI   
+016F:004C64DE 5E              POP       ESI   
+016F:004C64DF 68480F5800      PUSH    DWORD 00580F48   
+016F:004C64E4 57              PUSH    EDI   
+016F:004C64E5 E880FEFFFF      CALL    004C636A <==================call 后面紧跟 test 和跳转的   
+016F:004C64EA 85C0            TEST    EAX,EAX                  就要留意了   
+016F:004C64EC 740A            JZ      004C64F8  <===eax=0 就跳到失败,所以在函数返回前不能   
+                                                                 让 eax=0   
+016F:004C64EE B801000000      MOV       EAX,01 <========令 eax=1,然后跳转,不远处就返回了,   
+016F:004C64F3 E991000000      JMP       004C6589          回到上面 004c68ce 的地方,上面要求   
+                                                                 eax 不等于 0 就注册成功,这里是 1 正好   
+                                                                 满足,所以这个 004664E5 大有文章.   
+```
+
+前面的一大票代码看起来很难分析，其实暂时可以不管，因为这还是我们第一遍跟踪。第一遍只要大概掌握代码的情况就可以了。我们注意到 `004C64E5` 处的 `call` 和后面的 `test jz` 又构成了一个调用函数然后比较返回值的情况。而且它后面有 `mov eax,1 jmp 004c6589`。这就可以肯定是判断注册码是否合法的函数了。看看在 `call` 前面 `push` 入栈的是哪些东西。在执行到 `0x4c64e4` 的时候，下命令 `d 580f48` 可以看到注册码，`d edi` 看到名字。所以，这更加肯定了我们的推测，`004c636a` 处的函数就是核心。在跟进去之前要记住，不能让 `eax=0`，不然就是注册失败的标志。好了跟进来。
+
+```
+016F:004C636A 55              PUSH    EBP   
+016F:004C636B 8BEC           MOV       EBP,ESP   
+016F:004C636D 83C4F4          ADD       ESP,BYTE -0C   
+016F:004C6370 53              PUSH    EBX   
+016F:004C6371 56              PUSH    ESI   
+016F:004C6372 57              PUSH    EDI   
+016F:004C6373 8B750C          MOV       ESI,[EBP+0C]   
+016F:004C6376 FF7508          PUSH    DWORD [EBP+08]  <==========d *(ebp+8)发现这是名字   
+016F:004C6379 E8525F0800      CALL    0054C2D0 <====这个函数是干什么的?   
+016F:004C637E 59              POP       ECX <=====执行完函数到了这里,看看 eax 里是什么?是名字的   
+016F:004C637F 83F805          CMP       EAX,BYTE +05 <==比较名字是不是大于 5 个字母       长度.   
+016F:004C6382 7307            JNC       004C638B   
+016F:004C6384 33C0            XOR       EAX,EAX   <==小于 5 就把 eax 清零,返回,就注册失败了.   
+016F:004C6386 E9C9000000      JMP       004C6454   
+016F:004C638B 6A2D            PUSH    BYTE +2D  <==0x2d 就是字符"-"   
+016F:004C638D 56              PUSH    ESI   <==注册码   
+016F:004C638E E89D5E0800      CALL    0054C230  <==这个函数跟踪后发现是返回"-"在注册码中   
+016F:004C6393 83C408          ADD       ESP,BYTE +08 的位置.如果你输入的注册码不含"-"就失败   
+016F:004C6396 8BD8            MOV       EBX,EAX   
+016F:004C6398 85DB            TEST    EBX,EBX   
+016F:004C639A 7507            JNZ       004C63A3   
+016F:004C639C 33C0            XOR       EAX,EAX   
+016F:004C639E E9B1000000      JMP       004C6454   
+016F:004C63A3 C60300          MOV       BYTE [EBX],00  <===把"-"替换成 0,就是说把我们输入的   
+016F:004C63A6 56              PUSH    ESI                      注册码变成两个字符串   
+016F:004C63A7 E878ED0800      CALL    00555124      <===把注册码第一部分转化成数值   
+                                                                (原来输入的是字符)       
+016F:004C63AC 59              POP       ECX   
+016F:004C63AD 8945FC          MOV       [EBP\-04],EAX  <===把第一部分的数值放入这个地方   
+016F:004C63B0 C6032D          MOV       BYTE [EBX],2D  <===把注册码恢复成员来的样子   
+```
+
+
+
+```text
+016F:004C63B3 43                INC     EBX
+016F:004C63B4 803B00            CMP     BYTE [EBX],00
+016F:004C63B7 7507              JNZ     004C63C0
+016F:004C63B9 33C0              XOR     EAX,EAX
+016F:004C63BB E994000000        JMP     004C6454
+016F:004C63C0 53                PUSH    EBX
+016F:004C63C1 E85EED0800        CALL    00555124      <===把注册码第二部分转化成数值
+016F:004C63C6 59                POP     ECX
+016F:004C63C7 8945F8            MOV     [EBP-08],EAX  <===存好
+016F:004C63CA FF7508            PUSH    DWORD [EBP+08] <===姓名
+016F:004C63CD E8FE5E0800        CALL    0054C2D0      <===取得姓名长度
+016F:004C63D2 59                POP     ECX
+016F:004C63D3 8945F4            MOV     [EBP-0C],EAX  <===把长度存好
+016F:004C63D6 33C0              XOR     EAX,EAX       <===开始计算了
+016F:004C63D8 33DB              XOR     EBX,EBX
+016F:004C63DA BA03000000        MOV     EDX,03
+016F:004C63DF 8B4D08            MOV     ECX,[EBP+08]
+016F:004C63E2 83C103            ADD     ECX,BYTE +03  <===从姓名第三个字开始算
+016F:004C63E5 3B55F4            CMP     EDX,[EBP-0C]
+016F:004C63E8 7D1C              JNL     004C6406
+016F:004C63EA 0FB631            MOVZX   ESI,BYTE [ECX] <===取姓名里的一个字符
+016F:004C63ED 0FAF3485B8835600 IMUL    ESI,[EAX*4+005683B8] <==与一个数相乘保存在 esi 中
+016F:004C63F5 03DE              ADD     EBX,ESI <=累加起来    (这个数具体是什么后面讲)
+016F:004C63F7 40                INC     EAX
+016F:004C63F8 83F826            CMP     EAX,BYTE +26
+016F:004C63FB 7E02              JNG     004C63FF
+016F:004C63FD 33C0              XOR     EAX,EAX
+016F:004C63FF 42                INC     EDX
+016F:004C6400 41                INC     ECX
+016F:004C6401 3B55F4            CMP     EDX,[EBP-0C]
+016F:004C6404 7CE4              JL      004C63EA  循环完成循环计算后,ebx 里面就是计算的结果
+016F:004C6406 3B5DFC            CMP     EBX,[EBP-04]  比较 ebx 和开始获得的注册码第一部分数值
+016F:004C6409 7404              JZ      004C640F    相等就继续计算第二部分
+016F:004C640B 33C0              XOR     EAX,EAX     不然就清 0 eax 滚蛋
+016F:004C640D EB45              JMP     SHORT 004C6454
+016F:004C640F 33C0              XOR     EAX,EAX     <==第二部分开始了
+016F:004C6411 33DB              XOR     EBX,EBX
+016F:004C6413 BA03000000        MOV     EDX,03
+016F:004C6418 8B4D08            MOV     ECX,[EBP+08]
+016F:004C641B 83C103            ADD     ECX,BYTE +03  <=还是从姓名的第 3 个字开始算
+016F:004C641E 3B55F4            CMP     EDX,[EBP-0C]
+016F:004C6421 7D23              JNL     004C6446
+016F:004C6423 0FB631            MOVZX   ESI,BYTE [ECX]  <=取姓名里的一个字
+016F:004C6426 0FB679FF          MOVZX   EDI,BYTE [ECX-01] <=取前一个字
+016F:004C642A 0FAFF7            IMUL    ESI,EDI          <=相乘
+016F:004C642D 0FAF3485B8835600 IMUL    ESI,[EAX*4+005683B8] <=再与另一个数相乘
+016F:004C6435 03DE              ADD     EBX,ESI <=累加        (和上面的那个一样后面讲)
+016F:004C6437 40                INC     EAX
+016F:004C6438 83F826            CMP     EAX,BYTE +26
+016F:004C643B 7E02              JNG     004C643F
+016F:004C643D 33C0              XOR     EAX,EAX
+016F:004C643F 42                INC     EDX
+016F:004C6440 41                INC     ECX
+016F:004C6441 3B55F4            CMP     EDX,[EBP-0C]
+016F:004C6444 7CDD              JL      004C6423    循环计算
+016F:004C6446 3B5DF8            CMP     EBX,[EBP-08] 比较计算结果,和注册码第二部分数值
+016F:004C6449 7404              JZ      004C644F    相同则跳到成功标志
+016F:004C644B 33C0              XOR     EAX,EAX
+016F:004C644D EB05              JMP     SHORT 004C6454
+016F:004C644F B801000000        MOV     EAX,01      设立注册码比较成功标志
+016F:004C6454 5F                POP     EDI
+016F:004C6455 5E                POP     ESI
+016F:004C6456 5B                POP     EBX
+016F:004C6457 8BE5              MOV     ESP,EBP
+016F:004C6459 5D                POP     EBP
+016F:004C645A C20800            RET     08
+```
+
+好了，现在讲一讲上面两次出现的 `[EAX*4+005683B8]` 是什么意思。
+
+在跟踪到那个乘法的时候，下 `d 005683B8`，会看到数据栏里是这个样子：
+
+```text
+0B000000 06000000 11000000 0C000000
+0C000000 0E000000 05000000 0C000000
+10000000 0A000000 0B000000 06000000
+0E000000 0E000000 04000000 0B000000
+06000000 0E000000 0E000000 04000000
+0B000000 09000000 0C000000 0B000000
+0A000000 08000000 0A000000 0A000000
+10000000 08000000 04000000 06000000
+0A000000 0C000000 10000000 08000000
+0A000000 04000000 10000000 00000000
+```
+
+发现数据都是每 4 字节出现一次，这就是为什么用 `eax*4` 了。其实 `005683B8` 这个地址里出现的数据是固定的，就是说这是个字典，每次计算注册码的时候到里面来查一个数字然后跟名字的一个字母做乘法运算。那么我怎么才能知道这个字典是多大呢？那就看：
+
+```text
+016F:004C63F8 83F826            CMP     EAX,BYTE +26
+```
+
+和
+
+```text
+016F:004C6438 83F826            CMP     EAX,BYTE +26
+```
+
+都是把 `eax` 和 `0x26`，也就是 38 来比较，所以一共有 39 个数据。就是除了 0 之外的那些。
+
+至此，我们完全摸清了 `mIRC` 的注册码的计算情况。当我们执行到 `016F:004C6406` 和 `016F:004C6446` 的时候各做一次？ `ebx` 显示出十进制值，然后把两个值用 `-` 链接起来就是我们输入名字所对应的注册码了，比如我的 `lllaaa[BCG]` 对应 `7591-674568`。
+
+好了，既然搞清楚了算法，写注册机也就容易了。下面我贴出注册机的 C 语言源代码：
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int main(int argc, char *argv[])
+{
+    char dict[39] =
+    {
+        0x0b,0x06,0x11,0x0c,0x0c,0x0e,0x05,0x0c,0x10,0x0a,
+        0x0b,0x06,0x0e,0x0e,0x04,0x0b,0x06,0x0e,0x0e,0x04,
+        0x0b,0x09,0x0c,0x0b,0x0a,0x08,0x0a,0x0a,0x10,0x08,
+        0x04,0x06,0x0a,0x0c,0x10,0x08,0x0a,0x04,0x10
+    };
+
+    char name[255];
+    printf("Input your name please:");
+    gets(name);
+
+    int length = strlen(name);
+
+    if (length >= 39)
+    {
+        printf("\nYour name is longer than 39 chars, please choose another one.");
+        return 1;
+    }
+
+    int i = 0;
+    long serial1 = 0, serial2 = 0;
+
+    for (i = 0; i < length - 3; i++)
+    {
+        serial1 += name[i + 3] * dict[i];
+        serial2 += name[i + 3] * name[i + 2] * dict[i];
+    }
+
+    printf("The serial number is:%d-%d", serial1, serial2);
+    return 1;
+}
+```
+
+本来源程序是支持名字超过 39 字节的，但是我为了编程的简单，就做了限制。

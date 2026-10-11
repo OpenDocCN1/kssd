@@ -1,0 +1,218 @@
+
+# NS-TOWER 2.5
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6059.htm`](https://www.pediy.com/kssd/pediy06/pediy6059.htm)
+
+## 软件信息
+
+- **软件名称**：NS-TOWER
+- **软件版本**：2.5
+- **软件类别**：娱乐游戏
+- **应用平台**：WIN9X/WINNT/WIN2K/WINXP
+- **授权形式**：共享
+- **软件评级**：★★★★☆
+- **下载次数**：660
+- **汉化作者**：seeker
+- **上传日期**：2003-5-12
+
+**破解工具**：`OllyDbg1.09`
+
+**破解难度**：易
+
+**作者声明**：初学破解，欢迎交流!
+
+**软件下载**：[http://www.hanzify.org/download.asp?SOFT\_ID=7168&SITE=1](http://www.hanzify.org/download.asp?SOFT_ID=7168&SITE=1)
+
+## 软件说明
+
+“是高手就上到 100 层”英文名为：NS-TOWER。是和“是高手就下 100 层”相对的很有意思的小游戏。游戏的目的是爬上城堡。按住空格键或鼠标左键来蓄力，松开就会跳起来。你按住的越久就跳的越高，但是不要按住太久，那样力量会恢复到零。前五名的玩家名字将被记录下来。
+
+## 破解过程
+
+任意填入用户名 `ShenGe` 和注册码 `1234567`，用断点 `GetDlgItemTextA` 下断，很快可看到如下代码：
+
+```
+00402FDB   CALL    DWORD PTR DS:[<&USER32.GetDlgIte>; \GetDlgItemTextA
+             <---取输入的假码
+00402FE1   LEA     EAX, DWORD PTR SS:[EBP-204]
+00402FE7   PUSH    EAX
+             <---EAX="abcdefg"
+00402FE8   CALL    NSTOWER.004031AD
+             <---关键的验证 Call,跟进!
+00402FED   ADD     ESP, 4
+00402FF0  TEST    EAX, EAX
+00402FF2  JNZ     NSTOWER.0040302F
+00402FF8  PUSH    100                            ; /Count = 100 (256.)
+00402FFD  LEA     EAX, DWORD PTR SS:[EBP-104]     ; |
+00403003  PUSH    EAX                             ; |Buffer = 00000001
+00403004  PUSH    4                               ; |RsrcID = STRING "注册码"
+00403006  MOV     EAX, DWORD PTR DS:[40D298]       ; |
+0040300B  PUSH    EAX                             ; |hInst = 00000001
+0040300C  CALL    DWORD PTR DS:[<&USER32.LoadStrin>; \LoadStringA
+00403012  PUSH    10                              ; /style = MB_OK|MB_ICONHAND|MB_APPLMODAL
+00403014  PUSH    NSTOWER.0040C26C                 ; |Title = "NS-TOWER"
+00403019  LEA     EAX, DWORD PTR SS:[EBP-104]      ; |
+0040301F  PUSH    EAX                             ; |Text = 00000001 ???
+00403020  MOV     EAX, DWORD PTR SS:[EBP+8]        ; |
+00403023  PUSH    EAX                             ; |hOwner = 00000001
+00403024  CALL    DWORD PTR DS:[<&USER32.MessageBo>; \MessageBoxA
+             <---出错对话框
+0040302A  JMP     NSTOWER.00403070
+0040302F  PUSH    100
+00403034  MOV     EAX, DWORD PTR SS:[EBP-4]
+00403037  ADD     EAX, 10
+0040303A  PUSH    EAX                             ; |Buffer = 00000001
+0040303B  PUSH    3EA                             ; |ControlID = 3EA (1002.)
+00403040  MOV     EAX, DWORD PTR SS:[EBP+8]
+00403043  PUSH    EAX                             ; |hWnd = 00000001
+```
+
+跟进关键的验证 Call:
+
+```
+004031AD  PUSH    EBP
+004031AE  MOV     EBP, ESP
+004031B0  SUB     ESP, 4
+004031B3  PUSH    EBX
+004031B4  PUSH    ESI
+004031B5  PUSH    EDI
+004031B6  MOV     EAX, DWORD PTR SS:[EBP+8]
+004031B9  XOR     ECX, ECX
+004031BB  MOV     CL, BYTE PTR DS:[EAX+7]
+             <---取注册码第 8 位.其实这段是判断注册码是否为 7 位,
+                  若不为 7 位则 Game Over!
+004031BE  TEST    ECX, ECX
+             <---关键比较 1
+004031C0  JE      NSTOWER.004031CD
+004031C6  XOR     EAX, EAX
+004031C8  JMP     NSTOWER.00403312
+             <---走到这就完了
+004031CD  MOV     DWORD PTR SS:[EBP-4], 0
+             <---[EBP-4]=0
+004031D4  JMP     NSTOWER.004031DC
+004031D9  INC     DWORD PTR SS:[EBP-4]
+             <---[EBP-4]作循环控制计数器
+004031DC  CMP     DWORD PTR SS:[EBP-4], 7
+004031E0  JGE     NSTOWER.00403211
+004031E6  MOV     EAX, DWORD PTR SS:[EBP-4]
+             <---EAX=0
+004031E9  MOV     ECX, DWORD PTR SS:[EBP+8]
+             <---ECX="abcdefg"
+004031EC  MOV     AL, BYTE PTR DS:[EAX+ECX]
+             <---取注册码第 1 位,61
+004031EF  PUSH    EAX
+004031F0  CALL    NSTOWER.00403317
+             <---此 Call 对数进行转换,跟进看看
+004031F5  ADD     ESP, 4
+004031F8  XOR     ECX, ECX
+004031FA  MOV     CL, AL
+             <---CL=A
+004031FC  CMP     ECX, 24
+             <---判断输入的是否合法字符
+004031FF  JLE     NSTOWER.0040320C
+00403205  XOR     EAX, EAX
+             <---置标志位 EAX=0
+00403207  JMP     NSTOWER.00403312
+             <---可别走到这儿!
+0040320C  JMP     NSTOWER.004031D9
+00403211  MOV     EAX, DWORD PTR SS:[EBP+8]
+00403214  MOV     AL, BYTE PTR DS:[EAX+5]
+             <---取注册码第 6 位
+00403217  PUSH    EAX
+00403218  CALL    NSTOWER.00403317
+             <---AL=6
+0040321D  ADD     ESP, 4
+00403220  XOR     EBX, EBX
+00403222  MOV     BL, AL  <---BL=6
+00403224  MOV     EAX, DWORD PTR SS:[EBP+8]
+00403227  MOV     AL, BYTE PTR DS:[EAX+2]
+             <---取注册码第 3 位
+0040322A  PUSH    EAX
+0040322B  CALL    NSTOWER.00403317
+             <---AL=3
+00403230  ADD     ESP, 4
+00403233  XOR     ECX, ECX <---ECX 清 0
+00403235  MOV     CL, AL   <---CL=3
+00403237  MOV     ESI, 24
+0040323C  LEA     EAX, DWORD PTR DS:[ECX+EBX*2+1C]
+             <---EBX、ECX 分别为注册码第 6、3 位转换后的值
+00403240  CDQ     EAX=3+6*2+1C=2B
+00403241  IDIV    ESI     <---ESI=24
+00403243  MOV     EBX, EDX
+             <---EDX 中为余数值 7
+00403245  MOV     EAX, DWORD PTR SS:[EBP+8]
+00403248  MOV     AL, BYTE PTR DS:[EAX]
+             <---取注册码第 1 位
+0040324A  PUSH    EAX
+0040324B  CALL    NSTOWER.00403317
+             <---AL=1
+00403250  ADD     ESP, 4
+00403253  XOR     ECX, ECX
+00403255  MOV     CL, AL  <--CL=1
+00403257  CMP     EBX, ECX
+             <---关键比较 2,由此可得注册码第 1 位应为 7,后面按此值运算
+00403259  JNZ     NSTOWER.0040330B <--千万别跳
+0040325F  MOV     EAX, DWORD PTR SS:[EBP+8]
+00403262  MOV     AL, BYTE PTR DS:[EAX+4]
+             <---取注册码第 5 位
+00403265  PUSH    EAX
+00403266  CALL    NSTOWER.00403317
+             <---AL=5
+0040326B  ADD     ESP, 4
+0040326E  XOR     EBX, EBX
+00403270  MOV     BL, AL  <---BL=5
+00403272  MOV     EAX, DWORD PTR SS:[EBP+8]
+00403275  MOV     AL, BYTE PTR DS:[EAX+1]
+             <---取注册码第 2 位
+00403278  PUSH    EAX
+00403279  CALL    NSTOWER.00403317
+             <---AL=2
+0040327E  ADD     ESP, 4
+00403281  XOR     ECX, ECX
+00403283  MOV     CL, AL  <---CL=2
+00403285  MOV     ESI, 24
+             <---ESI=24
+0040328A  LEA     EAX, DWORD PTR DS:[ECX+EBX*2+1C]
+             <---ECX、EBX 分别为注册码第 2、5 位转换后的值
+0040328E  CDQ     EAX=2+5*2+1C=28
+0040328F  IDIV    ESI
+00403291  MOV     EBX, EDX
+             <---EDX 中为余数值 4
+00403293  MOV     EAX, DWORD PTR SS:[EBP+8]
+00403296  MOV     AL, BYTE PTR DS:[EAX+6]
+             <---取注册码第 7 位
+00403299  PUSH    EAX
+0040329A  CALL    NSTOWER.00403317
+             <---AL=7
+0040329F  ADD     ESP, 4
+004032A2  XOR     ECX, ECX
+004032A4  MOV     CL, AL  <---CL=7
+004032A6  CMP     EBX, ECX
+             <---关键判断 3,由此可得注册码第 7 位为 4,后面依此值运算
+004032A8  JNZ     NSTOWER.0040330B
+004032AE  MOV     EAX, DWORD PTR SS:[EBP+8]
+004032B1  MOV     AL, BYTE PTR DS:[EAX+6]
+             <---取注册码第 7 位
+004032B4  PUSH    EAX
+004032B5  CALL    NSTOWER.00403317
+             <---AL=4
+004032BA  ADD     ESP, 4
+004032BD  XOR     EBX, EBX
+004032BF  MOV     BL, AL   <---BL=4
+004032C1  MOV     EAX, DWORD PTR SS:[EBP+8]
+004032C4  MOV     AL, BYTE PTR DS:[EAX]
+             <---取注册码第 1 位
+004032C6  PUSH    EAX
+004032C7  CALL    NSTOWER.00403317
+             <---AL=7
+004032CC  ADD     ESP, 4
+004032CF  XOR     ECX, ECX
+004032D1  MOV     CL, AL  <---CL=7
+004032D3  MOV     ESI, 24
+004032D8  LEA     EAX, DWORD PTR DS:[ECX+EBX*2+1C]
+             <---ECX、EBX 分别为注册码第 1、7 位转换后的值
+004032DC  CDQ     EAX=7+4*2+1C=2B
+004032DD  IDIV    ESI
+004032DF  MOV     EBX, EDX
+             <---EDX 中为余数值 7
+```

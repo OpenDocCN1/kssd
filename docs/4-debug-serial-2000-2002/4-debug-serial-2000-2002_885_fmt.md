@@ -1,0 +1,114 @@
+
+# UltraEdit v9.0
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue356.htm`](https://www.pediy.com/kssd/pediy04/kanxue356.htm)
+
+```c
+// Key Generator of UltraEdit v9.0 by arbiter[CCG]
+
+// compile : cl /o1 /MD /o keygen.exe .\\keygen.c
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <conio.h>
+
+typedef unsigned char   BYTE;
+typedef unsigned int    WORD;
+typedef unsigned long   DWORD;
+
+const char cTab[26] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const char nTab[10] = "0123456789";
+
+const BYTE magicXor[][16] =
+{
+    { 0xd8, 0x00, 0xef, 0x00, 0x8e, 0x00, 0x66, 0x00,
+      0x2f, 0x00, 0xde, 0x00, 0x43, 0x00, 0xa5, 0x00 },
+    { 0xd3, 0x00, 0x1f, 0x00, 0x78, 0x00, 0x6f, 0x00,
+      0x38, 0x00, 0x8f, 0x00, 0x65, 0x00, 0x5a, 0x00 },
+    { 0x00, 0x10, 0x00, 0xf1, 0x00, 0xa5, 0x00, 0x2f,
+      0x00, 0x1f, 0x00, 0xcb, 0x00, 0x98, 0x00, 0xf3 },
+    { 0x00, 0xfe, 0x00, 0xe0, 0x00, 0x73, 0x00, 0x78,
+      0x00, 0x73, 0x00, 0x34, 0x00, 0x77, 0x00, 0x33 }
+};
+
+static BYTE preTab[61];
+
+void InitTab( BYTE *name, int nlen )
+{
+    int i;
+    for( i = 0; i < 61; i++ )
+        preTab[i] = ( i << 1 ) - 1;
+    memcpy( preTab, name, nlen );
+    preTab[nlen] &= 0x00;
+}
+
+WORD SumName( BYTE *name, int nlen )
+{
+    int i;
+    WORD sum = 0;
+    for( i = 1; i < nlen - 1; i++ )
+    {
+        sum += name[i - 1] * name[i + 1];
+        sum -= name[i];
+        sum = sum - i + 1;
+    }
+    return( sum );
+}
+
+void GenRegCode( char *rCode, BYTE *name )
+{
+    BYTE key, j;
+    WORD nSum;
+    int i, k, len;
+    j = 0;
+    k = 0;
+    len = strlen( name );
+    InitTab( name, len );
+    nSum = SumName( name, len );
+    key  = ( BYTE )( nSum & 0xff );
+    for( i = 0; i < 61; i++ )
+    {
+        j = key + i;
+        j ^= magicXor[i % 4][( i % 32 ) >> 1];
+        j = preTab[j % 59] + i;
+        preTab[i] = j ^ ( preTab[i + 1] << 1 );
+        j = preTab[i];
+        rCode[k++] = ( ( i % 5 ) & 1 ) ? nTab[j % 10] : cTab[j % 26];
+        j &= 0x00;
+        if( i % 5 == 4 )
+            rCode[k++] = 0x2d;
+    }
+    memset( rCode + 23, 0, 77 );
+    /*
+    rCode[3 ] = 0x30;
+    rCode[8 ] = 0x30;
+    rCode[12] = 0x30;
+    rCode[16] = 0x30;
+    rCode[20] = 0x30;
+    */
+}
+
+void main( void )
+{
+    int l;
+    BYTE uName[60] = { 0x00 };
+    char uCode[100] = { 0x00 };
+    fprintf( stderr, ">> UltraEdit v9.0 keygen by arbiter[CCG].\n" );
+    fprintf( stderr, ">> namelength not great than 60 digits also not less than 6 digits!\n" );
+    fprintf( stderr, ">> Your Name :\t" );
+    gets( uName );
+    l = strlen( uName );
+    if( l > 60 || l < 6 )
+    {
+        fprintf( stderr, ">> Invalid user name!" );
+        getch();
+        exit( 0 );
+    }
+    GenRegCode( uCode, uName );
+    fprintf( stderr, ">> Your Code :\t%s", uCode );
+    getch();
+}
+```
+
+`4dd466d0e1e0cc123afbe504da2462ca`

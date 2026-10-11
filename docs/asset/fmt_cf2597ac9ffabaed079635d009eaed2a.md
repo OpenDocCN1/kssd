@@ -1,0 +1,223 @@
+
+# KeyboardTest 2.2
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6203.htm`](https://www.pediy.com/kssd/pediy06/pediy6203.htm)
+
+破解手记 之 `KeyboardTest`
+
+作者： Calf
+
+E-mail： `ox_calf@eyou.com`
+
+时间： 2003 年 08 月 12 日
+
+软件名称： `PassMark KeyboardTest`
+
+软件版本： `v2.2`
+
+运行平台： `Win9x/Me/NT/2000/XP`
+
+软件简介： `KeyboardTest` 是一个专门用来检测键盘的软件，它可以支持对 107 键盘的测试。
+
+未注册版限制： 软件只能使用 30 天
+
+下载地址： [`download.eyou.com.cn/scgi/detail.pl?`](http://download.eyou.com.cn/scgi/detail.pl?) `s_id=7988`
+
+破解人： Calf
+
+破解工具： `TRW2000` `v1.23`、`W32Dasm` 黄金修正版、`MASM32` `v7.0`
+
+破解时间： 2003 年 08 月 12 日
+
+难易程度： Easy（ ） Medium（X） Hard（ ） Pro（ ）
+
+--------------------\<\<\<\<==Begin==\>\>\>\>\--------------------
+
+这几日没什么事，正好手边有这么个软件，便拿来练练手。
+
+这个软件注册时要求输入用户名（以下均称为 `name`）和注册码（以下均称为 `key`），点击“Continue”按钮进行注册，注册失败将弹出对话框。若不输入 `name` 或 `key`，则不进行注册，继续以未注册版使用。
+
+首先用 `Fileinfo` 和 `Language2000` 看了看，还不错，没有加壳，用 `VC` 写的。然后用 `W32Dasm` 反汇编大概看看，便换用 `TRW2000` 进行动态跟踪。
+
+任意输入 `name` 和 `key`，按 `Crtl+N` 激活 `TRW2000`，设置断点 `bpx hmemcpy`，按 `F5` 返回程序，点击“Continue”，被 `TRW2000` 拦截，禁止断点后，用 `pmodule` 命令回到程序代码中：
+
+```
+:00405DB8 68C8000000            push 000000C8
+```
+
+//这里 `eax=nameLength`（表示 `name` 的长度），`[esi]=name`
+
+//注：“=”表示执行此句前的值，“->”表示执行此句后被赋予的值，下同
+
+//需要注意的是，如果输入的 `name` 长度超过 99（`63h`）位，则这里仅保留了前 99 位，这一点在编写注册机时应注意
+
+```
+:00405DBD 55                    push ebp
+:00405DBE 680A040000            push 0000040A
+:00405DC3 53                    push ebx
+:00405DC4 FFD7                  call edi
+:00405DC6 56                    push esi
+:00405DC7 E897110000            call 00406F63
+:00405DCC 55                    push ebp
+:00405DCD E891110000            call 00406F63
+:00405DD2 83C408                add esp, 00000008
+:00405DD5 8D4C2414              lea ecx, dword ptr [esp+14]
+:00405DD9 51                    push ecx
+...
+//为节省篇幅，省去若干不重要的代码
+:00405E62 8BFE                  mov edi, esi    //[esi]=name
+:00405E64 83C9FF                or ecx, FFFFFFFF
+:00405E67 33C0                  xor eax, eax
+:00405E69 83C408                add esp, 00000008
+:00405E6C F2                    repnz
+:00405E6D AE                    scasb
+:00405E6E F7D1                  not ecx
+:00405E70 49                    dec ecx    //ecx->nameLength
+:00405E71 C644241301            mov [esp+13], 01
+:00405E76 83F901                cmp ecx, 00000001
+:00405E79 761D                  jbe 00405E98    //若 name 的长度不比 1 大，则跳过
+//后面可知，跳过的这段正是验证注册码，故长度小于 2 的 name 是不能注册的，这一点在编写注册机时应注意
+:00405E7B 8BFD                  mov edi, ebp    //[ebp]=key
+:00405E7D 83C9FF                or ecx, FFFFFFFF
+:00405E80 F2                    repnz
+:00405E81 AE                    scasb
+:00405E82 F7D1                  not ecx
+:00405E84 49                    dec ecx    //ecx->keyLength
+:00405E85 83F905                cmp ecx, 00000005
+:00405E88 760E                  jbe 00405E98    //若 key 的长度不比 5 大，则跳过
+:00405E8A 55                    push ebp    //将 key 入栈
+:00405E8B 56                    push esi    //将 name 入栈
+:00405E8C E8AFFAFFFF            call 00405940
+//这一句，若用 F10 则直接跳出注册失败的对话框，显然，验证注册码就在这个 call 里面，
+:00405E91 83C408                add esp, 00000008
+:00405E94 88442413              mov byte ptr [esp+13], al
+```
+
+Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+`:00405E79(C), :00405E88(C)`
+
+```
+:00405E98 56                    push esi
+:00405E99 E8C5100000            call 00406F63
+...
+```
+
+下面来跟踪 `00405E8C` 所调用的子程序：
+
+//这个子程序虽然有点长，但算法不难，只要稍微分析就能明白
+
+Referenced by a CALL at Address:
+`:00405E8C`
+
+```
+:00405940 51                    push ecx    //[ebp]=key，[esi]=name，并已先后入栈
+:00405941 8B442408              mov eax, dword ptr [esp+08]    //[eax]->name
+:00405945 53                    push ebx
+:00405946 55                    push ebp
+:00405947 56                    push esi
+:00405948 57                    push edi
+:00405949 50                    push eax
+:0040594A C744241401000000      mov [esp+14], 00000001
+//记住这里，这可能就是注册成败的判据，当然，随着压栈和出栈过程，它与栈顶的距离可能会有所变化
+:00405952 E8BC140000            call 00406E13
+//这个子程序可以跟进去看看，很短，功能是将 name 中的大写字母转换为小写，这一点在编写注册机时应注意
+:00405957 8B6C2420              mov ebp, dword ptr [esp+20]    //[ebp]->key
+:0040595B 83C9FF                or ecx, FFFFFFFF
+:0040595E 8BFD                  mov edi, ebp
+:00405960 33C0                  xor eax, eax
+:00405962 F2                    repnz
+:00405963 AE                    scasb
+:00405964 F7D1                  not ecx    //ecx->keyLength+1
+:00405966 51                    push ecx
+:00405967 6A01                  push 00000001
+:00405969 E866180000            call 004071D4
+:0040596E 6A10                  push 00000010
+:00405970 6A01                  push 00000001
+:00405972 8BF0                  mov esi, eax
+:00405974 E85B180000            call 004071D4
+:00405979 8BCE                  mov ecx, esi
+:0040597B 83C414                add esp, 00000014
+:0040597E 8BD8                  mov ebx, eax
+:00405980 8BC5                  mov eax, ebp
+:00405982 2BCD                  sub ecx, ebp
+```
+
+Referenced by a (U)nconditional or (C)onditional Jump at Address:
+`:0040598C(C)`
+
+```
+:00405984 8A10                  mov dl, byte ptr [eax]
+:00405986 881401                mov byte ptr [ecx+eax], dl
+:00405989 40                    inc eax
+:0040598A 84D2                  test dl, dl
+:0040598C 75F6                  jne 00405984
+//前面这几句把 key 复制了一遍，看来程序要对 key 下手了
+========================================================
+:0040598E 8A06                  mov al, byte ptr [esi]    //[esi]=key
+:00405990 8BEE                  mov ebp, esi    //[ebp]->key
+:00405992 84C0                  test al, al
+:00405994 743C                  je 004059D2
+```
+
+Referenced by a (U)nconditional or (C)onditional Jump at Address:
+`:004059D0(C)`
+
+```
+:00405996 3C3F                  cmp al, 3F
+:00405998 7505                  jne 0040599F
+:0040599A C6066C                mov byte ptr [esi], 6C    //用'l'替换'?'
+:0040599D EB2B                  jmp 004059CA
+```
+
+Referenced by a (U)nconditional or (C)onditional Jump at Address:
+`:00405998(C)`
+
+```
+:0040599F 3C23                  cmp al, 23
+:004059A1 7505                  jne 004059A8
+:004059A3 C60669                mov byte ptr [esi], 69    //用'i'替换'#'
+:004059A6 EB22                  jmp 004059CA
+```
+
+Referenced by a (U)nconditional or (C)onditional Jump at Address:
+`:004059A1(C)`
+
+```
+:004059A8 3C2D                  cmp al, 2D
+:004059AA 7505                  jne 004059B1
+:004059AC C6066F                mov byte ptr [esi], 6F    //用'\_'替换'o'
+:004059AF EB19                  jmp 004059CA
+```
+
+Referenced by a (U)nconditional or (C)onditional Jump at Address:
+`:004059AA(C)`
+
+```
+:004059B1 3C2B                  cmp al, 2B
+:004059B3 7505                  jne 004059BA
+:004059B5 C60630                mov byte ptr [esi], 30    //用'0'替换'+'
+:004059B8 EB10                  jmp 004059CA
+```
+
+Referenced by a (U)nconditional or (C)onditional Jump at Address:
+`:004059B3(C)`
+
+```
+:004059BA 3C3D                  cmp al, 3D
+:004059BC 7505                  jne 004059C3
+:004059BE C60640                mov byte ptr [esi], 40    //用'@'替换'='
+:004059C1 EB07                  jmp 004059CA
+```
+
+Referenced by a (U)nconditional or (C)onditional Jump at Address:
+`:004059BC(C)`
+
+```
+:004059C3 3C25                  cmp al, 25
+:004059C5 7503                  jne 004059CA
+:004059C7 C60631                mov byte ptr [esi], 31    //用'1'替换'%'
+```
+
+Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+`:0040599D(U), :004059A6(U), :004059AF(U), :004059B8(U), :004059C1(U)`
+`:004059C5(C)`

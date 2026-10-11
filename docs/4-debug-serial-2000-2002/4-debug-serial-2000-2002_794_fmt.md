@@ -1,0 +1,283 @@
+
+# eXeScope6.10
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue453.htm`](https://www.pediy.com/kssd/pediy04/kanxue453.htm)
+
+`eXeScope6.10PJ` 适合于初学者。
+
+`eXeScope6.10` 是一个能够直接编辑可执行文件的资源编辑器。它能够分析并改写 `EXE`、`DLL`、`OCX` 等文件的资源。而且这是不需要源代码的。几乎支持所有的资源格式，比如菜单、对话框、字符串、消息表、图标、光标、位图、快捷键列表、版本信息、`Delphi` 窗体，`WAV` 文件、`MIDI`、`AVI`、`GIF`、`HTML`、`JPEG`、工具栏。而且，`eXeScope` 能够分析并显示 导入/导出 函数和在 `DLL`、`OCX` 中的类型库等等。
+
+使用的工具是 `TRW2000`（本软件用 `WIN32DASM` 也可 `pj`，下文的代码就是用它分析的。）
+
+1、运行 `TRW2000` 装入 `eXeScope6.10`，输入注册码。
+
+2、`CTRL+N` 回到 `TRW2000`，设中断 `BPX HMEMCPY` 后按 `CTRL+N` 后按确定，拦截成功。
+
+3、按 `F12` 键 7 次，然后慢按 `F10` 键，很快看到如下代码（^\_^请下面的解释）：
+
+```
+:004A60FA 8D55FC             lea edx, dword ptr [ebp-04]
+:004A60FD 8B83D0020000       mov eax, dword ptr [ebx+000002D0]
+:004A6103 E8F4DAF8FF         call 00433BFC
+:004A6108 8B55FC             mov edx, dword ptr [ebp-04]
+:004A610B A1C4294B00         mov eax, dword ptr [004B29C4]
+:004A6110 E8F7DAF5FF         call 00403C0C
+:004A6115 8D55F8             lea edx, dword ptr [ebp-08]
+:004A6118 8B83D4020000       mov eax, dword ptr [ebx+000002D4]
+:004A611E E8D9DAF8FF         call 00433BFC
+:004A6123 8B55F8             mov edx, dword ptr [ebp-08]
+:004A6126 A140294B00         mov eax, dword ptr [004B2940]
+:004A612B E8DCDAF5FF         call 00403C0C
+:004A6130 8B1540294B00       mov edx, dword ptr [004B2940]
+:004A6136 8B12               mov edx, dword ptr [edx] 输入的密码
+:004A6138 A17C274B00         mov eax, dword ptr [004B277C]
+:004A613D 8B00               mov eax, dword ptr [eax]
+:004A613F E8D8800000         call 004AE21C  ********关键处，按 F8 进入。见①处
+:004A6144 84C0               test al, al
+:004A6146 0F848D000000       je 004A61D9 失败则跳。见⑤处。
+:004A614C A1C4294B00         mov eax, dword ptr [004B29C4]
+:004A6151 8B00               mov eax, dword ptr [eax]
+:004A6153 E8E0DCF5FF         call 00403E38
+:004A6158 85C0               test eax, eax
+:004A615A 7E7D               jle 004A61D9
+:004A615C 8D55F0             lea edx, dword ptr [ebp-10]
+:004A615F A1D0294B00         mov eax, dword ptr [004B29D0]
+:004A6164 8B00               mov eax, dword ptr [eax]
+:004A6166 E8A5BEFAFF         call 00452010
+:004A616B 8B45F0             mov eax, dword ptr [ebp-10]
+:004A616E 8D4DF4             lea ecx, dword ptr [ebp-0C]
+```
+
+①\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+下面的代码是判断你输入的注册码的的字符数以及前五位是否等于 `A1910` 或 `A1423`
+
+```
+:004AE21C 55                 push ebp
+:004AE21D 8BEC               mov ebp, esp
+:004AE21F 51                 push ecx
+:004AE220 53                 push ebx
+:004AE221 8955FC             mov dword ptr [ebp-04], edx
+:004AE224 8B45FC             mov eax, dword ptr [ebp-04]输入的密码
+:004AE227 E8C05DF5FF         call 00403FEC
+:004AE22C 33C0               xor eax, eax
+:004AE22E 55                 push ebp
+:004AE22F 68BEE24A00         push 004AE2BE
+:004AE234 64FF30             push dword ptr fs:[eax]
+:004AE237 648920             mov dword ptr fs:[eax], esp
+:004AE23A 33DB               xor ebx, ebx
+:004AE23C 8B45FC             mov eax, dword ptr [ebp-04]输入的密码
+:004AE23F E8F45BF5FF         call 00403E38　计算密码的长度。
+:004AE244 83F80A             cmp eax, 0000000A
+:004AE247 755F               jne 004AE2A8　如果不是 10 个字节就跳。
+:004AE249 8B55FC             mov edx, dword ptr [ebp-04]输入的密码
+
+* Possible StringData Ref from Code Obj ->"A1910"
+                          |
+:004AE24C B8D4E24A00         mov eax, 004AE2D4 真正密码的前五位 A1910
+:004AE251 E8CE5EF5FF         call 00404124 按 F8 进入见②处
+:004AE256 48                 dec eax EAX 是否为零。
+:004AE257 7410               je 004AE269 成功则跳，见③处。不相同则比较输入的字符串的前五位是否为 A1423。见下面代码。
+:004AE259 8B55FC             mov edx, dword ptr [ebp-04]
+
+* Possible StringData Ref from Code Obj ->"A1423"它也是真正密码的前五位
+                          |
+:004AE25C B8E4E24A00         mov eax, 004AE2E4
+:004AE261 E8BE5EF5FF         call 00404124 按 F8 进入，见②处
+:004AE266 48                 dec eax 是否为零。
+:004AE267 753F               jne 004AE2A8 失败则跳。
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004AE257(C)
+```
+
+③\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+下面的代码是计算你输入的注册码的后两位之和除以 `0A` 的余数是否为 `4`。
+
+```
+:004AE269 B802000000         mov eax, 00000002 设 EAX 为 2
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004AE286(C)
+|
+:004AE26E 8B55FC             mov edx, dword ptr [ebp-04]须 EDX 是你输入的注册码。
+:004AE271 8A5402FF           mov dl, byte ptr [edx+eax-01]把输入的注册码的第二位赋值给 dl。下面的代码是判断输入的密码是否为数字，不是则失败。
+:004AE275 80FA30             cmp dl, 30　比较是否为数字
+:004AE278 722E               jb 004AE2A8 不是则跳
+:004AE27A 8B4DFC             mov ecx, dword ptr [ebp-04]
+:004AE27D 80FA39             cmp dl, 39
+:004AE280 7726               ja 004AE2A8
+:004AE282 40                 inc eax　EAX 加 1
+:004AE283 83F80B             cmp eax, 0000000B 是否循环完毕。
+:004AE286 75E6               jne 004AE26E 没有循环完则继续。
+:004AE288 8B45FC             mov eax, dword ptr [ebp-04]　EAX 为你输入的注册码。
+:004AE28B 0FB64008           movzx eax, byte ptr [eax+08]把输入的注册码的第 9 位赋值给 EAX。
+:004AE28F 8B55FC             mov edx, dword ptr [ebp-04]
+:004AE292 0FB65209           movzx edx, byte ptr [edx+09]
+
+把输入的注册码的最后一位赋值给 EDX。
+
+:004AE296 03C2               add eax, edx 二者相加
+:004AE298 B90A000000         mov ecx, 0000000A******注意此数。
+:004AE29D 33D2               xor edx, edx 清 0，准备下一步运算
+:004AE29F F7F1               div ecx 除以 0A
+:004AE2A1 83FA04             cmp edx, 00000004 比较余数是否为 4
+:004AE2A4 7502               jne 004AE2A8 不为 4 则跳
+:004AE2A6 B301               mov bl, 01 设成功标志位为 1
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:004AE247(C), :004AE267(C), :004AE278(C), :004AE280(C), :004AE2A4(C)
+|
+:004AE2A8 33C0               xor eax, eax
+:004AE2AA 5A                 pop edx
+:004AE2AB 59                 pop ecx
+:004AE2AC 59                 pop ecx
+:004AE2AD 648910             mov dword ptr fs:[eax], edx
+:004AE2B0 68C5E24A00         push 004AE2C5
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004AE2C3(U)
+|
+:004AE2B5 8D45FC             lea eax, dword ptr [ebp-04]
+:004AE2B8 E8FB58F5FF         call 00403BB8
+:004AE2BD C3                 ret
+```
+
+②\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+```
+:00404124 85C0               test eax, eax 测试是否为空
+:00404126 7440               je 00404168
+:00404128 85D2               test edx, edx
+:0040412A 7431               je 0040415D
+:0040412C 53                 push ebx
+:0040412D 56                 push esi
+:0040412E 57                 push edi
+:0040412F 89C6               mov esi, eax　A1910 或 A1423
+:00404131 89D7               mov edi, edx 输入的密码。
+:00404133 8B4FFC             mov ecx, dword ptr [edi-04]字符数 0A
+:00404136 57                 push edi
+:00404137 8B56FC             mov edx, dword ptr [esi-04]此处为 05
+:0040413A 4A                 dec edx 此处为 04
+:0040413B 781B               js 00404158
+```
+
+
+
+### 汇编代码段 1
+
+```
+:0040413D 8A06                 mov al, byte ptr [esi] 此处为第一个字符。
+:0040413F 46                   inc esi
+:00404140 29D1                 sub ecx, edx 循环次数。
+:00404142 7E14                 jle 00404158
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00404156(U)
+|
+
+:00404144 F2                   repnz
+:00404145 AE                   scasb
+:00404146 7510                 jne 00404158 不同则跳
+:00404148 89CB                 mov ebx, ecx
+:0040414A 56                   push esi
+:0040414B 57                   push edi
+:0040414C 89D1                 mov ecx, edx
+:0040414E F3                   repz
+:0040414F A6                   cmpsb 两个字符串的 2、3、4、5 位相比较。
+:00404150 5F                   pop edi
+:00404151 5E                   pop esi
+:00404152 740C                 je 00404160 相同则跳到④处
+:00404154 89D9                 mov ecx, ebx
+:00404156 EBEC                 jmp 00404144
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:0040413B(C), :00404142(C), :00404146(C)
+|
+
+:00404158 5A                   pop edx
+:00404159 31C0                 xor eax, eax
+:0040415B EB08                 jmp 00404165
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0040412A(C)
+|
+
+:0040415D 31C0                 xor eax, eax
+:0040415F C3                   ret
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00404152(C)
+|
+
+④********************************************************************
+
+:00404160 5A                   pop edx
+:00404161 89F8                 mov eax, edi
+:00404163 29D0                 sub eax, edx 设成功标志 EAX 为 1
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0040415B(U)
+|
+
+:00404165 5F                   pop edi
+:00404166 5E                   pop esi
+:00404167 5B                   pop ebx
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00404126(C)
+|
+
+:00404168 C3                   ret
+```
+
+### 汇编代码段 2：失败路径
+
+```
+⑤********************************************************************失败
+
+:004A61D9 6A00                 push 00000000
+:004A61DB 8D55EC               lea edx, dword ptr [ebp-14]
+
+* Possible StringData Ref from Code Obj -> "无效 ID 或名称"
+                                |
+
+:004A61DE B870624A00           mov eax, 004A6270
+:004A61E3 E808900000           call 004AF1F0
+:004A61E8 8B45EC               mov eax, dword ptr [ebp-14]
+:004A61EB 668B0DA0624A00       mov cx, word ptr [004A62A0]
+:004A61F2 B201                 mov dl, 01
+:004A61F4 E80B25FBFF           call 00458704
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:004A60F5(U), :004A61D7(U)
+|
+
+:004A61F9 33C0                 xor eax, eax
+:004A61FB 5A                   pop edx
+:004A61FC 59                   pop ecx
+:004A61FD 59                   pop ecx
+:004A61FE 648910               mov dword ptr fs:[eax], edx
+:004A6201 6828624A00           push 004A6228
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004A6226(U)
+|
+
+:004A6206 8D45EC               lea eax, dword ptr [ebp-14]
+:004A6209 BA03000000           mov edx, 00000003
+:004A620E E8C9D9F5FF           call 00403BDC
+:004A6213 8D45F8               lea eax, dword ptr [ebp-08]
+:004A6216 BA02000000           mov edx, 00000002
+:004A621B E8BCD9F5FF           call 00403BDC
+:004A6220 C3                   ret
+```
+
+### 注册码分析
+
+4、从上面的分析来看。此软件的注册码有两种，一种是以 `A1910` 为开头，另一种是以 `A1423` 为开头。而第 6、7、8 位可以为任意数字，最后两位数字之和的个位数必须为 8。怎么组和你自己算算。如 0、8；1、7；2、6；3、5;4、4；9、9。
+
+`NAME` 可以为任意。
+
+`4dd466d0e1e0cc123afbe504da2462ca`

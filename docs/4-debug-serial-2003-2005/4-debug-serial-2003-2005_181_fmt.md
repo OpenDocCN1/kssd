@@ -1,0 +1,705 @@
+
+# LanSee 1.37
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6208.htm`](https://www.pediy.com/kssd/pediy06/pediy6208.htm)
+
+- 软件名称：LanSee
+- 中文名称：局域网查看工具
+- 版本：1.37
+- 软件介绍：该软件是一款非常方便实用的对局域网各种信息进行查看的工具。采用多线程技术，搜索速度很快。未注册版本无时间限制，有部分功能限制。请支持国产共享软件！！
+- 破解工具：`W32Dasm`、`OllyDbg`
+
+## 破解过程
+
+未加壳，用 `W32Dasm` 反汇编，查找字串"您输入的注册码无效，请重新输入！"
+
+```
+:00490862 8BC0                 mov eax, eax
+:00490864 55                   push ebp
+:00490865 8BEC                 mov ebp, esp
+:00490867 33C9                 xor ecx, ecx
+:00490869 51                   push ecx
+:0049086A 51                   push ecx
+:0049086B 51                   push ecx
+:0049086C 51                   push ecx
+:0049086D 53                   push ebx
+:0049086E 56                   push esi
+:0049086F 8BD8                 mov ebx, eax
+:00490871 33C0                 xor eax, eax
+:00490873 55                   push ebp
+:00490874 685E094900           push 0049095E
+:00490879 64FF30               push dword ptr fs:[eax]
+:0049087C 648920               mov dword ptr fs:[eax], esp
+:0049087F 8D55FC               lea edx, dword ptr [ebp-04]
+:00490882 8B831C030000         mov eax, dword ptr [ebx+0000031C]
+:00490888 E82718FBFF           call 004420B4
+:0049088D 8B45FC               mov eax, dword ptr [ebp-04]             假注册码
+:00490890 50                   push eax
+:00490891 8D55F4               lea edx, dword ptr [ebp-0C]
+:00490894 8B8300030000         mov eax, dword ptr [ebx+00000300]
+:0049089A E81518FBFF           call 004420B4
+:0049089F 8B55F4               mov edx, dword ptr [ebp-0C]             机器码
+:004908A2 8D4DF8               lea ecx, dword ptr [ebp-08]
+:004908A5 8BC3                 mov eax, ebx
+:004908A7 E8B8FBFFFF           call 00490464                           注册算法、进入
+:004908AC 8B55F8               mov edx, dword ptr [ebp-08]             真注册码
+:004908AF 58                   pop eax                                   假注册码
+:004908B0 E82F40F7FF           call 004048E4                             比较
+:004908B5 7572                 jne 00490929                            出错跳转
+:004908B7 B201                 mov dl, 01
+:004908B9 A184CC4600           mov eax, dword ptr [0046CC84]
+:004908BE E8C1C4FDFF           call 0046CD84
+:004908C3 8BF0                 mov esi, eax
+:004908C5 BA02000080           mov edx, 80000002
+:004908CA 8BC6                 mov eax, esi
+:004908CC E853C5FDFF           call 0046CE24
+:004908D1 B101                 mov cl, 01
+
+* Possible StringData Ref from Code Obj ->"SOFTWARELanSee"
+                       |
+:004908D3 BA74094900           mov edx, 00490974
+:004908D8 8BC6                 mov eax, esi
+:004908DA E8A9C5FDFF           call 0046CE88
+:004908DF 84C0                 test al, al
+:004908E1 741D                 je 00490900
+:004908E3 8D55F0               lea edx, dword ptr [ebp-10]
+:004908E6 8B831C030000         mov eax, dword ptr [ebx+0000031C]
+:004908EC E8C317FBFF           call 004420B4
+:004908F1 8B4DF0               mov ecx, dword ptr [ebp-10]
+
+* Possible StringData Ref from Code Obj ->"Serial"                     写入注册表
+                       |
+:004908F4 BA8C094900           mov edx, 0049098C
+:004908F9 8BC6                 mov eax, esi
+:004908FB E824C7FDFF           call 0046D024
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004908E1(C)
+|
+:00490900 8BC6                 mov eax, esi
+:00490902 E8EDC4FDFF           call 0046CDF4
+:00490907 8BC6                 mov eax, esi
+:00490909 E8EA2DF7FF           call 004036F8
+:0049090E A1D0A24900           mov eax, dword ptr [0049A2D0]
+:00490913 C60001               mov byte ptr [eax], 01
+
+* Possible StringData Ref from Code Obj ->"谢谢您的注册！"
+                       |
+:00490916 B89C094900           mov eax, 0049099C
+:0049091B E810ACFAFF           call 0043B530
+:00490920 8BC3                 mov eax, ebx
+:00490922 E83DE1FCFF           call 0045EA64
+:00490927 EB0A                 jmp 00490933
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004908B5(C)
+|
+
+* Possible StringData Ref from Code Obj ->"您输入的注册码无效，请重新输入！"
+                       |
+:00490929 B8B4094900           mov eax, 004909B4
+:0049092E E8FDABFAFF           call 0043B530
+```
+
+## 注册算法
+
+```
+00490464  /$ 55               PUSH EBP
+00490465  |. 8BEC             MOV EBP,ESP
+00490467  |. 83C4 C4          ADD ESP,-3C
+0049046A  |. 53               PUSH EBX
+0049046B  |. 56               PUSH ESI
+0049046C  |. 33DB             XOR EBX,EBX
+0049046E  |. 895D C4          MOV DWORD PTR SS:[EBP-3C],EBX
+00490471  |. 895D C8          MOV DWORD PTR SS:[EBP-38],EBX
+00490474  |. 895D CC          MOV DWORD PTR SS:[EBP-34],EBX
+00490477  |. 895D D0          MOV DWORD PTR SS:[EBP-30],EBX
+0049047A  |. 894D F8          MOV DWORD PTR SS:[EBP-8],ECX
+0049047D  |. 8955 FC          MOV DWORD PTR SS:[EBP-4],EDX     |EDX=ASCII  0A0FC50BA424E1E7
+00490480  |. 8B45 FC          MOV EAX,DWORD PTR SS:[EBP-4]     |EAX=ASCII  0A0FC50BA424E1E7
+00490483  |. E8 0045F7FF      CALL 局域网查.00404988
+00490488  |. 8D75 E4          LEA ESI,DWORD PTR SS:[EBP-1C]
+0049048B  |. 33C0             XOR EAX,EAX
+0049048D  |. 55               PUSH EBP
+0049048E  |. 68 F4074900      PUSH 局域网查.004907F4
+00490493  |. 64:FF30          PUSH DWORD PTR FS:[EAX]
+00490496  |. 64:8920          MOV DWORD PTR FS:[EAX],ESP
+00490499  |. 33DB             XOR EBX,EBX
+0049049B  |. 8D45 FC          LEA EAX,DWORD PTR SS:[EBP-4]
+0049049E  |. B9 01000000      MOV ECX,1                       |
+004904A3  |. BA 02000000      MOV EDX,2                       |
+004904A8  |. E8 8B45F7FF      CALL 局域网查.00404A38           |用来去除字符串中第 2(EDX 值)位字符 0A0FC50BA424E1E7→00FC50BA424E1E7
+004904AD  |. 8D45 FC          LEA EAX,DWORD PTR SS:[EBP-4]    |EAX＝ASCII 00FC50BA424E1E7
+004904B0  |. B9 01000000      MOV ECX,1
+004904B5  |. BA 06000000      MOV EDX,6
+004904BA  |. E8 7945F7FF      CALL 局域网查.00404A38           |用来去除字符串中第 6(EDX 值)位字符 00FC50BA424E1E7→00FC5BA424E1E7
+004904BF  |. 8D45 FC          LEA EAX,DWORD PTR SS:[EBP-4]    |EAX＝ASCII 00FC5BA424E1E7
+004904C2  |. B9 01000000      MOV ECX,1
+004904C7  |. BA 07000000      MOV EDX,7
+004904CC  |. E8 6745F7FF      CALL 局域网查.00404A38           |用来去除字符串中第 7(EDX 值)位字符 00FC5BA424E1E7→00FC5B424E1E7
+004904D1  |. 8D45 FC          LEA EAX,DWORD PTR SS:[EBP-4]    |EAX＝ASCII 00FC5B424E1E7
+004904D4  |. B9 01000000      MOV ECX,1
+004904D9  |. BA 0D000000      MOV EDX,D
+004904DE  |. E8 5545F7FF      CALL 局域网查.00404A38           |用来去除字符串中第 7(EDX 值)位字符 00FC5B424E1E7→00FC5B424E1E
+004904E3  |. 8B45 FC          MOV EAX,DWORD PTR SS:[EBP-4]    |EAX＝ASCII 00FC5B424E1E
+
+0049049E～004904E3 代码用来去除字符串中第 2、7、9、16 位字符即 0A0FC50BA424E1E7→00FC5B424E1E
+
+004904E6  |. E8 B542F7FF      CALL 局域网查.004047A0           |EAX=字符串长度 C
+004904EB  |. 85C0             TEST EAX,EAX
+004904ED  |. 76 1C            JBE SHORT 局域网查.0049050B
+004904EF  |. BA 01000000      MOV EDX,1                        |EDX=1
+004904F4  |> 8B4D FC          MOV ECX,DWORD PTR SS:[EBP-4]     |ECX＝ASCII 00FC5B424E1E
+```
+
+
+
+```asm
+004904F7  |.  0FB64C11 FF    MOVZX ECX,BYTE PTR DS:[ECX+EDX-1]       |ECX=取字符串第 0 位(EDX-1)'c'的 ASCII 值 30   
+
+004904FC  |.  03D9           ADD EBX,ECX                              |EBX=EBX+ECX=0+30=30   
+
+004904FE  |.  8BCB           MOV ECX,EBX                              |ECX=EBX=30   
+
+00490500  |.  03C9           ADD ECX,ECX                              |ECX=ECX+ECX=60   
+
+00490502  |.  8D0C89         LEA ECX,DWORD PTR DS:[ECX+ECX*4]         |ECX=ECX*5=1E0   
+
+00490505  |.  8BD9           MOV EBX,ECX                              |EBX=ECX=1E0   
+
+00490507  |.  42             INC EDX                                  |EDX=EDX+1=2   
+
+00490508  |.  48             DEC EAX                                  |EAX=EAX-1=B   
+
+00490509  |.⁷⁵ E9            JNZ SHORT 局域网查.004904F4               |循环
+```
+
+`004904E6`～`00490509` 代码计算 `((((((((((X1*A)+X2)*A+X3)*A+X4)*A+X5)*A+X6)*A+X7)*A+X8)*A+X9)*A+X10)*A+X11)*A+X12)*A`   
+
+`Xn` 代表对应各位的 ASCII 值，计算结果取后 8 位   
+
+本例中 `30B970AEEADE`→`EBX`＝`70AEEADE`   
+
+```asm
+0049050B  |>  F7D3           NOT EBX                                  |EBX=NOT EBX=8F511521   
+
+0049050D  |.  81F3 80275082  XOR EBX,82502780                         |EBX=EBX XOR 82502780=0D0132A1   
+
+00490513  |.  8BC3           MOV EAX,EBX                              |EAX=EBX=0D0132A1   
+
+00490515  |.  25 000000FF    AND EAX,FF000000                         |EAX=EAX AND FF000000=0D000000   
+
+0049051A  |.  C1E8 15        SHR EAX,15                               |EAX=EAX SHR 15=00000068   
+
+0049051D  |.  8906           MOV DWORD PTR DS:[ESI],EAX               |入 ESI=00000068   
+
+0049051F  |.  8BC3           MOV EAX,EBX                              |EAX=EBX=0D0132A1   
+
+00490521  |.  25 0000FF00    AND EAX,FF0000                           |EAX=EAX AND FF0000=00010000   
+
+00490526  |.  C1E8 11        SHR EAX,11                               |EAX=EAX SHR 11=00000000   
+
+00490529  |.  8946 04        MOV DWORD PTR DS:[ESI+4],EAX             |入 ESI+4=00000000   
+
+0049052C  |.  8BC3           MOV EAX,EBX                              |EAX=EBX=0D0132A1   
+
+0049052E  |.  25 00FF0000    AND EAX,FF00                             |EAX=EAX AND FF00=00003200   
+
+00490533  |.  C1E8 07        SHR EAX,7                                |EAX=EAX SHR 7=00000064   
+
+00490536  |.  8946 08        MOV DWORD PTR DS:[ESI+8],EAX             |入 ESI+8=00000064   
+
+00490539  |.  8BC3           MOV EAX,EBX                              |EAX=EBX=0D0132A1   
+
+0049053B  |.  25 FF000000    AND EAX,FF                               |EAX=EAX AND FF=000000A1   
+
+00490540  |.  8946 0C        MOV DWORD PTR DS:[ESI+C],EAX             |入 ESI+C=000000A1
+```
+
+`ESI`=00000068、`ESI+4`=00000000、`ESI+8`=00000064、`ESI+C`=000000A1   
+
+```asm
+00490543  |.  8B16           MOV EDX,DWORD PTR DS:[ESI]               |EDX=ESI=00000068   
+
+00490545  |.  81E2 C0000000  AND EDX,C0                                |EDX=EDX AND CO=00000040   
+
+0049054B  |.  8B4E 04        MOV ECX,DWORD PTR DS:[ESI+4]             |ECX=ESI+4=00000000   
+
+0049054E  |.  81E1 C0000000  AND ECX,C0                                |ECX=ECX AND CO=00000000   
+
+00490554  |.  C1E9 02        SHR ECX,2                                 |ECX=ECX SHR 2=00000000   
+
+00490557  |.  03D1           ADD EDX,ECX                               |EDX=EDX+ECX=00000040   
+
+00490559  |.  8B4E 08        MOV ECX,DWORD PTR DS:[ESI+8]             |ECX=ESI+8=00000064   
+
+0049055C  |.  81E1 C0000000  AND ECX,C0                                |ECX=ECX AND CO=00000040   
+
+00490562  |.  C1E9 04        SHR ECX,4                                 |ECX=ECX SHR 4=00000004   
+
+00490565  |.  03D1           ADD EDX,ECX                               |EDX=EDX+ECX=00000044   
+
+00490567  |.  25 C0000000    AND EAX,C0                                |ECX=ECX AND CO=00000080   
+
+0049056C  |.  C1E8 05        SHR EAX,5                                 |EAX=EAX SHR 5=00000004   
+
+0049056F  |.  03D0           ADD EDX,EAX                               |EDX=EDX+EAX=00000048   
+
+00490571  |.  8955 D4        MOV DWORD PTR SS:[EBP-2C],EDX            |入 EBP-2C=00000048   
+
+00490574  |.  8B06           MOV EAX,DWORD PTR DS:[ESI]               |EAX=ESI=00000068   
+
+00490576  |.  83E0 30        AND EAX,30                                |EAX=EAX AND 30=00000020   
+
+00490579  |.  C1E0 02        SHL EAX,2                                 |EAX=EAX SHL 2=00000080   
+
+0049057C  |.  8B56 04        MOV EDX,DWORD PTR DS:[ESI+4]             |EDX=ESI+4=00000000   
+
+0049057F  |.  83E2 30        AND EDX,30                                |EDX=EDX AND 30=00000000   
+
+00490582  |.  03C2           ADD EAX,EDX                               |EAX=EAX+EDX=00000080   
+
+00490584  |.  8B56 08        MOV EDX,DWORD PTR DS:[ESI+8]             |EDX=ESI+8=00000064   
+
+00490587  |.  83E2 30        AND EDX,30                                |EDX=EDX AND 3O=00000020   
+
+0049058A  |.  C1EA 02        SHR EDX,2                                 |EDX=EDX SHR 2=00000008   
+
+0049058D  |.  03C2           ADD EAX,EDX                               |EAX=EAX+EDX=00000088   
+
+0049058F  |.  8B56 0C        MOV EDX,DWORD PTR DS:[ESI+C]             |EDX=ESI+C=000000A1   
+
+00490592  |.  83E2 30        AND EDX,30                                |EDX=EDX AND 3O=00000020   
+
+00490595  |.  C1EA 06        SHR EDX,6                                 |EDX=EDX SHR 6=00000000   
+
+00490598  |.  03C2           ADD EAX,EDX                               |EAX=EAX+EDX=00000088   
+
+0049059A  |.  8945 D8        MOV DWORD PTR SS:[EBP-28],EAX            |入 EBP-28=00000088   
+
+0049059D  |.  8B06           MOV EAX,DWORD PTR DS:[ESI]               |EAX=ESI=00000068   
+
+0049059F  |.  83E0 0C        AND EAX,C                                 |EAX=EAX AND C=00000008   
+
+004905A2  |.  C1E0 04        SHL EAX,4                                 |EAX=EAX SHL 4=00000080   
+
+004905A5  |.  8B56 04        MOV EDX,DWORD PTR DS:[ESI+4]             |EDX=ESI+4=00000000   
+
+004905A8  |.  83E2 0C        AND EDX,C                                 |EDX=EDX AND C=00000000   
+
+004905AB  |.  C1E2 02        SHL EDX,2                                 |EDX=EDX SHL 2=00000000   
+
+004905AE  |.  03C2           ADD EAX,EDX                               |EAX=EAX+EDX=00000080   
+
+004905B0  |.  8B56 08        MOV EDX,DWORD PTR DS:[ESI+8]             |EDX=ESI+8=00000064   
+
+004905B3  |.  83E2 0C        AND EDX,C                                 |EDX=EDX AND C=00000004   
+
+004905B6  |.  03C2           ADD EAX,EDX                               |EAX=EAX+EDX=00000084   
+
+004905B8  |.  8B56 0C        MOV EDX,DWORD PTR DS:[ESI+C]             |EDX=ESI+C=000000A1   
+
+004905BB  |.  83E2 0C        AND EDX,C                                 |EDX=EDX AND C=00000000   
+
+004905BE  |.  C1EA 03        SHR EDX,3                                 |EDX=EDX SHR 3=00000000   
+
+004905C1  |.  03C2           ADD EAX,EDX                               |EAX=EAX+EDX=00000084   
+
+004905C3  |.  8945 DC        MOV DWORD PTR SS:[EBP-24],EAX            |入 EBP-24=00000084   
+
+004905C6  |.  8B06           MOV EAX,DWORD PTR DS:[ESI]               |EAX=ESI=00000068   
+
+004905C8  |.  83E0 03        AND EAX,3                                 |EAX=EAX AND 3=00000000   
+
+004905CB  |.  C1E0 06        SHL EAX,6                                 |EAX=EAX SHL 6=00000000   
+
+004905CE  |.  8B56 04        MOV EDX,DWORD PTR DS:[ESI+4]             |EDX=ESI+4=00000000   
+
+004905D1  |.  83E2 03        AND EDX,3                                 |EDX=EDX AND 3=00000000   
+
+004905D4  |.  C1E2 04        SHL EDX,4                                 |EDX=EDX SHL 4=00000000   
+
+004905D7  |.  03C2           ADD EAX,EDX                               |EAX=EAX+EDX=00000000   
+
+004905D9  |.  8B56 08        MOV EDX,DWORD PTR DS:[ESI+8]             |EDX=ESI+8=00000064   
+
+004905DC  |.  83E2 03        AND EDX,3                                 |EDX=EDX AND 3=00000000
+```
+
+
+
+```
+004905DF   |. C1E2 02         SHL EDX,2                            |EDX=EDX SHL 2=00000000
+
+004905E2   |. 03C2           ADD EAX,EDX                            |EAX=EAX+EDX=00000000
+
+004905E4   |. 8B56 0C        MOV EDX,DWORD PTR DS:[ESI+C]           |EDX=ESI+C=000000A1
+
+004905E7   |. 83E2 03        AND EDX,3                              |EDX=EDX AND 3=00000001
+
+004905EA   |. 03C2           ADD EAX,EDX                            |EAX=EAX+EDX=00000001
+
+004905EC   |. 8945 E0        MOV DWORD PTR SS:[EBP-20],EAX          |入 EBP-20=00000001
+
+EBP-2C=00000048、EBP-28=00000088、EBP-24=00000084、EBP-20=00000001
+
+004905EF   |. 8B5D D4        MOV EBX,DWORD PTR SS:[EBP-2C]          |EBX= EBP-2C=00000048
+
+004905F2   |. C1E3 18        SHL EBX,18                             |EBX=EBX SHL 18=48000000
+
+004905F5   |. 8B45 D8        MOV EAX,DWORD PTR SS:[EBP-28]          |EAX= EBP-28=00000088
+
+004905F8   |. C1E0 10        SHL EAX,10                             |EAX=EAX SHL 10=880000
+
+004905FB   |. 03D8           ADD EBX,EAX                            |EBX=EBX+EAX=48880000
+
+004905FD   |. 8B45 DC        MOV EAX,DWORD PTR SS:[EBP-24]          |EAX= EBP-24=00000084
+
+00490600   |. C1E0 08        SHL EAX,8                              |EAX=EAX SHL 8=00008400
+
+00490603   |. 03D8           ADD EBX,EAX                            |EBX=EBX+EAX=48888400
+
+00490605   |. 035D E0        ADD EBX,DWORD PTR SS:[EBP-20]          |EBX=EBX+ EBP-20=48888401
+
+00490608   |. 8BC3           MOV EAX,EBX                            |EAX=EBX=48888401
+
+0049060A   |. 25 000000FF    AND EAX,FF000000                       |EAX=EAX AND FF000000=48000000
+
+0049060F   |. C1E8 15        SHR EAX,15                             |EAX=EAX SHR 15=00000240
+
+00490612   |. 8906           MOV DWORD PTR DS:[ESI],EAX             |入 ESI=00000240
+
+00490614   |. 8BC3           MOV EAX,EBX                            |EAX=EBX=48888401
+
+00490616   |. 25 0000FF00    AND EAX,FF0000                         |EAX=EAX AND FF0000=00880000
+
+0049061B   |. C1E8 11        SHR EAX,11                             |EAX=EAX SHR 11=00000044
+
+0049061E   |. 8946 04        MOV DWORD PTR DS:[ESI+4],EAX          |入 ESI+4=00000044
+
+00490621   |. 8BC3           MOV EAX,EBX                            |EAX=EBX=48888401
+
+00490623   |. 25 00FF0000    AND EAX,FF00                           |EAX=EAX AND FF00=00008400
+
+00490628   |. C1E8 07        SHR EAX,7                              |EAX=EAX SHR 7=00000108
+
+0049062B   |. 8946 08        MOV DWORD PTR DS:[ESI+8],EAX          |入 ESI+8=00000108
+
+0049062E   |. 81E3 FF000000  AND EBX,FF                             |EBX=EBX AND FF=00000001
+
+00490634   |. 895E 0C        MOV DWORD PTR DS:[ESI+C],EBX          |入 ESI+C=00000001
+
+ESI=00000240、ESI+4=00000044、ESI+8=00000108、ESI+C=00000001
+
+00490637   |. 8B06           MOV EAX,DWORD PTR DS:[ESI]             |EAX=ESI=00000240
+
+00490639   |. 8BD0           MOV EDX,EAX                            |EDX=EAX=00000240
+
+0049063B   |. 81E2 F0000000  AND EDX,F0                             |EDX=EDX AND F0=00000040
+
+00490641   |. C1EA 04        SHR EDX,4                              |EDX=EDX SHR 4=00000004
+
+00490644   |. 83E0 0F        AND EAX,F                              |EAX=EAX AND F=00000000
+
+00490647   |. C1E0 03        SHL EAX,3                              |EAX=EAX SHL 3=00000000
+
+0049064A   |. 03D0           ADD EDX,EAX                            |EDX=EDX+EAX=00000004
+
+0049064C   |. 8916           MOV DWORD PTR DS:[ESI],EDX             |入 ESI=00000004
+
+0049064E   |. 8B46 04        MOV EAX,DWORD PTR DS:[ESI+4]           |EAX=ESI+4=00000044
+
+00490651   |. 8BD0           MOV EDX,EAX                            |EDX=EAX=00000044
+
+00490653   |. 81E2 F0000000  AND EDX,F0                             |EDX=EDX ANF F0=00000040
+
+00490659   |. C1EA 04        SHR EDX,4                              |EDX=EDX SHR 4=00000004
+
+0049065C   |. 83E0 0F        AND EAX,F                              |EAX=EAX AND F=00000004
+
+0049065F   |. C1E0 04        SHL EAX,4                              |EAX=EAX SHL 4=00000040
+
+00490662   |. 03D0           ADD EDX,EAX                            |EDX=EDX+EAX=00000044
+
+00490664   |. 8956 04        MOV DWORD PTR DS:[ESI+4],EDX          |入 ESI+4=0000044
+
+00490667   |. 8B46 08        MOV EAX,DWORD PTR DS:[ESI+8]           |EAX=ESI+8=00000108
+
+0049066A   |. 8BD0           MOV EDX,EAX                            |EDX=EAX=00000108
+
+0049066C   |. 81E2 F0000000  AND EDX,F0                             |EDX=EDX AND F0=00000000
+
+00490672   |. C1EA 04        SHR EDX,4                              |EDX=EDX SHR 4=00000000
+
+00490675   |. 83E0 0F        AND EAX,F                              |EAX=EAX ANF F=00000008
+
+00490678   |. C1E0 05        SHL EAX,5                              |EAX EAX SHL 5=00000100
+
+0049067B   |. 03D0           ADD EDX,EAX                            |EDX=EDX+EAX=00000100
+
+0049067D   |. 8956 08        MOV DWORD PTR DS:[ESI+8],EDX          |入 ESI+8=0000100
+
+00490680   |. 8B46 0C        MOV EAX,DWORD PTR DS:[ESI+C]           |EAX=ESI+C=00000001
+
+00490683   |. 8BD0           MOV EDX,EAX                            |EDX=EAX=00000001
+
+00490685   |. 81E2 F0000000  AND EDX,F0                             |EDX=EDX AND F0=00000000
+
+0049068B   |. C1EA 04        SHR EDX,4                              |EDX=EDX SHR 4=00000000
+
+0049068E   |. 83E0 0F        AND EAX,F                              |EAX=EAX AND F=00000001
+
+00490691   |. C1E0 04        SHL EAX,4                              |EAX=EAX SHL 4=00000010
+
+00490694   |. 03D0           ADD EDX,EAX                            |EDX=EDX+EAX=00000010
+
+00490696   |. 8956 0C        MOV DWORD PTR DS:[ESI+C],EDX          |入 ESI+C=0000010
+
+ESI=00000004、ESI+4=0000044、ESI+8=0000100、ESI+C=0000010
+
+00490699   |. 8B5E 04        MOV EBX,DWORD PTR DS:[ESI+4]          |EBX=ESI+4=0000044
+
+0049069C   |. C1E3 18        SHL EBX,18                             |EBX=EBX SHL 18=44000000
+
+0049069F   |. 8B06           MOV EAX,DWORD PTR DS:[ESI]             |EAX=ESI=00000004
+
+004906A1   |. C1E0 0F        SHL EAX,F                              |EAX=EAX SHL F=00020000
+
+004906A4   |. 03D8           ADD EBX,EAX                            |EBX=EBX+EAX=44020000
+
+004906A6   |. 8B46 0C        MOV EAX,DWORD PTR DS:[ESI+C]           |EAX=ESI+C=0000010
+
+004906A9   |. C1E0 08        SHL EAX,8                              |EAX=EAX SHL 8=00001000
+
+004906AC   |. 03D8           ADD EBX,EAX                            |EBX=EBX+EAX=44021000
+
+004906AE   |. 035E 08        ADD EBX,DWORD PTR DS:[ESI+8]           |EBX=EBX+ESI+8=44021100
+
+004906B1   |. 8BC3           MOV EAX,EBX                            |EAX=EBX=44021100
+
+004906B3   |. 33D2           XOR EDX,EDX
+
+004906B5   |. 52             PUSH EDX
+
+004906B6   |. 50             PUSH EAX
+
+004906B7   |. 8D45 FC        LEA EAX,DWORD PTR SS:[EBP-4]
+
+004906BA   |. E8 8984F7FF    CALL 局域网查.00408B48                 |转换成十进制 ASCII 字符串 44021100→1140986112
+
+004906BF   |. 8B45 FC        MOV EAX,DWORD PTR SS:[EBP-4]          |EAX=ASCII '1140986112'
+
+004906C2   |. 0FB600         MOVZX EAX,BYTE PTR DS:[EAX]           |EAX=31(首位'1'ASCII 值)
+
+004906C5   |. 8B55 FC        MOV EDX,DWORD PTR SS:[EBP-4]          |EDX=ASCII '1140986112'
+
+004906C8   |. 0FB652 02      MOVZX EDX,BYTE PTR DS:[EDX+2]         |EDX=34(首位+2 位'4'ASCII 值)
+```
+
+
+
+```
+004906CC  |. 03C2               ADD EAX,EDX                                    |EAX=EAX+EDX=65   
+
+004906CE  |. 8B55 FC            MOV EDX,DWORD PTR SS:[EBP-4]                  |EDX=ASCII '1140986112'   
+
+004906D1  |. 0FB652 05          MOVZX EDX,BYTE PTR DS:[EDX+5]                |EDX=38(首位+5 位'8'ASCII 值)   
+
+004906D5  |. 03C2               ADD EAX,EDX                                    |EAX=EAX+EDX=9D   
+
+004906D7  |. B9 05000000        MOV ECX,5                                      |ECX=5   
+
+004906DC  |. 99                 CDQ   
+
+004906DD  |. F7F9               IDIV ECX                                       |EAX=EAX/ECX=1F EDX=EAX MOD ECX=2   
+
+004906DF  |. 80C2 61            ADD DL,61                                      |DL=61+2=63   
+
+004906E2  |. 8855 F4            MOV BYTE PTR SS:[EBP-C],DL                    |EBP-C=63= 'c'   
+
+004906E5  |. 8B45 FC            MOV EAX,DWORD PTR SS:[EBP-4]                  |EAX=ASCII '1140986112'   
+
+004906E8  |. 0FB640 01          MOVZX EAX,BYTE PTR DS:[EAX+1]                |EAX=31(首位+1 位'1'ASCII 值)   
+
+004906EC  |. 8B55 FC            MOV EDX,DWORD PTR SS:[EBP-4]                  |EDX=ASCII '1140986112'   
+
+004906EF  |. 0FB652 03          MOVZX EDX,BYTE PTR DS:[EDX+3]                |EDX=30(首位+3 位'0'ASCII 值)   
+
+004906F3  |. 03C2               ADD EAX,EDX                                    |EAX=EAX+EDX=61   
+
+004906F5  |. 8B55 FC            MOV EDX,DWORD PTR SS:[EBP-4]                  |EDX=ASCII '1140986112'   
+
+004906F8  |. 0FB652 04          MOVZX EDX,BYTE PTR DS:[EDX+4]                |EDX=39(首位+4 位'9'ASCII 值)   
+
+004906FC  |. 03C2               ADD EAX,EDX                                    |EAX=EAX+EDX=9A   
+
+004906FE  |. B9 05000000        MOV ECX,5                                      |ECX=5   
+
+00490703  |. 99                 CDQ   
+
+00490704  |. F7F9               IDIV ECX                                       |EAX=EAX/ECX=1E EDX=EAX MOD ECX=4   
+
+00490706  |. 80C2 64            ADD DL,64                                      |DL=64+4=68   
+
+00490709  |. 8855 F5            MOV BYTE PTR SS:[EBP-B],DL                    |EBP-B=68= 'h'   
+
+0049070C  |. 8B45 FC            MOV EAX,DWORD PTR SS:[EBP-4]                  |EAX=ASCII '1140986112'   
+
+0049070F  |. 0FB640 04          MOVZX EAX,BYTE PTR DS:[EAX+4]                |EAX=39(首位+4 位'9'ASCII 值)   
+
+00490713  |. 8B55 FC            MOV EDX,DWORD PTR SS:[EBP-4]                  |EDX=ASCII '1140986112'   
+
+00490716  |. 0FB652 01          MOVZX EDX,BYTE PTR DS:[EDX+1]                |EDX=31(首位+1 位'1'ASCII 值)   
+
+0049071A  |. 03C2               ADD EAX,EDX                                    |EAX=EAX+EDX=6A   
+
+0049071C  |. 8B55 FC            MOV EDX,DWORD PTR SS:[EBP-4]                  |EDX=ASCII '1140986112'   
+
+0049071F  |. 0FB652 02          MOVZX EDX,BYTE PTR DS:[EDX+2]                |EDX=34(首位+2 位'4'ASCII 值)   
+
+00490723  |. 03C2               ADD EAX,EDX                                    |EAX=EAX+EDX=9E   
+
+00490725  |. B9 05000000        MOV ECX,5   
+
+0049072A  |. 99                 CDQ   
+
+0049072B  |. F7F9               IDIV ECX                                       |EDX=EAX MOD ECX=3   
+
+0049072D  |. 80C2 63            ADD DL,63                                      |DL=63+3=66   
+
+00490730  |. 8855 F6            MOV BYTE PTR SS:[EBP-A],DL                    |EBP-B=66= 'f'   
+
+00490733  |. 8B45 FC            MOV EAX,DWORD PTR SS:[EBP-4]                  |EAX=ASCII '1140986112'   
+
+00490736  |. 0FB640 05          MOVZX EAX,BYTE PTR DS:[EAX+5]                |EAX=38(首位+5 位'8'ASCII 值)   
+
+0049073A  |. 8B55 FC            MOV EDX,DWORD PTR SS:[EBP-4]                 
+
+0049073D  |. 0FB652 03          MOVZX EDX,BYTE PTR DS:[EDX+3]                |EDX=30(首位+3 位'0'ASCII 值)   
+
+00490741  |. 03C2               ADD EAX,EDX   
+
+00490743  |. 8B55 FC            MOV EDX,DWORD PTR SS:[EBP-4]                 
+
+00490746  |. 0FB652 01          MOVZX EDX,BYTE PTR DS:[EDX+1]                |EDX=31(首位+1 位'1'ASCII 值)   
+
+0049074A  |. 03C2               ADD EAX,EDX                                    |EAX=38+30+31=99   
+
+0049074C  |. B9 05000000        MOV ECX,5   
+
+00490751  |. 99                 CDQ   
+
+00490752  |. F7F9               IDIV ECX                                       |EDX=EAX MOD ECX=3   
+
+00490754  |. 80C2 63            ADD DL,63                                      |DL=63+3=66   
+
+00490757  |. 8855 F7            MOV BYTE PTR SS:[EBP-9],DL                   |EBP-9=66= 'f'   
+```
+
+`EBP-C`='c'、`EBP-B`='h'、`EBP-A`='f'、`EBP-9`='f'
+
+```
+0049075A  |. 8D45 D0            LEA EAX,DWORD PTR SS:[EBP-30]   
+
+0049075D  |. 8A55 F4            MOV DL,BYTE PTR SS:[EBP-C]   
+
+00490760  |. E8 633FF7FF        CALL 局域网查.004046C8  EB   
+
+00490765  |. 8B45 D0            MOV EAX,DWORD PTR SS:[EBP-30]   
+
+00490768  |. 8D55 FC            LEA EDX,DWORD PTR SS:[EBP-4]   
+
+0049076B  |. B9 02000000        MOV ECX,2   
+
+00490770  |. E8 0B43F7FF        CALL 局域网查.00404A80                       |将字符插入字符串指定位置，由 ECX 决定插入位置   
+
+00490775  |. 8D45 CC            LEA EAX,DWORD PTR SS:[EBP-34]   
+
+00490778  |. 8A55 F7            MOV DL,BYTE PTR SS:[EBP-9]   
+
+0049077B  |. E8 483FF7FF        CALL 局域网查.004046C8  EB   
+
+00490780  |. 8B45 CC            MOV EAX,DWORD PTR SS:[EBP-34]   
+
+00490783  |. 8D55 FC            LEA EDX,DWORD PTR SS:[EBP-4]   
+
+00490786  |. B9 04000000        MOV ECX,4   
+
+0049078B  |. E8 F042F7FF        CALL 局域网查.00404A80   
+
+00490790  |. 8D45 C8            LEA EAX,DWORD PTR SS:[EBP-38]   
+
+00490793  |. 8A55 F5            MOV DL,BYTE PTR SS:[EBP-B]   
+
+00490796  |. E8 2D3FF7FF        CALL 局域网查.004046C8  EB   
+
+0049079B  |. 8B45 C8            MOV EAX,DWORD PTR SS:[EBP-38]   
+
+0049079E  |. 8D55 FC            LEA EDX,DWORD PTR SS:[EBP-4]   
+
+004907A1  |. B9 06000000        MOV ECX,6   
+
+004907A6  |. E8 D542F7FF        CALL 局域网查.00404A80   
+
+004907AB  |. 8D45 C4            LEA EAX,DWORD PTR SS:[EBP-3C]   
+
+004907AE  |. 8A55 F6            MOV DL,BYTE PTR SS:[EBP-A]   
+
+004907B1  |. E8 123FF7FF        CALL 局域网查.004046C8  EB   
+
+004907B6  |. 8B45 C4            MOV EAX,DWORD PTR SS:[EBP-3C]   
+
+004907B9  |. 8D55 FC            LEA EDX,DWORD PTR SS:[EBP-4]   
+
+004907BC  |. B9 05000000        MOV ECX,5   
+
+004907C1  |. E8 BA42F7FF        CALL 局域网查.00404A80   
+```
+
+`0049075A`～`004907C1` 代码用来依次将 `EBP-C`、`EBP-B`、`EBP-A`、`EBP-9` 所表示的字符插入字符串中指定位置
+
+原字符串： 1 1 4 0 9 8 6 1 1 2
+
+新字符串： 1 YC 1 Y9 YA 4 YB 0 9 8 6 1 1 2
+
+`YC` 表示 `EBP-C`、`YB` 表示 `EBP-B`、`YA` 表示 `EBP-A`、`Y9` 表示 `EBP-9`
+
+```
+004907C6  |. 8B55 F8            MOV EDX,DWORD PTR SS:[EBP-8]   
+
+004907C9  |. 8B45 FC            MOV EAX,DWORD PTR SS:[EBP-4]               |EAX=ASCII '1c1ff4h0986112'   
+
+004907CC  |. E8 DB7EF7FF        CALL 局域网查.004086AC  :[                |转换成大写字母 '1c1ff4h0986112'→ '1C1FF4H0986112'真注册码   
+
+004907D1  |. 33C0               XOR EAX,EAX   
+
+004907D3  |. 5A                 POP EDX   
+
+004907D4  |. 59                 POP ECX   
+
+004907D5  |. 59                 POP ECX   
+
+004907D6  |. 64:8910            MOV DWORD PTR FS:[EAX],EDX   
+
+004907D9  |. 68 FB074900        PUSH 局域网查.004907FB  X]   
+
+004907DE  |> 8D45 C4            LEA EAX,DWORD PTR SS:[EBP-3C]   
+
+004907E1  |. BA 04000000        MOV EDX,4   
+
+004907E6  |. E8 213DF7FF        CALL 局域网查.0040450C   
+
+004907EB  |. 8D45 FC            LEA EAX,DWORD PTR SS:[EBP-4]   
+
+004907EE  |. E8 F53CF7FF        CALL 局域网查.004044E8  :[   
+
+004907F3  . C3                 RETN   
+```
+
+总算分析完了，写出内存注册机用不到 5 分钟，分析注册算法加上整理断断续续用了近半天，真累。
+
+作者写个算法用了不少力气，但是最后搞个内存比较，功亏一篑，可惜了。
+
+现在共享软件作者也挺累的，希望大家能够多多支持。
+
+`4dd466d0e1e0cc123afbe504da2462ca`

@@ -1,0 +1,204 @@
+
+### 注册名读取部分
+
+```
+0187:00523413  LEA       EDX,[EBP-62]   
+0187:00523416  MOV       ECX,21   
+0187:0052341B  CALL    00403B90     <---这个 Call 将下面数据中的注册名读出来   
+```
+
+注册名以`0`结尾,这时如果你将`Caio`改成你自己的名字,程序运行时注册用户就是你了。
+
+```
+018F:0086F81B 43 61 69 6F 00 65 65 65-65 65 65 65 65 65 65 65 Caio.eeeeeeeeeee
+018F:0086F82B 65 65 65 65 65 65 65 65-65 65 65 65 65 65 65 65 eeeeeeeeeeeeeeee
+```
+
+```
+0187:00523420  LEA       ECX,[EBP-68]
+0187:00523423  MOV       EDX,08
+0187:00523428  MOV       EAX,[EBP-1C]
+```
+
+### 总结
+
+后面的程序根本就没用到`KeyFile`里`40`字节后的数据,所以`KeyFile`的内容只有`40`字节是有用的,其它的都是垃圾,你可以试一下将其它数据改成其它,程序照样是已注册的.有用数据的关系也很简单,前`32`字节是存放注册名的,只要前`16`字节和第`33`到`40`字节的关系成立,而`KeyFile`的大小是`512`字节的话这个`KeyFile`就是合法的,因为它的运算过程只用了`Xor`(例:`A xor B=C , C xor B=A`),所以我们可以写个注册机来生成一个`KeyFile`,不然用人工算可就麻烦了,赶快做一个属于你自己的`KeyFile`吧,哈哈~~~~~~~~~
+
+### 注册码分析
+
+下面我们来看看注册码的部分~~~~~
+
+因为`1.7`可以通过输入注册码来注册,所以也来研究研究吧.按惯例先填入注册名`Sam Von`和假注册码`6767676767676767`(注意:输入注册信息后不要直接按回车键,因为光标正处于取消键上,要用鼠标点击或用`TAB`键,不然你无论如何都拦不下来),为什么是`16`位,因为下面有比较呀,呵呵.接着就下断点`bpx hmemcpy`,`F5`,谁知程序给我来个蓝屏,但下其它断点程序却又正常,照我推断程序应该没有防`Debug`的地方,可能是程序下面窗口的提示信息在作怪吧.不怕,我们还有其它的工具嘛,先用`D_peeper`查看它的注册窗口是`TrForm`,顺便看看它的一些控件以方便作判断,用`DeDe`打开主程序,过程很顺利,在`DeDe`的"程序"窗口里点击`TrForm`,然后在右边的"事件"里双击第一行的`Button1Click`,可看到下面代码:
+
+```
+********* TRY
+
+004B3375   64FF30                    push    dword ptr fs:[eax]
+004B3378   648920                    mov     fs:[eax], esp
+004B337B   8D55F4                    lea     edx, [ebp-$0C]
+004B337E   8B45FC                    mov     eax, [ebp-$04]
+
+* Reference to control TrForm.Edit1 : TEdit
+004B3381   8B8000020000              mov     eax, [eax+$0200]
+004B3387   E8DCE5F6FF                call    00421968
+004B338C   8B55F4                    mov     edx, [ebp-$0C] <---过此行打 d edx 是注册名的保存地址
+004B338F   A118A75400                mov     eax, dword ptr [$54A718]
+004B3394   E81F06F5FF                call    004039B8
+004B3399   8D55F4                    lea     edx, [ebp-$0C]
+004B339C   8B45FC                    mov     eax, [ebp-$04]
+
+* Reference to control TrForm.Edit2 : TEdit
+004B339F   8B8004020000              mov     eax, [eax+$0204]
+004B33A5   E8BEE5F6FF                call    00421968
+004B33AA   8B55F4                    mov     edx, [ebp-$0C] <---过此行打 d edx 是假注册码的保存地址
+004B33AD   A1E0A95400                mov     eax, dword ptr [$54A9E0]
+004B33B2   E80106F5FF                call    004039B8
+004B33B7   33C0                      xor     eax, eax
+004B33B9   5A                        pop     edx
+004B33BA   59                        pop     ecx
+004B33BB   59                        pop     ecx
+004B33BC   648910                    mov     fs:[eax], edx
+
+******** FINALLY
+```
+
+找到程序保存数据的地方后,用`bpm`来设断点,不一定能拦下,还可能会蓝屏,如果拦不下但没蓝屏退出的话请再次输入注册信息,保持`bpm`的两个断点(如果失败,请重复上面过程以确定注册信息的保存地址,因为程序退出后地址就会改变了),注意观察内存,最后可发现下面代码,是否很眼熟:-)
+
+```
+0187:0052302E  MOV       CL,65
+0187:00523030  MOV       EDX,21
+0187:00523035  CALL    00402A8C        <---在内存中放入 32 个"e"
+0187:0052303A  XOR       EAX,EAX
+0187:0052303C  MOV       [EBP-08],EAX
+0187:0052303F  XOR       EAX,EAX
+0187:00523041  MOV       [EBP-0C],EAX
+0187:00523044  LEA       EAX,[EBP-45]
+0187:00523047  MOV       EDX,[00549C24]
+0187:0052304D  CALL    00407954        <---将用户名复制到 32 个"e"最前端
+0187:00523052  LEA       EAX,[EBP-45]
+0187:00523055  MOV       [EBP-04],EAX   <---d eax 可看到下面内容
+018F:0086F81B 53 61 6D 20 56 6F 6E 00-65 65 65 65 65 65 65 65 Sam Von.eeeeeeee
+018F:0086F82B 65 65 65 65 65 65 65 65-65 65 65 65 65 65 65 65 eeeeeeeeeeeeeeee
+0187:00523058  PUSHA
+0187:00523059  MOV       EDI,[EBP-04]
+0187:0052305C  MOV       EAX,3617E418
+0187:00523061  XOR       [EDI],EAX
+0187:00523063  MOV       EAX,A935FC2E
+0187:00523068  XOR       [EDI+04],EAX
+0187:0052306B  MOV       EAX,57D872B9
+0187:00523070  XOR       [EDI+08],EAX
+0187:00523073  MOV       EAX,493DB437  <---其实这里就是读 KeyFile 的逆过程
+0187:00523078  XOR       [EDI+0C],EAX
+0187:0052307B  MOV       EAX,[EDI]      <---又来了
+0187:0052307D  XOR       EAX,[EDI+04]
+0187:00523080  MOV       EBX,[EDI+08]
+0187:00523083  XOR       EBX,[EDI+0C]
+0187:00523086  MOV       [EBP-08],EAX  <---注意它保存的地址
+0187:00523089  MOV       [EBP-0C],EBX      eax=952E1C75
+0187:0052308C  POPA                      ebx=1EE5C68E
+0187:0052308D  MOV       EAX,[00549C28]
+0187:00523092  CALL    00403BE0
+0187:00523097  CMP       EAX,BYTE +10  <---比较注册码长度是否为 16 位
+0187:0052309A  JL      NEAR 0052328A     现在让你猜,你能猜出正确的注册码是什么吗?
+0187:005230A0  LEA       EAX,[EBP-18]
+0187:005230A3  PUSH    EAX
+0187:005230A4  MOV       ECX,08
+0187:005230A9  MOV       EDX,01
+0187:005230AE  MOV       EAX,[00549C28]
+0187:005230B3  CALL    00403DE4
+0187:005230B8  LEA       EAX,[EBP-1C]
+0187:005230BB  PUSH    EAX
+0187:005230BC  MOV       ECX,08
+0187:005230C1  MOV       EDX,09
+0187:005230C6  MOV       EAX,[00549C28]
+0187:005230CB  CALL    00403DE4
+0187:005230D0  LEA       ECX,[EBP-4C]
+0187:005230D3  MOV       EDX,08
+0187:005230D8  MOV       EAX,[EBP-08]
+0187:005230DB  CALL    004072E8
+0187:005230E0  MOV       EDX,[EBP-4C]
+0187:005230E3  MOV       EAX,[EBP-18]
+0187:005230E6  CALL    00403CF0     <---下面有个跳转,说明这个 Call 有问题了,上面的几个
+0187:005230EB  JNZ      NEAR 0052326A     Call 将 eax 和 ebx 的数变成 ASC 码也就是说我们得到
+0187:005230F1  LEA       ECX,[EBP-4C]      了 2 个字符串"952E1C75"和"1EE5C68E",而这个 Call
+0187:005230F4  MOV       EDX,08            就是用这两个字符串与我输入的假注册码比较,相等
+0187:005230F9  MOV       EAX,[EBP-0C]      的话就注册成功了,程序会自动生成一个新的 KeyFile
+0187:005230FC  CALL    004072E8           如果这里不明白的话请看 KeyFile 部分
+0187:00523101  MOV       EDX,[EBP-4C]
+0187:00523104  MOV       EAX,[EBP-1C]
+0187:00523107  CALL    00403CF0     <---比较第二部分,和上面是同一个 Call
+0187:0052310C  JNZ      NEAR 0052326A
+-=End=-
+```
+
+### KeyFile 注册机
+
+下面是`KeyFile`的注册机,输入注册名后自动生成`pexdata.rdat`文件,将文件复制到程序的安装目录即可,注册名支持中文名.请将下面源程序保存为`.rek`文件,用注册机编写器编译,注册机编写器`1.69`测试通过!注册机的算法很简单,写这个注册机有点困难的是`API`的调用,`API`的原型请查找相关资料
+
+```
+.data
+szHomePage db "http://www.365hz.net",0
+szEmail    db "mailto:ljyljx@163.com",0
+szErrMess  db "输入的序列号不正确！",0
+szFileName db "pexdata.rdat",0
+SizeReadWrite dd ?
+szTemp     db 512 dup(0)
+
+.code
+;请在声明中加入以下两句
+;CreateFileA proto :DWORD,:DWORD,:DWORD,:DWORD,:DWORD,:DWORD,:DWORD
+;WriteFile proto :DWORD,:DWORD,:DWORD,:DWORD,:DWORD
+
+mov esi,eax
+mov eax,65656565h
+mov ecx,8
+lea edi,szTemp
+push edi
+rep stosd
+pop edi
+invoke lstrlen,esi
+mov ecx,eax
+rep movsb
+mov [edi],byte ptr 0
+lea edi,szTemp
+mov eax,3617E418h
+xor [edi],eax
+mov eax,0A935FC2Eh
+xor [edi+4],eax
+mov eax,57D872B9h
+xor [edi+8],eax
+mov eax,493DB437h
+xor [edi+0Ch],eax
+mov eax,[edi]
+xor eax,[edi+4]
+mov ebx,[edi+8]
+xor ebx,[edi+0Ch]
+mov [edi+32],eax
+mov [edi+36],ebx
+mov [edi+40],eax
+mov [edi+44],ebx
+mov [edi+48],eax
+mov [edi+52],ebx
+mov [edi+56],eax
+mov [edi+60],ebx
+invoke lstrcpynA,addr szTemp+64,addr szTemp,65
+invoke lstrcpynA,addr szTemp+128,addr szTemp,129
+invoke lstrcpynA,addr szTemp+256,addr szTemp,257
+mov ecx,511
+xor edx,edx
+mov ebx,3617E418h
+PRO1:
+mov eax,ebx
+xor [edi+edx],al
+ror ebx,1
+xor ebx,0A5A5A5A5h
+inc edx
+dec ecx
+jnz PRO1
+invoke CreateFileA,addr szFileName,0C0000000h,3,0,2,0,0
+invoke WriteFile,eax,edi,200h,addr SizeReadWrite,0
+```
+
+### 注册码生成注册机
+
+下面是生成注册码的注册机,注册名支持中文名.请将下面源程序保存为`.rek`文件,用注册机编写器编译,注册机编写器`1.69`测试通过!

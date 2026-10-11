@@ -1,0 +1,406 @@
+
+# Theme Builder 4.01
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6985.htm`](https://www.pediy.com/kssd/pediy06/pediy6985.htm)
+
+`Theme Builder` (V 4.01), 是一款类似于资源管理器的软件, 功能是十分强大的! 它是一个共享软件, 它会提供你 30 天的试用和 10 次的保存功能! 如果你感兴趣的话, 你可以到 `www.themetech.net` 去下载!
+
+察看, 是 `ASPack v2.001` 加的壳, 脱之! `Borland Delphi` 写的 `DeDe` 查看!
+
+查看注册窗口的 `OkButtonClick` 事件!
+
+```
+004981C4   53                     push    ebx
+004981C5   8BD8                   mov     ebx, eax
+004981C7   8BC3                   mov     eax, ebx
+
+* Reference to : TRegForm.ProcessReg() ;注册的过程,关键进入
+
+004981C9   E826000000             call    004981F4
+004981CE   3D8D030000             cmp     eax, $0000038D
+004981D3   7509                   jnz     004981DE
+004981D5   8BC3                   mov     eax, ebx
+
+* Reference to : TRegForm.InComplete()
+
+004981D7   E898030000             call    00498574
+004981DC   EB0A                   jmp     004981E8
+004981DE   48                     dec     eax
+004981DF   7507                   jnz     004981E8
+004981E1   8BC3                   mov     eax, ebx
+
+* Reference to : TRegForm.Complete()
+
+004981E3   E8E0010000             call    004983C8
+
+* Reference to RegForm
+
+004981E8   A1588B4F00             mov     eax, dword ptr [$004F8B58]
+
+* Reference to : TApplication._PROC_0044CB90()
+
+004981ED   E89E49FBFF             call    0044CB90
+004981F2   5B                     pop     ebx
+004981F3   C3                     ret
+```
+
+我们进入 `004981C9` 处的 `call`
+
+```
+004981F4   55                     push    ebp
+004981F5   8BEC                   mov     ebp, esp
+004981F7   6A00                   push    $00
+004981F9   6A00                   push    $00
+004981FB   6A00                   push    $00
+004981FD   53                     push    ebx
+004981FE   56                     push    esi
+004981FF   8BD8                   mov     ebx, eax
+00498201   33C0                   xor     eax, eax
+00498203   55                     push    ebp
+
+* Possible String Reference to: '閇傣脬嬈^[嬪]脨 U 嬱伳(?S3 覊??? U 鼔 U 鴯??3 繳 hI 匢'
+
+00498204   68B8834900             push    $004983B8
+
+***** TRY
+
+00498209   64FF30                 push    dword ptr fs:[eax]
+0049820C   648920                 mov     fs:[eax], esp
+0049820F   685C8B4F00             push    $004F8B5C
+00498214   8D55FC                 lea     edx, [ebp-$04]
+
+* Reference to control TRegForm.mynae : TEdit
+
+00498217   8B83CC020000           mov     eax, [ebx+$02CC]
+
+* Reference to: controls.TControl.GetText(TControl):TCaption;
+
+0049821D   E802B7F9FF             call    00433924
+00498222   8B45FC                 mov     eax, [ebp-$04]
+00498225   B901000000             mov     ecx, $00000001
+0049822A   BA01000000             mov     edx, $00000001
+
+* Reference to: System.Proc_004041D8
+
+0049822F   E8A4BFF6FF             call    004041D8
+00498234   68608B4F00             push    $004F8B60
+00498239   8D55FC                 lea     edx, [ebp-$04]
+
+* Reference to control TRegForm.mynae : TEdit
+
+0049823C   8B83CC020000           mov     eax, [ebx+$02CC]
+
+* Reference to: controls.TControl.GetText(TControl):TCaption;
+
+00498242   E8DDB6F9FF             call    00433924
+00498247   8B45FC                 mov     eax, [ebp-$04]
+0049824A   B901000000             mov     ecx, $00000001
+0049824F   BA04000000             mov     edx, $00000004
+
+* Reference to: System.Proc_004041D8
+
+00498254   E87FBFF6FF             call    004041D8
+00498259   68648B4F00             push    $004F8B64
+0049825E   8D55FC                 lea     edx, [ebp-$04]
+
+* Reference to control TRegForm.mynae : TEdit
+
+00498261   8B83CC020000           mov     eax, [ebx+$02CC]
+
+* Reference to: controls.TControl.GetText(TControl):TCaption;
+
+00498267   E8B8B6F9FF             call    00433924
+0049826C   8B45FC                 mov     eax, [ebp-$04]
+0049826F   B901000000             mov     ecx, $00000001
+00498274   BA07000000             mov     edx, $00000007
+
+* Reference to: System.Proc_004041D8
+
+00498279   E85ABFF6FF             call    004041D8
+0049827E   A15C8B4F00             mov     eax, dword ptr [$004F8B5C]
+
+* Reference to: Unit_00408224.Proc_004091B4
+
+00498283   E82C0FF7FF             call    004091B4;取得第一部分的第 1 个数字
+
+* Reference to GlobalVar_004F8B68
+
+00498288   A3688B4F00             mov     dword ptr [$004F8B68], eax;保存
+0049828D   A1608B4F00             mov     eax, dword ptr [$004F8B60]
+
+* Reference to: Unit_00408224.Proc_004091B4
+
+00498292   E81D0FF7FF             call    004091B4;取得第一部分的第 4 个数字
+
+* Reference to GlobalVar_004F8B6C
+
+00498297   A36C8B4F00             mov     dword ptr [$004F8B6C], eax;保存
+0049829C   A1648B4F00             mov     eax, dword ptr [$004F8B64]
+
+* Reference to: Unit_00408224.Proc_004091B4
+
+004982A1   E80E0FF7FF             call    004091B4;取得第一部分的第 7 个数字
+
+* Reference to GlobalVar_004F8B70
+
+004982A6   A3708B4F00             mov     dword ptr [$004F8B70], eax;保存
+004982AB   8D55FC                 lea     edx, [ebp-$04]
+
+* Reference to control TRegForm.mynae : TEdit
+
+004982AE   8B83CC020000           mov     eax, [ebx+$02CC]
+
+* Reference to: controls.TControl.GetText(TControl):TCaption;
+
+004982B4   E86BB6F9FF             call    00433924 ;取得第一部分的数字
+004982B9   8D45FC                 lea     eax, [ebp-$04]
+004982BC   50                     push    eax ;保存
+004982BD   8D55F8                 lea     edx, [ebp-$08]
+
+* Reference to control TRegForm.doty : TEdit
+
+004982C0   8B83D0020000           mov     eax, [ebx+$02D0]
+
+* Reference to: controls.TControl.GetText(TControl):TCaption;
+
+004982C6   E859B6F9FF             call    00433924
+004982CB   8B55F8                 mov     edx, [ebp-$08] ;第二部分数字
+004982CE   58                     pop     eax ;取出保存的
+
+* Reference to: System.Proc_00403FDC
+
+004982CF   E808BDF6FF             call    00403FDC;第一部分和第二部分连接
+004982D4   8B45FC                 mov     eax, [ebp-$04]
+
+* Reference to: System.Proc_00403FD4
+
+004982D7   E8F8BCF6FF             call    00403FD4;取得连接字符串的个数
+004982DC   83F80A                 cmp     eax, +$0A ;是否为 10 个
+004982DF   0F85AE000000           jnz     00498393
+004982E5   8D55FC                 lea     edx, [ebp-$04]
+
+* Reference to control TRegForm.doty : TEdit
+
+004982E8   8B83D0020000           mov     eax, [ebx+$02D0]
+
+* Reference to: controls.TControl.GetText(TControl):TCaption;
+
+004982EE   E831B6F9FF             call    00433924
+004982F3   8B45FC                 mov     eax, [ebp-$04]
+004982F6   8A10                   mov     dl, byte ptr [eax] ;取出 1 个给 bl
+004982F8   8D45F4                 lea     eax, [ebp-$0C]
+
+* Reference to: System.Proc_00403EFC
+
+004982FB   E8FCBBF6FF             call    00403EFC
+00498300   8B45F4                 mov     eax, [ebp-$0C]
+
+* Reference to: Unit_00408224.Proc_004091B4
+
+00498303   E8AC0EF7FF             call    004091B4;把输入的 1 个字符'4'=34H 转换为 10 进制的 1 个数字 4
+00498308   50                     push    eax ;结果保存
+00498309   A1688B4F00             mov     eax, dword ptr [$004F8B68] ;取出第一部分的第 1 位
+0049830E   5A                     pop     edx ;弹出给 edx
+0049830F   8BCA                   mov     ecx, edx ;送给 ecx
+00498311   99                     cdq ;扩展,即 edx 清 0
+00498312   F7F9                   idiv    ecx ;相除
+00498314   83FA03                 cmp     edx, +$03 ;关键 1,余数是否为 3
+```
+
+
+
+## 汇编代码分析
+
+```asm
+00498317   7571                   jnz     0049838A   
+
+00498319   8D55FC                 lea     edx, [ebp-$04]   
+
+* Reference to control `TRegForm.doty` : `TEdit`   
+
+0049831C   8B83D0020000          mov     eax, [ebx+$02D0]   
+
+* Reference to: `controls.TControl.GetText(TControl):TCaption`;   
+
+00498322   E8FDB5F9FF            call    00433924   
+
+00498327   8B45FC                 mov     eax, [ebp-$04]   
+
+* Reference to field `TEdit.OFFS_0001`   
+
+0049832A   8A5001                 mov     dl, byte ptr [eax+$01] ;取第二部分的第二个字符   
+
+0049832D   8D45F4                 lea     eax, [ebp-$0C]   
+
+* Reference to: `System.Proc_00403EFC`   
+
+00498330   E8C7BBF6FF            call    00403EFC   
+
+00498335   8B45F4                 mov     eax, [ebp-$0C]   
+
+* Reference to: `Unit_00408224.Proc_004091B4`   
+
+00498338   E8770EF7FF            call    004091B4 ;转换   
+
+0049833D   50                     push    eax ;结果存入 eax,压栈保存   
+
+0049833E   A16C8B4F00            mov     eax, dword ptr [$004F8B6C] ;取出第一部分第 4 位值   
+
+00498343   5A                     pop     edx ;弹出结果   
+
+00498344   8BCA                   mov     ecx, edx   
+
+00498346   99                     cdq   
+
+00498347   F7F9                   idiv    ecx   
+
+00498349   83FA03                 cmp     edx, +$03 ;关键 2,余数是否为 3   
+
+0049834C   753C                   jnz     0049838A   
+
+0049834E   8D55FC                 lea     edx, [ebp-$04]   
+
+* Reference to control `TRegForm.doty` : `TEdit`   
+
+00498351   8B83D0020000          mov     eax, [ebx+$02D0]   
+
+* Reference to: `controls.TControl.GetText(TControl):TCaption`;   
+
+00498357   E8C8B5F9FF            call    00433924   
+
+0049835C   8B45FC                 mov     eax, [ebp-$04]   
+
+* Reference to field `TEdit.OFFS_0002`   
+
+0049835F   8A5002                 mov     dl, byte ptr [eax+$02] ;取出第二部分的第 3 个字符   
+
+00498362   8D45F4                 lea     eax, [ebp-$0C]   
+
+* Reference to: `System.Proc_00403EFC`   
+
+00498365   E892BBF6FF            call    00403EFC   
+
+0049836A   8B45F4                 mov     eax, [ebp-$0C]   
+
+* Reference to: `Unit_00408224.Proc_004091B4`   
+
+0049836D   E8420EF7FF            call    004091B4 ;转换保存   
+
+00498372   50                     push    eax   
+
+00498373   A1708B4F00            mov     eax, dword ptr [$004F8B70] ;取出第一部分第 7 位值   
+
+00498378   5A                     pop     edx   
+
+00498379   8BCA                   mov     ecx, edx   
+
+0049837B   99                     cdq   
+
+0049837C   F7F9                   idiv    ecx   
+
+0049837E   83FA02                 cmp     edx, +$02 ;关键 3,余数是否为 2   
+
+00498381   7507                   jnz     0049838A   
+
+00498383   BE01000000            mov     esi, $00000001 ;置成功标志   
+
+00498388   EB0B                   jmp     00498395   
+
+0049838A   8BC3                   mov     eax, ebx   
+
+* Reference to : `TRegForm.checkOther()`   
+
+0049838C   E8D3030000            call    00498764   
+
+00498391   EB02                   jmp     00498395   
+
+00498393   33F6                   xor     esi, esi   
+
+00498395   33C0                   xor     eax, eax   
+
+00498397   5A                     pop     edx   
+
+00498398   59                     pop     ecx   
+
+00498399   59                     pop     ecx   
+
+0049839A   648910                 mov     fs:[eax], edx   
+
+****** FINALLY   
+
+* Possible String Reference to: '嬈^\[嬪\]脨 U 嬱伳(?S3 覊???塙鼔 U 鴯?   
+
+| ,?3 繳 hI 匢'   
+
+0049839D   68BF834900            push    $004983BF   
+
+004983A2   8D45F4                 lea     eax, [ebp-$0C]   
+
+* Reference to: `System.Proc_00403D58`   
+
+004983A5   E8AEB9F6FF            call    00403D58   
+
+004983AA   8D45F8                 lea     eax, [ebp-$08]   
+
+004983AD   BA02000000            mov     edx, $00000002   
+
+* Reference to: `System.Proc_00403D7C`   
+
+004983B2   E8C5B9F6FF            call    00403D7C   
+
+004983B7   C3                     ret   
+
+* Reference to: `System.Proc_00403818`   
+
+004983B8   E95BB4F6FF            jmp     00403818   
+
+004983BD   EBE3                   jmp     004983A2   
+
+****** END   
+
+004983BF   8BC6                   mov     eax, esi   
+
+004983C1   5E                     pop     esi   
+
+004983C2   5B                     pop     ebx   
+
+004983C3   8BE5                   mov     esp, ebp   
+
+004983C5   5D                     pop     ebp   
+
+004983C6   C3                     ret
+```
+
+## 算法总结
+
+经过以上分析，我想对程序的注册算法应该差不多都清楚了，下面再总结一下：
+
+先是把第一部分和第二部分连接起来，判断总的个数是否为 10 个，考虑到后面要依靠到第二部分的 3 个数字，第一部分就应该是 7 位，而第二部分应该是 3 位。好了，完了以后，程序将会取出第一部分的 1, 4, 7 位的数值，保存到全局变量中去！接着取出第二部分的每个字符，转换成 10 近制的值，即 `'3'=34H`，转换为 4，然后保存。接着是用第一部分的第 1 个数字除以第二部分的第 1 个数字，如果余数为 3 则成功。接着比较第二关键部分，同理第一部分的第 4 个字符除以第二部分的第 2 个字符，看余数是否为 3。接着比较第三关键部分，这回是把第一部分的第 7 位为的值除以第 3 个字符的值，余数为 2 则成功！而第一部分的其他 2, 3, 5, 6 位则任意，注册码第三部分则任意！
+
+注册码为如下形式：
+
+`3xx3xx2-yyz-mmmn` ; x 为任意，y 为大于 3 的整数，z 为大于 2 的整数，第三部分任意
+
+`7xx7xx5-443-mmmn`
+
+`9xx9xx5-663-mmmn`
+
+`9xx9xx9-667-mmmn`
+
+当第一部分的第 1, 4 位为 7, 9 时，第二部分的前两位 4, 6，而第一部分的第 7 位和第二部分的第 3 位，则可以是 2,z(z>2) 或者 5,3 或者 7,5 或者 9,7 的组合，这样都可以注册成功，这样注册码太多了！
+
+我又试了一下第一部分第 7 位，除以第二部分第 3 位余数为 3 的情况，也注册成功了，例如：
+
+`7xx7xx7-444-mmmn`
+
+这是程序上没有反映出来的，不知道为什么？也懒得跟了，这么多注册码够我们用的了！
+
+## 作者信息
+
+Made By `dengkeng`
+
+E-mail: `shellc0de@sohu.com`
+
+欢迎转载，请保持文章的完整性
+
+`4dd466d0e1e0cc123afbe504da2462ca`

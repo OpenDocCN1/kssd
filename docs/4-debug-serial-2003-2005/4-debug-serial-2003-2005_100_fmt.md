@@ -1,0 +1,264 @@
+
+# DLL Show V4.4
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6249.htm`](https://www.pediy.com/kssd/pediy06/pediy6249.htm)
+
+DLL Show V4.4 注册算法分析
+
+上个世纪买的软件光盘现在被我当成破解专用了，第一可以省下上网的 MONEY，第二是因为那时候的软件比较痛快，没有现在这么多乱七八糟的保护手段，所以推荐初学者多找找这样的东东练手。好了，看我们今天要破的这个软件，这个老古董居然是 FOR WIN95 的（好遥远的时代...）
+
+点 `Register`，输入用户名，公司名，注册码 `87654321`，下断，来到这里：
+
+```
+:0040D5AF 6A67            push 00000067
+:0040D5B1 55              push ebp
+:0040D5B2 E8B9810000      call 00415770
+:0040D5B7 8D4C2440        lea ecx, dword ptr [esp+40]
+:0040D5BB 51              push ecx
+:0040D5BC E8559C0000      call 00417216
+:0040D5C1 56              push esi <--ESI 处为用户名,压入堆栈作为 CALL 的参数
+:0040D5C2 8BD8            mov ebx, eax
+:0040D5C4 E837810000      call 00415700 <--这个 CALL 是一个关键(见下文)
+:0040D5C9 83C438          add esp, 00000038
+:0040D5CC 3D92A71901      cmp eax, 0119A792 <--把结果与一个软件内定值比较
+:0040D5D1 7518            jne 0040D5EB <--相等的话就成功了(这应该是作者调试用的"万能码")
+
+* Reference To: KERNEL32.lstrcpyA, Ord:0302h
+                          |
+:0040D5D3 8B1D28F14100    mov ebx, dword ptr [0041F128]
+
+* Possible StringData Ref from Data Obj ->"Gregory Braun"
+                          |
+:0040D5D9 68D42E4200      push 00422ED4
+:0040D5DE 56              push esi
+:0040D5DF FFD3            call ebx
+
+* Possible StringData Ref from Data Obj ->"Software Design"
+                          |
+:0040D5E1 68C42E4200      push 00422EC4
+:0040D5E6 57              push edi
+:0040D5E7 FFD3            call ebx
+:0040D5E9 EB07            jmp 0040D5F2
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0040D5D1(C)
+|
+:0040D5EB 3D3CCE5F0D      cmp eax, 0D5FCE3C <--这里又一个比较,没有仔细研究
+:0040D5F0 750C            jne 0040D5FE
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0040D5E9(U)
+|
+:0040D5F2 57              push edi
+:0040D5F3 56              push esi
+:0040D5F4 E8A77B0000      call 004151A0
+:0040D5F9 83C408          add esp, 00000008
+:0040D5FC 8BD8            mov ebx, eax
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0040D5F0(C)
+|
+:0040D5FE 57              push edi
+:0040D5FF 56              push esi
+:0040D600 E89B7B0000      call 004151A0 <--关键的 CALL，进入
+:0040D605 83C408          add esp, 00000008
+:0040D608 3BD8            cmp ebx, eax <--EBX 为假码,把结果和假码比较
+:0040D60A 5F              pop edi
+:0040D60B 741D            je 0040D62A  <--这里跳过去就 OK 了
+:0040D60D 68CFEA0000      push 0000EACF
+
+* Possible Reference to String Resource ID=05000: " Register DLL Show for Windows 95"
+                          |
+:0040D612 6888130000      push 00001388
+:0040D617 55              push ebp
+:0040D618 E8A3C8FFFF      call 00409EC0
+:0040D61D 83C40C          add esp, 0000000C
+:0040D620 5E              pop esi
+:0040D621 5D              pop ebp
+:0040D622 5B              pop ebx
+:0040D623 81C400010000    add esp, 00000100
+:0040D629 C3              ret
+```
+
+进入 `40D600` 处的 `CALL`：
+
+```
+* Referenced by a CALL at Addresses:
+|:0040CACD   , :0040D462   , :0040D5F4   , :0040D600
+
+:004151A0 8B442404        mov eax, dword ptr [esp+04]
+:004151A4 56              push esi
+:004151A5 8B3594D24200    mov esi, dword ptr [0042D294] <--这是一个常量 DB95DB95h
+:004151AB 50              push eax          <--把 NAME 作为参数传给 CALL
+:004151AC 81CE78030000    or esi, 00000378 <--ESI=(DB95DB95h or 378h)
+:004151B2 E849050000      call 00415700     <--关键的 CALL
+:004151B7 8B4C2410        mov ecx, dword ptr [esp+10]
+:004151BB 03F0            add esi, eax  <--ESI=ESI+CALL 的计算结果
+:004151BD 51              push ecx      <--把公司名作为参数传给 CALL
+:004151BE E83D050000      call 00415700 <--和上面 CALL 相同
+:004151C3 83C408          add esp, 00000008
+:004151C6 03C6            add eax, esi　<--再加上 CALL 的计算结果
+:004151C8 5E              pop esi
+:004151C9 C3              ret
+```
+
+进入 `4151B2` 和 `4151BE` 两处调用的 `CALL`：
+
+```
+* Referenced by a CALL at Addresses:
+|:0040D5C4   , :004151B2   , :004151BE
+
+:00415700 51              push ecx
+:00415701 53              push ebx
+:00415702 8B5C240C        mov ebx, dword ptr [esp+0C]
+:00415706 56              push esi
+:00415707 33F6            xor esi, esi
+:00415709 53              push ebx
+:0041570A 8974240C        mov dword ptr [esp+0C], esi
+
+* Reference To: KERNEL32.lstrlenA, Ord:0308h
+                          |
+:0041570E FF15B4F04100    Call dword ptr [0041F0B4] <--得到字串(用户名或公司名)的长度 N
+:00415714 85DB            test ebx, ebx
+:00415716 744F            je 00415767
+:00415718 85C0            test eax, eax
+:0041571A 744B            je 00415767
+:0041571C 33D2            xor edx, edx
+:0041571E 85C0            test eax, eax
+:00415720 7E45            jle 00415767
+:00415722 55              push ebp
+:00415723 57              push edi
+
+* Possible StringData Ref from Data Obj ->"|b!pz*ls;rn|lf$vi^Axpe)rx5aic&9/2m5lsi4@0dmZw9"
+                        ->"4cmqpfhw"
+                          |
+:00415724 BEA44D4200      mov esi, 00424DA4
+:00415729 BF01000000      mov edi, 00000001
+:0041572E 2BF3            sub esi, ebx
+:00415730 8BCB            mov ecx, ebx
+:00415732 2BFB            sub edi, ebx
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0041575D(C)
+|                                      <--循环开始
+:00415734 0FBE1C0E        movsx ebx, byte ptr [esi+ecx] <--从 ESI 处开始依次取字符
+
+ESI=424DA4,内存中为字串 |b!pz*ls;rn|lf$vi^Axpe)rx5aic&9/2m5lsi4@0dmZw94cmqpfhw
+
+:00415738 0FBEAC106C4D4200        movsx ebp, byte ptr [eax+edx+00424D6C]<--从 424D6C+长度 N 处取字符
+
+(424D6C 处的内容见下面)
+
+:00415740 0FAFDD          imul ebx, ebp <--相乘
+:00415743 8D2C0F          lea ebp, dword ptr [edi+ecx]
+:00415746 0FAFDD          imul ebx, ebp <--再乘以循环变量
+:00415749 0FBE29          movsx ebp, byte ptr [ecx] <--依次取字串(用户名或公司名)中的字符
+:0041574C 0FAFDD          imul ebx, ebp <--再相乘
+:0041574F 8B6C2410        mov ebp, dword ptr [esp+10]
+:00415753 03EB            add ebp, ebx  <--把结果累加在 EBP 中
+:00415755 42              inc edx
+:00415756 41              inc ecx
+:00415757 3BD0            cmp edx, eax <--是否到最后一个字符
+:00415759 896C2410        mov dword ptr [esp+10], ebp
+:0041575D 7CD5            jl 00415734  <--循环结束
+:0041575F 8BC5            mov eax, ebp <--结果放在 EAX
+:00415761 5F              pop edi
+:00415762 5D              pop ebp
+:00415763 5E              pop esi
+:00415764 5B              pop ebx
+:00415765 59              pop ecx
+:00415766 C3              ret
+```
+
+下面是内存中的一段:`424D6C` 处和 `424DA4` 处是上面用到的地方.
+
+```
+__________________________________________________
+:00424D60 44 72 61 77 50 69 63 74   DrawPict
+:00424D68 75 72 65 00 23 73 65 72   ure.#ser
+:00424D70 42 26 6E 7A 7C 6D 66 4D   B&nz|mfM
+```
+
+
+
+```
+:00424D78 31 2F 35 28 21 73 64 24   1/5(!sd$
+
+:00424D80 4D 71 2E 7B 73 5D 2B 73   Mq.{s\]+s
+
+:00424D88 46 6A 74 4B 70 7A 53 64   FjtKpzSd
+
+:00424D90 74 7A 6F 58 71 6D 62 5E   tzoXqmb^
+
+:00424D98 41 6C 40 64 76 3A 73 3F   Al@dv:s?
+
+:00424DA0 78 2F 00 00 7C 62 21 70   x/..|b!p
+
+:00424DA8 7A 2A 6C 73 3B 72 6E 7C   z*ls;rn|
+
+:00424DB0 6C 66 24 76 69 5E 41 78   lf$vi^Ax
+
+:00424DB8 70 65 29 72 78 35 61 69   pe)rx5ai
+
+:00424DC0 63 26 39 2F 32 6D 35 6C   c&9/2m5l
+
+:00424DC8 73 69 34 40 30 64 6D 5A   si4@0dmZ
+
+:00424DD0 77 39 34 63 6D 71 70 66   w94cmqpf
+
+:00424DD8 68 77 00 00 55 52 4C 3A   hw..URL:
+
+:00424DE0 20 25 73 0D 0D 43 61 6E    %s..Can
+```
+
+一个注册机: (`Borland Pascal 7.0`) 正在努力学 `Win32` 汇编, 下一次一定要用汇编写!
+
+```
+Program CrackDllShow;
+
+var st1,st2,name,company:string;
+    code :real; //好像没有 32 位无符号数,只好用 REAL 代替
+
+Function R(st:string):real;
+var p:integer;
+    c1,c2,c3,s:real;
+
+begin
+    s:=0;
+    for p:=1 to length(st) do
+    begin
+        c1:=ord(st1[p]);
+        c2:=ord(st2[p+length(st)]);
+        c3:=ord(st[p]);
+        s:=s+c1*c2*c3*p;
+    end;
+
+    R:=s;
+end;
+
+begin
+    st1:='|b!pz*ls;rn|lf$vi^Axpe)rx5aic&9/2m5lsi4@0dmZw94cmqpfhw';
+    st2:='#serB&nz|mfM1/5(!sd$Mq'; //这里我只截了一段,因为还有一个不可显示的字符很麻烦
+                                      //用户名和公司名不要太长就可以了
+    write('please input your name:');
+    readln(name);
+    write('please input your company:');
+    readln(company);
+    code:=3684031485.0;  //(DB95DB95h or 378h)的结果
+    code:=code+R(name)+R(company);
+    writeln('code:',code:0:0);
+    writeln('Crack by RoBa       Thank you');
+end.
+```
+
+一个可用的注册码:
+
+```
+NAME: RoBa
+ORG : China
+CODE: 3707936057
+```
+
+祝全国的 `CRACKER` 节日快乐!
+
+`4dd466d0e1e0cc123afbe504da2462ca`

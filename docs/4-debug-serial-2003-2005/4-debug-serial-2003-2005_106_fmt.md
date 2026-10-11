@@ -1,0 +1,217 @@
+
+# eBook Edit Pro v3.21
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6162.htm`](https://www.pediy.com/kssd/pediy06/pediy6162.htm)
+
+用 `ollydbg` 找 `eBook Edit Pro v3.21` 的注册码
+
+今日股市大涨，可惜俺的股票没有涨：（  坐庄俺股票的机构，你们是不是都“死”了，没看见人家都涨停板了吗？你们…………唉，不说了，太伤心了：（郁闷之际，就拿它开刀，以解我心中的怨气（要是破解不了，我可真成了衰人，呵呵）
+
+进入正题，用 `ollydbg` 下断点 `bpx getwindowtxeta`，然后运行软件输入名：`ol` 码：`123456`，按确定…………我靠，真给我添堵，居然没有拦住，而且程序也不显示任何信息。我日！@#$%^&\*……（骂了 N 小时，嘻嘻）唉，现在破个软件怎么这么费劲啊，那些个程序员怎么不编个“真正”的共享版啊，那样不就不用“麻烦”我们了吗？想个办法吧，对了，运行注册表监测程序看看能不能发现什么……………………YES！它把我输入的注册信息都写在了注册表里，如下
+
+`[HKEY_CURRENT_USER\Software\Cybershare\Registration]`
+
+`"USER"="ol"`  ----------------我的名字
+`"KEY"="123456"`--------------我输入的假注册码
+`"URL"=""`
+`"AFFID"=""`
+
+原来俺还有机会啊：）看来，程序是在比较完注册码后，才把我输入的信息写到注册表的（你问我为什么会知道？我有灵感嘛，看雪老大就说过，`cracker` 需要灵感加幸运，看来我是有的，你没有吗？那我可给不了你了…………）既然如此，LET’GO：
+
+下断点 `bpx advapi32.RegCreateKeyExA`，重新载入程序填写注册信息，按确定，ok，断下来了，由于上面的原因，所以要想找到比较注册码的核心，就要向上寻找突破口，先跳出向注册表写信息这段程序，然后再一步步确定核心的位置，具体如下：
+
+```
+00495F46  |. E8 F515F7FF    CALL <JMP.&advapi32.RegCreateKeyExA>     ; \RegCreateKeyExA←------------------首次在这里中断
+00495F4B  |. 85C0           TEST EAX,EAX
+                    ·
+                    ·
+                    ·
+                    ·
+00495FA4   . 8A45 FE        MOV AL,BYTE PTR SS:[EBP-2]
+00495FA7   . 5E             POP ESI
+00495FA8   . 5B             POP EBX
+00495FA9   . 8BE5           MOV ESP,EBP
+00495FAB   . 5D             POP EBP
+00495FAC   . C3             RETN        ←------------------运行到这里返回到调用处
+004D223F  |. 8BCB           MOV ECX,EBX   ←------------------出来后我们在这里，现在还没有跳出去，所以继续 GO
+004D2241  |. 8B55 FC       MOV EDX,DWORD PTR SS:[EBP-4]
+004D2244  |. 8B45 F8       MOV EAX,DWORD PTR SS:[EBP-8]
+                    ·
+                    ·
+                    ·
+004D2286   . 5B             POP EBX
+004D2287   . 59             POP ECX
+004D2288   . 59             POP ECX
+004D2289   . 5D             POP EBP
+004D228A   . C3             RETN                ←------------------运行到这里返回到调用处
+004D9DE8  /. 55             PUSH EBP            ←------------------在这里下断点，然后一步步小心跟踪
+004D9DE9  |. 8BEC           MOV EBP,ESP
+004D9DEB  |. 33C9           XOR ECX,ECX
+004D9DED  |. 51             PUSH ECX
+004D9DEE  |. 51             PUSH ECX
+004D9DEF  |. 51             PUSH ECX
+004D9DF0  |. 51             PUSH ECX
+004D9DF1  |. 53             PUSH EBX
+004D9DF2  |. 8BD8           MOV EBX,EAX
+004D9DF4  |. 33C0           XOR EAX,EAX
+004D9DF6  |. 55             PUSH EBP
+004D9DF7  |. 68 8A9E4D00    PUSH UNPACKED.004D9E8A
+004D9DFC  |. 64:FF30        PUSH DWORD PTR FS:[EAX]
+004D9DFF  |. 64:8920        MOV DWORD PTR FS:[EAX],ESP
+004D9E02  |. 8D55 FC        LEA EDX,DWORD PTR SS:[EBP-4]
+004D9E05  |. 8B83 F8020000  MOV EAX,DWORD PTR DS:[EBX+2F8]
+004D9E0B  |. E8 D8F4F9FF    CALL UNPACKED.004792E8 ←------------------进入这个 call 后，发现它是用函数 GetKeyboardState 来获得信息                            难怪我断不下来，真狡猾………………（不敢确定，请高手指教）
+004D9E10  |. 8B55 FC       MOV EDX,DWORD PTR SS:[EBP-4]  ←------------------这里出现我的名字
+004D9E13  |. 8BC3           MOV EAX,EBX
+004D9E15  |. E8 AAFFFFFF    CALL UNPACKED.004D9DC4
+004D9E1A  |. 8D55 F8       LEA EDX,DWORD PTR SS:[EBP-8]
+004D9E1D  |. 8B83 FC020000  MOV EAX,DWORD PTR DS:[EBX+2FC]
+004D9E23  |. E8 C0F4F9FF    CALL UNPACKED.004792E8
+004D9E28  |. 8B55 F8       MOV EDX,DWORD PTR SS:[EBP-8]  ←------------------这里出现我输入的假注册码
+004D9E2B  |. 8BC3           MOV EAX,EBX
+004D9E2D  |. E8 AEFEFFFF    CALL UNPACKED.004D9CE0
+004D9E32  |. 8BC3           MOV EAX,EBX
+004D9E34  |. E8 CBFEFFFF    CALL UNPACKED.004D9D04      ←---------------------关键 call，切入进去
+004D9E39  |. 8D55 F4       LEA EDX,DWORD PTR SS:[EBP-C]
+004D9E3C  |. 8B83 14030000  MOV EAX,DWORD PTR DS:[EBX+314]
+004D9E42  |. E8 A1F4F9FF    CALL UNPACKED.004792E8
+004D9E47  |. 8B55 F4       MOV EDX,DWORD PTR SS:[EBP-C]
+004D9E4A  |. A1 F48C5000    MOV EAX,DWORD PTR DS:[508CF4]
+004D9E4F  |. E8 98A0F2FF    CALL UNPACKED.00403EEC
+004D9E54  |. 8D55 F0       LEA EDX,DWORD PTR SS:[EBP-10]
+004D9E57  |. 8BC3           MOV EAX,EBX
+004D9E59  |. E8 226B0000    CALL UNPACKED.004E0980
+004D9E5E  |. 8B55 F0       MOV EDX,DWORD PTR SS:[EBP-10]
+004D9E61  |. 8BC3           MOV EAX,EBX
+004D9E63  |. E8 306B0000    CALL UNPACKED.004E0998
+004D9E68  |. 8BC3           MOV EAX,EBX
+004D9E6A  |. E8 3D080000    CALL UNPACKED.004DA6AC←------------------在这里调用写注册表程序
+004D9E6F  |. 33C0           XOR EAX,EAX ←------------------在 004D228A 出来后在这里，现在终于跳出来了，向上看，乖乖，这么多 call 啊
+004D9E71  |. 5A             POP EDX              ，看来核心很可能就在这些 call 当中了，关掉第一个断点，下第二个断点在 004D9DE8
+004D9E72  |. 59             POP ECX               重新载入程序再次输入注册信息，按确定，现在中断在 004D9DE8 了
+004D9E73  |. 59             POP ECX
+004D9E74  |. 64:8910        MOV DWORD PTR FS:[EAX],EDX
+004D9E77  |. 68 919E4D00    PUSH UNPACKED.004D9E91
+004D9E7C  |> 8D45 F0        LEA EAX,DWORD PTR SS:[EBP-10]
+004D9E7F  |. BA 04000000    MOV EDX,4
+004D9E84  |. E8 33A0F2FF    CALL UNPACKED.00403EBC
+004D9E89  \. C3             RETN
+```
+
+进入关键 call  `CALL 004D9D04` 后，来到：
+
+```
+004D9D04  /$ 55             PUSH EBP
+004D9D05  |. 8BEC           MOV EBP,ESP
+004D9D07  |. 6A 00          PUSH 0
+004D9D09  |. 6A 00          PUSH 0
+004D9D0B  |. 53             PUSH EBX
+004D9D0C  |. 8BD8           MOV EBX,EAX
+004D9D0E  |. 33C0           XOR EAX,EAX
+004D9D10  |. 55             PUSH EBP
+004D9D11  |. 68 679D4D00    PUSH UNPACKED.004D9D67
+004D9D16  |. 64:FF30        PUSH DWORD PTR FS:[EAX]
+004D9D19  |. 64:8920        MOV DWORD PTR FS:[EAX],ESP
+004D9D1C  |. 6A 00          PUSH 0
+004D9D1E  |. 8D55 FC        LEA EDX,DWORD PTR SS:[EBP-4]
+004D9D21  |. 8BC3           MOV EAX,EBX
+004D9D23  |. E8 A4FFFFFF    CALL UNPACKED.004D9CCC
+004D9D28  |. 8B45 FC        MOV EAX,DWORD PTR SS:[EBP-4]
+004D9D2B  |. 50             PUSH EAX
+004D9D2C  |. 8D55 F8        LEA EDX,DWORD PTR SS:[EBP-8]
+004D9D2F  |. 8BC3           MOV EAX,EBX
+004D9D31  |. E8 7A000000    CALL UNPACKED.004D9DB0
+004D9D36  |. 8B45 F8        MOV EAX,DWORD PTR SS:[EBP-8]
+004D9D39  |. B9 7C9D4D00    MOV ECX,UNPACKED.004D9D7C
+004D9D3E  |. 5A             POP EDX
+004D9D3F  |. E8 3C81FFFF    CALL UNPACKED.004D1E80       ←------------------从这里进去
+004D9D44  |. 8B15 98875000  MOV EDX,DWORD PTR DS:[508798]
+004D9D4A  |. 8802           MOV BYTE PTR DS:[EDX],AL
+004D9D4C  |. 33C0           XOR EAX,EAX
+004D9D4E  |. 5A             POP EDX
+004D9D4F  |. 59             POP ECX
+004D9D50  |. 59             POP ECX
+004D9D51  |. 64:8910        MOV DWORD PTR FS:[EAX],EDX
+004D9D54  |. 68 6E9D4D00    PUSH UNPACKED.004D9D6E
+004D9D59  |> 8D45 F8        LEA EAX,DWORD PTR SS:[EBP-8]
+004D9D5C  |. BA 02000000    MOV EDX,2
+004D9D61  |. E8 56A1F2FF    CALL UNPACKED.00403EBC
+004D9D66  \. C3             RETN
+```
+
+进入 `CALL UNPACKED.004D1E80` 后，我们来到：
+
+```
+004D1E80  /$ 55             PUSH EBP
+004D1E81  |. 8BEC           MOV EBP,ESP
+004D1E83  |. 81C4 FCFEFFFF  ADD ESP,-104
+004D1E89  |. 53             PUSH EBX
+004D1E8A  |. 56             PUSH ESI
+004D1E8B  |. 57             PUSH EDI
+004D1E8C  |. 33DB           XOR EBX,EBX
+004D1E8E  |. 895D FC        MOV DWORD PTR SS:[EBP-4],EBX
+004D1E91  |. 8BF9           MOV EDI,ECX
+004D1E93  |. 8BF2           MOV ESI,EDX
+004D1E95  |. 8BD8           MOV EBX,EAX
+004D1E97  |. 8B45 08        MOV EAX,DWORD PTR SS:[EBP+8]
+004D1E9A  |. E8 2D24F3FF    CALL UNPACKED.004042CC
+004D1E9F  |. 33C0           XOR EAX,EAX
+004D1EA1  |. 55             PUSH EBP
+004D1EA2  |. 68 FB1E4D00    PUSH UNPACKED.004D1EFB
+004D1EA7  |. 64:FF30        PUSH DWORD PTR FS:[EAX]
+004D1EAA  |. 64:8920        MOV DWORD PTR FS:[EAX],ESP
+004D1EAD  |. 8D85 FCFEFFFF  LEA EAX,DWORD PTR SS:[EBP-104]
+```
+
+
+
+```
+004D1EB3  |. 50             PUSH EAX
+004D1EB4  |. 8B4D 08        MOV ECX,DWORD PTR SS:[EBP+8]
+004D1EB7  |. 8BD7           MOV EDX,EDI
+004D1EB9  |. 8BC3           MOV EAX,EBX
+004D1EBB  |. E8 10FEFFFF    CALL UNPACKED.004D1CD0          ←------------------这里是计算注册码的 call，不过我可看不懂：）
+004D1EC0  |. 8D95 FCFEFFFF  LEA EDX,DWORD PTR SS:[EBP-104]  ←------------------走到这里可以看到计算后的注册码
+004D1EC6  |. 8D45 FC        LEA EAX,DWORD PTR SS:[EBP-4]
+004D1EC9  |. E8 EE21F3FF    CALL UNPACKED.004040BC
+004D1ECE  |. 8B45 FC        MOV EAX,DWORD PTR SS:[EBP-4]
+004D1ED1  |. 8BD6           MOV EDX,ESI
+004D1ED3  |. E8 5023F3FF    CALL UNPACKED.00404228          ←------------------在这里进行比较，想暴力破解的话就进去修改
+004D1ED8  |. 0F94C0         SETE AL
+004D1EDB  |. 8BD8           MOV EBX,EAX
+004D1EDD  |. 33C0           XOR EAX,EAX
+004D1EDF  |. 5A             POP EDX
+004D1EE0  |. 59             POP ECX
+004D1EE1  |. 59             POP ECX
+004D1EE2  |. 64:8910        MOV DWORD PTR FS:[EAX],EDX
+004D1EE5  |. 68 021F4D00    PUSH UNPACKED.004D1F02
+004D1EEA  |> 8D45 FC        LEA EAX,DWORD PTR SS:[EBP-4]
+004D1EED  |. E8 A61FF3FF    CALL UNPACKED.00403E98
+004D1EF2  |. 8D45 08        LEA EAX,DWORD PTR SS:[EBP+8]
+004D1EF5  |. E8 9E1FF3FF    CALL UNPACKED.00403E98
+004D1EFA  \. C3             RETN
+```
+
+进入 `CALL UNPACKED.00404228` 后，我们来到：
+
+```
+00404228  /$ 53             PUSH EBX
+00404229  |. 56             PUSH ESI
+0040422A  |. 57             PUSH EDI
+0040422B  |. 89C6           MOV ESI,EAX
+0040422D  |. 89D7           MOV EDI,EDX
+0040422F  |. 39D0           CMP EAX,EDX             ←------------------在这里进行比较
+00404231  |. 0F84 8F000000  JE UNPACKED.004042C6    ←------------------修改这里程序会出错，所以要暴力破解还得再找恰当的地方
+```
+
+至此破解完成，由于俺是初学者，所以不能写出注册机（根本就看不懂算法，内存注册机倒是可以的，不过俺就不写了，有机会再补上吧）。
+
+当然，俺也是很谦虚的，希望各位前辈高手能够给予解答：对于该软件，如何设置断点才能快速到达比较核心呢？
+
+另外，本人正学习破解具有反跟踪功能的程序，可惜俺不会脱壳，请高手给予帮助。要脱壳的程序正好是该软件的黄金搭档 `unEbookEdit`。写 `unEbookEdit` 的人据说可是个编程高手，他写的其它软件也很出名，不过都具有自校验和反跟踪功能。所以希望能够得到前辈们的帮助，或者谁写一篇 `unEbookEdit` 的破文也好教俺学学嘛。就写到这里吧，也不知道说明白没有，呵呵。
+
+```
+ol
+2003/02/12
+4dd466d0e1e0cc123afbe504da2462ca
+```

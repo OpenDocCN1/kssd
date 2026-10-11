@@ -1,0 +1,472 @@
+
+# EZ Extract Resource V1.72
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50461.htm`](https://www.pediy.com/kssd/pediy05/pediy50461.htm)
+
+## 简介
+
+简单算法——EZ Extract Resource V1.72
+
+- 软件大小： 708 KB
+- 软件语言： 简体中文
+- 软件类别： 国产软件 / 共享版 / 系统其它
+- 应用平台： Win9x/NT/2000/XP
+- 下载次数： 3104
+- 推荐等级： *****
+- 开发商： [`www.seamoontech.com/`](http://www.seamoontech.com/)
+
+### 【软件简介】
+
+从本地各类文件里提取各种资源，如图标、光标、位图、JPG、GIF、Wave、AVI、Midi、动画光标等，还有其它暂不识别的也可以提取出来供用户处理。可以搜索整个目录并从 `.exe`、`.dll`、`.ocx`、`.cpl` 等类文件中提取资源。可以直接浏览和播放提取出来的各种资源，或者以十六进制方式查看其内容。方便的文件管理功能，操作与资源管理器类似。支持多国语言。如果你是一名程序开发人员或需做美工设计方面的工作，本软件是最适合你的。有了它，你可以直接使用或更新设计已经存在的资源文件为自己所用。
+
+### 【软件限制】
+
+`NAG`、功能限制。
+
+### 【作者声明】
+
+初学 Crack，只是感兴趣，没有其它目的。失误之处敬请诸位大侠赐教！
+
+---
+
+## 【过程】
+
+`ExtractRes.exe` 是 VC++6.0 编写。无壳。反汇编方便了。^-^
+
+程序要求重启验证注册码。程序把试炼码写入了注册表，启动时进行比较。
+
+`TRW` 调试时当然可下断点：`BPX Regqueryvalueexa do"dd\*(esp+8)"`
+
+只是装入后必须按很多下 `F5` 键，烦人。
+
+在反汇编代码里查找 “`RegCode`”，一般会有 2 处，那么其中的 1 处就是核心了。省我按几十次 `F5` 键了。呵呵
+
+OK，查到了。直接 `BPX 40F220`，重启时拦下！
+
+其算法与 搜索引擎工厂(Search Engine Builder)V1.595 几乎一模一样。呵呵，不怪是一家的。
+
+Let's Go!
+
+### 核心代码分析
+
+```
+--------------------------------------------------------
+* Possible StringData Ref from Data Obj ->"RegCode"
+
+                        |
+:0040F220 6820074800              push 00480720
+                        =====>中断在这！
+
+:0040F225 8D442418               lea eax, dword ptr [esp+18]
+
+* Possible StringData Ref from Data Obj ->"RegInfo"
+                        |
+:0040F229 6828074800              push 00480728
+:0040F22E 50                      push eax
+:0040F22F 8BCE                    mov ecx, esi
+:0040F231 E89BC00400              call 0045B2D1
+:0040F236 50                      push eax
+:0040F237 8D4C2420               lea ecx, dword ptr [esp+20]
+:0040F23B C68424D00100000A        mov byte ptr [esp+000001D0], 0A
+:0040F243 E8DD3A0300              call 00442D25
+:0040F248 8D4C2410               lea ecx, dword ptr [esp+10]
+:0040F24C 889C24CC010000          mov byte ptr [esp+000001CC], bl
+:0040F253 E894390300              call 00442BEC
+:0040F258 51                      push ecx
+:0040F259 8D542420               lea edx, dword ptr [esp+20]
+:0040F25D 8BCC                    mov ecx, esp
+:0040F25F 89642418               mov dword ptr [esp+18], esp
+:0040F263 52                      push edx
+:0040F264 E8F8360300              call 00442961
+:0040F269 51                      push ecx
+:0040F26A C68424D40100000B        mov byte ptr [esp+000001D4], 0B
+:0040F272 8BCC                    mov ecx, esp
+:0040F274 89642418               mov dword ptr [esp+18], esp
+:0040F278 57                      push edi
+:0040F279 E8E3360300              call 00442961
+:0040F27E 8BCE                    mov ecx, esi
+:0040F280 889C24D4010000          mov byte ptr [esp+000001D4], bl
+:0040F287 E854090000              call 0040FBE0
+                        =====>核心 CALL！！！
+
+:0040F28C 8986D0000000            mov dword ptr [esi+000000D0], eax
+:0040F292 6804544800              push 00485404
+
+* Possible StringData Ref from Data Obj ->"SearchID2"
+                        |
+:0040F297 6808074800              push 00480708
+:0040F29C 8D44241C               lea eax, dword ptr [esp+1C]
+
+* Possible StringData Ref from Data Obj ->"Settings"
+--------------------------------------------------------
+```
+
+`F8` 进入关键 CALL。`40F287 call 0040FBE0`
+
+```
+* Referenced by a CALL at Addresses:
+|:0040F192   , :0040F209   , :0040F287   , :0040F2FE
+
+|
+:0040FBE0 6AFF                      push FFFFFFFF
+:0040FBE2 68603F4600                push 00463F60
+:0040FBE7 64A100000000              mov eax, dword ptr fs:[00000000]
+:0040FBED 50                        push eax
+:0040FBEE 64892500000000            mov dword ptr fs:[00000000], esp
+:0040FBF5 81ECD0000000              sub esp, 000000D0
+:0040FBFB 56                        push esi
+:0040FBFC 8BF1                      mov esi, ecx
+:0040FBFE B801000000                mov eax, 00000001
+:0040FC03 6804544800                push 00485404
+:0040FC08 898424E0000000            mov dword ptr [esp+000000E0], eax
+:0040FC0F 8986C4000000              mov dword ptr [esi+000000C4], eax
+:0040FC15 8B8424E8000000            mov eax, dword ptr [esp+000000E8]
+:0040FC1C 50                        push eax
+:0040FC1D E8C8DA0100                call 0042D6EA
+                        =====>测试用户名是否为空
+
+:0040FC22 83C408                    add esp, 00000008
+:0040FC25 85C0                      test eax, eax
+:0040FC27 0F84A9010000              je 0040FDD6
+                        =====>不能跳！
+
+:0040FC2D 8B8C24E8000000            mov ecx, dword ptr [esp+000000E8]
+:0040FC34 6804544800                push 00485404
+:0040FC39 51                        push ecx
+:0040FC3A E8ABDA0100                call 0042D6EA
+                        =====>测试注册码是否为空
+
+:0040FC3F 83C408                    add esp, 00000008
+:0040FC42 85C0                      test eax, eax
+:0040FC44 0F848C010000              je 0040FDD6
+                        =====>不能跳！
+
+* Possible StringData Ref from Data Obj ->"ttdown"
+                        =====>黑名单！
+
+:0040FC4A 684C0E4800                push 00480E4C
+:0040FC4F 8D8C24E8000000            lea ecx, dword ptr [esp+000000E8]
+:0040FC56 E8BBC90200                call 0043C616
+:0040FC5B 83F8FF                    cmp eax, FFFFFFFF
+:0040FC5E 756E                      jne 0040FCCE
+                        =====>不能跳！
+
+* Possible StringData Ref from Data Obj ->"crsky"
+                        =====>黑名单！
+
+:0040FC60 68440E4800                push 00480E44
+:0040FC65 8D8C24E8000000            lea ecx, dword ptr [esp+000000E8]
+:0040FC6C E8A5C90200                call 0043C616
+:0040FC71 83F8FF                    cmp eax, FFFFFFFF
+:0040FC74 7558                      jne 0040FCCE
+                        =====>不能跳！
+
+* Possible StringData Ref from Data Obj ->".com"
+                        =====>黑名单！
+
+:0040FC76 683C0E4800                push 00480E3C
+:0040FC7B 8D8C24E8000000            lea ecx, dword ptr [esp+000000E8]
+:0040FC82 E88FC90200                call 0043C616
+:0040FC87 83F8FF                    cmp eax, FFFFFFFF
+:0040FC8A 7542                      jne 0040FCCE
+                        =====>不能跳！
+
+* Possible StringData Ref from Data Obj ->"jetdown"
+                        =====>黑名单！
+
+:0040FC8C 68340E4800                push 00480E34
+:0040FC91 8D8C24E8000000            lea ecx, dword ptr [esp+000000E8]
+:0040FC98 E879C90200                call 0043C616
+:0040FC9D 83F8FF                    cmp eax, FFFFFFFF
+:0040FCA0 752C                      jne 0040FCCE
+                        =====>不能跳！
+
+* Possible StringData Ref from Data Obj ->".org"
+                        =====>黑名单！
+
+:0040FCA2 682C0E4800                push 00480E2C
+:0040FCA7 8D8C24E8000000            lea ecx, dword ptr [esp+000000E8]
+:0040FCAE E863C90200                call 0043C616
+:0040FCB3 83F8FF                    cmp eax, FFFFFFFF
+:0040FCB6 7516                      jne 0040FCCE
+                        =====>不能跳！
+
+* Possible StringData Ref from Data Obj ->"极酷天下"
+                        =====>黑名单！
+
+:0040FCB8 68200E4800                push 00480E20
+:0040FCBD 8D8C24E8000000            lea ecx, dword ptr [esp+000000E8]
+:0040FCC4 E84DC90200                call 0043C616
+:0040FCC9 83F8FF                    cmp eax, FFFFFFFF
+:0040FCCC 740A                      je 0040FCD8
+                        =====>应跳！
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+```
+
+
+
+#### :0040FC5E(C), :0040FC74(C), :0040FC8A(C), :0040FCA0(C), :0040FCB6(C)
+
+:0040FCCE `C786C400000000000000` mov `dword ptr [esi+000000C4], 00000000`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+:0040FCCC(C)
+
+:0040FCD8 `8B9424E4000000` mov `edx, dword ptr [esp+000000E4]`
+====> 用户名 `fly` 移入 `EDX`
+
+:0040FCDF `33C9` xor `ecx, ecx`
+
+:0040FCE1 `53` push `ebx`
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+===> 下面这段代码是把 `[esp+10]` 依次处放入 “`huydong`” 字符串！
+
+:0040FCE2 `C644240868` mov `[esp+08], 68`
+
+:0040FCE7 `8B72F8` mov `esi, dword ptr [edx-08]`
+====> 用户名长度送 `esi=3`
+
+:0040FCEA `C644240975` mov `[esp+09], 75`
+
+:0040FCEF `85F6` test `esi, esi`
+
+:0040FCF1 `C644240A79` mov `[esp+0A], 79`
+
+:0040FCF6 `C644240B64` mov `[esp+0B], 64`
+
+:0040FCFB `C644240C6F` mov `[esp+0C], 6F`
+
+:0040FD00 `C644240D6E` mov `[esp+0D], 6E`
+
+:0040FD05 `C644240E67` mov `[esp+0E], 67`
+
+:0040FD0A `C644240F00` mov `[esp+0F], 00`
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:0040FD0F `7E3F` jle `0040FD50`
+
+:0040FD11 `55` push `ebp`
+
+:0040FD12 `57` push `edi`
+
+:0040FD13 `8D7C3417` lea `edi, dword ptr [esp+esi+17]`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+:0040FD4C(C)
+
+====> 以下就是运算核心了！
+
+:0040FD17 `8B8424F0000000` mov `eax, dword ptr [esp+000000F0]`
+====> `fly` 移入 `EAX`
+
+:0040FD1E `BD07000000` mov `ebp, 00000007`
+
+:0040FD23 `8A1C01` mov `bl, byte ptr [ecx+eax]`
+====> 依次取用户名。
+====> 1、？`BL=66` 即 `f` 的 `HEX` 值
+====> 2、？`BL=6C` 即 `l` 的 `HEX` 值
+====> 3、？`BL=79` 即 `y` 的 `HEX` 值
+
+:0040FD26 `8BC1` mov `eax, ecx`
+
+:0040FD28 `99` cdq
+
+:0040FD29 `F7FD` idiv `ebp`
+
+:0040FD2B `0FBEC3` movsx `eax, bl`
+====> 1、？`EAX=66` 即 `f` 的 `HEX` 值
+====> 2、？`EAX=6C` 即 `l` 的 `HEX` 值
+====> 3、？`EAX=79` 即 `y` 的 `HEX` 值
+
+:0040FD2E `8BD9` mov `ebx, ecx`
+====> 1、？`EBX=0`
+====> 2、？`EBX=1`
+====> 3、？`EBX=2`
+
+:0040FD30 `0FBE541410` movsx `edx, byte ptr [esp+edx+10]`
+====> 依次从 “`huydong`” 字符串中取字符入 `EDX`
+====> 1、？`EDX=68` 即 `h` 的 `HEX` 值
+====> 2、？`EDX=75` 即 `u` 的 `HEX` 值
+====> 3、？`EDX=79` 即 `y` 的 `HEX` 值
+
+:0040FD35 `03DA` add `ebx, edx`
+====> 1、`EBX=0+68=68`
+====> 2、`EBX=1+75=76`
+====> 3、`EBX=2+79=7B`
+
+:0040FD37 `03C3` add `eax, ebx`
+====> 1、`EAX=66+68=CE`
+====> 2、`EAX=6C+76=E2`
+====> 3、`EAX=79+7B=F4`
+
+:0040FD39 `BB09000000` mov `ebx, 00000009`
+====> `9` 送 `ebx`
+
+:0040FD3E `03C6` add `eax, esi`
+====> `esi` 是用户名长度
+====> 1、`EAX=CE+3=D1`
+====> 2、`EAX=E2+3=E5`
+====> 3、`EAX=F4+3=F7`
+
+:0040FD40 `99` cdq
+
+:0040FD41 `F7FB` idiv `ebx`
+====> `EAX` 依次除以 `9`
+====> 1、`EAX=D1/9=17` 余 `2`
+====> 2、`EAX=E5/9=19` 余 `4`
+====> 3、`EAX=F7/9=1B` 余 `4`
+
+:0040FD43 `80C230` add `dl, 30`
+====> 余数入 `DL`，依次加 `30`
+====> 1、`DL=2+30=32`
+====> 2、`DL=4+30=34`
+====> 3、`DL=4+30=34`
+
+:0040FD46 `41` inc `ecx`
+====> `ecx` 依次增 `1`
+
+:0040FD47 `8817` mov `byte ptr [edi], dl`
+====> `DL->[edi]`
+====> 循环 `3` 次后，`D EDI=442`
+****这是真码的前 `3` 个数！！！
+
+:0040FD49 `4F` dec `edi`
+
+:0040FD4A `3BCE` cmp `ecx, esi`
+====> 比较用户名是否取完
+
+:0040FD4C `7CC9` jl `0040FD17`
+====> 没有取完，跳上去继续循环
+====> 共循环 `3` 次。
+
+:0040FD4E `5F` pop `edi`
+
+:0040FD4F `5D` pop `ebp`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+:0040FD0F(C)
+
+:0040FD50 `8D464D` lea `eax, dword ptr [esi+4D]`
+====> ？`ESI=3`
+实际上是用户名长度加上 `4D` 的结果送 `eax`
+====> 过此 ？`EAX=50`
+
+:0040FD53 `B909000000` mov `ecx, 00000009`
+====> `9` 送 `ecx`
+
+:0040FD58 `99` cdq
+
+:0040FD59 `F7F9` idiv `ecx`
+====> `EAX/9=8` 余 `8`
+====> 余数 `8` 入 `DL`
+
+:0040FD5B `8B8424EC000000` mov `eax, dword ptr [esp+000000EC]`
+====> 试炼码送 `eax`
+
+:0040FD62 `80C230` add `dl, 30`
+====> `DL=8+30=38`
+****这是真码的最后 `1` 个数！！！
+
+:0040FD65 `88543410` mov `byte ptr [esp+esi+10], dl`
+====> `DL` 移入 `[esp+17]` 处
+
+:0040FD69 `C644341100` mov `[esp+esi+11], 00`
+
+:0040FD6E `8D742410` lea `esi, dword ptr [esp+10]`
+====> 真正的注册码送 `ESI`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+:0040FD94(C)
+
+====> 这里向下是将真假注册码逐位的进行比较，一个经典的组合！
+
+:0040FD72 `8A10` mov `dl, byte ptr [eax]`
+====> `D EAX=试炼码`
+
+:0040FD74 `8A1E` mov `bl, byte ptr [esi]`
+====> `D ESI=真码！！！！`
+
+:0040FD76 `8ACA` mov `cl, dl`
+
+:0040FD78 `3AD3` cmp `dl, bl`
+
+:0040FD7A `751E` jne `0040FD9A`
+
+:0040FD7C `84C9` test `cl, cl`
+
+:0040FD7E `7416` je `0040FD96`
+
+:0040FD80 `8A5001` mov `dl, byte ptr [eax+01]`
+
+:0040FD83 `8A5E01` mov `bl, byte ptr [esi+01]`
+
+:0040FD86 `8ACA` mov `cl, dl`
+
+:0040FD88 `3AD3` cmp `dl, bl`
+
+:0040FD8A `750E` jne `0040FD9A`
+
+:0040FD8C `83C002` add `eax, 00000002`
+
+:0040FD8F `83C602` add `esi, 00000002`
+
+:0040FD92 `84C9` test `cl, cl`
+
+:0040FD94 `75DC` jne `0040FD72`
+
+—————————————————————————————
+
+### 【KeyMake 之内存注册机】：
+
+中断地址：`40F287`
+
+中断次数：`1`
+
+第一字节：`E8`
+
+指令长度：`5`
+
+中断地址：`40FD74`
+
+中断次数：`1`
+
+第一字节：`A8`
+
+指令长度：`2`
+
+内存方式：`ESI`
+
+—————————————————————————————
+
+### 【注册信息保存】：
+
+```
+REGEDIT4
+
+[HKEY_CURRENT_USER\Software\SeaMoonTech\EZ Extract Resource\Settings]  
+"SearchID2"="4428"
+
+[HKEY_CURRENT_USER\Software\SeaMoonTech\EZ Extract Resource\RegInfo]  
+"RegUserName"="fly"
+```
+
+—————————————————————————————
+
+### 【整理】：
+
+`Registartion Name`：`fly`
+
+`Registartion Code`：`4428`
+
+—————————————————————————————
+
+Cracked By 巢水工作坊——`fly`【`OCN`】
+
+
+
+2003-1-18
+
+`4dd466d0e1e0cc123afbe504da2462ca`

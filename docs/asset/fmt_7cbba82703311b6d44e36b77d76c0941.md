@@ -1,0 +1,158 @@
+
+# 侠客系统修改器 V1.21
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum1277.htm`](https://www.pediy.com/kssd/pediy03/forum1277.htm)
+
+近日小弟朋友装机，弄了个侠客系统修改器来装上，功能强大，未注册版也没什么使用限制，就是老会蹦出个对话框提醒注册，下面是其注册码生成过程：
+
+```c
+#include "stdio.h"
+
+#include "conio.h"
+
+main()
+
+{ int i,j,n,flag;
+
+  unsigned char ansq[16];
+
+  unsigned char ansr[16];
+
+  unsigned char name[16];
+
+  char table[]="0123456789abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+  textcolor(GREEN);
+
+  cprintf("************************************************************");
+
+  printf("\n");
+
+  cprintf("    SysSet V1.21 KeyMaker By AirHolder,Written At 2001-8-20    ");
+
+  printf("\n");
+
+  cprintf("************************************************************");
+
+  printf("\n\nEnter Your Name Here(At Least 3 Chars But Don't Exceed 16!):");
+
+  gets(name);
+
+  n=strlen(name);
+
+  printf("Your Reg Code Is:");
+
+  if (n%2==0)
+
+    for(i=0;i<n;i=i+2)
+
+    { ansr[i]=name[i]%0x24;
+
+      ansq[i]=name[i]/0x24;
+
+      ansr[i+1]=name[i+1]%0x24;
+
+      ansq[i+1]=name[i+1]/0x24;
+
+      if (ansr[i]>0x9) ansr[i]=ansr[i]+0x57;
+
+      else ansr[i]=ansr[i]+0x30;
+
+      if (ansq[i]>0x9) ansq[i]=ansq[i]+0x57;
+
+      else ansq[i]=ansq[i]+0x30;
+
+      if (ansr[i+1]>0x9) ansr[i+1]=ansr[i+1]+0x57;
+
+      else ansr[i+1]=ansr[i+1]+0x30;
+
+      if (ansq[i+1]>0x9) ansq[i+1]=ansq[i+1]+0x57;
+
+      else ansq[i+1]=ansq[i+1]+0x30;
+
+      for(j=0;j<72;j++)
+
+      {  if (ansq[i]==table[j])
+
+          {  flag=j;  break;  }}
+
+      ansq[i]=table[0x24-flag+0x23];
+
+      printf("%c%c%c%c",ansr[i],ansq[i+1],ansq[i],ansr[i+1]);  }
+
+  else {
+
+    for(i=0;i<n-1;i=i+2)
+
+    { ansr[i]=name[i]%0x24;
+
+      ansq[i]=name[i]/0x24;
+
+      ansr[i+1]=name[i+1]%0x24;
+
+      ansq[i+1]=name[i+1]/0x24;
+
+      if (ansr[i]>0x9) ansr[i]=ansr[i]+0x57;
+
+      else ansr[i]=ansr[i]+0x30;
+
+      if (ansq[i]>0x9) ansq[i]=ansq[i]+0x57;
+
+      else ansq[i]=ansq[i]+0x30;
+
+      if (ansr[i+1]>0x9) ansr[i+1]=ansr[i+1]+0x57;
+
+      else ansr[i+1]=ansr[i+1]+0x30;
+
+      if (ansq[i+1]>0x9) ansq[i+1]=ansq[i+1]+0x57;
+
+      else ansq[i+1]=ansq[i+1]+0x30;
+
+      for(j=0;j<72;j++)
+
+      {  if (ansq[i]==table[j])
+
+          {  flag=j;  break;  }}
+
+      ansq[i]=table[0x24-flag+0x23];
+
+      printf("%c%c%c%c",ansr[i],ansq[i+1],ansq[i],ansr[i+1]);  }
+
+    ansr[n-1]=name[n-1]%0x24;
+
+    ansq[n-1]=name[n-1]/0x24;
+
+    if (ansr[n-1]>0x9) ansr[n-1]=ansr[n-1]+0x57;
+
+    else ansr[n-1]=ansr[n-1]+0x30;
+
+    if (ansq[n-1]>0x9) ansq[n-1]=ansq[n-1]+0x57;
+
+    else ansq[n-1]=ansq[n-1]+0x30;
+
+    printf("%c%c",ansr[n-1],ansq[n-1]);  }
+
+  printf("\nPress Any Key To Exit!\n");
+
+  printf("\n\t\t\t  Cracked By ");
+
+  textcolor(YELLOW);
+
+  cprintf("AirHolder");
+
+  printf("\n\t\tAny Problem Please Email Me:");
+
+  textcolor(BROWN);
+
+  cprintf("airholder@263.net");
+
+  printf("\n\t\t\tWish You A Good Luck!!! ^_^\n");
+
+  getch();
+
+}
+
+                                                  AirHolder
+
+                                                  2001.9.1.  4dd466d0e1e0cc123afbe504da2462ca
+```

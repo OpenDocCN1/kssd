@@ -1,0 +1,112 @@
+
+# 我也爱背单词 2001+ 3.1
+
+> 原文：[www.pediy.com/kssd/pediy04/kanxue289.htm](https://www.pediy.com/kssd/pediy04/kanxue289.htm)
+
+- 软件名称: 我也爱背单词 2001+
+- 版本: V3.1 语音白金版
+- 软件平台: `Win9x` `WinNT` `Win2000` `WinME` `WinXP`
+- 软件大小: 2596KB
+- 软件简介: 我也爱背单词 2001+ 是一款小巧精悍的绿色英语单词辅助记忆软件
+- 下载地址：`http://www8.pconline.com.cn/download/swdetail.phtml?id=2786`
+- 正确注册：`name:36382052Sumica.Tan4661586` `sn：94978405677094`
+- 破解工具：`Soft-ICE`、`lauquage`、`GUW32`
+
+## 破解流程
+
+1. 用 `lauquage` 侦测 是 `ASPpack` 的壳，用 `GUW` 脱之。
+2. 由于用户名已经自动生成，故在 `sn` 里填上 “787878787878” （12 个数字）
+3. 进入 `S-ICE`，`bpx hmemcpy`
+4. F5 回来 按 “现在注册”
+5. 按 F12 12 次
+
+## 代码分析
+
+代码如下：
+
+```
+:004823A7 837DFC00            cmp dword ptr [ebp-04], 00000000     ;<------判断输入是否为空
+:004823AB 750F                jne 004823BC
+
+* Possible StringData Ref from Code Obj ->"You must have Register Name"
+
+                      |
+:004823AD B8A4264800          mov eax, 004826A4
+:004823B2 E8FD09FDFF          call 00452DB4     ;<--------空 就直接完蛋
+:004823B7 E98D020000          jmp 00482649
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004823AB(C)
+|
+:004823BC 8D55F8              lea edx, dword ptr [ebp-08]
+:004823BF 8B8308030000        mov eax, dword ptr [ebx+00000308]
+:004823C5 E85EB6FAFF          call 0042DA28
+:004823CA 837DF800            cmp dword ptr [ebp-08], 00000000 ;<-----------注册码是否为空？
+:004823CE 750F                jne 004823DF
+
+* Possible StringData Ref from Code Obj ->"You can't leave the Register Number "
+                      ->"blank"
+
+                      |
+:004823D0 B8C8264800          mov eax, 004826C8
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0048236A(C)
+|
+:004823D5 E8DA09FDFF          call 00452DB4
+:004823DA E96A020000          jmp 00482649
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004823CE(C)
+|
+:004823DF 8D55F4              lea edx, dword ptr [ebp-0C]
+:004823E2 8B8308030000        mov eax, dword ptr [ebx+00000308]
+:004823E8 E83BB6FAFF          call 0042DA28
+:004823ED 8B45F4              mov eax, dword ptr [ebp-0C]
+:004823F0 50                  push eax
+:004823F1 8D55F0              lea edx, dword ptr [ebp-10]
+:004823F4 A1F0DD4900          mov eax, dword ptr [0049DDF0]
+:004823F9 E8FEFDFFFF          call 004821FC
+:004823FE 8B55F0              mov edx, dword ptr [ebp-10]
+:00482401 58                  pop eax
+:00482402 E8351AF8FF          call 00403E3C
+:00482407 0F85F0000000        jne 004824FD    ;<－－－－关键第一跳
+
+                      ^^^^^^^^^^
+×××就跳到这里啦！
+:004824FD 8D55E0              lea edx, dword ptr [ebp-20]
+:00482500 8B8308030000        mov eax, dword ptr [ebx+00000308]
+:00482506 E81DB5FAFF          call 0042DA28
+:0048250B 8B45E0              mov eax, dword ptr [ebp-20]
+:0048250E 50                  push eax        <-------------可以看到 假的注册码
+:0048250F 8D55D8              lea edx, dword ptr [ebp-28]
+:00482512 8B8304030000        mov eax, dword ptr [ebx+00000304]
+:00482518 E80BB5FAFF          call 0042DA28
+:0048251D 8B45D8              mov eax, dword ptr [ebp-28]
+:00482520 8D55DC              lea edx, dword ptr [ebp-24]
+:00482523 E8D4FCFFFF          call 004821FC
+:00482528 8B55DC              mov edx, dword ptr [ebp-24]  <-----eax＝用户名
+:0048252B 58                  pop eax
+:0048252C E80B19F8FF          call 00403E3C       <-------关键的 call，注册码就在里头！！
+:00482531 0F85EB000000        jne 00482622  <--------改为 je（85 改为 84）就直通罗马！
+－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－
+```
+
+在 `:0048252C E80B19F8FF  call 00403E3C` 的时候我们 F8 进去看看（代码如下）：
+
+```
+:00403E3C 53                  push ebx
+:00403E3D 56                  push esi
+:00403E3E 57                  push edi
+:00403E3F 89C6                mov esi, eax
+:00403E41 89D7                mov edi, edx
+:00403E43 39D0                cmp eax, edx  <------------到这就看到真的和假的在一起啦！
+:00403E45 0F848F000000        je 00403EDA
+:00403E4B 85F6                test esi, esi
+```
+
+我第一次写的记录，有不好的地方就请各位多加指正！
+
+希望转载保持完整。谢谢！
+
+`Sumica.Tan` 2001.12.7 4dd466d0e1e0cc123afbe504da2462ca

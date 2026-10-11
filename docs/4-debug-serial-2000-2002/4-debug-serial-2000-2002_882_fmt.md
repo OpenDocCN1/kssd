@@ -1,0 +1,124 @@
+
+# Teleport Pro
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue157.htm`](https://www.pediy.com/kssd/pediy04/kanxue157.htm)
+
+我有一天想下载一个个人网站，结果下了一个 `teleport pro`。觉得挺好用的，结果就想“合法”地用它了。跟踪了一下，觉得挺简单的。顺手写了一个注册机。因为我的 `QB` 书不在，所以没法用 `Basic` 编，看到案头有本 `C` 语言，就马马虎虎用 `C` 编了一个。写得很差，但我只为写出来能用就行了(再说，我没学过或者说没系统地学过 `C` 语言，要改进也不知道怎么改。。。)。要不是后来看到 `CrackIII` 里有别人写的注册机，我都不知道可以这样那样处理。。。就可以比我写的简练而有效得多了。。。
+
+按说不应贴出来，因为早就有人写过更好的注册机。但这是我第一次写注册机，不贴出来？贴别的地方去也没意思，对于别人来说，这不算什么，可对我来说，是我的第一篇注册机，意义比较大了。。。`So`，大家原谅小弟一回了。。。`OK`？
+
+下面是我的注册机：
+
+```c
+//=============================================================
+
+#include <stdio.h>
+
+#include <string.h>
+
+#include <math.h>
+
+main()
+
+{unsigned char yourname[16];   /*定义一个长 16 的数组来存放注册名*/
+
+unsigned char SN1,SN2,SN3,SN4,temSN;  /* 我想够长了,你要觉得不够,可以自己改*/
+
+int sn11,sn10,sn21,sn20,sn31,sn30,sn41,sn40;
+
+int SL=0;
+
+int i;
+
+long SN=0;
+
+SN1=0x5d;               /* 0x5dfee4a4  是程序中给定的 */
+
+SN2=0xfe;
+
+SN3=0xe4;
+
+SN4=0xa4;
+
+printf ("This is a CrAck program for ----\n ");
+
+printf ("    TelePort Pro v1.29.1632 \n");
+
+input:
+
+printf("Please input Your Name:\n");
+
+printf("Your Name is: ");   /*支持中文名，当然也支持英文名*/
+
+gets(yourname);                   /*得到你的注册名 */
+
+SL=strlen(yourname);              /* 注册名的长度 */
+
+if(SL<6)                                /* 注册名长度小于 6 ,提示重新输入*/
+
+{printf("Name 's Length MUST great than 6\n Try Again  ");
+
+goto input;};
+
+if (SL>16)
+
+{printf("Why you like such a long Name? \n Try Short Name Again  ");
+
+goto input;};
+
+for  (i=0;i<=(SL-5);i++)        /*算注册码*/
+
+{SN1=SN1^(temSN=yourname[i+3]);  /*用第四个字符和 SN1 作或运算*/
+
+SN2=SN2^(temSN=yourname[i+2]);  /*用第三个字符和 SN2 作或运算*/
+
+SN3=SN3^(temSN=yourname[i+1]);  /*循环时向后挪一个字符再进行运算*/
+
+SN4=SN4^(temSN=yourname[i]);  /* 只循环(SL-5)次, 如注册名长 6 位,则循环 1 次*/
+
+};                           /*(一共执行 2 次,如长 7 位则循环 2 次(一共执行 3 次)*/
+
+sn11=SN1/16;                 /* 以下是将得到的 8 位的 16 进制数转换为 10 进制数*/
+
+sn10=SN1-sn11*16;           /*由于最后一个字符不参加运算,最后一个字符*/
+
+sn21=SN2/16;               /*可以是任何一个字母或数字,对注册码没影响*/
+
+sn20=SN2-sn21*16;          /* 另外公司名也不参加运算,可以是任何名称*/
+
+sn31=SN3/16;
+
+sn30=SN3-sn31*16;
+
+sn41=SN4/16;
+
+sn40=SN4-sn41*16;
+
+SN=sn11*pow(16,7);
+
+SN=SN+sn10*pow(16,6);
+
+SN=SN+sn21*pow(16,5);
+
+SN=SN+sn20*pow(16,4);
+
+SN=SN+sn31*pow(16,3);
+
+SN=SN+sn30*pow(16,2);
+
+SN=SN+sn41*16+sn40;
+
+printf("Your SN  is: %ld \n",SN);  /*这就是你的注册码*/
+
+printf("  Enjoy it! \n");
+
+printf("          ----Cracked By HSF(hsFang) 2001.10.13\n");
+
+}
+
+//=======================================================
+```
+
+大功告成，打个 `Kiss`! 呵呵呵。。。`#$@$%%!!%%^^!#@@`
+
+`hsf0214` 于 `2001/10/23` 晚 `4dd466d0e1e0cc123afbe504da2462ca`

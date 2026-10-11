@@ -1,0 +1,182 @@
+
+# RAMCheat v1.2
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue318.htm`](https://www.pediy.com/kssd/pediy04/kanxue318.htm)
+
+我的第?篇 XX:（`RAMCheat v1.2`）<补充>。
+
+以下是上一次贴的 X 文:
+
+"我的第?篇 XX:
+
+到 `WinHEX` 主页下载 `RAMCheat v1.2`
+
+游戏、破解都用得着！！！！
+
+`/////////////////////////////////////////////////////////////////`
+
+运行启动后注册判断（？）：
+
+`/////////////////////////////////////////////////////////////////`
+
+* `Referenced by a (U)nconditional or (C)onditional Jump at Address:`
+* `:00413961(C)`
+
+```
+|
+:00413BE6 A1F8764100                mov eax, dword ptr [004176F8]
+:00413BEB E8C8C1FFFF                call 0040FDB8
+:00413BF0 3B05FC764100              cmp eax, dword ptr [004176FC]
+:00413BF6 7515                      jne 00413C0D
+:00413BF8 B003                      mov al, 03
+:00413BFA E81167FFFF                call 0040A310
+:00413BFF 66F7D0                    not ax
+:00413C02 0FB7C0                    movzx eax, ax
+:00413C05 3B05D4764100              cmp eax, dword ptr [004176D4]
+:00413C0B 7404                      je 00413C11      ；这里改成跳
+（没试过，应该不好，因为 00413BF6 可跳到下面，变成注册失败，可能？？）
+```
+
+* `Referenced by a (U)nconditional or (C)onditional Jump at Address:`
+* `:00413BF6(C)`
+
+```
+|
+:00413C0D 33C0                      xor eax, eax
+:00413C0F EB02                      jmp 00413C13      ;改这里，不要跳转（推荐）
+        ;干脆来两个 nop，让它前进
+        ；前进，前进......
+```
+
+* `Referenced by a (U)nconditional or (C)onditional Jump at Address:`
+* `:00413C0B(C)`
+
+```
+|
+:00413C11 B001                      mov al, 01        ；al 为注册标记
+        ；注册成功为 1
+```
+
+* `Referenced by a (U)nconditional or (C)onditional Jump at Address:`
+* `:00413C0F(U)`
+
+```
+|
+:00413C13 A2E3814100                mov byte ptr [004181E3], al
+        ;来到这就成了 ^-^
+        ；[004181E3]在后来起功能限制标记作用
+:00413C18 EB7C                      jmp 00413C96
+```
+
+* `Referenced by a (U)nconditional or (C)onditional Jump at Address:`
+* `:0041392A(C)`
+
+```
+|
+:00413C1A 81FFE8030000              cmp edi, 000003E8
+:00413C20 7574                      jne 00413C96
+:00413C22 6A00                      push 00000000
+:00413C24 68E8030000                push 000003E8
+:00413C29 A1F4874100                mov eax, dword ptr [004187F4]
+:00413C2E 50                        push eax
+```
+
+`///////////////////////////////////////////////////////////////////////////`
+
+其中一处功能限制（？）：
+
+`///////////////////////////////////////////////////////////////////////////`
+
+```
+:0040D80D E86A6CFFFF                Call 0040447C
+:0040D812 B001                      mov al, 01
+:0040D814 E86396FFFF                call 00406E7C
+:0040D819 A304824100                mov dword ptr [00418204], eax
+:0040D81E 803DDA81410000            cmp byte ptr [004181DA], 00
+:0040D825 740D                      je 0040D834
+:0040D827 8BC3                      mov eax, ebx
+:0040D829 66BA6700                  mov dx, 0067
+:0040D82D E82AF4FFFF                call 0040CC5C
+:0040D832 5B                        pop ebx
+:0040D833 C3                        ret
+```
+
+* `Referenced by a (U)nconditional or (C)onditional Jump at Address:`
+* `:0040D825(C)`
+
+```
+|
+:0040D834 803DE381410000            cmp byte ptr [004181E3], 00
+:0040D83B 7546                      jne 0040D883      ;功能限制标记在这里起作用
+:0040D83D A198764100                mov eax, dword ptr [00417698]
+:0040D842 8B0485F4664100            mov eax, dword ptr [4*eax+004166F4]
+:0040D849 3B0504824100              cmp eax, dword ptr [00418204]
+:0040D84F 7C18                      jl 0040D869
+:0040D851 A198764100                mov eax, dword ptr [00417698]
+:0040D856 833C85F466410000          cmp dword ptr [4*eax+004166F4], 00000000
+:0040D85E 7C23                      jl 0040D883
+:0040D860 833D0482410000            cmp dword ptr [00418204], 00000000
+:0040D867 7D1A                      jge 0040D883
+```
+
+；）经过`00413C0F: jmp 00413C13;改这里，不要跳转（推荐）`的改动后
+
+：）菜单没有了注册项，`RAMcheat` 功能尚未发现受限制！
+
+：）收工。
+
+：）它的注册是否和 `WinHEX` 那样要 `USER.TXT` 文件？？？？？"
+
+`//////////////////////////////////////////////////////////////////////////////`
+
+经过上次的修改当时能用，没有限制。就这样过了一段安宁的日子......
+
+到昨天又有未注册的限制窗口弹出，于是又看了看。
+
+由于上次匆匆收工，遗漏了还有一处要修改！！！！！！
+
+如下：
+
+```
+:004111C1 BA03000000                mov edx, 00000003
+:004111C6 E88182FFFF                call 0040944C
+:004111CB B003                      mov al, 03
+:004111CD E88E79FFFF                call 00408B60
+```
+
+* `Referenced by a (U)nconditional or (C)onditional Jump at Addresses:`
+* `:004111A1(C), :004111B0(C)`
+
+```
+|
+:004111D2 80BFE90A000000            cmp byte ptr [edi+00000AE9], 00
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+:004111D9 7407                      je 004111E2
+///////////////////////////je 004111E2 改为两个 nop
+;!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+:004111DB C605E381410000            mov byte ptr [004181E3], 00
+
+///mov byte ptr [004181E3], 00 改为 mov byte ptr [004181E3], 01
+//我认为这样要比改跳转要好，虽然改得多了点。
+```
+
+* `Referenced by a (U)nconditional or (C)onditional Jump at Address:`
+* `:004111D9(C)`
+
+```
+|
+:004111E2 803DE381410000            cmp byte ptr [004181E3], 00
+:004111E9 7519                      jne 00411204
+:004111EB 833F02                    cmp dword ptr [edi], 00000002
+:004111EE 7E14                      jle 00411204
+:004111F0 6A00                      push 00000000
+:004111F2 68A0BB0D00                push 000DBBA0
+```
+
+//应该行了吧？？？？？？(静态返汇编看看改改的，未跟踪调试，运行是没问题的)
+
+//至少现在没问题了！！！！
+
+//`004111D2 80BFE90A000000  cmp byte ptr [edi+00000AE9], 00`
+
+//也是一个可疑的地方，谁有空看看。   `4dd466d0e1e0cc123afbe504da2462ca`

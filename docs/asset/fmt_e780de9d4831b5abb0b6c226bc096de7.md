@@ -1,0 +1,118 @@
+
+# Flash 转屏保 1.0 注册机
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue120.htm`](https://www.pediy.com/kssd/pediy04/kanxue120.htm)
+
+```delphi
+//Flash 转屏保 1.0 版注册机（delphi 版）   
+
+//http://xtzy.51.net/soft/flashscr/flashs.zip   
+
+//delphi5.0+控件 kol&MCK1.01 制作   
+
+{ KOL MCK } // Do not remove this line!   
+
+{$DEFINE KOL\_MCK}   
+
+unit Unit1;   
+
+interface   
+
+{$IFDEF KOL\_MCK}   
+
+uses Windows, Messages, ShellAPI, KOL {$IFNDEF KOL\_MCK}, mirror, Classes,   
+
+  Controls, mckCtrls {$ENDIF};   
+
+{$ELSE}   
+
+{$I uses.inc}   
+
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,   
+
+  mirror;   
+
+{$ENDIF}   
+
+type   
+
+  {$IFDEF KOL\_MCK}   
+
+  {$I MCKfakeClasses.inc}   
+
+  PfrmMain = ^TfrmMain;   
+
+  TfrmMain = object(TObj)   
+
+    Form: PControl;   
+
+  {$ELSE not\_KOL\_MCK}   
+
+  TfrmMain = class(TForm)   
+
+  {$ENDIF KOL\_MCK}   
+
+    KOLForm1: TKOLForm;   
+
+    KOLProject1: TKOLProject;   
+
+    Label1: TKOLLabel;   
+
+    Label2: TKOLLabel;   
+
+    EditBox1: TKOLEditBox;   
+
+    EditBox2: TKOLEditBox;   
+
+    Button1: TKOLButton;   
+
+    procedure Button1Click(Sender: PObj);   
+
+  private   
+
+    { Private declarations }   
+
+  public   
+
+    { Public declarations }   
+
+  end;   
+
+var   
+
+  frmMain {$IFDEF KOL\_MCK} : PfrmMain {$ELSE} : TfrmMain {$ENDIF} ;   
+
+{$IFDEF KOL\_MCK}   
+
+procedure NewfrmMain( var Result: PfrmMain; AParent: PControl );   
+
+{$ENDIF}   
+
+implementation   
+
+{$IFNDEF KOL\_MCK} {$R \*.DFM} {$ENDIF}   
+
+{$IFDEF KOL\_MCK}   
+
+{$I Unit1\_1.inc}   
+
+{$ENDIF}   
+
+procedure TfrmMain.Button1Click(Sender: PObj);   
+
+var serial,machinecode:integer;   
+
+begin   
+
+  machinecode:=str2int(editbox1.text);   
+
+  serial:=machinecode xor ($111a7b-(machinecode mod $a));   
+
+  editbox2.text:=int2str(serial);   
+
+end;   
+
+end.   
+```
+
+`//MCK&KOL 的作用使得完成的注册机只有 30K 大小，i like it!.  4dd466d0e1e0cc123afbe504da2462ca`

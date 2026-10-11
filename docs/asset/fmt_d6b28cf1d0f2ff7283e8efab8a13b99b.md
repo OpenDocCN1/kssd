@@ -1,0 +1,228 @@
+
+# ExeIco V2.0
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6168.htm`](https://www.pediy.com/kssd/pediy06/pediy6168.htm)
+
+图标更换器(ExeIco) V2.0 算法手记
+
+机器码：`WZUT-CWZA-FELM-OPQR-EI20`
+
+假  码：`1234-5678-90ab-cdef-hijk`
+
+真  码：`QEGO-GKKO-SOIA-SYMO-*****`
+
+主文件 `ExeIco.exe`，`ASPack 2.001` -> `Alexey Solodovnikov` 的壳，`C++` 编程。自动脱壳后无法运行。看来我只有用 `trw` 啦。^\_^
+
+```
+0187:0040C288 8D55FC        LEA     EDX,[EBP-04]
+0187:0040C28B FF32          PUSH    DWORD [EDX]   //假码压栈
+0187:0040C28D E812070000    CALL    0040C9A4      //算法 call，跟进
+0187:0040C292 59           POP     ECX
+0187:0040C293 8B0D88DD4A00 MOV     ECX,[004ADD88]
+0187:0040C299 8B11         MOV     EDX,[ECX]
+0187:0040C29B 888285030000 MOV     [EDX+0385],AL
+0187:0040C2A1 FF4DD4       DEC     DWORD [EBP-2C]
+0187:0040C2A4 8D45FC       LEA     EAX,[EBP-04]
+0187:0040C2A7 BA02000000    MOV     EDX,02
+0187:0040C2AC E8BF230800    CALL    0048E670
+0187:0040C2B1 A188DD4A00    MOV     EAX,[004ADD88]
+0187:0040C2B6 8B08         MOV     ECX,[EAX]
+0187:0040C2B8 80B98503000000  CMP     BYTE [ECX+0385],00
+0187:0040C2BF 0F846A010000 JZ      NEAR 0040C42F     //下 r fl z 提示注册成功。
+0187:0040C2C5 66C745C81400  MOV     WORD [EBP-38],14
+```
+
+`****************************************************************`
+
+跟进 `0040C28D E812070000 CALL 0040C9A4` 此 `call`：
+
+`* Referenced by a CALL at Addresses:`
+
+`|:0040C28D , :0040D00D`
+
+`|`
+
+```
+:0040C9A4 55                 push ebp
+:0040C9A5 8BEC               mov ebp, esp
+:0040C9A7 81C42CFFFFFF       add esp, FFFFFF2C
+:0040C9AD 56                 push esi
+:0040C9AE 57                 push edi
+:0040C9AF B8EC6D4A00         mov eax, 004A6DEC
+:0040C9B4 E84B6C0700         call 00483604
+:0040C9B9 C745F801000000     mov [ebp-08], 00000001
+:0040C9C0 8D5508             lea edx, dword ptr [ebp+08]     //取假码送 edx
+:0040C9C3 8D4508             lea eax, dword ptr [ebp+08]
+:0040C9C6 E8D91B0800         call 0048E5A4
+:0040C9CB FF45F8             inc [ebp-08]
+:0040C9CE 66C745EC0800       mov [ebp-14], 0008
+:0040C9D4 C645DB00           mov [ebp-25], 00
+:0040C9D8 837D0800           cmp dword ptr [ebp+08], 00000000   //比较注册码是否输入。
+:0040C9DC 7408               je 0040C9E6      //没有则 over
+:0040C9DE 8B5508             mov edx, dword ptr [ebp+08]   //ecx=假码
+:0040C9E1 8B4AFC             mov ecx, dword ptr [edx-04]     //ecx=假码的位数 0x18h
+```
+
+`* Referenced by a (U)nconditional or (C)onditional Jump at Address:`
+
+`|:0040C973(C)`
+
+`|`
+
+```
+:0040C9E4 EB02               jmp 0040C9E8
+```
+
+`* Referenced by a (U)nconditional or (C)onditional Jump at Address:`
+
+`|:0040C9DC(C)`
+
+`|`
+
+```
+:0040C9E6 33C9               xor ecx, ecx
+```
+
+`* Referenced by a (U)nconditional or (C)onditional Jump at Address:`
+
+`|:0040C9E4(U)`
+
+`|`
+
+```
+:0040C9E8 83F918             cmp ecx, 00000018      //比较注册码是否 24 位
+:0040C9EB 0F8590000000       jne 0040CA81      //不等则 over
+```
+
+`* Possible StringData Ref from Data Obj -> "1z1h+2a0n-0g8y*9a1n|"`
+
+`|`
+
+```
+:0040C9F1 BEC1684A00         mov esi, 004A68C1      //密码表压栈
+:0040C9F6 8D7D84             lea edi, dword ptr [ebp-7C]
+:0040C9F9 B905000000         mov ecx, 00000005
+:0040C9FE F3                repz
+:0040C9FF A5                movsd
+:0040CA00 A4                movsb
+```
+
+`* Referenced by a (U)nconditional or (C)onditional Jump at Address:`
+
+`|:0040C996(C)`
+
+`|`
+
+```
+:0040CA01 837D0800           cmp dword ptr [ebp+08], 00000000     //再次比较注册码输入了没有
+:0040CA05 7405               je 0040CA0C       //没有则 over
+:0040CA07 8B4508             mov eax, dword ptr [ebp+08]     //eax=假码
+:0040CA0A EB05               jmp 0040CA11
+```
+
+`* Referenced by a (U)nconditional or (C)onditional Jump at Address:`
+
+`|:0040CA05(C)`
+
+`|`
+
+```
+:0040CA0C B84D694A00         mov eax, 004A694D
+```
+
+`* Referenced by a (U)nconditional or (C)onditional Jump at Address:`
+
+`|:0040CA0A(U)`
+
+`|`
+
+```
+:0040CA11 50                 push eax      //假码压栈
+:0040CA12 8D559C             lea edx, dword ptr [ebp-64]
+:0040CA15 52                 push edx
+:0040CA16 E845690700         call 00483360
+:0040CA1B 83C408             add esp, 00000008
+:0040CA1E C645DB01           mov [ebp-25], 01
+:0040CA22 33C9               xor ecx, ecx      //ecx 清零
+:0040CA24 894DD4             mov dword ptr [ebp-2C], ecx   //[ebp-2c]置 0
+```
+
+`* Referenced by a (U)nconditional or (C)onditional Jump at Address:`
+
+`|:0040CA7F(C)`
+
+`|`
+
+```
+:0040CA27 8B45D4             mov eax, dword ptr [ebp-2C]     //eax=0
+:0040CA2A 40                 inc eax      //eax 加 1
+:0040CA2B B905000000         mov ecx, 00000005      //ecx=5
+:0040CA30 99                 cdq
+:0040CA31 F7F9               idiv ecx
+:0040CA33 85D2               test edx, edx
+:0040CA35 7441               je 0040CA78      //当 eax 可以被 5 整除的时候则跳，也就是字符“-”不在注册码计算之内。
+:0040CA37 8B45D4             mov eax, dword ptr [ebp-2C]   //eax=[ebp-2c]
+:0040CA3A 8A9028384B00        mov dl, byte ptr [eax+004B3828]     //依次取机器码字符(除字符“-”以外)的 hex 值送 dl:57,5A,55,54,43。。。。(略)
+:0040CA40 8B4DD4             mov ecx, dword ptr [ebp-2C]     //ecx=[ebp-2c]
+:0040CA43 32540D84           xor dl, byte ptr [ebp+ecx-7C]     //dl 和表中对应位数的字符异或，如 57 xor 31，43 xor 32，。。。。。(略)
+```
+
+◇◇◇◆◆◆下面是内存中的字符表◇◇◇◆◆◆
+
+※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※
+
+```
+018F:004A68C1 31 7A 31 68 2B 32 61 30-6E 2D 30 67 38 79 2A 39 1z1h+2a0n-0g8y*9
+018F:004A68D1 61 31 6E 7C 00 31 7A 31-68 2B 32 61 30 6E 2D 30 a1n|.1z1h+2a0n-0
+018F:004A68E1 67 38 79 2A 39 61 31 6E-7C 00 00 FF FF FF FF 53 g8y*9a1n|..
+```
+
+※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※
+
+```
+:0040CA47 0FBEC2             movsx eax, dl      //异或后的值送 eax
+:0040CA4A 8945D0             mov dword ptr [ebp-30], eax
+:0040CA4D 8B45D0             mov eax, dword ptr [ebp-30]
+:0040CA50 99                 cdq       //edx 清零
+:0040CA51 33C2               xor eax, edx      //eax 和 0 异或
+:0040CA53 2BC2               sub eax, edx      //eax=eax-0
+:0040CA55 69C0F00A0000        imul eax, 00000AF0      //eax=eax *0xAF0h
+:0040CA5B B91A000000         mov ecx, 0000001A      //ecx=1A
+:0040CA60 99                 cdq
+:0040CA61 F7F9               idiv ecx      //eax 除以 ecx
+:0040CA63 83C241             add edx, 00000041     //edx=余数
+:0040CA66 8B45D4             mov eax, dword ptr [ebp-2C]
+:0040CA69 0FBE4C059C         movsx ecx, byte ptr [ebp+eax-64]   //依次取对应机器码位置的假码字符的 hex 值送 ecx
+:0040CA6E 3BD1               cmp edx, ecx      //关键比较
+:0040CA70 7406               je 0040CA78       //相等则跳，有一位不等则 over
+:0040CA72 C645DB00           mov [ebp-25], 00
+:0040CA76 EB09               jmp 0040CA81
+```
+
+`* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:`
+
+`|:0040CA35(C), :0040CA70(C)`
+
+`|`
+
+```
+:0040CA78 FF45D4             inc [ebp-2C]   //计数器[ebp-2C]加 1
+:0040CA7B 837DD414           cmp dword ptr [ebp-2C], 00000014
+:0040CA7F 7CA6               jl 0040CA27     //比较 20 次，也就是只要比较注册码的前 20(d)位，后 4 位是任意数字或字母。
+```
+
+`* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:`
+
+`|:0040C9EB(C), :0040CA76(U)`
+
+`|`
+
+```
+:0040CA81 837D0800           cmp dword ptr [ebp+08], 00000000
+:0040CA85 7408               je 0040CA8F
+:0040CA87 8B5508             mov edx, dword ptr [ebp+08]
+:0040CA8A 8B42FC             mov eax, dword ptr [edx-04]
+:0040CA8D EB02               jmp 0040CA91
+```
+
+算法总结：
