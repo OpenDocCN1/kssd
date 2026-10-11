@@ -1,0 +1,356 @@
+
+# 上次发过突破 TX 驱动的程序和驱动，这次直接发出代码送给大家
+
+> 原文：[`www.pediy.com/kssd/pediy12/99742.html`](https://www.pediy.com/kssd/pediy12/99742.html)
+
+```asm
+;@echo off
+;goto make
+
+.386
+.model flat, stdcall
+option casemap:none
+
+include   .\masm32\include\ntddk.inc
+include   .\masm32\include\ntstatus.inc
+include    .\masm32\include\ntoskrnl.inc
+includelib   .\masm32\lib\ntoskrnl.lib
+include   .\masm32\Macros\Strings.mac
+
+.const
+CCOUNTED_UNICODE_STRING  "\Device\myhook", g_DeviceName, 4
+COUNTED_UNICODE_STRING  "\??\myhook", g_LinkName, 4
+
+;18///////////////////////////////////////////////////////////////////
+.data?
+SERVICE_DESCRIPTOR_TABLE STRUCT
+  ServiceTableBase    DWORD  ?
+  ServiceCounterTableBase    DWORD  ?
+  NumberOfService       DWORD  ?
+  ParamTableBase      DWORD  ?
+SERVICE_DESCRIPTOR_TABLE ends
+
+;30///////////////////////////////////////////////////////////////////
+.data
+ssdtaddr        dd 0
+oldreadaddr   dd 0
+readpush        dd 0
+readjmpaddr     dd 0
+oldwriteaddr   dd 0
+writepush       dd 0
+writejmpaddr    dd 0
+ntopenprcaddr   dd 0
+ntopentrdaddr   dd 0
+KiAttachProcessaddr  dd 0
+ObOpenObjectByPointeraddr  dd 0
+CCOUNTED_UNICODE_STRING "NtOpenProcess", g_ProcessAddr, 4
+CCOUNTED_UNICODE_STRING "NtOpenThread", g_ThreadAddr, 4
+CCOUNTED_UNICODE_STRING "KeAttachProcess",g_KeAttachAddr, 4
+CCOUNTED_UNICODE_STRING "ObOpenObjectByPointer",g_PointerAddr, 4
+
+;56///////////////////////////////////////////////////////////////////
+.code
+;///////////////////////////////////////////////////////////////////
+
+MyNtReadVirtualMemory proc
+
+;写好自己的 nt!readvirtualmemory 前几段代码直接跳到被 hook 代码后面
+  push 1ch
+  push readpush
+  jmp  readjmpaddr
+
+;readjmpaddr 在后面记录下被 hook 了的代码后的地址
+MyNtReadVirtualMemory endp
+
+;///////////////////////////////////////////////////////////////////
+MyNtWriteVirtualMemory proc        ;同上
+  push 1ch
+  push writepush
+  jmp  writejmpaddr
+MyNtWriteVirtualMemory endp
+
+;/////////////////////////////////////////////////////////////////
+MyOpenProcess proc
+
+;这里 TX 直接把 call ObOpenObjectByPointer 改为自己的地址
+;我们就要在他前面 hook，让代码走我们的线路跳过 TX 的 call
+  pushad
+
+;这里的 pushad,popad 里面可以写一些检测代码，比如，
+;如果是 TX 的代码要检测这里可以让他去运行他自己的 call
+;这里好像没有检测，所以没有写代码
+  popad          push dword ptr [ebp-38h]
+  push dword ptr [ebp-24h]
+  mov  eax,ntopenprcaddr
+  add  eax,0bh
+  push eax
+
+;这里要注意，这里的 ntopenprcaddr 是 call ObOpenObjectByPointer 后面
+;的代码的地址,这个一定要写进去，因为我们是直接 jmp 进 ObOpenObjectByPointer
+  jmp  ObOpenObjectByPointeraddr      MyOpenProcess endp
+
+;这里就相当于是一个 call 但这里为什么不用 call ObOpenObjectByPointer
+;只不过是少写几行代码也可以这样写
+
+;push dword ptr [ebp-38h]  这两行代码是直接拷贝
+;push dword ptr [ebp-24h]  ntopenprocess 里的代码
+;call ObOpenObjectByPointer
+;push ntopenprcaddr
+;ret
+
+这里一个 push 和 ret 也就是把下一个代码地址写入 esp 返回，
+;这里大家可以练习一下，刚开绐我这里也不太明白怎么写，蓝屏 N 次
+;后来在 ring3 下写了几次代码试验出来的，哈哈，菜鸟，只能这样，
+;//////////////////////////////////////////////////////////////////
+MyOpenTread proc          ;这里同上
+  pushad
+  popad
+  push dword ptr [ebp-34h]
+  push dword ptr [ebp-20h]
+  mov  eax,ntopentrdaddr
+  add  eax,0bh
+  push eax
+  jmp  ObOpenObjectByPointeraddr
+MyOpenTread endp
+
+;/////////////////////////////////////////////////////////////////
+Findcodeaddr proc code1:dword,code2:word,prcaddr:dword
+
+;这里是通过特征码搜索地址，因为不同的系统各地址不同，所以只能
+;这样，试过 xpsp2,xpsp3 通过，别的系统没测试
+  mov    edx,prcaddr
+  mov    ecx,1000h
+  .while ecx
+     sub ecx,1h
+     add edx,1h
+     mov ebx,dword ptr [edx]
+     xor eax,eax
+     mov ax,word ptr [edx+4h]
+  .break .if ebx==code1 && ax==code2
+  .endw
+  mov    eax,edx
+  ret
+Findcodeaddr endp
+
+;////////////////////////////////////////////////////////////////
+myhook proc
+  pushad
+  invoke MmGetSystemRoutineAddress,addr g_ProcessAddr
+  invoke Findcodeaddr,0ffc875ffh,0dc75h,eax
+
+;通过 windbg 找到被 hook 地址前面的特征码找地址
+  mov    ntopenprcaddr,eax
+  invoke MmGetSystemRoutineAddress,addr g_ThreadAddr
+  invoke Findcodeaddr,0ffcc75ffh,0e075h,eax
+  mov    ntopentrdaddr,eax
+  invoke MmGetSystemRoutineAddress,addr g_PointerAddr  ;ObOpenObjectByPointer
+  mov    ObOpenObjectByPointeraddr,eax
+  invoke MmGetSystemRoutineAddress,addr g_KeAttachAddr
+
+;这个 KiAttachProcess 没导出函数就通过 KeAttachProcess
+  invoke Findcodeaddr,570875ffh,0e856h,eax
+
+;来找了，大鸟们说是第一个 E8 call 我也就这样找了
+  add    eax,6h
+  mov    ebx,dword ptr [eax]
+  add    ebx,eax
+  add    ebx,4h
+  mov    KiAttachProcessaddr,ebx
+  mov eax,offset KeServiceDescriptorTable
+
+;这里找 SSDT，ntwritevirtualmemory,ntreadvirtualmemory
+  mov eax,[eax]                   ;address of KeServiceDescriptorTable
+  assume eax : ptr SERVICE_DESCRIPTOR_TABLE
+
+;这两个函数在 SSDT 的位置找出这两个地址，等下改成我们的
+  mov ebx,[eax].ServiceTableBase
+
+;地址，这就是 SSDT hook，当时搞定这个心里乐得不行，
+  mov ssdtaddr,ebx
+
+;偶菜鸟也能 HOOk 系统函数了，
+  mov eax,ssdtaddr
+  add eax,2e8h                   ;0xBA * 4   ntreadvirtualmemoryaddr
+  mov eax,DWORD PTR [eax]
+  mov oldreadaddr,eax
+  mov ebx,DWORD PTR [eax+3h]
+  mov readpush,ebx
+  add eax,7h
+  mov readjmpaddr,eax
+  mov eax,ssdtaddr
+  add eax,454h                   ;0x115*4    ntwritevirtualmemoryaddr
+  mov eax,DWORD PTR [eax]
+  mov oldwriteaddr,eax
+  mov ebx,DWORD PTR [eax+3h]
+  mov writepush,ebx
+  add eax,7h
+  mov writejmpaddr,eax
+
+;这里我就不说了，大鸟们说得很清楚了，改写代码的时候不被中断
+;要是代码没改完中断了，嘿嘿，蓝瓶的，好喝
+  cli
+         mov eax,cr0
+  and eax,not 10000h
+  mov cr0,eax
+  mov eax,ssdtaddr
+  mov DWORD ptr [eax+2e8h],offset MyNtReadVirtualMemory
+  mov DWORD ptr [eax+454h],offset MyNtWriteVirtualMemory
+  mov ebx,ntopenprcaddr
+  mov BYTE ptr [ebx],0e9h
+  mov eax,offset MyOpenProcess
+  sub eax,ebx
+  sub eax,5h
+  mov DWORD ptr [ebx+1h],eax
+  mov ebx,ntopentrdaddr
+  mov BYTE ptr [ebx],0e9h
+  mov eax,offset MyOpenTread
+  sub eax,ebx
+  sub eax,5h
+  mov DWORD ptr [ebx+1h],eax
+        mov eax,cr0
+  or  eax,10000h
+  mov cr0,eax
+  sti
+  popad
+  mov eax,1h
+  ret
+myhook endp
+
+;/////////////////////////////////////////////////////////////////
+DriverUnload proc pDriverObject:PDRIVER_OBJECT
+
+ ;驱动卸载，把自己 hook 找码改回
+  pushad
+  cli
+          mov  eax,cr0
+  and  eax,not 10000h
+  mov  cr0,eax
+  mov eax,ssdtaddr
+  mov ebx,DWORD ptr [oldreadaddr]
+  mov DWORD ptr [eax+2e8h],ebx
+  mov ebx,DWORD ptr [oldwriteaddr]
+  mov DWORD ptr [eax+454h],ebx
+  mov  eax,ntopenprcaddr
+  mov  dword PTR [eax],0ffc875ffh
+  mov  WORD ptr [eax+4h],0dc75h
+  mov  eax,ntopentrdaddr
+  mov  dword PTR [eax],0ffcc75ffh
+  mov  WORD ptr [eax+4h],0e075h
+          mov  eax,cr0
+  or   eax,10000h
+  mov  cr0,eax
+  sti
+  invoke IoDeleteSymbolicLink, addr g_LinkName
+  mov eax, pDriverObject
+  invoke IoDeleteDevice, (DRIVER_OBJECT PTR [eax]).DeviceObject
+  popad
+  ret
+DriverUnload endp
+
+;////////////////////////////////////////////////////////////////////
+MyCreate proc pDeviceObject:PDEVICE_OBJECT, pIrp:PIRP
+
+;这里的做用是当我们的程序加载驱动后，
+;可以检测游戏是否运行，等,还有一个对付 TX debug 清 0
+;在程序中用 CreateFile 调用此函数
+  mov esi, pIrp
+  assume esi:ptr _IRP
+         mov [esi].IoStatus.Status, STATUS_UNSUCCESSFUL
+  and [esi].IoStatus.Information, 0
+  pushad
+  mov ebx,KiAttachProcessaddr
+  mov eax,dword ptr [ebx]
+  .if eax==8b55ff8bh
+       mov  eax,STATUS_UNSUCCESSFUL
+  popad
+  ret
+;本人对 TX hook KiAttachProcess 的代码检测，
+;如果这里代码改动则游戏已运行， .endif
+  add ebx,1h
+```
+
+
+
+```asm
+  mov eax,dword ptr [ebx]
+  sub eax,53bh              ;这里就是大鸟找出来的 debug 清 0 的地址通过
+  mov ebx,dword ptr [eax]   ;ebx 此地址为 bc 改为 70      ;TX hook KiAttachProcess 的地址加偏移找到
+  cli
+      mov eax,cr0
+  and eax,not 10000h
+  mov cr0,eax
+  mov dword ptr [ebx],70h   ;去除 debugport 清 0
+  mov eax,KiAttachProcessaddr
+  mov dword ptr [eax],8b55ff8bh
+  mov dword ptr [eax+4],5d8b53ech
+      mov eax,cr0
+  or  eax,10000h
+  mov cr0,eax
+  sti
+  popad
+  mov [esi].IoStatus.Status, STATUS_SUCCESS
+  ret
+MyCreate endp
+;////////////////////////////////////////////////////////////////////
+MyClose proc pDeviceObject:PDEVICE_OBJECT, pIrp:PIRP
+;关闭 CreateFile 函数调用
+  mov esi, pIrp
+  assume esi:ptr _IRP
+  mov [esi].IoStatus.Status,STATUS_UNSUCCESSFUL
+  and [esi].IoStatus.Information, 0
+  mov [esi].IoStatus.Status,STATUS_SUCCESS
+  ret
+MyClose endp
+;////////////////////////////////////////////////////////////////////
+DriverEntry proc pDriverObject:PDRIVER_OBJECT, pusRegistryPath:PUNICODE_STRING    ;驱动入口，这里大家学习下驱动编程
+local status:NTSTATUS
+local pDeviceObject:PDEVICE_OBJECT
+  invoke myhook
+  .if eax == 0
+      mov  eax,STATUS_UNSUCCESSFUL
+      ret
+  .endif
+  mov status,STATUS_UNSUCCESSFUL
+  invoke IoCreateDevice,pDriverObject,0,addr g_DeviceName,FILE_DEVICE_UNKNOWN,0,FALSE,addr pDeviceObject
+  .if eax == STATUS_SUCCESS
+    invoke IoCreateSymbolicLink,addr g_LinkName,addr g_DeviceName
+    .if eax == STATUS_SUCCESS
+      mov eax, pDriverObject
+      assume eax:ptr DRIVER_OBJECT
+      mov [eax].MajorFunction[IRP_MJ_CREATE*(sizeof PVOID)],offset MyCreate
+      mov [eax].MajorFunction[IRP_MJ_CLOSE*(sizeof PVOID)],offset MyClose
+      mov [eax].DriverUnload,offset DriverUnload
+      assume eax:nothing
+      mov status, STATUS_SUCCESS
+    .else
+      invoke IoDeleteDevice, pDeviceObject
+    .endif
+  .endif
+      mov  eax,status
+  .if eax ==  STATUS_SUCCESS
+  .endif
+    ret
+DriverEntry endp
+end DriverEntry
+```
+
+```
+:make
+set drv=mydrv
+\masm32\bin\ml /nologo /c /coff %drv%.bat
+\masm32\bin\link /nologo /driver /base:0x10000 /align:32 /out:%drv%.sys /subsystem:native /ignore:4078 %drv%.obj
+del %drv%.obj
+move %drv%.sys ..
+echo.
+Pause
+```
+
+代码保存为`bat`文件，直接运行即可,
+
+本人菜鸟只能拿大鸟们的成果在这里组合一个，代码写得烂，有什么地方可优化的地方，
+
+高手优化过发我一份，哈哈，
+
+菜鸟学习一个多月的成果，此驱动可通过`OD`加载`DNF`进行调试
+
+能送一张邀请卡最好不过，哈哈
