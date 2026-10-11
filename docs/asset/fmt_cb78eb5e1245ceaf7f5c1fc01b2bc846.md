@@ -1,0 +1,101 @@
+
+```
+0634   09 02    0120AA46         push      00000070
+0635   3C 02    0120AA8C         mov       [addr_context.register], context.esp
+0636   16 01    0120AA70         Sub       [addr_context.register], 00000004
+0637   3A 02    0120AA9A         pop       [context.register] (4 bytes)
+0638   09 02    0120AA54         push      [addr_context.register]
+0639   3A 02    0120AA62         pop       [addr_context.esp] (4 bytes)       ; push 70
+
+0640   27 02    0120AA7E         load      context.register, 060AD197
+0641   09 02    0120AAA8         push      01001898
+0642   3C 02    0120AAD2         mov       [addr_context.register], context.esp
+0643   16 01    0120AAB6         Sub       [addr_context.register], 00000004
+0644   3A 02    0120AAE0         pop       [context.register] (4 bytes)
+0645   09 02    0120AAC4         push      [addr_context.register]
+0646   3A 02    0120AAEE         pop       [addr_context.esp] (4 bytes)       ; push 01001898
+
+0647   3C 02    0120AAFC         mov       [addr_context.register], context.esp
+0648   16 01    0120AB6C         Sub       [addr_context.register], 00000004
+0649   09 02    0120AB18         push      [addr_context.register]
+0650   3A 02    0120AB50         pop       [addr_context.esp] (4 bytes)
+0651   09 02    0120AB42         push      0120AB7A
+0652   3C 02    0120AB0A         mov       [addr_context.register], context.esp
+0653   3A 02    0120AB26         pop       [context.register] (4 bytes)
+0654   3C 02    0120AB34         mov       [addr_context.register], 01007568
+0655   02 02    0120AB5E         call      context.register        ; call 01007568
+
+
+
+0656   02       0120AB7A         mov       [addr_context.register], addr_context.ebx
+0657   09 02    0120ABDC         push      [context.register]
+0658   3C 02    0120ABB2         mov       [addr_context.register], addr_context.ebx
+0659   09 02    0120ABCE         push      [context.register]
+0660   21 00    0120ABA4         Xor       [esp+4], [esp] (4 bytes)
+0661   3C 02    0120ABC0         mov       [addr_context.register], addr_context.ebx
+0662   3A 02    0120AB96         pop       [context.register] (4 bytes)        ; xor ebx, ebx
+
+0663   27 02    0120AB88         load      context.register, 0C006D96
+0664   3C 02    0120ABEA         mov       [addr_context.register], addr_context.ebx
+0665   09 02    0120ABF8         push      [context.register]
+0666   3C 02    0120AC06         mov       [addr_context.register], context.esp
+0667   16 01    0120AC30         Sub       [addr_context.register], 00000004
+0668   3A 02    0120AC4C         pop       [context.register] (4 bytes)
+0669   09 02    0120AC3E         push      [addr_context.register]
+0670   3A 02    0120AC14         pop       [addr_context.esp] (4 bytes)        ; push ebx
+
+
+0671   27 02    0120AC22         load      context.register, 07BA6731
+0672   3C 02    0120AC5A         mov       [addr_context.register], 010010CC
+0673   09 02    0120AC84         push      [context.register]
+0674   3C 02    0120AC68         mov       [addr_context.register], addr_context.edi
+0675   3A 02    0120AC76         pop       [context.register] (4 bytes)        ; mov edi, dword ptr [010010CC]
+
+0676   3C 02    0120AC92         mov       [addr_context.register], context.esp
+0677   16 01    0120ACCA         Sub       [addr_context.register], 00000004
+0678   09 02    0120ACE6         push      [addr_context.register]
+0679   3A 02    0120ACBC         pop       [addr_context.esp] (4 bytes)
+0680   09 02    0120ACA0         push      0120AD10
+0681   3C 02    0120AD02         mov       [addr_context.register], context.esp
+0682   3A 02    0120ACD8         pop       [context.register] (4 bytes)
+0683   3C 02    0120ACAE         mov       [addr_context.register], addr_context.edi
+
+0684   02 02    0120ACF4         call      [context.register]          ; call edi
+
+
+0685   02       0120AD10         mov       [addr_context.register], context.eax
+0686   09 02    0120AD48         push      [context.register]
+0687   09 02    0120AD2C         push      00005A4D
+0688   3E 01    0120AD1E         Cmp       [esp+4], [esp] (2 bytes)         ; cmp word ptr [eax], 5A4D
+0689   27 02    0120AD3A         load      context.register, 0E6ADC79
+
+0690   3C 02    0120AD56         mov       [addr_context.register], 010073DA
+0691   02 02    0120AD64         jnz       context.register          ; jnz 010073DA
+
+0692   3C 02    0120AD72         mov       [addr_context.register], context.eax
+0693   04 00    0120AD9C         Add       [addr_context.register], 0000003C
+0694   09 02    0120AD80         push      [context.register]
+0695   3C 02    0120AD8E         mov       [addr_context.register], addr_context.ecx
+0696   3A 02    0120ADB8         pop       [context.register] (4 bytes)        ; mov ecx, dword ptr [eax+3C]
+
+0697   27 02    0120ADAA         load      context.register, 0B1B1124
+0698   09 02    0120ADC6         push      010073BE
+0699   3C 02    0120AE0C         mov       [addr_context.register], context.esp
+0700   16 01    0120ADFE         Sub       [addr_context.register], 00000004
+0701   3A 02    0120ADE2         pop       [context.register] (4 bytes)
+0702   09 02    0120AE1A         push      [addr_context.register]
+0703   3A 02    0120ADF0         pop       [addr_context.esp] (4 bytes)        ; push 010073BE
+
+0704   27 02    0120ADD4         load      context.register, 018AABBB
+0705   3C 02    0120AE28         mov       [addr_context.register], context.esp
+0706   09 02    0120AE60         push      [context.register]
+0707   3C 02    0120AE7C         mov       [addr_context.register], context.esp
+0708   04 00    0120AE52         Add       [addr_context.register], 00000004
+0709   09 02    0120AE6E         push      [addr_context.register]
+0710   3A 02    0120AE36         pop       [addr_context.esp] (4 bytes)
+0711   3A 02    0120AE44         pop       [addr_context.register] (4 bytes)     ; pop Reg
+
+0712   02 02    0120AE8A         jmp       context.register          ; jmp Reg --> jmp 010073BE (跳去 VM 下的正常代码)
+```
+
+【感谢您看到这里，哈哈】
