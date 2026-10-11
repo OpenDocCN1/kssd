@@ -1,0 +1,160 @@
+
+# Hide Window Hotkey V2.5 注册算法分析(适合新手)
+
+> 原文：[`www.pediy.com/kssd/pediy11/110572.html`](https://www.pediy.com/kssd/pediy11/110572.html)
+
+**【文章标题】**: `Hide Window Hotkey` V2.5 注册算法分析
+
+**【文章作者】**: `TyroneKing`
+
+**【作者邮箱】**: `tyroneking@126.com`
+
+**【软件名称】**: `Hide Window Hotkey`
+
+**【下载地址】**: `HWHSetup.rar`
+
+**【KeyGen】**: `KeyGen.rar`
+
+**【加壳方式】**: `ASPack 2.12 -> Alexey Solodovnikov`
+
+**【保护方式】**: 注册名+序列号
+
+**【编写语言】**: `Borland Delphi 6.0 - 7.0`
+
+**【使用工具】**: `OD + PEiD + DeDe + MD5 计算器 + AspackDie + IDA (可以不用，加强分析)`
+
+**【操作平台】**: `WIN XP + SP3、 VC++6.0`
+
+**【软件介绍】**: 隐藏运行的窗口和应用程序软件。
+
+**【作者声明】**: 只是为了学习，没有其他目的。失误之处敬请诸位大侠赐教!
+
+## 【分析过程】
+
+1. 用 `PEiD` 查壳，为 `ASPack 2.12 -> Alexey Solodovnikov`，用 `ESP` 定律很容易就可以脱壳了，不过这里还是用 `AspackDie`，不对如何脱壳详说（我也是新手，脱一些简单的行，强壳，还得继续努力呀，：））。
+
+2. 用 `AspackDie` 脱壳，用 `PEiD` 查为 `Borland Delphi 6.0 - 7.0` 编写，`KANAL` 算法识别插件分析，软件用了 `MD5(地址 004B549A)` 算法，用，直接运行脱壳后程序没啥反应，应该是自检验了。
+
+3. 用 `OD` 加载下 `bp GetFileSize` 断点，程序中断在 `GetFileSize` 函数中，按 `Alt+F9` 返回程序领空 `004030A1`
+
+引用:
+```asm
+00403097  |.  6A 00           PUSH 0                          ; /pFileSizeHigh = NULL
+00403099  |.  8B03           MOV EAX,DWORD PTR DS:[EBX]       ; |
+0040309B  |.  50             PUSH EAX                          ; |hFile
+0040309C  |.  E8 FBE1FFFF    CALL <JMP.&kernel32.GetFileSize> ; \GetFileSize
+004030A1  |.  8BF0           MOV ESI,EAX                       ;  EAX=文件大小
+……
+004030C8  \.  C3             RETN
+```
+
+4. 单步运行过 `004030C8` 后，跳出该函数，运行到 `004C4B8B`
+
+引用:
+```asm
+004C4B86  |.  E8 79DDF3FF    CALL unpacked.00402904           ;  取文件大小
+004C4B8B  |.  3D 20A10700    CMP EAX,7A120                    ;  EAX 为文件大小
+004C4B90  |.  7E 15          JLE SHORT unpacked.004C4BA7      ;  <=7A120 则跳，原文件大小 6E000,现 EAX=1A2000 没跳
+004C4B92  |.  8D85 ACFEFFFF LEA EAX,DWORD PTR SS:[EBP-154]    ;  将 4C4B90 跳为 JMP，或将 7A120 改为比 1A2000 即可
+004C4B98  |.  E8 3FE3F3FF    CALL unpacked.00402EDC
+004C4B9D  |.  E8 62DDF3FF    CALL unpacked.00402904
+004C4BA2  |.  E8 49F9F3FF    CALL unpacked.004044F0           ;  该函数中调用 ExitProcess，退出程序
+004C4BA7  |>  8D85 ACFEFFFF LEA EAX,DWORD PTR SS:[EBP-154]
+```
+
+5. 将 `4C4B90` 改为 `JMP SHORT unpacked.004C4BA7`，保存成 `Crack.exe` 文件，运行 `Crack.exe`，程序正常运行（注意要先前面调试的 `OD`，因为这个软件只允许一个进程运行）。
+
+6. 在 `Help->Register` 中打开注册窗口，输入 `Name` 和 `Code`，提示错误，退出程序，分别用 `OD` 和 `DeDe` 加载，下面开始算法分析。
+
+7. 在 `DeDe` 中查找注册窗口的 `OK` 按钮事件
+
+![](img/0bae0d0eb75bce721dd557c0b21a6e30.jpg)
+
+在 `OD` 中 `004B609C` 下断点。
+
+8. `OD` 中运行程序，（在第 2 点中提到 `004B549A`（`MD5` 算法位置）附近 `004B5499` 下断点，为了判断程序是否用 `MD5` 加密）打开注册窗口 `Name` 输入 `TYRONEKING`，`Code` 输入 `0123456789`，点击 `OK`，`OD` 在 `004B609C` 中断。
+
+引用:
+```asm
+004B609C  /.  55             PUSH EBP                           ;  OKButton
+……
+004B60BE  |.  8D55 FC        LEA EDX,DWORD PTR SS:[EBP-4]
+004B60C1  |.  8B83 2C030000 MOV EAX,DWORD PTR DS:[EBX+32C]     ;  TfrmRegister.eName
+004B60C7  |.  E8 5061FAFF    CALL <Crack.TControl.GetText(TControl)> ;  这里函数名是作了标签的，具体是哪个函数参考 DeDe
+004B60CC  |.  8B45 FC        MOV EAX,DWORD PTR SS:[EBP-4]      ;  Tips:知道函数名后进入函数，按 Shift+;（即输入冒号）给该函数作标签
+004B60CF  |.  E8 ECE7F4FF    CALL <Crack.@LStrLen(String)>
+004B60D4  |.  83F8 08        CMP EAX,8
+004B60D7  |.  7D 3E          JGE SHORT Crack.004B6117          ;  Name 的长度<8 则提示错误
+004B60D9  |.  6A 10          PUSH 10
+004B60DB  |.  8D55 F8        LEA EDX,DWORD PTR SS:[EBP-8]
+004B60DE  |.  A1 30E74C00    MOV EAX,DWORD PTR DS:[4CE730]
+004B60E3  |.  E8 4005F5FF    CALL <Crack.LoadResString(PResStringRec)>
+004B60E8  |.  8B45 F8        MOV EAX,DWORD PTR SS:[EBP-8]
+004B60EB  |.  E8 D0E9F4FF    CALL <Crack.@LStrToPChar(String)>
+004B60F0  |.  50             PUSH EAX
+004B60F1  |.  8D55 F4        LEA EDX,DWORD PTR SS:[EBP-C]
+004B60F4  |.  A1 C4E64C00    MOV EAX,DWORD PTR DS:[4CE6C4]
+004B60F9  |.  E8 2A05F5FF    CALL <Crack.LoadResString(PResStringRec)> ;  在资源文件中提取“提示字符串”，避免通过字符串查找破解
+004B60FE  |.  8B45 F4        MOV EAX,DWORD PTR SS:[EBP-C]
+004B6101  |.  E8 BAE9F4FF    CALL <Crack.@LStrToPChar(String)>
+004B6106  |.  50             PUSH EAX                          ; |Text
+004B6107  |.  E8 5010F5FF    CALL <JMP.&user32.GetActiveWindow> ; |\[GetActiveWindow
+004B610C  |.  50             PUSH EAX                          ; |hOwner
+004B610D  |.  E8 7A12F5FF    CALL <JMP.&user32.MessageBoxA>    ; \MessageBoxA
+004B6112  |.  E9 4F010000    JMP Crack.004B6266
+004B6117  |>  8D55 F0        LEA EDX,DWORD PTR SS:[EBP-10]
+004B611A  |.  8B83 2C030000 MOV EAX,DWORD PTR DS:[EBX+32C]     ;  (初始 cpu 选择)
+004B6120  |.  E8 F760FAFF    CALL <Crack.TControl.GetText(TControl)>
+004B6125  |.  8B55 F0        MOV EDX,DWORD PTR SS:[EBP-10]     ;  取 Name
+004B6128  |.  B8 DC624B00    MOV EAX,Crack.004B62DC            ;  空格 20H
+004B612D  |.  E8 D2EAF4FF    CALL <Crack.@LStrPos>             ;  Name 是否包含空格
+004B6132  |.  85C0           TEST EAX,EAX
+004B6134  |.  7E 3E          JLE SHORT Crack.004B6174          ;  不包含则跳
+……
+004B6174  |>  8D55 E4        LEA EDX,DWORD PTR SS:[EBP-1C]
+004B6177  |.  8B83 2C030000 MOV EAX,DWORD PTR DS:[EBX+32C]
+004B617D  |.  E8 9A60FAFF    CALL <Crack.TControl.GetText(TControl)>
+004B6182  |.  8B45 E4        MOV EAX,DWORD PTR SS:[EBP-1C]
+004B6185  |.  E8 36E7F4FF    CALL <Crack.@LStrLen(String)>
+004B618A  |.  8BF0           MOV ESI,EAX
+004B618C  |.  83EE 02        SUB ESI,2
+004B618F  |.  7C 36          JL SHORT Crack.004B61C7          ;  Name 的长度小于 2,则错误
+004B6191  |.  46             INC ESI                           ; /------------------------
+004B6192  |.  BF 02000000    MOV EDI,2
+004B6197  |>  8D55 E0        /LEA EDX,DWORD PTR SS:[EBP-20]
+004B619A  |.  8B83 2C030000 |MOV EAX,DWORD PTR DS:[EBX+32C]
+004B61A0  |.  E8 7760FAFF    |CALL <Crack.TControl.GetText(TControl)> ; 取 Name
+004B61A5  |.  8B45 E0        |MOV EAX,DWORD PTR SS:[EBP-20]
+004B61A8  |.  8A4438 FF      |MOV AL,BYTE PTR DS:[EAX+EDI-1]  ; AL=Name[EDI-1]
+004B61AC  |.  50             |PUSH EAX
+004B61AD  |.  8D55 DC        |LEA EDX,DWORD PTR SS:[EBP-24]
+004B61B0  |.  8B83 2C030000 |MOV EAX,DWORD PTR DS:[EBX+32C]
+004B61B6  |.  E8 6160FAFF    |CALL <Crack.TControl.GetText(TControl)>
+004B61BB  |.  8B45 DC        |MOV EAX,DWORD PTR SS:[EBP-24]
+004B61BE  |.  5A             |POP EDX
+004B61BF  |.  3A10           |CMP DL,BYTE PTR DS:[EAX]        ; Name[EDI-1]与 Name[0]比较
+004B61C1  |.  75 04          |JNZ SHORT Crack.004B61C7
+004B61C3  |.  47             |INC EDI                           ; 相等则 EDI+1
+004B61C4  |.  4E             |DEC ESI
+004B61C5  |.^ 75 D0          \JNZ SHORT Crack.004B6197
+004B61C7  |>  8D55 D8        LEA EDX,DWORD PTR SS:[EBP-28]
+004B61CA  |.  8B83 2C030000 MOV EAX,DWORD PTR DS:[EBX+32C]
+004B61D0  |.  E8 4760FAFF    CALL <Crack.TControl.GetText(TControl)>
+004B61D5  |.  8B45 D8        MOV EAX,DWORD PTR SS:[EBP-28]
+004B61D8  |.  E8 E3E6F4FF    CALL <Crack.@LStrLen(String)>
+004B61DD  |.  3BF8           CMP EDI,EAX
+004B61DF  |.  7E 3B          JLE SHORT Crack.004B621C          ; EDI>EAX 提示出错
+004B61E1  |.  6A 10          PUSH 10                           ; \\若用户名为单一字符，出提示错误
+……
+004B621C  |>  8D55 CC        LEA EDX,DWORD PTR SS:[EBP-34]
+004B621F  |.  8B83 2C030000 MOV EAX,DWORD PTR DS:[EBX+32C]
+004B6225  |.  E8 F25FFAFF    CALL <Crack.TControl.GetText(TControl)> ; 取 Name
+004B622A  |.  8B55 CC        MOV EDX,DWORD PTR SS:[EBP-34]
+004B622D  |.  8BC3           MOV EAX,EBX
+004B622F  |.  E8 CC020000    CALL Crack.004B6500               ; 计算 Code
+004B6234  |.  8D55 C8        LEA EDX,DWORD PTR SS:[EBP-38]
+004B6237  |.  8B83 30030000 MOV EAX,DWORD PTR DS:[EBX+330]
+004B623D  |.  E8 DA5FFAFF    CALL <Crack.TControl.GetText(TControl)> ; 取假 Code
+004B6242  |.  8B55 C8        MOV EDX,DWORD PTR SS:[EBP-38]
+004B6245  |.  8D83 38030000 LEA EAX,DWORD PTR DS:[EBX+338]     ; 保假 Code
+```
