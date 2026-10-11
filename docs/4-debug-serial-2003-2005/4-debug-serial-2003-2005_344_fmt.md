@@ -1,0 +1,200 @@
+
+# 大管家通用人事工资管理系统 专业版 4.5
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6287.htm`](https://www.pediy.com/kssd/pediy06/pediy6287.htm)
+
+软件的作者用的是优化大师旧版本的注册算法，我抄了 hying 大侠的优化大师注册算法分析：）
+
+输入的测试序列号为：`ikki`，测试注册码：`1111-2222-3333-4444`。
+
+程序首先检查输入的序列号是否够 8 位，如果不够就在后面连接上“1234567”，然后取前 8 位进行计算。
+
+共两处检查：注册码和终端数。
+
+```
+:012F90D8 8B04B7              mov eax, dword ptr [edi+4*esi]
+:012F90DB 8945E0              mov dword ptr [ebp-20], eax
+:012F90DE 8B44B704            mov eax, dword ptr [edi+4*esi+04]
+:012F90E2 8945E4              mov dword ptr [ebp-1C], eax
+:012F90E5 8BCB                mov ecx, ebx
+:012F90E7 8D55E0              lea edx, dword ptr [ebp-20]    <--变换后的序列号入 EDX
+:012F90EA 8B45FC              mov eax, dword ptr [ebp-04]
+:012F90ED E896FEFFFF          call 012F8F88                   <--根据序列号计算得数 1
+:012F90F2 8B03                mov eax, dword ptr [ebx]
+:012F90F4 894308              mov dword ptr [ebx+08], eax
+:012F90F7 8B4304              mov eax, dword ptr [ebx+04]
+:012F90FA 89430C              mov dword ptr [ebx+0C], eax
+:012F90FD 8B45E0              mov eax, dword ptr [ebp-20]
+:012F9100 8903                mov dword ptr [ebx], eax
+:012F9102 8B45E4              mov eax, dword ptr [ebp-1C]
+:012F9105 894304              mov dword ptr [ebx+04], eax
+:012F9108 83C602              add esi, 00000002
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:012F90D6(U)
+|
+:012F910B 8B45F8              mov eax, dword ptr [ebp-08]
+:012F910E E849B1DDFF          call 010D425C
+:012F9113 85C0                test eax, eax
+:012F9115 7903                jns 012F911A
+:012F9117 83C003              add eax, 00000003
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:012F9115(C)
+|
+:012F911A C1F802              sar eax, 02
+:012F911D 3BF0                cmp esi, eax
+:012F911F 72B7                jb 012F90D8
+:012F9121 8B45EC              mov eax, dword ptr [ebp-14]
+:012F9124 33D2                xor edx, edx
+:012F9126 52                  push edx
+:012F9127 50                  push eax                <--输入的注册码前 8 位
+:012F9128 FF3508CB3101        push dword ptr [0131CB08]
+:012F912E FF3504CB3101        push dword ptr [0131CB04]  <--rsa 的 E
+:012F9134 FF3510CB3101        push dword ptr [0131CB10]
+:012F913A FF350CCB3101        push dword ptr [0131CB0C]  <--rsa 的 N
+:012F9140 8B45FC              mov eax, dword ptr [ebp-04]  09292A78（153692792）
+:012F9143 E87CFDFFFF          call 012F8EC4      <--RSA 函数，结果放入 EAX，设为数 2 (0A07DC5Ch)
+:012F9148 83E802              sub eax, 00000002   <--数 2 减 2
+:012F914B 8945D8              mov dword ptr [ebp-28], eax  <--放入内存
+:012F914E 8B45F0              mov eax, dword ptr [ebp-10]
+:012F9151 33D2                xor edx, edx
+:012F9153 52                  push edx
+:012F9154 50                  push eax                <--输入的注册码前 8 位
+:012F9155 FF3508CB3101        push dword ptr [0131CB08]
+:012F915B FF3504CB3101        push dword ptr [0131CB04]   <--rsa 的 E
+:012F9161 FF3510CB3101        push dword ptr [0131CB10]
+:012F9167 FF350CCB3101        push dword ptr [0131CB0C]   <--rsa 的 N
+:012F916D 8B45FC              mov eax, dword ptr [ebp-04]
+:012F9170 E84FFDFFFF          call 012F8EC4           <--结果放入 EAX，设为数 3
+:012F9175 83E802              sub eax, 00000002       <--数 3 减 2
+:012F9178 8945DC              mov dword ptr [ebp-24], eax  <--放入内存
+:012F917B C165D802            shl dword ptr [ebp-28], 02  <--数 2 左移 2 位
+:012F917F 8D4DD8              lea ecx, dword ptr [ebp-28]
+:012F9182 8B01                mov eax, dword ptr [ecx]     <--取出数 2
+:012F9184 8B5104              mov edx, dword ptr [ecx+04]  <--取出数 3
+:012F9187 0FACD002            shrd eax, edx, 02        <--数 2、数 3 联合移位，数 2 改变，数 3 不变
+:012F918B C1EA02              shr edx, 02              <--数 3 右移 2 位
+:012F918E 8901                mov dword ptr [ecx], eax     <--数 2 放入内存
+:012F9190 895104              mov dword ptr [ecx+04], edx  <--数 3 放入内存
+:012F9193 8B45D8              mov eax, dword ptr [ebp-28]
+:012F9196 3B45E0              cmp eax, dword ptr [ebp-20]  <--比较数 2 与数 1，相同则跳
+:012F9199 7404                je 012F919F               正确应跳
+:012F919B 33DB                xor ebx, ebx
+:012F919D EB11                jmp 012F91B0
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:012F9199(C)
+|
+:012F919F 668B45DC            mov ax, word ptr [ebp-24]    <-取数 3 的低 16 位放入 AX，(即终端数)
+:012F91A3 6625FFFF            and ax, FFFFF             以后验证，正确应为 0014
+:012F91A7 8B55F4              mov edx, dword ptr [ebp-0C]
+:012F91AA 668902              mov word ptr [edx], ax
+:012F91AD 83CBFF              or ebx, FFFFFFFF
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:012F919D(U)
+|
+:012F91B0 33C0                xor eax, eax
+:012F91B2 5A                  pop edx
+:012F91B3 59                  pop ecx
+:012F91B4 59                  pop ecx
+:012F91B5 648910              mov dword ptr fs:[eax], edx
+:012F91B8 68D5912F01          push 012F91D5
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:012F91D3(U)
+|
+:012F91BD 8D45E8              lea eax, dword ptr [ebp-18]
+:012F91C0 E817AEDDFF          call 010D3FDC
+:012F91C5 8D45F8              lea eax, dword ptr [ebp-08]
+:012F91C8 E80FAEDDFF          call 010D3FDC
+:012F91CD C3                  ret
+```
+
+```
+281F7168  081C5E4A
+8A07DC5A
+08DD8F88    53                PUSH EBX
+08DD8F89    56                PUSH ESI
+08DD8F8A    57                PUSH EDI
+08DD8F8B    51                PUSH ECX
+08DD8F8C    891424            MOV DWORD PTR SS:[ESP],EDX
+08DD8F8F    BA 20000000       MOV EDX,20                    <--循环次数
+08DD8F94    8B0424            MOV EAX,DWORD PTR SS:[ESP]
+08DD8F97    8B00              MOV EAX,DWORD PTR DS:[EAX]      <--序列号前 4 位放入 eax
+08DD8F99    8B1C24            MOV EBX,DWORD PTR SS:[ESP]
+08DD8F9C    8B5B 04           MOV EBX,DWORD PTR DS:[EBX+4]    <--序列号后 4 位放入 ebx
+08DD8F9F    33F6              XOR ESI,ESI
+08DD8FA1    4A                DEC EDX
+08DD8FA2    0335 00CBDF08     ADD ESI,DWORD PTR DS:[8DFCB00]  <--esi 加常数 9E3779B9h
+08DD8FA8    8BFB              MOV EDI,EBX
+08DD8FAA    C1E7 04           SHL EDI,4
+08DD8FAD    03C7              ADD EAX,EDI
+08DD8FAF    8B39              MOV EDI,DWORD PTR DS:[ECX]      <---"Ha.."的 ASCII 码逆序放
+08DD8FB1    33FB              XOR EDI,EBX                      入 edi
+08DD8FB3    03C7              ADD EAX,EDI
+08DD8FB5    8BFB              MOV EDI,EBX
+08DD8FB7    C1EF 05           SHR EDI,5
+08DD8FBA    33FE              XOR EDI,ESI
+08DD8FBC    03C7              ADD EAX,EDI
+08DD8FBE    0341 04           ADD EAX,DWORD PTR DS:[ECX+4]     <---".ha,"的 ASCII 码逆序放入 ecx，
+08DD8FC1    8BF8              MOV EDI,EAX
+08DD8FC3    C1E7 04           SHL EDI,4
+08DD8FC6    03DF              ADD EBX,EDI
+08DD8FC8    8B79 08           MOV EDI,DWORD PTR DS:[ECX+8]     <---"You "的 ASCII 码逆序放入 edi，08DD8FCB    33F8              XOR EDI,EAX                       You 后有个空格
+08DD8FCD    03DF              ADD EBX,EDI
+08DD8FCF    8BF8              MOV EDI,EAX
+08DD8FD1    C1EF 05           SHR EDI,5
+08DD8FD4    33FE              XOR EDI,ESI
+```
+
+
+
+08DD8FD6&nbsp;&nbsp;&nbsp;&nbsp;03DF&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ADD&nbsp;EBX,EDI&nbsp;&nbsp;&nbsp;
+08DD8FD8&nbsp;&nbsp;0359&nbsp;0C&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ADD&nbsp;EBX,DWORD&nbsp;PTR&nbsp;DS:\[ECX+C\]&nbsp;\]&nbsp;&nbsp;&nbsp;&nbsp;&lt;--ebx&nbsp;加上"are&nbsp;"的&nbsp;ASCII&nbsp;码逆序，&nbsp;&nbsp;&nbsp;
+08DD8FDB&nbsp;&nbsp;85D2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TEST&nbsp;EDX,EDX&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;are&nbsp;后有个空格&nbsp;&nbsp;&nbsp;
+08DD8FDD&nbsp;&nbsp;^&nbsp;77&nbsp;C2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JA&nbsp;SHORT&nbsp;HRMS.08DD8FA1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;--循环结束？&nbsp;&nbsp;&nbsp;
+08DD8FDF&nbsp;&nbsp;8B1424&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MOV&nbsp;EDX,DWORD&nbsp;PTR&nbsp;SS:\[ESP\]&nbsp;&nbsp;
+08DD8FE2&nbsp;&nbsp;8902&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MOV&nbsp;DWORD&nbsp;PTR&nbsp;DS:\[EDX\],EAX&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;--eax&nbsp;的值即为算得的数&nbsp;1&nbsp;&nbsp;
+08DD8FE4&nbsp;&nbsp;8B0424&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MOV&nbsp;EAX,DWORD&nbsp;PTR&nbsp;SS:\[ESP\]&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;08710A7Fh（141625983）&nbsp;&nbsp;
+08DD8FE7&nbsp;&nbsp;8958&nbsp;04&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MOV&nbsp;DWORD&nbsp;PTR&nbsp;DS:\[EAX+4\],EBX&nbsp;&nbsp;&nbsp;
+08DD8FEA&nbsp;&nbsp;5A&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;POP&nbsp;EDX&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+08DD8FEB&nbsp;&nbsp;5F&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;POP&nbsp;EDI&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+08DD8FEC&nbsp;&nbsp;5E&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;POP&nbsp;ESI&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+08DD8FED&nbsp;&nbsp;5B&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;POP&nbsp;EBX&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+08DD8FEE&nbsp;&nbsp;C3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RETN&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+```
+:0130E928 837DD400                    cmp dword ptr [ebp-2C], 00000000  <--输入的终端数是否为 0？
+
+:0130E92C 7421                       je 0130E94F
+
+:0130E92E 8D55CC                     lea edx, dword ptr [ebp-34]
+
+:0130E931 8B45FC                     mov eax, dword ptr [ebp-04]
+
+:0130E934 8B80FC020000               mov eax, dword ptr [eax+000002FC]
+
+:0130E93A E82990DFFF                 call 01107968
+
+:0130E93F 8B45CC                     mov eax, dword ptr [ebp-34]
+
+:0130E942 E8F1B7DCFF                 call 010DA138
+
+:0130E947 0FB755F2                   movzx edx, word ptr [ebp-0E]
+
+:0130E94B 3BC2                       cmp eax, edx      <-输入终端  数是否为 14H,即前面
+
+:0130E94D 742E                       je 0130E97D                          计算出来的 ax
+```
+
+一个可用的注册码：
+
+序列号：`ikki`
+
+终端数：`20`
+
+注册码：`536C-4DE8-647F-CD31`
+
+`4dd466d0e1e0cc123afbe504da2462ca`
