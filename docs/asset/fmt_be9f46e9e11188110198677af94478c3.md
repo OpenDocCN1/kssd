@@ -1,0 +1,55 @@
+
+# SmartCheck 5.0
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum692.htm`](https://www.pediy.com/kssd/pediy03/forum692.htm)
+
+**破解程序：** `SmartCheck 5.0` 安装程序
+
+**破解工具：** `ISDCC 1.0`
+
+**破解者：** `chcw`
+
+现在，有许多程序使用 `Install Shield` 来制作它们的安装程序，而且在安装时就要求输入注册码。这一类程序的注册过程主要是由 `Install Shield` 来控制的，`Install Shield` 将其安装过程的信息存放在编译后的脚本文件 `Setup.ins` 中。因此，只需要对 `Setup.ins` 文件进行反编译，即可洞悉 `Install Shield` 的整个安装过程。
+
+`ISDCC` 就是这样一个反编译工具，它能反编译 `Install Shield` 5.1 以下版本生成的所有的脚本程序。下面以 `SmartCheck 5.0` 的安装程序为例，介绍如何利用该工具，实现注册码的破解。
+
+1. 用 `ISDCC` 对 `Install Shield` 的安装脚本 `Setup.ins` 进行反编译，并将结果保存在 `Setup.tmp` 文件中：
+
+```
+ISDCC Setup.ins > Setup.tmp
+```
+
+2. 在 `Install Shield` 的安装程序中，字符串比较函数是 `StrCompare()`。用 `Ultra Edit` 打开 `Setup.tmp` 文件，查找串 `"StrCompare"`。
+
+3. 在 `label140` 处，我们发现了一句可能是比较注册码的语句：
+
+```
+label140:
+    StrCompare(lString0, "002082840001");
+    lNumber1 = LAST_RESULT = 0;
+    if (lNumber1 = 0) then
+        goto label141;
+    endif;
+    return(1);
+```
+
+4. 在该部分程序的上面，还有一些产生 `lString0` 的语句：
+
+```
+label139:
+    StrSub(lString1, pString0, 0, 4);    <-取 pString0 中子串, 从 0 开始，长为 4
+    StrSub(lString2, pString0, 5, 6);    <-取 pString0 中子串, 从 5 开始，长为 6
+    StrSub(lString3, pString0, 12, 2);   <-取 pString0 中子串, 从 12 开始，长为 2
+    lString6 = lString1 + lString2;
+    lString0 = lString6 + lString3;
+    StrFind(lString0, "-");              <-查找字符'-'
+    lNumber1 = LAST_RESULT >= 0;
+    if (lNumber1 = 0) then
+        goto label140;
+    endif;
+    return(0);
+```
+
+5. 由于反编译后的语句几乎与高级语言完全相同，因此我们很容易猜想出 `label139` 段程序的功能,并得到 `pString0` 的形式为: `"0020-828400-01"`
+
+6. 在安装过程中输入 `Serial="0020-828400-01"`，注册顺利通过。 `4dd466d0e1e0cc123afbe504da2462ca`

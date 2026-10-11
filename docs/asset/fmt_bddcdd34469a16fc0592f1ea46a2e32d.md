@@ -1,0 +1,291 @@
+
+# KPT 6
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum853.htm`](https://www.pediy.com/kssd/pediy03/forum853.htm)
+
+## 用 ISDCC2 破 KPT 6 的安装
+
+**Passion**
+
+不好意思，近来我只研究一点 `INSTALLSHIELD` 的反编译和破解，这里又贴半篇引用外界 `DLL` 文件的脚本破解法，文章水平不高，大伙儿见笑了。——之所以是半篇，因为 `KPT 6` 作为 `PhotoShop` 滤镜插件运行的时候会重新检测序列号，而本文只仅仅说了说破解安装的过程。
+
+### 安装程序与反编译工具
+
+`KPT 6` 的安装程序也需要输入序列号，又是 `InstallShield` 在捣鬼。反编译 `InstallShield` 的工具比较多，只是各自适用的版本不同，那个 `WISDEC` 能反编译的 `SETUP.INS` 似乎版本比较低，对付 `KPT 6` 的脚本文件出错，幸亏有个 `ISDCC2` 适用 `InstallShield 5.5` 版，可以以命令行的方式进行反编译，也可重定向到文件，只是反编译后的代码没有跳转、修改等直接的功能。我已经忘了到底是哪儿下载的，幸亏 `README.TXT` 中说了网址是 `http://www.tardis.ed.ac.uk/~adq`。
+
+在命令行里运行 `isdcc2 setup.ins > kptsetup.txt` 就能把反编译后的内容写到 `KPTSETUP.TXT` 文件中。我个人看来，`ISDCC2` 的反编译效果比 `WIS` 要好，可读性也强一点，但没代码导航、字串引用的功能，修改起来也很不方便。幸亏 `KPT 6` 这个东西的破解是不需要修改 `SETUP.INS` 的，否则又要麻烦了。
+
+反编译后的 `KPTSETUP.TXT` 中包括变量声明、结构声明、函数原型声明以及反编译代码等几部份。函数声明段内有这么几句：
+
+```
+// ------------- FUNCTION PROTOTYPES --------------
+
+……
+
+    prototype MCSetup.MCSerialCheck(LIST, LIST, LIST);
+
+    prototype MCSetup.MCSerialWrite(LIST);
+
+……
+```
+
+这个表示安装的时候要引用 `MCSETUP.DLL` 文件中的 `MCSerialCheck` 和 `MCSerialWrite` 两个函数，看看名称，八成儿就是直接检验输入的序列号是否正确以及写入注册表的。
+
+正文中又有那么一段：
+
+```
+// ------------- MAIN PROGRAM CODE --------------
+
+……
+
+label12:
+
+0011B5:0022:        if (1 = 0) then
+                        goto label14;
+                    endif;
+
+0011C5:00B5:        function112();
+
+0011CD:0021:        lNumber0 = LAST_RESULT;
+
+0011D5:0128:        lNumber3 = lNumber0 = 12;
+
+0011E7:0022:        if (lNumber3 = 0) then
+                        goto label14;
+                    endif;
+
+0011F5:002C:        goto label12;
+
+……
+```
+
+当然，光看这段，谁都看不出这是检验序列号正确与否的，但这里面的那个 `function112()` 就有点文章。下面是 `function112()` 的内容：
+
+```
+// ------------- FUNCTION function112 --------------
+
+function function112()
+    number lNumber0;
+    number lNumber1;
+    number lNumber2;
+    number lNumber3;
+    number lNumber4;
+    number lNumber5;
+    number lNumber6;
+    number lNumber7;
+    string lString0;
+    string lString1;
+    string lString2;
+    string lString3;
+    string lString4;
+    string lString5;
+begin
+
+label64:
+
+0027F1:0110:        RegDBSetDefaultRoot(-2147483646);
+
+0027F8:0021:        lNumber2 = 1;
+
+002802:0022:        if (number34 = 0) then
+                        goto label66;
+                    endif;
+
+002810:0013:        lString4 = "\\\\SOFTWARE\\\\MICROSOFT\\\\WINDOWS NT\\\\CURRENTVERSION\\";
+
+002846:002C:        goto label67;
+
+00284F:0013:        lString4 = "\\\\SOFTWARE\\\\MICROSOFT\\\\WINDOWS\\\\CURRENTVERSION\\";
+
+label66:
+
+002886:0152:        RegDBGetKeyValueEx(lString4, "REGISTEREDOWNER", lNumber2, string5, lNumber0);
+
+0028A6:0110:        RegDBSetDefaultRoot(-2147483648);
+
+0028AD:0013:        lString0 = "Product Registration";
+
+0028C9:0013:        lString1 = "Please enter your name and the product serial number\nfor %P.";
+
+00290D:0013:        lString2 = "Name";
+
+002919:0013:        lString3 = "Serial Number";
+
+00292E:0112:        StrLoadString("", "PRODUCT_ID", lString5);
+
+002943:00BA:        AddressString(lString5);
+
+002948:0021:        lNumber3 = LAST_RESULT;
+
+002950:0021:        lNumber1 = 0;
+
+label67:
+
+002960:0128:        lNumber6 = lNumber1 = 0;
+
+002972:0022:        if (lNumber6 = 0) then
+                        goto label73;
+                    endif;
+
+002980:00B5:        function17(lString0, lString1, lString2, lString3, string5, string7);
+
+00299A:0021:        lNumber0 = LAST_RESULT;
+
+0029A2:0128:        lNumber6 = lNumber0 = 1;
+
+0029B4:0022:        if (lNumber6 = 0) then
+                        goto label71;
+                    endif;
+
+0029C2:0023:        StrCompare(string5, "");
+
+0029CA:0128:        lNumber6 = LAST_RESULT = 0;
+
+0029DC:0023:        StrCompare(string7, "");
+
+0029E4:0128:        lNumber7 = LAST_RESULT = 0;
+
+0029F6:0126:        lNumber6 = lNumber6 || lNumber7;
+
+002A01:0022:        if (lNumber6 = 0) then
+                        goto label69;
+                    endif;
+
+002A0F:002A:        MessageBox("Please enter your name and the product serial number.", -65534);
+
+002A4E:002C:        goto label70;
+
+//以上是要求输入序列号和公司名的。
+
+label68:
+
+002A57:00BA:        AddressString(string5);
+
+002A5C:0021:        lNumber4 = LAST_RESULT;
+
+002A64:00BA:        AddressString(string7);
+
+002A69:0021:        lNumber5 = LAST_RESULT;
+
+002A71:00B4:        MCSetup.MCSerialCheck(lNumber3, lNumber4, lNumber5);
+
+//就这个 MCSerialCheck 了。
+
+002A7F:0021:        lNumber1 = LAST_RESULT;
+
+label69:
+
+002A8B:002C:        goto label72;
+
+label70:
+
+002A94:0021:        lNumber1 = 1;
+
+label71:
+
+002AA2:002C:        goto label68;
+
+label72:
+
+002AAB:012F:        return(lNumber0);
+
+002AB2:00B8:        return;
+
+end;
+```
+
+这里很明白，如果我们能把 `MCSETUP.DLL` 中那个 `MCSerialCheck` 函数分析清楚，序列号的检验算法就都能知晓了。要是像我这样懒得分析的，就跟踪下去改掉 `MCSetup.MCSerialCheck` 函数的返回值也行。`MCSETUP.DLL` 是安装程序运行的时候解压临时生成的，就在 `WINDOWS/TEMP` 目录下的一些子目录中，安装程序在运行时就能找到。
+
+### MCSerialCheck 函数分析
+
+下面是 `MCSerialCheck` 函数的总体代码：
+
+```
+Exported fn(): MCSerialCheck - Ord:0002h
+
+:100015D0 81EC3C020000            sub esp, 0000023C
+
+:100015D6 8D442400                lea eax, dword ptr [esp]
+
+:100015DA 53                      push ebx
+
+:100015DB 56                      push esi
+
+:100015DC 57                      push edi
+
+:100015DD 50                      push eax
+
+* Reference To: KERNEL32.GetLocalTime, Ord:011Bh
+
+……
+
+                                  |
+
+:100015DE FF1508600010            Call dword ptr [10006008]
+
+:100015E4 8B742412                mov esi, dword ptr [esp+12]
+
+:100015E8 8B7C240E                mov edi, dword ptr [esp+0E]
+
+:100015EC 8B8C2454020000          mov ecx, dword ptr [esp+00000254]
+
+:100015F3 8B5C240C                mov ebx, dword ptr [esp+0C]
+
+:100015F7 51                      push ecx
+
+:100015F8 8D4C2420                lea ecx, dword ptr [esp+20]
+
+:100015FC E8FFF9FFFF              call 10001000
+
+:10001601 53                      push ebx
+
+:10001602 57                      push edi
+
+:10001603 8B942454020000          mov edx, dword ptr [esp+00000254]
+
+:1000160A 56                      push esi
+
+* Possible Reference to String Resource ID=00001: "Installer Serialisation"
+
+                                  |
+
+:1000160B 6A01                    push 00000001
+
+:1000160D 52                      push edx
+
+:1000160E 8D4C2430                lea ecx, dword ptr [esp+30]
+
+:10001612 E879FBFFFF              call 10001190       //这个是关键 CALL
+
+:10001617 8BF0                    mov esi, eax
+
+:10001619 6683FE01                cmp si, 0001
+
+:1000161D 7525                    jne 10001644         //比较结果，正确则跳。
+
+:1000161F 8B842450020000          mov eax, dword ptr [esp+00000250]
+
+:10001626 6858770010              push 10007758
+
+:1000162B 50                      push eax
+
+:1000162C 8D4C2424                lea ecx, dword ptr [esp+24]
+
+:10001630 E88BFEFFFF              call 100014C0
+
+:10001635 5F                      pop edi
+
+:10001636 5E                      pop esi
+
+:10001637 83C8FF                  or eax, FFFFFFFF     //FFFFFFFF 是错误标志
+
+:1000163A 5B                      pop ebx
+
+:1000163B 81C43C020000            add esp, 0000023C
+
+:10001641 C20C00                  ret 000C             //出错返回。
+
+:10001644 …………         //其余代码。
+```
+
+从 `10001612` 处的 `call 10001190` 跟进去后是大段大段的序列号分析代码。我功力不够，只跟到规定序列号格式的部分，后面的几个循环迭代就把我弄晕了。本来又想暴力法改掉 `MCSETUP.DLL` 的代码，但我手头的 `ICOMP` 又不能把改了后的文件给压缩回去，估计又是版本不对的问题，而 `SETUP.INS` 中似乎又没有明显的、改一个跳转就改变流程的代码，何况要改也不知道应该改 `SETUP.INS` 文件的什么地方。
