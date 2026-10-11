@@ -1,0 +1,191 @@
+
+# Marine Aquarium v2.6
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-522.htm`](https://www.pediy.com/kssd/pediy08/pediy8-522.htm)
+
+`Marine Aquarium v2.6` 是一款屏幕保护程序。
+
+将程序扩展名 `.SCR` 改成 `.EXE`，然后用 `OD` 载入就可以调试了。
+
+`Ctrl+N` 查找 `GetDlgItemTextA`，然后全部下断分析得到下面地址。
+
+```
+00427484  .|.  6A 20             PUSH 20                              ; /Count = 20 (32.)
+00427486  .|.  68 74CA4500      PUSH MA2_6.0045CA74                  ; |Buffer = MA2_6.0045CA74
+0042748B  .|.  68 92000000      PUSH 92                                ; |ControlID = 92 (146.)
+00427490  .|.  50               PUSH EAX                               ; |hWnd => 00080DEC (class='SereneDlgClass',parent=007100A2)
+00427491  .|.  894424 28        MOV DWORD PTR SS:[ESP+28],EAX          ; |
+00427495  .|.  C605 88F64500    MOV BYTE PTR DS:[45F688],0            ; |
+0042749C  .|.  FF15 1CA34400    CALL DWORD PTR DS:[<&USER32.GetDlgItemTextA>] ; \获取注册码
+004274A2  .|.  8A0D 74CA4500    MOV CL,BYTE PTR DS:[45CA74]           ;  首字母送 CL
+004274A8  .|.  B8 74CA4500      MOV EAX,MA2_6.0045CA74               ;  假码送 EAX
+004274AD  .|.  33F6             XOR ESI,ESI
+004274AF  .|.  8BD0             MOV EDX,EAX                           ;  假码再送 EDX
+004274B1  .|.  84C9             TEST CL,CL                            ;  输入注册码了吗？
+004274B3  .|.  74 40             JE SHORT MA2_6.004274F5              ;  空就跳走
+004274B5  |>  8038 30          /CMP BYTE PTR DS:[EAX],30              ;  当前字母是 0 吗？
+004274B8  .|.  75 03             JNZ SHORT MA2_6.004274BD             ;  不是就跳
+004274BA  .|.  C600 6F          |MOV BYTE PTR DS:[EAX],6F             ;  6F 是 o
+004274BD  |>  8038 31          |CMP BYTE PTR DS:[EAX],31              ;  当前字母是 1 吗？
+004274C0  .|.  75 03             JNZ SHORT MA2_6.004274C5             ;  不是就跳
+004274C2  .|.  C600 6C          |MOV BYTE PTR DS:[EAX],6C             ;  6C 是 l
+004274C5  |>  8A08             |MOV CL,BYTE PTR DS:[EAX]              ;  当前字母送到 CL
+004274C7  .|.  80F9 61          |CMP CL,61                            ;  是 a 吗？
+004274CA  .|.  7C 05             JL SHORT MA2_6.004274D1              ;  小于跳
+004274CC  .|.  80F9 7A          |CMP CL,7A                            ;  是 z 吗？
+004274CF  .|.  7E 14             JLE SHORT MA2_6.004274E5             ;  小于等于跳
+004274D1  |>  80F9 41          |CMP CL,41                            ;  是 A 吗？
+004274D4  .|.  7C 05             JL SHORT MA2_6.004274DB              ;  小于跳
+004274D6  .|.  80F9 5A          |CMP CL,5A                            ;  是 Z 吗？
+004274D9  .|.  7E 0A             JLE SHORT MA2_6.004274E5             ;  小于等于跳
+004274DB  |>  80F9 32          |CMP CL,32                            ;  是 2 吗？
+004274DE  .|.  7C 0D             JL SHORT MA2_6.004274ED              ;  小于跳
+004274E0  .|.  80F9 37          |CMP CL,37                            ;  是 7 吗？
+004274E3  .|.  7F 08             JG SHORT MA2_6.004274ED              ;  大于跳
+004274E5  |>  46               |INC ESI                              ;  ESI 作为记数器 ESI++
+004274E6  .|.  3BD0             |CMP EDX,EAX
+004274E8  .|.  74 02             JE SHORT MA2_6.004274EC
+004274EA  .|.  880A             |MOV BYTE PTR DS:[EDX],CL
+004274EC  |>  42               |INC EDX                              ;  EDX++
+004274ED  |>  8A48 01          |MOV CL,BYTE PTR DS:[EAX+1]           ;  下一字母送 CL
+004274F0  .|.  40               |INC EAX                              ;  EAX++
+004274F1  .|.  84C9             |TEST CL,CL                            ;  全部检查完了吗？
+004274F3  .|.^ 75 C0           \JNZ SHORT MA2_6.004274B5             ;  没有就继续循环
+004274F5  |>  83FE 14          CMP ESI,14                             ;  输入了 20 个字母吗？
+004274F8  .|.  C602 00          MOV BYTE PTR DS:[EDX],0
+004274FB  .|.  0F85 6C050000  JNZ MA2_6.00427A6D                      ;  输入注册码不够 20 位就 OVER
+00427501  .|.  BF 74CA4500      MOV EDI,MA2_6.0045CA74               ;  假码送 EDI
+00427506  .|.  BA 88F54500      MOV EDX,MA2_6.0045F588               ;  ASCII "1101010110"
+0042750B  .|.  8BEF             MOV EBP,EDI                           ;  假码送 EBP
+0042750D  .|.  C74424 14 000>   MOV DWORD PTR SS:[ESP+14],0
+00427515  |>  8A07             /MOV AL,BYTE PTR DS:[EDI]             ;  送当前字母进 AL
+00427517  .|.  3C 61            |CMP AL,61                            ;  是 a 吗？
+00427519  .|.  72 08             JB SHORT MA2_6.00427523              ;  小于跳
+0042751B  .|.  3C 7A            |CMP AL,7A                            ;  是 z 吗？
+0042751D  .|.  77 04             JA SHORT MA2_6.00427523              ;  大于跳
+0042751F  .|.  2C 5B            |SUB AL,5B                            ;  当前字母 -5B
+00427521  .|.  EB 1E            |JMP SHORT MA2_6.00427541
+00427523  |>  3C 41            |CMP AL,41
+00427525  .|.  72 08             JB SHORT MA2_6.0042752F
+00427527  .|.  3C 5A            |CMP AL,5A
+00427529  .|.  77 04             JA SHORT MA2_6.0042752F
+0042752B  .|.  2C 3B            |SUB AL,3B
+0042752D  .|.  EB 12            |JMP SHORT MA2_6.00427541
+0042752F  |>  3C 32            |CMP AL,32                            ;  分支 (案例 32..37)
+00427531  .|.  0F82 36050000  |JB MA2_6.00427A6D
+00427537  .|.  3C 37            |CMP AL,37
+00427539  .|.  0F87 2E050000  |JA MA2_6.00427A6D
+0042753F  .|.  2C 32            |SUB AL,32                            ;  案例 32 ('2'),33 ('3'),34 ('4'),35 ('5'),36 ('6'),37 ('7') --> 分支 0042752F
+00427541  |>  B1 10            |MOV CL,10
+00427543  .|.  BE 05000000      |MOV ESI,5
+00427548  |>  84C8             /TEST AL,CL
+0042754A  .|.  0F95C3          ||SETNE BL
+0042754D  .|.  83C3 30          |ADD EBX,30
+00427550  .|.  881A             |MOV BYTE PTR DS:[EDX],BL
+00427552  .|.  42               |INC EDX
+00427553  .|.  D0E9             |SHR CL,1
+00427555  .|.  4E               |DEC ESI
+00427556  .|.^ 75 F0           \|JNZ SHORT MA2_6.00427548
+00427558  .|.  8B4424 14        |MOV EAX,DWORD PTR SS:[ESP+14]
+0042755C  .|.  40               |INC EAX
+0042755D  .|.  47               |INC EDI
+0042755E  .|.  83F8 14         |CMP EAX,14
+00427561  .|.  894424 14        |MOV DWORD PTR SS:[ESP+14],EAX
+00427565  .|.^ 7C AE          \JL SHORT MA2_6.00427515
+00427567  .|.  B9 05000000      MOV ECX,5
+0042756C  |>  8A45 00          /MOV AL,BYTE PTR SS:[EBP]             ;  转换前 5 个字母为大写
+0042756F  .|.  3C 61            |CMP AL,61
+00427571  .|.  7C 06             JL SHORT MA2_6.00427579
+00427573  .|.  3C 7A            |CMP AL,7A
+00427575  .|.  7F 02             JG SHORT MA2_6.00427579
+00427577  .|.  2C 20            |SUB AL,20
+00427579  |>  8802             |MOV BYTE PTR DS:[EDX],AL
+0042757B  .|.  42               |INC EDX
+0042757C  .|.  45               |INC EBP
+0042757D  .|.  49               |DEC ECX
+0042757E  .|.^ 75 EC          \JNZ SHORT MA2_6.0042756C             ;  循环
+00427580  .|.  C602 00          MOV BYTE PTR DS:[EDX],0
+00427583  .|.  33DB             XOR EBX,EBX
+00427585  .|.  33D2             XOR EDX,EDX
+00427587  .|.  BD 503F4500      MOV EBP,MA2_6.00453F50
+0042758C  .|.  33C9             XOR ECX,ECX
+0042758E  .|.  BF 01000000      MOV EDI,1
+00427593  |>  8A81 ECF54500     /MOV AL,BYTE PTR DS:[ECX+45F5EC]
+00427599  .|.  85C9             |TEST ECX,ECX
+0042759B  .|.  75 0A             JNZ SHORT MA2_6.004275A7
+0042759D  .|.  3C 63            |CMP AL,63                            ;  是 c 吗？
+0042759F  .|.  74 3F             JE SHORT MA2_6.004275E0
+004275A1  .|.  3C 43            |CMP AL,43                            ;  是 C 吗？
+004275A3  .|.  75 3C             JNZ SHORT MA2_6.004275E1
+004275A5  .|.  EB 39             JMP SHORT MA2_6.004275E0
+004275A7  |>  83F9 02          |CMP ECX,2
+004275AA  .|.  75 0A             JNZ SHORT MA2_6.004275B6
+004275AC  .|.  3C 72            |CMP AL,72                            ;  是 r 吗?
+004275AE  .|.  74 30             JE SHORT MA2_6.004275E0
+004275B0  .|.  3C 52            |CMP AL,52                            ;  是 R 吗?
+004275B2  .|.  75 2D             JNZ SHORT MA2_6.004275E1
+```
+
+
+
+```
+004275B4  |.  EB 2A        |JMP SHORT MA2_6.004275E0  
+
+004275B6  |>  83F9 04     |CMP ECX,4  
+
+004275B9  |.  75 0A       |JNZ SHORT MA2_6.004275C5  
+
+004275BB  |.  3C 6B       |CMP AL,6B                       ;  是 k 吗?  
+
+004275BD  |.  74 21       |JE SHORT MA2_6.004275E0  
+
+004275BF  |.  3C 4B       |CMP AL,4B                       ;  是 K 吗？  
+
+004275C1  |.  75 1E       |JNZ SHORT MA2_6.004275E1  
+
+004275C3  |.  EB 1B       |JMP SHORT MA2_6.004275E0  
+
+004275C5  |>  3BCF        |CMP ECX,EDI  
+
+004275C7  |.  75 0A       |JNZ SHORT MA2_6.004275D3  
+
+004275C9  |.  3C 6F       |CMP AL,6F                       ;  是 o 吗？  
+
+004275CB  |.  74 13       |JE SHORT MA2_6.004275E0  
+
+004275CD  |.  3C 4F       |CMP AL,4F                       ;  是 O 吗?  
+
+004275CF  |.  75 10       |JNZ SHORT MA2_6.004275E1  
+
+004275D1  |.  EB 0D       |JMP SHORT MA2_6.004275E0  
+
+004275D3  |>  83F9 03     |CMP ECX,3  
+
+004275D6  |.  75 09       |JNZ SHORT MA2_6.004275E1  
+
+004275D8  |.  3C 65       |CMP AL,65                       ;  是 e 吗?  
+
+004275DA  |.  74 04       |JE SHORT MA2_6.004275E0  
+
+004275DC  |.  3C 45       |CMP AL,45                       ;  是 E 吗？  
+
+004275DE  |.  75 01       |JNZ SHORT MA2_6.004275E1  
+
+004275E0  |>  42          |INC EDX  
+
+004275E1  |>  41          |INC ECX  
+
+004275E2  |.  83F9 05     |CMP ECX,5  
+
+004275E5  |.^ 7C AC      \\JL SHORT MA2_6.00427593  
+
+004275E7  |.  83FA 05     CMP EDX,5  
+
+004275EA  |.  0F85 25010000 JNZ MA2_6.00427715               ;  关键跳，跳就死
+```
+
+004275EA 这里跳不跳都无所谓了。经过分析后得到注册码是 20 个字符，只要前 5 个字符是 `COREK` 后 15 个字符随意，但不能是空格字符就可以成功注册。
+
+给出一个注册码：`COREKxxxxxxxxxxxxxxx`
+
+`4dd466d0e1e0cc123afbe504da2462ca`
