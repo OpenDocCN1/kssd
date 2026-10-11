@@ -1,0 +1,197 @@
+
+# 多核机器下添加新中断的方法
+
+> 原文：[`www.pediy.com/kssd/pediy10/78512.html`](https://www.pediy.com/kssd/pediy10/78512.html)
+
+【文章标题】: 多核情况下添加新中断的方法
+
+【文章作者】: `chimney`
+
+【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
+
+## 详细过程
+
+中断向量表的修改应该都很熟悉了，`combojiang` 大侠在他的 `rootkit` `hook` 系列文章里将的很详细了。但是 `combojiang` 文章中有关 `IDT` 的代码都是在单核机器中实现的，如果你有个双核的机子，你正好又学习了 `combojiang` 大大的文章，你就会发现出问题了。因为每个 `CPU` 都有自己的中断向量表。在多核的机子上，如果你修改了 `CPU` 1 的中断向量表，如果应用程序不是运行在 `CPU` 1 上，而是在别的 `CPU` 上，这时候就会出现问题了。
+
+在多核的 `CPU` 上添加新中断，我想方法有两种。一种是让应用程序运行在修改中断向量表的那个 `CPUS` 上，另一个是将所有的 `CPU` 的中断向量表都修改，这样应用层就不用管自己运行在那个 `CPU` 上了，中断都不会导致系统的崩溃。
+
+让某个程序运行在某个 `CPU` 上，那就要设置程序的亲和性了，在应用层设置进程和线程的亲和性的函数是 `SetProcessAffinityMask` / `SetThreadAffinityMask`。那么在内核呢? `google` 了下，发现了 `diyhack` 提到了个函数 `KeSetSystemAffinityThread`。
+
+`KeSetSystemAffinityThread` 是个内核导出的函数，但在 `DDK` 头文件中没有发现他的定义，帮助中也没有看见有文字介绍，于是就直奔 `WRK`。在 `WRK` 中找到了这个函数。
+
+```c
+VOID
+KeSetSystemAffinityThread (
+    __in KAFFINITY Affinity
+    )
+/*++
+Routine Description:
+    This function set the system affinity of the current thread
+Arguments:
+    Affinity - Supplies the new of set of processors on which the thread can run.
+Return Value:
+    None.
+--*/
+```
+
+`KeSetSystemAffinityThread` 设置当前线程的系统亲和性。在 `wrk` 和 `google` 的帮助下，实现了在多核下修改 `IDT` 比较稳定的方法。
+
+```c
+#include "ntddk.h"
+#include "string.h"
+#include "stdio.h"
+#define ADDINT           0x22
+#define MAX_NUM_PROCESSER 8
+extern VOID KeSetSystemAffinityThread(KAFFINITY Affinity);   //函数声明下
+#pragma pack(1)
+
+typedef struct
+{
+    unsigned short LowOffset;
+    unsigned short selector;
+    unsigned char unused_lo;
+    unsigned char segment_type:4;         //0x0E is an interrupt gate
+    unsigned char system_segment_flag:1;
+    unsigned char DPL:2;          // descriptor privilege level
+    unsigned char P:1;          // present
+    unsigned short HiOffset;
+} IDTENTRY;
+
+typedef struct
+{
+    unsigned short IDTLimit;
+    union
+    {
+        unsigned long IDTbase;
+    };
+} IDTINFO;
+
+#pragma pack(1)
+
+IDTENTRY OldIdtEntry[MAX_NUM_PROCESSER]={ 0 };
+IDTINFO idt_info[MAX_NUM_PROCESSER]={ 0 };
+ULONG orgcr0;
+
+void __declspec (naked) InterruptHandler()
+{
+    _asm iretd
+}
+
+VOID DisableWriteProtect(PULONG pOldAttr)
+{
+    ULONG uAttr;
+    _asm
+    {
+        push eax
+        mov eax, cr0
+        mov uAttr, eax
+        and eax, 0FFFEFFFFh // CR0 16 BIT = 0
+        mov cr0, eax
+        pop eax
+    };
+    *pOldAttr = uAttr; //保存原有的 CRO 属性
+}
+
+VOID EnableWriteProtect(ULONG uOldAttr )
+{
+    _asm
+    {
+        push eax
+        mov eax, uOldAttr //恢复原有 CR0 属性
+        mov cr0, eax
+        pop eax
+    };
+}
+
+VOID AddInterrupt(LONG dwIndex)
+{
+    IDTENTRY* idt_entries;
+    IDTINFO idt_infoTmp;
+    __asm sidt idt_infoTmp;
+    idt_info[dwIndex]=idt_infoTmp;
+
+    idt_entries = (IDTENTRY*)idt_info[dwIndex].IDTbase;
+    DbgPrint("idt_entries=%x",idt_entries);
+
+    if ((idt_entries[ADDINT].LowOffset != 0) || (idt_entries[ADDINT].HiOffset != 0))
+    return;
+
+    DisableWriteProtect(&orgcr0);
+    memcpy(&OldIdtEntry[dwIndex], &idt_entries[ADDINT], sizeof(IDTENTRY));
+    idt_entries[ADDINT].LowOffset = (unsigned short)InterruptHandler;
+    idt_entries[ADDINT].selector = 8;
+    idt_entries[ADDINT].unused_lo = 0;
+    idt_entries[ADDINT].segment_type = 0xE;
+    idt_entries[ADDINT].system_segment_flag = 0;
+    idt_entries[ADDINT].DPL = 3;
+    idt_entries[ADDINT].P = 1;
+    idt_entries[ADDINT].HiOffset = (unsigned short)((unsigned int) InterruptHandler>>16);
+    EnableWriteProtect(orgcr0);
+    return;
+}
+
+void RemoveInterrupt(LONG dwIndex)
+{
+    IDTENTRY* idt_entries;
+    idt_entries = (IDTENTRY*)idt_info[dwIndex].IDTbase;
+    DbgPrint("idt_entries=%x",idt_entries);
+    DisableWriteProtect(&orgcr0);
+    memcpy(&idt_entries[ADDINT], &OldIdtEntry[dwIndex], sizeof(IDTENTRY));
+    EnableWriteProtect(orgcr0);
+}
+
+void DriverUnload (IN PDRIVER_OBJECT pDriverObject)
+{
+    KAFFINITY     ActiveProcessors, CurrentAffinity;
+    LONG  dwTmp=0;
+    ActiveProcessors=KeQueryActiveProcessors();
+    DbgPrint("KeActiveProcessors=%d",ActiveProcessors);
+    for (CurrentAffinity = 1; ActiveProcessors; CurrentAffinity <<= 1)
+    {
+        if (ActiveProcessors & CurrentAffinity)
+    {
+        ActiveProcessors &= ~CurrentAffinity;
+        KeSetSystemAffinityThread(CurrentAffinity);
+        RemoveInterrupt(dwTmp);
+        dwTmp++;
+    }
+    }
+}
+
+NTSTATUS
+DriverEntry(
+    IN PDRIVER_OBJECT    DriverObject,
+    IN PUNICODE_STRING    RegistryPath
+    )
+{
+    NTSTATUS      status = STATUS_SUCCESS;
+    KAFFINITY     ActiveProcessors, CurrentAffinity;
+    LONG        dwTmp=0;
+    ActiveProcessors=KeQueryActiveProcessors();
+    DbgPrint("KeActiveProcessors=%d",ActiveProcessors);
+
+    for (CurrentAffinity = 1; ActiveProcessors; CurrentAffinity <<= 1)
+    {
+        if (ActiveProcessors & CurrentAffinity)
+    {
+        ActiveProcessors &= ~CurrentAffinity;
+        KeSetSystemAffinityThread(CurrentAffinity);
+        AddInterrupt(dwTmp);
+        dwTmp++;
+    }
+    }
+
+    DriverObject->DriverUnload = DriverUnload;
+    return status;
+}
+```
+
+如有错误之处，还请大家指出！酷睿双核 `windows` `xp` `sp2` 下测试通过
+
+【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!
+
+2008 年 12 月 11 日 23:45:32
+
+## 上传的附件
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) | | 多核情况下添加新中断的方法.rar | |
