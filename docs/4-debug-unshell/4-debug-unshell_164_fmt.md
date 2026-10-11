@@ -1,0 +1,362 @@
+
+# VB 程序 ACProtect2.0 全保护
+
+> 原文：[`www.pediy.com/kssd/pediy10/59900.html`](https://www.pediy.com/kssd/pediy10/59900.html)
+
+【文章标题】: VB 程序 ACProtect2.0 全保护  
+
+【文章作者】: yangjt  
+
+【作者邮箱】: yangjietao123@163.com  
+
+【作者 QQ 号】: 325002492  
+
+【软件名称】: 体重指标获取程序  
+
+【软件大小】: 加壳前 736 KB  
+
+【下载地址】: 同学写的~~从我这里下载就好  
+
+【加壳方式】: ACProtect 2.0  
+
+【保护方式】: 全保护  
+
+【使用工具】: `OllyICE`, `LordPE 个人版`, `ImportREC`, `CFF Explorer`, `FixResDemo`  
+
+【操作平台】: `Windows XP SP3`  
+
+【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!  
+
+--------------------------------------------------------------------------------
+
+## 详细过程
+
+软柿子好捏，VB 就是个十足的软柿子……嘿嘿……`ACProtect2.0` 的全保护好像没有对程序起什么作用……轻松就被搞掉了，可惜就是不能优化……![](img/8e0d77ee22c3d8438aad7d42c7829e53.jpg "使眼色")
+
+还是那天那个程序……废话就不多说了……直接看方法……呵
+
+`PEiD` 扫描过……`ACProtect V2.0.X -> RiSco *`
+
+可是全保护啊……再怎么难能难到哪里去？
+
+呃……`OD` 载入吧……忽略所有异常……隐藏 `OD`……然后跑起来……点 L 看记录……
+
+```
+             ID 00000E5C 的新进程已创建
+  00401000    ID 00000274 的主线程已创建
+  00400000    模块 D:\Admin\桌面\ACProtect.exe
+  77D10000    模块 C:\WINDOWS\system32\USER32.DLL
+  77EF0000    模块 C:\WINDOWS\system32\GDI32.dll
+  7C800000    模块 C:\WINDOWS\system32\kernel32.dll
+  7C920000    模块 C:\WINDOWS\system32\ntdll.dll
+  76300000    模块 C:\WINDOWS\system32\IMM32.DLL
+  77DA0000    模块 C:\WINDOWS\system32\ADVAPI32.dll
+  77E50000    模块 C:\WINDOWS\system32\RPCRT4.dll
+  77FC0000    模块 C:\WINDOWS\system32\Secur32.dll
+  62C20000    模块 C:\WINDOWS\system32\LPK.DLL
+  00401000    程序入口点
+  73FA0000    模块 C:\WINDOWS\system32\USP10.dll
+  73390000    模块 C:\WINDOWS\system32\MSVBVM60.DLL
+  76990000    模块 C:\WINDOWS\system32\ole32.dll
+  77BE0000    模块 C:\WINDOWS\system32\msvcrt.dll
+  770F0000    模块 C:\WINDOWS\system32\OLEAUT32.dll
+  66630000    模块 C:\WINDOWS\system32\vb6chs.dll
+  5ADC0000    模块 C:\WINDOWS\system32\uxtheme.dll
+  10000000    模块 D:\Program Files\360safe\safemon\safemon.dll
+  7D590000    模块 C:\WINDOWS\system32\SHELL32.dll
+  77F40000    模块 C:\WINDOWS\system32\SHLWAPI.dll
+  77180000    模块 C:\WINDOWS\WinSxS\x86\_Microsoft.Windows.Common-Controls\_6595b64144ccf1df\_6.0.2600.3300\_x-ww\_d7ca0dc2\COMCTL32.dll
+  74680000    模块 C:\WINDOWS\system32\MSCTF.dll
+  75E00000    模块 C:\WINDOWS\system32\SXS.DLL
+```
+
+可惜……连一个 `Int3` 型断点和内存访问异常都没有……看来走最后一次异常这条路已经被 `ACProtect2.0` 给堵死了……
+
+没办法……还是用上次我脱 `SVKP` 的那种思想……先把程序跑起来……然后再附加看看吧……
+
+附加以后程序当然会停在系统的领空
+
+```
+  7C92120F    C3            retn                     //这里……
+  7C921210    8BFF          mov     edi, edi
+  7C921212 >  CC            int3
+  7C921213    C3            retn
+  7C921214    8BFF          mov     edi, edi
+  7C921216    8B4424 04     mov     eax, dword ptr [esp+4]
+  7C92121A    CC            int3
+  7C92121B    C2 0400       retn    4
+  7C92121E >  64:A1 18000000 mov     eax, dword ptr fs:[18]
+  7C921224    C3            retn
+  7C921225 >  57            push    edi
+  7C921226    8B7C24 0C     mov     edi, dword ptr [esp+C]
+  7C92122A    8B5424 08     mov     edx, dword ptr [esp+8]
+  7C92122E    C702 00000000 mov     dword ptr [edx], 0
+  7C921234    897A 04       mov     dword ptr [edx+4], edi
+```
+
+一样的思路……`Alt+F9` 返回一次
+
+返回到了 `Ntdll` 里面
+
+```
+  7C92E4F4 >  C3            retn            //返回到这里了……
+  7C92E4F5    8DA424 00000000 lea     esp, dword ptr [esp]
+  7C92E4FC    8D6424 00     lea     esp, dword ptr [esp]
+  7C92E500 >  8D5424 08     lea     edx, dword ptr [esp+8]
+  7C92E504    CD 2E         int     2E
+  7C92E506    C3            retn
+  7C92E507    90            nop
+  7C92E508 >  55            push    ebp
+  7C92E509    8BEC          mov     ebp, esp
+  7C92E50B    9C            pushfd
+```
+
+然后接下来看堆栈
+
+```
+  0012FE7C   77D19418  返回到 USER32.77D19418
+  0012FE80   733AD756  返回到 MSVBVM60.733AD756 来自 USER32.WaitMessage
+  0012FE84   FFFFFFFF
+  0012FE88   00E3373C
+  0012FE8C   00000000
+  0012FE90   003D091C  ASCII "######$$$$$$$$$'$$$$$$$'$'$$$'$$$$'$'$#$#$#$&'#$#$#$#$#$30000"
+  0012FE94   00000113
+  0012FE98   00000001
+  0012FE9C   00000000
+  0012FEA0   009C917B
+  0012FEA4   00000180
+  0012FEA8   0000008C
+  0012FEAC   00E30000
+  0012FEB0   00000000
+  0012FEB4   00E31E94
+  0012FEB8   /0012FEFC
+  0012FEBC   |7339A627  返回到 MSVBVM60.7339A627 来自 MSVBVM60.7339A632
+  0012FEC0   |FFFFFFFF
+  0012FEC4   |00E33764
+  0012FEC8   |00E30000
+  0012FECC   |00E3375C
+  0012FED0   |7339A5C9  返回到 MSVBVM60.7339A5C9
+  0012FED4   |00E3373C
+  0012FED8   |FFFFFFFF
+  0012FEDC   |00E33834
+  0012FEE0   |00E3375C
+  0012FEE4   |FFFFFFFF
+  0012FEE8   |00E33834
+  0012FEEC   |FFFFFFFF
+  0012FEF0   |00000FCC
+  0012FEF4   |00000001
+  0012FEF8   |00000000
+  0012FEFC   \\733AA3B8  MSVBVM60.733AA3B8
+  0012FF00   7339A505  返回到 MSVBVM60.7339A505 来自 MSVBVM60.7339A51B
+  0012FF04   00E33834
+  0012FF08   FFFFFFFF
+  0012FF0C   00000FCC
+  0012FF10   FFFFFFFF
+  0012FF14   FFFFFFFF
+  0012FF18   00E337FC
+  0012FF1C   7339A4D0  返回到 MSVBVM60.7339A4D0
+  0012FF20   00E33760
+  0012FF24   00E33834
+  0012FF28   FFFFFFFF
+  0012FF2C   00000FCC
+  0012FF30   00198328
+  0012FF34   7349E470  MSVBVM60.7349E470
+  0012FF38   0012FFB8
+  0012FF3C   7FFDE000
+  0012FF40   73393644  返回到 MSVBVM60.73393644 来自 MSVBVM60.7339A4AA
+  0012FF44   FFFFFFFF
+  0012FF48   00198328
+  0012FF4C   00197BC0
+  0012FF50   7FFDE000
+  0012FF54   00E31FA4
+  0012FF58   00000044
+  0012FF5C   0015C368
+  0012FF60   0015C558  ASCII "WinSta0\\Default"
+  0012FF64   0015C570
+  0012FF68   00000000
+  0012FF6C   00000000
+  0012FF70   00000000
+  0012FF74   00000000
+  0012FF78   00000000
+  0012FF7C   00000000
+  0012FF80   00000000
+  0012FF84   00000401
+  0012FF88   00000001
+  0012FF8C   00000000
+  0012FF90   00000000
+  0012FF94   00010001
+  0012FF98   00000000
+  0012FF9C   00000000
+  0012FFA0   0012FF48
+  0012FFA4   0012FFB0
+  0012FFA8   0012FFE0  指向下一个 SEH 记录的指针
+  0012FFAC   7347BAFD  SE 处理程序
+  0012FFB0   733A97D0  MSVBVM60.733A97D0
+  0012FFB4   00000000
+  0012FFB8   0012FFF0
+  0012FFBC   004CEBF8  ACProtec.004CEBF8            ///眼睛注意这里了哈……
+  0012FFC0   0045A0BC  ACProtec.0045A0BC            ///ACProtect2.0 的 VB 程序可要注意两个地方哦……
+  0012FFC4   7C817067  返回到 kernel32.7C817067
+  0012FFC8   00198328
+  0012FFCC   00197BC0
+  0012FFD0   7FFDE000
+  0012FFD4   8054C6ED
+  0012FFD8   0012FFC8
+  0012FFDC   852A1640
+  0012FFE0   FFFFFFFF  SEH 链尾部
+  0012FFE4   7C839AC0  SE 处理程序
+  0012FFE8   7C817070  kernel32.7C817070
+  0012FFEC   00000000
+  0012FFF0   00000000
+  0012FFF4   00000000
+  0012FFF8   00401000  ACProtec.<模块入口点>
+  0012FFFC   00000000
+```
+
+直接拉到下面来……能看到我们所感兴趣的东西……
+
+看到了吧……就是那个两个地方……
+
+```
+  0012FFBC   004CEBF8  ACProtec.004CEBF8            ///眼睛注意这里了哈……
+  0012FFC0   0045A0BC  ACProtec.0045A0BC            ///ACProtect2.0 的 VB 程序可要注意两个地方哦……
+```
+
+VB 程序在跑也跑掉入口第一句 Push `******` 所以这里就留下痕迹来了……嘿嘿……
+
+到了这里就有两种方法找 `OEP` 了……
+
+第一种是我之前脱 `SVKP` 的 VB 程序所用到的方法……找 `FF 25`，地址在这里：
+
+[`bbs.pediy.com/showthread.php?t=59807`](http://bbs.pediy.com/showthread.php?t=59807)
+
+我就不多说了……大家有兴趣去看看……
+
+这里着重讲讲第二种……不过这个方法只对 `ACProtect` 全保护的 VB 程序起效果……
+
+堆栈选中这一句，直接 `Enter`
+
+```
+  004CEBF8      90            db      90
+  004CEBF9      90            db      90
+  004CEBFA      60            db      60                       ;  CHAR '`'
+  004CEBFB      EB            db      EB
+  004CEBFC      0E            db      0E
+  004CEBFD      7F            db      7F
+  004CEBFE      83            db      83
+  004CEBFF      C4            db      C4
+  004CEC00      04            db      04
+  004CEC01      7A            db      7A                       ;  CHAR 'z'
+  004CEC02      16            db      16
+```
+
+呃……成这个样子了……处理一下吧，然后往上翻
+
+上面的第一句是
+
+```
+  004CEBF2    FF15 49884B00   call    dword ptr [4B8849]                 ; ACProtec.0040124C
+```
+
+这是在 Call 什么东西，呃……这就是本方法的关键所在……直接 `Enter` 进
+
+```
+
+
+
+```
+0040124C  - FF25 A4104000   jmp     dword ptr [4010A4]               ; MSVBVM60.ThunRTMain    //Call 到这里来了
+00401252    0000            add     byte ptr [eax], al
+00401254    C2 C809        ret     9C8
+00401257    26:6C          ins     byte ptr es:[edi], dx
+00401259    3D 864A54A4     cmp     eax, A4544A86
+```
+
+看得挺眼熟的吧，VB 入口点上面那一句话……那么入口就出来了……`00401254` 这里不就是入口嘛
+
+完成第一步……下面的操作就是要还原入口代码了……第一句……`Push 0045A0BC`
+
+第二句……`Call` 到上面去……
+
+这是还原后的代码
+
+```
+0040124C  - FF25 A4104000   jmp     dword ptr [4010A4]               ; MSVBVM60.ThunRTMain
+00401252    0000            add     byte ptr [eax], al
+00401254    68 BCA04500     push    0045A0BC
+00401259    E8 EEF7FF       call    0040124C                         ; jmp 到 MSVBVM60.ThunRTMain
+```
+
+打开 `ImportREC`，填好 OEP 自动查 IAT，没有无效函数……好样的，别关了……
+
+重新载入进程，隐藏 OD 以后 `ALT+M` 在这一段
+
+Memory map, 条目 23
+
+地址=`0045D000`
+
+大小=`00001000` (4096.)
+
+属主=`ACProtec 00400000`
+
+区段=`.data`
+
+包含=代码,数据
+
+类型=`Imag 01001002`
+
+访问=`R`
+
+初始访问=`RWE`
+
+就是程序本身的 `.data` 段……
+
+代码:
+
+```
+733B06A9    8911            mov     dword ptr [ecx], edx
+733B06AB  ^ E9 A988FEFF     jmp     73398F59
+733B06B0    C745 FC 0700000>mov     dword ptr [ebp-4], 7
+733B06B7    33DB            xor     ebx, ebx
+733B06B9    E8 8F8FFEFF     call    7339964D
+733B06BE  ^ E9 02FFFFFF     jmp     733B05C5
+733B06C3    50              push    eax
+733B06C4    E8 584DFEFF     call    73395421
+733B06C9    8945 FC         mov     dword ptr [ebp-4], eax
+733B06CC  ^ EB EB           jmp     short 733B06B9
+733B06CE    8BCF            mov     ecx, edi
+```
+
+会断在刚才那个地方……，然后 `Alt+G` 到我们刚才找的 OEP，删除分析以后还原代码……
+
+然后 `Dumper` 出来……
+
+`CFF Explorer` 上场……优化才是硬道理，载入，删除 `Unpack` 就是 `LoadPE` 直接转存出来的那个……删掉倒数两个区段和数据，然后用 `FixResDemo` 转存资源，`RVA 5E000`,剩下一个选项填 `1000`，转存资源……再用 `LordPE` 载入删除区节后的文件，然后载入 `rsrc.bin` 然后保存，`ImportREC` 修复一下，不加新区段，在原区段搞定输入表：点到 OD 里……`Alt+B` 搜索 `VB` 输入表起始特征码，4 个 `9E`，也就是 `9E 9E 9E 9E` ，这一点绝对原创……刚刚发现的……然后记下 4 个 `9E` 完后第一个语句的地址，也就是原程序输入表的起始地址，填到 `RVA` 上去……修复转存……我相信 `ImportREC` 绝对会买你的帐的！这样看看优化的文件大小：`736 KB` (`753,664` 字节)一个字节都没变，呵呵……优化才是硬道理啊！
+
+不过这样的程序有些还是不能用别的压缩壳工具再压缩，原因是 `PE` 头被原加壳程序改了，随便找个好的 `VB` 程序，然后把头上的 `1000` 字节复制过去，然后再修改区段偏移匹配本程序，然后再修改入口点和目录节等一系列信息，这样就能彻底优化了……
+
+运行个看看……正常……不错不错……收工……到此为止……
+
+P.s.附件里有练习程序
+
+--------------------------------------------------------------------------------
+
+【经验总结】
+
+优化的时候注意用 `FixResDemo` 转存资源……要不然是不能修复好的……![](img/1e00a4c5ba6d273521879fcbd5363999.jpg "碌眼")
+
+上面那个投机取巧的方法不错的……能省下很多找入口点的时间……呵呵……
+
+优化才是硬道理……优化很重要哦！![](img/c72cb8eba397ac67dda6e1ac58a9b627.jpg "微笑")
+
+写了两篇关于 `VB` 的保护壳的脱壳文章了……感觉学 `VB` 真的是很危险的问题……这么容易壳就被搞定了……那反编译岂不是会
+
+很简单了？^\_^开玩笑啦~~知道 `VB` 的程序不好对付……![](img/f43c1e514327696dccbb0da997496b2a.jpg "扮鬼脸")
+
+今年第二篇文章，呵呵，后天就开学咯……不能在这里和大家一起学习咯……我毕竟还是个初中生嘛……学习为主……嘿嘿![](img/022c916b9660e467a8663bd57a4ae6d1.jpg "狂笑")
+
+--------------------------------------------------------------------------------
+
+【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!
+
+2008 年 02 月 20 日 11:15:52
