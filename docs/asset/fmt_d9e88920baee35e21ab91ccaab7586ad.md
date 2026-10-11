@@ -1,0 +1,17 @@
+
+# 发个使用 Native API 的编程示例代码：LzOpenProcess 杀冰刃
+
+> 原文：[`www.pediy.com/kssd/pediy10/98781.html`](https://www.pediy.com/kssd/pediy10/98781.html)
+
+代码甚老，就是用`LzOpenProcess`打开冰刃后杀之，包括内存填 0 和`JOB`两种方式。
+
+看到某些有需要的同学还不会使用`ntdllsdk`方便地进行 Native API 编程，因此发出来~
+
+这是个使用 Native API 编程的完整代码，希望对新手同学能有点帮助，里面的`ntdll sdk`也可以方便地直接拿来使用~~
+
+ps:今天十一国庆，祝我们的祖国越来越强大~~~
+
+上传的附件
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || `LzOpenProcess.rar` |
+| :--- | :--- |
