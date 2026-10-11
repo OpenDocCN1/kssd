@@ -1,0 +1,205 @@
+
+# QQ 聊天记录读取器
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-207.htm`](https://www.pediy.com/kssd/pediy08/pediy8-207.htm)
+
+**软件名称：** QQ 聊天记录读取器  
+**下载地址：** `http://www.ngnsss.com/`  
+**调试工具：** `OllyDBG`  
+**软件限制：** 软件运行 1 分钟后自动关闭，注册码重启验证  
+**测试环境：** `WINXP` `SP2`
+
+看到 `lhynich` 发的贴 `http://bbs.pediy.com/showthread.php?s=&threadid=22817`，我觉得对于新手，更应该鼓励，而不是耻笑，但是楼主确实太猖狂了点，是那些高手觉得这个软件太简单了，所以没有去理你，但是每个人都有第一次，第一次将一个软件击败确实值得高兴，可以理解。我顺便也把这个算法简单分析了下，希望楼主有所进步.......
+
+```
+00402B60   .  6A FF          PUSH -1                                       ;  此处 F2 下断
+00402B62   .  68 08344200    PUSH QQ 聊天记.00423408
+00402B67   .  64:A1 0000000> MOV EAX,DWORD PTR FS:[0]
+00402B6D   .  50             PUSH EAX
+00402B6E   .  64:8925 00000> MOV DWORD PTR FS:[0],ESP
+00402B75   .  83EC 08        SUB ESP,8
+00402B78   .  56             PUSH ESI
+00402B79   .  8BF1           MOV ESI,ECX
+00402B7B   .  6A 01          PUSH 1
+00402B7D   .  E8 6C720100    CALL QQ 聊天记.00419DEE
+00402B82   .  A1 FCE54200    MOV EAX,DWORD PTR DS:[42E5FC]
+00402B87   .  894424 04      MOV DWORD PTR SS:[ESP+4],EAX
+00402B8B   .  8D8E 1C010000  LEA ECX,DWORD PTR DS:[ESI+11C]
+00402B91   .  C74424 14 000> MOV DWORD PTR SS:[ESP+14],0
+00402B99   .  51             PUSH ECX
+00402B9A   .  8D4C24 08      LEA ECX,DWORD PTR SS:[ESP+8]
+00402B9E   .  E8 0A870100    CALL QQ 聊天记.0041B2AD
+00402BA3   .  51             PUSH ECX
+00402BA4   .  8D5424 08      LEA EDX,DWORD PTR SS:[ESP+8]
+00402BA8   .  8BCC           MOV ECX,ESP
+00402BAA   .  896424 0C      MOV DWORD PTR SS:[ESP+C],ESP
+00402BAE   .  52             PUSH EDX
+00402BAF   .  E8 79830100    CALL QQ 聊天记.0041AF2D
+00402BB4   .  E8 77FEFFFF    CALL QQ 聊天记.00402A30                      ;  算法 CALL，F7 跟入
+00402BB9   .  83C4 04        ADD ESP,4
+00402BBC   .  85C0           TEST EAX,EAX                                ;  CALL 中返回的 EAX 的值是否为 0
+00402BBE   .  6A 00          PUSH 0
+00402BC0   .  68 A0E24200    PUSH QQ 聊天记.0042E2A0
+00402BC5   .  74 15          JE SHORT QQ 聊天记.00402BDC                 ;  是 0 就跳到错误的地方
+00402BC7   .  68 A8E24200    PUSH QQ 聊天记.0042E2A8                     ;  注册成功
+00402BCC   .  8BCE           MOV ECX,ESI
+00402BCE   .  E8 BF6A0100    CALL QQ 聊天记.00419692
+00402BD3   .  8BCE           MOV ECX,ESI
+00402BD5   .  E8 DE990100    CALL QQ 聊天记.0041C5B8
+00402BDA   .  EB 0C          JMP SHORT QQ 聊天记.00402BE8
+00402BDC   >  68 94E24200    PUSH QQ 聊天记.0042E294                     ;  注册号无效
+00402BE1   .  8BCE           MOV ECX,ESI
+00402BE3   .  E8 AA6A0100    CALL QQ 聊天记.00419692
+================================================================================================
+
+00402A30   /$  6A FF          PUSH -1
+00402A32   |.  68 E8334200    PUSH QQ 聊天记.004233E8
+00402A37   |.  64:A1 0000000> MOV EAX,DWORD PTR FS:[0]
+00402A3D   |.  50             PUSH EAX
+00402A3E   |.  64:8925 00000> MOV DWORD PTR FS:[0],ESP
+00402A45   |.  83EC 18        SUB ESP,18
+00402A48   |.  53             PUSH EBX
+00402A49   |.  8B4C24 2C      MOV ECX,DWORD PTR SS:[ESP+2C]             ;  注册码放到 ECX 中
+00402A4D   |.  33C0           XOR EAX,EAX                               ;  EAX 清空，也可以说下面准备为 EAX 赋值
+00402A4F   |.  894424 05      MOV DWORD PTR SS:[ESP+5],EAX
+00402A53   |.  33DB           XOR EBX,EBX                               ;  EBX 清空
+00402A55   |.  66:894424 09   MOV WORD PTR SS:[ESP+9],AX
+00402A5A   |.  895C24 24      MOV DWORD PTR SS:[ESP+24],EBX
+00402A5E   |.  884424 0B      MOV BYTE PTR SS:[ESP+B],AL
+00402A62   |.  8B41 F8        MOV EAX,DWORD PTR DS:[ECX-8]              ;  取注册码长度，可以看到 DS:[ECX-8]值为们输入注册码的长度，放入 EAX
+00402A65   |.  83F8 10        CMP EAX,10                                ;  注册码的长度与 16 对比
+00402A68   |.  885C24 04      MOV BYTE PTR SS:[ESP+4],BL
+00402A6C   |.  0F8C C0000000  JL QQ 聊天记.00402B32                     ;  如果小于 16 位就跳到错误的地方，可以算爆破点 1
+00402A72   |.  56             PUSH ESI
+00402A73   |.  68 04010000    PUSH 104
+00402A78   |.  8D4C24 34      LEA ECX,DWORD PTR SS:[ESP+34]
+00402A7C   |.  E8 F68A0100    CALL QQ 聊天记.0041B577                   ;  取注册码
+00402A81   |.  8B10           MOV EDX,DWORD PTR DS:[EAX]                ;  DS:[EAX]中放着注册码的第一位，也就是说将注册码第一位放入 EDX
+00402A83   |.  33F6           XOR ESI,ESI
+00402A85   |.  895424 10      MOV DWORD PTR SS:[ESP+10],EDX            ;  再放入 ESP+10
+00402A89   |.  8B48 04        MOV ECX,DWORD PTR DS:[EAX+4]             ;  取注册码第 5 位置 EAX
+00402A8C   |.  894C24 14      MOV DWORD PTR SS:[ESP+14],ECX            ;  再放入 ESP+14 中
+00402A90   |.  8B50 08        MOV EDX,DWORD PTR DS:[EAX+8]             ;  取注册码第 9 位置 EAX
+00402A93   |.  895424 18      MOV DWORD PTR SS:[ESP+18],EDX            ;  再放入 ESP+18 中
+00402A97   |.  8B40 0C        MOV EAX,DWORD PTR DS:[EAX+C]             ;  取注册码第 13 位置 EAX
+00402A9A   |.  894424 1C      MOV DWORD PTR SS:[ESP+1C],EAX            ;  再放入 ESP+1C 中
+00402A9E   |>  8A4C34 10      /MOV CL,BYTE PTR SS:[ESP+ESI+10]          ;  这里是循环的开始，逐个取注册码的十六进制码，放入 CL 中
+00402AA2   |.  51             |PUSH ECX                                 ;  ECX 中就是所取注册码的十六进制码
+00402AA3   |.  E8 68FFFFFF    |CALL QQ 聊天记.00402A10                 ;  这个 CALL 是对注册码进行小小变形，跟进看看
+00402AA8   |.  83C4 04        |ADD ESP,4
+00402AAB   |.  884434 10      |MOV BYTE PTR SS:[ESP+ESI+10],AL          ;  AL 就是上面那个 CALL 中返回的注册码变形后的值
+00402AAF   |.  46             |INC ESI                                  ;  ESI=ESI+1，上面有个 ESI 清空的步骤，所以 ESI 的初始值为 0
+00402AB0   |.  83FE 10        |CMP ESI,10                               ;  ESI 的累加值是否大于 16
+00402AB3   |.^ 7C E9          \JL SHORT QQ 聊天记.00402A9E              ;  小于的话就继续循环
+00402AB5   |.  33C0           XOR EAX,EAX                               ;  EAX 清空
+00402AB7   |.  8D4C24 10      LEA ECX,DWORD PTR SS:[ESP+10]             ;  ESP+10 从上面可以知道它放的是第一位注册码
+00402ABB   |.  5E             POP ESI
+00402ABC      8A51 01        MOV DL,BYTE PTR DS:[ECX+1]               ;  这里又是个循环，[ECX+1]中放着注册码的第二位，也就是说依次取注册码的 2、4、6...等位，放入 DL 中
+00402ABF   |.  8A19           |MOV BL,BYTE PTR DS:[ECX]                ;  [ECX]中放着注册码的 1、3、5、7...等位，放入 BL 中
+00402AC1   |.  C0E2 04        |SHL DL,4                                 ;  将 DL 中的值逻辑左移 4 位
+00402AC4   |.  02D3           |ADD DL,BL                               ;  DL=DL+BL，就是将右移后的结果加 BL 的值，重新放回 DL
+00402AC6   |.  83C1 02        |ADD ECX,2                               ;  ECX=ECX+2，ECX 可以从上面找到它的值，它的初始值为注册码的第一位，每循环一次加 2
+00402AC9   |.  885404 04      |MOV BYTE PTR SS:[ESP+EAX+4],DL          ;  最终的 DL 结果放入 ESP+EAX+4,注意这里的 EAX，EAX 的初始值为 0
+00402ACD   |.  40             |INC EAX                                  ;  计算器，EAX=EAX+1，EAX 的初始值为 0，可以看到上面对 EAX 有个清空动作
+00402ACE   |.  83F8 08        |CMP EAX,8                               ;  累计是否大于 8
+00402AD1   |.^ 7C E9          \JL SHORT QQ 聊天记.00402ABC              ;  小于则继续循环
+00402AD3   |.  8A4424 07      MOV AL,BYTE PTR SS:[ESP+7]               ;  [ESP+7]的值放入 AL，[ESP+7]指上面的[ESP+EAX+4]中的 EAX=3 时的值，也就是第 4 次循环计算后 DL 的值
+00402AD7   |.  8A5C24 04      MOV BL,BYTE PTR SS:[ESP+4]               ;  第 1 次循环后 DL 的值
+00402ADB   |.  8A4C24 0B      MOV CL,BYTE PTR SS:[ESP+B]               ;  第 8 次循环后 DL 的值
+00402ADF   |.  8A5424 05      MOV DL,BYTE PTR SS:[ESP+5]               ;  第 2 次循环后 DL 的值
+00402AE3   |.  32C3           XOR AL,BL                                ;  AL 的值异或 BL 的值
+00402AE5   |.  8A5C24 06      MOV BL,BYTE PTR SS:[ESP+6]               ;  第 3 次循环后 DL 的值
+00402AE9   |.  32CA           XOR CL,DL                                ;  CL 的值异或 DL 的值
+00402AEB   |.  8A5424 09      MOV DL,BYTE PTR SS:[ESP+9]               ;  第 6 次循环后 DL 的值
+00402AEF   |.  32D3           XOR DL,BL                                ;  DL 的值异或 BL 的值
+00402AF1   |.  8A5C24 08      MOV BL,BYTE PTR SS:[ESP+8]               ;  第 5 次循环后 DL 的值
+```
+
+
+
+### 汇编分析
+
+#### 主逻辑片段
+
+```
+00402AF5  |.  325C24 0A      XOR BL,BYTE PTR SS:[ESP+A]            ; 第 7 次循环后 DL 的值  
+00402AF9  |.  3C 38         CMP AL,38                               ; AL 是否为 38H  
+00402AFB      75 35         JNZ SHORT QQ 聊天记.00402B32            ; 不是就跳错，爆破 2  
+00402AFD  |.  80F9 6E       CMP CL,6E                               ; CL 是否为 6E  
+00402B00      75 30         JNZ SHORT QQ 聊天记.00402B32            ; 不是就跳错，爆破 3  
+00402B02  |.  80FA 4E       CMP DL,4E                               ; DL 是否为 4E  
+00402B05      75 2B         JNZ SHORT QQ 聊天记.00402B32            ; 不是就跳错，爆破 4  
+00402B07  |.  80FB 1A       CMP BL,1A                               ; BL 是否为 1A  
+00402B0A      75 26         JNZ SHORT QQ 聊天记.00402B32            ; 不是就跳错，爆破 5  
+00402B0C  |.  8D4C24 2C     LEA ECX,DWORD PTR SS:[ESP+2C]          ; [ESP+2C 的值放入 ECX  
+00402B10  |.  C74424 24 FFF>MOV DWORD PTR SS:[ESP+24],-1           ; ESP+24 地址放入常数-1  
+00402B18  |.  E8 9B860100   CALL QQ 聊天记.0041B1B8  
+00402B1D  |.  B8 01000000   MOV EAX,1                               ; EAX 赋值 1  
+00402B22  |.  5B            POP EBX  
+00402B23  |.  8B4C24 18     MOV ECX,DWORD PTR SS:[ESP+18]  
+00402B27  |.  64:890D 00000>MOV DWORD PTR FS:[0],ECX  
+00402B2E  |.  83C4 24       ADD ESP,24  
+00402B31  |.  C3            RETN  
+```
+
+这是跟进 `CALL 00402A10`：
+
+#### 注册码验证函数
+
+```
+00402A10  /$  8A4424 04     MOV AL,BYTE PTR SS:[ESP+4]             ; 取该位注册码  
+00402A14  |.  3C 30         CMP AL,30                               ; 是否大于 0  
+00402A16  |.  7C 07         JL SHORT QQ 聊天记.00402A1F  
+00402A18  |.  3C 39         CMP AL,39                               ; 是否小于 9，说明是判断是否为数字  
+00402A1A  |.  7F 03         JG SHORT QQ 聊天记.00402A1F  
+00402A1C  |.  2C 30         SUB AL,30                               ; 减 30H 后返回，就是注册码假如是数字就减 30，这就是刚才说的变形  
+00402A1E  |.  C3            RETN  
+
+00402A1F  |>  3C 41         CMP AL,41                               ; 是否大于 41H，既 A  
+00402A21  |.  7C 07         JL SHORT QQ 聊天记.00402A2A  
+00402A23  |.  3C 46         CMP AL,46                               ; 是否小于 46H，即 F  
+00402A25  |.  7F 03         JG SHORT QQ 聊天记.00402A2A  
+00402A27  |.  2C 37         SUB AL,37                               ; 如果该注册码是 A-F 之间的就减 37H  
+00402A29  |.  C3            RETN  
+
+00402A2A  |>\ 0C FF         OR AL,0FF                               ; 除了数字和 A-F 外置 FF，错误  
+00402A2C  \.  C3            RETN  
+```
+
+### 总结
+
+注册码必须大于等于 `16` 位，先将注册码变形，碰到数字，将数字的十六进制值减 `30H`，碰到字母，字母必须在大写的 `A-F` 之间，每位减 `37H` 后返回新码。
+
+在新码中每取两位注册码的十六进制码分八组进行计算，计算规则都是将第二位逻辑左移 `4` 位后加第一位的值，这样得到四组结果，它们要符合以下规则：
+
+- 第四组的计算结果异或第一组的结果必须为 `38`
+- 第二组的计算结果异或第八组的结果必须为 `6E`
+- 第六组的计算结果异或第三组的结果必须为 `4E`
+- 第五组的计算结果异或第七组的结果必须为 `1A`
+
+因为是异或和逻辑左移运算，所以我们可以逆推真正的注册码
+
+提供一组可用的注册码：`396F78BA899C2889`，要爆破的话改文中提到的五处。
+
+### 注册机源码
+
+由于注册码只要求有效，不是根据用户名、机器码等换算而来的，所以没必要与算法结合写注册机，只要能达到显示注册码即可，可以偷懒了，放上一个 `DELPHI` 的搞笑源码：
+
+```delphi
+procedure TForm1.Button1Click(Sender: TObject);
+
+begin
+    If Length(edit1.text) = 0 Then
+  Begin
+  MessageBox(0, '留个大名吧！', '提示', MB_OK + MB_ICONWARNING);
+
+      Exit;
+
+  End;
+
+   MessageBox(0, '396F78BA899C2889', '这是可用的注册码！', MB_OK + MB_ICONWARNING);
+
+end;
+```
+
+`4dd466d0e1e0cc123afbe504da2462ca`
