@@ -1,0 +1,780 @@
+
+# Unpack SafeDisc v2.90.40 (更新代码修复)
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-611.htm`](https://www.pediy.com/kssd/pediy07/pediy7-611.htm)
+
+Unpacking SafeDisc v2.90.40 -- 樱花大战 3 简体中文标准版（如果你的 HP 不是满的话，还是先去喝几个血瓶吧）
+
+`[工具]`：`ODbyDYK`，`ImportREC`，`LordPE`
+
+大家都知道 `SafeDisc` 好一个用驱动来欺负我们的 `OD`，但是我们真的会让 `OD` 被他欺负吗？
+
+用 `OD` 载入 `Sakura3.exe`。
+
+```
+020B305E >   55               push     ebp    <-OD 停在了这里
+
+020B305F     8BEC             mov      ebp, esp
+
+020B3061     60               pushad   <-大家看，多么友好的提示。
+
+020B3062     BB 5E300B02      mov      ebx, offset Sakura3.<ModuleEntryPoint>
+
+020B3067     33C9             xor      ecx, ecx
+
+020B3069     8A0D 3D300B02    mov      cl, byte ptr ds:[20B303D]
+
+020B306F     85C9             test     ecx, ecx
+
+向下找 POPAD。一共找到了三个大家可以看看哪个比较象。
+
+020B30BA     85C9             test     ecx, ecx
+
+020B30BC     74 09            je       short Sakura3.020B30C7
+
+020B30BE     61               popad
+
+020B30BF     5D               pop      ebp
+
+020B30C0     B8 00000000      mov      eax, 0
+
+020B30C5   ^ EB 97            jmp      short Sakura3.<ModuleEntryPoint>
+
+020B30CD     FFD0             call     eax
+
+020B30CF     61               popad
+
+020B30D0     5D               pop      ebp
+
+020B30D1     EB 46            jmp      short Sakura3.020B3119
+
+020B30D3     807C24 08 00     cmp      byte ptr ss:[esp+8], 0
+
+020B3115     61               popad
+
+020B3116     1360 0D          adc      esp, dword ptr ds:[eax+D]
+
+020B3119   - E9 09BF5FFE     jmp      Sakura3.006AF027
+
+020B311E     CC               int3
+```
+
+然后你小按几下 `F8`，就会发现刚才的入口点被修正成了
+
+```
+020B305E >- E9 C4BF5FFE      jmp      Sakura3.006AF027
+
+020B3063     5E               pop      esi
+
+020B3064     300B             xor      byte ptr ds:[ebx], cl
+
+020B3066     0233             add      dh, byte ptr ds:[ebx]
+```
+
+然而，事实证明，真正有用的是 `020B3119` 那里的跳转。
+
+先说一下 `safedisc` 的运做过程，先把自己需要的连接库解压到临时目录，写为`*.tmp` 文件。然后 `LoadLibrary`。
+
+再跳到载入的`~df394b.tmp` 模块进行调试器检测，加载光盘检测模块，解压缩大部分主程序，再进行光盘检测向主程序写入剩下的一些数据，返回。
+
+下面进入正题：
+
+对 `IsDebuggerPresent` 下断（软件/硬件断点都行，但是我选择硬件断点，感觉保险些。下面相同）。显得有些多此一举，用插件能避开的还搞那么麻烦，而且我也用插件避开了，但是我们需要定位后面的调试器检测。
+
+断下后取消硬件断点返回到这里：
+
+```
+100099EC     8BF0             mov      esi, eax
+
+100099EE     66:85F6          test     si, si
+
+100099F1     74 13            je       short ~df394b.10009A06
+
+100099F3     E8 8278FFFF      call     ~df394b.1000127A
+
+100099F8     66:8BF0          mov      si, ax
+
+100099FB     66:F7DE          neg      si
+
+100099FE     1BF6             sbb      esi, esi
+
+10009A00     46               inc      esi
+
+10009A01     66:85F6          test     si, si
+
+10009A04     75 13            jnz      short ~df394b.10009A19
+
+10009A06     8B4424 08        mov      eax, dword ptr ss:[esp+8]
+
+10009A0A     8B08             mov      ecx, dword ptr ds:[eax]
+
+10009A0C     81E1 EA894267    and      ecx, 674289EA
+
+10009A12     8908             mov      dword ptr ds:[eax], ecx
+
+10009A14     66:8BC6          mov      ax, si
+
+10009A17     5E               pop      esi
+
+10009A18     C3               retn   <-继续返回
+```
+
+到这里：
+
+```
+1000457A     83C4 04          add      esp, 4
+
+1000457D     66:85C0          test     ax, ax
+
+10004580     0F85 02010000    jnz      ~df394b.10004688
+
+10004586     F6C3 04          test     bl, 4
+
+10004589     76 12            jbe      short ~df394b.1000459D
+
+1000458B     56               push     esi
+
+1000458C     E8 3F530000      call     ~df394b.100098D0
+
+10004591     83C4 04          add      esp, 4
+
+10004594     66:85C0          test     ax, ax
+
+10004597     0F85 EB000000    jnz      ~df394b.10004688
+
+1000459D     F6C3 08          test     bl, 8
+
+100045A0     76 12            jbe      short ~df394b.100045B4
+
+100045A2     56               push     esi
+
+100045A3     E8 58520000      call     ~df394b.10009800
+
+100045A8     83C4 04          add      esp, 4
+
+100045AB     66:85C0          test     ax, ax
+
+100045AE     0F85 D4000000    jnz      ~df394b.10004688
+
+100045B4     F7C3 00080000    test     ebx, 800
+
+100045BA     76 12            jbe      short ~df394b.100045CE
+
+100045BC     56               push     esi
+
+100045BD     E8 5E510000      call     ~df394b.10009720
+
+100045C2     83C4 04          add      esp, 4
+
+100045C5     66:85C0          test     ax, ax
+
+100045C8     0F85 BA000000    jnz      ~df394b.10004688  <-我们需要避开的是这个，不要让他跳转就行了。
+
+100045CE     F7C3 00100000    test     ebx, 1000
+
+100045D4     76 12            jbe      short ~df394b.100045E8
+
+100045D6     56               push     esi
+
+100045D7     E8 84500000      call     ~df394b.10009660
+
+100045DC     83C4 04          add      esp, 4
+
+100045DF     66:85C0          test     ax, ax
+
+100045E2     0F85 A0000000    jnz      ~df394b.10004688
+
+100045E8     F7C3 00200000    test     ebx, 2000
+
+100045EE     76 12            jbe      short ~df394b.10004602
+
+100045F0     56               push     esi
+
+100045F1     E8 BA4F0000      call     ~df394b.100095B0
+
+100045F6     83C4 04          add      esp, 4
+
+100045F9     66:85C0          test     ax, ax
+
+100045FC     0F85 86000000    jnz      ~df394b.10004688
+
+10004602     F6C3 01          test     bl, 1
+
+10004605     76 0E            jbe      short ~df394b.10004615
+
+10004607     56               push     esi
+
+10004608     E8 834E0000      call     ~df394b.10009490
+
+1000460D     83C4 04          add      esp, 4
+
+10004610     66:85C0          test     ax, ax
+
+10004613     75 73            jnz      short ~df394b.10004688
+
+10004615     F6C3 02          test     bl, 2
+
+10004618     76 0E            jbe      short ~df394b.10004628
+
+1000461A     56               push     esi
+
+1000461B     E8 504D0000      call     ~df394b.10009370
+
+10004620     83C4 04          add      esp, 4
+
+10004623     66:85C0          test     ax, ax
+
+10004626     75 60            jnz      short ~df394b.10004688
+
+10004628     F6C3 10          test     bl, 10
+
+1000462B     76 0E            jbe      short ~df394b.1000463B
+
+1000462D     56               push     esi
+
+1000462E     E8 DD4C0000      call     ~df394b.10009310
+
+10004633     83C4 04          add      esp, 4
+
+10004636     66:85C0          test     ax, ax
+
+10004639     75 4D            jnz      short ~df394b.10004688
+
+1000463B     F6C3 20          test     bl, 20
+
+1000463E     76 0E            jbe      short ~df394b.1000464E
+
+10004640     56               push     esi
+
+10004641     E8 1A4C0000      call     ~df394b.10009260
+
+10004646     83C4 04          add      esp, 4
+
+10004649     66:85C0          test     ax, ax
+
+1000464C     75 3A            jnz      short ~df394b.10004688
+
+1000464E     F6C3 40          test     bl, 40
+
+10004651     76 0E            jbe      short ~df394b.10004661
+
+10004653     56               push     esi
+
+10004654     E8 D74A0000      call     ~df394b.10009130
+
+10004659     83C4 04          add      esp, 4
+
+1000465C     66:85C0          test     ax, ax
+
+1000465F     75 27            jnz      short ~df394b.10004688
+
+10004661     F7C3 80000000    test     ebx, 80
+
+10004667     76 0E            jbe      short ~df394b.10004677
+
+10004669     56               push     esi
+
+1000466A     E8 B1490000      call     ~df394b.10009020
+
+1000466F     83C4 04          add      esp, 4
+
+10004672     66:85C0          test     ax, ax
+
+10004675     75 11            jnz      short ~df394b.10004688
+
+10004677     F7C3 00400000    test     ebx, 4000
+
+1000467D     76 09            jbe      short ~df394b.10004688
+
+1000467F     56               push     esi
+
+10004680     E8 CB480000      call     ~df394b.10008F50
+
+10004685     83C4 04          add      esp, 4
+
+10004688     5E               pop      esi
+
+10004689     5B               pop      ebx
+
+1000468A     C3               retn
+```
+
+注意：由于我的 `OD` 是修改版，所以只需要改一个跳转。你自己调试时，务必不能让其中任何一个 `jnz` 跳下去。改的时候，只能修改标志位 `Z=1`。因为后面这个库还有模块完整性的检查。
+
+然后，我们走啊走，走到这里：
+
+```
+1000357D     FF75 F8          push     dword ptr ss:[ebp-8]                          ; ~df394b.10000000
+
+10003580     E8 20750100      call     ~df394b.1001AAA5     <-进入这个 call
+
+10003585     8B43 14          mov      eax, dword ptr ds:[ebx+14]
+
+10003588     59               pop      ecx
+
+1001AAA5             55                 push ebp
+
+1001AAA6             8BEC               mov ebp,esp
+```
+
+
+
+## 1. 内存修改与入口点定位
+
+```
+1001AAA8                 81EC 10020000     sub esp,210
+1001AAAE                 833D 3C220610 00  cmp dword ptr ds:[1006223C],0 <-我们修改这里，把 1006223c 处的内存清 0。
+1001AAB5                 53                push ebx
+1001AAB6                 0F84 EF000000     je ~df394b.1001ABAB
+```
+
+走啊走，继续一路返回就可以到入口点了：
+
+```
+006AF027     55              push    ebp
+006AF028     8BEC            mov     ebp, esp
+006AF02A     6A FF           push    -1
+006AF02C     68 607DF101     push    Sakura3.01F17D60
+006AF031     68 780A6B00     push    Sakura3.006B0A78
+006AF036     64:A1 00000000  mov     eax, dword ptr fs:[0]
+006AF03C     50              push    eax
+006AF03D     64:8925 0000000>mov     dword ptr fs:[0], esp
+006AF044     83EC 58         sub     esp, 58
+006AF047     53              push    ebx
+006AF048     56              push    esi
+006AF049     57              push    edi
+006AF04A     8965 E8         mov     dword ptr ss:[ebp-18], esp
+006AF04D     FF15 6081EC01   call    dword ptr ds:[1EC8160]
+006AF053     33D2            xor     edx, edx
+006AF055     8AD4            mov     dl, ah
+006AF057     8915 04BD0A02   mov     dword ptr ds:[20ABD04], edx
+006AF05D     8BC8            mov     ecx, eax
+006AF05F     81E1 FF000000   and     ecx, 0FF
+006AF065     890D 00BD0A02   mov     dword ptr ds:[20ABD00], ecx
+006AF06B     C1E1 08         shl     ecx, 8
+006AF06E     03CA            add     ecx, edx
+006AF070     890D FCBC0A02   mov     dword ptr ds:[20ABCFC], ecx
+006AF076     C1E8 10         shr     eax, 10
+006AF079     A3 F8BC0A02     mov     dword ptr ds:[20ABCF8], eax
+006AF07E     6A 01           push    1
+006AF080     E8 A47BD5FF     call    Sakura3.00406C29
+```
+
+### 小结：现在我们第一次的路程结束了。我们得到了什么？
+
+我们得到了避开调试器检测的方法和调用驱动的过程以及入口点的位置，但是我们却没有得到`dump`文件和完美的`IAT`。
+
+继续。
+
+我们现在需要正确代码段。因为如果你细心的看下代码的话，你会发现一些这种代码。
+
+```
+00688CF2                 85C0             test eax,eax
+00688CF4                 CC               int3 <-正常的程序会有这种东西吗？
+00688CF5                 CC               int3
+00688CF6                 8B4424 10        mov eax,dword ptr ss:[esp+10]
+00688CFA                 8B4D 04          mov ecx,dword ptr ss:[ebp+4]
+00688CFD                 3BC1             cmp eax,ecx
+00688CFF                ^ 0F8C D4FEFFFF  jl sakuara3.00688BD9
+```
+
+但是怎么得到呢？不能通过调试器，`OD`不能进驱动，`SI`被防得又太严。
+
+其实非常的简单，我们只需要运行游戏，在进入游戏后按下`windows`徽标键强行弹出，再用`LordPE`把他的代码段`dump`下来就行了。因为这样做，我们没有对他作过任何手脚，所以它就会安心的写下所有的代码。上面的两个`CC`也会被一个短距跳转所取代。但后我们只要在`OD`到达入口点前一点的位置把他作为备份载入即可。
+
+## 2. IAT 分析
+
+下面是`IAT`了。在现在的入口点我们可以看到部分`Call []`后面并没有写出是什么函数。入口点之后第一个这种调用应该是`GetVision`。那么我们进入看看：
+
+```
+02F43CE4                 68 A310EABF       push BFEA10A3
+02F43CE9                 9C                pushfd
+02F43CEA                 60                pushad
+02F43CEB                 54                push esp
+02F43CEC                 68 243DF402       push 2F43D24
+02F43CF1                 E8 9F06110D       call ~df394b.10054395 <-进入
+02F43CF6                 83C4 08           add esp,8
+02F43CF9                 6A 00             push 0
+02F43CFB                 58                pop eax
+02F43CFC                 61                popad
+02F43CFD                 9D                popfd
+02F43CFE                 C3                retn
+
+10054744                 FF15 50700510     call near dword ptr ds:[<&KERNEL32.SetEvent>>; kernel32.SetEvent
+1005474A                 8B65 0C           mov esp,dword ptr ss:[ebp+C]
+1005474D                 61                popad
+1005474E                 9D                popfd
+1005474F                 C3                retn
+```
+
+我们在第二个`SetEcent`后的`retn`处下断，运行。停下后看看堆栈：
+
+```
+0012FF44   77E5D142  kernel32.GetVersion <-果然
+0012FF48   006AF053  返回到 sakuara3.006AF053 来自 02F43CE4
+0012FF4C   77F517E6  返回到 ntdll.77F517E6 来自 ntdll.77F78C4E
+0012FF50   77F51778  返回到 ntdll.77F51778 来自 ntdll.77F517B5
+```
+
+这就是`SafeDisc`对`IAT`加密形式中一种。尽管这种方法很难手工修复，但是我们发现还是有些`IAT`是没有被加密的。所以我们就要从这里下手。
+
+重新开始。我们先对其中一个没加密的`IAT`的位置下硬件断点（软件断点不能下在内存单元上，内存断点会被它在修改内存属性的时候废掉）。运行，避开检测，得到了地址。然后再重来跟踪这个地址，最后我们得到了这些代码。
+
+（这串代码并不好找，这里给大家一个带有人品问题的找法。用你的停在上面提到的要修改的避开调试器检测的跳转的地址`+4FAC0`，然后`g`这个地址之后，在上下的代码段中找一找，一般就能找到了。用`NFSU2`试了下，还是比较接近的。）
+
+```
+10054088                 8B45 F4           mov eax,dword ptr ss:[ebp-C]
+1005408B                 40                inc eax
+1005408C                 8945 F4           mov dword ptr ss:[ebp-C],eax
+1005408F                 8B45 F4           mov eax,dword ptr ss:[ebp-C]
+10054092                 3B45 14           cmp eax,dword ptr ss:[ebp+14]
+10054095                 73 55             jnb short ~df394b.100540EC
+10054097                 8B45 F4           mov eax,dword ptr ss:[ebp-C]
+1005409A                 C1E8 03           shr eax,3
+1005409D                 8B4D F8           mov ecx,dword ptr ss:[ebp-8]
+100540A0                 8B15 6C490810     mov edx,dword ptr ds:[1008496C]
+100540A6                 8B0C8A            mov ecx,dword ptr ds:[edx+ecx*4]
+100540A9                 0FB60401          movzx eax,byte ptr ds:[ecx+eax]
+100540AD                 8B4D F4           mov ecx,dword ptr ss:[ebp-C]
+100540B0                 83E1 07           and ecx,7
+100540B3                 6A 01             push 1
+100540B5                 5A                pop edx
+100540B6                 D3E2              shl edx,cl
+100540B8                 23C2              and eax,edx
+100540BA                 85C0              test eax,eax <-关键，下面不跳的话就会完美很多。。。
+100540BC                 75 2C             jnz short ~df394b.100540EA
+100540BE                 8B45 F8           mov eax,dword ptr ss:[ebp-8]
+100540C1                 69C0 8D000000     imul eax,eax,8D
+100540C7                 8B0D 70490810     mov ecx,dword ptr ds:[10084970]
+100540CD                 8B4401 4C         mov eax,dword ptr ds:[ecx+eax+4C]
+100540D1                 8B4D F4           mov ecx,dword ptr ss:[ebp-C]
+100540D4                 FF3488            push dword ptr ds:[eax+ecx*4]
+100540D7                 FF75 F8           push dword ptr ss:[ebp-8]
+100540DA                 E8 DB000000       call ~df394b.100541BA
+100540DF                 59                pop ecx
+100540E0                 59                pop ecx
+100540E1                 8B4D F4           mov ecx,dword ptr ss:[ebp-C]
+100540E4                 8B55 18           mov edx,dword ptr ss:[ebp+18]
+100540E7                 89048A            mov dword ptr ds:[edx+ecx*4],eax
+100540EA                ^ EB 9C            jmp short ~df394b.10054088
+```
+
+于是我们修改`100540B8`修改为`Xor eax,eax`，然后运行到入口点，我们发现了几乎完美的`IAT`。。。
+
+打开`ImortREC`取得`IAT`，发现还有1个无效的指针：`[1ec8064]=02f310e7`。
+
+我们查找命令`Call [1ec8064]`。找到`006ac1c7`。新建`EIP`跟的这个是`GetTickCount`。
+
+现在`IAT`修复了。似乎所有的任务都完成了。但是现实却不是这样，`SafeDisc`还用`jmp [eax]`，`jmp *****`加密了一些函数和过程的调用。
+
+### 小结：到这里第二步也完成了，我们得到了几乎完美的文件。
+
+下面就剩文件的修复了，继续。
+
+今天下午，我着手开始修复代码，一开始我以为要修复的代码不会很多，所以就手工一个个的修复。
+
+我们打开两个`OD`，一个直接走到入口点（一下简称`B`），另一个修复`IAT`后再走到入口点（一下简称`A`）。
+
+然后我们进入`B`的入口点之后的第一个调用，就是前面提到的`GetVision`的调用，到达这里
+
+```
+1005472F                  E8 AA14FDFF       call ~df394b.10025BDE
+10054734                  59                pop ecx
+10054735                  F0:FF0D 646C0610  lock dec dword ptr ds:[10066C64]
+1005473C                  78 0C             js short ~df394b.1005474A <-我们在这里 Patch
+1005473E                  FF35 D8490810     push dword ptr ds:[100849D8]
+10054744                  FF15 50700510     call near dword ptr ds:[<&KERNEL32.SetE>; kernel32.SetEvent
+```
+
+
+
+### 1005474A-1005474F
+```
+1005474A 8B65 0C mov esp,dword ptr ss:[ebp+C]  
+1005474D 61 popad  
+1005474E 9D popfd  
+1005474F C3 retn  
+```
+
+### 10054750-1005475F
+```
+10054750 F0:FF0D 646C0610 lock dec dword ptr ds:[10066C64]  
+10054757 78 0C js short ~df394b.10054765  
+10054759 FF35 D8490810 push dword ptr ds:[100849D8]  
+1005475F FF15 50700510 call near dword ptr ds:[<&KERNEL32.SetE>; kernel32.SetEvent  
+```
+
+### 10054765
+```
+10054765 5F pop edi  
+```
+
+**Patch 之后**
+
+### 1005473C-10054741
+```
+1005473C 8B65 0C mov esp,dword ptr ss:[ebp+C]  
+1005473F 61 popad  
+10054740 9D popfd  
+10054741 83C4 04 add esp,4<-在这里下断点（软件断点就够了）  
+```
+
+### 10054744-10054749
+```
+10054744 C3 retn  
+10054745 90 nop  
+10054746 90 nop  
+10054747 90 nop  
+10054748 90 nop  
+10054749 90 nop  
+```
+
+然后运行，暂停时堆栈的第一行就是 `IAT` 的名称和地址。
+
+我们在进入 `A`，比较一下这两个 `IAT` 是不是一样，不一样就在 `IAT` 表中找一个和他一样的，再把这个调用的内存地址修改成我们需要的。为什么要这样呢？因为 `SafeDisc` 加密的部分 `IAT` 调用不具有唯一性。就是说在不同的地方调用同一个内存地址，所获得的 `IAT` 并不一定是一样的。
+
+我们就从 `00401000` 的地方开始。查找二进制字符 `FF15`，然后开他调用的内存地址，如果是 `01EC8XXX` 那就是我们要的。在 `B` 中的那里新建 `EIP`，然后运行，断下时和 `A` 中显示的 `IAT` 作一下比较，不同的就在 `A` 的 `IAT` 表中找一个和 `B` 中是计算出来的 `IAT` 一样的内存地址改写到 `A` 中的调用里去。然后循环处理整个代码段知道找不到为止。然后还有 `E9????01`(要是跨段跳的那种)，和一个 `Call` 的重定向。
+
+不过做了几个之后，我发现自己错了，结果我一下午的时间就这样报销了。不过大家可以看看修复过的地方吧，应该会有某种比较深刻的印象的。。。
+
+### Call 加密系列
+
+```
+006AF080 call sakuara3.006B0CE0  
+```
+
+可能还有，但是我没心情看代码了，下一次测试一下就知道了。
+
+### Call [] 加密系列
+
+```
+0057830A call near dword ptr ds:[1EC8054] ; GDI32.CreateDIBSection  
+005804CA call near dword ptr ds:[1EC8258] ; ole32.CoCreateInstance  
+00583BCA call near dword ptr ds:[1EC8054] ; GDI32.CreateDIBSection  
+0058808A call near dword ptr ds:[1EC8150] ; ntdll.RtlUnwind  
+0058C9CA call near dword ptr ds:[1EC8038] ; GDI32.GetObjectA  
+0058EF3A call near dword ptr ds:[1EC81CC] ; USER32.GetDC  
+005A91CA call near dword ptr ds:[1EC81EC] ; USER32.ShowWindow  
+005ABE4A call near dword ptr ds:[1EC8260] ; ole32.CoTaskMemAlloc  
+005C7D3A call near dword ptr ds:[1EC8258] ; ole32.CoCreateInstance  
+005D99AA call near dword ptr ds:[1EC8048] ; GDI32.SelectObject  
+0061566A call near dword ptr ds:[1EC8170] ; kernel32.TlsAlloc  
+006156AA call near dword ptr ds:[1EC8260] ; ole32.CoTaskMemAlloc  
+00615BCA call near dword ptr ds:[1EC81CC] ; USER32.GetDC  
+0061B61A call near dword ptr ds:[1EC803C] ; GDI32.DeleteObject  
+0063D47A call near dword ptr ds:[1EC820C] ; USER32.GetQueueStatus  
+0063FCEA call near dword ptr ds:[1EC802C] ; GDI32.GetDeviceCaps  
+00641A2A call near dword ptr ds:[1EC80B0] ; kernel32.WaitForMultipleObjects  
+00642E8A call near dword ptr ds:[1EC8268] ; ole32.CoInitialize  
+00648E5A call near dword ptr ds:[1EC8048] ; GDI32.SelectObject  
+0064B96A call near dword ptr ds:[1EC80D0] ; kernel32.LCMapStringA  
+0064C72A call near dword ptr ds:[1EC8268] ; ole32.CoInitialize  
+0064E77A call near dword ptr ds:[1EC80D0] ; kernel32.LCMapStringA  
+0064EE0A call near dword ptr ds:[1EC8258] ; ole32.CoCreateInstance  
+00659AEA call near dword ptr ds:[1EC8090] ; kernel32.DeleteFileA  
+00666E3A call near dword ptr ds:[1EC80B0] ; kernel32.WaitForMultipleObjects  
+0066703A call near dword ptr ds:[1EC8258] ; ole32.CoCreateInstance  
+0066899A call near dword ptr ds:[1EC80B0] ; kernel32.WaitForMultipleObjects  
+00668CBA call near dword ptr ds:[1EC8268] ; ole32.CoInitialize  
+00668DDA call near dword ptr ds:[1EC8204] ; USER32.DrawTextW  
+0066948A call near dword ptr ds:[1EC8044] ; GDI32.CreateCompatibleDC  
+0066AFB0 call near dword ptr ds:[1EC8128] ; kernel32.ReadFile  
+0066B0A0 call near dword ptr ds:[1EC80B4] ; kernel32.SetFilePointer  
+0066DD4A call near dword ptr ds:[1EC8024] ; GDI32.SetBkColor  
+00671078 call near dword ptr ds:[1EC81F4] ; USER32.SetCursorPos  
+00671418 call near dword ptr ds:[1EC80AC] ; kernel32.MultiByteToWideChar  
+006717CA call near dword ptr ds:[1EC81E4] ; USER32.SetFocus  
+0068167A call near dword ptr ds:[1EC80B0] ; kernel32.WaitForMultipleObjects  
+00682FAA call near dword ptr ds:[1EC81CC] ; USER32.GetDC  
+006880C4 call near dword ptr ds:[1EC8128] ; kernel32.ReadFile  
+00688142 call near dword ptr ds:[1EC8098] ; kernel32.CreateFileA  
+0068817E call near dword ptr ds:[1EC80A4] ; kernel32.CloseHandle  
+00688265 call near dword ptr ds:[1EC8098] ; kernel32.CreateFileA  
+006882AA call near dword ptr ds:[1EC80B8] ; kernel32.GetFileTime  
+006882BA call near dword ptr ds:[1EC80BC] ; kernel32.FileTimeToSystemTime  
+006882F4 call near dword ptr ds:[1EC80A4] ; kernel32.CloseHandle  
+00688362 call near dword ptr ds:[1EC8098] ; kernel32.CreateFileA  
+0068837F call near dword ptr ds:[1EC8094] ; kernel32.GetFileSize  
+00688395 call near dword ptr ds:[1EC80A4] ; kernel32.CloseHandle  
+006884A6 call near dword ptr ds:[1EC8078] ; kernel32.FindClose  
+006884C1 call near dword ptr ds:[1EC8074] ; kernel32.FindFirstFileA  
+0068859F call near dword ptr ds:[1EC8078] ; kernel32.FindClose  
+00688951 call near dword ptr ds:[1EC8128] ; kernel32.ReadFile  
+006889A8 call near dword ptr ds:[1EC809C] ; kernel32.WriteFile  
+00688CEC call near dword ptr ds:[1EC808C] ; kernel32.FindNextFileA  
+00688EA1 call near dword ptr ds:[1EC8098] ; kernel32.CreateFileA  
+00688F4A call near dword ptr ds:[1EC8260] ; ole32.CoTaskMemAlloc  
+006894C4 call near dword ptr ds:[1EC8080] ; kernel32.WaitForSingleObject  
+0068A230 call near dword ptr ds:[1EC8064] ; kernel32.GetTickCount  
+0068A2A0 call near dword ptr ds:[1EC8064] ; kernel32.GetTickCount  
+0068A3C0 call near dword ptr ds:[1EC8064] ; kernel32.GetTickCount  
+0068A430 call near dword ptr ds:[1EC8064] ; kernel32.GetTickCount  
+0068A490 call near dword ptr ds:[1EC822C] ; USER32.DestroyWindow  
+0068A508 call near dword ptr ds:[1EC806C] ; ntdll.RtlGetLastWin32Error  
+0068A5AD call near dword ptr ds:[1EC8268] ; ole32.CoInitialize  
+0068A5B4 call near dword ptr ds:[1EC81CC] ; USER32.GetDC  
+0068A5ED call near dword ptr ds:[1EC821C] ; USER32.ReleaseDC  
+0068A65B call near dword ptr ds:[1EC8220] ; USER32.AdjustWindowRect  
+0068A6C1 call near dword ptr ds:[1EC8228] ; USER32.UpdateWindow  
+0068A8B6 call near dword ptr ds:[1EC81C8] ; USER32.PostQuitMessage  
+0068A95F call near dword ptr ds:[1EC81E8] ; USER32.DefWindowProcA  
+0068A992 call near dword ptr ds:[1EC81E8] ; USER32.DefWindowProcA  
+0068E3D9 call near dword ptr ds:[1EC803C] ; GDI32.DeleteObject  
+0068F50F call near dword ptr ds:[1EC800C] ; ADVAPI32.RegOpenKeyA  
+0068F78C call near dword ptr ds:[1EC8100] ; kernel32.IsProcessorFeaturePresent  
+0068FBE8 call near dword ptr ds:[1EC8048] ; GDI32.SelectObject  
+0068FD10 call near dword ptr ds:[1EC8024] ; GDI32.SetBkColor  
+0068FD2D call near dword ptr ds:[1EC8048] ; GDI32.SelectObject  
+0068FE34 call near dword ptr ds:[1EC8204] ; USER32.DrawTextW  
+```
+
+
+
+```
+0068FE3C  call near dword ptr ds:[1EC8200]        ; USER32.DrawTextA  
+0068FF73  call near dword ptr ds:[1EC8048]        ; GDI32.SelectObject  
+0069000B  call near dword ptr ds:[1EC8200]        ; USER32.DrawTextA  
+006A6F2B  call near dword ptr ds:[1EC8104]        ; kernel32.SetEvent  
+006A71EB  call near dword ptr ds:[1EC8118]        ; kernel32.ResetEvent  
+006A71FA  call near dword ptr ds:[1EC8104]        ; kernel32.SetEvent  
+006A72BF  call near dword ptr ds:[1EC820C]        ; USER32.GetQueueStatus  
+006A72DA  call near dword ptr ds:[1EC8208]        ; USER32.PostThreadMessageA  
+006A739E  call near dword ptr ds:[1EC8104]        ; kernel32.SetEvent  
+006A73AE  call near dword ptr ds:[1EC8118]        ; kernel32.ResetEvent  
+006A7491  call near dword ptr ds:[1EC810C]        ; ntdll.RtlDeleteCriticalSection  
+006A785C  call near dword ptr ds:[1EC8104]        ; kernel32.SetEvent  
+006A7A60  call near dword ptr ds:[1EC8118]        ; kernel32.ResetEvent  
+006A7E35  call near dword ptr ds:[1EC8104]        ; kernel32.SetEvent  
+006A92DA  call near dword ptr ds:[1EC8124]        ; kernel32.MulDiv  
+006A9663  call near dword ptr ds:[1EC8258]        ; ole32.CoCreateInstance  
+006A9E38  call near dword ptr ds:[1EC8258]        ; ole32.CoCreateInstance  
+006A9E5F  call near dword ptr ds:[1EC8254]        ; ole32.CoUninitialize  
+006A9EA9  call near dword ptr ds:[1EC8258]        ; ole32.CoCreateInstance  
+006A9ED4  call near dword ptr ds:[1EC8254]        ; ole32.CoUninitialize  
+006AA0A8  call near dword ptr ds:[1EC80C0]        ; kernel32.InterlockedIncrement  
+006AA47A  call near dword ptr ds:[1EC812C]        ; kernel32.InterlockedDecrement  
+006AA612  call near dword ptr ds:[1EC8260]        ; ole32.CoTaskMemAlloc  
+006ABA68  call near dword ptr ds:[1EC80C0]        ; kernel32.InterlockedIncrement  
+006ABA85  call near dword ptr ds:[1EC812C]        ; kernel32.InterlockedDecrement  
+006ABA99  call near dword ptr ds:[1EC80CC]        ; kernel32.FreeLibrary  
+006ABB69  call near dword ptr ds:[1EC80C0]        ; kernel32.InterlockedIncrement  
+006AC0E1  call near dword ptr ds:[1EC8064]        ; kernel32.GetTickCount  
+006AC101  call near dword ptr ds:[1EC80B0]        ; kernel32.WaitForMultipleObjects  
+006AC22E  call near dword ptr ds:[1EC80B0]        ; kernel32.WaitForMultipleObjects  
+006AC250  call near dword ptr ds:[1EC8148]        ; kernel32.GetThreadPriority  
+006AC2C0  call near dword ptr ds:[1EC811C]        ; kernel32.GetCurrentThreadId  
+006AC37B  call near dword ptr ds:[1EC806C]        ; ntdll.RtlGetLastWin32Error  
+006AC3D6  call near dword ptr ds:[1EC806C]        ;  ntdll.RtlGetLastWin32Error  
+006ACFD2  call near dword ptr ds:[1EC8108]        ; kernel32.InitializeCriticalSection  
+006AD73F  call near dword ptr ds:[1EC8260]        ; ole32.CoTaskMemAlloc  
+006AF0FB  call near dword ptr ds:[1EC80FC]        ; kernel32.GetModuleHandleA  
+006AF3EA  call near dword ptr ds:[1EC8168]        ; kernel32.TerminateProcess  
+006B04D2  call near dword ptr ds:[1EC8170]        ; kernel32.TlsAlloc  
+006B050B  call near dword ptr ds:[1EC811C]        ; kernel32.GetCurrentThreadId  
+006B0578  call near dword ptr ds:[1EC811C]        ; kernel32.GetCurrentThreadId  
+006B058F  call near dword ptr ds:[1EC8178]        ; ntdll.RtlSetLastWin32Error  
+006B0749  call near dword ptr ds:[1EC8154]        ; ntdll.RtlAllocateHeap  
+006B07A0  call near dword ptr ds:[1EC8180]        ; ntdll.RtlReAllocateHeap  
+006B08B1  call near dword ptr ds:[1EC8154]        ; ntdll.RtlAllocateHeap  
+006B0A49  call near dword ptr ds:[1EC8184]        ; ntdll.RtlSizeHeap  
+006B0B75  call near dword ptr ds:[1EC80FC]        ; kernel32.GetModuleHandleA  
+006B0C4C  call near dword ptr ds:[1EC8188]        ; kernel32.GetModuleFileNameA  
+006B0CF1  call near dword ptr ds:[1EC8194]        ; kernel32.HeapCreate  
+006B1458  call near dword ptr ds:[1EC8134]        ; kernel32.VirtualAlloc  
+006B14E4  call near dword ptr ds:[1EC8134]        ; kernel32.VirtualAlloc  
+006B18A5  call near dword ptr ds:[1EC8154]        ; ntdll.RtlAllocateHeap  
+006B19A4  call near dword ptr ds:[1EC80C4]        ; kernel32.VirtualFree  
+006B19D7  call near dword ptr ds:[1EC80C4]        ; kernel32.VirtualFree  
+006B5800  call near dword ptr ds:[1EC81A0]        ; kernel32.UnhandledExceptionFilter  
+006B5C70  call near dword ptr ds:[1EC81A8]        ; kernel32.FreeEnvironmentStringsW  
+006B5DDD  call near dword ptr ds:[1EC81BC]        ; kernel32.GetFileType  
+006B5E4E  call near dword ptr ds:[1EC81BC]        ; kernel32.GetFileType  
+006B5E85  call near dword ptr ds:[1EC81B4]        ; kernel32.SetHandleCount  
+006B5F36  call near dword ptr ds:[1EC8188]        ; kernel32.GetModuleFileNameA  
+006B600C  call near dword ptr ds:[1EC81B8]        ; kernel32.GetStdHandle  
+006B67A9  call near dword ptr ds:[1EC80C0]        ; kernel32.InterlockedIncrement  
+006B6E98  call near dword ptr ds:[1EC8174]        ; kernel32.SetUnhandledExceptionFilter  
+006B724C  call near dword ptr ds:[1EC806C]        ; ntdll.RtlGetLastWin32Error  
+006B73B4  call near dword ptr ds:[1EC809C]        ; kernel32.WriteFile  
+006B742E  call near dword ptr ds:[1EC806C]        ; ntdll.RtlGetLastWin32Error  
+006B7651  call near dword ptr ds:[1EC80C0]        ; kernel32.InterlockedIncrement  
+006B76E7  call near dword ptr ds:[1EC80E8]        ; kernel32.WideCharToMultiByte  
+006B7760  call near dword ptr ds:[1EC80DC]        ; kernel32.GetStringTypeA  
+006B7794  call near dword ptr ds:[1EC80DC]        ; kernel32.GetStringTypeA  
+006B77CC  call near dword ptr ds:[1EC80AC]        ; kernel32.MultiByteToWideChar  
+006B7834  call near dword ptr ds:[1EC80D8]        ; kernel32.GetStringTypeW  
+006B7DFD  call near dword ptr ds:[1EC80C0]        ; kernel32.InterlockedIncrement  
+006B7F07  call near dword ptr ds:[1EC80AC]        ; kernel32.MultiByteToWideChar  
+006B84AC  call near dword ptr ds:[1EC80F8]        ; kernel32.LoadLibraryA  
+006B891E  call near dword ptr ds:[1EC80D0]        ; kernel32.LCMapStringA  
+006B8967  call near dword ptr ds:[1EC80D0]        ; kernel32.LCMapStringA  
+006B899F  call near dword ptr ds:[1EC80AC]        ; kernel32.MultiByteToWideChar  
+006B89F7  call near dword ptr ds:[1EC80AC]        ; kernel32.MultiByteToWideChar  
+006B8F69  call near dword ptr ds:[1EC80C0]        ; kernel32.InterlockedIncrement  
+006B917C  call near dword ptr ds:[1EC8108]        ; kernel32.InitializeCriticalSection  
+006B920D  call near dword ptr ds:[1EC810C]        ; ntdll.RtlDeleteCriticalSection  
+006B96F3  call near dword ptr ds:[1EC8128]        ; kernel32.ReadFile  
+006B97CD  call near dword ptr ds:[1EC806C]        ; ntdll.RtlGetLastWin32Error  
+006B9920  call near dword ptr ds:[1EC806C]        ; ntdll.RtlGetLastWin32Error  
+```
+
+### JMP 加密系列
+
+```
+0066B050  call near dword ptr ds:[1EC8128]        ; kernel32.ReadFile  
+00688177  call near dword ptr ds:[1EC8128]        ; kernel32.ReadFile  
+00688709  call near dword ptr ds:[1EC8074]        ; kernel32.FindFirstFileA  
+0068A4FE  call near dword ptr ds:[1EC8068]        ; kernel32.CreateMutexA  
+0068A56B  call near dword ptr ds:[1EC81D4]        ; USER32.LoadCursorA  
+0068A6B5  call near dword ptr ds:[1EC81EC]        ; USER32.ShowWindow  
+0068A930  call near dword ptr ds:[1EC81E8]        ; USER32.DefWindowProcA  
+0068AC10  call near dword ptr ds:[1EC8038]        ; GDI32.GetObjectA  
+00690003  call near dword ptr ds:[1EC8204]        ; USER32.DrawTextW  
+006A72DA  call near dword ptr ds:[1EC8208]        ; USER32.PostThreadMessageA  
+006A7361  call near dword ptr ds:[1EC8104]        ; kernel32.SetEvent  
+006A788D  call near dword ptr ds:[1EC8118]        ; kernel32.ResetEvent  
+006A9E90  call near dword ptr ds:[1EC8268]        ; ole32.CoInitialize  
+```
+
+
+
+```
+006AA0CA  call near dword ptr ds:[1EC812C]        ; kernel32.InterlockedDecrement
+006AF839  call near dword ptr ds:[1EC80F4]        ; kernel32.GetProcAddress
+006B0567  call near dword ptr ds:[1EC816C]        ; kernel32.TlsSetValue
+006B08F2  call near dword ptr ds:[1EC8180]        ; ntdll.RtlReAllocateHeap
+006B0BEC  call near dword ptr ds:[1EC818C]        ; kernel32.GetEnvironmentVariableA
+006B5978  call near dword ptr ds:[1EC8188]        ; kernel32.GetModuleFileNameA
+006B7401  call near dword ptr ds:[1EC806C]        ; ntdll.RtlGetLastWin32Error
+006B7419  call near dword ptr ds:[1EC809C]        ; kernel32.WriteFile
+```
+
+全部搞完之后，我决定，如果下次还要搞这种东西话，我一定要写 `Patch` 代码。还好樱花大战 3 的代码段只有 `2C700H`...（如果哪位高手写出来的话，我也想要一份^_^）
+
+现在我们要把 `A` 的 `00401000` 段和 `01EC8000` 段备份下来。不然以后要在用的话会死人的。
+
+**小结**：第三部分完成了，我们把能看到的代码全部修补了，下面就等我硬盘有空间的时候把游戏装上测试了，毕竟这个游戏还是有 `3G` 那么大的。
+
+神啊，祝福我把~~~~！！！
+
+加油,雖然大家方法,不同...可是能用就好了..cc
+
+我是直接寫 `patch`，重建 `import tab`，在 `dump`，`fix iat`，就 `ok` 了~!!!
+
+**舉例：原來 code**
+
+```
+451320-  call [12345678] --->CreatFileA
+451449-  call [12345678] --->GetVersion
+```
+
+**重建 import and code**
+
+```
+451320- call [5b41000] ----> CreatFileA
+451449- call [5b41004] ----> GetVersion
+```
+
+這樣就能成功,`unpack SafeDisc OK`~!!!
+
+`4dd466d0e1e0cc123afbe504da2462ca`
