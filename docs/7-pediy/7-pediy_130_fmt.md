@@ -1,0 +1,145 @@
+
+# DllHijacker For Delphi
+
+> 原文：[`www.pediy.com/kssd/pediy10/71084.html`](https://www.pediy.com/kssd/pediy10/71084.html)
+
+生成用于`Dll`劫持的`Delphi`模板，部分`DLL`需要修改代码后才能支持劫持。
+
+界面如下
+
+![](img/3b5a88f751e878c15615af324620e917.jpg)
+
+生成`ws2help.dll`的模板如下
+
+代码:
+
+```
+library ws2help; 
+
+//============================================================================== 
+// DllHijacker By pathletboy 
+//============================================================================== 
+
+uses 
+Windows; 
+
+{$R \*.res} 
+
+var 
+ModHandle: Cardinal; 
+POldWahCloseApcHelper: Pointer; 
+POldWahCloseHandleHelper: Pointer; 
+POldWahCloseNotificationHandleHelper: Pointer; 
+POldWahCloseSocketHandle: Pointer; 
+POldWahCloseThread: Pointer; 
+POldWahCompleteRequest: Pointer; 
+POldWahCreateHandleContextTable: Pointer; 
+POldWahCreateNotificationHandle: Pointer; 
+POldWahCreateSocketHandle: Pointer; 
+POldWahDestroyHandleContextTable: Pointer; 
+POldWahDisableNonIFSHandleSupport: Pointer; 
+POldWahEnableNonIFSHandleSupport: Pointer; 
+POldWahEnumerateHandleContexts: Pointer; 
+POldWahInsertHandleContext: Pointer; 
+POldWahNotifyAllProcesses: Pointer; 
+POldWahOpenApcHelper: Pointer; 
+POldWahOpenCurrentThread: Pointer; 
+POldWahOpenHandleHelper: Pointer; 
+POldWahOpenNotificationHandleHelper: Pointer; 
+POldWahQueueUserApc: Pointer; 
+POldWahReferenceContextByHandle: Pointer; 
+POldWahRemoveHandleContext: Pointer; 
+POldWahWaitForNotification: Pointer; 
+
+procedure WahCloseApcHelper; asm jmp POldWahCloseApcHelper end; 
+procedure WahCloseHandleHelper; asm jmp POldWahCloseHandleHelper end; 
+procedure WahCloseNotificationHandleHelper; asm jmp POldWahCloseNotificationHandleHelper end; 
+procedure WahCloseSocketHandle; asm jmp POldWahCloseSocketHandle end; 
+procedure WahCloseThread; asm jmp POldWahCloseThread end; 
+procedure WahCompleteRequest; asm jmp POldWahCompleteRequest end; 
+procedure WahCreateHandleContextTable; asm jmp POldWahCreateHandleContextTable end; 
+procedure WahCreateNotificationHandle; asm jmp POldWahCreateNotificationHandle end; 
+procedure WahCreateSocketHandle; asm jmp POldWahCreateSocketHandle end; 
+procedure WahDestroyHandleContextTable; asm jmp POldWahDestroyHandleContextTable end; 
+procedure WahDisableNonIFSHandleSupport; asm jmp POldWahDisableNonIFSHandleSupport end; 
+procedure WahEnableNonIFSHandleSupport; asm jmp POldWahEnableNonIFSHandleSupport end; 
+procedure WahEnumerateHandleContexts; asm jmp POldWahEnumerateHandleContexts end; 
+procedure WahInsertHandleContext; asm jmp POldWahInsertHandleContext end; 
+procedure WahNotifyAllProcesses; asm jmp POldWahNotifyAllProcesses end; 
+procedure WahOpenApcHelper; asm jmp POldWahOpenApcHelper end; 
+procedure WahOpenCurrentThread; asm jmp POldWahOpenCurrentThread end; 
+procedure WahOpenHandleHelper; asm jmp POldWahOpenHandleHelper end; 
+procedure WahOpenNotificationHandleHelper; asm jmp POldWahOpenNotificationHandleHelper end; 
+procedure WahQueueUserApc; asm jmp POldWahQueueUserApc end; 
+procedure WahReferenceContextByHandle; asm jmp POldWahReferenceContextByHandle end; 
+procedure WahRemoveHandleContext; asm jmp POldWahRemoveHandleContext end; 
+procedure WahWaitForNotification; asm jmp POldWahWaitForNotification end; 
+
+exports 
+WahCloseApcHelper, 
+WahCloseHandleHelper, 
+WahCloseNotificationHandleHelper, 
+WahCloseSocketHandle, 
+WahCloseThread, 
+WahCompleteRequest, 
+WahCreateHandleContextTable, 
+WahCreateNotificationHandle, 
+WahCreateSocketHandle, 
+WahDestroyHandleContextTable, 
+WahDisableNonIFSHandleSupport, 
+WahEnableNonIFSHandleSupport, 
+WahEnumerateHandleContexts, 
+WahInsertHandleContext, 
+WahNotifyAllProcesses, 
+WahOpenApcHelper, 
+WahOpenCurrentThread, 
+WahOpenHandleHelper, 
+WahOpenNotificationHandleHelper, 
+WahQueueUserApc, 
+WahReferenceContextByHandle, 
+WahRemoveHandleContext, 
+WahWaitForNotification; 
+
+begin 
+ModHandle:= LoadLibrary('C:\WINDOWS\system32\ws2help.dll'); 
+if ModHandle > 0 then 
+begin 
+   POldWahCloseApcHelper:= GetProcAddress(ModHandle, 'WahCloseApcHelper'); 
+   POldWahCloseHandleHelper:= GetProcAddress(ModHandle, 'WahCloseHandleHelper'); 
+   POldWahCloseNotificationHandleHelper:= GetProcAddress(ModHandle, 'WahCloseNotificationHandleHelper'); 
+   POldWahCloseSocketHandle:= GetProcAddress(ModHandle, 'WahCloseSocketHandle'); 
+   POldWahCloseThread:= GetProcAddress(ModHandle, 'WahCloseThread'); 
+   POldWahCompleteRequest:= GetProcAddress(ModHandle, 'WahCompleteRequest'); 
+   POldWahCreateHandleContextTable:= GetProcAddress(ModHandle, 'WahCreateHandleContextTable'); 
+   POldWahCreateNotificationHandle:= GetProcAddress(ModHandle, 'WahCreateNotificationHandle'); 
+   POldWahCreateSocketHandle:= GetProcAddress(ModHandle, 'WahCreateSocketHandle'); 
+   POldWahDestroyHandleContextTable:= GetProcAddress(ModHandle, 'WahDestroyHandleContextTable'); 
+   POldWahDisableNonIFSHandleSupport:= GetProcAddress(ModHandle, 'WahDisableNonIFSHandleSupport'); 
+   POldWahEnableNonIFSHandleSupport:= GetProcAddress(ModHandle, 'WahEnableNonIFSHandleSupport'); 
+   POldWahEnumerateHandleContexts:= GetProcAddress(ModHandle, 'WahEnumerateHandleContexts'); 
+   POldWahInsertHandleContext:= GetProcAddress(ModHandle, 'WahInsertHandleContext'); 
+   POldWahNotifyAllProcesses:= GetProcAddress(ModHandle, 'WahNotifyAllProcesses'); 
+   POldWahOpenApcHelper:= GetProcAddress(ModHandle, 'WahOpenApcHelper'); 
+   POldWahOpenCurrentThread:= GetProcAddress(ModHandle, 'WahOpenCurrentThread'); 
+   POldWahOpenHandleHelper:= GetProcAddress(ModHandle, 'WahOpenHandleHelper'); 
+   POldWahOpenNotificationHandleHelper:= GetProcAddress(ModHandle, 'WahOpenNotificationHandleHelper'); 
+   POldWahQueueUserApc:= GetProcAddress(ModHandle, 'WahQueueUserApc'); 
+   POldWahReferenceContextByHandle:= GetProcAddress(ModHandle, 'WahReferenceContextByHandle'); 
+   POldWahRemoveHandleContext:= GetProcAddress(ModHandle, 'WahRemoveHandleContext'); 
+   POldWahWaitForNotification:= GetProcAddress(ModHandle, 'WahWaitForNotification'); 
+end; 
+end. 
+
+```
+
+关键单元代码如下
+
+代码:
+
+
+
+完整的代码下载
+
+上传的附件
+
+`DllHijacker4D.rar`
