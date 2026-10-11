@@ -1,0 +1,186 @@
+
+# FlashFXP v1.4.1 build 823
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue316.htm`](https://www.pediy.com/kssd/pediy04/kanxue316.htm)
+
+## FlashFXP v1.4.1 build 823 的脱壳与破解
+
+**软件名称：** FlashFXP v1.4.1 build 823
+
+**下载：** http://www.onlinedown.net/flashfxp
+
+**大小：** 828KB
+
+**工具：** `W32dasm`＋`TRW2000`
+
+**软件评价：** 功能强大的 FXP /FTP 软件，融合了一些其他优秀 FTP 软件的优点。我认为它许多方面比 `cuteftp` 要好，所以才会有很多朋友喜欢它.
+
+**破解：** `moonlite\edea` 联合制作
+
+### 脱壳爆破过程
+
+`flashfxp1.4.1` `823` 的壳是 `telock`.它的主要特点是 `anti-debug` 太多,只要搞定 `anti-debug`,脱壳就容易了。像类似下面的(1)、(2)两段的代码有很多处。所以追踪时要格外小心，最好用 `F8`、`F7`。
+
+#### (1)
+
+```
+0167:00583A12 60             PUSHA
+0167:00583A13 E806000000     CALL     00583A1E
+0167:00583A18 8B642408       MOV      ESP,[ESP+08]     《————异常处理入口，此处下断。F5 一下。
+0167:00583A1C EB0D          JMP      SHORT 00583A2B
+0167:00583A1E 2BFF          SUB      EDI,EDI
+0167:00583A20 64FF37        PUSH     DWORD [FS:EDI]
+0167:00583A23 648927        MOV      [FS:EDI],ESP     《————从这里后不要往下 F8 了。
+0167:00583A26 F1            INT1
+0167:00583A27 FF07         INC      DWORD [EDI]
+0167:00583A29 EBE8         JMP      SHORT 00583A13
+0167:00583A2B 85E4         TEST     ESP,ESP
+0167:00583A2D 7903         JNS      00583A32
+```
+
+#### (2)
+
+```
+0167:00583A3B F8            CLC
+0167:00583A3C 0BC1         OR       EAX,ECX
+0167:00583A3E 60           PUSHA
+0167:00583A3F E806000000    CALL     00583A4A
+0167:00583A44 8B642408      MOV      ESP,[ESP+08]       《————异常处理入口
+0167:00583A48 EB1A         JMP      SHORT 00583A64
+0167:00583A4A 6467FF360000  PUSH     DWORD [WORD FS:00]
+0167:00583A50 646789260000  MOV      [WORD FS:00],ESP
+0167:00583A56 9C           PUSHF                      《————从这里开始不要走了，想图方便的话，将 eip 改为 583a48 就行了。
+0167:00583A57 810C2400010000 OR       DWORD [ESP],0100
+0167:00583A5E 9D           POPF
+0167:00583A5F F8           CLC
+0167:00583A60 73DC         JNC      00583A3E
+0167:00583A62 CD20         INT      20
+0167:00583A64 64678F060000  POP      DWORD [WORD FS:00]
+0167:00583A6A 58           POP      EAX
+0167:00583A6B 61           POPA
+0167:00583A6C F9           STC
+0167:00583A6D 7202         JC       00583A71
+```
+
+#### (3)
+
+这里是整个壳中最精彩的（不知乱说没有，请多多指教），
+
+```
+0167:00582078 7FE9         JG       00582063
+0167:0058207A E800000000    CALL     0058207F
+0167:0058207F 5D           POP      EBP
+0167:00582080 8D4546       LEA      EAX,[EBP+46]
+0167:00582083 50           PUSH     EAX
+0167:00582084 33C0        XOR      EAX,EAX
+0167:00582086 64FF30      PUSH     DWORD [FS:EAX]
+0167:00582089 648920      MOV      [FS:EAX],ESP
+0167:0058208C CC           INT3
+0167:0058208D 90           NOP
+0167:0058208E 8BC0        MOV      EAX,EAX
+0167:00582090 F9           STC
+0167:00582091 90           NOP
+0167:00582092 8D045D34120000 LEA      EAX,[EBX*2+1234]
+0167:00582099 F8           CLC
+0167:0058209A 90           NOP
+0167:0058209B C1EB05       SHR      EBX,05
+0167:0058209E FC           CLD
+0167:0058209F 90           NOP
+0167:005820A0 C1C007       ROL      EAX,07
+0167:005820A3 90           NOP
+0167:005820A4 90           NOP
+0167:005820A5 33DB        XOR      EBX,EBX
+0167:005820A7 F7F3        DIV      EBX
+0167:005820A9 64678F060000  POP      DWORD [WORD FS:00]
+0167:005820AF 83C404      ADD      ESP,BYTE +04
+0167:005820B2 66BE4746      MOV      SI,4647
+0167:005820B6 66BF4D4A      MOV      DI,4A4D
+0167:005820BA 8A8599000000  MOV      AL,[EBP+99]
+0167:005820C0 E99C000000    JMP      00582161
+0167:005820C5 8B442404      MOV      EAX,[ESP+04]
+0167:005820C9 8B4C240C      MOV      ECX,[ESP+0C]
+0167:005820CD FF81B8000000  INC      DWORD [ECX+B8]
+0167:005820D3 8B00        MOV      EAX,[EAX]
+0167:005820D5 3D940000C0   CMP      EAX,C0000094
+0167:005820DA 7524        JNZ      00582100
+0167:005820DC FF81B8000000  INC      DWORD [ECX+B8]
+0167:005820E2 33C0        XOR      EAX,EAX
+0167:005820E4 214104      AND      [ECX+04],EAX
+0167:005820E7 214108      AND      [ECX+08],EAX
+0167:005820EA 21410C      AND      [ECX+0C],EAX
+0167:005820ED 214110      AND      [ECX+10],EAX
+0167:005820F0 816114F00FFFFF AND      DWORD [ECX+14],FFFF0FF0
+0167:005820F7 81611800DC0000 AND      DWORD [ECX+18],DC00
+0167:005820FE EB60        JMP      SHORT 00582160
+0167:00582100 3D04000080   CMP      EAX,80000004
+0167:00582105 740C        JZ       00582113
+0167:00582107 3D03000080   CMP      EAX,80000003
+0167:0058210C 7412        JZ       00582120
+0167:0058210E 6A01        PUSH     BYTE +01
+0167:00582110 58           POP      EAX
+0167:00582111 EB4D        JMP      SHORT 00582160
+0167:00582113 E801000000    CALL     00582119
+0167:00582118 0058FE      ADD      [EAX-02],BL
+0167:0058211B 002B        ADD      [EBX],CH
+0167:0058211D C0EB40      SHR      BL,40
+0167:00582120 8B81B4000000  MOV      EAX,[ECX+B4]
+0167:00582126 8D4024      LEA      EAX,[EAX+24]
+0167:00582129 894104      MOV      [ECX+04],EAX
+0167:0058212C 8B81B4000000  MOV      EAX,[ECX+B4]
+0167:00582132 8D401F      LEA      EAX,[EAX+1F]
+0167:00582135 894108      MOV      [ECX+08],EAX
+0167:00582138 8B81B4000000  MOV      EAX,[ECX+B4]
+0167:0058213E 8D401A      LEA      EAX,[EAX+1A]
+0167:00582141 89410C      MOV      [ECX+0C],EAX
+0167:00582144 8B81B4000000  MOV      EAX,[ECX+B4]
+0167:0058214A 8D4011      LEA      EAX,[EAX+11]
+0167:0058214D 894110      MOV      [ECX+10],EAX
+0167:00582150 33C0        XOR      EAX,EAX
+0167:00582152 816114F00FFFFF AND      DWORD [ECX+14],FFFF0FF0
+0167:00582159 C7411855010000 MOV      DWORD [ECX+18],0155
+0167:00582160 C3           RET
+0167:00582161 2C04        SUB      AL,04
+0167:00582163 888599000000  MOV      [EBP+99],AL
+0167:00582169 8B95CF1B0000  MOV      EDX,[EBP+1BCF]
+0167:0058216F 81E20000FFFF  AND      EDX,FFFF0000
+0167:00582175 8BC4        MOV      EAX,ESP
+0167:00582177 33E4        XOR      ESP,ESP
+0167:00582179 8BE0        MOV      ESP,EAX
+0167:0058217B 66813A4D5A   CMP      WORD [EDX],5A4D
+0167:00582180 7408        JZ       0058218A
+```
+
+如果觉得麻烦，可跳过 `58208c` `int3`,然后在 `5820c5` 处下断。断下后一路 `F8` 到达 `582160` 时（不要再走了），停下，下中断 `bpx 5820ba`.按一下 `F5`，停在了 `5820ba` 处。走到 `582161` 时，快给 `al` 赋值 `4`，好了，这一关算过去了。下面还有很多 `anti-debug`，主要形式是 `int1`、`div ebx`、`inc [esi]`、`pushf` 等等，够烦的，只要小心一些，都会过去的。
+
+当你走到这样的代码：`call 583145` 时，停一下，为了偷懒，直接下中断：`bpx 583683`. `F5` 断下后，一路又要小心了，还有 `anti-debug`,还是那些东东。顺利走过那些陷阱后，到达下面就是终点了：
+
+```
+167:005837AF  INT      20
+0167:005837B1  POPA
+0167:005837B2  JMP      NEAR [ESP-30]       《————oep=[esp-30]==535334,
+0167:005837B6  ADD      BYTE [EAX],00
+0167:005837B9  ADD      [EAX],AL
+0167:005837BB  JMP      SHORT 005837BE
+0167:005837BD  MOV      EAX,6090C523
+0167:005837C2  CALL     005837CD
+0167:005837C7  MOV      ESP,[ESP+08]
+```
+
+到达 `535334` 后, `pedump`,得到脱壳文件。用 `importREC` 的 `Auto trace` 一次，会发现有 138 个函数需修正，如果耐心好的话，那就一个一个的搞；不然，想想办法，有窍门的。具体如何修复重建请参考那些高人的教程。
+
+#### 4)
+
+先用 `W32dasm` 反汇编脱壳文件，在 `SDR` 中可以发现 `" - Evaluation Copy"`。双击它会找到很多处。看一下这里：
+
+```
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00525E08(C)
+|
+:00525E1D 803DA0A0530000       cmp byte ptr [0053A0A0], 00 //比较
+:00525E24 7411                 je 00525E37------------------>不要跳
+
+* Possible StringData Ref from Code Obj ->"FlashFXP"
+                               |
+:00525E26 BAA0615200           mov edx, 005261A0
+:00525E2B A120C05300           mov eax, dword ptr [0053C020]
+```
