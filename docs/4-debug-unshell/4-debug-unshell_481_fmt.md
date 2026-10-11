@@ -1,0 +1,1007 @@
+
+# ASProtect V1.31 build 06.14
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6703.htm`](https://www.pediy.com/kssd/pediy06/pediy6703.htm)
+
+【脱壳目标】：ASProtect V1.31 build 06.14 的主程序 `ASProtect.exe`
+
+【作者声明】：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+【调试环境】：`WinXP`、`Ollydbg` V1.10、`PEiD`、`PETools`、`ImportREC`
+
+—————————————————————————————————
+
+【脱壳过程】：
+
+明月几时有，把酒问青天
+
+2004 的中秋，我用了一天一夜的时间来脱 ASProtect V1.31 build 06.14 的主程序。
+
+感谢 `VolX`、`stephenteh`、`jingulong` 几位兄弟的多次指点！感谢 `lipton` 和 `fxyang` 兄的帮忙测试。
+
+感觉 ASProtect V1.31 build 06.14 和最新的 ASProtect V2.0 没有太大的差别，脱壳方法相似。
+
+ASProtect 自 1.3 版以来加强了输入表的保护，把调用表和跳转表的地址都指向了壳中，使得脱壳难度加大了许多；加上其他的保护手段，以期实现壳和被保护程序的完美结合。
+
+或许是我表达方式的问题，这篇脱壳教程比较长。我尽量叙述的详细点，限于自身水平，只能这样了，请大虾们海涵。
+
+ASProtect 在处理过程中会检验某些代码，所以尽量不要在壳中下普通断点。
+
+—————————————————————————————————
+
+## 一、壳代码解压
+
+设置 `Ollydbg` 忽略所有的异常选项。老规矩：用 `IsDebug` V1.4 插件去掉 `Ollydbg` 的调试器标志。
+
+```asm
+00401000     68 01105500          push ASProtec.00551001
+//进入 OD 后暂停在这
+00401005     E8 01000000          call ASProtec.0040100B
+0040100A     C3                   retn
+```
+
+下断：`HE GetModuleHandleA`
+
+`Shift+F9`，中断 2 次后，就可以取消断点，`Alt+F9` 返回。
+
+直接 `F4` 至下面的 `popad` 处
+
+```asm
+00B1A4A6     FF95 EC314400        call dword ptr ss:[ebp+4431EC]
+00B1A4AC     85C0                 test eax,eax
+//返回这里
+00B1A4AE     75 07                jnz short 00B1A4B7
+00B1A4B0     53                   push ebx
+00B1A4B1     FF95 F0314400        call dword ptr ss:[ebp+4431F0]
+00B1A4B7     8985 4D294400        mov dword ptr ss:[ebp+44294D],eax
+00B1A4BD     C785 51294400 00000>mov dword ptr ss:[ebp+442951],0
+00B1A4C7     8B95 D8304400        mov edx,dword ptr ss:[ebp+4430D8]
+00B1A4CD     8B06                 mov eax,dword ptr ds:[esi]
+00B1A4CF     85C0                 test eax,eax
+00B1A4D1     75 03                jnz short 00B1A4D6
+00B1A4D3     8B46 10             mov eax,dword ptr ds:[esi+10]
+00B1A4D6     03C2                 add eax,edx
+00B1A4D8     0385 51294400       add eax,dword ptr ss:[ebp+442951]
+00B1A4DE     8B18                 mov ebx,dword ptr ds:[eax]
+00B1A4E0     8B7E 10             mov edi,dword ptr ds:[esi+10]
+00B1A4E3     03FA                 add edi,edx
+00B1A4E5     03BD 51294400       add edi,dword ptr ss:[ebp+442951]
+00B1A4EB     85DB                 test ebx,ebx
+00B1A4ED     0F84 A2000000        je 00B1A595
+00B1A4F3     F7C3 00000080       test ebx,80000000
+00B1A4F9     75 04                jnz short 00B1A4FF
+00B1A4FB     03DA                 add ebx,edx
+00B1A4FD     43                   inc ebx
+00B1A4FE     43                   inc ebx
+00B1A4FF     53                   push ebx
+00B1A500     81E3 FFFFFF7F       and ebx,7FFFFFFF
+00B1A506     53                   push ebx
+00B1A507     FFB5 4D294400       push dword ptr ss:[ebp+44294D]
+00B1A50D     FF95 E8314400       call dword ptr ss:[ebp+4431E8]
+00B1A513     85C0                 test eax,eax
+00B1A515     5B                   pop ebx
+00B1A516     75 6F                jnz short 00B1A587
+00B1A518     F7C3 00000080       test ebx,80000000
+00B1A51E     75 19                jnz short 00B1A539
+00B1A520     57                   push edi
+00B1A521     8B46 0C             mov eax,dword ptr ds:[esi+C]
+00B1A524     0385 D8304400       add eax,dword ptr ss:[ebp+4430D8]
+00B1A52A     50                   push eax
+00B1A52B     53                   push ebx
+00B1A52C     8D85 53314400       lea eax,dword ptr ss:[ebp+443153]
+00B1A532     50                   push eax
+00B1A533     57                   push edi
+00B1A534     E9 99000000          jmp 00B1A5D2
+00B1A539     81E3 FFFFFF7F       and ebx,7FFFFFFF
+00B1A53F     8B85 DC304400       mov eax,dword ptr ss:[ebp+4430DC]
+00B1A545     3985 4D294400       cmp dword ptr ss:[ebp+44294D],eax
+00B1A54B     75 24                jnz short 00B1A571
+00B1A54D     57                   push edi
+00B1A54E     8BD3                 mov edx,ebx
+00B1A550     4A                   dec edx
+00B1A551     C1E2 02             shl edx,2
+00B1A554     8B9D 4D294400       mov ebx,dword ptr ss:[ebp+44294D]
+00B1A55A     8B7B 3C             mov edi,dword ptr ds:[ebx+3C]
+00B1A55D     8B7C3B 78           mov edi,dword ptr ds:[ebx+edi+78]
+00B1A561     035C3B 1C           add ebx,dword ptr ds:[ebx+edi+1C]
+00B1A565     8B0413              mov eax,dword ptr ds:[ebx+edx]
+00B1A568     0385 4D294400       add eax,dword ptr ss:[ebp+44294D]
+00B1A56E     5F                   pop edi
+00B1A56F     EB 16               jmp short 00B1A587
+00B1A571     57                   push edi
+00B1A572     8B46 0C             mov eax,dword ptr ds:[esi+C]
+00B1A575     0385 D8304400       add eax,dword ptr ss:[ebp+4430D8]
+00B1A57B     50                   push eax
+00B1A57C     53                   push ebx
+00B1A57D     8D85 A4314400       lea eax,dword ptr ss:[ebp+4431A4]
+00B1A583     50                   push eax
+00B1A584     57                   push edi
+00B1A585     EB 4B               jmp short 00B1A5D2
+00B1A587     8907                 mov dword ptr ds:[edi],eax
+00B1A589     8385 51294400 04    add dword ptr ss:[ebp+442951],4
+00B1A590     E9 32FFFFFF          jmp 00B1A4C7
+00B1A595     8906                 mov dword ptr ds:[esi],eax
+00B1A597     8946 0C             mov dword ptr ds:[esi+C],eax
+00B1A59A     8946 10             mov dword ptr ds:[esi+10],eax
+00B1A59D     83C6 14             add esi,14
+00B1A5A0     8B95 D8304400       mov edx,dword ptr ss:[ebp+4430D8]
+00B1A5A6     E9 EBFEFFFF          jmp 00B1A496
+00B1A5AB     8B85 652A4400       mov eax,dword ptr ss:[ebp+442A65]
+00B1A5B1     50                   push eax
+00B1A5B2     0385 D8304400       add eax,dword ptr ss:[ebp+4430D8]
+00B1A5B8     5B                   pop ebx
+00B1A5B9     0BDB                 or ebx,ebx
+00B1A5BB     8985 112F4400       mov dword ptr ss:[ebp+442F11],eax
+00B1A5C1     61                   popad
+```
+
+//直接 `F4` 到这里
+
+```asm
+00B1A5C2     75 08                jnz short 00B1A5CC
+00B1A5C4     B8 01000000          mov eax,1
+00B1A5C9     C2 0C00              retn 0C
+00B1A5CC     68 9025B100          push 0B12590
+00B1A5D1     C3                   retn
+```
+
+//返回 `00B12590`
+
+壳代码解压完毕。
+
+```asm
+00B12590     55                   push ebp
+00B12591     8BEC                 mov ebp,esp
+00B12593     83C4 B4              add esp,-4C
+00B12596     B8 B823B100          mov eax,0B123B8
+00B1259B     E8 3030FEFF          call 00AF55D0
+00B125A0     E8 BB0EFEFF          call 00AF3460
+```
+
+—————————————————————————————————
+
+## 二、输入表 处理
+
+壳代码已经解压完毕，可以开始处理输入表了，手动 `Patch`，避开输入表的加密。
+
+`Ctrl+S` 在“整个段块”搜索命令序列：
+
+```asm
+add esp,38
+pop ebp
+pop edi
+pop esi
+pop ebx
+retn
+```
+
+```asm
+00B05CBD     83C4 38              add esp,38
+//找到这里
+00B05CC0     5D                   pop ebp
+00B05CC1     5F                   pop edi
+00B05CC2     5E                   pop esi
+00B05CC3     5B                   pop ebx
+00B05CC4     C3                   retn
+```
+
+这段代码上面就是处理输入表的地方了。
+
+```asm
+00B058C3     8B43 08              mov eax,dword ptr ds:[ebx+8]
+00B058C6     8B30                 mov esi,dword ptr ds:[eax]
+00B058C8     8343 08 04           add dword ptr ds:[ebx+8],4
+00B058CC     8B43 08              mov eax,dword ptr ds:[ebx+8]
+00B058CF     8A00                 mov al,byte ptr ds:[eax]
+00B058D1     884424 07           mov byte ptr ss:[esp+7],al
+00B058D5     FF43 08              inc dword ptr ds:[ebx+8]
+00B058D8     85F6                 test esi,esi
+00B058DA     75 1A                jnz short 00B058F6
+00B058DC     EB 01               jmp short 00B058DF
+//IAT 处理完毕则自这里跳转
+00B058F6     337424 28           xor esi,dword ptr ss:[esp+28]
+00B058FA     0373 3C             add esi,dword ptr ds:[ebx+3C]
+00B058FD     8B43 08              mov eax,dword ptr ds:[ebx+8]
+00B05900     8A00                 mov al,byte ptr ds:[eax]
+```
+
+
+
+### 反汇编代码片段
+
+```
+00B05902     FF43 08             inc  dword ptr ds:[ebx+8]  
+00B05905     33D2                xor  edx,edx  
+00B05907     8AD0                mov  dl,al  
+00B05909     8BC7                mov  eax,edi  
+00B0590B     E8 48F4FFFF         call 00B04D58  
+00B05910     894424 14           mov  dword ptr ss:[esp+14],eax  
+00B05914     8B43 08            mov  eax,dword ptr ds:[ebx+8]  
+00B05917     8A00                mov  al,byte ptr ds:[eax]  
+00B05919     FF43 08            inc  dword ptr ds:[ebx+8]  
+00B0591C     84C0                test al,al  
+```
+
+// 根据 `AL` 值分别进行处理
+
+```
+00B0591E     75 20               jnz  short 00B05940  
+```
+
+---
+
+### 1、`AL=1` 时的处理
+
+```
+00B05A5C     3C 01               cmp  al,1  
+```
+
+// `AL=1` ?
+
+```
+00B05A5E     0F85 B2000000       jnz  00B05B16  
+00B05A64     EB 01               jmp  short 00B05A67      
+00B05A67     8B43 08            mov  eax,dword ptr ds:[ebx+8]  
+00B05A6A     8B00                mov  eax,dword ptr ds:[eax]  
+00B05A6C     890424              mov  dword ptr ss:[esp],eax  
+00B05A6F     8343 08 04          add  dword ptr ds:[ebx+8],4  
+00B05A73     837B 40 00          cmp  dword ptr ds:[ebx+40],0  
+00B05A77     74 09               je   short 00B05A82  
+00B05A79     8B0424              mov  eax,dword ptr ss:[esp]  
+00B05A7C     FF53 40             call  dword ptr ds:[ebx+40]  
+00B05A7F     890424              mov  dword ptr ss:[esp],eax  
+00B05A82     8B43 08            mov  eax,dword ptr ds:[ebx+8]  
+00B05A85     66:8B00             mov  ax,word ptr ds:[eax]  
+00B05A88     66:894424 04        mov  word ptr ss:[esp+4],ax  
+00B05A8D     8343 08 02          add  dword ptr ds:[ebx+8],2  
+00B05A91     807C24 1C 00        cmp  byte ptr ss:[esp+1C],0  
+00B05A96     74 0B               je   short 00B05AA3  
+00B05A98     8B4424 28           mov  eax,dword ptr ss:[esp+28]  
+00B05A9C     C64424 1C 00        mov  byte ptr ss:[esp+1C],0  
+00B05AA1     EB 06               jmp  short 00B05AA9  
+00B05AA3     8B4424 18           mov  eax,dword ptr ss:[esp+18]  
+00B05AA7     8B00                mov  eax,dword ptr ds:[eax]  
+00B05AA9     8BC8                mov  ecx,eax  
+00B05AAB     66:8B5424 04        mov  dx,word ptr ss:[esp+4]  
+00B05AB0     8B43 08            mov  eax,dword ptr ds:[ebx+8]  
+00B05AB3     E8 B4ECFFFF         call 00B0476C  
+00B05AB8     8B4424 10           mov  eax,dword ptr ss:[esp+10]  
+00B05ABC     E8 83CAFEFF         call 00AF2544  
+00B05AC1     894424 0C           mov  dword ptr ss:[esp+C],eax  
+00B05AC5     8B43 08            mov  eax,dword ptr ds:[ebx+8]  
+00B05AC8     50                  push eax  
+00B05AC9     8B4424 18           mov  eax,dword ptr ss:[esp+18]  
+00B05ACD     50                  push eax  
+00B05ACE     A1 BC36B100         mov  eax,dword ptr ds:[B136BC]  
+00B05AD3     8B00                mov  eax,dword ptr ds:[eax]  
+00B05AD5     FFD0                call  eax  
+```
+
+// `GetProcAddress` ★
+
+```
+00B05AD7     8BE8                mov  ebp,eax  
+00B05AD9     85ED                test ebp,ebp  
+00B05ADB     75 0A               jnz  short 00B05AE7  
+00B05ADD     68 E05CB000         push 0B05CE0        ; ASCII "11"  
+00B05AE2     E8 CDE2FFFF         call 00B03DB4  
+00B05AE7     8B0424              mov  eax,dword ptr ss:[esp]  
+00B05AEA     50                  push eax  
+00B05AEB     68 4848B000         push 0B04848  
+00B05AF0     8D4C24 20           lea  ecx,dword ptr ss:[esp+20]  
+00B05AF4     8BD5                mov  edx,ebp  
+00B05AF6     8BC3                mov  eax,ebx  
+00B05AF8     E8 9BF4FFFF         call 00B04F98  
+00B05AFD     8B5424 0C           mov  edx,dword ptr ss:[esp+C]  
+00B05B01     8902                mov  dword ptr ds:[edx],eax  
+```
+
+// 修改①：`jmp 00B1AA00` ★ 跳到 Patch 部分
+
+```
+00B05B03     8B4424 0C           mov  eax,dword ptr ss:[esp+C]  
+00B05B07     8906                mov  dword ptr ds:[esi],eax  
+```
+
+// 这里就不需要 `NOP` 了，因为下面 patch 后已经跳过这里
+
+```
+00B05B09     0FB74424 04         movzx eax,word ptr ss:[esp+4]  
+00B05B0E     0143 08             add  dword ptr ds:[ebx+8],eax  
+00B05B11     E9 ADFDFFFF         jmp  00B058C3  
+```
+
+// 循环
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+★ Patch 处理① ★：
+
+在程序下面找块空地，写入 Patch 代码。`00B1AA00` 下面都是空地，就这里吧。
+
+提前在 `[0B1BFD0]` 处写入现在 DLL 的基址，在 `[B1BFE0]` 处写入准备放输入表的地址：`4E9000`
+
+```
+00B1AA00     51                  push ecx  
+00B1AA01     52                  push edx  
+00B1AA02     3E:8B5424 1C        mov  edx,dword ptr ds:[esp+1C]; kernel32.77E40000  
+```
+
+// `[esp+1C]`＝`0012FF10` 此处保存的是处理的 DLL 基址 ★
+
+```
+00B1AA07     3B15 D0BFB100       cmp  edx,dword ptr ds:[B1BFD0]; kernel32.77E40000  
+```
+
+// 在 `[0B1BFD0]` 处提前写入现在处理的 DLL 的基址：`77E40000`
+
+```
+00B1AA0D     74 0D               je   short 00B1AA1C  
+```
+
+// 判断与上次 DLL 是否相同 ★
+
+```
+00B1AA0F     8915 D0BFB100       mov  dword ptr ds:[0B1BFD0],edx  
+```
+
+// 保存 DLL 基址
+
+```
+00B1AA15     8305 E0BFB100 04    add  dword ptr ds:[B1BFE0],4  
+```
+
+// 不同则地址+4 ★  这样可以使 `ImportREC` 更好的得到输入表
+
+```
+00B1AA1C     8B0D E0BFB100       mov  ecx,dword ptr ds:[B1BFE0]  
+```
+
+// 提前在 `[B1BFE0]` 处写入准备放输入表的地址：`4E9000`
+
+```
+00B1AA22     8929                mov  dword ptr ds:[ecx],ebp  
+```
+
+// `EBP` 保存的是正确函数的地址 ★ 正确的函数写入
+
+```
+00B1AA24     890E                mov  dword ptr ds:[esi],ecx  
+```
+
+// 取代原先入壳的跳转地址
+
+```
+00B1AA26     8305 E0BFB100 04    add  dword ptr ds:[B1BFE0],4  
+```
+
+// 地址 +4
+
+```
+00B1AA2D     59                  pop  ecx  
+00B1AA2E     5A                  pop  edx  
+00B1AA2F     E9 D5B0FEFF         jmp  00B05B09  
+```
+
+// 跳回去继续流程
+
+---
+
+### 2、`AL=2` 时的处理
+
+```
+00B05940     3C 02               cmp  al,2  
+```
+
+// `AL=2` ?
+
+```
+00B05942     0F85 14010000       jnz  00B05A5C  
+00B05948     33C0                xor  eax,eax  
+00B0594A     894424 20           mov  dword ptr ss:[esp+20],eax  
+00B0594E     8B43 08            mov  eax,dword ptr ds:[ebx+8]  
+00B05951     8A00                mov  al,byte ptr ds:[eax]  
+00B05953     FF43 08            inc  dword ptr ds:[ebx+8]  
+00B05956     EB 01               jmp  short 00B05959  
+00B05959     2C 01               sub  al,1  
+00B0595B     73 34               jnb  short 00B05991  
+00B0595D     8BC3                mov  eax,ebx  
+00B0595F     E8 F4F0FFFF         call 00B04A58  
+00B05964     8B43 08            mov  eax,dword ptr ds:[ebx+8]  
+00B05967     0FB600              movzx eax,byte ptr ds:[eax]  
+00B0596A     FF43 08            inc  dword ptr ds:[ebx+8]  
+00B0596D     8B53 08            mov  edx,dword ptr ds:[ebx+8]  
+00B05970     8B12                mov  edx,dword ptr ds:[edx]  
+00B05972     8343 08 04          add  dword ptr ds:[ebx+8],4  
+00B05976     8D4C24 24           lea  ecx,dword ptr ss:[esp+24]  
+00B0597A     51                  push ecx  
+00B0597B     8A4C24 0B           mov  cl,byte ptr ss:[esp+B]  
+00B0597F     51                  push ecx  
+00B05980     8BCA                mov  ecx,edx  
+00B05982     8BD3                mov  edx,ebx  
+00B05984     92                  xchg eax,edx  
+00B05985     E8 02F8FFFF         call 00B0518C  
+00B0598A     894424 20           mov  dword ptr ss:[esp+20],eax  
+00B0598E     EB 01               jmp  short 00B05991  
+00B05991     8B43 08            mov  eax,dword ptr ds:[ebx+8]  
+00B05994     8B28                mov  ebp,dword ptr ds:[eax]  
+00B05996     8343 08 04          add  dword ptr ds:[ebx+8],4  
+00B0599A     8B4424 10           mov  eax,dword ptr ss:[esp+10]  
+00B0599E     E8 A1CBFEFF         call 00AF2544  
+00B059A3     894424 0C           mov  dword ptr ss:[esp+C],eax  
+00B059A7     8BD5                mov  edx,ebp  
+00B059A9     8B4424 14           mov  eax,dword ptr ss:[esp+14]  
+00B059AD     E8 F6EAFFFF         call 00B044A8  
+```
+
+// `GetProcAddress`
+
+```
+00B059B2     8BE8                mov  ebp,eax     ; kernel32.GetFileType  
+00B059B4     85ED                test ebp,ebp  
+00B059B6     75 0A               jnz  short 00B059C2  
+00B059B8     68 D05CB000         push 0B05CD0     ; ASCII "10"  
+00B059BD     E8 F2E3FFFF         call 00B03DB4  
+```
+
+
+
+```
+00B059C2      837C24 20 00        cmp dword ptr ss:[esp+20],0
+00B059C7      74 44              je short 00B05A0D
+00B05A0D      6A 00              push 0
+00B05A0F      68 4848B000        push 0B04848
+00B05A14      8D4C24 20          lea ecx,dword ptr ss:[esp+20]
+00B05A18      8BD5              mov edx,ebp
+00B05A1A      8BC3              mov eax,ebx
+00B05A1C      E8 77F5FFFF        call 00B04F98
+00B05A21      8B5424 0C          mov edx,dword ptr ss:[esp+C]
+00B05A25      8902              mov dword ptr ds:[edx],eax
+00B05A27      8D4C24 0C          lea ecx,dword ptr ss:[esp+C]
+00B05A2B      8A5424 07          mov dl,byte ptr ss:[esp+7]
+00B05A2F      8BC3              mov eax,ebx
+00B05A31      E8 D2F7FFFF        call 00B05208
+00B05A36      8BC6              mov eax,esi
+00B05A38      83E8 02           sub eax,2
+00B05A3B      66:8338 00        cmp word ptr ds:[eax],0
+00B05A3F      75 10             jnz short 00B05A51
+```
+
+// 下面的 `00B05A51` 分支没有用
+
+```
+00B05A41      8B5424 0C          mov edx,dword ptr ss:[esp+C]
+00B05A45      8B12              mov edx,dword ptr ds:[edx]
+00B05A47      E8 B8DFFFFF        call 00B03A04
+```
+
+// 加密 CALL 进入修改 ★
+
+```
+00B05A4C      E9 72FEFFFF        jmp 00B058C3
+```
+
+// 循环
+
+```
+00B05A51      8B4424 0C          mov eax,dword ptr ss:[esp+C]
+00B05A55      8906              mov dword ptr ds:[esi],eax
+00B05A57      E9 67FEFFFF        jmp 00B058C3
+```
+
+// 循环
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+★ `Patch` 处理② ★：
+
+```
+00B03A02      8BC0              mov eax,eax
+00B03A04      53                push ebx
+00B03A05      8BD8              mov ebx,eax
+00B03A07      8BC3              mov eax,ebx
+00B03A09      E8 56FFFFFF        call 00B03964
+00B03A0E      C603 E8           mov byte ptr ds:[ebx],0E8
+```
+
+// 修改②：`jmp 00B1AA38` ★ 跳到 `Patch` 部分
+
+```
+00B03A11      43                inc ebx
+00B03A12      8903              mov dword ptr ds:[ebx],eax
+00B03A14      5B                pop ebx
+00B03A15      C3                retn
+00B1AA38      51                push ecx
+00B1AA39      52                push edx
+00B1AA3A      3E:8B5424 24       mov edx,dword ptr ds:[esp+24] ; kernel32.77E40000
+00B1AA3F      3B15 D0BFB100      cmp edx,dword ptr ds:[B1BFD0] ; kernel32.77E40000
+00B1AA45      74 0D             je short 00B1AA54
+00B1AA47      8915 D0BFB100      mov dword ptr ds:[B1BFD0],edx
+00B1AA4D      8305 E0BFB100 04   add dword ptr ds:[B1BFE0],4
+00B1AA54      8B0D E0BFB100      mov ecx,dword ptr ds:[B1BFE0] ; ASProtec.004E9008
+00B1AA5A      8929              mov dword ptr ds:[ecx],ebp
+00B1AA5C      C703 FF250000      mov dword ptr ds:[ebx],25FF
+```
+
+// 放入跳转代码 `FF25`
+
+```
+00B1AA62      890E              mov dword ptr ds:[esi],ecx
+00B1AA64      8305 E0BFB100 04   add dword ptr ds:[B1BFE0],4
+00B1AA6B      5A                pop edx
+00B1AA6C      59                pop ecx
+00B1AA6D      E9 A28FFEFF        jmp 00B03A14
+```
+
+// 跳回去继续流程
+
+————————————————————————
+
+### 3、AL=3 时的处理
+
+这部分对于 `ASProtect.exe` 只处理 1 个特殊函数：`GetProcAddress`
+
+有 3 个分支，第一个是 `GetProcAddress`，第三个是错误提示。你可以到 `00B04308` 看看就明白了。
+
+```
+00B05BFB      3C 03             cmp al,3
+```
+
+// AL=3 ?
+
+```
+00B05BFD      0F85 A5000000      jnz 00B05CA8
+00B05C03      EB 01             jmp short 00B05C06
+00B05C06      8B43 08           mov eax,dword ptr ds:[ebx+8]
+00B05C09      8A00              mov al,byte ptr ds:[eax]
+00B05C0B      FF43 08           inc dword ptr ds:[ebx+8]
+00B05C0E      FEC8              dec al
+00B05C10      74 09             je short 00B05C1B
+00B05C12      FEC8              dec al
+00B05C14      74 41             je short 00B05C57
+```
+
+// 下面的 `00B05C57` 分支没有用
+
+```
+00B05C16      E9 A8FCFFFF        jmp 00B058C3
+00B05C1B      8BC3              mov eax,ebx
+00B05C1D      E8 36EEFFFF        call 00B04A58
+00B05C22      8B43 08           mov eax,dword ptr ds:[ebx+8]
+00B05C25      8A00              mov al,byte ptr ds:[eax]
+00B05C27      884424 06         mov byte ptr ss:[esp+6],al
+00B05C2B      FF43 08           inc dword ptr ds:[ebx+8]
+00B05C2E      8B4424 10         mov eax,dword ptr ss:[esp+10]
+00B05C32      E8 0DC9FEFF        call 00AF2544
+00B05C37      894424 0C         mov dword ptr ss:[esp+C],eax
+```
+
+// 修改③：`jmp 00B1AA78` ★ 跳到 `Patch` 部分
+
+```
+00B05C3B      8B4424 0C          mov eax,dword ptr ss:[esp+C]
+00B05C3F      8906              mov dword ptr ds:[esi],eax
+00B05C41      8A4C24 06         mov cl,byte ptr ss:[esp+6]
+00B05C45      8B5424 14         mov edx,dword ptr ss:[esp+14]
+00B05C49      8B4424 0C         mov eax,dword ptr ss:[esp+C]
+00B05C4D      E8 2EF1FFFF        call 00B04D80
+00B05C52      E9 6CFCFFFF        jmp 00B058C3
+```
+
+// 循环
+
+```
+00B05C57      8BC3              mov eax,ebx
+00B05C59      E8 FAEDFFFF        call 00B04A58
+00B05C5E      8B43 08           mov eax,dword ptr ds:[ebx+8]
+00B05C61      8B28              mov ebp,dword ptr ds:[eax]
+00B05C63      8343 08 04        add dword ptr ds:[ebx+8],4
+00B05C67      8BC5              mov eax,ebp
+00B05C69      E8 D6C8FEFF        call 00AF2544
+00B05C6E      894424 08         mov dword ptr ss:[esp+8],eax
+00B05C72      8BCD              mov ecx,ebp
+00B05C74      8B53 08           mov edx,dword ptr ds:[ebx+8]
+00B05C77      8B4424 08         mov eax,dword ptr ss:[esp+8]
+00B05C7B      E8 A0FBFEFF        call 00AF5820
+00B05C80      016B 08           add dword ptr ds:[ebx+8],ebp
+00B05C83      8B4424 10         mov eax,dword ptr ss:[esp+10]
+00B05C87      E8 B8C8FEFF        call 00AF2544
+00B05C8C      894424 0C         mov dword ptr ss:[esp+C],eax
+00B05C90      8B4424 0C         mov eax,dword ptr ss:[esp+C]
+00B05C94      8B5424 08         mov edx,dword ptr ss:[esp+8]
+00B05C98      8910              mov dword ptr ds:[eax],edx
+00B05C9A      8B4424 0C         mov eax,dword ptr ss:[esp+C]
+00B05C9E      8906              mov dword ptr ds:[esi],eax
+00B05CA0      E9 1EFCFFFF        jmp 00B058C3
+00B05CA8      68 105DB000        push 0B05D10 ; ASCII "89"
+00B05CAD      E8 02E1FFFF        call 00B03DB4
+00B05CB2      E9 0CFCFFFF        jmp 00B058C3
+```
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+★ `Patch` 处理③ ★：
+
+```
+00B1AA78      3E:8B4424 14       mov eax,dword ptr ds:[esp+14]
+00B1AA7D      3B05 D0BFB100      cmp eax,dword ptr ds:[B1BFD0] ; kernel32.77E40000
+00B1AA83      74 0C             je short 00B1AA91
+00B1AA85      A3 D0BFB100       mov dword ptr ds:[B1BFD0],eax
+00B1AA8A      8305 E0BFB100 04   add dword ptr ds:[B1BFE0],4
+00B1AA91      A1 E0BFB100       mov eax,dword ptr ds:[B1BFE0]
+```
+
+// 放入我们程序中的地址
+
+```
+00B1AA96      894424 0C          mov dword ptr ss:[esp+C],eax
+```
+
+// `00B05C37` 处代码挪到这里执行
+
+```
+00B1AA9A      8B4424 0C          mov eax,dword ptr ss:[esp+C]
+00B1AA9E      8305 E0BFB100 04   add dword ptr ds:[B1BFE0],4
+00B1AAA5      E9 95B1FEFF        jmp 00B05C3F
+```
+
+// 回去继续流程
+
+————————————————————————
+
+### 4、AL=4 时的处理
+
+```
+00B05B16      3C 04             cmp al,4
+```
+
+// AL=4 ?
+
+```
+00B05B18      0F85 DD000000      jnz 00B05BFB
+00B05B1E      EB 01             jmp short 00B05B21
+00B05B21      8B43 08           mov eax,dword ptr ds:[ebx+8]
+00B05B24      8A00              mov al,byte ptr ds:[eax]
+00B05B26      FF43 08           inc dword ptr ds:[ebx+8]
+00B05B29      84C0              test al,al
+00B05B2B      75 5B             jnz short 00B05B88
+00B05B2D      8B43 08           mov eax,dword ptr ds:[ebx+8]
+00B05B30      8B30              mov esi,dword ptr ds:[eax]
+00B05B32      8343 08 04        add dword ptr ds:[ebx+8],4
+00B05B36      8B43 08           mov eax,dword ptr ds:[ebx+8]
+00B05B39      8B28              mov ebp,dword ptr ds:[eax]
+00B05B3B      8343 08 04        add dword ptr ds:[ebx+8],4
+```
+
+
+
+### ASProtect.exe 分支处理与补丁解析
+
+`00B05B3F`     `8B43 08`                 `mov eax,dword ptr ds:[ebx+8]`  
+`00B05B42`     `8B00`                    `mov eax,dword ptr ds:[eax]`  
+`00B05B44`     `894424 2C`               `mov dword ptr ss:[esp+2C],eax`  
+`00B05B48`     `8343 08 04`              `add dword ptr ds:[ebx+8],4`  
+`00B05B4C`     `837B 30 00`              `cmp dword ptr ds:[ebx+30],0`  
+`00B05B50`     `75 0A`                   `jnz short 00B05B5C`  
+`00B05B52`     `68 F05CB000`             `push 0B05CF0`       ; ASCII "81"  
+`00B05B57`     `E8 58E2FFFF`             `call 00B03DB4`  
+`00B05B5C`     `8D5424 30`               `lea edx,dword ptr ss:[esp+30]`  
+`00B05B60`     `8BC3`                    `mov eax,ebx`  
+`00B05B62`     `E8 51F8FFFF`             `call 00B053B8`  
+
+`//stephenteh 兄弟是在这里面修改的`  
+
+`00B05B67`     `8B4424 2C`               `mov eax,dword ptr ss:[esp+2C]`  
+`00B05B6B`     `50`                      `push eax`  
+`00B05B6C`     `8D4424 34`               `lea eax,dword ptr ss:[esp+34]`  
+`00B05B70`     `50`                      `push eax`  
+`00B05B71`     `55`                      `push ebp`  
+`00B05B72`     `A1 7C35B100`             `mov eax,dword ptr ds:[B1357C]`  
+`00B05B77`     `8B00`                    `mov eax,dword ptr ds:[eax]`  
+`00B05B79`     `50`                      `push eax`  
+`00B05B7A`     `56`                      `push esi`  
+`00B05B7B`     `8B4424 28`               `mov eax,dword ptr ss:[esp+28]`  
+`00B05B7F`     `50`                      `push eax`  
+`00B05B80`     `FF53 30`                 `call dword ptr ds:[ebx+30]`  
+
+`//如果进入修改的话，则会落入代码检验的陷阱！ ★`  
+
+`00B05B83`     `E9 3BFDFFFF`             `jmp 00B058C3`  
+
+`//修改④：jmp 00B1AAE6  ★   跳到 Patch 部分`  
+
+`00B05B88`     `8B43 08`                 `mov eax,dword ptr ds:[ebx+8]`  
+`00B05B8B`     `8B00`                    `mov eax,dword ptr ds:[eax]`  
+`00B05B8D`     `890424`                  `mov dword ptr ss:[esp],eax`  
+`00B05B90`     `8343 08 04`              `add dword ptr ds:[ebx+8],4`  
+`00B05B94`     `8B43 08`                 `mov eax,dword ptr ds:[ebx+8]`  
+`00B05B97`     `66:8B00`                 `mov ax,word ptr ds:[eax]`  
+`00B05B9A`     `66:894424 04`            `mov word ptr ss:[esp+4],ax`  
+`00B05B9F`     `8343 08 02`              `add dword ptr ds:[ebx+8],2`  
+`00B05BA3`     `8B0C24`                  `mov ecx,dword ptr ss:[esp]`  
+`00B05BA6`     `66:8B5424 04`            `mov dx,word ptr ss:[esp+4]`  
+`00B05BAB`     `8B43 08`                 `mov eax,dword ptr ds:[ebx+8]`  
+`00B05BAE`     `E8 B9EBFFFF`             `call 00B0476C`  
+`00B05BB3`     `8B4424 10`               `mov eax,dword ptr ss:[esp+10]`  
+`00B05BB7`     `E8 88C9FEFF`             `call 00AF2544`  
+`00B05BBC`     `894424 0C`               `mov dword ptr ss:[esp+C],eax`  
+`00B05BC0`     `8B43 08`                 `mov eax,dword ptr ds:[ebx+8]`  
+`00B05BC3`     `50`                      `push eax`  
+`00B05BC4`     `8B4424 18`               `mov eax,dword ptr ss:[esp+18]`  
+`00B05BC8`     `50`                      `push eax`  
+`00B05BC9`     `A1 BC36B100`             `mov eax,dword ptr ds:[B136BC]`  
+`00B05BCE`     `8B00`                    `mov eax,dword ptr ds:[eax]`  
+`00B05BD0`     `FFD0`                    `call eax`  
+`00B05BD2`     `8BE8`                    `mov ebp,eax`  
+`00B05BD4`     `85ED`                    `test ebp,ebp`  
+`00B05BD6`     `75 0A`                   `jnz short 00B05BE2`  
+`00B05BD8`     `68 005DB000`             `push 0B05D00`     ; ASCII "250"  
+`00B05BDD`     `E8 D2E1FFFF`             `call 00B03DB4`  
+`00B05BE2`     `8B4424 0C`               `mov eax,dword ptr ss:[esp+C]`  
+
+`//修改⑤：jmp 00B1AAAE   ★   跳到 Patch 部分`  
+
+`00B05BE6`     `8928`                    `mov dword ptr ds:[eax],ebp`  
+`00B05BE8`     `8B4424 0C`               `mov eax,dword ptr ss:[esp+C]`  
+`00B05BEC`     `8906`                    `mov dword ptr ds:[esi],eax`  
+`00B05BEE`     `0FB74424 04`             `movzx eax,word ptr ss:[esp+4]`  
+`00B05BF3`     `0143 08`                 `add dword ptr ds:[ebx+8],eax`  
+`00B05BF6`     `E9 C8FCFFFF`             `jmp 00B058C3`  
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆  
+
+#### Patch 处理④
+
+这个分支的处理我耽误了不少时间。后来 `VolX` 兄指点在 `call dword ptr ds:[ebx+30]` 后壳中还保留计算调用的地址，`stephenteh` 在上面 `CALL` 中修改应该更简便点。
+
+`00B1AAE6`     `51`                      `push ecx`  
+`00B1AAE7`     `52`                      `push edx`  
+`00B1AAE8`     `3E:8B5424 1C`            `mov edx,dword ptr ds:[esp+1C]`  
+`00B1AAED`     `3B15 D0BFB100`           `cmp edx,dword ptr ds:[B1BFD0]` ; `version.77BD0000`  
+`00B1AAF3`     `74 0D`                   `je short 00B1AB02`  
+`00B1AAF5`     `8915 D0BFB100`           `mov dword ptr ds:[B1BFD0],edx`  
+`00B1AAFB`     `8305 E0BFB100 04`        `add dword ptr ds:[B1BFE0],4`  
+`00B1AB02`     `8B0D E0BFB100`           `mov ecx,dword ptr ds:[B1BFE0]` ; `ASProtec.004E9008`  
+`00B1AB08`     `3E:8B5424 E4`            `mov edx,dword ptr ds:[esp-1C]`  
+`00B1AB0D`     `8911`                    `mov dword ptr ds:[ecx],edx`  
+`00B1AB0F`     `3E:8B5424 C0`            `mov edx,dword ptr ds:[esp-40]`  
+`00B1AB14`     `3E:035424 C4`            `add edx,dword ptr ds:[esp-3C]`  
+
+`//[esp-40]和[esp-3C]要看你本机的代码来确定  ★`  
+`//具体你可以跟踪进入 call dword ptr ds:[ebx+30]，看看壳是如何计算地址的`  
+
+`00B1AB19`     `81C2 00004000`           `add edx,400000`         ; ASCII "MZP"  
+
+`//相当于把壳计算地址的方法重演一下，得到程序的“呼叫”地址。`  
+
+`00B1AB1F`     `890A`                    `mov dword ptr ds:[edx],ecx`  
+`00B1AB21`     `8305 E0BFB100 04`        `add dword ptr ds:[B1BFE0],4`  
+`00B1AB28`     `5A`                      `pop edx`  
+`00B1AB29`     `59`                      `pop ecx`  
+`00B1AB2A`     `E9 94ADFEFF`             `jmp 00B058C3`  
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆  
+
+#### Patch 处理⑤
+
+`00B1AAAE`     `51`                      `push ecx`  
+`00B1AAAF`     `52`                      `push edx`  
+`00B1AAB0`     `3E:8B5424 1C`            `mov edx,dword ptr ds:[esp+1C]`  
+`00B1AAB5`     `3B15 D0BFB100`           `cmp edx,dword ptr ds:[B1BFD0]` ; `version.77BD0000`  
+`00B1AABB`     `74 0D`                   `je short 00B1AACA`  
+`00B1AABD`     `8915 D0BFB100`           `mov dword ptr ds:[B1BFD0],edx`  
+`00B1AAC3`     `8305 E0BFB100 04`        `add dword ptr ds:[B1BFE0],4`  
+`00B1AACA`     `8B0D E0BFB100`           `mov ecx,dword ptr ds:[B1BFE0]` ; `ASProtec.004E9000`  
+`00B1AAD0`     `8929`                    `mov dword ptr ds:[ecx],ebp`  
+`00B1AAD2`     `890E`                    `mov dword ptr ds:[esi],ecx`  
+`00B1AAD4`     `8305 E0BFB100 04`        `add dword ptr ds:[B1BFE0],4`  
+`00B1AADB`     `59`                      `pop ecx`  
+`00B1AADC`     `5A`                      `pop edx`  
+`00B1AADD`     `E9 0CB1FEFF`             `jmp 00B05BEE`  
+
+————————————————————————
+
+`ASProtect.exe` 使用了大部分的分支处理，却依然有几个小分支没有使用，但是处理方法是相似的。
+
+`00B05CBD`     `83C4 38`                 `add esp,38`  
+`00B05CC0`     `5D`                      `pop ebp`  
+`00B05CC1`     `5F`                      `pop edi`  
+`00B05CC2`     `5E`                      `pop esi`  
+`00B05CC3`     `5B`                      `pop ebx`  
+`00B05CC4`     `C3`                      `retn`  
+
+`//当我们中断在这里的时候，输入表全部处理完毕！ ★★`
+
+运行 `ImportREC`，填入 `RVA=000E9000`、`Size=00000854`
+
+获取输入表，会发现有 2 个无效指针
+
+`000E9078` `?` `0000` `00B04308`  
+`000E922C` `?` `0000` `00B04308`  
+
+通过 `AL=3` 的分析，我们知道应该把这 2 个函数修复为：`GetProcAddress`
+
+OK，通过以上修改，我们已经避开了壳对 `IAT` 的加密，得到了正确的输入表！
+
+—————————————————————————————————
+
+### 三、以壳解壳——ASProtect V1.3 壳的 Stolen Code 简便解决方案
+
+取消以前的所有断点，现在设置 `Ollydbg` 忽略除了“内存访问异常”之外的所有其他异常选项。
+
+`Shift+F9` 运行，直至中断在最后一次典型异常。然后在这段代码的 `retn` 处下断，`Shift+F9` 会中断下来。
+
+`00B0F979`     `893B`                    `mov dword ptr ds:[ebx],edi`  
+
+`//ASProtect V1.31 壳的最后一次典型异常`  
+
+`00B0F97B`     `EE`                      `out dx,al`  
+`00B0F97C`     `C9`                      `leave`  
+`00B0F97D`     `C41B`                    `les ebx,fword ptr ds:[ebx]`  
+`00B0F97F`     `D1CC`                    `ror esp,1`  
+`00B0F981`     `8F`                      `???`           
+`00B0F982`     `E9 C05690F2`             `jmp F3415047`  
+`00B0F987`     `EB 01`                   `jmp short 00B0F98A`  
+`00B0F989`     `F2:67:64:`               `prefix repne:`  
+`00B0F98C`     `8F06`                    `pop dword ptr ds:[esi]`  
+`00B0F98E`     `0000`                    `add byte ptr ds:[eax],al`  
+`00B0F990`     `83C4 04`                 `add esp,4`  
+`00B0F993`     `8D1C11`                  `lea ebx,dword ptr ds:[ecx+edx]`  
+`00B0F996`     `5B`                      `pop ebx`  
+`00B0F997`     `833D 7C5BB100 00`        `cmp dword ptr ds:[B15B7C],0`  
+`00B0F99E`     `74 14`                   `je short 00B0F9B4`  
+`00B0F9A0`     `6A 0C`                   `push 0C`  
+`00B0F9A2`     `B9 7C5BB100`             `mov ecx,0B15B7C`  
+`00B0F9A7`     `8D45 F4`                 `lea eax,dword ptr ss:[ebp-C]`  
+`00B0F9AA`     `BA 04000000`             `mov edx,4`  
+`00B0F9AF`     `E8 A01EFFFF`             `call 00B01854`  
+`00B0F9B4`     `A1 6836B100`             `mov eax,dword ptr ds:[B13668]`  
+
+
+
+```
+00B0F9B9     8818             mov byte ptr ds:[eax],bl  
+
+00B0F9BB     A1 8C36B100      mov eax,dword ptr ds:[B1368C]  
+
+00B0F9C0     C700 E1000000     mov dword ptr ds:[eax],0E1  
+
+00B0F9C6     E8 A145FFFF       call 00B03F6C  
+
+00B0F9CB     8B15 5C36B100     mov edx,dword ptr ds:[B1365C]  
+
+00B0F9D1     8802             mov byte ptr ds:[edx],al  
+
+00B0F9D3     8BC6             mov eax,esi  
+
+00B0F9D5     E8 DA30FEFF       call 00AF2AB4  
+
+00B0F9DA     A1 0436B100      mov eax,dword ptr ds:[B13604]  
+
+00B0F9DF     8B00             mov eax,dword ptr ds:[eax]  
+
+00B0F9E1     E8 4A50FFFF       call 00B04A30  
+
+00B0F9E6     E8 C9B1FFFF       call 00B0ABB4  
+
+00B0F9EB     A1 5C36B100      mov eax,dword ptr ds:[B1365C]  
+
+00B0F9F0     8038 00          cmp byte ptr ds:[eax],0  
+
+00B0F9F3     74 28            je short 00B0FA1D  
+
+00B0F9F5     A1 3C36B100      mov eax,dword ptr ds:[B1363C]  
+
+00B0F9FA     C700 EA000000    mov dword ptr ds:[eax],0EA  
+
+00B0FA00     B8 32000000      mov eax,32  
+
+00B0FA05     E8 C62DFEFF       call 00AF27D0  
+
+00B0FA0A     2905 885BB100    sub dword ptr ds:[B15B88],eax  
+
+00B0FA10     B8 64000000      mov eax,64  
+
+00B0FA15     E8 B62DFEFF       call 00AF27D0  
+
+00B0FA1A     0145 F0          add dword ptr ss:[ebp-10],eax  
+
+00B0FA1D     A1 8C36B100      mov eax,dword ptr ds:[B1368C]  
+
+00B0FA22     C700 E3000000    mov dword ptr ds:[eax],0E3  
+
+00B0FA28     EB 01            jmp short 00B0FA2B  
+
+00B0FA2A     E8 8B45FC8B      call 8CAD3FBA  
+
+00B0FA2F     0085 C0752B8B   add byte ptr ss:[ebp+8B2B75C0],al  
+
+00B0FA35     0D 885BB100     or eax,0B15B88  
+
+00B0FA3A     85C9            test ecx,ecx  
+
+00B0FA3C     74 0B           je short 00B0FA49  
+
+00B0FA3E     8B65 F8          mov esp,dword ptr ss:[ebp-8]  
+
+00B0FA41     FF35 885BB100   push dword ptr ds:[B15B88]  
+
+00B0FA47     C3              retn
+```
+
+//这里下断！中断后返回 `00C3DBE3` 处
+
+————————————————————————
+
+```
+00C3DBE3     55              push ebp
+```
+
+//这里开始处理 Stolen Code ★
+
+//在这儿用 `PETools` 完全 `DUMP` 这个进程
+
+```
+00C3DBE4     8D6B 43        lea ebp,dword ptr ds:[ebx+43]
+
+00C3DBE7     52              push edx
+
+00C3DBE8     51              push ecx
+
+00C3DBE9     F3:            prefix rep:
+
+00C3DBEA     EB 02           jmp short 00C3DBEE
+```
+
+`ASProtect.exe` 是我见过的被 `ASProtect` 加壳程序中被 Stolen Code 最厉害的文件了，主干代码几乎全部被挪进了壳中，如果仅仅 dump 出上面的部分壳代码是不行的，无法运行。如下面的访问地址就丢失了：
+
+```
+00C3E070     E8 C7B80300     call 00C7993C
+
+00B0B5F1     E8 5E84FFFF     call 00B03A54
+```
+
+你可以保留上面处理的 `ASProtect.exe` 进程，然后运行修复后的程序，看看哪些代码丢失。
+
+我最终补上 3 段代码，用 `PETools` 部分脱壳以下三部分：
+
+```
+00B00000－00B20000.dmp
+
+00C38000－00C44000.dmp
+
+00C70000－00C80000.dmp
+```
+
+当然，如果你对程序大小不太在乎的话，可以 dump 出 `00B00000－00C80000.dmp`，哈哈，这样程序就比较肥了。
+
+“组装”一下 `dumped.exe`，从磁盘载入刚才部分脱壳的 3 部分。
+
+减去基址后分别修改其 `Voffset` 为 `00700000`、`00838000`、`00870000`，只保留 `PETools` 的“验证 PE 文件”选项，重建 PE。
+
+在 `ImportREC` 中填入：`OEP=0083DBE3`，`FixDump`！脱壳完成。
+
+尽挹西江，细斟北斗，
+
+万象为宾客。
+
+扣舷独啸，不知今夕何夕！
+
+—————————————————————————————————
+
+```
+      ,     \_/  
+    /| \_.-~/          \\\ ,        青春都一晌
+   ( /~   /             \\~-.\ |\\
+   \`\\   \_/             \   ~\)         忍把浮名
+  _-~~~-.  )\_/;;,.          \ \'
+ / \, \   --~   \ ~~- ,;;\_\_\_ (.-~~~-.        换了破解轻狂
+ \`~ _( ,\_..--\\(  ,;'' / ~-- /.\_\`
+  /~~//' / `\`~\ ) /--..\_, )\_ \`~
+  " \`~" "   \`" /~'\`\\ \`\\\\~~\
+         "   " ~' ""
+       UnPacked By : fly
+       2004-09-29 零点
+```
+
+`4dd466d0e1e0cc123afbe504da2462ca`
