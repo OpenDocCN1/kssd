@@ -1,0 +1,278 @@
+
+```asm
+004DE4E9  |.  E8 CAAAF2FF   CALL Favorite.00408FB8          ; 大写字母转换为小写字母  
+
+004DE4EE  |.  8B55 D0       MOV EDX,DWORD PTR SS:[EBP-30]  
+
+004DE4F1  |.  8D45 FC       LEA EAX,DWORD PTR SS:[EBP-4]  
+
+004DE4F4  |.  E8 C363F2FF   CALL Favorite.004048BC  
+
+004DE4F9  |.  8D45 F0       LEA EAX,DWORD PTR SS:[EBP-10]  
+
+004DE4FC  |.  E8 2363F2FF   CALL Favorite.00404824  
+
+004DE501  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]  
+
+004DE504  |.  E8 DB65F2FF   CALL Favorite.00404AE4         ; 计算机器码位数  
+
+004DE509  |.  8945 E0       MOV DWORD PTR SS:[EBP-20],EAX   ; 机器码位数给[EBP-20]  
+
+004DE50C  |.  8B45 F4       MOV EAX,DWORD PTR SS:[EBP-C]  
+
+004DE50F  |.  E8 D065F2FF   CALL Favorite.00404AE4         ; 计算固定字符串位数  
+
+004DE514  |.  8945 DC       MOV DWORD PTR SS:[EBP-24],EAX   ; 固定字符串位数给[EBP-24]  
+
+004DE517  |.  8B45 E0       MOV EAX,DWORD PTR SS:[EBP-20]  
+
+004DE51A  |.  85C0          TEST EAX,EAX  
+
+004DE51C  |.  0F8E F5000000 JLE Favorite.004DE617          ; 判断机器位数是否为空  
+
+004DE522  |.  8945 D4       MOV DWORD PTR SS:[EBP-2C],EAX  
+
+004DE525  |.  BB 01000000   MOV EBX,1  
+
+004DE52A  |>  33F6          /XOR ESI,ESI  
+
+004DE52C  |.  33C0          |XOR EAX,EAX  
+
+004DE52E  |.  8945 E4       |MOV DWORD PTR SS:[EBP-1C],EAX  
+
+004DE531  |.  83FB 01       |CMP EBX,1  
+
+004DE534  |.  75 05         |JNZ SHORT Favorite.004DE53B  
+
+004DE536  |.  8B75 E0       |MOV ESI,DWORD PTR SS:[EBP-20]  
+
+004DE539  |.  EB 01         |JMP SHORT Favorite.004DE53C  
+
+004DE53B  |>  4E           |DEC ESI  
+
+004DE53C  |>  3B5D E0      |CMP EBX,DWORD PTR SS:[EBP-20]  
+
+004DE53F  |.  75 09         |JNZ SHORT Favorite.004DE54A  
+
+004DE541  |.  C745 E4 01000>|MOV DWORD PTR SS:[EBP-1C],1  
+
+004DE548  |.  EB 03         |JMP SHORT Favorite.004DE54D  
+
+004DE54A  |>  FF45 E4      |INC DWORD PTR SS:[EBP-1C]  
+
+004DE54D  |>  8B45 FC      |MOV EAX,DWORD PTR SS:[EBP-4]  
+
+004DE550  |.  8A4418 FF     |MOV AL,BYTE PTR DS:[EAX+EBX-1]   ; 顺序取机器码位数的 ASCII 值  
+
+004DE554  |.  E8 EFF9FFFF   |CALL Favorite.004DDF48  
+
+004DE559  |.  8BF8          |MOV EDI,EAX  
+
+004DE55B  |.  8B45 FC       |MOV EAX,DWORD PTR SS:[EBP-4]  
+
+004DE55E  |.  8A4430 FF     |MOV AL,BYTE PTR DS:[EAX+ESI-1]  
+
+004DE562  |.  E8 E1F9FFFF   |CALL Favorite.004DDF48  
+
+004DE567  |.  8945 EC       |MOV DWORD PTR SS:[EBP-14],EAX  
+
+004DE56A  |.  8B45 FC       |MOV EAX,DWORD PTR SS:[EBP-4]  
+
+004DE56D  |.  8B55 E4       |MOV EDX,DWORD PTR SS:[EBP-1C]  
+
+004DE570  |.  8A4410 FF     |MOV AL,BYTE PTR DS:[EAX+EDX-1]  
+
+004DE574  |.  E8 CFF9FFFF   |CALL Favorite.004DDF48  
+
+004DE579  |.  8945 E8       |MOV DWORD PTR SS:[EBP-18],EAX  
+
+004DE57C  |.  8B45 EC       |MOV EAX,DWORD PTR SS:[EBP-14]  
+
+004DE57F  |.  03C7          |ADD EAX,EDI  
+
+004DE581  |.  0345 E8       |ADD EAX,DWORD PTR SS:[EBP-18]  
+
+004DE584  |.  99           |CDQ  
+
+004DE585  |.  F77D E0       |IDIV DWORD PTR SS:[EBP-20]  
+
+004DE588  |.  8BF2          |MOV ESI,EDX  
+
+004DE58A  |.  8B45 EC       |MOV EAX,DWORD PTR SS:[EBP-14]  
+
+004DE58D  |.  03C7          |ADD EAX,EDI  
+
+004DE58F  |.  0345 E8       |ADD EAX,DWORD PTR SS:[EBP-18]  
+
+004DE592  |.  8BD3          |MOV EDX,EBX  
+
+004DE594  |.  C1E2 02       |SHL EDX,2  
+
+004DE597  |.  4A           |DEC EDX  
+
+004DE598  |.  0FAFD3        |IMUL EDX,EBX  
+
+004DE59B  |.  03C2          |ADD EAX,EDX  
+
+004DE59D  |.  85C0          |TEST EAX,EAX  
+
+004DE59F  |.  79 03         |JNS SHORT Favorite.004DE5A4  
+
+004DE5A1  |.  83C0 07       |ADD EAX,7  
+
+004DE5A4  |>  C1F8 03       |SAR EAX,3  
+
+004DE5A7  |.  03F0          |ADD ESI,EAX  
+
+004DE5A9  |.  3B75 DC       |CMP ESI,DWORD PTR SS:[EBP-24]  ; 比较是否小于 0X55  
+
+004DE5AC  |.  7E 14         |JLE SHORT Favorite.004DE5C2    ; 小于则跳  
+
+004DE5AE  |.  8B45 EC       |MOV EAX,DWORD PTR SS:[EBP-14]  
+
+004DE5B1  |.  03C7          |ADD EAX,EDI  
+
+004DE5B3  |.  0345 E8       |ADD EAX,DWORD PTR SS:[EBP-18]  
+
+004DE5B6  |.  03C3          |ADD EAX,EBX  
+
+004DE5B8  |.  B9 FF000000   |MOV ECX,0FF  
+
+004DE5BD  |.  99           |CDQ  
+
+004DE5BE  |.  F7F9          |IDIV ECX  
+
+004DE5C0  |.  8BF0          |MOV ESI,EAX  
+
+004DE5C2  |>  85F6          |TEST ESI,ESI  
+
+004DE5C4  |.  7F 15         |JG SHORT Favorite.004DE5DB  
+
+004DE5C6  |.  8B45 EC       |MOV EAX,DWORD PTR SS:[EBP-14]  
+
+004DE5C9  |.  03C7          |ADD EAX,EDI  
+
+004DE5CB  |.  0345 E8       |ADD EAX,DWORD PTR SS:[EBP-18]  
+
+004DE5CE  |.  03C3          |ADD EAX,EBX  
+
+004DE5D0  |.  B9 07000000   |MOV ECX,7  
+
+004DE5D5  |.  99           |CDQ  
+
+004DE5D6  |.  F7F9          |IDIV ECX  
+
+004DE5D8  |.  8BF0          |MOV ESI,EAX  
+
+004DE5DA  |.  46           |INC ESI  
+
+004DE5DB  |>  3B75 DC      |CMP ESI,DWORD PTR SS:[EBP-24]  ; 比较是否小于 0X55  
+
+004DE5DE  |.  7E 13         |JLE SHORT Favorite.004DE5F3    ; 小于则跳  
+
+004DE5E0  |.  8B45 EC       |MOV EAX,DWORD PTR SS:[EBP-14]  
+
+004DE5E3  |.  03C7          |ADD EAX,EDI  
+
+004DE5E5  |.  0345 E8       |ADD EAX,DWORD PTR SS:[EBP-18]  
+
+004DE5E8  |.  B9 FF000000   |MOV ECX,0FF  
+
+004DE5ED  |.  99           |CDQ  
+
+004DE5EE  |.  F7F9          |IDIV ECX  
+
+004DE5F0  |.  8BF0          |MOV ESI,EAX  
+
+004DE5F2  |.  46           |INC ESI  
+
+004DE5F3  |>  8D45 CC      |LEA EAX,DWORD PTR SS:[EBP-34]  
+
+004DE5F6  |.  8B55 F4       |MOV EDX,DWORD PTR SS:[EBP-C]  
+
+004DE5F9  |.  8A5432 FF     |MOV DL,BYTE PTR DS:[EDX+ESI-1]  ; 取固定字符串对应位的值（取完之后的字符串就是真注册码的一半）  
+
+004DE5FD  |.  E8 0A64F2FF   |CALL Favorite.00404A0C  
+
+004DE602  |.  8B55 CC       |MOV EDX,DWORD PTR SS:[EBP-34]  
+
+004DE605  |.  8D45 F0       |LEA EAX,DWORD PTR SS:[EBP-10]  
+
+004DE608  |.  E8 DF64F2FF   |CALL Favorite.00404AEC  
+
+004DE60D  |.  43           |INC EBX  
+
+004DE60E  |.  FF4D D4       |DEC DWORD PTR SS:[EBP-2C]  
+
+004DE611  |.^ 0F85 13FFFFFF \JNZ Favorite.004DE52A  
+
+004DE617  |>  8D55 BC      LEA EDX,DWORD PTR SS:[EBP-44]  
+
+004DE61A  |.  A1 78ED4E00   MOV EAX,DWORD PTR DS:[4EED78]  
+
+004DE61F  |.  E8 F8F4FFFF   CALL Favorite.004DDB1C          ; 计算字符串的 MD5 值  
+
+004DE624  |.  8D45 BC       LEA EAX,DWORD PTR SS:[EBP-44]  
+
+004DE627  |.  8D55 D8       LEA EDX,DWORD PTR SS:[EBP-28]  
+
+004DE62A  |.  E8 61F5FFFF   CALL Favorite.004DDB90  
+
+004DE62F  |.  837D E0 02    CMP DWORD PTR SS:[EBP-20],2     ; 判断机器码位数是否小于等于 2  
+
+004DE633  |.  7E 1F          JLE SHORT Favorite.004DE654     ; 小于等于 2，则以 05 补充。  
+
+004DE635  |.  8D45 D8       LEA EAX,DWORD PTR SS:[EBP-28]  
+
+004DE638  |.  50           PUSH EAX  
+
+004DE639  |.  8B45 E0       MOV EAX,DWORD PTR SS:[EBP-20]  
+
+004DE63C  |.  B9 0D000000   MOV ECX,0D  
+
+004DE641  |.  99           CDQ  
+
+004DE642  |.  F7F9          IDIV ECX  
+
+004DE644  |.  42           INC EDX                     ; 机器码位数与 0D 求余+1  
+
+004DE645  |.  B9 01000000   MOV ECX,1                   ; 这里是在 MD5 值中所取几个值的初值  
+
+004DE64A  |.  8B45 D8       MOV EAX,DWORD PTR SS:[EBP-28]   ; 把上面计算的 MD5 值给 EAX  
+
+004DE64D  |.  E8 F266F2FF   CALL Favorite.00404D44          ; 取机器码位数与 0D 求余+1 在计算的 MD5 值中位数对应的值  
+
+004DE652  |.  EB 0D         JMP SHORT Favorite.004DE661  
+
+004DE654  |>  8D45 D8       LEA EAX,DWORD PTR SS:[EBP-28]  
+
+004DE657  |.  BA DCE64D00   MOV EDX,Favorite.004DE6DC       ; ASCII "05"  
+
+004DE65C  |.  E8 5B62F2FF   CALL Favorite.004048BC  
+
+004DE661  |>  8D45 B8       LEA EAX,DWORD PTR SS:[EBP-48]  
+
+004DE664  |.  8B4D D8       MOV ECX,DWORD PTR SS:[EBP-28]  
+
+004DE667  |.  8B55 F0       MOV EDX,DWORD PTR SS:[EBP-10]  
+
+004DE66A  |.  E8 C164F2FF   CALL Favorite.00404B30  
+
+004DE66F  |.  8B45 B8       MOV EAX,DWORD PTR SS:[EBP-48]  
+
+004DE672  |.  8D55 BC       LEA EDX,DWORD PTR SS:[EBP-44]  
+
+004DE675  |.  E8 A2F4FFFF   CALL Favorite.004DDB1C          ; 这里显示真注册码。（把它进行 MD5 计算）  
+
+004DE67A  |.  8D45 BC       LEA EAX,DWORD PTR SS:[EBP-44]  
+
+004DE67D  |.  8B55 F8       MOV EDX,DWORD PTR SS:[EBP-8]  
+
+004DE680  |.  E8 0BF5FFFF   CALL Favorite.004DDB90  
+
+004DE685  |.  33C0          XOR EAX,EAX  
+
+004DE687  |.  5A           POP EDX  
+
+004DE688  |.  59           POP ECX
+```

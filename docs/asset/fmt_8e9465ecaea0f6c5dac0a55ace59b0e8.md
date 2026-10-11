@@ -1,0 +1,118 @@
+
+很清晰的过程 :-) 现在都清楚了：
+
+将用户名转换为大写，循环取用户名单个字符加上 `0xF`，除以 `0x10`，余数加 `0x30`，同 `0x3A` 比较，小于则直接保存为本次循环的结果，大于则加 `7`，作为结果保存；循环 `2` 次。将两次计算的结果颠倒保存，再取用户名的下个字符进行同样的计算。所以整个用户名计算出的中间码 `1` 的个数就是用户名的个数的 `2` 倍。接下来根据这个中间码 `1` 计算真正的注册码：将该串所有的奇数位和偶数位调换，结果就是真正的注册码了。看到这里，发现什么了吗？对，实际上在第 `1` 次计算中间码 `1` 的时候，不进行单个字符的计算结果调换，直接就是真码了，后面的操作完全是兜了个圈子，没有用的，呵呵，看程序吧，注册机源码（C 语言）：
+
+```c
+/////////////////////////////////////// 
+
+// program: Keygen for InnoCustomize // 
+
+// Author : Coded by prince           // 
+
+// Date   : 2005.05.13               // 
+
+// E-mail : cracker_prince@163.com   // 
+
+/////////////////////////////////////// 
+
+#include "stdafx.h" 
+
+#include <stdio.h> 
+
+char chUserName[128] = {0}; 
+
+char chKey[256]     = {0}; 
+
+void ConvertToCap( char *pchUserName ) 
+
+{ 
+
+  int j = 0; 
+
+  while ( pchUserName[j] != '\0' ) 
+
+  { 
+
+    if ( pchUserName[j] >= 0x61 && pchUserName[j] <= 0x7a ) 
+
+    { 
+
+      pchUserName[j] -= 0x20; 
+
+    } 
+
+    j++; 
+
+  } 
+
+} 
+
+int main(int argc, char* argv[]) 
+
+{ 
+
+  printf( "Please input your name:\n" ); 
+
+  scanf( "%s", chUserName ); 
+
+  ConvertToCap( chUserName ); 
+
+  int  i          = 0; 
+
+  int  j          = 0; 
+
+  int  nRemainder = 0; 
+
+  int  nQuotient  = 1; 
+
+  while ( chUserName[i] != '\0' ) 
+
+  { 
+
+    chUserName[i] += 0xf; 
+
+    nQuotient = chUserName[i]; 
+
+    while ( nQuotient != 0 ) 
+
+    { 
+
+      nRemainder = nQuotient % 0x10; 
+
+      nQuotient  = nQuotient / 0x10; 
+
+      nRemainder += 0x30; 
+
+      if ( nRemainder >= 0x3a ) 
+
+      { 
+
+        nRemainder += 7; 
+
+      } 
+
+      chKey[j] = nRemainder; 
+
+      j++; 
+
+    } 
+
+    i++; 
+
+  } 
+
+  printf( "Your key is: %s\n", chKey ); 
+
+  return 0; 
+
+}
+```
+
+以上程序在 `VC6.0+Win2K` 下测试通过，任何问题可至 `cracker_prince@163.com`
+
+菜鸟写菜文~
+
+`prince 2005.05.13`
+
+`4dd466d0e1e0cc123afbe504da2462ca`
