@@ -1,0 +1,123 @@
+
+```
+00668278   |.  CE84660>|dd proSitik.006684CE
+0066827C   |.  E084660>|dd proSitik.006684E0
+00668280   |.  EF84660>|dd proSitik.006684EF
+00668284   |.  FE84660>|dd proSitik.006684FE
+00668288   |.  0D85660>|dd proSitik.0066850D
+0066828C   |.  1C85660>|dd proSitik.0066851C
+00668290   |.  2B85660>|dd proSitik.0066852B
+00668294   |.  3A85660>|dd proSitik.0066853A
+00668298   |.  4985660>|dd proSitik.00668549
+0066829C   |.  5885660>|dd proSitik.00668558
+006682A0   |>  8D45 F8 |lea eax,dword ptr ss:\[ebp-8\]               ;  Case 30 ('0') of switch 0066819D
+006682A3  <>|.  E8 A0CB>|call proSitik.00404E48                   ;  Error or: System.UniqueString(String;String);overload;
+006682A8   |.  C64418 >|mov byte ptr ds:\[eax+ebx-1\],78
+006682AD   |.  E9 B302>|jmp proSitik.00668565
+006682B2   |>  8D45 F8 |lea eax,dword ptr ss:\[ebp-8\]               ;  Case 31 ('1') of switch 0066819D
+006682B5   |.  E8 8ECB>|call proSitik.00404E48                   ;  Error or: System.UniqueString(String;String);overload;
+006682BA   |.  C64418 >|mov byte ptr ds:\[eax+ebx-1\],6D
+006682BF   |.  E9 A102>|jmp proSitik.00668565
+006682C4   |>  8D45 F8 |lea eax,dword ptr ss:\[ebp-8\]               ;  Case 32 ('2') of switch 0066819D
+006682C7   |.  E8 7CCB>|call proSitik.00404E48
+006682CC   |.  C64418 >|mov byte ptr ds:\[eax+ebx-1\],35
+006682D1   |.  E9 8F02>|jmp proSitik.00668565
+006682D6   |>  8D45 F8 |lea eax,dword ptr ss:\[ebp-8\]               ;  Case 33 ('3') of switch 0066819D
+006682D9   |.  E8 6ACB>|call proSitik.00404E48
+006682DE   |.  C64418 >|mov byte ptr ds:\[eax+ebx-1\],30
+006682E3   |.  E9 7D02>|jmp proSitik.00668565
+006682E8   |>  8D45 F8 |lea eax,dword ptr ss:\[ebp-8\]               ;  Case 34 ('4') of switch 0066819D
+006682EB   |.  E8 58CB>|call proSitik.00404E48
+006682F0   |.  C64418 >|mov byte ptr ds:\[eax+ebx-1\],52
+006682F5   |.  E9 6B02>|jmp proSitik.00668565
+006682FA   |>  8D45 F8 |lea eax,dword ptr ss:\[ebp-8\]               ;  Case 35 ('5') of switch 0066819D
+006682FD   |.  E8 46CB>|call proSitik.00404E48
+00668302   |.  C64418 >|mov byte ptr ds:\[eax+ebx-1\],4E
+00668307   |.  E9 5902>|jmp proSitik.00668565
+0066830C   |>  8D45 F8 |lea eax,dword ptr ss:\[ebp-8\]               ;  Case 36 ('6') of switch 0066819D
+0066830F   |.  E8 34CB>|call proSitik.00404E48
+00668314   |.  C64418 >|mov byte ptr ds:\[eax+ebx-1\],31
+00668319   |.  E9 4702>|jmp proSitik.00668565
+0066831E   |>  8D45 F8 |lea eax,dword ptr ss:\[ebp-8\]               ;  Case 37 ('7') of switch 0066819D
+00668321   |.  E8 22CB>|call proSitik.00404E48
+00668326   |.  C64418 >|mov byte ptr ds:\[eax+ebx-1\],78
+0066832B   |.  E9 3502>|jmp proSitik.00668565
+00668330   |>  8D45 F8 |lea eax,dword ptr ss:\[ebp-8\]               ;  Case 38 ('8') of switch 0066819D
+00668333   |.  E8 10CB>|call proSitik.00404E48
+00668338   |.  C64418 >|mov byte ptr ds:\[eax+ebx-1\],30
+0066833D   |.  E9 2302>|jmp proSitik.00668565
+00668342   |>  8D45 F8 |lea eax,dword ptr ss:\[ebp-8\]               ;  Case 39 ('9') of switch 0066819D
+00668345   |.  E8 FECA>|call proSitik.00404E48
+0066834A   |.  C64418 >|mov byte ptr ds:\[eax+ebx-1\],31
+0066834F   |.  E9 1102>|jmp proSitik.00668565
+00668354   |>  8D45 F8 |lea eax,dword ptr ss:\[ebp-8\]               ;  Case 41 ('A') of switch 0066819D
+00668357   |.  E8 ECCA>|call proSitik.00404E48
+0066835C   |.  C64418 >|mov byte ptr ds:\[eax+ebx-1\],33
+00668361   |.  E9 FF01>|jmp proSitik.00668565
+00668366   |>  8D45 F8 |lea eax,dword ptr ss:\[ebp-8\]               ;  Case 42 ('B') of switch 0066819D
+00668369   |.  E8 D ACA>|call proSitik.00404E48
+0066836E   |.  C64418 >|mov byte ptr ds:\[eax+ebx-1\],4B
+00668373   |.  E9 ED01>|jmp proSitik.00668565
+00668378   |>  8D45 F8 |lea eax,dword ptr ss:\[ebp-8\]               ;  Case 43 ('C') of switch 0066819D
+0066837B   |.  E8 C8CA>|call proSitik.00404E48
+00668380   |.  C64418 >|mov byte ptr ds:\[eax+ebx-1\],50
+00668385   |.  E9 DB01>|jmp proSitik.00668565
+0066838A   |>  8D45 F8 |lea eax,dword ptr ss:\[ebp-8\]               ;  Case 44 ('D') of switch 0066819D
+0066838D   |.  E8 B6CA>|call proSitik.00404E48
+00668392   |.  C64418 >|mov byte ptr ds:\[eax+ebx-1\],4D
+00668397   |.  E9 C901>|jmp proSitik.00668565
+0066839C   |>  8D45 F8 |lea eax,dword ptr ss:\[ebp-8\]               ;  Case 45 ('E') of switch 0066819D
+0066839F   |.  E8 A4CA>|call proSitik.00404E48
+006683A4   |.  C64418 >|mov byte ptr ds:\[eax+ebx-1\],4A
+006683A9   |.  E9 B701>|jmp proSitik.00668565
+006683AE   |>  8D45 F8 |lea eax,dword ptr ss:\[ebp-8\]               ;  Case 46 ('F') of switch 0066819D
+006683B1   |.  E8 92CA>|call proSitik.00404E48
+006683B6   |.  C64418 >|mov byte ptr ds:\[eax+ebx-1\],59
+006683BB   |.  E9 A501>|jmp proSitik.00668565
+006683C0   |>  8D45 F8 |lea eax,dword ptr ss:\[ebp-8\]               ;  Case 47 ('G') of switch 0066819D
+006683C3   |.  E8 80CA>|call proSitik.00404E48
+006683C8   |.  C64418 >|mov byte ptr ds:\[eax+ebx-1\],32
+006683CD   |.  E9 9301>|jmp proSitik.00668565
+006683D2   |>  8D45 F8 |lea eax,dword ptr ss:\[ebp-8\]               ;  Case 48 ('H') of switch 0066819D
+006683D5   |.  E8 6ECA>|call proSitik.00404E48
+006683DA   |.  C64418 >|mov byte ptr ds:\[eax+ebx-1\],66
+006683DF   |.  E9 8101>|jmp proSitik.00668565
+006683E4   |>  8D45 F8 |lea eax,dword ptr ss:\[ebp-8\]               ;  Case 49 ('I') of switch 0066819D
+006683E7   |.  E8 5CCA>|call proSitik.00404E48
+006683EC   |.  C64418 >|mov byte ptr ds:\[eax+ebx-1\],5A
+006683F1   |.  E9 6F01>|jmp proSitik.00668565
+006683F6   |>  8D45 F8 |lea eax,dword ptr ss:\[ebp-8\]               ;  Case 4A ('J') of switch 0066819D
+006683F9   |.  E8 4ACA>|call proSitik.00404E48
+006683FE   |.  C64418 >|mov byte ptr ds:\[eax+ebx-1\],2D
+00668403   |.  E9 5D01>|jmp proSitik.00668565
+00668408   |>  8D45 F8 |lea eax,dword ptr ss:\[ebp-8\]               ;  Case 4B ('K') of switch 0066819D
+0066840B   |.  E8 38CA>|call proSitik.00404E48
+00668410   |.  C64418 >|mov byte ptr ds:\[eax+ebx-1\],36
+00668415   |.  E9 4B01>|jmp proSitik.00668565
+0066841A   |>  8D45 F8 |lea eax,dword ptr ss:\[ebp-8\]               ;  Case 4C ('L') of switch 0066819D
+0066841D   |.  E8 26CA>|call proSitik.00404E48
+00668422   |.  C64418 >|mov byte ptr ds:\[eax+ebx-1\],4E
+00668427   |.  E9 3901>|jmp proSitik.00668565
+0066842C   |>  8D45 F8 |lea eax,dword ptr ss:\[ebp-8\]               ;  Case 4D ('M') of switch 0066819D
+0066842F   |.  E8 14CA>|call proSitik.00404E48
+00668434   |.  C64418 >|mov byte ptr ds:\[eax+ebx-1\],41
+00668439   |.  E9 2701>|jmp proSitik.00668565
+0066843E   |>  8D45 F8 |lea eax,dword ptr ss:\[ebp-8\]               ;  Case 4E ('N') of switch 0066819D
+00668441   |.  E8 02CA>|call proSitik.00404E48
+00668446   |.  C64418 >|mov byte ptr ds:\[eax+ebx-1\],39
+0066844B   |.  E9 1501>|jmp proSitik.00668565
+00668450   |>  8D45 F8 |lea eax,dword ptr ss:\[ebp-8\]               ;  Case 4F ('O') of switch 0066819D
+00668453   |.  E8 F0C9>|call proSitik.00404E48
+00668458   |.  C64418 >|mov byte ptr ds:\[eax+ebx-1\],30
+0066845D   |.  E9 0301>|jmp proSitik.00668565
+00668462   |>  8D45 F8 |lea eax,dword ptr ss:\[ebp-8\]               ;  Case 50 ('P') of switch 0066819D
+00668465   |.  E8 DEC9>|call proSitik.00404E48
+0066846A   |.  C64418 >|mov byte ptr ds:\[eax+ebx-1\],31
+0066846F   |.  E9 F100>|jmp proSitik.00668565
+00668474   |>  8D45 F8 |lea eax,dword ptr ss:\[ebp-8\]               ;  Case 51 ('Q') of switch 0066819D
+00668477   |.  E8 CCC9>|call proSitik.00404E48
+0066847C   |.  C64418 >|mov byte ptr ds:\[eax+ebx-1\],4F
+00668481   |.  E9 DF00>|jmp proSitik.00668565
+00668486   |>  8D45 F8 |lea eax,dword ptr ss:\[ebp-8\]               ;  Case 52 ('R') of switch 0066819D
+00668489   |.  E8 BAC9>|call proSitik.00404E48
+```
