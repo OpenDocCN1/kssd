@@ -1,0 +1,89 @@
+
+# XX 解霸 3000（共享版）注册码破解实录
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50264.htm`](https://www.pediy.com/kssd/pediy05/pediy50264.htm)
+
+软件：`XX 解霸 3000 共享版`，约 `5.5M`
+
+工具：`Trw2000 1.23`，`Gold v8.93 超级中文黄金版`，`Fi250`
+
+平台：`WinMe`，`32 位色`（为了显示 `Trw2000` 的原来面貌）
+
+## 1：用 `Fi250` 侦察 `AutoReg.exe`
+
+为 `VC6`（`Debug` 方式），有趣，为何不完全编译成 `Release` 方式呢？
+
+## 2：输入用户名：`RichCrack`
+
+注册码：`8765-4321-1976-3027` （都是任意的）
+
+## 3：用 `Trw2000`
+
+```
+bpx getwindowtexta
+bc
+pmodule
+```
+
+这时会看到有 5 个 `GetWindowTextA` 的函数，走到最前的那个
+
+```
+bpx 401C5F
+```
+
+大概是：用户名，注册码的 4 个小组。
+
+```
+:00401CA5 8855C9                   mov byte ptr [ebp-37], dl
+:00401CA8 8A45C9                   mov al, byte ptr [ebp-37]
+:00401CAB 8845C4                   mov byte ptr [ebp-3C], al
+:00401CAE C645D300                 mov [ebp-2D], 00
+:00401CB2 6800010000               push 00000100
+:00401CB7 6880B84000               push 0040B880
+:00401CBC 8B0D58B84000             mov ecx, dword ptr [0040B858]
+:00401CC2 51                       push ecx
+```
+
+上面还有四个 `GetWindowTextA`
+
+`* Reference To: USER32.GetWindowTextA, Ord:015Eh`
+
+```
+:00401CC3 FF15F4804000             Call dword ptr [004080F4]
+:00401CC9 8D55C0                   lea edx, dword ptr [ebp-40]
+:00401CCC 52                       push edx （此处下中断）
+:00401CCD 6880B84000               push 0040B880
+:00401CD2 E8C9140000               call 004031A0 （关键 Call，一定要切入）
+:00401CD7 85C0                     test eax, eax
+:00401CD9 740C                     je 00401CE7
+```
+
+切入的 `CALL`
+
+来到
+
+```
+:00403202 0FBE540C0C               movsx edx, byte ptr [esp+ecx+0C]（设中断，此时
+                                   //   ss:[esp+ecx+0c] = ss:[63F988]，
+                                   //   d 63F988 看到第一组正确密码：753e
+:00403207 3BD0                     cmp edx, eax  // eax 就是第一组的字符 8，edx 为 7，即 753e 的第一个数
+:00403209 0F852C010000             jne 0040333B  //不等则 Game Over
+:0040320F 41                       inc ecx
+:00403210 83F904                   cmp ecx, 00000004    //每组的次数
+:00403213 7CDC                     jl 004031F1
+```
+
+此时在 `W32Dasm` 中向下望，见到有
+
+```
+cmp edx, eax
+jne XXXXX
+```
+
+就下断点，用过的点就清除，`d` 前一句的 `ss:esp+ecx+XXX` 就看到此组的密码。输入正确的密码，再重来 4 次，就能到其余的密码了。
+
+## 总结
+
+用户名：`RichCrack`
+
+注册码：`753e-si79-3lu6-t55j` `4dd466d0e1e0cc123afbe504da2462ca`
