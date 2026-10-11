@@ -1,0 +1,396 @@
+
+# Delphi 逆向工程
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50261.htm`](https://www.pediy.com/kssd/pediy05/pediy50261.htm)
+
++DaFixer 谁呢，用过 DeDe 的人应该了解的！这里只是一部分，余下的我还没有找到，还请小楼指点：
+
+--------------------------------------
+
+本文告诉你如何改变 Delphi 程序的事件处理，如何用 HEX 编辑方式增加自己的功能。阅读本文之前需要有一些 Delphi 的编程经验。
+
+----------------
+
+## Delphi 逆向工程
+
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;--------给 Delphi 程序增加自己的功能
+
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;原著：+DaFixer
+
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;地址：`http://www.balbaro.com/dafixer/D1.html`
+
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;翻译：upfeed
+
+----------------
+
+### 介绍：
+
+-------
+
+&emsp;&emsp;这是我的第一篇关于 Delphi 逆向工程的文章，主要是讲解如何加入自己的功能，并且能直接使用到 VCL 库(控件)。这里会给出一些 Delphi 可执行文件格式、类信息以及 DFM 资源。目的不是为了加什么代码或者破解什么程序，仅仅是给出 Delphi 事件处理的原理，我们能够以哪些方式修改程序。希望你能够喜欢它。
+
+### 需要的工具：
+
+------------
+
+&emsp;&emsp;HEX 编辑器，别无它物。
+
+### 目标：
+
+-------
+
+&emsp;&emsp;没有特别的目标，你可以使用任何一个 Delphi 程序作为练习对象(但是它们可不能被加壳)。然而文中还是要用一些程序作为例子，这里(`http://www.balbaro.com/dafixer/files/test1.zip`)有一个我自己写的，你可以下载。
+
+### 正文：
+
+-------
+
+### 第一部分：
+
+- Delphi 可执行程序、类信息和 DFM 资源。
+- 事件处理程序。
+- 修改 DFM 资源和类信息来重定位事件处理程序。
+
+&emsp;&emsp;在开始之前，我先解释 Delphi 可执行程序的内部结构。由 Delphi3，4，5 编译的可执行程序有以下几个节：`CODE`，`DATA`，`BSS`，`.idata`，`tls`，`.rdata`，`.rsrc`。根据我们的需要，`CODE` 和 `.rsrc` 节比较重要。
+
+#### .rsrc 节：
+
+---------
+
+&emsp;&emsp;这里除了一般的资源以外，还有工程信息和 DFM 资源信息，这一节开始部分是常规的资源表，接着是工程信息，最后就是 DFM 资源了。DFM 资源包括了所有控件的描述，控件(不论是不是可视)`published` 的属性的初始设置。不同 `Form` 的资源在不同的区段里(就像小节一样)，每个都是以 `#54`, `#50`, `#46`, `#30` (`TPF0`) 开始，紧跟其后的就是 Form 的名字，以 `pascal` 串形式存放(第一个字节是长度)。每一个 DFM 小节都是在连接的时候，由编译器直接从原始的 `.dfm` 文件中考过来的。注意 DFM 资源也称为 `RCDATA` 类型的资源，在 `.rsrc` 节的资源表中也有描述，所以可以用资源编辑软件来编辑，效果就像 Borland 自己的资源编辑环境一样。更有趣的是在 DFM 资源中到底包含一些什么，答案就是你在 Delphi 中用对象察看器(左边的浮动窗口)看到的所有东西。这就是说我们可以仅仅编辑 DFM 资源数据，来让控件的任何 `published` 属性改变。其中就包括了重定位对象的事件处理程序。
+
+&emsp;&emsp;另外，Delphi 中的 VCL 控件有一些过程可以允许你读取 `RCDATA` 资源，也可以把它们转存成 `TXT` 格式。在 `classes.pas` 文件中定义了以下过程：
+
+```
+ObjectBinaryToText()
+ObjectResourceToText()
+ObjectTextToBinary()
+ObjectTextToResource()
+```
+
+&emsp;&emsp;用它们可以简单把 2 进制的 DFM RCDATA 资源转换成其它的表示形式。一种常见的 Form 描述如下所示，它其实就是我写的程序中的 `Form1`：
+
+```
+object Form1: TForm1
+  Left = 192
+  Top = 105
+  Width = 215
+  Height = 109
+  Caption = 'Test Project 1'
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Font.Style = []
+  OldCreateOrder = False
+  PixelsPerInch = 96
+  TextHeight = 13
+  object Button1: TButton
+    Left = 8
+    Top = 16
+    Width = 75
+    Height = 25
+    Caption = 'Show Form2'
+    TabOrder = 0
+    OnClick = Button1Click
+  end
+end
+```
+
+&emsp;&emsp;当你在设计 Form 的时候，Delphi 程序本身就在频繁的调用这几个过程。如果不相信，可以在 Form 中选择某些控件，然后 `Ctrl+C` 复制，如果你在 Form 中 `Ctrl+V` 粘贴可以得到一份复制的，如果在文本界面中粘贴的话，Delphi 就会调用 `ObjectBinaryToText()`，粘贴的效果就是控件的文本表现方式。
+
+&emsp;&emsp;接下来举一个小例子：我编译了一个简单的小程序，有 2 个 Forms，`Form1` 有 2 个按钮，按钮 1 会显示 `Form2`，按钮 2 出现一个提示框；`Form2` 只有一个按钮，也是出现一个提示框。下面通过改变 DFM 资源来修改 `Form1` 的 2 个按钮的事件处理程序。把例子程序用 HEX 编辑器打开，然后找到下面：
+
+```
+0004A4E0  020D 0007 5442 7574 746F 6E07 4275 7474  ....TButton.Butt
+0004A4F0  6F6E 3104 4C65 6674 0208 0354 6F70 0210  on1.Left...Top..
+0004A500  0557 6964 7468 024B 0648 6569 6768 7402  .Width.K.Height.
+0004A510  1907 4361 7074 696F 6E06 0A53 686F 7720  ..Caption..Show
+0004A520  466F 726D 3208 5461 624F 7264 6572 0200  Form2.TabOrder..
+0004A530  074F 6E43 6C69 636B 070C 4275 7474 6F6E  .OnClick..Button    <---这里有按钮 1 的响应事件名称
+0004A540  3143 6C69 636B 0000 0754 4275 7474 6F6E  1Click...TButton
+0004A550  0742 7574 746F 6E32 044C 6566 7402 0803  .Button2.Left...
+0004A560  546F 7002 3005 5769 6474 6802 4B06 4865  Top.0.Width.K.He
+0004A570  6967 6874 0219 0743 6170 7469 6F6E 0604  ight...Caption..
+0004A580  496E 666F 0854 6162 4F72 6465 7202 0107  Info.TabOrder...
+0004A590  4F6E 436C 6963 6B07 0C42 7574 746F 6E32  OnClick..Button2    <---这里有按钮 2 的响应事件名称
+0004A5A0  436C 6963 6B00 0000 5450 4630 0654 466F  Click...TPF0.TFo
+```
+
+&emsp;&emsp;我们把按钮 1 和按钮 2 的事件处理位置对换：
+
+```
+0004A4E0  020D 0007 5442 7574 746F 6E07 4275 7474  ....TButton.Butt
+0004A4F0  6F6E 3104 4C65 6674 0208 0354 6F70 0210  on1.Left...Top..
+0004A500  0557 6964 7468 024B 0648 6569 6768 7402  .Width.K.Height.
+0004A510  1907 4361 7074 696F 6E06 0A53 686F 7720  ..Caption..Show
+0004A520  466F 726D 3208 5461 624F 7264 6572 0200  Form2.TabOrder..
+0004A530  074F 6E43 6C69 636B 070C 4275 7474 6F6E  .OnClick..Button    <---按钮 1 的响应事件名称改成按钮 2 的
+0004A540  3243 6C69 636B 0000 0754 4275 7474 6F6E  2Click...TButton
+0004A550  0742 7574 746F 6E32 044C 6566 7402 0803  .Button2.Left...
+0004A560  546F 7002 3005 5769 6474 6802 4B06 4865  Top.0.Width.K.He
+0004A570  6967 6874 0219 0743 6170 7469 6F6E 0604  ight...Caption..
+0004A580  496E 666F 0854 6162 4F72 6465 7202 0107  Info.TabOrder...
+0004A590  4F6E 436C 6963 6B07 0C42 7574 746F 6E31  OnClick..Button1    <---按钮 2 的响应事件名称改成按钮 1 的
+0004A5A0  436C 6963 6B00 0000 5450 4630 0654 466F  Click...TPF0.TFo
+```
+
+&emsp;&emsp;这样就可以了！把它另存为一个新的可执行，然后运行，你会发现按钮 1 和按钮 2 的效果已经交换了。
+
+&emsp;&emsp;用这种方法可以重新定位同一个 Form 中的控件的事件处理程序，但是也要注意重定位的事件是否匹配，例如把 `TButton1.OnClick` 定位到 `TForm.OnKeyDown` 就不行！也不能把 `Form1.Button1.OnClick` 定位到 `Form2.Button1Click` 事件上，但是我们却可以用另外的方法办到，往下看。
+
+#### CODE 节：
+
+-------
+
+&emsp;&emsp;这里存放着所有的类信息和汇编代码。`CODE` 节的最后就是 `dpr` 的代码。
+
+&emsp;&emsp;我不会解释类信息中的所有数据的含义，主要要介绍如何找一个事件处理程序的 RVA 地址。还是用 HEX 编辑器打开那个程序，我们知道有 `Form1` 和 `Form2`，在 `CODE` 节中查找字符串 `'TForm2'`，可以找到 2 项：
+
+```
+0003F870  746F 6E31 0100 1300 B804 4400 0C42 7574  ton1......D..But
+0003F880  746F 6E31 436C 6963 6B06 5446 6F72 6D32  ton1Click.TForm2
+0003F890  0100 58C3 4100 8BC0 9C04 4400 0706 5446  ..X.A.....D...TF
+0003F8A0  6F72 6D32 8C03 4400 4440 4300 5500 0555  orm2..D.D@C.U..U
+0003F8B0  6E69 7432 0000 8BC0 B8CC 0444 00E8 8EFC  nit2.......D....
+```
+
+&emsp;&emsp;首先注意到所有的字符串是以 `pascal` 的格式存放的。
+
+&emsp;&emsp;就在 `'Button1Click'` 前面有一个 `'B8044400'`，用猜的就知道这个就是 `Form2.Button1Click` 的 RVA 地址。如果我们反编译一下，然后跳到 `'004404B8'`，就会看到下面的代码：
+
+```
+* Possible String Reference to: "Hello from Form2"
+
+004404B8  B8CC044400             mov     eax, $004404CC
+
+* Reference to: Dialogs.ShowMessage(System.AnsiString)
+
+004404BD  E88EFCFFFF            call    00440150
+004404C2  C3                    ret
+```
+
+&emsp;&emsp;这里就是处理 `TForm2.Button1.OnClick` 事件的程序了。很自然的想到改变这个 RVA 地址，就可以让它的响应程序变到别的 Form 中了，那么我们要知道的 RV A 地址了。要注意的是我们不是简单的把事件处理指到任何程序段就可以了，因为不同的处理程序要求不同的参数传递。
+
+&emsp;&emsp;所以在我们的例子中是把 `Form1.Button1.OnClick` 指到 `Form2.Button1OnClick`，把 `Form2.Button1.OnClick` 指到 `Form1.Button1OnClick`，它们都是 `TNotifyEvent` 类型的处理程序，有如下的定义：
+
+```
+Type TNotifyEvent = procedure (Sender : TObject) of object;
+```
+
+&emsp;&emsp;所以我们可以把 `TNotifyEvent` 类型的任何过程赋给 `TButton.OnClick`。好！动手干吧。在改变之前我们先找到 2 个按钮各自的处理程序的 RVA。我们可以在 `CODE` 节中找到 `'TForm1'` 字符串，然后可以看到下面：
+
+```
+0003FA50  0000 0742 7574 746F 6E32 0200 1300 B006  ...Button2......
+0003FA60  4400 0C42 7574 746F 6E32 436C 6963 6B13  D..Button2Click.
+0003FA70  00D8 0644 000C 4275 7474 6F6E 3143 6C69  ...D..Button1Cli
+0003FA80  636B 0654 466F 726D 3101 0058 C341 0090  ck.TForm1..X.A..
+0003FA90  9406 4400 0706 5446 6F72 6D31 6405 4400  ..D...TForm1d.D.
+0003FAA0  4440 4300 5500 0555 6E69 7431 0000 8BC0  D@C.U..Unit1....
+```
+
+&emsp;&emsp;与是我们知道 `TForm1.Button1Click` 的 RVA 是 - `004406D8`，`TForm1.Button2Click` 的 RVA 是 - `004406B0`。下面就可以把 `TForm1.Button1.OnClick` 的 RVA 改成 - `004404B8`:
+
+```
+0003FA50  0000 0742 7574 746F 6E32 0200 1300 B804  ...Button2......
+0003FA60  4400 0C42 7574 746F 6E32 436C 6963 6B13  D..Button2Click.
+0003FA70  00D8 0644 000C 4275 7474 6F6E 3143 6C69  ...D..Button1Cli
+0003FA80  636B 0654 466F 726D 3101 0058 C341 0090  ck.TForm1..X.A..
+0003FA90  9406 4400 0706 5446 6F72 6D31 6405 4400  ..D...TForm1d.D.
+0003FAA0  4440 4300 5500 0555 6E69 7431 0000 8BC0  D@C.U..Unit1....
+```
+
+&emsp;&emsp;然后把 `TForm2.Button1.OnClick` 的 RVA 改成 - `004406D8`:
+
+```
+0003F870  746F 6E31 0100 1300 D806 4400 0C42 7574  ton1......D..But
+0003F880  746F 6E31 436C 6963 6B06 5446 6F72 6D32  ton1Click.TForm2
+0003F890  0100 58C3 4100 8BC0 9C04 4400 0706 5446  ..X.A.....D...TF
+```
+
+
+
+### 0003F8A0 6F72 6M32 8C03 4400 4440 4300 5500 0555 orm2..D.D@C.U..U
+
+### 0003F8B0 6E69 7432 0000 8BC0 B8CC 0444 00E8 8EFC nit2.......D....
+
+做完了就另存为一个可执行文件然后运行它，是不是可以了？
+
+虽然我是个门外汉，我也要学一学 pe diy 。
+
+我用 DaFixer 的文章中谈到的同一窗体中的不同按钮的功能互换的方法尝试了一个 DELPHI 软件，真的很棒！另外，我又试了菜单的不同项目的功能互换，也成功了。
+
+下面是一个改动播放 MP3 的小程序的过程：
+
+#### 1、主菜单：文件
+
+菜单项目：打开、播放、重播、暂停、退出
+
+#### 2、Delphi 源代码(摘自《时尚编程百例会》
+
+```
+unit Unit1;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  ExtCtrls, StdCtrls, MPlayer, jpeg, Menus;
+
+type
+  TForm1 = class(TForm)
+    MediaPlayer1: TMediaPlayer;
+    OpenDialog1: TOpenDialog;
+    Timer1: TTimer;
+    Label1: TLabel;
+    MainMenu1: TMainMenu;{主菜单，下面是各个项目}
+    N1: TMenuItem;{文件}
+    N2: TMenuItem;{打开}
+    N3: TMenuItem;{播放}
+    N4: TMenuItem;{重播}
+    N5: TMenuItem;{暂停}
+    N6: TMenuItem;{退出}
+    procedure Timer1Timer(Sender: TObject);
+    procedure N2Click(Sender: TObject);{打开}
+    procedure N3Click(Sender: TObject);{播放}
+    procedure N4Click(Sender: TObject);{重播}
+    procedure N5Click(Sender: TObject);{暂停}
+    procedure N6Click(Sender: TObject);{退出}
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  Form1: TForm1;
+  endposition:integer;
+
+implementation
+
+{$R \*.DFM}
+
+procedure TForm1.Timer1Timer(Sender: TObject);
+begin
+  if mediaplayer1.position=endposition then
+  begin
+    mediaplayer1.rewind;
+    mediaplayer1.play;
+  end;
+end;
+
+procedure TForm1.N2Click(Sender: TObject);
+begin
+  opendialog1.FileName:='\*.mp3';
+  if opendialog1.Execute then
+    begin
+      mediaplayer1.Close;
+      mediaplayer1.filename:=opendialog1.filename;
+      label1.caption:='当前播放文件:'+Extractfilename(opendialog1.filename);
+      mediaplayer1.open;
+      mediaplayer1.next;
+      endposition:=mediaplayer1.position;
+      mediaplayer1.rewind;
+      N3.enabled:=true;
+      N4.enabled:=false;
+      N6.enabled:=false;
+    end;
+end;
+
+procedure TForm1.N3Click(Sender: TObject);
+begin
+  if mediaplayer1.mode=mppaused then
+  begin
+    mediaplayer1.Resume;
+  end
+  else
+  begin
+    mediaplayer1.play;
+  end;
+  N6.Enabled:=true;
+  N4.enabled:=true;
+  timer1.Enabled:=true;
+end;
+
+procedure TForm1.N4Click(Sender: TObject);
+begin
+  mediaplayer1.Rewind;
+  mediaplayer1.Play;
+end;
+
+procedure TForm1.N5Click(Sender: TObject);
+begin
+  mediaplayer1.Pause;
+  N4.Enabled:=false;
+  N6.enabled:=false;
+end;
+
+procedure TForm1.N6Click(Sender: TObject);
+begin
+  mediaplayer1.close;
+  close;
+end;
+```
+
+#### 3、下面是在 WinHex9.92 中复制下来的相关信息：
+
+(复制的方法是选中区域后，点 EDIT--COPY BLOCK--EDITOR DISPLAY ,再粘贴到所需处.)
+
+```
+Offset      0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
+00418672      54 46 6F 72 6D 31 05  46 6F 72 6D 31 04 4C 65    TForm1.Form1.Le
+00418688  66 74 03 0E 01 03 54 6F  70 03 31 01 05 57 69 64  ft....Top.1..Wid
+00418704  74 68 03 61 01 06 48 65  69 67 68 74 03 99 00 07  th.a..Height.?.
+00418720  43 61 70 74 69 6F 6E 06  09 4D 50 33 B2 A5 B7 A2  Caption..MP3 播放
+00418736  C6 F7 05 43 6F 6C 6F 72  07 09 63 6C 42 74 6E 46  器.Color..clBtnF
+00418752  61 63 65 0C 46 6F 6E 74  2E 43 68 61 72 73 65 74  ace.Font.Charset
+00418768  07 0F 44 45 46 41 55 4C  54 5F 43 48 41 52 53 45  ..DEFAULT\_CHARSE
+00418784  54 0A 46 6F 6E 74 2E 43  6F 6C 6F 72 07 0C 63 6C  T.Font.Color..cl
+00418800  57 69 6E 64 6F 77 54 65  78 74 0B 46 6F 6E 74 2E  WindowText.Font.
+00418816  48 65 69 67 68 74 02 F5  09 46 6F 6E 74 2E 4E 61  Height.?Font.Na
+00418832  6D 65 06 0D 4D 53 20 53  61 6E 73 20 53 65 72 69  me..MS Sans Seri
+00418848  66 0A 46 6F 6E 74 2E 53  74 79 6C 65 0B 00 04 4D  f.Font.Style...M
+00418864  65 6E 75 07 09 4D 61 69  6E 4D 65 6E 75 31 0E 4F  enu..MainMenu1.O
+00418880  6C 64 43 72 65 61 74 65  4F 72 64 65 72 08 0D 50  ldCreateOrder..P
+00418896  69 78 65 6C 73 50 65 72  49 6E 63 68 02 60 0A 54  ixelsPerInch.`.T
+00419008  20 05 57 69 64 74 68 03  FD 00 06 48 65 69 67 68     .Width.?.Heigh
+00419024  74 02 1E 08 54 61 62 4F  72 64 65 72 02 00 00 00  t...TabOrder....
+00419040  0B 54 4F 70 65 6E 44 69  61 6C 6F 67 0B 4F 70 65  .TOpenDialog.Ope
+00419056  6E 44 69 61 6C 6F 67 31  04 4C 65 66 74 03 98 00  nDialog1.Left.?
+00419072  03 54 6F 70 02 38 00 00  06 54 54 69 6D 65 72 06  .Top.8...TTimer.
+00419088  54 69 6D 65 72 31 07 4F  6E 54 69 6D 65 72 07 0B  Timer1.OnTimer..
+00419104  54 69 6D 65 72 31 54 69  6D 65 72 04 4C 65 66 74  Timer1Timer.Left
+00419120  03 B8 00 03 54 6F 70 02  38 00 00 09 54 4D 61 69  .?.Top.8...TMai
+00419136  6E 4D 65 6E 75 09 4D 61  69 6E 4D 65 6E 75 31 04  nMenu.MainMenu1.
+00419152  4C 65 66 74 02 78 03 54  6F 70 02 38 00 09 54 4D  Left.x.Top.8..TM
+00419168  65 6E 75 49 74 65 6D 02  4E 31 07 43 61 70 74 69  enuItem.N1.Capti
+00419184  6F 6E 06 04 CE C4 BC FE  08 53 68 6F 72 74 43 75  on..文件.ShortCu
+00419200  74 03 46 40 00 09 54 4D  65 6E 75 49 74 65 6D 02  t.F@..TMenuItem.
+00419216  4E 32 07 43 61 70 74 69  6F 6E 06 04 B4 F2 BF AA  N2.Caption..打开
+00419232  08 53 68 6F 72 74 43 75  74 03 4F 40 07 4F 6E 43  .ShortCut.O@.OnC
+00419248  6C 69 63 6B 07 07 4E 32  43 6C 69 63 6B 00 00 09  lick..N2Click...---A
+00419264  54 4D 65 6E 75 49 74 65  6D 02 4E 33 07 43 61 70  TMenuItem.N3.Cap
+00419280  74 69 6F 6E 06 04 B2 A5  B7 C5 08 53 68 6F 72 74  tion..播放.Short
+00419296  43 75 74 03 50 40 07 4F  6E 43 6C 69 63 6B 07 07  Cut.P@.OnClick..
+00419312  4E 33 43 6C 69 63 6B 00  00 00 09 54 4D 65 6E 75  49  N3Click...TMenuI--B
+00419328  74 65 6D 02 4E 34 07 43  61 70 74 69 6F 6E 06 04  tem.N4.Caption..
+00419344  D6 D8 B2 A5 08 53 68 6F  72 74 43 75 74 03 52 40  重播.ShortCut.R@
+00419360  07 4F 6E 43 6C 69 63 6B  07 07 4E 34 43 6C 69 63  .OnClick..N4Clic-C
+00419376  6B 00 00 09 54 4D 65 6E  75 49 74 65 6D 02 4E 35  k...TMenuItem.N5
+00419392  07 43 61 70 74 69 6F 6E  06 04 D4 DD CD A3 08 53  .Caption..暂停.S
+00419408  68 6F 72 74 43 75 74 03  50 40 07 4F 6E 43 6C 69  hortCut.P@.OnCli
+00419424  63 6B 07 07 4E 35 43 6C  69 63 6B 00 00 09 54 4D  ck..N5Click...TM--D
+00419440  65 6E 75 49 74 65 6D 02  4E 36 07 43 61 70 74 69  enuItem.N6.Capti
+00419456  6F 6E 06 04 CD CB B3 F6  08 53 68 6F 72 74 43 75  on..退出.ShortCu
+00419472  74 03 45 40 07 4F 6E 43  6C 69 63 6B 07 07 4E 36  t.E@.OnClick..N6--E
+00419488  43 6C 69 63 6B 00 00 00  00 00 00 00 00 00 02 00  Click...........
+```
+
+#### 4、
+
+只要在上面 A、B、C、D、E 五处分别把 `N2Click`、`N3Click`、`N4Click`、`N5Click`、`N6Click` 中的 2、3、4、5、6 几个数字交叉改动一下，就实现了菜单的不同项目的功能互换。
+
+但是如何加上原软件中没有的功能(如:把“关于”菜单的功能改为播放一首 MP3）该怎么办，请大家告诉我。
+
+感谢 `upfeed1` 和 `DaFixer` 的文章，同时向 `pll261` 致敬。 `4dd466d0e1e0cc123afbe504da2462ca`
