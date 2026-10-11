@@ -1,0 +1,158 @@
+
+### 1. 程序代码说明
+
+改编自 Kris Kaspersky《Shellcoder 编程揭秘》一书中例子程序的 `ISAOEM.ASM`。
+
+用 `NASM` 编译。
+
+```
+nasm o isaoem.bin isaoem_nasm.asm
+```
+
+```asm
+;------------------------------------------------------------------------
+
+org  0h        ; 运行于 BIOS 中
+
+db  55h,0AAh   ; ISA 模块头
+
+db  01h        ; 大小为 1*512 字节
+
+jmp  x_code    ; 跳转到程序进入点
+
+;------------------------------------------------------------------------
+
+text  db  'Matrix has you!',0  ; 定义提示字符串
+
+;------------------------------------------------------------------------
+
+x_code:
+
+    ; Preparing the registers
+    ; ----------------------------------------
+    mov  dx,101dh  ; Where to ouput (DH  Y, DL  X)
+    mov  si,text   ; What to output
+    xor    bx,bx   ; Initial color of characters -1
+    mov  cx,1      ; Output one character at a time.
+    ; Display color string.
+    ; ----------------------------------------
+  print_string:
+    mov  ah,02h    ; Function for controlling the cursor
+    int    10h     ; Position the cursor.
+    inc    dl      ; Move to the next position.
+    lodsb         ; Load the next character.
+    test    al,al    ; Is this the end of the line?
+    jz    input    ; Exit if yes.
+    mov  ah,09h    ; Function for Printing a character
+    inc    bl      ; Use all colors, one by one.
+    int    10h     ; Print a character.
+    jmp    print_string  ; Loop
+  input:  ; Wait for the password.
+      ; ----------------------------
+    xor    dx,dx    ; Checksum
+  enters:
+    xor    ax,ax    ; Function for reading a character from the keyboard
+    int    16h      ; Read the character.
+    cmp    al,0dh    ; Is this ENTER?
+    jz    input    ; If yes, start the input again.
+    xor    ah,ah    ; Clear the scan code.
+    add    dx,ax    ; Compute the CRC.
+    cmp    dx,'m'+'s'+'o'+']'+'\'
+    jnz    enters    ; If  the password is incorrect, continue.
+    retf
+
+times  512-($-$$)  db  0  ; 添加文件至 512 字节大小
+
+;------------------------------------------------------------------------
+```
+
+程序编译后，用校验工具求和写入，然后用 `AwardBIOS Flash Utility` 刷写进 `BIOS` 中。重启计算机后，运行效果如图：
+
+![图片不是源程序中出现的字符，提示字符换作“Hello XPM！”。“XPM”是是女朋友的称呼，密码当然设为他的生日，其他没变（照片是用手机抓拍的，手机质量差，图像照下来不太好看 :P）。由于这个密码登录框程序位于 BIOS 中，所以通过给 CMOS 放电的方法是破解不了的。诚如 Kris Kaspersky 所说，只有对 BIOS 进行刷写操作，否则无法破解（当然换一个相同的 BIOS 芯片也行 ^\_^）。](img/c72cb8eba397ac67dda6e1ac58a9b627.jpg "微笑")
+
+### 2. BIOS 的动态分析
+
+这个部分的内容主要参考陈文钦编著的《BIOS 研发技术剖析》，目的是让大家对 `BIOS` 运行后的一些具体操作有个感性的认识。
+
+#### 1）. `BIOS` 一般运行流程分析
+
+当计算机从开机的一瞬间开始，硬件特性就由 `CPU` 从主板的 `BIOS` 芯片内取得程序代码，用 `BIOS` 内部的程序代码获得控制权并且发挥作用。从 `CPU` 内外部的检测设置、激活 `DRAM` 以及针对芯片组与各种外围设备做初始化设置之后，最后驱动软盘或硬盘，直到把操作系统（如 `DOS`, `Win98/NT/2000/XP`, `Linux`）加载成功，`BIOS` 的开机引导工作就此告一段落，转向从事幕后的支持、协调工作，并帮助操作系统或应用程序，来处理外围设备沟通的细部操作。
+
+#### 2）. `Award BIOS` 运行流程分析
+
+`Intel 8086/8088` 处理器在 `CPU` 加电是所做的第一个动作就是设置：
+
+```
+CS=DS=ES=SS=0FFFFh  IP=0000h
+```
+
+即是将指令寄存器指向 `FFFF:0000h`，转换成物理地址也就是 `000FFFF0h`，随即开始获取指令码执行。`BIOS` 加载进内存后分布图参见上面。
+
+从分布图中我们可以看出：`BOOTBLOCK` 位于 `000FE000h`～`000FFFFFh` 这个区段，而 `BIOS` 的入口点却在 `000FFFF0h`。确切的说，在 `000FFFF0h`～`000FFFFF` 这 16 个字节中存放着一个跳转指令，用于调转到 `BIOS` 的执行入口。这句跳转指令可以在 `BIOS` 文件的最尾部的 16 个字节看到）。
+
+就主板 `BIOS` 而言，其最重要的工作集中在以下几个方面：
+
+a. `POST`（`Power On Self Test` 开机自检测）。  
+开机系统将控制权交给 `BIOS` 时，它会针对 `CPU` 各项寄存器，先检查其是否运行正常，接下来会检查 `8254 timer`（可编程外围计时芯片）、`9259A`（可编程中断器）、`8237 DMA Controller`（`DMA` 控制器）的状态。
+
+b. `Initial`。  
+`BIOS` 会针对动态内存（`DRAM`）、主板芯片组、显卡以及相关外围的寄存器（`register`）做初始化（`initialize`）设置，并检测是否能够正常工作。
+
+c. 记录系统的设置值。  
+`BIOS` 会记录系统的设置值，并且会存贮在非挥发性内存（`Non-Volatile RAM`），如 `CMOS` 或 `Flash Memory`（`ESCD` 区域）等。
+
+d. 初始化常驻程序库。  
+`BIOS` 会将常驻程序库（`Runtime Program`）常驻于某一段内存中。并将其提供给操作系统或应用程序进行调用，如 `int 10h`、`int 13h`、`int 16h` 等中断调用函数。
+
+这些工作完成以后，`BIOS` 会检查是否存在 `ISA/PCI` 附加模块，如果有则加载运行（如以 `ISA/PCI` 模块形式存在的 `BIOS Rootkit`）。完成模块加载并成功运行后，`BIOS` 将调用 `int 19h` 中断，把磁盘第 0 柱头 0 磁道 1 扇区的系统启动数据，即 `MBR`（`Master Boot Record`）提取到内存 `0000:7c00` 处运行，从此完成 `BIOS` 向操作系统的 `CPU` 控制权移交工作。
+
+### 小结
+
+在这个小节里，我们讨论了 `BIOS` 文件结构特性，以及对作为主要 `BIOS Rootkit` 存在方式的 `ISA` 模块，进行了详细描述。这为进一步深入探讨 `BIOS Rootkit` 的实现，先做一个热身，积累些感性的认识。
+
+### 附录
+
+#### 附录：我的实验平台
+
+======================================================
+```
+OS          Microsoft Windows XP (Service Pack 2)
+CPU         Intel Celeron Northwood Processor (0.13um) 2.02GH2
+BIOS        Phoenix Technologies Co.Ltd 6.00 PG 12/17/2003 512KB
+主板编号  I845PE-W83627-9A69VPABC-00
+主板芯片组  Intel 82845G/GL/GE Brookdale Host-Hub Interface Bridge
+                          (B1-step) Epox Computer Co.Ltd
+Bochs         V 2.3.7
+NASM        V 2.03.01
+IDA Pro       V 4.7
+Cbrom        V 2.20
+Award BIOS Editor  V 1.0
+AwardBIOS Flash Utility   V 8.80
+WinFlash            V 1.8
+======================================================
+```
+
+#### 1. 硬件环境
+
+*   `CPU`：`Intel Celeron Northwood Processor (0.13um) 2.02GH2`
+*   内存：`DDR2 512M`
+
+#### 2. 软件环境
+
+*   操作系统：`Windows XP Professional SP2`；
+*   开发平台：`NASM`
+*   编程语言：`NASM`
+
+======================================================
+
+### 相关附件
+
+附件中提供了文中实验用的 `awdbios.bin` 这个 `BIOS` 文件、`cbrom` 程序和 `ISAOEM_NASM.asm` 文件。供大家做实验用。
+
+[附件.rar](附件.rar)
+
+文中的程序在写入 `BIOS` 时存在一定风险，请谨慎使用！
+
+待续...
+
+![微笑](img/c72cb8eba397ac67dda6e1ac58a9b627.jpg "微笑")
