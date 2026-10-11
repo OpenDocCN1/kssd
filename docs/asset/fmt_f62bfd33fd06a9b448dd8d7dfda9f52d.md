@@ -1,0 +1,148 @@
+
+```
+.text:00401F06                 lea     ecx, [ebp-2Ch]
+
+.text:00401F09                 call    ds:__vbaFreeStr
+
+.text:00401F0F                 lea     ecx, [ebp-30h]
+
+.text:00401F12                 call    ds:__vbaFreeObj
+
+.text:00401F18                 lea     ecx, [ebp-40h]
+
+.text:00401F1B                 call    ds:__vbaFreeVar
+
+.text:00401F21                 retn
+
+.text:00401F22
+
+.text:00401F22 loc_401F22:
+
+.text:00401F22                 lea     ecx, [ebp-24h]
+
+.text:00401F25                 call    ds:__vbaFreeVar     //释放临时变量
+
+.text:00401F2B                 retn
+
+.text:00401F2C
+
+.text:00401F2C loc_401F2C:
+
+.text:00401F2C                 mov     eax, [ebp+8]
+
+.text:00401F2F                 push    eax
+
+.text:00401F30                 mov     ecx, [eax]
+
+.text:00401F32                 call    dword ptr [ecx+8]  //EVENT_SINK_Release
+
+.text:00401F35                 mov     eax, [ebp-4]
+
+.text:00401F38                 mov     ecx, [ebp-14h]
+
+.text:00401F3B                 pop     edi
+
+.text:00401F3C                 pop     esi
+
+.text:00401F3D                 mov     large fs:0, ecx
+
+.text:00401F44                 pop     ebx
+
+.text:00401F45                 mov     esp, ebp
+
+.text:00401F47                 pop     ebp
+
+.text:00401F48                 retn    4
+```
+
+看完这一段后您脑子里大概充满了问号。那些注释是怎么回事？接着往下看。
+
+------------------------VB 内部控件浅探---------------------------------
+
+如果您安装了`vb6`，在安装目录下您能找到一个`vb6.olb`的文件。没错，这个文件里有内部控件的接口信息。不过这个文件只保存了内部控件的接口信息。我们知道，接口只是一种定义，实现这个接口的代码是另一回事，`VB`中实现这个接口的代码在`msvbvm60.dll`里。在`msvbvm60.dll`里使用了一些类来实现`vb`的内部控件。幸运的是，实现`vb`的内部控件的属性的函数全部是虚函数，这就是说只要找到它的虚函数表就可以了。
+
+我反汇编了`msvbvm60.dll`，并且找到了大部分的实现内部控件的属性的函数，这些函数您可以在附件中找到。
+
+好像说的有些远了。先回头看看上面的代码：
+
+```
+.text:00401DF0                 mov     edx, [esi]
+
+.text:00401DF2                 xor     eax, eax
+
+.text:00401DF4                 push    esi
+
+.text:00401DF5                 mov     [ebp-24h], eax
+
+.text:00401DF8                 mov     [ebp-2Ch], eax
+
+.text:00401DFB                 mov     [ebp-30h], eax
+
+.text:00401DFE                 mov     [ebp-40h], eax
+
+.text:00401E01                 mov     [ebp-50h], eax
+
+.text:00401E04                 call    dword ptr [edx+2FCh] //获得 TEXT1 对象
+
+.text:00401E0A                 mov     ebx, ds:__vbaObjSet
+
+.text:00401E10                 push    eax
+
+.text:00401E11                 lea     eax, [ebp-30h]
+
+.text:00401E14                 push    eax
+
+.text:00401E15                 call    ebx ; __vbaObjSet    //[ebp-30h]是临时的对象变量，保存获得的 TEXT 对象
+
+.text:00401E17                 mov     edi, eax
+
+.text:00401E19                 lea     edx, [ebp-2Ch]       //缓冲区
+
+.text:00401E1C                 push    edx
+
+.text:00401E1D                 push    edi
+
+.text:00401E1E                 mov     ecx, [edi]
+
+.text:00401E20                 call    dword ptr [ecx+0A0h] //get_ipropTEXTEDIT(void *) 接收 TEXT 控件的 text 属性
+
+.text:00401E26                 test    eax, eax
+
+.text:00401E28                 fnclex
+
+.text:00401E2A                 jge     short loc_401E3E
+
+.text:00401E2C                 push    0A0h
+
+.text:00401E31                 push    offset dword_40181C
+
+.text:00401E36                 push    edi
+
+.text:00401E37                 push    eax
+
+.text:00401E38                 call    ds:__vbaHresultCheckObj
+```
+
+`get_ipropTEXTEDIT(void *)`这个函数就是上面所提到的虚函数表里的函数了。
+
+那么我是怎么知道这是一个`TEXT`控件而不是其他的呢？`__vbaHresultCheckObj`上面有个地址`offset dword_40181C`，
+
+在`ida`里查看一下，前 4 个`dword`是`33AD4EE1h`、`11CF6699h`、`0AA000CB7h`、`93D36000h`，如果您有查看过`vb6.olb`，您就知道
+
+这是`_TextBox`接口的`uuid`：`33AD4EE1-6699-11CF-B70C-00AA0060D393`。当您知道这是一个`TEXT`对象时，就可以很容易的
+
+查到`call dword ptr [ecx+0A0h]`就是`get_ipropTEXTEDIT(void *)`函数了。
+
+尽管在`vb6.olb`中给出的控件属性的接口不能为我们查看反汇编代码里的控件属性操作提供准确的信息，但那里给出的控件事件的接口却是准确的（至少到现在为止我遇到的是这样）。如果查找程序实现的内部控件的事件的代码位置，我在附件中有一篇文章讲的很详细。在这里我就不画蛇添足了。
+
+在附件中我给出了我所能给的所有资料，关于`VB6`的逆向的资料好像不多，我能找到的目前就有这些了。我可能没有机会更深入的摸索下去，我只能提供我尽可能提供的资料。
+
+--------------------------------一切都结束了吗-------------------------------------------
+
+我不知道该说什么。学习逆向的过程中我学到了太多的东西。仍然象开始说的那样，命运是个很奇怪的东西...
+
+                      [全文完]
+
+由于附件太多，2 兆多。放在了`abcdefgh.ys168.com`。
+
+`4dd466d0e1e0cc123afbe504da2462ca`
