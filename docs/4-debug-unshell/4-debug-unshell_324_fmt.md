@@ -1,0 +1,301 @@
+
+# ASProtect v0.94b 保护
+
+> 原文：[`www.pediy.com/kssd/tutorial/chap8-5-5-2.htm`](https://www.pediy.com/kssd/tutorial/chap8-5-5-2.htm)
+
+**ASProtect v0.94b 保护**
+
+英文原作：r!sc 《Almost Manual Unpacking (using Softice and Icedump)》
+
+原作日期：6th febuary 2000
+
+教程翻译: 看雪
+
+翻译日期：2000 年 5 月 26 日
+
+声 明: 本文以 r!sc 的教程为基础，以自己的观点补充调整。
+
+目标程序：`aspack.exe` . 231,424 . v 2.001
+
+程序下载：AsPack
+
+使用工具：Softice 4.05; ProcDump 1.6.2 Final; FrogsICE v0.43；Icedump 6.016
+
+part1 . 理论知识
+
+part2 . 分析原文件的 PE 头
+
+part3 . 抓取 import table
+
+part4 . Dump 整个程序并修正文件头
+
+\=part1===part1===part1===part1===part1===part1===part1===part1===part1===part1=
+
+## 理论知识
+
+这种被压缩或加密的 PE 文件，执行时，在内存中将会完全解压。其中 import 表在装载中也会被完全解压或解密（—攻击点）。其中抓取 import 表就很关键了，其具体位置，可用 `Procdump` 分析文件头得到。然后，要跟踪程序完全解压后的跳到程序处的入口点，然后在内存里 dump 取程序的整个部分。将刚 dump 取的正确 import 表用十六进制工具粘贴到完全 dump 的程序，再 修正文件头，这样程序就可正常运行。
+
+\=part2===part2===part2===part2===part2===part2===part2===part2===part2===part2=
+
+## 分析原文件的 PE 头
+
+运行 `Procdump`，点击 `pe-editor` 按钮，选中 `ASPack.exe` 文件，我们想要得到程序解压后的尺寸，import 表的地址和大小...幸运的是这个文件的每个块（section ）都存在。
+
+Size of image : `00079000` ; 这个 PE 文件执行时分配的内存空间。
+
+image Base : `00400000` ; 基址
+
+`.idata` ; `.idata` 包含其他外来 DLL 的函数及数据信息
+
+Virtual Size : `00002000` ; idata 在内存的尺寸
+
+Virtual Offset : `00046000` ; idata 的地址(+imagebase == `00446000`)
+
+`.rdata`
+
+Virtual Size : `00001000`
+
+Virtual Offset : `00049000`
+
+import 表有可能在 idata 块或 rdata 块，到底在哪部分？看看它们的尺寸，我将马压在.idata ...
+
+\=part3===part3===part3===part3===part3===part3===part3===part3===part3===part3=
+
+## 抓取 import table
+
+### 1、先装载 Icedump
+
+在这用 `Icedump` 6.016 版本，其命令操作形式完全和以前的版本不同。先在 `Icedump` 目录里运行相应 `SOFTICE` 版本的 `icedump.exe`（我用的 `SOFTICE` 是 4.05 版，因此在 `win9x/405` 目录下运行 `icedump.exe`），如 `Icedump` 装载成功，`Icedump` 会返回如下信息：
+
+```
+| icedump v6.0.1.6 for winice v4.05 loader
+
+icedump unloaded
+
+icedump loaded ←出现这句话表示 Icedump 装载成功
+
+C：> |
+```
+
+### 2、再装载 FrogsICE
+
+由于 `aspack` 能检测到 `SOFTICE` 的存在，因此装载 `Frogsice` 就可躲过。在我机子里：`FrogsICE` 1.00 Final 和 `Icedump` 不能很好兼容工作，因此我将 `FrogsICE` 换成版本 v0.43，hehe..它们配合的很好。双击 `FPloader.exe` 文件即可装载成功。
+
+OK,到此你的 `SOFTICE` 的功能己大大加强里。
+
+这时试试运行 `aspack`，这时屏幕将蓝屏给你一菜单选项，告知 `aspack` 发现了 `SOFTICE`，是否欺骗它，这时你按 ESC 按钮，程序即可正常运行。
+
+### 3、 记住我们的第一步是抓取 import table，它在内存的 `446000` 到 `449000` 处，因此程序运行时注意这段内存代码的解压情况。
+
+由于 `SOFTICE` 不能 LOAD `aspack.exe`,我们用:`bpx loadlibrarya` 命令来拦断。
+
+`loadlibrarya` 命令解释：如果 import 表没在内存中就使用 `LoadLibraryA` API 调用装入该模块，因此我们可以拦截此函数来观察 import 表。
+
+`:bpx loadlibrarya` 然后运行 `aspack` 将中断如下：
+
+```
+Break due to BPX KERNEL32!LoadLibraryA
+
+:dd 446000 l 40 (下此命令观察内存 446000 到 449000 处的数据）
+```
+
+.
+
+```
+\-------SPACK!.idata--------------------dword----------ROT--?(0)--
+
+0030:00446000 ???????? ???????? ???????? ???????? ................
+
+0030:00446010 ???????? ???????? ???????? ???????? ................
+
+0030:00446020 ???????? ???????? ???????? ???????? ................
+
+0030:00446030 ???????? ???????? ???????? ???????? ................
+```
+
+上图是 `SOFTICE` 的数据窗口，显示 `??...`说明 import 表在内存中没解压。
+
+再按 F5 一下，程序将中断如下：（记着：在这例中只能要按一下 F5，否则将不能抓取正确的 import 表）
+
+```
+0030:00446000 00000000 00000000 00000000 0004669C .............f..
+
+0030:00446010 0004612C 00000000 00000000 00000000 ,a..............
+
+0030:00446020 000468B6 000461AC 00000000 00000000 .h...a..........
+
+0030:00446030 00000000 000468D0 000461B4 00000000 .....h...a......
+```
+
+这时 `446000` 处不是`?? ?? ?? ??`，意味着 import 表己被解压了。
+
+.import 表以一个 `IMAGE_IMPORT_DESCRIPTOR` 数组开始。 `image_import_descriptors` 数据有 5 组 dwords 组成。
+
+`image_import_descriptors` 结构：
+
+①dd offset `original_first_thunk`
+
+②dd `timedatestamp` 时间及日期标志
+
+③dd `forwardchain` 正向链结索引
+
+④dd offset library name 以 NULL 结尾的 ASCII 字符的 RVA 地址，该字符串包含输入的 DLL 名，
+   比如"Kernel32.dll"或"USER32.DLL"。
+
+⑤dd offset `first_thunk` 该字段是在 `image_thunk_data` 联合结构中的 RVA 偏移
+
+其中 `timedatestamp` 和 `forwardchain` 通常设置为 `00000000`, `original first thunk` 选项不是必须的.
+
+`:dd 446000 l 40`
+
+```
+0030:00446000 00000000 00000000 00000000 0004669C .............f..
+
+0030:00446010 0004612C 00000000 00000000 00000000 ,a..............
+```
+
+地址 `4669c` 指向 `LibraryName` (RVA, 你需要加上基址 `imagebase＋400000`)
+
+`:db 44669c l 10`
+
+```
+0030:0044669C 4B 45 52 4E 45 4C 33 32-2E 44 4C 4C 00 00 00 00 KERNEL32.DLL....
+```
+
+地址 `612c` 指向 `first_thunk` 库。
+
+`:dd 44612c l 10`
+
+```
+0030:0044612C 000466AA 000466C2 000466DA 000466F2 .f...f...f...f..
+```
+
+这些是以 NULL 结尾的 ASCII 字符的 RVA 地址， . . `466aa` 是第一个 API 函数的地址，`466c2` 是第二个 API 函数地址...它们以以 NULL 结尾。
+
+`:db 0004466aa l 20`
+
+```
+0030:004466AA 00 00 44 65 6C 65 74 65-43 72 69 74 69 63 61 6C ..DeleteCritical
+
+0030:004466BA 53 65 63 74 69 6F 6E 00-00 00 4C 65 61 76 65 43 Section...LeaveC
+```
+
+通过上面的分析可知,这就是原始的.import 表，快 dump it!!（看看上文的 `image_import_descriptors` 地址)
+
+`:/dump 446000 2000 c:\aspack.idata.bin`
+
+(如你是用 `Icedump` 6.016 以前版本用此命令：`pagein d 446000 2000 c:\aspack.idata.bin`）
+
+为了方便大家对比，特将 dump 正确的 import 表放在此下载。
+
+\=part4===part4===part4===part4===part4===part4===part4===part4===part4===part4=
+
+## Dump 整个程序并修正文件头
+
+### 1、现在我们要找程序的入口点，下命令:`bpx loadlibrarya` ，然后按 14 下 F5,然后按 F10 一步一步跟踪来到如下代码：
+
+```
+| 0137:00C1150E  8B4508                 MOV      EAX,[EBP+08]
+
+0137:00C11511  8B10                  MOV      EDX,[EAX]  DS:004664FC=00400000
+
+0137:00C11513  8B4508                 MOV      EAX,[EBP+08]
+
+0137:00C11516  035018                 ADD      EDX,[EAX+18]
+
+0137:00C11519  8B4508                 MOV      EAX,[EBP+08]
+
+0137:00C1151C  8B401C                 MOV      EAX,[EAX+1C]
+
+0137:00C1151F  E874F9FFFF             CALL     00C10E98    ←在此按 F8 进入
+
+0137:00C11524  5F                     POP      EDI
+
+0137:00C11525  5E                     POP      ESI
+
+0137:00C11526  5B                     POP      EBX
+
+0137:00C11527  59                     POP      ECX
+
+0137:00C11528  59                     POP      ECX
+
+0137:00C11529  5D                     POP      EBP
+
+0137:00C1152A  C20400                 RET      0004 |
+```
+
+F8 进入后来到如下：
+
+```
+| 0137:00C10E96  8BC0                   MOV      EAX,EAX
+
+0137:00C10E98  89C4                   MOV      ESP,EAX
+
+0137:00C10E9A  89D0                   MOV      EAX,EDX
+
+0137:00C10E9C  8B1D6C66C100            MOV      EBX,[00C1666C]
+
+0137:00C10EA2  89041C                 MOV      [EBX+ESP],EAX
+
+0137:00C10EA5  61                     POPAD
+
+0137:00C10EA6  50                     PUSH     EAX ；push 442b98 即为入口点
+
+0137:00C10EA7  C3                     RET     ；返回到己完全解压的代码处，即入口点处。
+
+0137:00C10EA8  C3                     RET |
+```
+
+来到入口点：
+
+```
+| 0167:00442B98 55 PUSH EBP ←此处为入口点
+
+0167:00442B99 8BEC MOV EBP,ESP
+
+0167:00442B9B 83C4F4 ADD ESP,-0C |
+```
+
+在 `0167:00442B98` 处就可 dump 整个内存数据了，此时程序己完全解压准备运行了。记下程序入口点：`00442B98`
+
+在 dump 前，清除所有的断点：`bc *` .
+
+`./dump 400000 79000 c:\aspack.dumped.exe`
+
+(如你是用 `Icedump` 6.016 以前版本用此命令:`pagein d 400000 79000 c:\aspack.dumped.exe`）
+
+### 2、替换正确的 import 表
+
+用 `Hexworkshop` 打开 `aspack.dumped.exe` 和 `aspack.idata.bin`. Goto 到 exe 文件的 `46000` 偏移处,Select Block 大小为 `2000`. 拷贝 `aspack.idata.bin` 文件的同样大小(2000)的 Block,粘贴到 exe 文件中以替换掉不正确的`.idata` section,然后存盘。（注意：以上所有数据都是十六进制）
+
+### 3、修正 PE 文件头
+
+用 `Procdump` 打开刚建好的 `aspack.dumped.exe` 文件，点击 `pe-editor` 按钮，然后再点击 `SECTIONS` 按钮，在每个 section 点击右键，选中 `Edit section`，把所有的 section 的 `PSize = VSize` offset = `RVA` 。
+
+如：`CODE` 的 `PSize＝0001E000； VSize＝00042000；offset =00000400；RVA＝00001000；`
+
+改成：`PSize = VSize＝ 00042000；offset = RVA ＝00001000；`
+
+在改完所有的 sections 后，按 OK,存盘后，你在资源管理器中刷新一下，就会发现 `aspack.dumped.exe` 的图标回来了，但还不能运行，你还要修正入口点和 import 表。
+
+将入口点（Entry Point）改为：`00042B98`（记着：`00442B98\-imagebase\=42B98`）
+
+再点击 `Directory` 按钮，将 `Import Table` 改为 `RVA` （`46000` ）；而其选项 `Size` 只要比 `0` 大就可；
+
+然后点击 OK,退出 `Procdump`，再运行 `aspack.dumped.exe` ，程序运行的很甜美！
+
+这时你用 `W32DASM` 不能反汇编，你可用 `Procdump` 编辑第一个 section characteristics：
+
+
+
+将其`c0000060 (data, writable)`改为：`60000040 (code, executable)`或`e0000060 (code, data, etc etc)`
+
+注：大家抓取屏幕可在`Icedump 6.016`中，用`:/Screendump`抓取。
+
+不加参数命令`:/Screendump`选取模式，重复执行，会在`0`、`1`、`2`、`3`、`4`五种模式下转换。
+
+模式`1`（默认）是以文本方式存盘，模式`2`是以`HTML`文件存盘。其它的请参考其`readme`。
+
+模式选好后，就可用命令：`/SCREENDUMP \[路径\]文件名`抓取整个`SOFTICE`的屏幕。
+
+`4dd466d0e1e0cc123afbe504da2462ca`
