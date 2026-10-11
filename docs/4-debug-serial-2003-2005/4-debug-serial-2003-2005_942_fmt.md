@@ -1,0 +1,537 @@
+
+# 五子棋 3.2
+
+> 原文：`www.pediy.com/kssd/pediy07/pediy7-148.htm`
+
+简介：一个五子棋注册程序的分析，和另类注册机
+
+`Crack By: linf`
+
+【使用工具】 `w32dasm`，`Ollday`，`Hedit` 等...
+
+【破解平台】 `Win9x/XP`
+
+【软件名称】 五子棋
+
+【软件大小】 `671 K`
+
+【破解原因】 大家共同学习一下。这个程序以前用修改过，使得悔棋的步数可以自由确定。(请参考：`http://bbs.pediy.com/showthread.php?s=&threadid=7784`)那个时候也简单的追过注册码，不过因功力&时间不足，最终放了下来。近来工作轻闲，花了几天时间完成了作品。小生初学难免有错误，还请各位指出，小生有礼了。
+
+## 【破解过程】
+
+首先把原程序复制 `4` 份，分别改名为 `oll.exe`；`w32.exe`；`back.exe`；`tes1.exe`；...；`tesn.exe`。我的习惯是使用 `oll` 动态调试，`trw2000` 和 `softice` 是命令行方式的，有些麻烦，在 `windows xp` 中也不可以用；不到万不得以不使用，`w32das` 用来查看代码的跳转并复制代码更顺手；`back` 用来备份；其他的用来修改测试。:-P 多亏程序小，不然硬盘不够用了。q-:
+
+使用各种工具装载程序。在 `w32dasm` 中查找注册错误的提示，见如下代码：
+
+`**#*#*#*#*#*#*#*#*#**`
+
+注意：本文汇编代码全部摘自 `w32dasm` 中，与 `ollydbg` 中摘出的反汇编会有些不同。
+
+`oll` 中：
+
+```
+00475938  |. 8D4D 9B        LEA ECX，DWORD PTR SS：[EBP-65]
+0047593B  |. 8D9D D1FEFFFF  LEA EBX，DWORD PTR SS：[EBP-12F]
+```
+
+`w32` 中：
+
+```
+：00475938 8D4D9B           lea ecx， dword ptr [ebp-65]
+：0047593B 8D9DD1FEFFFF     lea ebx， dword ptr [ebp+FFFFFED1]
+```
+
+但肯定都是指向了一个地址：`EBP-12F=ebp+FFFFFED1`
+
+`**#*#*#*#*#*#*#*#*#**`
+
+```
+：00475A80 53                      push ebx
+：00475A81 8BD8                    mov ebx， eax
+：00475A83 803D48D3470001          cmp byte ptr [0047D348]， 01  <-- 程序启动关于对话框时，经过这里。相等就表示已经注册了，然后自动隐藏填写注册码的地方。
+：00475A8A 753B                    jne 00475AC7
+：00475A8C 33D2                    xor edx， edx
+：00475A8E 8B83DC020000            mov eax， dword ptr [ebx+000002DC]
+：00475A94 E86F65FBFF              call 0042C008
+：00475A99 B201                    mov dl， 01
+... ...
+* Possible StringData Ref from Code Obj ->"Register"
+|
+：00475B81 BA005C4700              mov edx， 00475C00
+：00475B86 A14CD34700              mov eax， dword ptr [0047D34C]
+：00475B8B 8B18                    mov ebx， dword ptr [eax]
+：00475B8D FF5304                  call [ebx+04]
+：00475B90 E8CBFCFFFF              call 00475860 <-- 关键 call
+：00475B95 803D48D3470000          cmp byte ptr [0047D348]， 00
+：00475B9C 750C                    jne 00475BAA
+* Possible StringData Ref from Code Obj ->“名字和注册号不匹配！请重新输入！”
+|
+：00475B9E B8245C4700              mov eax， 00475C24
+：00475BA3 E828A8FDFF              call 004503D0
+：00475BA8 EB14                    jmp 00475BBE
+* Referenced by a （U）nconditional or （C）onditional Jump at Address：
+|：00475B9C（C）
+* Possible StringData Ref from Code Obj ->"恭喜你已经成功注册！"
+|
+：00475BAA B8505C4700              mov eax， 00475C50
+：00475BAF E81CA8FDFF              call 004503D0
+：00475BB4 A144D34700              mov eax， dword ptr [0047D344]
+```
+
+很明显修改 `00475B9C` 的 `jne` 为 `jmp` 就爆破了。先试验一下，打开程序随便输入。果然注册成功了，真是简单呀!真的是太简单了吧？再试验一下被限制的功能，果然不可以使用，还是让你去注册。看来它还要向硬盘中写点什么东西或是在内存中驻留一个未注册的标志，以便随时检查是否真的已经注册。
+
+于是再用 `oll` 载入，在 `00475B90` 处下断点；运行；没有出现界面就被中断了，看来在启动时就检查是否有正确的注册信息。先不看它，按 `F9` 跳过；输入姓名：`guxinghe`；注册码：`cqmygysds`（床前明月光疑是地上）；点击注册；再次中断。这次进去看看：
+
+```
+* Referenced by a CALL at Addresses：
+|：00475B90  ， ：00475C9E          <--有两处调用!
+|
+：00475860 55                      push ebp
+：00475861 8BEC                    mov ebp， esp
+：00475863 81C4C8FDFFFF            add esp， FFFFFDC8
+：00475869 53                      push ebx
+：0047586A 56                      push esi
+：0047586B 57                      push edi
+：0047586C 33C0                    xor eax， eax
+：0047586E 8985C8FDFFFF            mov dword ptr [ebp+FFFFFDC8]， eax
+：00475874 8985CCFDFFFF            mov dword ptr [ebp+FFFFFDCC]， eax
+：0047587A 33C0                    xor eax， eax
+：0047587C 55                      push ebp
+：0047587D 683D5A4700              push 00475A3D
+：00475882 64FF30                  push dword ptr fs：[eax]
+：00475885 648920                  mov dword ptr fs：[eax]， esp
+：00475888 6A00                    push 00000000
+：0047588A 8D85CCFDFFFF            lea eax， dword ptr [ebp+FFFFFDCC]
+* Referenced by a （U）nconditional or （C）onditional Jump at Address：
+|：00475821（C）
+    <--可能是把注册信息存到文件中。
+：00475890 50                      push eax
+* Possible StringData Ref from Code Obj ->"Name"
+|
+：00475891 B9545A4700              mov ecx， 00475A54
+* Possible StringData Ref from Code Obj ->"register"
+|
+：00475896 BA645A4700              mov edx， 00475A64
+：0047589B A14CD34700              mov eax， dword ptr [0047D34C]
+：004758A0 8B18                    mov ebx， dword ptr [eax]
+：004758A2 FF13                    call dword ptr [ebx]
+：004758A4 8B95CCFDFFFF            mov edx， dword ptr [ebp+FFFFFDCC]
+：004758AA 8D85D0FDFFFF            lea eax， dword ptr [ebp+FFFFFDD0]
+：004758B0 B9FF000000              mov ecx， 000000FF
+：004758B5 E8DEE4F8FF              call 00403D98
+：004758BA 8D95D0FDFFFF            lea edx， dword ptr [ebp+FFFFFDD0]
+：004758C0 8D459B                  lea eax， dword ptr [ebp-65]
+：004758C3 B164                    mov cl， 64
+：004758C5 E842D1F8FF              call 00402A0C
+：004758CA 6A00                    push 00000000
+：004758CC 8D85C8FDFFFF            lea eax， dword ptr [ebp+FFFFFDC8]
+：004758D2 50                      push eax
+* Possible StringData Ref from Code Obj ->"RegNo"
+|
+：004758D3 B9785A4700              mov ecx， 00475A78
+* Possible StringData Ref from Code Obj ->"register"
+|
+：004758D8 BA645A4700              mov edx， 00475A64
+：004758DD A14CD34700              mov eax， dword ptr [0047D34C]
+：004758E2 8B18                    mov ebx， dword ptr [eax]
+：004758E4 FF13                    call dword ptr [ebx]
+：004758E6 8B95C8FDFFFF            mov edx， dword ptr [ebp+FFFFFDC8]     <--假码
+：004758EC 8D85D0FDFFFF            lea eax， dword ptr [ebp+FFFFFDD0]     <--姓名
+：004758F2 B9FF000000              mov ecx， 000000FF
+：004758F7 E89CE4F8FF              call 00403D98
+：004758FC 8D95D0FDFFFF            lea edx， dword ptr [ebp+FFFFFDD0]
+：00475902 8D8536FFFFFF            lea eax， dword ptr [ebp+FFFFFF36]
+：00475908 B164                    mov cl， 64
+：0047590A E8FDD0F8FF              call 00402A0C
+：0047590F 8A459B                  mov al， byte ptr [ebp-65] <-- 姓名的长度
+：00475912 84C0                    test al， al
+：00475914 7409                    je 0047591F   <-- 长度为零就直接错误
+：00475916 80BD36FFFFFF06          cmp byte ptr [ebp+FFFFFF36]， 06 <-- 测试注册码的长度
+：0047591D 740C                    je 0047592B   <-- 不等于 6 位,执行：0047591F 行，跟到这里出错了，再来一次，输入 6 位注册码。第二次这里顺利通过。
+* Referenced by a （U）nconditional or （C）onditional Jump at Address：
+|：00475914（C）
+|
+：0047591F C60548D3470000          mov byte ptr [0047D348]， 00
+  <-- 写入 00，与 00475B95 行相呼应
+：00475926 E9F4000000              jmp 00475A1F
+  <-- 跳过去就完了！
+* Referenced by a （U）nconditional or （C）onditional Jump at Address：
+|：0047591D（C）
+：0047592B 8BF0                    mov esi， eax  <-- 姓名的长度地址到 esi
+：0047592D 81E6FF000000            and esi， 000000FF
+：00475933 85F6                    test esi， esi
+：00475935 7C22                    jl 00475959
+：00475937 46                      inc esi
+：00475938 8D4D9B                  lea ecx， dword ptr [ebp-65]
+```
+
+我这里的 `dword ptr[ebp-65]` 的内容是: `08677578696e676865...`...(g67，u75，x78，i69，n6e，g67，h68，e65)此时设姓名长度为 `K=S0` 姓名(ASCII 值)为 `S1,S2,S3,...,S(k-1),S(k)`,设这个字串为 `S(n)`,则本例中 `S0=08,S1=67,... ...S(k-1)=68，S(k)=65` ...
+
+```
+：0047593B 8D9DD1FEFFFF            lea ebx， dword ptr [ebp+FFFFFED1]
+* Referenced by a （U）nconditional or （C）onditional Jump at Address：
+|：00475957（C）
+    开始计算第一步：
+：00475941 33C0                    xor eax， eax            <-- 置零
+：00475943 8A01                    mov al， byte ptr [ecx]  <-- S(n)送入 al，n=0~9
+```
+
+
+
+### 代码段：余数计算与保存
+
+```
+:00475945 BF0A000000          mov edi， 0000000A       <-- 送常数 0a
+:0047594A 33D2                xor edx， edx            <-- 置零
+:0047594C F7F7                div edi                  <-- eax=eax/edi，edx=eax mod edi
+:0047594E 80C230              add dl， 30              <-- 余数+30
+:00475951 42                  inc edx                  <-- ?,为何不直接加 31?
+:00475952 8813                mov byte ptr [ebx]，dl   <-- dl 保存起来，设为 D(n)，n=1~9
+:00475954 43                  inc ebx                  <-- 为下一次保存指定空间
+:00475955 41                  inc ecx                  <-- +1，字左移，Sn=S(n+1)
+:00475956 4E                  dec esi                  <-- -1，为零时变换结束
+:00475957 75E8                jne 00475941
+```
+
+这个过程通过`S(n)`，得到一组数据`D(n): D1, D2, ..., D(k), D(k+1)`
+
+`D(n) = S(n-1) mod 0a + 31`。例如本例中:`D5 = S(5-1) mod 0a + 31 = 36`
+
+* Referenced by a （U）nconditional or （C）onditional Jump at Address：
+
+```
+| :00475935（C）
+```
+
+### 代码段：第二步计算
+
+```
+:00475959 33C9               xor ecx， ecx
+:0047595B 8A4D9B             mov cl， byte ptr [ebp-65]
+:0047595E 83F901             cmp ecx， 00000001
+:00475961 7C1A               jl 0047597D
+:00475963 8D840DD1FEFFFF     lea eax， dword ptr [ebp+ecx-0000012F] <-- 这个地址就是刚才最后计算出的 Dn，因为有 dec eax 所以取数据是从后向前。
+```
+
+* Referenced by a （U）nconditional or （C）onditional Jump at Address：
+
+```
+| :0047597B（C）
+```
+
+开始计算第二步：
+
+```
+:0047596A 8A559B             mov dl， byte ptr [ebp-65]
+:0047596D 2AD1               sub dl， cl              <-- cl=k
+:0047596F 03D2               add edx， edx            <-- 相当于乘以 2
+:00475971 8A18               mov bl， byte ptr [eax]    <-- D(n)，（n=9~1）
+:00475973 02D3               add dl， bl
+:00475975 8810               mov byte ptr [eax]， dl    <-- 设此时 dl=R(n)，得到 R(n),(n=1~8)
+:00475977 49                 dec ecx
+:00475978 48                 dec eax
+:00475979 85C9               test ecx， ecx
+:0047597B 75ED               jne 0047596A
+```
+
+这个过程通过`Dn`，得到`Rk`，（`k=1~9`）=（姓名长度递增）`*2 + Dn`，`<n=9~1>`从`0`递增，递增到(长度-1)结束。
+
+**####################################**
+
+1.  `n=9~1`，等指定了范围的值是我这里实际的标注，是为了读起来方便。
+2.  `Dn,(n=9~1)`表示`Dn`依次为`d9`，`d8`，`d7`，... ...`d2`，`d1`。`Sn,(n=1~9)`表示`Tn`依次为`T1`，`T2`，`T3`，... ...`T8`，`T9`。其余的依此类推。
+
+**####################################**
+
+* Referenced by a （U）nconditional or （C）onditional Jump at Address：
+
+```
+| :00475961（C）
+```
+
+### 代码段：姓名长度判断与修正
+
+```
+:0047597D 8A459B             mov al， byte ptr [ebp-65]
+:00475980 3C06               cmp al， 06  <-- 姓名长度是否等于 6 个，不够 6 个，下面有办法，嘿嘿，自己研究吧，反正我的姓名大于 6 个!嘿嘿!
+:00475982 7330               jnb 004759B4
+:00475984 33C9               xor ecx， ecx
+:00475986 8AC8               mov cl， al
+:00475988 41                  inc ecx
+:00475989 83F906             cmp ecx， 00000006
+:0047598C 7F26               jg 004759B4
+:0047598E 8D9C0DD0FEFFFF     lea ebx， dword ptr [ebp+ecx-00000130]
+```
+
+* Referenced by a （U）nconditional or （C）onditional Jump at Address：
+
+```
+| :004759B2（C）
+```
+
+姓名长度少于 6 个时的解决方法:自己研究吧!
+
+```
+:00475995 33C0               xor eax， eax
+:00475997 8A03               mov al， byte ptr [ebx]
+:00475999 83C002             add eax， 00000002
+:0047599C 83E830             sub eax， 00000030
+:0047599F BE0A000000         mov esi， 0000000A
+:004759A4 99                  cdq
+:004759A5 F7FE               idiv esi
+:004759A7 80C230             add dl， 30
+:004759AA 885301             mov byte ptr [ebx+01]， dl
+:004759AD 41                  inc ecx
+:004759AE 43                  inc ebx
+:004759AF 83F907             cmp ecx， 00000007
+:004759B2 75E1               jne 00475995
+```
+
+* Referenced by a （U）nconditional or （C）onditional Jump at Addresses：
+
+```
+| :00475982（C）， :0047598C（C）
+```
+
+姓名长度等于多于 6 个了：
+
+### 代码段：第三步计算
+
+```
+:004759B4 B906000000         mov ecx， 00000006
+:004759B9 8D85D7FEFFFF       lea eax， dword ptr [ebp+FFFFFED7]    <-- 取后 6 位，就是 r3~r8
+```
+
+* Referenced by a （U）nconditional or （C）onditional Jump at Address：
+
+```
+| :004759EA（C）
+```
+
+开始计算第三步：
+
+```
+:004759BF B206               mov dl， 06
+:004759C1 2AD1               sub dl， cl     <-- 004759B4 行使得 cl=6
+:004759C3 03D2               add edx， edx   <-- edx=（06-cl）*2
+:004759C5 8D1452             lea edx， dword ptr [edx+2*edx]   <-- 这行复杂一些，我给大家分解一下：
+```
+
+```
+edx=(06-cl)*2+[(06-cl)*2]*2
+edx=(06-cl)(2+2+2)
+edx=6*(6-cl)
+```
+
+因此`edx`依次=`0`，`6`，`12`，`18`，`24`，`30`（要转换成十六进制）
+
+```
+:004759C8 8A18               mov bl， byte ptr [eax]  <-- 就是 r3~r8
+:004759CA 02D3               add dl， bl              <-- edx=6*（6-cl）+r
+:004759CC 8810               mov byte ptr [eax]， dl
+:004759CE 8A10               mov dl， byte ptr [eax]
+:004759D0 80FA7E             cmp dl， 7E  <-- 计算出的值是否有无效的字符（有效的 ASCII 值 20h-7eh，我想是一键就可以用键盘输入的常用字符的 ASCII 值）
+:004759D3 7605               jbe 004759DA <-- 小于或等于转移
+:004759D5 80EA78             sub dl， 78  <-- 有就修正
+:004759D8 8810               mov byte ptr [eax]， dl
+```
+
+* Referenced by a （U）nconditional or （C）onditional Jump at Address:
+
+```
+| :004759D3(C)
+```
+
+```
+:004759DA 8A10               mov dl， byte ptr [eax]
+:004759DC 80FA21             cmp dl， 21  <-- 计算出的值是否有无效的字符
+:004759DF 7305               jnb 004759E6 <-- 大于或等于转移
+:004759E1 80C221             add dl， 21  <-- 有就修正
+:004759E4 8810               mov byte ptr [eax]， dl
+```
+
+上个过程如果正常（不进行修正），应该得到如下字串。`r3`，`6+r4`，`c+r5`，`12+r6`，`18+r7`，`1e+r8`。又计算出了`6`个数，是什么呢？看下面吧！
+
+* Referenced by a （U）nconditional or （C）onditional Jump at Address：
+
+```
+| :004759DF（C）
+```
+
+### 代码段：注册码比较
+
+```
+:004759E6 49                 dec ecx
+:004759E7 48                 dec eax
+:004759E8 85C9               test ecx， ecx
+:004759EA 75D3               jne 004759BF
+:004759EC C685D8FEFFFF00     mov byte ptr [ebp+FFFFFED8]， 00
+:004759F3 C60548D3470001     mov byte ptr [0047D348]， 01
+:004759FA B906000000         mov ecx， 00000006
+:004759FF 8D85D2FEFFFF       lea eax， dword ptr [ebp+FFFFFED2]
+```
+
+<-- 在`[eax]`可看见真码，`[eax]`是指向堆栈中的地址。
+
+```
+:00475A05 8D9537FFFFFF       lea edx， dword ptr [ebp+FFFFFF37]
+```
+
+比较在下面：
+
+* Referenced by a （U）nconditional or （C）onditional Jump at Address：
+
+```
+| :00475A1D（C）
+```
+
+逐个注册码进行比较：
+
+```
+:00475A0B 8A18               mov bl， byte ptr [eax]  <-- 取真码
+:00475A0D 3A1A               cmp bl， byte ptr [edx]  <-- bl 与假注册码字符比较
+:00475A0F 7409               je 00475A1A             <-- 不相等就不跳，注册就结束了。
+:00475A11 C60548D3470000     mov byte ptr [0047D348]， 00  <-- 向[0047D348]写入比较结果，与 00475B95 行相呼应
+:00475A18 EB05               jmp 00475A1F    <-- 注册出错了
+```
+
+* Referenced by a （U）nconditional or （C）onditional Jump at Address：
+
+```
+| :00475A0F（C）
+```
+
+比较相同时来到这里：为下一步作准备
+
+```
+:00475A1A 42                 inc edx  <-- 假码左移一个字符
+:00475A1B 40                 inc eax  <-- 真码左移一个字符
+:00475A1C 49                 dec ecx  <-- 注册码长度-1
+:00475A1D 75EC               jne 00475A0B <-- 还有注册码就再比较
+```
+
+* Referenced by a （U）nconditional or （C）onditional Jump at Addresses：
+
+```
+| :00475926（U）， :00475A18（U）
+```
+
+比较结束了
+
+```
+:00475A1F 33C0               xor eax， eax
+:00475A21 5A                 pop edx
+:00475A22 59                 pop ecx
+:00475A23 59                 pop ecx
+:00475A24 648910             mov dword ptr fs：[eax]， edx
+:00475A27 68445A4700         push 00475A44
+```
+
+* Referenced by a （U）nconditional or （C）onditional Jump at Address：
+
+```
+| :00475A42（U）
+```
+
+```
+:00475A2C 8D85C8FDFFFF       lea eax， dword ptr [ebp+FFFFFDC8]
+:00475A32 BA02000000         mov edx， 00000002
+:00475A37 E824E1F8FF         call 00403B60
+:00475A3C C3                 ret
+```
+
+... ... ... ...
+
+下面是我计算出的注册信息：
+
+姓名：“guxinghe”；注册码：“`\MJ**`”（因为一些原因，后两位用“`*`”代替）.
+
+
+
+注册信息不管正确与否，都保存在`c:\\windows\\five99.ini`中。删除其中的内容可以重新注册。
+
+最后总结一下注册码的计算方式：
+
+第一步：设`k=姓名长度=S0(中文姓名注意长度);姓名(ASCII值)为S1,S2,S3,...S(k-1),S(k)`，组成一组数字串:`S0,S1,S2,...,S(k-1),S(k)`，（只讨论`6≤k≤64`，除此，程序给出了变换的方法）
+
+第二步：计算出中间值：`D(n)，D(n)=S(n-1) mod 0a +31` 即以下字串:
+
+`D1=S(1-1) mod 0a +31,`
+
+`D2=S(2-1) mod 0a +31,`
+
+`D3=S(3-1) mod 0a +31,`
+
+... ...
+
+`D(n-1)=S[(n-2)-1] mod 0a +31,`
+
+`D(n) =S[(n-1)-1] mod 0a +31,`
+
+`D(n+1)=S(n) mod 0a +31.`
+
+第三步：计算出中间值：`R(n)，R(n)=(n-1)*2+D(k-n+2),k=姓名长度`，即以下字串:
+
+`R1=(1-1)*2+D(k-1+2),`
+
+`R2=(2-1)*2+D(k-2+2),`
+
+`R3=(3-1)*2+D(k-3+2),`
+
+... ...
+
+`R(n-2)=[(n-2)-1]*2+D[k-(n-2)+2],`
+
+`R(n-1)=[(n-1)-1]*2+D[k-(n-1)+2],`
+
+`Rn=(n-1)*2+D(k-n+2).`
+
+第四步：得到每个注册码`Z`：
+
+`Z1=1E+R(k-0),(写成R(k-0)是为了看着工整一些)`
+
+`Z2=18+R(k-1),`
+
+`Z3=12+R(k-2),`
+
+`Z4=0c+R(k-3),`
+
+`Z5=06+R(k-4),`
+
+`Z6=00+R(k-5).(21≤Z≤7e,如不在范围内按照-78，+21修正。)`
+
+:-)数学不好，表达式不会写了，好在数目少还可以列举出来.要是一个 keyfile,非累吐血不可.
+
+第五步：将上面的 ASCII 值转换成字符,就是注册码了。
+
+要想爆破可以修改:
+
+`mov byte ptr [0047D348]， 00,为:`
+
+`mov byte ptr [0047D348]， 01,共两处。`
+
+\*\*\#
+
+小试验 用编辑工具修改:
+
+`00475A83 803D48D3470001 cmp byte ptr [0047D348]， 01 为:`
+
+`00475A83 803D48D3470000 cmp byte ptr [0047D348]， 00，看一看会发生什么情况! <--你不是注册的版本，但是也没有输入注册码的地方。`
+
+\*\*\#
+
+把上面的公式花了两个半天的时间最后总结为:
+
+`Z(m)=55+2k-8k+S(m) mod 0a, 21<Z(m)<7e,不在此范围需要修正一下.`
+
+解释一下：`Z(m)`是要计算的第几个注册码的 ASCII 值。(`1≤m≤6`),`k` 是姓名长度,`S(m)`是第 m 个姓名 ASCII 值.由此可见,注册码的计算只用到前 6 个姓名的字符,(不足 6 个的,程序给出了变换的方法,不在这里讨论);还与整个姓名长度有关.只要前 6 个姓名的字符相同,长度相等的注册名计算出的注册码是相同的!
+
+我想:作者在源代码的计算方法中,肯定不是这个样子!--- ---这个程序好多年了--- ---
+
+注册机不会写!!!上面的公式顶替一个吧!!!(这样的注册机装在兜里就可以拿走)!!!
+
+`linf` 的第一篇算法分析。
+
+【版权声明】 本文纯属技术交流，转载请注明作者和看雪学院,并保持文章的完整，谢谢!
+
+`4dd466d0e1e0cc123afbe504da2462ca`
