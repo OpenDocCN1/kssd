@@ -1,0 +1,405 @@
+
+# 联众斗地主计牌器 V2.2
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6970.htm`](https://www.pediy.com/kssd/pediy06/pediy6970.htm)
+
+【破解作者】`mejy`【BCG】【DFCG】【FCG】【NUKE】
+
+【作者邮箱】`yjychao@sohu.com`
+
+【作者主页】`mejy.126.com`
+
+【使用工具】`OD1.09d`, `W32ASM`
+
+【破解平台】`Win2000`
+
+【软件名称】联众斗地主计牌器
+
+【下载地址】`http://www3.skycn.com/soft/1436.html`
+
+【软件简介】软件介绍：可用于联众一副牌和两副牌的斗地主游戏，具有自动记录已出牌、剩余牌和剩余张数的功能，用户注册后不是地主也能看底牌（二副牌时），软件界面美观，使用方便
+
+更新日期：`2004-02-16 14:50:20`
+
+保护方式：反调试，采用 `Aspack` 加壳，手动脱去，检测 `DELPHI` 编写
+
+【软件大小】`641K`
+
+【加壳方式】`Aspack`
+
+【破解声明】我是一只小菜鸟，偶得一点心得，愿与大家分享：）哎，都没人追算法了，都脱壳去了。呵呵！！！
+
+--------------------------------------------------------------------------------
+
+【破解内容】
+
+我们脱壳后利用 `W32ASM` 反汇编查找 `"软件已注册"`，可以找到下面的地方
+
+```
+0045A6D0  /. 55           PUSH EBP
+```
+可在此设断，在设断之前建议你试着注册一次，因为不论注册是否成功，程序会将你输入的注册码保存在注册表当中。并且如果注册失败程序不会提示，我们猜想程序每次启动时，必然会检测程序是否已经注册。我们调试也可从这里入手。好了下一步，你用 `OD` 载入程序，并在上面的地址设断，`F9`。呵呵，`OD` 被无声无息的关闭了。`^_^` 不要着急，看来程序用了 `ANTI`，我们重新来过。`F8` 单步执行，一步步抽丝剥茧，具体的单步执行后，看看在那个 `CALL` 会退出程序，然后重新来过，进入上面退出程序的 `CALL`。来到下面的地方：
+
+```
+0045ABC0  /$ 55           PUSH EBP
+0045ABC1  |. 8BEC         MOV EBP,ESP
+...
+0045AC01  |. E8 9AD7FAFF  CALL un_.004083A0
+0045AC06  |. 8B45 FC      MOV EAX,DWORD PTR SS:[EBP-4]
+0045AC09  BA 64AC4500     MOV EDX,un_.0045AC64    ;  ASCII "EXPLORER.EXE"
+```
+
+这里干什么，哈哈如果调用该程序的主进程不是 `"EXPLORER.EXE"` 就强行退出
+
+```
+0045AC0E  |. E8 FD9BFAFF  CALL un_.00404810
+0045AC13  |. 75 1D        JE SHORT un_.0045AC32  改这里就行了
+0045AC15  |. 56           PUSH ESI                ; /ProcessId
+...
+0045AC4C  . C3           RETN
+```
+
+```
+0045A6D0  /. 55           PUSH EBP
+0045A6D1  |. 8BEC         MOV EBP,ESP
+...
+0045A703  B8 94A74500     MOV EAX,un_.0045A794    ;  ASCII "RegCode"
+...
+0045A729  |. 8B45 F4      MOV EAX,DWORD PTR SS:[EBP-C]
+0045A72C  |. E8 BBB6FFFF  CALL un_.00455DEC
+```
+很明显这里很关键我们跟踪
+
+```
+0045A731  |. 84C0         TEST AL,AL
+0045A733  |. 74 26        JE SHORT un_.0045A75B
+0045A735  |. 33D2         XOR EDX,EDX
+...
+0045A77D  . C3           RETN
+```
+
+级级分析后来到这里
+
+```
+00455568  /$ 55           PUSH EBP
+00455569  |. 8BEC         MOV EBP,ESP
+...
+004555C2  |> 8D45 FC      /LEA EAX,DWORD PTR SS:[EBP-4]
+004555C5  |. 33C9         |XOR ECX,ECX
+004555C7  |. BA 04000000  |MOV EDX,4
+004555CC  |. E8 EBD9FAFF  |CALL un_.00402FBC
+004555D1  |. 8D45 F8      |LEA EAX,DWORD PTR SS:[EBP-8]
+004555D4  |. 50           |PUSH EAX
+004555D5  |. B9 03000000  |MOV ECX,3
+004555DA  |. 8BD6         |MOV EDX,ESI
+004555DC  |. 8B43 30      |MOV EAX,DWORD PTR DS:[EBX+30]
+```
+机器码入栈
+
+```
+004555DF  |. E8 40F3FAFF  |CALL un_.00404924
+```
+依次取机器码的 `3` 位进行计算
+
+```
+004555E4  |. 8B45 F8      |MOV EAX,DWORD PTR SS:[EBP-8]
+...
+00455603  |. 50           |PUSH EAX                   ; /Arg1
+00455604  |. 8D55 FC      |LEA EDX,DWORD PTR SS:[EBP-4]
+00455607  |. 8BCF         |MOV ECX,EDI
+```
+这里是所取字符串的长度，可能是 `3`，当取到最后几个字符时可能是 `1`，`2`
+计为 `"值 1"`
+
+```
+00455609  |. 8BC3         |MOV EAX,EBX
+0045560B  |. E8 A8FBFFFF  |CALL un_.004551B8
+```
+关键 `CALL` 一定要跟进，对上面取得的机器码进行变形，见下面得分析
+
+```
+00455610  |. 8B55 F4      |MOV EDX,DWORD PTR SS:[EBP-C]
+00455613  |. 8D43 34      |LEA EAX,DWORD PTR DS:[EBX+34]
+00455616  |. E8 B9F0FAFF  |CALL un_.004046D4
+0045561B  |. 66:83BB 820000>| CMP WORD PTR DS:[EBX+82],0
+00455623  |. 74 31        |JE SHORT un_.00455656
+```
+跳走下面一段代码在我分析中没用到不知干吗的
+
+```
+00455625  |. 8B43 30      |MOV EAX,DWORD PTR DS:[EBX+30]
+00455628  |. E8 9FF0FAFF  |CALL un_.004046CC
+0045562D  |. 8945 F0      |MOV DWORD PTR SS:[EBP-10],EAX
+00455630  |. DB45 F0      |FILD DWORD PTR SS:[EBP-10]
+00455633  |. 8BC6         |MOV EAX,ESI
+00455635  |. 48           |DEC EAX
+00455636  |. 03F8         |ADD EDI,EAX
+00455638  |. 897D EC      |MOV DWORD PTR SS:[EBP-14],EDI
+0045563B  |. DB45 EC      |FILD DWORD PTR SS:[EBP-14]
+0045563E  |. DEF1         |FDIVRP ST(1),ST
+00455640  |. E8 3FD4FAFF  |CALL un_.00402A84
+00455645  |. 6BC8 64      |IMUL ECX,EAX,64
+00455648  |. 8BD3         |MOV EDX,EBX
+0045564A  |. 8B83 84000000 | MOV EAX,DWORD PTR DS:[EBX+84]
+00455650  |. FF93 80000000 | CALL DWORD PTR DS:[EBX+80]
+00455656  |> 83C6 03      |ADD ESI,3
+00455659  |. 8B43 30      |MOV EAX,DWORD PTR DS:[EBX+30]
+0045565C  |. E8 6BF0FAFF  |CALL un_.004046CC
+00455661  |. 3BF0         |CMP ESI,EAX
+00455663  |.⁰F8E 59FFFFFF JLE un_.004555C2
+```
+一个循环处理的过程，跳回去
+
+上面的 `CALL`
+
+```
+004551B8  /$ 55           PUSH EBP
+...
+004551CC  |. BA 05000000  MOV EDX,5
+004551D1  |. E8 E6DDFAFF  CALL un_.00402FBC
+004551D6  |. 8A03         MOV AL,BYTE PTR DS:[EBX]
+```
+以下这几句作用是逆序
+
+```
+004551D8  |. 8A53 02      MOV DL,BYTE PTR DS:[EBX+2]
+004551DB  |. 8813         MOV BYTE PTR DS:[EBX],DL
+004551DD  |. 8843 02      MOV BYTE PTR DS:[EBX+2],AL
+004551E0  |. 8B13         MOV EDX,DWORD PTR DS:[EBX]
+```
+
+这里我感觉很奇怪，我在这里写注册机时，想了好久，如何实现
+
+例如 `"BFE"` 经上面的处理变为 `"EFB"`
+
+```
+004551E2  |. 8BC2         MOV EAX,EDX
+```
+将逆序所得的 `ASCII` 码付给 `EAX`
+
+```
+004551E4  |. 25 0000FC00 AND EAX,0FC000
+```
+进行与运算
+
+```
+004551E9  |. C1E8 12     SHR EAX,12
+```
+右移 `0x12` 位
+
+```
+004551EC  |. 8A4406 3C   MOV AL,BYTE PTR DS:[ESI+EAX+3C]
+```
+
+根据上面的结果查表，找到相应位置的字符付给 `AL`，这就是对机器码进行变形
+
+在内存 `1177F14+3C` 的地方有一张字符表 `"ABCDEFGHIJKLMNOPQRST。。。"`
+
+第一个字符结果查的的字符为 `"Q"`；
+
+```
+004551F0  |. 8845 F7      MOV BYTE PTR SS:[EBP-9],AL
+004551F3  |. 8BC2         MOV EAX,EDX
+004551F5  |. 25 00F00300  AND EAX,3F00
+```
+计算第二个字符
+
+```
+004551FA  |. C1E8 0C      SHR EAX,0C
+004551FD  |. 8A4406 3C    MOV AL,BYTE PTR DS:[ESI+EAX+3C]
+```
+查表
+
+```
+00455201  |. 8845 F8      MOV BYTE PTR SS:[EBP-8],AL
+00455204  |. 837D FC 01   CMP DWORD PTR SS:[EBP-4],1
+```
+
+这里处理当经过几次循环后，当上面 `"值 1"` 等于 `1`，跳到后面在转化后的字串上加上 `"＝"`
+
+例如我得 `"BFEB0C28"` 经两次循环后剩下 `"28"` 没处理，这时在下面一个地方跳。
+
+```
+00455208  |. 7E 13        JLE SHORT un_.0045521D
+0045520A  |. 8BC2         MOV EAX,EDX
+0045520C  |. 25 C00F0000  AND EAX,0FC0
+```
+计算得到第三个字符
+
+```
+00455211  |. C1E8 06      SHR EAX,6
+00455214  |. 8A4406 3C    MOV AL,BYTE PTR DS:[ESI+EAX+3C]
+```
+查表
+
+```
+00455218  |. 8845 F9      MOV BYTE PTR SS:[EBP-7],AL
+0045521B  |. EB 04        JMP SHORT un_.00455221
+0045521D  |> C645 F9 3D   MOV BYTE PTR SS:[EBP-7],3D
+```
+
+比较字符串转换是否结束如果结束就在转换后的字符串后面加上 `"＝"` 所以转换后的结果肯定为 `"*********="` 的形式
+
+```
+00455221  |> 837D FC 02   CMP DWORD PTR SS:[EBP-4],2
+00455225  |. 7E 0E        JLE SHORT un_.00455235
+00455227  |. 8BC2         MOV EAX,EDX
+00455229  |. 83E0 3F      AND EAX,3F
+0045522C  |. 8A4406 3C    MOV AL,BYTE PTR DS:[ESI+EAX+3C]
+00455230  |. 8845 FA      MOV BYTE PTR SS:[EBP-6],AL
+00455233  |. EB 04        JMP SHORT un_.00455239
+00455235  |> C645 FA 3D   MOV BYTE PTR SS:[EBP-6],3D
+```
+加上 `"＝"`
+
+```
+00455239  |> 8B45 08      MOV EAX,DWORD PTR SS:[EBP+8]
+0045523C  |. 8D55 F7      LEA EDX,DWORD PTR SS:[EBP-9]
+0045523F  |. B9 05000000  MOV ECX,5
+00455244  |. E8 33F4FAFF  CALL un_.0040467C
+00455249  |. 5E           POP ESI
+0045524A  |. 5B           POP EBX
+0045524B  |. 8BE5         MOV ESP,EBP
+0045524D  |. 5D           POP EBP
+0045524E  . C2 0400      RETN 4
+```
+返回后来到下面
+
+```
+004559CC   $ 55           PUSH EBP
+...
+00455A5D   . 8B45 EC      MOV EAX,DWORD PTR SS:[EBP-14]
+00455A60   . E8 67ECFAFF  CALL un_.004046CC
+```
+这儿取得转化后字符串的长度
+
+```
+00455A65   . 8BF0         MOV ESI,EAX
+00455A67   . 85F6         TEST ESI,ESI
+00455A69   . 7E 3E        JLE SHORT un_.00455AA9
+00455A6B   . BB 01000000  MOV EBX,1
+00455A70   > 8B45 EC      MOV EAX,DWORD PTR SS:[EBP-14]
+```
+
+下面是一个计算注册码的循环
+
+```
+00455A73   . 807C18 FF 3D CMP BYTE PTR DS:[EAX+EBX-1],3D
+```
+
+
+
+比较字符串中所取的字符是否是"＝"，如果是则跳走。不对这里进行处理
+
+```
+00455A78   . 74 2B            JE SHORT un_.00455AA5
+00455A7A   . 8D45 E8          LEA EAX,DWORD PTR SS:[EBP-18]
+00455A7D   . 50               PUSH EAX
+00455A7E   . 8D45 E4          LEA EAX,DWORD PTR SS:[EBP-1C]
+00455A81   . 8B55 EC          MOV EDX,DWORD PTR SS:[EBP-14]
+00455A84   . 8A541A FF        MOV DL,BYTE PTR DS:[EDX+EBX-1]
+```
+
+依次取字符串的每一位
+
+```
+00455A88   . E8 67EBFAFF      CALL un_.004045F4
+00455A8D   . 8B55 E4          MOV EDX,DWORD PTR SS:[EBP-1C]
+00455A90   . 8A4D F7          MOV CL,BYTE PTR SS:[EBP-9]
+00455A93   . 8B45 FC          MOV EAX,DWORD PTR SS:[EBP-4]
+00455A96   . E8 61000000      CALL un_.00455AFC  这里又是关键我们跟进见下面
+00455A9B   . 8B55 E8          MOV EDX,DWORD PTR SS:[EBP-18]
+00455A9E   . 8BC7             MOV EAX,EDI
+00455AA0   . E8 2FECFAFF      CALL un_.004046D4  这里是对上面返回的字符串进行连接
+00455AA5   > 43               INC EBX
+00455AA6   . 4E               DEC ESI
+00455AA7   . 75 C7            JNZ SHORT un_.00455A70
+```
+
+略
+
+```
+00455ABE   . C3               RETN
+```
+
+上面的将变形后的机器码经过计算求出注册码
+
+```
+00455AFC  /$ 55               PUSH EBP
+00455AFD  |. 8BEC             MOV EBP,ESP
+00455AFF  |. 83C4 F4          ADD ESP,-0C
+00455B02  |. 53               PUSH EBX
+00455B03  |. 8BD9             MOV EBX,ECX
+00455B05  |. 8955 FC          MOV DWORD PTR SS:[EBP-4],EDX 这里是上面取得字符
+00455B08  |. 8B45 FC          MOV EAX,DWORD PTR SS:[EBP-4]
+00455B0B  |. E8 A4EDFAFF       CALL un_.004048B4
+00455B10  |. 33C0             XOR EAX,EAX
+00455B12  |. 55               PUSH EBP
+00455B13  |. 68 615B4500      PUSH un_.00455B61
+00455B18  |. 64:FF30          PUSH DWORD PTR FS:[EAX]
+00455B1B  |. 64:8920          MOV DWORD PTR FS:[EAX],ESP
+00455B1E  |. 8B45 08          MOV EAX,DWORD PTR SS:[EBP+8]
+00455B21  |. 50               PUSH EAX
+00455B22  |. 33C0             XOR EAX,EAX
+00455B24  |. 8AC3             MOV AL,BL
+00455B26  |. 8B1485 28CC450>  MOV EDX,DWORD PTR DS:[EAX*4+45CC28]
+```
+
+这里又有一张固定的表
+
+`"AL9=HtGzUJ4mvIJY3D7ykQgAYf+TjWCd1RhZl5oEOeBF8bF0ubKrVSaM6qp2n/xcN"`
+
+下面将知道他是干吗的！
+
+```
+00455B2D  |. 8B45 FC          MOV EAX,DWORD PTR SS:[EBP-4]
+00455B30  |. E8 D3EEFAFF      CALL un_.00404A08 关键 CALL 我们可以看看跟进
+```
+
+主要思想是在上面的字符串中查找取得上面位置字符的下标
+
+```
+00455B35  |. 8945 F4          MOV DWORD PTR SS:[EBP-C],EAX           ; |
+```
+
+这里 EAX 中保存的就是那个下标
+
+```
+00455B38  |. C645 F8 00       MOV BYTE PTR SS:[EBP-8],0              ; |
+00455B3C  |. 8D55 F4         LEA EDX,DWORD PTR SS:[EBP-C]           ; |
+00455B3F  |. 33C9             XOR ECX,ECX                            ; |
+00455B41  |. B8 785B4500     MOV EAX,un_.00455B78       ; |ASCII "%0.2d"
+00455B46  |. E8 E136FBFF      CALL un_.0040922C    ; un_.0040922C
+```
+
+这里对下标进行转化，将他转化成十进制的字符串
+
+例如字符`H`的位置是 1，那么转化后形成的字符串为`"01"`；
+
+```
+00455B4B  |. 33C0             XOR EAX,EAX
+00455B4D  |. 5A               POP EDX
+00455B4E  |. 59               POP ECX
+00455B4F  |. 59               POP ECX
+00455B50  |. 64:8910          MOV DWORD PTR FS:[EAX],EDX
+00455B53  |. 68 685B4500      PUSH un_.00455B68
+00455B58  |> 8D45 FC          LEA EAX,DWORD PTR SS:[EBP-4]
+00455B5B  |. E8 B4E8FAFF      CALL un_.00404414
+00455B60  . C3                RETN
+```
+
+--------------------------------------------------------------------------------
+
+## 破解总结
+
+总结一下注册算法思想：大体是先根据取得的机器号（如何取得机器号，我跟了半天没找到谁找到了，TELL ME）然后对他进行变形，每次取机器码的 3 位，进行转化算法较烦见`0045560B`处的`CALL`，然后对变形后的字符串的每一位一次查表，如果遇到`"＝"`，抛弃掉，否则取该字符串在固定串 2，位置。然后将位置下标转化成字符串。逐位连接就形成了注册码！这个软件算法的`CALL`比较多，很容易糊涂。很感谢你能看到这里！希望您看懂了！
+
+我用`VC`写了一个注册机，谁有兴趣改变一下程序，使注册码出现在`EDIT`筐中，当然高手就免了！很简单的，就一个地方。
+
+--------------------------------------------------------------------------------
+
+## 版权声明
+
+本文纯属技术交流，转载请注明作者并保持文章的完整，谢谢！
+
+`4dd466d0e1e0cc123afbe504da2462ca`

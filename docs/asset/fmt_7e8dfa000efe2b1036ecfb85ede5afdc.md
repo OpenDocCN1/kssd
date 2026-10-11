@@ -1,0 +1,94 @@
+
+该软件的注册部分至此已较明晰，该软件第次启动都会读取注册表的注册信息进行判断，以决定是否以注册版本运行该软件，不过我还有一个疑问还没有解决，有兴趣的网友可以帮忙解决一下，就是如上注册成功后，该软件显示为注册版本，可是还是没有将菜单中的灰极按钮变亮，当然，我们可以很轻松将菜单有灰变亮，但这也给我的破解留下了遗憾！
+
+菜单有灰变亮，可以使用的过程如下：
+
+```
+代码: 
+00412672      BA BC264100    MOV EDX,\_nettv.004126BC   ;  ASCII "False" 修改此处即可将菜单由灰变亮
+00412677  |. E8 B414FFFF    CALL \_nettv.00403B30
+0041267C  |. EB 2F           JMP SHORT \_nettv.004126AD
+0041267E  |> 8BC6           MOV EAX,ESI                ;  Case 9 of switch 00412601
+00412680  |. BA CC264100    MOV EDX,\_nettv.004126CC   ;  ASCII "True"
+00412685  |. E8 A614FFFF    CALL \_nettv.00403B30
+0041268A  |. EB 21           JMP SHORT \_nettv.004126AD
+0041268C  |> 8BC6           MOV EAX,ESI                ;  Case D of switch 00412601
+0041268E  |. BA DC264100    MOV EDX,\_nettv.004126DC   ;  ASCII "nil"
+00412693  |. E8 9814FFFF    CALL \_nettv.00403B30
+00412698  |. EB 13           JMP SHORT \_nettv.004126AD
+0041269A  |> 8BC6           MOV EAX,ESI                ;  Case 0 of switch 00412601
+0041269C  |. BA E8264100    MOV EDX,\_nettv.004126E8   ;  ASCII "Null"
+004126A1  |. E8 8A14FFFF    CALL \_nettv.00403B30
+004126A6  |. EB 05           JMP SHORT \_nettv.004126AD
+004126A8  |> E8 13F2FFFF    CALL \_nettv.004118C0       ;  Default case of switch 00412601
+004126AD  |> 5A             POP EDX
+004126AE  |. 5E             POP ESI
+004126AF  |. 5B             POP EBX
+004126B0  \\. C3             RETN
+```
+
+注：将`412672`处的`MOV EDX,\_nettv.004126BC`改为`MOV EDX,\_nettv.004126CC`即可,此时软件运行正常。
+
+上面我们将该软件的注册过程及算法描述的很清楚，
+
+具体算法如下：
+
+1、依次取名字的每一个字符，每一字符的`ASCII`值设为`Vlaue[i]`,结果存贮为`JG=0`,名字长度`Len`,注册码为`ZCM`;
+
+2、`JG+=Vlaue[i];JG^=0xbfa05;i=[0,Len-1];`
+
+3、`JG+=0x2977537+(0x2977537<<4);`
+
+4、`JG+=0x13a3d4;`
+
+5、`JG^=0x59ed8d;`
+
+6、`JG^=0xC47324;`
+
+7、`ZCM=JG;`
+
+下面给出该算法的`C`源代码，程序在`VC`环境下调试通过，且在多台机器上注册成功！
+
+代码：
+
+```
+代码: 
+void CNettv50Dlg::OnButton1() 
+{
+  // TODO: Add your control notification handler code here
+  m_Ctrledit1.GetWindowText(m_Vedit1);
+  int i;
+  unsigned long eax,ebx=0;
+  for(i=0;i<m_Vedit1.GetLength();i++)
+  {
+    eax=m_Vedit1.GetAt(i);
+    eax&=0xff;
+    ebx+=eax;
+    ebx^=0xbfa05;
+  }
+
+  unsigned long edx;
+  //[49b9cc]=2977537
+  eax=edx=0x2977537;
+  eax<<=4;
+  eax+=edx;
+  ebx+=eax;
+  ebx+=0x13a3d4;
+  ebx^=0x59ed8d;
+  ebx^=0xC47324;
+  m_Vedit2.Format("%lu",ebx);
+  m_Ctrledit2.SetWindowText(m_Vedit2);
+    
+}
+--------------------------------------------------------------------------------
+```
+
+【版权声明】 本文纯属技术交流, 转载请注明作者并保持文章的完整,并表明`BCG`字样，谢谢!
+
+--------------------------------------------------------------------------------
+
+【总结】注册成功后，该软件显示为注册版本，可是还是没有将菜单中的灰极按钮变亮,有兴趣的网友可以帮忙解决一下。
+
+由于本人水平有限，不足之处还请批评指正！
+
+-------------------------------------------------------------------------------- `4dd466d0e1e0cc123afbe504da2462ca`

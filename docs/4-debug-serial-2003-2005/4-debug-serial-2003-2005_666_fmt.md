@@ -1,0 +1,263 @@
+
+# 全国电话通 1.18
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6517.htm`](https://www.pediy.com/kssd/pediy06/pediy6517.htm)
+
+------By leozem  转贴请注明出处
+
+用户名：`asdfg` 假码：`123456`
+
+查一下是“`UPX 0.89.6-1.02/1.05-1.24->Markus&Laszlo`”的壳，`OD` 拉到最后一个跳 `F4+F8` 后脱。
+
+打开全国电话通，随便注册一下，发现是从起验证，并在目录下生了个 `user.ini`，`OD` 出场，在 `user.ini` 设断，
+
+
+
+# 代码: 汇编指令分析
+
+## 第一部分：用户名与注册码验证逻辑
+
+```assembly
+0048E014    50             PUSH    EAX
+0048E015    B9 00E64800    MOV     ECX,0048E600                   ; ASCII "username"
+0048E01A    BA 14E64800    MOV     EDX,0048E614                   ; ASCII "user"
+0048E01F    A1 0C4C4900    MOV     EAX,[494C0C]
+0048E024    8B18           MOV     EBX,[EAX]
+0048E026    FF13           CALL    [EBX]                          ; 
+0048E028    8B95 DCFCFFFF  MOV     EDX,[EBP-324]                  ; //取用户名
+0048E02E    8B45 FC        MOV     EAX,[EBP-4]
+0048E031    05 58050000    ADD     EAX,558
+0048E036    B9 FF000000    MOV     ECX,0FF
+0048E03B    E8 D862F7FF    CALL    00404318                       ; //此 CALL 是取位数进 EAX（骗人的，用户名跟到后面根本没用
+0048E040    68 24E64800    PUSH    0048E624
+0048E045    8D85 D8FCFFFF  LEA     EAX,[EBP-328]
+0048E04B    50             PUSH    EAX
+0048E04C    B9 30E64800    MOV     ECX,0048E630                   ; ASCII "usercode"
+0048E051    BA 14E64800    MOV     EDX,0048E614                   ; ASCII "user"
+0048E056    A1 0C4C4900    MOV     EAX,[494C0C]
+0048E05B    8B18           MOV     EBX,[EAX]
+0048E05D    FF13           CALL    [EBX]                          ; 
+0048E05F    8B95 D8FCFFFF  MOV     EDX,[EBP-328]                  ; //取注册码进 EDX
+0048E065    8B45 FC        MOV     EAX,[EBP-4]
+0048E068    05 58060000    ADD     EAX,658
+0048E06D    B9 FF000000    MOV     ECX,0FF
+0048E072    E8 A162F7FF    CALL    00404318                       ; 注册码位数
+0048E077    6A 00          PUSH    0
+0048E079    8D85 D4FCFFFF  LEA     EAX,[EBP-32C]
+0048E07F    50             PUSH    EAX
+0048E080    B9 44E64800    MOV     ECX,0048E644                   ; 
+0048E085    BA 54E64800    MOV     EDX,0048E654                   ; 
+0048E08A    A1 0C4C4900    MOV     EAX,[494C0C]
+0048E08F    8B18           MOV     EBX,[EAX]
+0048E091    FF13           CALL    [EBX]                          ; 
+0048E093    8B95 D4FCFFFF  MOV     EDX,[EBP-32C]
+0048E099    8D85 F8FDFFFF  LEA     EAX,[EBP-208]
+0048E09F    B9 FF000000    MOV     ECX,0FF
+0048E0A4    E8 6F62F7FF    CALL    00404318
+0048E0A9    33DB           XOR     EBX,EBX
+0048E0AB    68 00010000    PUSH    100
+0048E0B0    8D85 F8FCFFFF  LEA     EAX,[EBP-308]
+0048E0B6    50             PUSH    EAX
+0048E0B7    E8 DC80F7FF    CALL    
+0048E0BC    83FB 06        CMP     EBX,6
+0048E0BF    0F8D B5000000  JGE     0048E17A
+0048E0C5    8D85 CCFCFFFF  LEA     EAX,[EBP-334]
+0048E0CB    8B55 FC        MOV     EDX,[EBP-4]
+0048E0CE    81C2 58050000  ADD     EDX,558
+0048E0D4    E8 0762F7FF    CALL    004042E0
+0048E0D9    8B85 CCFCFFFF  MOV     EAX,[EBP-334]
+0048E0DF    8D95 D0FCFFFF  LEA     EDX,[EBP-330]
+0048E0E5    E8 169EF7FF    CALL    00407F00
+0048E0EA    8B85 D0FCFFFF  MOV     EAX,[EBP-330]
+0048E0F0    8B149D 143A4900 MOV    EDX,[EBX*4+493A14]      ;依次取“crsky”，“crsky[BCG]”，
+                                                              “leozem”，“leozem[YCG]”，“yzez”
+                                                              和用户名比较（呵呵，作者连光荣榜都出来了，很荣幸，我榜上有名）。
+0048E0F7    E8 8C63F7FF    CALL    00404488                   ; 比较
+0048E0FC    74 35          JE      SHORT 0048E133             ; 如果相等就在 WINDOWS 目录下建一个无内容的 WINDOWS.INI，最后面有个判断，如果 WINDOWS.INI 存在，那么软件无法启动。
+0048E0FE    8D85 C8FCFFFF  LEA     EAX,[EBP-338]
+0048E104    8D95 F8FCFFFF  LEA     EDX,[EBP-308]
+0048E10A    B9 00010000    MOV     ECX,100
+0048E10F    E8 D861F7FF    CALL    004042EC
+0048E114    8D85 C8FCFFFF  LEA     EAX,[EBP-338]
+0048E11A    BA 68E64800    MOV     EDX,0048E668               ; ASCII "\\\\windows.ini"
+0048E11F    E8 2062F7FF    CALL    00404344
+0048E124    8B85 C8FCFFFF  MOV     EAX,[EBP-338]
+0048E12A    E8 21A5F7FF    CALL    00408650
+0048E12F    84C0           TEST    AL,AL
+0048E131    74 3D          JE      SHORT 0048E170
+0048E133    8D85 C4FCFFFF  LEA     EAX,[EBP-33C]
+0048E139    8D95 F8FCFFFF  LEA     EDX,[EBP-308]
+0048E13F    B9 00010000    MOV     ECX,100
+0048E144    E8 A361F7FF    CALL    004042EC
+0048E149    8D85 C4FCFFFF  LEA     EAX,[EBP-33C]
+0048E14F    BA 68E64800    MOV     EDX,0048E668               ; ASCII "\\\\windows.ini"
+0048E154    E8 EB61F7FF    CALL    00404344
+0048E159    8B85 C4FCFFFF  MOV     EAX,[EBP-33C]
+0048E15F    E8 C0A3F7FF    CALL    00408524
+0048E164    A1 B03D4900    MOV     EAX,[493DB0]
+0048E169    8B00           MOV     EAX,[EAX]
+0048E16B    E8 6895FEFF    CALL    004776D8
+0048E170    43             INC     EBX
+0048E171    83FB 06        CMP     EBX,6
+0048E174    0F8C 4BFFFFFF  JL      0048E0C5
+```
+
+## 第二部分：关键 CALL 跟踪 (0048E2AB - 0048E2E9)
+
+```assembly
+0048E2AB    8B85 A8FCFFFF   MOV     EAX,[EBP-358]                   ; 注册码进 EAX
+0048E2B1    8D95 ACFCFFFF   LEA     EDX,[EBP-354]
+0048E2B7    E8 08ECFFFF     CALL    0048CEC4                         ; 关键 CALL 跟
+0048E2BC    8B85 ACFCFFFF   MOV     EAX,[EBP-354]                   ; 得 2296281783
+0048E2C2    50              PUSH    EAX
+0048E2C3    8D95 A0FCFFFF   LEA     EDX,[EBP-360]
+0048E2C9    8B45 F8         MOV     EAX,[EBP-8]                      ; D649A（暗机器码）进 EAX
+0048E2CC    E8 979EF7FF     CALL    00408168                         ; D649A 转成 10 进制（其实这就是真正的注册码）
+0048E2D1    8B85 A0FCFFFF   MOV     EAX,[EBP-360]
+0048E2D7    8D95 A4FCFFFF   LEA     EDX,[EBP-35C]
+0048E2DD    E8 E2EBFFFF     CALL    0048CEC4                         ; 和上上个 CALL 的功能一样
+0048E2E2    8B95 A4FCFFFF   MOV     EDX,[EBP-35C]                   ; //“（ 暗  机器码（16）*BA+1）10 进制 ”  +“83”
+0048E2E8    58              POP     EAX                              ; //“（我们输入的假码（16）*BA+1）10 进制 ”  +“83”
+0048E2E9    E8 9A61F7FF     CALL    00404488                         ; //最终比较
+```
+
+### 子函数 0048CEC4 分析
+
+```assembly
+\----------跟入上面的 0048E2B7 和 0048E2DD 的 CALL
+0048CEC4    55             PUSH    EBP
+0048CEC5    8BEC           MOV     EBP,ESP
+0048CEC7    83C4 F8        ADD     ESP,-8
+0048CECA    53             PUSH    EBX
+0048CECB    33C9           XOR     ECX,ECX
+0048CECD    894D F8        MOV     [EBP-8],ECX
+0048CED0    8BDA           MOV     EBX,EDX
+0048CED2    8945 FC        MOV     [EBP-4],EAX
+0048CED5    8B45 FC        MOV     EAX,[EBP-4]
+0048CED8    E8 4F76F7FF    CALL    0040452C
+0048CEDD    33C0           XOR     EAX,EAX
+0048CEDF    55             PUSH    EBP
+0048CEE0    68 2CCF4800    PUSH    0048CF2C
+0048CEE5    64:FF30        PUSH    DWORD PTR FS:[EAX]
+0048CEE8    64:8920        MOV     FS:[EAX],ESP
+0048CEEB    8B45 FC        MOV     EAX,[EBP-4]
+0048CEEE    E8 B1B3F7FF    CALL    004082A4                          ; //将数值转换成 16 进制放进 EAX
+0048CEF3    69C0 BA000000  IMUL    EAX,EAX,0BA                       ; //*BA
+0048CEF9    40             INC     EAX                               ; //+1
+0048CEFA    8D55 F8        LEA     EDX,[EBP-8]
+0048CEFD    E8 66B2F7FF    CALL    00408168                          ; 再转成 10 进制放进 EDX
+0048CF02    8B55 F8        MOV     EDX,[EBP-8]
+0048CF05    8BC3           MOV     EAX,EBX
+0048CF07    B9 40CF4800    MOV     ECX,0048CF40                     ; ASCII "83"
+0048CF0C    E8 7774F7FF    CALL    00404388                          ; 后面加字符 83
+0048CF11    33C0           XOR     EAX,EAX
+0048CF13    5A             POP     EDX                               ; 
+0048CF14    59             POP     ECX                               ; 
+0048CF15    59             POP     ECX                               ; 
+0048CF16    64:8910        MOV     FS:[EAX],EDX
+0048CF19    68 33CF4800    PUSH    0048CF33
+0048CF1E    8D45 F8        LEA     EAX,[EBP-8]
+0048CF21    BA 02000000    MOV     EDX,2
+0048CF26    E8 7571F7FF    CALL    004040A0
+0048CF2B    C3             RETN
+\---------------------------------------
+```
+
+## 第三部分：隐藏机器码溯源
+
+到这完了以后发现 `0048E2C9` 处的 `EAX` 中进了一个 `D649A` 转换后和注册码比较，奇怪这个 `D649A` 是什么东西，又不是机器码，向上拉看看：
+
+```assembly
+0048DF8F    05 F9030000     ADD     EAX,3F9                       ; EAX=C5（硬件记号）+3F9
+0048DF94    69C0 D3020000   IMUL    EAX,EAX,2D3                   ;   4BE* 2D3=D649A
+0048DF9A    8945 F8         MOV     [EBP-8],EAX                   ; 收进[EBP-8]，哈哈在这里
+```
+
+终于看到了，很小的一段，这和机器码又有什么关系？跟跟机器码的生成过程。
+
+```assembly
+0048E813    50             PUSH    EAX
+0048E814    8D45 F0        LEA     EAX,[EBP-10]
+0048E817    E8 389AF7FF    CALL    00408254
+0048E81C    8B45 F0        MOV     EAX,[EBP-10]
+0048E81F    8D4D F8        LEA     ECX,[EBP-8]
+0048E822    5A             POP     EDX
+0048E823    E8 C00BFAFF    CALL    0042F3E8
+0048E828    8B45 F8        MOV     EAX,[EBP-8]                    ; //十进制 197（我的某硬件的序列号）
+0048E82B    E8 749AF7FF    CALL    004082A4                       ; //16 进制=C5
+0048E830    69C0 D3020000  IMUL    EAX,EAX,2D3                    ; //C5 * 2D3=22C5F
+0048E836    05 F9030000    ADD     EAX,3F9                        ; //22C5F+3F9=23058（16）
+0048E83B    8D55 FC        LEA     EDX,[EBP-4]
+0048E83E    E8 2599F7FF    CALL    00408168                       ; 转成 10 进制
+0048E843    8B55 FC        MOV     EDX,[EBP-4]                    ; EDX=143448 就是软件的明机器码
+0048E846    8B83 80040000  MOV     EAX,[EBX+480]
+0048E84C    E8 678FFCFF    CALL    004577B8
+```
+
+
+
+算法到此为止已全部清楚了，过程是软件启动时取我机器上的某个记号（可能是硬件也可能是.....），在我机器上它是得到“197”。
+
+然后将 197 使用不同是算法计算后生成一个暗码（不公开，验证注册码时用）和一个明码（在软件上的机器码），验证注册码时用暗码参与计算。
+
+`暗码 = (机器上的某个记号(16进制) + 3F9) * 2D3`
+
+`明码 = 机器上的某个记号(16进制) * 2D3 + 3F9`
+
+如果 `[我们输入的注册码(16进制) * BA + 1]后面+83` == `[暗码(16进制) * BA + 1]后面+83`
+
+则注册成功
+
+该写注册机了，`DELPHI 7` 在 `Windows 2003` 下调试通过
+
+```delphi
+代码:
+unit Unit1;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, StdCtrls;
+
+type
+  TForm1 = class(TForm)
+    Edit1: TEdit;
+    Edit2: TEdit;
+    Button1: TButton;
+    Button2: TButton;
+    procedure Button1Click(Sender: TObject);
+    procedure Button2Click(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  Form1: TForm1;
+
+implementation
+{$R *.dfm}
+
+procedure TForm1.Button1Click(Sender: TObject);
+VAR
+a1:Cardinal;
+begin
+a1:=strtoint(edit1.Text);
+a1:=a1-1017;
+a1:=a1 div 723;
+a1:=a1+1017;
+a1:=a1 * 723;
+edit2.Text :=inttostr(a1);
+end;
+
+procedure TForm1.Button2Click(Sender: TObject);
+begin
+ShowMessage('By leozem[D.4S][DFCG]')
+end;
+
+end.
+```
+
+`4dd466d0e1e0cc123afbe504da2462ca`
