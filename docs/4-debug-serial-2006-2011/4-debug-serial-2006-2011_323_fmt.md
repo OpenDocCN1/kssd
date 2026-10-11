@@ -1,0 +1,449 @@
+
+# ZD Soft Game Recorder 2.0.0.0 注册分析
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-159.htm`](https://www.pediy.com/kssd/pediy09/pediy09-159.htm)
+
+> 【文章标题】: `ZD Soft Game Recorder 2.0.0.0` 注册分析  
+> 【文章作者】: 坚持到底  
+> 【软件名称】: `ZD Soft Game Recorder 2.0.0.0`  
+> 【下载地址】: `http://www.newhua.com/soft/50899.htm`  
+> 【加壳方式】: 无  
+> 【软件介绍】: 游戏截图器＋录像机＋基准测试工具，支持几乎所有的  
+> 【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
+
+--------------------------------------------------------------------------------
+
+【详细过程】
+
+输入注册名 `insist`
+
+注册码 `1111 2222 3333 4444`
+
+弹出
+
+`The license code you entered is invalid!`
+
+`Please correct it and try again.`
+
+下 `BP MessageBoxA` 断下
+
+返回到用户代码区。。。 找到最顶端下断。。。。
+
+重新再来 来到这里
+
+```
+00407646   .  6A FF             push -1
+00407648   .  68 E0EE4600      push grecode.0046EEE0
+0040764D   .  50               push eax
+0040764E   .  64:8925 00000000 mov dword ptr fs: [0],esp
+00407655   .  83EC 08         sub esp,8
+00407658   .  53               push ebx
+00407659   .  56               push esi
+0040765A   .  57               push edi
+0040765B   .  6A 01            push 1
+0040765D   .  8BF1             mov esi,ecx
+0040765F   .  E8 B85A0600     call <jmp.&MFC42.#6334>
+00407664   .  8DBE 98000000   lea edi,dword ptr ds: [esi+98]
+0040766A   .  8BCF             mov ecx,edi
+0040766C   .  E8 A35C0600     call <jmp.&MFC42.#6282>
+00407671   .  8BCF             mov ecx,edi
+00407673   .  E8 965C0600     call <jmp.&MFC42.#6283>
+00407678   .  8B07             mov eax,dword ptr ds: [edi]                      ;  //name
+0040767A   .  8B48 F8          mov ecx,dword ptr ds: [eax-8]
+0040767D   .  85C9             test ecx,ecx                                    ;  //name 是否为空
+0040767F   .  75 0E            jnz short grecode.0040768F
+00407681   .  6A FF            push -1
+00407683   .  6A 10            push 10
+00407685   .  68 FA2A0000      push 2AFA
+0040768A   .  E9 1F010000      jmp grecode.004077AE
+0040768F   >  8B8E 9C000000    mov ecx,dword ptr ds: [esi+9C]
+00407695   .  8B41 F8          mov eax,dword ptr ds: [ecx-8]
+00407698   .  85C0             test eax,eax
+0040769A   .  0F84 05010000   je grecode.004077A5                              ;  //测试注册码是否为空
+004076A0   .  8B96 A0000000   mov edx,dword ptr ds: [esi+A0]
+004076A6   .  8B42 F8         mov eax,dword ptr ds: [edx-8]
+004076A9   .  85C0             test eax,eax
+004076AB   .  0F84 F4000000   je grecode.004077A5
+004076B1   .  8B86 A4000000   mov eax,dword ptr ds: [esi+A4]
+004076B7   .  8B48 F8         mov ecx,dword ptr ds: [eax-8]
+004076BA   .  85C9             test ecx,ecx
+004076BC   .  0F84 E3000000   je grecode.004077A5
+004076C2   .  8B8E A8000000   mov ecx,dword ptr ds: [esi+A8]
+004076C8   .  8B41 F8         mov eax,dword ptr ds: [ecx-8]
+004076CB   .  85C0             test eax,eax
+004076CD   .  0F84 D2000000   je grecode.004077A5
+004076D3   .  55               push ebp
+004076D4   .  E8 53590600     call <grecorde.loc_46D02C>                      ;  jmp to MFC42.#1168
+004076D9   .  8B8E A8000000   mov ecx,dword ptr ds: [esi+A8]                  ;  //假码第四部分
+004076DF   .  8B96 A4000000   mov edx,dword ptr ds: [esi+A4]                  ;  //假码第三部分
+004076E5   .  8BAE A0000000   mov ebp,dword ptr ds: [esi+A0]                  ;  //假码第二部分
+004076EB   .  8B40 04         mov eax,dword ptr ds: [eax+4]
+004076EE   .  8B1F             mov ebx,dword ptr ds: [edi]                    ;  //name
+004076F0   .  51               push ecx                                      ; /Arg5
+004076F1   .  8B8E 9C000000   mov ecx,dword ptr ds: [esi+9C]                ; |
+004076F7   .  52               push edx                                      ; |Arg4
+004076F8   .  55               push ebp                                      ; |Arg3
+004076F9   .  51               push ecx                                      ; |Arg2
+004076FA   .  53               push ebx                                      ; |Arg1
+004076FB   .  8D88 84010000   lea ecx,dword ptr ds: [eax+184]               ; |
+00407701   .  E8 6A840000     call grecode.0040FB70                         ;  \\\//关键 call1
+00407706   .  85C0             test eax,eax
+00407708   .  5D               pop ebp
+00407709   .  75 0E            jnz short grecode.00407719                   ;  //关键跳 跳就成功了。。。
+0040770B   .  6A FF            push -1
+0040770D   .  6A 10            push 10
+0040770F   .  68 FC2A0000      push 2AFC
+00407714   .  E9 95000000      jmp grecode.004077AE
+00407719   >  8D4C24 10        lea ecx,dword ptr ss: [esp+10]
+0040771D   .  E8 F2580600     call <grecorde.loc_46D014>                    ;  jmp to MFC42.#540
+00407722   .  33DB             xor ebx,ebx
+00407724   .  8D4C24 0C       lea ecx,dword ptr ss: [esp+C]
+00407728   .  895C24 1C       mov dword ptr ss: [esp+1C],ebx
+0040772C   .  E8 E3580600     call <grecorde.loc_46D014>                    ;  jmp to MFC42.#540
+00407731   .  68 FD2A0000      push 2AFD
+00407736   .  8D4C24 14       lea ecx,dword ptr ss: [esp+14]
+0040773A   .  C64424 20 01    mov byte ptr ss: [esp+20],1
+0040773F   .  E8 0A5B0600     call <grecorde.loc_46D24E>                    ;  jmp to MFC42.#4160
+00407744   .  8B17             mov edx,dword ptr ds: [edi]
+```
+
+```
+//////////////////////////////////////////////////////////////////////////////////////////////
+//F7 来到 关键 CALL1
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+0040FB70  /$  6A FF             push -1
+0040FB72  |.  68 21F64600      push grecode.0046F621                     ;  SE 句柄安装
+0040FB77  |.  64:A1 00000000   mov eax,dword ptr fs: [0]
+0040FB7D  |.  50               push eax
+0040FB7E  |.  64:8925 00000000 mov dword ptr fs: [0],esp
+0040FB85  |.  83EC 24         sub esp,24
+0040FB88  |.  8A4424 38      mov al,byte ptr ss: [esp+38]
+0040FB8C  |.  56               push esi
+0040FB8D  |.  57               push edi
+0040FB8E  |.  894C24 08      mov dword ptr ss: [esp+8],ecx
+0040FB92  |.  6A 00            push 0
+0040FB94  |.  8D4C24 10      lea ecx,dword ptr ss: [esp+10]
+0040FB98  |.  884424 10      mov byte ptr ss: [esp+10],al
+```
+
+
+
+```
+    0040FB9C  .|.  FF15 D4044700          call dword ptr ds:[<&MSVCP60.std::basic_string<char,st>; MSVCP60.std::basic_string<char,std::char_traits<char>,std::allocator<char> >::_Tidy
+    0040FBA2  .|.  8B4C24 40             mov ecx,dword ptr ss:[esp+40]
+    0040FBA6  .|.  8D5424 0C             lea edx,dword ptr ss:[esp+C]
+    0040FBAA  .|.  51                   push ecx
+    0040FBAB  .|.  52                   push edx
+    0040FBAC  .|.  C74424 3C 00000000   mov dword ptr ss:[esp+3C],0
+    0040FBB4  .|.  E8 C7BDFFFF          call grecode.0040B980
+    0040FBB9  .|.  A1 E4044700          mov eax,dword ptr ds:[<&MSVCP60.std::basic_string<char>
+    0040FBBE  .|.  8B5424 1C            mov edx,dword ptr ss:[esp+1C]
+    0040FBC2  .|.  8B3D F4044700        mov edi,dword ptr ds:[<&MSVCP60.std::_Xlen>]                ;  MSVCP60.std::_Xlen
+    0040FBC8  .|.  83C4 08              add esp,8
+    0040FBCB  .|.  8B08                 mov ecx,dword ptr ds:[eax]
+    0040FBCD  .|.  2BCA                 sub ecx,edx
+    0040FBCF  .|.  83F9 01              cmp ecx,1
+    0040FBD2  .|.  77 02                ja short grecode.0040FBD6
+  。。。。。
+  省略了 一些代码 个人觉的与算法没甚么关系的其实也就是我看不懂的。。。。。
+
+    0040FD48  .|.  49                   dec ecx
+    0040FD49  .|.  51                   push ecx
+    0040FD4A  .|.  8D4C24 10            lea ecx,dword ptr ss:[esp+10]
+    0040FD4E  .|.  52                   push edx
+    0040FD4F  .|.  FF15 10054700        call dword ptr ds:[<&MSVCP60.std::basic_string<char,st>; MSVCP60.std::basic_string<char,std::char_traits<char>,std::allocator<char> >::append
+    0040FD55  .|>  8B4424 10            mov eax,dword ptr ss:[esp+10]                                ;  //假码用"-"连接
+    0040FD59  .|.  85C0                 test eax,eax
+    0040FD5B  .|.  75 05                jnz short grecode.0040FD62
+    0040FD5D  .|.  A1 E0044700          mov eax,dword ptr ds:[<&MSVCP60. std::basic_string<cha>
+    0040FD62  .|>  8B4C24 08            mov ecx,dword ptr ss:[esp+8]
+    0040FD66  .|.  50                   push eax                                                   ; /Arg2
+    0040FD67  .|.  8B4424 40            mov eax,dword ptr ss:[esp+40]                                ; |
+    0040FD6B  .|.  50                   push eax                                                   ; |//name
+    0040FD6C  .|.  E8 8F020000          call grecode.00410000                                      ; \\//关键 CALL2
+    0040FD71  .|.  8BF0                 mov esi,eax
+    0040FD73  .|.  8B4424 10            mov eax,dword ptr ss:[esp+10]
+    0040FD77  .|.  85C0                 test eax,eax
+    0040FD79  .|.  74 1C                je short grecode.0040FD97
+    0040FD7B  .|.  8A48 FF              mov cl,byte ptr ds:[eax-1]
+    0040FD7E  .|.  48                   dec eax
+    0040FD7F  .|.  84C9                 test cl,cl
+    0040FD81  .|.  74 0B                je short grecode.0040FD8E
+    0040FD83  .|.  80F9 FF              cmp cl,0FF
+    0040FD86  .|.  74 06                je short grecode.0040FD8E
+    0040FD88  .|.  FEC9                 dec cl
+    0040FD8A  .|.  8808                 mov byte ptr ds:[eax],cl
+    0040FD8C  .|.  EB 09                jmp short grecode.0040FD97
+    0040FD8E  .|>  50                   push eax                                                   ; /block
+    0040FD8F  .|.  E8 86D20500          call <grecorde.loc_46D01A>                                  ; \\free
+    0040FD94  .|.  83C4 04              add esp,4
+
+    //////////////////////////////////////////////////////////////////////////////////////////////
+    //F7 来到 关键 CALL2
+    //////////////////////////////////////////////////////////////////////////////////////////////
+
+    00410000  /$  6A FF                 push -1
+    00410002  .|.  68 6AF64600          push grecode.0046F66A                                      ;  SE 句柄安装
+    00410007  .|.  64:A1 00000000       mov eax,dword ptr fs:[0]
+    0041000D  .|.  50                   push eax
+    0041000E  .|.  64:8925 00000000     mov dword ptr fs:[0],esp
+    00410015  .|.  83EC 24              sub esp,24
+    00410018  .|.  53                   push ebx
+    00410019  .|.  55                   push ebp
+    0041001A  .|.  56                   push esi
+    0041001B  .|.  8B7424 40            mov esi,dword ptr ss:[esp+40]
+    0041001F  .|.  57                   push edi
+    00410020  .|.  8D4424 14            lea eax,dword ptr ss:[esp+14]
+    00410024  .|.  8BF9                 mov edi,ecx
+    00410026  .|.  56                   push esi                                                   ; /Arg2
+    00410027  .|.  50                   push eax                                                   ; |Arg1
+    00410028  .|.  897C24 18            mov dword ptr ss:[esp+18],edi                                ; |
+    0041002C  .|.  E8 0FF4FFFF          call grecode.0040F440                                      ; \\//关键 CALL3
+    00410031  .|.  8B6C24 48            mov ebp,dword ptr ss:[esp+48]
+    00410035  .|.  C74424 3C 00000000   mov dword ptr ss:[esp+3C],0
+    0041003D  .|.  55                   push ebp
+    0041003E  .|.  50                   push eax
+    0041003F  .|.  FF15 20054700        call dword ptr ds:[<&MSVCP60.std::operator==>]             ;  MSVCP60.std::operator==
+    00410045  .|.  8AD8                 mov bl,al
+    00410047  .|.  8B4424 20            mov eax,dword ptr ss:[esp+20]
+    0041004B  .|.  83C4 08              add esp,8
+    0041004E  .|.  C74424 3C FFFFFFFF   mov dword ptr ss:[esp+3C],-1
+    00410056  .|.  85C0                 test eax,eax
+    00410058  .|.  74 1C                je short grecode.00410076
+    0041005A  .|.  8A48 FF              mov cl,byte ptr ds:[eax-1]
+    0041005D  .|.  48                   dec eax
+    0041005E  .|.  84C9                 test cl,cl
+    00410060  .|.  74 0B                je short grecode.0041006D
+    00410062  .|.  80F9 FF              cmp cl,0FF
+    00410065  .|.  74 06                je short grecode.0041006D
+    00410067  .|.  FEC9                 dec cl
+    00410069  .|.  8808                 mov byte ptr ds:[eax],cl
+    0041006B  .|.  EB 09                jmp short grecode.00410076
+    0041006D  .|>  50                   push eax                                                   ; /block
+    0041006E  .|.  E8 A7CF0500          call <grecorde.loc_46D01A>                                  ; \\free
+    00410073  .|.  83C4 04              add esp,4
+
+    //////////////////////////////////////////////////////////////////////////////////////////////
+    //F7 来到 关键 CALL3
+    //////////////////////////////////////////////////////////////////////////////////////////////
+
+    0040F440  /$  6A FF                 push -1
+    0040F442  .|.  68 46F54600          push grecode.0046F546                                       ;  SE 句柄安装
+    0040F447  .|.  64:A1 00000000       mov eax,dword ptr fs:[0]
+    0040F44D  .|.  50                   push eax
+    0040F44E  .|.  64:8925 00000000     mov dword ptr fs:[0],esp
+    0040F455  .|.  81EC F0000000        sub esp,0F0
+    0040F45B  .|.  56                   push esi
+    0040F45C  .|.  57                   push edi
+    0040F45D  .|.  8BBC24 0C010000      mov edi,dword ptr ss:[esp+10C]
+    0040F464  .|.  8BF1                 mov esi,ecx
+    0040F466  .|.  85FF                 test edi,edi
+```
+
+
+
+```
+0040F468  .|  C74424 1C 00000000    mov dword ptr ss:[esp+1C],0
+0040F470  .|  75 1B                jnz short grecode.0040F48D
+0040F472  .|  81C6 3C010000        add esi,13C
+0040F478  .|  56                   push esi
+0040F479  .|  8BB424 0C010000      mov esi,dword ptr ss:[esp+10C]
+0040F480  .|  8BCE                 mov ecx,esi
+0040F482  .|  FF15 18054700        call dword ptr ds:[<&MSVCP60.std::basic_string<char,std:>; MSVCP60.std::basic_string<char,std::char_traits<char>,std::allocator<char> >::basic_string<char,std::char_traits<char>,std::allocator<char> >
+0040F488  .|  E9 F1010000          jmp grecode.0040F67E
+0040F48D  |>  8D4C24 60            lea ecx,dword ptr ss:[esp+60]
+0040F491  .|  E8 8AE6FFFF         call grecode.0040DB20                ; //md5 常数
+0040F496  .|  83C6 04              add esi,4
+0040F499  .|  6A 5B                push 5B
+0040F49B  .|  8D4424 34            lea eax,dword ptr ss:[esp+34]
+0040F49F  .|  56                   push esi
+0040F4A0  .|  50                   push eax
+0040F4A1  .|  E8 FA010000          call grecode.0040F6A0
+0040F4A6  .|  57                   push edi
+0040F4A7  .|  8D4C24 60            lea ecx,dword ptr ss:[esp+60]
+0040F4AB  .|  50                   push eax
+0040F4AC  .|  51                   push ecx
+0040F4AD  .|  C78424 18010000 010000>mov dword ptr ss:[esp+118],1
+0040F4B8  .|  E8 F3020000          call grecode.0040F7B0
+0040F4BD  .|  6A 5D                push 5D
+0040F4BF  .|  8D5424 3C            lea edx,dword ptr ss:[esp+3C]
+0040F4C3  .|  50                   push eax
+0040F4C4  .|  52                   push edx
+0040F4C5  .|  C68424 24010000 02   mov byte ptr ss:[esp+124],2
+0040F4CD  .|  E8 CE010000          call grecode.0040F6A0
+0040F4D2  .|  83C4 24              add esp,24
+0040F4D5  .|  6A 01                push 1
+0040F4D7  .|  8D4C24 54            lea ecx,dword ptr ss:[esp+54]
+0040F4DB  .|  C68424 04010000 05   mov byte ptr ss:[esp+104],5
+0040F4E3  .|  FF15 D4044700        call dword ptr ds:[<&MSVCP60.std::basic_string<char,std:>; MSVCP60.std::basic_string<char,std::char_traits<char>,std::allocator<char> >::_Tidy
+0040F4E9  .|  6A 01                push 1
+0040F4EB  .|  8D4C24 34            lea ecx,dword ptr ss:[esp+34]
+0040F4EF  .|  C68424 04010000 04   mov byte ptr ss:[esp+104],4
+0040F4F7  .|  FF15 D4044700        call dword ptr ds:[<&MSVCP60.std::basic_string<char,std:>; MSVCP60.std::basic_string<char,std::char_traits<char>,std::allocator<char> >::_Tidy
+0040F4FD  .|  8B4424 24            mov eax,dword ptr ss:[esp+24]              ; //name 和字符串连接由 insist 到 11643-1[insist]
+0040F501  .|  85C0                 test eax,eax
+0040F503  .|  75 05                jnz short grecode.0040F50A
+0040F505  .|  A1 E0044700          mov eax,dword ptr ds:[<&MSVCP60.`std::basic_string<char,>
+0040F50A  |>  8B4C24 28            mov ecx,dword ptr ss:[esp+28]
+0040F50E  .|  53                   push ebx
+0040F50F  .|  55                   push ebp
+0040F510  .|  51                   push ecx
+0040F511  .|  50                   push eax
+0040F512  .|  8D4C24 70            lea ecx,dword ptr ss:[esp+70]
+0040F516  .|  E8 65E6FFFF          call grecode.0040DB80
+0040F51B  .|  8D5424 48            lea edx,dword ptr ss:[esp+48]
+0040F51F  .|  8D4C24 68            lea ecx,dword ptr ss:[esp+68]
+0040F523  .|  52                   push edx                  ; /Arg1
+0040F524  .|  E8 17E7FFFF          call grecode.0040DC40                ; \\//md5("11643-1[insist]")
+0040F529  .|  8A4424 23            mov al,byte ptr ss:[esp+23]
+0040F52D  .|  6A 00                push 0
+0040F52F  .|  8D4C24 14            lea ecx,dword ptr ss:[esp+14]
+0040F533  .|  884424 14            mov byte ptr ss:[esp+14],al
+0040F537  .|  FF15 D4044700        call dword ptr ds:[<&MSVCP60.std::basic_string<char,std:>; MSVCP60.std::basic_string<char,std::char_traits<char>,std::allocator<char> >::_Tidy
+0040F53D  .|  C68424 08010000 06   mov byte ptr ss:[esp+108],6
+0040F545  .|  33FF                 xor edi,edi
+0040F547  |>  8B2D F4044700        /mov ebp,dword ptr ds:[<&MSVCP60.std::_Xlen>]          ;  MSVCP60.std::_Xlen
+0040F54D  .|  85FF                 |test edi,edi
+0040F54F  .|  7E 56                |jle short grecode.0040F5A7
+0040F551  .|  8BCF                 |mov ecx,edi
+0040F553  .|  81E1 03000080        |and ecx,80000003
+0040F559  .|  79 05                |jns short grecode.0040F560
+0040F55B  .|  49                   |dec ecx
+0040F55C  .|  83C9 FC              |or ecx,FFFFFFFC
+0040F55F  .|  41                   |inc ecx
+0040F560  |>  75 45                |jnz short grecode.0040F5A7
+0040F562  .|  8B15 E4044700        |mov edx,dword ptr ds:[<&MSVCP60.std::basic_string<char,>; MSVCP60.std::basic_string<char,std::char_traits<char>,std::allocator<char> >::npos
+0040F568  .|  8B02                 |mov eax,dword ptr ds:[edx]
+0040F56A  .|  8B5424 18            |mov edx,dword ptr ss:[esp+18]
+0040F56E  .|  2BC2                 |sub eax,edx
+0040F570  .|  83F8 01              |cmp eax,1
+0040F573  .|  77 02                |ja short grecode.0040F577
+0040F575  .|  FFD5                 |call ebp
+0040F577  |>  8B4C24 18            |mov ecx,dword ptr ss:[esp+18]
+0040F57B  .|  6A 00                |push 0
+0040F57D  .|  8D71 01              |lea esi,dword ptr ds:[ecx+1]
+0040F580  .|  8D4C24 14            |lea ecx,dword ptr ss:[esp+14]
+0040F584  .|  56                   |push esi
+0040F585  .|  FF15 FC044700        |call dword ptr ds:[<&MSVCP60.std::basic_string<char,std>; MSVCP60.std::basic_string<char,std::char_traits<char>,std::allocator<char> >::_Grow
+0040F58B  .|  84C0                 |test al,al
+0040F58D  .|  74 18                |je short grecode.0040F5A7
+0040F58F  .|  8B5424 18            |mov edx,dword ptr ss:[esp+18]
+0040F593  .|  8B4424 14            |mov eax,dword ptr ss:[esp+14]
+0040F597  .|  03C2                 |add eax,edx
+0040F599  .|  56                   |push esi
+0040F59A  .|  8D4C24 14            |lea ecx,dword ptr ss:[esp+14]
+0040F59E  .|  C600 2D              |mov byte ptr ds:[eax],2D
+0040F5A1  .|  FF15 0C054700        |call dword ptr ds:[<&MSVCP60.std::basic_string<char,std>; MSVCP60.std::basic_string<char,std::char_traits<char>,std::allocator<char> >::_Eos
+0040F5A7  |>  33C0                 |xor eax,eax
+0040F5A9  .|  B9 1A000000          |mov ecx,1A                          ; //1A(就是十进制的 26)
+0040F5AE  .|  8A443C 48            |mov al,byte ptr ss:[esp+edi+48]             ; //取 md5("11643-1[insist]")的 hash 值第一位
+0040F5B2  .|  99                   |cdq
+0040F5B3  .|  F7F9                 |idiv ecx                              ; //md5("11643-1[insist]")的 hash 值第一位%1a
+0040F5B5  .|  8BDA                 |mov ebx,edx
+```
+
+
+
+### 汇编代码片段
+
+```
+    0040F5B7  .|  8B15 E4044700            |mov edx,dword ptr ds:[<&MSVCP60.std::basic_string<char,>;  MSVCP60.std::basic_string<char,std::char_traits<char>,std::allocator<char> >::npos
+
+    0040F5BD  .|  80C3 41                 |add bl,41                                       ;  //取 md5("11643-1[insist]")的 hash 值第一位%1A+0x41
+
+    0040F5C0  .|  8B02                    |mov eax,dword ptr ds:[edx]
+
+    0040F5C2  .|  8B5424 18              |mov edx,dword ptr ss:[esp+18]
+
+    0040F5C6  .|  2BC2                    |sub eax,edx
+
+    0040F5C8  .|  83F8 01                 |cmp eax,1
+
+    0040F5CB  .|  77 02                   |ja short grecode.0040F5CF
+
+    0040F5CD  .|  FFD5                    |call ebp
+
+    0040F5CF  |>  8B4C24 18              |mov ecx,dword ptr ss:[esp+18]
+
+    0040F5D3  .|  6A 00                   |push 0
+
+    0040F5D5  .|  8D71 01                 |lea esi,dword ptr ds:[ecx+1]
+
+    0040F5D8  .|  8D4C24 14              |lea ecx,dword ptr ss:[esp+14]
+
+    0040F5DC  .|  56                      |push esi
+
+    0040F5DD  .|  FF15 FC044700           |call dword ptr ds:[<&MSVCP60.std::basic_string<char,std>;  MSVCP60.std::basic_string<char,std::char_traits<char>,std::allocator<char> >::_Grow
+
+    0040F5E3  .|  84C0                    |test al,al
+
+    0040F5E5  .|  74 1C                   |je short grecode.0040F603
+
+    0040F5E7  .|  8B5424 18              |mov edx,dword ptr ss:[esp+18]
+
+    0040F5EB  .|  8B4424 14              |mov eax,dword ptr ss:[esp+14]
+
+    0040F5EF  .|  0FBECB                  |movsx ecx,bl
+
+    0040F5F2  .|  03C2                    |add eax,edx
+
+    0040F5F4  .|  8AE9                    |mov ch,cl
+
+    0040F5F6  .|  56                      |push esi
+
+    0040F5F7  .|  8808                    |mov byte ptr ds:[eax],cl
+
+    0040F5F9  .|  8D4C24 14              |lea ecx,dword ptr ss:[esp+14]
+
+    0040F5FD  .|  FF15 0C054700          |call dword ptr ds:[<&MSVCP60.std::basic_string<char,std>;  MSVCP60.std::basic_string<char,std::char_traits<char>,std::allocator<char> >::_Eos
+
+    0040F603  |>  47                      |inc edi
+
+    0040F604  .|  83FF 10                 |cmp edi,10
+
+    0040F607  .^.0F8C 3AFFFFFF            \jl grecode.0040F547
+
+    0040F60D  .|  8BB424 10010000        mov esi,dword ptr ss:[esp+110]                      ;  //产生注册码
+```
+
+注册码保存在 `HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\User Apps\\grecorder`。删掉还可以玩一次。
+
+### 经验总结
+
+有很多函数看不懂。
+
+`keygen` 代码如下：
+
+```c
+#include<stdio.h>
+#include<string.h>
+#include "md5c.c"
+
+main()
+{
+    MD5_CTX md5;
+    char data[64]={0};
+    char name[64]="11643-1[";
+    char MD5Hash[16] = {0};
+    int temp[64]={0};
+    int i,j,name_len;
+    printf("name:");
+    gets(data);
+    strcat(name,data);
+    name_len=strlen(name);
+    strcat(name,"]");
+    name_len=strlen(name);
+    MD5Init(&md5);
+    MD5Update(&md5, name, name_len);
+    MD5Final(MD5Hash, &md5);
+    printf("serial:");
+    for(i=0;i<16;i++)
+        printf("%c",(MD5Hash[i]&0xff)%26+0x41);
+    getch();
+}
+```
+
+没甚么测试，在自己机子上算了几组注册码都可以通过。失误之处请大家指出。
+
+`4dd466d0e1e0cc123afbe504da2462ca`
