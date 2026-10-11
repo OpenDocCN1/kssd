@@ -1,0 +1,601 @@
+
+# Uninstall Manager 4.30 破解+加密字串汉化
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-800.htm`](https://www.pediy.com/kssd/pediy07/pediy7-800.htm)
+
+**【破解作者】** `CCDebuger`  
+
+**【使用工具】** `OllyDBG 1.10` 自己汉化的版本, `DeDe 3.50`, `PeID 0.94`  
+
+**【破解平台】** `Win9x/NT/2000/XP`  
+
+**【软件名称】** `Uninstall Manager`  
+
+**【下载地址】** `http://www.samsunsegman.com/um/umsetup.zip`  
+
+**【软件简介】** 这是一个简单好用的反安装软件, 具有对系统安装检测功能，能记录你硬盘上添加的文件和改变的设置。当你需要时，能彻底地安全地删除你安装的应用程序，使系统恢复安装前的状态。  
+
+**【加壳方式】** 无  
+
+**【破解声明】** 只是感兴趣，不当之处还请各位大侠指教：）  
+
+---
+
+## 破解内容
+
+这个软件是汉化新世纪论坛上的余飞雨兄弟因有部分字串无法汉化，请求协助时我下载下来看的。原来这个软件把注册及未注册的相关英文字串都加了密，这可能也是一种防静态反汇编查关键字串的一种方法吧，呵呵。但这个软件的加密实在不敢恭维，只要找好位置，属可秒杀的那种。当时做的时候记录了一下，整理一下也当是给刚入门的兄弟们一个参考吧。因这篇文章主要是想写给刚入门的朋友看的，我尽量写的详细点，高手就不要看了。不说废话了，下面进入正题：
+
+### 一、软件破解
+
+先用 `PeID` 检测，无壳，`Delphi` 程序。用 `OllyDBG` 载入，`F9` 运行，出来一个对话框，对话框的下面显示你的软件试用期还有多少天（这里就是加密过的字串）。点对话框上面的 `Register` 按钮，出来一个可以输姓名和注册码的地方，姓名输入 `CCDebuger`，注册码输入 `78787878`（积习难改，当年都是受了八爪鱼的毒害啊，呵呵），在 `OllyDBG` 命令行中下 `bp GetDlgItemTextA`，点被调试程序的 `OK` 按钮，跳出一个错误框。没拦住！没关系，我们再来。取消刚才的断点，在 `OllyDBG` 中 `CTR+N`，右击 `GetWindowTextA` 函数，选择在每个参考上设置断点，再在被调试的程序中输入姓名和试炼码，点 `OK` 按钮，又没拦住。看看错误对话框上有这么一行字：“`Sorry not a correct reg key`”，在 `OllyDBG` 中查找 `ASCII` 字串参考，没有。那我们再用 `ApiBreak` 插件设个万能断点吧，很遗憾，还是不行。到此我就不再试了，`Delphi` 程序当然应该用 `DeDe` 来对付它一下。用 `DeDe` 来反编译一下（关于用 `DeDe` 来寻找关键点的方法可以看一下我上传的那个演示动画），很快我们就找到了点 `OK` 按钮后的相关处理代码：
+
+```
+0049CA90   55                 push    ebp  
+0049CA91   8BEC               mov     ebp, esp  
+0049CA93   B907000000         mov     ecx, $00000007  
+0049CA98   6A00               push    $00  
+0049CA9A   6A00               push    $00  
+0049CA9C   49                 dec     ecx  
+0049CA9D   75F9               jnz     0049CA98  
+0049CA9F   51                 push    ecx  
+```
+
+现在我们在 `OllyDBG` 中按 `CTR+G`，输入地址 `0049CA90` 按确定，在地址 `0049CA90` 这个位置设个断点，再次输入姓名和试炼码，点 `OK` 按钮，被断下：
+
+```
+0049CA90   .  55             PUSH EBP  
+0049CA91   .  8BEC           MOV EBP,ESP  
+0049CA93   .  B9 07000000    MOV ECX,7  
+0049CA98   >  6A 00          PUSH 0  
+0049CA9A   .  6A 00          PUSH 0  
+0049CA9C   .  49             DEC ECX  
+0049CA9D   .^ 75 F9         JNZ SHORT Uninsman.0049CA98  
+```
+
+现在我们开始分析：
+
+```
+0049CACC   .  E8 3F0BFDFF    CALL Uninsman.0046D610  
+0049CAD1   .  837D F4 00     CMP DWORD PTR SS:[EBP-C],0             ;  检查是否输入了用户名  
+0049CAD5   .  74 17          JE SHORT Uninsman.0049CAEE  
+0049CAD7   .  8D55 F0        LEA EDX,DWORD PTR SS:[EBP-10]  
+0049CADA   .  8B45 FC        MOV EAX,DWORD PTR SS:[EBP-4]  
+0049CADD   .  8B80 14030000  MOV EAX,DWORD PTR DS:[EAX+314]  
+0049CAE3   .  E8 280BFDFF    CALL Uninsman.0046D610  
+0049CAE8   .  837D F0 00     CMP DWORD PTR SS:[EBP-10],0            ;  检查是否输入了注册码  
+......  
+0049CAD1   .  837D F4 00     CMP DWORD PTR SS:[EBP-C],0             ;  检查是否输入了用户名  
+0049CAD5   .  74 17          JE SHORT Uninsman.0049CAEE  
+0049CAD7   .  8D55 F0        LEA EDX,DWORD PTR SS:[EBP-10]  
+0049CADA   .  8B45 FC        MOV EAX,DWORD PTR SS:[EBP-4]  
+0049CADD   .  8B80 14030000  MOV EAX,DWORD PTR DS:[EAX+314]  
+0049CAE3   .  E8 280BFDFF    CALL Uninsman.0046D610  
+0049CAE8   .  837D F0 00     CMP DWORD PTR SS:[EBP-10],0            ;  检查是否输入了注册码  
+0049CAEC   .  75 41          JNZ SHORT Uninsman.0049CB2F  
+0049CAEE   >  6A 00          PUSH 0                                  
+0049CAF0   .  66:8B0D 50CE4>MOV CX,WORD PTR DS:[49CE50]           
+0049CAF7   .  B2 02          MOV DL,2                                
+0049CAF9   .  B8 5CCE4900    MOV EAX,Uninsman.0049CE5C             
+0049CAFE   .  E8 A978F9FF    CALL Uninsman.004343AC                
+0049CB03   .  48             DEC EAX  
+0049CB04   .  75 17          JNZ SHORT Uninsman.0049CB1D  
+0049CB06   .  8B45 FC        MOV EAX,DWORD PTR SS:[EBP-4]  
+0049CB09   .  8B80 00030000  MOV EAX,DWORD PTR DS:[EAX+300]  
+0049CB0F   .  66:BE EBFF     MOV SI,0FFEB  
+0049CB13   .  E8 BC74F6FF    CALL Uninsman.00403FD4  
+0049CB18   .  E9 E7020000    JMP Uninsman.0049CE04  
+0049CB1D   >  8B45 FC        MOV EAX,DWORD PTR SS:[EBP-4]  
+0049CB20   .  C780 4C020000>MOV DWORD PTR DS:[EAX+24C],2  
+0049CB2A   .  E9 D5020000    JMP Uninsman.0049CE04  
+0049CB2F   >  8B45 FC        MOV EAX,DWORD PTR SS:[EBP-4]  
+0049CB32   .  E8 C9F8FFFF    CALL Uninsman.0049C400                ;  关键 CALL，跟进去  
+0049CB37   .  3C 01          CMP AL,1                               ;  注册标准位  
+0049CB39   .  0F85 74020000  JNZ Uninsman.0049CDB3                 ;  不等则完蛋  
+```
+
+走到 `0049CB32` 那个 `CALL` 时我们按 `F7` 跟进去，停在 `0049C400` 处：
+
+```
+0049C400  /$  55             PUSH EBP  
+0049C401  |.  8BEC           MOV EBP,ESP  
+0049C403  |.  33C9           XOR ECX,ECX  
+```
+
+用户名计算部分：
+
+```
+0049C42C  |.  837D F4 00     CMP DWORD PTR SS:[EBP-C],0             ;  检查是否输入了用户名  
+0049C430  |.  74 7B          JE SHORT Uninsman.0049C4AD  
+0049C432  |.  8D55 FC        LEA EDX,DWORD PTR SS:[EBP-4]  
+0049C435  |.  8B86 10030000  MOV EAX,DWORD PTR DS:[ESI+310]  
+0049C43B  |.  E8 D011FDFF    CALL Uninsman.0046D610  
+0049C440  |.  8B45 FC        MOV EAX,DWORD PTR SS:[EBP-4]  
+0049C443  |.  E8 E089F6FF    CALL Uninsman.00404E28  
+0049C448  |.  8BF8           MOV EDI,EAX                              ;  用户名长度  
+0049C44A  |.  8D55 F0        LEA EDX,DWORD PTR SS:[EBP-10]  
+0049C44D  |.  8B45 FC        MOV EAX,DWORD PTR SS:[EBP-4]             ;  用户名  
+0049C450  |.  E8 03CAF6FF    CALL Uninsman.00408E58                   ;  这个 CALL 的作用是把用户名中的大写字母转换为小写  
+0049C455  |.  8B55 F0        MOV EDX,DWORD PTR SS:[EBP-10]  
+0049C458  |.  8D45 FC        LEA EAX,DWORD PTR SS:[EBP-4]  
+0049C45B  |.  E8 A087F6FF    CALL Uninsman.00404C00  
+0049C460  |.  33DB           XOR EBX,EBX  
+0049C462  |.  85FF           TEST EDI,EDI  
+0049C464  |.  7E 1D          JLE SHORT Uninsman.0049C483  
+0049C466  |.  B8 01000000    MOV EAX,1  
+0049C46B  |>  8B55 FC       /MOV EDX,DWORD PTR SS:[EBP-4]           ;  取用户名  
+0049C46E  |.  8A5402 FF     |MOV DL,BYTE PTR DS:[EDX+EAX-1]         ;  取用户名的每位 ASCII 值  
+0049C472  |.  80FA 20       |CMP DL,20  
+0049C475  |.  74 08         |JE SHORT Uninsman.0049C47F  
+0049C477  |.  81E2 FF000000 |AND EDX,0FF                             ;  保留后两位（低 8 位）。如 EDX 原来是 10041E64，执行这条指令后就是 00000064。  
+0049C47D  |.  03DA          |ADD EBX,EDX                              ;  把用户名的每位 ASCII 值相加后放在 EBX  
+0049C47F  |>  40            |INC EAX  
+0049C480  |.  4F            |DEC EDI  
+0049C481  |.^ 75 E8         \JNZ SHORT Uninsman.0049C46B             ;  判断是否计算完  
+0049C483  |>  81F3 89000000 XOR EBX,89                                ;  用户名计算后值与 89H 异或  
+0049C489  |.  83F3 33       XOR EBX,33                                ;  再与 33H 异或  
+0049C48C  |.  43            INC EBX                                   ;  加 1  
+0049C48D  |.  8D55 F8       LEA EDX,DWORD PTR SS:[EBP-8]  
+0049C490  |.  8B86 14030000 MOV EAX,DWORD PTR DS:[ESI+314]  
+0049C496  |.  E8 7511FDFF   CALL Uninsman.0046D610  
+0049C49B  |.  8B45 F8       MOV EAX,DWORD PTR SS:[EBP-8]             ;  我们输入的注册码，跟进下面的 CALL  
+0049C49E  |.  E8 6DCFF6FF   CALL Uninsman.00409410                   ;  注册码计算部分  
+0049C4A3  |.  3BD8          CMP EBX,EAX                                ;  用户名与注册码计算后的值比较  
+0049C4A5  |.  75 04         JNZ SHORT Uninsman.0049C4AB               ;  不等则完蛋  
+```
+
+在 `0049C49E` 地址处按 `F7` 跟进那个 `CALL`，来到这里：
+
+```
+00409410  /$  53             PUSH EBX  
+00409411  |.  56             PUSH ESI  
+00409412  |.  83C4 F4        ADD ESP,-0C  
+00409415  |.  8BD8           MOV EBX,EAX  
+00409417  |.  8BD4           MOV EDX,ESP  
+00409419  |.  8BC3           MOV EAX,EBX                               ;  我们输的注册码  
+0040941B  |.  E8 84A2FFFF    CALL Uninsman.004036A4                    ;  跟进去  
+```
+
+进入 `0040941B` 的 `CALL`，来到注册码计算部分：
+
+```
+004036A4  /$  53             PUSH EBX                                   ;  来到这里  
+004036A5  |.  56             PUSH ESI  
+004036A6  |.  57             PUSH EDI  
+004036A7  |.  89C6           MOV ESI,EAX  
+004036A9  |.  50             PUSH EAX  
+004036AA  |.  85C0           TEST EAX,EAX  
+```
+
+
+
+# 004036AC |. 74 6C JE SHORT Uninsman.0040371A
+
+```
+004036AC  |.  74 6C          JE  SHORT Uninsman.0040371A  
+
+004036AE  |.  31C0          XOR EAX,EAX  
+
+004036B0  |.  31DB          XOR EBX,EBX  
+
+004036B2  |.  BF CCCCCC0C   MOV EDI,Uninsman.0CCCCCCC  
+
+004036B7  |>  8A1E          /MOV BL,BYTE PTR DS:[ESI]               ;  依次取注册码的每个值  
+
+004036B9  |.  46            |INC ESI  
+
+004036BA  |.  80FB 20       |CMP BL,20                               ;  判断是否是空格  
+
+004036BD  |.^ 74 F8         \JE  SHORT Uninsman.004036B7  
+
+004036BF  |.  B5 00         MOV CH,0  
+
+004036C1  |.  80FB 2D       CMP BL,2D  
+
+004036C4  |.  74 62         JE  SHORT Uninsman.00403728  
+
+004036C6  |.  80FB 2B       CMP BL,2B  
+
+004036C9  |.  74 5F         JE  SHORT Uninsman.0040372A  
+
+004036CB  |>  80FB 24       CMP BL,24  
+
+004036CE  |.  74 5F         JE  SHORT Uninsman.0040372F  
+
+004036D0  |.  80FB 78       CMP BL,78                                 ;  判断是否为字符“x”  
+
+004036D3  |.  74 5A         JE  SHORT Uninsman.0040372F  
+
+004036D5  |.  80FB 58       CMP BL,58                                 ;  判断是否为字串“X”  
+
+004036D8  |.  74 55         JE  SHORT Uninsman.0040372F  
+
+004036DA  |.  80FB 30       CMP BL,30  
+
+004036DD  |.  75 13         JNZ SHORT Uninsman.004036F2  
+
+004036DF  |.  8A1E          MOV BL,BYTE PTR DS:[ESI]  
+
+004036E1  |.  46            INC ESI  
+
+004036E2  |.  80FB 78       CMP BL,78  
+
+004036E5  |.  74 48         JE  SHORT Uninsman.0040372F  
+
+004036E7  |.  80FB 58       CMP BL,58  
+
+004036EA  |.  74 43         JE  SHORT Uninsman.0040372F  
+
+004036EC  |.  84DB          TEST BL,BL  
+
+004036EE  |.  74 20         JE  SHORT Uninsman.00403710  
+
+004036F0  |.  EB 04         JMP SHORT Uninsman.004036F6  
+
+004036F2  |>  84DB          TEST BL,BL  
+
+004036F4  |.  74 2D         JE  SHORT Uninsman.00403723  
+
+004036F6  |>  80EB 30       /SUB BL,30  
+
+004036F9  |.  80FB 09       |CMP BL,9                                 ;  判断是否为数字  
+
+004036FC  |.  77 25         |JA  SHORT Uninsman.00403723             ;  非数字则不计算  
+
+004036FE  |.  39F8          |CMP EAX,EDI                               ;  与 16 进制值 CCCCCCC 比较  
+
+00403700  |.  77 21         |JA  SHORT Uninsman.00403723  
+
+00403702  |.  8D0480        |LEA EAX,DWORD PTR DS:[EAX+EAX*4]         ;  取出的值乘 5，如数字 7 的 ASCII 是“37”，经过上面运算后 EAX 中为 7，再乘 5 为 23H  
+
+00403705  |.  01C0          |ADD EAX,EAX  
+
+00403707  |.  01D8          |ADD EAX,EBX                               ;  把得出的数字加到 EAX  
+
+00403709  |.  8A1E          |MOV BL,BYTE PTR DS:[ESI]                 ;  取下一个  
+
+0040370B  |.  46            |INC ESI  
+
+0040370C  |.  84DB          |TEST BL,BL  
+
+0040370E  |.^ 75 E6         \JNZ SHORT Uninsman.004036F6             ;  没计算完则继续  
+
+00403710  |>  FECD          DEC CH
+```
+
+上面注册码计算部分的功能就是把你输的字串转为数字形式。如这样：你输入的注册码是“7878”，那么经过上面的计算后 `EAX` 中的值是 `1EC6`，就是十进制的 `7878`。
+
+最后比较部分：
+
+```
+0049C4A3  |.  3BD8            CMP EBX,EAX                               ;  用户名与注册码计算后的值比较  
+
+0049C4A5  |.  75 04           JNZ SHORT Uninsman.0049C4AB             ;  不等则完蛋
+```
+
+根据分析，我们用 `C` 语言描述注册机如下（未对中文用户名进行处理）：
+
+--------------------------------------------------------------------------------
+
+【算法注册机】
+
+```c
+#include "stdio.h"  
+
+#include "string.h"  
+
+main ()  
+
+{  
+
+  int i, lenth;  
+
+  unsigned int Code = 0;  
+
+  char Name[255];  
+
+  printf("请输入您的姓名:");  
+
+  gets( Name );  
+
+  lenth = strlen( Name );  
+
+  for (i = 0; i < lenth; i++)  
+
+  {  
+
+    if (Name[i] >= 'A' && Name[i] <= 'Z')  //判断用户名中是否有大写字母，有则转为小写  
+
+    Name[i] = Name[i] + 0X20;  
+
+  }  
+
+  for (i = 0; i < lenth; i++)  
+
+  {  
+
+    Code =Code + Name[i];  
+
+  }  
+
+  printf ("您的注册码为:");  
+
+  Code = (Code ^ 0x89 ^ 0x33) + 1;  
+
+  printf ("%d" , Code);  
+
+  getchar();   
+
+}
+```
+
+--------------------------------------------------------------------------------
+
+## 二、加密字串汉化
+
+这个软件在关于对话框中试用期提示字串“You are on the day 1 of your 30 day evaluation period”直接在程序中是找不到的。这就给汉化带来了难题。怎样找到调用的地方呢？我的思路是跟踪这个程序创建关于对话框的窗体的相关代码，找出加密字串。我们再来用一下 `DeDe`，很快我们就发现关于对话框的 `FormCreate` 事件对应的处理代码开始位置为 `0049C650`。现在我们回到 `OllyDBG`，在 `0049C650` 处设上断点（先不要急着注册程序，以方便我们跟踪加密字串），重新运行被调试的程序，断在 `0049C650` 处：
+
+```
+0049C650   .  55             PUSH EBP  
+
+0049C651   .  8BEC          MOV EBP,ESP  
+
+0049C653   .  B9 06000000   MOV ECX,6  
+
+0049C658   >  6A 00         PUSH 0  
+
+0049C65A   .  6A 00         PUSH 0
+```
+
+现在开始分析：
+
+`F8` 向下走，来到这里：
+
+```
+0049C6BE   .  803D 59CD4A00>CMP BYTE PTR DS:[4ACD59],1               ;  判断是否已注册  
+
+0049C6C5   .  0F85 64010000 JNZ Uninsman.0049C82F                   ;  未注册跳走
+```
+
+我们来到 `49C82F` 这个地方看看：
+
+```
+0049C82F   > \C605 5ACD4A00>MOV BYTE PTR DS:[4ACD5A],0  
+
+0049C836   .  A1 F8BA4A00   MOV EAX,DWORD PTR DS:[4ABAF8]  
+
+0049C83B   .  8338 00       CMP DWORD PTR DS:[EAX],0  
+
+0049C83E   .  75 6D         JNZ SHORT Uninsman.0049C8AD  
+
+0049C840   .  A1 BCBA4A00   MOV EAX,DWORD PTR DS:[4ABABC]  
+
+0049C845   .  8338 1F       CMP DWORD PTR DS:[EAX],1F  
+
+0049C848   .  7D 63         JGE SHORT Uninsman.0049C8AD  
+
+0049C84A   .  A1 BCBA4A00   MOV EAX,DWORD PTR DS:[4ABABC]  
+
+0049C84F   .  8338 00       CMP DWORD PTR DS:[EAX],0  
+
+0049C852   .  7E 59         JLE SHORT Uninsman.0049C8AD  
+
+0049C854   .  8D55 DC       LEA EDX,DWORD PTR SS:[EBP-24]  
+
+0049C857   .  B8 04CA4900   MOV EAX,Uninsman.0049CA04                ;  (((qg}(izm(gf(|\`m(liq(  
+
+0049C85C   .  E8 AF340000   CALL Uninsman.0049FD10                   ;  加密字串出现了，跟进去
+```
+
+`F7` 跟进地址 `49C85C` 的那个 `CALL`，来到下面：
+
+```
+0049FD10  /$  55             PUSH EBP                                ;  来到这里  
+
+0049FD11  |.  8BEC          MOV EBP,ESP  
+
+0049FD13  |.  6A 00         PUSH 0  
+
+0049FD15  |.  6A 00         PUSH 0  
+
+0049FD17  |.  6A 00         PUSH 0  
+
+0049FD19  |.  53             PUSH EBX  
+
+0049FD1A  |.  56             PUSH ESI  
+
+0049FD1B  |.  57             PUSH EDI  
+
+0049FD1C  |.  8BFA          MOV EDI,EDX  
+
+0049FD1E  |.  8945 FC       MOV DWORD PTR SS:[EBP-4],EAX  
+
+0049FD21  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]             ;  这两句还挺有意思的，没事倒着玩？加密字串送 EAX  
+
+0049FD24  |.  E8 EF52F6FF   CALL Uninsman.00405018  
+
+0049FD29  |.  33C0          XOR EAX,EAX  
+
+0049FD2B  |.  55             PUSH EBP  
+
+0049FD2C  |.  68 9BFD4900   PUSH Uninsman.0049FD9B  
+
+0049FD31  |.  64:FF30       PUSH DWORD PTR FS:[EAX]  
+
+0049FD34  |.  64:8920       MOV DWORD PTR FS:[EAX],ESP  
+
+0049FD37  |.  8D45 F8       LEA EAX,DWORD PTR SS:[EBP-8]  
+
+0049FD3A  |.  E8 294EF6FF   CALL Uninsman.00404B68  
+
+0049FD3F  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]             ;  加密字串送 EAX  
+
+0049FD42  |.  E8 E150F6FF   CALL Uninsman.00404E28  
+
+0049FD47  |.  8BD8          MOV EBX,EAX                               ;  设解密后字串长度  
+
+0049FD49  |.  85DB          TEST EBX,EBX  
+
+0049FD4B  |.  7E 29         JLE SHORT Uninsman.0049FD76  
+
+0049FD4D  |.  BE 01000000   MOV ESI,1  
+
+0049FD52  |>  8D45 F4       /LEA EAX,DWORD PTR SS:[EBP-C]  
+
+0049FD55  |.  8B55 FC       |MOV EDX,DWORD PTR SS:[EBP-4]             ;  加密字串送 EDX  
+
+0049FD58  |.  8A5432 FF     |MOV DL,BYTE PTR DS:[EDX+ESI-1]           ;  循环取每个加密字符  
+
+0049FD5C  |.  80F2 0B       |XOR DL,0B                                 ;  与 16 进制 B 异或  
+
+0049FD5F  |.  80F2 03       |XOR DL,3                                  ;  与 3 异或  
+
+0049FD62  |.  E8 E94FF6FF   |CALL Uninsman.00404D50  
+
+0049FD67  |.  8B55 F4       |MOV EDX,DWORD PTR SS:[EBP-C]  
+
+0049FD6A  |.  8D45 F8       |LEA EAX,DWORD PTR SS:[EBP-8]  
+
+0049FD6D  |.  E8 BE50F6FF   |CALL Uninsman.00404E30  
+
+0049FD72  |.  46            |INC ESI  
+
+0049FD73  |.  4B            |DEC EBX  
+
+0049FD74  |.^ 75 DC         \JNZ SHORT Uninsman.0049FD52             ;  判断是否处理完  
+
+0049FD76  |>  8BC7          MOV EAX,EDI  
+
+0049FD78  |.  8B55 F8       MOV EDX,DWORD PTR SS:[EBP-8]             ;  把解密后字串送 EDX  
+
+0049FD7B  |.  E8 3C4EF6FF   CALL Uninsman.00404BBC
+```
+
+现在我们知道字串加密的算法很简单，就是把每个字串先和与 `16` 进制的 `B` 异或再与 `3` 异或。写个加密字串与解密字串相互转换的小程序吧：
+
+--------------------------------------------------------------------------------
+
+【解密字串程序】
+
+```c
+#include "stdio.h"  
+
+#include "string.h"  
+
+main ()  
+
+{  
+
+  int i, lenth;  
+
+  char Unicode[255];  
+
+  printf("请输入翻译后的字串:\\n");  
+
+  gets( Unicode );
+```
+
+
+
+# 加密代码实现
+
+```
+lenth = strlen( Unicode );  
+
+for (i = 0; i < lenth; i++)  
+{  
+  Unicode[i] = Unicode[i] ^ 0XB ^ 3;  
+}  
+printf ("加密字串为:\n");  
+puts( Unicode );  
+getchar();  
+```
+
+# 字符串汉化说明
+
+最后我们找到了一些加密字串，只要把对应的英文翻译为中文后再加密替换原来的英文加密字串就可以汉化了。翻译后字串少于原字串时要补 `00` 的话就直接填 16 进制的 `08`，要补空格就添左括号“(`(`)”：
+
+## 条目 1
+
+`0049D008=Uninsman.0049D008, (ASCII "\[gzzq(fg|(i(kgzzmk|(zmo(cmq")`
+
+解密后字串（怪不得我开始没搜到这个字串呢）：
+
+"Sorry not a correct reg key"
+
+翻译：
+
+对不起,你输入的注册码不正确
+
+加密字串为：
+
+拒撼硒$屉蚂楞教擢洪抒撼蒗揽
+
+## 条目 2
+
+`0049CA04=Uninsman.0049CA04 (ASCII "(((Qg}(izm(gf(|`m(liq(")`
+
+解密后字串：
+
+"   You are on the day  "
+
+翻译：
+
+ 你使用这个软件已经有
+
+加密字串为:
+
+((屉卤鬯蓐剥厘傣谫顶圬
+
+## 条目 3
+
+`0049CA24=Uninsman.0049CA24 (ASCII "(gn(qg}z(;8(liq(m~id}i|agf(xmzagl")`
+
+解密后字串：(ASCII " of your 30 day evaluation period")
+
+翻译：
+
+ 天了,软件的试用期总共为 30 天.   
+
+加密字串为:
+
+(匿擅$厘傣教萝鬯我咴焙脾(;8(匿&((
+
+## 条目 4
+
+`0049CA50=Uninsman.0049CA50 (ASCII "((Qg}z(|zaid(xmzagl(nafa{\`ml&(Xdmi{m(kdakc(\*Zmoa{|mz\*(j}||gf&")`
+
+解密后字串：
+
+"  Your trial period finished. Please click "Register" button."
+
+翻译：
+
+ 你的软件试用期已结束.如果你想继续使用的话,请点击"注册"按钮.
+
+加密字串为:
+
+((屉教厘傣萝鬯我谫甸吗&里斌屉倾茨仞卤鬯教掣$香诫?\*擢洪\*讣铜&
+
+## 条目 5
+
+`0049C95C=Uninsman.0049C95C (ASCII "\\\`ifc(qg}(ngz(zmoa{|mzafo(\]faf{|idd(Eifiomz")`
+
+解密后字串：
+
+"Thank you for registering Uninstall Manager"
+
+翻译：
+
+谢谢你注册 Uninstall Manager.                  
+
+加密字串为:
+
+爻爻屉擢洪(\]faf{|idd(Eifiomz&((((((((((((((
+
+---
+
+感谢你看完！破解这个软件不要二十分钟，写这篇教程花了我快 5 个小时，我晕！
+
+【版权声明】 本文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢! 
+
+4dd466d0e1e0cc123afbe504da2462ca
