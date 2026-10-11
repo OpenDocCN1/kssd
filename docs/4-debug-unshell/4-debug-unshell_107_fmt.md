@@ -1,0 +1,344 @@
+
+# NsPack3.7 分析和静态脱壳机(附源码)
+
+> 原文：[`www.pediy.com/kssd/pediy10/94673.html`](https://www.pediy.com/kssd/pediy10/94673.html)
+
+NsPack3.7 分析和静态脱壳机(附源码)
+
+科锐第四阶段壳专题课后作业。感谢钱老师的细心教导。让我从一个仅仅知道 C 的人能用 C/C++ 做一些开发，并学会了一些逆向知识。
+
+由于本人技术有限，所以分析的不是很详细。还请各位大牛见谅。如有不足的地方，希望各位及时指出。谢谢。
+
+由于是脱壳机有部分是边分析边写，所以代码风格很差。各位尽管拍砖头吧..
+
+壳版本: `Nspack3.7.Cracked.exe`
+
+工具: `IDA`, `OD`
+
+引用: 外壳 `shell` 简单分析
+
+## 外壳第一部分
+
+1. 申请堆空间
+2. 处理 `shell` 第二部分，并拷贝到堆空间
+3. 执行完 `shell` 第二部分后循环处理 `E8`
+4. 填写 `IAT`
+5. 恢复内存属性
+6. 跳转到 `OEP`
+
+## 外壳第二部分
+
+解压数据并拷贝到原地址
+
+## 外壳 shell 分析
+
+代码:
+
+
+
+```assembly
+.nsp1:0040A219             pushf                   ; (1)
+.nsp1:0040A21A             pusha
+.nsp1:0040A21B             call    $+5
+.nsp1:0040A220             pop     ebp
+.nsp1:0040A221             sub     ebp, 7          ; 获得当前(1)处地址
+.nsp1:0040A224             lea     ecx, [ebp-19Dh]
+.nsp1:0040A22A             cmp     byte ptr [ecx], 1 ; 标记位
+.nsp1:0040A22D             jz      loc_40A475
+.nsp1:0040A233             mov     byte ptr [ecx], 1 ; 标记位置 1
+.nsp1:0040A236             mov     eax, ebp
+.nsp1:0040A238             sub     eax, [ebp-209h] ; [ebp-209] 存放当前 OEP RVA
+.nsp1:0040A23E             mov     [ebp-209h], eax ; image base
+.nsp1:0040A244             add     [ebp-1D9h], eax ; image base + code seg RVA
+.nsp1:0040A24A             lea     esi, [ebp-195h]
+.nsp1:0040A250             add     [esi], eax      ; image base + code seg RVA
+.nsp1:0040A252             push    ebp             ; 保存 ebp(加壳后程序入口点)
+.nsp1:0040A253             push    esi             ; 保存 esi(DWORD 指针，指向未加壳程序代码段内存偏移)
+.nsp1:0040A254             push    40h             ; 参数(PAGE_EXECUTE_READWRITE 0x40)
+.nsp1:0040A256             push    1000h           ; 参数(MEM_COMMIT 0x1000 )
+.nsp1:0040A25B             push    1000h           ; 参数(dwSize)
+.nsp1:0040A260             push    0               ; 起始地址,为 0 则系统自动分配
+.nsp1:0040A262             call    dword ptr [ebp-171h] ; CALL kernel32.VirtualAlloc
+.nsp1:0040A268             test    eax, eax        ; 是否申请成功
+.nsp1:0040A26A             jz      loc_40A5D9
+.nsp1:0040A270             mov     [ebp-1E1h], eax ; 保存申请的堆空间首地址
+.nsp1:0040A276             call    $+5
+.nsp1:0040A27B             pop     ebx
+.nsp1:0040A27C             mov     ecx, 367h
+.nsp1:0040A281             add     ebx, ecx
+.nsp1:0040A283             push    eax             ; 目的,申请的堆空间
+.nsp1:0040A284             push    ebx             ; 源数据,shell 第二部分代码
+.nsp1:0040A285             call    __ShellDecode   ; 把 shell 第二部分代码修正并拷贝到堆空间
+.nsp1:0040A28A             pop     esi
+.nsp1:0040A28B             pop     ebp
+.nsp1:0040A28C             mov     esi, [esi]      ; [esi] 00401000
+.nsp1:0040A28E             mov     edi, ebp        ; 加壳后 OEP 内存偏移
+.nsp1:0040A290             add     edi, [ebp-219h] ; [ebp-219] 取得偏移 906h
+.nsp1:0040A296             mov     ebx, edi
+.nsp1:0040A298             cmp     dword ptr [edi], 0
+.nsp1:0040A29B             jnz     short loc_40A2A7
+.nsp1:0040A29D             add     edi, 4
+.nsp1:0040A2A0             mov     ecx, 0
+.nsp1:0040A2A5             jmp     short loc_40A2BD
+.nsp1:0040A2A7 ; ---------------------------------------------------------------------------
+.nsp1:0040A2A7
+.nsp1:0040A2A7 loc_40A2A7:                         ; CODE XREF: start+82j
+.nsp1:0040A2A7             mov     ecx, 1
+.nsp1:0040A2AC             add     edi, [ebx]
+.nsp1:0040A2AE             add     ebx, 4
+.nsp1:0040A2B1
+.nsp1:0040A2B1 loc_40A2B1:                         ; CODE XREF: start+CFj
+.nsp1:0040A2B1             cmp     dword ptr [ebx], 0
+.nsp1:0040A2B4             jz      short loc_40A2EA
+.nsp1:0040A2B6             add     [ebx], edx
+.nsp1:0040A2B8             mov     esi, [ebx]
+.nsp1:0040A2BA             add     edi, [ebx+4]
+.nsp1:0040A2BD
+.nsp1:0040A2BD loc_40A2BD:                         ; CODE XREF: start+8Cj
+.nsp1:0040A2BD             push    edi
+.nsp1:0040A2BE             push    ecx
+.nsp1:0040A2BF             push    ebx
+.nsp1:0040A2C0             push    dword ptr [ebp-16Dh] ; VirtualFree
+.nsp1:0040A2C6             push    dword ptr [ebp-171h] ; [EBP-171] kernel32.VirtualAlloc
+.nsp1:0040A2CC             mov     edx, esi
+.nsp1:0040A2CE             mov     ecx, edi
+.nsp1:0040A2D0             mov     eax, [ebp-1E1h] ; VirtualAlloc 返回的首地址
+.nsp1:0040A2D6             add     eax, 5AAh
+.nsp1:0040A2DB             call    eax             ; __Shell_Decode_Data 数据解压并拷贝到原虚拟地址
+.nsp1:0040A2DD             pop     ebx
+.nsp1:0040A2DE             pop     ecx
+.nsp1:0040A2DF             pop     edi
+.nsp1:0040A2E0             cmp     ecx, 0
+.nsp1:0040A2E3             jz      short loc_40A2EA
+.nsp1:0040A2E5             add     ebx, 8
+.nsp1:0040A2E8             jmp     short loc_40A2B1
+.nsp1:0040A2EA ; ---------------------------------------------------------------------------
+.nsp1:0040A2EA
+.nsp1:0040A2EA loc_40A2EA:                         ; CODE XREF: start+9Bj
+.nsp1:0040A2EA                         ; start+CAj
+.nsp1:0040A2EA             push    8000h
+.nsp1:0040A2EF             push    0
+.nsp1:0040A2F1             push    dword ptr [ebp-1E1h]
+.nsp1:0040A2F7             call    dword ptr [ebp-16Dh] ; kernel32.VirtualFree
+.nsp1:0040A2FD             lea     esi, [ebp-1D9h]
+.nsp1:0040A303             mov     ecx, [esi+8]
+.nsp1:0040A306             lea     edx, [esi+10h]
+.nsp1:0040A309             mov     esi, [esi]
+.nsp1:0040A30B             mov     edi, esi
+.nsp1:0040A30D             cmp     ecx, 0          ; 循环处理 near call(ecx 循环次数)
+.nsp1:0040A310             jz      short loc_40A351
+.nsp1:0040A312
+.nsp1:0040A312 loc_40A312:                         ; CODE XREF: start+100j
+.nsp1:0040A312                         ; start+10Ej
+.nsp1:0040A312             mov     al, [edi]       ; 处理开始
+.nsp1:0040A314             inc     edi
+.nsp1:0040A315             sub     al, 0E8h        ; E8 是 near call 的机器码
+.nsp1:0040A317
+.nsp1:0040A317 loc_40A317:                         ; CODE XREF: start+136j
+.nsp1:0040A317             cmp     al, 1
+.nsp1:0040A319             ja      short loc_40A312 ; 大于 1 跳过
+.nsp1:0040A31B             mov     eax, [edi]
+.nsp1:0040A31D             cmp     byte ptr [edx+1], 0
+.nsp1:0040A321             jz      short loc_40A337 ; 是 near call 则跳去处理
+.nsp1:0040A323             mov     bl, [edx]
+.nsp1:0040A325             cmp     [edi], bl
+.nsp1:0040A327             jnz     short loc_40A312
+.nsp1:0040A329             mov     bl, [edi+4]
+.nsp1:0040A32C             shr     ax, 8
+.nsp1:0040A330             rol     eax, 10h
+.nsp1:0040A333             xchg    al, ah
+.nsp1:0040A335             jmp     short loc_40A341
+.nsp1:0040A337 ; ---------------------------------------------------------------------------
+.nsp1:0040A337
+.nsp1:0040A337 loc_40A337:                         ; CODE XREF: start+108j
+.nsp1:0040A337             mov     bl, [edi+4]
+.nsp1:0040A33A             xchg    al, ah
+.nsp1:0040A33C             rol     eax, 10h
+.nsp1:0040A33F             xchg    al, ah
+.nsp1:0040A341
+.nsp1:0040A341 loc_40A341:                         ; CODE XREF: start+11Cj
+.nsp1:0040A341             sub     eax, edi
+.nsp1:0040A343             add     eax, esi
+.nsp1:0040A345             mov     [edi], eax
+.nsp1:0040A347             add     edi, 5
+.nsp1:0040A34A             sub     bl, 0E8h
+.nsp1:0040A34D             mov     eax, ebx
+.nsp1:0040A34F             loop    loc_40A317      ; near call 处理结束
+.nsp1:0040A351
+.nsp1:0040A351 loc_40A351:                         ; CODE XREF: start+F7j
+.nsp1:0040A351             call    __Fill_IAT_Table ; 填 IAT 表
+.nsp1:0040A356             lea     ecx, [ebp-1C5h]
+.nsp1:0040A35C             mov     eax, [ecx+8]
+.nsp1:0040A35F             cmp     eax, 0
+.nsp1:0040A362             jz      loc_40A3E9
+.nsp1:0040A368             mov     esi, edx
+.nsp1:0040A36A             sub     esi, [ecx+10h]
+.nsp1:0040A36D             jz      short loc_40A3E9
+.nsp1:0040A36F             mov     [ecx+10h], esi
+.nsp1:0040A372             lea     esi, [ebp-195h]
+.nsp1:0040A378             mov     esi, [esi]
+.nsp1:0040A37A             lea     ebx, [esi-4]
+.nsp1:0040A37D             mov     eax, [ecx]
+.nsp1:0040A37F             cmp     eax, 1
+.nsp1:0040A382             jz      short loc_40A38E
+.nsp1:0040A384             mov     edi, edx
+.nsp1:0040A386             add     edi, [ecx+8]
+.nsp1:0040A389             mov     ecx, [ecx+10h]
+.nsp1:0040A38C             jmp     short loc_40A396
+.nsp1:0040A38E ; ---------------------------------------------------------------------------
+.nsp1:0040A38E
+.nsp1:0040A38E loc_40A38E:                         ; CODE XREF: start+169j
+.nsp1:0040A38E             mov     edi, esi
+.nsp1:0040A390             add     edi, [ecx+8]
+.nsp1:0040A393             mov     ecx, [ecx+10h]
+.nsp1:0040A396
+.nsp1:0040A396 loc_40A396:                         ; CODE XREF: start+173j
+.nsp1:0040A396                         ; start+18Ej
+.nsp1:0040A396             xor     eax, eax
+.nsp1:0040A398             mov     al, [edi]
+.nsp1:0040A39A             inc     edi
+.nsp1:0040A39B             or      eax, eax
+.nsp1:0040A39D             jz      short loc_40A3BF
+.nsp1:0040A39F             cmp     al, 0EFh
+.nsp1:0040A3A1             ja      short loc_40A3A9
+.nsp1:0040A3A3
+.nsp1:0040A3A3 loc_40A3A3:                         ; CODE XREF: start+19Dj
+.nsp1:0040A3A3                         ; start+1A4j
+.nsp1:0040A3A3             add     ebx, eax
+.nsp1:0040A3A5             add     [ebx], ecx
+.nsp1:0040A3A7             jmp     short loc_40A396
+.nsp1:0040A3A9 ; ---------------------------------------------------------------------------
+.nsp1:0040A3A9
+.nsp1:0040A3A9 loc_40A3A9:                         ; CODE XREF: start+188j
+.nsp1:0040A3A9             and     al, 0Fh
+.nsp1:0040A3AB             shl     eax, 10h
+.nsp1:0040A3AE             mov     ax, [edi]
+.nsp1:0040A3B1             add     edi, 2
+.nsp1:0040A3B4             or      eax, eax
+.nsp1:0040A3B6             jnz     short loc_40A3A3
+.nsp1:0040A3B8             mov     eax, [edi]
+.nsp1:0040A3BA             add     edi, 4
+.nsp1:0040A3BD             jmp     short loc_40A3A3
+.nsp1:0040A3BF ; ---------------------------------------------------------------------------
+.nsp1:0040A3BF
+.nsp1:0040A3BF loc_40A3BF:                         ; CODE XREF: start+184j
+.nsp1:0040A3BF             xor     ebx, ebx
+.nsp1:0040A3C1             xchg    edi, esi
+.nsp1:0040A3C3             mov     eax, [esi]
+.nsp1:0040A3C5             cmp     eax, 0
+.nsp1:0040A3C8             jz      short loc_40A3E9
+.nsp1:0040A3CA
+.nsp1:0040A3CA loc_40A3CA:                         ; CODE XREF: start+1BCj
+.nsp1:0040A3CA             lodsd
+.nsp1:0040A3CB             or      eax, eax
+.nsp1:0040A3CD             jz      short loc_40A3D7
+.nsp1:0040A3CF             add     ebx, eax
+.nsp1:0040A3D1             add     [edi+ebx], cx
+.nsp1:0040A3D5             jmp     short loc_40A3CA
+.nsp1:0040A3D7 ; ---------------------------------------------------------------------------
+.nsp1:0040A3D7
+.nsp1:0040A3D7 loc_40A3D7:                         ; CODE XREF: start+1B4j
+.nsp1:0040A3D7             xor     ebx, ebx
+.nsp1:0040A3D9             shr     ecx, 10h
+.nsp1:0040A3DC
+.nsp1:0040A3DC loc_40A3DC:                         ; CODE XREF: start+1CEj
+.nsp1:0040A3DC             lodsd
+.nsp1:0040A3DD             or      eax, eax
+.nsp1:0040A3DF             jz      short loc_40A3E9
+.nsp1:0040A3E1             add     ebx, eax
+.nsp1:0040A3E3             add     [edi+ebx], cx
+.nsp1:0040A3E7             jmp     short loc_40A3DC
+.nsp1:0040A3E9 ; ---------------------------------------------------------------------------
+.nsp1:0040A3E9
+.nsp1:0040A3E9 loc_40A3E9:                         ; CODE XREF: start+149j
+.nsp1:0040A3E9                         ; start+154j ...
+.nsp1:0040A3E9             lea     esi, [ebp-209h]
+.nsp1:0040A3EF             mov     edx, [esi]
+.nsp1:0040A3F1             lea     esi, [ebp-1ADh]
+.nsp1:0040A3F7             mov     al, [esi]
+.nsp1:0040A3F9             cmp     al, 1
+.nsp1:0040A3FB             jnz     short loc_40A43C
+.nsp1:0040A3FD             add     edx, [esi+4]
+.nsp1:0040A400             push    esi
+.nsp1:0040A401             push    edx
+.nsp1:0040A402             push    esi
+.nsp1:0040A403             push    4
+.nsp1:0040A405             push    100h
+.nsp1:0040A40A             push    edx
+.nsp1:0040A40B             call    dword ptr [ebp-175h] ;  kernel32.VirtualProtect
+.nsp1:0040A411             pop     edi
+.nsp1:0040A412             pop     esi
+.nsp1:0040A413             cmp     eax, 1
+.nsp1:0040A416             jnz     loc_40A5D9
+.nsp1:0040A41C             add     esi, 8
+.nsp1:0040A41F             mov     ecx, 8
+.nsp1:0040A424             rep movsb
+.nsp1:0040A426             sub     esi, 0Ch
+.nsp1:0040A429             sub     edi, 8
+.nsp1:0040A42C             push    esi
+.nsp1:0040A42D             push    dword ptr [esi-4]
+.nsp1:0040A430             push    100h
+.nsp1:0040A435             push    edi
+.nsp1:0040A436             call    dword ptr [ebp-175h] ;  kernel32.VirtualProtect
+.nsp1:0040A43C
+.nsp1:0040A43C loc_40A43C:                         ; CODE XREF: start+1E2j
+.nsp1:0040A43C             push    ebp
+.nsp1:0040A43D             pop     ebx
+.nsp1:0040A43E             sub     ebx, 21h
+.nsp1:0040A444             xor     ecx, ecx
+.nsp1:0040A446             mov     cl, [ebx]
+.nsp1:0040A448             cmp     cl, 0           ; 循环还原属性(cl 存放循环次数)
+.nsp1:0040A44B             jz      short loc_40A475
+.nsp1:0040A44D             inc     ebx             ; 原程序 代码块 和 数据块 属性还原
+.nsp1:0040A44E             lea     esi, [ebp-209h]
+.nsp1:0040A454             mov     edx, [esi]
+.nsp1:0040A456
+.nsp1:0040A456 loc_40A456:                         ; CODE XREF: start+25Aj
+.nsp1:0040A456             push    esi
+.nsp1:0040A457             push    ecx
+.nsp1:0040A458             push    ebx
+.nsp1:0040A459             push    edx
+.nsp1:0040A45A             push    esi
+.nsp1:0040A45B             push    dword ptr [ebx]
+.nsp1:0040A45D             push    dword ptr [ebx+4]
+.nsp1:0040A460             mov     eax, [ebx+8]
+.nsp1:0040A463             add     eax, edx
+.nsp1:0040A465             push    eax
+.nsp1:0040A466             call    dword ptr [ebp-175h] ; kernel32.VirtualProtect
+.nsp1:0040A46C             pop     edx
+.nsp1:0040A46D             pop     ebx
+.nsp1:0040A46E             pop     ecx
+.nsp1:0040A46F             pop     esi
+.nsp1:0040A470             add     ebx, 0Ch
+.nsp1:0040A473             loop    loc_40A456
+.nsp1:0040A475
+.nsp1:0040A475 loc_40A475:                         ; CODE XREF: start+14j
+.nsp1:0040A475                         ; start+232j
+.nsp1:0040A475             mov     eax, 0
+.nsp1:0040A47A             cmp     eax, 0
+.nsp1:0040A47D             jz      short loc_40A489
+.nsp1:0040A47F             popa
+.nsp1:0040A480             popf
+.nsp1:0040A481             mov     eax, 1
+.nsp1:0040A486             retn    0Ch
+.nsp1:0040A489 ; ---------------------------------------------------------------------------
+.nsp1:0040A489
+.nsp1:0040A489 loc_40A489:                         ; CODE XREF: start+264j
+.nsp1:0040A489             popa
+.nsp1:0040A48A             popf
+.nsp1:0040A48B             jmp     near ptr dword_401000 ; jmp to OEP
+.nsp1:0040A48B start           endp
+```
+
+
+
+## 上传的附件
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) | `idb.rar` `[解压密码：pediy]` |
+|---|---|
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) | `加壳程序.rar` `[请到论坛下载：[`bbs.pediy.com/showthread.php?t=94673`](http://bbs.pediy.com/showthread.php?t=94673)]` |
+|---|---|
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) | `脱壳机.rar` |
+|---|---|
