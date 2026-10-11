@@ -1,0 +1,259 @@
+
+# mir333
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6325.htm`](https://www.pediy.com/kssd/pediy06/pediy6325.htm)
+
+手动脱 `JDPACKV1.01` 的壳--`mir333` 的壳
+
+**破解作者：**
+
+`yzez[DFCG][BCG][FCG]`
+
+**破解对象：**
+
+`mir333` (这是在看雪论坛一个网友请求 `FLY` 大侠帮助的软件)
+
+**破解工具：**
+
+`FI3.01`、`OLLYDBG1.09`、`ImportREC`
+
+**破解目的：**
+
+只为技术而破解，不为破解而破解，如有失误，请大侠们指点!
+
+**破解过程：**
+
+说明：这个软件的脱壳，只是为了兴趣，没有其它的目的，因为网友在论坛发帖，我是菜鸟，所以
+
+就试一试，运气好，脱掉了!
+
+1、用 `FI301` 查壳是 `JDPACKV1.01` 的壳，不知保护怎样，反正试试先!用 `OD` 载入程序，第二个对话框点否，载入程序后，我们停在下面的地方：
+
+```
+0091A000 >   60                   PUSHAD******************************************载入程序后我们停在这里!F8 往下走!
+0091A001     E8 00000000          CALL    mir333.0091A006
+0091A006     5D                   POP     EBP
+0091A007     8BD5                 MOV     EDX, EBP
+0091A009     81ED C62B4000        SUB     EBP, mir333.00402BC6
+0091A00F     2B95 61344000        SUB     EDX, DWORD PTR SS:[EBP+403461]
+0091A015     81EA 06000000        SUB     EDX, 6
+0091A01B     8995 65344000        MOV     DWORD PTR SS:[EBP+403465], EDX
+0091A021     83BD 69344000 0>     CMP     DWORD PTR SS:[EBP+403469], 0
+0091A028     0F85 BC030000        JNZ     mir333.0091A3EA************************这里没有跳!
+0091A02E     C785 69344000 0>     MOV     DWORD PTR SS:[EBP+403469], 1
+0091A038     B9 88070000          MOV     ECX, 788
+0091A03D     8DB5 182C4000        LEA     ESI, DWORD PTR SS:[EBP+402C18]
+0091A043     8A85 60344000        MOV     AL, BYTE PTR SS:[EBP+403460]
+0091A049     8A1E                 MOV     BL, BYTE PTR DS:[ESI]
+0091A04B     32C3                 XOR     AL, BL
+0091A04D     8806                 MOV     BYTE PTR DS:[ESI], AL
+0091A04F     889D 60344000        MOV     BYTE PTR SS:[EBP+403460], BL****F8 走到这里!下面的程序会变化!
+0091A055     46                   INC     ESI
+0091A056   ^ E2 EB              LOOPD   SHORT mir333.0091A043****************************这里往回跳，F4 下去吧!
+0091A058     74 2C               JE      SHORT mir333.0091A086************************走到 0091A04F 处，这里变成了下面的样子!
+0091A05A     DA1E                 FICOMP  DWORD PTR DS:[ESI]
+0091A058     9C                   PUSHFD****************************************************************在这里 F4 下来，跳过循环!
+0091A059     2C DA                SUB     AL, 0DA
+0091A058     9C                   PUSHFD****************************************************************F4 下来后，又发生了变化!
+0091A059     58                   POP     EAX
+0091A05A     F6C4 01              TEST    AH, 1
+0091A05D     74 07               JE      SHORT mir333.0091A066************************F8 下来，这里跳!
+0091A05F     80B5 D72F4000 F>     XOR     BYTE PTR SS:[EBP+402FD7], 0FF
+0091A066     8BB5 01324000        MOV     ESI, DWORD PTR SS:[EBP+403201]***跳到这里!
+0091A06C     8BC5                 MOV     EAX, EBP
+0091A06E     56                   PUSH    ESI
+0091A06F     50                   PUSH    EAX
+0091A070     8B88 09324000        MOV     ECX, DWORD PTR DS:[EAX+403209]
+0091A076     6A 04                PUSH    4
+0091A078     68 00100000          PUSH    1000
+0091A07D     51                   PUSH    ECX
+0091A07E     6A 00                PUSH    0
+0091A080     FF95 EC334000        CALL    DWORD PTR SS:[EBP+4033EC]
+0091A086     8985 E1314000        MOV     DWORD PTR SS:[EBP+4031E1], EAX
+0091A08C     58                   POP     EAX
+0091A08D     5E                   POP     ESI
+0091A08E     56                   PUSH    ESI
+0091A08F     50                   PUSH    EAX
+0091A090     8BB0 05324000        MOV     ESI, DWORD PTR DS:[EAX+403205]
+0091A096     8B95 65344000        MOV     EDX, DWORD PTR SS:[EBP+403465]
+0091A09C     8B88 09324000        MOV     ECX, DWORD PTR DS:[EAX+403209]
+0091A0A2     03F2                 ADD     ESI, EDX
+0091A0A4     60                   PUSHAD
+0091A0A5     8BFE                 MOV     EDI, ESI
+0091A0A7     33C0                 XOR     EAX, EAX
+0091A0A9     AC                   LODS    BYTE PTR DS:[ESI]
+0091A0AA     3285 D72F4000        XOR     AL, BYTE PTR SS:[EBP+402FD7]
+0091A0B0     AA                   STOS    BYTE PTR ES:[EDI]
+0091A0B1   ^ E2 F6              LOOPD   SHORT mir333.0091A0A9****************************这里又跳回去，F4 下去!
+0091A0B3     61                   POPAD****************************************************************F4 下到这里!F8 继续往下!
+0091A0B4     8BBD E1314000        MOV     EDI, DWORD PTR SS:[EBP+4031E1]
+0091A0BA     F3:A4                REP     MOVS BYTE PTR ES:[EDI], BYTE PTR>
+0091A0BC     8BB5 E1314000        MOV     ESI, DWORD PTR SS:[EBP+4031E1]
+0091A0C2     8BB8 05324000        MOV     EDI, DWORD PTR DS:[EAX+403205]
+0091A0C8     03FA                 ADD     EDI, EDX
+0091A0CA     57                   PUSH    EDI
+0091A0CB     56                   PUSH    ESI
+0091A0CC     E8 EC030000          CALL    mir333.0091A4BD
+0091A0D1     5E                   POP     ESI
+0091A0D2     5F                   POP     EDI
+0091A0D3     58                   POP     EAX
+0091A0D4     5E                   POP     ESI
+0091A0D5     56                   PUSH    ESI
+0091A0D6     50                   PUSH    EAX
+0091A0D7     8B88 09324000        MOV     ECX, DWORD PTR DS:[EAX+403209]
+0091A0DD     8BB5 E1314000        MOV     ESI, DWORD PTR SS:[EBP+4031E1]
+0091A0E3     68 00400000          PUSH    4000
+0091A0E8     51                   PUSH    ECX
+0091A0E9     56                   PUSH    ESI
+0091A0EA     FF95 F0334000        CALL    DWORD PTR SS:[EBP+4033F0]
+0091A0F0     58                   POP     EAX
+0091A0F1     5E                   POP     ESI
+0091A0F2     83C0 08              ADD     EAX, 8
+0091A0F5     4E                   DEC     ESI
+0091A0F6   ^ 0F85 72FFFFFF        JNZ     mir333.0091A06E************************这里往回跳呀!兄弟下去吧!
+0091A0FC     83BD E9314000 0>     CMP     DWORD PTR SS:[EBP+4031E9], 0***F4 下到这里!
+0091A103     0F84 8A000000        JE      mir333.0091A193************************到这里跳呀!一定要跳呀!
+0091A109     8B95 65344000        MOV     EDX, DWORD PTR SS:[EBP+403465]   ; mir333.00400000
+0091A10F     8B85 E5314000        MOV     EAX, DWORD PTR SS:[EBP+4031E5]
+0091A115     2BD0                 SUB     EDX, EAX
+0091A117     74 7A               JE      SHORT mir333.0091A193
+0091A119     8BC2                 MOV     EAX, EDX
+0091A11B     C1E8 10              SHR     EAX, 10
+0091A11E     33DB                 XOR     EBX, EBX
+0091A120     8BB5 E9314000        MOV     ESI, DWORD PTR SS:[EBP+4031E9]
+0091A193     8D9D 89334000        LEA     EBX, DWORD PTR SS:[EBP+403389]***跳到了这里!F8 往下!
+0091A199     53                   PUSH    EBX
+0091A19A     FF95 E8334000        CALL    DWORD PTR SS:[EBP+4033E8]****************在这里程序有一段解压!
+0091A1A0     50                   PUSH    EAX
+0091A1A1     8D9D 31334000        LEA     EBX, DWORD PTR SS:[EBP+403331]
+0091A1A7     53                   PUSH    EBX
+0091A1A8     50                   PUSH    EAX
+0091A1A9     FF95 E0334000        CALL    DWORD PTR SS:[EBP+4033E0]
+0091A1AF     8985 D5314000        MOV     DWORD PTR SS:[EBP+4031D5], EAX
+0091A1B5     58                   POP     EAX
+****************************************************************省略一段!****************************************************************
+0091A25C     837B 10 01           CMP     DWORD PTR DS:[EBX+10], 1
+0091A260     74 14               JE      SHORT mir333.0091A276****************************这里没有跳!
+```
+
+
+
+```
+0091A262    837B 10 02      CMP     DWORD PTR DS:[EBX+10], 2
+0091A266    74 02         JE      SHORT mir333.0091A26A******这里往下跳!
+0091A268    EB 1A         JMP     SHORT mir333.0091A284
+0091A26A    E8 DF010000   CALL    mir333.0091A44E************************跳到这里!
+0091A26F    83F8 FF       CMP     EAX, -1
+0091A272    75 10         JNZ     SHORT mir333.0091A284
+0091A274    EB 0A         JMP     SHORT mir333.0091A280
+0091A276    E8 9D010000   CALL    mir333.0091A418
+0091A27B    83F8 FF       CMP     EAX, -1
+0091A27E    75 04         JNZ     SHORT mir333.0091A284******这里往下跳!
+0091A280    61            POPAD
+0091A281    33C0         XOR     EAX, EAX
+0091A283    C3            RETN
+0091A284    8B95 65344000 MOV     EDX, DWORD PTR SS:[EBP+403465]***跳到这里!
+0091A28A    8BB5 F1314000 MOV     ESI, DWORD PTR SS:[EBP+4031F1]
+0091A290    03F2         ADD     ESI, EDX
+0091A292    8B46 0C      MOV     EAX, DWORD PTR DS:[ESI+C]
+0091A295    0BC0         OR      EAX, EAX
+0091A297    0F84 65010000 JE      mir333.0091A402************************这里没有跳!
+0091A29D    03C2         ADD     EAX, EDX
+0091A29F    8985 BD314000 MOV     DWORD PTR SS:[EBP+4031BD], EAX
+0091A2A5    8BD8         MOV     EBX, EAX
+0091A2A7    50           PUSH    EAX
+0091A2A8    FF95 E4334000 CALL    DWORD PTR SS:[EBP+4033E4]
+0091A2AE    0BC0         OR      EAX, EAX
+0091A2B0    75 55        JNZ     SHORT mir333.0091A307******F8 到这里就跳到了下面!
+0091A2B2    53           PUSH    EBX
+
+********************************省略一段代码************************************
+
+0091A304    33C0         XOR     EAX, EAX
+0091A306    C3            RETN
+0091A307    8985 F9314000 MOV     DWORD PTR SS:[EBP+4031F9], EAX***上面跳到这个地方!
+0091A30D    C785 FD314000 0>MOV    DWORD PTR SS:[EBP+4031FD], 0
+0091A317    8B95 65344000 MOV     EDX, DWORD PTR SS:[EBP+403465]
+0091A31D    8B06         MOV     EAX, DWORD PTR DS:[ESI]
+0091A31F    0BC0         OR      EAX, EAX
+0091A321    75 03        JNZ     SHORT mir333.0091A326********跳到下面!
+0091A323    8B46 10      MOV     EAX, DWORD PTR DS:[ESI+10]
+0091A326    03C2         ADD     EAX, EDX
+0091A328    0385 FD314000 ADD     EAX, DWORD PTR SS:[EBP+4031FD]
+0091A32E    8B18         MOV     EBX, DWORD PTR DS:[EAX]
+0091A330    8B7E 10      MOV     EDI, DWORD PTR DS:[ESI+10]
+0091A333    03FA         ADD     EDI, EDX
+0091A335    03BD FD314000 ADD     EDI, DWORD PTR SS:[EBP+4031FD]
+0091A33B    85DB         TEST    EBX, EBX
+0091A33D    0F84 99000000 JE      mir333.0091A3DC********这里没有跳!
+0091A343    F7C3 00000080 TEST    EBX, 80000000
+0091A349    75 07        JNZ     SHORT mir333.0091A352********这里也没跳!
+0091A34B    03DA         ADD     EBX, EDX
+0091A34D    83C3 02      ADD     EBX, 2
+0091A350    EB 15        JMP     SHORT mir333.0091A367********跳!
+0091A352    81E3 FFFFFF7F AND     EBX, 7FFFFFFF
+0091A358    53           PUSH    EBX
+0091A359    FFB5 F9314000 PUSH    DWORD PTR SS:[EBP+4031F9]
+0091A35F    FF95 E0334000 CALL    DWORD PTR SS:[EBP+4033E0]
+0091A365    EB 18        JMP     SHORT mir333.0091A37F
+0091A367    53           PUSH    EBX*******************跳到这里!
+0091A368    FFB5 F9314000 PUSH    DWORD PTR SS:[EBP+4031F9]
+0091A36E    FF95 E0334000 CALL    DWORD PTR SS:[EBP+4033E0]
+0091A374    EB 04        JMP     SHORT mir333.0091A37A********跳!
+0091A376    C603 00      MOV     BYTE PTR DS:[EBX], 0
+0091A379    43           INC     EBX
+0091A37A    803B 00      CMP     BYTE PTR DS:[EBX], 0******跳到这里!
+0091A37D  ^ 75 F7       JNZ     SHORT mir333.0091A376********往回跳!F4 下去!
+0091A37F    0BC0         OR      EAX, EAX*******************在这一行 F4 下来!
+0091A381    75 4B        JNZ     SHORT mir333.0091A3CE********跳呀!
+0091A383    FFB5 BD314000 PUSH    DWORD PTR SS:[EBP+4031BD]
+0091A389    53           PUSH    EBX
+
+********************************省略一段代码!***********************************
+
+0091A3CD    C3            RETN
+0091A3CE    8907         MOV     DWORD PTR DS:[EDI], EAX******跳到这里!
+0091A3D0    8385 FD314000 0>ADD    DWORD PTR SS:[EBP+4031FD], 4
+0091A3D7  ^ E9 3BFFFFFF    JMP     mir333.0091A317********往回跳，还能让你跳吗？
+0091A3DC    83C6 14      ADD     ESI, 14****************F4 下来!
+0091A3DF    8B95 65344000 MOV     EDX, DWORD PTR SS:[EBP+403465] ; mir333.00400000
+0091A3E5  ^ E9 A8FEFFFF    JMP     mir333.0091A292********还想往回跳!F4 下去吧!不能在下一行
+
+**********************按 F4，否则程序就飞了!我们要在 0091A414 这一行按 F4 下去!
+
+0091A3EA    6A 30        PUSH    30
+0091A3EC    8D9D 4D324000 LEA     EBX, DWORD PTR SS:[EBP+40324D]
+0091A3F2    53           PUSH    EBX
+0091A3F3    8D9D 61324000 LEA     EBX, DWORD PTR SS:[EBP+403261]
+0091A3F9    53           PUSH    EBX
+0091A3FA    6A 00        PUSH    0
+0091A3FC    FF95 D5314000 CALL    DWORD PTR SS:[EBP+4031D5]
+0091A402    8B95 65344000 MOV     EDX, DWORD PTR SS:[EBP+403465]
+0091A408    8B85 ED314000 MOV     EAX, DWORD PTR SS:[EBP+4031ED]
+0091A40E    03C2         ADD     EAX, EDX
+0091A410    894424 1C    MOV     DWORD PTR SS:[ESP+1C], EAX
+0091A414    61            POPAD***************************我们在这一行 F4 下来!
+0091A415    50           PUSH    EAX *********************看看 EAX 的值：这里是：0046992D，
+****************************************************开心吗？这就是我们要找的 OEP!
+
+0091A416    C3            RETN********F8 走!
+
+0046992D    55            PUSH    EBP*******************返回到这里呀!我们可以脱壳了，用 LORDPE
+
+****************************************************DUMP 程序出来
+
+0046992E    8BEC         MOV     EBP, ESP
+00469930    6A FF        PUSH    -1
+00469932    68 C86D4700   PUSH    mir333.00476DC8
+00469937    68 30964600   PUSH    mir333.00469630
+0046993C    64:A1 00000000 MOV     EAX, DWORD PTR FS:[0]
+00469942    50           PUSH    EAX ; mir333.0046992D
+00469943    64:8925 0000000>MOV    DWORD PTR FS:[0], ESP
+0046994A    83EC 58      SUB     ESP, 58
+```
+
+## 运行与修复
+
+1.  运行脱壳后的程序，没有反应，我倒！用 `ImportREC` 修复，填入 `OEP` 地址：`0006992D`，全部修复后，保存下来，再运行一下，`OK`，正常！
+
+2.  哈希值：`4dd466d0e1e0cc123afbe504da2462ca`
