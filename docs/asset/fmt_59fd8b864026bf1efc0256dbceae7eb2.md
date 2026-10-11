@@ -1,0 +1,164 @@
+
+# 超级通讯王(SuperPIM)注册算法分析+汇编注册机
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-438.htm`](https://www.pediy.com/kssd/pediy07/pediy7-438.htm)
+
+【破文标题】 超级通讯王(SuperPIM)注册算法分析+汇编注册机
+
+【破文作者】 snake
+
+【软件名称】 超级通讯王(SuperPIM) `2.00.1002`
+
+【下载地址】 [`yncnc.onlinedown.net/soft/20052.htm`](http://yncnc.onlinedown.net/soft/20052.htm)
+
+【软件简介】 超级通讯王是一款为中国人精心设计、绝佳的个人信息管理(PIM)软件，包括网络电子名片（全球独创，酷！）、通讯录、手机短信、网上即时聊天、日常记事、万年历、信息速查等功能。★网络电子名片是 `2.0` 版开始新增的独创功能，能使日常的名片交流变得前所未有的简单方便！
+
+【调试环境】 `Win2000`、`PEiD`、`C32Asm`、`Ollydbg`
+
+【作者声明】 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+\----------------------------------------------------------------------------------------------
+
+## 破解过程
+
+用 `PEiD` 查壳，无壳，`Microsoft Visual C++ 7.0` 编写。
+
+运行程序，输入注册信息
+
+序列号：`1EHQVLDGL23PN1L`
+
+注册码：`78787878`
+
+注册后提示：对不起，注册码不正确，注册失败！
+
+用 `C32Asm` 载入程序，搜索该字符串，查得引用地址为 `004300B1`，参考点。
+
+`Ollydbg` 载入主程序，`Ctrl+G`，`004300B1`，来到该处，向上找到 `0042FF80`，在这下断点
+
+`F9` 运行程序，输入注册码，确定，程序被断下
+
+```
+0042FF80    .  6A FF           push -1
+0042FF82    .  68 98555000     push SuperPIM.00505598                    ;  SE 句柄安装
+0042FF87    .  64:A1 00000000  mov eax,dword ptr fs:[0]
+0042FF8D    .  50             push eax
+0042FF8E    .  64:8925 000000> mov dword ptr fs:[0],esp
+0042FF95    .  83EC 0C        sub esp,0C
+0042FF98    .  53             push ebx
+0042FF99    .  56             push esi
+0042FF9A    .  57             push edi
+0042FF9B    .  33DB           xor ebx,ebx
+0042FF9D    .  6A 01          push 1
+0042FF9F    .  8BF1           mov esi,ecx
+0042FFA1    .  895C24 14      mov dword ptr ss:[esp+14],ebx
+0042FFA5    .  E8 6FB90900    call SuperPIM.004CB919
+0042FFAA    .  8D4424 10      lea eax,dword ptr ss:[esp+10]
+0042FFAE    .  50             push eax
+0042FFAF    .  E8 2C150600    call SuperPIM.004914E0                    ;  算法 call1，由硬盘参数生成机器码
+                                ;  再生成 15 位注册码并转换为 20 位字符串，即注册码
+                                ;  再转换为 40 位字符串与假码生成的 40 位字符串比较
+0042FFB4    .  83C4 04        add esp,4
+0042FFB7    .  8B4E 74        mov ecx,dword ptr ds:[esi+74]           ;  假码
+0042FFBA    .  8B41 F4        mov eax,dword ptr ds:[ecx-C]            ;  假码长度
+0042FFBD    .  85C0           test eax,eax
+0042FFBF    .  8D7E 74        lea edi,dword ptr ds:[esi+74]
+0042FFC2    .  895C24 20      mov dword ptr ss:[esp+20],ebx
+0042FFC6    .  74 2A          je short SuperPIM.0042FFF2
+0042FFC8    .  6A 28          push 28
+0042FFCA    .  8D5424 18      lea edx,dword ptr ss:[esp+18]
+0042FFCE    .  57             push edi
+0042FFCF    .  52             push edx
+0042FFD0    .  E8 0B480500    call SuperPIM.004847E0     ;  将假注册码转换为 40 位字符串
+0042FFD5    .  8B4C24 1C      mov ecx,dword ptr ss:[esp+1C]
+0042FFD9    .  8B00          mov eax,dword ptr ds:[eax]
+0042FFDB    .  51             push ecx
+0042FFDC    .  50             push eax
+0042FFDD    .  BB 01000000    mov ebx,1
+0042FFE2    .  E8 DF730800    call SuperPIM.004B73C6     ;  比较两字符串 call
+0042FFE7    .  83C4 14        add esp,14
+0042FFEA    .  85C0           test eax,eax
+0042FFEC    .  885C24 0F      mov byte ptr ss:[esp+F],bl
+0042FFF0    .  74 05          je short SuperPIM.0042FFF7
+0042FFF2    >  C64424 0F 00   mov byte ptr ss:[esp+F],0
+0042FFF7    >  F6C3 01        test bl,1
+0042FFFA    .  74 1E          je short SuperPIM.0043001A
+0042FFFC    .  8B4424 14      mov eax,dword ptr ss:[esp+14]
+00430000    .  83C0 F0        add eax,-10
+00430003    .  8D50 0C        lea edx,dword ptr ds:[eax+C]
+00430006    .  83C9 FF        or ecx,FFFFFFFF
+00430009    .  F0:0FC10A      lock xadd dword ptr ds:[edx],ecx
+0043000D    .  49             dec ecx
+0043000E    .  85C9           test ecx,ecx
+00430010    .  7F 08          jg short SuperPIM.0043001A
+00430012    .  8B08          mov ecx,dword ptr ds:[eax]
+00430014    .  8B11          mov edx,dword ptr ds:[ecx]
+00430016    .  50             push eax
+00430017    .  FF52 04        call dword ptr ds:[edx+4]
+0043001A    >  8A4424 0F      mov al,byte ptr ss:[esp+F]
+0043001E    .  84C0          test al,al
+00430020    .  8D4424 14      lea eax,dword ptr ss:[esp+14]
+00430024    .  0F84 87000000  je SuperPIM.004300B1          ;  关键跳，不跳则为正式版。爆破点
+0043002A    .  6A 71          push 71                         ;  提示注册成功
+0043002C    .  50             push eax
+0043002D    .  E8 9E120600    call SuperPIM.004912D0
+00430032    .  83C4 08        add esp,8
+00430035    .  8B00          mov eax,dword ptr ds:[eax]
+00430037    .  6A 00          push 0
+00430039    .  6A 00          push 0
+0043003B    .  50             push eax
+0043003C    .  8BCE          mov ecx,esi
+0043003E    .  C64424 2C 01   mov byte ptr ss:[esp+2C],1
+00430043    .  E8 69B50900    call SuperPIM.004CB5B1
+00430048    .  8B4424 14      mov eax,dword ptr ss:[esp+14]
+0043004C    .  83C0 F0        add eax,-10
+0043004F    .  C64424 20 00   mov byte ptr ss:[esp+20],0
+00430054    .  8D48 0C        lea ecx,dword ptr ds:[eax+C]
+00430057    .  83CA FF        or edx,FFFFFFFF
+0043005A    .  F0:0FC111      lock xadd dword ptr ds:[ecx],edx
+0043005E    .  4A             dec edx
+0043005F    .  85D2          test edx,edx
+00430061    .  7F 08          jg short SuperPIM.0043006B
+00430063    .  8B08          mov ecx,dword ptr ds:[eax]
+00430065    .  8B11          mov edx,dword ptr ds:[ecx]
+00430067    .  50             push eax
+00430068    .  FF52 04        call dword ptr ds:[edx+4]
+0043006B    >  E8 E1C40B00    call SuperPIM.004EC551
+00430070    .  8B40 04        mov eax,dword ptr ds:[eax+4]
+00430073    .  6A 01          push 1
+00430075    .  57             push edi
+00430076    .  C780 70040000 > mov dword ptr ds:[eax+470],1
+00430080    .  E8 4B460500    call SuperPIM.004846D0
+00430085    .  8B3F          mov edi,dword ptr ds:[edi]
+00430087    .  8B5F F4        mov ebx,dword ptr ds:[edi-C]
+0043008A    .  83C4 08        add esp,8
+0043008D    .  E8 BFC40B00    call SuperPIM.004EC551
+00430092    .  8B40 04        mov eax,dword ptr ds:[eax+4]
+00430095    .  53             push ebx                      ; /Arg4
+00430096    .  57             push edi                      ; |Arg3
+00430097    .  68 68985100    push SuperPIM.00519868        ; |Arg2 = 00519868 ASCII "rc"
+0043009C    .  68 9A1B5100    push SuperPIM.00511B9A        ; |Arg1 = 00511B9A
+004300A1    .  8BC8          mov ecx,eax                   ; |
+004300A3    .  E8 FC8D0A00    call SuperPIM.004D8EA4        ; \\SuperPIM.004D8EA4
+004300A8    .  8BCE          mov ecx,esi
+004300AA    .  E8 60FC0900    call SuperPIM.004CFD0F
+004300AF    .  EB 41          jmp short SuperPIM.004300F2
+004300B1    >  6A 72          push 72                         ;  提示注册失败
+004300B3    .  50             push eax
+004300B4    .  E8 17120600    call SuperPIM.004912D0
+004300B9    .  83C4 08        add esp,8
+004300BC    .  8B00          mov eax,dword ptr ds:[eax]
+004300BE    .  6A 00          push 0
+004300C0    .  6A 00          push 0
+004300C2    .  50             push eax
+004300C3    .  8BCE          mov ecx,esi
+004300C5    .  C64424 2C 02   mov byte ptr ss:[esp+2C],2
+004300CA    .  E8 E2B40900    call SuperPIM.004CB5B1
+004300CF    .  8B4424 14      mov eax,dword ptr ss:[esp+14]
+004300D3    .  83C0 F0        add eax,-10
+004300D6    .  C64424 20 00   mov byte ptr ss:[esp+20],0
+004300DB    .  8D48 0C        lea ecx,dword ptr ds:[eax+C]
+004300DE    .  83CA FF        or edx,FFFFFFFF
+004300E1    .  F0:0FC111      lock xadd dword ptr ds:[ecx],edx
+004300E5    .  4A             dec edx
+004300E6    .  85D2          test edx,edx
+```
