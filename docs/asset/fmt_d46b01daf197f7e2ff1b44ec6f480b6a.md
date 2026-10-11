@@ -1,0 +1,235 @@
+
+## 汇编代码：`Account_Func_2`
+
+```
+CODE:0054BE70  Account_Func_2  proc near             ; CODE XREF: struct_account+69p
+CODE:0054BE70                               ; struct_account+83p ...
+CODE:0054BE70
+CODE:0054BE70  arg_0            = dword ptr  8
+CODE:0054BE70  arg_4            = byte ptr  0Ch
+CODE:0054BE70  arg_8            = dword ptr  10h
+CODE:0054BE70  arg_C            = dword ptr  14h
+CODE:0054BE70
+CODE:0054BE70                  push    ebp
+CODE:0054BE71                  mov     ebp, esp
+CODE:0054BE73                  push    ebx
+CODE:0054BE74                  push    esi
+CODE:0054BE75                  push    edi
+CODE:0054BE76                  mov     edi, ecx
+CODE:0054BE78                  mov     esi, edx
+CODE:0054BE7A                  mov     ebx, eax
+CODE:0054BE7C                  mov     ecx, [ebp+arg_C]
+CODE:0054BE7F                  mov     edx, edi
+CODE:0054BE81                  mov     eax, esi
+CODE:0054BE83                  call    Account_Func_3
+CODE:0054BE88                  add     eax, [ebp+arg_8]
+CODE:0054BE8B                  add     eax, [ebp+arg_0]
+CODE:0054BE8E                  add     [ebx], eax
+CODE:0054BE90                  mov     eax, ebx
+CODE:0054BE92                  mov     dl, [ebp+arg_4]
+CODE:0054BE95                  call    Account_Func_4
+CODE:0054BE9A                  add     [ebx], esi
+CODE:0054BE9C                  pop     edi
+CODE:0054BE9D                  pop     esi
+CODE:0054BE9E                  pop     ebx
+CODE:0054BE9F                  pop     ebp
+CODE:0054BEA0                  retn    10h
+CODE:0054BEA0  Account_Func_2  endp
+```
+
+### 逆向代码
+
+```c
+void Account_Func_2(unsigned int n, char m, unsigned int i, unsigned int j, int* nEax, int nEcx, int nEdx)
+{
+  //*(\_DWORD \*)v9 += a3 + a5 + Account_Func_3(a2, ecx0, a6);
+  *nEax += i + n + Account_Func_3( nEdx, nEcx, j);
+  Account_Func_4( (int)nEax, m);
+  *nEax += nEdx;
+}
+```
+
+## 汇编代码：`Account_Func_3`
+
+```
+CODE:0054BE24  Account_Func_3  proc near             ; CODE XREF: Account_Func_2+13p
+CODE:0054BE24                  and     edx, eax
+CODE:0054BE26                  not     eax
+CODE:0054BE28                  and     ecx, eax
+CODE:0054BE2A                  or      edx, ecx
+CODE:0054BE2C                  mov     eax, edx
+CODE:0054BE2E                  retn
+CODE:0054BE2E  Account_Func_3  endp
+```
+
+### 逆向代码
+
+```c
+int Account_Func_3(int nEax, int nEdx, int nEcx)
+{
+  return ~nEax & nEcx | nEax & nEdx;
+}
+```
+
+## 汇编代码：`Account_Func_4`
+
+```
+CODE:0054BE50  Account_Func_4  proc near             ; CODE XREF: Account_Func_2+25p
+CODE:0054BE50                               ; Account_Func_5+25p ...
+CODE:0054BE50                  push    ebx
+CODE:0054BE51                  xor     ecx, ecx
+CODE:0054BE53                  mov     cl, dl
+CODE:0054BE55                  push    ecx
+CODE:0054BE56                  mov     ecx, 20h
+CODE:0054BE5B                  pop     ebx
+CODE:0054BE5C                  sub     ecx, ebx
+CODE:0054BE5E                  mov     ebx, [eax]
+CODE:0054BE60                  shr     ebx, cl
+CODE:0054BE62                  mov     ecx, edx
+CODE:0054BE64                  mov     edx, [eax]
+CODE:0054BE66                  shl     edx, cl
+CODE:0054BE68                  or      ebx, edx
+CODE:0054BE6A                  mov     [eax], ebx
+CODE:0054BE6C                  pop     ebx
+CODE:0054BE6D                  retn
+CODE:0054BE6D  Account_Func_4  endp
+```
+
+### 逆向代码
+
+```c
+void Account_Func_4(int nEax, char cEdx)
+{
+  *(DWORD*)nEax = (*(DWORD*)nEax << cEdx) | (*(DWORD*)nEax >> (32 - cEdx));
+}
+```
+
+## 汇编代码：`Account_Func_5`
+
+```
+CODE:0054BEA4  Account_Func_5  proc near             ; CODE XREF: struct_account+215p
+CODE:0054BEA4                               ; struct_account+22Fp ...
+CODE:0054BEA4
+CODE:0054BEA4  arg_0            = dword ptr  8
+CODE:0054BEA4  arg_4            = byte ptr  0Ch
+CODE:0054BEA4  arg_8            = dword ptr  10h
+CODE:0054BEA4  arg_C            = dword ptr  14h
+CODE:0054BEA4
+CODE:0054BEA4                  push    ebp
+CODE:0054BEA5                  mov     ebp, esp
+CODE:0054BEA7                  push    ebx
+CODE:0054BEA8                  push    esi
+CODE:0054BEA9                  push    edi
+CODE:0054BEAA                  mov     edi, ecx
+CODE:0054BEAC                  mov     esi, edx
+CODE:0054BEAE                  mov     ebx, eax
+CODE:0054BEB0                  mov     ecx, [ebp+arg_C]
+CODE:0054BEB3                  mov     edx, edi
+CODE:0054BEB5                  mov     eax, esi
+CODE:0054BEB7                  call    Account_Func_6
+CODE:0054BEBC                  add     eax, [ebp+arg_8]
+CODE:0054BEBF                  add     eax, [ebp+arg_0]
+CODE:0054BEC2                  add     [ebx], eax
+CODE:0054BEC4                  mov     eax, ebx
+CODE:0054BEC6                  mov     dl, [ebp+arg_4]
+CODE:0054BEC9                  call    Account_Func_4
+CODE:0054BECE                  add     [ebx], esi
+CODE:0054BED0                  pop     edi
+CODE:0054BED1                  pop     esi
+CODE:0054BED2                  pop     ebx
+CODE:0054BED3                  pop     ebp
+CODE:0054BED4                  retn    10h
+CODE:0054BED4  Account_Func_5  endp
+```
+
+### 逆向代码
+
+```c
+void Account_Func_5(unsigned int n, char m, unsigned int i, unsigned int j, int* nEax, int nEcx, int nEdx)
+{
+  *(DWORD*)nEax += n + i + Account_Func_6(nEdx, nEcx, j);
+  Account_Func_4( (int)nEax, m);
+  *nEax += nEdx;
+}
+```
+
+## 汇编代码：`Account_Func_6`
+
+```
+CODE:0054BE30  Account_Func_6  proc near             ; CODE XREF: Account_Func_5+13p
+CODE:0054BE30                  and     eax, ecx
+CODE:0054BE32                  not     ecx
+CODE:0054BE34                  and     edx, ecx
+CODE:0054BE36                  or      eax, edx
+CODE:0054BE38                  retn
+CODE:0054BE38  Account_Func_6  endp
+```
+
+### 逆向代码
+
+```c
+int Account_Func_6(int nEax, int nEdx, int nEcx)
+{
+  return ~nEcx & nEdx | nEcx & nEax;
+}
+```
+
+## 汇编代码：`Account_Func_7`
+
+```
+CODE:0054BED8  Account_Func_7  proc near             ; CODE XREF: struct_account+3C1p
+CODE:0054BED8                               ; struct_account+3DBp ...
+CODE:0054BED8
+CODE:0054BED8  arg_0            = dword ptr  8
+CODE:0054BED8  arg_4            = byte ptr  0Ch
+CODE:0054BED8  arg_8            = dword ptr  10h
+CODE:0054BED8  arg_C            = dword ptr  14h
+CODE:0054BED8
+CODE:0054BED8                  push    ebp
+CODE:0054BED9                  mov     ebp, esp
+CODE:0054BEDB                  push    ebx
+CODE:0054BEDC                  push    esi
+CODE:0054BEDD                  push    edi
+CODE:0054BEDE                  mov     edi, ecx
+CODE:0054BEE0                  mov     esi, edx
+CODE:0054BEE2                  mov     ebx, eax
+CODE:0054BEE4                  mov     ecx, [ebp+arg_C]
+CODE:0054BEE7                  mov     edx, edi
+CODE:0054BEE9                  mov     eax, esi
+CODE:0054BEEB                  call    Account_Func_8
+CODE:0054BEF0                  add     eax, [ebp+arg_8]
+CODE:0054BEF3                  add     eax, [ebp+arg_0]
+CODE:0054BEF6                  add     [ebx], eax
+CODE:0054BEF8                  mov     eax, ebx
+CODE:0054BEFA                  mov     dl, [ebp+arg_4]
+CODE:0054BEFD                  call    Account_Func_4
+CODE:0054BF02                  add     [ebx], esi
+CODE:0054BF04                  pop     edi
+CODE:0054BF05                  pop     esi
+CODE:0054BF06                  pop     ebx
+CODE:0054BF07                  pop     ebp
+CODE:0054BF08                  retn    10h
+CODE:0054BF08  Account_Func_7  endp
+```
+
+### 逆向代码
+
+```c
+void Account_Func_7(unsigned int n, char m, unsigned int i, unsigned int j, int* nEax, int nEcx, int nEdx)
+{
+  *(DWORD*)nEax += n + i + Account_Func_8(nEdx, nEcx, j);
+  Account_Func_4( (int)nEax, m);
+  *nEax += nEdx;
+}
+```
+
+## 汇编代码：`Account_Func_8`
+
+```
+CODE:0054BE3C  Account_Func_8  proc near             ; CODE XREF: Account_Func_7+13p
+CODE:0054BE3C                  xor     eax, edx
+CODE:0054BE3E                  xor     ecx, eax
+CODE:0054BE40                  mov     eax, ecx
+CODE:0054BE42                  retn
+CODE:0054BE42  Account_Func_8  endp
+```
