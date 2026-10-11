@@ -1,0 +1,309 @@
+
+# PHP 打水印类
+
+> 原文：[`www.pediy.com/kssd/pediy12/136472.html`](https://www.pediy.com/kssd/pediy12/136472.html)
+
+代码：
+
+```php
+<?php
+/*在实例化时候,必须有个 html 代码中的<input type="file" name="file">中的 name 的值
+ * 不应该在类里输出上传成败的信息.应该通过返回值.给实例化的页面判断是否要输出消息
+ * 但是,在不成功的情况下,应该在类的内部输出提示的信息,方便排错*/
+class shuiyin_class
+{
+  protected $image_tmp_name;
+  protected $image_name;
+  protected $image_type;
+  protected $image_error;
+  protected $image_shuiyin;
+  protected $image_x;
+  protected $image_y;
+  protected $string_to;
+  protected $image_size;
+  
+  function __construct($upload,$to='')
+  {   
+    $file = $upload;
+    $this->image_shuiyin = '@_yyy 微博';
+    $this->image_tmp_name = $_FILES[$file]['tmp_name'];
+    $this->image_name = $_FILES[$file]['name'];
+    $this->image_type = $this->image_type_select();
+    $this->image_error = $_FILES[$file]['error'];
+    $this->image_size = $_FILES[$file]['size'];
+    $to_array = array('right_down','right_up');
+    if(in_array($to,$to_array))
+    {
+      $this->string_to = $to;
+    }
+    else 
+    {
+      $this->string_to = 'right_down';
+    }
+    
+  }
+  private function image_type_select()
+  {
+    $image = getimagesize($this->image_tmp_name);
+    //echo $image['mime'];
+    return  $image['mime'];
+  }
+  public function image()
+  {
+        if(!($this->image_error())|| !($this->image_type()))
+        {
+          $this->unlink_tmp();
+          return false;          
+        }
+       
+      if(is_uploaded_file($this->image_tmp_name) && file_exists($this->image_tmp_name))
+      {
+          if(!$this->createdir('./image_shuiyin'))
+          {
+            $this->unlink_tmp();
+            return false;
+          }           
+          $name = $this->rename();
+          $move = './image_shuiyin/'.$name;
+          if(move_uploaded_file($this->image_tmp_name,$move))
+          {
+            $image_all = getimagesize($move);
+            $real_image = array('image/png','image/jpeg');
+            /*发现在上传 gif 类型的图片时候.如果打上水印.那么生产的图片动画效果就没了
+             * 如果文件过大.会报出一个内存分配不足的问题.那个提示有点讨厌
+             * So. 做了一个判断.把它们给过滤掉.也就是不打水印了,但是保证可以上传.
+             * 不知道是否有好处.
+             * */
+            if($this->image_size < 100000 && in_array($image_all['mime'],$real_image))
+            //if(in_array($image_all['mime'],$real_image))
+            {
+            $this->image_create_shuiyin($move);
+            }   
+            $this->shuiyin_suolue($move,$name);
+            $this->unlink_tmp();
+            return true;
+          }
+          else 
+          {
+            $this->unlink_tmp();
+            return false;
+          }
+          
+      }   
+       else 
+       {
+        echo '文件'.$this->image_name.'不存在';
+        $this->unlink_tmp();
+        return false;
+       }   
+         
+  }
+  private function image_type()
+  {
+    $image_type_array = array('image/gif','image/png','image/jpeg');
+    //echo $this->image_type;
+    if(!in_array($this->image_type,$image_type_array))
+    {
+      echo '不支持的文件类型';
+      return false;     
+    }
+    else 
+    {
+      return true;
+    }
+    
+  }
+  private function image_error()
+  {
+    $error = $this->image_error;
+    if($error>0)
+    {
+    switch ($error)
+    {
+      case 1:
+      echo '上传的文件过大,超过服务器限制';
+      break;
+      case 2:
+      echo '上传的文件过大,超过脚本限制';
+      break;
+      case 3:
+      echo '部分文件被上传';
+      break;
+      case 4:
+      echo '上传的文件为 0';
+      break;
+      default:
+        break;
+    }
+    return false;
+    }
+    else 
+    {
+      return true;
+    }
+  }
+  private function image_create_shuiyin($image_url)
+  {
+    $image_info = getimagesize($image_url);
+    $image_type = $this->image_type;
+    $width = $image_info[0];
+    $hieght = $image_info[1];
+    
+    
+    $image = $this->image_createfrom($image_type,$image_url);
+    
+    
+    //$image_create = imagecreatetruecolor($width,$hieght);
+    //imagecopy($image_create,$image,0,0,0,0,$width,$hieght);
+    $word_color = imagecolorallocate($image,128,128,128);
+    $font = "simhei.ttf";
+    
+    $this->image_box(20,0,$font,$this->image_shuiyin,$image_info);
+        imagettftext($image,20,0,$this->image_x,$this->image_y,$word_color,$font,$this->image_shuiyin);
+        
+        switch ($image_type)
+    {
+      case 'image/gif':
+      header('Content-Type:image/gif');
+      imagegif($image);
+      imagegif($image,$image_url);
+      break;
+      case 'image/png':
+      header('Content-Type:image/png');
+      imagepng($image);
+      imagepng($image,$image_url);
+      break;
+      case 'image/jpeg':
+      header('Content-Type:image/jpeg');
+      imagejpeg($image);
+      imagejpeg($image,$image_url);
+      break;
+      default:
+      break;
+    }
+    imagedestroy($image);
+    //imagedestroy($image);
+    
+  }
+  
+    private function shuiyin_suolue($image_url,$name)
+  {
+    $image_info = getimagesize($image_url);
+    $image_type = $this->image_type;
+    $width = $image_info[0];
+    $hieght = $image_info[1];
+    $dir = './image_shuiyin_suolue';
+    $suolue_name_url = $dir.'/suolue_'.$name;
+    $new_width = $width/2;
+    $new_hieght = $hieght/2;
+    $size = $this->image_size;
+    
+    if($this->createdir($dir))
+    {
+      $image_from = $this->image_createfrom($image_type,$image_url);
+      if($size > 100000)
+      {
+        $new_width = $new_width/5;
+        $new_hieght = $new_width/5;
+        
+      }
+      $image_truecolor = imagecreatetruecolor($new_width,$new_hieght);
+      imagecopyresized($image_truecolor, $image_from, 0, 0, 0, 0, $new_width, $new_hieght,$width,$hieght);
+      
+        switch ($image_type)
+        {
+      case 'image/gif':
+      imagegif($image_truecolor,$suolue_name_url);
+      break;
+      case 'image/png':
+      imagepng($image_truecolor,$suolue_name_url);
+      break;
+      case 'image/jpeg':
+      imagejpeg($image_truecolor,$suolue_name_url);
+      break;
+      default:
+      break;
+       }
+       imagedestroy($image_from);
+       imagedestroy($image_truecolor);
+    }
+    
+  }
+  private function image_createfrom($image_type,$image_url)
+  {
+    
+      switch ($image_type)
+    {
+      case 'image/gif':
+      $image = imagecreatefromgif($image_url);
+      break;
+      case 'image/png':
+      $image = imagecreatefrompng($image_url);
+      break;
+      case 'image/jpeg':
+      $image = imagecreatefromjpeg($image_url);
+      break;
+      default:
+      break;
+    }
+    return $image;
+  }
+  private function image_box($size,$angle,$font,$string,$image_array)
+  {
+    $box = imagettfbbox($size,$angle,$font,$string);
+    $w = $image_array[0];
+    $h = $image_array[1];
+    
+    switch ($this->string_to)
+    {
+      case 'right_down':
+         $this->image_x = ($w-($box[4]-$box[0]));
+         $this->image_y = $h-10;
+         break;
+      case 'right_up':
+        $this->image_x = ($w-($box[4]-$box[0]));
+        $this->image_y = $box[1]-$box[5];
+        break;
+    }
+    
+  }
+  
+  
+  private function createdir($dir)
+  {   
+    if(!file_exists($dir))
+    {
+      if(mkdir($dir))
+      {
+        chmod($dir,0600);
+        return true;
+      }
+      else 
+      {
+        echo '目录创建失败';
+        return false;
+      }
+    }
+    else 
+    {
+      return true;
+    }
+  }
+  
+  private function rename()
+  {
+    $uniqid = substr(md5(uniqid(rand(1,15))),4,7);
+    $image_info = pathinfo($this->image_name);
+    $image_extension = $image_info['extension'];
+    return $uniqid.'.'.$image_extension;
+  }
+  private function unlink_tmp()
+  {
+    if(file_exists($this->image_tmp_name) && is_file($this->image_tmp_name))
+    {
+      unlink($this->image_tmp_name);
+    }
+  }
+}
+?>
+```

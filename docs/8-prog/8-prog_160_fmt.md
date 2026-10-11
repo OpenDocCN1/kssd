@@ -1,0 +1,784 @@
+
+# 剑走偏峰来自一个中国人的 C++教程（系列三）
+
+> 原文：[`www.pediy.com/kssd/pediy11/109455.html`](https://www.pediy.com/kssd/pediy11/109455.html)
+
+先打个广告欢迎加入编程<->逆向群: `90569473` ，本群无任何不良目的，欢迎加入！
+
+《剑走偏峰来自一个中国人的 C++教程》之三
+
+## C++的运算符与基本控制结构
+
+最近学校课程比较多，抽空还得去游戏里体验人生，所以更新的速度慢了些许。还如前一章所说的一样，本系列的核心思想在第一章，如果你懂了第一章中的思想，可以将这种思想推而广之，用则无穷，不用则如粪土!
+
+正如第一部分所说的，`C++`中提供了三种处理数据的方法运算符、基本控制结构、编程思想，本章讨论其中的两部分运算符与基本控制结构！
+
+在玩游戏的时候，我发现人生的确如游戏，当你在玩游戏的时候，不妨想象一样你自己，也许你只是地球游戏中被外星人创造的一个角色而已。这种想象原于对太极图的思考，在太极图中，阴中有阳圈，阳中有阴圈，个人觉得它的意思是在说，阴中有太极，阳中有太极，太极中有阴阳，即大太极套小太极，小太极套小小太极，依次无穷无尽，这个过程被老子称为天下大事必做于细，天下难事必做易！
+
+class 老子的话，object C++，现在让我们用这种套子思想来看待 C++中的一些特性！
+
+问题：有 9 个袋子，只有一个袋子存放 9 枚硬币，其它袋子都存放 10 枚硬币，给你一个天平，问最少称几次可以找出只有 9 枚硬币的袋子？
+
+相信聪明的你，已经想到答案是 2 次，如你所想，我们首先将 9 个袋子平均分成三份，将每一份放入一个大袋子，然后任意取两个大袋子进行称量，如果相等则 9 枚硬币的袋子在没有称的大袋子中，相反则 9 枚硬币的袋子在较轻的大袋子中，然后从存放 9 枚硬币的大袋子中随便取出两个小袋子，同样的方法找到 9 枚硬币的小袋子！
+
+这个例子，我特意将分成 3 份的小袋子放入到了一个大袋子中，只是为了让人们理解天下大事必做于细，天下难事必做易这句话，用套子思想，返回去思考上面的问题，不难发现 3 个袋子（即为太极），大袋子（大太极），每个大袋子中的 3 个袋子（小太极）！
+
+这个抽象的过程是在说明天下所有的事物应该是有一些细小的基本元素组成的，是故我们称天下大事必做于细，天下难事必做于易，相信看到这里也许你会不得不承认我们祖先的伟大之处，这与某些现代面试中所说的细节决定成败如出一辙！
+
+继续以这种想法来讨论 `C++`，以 `if` 分支结构为例，结合现实中的现象再举一个例子，在《走西口》这部电视剧中，主人公在从田家大院走到包头的过程与 `if` 分支结构基本相似！当主人公在路上发现饭店时，他可以根据需要进去吃或不吃（`if` 结构，即可以执行也可以不执行），当主人公走到双叉路口时，他必须选择一条路走才能走到包头（`if……else……`结构，即必须执行一个分支），当主人公走到三叉路口时，他先选择一条路看能否继续走下去（`if` 结构，可以走也可以不走），如果不能走，它需要分析剩下的两条路（`if……else……`结构必须执行一个分支，即必须选择一条路），可见，主人公面对三叉路口时为（`if……if ……else` 结构），当主人公走到多个叉路口时，它需要一条条的判断能否走下去，即（`if……else if……else if` 结构）！
+
+正如上面所说的过程，当你每天走在作任何事的路上时，不妨思考一下双叉路口、三叉路口，多叉路口，这时候你就会发现天下书本是用来查的，而决不是用来读的！
+
+正如我的教育观点一样，教育的作用是树人，而就小处来说人都做不好，岂能做大事，所以孔子提出了格物、致知、修身、齐家、治国、平天下的道理，这个道理也是遵守上面的天下大事必做于细道理的！
+
+这里写了这么多，还是在想完成我的目标让中国人认识自己的国人思想，并善于学习及利用！
+
+### 一：位运算
+
+//阴阳学说与二进制（第一章中的例子）
+
+```cpp
+#include "head.h"
+
+class yinyang
+{
+  int yin;
+  int yang;
+
+public:
+  yinyang(){yin=0;yang=1;}
+  void and();
+  void or();
+  void not();
+  void xor();
+};
+
+void yinyang::and()
+{
+  cout<<"阴阳相克，即 0 克 1"<<endl;
+  cout<<(yin&yang)<<endl;
+}
+
+void yinyang::or()
+{
+  cout<<"阴阳相克，即 1 克 0"<<endl;
+  cout<<(yin||yang)<<endl;
+}
+
+void yinyang::not()
+{
+  cout<<"阴阳相生,即 0 生 1,1 生 0"<<endl;
+  cout<<~yin<<" "<<~yang<<endl;
+}
+
+void yinyang::xor()
+{
+  cout<<"阴阳互制,即有一个 1 得 1,有两个 1 得 0"<<endl;
+  cout<<(yin^yang)<<endl;
+}
+
+int main()
+  yinyang oneandzero;
+  oneandzero.and();
+  oneandzero.or();
+  oneandzero.xor();
+  oneandzero.not();
+  return 0;
+}
+```
+
+上面的程序是在系列一中讨论阴阳学说与二进制的一个例子，在这个例子中就用到了位运算！
+
+#### 1.1:位运算及其机器编码
+
+`&` `~` `^` `>>` `<<`
+
+机器编码：`0x7c` `0x26` `0x7e` `0x5e` `0x3e` `0x3c`
+
+#### 1.2:汇编指令
+
+位运算是与汇编指令相对应的
+
+```asm
+and reg/mem,reg/mem/imm
+or  reg/mem,reg/mem/imm
+not reg/mem
+xor reg/mem,reg/mem/imm
+SAL/SAR Reg/Mem, CL/Imm
+SHL/SHR Reg/Mem, CL/Imm
+```
+
+`and` 操作是模为 2 的操作数的乘法操作，它的特点是遇 0 得 0，该指令常用于 `mask` 操作，在前面提到过
+
+`or` 操作的特点是遇到 1 得 1
+
+`not` 操作是求反，它与 `neg` 指令的关系可以理解为 `neg=not+1`
+
+`xor` 操作是模为 2 的加法操作，它的特点是双 1 得 0，正是因为模为 2 的加法操作，所以当 1+1=2 的时候，就相当于结果溢出了，于是取值为 0，即 1xor 1=0！
+
+`Sal/SAR` 是算术移位指令
+
+`SHL/SHR` 是逻辑移位指令！
+
+#### 1.3：C++中的位运算
+
+`C++`中的位运算特别需要注意`>>` `<<`，我们在输入输出时，常用到 `cout<<`及 `cin>>`这样的表达式，这是有运算符重载实现的，下面我们通过一个例子将 `C++`中的 `cout<<`修改为 `cout>>`，以领会这种运算符重载的本质套子思想！
+
+//示例程序
+
+```cpp
+#define FAST
+#include "head.h"
+
+class test
+{
+  int a,b;
+
+public:
+  test();
+  test(int a,int b);
+  void operator>>(test &);
+};
+
+test::test()
+{
+  a=b=1;
+}
+
+test::test(int a,int b)
+{
+  this->a=a;
+  this->b=b;
+}
+
+void test::operator >> (test &p)
+{
+  cout<<p.a<<" "<<p.b<<endl;
+}
+
+int main()
+{
+  test cout(1,2),b;
+  cout>>b;
+  return 0;
+}
+```
+
+我们建立了 `cout` 对象然后通过 `cout` 对象调用 `operator>>`函数，这个函数的作用是输出 `b` 对象的内容！
+
+这个例子说明了 `C++`运算符的一个特性重载，因为作为编程语言来说需要的是数据类型，面象对象解决了 `C++`数据类型的问题，而与数据关系最为密切的是运算符，在面向对象后，运算符必须与数据相适应，所以 `C++`提供了运算符的重载作用！
+
+### 二：逻辑及关系运算符
+
+#### 2.1 逻辑关系运算符及机器编码
+
+`&&`
+
+`||`
+
+`!`
+
+`<` `>` `<=` `>=` `==` `!=`
+
+机器编码：`0x3c` `0x3d` `0x3e` 关系 `<=>`
+
+`0x7c` `0x26` `0x21` `|` `&` `!`
+
+#### 2.2:逻辑及关系运算符与汇编
+
+既然逻辑与关系与运算符的主要作用是为了描述控制结构中的条件，所以我们需要讨论一下 `IA32` `CPU` 的状态寄存器与跳转指令：
+
+**标志寄存器**
+
+`31 … 17` `16` `15` `14` `13` `12` `11` `10` `9` `8` `7` `6` `5` `4` `3` `2` `1` `0`
+
+`… …` `VM` `RF` `NT` `IOPL` `OF` `DF` `IF` `TF` `SF` `ZF` `AF` `PF` `CF`
+
+**运算结果标志位:**
+
+`CF` 位主要用来反映运算是否产生进位或借位，如果运算结果的最高位产生了一个进位或借位，那么其值为 1,否则其值为 0，即有高位借位或者位则为真标识为 1
+
+`PF` 用于反映运算结果中 1 的个数的奇偶性，如果 1 的个数为偶数则 `PF＝1`,否则为 `PF=0`,即运算结果中 1 的个数为偶数则为真标识为 1
+
+`AF` 位用在如下情况时：
+
+- 在字操作时，发生低位字节向高位字节进位或借位时
+- 在字节操作时，发生低 4 位向高 4 位进位或借位时
+
+`ZF` 位用来反映运算结果不否为 0,如果为 0 则其值为 1,否则为 0,即运算结果是否为 0,如果是则条件标识为真 `ZF=1`
+
+`SF` 位用来反映运算结果的符号位，它与运算结果的最高位相同，运算结果为正数，则标识为 0,否则为 1,这与整数的符号编码是一样的，用 0 1 表示正负号，这是一种约定而已！
+
+`OF` 位用于反映运算结果是否溢出，如果溢出则 `OF=1`，否则 `OF=0`，即，运算是否溢出，如果溢出则条件为真，标志为 1
+
+**状态标志位：**
+
+`TF` 位，当 `TF＝1` 时，`CPU` 进入单步执行方式，即每执行一条指令，产生一个单步中断请求！这种方式主要用于程序的调试，指令系统中没有专门的指令来改变标志位 `TF` 的值，但可以通过 `pushfd` 和 `popfd` 来曲线设置
+
+`IF` 位，用来决定 `CPU` 是否响应 `CPU` 外部的可屏蔽中断发送的中断请求，具体规定如下：
+
+- `IF=1`，`CPU` 可以 `CPU` 外部的可屏蔽中断发出的中断请求
+- `IF=0`，`CPU` 不响应 `CPU` 外部的可屏蔽中断发出的中断请求
+
+`CPU` 指令系统中有专门的指令来改变标志位的 `IF` 值！
+
+`DF` 位，用来决定串操作指令时有关指针寄存器发生调整的方向！
+
+**32 位标志寄存器增加的标志位**
+
+`IOPL` 用两位 2 进制位来表示，该字段指定了要执行 `I/O` 指令的特权级，如果当前的特权级在数值上小于等于 `IOPL` 的值，那么，该 `I/O` 指令可执行，否则将发生一个保护异常！
+
+`NT` 位，用来控制中断返回指令 `IRET` 的执行，具体规定如下：
+
+- `NT=0`,用堆栈中保存的值恢复 `EFLAGS` `CS` `EIP`，执行常规的中断返回操作
+- `NT=1`,通过任务转换实现中断返回
+
+`RF` 位，重启动 `RF` 用来控制是否接受高度故障，规定：`RF=0` 时，表示接受调试故障，否则拒绝之，在成功执行完一条指令后，处理机把 `RF` 置为 0,当接受到一个非调试故障时，处理机就把它置为 1！
+
+`VM＝1` 表示 `CPU` 在 `8086` 方式下工作，`VM=1` 表示处理机在保护方式下工作，在 `Windows` 开机时，实际上就是通过这个标志位实现 `CPU` 实模式到保护模式的切换的
+
+**跳转指令：**
+
+`jmp`
+
+**无符号跳转**
+
+`JE/JZ` `ZF=1` Jump Equal or Jump Zero
+
+`JNE/JNZ` `ZF=0` Jump Not Equal or Jump Not Zero
+
+`JA/JNBE` `CF=0` and `ZF=0` Jump Above or Jump Not Below or Equal
+
+`JAE/JNB` `CF=0` Jump Above or Equal or Jump Not Below
+
+`JB/JNAE` `CF=1` Jump Below or Jump Not Above or Equal
+
+`JBE/JNA` `CF=1` or `AF=1` Jump Below or Equal or Jump Not Above
+
+**有符号跳转**
+
+`JE/JZ` `ZF=1` Jump Equal or Jump Zero
+
+`JNE/JNZ` `ZF=0` Jump Not Equal or Jump Not Zero
+
+`JG/JNLE` `ZF=0` and `SF=OF` Jump Greater or Jump Not Less or Equal
+
+`JGE/JNL` `SF=OF` Jump Greater or Equal or Jump Not Less
+
+`JL/JNGE` `SF≠OF` Jump Less or Jump Not Greater or Equal
+
+`JLE/JNG` `ZF=1` or `SF≠OF` Jump Less or Equal or Jump Not Greater
+
+**特殊跳转指令**
+
+`JC` `CF=1` Jump Carry
+
+`JNC` `CF=0` Jump Not Carry
+
+`JO` `OF=1` Jump Overflow
+
+`JNO` `OF=0` Jump Not Overflow
+
+`JP/JPE` `PF=1` Jump Parity or Jump Parity Even
+
+`JNP/JPO` `PF=0` Jump Not Parity or Jump Parity Odd
+
+`JS` `SF=1` Jump Sign (negative)
+
+`JNS` `SF=0` Jump No Sign (positive)
+
+#### 2.3：C++中的逻辑与关系与运算符
+
+在 `C++`中运算符+操作数称为表达式，对于关系与逻辑运算表达式，都有一个 `bool` 值的结果，因此我们能连用关系及逻辑运算符，比如下面的语句：
+
+```cpp
+int a,b,c;
+if(a>b>c)...........;
+if(a<b<c)............;
+```
+
+`a>b>c`，根据结合性先计算 `a>b` 的值，如果是真则为 1,如果是假则为 0,所以如果 `a=4,b=3,c=2` 的话，实际上不是在比较 4>3>2 而是在比较 1>2，正确的描述为
+
+`a> b&&b>c`
+
+//示例程序
+
+```cpp
+#define FAST
+#include "head.h"
+
+int main()
+{
+  int a=1,b=0;
+  cout<<(a&&b)<<endl; //位关系位逻辑，<<符号是 C++进行重载后的，在操作符重载后其优先级不变，故需要加括号改变&& ||运算符在表达式中的优先级
+  cout<<(a||b)<<endl;
+  cout<<!a<<endl;
+  return 0;
+}
+```
+
+//a&&b 主要的反汇编代码
+
+```asm
+00401296    837D FC 00        cmp dword ptr ss:[ebp-4],0          ; 设置标志位
+0040129A    74 0F             je short api.004012AB
+0040129C    837D F8 00        cmp dword ptr ss:[ebp-8],0
+004012A0    74 09             je short api.004012AB
+004012A2    C745 F4 01000000  mov dword ptr ss:[ebp-C],1
+004012A9    EB 07             jmp short api.004012B2
+004012AB    C745 F4 00000000  mov dword ptr ss:[ebp-C],0
+```
+
+在上面的代码不难看出在 `a&&b` 表达式的运算结果保存到了`[ebp-C]`中，这也验证了我们开头说的话，关系与逻辑表达式都会有一个 `BOOL` 值的结果！正是因为逻辑与运算的作用是判断操作中是否有 0，所以 `a&&b` 表达式的反汇编指令是 `cmp` 与 `je` 指令配合，通过与 0 相减，如果结果为 0 则操作数为 0,`ZF＝1` 通过 `je` 指令跳转最为合适！
+
+//a||b 主要的反汇编代码
+
+```asm
+004012E2    837D FC 00        cmp dword ptr ss:[ebp-4],0
+004012E6    75 0F             jnz short api.004012F7
+004012E8    837D F8 00        cmp dword ptr ss:[ebp-8],0
+004012EC    75 09             jnz short api.004012F7
+004012EE    C745 F0 00000000  mov dword ptr ss:[ebp-10],0
+004012F5    EB 07             jmp short api.004012FE
+004012F7    C745 F0 01000000  mov dword ptr ss:[ebp-10],1
+```
+
+
+
+与`a&&b`相同，`a||b`表达式也有一个值，这个`bool`值保存到了`[ebp-10]`中。正因为逻辑或运算的作用是判断操作数中是否有`1`，所以`a||b`表达式的反汇编指令是`cmp`与`jne`指令配合，通过与`0`相减，如果结果不为`0`，则操作数中一定有一个不为`0`，`ZF=0`，通过`jne`指令最为合适！
+
+`//!a`反汇编
+
+```
+0040133A    837D FC 00        cmp dword ptr ss:[ebp-4],0
+0040133E    0F94C2            sete dl
+```
+
+与上面与或逻辑表达式一样，`!`操作也会保存运算结果，这个值保存到了`EDX`中，所以才会有下面的反汇编代码：
+
+```
+0040133E    0F94C2            sete dl
+00401341    8BFC              mov edi,esp
+00401343    52                push edx
+00401344    8B0D DC504100     mov ecx,dword ptr ds:[<&MSVCP60D.std::cout
+```
+
+`sete`指令是设置非`EFLAGS`寄存器状态标志位的一个指令，它的作用是如果`ZF=1`则`dl=0`，如果`zf=0`则`dl=1`！
+
+`//示例关系与 swtich 结构`
+
+```c
+#define FAST
+
+#include "head.h"
+
+int main()
+{
+  int a,b;
+  cin>>a>>b;
+  int c;
+  a>b?c=1:c=2;
+  switch(c)
+  {
+  case 1:
+    cout<<"big!"<<endl;
+    break;
+  case 2:
+    cout<<"little!"<<endl;
+    break;
+  default:
+    cout<<"equal!"<<endl;
+    break;
+  }
+  return 0;
+}
+```
+
+`//程序反汇编详解`
+
+```
+00401270 >  55                 push ebp           ;保存前一个栈帧的栈底
+00401271    8BEC               mov ebp,esp        ;开辟一个新的栈帧
+00401273    83EC 54            sub esp,54         ;分配栈空间
+00401276    53                 push ebx           ;保存 ebx
+00401277    56                 push esi           ;保存 esi
+00401278    57                 push edi           ;保存 edi 实际上就是 context 结构的一部分，在面向对象中 push ecx 总是最后，用于指示对象
+00401279    8D7D AC            lea edi,dword ptr ss:[ebp-54]    ;将栈空间的首地末地址保存到 edi 中
+0040127C    B9 15000000        mov ecx,15         ;设置栈空间的初始化次数 0x54=84/4=21=0x15，这里的次数与分配的栈空间是一致的
+00401281    B8 CCCCCCCC        mov eax,CCCCCCCC         ;栈空间初始化的值 0xccccccccc，实际上就是 int3，这个 int3 与 int 3 不一样，后者为 0xcc03
+00401286    F3:AB              rep stos dword ptr es:[edi]    ;重复串操作将 eax 的值保存到开辟的栈空间中，实现栈空间初始化
+00401288    8BF4               mov esi,esp        ;esi=esp
+0040128A    8D45 F8            lea eax,dword ptr ss:[ebp-8]               ; 得到变量 b 的地址
+0040128D    50                 push eax                       ; 进栈准备做参数
+0040128E    8BFC               mov edi,esp
+00401290    8D4D FC            lea ecx,dword ptr ss:[ebp-4]               ; 得到变量 a 的地址
+00401293    51                 push ecx                       ; 入栈准备作参数
+00401294    8B0D F4504100      mov ecx,dword ptr ds:[<&MSVCP60D.std::cin>; 标准输入到变量 a 中
+0040129A    FF15 F0504100      call dword ptr ds:[<&MSVCP60D.std::basic_>; 调用操作符重载函数
+004012A0    3BFC               cmp edi,esp
+004012A2    E8 7B010000        call api._chkesp                   ; 检测栈平衡
+004012A7    8BC8               mov ecx,eax
+004012A9    FF15 F0504100      call dword ptr ds:[<&MSVCP60D.std::basic_>; MSVCP60D.std::basic_istream<char,std::char_traits<char> >::operator>>
+004012AF    3BF4               cmp esi,esp
+004012B1    E8 6C010000        call api._chkesp                   ; jmp 到 MSVCRT._chkesp
+004012B6    8B55 FC            mov edx,dword ptr ss:[ebp-4]             ; a 的值入 edx
+004012B9    3B55 F8            cmp edx,dword ptr ss:[ebp-8]             ; 比较 a 与 b 的值
+004012BC    7E 0F              jle short api.004012CD                 ; 小于则跳转即大于时不跳
+004012BE    C745 F4 01000000  mov dword ptr ss:[ebp-C],1               ; 大于时则 c=1
+004012C5    8B45 F4            mov eax,dword ptr ss:[ebp-C]             ; c 的值保存到 EAX 中
+004012C8    8945 F0            mov dword ptr ss:[ebp-10],eax          ; 保存 a>b 表达式的值到 ebp-0x10 中
+004012CB    EB 0D              jmp short api.004012DA                 ; 跳入 switch 结构
+004012CD    C745 F4 02000000  mov dword ptr ss:[ebp-C],2               ; a<b 时 c=2
+004012D4    8B4D F4            mov ecx,dword ptr ss:[ebp-C]             ; c 的值保存到 ecx 中
+004012D7    894D F0            mov dword ptr ss:[ebp-10],ecx          ; 保存 a>b 表达式的值
+004012DA    8B55 F4            mov edx,dword ptr ss:[ebp-C]             ; switch 结构开始处
+004012DD    8955 EC            mov dword ptr ss:[ebp-14],edx
+004012E0    837D EC 01         cmp dword ptr ss:[ebp-14],1             ; case 1:
+004012E4    74 08              je short api.004012EE                  ; 进入 case 1:分支
+004012E6    837D EC 02         cmp dword ptr ss:[ebp-14],2             ; case 2:
+004012EA    74 39              je short api.00401325                  ; 进入 case 2:分支
+004012EC    EB 6E              jmp short api.0040135C                 ; 跳转到 default 分支中
+004012EE    8BF4               mov esi,esp                            ; case 1:分支处的指令开始处
+004012F0    A1 EC504100        mov eax,dword ptr ds:[<&MSVCP60D.std::end
+004012F5    50                 push eax
+004012F6    8BFC               mov edi,esp
+004012F8    68 30304100        push api.00413030                      ; ASCII "big!"
+004012FD    8B0D E8504100      mov ecx,dword ptr ds:[<&MSVCP60D.std::cou>; MSVCP60D.std::cout
+00401303    51                 push ecx
+00401304    FF15 E4504100      call dword ptr ds:[<&MSVCP60D.std::operat>; MSVCP60D.std::operator<<
+0040130A    83C4 08            add esp,8
+0040130D    3BFC               cmp edi,esp
+0040130F    E8 0E010000        call api._chkesp                   ; jmp 到 MSVCRT._chkesp
+00401314    8BC8               mov ecx,eax
+00401316    FF15 E0504100      call dword ptr ds:[<&MSVCP60D.std::basic_>; MSVCP60D.std::basic_ostream<char,std::char_traits<char> >::operator<<
+0040131C    3BF4               cmp esi,esp
+0040131E    E8 FF000000        call api._chkesp                   ; jmp 到 MSVCRT._chkesp
+00401323    EB 6D              jmp short api.00401392                 ; case 1 分支结束处，跳转到程序结束
+00401325    8BF4               mov esi,esp                            ; case 2:分支的指令开始处
+00401327    8B15 EC504100      mov edx,dword ptr ds:[<&MSVCP60D.std::end>; MSVCP60D.std::endl
+0040132D    52                 push edx
+0040132E    8BFC               mov edi,esp
+00401330    68 24304100        push api.00413024                      ; ASCII "little!"
+00401335    A1 E8504100        mov eax,dword ptr ds:[<&MSVCP60D.std::cou
+0040133A    50                 push eax
+0040133B    FF15 E4504100      call dword ptr ds:[<&MSVCP60D.std::operat>; MSVCP60D.std::operator<<
+00401341    83C4 08            add esp,8
+00401344    3BFC               cmp edi,esp
+00401346    E8 D7000000        call api._chkesp                   ; jmp 到 MSVCRT._chkesp
+0040134B    8BC8               mov ecx,eax
+0040134D    FF15 E0504100      call dword ptr ds:[<&MSVCP60D.std::basic_>; MSVCP60D.std::basic_ostream<char,std::char_traits<char> >::operator<<
+00401353    3BF4               cmp esi,esp
+00401355    E8 C8000000        call api._chkesp                   ; jmp 到 MSVCRT._chkesp
+0040135A    EB 36              jmp short api.00401392                 ; case 2:分支指令结束处，跳转到程序结束
+0040135C    8BF4               mov esi,esp                            ; default 语句开始处
+0040135E    8B0D EC504100      mov ecx,dword ptr ds:[<&MSVCP60D.std::end>; MSVCP60D.std::endl
+00401364    51                 push ecx
+00401365    8BFC               mov edi,esp
+00401367    68 1C304100        push api.0041301C                      ; ASCII "equal!"
+0040136C    8B15 E8504100      mov edx,dword ptr ds:[<&MSVCP60D.std::cou>; MSVCP60D.std::cout
+00401372    52                 push edx
+00401373    FF15 E4504100      call dword ptr ds:[<&MSVCP60D.std::operat>; MSVCP60D.std::operator<<
+00401379    83C4 08            add esp,8
+0040137C    3BFC               cmp edi,esp
+0040137E    E8 9F000000        call api._chkesp                   ; jmp 到 MSVCRT._chkesp
+00401383    8BC8               mov ecx,eax
+00401385    FF15 E0504100      call dword ptr ds:[<&MSVCP60D.std::basic_>; MSVCP60D.std::basic_ostream<char,std::char_traits<char> >::operator<<
+0040138B    3BF4               cmp esi,esp
+```
+
+
+
+## 反汇编分析
+
+```assembly
+0040138D    E8 90000000       call api._chkesp                ; jmp 到 MSVCRT._chkesp
+
+00401392    33C0              xor eax,eax                     ; return 0;
+```
+
+通过反汇编这个程序，我们得到如下结论：
+
+A: 再次证明关系表达式是要保存结果的，在上面的反汇编代码中，我们可以看到每个 `case` 分支附近都有表达式值的保存！
+
+B: 熟悉了 `switch` 结构的反汇编，在逆向 C++ 的时候，很难分清循环与简单分支结构的不同，实际上，循环结构的反汇编标志就是回跳，而简单分支结构的特点是向下的跳转，这并不是一个难把握的东西！
+
+## 三：算术运算符
+
+算术运算符可简单的分为如下几类：
+
+1. `+ -` 正负号运算
+2. `+ - * / %`
+3. 增量运算 `++ --`
+4. `=` 赋值运算
+
+### 1.1: 算术运算符的机器编码
+
+`+ - * / % =`
+
+`0x2b 0x2d 0x2a 0x2f 0x25 0x3d`
+
+### 1.2: 算术运算符与汇编指令
+
+- `add reg/mem,reg/mem/imm` 源操作数+目的操作数，结果保存到目的操作数中
+- `adc reg/mem,reg/mem/imm` 源操作数+目的操作+CF，结果保存到目的操作数中
+- `inc reg/mem` 操作数+1
+- `xadd reg/mem,reg` 目的操作数与源操作数切换位置，然后再相加，使用该指令必须保证有一个操作数位于寄存器中，这牵涉到寻址与 CPU 周期的问题，作为 CPU 来说，无法直接实现内存到内存的数据流动！
+
+//示例
+
+```assembly
+mov dword ptr ss:[ebp-4],2
+mov eax,2
+add eax,dword ptr ss:[ebp-4] ;eax=4
+adc eax,dword ptr ss:[ebp-4] ;cf=1 eax=7 cf=0 eax=6
+inc eax ;eax=7 eax=8
+xadd dword ptr ss:[ebp-4],eax ;eax=2 ss:[ebp-4]=9 or A
+```
+
+- `sub reg/mem,reg/mem/imm` 从目的操作数减去源操作数
+- `sbb reg/mem,reg/mem/imm` 从目的操作数减去 CF 值后再减去源操作数
+- `dec reg/mem` 操作数-1
+- `neg reg/mem` 求补，即求相反数，在计算机中的表示需要按照一定的规则
+  - `neg` 指令对应于负号运算符
+- `mul reg/mem` 将操作数与 `EAX` 的值相乘并将其值保存到 `EDX` 和 `EAX` 中
+
+//示例
+
+```assembly
+mov dword ptr ss:[ebp-4],5
+mov eax,2
+mul dword ptr ss:[ebp-4]
+```
+
+此时 `EDX` 的值为 `0`，`EAX` 的值为 `A`
+
+- `imul reg1,reg2/mem` 386+ `reg1*reg2->reg1` 或 `reg1*mem->reg1`
+
+//示例
+
+```assembly
+imul eax,dword ptr ss:[ebp-4] ;eax=0x32
+```
+
+- `div reg/mem` 将操作数与 `EDX-EAX` 相除，商保存到 `eax`，余数保存到 `edx` 中
+- `idiv reg/mem` 与 `div` 操作是一样的
+
+```assembly
+div dword ptr ss:[ebp-4] ;eax=0xA
+idiv dword ptr ss:[ebp-4] ;eax=0x2
+idiv dword ptr ss:[ebp-4] ;eax=0 edx=2
+```
+
+### 1.3：C++中的算术运算符
+
+//示例程序
+
+```cpp
+#define FAST
+#include "head.h"
+
+int main()
+{
+  int a=3;
+  while(--a)
+  {
+    cout<<a<<endl;
+  }
+  cout<<"restarting......."<<endl;
+  a=3;
+  while(a--)
+  {
+    cout<<a<<endl;
+  }
+  return 0;
+}
+```
+
+```assembly
+00401288    C745 FC 03000000  mov dword ptr ss:[ebp-4],3        ; int a=3;
+0040128F    8B45 FC           mov eax,dword ptr ss:[ebp-4]       ; eax=3
+00401292    83E8 01           sub eax,1                           ; eax=2
+00401295    8945 FC           mov dword ptr ss:[ebp-4],eax        ; a=2
+00401298    837D FC 00        cmp dword ptr ss:[ebp-4],0          ; 2 与 0 进行比较
+0040129C    74 33             je short api.004012D1
+.........................
+00401306 >  C745 FC 03000000  mov dword ptr ss:[ebp-4],3    ;a=3
+0040130D    8B55 FC           mov edx,dword ptr ss:[ebp-4]    ;edx=3
+00401310    8B45 FC           mov eax,dword ptr ss:[ebp-4]    ;eax=3
+00401313    83E8 01           sub eax,1           ;eax=2
+00401316    8945 FC           mov dword ptr ss:[ebp-4],eax    ;a=2
+00401319    85D2              test edx,edx        ;3 与 3 进行比较
+0040131B    74 33             je short api.$E30        ;分支
+.............................
+00401328    8B55 FC           mov edx,dword ptr ss:[ebp-4]     ;edx=2
+0040132B    52                push edx          ;edx 入栈
+0040132C    8B0D E4504100     mov ecx,dword ptr ds:[<&MSVCP60D.std::cou>; MSVCP60D.std::cout ;运算符重载输出 edx 的值
+```
+
+不难看出前算术运算，是先减 1，然后用减去的结果去进行操作，而后算术运算是将操作数保存到两个寄存器中，然后将其中之一的寄存器减 1，而后再用另一个寄存器去作为条件进行判断，然后再将条件判断的寄存器内容进行修改，通过这个过程来判断 `while(--a)` 比 `while(a--)` 少一次条件判断！
+
+所以上面程序的结果是 `2 1 2 1 0`
+
+结论：前增量运算要比后运算的指令少好几条，所以在编程时最好使用前增量！同时后增量的值会紧接着在条件判断后对数据进行增量操作！
+
+//理解赋值运算符
+
+```cpp
+#define FAST
+#include "head.h"
+
+int main()
+{
+  int a,b,c,d;
+  a=1;
+  b=2;
+  c=3;
+  d=4;
+
+  /*
+00401288    C745 FC 01000000  mov dword ptr ss:[ebp-4],1
+0040128F    C745 F8 02000000  mov dword ptr ss:[ebp-8],2
+00401296    C745 F4 03000000  mov dword ptr ss:[ebp-C],3
+0040129D    C745 F0 04000000  mov dword ptr ss:[ebp-10],4
+  */
+
+  cout<<"restarting.......!"<<endl;
+  a=b=c=d=1;
+
+  /*
+004012D9    C745 F0 01000000  mov dword ptr ss:[ebp-10],1
+004012E0    8B55 F0           mov edx,dword ptr ss:[ebp-10]
+004012E3    8955 F4           mov dword ptr ss:[ebp-C],edx
+004012E6    8B45 F4           mov eax,dword ptr ss:[ebp-C]
+004012E9    8945 F8           mov dword ptr ss:[ebp-8],eax
+004012EC    8B4D F8           mov ecx,dword ptr ss:[ebp-8]
+004012EF    894D FC           mov dword ptr ss:[ebp-4],ec
+  */
+  return 0;
+}
+```
+
+通过上面的代码不难看出，右结合性连续赋值在执行上并不效率，只不过在编写源码时我们方便了一些而已，实际上在 2 个变量的连续赋值中是可行的，而越多则越不效率，越不如单句赋值效率！赋值运算关键记住左右二字，左必须为左值，右为右结合性！
+
+//区分=与==
+
+```cpp
+#define FAST
+#include "head.h"
+
+int main()
+{
+  int i;
+  if(i=42)
+  {
+    cout<<"此处检测 i 值是否为 0"<<endl;
+  }
+  if(i==42)
+  {
+    cout<<"此处检测 i 值是否为 42"<<endl;
+  }
+  return 0;
+}
+```
+
+//反汇编代码 `if(i=42)`
+
+```assembly
+00401288    C745 FC 2A000000  mov dword ptr ss:[ebp-4],2A
+0040128F    837D FC 00        cmp dword ptr ss:[ebp-4],0
+00401293    74 35             je short api.004012CA
+.....................
+```
+
+//反汇编 `if(i==42)`
+
+```assembly
+004012CA    837D FC 2A        cmp dword ptr ss:[ebp-4],2A
+004012CE    75 35             jnz short api.00401305
+```
+
+第一个 `if` 结构的作用是先将 `i` 赋值为 `42`，然后检测 `i` 的值是否为 `0`，不为 `0` 则条件为真，而后一个是检测 `i` 的值是否等于 `42`，如果是则为真！
+
+## 四：特殊运算符
+
+逗号运算符，是从左到右计算机表达式的值，将最后一个表达式的值作为整个逗号表达式的值！
+
+//,运算符示例
+
+```cpp
+#define FAST
+#include "head.h"
+
+int main()
+{
+  int a,b;
+  if(a=0,b=1)
+  {
+    cout<<"1"<<endl;
+  }
+  if(b=1,a=0)
+  {
+    cout<<"0"<<endl;
+  }
+  return 0;
+}
+```
+
+//关键反汇编
+
+```assembly
+00401288    C745 FC 00000000  mov dword ptr ss:[ebp-4],0    ; esi=esp
+0040128F    C745 F8 01000000  mov dword ptr ss:[ebp-8],1
+00401296    837D F8 00        cmp dword ptr ss:[ebp-8],0
+0040129A    74 35             je short api.004012D1
+........................
+004012D1    C745 F8 01000000  mov dword ptr ss:[ebp-8],1
+004012D8 >  C745 FC 00000000  mov dword ptr ss:[ebp-4],0
+004012DF    837D FC 00        cmp dword ptr ss:[ebp-4],0
+004012E3    74 35             je short api.0040131A
+```
+
+`->` 运算符，这是一个方便对象指针的运算符
+
+//示例
+
+```cpp
+#define FAST
+#include "head.h"
+
+class test
+{
+  int a;
+public:
+  void show(){cout<<a<<endl;}
+  test(){a=1;}
+};
+
+int main()
+{
+  test a,*p;
+  p=&a;
+  p->show();
+  (*p).show();
+  a.show();
+  return 0;
+}
+```
+
+## 五：太极图与 C++ 运算符、基本控制结构
+
+1：太极图中的套子思想 C++ 运算符的重载特性与 `if` 结构
+
+2：太极图中的 S 曲线程序执行流程！
+
+在太极图中阴阳分界的是 S 曲线，这条线为什么是 S 曲线而不是像象棋棋谱中那样为直线简洁而明显呢?
+
+纵观世间万物，只有相对的暂时笔直，决无永远的笔直，比如你看到的路、山川、河流无一笔直的事物，再比如地球，在空中看为圆，地球上看为方，程序的执行流程也一样，表面上看是顺序执行的，但是实际上是有许多条件分支组成的，将 S 曲线求极限(`lim S 曲线`)，S 曲线的组成部分越接近直线，这与程序执行流程也基本类似，我们的程序写的越小则分支越少，越接近于纯顺序执行！
+
+3：正如人生一样，道路之曲折处，恰是生死福祸之变化处，程序也一样，分支执行处，恰时破解产生之时！
+
+4：思考题
+
+A: 为什么本章从 `hex` 编码、汇编指令去讨论 C++ 的运算符？
+
+B：为什么位与运算是 `&` 而逻辑与运算为 `&&`？
