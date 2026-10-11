@@ -1,0 +1,12 @@
+
+# Sysinternals 系列驱动逆向之(1)--RootkitRevealer 完全逆向源码
+
+> 原文：[`www.pediy.com/kssd/pediy10/87893.html`](https://www.pediy.com/kssd/pediy10/87893.html)
+
+`SysinternalsSuite` 中的驱动基本没什么新技术，但 `Mark` 在 `SysinternalsSuite` 中使用的思路是值得学习的。
+
+这是逆向的第一个驱动，`RootkitRevealer` 完全逆向，完全可替换原驱动。
+
+上传的附件
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) | `RootkitRevealer.rar` |
