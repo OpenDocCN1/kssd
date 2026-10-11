@@ -1,0 +1,300 @@
+
+# VB 程序逆向浅析
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-460.htm`](https://www.pediy.com/kssd/pediy07/pediy7-460.htm)
+
+【标题】VB 程序逆向浅析
+
+【作者】forever\[RCT\]
+
+-----------------前言-----------------
+
+最近心情很乱，这篇帖子写的也一定条理不清。不过我的目的只是当一个引子，以引出更好的的帖子出来，所以在前面先说声抱歉了。
+
+命运这东西有时很难捉摸，很多事并不按你想的那样发展。未来的路会如何呢？反正我不知道，我懒得去想...
+
+-----------------让一切从代码开始-----------------
+
+这段代码很简单，新建一个窗体，然后放上两个`Text`控件和一个`Command`控件，然后在`Command`控件的事件里写下下面的代码：
+
+```vb
+Private Sub Command1_Click()
+  Dim a, b As Integer
+  a = CInt(Text1.Text)
+  b = a + 10
+  Text2.Text = CStr(b)
+End Sub
+```
+
+一切都足够了，然后我们看一下反汇编代码。
+
+```asm
+text:00401DB0    push    ebp
+.text:00401DB1    mov     ebp, esp
+.text:00401DB3    sub     esp, 0Ch
+.text:00401DB6    push    (offset dword_4010B4+2)
+.text:00401DBB    mov     eax, large fs:0
+.text:00401DC1    push    eax
+.text:00401DC2    mov     large fs:0, esp
+.text:00401DC9    sub     esp, 4Ch
+.text:00401DCC    push    ebx
+.text:00401DCD    push    esi
+.text:00401DCE    push    edi
+.text:00401DCF    mov     [ebp-0Ch], esp
+.text:00401DD2    mov     dword ptr [ebp-8], offset dword_4010A0
+.text:00401DD9    mov     esi, [ebp+8]   // [ebp+8]里是什么呢？其实这里就是 VB 中的 me
+.text:00401DDC    mov     eax, esi
+.text:00401DDE    and     eax, 1
+.text:00401DE1    mov     [ebp-4], eax
+.text:00401DE4    and     esi, 0FFFFFFFEh
+.text:00401DE7    push    esi
+.text:00401DE8    mov     [ebp+8], esi
+.text:00401DEB    mov     ecx, [esi]
+.text:00401DED    call    dword ptr [ecx+4]   // EVENT_SINK_AddRef
+                                // 每个 vb 程序的事件里都有这么一段
+.text:00401DF0    mov     edx, [esi]
+.text:00401DF2    xor     eax, eax
+.text:00401DF4    push    esi
+.text:00401DF5    mov     [ebp-24h], eax
+.text:00401DF8    mov     [ebp-2Ch], eax
+.text:00401DFB    mov     [ebp-30h], eax
+.text:00401DFE    mov     [ebp-40h], eax
+.text:00401E01    mov     [ebp-50h], eax
+.text:00401E04    call    dword ptr [edx+2FCh] // 获得 TEXT1 对象
+.text:00401E0A    mov     ebx, ds:__vbaObjSet
+.text:00401E10    push    eax
+.text:00401E11    lea     eax, [ebp-30h]
+.text:00401E14    push    eax
+.text:00401E15    call    ebx ; __vbaObjSet    // [ebp-30h]是临时的对象变量，保存获得的 TEXT 对象
+.text:00401E17    mov     edi, eax
+.text:00401E19    lea     edx, [ebp-2Ch]       // 缓冲区
+.text:00401E1C    push    edx
+.text:00401E1D    push    edi
+.text:00401E1E    mov     ecx, [edi]
+.text:00401E20    call    dword ptr [ecx+0A0h] // get__ipropTEXTEDIT(void *) 接收 TEXT 控件的 text 属性
+.text:00401E26    test    eax, eax
+.text:00401E28    fnclex
+.text:00401E2A    jge     short loc_401E3E
+.text:00401E2C    push    0A0h
+.text:00401E31    push    offset dword_40181C  // 注意这个，一会下面要讲到
+.text:00401E36    push    edi
+.text:00401E37    push    eax
+.text:00401E38    call    ds:__vbaHresultCheckObj
+.text:00401E3E
+.text:00401E3E loc_401E3E:
+.text:00401E3E    mov     eax, [ebp-2Ch]
+.text:00401E41    push    eax
+.text:00401E42    call    ds:__vbaI2Str        // text 的内容转换成整数
+.text:00401E48    mov     edi, 2
+.text:00401E4D    lea     edx, [ebp-50h]
+.text:00401E50    lea     ecx, [ebp-24h]
+.text:00401E53    mov     [ebp-48h], ax        // 转换成的整数
+.text:00401E57    mov     [ebp-50h], edi       // 类型，2 代表整数
+                                // 象这样的代码经常见到，这里实际上是在堆栈上构造一个
+                                // 临时的变量。
+.text:00401E5A    call    ds:__vbaVarMove      // 把 edx 指向的变量复制的 ecx 指向的地方
+.text:00401E60    lea     ecx, [ebp-2Ch]
+.text:00401E63    call    ds:__vbaFreeStr      // 释放字符串变量
+.text:00401E69    lea     ecx, [ebp-30h]
+.text:00401E6C    call    ds:__vbaFreeObj      // 释放对象变量
+.text:00401E72    lea     ecx, [ebp-24h]       // 变量 1
+.text:00401E75    lea     edx, [ebp-50h]
+.text:00401E78    push    ecx
+.text:00401E79    lea     eax, [ebp-40h]
+.text:00401E7C    push    edx
+.text:00401E7D    push    eax
+.text:00401E7E    mov     dword ptr [ebp-48h], 0Ah
+.text:00401E85    mov     [ebp-50h], edi       // 这里构造整数变量 10
+.text:00401E88    call    ds:__vbaVarAdd       // 两个变量相加
+                                // 上面的 [ebp-50h] 是保存结果的，eax 同时也是结果，
+                                // vb 中的运算大多都这样
+.text:00401E8E    push    eax
+.text:00401E8F    call    ds:__vbaI2Var        // 结果取在 eax 中
+.text:00401E95    lea     ecx, [ebp-40h]
+.text:00401E98    mov     edi, eax             // 先保存在 edi
+.text:00401E9A    call    ds:__vbaFreeVar      // 尽管这个变量是临时的，仍然需要释放
+.text:00401EA0    mov     ecx, [esi]
+.text:00401EA2    push    esi
+.text:00401EA3    call    dword ptr [ecx+300h] // 获得 TEXT2 对象
+.text:00401EA9    lea     edx, [ebp-30h]
+.text:00401EAC    push    eax
+.text:00401EAD    push    edx
+.text:00401EAE    call    ebx ; __vbaObjSet    // 获得的 TEXT2 对象保存在临时对象变量 [ebp-30h] 中
+.text:00401EB0    mov     esi, eax
+.text:00401EB2    push    edi
+.text:00401EB3    mov     ebx, [esi]
+.text:00401EB5    call    ds:__vbaStrI2        // 保存在 edi 中的结果转换成字符串
+.text:00401EBB    mov     edx, eax
+.text:00401EBD    lea     ecx, [ebp-2Ch]
+.text:00401EC0    call    ds:__vbaStrMove      // 赋值给 [ebp-2ch]
+.text:00401EC6    push    eax
+.text:00401EC7    push    esi
+.text:00401EC8    call    dword ptr [ebx+0A4h] // put__ipropTEXTEDIT(long) 字符串赋值给 text2 控件
+.text:00401ECE    test    eax, eax
+.text:00401ED0    fnclex
+.text:00401ED2    jge     short loc_401EE6
+.text:00401ED4    push    0A4h
+.text:00401ED9    push    offset dword_40181C
+.text:00401EDE    push    esi
+.text:00401EDF    push    eax
+.text:00401EE0    call    ds:__vbaHresultCheckObj // 注意这个
+.text:00401EE6
+.text:00401EE6 loc_401EE6:
+.text:00401EE6    lea     ecx, [ebp-2Ch]
+.text:00401EE9    call    ds:__vbaFreeStr      // 释放字符串变量
+.text:00401EEF    lea     ecx, [ebp-30h]
+.text:00401EF2    call    ds:__vbaFreeObj      // 释放对象变量
+.text:00401EF8    mov     dword ptr [ebp-4], 0
+.text:00401EFF    push    offset loc_401F2C
+.text:00401F04    jmp     short loc_401F22
+```
+
+
+
+```
+.text:00401F06                 lea     ecx, [ebp-2Ch]
+
+.text:00401F09                 call    ds:__vbaFreeStr
+
+.text:00401F0F                 lea     ecx, [ebp-30h]
+
+.text:00401F12                 call    ds:__vbaFreeObj
+
+.text:00401F18                 lea     ecx, [ebp-40h]
+
+.text:00401F1B                 call    ds:__vbaFreeVar
+
+.text:00401F21                 retn
+
+.text:00401F22
+
+.text:00401F22 loc_401F22:
+
+.text:00401F22                 lea     ecx, [ebp-24h]
+
+.text:00401F25                 call    ds:__vbaFreeVar     //释放临时变量
+
+.text:00401F2B                 retn
+
+.text:00401F2C
+
+.text:00401F2C loc_401F2C:
+
+.text:00401F2C                 mov     eax, [ebp+8]
+
+.text:00401F2F                 push    eax
+
+.text:00401F30                 mov     ecx, [eax]
+
+.text:00401F32                 call    dword ptr [ecx+8]  //EVENT_SINK_Release
+
+.text:00401F35                 mov     eax, [ebp-4]
+
+.text:00401F38                 mov     ecx, [ebp-14h]
+
+.text:00401F3B                 pop     edi
+
+.text:00401F3C                 pop     esi
+
+.text:00401F3D                 mov     large fs:0, ecx
+
+.text:00401F44                 pop     ebx
+
+.text:00401F45                 mov     esp, ebp
+
+.text:00401F47                 pop     ebp
+
+.text:00401F48                 retn    4
+```
+
+看完这一段后您脑子里大概充满了问号。那些注释是怎么回事？接着往下看。
+
+------------------------VB 内部控件浅探---------------------------------
+
+如果您安装了`vb6`，在安装目录下您能找到一个`vb6.olb`的文件。没错，这个文件里有内部控件的接口信息。不过这个文件只保存了内部控件的接口信息。我们知道，接口只是一种定义，实现这个接口的代码是另一回事，`VB`中实现这个接口的代码在`msvbvm60.dll`里。在`msvbvm60.dll`里使用了一些类来实现`vb`的内部控件。幸运的是，实现`vb`的内部控件的属性的函数全部是虚函数，这就是说只要找到它的虚函数表就可以了。
+
+我反汇编了`msvbvm60.dll`，并且找到了大部分的实现内部控件的属性的函数，这些函数您可以在附件中找到。
+
+好像说的有些远了。先回头看看上面的代码：
+
+```
+.text:00401DF0                 mov     edx, [esi]
+
+.text:00401DF2                 xor     eax, eax
+
+.text:00401DF4                 push    esi
+
+.text:00401DF5                 mov     [ebp-24h], eax
+
+.text:00401DF8                 mov     [ebp-2Ch], eax
+
+.text:00401DFB                 mov     [ebp-30h], eax
+
+.text:00401DFE                 mov     [ebp-40h], eax
+
+.text:00401E01                 mov     [ebp-50h], eax
+
+.text:00401E04                 call    dword ptr [edx+2FCh] //获得 TEXT1 对象
+
+.text:00401E0A                 mov     ebx, ds:__vbaObjSet
+
+.text:00401E10                 push    eax
+
+.text:00401E11                 lea     eax, [ebp-30h]
+
+.text:00401E14                 push    eax
+
+.text:00401E15                 call    ebx ; __vbaObjSet    //[ebp-30h]是临时的对象变量，保存获得的 TEXT 对象
+
+.text:00401E17                 mov     edi, eax
+
+.text:00401E19                 lea     edx, [ebp-2Ch]       //缓冲区
+
+.text:00401E1C                 push    edx
+
+.text:00401E1D                 push    edi
+
+.text:00401E1E                 mov     ecx, [edi]
+
+.text:00401E20                 call    dword ptr [ecx+0A0h] //get_ipropTEXTEDIT(void *) 接收 TEXT 控件的 text 属性
+
+.text:00401E26                 test    eax, eax
+
+.text:00401E28                 fnclex
+
+.text:00401E2A                 jge     short loc_401E3E
+
+.text:00401E2C                 push    0A0h
+
+.text:00401E31                 push    offset dword_40181C
+
+.text:00401E36                 push    edi
+
+.text:00401E37                 push    eax
+
+.text:00401E38                 call    ds:__vbaHresultCheckObj
+```
+
+`get_ipropTEXTEDIT(void *)`这个函数就是上面所提到的虚函数表里的函数了。
+
+那么我是怎么知道这是一个`TEXT`控件而不是其他的呢？`__vbaHresultCheckObj`上面有个地址`offset dword_40181C`，
+
+在`ida`里查看一下，前 4 个`dword`是`33AD4EE1h`、`11CF6699h`、`0AA000CB7h`、`93D36000h`，如果您有查看过`vb6.olb`，您就知道
+
+这是`_TextBox`接口的`uuid`：`33AD4EE1-6699-11CF-B70C-00AA0060D393`。当您知道这是一个`TEXT`对象时，就可以很容易的
+
+查到`call dword ptr [ecx+0A0h]`就是`get_ipropTEXTEDIT(void *)`函数了。
+
+尽管在`vb6.olb`中给出的控件属性的接口不能为我们查看反汇编代码里的控件属性操作提供准确的信息，但那里给出的控件事件的接口却是准确的（至少到现在为止我遇到的是这样）。如果查找程序实现的内部控件的事件的代码位置，我在附件中有一篇文章讲的很详细。在这里我就不画蛇添足了。
+
+在附件中我给出了我所能给的所有资料，关于`VB6`的逆向的资料好像不多，我能找到的目前就有这些了。我可能没有机会更深入的摸索下去，我只能提供我尽可能提供的资料。
+
+--------------------------------一切都结束了吗-------------------------------------------
+
+我不知道该说什么。学习逆向的过程中我学到了太多的东西。仍然象开始说的那样，命运是个很奇怪的东西...
+
+                      [全文完]
+
+由于附件太多，2 兆多。放在了`abcdefgh.ys168.com`。
+
+`4dd466d0e1e0cc123afbe504da2462ca`
