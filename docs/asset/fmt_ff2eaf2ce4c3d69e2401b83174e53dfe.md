@@ -1,0 +1,279 @@
+
+# 注：算法说明
+
+`+01` 表示第 01 字节是什么－冒号后面，如有 `Register` 则是寄存器，如有 `DWORD` 则为 4 字节立即数或标签地址，如果是 `Memory address struct` 则根据上面那个表。`+07` 与之类似。如果是 8 位操作而且有立即数，在伪指令中立即数零扩展为双字。
+
+根据这个规则，现在我们使用下面的伪操作符：
+
+```text
+00: ADD, 08: OR, 20: AND, 28: SUB, 30: XOR, 38: CMP, 40: MOV, 48: TEST
+```
+
+设定规则：
+
+| 偏移 | 类型 | 操作数 |
+| :--- | :--- | :--- |
+| `+00` | | `Reg,Imm` |
+| `+01` | | `Reg,Reg` |
+| `+02` | | `Reg,Mem` |
+| `+03` | | `Mem,Reg` |
+| `+04` | | `Mem,Imm` |
+| `+80` | | `8 bits operation` |
+
+所以，操作码 `83` 表示 `ADD Mem,Reg` 使用 8 位操作数，以此类推。
+
+# 注：伪操作符及其含义
+
+根据伪操作符和上面规则可知，`83` 是 `00`+`03`+`80`；以下继续是伪操作符及其含义：
+
+| 操作码 | 含义 |
+| :--- | :--- |
+| `50` | `PUSH Reg` |
+| `51` | `PUSH Mem` |
+| `58` | `POP Reg` |
+| `59` | `POP Mem` |
+| `68` | `PUSH Imm` |
+| `70`-`7F` | `Conditional jumps` |
+| `E0` | `NOT Reg` |
+| `E1` | `NOT Mem` |
+| `E2` | `NOT Reg8` |
+| `E3` | `NOT Mem8` |
+| `E4` | `NEG Reg` |
+| `E5` | `NEG Mem` |
+| `E6` | `NEG Reg8` |
+| `E7` | `NEG Mem8` |
+| `E8` | `CALL label` |
+| `E9` | `JMP label` |
+| `EA` | `CALL Mem (used for API calls)` |
+| `EB` | `JMP Mem (used for obfuscation in API calls)` |
+| `EC` | `CALL Reg (obfuscation of API calls)` |
+| `ED` | `JMP Reg (idem)` |
+| `F0` | `SHIFT Reg,Imm` |
+| `F1` | `SHIFT Mem,Imm` |
+| `F2` | `SHIFT Reg8,Imm` |
+| `F3` | `SHIFT Mem8,Imm` |
+
+对于所有 `SHIFT` 指令：
+
+| 偏移 | 含义 |
+| :--- | :--- |
+| `+07` | `Byte with the value of rotation/shifting` |
+| `+08` | `Operation performed: 0: ROL, 8: ROR, 20: SHL, 28: SHR` |
+
+| 操作码 | 含义 |
+| :--- | :--- |
+| `F4` | `APICALL_BEGIN` Special operation meaning `PUSH EAX`/`PUSH ECX`/`PUSH EDX` that avoids the recoding of these registers, always remaining the same. |
+| `F5` | `APICALL_END` The complementary of `APICALL_BEGIN`, it means `POP EDX`/`POP ECX`/`POP EAX` |
+| `F6` | `APICALL_STORE` |
+
+`F6` 的附加偏移：
+
+| 偏移 | 含义 |
+| :--- | :--- |
+| `+01` | `Memory address struct` |
+
+This always means: `MOV [Mem],EAX` <-- Avoiding the recoding of `EAX`
+
+| 操作码 | 含义 |
+| :--- | :--- |
+| `F7` | `SET_WEIGHT` |
+
+`F7` 的附加偏移：
+
+| 偏移 | 含义 |
+| :--- | :--- |
+| `+01` | `Memory address struct` |
+| `+07` | `Byte with the weight identificator` |
+| `+08` | `Register 1 in code structure` |
+| `+09` | `Register 2 in code structure` |
+
+| 操作码 | 含义 |
+| :--- | :--- |
+| `F8` | `MOVZX` Memory address struct is a `8-bits` operand, while `+07` is a `32 bit` reg. |
+| `FC` | `LEA` |
+| `FE` | `RET` |
+| `FF` | `NOP` |
+
+这些操作码会在反汇编输出中出现。此外，我还定义了另外一些操作码用于内部操作：
+
+| 操作码 | 含义 |
+| :--- | :--- |
+| `4F` | Exists only While shrinking, and means a `MOV Mem,Mem`, being: |
+
+`4F` 的附加偏移：
+
+| 偏移 | 含义 |
+| :--- | :--- |
+| `+01` | `Source memory address struct` |
+| `+07` | `Pointer to the instruction that holds the destiny memory address struct`, which has the format: |
+
+`4F` 的内部结构格式：
+
+| 偏移 | 含义 |
+| :--- | :--- |
+| `+00` | `FF (NOP)` |
+| `+01` | `Destiny memory address struct` |
+| `+07` | `Ptr to source memory address holder (the 4F instruction)` |
+
+因为 `4F` 只是一个转换操作码，在收缩这一步以后可以用来表示其他含义。另外有三个操作码只用于重新汇编：
+
+| 操作码 | 含义 |
+| :--- | :--- |
+| `4E` | `INC/DEC Register` |
+
+`4E` 的附加偏移：
+
+| 偏移 | 含义 |
+| :--- | :--- |
+| `+01` | `Register` |
+| `+07` | `0 if INC, 8 if DEC` |
+
+| 操作码 | 含义 |
+| :--- | :--- |
+| `4F` | `INC/DEC memory address` |
+
+`4F` (此处指代 INC/DEC Mem 内部操作码) 的附加偏移：
+
+| 偏移 | 含义 |
+| :--- | :--- |
+| `+01` | `Memory address struct` |
+| `+07` | `0 if INC, 8 if DEC` |
+
+| 操作码 | 含义 |
+| :--- | :--- |
+| `FD` | `Literal byte` |
+
+`FD` 的附加偏移：
+
+| 偏移 | 含义 |
+| :--- | :--- |
+| `+01` | `Byte to insert directly into the code` |
+
+以上就是我所做规划的开始部分。如你所见，操作码与 `x86` 的非常相似，所以很容易记 (事实上，我写这个列表只是为了回忆它 J。
+
+现在，规划的第二部分：收缩器。我们该如何收缩？我们将在它那部分学习，因为我不想写两遍 L。
+
+## 2) 编码
+
+### a) 反汇编器/反置换器
+
+这是引擎的入口点！当然，做任何东西之前，我们必须反汇编。反汇编器从原理上讲是很容易的，却是一个实实在在的苦差事。因为我们的目标是生成绝对变形的代码，所以不能使用散列表，虽然我们可以编一段程序变异散列、把它变得更强。我的解决方案是前者，而且我在反汇编器中隐含地实现反置换。译码原理如下：
+
+我们有一个内存缓冲区，其大小为容纳我们将要反汇编的代码，我们把代码入口点赋值给 `ESI`。这个缓冲区(其中各地址储存于变量 `PathMarks`)让我们容易控制已经反汇编的代码。我们还有另外两个表：`LabelTable` 和 `FutureLabelTable`，也已经初始化。这两个表各有一个计数器变量，其值为表中元素序号。此外我们把指令译码到 `DisassembledCode`，这个地址放在 `EDI`。
+
+`LabelTable` 表中每个元素是两个双字长。第一个双字储存指针指向的真实 `EIP`，第二个双字储存指针指向相应的已反汇编代码。然后，当我们译码一个 `JMP` 时，我们在该表中设定一个指针作为标签。这样，我们移动该标签的内部指针时，引用该标签的所有指令就被自动更新。
+
+`FutureLabelTable` 是一个缓冲区表，只用于反汇编。它用来储存那些跳转、调用等指令的目的地，指向我们还没有反汇编的代码。每译码一条指令，我们都要检查该表中有没有该指令的地址，如果该地址出现在表中，我们就可以把所有引用该地址的指令弄完整。
+
+有了以上这些，再看看算法：
+
+1.  初始化 `PathMarks` 映射表(即清零)，并初始化标签的个数(`LabelTable` 的计数器)和预测标签的个数(`FutureLabelTable` 的计数器)。
+2.  把当前 `EIP`(在 `ESI` 中)直接转化为 `PathMarks` 映射表中一个条目。
+    *   如果映射表中已经有该条目，那么在 `ESI` 中储存为一个 `JMP`，跳转目的地是这条已反汇编指令*注：然后会被当作“没有该条目->它是 JMP”的情况再次处理*。
+    *   如果映射表中没有该条目，那么标记这个地址为已经反汇编并且译码这条指令。接着，我们根据该指令不同处理：
+        *   如果它是 `JMP`：
+            *   如果它指向一个已经被译码的地址，那么写入一个 `JMP` 指令，并在 `LabelTable` 表中插入一个跳转目的地的标签，再从 `FutureLabelTable` 表中取出一个新的 `EIP`。如果 `LabelTable` 表中已经有这个标签，那么这个 `JMP` 指令就使用该标签。
+            *   如果它指向一个还没有被译码的地址，那么暂时先写一条 `NOP` 指令(以防万一某个标签直接引用这个地址)，然后把跳转目的地赋值给 `ESI` 作为新的 `EIP`。这样，我们消除了一个可能的置换 `JMP`。
+        *   如果它是 `Jcc`(条件跳转)：
+            *   如果它指向一个已经被译码的地址，那么写入这个 `Jcc`，而且如果这个 `Label` 还不存在就插入一个跳转目的地的 `Label`(如果该 `Label` 已经插入到表中，就使用该 `Label`)。
+            *   如果该目的地还没有被反汇编，那么把地址储存到 `FutureLabelTable` 表并且继续(处理下一条指令)。
+        *   如果它是 `CALL`，那么采用类似 `Jcc` 的处理办法(只不过写入 `CALL` 而不是写入 `Jcc`)。
+        *   如果它是 `RET`、`JMP Reg` 或者是 `JMP [Mem]`，那么储存该指令并且从 `FutureLabelTable` 表中取一个新的 `EIP`。
+
+*注：“置换 JMP”－－在进行置换时插入的跳转指令 `JMP`。算法中可能消除置换用的 `JMP`，也可能消除其他作用的 `JMP`。`PathMarks map` 意为“执行路线标记映射表”。*
+
+从 `FutureLabelTable` 表中取出一个新的 `EIP` 的时候，我们检查存于该表的标签是不是已经译码了*注：意即该标签所指示地址的指令是否已经被反汇编*。如果是，那么我们把相应的标签插入到 `LabelTable` 表中，并从 `FutureLabelTable` 表中去掉该条目。如果不是，我们就处理这个新的 `EIP`(即，我们把新的入口点赋给 `ESI`)，在 `LabelTable` 表中插入新标签并继续。
+
+你可以推理出，当 `FutureLabelTable` 表中再没有条目时，反汇编就结束了，因为没有条目意味着我们是从代码流的终端叶子出发。完成这样的“仿真过程”以后，我们已经：
+
+1.  消除了置换和置换跳转(因为我们直接改变 `ESI` 中的 `EIP` 而消除了那些 `JMP`)。
+2.  消除了所有绝对无法达到的代码。
+3.  整个代码译解为我们的伪汇编码
+4.  用指向表条目的指针代替标签。
+
+反汇编器做好了！我们不必编写一个反置换器代码或一个仿真器代码来检测死码区，因为我们隐含地消除它们了。一个反置换器执行的例子是：
+
+```text
+CODE            PASSES
+------          ------
+ xxx1           1) Decode xxx1
+ xxx2           2) Decode xxx2
+ xxx3           3) Decode xxx3
+ jmp @A         4) Change EIP to @A (don't store label)
+ yyy1           5) Decode xxx7
+ yyy2           6) Decode xxx8
+@B: xxx4        7) Decode xxx9
+ xxx5           8) Change EIP to @B (don't store label)
+ xxx6           9) Decode xxx4
+ jmp @C         10) Decode xxx5
+ yyy3           11) Decode xxx6
+ yyy4           12) Change EIP to @C (don't store label)
+@A: xxx7        13) Decode xxx10
+ xxx8           14) Decode xxx11
+ xxx9           15) Decode JZ and store @D in FutureLabelTable
+ jmp @B         16) Decode xxx12
+@D: xxx13       17) Decode RET, get @D from FutureLabelTable and
+ xxx14          complete the JZ at pass 15 (@D = current EIP)
+ RET            18) Decode xxx13
+ yyy5           19) Decode xxx14
+@C: xxx10       20) Decode RET and get an item from FutureLabelTable.
+ xxx11          Since it's empty, we have decoded everything, so finish.
+ jz @D
+ xxx12
+ RET
+```
+
+反汇编结果将会是：
+
+```text
+ xxx1
+ xxx2
+ xxx3
+ xxx7
+ xxx8
+ xxx9
+ xxx4
+ xxx5
+ xxx6
+ xxx10
+ xxx11
+ jz @D
+ xxx12
+ RET
+
+@D:   xxx13
+      xxx14
+      RET
+```
+
+我想现在更清楚了。所有垃圾和填空代码(那些 `yyy?`指令)都被隐含地消除了，因此以后不必寻找它们。
+
+这里的问题是，一旦被收缩，代码构架(在此已经反置换了)会被检测病毒的利用。或许不会，但是我们还是想让构架每代都不相同(西班牙语是“rizar el rizo”，或者西英混合语叫做“to loop the loop” J。因此，我们这一步插入三维指令，我把它叫作“3D instructions”。什么？嗯哼...好，这不是哗众取宠，它只是形象化表述：想象一下你在各维做的变形：第一维是当前代码(你正在反汇编的东西)。第二维是下面马上要做出的编码(这次变形的结果)。第三维是将来下一代所译出的代码。
+
+那么，第一维和第二维是明确的，但是...第三维是什么呢？简单说：例如，把一些 `JMP` 编码为 `CMP EAX,EAX`/`JZ @xxx`。你看出关键了吗？收缩器(我们在下一部分马上要讲到)必须能够把“`CMP EAX,EAX`/`JZ @xxx`”对压缩成“`JMP @xxx`”，但是这要在下一代才发生，而在这一代并不压缩它(在更远的后代有一些结构将被完全压缩掉)。我们唯一必须要注意的是，我们不能在这类跳转的后面放垃圾指令，因为它们也将会被译码。让我们再用上面的代码为例，这次先去掉那些 `yyy?`，并用 `CMP/JZ` 对代替其中第一个 `JMP`，如下面左边代码：
+
+*注：`CMP/JZ` 将在这一代的收缩器中被压缩成 `JMP @A`，然后在下一代的反汇编中被隐式消除。这里 `CMP/JZ` 就是所谓的 3D instruction，在第三维被消除，所以它的主要作用是让代码在这一代的处理过程中永远保持一定的变形复杂性。*
+
+```text
+ xxx1      Result of the disassembly:
+ xxx2          xxx1
+ xxx3          xxx2
+ CMP X,X       xxx3
+ JZ @A         CMP X,X
+@B: xxx4       JZ @A    --> This will be compressed to JMP @A on this
+ xxx5       @B: xxx4        generation and then eliminated implicitly
+ xxx6          xxx5         in the disassembly of next generation.
+ jmp @C        xxx6
+@A: xxx7        xxx10
+ xxx8         xxx11
+ xxx9         jz @D
+ jmp @B        xxx12
+@D: xxx13       RET
+ xxx14     @A: xxx7
+ RET          xxx8
+@C: xxx10      xxx9
+ xxx11       jmp @B
+ jz @D     @D: xxx13
+ xxx12        xxx14
+ RET          RET
+```
