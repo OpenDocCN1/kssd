@@ -1,0 +1,142 @@
+
+# Auto Power-on Version 1.52 算法分析
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-332.htm`](https://www.pediy.com/kssd/pediy07/pediy7-332.htm)
+
+【文章名称】：`Auto Power-on Version 1.52` 算法分析
+
+【文章作者】：`lnn1123`
+
+【软件名称】：`Auto Power-on Version 1.52`
+
+【下载地址】：华军软件
+
+【破解工具】：`OLLYDBG`
+
+【保护方式】：注册码+NAG
+
+【软件限制】：无
+
+【破解分析过程】
+
+`==========================分析过程==============================================`
+
+`PEID`，查看没有加壳，`OD` 载入，点注册有错误提示，老罗插件找到错误提示，下断
+
+`===================================================================================`
+
+```
+004B5DD4   /. 55              PUSH EBP
+004B5DD5   |. 8BEC            MOV EBP,ESP
+004B5DD7   |. B9 06000000     MOV ECX,6
+004B5DDC   |> 6A 00           /PUSH 0
+004B5DDE   |. 6A 00           |PUSH 0
+004B5DE0   |. 49             |DEC ECX
+004B5DE1   |.^  F9           \\JNZ SHORT AutoPowe.004B5DDC
+004B5DE3   |. 53              PUSH EBX
+004B5DE4   |. 56              PUSH ESI
+004B5DE5   |. 57              PUSH EDI
+004B5DE6   |. 8BD8            MOV EBX,EAX
+004B5DE8   |. 33C0            XOR EAX,EAX
+004B5DEA   |. 55              PUSH EBP
+004B5DEB   |. 68 4B604B00     PUSH AutoPowe.004B604B
+004B5DF0   |. 64:FF30        PUSH DWORD PTR FS:[EAX]
+004B5DF3   |. 64:8920        MOV DWORD PTR FS:[EAX],ESP
+004B5DF6   |. 8D55 EC        LEA EDX,DWORD PTR SS:[EBP-14]
+004B5DF9   |. 8BB3 4C030000  MOV ESI,DWORD PTR DS:[EBX+34C]
+004B5DFF   |. 8BC6            MOV EAX,ESI
+004B5E01   |. E8 BAD5F9FF     CALL AutoPowe.004533C0                   ;  取假码
+004B5E06   |. 8B45 EC        MOV EAX,DWORD PTR SS:[EBP-14]            ;  EAX 为假码长度
+004B5E09   |. 8D55 F0        LEA EDX,DWORD PTR SS:[EBP-10]
+004B5E0C   |. E8 E32EF5FF    CALL AutoPowe.00408CF4
+004B5E11   |. 8B55 F0        MOV EDX,DWORD PTR SS:[EBP-10]            ;  假码
+004B5E14   |. 8BC6            MOV EAX,ESI
+004B5E16   |. E8 D5D5F9FF    CALL AutoPowe.004533F0
+004B5E1B   |. 8D55 E8        LEA EDX,DWORD PTR SS:[EBP-18]
+004B5E1E   |. 8B83 4C030000  MOV EAX,DWORD PTR DS:[EBX+34C]
+004B5E24   |. E8 97D5F9FF    CALL AutoPowe.004533C0                   ;  又取了
+004B5E29   |. 8B45 E8        MOV EAX,DWORD PTR SS:[EBP-18]            ;  假码
+004B5E2C   |. BA 64604B00    MOV EDX,AutoPowe.004B6064                ;  ASCII "Registered!"
+004B5E31   |. E8 E6ECF4FF    CALL AutoPowe.00404B1C                   ;  比较假码与 Registered!
+004B5E36   |. 0F84 C0010000  JE AutoPowe.004B5FFC
+004B5E3C   |. 8D55 E0        LEA EDX,DWORD PTR SS:[EBP-20]
+004B5E3F   |. A1 9C7C4E00    MOV EAX,DWORD PTR DS:[4E7C9C]
+004B5E44   |. 8B00            MOV EAX,DWORD PTR DS:[EAX]
+004B5E46   |. E8 0DE5FBFF    CALL AutoPowe.00474358                   ;  取得程序运行路径
+004B5E4B   |. 8B45 E0        MOV EAX,DWORD PTR SS:[EBP-20]            ;  程序路径
+004B5E4E   |. 8D55 E4        LEA EDX,DWORD PTR SS:[EBP-1C]
+004B5E51   |. E8 9237F5FF    CALL AutoPowe.004095E8                   ;  程序路径的上级目录
+004B5E56   |. 8B55 E4        MOV EDX,DWORD PTR SS:[EBP-1C]
+004B5E59   |. 8D45 FC        LEA EAX,DWORD PTR SS:[EBP-4]
+004B5E5C   |. B9 78604B00    MOV ECX,AutoPowe.004B6078                ;  ASCII "\wake.ini"
+004B5E61   |. E8 B6EBF4FF    CALL AutoPowe.00404A1C                   ;  连接得到.ini 文件路径
+004B5E66   |. 8B4D FC        MOV ECX,DWORD PTR SS:[EBP-4]             ;  .INI 文件路径
+004B5E69   |. B2 01          MOV DL,1                                 ;  DL 置 1
+004B5E6B   |. A1 D8624300    MOV EAX,DWORD PTR DS:[4362D8]
+004B5E70   |. E8 1305F8FF    CALL AutoPowe.00436388
+004B5E75   |. 8BF0            MOV ESI,EAX
+004B5E77   |. 8D55 DC        LEA EDX,DWORD PTR SS:[EBP-24]
+004B5E7A   |. 8B83 20030000  MOV EAX,DWORD PTR DS:[EBX+320]
+004B5E80   |. E8 3BD5F9FF    CALL AutoPowe.004533C0                   ;  取得注册名
+004B5E85   |. 8B45 DC        MOV EAX,DWORD PTR SS:[EBP-24]            ;  EAX 中是长度
+004B5E88   |. 50              PUSH EAX                                 ;  压键
+004B5E89   |. B9 8C604B00    MOV ECX,AutoPowe.004B608C                ;  ASCII "name"
+004B5E8E   |. BA 9C604B00    MOV EDX,AutoPowe.004B609C                ;  ASCII "reg"
+004B5E93   |. 8BC6            MOV EAX,ESI
+004B5E95   |. 8B38            MOV EDI,DWORD PTR DS:[EAX]
+004B5E97   |. FF57 04        CALL DWORD PTR DS:[EDI+4]
+004B5E9A   |. 8D55 D8        LEA EDX,DWORD PTR SS:[EBP-28]
+004B5E9D   |. 8B83 4C030000  MOV EAX,DWORD PTR DS:[EBX+34C]
+004B5EA3   |. E8 18D5F9FF    CALL AutoPowe.004533C0                   ;  取假码,长度在 EAX 中
+004B5EA8   |. 8B45 D8        MOV EAX,DWORD PTR SS:[EBP-28]            ;  假码
+004B5EAB   |. 50              PUSH EAX
+004B5EAC   |. B9 A8604B00    MOV ECX,AutoPowe.004B60A8                ;  ASCII "code"
+004B5EB1   |. BA 9C604B00    MOV EDX,AutoPowe.004B609C                ;  ASCII "reg"
+004B5EB6   |. 8BC6            MOV EAX,ESI
+004B5EB8   |. 8B38            MOV EDI,DWORD PTR DS:[EAX]
+004B5EBA   |. FF57 04        CALL DWORD PTR DS:[EDI+4]
+004B5EBD   |. 8D55 F8        LEA EDX,DWORD PTR SS:[EBP-8]
+004B5EC0   |. 8B83 4C030000  MOV EAX,DWORD PTR DS:[EBX+34C]
+004B5EC6   |. E8 F5D4F9FF    CALL AutoPowe.004533C0                   ;  又是
+004B5ECB   |. 8D45 D4        LEA EAX,DWORD PTR SS:[EBP-2C]            ;  EAX 中是假码长度
+004B5ECE   |. 50              PUSH EAX
+004B5ECF   |. B9 06000000    MOV ECX,6
+004B5ED4   |. BA 01000000    MOV EDX,1
+004B5ED9   |. 8B45 F8        MOV EAX,DWORD PTR SS:[EBP-8]             ;  假码
+004B5EDC   |. E8 4FEDF4FF    CALL AutoPowe.00404C30                   ;  取前 6 位
+004B5EE1   |. 8B55 D4        MOV EDX,DWORD PTR SS:[EBP-2C]            ;  前 6 位字符
+004B5EE4   |. 8D4D F4        LEA ECX,DWORD PTR SS:[EBP-C]
+004B5EE7   |. A1 307C4E00    MOV EAX,DWORD PTR DS:[4E7C30]
+004B5EEC   |. 8B00            MOV EAX,DWORD PTR DS:[EAX]
+004B5EEE   |. 8B80 14050000  MOV EAX,DWORD PTR DS:[EAX+514]
+004B5EF4   |. E8 9BC3FFFF    CALL AutoPowe.004B2294                   ;  关键 CALL,跟进
+004B5EF9   |. 8B55 F4        MOV EDX,DWORD PTR SS:[EBP-C]             ;  运算得到的用与比较的重要值
+004B5EFC   |. 8B83 20030000  MOV EAX,DWORD PTR DS:[EBX+320]
+004B5F02   |. E8 E9D4F9FF    CALL AutoPowe.004533F0
+004B5F07   |. 8B45 F8        MOV EAX,DWORD PTR SS:[EBP-8]             ;  假码
+004B5F0A   |. E8 C1EAF4FF    CALL AutoPowe.004049D0                   ;  取假码长度
+004B5F0F   |. 83F8 28        CMP EAX,28                               ;  与 0X28 比较
+004B5F12   |. 0F8E A8000000  JLE AutoPowe.004B5FC0                   ;  小于等于就死了
+004B5F18   |. 8D45 D0        LEA EAX,DWORD PTR SS:[EBP-30]
+004B5F1B   |. 50              PUSH EAX
+004B5F1C   |. B9 0C000000    MOV ECX,0C
+004B5F21   |. BA 08000000    MOV EDX,8
+004B5F26   |. 8B45 F8        MOV EAX,DWORD PTR SS:[EBP-8]             ;  假码
+004B5F29   |. E8 02EDF4FF    CALL AutoPowe.00404C30                   ;  取假码 8--19 位
+004B5F2E   |. 8B45 D0        MOV EAX,DWORD PTR SS:[EBP-30]            ;  假码 8--19 位
+004B5F31   |. 8B55 F4        MOV EDX,DWORD PTR SS:[EBP-C]             ;  上面那个关键 CALL AutoPowe.004B2294 得到的值
+004B5F34   |. E8 E3EBF4FF    CALL AutoPowe.00404B1C                   ;  关键比较
+004B5F39   |. 0F85 81000000  JNZ AutoPowe.004B5FC0                   ;  跳就死
+004B5F3F   |. A1 307C4E00    MOV EAX,DWORD PTR DS:[4E7C30]            ;  下面是显示注册成功的提示
+004B5F44   |. 8B00            MOV EAX,DWORD PTR DS:[EAX]
+004B5F46   |. 8BB8 E8030000  MOV EDI,DWORD PTR DS:[EAX+3E8]
+004B5F4C   |. C647 48 01     MOV BYTE PTR DS:[EDI+48],1
+004B5F50   |. A1 307C4E00    MOV EAX,DWORD PTR DS:[4E7C30]
+004B5F55   |. 8D47 68        LEA EAX,DWORD PTR DS:[EDI+68]
+004B5F58   |. BA B8604B00    MOV EDX,AutoPowe.004B60B8                ;  ASCII "Registered OK!"
+004B5F5D   |. E8 02E8F4FF    CALL AutoPowe.00404764
+004B5F62   |. A1 307C4E00    MOV EAX,DWORD PTR DS:[4E7C30]
+004B5F67   |. 8B00            MOV EAX,DWORD PTR DS:[EAX]
+004B5F69   |. 8B80 E8030000  MOV EAX,DWORD PTR DS:[EAX+3E8]
+004B5F6F   |. 8B10            MOV EDX,DWORD PTR DS:[EAX]
+```
