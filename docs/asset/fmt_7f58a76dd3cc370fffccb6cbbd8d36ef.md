@@ -1,0 +1,228 @@
+
+```asm
+0048F99B    C785 64FFFFFF 0>MOV DWORD PTR SS:[EBP-9C],0  
+
+0048F9A5    8B8D 00FCFFFF   MOV ECX,DWORD PTR SS:[EBP-400]  
+
+0048F9AB    898D 40FFFFFF   MOV DWORD PTR SS:[EBP-C0],ECX                      ; // ==> [EBP-C0]  
+
+0048F9B1    C785 38FFFFFF 0>MOV DWORD PTR SS:[EBP-C8],8                        ; // vbString  
+
+0048F9BB    8D95 38FFFFFF   LEA EDX,DWORD PTR SS:[EBP-C8]  
+
+0048F9C1    8D4D B0         LEA ECX,DWORD PTR SS:[EBP-50]                      ; // ==> [EBP-50]  
+
+0048F9C4    FF15 18104000   CALL DWORD PTR DS:[401018]                         ; MSVBVM60.__vbaVarMove  
+
+0048F9CA    8D8D 50FFFFFF   LEA ECX,DWORD PTR SS:[EBP-B0]  
+
+0048F9D0    FF15 70124000   CALL DWORD PTR DS:[401270]                         ; MSVBVM60.__vbaFreeObj  
+
+0048F9D6    C745 FC 0600000>MOV DWORD PTR SS:[EBP-4],6  
+
+0048F9DD    C785 A0FDFFFF 0>MOV DWORD PTR SS:[EBP-260],0A                      ; // len=10  
+
+0048F9E7    C785 98FDFFFF 0>MOV DWORD PTR SS:[EBP-268],8002                    ; // 02 表示 vbInteger, 80 表示?  
+
+0048F9F1    8D55 B0         LEA EDX,DWORD PTR SS:[EBP-50]                      ; // RegName  
+
+0048F9F4    52              PUSH EDX  
+
+0048F9F5    8D85 38FFFFFF   LEA EAX,DWORD PTR SS:[EBP-C8]                      ; // 结果 ==> [EBP-C8]  
+
+0048F9FB    50              PUSH EAX  
+
+0048F9FC    FF15 6C104000   CALL DWORD PTR DS:[40106C]                         ; MSVBVM60.__vbaLenVar // 求 RegName 的长度  
+
+0048FA02    50              PUSH EAX                                           ; // vbaLenVar(RegName)  
+
+0048FA03    8D8D 98FDFFFF   LEA ECX,DWORD PTR SS:[EBP-268]  
+
+0048FA09    51              PUSH ECX  
+
+0048FA0A    FF15 C4104000   CALL DWORD PTR DS:[4010C4]                         ; MSVBVM60.__vbaVarTstLt  // 小与 10 吗?  
+
+0048FA10    0FBFD0          MOVSX EDX,AX  
+
+0048FA13    85D2            TEST EDX,EDX  
+
+0048FA15    0F84 04010000   JE yutingca.0048FB1F                              ; 0 表示 No, JUMP  
+
+0048FA1B    C745 FC 0700000>MOV DWORD PTR SS:[EBP-4],7                        ; Yes,  
+
+0048FA22    C785 90FDFFFF 0>MOV DWORD PTR SS:[EBP-270],1  
+
+0048FA2C    C785 88FDFFFF 0>MOV DWORD PTR SS:[EBP-278],2  
+
+0048FA36    C785 A0FDFFFF 0>MOV DWORD PTR SS:[EBP-260],0A  
+
+0048FA40    C785 98FDFFFF 0>MOV DWORD PTR SS:[EBP-268],2  
+
+0048FA4A    C785 80FDFFFF 0>MOV DWORD PTR SS:[EBP-280],1  
+
+0048FA54    C785 78FDFFFF 0>MOV DWORD PTR SS:[EBP-288],2  
+
+0048FA5E    8D85 88FDFFFF   LEA EAX,DWORD PTR SS:[EBP-278]  
+
+0048FA64    50              PUSH EAX  
+
+0048FA65    8D8D 98FDFFFF   LEA ECX,DWORD PTR SS:[EBP-268]  
+
+0048FA6B    51              PUSH ECX  
+
+0048FA6C    8D55 B0         LEA EDX,DWORD PTR SS:[EBP-50]  
+
+0048FA6F    52              PUSH EDX  
+
+0048FA70    8D85 38FFFFFF   LEA EAX,DWORD PTR SS:[EBP-C8]  
+
+0048FA76    50              PUSH EAX  
+
+0048FA77    FF15 6C104000   CALL DWORD PTR DS:[40106C]                         ; MSVBVM60.__vbaLenVar  
+
+0048FA7D    50              PUSH EAX  
+
+0048FA7E    8D8D 28FFFFFF   LEA ECX,DWORD PTR SS:[EBP-D8]  
+
+0048FA84    51              PUSH ECX  
+
+0048FA85    FF15 04104000   CALL DWORD PTR DS:[401004]                         ; MSVBVM60.__vbaVarSub  
+
+0048FA8B    50              PUSH EAX  
+
+0048FA8C    8D95 78FDFFFF   LEA EDX,DWORD PTR SS:[EBP-288]  
+
+0048FA92    52              PUSH EDX  
+
+0048FA93    8D85 BCFCFFFF   LEA EAX,DWORD PTR SS:[EBP-344]  
+
+0048FA99    50              PUSH EAX  
+
+0048FA9A    8D8D CCFCFFFF   LEA ECX,DWORD PTR SS:[EBP-334]  
+
+0048FAA0    51              PUSH ECX  
+
+0048FAA1    8D55 D0         LEA EDX,DWORD PTR SS:[EBP-30]  
+
+0048FAA4    52              PUSH EDX  
+
+0048FAA5    FF15 84104000   CALL DWORD PTR DS:[401084]                         ; MSVBVM60.__vbaVarForInit  
+
+0048FAAB    8985 FCFBFFFF   MOV DWORD PTR SS:[EBP-404],EAX  
+
+0048FAB1    EB 63           JMP SHORT yutingca.0048FB16  
+
+0048FAB3    C745 FC 0800000>MOV DWORD PTR SS:[EBP-4],8                        ; LOOP1_begin  
+
+0048FABA    C785 A0FDFFFF 1>MOV DWORD PTR SS:[EBP-260],yutingca.00416618       ; // UNICODE "j"  
+
+0048FAC4    C785 98FDFFFF 0>MOV DWORD PTR SS:[EBP-268],8                      ; // vbString  
+
+0048FACE    8D45 B0         LEA EAX,DWORD PTR SS:[EBP-50]                      ; // RegName  
+
+0048FAD1    50              PUSH EAX  
+
+0048FAD2    8D8D 98FDFFFF   LEA ECX,DWORD PTR SS:[EBP-268]                    ; // vbString "j"  
+
+0048FAD8    51              PUSH ECX  
+
+0048FAD9    8D95 38FFFFFF   LEA EDX,DWORD PTR SS:[EBP-C8]                     ; 结果 ==> [EBP-C8]  
+
+0048FADF    52              PUSH EDX  
+
+0048FAE0    FF15 F4114000   CALL DWORD PTR DS:[4011F4]                         ; MSVBVM60.__vbaVarAdd  // RegName + "j"  
+
+0048FAE6    8BD0            MOV EDX,EAX  
+
+0048FAE8    8D4D B0         LEA ECX,DWORD PTR SS:[EBP-50]                      ;  
+
+0048FAEB    FF15 18104000   CALL DWORD PTR DS:[401018]                         ; MSVBVM60.__vbaVarMove // move to  [EBP-50]  
+
+0048FAF1    C745 FC 0900000>MOV DWORD PTR SS:[EBP-4],9  
+
+0048FAF8    8D85 BCFCFFFF   LEA EAX,DWORD PTR SS:[EBP-344]  
+
+0048FAFE    50              PUSH EAX  
+
+0048FAFF    8D8D CCFCFFFF   LEA ECX,DWORD PTR SS:[EBP-334]  
+
+0048FB05    51              PUSH ECX  
+
+0048FB06    8D55 D0         LEA EDX,DWORD PTR SS:[EBP-30]  
+
+0048FB09    52              PUSH EDX  
+
+0048FB0A    FF15 64124000   CALL DWORD PTR DS:[401264]                         ; MSVBVM60.__vbaVarForNext  
+
+0048FB10    8985 FCFBFFFF   MOV DWORD PTR SS:[EBP-404],EAX  
+
+0048FB16    83BD FCFBFFFF 0>CMP DWORD PTR SS:[EBP-404],0  
+
+0048FB1D  ^ 75 94           JNZ SHORT yutingca.0048FAB3                       ; // LOOP1_end  
+
+0048FB1F    C745 FC 0B00000>MOV DWORD PTR SS:[EBP-4],0B  
+
+0048FB26    C785 A0FDFFFF 0>MOV DWORD PTR SS:[EBP-260],1  
+
+0048FB30    C785 98FDFFFF 0>MOV DWORD PTR SS:[EBP-268],2  
+
+0048FB3A    C785 90FDFFFF 0>MOV DWORD PTR SS:[EBP-270],0A  
+
+0048FB44    C785 88FDFFFF 0>MOV DWORD PTR SS:[EBP-278],2  
+
+0048FB4E    C785 80FDFFFF 0>MOV DWORD PTR SS:[EBP-280],1  
+
+0048FB58    C785 78FDFFFF 0>MOV DWORD PTR SS:[EBP-288],2  
+
+0048FB62    8D85 98FDFFFF   LEA EAX,DWORD PTR SS:[EBP-268]  
+
+0048FB68    50              PUSH EAX  
+
+0048FB69    8D8D 88FDFFFF   LEA ECX,DWORD PTR SS:[EBP-278]  
+
+0048FB6F    51              PUSH ECX  
+
+0048FB70    8D95 78FDFFFF   LEA EDX,DWORD PTR SS:[EBP-288]  
+
+0048FB76    52              PUSH EDX  
+
+0048FB77    8D85 9CFCFFFF   LEA EAX,DWORD PTR SS:[EBP-364]  
+
+0048FB7D    50              PUSH EAX  
+
+0048FB7E    8D8D ACFCFFFF   LEA ECX,DWORD PTR SS:[EBP-354]  
+
+0048FB84    51              PUSH ECX  
+
+0048FB85    8D55 D0         LEA EDX,DWORD PTR SS:[EBP-30]  
+
+0048FB88    52              PUSH EDX  
+
+0048FB89    FF15 84104000   CALL DWORD PTR DS:[401084]                         ; MSVBVM60.__vbaVarForInit  
+
+0048FB8F    8985 F8FBFFFF   MOV DWORD PTR SS:[EBP-408],EAX  
+
+0048FB95    E9 E1000000     JMP yutingca.0048FC7B  
+
+0048FB9A    C745 FC 0C00000>MOV DWORD PTR SS:[EBP-4],0C                        ; // LOOP2_begin  
+
+0048FBA1    C785 40FFFFFF 0>MOV DWORD PTR SS:[EBP-C0],1                        ; // vbInteger data1=1;  
+
+0048FBAB    C785 38FFFFFF 0>MOV DWORD PTR SS:[EBP-C8],2                        ; // vbInteger  
+
+0048FBB5    8D85 38FFFFFF   LEA EAX,DWORD PTR SS:[EBP-C8]  
+
+0048FBBB    50              PUSH EAX  
+
+0048FBBC    8D4D D0         LEA ECX,DWORD PTR SS:[EBP-30]                      ; // 结果 ==> [EBP-30]  
+
+0048FBBF    51              PUSH ECX  
+
+0048FBC0    FF15 E0114000   CALL DWORD PTR DS:[4011E0]                         ; MSVBVM60.__vbaI4Var // 把 Variant 转成 I4 ?  
+
+0048FBC6    50              PUSH EAX                                           ; // index = 1, 2, 3, ...  
+
+0048FBC7    8D55 B0         LEA EDX,DWORD PTR SS:[EBP-50]                      ; // RegName  
+
+0048FBCA    52              PUSH EDX
+```
