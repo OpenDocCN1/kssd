@@ -1,0 +1,1439 @@
+
+        - [第6篇 保护篇](README.md)
+        - [KSSD 第 6 篇 保护篇](6-protect_1.md)
+        - [【看雪读书月】【学习心得】软件加密保护演示](6-protect_10.md)
+        ...
+        [/content]
+        ```
+
+    *   等等，我需要注意 `[软件狗\[Dongles\]的加密与解密]` 这一行。
+        如果在 Markdown 中，`\[` 渲染为 `[`。
+        如果我保留原样，它是有效的。
+        
+    *   让我们再次确认是否有任何**单独出现**的路径。
+        没有。所有路径都在 `(...)` 里。
+        
+    *   是否有任何**单独出现**的命令？
+        没有。
+
+    *   所以，只是列表清理。
+
+    *   **Self-Correction on List Symbols**:
+        原文使用了 `+`。
+        Markdown 规范允许 `+`, `-`, `*`。
+        保持 `+` 也是“保留”的一种形式。
+        但“优化段落格式”可能暗示使用更常见的 `-`。
+        不过，为了最小化改动风险，保留 `+` 也是安全的，因为它已经是有效的列表符。
+        但是，通常文档工程师会将混用的或较冷门的列表符统一为 `-`。
+        我将使用 `-`。
+
+    *   **Final Check on Rules**:
+        1. Re-structure headers: No headers found.
+        2. Optimize paragraphs, remove empty lines: Yes.
+        3. Preserve core content: Yes.
+        4. Backticks for vars/funcs/classes/paths/cmds:
+           - `README.md` etc are in link targets. **Do not add backticks inside `(...)`**.
+           - Text inside `[...]` are titles/proper nouns. **No specific code identifiers detected that require backticks based on strict "varName/funcName()" patterns**.
+        5. Code blocks: None.
+
+    *   结果应该是干净列表。
+
+    *   注意：原文中 `[软件狗\[Dongles\]的加密与解密](6-protect_114.md)`。
+        这里的 `\[` 和 `\]` 是转义。
+        在输出中，我必须保留这些转义符，否则 Markdown 解析器可能会将 `[...]` 解析为链接的开始，导致错误。
+        所以这一行必须原样保留（除了前面的列表符号）。
+
+    *   让我们生成内容。
+
+[content]
+- [第6篇 保护篇](README.md)
+- [KSSD 第 6 篇 保护篇](6-protect_1.md)
+- [【看雪读书月】【学习心得】软件加密保护演示](6-protect_10.md)
+- [硬件加密](6-protect_100.md)
+- [基础知识](6-protect_101.md)
+- [狗的介绍](6-protect_102.md)
+- [狗驱动介绍](6-protect_103.md)
+- [新手破解加密狗保护软件经历](6-protect_104.md)
+- [加密狗 听诊器 狗数据的侦听 注入后修改 半源码 \[更新网络版\]](6-protect_105.md)
+- [利用脚本语言 VBS 识别加密锁具体型号](6-protect_106.md)
+- [加密狗检测工具源代码](6-protect_107.md)
+- [一个无驱型 USB 加密锁的 HID 通信分析 4 楼部分更新应用程序枚举 HID 设备进行找狗](6-protect_108.md)
+- [超级加密锁型号检测工具 易语言源代码(完整)](6-protect_109.md)
+- [反破解技巧 - 随机密码](6-protect_11.md)
+- [简单打狗文章一二](6-protect_110.md)
+- [茶余饭后谈谈加密锁](6-protect_111.md)
+- [解狗思路的一点总结](6-protect_112.md)
+- [读狗程序的逆向对比](6-protect_113.md)
+- [软件狗\[Dongles\]的加密与解密](6-protect_114.md)
+- [飞天诚信](6-protect_115.md)
+- [Rockey4 锁的分析之一 基础知识](6-protect_116.md)
+- [CSC4.0 高中版本](6-protect_117.md)
+- [飞天诚信 Rockey4 修改密码工具源代码](6-protect_118.md)
+- [关于 Rockey 的一点个人体会【原创】](6-protect_119.md)
+- [软件反破解技术经验总结](6-protect_12.md)
+- [蒙泰 5.0](6-protect_120.md)
+- [ROCKEY2](6-protect_121.md)
+- [Rockey4](6-protect_122.md)
+- [彩虹天地](6-protect_123.md)
+- [GS-MH 狗](6-protect_124.md)
+- [MSTCAD 空间网格结构设计软件](6-protect_125.md)
+- [SentinelLM](6-protect_126.md)
+- [彩虹加秘狗-比较新的版本破解](6-protect_127.md)
+- [美国 Safe Net 公司保护安全--级别低](6-protect_128.md)
+- [某结构设计软件](6-protect_129.md)
+- [对一种加密保护的思想的一点分析](6-protect_13.md)
+- [管家婆 7.2A 辉煌单机版](6-protect_130.md)
+- [管家婆辉煌门板店 8.2d](6-protect_131.md)
+- [创意卡尔 2000-Photo Magic](6-protect_132.md)
+- [Authorware 5.0](6-protect_133.md)
+- [Sentinel Super Pro](6-protect_134.md)
+- [weavemacker V7.55](6-protect_135.md)
+- [彩虹狗](6-protect_136.md)
+- [金天地 MH 型软件狗](6-protect_137.md)
+- [金天地的 TDMD](6-protect_138.md)
+- [金天地的 TDSD 狗](6-protect_139.md)
+- [保护软件著作权要注意避免的思路误区](6-protect_14.md)
+- [路桥 CAD 软件(XCHT14)](6-protect_140.md)
+- [XX 行业信息管理系统 V2.3](6-protect_141.md)
+- [彩虹精灵狗(2.0)的破解心得](6-protect_142.md)
+- [彩虹狗 GS-MH 破解-浅谈狗的破解方法](6-protect_143.md)
+- [Tdmd 狗](6-protect_144.md)
+- [TDSD 狗](6-protect_145.md)
+- [彩虹的 DL](6-protect_146.md)
+- [带狗杀 Tdmd 狗](6-protect_147.md)
+- [阿拉丁](6-protect_148.md)
+- [爆破 HASP 保护的国外某专业软件](6-protect_149.md)
+- [软件注册之获得硬件码各种方法](6-protect_15.md)
+- [圣天诺 HASP](6-protect_150.md)
+- [圣天诺](6-protect_151.md)
+- [Dasxx](6-protect_152.md)
+- [圣天诺的外壳](6-protect_153.md)
+- [sentinel superpro](6-protect_154.md)
+- [金蝶 2000XP 标准版](6-protect_155.md)
+- [如何 diy 加密狗 hasp4](6-protect_156.md)
+- [金蝶财务软件行政事业版 V6.2](6-protect_157.md)
+- [深思洛克](6-protect_158.md)
+- [深思 3](6-protect_159.md)
+- [VB 共享软件防破解设计技术初探（一）（二）（三）](6-protect_16.md)
+- [SENSE4 加密锁浅析之基础篇](6-protect_160.md)
+- [深思 3 狗](6-protect_161.md)
+- [深思 3 乱弹(五)](6-protect_162.md)
+- [深思Ⅲ加密狗 by 大老](6-protect_163.md)
+- [揭开加密狗模拟的神秘面纱之 rockey6](6-protect_164.md)
+- [让软件自己来 Emulator 你的 ROCKEY4 加密锁](6-protect_165.md)
+- [某著名标书制作软件](6-protect_166.md)
+- [某 EDA 电路设计软件](6-protect_167.md)
+- [深思 3 乱弹](6-protect_168.md)
+- [AutoCAD 加载的 ARX](6-protect_169.md)
+- [API 函数](6-protect_17.md)
+- [深思 III 软件狗数据区读取程序](6-protect_170.md)
+- [Sense3 保护的绘图辅助软件分析](6-protect_171.md)
+- [再次说下 sense4 加密锁](6-protect_172.md)
+
+
+
+# 从应用程序移除 Sentinel SuperPro 软件狗——暨软件狗破解方法详解
+
+**标题:** Shub-Nigurrath 的软件狗教程  
+**翻译:** 月中人  
+**时间:** 2006-09-04 17:41  
+**链接:** `http://bbs.pediy.com/showthread.php?threadid=31497`
+
+**详细信息:**
+从应用程序移除 Sentinel SuperPro 软件狗——暨软件狗破解方法详解
+
+**译者:** 月中人 ([PTG])  
+**日期:** 2007-01-28  
+**原文标题:** Removing Sentinel SuperPro dongle from Applications and details on dongle way of cracking  
+**原文作者:** Shub-Nigurrath [ARTeam]  
+**原文版本:** Version 1.0 – September 2006  
+**关键词:** dongle, simulation, emulation, sentinel superpro, 软件狗, 模拟, 仿真
+
+**备注:**
+首先感谢 ARTeam 的 Shub-Nigurrath 写这个软件狗教程。以下是翻译有关的几个问题：
+1. 有几个原图不易取得，译者根据原图重画。
+2. ‘仿真’意指用外部程序挂钩拦截应用程序与软件狗之间的交互；‘模拟’意指在应用程序内补丁实现假狗、不需要外部驱动程序。
+3. 【字典】圣天诺 Sentinel，特征文件 `sig`/`signature`，模拟 `simulation`，仿真 `emulation`，单元 `cell`，附签 `tag`，选项卡 `tab`，编译器特性特征文件 the compiler specific signatures，软件狗内部资源 Internal dongle resources，交叉引用 `xref`，重建与替换 Rearch & Replace，中性算法 Alogrithm Half，`SP_SUCCESS(0)` 表示 `SP_SUCCESS`、其值为 0
+
+## 目录
+
+1. 摘要
+2. 可能的方法：仿真与模拟
+   2.1. 软件狗如何工作
+   2.2. 软件狗的仿真
+   2.3. 仿真器如何工作
+   2.4. 模拟器如何工作
+3. 反汇编 Sentinel 保护的程序
+   3.1. 用 IDA 反汇编
+   3.2. 用 OllyDbg 反汇编
+4. 关于 Sentinel 应用程序编程接口的一些细节
+   4.1. 什么是 Sentinel SuperPro
+   4.2. 键存储器的结构
+     4.2.1 内部级单元与可编程单元
+     4.2.2 访问码
+     4.2.3 单元类型
+   4.3. API 函数引用
+5. 改写 Sentinel API 函数
+   5.1. `sproFormatPacket`
+   5.2. `sproFindFirstUnit`
+   5.3. `sproOverwrite`
+   5.4. `sproFindNextUnit`
+   5.5. `sproRead`
+     5.5.1 `sproRead` Approach #2
+   5.6. `sproQuery`
+6. 补充
+7. 参考
+8. 结束语
+9. 历史
+10. 致谢
+
+## 1 摘要
+
+欢迎回到我的另一长篇教程。这次我将专门讲解最近花了点时间研究的 Sentinel 软件狗。我首先了解了一些从应用程序去除 Sentinel 保护（以及一般意义的软件狗保护）的不同方法。有关这个课题的教程见到的比较少，见到一些也是过时的、不完整的，大多数难以读懂或应用到现代的应用程序上。
+
+感谢许多人的工作，像 GoatAss、CyberHeg、Crackz（这里只列出很少几个姓名）。特别要感谢 TORO（我与他就本主题长时间聊过，因此我想在此公开向他表示感谢）。我在本教程所讲的东西不完全是新的。但不管怎么说，我更新了他们的技术，在最新的应用程序上测试过，并且把那些不再工作的例行程序（你能在别处找到）做了一点点修改，使它们继续可用。
+
+在 Woodmann 网站[1]上关于本主题的网页是软件狗有关资料一个极好的来源。
+
+将本教程视为 Sentinel 软件狗白皮书（不打算面面俱到），我努力把原理解释清楚，同时做点新的贡献。我关注 Sentinel，因为它是最受欢迎、被使用最多的软件狗之一。
+
+祝你愉快，  
+Shub-Nigurrath
+
+这里描述的技术是通用的，不是特别针对任何商业应用程序。整个文档必须被当做一个关于编程高级技术的文档，如何使用其中信息则完全是你自己的责任。
+
+商业应用程序明确地使用的地方，本文仅就它们的保护而论，不透露任何破解细节。
+
+## 2 可能的方法：仿真与模拟
+
+一般而言，对于软件狗保护的应用程序有两个可能的方法：仿真或模拟。我将会使用这两个名词区分这两个方法，其他人可能不同意我这样使用这两个词的含义，但是这样总比叫它们方法 A 和方法 B 更好 ;-)
+
+我必须首先建立一个共同的理解平台，以便能够开始详细的讨论。
+
+### 2.1 软件狗如何工作
+
+我想你应该已经有这方面的知识，而且这里不解释特定软件狗的细节，总之为了理解与软件狗打交道的一般方法你需要有点常识。一般来讲，用软件狗保护的应用程序需要几个组件；我尽量用图 1 总结一下。
+
+**图 1 - 应用程序－软件狗交互的概略图**
+
+从图的底部向上到顶部，重要的组件依次为：
+* **被保护的应用程序。** 应用程序与软件狗应用程序开发工具箱本地交互，调用它的 API。从应用程序的观点看，就像调用一个代理对象，向它提出请求并等待回应或数据。对于知道这些软件工程对象的人来说，这是典型的设计模式。
+* **应用程序开发库。** 这个组件是由 API 构成，我们可以假定它们就是代理方式：它们在应用程序本地运行提供编程接口，而在相反方面它们实现通信协议。它们只是消息调度程序和请求收集程序（总之像任何其他 API 一样）。开发库以一个 `dll` 或标准库（即动态链接或静态链接）和程序相连，并且向应用程序提供我所说的服务（从 1 到 n）。
+* **通信协议。** 这个元件要求在系统中安装软件狗驱动程序实现通信。
+* **软件狗处理程序。** 当软件狗收到一个请求时，它必须启用 [原文 invoke] 一个特定的请求处理程序。实际的软件狗逻辑当然比图 1 所示更加复杂，但是我们不妨就这么理解。软件狗处理程序使用软件狗内部资源（键、算法、数据，最后还有 CPU）回答应用程序提出的问题。
+* **软件狗内部资源。** 软件狗可能支持键、数据库和运行某些算法的 CPU（这也是 Sentinel 的情况）。通常越难去除保护的软件狗，它的内部资源就越复杂。跟踪这些组件运行或者读出数据常常是不可能的，或至少很难。
+
+仔细一想，显然，整个通信是基于一个信任机制。我们的攻击就是要设法推翻这个信任模型（见参考[2]中类似情况的讨论）。
+
+你知道，我们可能有几个办法在应用程序和软件狗之间破坏这个信任模型。准确地讲有两种最重要的办法，我称之为仿真和模拟。
+
+### 2.2 软件狗的仿真
+
+其实质是编写一个外部程序在系统上运行，拦截（挂钩）发送给软件狗驱动程序的请求，完全按照与软件狗相同的方式做出回应。可以用不同的技术来做，但是通常没有必要弄得复杂，只需要普通挂钩那些给软件狗驱动程序发送请求的系统 API 就足矣。
+
+TORO，但不光是他，发布了一些真正好用的仿真器，此外还有其他一些著名的仿真器（如 Glasha）。
+
+这些程序的问题是它们的使用期限与其所仿真的特定软件狗紧密相连。另一个重要限制是，它们至少需要插入原配软件狗一次以收集回应数据，用于以后仿真!
+
+### 2.3 仿真器如何工作
+
+这里我将使用 TORO 的 Sentinel 仿真器（在一些论坛上发布，如 `exetools`）。和所有的仿真器一样，第一个要完成的任务要求你插入原配软件狗并启动仿真数据收集程序。
+
+这个收集程序本质上是一个软件狗通信协议记录器：它监视程序的请求和键的回应，并把获得的所有信息储存起来，见图 2。
+
+**图 2 - Sentinel SuperPro 软件狗监视程序：收集来自应用程序的请求和来自软件狗的应答**
+
+其工作机制非常简单；我们用来捕获消息的两个著名钩子挂在：应用程序调用的软件狗 API 和驱动程序调用的软件狗 API。为了有效率地工作，仿真程序必须在 Windows 将请求传给 ring0 级驱动程序之前成功挂钩，该程序就是如此。
+
+如你所见，应用程序调用的几个函数属于 Sentinel 编程接口（见参考[3]），稍后我们再讨论它们。
+
+第二个组件我称之为软件狗通信协议播放器，它播放前面一步所收集的信息。使用同样的挂钩技术，当然消息传递方向与第一个是相反的。
+
+你能看到这项技术的好处，它不修改应用程序仅仅把问题私下解决了。另一方面它也有一些限制：你至少需要插入原配软件狗一次，而且被仿真的数据将会包含你的软件狗数据，甚至于序列号。总之不是太好..
+
+你可以使用两个更高级的技术编写仿真器。那就是编写一个 Ring0 级驱动程序仿真器，仿真所有的驱动程序功能，并且再编写一个 Ring0 级的驱动程序过滤器，拦截对真正的软件狗驱动程序的调用的。不管怎样，其潜在的逻辑总是一样的，拦截对软件狗（在 Ring3 或 Ring0）的调用并且应答，使用事先储存的、真正软件狗会回答的数据。你可能发现有些应用程序增加复杂化：软件狗公司开始把应用程序和软件狗之间的通信数据包加密/解密。数据包在发送给软件狗之前被应用程序加密，返回给应用程序的回应也是如此。
+
+编写这些软件狗的仿真器，即是仿真这些加解密算法。因此唯一有效的方法是对算法及有关数据包进行逆向工程，或者从应用程序中剥离加密/解密算法。
+
+### 2.4 模拟器如何工作
+
+模拟一个软件狗意味着需要在被保护应用程序中加入一些代码，它们模拟软件狗对应用程序请求做出的回应，如此使得应用程序不需要任何外部模块：软件狗、驱动器、仿真器。补丁的应用程序又将是一个正常的应用程序。为此，我们将需要修正那些在应用程序内实现保护设计的代码片（见图 1）。
+
+在图 3 我概略描述这个方法。
+
+**图 3 - 在应用程序之内模拟软件狗**
+
+图 3 清楚地显示我们需要在补丁的应用程序内安排一个模拟的软件狗存储器，并且用一些例行程序模拟原始的服务处理程序：很大不同在于原始回应读自模拟的存储器而非读自软件狗。应用程序中不与软件狗交互的部份保持原状。
+
+我在本教程主要集中讨论后一种方式。
+
+## 3 反汇编 Sentinel 保护的程序
+
+我使用一个商业应用程序（任何来自 FreedomScientific[4]的应用程序也都可以）的一部份作为例子，它是用 Sentinel SuperPro 软件狗保护。在这里我们不关心整个应用程序，我们需要的是它那个独立的软件狗许可证确认程序，我在本教程发行物中带了。这个程序对我们来说仅仅像一个 `crackme`。
+
+最适合用来分析软件狗程序的工具是 IDA 和 OllyDbg(1)加上一些特定软件狗库的特征文件（你可以从各论坛上免费得到，在本教程发行物中也有这些），它们能告诉程序在哪里调用软件狗服务代理。
+
+> (1) 的确要感谢那些 Ollydbg 插件，我们稍后将会使用。它们能够读 `.sig` 文件，因此这里不是必需要 IDA。不管怎样，OD 优越的代码分析功能很是方便。
+
+### 3.1 用 IDA 反汇编
+
+花点时间熟悉一下 IDA 和代码结构，下面我们将集中精力展示以上讲述的基本原理。
+
+原始程序和补丁程序如图 4 所示。
+
+**图 4 - 原始的 dongleviewer 和补丁的 dongleviewer**
+
+> **注意**  
+> 如果在你的 IDA 安装文件夹中还没有那些 `*.sig` 文件，启动前先从本教程发行物中拷贝这些文件。
+
+不管你用什么办法得到 IDA 5.0 版（幸运的话用官方版，否则从软件下载区分享），发动你的本地拷贝：拖放原始的 `dongleviewer.exe` 到 IDA 主窗口并按 OK 钮。IDA 就开始分析该程序。请小憩片刻，等待它完成。
+
+一旦 IDA 准备好，你就打开 IDA 的 Libraries 文件夹，见如下快照：
+
+如果没有 Libraries 附签，也可以用花按钮打开它。
+
+选择该选项卡并按鼠标加键（或者 `Ins` 键），添加你先前所拷贝的新特征文件(2)。我建议把它们全部添加以确保万一，因为你还完全不知道应用程序是使用哪个版本的 SDK 创建的。你应该看到类似于图 5 的东西，根据匹配的最高版本号可知，应用程序似乎是使用 6.x 版（非 6.2 版）的 Sentinel SDK 编译的。而且，没有外部的动态链接库，因此所使用的 SDK 是与应用程序静态链接的。
+
+> (2) 你必须确定 IDA 已经应用了编译器特性特征文件。
+
+**图 5 – 已应用的 IDA 特征文件**
+
+现在，应用名称以后你可以在名称选项卡上看到结果：IDA 只是把库函数名称相应地赋予代码中的函数。
+
+依照 IDA 帮助文件，以下是各函数名称的图注：
+* `L` (深蓝) 库函数
+* `F` (深蓝) 普通函数
+* `C` (浅蓝) 指令
+* `A` (深绿) ASCII 码字符串
+* `D` (浅绿) 数据
+* `I` (紫色) 输入函数的名称
+
+预期我们将在后续章节重点介绍 Sentinel API 之一：`sproRead`。现在主要讲一下调用图。
+
+你应该在 Strings 选项卡中寻找那个被有效包含的驱动程序：
+
+```
+.text:00476800    
+    00000011 C                \\\\.\\SENTINEL.VXD
+```
+
+在它上面双击鼠标左键，按 `x` 键查找关于那个符号的引用，然后你将会到达函数 `I386SPRO500MSOFTCIA(x)`，特征文件帮我们识别出这个函数（见图 6）(3)。
+
+> (3) 如果你是见到传统的代码视图(IDA 5.0 预置)，在代码视图任何空白处点击鼠标右键，选择“Graph View”。
+
+**图 6 I386SPRO500MSOFTCIA(x)的图解**
+
+现在只要按钮生成对 `I386SPRO500MSOFTCIA(x)` 函数的引用图。生成一个相当大的图，但我只要你注意图表的底部：IDA 把来自特征文件的函数用彩色标明（浅蓝色），那么由于我们只应用了 Sentinel 特征文件，所以这些是 Sentinel 软件狗的库函数，被程序使用或仅仅链接它（记得静态链接一个 `*.lib` 文件可能链接它所有的函数，这取决于链接程序选项）。
+
+你也必须确知一件事：如果 IDA 报告某个函数不被引用，这不一定表示它在运行时间不会被调用，因为可能有动态消息、改变的代码以及 IDA 解析引擎出错。总之，我们需要对这个结果进行判断，或者说它是我们开始探究的出发点。
+
+图 7 显示这个图表的底部：注意，`I386SPRO500MSOFTCIA` 被其他内部函数调用，然后有导入库函数如 `sproExtendedRead`（这个函数不被程序使用，但是它在里面做个多余的代码）和 `sproQuery` 或 `sproRead`（这个函数则相反，频繁地被调用，而且没它不行）。
+
+**图 7 - I386SPRO500MSOFTCIA(x)的交叉引用图底部**
+
+这类分析对我们大有帮助，因为它告诉我们必须调查哪些库函数调用。监视程序也能提供相同的信息，如第 2.3 小节所示。但是，你必须明白，一个监视程序只监视被程序有效执行的调用，而非所有可能的调用。如果在你的模拟中漏掉什么东西（某个函数没有被调用，或某个菜单没有被激活），它很可能是不完全补丁。联合使用这两种方法比较安全，而且让你更有机会做一个完全补丁。
+
+> **注意**  
+> 你能够理解一个模拟器如何可能挂钩系统，拦截对 `CreateFileA` 的调用。
+
+### 3.2 用 OllyDbg 反汇编
+
+既使没有 IDA，也可能使用 OllyDbg 反汇编该程序。你会发现 GODUP 插件（包含在这个文档之内）极为有用，见图 8。
+
+**图 8 - GODUP 插件细节**
+
+这个插件能够读 IDA 的 `.sig` 文件(4)并且把函数名称输入反汇编的程序之内(5)，见图 9。
+
+> (4) 的确，它不支持所有可能的类型，但它支持这里使用的 Sentinel 特征文件。  
+> (5) 你必须手动插入特征文件路径。
+
+**图 9 - GODUP 应用一个特征文件**
+
+如前述，应用所有的特征文件(6)，然后按 `CTRL-N` 键查看 Olly 已经为当前程序定义的名称，搜索“spro”开头的名称（所有的 Sentinel 高层函数以这些字母开头），你会从其他函数中找出下列各项：
+
+> (6) 记得去选中“Overwrite existing labels”栏 [重写现有标签]
+
+如你所见，GODUP 识别出的这几个函数与 IDA 识别的没有不同：与 OllyDbg 识别出 50 次相比，IDA 识别出 300 次左右而胜出。
+
+**图 10 - IDA 输出 MAP 映射文件**
+
+那么，最好的替代选择是从 IDA 输出 MAP 文件，然后用这个插件(7)把映像文件输入到 OllyDbg，见图 10。最后这种工作方式竟然产生最好的结果!
+
+> (7) 有另外一个插件也能做这种输入，但是它比 GODUP 慢得很多。
+
+## 4 关于 Sentinel 应用程序编程接口的一些细节
+
+此时我们已经差不多，是时候稍微停顿一下并简要地了解 Sentinel 的 PDK 如何工作。我将使用其文档中一些信息[3]，你应该在读过本教程之后继续完成你的培训过程。
+
+> **注意**  
+> 一般来讲，如果你想要打补丁一个软件狗保护的应用程序，那么真正首先要做的是读开发者手册，了解应用程序可能使用软件狗的什么服务及其使用方法。
+
+### 4.1 什么是 Sentinel SuperPro
+
+除了提供一个功能全面、简单易用的软件保护系统之外，Sentinel SuperPro 还让你能够增加示范产品限制、升级示范产品到完全许可版本并提供附加功能的使用权，完全不需要再运送一个新的硬体键过去或者访问客户位置。
+
+Sentinel SuperPro 6.1 还提供了一个附加的能力 - 允许你的客户使用一键多客户端。Sentinel SuperPro 6.1 还允许你给你的分发商编排特定的一些键，因此你能够限定他们可以激活和更新多少个产品键。Sentinel SuperPro 硬体键有两种形式因素：并行端口或者 USB，见图 11。
+
+**图 11 - Sentinel SuperPro 键**
+
+### 4.2 键存储器的结构
+
+每个 Sentinel SuperPro 键包含 128 字节存储器，按每个单元 16 位组成 64 个单元（字）。单元按十六进制从位置 0 到 3F 编址，见图 12。
+
+当你规划一个单元的时候，你赋予它各种不同的属性。这些属性决定该单元（和它所含的字）该由你的应用程序如何使用。单元属性包括单元类型、访问码和单元数值。
+
+通常，每个单元包含下列字类型之一:
+* **数据字**：一个数据字能储存数据，如从属许可证、客户信息、序列号、口令和校验数位。你编码你的应用程序读某个字，然后鉴定所储存的数值并做相应行为。一个数据字单元可能被规划成只读或者可读/写。
+* **计数器字**：一个计数器字包含你设定的一个初值然后由你的应用程序减量。计数器字的一种典型使用是限制一个应用程序的示范品可运行次数。
+* **算法**：一个算法包含一个位模式，规定硬体键应该如何加密你的应用程序所发送的查询数据。该键使用一个算法－－并且是个内部储存的专有算法－－转换查询数据然后返回一个值给你的应用程序。你设计让应用程序发送查询给该键，然后鉴定返回值并且做出相应行为。
+
+算法是活动的或不活动的。只有活动的算法能给一个查询返回有效的回应。算法是否活动由该单元值中活动的/不活动的位来控制。
+
+#### 4.2.1 内部级单元与可编程单元
+
+每个键的 00 单元到 07 单元是内部级单元，它们包含着固定的、预编程的系统信息，见图 13。
+
+| 单元 | 内容 | 可读否? |
+| :--- | :--- | :--- |
+| 00 | 键序列号；每个键按顺序分配。 | a |
+| 01 | 开发者 ID；唯一对应你的公司/产品。 | 是 |
+| 02–07 | 彩虹技术保留使用。 | 否 |
+
+**图 13 - Sentinel SuperPro 键的内部级单元内容**
+
+（a 序列号是 16 位的，并且不保证它是唯一的）
+
+程序可以使用从 08 单元到 3F 单元。
+
+#### 4.2.2 访问码
+
+每个单元有一个访问码，用它控制该单元能够被你的应用程序如何使用－－它定义单元的单元类型属性。例如，一些单元类型的访问码允许单元数值被读出和被重写，而另一些单元是只读的或根本不可写入。访问码是数字 0 到数字 3，见图 14。
+
+| 访问码 | 描述 |
+| :--- | :--- |
+| 0 | 可读/写的数据字<br>你的应用程序可以读该单元的这个字，而且，如果给出写口令，可以修改它的内容。 |
+| 1 | 只读（锁定）数据字<br>你的应用程序可以读该单元的这个字，但是如果没有重写口令，则不能改变它。 |
+| 2 | 计数器字<br>该单元包含一个字（数值），你的应用程序可以用写口令减量它。如果没有重写口令，则不能（用减量之外的方法）改变该单元的值。 |
+| 3 | 锁定并隐藏的字/算法字<br>你的应用程序不能读该单元的数值。修改它需要重写口令。该单元数值（内容）是隐藏的（不可读）。 |
+
+**图 14 – Sentinel SuperPro 键的单元访问码**
+
+#### 4.2.3 单元类型
+
+每个单元被赋予一个代码，定义你想要如何使用此所选单元。这个代码叫做一个单元类型。单元类型划分储存在单元中的数据类型，继而影响该单元能被如何使用。每个单元类型用两个字母的缩写来识别；例如，`CW` 标识一个计数器字。某些单元类型被设计成按组使用。例如，算法能与计数器和口令产生关联。其他单元类型有地址限制，意即只有键上特定单元才能指定为这种类型，见图 15。
+
+### 4.3 API 函数引用
+
+图 16 中列出 Sentinel SDK 的主要 API 函数。
+
+| 函数 | 描述 |
+| :--- | :--- |
+| `sproActivate()` | 激活一个不活动的算法，以便它能被 `sproQuery()` 函数使用。 |
+| `sproDecrement()` | 减量一个计数器字或者读/写数据字。如果计数器关联到一个活动的算法，那么计数器减到零则使该算法不活动。 |
+| `sproEnumServer()` | 依照指定的开发者 ID，列举在网络上运行的服务器个数。 |
+| `sproExtendedRead()` | 读键的任何非隐藏的存储器单元的数值和访问码。 |
+| `sproFindFirstUnit()` | 搜索隶属于一个指定的开发者 ID 的所有键。 |
+| `sproFindNextUnit()` | 搜索隶属于同一个开发者 ID 的下一个键。 |
+| `sproFormatPacket()` | 验证数据包（`RNBO_SPRO_APIPACKET`）的大小并初始化字段为默认值。在任何其他 API 函数被调用之前，这个函数必须先被调用一次。 |
+| `sproGetContactServer()` | 返回为一个指明的 API 数据包设定的联系服务器。 |
+| `sproGetFullStatus()` | 返回扩充的状态信息。它只用于支持目的。 |
+| `sproGetHardLimit()` | 检索硬体键所支持的最大许可证数目（硬限制）。 |
+| `sproGetKeyInfo()` | 从一个指明的服务器获得关于键的信息。 |
+| `sproGetSubLicense()` | 取得一个指明的单元中的从属许可证。 |
+| `sproGetVersion()` | 返回 Sentinel SuperPro 驱动程序版本号。 |
+| `sproInitialize()` | 执行驱动程序需要的任何初始化。 |
+| `sproOverwrite()` | 改变除了保留单元 00-07 之外的任何单元的数值和/或者访问码。 |
+| `sproQuery()` | 发送一个数据字符串给键，用一个指定的算法加密它，并返回加密的字符串给应用程序。 |
+| `sproRead()` | 读键的任何非隐藏单元的数值。 |
+| `sproReleaseLicense()` | 通过指定单元地址为 0 而释放一个许可证，或者通过指定从属许可证单元的单元地址和要释放的从属许可证个数而从一个指明的单元释放一个从属许可证。 |
+| `sproSetContactServer()` | 为一个指明的 API 数据包设定联系服务器。 |
+| `sproWrite()` | 改变任何访问码为 0（可以读/写数据）的单元的数值和/或它的访问码 |
+
+**图 16 - 主要的 Sentinel Superpro API 函数**
+
+在 SDK 官方报告中它的 API 名称带前缀“RNBO”，但是我们通常提及这些 API 名称时不带这个前缀。从破解角度看最重要的是：`sproFormatPacket`、`sproInitialize`、`sproFindFirstUnit`、`sproRead`、`sproQuery`、`sproOverwrite`。
+
+以下是一个典型的调用顺序，你经常能在程序中见到：
+1. `sproFormatPacket()` – 初始化数据包。
+2. `sproInitialize()` – 执行必需的初始化。
+3. `sproFindFirstUnit()` – 建立与键的通信并且取得一个许可证。
+4. `sproRead()` – 读单元并且返回它的值。
+5. `sproQuery()` – 发送查询字符串并且给回应值指定一个位置。
+
+例如，`sproRead` 如图 17 所示，我们马上要编写一个新的，并将二者做个比较。
+
+**图 17 - Sentinel sproRead API**
+
+API 的返回值才是重要的，即程序要求从一个有效调用得到什么东西。
+
+## 5 改写 Sentinel API 函数
+
+对于已经熟练掌握该主题的人来说，现在开始本教程真正的部分。为了完全没有经验的读者达到知识要求，本教程前面部分一直在讲授必需的基础知识。其实补丁从这里才真正开始。
+
+### 5.1 sproFormatPacket
+
+和我们下面将要模拟所有其他 API 一样，对于这个 API 我们通常只关心它总是返回 `SP_SUCCESS(0)`。
+
+图 18 是该原始 API 在 IDA 中的反汇编结果，图 19 是同一个 API 在 OllyDbg 中的反汇编结果。
+
+**图 18 - 在 IDA 里的原始 sproFormatPacket**  
+**图 19 –在 OllyDbg 里的原始 sproFormatPacket**
+
+补丁很简单如图 20 所示，它仅仅把 `EAX` 原本来自 `[ESP+C]` 返回值清零。如你所见，我在第一个跳转（`0x476EF8`）开始重写原始 API，其目的是用来略过在 Sentinel API 入口点上的一些基本的反干预检验。
+
+**图 20 - 补丁的 sproFormatPacket**
+
+注意，关于这个 API，PDK 有如下说明：
+> 这个函数本质上是一个“取得许可证”调用。如果有找到 Sentinel SuperPro 键，`RB_SPRO_APIPACKET` 记录将会包含有效的许可证数据，否则数据包将被标记为无效的。如果你试图以一个已有许可证的 APIPACKET 作为参数调用这个函数，它返回错误 `SP_INVALID_OPERATION`。
+
+仅当给定的参数 `RB_SPRO_APIPACKET` 是无效的时候，它返回不同于 `SP_SUCCESS(0)` 的一个数值。在开发阶段这类错误是典型的，因此对我们来说没有问题。这意味着通常不必补丁这个 API，总之我通常只是为避免意外而补丁它。
+
+### 5.2 sproFindFirstUnit
+
+同样地对于这个 API，重要的是要返回 0 (`SP_SUCCESS`)。把描述开发者细节的 `developerID` 储存起来，一定会有用的，如开发者指南所指出的：
+
+```c
+unsigned short int sproFindFirstUnit( RB_SPRO_APIPACKET packet, unsigned short int developerID );
+```
+
+`developerID` 是由彩虹技术 [Rainbow Technologies] 或零售商指定给你。它标识所要寻找的 Sentinel SuperPro 装置。
+
+**图 21 - 补丁的 sproFindFirstUnit**
+
+如果你在 `sproFindFirstUnit` 开始处放一个断点，你将会发觉，像其他任何第一个参数是接收一个 `RB_SPRO_APIPACKET` 数据包的 API 函数一样，这个数据包只是个 ASCII 字符串“Br”。
+
+### 5.3 sproOverwrite
+
+这个函数用来改变 Sentinel SuperPro 键中任何字的数值和访问码。对我们来说，只要修正程序使之返回 `SP_SUCCESS` 给程序检查。
+
+图 22 显示一些显然无用的指令；他们实际上是无用的，仅仅为调试目的。
+
+**图 22 - 补丁的 sproOverwrite**
+
+### 5.4 sproFindNextUnit
+
+这个 API 查找下一个隶属于该开发者 ID 的 Sentinel SuperPro 键，这个开发者 ID 由调用 `sproFindFirstUnit` 确定。该函数经常被应用程序调用来正确地操作软件狗，因此和 `sproFindFirstUnit` 一样必须被打上补丁，见图 23。
+
+**图 23 - 补丁的 sproFindNextUnit**
+
+### 5.5 sproRead
+
+这个 API 函数和下一个 `sproQuery` 函数是我们需要模拟的两个最重要函数。之前所有的 API 补丁是为了让程序可以无阻碍而且无错误地结束这些 API。而我们的主要破解工作是在这两个 API 里面做。
+
+原始的原型是：
+
+```c
+unsigned short int sproRead( RB_SPRO_APIPACKET packet, unsigned short int address, unsigned short int *data );
+```
+
+其中：
+* `packet`：指向 `RB_SPRO_APIPACKET` 记录的一个指针。
+* `address`：要读入那个字的 Sentinel SuperPro 键存储器单元地址。
+* `data`：指向某个位置的一个指针，该位置将会包含从 Sentinel SuperPro 键读出的数据。
+
+图 17 列表原始的 `sproRead`。我们将要做的是本地模拟软件狗存储器，使用与原始的 `sproRead` 所用的相同空间。图 24 中给出概要图解：新的 `sproRead` 将会从一个用来模拟狗存储器的内存区域读取数值，该值就是原始 API 函数会返回给调用程序的数值。数据输入参数作为一个索引使用，从本地内存取到正确的数值。
+
+**图 24 - 补丁的 sproRead 图解**
+
+该函数在下面列出。它与 Crackz、GoatAss 等人已经提出的那些方法很相似，但是由于未对准模拟存储器部分，他们的解决方案有的不工作、有的出错、有的不完全（至少从我的经验看）：他们没有正确地考虑每个单一单元的大小。如果你需要更多的模拟存储器，在地址 `0x00477308` 处减少被增加到 `EAX` 的偏移量，如你所见，有许多空间仍然可用。
+
+**ped**
+
+**图 25 - 补丁的 sproRead 函数的载入部份**
+
+现在我们已经做好一个 `sproRead` 模拟器了，然后你还需要用正确数值填充本地内存单元。这最后一步完全取决于目标，而且必须通过检查程序对返回值做什么处理才能到达成功的彼岸。你必须跟踪程序、看它对返回的数据做什么处理（了解正确数值是什么），这是最令人厌烦的事情之一。
+
+我建议使用下列方法：
+1. 用 `FF` 值填充所有内存单元，容易做
+2. 在补丁的 `sproRead` 开始时放置一个断点 `BP`，并跟踪程序直到它到达相应的内存单元
+3. 在该单元写入数据值（该数值在 `[ESP+10]`）：例如，如果被存取的单元是 `0A`，就在第 0A 单元写入 `0A 0A` 作为虚设的 WORD 数值。
+4. 使用 HW 硬件断点，跟踪被写的内存进入调用者，直到你弄清该程序对那个数值做什么处理。通常你会见到 `CMP` 之类。
+5. 把你发现的真正数值写回该内存单元，取代那个虚设值。记得要使用 LSB 逻辑去写 WORD 值。
+
+上面代码已经包含我从 DongleViewer 发现的东西。如你所见，有的单元仍然保留为 `FF` 值，因此并非所有的单元被程序使用。
+
+例如，程序 DongleViewer 使用这些数据值调用 `sproRead`：`10h`、`11h`、`12h`、`17h`、`13h`、`14h` (8)
+
+> (8) 你可以在 `0x0047730B` 处放一个断点并检查在数据栈上的 `[ESP+10]`。
+
+只有 `13h` 单元立即被这个程序检查。请看：
+
+因此该程序使用之前所读入 `ECX` 的数值与 `AX` 做或运算，得到一个数值，如 `FFFF13FF`。然后该数值立即在这里被检查。
+
+显然，单元 13 应该有的正确数值是 `0001`（考虑 WORD 对准），然后该数值以反向顺序（考虑 LSB 逻辑）储存于 `0x00477373` 处，即为 `0100`。
+
+> **注意**  
+> 尝试做个实验，在地址 `0x0042C590` 你能见到程序用不同的数值检查这个存储器部分，尝试改变模拟的存储器单元 `13h`，看看会有什么发生。
+
+#### 5.5.1 sproRead Approach #2
+
+我也用过这个附加方法补丁 `sproRead`，在某些情况下此法更稳定，而且也正确地清理存储器，因此对跟踪来说，它是更好的解决方案。逻辑几乎是相同的，所以你能自己读懂下面的代码（注意，下面列表的存储器部分没有经过初始化）。
+
+**ped**
+
+### 5.6 sproQuery
+
+`sproQuery` 函数稍微更难写些，在需要逆向的函数中它总是最复杂的。API 只是传递数据给一个算法或者给一个储存于键的查找表，而且返回一个数值，再由应用程序检查返回值。
+
+如果你有程序的一个有效键，跟踪该函数的回应，你能得到正确的数值。或者如果你没有任何一个有效的软件狗，跟踪应用程序并猜测它怎么处理返回数据（按照和 `sproRead` 一样的方法），你也能得到正确的数值。
+
+```c
+unsigned short int RNBOsproQuery( RB_SPRO_APIPACKET packet, unsigned short int address, VOID *queryData, VOID *response, unsigned long *response32, unsigned short int length );
+```
+
+其中：
+* `Packet`：指向 `RB_SPRO_APIPACKET` 记录的一个指针。
+* `Address`：要查询的字的地址。
+* `QueryData`：指向查询字节串第一个字节的指针。
+* `Response`：指向回应字节串第一个字节的指针。
+* `Response32`: 指向某位置的指针，那里将会包含查询回应最后四个字节的一个拷贝。
+* `Length`: 这是发送到活动算法的查询字节串的字节数，也是回应缓冲区的长度。
+
+如果成功，该函数返回 `SP_SUCCESS(0)`。
+
+与图 24 的逻辑是相同的，但实现不同。
+
+当程序在 `0x004776F0` 处停下的时候，数据栈如下：
+
+**pedi**
+
+但是，当你停在 `0x004776F3` 处的时候，栈变成：
+
+此时寄存器 `EDI` 是指向 `querydata(0x0051412C)` 的。然后，你可以把程序需要的数值拷贝到 Response 回应缓冲区。
+
+**图 26 - 原始的 sproQuery**
+
+`sproQuery` 真正的问题是，除了跟踪程序之外，没有其他方法可以找到查询值 `queryvalue` 和回应数值。你可以按照和 `sproRead` 一样的步骤，走一步看一步，如果程序实现得不好你会很容易找到正确的数值。
+
+对于我们当前这个例子，做法如下：
+1. 当你停在 `0x004776F0` 处的时候，在地址 `0x0013F244` 和 `0013F248` 处各放一个硬件存取断点。然后按 `F9` 键，看程序执行到什么地方存取这些数值以及跟什么东西做比较。
+2. 应用程序在 `0x00453BF1` 处停下，见图 27。
+
+**图 27 - DongleViewer 进入 sproQuery 在断点之后停下**
+
+该缓冲区，已被 `sproQuery` 前面的调用填充，现在它的地址储存在 `EDI`，而且与储存在 `ESI` 的地址 `0x00514132` 处的内容逐字节比较。如果有什么不对劲，程序就跳出。修正它的另一个可选办法是将 `JNZ` 换成 `JZ`，但是记得我们说过，我们只专注于静态链接到应用程序的 API 函数库那些部份，而不改变只为某个应用程序所特有的代码。
+
+3. 如果你再按一次 `F9`，你将会发现缓冲区已经被删除。
+
+这次我们是运气好 (我有意选择这个例子 ;-)。
+
+## 6 补充
+
+好了，快到本教程结束的时候了。我没有全部讲解软件狗参数，而是只讲到一些特殊的问题。还是讲了有关封包以及其他与键复杂交互的一些东西。无论如何，这里所描述的通用方法对所有 Sentinel 保护的程序仍然有效，而且部分地可应用于所有软件狗保护的程序。
+
+我要指出，因为仿真会暴露你的许可证，所以当你有一个配软件狗的原始程序而你不知道如何分发它的时候，本教程提出的解决方案是理想的。当一个正确的软件狗被插入时，使用第 2.3 小节所描述的监视程序，你能探寻到 `sproQuery` 和 `sproRead` 返给程序哪些回应。理解程序把什么数值作为重要数据（要被检查的）以及什么是不重要的，然后你可以使用那些数值模拟软件狗。你最后得到的将会是一个有效的发行物，得自一个真正的键，但是里面不再有你的个人数据!
+
+只改变程序中继承 Sentinel SDK 的部分，其另一个好处是，由于 SDK 库独立于程序生产者，所以这些部分在该程序后续版本中是不变的。因此带有‘重建与替换’引擎的补丁程序很有机会在同一程序的后续版本继续使用。
+
+> **注意**  
+> 我在本教程发行物中配发了一个 Sentinel 保护的 `crackme`（在参考[1]中也有这个 `Sprocrackme.exe`），你可以应用这里学到的技术拿它做个练习，看看自己是否确实理解了本教程所传授的原理。
+
+## 7 参考
+
+[1] Dongles Web Resources, `http://www.woodmann.com/crackz/Dongles.htm`  
+[2] “The Weakness of the Windows API, Part 1 in a 3 Part Series. Abusing Trust Relationships in Windows Architecture In Order To Defeat Program Protection”, Gabri3l of ARTeam, `http://tutorials.accessroot.com`  
+[3] “Sentinel SuperPro Developer's Guide”, Rainbow Technologies, included into the distribution of this tutorial.  
+[4] Freedom Scientific, `http://www.freedomscientific.com/`
+
+## 8 结束语
+
+好吧，这个课题结束了，希望以上所述将会帮助你更好地理解操作系统是如何操纵进程以及我们能够用哪些手段控制进程并让使用软件狗的程序失去保护。我一贯主张读者使用本教程更加深入学习软件狗和 Sentinel 系统是如何工作的，并使用这些例子完善你的 RCE 技术，而不要去破解程序。
+
+本教程免费提供的所有代码可以公开使用，只要你觉得它有用请对 ARTeam 和作者们表示一下感谢。不要应用这些原理做违法的事，这里给出的所有资讯应该只用于学习和帮助人们更好地理解应用程序代码安全技术。
+
+## 9 历史
+
+1.0 版本 － 第一次公开发行！
+
+## 10 致谢
+
+我想感谢所有的 ARTeam 成员，TORO 和本教程β版的读者，... 当然，还要谢谢你读完这个相当长而且复杂的文档！
+
+`http://cracking.accessroot.com`
+
+
+
+- [SENSE4 加密锁浅析之实战篇](6-protect_174.md)
+- [Sentinel LM lic 的制作总结 1 用去狗 wlscgen.exe 法](6-protect_175.md)
+- [Sentinel RMS lic 制作总结 2 模拟狗法](6-protect_176.md)
+- [精锐 E、ET199 通讯协议分析之模拟锁基础](6-protect_177.md)
+- [南天住房档案及住房补贴管理信息系统](6-protect_178.md)
+- [DOS 下的狗](6-protect_179.md)
+- [API 自实现](6-protect_18.md)
+- [2488 的解狗教程](6-protect_180.md)
+- [N188 破解过程(DOS 下的狗)](6-protect_181.md)
+- [其他](6-protect_182.md)
+- [vt4.0](6-protect_183.md)
+- [速达 3000PRO](6-protect_184.md)
+- [带狗杀 TDSD 狗](6-protect_185.md)
+- [ART](6-protect_186.md)
+- [AuthorWare5](6-protect_187.md)
+- [Hasp Envelope](6-protect_188.md)
+- [LanSentry](6-protect_189.md)
+- [GetProcAddress](6-protect_19.md)
+- [MT unlocker](6-protect_190.md)
+- [VB 程序＋狗](6-protect_191.md)
+- [管家婆 8.2 单机](6-protect_192.md)
+- [管家婆辉煌网络版 8.0A](6-protect_193.md)
+- [Autodesk AUTOCAD 14](6-protect_194.md)
+- [打狗 CAXA2000 电子图板，只改半字节](6-protect_195.md)
+- [Label Matrix 32 for](6-protect_196.md)
+- [Label matrix 5.0](6-protect_197.md)
+- [Rainbow Sentinel](6-protect_198.md)
+- [监理通 2000](6-protect_199.md)
+- [\====软件保护技术====](6-protect_2.md)
+- [getprocaddress asm 版本](6-protect_20.md)
+- [速达 3000 Pro](6-protect_200.md)
+- [速达 3000pro 网络版](6-protect_201.md)
+- [公共财政 8.01](6-protect_202.md)
+- [甘肃省某医药检验管理系统 6.0](6-protect_203.md)
+- [某工程项目管理软件《投标版》](6-protect_204.md)
+- [梦龙智能项目管理 99A](6-protect_205.md)
+- [加密狗保护的 VFP 软件破解](6-protect_206.md)
+- [光盘加密](6-protect_207.md)
+- [光盘加密技术](6-protect_208.md)
+- [Flexlm 保护](6-protect_209.md)
+- [打造 MyGetProcAddress](6-protect_21.md)
+- [基础知识](6-protect_210.md)
+- [《加密与解密》第二版 13.6 Flexlm 保护](6-protect_211.md)
+- [FLEXLM9.5 该洗洗睡了吧－－－200 水帖纪念](6-protect_212.md)
+- [FLEXLM 系统高级研究(翻译)（一）](6-protect_213.md)
+- [破解 ecc 保护的 flexlm (翻译 by nujia)](6-protect_214.md)
+- [CrackZ 的文章：FLEXlm--愚人的商业许可证管理器](6-protect_215.md)
+- [制作 Flexlm license 总结！](6-protect_216.md)
+- [FLEXlm latest information by CrackZ](6-protect_217.md)
+- [Dump The filter of flexlm](6-protect_218.md)
+- [FlexNet 10.8 20 位 Sign 揭秘](6-protect_219.md)
+- [昨天写的一个 GetProcAddress](6-protect_22.md)
+- [利用 Flex 10.1 SDK 开发某软件注册机](6-protect_220.md)
+- [OD 自动提取 FLEXLM VENDERCODE 的插件](6-protect_221.md)
+- [编译 Flexlm 11.4 SDK 的步骤](6-protect_222.md)
+- [ECC patcher for the flexlm with ecc](6-protect_223.md)
+- [flexlm v9.2 的 l\_n36\_buf 及 l\_n36\_buff 说明](6-protect_224.md)
+- [Sparc 平台下的 FlexLM 4.1 明文比对破解](6-protect_225.md)
+- [手工快速识别+破解 FLEXLM\_ECC 关键函数](6-protect_226.md)
+- [Sparc 平台上的 FlexLM 7.0 用户滤波函数分析](6-protect_227.md)
+- [Study on ECC patch by replacing pubkeys in flexlm](6-protect_228.md)
+- [去 FLEXLM/NET ECC 标志，强行 12 位 SIGN 验证](6-protect_229.md)
+- [这是最近学习 PE 结构写的 GetProcAddress 汇编版【原创】](6-protect_23.md)
+- [prikey.c 关于 ecc 内容翻译](6-protect_230.md)
+- [整理 flexlm\_v9.2\_full\_source 不完全编译手册](6-protect_231.md)
+- [FLEXlm 9.2](6-protect_232.md)
+- [FLEXlm9.2](6-protect_233.md)
+- [FLEXlm9.2 的破解教学二](6-protect_234.md)
+- [FLEXlm9.2 的破解教学三](6-protect_235.md)
+- [FLEXlm9.2 的破解教学四](6-protect_236.md)
+- [FLEXlm9.2 的破解教学五](6-protect_237.md)
+- [翻译 FLEXlm9.2 的破解教学六](6-protect_238.md)
+- [实例分析](6-protect_239.md)
+- [Win7 下的 GetProcAddress](6-protect_24.md)
+- [ABAQUS 6.7 不完全分析（Flexlm+blowfish 验证）](6-protect_240.md)
+- [AUTOcad2002](6-protect_241.md)
+- [制作 AUTOcad2002 中文网络版的 Flexlm license](6-protect_242.md)
+- [cad2002 中文网络版](6-protect_243.md)
+- [制作 GL Studio v3.02 的 license](6-protect_244.md)
+- [LabView 7.1 FlexLM8.4a 破解](6-protect_245.md)
+- [labwindows 8.1 明码寻找补充](6-protect_246.md)
+- [LabWindows CVI 8.0](6-protect_247.md)
+- [Multigen vega prime 2.0 详细跟踪](6-protect_248.md)
+- [SemCAD1.4](6-protect_249.md)
+- [实现函数 GetProcAddress()](6-protect_25.md)
+- [Solidedge](6-protect_250.md)
+- [FLEXlm 7.2](6-protect_251.md)
+- [学习 Nolan Blender“A Detailed Look at Crypt Filters ”](6-protect_252.md)
+- [让 daemon 为你生成正确的 SIGN](6-protect_253.md)
+- [使用 vc 调试 flexlm 后台程序 Daemon](6-protect_254.md)
+- [Driver.Suite.3.0.1.的 license](6-protect_255.md)
+- [Protection Plus](6-protect_256.md)
+- [Protection Plus](6-protect_257.md)
+- [Crypkey 保护](6-protect_258.md)
+- [Crypkey](6-protect_259.md)
+- [又一次写 GetProcAddress 函数](6-protect_26.md)
+- [游戏保护](6-protect_260.md)
+- [NP](6-protect_261.md)
+- [dump\_wmimmc.sys 的解码(更新)](6-protect_262.md)
+- [TP](6-protect_263.md)
+- [围观一下 tp 的游戏保护](6-protect_264.md)
+- [关于过 TP 的 Debugport 的问题](6-protect_265.md)
+- [DNF](6-protect_266.md)
+- [散谈游戏保护那点事~就从\_TP 开始入手吧](6-protect_267.md)
+- [DNF 驱动对内存读取的过滤分析](6-protect_268.md)
+- [最新过 TX 驱动保护，恢复 debugport 相关函数](6-protect_269.md)
+- [打造自己的 MyGetProcAddress 和 MyLoadLibrary](6-protect_27.md)
+- [Xuetr](6-protect_270.md)
+- [模拟 Xuetr 枚举 GDT](6-protect_271.md)
+- [Xtrap](6-protect_272.md)
+- [Xtrap 驱动逆向(有 Bin,有码,有真相)](6-protect_273.md)
+- [Securom](6-protect_274.md)
+- [关于 Securom 8 保护机制的一些尝试](6-protect_275.md)
+- [HackShield](6-protect_276.md)
+- [再暴 HS](6-protect_277.md)
+- [围观一下 HS](6-protect_278.md)
+- [简单分析一下 HS 驱动保护 - Hook 篇](6-protect_279.md)
+- [根据 PE 文件格式获取 LoadLibraryA()/GetProcAddress()地址](6-protect_28.md)
+- [自己动手写”Hshield”:第一章:立即动手写一个最让人看不起的”Hshield](6-protect_280.md)
+- [HackShield 分析(1)](6-protect_281.md)
+- [Elanlm 保护](6-protect_282.md)
+- [将要绝种的 ELANLM 分析](6-protect_283.md)
+- [其他](6-protect_284.md)
+- [对韩国原装 X 游戏的服务器端及客户端加固](6-protect_285.md)
+- [\====抵御静态分析====](6-protect_286.md)
+- [SMC](6-protect_287.md)
+- [程序的自我修改](6-protect_288.md)
+- [在 SMC 中加入密码学算法](6-protect_289.md)
+- [LoadLibrary](6-protect_29.md)
+- [淘来的几个 SMC 代码](6-protect_290.md)
+- [SMC 与算法结合的快速运用 VC++ (含 DEMO 和工具源代码)](6-protect_291.md)
+- [《加密与解密 第 3 版》SMC 的一个令人费解的 bug!!](6-protect_292.md)
+- [花指令](6-protect_293.md)
+- [Anti-静态分析](6-protect_294.md)
+- [去花的 idc](6-protect_295.md)
+- [读 Reversing Secrets of Reverse Engineering 所感](6-protect_296.md)
+- [抗去除花指令(一)（二）（三）（四）](6-protect_297.md)
+- [清除彩虹狗花指令的脚本](6-protect_298.md)
+- [我的 VC 花指令方法](6-protect_299.md)
+- [保护机制研究](6-protect_3.md)
+- [LoadLibrary C 版本](6-protect_30.md)
+- [手动清除花指令](6-protect_300.md)
+- [带参数的小花](6-protect_301.md)
+- [SVKP 中的一些花指令](6-protect_302.md)
+- [去除花指令的代码](6-protect_303.md)
+- [有关花指令的一点小研究(一) (二)](6-protect_304.md)
+- [有关花指令的一点小研究(三)](6-protect_305.md)
+- [qq 密码输入框保护组件 TSSafeEdit 中的花指令研究](6-protect_306.md)
+- [信息隐藏](6-protect_307.md)
+- [自己动手，弄了个字符串反混淆](6-protect_308.md)
+- [反字符参考全接触](6-protect_309.md)
+- [想自己实现一个 Loadlibrary，请教](6-protect_31.md)
+- [API 调用的隐藏技术](6-protect_310.md)
+- [手工隐藏 api 函数调用简单对付静态分析](6-protect_311.md)
+- [代码变形](6-protect_312.md)
+- [垃圾代码发生器\[设计+源码\]](6-protect_313.md)
+- [病毒变形的讨论（A Discussion of Polymorphism）](6-protect_314.md)
+- [二进制迷惑控制流整平](6-protect_315.md)
+- [继续一个扭曲了 CALL 的小程序,高手来试试用脚本还原](6-protect_316.md)
+- [演示代码乱序反掉 IDA 流程图](6-protect_317.md)
+- [代码混淆](6-protect_318.md)
+- [一个代码混淆器的思路](6-protect_319.md)
+- [代码自定位 获取 LoadLibrary 的问题](6-protect_32.md)
+- [换个角度看多态 - Polymorphic Games](6-protect_320.md)
+- [The Headless Horsemen Engine v1.03](6-protect_321.md)
+- [多态引擎](6-protect_322.md)
+- [BPE32 多态引擎剖析](6-protect_323.md)
+- [浅谈多态变形技术应用](6-protect_324.md)
+- [变形的初步方案－－两篇变形文章的读后感](6-protect_325.md)
+- [理 论 变 形 学](6-protect_326.md)
+- [扭曲变换加密](6-protect_327.md)
+- [老 Y 的变形引擎](6-protect_328.md)
+- [\[翻译\]多态变形生成器](6-protect_329.md)
+- [GetModuleHandle](6-protect_33.md)
+- [其他多态变形技术](6-protect_330.md)
+- [普通化的多态变形](6-protect_331.md)
+- [Win32 下的多态变形](6-protect_332.md)
+- [\[翻译\]多态变形技术教学\_2](6-protect_333.md)
+- [The Evolution of Polymorphic Viruses](6-protect_334.md)
+- [\[翻译\]对多态变形引擎背后方法的概述](6-protect_335.md)
+- [\[翻译\]关于慢速感染与慢速多态变形的争论](6-protect_336.md)
+- [多态引擎如何工作在病毒中（译）](6-protect_337.md)
+- [软件注册保护与“多态变形混淆”技术浅述](6-protect_338.md)
+- [CJPE32 多态引擎完整架构及其实现](6-protect_339.md)
+- [实现函数 GetModuleHandle()](6-protect_34.md)
+
+
+
++   `[\====反跟踪技术====](6-protect_340.md)`
+
++   `[Anti-Debug](6-protect_341.md)`
+
++   `[脱壳的艺术](6-protect_342.md)`
+
++   `[反调试技巧总结-原理和实现(1)(2)(3)(4)(5)(6)......](6-protect_343.md)`
+
++   `[检测 debugger 的方法补遗](6-protect_344.md)`
+
++   `[利用 SEH 改变程序流程以达到反跟踪的目的](6-protect_345.md)`
+
++   `[Anti-Debug](6-protect_346.md)`
+
++   `[HeapMagic](6-protect_347.md)`
+
++   `[初识 Anti](6-protect_348.md)`
+
++   `[【作品提交】反调试测试-\[1003-2008.0625\]](6-protect_349.md)`
+
++   `[其他](6-protect_35.md)`
+
++   `[anti trick Ⅰ －－ OpenProcess](6-protect_350.md)`
+
++   `[小小的 anti](6-protect_351.md)`
+
++   `[SSDT HOOK bypass 某游戏 and Themida ThreadHideFromDebugger](6-protect_352.md)`
+
++   `[关于 createfile 研究](6-protect_353.md)`
+
++   `[Anti-RORDbg](6-protect_354.md)`
+
++   `[用单步跟踪 Anti-Debugger](6-protect_355.md)`
+
++   `[SKYPE 中的 anti-debug 分析](6-protect_356.md)`
+
++   `[aspr 用来 anti 调试器的代码](6-protect_357.md)`
+
++   `[使用 GetStartupInfo 检查自己是否被"调试"](6-protect_358.md)`
+
++   `[关于如何绕过消息断点的一篇文章（软件保护）](6-protect_359.md)`
+
++   `[用驱动实现自己的 ZwOpenProcess ZwReadVirtualMemory ZwWriteVirtualMemory\[菜鸟学习笔记\]](6-protect_36.md)`
+
++   `[VB 反跟踪技术点滴](6-protect_360.md)`
+
++   `[inline hook SSDT 躲避 Themida 的 ThreadHideFromDebugger （学习笔记 2）](6-protect_361.md)`
+
++   `[铁棒计划<1>](6-protect_362.md)`
+
++   `[一个奇怪的带壳 crackme 的简单分析（Anti、Validate）](6-protect_363.md)`
+
++   `[Windows 反调试参考翻译](6-protect_364.md)`
+
++   `[ap0x 的 ANTI 大全](6-protect_365.md)`
+
++   `[挫败反跟踪](6-protect_366.md)`
+
++   `[反逆向工程揭密（试炼篇）-全文完](6-protect_367.md)`
+
++   `[tls 反调试,Vc6.0 实现](6-protect_368.md)`
+
++   `[ANTI-DEDE](6-protect_369.md)`
+
++   `[API 调用](6-protect_37.md)`
+
++   `[noteOfEcrypt.txt:读<脱壳的艺术>后总结](6-protect_370.md)`
+
++   `[Covert Debugging Circumventing Software Armoring Techniques](6-protect_371.md)`
+
++   `[反调试技术总结](6-protect_372.md)`
+
++   `[老鸟飞过。。。来坛里几个月了发一下新手学习笔记（未完。。）](6-protect_373.md)`
+
++   `[用 ollydbg 浅识 TEB 和 PEB 用来反跟踪](6-protect_374.md)`
+
++   `[简单对特定函数防软断法，高手飘过，嘿嘿](6-protect_375.md)`
+
++   `[各种反调试技术原理与实例 VC 版](6-protect_376.md)`
+
++   `[各种反调试技术原理与实例](6-protect_377.md)`
+
++   `[9 种常用的 Anti 方法整理](6-protect_378.md)`
+
++   `[星际 2 的防调试手段。](6-protect_379.md)`
+
++   `[api 暴力获取](6-protect_38.md)`
+
++   `[XCON2010 - 基于硬件虚拟化的反调试技术](6-protect_380.md)`
+
++   `[发个小东西给大家练手里面有好几种反调试的](6-protect_381.md)`
+
++   `[x64 与反调试](6-protect_382.md)`
+
++   `[DebugPort 清零代码](6-protect_383.md)`
+
++   `[挣扎的菜鸟 - 当 OD 不能装载也不能附加程序时](6-protect_384.md)`
+
++   `[调试反调试学习笔记](6-protect_385.md)`
+
++   `[白菜 DebugPort 全分析收集 加研究日记](6-protect_386.md)`
+
++   `[简单分析某游戏 debugport 清零](6-protect_387.md)`
+
++   `[修改访问 DebugPort 的函数偏移。](6-protect_388.md)`
+
++   `[一个禁止任何 ring3 调试的驱动](6-protect_389.md)`
+
++   `[Api 地址的获取](6-protect_39.md)`
+
++   `[使用 CloseHandle 欺骗和对抗调试器](6-protect_390.md)`
+
++   `[UltraEdit 16.10.0.1028 的反破解保护](6-protect_391.md)`
+
++   `[几种常用的保护应用程序的方法，编写成类库](6-protect_392.md)`
+
++   `[Anti-OD](6-protect_393.md)`
+
++   `[乱弹](6-protect_394.md)`
+
++   `[期待 OD 更新](6-protect_395.md)`
+
++   `[对抗 OD 内存断点](6-protect_396.md)`
+
++   `[庆祝看雪论坛恢复，发个 anti-od1.1 的 bin，薄码](6-protect_397.md)`
+
++   `[一行代码检测程序是否使用 OllyDBG 启动](6-protect_398.md)`
+
++   `[修复 SafeEngine 针对 OllyICE 的溢出补丁](6-protect_399.md)`
+
++   `[软件保护建议](6-protect_4.md)`
+
++   `[delphi 内联汇编 API 内存搜索引擎(带注释)](6-protect_40.md)`
+
++   `[Anti OllyDbg](6-protect_400.md)`
+
++   `[检测 OllyDbg 的另类方法](6-protect_401.md)`
+
++   `[fuck vmp1.64 anti](6-protect_402.md)`
+
++   `[hook api 反 OD 调试的一种思路](6-protect_403.md)`
+
++   `[打造对抗 OpenProcess 检测的 OD](6-protect_404.md)`
+
++   `[Anti-ICE](6-protect_405.md)`
+
++   `[Anti-Debug](6-protect_406.md)`
+
++   `[驱动反调试----点 softice 死穴](6-protect_407.md)`
+
++   `[检测 SoftICE](6-protect_408.md)`
+
++   `[检测 softice（delphi 版）](6-protect_409.md)`
+
++   `[Delphi 下构建无导入表程序-使用:hash 获取 API,k32Base 等](6-protect_41.md)`
+
++   `[Anti-Loader](6-protect_410.md)`
+
++   `[VB anti-loader](6-protect_411.md)`
+
++   `[防止 loader](6-protect_412.md)`
+
++   `[Anti-Trace](6-protect_413.md)`
+
++   `[反（调试/跟踪/脱壳） 技术集锦](6-protect_414.md)`
+
++   `[\[转载\]RDTSC 指令的使用以及相关问题](6-protect_415.md)`
+
++   `[test anti](6-protect_416.md)`
+
++   `[避开断点](6-protect_417.md)`
+
++   `[patch](6-protect_418.md)`
+
++   `[检测本进程有无硬件断点的程序](6-protect_419.md)`
+
++   `[访问 API](6-protect_42.md)`
+
++   `[关于对 TheMida 的 MessageBox 下断](6-protect_420.md)`
+
++   `[hying 的单步陷阱](6-protect_421.md)`
+
++   `[Themida1950 一个不起眼的 anti-debug](6-protect_422.md)`
+
++   `[一个小花招](6-protect_423.md)`
+
++   `[堆栈初始数据简单分析及其 anti od,anti unpack 应用(3 楼补充相关汇编代码)](6-protect_424.md)`
+
++   `[亿虎 Email 邮差 2003c](6-protect_425.md)`
+
++   `[使用异常处理反跟踪调试的例子【分享】](6-protect_426.md)`
+
++   `[反 DebugAPI 调试？](6-protect_427.md)`
+
++   `[tELock 0.98 精彩代码](6-protect_428.md)`
+
++   `[DRx 解码阻止调试](6-protect_429.md)`
+
++   `[无 windows.h 的 Windows API 调用](6-protect_43.md)`
+
++   `[Style XP 0.9 beta RC2](6-protect_430.md)`
+
++   `[GalaxyAP 过游戏反调试框架](6-protect_431.md)`
+
++   `[WoW's 一点小诡计简单分析](6-protect_432.md)`
+
++   `[如何中断 Themida 的 MessageBox 对话框](6-protect_433.md)`
+
++   `[riijj 姐姐的 Riijj crackme 11 sp2 anti 分析](6-protect_434.md)`
+
++   `[对抗 GetTickCount 的一种方法](6-protect_435.md)`
+
++   `[还原 hying 最后的八连环 SEH](6-protect_436.md)`
+
++   `[重映射 User32.dll 调用 MessageBox 对话框](6-protect_437.md)`
+
++   `[Anti-VMware](6-protect_438.md)`
+
++   `[Vmware 的后门](6-protect_439.md)`
+
++   `[再谈 Windows 各版本下获取 Kernel32](6-protect_44.md)`
+
++   `[anti wmware](6-protect_440.md)`
+
++   `[小试 anti vmware](6-protect_441.md)`
+
++   `[虚拟机检测技术剖析](6-protect_442.md)`
+
++   `[轻松解决 TMD 虚拟机检测.!](6-protect_443.md)`
+
++   `[\[转载\] - Vmware 的后门](6-protect_444.md)`
+
++   `[检测虚拟机代码(MASM)](6-protect_445.md)`
+
++   `[检测程序是否运行在 VMware 下（VMware has you）](6-protect_446.md)`
+
++   `[VMware 虚拟机上如何调试运行 DNF](6-protect_447.md)`
+
++   `[Anti-VirtualPC](6-protect_448.md)`
+
++   `[VirtualPC 单步标志问题](6-protect_449.md)`
+
++   `[32-64 位 kernel32.dll 基址获得](6-protect_45.md)`
+
++   `[Anti-ImpREC](6-protect_450.md)`
+
++   `[anti trick Ⅲ －－erase module](6-protect_451.md)`
+
++   `[Anti-W32dasm](6-protect_452.md)`
+
++   `[ANTI－W32dasm](6-protect_453.md)`
+
++   `[窗口方法检测](6-protect_454.md)`
+
++   `[加密与解密二版菜鸟学习笔记（1）-Anti-spy](6-protect_455.md)`
+
++   `[anti trick Ⅱ －－ InString](6-protect_456.md)`
+
++   `[\====反反跟踪技术====](6-protect_457.md)`
+
++   `[Anti-Anti-Debug](6-protect_458.md)`
+
++   `[SuperBpm](6-protect_459.md)`
+
++   `[MyGetProcAddress 详细分析 + 还原 C 代码 + 流程图](6-protect_46.md)`
+
++   `[一种另类的对抗 debugport 清零的方法(有点标题党了= 。=)](6-protect_460.md)`
+
++   `[厌烦了 HeapMagic](6-protect_461.md)`
+
++   `[PhantOm 驱动浅析](6-protect_462.md)`
+
++   `[【五一礼物】PhantOm 插件笔记~!送给大家五一礼物吧~!](6-protect_463.md)`
+
++   `[写几句 PhantOm1.20 学习笔记](6-protect_464.md)`
+
++   `[发个用于监视目标程序的反调试的小工具](6-protect_465.md)`
+
++   `[无视 DebugPort 清零](6-protect_466.md)`
+
++   `[反 StrongOD 的原理和实例](6-protect_467.md)`
+
++   `[反反调试思想方法探索](6-protect_468.md)`
+
++   `[简单对抗某个驱动的反调试](6-protect_469.md)`
+
++   `[NoImport.asm](6-protect_47.md)`
+
++   `[ProcDump 中的隐藏自己的方法](6-protect_470.md)`
+
++   `[Hide your DebugPort in ring0](6-protect_471.md)`
+
++   `[OD 被 Anti 的原因分析及应对之道](6-protect_472.md)`
+
++   `[修改 SoftIce 使其在 2000/xp 下躲过检测](6-protect_473.md)`
+
++   `[Anti-Anti-Dump](6-protect_474.md)`
+
++   `[Anti-Anti-Dump and nonintrusive tracers（上）](6-protect_475.md)`
+
++   `[hidetoolz](6-protect_476.md)`
+
++   `[hidetoolz v2.1 在 win2k3 下重启解决办法](6-protect_477.md)`
+
++   `[隐藏 regmon/filemon](6-protect_478.md)`
+
++   `[揭开 winlicense 对 regmon sst 监视的“神秘面纱”！【原创】](6-protect_479.md)`
+
++   `[PE 病毒学习笔记搜索 API](6-protect_48.md)`
+
++   `[修改 regmon/filemon，跳过 themida 的检测](6-protect_480.md)`
+
++   `[\====外壳编写====](6-protect_481.md)`
+
++   `[基础知识](6-protect_482.md)`
+
++   `[在高级语言中隐藏 Call 指令](6-protect_483.md)`
+
++   `[如何阻击“ESP 定律”？](6-protect_484.md)`
+
++   `[代码自我清除，自我加密，解密的实现](6-protect_485.md)`
+
++   `[通用且简单的扩充和改造 PE 中的 call 的功能的方法](6-protect_486.md)`
+
++   `[如何保护自己的壳](6-protect_487.md)`
+
++   `[在堆栈中运行代码](6-protect_488.md)`
+
++   `[NT 下占领 INT3 的代码](6-protect_489.md)`
+
++   `[ShellCode 编写之 hash 式函数调用及相关](6-protect_49.md)`
+
++   `[cyclotron's Win32 PE Library](6-protect_490.md)`
+
++   `[非 API 函数检测操作系统类型\[翻译\]](6-protect_491.md)`
+
++   `[实现调用加壳的外壳中的子程序](6-protect_492.md)`
+
++   `[欺骗查壳](6-protect_493.md)`
+
++   `[欺骗文件检测工具](6-protect_494.md)`
+
++   `[伪装 VC++7.0 的源代码](6-protect_495.md)`
+
++   `[stolen code](6-protect_496.md)`
+
++   `[stolen code 最简单的实现--jmp 乱序](6-protect_497.md)`
+
++   `[区块处理](6-protect_498.md)`
+
++   `[生成随机的节名称](6-protect_499.md)`
+
++   `[保护机制小窥](6-protect_5.md)`
+
++   `[Win 7 下定位 kernel32.dll 基址及 shellcode 编写](6-protect_50.md)`
+
++   `[软件保护壳技术专题 - 添加新节(练习笔记)](6-protect_500.md)`
+
++   `[输入表](6-protect_501.md)`
+
+
+
+- [加壳时处理 `IAT`](6-protect_502.md)
+- [论引入表的合并【原创】](6-protect_503.md)
+- [压缩引擎](6-protect_504.md)
+- [`apLib` 的使用](6-protect_505.md)
+- [`aPLib` 压缩引擎的使用（Win32 汇编版本）](6-protect_506.md)
+- [资源处理](6-protect_507.md)
+- [资源重建——为加壳生成可以压缩的资源段](6-protect_508.md)
+- [`PE` 加载器](6-protect_509.md)
+- [常用 `ShellCode` `Hash` 算法-Delphi 内镶 `BASM`](6-protect_51.md)
+- [`PELoader` + 多线程解密的壳样例](6-protect_510.md)
+- [一段仿真 `PE` 加载器行为的程序](6-protect_511.md)
+- [外壳编写](6-protect_512.md)
+- [普通壳](6-protect_513.md)
+- [写了一个壳，大家看看](6-protect_514.md)
+- [一个加壳软件](6-protect_515.md)
+- [仙剑源码](6-protect_516.md)
+- [论用 `C++` 做壳](6-protect_517.md)
+- [学习时写的壳代码](6-protect_518.md)
+- [向 `PE` 中注入代码](6-protect_519.md)
+- [对 `api` 名字 `hash` 的一点理解](6-protect_52.md)
+- [加壳要细心,我给 `bambam` 调错纪实](6-protect_520.md)
+- [`Writing Your Own Packer` （部分）](6-protect_521.md)
+- [`EXE` 捆绑机制作原理](6-protect_522.md)
+- [论用 `C++` 给 `dll` 加壳【原创】](6-protect_523.md)
+- [小菜写的第一个壳](6-protect_524.md)
+- [`bambam` 壳的几个 `bug`](6-protect_525.md)
+- [简单的加密壳软件](6-protect_526.md)
+- [对壳的一点认识](6-protect_527.md)
+- [我自己写的加壳软件(参考了网上的教程哈)](6-protect_528.md)
+- [毕业设计，压缩壳](6-protect_529.md)
+- [`shellcode` 汇编之采用 `API` 函数](6-protect_53.md)
+- [当前常用的加壳技术](6-protect_530.md)
+- [一个简单的壳源代码](6-protect_531.md)
+- [`PE` 程序加密核心代码](6-protect_532.md)
+- [海雨天风之外壳源码](6-protect_533.md)
+- [用进程注入来实现一个壳](6-protect_534.md)
+- [`C/C++` 壳与汇编壳的不同以及 `DLL` 壳相对于 `EXE` 壳的难点， 申精](6-protect_535.md)
+- [一个简单的压缩自检壳（全部由 Delphi 编写）](6-protect_536.md)
+- [翻译：建立自己的 `PE` `Protector` （部分 1）](6-protect_537.md)
+- [关于壳的构架的一些感悟](6-protect_538.md)
+- [加壳原理与简单实现加壳（`delphi` 源码）](6-protect_539.md)
+- [克图鲁的呼唤](6-protect_54.md)
+- [`Writing Your Own Packer`(完全版)](6-protect_540.md)
+- [写壳过程中遇到的问题总结](6-protect_541.md)
+- [基于流的加壳与脱壳技术实现](6-protect_542.md)
+- [`Yoda` `Cryptor` `1.2` 的源码分析](6-protect_543.md)
+- [关于壳中 `APIHOOK` 的一点点解析](6-protect_544.md)
+- [加解密（第三版）外壳代码 `Bug`](6-protect_545.md)
+- [`PCShrink` `0.71` 部分源代码](6-protect_546.md)
+- [驱动壳](6-protect_547.md)
+- [`mimisys` `pack` `v0.1`](6-protect_548.md)
+- [从 `DvUPX` 到 `DvUPXPR` 兼谈以壳克壳的妙用（原理篇）](6-protect_549.md)
+- [逆向 `MmGetPhysicalAddress` 并正向](6-protect_55.md)
+- [驱动壳编写总结(高手讲几句,让我们学习下)](6-protect_550.md)
+- [`DriverUpx` 的设计与探索（一）（二）](6-protect_551.md)
+- [软件保护壳专题](6-protect_552.md)
+- [【专题六】软件保护壳技术专题](6-protect_553.md)
+- [【成果 `6.1`】软件保护壳技术专题 - 添加新节](6-protect_554.md)
+- [【成果 `6.2`】软件保护壳技术专题 - 加密引入表](6-protect_555.md)
+- [【成果 `6.3`】软件保护壳专题 - 处理 `TLS` 表](6-protect_556.md)
+- [【成果 `6.4`】软件保护壳技术专题 - 加密资源节](6-protect_557.md)
+- [软件保护壳技术专题 - 反静态反汇编技术](6-protect_558.md)
+- [软件保护壳技术专题 - 反调试器技术](6-protect_559.md)
+- [搜索输出表取得 `GetProcAddress` 地址 `C++` 版](6-protect_56.md)
+- [软件保护壳技术专题 - 反汇编引擎的构建](6-protect_560.md)
+- [软件保护壳技术专题 - 重定位模块的构建](6-protect_561.md)
+- [软件保护壳专题 - 处理引出表](6-protect_562.md)
+- [软件保护壳专题 - `PE` `Loader` 的构建](6-protect_563.md)
+- [软件保护壳技术专题 - 变形引擎的构建](6-protect_564.md)
+- [软件保护壳专题 - 代码乱序引擎的构建](6-protect_565.md)
+- [软件保护壳专题 - 代码替换引擎的构建](6-protect_566.md)
+- [软件保护壳专题 - 再谈引入表保护](6-protect_567.md)
+- [软件保护壳技术专题 - 识别函数与数据区域](6-protect_568.md)
+- [软件保护壳技术专题 - 使用数学运算式随机生成花指令](6-protect_569.md)
+- [通过 `Hash` 值计算 `API` 的名字](6-protect_57.md)
+- [软件保护壳技术专题 - 构建壳使用的 `x86` 汇编器](6-protect_570.md)
+- [====虚拟机====](6-protect_571.md)
+- [理论知识](6-protect_572.md)
+- [`VM` 初探 讲述 `VM` 原理](6-protect_573.md)
+- [重建虚拟机](6-protect_574.md)
+- [【开源】入门级虚拟机（1）](6-protect_575.md)
+- [虚拟机完整分析](6-protect_576.md)
+- [游戏维护上不去，介绍一下虚拟机技术。](6-protect_577.md)
+- [我自己写的个虚拟机](6-protect_578.md)
+- [虚拟机保护技术浅谈](6-protect_579.md)
+- [通过散列获取函数地址](6-protect_58.md)
+- [我也来理解虚拟机](6-protect_580.md)
+- [虚拟机逆向教程两篇](6-protect_581.md)
+- [小议 `ring` `3` 虚拟机调试器](6-protect_582.md)
+- [简单的虚拟机伪代码解析](6-protect_583.md)
+- [`ring` `3` 级 `32` 位 `x86` `cpu` 仿真](6-protect_584.md)
+- [虚拟机与调试器的讨论](6-protect_585.md)
+- [也说 `X86` 虚拟机（`CPU` 仿真）](6-protect_586.md)
+- [开源自己写的虚拟 `CPU` 部分](6-protect_587.md)
+- [虚拟机、虚拟环境与代码动态变形技术(2009 中国软件安全峰会演讲 `PPT`)](6-protect_588.md)
+- [虚拟机引擎](6-protect_589.md)
+- [完美实现 `GetProcAddress`](6-protect_59.md)
+- [\[开源\] 基于代码保护的虚拟机引擎](6-protect_590.md)
+- [虚拟机应用](6-protect_591.md)
+- [一款初步的虚拟机调试器+虚拟机脱壳机示例](6-protect_592.md)
+- [虚拟机保护产品](6-protect_593.md)
+- [`VMProtect`](6-protect_594.md)
+- [`VMProtect` 使用](6-protect_595.md)
+- [【`VMProtect`】配合【`PESpin` 的 `SDK` 加密】的另一方法](6-protect_596.md)
+- [`VMProtect` `SDK`+`ASProtect` `SDK` 混合编程\[代码演示\]](6-protect_597.md)
+- [`VMProtect` 逆向](6-protect_598.md)
+- [`VMP1.7` 讲解【破解 `vmp` 程序的关键点】](6-protect_599.md)
+- [透明加密的简单实现](6-protect_6.md)
+- [无 `PUSH` 参数,无 `CALL` 调用 `API` 的一个例子](6-protect_60.md)
+- [`VMProtect` 简单分析 `1`](6-protect_600.md)
+- [`Vmprotect1.2x` 诡计收集](6-protect_601.md)
+- [`VMProtect` 进入虚拟机时](6-protect_602.md)
+- [另辟蹊径，`VMProtect` 分析](6-protect_603.md)
+- [`VMProtect` 逆向分析](6-protect_604.md)
+- [破解 `vmp` 程序的关键点](6-protect_605.md)
+- [`VMProtect` `1.6x` 的一点心得](6-protect_606.md)
+- [`VMP1.20` 的 `Opcode` 识别脚本](6-protect_607.md)
+- [`VMP` 之反 `VM` (还原代码) 之初初...](6-protect_608.md)
+- [`VMProtect` 的逆向分析和静态还原(2009 中国软件安全峰会演讲 `PPT`)](6-protect_609.md)
+- [用 `Hash` 搜索 `API` 演示](6-protect_61.md)
+- [一个简单的加 `vmp1.63` 的 `crackme` 正向追踪](6-protect_610.md)
+- [一个 `VMP1.20` 程序的伪指令总结](6-protect_611.md)
+- [`About` `VMProtect`](6-protect_612.md)
+- [深入浅出 `VMP` 爆破](6-protect_613.md)
+- [`VMP` 自动分析与还原](6-protect_614.md)
+- [继续和谐 `VMP` 学习笔记](6-protect_615.md)
+- [`VMProtect` 代码还原技术](6-protect_616.md)
+- [`vmp1.63` 加壳程序破解分析](6-protect_617.md)
+- [`Vmprotect` 之 `OD` 插件](6-protect_618.md)
+- [`VMProtect` 逆向分析](6-protect_619.md)
+- [文件完整性校验](6-protect_62.md)
+- [哪位玩过 `WRK` 吗（`VMProtect2.04` 简单分析）](6-protect_620.md)
+- [`VMProtect` 加密程序解析](6-protect_621.md)
+- [`VMProtect2.04` 加壳程序从入门到精通](6-protect_622.md)
+- [`Vmprotect` 编译字节码的策略 - 真是太强了](6-protect_623.md)
+- [学习 `VMP` `1.22` 的一点心得体会](6-protect_624.md)
+- [`VMProtect` 与 `ASProtect` 在 `VC` 中的 `SDK` 编程.](6-protect_625.md)
+- [`VMProtect` 虚拟机小窥](6-protect_626.md)
+- [寂寞轰炸：再次小窥 `VMProtect` 虚拟机](6-protect_627.md)
+- [`VMProtect` 使用技巧汇集\_\_ 最好的虚拟机保护软件之一](6-protect_628.md)
+- [`VMProtect` 工具](6-protect_629.md)
+- [文件校验](6-protect_63.md)
+- [浅析 `VMSweeper`](6-protect_630.md)
+- [`VMPDebugger` 调试器（`2.16` 更新）](6-protect_631.md)
+- [`ExeCryptor`](6-protect_632.md)
+- [`ExeCryptor` `v2.X.X` 虚拟机不完全补完(处女帖)](6-protect_633.md)
+- [菜鸟玩简单 `VM`--> `Execryptor`](6-protect_634.md)
+- [`ExeCryptor` `v2.2.6` 虚拟机不完全分析](6-protect_635.md)
+- [`Enigma`](6-protect_636.md)
+- [`Enigma` `VM` 的分析](6-protect_637.md)
+- [`Themida`](6-protect_638.md)
+- [`Themida` `1.8Demo` 虚拟机分析](6-protect_639.md)
+- [（高手勿进）为 `pe` 文件添加 `CRC32` 自效验的小程序（`vc`）](6-protect_64.md)
+- [`Themida` `v1.8.0.0` `Demo` 虚拟机分析(`Part1`+`Part2`+`Part3`+`Part4`+`Part5`+`Part6`+`Part7`+`Part8`)](6-protect_640.md)
+- [`Themida` `v1.8.0.0` `Demo` 虚拟机分析](6-protect_641.md)
+- [`Themida` `v1.8.0.0` `Demo` 虚拟机分析](6-protect_642.md)
+- [`Themida` `v1.8.0.0` `Demo` 虚拟机分析](6-protect_643.md)
+- [`Themida` `v1.8.0.0` `Demo` 虚拟机分析](6-protect_644.md)
+- [`Themida` `v1.8.0.0` `Demo` 虚拟机分析 – `Part6`](6-protect_645.md)
+- [`Themida` `v1.8.0.0` `Demo` 虚拟机分析 – `Part7`](6-protect_646.md)
+- [`Themida` `v1.8.0.0` `Demo` 虚拟机分析 – `Part8`](6-protect_647.md)
+- [`softworm` 发布了 `VM` 解码器。](6-protect_648.md)
+- [`Themida` 虚拟机简单介绍](6-protect_649.md)
+- [基于 `crc32` 实现的内存的代码校验](6-protect_65.md)
+- [`Themida` `VM` 代码还原](6-protect_650.md)
+- [`Themida` `1.9.1.x` `CISC` `VM` 简单分析](6-protect_651.md)
+- [我对混淆代码的粗浅认识](6-protect_652.md)
+- [`Themida` 的 `VM` 分析－－变形代码清理](6-protect_653.md)
+- [`HProtect`](6-protect_654.md)
+- [`HProtect` 虚拟指令初步的分析与分析方法](6-protect_655.md)
+- [`Zprotect`](6-protect_656.md)
+- [`Zprotect` `Vm` 代码的 `2` 种处理方法](6-protect_657.md)
+- [`Asprotect`](6-protect_658.md)
+- [`Asprotect` 中的 `X86` 虚拟机代码分析【原创】](6-protect_659.md)
+- [反内存校验](6-protect_66.md)
+- [`Asprotect` 中的 `X86` 的 `VM` 分析](6-protect_660.md)
+- [`TTProtect`](6-protect_661.md)
+- [`TTProtect` `1.06DEMO` 主程序 `VM` 浅析](6-protect_662.md)
+- [`Code` `Virtualizer`](6-protect_663.md)
+- [`cv` 变形代码的学习： 去除变形代码 直接将还原成 `ASM` `X86` `CODE` 的一种方法](6-protect_664.md)
+- [`Code` `Virtualizer` `1.3.8.0` 小窥。](6-protect_665.md)
+- [关于 `Code` `Virtualizer` `pcode` 解密的一种方法](6-protect_666.md)
+
+
+
+- [Code Virtualizer 虚拟机代码还原](6-protect_667.md)
+- [Code Virtualizer 的一点分析和还原](6-protect_668.md)
+- [Private exe Protector](6-protect_669.md)
+- [一种躲避运行时代码校验的方法](6-protect_67.md)
+- [Private exe Protector 主程序的 VM 分析](6-protect_670.md)
+- [其他实例](6-protect_671.md)
+- [小游戏-VM 测试](6-protect_672.md)
+- [VMCrackME----A Preliminary Virtual Machine From Top To Bottom](6-protect_673.md)
+- [\[算法进阶\]TMPGEnc v2.58 注册算法分析-基于堆栈的简单虚拟机 v1.0](6-protect_674.md)
+- [slv unpackme 脱壳 & 去校验](6-protect_675.md)
+- [圣天诺的虚拟机保护方式](6-protect_676.md)
+- [虚拟机保护逆向分析实战](6-protect_677.md)
+- [MyVM\_#1\_KeygenMe\_by\_BUBlic 虚拟机粗略分析记录](6-protect_678.md)
+- [\[原创\]理解 VM 一个 CraCkMe 的 VM 简单分析](6-protect_679.md)
+- [双进程保护](6-protect_68.md)
+- [初探双进程保护](6-protect_69.md)
+- [动态规划用于加密初探（1）（2）](6-protect_7.md)
+- [网游保护](6-protect_70.md)
+- [基础](6-protect_71.md)
+- [一般游戏的反外挂保护方案](6-protect_72.md)
+- [nProtect](6-protect_73.md)
+- [请问 NP 是什么意思？已解决](6-protect_74.md)
+- [some cheats in NP HS (代码在 10 楼)](6-protect_75.md)
+- [呕心沥血，终于完成，发一套日本过 NP 木马分析流程图.（原创袄）](6-protect_76.md)
+- [从程序中剥离 GameGuard](6-protect_77.md)
+- [反 NP 监视原理(+Bypass NP in ring0)](6-protect_78.md)
+- [某驱动源码(逆向)](6-protect_79.md)
+- [关于网络游戏防外挂浅谈](6-protect_8.md)
+- [逆向 NP 之注入 npggNT.des](6-protect_80.md)
+- [如何在 NP 下读写游戏内存及如何进入 NP 进程](6-protect_81.md)
+- [HackShiled](6-protect_82.md)
+- [HackShiled4.3.0.5 log 文件加密算法](6-protect_83.md)
+- [X 舞团某外挂简单分析](6-protect_84.md)
+- [突破 \*\*\* 反外挂系统](6-protect_85.md)
+- [反劲舞 3.1 HShield 的问题](6-protect_86.md)
+- [端口访问监控原理](6-protect_87.md)
+- [ring3 层对抗劲舞 3.1 封取色的解决办法\[公布\]](6-protect_88.md)
+- [HackShield 4.0.0.47 版破解介绍](6-protect_89.md)
+- [隐藏 ploymorphic 代码到数学函数中](6-protect_9.md)
+- [XTrap](6-protect_90.md)
+- [某反 XX 系统驱动部分逆向(连载)](6-protect_91.md)
+- [XTrap 驱动逆向分析](6-protect_92.md)
+- [其他](6-protect_93.md)
+- [今天无聊发点逆向某个游戏反外挂的东西](6-protect_94.md)
+- [游戏外挂反外挂杂谈 \[抛砖引玉,欢迎业内业外人士畅谈\]](6-protect_95.md)
+- [浅析国内某反外挂系统！](6-protect_96.md)
+- [谈谈 NP 和 HS 的通用 unhook](6-protect_97.md)
+- [武林争霸 鹿死谁手 nProtect VS HackShield](6-protect_98.md)
+- [商用化的保护](6-protect_99.md)
