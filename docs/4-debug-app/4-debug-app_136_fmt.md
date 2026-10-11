@@ -1,0 +1,469 @@
+
+# 发个修复软件下拉框列表及托盘区图标不能显示 Bug 的修复心得
+
+> 原文：[`www.pediy.com/kssd/pediy10/66490.html`](https://www.pediy.com/kssd/pediy10/66490.html)
+
+软件名称: `Mobiola Web Camera for S60 3rd V3.0 build 11`
+
+功    用: 把 `S60 3rd` 手机转换成 `PC` 摄像头软件，同时支持 `USB`/`蓝牙`/`WiFi` 连接。
+
+已知 Bug: `WinXPSP2` 下正常但 `Win2KSP4` 系统下 `Combobox` 不能全部显示及托盘区小图标不能显示
+
+使用工具: `ODICE1.1`,`eXeScope1.65`,`Resource Hacker3.4`,`Hiew7.2`
+
+`Cracked By WksWlj999@sohu.com`
+
+`2008/06/08`
+
+5.20 版 `Armadillo` 加壳，保护选项如下：
+
+```
+!- Protected Armadillo
+
+Protection system (Professional)
+
+!- <Protection Options>
+
+Debug-Blocker
+
+CopyMem-II
+
+Enable Import Table Elimination
+
+Enable Strategic Code Splicing
+
+Enable Nanomites Processing
+
+Enable Memory-Patching Protections
+
+!- <Backup Key Options>
+
+Variable Backup Keys
+
+!- <Compression Options>
+
+Better/Slower Compression
+```
+
+脱壳修复 `IAT`,`手工修复 CC`,`破解优化过程略去...`
+
+破解后发现 `WinXPSP2` 下运行正常，而在 `Win2KSP4` 下运行时有两个 Bug：
+
+（1）端口号及相机选择 `ComboBox` 下拉框无法显示完全；
+
+（2）托盘区小图标无法显示。如下图：
+
+`![](img/07ce35b97d906d91bccbf53a4dce9737.jpg)`
+
+`![](img/80a33b2e1258e84f505929de5b1bb649.jpg)`
+
+## 修正原版存在的 Win2K 下 Combobox 不能全部显示的 Bug
+
+需要修改两处 `ComboBox` 的显示错误，错误原因在于 `ComboBox` 控件的初始化高度太小，`Win2K` 下系统不能自动调整高度导致的。
+
+而 `WinXP` 下系统会自动调整，所以 `WinXP` 下显示正常。
+
+### 第一处端口 ComboBox 初始化：
+
+```
+0040E4D6  |.  8D4C24 3C        LEA ECX,DWORD PTR SS:[ESP+3C]
+0040E4DA  |.  897C24 3C        MOV DWORD PTR SS:[ESP+3C],EDI
+0040E4DE  |.  C74424 44 390000>MOV DWORD PTR SS:[ESP+44],39  //宽度
+0040E4E6  |.  897C24 40        MOV DWORD PTR SS:[ESP+40],EDI
+0040E4EA  |.  C74424 48 140000>MOV DWORD PTR SS:[ESP+48],14    //14 就是初始高度；Height of COMX
+0040E4F2  |.  8908             MOV DWORD PTR DS:[EAX],ECX
+0040E4F4  |.  8B56 04          MOV EDX,DWORD PTR DS:[ESI+4]
+0040E4F7  |.  8D9E 88010000    LEA EBX,DWORD PTR DS:[ESI+188]
+0040E4FD  |.  52               PUSH EDX
+0040E4FE  |.  8BCB             MOV ECX,EBX
+0040E500  |.  E8 5BF7FFFF      CALL webcam.0040DC60          ;  Init COMX Combobox
+```
+
+### 第二处分辨率 ComboBox 初始化：
+
+```
+00422885   .  895C24 28        MOV DWORD PTR SS:[ESP+28],EBX
+00422889   .  896C24 30        MOV DWORD PTR SS:[ESP+30],EBP
+0042288D   .  C74424 2C 7A0000>MOV DWORD PTR SS:[ESP+2C],7A  //宽度
+00422895   .  C74424 34 8E0000>MOV DWORD PTR SS:[ESP+34],8E  //8E 减去上面的 7A 就是初始高度，Height of Combobox Resolution
+0042289D   .  8908             MOV DWORD PTR DS:[EAX],ECX
+0042289F   .  8B56 04          MOV EDX,DWORD PTR DS:[ESI+4]
+004228A2   .  8DBE 04020000    LEA EDI,DWORD PTR DS:[ESI+204]
+004228A8   .  52               PUSH EDX
+004228A9   .  8BCF             MOV ECX,EDI
+004228AB   .  E8 A04F0000      CALL webcam.00427850
+```
+
+虽然可以直接修改初始化高度值和 `ComboBox` 的样式值来正常显示，但是显示效果会与这个软件的 `XP` 显示样式不协调。
+
+且有时出现滚动条与选择元素不同步的现象，采用如下方法修复，可保证在不破坏其 `XP` 显示样式的情况下在 `2K` 下正常显示：
+
+在 `ComboBox` 填充完毕后，获取填充元素个数和句柄，用 `SendMessage` 函数，发送消息 `CB_GETCOUNT`,`获取元素个数`,`发送消息 CB_GETITEMHEIGHT`,`获取元素高度`，然后`[高度]`乘以`[元素个数+1]`,`获得总高度`,`确保全部元素都能显示`,`再用 SetWindowPlacement 函数重新设置 ComboBox 窗口的高度即可`。具体实现方法如下：
+
+已知条件：
+
+```
+[00492458]  GetMoudleHandleA 函数地址
+[00492440]  GetProcAddress 函数地址
+[004921A8]  SendMessageW 函数地址
+00489934  "USER32.dll"字串
+```
+
+#### (1)找空白处写入初始化数据：
+
+`00489950` 写入字串 `"SetWindowPlacement"`
+`00489970` 写入字串 `"GetWindowPlacement"`
+`00489990` 开始 用于保存 `WINDOWPLACEMENT` 结构
+
+`00489990` 写入双字 `"2C 00 00 00"`// 结构长度 2Ch 字节
+`[004899B0]`->`top`
+`[004899B8]`->`bottom`
+
+`004899C0`  dword 用于保存 `ComboBox` 的句柄
+`004899C4`  dword 用于保存 `ComboBox` 的 `ItemCount` 个数
+
+修改后如下：
+
+```
+00489930  00 00 00 00 55 53 45 52 33 32 2E 64 6C 6C 00 00  ....USER32.dll..
+00489940  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+00489950  53 65 74 57 69 6E 64 6F 77 50 6C 61 63 65 6D 65  SetWindowPlaceme
+00489960  6E 74 00 00 00 00 00 00 00 00 00 00 00 00 00 00  nt..............
+00489970  47 65 74 57 69 6E 64 6F 77 50 6C 61 63 65 6D 65  GetWindowPlaceme
+00489980  6E 74 00 00 00 00 00 00 00 00 00 00 00 00 00 00  nt..............
+00489990  2C 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ,...............  // WINDOWPLACEMENT 结构
+004899A0  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+004899B0  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+004899C0  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+```
+
+#### (2)第一处修改：
+
+在 `0042C981` 处，端口 `ComboBox` 填充完毕，此时`[ESI+84]`->`ComboBox` 的句柄
+
+```
+0042C981  |.  33FF           XOR EDI,EDI
+0042C983  |>  8B4C24 14      MOV ECX,DWORD PTR SS:[ESP+14]
+0042C987  |.  8B96 84000000 MOV EDX,DWORD PTR DS:[ESI+84]
+```
+
+改为：
+
+```
+0042C981    - E9 7AC90500      JMP webcam.00489300  //跳至补丁 1 处
+0042C986      90               NOP
+0042C987      8B96 84000000    MOV EDX,DWORD PTR DS:[ESI+84]
+```
+
+空白 `00489300` 处写入补丁 1 代码：
+
+```
+00489300    8B86 84000000      MOV EAX,DWORD PTR DS:[ESI+84]                       ; hwnd
+00489306    E8 E0030000        CALL webcam.004896EB  //重新设置 ComboBox 控件高度
+0048930B    33FF               XOR EDI,EDI
+0048930D    8B4C24 14          MOV ECX,DWORD PTR SS:[ESP+14]
+00489311  - E9 7136FAFF        JMP webcam.0042C987
+```
+
+#### (3)第二处修改：
+
+在 `0042AD14` 处，分辨率 `ComboBox` 填充完毕，此时`[ESI+8C4]`->`ComboBox` 的句柄
+
+```
+0042AD14  |.  8B86 C4080000    MOV EAX,DWORD PTR DS:[ESI+8C4]
+0042AD1A  |.  6A 01            PUSH 1                                             ; /Erase = TRUE
+0042AD1C  |.  6A 00            PUSH 0                                             ; |pRect = NULL
+0042AD1E  |.  50               PUSH EAX                                           ; |hWnd
+0042AD1F  |.  FF15 90214900    CALL DWORD PTR DS:[<&user32.InvalidateRect>]    ; \InvalidateRect
+```
+
+改为：
+
+```
+0042AD14    - E9 E7E60500      JMP webcam.00489400  //跳至补丁 2 处
+0042AD19      90               NOP
+0042AD1A  |.  6A 01            PUSH 1                                                 ; /Erase = TRUE
+0042AD1C  |.  6A 00            PUSH 0                                                 ; |pRect = NULL
+0042AD1E  |.  50               PUSH EAX                                               ; |hWnd
+0042AD1F  |.  FF15 90214900    CALL DWORD PTR DS:[<&user32.InvalidateRect>]        ; \InvalidateRect
+```
+
+空白 `00489400` 处写入补丁 2 代码：
+
+```
+00489400    8B86 C4080000      MOV EAX,DWORD PTR DS:[ESI+8C4]                       ; hwnd
+00489406    E8 E0020000        CALL webcam.004896EB  //重新设置 ComboBox 控件高度
+0048940B    8B86 C4080000      MOV EAX,DWORD PTR DS:[ESI+8C4]
+00489411  - E9 0419FAFF        JMP webcam.0042AD1A
+```
+
+#### (4)空白 004896EB 处写入重新设置 ComboBox 控件高度补丁代码：
+
+注意!别忘了用 `Lord-PE` 把其所在区段属性修改为可写，因为补丁代码要向其中动态写入数据。
+
+```
+004896EB    60                 PUSHAD
+004896EC    9C                 PUSHFD
+004896ED    A3 C0994800        MOV DWORD PTR DS:[4899C0],EAX                       ; save handle
+004896F2    6A 00              PUSH 0
+004896F4    6A 00              PUSH 0
+004896F6    68 46010000        PUSH 146                                           ; CB_GETCOUNT
+004896FB    FF35 C0994800      PUSH DWORD PTR DS:[4899C0]                           ; handle
+00489701    FF15 A8214900      CALL DWORD PTR DS:[<&user32.SendMessageW>]          ; USER32.SendMessageW
+00489707    40                 INC EAX                                            ; ItemCount+1
+00489708    A3 C4994800        MOV DWORD PTR DS:[4899C4],EAX                       ; save ItemCount+1
+0048970D    68 34994800        PUSH webcam.00489934                               ; ASCII "USER32.dll"
+```
+
+
+
+```
+00489712    FF15 58244900       CALL DWORD PTR DS:[<&kernel32.GetModuleHandleA>]    ; KERNEL32.GetModuleHandleA  
+
+00489718    68 70994800         PUSH webcam.00489970                                ; ASCII "GetWindowPlacement"  
+
+0048971D    50                  PUSH EAX  
+
+0048971E    FF15 40244900       CALL DWORD PTR DS:[<&kernel32.GetProcAddress>]      ; KERNEL32.GetProcAddress  
+
+00489724    68 90994800         PUSH webcam.00489990  
+
+00489729    FF35 C0994800       PUSH DWORD PTR DS:[4899C0]  
+
+0048972F    FFD0                CALL EAX                                          ; call GetWindowPlacement  
+
+00489731    6A 00               PUSH 0  
+
+00489733    6A FF               PUSH -1  
+
+00489735    68 54010000         PUSH 154                                          ; CB_GETITEMHEIGHT  
+
+0048973A    FF35 C0994800       PUSH DWORD PTR DS:[4899C0]                        ; handle  
+
+00489740    FF15 A8214900       CALL DWORD PTR DS:[<&user32.SendMessageW>]        ; USER32.SendMessageW  
+
+00489746    8B3D C4994800       MOV EDI,DWORD PTR DS:[4899C4]                    ; edi<--ItemCount+1  
+
+0048974C    F7E7                MUL EDI                                           ; eax<--ItemCount+1 * Height  
+
+0048974E    0305 B8994800       ADD EAX,DWORD PTR DS:[4899B8]  
+
+00489754    A3 B8994800         MOV DWORD PTR DS:[4899B8],EAX  
+
+00489759    68 34994800         PUSH webcam.00489934                              ; ASCII "USER32.dll"  
+
+0048975E    FF15 58244900       CALL DWORD PTR DS:[<&kernel32.GetModuleHandleA>]  ; KERNEL32.GetModuleHandleA  
+
+00489764    68 50994800         PUSH webcam.00489950                              ; ASCII "SetWindowPlacement"  
+
+00489769    50                  PUSH EAX  
+
+0048976A    FF15 40244900       CALL DWORD PTR DS:[<&kernel32.GetProcAddress>]    ; KERNEL32.GetProcAddress  
+
+00489770    68 90994800         PUSH webcam.00489990  
+
+00489775    FF35 C0994800       PUSH DWORD PTR DS:[4899C0]  
+
+0048977B    FFD0                CALL EAX                                          ; call SetWindowPlacement  
+
+0048977D    9D                  POPFD  
+
+0048977E    61                  POPAD  
+
+0048977F    C3                  RETN  
+```
+
+修正后效果：
+
+![](img/c601b170e8ec3f5f7d30d4b5baebb902.jpg)
+
+---
+
+修正原版存在的 Win2K 下任务栏小图标不能正常显示的 Bug：
+
+---
+
+跟踪调试发现，`00415584` 处，比较程序的不同状态并设置相应的系统托盘区图标：
+
+*   `eax=0` 表示端口号 Invalid，对应图标句柄在`[ECX+8A4]`
+*   `eax=1` 表示端口号正常，处于未连接状态，对应图标句柄在`[ECX+8A0]`
+*   `eax=2` 表示端口号处于连接状态，对应图标句柄在`[ECX+8A8]`
+*   `eax=3` 表示端口号正常，处于连接正在断开状态，对应图标句柄同 `eax=1`
+
+可用 `LoadIcon` 函数获取相应图标句柄，并分别替换上面三个地址的图标句柄，以取得正常的显示效果。
+
+```
+00415580   .  8B4424 04        MOV EAX,DWORD PTR SS:[ESP+4]  
+
+00415584   .  83F8 03          CMP EAX,3                     ;  Switch (cases 0..3)  
+
+00415587   .  77 4F            JA SHORT webcam.004155D8  
+
+00415589   .  FF2485 DC554100  JMP DWORD PTR DS:[EAX*4+4155DC]  
+
+00415590   >  8B81 A4080000    MOV EAX,DWORD PTR DS:[ECX+8A4]    //图标句柄 0    ;  Case 0 of switch 00415584  
+
+00415596   .  6A 01            PUSH 1                      ; /Arg3 = 00000001  
+
+00415598   .  68 D4504700      PUSH webcam.004750D4            ; |Arg2 = 004750D4  
+
+0041559D   .  50               PUSH EAX                      ; |Arg1  
+
+0041559E   .  83C1 C4          ADD ECX,-3C                   ; |  
+
+004155A1   .  E8 FAF9FFFF      CALL webcam.00414FA0   //设置托盘区图标         ; \\webcam.00414FA0  
+
+004155A6   .  C2 0400          RETN 4  
+
+004155A9   >  8B81 A8080000    MOV EAX,DWORD PTR DS:[ECX+8A8]    //图标句柄 2    ;  Case 2 of switch 00415584  
+
+004155AF   .  6A 01            PUSH 1                      ; /Arg3 = 00000001  
+
+004155B1   .  68 B8504700      PUSH webcam.004750B8            ; |Arg2 = 004750B8  
+
+004155B6   .  50               PUSH EAX                      ; |Arg1  
+
+004155B7   .  83C1 C4          ADD ECX,-3C                   ; |  
+
+004155BA   .  E8 E1F9FFFF      CALL webcam.00414FA0   //设置托盘区图标         ; \\webcam.00414FA0  
+
+004155BF   .  C2 0400          RETN 4  
+
+004155C2   >  8B91 A0080000    MOV EDX,DWORD PTR DS:[ECX+8A0]    //图标句柄 1,3   ;  Cases 1,3 of switch 00415584  
+
+004155C8   .  6A 01            PUSH 1                      ; /Arg3 = 00000001  
+
+004155CA   .  68 A4504700      PUSH webcam.004750A4            ; |Arg2 = 004750A4  
+
+004155CF   .  52               PUSH EDX                      ; |Arg1  
+
+004155D0   .  83C1 C4          ADD ECX,-3C                   ; |  
+
+004155D3   .  E8 C8F9FFFF      CALL webcam.00414FA0    //设置托盘区图标        ; \\webcam.00414FA0  
+
+004155D8   >  C2 0400          RETN 4                        ;  Default case of switch 00415584  
+
+004155DB     90               NOP  
+
+004155DC   .  90554100         DD webcam.00415590                  ;  分支表 被用于 00415589  
+
+004155E0   .  C2554100         DD webcam.004155C2  
+
+004155E4   .  A9554100         DD webcam.004155A9  
+
+004155E8   .  C2554100         DD webcam.004155C2  
+```
+
+已知条件：
+
+*   `[00492458]` `GetMoudleHandleA` 函数地址
+*   `[00492440]` `GetProcAddress` 函数地址
+*   `[004923AC]` `LoadLibraryA` 函数地址
+*   `00489934` `"USER32.dll"` 字串
+
+#### (1) 用 Resource Hacker 3.40 打开程序自带的 effects_dll.dll 文件
+
+*注：在 exe 主程序里添加图标资源后，不能正常运行，所以就选 dll 文件了*
+
+分别添加 `16*16` `256` 色图标资源 `201`,`202`,`203` 号,依次代表三种状态: 连接状态/Invalid/正常。
+
+![](img/40ab7ced84df31349e501f1af885e39c.jpg)
+
+#### (2) 如下修改 00415589 处
+
+```
+00415580   .  8B4424 04      MOV EAX,DWORD PTR SS:[ESP+4]  
+
+00415584   .  83F8 03        CMP EAX,3                       ;  Switch (cases 0..3)  
+
+00415587   .  77 4F          JA SHORT 1webcam.004155D8  
+
+00415589    - E9 723F0700    JMP webcam.00489500  //跳至补丁代码处  
+
+0041558E     90             NOP  
+
+0041558F     90             NOP  
+
+00415590   >  8B81 A4080000  MOV EAX,DWORD PTR DS:[ECX+8A4]              ;  Case 0 of switch 00415584  
+```
+
+#### (3) 空白 004894E0 处写入字符串"effects_dll.dll",004894F0 处写入字符串"LoadIconA",00489500 处写入补丁代码
+
+```
+00489500    60                PUSHAD  
+
+00489501    9C                PUSHFD  
+
+00489502    51                PUSH ECX                        ; save ecx  
+
+00489503    68 E0944800       PUSH webcam.004894E0            ; ASCII "effects_dll.dll"  
+
+00489508    FF15 AC234900     CALL DWORD PTR DS:[<&kernel32.LoadLibraryA>]    ; KERNEL32.LoadLibraryA  
+
+0048950E    8BE8              MOV EBP,EAX                     ; save hInstance of effects_dll.dll  
+
+00489510    68 34994800       PUSH webcam.00489934            ; ASCII "USER32.dll"  
+
+00489515    FF15 58244900     CALL DWORD PTR DS:[<&kernel32.GetModuleHandleA>] ; KERNEL32.GetModuleHandleA  
+
+0048951B    68 F0944800       PUSH webcam.004894F0            ; ASCII "LoadIconA"  
+
+00489520    50                PUSH EAX  
+
+00489521    FF15 40244900     CALL DWORD PTR DS:[<&kernel32.GetProcAddress>]  ; KERNEL32.GetProcAddress  
+
+00489527    8BF8              MOV EDI,EAX                     ; save LoadIconA API address  
+
+00489529    5E                POP ESI                         ; load ecx to esi  
+
+0048952A    68 C9000000       PUSH 0C9  
+
+0048952F    55                PUSH EBP  
+
+00489530    FFD7              CALL EDI  
+
+00489532    8986 A8080000     MOV DWORD PTR DS:[ESI+8A8],EAX  ; 连接状态图标句柄  
+
+00489538    68 CA000000       PUSH 0CA
+```
+
+
+
+0048953D  55               PUSH EBP  
+
+0048953E  FFD7             CALL EDI  
+
+00489540  8986 A4080000    MOV DWORD PTR DS:[ESI+8A4],EAX                  ; Invalid 状态图标句柄  
+
+00489546  68 CB000000      PUSH 0CB  
+
+0048954B  55               PUSH EBP  
+
+0048954C  FFD7             CALL EDI  
+
+0048954E  8986 A0080000    MOV DWORD PTR DS:[ESI+8A0],EAX                  ; 正常状态图标句柄  
+
+00489554  9D               POPFD  
+
+00489555  61               POPAD  
+
+00489556  3E:FF2485 DC554100   JMP DWORD PTR DS:[EAX*4+4155DC]     ; 恢复原分支跳转  
+
+完成后如下所示：  
+
+```
+004894E0  65 66 66 65 63 74 73 5F 64 6C 6C 2E 64 6C 6C 00  effects\_dll.dll.  
+004894F0  4C 6F 61 64 49 63 6F 6E 41 00 00 00 00 00 00 00  LoadIconA.......  
+00489500  60 9C 51 68 E0 94 48 00 FF 15 AC 23 49 00 8B E8  \`hH.?I.  
+00489510  68 34 99 48 00 FF 15 58 24 49 00 68 F0 94 48 00  h4.X$I.hH.  
+00489520  50 FF 15 40 24 49 00 8B F8 5E 68 C9 00 00 00 55   P@$I.^h?..U  
+00489530  FF D7 89 86 A8 08 00 00 68 CA 00 00 00 55 FF D7  ..h?..U?  
+00489540  89 86 A4 08 00 00 68 CB 00 00 00 55 FF D7 89 86   ?..h?..U?  
+00489550  A0 08 00 00 9D 61 3E FF 24 85 DC 55 41 00 00 00  ?..>$UA...  
+```
+
+用 16 进制编辑器写入修改的数据并保存后运行, `ComboBox` 不能全部显示和托盘区小图标不能显示的 Bug 都没了!  
+
+Bug 全部修正后 `Win2K` 下效果：  
+
+![](img/652f8cee13132c0b876564e2ff0ea6e7.jpg)
