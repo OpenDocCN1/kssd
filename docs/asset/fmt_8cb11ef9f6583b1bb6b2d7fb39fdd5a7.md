@@ -1,0 +1,151 @@
+
+### 汇编代码段
+
+```
+77A1099B     8B4D 10         MOV     ECX, DWORD PTR SS:[EBP+10]  
+77A1099E     85C0            TEST    EAX, EAX  
+77A109A0     8901            MOV     DWORD PTR DS:[ECX], EAX  
+77A109A2     75 07           JNZ     SHORT OLEAUT32.77A109AB  
+77A109A4     B8 0E000780     MOV     EAX, 8007000E  
+77A109A9     EB 2B           JMP     SHORT OLEAUT32.77A109D6  
+77A109AB     8BCB            MOV     ECX, EBX  
+77A109AD     8BF8            MOV     EDI, EAX  
+77A109AF     8BD1            MOV     EDX, ECX  
+77A109B1     C1E9 02         SHR     ECX, 2  
+77A109B4     F3:A5           REP     MOVS DWORD PTR ES:[EDI], DWORD P>  
+77A109B6     8BCA            MOV     ECX, EDX  
+77A109B8     83E1 03         AND     ECX, 3  
+77A109BB     F3:A4           REP     MOVS BYTE PTR ES:[EDI], BYTE PTR>  
+77A109BD     8B4D 08         MOV     ECX, DWORD PTR SS:[EBP+8]  
+77A109C0     8B75 0C         MOV     ESI, DWORD PTR SS:[EBP+C]  
+77A109C3     8D3C18          LEA     EDI, DWORD PTR DS:[EAX+EBX]  
+77A109C6     8BC1            MOV     EAX, ECX                  
+77A109C8     C1E9 02         SHR     ECX, 2  
+77A109CB     F3:A5           REP     MOVS DWORD PTR ES:[EDI], DWORD P>  
+77A109CD     8BC8            MOV     ECX, EAX  
+77A109CF     83E1 03         AND     ECX, 3  
+77A109D2     33C0            XOR     EAX, EAX  
+77A109D4     F3:A4           REP     MOVS BYTE PTR ES:[EDI], BYTE PTR>  
+77A109D6     5F              POP     EDI  
+77A109D7     5E              POP     ESI  
+77A109D8     5B              POP     EBX  
+77A109D9     5D              POP     EBP  
+77A109DA     C2 0C00         RETN    0C
+
+//连接函数的具体操作
+
+RETN<---------
+
+|  
+
+00404B5C   .  50             PUSH    EAX  
+00404B5D   .  FF15 14104000 CALL    DWORD PTR DS:[<&MSVBVM60.__vbaSt>  
+00404B63   .  8BD0          MOV     EDX, EAX  
+00404B65   .  8D4D D8       LEA     ECX, DWORD PTR SS:[EBP-28]  
+00404B68   .  FFD3          CALL    EBX  
+00404B6A   .  8D95 6CFFFFFF LEA     EDX, DWORD PTR SS:[EBP-94]  
+00404B70   .  8D85 7CFFFFFF LEA     EAX, DWORD PTR SS:[EBP-84]  
+00404B76   .  52            PUSH    EDX  
+00404B77   .  8D4D 8C       LEA     ECX, DWORD PTR SS:[EBP-74]  
+00404B7A   .  50            PUSH    EAX  
+00404B7B   .  8D55 9C       LEA     EDX, DWORD PTR SS:[EBP-64]  
+00404B7E   .  51            PUSH    ECX  
+00404B7F   .  52            PUSH    EDX  
+00404B80   .  6A 04         PUSH    4  
+00404B82   .  FF15 18104000 CALL    DWORD PTR DS:[<&MSVBVM60.__vbaFr>  
+00404B88   .  8B45 D8       MOV     EAX, DWORD PTR SS:[EBP-28]  
+00404B8B   .  8BF7          MOV     ESI, EDI  
+00404B8D   .  83C4 14       ADD     ESP, 14  
+00404B90   .  83C6 06       ADD     ESI, 6  
+00404B93   .  0F80 E3010000 JO      Register.00404D7C  
+00404B99   .  81FE C9000000 CMP     ESI, 0C9  
+00404B9F   .  8985 44FFFFFF MOV     DWORD PTR SS:[EBP-BC], EAX  
+00404BA5   .  C785 3CFFFFFF>MOV     DWORD PTR SS:[EBP-C4], 8  
+00404BAF   .  C745 94 01000>MOV     DWORD PTR SS:[EBP-6C], 1  
+00404BB6   .  C745 8C 02000>MOV     DWORD PTR SS:[EBP-74], 2  
+00404BBD   .  72 06         JB      SHORT Register.00404BC5  
+00404BBF   .  FF15 6C104000 CALL    DWORD PTR DS:[<&MSVBVM60.__vbaGe>  
+00404BC5   >  8BC7          MOV     EAX, EDI  
+00404BC7   .  83C0 07       ADD     EAX, 7  
+00404BCA   .  0F80 AC010000 JO      Register.00404D7C  
+00404BD0   .  3D C9000000   CMP     EAX, 0C9  
+00404BD5   .  8985 30FFFFFF MOV     DWORD PTR SS:[EBP-D0], EAX  
+00404BDB   .  72 06         JB      SHORT Register.00404BE3  
+00404BDD   .  FF15 6C104000 CALL    DWORD PTR DS:[<&MSVBVM60.__vbaGe>  
+00404BE3   >  8D95 5CFFFFFF LEA     EDX, DWORD PTR SS:[EBP-A4]  
+00404BE9   .  8D4D 9C       LEA     ECX, DWORD PTR SS:[EBP-64]  
+00404BEC   .  C785 64FFFFFF>MOV     DWORD PTR SS:[EBP-9C], Register.>
+
+;  UNICODE "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789oc4"
+
+00404BF6   .  C785 5CFFFFFF>MOV     DWORD PTR SS:[EBP-A4], 8  
+00404C00   .  FF15 F4104000 CALL    DWORD PTR DS:[<&MSVBVM60.__vbaVa>  
+00404C06   .  8B45 CC       MOV     EAX, DWORD PTR SS:[EBP-34]  
+00404C09   .  8D4D 8C       LEA     ECX, DWORD PTR SS:[EBP-74]  
+00404C0C   .  51            PUSH    ECX  
+00404C0D   .  66:33C9       XOR     CX, CX  
+00404C10   .  8A1430        MOV     DL, BYTE PTR DS:[EAX+ESI]  
+00404C13   .  80E2 03       AND     DL, 3  
+00404C16   .  8ACA          MOV     CL, DL  
+00404C18   .  8B95 30FFFFFF MOV     EDX, DWORD PTR SS:[EBP-D0]  
+00404C1E   .  66:6BC9 10    IMUL    CX, CX, 10  
+00404C22   .  8A0410        MOV     AL, BYTE PTR DS:[EAX+EDX]  
+00404C25   .  0F80 51010000 JO      Register.00404D7C  
+00404C2B   .  C0E8 04       SHR     AL, 4  
+00404C2E   .  66:33D2       XOR     DX, DX  
+00404C31   .  8AD0          MOV     DL, AL  
+00404C33   .  0BCA          OR      ECX, EDX  
+00404C35   .  8D95 7CFFFFFF LEA     EDX, DWORD PTR SS:[EBP-84]  
+00404C3B   .  66:83C1 01    ADD     CX, 1  
+00404C3F   .  0F80 37010000 JO      Register.00404D7C  
+00404C45   .  0FBFC1        MOVSX   EAX, CX  
+00404C48   .  8D4D 9C       LEA     ECX, DWORD PTR SS:[EBP-64]  
+00404C4B   .  50            PUSH    EAX  
+00404C4C   .  51            PUSH    ECX  
+00404C4D   .  52            PUSH    EDX  
+00404C4E   .  FF15 60104000 CALL    DWORD PTR DS:[<&MSVBVM60.#632>]    
+00404C54   .  8D85 3CFFFFFF LEA     EAX, DWORD PTR SS:[EBP-C4]  
+00404C5A   .  8D8D 7CFFFFFF LEA     ECX, DWORD PTR SS:[EBP-84]  
+00404C60   .  50            PUSH    EAX  
+00404C61   .  8D95 6CFFFFFF LEA     EDX, DWORD PTR SS:[EBP-94]  
+00404C67   .  51            PUSH    ECX  
+00404C68   .  52            PUSH    EDX  
+00404C69   .  FF15 EC104000 CALL    DWORD PTR DS:[<&MSVBVM60.__vbaVa>  
+00404C6F   .  50            PUSH    EAX  
+00404C70   .  FF15 14104000 CALL    DWORD PTR DS:[<&MSVBVM60.__vbaSt>  
+00404C76   .  8BD0          MOV     EDX, EAX  
+00404C78   .  8D4D D8       LEA     ECX, DWORD PTR SS:[EBP-28]  
+00404C7B   .  FFD3          CALL    EBX  
+00404C7D   .  8D85 6CFFFFFF LEA     EAX, DWORD PTR SS:[EBP-94]  
+00404C83   .  8D8D 7CFFFFFF LEA     ECX, DWORD PTR SS:[EBP-84]  
+00404C89   .  50            PUSH    EAX  
+00404C8A   .  8D55 8C       LEA     EDX, DWORD PTR SS:[EBP-74]  
+00404C8D   .  51            PUSH    ECX  
+00404C8E   .  8D45 9C       LEA     EAX, DWORD PTR SS:[EBP-64]  
+00404C91   .  52            PUSH    EDX  
+00404C92   .  50            PUSH    EAX  
+00404C93   .  6A 04         PUSH    4  
+00404C95   .  FF15 18104000 CALL    DWORD PTR DS:[<&MSVBVM60.__vbaFr>  
+00404C9B   .  83C4 14       ADD     ESP, 14  
+00404C9E   .  83FF 14       CMP     EDI, 14  
+00404CA1   .  74 16         JE      SHORT Register.00404CB9  
+00404CA3   .  8B4D D8       MOV     ECX, DWORD PTR SS:[EBP-28]  
+00404CA6   .  51            PUSH    ECX  
+00404CA7   .  68 8C2F4000   PUSH    Register.00402F8C  
+00404CAC   .  FF15 2C104000 CALL    DWORD PTR DS:[<&MSVBVM60.__vbaSt>  
+00404CB2   .  8BD0          MOV     EDX, EAX  
+00404CB4   .  8D4D D8       LEA     ECX, DWORD PTR SS:[EBP-28]  
+00404CB7   .  FFD3          CALL    EBX  
+00404CB9   >  B8 05000000   MOV     EAX, 5                  <---每次循环取 5 位字符  
+00404CBE   .  03C7          ADD     EAX, EDI  
+00404CC0   .  0F80 B6000000 JO      Register.00404D7C  
+00404CC6   .  8BF8          MOV     EDI, EAX  
+00404CC8   .^ E9 DCFAFFFF   JMP     Register.004047A9         <---循环计算取字符  
+00404CCD   >  8B55 B0       MOV     EDX, DWORD PTR SS:[EBP-50]  
+00404CD0   .  52            PUSH    EDX  
+00404CD1   .  E8 5AE1FFFF   CALL    Register.00402E30  
+00404CD6   .  8B35 30104000 MOV     ESI, DWORD PTR DS:[<&MSVBVM60.___>  
+00404CDC   .  FFD6          CALL    ESI  
+00404CDE   .  8B45 E8       MOV     EAX, DWORD PTR SS:[EBP-18]  
+00404CE1   .  50            PUSH    EAX  
+```
