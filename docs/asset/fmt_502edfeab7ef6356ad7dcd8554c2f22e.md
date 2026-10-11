@@ -1,0 +1,211 @@
+
+# 汇编代码分析
+
+## 处理特殊 Import functions
+
+```
+016F:00E5FA60  PUSHA
+016F:00E5FA61  PUSH    DWORD 00E621F0
+016F:00E5FA66  LEA     EAX,[EBP-0C]
+016F:00E5FA69  PUSH    DWORD [00E63560]
+016F:00E5FA6F  CALL    NEAR [EAX]       ;call 下面的 00E71238
+016F:00E5FA71  POPA
+
+016F:00E71238  CALL    00E7123D
+016F:00E7123D  POP     EBP
+016F:00E7123E  CLD
+016F:00E7123F  LEA     ESI,[EBP+2F]   ;ESI 指向特殊 Import function 的相关信息
+016F:00E71242  XOR     EAX,EAX
+016F:00E71244  LODSB
+016F:00E71245  OR      AL,AL
+016F:00E71247  JZ      00E71265       ;完了吗?
+016F:00E71249  DEC     AL
+016F:00E7124B  SHL     EAX,02
+016F:00E7124E  ADD     EAX,[ESP+08]  ;[ESP+08]就是指向第一个特殊 Import function 的重定向地址, 我看到的就有 10 个这样的 functions
+016F:00E71252  MOV     EBX,[EAX]     ;EBX 为该特殊 Import function 的重定向地址
+016F:00E71254  LODSD                     ;该 EBX 指向的代码如: mov eax, [xxxxxxxx]
+016F:00E71255  ADD     EAX,[ESP+04]  ;                       ret , 这些就是我们要手动修改的 IAT
+016F:00E71259  MOV     [EAX],EBX     ;EAX 指向 IAT
+016F:00E7125B  XOR     EAX,EAX
+016F:00E7125D  MOV     [ESI-04],EAX  ;clear
+016F:00E71260  MOV     [ESI-05],AL   ;clear
+016F:00E71263  JMP     SHORT 00E71244
+016F:00E71265  RET     08
+```
+
+## 特殊的 Import functions 列表
+
+```
+016F:00E5C7D8  PUSH    BYTE +00
+016F:00E5C7DA  CALL    `KERNEL32!GetModuleHandleA`
+016F:00E5C7DF  MOV     [00E635D4],EAX
+
+016F:00E5C7E4  CALL    `KERNEL32!GetVersion`
+016F:00E5C7E9  MOV     [00E635D8],EAX
+
+016F:00E5C7EE  PUSH    DWORD 00E635E4
+016F:00E5C7F3  CALL    `KERNEL32!GetVersionExA`
+
+016F:00E5C7F8  CALL    `KERNEL32!GetCurrentProcess`
+016F:00E5C7FD  MOV     [00E635DC],EAX
+
+016F:00E5C802  CALL    `KERNEL32!GetCurrentProcessId`
+016F:00E5C807  MOV     [00E635E0],EAX
+
+016F:00E5C80C  CALL    `KERNEL32!GetCommandLineA`
+016F:00E5C811  MOV     [00E63678],EAX
+
+016F:00E5C816  RET
+```
+
+### 具体函数实现
+
+#### 第一个特殊 Import function: `KERNEL32!GetModuleHandleA`
+
+```
+016F:00E5C818  PUSH    EBP               ;<--第一个特殊 Import function 是 KERNEL32!GetModuleHandleA
+016F:00E5C819  MOV     EBP,ESP
+016F:00E5C81B  MOV     EAX,[EBP+08]
+016F:00E5C81E  TEST    EAX,EAX
+016F:00E5C820  JNZ     00E5C829
+016F:00E5C822  MOV     EAX,[00E63560]
+016F:00E5C827  JMP     SHORT 00E5C82F
+016F:00E5C829  PUSH    EAX
+016F:00E5C82A  CALL    `KERNEL32!GetModuleHandleA`
+016F:00E5C82F  POP     EBP
+016F:00E5C830  RET     04
+```
+
+#### 第二个: `KERNEL32!GetVersion`
+
+```
+016F:00E5C834  MOV     EAX,[00E635D8]    ;<--第二个 KERNEL32!GetVersion
+016F:00E5C839  RET
+```
+
+#### 第三个
+
+```
+016F:00E5C83C  PUSH    EBP               ;<--第三个(暂时没见过哪个被加壳的软件有用到, 不知道是什么, 知道的朋友请指出!)
+016F:00E5C83D  MOV     EBP,ESP
+016F:00E5C83F  PUSH    ESI
+016F:00E5C840  PUSH    EDI
+016F:00E5C841  MOV     EAX,[EBP+08]
+016F:00E5C844  MOV     EDI,EAX
+016F:00E5C846  MOV     ESI,00E635E4
+016F:00E5C84B  MOV     ECX,25
+016F:00E5C850  REP MOVSD
+016F:00E5C852  MOV     AL,01
+016F:00E5C854  POP     EDI
+016F:00E5C855  POP     ESI
+016F:00E5C856  POP     EBP
+016F:00E5C857  RET     04
+```
+
+#### 第四个: `GetCurrentProcess`
+
+```
+016F:00E5C85C  MOV     EAX,[00E635DC]    ;<--第四个 GetCurrentProcess
+016F:00E5C861  RET
+```
+
+#### 第五个: `GetCurrentProcessId`
+
+```
+016F:00E5C864  MOV     EAX,[00E635E0]    ;<--第五个 GetCurrentProcessId
+016F:00E5C869  RET
+```
+
+#### 第六个: `GetCommandLineA`
+
+```
+016F:00E5C86C  MOV     EAX,[00E63678]    ;<--第六个 GetCommandLineA
+016F:00E5C871  RET
+```
+
+#### 第七个: `KERNEL32!LockResource`
+
+```
+016F:00E5C874  PUSH    EBP               ;<--第七个 KERNEL32!LockResource
+016F:00E5C875  MOV     EBP,ESP
+016F:00E5C877  POP     EBP
+016F:00E5C878  RET     04
+```
+
+#### 第八个: `KERNEL32!FreeResource`
+
+```
+016F:00E5C87C  PUSH    EBP               ;<--第八个 KERNEL32!FreeResource
+016F:00E5C87D  MOV     EBP,ESP
+016F:00E5C87F  POP     EBP
+016F:00E5C880  RET     04
+```
+
+#### 第九个
+
+```
+016F:00E5C884  PUSH    EBP               ;<--第九个(这个也不知道是什么!)
+016F:00E5C885  MOV     EBP,ESP
+016F:00E5C887  MOV     EAX,[EBP+0C]
+016F:00E5C88A  ADD     EAX,BYTE +04
+016F:00E5C88D  MOV     EAX,[EAX]
+016F:00E5C88F  ADD     EAX,[EBP+08]
+016F:00E5C892  POP     EBP
+016F:00E5C893  RET     08
+```
+
+#### 第十个: `KERNEL32!FindResourceA`, `KERNEL32!LoadResource`, `KERNEL32!LockResource`, `USER32!DialogBoxIndirectParamA`
+
+```
+016F:00E5C898  PUSH    EBP               ;<--第十个
+016F:00E5C899  MOV     EBP,ESP
+016F:00E5C89B  PUSH    EBX
+016F:00E5C89C  MOV     EBX,[EBP+08]
+016F:00E5C89F  MOV     EAX,[EBP+18]
+016F:00E5C8A2  PUSH    EAX
+016F:00E5C8A3  MOV     EAX,[EBP+14]
+016F:00E5C8A6  PUSH    EAX
+016F:00E5C8A7  MOV     EAX,[EBP+10]
+016F:00E5C8AA  PUSH    EAX
+016F:00E5C8AB  PUSH    BYTE +05
+016F:00E5C8AD  MOV     EAX,[EBP+0C]
+016F:00E5C8B0  PUSH    EAX
+016F:00E5C8B1  PUSH    EBX
+016F:00E5C8B2  CALL    `KERNEL32!FindResourceA`
+016F:00E5C8B7  PUSH    EAX
+016F:00E5C8B8  PUSH    EBX
+016F:00E5C8B9  CALL    `KERNEL32!LoadResource`
+016F:00E5C8BE  PUSH    EAX
+016F:00E5C8BF  CALL    `KERNEL32!LockResource`
+016F:00E5C8C4  PUSH    EAX
+016F:00E5C8C5  PUSH    EBX
+016F:00E5C8C6  CALL    `USER32!DialogBoxIndirectParamA`
+016F:00E5C8CB  POP     EBX
+016F:00E5C8CC  POP     EBP
+016F:00E5C8CD  RET     14
+```
+
+其中最特殊的是第十个的 `DialogBoxIndirectParamA`，但在 `AeePro` 中没有用到。要是用到的话，可以将该段代码 dump 下来，加到脱壳后的程序上去，再改该 IAT 指向我们加上去的代码的地址。这十个特殊函数我想在 1.2, 1.3 中是一样的。
+
+除了上面的特殊函数以外，`Asprotect` 提供的 API 我们也应该注意，这我就没仔细研究了。
+
+## 用 Asprotect 加壳的程序脱壳后不能运行的原因
+
+我知道的有：
+
+1. 原程序调用 `Asprotect` 的 "Export Function"，最简单的就是：
+   - `push ..`
+   - `push -1`
+   - `call GetProcAddress`
+   
+   看其返回值是否为 0，为 0 就出错或退出（`AeePro` 就是这样的）。
+
+2. 原程序自检加壳后的程序（已经加壳了，真不知道他是怎么检的）。
+
+3. `Asprotect` 调用原程序的“初始化”函数，当到达 `OEP` 前，某些全局变量已经初始化了，脱壳后运行就很可能出错。解决方法是，修改脱壳后的程序，先运行该“初始化”函数，再跳回到 `OEP` 运行就可以了。
+
+4. 再有就是 `DialogBoxIndirectParamA` 等的了。
+
+当然应该还有其他的。
+
+唉，好长的一篇！( 台下的别扔果皮 :)
