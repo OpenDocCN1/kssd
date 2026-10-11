@@ -1,0 +1,59 @@
+
+# TIF Image Builder 1.1 简单算法分析
+
+> 原文：[`www.pediy.com/kssd/pediy10/90057.html`](https://www.pediy.com/kssd/pediy10/90057.html)
+
+【文章标题】: `TIF Image Builder 1.1` 简单算法分析  
+【文章作者】: `qifeon`  
+【软件名称】: `TIF Image Builder 1.1`  
+【下载地址】: `http://nj.onlinedown.net/soft/78467.htm`  
+【作者声明】: 算法初级学习  
+
+---
+
+【详细过程】  
+
+代码:
+
+```
+一、寻找关键处
+
+  无壳，语言为 Microsoft Visual C++ 7.0 [Debug] ，软件有错误提示。找到关键算法处方法很多。可以下消息函数断点回溯，以前用过多次。
+
+ 这次用下函数 GetWindowTextW。这个函数是用来获取控件如编辑框等内容的。然后存到一个缓冲区。
+原型如下
+
+int GetWindowText(
+  HWND hWnd,        // handle to window or control
+  LPTSTR lpString,  // text buffer
+  int nMaxCount     // maximum number of characters to copy
+);
+
+
+ 
+ OD 载入，运行程序，输入用户名“qifeon” "，假码"12345678。命令窗口下断
+ 
+bpx GetWindowTextW. 然后点注册按钮。断下
+
+0042F9BB  |.   FF15 04644300  call    dword ptr [<&USER32.GetWindowTex>; \GetWindowTextW           断在这儿
+0042F9C1  |.   8B4D 10        mov     ecx, dword ptr [ebp+10]
+0042F9C4  |.   6A FF          push    -1
+0042F9C6  |.   E8 89D6FDFF    call    0040D054
+0042F9CB  |.   EB 0B          jmp     short 0042F9D8
+0042F9CD  |>   8B45 10        mov     eax, dword ptr [ebp+10]
+0042F9D0  |.   FF30           push    dword ptr [eax]
+0042F9D2  |.   56             push    esi
+0042F9D3  |.   E8 FDF0FFFF    call    0042EAD5
+0042F9D8  |>   5F             pop     edi
+0042F9D9  |.   5E             pop     esi
+0042F9DA  |.   5D             pop     ebp
+0042F9DB  \\.   C2 0C00        ret     0C
+ 
+ 再一路返回，到
+  0040BB3F              E8 46C70100           call TifImage.0042828A                             ; 读取用户名
+  0040BB44              8B46 70             mov eax,dword ptr ds:[esi+70]                     返回处
+ 
+到这儿就是关键处了，为什么？？向上看到断首，向下翻翻有注册成功的英文提示等。下面就可以开始分析了
+```
+
+代码:
