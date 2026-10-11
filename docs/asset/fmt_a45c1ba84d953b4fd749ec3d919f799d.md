@@ -1,0 +1,100 @@
+
+# `[更新]` `Extreme` `HookEngineRing3` `API` `Hook` 静态库
+
+> 原文：[`www.pediy.com/kssd/pediy11/115739.html`](https://www.pediy.com/kssd/pediy11/115739.html)
+
+说明：  
+
+`Extreme` `HookEngine`，以 `Inline` `Hook` 的方法，内置反汇编引擎，能够高效、稳定地挂钩多种函数调用约定的 `API`。一般的 `WINAPI` (`stdcall`) 当然不在话下。理论上支持挂钩 `pascal`，`fastcall`，`cdecl`，`naked` 等类型的函数。  
+
+特点：  
+
+1、支持多种挂钩调用约定的函数，支持取消挂钩。  
+2、支持在未取消挂钩时调用原始函数。  
+3、支持导出函数（提供 `Dll` 名称、函数名称）和非导出函数（提供地址）的挂钩。  
+4、查找导出函数时支持 `ANSI`、`Unicode` 多种规范的字符串。  
+5、接口调用简单，一个结构体搞定一切。  
+
+举例：  
+
+挂钩 `GetTempPathA`。  
+
+代码:
+
+```c
+#include "test.h"
+
+HOOKINFO g_HookInfo;
+typedef DWORD (WINAPI *RealGetTempPath) (DWORD nBufferLength, LPSTR lpBuffer);
+
+DWORD WINAPI MyGetTempPath(DWORD nBufferLength, LPSTR lpBuffer)
+{
+    // Get original function
+    RealGetTempPath pRGT = (RealGetTempPath)g_HookInfo.Stub;
+
+    // Call the function which is original while hook enabled
+    pRGT(nBufferLength, lpBuffer);
+
+    // Process the result value. Tell us the hook is working
+    strcat(lpBuffer, "Hooked\\");
+
+    // Don't worry about how to return the result. Just do it as what you always do: return xxxx
+    return strlen(lpBuffer);
+}
+
+void PrtTmpPath(void)
+{
+    char Path[MAX_PATH];
+    GetTempPath(MAX_PATH, Path);
+    printf("%s\n", Path);
+}
+
+int main()
+{
+    // Not Hooked
+    PrtTmpPath();
+
+    HEInitHook(&g_HookInfo, "kernel32", "GetTempPathA", MyGetTempPath);
+    HEStartHook(&g_HookInfo);
+
+    // Hooked
+    PrtTmpPath();
+
+    HEStopHook(&g_HookInfo);
+
+    // UnHooked
+    PrtTmpPath();
+    getchar();
+    return 0;
+}
+```
+
+使用：  
+
+`#include "hook.h"` 后，即可使用以下函数：  
+
+`HEInitHook()`：初始化钩子，用于挂钩导出函数。（以地址 `Hook` 函数不需要调用本函数）  
+`HeStartHook()`：安装钩子。  
+`HeStopHook()`：卸载钩子。  
+
+`HOOKINFO` 结构体成员说明：  
+
+`FuncAddr`：被挂钩函数的起始地址。  
+`FakeAddr`：过滤函数的地址。  
+`CodeLength`：被挂钩函数的起始地址被写入的挂钩代码的长度。（`UnHook` 时要用）  
+`Stub`：在钩子生效时调用原始函数的函数指针。注意：调用时建议使用 `typedef` 声明函数类型，别忘了说明函数的调用约定。例如： `typedef BOOL (WINAPI *OriginalFunction)(WORD Param1, DWORD param2);`  
+
+更新：  
+
+2010-7-9 ：`[Fix` `Bug]` 对于分配的 `Stub`，没有设置 `VirtualProtect`，导致挂钩时调用原函数内存有时出错进行修补。  
+
+下载地址：  
+
+[`code.google.com/p/code-from-e...downloads/list`](http://code.google.com/p/code-from-extreme/downloads/list)  
+
+`[原创文章]` 转载请注明出处：[`hi.baidu.com/q_lai_a_qu/blog/...6b6fd48a1.html`](http://hi.baidu.com/q_lai_a_qu/blog/item/948864da97a776d6b6fd48a1.html)
+
+上传的附件
+
+| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) || `HookEngine.rar`  
+|

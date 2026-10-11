@@ -1,0 +1,148 @@
+
+# dll 全局 api hook 一例(附代码)
+
+> 原文：[`www.pediy.com/kssd/pediy10/90109.html`](https://www.pediy.com/kssd/pediy10/90109.html)
+
+前些时写的.一直在考试..今天写下注释贴上来,不多说了.代码里面有详细的注释
+
+没有写 `UnHook` 部分..大家可以自己写,做个练习,呵呵
+
+## `hook.dll`
+
+代码:
+
+```
+;此程序的作用是 HOOK 进程创建函数 CreateProcessInternalW
+.386
+.model flat,stdcall
+option casemap:none
+
+;编译方式:
+;ml.exe /c /coff /nologo /Fo"hook.obj" "hook.asm"
+;link.exe /SUBSYSTEM:WINDOWS /DEF:"hook.def" /DLL /nologo /OUT:"hook.dll" "hook.obj"
+
+;思路很简单,在 CreateProcessInternalW 函数入口 jmp 到我们的处理函数,处理后直接返回或者再从我们的函数 jmp 回来继续执行
+;主要是要注意一下怎么把 jmp XXXXX 翻译机器码,比如你要 jmp 到 4000,当前你要修改的指令地址是 1000
+;由于 jmp XXXX 指令长 5 个字节所以 XXXXX 的值应该是 4000-1000-5
+;也就是 jmp 后面的地址不是你要跳转到的地址,而是你要跳转到的地址相对于当前指令下一条指令的偏移,明白了吧,call 也一样
+
+include std.inc ;添加常用的几个头文件
+.data
+  szKernel32 db 'kernel32.dll',0
+  szCreateProcessInternalW db 'CreateProcessInternalW',0
+  szStartHook db 'StartHook',0
+  hCreateProcess DWORD 0
+  hStartHook DWORD 0
+  hProcess DWORD 0
+  szBuf db 5 dup(0)
+  szMsg dw 04f60h,08ba9h,04ed6h,08fd0h,0884ch,04e48h,0003fh,0003fh,0003fh,0000;你让他运行么???的 unicode 编码
+  hhk DWORD 0
+  szHookDll db 'hook.dll',0
+.code
+DllMain proc hInst:DWORD,nReason:DWORD,unused:DWORD
+  .if nReason==DLL_PROCESS_ATTACH
+    invoke GetModuleHandle,offset szKernel32
+    invoke GetProcAddress,eax,offset szCreateProcessInternalW  ;获取 CreateProcessInternalW 的入口地址
+    mov hCreateProcess,eax
+    invoke GetProcAddress,hInst,offset szStartHook            ;获取自己处理函数部分的地址,即 StartHook 的地址
+    mov hStartHook,eax
+    invoke GetCurrentProcessId
+    invoke OpenProcess,PROCESS_VM_OPERATION or PROCESS_VM_WRITE,FALSE,eax  ;一定要先打开这些权限
+    mov hProcess,eax
+    mov eax,hStartHook     ;StartHook 的函数地址
+    sub eax,hCreateProcess ;减去当前 CreateProcessInternalW 的入口地址
+    sub eax,5              ;再减去 jmp XXXX 的 5 个字节,就等于 jmp 后面的地址了
+    lea edx,szBuf
+    mov BYTE ptr [edx],0e9h   ;0e9 是 jmp 的机器码
+    mov DWORD ptr [edx+1],eax
+    invoke WriteProcessMemory,hProcess,hCreateProcess,offset szBuf,5,0 ;写入"jmp StartHook"
+    invoke CloseHandle,hProcess
+  .endif
+  ret
+DllMain endp
+
+StartHook proc
+  mov eax,esp
+  push 1
+  push offset szMsg
+  push DWORD ptr [eax+0ch] ;进程信息的 unicode 码
+  push 0
+  call MessageBoxW ;弹出消息框.让用户确认
+  .if eax==1       ;如果"是"的话,跳回去继续执行
+    push 0a08h     ;这个是被我们的"jmp StartHook"替换掉的那条指令,这里一定要补上
+    push hCreateProcess
+    add DWORD ptr [esp],5;先把返回地址 push 到栈里,再 ret 返回,+5 的原因应该知道吧
+    ret
+  .else
+    ret 030h   ;否则直接返回,注意:CreateProcessInternalW 的压栈参数比 CreateProcessW 多一个,这里选择修改前者是
+  .endif        ;因为 CreateProcessInternalw 的第一条指令刚好是 5 个字节,便于修改
+StartHook endp
+
+
+;下面的是一个 SetWindowsHookEx 函数的应用.目的是全局 hook,实际上什么处理都没有
+MsgHook proc lcode,wParam,lParam
+  invoke CallNextHookEx,hhk,lcode,wParam,lParam
+  ret 0ch
+MsgHook endp
+SetHook proc
+  invoke GetModuleHandle,offset szHookDll
+  invoke SetWindowsHookEx,WH_GETMESSAGE,MsgHook,eax,0
+  mov hhk,eax
+  ret
+SetHook endp
+
+end DllMain
+
+                                                                                                                  ;By Hatling
+```
+
+## `app.exe` 加载用
+
+代码:
+
+```
+.386
+.model flat,stdcall
+option casemap:none
+
+include std.inc
+
+.data
+  szDllName db 'hook.dll',0
+  szFuncName db 'SetHook',0
+.code
+main proc
+  invoke LoadLibrary,offset szDllName
+  invoke GetProcAddress,eax,offset szFuncName
+  call eax
+lop:
+  invoke Sleep,9999999
+  jmp lop
+  ret
+main endp
+end main
+```
+
+## `hook.def`
+
+代码:
+
+```
+LIBRARY "hook.dll"
+EXPORTS
+StartHook
+SetHook
+```
+
+注:`StartHook` 可以不用导出
+
+## 上传的附件
+
+| 附件 | 说明 |
+| :--- | :--- |
+| `hook 实例.rar` | ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) |
+| `hook 源码.rar` | ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) |
+
+大家可以运行 `hook 实例.rar` 中的程序看效果
+
+没有 `UnHook` 部分..所以大家如果先把 `app.exe` 结束掉在关机的话,会馆不了机
