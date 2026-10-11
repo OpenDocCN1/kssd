@@ -1,0 +1,542 @@
+
+# 黄金内存 V3.1
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6662.htm`](https://www.pediy.com/kssd/pediy06/pediy6662.htm)
+
+- **破解作者**：`kyc[dfcg][czg]`
+- **作者邮箱**：`muyang008@163.com`
+- **使用工具**：`old1.10c`
+- **破解平台**：`win2003`
+- **软件名称**：黄金内存 `V3.1`
+- **下载地址**：`http://www.skycn.com/soft/14815.html`
+- **软件简介**：黄金内存可以整理/回收/清理系统的物理内存，提高内存分配命中率，提高使用效率，防止由于内存泄漏造成的内存不足。全图形化界面，让操作者对系统当前状态一目了然，令您爱不释手。
+    - **内存整理**：可了解内存及 `CPU` 的使用情况，及时整理内存，调整物理内存的使用性能。
+    - **进程管理**：可查看系统中正在运行的进程及内存情况，找出耗费内存的大户，并可以随时终止。
+    - **服务管理**：可管理 `XP/2000` 中的服务项目，将不用的服务停止，加快启动速度，节省内存。
+    - **启动管理**：可以将随机动项目延时启动或暂停启动，极大提高启动速度。
+- **软件大小**：`768 KB`
+- **加壳方式**：无壳
+- **破解声明**：我是一只小菜鸟，偶得一点心得，愿与大家分享：）
+
+---
+
+## 破解内容
+
+根据序列号错误对 `CTRL+N`
+
+名称位于 `Memory_B`，项目 `146`
+
+- **地址**：`0042D37C`
+- **区段**：`.rdata`
+- **类型**：导入
+- **名称**：`MFC42.#4224_CWnd::MessageBoxA` 查找导入参考
+
+参考位于 `Memory_B:.text` 到 `MFC42.#4224_CWnd::MessageBoxA`
+
+**地址 | 反汇编 | 注释**
+
+```
+00404F1A   call <jmp.&MFC42.#4224_CWnd::MessageBoxA>
+00405863   call <jmp.&MFC42.#4224_CWnd::MessageBoxA>
+00405B82   call <jmp.&MFC42.#4224_CWnd::MessageBoxA>
+004061C2   call <jmp.&MFC42.#4224_CWnd::MessageBoxA>
+00406304   call <jmp.&MFC42.#4224_CWnd::MessageBoxA>
+0040CA0C   call <jmp.&MFC42.#4224_CWnd::MessageBoxA>
+0040CD27   call <jmp.&MFC42.#4224_CWnd::MessageBoxA>
+004130AF   call <jmp.&MFC42.#4224_CWnd::MessageBoxA>
+0041321D   call <jmp.&MFC42.#4224_CWnd::MessageBoxA>
+0041C1C1   call <jmp.&MFC42.#4224_CWnd::MessageBoxA>
+0041C47D   call <jmp.&MFC42.#4224_CWnd::MessageBoxA>
+0041C640   call <jmp.&MFC42.#4224_CWnd::MessageBoxA>
+0041C8CD   call <jmp.&MFC42.#4224_CWnd::MessageBoxA>
+0041CBAA   call <jmp.&MFC42.#4224_CWnd::MessageBoxA>
+0041CE4D   call <jmp.&MFC42.#4224_CWnd::MessageBoxA>
+0041D8CC   call <jmp.&MFC42.#4224_CWnd::MessageBoxA>
+0041DD8D   call <jmp.&MFC42.#4224_CWnd::MessageBoxA>
+00421F38   call <jmp.&MFC42.#4224_CWnd::MessageBoxA>
+00422029   call <jmp.&MFC42.#4224_CWnd::MessageBoxA>
+004220C7   call <jmp.&MFC42.#4224_CWnd::MessageBoxA>
+0042422D   call <jmp.&MFC42.#4224_CWnd::MessageBoxA>
+004275EC   jmp dword ptr ds:[<&MFC42.#4224_CWnd::Messag  MFC42.#4224_CWnd::MessageBoxA
+```
+
+全部下断
+
+`123456-123456-123456-123456`
+
+---
+
+```
+004131FD    .  E8 00430100   call <jmp.&MFC42.#858_CString::operator=>
+00413202    .  8D4C24 10     lea ecx,dword ptr ss:[esp+10]
+00413206    .  885C24 34     mov byte ptr ss:[esp+34],bl
+0041320A    .  E8 ED420100   call <jmp.&MFC42.#800_CString::~CString>
+0041320F    .  8B5424 0C     mov edx,dword ptr ss:[esp+C]
+00413213    .  6A 00         push 0
+00413215    .  68 38634300   push Memory_B.00436338                     ;  ASCII "Memory Booster"
+0041321A    .  52           push edx
+0041321B    .  8BCE         mov ecx,esi
+0041321D    .  E8 CA430100   call <jmp.&MFC42.#4224_CWnd::MessageBoxA>      断在这里
+```
+
+向上看
+
+---
+
+```
+00412FD0    .  6A FF         push -1                    ;  F2   下断
+00412FD2    .  68 609C4200   push Memory_B.00429C60     ;  SE handler installation
+00412FD7    .  64:A1 0000000>mov eax,dword ptr fs:[0]
+00412FDD    .  50           push eax
+00412FDE    .  64:8925 00000>mov dword ptr fs:[0],esp
+00412FE5    .  83EC 24       sub esp,24
+00412FE8    .  53           push ebx
+00412FE9    .  56           push esi
+00412FEA    .  8BF1         mov esi,ecx
+00412FEC    .  8D4C24 08     lea ecx,dword ptr ss:[esp+8]
+00412FF0    .  E8 19450100   call <jmp.&MFC42.#540_CString::CString>
+00412FF5    .  8D4424 08     lea eax,dword ptr ss:[esp+8]
+00412FF9    .  8BCE         mov ecx,esi
+00412FFB    .  50           push eax
+00412FFC    .  68 5C040000   push 45C
+00413001    .  C74424 3C 000>mov dword ptr ss:[esp+3C],0
+00413009    .  E8 A2480100   call <jmp.&MFC42.#3097_CWnd::GetDlgItemTextA>   ;  ECX=假码
+0041300E    .  51           push ecx
+0041300F    .  8D5424 0C     lea edx,dword ptr ss:[esp+C]
+00413013    .  8BCC         mov ecx,esp
+00413015    .  896424 14     mov dword ptr ss:[esp+14],esp
+00413019    .  52           push edx
+0041301A    .  E8 CB440100   call <jmp.&MFC42.#535_CString::CString>
+0041301F    .  E8 4C1A0000   call Memory_B.00414A70                   ;  F7       关键算法进入
+00413024    .  83C4 04       add esp,4
+00413027    .  85C0         test eax,eax
+00413029    .  0F84 6E010000 je Memory_B.0041319D
+```
+
+========================================================================= `call Memory_B.00414A70`
+
+```
+00414A70   /$  6A FF         push -1
+00414A72   |.  68 C89E4200   push Memory_B.00429EC8         ;  SE handler installation
+00414A77   |.  64:A1 0000000>mov eax,dword ptr fs:[0]
+00414A7D   |.  50           push eax
+00414A7E   |.  64:8925 00000>mov dword ptr fs:[0],esp
+00414A85   |.  51           push ecx
+00414A86   |.  56           push esi
+00414A87   |.  51           push ecx
+00414A88   |.  8D4424 1C     lea eax,dword ptr ss:[esp+1C]
+00414A8C   |.  8BCC         mov ecx,esp
+00414A8E   |.  896424 08     mov dword ptr ss:[esp+8],esp
+00414A92   |.  50           push eax
+00414A93   |.  C74424 18 000>mov dword ptr ss:[esp+18],0
+00414A9B   |.  E8 4A2A0100   call <jmp.&MFC42.#535_CString::CString>
+00414AA0   |.  E8 DBFCFFFF   call Memory_B.00414780         ;  F7         关键算法进入
+00414AA5   |.  83C4 04       add esp,4
+00414AA8   |.  8D4C24 18     lea ecx,dword ptr ss:[esp+18]
+00414AAC   |.  8BF0         mov esi,eax
+00414AAE   |.  C74424 10 FFF>mov dword ptr ss:[esp+10],-1
+00414AB6   |.  E8 412A0100   call <jmp.&MFC42.#800_CString::~CString>
+00414ABB   |.  8B4C24 08     mov ecx,dword ptr ss:[esp+8]
+00414ABF   |.  8BC6         mov eax,esi
+00414AC1   |.  64:890D 00000>mov dword ptr fs:[0],ecx
+00414AC8   |.  5E           pop esi
+00414AC9   |.  83C4 10       add esp,10
+00414ACC   \\.  C3           retn
+```
+
+========================================================================= `call Memory_B.00414780`
+
+```
+00414780   /$  6A FF         push -1
+00414782   |.  68 B09E4200   push Memory_B.00429EB0         ;  SE handler installation
+00414787   |.  64:A1 0000000>mov eax,dword ptr fs:[0]
+0041478D   |.  50           push eax
+0041478E   |.  64:8925 00000>mov dword ptr fs:[0],esp
+00414795   |.  83EC 38       sub esp,38
+00414798   |.  53           push ebx
+00414799   |.  55           push ebp
+0041479A   |.  8D4424 50     lea eax,dword ptr ss:[esp+50]         ;  eax=假码
+0041479E   |.  8D4C24 08     lea ecx,dword ptr ss:[esp+8]
+004147A2   |.  50           push eax
+004147A3   |.  C74424 4C 000>mov dword ptr ss:[esp+4C],0
+004147AB   |.  E8 3A2D0100   call <jmp.&MFC42.#535_CString::CString>
+004147B0   |.  8B4C24 08     mov ecx,dword ptr ss:[esp+8]         ;  eCx=假码
+004147B4   |.  C64424 48 01  mov byte ptr ss:[esp+48],1
+004147B9   |.  8379 F8 11    cmp dword ptr ds:[ecx-8],11         ;  不能小于 17 位
+004147BD   |.  0F8C 64020000 jl Memory_B.00414A27
+004147C3   |.  68 F8764300   push Memory_B.004376F8         ;  第 7 位看有没有-，没有就失败
+004147C8   |.  8D4C24 0C     lea ecx,dword ptr ss:[esp+C]         ;  eCx=假码
+004147CC   |.  E8 672D0100   call <jmp.&MFC42.#2764_CString::Find>
+004147D1   |.  83CD FF       or ebp,FFFFFFFF
+004147D4   |.  3BC5         cmp eax,ebp
+004147D6   |.  0F84 63020000 je Memory_B.00414A3F
+004147DC   |.  6A 05         push 5
+004147DE   |.  6A 2D         push 2D
+```
+
+
+
+```
+004147E0   |.  8D4C24 10     lea ecx,dword ptr ss:[esp+10]                       ;  第 14 位看有没有-，没有就失败  
+
+004147E4   |.  E8 6F310100   call <jmp.&MFC42.#6662_CString::Find>  
+
+004147E9   |.  3BC5          cmp eax,ebp  
+
+004147EB   |.  0F84 4E020000 je Memory_B.00414A3F  
+
+004147F1   |.  6A 0B         push 0B  
+
+004147F3   |.  6A 2D         push 2D  
+
+004147F5   |.  8D4C24 10     lea ecx,dword ptr ss:[esp+10]                       ;  看有没有-，没有就失败  
+
+004147F9   |.  E8 5A310100   call <jmp.&MFC42.#6662_CString::Find>  
+
+004147FE   |.  3BC5          cmp eax,ebp  
+
+00414800   |.  0F84 39020000 je Memory_B.00414A3F  
+
+00414806   |.  33DB          xor ebx,ebx                                       ;  EBX 清零  
+
+00414808   |>  8AD3          /mov dl,bl                                          ;  DL=BL  
+
+0041480A   |.  6A 01         |push 1  
+
+0041480C   |.  80C2 61       |add dl,61                                         ;  DL+0X61(a)  
+
+0041480F   |.  8D4C24 0C     |lea ecx,dword ptr ss:[esp+C]  
+
+00414813   |.  885424 1C     |mov byte ptr ss:[esp+1C],dl                      ;  [esp+1c]=dl  
+
+00414817   |.  8B4424 1C     |mov eax,dword ptr ss:[esp+1C]                    ;  eax=[esp+1c]  
+
+0041481B   |.  50            |push eax                                          ;  看有没有 a,b,c,d..............z  
+
+0041481C   |.  E8 37310100   |call <jmp.&MFC42.#6662_CString::Find>  
+
+00414821   |.  3BC5          |cmp eax,ebp  
+
+00414823   |.  0F85 16020000 |jnz Memory_B.00414A3F                             ;  看有没有小写字母没有继续找有就失败  
+
+00414829   |.  43            |inc ebx                                           ;  EBX++  
+
+0041482A   |.  83FB 1A       |cmp ebx,1A                                        ;  EBX 小于 1A=26D 吗  
+
+0041482D   |.^ 7C D9         \jl short Memory_B.00414808  
+
+0041482F   |.  33DB          xor ebx,ebx                                       ;  EBX 清零  
+
+00414831   |>  8ACB          /mov cl,bl  
+
+00414833   |.  6A 01         |push 1  
+
+00414835   |.  80C1 41       |add cl,41  
+
+00414838   |.  884C24 1C     |mov byte ptr ss:[esp+1C],cl  
+
+0041483C   |.  8B5424 1C     |mov edx,dword ptr ss:[esp+1C]  
+
+00414840   |.  52            |push edx  
+
+00414841   |.  8D4C24 10     |lea ecx,dword ptr ss:[esp+10]  
+
+00414845   |.  E8 0E310100   |call <jmp.&MFC42.#6662_CString::Find>           ;  看有没有 A,B,C,D..............Z  
+
+0041484A   |.  3BC5          |cmp eax,ebp  
+
+0041484C   |.  0F85 ED010000 |jnz Memory_B.00414A3F                             ;  看有没有大写字母没有继续找有就失败  
+
+00414852   |.  43            |inc ebx  
+
+00414853   |.  83FB 1A       |cmp ebx,1A  
+
+00414856   |.^ 7C D9         \jl short Memory_B.00414831  
+
+00414858   |.  56            push esi  
+
+00414859   |.  57            push edi  
+
+0041485A   |.  8D4C24 1C     lea ecx,dword ptr ss:[esp+1C]  
+
+0041485E   |.  E8 AB2C0100   call <jmp.&MFC42.#540_CString::CString>  
+
+00414863   |.  8D4C24 18     lea ecx,dword ptr ss:[esp+18]  
+
+00414867   |.  C64424 50 02  mov byte ptr ss:[esp+50],2  
+
+0041486C   |.  E8 9D2C0100   call <jmp.&MFC42.#540_CString::CString>  
+
+00414871   |.  8D4C24 14     lea ecx,dword ptr ss:[esp+14]  
+
+00414875   |.  C64424 50 03  mov byte ptr ss:[esp+50],3  
+
+0041487A   |.  E8 8F2C0100   call <jmp.&MFC42.#540_CString::CString>  
+
+0041487F   |.  8D4424 20     lea eax,dword ptr ss:[esp+20]  
+
+00414883   |.  B3 04         mov bl,4                                          ;  BL=4  
+
+00414885   |.  6A 05         push 5  
+
+00414887   |.  50            push eax  
+
+00414888   |.  8D4C24 18     lea ecx,dword ptr ss:[esp+18]                     ;  eCx=假码  
+
+0041488C   |.  885C24 58     mov byte ptr ss:[esp+58],bl  
+
+00414890   |.  E8 9D2C0100   call <jmp.&MFC42.#4129_CString::Left>  
+
+00414895   |.  50            push eax                                          ;  EAX=前 5 位注册码  
+
+00414896   |.  8D4C24 20     lea ecx,dword ptr ss:[esp+20]  
+
+0041489A   |.  C64424 54 05  mov byte ptr ss:[esp+54],5  
+
+0041489F   |.  E8 5E2C0100   call <jmp.&MFC42.#858_CString::operator=>  
+
+004148A4   |.  8D4C24 20     lea ecx,dword ptr ss:[esp+20]  
+
+004148A8   |.  885C24 50     mov byte ptr ss:[esp+50],bl  
+
+004148AC   |.  E8 4B2C0100   call <jmp.&MFC42.#800_CString::~CString>  
+
+004148B1   |.  8D4C24 20     lea ecx,dword ptr ss:[esp+20]  
+
+004148B5   |.  6A 05         push 5  
+
+004148B7   |.  51            push ecx  
+
+004148B8   |.  8D4C24 18     lea ecx,dword ptr ss:[esp+18]  
+
+004148BC   |.  E8 BF2F0100   call <jmp.&MFC42.#5710_CString::Right>  
+
+004148C1   |.  50            push eax                                          ;  EAX=后 5 位注册码  
+
+004148C2   |.  8D4C24 18     lea ecx,dword ptr ss:[esp+18]  
+
+004148C6   |.  C64424 54 06  mov byte ptr ss:[esp+54],6  
+
+004148CB   |.  E8 322C0100   call <jmp.&MFC42.#858_CString::operator=>  
+
+004148D0   |.  8D4C24 20     lea ecx,dword ptr ss:[esp+20]  
+
+004148D4   |.  885C24 50     mov byte ptr ss:[esp+50],bl  
+
+004148D8   |.  E8 1F2C0100   call <jmp.&MFC42.#800_CString::~CString>  
+
+004148DD   |.  6A 05         push 5  
+
+004148DF   |.  8D5424 24     lea edx,dword ptr ss:[esp+24]  
+
+004148E3   |.  6A 06         push 6  
+
+004148E5   |.  52            push edx  
+
+004148E6   |.  8D4C24 1C     lea ecx,dword ptr ss:[esp+1C]  
+
+004148EA   |.  E8 63300100   call <jmp.&MFC42.#4278_CString::Mid>              ;  第 2 组首 5 位  
+
+004148EF   |.  50            push eax  
+
+004148F0   |.  8D4C24 1C     lea ecx,dword ptr ss:[esp+1C]  
+
+004148F4   |.  C64424 54 07  mov byte ptr ss:[esp+54],7  
+
+004148F9   |.  E8 042C0100   call <jmp.&MFC42.#858_CString::operator=>  
+
+004148FE   |.  8D4C24 20     lea ecx,dword ptr ss:[esp+20]  
+
+00414902   |.  885C24 50     mov byte ptr ss:[esp+50],bl  
+
+00414906   |.  E8 F12B0100   call <jmp.&MFC42.#800_CString::~CString>  
+
+0041490B   |.  8B7C24 1C     mov edi,dword ptr ss:[esp+1C]                     ;  EDI=前 5 位  
+
+0041490F   |.  8BCD          mov ecx,ebp  
+
+00414911   |.  33C0          xor eax,eax                                       ;  EAX=0  
+
+00414913   |.  8D5424 24     lea edx,dword ptr ss:[esp+24]  
+
+00414917   |.  F2:AE         repne scas byte ptr es:[edi]  
+
+00414919   |.  F7D1          not ecx  
+
+0041491B   |.  2BF9          sub edi,ecx                                       ;  EDI=前 5 位  
+
+0041491D   |.  8BC1          mov eax,ecx  
+
+0041491F   |.  8BF7          mov esi,edi                                       ;  ESI=EDI=前 5 位  
+
+00414921   |.  8BFA          mov edi,edx  
+
+00414923   |.  8D5424 30     lea edx,dword ptr ss:[esp+30]  
+
+00414927   |.  C1E9 02       shr ecx,2                                         ;  ECX SHR 2  
+
+0041492A   |.  F3:A5         rep movs dword ptr es:[edi],dword ptr ds:[esi]  
+
+0041492C   |.  8BC8          mov ecx,eax                                       ;  ECX=EAX=6  
+
+0041492E   |.  33C0          xor eax,eax                                       ;  EAX=0  
+
+00414930   |.  83E1 03       and ecx,3                                         ;  ECX AND 3=2  
+
+00414933   |.  F3:A4         rep movs byte ptr es:[edi],byte ptr ds:[esi]  
+
+00414935   |.  8B7C24 18     mov edi,dword ptr ss:[esp+18]                     ;  第 2 组首 5 位  
+
+00414939   |.  8BCD          mov ecx,ebp  
+
+0041493B   |.  F2:AE         repne scas byte ptr es:[edi]  
+
+0041493D   |.  F7D1          not ecx  
+
+0041493F   |.  2BF9          sub edi,ecx  
+
+00414941   |.  8BC1          mov eax,ecx  
+
+00414943   |.  8BF7          mov esi,edi  
+
+00414945   |.  8BFA          mov edi,edx  
+
+00414947   |.  C1E9 02       shr ecx,2                                         ;  ECX SHR 2  
+
+0041494A   |.  F3:A5         rep movs dword ptr es:[edi],dword ptr ds:[esi]  
+
+0041494C   |.  8BC8          mov ecx,eax  
+
+0041494E   |.  33C0          xor eax,eax                                       ;  EAX=0  
+
+00414950   |.  83E1 03       and ecx,3                                         ;  ECX AND 3=2
+```
+
+
+
+# Memory_B.00414953 - 004149AE 汇编分析与注册机
+
+## 汇编代码分析
+
+```asm
+00414953   |.  8D5424 3C     lea edx,dword ptr ss:[esp+3C]  
+
+00414957   |.  F3:A4         rep movs byte ptr es:[edi],byte ptr ds:[esi]  
+
+00414959   |.  8B7C24 14     mov edi,dword ptr ss:[esp+14]                   ;  EDI=后 5 位注册码  
+
+0041495D   |.  8BCD          mov ecx,ebp  
+
+0041495F   |.  F2:AE         repne scas byte ptr es:[edi]  
+
+00414961   |.  F7D1          not ecx  
+
+00414963   |.  2BF9          sub edi,ecx  
+
+00414965   |.  8BC1          mov eax,ecx  
+
+00414967   |.  8BF7          mov esi,edi                                     ;  ESI=EDI=前 5 位  
+
+00414969   |.  8BFA          mov edi,edx  
+
+0041496B   |.  C1E9 02       shr ecx,2                                       ;  ECX SHR 2  
+
+0041496E   |.  F3:A5         rep movs dword ptr es:[edi],dword ptr ds:[esi]  
+
+00414970   |.  8BC8          mov ecx,eax  
+
+00414972   |.  83E1 03       and ecx,3  
+
+00414975   |.  F3:A4         rep movs byte ptr es:[edi],byte ptr ds:[esi]  
+
+00414977   |.  8B3D 94D64200 mov edi,dword ptr ds:[<&MSVCRT.atoi>]          ;  msvcrt.atoi 挑选整数的函数  
+
+0041497D   |.  8D4C24 24     lea ecx,dword ptr ss:[esp+24]  
+
+00414981   |.  51            push ecx                                        ;  /s  
+
+00414982   |.  FFD7          call edi                                        ;  \\atoi  
+
+00414984   |.  8D5424 34     lea edx,dword ptr ss:[esp+34]  
+
+00414988   |.  8BE8          mov ebp,eax                                     ;  EBP=第一组 5 位码变为整数  
+
+0041498A   |.  52            push edx  
+
+0041498B   |.  FFD7          call edi  
+
+0041498D   |.  8BF0          mov esi,eax                                     ;  ESI=第 2 组 5 位码变为整数(从第 7 位取)  
+
+0041498F   |.  8D4424 44     lea eax,dword ptr ss:[esp+44]  
+
+00414993   |.  50            push eax  
+
+00414994   |.  FFD7          call edi                                        ;  EAX=后 5 位注册码变为整数  
+
+00414996   |.  33F5          xor esi,ebp                                     ;  ESI^EBP  
+
+00414998   |.  83C4 0C       add esp,0C  
+
+0041499B   |.  81F6 ACD30000 xor esi,0D3AC                                   ;  ESI^0D3AC  
+
+004149A1   |.  C64424 50 03  mov byte ptr ss:[esp+50],3  
+
+004149A6   |.  5F            pop edi  
+
+004149A7   |.  3BF0          cmp esi,eax                                     ;  ESI==EAX 关键比较  
+
+004149A9   |.  5E            pop esi  
+
+004149AA   |.  8D4C24 0C     lea ecx,dword ptr ss:[esp+C]  
+
+004149AE   |.  75 56         jnz short Memory_B.00414A06  
+```
+
+## 总结
+
+根据上述算法很容易得到注册机，下面是注册机 C 代码。
+
+## 注册机 C 代码
+
+```c
+#include <stdlib.h>
+#include <stdio.h>
+#include <iostream.h>
+#include <string.h>
+
+void main( void ) {
+    char str1[6],str2[6];
+    int i1,i2,i3;
+    char *s1=str1;
+    char *s2=str2;
+    
+    cout<<"请输入数字首位必须带-"<<endl;
+    cin>>s1;
+    if(strlen(s1)>5||strlen(s1)<5) {
+        cout<<"必须是 5 位";
+        return;
+    }
+    
+    cin>>s2;
+    if(strlen(s2)>5||strlen(s2)<5) {
+        cout<<"必须是 5 位";
+        return;
+    }
+    
+    /* Test of atoi */
+    i1 = atoi( s1 );
+    i2 = atoi( s2 );
+    i3=i1^i2;
+    i3=i3^0x0D3AC;
+    cout<<""<<i1<<"\*"<<i2<<"\*"<<"-"<<i3<<endl;
+    cout<<"\*代表任意非字母字符或数字"<<endl;
+}
+```
+
+## 可用的注册码
+
+-12312-456456-50865
+
+## 注册信息
+
+注册信息保留在注册表的 `HKLM_SOFTWARE_MemIdle_MemIdleSN`。删除后提示未注册。
