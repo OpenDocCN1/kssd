@@ -1,0 +1,292 @@
+
+```asm
+FD_Find_Device_Driver:
+FD_Find_Device_Driver_Arg_Win32Api       equ 08h
+    push ebp
+    mov ebp, esp
+    
+    push ebx
+    push ecx
+    push edx
+    push esi
+    push edi
+    
+    mov ebx, dword ptr [ebp+FD_Find_Device_Driver_Arg_Win32Api]
+    assume ebx : ptr WIN32APIBASE
+    
+    ;; check softice on unknow system
+    push NULL
+    push FILE_ATTRIBUTE_NORMAL
+    push OPEN_EXISTING
+    push NULL
+    push FILE_SHARE_READ + FILE_SHARE_WRITE
+    push GENERIC_READ + GENERIC_WRITE
+    call FD_Find_Device_Driver_Str1
+        db "\\.\\SIWVID",0
+    FD_Find_Device_Driver_Str1:
+    call dword ptr [ebx].xCreateFileA
+    cmp eax, INVALID_HANDLE_VALUE
+    jnz Found_FD_Find_Device_Driver
+    
+    ;; check softice 4.05 on win2k
+    push NULL
+    push FILE_ATTRIBUTE_NORMAL
+    push OPEN_EXISTING
+    push NULL
+    push FILE_SHARE_READ + FILE_SHARE_WRITE
+    push GENERIC_READ + GENERIC_WRITE
+    call FD_Find_Device_Driver_Str2
+        db "\\.\\NTICE",0
+    FD_Find_Device_Driver_Str2:
+    call dword ptr [ebx].xCreateFileA
+    cmp eax, INVALID_HANDLE_VALUE
+    jnz Found_FD_Find_Device_Driver
+    
+    ;; check softice on win9x
+    push NULL
+    push FILE_ATTRIBUTE_NORMAL
+    push OPEN_EXISTING
+    push NULL
+    push FILE_SHARE_READ + FILE_SHARE_WRITE
+    push GENERIC_READ + GENERIC_WRITE
+    call FD_Find_Device_Driver_Str3
+        db "\\.\\SICE",0
+    FD_Find_Device_Driver_Str3:
+    call dword ptr [ebx].xCreateFileA
+    cmp eax, INVALID_HANDLE_VALUE
+    jnz Found_FD_Find_Device_Driver    
+    
+    ;; check softice on win9x
+    push NULL
+    push FILE_ATTRIBUTE_NORMAL
+    push OPEN_EXISTING
+    push NULL
+    push FILE_SHARE_READ + FILE_SHARE_WRITE
+    push GENERIC_READ + GENERIC_WRITE
+    call FD_Find_Device_Driver_Str4
+        db "\\.\\SIWDEBUG",0
+    FD_Find_Device_Driver_Str4:
+    call dword ptr [ebx].xCreateFileA
+    push eax
+    call dword ptr [ebx].xGetLastError
+    test al, 032h
+    pop eax
+    jz Found_FD_Find_Device_Driver
+    
+    ;; check regmon on win9x
+    push NULL
+    push FILE_ATTRIBUTE_NORMAL
+    push OPEN_EXISTING
+    push NULL
+    push FILE_SHARE_READ + FILE_SHARE_WRITE
+    push GENERIC_READ + GENERIC_WRITE
+    call FD_Find_Device_Driver_Str5
+        db "\\.\\REGVXD",0
+    FD_Find_Device_Driver_Str5:
+    call dword ptr [ebx].xCreateFileA     
+    cmp eax, INVALID_HANDLE_VALUE
+    jnz Found_FD_Find_Device_Driver
+    
+    ;; check RegMON
+    push NULL
+    push FILE_ATTRIBUTE_NORMAL
+    push OPEN_EXISTING
+    push NULL
+    push FILE_SHARE_READ + FILE_SHARE_WRITE
+    push GENERIC_READ + GENERIC_WRITE
+    call FD_Find_Device_Driver_Str6
+        db "\\.\\FILEM",0
+    FD_Find_Device_Driver_Str6:
+    call dword ptr [ebx].xCreateFileA       
+    cmp eax, INVALID_HANDLE_VALUE
+    jnz Found_FD_Find_Device_Driver
+    
+    ;; check TRW
+    push NULL
+    push FILE_ATTRIBUTE_NORMAL
+    push OPEN_EXISTING
+    push NULL
+    push FILE_SHARE_READ + FILE_SHARE_WRITE
+    push GENERIC_READ + GENERIC_WRITE
+    call FD_Find_Device_Driver_Str7
+        db "\\.\\TRW",0
+    FD_Find_Device_Driver_Str7:
+    call dword ptr [ebx].xCreateFileA       
+    cmp eax, INVALID_HANDLE_VALUE
+    jnz Found_FD_Find_Device_Driver        
+        
+    ;; check softice extender
+    push NULL
+    push FILE_ATTRIBUTE_NORMAL
+    push OPEN_EXISTING
+    push NULL
+    push FILE_SHARE_READ + FILE_SHARE_WRITE
+    push GENERIC_READ + GENERIC_WRITE
+    call FD_Find_Device_Driver_Str8
+        db "\\.\\ICEEXT",0
+    FD_Find_Device_Driver_Str8:
+    call dword ptr [ebx].xCreateFileA       
+    cmp eax, INVALID_HANDLE_VALUE
+    jnz Found_FD_Find_Device_Driver 
+    jmp NotFound_FD_Find_Device_Driver
+    
+Exit_FD_Find_Device_Driver:     
+    pop edi
+    pop esi
+    pop edx
+    pop ecx
+    pop ebx
+    assume ebx : nothing     
+    mov esp, ebp
+    pop ebp
+    retn 04h
+NotFound_FD_Find_Device_Driver:
+    xor eax, eax
+    jmp Exit_FD_Find_Device_Driver
+Found_FD_Find_Device_Driver:
+    push eax
+    assume ebx : ptr WIN32APIBASE
+    call dword ptr [ebx].xCloseHandle
+    assume ebx : nothing
+    mov eax, 1
+    jmp Exit_FD_Find_Device_Driver
+End_FD_Find_Device_Driver:
+```
+
+利用 `int3` 中断引起异常。如果，正常运行则触发异常。
+
+代码:
+
+```asm
+FD_Exception_Int3:
+    call Get_FD_Exception_Int3_Eip
+    Get_FD_Exception_Int3_Eip:
+    pop eax
+    add eax, offset FD_Exception_Int3_Exception - offset Get_FD_Exception_Int3_Eip
+    ;; setup exception
+    assume fs : nothing
+    push eax
+    push dword ptr fs : [0]
+    mov dword ptr fs : [0], esp
+    ;; reset eax
+    xor eax, eax
+    int 03h
+    ;; unsetup exception
+    pop dword ptr fs : [0]
+    add esp, 04h
+    
+    ;; check the flag
+    test eax, eax
+    jz Found_FD_Exception_Int3
+    jmp NotFound_FD_Exception_Int3
+FD_Exception_Int3_Exception:
+    mov eax, dword ptr [esp+0ch]
+    ;; eax = ContextRecord
+    assume eax : ptr CONTEXT
+    mov dword ptr [eax].regEax, 0FFFFFFFFh
+    inc dword ptr [eax].regEip
+    xor eax, eax
+    assume eax : nothing
+    retn
+Exit_FD_Exception_Int3:
+    retn 0h
+NotFound_FD_Exception_Int3:
+    xor eax, eax
+    jmp Exit_FD_Exception_Int3
+Found_FD_Exception_Int3:
+    mov eax, 1
+    jmp Exit_FD_Exception_Int3         
+End_FD_Exception_Int3:
+```
+
+通过对 `EFLAGS` 中的 `TF` 的检测来确定是否存在调试器。当 `TF=1` 的时会触发一个单步执行异常，可以通过安装异常处理针来捕获。
+
+代码:
+
+```asm
+FD_Exception_Popf:
+    push ebx
+
+    call Get_FD_Exception_Popf_Eip
+    Get_FD_Exception_Popf_Eip:
+    pop eax
+    add eax, offset FD_Exception_Popf_Exception - offset Get_FD_Exception_Popf_Eip
+    assume fs : nothing     
+    push eax
+    push dword ptr fs:[0]
+    mov dword ptr fs:[0], esp
+    ;; reset eax
+    xor eax, eax
+    pushf
+    mov dword ptr [esp], 0100h
+    popf
+    nop
+FD_Exception_Popf_NextEip:
+    pop dword ptr fs:[0]
+    add esp, 04h
+    
+    ;; check the flag
+    test eax, eax
+    jz Found_FD_Exception_Popf
+    jmp NotFound_FD_Exception_Popf
+    
+FD_Exception_Popf_Exception:
+    mov eax, dword ptr [esp+0ch]
+    assume eax : ptr CONTEXT
+    mov dword ptr [eax].regEax, 0FFFFFFFFh
+    call Get_FD_Exception_Popf_Exception_Eip2
+    Get_FD_Exception_Popf_Exception_Eip2:
+    pop ebx
+    sub ebx, offset Get_FD_Exception_Popf_Exception_Eip2 - offset FD_Exception_Popf_NextEip
+    mov dword ptr [eax].regEip, ebx
+    xor eax, eax
+    retn
+    assume eax : nothing
+Exit_FD_Exception_Popf:
+    pop ebx
+    retn 0h
+NotFound_FD_Exception_Popf:
+    xor eax, eax
+    jmp Exit_FD_Exception_Popf
+Found_FD_Exception_Popf:
+    mov eax, 1
+    jmp Exit_FD_Exception_Popf
+End_FD_Exception_Popf:
+```
+
+触发 `OutputDebugString` 的错误。如果调试器存在则 `GetLastError` 为 0。
+
+代码:
+
+```asm
+FD_OutputDebugString:
+FD_OutputDebugString_Arg_Win32Api        equ 04h
+    
+    mov eax, dword ptr [esp+FD_OutputDebugString_Arg_Win32Api]
+    push ebx
+    mov ebx, eax
+    assume ebx : ptr WIN32APIBASE
+    call FD_OutputDebugString_Str
+        db 0
+    FD_OutputDebugString_Str:
+    call dword ptr [ebx].xOutputDebugStringA
+    call dword ptr [ebx].xGetLastError 
+    test eax, eax    
+    jnz NotFound_FD_OutputDebugString
+    inc eax
+    pop ebx
+    assume ebx : nothing
+    retn 04h
+NotFound_FD_OutputDebugString:
+    pop ebx
+    xor eax, eax
+    retn 04h
+    
+End_FD_OutputDebugString:
+```
+
+`Ollydbg` 允许设置一个内存访问/写入断点。它通过页面保护来实现。页面保护提供了当应用程序的某块内存被访问时获得通知。页面保护通过 `PAGE_GUARD` 页面保护修改符来设置。如果访问的内存是受保护的将会产生一个 `STATUS_GUARD_PAGE_VIOLATION`(`0x80000001`) 异常。
+
+如果进程被 `Ollydbg` 调试并且受保护的页面被访问，将不会抛出异常。访问将会被当作内存断点来处理。
+
+代码:
