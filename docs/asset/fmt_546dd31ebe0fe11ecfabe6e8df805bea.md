@@ -1,0 +1,121 @@
+
+# Better File Rename V5.3.1 算法逆向+系列注册机源码
+
+> 原文：[`www.pediy.com/kssd/pediy10/76477.html`](https://www.pediy.com/kssd/pediy10/76477.html)
+
+【破文标题】Better File Rename V5.3.1 算法逆向+系列注册机源码
+
+【破文作者】Playboysen
+
+【作者邮箱】playboysen@126.com
+
+【破解工具】PEiD, OD
+
+【破解平台】Windows XP
+
+【软件大小】1.6 MB
+
+【软件授权】共享版($19.95)
+
+【软件语言】英文
+
+【原版下载】http://www.publicspace.net/windows/BetterFileRename/download.html
+
+【保护方式】注册码
+
+【软件简介】一款 WINDOWS 资源管理器的扩展外壳，可以帮助你快速简便地修改文件名和文件修改时间。功能有：强大的命名方式，文字、日期和序列数字的添加、去除、插入和替换；支持数字列表的创建、改变、添加、抽取等；支持文件建立日期、修正日期、EXIF 中日期的修改；可以分别处理文件名和扩展名
+
+【破解声明】一点心得，愿与大家分享 o(∩\_\∩)o 版权所有，转载注明作者！
+
+【破解内容】
+
+昨天整理一些试题材料（一二百份文件）需要修改一下文件名，就找了一款别人推荐的文件重命名的软件，很好用，但是不注册每次只能修改 10 个文件名，害我折腾了半个多小时才弄完，火气我只不过是想用一次，就仅仅一次，都不给机会！干脆，拉出来练手！
+
+Better File Rename V5.3.1（081103 更新），无壳，未注册启动有 NAG，功能限制，单一注册码保护方式，有错误提示，OD 载入查找字符串无果，怀疑是字符串加密或者软件多数功能并不在主程序中，查看软件根目录有同名 dll 文件可疑之处。
+
+踩点完毕，开工。OD 载入后运行至出现 NAG，下 `MessageBoxA` 和 `MessageBoxW` 断点（以防万一），随便填写注册码注册后断下，逆跟踪至此：
+
+代码:
+
+```
+1000D705  |> \6A 00            push 0                   ;  错误对话框
+1000D707  |.  68 00820910      push Bfr_1.10098200       ;  error
+1000D70C  |.  68 B4810910      push Bfr_1.100981B4       ;  the registration code is not correct.
+1000D711  |.  8B8D 94FEFFFF    mov ecx,dword ptr ss:\[ebp-16C\]
+1000D717  |.  E8 11370600      call Bfr_1.10070E2D
+1000D71C  |>  C645 FC 00       mov byte ptr ss:\[ebp-4\],0
+1000D720  |.  8D8D 4CFFFFFF    lea ecx,dword ptr ss:\[ebp-B4\]
+1000D726  |.  E8 5E520600      call Bfr_1.10072989
+1000D72B  |>  C745 FC 09000000 mov dword ptr ss:\[ebp-4\],9
+```
+
+看前面的基址 dll 文件，符合我们先前猜测。此段首下段，重新加载并注册，单步跟踪：
+
+代码:
+
+```
+1000D59B  |.  C645 FC 01       mov byte ptr ss:\[ebp-4\],1
+1000D59F  |.  8D8D 4CFFFFFF    lea ecx,dword ptr ss:\[ebp-B4\]
+1000D5A5  |.  E8 FA580600      call Bfr_1.10072EA4                    ;  取注册码
+1000D5AA  |.  8D8D 4CFFFFFF    lea ecx,dword ptr ss:\[ebp-B4\]
+1000D5B0  |.  E8 31FC0500      call Bfr_1.1006D1E6
+1000D5B5  |.  C785 48FFFFFF 00>mov dword ptr ss:\[ebp-B8\],0
+1000D5BF  |.  EB 0F            jmp short Bfr_1.1000D5D0
+1000D5C1  |>  8B8D 48FFFFFF    /mov ecx,dword ptr ss:\[ebp-B8\]       ;  这一段循环目的是加密所输入的注册码
+1000D5C7  |.  83C1 01          |add ecx,1                             ;  每循环一次计数器加 1
+1000D5CA  |.  898D 48FFFFFF    |mov dword ptr ss:\[ebp-B8\],ecx
+1000D5D0  |>  8B95 4CFFFFFF     mov edx,dword ptr ss:\[ebp-B4\]       ;  注册码放入
+1000D5D6  |.  8B42 F8          |mov eax,dword ptr ds:\[edx-8\]        ;  注册码长度放入
+1000D5D9  |.  8985 9CFEFFFF    |mov dword ptr ss:\[ebp-164\],eax
+1000D5DF  |.  8B8D 48FFFFFF    |mov ecx,dword ptr ss:\[ebp-B8\]       ;  计数器
+1000D5E5  |.  3B8D 9CFEFFFF    |cmp ecx,dword ptr ss:\[ebp-164\]      ;  比较是否加密完成
+1000D5EB  |.  7D 3E            |jge short Bfr_1.1000D62B
+1000D5ED  |.  8B95 48FFFFFF    |mov edx,dword ptr ss:\[ebp-B8\]       ;  计数器的值放入 EDX
+1000D5F3  |.  8B85 4CFFFFFF    |mov eax,dword ptr ss:\[ebp-B4\]       ;  加密后的注册码放入 EAX
+1000D5F9  |.  66:8B0C50        |mov cx,word ptr ds:\[eax+edx\*2\]     ;  从前到后依次取注册码的每一位
+1000D5FD  |.  66:898D 98FEFFFF |mov word ptr ss:\[ebp-168\],cx
+1000D604  |.  8B95 98FEFFFF    |mov edx,dword ptr ss:\[ebp-168\]      ;  取出的每一位单独放入 EDX
+1000D60A  |.  81E2 FFFF0000    |and edx,0FFFF
+1000D610  |.  0395 48FFFFFF    |add edx,dword ptr ss:\[ebp-B8\]       ;  取出的注册码的每一位+（其所在的位数-1）
+1000D616  |.  52               |push edx
+1000D617  |.  8B85 48FFFFFF    |mov eax,dword ptr ss:\[ebp-B8\]       ;  计数器的值放入
+1000D61D  |.  50               |push eax
+1000D61E  |.  8D8D 4CFFFFFF    |lea ecx,dword ptr ss:\[ebp-B4\]
+1000D624  |.  E8 B1580600      |call Bfr_1.10072EDA
+1000D629  |.^ EB 96            \\jmp short Bfr_1.1000D5C1
+1000D62B  |>  51               push ecx
+1000D62C  |.  8BCC             mov ecx,esp
+1000D62E  |.  89A5 A0FEFFFF    mov dword ptr ss:\[ebp-160\],esp
+1000D634  |.  8D95 4CFFFFFF    lea edx,dword ptr ss:\[ebp-B4\]        ;  出现加密后的假码
+1000D63A  |.  52               push edx
+1000D63B  |.  E8 B6500600      call Bfr_1.100726F6
+1000D640  |.  8985 90FEFFFF    mov dword ptr ss:\[ebp-170\],eax       
+1000D646  |.  E8 5549FFFF      call Bfr_1.10001FA0                   ;  跟踪发现此为关键 call
+1000D64B  |.  83C4 04          add esp,4
+1000D64E  |.  8985 8CFEFFFF    mov dword ptr ss:\[ebp-174\],eax
+1000D654  |.  8B85 8CFEFFFF    mov eax,dword ptr ss:\[ebp-174\]
+1000D65A  |.  8985 50FFFFFF    mov dword ptr ss:\[ebp-B0\],eax
+1000D660  |.  83BD 50FFFFFF 00 cmp dword ptr ss:\[ebp-B0\],0
+1000D667  |.  75 2A            jnz short Bfr_1.1000D693              ;  关键跳
+1000D669  |.  8D8D 4CFFFFFF    lea ecx,dword ptr ss:\[ebp-B4\]
+1000D66F  |.  51               push ecx
+1000D670  |.  8B8D 94FEFFFF    mov ecx,dword ptr ss:\[ebp-16C\]
+1000D676  |.  83C1 5C          add ecx,5C
+1000D679  |.  E8 52540600      call Bfr_1.10072AD0
+1000D67E  |.  68 21300000      push 3021
+1000D683  |.  8B8D 94FEFFFF    mov ecx,dword ptr ss:\[ebp-16C\]
+1000D689  |.  E8 3A1B0600      call Bfr_1.1006F1C8
+1000D68E  |.  E9 89000000      jmp Bfr_1.1000D71C
+1000D693  |>  83BD 50FFFFFF 00 cmp dword ptr ss:\[ebp-B0\],0
+1000D69A  |.  7E 69            jle short Bfr_1.1000D705              ;  关键跳
+......
+1000D705  |>  6A 00            push 0                                ; /错误对话框
+1000D707  |.  68 00820910      push Bfr_1.10098200                   ; |error
+1000D70C  |.  68 B4810910      push Bfr_1.100981B4                   ; |the registration code is not correct.
+1000D711  |.  8B8D 94FEFFFF    mov ecx,dword ptr ss:\[ebp-16C\]       ; |
+1000D717  |.  E8 11370600      call Bfr_1.10070E2D                   ; \\Bfr_1.10070E2D
+```
+
+F7 跟进 `1000D646` 的关键 call 至此:
+
+代码:
