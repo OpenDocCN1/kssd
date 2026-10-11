@@ -1,0 +1,1442 @@
+
+# 某群发软件算法分析，提取核心代码做汇编注册机
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-368.htm`](https://www.pediy.com/kssd/pediy08/pediy8-368.htm)
+
+## 文章信息
+
+- **文章标题**: 某群发软件算法分析，提取核心代码做汇编注册机
+- **文章作者**: `laomms`
+- **软件名称**: `XXX`
+- **软件大小**: 184K
+- **下载地址**: 自己搜索下载
+- **加壳方式**: `ASPACK`
+- **保护方式**: 加客，重启验证
+- **编写语言**: `MFC`
+- **使用工具**: `IDA`，`OD`
+- **操作平台**: `WINXP SP2`
+- **作者声明**: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
+
+## 详细过程
+
+某群发软件，`PEID` 查看，是 `ASPACK` 加壳，弱壳，直接跟到入口下断分析算法：
+
+```
+0040BA76    8D85 8C030000   LEA EAX,DWORD PTR SS:[EBP+38C]         ; 注册码入栈
+0040BA7C    50              PUSH EAX
+0040BA7D    8D85 80030000   LEA EAX,DWORD PTR SS:[EBP+380]
+0040BA83    50              PUSH EAX
+0040BA84    E8 F7530200     CALL <wangad._strncpy>                 ; 复制到内存地址
+0040BA89    6A 10           PUSH 10
+0040BA8B    8D85 80030000   LEA EAX,DWORD PTR SS:[EBP+380]
+0040BA91    53              PUSH EBX
+0040BA92    50              PUSH EAX
+0040BA93    889D 88030000   MOV BYTE PTR SS:[EBP+388],BL
+0040BA99    E8 5D460200     CALL <wangad._strtol>                  ; 转换为整数
+0040BA9E    6A 10           PUSH 10
+0040BAA0    8945 BC         MOV DWORD PTR SS:[EBP-44],EAX
+0040BAA3    8D85 94030000   LEA EAX,DWORD PTR SS:[EBP+394]
+0040BAA9    53              PUSH EBX
+0040BAAA    50              PUSH EAX
+0040BAAB    E8 4B460200     CALL <wangad._strtol>
+0040BAB0    8945 C0         MOV DWORD PTR SS:[EBP-40],EAX
+0040BAB3    8D85 8C030000   LEA EAX,DWORD PTR SS:[EBP+38C]
+0040BAB9    50              PUSH EAX
+0040BABA    E8 1FFDFFFF     CALL <wangad.sub_40B7DE>               ; 关键算法，判断返回的 EAX 值是否为非 0，跟入
+0040BABF    83C4 28         ADD ESP,28
+0040BAC2    85C0            TEST EAX,EAX
+0040BAC4    74 1A           JE SHORT <wangad.loc_40BAE0>           ; 跳错
+0040BAC6    53              PUSH EBX
+=============关键算法
+0040B7DE >  68 B8000000     PUSH 0B8                                ; sub_40B7DE
+0040B7E3    B8 33544400     MOV EAX,<wangad.loc_445433>
+0040B7E8    E8 0E270200     CALL <wangad.__EH_prolog3_GS>
+0040B7ED    8B45 08         MOV EAX,DWORD PTR SS:[EBP+8]
+0040B7F0    6A 10           PUSH 10
+0040B7F2    33DB            XOR EBX,EBX
+0040B7F4    53              PUSH EBX
+0040B7F5    50              PUSH EAX
+0040B7F6    E8 00490200     CALL <wangad._strtol>                   ; 注册码转整形
+0040B7FB    8BF0            MOV ESI,EAX
+0040B7FD    6A 07           PUSH 7
+0040B7FF    33C0            XOR EAX,EAX
+0040B801    885D CC         MOV BYTE PTR SS:[EBP-34],BL
+0040B804    59              POP ECX
+0040B805    8D7D CD         LEA EDI,DWORD PTR SS:[EBP-33]
+0040B808    F3:AB           REP STOS DWORD PTR ES:[EDI]
+0040B80A    66:AB           STOS WORD PTR ES:[EDI]
+0040B80C    AA              STOS BYTE PTR ES:[EDI]
+0040B80D    8D45 CC         LEA EAX,DWORD PTR SS:[EBP-34]
+0040B810    50              PUSH EAX
+0040B811    E8 28FCFFFF     CALL <wangad.@getMcode>                 ; 获取机器码 CALL
+0040B816    8D85 3CFFFFFF   LEA EAX,DWORD PTR SS:[EBP-C4]
+0040B81C    50              PUSH EAX
+0040B81D    E8 2BF4FFFF     CALL <wangad.@MakeHcode>                ; 在内存中写入特征码 01 23 45 67 89 AB CD EF FE DC BA 98 76 54 32 10
+0040B822    53              PUSH EBX
+0040B823    8D45 CC         LEA EAX,DWORD PTR SS:[EBP-34]
+0040B826    50              PUSH EAX
+0040B827    8D85 3CFFFFFF   LEA EAX,DWORD PTR SS:[EBP-C4]
+0040B82D    50              PUSH EAX
+0040B82E >  E8 49FDFFFF     CALL <wangad.@ChangeMcode>              ; 关键算法 1，机器码变换，跟入
+0040B833    8D85 3CFFFFFF   LEA EAX,DWORD PTR SS:[EBP-C4]
+0040B839    50              PUSH EAX
+0040B83A    E8 D3FDFFFF     CALL <wangad.@getstr>                   ; 关键算法 2，得到字符串，跟入
+0040B83F    6A 08           PUSH 8
+0040B841    8D45 94         LEA EAX,DWORD PTR SS:[EBP-6C]           ; 返回一个字符串
+0040B844    50              PUSH EAX
+0040B845    8D45 CC         LEA EAX,DWORD PTR SS:[EBP-34]
+0040B848    50              PUSH EAX
+0040B849    E8 32560200     CALL <wangad._strncpy>                  ; 复制到内存
+0040B84E    8A45 CC         MOV AL,BYTE PTR SS:[EBP-34]             ; 取首位进行下面比较
+0040B851    83C4 30         ADD ESP,30
+0040B854    3C 37           CMP AL,37
+0040B856    7C 04           JL SHORT <wangad.loc_40B85C>
+0040B858    3C 39           CMP AL,39
+0040B85A    7E 06           JLE SHORT <wangad.loc_40B862>
+0040B85C >  2C 61           SUB AL,61                                 ; loc_40B85C
+0040B85E    3C 05           CMP AL,5
+0040B860    77 04           JA SHORT <wangad.loc_40B866>
+0040B862 >  C645 CC 36      MOV BYTE PTR SS:[EBP-34],36             ; loc_40B862
+0040B866 >  6A 10           PUSH 10                                   ; loc_40B866
+0040B868    8D45 CC         LEA EAX,DWORD PTR SS:[EBP-34]            ; 首位变换后的结果
+0040B86B    53              PUSH EBX
+0040B86C    50              PUSH EAX
+0040B86D    885D D4         MOV BYTE PTR SS:[EBP-2C],BL
+0040B870    E8 86480200     CALL <wangad._strtol>                    ; 转整形
+0040B875    6A 10           PUSH 10
+0040B877    8D4D B8         LEA ECX,DWORD PTR SS:[EBP-48]
+0040B87A    51              PUSH ECX
+0040B87B    50              PUSH EAX
+0040B87C    A3 94CC4500     MOV DWORD PTR DS:[45CC94],EAX
+0040B881    E8 45900300     CALL <wangad.__itoa>                     ; 转成字符串
+0040B886    6A 10           PUSH 10
+0040B888    8D45 B8         LEA EAX,DWORD PTR SS:[EBP-48]
+0040B88B    53              PUSH EBX
+0040B88C    50              PUSH EAX
+0040B88D    E8 69480200     CALL <wangad._strtol>                    ; 转整形后在下面与假注册码进行运算
+0040B892    81C6 A679F3FF   ADD ESI,FFF379A6
+0040B898    81F6 DDAEEC04   XOR ESI,4ECAEDD
+0040B89E    81EE C78AA900   SUB ESI,0A98AC7
+0040B8A4    33C6            XOR EAX,ESI                               ; 这个结果必须为 0，即 EAX 必须等于 ESI
+0040B8A6    25 0000FFFF     AND EAX,FFFF0000
+0040B8AB    83C4 24         ADD ESP,24
+0040B8AE    F7D8            NEG EAX
+0040B8B0    1BC0            SBB EAX,EAX                               ; EAX 必须为 0
+0040B8B2    40              INC EAX                                   ; EAX 加 1
+0040B8B3    E8 C6260200     CALL <wangad.sub_42DF7E>
+0040B8B8    C3              RETN
+========================================ChangeMcode，关键算法 1
+0040B57C >  55              PUSH EBP                                  ; @ChangeMcode
+0040B57D    8BEC            MOV EBP,ESP
+0040B57F    53              PUSH EBX
+0040B580    56              PUSH ESI
+0040B581    57              PUSH EDI
+0040B582    8B7D 10         MOV EDI,DWORD PTR SS:[EBP+10]
+0040B585    85FF            TEST EDI,EDI
+0040B587    75 0B           JNZ SHORT <wangad.loc_40B594>
+0040B589    FF75 0C         PUSH DWORD PTR SS:[EBP+C]
+0040B58C    E8 1F340200     CALL <wangad._strlen>                    ; 取机器码长度
+0040B591    59              POP ECX
+0040B592    8BF8            MOV EDI,EAX
+0040B594 >  8B75 08         MOV ESI,DWORD PTR SS:[EBP+8]              ; loc_40B594
+0040B597    8B4E 10         MOV ECX,DWORD PTR DS:[ESI+10]
+0040B59A    8BC1            MOV EAX,ECX
+0040B59C    C1E8 03         SHR EAX,3
+0040B59F    8BD7            MOV EDX,EDI
+0040B5A1    8D0CF9          LEA ECX,DWORD PTR DS:[ECX+EDI*8]
+0040B5A4    C1E2 03         SHL EDX,3
+0040B5A7    83E0 3F         AND EAX,3F
+0040B5AA    3BCA            CMP ECX,EDX
+0040B5AC    894E 10         MOV DWORD PTR DS:[ESI+10],ECX
+0040B5AF    73 03           JNB SHORT <wangad.loc_40B5B4>
+```
+
+
+
+# 汇编代码片段
+
+## 0040B5B1 - 0040B611
+
+```asm
+0040B5B1    FF46 14         INC DWORD PTR DS:[ESI+14]  
+0040B5B4 >  6A 40           PUSH 40                       ; loc_40B5B4  
+0040B5B6    8BCF            MOV ECX,EDI  
+0040B5B8    C1E9 1D         SHR ECX,1D  
+0040B5BB    014E 14         ADD DWORD PTR DS:[ESI+14],ECX  
+0040B5BE    5B              POP EBX  
+0040B5BF    2BD8            SUB EBX,EAX  
+0040B5C1    3BFB            CMP EDI,EBX  
+0040B5C3    72 30           JB SHORT <wangad.loc_40B5F5>  
+0040B5C5    53              PUSH EBX  
+0040B5C6    FF75 0C         PUSH DWORD PTR SS:[EBP+C]  
+0040B5C9    8D4430 18       LEA EAX,DWORD PTR DS:[EAX+ESI+18]  
+0040B5CD    50              PUSH EAX  
+0040B5CE    E8 6D3A0200     CALL <wangad.@caclTempcode>         ; 机器码后面加两个特征码，可以跟入看怎么加的  
+0040B5D3    8D46 18         LEA EAX,DWORD PTR DS:[ESI+18]  
+0040B5D6    50              PUSH EAX  
+0040B5D7    56              PUSH ESI  
+0040B5D8    E8 98F6FFFF     CALL <wangad.@caclKeycode>         ; 核心算法，得到四个内存段值。跟入后是一段很长的代码，可以直接复制到注册机  
+0040B5DD    83C4 14         ADD ESP,14  
+0040B5E0    8BCB            MOV ECX,EBX  
+0040B5E2    8D43 3F         LEA EAX,DWORD PTR DS:[EBX+3F]  
+0040B5E5    EB 06           JMP SHORT <wangad.loc_40B5ED>  
+0040B5E7 >  83C1 40         ADD ECX,40                    ; loc_40B5E7  
+0040B5EA    83C0 40         ADD EAX,40  
+0040B5ED >  3BC7            CMP EAX,EDI                     ; loc_40B5ED  
+0040B5EF  ^ 72 F6           JB SHORT <wangad.loc_40B5E7>  
+0040B5F1    33C0            XOR EAX,EAX  
+0040B5F3    EB 02           JMP SHORT <wangad.loc_40B5F7>  
+0040B5F5 >  33C9            XOR ECX,ECX                     ; loc_40B5F5  
+0040B5F7 >  8B55 0C         MOV EDX,DWORD PTR SS:[EBP+C]   ; loc_40B5F7  
+0040B5FA    2BF9            SUB EDI,ECX  
+0040B5FC    57              PUSH EDI  
+0040B5FD    03CA            ADD ECX,EDX  
+0040B5FF    51              PUSH ECX  
+0040B600    8D4430 18       LEA EAX,DWORD PTR DS:[EAX+ESI+18]  
+0040B604    50              PUSH EAX  
+0040B605    E8 363A0200     CALL <wangad.@caclTempcode>     ;  
+0040B60A    83C4 0C         ADD ESP,0C  
+0040B60D    5F              POP EDI  
+0040B60E    5E              POP ESI  
+0040B60F    5B              POP EBX  
+0040B610    5D              POP EBP  
+0040B611    C3              RETN  
+```
+
+## getstr，关键算法 2
+
+```asm
+0040B612 >  55              PUSH EBP                          ; sub_40B612  
+0040B613    8BEC            MOV EBP,ESP  
+0040B615    83EC 0C         SUB ESP,0C  
+0040B618    A1 00A94500     MOV EAX,DWORD PTR DS:[45A900]  
+0040B61D    33C5            XOR EAX,EBP  
+0040B61F    8945 FC         MOV DWORD PTR SS:[EBP-4],EAX  
+0040B622    56              PUSH ESI  
+0040B623    8B75 08         MOV ESI,DWORD PTR SS:[EBP+8]  
+0040B626    57              PUSH EDI  
+0040B627    6A 08           PUSH 8  
+0040B629    8D7E 10         LEA EDI,DWORD PTR DS:[ESI+10]  
+0040B62C    8D45 F4         LEA EAX,DWORD PTR SS:[EBP-C]  
+0040B62F    57              PUSH EDI  
+0040B630    50              PUSH EAX  
+0040B631    E8 0A3A0200     CALL <wangad.unknown_libname_13>  ; 对机器码进行变换  
+0040B636    8B07            MOV EAX,DWORD PTR DS:[EDI]  
+0040B638    83C4 0C         ADD ESP,0C  
+0040B63B    C1E8 03         SHR EAX,3  
+0040B63E    6A 38           PUSH 38  
+0040B640    83E0 3F         AND EAX,3F  
+0040B643    59              POP ECX  
+0040B644    3BC1            CMP EAX,ECX  
+0040B646    72 03           JB SHORT <wangad.loc_40B64B>  
+0040B648    6A 78           PUSH 78  
+0040B64A    59              POP ECX  
+0040B64B >  2BC8            SUB ECX,EAX                       ; loc_40B64B  
+0040B64D    51              PUSH ECX  
+0040B64E    68 90934500     PUSH wangad.00459390  
+0040B653    56              PUSH ESI  
+0040B654    E8 23FFFFFF     CALL <wangad.sub_40B57C>          ; 机器码变换  
+0040B659    6A 08           PUSH 8  
+0040B65B    8D45 F4         LEA EAX,DWORD PTR SS:[EBP-C]  
+0040B65E    50              PUSH EAX  
+0040B65F    56              PUSH ESI  
+0040B660    E8 17FFFFFF     CALL <wangad.sub_40B57C>          ; 机器码变换  
+0040B665    8B46 0C         MOV EAX,DWORD PTR DS:[ESI+C]      ; 得到四个内存段，段 4  
+0040B668    6A 05           PUSH 5  
+0040B66A    59              POP ECX  
+0040B66B    33D2            XOR EDX,EDX  
+0040B66D    F7F1            DIV ECX                             ; /5  
+0040B66F    33D2            XOR EDX,EDX  
+0040B671    50              PUSH EAX                            ; 结果 1  
+0040B672    8B06            MOV EAX,DWORD PTR DS:[ESI]          ; 段 1  
+0040B674    C1E8 02         SHR EAX,2                           ; SHR 2  
+0040B677    50              PUSH EAX                            ; 结果 2  
+0040B678    8B46 04         MOV EAX,DWORD PTR DS:[ESI+4]        ; 段 2  
+0040B67B    6A 03           PUSH 3  
+0040B67D    59              POP ECX  
+0040B67E    F7F1            DIV ECX                             ; /3  
+0040B680    50              PUSH EAX                            ; 结果 3  
+0040B681    8B46 08         MOV EAX,DWORD PTR DS:[ESI+8]        ; 段 3  
+0040B684    D1E8            SHR EAX,1                           ; SHR 1  
+0040B686    50              PUSH EAX                            ; 结果 4  
+0040B687    8D46 58         LEA EAX,DWORD PTR DS:[ESI+58]  
+0040B68A    68 88994400     PUSH wangad.00449988                ; %x%x%x%x  
+0040B68F    50              PUSH EAX  
+0040B690    E8 26510200     CALL <wangad._sprintf>              ; 将四个结果连接输出字符串  
+0040B695    8B4D FC         MOV ECX,DWORD PTR SS:[EBP-4]  
+0040B698    83C4 30         ADD ESP,30  
+0040B69B    5F              POP EDI  
+0040B69C    C646 78 00      MOV BYTE PTR DS:[ESI+78],0  
+0040B6A0    33CD            XOR ECX,EBP  
+0040B6A2    5E              POP ESI  
+0040B6A3    E8 DB270200     CALL <wangad.sub_42DE83>  
+0040B6A8    C9              LEAVE  
+0040B6A9    C3              RETN  
+```
+
+## 0040B5D8 核心算法
+
+```asm
+0040AC75 >  55              PUSH EBP                ; @caclKeycode  
+0040AC76    8BEC            MOV EBP,ESP  
+0040AC78    83EC 40         SUB ESP,40  
+0040AC7B    53              PUSH EBX  
+0040AC7C    56              PUSH ESI  
+0040AC7D    57              PUSH EDI  
+0040AC7E    BE 01234567     MOV ESI,67452301  
+0040AC83    BF 89ABCDEF     MOV EDI,EFCDAB89  
+0040AC88    BA FEDCBA98     MOV EDX,98BADCFE  
+0040AC8D    BB 76543210     MOV EBX,10325476  
+0040B2BD    8DBC39 91D386EB LEA EDI,DWORD PTR DS:[ECX+EDI+EB86D391]  
+0040B2C4    037D E4         ADD EDI,DWORD PTR SS:[EBP-1C]  
+0040B2C7    C1C7 15         ROL EDI,15  
+0040B2CA    03FA            ADD EDI,EDX  
+0040B2CC    8B45 08         MOV EAX,DWORD PTR SS:[EBP+8]  
+0040B2CF    0130            ADD DWORD PTR DS:[EAX],ESI      ; 得到第一个内存段  
+0040B2D1    0178 04         ADD DWORD PTR DS:[EAX+4],EDI    ; 得到第二个内存段  
+0040B2D4    0150 08         ADD DWORD PTR DS:[EAX+8],EDX    ; 得到第三个内存段  
+```
+
+
+
+# 反汇编分析
+
+## 关键代码段
+
+  0040B2D7    0158 0C          ADD DWORD PTR DS:[EAX+C],EBX         ; 得到第四个内存段  
+  0040B2DA    5F              POP EDI  
+  0040B2DB    5E              POP ESI  
+  0040B2DC    5B              POP EBX  
+  0040B2DD    C9              LEAVE  
+  0040B2DE    C3              RETN  
+
+## 算法总结
+
+基本上是这样的，将机器码变换后经过计算得到四个内存段，然后改序运算后得到字符串。字符串的前 8 位就是注册码。
+
+其中 `0040B5D8` 处的核心算法非常重要，但是代码非常长，所以直接搬到注册机里了。
+
+## 附汇编注册机主要算法代码
+
+```asm
+.data  
+MsgboxText    db '-=Author: laomms=-',0dh  
+              db '-=Email:langxang@126.com=-',0  
+MsgboxCaption db 'about',0  
+MsgBoxText1   db '用户名怎么可以为空呢?',0  
+MsgBoxCaption1 db 'Warning',0  
+szFormat db "%X",0  
+Array     db 001h, 023h, 045h, 067h, 089h, 0ABh, 0CDh, 0EFh, 0FEh, 0DCh  
+          db 0BAh, 098h, 076h, 054h, 032h, 010h  
+
+.data?  
+hInstance   HINSTANCE ?  
+hDlg        HINSTANCE ?  
+NameBuffer  db 80 dup (?)  
+SerialBuffer  db 80 dup (?)  
+SerialTemp  db 80 dup (?)  
+Temp        db 80 dup (?)  
+szTemp      db 80 dup (?)  
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
+;StrToHex 是将内存中的 ASCII 码以十六进制形式转成一个整数（HEX）  
+;lpszStr 指向要转换的 ASCII 码，iStrLen 指向 Str 的长度。  
+;如果该 ASCII 码中包含有非数字或大于'f'的数则返回 0  
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
+
+StrToHex proc uses esi edi ebx lpszStr,iStrLen  
+  xor esi,esi  
+  xor edx,edx  
+  xor ebx,ebx  
+  mov edi,iStrLen  
+
+@@:  
+  mov eax,lpszStr  
+  movzx eax,BYTE ptr [eax+esi]  
+  test al,al  
+  jz @f  
+  .if ((al >= 'A') && (al <= 'F')) || ((al >= 'a') && (al <= 'f'))  
+    sub al,'W'  
+    adc dl,dl  
+    shl dl,5  
+    add al,dl  
+    jmp Next  
+  .elseif ((al >= '0') && (al <= '9'))  
+    sub al,'0'  
+
+Next:  lea ecx,[edi-1]  
+  and eax,0fh  
+  shl ecx,2  
+  shl eax,cl  
+  add ebx,eax  
+  dec edi  
+  inc esi  
+  jmp @b  
+  .else  
+    xor eax,eax  
+    ret  
+  .endif  
+
+@@:  
+  mov eax,ebx  
+  ret  
+
+StrToHex endp  
+
+GetKey proc  
+  pushad  
+  invoke GetDlgItemText,hDlg,IDC_NAME,offset NameBuffer,sizeof NameBuffer          
+  
+  invoke  lstrlen,addr NameBuffer  
+  xor esi,esi  
+  mov esi,eax  
+  mov [NameBuffer+esi],80h  
+  mov [NameBuffer+esi+2Ch],60h  
+  MOV ESI,67452301h  
+  MOV EDI,0EFCDAB89h  
+  MOV EDX,98BADCFEh  
+  MOV EBX,10325476h  
+  PUSH ESI  
+  PUSH EDI  
+  XOR ECX,ECX  
+  MOV ESI,DWORD PTR SS:[NameBuffer]  
+
+@1:  
+  MOV EAX,DWORD PTR DS:[NameBuffer+ECX]  
+  MOV DWORD PTR DS:[SerialTemp+ECX],EAX  
+  ADD ECX,4  
+  CMP ECX,40h  
+  JB @1  
+  POP EDI  
+  POP ESI  
+  MOV EAX,EDI  
+  AND EAX,EDX  
+  MOV ECX,EDI  
+  NOT ECX  
+  AND ECX,EBX  
+  OR ECX,EAX  
+  LEA ESI,DWORD PTR DS:[ECX+ESI+0D76AA478h]  
+  ADD ESI,DWORD PTR SS:[SerialTemp+40h-40h]  
+  ROL ESI,7  
+  ADD ESI,EDI  
+  MOV EAX,ESI  
+  AND EAX,EDI  
+  MOV ECX,ESI  
+  NOT ECX  
+  AND ECX,EDX  
+  OR ECX,EAX  
+  LEA EBX,DWORD PTR DS:[ECX+EBX+0E8C7B756h]  
+  ADD EBX,DWORD PTR SS:[SerialTemp+40h-3Ch]  
+  ROL EBX,0Ch  
+  ADD EBX,ESI  
+  MOV EAX,EBX  
+  AND EAX,ESI  
+  MOV ECX,EBX  
+  NOT ECX  
+  AND ECX,EDI  
+  OR ECX,EAX  
+  LEA EDX,DWORD PTR DS:[ECX+EDX+242070DBh]  
+  ADD EDX,DWORD PTR SS:[SerialTemp+40h-38h]  
+  ROL EDX,11h  
+  ADD EDX,EBX  
+  MOV EAX,EDX  
+  AND EAX,EBX  
+  MOV ECX,EDX  
+  NOT ECX  
+  AND ECX,ESI  
+  OR ECX,EAX  
+  LEA EDI,DWORD PTR DS:[ECX+EDI+0C1BDCEEEh]  
+  ADD EDI,DWORD PTR SS:[SerialTemp+40h-34h]  
+  ROL EDI,16h  
+  ADD EDI,EDX  
+  MOV EAX,EDI  
+  AND EAX,EDX  
+  MOV ECX,EDI  
+  NOT ECX  
+  AND ECX,EBX  
+  OR ECX,EAX  
+  LEA ESI,DWORD PTR DS:[ECX+ESI+0F57C0FAFh]  
+  ADD ESI,DWORD PTR SS:[SerialTemp+40h-30h]  
+  ROL ESI,7  
+  ADD ESI,EDI  
+  MOV EAX,ESI  
+  AND EAX,EDI  
+  MOV ECX,ESI  
+  NOT ECX  
+  AND ECX,EDX  
+  OR ECX,EAX  
+  LEA EBX,DWORD PTR DS:[ECX+EBX+4787C62Ah]  
+  ADD EBX,DWORD PTR SS:[SerialTemp+40h-2Ch]  
+  ROL EBX,0Ch  
+  ADD EBX,ESI  
+  MOV EAX,EBX  
+  AND EAX,ESI  
+  MOV ECX,EBX  
+  NOT ECX  
+  AND ECX,EDI  
+  OR ECX,EAX  
+  LEA EDX,DWORD PTR DS:[ECX+EDX+0A8304613h]  
+  ADD EDX,DWORD PTR SS:[SerialTemp+40h-28h]  
+  ROL EDX,11h  
+  ADD EDX,EBX  
+  MOV EAX,EDX  
+  AND EAX,EBX  
+  MOV ECX,EDX  
+  NOT ECX  
+  AND ECX,ESI  
+  OR ECX,EAX  
+  LEA EDI,DWORD PTR DS:[ECX+EDI+0FD469501h]  
+  ADD EDI,DWORD PTR SS:[SerialTemp+40h-24h]  
+  ROL EDI,16h  
+  ADD EDI,EDX  
+  MOV EAX,EDI  
+  AND EAX,EDX  
+  MOV ECX,EDI  
+  NOT ECX  
+  AND ECX,EBX  
+  OR ECX,EAX  
+  LEA ESI,DWORD PTR DS:[ECX+ESI+698098D8h]  
+  ADD ESI,DWORD PTR SS:[SerialTemp+40h-20h]  
+  ROL ESI,7  
+  ADD ESI,EDI  
+  MOV EAX,ESI  
+  AND EAX,EDI  
+  MOV ECX,ESI  
+  NOT ECX  
+  AND ECX,EDX  
+  OR ECX,EAX  
+  LEA EBX,DWORD PTR DS:[ECX+EBX+8B44F7AFh]  
+  ADD EBX,DWORD PTR SS:[SerialTemp+40h-1Ch]  
+  ROL EBX,0Ch  
+  ADD EBX,ESI  
+  MOV EAX,EBX  
+  AND EAX,ESI  
+  MOV ECX,EBX  
+  NOT ECX  
+  AND ECX,EDI  
+  OR ECX,EAX  
+  LEA EDX,DWORD PTR DS:[ECX+EDX+0FFFF5BB1h]  
+  ADD EDX,DWORD PTR SS:[SerialTemp+40h-18h]  
+  ROL EDX,11h  
+  ADD EDX,EBX  
+  MOV EAX,EDX  
+  AND EAX,EBX  
+  MOV ECX,EDX  
+  NOT ECX  
+  AND ECX,ESI  
+  OR ECX,EAX  
+  LEA EDI,DWORD PTR DS:[ECX+EDI+895CD7BEh]  
+  ADD EDI,DWORD PTR SS:[SerialTemp+40h-14h]  
+  ROL EDI,16h  
+  ADD EDI,EDX  
+  MOV EAX,EDI  
+  AND EAX,EDX  
+  MOV ECX,EDI  
+  NOT ECX  
+  AND ECX,EBX  
+  OR ECX,EAX  
+  LEA ESI,DWORD PTR DS:[ECX+ESI+6B901122h]  
+  ADD ESI,DWORD PTR SS:[SerialTemp+40h-10h]  
+  ROL ESI,7  
+  ADD ESI,EDI  
+  MOV EAX,ESI  
+  AND EAX,EDI  
+  MOV ECX,ESI  
+  NOT ECX  
+  AND ECX,EDX  
+  OR ECX,EAX  
+  LEA EBX,DWORD PTR DS:[ECX+EBX+0FD987193h]  
+  ADD EBX,DWORD PTR SS:[SerialTemp+40h-0Ch]  
+  ROL EBX,0Ch  
+  ADD EBX,ESI  
+  MOV EAX,EBX  
+  AND EAX,ESI  
+  MOV ECX,EBX  
+  NOT ECX  
+  AND ECX,EDI  
+  OR ECX,EAX  
+  LEA EDX,DWORD PTR DS:[ECX+EDX+0A679438Eh]  
+  ADD EDX,DWORD PTR SS:[SerialTemp+40h-8]  
+  ROL EDX,11h  
+  ADD EDX,EBX  
+  MOV EAX,EDX  
+  AND EAX,EBX  
+  MOV ECX,EDX  
+  NOT ECX  
+  AND ECX,ESI  
+  OR ECX,EAX  
+  LEA EDI,DWORD PTR DS:[ECX+EDI+49B40821h]  
+  ADD EDI,DWORD PTR SS:[SerialTemp+40h-4]  
+  ROL EDI,16h  
+  ADD EDI,EDX  
+  MOV EAX,EDI  
+  AND EAX,EBX  
+  MOV ECX,EBX  
+  NOT ECX  
+  AND ECX,EDX  
+  OR ECX,EAX  
+  LEA ESI,DWORD PTR DS:[ECX+ESI+0F61E2562h]  
+  ADD ESI,DWORD PTR SS:[SerialTemp+40h-3Ch]  
+  ROL ESI,5  
+  ADD ESI,EDI  
+  MOV EAX,ESI  
+  AND EAX,EDX  
+  MOV ECX,EDX  
+  NOT ECX  
+  AND ECX,EDI  
+  OR ECX,EAX  
+  LEA EBX,DWORD PTR DS:[ECX+EBX+0C040B340h]  
+  ADD EBX,DWORD PTR SS:[SerialTemp+40h-28h]  
+  ROL EBX,9  
+  ADD EBX,ESI  
+  MOV EAX,EBX  
+  AND EAX,EDI  
+  MOV ECX,EDI  
+  NOT ECX  
+  AND ECX,ESI  
+  OR ECX,EAX  
+  LEA EDX,DWORD PTR DS:[ECX+EDX+265E5A51h]  
+  ADD EDX,DWORD PTR SS:[SerialTemp+40h-14h]  
+  ROL EDX,0Eh  
+  ADD EDX,EBX  
+  MOV EAX,EDX  
+  AND EAX,ESI  
+  MOV ECX,ESI  
+  NOT ECX  
+  AND ECX,EBX  
+  OR ECX,EAX  
+  LEA EDI,DWORD PTR DS:[ECX+EDI+0E9B6C7AAh]  
+  ADD EDI,DWORD PTR SS:[SerialTemp+40h-40h]  
+  ROL EDI,14h  
+  ADD EDI,EDX  
+  MOV EAX,EDI  
+  AND EAX,EBX  
+  MOV ECX,EBX  
+  NOT ECX  
+  AND ECX,EDX  
+  OR ECX,EAX  
+  LEA ESI,DWORD PTR DS:[ECX+ESI+0D62F105Dh]  
+  ADD ESI,DWORD PTR SS:[SerialTemp+40h-2Ch]  
+  ROL ESI,5  
+  ADD ESI,EDI  
+  MOV EAX,ESI  
+  AND EAX,EDX  
+  MOV ECX,EDX  
+  NOT ECX  
+  AND ECX,EDI  
+```
+
+
+
+```asm
+    OR ECX,EAX
+
+    LEA EBX,DWORD PTR DS:[ECX+EBX+2441453h]
+
+    ADD EBX,DWORD PTR SS:[SerialTemp+40h-18h]
+
+    ROL EBX,9
+
+    ADD EBX,ESI
+
+    MOV EAX,EBX
+
+    AND EAX,EDI
+
+    MOV ECX,EDI
+
+    NOT ECX
+
+    AND ECX,ESI
+
+    OR ECX,EAX
+
+    LEA EDX,DWORD PTR DS:[ECX+EDX+0D8A1E681h]
+
+    ADD EDX,DWORD PTR SS:[SerialTemp+40h-4]
+
+    ROL EDX,0Eh
+
+    ADD EDX,EBX
+
+    MOV EAX,EDX
+
+    AND EAX,ESI
+
+    MOV ECX,ESI
+
+    NOT ECX
+
+    AND ECX,EBX
+
+    OR ECX,EAX
+
+    LEA EDI,DWORD PTR DS:[ECX+EDI+0E7D3FBC8h]
+
+    ADD EDI,DWORD PTR SS:[SerialTemp+40h-30h]
+
+    ROL EDI,14h
+
+    ADD EDI,EDX
+
+    MOV EAX,EDI
+
+    AND EAX,EBX
+
+    MOV ECX,EBX
+
+    NOT ECX
+
+    AND ECX,EDX
+
+    OR ECX,EAX
+
+    LEA ESI,DWORD PTR DS:[ECX+ESI+21E1CDE6h]
+
+    ADD ESI,DWORD PTR SS:[SerialTemp+40h-1Ch]
+
+    ROL ESI,5
+
+    ADD ESI,EDI
+
+    MOV EAX,ESI
+
+    AND EAX,EDX
+
+    MOV ECX,EDX
+
+    NOT ECX
+
+    AND ECX,EDI
+
+    OR ECX,EAX
+
+    LEA EBX,DWORD PTR DS:[ECX+EBX+0C33707D6h]
+
+    ADD EBX,DWORD PTR SS:[SerialTemp+40h-8]
+
+    ROL EBX,9
+
+    ADD EBX,ESI
+
+    MOV EAX,EBX
+
+    AND EAX,EDI
+
+    MOV ECX,EDI
+
+    NOT ECX
+
+    AND ECX,ESI
+
+    OR ECX,EAX
+
+    LEA EDX,DWORD PTR DS:[ECX+EDX+0F4D50D87h]
+
+    ADD EDX,DWORD PTR SS:[SerialTemp+40h-34h]
+
+    ROL EDX,0Eh
+
+    ADD EDX,EBX
+
+    MOV EAX,EDX
+
+    AND EAX,ESI
+
+    MOV ECX,ESI
+
+    NOT ECX
+
+    AND ECX,EBX
+
+    OR ECX,EAX
+
+    LEA EDI,DWORD PTR DS:[ECX+EDI+455A14EDh]
+
+    ADD EDI,DWORD PTR SS:[SerialTemp+40h-20h]
+
+    ROL EDI,14h
+
+    ADD EDI,EDX
+
+    MOV EAX,EDI
+
+    AND EAX,EBX
+
+    MOV ECX,EBX
+
+    NOT ECX
+
+    AND ECX,EDX
+
+    OR ECX,EAX
+
+    LEA ESI,DWORD PTR DS:[ECX+ESI+0A9E3E905h]
+
+    ADD ESI,DWORD PTR SS:[SerialTemp+40h-0Ch]
+
+    ROL ESI,5
+
+    ADD ESI,EDI
+
+    MOV EAX,ESI
+
+    AND EAX,EDX
+
+    MOV ECX,EDX
+
+    NOT ECX
+
+    AND ECX,EDI
+
+    OR ECX,EAX
+
+    LEA EBX,DWORD PTR DS:[ECX+EBX+0FCEFA3F8h]
+
+    ADD EBX,DWORD PTR SS:[SerialTemp+40h-38h]
+
+    ROL EBX,9
+
+    ADD EBX,ESI
+
+    MOV EAX,EBX
+
+    AND EAX,EDI
+
+    MOV ECX,EDI
+
+    NOT ECX
+
+    AND ECX,ESI
+
+    OR ECX,EAX
+
+    LEA EDX,DWORD PTR DS:[ECX+EDX+676F02D9h]
+
+    ADD EDX,DWORD PTR SS:[SerialTemp+40h-24h]
+
+    ROL EDX,0Eh
+
+    ADD EDX,EBX
+
+    MOV EAX,EDX
+
+    AND EAX,ESI
+
+    MOV ECX,ESI
+
+    NOT ECX
+
+    AND ECX,EBX
+
+    OR ECX,EAX
+
+    LEA EDI,DWORD PTR DS:[ECX+EDI+8D2A4C8Ah]
+
+    ADD EDI,DWORD PTR SS:[SerialTemp+40h-10h]
+
+    ROL EDI,14h
+
+    ADD EDI,EDX
+
+    MOV ECX,EDI
+
+    XOR ECX,EDX
+
+    XOR ECX,EBX
+
+    LEA ESI,DWORD PTR DS:[ECX+ESI+0FFFA3942h]
+
+    ADD ESI,DWORD PTR SS:[SerialTemp+40h-2Ch]
+
+    ROL ESI,4
+
+    ADD ESI,EDI
+
+    MOV ECX,ESI
+
+    XOR ECX,EDI
+
+    XOR ECX,EDX
+
+    LEA EBX,DWORD PTR DS:[ECX+EBX+8771F681h]
+
+    ADD EBX,DWORD PTR SS:[SerialTemp+40h-20h]
+
+    ROL EBX,0Bh
+
+    ADD EBX,ESI
+
+    MOV ECX,EBX
+
+    XOR ECX,ESI
+
+    XOR ECX,EDI
+
+    LEA EDX,DWORD PTR DS:[ECX+EDX+6D9D6122h]
+
+    ADD EDX,DWORD PTR SS:[SerialTemp+40h-14h]
+
+    ROL EDX,10h
+
+    ADD EDX,EBX
+
+    MOV ECX,EDX
+
+    XOR ECX,EBX
+
+    XOR ECX,ESI
+
+    LEA EDI,DWORD PTR DS:[ECX+EDI+0FDE5380Ch]
+
+    ADD EDI,DWORD PTR SS:[SerialTemp+40h-8]
+
+    ROL EDI,17h
+
+    ADD EDI,EDX
+
+    MOV ECX,EDI
+
+    XOR ECX,EDX
+
+    XOR ECX,EBX
+
+    LEA ESI,DWORD PTR DS:[ECX+ESI+0A4BEEA44h]
+
+    ADD ESI,DWORD PTR SS:[SerialTemp+40h-3Ch]
+
+    ROL ESI,4
+
+    ADD ESI,EDI
+
+    MOV ECX,ESI
+
+    XOR ECX,EDI
+
+    XOR ECX,EDX
+
+    LEA EBX,DWORD PTR DS:[ECX+EBX+4BDECFA9h]
+
+    ADD EBX,DWORD PTR SS:[SerialTemp+40h-30h]
+
+    ROL EBX,0Bh
+
+    ADD EBX,ESI
+
+    MOV ECX,EBX
+
+    XOR ECX,ESI
+
+    XOR ECX,EDI
+
+    LEA EDX,DWORD PTR DS:[ECX+EDX+0F6BB4B60h]
+
+    ADD EDX,DWORD PTR SS:[SerialTemp+40h-24h]
+
+    ROL EDX,10h
+
+    ADD EDX,EBX
+
+    MOV ECX,EDX
+
+    XOR ECX,EBX
+
+    XOR ECX,ESI
+
+    LEA EDI,DWORD PTR DS:[ECX+EDI+0BEBFBC70h]
+
+    ADD EDI,DWORD PTR SS:[SerialTemp+40h-18h]
+
+    ROL EDI,17h
+
+    ADD EDI,EDX
+
+    MOV ECX,EDI
+
+    XOR ECX,EDX
+
+    XOR ECX,EBX
+
+    LEA ESI,DWORD PTR DS:[ECX+ESI+289B7EC6h]
+
+    ADD ESI,DWORD PTR SS:[SerialTemp+40h-0Ch]
+
+    ROL ESI,4
+
+    ADD ESI,EDI
+
+    MOV ECX,ESI
+
+    XOR ECX,EDI
+
+    XOR ECX,EDX
+
+    LEA EBX,DWORD PTR DS:[ECX+EBX+0EAA127FAh]
+
+    ADD EBX,DWORD PTR SS:[SerialTemp+40h-40h]
+
+    ROL EBX,0Bh
+
+    ADD EBX,ESI
+
+    MOV ECX,EBX
+
+    XOR ECX,ESI
+
+    XOR ECX,EDI
+
+    LEA EDX,DWORD PTR DS:[ECX+EDX+0D4EF3085h]
+
+    ADD EDX,DWORD PTR SS:[SerialTemp+40h-34h]
+
+    ROL EDX,10h
+
+    ADD EDX,EBX
+
+    MOV ECX,EDX
+
+    XOR ECX,EBX
+
+    XOR ECX,ESI
+
+    LEA EDI,DWORD PTR DS:[ECX+EDI+4881D05h]
+
+    ADD EDI,DWORD PTR SS:[SerialTemp+40h-28h]
+
+    ROL EDI,17h
+
+    ADD EDI,EDX
+
+    MOV ECX,EDI
+
+    XOR ECX,EDX
+
+    XOR ECX,EBX
+
+    LEA ESI,DWORD PTR DS:[ECX+ESI+0D9D4D039h]
+
+    ADD ESI,DWORD PTR SS:[SerialTemp+40h-1Ch]
+
+    ROL ESI,4
+
+    ADD ESI,EDI
+
+    MOV ECX,ESI
+
+    XOR ECX,EDI
+
+    XOR ECX,EDX
+
+    LEA EBX,DWORD PTR DS:[ECX+EBX+0E6DB99E5h]
+
+    ADD EBX,DWORD PTR SS:[SerialTemp+40h-10h]
+
+    ROL EBX,0Bh
+
+    ADD EBX,ESI
+
+    MOV ECX,EBX
+
+    XOR ECX,ESI
+
+    XOR ECX,EDI
+
+    LEA EDX,DWORD PTR DS:[ECX+EDX+1FA27CF8h]
+
+    ADD EDX,DWORD PTR SS:[SerialTemp+40h-4]
+
+    ROL EDX,10h
+
+    ADD EDX,EBX
+
+    MOV ECX,EDX
+
+    XOR ECX,EBX
+
+    XOR ECX,ESI
+
+    LEA EDI,DWORD PTR DS:[ECX+EDI+0C4AC5665h]
+
+    ADD EDI,DWORD PTR SS:[SerialTemp+40h-38h]
+
+    ROL EDI,17h
+
+    ADD EDI,EDX
+
+    MOV ECX,EBX
+
+    NOT ECX
+
+    OR ECX,EDI
+
+    XOR ECX,EDX
+
+    LEA ESI,DWORD PTR DS:[ECX+ESI+0F4292244h]
+
+    ADD ESI,DWORD PTR SS:[SerialTemp+40h-40h]
+
+    ROL ESI,6
+
+    ADD ESI,EDI
+
+    MOV ECX,EDX
+
+    NOT ECX
+
+    OR ECX,ESI
+
+    XOR ECX,EDI
+
+    LEA EBX,DWORD PTR DS:[ECX+EBX+432AFF97h]
+
+    ADD EBX,DWORD PTR SS:[SerialTemp+40h-24h]
+
+    ROL EBX,0Ah
+
+    ADD EBX,ESI
+
+    MOV ECX,EDI
+
+    NOT ECX
+
+    OR ECX,EBX
+
+    XOR ECX,ESI
+
+    LEA EDX,DWORD PTR DS:[ECX+EDX+0AB9423A7h]
+
+    ADD EDX,DWORD PTR SS:[SerialTemp+40h-8]
+
+    ROL EDX,0Fh
+
+    ADD EDX,EBX
+
+    MOV ECX,ESI
+
+    NOT ECX
+
+    OR ECX,EDX
+
+    XOR ECX,EBX
+
+    LEA EDI,DWORD PTR DS:[ECX+EDI+0FC93A039h]
+
+    ADD EDI,DWORD PTR SS:[SerialTemp+40h-2Ch]
+
+    ROL EDI,15h
+
+    ADD EDI,EDX
+
+    MOV ECX,EBX
+
+    NOT ECX
+
+    OR ECX,EDI
+
+    XOR ECX,EDX
+
+    LEA ESI,DWORD PTR DS:[ECX+ESI+655B59C3h]
+
+    ADD ESI,DWORD PTR SS:[SerialTemp+40h-10h]
+
+    ROL ESI,6
+
+    ADD ESI,EDI
+
+    MOV ECX,EDX
+
+    NOT ECX
+
+    OR ECX,ESI
+
+    XOR ECX,EDI
+
+    LEA EBX,DWORD PTR DS:[ECX+EBX+8F0CCC92h]
+
+    ADD EBX,DWORD PTR SS:[SerialTemp+40h-34h]
+
+    ROL EBX,0Ah
+
+    ADD EBX,ESI
+
+    MOV ECX,EDI
+
+    NOT ECX
+
+    OR ECX,EBX
+
+    XOR ECX,ESI
+
+    LEA EDX,DWORD PTR DS:[ECX+EDX+0FFEFF47Dh]
+
+    ADD EDX,DWORD PTR SS:[SerialTemp+40h-18h]
+
+    ROL EDX,0Fh
+
+    ADD EDX,EBX
+
+    MOV ECX,ESI
+
+    NOT ECX
+
+    OR ECX,EDX
+
+    XOR ECX,EBX
+
+    LEA EDI,DWORD PTR DS:[ECX+EDI+85845DD1h]
+
+    ADD EDI,DWORD PTR SS:[SerialTemp+40h-3Ch]
+
+    ROL EDI,15h
+
+    ADD EDI,EDX
+
+    MOV ECX,EBX
+
+    NOT ECX
+
+    OR ECX,EDI
+
+    XOR ECX,EDX
+
+    LEA ESI,DWORD PTR DS:[ECX+ESI+6FA87E4Fh]
+
+    ADD ESI,DWORD PTR SS:[SerialTemp+40h-20h]
+
+    ROL ESI,6
+
+    ADD ESI,EDI
+
+    MOV ECX,EDX
+
+    NOT ECX
+
+    OR ECX,ESI
+
+    XOR ECX,EDI
+
+    LEA EBX,DWORD PTR DS:[ECX+EBX+0FE2CE6E0h]
+
+    ADD EBX,DWORD PTR SS:[SerialTemp+40h-4]
+
+    ROL EBX,0Ah
+
+    ADD EBX,ESI
+
+    MOV ECX,EDI
+
+    NOT ECX
+
+    OR ECX,EBX
+
+    XOR ECX,ESI
+
+    LEA EDX,DWORD PTR DS:[ECX+EDX+0A3014314h]
+```
+
+
+
+```asm
+    ADD EDX, DWORD PTR SS: [SerialTemp+40h-28h]
+
+    ROL EDX, 0Fh
+
+    ADD EDX, EBX
+
+    MOV ECX, ESI
+
+    NOT ECX
+
+    OR ECX, EDX
+
+    XOR ECX, EBX
+
+    LEA EDI, DWORD PTR DS: [ECX+EDI+4E0811A1h]
+
+    ADD EDI, DWORD PTR SS: [SerialTemp+40h-0Ch]
+
+    ROL EDI, 15h
+
+    ADD EDI, EDX
+
+    MOV ECX, EBX
+
+    NOT ECX
+
+    OR ECX, EDI
+
+    XOR ECX, EDX
+
+    LEA ESI, DWORD PTR DS: [ECX+ESI+0F7537E82h]
+
+    ADD ESI, DWORD PTR SS: [SerialTemp+40h-30h]
+
+    ROL ESI, 6
+
+    ADD ESI, EDI
+
+    MOV ECX, EDX
+
+    NOT ECX
+
+    OR ECX, ESI
+
+    XOR ECX, EDI
+
+    LEA EBX, DWORD PTR DS: [ECX+EBX+0BD3AF235h]
+
+    ADD EBX, DWORD PTR SS: [SerialTemp+40h-14h]
+
+    ROL EBX, 0Ah
+
+    ADD EBX, ESI
+
+    MOV ECX, EDI
+
+    NOT ECX
+
+    OR ECX, EBX
+
+    XOR ECX, ESI
+
+    LEA EDX, DWORD PTR DS: [ECX+EDX+2AD7D2BBh]
+
+    ADD EDX, DWORD PTR SS: [SerialTemp+40h-38h]
+
+    ROL EDX, 0Fh
+
+    ADD EDX, EBX
+
+    MOV ECX, ESI
+
+    NOT ECX
+
+    OR ECX, EDX
+
+    XOR ECX, EBX
+
+    LEA EDI, DWORD PTR DS: [ECX+EDI+0EB86D391h]
+
+    ADD EDI, DWORD PTR SS: [SerialTemp+40h-1Ch]
+
+    ROL EDI, 15h
+
+    ADD EDI, EDX
+
+    PUSH EDX
+
+    invoke **RtlZeroMemory**, offset Temp, sizeof Temp
+
+    invoke **lstrcpy**, addr Temp, addr Array
+
+    POP EDX
+
+    ADD DWORD PTR DS: [Temp], ESI
+
+    ADD DWORD PTR DS: [Temp+4], EDI
+
+    ADD DWORD PTR DS: [Temp+8], EDX
+
+    ADD DWORD PTR DS: [Temp+0Ch], EBX
+
+    MOV EAX, DWORD PTR DS: [Temp+0Ch]
+
+    PUSH 5
+
+    POP ECX
+
+    XOR EDX, EDX
+
+    DIV ECX
+
+    XOR EDX, EDX
+
+    PUSH EAX
+
+    MOV EAX, DWORD PTR DS: [Temp]
+
+    SHR EAX, 2
+
+    PUSH EAX
+
+    MOV EAX, DWORD PTR DS: [Temp+4]
+
+    PUSH 3
+
+    POP ECX
+
+    DIV ECX
+
+    PUSH EAX
+
+    MOV EAX, DWORD PTR DS: [Temp+8]
+
+    SHR EAX, 1
+
+    PUSH EAX    ; 要的是这个, EAX
+
+    invoke **wsprintf**, addr szTemp, addr szFormat, eax
+
+    ADD ESP, 0Ch
+
+    MOV AL, BYTE PTR SS: [szTemp]
+
+    CMP AL, 37h
+
+    JL @006
+
+    CMP AL, 39h
+
+    JLE @009
+
+@006:
+    SUB AL, 61h
+
+    CMP AL, 5
+
+    JA @010
+
+@009:
+    MOV BYTE PTR SS: [szTemp], 36h
+
+@010:
+    PUSH 10
+
+    LEA EAX, DWORD PTR SS: [szTemp]
+
+    invoke StrToHex, addr szTemp, 8
+
+    ADD EAX, 0A98AC7h
+
+    XOR EAX, 4ECAEDDh
+
+    SUB EAX, 0FFF379A6h
+
+    PUSH EAX
+
+    invoke **wsprintf**, addr SerialBuffer, addr szFormat, eax
+
+    ADD ESP, 0ch
+
+    MOV BYTE PTR [SerialBuffer+8], 0
+
+    invoke **SetDlgItemText**, hDlg, IDC_CODE, addr SerialBuffer
+
+    popad
+
+    ret
+
+GetKey endp
+
+end start
+```
+
+另，注册成功后会在 `system32\config` 下建立一个标志文件以做重启验证。
+
+\--------------------------------------------------------------------------------
+
+【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!
+
+2006 年 10 月 27 日 13:08:54
+
+`4dd466d0e1e0cc123afbe504da2462ca`

@@ -1,0 +1,158 @@
+
+# 从 IDA 中提取代码做汇编注册机之 Delphi 篇(完)
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-13.htm`](https://www.pediy.com/kssd/pediy09/pediy09-13.htm)
+
+> 上次写了两篇后，总想也做个 `DELPHI` 的示范。无奈 `DELPHI` 不像 `VB`、`C` 之类的有独立运行库，它的库函数 `N` 多，也没有相关的函数库可供调用。所以极不推荐提取 `DELPHI` 程序的再汇编代码做注册机，对于一些库函数可能用逆向的方法来得更快。但是既然曾经说过要弄篇终结篇，还是找了个 `DELPHI` 程序来个“霸王硬上弓”。
+
+> 这次找了个 `XX` 速查手册做为目标（因为正好用到这东西）。
+
+> 依旧是先用 `OD` 动态分析算法，算法非常简单，取机器码经过几次的 `MD5` 得到注册码。这么简单的算法极力推荐自己写，采用提取代码的办法反而复杂化了。所以我这里是在画蛇添——多次一举：
+
+```
+005C22D6  .  8B55 F0       MOV EDX,DWORD PTR SS:[EBP-10]                ;  机器码
+005C22D9  .  8BC7          MOV EAX,EDI
+005C22DB  .  E8 34FAFFFF   CALL <DUMPED.sub_5C1D14>                   ;  关键算法
+005C22E0  .  8B95 A0FCFFFF MOV EDX,DWORD PTR SS:[EBP-360]              ;  得到注册码
+```
+
+> 每当碰到这样结构的，就是压入机器码，经过一系列的算法得到注册码的，我就觉得用提取代码做注册机的方法最简单，因为我们无需去分析 `CALL 005C1D14` 的内容，不管里面是什么，只要把里面的代码全部拿出来放到注册机中就可以得到注册码。 但是有时候里面的代码特别多，我们还是要进去稍微分析下，以便能做到能少拷就少拷。为了少走冤枉路，还是进去看看，果然，很多代码可以不要，跟进 `CALL 005C1D14`：
+
+```
+...
+005C1D3F  .  BB 05000000   MOV EBX,5                          ;  5
+005C1D44  |>  8D4D F8      /LEA ECX,DWORD PTR SS:[EBP-8]
+005C1D47  |.  8B55 FC      |MOV EDX,DWORD PTR SS:[EBP-4]                ;  SS:[EBP-4]的初识值是机器码
+005C1D4A  |.  8BC6         |MOV EAX,ESI
+005C1D4C  |.  E8 1BfeFFFF  |CALL <DUMPED.sub_5C1B6C>                     ;  里面含有 MD5
+005C1D51  |.  8B55 F8      |MOV EDX,DWORD PTR SS:[EBP-8]                ;  MD5 算法后的结果
+005C1D54  |.  8D45 FC      |LEA EAX,DWORD PTR SS:[EBP-4]
+005C1D57  |.  E8 3031E4FF  |CALL <DUMPED.@@LStrLAsg>
+005C1D5C  |.  4B           |DEC EBX
+005C1D5D  |.^ 75 E5        \JNZ SHORT <DUMPED.loc_5C1D44>              ;  循环 5 次
+005C1D5F  .  8BC7          MOV EAX,EDI
+005C1D61  .  8B55 FC       MOV EDX,DWORD PTR SS:[EBP-4]               ;  最终的 MD5 值
+...
+```
+
+> 这样我们只要提取这几行代码包括 `CALL 005C1B6C` 内的内容就行。行动...
+
+> `IDA` 反汇编之，使用 `DELPHI` 签名文件识别出 `DELPHI` 的库函数。用脚本提取上面部分代码包括 `CALL 5C1B6C` 的内容放到注册机模版中，在 `RADASM` 中调试，我喜欢用 `RADASM`，它能把错误列的一清二楚，使用也很方便。
+
+> `RADASM` 列出了错误，![](img/d04f0fe22ad1bb915059aee96ec4c97b.jpg "碌眼") 很可怕，很多错误：
+
+```
+D:\masm32\Bin\ML.EXE /c /coff /Cp /nologo /I"D:\masm32\Include" "keygen.asm"
+ Assembling: keygen.asm
+ error A4910: cannot open file: D:\masm32\Bin\ML.err
+ keygen.asm(97) : error A2006:  : @System@@LStrAddRef$qqrpv
+ keygen.asm(101) : error A2006:  : sub_5C1D84
+ keygen.asm(102) : error A2108:
+ keygen.asm(103) : error A2108:
+ keygen.asm(115) : error A2006:  : @System@@LStrLAsg$qqrpvpxv
+ keygen.asm(122) : error A2006:  : unknown_libname_46
+ keygen.asm(128) : error A2108:
+ keygen.asm(129) : error A2006:  : loc_5C1D8B
+ keygen.asm(135) : error A2006:  : @System@@LStrArrayClr$qqrpvi
+ keygen.asm(173) : error A2006:  : @System@@LStrAddRef$qqrpv
+ keygen.asm(177) : error A2006:  : s_S4FIi_LxN@
+ keygen.asm(178) : error A2108:
+ keygen.asm(179) : error A2108:
+ keygen.asm(190) : error A2006:  : @System@@LStrToPChar$qqrx17System@AnsiString
+ keygen.asm(209) : error A2006:  : unknown_libname_46
+ keygen.asm(215) : error A2108:
+ keygen.asm(219) : error A2006:  : @System@@LStrArrayClr$qqrpvi
+ keygen.asm(433) : error A2006:  : unk_63103C
+ keygen.asm(495) : error A2006:  : s_SFIi_LxN@
+ keygen.asm(496) : error A2108:
+ keygen.asm(497) : error A2108:
+ keygen.asm(499) : error A2006:  : @System@@LStrClr$qqrpv
+ keygen.asm(512) : error A2006:  : byte_63107C
+ keygen.asm(520) : error A2006:  : byte_63107C
+ keygen.asm(526) : error A2006:  : @System@@LStrCatN$qqrv
+ keygen.asm(536) : error A2108:
+ keygen.asm(540) : error A2006:  : @System@@LStrArrayClr$qqrpvi
+ keygen.asm(569) : error A2006:  : @System@@FillChar$qqrpvic
+ keygen.asm(586) : error A2006:  : unknown_libname_4
+ keygen.asm(1447) : error A2006:  : unknown_libname_48
+ keygen.asm(1478) : error A2006:  : sub_4028EC
+ keygen.asm(1751) : error A2006:  : j_@System@@HandleFinally$qqrv
+ keygen.asm(1752) : error A2108:
+ keygen.asm(1753) : error A2108:
+ keygen.asm(1757) : error A2006:  : byte_63204D
+ keygen.asm(1765) : error A2006:  : dword_6325EC
+ keygen.asm(1768) : error A2006:  : unk_6325FC
+ keygen.asm(1771) : error A2006:  : dword_632628
+ keygen.asm(1778) : error A2006:  : hMem
+ keygen.asm(1779) : error A2006:  : hMem
+ keygen.asm(1786) : error A2006:  : hMem
+ keygen.asm(1793) : error A2006:  : unk_63260C
+ keygen.asm(1796) : error A2006:  : dword_632618
+ keygen.asm(1797) : error A2006:  : byte_6325C4
+ keygen.asm(1805) : error A2108:
+ keygen.asm(1806) : error A2006:  : loc_401BD9
+ keygen.asm(1810) : error A2006:  : byte_63204D
+ keygen.asm(1973) : error A2006:  : off_62D04C
+ keygen.asm(1993) : error A2006:  : off_62D048
+ keygen.asm(2015) : error A2006:  : off_62D044
+ keygen.asm(2080) : error A2006:  : dword_632618
+ keygen.asm(2081) : error A2006:  : dword_63261C
+ keygen.asm(2085) : error A2006:  : dword_632610
+ keygen.asm(2117) : error A2006:  : SearchSmallBlocks
+ keygen.asm(2126) : error A2006:  : NewCommit
+ keygen.asm(2150) : error A2006:  : dword_632620
+ keygen.asm(2151) : error A2006:  : dword_632620
+ keygen.asm(2156) : error A2006:  : dword_6325B4
+ keygen.asm(2158) : error A2006:  : dword_6325B8
+ keygen.asm(2167) : error A2006:  : DeleteFree
+ keygen.asm(2178) : error A2006:  : InsertFree
+ keygen.asm(2205) : error A2006:  : dword_6325B4
+ keygen.asm(2207) : error A2006:  : dword_6325B8
+ keygen.asm(2241) : error A2006:  : byte_6325C4
+ keygen.asm(2260) : error A2108:
+ keygen.asm(2261) : error A2108:
+ keygen.asm(2262) : error A2006:  : byte_63204D
+ keygen.asm(2284) : error A2006:  : @System@SysGetMem$qqri
+ keygen.asm(2305) : error A2006:  : unknown_libname_4
+ keygen.asm(2308) : error A2006:  : @System@SysFreeMem$qqrpv
+ keygen.asm(2320) : error A2108:
+ keygen.asm(2325) : error A2006:  : byte_63204D
+ keygen.asm(2338) : error A2006:  : @System@@HandleFinally$qqrv
+ keygen.asm(2420) : error A2006:  : DeleteBlock
+ keygen.asm(2452) : error A2006:  : AddBlockAfter
+ keygen.asm(2549) : error A2006:  : dword_632620
+ keygen.asm(2553) : error A2006:  : dword_632620
+ keygen.asm(2555) : error A2006:  : dword_63261C
+ keygen.asm(2556) : error A2006:  : dword_63261C
+ keygen.asm(2560) : error A2006:  : dword_632620
+ keygen.asm(2562) : error A2006:  : dword_63261C
+ keygen.asm(2576) : error A2006:  : DeleteFree
+ keygen.asm(2590) : error A2006:  : InternalFreeMem
+ keygen.asm(2607) : error A2006:  : dword_632620
+ keygen.asm(2610) : error A2006:  : dword_63261C
+ keygen.asm(2615) : error A2006:  : dword_63261C
+ keygen.asm(2617) : error A2006:  : dword_632620
+ keygen.asm(2618) : error A2006:  : dword_63261C
+ keygen.asm(2621) : error A2006:  : dword_63261C
+ keygen.asm(2622) : error A2006:  : dword_632620
+ keygen.asm(2623) : error A2006:  : dword_63261C
+ keygen.asm(2625) : error A2006:  : dword_63261C
+ keygen.asm(2631) : error A2006:  : dword_6325B8
+ keygen.asm(2642) : error A2006:  : FreeCurAlloc
+ keygen.asm(2669) : error A2006:  : DeleteFree
+ keygen.asm(2679) : error A2006:  : InsertFree
+ keygen.asm(2705) : error A2006:  : NewCommitAt
+ keygen.asm(2729) : error A2006:  : dword_6325B8
+ keygen.asm(2793) : error A2006:  : DeleteBlock
+ keygen.asm(2809) : error A2006:  : DeleteBlock
+ keygen.asm(2823) : fatal error A1012:
+
+构建时发生错误.
+总共编译时间 4031 毫秒
+```
+
+> 不要害怕，![](img/768c8e05987a6949d1bb5f7378212ee0.jpg "狂笑") 这里有很多是重复的，我们来了解一下这些错误分别是什么。在这之前，先了解一点点 `PE` 知识：一些伪指令和预定义段。
+
+```
+.386
+```

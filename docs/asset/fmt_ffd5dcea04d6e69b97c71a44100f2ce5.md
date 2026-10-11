@@ -1,0 +1,26 @@
+
+```
+005083EB   .  74 0C          JE SHORT aa.005083F9
+
+005083ED      8B45 E8       MOV EAX,DWORD PTR SS:\[EBP\-18\]
+
+005083F0      90            NOP
+
+005083F1      90            NOP
+
+005083F2   .  E8 F9CEF3FF   CALL aa.004452F0
+```
+
+3、用十六进制工具打开，查找串
+
+```
+E821C9EFFF740CB8D4845000E8F9CEF3FF
+```
+
+并把上面改为
+
+```
+E821C9EFFF740C8B45E89090E8F9CEF3FF
+```
+
+`4dd466d0e1e0cc123afbe504da2462ca`

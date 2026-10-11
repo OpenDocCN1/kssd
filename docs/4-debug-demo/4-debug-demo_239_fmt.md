@@ -1,0 +1,271 @@
+
+# cuteftp4.2 full
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum443.htm`](https://www.pediy.com/kssd/pediy03/forum443.htm)
+
+如何破解 `cuteftp4.2 full`
+
+-----------------------------
+
+雪椰
+
+2000,12,21pm
+
+`wocy@263.net`
+
+`wocy.top263.net`
+
+-------------------------------
+
+今天破了这个版本，靠些运气，说给大家听听。
+
+我一直用的是 `2832` 版，结果昨天说到期了，气死我我了，于是开始。（因为破 `4.2full` 跟这有点联系）
+
+### 1. `2832`
+
+我看到在 `about` 框中有 `UNREGISTERED VERSION`，在 `strref` 中找到，来到地址
+
+```
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00401060(C) 
+
+|
+
+:00401083 8D8C2480000000             lea ecx, dword ptr [esp+00000080]
+
+* Possible Reference to String Resource ID=00293: "UNREGISTERED VERSION"
+
+                                  |
+
+:0040108A 6825010000                 push 00000125
+:0040108F 51                         push ecx
+:00401090 E81B6C0000                 call 00407CB0
+:00401095 83C408                     add esp, 00000008
+:00401098 50                         push eax
+:00401099 8BCF                       mov ecx, edi
+```
+
+而
+
+```
+:00401056 52                         push edx
+:00401057 8BC8                       mov ecx, eax
+:00401059 E8021D0100                 call 00412D60
+:0040105E 85C0                       test eax, eax
+:00401060 7421                       je 00401083
+:00401062 8D44240C                   lea eax, dword ptr [esp+0C]
+:00401066 8BCF                       mov ecx, edi
+```
+
+看一下 `00412D60`
+
+```
+* Referenced by a CALL at Addresses:
+|:00401059  , :00414749  , :004310A8(请注意：此调用是运行开始时看是否注册） 
+
+|
+
+* Possible Reference to String Resource ID=00255: "No entry for the current site found. Do you wish to create o"
+
+                                  |
+
+:00412D60 6AFF                     push FFFFFFFF
+:00412D62 688BD24600                 push 0046D28B
+:00412D67 64A100000000               mov eax, dword ptr fs:[00000000]
+:00412D6D 50                         push eax
+:00412D6E 64892500000000             mov dword ptr fs:[00000000], esp
+:00412D75 81EC40060000               sub esp, 00000640
+:00412D7B 55                         push ebp
+:00412D7C 56                         push esi
+。。。。
+:00412FF4 5E                         pop esi
+:00412FF5 5D                         pop ebp
+:00412FF6 64890D00000000             mov dword ptr fs:[00000000], ecx
+:00412FFD 81C44C060000               add esp, 0000064C
+:00413003 C20400                     ret 0004
+```
+
+可能此函数是判断注册否的
+
+把 `412d60` 改为
+
+```
+mov eax,1
+ret 004
+```
+
+执行，`2832 creak` 成功。
+
+### 2. `402beta`
+
+找到这个版本后，按耐不住，继续破解。
+
+我想他跟 `2832` 应该差不多，
+
+但是找不到 `UNREGISTERED VERSION` 字串。怎么办，如何找到这个函数。风回路转，继续查看 `2832` 的程式，在开始调用的
+
+`:004310A8(请注意：此调用是运行开始时看是否注册）`
+
+而程序的入口点是 `43c00f`
+
+离的挺近的，
+
+经过比较，发现
+
+```
+* Referenced by a CALL at Addresses:
+|:0040132C  , :0042FB58  , :004340EB  , :0043AF8B  , :0043F1FB  
+
+|:004432C2  , :00444E5D  , :004542F1  , :00472611  , :004774AE  
+
+|:004779DE  , :0048484A  , :00485466  , :0048A3DD  , :0048B859  
+
+|
+
+:004890A0 64A100000000               mov eax, dword ptr fs:[00000000]
+
+* Possible Reference to String Resource ID=00255: "No entry for the current site found. Do you wish to create o"
+
+                                  |
+
+:004890A6 6AFF                     push FFFFFFFF
+:004890A8 68CBF54F00                 push 004FF5CB
+:004890AD 50                         push eax
+:004890AE 64892500000000             mov dword ptr fs:[00000000], esp
+:004890B5 81ECF0030000               sub esp, 000003F0
+:004890BB 8D442408                   lea eax, dword ptr [esp+08]
+:004890BF 6A00                       push 00000000
+:004890C1 50                         push eax
+。。。
+:004890E2 C3                         ret
+```
+
+有可能是
+
+改为
+
+```
+mov eax,1
+ret
+```
+
+运行，说效验失败。
+
+`"CuteFTP consistency check failed. This means that you are pr"`
+
+继续，查找字串
+
+来到
+
+```
+:0043B23F E8DCDF0400                 call 00489220
+:0043B244 85C0                       test eax, eax
+:0043B246 7567                       jne 0043B2AF
+:0043B248 8D55EC                     lea edx, dword ptr [ebp-14]
+
+* Possible Reference to String Resource ID=00426: "CuteFTP consistency check failed. This means that you are pr"
+
+                                  |
+
+:0043B24B 68AA010000                 push 000001AA
+:0043B250 52                         push edx
+```
+
+把
+
+`:0043B246 7567 jne 0043B2AF` 改为 `je`
+
+再运行，成功。
+
+### 3. `4.2full`
+
+懒得动脑子了，用上法
+
+找到
+
+`(call)48f900` 改为
+
+```
+mov eax,1
+ret
+```
+
+`(check point)48f900 jne xxx` 改为
+
+`je xxx`
+
+`ok`
+
+这个世界清静了。
+
+经过试用，发现在做成批处理时会出错，地址在
+
+`48fbd1`
+
+`47fbfa`
+
+请高手指点
+
+........
+
+有可能是
+
+改为
+
+```
+mov eax,1
+ret
+```
+
+运行，说效验失败。
+
+`"CuteFTP consistency check failed. This means that you are pr"`
+
+继续，查找字串
+
+来到
+
+```
+:0043B23F E8DCDF0400                 call 00489220
+:0043B244 85C0                       test eax, eax
+:0043B246 7567                       jne 0043B2AF
+:0043B248 8D55EC                     lea edx, dword ptr [ebp-14]                                  >
+
+* Possible Reference to String Resource ID=00426: "CuteFTP consistency check failed. This means that you are pr"
+
+                                  |
+
+:0043B24B 68AA010000                 push 000001AA
+:0043B250 52                         push edx
+```
+
+把
+
+`:0043B246 7567 jne 0043B2AF` 改为 `je`
+
+注：上面括住部分为待修正部分
+
+在 `:0043B23F E8DCDF0400 call 00489220` 的函数被调用 2 次，把这两个效验点 屏蔽掉后，表面正常，但运行不稳定，在进行批量操作时常非法操作，
+
+于是怀疑是在此函数中有陷阱，用内存补丁程序只做第一个补丁，则运行成功
+
+再运行，成功。
+
+### 3. `4.2full`
+
+懒得动脑子了，用上法
+
+找到
+
+`(call)48f900` 改为
+
+```
+mov eax,1
+ret
+```
+
+`ok`
+
+这个世界清静了。
+
+`4dd466d0e1e0cc123afbe504da2462ca`

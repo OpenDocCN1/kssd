@@ -1,0 +1,248 @@
+
+# 完美学习编写汇编注册机
+
+> 原文：[`www.pediy.com/kssd/pediy10/63396.html`](https://www.pediy.com/kssd/pediy10/63396.html)
+
+**【文章标题】**: 完美学习编写汇编注册机  
+**【文章作者】**: aoanzhishu  
+**【作者邮箱】**: aoanzhishu@yahoo.com.cn  
+**【软件名称】**: 超级电话通 3.05  
+**【下载地址】**: 自己搜索下载  
+**【加壳方式】**: ASPack 1.06b / 1.061b -> Alexey Solodovnikov  
+**【保护方式】**: 用户名  
+**【使用工具】**: OD+PEid  
+**【操作平台】**: XP (English)  
+**【软件介绍】**: 查询电话号码及地址  
+**【作者声明】**: 献给初学破解的朋友们，高手漂过，欢迎指点与建议，仅做为学习交流，别无其他目的
+
+关于此软件的破解就不做介绍了，大家可以在看雪网站上搜到相关信息。
+
+我们很显然可以了解到注册算法为：
+
+```
+for(i=1;i<=用户名长度;i++)
+{
+    string=取用户名字符串的一个字符;
+    result=i && 0xff          //i 与 十六进制数 ff 做 与 运算
+    result=result * string;
+    字符串指针指向下一个字符;
+}
+result=0xBEAE0 - result;
+result=result 转化为十进制;
+```
+
+是不是挺简单的，我们不用 C++ 等高级语言来实现注册机。
+
+直接用 win32 汇编其实在寄存器上能方便调用，有时还可以直接用反汇编的代码呢。
+
+关于 win32 汇编，俺推荐大家学习罗云彬的《windows 环境下 32 位汇编语言程序设计》。
+
+好了下面开始分析注册机了：
+
+```
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+; 超级电话通 3.05 注册机
+; by aoanzhishu 2008
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+; reg.asm
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+.386                        ;这里是汇编语言的伪指令是 386 的指令集,应用程序运行在优先级 3 上,不会用到特权指令,只需定义.386
+
+.model flat, stdcall        ;.model 工作模式 flat 指 Win32 程序使用的模式运行在保护模式下,代码和数据段使用同一个 4GB 段;stdcall 指子程序调用方式传递次序和
+                           ;堆栈平衡的方法
+
+option casemap :none        ;格式,none 定义了程序中的变量区分大小写,由于 win32 的 API 区分大小写,我们必须指定此项
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+; Include 文件定义
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+include    windows.inc
+include    user32.inc
+includelib  user32.lib
+include    kernel32.inc
+includelib  kernel32.lib
+include    gdi32.inc
+includelib  gdi32.lib
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+; Equ 定义标志符
+ICO_MAIN  equ  1000h      ;主窗体图标 ID
+DLG_MAIN  equ  1          ;主窗体 ID
+IDC_TEXTNAME  equ  107    ;用户名输入框 ID
+IDC_TEXTCODE    equ    108     ;注册码输入框 ID
+
+;注册函数声明
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+GetReg   proto                   ;注册码算法函数
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+; 数据段
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+.data
+result         db 256 dup(0)     ;要显示注册码的缓冲区
+szFormat       db "%d",   0      ;十进制 格式
+
+.data?
+hInstance  dd     ?         ;窗体实例
+@szBuffer       db 256 dup(?)       ;用户名缓冲区
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+;代码段
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+.code
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+_ProcDlgMain  proc  uses ebx edi esi hWnd,wMsg,wParam,lParam             ; 对话框窗体函数消息处理循环 函数 ,使用寄存器 ebx,edi,esi,hWnd 为窗体句
+                                                                  ; 柄,wMsg 为消息格式,wParam 与 lParam 为 消息内容(其实比这复杂,为了简单,就这么说了好懂些)
+
+    mov  eax,wMsg                                               ; 将当前消息移入 eax 中
+
+    .if  eax == WM_CLOSE                                       ; WM_CLOSE 是指 windows 的关闭窗体的消息 ID
+      invoke  EndDialog,hWnd,NULL                                 ; invoke 是 win32 调用某种函数的方法 这里调用 EndDialog 顾名思义是指
+                                                                ; 结束窗体 到于参数请大家查 API 函数表
+
+    .elseif  eax == WM_INITDIALOG                            ; WM_INITDIALOG 是指 windows 的 初始化窗体消息 ID,只运行一次
+;******************************************************************************
+; 设置标题栏图标
+;******************************************************************************
+
+      invoke  LoadIcon,hInstance,ICO_MAIN                 ; 载入图标,返回句柄到 eax 中
+
+      invoke  SendMessage,hWnd,WM_SETICON,ICON_BIG,eax       ; 发送消息到 windows 内容是 WM_SETICON 就是设置窗体图标
+
+      invoke  GetDlgItem,hWnd,IDC_TEXTCODE                 ; 得到注册码输入框的 ID 的句柄到 eax 中
+
+      invoke  EnableWindow,eax,FALSE                        ; 使注册码文本框不可用
+
+          .elseif  eax == WM_COMMAND                        ; WM_COMMAND 是指 windows 的 命令消息 ID
+
+                mov  eax,wParam                            ; 从 wParam 中得到具体命令格式(只能这样说了,其实没这么简单的,想了解更详
+                                                            ; 细的的话,请查相关资料)
+;******************************************************************************
+; 注册算法
+;******************************************************************************
+
+      .if  ax ==  IDOK                          ; 点击了按钮
+            invoke  GetReg                    ; Call 注册子函数,返回 16 进制数在 edx 中
+                invoke wsprintf,addr result,addr szFormat,edx     ; 转换 edx 为 十进制
+            invoke  SetDlgItemText,hWnd,IDC_TEXTCODE, addr result ; 显示 注册码到文本框
+            invoke  GetDlgItem,hWnd,IDC_TEXTCODE          ; 使注册码文本框可用
+            invoke  EnableWindow,eax,TRUE
+;******************************************************************************
+; 获取用户名到 szBuffer 缓冲区上
+;******************************************************************************
+
+      .elseif  ax ==  IDC_TEXTNAME                  ; 正在输入用户名
+        invoke  GetDlgItemText,hWnd,IDC_TEXTNAME,addr @szBuffer,sizeof @szBuffer
+
+                                                        ; 刷新 用户名输入框显示
+      .endif
+
+;******************************************************************************
+    .else
+      mov  eax,FALSE                               ; 其他命令交给 windows 自已处理
+      ret                                  ; 中断返回
+    .endif
+    mov  eax,TRUE
+    ret                                  ; 中断返回
+
+_ProcDlgMain  endp                                          ; 对话框窗体函数消息处理循环 函数 结束符
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+start:                                                  ; 这里是整个程序运行的入口点
+
+    invoke  GetModuleHandle,NULL                          ; 获取模块的实例句柄到 eax 中
+
+    mov  hInstance,eax                                  ; eax 存入 hInstance 中
+
+    invoke  DialogBoxParam,hInstance,DLG_MAIN,NULL,offset _ProcDlgMain,NULL
+                                                        ; 调用消息处理循环函数
+
+    invoke  ExitProcess,NULL                                ; 退出程序
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+;核心注册算法
+GetReg          proc
+
+            lea     esi,@szBuffer        ;将用户名存入 esi 寄存器
+
+            xor     ecx,ecx            ;ecx 归零
+
+            xor     edx,edx            ;edx 归零
+
+_again:          cmp     ch,[esi]              ;比较 ch (总为零) 与当前段偏移内的字符(当前字符)
+
+            je      _finish              ;如果为零,则表示已经到了用户名末尾,则表示已经循环完毕
+
+            inc     cl               ;不为零,使 cl(相当上面 C++中的变量 i) 增加 1 (也就是上面的伪代码的 i++)
+
+            mov     eax,ecx             ;将 cl 存到 eax 中
+
+            and     eax,0ffh            ;eax 与 0xff 做 与运算,结果存入 eax 中
+
+            imul    byte ptr [esi]       ;al  与 当前字符 ASII 相乘,结果存入 eax 中
+
+            add     edx,eax            ;叠加 上次 edx 与 当前 结果 ,保存到 edx 中
+```
+
+
+
+```asm
+        inc     esi               ;指向下一个字符
+        jmp     _again            ;循环继续
+
+_finish:                          ;运算结束
+
+        mov     eax,0beae0h       ;将 0xbeae0 存入 eax 中
+        sub     eax,edx           ; 用 0xbeae0 - edx (上面循环结果)
+        mov     edx,eax          ; 将最后结果保存到 edx 寄存器中
+        ret
+
+GetReg      endp
+end start                         ; 代码段结束
+```
+
+`reg.rc`
+
+```rc
+#include <resource.h>
+
+#define ICO_MAIN 0x1000
+#define DLG_MAIN 1
+#define IDC_TEXTNAME 107
+#define IDC_TEXTCODE 108
+
+ICO_MAIN ICON "Main.ico"
+
+DLG_MAIN DIALOG 150, 160, 180, 134
+STYLE DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "超级电话通 3.05 注册机"
+FONT 9, "宋体"
+{
+ GROUPBOX "输入框", -1, 27, 5, 125, 100, BS_GROUPBOX
+ LTEXT "用户名", -1, 35, 20, 105, 10
+ EDITTEXT IDC_TEXTNAME, 35, 35, 105, 12
+ LTEXT "注册码", -1, 35, 60, 105, 10
+ EDITTEXT IDC_TEXTCODE, 35, 75, 105, 12
+ DEFPUSHBUTTON "显示注册码", IDOK, 100, 115, 50, 14
+}
+```
+
+### 后记
+由此可见注册机也并不是那么难的.
+
+在这里也感谢各位的支持...![微笑](img/c72cb8eba397ac67dda6e1ac58a9b627.jpg)

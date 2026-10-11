@@ -1,0 +1,116 @@
+
+# AudioSphere V1.3
+
+> 原文：[`www.pediy.com/kssd/pediy02/forum273.htm`](https://www.pediy.com/kssd/pediy02/forum273.htm)
+
+我现在已经将这个程序破解了，但是注册码人的姓名却不是我，所以如果大家有兴趣的话，可以研究一下。
+
+AudioSphere V1.3
+
+程式猎人
+
+【英文版】（390KB，版本：1.3 for Win9x/NT）
+
+**简介：** 这个软件可以让你更加随意地控制你的 PC 的声音系统的音量、平衡、高音以及低音。该软件制作非常紧凑，界面很漂亮而易用，比起 Win 中自带的那个音量控制要好得多。还允许使用者将不同的音量设置保存在软件中。其他特性还包括：界面颜色可选，梯度风格、多设置预设。
+
+**追踪：** `RN:01234567`
+
+今天追踪这个软件是有一定的运气在里面的，但是这也是建立在一定的知识基础上的，好了就不多说了，开始破解这个软件了。
+
+首先这个程序有一个注册的地方，但是在这里我使用 `bpx hmemcpy` 无法得到正确的结果，所以有就开始想其它的方法，看一看能够破解它不。
+
+1 使用 `W32DASM` 反汇编它，从中可以得到下面的关键地方，
+
+\* Possible StringData Ref from Code Obj ->`"SOFTWARE\\Svetlana Software\\Audiosphere"`
+
+看到程序调用注册表值，所以就进入注册表的相应位置，查找需要的值，在这里你可以发现它有这样一个值 `FirstRunDate`，当然如果你稍稍懂英语的话，就知道它是什么意思了。这里就是记录你第一次行的时间，我就将它给删除了，下面就开始破解它的。
+
+2 在 `W32` 中还发现到这里比较重要
+
+```
+:0044B51A 8B55FC             mov edx, dword ptr [ebp-04]
+:0044B51D 8B831C020000      mov eax, dword ptr [ebx+0000021C]
+:0044B523 E84C0DFDFF        call 0041C274
+
+* Possible StringData Ref from Code Obj ->"The 30 days evaluation period: "
+                             |
+:0044B528 6898B54400        push 0044B598
+:0044B52D 8D55F8            lea edx, dword ptr [ebp-08]
+:0044B530 B81E000000        mov eax, 0000001E
+:0044B535 2BC6              sub eax, esi
+:0044B537 E8D4B8FBFF        call 00406E10
+:0044B53C FF75F8            push [ebp-08]
+
+* Possible StringData Ref from Code Obj ->" days left"
+                             |
+:0044B53F 68C0B54400        push 0044B5C0
+:0044B544 8D45FC            lea eax, dword ptr [ebp-04]
+:0044B547 BA03000000        mov edx, 00000003
+```
+
+程序提示你已经过期多长时间了，那么这个程序是在那里调用它的呢？向上看可以看到是这里调用它的
+
+\* Referenced by a `CALL` at Address:
+
+`|:00452BFA`
+
+查找它的位置如下：
+
+\* Referenced by a `CALL` at Address:
+
+`|:0045255E`
+
+```
+|
+:00452B94 55                 push ebp
+:00452B95 8BEC               mov ebp, esp
+:00452B97 8B8038020000       mov eax, dword ptr [eax+00000238]
+:00452B9D 83780C0A           cmp dword ptr [eax+0C], 0000000A   ***
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00452B31(C)
+|
+:00452BA1 755C               jne 00452BFF
+:00452BA3 E8204FFBFF         call 00407AC8
+:00452BA8 DB05047D4500       fild dword ptr [00457D04]
+:00452BAE DEE9               fsubp st(1), st(0)
+:00452BB0 D81D042C4500       fcomp dword ptr [00452C04]
+:00452BB6 DFE0               fstsw ax
+:00452BB8 9E                 sahf
+:00452BB9 760E               jbe 00452BC9
+:00452BBB A1506D4500         mov eax, dword ptr [00456D50]
+:00452BC0 8B00               mov eax, dword ptr [eax]
+:00452BC2 E82D93FDFF         call 0042BEF4
+:00452BC7 EB36               jmp 00452BFF
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00452BB9(C)
+|
+:00452BC9 E8FA4EFBFF         call 00407AC8
+:00452BCE DB05047D4500       fild dword ptr [00457D04]
+:00452BD4 DEE9               fsubp st(1), st(0)
+:00452BD6 D81D082C4500       fcomp dword ptr [00452C08]
+:00452BDC DFE0               fstsw ax
+:00452BDE 9E                 sahf
+:00452BDF 761E               jbe 00452BFF
+:00452BE1 E8E24EFBFF         call 00407AC8
+:00452BE6 DB05047D4500       fild dword ptr [00457D04]
+:00452BEC DEE9               fsubp st(1), st(0)
+:00452BEE E839FDFAFF         call 0040292C
+:00452BF3 8BD0               mov edx, eax
+:00452BF5 A1D47C4500         mov eax, dword ptr [00457CD4]
+:00452BFA E8C188FFFF         call 0044B4C0    这里调用 call
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:00452BA1(C), :00452BC7(U), :00452BDF(C)
+|
+:00452BFF 5D                 pop ebp
+:00452C00 C3                 ret
+```
+
+好了，在这里你可以看到程序的运行情况了，在上面有三处可以跳跃过这里的地方，那么到底是哪一处呢。我们可以一试，因为我在前面已经将首次运行时间删除掉了，所以当程序重新运行时，已经无法正常运行了，但是如果你在`***`处设断的话，程序将在这里中断，如果你在这里强迫程序在 `jne 00452BFF` 处跳跃的话，它将能够正常运行了，并且在主画面中也没有要求注册的字样了，可是在 `about` 项中还要求注册。如果大家使用这个软件的话，时间过了话，就可以将上面的地方改掉就可以无限期的使用它的。但是它依然没有注册，那么我还没有完全成功，所以继续破解它。
+
+这回我使用 `filemon` 来跟踪程序调用的什么文件（这个可是今天的关键地方）。通过跟踪，发现程序在我点击 `about` 时，它调用它的目录下一个 `audiosphere.key` 文件，我于是就查找目录是否有这个文件，发现没有。那么我们通常的作法就是建立一个这样文件，于是就建立了一个这样的文件，内容吗就是随便写的，但是我发现程序如果重新运行的话，在 `about` 选项中已经再也没有提示 30 天的限制了。现在已经变成完全注册了，因为在 `about` 中你可以发现这个软件注册给：`？？？？？`，这个由你输入的值决定的。但是它是经过转换的，到这里这个程序算是破解完了。好了再整理一下。
+
+1 查找：`75 5c e8 20 4f`
+   替换：`eb -- -- -- --`
+   `--`表示不用换的值
+
+2 在它的目录下建立一个 `audiosphere.key` 文件，内容自己定，一定要大于 20 个字符。 现在你再运行改后程序，你会发现它已经注册了。 `4dd466d0e1e0cc123afbe504da2462ca`

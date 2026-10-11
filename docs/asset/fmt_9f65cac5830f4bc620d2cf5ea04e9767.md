@@ -1,0 +1,99 @@
+
+# 拼音之星千禧世纪版
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum547.htm`](https://www.pediy.com/kssd/pediy03/forum547.htm)
+
+解《拼音之星千禧世纪版》试用时间过期问题，难度：`0.01` 级，高手勿看。
+
+忘记在哪里下载了，好像是知名网站如 `newhua` 等。
+
+`Taizi32.exe` 为 `326KB`
+
+此版本好像无拼音之星 `2000` 好用。
+
+希望大家都能看懂！
+
+`Let's begin`
+
+怎么？没过期？调到 `3000` 年看看？`3000` 年哪，朋友啊朋友，你可曾想起了我？
+
+\* `Referenced by a (U)nconditional or (C)onditional Jump at Addresses:`
+
+| `:0040FB5B(U)` , `:0040FCAF(C)` , `:0040FCBE(C)` , `:0040FE3D(U)` , `:0040FE42(U)`
+| `:0040FE47(U)` , `:0040FE4C(U)` , `:0040FE51(U)` , `:0040FE56(U)`
+
+\* 代码片段：
+```
+:0040FD23 83BD9CFEFFFF01             cmp dword ptr [ebp+FFFFFE9C], 00000001
+:0040FD2A 751B                       jne 0040FD47
+
+                  ^^
+        改 EB 即可！
+
+:0040FD2C 6A40                       push 00000040
+```
+
+\* `Possible StringData Ref from Data Obj ->"拼音之星千禧版试用时间已过"`
+
+\* 代码片段：
+```
+:0040FD2E 68B40E4300                 push 00430EB4
+```
+
+\* `Possible StringData Ref from Data Obj ->"感谢使用拼音之星汉字输入系统。`
+`请与以下地址联?`
+`->"倒郝蛘 桨?电子邮购 88 圆`
+`汇款地址:北京市西三环"`
+`->"中路中塔园 5 号楼 3 门 503, 王娟`
+`邮编 100036, "`
+`->"电子邮件 tanyj@sarft.gov.cn,电话 010-68464333"`
+
+\* 代码片段：
+```
+:0040FD33 68D00E4300                 push 00430ED0
+:0040FD38 6A00                       push 00000000
+```
+
+\* `Reference To: USER32.MessageBoxA, Ord:0195h`
+
+\* 代码片段：
+```
+:0040FD3A FF15ECA44800               Call dword ptr [0048A4EC]      ===>bye!!
+:0040FD40 33C0                       xor eax, eax
+:0040FD42 E914010000                 jmp 0040FE5B
+```
+
+\* `Referenced by a (U)nconditional or (C)onditional Jump at Address:`
+`|:0040FD2A(C)`
+
+\* 代码片段：
+```
+:0040FD47 8B4514                     mov eax, dword ptr [ebp+14]
+```
+
+附：去除启动时不太难看的图位 `BITMAP==>拼音之星千禧世纪版的显示。`
+
+\* 代码片段：
+```
+:00415CFD 6A00                       push 00000000
+:00415CFF 6A00                       push 00000000
+:00415D01 8B4D98                     mov ecx, dword ptr [ebp-68]
+:00415D04 51                         push ecx
+```
+
+\* `Reference To: GDI32.BitBlt, Ord:000Ah`
+
+\* 代码片段：
+```
+:00415D05 FF15F4A24800               Call dword ptr [0048A2F4]
+
+                  ^^^^^^^^^^^^
+        改 909090909090
+
+:00415D0B 8B559C                     mov edx, dword ptr [ebp-64]
+:00415D0E 52                         push edx
+:00415D0F 8B45F8                     mov eax, dword ptr [ebp-08]
+:00415D12 50                         push eax
+```
+
+`/zest/` `4dd466d0e1e0cc123afbe504da2462ca`

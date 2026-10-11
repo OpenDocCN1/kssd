@@ -1,0 +1,238 @@
+
+# ☆ crack 低兵乱谈
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-440.htm`](https://www.pediy.com/kssd/pediy09/pediy09-440.htm)
+
+## 1) `SmartCheck`
+
+前段时间剁一个扫描器。也没用 `PEiD` 之类的工具查看一下就直接上 `IDA` 了，这才发现是 `VB` 开发的。但仍直接用 `regmon`、`cdb` 剁它，还写了个 `loader`。
+
+后来 `yjl` 给我提到 `SmartCheck`。我又用它重新剁了一遍，发现这个工具清晰地记录了 API 调用流程，比如访问了哪些注册表项，用了哪些 `VB` 库函数等等，最关键的是它给出了这些操作对应的代码偏移。`SmartCheck` 里给出的偏移是"file offset"，在 `IDA` 中要"Jump to file offset"才成。在其帮助下直接注册成功，抛弃了 `loader`。
+
+这件事给我一个教训。以前不太接触 `VB`、`Delphi` 开发的程序，总是习惯了直接 `IDA` 反汇编之后上 `cdb` 硬剁，从未想过找趁手的工具，以后要聪明些才成。
+
+## 2) `Spy++`
+
+我不清楚对付 `Borland C++`、`Delphi` 开发的 `GUI` 程序，是否有类似 `mfcspy` 这样的工具。
+
+前段时间剁另两个扫描器时用 `PEiD` 之类的工具查看，报告是这两工具开发的。我对消息处理这些没啥经验，就胡整了一气，下面是些弯路记载。
+
+用 `Spy++` 的"Find Window"查看目标控件，关注"Window Properties/General"中的两个值:
+
+```text
+Window Handle   : 001E04E0
+Window Proc     : 015909BD
+```
+
+不要理会 `Class` 页中的 `Window Proc`。
+
+点 `Synchronize` 同步，在右键菜单中选 `Messages`，对指定窗口进行消息监视。在菜单 `Messages` 中选 `Stop Logging`，此时 `Logging Options` 可选，点它进入"Message Options/Messages"页，选 `Clear All`，然后再勾中你关心的消息分类，这样可以有效减少消息监视的输出信息。如果你不确认要监视哪些消息，可以在全选中的情况下先监视上一会，可以明显看到大量重复的鼠标、键盘消息，再针对性地过滤这些无关宏旨的垃圾消息。
+
+我当时的情况是，在一堆垃圾鼠标、键盘消息中混有 `WM_USER+num` 消息，于是我就只监视 `WM_USER` 分类。即使这样，监视到的消息量仍很大，好在可以通过统计分析人工过滤掉重复度太高的那些。
+
+我通过这个蠢办法找出了我所关心的一个消息，假设如下:
+
+```text
+Window Handle   : 001E04E0
+Message         : 100D (Sent)
+```
+
+注意，这个 `Sent` 意味着这个消息是通过 `SendMessage()` 发过来的，如果显示 `Posted`，就不要用后面的办法调试，我对 `PostMessage()` 更不熟悉，胡整不出明堂来。
+
+`PEiD` 说这个程序是"Borland C++ 1999"开发的。
+
+用 `cdb` attach 上去看看"Window Proc":
+
+```text
+> u 015909BD
+015909bd e842f6ffff      call    01590004
+> u 01590004
+01590004 59              pop     ecx
+01590005 e9d6531aff      jmp     007353e0
+> u 007353e0
+007353e0 55              push    ebp
+007353e1 8bec            mov     ebp,esp
+007353e3 31c0            xor     eax,eax
+007353e5 50              push    eax
+007353e6 ff7514          push    dword ptr [ebp+14h]
+007353e9 ff7510          push    dword ptr [ebp+10h]
+007353ec ff750c          push    dword ptr [ebp+0Ch]
+007353ef 89e2            mov     edx,esp
+007353f1 8b4104          mov     eax,dword ptr [ecx+4]
+007353f4 ff11            call    dword ptr [ecx]    // 注意这里
+007353f6 83c40c          add     esp,0Ch
+007353f9 58              pop     eax
+007353fa 5d              pop     ebp
+007353fb c21000          ret     10h
+```
+
+窗口过程原型如下:
+
+```c
+LRESULT CALLBACK WindowProc(
+    HWND    hwnd,
+    UINT    uMsg,
+    WPARAM  wParam,
+    LPARAM  lParam
+);
+```
+
+在 `0x015909BD` 设个条件断点:
+
+```text
+> bp 15909BD "j (dwo(esp+4)==1E04E0 & dwo(esp+8)==100D) '';'gc'"
+> g
+> kpn
+ # ChildEBP RetAddr
+00 0012d9ac 77e2b6e3 0x15909bd
+01 0012d9d8 77e2b874 USER32!InternalCallWinProc+0x28
+02 0012da50 77e2c8b8 USER32!UserCallWinProcCheckWow+0x151
+03 0012daac 77e2c9c6 USER32!DispatchClientMessage+0xd9
+04 0012dad4 7c958536 USER32!__fnDWORD+0x24
+05 0012db00 77e2d1ec ntdll!KiUserCallbackDispatcher+0x2e
+06 0012db3c 77e1cee9 USER32!NtUserMessageCall+0xc
+07 0012db5c 00782ba9 USER32!SendMessageA+0x7f
+08 0012f888 0041bc38 xxx!Dxcommoninitialization$qqrv+0x96ca1
+09 0012f938 0043435e xxx!Shdocvw_tlbTCppWebBrowserSetWordBoolProp$qqrio+0x4130
+0a 0012fad0 00436694 xxx!Shdocvw_tlbTCppWebBrowserSetWordBoolProp$qqrio+0x1c856
+0b 0012fb4c 006a2d80 xxx!Shdocvw_tlbTCppWebBrowserSetWordBoolProp$qqrio+0x1eb8c
+0c 0012fb78 006a59b6 xxx!DxbarTdxBarItemDoClick$qqrv+0x2c
+0d 0012fbbc 006a70d0 xxx!DxbarTdxBarItemControlControlUnclick$qqro+0x15a
+0e 0012fbc8 00696503 xxx!DxbarTdxBarButtonControlControlUnclick$qqro+0x3c
+0f 0012fbf4 00699ff0 xxx!DxbarTCustomdxBarControlWMLButtonUp$qqrr17MessagesTWMMouse+0x11b
+10 0012fc04 77e2cb48 xxx!DxbarTdxBarControlWMLButtonUp$qqrr17MessagesTWMMouse+0x160
+11 0012fc08 77e24576 USER32!NtUserGetThreadState+0xc
+12 0012fc20 0074b95c USER32!GetCapture+0x18
+13 0012fc30 0074e4ef xxx!Dxcommoninitialization$qqrv+0x5fa54
+```
+
+从 `0x15909BD` 处跟踪到 `0x007353f4` 处，跟进那个 `call` 里面，一路上如果是间接调用就动态跟进去，如果是直接调用就在 `IDA` 中跟过去。就这个 `Borland C++` 开发的程序而言，没跟多远就找到了"非框架代码性质"的窗口消息处理代码。
+
+拦下面这些函数可能并不是个好主意:
+
+```text
+> x user32!*CallWindowProc*
+77e40448 USER32!CallWindowProcA = <no type information>
+77e2bf59 USER32!CallWindowProcW = <no type information>
+77e2bf7d USER32!CallWindowProcAorW = <no type information>
+
+> x user32!*CallWinProc*
+77e2cc04 USER32!UserCallWinProc = <no type information>
+77e2b6bb USER32!InternalCallWinProc = <no type information>
+77e2b7d2 USER32!UserCallWinProcCheckWow = <no type information>
+```
+
+不过我的目的不在于此，我想找的是 `0x0041BC38` 附近的代码，也就是消息的源头。
+
+`SendMessage()` 函数原型如下:
+
+```c
+LRESULT SendMessage(
+    HWND    hWnd,
+    UINT    Msg,
+    WPARAM  wParam,
+    LPARAM  lParam
+);
+```
+
+考虑设置另一个条件断点再查看调用栈回溯:
+
+```text
+> bp user32!SendMessageA "j (dwo(esp+4)==1E04E0 & dwo(esp+8)==100D) '';'gc'"
+```
+
+就是记录一些胡整时的过程，没啥。
+
+## 3) 在 `IDA` 中改函数名
+
+我一般把交叉引用显示的数量设到 20，这样那些明显被频繁引用的函数在静态查看过程中一眼就注意到了。
+
+我喜欢在 `IDA` 中改函数名，当然是把那些 `sub_xxx()` 改名，而不是把本来就有符号的函数改名，比如这样:
+
+```text
+PrivateSprintf
+PrivateResolveHost_0
+PrivateResolveHost_1
+MsgBox_0
+MsgBox_1
+MsgBox_2
+PrivateIsDebuggerPresent
+```
+
+这样在静态查看过程中会好一些。再就是在函数头用 repeatable comment，这样调用该函数的代码处会自动出现你加的注释，我倾向在此对各形参的意义进行解释。
+
+## 4) `CreateWindow`/`DrawText`
+
+我发现一些 `Borland C++`、`Delphi` 开发的程序不喜欢调用 `MessageBox()`，而是自己创建窗口(`CreateWindow`)，在里面作画(`DrawText`)，拦的时候要当心些。
+
+```text
+> x user32!*MessageBox*
+77e67d40 USER32!MessageBoxIndirectA = <no type information>
+77e2ee4a USER32!MessageBoxExW = <no type information>
+77e677dc USER32!LogMessageBox = <no type information>
+77e2f06a USER32!SoftModalMessageBox = <no type information>
+77e2eed2 USER32!MessageBoxWorker = <no type information>
+77e542ad USER32!MessageBoxExA = <no type information>
+77e67e30 USER32!MessageBoxIndirectW = <no type information>
+77e67906 USER32!ServiceMessageBox = <no type information>
+77e5425f USER32!MessageBoxA = <no type information>
+77e2ee1c USER32!MessageBoxW = <no type information>
+77e67c71 USER32!MessageBoxTimeoutA = <no type information>
+77e2ee6e USER32!MessageBoxTimeoutW = <no type information>
+
+> x user32!*CreateWindow*
+77e1c301 USER32!CreateWindowExA = <no type information>
+77e221c9 USER32!NtUserCreateWindowEx = <no type information>
+77e2201d USER32!VerNtUserCreateWindowEx = <no type information>
+77e223b8 USER32!CreateWindowExW = <no type information>
+77e222db USER32!_CreateWindowEx = <no type information>
+
+> x user32!DrawText*
+77e2494a USER32!DrawTextExWorker = <no type information>
+77e311a4 USER32!DrawTextExA = <no type information>
+77e25248 USER32!DrawTextW = <no type information>
+77e24c82 USER32!DrawTextExW = <no type information>
+77e3116d USER32!DrawTextA = <no type information>
+```
+
+我现在习惯性地用 `Spy++` 看一些那个弹出窗口，然后设法拦 `CreateWindow()`。
+
+## 5) `LoadPE` 比 `Stud_PE` 更可靠
+
+碰上个用 `Borland C++` 开发的未加壳的程序，用 `LoadPE` 可以打开并修改校验和，用 `Stud_PE` 打开时直接结束进程。懒得深究了。
+
+## 6) 不要一上来就用 `IDA` 开搞
+
+除了前面说过的那个 `VB` 写的程序，后来又碰上一件事，是一个 `IDA` 的插件，有点小 `BUG`，我想直接二进制 patch 一下。注意到这个插件有如下调用:
+
+```c
+CoCreateInstance( CLSID_XXX, ... );
+```
+
+动态调试 `IDA`，拦了这个函数并查看 `CLSID_XXX`，然后在 `PLW` 中找 16 字节的 `CLSID_XXX`，没找着。结果又是在 `IDA` 反汇编的显示中注意到这个 `PLW` 是用 `UPX` 压缩过的，郁闷到死，解压、patch、压回去，搞定。
+
+主要是以前接触 crack 少，虽然总与汇编打交道，但那些目标程序是正经程序，不加壳、不压缩、不扭曲，最近接触的都是些不正经程序，套用旧思维是要跌跟头的。
+
+以后再也不一上来就用 `IDA` 开搞了。
+
+## 7) 用好 `Hex-Rays`
+
+这次信用卡欺诈得来的东西真是有点用，聊胜于无。
+
+## 8) 怀念 `Netguy`、感谢 `hume`
+
+
+
+> 在`crack`领域，我真是菜得可以，除非那个目标软件实在跟工作、伙伴相关而又没有现成的公开的破解存在，否则绝无剁之的念想，因为技艺太差！
+>
+> 不会写注册机一类的玩意儿，从未写过，懒得跟踪清楚那些七七八八的算法，其实是我跟不出来，太费脑子。我是最功利的那种，一上来就是`loader`，搞定拉倒走人。
+>
+> 现在一般是这样处理的，先`Google`，看是否有破解存在过。若有，找那些资源丰富的兄弟帮我下一个回来。若无，再硬剁之。能懒则懒。
+>
+> 怀念`Netguy`师兄在`CERNET`内的日子。尽管直到现在我也没真正学会`crack`，但仍怀念`Netguy`师兄，是因为碰上他才学了点`crack`，主要是`SoftICE`。这是一个超级低调而又超级生猛的人。改用回明书评区里一位老兄的话:
+>
+> 红颜易老英雄迟暮，就让我们停留在`CERNET`的颠峰时刻吧，那无敌的青春，醉人的无忧无虑。。。。。。
+>
+> 感谢胡大大(`hume`)，03 年碰上`hume`一周之后，在其带动下用起了`OllyDbg`、`LoadPE`、`Stud_PE`、`IDA`各种稀烂的插件。今天周末，胡大大，安心上路。
+
+`4dd466d0e1e0cc123afbe504da2462ca`

@@ -1,0 +1,178 @@
+
+# 汇编代码分析
+
+## Part One
+
+* Possible StringData Ref from Data Obj ->`"jj@˙鯝"`
+
+:00406FA9 `BA30274200` `mov edx, 00422730`
+:00406FAE `8B0D782C4200` `mov ecx, dword ptr [00422C78]`
+:00406FB4 `E8E8950000` `call 004105A1`
+:00406FB9 `8945F8` `mov dword ptr [ebp-08], eax`
+:00406FBC `6A00` `push 00000000`
+:00406FBE `BACD000000` `mov edx, 000000CD`
+:00406FC3 `8B4DF8` `mov ecx, dword ptr [ebp-08]`
+:00406FC6 `E879950000` `call 00410544`
+
+* Possible StringData Ref from Data Obj ->`""`
+
+:00406FCB `68A8214200` `push 004221A8`
+
+* Possible StringData Ref from Data Obj ->`"?`
+
+---
+
+## ★Part Three★
+
+:00407674 `833800` `cmp dword ptr [eax], 00000000`
+:00407677 `740A` `je 00407683`
+:00407679 `B901000000` `mov ecx, 00000001`
+:0040767E `E8A9BBFFFF` `call 0040322C`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+  |:00407677(C)
+
+:00407683 `833D802A420000` `cmp dword ptr [00422A80], 00000000`
+:0040768A `753C` `jne 004076C8` //----------->这里要跳转。75-->74
+:0040768C `833D842A420000` `cmp dword ptr [00422A84], 00000000`
+:00407693 `741E` `je 004076B3`
+:00407695 `8B15842A4200` `mov edx, dword ptr [00422A84]`
+:0040769B `52` `push edx`
+:0040769C `B9A2010000` `mov ecx, 000001A2`
+:004076A1 `E84A3C0000` `call 0040B2F0`
+:004076A6 `50` `push eax`
+:004076A7 `6A08` `push 00000008`
+:004076A9 `E87899FFFF` `call 00401026`
+:004076AE `83C40C` `add esp, 0000000C`
+:004076B1 `EB15` `jmp 004076C8`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+  |:00407693(C)
+
+:004076B3 `B9A3010000` `mov ecx, 000001A3`
+:004076B8 `E8333C0000` `call 0040B2F0`
+:004076BD `50` `push eax`
+:004076BE `6A01` `push 00000001`
+:004076C0 `E86199FFFF` `call 00401026`
+:004076C5 `83C408` `add esp, 00000008`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+---
+
+## ★Part Four★
+
+:0040976A `BA77270000` `mov edx, 00002777`
+:0040976F `A1082B4200` `mov eax, dword ptr [00422B08]`
+:00409774 `8B0C85602E4200` `mov ecx, dword ptr [4*eax+00422E60]`
+:0040977B `E8496D0000` `call 004104C9`
+:00409780 `85C0` `test eax, eax`
+:00409782 `7571` `jne 004097F5`
+:00409784 `833D802A420000` `cmp dword ptr [00422A80], 00000000`
+:0040978B `7524` `jne 004097B1` //----------->这里要跳转。75-->74
+:0040978D `833D842A420000` `cmp dword ptr [00422A84], 00000000`
+:00409794 `751B` `jne 004097B1`
+:00409796 `B9A3010000` `mov ecx, 000001A3`
+:0040979B `E8501B0000` `call 0040B2F0`
+:004097A0 `8BD0` `mov edx, eax`
+
+* Possible StringData Ref from Data Obj ->`"ZZ\`鐱 KA"`
+
+:004097A2 `B9D0264200` `mov ecx, 004226D0`
+:004097A7 `E8907D0000` `call 0041153C`
+:004097AC `8945FC` `mov dword ptr [ebp-04], eax`
+:004097AF `EB13` `jmp 004097C4`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+  |:0040978B(C), :00409794(C)
+
+:004097B1 `8B0D082B4200` `mov ecx, dword ptr [00422B08]`
+:004097B7 `8B148D602E4200` `mov edx, dword ptr [4*ecx+00422E60]`
+:004097BE `8B4261` `mov eax, dword ptr [edx+61]`
+:004097C1 `8945FC` `mov dword ptr [ebp-04], eax`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+  |:004097AF(U)
+
+---
+
+## ★Part Five★
+
+:004097C4 `8B0D0C2B4200` `mov ecx, dword ptr [00422B0C]`
+:004097CA `83C901` `or ecx, 00000001`
+:004097CD `890D0C2B4200` `mov dword ptr [00422B0C], ecx`
+:004097D3 `8B4DFC` `mov ecx, dword ptr [ebp-04]`
+:004097D6 `E8C5FeFFFF` `call 004096A0`
+:004097DB `833D802A420000` `cmp dword ptr [00422A80], 00000000`
+:004097E2 `7511` `jne 004097F5` //----------->这里要跳转。75-->74
+:004097E4 `833D842A420000` `cmp dword ptr [00422A84], 00000000`
+:004097EB `7508` `jne 004097F5`
+:004097ED `8B4DFC` `mov ecx, dword ptr [ebp-04]`
+:004097F0 `E81C6E0000` `call 00410611`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+  |:00409782(C), :004097E2(C), :004097EB(C)
+
+:004097F5 `8BE5` `mov esp, ebp`
+:004097F7 `5D` `pop ebp`
+:004097F8 `C3` `ret`
+
+* Referenced by a CALL at Addresses:
+  |:004098D5 , :004098E2 , :004098EC , :00409902
+
+:004097F9 `55` `push ebp`
+:004097FA `8BEC` `mov ebp, esp`
+
+---
+
+## ★Part Six★
+
+:0040BE75 `8B15F0344200` `mov edx, dword ptr [004234F0]`
+:0040BE7B `6BD203` `imul edx, 00000003`
+:0040BE7E `89953CFFFFFF` `mov dword ptr [ebp+FFFFFF3C], edx`
+:0040BE84 `C78530FFFFFF0D000000` `mov dword ptr [ebp+FFFFFF30], 0000000D`
+:0040BE8E `8B854CFFFFFF` `mov eax, dword ptr [ebp+FFFFFF4C]`
+:0040BE94 `24F3` `and al, F3`
+:0040BE96 `89854CFFFFFF` `mov dword ptr [ebp+FFFFFF4C], eax`
+:0040BE9C `8B8D4CFFFFFF` `mov ecx, dword ptr [ebp+FFFFFF4C]`
+:0040BEA2 `83C940` `or ecx, 00000040`
+:0040BEA5 `898D4CFFFFFF` `mov dword ptr [ebp+FFFFFF4C], ecx`
+:0040BEAB `833D802A420000` `cmp dword ptr [00422A80], 00000000`
+:0040BEB2 `740E` `je 0040BEC2` //----------->这里要跳转。75-->74
+:0040BEB4 `8B15802A4200` `mov edx, dword ptr [00422A80]`
+:0040BEBA `8995DCFEFFFF` `mov dword ptr [ebp+FFFFFEDC], edx`
+:0040BEC0 `EB0A` `jmp 0040BECC`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+  |:0040BEB2(C)
+
+:0040BEC2 `C785DCFEFFFFA02A4200` `mov dword ptr [ebp+FFFFFEDC], 00422AA0`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+  |:0040BEC0(U)
+
+:0040BECC `8B85DCFEFFFF` `mov eax, dword ptr [ebp+FFFFFEDC]`
+
+---
+
+## ★Part End★
+
+# 四、修改程序代码
+
+用 `Hiew6.76` 注册版选择主文件，然后使用 `F4` 选择 `Dcode` 模式，分别查找上面代码中要修改的地方 offset 值（可以在 `W32DSM` 中光标双击代码行，看 `W32DSM` 窗口的状态栏，里面的 `@OffSet` 中的值就是要修改的值）。分别修改就完成了破解。
+
+# 五、软件汉化
+
+拷贝 `Langage` 目录中的 `English.ln` 为 `Chinese.ln`，然后汉化翻译其中的语句即可在程序菜单中选择中文。
+
+# 六、最终破解汉化文件下载
+
+借用 `CrackerABC[BCG]` 老兄的 FTP，谢谢！
+
+`http://sffs.china.com/soft/hy-macroclip2000.2.2.zip`
+
+欢迎测试和交流，初写破解，请大客多指教！小妹这厢有礼了，^\_^
+
+翠微池儿  
+2001 年 10 月 9 日  
+`4dd466d0e1e0cc123afbe504da2462ca`

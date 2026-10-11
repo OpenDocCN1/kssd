@@ -1,0 +1,364 @@
+
+# WebTimeSync 5.2.0
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue092.htm`](https://www.pediy.com/kssd/pediy04/kanxue092.htm)
+
+作者：`tieji`
+
+破解时间：2001-9-29
+
+破解工具：`W32dasm` 黄金版，`UltraEdit-32`，`trw2000`
+
+作者主页：`http://www.victechsoftware.com/`
+
+### 说明
+可以让你的计算机时钟变得十分精确的软件，它会连接到全世界 7 个原子钟当中的当一个(你可以选择连接到哪个)，得到准确的时间后再更改你的系统时间，这个软件可以计算你与格林威治时间的偏移量然后再调成为本地时间。
+
+### 引子
+用 `trw` 时间长了，系统时间老是变慢，常常弄错时间 :=( 无奈，上网找了个软件 `WebTimeSync`，使其校正系统时间，可这软件很抠门，只能用１５次，于是.............
+
+先打开 `trw2000`，运行 `WebTimeSync` 程序试图破解注册码，发现程序是用 `vb` 编的，老在 `dll` 中打转，烦啊.....
+
+改变方向，暴力破解吧：
+
+用 `W32dasm` 打开 `kroot.exe` 文件，在串式参考中找"AAll of your uses have been exhausted. " 即１５次用完后运行 `webtimesync` 所跳出的话。
+
+发现有３个地方：`00425e3e`，`00428b61`，`0042a8c1`
+
+用 `trw2000` 对这三个地方设中断，`bpx 00425e3e`；`bpx 00428b61`；`bpx 0042a8c1`
+
+运行 `webtimesync`，中断在 `00428b61` 上：
+
+```
+:004289E4 DC2570174000             fsub qword ptr [00401770]
+:004289EA DFE0                    fstsw ax
+:004289EC A80D                    test al, 0D
+:004289EE 0F856E050000            jne 00428F62
+
+* Reference To: MSVBVM60.__vbaFpR8, Ord:0000h
+                              |
+:004289F4 FF15D8104000            Call dword ptr [004010D8]
+:004289FA DC1D80174000            fcomp qword ptr [00401780]
+:00428A00 DFE0                    fstsw ax
+:00428A02 F6C440                  test ah, 40
+:00428A05 0F84AC010000            je 00428BB7        <--------改跳可跳过“All of your uses have been exhausted”提示框
+:00428A0B C745FC6C000000          mov [ebp-04], 0000006C
+:00428A12 8B4D08                  mov ecx, dword ptr [ebp+08]
+:00428A15 8B11                    mov edx, dword ptr [ecx]
+:00428A17 8B4508                  mov eax, dword ptr [ebp+08]
+:00428A1A 50                      push eax
+:00428A1B FF92C0030000            call dword ptr [edx+000003C0]
+:00428A21 50                      push eax
+:00428A22 8D4DC8                  lea ecx, dword ptr [ebp-38]
+:00428A25 51                      push ecx
+
+..............
+..............
+..............                                  |
+:00428B15 FF1594124000             Call dword ptr [00401294]
+:00428B1B C745FC70000000          mov [ebp-04], 00000070
+:00428B22 C7458C04000280          mov [ebp-74], 80020004
+:00428B29 C745840A000000          mov [ebp-7C], 0000000A
+:00428B30 C7459C04000280          mov [ebp-64], 80020004
+:00428B37 C745940A000000          mov [ebp-6C], 0000000A
+
+* Possible StringData Ref from Code Obj ->"WWebTimeSync"
+                              |
+:00428B3E C7856CFFFFFF0C2E4100    mov dword ptr [ebp+FFFFFF6C], 00412E0C
+:00428B48 C78564FFFFFF08000000    mov dword ptr [ebp+FFFFFF64], 00000008
+:00428B52 8D9564FFFFFF            lea edx, dword ptr [ebp+FFFFFF64]
+:00428B58 8D4DA4                  lea ecx, dword ptr [ebp-5C]
+
+* Reference To: MSVBVM60.__vbaVarDup, Ord:0000h
+                              |
+:00428B5B FF153C124000            Call dword ptr [0040123C]
+
+* Possible StringData Ref from Code Obj ->"AAll of your uses have been exhausted. "
+                              ->" Please register or uninstall "
+                              ->"the product."
+                              |
+:00428B61 C7857CFFFFFF10464100    mov dword ptr [ebp+FFFFFF7C], 00414610  <--------在这里，向上看哪里可以跳过
+:00428B6B C78574FFFFFF08000000    mov dword ptr [ebp+FFFFFF74], 00000008
+:00428B75 8D9574FFFFFF            lea edx, dword ptr [ebp+FFFFFF74]
+:00428B7B 8D4DB4                  lea ecx, dword ptr [ebp-4C]
+:00428B7E FF153C124000            Call dword ptr [0040123C]
+:00428B84 8D4D84                  lea ecx, dword ptr [ebp-7C]
+:00428B87 51                      push ecx
+:00428B88 8D5594                  lea edx, dword ptr [ebp-6C]
+:00428B8B 52                      push edx
+:00428B8C 8D45A4                  lea eax, dword ptr [ebp-5C]
+:00428B8F 50                      push eax
+:00428B90 6A30                    push 00000030
+:00428B92 8D4DB4                  lea ecx, dword ptr [ebp-4C]
+:00428B95 51                      push ecx
+
+* Reference To: MSVBVM60.rtcMsgBox, Ord:0253h
+                              |
+:00428B96 FF15AC104000            Call dword ptr [004010AC]       <--------跳出“All of your uses have been exhausted”提示框
+:00428B9C 8D5584                  lea edx, dword ptr [ebp-7C]
+:00428B9F 52                      push edx
+:00428BA0 8D4594                  lea eax, dword ptr [ebp-6C]
+```
+
+现在“All of your uses have been exhausted”提示框是跳过了，但按“check and adjust time”按钮，仍出现“All of your uses have been exhausted”提示框，同上再用 `trw2000` 对三个地方设中断，`bpx 00425e3e`；`bpx 00428b61`；`bpx 0042a8c1`
+
+按“check and adjust time”按钮，中断在 `00425e3e` 上：
+
+```
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0042524D(C)           <--------这里，看到是 0042524d 跳过来的，到 0042524d 处看看...
+|
+:00425DF8 C745FC3D000000          mov [ebp-04], 0000003D
+:00425DFF C7459004000280          mov [ebp-70], 80020004
+:00425E06 C745880A000000          mov [ebp-78], 0000000A
+:00425E0D C745A004000280          mov [ebp-60], 80020004
+:00425E14 C745980A000000          mov [ebp-68], 0000000A
+
+* Possible StringData Ref from Code Obj ->"WWebTimeSync"
+                              |
+:00425E1B C78570FFFFFF0C2E4100    mov dword ptr [ebp+FFFFFF70], 00412E0C
+:00425E25 C78568FFFFFF08000000    mov dword ptr [ebp+FFFFFF68], 00000008
+:00425E2F 8D9568FFFFFF            lea edx, dword ptr [ebp+FFFFFF68]
+:00425E35 8D4DA8                  lea ecx, dword ptr [ebp-58]
+
+* Reference To: MSVBVM60.__vbaVarDup, Ord:0000h
+                              |
+:00425E38 FF153C124000            Call dword ptr [0040123C]
+
+* Possible StringData Ref from Code Obj ->"AAll of your uses have been exhausted. "
+                              ->" Please register or uninstall "
+                              ->"the product."
+                              |
+:00425E3E C7458010464100          mov [ebp-80], 00414610<--------在这里，向上看哪里可以跳过
+:00425E45 C78578FFFFFF08000000    mov dword ptr [ebp+FFFFFF78], 00000008
+:00425E4F 8D9578FFFFFF            lea edx, dword ptr [ebp+FFFFFF78]
+:00425E55 8D4DB8                  lea ecx, dword ptr [ebp-48]
+
+* Reference To: MSVBVM60.__vbaVarDup, Ord:0000h
+                              |
+:00425E58 FF153C124000            Call dword ptr [0040123C]
+:00425E5E 8D4588                  lea eax, dword ptr [ebp-78]
+:00425E61 50                      push eax
+:00425E62 8D4D98                  lea ecx, dword ptr [ebp-68]
+:00425E65 51                      push ecx
+:00425E66 8D55A8                  lea edx, dword ptr [ebp-58]
+:00425E69 52                      push edx
+:00425E6A 6A30                    push 00000030
+:00425E6C 8D45B8                  lea eax, dword ptr [ebp-48]
+:00425E6F 50                      push eax
+
+* Reference To: MSVBVM60.rtcMsgBox, Ord:0253h
+                              |
+:00425E70 FF15AC104000            Call dword ptr [004010AC]<--------跳出“All of your uses have been exhausted”提示框
+:00425E76 8D4D88                  lea ecx, dword ptr [ebp-78]
+:00425E79 51                      push ecx
+====================================================================
+:0042523E FF1590124000             Call dword ptr [00401290]
+:00425244 0FBF8D30FFFFFF          movsx ecx, word ptr [ebp+FFFFFF30]
+:0042524B 85C9                    test ecx, ecx
+:0042524D 0F84A50B0000            je 00425DF8  <--------跳过去，就完了，此处 nop 掉
+:00425253 C745FC03000000          mov [ebp-04], 00000003
+:0042525A 6A01                    push 00000001
+```
+
+
+
+### 反汇编代码分析
+
+\* Reference To: `MSVBVM60.__vbaOnError`, Ord:0000h
+
+```
+:0042525C FF15A8104000             Call dword ptr [004010A8]
+:00425262 C745FC05000000          mov [ebp-04], 00000005
+:00425269 8B5508                  mov edx, dword ptr [ebp+08]
+:0042526C 8B02                    mov eax, dword ptr [edx]
+:0042526E 8B4D08                  mov ecx, dword ptr [ebp+08]
+:00425271 51                      push ecx
+:00425272 FF90D4030000            call dword ptr [eax+000003D4]
+:00425278 50                      push eax
+:00425279 8D55CC                  lea edx, dword ptr [ebp-34]
+:0042527C 52                      push edx
+```
+
+\* Reference To: `MSVBVM60.__vbaObjSet`, Ord:0000h
+
+```
+:0042527D FF15B0104000            Call dword ptr [004010B0]
+:00425283 898530FFFFFF            mov dword ptr [ebp+FFFFFF30], eax
+```
+
+\* Possible StringData Ref from Code Obj -> `"CConnecting..."` <--------哈！看到连接 intrenet 了！！！
+
+```
+:00425289 6844454100              push 00414544
+:0042528E 8B8530FFFFFF            mov eax, dword ptr [ebp+FFFFFF30]
+```
+
+=====================================
+
+**整理：**
+
+1. 在 `00428A05 0F84AC010000` (`je 00428BB7`) 处改为 `0F85AC010000`
+2. 在 `0042524D 0F84A50B0000` (`je 00425DF8`) 处 `nop` 掉
+
+=====================================
+
+**另：注册表破解法：**
+
+因每用一次，`Updates left:`次数就减一次，所以：
+
+用 `W32dasm` 打开 `kroot.exe` 文件，在串式参考中找 `"Updates left: "` 如下：
+
+```
+:004276E1 FF1590124000            Call dword ptr [00401290]
+:004276E7 C745FC19000000          mov [ebp-04], 00000019
+```
+
+\* Possible StringData Ref from Code Obj -> `"8850"`
+
+```
+:004276EE BAAC484100              mov edx, 004148AC
+:004276F3 8D4DD4                  lea ecx, dword ptr [ebp-2C]
+```
+
+\* Reference To: `MSVBVM60.__vbaStrCopy`, Ord:0000h
+
+```
+:004276F6 FF15F4114000            Call dword ptr [004011F4]
+```
+
+\* Possible StringData Ref from Code Obj -> `"SShellExtendedData"`
+
+```
+:004276FC BA44484100              mov edx, 00414844
+:00427701 8D4DD8                  lea ecx, dword ptr [ebp-28]
+```
+
+\* Reference To: `MSVBVM60.__vbaStrCopy`, Ord:0000h
+
+```
+:00427704 FF15F4114000            Call dword ptr [004011F4]
+```
+
+\* Possible StringData Ref from Code Obj -> `"SSoftware\Microsoft\Windows\CurrentVersion\Exp"` -> `"lorer"`
+
+```
+:0042770A BAD8474100              mov edx, 004147D8
+:0042770F 8D4DDC                  lea ecx, dword ptr [ebp-24]
+```
+
+\* Reference To: `MSVBVM60.__vbaStrCopy`, Ord:0000h
+
+```
+:00427712 FF15F4114000            Call dword ptr [004011F4]
+:00427718 C7853CFFFFFF01000080    mov dword ptr [ebp+FFFFFF3C], 80000001
+:00427722 8D4DD4                  lea ecx, dword ptr [ebp-2C]
+:00427725 51                      push ecx
+:00427726 8D55D8                  lea edx, dword ptr [ebp-28]
+:00427729 52                      push edx
+:0042772A 8D45DC                  lea eax, dword ptr [ebp-24]
+:0042772D 50                      push eax
+:0042772E 8D8D3CFFFFFF            lea ecx, dword ptr [ebp+FFFFFF3C]
+:00427734 51                      push ecx
+:00427735 E8C646FFFF              call 0041BE00
+:0042773A 8D55D4                  lea edx, dword ptr [ebp-2C]
+:0042773D 52                      push edx
+:0042773E 8D45D8                  lea eax, dword ptr [ebp-28]
+:00427741 50                      push eax
+:00427742 8D4DDC                  lea ecx, dword ptr [ebp-24]
+:00427745 51                      push ecx
+:00427746 6A03                    push 00000003
+```
+
+\* Reference To: `MSVBVM60.__vbaFreeStrList`, Ord:0000h
+
+```
+:00427748 FF1504124000            Call dword ptr [00401204]
+:0042774E 83C410                  add esp, 00000010
+:00427751 C745FC1A000000          mov [ebp-04], 0000001A
+:00427758 8B15B0304400            mov edx, dword ptr [004430B0]
+:0042775E 52                      push edx
+:0042775F 8B4508                  mov eax, dword ptr [ebp+08]
+:00427762 8B888C010000            mov ecx, dword ptr [eax+0000018C]
+:00427768 51                      push ecx
+:00427769 E802030100              call 00437A70
+:0042776E 50                      push eax
+```
+
+\* Reference To: `MSVBVM60.__vbaStrI4`, Ord:0000h
+
+```
+:0042776F FF151C104000            Call dword ptr [0040101C]
+:00427775 8BD0                    mov edx, eax
+:00427777 8D4DDC                  lea ecx, dword ptr [ebp-24]
+```
+
+\* Reference To: `MSVBVM60.__vbaStrMove`, Ord:0000h
+
+```
+:0042777A FF1568124000            Call dword ptr [00401268]
+:00427780 50                      push eax
+```
+
+\* Possible StringData Ref from Code Obj -> `"SServerData"`
+
+\* Possible StringData Ref from Code Obj -> `"SSettings"`
+
+\* Possible StringData Ref from Code Obj -> `"WWebTimeSync"`
+
+```
+:00427781 687C484100              push 0041487C
+:00427786 68282E4100              push 00412E28
+:0042778B 680C2E4100              push 00412E0C
+```
+
+\* Reference To: `MSVBVM60.rtcSaveSetting`, Ord:02B2h
+
+```
+:00427790 FF1508104000            Call dword ptr [00401008]
+:00427796 8D4DDC                  lea ecx, dword ptr [ebp-24]
+```
+
+\* Reference To: `MSVBVM60.__vbaFreeStr`, Ord:0000h
+
+```
+:00427799 FF1590124000            Call dword ptr [00401290]
+```
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`:00427691(C)`
+
+```
+:0042779F C745FC1D000000          mov [ebp-04], 0000001D
+:004277A6 8B5508                  mov edx, dword ptr [ebp+08]
+:004277A9 8B02                    mov eax, dword ptr [edx]
+:004277AB 8B4D08                  mov ecx, dword ptr [ebp+08]
+:004277AE 51                      push ecx
+:004277AF FF90C4030000            call dword ptr [eax+000003C4]
+:004277B5 50                      push eax
+:004277B6 8D55C8                  lea edx, dword ptr [ebp-38]
+:004277B9 52                      push edx
+```
+
+\* Reference To: `MSVBVM60.__vbaObjSet`, Ord:0000h
+
+```
+:004277BA FF15B0104000            Call dword ptr [004010B0]
+:004277C0 89852CFFFFFF            mov dword ptr [ebp+FFFFFF2C], eax
+```
+
+\* Possible StringData Ref from Code Obj -> `"UUpdates left: "`
+
+```
+:004277C6 68B8484100              push 004148B8
+:004277CB 8B4508                  mov eax, dword ptr [ebp+08]
+:004277CE 668B887A010000          mov cx, word ptr [eax+0000017A]
+:004277D5 666BC904                imul cx, 0004
+```
+
+**找注册表：**
+
+`[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer]`
+
+`"ShellExtendedData"="850"` ----> 变 `1105` 又可以用 `15` 次了。 `4dd466d0e1e0cc123afbe504da2462ca`

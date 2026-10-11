@@ -1,0 +1,335 @@
+
+# 菜鸟注册机编写基础教程（一）
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-212.htm`](https://www.pediy.com/kssd/pediy08/pediy8-212.htm)
+
+写在前面：辛辛苦苦把一个算法弄清楚后，苦于不懂编程，完美的总结中总留下点遗憾，也给文章的技术含量打了不少折扣。就象块洁白的美玉上多了块瑕疵。本文就是专门针对那些对算法已经非常熟悉了却苦于无法用高级语言来表达的“技术员”写的。事先声明，本人也不是程序员，在编程方面也是菜鸟一个，只是把自己仅有的一点心得拿出来与大家分享，主要还是靠自己努力，所以高手就不要来看笑话了，万一不小心飘过的话最好能提点意见，顺便把文中的错误更正一下。
+
+文章采用 `VB`、`DELPHI`、`VC` 同时进行的方法，这样便于对比。这三种语言到底哪个好呢，网络上有很多的比较，各个语言都有自己的特色，你只要认准哪种语言，那种就是好的。因为是写注册机，所以编译速度、编译后文件的大小等对我们都不重要，我们也不深入了解各种语言（再说更深入的我也不懂），我们只要了解一些常用的与算法相关的内容。文章拟定分基础篇、入门篇、提高篇、高级篇、实战篇和效果篇。话不多说，开始….
+
+## 一、基础篇
+
+这节不看也罢，大部分知识网络上都能收集的到，而且比这里齐全，这里只是做了集中收集，并进行了对比，我希望大家知道一点，那些搜索引擎永远都是最好的老师，要想得到更全的内容请到网上搜集。本节内容：常量、变量赋值，运算符，基本语句，常用函数。要求熟记之。
+
+### 1、常量、变量赋值
+
+*   比如我们想定义变量 `A` 为整型数据：
+
+    ```vb
+    Dim a as Integer
+    ```
+
+    ```delphi
+    a:integer;
+    ```
+
+    ```c
+    int a;
+    ```
+
+*   定义常量 `B` 为 16 进制值 `75BCD15`：
+
+    ```vb
+    b=&H75BCD15
+    ```
+
+    ```delphi
+    CONST
+    b=$ 75BCD15
+    ```
+
+    ```c
+    CONST LONG b=0X75BCD15
+    ```
+
+***
+
+*   `VB`、`Delphi` 和 `C++` 数据类型对照表 *
+
+| 字长/值域 | VB | Delphi | C++ |
+| :--- | :--- | :--- | :--- |
+| 8 位有符号整型 | `Integer` | `ShortInt` | `signed char` |
+| 16 位有符号整型 | `Integer` | `SmallInt` | `short` |
+| 32 位有符号整型 | `long` | `Long` | `Long` |
+| 8 位无符号整型 | `byte` | `Byte` | `unsigned char` |
+| 16 位无符号整型 | `byte` | `Word` | `unsigned short` |
+| 32 位有符号整型 | `Integer` | `Integer` | `int` |
+| 32 位无符号整型 | `Integer` | `Cardinal` | `unsigned int` |
+| 布尔型 | `Boolean` | `Boolean` | `bool` |
+| 真/假 或 16 位无符号整型 | | `ByteBool` | `unsigned char` |
+| 真/假 或 16 位无符号整型 | | `WordBool` | `unsigned short` |
+| 真/假 或 32 位无符号整型 | | `LongBool` | `BOOL (WinAPI)` |
+| 8 位无符号字符 | `string` | `AnsiChar` | `char` |
+| 宽字编码字符 | `string` | `WideChar` | `wchar_t` |
+| 8 位无符号字符 | `string` | `Char` | `char` |
+| `AnsiString` 类 | `string` | `String` | `AnsiString` |
+| 32 位浮点数 | `single` | `Single` | `float` |
+| 64 位浮点数 | `double` | `Double` | `double` |
+| 80 位浮点数 | | `Extended` | `long double` |
+| 32 位浮点数 | | `Real` | `double` |
+| 32 无类型指针 | | `Pointer` | `void *` |
+| 32 位字符型指针 | | `Pchar` | `unsigned char *` |
+| 32 位 ANSI 型字符指针 | | `PAnsiChar` | `unsigned char *` |
+| 64 位浮点数 | | `Comp` | `Comp` 类 |
+| OLE 可变类型值 | | `OleVariant` | `OleVariant` 类 |
+
+***
+
+### 2、运算符
+
+| Visual Basic | C# | Delphi | 运算符的名称 |
+| :--- | :--- | :--- | :--- |
+| `+（一元）` | `+（一元）` | `+（一元）` | 加 |
+| `-（一元）` | `-（一元）` | `-（一元）` | 减 |
+| `IsTrue` | `true` | （无此运算符） | 判断真 |
+| `IsFalse` | `false` | （无此运算符） | 判断假 |
+| `Not` | `!` | `not` | 逻辑非 |
+| `Not` | `~` | `not` | 取反 |
+| （无此运算符） | （无此运算符） | `Trunc` | 将实型值截取为整型值 |
+| （无此运算符） | （无此运算符） | `Round` | 将实数值舍入为整型值 |
+| （无此运算符） | `++` | `Inc` | 递增 |
+| （无此运算符） | `--` | `Dec` | 递减 |
+| `+` | `+` | `+` | 加法 |
+| `-` | `-` | `-` | 减法 |
+| `*` | `*` | `*` | 乘法 |
+| `/` | `/` | `/` | 除法 |
+| `\` | （无此运算符） | （无此运算符） | 整除 |
+| （无此运算符） | （无此运算符） | `div` | 除 |
+| `&` | （无此运算符） | （无此运算符） | 连接符 |
+| `^` | （无此运算符） | （无此运算符） | 指数运算 |
+| （无此运算符） | `<<` | `shl` | 逻辑左移 |
+| （无此运算符） | `>>` | `shr` | 逻辑右移 |
+| `=（判断等值不是赋值）` | `==` | `=` | 等于 |
+| `<>` | `!=` | `<>` | 不等于 |
+| `<` | `<` | `<` | 小于 |
+| `<=` | `<=` | `<=` | 小于等于 |
+| `>` | `>` | `>` | 大于 |
+| `>=` | `>=` | `>=` | 大于等于 |
+| `And` | `&` | `and` | 逻辑与 |
+| `Or` | `|` | `or` | 逻辑或 |
+| `Xor` | `^` | `xor` | 逻辑异或 |
+| `And` | `&&` | `and` | 逻辑与 |
+| `Or` | `||` | `or` | 逻辑或 |
+| （无此运算符） | （无此运算符） | `xor` | 异或 |
+| `Mod` | `%` | `mod` | 取余 |
+| `Like` | （无此运算符） | （无此运算符） | `VB` 的 `LIKE` |
+| `CType` | 用户定义的类型转换 | 用户定义的类型转换 | 类型转换 |
+
+### 3、基本语句（只讲最常用的三种，更多的内容看附件）
+
+#### ① 赋值语句
+
+**VB：**
+
+```vb
+变量＝表达式
+```
+
+例：
+
+```vb
+Dim a As Integer
+a=100*20
+
+Set 变量＝表达式
+```
+
+例：
+
+```vb
+Dim ex As DataBase
+Set ex=OpenDataBase("File.mdb")
+```
+
+**DELPHI：**
+
+赋值语句的符号是冒号＋等号即 `：=`
+
+例：
+
+```delphi
+A:integer;
+A=$ 75BCD15
+```
+
+**VC：**
+
+变量名，后接“=”
+
+例：
+
+```c
+a = 10
+```
+
+变量定义=变量名
+
+例：
+
+```c
+long b;
+```
+
+#### ② 循环语句
+
+**VB：**
+
+```vb
+For  var=start To end[Step step]
+    ...
+Next var
+```
+
+例：
+
+```vb
+For I = 1 to 8
+N=n+I
+Next I
+```
+
+**DELPHI：**
+
+```delphi
+for 循环变量：= 初值 to 终值 do
+    循环体语句
+for 循环变更：= 初值 downto 终值 do
+    循环体语句
+```
+
+例：
+
+```delphi
+for i:=1 to 8 do
+    begin
+    n := n+i
+    end;
+```
+
+**VC：**
+
+```c
+for(statement1; statement2; statement3) {
+    /* body */
+}
+```
+
+例：
+
+```c
+for(i = 0; i <= 8; i++) {
+        a[i] = i + i;
+    }
+```
+
+#### ③ IF 语句
+
+**VB：**
+
+```vb
+If 表达式 Then
+    ...
+Else
+    ...
+End If
+```
+
+例：
+
+```vb
+If Password=str Then
+    msgbox"true"
+Else
+    msgbox"false"
+End if
+```
+
+**DELPHI：**
+
+```delphi
+if 表达式 then
+    语句 1
+else
+    语句 2
+```
+
+例：
+
+```delphi
+If Password=str Then
+   begin
+      ShowMessage(' True');
+   end
+Else
+   begin
+      ShowMessage('False');
+   end
+```
+
+**VC：**
+
+```c
+if ("条件")
+{
+}
+else
+{
+}
+```
+
+例：
+
+```c
+if(Password=str )MessageBox('true ',4);
+else{
+MessageBox('false ',4);
+}
+```
+
+### 4、常用函数 （只介绍几个常用的，更详细的内容看附件，以下的比较只是功能类似，有几个函数功能并不是完全一样。）
+
+| 功能 | VB | DELPHI | VC |
+| :--- | :--- | :--- | :--- |
+| 取字符长度 | `len()` | `Length()` | `Length` `Strlen()` |
+| 转大写 | `Ucase()` | `UpperCase()` | `toUpper()` |
+| 转小写 | `Lcase()` | `LowerCase()` | `toLower()` |
+| 去掉字符串两边空白 | `Trim()` | `Trim()` | `Trim()` |
+| 随机数 | `Rnd()` | `random()` | `random()` |
+| 取字符串第 N 位 | `mid(s,m,n)` | `copy(s,m,n)` | `strcpy(s,m,n)` |
+| 取字串左边 N 位 | `left(s,n)` | `copy(s,m,n)` | `strcpy(s,m,n)` |
+| 取字串右边 N 位 | `right(s,n)` | `copy(s,length(s)-m+1,n)` | `copy(s,strlen(s)-m+1,n)` |
+| 十六进制转十进制 | `hex()` | `inttohex()` | `itoa` `ltoa` |
+| 十进制转十六进制 | `&H` | `$,` `strtoint` | `atoi` `atol` |
+| 十进制转八进制 | `oct()` | | |
+| 取字符 ASCII 码 | `s` | `ord()` | |
+| 去掉小数点，保留整数 | `fix()` | `trunc()` | |
+| 返回 N 个空格 | `space()` | `string of char('',n)` | |
+
+
+
+| 功能描述 | 函数 1 | 函数 2 | 示例/备注 |
+| :--- | :--- | :--- | :--- |
+| 返回 N 个字符 | `string()` | `string of char()` | |
+| 格式化字串 | `format()` | `format()` | `format()` |
+| 数值转字符 | `chr()` | `chr()`, `inttostr` | `char ch = 64` |
+| 查找字符在另一字符串中的位置 | `instr()` | `pos()` | |
+| 四舍五入转整数 | `Cint()` | `round()` | `atoi` |
+| 转浮点数 | `Csng()`, `CDbl()` | `strtofloat` | `atof` |
+| 转长整型 | `CLng()` | `strtoint` | `atol` |
+| 转字节型 | `Cbyte` | `inttostr` | `itow` |
+| 取绝对值 | `abs()` | `abs()` | `abs()` |
+| 取平方 | `sqx()` | `Sqr()` | `sqrt()` |
+| 字符转数值 | `val()` | `val()` | |
+| 数值转字符 | `str()` | `str()` | |
+| 取变量指针 | `varptr()` | | |
+| 字符串连接 | `&` | `strcat()` | `strcat()` |
+| 插入 | | `Insert()` | |
+| 分割字符串 | `split()` | `split()` | `CSplitter` |
+| ANSI 转 UNICODE | `strconv()` | `stringtowidechar` | `widecharlentostring` |
+| UNICODE 转 ANSI | | `widechartostring` | `widecharlentostrwar` |
+
+**【版权声明】**: 本文由 `langxang` 原创于看雪论坛，转载请注明作者并保持文章的完整, 谢谢!
+
+```
+4dd466d0e1e0cc123afbe504da2462ca
+```

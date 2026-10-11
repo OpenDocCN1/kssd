@@ -1,0 +1,64 @@
+
+# WinZip(R) Version 8.0 (3105)
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue296.htm`](https://www.pediy.com/kssd/pediy04/kanxue296.htm)
+
+`WinZip(R) Version 8.0 (3105)`的破解
+
+在 `Winzip` 中，可以很容易解出注册码，这里有一个偷懒的方法来“写”注册机，其实是利用 `Winzip` 程序本身，让它自己把正确的注册码显示出来，我把程序改后，出现了一些小问题，但并不影响它计算和显示注册码，因此就可以把它做为注册机来用也可以。
+
+在修改程序之前，做一个备份，修改后的程序只用来做为注册机，平时用还是用没有修改过的原程序为好。
+
+```
+:00407AA3 8D85C0FEFFFF            lea eax, dword ptr [ebp+FFFFFEC0]  <------放注册码的地方
+```
+此时 `EAX=0078F2E8`，注册码在 `0078F2E8` 处
+
+```
+:00407AA9 56                      push esi
+:00407AAA 50                      push eax
+:00407AAB E820180600              call 004692D0   <-----比较注册码的地方
+:00407AB0 83C410                  add esp, 00000010
+:00407AB3 F7D8                     neg eax
+```
+
+改后，运行，但它显示空白，再通过跟踪发现在
+
+```
+:00467C4F 7406                    je 00467C57
+:00467C51 F3                      repz   <------
+:00467C52 AB                      stosd  <------
+```
+处，把 `0078F2E8` 这里清空了
+
+```
+:00467C53 85D2                    test edx, edx
+:00467C55 7406                    je 00467C5D
+```
+
+故想到不让它清空，把 `repz stosd` 改为 `nop nop` 即可把注册码保留在 `0078F2E8` 处。
+
+```
+:004300AB 6837010000              push 00000137
+:004300B0 E838F50000              call 0043F5ED
+:004300B5 59                      pop ecx
+:004300B6 50                      push eax
+:004300B7 8D857CFCFFFF            lea eax, dword ptr [ebp+FFFFFC7C]  <-----要显示的内容在此处
+:004300BD 50                      push eax
+:004300BE FF750C                  push [ebp+0C]
+:004300C1 FF7508                  push [ebp+08]
+:004300C4 E805000000              call 004300CE <--------显示错误消息框，
+```
+
+所以把：
+
+```
+:004300B7 8D857CFCFFFF            lea eax, dword ptr [ebp+FFFFFC7C]
+```
+
+改为：`mov eax,0078F2E8` 和 `nop` 即可显示注册码了。
+
+运行程序，出来的 `nag` 窗会有花屏的现象，不要管它，按输入注册码的按钮，进行注册，输入一个用户名，注册码随便一个，按确定，就会出来正确的注册码了。
+
+到此为止，一个 `Winzip` 的注册机就“写”好了，也不用知道它的算法！
+`4dd466d0e1e0cc123afbe504da2462ca`

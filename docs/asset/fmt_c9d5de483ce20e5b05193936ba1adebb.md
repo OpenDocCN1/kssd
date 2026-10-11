@@ -1,0 +1,188 @@
+
+# 网页特效小精灵 2.0
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue103.htm`](https://www.pediy.com/kssd/pediy04/kanxue103.htm)
+
+这是我申请加入 `BCG` 的第三篇破文，本来想破小李注册表的，因为这个程序很容易，但前面已经讨论过了，现在写有抄袭的嫌疑，于是跑到华军去找，当然要版本低一点的啦，好破嘛，还要个头小，我用的是 `Modem` 啊，终于给我逮到了这个小精灵，呵呵
+
+软件名称：网页特效小精灵
+
+整理日期：2001.10.6
+
+最新版本：2.0
+
+文件大小：277KB
+
+软件授权：共享软件
+
+使用平台：`Win9x/Me/NT/2000`
+
+软件简介：
+
+“网页特效小精灵”作者的“小精灵”系列软件中的一个，是一款小巧的网页特效增强软件增强，提供了 240 多种特效，使用简单，界面优美。正式版提供了 260 种特效，并可无限增加新的特效，若与作者的另一软件“抓色小精灵”配合使用效果更好。
+
+这也是一个试用版软件，功能上并无限制，只是时间上有限制（两个月：2001 年 10 月－12 月），注册后作者将寄正式版。
+
+目的：去除其时间限制，使得 2002 年以后也能使用。
+
+工具：`Trw2000` `v1.22`、`UEdit32`、`fi`、`unpecompact` `1.31`。
+
+先用 `fi` 查看 `exe` 程序，是 `pecompact` 的壳，我又不会手动脱，只好找来 `unpecompact` 试试，死马当活马医嘛，一脱果然脱掉了。把系统日期调到 2002 年，运行程序，就会崩出一个框，说什么什么过期之类的话，程序不能运行。大概了解了一下程序之后，开始干活了：
+
+运行 `Trw2000`，找到“小精灵”的 `exe` 程序，用 `Trw2000` `load`
+
+`bpx getlocaltime` 下读取系统时间断点
+
+`F5` 返回程序，很快就会被 `Trw2000` 断下来，部分代码如下：
+
+```
+……
+
+:004209A2 FFD3               call ebx
+
+:004209A4 8D45CC             lea eax, dword ptr [ebp-34]
+
+:004209A7 8D4DBC             lea ecx, dword ptr [ebp-44]
+
+:004209AA 50                 push eax
+
+:004209AB 51                 push ecx
+
+* Reference To: MSVBVM60.rtcGetYear, Ord:0229h
+
+                            |
+
+:004209AC FF1540104000       Call dword ptr [00401040]
+
+:004209B2 8D559C             lea edx, dword ptr [ebp-64]
+
+:004209B5 C78564FFFFFFD2070000   mov dword ptr [ebp+FFFFFF64], 000007D2
+
+:004209BF 52                 push edx
+
+:004209C0 C7855CFFFFFF02800000   mov dword ptr [ebp+FFFFFF5C], 00008002
+
+:004209CA FFD3               call ebx
+
+:004209CC 8D459C             lea eax, dword ptr [ebp-64]
+
+:004209CF 8D4D8C             lea ecx, dword ptr [ebp-74]
+
+:004209D2 50                 push eax
+
+:004209D3 51                 push ecx
+
+* Reference To: MSVBVM60.rtcGetMonthOfYear, Ord:0221h
+
+                            |
+
+:004209D4 FF1550114000       Call dword ptr [00401150]
+
+:004209DA 8D55BC             lea edx, dword ptr [ebp-44]
+
+:004209DD 8D855CFFFFFF       lea eax, dword ptr [ebp+FFFFFF5C]
+
+:004209E3 52                 push edx
+
+:004209E4 8D4DAC             lea ecx, dword ptr [ebp-54]
+
+:004209E7 50                 push eax
+
+:004209E8 51                 push ecx
+
+:004209E9 C78554FFFFFF0A000000   mov dword ptr [ebp+FFFFFF54], 0000000A
+
+:004209F3 C7854CFFFFFF02800000   mov dword ptr [ebp+FFFFFF4C], 00008002
+
+* Reference To: MSVBVM60.__vbaVarCmpEq, Ord:0000h
+
+                            |
+
+:004209FD FF152C114000       Call dword ptr [0040112C]
+
+:00420A03 50                 push eax
+
+:00420A04 8D558C             lea edx, dword ptr [ebp-74]
+
+:00420A07 8D854CFFFFFF       lea eax, dword ptr [ebp+FFFFFF4C]
+
+:00420A0D 52                 push edx
+
+:00420A0E 8D8D7CFFFFFF       lea ecx, dword ptr [ebp+FFFFFF7C]
+
+:00420A14 50                 push eax
+
+:00420A15 51                 push ecx
+
+* Reference To: MSVBVM60.__vbaVarCmpLt, Ord:0000h
+
+                            |
+
+:00420A16 FF1518114000       Call dword ptr [00401118]
+
+:00420A1C 8D956CFFFFFF       lea edx, dword ptr [ebp+FFFFFF6C]
+
+:00420A22 50                 push eax
+
+:00420A23 52                 push edx
+
+* Reference To: MSVBVM60.__vbaVarOr, Ord:0000h
+
+                            |
+
+:00420A24 FF159C104000       Call dword ptr [0040109C]
+
+:00420A2A 50                 push eax
+
+* Reference To: MSVBVM60.__vbaBoolVarNull, Ord:0000h
+
+                            |
+
+:00420A2B FF1578104000       Call dword ptr [00401078]
+
+:00420A31 668BD8             mov bx, ax
+
+:00420A34 8D458C             lea eax, dword ptr [ebp-74]
+
+:00420A37 8D4D9C             lea ecx, dword ptr [ebp-64]
+
+:00420A3A 50                 push eax
+
+:00420A3B 8D55BC             lea edx, dword ptr [ebp-44]
+
+:00420A3E 51                 push ecx
+
+:00420A3F 8D45CC             lea eax, dword ptr [ebp-34]
+
+:00420A42 52                 push edx
+
+:00420A43 50                 push eax
+
+:00420A44 6A04               push 00000004
+
+* Reference To: MSVBVM60.__vbaFreeVarList, Ord:0000h
+
+                            |
+
+:00420A46 FF151C104000       Call dword ptr [0040101C]
+
+:00420A4C 83C414             add esp, 00000014
+
+:00420A4F 663BDF             cmp bx, di ;（**）比较判断
+
+:00420A52 0F8495000000       je 00420AED ;不跳则死
+
+* Reference To: MSVBVM60.__vbaVarDup, Ord:0000h
+
+                            |
+
+:00420A58 8B3534114000       mov esi, dword ptr [00401134]
+
+:00420A5E B90A000000         mov ecx, 0000000A
+
+:00420A63 B804000280         mov eax, 80020004
+
+……
+```
+
+大家看到了吧，程序启动时首先读取系统日期（年和月），然后进行判断，如果超出了日期就拒绝执行，`**` 处就是比较的地方，等就跳，则活，不跳就判处死刑，到这里大家都知道该怎么做了吧，（少废话，动手啊！我们大家一起来跳……舞），用 `UEedit32` 打开原 `exe` 程序，查找 `83C414663BDF`，将其后面的 6 个字节改为 `E99600000090`，再把系统日期调到 2003 年，运行程序，YES!!! 我成功了！  `4dd466d0e1e0cc123afbe504da2462ca`

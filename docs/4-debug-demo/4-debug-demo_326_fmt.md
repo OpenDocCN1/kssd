@@ -1,0 +1,81 @@
+
+# 自然码输入系统 2000
+
+> 原文：[`www.pediy.com/kssd/pediy01/forum098.htm`](https://www.pediy.com/kssd/pediy01/forum098.htm)
+
+发信人: shizg (刀客☆永远的痛), 信区: Hacker
+
+标 题: Re: 大自然输入系统 2000 for NT/2K 到期了:(
+
+发信站: BBS 水木清华站 (Fri Jun 23 14:00:12 2000)
+
+我将破解的文件放到 `lib.pku/incoming/zrm_crack/zrm32.exe`
+
+覆盖安装目录下的原文件就可以了。
+
+下面内容供有兴趣的朋友看，否则有点像灌水，呵呵。
+
+＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+
+这东东是加 `Pecompact` 壳的，有关 `PECompact` 壳可以看很多 `FTP` 站点介绍，可以压缩 `exe`、`dll` 等，最高可达 20%，太酷。可惜有关这软件的脱壳不多，我尝试用 `pcdump` 脱，但没有成功（哪位有成功经验，请告诉我，谢谢）。只好用 `TRW2000`(`S-ICE` 一样）来自己脱，倒是很顺利，脱壳后，就很 `easy` 了。有兴趣的朋友，可以自己脱试试。
+
+提示：`441ac8` 附近，有一条指令 `push 4196e3`，这就是真正的入口了。前面有一段是反复解码，不要搞晕了，呵呵。
+
+在 `4196e3` 处，你将发现熟悉的 `pe` 文件开头的代码，如果是 `trw2000`，直接 `makepe`，就完全脱壳了。`S-Ice` 可以装 `icedump` 来脱，具体我就不说了。
+
+下面就是将脱壳后的程序关于过期代码解除掉。下命令 `bpx getsystemtime`，运行脱出来的程序，中断，`f12` 跳出后，下面就是一大堆比较日期，如下：
+
+`4185e8` 是不能去的，去了就过期了。
+
+倒数第 2 句 `41858c` 是要去的，否则会提示你快到期了。就这两点。
+
+`* Reference To: KERNEL32.GetSystemTime, Ord:0000h`
+
+`* Referenced by a (U)nconditional or (C)onditional Jump at Address:`
+
+```
+|:0041850B(C)
+|
+
+:004184F8 FF15B8F04100                Call dword ptr [0041F0B8]
+:004184FE 0FB745F0                    movzx eax, word ptr [ebp-10]
+:00418502 8D4810                      lea ecx, dword ptr [eax+10]
+:00418505 81F9E0070000                cmp ecx, 000007E0
+:0041850B 7C10                        jl 0041851D
+:0041850D 0FB74DF2                    movzx ecx, word ptr [ebp-0E]
+:00418511 83C119                      add ecx, 00000019
+:00418514 83F91F                      cmp ecx, 0000001F
+:00418517 0F8FCB000000                jg 004185E8
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0041850B(C)
+|
+
+:0041851D 8D48DA                      lea ecx, dword ptr [eax-26]
+:00418520 81F9AA070000                cmp ecx, 000007AA
+:00418526 0F8FBC000000                jg 004185E8
+:0041852C 8D48BD                      lea ecx, dword ptr [eax-43]
+:0041852F 81F98D070000                cmp ecx, 0000078D
+:00418535 7F10                        jg 00418547
+:00418537 0FB74DF2                    movzx ecx, word ptr [ebp-0E]
+:0041853B 83C137                      add ecx, 00000037
+:0041853E 83F93B                      cmp ecx, 0000003B
+:00418541 0F8CA1000000                jl 004185E8
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00418535(C)
+|
+
+:00418547 8D48CF                      lea ecx, dword ptr [eax-31]
+:0041854A 81F99F070000                cmp ecx, 0000079F
+:00418550 0F8C92000000                jl 004185E8
+:00418556 83C056                      add eax, 00000056
+:00418559 33F6                        xor esi, esi
+:0041855B 3D26080000                  cmp eax, 00000826
+:00418560 752A                        jne 0041858C
+:00418562 0FB745F2                    movzx eax, word ptr [ebp-0E]
+:00418566 83C05F                      add eax, 0000005F
+:00418569 83F865                      cmp eax, 00000065
+:0041856C 751E                        jne 0041858C
+:0041856E 0FB745F6                    movzx eax, word ptr [ebp-0A]
+```
