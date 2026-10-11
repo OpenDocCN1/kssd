@@ -1,0 +1,419 @@
+
+# CAD2Shape 3.0 注册算法分析(查表置换)
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-131.htm`](https://www.pediy.com/kssd/pediy09/pediy09-131.htm)
+
+> 【文章标题】: CAD2Shape 3.0 注册算法分析
+
+> 【文章作者】: sHAOgE
+
+> 【软件名称】: CAD2Shape
+
+> 【软件功能】: `cad` 文件转换成 `shape` 文件，是个非常不错的 GIS 工具。
+
+> 【下载地址】: 自己搜索下载
+
+> 【保护方式】: `keycode`
+
+> 【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教! 5.1 节快乐，GIS 工作者辛苦了！
+
+## 详细过程
+
+无壳，Microsoft Visual C++ 6.0
+
+用户名：`sHAOgE`，试练码：`1234567890123456`
+
+下断到此处：
+
+```
+00401CEA        |.  FF15 A0524E00   call dword ptr ds:[<&USER32.GetDlgItemTextA>>; \取用户名
+00401CF0        |.  6A 40           push 40                                ; /Count = 40 (64.)
+00401CF2        |.  8D95 7CFFFFFF   lea edx,dword ptr ss:[ebp-84]           ; |
+00401CF8        |.  52              push edx                                 ; |Buffer
+00401CF9        |.  68 AC010000     push 1AC                                 ; |ControlID = 1AC (428.)
+00401CFE        |.  8B45 08         mov eax,dword ptr ss:[ebp+8]            ; |
+00401D01        |.  50              push eax                                 ; |hWnd
+00401D02        |.  FF15 A0524E00   call dword ptr ds:[<&USER32.GetDlgItemTextA>>; \取试练码
+00401D08        |.  8D8D 7CFFFFFF   lea ecx,dword ptr ss:[ebp-84]
+00401D0E        |.  51              push ecx                                 ; /Arg2＝试练码
+00401D0F        |.  8D55 C0         lea edx,dword ptr ss:[ebp-40]           ; |
+00401D12        |.  52              push edx                                 ; |Arg1＝用户名
+00401D13        |.  E8 640B0000     call CAD2Shap.0040287C                 ; 关键函数 call1，参数 2 个
+00401D18        |.  83C4 08         add esp,8
+00401D1B        |.  8945 BC         mov dword ptr ss:[ebp-44],eax
+00401D1E        |.  837D BC 00      cmp dword ptr ss:[ebp-44],0       ;与零比较
+00401D22        |.  75 29           jnz short CAD2Shap.00401D4D       ;不相等则跳＝完蛋，爆破点之一
+```
+
+进入 call1===================================
+
+```
+0040287C        /$  55              push ebp
+0040287D        |.  8BEC            mov ebp,esp
+0040287F        |.  83EC 0C         sub esp,0C
+00402882        |.  56              push esi
+00402883        |.  57              push edi
+00402884        |.  C745 F8 0000000>mov dword ptr ss:[ebp-8],0
+0040288B        |.  8B45 0C         mov eax,dword ptr ss:[ebp+C]
+0040288E        |.  50              push eax                                 ; /Arg1
+0040288F        |.  E8 97FDFFFF     call CAD2Shap.0040262B                 ; 关键函数 call2，试练码处理
+00402894        |.  83C4 04         add esp,4
+00402897        |.  8945 F4         mov dword ptr ss:[ebp-C],eax
+0040289A        |.  837D F4 00      cmp dword ptr ss:[ebp-C],0
+0040289E              74 65         je short CAD2Shap.00402905       ;试练码处理结果不能为零，否则跳＝完蛋
+004028A0        |.  8B4D 08         mov ecx,dword ptr ss:[ebp+8]
+004028A3        |.  51              push ecx                                 ; /Arg2=用户名
+004028A4        |.  8B15 D0C24E00   mov edx,dword ptr ds:[4EC2D0]           ; |
+004028AA        |.  52              push edx                                 ; |Arg1 => 00000913（此为常量）
+004028AB        |.  E8 A0EDFFFF     call CAD2Shap.00401650                 ; 关键函数 call3，用户名处理
+004028B0        |.  83C4 08         add esp,8
+004028B3        |.  8945 FC         mov dword ptr ss:[ebp-4],eax
+004028B6        |.  8B45 FC         mov eax,dword ptr ss:[ebp-4]
+004028B9        |.  3B45 F4         cmp eax,dword ptr ss:[ebp-C]     ;用户名处理结果与试练码处理结果比较，不等则跳＝完蛋
+004028BC        |.  75 47           jnz short CAD2Shap.00402905       ;不相等则跳＝完蛋，爆破点之二
+```
+
+进入 call2===================================
+
+```
+0040262B        /$  55              push ebp
+0040262C        |.  8BEC            mov ebp,esp
+0040262E        |.  83EC 10         sub esp,10
+00402631        |.  57              push edi
+00402632        |.  C745 F4 0000000>mov dword ptr ss:[ebp-C],0
+00402639        |.  8B45 08         mov eax,dword ptr ss:[ebp+8]
+0040263C        |.  0FBE08          movsx ecx,byte ptr ds:[eax]
+0040263F        |.  85C9            test ecx,ecx
+00402641        |.  0F84 82010000   je CAD2Shap.004027C9
+00402647        |.  8B7D 08         mov edi,dword ptr ss:[ebp+8]
+0040264A        |.  83C9 FF         or ecx,FFFFFFFF
+0040264D        |.  33C0            xor eax,eax
+0040264F        |.  F2:AE           repne scas byte ptr es:[edi]
+00402651        |.  F7D1            not ecx
+00402653        |.  83C1 FF         add ecx,-1
+00402656        |.  894D F0         mov dword ptr ss:[ebp-10],ecx
+00402659        |.  C745 FC 0000000>mov dword ptr ss:[ebp-4],0
+00402660        |.  C745 F8 0000000>mov dword ptr ss:[ebp-8],0
+00402667        |.  EB 09           jmp short CAD2Shap.00402672
+00402669        |>  8B55 FC         /mov edx,dword ptr ss:[ebp-4]
+0040266C        |.  83C2 01         |add edx,1
+0040266F        |.  8955 FC         |mov dword ptr ss:[ebp-4],edx
+00402672        |>  8B45 FC         mov eax,dword ptr ss:[ebp-4]
+00402675        |.  3B45 F0         |cmp eax,dword ptr ss:[ebp-10]
+00402678        |.  7D 38           |jge short CAD2Shap.004026B2
+0040267A        |.  8B4D 08         |mov ecx,dword ptr ss:[ebp+8]
+0040267D        |.  034D FC         |add ecx,dword ptr ss:[ebp-4]
+00402680        |.  0FBE11          |movsx edx,byte ptr ds:[ecx]
+00402683        |.  83FA 30         |cmp edx,30
+00402686        |.  7C 28           |jl short CAD2Shap.004026B0
+00402688        |.  8B45 08         |mov eax,dword ptr ss:[ebp+8]
+0040268B        |.  0345 FC         |add eax,dword ptr ss:[ebp-4]
+0040268E        |.  0FBE08          |movsx ecx,byte ptr ds:[eax]
+00402691        |.  83F9 39         |cmp ecx,39
+00402694        |.  7F 1A           |jg short CAD2Shap.004026B0
+00402696        |.  8B55 08         |mov edx,dword ptr ss:[ebp+8]
+00402699        |.  0355 FC         |add edx,dword ptr ss:[ebp-4]
+0040269C        |.  8B45 F8         |mov eax,dword ptr ss:[ebp-8]
+0040269F        |.  8A0A            |mov cl,byte ptr ds:[edx]
+004026A1        |.  8888 14575100   |mov byte ptr ds:[eax+515714],cl
+004026A7        |.  8B55 F8         |mov edx,dword ptr ss:[ebp-8]
+004026AA        |.  83C2 01         |add edx,1
+004026AD        |.  8955 F8         |mov dword ptr ss:[ebp-8],edx
+004026B0        |>> EB B7           \jmp short CAD2Shap.00402669
+004026B2        |>  8B45 F8         mov eax,dword ptr ss:[ebp-8]             ;  以上只取试练码中的 0－9（忽略任何其它值），并转换成 16 进制（也就是注册码只能是 0－9 的数），转存中内容：
+00515714  34333231
+00515718  38373635
+0051571C  32313039
+00515720  36353433
+
+004026B5        |.  C680 14575100 0>mov byte ptr ds:[eax+515714],0
+004026BC        |.  68 14575100     push CAD2Shap.00515714                   ; /Arg1 = 00515714
+004026C1        |.  E8 DAEEFFFF     call CAD2Shap.004015A0                 ; 关键函数 call4，试练码查表替换处理，结果＝试练码 2
+004026C6        |.  83C4 04         add esp,4
+004026C9        |.  BF 14575100     mov edi,CAD2Shap.00515714               
+004026CE        |.  83C9 FF         or ecx,FFFFFFFF
+004026D1        |.  33C0            xor eax,eax
+004026D3        |.  F2:AE           repne scas byte ptr es:[edi]
+004026D5        |.  F7D1            not ecx
+004026D7        |.  83C1 FF         add ecx,-1
+004026DA        |.  894D F8         mov dword ptr ss:[ebp-8],ecx
+```
+
+
+
+```asm
+004026DD        |.  837D F8 0C      cmp dword ptr ss:[ebp-8],0C                   ; 注册码长度是否为 12，否则跳＝完蛋
+004026E1        |.  74 0B           je short CAD2Shap.004026EE
+004026E3        |.  837D F8 0F      cmp dword ptr ss:[ebp-8],0F                   ; 注册码长度是否为 15，否则跳＝完蛋
+004026E7        |.  74 05           je short CAD2Shap.004026EE
+004026E9        |.  E9 DB000000     jmp CAD2Shap.004027C9
+004026EE        |>  0FBE0D 15575100 movsx ecx,byte ptr ds:[515715]
+004026F5        |.  83F9 31         cmp ecx,31
+004026F8        |.  74 11           je short CAD2Shap.0040270B                   ;试练码 2 第 2 位是否为 1
+004026FA        |.  0FBE15 16575100 movsx edx,byte ptr ds:[515716]
+00402701        |.  83FA 33         cmp edx,33
+00402704          74 05           je short CAD2Shap.0040270B                   ;试练码 2 第 3 位是否为 3
+00402706        |.  E9 BE000000     jmp CAD2Shap.004027C9
+0040270B        |>  0FBE05 1B575100 movsx eax,byte ptr ds:[51571B]
+00402712        |.  83E8 30         sub eax,30
+00402715        |.  69C0 A0860100   imul eax,eax,186A0                  ;十万位
+0040271B        |.  0FBE0D 1C575100 movsx ecx,byte ptr ds:[51571C]
+00402722        |.  83E9 30         sub ecx,30
+00402725        |.  69C9 10270000   imul ecx,ecx,2710               ;万位
+0040272B        |.  03C1            add eax,ecx
+0040272D        |.  0FBE15 1D575100 movsx edx,byte ptr ds:[51571D]
+00402734        |.  83EA 30         sub edx,30
+00402737        |.  69D2 E8030000   imul edx,edx,3E8                ;千位
+0040273D        |.  03C2            add eax,edx
+0040273F        |.  0FBE0D 1E575100 movsx ecx,byte ptr ds:[51571E]
+00402746        |.  83E9 30         sub ecx,30
+00402749        |.  6BC9 64         imul ecx,ecx,64                ;百位
+0040274C        |.  03C1            add eax,ecx
+0040274E        |.  0FBE15 1F575100 movsx edx,byte ptr ds:[51571F]
+00402755        |.  83EA 30         sub edx,30
+00402758        |.  6BD2 0A         imul edx,edx,0A                ;个位
+0040275B        |.  03C2            add eax,edx
+0040275D        |.  0FBE0D 14575100 movsx ecx,byte ptr ds:[515714]
+00402764        |.  8D5408 D0       lea edx,dword ptr ds:[eax+ecx-30]       ;以上试练码 2 的第 8－12 位，再连接第 1 位组成一个 6 位数
+00402768        |.  8955 F4         mov dword ptr ss:[ebp-C],edx
+0040276B        |.  C705 18585100 0>mov dword ptr ds:[515818],0
+00402775        |.  837D F8 0F      cmp dword ptr ss:[ebp-8],0F
+00402779        |.  75 4E           jnz short CAD2Shap.004027C9                   ; 注册码长度是否为 15，否则跳＝完蛋
+0040277B        |.  0FBE05 20575100 movsx eax,byte ptr ds:[515720]
+00402782        |.  83E8 30         sub eax,30
+00402785        |.  6BC0 64         imul eax,eax,64
+00402788        |.  0FBE0D 21575100 movsx ecx,byte ptr ds:[515721]
+0040278F        |.  83E9 30         sub ecx,30
+00402792        |.  6BC9 0A         imul ecx,ecx,0A
+00402795        |.  03C1            add eax,ecx
+00402797        |.  0FBE15 22575100 movsx edx,byte ptr ds:[515722]
+0040279E        |.  8D4410 D0       lea eax,dword ptr ds:[eax+edx-30]      ;以上取试练码 2 的第 13－15 位，形成一个 3 位数
+004027A2        |.  A3 18585100     mov dword ptr ds:[515818],eax
+004027A7        |.  8B0D 18585100   mov ecx,dword ptr ds:[515818]
+004027AD        |.  81E9 DE000000   sub ecx,0DE            ;得到的 3 位数－&H0DE,再与 1 比较，必须>=1,否则跳＝完蛋（此 3 位数决定了软件许可的用户数）
+004027B3        |.  890D 18585100   mov dword ptr ds:[515818],ecx
+004027B9        |.  833D 18585100 0>cmp dword ptr ds:[515818],1
+004027C0        |.  7D 07           jge short CAD2Shap.004027C9
+004027C2        |.  C745 F4 0000000>mov dword ptr ss:[ebp-C],0       ;跳到此，则 ebp-c=0，ebp-c 也就是试练码经过上述处理后的结果，该值如果不为 0，则将与用户名处理的结果比较!!!!!!!!!!
+004027C9        |>  8B45 F4         mov eax,dword ptr ss:[ebp-C]
+004027CC        |.  5F              pop edi
+004027CD        |.  8BE5            mov esp,ebp
+004027CF        |.  5D              pop ebp
+004027D0        \.  C3              retn
+```
+
+### 进入 `call4`
+
+```asm
+004015A0        /$  55              push ebp
+004015A1        |.  8BEC            mov ebp,esp
+004015A3        |.  83EC 24         sub esp,24
+004015A6        |.  56              push esi
+004015A7        |.  57              push edi
+004015A8        |.  8B7D 08         mov edi,dword ptr ss:[ebp+8]
+004015AB        |.  83C9 FF         or ecx,FFFFFFFF
+004015AE        |.  33C0            xor eax,eax
+004015B0        |.  F2:AE           repne scas byte ptr es:[edi]
+004015B2        |.  F7D1            not ecx
+004015B4        |.  83C1 FF         add ecx,-1
+004015B7        |.  894D FC         mov dword ptr ss:[ebp-4],ecx
+004015BA        |.  837D FC 10      cmp dword ptr ss:[ebp-4],10               ;  试练码长度是否为 16
+004015BE          74 02           je short CAD2Shap.004015C2
+004015C0        |.  EB 7F           jmp short CAD2Shap.00401641
+004015C2        |>  8B45 08         mov eax,dword ptr ss:[ebp+8]
+004015C5        |.  0345 FC         add eax,dword ptr ss:[ebp-4]
+004015C8        |.  0FBE48 FF       movsx ecx,byte ptr ds:[eax-1]             ;  取试练码最后一位，也就是第 16 位
+004015CC        |.  83E9 30         sub ecx,30                                ;  －30
+004015CF        |.  894D DC         mov dword ptr ss:[ebp-24],ecx
+004015D2        |.  837D DC 00      cmp dword ptr ss:[ebp-24],0               ;  与 0 比较
+004015D6        |.  7C 06           jl short CAD2Shap.004015DE               ;  小于则完蛋
+004015D8        |.  837D DC 09      cmp dword ptr ss:[ebp-24],9               ;  与 9 比较
+004015DC        |.  7E 02           jle short CAD2Shap.004015E0              ;  大于 9 则完蛋
+004015DE        |>  EB 61           jmp short CAD2Shap.00401641
+004015E0        |>  C745 F8 0000000>mov dword ptr ss:[ebp-8],0
+004015E7        |.  EB 09           jmp short CAD2Shap.004015F2
+004015E9        |>  8B55 F8         /mov edx,dword ptr ss:[ebp-8]
+004015EC        |.  83C2 01         |add edx,1
+004015EF        |.  8955 F8         |mov dword ptr ss:[ebp-8],edx
+004015F2        |>  837D F8 0F      cmp dword ptr ss:[ebp-8],0F              ;  大于 15 则跳
+004015F6        |.  7D 1E           |jge short CAD2Shap.00401616
+004015F8        |.  8B45 DC         |mov eax,dword ptr ss:[ebp-24]
+004015FB        |.  6BC0 3C         |imul eax,eax,3C                        ; (试练码最后一位，也就是第 16 位)×60，为下面查表作准备，试练码第 16 位决定了使用表中的哪种置换！
+004015FE        |.  8B4D F8         |mov ecx,dword ptr ss:[ebp-8]
+00401601        |.  8B9488 58C04E00 |mov edx,dword ptr ds:[eax+ecx*4+4EC058]     ;此时，进行查表，根据表中值作为序号，对试练码进行重新排序，置换后结果＝试练码 2（试练码 1234567890123456，置换后结果试练码 2＝3926571308424516，表如下：
+```
+
+> `keystr2 = "E,4,A,5,C,8,1,9,0,D,B,2,3,7,6," & _`
+> `"0,9,8,D,7,5,6,2,E,B,4,1,3,A,C," & _`
+> `"3,5,D,7,B,4,9,C,A,E,2,1,8,6,0," & _`
+> `"1,9,B,2,5,D,7,A,C,6,4,E,8,3,0," & _`
+> `"6,E,A,2,4,8,C,7,D,3,1,5,9,0,B," & _`
+> `"E,4,0,A,C,5,7,2,B,8,6,D,9,3,1," & _`
+> `"6,2,0,A,D,3,5,9,1,8,E,B,7,C,4," & _`
+> `"5,0,A,3,7,8,C,B,1,E,D,2,4,9,6," & _`
+> `"B,C,4,0,6,3,1,A,8,2,5,E,7,9,D," & _`
+> `"2,7,C,5,4,0,D,A,3,9,E,1,8,6,B"`
+
+上表是 `vb` 写注册机时候的代码，而在转存中是按如下方式存放：（因此也就可理解为什么－(`试练码最后一位，也就是第 16 位`)×60）
+
+```text
+004EC058  0000000E
+004EC05C  00000004
+004EC060  0000000A
+004EC064  00000005
+004EC068  0000000C
+004EC06C  00000008
+004EC070  00000001
+004EC074  00000009
+```
+
+
+
+### 代码片段
+
+```
+004EC078  00000000  
+004EC07C  0000000D  
+004EC080  0000000B  
+004EC084  00000002  
+004EC088  00000003  
+004EC08C  00000007  
+004EC090  00000006  
+......
+```
+
+**说明**：表可分成 9 段，每段就是一种置换方案，从上到下，也就是试练码第 16 位假设为 0－9 的时候，所使用的置换方案。
+
+```
+00401608        |.   8B45 08          |mov eax,dword ptr ss:[ebp+8]
+0040160B        |.   0345 F8          |add eax,dword ptr ss:[ebp-8]
+0040160E        |.   8A08             |mov cl,byte ptr ds:[eax]
+00401610        |.   884C15 E0        |mov byte ptr ss:[ebp+edx-20],cl
+00401614        |.^  EB D3            \jmp short CAD2Shap.004015E9
+00401616        |>   8B55 F8          mov edx,dword ptr ss:[ebp-8]
+00401619        |.   C64415 E0 00     mov byte ptr ss:[ebp+edx-20],0
+0040161E        |.   8D7D E0          lea edi,dword ptr ss:[ebp-20]
+00401621        |.   8B55 08          mov edx,dword ptr ss:[ebp+8]
+00401624        |.   83C9 FF          or ecx,FFFFFFFF
+00401627        |.   33C0             xor eax,eax
+00401629        |.   F2:AE            repne scas byte ptr es:[edi]
+0040162B        |.   F7D1             not ecx
+0040162D        |.   2BF9             sub edi,ecx
+0040162F        |.   8BF7             mov esi,edi
+00401631        |.   8BC1             mov eax,ecx
+00401633        |.   8BFA             mov edi,edx
+00401635        |.   C1E9 02          shr ecx,2
+00401638        |.   F3:A5            rep movs dword ptr es:[edi],dword ptr ds:[es>
+0040163A        |.   8BC8             mov ecx,eax
+0040163C        |.   83E1 03          and ecx,3
+0040163F        |.   F3:A4            rep movs byte ptr es:[edi],byte ptr ds:[esi]
+00401641        |>   5F               pop edi
+00401642        |.   5E               pop esi
+00401643        |.   8BE5             mov esp,ebp
+00401645        |.   5D               pop ebp
+00401646        \\.  C3               retn
+```
+
+### 进入 call3===================================
+
+```
+00401650        /$  55               push ebp
+00401651        |.   8BEC             mov ebp,esp
+00401653        |.   83EC 64          sub esp,64
+00401656        |.   8D45 A4          lea eax,dword ptr ss:[ebp-5C]
+00401659        |.   50               push eax                            ; /Arg2
+0040165A        |.   8B4D 0C          mov ecx,dword ptr ss:[ebp+C]         ; |
+0040165D        |.   51               push ecx                             ; |Arg1
+0040165E        |.   E8 BF000000      call CAD2Shap.00401722               ; 过滤用户名字符函数（不分析了），只取用户名中的 a-z,0-9,A-Z 的字符，如果是中文，则转换成 16 进制数后，显然会被过滤掉（但不等于不支持用户名为中文名哦）
+00401663        |.   83C4 08          add esp,8
+00401666        |.   8945 FC          mov dword ptr ss:[ebp-4],eax
+00401669        |.   837D FC 05       cmp dword ptr ss:[ebp-4],5
+0040166D        |.   7D 30            jge short CAD2Shap.0040169F         ;过滤后，用户名长于<5,则添加字符 a，到用户名长度满足>=5
+0040166F        |.   8B55 FC          mov edx,dword ptr ss:[ebp-4]
+00401672        |.   8955 F4          mov dword ptr ss:[ebp-C],edx
+00401675        |.   EB 09            jmp short CAD2Shap.00401680
+00401677        |>   8B45 F4          /mov eax,dword ptr ss:[ebp-C]
+0040167A        |.   83C0 01          |add eax,1
+0040167D        |.   8945 F4          |mov dword ptr ss:[ebp-C],eax
+00401680        |>   837D F4 05       cmp dword ptr ss:[ebp-C],5
+00401684        |.   7D 0A            |jge short CAD2Shap.00401690
+00401686        |.   8B4D F4          |mov ecx,dword ptr ss:[ebp-C]
+00401689        |.   C6440D A4 61     |mov byte ptr ss:[ebp+ecx-5C],61    ;添加 a
+0040168E        |.^  EB E7            \jmp short CAD2Shap.00401677
+00401690        |>   C745 FC 0500000>mov dword ptr ss:[ebp-4],5
+00401697        |.   8B55 FC          mov edx,dword ptr ss:[ebp-4]
+0040169A        |.   C64415 A4 00     mov byte ptr ss:[ebp+edx-5C],0
+0040169F        |>   8B45 08          mov eax,dword ptr ss:[ebp+8]     ;取常量＝&H913,下面开始用户名处理
+004016A2        |.   8945 F8          mov dword ptr ss:[ebp-8],eax
+004016A5        |.   C745 A0 0100000>mov dword ptr ss:[ebp-60],1      ;设置变量初始值为 1
+004016AC        |.   C745 F4 0000000>mov dword ptr ss:[ebp-C],0       ;设置计数器初始值为 0
+004016B3        |.   EB 09            jmp short CAD2Shap.004016BE
+004016B5        |>   8B4D F4          /mov ecx,dword ptr ss:[ebp-C]
+004016B8        |.   83C1 01          |add ecx,1
+004016BB        |.   894D F4          |mov dword ptr ss:[ebp-C],ecx
+004016BE        |>   8B55 F4          mov edx,dword ptr ss:[ebp-C]
+004016C1        |.   3B55 FC          |cmp edx,dword ptr ss:[ebp-4]
+004016C4        |.   7D 3E            |jge short CAD2Shap.00401704     ;计算完用户名所有字符后跳出
+004016C6        |.   8B45 F4          |mov eax,dword ptr ss:[ebp-C]
+004016C9        |.   0FBE4C05 A4      |movsx ecx,byte ptr ss:[ebp+eax-5C]    ;依次取用户名字符，并符号扩张
+004016CE        |.   51               |push ecx
+004016CF        |.   E8 FAD40600      |call CAD2Shap.0046EBCE       ;过滤用户名字符
+004016D4        |.   83C4 04          |add esp,4
+004016D7        |.   8945 9C          |mov dword ptr ss:[ebp-64],eax
+004016DA        |.   8B55 9C          |mov edx,dword ptr ss:[ebp-64]
+004016DD        |.   0FAF55 A0        |imul edx,dword ptr ss:[ebp-60]     ;乘以常量&H913
+004016E1        |.   8B45 F8          |mov eax,dword ptr ss:[ebp-8]
+004016E4        |.   03C2             |add eax,edx         ;与前一个计算结果相加
+004016E6        |.   8945 F8          |mov dword ptr ss:[ebp-8],eax
+004016E9        |.   8B4D A0          |mov ecx,dword ptr ss:[ebp-60]
+004016EC        |.   6BC9 0A          |imul ecx,ecx,0A         ;变量×10
+004016EF        |.   894D A0          |mov dword ptr ss:[ebp-60],ecx
+004016F2        |.   817D A0 E803000>|cmp dword ptr ss:[ebp-60],3E8     ;等于 1000，则复位成 1
+004016F9        |.   7E 07            |jle short CAD2Shap.00401702
+004016FB        |.   C745 A0 0100000>|mov dword ptr ss:[ebp-60],1
+00401702        |>^  EB B1            \jmp short CAD2Shap.004016B5
+00401704        |>   817D F8 3F420F0>/cmp dword ptr ss:[ebp-8],0F423F    ;用户名处理结果与&h0F423F 比较，大于则要减去&H0F4240,循环到小于&h0F423F 为止，得到的结果也就是用户名处理后最后的结果，该结果与试练码处理的结果比较!!!!!!!。
+0040170B        |.   7E 0E            |jle short CAD2Shap.0040171B
+0040170D        |.   8B55 F8          |mov edx,dword ptr ss:[ebp-8]
+00401710        |.   81EA 40420F00    |sub edx,0F4240
+00401716        |.   8955 F8          |mov dword ptr ss:[ebp-8],edx
+00401719        |.^  EB E9            \jmp short CAD2Shap.00401704
+0040171B        |>   8B45 F8          mov eax,dword ptr ss:[ebp-8]
+0040171E        |.   8BE5             mov esp,ebp
+00401720        |.   5D               pop ebp
+00401721        \\.  C3               retn
+```
+
+--------------------------------------------------------------------------------
+
+### 【经验总结】
+
+**算法特色**：查表置换排序，中间结果比较
+
+该软件的注册算法大致如下：
+
+0、注册码长度必须为 16 位。  
+1、第 1 位： 为用户名处理结果的 6 位数的最后 1 位。  
+2、第 2，3 位： 必须符合：第 2 位＝1，则第 3 位任意；反之，第 3 位为 3，则第 2 位可任意；或者第 2 位＝1，第 3 位＝3。  
+3、第 4－7 位： 未进行任何比较，其作用为软件序列号。  
+4、第 8－12 位： 为用户名处理结果的 6 位数的前 5 位。  
+5、第 13－15 位：为允许的许可用户数，必须大于&H0DE，当然还要符合 10 进制 3 位数最大到 999 的限制，因此取值范围可以为\[223,999\]。  
+6、第 16 位： 可为 0－9 的任一数值，作用是决定了查表置换的方案。  
+7、用户名处理：分别取用户名的 asc 值×常数&H913×变量（1-1000，该变量随计数器变化而从 1，10，100，1000 变化），结果累加，最后结果限制<=&h0F423F，也就是限制其为 10 进制的 6 位数。
+
+了解了算法的过程，就容易写出注册机了，因此就不上传注册机程序或代码了。
+
+一组可用的用户名与注册码：
+
+用户名：`sHAOgE`  
+注册码：`3190519205912699`
+
+--------------------------------------------------------------------------------
+
+### 【版权声明】
+
+本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!
+
+2007 年 05 月 01 日 15:30:08
+
+`4dd466d0e1e0cc123afbe504da2462ca`
