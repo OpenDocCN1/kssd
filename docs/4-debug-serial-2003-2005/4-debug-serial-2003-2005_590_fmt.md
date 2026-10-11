@@ -1,0 +1,391 @@
+
+# 屏幕录像专家 v5.0 
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6892.htm`](https://www.pediy.com/kssd/pediy06/pediy6892.htm)
+
+【破文标题】 屏幕录像专家 v5.0 注册码破解分析
+
+【破文作者】 80x86
+
+【作者邮箱】 80x86@sohu.com
+
+【使用工具】 `Ollydbg`, `IDA`
+
+【破解平台】 `XP`
+
+【软件名称】 屏幕录像专家
+
+【下载地址】 `http://download.enet.com.cn/html/040312003020601.html`
+
+【破解内容】
+
+```
+00437D20    /.  55                   push ebp
+00437D21    |.  8BEC                 mov ebp,esp
+00437D23    |.  81C4 CCFEFFFF        add esp,-134
+00437D29    |.  53                   push ebx
+00437D2A    |.  8995 44FFFFFF        mov dword ptr ss:[ebp-BC],edx
+00437D30    |.  8985 48FFFFFF        mov dword ptr ss:[ebp-B8],eax
+00437D36    |.  B8 FCBA5000          mov eax,屏录专家.0050BAFC
+00437D3B    |.  E8 60440A00          call <屏录专家.@__InitExceptBlockLDTC>
+00437D40    |.  66:C785 5CFFFFFF 0800 mov word ptr ss:[ebp-A4],8
+00437D49    |.  8D45 FC              lea eax,dword ptr ss:[ebp-4]
+00437D4C    |.  E8 BF9BFCFF          call <屏录专家.unknown_libname_37>
+00437D51    |.  8BD0                 mov edx,eax
+00437D53    |.  FF85 68FFFFFF        inc dword ptr ss:[ebp-98]
+00437D59    |.  8B8D 48FFFFFF        mov ecx,dword ptr ss:[ebp-B8]
+00437D5F    |.  8B81 E4020000        mov eax,dword ptr ds:[ecx+2E4]
+00437D65    |.  E8 1E860500          call <屏录专家.@TControl@GetText$qqrv> ;取注册码
+00437D6A    |.  8D55 FC              lea edx,dword ptr ss:[ebp-4]    ；**edx->注册码
+00437D6D    |.  FF32                 push dword ptr ds:[edx]
+00437D6F    |.  8D45 F8              lea eax,dword ptr ss:[ebp-8]
+00437D72    |.  E8 999BFCFF          call <屏录专家.unknown_libname_37>
+00437D77    |.  8BD0                 mov edx,eax
+00437D79    |.  FF85 68FFFFFF        inc dword ptr ss:[ebp-98]
+00437D7F    |.  8B8D 48FFFFFF        mov ecx,dword ptr ss:[ebp-B8]
+00437D85    |.  8B81 DC020000        mov eax,dword ptr ds:[ecx+2DC]
+00437D8B    |.  E8 F8850500          call <屏录专家.@TControl@GetText$qqrv> ;取注册名
+00437D90    |.  8D55 F8              lea edx,dword ptr ss:[ebp-8]    ;**edx->注册名
+00437D93    |.  FF32                 push dword ptr ds:[edx]
+00437D95    |.  FFB5 48FFFFFF        push dword ptr ss:[ebp-B8]
+00437D9B    |.  E8 180C0000          call <屏录专家.old_ver>       ;关于老版本
+00437DA0    |.  83C4 0C              add esp,0C
+00437DA3    |.  3C 01                cmp al,1
+00437DA5    |.  0F94C1               sete cl
+00437DA8    |.  83E1 01              and ecx,1
+00437DAB    |.  51                   push ecx
+00437DAC    |.  FF8D 68FFFFFF        dec dword ptr ss:[ebp-98]
+00437DB2    |.  8D45 F8              lea eax,dword ptr ss:[ebp-8]
+00437DB5    |.  BA 02000000          mov edx,2
+00437DBA    |.  E8 11F70A00          call <屏录专家.@System@AnsiString@$bdtr$qqrv>
+00437DBF    |.  FF8D 68FFFFFF        dec dword ptr ss:[ebp-98]
+00437DC5    |.  8D45 FC              lea eax,dword ptr ss:[ebp-4]
+00437DC8    |.  BA 02000000          mov edx,2
+00437DCD    |.  E8 FEF60A00          call <屏录专家.@System@AnsiString@$bdtr$qqrv>
+00437DD2    |.  59                   pop ecx
+00437DD3    |.  84C9                 test cl,cl
+00437DD5    |.  74 48                je short 屏录专家.00437E1F ；不是老版本
+00437DD7    |.  66:C785 5CFFFFFF 1400 mov word ptr ss:[ebp-A4],14     ；注册码是老版本
+00437DE0    |.  BA DCB75000          mov edx,屏录专家.0050B7DC
+00437DE5    |.  8D45 F4              lea eax,dword ptr ss:[ebp-C]
+00437DE8    |.  E8 ABF40A00          call <屏录专家.sub_4E7298>
+00437DED    |.  FF85 68FFFFFF        inc dword ptr ss:[ebp-98]
+00437DF3    |.  8B00                 mov eax,dword ptr ds:[eax]
+00437DF5    |.  E8 46310500          call <屏录专家.@Dialogs@ShowMessage$qqrx17System@AnsiString>
+00437DFA    |.  FF8D 68FFFFFF        dec dword ptr ss:[ebp-98]
+00437E00    |.  8D45 F4              lea eax,dword ptr ss:[ebp-C]
+00437E03    |.  BA 02000000          mov edx,2
+00437E08    |.  E8 C3F60A00          call <屏录专家.@System@AnsiString@$bdtr$qqrv>
+00437E0D    |.  8B8D 4CFFFFFF        mov ecx,dword ptr ss:[ebp-B4]
+00437E13    |.  64:890D 00000000     mov dword ptr fs:[0],ecx
+00437E1A    |.  E9 7E0B0000          jmp 屏录专家.0043899D    ；返回
+```
+
+不是老版本：
+
+```
+00437E1F    |>  6A 14                push 14
+00437E21    |.  6A 00                push 0
+00437E23    |.  8D85 00FFFFFF        lea eax,dword ptr ss:[ebp-100]
+00437E29    |.  50                   push eax
+00437E2A    |.  E8 A13F0A00          call <屏录专家._memset>
+00437E2F    |.  83C4 0C              add esp,0C
+00437E32    |.  33D2                 xor edx,edx
+00437E34    |.  8995 40FFFFFF        mov dword ptr ss:[ebp-C0],edx
+00437E3A    |.  6A 14                push 14
+00437E3C    |.  6A 00                push 0
+00437E3E    |.  8D8D 18FFFFFF        lea ecx,dword ptr ss:[ebp-E8]
+00437E44    |.  51                   push ecx
+00437E45    |.  E8 863F0A00          call <屏录专家._memset>
+00437E4A    |.  83C4 0C              add esp,0C
+00437E4D    |.  6A 14                push 14
+00437E4F    |.  6A 00                push 0
+00437E51    |.  8D85 E8FEFFFF        lea eax,dword ptr ss:[ebp-118]
+00437E57    |.  50                   push eax
+00437E58    |.  E8 733F0A00          call <屏录专家._memset>
+00437E5D    |.  83C4 0C              add esp,0C
+00437E60    |.  66:C785 5CFFFFFF 2000 mov word ptr ss:[ebp-A4],20
+00437E69    |.  8D45 F0              lea eax,dword ptr ss:[ebp-10]
+00437E6C    |.  E8 9F9AFCFF          call <屏录专家.unknown_libname_37>
+00437E71    |.  8BD0                 mov edx,eax
+00437E73    |.  FF85 68FFFFFF        inc dword ptr ss:[ebp-98]
+00437E79    |.  8B8D 48FFFFFF        mov ecx,dword ptr ss:[ebp-B8]
+00437E7F    |.  8B81 DC020000        mov eax,dword ptr ds:[ecx+2DC]
+00437E85    |.  E8 FE840500          call <屏录专家.@TControl@GetText$qqrv> ；取注册名
+00437E8A    |.  8D45 F0              lea eax,dword ptr ss:[ebp-10]
+             **eax->取注册名
+00437E8D    |.  E8 46DEFCFF          call <屏录专家.@System@AnsiString@c_str$xqqrv>
+00437E92    |.  50                   push eax
+00437E93    |.  8D95 E8FEFFFF        lea edx,dword ptr ss:[ebp-118]
+00437E99    |.  52                   push edx
+00437E9A    |.  E8 5D400A00          call <屏录专家._strcpy>          ;copy 注册名
+00437E9F    |.  83C4 08              add esp,8
+00437EA2    |.  FF8D 68FFFFFF        dec dword ptr ss:[ebp-98]
+00437EA8    |.  8D45 F0              lea eax,dword ptr ss:[ebp-10]
+00437EAB    |.  BA 02000000          mov edx,2
+00437EB0    |.  E8 1BF60A00          call <屏录专家.@System@AnsiString@$bdtr$qqrv>
+00437EB5    |.  66:C785 5CFFFFFF 2C00 mov word ptr ss:[ebp-A4],2C
+00437EBE    |.  8D45 EC              lea eax,dword ptr ss:[ebp-14]
+00437EC1    |.  E8 4A9AFCFF          call <屏录专家.unknown_libname_37>
+00437EC6    |.  8BD0                 mov edx,eax
+```
+
+
+
+# 00437EC8
+
+```
+00437EC8 |.  FF85 68FFFFFF             inc dword ptr ss:[ebp-98]
+00437ECE |.  8B8D 48FFFFFF             mov ecx,dword ptr ss:[ebp-B8]
+00437ED4 |.  8B81 F0020000             mov eax,dword ptr ds:[ecx+2F0]
+00437EDA |.  E8 A9840500             call <屏录专家.@TControl@GetText$qqrv>  ;取机器码
+00437EDF |.  8D45 EC                 lea eax,dword ptr ss:[ebp-14]
+                                       ;**eax->机器码
+00437EE2 |.  E8 F1DDFCFF             call <屏录专家.@System@AnsiString@c_str$xqqrv>
+00437EE7 |.  50                       push eax
+00437EE8 |.  8D95 00FFFFFF             lea edx,dword ptr ss:[ebp-100]
+00437EEE |.  52                       push edx
+00437EEF |.  E8 08400A00             call <屏录专家._strcpy>           ;copy 机器码
+00437EF4 |.  83C4 08                 add esp,8
+00437EF7 |.  FF8D 68FFFFFF           dec dword ptr ss:[ebp-98]
+00437EFD |.  8D45 EC                 lea eax,dword ptr ss:[ebp-14]
+00437F00 |.  BA 02000000             mov edx,2
+00437F05 |.  E8 C6F50A00             call <屏录专家.@System@AnsiString@$bdtr$qqrv>
+00437F0A |.  33C9                   xor ecx,ecx
+00437F0C |.  898D 3CFFFFFF             mov dword ptr ss:[ebp-C4],ecx
+```
+
+;**********************************************************************************************
+
+```
+00437F12 |>  8B85 3CFFFFFF             /mov eax,dword ptr ss:[ebp-C4]
+00437F18 |.  8A9405 E8FEFFFF         |mov dl,byte ptr ss:[ebp+eax-118] ；[ebp+eax-118]=注册名
+00437F1F |.  8B8D 3CFFFFFF             |mov ecx,dword ptr ss:[ebp-C4]
+00437F25 |.  32940D 00FFFFFF         |xor dl,byte ptr ss:[ebp+ecx-100] ；[ebp+ecx-100h]=机器码
+00437F2C |.  8B85 3CFFFFFF             |mov eax,dword ptr ss:[ebp-C4]
+00437F32 |.  889405 18FFFFFF         |mov byte ptr ss:[ebp+eax-E8],dl
+00437F39 |.  8B95 3CFFFFFF             |mov edx,dword ptr ss:[ebp-C4]
+00437F3F |.  0FBE8C15 18FFFFFF       |movsx ecx,byte ptr ss:[ebp+edx-E8]
+00437F47 |.  898D CCFEFFFF             |mov dword ptr ss:[ebp-134],ecx
+00437F4D |.  DB85 CCFEFFFF             |fild dword ptr ss:[ebp-134]
+00437F53 |.  83C4 F8                 |add esp,-8
+00437F56 |.  DD1C24                   |fstp qword ptr ss:[esp]
+00437F59 |.  E8 02840A00             |call <屏录专家._fabs>           ；st=|[ebp-134h]|
+00437F5E |.  83C4 08                 |add esp,8
+00437F61 |.  DB85 3CFFFFFF             |fild dword ptr ss:[ebp-C4]    ；st=[ebp-0C4h]
+00437F67 |.  DEC9                   |fmulp st(1),st        ; st=|[ebp-134h]|[ebp-0C4h]
+00437F69 |.  DB85 40FFFFFF             |fild dword ptr ss:[ebp-C0]    ；st=[ebp-0C0h]
+00437F6F |.  DEC1                   |faddp st(1),st          ; st=|[ebp-134h]|[ebp-0C4h]+[ebp-0C0h]
+00437F71 |.  E8 12840A00             |call <屏录专家.@_ftol$qv>   ; eax=st
+00437F76 |.  8985 40FFFFFF             |mov dword ptr ss:[ebp-C0],eax
+00437F7C |.  FF85 3CFFFFFF             |inc dword ptr ss:[ebp-C4]
+00437F82 |.  83BD 3CFFFFFF 14          |cmp dword ptr ss:[ebp-C4],14  ;20 位
+00437F89 |.^ 7C 87                   \jl short 屏录专家.00437F12
+```
+
+#### 假设这段程序输出为 `temp_H`
+
+```c
+static char n[14]="ABABABAB" //注册名
+static char m[14]="92388863" //机器码
+
+int count;
+int temp_H;
+
+temp_H=0;
+
+for count=0 to 14h do
+{
+temp_H=|n[count] xor m[count]|*count+temp_H
+}
+```
+
+;**********************************************************************************************
+
+```
+00437F8B |.  8185 40FFFFFF 39300000  add dword ptr ss:[ebp-C0],3039
+00437F95 |.  FFB5 40FFFFFF            push dword ptr ss:[ebp-C0]
+00437F9B |.  68 57B85000              push 屏录专家.0050B857
+00437FA0 |.  8D95 18FFFFFF            lea edx,dword ptr ss:[ebp-E8]
+00437FA6 |.  52                       push edx
+00437FA7 |.  E8 F8690A00              call <屏录专家._sprintf>  ；把 temp_H 转为十进制 temp_D
+```
+
+(十六进)`temp_H` -> (十进制)`temp_D`
+
+;**********************************************************************************************
+
+```
+00437FAC |.  83C4 0C                  add esp,0C
+00437FAF |.  66:C785 5CFFFFFF 3800    mov word ptr ss:[ebp-A4],38
+00437FB8 |.  8D45 E8                  lea eax,dword ptr ss:[ebp-18]
+00437FBB |.  E8 5099FCFF              call <屏录专家.unknown_libname_37>
+00437FC0 |.  8BD0                     mov edx,eax
+00437FC2 |.  FF85 68FFFFFF            inc dword ptr ss:[ebp-98]
+00437FC8 |.  8B8D 48FFFFFF            mov ecx,dword ptr ss:[ebp-B8]
+00437FCE |.  8B81 E4020000            mov eax,dword ptr ds:[ecx+2E4]
+00437FD4 |.  E8 AF830500              call <屏录专家.@TControl@GetText$qqrv> ;取注册码
+00437FD9 |.  8D45 E8                  lea eax,dword ptr ss:[ebp-18]
+                                       ;**EAX-> 注册码
+00437FDC |.  E8 F7DCFCFF              call <屏录专家.@System@AnsiString@c_str$xqqrv>
+00437FE1 |.  50                       push eax
+00437FE2 |.  8D95 D0FEFFFF            lea edx,dword ptr ss:[ebp-130]
+00437FE8 |.  52                       push edx
+00437FE9 |.  E8 0E3F0A00              call <屏录专家._strcpy>       ;COPY  取注册码
+00437FEE |.  83C4 08                  add esp,8
+00437FF1 |.  FF8D 68FFFFFF            dec dword ptr ss:[ebp-98]
+00437FF7 |.  8D45 E8                  lea eax,dword ptr ss:[ebp-18]
+00437FFA |.  BA 02000000              mov edx,2
+00437FFF |.  E8 CCF40A00              call <屏录专家.@System@AnsiString@$bdtr$qqrv>
+00438004 |.  33C9                    xor ecx,ecx
+00438006 |.  898D 3CFFFFFF            mov dword ptr ss:[ebp-C4],ecx
+```
+
+```
+0043800C |>  8B85 3CFFFFFF            /mov eax,dword ptr ss:[ebp-C4]
+00438012 |.  0FBE9405 18FFFFFF       |movsx edx,byte ptr ss:[ebp+eax-E8];[ebp+eax-0E8h]=temp_D
+0043801A |.  8B8D 3CFFFFFF            |mov ecx,dword ptr ss:[ebp-C4]
+00438020 |.  0FBE840D D0FEFFFF       |movsx eax,byte ptr ss:[ebp+ecx-130];[ebp+ecx-130]=注册码
+00438028 |.  83C0 EC                  |add eax,-14
+0043802B |.  3BD0                     |cmp edx,eax
+0043802D |.  75 5D                    |jnz short 屏录专家.0043808C
+                                      |
+0043802F |.  83BD 3CFFFFFF 03         |cmp dword ptr ss:[ebp-C4],3；是不是第 5 位
+00438036 |.  75 45                    |jnz short 屏录专家.0043807D；不是第 5 位
+                                      |
+00438038 |.  8B95 40FFFFFF            |mov edx,dword ptr ss:[ebp-C0]；[ebp-C0]=temp_H
+0043803E |.  81C2 444D0000            |add edx,4D44
+00438044 |.  8995 CCFEFFFF            |mov dword ptr ss:[ebp-134],edx
+0043804A |.  DB85 CCFEFFFF            |fild dword ptr ss:[ebp-134]
+00438050 |.  DC0D A4894300            |fmul qword ptr ds:[4389A4]  ;3.14
+00438056 |.  DB2D AC894300            |fld tbyte ptr ds:[4389AC]  ;1.59489633173843711e-1
+0043805C |.  DEC9                    |fmulp st(1),st
+0043805E |.  E8 25830A00             |call <屏录专家.@_ftol$qv>    ;eax=st
+00438063 |.  8985 40FFFFFF            |mov dword ptr ss:[ebp-C0],eax
+00438069 |.  8B85 40FFFFFF            |mov eax,dword ptr ss:[ebp-C0]
+0043806F |.  B9 A0860100              |mov ecx,186A0
+```
+
+
+
+### 汇编代码分析
+
+```
+00438074    |.  99                     |cdq  
+00438075    |.  F7F9                   |idiv ecx  
+00438077    |.  8995 40FFFFFF          |mov dword ptr ss:[ebp-C0],edx   ;edx：余数  
+             |                         |  
+0043807D    |>  FF85 3CFFFFFF          |inc dword ptr ss:[ebp-C4]  
+00438083    |.  83BD 3CFFFFFF 05       |cmp dword ptr ss:[ebp-C4],5  ；loop 5 次  
+0043808A    |.^ 7C 80                  \jl short 屏录专家.0043800C  
+0043808C    |>  83BD 3CFFFFFF 05       |cmp dword ptr ss:[ebp-C4],5  ；是不是第 5 位  
+00438093    |.  0F8C AD080000          jl 屏录专家.00438946    ；小于 5 失败  
+```
+
+以下检查第 5 位：
+
+```
+00438099    |.  8B85 40FFFFFF          mov eax,dword ptr ss:[ebp-C0]  
+0043809F    |.  B9 0A000000            mov ecx,0A  
+004380A4    |.  99                     cdq  
+004380A5    |.  F7F9                   idiv ecx  
+004380A7    |.  8B85 3CFFFFFF          mov eax,dword ptr ss:[ebp-C4]  
+004380AD    |.  0FBE8C05 D0FEFFFF      movsx ecx,byte ptr ss:[ebp+eax-130];[ebp+eax-130]=第 5 位注册码  
+004380B5    |.  83C1 BF               add ecx,-41  
+004380B8    |.  2BCA                   sub ecx,edx      ;edx 通过对 temp_H 计算得到  
+004380BA    |.  898D 38FFFFFF          mov dword ptr ss:[ebp-C8],ecx  
+004380C0    |.  83BD 38FFFFFF 00       cmp dword ptr ss:[ebp-C8],0  
+004380C7    |.  74 0D                 je short 屏录专家.004380D6  ；成功  
+004380C9    |.  83BD 38FFFFFF 05       cmp dword ptr ss:[ebp-C8],5  
+004380D0    |.  0F85 25080000          jnz 屏录专家.004388FB    ;失败  
+```
+
+逻辑伪代码：
+
+```c
+static char s[14]="xxxxxx"//注册码  
+
+int count          
+int buffer  
+
+for count=0 to 5 do  
+  {  cmp temp_D[count],(s[count]-14)  
+     jnz fail  
+  if count=3 do {  
+    buffer=mod(((temp_H+4d44h)*3.14*1.59489633173843711e-1)/186a0h)  
+            }  
+   }  
+  buffer=s[count]-41-mod(buffer/0ah)  
+  if buffer=0 or buffer=5 jmp succeed  
+
+fail:  
+succeed:  
+
+；****************************************************************  
+```
+
+成功分支：
+
+```
+004380D6    |>  66:C785 5CFFFFFF 4400  mov word ptr ss:[ebp-A4],44  
+004380DF    |.  BA 5AB85000            mov edx,屏录专家.0050B85A  
+004380E4    |.  8D45 E4               lea eax,dword ptr ss:[ebp-1C]  
+004380E7    |.  E8 ACF10A00           call <屏录专家.sub_4E7298>  
+004380EC    |.  FF85 68FFFFFF         inc dword ptr ss:[ebp-98]  
+004380F2    |.  8B00                 mov eax,dword ptr ds:[eax]  
+004380F4    |.  E8 472E0500          call <屏录专家.@Dialogs@ShowMessage$qqrx17System@AnsiString>  
+004380F9    |.  FF8D 68FFFFFF         dec dword ptr ss:[ebp-98]  
+004380FF    |.  8D45 E4               lea eax,dword ptr ss:[ebp-1C]  
+00438102    |.  BA 02000000          mov edx,2  
+```
+
+### 破解总结
+
+不能爆破，因为通过注册后他会把注册明肯注册码保存在`pmlxzj.dll`文件里，再次起动时会再检查，
+
+我的机器码为`"92388863"`，输入注册名为`"ABABABAB"`
+
+下断点在：
+
+```
+0043800C    |>  8B85 3CFFFFFF          /mov eax,dword ptr ss:[ebp-C4]  
+00438012    |.  0FBE9405 18FFFFFF      |movsx edx,byte ptr ss:[ebp+eax-E8];[ebp+eax-0E8h]=temp_D  
+```
+
+可见`[ebp+eax-E8]`指向`"31 35 36 35 30 00"`
+
+可得：
+
+`31h+14h=45h->"E"`
+
+`35h+14h=49h->"I"`
+
+`36h+14h=4Ah->"J"`
+
+`35h+14h=49h->"I"`
+
+`30h+14h=44h->"D"`
+
+`"EIJID"`为前 5 位注册码
+
+再下断点在：
+
+```
+004380AD    |.  0FBE8C05 D0FEFFFF      movsx ecx,byte ptr ss:[ebp+eax-130]；[ebp+eax-130]=第 5 位注册码  
+004380B5    |.  83C1 BF               add ecx,-41  
+004380B8    |.  2BCA                   sub ecx,edx   
+```
+
+可得到`edx=3`
+
+所以第 5 位注册码为：`3+41h=44h->"D"` 或 `3+41h+5=49h->"I"` 我的注册码为`"EIJIDD"`或`"EIJIDI"`
+
+通过上面输入注册名与注册码后将通过注册，所有限制都取消，生成`*.avi` 已没有未注册字样，
+
+但生成`*.exe` 时还是有未注册字样，通过重新跟踪发现程序重新运行时又读取注册名与注册码，进行了新的计算，
+
+没能跟出来，但我用了另外一种方法来解决这个问题，就是把`"play.dat"`里未注册字样改为空格，
+
+这样使用起来还没有发现什么问题。
+
+`4dd466d0e1e0cc123afbe504da2462ca`
