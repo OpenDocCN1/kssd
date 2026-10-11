@@ -1,0 +1,424 @@
+
+# QQ 游戏对对碰外挂 1.0 注册算法分析
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-265.htm`](https://www.pediy.com/kssd/pediy07/pediy7-265.htm)
+
+**【破文标题】**：QQ 游戏对对碰外挂 1.0 注册算法分析
+
+**【破文作者】**：KuNgBiM[DFCG]
+
+**【作者邮箱】**：gb_1227@163.com
+
+**【软件名称】**：QQ 游戏对对碰外挂 1.0
+
+**【保护方式】**：注册码 + 使用次数限制
+
+**【编译语言】**：Borland Delphi 6.0 - 7.0
+
+**【调试环境】**：WinXP、PEiD、W32Dasm、Ollydbg
+
+**【破解日期】**：2005-5-26
+
+**【破解目的】**：研究算法分析
+
+**【作者声明】**：初学 Crack，只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+---
+
+**【破解过程】：**
+
+**侦测**：用 `PEiD` 查壳，无壳，`Borland Delphi 6.0 - 7.0` 编译。
+
+**试探**：运行主程序注册，输入试炼码，确认！程序提示：" 注册码错误! "
+
+**初步下药**：用 `W32Dasm` 进行静态反汇编，查找 " 注册码错误! " 字符串，找到 `0045B703` 处，确定在 `0045B57E` 处下断。
+
+**对症下药**：`Ollydbg` 载入主程序，向上来到 `0045B57E` 处下断，`F9` 运行，输入试炼信息：
+
+```
+***** 试炼信息 *****
+
+机器码：000AEB9933B4
+
+试炼码：9876543210
+
+**************************
+```
+
+点击确定后 `OD` 断下:（这里我采用的是 `W32Dasm` 的反汇编信息，比较干净清楚！）
+
+```asm
+:0045B55C 6A00                 push 00000000
+:0045B55E 6A00                 push 00000000
+:0045B560 49                   dec ecx
+:0045B561 75F9                 jne 0045B55C
+:0045B563 53                   push ebx
+:0045B564 56                   push esi
+:0045B565 8BD8                 mov ebx, eax
+:0045B567 33C0                 xor eax, eax
+:0045B569 55                   push ebp
+:0045B56A 687DB74500           push 0045B77D
+:0045B56F 64FF30               push dword ptr fs:[eax]
+:0045B572 648920               mov dword ptr fs:[eax], esp
+:0045B575 8D55FC               lea edx, dword ptr [ebp-04]
+:0045B578 8B8308030000         mov eax, dword ptr [ebx+00000308]
+:0045B57E E81960FDFF           call 0043159C                        //取序列号
+:0045B583 837DFC00             cmp dword ptr [ebp-04], 00000000      //比较序列号是否为 0
+:0045B587 751E                 jne 0045B5A7                          //为 0 则跳死！
+:0045B589 6A30                 push 00000030
+* Possible StringData Ref from Code Obj ->"提示"
+                       |
+:0045B58B 688CB74500           push 0045B78C
+* Possible StringData Ref from Code Obj ->"未输入注册码!"
+                       |
+:0045B590 6894B74500           push 0045B794
+:0045B595 8BC3                 mov eax, ebx
+:0045B597 E894C7FDFF           call 00437D30
+:0045B59C 50                   push eax
+* Reference To: user32.MessageBoxA, Ord:0000h
+                       |
+:0045B59D E8FEB7FAFF           Call 00406DA0
+:0045B5A2 E97B010000           jmp 0045B722
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0045B587(C)
+|
+:0045B5A7 8D55F4               lea edx, dword ptr [ebp-0C]
+:0045B5AA 8B8308030000         mov eax, dword ptr [ebx+00000308]
+:0045B5B0 E8E75FFDFF           call 0043159C                        //取试炼码
+:0045B5B5 8B45F4               mov eax, dword ptr [ebp-0C]          //ASCII "9876543210"
+:0045B5B8 8D55F8               lea edx, dword ptr [ebp-08]
+:0045B5BB E888CDFAFF           call 00408348
+:0045B5C0 8B45F8               mov eax, dword ptr [ebp-08]
+:0045B5C3 50                   push eax                              //试炼码压栈，ASCII "9876543210"
+:0045B5C4 8D55E8               lea edx, dword ptr [ebp-18]           //edx 清零
+:0045B5C7 8B8304030000         mov eax, dword ptr [ebx+00000304]
+:0045B5CD E8CA5FFDFF           call 0043159C                        //取机器码
+:0045B5D2 8B45E8               mov eax, dword ptr [ebp-18]           //ASCII "000AEB9933B4"
+:0045B5D5 8D55EC               lea edx, dword ptr [ebp-14]
+:0045B5D8 E86BCDFAFF           call 00408348
+:0045B5DD 8B45EC               mov eax, dword ptr [ebp-14]           //机器码入栈，ASCII "000AEB9933B4"
+:0045B5E0 8D55F0               lea edx, dword ptr [ebp-10]           //edx 清零
+:0045B5E3 E8F4FCFFFF           call 0045B2DC                        //算法 CALL，F7 跟进！
+:0045B5E8 8B55F0               mov edx, dword ptr [ebp-10]           //真码出现，ASCII "aaarvsjjddsz"
+:0045B5EB 58                   pop eax                                //取出假码，ASCII "9876543210"
+:0045B5EC E83B90FAFF           call 0040462C
+:0045B5F1 0F8505010000         jne 0045B6FC
+:0045B5F7 B201                 mov dl, 01
+:0045B5F9 A138684500           mov eax, dword ptr [00456838]
+:0045B5FE E835B3FFFF           call 00456938
+:0045B603 8BF0                 mov esi, eax
+:0045B605 BA02000080           mov edx, 80000002
+:0045B60A 8BC6                 mov eax, esi
+:0045B60C E8C7B3FFFF           call 004569D8
+:0045B611 B101                 mov cl, 01
+* Possible StringData Ref from Code Obj ->"SOFTWARE\Microsoft\qqddpyx"      //注册信息保存位置
+                       |
+:0045B613 BAACB74500           mov edx, 0045B7AC
+:0045B618 8BC6                 mov eax, esi
+:0045B61A E8F9B4FFFF           call 00456B18
+:0045B61F B901000000           mov ecx, 00000001
+* Possible StringData Ref from Code Obj ->"qqddpyxreg"                   //注册信息保存的双字节值
+                       |
+:0045B624 BAD0B74500           mov edx, 0045B7D0
+:0045B629 8BC6                 mov eax, esi
+:0045B62B E888B6FFFF           call 00456CB8
+:0045B630 8D55E0               lea edx, dword ptr [ebp-20]
+:0045B633 8B8308030000         mov eax, dword ptr [ebx+00000308]
+:0045B639 E85E5FFDFF           call 0043159C
+:0045B63E 8B45E0               mov eax, dword ptr [ebp-20]
+:0045B641 8D55E4               lea edx, dword ptr [ebp-1C]
+:0045B644 E8FFCCFAFF           call 00408348
+:0045B649 8B4DE4               mov ecx, dword ptr [ebp-1C]
+:0045B64C BAE4B74500           mov edx, 0045B7E4
+:0045B651 8BC6                 mov eax, esi
+:0045B653 E834B6FFFF           call 00456C8C
+:0045B658 8D55D8               lea edx, dword ptr [ebp-28]
+:0045B65B 8B8304030000         mov eax, dword ptr [ebx+00000304]
+:0045B661 E8365FFDFF           call 0043159C
+:0045B666 8B45D8               mov eax, dword ptr [ebp-28]
+:0045B669 8D55DC               lea edx, dword ptr [ebp-24]
+:0045B66C E8D7CCFAFF           call 00408348
+:0045B671 8B4DDC               mov ecx, dword ptr [ebp-24]
+* Possible StringData Ref from Code Obj ->"macstr"                       //注册信息保存的字符串
+                       |
+:0045B674 BAF0B74500           mov edx, 0045B7F0
+:0045B679 8BC6                 mov eax, esi
+:0045B67B E80CB6FFFF           call 00456C8C
+:0045B680 8BC6                 mov eax, esi
+:0045B682 E821B3FFFF           call 004569A8
+:0045B687 8BC6                 mov eax, esi
+:0045B689 E84E7EFAFF           call 004034DC
+:0045B68E 6A00                 push 00000000
+* Possible StringData Ref from Code Obj ->"谢谢"
+                       |
+:0045B690 B9F8B74500           mov ecx, 0045B7F8
+* Possible StringData Ref from Code Obj ->"感谢您的注册,谢谢!"                //注册成功返回的信息
+                       |
+:0045B695 BA00B84500           mov edx, 0045B800
+:0045B69A A188EF4500           mov eax, dword ptr [0045EF88]
+:0045B69F 8B00                 mov eax, dword ptr [eax]
+:0045B6A1 E84258FFFF           call 00450EE8
+:0045B6A6 A164F04500           mov eax, dword ptr [0045F064]
+:0045B6AB 8B00                 mov eax, dword ptr [eax]
+:0045B6AD 8B801C030000         mov eax, dword ptr [eax+0000031C]
+* Possible StringData Ref from Code Obj ->"已经注册"
+                       |
+:0045B6B3 BA1CB84500           mov edx, 0045B81C
+:0045B6B8 E80F5FFDFF           call 004315CC
+:0045B6BD A164F04500           mov eax, dword ptr [0045F064]
+```
+
+
+
+```assembly
+:0045B6C2 8B00                  mov eax, dword ptr [eax]
+:0045B6C4 8B801C030000          mov eax, dword ptr [eax+0000031C]
+
+:0045B6CA 33D2                  xor edx, edx
+:0045B6CC 8B08                  mov ecx, dword ptr [eax]
+:0045B6CE FF5164                call [ecx+64]
+:0045B6D1 A164F04500            mov eax, dword ptr [0045F064]
+
+:0045B6D6 8B00                  mov eax, dword ptr [eax]
+:0045B6D8 8B8018030000          mov eax, dword ptr [eax+00000318]
+
+* Referenced by a CALL at Address:
+|:00457168
+|
+
+:0045B6DE 33D2                  xor edx, edx
+:0045B6E0 8B08                  mov ecx, dword ptr [eax]
+:0045B6E2 FF5164                call [ecx+64]
+:0045B6E5 A164F04500            mov eax, dword ptr [0045F064]
+
+:0045B6EA 8B00                  mov eax, dword ptr [eax]
+:0045B6EC C6802103000001        mov byte ptr [eax+00000321], 01
+
+:0045B6F3 8BC3                  mov eax, ebx
+:0045B6F5 E84220FFFF            call 0044D73C
+:0045B6FA EB19                  jmp 0045B715
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0045B5F1(C)
+|
+
+:0045B6FC 6A30                  push 00000030
+* Possible StringData Ref from Code Obj -> "提示"
+                                    |
+:0045B6FE 688CB74500            push 0045B78C
+* Possible StringData Ref from Code Obj -> "注册码错误!"                   //注册失败返回的信息
+                                    |
+:0045B703 6828B84500            push 0045B828
+:0045B708 8BC3                  mov eax, ebx
+:0045B70A E821C6FDFF            call 00437D30
+:0045B70F 50                    push eax
+
+\============== 跟进：0045B5E3 E8F4FCFFFF            call 0045B2DC ==============
+
+0045B2DC    55                  push ebp
+0045B2DD    8BEC                mov ebp,esp
+0045B2DF    B9 07000000         mov ecx,7
+0045B2E4    6A 00               push 0
+0045B2E6    6A 00               push 0
+0045B2E8    49                  dec ecx                           //ecx=7
+0045B2E9  ^ 75 F9               jnz short ddpwg.0045B2E4          //向上循环 7 次
+0045B2EB    53                  push ebx
+0045B2EC    56                  push esi
+0045B2ED    57                  push edi
+0045B2EE    8BFA                mov edi,edx
+0045B2F0    8945 FC             mov dword ptr ss:[ebp-4],eax      //取机器码，ASCII "000AEB9933B4"
+0045B2F3    8B45 FC             mov eax,dword ptr ss:[ebp-4]      //赋值给 EAX 计算
+0045B2F6    E8 D593FAFF         call ddpwg.004046D0
+0045B2FB    33C0                xor eax,eax
+0045B2FD    55                  push ebp
+0045B2FE    68 A2B44500         push ddpwg.0045B4A2
+0045B303    64:FF30             push dword ptr fs:[eax]
+0045B306    64:8920             mov dword ptr fs:[eax],esp
+0045B309    8D45 F8             lea eax,dword ptr ss:[ebp-8]
+0045B30C    8B55 FC             mov edx,dword ptr ss:[ebp-4]
+0045B30F    E8 B48FFAFF         call ddpwg.004042C8
+0045B314    8D45 F4             lea eax,dword ptr ss:[ebp-C]
+0045B317    E8 148FFAFF         call ddpwg.00404230
+0045B31C    8B45 F8             mov eax,dword ptr ss:[ebp-8]
+0045B31F    E8 C491FAFF         call ddpwg.004044E8
+0045B324    8BF0                mov esi,eax
+0045B326    85F6                test esi,esi
+0045B328    0F8E 4F010000       jle ddpwg.0045B47D
+0045B32E    BB 01000000         mov ebx,1
+0045B333    8D45 EC             lea eax,dword ptr ss:[ebp-14]
+0045B336    8B55 F8             mov edx,dword ptr ss:[ebp-8]
+0045B339    8A541A FF           mov dl,byte ptr ds:[edx+ebx-1]    //ds:[00D1660C]=30 ('0')  dl=0C (Form Feed)
+0045B33D    E8 CE90FAFF         call ddpwg.00404410
+0045B342    8B45 EC             mov eax,dword ptr ss:[ebp-14]
+0045B345    8D55 F0             lea edx,dword ptr ss:[ebp-10]
+0045B348    E8 13CEFAFF         call ddpwg.00408160
+0045B34D    8B45 F0             mov eax,dword ptr ss:[ebp-10]
+0045B350    BA B8B44500         mov edx,ddpwg.0045B4B8
+0045B355    E8 D292FAFF         call ddpwg.0040462C
+0045B35A    75 12               jnz short ddpwg.0045B36E          //向上循环运算取字符所对应的 ASCII 码值
+0045B35C    8D45 F4             lea eax,dword ptr ss:[ebp-C]
+0045B35F    BA C4B44500         mov edx,ddpwg.0045B4C4
+0045B364    E8 8791FAFF         call ddpwg.004044F0
+0045B369    E9 07010000         jmp ddpwg.0045B475
+0045B36E    8D45 E4             lea eax,dword ptr ss:[ebp-1C]
+0045B371    8B55 F8             mov edx,dword ptr ss:[ebp-8]
+0045B374    8A541A FF           mov dl,byte ptr ds:[edx+ebx-1]    //ds:[00D1660C]=30 ('0')  dl=0C (Form Feed)
+0045B378    E8 9390FAFF         call ddpwg.00404410
+0045B37D    8B45 E4             mov eax,dword ptr ss:[ebp-1C]
+0045B380    8D55 E8             lea edx,dword ptr ss:[ebp-18]
+0045B383    E8 D8CDFAFF         call ddpwg.00408160
+0045B388    8B45 E8             mov eax,dword ptr ss:[ebp-18]
+0045B38B    BA D0B44500         mov edx,ddpwg.0045B4D0
+0045B390    E8 9792FAFF         call ddpwg.0040462C
+0045B395    75 12               jnz short ddpwg.0045B3A9          //向上循环运算取字符所对应的 ASCII 码值
+0045B397    8D45 F4             lea eax,dword ptr ss:[ebp-C]
+0045B39A    BA DCB44500         mov edx,ddpwg.0045B4DC
+0045B39F    E8 4C91FAFF         call ddpwg.004044F0
+0045B3A4    E9 CC000000         jmp ddpwg.0045B475
+0045B3A9    8D45 DC             lea eax,dword ptr ss:[ebp-24]
+0045B3AC    8B55 F8             mov edx,dword ptr ss:[ebp-8]
+0045B3AF    8A541A FF           mov dl,byte ptr ds:[edx+ebx-1]    //ds:[00D1660C]=30 ('0')  dl=0C (Form Feed)
+0045B3B3    E8 5890FAFF         call ddpwg.00404410
+0045B3B8    8B45 DC             mov eax,dword ptr ss:[ebp-24]
+0045B3BB    8D55 E0             lea edx,dword ptr ss:[ebp-20]
+0045B3BE    E8 9DCDFAFF         call ddpwg.00408160
+0045B3C3    8B45 E0             mov eax,dword ptr ss:[ebp-20]
+0045B3C6    BA E8B44500         mov edx,ddpwg.0045B4E8
+0045B3CB    E8 5C92FAFF         call ddpwg.0040462C
+0045B3D0    75 12               jnz short ddpwg.0045B3E4          //向上循环运算取字符所对应的 ASCII 码值
+0045B3D2    8D45 F4             lea eax,dword ptr ss:[ebp-C]
+0045B3D5    BA F4B44500         mov edx,ddpwg.0045B4F4
+0045B3DA    E8 1191FAFF         call ddpwg.004044F0
+0045B3DF    E9 91000000         jmp ddpwg.0045B475
+0045B3E4    8D45 D4             lea eax,dword ptr ss:[ebp-2C]
+0045B3E7    8B55 F8             mov edx,dword ptr ss:[ebp-8]
+0045B3EA    8A541A FF           mov dl,byte ptr ds:[edx+ebx-1]    //ds:[00D1660C]=30 ('0')  dl=0C (Form Feed)
+0045B3EE    E8 1D90FAFF         call ddpwg.00404410
+0045B3F3    8B45 D4             mov eax,dword ptr ss:[ebp-2C]
+0045B3F6    8D55 D8             lea edx,dword ptr ss:[ebp-28]
+0045B3F9    E8 62CDFAFF         call ddpwg.00408160
+0045B3FE    8B45 D8             mov eax,dword ptr ss:[ebp-28]
+0045B401    BA 00B54500         mov edx,ddpwg.0045B500
+0045B406    E8 2192FAFF         call ddpwg.0040462C
+0045B40B    75 0F               jnz short ddpwg.0045B41C          //向上循环运算取字符所对应的 ASCII 码值
+0045B40D    8D45 F4             lea eax,dword ptr ss:[ebp-C]
+0045B410    BA 0CB54500         mov edx,ddpwg.0045B50C
+0045B415    E8 D690FAFF         call ddpwg.004044F0
+0045B41A    EB 59               jmp short ddpwg.0045B475
+0045B41C    8D45 CC             lea eax,dword ptr ss:[ebp-34]
+0045B41F    8B55 F8             mov edx,dword ptr ss:[ebp-8]
+0045B422    8A541A FF           mov dl,byte ptr ds:[edx+ebx-1]    //ds:[00D1660C]=30 ('0')  dl=0C (Form Feed)
+0045B426    E8 E58FFAFF         call ddpwg.00404410
+0045B42B    8B45 CC             mov eax,dword ptr ss:[ebp-34]
+0045B42E    8D55 D0             lea edx,dword ptr ss:[ebp-30]
+0045B431    E8 2ACDFAFF         call ddpwg.00408160
+0045B436    8B45 D0             mov eax,dword ptr ss:[ebp-30]
+0045B439    BA 18B54500         mov edx,ddpwg.0045B518
+0045B43E    E8 E991FAFF         call ddpwg.0040462C
+```
+
+
+
+```
+0045B443    75 0F           jnz short ddpwg.0045B454                     //向上循环运算取字符所对应的 ASCII 码值  
+0045B445    8D45 F4        lea eax,dword ptr ss:[ebp-C]  
+0045B448    BA 24B54500    mov edx,ddpwg.0045B524  
+0045B44D    E8 9E90FAFF    call ddpwg.004044F0  
+0045B452    EB 21          jmp short ddpwg.0045B475  
+0045B454    8D45 C8        lea eax,dword ptr ss:[ebp-38]  
+0045B457    8B55 F8        mov edx,dword ptr ss:[ebp-8]  
+0045B45A    0FB6541A FF    movzx edx,byte ptr ds:[edx+ebx-1]           //ds:[00D1660C]=30 ('0') (ASCII "000AEB9933B4")  
+0045B45F    83C2 31        add edx,31                                   //EDX=EDX+31=30     关键值①  
+0045B462    83E2 7F        and edx,7F                                   //EDX=EDX+7F=61     关键值②  
+0045B465    E8 A68FFAFF    call ddpwg.00404410  
+0045B46A    8B55 C8        mov edx,dword ptr ss:[ebp-38]  
+0045B46D    8D45 F4        lea eax,dword ptr ss:[ebp-C]  
+0045B470    E8 7B90FAFF    call ddpwg.004044F0  
+0045B475    43             inc ebx                                      //EBX 自加 1，指向下一位  
+0045B476    4E             dec esi  
+0045B477   ^ 0F85 B6FEFFFF  jnz ddpwg.0045B333                           //向上循环运算  
+0045B47D    8BC7           mov eax,edi  
+0045B47F    8B55 F4        mov edx,dword ptr ss:[ebp-C]                //ASCII "aaarvsjjddsz"  
+0045B482    E8 FD8DFAFF    call ddpwg.00404284  
+0045B487    33C0           xor eax,eax  
+0045B489    5A             pop edx  
+0045B48A    59             pop ecx  
+0045B48B    59             pop ecx  
+0045B48C    64:8910       mov dword ptr fs:[eax],edx  
+0045B48F    68 A9B44500    push ddpwg.0045B4A9  
+0045B494    8D45 C8        lea eax,dword ptr ss:[ebp-38]  
+0045B497    BA 0E000000    mov edx,0E  
+0045B49C    E8 B38DFAFF    call ddpwg.00404254  
+0045B4A1    C3             retn  
+0045B4A2   ^\\E9 B187FAFF   jmp ddpwg.00403C58  
+0045B4A7   ^ EB EB          jmp short ddpwg.0045B494  
+0045B4A9    5F             pop edi  
+0045B4AA    5E             pop esi  
+0045B4AB    5B             pop ebx  
+0045B4AC    8BE5           mov esp,ebp  
+0045B4AE    5D             pop ebp  
+0045B4AF    C3             retn                                         //返回  
+---------------------------------------------------------------------------------------------------------------
+```
+
+## 【算法总结】
+
+注册验证非常简单：
+
+1. 把机器码（`A`）中的字符逐个转换成`ASCII`码，另存为（`B`）
+2. 再逐个把机器码所对应的（`B`）字符的值加上 31，计算完后另存为（`C`）
+3. 再把转换完后的（`C`），再转换为新的字符，作为序列号（`SN`）
+
+--------------------------------------------
+
+## 【以本机为例】
+
+机器码（`A`）：`000AEB9933B4`
+
+--------------------------------------------
+
+`ASCII`码（`B`）：`303030414542393933334234`
+
+（`B`）+31 ：`313131313131313131313131`
+
+--------------------------------------------
+
+转换码（`C`）：`6161617276736A6A6464737A`
+
+--------------------------------------------
+
+注册码（`SN`）：`aaarvsjjddsz`
+
+========================
+
+注册信息:
+
+机器码：`000AEB9933B4`
+
+序列号：`aaarvsjjddsz`
+
+========================
+
+## 【注册信息保存位置】
+
+`HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\qqddpyx`
+
+〓本文完〓
+
+------------------------------------------------------------------------------------------
+
+BTW：《QQ 游戏对对碰外挂 1.0》的升级版《QQ 游戏对对碰外挂 1.1》算法一样，不过还有 BUG 哦~~
+
+------------------------------------------------------------------------------------------
+
+版权所有（C）2005 KuNgBiM[DFCG] Copyright (C) 2005 KuNgBiM[DFCG]
+
+-------------------------------------------------------------------------------------------
+
+Cracked BY KuNgBiM[DFCG]
+
+2005-05-26
+
+5:21:26 AM
+
+`4dd466d0e1e0cc123afbe504da2462ca`
