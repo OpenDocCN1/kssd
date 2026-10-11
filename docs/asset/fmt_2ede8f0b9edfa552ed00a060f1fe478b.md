@@ -1,0 +1,178 @@
+
+# 4U WMA MP3 Converter v5.6.0
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-410.htm`](https://www.pediy.com/kssd/pediy08/pediy8-410.htm)
+
+【文章标题】: 一个音频转换工具软件的注册分析  
+【文章作者】: `zhy_qie`  
+【作者邮箱】: `zhy_qie@163.com`  
+【作者 QQ 号】: `422166665`  
+【软件名称】: `4U WMA MP3 Converter v5.6.0 汉化版`  
+【软件大小】: `6428 KB`  
+【下载地址】: 自己搜索下载  
+【加壳方式】: 无  
+【保护方式】: 注册码  
+【编写语言】: `Borland Delphi 6.0 - 7.0`  
+【使用工具】: `OllyICE`、`PEiD`  
+【操作平台】: `WinXP`  
+【软件介绍】: 一款各种不同类型音频文件之间的转换工具  
+【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
+
+---
+
+## 详细过程
+
+在转换一个音频文件时，在网上寻得此软件。未注册时有功能限制，只能转换文件的 `60%`。查壳，无；有注册成功提示，据此可很容易找到关键地方。此等“软柿子”正好做为偶在论坛上冒个泡泡！还不动手，更待何时？操起 `OllyICE`,开刀。
+
+```
+0048D458   /$  5>push    ebp
+0048D459   |.  8>mov     ebp, esp
+0048D45B   |.  6>push    0
+0048D45D   |.  6>push    0
+0048D45F   |.  6>push    0
+0048D461   |.  6>push    0
+0048D463   |.  6>push    0
+0048D465   |.  5>push    ebx
+0048D466   |.  5>push    esi
+0048D467   |.  8>mov     [local.2], ecx
+0048D46A   |.  8>mov     [local.1], edx
+0048D46D   |.  8>mov     esi, eax
+0048D46F   |.  8>mov     eax, [local.1]
+0048D472   |.  E>call    00404B80                     ;
+0048D477   |.  8>mov     eax, [local.2]
+0048D47A   |.  E>call    00404B80                     ;
+0048D47F   |.  3>xor     eax, eax
+0048D481   |.  5>push    ebp
+0048D482   |.  6>push    48D555
+0048D487   |.  6>push    dword ptr fs:[eax]
+0048D48A   |.  6>mov     fs:[eax], esp
+0048D48D   |.  3>xor     ebx, ebx
+0048D48F   |.  B>mov     edx, 48D56C                 ;  ASCII "Megido,share.homedns.org,www.appzplanet.com"
+0048D494   |.  8>mov     eax, [local.1]
+0048D497   |.  E>call    00404CD4                     ;
+0048D49C   |.  8>test    eax, eax
+0048D49E   |.  7>jle     short 0048D4AB               ;
+0048D4A0   |.  8>lea     eax, [local.2]
+0048D4A3   |.  8>mov     edx, [local.1]
+0048D4A6   |.  E>call    00404778                     ;
+0048D4AB   |>  8>lea     ecx, [local.3]
+0048D4AE   |.  8>mov     edx, [local.1]               ; 用户名
+0048D4B1   |.  8>mov     eax, esi
+0048D4B3   |.  E>call    0048D61C                     ; 关键 CALL1
+0048D4B8   |.  8>mov     edx, [local.3]               ; 由用户名生成的正确注册码，此处可作内存注册机
+0048D4BB   |.  8>mov     eax, [local.2]               ; 我们输入的假注册码
+0048D4BE   |.  E>call    00408AA4                     ; 真假注册码比较
+0048D4C3   |.  8>test    eax, eax
+0048D4C5   |.  7>jnz     short 0048D50B               ; 不跳则注册成功,爆破点
+0048D4C7   |.  8>mov     ecx, [local.2]
+0048D4CA   |.  8>mov     edx, [local.1]
+0048D4CD   |.  8>mov     eax, esi
+0048D4CF   |.  E>call    0048CDE8                     ;
+0048D4D4   |.  8>test    al, al
+0048D4D6   |.  7>je      short 0048D53A               ;
+0048D4D8   |.  B>mov     bl, 1
+0048D4DA   |.  6>push    40
+0048D4DC   |.  8>lea     edx, [local.4]
+0048D4DF   |.  A>mov     eax, [4BEFE8]
+0048D4E4   |.  8>mov     eax, [eax]
+0048D4E6   |.  E>call    0046718C                     ;
+0048D4EB   |.  8>mov     eax, [local.4]
+0048D4EE   |.  E>call    00404B90                     ;
+0048D4F3   |.  5>push    eax                           ; |Title
+0048D4F4   |.  6>push    48D598                       ; |注册成功，感谢你的注册。
+0048D4F9   |.  A>mov     eax, [4BEFE8]                 ; |
+0048D4FE   |.  8>mov     eax, [eax]                   ; |
+0048D500   |.  8>mov     eax, [eax+30]                ; |
+0048D503   |.  5>push    eax                           ; |hOwner
+0048D504   |.  E>call    00407658                     ; \MessageBoxA
+0048D509   |.  E>jmp     short 0048D53A               ; 0048D53A
+0048D50B   |>  6>push    10
+0048D50D   |.  8>lea     edx, [local.5]
+0048D510   |.  A>mov     eax, [4BEFE8]
+0048D515   |.  8>mov     eax, [eax]
+0048D517   |.  E>call    0046718C                     ;
+0048D51C   |.  8>mov     eax, [local.5]
+0048D51F   |.  E>call    00404B90                     ;
+0048D524   |.  5>push    eax                           ; |Title
+0048D525   |.  6>push    48D5D0                       ; |Text = ""D7,"",A2,"",B2,"崧胛扌? ",CR,LF,"请输入?,BB,"",B8,"鲇行У?,D7,"",A2,"",B2,"崧?,A1,"?
+0048D52A   |.  A>mov     eax, [4BEFE8]                 ; |
+0048D52F   |.  8>mov     eax, [eax]                   ; |
+0048D531   |.  8>mov     eax, [eax+30]                ; |
+0048D534   |.  5>push    eax                           ; |hOwner
+0048D535   |.  E>call    00407658                     ; \MessageBoxA   注册失败提示
+0048D53A   |>  3>xor     eax, eax
+0048D53C   |.  5>pop     edx
+0048D53D   |.  5>pop     ecx
+0048D53E   |.  5>pop     ecx
+0048D53F   |.  6>mov     fs:[eax], edx
+0048D542   |.  6>push    48D55C
+0048D547   |>  8>lea     eax, [local.5]
+0048D54A   |.  B>mov     edx, 5
+0048D54F   |.  E>call    00404704                     ;
+0048D554   \.  C>retn
+```
+
+进入关键 `Call1`
+
+```
+0048D61C   /$  5>push    ebp
+0048D61D   |.  8>mov     ebp, esp
+0048D61F   |.  5>push    ecx
+0048D620   |.  B>mov     ecx, 4
+0048D625   |>  6>/push   0
+0048D627   |.  6>|push   0
+0048D629   |.  4>|dec    ecx
+0048D62A   |.^ 7>\jnz    short 0048D625               ;
+0048D62C   |.  5>push    ecx
+0048D62D   |.  8>xchg    [local.1], ecx
+0048D630   |.  5>push    ebx
+0048D631   |.  5>push    esi
+0048D632   |.  5>push    edi
+0048D633   |.  8>mov     ebx, ecx
+0048D635   |.  8>mov     [local.1], edx
+0048D638   |.  8>mov     edi, eax
+0048D63A   |.  8>mov     eax, [local.1]
+0048D63D   |.  E>call    00404B80                     ;
+0048D642   |.  3>xor     eax, eax
+0048D644   |.  5>push    ebp
+0048D645   |.  6>push    48D7B2
+0048D64A   |.  6>push    dword ptr fs:[eax]
+0048D64D   |.  6>mov     fs:[eax], esp
+0048D650   |.  8>lea     eax, [local.1]               ; 我们输入的用户名
+0048D653   |.  B>mov     edx, 48D7C8                  ; 固定字符串"Jt^S0Mvx5C1"
+0048D658   |.  E>call    004049A0                     ; 将输入的用户名和固定字符串连接生成新的字符串，记为 S
+0048D65D   |.  8>mov     eax, [local.1]
+0048D660   |.  E>call    00404998                     ; 取得字符串 S 的位数
+0048D665   |.  8>mov     esi, eax
+0048D667   |.  D>sar     esi, 1                       ; S 的位数除以 2
+0048D669   |.  7>jns     short 0048D66E               ;
+0048D66B   |.  8>adc     esi, 0
+0048D66E   |>  8>lea     eax, [local.4]
+0048D671   |.  5>push    eax
+0048D672   |.  8>mov     ecx, esi
+0048D674   |.  B>mov     edx, 1
+0048D679   |.  8>mov     eax, [local.1]
+0048D67C   |.  E>call    00404BF0                     ; 取 S 的前 S/2 位生成 S1
+0048D681   |.  8>mov     eax, [local.4]               ; S1
+0048D684   |.  5>push    eax
+0048D685   |.  8>lea     eax, [local.5]
+0048D688   |.  5>push    eax
+0048D689   |.  8>mov     eax, [local.1]
+0048D68C   |.  E>call    00404998                     ; 取得注册名、码位数
+0048D691   |.  8>mov     ecx, eax
+0048D693   |.  8>lea     edx, [esi+1]
+0048D696   |.  8>mov     eax, [local.1]
+0048D699   |.  E>call    00404BF0                     ; 取 S 的其余部分生成 S2
+0048D69E   |.  8>mov     edx, [local.5]
+0048D6A1   |.  8>lea     eax, [local.1]
+0048D6A4   |.  5>pop     ecx
+0048D6A5   |.  E>call    004049E4                     ; 联结 S2、S1 生成新字符串 S3=S2S1
+0048D6AA   |.  8>lea     eax, [local.2]
+0048D6AD   |.  5>push    eax
+0048D6AE   |.  B>mov     ecx, 0A
+0048D6B3   |.  B>mov     edx, 1
+0048D6B8   |.  8>mov     eax, [local.1]
+0048D6BB   |.  E>call    00404BF0                     ; 从第一位始取 S3 的前 10 位生成串 S4
+0048D6C0   |.  8>lea     eax, [local.3]
+0048D6C3   |.  5>push    eax
+```
