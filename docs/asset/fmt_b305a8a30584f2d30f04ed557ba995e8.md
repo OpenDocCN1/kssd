@@ -1,0 +1,50 @@
+
+# 某安全卫士的内核 hook
+
+> 原文：[`www.pediy.com/kssd/pediy12/143364.html`](https://www.pediy.com/kssd/pediy12/143364.html)
+
+思路：
+
+1. 自己分配一块内存，存放需要 hook 的函数地址。
+2. 从内核模块中读取相应内核函数的地址，然后存放在自己分配的内存中。
+3. 修改 `nt!KiFastCallEntry` 函数中的代码，使跳入自己的驱动模块中。
+
+优点：坚决不修改 `ssdt` 和内核模块中的数据，使得一般的工具软件无法检查出 hook 信息，也避免了和其他软件的不兼容性。
+
+详细情况，请看图：
+
+正常状态
+
+![](img/dfb8050483cd562be125dd0d1c739b33.jpg)
+
+hook 后
+
+![](img/3c56b430729690bb35deb4a4c8b8f88f.jpg)
+
+下面是如何解除 `360` 的 hook，看图：
+
+![](img/c089a16e43d8e91e8762528b30782479.jpg)
+
+![](img/968ad408272085e5bb37c1efe2ed2705.jpg)
+
+驱动在 `explorer.rar` 中，此驱动只在 `win7` `32` 位下测试过，可用。
+
+```c
+  // 解除 360 的 hook
+  if( !NT_SUCCESS( KillHookPort() ) )
+  {
+    KdPrint( ( "解除 360 的 hook 失败！" ) );
+  }
+  else
+  {
+    KdPrint( ( "解除 360 的 hook 成功！" ) );
+  }
+```
+
+上传的附件
+
+| ![](img/12f2a5fbf8d3fd9a8bf145533ecd3281.jpg) | `subFindApiAddr.txt` |
+| :--- | :--- |
+| ![](img/12f2a5fbf8d3fd9a8bf145533ecd3281.jpg) | `save_api_address.txt` |
+| ![](img/67af4f1ef9c98996f43e89e749c7dcf5.jpg) | `explorer.rar` |
+| ![](img/620251b33676a8e4b98ca0ece915ee8d.jpg) | `MyInjectEx.zip` |

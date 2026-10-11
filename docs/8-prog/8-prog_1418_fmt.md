@@ -1,0 +1,37 @@
+
+# 为了获得邀请码，拿出很久以前写的进程防杀
+
+> 原文：[`www.pediy.com/kssd/pediy12/93742.html`](https://www.pediy.com/kssd/pediy12/93742.html)
+
+已通过 `VC++6.0` 编译和 `DDK` 编译，没有太多的技术含量。比较老的技术来的，进程虽然不会被冰刃 `IceSword`、任务管理器等截杀，但是不是很稳定，有可能 `OS` 版本问题导致 `BSOD`。对初接触驱动编程来说有借鉴学习的地方。本人技术有限，希望在这里学习更多牛人的技术。顺便向版主申请个邀请码以便更好的学习，谢谢了。
+
+大概思路：我们知道关闭一个进程，只要把进程中的线程全部关闭就可以安全关闭进程，本程式是通过修改线程标志，把普通用户线程标志改为系统线程标志。让其线程不能退出，达到进程防杀目标。代码有注释。
+
+对 `PsIsSystemThread` 进行硬编码，
+
+```
+//////////////////////////Windows XP SP3 版本 WINDBG 调试显示 PsIsSystemThread//////////////////////////
+
+//   nt!PsIsSystemThread:  不同版本有不同的字节偏移量，上程式采用硬编码方式寻找
+
+//   80501e96 8bff          mov     edi,edi
+
+//  80501e98 55           push    ebp
+
+//   80501e99 8bec          mov     ebp,esp
+
+//   80501e9b 8b4508        mov     eax,dword ptr [ebp+8]
+
+//   80501e9e 8b8048020000 mov     eax,dword ptr [eax+248h]  该地址是线程标志地址
+
+//   80501ea4 c1e804       shr     eax,4
+
+//   80501ea7 2401         and     al,1
+
+//              80501ea9 5d           pop     ebp
+```
+
+上传的附件
+
+| `![](img/67af4f1ef9c98996f43e89e749c7dcf5.jpg)` | `NotKillProcess.rar` |
+| :--- | :--- |

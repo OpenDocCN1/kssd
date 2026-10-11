@@ -1,0 +1,83 @@
+
+```c
+char __stdcall sub_130A4(unsigned int a1, int a2, void *a3)
+//(KeInitializeApc.Ret, KernelRoutine, Thread)
+{
+  ...
+  v4 = PsGetCurrentProcessId();//获得当前进程的进程 ID
+  v21 = sub_126D2(v5);//由 Ethread 指针返回此线程所属进程的进程 ID(非挂靠进程)
+  if ( Object && !(unsigned __int8)sub_12CEC(v4) && v4 != (HANDLE)v21 && v21 != -1 )
+  //当前进程不是插入 APC 目标线程的所属进程，目标线程所属进程不是 NtCurrentProcess()，当前进程不在自身的私有结构链表中
+  {
+    if ( !(unsigned __int8)sub_12CEC((PVOID)v21) )
+    //若目标线程所属进程 id 不在私有结构链表中，则返回
+      return v3;
+    v3 = 1;
+    //捕获 1)非正规调用 KeInitializeApc 2)用户空间 APC(用户空间 APC 的 KernelRoutine 为 PsExitSpecialApc)
+    if ( a1 <= dword_16A7C || a1 >= dword_16AA0 + dword_16A7C || a2 == dword_16B44 )
+    //a1 <= ntosknl.exe.Base || a1 >= ntosknl.exe.Base + ntosknl.exe.Size || a2 == PsExitSpecialApc
+    {
+      if ( a2 <= (unsigned int)dword_16A7C || a2 >= (unsigned int)(dword_16A7C + dword_16AA0) )
+      {//若 a2 不在 ntosknl.exe 模块势力范围，则打印可疑信息
+        if ( a2 != dword_16B44 )
+          goto LABEL_37;
+      }
+      else
+      {//若 a2 在 ntosknl.exe 模块势力范围，但不等于 PsExitSpecialApc 则跳过此次处理
+        if ( a2 != dword_16B44 )
+          return 0;
+      }
+      v12 = KeGetCurrentThread();
+      if ( !(unsigned __int8)sub_12F12(v12) )
+      {//排除某一用户程序的插 APC 行为
+        if ( (_WORD)NtBuildNumber <= 3790 ) //windows xp 64-bit Edition Version 2003
+        {
+          v14 = IoGetCurrentProcess();
+          v6 = sub_12660(v14);//返回当前进程的父进程的 Eprocess 结构
+          VirtualAddress = (PVOID)v6;
+          if ( v6 )
+          {
+            v7 = sub_12660((PVOID)v6);//返回当前进程的爷进程的 Eprocess 结构
+            VirtualAddress = (PVOID)v7;
+            if ( v7 )
+            {
+              v8 = sub_11944(v7);//获得爷进程 ID
+              if ( (_WORD)NtBuildNumber != 2195 ) //若系统版本不是 windows 2000
+                v9 = v8 == 4;//确认爷进程是否为 4，即是否为 system 进程
+              else
+                v9 = v8 == 8;
+              if ( v9 )
+                return 0;
+                //若某个进程的爷进程为 system 进程，则允许 Apc 插入
+            }
+          }
+        }
+        else
+        {
+        ......
+
+          v10 = sub_1268A(v5);//返回 Thread 所属进程的 Eprocess 结构指针
+
+          VirtualAddress = (PVOID)v10;
+          if ( v10 )
+          {
+            *(_DWORD *)(dword_1684C + v10) &= 0xFFFFFFF7;//dword_1684C = 0x248
+            //清除 Eprocess.Flags 的 ProcessDelete 位
+            *(_DWORD *)((char *)v5 + dword_16AE8) &= 0xFFFFFFFE;//dword_16AE8 = 0x248 
+            //清除 Ethread.CrossThreadFlags 的 Terminated 位
+
+          }
+        }
+        v3 = 1;
+LABEL_37:
+         ...
+        return v3;
+      }
+    }
+    return 0;
+  }
+  return 0;
+}
+```
+
+不对之处，望海涵！并请帮忙指出

@@ -1,0 +1,13 @@
+
+# 锐捷客户端 Su1xDriver.sys 逆向，附源码
+
+> 原文：[`www.pediy.com/kssd/pediy12/140507.html`](https://www.pediy.com/kssd/pediy12/140507.html)
+
+该驱动通过 hook `ssdt` `ZwOpenProcess`，来保护 `suserice.exe`。
+
+只是练练手，含金量不高。
+
+上传的附件
+
+| ![](img/67af4f1ef9c98996f43e89e749c7dcf5.jpg) | `Su1xDriver.rar` |
+| --- | --- |
