@@ -1,0 +1,571 @@
+
+# 安利直销管理售系统 7.2
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-405.htm`](https://www.pediy.com/kssd/pediy08/pediy8-405.htm)
+
+## 文章信息
+- 【文章标题】: 安利直销管理售系统 7.2--注册分析--追 MM 法  
+- 【文章作者】: `FishSeeWater`  
+- 【作者邮箱】: `shuijiany99@163.com`  
+- 【作者 QQ 号】: `45399405`  
+- 【软件名称】: 安利直销管理售系统 7.2  
+- 【下载地址】: 自己搜索下载  
+- 【加壳方式】: `UPX`  
+- 【保护方式】: 注册码  
+- 【编写语言】: `Delphi6-7`  
+- 【使用工具】: `DEDE`+`OllyICE`  
+- 【操作平台】: `Windows2003`  
+- 【软件介绍】: 为安利营销人员量身定制的专用进销存软件  
+- 【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!  
+
+---
+
+## 详细过程
+要做安利了，竞然收到这个软件(我的知名度很高？？？？)，看了一下有用，但需注册，心下不爽。
+
+马上动手，`OllyICE`->`OPEN`->`F9`,我的世界一下清静，生活失去活力，单调色彩(蓝屏)让我不想再次体味。
+
+心下大呼：上帝啊，为什么心急就吃不到豆腐呢？上帝说：“要得到她就先了解她的背景，并摸清她的生活惯!早就给你天书 N 本(看雪精华)，让你仔细研读，为何不按天书的指导行动？岂不知道那是多少天将追 MM 的心血结晶!”回想天书，历历在目，心下豁然：
+
+行动：
+
+1、先请侦探(`PEID`)，摸清她的父母：->`UPX 0.89.6 - 1.02 / 1.05 - 1.24 -> Markus & Laszlo , 穿的衣服：)`
+
+2、不能暴力，温柔一点：) 写一个 `UPX` 脚本(程序脱壳后会飞的：))
+
+```
+///////////////////////  
+EOB Break1  
+invoke Find, eip, "61e9"  
+mov reg01, reg00  
+invoke bp, reg01  
+run  
+halt  
+Break1:  
+invoke bc, reg01  
+stepover  
+stepover  
+//////  
+invoke WriteMemLong, 0x0082AE64,0xeb,1  //调试标志  
+invoke WriteMemLong, 0x0082BC43,0xeb,1  //调试标志  
+////////////////////////  
+```
+
+3、`OLLYICE`->`OllyMachine`-> 脚本
+
+4、`Dump` 一份出来，请侦探帮忙看一下她父母谁->`Borland Delphi 6.0 - 7.0`
+
+5、太好了，对于这样有着优秀血统家庭出来的女孩，我很喜欢。正好我有一个好朋友 `DEDE`，对他们家族有着很深的了解，对于该 MM 的习性直接问他就行了。`DEDE` 大哥果然仗义，一会就给我整理出一份详尽的 MM 资料(`AmWay_Dump.Map`)
+
+6、`OllyICE`->`API` 断点工具->进程函数(全选上，看你往哪飞：)) `F9` 运行
+
+7、哈，终于知道为什么会让我的生活失去色彩，
+
+>
+
+>
+
+```
+代码:
+
+* * *
+  0082AE60    8>CMP DWORD PTR SS:\[EBP-4\],0
+  0082AE64    E>JE SHORT <AMWay.loc_82AE71>              ; JMP OK
+  0082AE66    6>PUSH 0
+  0082AE68    8>MOV EAX,DWORD PTR SS:\[EBP-8\]
+  0082AE6B    5>PUSH EAX
+  0082AE6C    E>CALL <AMWay.TerminateProcess>            ; JMP 到 kernel32.TerminateProcess
+  0082AE71 >  5>PUSH ESI                                ; loc_82AE71
+  0082AE72    E>CALL <AMWay.CloseHandle_0>               ; JMP 到 kernel32.CloseHandle
+  0082AE77    3>XOR EAX,EAX
+  0082AE79    5>POP EDX
+  
+
+* * *
+
+```
+
+8、`F9` 运行 要注册号，出现 MM 的怀疑的面孔。
+
+9、怀着忐忑的心情，输入用户：`fsw`,注册码：`qqqqqqqq`，心中默念：“接受我的注册码吧，我会让你幸福的”，MM 没表态，直接接受我，心下疑惑怎么这么好追呢？再次运行，以出现 MM 怀疑的面孔，啊，是这样啊，MM 很友好，给我与她接触、了解的机会。(我心下大喊，放心吧，我一定让你满意的)
+
+10、现在是亲自与 MM 接触的时候了，
+    (1)`OllyICE`->`OllyMachine`-> 脚本
+    (2)`OllyICE`->`LoadMap`->`AmWay_Dump.Map`
+    (3)`OllyICE`->`Ultra String Reference`
+
+11、看到了
+    `Ultra String Reference`, 条目 `3899` `Address=006967AA` `Disassembly=MOV EDX,OFFSET <AMWay.aReguser_0>`
+    Text String=`reguser`
+    `Ultra String Reference`, 条目 `3898` `Address=00696788` `Disassembly=MOV EDX,OFFSET <AMWay.aRegcode>`
+    Text String=`regcode`
+
+    双击 `regCode` 来到上下看看，哦，原来是把我的见面礼放到注册表里了，好继续!
+
+12、先上注册表看看，
+    `[HKEY_LOCAL_MACHINE\SOFTWARE\amway\]`
+    "ExeFileName"="C:\\amway7.2\\amway\\AMWay.exe"
+    "regUser"="fsw"
+    "AuToRun"="0"
+    "regCode"=""
+
+    夷，我的见面礼呢？%~~~&^%算了，还是问 MM 怎么回事。
+
+    (1)`OllyICE`->`OllyMachine`-> 脚本
+
+    (2)`F9` 输入用户：`fsw`,注册码：`qqqqqqqq`
+
+    (3)`bp` `RegSetValueExA` `[esp-8]=="regcode"` (问：为什么是这个啊？答：笨，一个个试呗，注册表函数一共就那么几个)
+
+    (4)点“注册”MM 被问住了，`Alt+F9` 后，去注册表看看我的“见面礼”，哈，MM 收下了，`F9`
+
+    (5)MM 又停下了，上下代码一看，哦，是记下了我的名字“`fsw`”，这 MM 真细心，我喜欢这样的 girl `F9`
+
+    (6)MM 怎么又停下了？算了，好像又要再看一遍我的“见面实礼”(因为上下看看代码，`RegSetValueExA` 的参数是（"regcode"）现在不能 `F9` 了，看来 MM 对我也有点意思了，否则又怎么会再看一遍我的“见面礼” 呢。仔细看看，发现 MM 在这里把我的见面礼又送出来了，不要了!(清空了"regCode"="")，好，看看 MM 为什么最终不要我的“见面礼”。
+
+    (7)`Ctrl+F9` ,每一次都要小心看看 MM 的反应，一直到 ：(在下面的代码中)
+    `0082CE66 |E>JMP SHORT <AMWay.loc_82CE6F>` ;MM 是从这里出来的(************************************************************************)
+    向上看看，呵呵，现在的 MM 竟然还保留着传统女孩的观念，
+    `0082CE55 /7>JE SHORT <AMWay.loc_82CE68>` ;经典语句，爆破手(只想得到人)的工作在此完成后就可结束(`JE->JMP`)我太喜欢了，我喜欢传统的女孩，不张扬，有着古典美，(现在的女孩呀~~~~不想说了)。
+
+    因为有 `DEDE` 大哥提供的 MM 资料，MM 看起来是那么的明了，往上一点，找个地方下断，就选 `0x0082CE0F` 这里吧。
+
+    (因为有经典的比较语句，所以一般注册的核心就在附近)。
+
+>
+>
+
+
+
+```
+代码:
+
+* * *
+
+0082CDD4 >  E>CALL <AMWay.@Sysutils@Trim$qqrx17System@>; ->SysUtils.Trim(AnsiString):AnsiString;overload;
+0082CDD9   8>MOV ECX,DWORD PTR SS:\[EBP-1C\]
+0082CDDC >  8>MOV EDX,DWORD PTR DS:\[EBX+3D4\]          ; \*TFMailForm.OFFS\_03D4
+0082CDE2 >  8>MOV EAX,DWORD PTR DS:\[EBX+300\]          ; \*TFMailForm.OFFS\_0300
+0082CDE8 >  E>CALL <AMWay.sub\_5F5D34>                 ; ->:TColumnsEhPropertyInterceptor.\_PROC\_005F5D34()
+0082CDED   8>TEST AL,AL
+0082CDEF   0>JNZ <AMWay.loc\_82CEF2>
+0082CDF5 >  C>MOV DWORD PTR DS:\[EBX+62C\],1            ; \*TFMailForm.OFFS\_062C
+0082CDFF   8>LEA EDX,DWORD PTR SS:\[EBP-30\]
+0082CE02   8>MOV EAX,EBX
+0082CE04   E>CALL <AMWay.sub\_829C90>
+0082CE09   8>MOV EAX,DWORD PTR SS:\[EBP-30\]
+0082CE0C   8>LEA EDX,DWORD PTR SS:\[EBP-2C\]
+0082CE0F >  E>CALL <AMWay.@Sysutils@Trim$qqrx17System@>; ->SysUtils.Trim(AnsiString):AnsiString;overload;
+0082CE14   8>MOV EDX,DWORD PTR SS:\[EBP-2C\]
+0082CE17   8>LEA ECX,DWORD PTR SS:\[EBP-28\]
+0082CE1A   8>MOV EAX,EBX
+0082CE1C   E>CALL <AMWay.loc\_82A35C>                 ; (\*\*\*)过这个 CALL 后，内存中出现一个
+0082CE21   8>MOV EDX,DWORD PTR SS:\[EBP-28\]            ;与“机器码”格式很像的数据，记下
+0082CE24   8>LEA ECX,DWORD PTR SS:\[EBP-24\]            ;“注册码”，并记下这个地址。一会进来看看。
+0082CE27   8>MOV EAX,EBX
+0082CE29   E>CALL <AMWay.sub\_82A110>                 ;(\*\*\*)过这个 CALL 后，双出现一个，记下，
+0082CE2E   8>MOV EAX,DWORD PTR SS:\[EBP-24\]            ;F9 运行后输入注册框，发现上一个“注册
+0082CE31   5>PUSH EAX                                  ;码”，这一个成功了
+0082CE32   8>LEA ECX,DWORD PTR SS:\[EBP-38\]            
+0082CE35   B>MOV EDX,OFFSET <AMWay.aRegcode\_6>        ;  regcode
+0082CE3A   8>MOV EAX,EBX
+0082CE3C   E>CALL <AMWay.sub\_829AF4>
+0082CE41   8>MOV EAX,DWORD PTR SS:\[EBP-38\]
+0082CE44   8>LEA EDX,DWORD PTR SS:\[EBP-34\]
+0082CE47 >  E>CALL <AMWay.@Sysutils@Trim$qqrx17System@>; ->SysUtils.Trim(AnsiString):AnsiString;overload;
+0082CE4C   8>MOV EDX,DWORD PTR SS:\[EBP-34\]
+0082CE4F   5>POP EAX
+0082CE50 >  E>CALL <AMWay.@System@@LStrCmp$qqrv>       ; ->System.@LStrCmp;
+0082CE55  /7>JE SHORT <AMWay.loc\_82CE68>              ;经典语句，爆破手(只想得到人)的工作在
+0082CE57  |A>MOV EAX,DWORD PTR DS:\[<off\_83C31C>\]     ;此完成后就可结束(JE->JMP)想得到心的
+0082CE5C  |8>MOV EAX,DWORD PTR DS:\[EAX\]               ;朋友，就要反复努力，再走几遍，
+0082CE5E  |8>MOV EDX,DWORD PTR DS:\[EAX\]               ;我们继续...：)
+0082CE60  |F>CALL DWORD PTR DS:\[EDX+EC\]               ;进里是清注册表中的假码的。
+0082CE66  |E>JMP SHORT <AMWay.loc\_82CE6F>             ;MM 是从这里出来的(\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*) 
+0082CE68 >  \\C>MOV BYTE PTR DS:\[EBX+609\],1            ;  注册标志。
+0082CE6F >   C>MOV DWORD PTR DS:\[EBX+62C\],1           ;  loc\_82CE6F
+0082CE79   8>LEA EDX,DWORD PTR SS:\[EBP-48\]            
+0082CE7C   8>MOV EAX,EBX
+0082CE7E   E>CALL <AMWay.sub\_829C90>
+0082CE83   8>MOV EAX,DWORD PTR SS:\[EBP-48\]
+0082CE86   8>LEA EDX,DWORD PTR SS:\[EBP-44\]
+0082CE89 >  E>CALL <AMWay.@Sysutils@Trim$qqrx17System@>; ->SysUtils.Trim(AnsiString):AnsiString;overload;
+0082CE8E   8>MOV EDX,DWORD PTR SS:\[EBP-44\]
+0082CE91   8>LEA ECX,DWORD PTR SS:\[EBP-40\]
+0082CE94   8>MOV EAX,EBX
+0082CE96   E>CALL <AMWay.loc\_82A35C>
+////////////////////////////////////////////////////////////////
+ //CALL   <AMWay.loc\_82A35C> 这个 CALL 出现一个与“机器码”格式很像的数据
+ 
+0082A3AE >  8>LEA EAX,DWORD PTR SS:\[EBP-28\]           ;  loc\_82A3AE
+0082A3B1   B>MOV EDX,OFFSET <AMWay.dword\_82A568>      ;  2
+0082A3B6   E>CALL <AMWay.@System@@LStrLAsg$qqrpvpxv>
+0082A3BB >  8>LEA EDX,DWORD PTR SS:\[EBP-30\]           ;  loc\_82A3BB
+0082A3BE   8>MOV EAX,DWORD PTR SS:\[EBP-8\]
+0082A3C1   E>CALL <AMWay.@Sysutils@LowerCase$qqrx17Sy>
+0082A3C6   8>MOV EDX,DWORD PTR SS:\[EBP-30\]
+0082A3C9   8>LEA EAX,DWORD PTR SS:\[EBP-8\]
+0082A3CC   8>MOV ECX,DWORD PTR SS:\[EBP-28\]
+0082A3CF   E>CALL <AMWay.@System@@LStrCat3$qqrv>
+0082A3D4   8>LEA EAX,DWORD PTR SS:\[EBP-10\]
+0082A3D7   5>PUSH EAX
+0082A3D8   8>MOV EAX,DWORD PTR SS:\[EBP-4\]
+0082A3DB   8>MOV EDX,DWORD PTR DS:\[EAX+680\]
+0082A3E1   8>MOV ECX,DWORD PTR DS:\[<\_cStrMyName>\]     ;  <AMWay.aMynameiswang\_0>
+0082A3E7   8>MOV EAX,DWORD PTR SS:\[EBP-4\]             ;上面指向了一个名字变量，有点特别，现
+0082A3EA   E>CALL <AMWay.CreateLongStrNum>            ;在提高警惕：)过了这个 CALL 后，内存中出
+0082A3EF   8>MOV EAX,DWORD PTR SS:\[EBP-10\]            ;(\*\*\*)现了一段好长的数据，记住这个 CALL，
+0082A3F2   E>CALL <AMWay.@MyStrlen>                   ;过会进来看看取长数据的长度。
+0082A3F7   8>MOV DWORD PTR SS:\[EBP-24\],EAX
+0082A3FA   8>LEA EAX,DWORD PTR SS:\[EBP-14\]           
+0082A3FD   E>CALL <AMWay.@System@@LStrClr$qqrpv>
+0082A402   8>MOV EAX,DWORD PTR SS:\[EBP-8\]             ;取机器码长度。
+0082A405   E>CALL <AMWay.@MyStrlen>
+0082A40A   8>MOV DWORD PTR SS:\[EBP-20\],EAX
+0082A40D   8>MOV EAX,DWORD PTR SS:\[EBP-20\]
+0082A410   8>TEST EAX,EAX
+0082A412   0>JLE <AMWay.loc\_82A50F>
+0082A418   8>MOV DWORD PTR SS:\[EBP-2C\],EAX
+0082A41B   B>MOV EBX,1
+0082A420 >  3>/XOR ESI,ESI                              ;  loc\_82A420 注意啦，要开始变了
+0082A422   3>|XOR EAX,EAX
+0082A424   8>|MOV DWORD PTR SS:\[EBP-1C\],EAX
+0082A427   8>|CMP EBX,1
+0082A42A   7>|JNZ SHORT <AMWay.loc\_82A431>
+0082A42C   8>|MOV ESI,DWORD PTR SS:\[EBP-20\]
+0082A42F   E>|JMP SHORT <AMWay.loc\_82A432>
+0082A431 >  4>|DEC ESI                                 ;  loc\_82A431
+0082A432 >  3>|CMP EBX,DWORD PTR SS:\[EBP-20\]           ;  loc\_82A432
+0082A435    7>|JNZ SHORT <AMWay.loc\_82A440>
+0082A437    C>|MOV DWORD PTR SS:\[EBP-1C\],1
+0082A43E    E>|JMP SHORT <AMWay.loc\_82A443>
+0082A440 >  F>|INC DWORD PTR SS:\[EBP-1C\]               ;  loc\_82A440
+0082A443 >  8>|MOV EAX,DWORD PTR SS:\[EBP-8\]            ;  loc\_82A443
+0082A446    8>|MOV DL,BYTE PTR DS:\[EAX+EBX-1\]           ;循环取机器码左边第某位
+0082A44A    9>|NOP
+0082A44B    9>|NOP
+0082A44C    9>|NOP
+0082A44D    E>|CALL <AMWay.sub\_82A314>                   ;(\*\*\*)机器码左边第某位变形
+0082A452    8>|MOV EDI,EAX                                 ;暂存
+0082A454    8>|MOV EAX,DWORD PTR SS:\[EBP-8\]
+0082A457    8>|MOV DL,BYTE PTR DS:\[EAX+ESI-1\]           ;取机器码右边第某位
+0082A45B    9>|NOP
+0082A45C    9>|NOP
+0082A45D    9>|NOP
+0082A45E    E>|CALL <AMWay.sub\_82A314>                   ;(\*\*\*)器码右边第某位变形
+0082A463    8>|MOV DWORD PTR SS:\[EBP-18\],EAX
+0082A466    8>|MOV EAX,DWORD PTR SS:\[EBP-8\]
+0082A469    8>|MOV EDX,DWORD PTR SS:\[EBP-1C\]
+0082A46C    8>|MOV DL,BYTE PTR DS:\[EAX+EDX-1\]           ;取机器码左边第某位变形
+0082A470    9>|NOP
+0082A471    9>|NOP
+0082A472    9>|NOP
+0082A473    E>|CALL <AMWay.sub\_82A314>                   ;(\*\*\*)机器码左边第某位变形
+0082A478    8>|MOV ECX,EAX
+0082A47A    8>|MOV EAX,DWORD PTR SS:\[EBP-18\]
+0082A47D    0>|ADD EAX,EDI
+0082A47F    0>|ADD EAX,ECX
+0082A481    8>|MOV EDX,EBX
+0082A483    8>|SUB EDX,2
+0082A486    0>|IMUL EDX,EBX
+0082A489    0>|ADD EAX,EDX
+0082A48B    B>|MOV ESI,3
+0082A490    9>|CDQ
+0082A491    F>|IDIV ESI
+0082A493    8>|MOV ESI,EAX
+0082A495    8>|MOV EAX,DWORD PTR SS:\[EBP-18\]
+0082A498    0>|ADD EAX,EDI
+0082A49A    0>|ADD EAX,ECX
+0082A49C    9>|CDQ
+0082A49D    F>|IDIV DWORD PTR SS:\[EBP-20\]
+0082A4A0    0>|ADD ESI,EDX
+0082A4A2    3>|CMP ESI,DWORD PTR SS:\[EBP-24\]
+0082A4A5    7>|JLE SHORT <AMWay.loc\_82A4BA>
+0082A4A7    8>|MOV EAX,DWORD PTR SS:\[EBP-18\]
+0082A4AA    0>|ADD EAX,EDI
+0082A4AC    0>|ADD EAX,ECX
+0082A4AE    0>|ADD EAX,EBX
+0082A4B0    B>|MOV ESI,0FF
+0082A4B5    9>|CDQ
+0082A4B6    F>|IDIV ESI
+0082A4B8    8>|MOV ESI,EAX
+0082A4BA >  8>|TEST ESI,ESI                              ;  loc\_82A4BA
+0082A4BC    7>|JG SHORT <AMWay.loc\_82A4D2>
+0082A4BE    8>|MOV EAX,DWORD PTR SS:\[EBP-18\]
+0082A4C1    0>|ADD EAX,EDI
+0082A4C3    0>|ADD EAX,ECX
+0082A4C5    0>|ADD EAX,EBX
+0082A4C7    B>|MOV ESI,9
+0082A4CC    9>|CDQ
+0082A4CD    F>|IDIV ESI
+0082A4CF    8>|MOV ESI,EAX
+0082A4D1    4>|INC ESI
+0082A4D2 >  3>|CMP ESI,DWORD PTR SS:\[EBP-24\]           ;  loc\_82A4D2
+0082A4D5    7>|JLE SHORT <AMWay.loc\_82A4EB>
+0082A4D7    8>|MOV EAX,DWORD PTR SS:\[EBP-18\]
+0082A4DA    0>|ADD EAX,EDI
+0082A4DC    0>|ADD EAX,ECX
+0082A4DE    B>|MOV ECX,0FF
+0082A4E3    9>|CDQ
+0082A4E4    F>|IDIV ECX
+0082A4E6    8>|MOV ESI,EAX
+0082A4E8    8>|ADD ESI,2
+0082A4EB >  8>|LEA EAX,DWORD PTR SS:\[EBP-34\]           ;  计算结果格式化并保存。
+0082A4EE    8>|MOV EDX,DWORD PTR SS:\[EBP-10\]
+0082A4F1    8>|MOV DL,BYTE PTR DS:\[EDX+ESI-1\]
+0082A4F5    E>|CALL <AMWay.@System@@LStrFromChar$qqrr1>
+0082A4FA    8>|MOV EDX,DWORD PTR SS:\[EBP-34\]
+0082A4FD    8>|LEA EAX,DWORD PTR SS:\[EBP-14\]
+0082A500    E>|CALL <AMWay.@System@@LStrCat$qqrv>
+0082A505    4>|INC EBX
+0082A506    F>|DEC DWORD PTR SS:\[EBP-2C\]
+0082A509  ^ 0>\\JNZ <AMWay.loc\_82A420>
+0082A50F >  8>MOV EAX,DWORD PTR SS:\[EBP-C\]             ;  loc\_82A50F
+0082A512    8>MOV EDX,DWORD PTR SS:\[EBP-14\]            ;到这里将会看到“机器码”与“长数据块”
+0082A515    E>CALL <AMWay.@System@@LStrAsg$qqrpvpxv>    ;进行运算后的结果(这里先称她为中间码)
+........
+0082A55C    8>MOV ESP,EBP                                
+0082A55E    5>POP EBP
+0082A55F    C>RETN
+ 
+///////////////////////////////////////////////////////////////
+//CALL <AMWay.CreateLongStrNum>这个 CALL 与软件作者的名字共同生成了一个好长的数据块
+ 
+0082974E  |.  33C>XOR EAX,EAX
+00829750  |.  894>MOV DWORD PTR SS:\[EBP-C\],EAX
+00829753  |.  8B4>MOV EAX,DWORD PTR SS:\[EBP-8\]
+00829756  |.  E8 >CALL <AMWay.@MyStrlen>
+0082975B  |.  8BF>MOV ESI,EAX
+0082975D  |.  85F>TEST ESI,ESI
+0082975F  |.  7E >JLE SHORT <AMWay.loc\_829775>
+00829761  |.  BB >MOV EBX,1
+00829766 |>  8B4>/MOV EAX,DWORD PTR SS:\[EBP-8\]          ;  循环将"mynameiswangyingnan"累加
+00829769  |.  0FB>|MOVZX EAX,BYTE PTR DS:\[EAX+EBX-1\]
+0082976E  |.  014>|ADD DWORD PTR SS:\[EBP-C\],EAX
+00829771  |.  43  |INC EBX
+00829772  |.  4E  |DEC ESI
+00829773 |.^ 75 >\\JNZ SHORT <AMWay.loc\_829766>
+00829775 |>  8B4>MOV EAX,DWORD PTR SS:\[EBP+8\]           ;  loc\_829775
+00829778  |.  8B5>MOV EDX,DWORD PTR SS:\[EBP-4\]
+0082977B  |.  E8 >CALL <AMWay.@System@@LStrAsg$qqrpvpxv>
+00829780  |.  807>CMP BYTE PTR SS:\[EBP-15\],0
+//..........
+008297A4  |. /0F8>JLE <AMWay.loc\_82983C>
+008297AA  |. |BB >MOV EBX,1
+008297AF |> |8B4>/MOV EAX,DWORD PTR SS:\[EBP-8\]          ;  "mynameiswangyingnan"
+008297B2  |. |E8 >|CALL <AMWay.@MyStrlen>                 ;取长度
+008297B7  |. |85C>|TEST EAX,EAX
+008297B9  |. |75 >|JNZ SHORT <AMWay.loc\_8297C0>
+008297BB  |. |895>|MOV DWORD PTR SS:\[EBP-14\],EBX
+008297BE  |. |EB >|JMP SHORT <AMWay.loc\_8297CB>
+008297C0 |> |8B4>|MOV EAX,DWORD PTR SS:\[EBP-8\]          ;  "mynameiswangyingnan"
+008297C3  |. |0FB>|MOVZX EAX,BYTE PTR DS:\[EAX+EDI-1\]     ;    取字符
+008297C8  |. |894>|MOV DWORD PTR SS:\[EBP-14\],EAX
+008297CB |> |F6C>|TEST BL,1                                ;  loc\_8297CB
+008297CE  |. |74 >|JE SHORT <AMWay.loc\_8297FC>
+008297D0  |. |8B5>|MOV EDX,DWORD PTR SS:\[EBP-10\]
+008297D3  |. |F7D>|NEG EDX
+008297D5  |. |8B4>|MOV EAX,DWORD PTR SS:\[EBP-14\]         ; 1 取字符
+008297FF  |. |035>|ADD EDX,DWORD PTR SS:\[EBP-C\]           ; 1 累加
+008297DB  |. |0FA>|IMUL EDX,EAX
+008297DE  |. |8B4>|MOV EAX,DWORD PTR SS:\[EBP+8\]
+008297E1  |. |8B0>|MOV EAX,DWORD PTR DS:\[EAX\]
+008297E3  |. |8A4>|MOV AL,BYTE PTR DS:\[EAX+EBX-1\]        ;这里的数据不知道从哪来的，在不同的电脑
+008297E7  |. |E8 >|CALL <AMWay.sub\_8296B8>                 ;上安装试验了一下，数据都是一样的，直接
+008297EC  |. |50  |PUSH EAX                                 ;复制出来用算了：)
+008297ED  |. |8B4>|MOV EAX,DWORD PTR SS:\[EBP+8\]         
+008297F0  |. |E8 >|CALL <AMWay.sub\_405518>
+008297F5  |. |5A  |POP EDX
+008297F6  |. |885>|MOV BYTE PTR DS:\[EAX+EBX-1\],DL
+008297FA  |. |EB >|JMP SHORT <AMWay.loc\_829822>
+008297FC |> |8B5>|MOV EDX,DWORD PTR SS:\[EBP-14\]          ; 2 取字符
+008297FF  |. |035>|ADD EDX,DWORD PTR SS:\[EBP-C\]           ; 2 累加
+00829802  |. |0FA>|IMUL EDX,DWORD PTR SS:\[EBP-10\]
+00829806  |. |8B4>|MOV EAX,DWORD PTR SS:\[EBP+8\]
+00829809  |. |8B0>|MOV EAX,DWORD PTR DS:\[EAX\]
+0082980B  |. |8A4>|MOV AL,BYTE PTR DS:\[EAX+EBX-1\]
+0082980F  |. |E8 >|CALL <AMWay.sub\_8296B8>
+00829814  |. |50  |PUSH EAX
+00829815  |. |8B4>|MOV EAX,DWORD PTR SS:\[EBP+8\]
+00829818  |. |E8 >|CALL <AMWay.sub\_405518>                ;  取结果地址
+0082981D  |. |5A  |POP EDX
+0082981E  |. |885>|MOV BYTE PTR DS:\[EAX+EBX-1\],DL        ;  保存结果
+00829822 |> |47  |INC EDI                                  ;  loc\_829822
+00829823  |. |8B4>|MOV EAX,DWORD PTR SS:\[EBP-8\]
+00829826  |. |E8 >|CALL <AMWay.@MyStrlen>
+0082982B  |. |3BF>|CMP EDI,EAX
+0082982D  |. |7E >|JLE SHORT <AMWay.loc\_829834>
+0082982F  |. |BF >|MOV EDI,1
+00829834 |> |43  |INC EBX                                   ;  loc\_829834
+00829835  |. |4E  |DEC ESI
+00829836 |.^|0F8>\\JNZ <AMWay.loc\_8297AF>
+0082983C |> \\33C>XOR EAX,EAX                               ;  loc\_82983C
+.........
+ 
+////////////////////////////////////////////////////////
+CALL <AMWay.sub\_82A110>  这个 CALL 出现了“成功的注册码”
+//这个 CALL 过程与上面计算中间码的过程非常相似，就不说细节了，唯一注意的是在取字符进行变形时，
+//调用的子过程和计算“中间码”所调用的子过程有且仅有的一点小差别 01Eh 与 01Ah，不明白软件作者
+//是怎么设计的。
+ 
+0082A17C    8>LEA EAX,DWORD PTR SS:\[EBP-8\]
+0082A17F    8>MOV ECX,DWORD PTR SS:\[EBP-28\]
+0082A182    E>CALL <AMWay.@System@@LStrCat3$qqrv>
+0082A187    8>LEA EAX,DWORD PTR SS:\[EBP-10\]
+0082A18A    5>PUSH EAX
+0082A18B    8>MOV EAX,DWORD PTR SS:\[EBP-4\]
+0082A18E    8>MOV EDX,DWORD PTR DS:\[EAX+680\]
+0082A194    8>MOV ECX,DWORD PTR DS:\[<\_cStrMyName>\]     ;  <AMWay.aMynameiswang\_0>
+0082A19A    8>MOV EAX,DWORD PTR SS:\[EBP-4\]             ;取软件作者的名字
+0082A19D    E>CALL <AMWay.CreateLongStrNum>            ;过了这个 CALL 后，内存中出现了一段好长的数据，
+0082A1A2    8>MOV EAX,DWORD PTR SS:\[EBP-10\]
+0082A1A5    E>CALL <AMWay.@MyStrlen>                   ;取长数据长度
+0082A1AA    8>MOV DWORD PTR SS:\[EBP-24\],EAX          
+0082A1AD    8>LEA EAX,DWORD PTR SS:\[EBP-14\]
+0082A1B0    E>CALL <AMWay.@System@@LStrClr$qqrpv>
+0082A1B5    8>MOV EAX,DWORD PTR SS:\[EBP-8\]             ;取中间码长度
+0082A1B8    E>CALL <AMWay.@MyStrlen>                   
+0082A1BD    8>MOV DWORD PTR SS:\[EBP-20\],EAX
+0082A1C0    8>MOV EAX,DWORD PTR SS:\[EBP-20\]
+0082A1C3    8>TEST EAX,EAX
+0082A1C5    0>JLE <AMWay.loc\_82A2C0>
+0082A1CB    8>MOV DWORD PTR SS:\[EBP-2C\],EAX
+0082A1CE    B>MOV EBX,1
+0082A1D3 >  3>/XOR ESI,ESI                              ;  loc\_82A1D3
+0082A1D5    3>|XOR EAX,EAX
+0082A1D7    8>|MOV DWORD PTR SS:\[EBP-1C\],EAX
+0082A1DA    8>|CMP EBX,1
+0082A1DD    7>|JNZ SHORT <AMWay.loc\_82A1E4>
+0082A1DF    8>|MOV ESI,DWORD PTR SS:\[EBP-20\]
+0082A1E2    E>|JMP SHORT <AMWay.loc\_82A1E5>
+0082A1E4 >  4>|DEC ESI                                  ;  loc\_82A1E4
+0082A1E5 >  3>|CMP EBX,DWORD PTR SS:\[EBP-20\]           ;  loc\_82A1E5
+0082A1E8    7>|JNZ SHORT <AMWay.loc\_82A1F3>
+0082A1EA >  C>|MOV DWORD PTR SS:\[EBP-1C\],1
+0082A1F1    E>|JMP SHORT <AMWay.loc\_82A1F6>
+0082A1F3 >  F>|INC DWORD PTR SS:\[EBP-1C\]               ;  loc\_82A1F3
+0082A1F6 >  8>|MOV EAX,DWORD PTR SS:\[EBP-8\]            ;  loc\_82A1F6
+0082A1F9    8>|MOV DL,BYTE PTR DS:\[EAX+EBX-1\]
+0082A1FD    8>|MOV EAX,DWORD PTR SS:\[EBP-4\]
+0082A200    E>|CALL <AMWay.sub\_82A0C8>                   ;(\*\*\*)中间码变形
+0082A205    8>|MOV EDI,EAX
+0082A207    8>|MOV EAX,DWORD PTR SS:\[EBP-8\]
+0082A20A    8>|MOV DL,BYTE PTR DS:\[EAX+ESI-1\]
+0082A20E    8>|MOV EAX,DWORD PTR SS:\[EBP-4\]
+0082A211    E>|CALL <AMWay.sub\_82A0C8>
+0082A216    8>|MOV DWORD PTR SS:\[EBP-18\],EAX
+0082A219    8>|MOV EAX,DWORD PTR SS:\[EBP-8\]
+0082A21C    8>|MOV EDX,DWORD PTR SS:\[EBP-1C\]
+0082A21F    8>|MOV DL,BYTE PTR DS:\[EAX+EDX-1\]
+0082A223    8>|MOV EAX,DWORD PTR SS:\[EBP-4\]
+0082A226    E>|CALL <AMWay.sub\_82A0C8>
+0082A22B    8>|MOV ECX,EAX
+0082A22D    8>|MOV EAX,DWORD PTR SS:\[EBP-18\]
+0082A230    0>|ADD EAX,EDI
+0082A232    0>|ADD EAX,ECX
+0082A234    8>|MOV EDX,EBX
+0082A236    8>|SUB EDX,2
+0082A239    0>|IMUL EDX,EBX
+0082A23C    0>|ADD EAX,EDX
+0082A23E    B>|MOV ESI,3
+0082A243    9>|CDQ
+0082A244    F>|IDIV ESI
+0082A246    8>|MOV ESI,EAX
+0082A248    8>|MOV EAX,DWORD PTR SS:\[EBP-18\]
+0082A24B    0>|ADD EAX,EDI
+0082A24D    0>|ADD EAX,ECX
+0082A24F    9>|CDQ
+0082A250    F>|IDIV DWORD PTR SS:\[EBP-20\]
+0082A253    0>|ADD ESI,EDX
+0082A255    3>|CMP ESI,DWORD PTR SS:\[EBP-24\]
+0082A258    7>|JLE SHORT <AMWay.loc\_82A26D>
+0082A25A    8>|MOV EAX,DWORD PTR SS:\[EBP-18\]
+0082A25D    0>|ADD EAX,EDI
+0082A25F    0>|ADD EAX,ECX
+0082A261    0>|ADD EAX,EBX
+0082A263    B>|MOV ESI,0FF
+0082A268    9>|CDQ
+0082A269    F>|IDIV ESI
+0082A26B    8>|MOV ESI,EAX
+0082A26D >  8>|TEST ESI,ESI                              ;  loc\_82A26D
+0082A26F    7>|JG SHORT <AMWay.loc\_82A285>
+0082A271    8>|MOV EAX,DWORD PTR SS:\[EBP-18\]
+0082A274    0>|ADD EAX,EDI
+0082A276    0>|ADD EAX,ECX
+0082A278    0>|ADD EAX,EBX
+0082A27A    B>|MOV ESI,3
+0082A27F    9>|CDQ
+0082A280    F>|IDIV ESI
+0082A282    8>|MOV ESI,EAX
+0082A284    4>|INC ESI
+0082A285 >  3>|CMP ESI,DWORD PTR SS:\[EBP-24\]           ;  loc\_82A285
+0082A288    7>|JLE SHORT <AMWay.loc\_82A29C>
+0082A28A    8>|MOV EAX,DWORD PTR SS:\[EBP-18\]
+0082A28D    0>|ADD EAX,EDI
+0082A28F    0>|ADD EAX,ECX
+0082A291    B>|MOV ECX,0FF
+0082A296    9>|CDQ
+0082A297    F>|IDIV ECX
+0082A299    8>|MOV ESI,EAX
+0082A29B    4>|INC ESI
+0082A29C >  8>|LEA EAX,DWORD PTR SS:\[EBP-34\]           ;  loc\_82A29C
+0082A29F    8>|MOV EDX,DWORD PTR SS:\[EBP-10\]
+0082A2A2    8>|MOV DL,BYTE PTR DS:\[EDX+ESI-1\]
+0082A2A6    E>|CALL <AMWay.@System@@LStrFromChar$qqrr1>
+0082A2AB    8>|MOV EDX,DWORD PTR SS:\[EBP-34\]
+0082A2AE    8>|LEA EAX,DWORD PTR SS:\[EBP-14\]
+0082A2B1    E>|CALL <AMWay.@System@@LStrCat$qqrv>
+0082A2B6    4>|INC EBX
+0082A2B7    F>|DEC DWORD PTR SS:\[EBP-2C\]
+0082A2BA  ^ 0>\\JNZ <AMWay.loc\_82A1D3>
+0082A2C0 >  8>MOV EAX,DWORD PTR SS:\[EBP-C\]             ;  loc\_82A2C0
+0082A2C3    8>MOV EDX,DWORD PTR SS:\[EBP-14\]            ;到这里，跟踪完成，注册码计算完毕。一个
+0082A2C6    E>CALL <AMWay.@System@@LStrAsg$qqrpvpxv>    ;属于您的注册码已经产生，如只使用软件
+0082A2CB    3>XOR EAX,EAX                                 ;(心已得到)，那就可以撤退了，如想知道
+0082A2CD    5>POP EDX                                     ;注册码生成过程(心上人的心思)，那么请
+0082A2CE    5>POP ECX                                     ;再回去与心上人亲密接触：)(注册机的写做)
+0082A2CF    5>POP ECX                                     
+0082A2D0    6>MOV DWORD PTR FS:\[EAX\],EDX
+............
+0082A30F    5>POP EBP
+0082A310    C>RETN
+```
+
+
+
+### 综合分析
+
+1. 程序产生机器码。
+2. 将`mynameiswangyingnan`每个字符 ASCII 相加。
+3. `2`生成的值，与内存中的某个数据运算，生成一个很长的字符块，长度为`0ABh`。
+4. 将机器码与`3`的值进行运算，生成一个中间码。
+5. 将`mynameiswangyingnan`每个字符 ASCII 相加。
+6. `5`生成的值，与内存中的某个数据运算，生成一个很长的字符块，长度为`0ABh`。
+7. 将中间码与`5`的值进行运算最终生成注册码。
+8. 打开`MasmPlus1.1`开始写注册机：)(`MasmPlus1.1`乃`Aogo`为大家写的一个免费的汇编 IDE)
+
+---
+
+### 经验总结
+
+程序中好多看不懂的，用`MASM`写注册机，直接从`OllyICE`中复制出来修改一下就可以用，感觉用汇编写注册机能省很多事。
+
+最后说点多余的：通过分析，感觉程序的作者在流程、算法方面处理的不是很好，就这个注册部分代码就有很多冗余，上面的`2`, `3`完全可以和`5`, `6`合为一步，为什么要每一步都要写一个子函数呢？(我分析的不对？)
+
+对于解密，我觉得对于初学者，最多的就是如何掌握一个思路，那样做起事来才会事半功倍。我也是一个初学者，来看雪二三年了，来的都是学习，现在有点进步了，我很愿意将自己的学习经验与大家分享，但愿能对新朋友起到抛砖引玉的作用少走弯路。
+
+注册机源码见附件，代码写得很烂，请大家包涵：)，工程文件为`MasmPlus`工程，请用`MasmPlus`直接打开。
+
+帮助`Aogo`做宣传，回来让他请客：)
+
+不到之处请大家指教。谢谢!!!!
+
+---
+
+### 版权声明
+
+本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!
+
+2006 年 07 月 07 日 23:01:11
+
+`4dd466d0e1e0cc123afbe504da2462ca`
