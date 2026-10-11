@@ -1,0 +1,312 @@
+
+# 分析了一下 360 安全卫士的 HOOK(二)架构与实现
+
+> 原文：[`www.pediy.com/kssd/pediy12/99460.html`](https://www.pediy.com/kssd/pediy12/99460.html)
+
+Author: `achillis`
+blog: `http://hi.baidu.com/_achillis`
+
+上一篇的分析中漏掉了三个函数，现补上：
+
+- `NtSetSystemInformation` `0x24`
+- `ProcessNotify` `0x45` //这个并非 Hook,只是 `HookPort` 安装的一个 `Notify`
+- `KeUserModeCallback` `0x4B`
+
+这样一共是从 `0` 到 `0x4B`,共 `0x4C` 个过滤函数,齐了~~
+
+上次先列出了 360 所 hook 的系统服务,让大家对它做了什么有了一些了解。这次分析的重点是 360 的 `KiFastCallEntry` 钩子安装全过程,更为重点的是 360 这样一个安全软件,是如何理好地处理好这众全多的 Hook,即我所谓的“架构”问题。
+
+## 一、准备工作
+
+(1)准备要 Hook 的系统服务的服务号 `ServiceIndex`,对于导出的服务,采用获取 `Zw*`函数地址后再取服务号的方法,这个想必大家都很熟悉。未导出的,则根据不同系统版本,采用硬编码的方法。
+
+(2)准备缓冲区,存放原始服务例程地址、过滤开关、代理函数地址等,记为 `ServiceFilterInfoTable`,这些都是 HOOK 中要使用到的数据。
+
+`HookPort.sys` 申请了一块很大的内存用于存放这些数据,该内存大小为 `0x5DDC=6007*4=(6006+1)*4`,为什么这么写呢？因为它实际上是下面一个结构：
+
+```c
+typedef struct _SERVICE_FILTER_INFO_TABLE{
+ULONG SSDTCnt;
+ULONG SavedSSDTServiceAddress[1001];    //起始偏移 0001*4,保存被 Hook 的 SSDT 函数的地址
+ULONG ProxySSDTServiceAddress[1001];    //起始偏移 1002*4,保存被 Hook 的 SSDT 函数对应的代理函数的地址
+ULONG SavedShadowSSDTServiceAddress[1001];  //起始偏移 2003*4,保存被 Hook 的 ShadowSSDT 函数的地址
+ULONG ProxyShadowSSDTServiceAddress[1001];  //起始偏移 3004*4,保存被 Hook 的 ShadowSSDT 函数对应的代理函数的地址
+ULONG SwitchTableForSSDT[1001];        //起始偏移 4005*4,保存 SSDT Hook 开关,决定该函数是否会被 Hook
+ULONG SwitchTableForShadowSSDT[1001];    //起始偏移 5006*4,保存 ShadowSSDT Hook 开关,决定该函数是否会被 Hook
+}SERVICE_FILTER_INFO_TABLE;
+```
+
+考虑到服务数最多的就是 Win7 的 ShadowSSDT 服务了,共 827 个,所以这里使用 1001 个项。显然,每个表之间都有空隙,每个表内部也有大量空隙,觉得浪费内存了是吧？确实是这样的,但是不要忘了有一条法则,叫做“以时间换空间,以空间换时间”,这里虽然浪费了内存,但是保证了效率最高,因为被 Hook 的地方是调用非常非常频繁的 `KiFastCallEntry`.
+
+(3)准备缓冲区,存放过滤函数的地址和规则表,记为 `FilterFunRuleTable`。这个部分的实现虽然是在 `HookPort.sys` 中,但是它对外留出了这个接口,实际上却是由 `360SelfProtect.sys` 调用完成的。
+
+这个缓冲区的结构如下:
+
+```c
+#define FILTERFUNCNT 0x4C //过滤函数的个数
+typedef struct _FILTERFUN_RULE_TABLE{
+ULONG bSize; //本结构的大小,为 0x144=0x51*4=(0x4C+5)*4=(FILTERFUNCNT+5)*4
+ULONG Unknown1; //未明确
+ULONG IsFilterFunFilledReady;       //标志,表明过滤函数表是否准备好
+ULONG FakeServiceRoutine[FILTERFUNCNT]  //偏移为 0xC,过滤函数数组,共有过滤函数 0x4C 个
+PULONG SSDTRuleTableBase;           //偏移为 0x13C,是 SSDT 函数的过滤规则表,表的大小为 SSDTCnt*4
+PULONG ShadowSSDTRuleTableBase;     //偏移为 0x140,是 ShadowSSDT 函数的过滤规则表,表的大小为 ShadowSSDTCnt*4
+}FILTERFUN_RULE_TABLE;
+```
+
+这些只是一些准备工作,具体有些是什么时候完成的,在后面会讲到。
+
+## 二、KiFastCallEntry 的 Hook
+
+(1)目标 `KiFastCallEntry`,但具体 Hook 在哪里最好？
+
+`KiFastCallEntry` 是 ring3 经 `sysenter` 进入内核后的第一个必经之地(不考虑 `sysenter` hook),但是 `KiFastCallEntry` 所作的工作也很多,比如设置 `ds,es,fs` 段寄存器的值,从 `ETHREAD` 中取 `ServiceTable`,判断 `ServiceIndex` 是否合法,若合法则判断应使用哪张表(SSDT 还是 ShadowSSDT),然后从表中取出服务例程地址,从用户栈复制参数到内核栈,然后调用服务例程,调用完之后再做一点准备工作然后就由 `KiServiceExit` 再飞回 ring3.大致的流程就是这样的.我贴一下关键的一段：
+
+```asm
+kd>
+8053d7e4 8b5f0c          mov     ebx,dword ptr [edi+0Ch] //edi 指向 SSDT 或 ShadowSSDT
+8053d7e7 33c9            xor     ecx,ecx //ecx 清零
+8053d7e9 8a0c18          mov     cl,byte ptr [eax+ebx]  //cl 得到参数的长度,即参数个数*4
+8053d7ec 8b3f            mov     edi,dword ptr [edi] //edi 指向 KiServiceTable 或 W32pServiceTable
+8053d7ee 8b1c87          mov     ebx,dword ptr [edi+eax*4] //eax 是服务号,然后 ebx 得到服务函数地址
+8053d7f1 2be1            sub     esp,ecx //ecx 得到参数的总长度,这里是开辟栈空间
+8053d7f3 c1e902          shr     ecx,2     //除以 4,得参数个数
+8053d7f6 8bfc            mov     edi,esp   //准备复制参数
+8053d7f8 3b35b48b5580    cmp     esi,dword ptr [nt!MmUserProbeAddress (80558bb4)] //判断参数地址是否有效
+8053d7fe 0f83a8010000    jae     nt!KiSystemCallExit2+0x9f (8053d9ac)
+8053d804 f3a5            rep movs dword ptr es:[edi],dword ptr [esi] //复制参数
+8053d806 ffd3            call    ebx //调用系统服务
+```
+
+我们不能 hook 在开头,这样太多的准备工作需要自己来完成,而且涉及到的操作太多的话,兼容性和稳定性就很成问题。显然我们又不能 hook 在 call 服务例程之后,这时该办的事都办完了,我们再接手就已经晚了,所以必须在 call 服务例程之前。`KiFastCallEntry` 中的指令,真是有点寸士寸金的感觉,寄存器也不能随意改变，挑哪儿下手呢？来看看 360 是怎么做的：
+
+Hook 之后:
+
+```asm
+kd>
+nt!KiFastCallEntry+0xcc:
+8053d7dc ff0538f6dfff    inc     dword ptr ds:[0FFDFF638h]
+8053d7e2 8bf2            mov     esi,edx
+8053d7e4 8b5f0c          mov     ebx,dword ptr [edi+0Ch]
+8053d7e7 33c9            xor     ecx,ecx
+8053d7e9 8a0c18          mov     cl,byte ptr [eax+ebx]
+8053d7ec 8b3f            mov     edi,dword ptr [edi]
+8053d7ee 8b1c87          mov     ebx,dword ptr [edi+eax*4]
+8053d7f1 e94a49e901      jmp     823d2140  //这里被改成了一个跳转
+8053d7f6 8bfc            mov     edi,esp
+8053d7f8 3b35b48b5580    cmp     esi,dword ptr [nt!MmUserProbeAddress (80558bb4)]
+8053d7fe 0f83a8010000    jae     nt!KiSystemCallExit2+0x9f (8053d9ac)
+8053d804 f3a5            rep movs dword ptr es:[edi],dword ptr [esi]
+8053d806 ffd3            call    ebx
+8053d808 8be5            mov     esp,ebp
+8053d80a 8b0d24f1dfff    mov     ecx,dword ptr ds:[0FFDFF124h]
+8053d810 8b553c          mov     edx,dword ptr [ebp+3Ch]
+```
+
+这个 Hook 的位置确实选得非常好啊,自己省去了很多准备工作,都由系统准备好了,此时 `edi` 指向服务表的基址(`KiServiceTable` 或 `W32pServiceTable`),`ebx` 是刚刚取出的原始服务例程的地址,`eax` 是服务号,这时再做处理不是就很容易了嘛,重要的几个信息都有了。
+
+来看看跳转的地址,又是个跳转,看来这里只是个中间跳
+
+```asm
+kd> u 823d2140
+823d2140 e95d982a76      jmp     Hookport+0x79a2 (f867b9a2)
+```
+
+`f867b9a2` 这里才是真正的目的地,在 `HookPort.sys` 中.
+
+```asm
+kd> u f867b9a2
+Hookport+0x79a2:
+f867b9a2 8bff            mov     edi,edi
+f867b9a4 9c              pushfd
+f867b9a5 60              pushad
+f867b9a6 57              push    edi //edi 指向 KiServiceTable 或 W32pServiceTable
+f867b9a7 53              push    ebx //ebx 是原始的 KiFastCallEntry 从 SSDT 中取到的服务函数地址
+f867b9a8 50              push    eax //eax 是服务号
+f867b9a9 e840ffffff      call    Hookport+0x78ee (f867b8ee) //KiFastCallEntryFilterFunc
+f867b9ae 89442410        mov     dword ptr [esp+10h],eax
+f867b9b2 61              popad
+f867b9b3 9d              popfd
+f867b9b4 2be1            sub     esp,ecx
+f867b9b6 c1e902          shr     ecx,2
+f867b9b9 ff3574d767f8    push    dword ptr [Hookport+0x9774 (f867d774)]  //这里是回跳的地址,push/ret 方式跳回去
+f867b9bf c3              ret
+```
+
+(2)360 是如何具体地去安装这个 Hook 的？
+
+360 首先获取 `ZwSetEvent` 的服务号,然后安装了一个 SSDT Hook,目标就是 `NtSetEvent`.
+
+然后,自己调用了一下 `ZwSetEvent`,触发自己安装的 Hook,代码如下：
+
+```c
+HANDLE g_FakeEventHandle = (HANDLE)0x288C58F1;
+ZwSetEvent(g_FakeEventHandle, NULL);
+```
+
+`0x288C58F1`,好奇怪,你看过谁家的句柄长成这个样子嘛,显然这是个假句柄了,它的作用就是在 hook 函数 `Fake_NtSetEvent` 中辨别一下是不是自己人,充当了暗号。
+
+`Fake_NtSetEvent` 中确实也是这样写的:
+
+```c
+if ( EventHandle != g_FakeEventHandle || ExGetPreviousMode()==UserMode )// 不是我们自己调用,或者调用来自 UserMode,直接调用原函数
+{
+  result = OriginalNtSetEvent(EventHandle, PreviousState);
+}
+```
+
+不是自己人就调用原函数去了,等对上暗号，是自己人了,才真正开始干事.
+
+先申请一个 5 字节的 buffer,写入一个跳转指令,这个就是上面看到的中间跳,这里还有一个细节,判断了一下系统版本,Vista 前后处理上有稍许不同,根据当前系统版本选择合适的 `JmpStub`.
+
+再准备另外一个跳转指令,跳转目标就是刚才准备的中间跳的地址,这个跳转指令将要被写入 `KiFastCallEntry` 中。那么 360 是如何找到要写入的位置呢？继续看.
+
+跳转指令准备好之后,先还原刚才 SSDT 中安装的 `NtSetEvent` 钩子,然后从栈中回溯返回地址,也就是取`[ebp+4]`的值,并保存起来.上面对 `KiFastCallEntry` 的分析知道,SSDT 中的函数都是从 `KiFastCallEntry` 中 call 过来的,那么返回地址肯定也在 `KiFastCallEntry` 中,具体地讲,就是 `8053d806` 处 `call ebx` 的下一条指令处。取得这个地址后,往上匹配寻找 `8053d7f3 c1e902 shr ecx,2` `8053d7f6 8bfc mov edi,esp`
+
+找到之后,就确定了要 Hook 的位置。接下来怎么做写过 hook 的都知道,就是关写保护然后把刚才准备好的跳转指令写入再打开保护而已,不多说。
+
+(3)`KiFastCallEntry` 被 hook 后,360 是如何处理的?
+
+`KiFastCallEntry` 被 hook 后,经二级跳跳到了 `JmpStub` 里。来看看:
+
+```asm
+kd> u f867b9a2
+Hookport+0x79a2:
+f867b9a2 8bff            mov     edi,edi
+f867b9a4 9c              pushfd
+f867b9a5 60              pushad
+f867b9a6 57              push    edi //edi 指向 KiServiceTable 或 W32pServiceTable
+f867b9a7 53              push    ebx //ebx 是原始的 KiFastCallEntry 从 SSDT 中取到的服务函数地址
+f867b9a8 50              push    eax //eax 是服务号
+f867b9a9 e840ffffff      call    Hookport+0x78ee (f867b8ee) //KiFastCallEntryFilterFunc
+f867b9ae 89442410        mov     dword ptr [esp+10h],eax
+f867b9b2 61              popad
+f867b9b3 9d              popfd
+f867b9b4 2be1            sub     esp,ecx
+f867b9b6 c1e902          shr     ecx,2
+f867b9b9 ff3574d767f8    push    dword ptr [Hookport+0x9774 (f867d774)]  //这里是回跳的地址,push/ret 方式跳回去
+f867b9bf c3              ret
+```
+
+可以看到,`edi,ebx,eax` 三个重要数据入栈后,调用了另一个判断函数。该函数逆向如下：
+
+代码:
+
+
+
+```c
+ULONG __stdcall KiFastCallEntryFilterFunc(ULONG ServiceIndex, ULONG OriginalServiceRoutine, ULONG ServiceTable)
+{
+  //判断是否是 SSDT 中的调用
+  if ( ServiceTable == g_KiServiceTable && ServiceIndex <= g_SSDTServiceLimit )// 如果是正常的 win32 调用,则
+  {
+    if (ServiceFilterInfoTable->SwitchTableForSSDT[ServiceIndex] && HookOrNot(ServiceIndex, FALSE))
+    {
+      ServiceFilterInfoTable->SavedSSDTServiceAddress[ServiceIndex]=OriginalServiceRoutine;//保存原始例程,以便后面调用
+      return ServiceFilterInfoTable->ProxySSDTServiceAddress[ServiceIndex];//返回我们代理函数的地址
+    }
+  }
+  //判断是否是 ShadowSSDT 中的调用,过程同上
+  if ( ServiceTable == g_GUIServiceTable && ServiceIndex <= g_GUIServiceTableLimit )
+  {
+    if ( ServiceFilterInfoTable->SwitchTableForShadowSSDT[ServiceIndex] && HookOrNot(ServiceIndex, TRUE) )
+    {
+      ServiceFilterInfoTable->SavedShadowSSDTServiceAddress[ServiceIndex]=OriginalServiceRoutine;
+      return ServiceFilterInfoTable->ProxyShadowSSDTServiceAddress[ServiceIndex];   
+    }               
+  }
+   
+  return OriginalServiceRoutine; // 不明调用,就直接返回原始例程
+}
+```
+
+结合上面逆出来的代码和数据结构，相信不难看懂。对于一个调用，通过判断 `ServiceTable` 确定是 SSDT 调用还是 Shadow 调用，两者过程基本一样，以 SSDT 为例：
+
+首先根据 `ServiceIndex` 判断 `SwitchTable` 中的 Hook 开关是否打开，是则调用 `HookOrNot` 函数根据 `FilterFunRuleTable` 表中的 `Rule`（根据 `PreviousMode` 有进一步判断）来判断是否需要 Hook。经过这两重检查和判断，最终若需要 Hook，就保存原始服务例程地址并返回我们的代理函数，若不需要 Hook，就直接返回原始例程。由于使用了良好的数据结构，这里的效率是非常高的。
+
+`KiFastCallEntryFilterFunc` 的返回结果，要么是原始例程，要么是代理函数，返回至 `Jmpstub` 后，这个结果被保存在了 `[esp+0x10]` 处。不要忘了刚才有个 `pushad`，所以 `[esp+0x10]` 处实际保存的是 `ebx` 的值，这样修改了栈中的 `ebx` 的值，再 `popad` 时，`ebx` 的值就被修改为了 `KiFastCallEntryFilterFunc` 的返回值，再一个 `popfd` 恢复刚才保存的标志寄存器，然后执行被 `jmp` 指令覆盖掉的那两句指令，最后将刚才回溯到的返回地址压栈，一个 `ret` 就又飞回到了 `KiFastCallEntry` 中。若已 Hook，此时 `ebx` 的值就已经被修改了，再下来 `call ebx` 时调用的就是刚才返回的代理函数了。很巧妙的处理啊。
+
+### 三、代理函数如何处理？
+
+Hook 的细节搞清楚了，本来就已经差不多了，但是看了 360 代理函数中的处理，又发现一些有趣的东西。
+
+每一个代理函数，都会首先调用一个 `CallFilterFunByIndex`，调用时传入的第一个参数就是过滤函数在过滤函数表中的索引，也就是我上一篇文章中所列出来的那些函数名称后面的索引。第二个参数则是栈中的参数数组，相当于一下把所有参数都传过去了。`CallFilterFunByIndex` 会先根据 `FilterFunRuleTable->IsFilterFunFilledReady` 判断该表是否已经准备好（这个过滤函数表实际上是由 `360SelfProtect.sys` 调用 `HookPort.sys` 提供的接口填充的，所有过滤函数的实现也都在 `360SelfProtect.sys` 中），根据传入的过滤函数的索引在 `FilterFunRuleTable` 表（也就是我前面提到的第二张表）中查找对应的过滤函数，若过滤函数存在，就调用过滤函数，传入的参数同样有过滤函数索引和参数数组，在这个过滤函数中才真正实现了对参数的判断。
+
+判断完毕之后，若检查通过，就予以放行，此时再调用 `JmpStub` 中保存的原始服务例程的地址，调用完原始例程之后，若调用成功，还会有一个循环的检查，检查目标是调用原始服务例程后返回的结果。这些循环检查的函数哪儿来的呢？就是在 `CallFilterFunByIndex` 调用过滤函数时返回的，由于返回的这些函数是在调用原始服务例程之后对结果进行检查，所以称之为 `CheckResult` 系列函数，而过滤函数表中的那些函数则称为 `CheckArguments` 函数。
+
+#### 为什么要有 CheckArguments 函数，又要有 CheckResult 函数？
+
+这里来个小小的科普，hook 某函数后，检查参数的时机是怎么样的呢？参数是分 IN、OUT 的，一般来说，传入的参数要在调用原始函数前检查，传出的参数要在调用原始函数后检查，而有些则在调用前后检查都可以，但效果不同。大致可以分为四种情况：
+
+第一种以 `(Nt)TerminateProcess` 为例，它的原型是这样的：
+
+```c
+NTSTATUS
+NtTerminateProcess(
+    __in_opt HANDLE ProcessHandle,
+    __in NTSTATUS ExitStatus
+    );
+```
+
+除了状态码，它没有有效的返回值，它的作用更多的在于结束进程这个“过程”，等该函数返回的时候，进程已经被结束掉了，再来检查有个 P 用。所以这种强调过程而且重点不在返回值（即使它有）的函数，必须要在调用原函数前检查。
+
+第二种，一个例子是 `recv`，原型如下：
+
+```c
+int recv (
+  SOCKET s,        
+  char FAR* buf,   
+  int len,         
+  int flags        
+);
+```
+
+显然该函数的重点在于第二个参数中返回的数据，但是在调用原始函数之前，缓冲区里什么都没有，检查，怎么检查？像这种函数也是过程性的，但是它的第二个参数是 OUT 型的，就必须在调用原函数之后检查。
+
+第三类，比如 `CreateFile`，`OpenProcess`，`OpenThread`，`OpenEvent` 等函数，它们有一个共同的特征，就是传入特性相关的数据（文件名，pid 等），返回一个句柄，重点不在过程而在于返回值。这类函数既可以在调用原函数前检查传入的参数，也可以在调用原函数后检查返回的句柄。但是一个是对象的名称等外在信息，一个直接指向对象，显然检查后者更为可靠一些，因为它更贴近对象本身。
+
+对于那些异步方式调用的函数更要注意了，比如异步方式调用的 `ReadFile` 或 `ReadFileEx`，调用原函数之前显然缓冲区没有数据，调用了原函数缓冲区也不见得有数据，但是异步有个特征就是它的通知机制，可能是 Apc，也可能是 Event，这时就必须替换或其它方式处理它的通知机制才能在合适的时候拿到数据。
+
+科普就先到这儿。现在来解释为什么要有 `CheckResult` 系列函数的存在，相信大家就该明白了。以 `NtOpenSection` 这个服务的 hook 为例，我们知道有一个重点照顾对象叫做 `\\Device\\PhysicalMemory`，经常被大家用于各种 XX 中，一段典型的打开该对象的代码是：
+
+```c
+RtlInitUnicodeString(&physmemString, L"\\Device\\PhysicalMemory");
+
+  attributes.Length                 = sizeof(OBJECT_ATTRIBUTES);
+  attributes.RootDirectory         = NULL;
+  attributes.ObjectName            = &physmemString;
+  attributes.Attributes            = 0;
+  attributes.SecurityDescriptor     = NULL;
+  attributes.SecurityQualityOfService = NULL;
+
+  status = ZwOpenSection(&g_hMPM, SECTION_MAP_READ|SECTION_MAP_WRITE, &attributes); 
+```
+
+怎么检查？检查第三个参数 `attributes.ObjectName` 是否是 `\\Device\\PhysicalMemory`？显然是不行的，看看 MJ 的《续 PhysicalMemory 攻击》你就知道检查这个参数有多困难。显然 `NtOpenSection` 属于我上面提到的第三类函数，看看 360 是怎么做的：
+
+代理函数 `Proxy_NtOpenSection` 首先调用 `CallFilterFunByIndex`，`CallFilterFunByIndex` 根据所传入的过滤函数索引在 `FilterFunRuleTable` 中找到 `Fake_NtOpenSection` 并调用之，然而 `Fake_NtOpenSection` 除了简单判断下调用者之外不做任何检查，只是返回了一个函数的地址给 `CallFilterFunIndex`，记为 `CheckResult_After_NtOpenSection`，`CallfilterFunIndex` 再把这个地址返回给代理函数 `Proxy_NtOpenSection`，此时 `Proxy_NtOpenSection` 调用原函数 `NtOpenSection`，若返回不成功，就直接返回这个状态值，不成功当然就不管啦。若成功，就会调用刚才返回的 `CheckResult_After_NtOpenSection` 来检查返回的句柄所指向的对象是不是 `\\Device\\PhysicalMemory`，若是，就关掉该句柄，并返回一个禁止的状态码（`STATUS_ACCESS_DENIED`），若不是，绿灯大开，放行之。有时，`FakeXXX` 函数返回的 `CheckResultXXX` 函数可能不止一个，此时 `ProxyXXX` 会根据返回的函数个数循环调用这些 `CheckResultXXX`，有一个不通过即为不通过，只有所有 `CheckResultXXX` 都检查通过了，`ProxyXXX` 函数才会返回原始结果给调用者，真是把关极严啊。
+
+值得一提的是，所有的过滤函数对于来自 `KernelMode` 的调用都不做处理，所以使用驱动来破坏 360 是轻而易举的，但是完全没有意义。按照 MJ 一贯的理念，如果你都能加载驱动了，那么所有 ring0 的保护也就失去了意义，再来保护完全是无用功，事实上也根本起不到保护效果了。
+
+### 四、总结回顾
+
+现在让我们站得高一点，略去一些细节，来总结一下 360 整个 hook 架构：
+
+1. `HookPort.sys` 准备了 `ServiceFilterInfoTable`（上面的表一），里面保存了 SSDT 函数的代理函数地址、原始例程地址、Hook 开关，ShadowSSDT 也是。
+2. `HookPort.sys` 对外留出了三个接口（保存在了 `DEVICE_EXTENSION` 中），第一个用于准备 `FilterFunRuleTable`（上面的表二），第二个用于向 `FilterFunRuleTable` 中注册过滤函数，第三个用于设置 `FilterFunRuleTable` 中的过滤规则。
+3. `HookPort.sys` 安装 `KiFastCallEntry` hook。
+4. `HookPort.sys!KiFastCallEntryFilterFunc` 根据 Hook 开关和 `RuleTable` 中的过滤规则来决定某个系统服务是否会被 Hook，被 hook 后将会调用 Proxy 函数。
+5. `360SelfProtect.sys` 使用 `HookPort.sys` 提供的接口初始化 `RuleTable`，并向 `RuleTable` 中注册过滤函数、设置过滤规则。
+6. 每个 Proxy 函数使用 `CallFilterFunByIndex` 调用 `RuleTable` 中相应的 `FilterFun` 进行参数检查，通过后调用原函数，若调用成功再调用 `FilterFun` 函数提供的 `CheckResult` 函数检查结果（非 SSDT、ShadowSSDT 函数的 Hook 也采用同样结构）。
+
+很显然地：
+
+如果要增加一个系统服务的 Hook，只需要打开 `ServiceFilterInfoTable` 中该服务 Index 对应的开关，并提供一个过滤函数就可以了。
+
+如果要去掉一个系统服务的 hook，只需要关闭 `ServiceFilterInfoTable` 中该服务 Index 对应的开关，立刻生效，而无须其它改变。
+
+如果要修改一个系统服务的过滤函数，只需要使用 `HookPort` 的接口设置新的过滤函数就可以了，无须其它改变。
+
+所以说，这个架构设计非常好，易于修改，易于扩充，易于分工，无愧于优秀二字。
+
+结束语：单独写一个或几个函数的 Hook，很多人都会，但是要实现这样一个产品级的优秀架构，就不是谁都能完成的了。分析了 360 这样一个安全产品所使用的 Hook 架构，让我收获颇多，也让大家领略了 360 安全卫士的技术魅力。文中如有错误，还请 MJ 和大家指出。
