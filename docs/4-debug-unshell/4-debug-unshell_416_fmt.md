@@ -1,0 +1,193 @@
+
+# 小李加密 V7.0 Build 0110
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6950.htm`](https://www.pediy.com/kssd/pediy06/pediy6950.htm)
+
+`telock`+`ASProtect` 脱壳+解除自校验——小李加密 V7.0 Build 0110
+
+下载页面：`http://www.skycn.com/soft/10300.html`
+
+软件大小：`1291` KB
+
+软件语言：简体中文
+
+软件类别：国产软件 / 共享版 / 加密工具
+
+应用平台：`Win9x/NT/2000/XP`
+
+加入时间：`2004-01-10 11:25:45`
+
+下载次数：`45930`
+
+推荐等级：`*****`
+
+**【软件简介】：**
+1. 未注册版本，可加密多个文件，不能加密文件夹。
+2. 注册一份，另外赠送 4 个注册码。
+3. 纯绿色软件，无需安装。
+4. 绝对的傻瓜式软件，根本不用学习。
+5. 可加密任意大小、任何类型的文件。
+6. 可同时加密多个文件、文件夹；可同时解密多个文件；可同时彻底删除多个文件、文件夹。
+7. 采用国际标准加密算法(`RSA` 和 `MD5`)。
+8. 支持长达 128 位的密码。
+9. 支持普通、寄生和自解密三种加密方式。
+10. 支持从资源管理器和我的电脑到软件的文件、文件夹拖放。
+
+**【作者声明】：** 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+**【调试环境】：** `WinXP`、`Ollydbg`、`PEiD`、`LordPE`、`ImportREC`
+
+--------------------------------------------------
+
+## 一、脱壳
+
+有兄弟问多层壳的脱法。`hying` 老大说过：N 层壳＝1 层壳。偶觉得如果搭配得当，猛壳+猛壳皆发挥猛壳的特长或许会加强壳的保护性，避开脱壳机的自动脱壳。但是某些多层加壳却适得其反：如 猛壳+`UPX` 等压缩壳 就不太妙了，只要避开猛壳的反跟踪部分，按 `UPX` 的脱法就简单搞定了。所以：偶觉得 N 层壳＝＝最后 1 层壳。也就是说脱多层壳：避开外面几层壳的反跟踪部分，按最后 1 层壳的脱法来做就行了。
+
+朋友让看看 小李加密 V7.0 Build 0110 ，恰好这个是 `telock` 0.98b1+`ASProtect` V1.2 两层壳，都是旧壳，索性以这个为例子来简单演示一下。没看破解，作者不要担心。
+
+--------------------------------------------------
+
+老规矩：用 `IsDebug` 1.4 插件去掉 `Ollydbg` 的调试器标志。忽略除了“内存访问异常”之外的所有其他异常选项。因为这个东东的最后 1 层壳是 `ASProtect`，所以不管外面的 `telock` 壳，直接按 `ASProtect` 的脱壳方法来操作就行了。
+
+### 1、寻找 OEP
+
+```
+0055FBD6     E9 25E4FFFF          jmp EnMain.0055E000//进入 OD 后停在这！    
+F9 运行，程序会中断在异常处，Shift+F9 通过异常    
+0055EBA6     CD 68               int 68//第 1 次异常    
+00AC335C     3100                xor dword ptr ds:[eax],eax//第 2 次异常    
+  …… ……  省 略  …… ……   
+00AC2CD1     3100                xor dword ptr ds:[eax],eax//最后 1 次 ASProtect 典型异常    
+00AC2CD3     64:8F05 00000000    pop dword ptr fs:[0]   
+00AC2CDA     58                  pop eax   
+00AC2CDB     833D 7C6DAC00 00    cmp dword ptr ds:[AC6D7C],0   
+00AC2CE2     74 14               je short 00AC2CF8   
+00AC2CE4     6A 0C               push 0C   
+00AC2CE6     B9 7C6DAC00         mov ecx,0AC6D7C   
+00AC2CEB     8D45 F8             lea eax,dword ptr ss:[ebp-8]   
+00AC2CEE     BA 04000000         mov edx,4   
+00AC2CF3     E8 54E1FFFF         call 00AC0E4C   
+00AC2CF8     FF75 FC             push dword ptr ss:[ebp-4]   
+00AC2CFB     FF75 F8             push dword ptr ss:[ebp-8]   
+00AC2CFE     8B45 F4             mov eax,dword ptr ss:[ebp-C]   
+00AC2D01     8338 00             cmp dword ptr ds:[eax],0   
+00AC2D04     74 02               je short 00AC2D08   
+00AC2D06     FF30                push dword ptr ds:[eax]   
+00AC2D08     FF75 F0             push dword ptr ss:[ebp-10]   
+00AC2D0B     FF75 EC             push dword ptr ss:[ebp-14]   
+00AC2D0E     C3                  retn//直接在这下断！ Shift+F9 断在这！返回到 00AD53EC    
+00AD53EC     E9 EE070000         jmp 00AD5BDF//直接 F4 到下 1 行    
+00AD577C     0F85 17000000       jnz 00AD5799   
+00AD5782     66:BB A020          mov bx,20A0   
+00AD5786     E9 25000000         jmp 00AD57B0//此处下断，F9 断在这，跳出循环    
+00AD579C     E9 58FFFFFF         jmp 00AD56F9//循环    
+00AD5889     0F85 0D000000       jnz 00AD589C   
+00AD588F     8AF9                mov bh,cl   
+00AD5891     E9 19000000         jmp 00AD58AF//此处下断，F9 断在这，跳出循环    
+00AD58A4     E9 6AFFFFFF         jmp 00AD5813//循环    
+00AD5960     0F85 14000000       jnz 00AD597A   
+00AD5966     BA CC89C63B         mov edx,3BC689CC   
+00AD596B     E9 1B000000         jmp 00AD598B//此处下断，F9 断在这，跳出循环    
+00AD597C     E9 6DFFFFFF         jmp 00AD58EE//循环    
+00AD5966     BA CC89C63B         mov edx,3BC689CC   
+00AD5A21     0F85 16000000       jnz 00AD5A3D   
+00AD5A27     E9 24000000         jmp 00AD5A50//此处下断，F9 断在这，跳出循环    
+00AD5A40     E9 92FFFFFF         jmp 00AD59D7//循环    
+00AD5BCC     8BD3                mov edx,ebx   
+00AD5BCE     5B                  pop ebx   
+00AD5BCF     58                  pop eax   
+00AD5BD0     05 49E2A32C         add eax,2CA3E249   
+00AD5BD5     5C                  pop esp   
+00AD5BD6     03C3                add eax,ebx//EAX=000014A0+00400000=004014A0 这就是 OEP 值   
+00AD5BD8     894424 1C           mov dword ptr ss:[esp+1C],eax   
+00AD5BDC     61                  popad   
+00AD5BDD     FFE0                jmp eax ; EnMain.004014A0//飞向光明之巅！    
+```
+
+--------------------------------------------------
+
+### 2、DUMP
+
+```
+004014A0     EB 10               jmp short EnMain.004014B2//在这儿用 LordPE 纠正 ImageSize 后完全 DUMP 这个进程    
+004014A2     66:623A            bound di,dword ptr ds:[edx]   
+004014A5     43                  inc ebx   
+004014A6     2B2B                sub ebp,dword ptr ds:[ebx]   
+004014A8     48                  dec eax   
+004014A9     4F                  dec edi   
+004014AA     4F                  dec edi   
+004014AB     4B                  dec ebx   
+004014AC     90                  nop   
+004014AD     E9 98904C00         jmp 008CA54A   
+004014B2     A1 8B904C00         mov eax,dword ptr ds:[4C908B]   
+004014B7     C1E0 02             shl eax,2   
+004014BA     A3 8F904C00         mov dword ptr ds:[4C908F],eax   
+004014BF     52                  push edx   
+004014C0     6A 00               push 0   
+004014C2     E8 956A0C00         call EnMain.004C7F5C   
+```
+
+--------------------------------------------------
+
+### 3、修复输入表
+
+运行 `ImportREC`，选择这个进程。把 OEP 改为 `000014A0`，`RVA=000EC334`， `Size=000011FC`， 点“Get Import”，用“追踪层次 1”和“ASProtect 1.3 calculated imports”插件全部修复无效函数。`FixDump`。
+
+OK，至此脱壳完成。`telock` 0.98b1+`ASProtect` V1.2 两层壳只是用了脱最后 `ASProtect` 壳的方法。当然 `telock` 0.98b1 和 `ASProtect` V1.2 都算是“古老”的壳了，相信大家手脱都没问题的，偶只是借这个例子简单演示一下罢了。
+
+--------------------------------------------------
+
+## 二、解除自校验
+
+但是运行脱壳后的程序界面一闪就自动退出了。这并不是脱壳的问题，而是程序有自校验！相对于加 2 层壳来说，这个东东的自校验做的要好得多。偶很菜，脱壳用了 20 分钟，看这个自校验却花了 3 个小时。
+
+只说修改了，寻找的过程很是烦人， 且很大程度上偶是不断试验而凑巧碰到的罢了。
+
+--------------------------------------------------
+
+### 1、00465782 处
+
+```
+00465782     80B8 9C000000 00    cmp byte ptr ds:[eax+9C],0   
+00465789     74 0F               je short dumped_.0046579A   
+```
+改为：
+```
+00465782     C680 9C000000 00    mov byte ptr ds:[eax+9C],0   
+00465789     EB 0F               jmp short dumped_.0046579A   
+```
+
+--------------------------------------------------
+
+### 2、00468AE7 处
+
+```
+00468AE7     8078 5B 00          cmp byte ptr ds:[eax+5B],0   
+```
+改为：
+```
+00468AE7     C640 5B 01          mov byte ptr ds:[eax+5B],1   
+```
+修改以上 2 处后脱壳后的程序可以正常运行了。没看是否还有其他暗桩了。
+
+前几天做的，整理了一下放了上来。没有什么意义的笔记。 
+
+--------------------------------------------------
+
+```
+          ,     \_/ 
+        /| \_.-~/          \_     ,        青春都一饷
+       ( /~   /             ~-.   |
+       \`\\  \_/               ~ )          忍把浮名 
+   _-~~~-.)  )\_\_/;;,.         \_  //'
+  /'\_,   --~    ~~~-  ,;;\_\_\_(  (.-~~~-.        换了破解轻狂
+ \`~ \_( ,\_..-- (      ,;'' /    ~--   /.\_\` 
+  /~~//'   /' \`~           ) /--..\_, )\_  \`~
+  "   \`~"  "       \`"       /~'\`    \`\\~~    
+                          "     "   "~'  ""
+```
+Cracked By 巢水工作坊——fly `[OCN]` `[FCG]` `[NUKE]` `[DCM]`
+
+`2004-01-12` `15:15`
+
+`4dd466d0e1e0cc123afbe504da2462ca`
