@@ -1,0 +1,210 @@
+
+# System Cleaner 4.91d
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6963.htm`](https://www.pediy.com/kssd/pediy06/pediy6963.htm)
+
+【脱文作者】 `weiyi75[Dfcg]`
+
+【作者邮箱】 `weiyi75@sohu.com`
+
+【作者主页】 `Dfcg` 官方大本营
+
+【使用工具】 `Ollydbg1.09d`, `ImportREC1.6F`
+
+【破解平台】 `Win2000/XP`
+
+【软件名称】 `System Cleaner 4.91d`
+
+【下载地址】 `http://218.63.244.68:1010/ckkd/attachment.php?aid=253`
+
+【软件简介】 提供了三种简单有效的减肥方式。执行清除的速度很快，如果你不想清理某文件也可以设定 `System Cleaner 2000` 把文件先放到一个目录暂存，或是执行 `ZIP` 把文件压缩起来。有定时的功能，可以让你订定大扫除的时间，或是定时清理你的硬盘。
+
+【软件大小】 `1.01M`
+
+【加壳方式】 `ASProtect 1.23 RC4 - 1.3.08.24 -> Alexey Solodovnikov`
+
+【破解声明】 我是一只小菜鸟，偶得一点心得，愿与大家分享：）
+
+------------------------------------------------------------------------
+
+【破解内容】
+
+前言，在我开始尝试脱这个程序的时候，我 dump 下来的文件都是错误的，因为我在错误的地方 dump 程序，并因此常常导致脱壳后的程序崩溃。百思不解，后来看了 `Jeffzhang` 的动画，知道了这个程序不能在入口处脱壳，不然即使修复 IAT 和补上代码也不能运行。本文没有用 `AsprDbgr1b` 辅助修复 IAT，全部 IAT 修复用 `ImportREC 1.6F`，锻炼一下手动修复的能力。又经过 `jwh51` 指点破解过程，`jwh51` 和 `Jeffzhang` 兄真是脱壳高手，吾望尘莫及，吾水平不行，克隆能力还是不错的。
+
+好，脱壳开始。
+
+`OD` 异常设置不忽略内存异常，其余全部忽略，载入程序，用插件隐藏 `OD`。
+
+```
+00401000  >  68 01B05F00      PUSH SystemCl.005FB001   //停在这里,F9 运行。    
+00401005    E8 01000000      CALL SystemCl.0040100B   
+0040100A    C3               RETN   
+0040100B    C3               RETN   
+0040100C    0F39             ???                      ; 未知命令   
+0040100E    44               INC ESP   
+0040100F    15 2F5BD708     ADC EAX,8D75B2F   
+00401014    58               POP EAX   
+00401015    A3 026254BC     MOV DWORD PTR DS:[BC546202],EAX   
+0040101A    8C4F DE         MOV WORD PTR DS:[EDI-22],CS   
+0040101D    1084D6 77A87E09 ADC BYTE PTR DS:[ESI+EDX*8+97EA877],AL   
+00401024    B5 D4           MOV CH,0D4   
+00401026    CF               IRETD   
+00401027    2F               DAS   
+00401028    B4 7C           MOV AH,7C   
+0040102A    23D8             AND EBX,EAX   
+.....................................................................
+```
+
+内存异常。
+
+```
+00C341E4    3100             XOR DWORD PTR DS:[EAX],EAX   
+00C341E6    EB 01            JMP SHORT 00C341E9   
+00C341E8    68 648F0500     PUSH 58F64   
+00C341ED    0000             ADD BYTE PTR DS:[EAX],AL   
+00C341EF    00EB             ADD BL,CH   
+00C341F1    02E8             ADD CH,AL   
+00C341F3    0158 68          ADD DWORD PTR DS:[EAX+68],EBX   
+00C341F6    6C               INS BYTE PTR ES:[EDI],DX          ; I/O 命令   
+00C341F7    AF               SCAS DWORD PTR ES:[EDI]   
+00C341F8    C2 0068          RETN 6800   
+00C341FB    54               PUSH ESP   
+00C341FC    42               INC EDX   
+00C341FD    C3               RETN   
+.....................................................................
+```
+
+继续 `Shift+F9` 27 次忽略异常到最后一次异常处。
+
+```
+00C33A2C    3100             XOR DWORD PTR DS:[EAX],EAX  //到这里就可以用 Loadpe 脱壳了。    
+00C33A2E    64:8F05 0000000>POP DWORD PTR FS:[0]   
+00C33A35    58               POP EAX   
+00C33A36    833D B07EC300 0>CMP DWORD PTR DS:[C37EB0],0   
+00C33A3D    74 14            JE SHORT 00C33A53   
+00C33A3F    6A 0C            PUSH 0C   
+00C33A41    B9 B07EC300     MOV ECX,0C37EB0   
+00C33A46    8D45 F8         LEA EAX,DWORD PTR SS:[EBP-8]   
+00C33A49    BA 04000000     MOV EDX,4   
+00C33A4E    E8 EDD0FFFF     CALL 00C30B40   
+00C33A53    FF75 FC         PUSH DWORD PTR SS:[EBP-4]   
+00C33A56    FF75 F8         PUSH DWORD PTR SS:[EBP-8]   
+00C33A59    8B45 F4         MOV EAX,DWORD PTR SS:[EBP-C]   
+00C33A5C    8338 00         CMP DWORD PTR DS:[EAX],0   
+00C33A5F    74 02           JE SHORT 00C33A63   
+00C33A61    FF30            PUSH DWORD PTR DS:[EAX]   
+00C33A63    FF75 F0         PUSH DWORD PTR SS:[EBP-10]   
+00C33A66    FF75 EC         PUSH DWORD PTR SS:[EBP-14]   
+00C33A69    C3               RETN   //按 F2 在 RET 那里设置一个断点，然后再次按 Shift+F9    
+.......................................................................
+```
+
+我们会在停在 `RET` 这一行，清除断点。
+
+接着按 `ALT+M` 打开内存镜像。在第一个块上下内存访问断点。
+
+### 内存镜像
+
+| 地址 | 大小 | Owner | Section | Contains | 类型 | 访问 | 初始访问 | 映射为 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `00400000` | `00001000` | `SystemCl` | | `PE header` | `Imag` | `R` | `RWE` | |
+| `00401000` | `00164000` | `SystemCl` | `code` | `Imag` | `R` | `RWE` | | |
+
+*注：在 `00401000` 处设置内存访问断点*
+
+按 `F9` 运行，程序到达这里。
+
+```
+00407278  - FF25 2C235700    JMP DWORD PTR DS:[57232C]  //这里    
+0040727E    8BC0             MOV EAX,EAX   
+00407280  - FF25 28235700    JMP DWORD PTR DS:[572328]   
+00407286    8BC0             MOV EAX,EAX   
+00407288  - FF25 24235700    JMP DWORD PTR DS:[572324]   
+0040728E    8BC0             MOV EAX,EAX   
+00407290  - FF25 20235700    JMP DWORD PTR DS:[572320]   
+00407296    8BC0             MOV EAX,EAX   
+00407298    50               PUSH EAX   
+00407299    6A 40            PUSH 40   
+0040729B    E8 E0FFFFFF     CALL SystemCl.00407280   
+004072A0    C3               RETN   
+.......................................................................
+```
+
+如果我们按一次 `F8` 我们将回到壳的代码中，按 `Ctrl+F9` 返回到程序领空。
+
+```
+0040734D    A3 68E65600     MOV DWORD PTR DS:[56E668],EAX        ; SystemCl.00400000   
+00407352    A1 68E65600     MOV EAX,DWORD PTR DS:[56E668]   
+00407357    A3 D8505600     MOV DWORD PTR DS:[5650D8],EAX   
+0040735C    33C0            XOR EAX,EAX   
+0040735E    A3 DC505600     MOV DWORD PTR DS:[5650DC],EAX   
+00407363    33C0            XOR EAX,EAX   
+00407365    A3 E0505600     MOV DWORD PTR DS:[5650E0],EAX   
+0040736A    E8 C1FFFFFF     CALL SystemCl.00407330   
+0040736F    BA D4505600     MOV EDX,SystemCl.005650D4   
+00407374    8BC3            MOV EAX,EBX    //这里的 EAX 里面的值要记录下来,EAX=564344,仿真 Oep 时
+要用到。   
+00407376    E8 75D8FFFF     CALL SystemCl.00404BF0   
+0040737B    5B              POP EBX   
+0040737C    C3              RETN   
+.......................................................................
+```
+
+这些是什么东西？？这个问题花了我一些时间但在调试了更多的别的程序之后，我认为这是对 `GetModuleHandleA` 的调用代码的一部分。
+
+地址 `0040734D` 并不是 `OEP`，我们按 `F8` 单步执行，直到 `RET`，返回(ret)后我们来到这里:
+
+```
+00564A64    FF15 A4D15600   CALL DWORD PTR DS:[56D1A4]  这里是临时 OEP   
+00564A6A    E8 4903EAFF     CALL SystemCl.00404DB8   
+00564A6F    90              NOP   
+00564A70    0000            ADD BYTE PTR DS:[EAX],AL   
+00564A72    0000            ADD BYTE PTR DS:[EAX],AL   
+00564A74    0000            ADD BYTE PTR DS:[EAX],AL   
+00564A76    0000            ADD BYTE PTR DS:[EAX],AL   
+.................................................................
+```
+
+但哪里才是 `OEP` ?
+
+如果你往上看，你会发现这样的代码:
+
+```
+00564A4F    001C43          ADD BYTE PTR DS:[EBX+EAX*2],BL   
+00564A52    56              PUSH ESI   
+00564A53    0000            ADD BYTE PTR DS:[EAX],AL   
+00564A55    0000            ADD BYTE PTR DS:[EAX],AL   
+00564A57    0000            ADD BYTE PTR DS:[EAX],AL   
+00564A59    0000            ADD BYTE PTR DS:[EAX],AL   
+00564A5B    0000            ADD BYTE PTR DS:[EAX],AL   
+00564A5D    0000            ADD BYTE PTR DS:[EAX],AL   
+00564A5F    E8 D828EAFF     CALL SystemCl.0040733C   
+```
+
+真正的 `OEP` 是 : `00564A54`
+
+你可能会问"为什么 ?"...
+
+`ASPR` 使用了一种叫做 "Steal-Bytes"的技术：
+
+`asrp` 隐藏了 `PE` 文件 `OEP` 开始处的字节，并把这些字节从原始 `PE` 文件中擦除..
+
+=====================
+
+### 关于 stolen bytes
+
+=====================
+
+稍微说明一下:
+
+每一种编译工具例如 : `VC++`, `Delphi`, `Borland`, `etc..`
+
+在 `OEP` 有一个唯一的/相同的 `PE` 头
+
+其中的一些是这样的:
+
+```
+Push EBP           
+MOV Ebp,Esp        
+Add ESP , -010     
+```
