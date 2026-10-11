@@ -1,0 +1,171 @@
+
+# 给任务管理器添加拷贝命令的功能
+
+> 原文：[`www.pediy.com/kssd/pediy11/116792.html`](https://www.pediy.com/kssd/pediy11/116792.html)
+
+【文章标题】: 【原创】给任务管理器添加拷贝命令的功能
+
+【文章作者】: nickwu
+
+【作者邮箱】: wuayi@qq.com
+
+【软件名称】: `taskmgr.exe`
+
+【下载地址】: 附件
+
+【使用工具】: `eXeScope`, `OD`, `LoadPE`, `ZeroAdd`
+
+【操作平台】: Windows XP SP2
+
+要检验自己学到的知识到底有多少,或者自己还有哪些知识没掌握，最好的办法就是多实践,从实践中获得的成就感会让你更拼命的为之奋斗,这也是我喜欢 PEDIY 的原因
+
+在这之前先得感谢那些令人敬仰的前辈们，没有他们的文章，我碰到的困难会更多，所以很多时候，当我们欢呼雀跃于最终的胜利时，有必要回过头来想一下，我们之所以成功，是因为站在巨人的肩膀上，而且那巨人还往往不止一个。。
+
+参考文献:
+
+stalker 大侠写的《给任务管理器增加显示程序完整路径功能》
+链接:[`bbs.pediy.com/showthread.php?t=82582`](http://bbs.pediy.com/showthread.php?t=82582)
+
+slore 大侠写的《第一次 PEDIY---让 Windows 任务管理器更强,更人性!》
+链接:[`bbs.pediy.com/showthread.php?t=95905`](http://bbs.pediy.com/showthread.php?t=95905)
+
+下面开始动工，
+
+1. 用 `LoadPE` 给 `taskmgr.exe` 添加输入函数:`USER32.dll` 中的几个 API(`OpenClipboard`、`EmptyClipboard`、`SetClipboardData` 和 `CloseClipboard`)，等一下补丁代码要用到的，直接上图
+
+![](img/b5e1fb70767017e7176ec54d27717ba5.jpg)
+
+`AddImport.jpg`
+
+2. 用 `eXeScope` 添加相关菜单项，资源-->菜单-->111，插入一项菜单“50128,拷贝命令(&K)”，上图
+
+![](img/6b394bd371df1ae69f576cee75750fac.jpg)
+
+`AddMenu.jpg`
+
+3. 用 `ZeroAdd` 软件给它添加一个 `200KB` 的区段，用来写补丁代码
+
+![](img/aea208a164fa9bef0a0356a63638a914.jpg)
+
+`ZeroAdd.jpg`
+
+用 `LoadPE` 可以看到最后一个区段的区段名为 `myCode`  开始地址：`1060000`（虚拟地址）     `3CA00`(物理偏移)
+
+![](img/51f1f013f1265e9f64b79c641d13e2e4.jpg)
+
+`myCode.jpg`
+
+自己总结的一个经验，我认为修改程序的最佳步骤应该为:`LoadPE`(添加输入函数)-->`eXeScope`(添加资源项)-->`ZeroAdd`(添加区段),不按这个次序来可能会出错
+
+接下来启用强大的 `OD` 在新增区段中添加消息响应代码，
+
+一步一步来，我先在新增的区段中加入以下代码：
+
+```
+代码:
+```
+
+
+
+# 任务管理器代码修改示例
+
+## 汇编代码块
+
+```
+01060000    81F9 D0C30000   CMP ECX,0C3D0                                     ;判断选择的是否是“拷贝命令”,50128 的十六进制为 C3D0
+01060006    0F85 C6000000   JNZ taskmgr\_.010600D2                            ;如果不是就跳过下面相应的处理指令
+0106000C    60              PUSHAD                                            ;保存堆栈(可能保存环境更准确些,但我已经习惯了这么说~)
+0106000D    8B40 08         MOV EAX,DWORD PTR DS:\[EAX+8\]                   ;取出进程 PID 标识
+01060010    83F8 04         CMP EAX,4                                         ;判断是否为 System.exe 进程
+01060013    0F84 B8000000   JE taskmgr\_.010600D1                            ;是的话就跳过处理,因为它是老大。。
+01060019    50              PUSH EAX                                          ;传递的第一个参数：dwProcessId(进程 PID)
+0106001A    6A 00           PUSH 0                                            ;第二个参数：bInheritHandle
+0106001C    68 10040000     PUSH 410                                          ;第三个参数：dwDesiredAccess 
+01060021    FF15 14110001   CALL DWORD PTR DS:\[<&kernel32.OpenProces>; kernel32.OpenProcess ;API 调用 OpenProcess,原句为 CALL DWORD PTR DS:\[1001114\]
+01060027    36:A3 60010601  MOV DWORD PTR SS:\[1060160\],EAX                 ;API 返回的结果一般都在 EAX 里,这里返回的是一个具体进程的句柄,将其存入虚拟地址\[1060160\]处，这句按我的本意应该是"MOV DWORD PTR DS:\[1060160\],EAX"，只是因为后来复制代码时一时疏忽忘改了，后来发现运行正常,将错就错吧~(Win7 里面也畅通无阻==|)
+0106002D    85C0            TEST EAX,EAX                                      ;测试 EAX，即判断 OpenProcess 是否执行成功
+0106002F    0F84 9C000000   JE taskmgr\_.010600D1                            ;如果失败(0 表示失败),就跳过下面的处理，来到恢复堆栈的地方
+01060035    33C0            XOR EAX,EAX                                       ;EAX 清零
+01060037    A3 68010601     MOV DWORD PTR DS:\[1060168\],EAX                 ;真正的目的:为 DS:\[1060168\]初始化
+0106003C    68 04010000     PUSH 104                                          ;第一个参数,至于这些参数是干嘛的，我现在也还没搞懂,不过这里的一些代码可以在原程序中照搬
+01060041    8D85 F4FBFFFF   LEA EAX,DWORD PTR SS:\[EBP-40C\]                ;
+01060047    50              PUSH EAX                                          ;第二个参数,按照 slore 大侠的提示,这个应该是保存命令行的地方
+01060048    FF35 60010601   PUSH DWORD PTR DS:\[1060160\]                    ;第三个参数,这个是进程 PID，下面也会用到的
+0106004E    E8 F525FBFF     CALL taskmgr\_.01012648                          ;这里 call 的 1012648 是程序的一个子函数，作用是获取带参数的命令行
+01060053    85C0            TEST EAX,EAX                                      ;经典判断语句,需要知道的是 EAX 里面保存值的意义:命令行字符串长度
+01060055    74 30           JE SHORT taskmgr\_.01060087                      ;获取命令行失败时就跳过下面的处理，来到关闭句柄的地方
+01060057    8D3C00          LEA EDI,DWORD PTR DS:\[EAX+EAX\]                 ;因为是 Unicode 的缘故,这里将 EAX 里的长度值扩大一倍
+0106005A    8D47 02         LEA EAX,DWORD PTR DS:\[EDI+2\]                   ;还要加上一个结尾符的长度
+0106005D    50              PUSH EAX                                          ;将算出来的 EAX 值推进去,意思是告诉系统需要分配多大内存
+0106005E    6A 40           PUSH 40                                           ;第二个参数 uFlags,allocation attributes(内存分配属性)
+01060060    FF15 38110001   CALL DWORD PTR DS:\[<&kernel32.LocalAlloc>; kernel32.LocalAlloc  ;API 调用 LocalAlloc,用于分配内存
+01060066    85C0            TEST EAX,EAX                                      ;
+01060068    74 1D           JE SHORT taskmgr\_.01060087                      ;内存分配失败就跳过下面的处理，来到关闭句柄的地方
+0106006A    A3 68010601     MOV DWORD PTR DS:\[1060168\],EAX                 ;虚拟地址\[1060168\]处保存的是分配到的内存"句柄"
+0106006F    8BCF            MOV ECX,EDI                                       ;要复制的长度值放入 ECX
+01060071    8BF8            MOV EDI,EAX                                       ;字符串复制目的地址放入 EDI
+01060073    8BC1            MOV EAX,ECX                                       ;复制字节数保存在 EAX
+01060075    C1E9 02         SHR ECX,2                                         ;字节数/4=按 DWORD 复制的次数
+01060078    8DB5 F4FBFFFF   LEA ESI,DWORD PTR SS:\[EBP-40C\]                 ;字符串复制源地址存入 ESI
+0106007E    F3:A5           REP MOVS DWORD PTR ES:\[EDI\],DWORD PTR DS>       ;执行字符串双字复制
+01060080    8BC8            MOV ECX,EAX                                       
+01060082    83E1 03         AND ECX,3                                         ;计算剩余字节数,即按字节复制次数
+01060085    F3:A5           REP MOVS DWORD PTR ES:\[EDI\],DWORD PTR DS>       ;执行字符串字节复制
+01060087    FF35 60010601   PUSH DWORD PTR DS:\[1060160\]                    ; /hObject
+0106008D    FF15 5C110001   CALL DWORD PTR DS:\[<&kernel32.CloseHandl>       ; kernel32.CloseHandle
+01060093    6A 00           PUSH 0                                           
+01060095    FF15 67F00501   CALL DWORD PTR DS:\[105F067\]                    ; USER32.OpenClipboard    
+0106009B    09C0            OR EAX,EAX                                       
+0106009D    74 32           JE SHORT taskmgr\_.010600D1                      ;OpenClipboard 失败，就跳过下面的处理，来到恢复堆栈的地方
+0106009F    FF15 8BF00501   CALL DWORD PTR DS:\[105F08B\]                    ; USER32.EmptyClipboard ，拷贝之前清空一下剪贴板
+010600A5    FF35 68010601   PUSH DWORD PTR DS:\[1060168\]                    ; 参数 1，hMem，数据句柄，前面获得的内存句柄，里面有带参数的命令行字符串
+010600AB    6A 0D           PUSH 0D                                           ; 参数 2，uFormat,剪贴板数据格式
+010600AD    FF15 44F00501   CALL DWORD PTR DS:\[105F044\]                    ; USER32.SetClipboardData;API 调用 SetClipboardData，设置剪贴板的意思,带上面两个参数
+010600B3    FF15 AFF00501   CALL DWORD PTR DS:\[105F0AF\]                    ; USER32.CloseClipboard  ;API 调用 CloseClipboard，顾名思义，关闭剪贴板的意思
+010600B9    6A 00           PUSH 0                                            ; 参数 1，uType 消息框类型：只显示一个确定按钮
+010600BB    68 90010601     PUSH taskmgr\_.01060190                          ; 参数 2，lpCaption,标题 UNICODE "OK"，物理偏移:3CB90 处开始的二进制：4F 00 4B 00，可以用其他十六进制编辑器修改，我是直接用 OD 添加的
+010600C0    68 98010601     PUSH taskmgr\_.01060198                          ; 参数 3，lpText,提示内容 UNICODE "复制完毕!"，物理偏移:3CB98 处开始的二进制：0D 59 36 52 8C 5B D5 6B 21 00    
+010600C5    FF35 645D0101   PUSH DWORD PTR DS:\[1015D64\]                   ; 参数 4，hWnd,父窗口句柄，根据 slore 的提示,加上这句后可以保证提示窗口出现在任务管理器上方
+010600CB    FF15 94120001   CALL DWORD PTR DS:\<&user32.MessageBoxW>>; USER32.MessageBoxW   ;MessageBoxW,作用:弹出消息框，提示"OK,复制完毕!"
+010600D1    61              POPAD                                             ;恢复堆栈
+010600D2    81F9 CFC30000   CMP ECX,0C3CF                                     ;保留的原指令
+010600D8  - E9 74BDFAFF     JMP taskmgr\_.0100BE51                          ;跳回原代码
+```
+
+## 修改步骤
+
+代码添加完后，全选这些代码，右键“复制到可执行文件”，保存为`taskmgr1.exe`。
+
+再用`OD`载入刚才生成的`taskmgr1.exe`，代码窗口来到`100BE4B`(文件偏移:`B24B`)处,将`CMP ECX,0C3CF`这句先`NOP`掉，再汇编为`JMP 1060000`。
+
+选取红色的刚才修改过的代码部分，右键“复制到可执行文件”，另存为`taskmgr2.exe`。
+
+至此完成修改，测试通过!
+
+摸来身旁的一杯可乐，小酌一口，超解暑的说~~（不过听说这玩意杀精，少喝为妙~~）![
+
+## 后记
+
+以上有关剪贴板操作的代码，部分参考了`popeylj`大侠写的一篇文章《汇编学习之剪贴版操作》。
+
+链接:[`bbs.pediy.com/showthread.php?p=544904`](http://bbs.pediy.com/showthread.php?p=544904)
+
+前不久看过“我是土匪”大侠写的《DIY 让我们的任务管理器再智能一点》。
+
+链接: [`bbs.pediy.com/showthread.php?t=106870`](http://bbs.pediy.com/showthread.php?t=106870)
+
+觉得功能不错，于是便有了整合的念头。虽然没有经过他同意，不过我知道他是位好同志，一位打着“土匪”口号“行侠仗义”的好同志，应该不会计较我复制了代码~呵呵。
+
+秉着资源共享的精神,我将完成后的作品上传到这里~~（毛爷爷说：要做一个纯粹的人，一个对社会有用的人......）
+
+迄今为止，这个任务管理器是我所见过的功能最强的“官方”任务管理器~~![](img/234a76e67df951b6551d305c177a8b78.jpg "扮鬼脸")
+
+最后感谢看雪，感谢看雪大哥“发明”(开发)了看雪论坛，这是一个很好的交流知识和技术的平台，汇聚了众多高手，当然这里面不包括我，忽忽~~![](img/110d920e4e703968a2a60c986d363163.jpg "尴尬")
+
+祝大家学习生活愉快!
+
+**上传的附件**
+
+`给任务管理器添加拷贝命令的功能.rar`
+
+`增强版任务管理器.rar`

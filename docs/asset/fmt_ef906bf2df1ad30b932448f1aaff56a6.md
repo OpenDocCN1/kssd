@@ -1,0 +1,199 @@
+
+# DIY 让我们的任务管理器再智能一点
+
+> 原文：[`www.pediy.com/kssd/pediy11/106870.html`](https://www.pediy.com/kssd/pediy11/106870.html)
+
+【文章标题】: DIY 让我们的任务管理器再智能一点
+
+【文章作者】: 我是土匪
+
+【作者邮箱】: `lwzy-crack@163.com`
+
+【作者主页】: `http://lwzy-crack.blog.163.com`
+
+【软件名称】: Windows 任务管理器
+
+【下载地址】: 自己搜索下载
+
+【保护方式】: 无
+
+【使用工具】: `OD`，`ResHacker`，`AddZero`，`C32Asm`
+
+【操作平台】: `Windows Xp Sp3`
+
+【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
+
+--------------------------------------------------------------------------------
+
+## 详细过程
+
+近日工作中总是需要把同一个进程，启动 `N` 个。然后在一个一个结束。（无聊……… ^\_^），于是乎，萌生了一个想法，写一个程序，批量结束进程，这样不就可以了，呵呵！然后我就写了一个 `exe` 程序来干这事。
+
+又到周末了，无聊中，想逛街，兜里没有钱；想和老婆一起聊聊天，可是我还没有女朋友；上 `VS` 玩 `DOTA`，老是遇见外挂，开始不到 3 秒就爆基地，爆就爆吧，我认了。谁叫我倒霉呢！最气人的是，我们“杀”的正爽的时候，只见屏幕上，我的队员在读秒，45s 过去了，我的队友掉线了一个人，这时，又有一个队友在读秒，看来是遇见踢人挂了。把我的队友都踢掉了。剩下我一个，我问他为啥不踢我呢？“把你踢了，就不给分了。”，一个\*\*回答说。
+
+哎！没辙了。不玩了，学会习吧，我学习绝对是被逼的。
+
+学啥呢？面对浩瀚的知识海洋，我又茫然了。看了一会野外生存的电子书，看的我只“反胃”，别问我为啥？你看一会就知道了。
+
+牛顿发现万有引力，是因为看见苹果掉到地上了。我为啥要 `Diy` 任务管理器，这得问上帝，我自己也说不清楚。
+
+书归正传，开始干活。
+
+在我有这个想法的时候，我先思考这个思路的可行性，然后在动手，这是一个很好的习惯（呵呵，别扔我鸡蛋哦！）。这就好比盖楼房，你要是没有楼房的图纸，盖了几层楼后就会不知道该怎么盖了。
+
+本次实现的思路借鉴了 `slore` 的《第一次 PEDIY---让 Windows 任务管理器更强,更人性!》文章中的思路，如果要是批量结束同一个进程，就要想办法获得每个进程的控制权限（`OpenProcess`），这样才能控制这个进程，可想而知，要是用汇编些代码，要写好 多行，我汇编功底薄的就像女人穿的透明的黑乳罩一样，Very 迷人（别扔砖头，我不是色狼）。被逼无奈，我就写了一个（`KillProcess.dll`）文件。Dll 文件应该导出两个函数
+
+### 1. GetFileNamebyPath
+
+功能：根据路径名，返回程序名，例如：`SS:(UNICODE ""C:\WINDOWS\notepad.exe" C:\Documents and Settings\Owner\")`
+
+返回的应该是“`notepad.exe`”。
+
+### 2. BKillProcess
+
+功能：根据程序名（例如：“`notepad.exe`”），遍历进程，遇到同名的，就杀进程。
+
+函数执行成功，返回真，否则返回假。
+
+呵呵，如果不嫌代码长，可以写在一个函数里面，视个人习惯而定，在调用的时候，我们调用第一个函数，在第一个函数末尾调用第二个函数，这样能使我少写一些汇编指令。（如果有兴趣，你可以自己试试，就能体验其中的奥妙了。）
+
+用 `C32Asm` 打开任务管理器，
+
+```
+00015F60>01016B60    写入“KillProcess.dll”
+00015F70>01016B70    写入“GetFileNamebyPath”
+00015F90>01016B90    写入“BKillProcess”
+```
+
+编辑好后，保存。
+
+传入文件路径 -> 动态加载 dll -> 干活（杀进程） -> 干完活以后卸载 dll（卸磨杀驴）
+
+| 注意 |
+| :--- |
+| 因为传入的文件路径是 Unicode 的字符串，里面包含 `" "` |
+| 所以编写 dll 的时候要注意。如果不转换也可以，就用 Unicode 进行比较吧 |
+
+Dll 怎么写，我就不说了，应该很容易，下面我说一下如何获得文件路径，以及加载 dll 程序。
+
+首先添加右键菜单，用 `Reshacker` 载入程序，选择“Menu”>“111”>“2052”
+
+```
+111 MENU
+LANGUAGE LANG_CHINESE, 0x2
+{
+  POPUP "Banana"
+  {
+    MENUITEM "打开所在目录(&O)",  50127
+    MENUITEM "结束所有同名进程(&K)",  50130
+    MENUITEM SEPARATOR
+    MENUITEM "结束进程(&E)",  40028
+    MENUITEM "结束进程树(&T)",  40105
+    MENUITEM "调试(&D)",  40027
+    MENUITEM "创建转储文件(&C)",  40131
+    MENUITEM SEPARATOR
+    POPUP "设置优先级(&P)"
+    {
+      MENUITEM "实时(&R)",  40029
+      MENUITEM "高(&H)",  40031
+      MENUITEM "高于标准(&A)",  40030
+      MENUITEM "标准(&N)",  40032
+      MENUITEM "低于标准(&B)",  40033
+      MENUITEM "低(&L)",  40034
+      MENUITEM "关系设置(&A)...",  40055
+    }
+    MENUITEM "关系设置(&A)...",  40055
+  }
+}
+```
+
+添加后，保存就可以了。
+
+注意事项：添加的资源“ID”不能相同，我这里定义的资源 ID 的值是“`50130`”，转化为 16 进制就是“`C3D2`”
+
+好了，资源我们已经添加上了，运行一下我们刚刚修改的任务管理器，可以运行，没问题，把属性页切换到“进程”单击鼠标右键，发现我们刚刚添加的菜单了。如下图所示：
+
+![](img/08748025bef1d58e4b29f523362e13f1.jpg)
+
+我们再来添加消息响应代码。先用 `zeroadd`，添加一个区段，名称随便填写，写什么都行，大小为大于 300（这个大小是字节，我们填写的原则是：宁大勿小），根据“`slore`”的文章，我们非常容易的找到了消息处理代码。如下所示：
+
+```
+0100BE23  |> \81F9 5D9C0000 CMP ECX,9C5D
+0100BE29  |.  7C 6A         JL SHORT taskmgr.0100BE95
+0100BE2B  |.  81F9 629C0000 CMP ECX,9C62
+0100BE31  |.  7E 55         JLE SHORT taskmgr.0100BE88
+0100BE33  |.  81F9 779C0000 CMP ECX,9C77
+0100BE39  |.  74 3D         JE SHORT taskmgr.0100BE78
+0100BE3B  |.  81F9 A99C0000 CMP ECX,9CA9
+0100BE41  |.  74 25         JE SHORT taskmgr.0100BE68
+0100BE43  |.  81F9 C39C0000 CMP ECX,9CC3
+0100BE49  |.  74 15         JE SHORT taskmgr.0100BE60
+0100BE4B  |.  81F9 CFC30000 CMP ECX,0C3CF
+0100BE51  |.  75 42         JNZ SHORT taskmgr.0100BE95
+0100BE53  |.  85C0          TEST EAX,EAX
+0100BE55  |.  74 3E         JE SHORT taskmgr.0100BE95
+0100BE57  |.  8BC8          MOV ECX,EAX
+0100BE59  |.  E8 F8E8FFFF   CALL taskmgr.0100A756
+```
+
+修改为：
+
+```
+0100BE23   > \81F9 5D9C0000 CMP ECX,9C5D
+0100BE29   .  7C 6A         JL SHORT DIY 任务?0100BE95
+0100BE2B   .  81F9 629C0000 CMP ECX,9C62
+0100BE31   .  7E 55         JLE SHORT DIY 任务?0100BE88
+0100BE33   .  81F9 779C0000 CMP ECX,9C77
+0100BE39   .  74 3D         JE SHORT DIY 任务?0100BE78
+0100BE3B   .  81F9 A99C0000 CMP ECX,9CA9
+0100BE41   .  74 25         JE SHORT DIY 任务?0100BE68
+0100BE43   .  81F9 C39C0000 CMP ECX,9CC3
+0100BE49   .  74 15         JE SHORT DIY 任务?0100BE60
+0100BE4B   .- E9 B0F10400   JMP DIY 任务?0105B000                ；跳到零区，这里我添加一个新的区段，在里面写补丁代码
+0100BE50   .  75 43         JNZ SHORT DIY 任务?0100BE95
+0100BE52   .  90            NOP
+0100BE53   .  85C0          TEST EAX,EAX
+0100BE55   .  74 3E         JE SHORT DIY 任务?0100BE95
+0100BE57   .  8BC8          MOV ECX,EAX
+0100BE59   .  E8 F8E8FFFF   CALL DIY 任务?0100A756
+```
+
+来到 `0105B000` 这里：
+
+```
+0105B000    81F9 D2C30000   CMP ECX,0C3D2                 ；判断是不是“结束所有同名进程”的消息
+0105B006    74 1F           JE SHORT DIY 任务?0105B027      ；是则跳到地址“0105B027 ”执行消息响应代码。
+0105B008    81F9 CFC30000   CMP ECX,0C3CF                 ；这是是我们刚才打补丁地址的原代码，我们给还原
+0105B00E  - E9 3D0EFBFF     JMP DIY 任务?0100BE50           ；还原后，跳转到原地址继续执行
+0105B013    0000            ADD BYTE PTR DS:\[EAX\],AL
+0105B015    0000            ADD BYTE PTR DS:\[EAX\],AL
+0105B017    0000            ADD BYTE PTR DS:\[EAX\],AL
+```
+
+来到 `0105B027` 这里：
+
+```
+0105B027    60              PUSHAD                       ；保护环境，人人有责！
+0105B028    8B40 08         MOV EAX,DWORD PTR DS:\[EAX+8\]     ；把进程“PID”赋值给 EAX
+0105B02B    50              PUSH EAX                     ；把“PID”压栈
+0105B02C    68 606B0101     PUSH DIY 任务?01016B60         ； ASCII "KillProcess.dll"
+0105B031    FF15 D0100001   CALL DWORD PTR DS:\[<&kernel32.LoadLibrar>; kernel32.LoadLibraryA
+0105B037    8BF0            MOV ESI,EAX                  ；把 EAX 中的 HMODULE 保存到 ESI 里面
+0105B039    85F6            TEST ESI,ESI                   ；判断 ESI 是否为 0
+0105B03B    75 06           JNZ SHORT DIY 任务?0105B043     ；不为 0 就跳到 0105B043 继续执行
+0105B03D    61              POPAD                          ；如果为 0，就说明 Loadlibrary 失败，恢复环境，
+0105B03E  - E9 520EFBFF     JMP DIY 任务?0100BE95           ；恢复环境后，跳到默认消息处理流程，继续执行
+0105B043    8B3D 54110001   MOV EDI,DWORD PTR DS:\[<&kernel32.GetProc> ；把 GetProcAddress 的地址保存到 EDI 里面
+0105B049    68 706B0101     PUSH DIY 任务?01016B70         ；ASCII "GetFileNamebyPath"
+0105B04E    56              PUSH ESI                       ；把 HMODULE 参数压栈
+0105B04F    FFD7            CALL EDI                 ；调用 GetProcAddress 函数，获得 GetFileNamebyPath 函数的地址
+0105B051    8BD8            MOV EBX,EAX                  ；把 GetFileNamebyPat 函数的地址保存到 EBX
+0105B053    85DB            TEST EBX,EBX                   ；判断 EBX 是否为 0
+0105B055    75 06           JNZ SHORT DIY 任务?0105B05D     ；不为 0 就跳到 0105B05D 继续执行
+0105B057    61              POPAD                      ；如果为 0，就说明调用 GetProcAddress 函数失败，恢复环境，
+0105B058  - E9 380EFBFF     JMP DIY 任务?0100BE95           ；恢复环境后，跳到默认消息处理流程，继续执行
+0105B05D    68 906B0101     PUSH DIY 任务?01016B90         ；ASCII "BKillProcess"
+0105B062    56              PUSH ESI                       ；把 HMODULE 参数压栈
+0105B063    FFD7            CALL EDI                 ；调用 GetProcAddress 函数，获得 BKillProcess 函数的地址
+0105B065    8BF8            MOV EDI,EAX                  ；把 BKillProcess 函数的地址保存到 EDI
+```
