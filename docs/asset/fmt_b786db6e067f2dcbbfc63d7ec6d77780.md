@@ -1,0 +1,78 @@
+
+```
+.text:10042716                     retn  
+
+.text:10042717 ; 哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪?  
+
+.text:10042717  
+
+.text:10042717 loc_10042717:                         ; CODE XREF: sub_10042520+1C6 j  
+
+.text:10042717                     mov     eax, [esp+18h+hPubKey]  
+
+.text:1004271B                     mov     ecx, phProv  
+
+.text:10042721                     push    offset hKey     ; phKey  
+
+.text:10042726                     push    0             ; dwFlags  
+
+.text:10042728                     push    eax           ; hPubKey  
+
+.text:10042729                     push    8Ch           ; dwDataLen  
+
+.text:1004272E                     push    offset byte_101AE848 ; pbData  
+
+.text:10042733                     push    ecx           ; hProv  
+
+.text:10042734                     call    ebp ; CryptImportKey ; Transfer a cryptographic key  
+
+.text:10042734                                        ; from a key blob to the CSP  
+
+.text:10042736                     test    eax, eax  
+
+.text:10042738                     jz      short loc_100426E8  
+
+.text:1004273A                     mov     eax, [esp+18h+hPubKey]  
+
+.text:1004273E                     test    eax, eax  
+
+.text:10042740                     jz      short loc_10042749  
+
+.text:10042742                     push    eax           ; hKey  
+
+.text:10042743                     call    ds:CryptDestroyKey  
+
+.text:10042749  
+
+.text:10042749 loc_10042749:                         ; CODE XREF: sub_10042520+220 j  
+
+.text:10042749                     pop     edi  
+
+.text:1004274A                     pop     esi  
+
+.text:1004274B                     mov     al, 1  
+
+.text:1004274D                     pop     ebp  
+
+.text:1004274E                     add     esp, 0Ch  
+
+.text:10042751                     retn  
+
+.text:10042751 sub_10042520    endp  
+```
+
+以上代码虽然稍长，我们分析后还是很容易了解其功能实现。大体上它可以分为以下几个步骤：
+
+1.  通过`CryptAcquireContextA`函数向`CSP`申请一个新的密钥容器。
+
+2.  通过`CryptImportKey`函数把一段`blob`数据转换成密钥放入容器中。
+
+3.  通过`CryptGenKey`函数生成一个随机的会话密钥或者是公/私密钥对。
+
+4.  通过`CryptExportKey`函数导出密钥到申请的内存中。
+
+5.  对内存中的密钥数据进行多重变换。
+
+6.  重新通过`CryptImportKey`函数导入内存中的数据到密钥容器中。
+
+到此，我们只要详细分析并实现这些步骤即可以得到一个合法的密钥，然后通过调用相应的`Crypto API`函数对加密数据进行解密，最后用`zlib.decompress`解压缩即可以得到我们需要的原始字节码。
