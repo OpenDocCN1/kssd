@@ -1,0 +1,474 @@
+
+# 暴力天使
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6177.htm`](https://www.pediy.com/kssd/pediy06/pediy6177.htm)
+
+最近在家无事，尝试着修改一下软件，在程序前加一个密码输入框，输入密码正确才能进入游戏，否则退出。
+
+程序名：暴力天使（一个小游戏），当然参考了 `pll621` 的文章，在此表示感谢！
+
+首先，需要一个对话框资源，用 `ResourceHacker` 打开程序，发现有一个现成的对话框资源：
+
+```
+103 DIALOGEX 22, 17, 179, 50
+style DS_MODALFRAME | WS_CAPTION | WS_SYSMENU
+EXstyle WS_EX_TOOLWINDOW
+CAPTION "About"
+LANGUAGE LANG_JAPANESE, 0x1
+FONT 9, "ＭＳ Ｐゴシック"
+{
+ CONTROL 107, 2, STATIC, SS_ICON | WS_CHILD | WS_VISIBLE, 4, 8, 20, 20
+ CONTROL "BAROQUE-SHOOTING", -1, STATIC, SS_LEFT | SS_NOPREFIX | WS_CHILD | WS_VISIBLE | WS_GROUP, 28, 8, 76, 8
+ CONTROL "(C)2000 STING ALL RIGHT RESERVED", -1, STATIC, SS_LEFT | WS_CHILD | WS_VISIBLE | WS_GROUP, 52, 40, 124, 8
+ CONTROL "STINGWEB", 1000, BUTTON, BS_PUSHBUTTON | WS_CHILD | WS_VISIBLE | WS_TABSTOP, 128, 4, 48, 28
+ CONTROL "[TIMEATTACK]", -1, STATIC, SS_LEFT | WS_CHILD | WS_VISIBLE | WS_GROUP, 72, 20, 46, 8
+}
+```
+
+去掉一些无用的标签，然后加上一个 `Edit` 控件，修改后的资源如下：
+
+```
+103 DIALOGEX 100, 100, 186, 70
+style DS_MODALFRAME | WS_CAPTION | WS_SYSMENU
+EXstyle WS_EX_TOOLWINDOW
+CAPTION "Please Input the Password"
+LANGUAGE LANG_JAPANESE, 0x1
+FONT 9, "ＭＳ Ｐゴシック"
+{
+ CONTROL "", 100, EDIT, ES_LEFT | WS_CHILD | WS_VISIBLE | WS_BORDER | WS_TABSTOP, 18, 25, 94, 14
+ CONTROL "确定", 1000, BUTTON, BS_PUSHBUTTON | WS_CHILD | WS_VISIBLE | WS_TABSTOP, 126, 26, 48, 12
+ CONTROL "Please Input The Password!!", 0, STATIC, SS_LEFT | WS_CHILD | WS_VISIBLE | WS_GROUP, 17, 9, 94, 14
+}
+```
+
+用 `OD` 打开程序，发现有两处调用 `DialogParamBoxA` 处，我就用了 `0040ED8E` 处的调用，让程序的 `OEP` 指向 `0040ED8E`
+
+```
+0040ED8E   > 8B15 6C0D4700  MOV EDX,DWORD PTR DS:[470D6C]            ;  Case 68 ('h') of switch 0040ED5B
+0040ED94   . 6A 00          PUSH 0                                    ; /lParam = NULL
+0040ED96   . 68 40F14000   PUSH SHOOTING.0040F140                    ; |DlgProc = SHOOTING.0040F140
+0040ED9B   . 57            PUSH EDI                                   ; |hOwner
+0040ED9C   . 6A 67         PUSH 67                                    ; |pTemplate = 67
+0040ED9E   . 52            PUSH EDX                                   ; |hInst => NULL
+0040ED9F   . FF15 74914100 CALL DWORD PTR DS:[<&USER32.DialogBoxPar>; \DialogBoxParamA
+0040EDA5   . E9 DB000000   JMP SHOOTING.0040EE85
+```
+
+通过 `40ED96` 处，我知道此窗口的消息处理程序在 `40F140` 处。（`DialogParamBoxA` 函数产生的是模式窗口，有自己的消息处理过程。如果没有现成的 `DialogParamBoxA` 调用，可以自己模仿下面程序构建一个）
+
+```
+0040F140   . 8B4424 08     MOV EAX,DWORD PTR SS:[ESP+8]
+0040F144   . 2D 10010000   SUB EAX,110                               ;  Switch (cases 110..111)
+'''110 = WM_INITDIALOG
+0040F149   . 74 52         JE SHORT SHOOTING.0040F19D
+0040F14B   . 48            DEC EAX
+'''111=WM_COMMAND
+0040F14C   . 74 05        JE SHORT SHOOTING.0040F153
+0040F14E   . 33C0         XOR EAX,EAX                               ;  Default case of switch 0040F144
+0040F150   . C2 1000      RETN 10
+0040F153   > 8B4424 0C    MOV EAX,DWORD PTR SS:[ESP+C]             ;  Case 111 of switch 0040F144
+0040F157   . 25 FFFF0000   AND EAX,0FFFF
+0040F15C   . 7E 3F        JLE SHORT SHOOTING.0040F19D
+0040F15E   . 83F8 02     CMP EAX,2
+0040F161   . 7E 2D        JLE SHORT SHOOTING.0040F190
+0040F163   . 3D E8030000  CMP EAX,3E8'注意 3E8 为“确定”按钮的 ID
+0040F168   . 75 33        JNZ SHORT SHOOTING.0040F19D;原来按此按钮会连接到以下网站
+0040F16A   . A1 98D44100  MOV EAX,DWORD PTR DS:[41D498]
+0040F16F   . 6A 05        PUSH 5                                    ; /IsShown = 5
+0040F171   . 6A 00        PUSH 0                                    ; |DefDir = NULL
+0040F173   . 6A 00        PUSH 0                                    ; |Parameters = NULL
+0040F175   . 50            PUSH EAX                                  ; |FileName => "[www.sting.co.jp/"](http://www.sting.co.jp/)
+0040F176   . 68 BCD04100   PUSH SHOOTING.0041D0BC                  ; |Operation = "open"
+0040F17B   . FF15 BC914100 CALL DWORD PTR DS:[<&USER32.GetDesktopWi>; \[GetDesktopWindow
+0040F181   . 50            PUSH EAX                                  ; |hWnd
+0040F182   . FF15 38914100 CALL DWORD PTR DS:[<&SHELL32.ShellExecut>; \ShellExecuteA
+0040F188   . B8 01000000   MOV EAX,1
+0040F18D   . C2 1000       RETN 10
+0040F190   > 8B4C24 04    MOV ECX,DWORD PTR SS:[ESP+4]
+0040F194   . 6A 02        PUSH 2                                    ; /Result = 2
+0040F196   . 51            PUSH ECX                                  ; |hWnd
+0040F197   . FF15 5C914100 CALL DWORD PTR DS:[<&USER32.EndDialog>\] ; \EndDialog
+0040F19D   > B8 01000000   MOV EAX,1                                 ;  Case 110 of switch 0040F144
+0040F1A2   . C2 1000       RETN 10
+```
+
+我修改为：
+
+```
+0040F140   . 8B4424 08     MOV EAX,DWORD PTR SS:[ESP+8]
+0040F144   . 2D 10010000   SUB EAX,110                               ;  Switch (cases 110..111)
+0040F149   . 74 52         JE SHORT TRY_SH-M.0040F19D
+0040F14B   . 48            DEC EAX
+0040F14C   . 74 05        JE SHORT TRY_SH-M.0040F153
+0040F14E   . 33C0         XOR EAX,EAX                               ;  Default case of switch 0040F144
+0040F150   . C2 1000      RETN 10
+0040F153   > 8B4424 0C    MOV EAX,DWORD PTR SS:[ESP+C]             ;  Case 111 of switch 0040F144
+0040F157   . 90            NOP
+0040F158   . 90            NOP
+0040F159   . 90            NOP
+0040F15A   . 90            NOP
+0040F15B   . 90            NOP
+0040F15C   . 90            NOP
+0040F15D   . 90            NOP
+0040F15E   . 83F8 02     CMP EAX,2
+0040F161   . 7E 2D        JLE SHORT TRY_SH-M.0040F190
+0040F163   . 3D E8030000  CMP EAX,3E8
+0040F168   . 0F84 B29A0000 JE TRY_SH-M.00418C20;如果按钮按下，则跳到我自己的代码，见下！
+0040F16E   . 3D 64000001  CMP EAX,1000064;在 Edit(ID=64H)控件具有焦点时，eax=100064
+0040F173   . 90            NOP;我们不做任何处理，返回。
+0040F174   . 90            NOP
+0040F175   . 90            NOP;中间无用代码，都 nop 掉
+0040F176   . 90            NOP
+0040F177   . 90            NOP
+0040F178   . 90            NOP
+0040F179   . 90            NOP
+0040F17A   . 90            NOP
+0040F17B   . 90            NOP
+0040F17C   . 90            NOP
+0040F17D   . 90            NOP
+0040F17E   . 90            NOP
+0040F17F   . 90            NOP
+0040F180   . 90            NOP
+0040F181   . 90            NOP
+0040F182   . 90            NOP
+0040F183   . 90            NOP
+0040F184   . 90            NOP
+0040F185   . 90            NOP
+0040F186   . 90            NOP
+0040F187   . 90            NOP
+0040F188   . B8 01000000   MOV EAX,1
+0040F18D   . C2 1000       RETN 10
+0040F190   > 8B4C24 04    MOV ECX,DWORD PTR SS:[ESP+4]
+0040F194   . 6A 02        PUSH 2                                    ; /Result = 2
+0040F196   . 51            PUSH ECX                                  ; |hWnd
+0040F197   . FF15 5C914100 CALL DWORD PTR DS:[<&USER32.EndDialog>\] ; \EndDialog
+0040F19D   > B8 01000000   MOV EAX,1                                 ;  Case 110 of switch 0040F144
+0040F1A2   . C2 1000       RETN 10
+```
+
+`0040F168` 跳到这里：
+
+```
+00418C20   > 68 70DA4100   PUSH TRY_SH-M.0041DA70                  ; /Title = "Please Input the Password"
+00418C25   . 6A 00        PUSH 0                                    ; |Class = 0
+00418C27   . FF15 9C914100 CALL DWORD PTR DS:[<&USER32.FindWindowA>>; \FindWindowA
+00418C2D   . A3 00DD4100   MOV DWORD PTR DS:[41DD00],EAX
+；找到对话框，获得句柄，放入[41DD00]
+
+00418C32   . 6A 20        PUSH 20                                   ; /Count = 20 (32.)
+00418C34   . 68 00DC4100   PUSH TRY_SH-M.0041DC00                  ; |Buffer = TRY_SH-M.0041DC00
+00418C39   . 90            NOP                                     ; |
+00418C3A   . 6A 64        PUSH 64                                   ; |ControlID = 64 (100.)
+```
+
+
+
+## 00418C3C
+```
+00418C3C   . FF35 00DD4100  PUSH DWORD PTR DS:\[41DD00\]               ; |hWnd = NULL  
+```
+
+## 00418C42
+```
+00418C42   . FF15 93505700  CALL DWORD PTR DS:\[575093\]               ; \\GetDlgItemTextA  
+```
+
+调用`GetDlgItemTextA`，获得`Edit`框的内容
+
+## 00418C48
+```
+00418C48   . BF 00DC4100    MOV EDI,TRY\_SH-M.0041DC00  
+```
+
+## 00418C4D
+```
+00418C4D   . BE 60DA4100    MOV ESI,TRY\_SH-M.0041DA60                ;  ASCII "cobra1111"  
+```
+
+## 00418C52
+```
+00418C52   . B9 09000000    MOV ECX,9      
+```
+重复九次`len(cobra1111) = 9`
+
+## 00418C57
+```
+00418C57   . F3:A6          REPE CMPS BYTE PTR ES:\[EDI\],BYTE PTR DS:>
+```
+
+比较密码是否为`cobra1111`，如果是，则可进入游戏；否则继续比较
+
+## 00418C59
+```
+00418C59   .⁷⁴ 95          JE SHORT TRY\_SH-M.00412327      
+```
+到程序原来的`OEP`
+
+## 00418C5B
+```
+00418C5B   . BF 00DC4100    MOV EDI,TRY\_SH-M.0041DC00  
+```
+
+## 00418C60
+```
+00418C60   . BE A0DA4100    MOV ESI,TRY\_SH-M.0041DAA0                ;  ASCII "jjxme"  
+```
+
+## 00418C65
+```
+00418C65   . B9 05000000    MOV ECX,5
+```
+
+## 00418C6A
+```
+00418C6A   . F3:A6          REPE CMPS BYTE PTR ES:\[EDI\],BYTE PTR DS:>
+```
+
+## 00418C6C
+```
+00418C6C   . 74 19          JE SHORT TRY\_SH-M.00418C87      
+```
+比较是否为`jjxme`，如果是可进入作弊模式（呵呵）
+
+如果都不是，则出错。
+
+## 00418C6E
+```
+00418C6E   . 6A 00          PUSH 0                                   ; /style = MB\_OK|MB\_APPLMODAL  
+```
+
+## 00418C70
+```
+00418C70   . 68 B0DA4100    PUSH TRY\_SH-M.0041DAB0                   ; |Title = "Wrong!!"  
+```
+
+## 00418C75
+```
+00418C75   . 68 B8DA4100    PUSH TRY\_SH-M.0041DAB8                   ; |Text = "密码错误!你不能玩游戏!!"  
+```
+
+## 00418C7A
+```
+00418C7A   . 6A 00          PUSH 0                                   ; |hOwner = NULL  
+```
+
+## 00418C7C
+```
+00418C7C   . FF15 58914100  CALL DWORD PTR DS:\[<&USER32.MessageBoxA>>; \\MessageBoxA  
+```
+
+## 00418C82
+```
+00418C82   . 33C0           XOR EAX,EAX  
+```
+
+## 00418C84
+```
+00418C84   . C2 1000        RETN 10
+```
+返回消息处理
+
+## 418C6C 跳到这里：
+
+## 00418C87
+```
+00418C87   > C605 00DC4100 >MOV BYTE PTR DS:\[41DC00\],1
+```
+用`\[41DC00\]`为`1`，则进入作弊模式（时间无限）
+
+用游戏修改器就能找到关键点，在此不详述
+
+## 00418C8E
+```
+00418C8E   .^E9 5DFFFFFF    JMP TRY\_SH-M.00418BF0 
+```
+
+## 00418C93
+```
+00418C93   > 803D 00DC4100 >CMP BYTE PTR DS:\[41DC00\],1
+```
+如果为`1`，则跳过减少时间的代码
+
+## 00418C9A
+```
+00418C9A   .⁰F84 7352FFFF  JE TRY\_SH-M.0040DF13  
+```
+
+## 00418CA0
+```
+00418CA0   . 833D 48134700 >CMP DWORD PTR DS:\[471348\],2
+```
+不然，则回复原程序代码，没有作弊模式
+
+## 00418CA7
+```
+00418CA7   .⁰F83 5052FFFF  JNB TRY\_SH-M.0040DEFD  
+```
+
+## 00418CAD
+```
+00418CAD   . 48             DEC EAX  
+```
+
+## 00418CAE
+```
+00418CAE   . 66:8946 2A     MOV WORD PTR DS:\[ESI+2A\],AX  
+```
+
+## 00418CB2
+```
+00418CB2   .^E9 5C52FFFF    JMP TRY\_SH-M.0040DF13 
+```
+
+把以下程序修改：
+
+## 0040DEF4
+```
+0040DEF4   . 73 07          JNB SHORT SHOOTING.0040DEFD  
+0040DEF6   . 48             DEC EAX  
+0040DEF7   . 66:8946 2A     MOV WORD PTR DS:\[ESI+2A\],AX  
+```
+
+修改后：
+
+## 0040DEF4
+```
+0040DEF4   . E9 9AAD0000    JMP TRY\_SH-M.00418C93
+```
+跳到自己的代码，见上！
+
+## 0040DEF9
+```
+0040DEF9     90             NOP  
+0040DEFA     90             NOP 
+```
+
+现在来解决对话框右上角的“x”按钮了，如果不处理的话，即使密码不正确，按了这个键也会进入游戏。
+
+本来我想在消息处理过程中处理这个东西，后来没有成功。还好我发现了一个更简单的方法：
+
+## 0040ED8E
+```
+0040ED8E   > 8B15 6C0D4700  MOV EDX,DWORD PTR DS:\[470D6C\]          
+```
+`Case 68 ('h') of switch 0040ED5B`
+
+## 0040ED94
+```
+0040ED94   . 6A 00          PUSH 0                 
+```
+`/lParam = NULL`
+
+## 0040ED96
+```
+0040ED96   . 68 40F14000    PUSH SHOOTING.0040F140  
+```
+`|DlgProc = SHOOTING.0040F140`
+
+## 0040ED9B
+```
+0040ED9B   . 57             PUSH EDI      
+```
+`|hOwner`
+
+## 0040ED9C
+```
+0040ED9C   . 6A 67          PUSH 67       
+```
+`|pTemplate = 67`
+
+## 0040ED9E
+```
+0040ED9E   . 52             PUSH EDX      
+```
+`|hInst => NULL`
+
+## 0040ED9F
+```
+0040ED9F   . FF15 74914100  CALL DWORD PTR DS:\[<&USER32.DialogBoxPar>; \\DialogBoxParamA  
+```
+
+## 0040EDA5
+```
+0040EDA5   . E9 DB000000    JMP SHOOTING.0040EE85
+```
+由于按了`x`按钮后会关闭对话框，然后就会来到这一句，我只要改这一句就行了。好，改为`JMP 00418CB7`
+
+## 00418CB7
+```
+00418CB7   > 6A 00          PUSH 0                 
+```
+`/style = MB\_OK|MB\_APPLMODAL`
+
+## 00418CB9
+```
+00418CB9   . 68 80DB4100    PUSH TRY\_SH-M.0041DB80  
+```
+`|Title = "再见!"00`
+
+## 00418CBE
+```
+00418CBE   . 68 86DB4100    PUSH TRY\_SH-M.0041DB86  
+```
+`|Text = "再见! 欢迎下次再来!!"`
+
+## 00418CC3
+```
+00418CC3   . 6A 00          PUSH 0                
+```
+`|hOwner = NULL`
+
+## 00418CC5
+```
+00418CC5   . FF15 58914100  CALL DWORD PTR DS:\[<&USER32.MessageBoxA>>; \\MessageBoxA  
+```
+
+## 00418CCB
+```
+00418CCB   .^E9 8A97FFFF    JMP TRY\_SH-M.0041245A 
+```
+
+显示一个“欢迎下次再来”的对话框后，跳到退出程序的代码（程序中现成的）：
+
+## 0041245A
+```
+0041245A  |> 68 FF000000    PUSH 0FF            
+```
+`/ExitCode = FF`
+
+## 0041245F
+```
+0041245F  \\. FF15 28914100  CALL DWORD PTR DS:\[<&KERNEL32.ExitProces>; \\ExitProcess  
+```
+
+## 00412465
+```
+00412465   . C3             RETN 
+```
+
+OK！基本完成了！
+
+修改过程中，`DialogBoxParamA`是原程序中没有的，用`LoadPE`导入即可。
+
+从分利用程序中原本就有的代码！
+
+在这里我问一个问题：
+
+在`418C93`处，我原本打算用这样的方法来修改掉程序中的代码：
+
+```
+mov byte ptr\[40DEF4\],90  
+mov byte ptr\[40DEF5\],90  
+```
+
+但是不能运行，不知为何？记得在看雪的书中有过这样的例子的！
+
+更奇怪的是，如果我在运行这句之前，用`OD`随便修改一下内存中的数据，指令就能正常运行了。
+
+望高手指教！
+
+小弟第一次写这样的文章，思路混乱，表达不清，望诸位谅解！
+
+谢谢！！
+
+`4dd466d0e1e0cc123afbe504da2462ca`

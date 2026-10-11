@@ -1,0 +1,310 @@
+
+## 00418C3C
+```
+00418C3C   . FF35 00DD4100  PUSH DWORD PTR DS:\[41DD00\]               ; |hWnd = NULL  
+```
+
+## 00418C42
+```
+00418C42   . FF15 93505700  CALL DWORD PTR DS:\[575093\]               ; \\GetDlgItemTextA  
+```
+
+调用`GetDlgItemTextA`，获得`Edit`框的内容
+
+## 00418C48
+```
+00418C48   . BF 00DC4100    MOV EDI,TRY\_SH-M.0041DC00  
+```
+
+## 00418C4D
+```
+00418C4D   . BE 60DA4100    MOV ESI,TRY\_SH-M.0041DA60                ;  ASCII "cobra1111"  
+```
+
+## 00418C52
+```
+00418C52   . B9 09000000    MOV ECX,9      
+```
+重复九次`len(cobra1111) = 9`
+
+## 00418C57
+```
+00418C57   . F3:A6          REPE CMPS BYTE PTR ES:\[EDI\],BYTE PTR DS:>
+```
+
+比较密码是否为`cobra1111`，如果是，则可进入游戏；否则继续比较
+
+## 00418C59
+```
+00418C59   .⁷⁴ 95          JE SHORT TRY\_SH-M.00412327      
+```
+到程序原来的`OEP`
+
+## 00418C5B
+```
+00418C5B   . BF 00DC4100    MOV EDI,TRY\_SH-M.0041DC00  
+```
+
+## 00418C60
+```
+00418C60   . BE A0DA4100    MOV ESI,TRY\_SH-M.0041DAA0                ;  ASCII "jjxme"  
+```
+
+## 00418C65
+```
+00418C65   . B9 05000000    MOV ECX,5
+```
+
+## 00418C6A
+```
+00418C6A   . F3:A6          REPE CMPS BYTE PTR ES:\[EDI\],BYTE PTR DS:>
+```
+
+## 00418C6C
+```
+00418C6C   . 74 19          JE SHORT TRY\_SH-M.00418C87      
+```
+比较是否为`jjxme`，如果是可进入作弊模式（呵呵）
+
+如果都不是，则出错。
+
+## 00418C6E
+```
+00418C6E   . 6A 00          PUSH 0                                   ; /style = MB\_OK|MB\_APPLMODAL  
+```
+
+## 00418C70
+```
+00418C70   . 68 B0DA4100    PUSH TRY\_SH-M.0041DAB0                   ; |Title = "Wrong!!"  
+```
+
+## 00418C75
+```
+00418C75   . 68 B8DA4100    PUSH TRY\_SH-M.0041DAB8                   ; |Text = "密码错误!你不能玩游戏!!"  
+```
+
+## 00418C7A
+```
+00418C7A   . 6A 00          PUSH 0                                   ; |hOwner = NULL  
+```
+
+## 00418C7C
+```
+00418C7C   . FF15 58914100  CALL DWORD PTR DS:\[<&USER32.MessageBoxA>>; \\MessageBoxA  
+```
+
+## 00418C82
+```
+00418C82   . 33C0           XOR EAX,EAX  
+```
+
+## 00418C84
+```
+00418C84   . C2 1000        RETN 10
+```
+返回消息处理
+
+## 418C6C 跳到这里：
+
+## 00418C87
+```
+00418C87   > C605 00DC4100 >MOV BYTE PTR DS:\[41DC00\],1
+```
+用`\[41DC00\]`为`1`，则进入作弊模式（时间无限）
+
+用游戏修改器就能找到关键点，在此不详述
+
+## 00418C8E
+```
+00418C8E   .^E9 5DFFFFFF    JMP TRY\_SH-M.00418BF0 
+```
+
+## 00418C93
+```
+00418C93   > 803D 00DC4100 >CMP BYTE PTR DS:\[41DC00\],1
+```
+如果为`1`，则跳过减少时间的代码
+
+## 00418C9A
+```
+00418C9A   .⁰F84 7352FFFF  JE TRY\_SH-M.0040DF13  
+```
+
+## 00418CA0
+```
+00418CA0   . 833D 48134700 >CMP DWORD PTR DS:\[471348\],2
+```
+不然，则回复原程序代码，没有作弊模式
+
+## 00418CA7
+```
+00418CA7   .⁰F83 5052FFFF  JNB TRY\_SH-M.0040DEFD  
+```
+
+## 00418CAD
+```
+00418CAD   . 48             DEC EAX  
+```
+
+## 00418CAE
+```
+00418CAE   . 66:8946 2A     MOV WORD PTR DS:\[ESI+2A\],AX  
+```
+
+## 00418CB2
+```
+00418CB2   .^E9 5C52FFFF    JMP TRY\_SH-M.0040DF13 
+```
+
+把以下程序修改：
+
+## 0040DEF4
+```
+0040DEF4   . 73 07          JNB SHORT SHOOTING.0040DEFD  
+0040DEF6   . 48             DEC EAX  
+0040DEF7   . 66:8946 2A     MOV WORD PTR DS:\[ESI+2A\],AX  
+```
+
+修改后：
+
+## 0040DEF4
+```
+0040DEF4   . E9 9AAD0000    JMP TRY\_SH-M.00418C93
+```
+跳到自己的代码，见上！
+
+## 0040DEF9
+```
+0040DEF9     90             NOP  
+0040DEFA     90             NOP 
+```
+
+现在来解决对话框右上角的“x”按钮了，如果不处理的话，即使密码不正确，按了这个键也会进入游戏。
+
+本来我想在消息处理过程中处理这个东西，后来没有成功。还好我发现了一个更简单的方法：
+
+## 0040ED8E
+```
+0040ED8E   > 8B15 6C0D4700  MOV EDX,DWORD PTR DS:\[470D6C\]          
+```
+`Case 68 ('h') of switch 0040ED5B`
+
+## 0040ED94
+```
+0040ED94   . 6A 00          PUSH 0                 
+```
+`/lParam = NULL`
+
+## 0040ED96
+```
+0040ED96   . 68 40F14000    PUSH SHOOTING.0040F140  
+```
+`|DlgProc = SHOOTING.0040F140`
+
+## 0040ED9B
+```
+0040ED9B   . 57             PUSH EDI      
+```
+`|hOwner`
+
+## 0040ED9C
+```
+0040ED9C   . 6A 67          PUSH 67       
+```
+`|pTemplate = 67`
+
+## 0040ED9E
+```
+0040ED9E   . 52             PUSH EDX      
+```
+`|hInst => NULL`
+
+## 0040ED9F
+```
+0040ED9F   . FF15 74914100  CALL DWORD PTR DS:\[<&USER32.DialogBoxPar>; \\DialogBoxParamA  
+```
+
+## 0040EDA5
+```
+0040EDA5   . E9 DB000000    JMP SHOOTING.0040EE85
+```
+由于按了`x`按钮后会关闭对话框，然后就会来到这一句，我只要改这一句就行了。好，改为`JMP 00418CB7`
+
+## 00418CB7
+```
+00418CB7   > 6A 00          PUSH 0                 
+```
+`/style = MB\_OK|MB\_APPLMODAL`
+
+## 00418CB9
+```
+00418CB9   . 68 80DB4100    PUSH TRY\_SH-M.0041DB80  
+```
+`|Title = "再见!"00`
+
+## 00418CBE
+```
+00418CBE   . 68 86DB4100    PUSH TRY\_SH-M.0041DB86  
+```
+`|Text = "再见! 欢迎下次再来!!"`
+
+## 00418CC3
+```
+00418CC3   . 6A 00          PUSH 0                
+```
+`|hOwner = NULL`
+
+## 00418CC5
+```
+00418CC5   . FF15 58914100  CALL DWORD PTR DS:\[<&USER32.MessageBoxA>>; \\MessageBoxA  
+```
+
+## 00418CCB
+```
+00418CCB   .^E9 8A97FFFF    JMP TRY\_SH-M.0041245A 
+```
+
+显示一个“欢迎下次再来”的对话框后，跳到退出程序的代码（程序中现成的）：
+
+## 0041245A
+```
+0041245A  |> 68 FF000000    PUSH 0FF            
+```
+`/ExitCode = FF`
+
+## 0041245F
+```
+0041245F  \\. FF15 28914100  CALL DWORD PTR DS:\[<&KERNEL32.ExitProces>; \\ExitProcess  
+```
+
+## 00412465
+```
+00412465   . C3             RETN 
+```
+
+OK！基本完成了！
+
+修改过程中，`DialogBoxParamA`是原程序中没有的，用`LoadPE`导入即可。
+
+从分利用程序中原本就有的代码！
+
+在这里我问一个问题：
+
+在`418C93`处，我原本打算用这样的方法来修改掉程序中的代码：
+
+```
+mov byte ptr\[40DEF4\],90  
+mov byte ptr\[40DEF5\],90  
+```
+
+但是不能运行，不知为何？记得在看雪的书中有过这样的例子的！
+
+更奇怪的是，如果我在运行这句之前，用`OD`随便修改一下内存中的数据，指令就能正常运行了。
+
+望高手指教！
+
+小弟第一次写这样的文章，思路混乱，表达不清，望诸位谅解！
+
+谢谢！！
+
+`4dd466d0e1e0cc123afbe504da2462ca`
