@@ -1,0 +1,55 @@
+
+# 解决 Vista 下文件名中带 Update 不能通过 UAC 认证的问题
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-640.htm`](https://www.pediy.com/kssd/pediy09/pediy09-640.htm)
+
+这段时间把自己之前开发的系统移植到了 `Vista` 系统下，开始的时候程序还运行得好好的，调用在线升级以后，发现程序不正常了。打开程序所在的目录，发现在线升级程序图标右下角有了一个盾牌的标志（在线升级程序的名字为：`GisUpdate.exe`），说明在线升级程序没能通过 `Vista` 的 `UAC` 认证。`Vista` 系统我自己也用的不多，主要是我用的开发工具在它下面都装不起来，并且之前听说 `Vista` 对 `Win32` 的程序支持的不是太好，比如迅雷会影响 `IE7` 下载文件的问题。
+
+出现不能通过 `UAC` 认证的问题，开始我以为我的在线升级程序是不是使用了非通用的 `API` 函数或是开发工具中版本专有的功能，逐渐的把代码注释后编译再放到 `Vista` 系统下，没能通过认证，最后是注释了所有的代码，一样的也没有能通过认证。我想着是不是第一次没能通过认证，`Vista` 就记录下来该程序，后面也不能通过认证，为了验证这个问题，我把在线升级程序的文件名改了，通过了 `Vista` 的 `UAC` 认证。接着我又起来逐步取消之前的注释，文件名也进行了修改，到最后全部的注释都取消，也就是回到了在线升级的完整功能，都通过的 `UAC` 的认证。这样的话就可以确定程序本身是没有问题的，把程序改成原来的 `GisUpdate.exe`，晕，又没能通过认证，再把名字改回来，又通过了认证，这样就可以判断是跟名字本身有关系。
+
+出现这个问题是不是因为我的升级程序中包含的 `Update` 字样与 `Vista` 本身的升级程序有冲突，它的程序本身有管理员权限，而我的程序本身没有管理权限，所有没能通过 `UAC` 认证（估计的，望知道的兄弟补充和纠正）。
+
+把程序改名发布后，突然想起来，想看看 `Vista` 下的其它应用程序的升级程序有没有这样的问题，进行全盘搜索后发现 `QQ` 的目录下的两个文件：`QQLiveUpdate.exe` 和 `QQUpdateCenter.exe`，这两个文件都通过了 `Vista` 的 `UAC` 认证，那就说明是有办法让带有 `Update` 字样的文件通过 `UAC` 认证。用 `OllyDbg` 载入这两个程序分析，什么也没有找到，这也就说明起到通过 `UAC` 认证的功能不在代码中，可能在其它的地方。打开 `Visual C++ 6.0`，选择“`File`”里面的“`Open`”，然后在“`Open as`”中选择“`Resources`”，打开 `QQ` 下面的那两个带 `Update` 字样的程序，发现资源文件里面都有类型为“`24`”，`ID` 为“`1`”的资源。在程序里在进行分析，发现都没有什么地方用到这个资源，我就干脆把这个资源删除，保存后，发现 `QQ` 的这两个程序也没能通过 `UAC` 的认证，这说明是这段资源起到了让程序通过 `UAC` 认证的功能。我把这段代码拷贝了出来，原来是一段 `XML` 代码：
+
+代码:
+
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+    <assemblyIdentity version="1.0.0.0"
+        processorArchitecture="X86"
+        name="IsUserAdmin"
+        type="win32"/>
+    <description>QQUpdateCenter</description>
+    <!-- Identify the application security requirements. -->
+    <trustInfo xmlns="urn:schemas-microsoft-com:asm.v2">
+      <security>
+        <requestedPrivileges>
+          <requestedExecutionLevel
+            level="asInvoker"
+            uiAccess="false"/>
+        </requestedPrivileges>
+      </security>
+    </trustInfo>
+</assembly>
+```
+
+既然是这段代码起到了作用，那么就可以把这段代码加到自己的程序中去，先再 `VC` 中实验，随便建立一个工程，取名为“`TestUpate.exe`”，编译拷贝拷贝到 `Vista` 系统，发现没能通过认证。接下来在 `VC` 中依次选择“`Insert`”->“`Resource`”->“`Custom`”，在打开的对话框中填入“`24`”，确定后会出现一个空白的以“`000000`”开头的编辑框，把刚刚从 `QQUpdateCenter` 拷贝出来的端代码拷贝到“`000000`”后面。从两个 `XML` 代码中可以看出来，`<description>QQUpdateCenter</description>`这段代码中的“`QQUpdateCenter`”应该改成我们实验的应用程序的名字，把这里改成“`TestUpate`”，接着把类型为“`24`”列表下的资源的 `ID` 改为“`1`”，编译以后拷贝到 `Vista` 下，通过 `UAC` 认证，说明我们的实验成功。
+
+上面只是介绍了 `VC` 的方法，接下来说一下在 `Delphi` 下的方法，首先我们把上面拷贝出来的那段 `XML` 存成一个文件，比如：`1.XML`，建立一个 `RC` 文件，内容是这样的：
+
+```text
+1 24 1.XML
+```
+
+在命令行输入：`BRCC32 1.RC` 对 `RC` 文件进行编译，产生一个 `1.Res` 的文件，把 `1.RES` 拷贝到自己的应用程序目录下，通过在主窗体程序的 `implementation` 域下面使用`{$R 1.RES}`来引用资源文件，编译以后拷贝到 `Vista` 下，通过 `UAC` 认证。
+
+注意一点：就是不管在什么开发语言中使用那段 `XML` 文件，下面这段域之间的值都要更改为自己的应用程序名。
+
+代码:
+
+```html
+<description> QQUpdateCenter </description>
+```
+
+`4dd466d0e1e0cc123afbe504da2462ca`
