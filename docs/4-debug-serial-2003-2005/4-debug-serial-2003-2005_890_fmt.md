@@ -1,0 +1,648 @@
+
+# 联众斗地主记牌器 V2.36 注册算法分析
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-371.htm`](https://www.pediy.com/kssd/pediy07/pediy7-371.htm)
+
+联众斗地主记牌器 V2.36 注册算法分析
+
+日期：2005 年 8 月 25 日  破解人:Baby2008
+
+---------------------------------------------------------
+
+『软件名称』：联众斗地主记牌器 V2.36
+
+『软件大小』：642 KB
+
+『下载地址』：`http://www.skycn.com/soft/1436.html`
+
+『软件介绍』：可用于联众一副牌和两副牌的斗地主游戏，具有自动记录已出牌、剩余牌和剩余张数的功能，用户注册后不是地主也能看底牌（二副牌时），软件界面美观，使用方便。
+
+『保护方式』：注册码保护
+
+『破解声明』：初学 Crack，只是感兴趣，失误之处敬请诸位大侠赐教!
+
+『破解工具』：`flyODBG.V1.10` 聆风听雨汉化第二版、`PeID 0.93`, `ASPackDie v1.41.HH`
+
+『破解过程』：
+
+## 一、查壳、脱壳 + 去除反调试
+
+`PeID 0.93`,查壳,`ASPack 2.12` -> `Alexey Solodovnikov`,老壳了,工具手脱都很方便,我是懒人,用 `ASPackDie v1.41.HH` 搞定,默认另存为 `Unpacked.eXe`,`OD` 载入,`F9` 运行,晕死,`flyODBG` 被自动关闭了,有 `Anti-Bebug`,搞定它,重新运行 `OD`,命令行下断点 `bp TerminateProcess`,`F9` 运行,`OD` 中断在:
+
+```
+7C801E16  k>   8BFF                 mov edi,edi                        ; Unpacked.0045A7E0
+7C801E18     55                   push ebp
+7C801E19     8BEC                 mov ebp,esp
+7C801E1B     837D 08 00           cmp dword ptr ss:[ebp+8],0
+7C801E1F     75 09                jnz short kernel32.7C801E2A
+```
+
+堆栈提示:
+
+```
+0012FDE4     0045ABA0   /CALL 到 TerminateProcess 来自 Unpacked.0045AB9B //来源
+0012FDE8     000000A4   |hProcess = 000000A4 (window)
+0012FDEC     00000000   \ExitCode = 0
+```
+
+`Ctrl+G:0045AB9B`
+
+```
+0045AB7D    .   BA D8AB4500          mov edx,Unpacked.0045ABD8                ;   ASCII "EXPLORER.EXE"
+0045AB82    .   E8 219CFAFF          call Unpacked.004047A8
+0045AB87    .   74 1D               je short Unpacked.0045ABA6                 ;   修改为 JMP,解除 Anti-Debug
+0045AB89    .   56                  push esi                                   ; /ProcessId
+0045AB8A    .   6A 00               push 0                                     ; |Inheritable = FALSE
+0045AB8C    .   68 FF0F1F00         push 1F0FFF                                ; |Access = PROCESS_ALL_ACCESS
+0045AB91    .   E8 86BEFAFF         call <jmp.&kernel32.OpenProcess>           ; \OpenProcess
+0045AB96    .   8BD8                mov ebx,eax
+0045AB98    .   6A 00               push 0                                     ; /ExitCode = 0
+0045AB9A    .   53                  push ebx                                   ; |hProcess
+0045AB9B    .   E8 CCBEFAFF         call <jmp.&kernel32.TerminateProcess>      ; \TerminateProcess    这里
+0045ABA0    .   53                  push ebx                                   ; /hObject
+0045ABA1    .   E8 16BDFAFF         call <jmp.&kernel32.CloseHandle>          ; \CloseHandle
+```
+
+原来是查找父进程啊,修改为 `JMP` 或将 `flyODBG.exe` 文件名改为 `EXPLORER.EXE` ,即可解除 `Anti-Debug`;
+
+## 二、注册验证算法分析
+
+脱壳后查得是 `Borland Delphi 6.0 - 7.0`，好办，`Dede` 出马找到注册按钮事件地址 `0045A570` 下断，`F9` 运行,输入试炼码 `1234567890`，点击注册，`OD` 中断在:
+
+```
+0045A570 <>/.   55                   push ebp                                  ;   <-TForm2@BRegClick
+0045A571   |.   8BEC                 mov ebp,esp
+0045A573   |.   6A 00                push 0
+0045A575   |.   53                   push ebx
+0045A576   |.   8BD8                 mov ebx,eax
+0045A578   |.   33C0                 xor eax,eax
+0045A57A   |.   55                   push ebp
+0045A57B   |.   68 06A64500          push <Unpacked.->System.@HandleFinally;>
+0045A580   |.   64:FF30             push dword ptr fs:[eax]
+0045A583   |.   64:8920            mov dword ptr fs:[eax],esp
+0045A586 <>. |.   8B83 04030000      mov eax,dword ptr ds:[ebx+304]             ;   *RCode:N.A.
+0045A58C   |.   8B10                 mov edx,dword ptr ds:[eax]
+0045A58E   |.   FF52 50             call dword ptr ds:[edx+50]
+0045A591   |.   84C0                 test al,al
+0045A593   |.   74 5B                je short Unpacked.0045A5F0
+0045A595   |.   8D55 FC              lea edx,dword ptr ss:[ebp-4]
+0045A598 <>|.   8B83 04030000      mov eax,dword ptr ds:[ebx+304]             ;   *RCode:N.A.
+0045A59E <>|.   E8 658CFDFF         call Unpacked.00433208                   ;   ->Controls.TControl.GetText(TControl):TCaption;
+0045A5A3   |.   8B55 FC              mov edx,dword ptr ss:[ebp-4]
+0045A5A6   |.   B8 1CA64500          mov eax,Unpacked.0045A61C                ;   ASCII "RegCode"
+0045A5AB   |.   E8 7CB6FFFF          call Unpacked.00455C2C                   ;   保存注册信息
+0045A5B0   |.   84C0                 test al,al
+0045A5B2   |.   74 3C                je short Unpacked.0045A5F0
+0045A5B4   |.   6A 00                push 0                                   ; /Title = NULL
+0045A5B6   |.   68 24A64500          push Unpacked.0045A624                 ; |Class = "LZDDZHookWnd2003"
+0045A5BB <>. |.   E8 14C8FAFF        call <jmp.&user32.FindWindowA>          ; \->user32.FindWindowA()
+0045A5C0   |.   85C0                 test eax,eax
+0045A5C2   |.   74 11                je short Unpacked.0045A5D5
+0045A5C4   |.   6A 00                push 0                                   ; /lParam = 0
+0045A5C6   |.   6A 00                push 0                                   ; |wParam = 0
+0045A5C8   |.   68 02800000          push 8002                                ; |Message = MSG(8002)
+0045A5CD   |.   50                   push eax                                 ; |hWnd
+0045A5CE <>|.   E8 49CAFAFF          call <jmp.&user32.PostMessageA>         ; \->user32.PostMessageA()
+0045A5D3   |.   EB 1B                jmp short Unpacked.0045A5F0
+0045A5D5   |>   6A 01                push 1
+0045A5D7   |.   6A 03                push 3
+0045A5D9   |.   68 02800000          push 8002
+0045A5DE   |.   A1 48D04500          mov eax,dword ptr ds:[45D048]
+0045A5E3   |.   8B00                 mov eax,dword ptr ds:[eax]
+0045A5E5 <>|.   E8 92F2FDFF          call Unpacked.0043987C                 ;   ->Controls.TWinControl.GetHandle(TWinControl):HWND;<+>
+0045A5EA   |.   50                   push eax                                 ; |hWnd
+0045A5EB <>|.   E8 2CCAFAFF          call <jmp.&user32.PostMessageA>         ; \->user32.PostMessageA()
+0045A5F0   |>   33C0                 xor eax,eax
+0045A5F2   |.   5A                   pop edx
+0045A5F3   |.   59                   pop ecx
+0045A5F4   |.   59                   pop ecx
+0045A5F5   |.   64:8910            mov dword ptr fs:[eax],edx
+0045A5F8   |.   68 0DA64500          push Unpacked.0045A60D
+0045A5FD   |.   8D45 FC              lea eax,dword ptr ss:[ebp-4]
+0045A600 <>|.   E8 A79DFAFF          call Unpacked.004043AC                 ;   ->System.@LStrClr(void;void);
+0045A605   \.   C3                   retn
+0045A606 <>  .^   E9 C997FAFF        jmp Unpacked.00403DD4                 ;   ->System.@HandleFinally;
+0045A60B     .^   EB F0                jmp short Unpacked.0045A5FD
+0045A60D     .   5B                   pop ebx
+0045A60E     .   59                   pop ecx
+0045A60F     .   5D                   pop ebp
+0045A610     .   C3                   retn
+```
+
+晕，注册按钮事件并没有以往的注册验证过程,`PostMessageA` 发送消息走人了。`Delphi` 写的程序，如果用消息来传递数据，会给 `Cracker` 带来很大的麻烦。因为 `Delphi` 的消息处理机制嵌套太多了，另外想想办法吧；
+
+突然发现软件有“软件已经注册”字样，哈哈不错，就是它了，插件查找字符串位于 `0045A6C4`，向上查找来到；
+
+```
+0045A65D <>|.   E8 BAB4FFFF          call Unpacked.00455B1C                 ;   ->:TPassword._PROC_00455B1C()
+0045A662   |.   8B55 FC              mov edx,dword ptr ss:[ebp-4]
+0045A665 <>|.   8B83 00030000      mov eax,dword ptr ds:[ebx+300]             ;   *MCode:N.A.
+0045A66B <>|.   E8 C88BFDFF          call Unpacked.00433238                 ;   ->Controls.TControl.SetText(TControl;TCaption);
+0045A670   |.   8D55 F8              lea edx,dword ptr ss:[ebp-8]
+0045A673   |.   B8 08A74500          mov eax,Unpacked.0045A708                ;   ASCII "RegCode"
+0045A678 <>|.   E8 DFB4FFFF          call Unpacked.00455B5C                 ;   ->:TPassword._PROC_00455B5C()
+0045A67D   |.   8B55 F8              mov edx,dword ptr ss:[ebp-8]
+0045A680 <>|.   8B83 04030000      mov eax,dword ptr ds:[ebx+304]             ;   *RCode:N.A.
+```
+
+
+
+0045A686 `<>|.` `E8 AD8BFDFF` `call Unpacked.00433238` `; ->Controls.TControl.SetText(TControl;TCaption);`  
+
+0045A68B `|. ` `8D55 F4` `lea edx,dword ptr ss:[ebp-C]`  
+
+0045A68E `<>|.` `8B83 04030000` `mov eax,dword ptr ds:[ebx+304]` `; *RCode:N.A.`  
+
+0045A694 `<>|.` `E8 6F8BFDFF` `call Unpacked.00433208` `; ->Controls.TControl.GetText(TControl):TCaption;`  
+
+0045A699 `|. ` `8B45 F4` `mov eax,dword ptr ss:[ebp-C]`  
+
+0045A69C `|. ` `BA 01000000` `mov edx,1`  
+
+0045A6A1 `|. ` `E8 7EB6FFFF` `call Unpacked.00455D24` `; 判断注册`  
+
+0045A6A6 `|. ` `84C0` `test al,al`  
+
+0045A6A8 `|. ` `74 26` `je short Unpacked.0045A6D0` `; 判断`  
+
+0045A6AA `|. ` `33D2` `xor edx,edx`  
+
+0045A6AC `<>|.` `8B83 04030000` `mov eax,dword ptr ds:[ebx+304]` `; *RCode:N.A.`  
+
+0045A6B2 `|. ` `8B08` `mov ecx,dword ptr ds:[eax]`  
+
+0045A6B4 `|. ` `FF51 64` `call dword ptr ds:[ecx+64]`  
+
+0045A6B7 `|. ` `33D2` `xor edx,edx`  
+
+0045A6B9 `<>|.` `8B83 00030000` `mov eax,dword ptr ds:[ebx+300]` `; *MCode:N.A.`  
+
+0045A6BF `|. ` `8B08` `mov ecx,dword ptr ds:[eax]`  
+
+0045A6C1 `|. ` `FF51 64` `call dword ptr ds:[ecx+64]`  
+
+0045A6C4 `|. ` `BA 18A74500` `mov edx,Unpacked.0045A718` `; '软件已经注册' ,马脚露了!!`  
+
+0045A6C9 `|. ` `8BC3` `mov eax,ebx`  
+
+0045A6CB `<>|.` `E8 688BFDFF` `call Unpacked.00433238` `; ->Controls.TControl.SetText(TControl;TCaption);`  
+
+0045A6D0 `|> ` `33C0` `xor eax,eax`  
+
+0045A6D2 `|. ` `5A` `pop edx`  
+
+0045A6D3 `|. ` `59` `pop ecx`  
+
+0045A6D4 `|. ` `59` `pop ecx`  
+
+从上面代码很容易看出 `0045A6A1` 处 `call Unpacked.00455D24` 是关键，跟进:
+
+`---------------------------------------------------------`
+
+00455D24 `$ ` `55` `push ebp`  
+
+00455D25 `. ` `8BEC` `mov ebp,esp`  
+
+00455D27 `. ` `83C4 E0` `add esp,-20`  
+
+00455D2A `. ` `53` `push ebx`  
+
+00455D2B `. ` `33C9` `xor ecx,ecx`  
+
+00455D2D `. ` `894D E0` `mov dword ptr ss:[ebp-20],ecx`  
+
+00455D30 `. ` `894D E4` `mov dword ptr ss:[ebp-1C],ecx`  
+
+00455D33 `. ` `894D F0` `mov dword ptr ss:[ebp-10],ecx`  
+
+00455D36 `. ` `8BDA` `mov ebx,edx`  
+
+00455D38 `. ` `8945 FC` `mov dword ptr ss:[ebp-4],eax` `; 试炼码`  
+
+00455D3B `. ` `8B45 FC` `mov eax,dword ptr ss:[ebp-4]`  
+
+00455D3E `. ` `E8 09EBFAFF` `call Unpacked.0040484C`  
+
+00455D43 `. ` `33C0` `xor eax,eax`  
+
+00455D45 `. ` `55` `push ebp`  
+
+00455D46 `. ` `68 055E4500` `push Unpacked.00455E05`  
+
+00455D4B `. ` `64:FF30` `push dword ptr fs:[eax]`  
+
+00455D4E `. ` `64:8920` `mov dword ptr fs:[eax],esp`  
+
+00455D51 `. ` `C645 FB 00` `mov byte ptr ss:[ebp-5],0`  
+
+00455D55 `. ` `837D FC 00` `cmp dword ptr ss:[ebp-4],0` `; 试炼码不能为空`  
+
+00455D59 `. ` `74 7F` `je short Unpacked.00455DDA`  
+
+00455D5B `. ` `8D45 F0` `lea eax,dword ptr ss:[ebp-10]`  
+
+00455D5E `. ` `50` `push eax`  
+
+00455D5F `. ` `8D45 E4` `lea eax,dword ptr ss:[ebp-1C]`  
+
+00455D62 `. ` `E8 B5FDFFFF` `call Unpacked.00455B1C`  
+
+00455D67 `. ` `8B45 E4` `mov eax,dword ptr ss:[ebp-1C]` `; 机器码`  
+
+00455D6A `. ` `8D4D EC` `lea ecx,dword ptr ss:[ebp-14]`  
+
+00455D6D `. ` `8D55 E8` `lea edx,dword ptr ss:[ebp-18]`  
+
+00455D70 `. ` `2BCA` `sub ecx,edx`  
+
+00455D72 `. ` `49` `dec ecx`  
+
+00455D73 `. ` `8BD3` `mov edx,ebx`  
+
+00455D75 `. ` `E8 42EBFAFF` `call Unpacked.004048BC` `; System.@LStrCopy;`  
+
+00455D7A `. ` `33C9` `xor ecx,ecx`  
+
+00455D7C `. ` `B2 01` `mov dl,1`  
+
+00455D7E `. ` `A1 48554500` `mov eax,dword ptr ds:[455548]`  
+
+00455D83 `. ` `E8 DC58FCFF` `call Unpacked.0041B664` `; TComponent.Create`  
+
+00455D88 `. ` `8945 F4` `mov dword ptr ss:[ebp-C],eax`  
+
+00455D8B `. ` `33C0` `xor eax,eax`  
+
+00455D8D `. ` `55` `push ebp`  
+
+00455D8E `. ` `68 D35D4500` `push Unpacked.00455DD3`  
+
+00455D93 `. ` `64:FF30` `push dword ptr fs:[eax]`  
+
+00455D96 `. ` `64:8920` `mov dword ptr fs:[eax],esp`  
+
+00455D99 `. ` `8D45 E0` `lea eax,dword ptr ss:[ebp-20]`  
+
+00455D9C `. ` `50` `push eax`  
+
+00455D9D `. ` `B1 03` `mov cl,3` `; cl=3 重要数据,决定下面一固定字符串来源`  
+
+00455D9F `. ` `8B55 F0` `mov edx,dword ptr ss:[ebp-10]`  
+
+00455DA2 `. ` `8B45 F4` `mov eax,dword ptr ss:[ebp-C]`  
+
+00455DA5 `. ` `E8 C6FBFFFF` `call Unpacked.00455970` `; 关键,根据机器码产生注册码`  
+
+00455DAA `. ` `8B45 E0` `mov eax,dword ptr ss:[ebp-20]` `; 注册码`  
+
+00455DAD `. ` `8B55 FC` `mov edx,dword ptr ss:[ebp-4]` `; 试炼码`  
+
+00455DB0 `. ` `E8 EBEbFAFF` `call Unpacked.004049A0` `; 明码比较`  
+
+00455DB5 `. ` `85C0` `test eax,eax`  
+
+00455DB7 `. ` `7E 04` `jle short Unpacked.00455DBD`  
+
+00455DB9 `. ` `C645 FB 01` `mov byte ptr ss:[ebp-5],1`  
+
+00455DBD `> ` `33C0` `xor eax,eax`  
+
+00455DBF `. ` `5A` `pop edx`  
+
+00455DC0 `. ` `59` `pop ecx`  
+
+00455DC1 `. ` `59` `pop ecx`  
+
+00455DC2 `. ` `64:8910` `mov dword ptr fs:[eax],edx`  
+
+00455DC5 `. ` `68 DA5D4500` `push Unpacked.00455DDA`  
+
+00455DCA `> ` `8B45 F4` `mov eax,dword ptr ss:[ebp-C]`  
+
+00455DCD `. ` `E8 6ED8FAFF` `call Unpacked.00403640`  
+
+00455DD2 `. ` `C3` `retn`  
+
+00455DD3 `.^ ` `E9 FCDFFAFF` `jmp Unpacked.00403DD4`  
+
+00455DD8 `.^ ` `EB F0` `jmp short Unpacked.00455DCA`  
+
+00455DDA `> ` `33C0` `xor eax,eax`  
+
+00455DDC `. ` `5A` `pop edx`  
+
+00455DDD `. ` `59` `pop ecx`  
+
+00455DDE `. ` `59` `pop ecx`  
+
+00455DDF `. ` `64:8910` `mov dword ptr fs:[eax],edx`  
+
+00455DE2 `. ` `68 0C5E4500` `push Unpacked.00455E0C`  
+
+00455DE7 `> ` `8D45 E0` `lea eax,dword ptr ss:[ebp-20]`  
+
+00455DEA `. ` `BA 02000000` `mov edx,2`  
+
+00455DEF `. ` `E8 DCE5FAFF` `call Unpacked.004043D0`  
+
+00455DF4 `. ` `8D45 F0` `lea eax,dword ptr ss:[ebp-10]`  
+
+00455DF7 `. ` `E8 B0E5FAFF` `call Unpacked.004043AC`  
+
+00455DFC `. ` `8D45 FC` `lea eax,dword ptr ss:[ebp-4]`  
+
+00455DFF `. ` `E8 A8E5FAFF` `call Unpacked.004043AC`  
+
+00455E04 `. ` `C3` `retn`  
+
+00455E05 `.^ ` `E9 CADFFAFF` `jmp Unpacked.00403DD4`  
+
+00455E0A `.^ ` `EB DB` `jmp short Unpacked.00455DE7`  
+
+00455E0C `. ` `8A45 FB` `mov al,byte ptr ss:[ebp-5]`  
+
+00455E0F `. ` `5B` `pop ebx`  
+
+00455E10 `. ` `8BE5` `mov esp,ebp`  
+
+00455E12 `. ` `5D` `pop ebp`  
+
+00455E13 `. ` `C3` `retn`  
+
+`---------------------------------------------------------`
+
+哈哈，又是一个明码比较，还是看看 `00455DA5` `call Unpacked.00455970` 的注册码的运算过程吧:
+
+`---------------------------------------------------------`
+
+00455970 `$ ` `55` `push ebp`  
+
+00455971 `. ` `8BEC` `mov ebp,esp`  
+
+00455973 `. ` `83C4 E4` `add esp,-1C`  
+
+00455976 `. ` `53` `push ebx`  
+
+00455977 `. ` `56` `push esi`  
+
+00455978 `. ` `57` `push edi`  
+
+00455979 `. ` `33DB` `xor ebx,ebx`  
+
+0045597B `. ` `895D E8` `mov dword ptr ss:[ebp-18],ebx`  
+
+0045597E `. ` `895D E4` `mov dword ptr ss:[ebp-1C],ebx`  
+
+
+
+# 汇编代码片段 1
+
+```
+00455981    .  895D EC             mov dword ptr ss:[ebp-14],ebx  
+00455984    .  884D F7             mov byte ptr ss:[ebp-9],cl                 ;  cl=3 重要数据  
+00455987    .  8955 F8             mov dword ptr ss:[ebp-8],edx               ;  机器码前 3 位  
+0045598A    .  8945 FC             mov dword ptr ss:[ebp-4],eax  
+0045598D    .  8B7D 08             mov edi,dword ptr ss:[ebp+8]  
+00455990    .  8B45 F8             mov eax,dword ptr ss:[ebp-8]               ;  机器码前 3 位  
+00455993    .  E8 B4EEFAFF         call Unpacked.0040484C  
+00455998    .  33C0                xor eax,eax  
+0045599A    .  55                  push ebp  
+0045599B    .  68 905A4500         push Unpacked.00455A90  
+004559A0    .  64:FF30             push dword ptr fs:[eax]  
+004559A3    .  64:8920             mov dword ptr fs:[eax],esp  
+004559A6    .  8BC7                mov eax,edi  
+004559A8    .  E8 FFE9FAFF         call Unpacked.004043AC  
+004559AD    .  837D F8 00          cmp dword ptr ss:[ebp-8],0                 ;  机器码前 3 位  
+004559B1    .  0F84 B6000000       je Unpacked.00455A6D                       ;  不能为空  
+004559B7    .  33C9                xor ecx,ecx  
+004559B9    .  B2 01               mov dl,1  
+004559BB    .  A1 5C504500         mov eax,dword ptr ds:[45505C]  
+004559C0    .  E8 E7F8FFFF         call Unpacked.004552AC                     ;  TBase64ECode()  
+004559C5    .  8945 F0             mov dword ptr ss:[ebp-10],eax  
+004559C8    .  33D2                xor edx,edx  
+004559CA    .  55                  push ebp  
+004559CB    .  68 665A4500         push Unpacked.00455A66  
+004559D0    .  64:FF32             push dword ptr fs:[edx]  
+004559D3    .  64:8922             mov dword ptr fs:[edx],esp  
+004559D6    .  8B45 F0             mov eax,dword ptr ss:[ebp-10]  
+004559D9    .  C680 80000000 01     mov byte ptr ds:[eax+80],1  
+004559E0    .  8B45 F0             mov eax,dword ptr ss:[ebp-10]  
+004559E3    .  83C0 30             add eax,30  
+004559E6    .  8B55 F8             mov edx,dword ptr ss:[ebp-8]               ;  机器码前 3 位  
+004559E9    .  E8 12EAFAFF         call Unpacked.00404400  
+004559EE    .  8B45 F0             mov eax,dword ptr ss:[ebp-10]  
+004559F1    .  E8 5AF9FFFF         call Unpacked.00455350  
+004559F6    .  8D45 EC             lea eax,dword ptr ss:[ebp-14]  
+004559F9    .  8B55 F0             mov edx,dword ptr ss:[ebp-10]  
+004559FC    .  8B52 34             mov edx,dword ptr ds:[edx+34]              ;  TBase64ECode(机器码前 3 位),M64  
+004559FF    .  E8 40EAFAFF         call Unpacked.00404444  
+00455A04    .  8B45 EC             mov eax,dword ptr ss:[ebp-14]              ;  M64  
+00455A07    .  E8 58ECFAFF         call Unpacked.00404664                     ;  LStrLen(String):Integer;  
+00455A0C    .  8BF0                mov esi,eax                                ;  eax=长度  
+00455A0E    .  85F6                test esi,esi  
+00455A10    .  7E 3E               jle short Unpacked.00455A50  
+00455A12    .  BB 01000000         mov ebx,1                                  ;  i=1  
+00455A17    >  8B45 EC             mov eax,dword ptr ss:[ebp-14]              ;  M64  
+00455A1A    .  807C18 FF 3D        cmp byte ptr ds:[eax+ebx-1],3D            ;  M64(i),ASC('=')=3D  
+00455A1F    .  74 2B              je short Unpacked.00455A4C                 ;  M64(i)=3D 跳过  
+00455A21    .  8D45 E8             lea eax,dword ptr ss:[ebp-18]  
+00455A24    .  50                  push eax  
+00455A25    .  8D45 E4             lea eax,dword ptr ss:[ebp-1C]  
+00455A28    .  8B55 EC             mov edx,dword ptr ss:[ebp-14]              ;  M64  
+00455A2B    .  8A541A FF           mov dl,byte ptr ds:[edx+ebx-1]             ;  M64(i)  
+00455A2F    .  E8 58EBFAFF         call Unpacked.0040458C                     ;  LStrFromChar(String;String;Char);  
+00455A34    .  8B55 E4             mov edx,dword ptr ss:[ebp-1C]  
+00455A37    .  8A4D F7             mov cl,byte ptr ss:[ebp-9]                 ;  cl=3,重要  
+00455A3A    .  8B45 FC             mov eax,dword ptr ss:[ebp-4]  
+00455A3D    .  E8 AAFEFFFF         call Unpacked.004558EC                     ;  重要  
+00455A42    .  8B55 E8             mov edx,dword ptr ss:[ebp-18]              ;  M64(i)运算结果  
+00455A45    .  8BC7                mov eax,edi                                ;  连接  
+00455A47    .  E8 20ECFAFF         call Unpacked.0040466C                     ;  System.@LStrCat;  
+00455A4C    >  43                 inc ebx                                      ;  i=i+1  
+00455A4D    .  4E                  dec esi  
+00455A4E    .^ 75 C7               jnz short Unpacked.00455A17                ;  循环  
+00455A50    >  33C0                xor eax,eax  
+00455A52    .  5A                  pop edx  
+00455A53    .  59                  pop ecx  
+00455A54    .  59                  pop ecx  
+00455A55    .  64:8910             mov dword ptr fs:[eax],edx  
+00455A58    .  68 6D5A4500         push Unpacked.00455A6D  
+00455A5D    >  8B45 F0             mov eax,dword ptr ss:[ebp-10]  
+00455A60    .  E8 DBDBFAFF         call Unpacked.00403640  
+00455A65    .  C3                  retn
+```
+
+以上代码是先对机器码前 3 位进行 `Base64ECode()` 运算，运算结果字符串字符通过 `call Unpacked.004558EC` 处理连接后即为注册码。
+
+`Base64ECode()` 函数有兴趣的自己分析，标准未变形，要写注册机网上现成代码多的是，还是有必要看看 `call Unpacked.004558EC` 函数:
+
+# 汇编代码片段 2
+
+```
+004558EC   /$  55                  push ebp  
+004558ED   |.  8BEC                mov ebp,esp  
+004558EF   |.  83C4 F4             add esp,-0C  
+004558F2   |.  53                  push ebx  
+004558F3   |.  8BD9                mov ebx,ecx                                ;  ebx=ecx,则 bl=cl=3  
+004558F5   |.  8955 FC             mov dword ptr ss:[ebp-4],edx  
+004558F8   |.  8B45 FC             mov eax,dword ptr ss:[ebp-4]  
+004558FB   |.  E8 4CEFFAFF         call Unpacked.0040484C  
+00455900   |.  33C0                xor eax,eax  
+00455902   |.  55                  push ebp  
+00455903   |.  68 51594500         push Unpacked.00455951  
+00455908   |.  64:FF30             push dword ptr fs:[eax]  
+0045590B   |.  64:8920             mov dword ptr fs:[eax],esp  
+0045590E   |.  8B45 08             mov eax,dword ptr ss:[ebp+8]  
+00455911   |.  50                  push eax  
+00455912   |.  33C0                xor eax,eax  
+00455914   |.  8AC3                mov al,bl                                    ;  bl=cl=3 终于用上了  
+00455916   |.  8B1485 28CC4500     mov edx,dword ptr ds:[eax*4+45CC28]          ;  ASCII "AL9=HtGzUJ4mvIJY3D7ykQgAYf+TjWCd1RhZl5oEOeBF8bF0ubKrVSaM6qp2n/xcN"  
+0045591D   |.  8B45 FC             mov eax,dword ptr ss:[ebp-4]  
+00455920   |.  E8 7BF0FAFF         call Unpacked.004049A0                       ;  System.@LStrPos;  
+00455925   |.  8945 F4             mov dword ptr ss:[ebp-C],eax                 ;  |M64(i)在字符串中的位置  
+00455928   |.  C645 F8 00          mov byte ptr ss:[ebp-8],0                    ;  |  
+0045592C   |.  8D55 F4             lea edx,dword ptr ss:[ebp-C]                 ;  |  
+0045592F   |.  33C9                xor ecx,ecx                                  ;  |  
+00455931   |.  B8 68594500         mov eax,Unpacked.00455968                    ;  |ASCII "%0.2d"  
+00455936   |.  E8 F937FBFF         call Unpacked.00409134                       ;  \\Unpacked.00409134  
+0045593B   |.  33C0                xor eax,eax                                  ;  位置值以 10 进制输出  
+0045593D   |.  5A                  pop edx  
+0045593E   |.  59                  pop ecx  
+0045593F   |.  59                  pop ecx  
+00455940   |.  64:8910             mov dword ptr fs:[eax],edx  
+00455943   |.  68 58594500         push Unpacked.00455958  
+00455948   |>  8D45 FC             lea eax,dword ptr ss:[ebp-4]  
+```
+
+
+
+```
+0045594B   .  E8 5CEAFAFF        call Unpacked.004043AC  
+00455950   \.  C3               retn  
+00455951    .^. E9 7EE4FAFF      jmp Unpacked.00403DD4  
+00455956    .^. EB F0           jmp short Unpacked.00455948  
+00455958    .  5B              pop ebx  
+00455959    .  8BE5            mov esp,ebp  
+0045595B    .  5D              pop ebp  
+0045595C    .  C2 0400         retn 4  
+```
+
+\-------------------------------------------------------------------------------------------------------------------------
+
+这个函数比较简单，将机器码前 3 位的 `Base64` 结果字符串，按字符在固定字符串中查找位置，位置值以 10 进制字符串方式输出，关键要看清 `cl＝3` 这个重要的参数，以确定固定字符串的来源：
+
+```
+004555EA    .  50 61 73 73 77 6F >ascii "Password"  
+004555F2       00                 db 00  
+004555F3       00                 db 00  
+004555F4    .  FFFFFFFF           dd FFFFFFFF  
+004555F8    .  41000000           dd 00000041  
+004555FC    .  30 71 41 4C 6D 43 >ascii "0qALmC4ErGP=H3IJ"  
+0045560C    .  7A 4B 77 73 4E 4F >ascii "zKwsNO+QyS/TVpYW"  
+0045561C    .  58 61 62 46 67 63 >ascii "XabFgcfZ7DhijklB"  
+0045562C    .  6E 4D 6F 74 75 78 >ascii "nMotux2v5d1U6R8e"  
+0045563C    .  39 00              ascii "9",0  
+0045563E       00                 db 00  
+0045563F       00                 db 00  
+00455640    .  FFFFFFFF           dd FFFFFFFF  
+00455644    .  41000000           dd 00000041  
+00455648    .  71 56 70 6A 4C 76 >ascii "qVpjLvIJz0KwP=Ht"  
+00455658    .  68 47 69 39 75 52 >ascii "hGi9uR8d1a54E+TC"  
+00455668    .  41 58 67 51 79 62 >ascii "AXgQybFkYUsN7lBm"  
+00455678    .  53 2F 33 44 65 36 >ascii "S/3De6MrOcfZn2Wx"  
+00455688    .  6F 00              ascii "o",0  
+0045568A       00                 db 00  
+0045568B       00                 db 00  
+0045568C    .  FFFFFFFF           dd FFFFFFFF  
+00455690    .  41000000           dd 00000041  
+00455694    .  55 73 47 7A 69 39 >ascii "UsGzi9+Tj=HtgALv"  
+004556A4    .  49 4A 59 34 6D 51 >ascii "IJY4mQ3DfW7ykClB"  
+004556B4    .  75 52 64 31 77 38 >ascii "uRd1w8bFh0KZrO5X"  
+004556C4    .  61 4D 6F 45 50 56 >ascii "aMoEPVe6qpS/nNxc"  
+004556D4    .  32 00              ascii "2",0  
+004556D6       00                 db 00  
+004556D7       00                 db 00  
+004556D8    .  FFFFFFFF           dd FFFFFFFF  
+004556DC    .  41000000           dd 00000041  
+004556E0    .  41 4C 39 3D 48 74 >ascii "AL9=HtGzUJ4mvIJY"      //cl=3 是取这段数据  
+004556F0    .  33 44 37 79 6B 51 >ascii "3D7ykQgAYf+TjWCd"  
+00455700    .  31 52 68 5A 6C 35 >ascii "1RhZl5oEOeBF8bF0"  
+00455710    .  75 62 4B 72 56 53 >ascii "ubKrVSaM6qp2n/xc"  
+00455720    .  4E 00              ascii "N",0  
+00455722       00                 db 00  
+00455723       00                 db 00  
+00455724    .  FFFFFFFF           dd FFFFFFFF  
+00455728    .  41000000           dd 00000041  
+0045572C    .  39 3D 6D 48 74 47 >ascii "9=mHtGJ4IJzUvYLQ"  
+0045573C    .  33 6B 66 44 6A 67 >ascii "3kfDjgTYyA7RC1+W"  
+0045574C    .  41 6C 5A 64 35 65 >ascii "AlZd5eBobhFOEu8F"  
+0045575C    .  30 62 4B 72 4D 36 >ascii "0bKrM6aScNpqVMqn"  
+0045576C    .  70 00              ascii "p",0  
+0045576E       00                 db 00  
+0045576F       00                 db 00  
+00455770    .  FFFFFFFF           dd FFFFFFFF  
+00455774    .  41000000           dd 00000041  
+00455778    .  59 76 4A 54 67 43 >ascii "YvJTgCY8yAEumL=k"  
+00455788    .  66 39 6A 31 2B 47 >ascii "f9j1+GBMhFOSc6aF"  
+00455798    .  30 4D 37 72 41 6F >ascii "0M7rAobKlRqZebpq"  
+004557A8    .  56 6E 4E 57 64 35 >ascii "VnNWd54DJHIzUtQ3"  
+004557B8    .  70 00              ascii "p",0  
+004557BA       00                 db 00  
+004557BB       00                 db 00  
+004557BC    .  FFFFFFFF           dd FFFFFFFF  
+004557C0    .  41000000           dd 00000041  
+004557C4    .  65 36 39 75 52 38 >ascii "e69uR8d1aqBmS/3D"  
+004557D4    .  35 6C 66 5A 6E 4D >ascii "5lfZnMrOcVpjP=H4"  
+004557E4    .  45 2B 74 68 47 69 >ascii "E+thGi2WxoTCAXgQ"  
+004557F4    .  79 62 46 6B 59 55 >ascii "ybFkYULvIJz0KwsN"  
+00455804    .  37 00              ascii "7",0  
+00455806       00                 db 00  
+00455807       00                 db 00  
+00455808    .  FFFFFFFF           dd FFFFFFFF  
+0045580C    .  41000000           dd 00000041  
+00455810    .  38 71 4F 47 4B 65 >ascii "8qOGKe6d1ah0s5lR"  
+00455820    .  5A 6B 6D 53 2F 39 >ascii "ZkmS/9uD3lrOnMBR"  
+00455830    .  58 67 54 51 79 41 >ascii "XgTQyA7bCF2HUxoJ"  
+00455840    .  7A 4E 4C 76 34 66 >ascii "zNLv4f5riE+tW=YI"  
+00455850    .  77 00              ascii "w",0  
+00455852       00                 db 00  
+00455853       00                 db 00  
+00455854    .  FFFFFFFF           dd FFFFFFFF  
+00455858    .  41000000           dd 00000041  
+0045585C    .  31 68 4B 72 4F 6E >ascii "1hKrOnaM5lRXQyBZ"  
+0045586C    .  6B 67 54 6D 53 55 >ascii "kgTmSUO8q7obCJuD"  
+0045587C    .  33 6C 47 45 7A 65 >ascii "3lGEze60s/9+tWwA"  
+0045588C    .  78 4E 64 52 46 32 >ascii "xNdRF2H5r4iI=Lvf"  
+0045589C    .  59 00              ascii "Y",0  
+0045589E       00                 db 00  
+0045589F       00                 db 00  
+004558A0    .  FFFFFFFF           dd FFFFFFFF  
+004558A4    .  41000000           dd 00000041  
+004558A8    .  36 75 52 64 31 38 >ascii "6uRd185Zfea9m/qD"  
+004558B8    .  4D 42 4F 6C 63 56 >ascii "MBOlcV3SnPHtrG+0"  
+004558C8    .  78 70 34 45 6A 32 >ascii "xp4Ej2WXoCKTbLkw"  
+004558D8    .  46 59 37 4A 76 49 >ascii "FY7JvIsh=UQyAgiN"  
+004558E8    .  7A 00              ascii "z",0  
+```
+
+『算法总结』:
+
+1. 机器码前 3 位进行标准 `Base64` 运算，结果记为 `M64`；
+2. 对 `M64` 字符串，按字符查找在固定字符串中的位置，结果以 2 为 10 进制输出；
+3. 连接输出的 10 进制字符串即为注册码；
+
+『注册机』:
+
+找个现成的 `Base64` 代码基本上搞定，其它处理很简单，不写了。
+
+友情提示：千万不要去追消息传递的数据或跟我一样开始掉进“线程注入”，否则别怪我没提醒你……
+
+我的注册信息:
+
+机器码: `3FEC0923`
+
+注册码: `56483644`
+
+\--完--
+
+`4dd466d0e1e0cc123afbe504da2462ca`

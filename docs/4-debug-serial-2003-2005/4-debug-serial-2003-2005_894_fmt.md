@@ -1,0 +1,347 @@
+
+# 密码监听器 V2.4 [异或]算法分析+注册机思路
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-274.htm`](https://www.pediy.com/kssd/pediy07/pediy7-274.htm)
+
+【破文标题】：密码监听器 V2.4 [异或]算法分析+注册机思路
+
+【破文作者】：KuNgBiM[DFCG]
+
+【作者邮箱】：`gb_1227@163.com`
+
+【软件名称】：密码监听器 V2.4
+
+【保护方式】：启动 NAG+注册码+功能限制
+
+【编译语言】：Microsoft Visual C++ 6.0 [MFC42]编译
+
+【作者声明】：初学 Crack，只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+—————————————————————————————————
+
+## 【破解过程】
+
+**侦测**：用 `PEiD` 查壳，无壳，Microsoft Visual C++ 6.0 编译。
+
+**实验**：运行主程序注册，输入试炼码，确认！程序提示：" 注册失败！"
+
+**动工**：`Ollydbg` 载入主程序，来到 `0040B0B9` 处下断，`F9` 运行，输入试炼信息：
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\* 试炼信息 \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+用户名：`KUNGBIM`
+
+注册码：`7878787878`
+
+（程序不允许输入小写~~~郁闷~）
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+点击确定后 `OD` 断下:
+
+```asm
+0040B0B9    E8 BE200000      call <jmp.&MFC42.#3097>                  //读取用户名
+0040B0BE    8B4D E4          mov ecx,dword ptr ss:[ebp-1C]            //ASCII "KUNGBIM"
+0040B0C1    8D45 F0          lea eax,dword ptr ss:[ebp-10]            //取用户名位数，eax=7
+0040B0C4    50               push eax
+0040B0C5    68 16040000      push 416
+0040B0CA    E8 AD200000      call <jmp.&MFC42.#3097>                  //读取试炼码
+0040B0CF    8D4D EC          lea ecx,dword ptr ss:[ebp-14]            //ASCII "7878787878"
+0040B0D2    E8 031D0000      call <jmp.&MFC42.#6282>
+0040B0D7    8D4D EC          lea ecx,dword ptr ss:[ebp-14]            //ecx=4B
+0040B0DA    E8 F51C0000      call <jmp.&MFC42.#6283>
+0040B0DF    8D4D F0          lea ecx,dword ptr ss:[ebp-10]
+0040B0E2    E8 F31C0000      call <jmp.&MFC42.#6282>
+0040B0E7    8D4D F0          lea ecx,dword ptr ss:[ebp-10]            //ecx=39
+0040B0EA    E8 E51C0000      call <jmp.&MFC42.#6283>
+0040B0EF    8B45 EC          mov eax,dword ptr ss:[ebp-14]            //ASCII "KUNGBIM"，ASCII ".com"
+0040B0F2    3978 F8          cmp dword ptr ds:[eax-8],edi             //用户名与特殊字符比较
+0040B0F5    0F84 88030000    je pswmonit.0040B483                    //相等则跳死！
+0040B0FB    8B45 F0          mov eax,dword ptr ss:[ebp-10]            //ASCII "7878787878"，ASCII "KUNGBIM"
+0040B0FE    3978 F8          cmp dword ptr ds:[eax-8],edi             //注册码与用户名比较
+0040B101    0F84 7C030000    je pswmonit.0040B483                    //相等则跳死！
+0040B107    8D4D EC          lea ecx,dword ptr ss:[ebp-14]
+0040B10A    E8 AF1D0000      call <jmp.&MFC42.#4202>
+0040B10F    8D4D B8          lea ecx,dword ptr ss:[ebp-48]            //把用户名转换为小写，ASCII "kungbim"
+0040B112    E8 1B1F0000      call <jmp.&MFC42.#541>
+0040B117    68 3C4D4100      push pswmonit.00414D3C                 //取特殊字符①，ASCII "guodong"
+0040B11C    8D4D B8          lea ecx,dword ptr ss:[ebp-48]
+0040B11F    FF75 C0          push dword ptr ss:[ebp-40]
+0040B122    C645 FC 02       mov byte ptr ss:[ebp-4],2
+0040B126    E8 4B200000      call <jmp.&MFC42.#5861>
+0040B12B    68 344D4100      push pswmonit.00414D34                 //取特殊字符串②，ASCII "ttian"
+0040B130    8D4D B8          lea ecx,dword ptr ss:[ebp-48]
+0040B133    FF75 C0          push dword ptr ss:[ebp-40]
+0040B136    E8 3B200000      call <jmp.&MFC42.#5861>
+0040B13B    68 304D4100      push pswmonit.00414D30                 //取特殊字符串③，ASCII "fpx"
+0040B140    8D4D B8          lea ecx,dword ptr ss:[ebp-48]
+0040B143    FF75 C0          push dword ptr ss:[ebp-40]
+0040B146    E8 2B200000      call <jmp.&MFC42.#5861>
+0040B14B    68 284D4100      push pswmonit.00414D28                 //取特殊字符串④，ASCII "fpxfpx"
+0040B150    8D4D B8          lea ecx,dword ptr ss:[ebp-48]
+0040B153    FF75 C0          push dword ptr ss:[ebp-40]
+0040B156    E8 1B200000      call <jmp.&MFC42.#5861>
+0040B15B    68 184D4100      push pswmonit.00414D18                 //取特殊字符串⑤，ASCII "www.51safe.org"
+0040B160    8D4D B8          lea ecx,dword ptr ss:[ebp-48]
+0040B163    FF75 C0          push dword ptr ss:[ebp-40]
+0040B166    E8 0B200000      call <jmp.&MFC42.#5861>
+0040B16B    68 084D4100      push pswmonit.00414D08                 //取特殊字符串⑥，ASCII "downbest.net"
+0040B170    8D4D B8          lea ecx,dword ptr ss:[ebp-48]
+0040B173    FF75 C0          push dword ptr ss:[ebp-40]
+0040B176    E8 FB1F0000      call <jmp.&MFC42.#5861>
+0040B17B    68 F84C4100      push pswmonit.00414CF8                 //取特殊字符串⑦，ASCII "www.sq88.com"
+0040B180    8D4D B8          lea ecx,dword ptr ss:[ebp-48]
+0040B183    FF75 C0          push dword ptr ss:[ebp-40]
+0040B186    E8 EB1F0000      call <jmp.&MFC42.#5861>
+0040B18B    33F6             xor esi,esi                              //计数器 esi 清零
+0040B18D    397D C0          cmp dword ptr ss:[ebp-40],edi
+0040B190    7E 3A            jle short pswmonit.0040B1CC             //跳则死！（上面是“黑名单”哦）
+0040B192    8D45 E0          lea eax,dword ptr ss:[ebp-20]            //循环到这里（标记★）
+0040B195    56               push esi
+0040B196    50               push eax
+0040B197    8D4D B8          lea ecx,dword ptr ss:[ebp-48]
+0040B19A    E8 5FA8FFFF      call pswmonit.004059FE
+0040B19F    8D4D E0          lea ecx,dword ptr ss:[ebp-20]
+0040B1A2    C645 FC 03       mov byte ptr ss:[ebp-4],3
+0040B1A6    E8 131D0000      call <jmp.&MFC42.#4202>
+0040B1AB    FF75 EC          push dword ptr ss:[ebp-14]              //再取用户名，ASCII "kungbim"
+0040B1AE    8D4D E0          lea ecx,dword ptr ss:[ebp-20]            //取特殊字符串①，ASCII "guodong"
+0040B1B1    E8 121C0000      call <jmp.&MFC42.#2764>                 //F7 跟进这里就知道是把用户名与特殊字符串①逐字比较
+0040B1B6    85C0             test eax,eax
+0040B1B8    7D 67            jge short pswmonit.0040B221             //比较失败则跳死！
+0040B1BA    8D4D E0          lea ecx,dword ptr ss:[ebp-20]            //把用户名与特殊字符串①的位数相比较
+0040B1BD    C645 FC 02       mov byte ptr ss:[ebp-4],2
+0040B1C1    E8 9C1B0000      call <jmp.&MFC42.#800>
+0040B1C6    46               inc esi                                  //esi 自加一
+0040B1C7    3B75 C0          cmp esi,dword ptr ss:[ebp-40]
+0040B1CA   ^ 7C C6           jl short pswmonit.0040B192              //向上循环与“黑名单”中的特殊字符串作比较（标记★）
+0040B1CC    8D45 D8          lea eax,dword ptr ss:[ebp-28]
+0040B1CF    6A 01            push 1
+0040B1D1    50               push eax
+0040B1D2    8D4D F0          lea ecx,dword ptr ss:[ebp-10]
+0040B1D5    E8 301C0000      call <jmp.&MFC42.#4129>
+0040B1DA    8B00             mov eax,dword ptr ds:[eax]
+0040B1DC    8B35 D4F44000    mov esi,dword ptr ds:[<&MSVCR>         //用户名位数为 7，esi=7
+0040B1E2    BB 50424100      mov ebx,pswmonit.00414250
+0040B1E7    C645 FC 04       mov byte ptr ss:[ebp-4],4
+0040B1EB    53               push ebx
+0040B1EC    50               push eax
+0040B1ED    FFD6             call esi                                 //取试炼码位数
+0040B1EF    59               pop ecx                                  //ecx=30
+0040B1F0    85C0             test eax,eax
+0040B1F2    59               pop ecx
+0040B1F3    74 53            je short pswmonit.0040B248              //跳则死！
+0040B1F5    8D45 D4          lea eax,dword ptr ss:[ebp-2C]
+0040B1F8    6A 01            push 1
+0040B1FA    50               push eax
+0040B1FB    8D4D F0          lea ecx,dword ptr ss:[ebp-10]
+0040B1FE    E8 111E0000      call <jmp.&MFC42.#5710>
+0040B203    8B00             mov eax,dword ptr ds:[eax]
+0040B205    53               push ebx
+0040B206    50               push eax
+0040B207    FFD6             call esi
+0040B209    8BD8             mov ebx,eax
+0040B20B    59               pop ecx                                  //ASCII "ngbim"
+0040B20C    F7DB             neg ebx
+0040B20E    59               pop ecx                                  //ASCII "ngbim"
+0040B20F    1ADB             sbb bl,bl
+0040B211    8D4D D4          lea ecx,dword ptr ss:[ebp-2C]
+0040B214    FEC3             inc bl
+0040B216    E8 471B0000      call <jmp.&MFC42.#800>
+0040B21B    84DB             test bl,bl
+0040B21D    75 29            jnz short pswmonit.0040B248
+```
+
+
+
+### 反汇编代码片段
+
+```
+0040B21F    EB 29               jmp short pswmonit.0040B24A
+0040B221    51                push ecx
+0040B222    8BCC              mov ecx,esp
+0040B224    8965 E4           mov dword ptr ss:[ebp-1C],esp
+0040B227    68 EC4C4100       push pswmonit.00414CEC
+0040B22C    E8 D31B0000       call <jmp.&MFC42.#537>
+0040B231    E8 ECC1FFFF       call pswmonit.00407422
+0040B236    59                pop ecx
+0040B237    C645 FC 02        mov byte ptr ss:[ebp-4],2
+0040B23B    8D4D E0           lea ecx,dword ptr ss:[ebp-20]
+0040B23E    E8 1F1B0000       call <jmp.&MFC42.#800>
+0040B243    E9 2D020000       jmp pswmonit.0040B475
+0040B248    B3 01             mov bl,1
+0040B24A    8D4D D8           lea ecx,dword ptr ss:[ebp-28]
+0040B24D    C645 FC 02        mov byte ptr ss:[ebp-4],2
+0040B251    E8 0C1B0000       call <jmp.&MFC42.#800>
+0040B256    84DB              test bl,bl
+0040B258    74 1B             je short pswmonit.0040B275
+0040B25A    51                push ecx
+0040B25B    8BCC              mov ecx,esp
+0040B25D    8965 E0           mov dword ptr ss:[ebp-20],esp
+0040B260    68 EC4C4100       push pswmonit.00414CEC
+0040B265    E8 9A1B0000       call <jmp.&MFC42.#537>
+0040B26A    E8 B3C1FFFF       call pswmonit.00407422
+0040B26F    59                pop ecx
+0040B270    E9 00020000       jmp pswmonit.0040B475
+0040B275    BB AC454100       mov ebx,pswmonit.004145AC           //取特殊字符串⑧，ASCII "whm_w"
+0040B27A    8D4D EC           lea ecx,dword ptr ss:[ebp-14]        //用户名传到 ecx，准备连接特殊字符串⑧
+0040B27D    53                push ebx                              //特殊字符串⑧压栈给 ebx
+0040B27E    E8 E11B0000       call <jmp.&MFC42.#941>               //连接字符串
+0040B283    8B45 EC           mov eax,dword ptr ss:[ebp-14]        //字符串连接完毕，ASCII "kungbimwhm_w"
+0040B286    33C9              xor ecx,ecx                           //新字符串位数为 12，ecx=0C
+0040B288    897D DC           mov dword ptr ss:[ebp-24],edi
+0040B28B    8B50 F8           mov edx,dword ptr ds:[eax-8]
+0040B28E    3BD7              cmp edx,edi
+0040B290    7E 0E             jle short pswmonit.0040B2A0          //连接失败，跳则死！
+0040B292    0FBE3401          movsx esi,byte ptr ds:[ecx+eax]      //逐个取新字符串的 HEX 值
+                                                                 //6B（“k”）
+                                                                 //75（“u”）
+                                                                 //6E（“n”）
+                                                                 //67（“g”）
+                                                                 //62（“b”）
+                                                                 //69（“i”）
+                                                                 //6D（“m”）
+                                                                 //77（“w”）
+                                                                 //68（“h”）
+                                                                 //6D（“m”）
+                                                                 //5F（“_”）
+                                                                 //77（“w”）
+0040B296    0175 DC           add dword ptr ss:[ebp-24],esi        //逐个字符的 HEX 值相加
+0040B299    41                inc ecx                               //ecx 自加一，指向下一位
+0040B29A    3BCA              cmp ecx,edx
+0040B29C    7C F4             jl short pswmonit.0040B292            //循环运算
+0040B29E    33FF              xor edi,edi                           //计数器 edi 清零
+0040B2A0    8B45 F0           mov eax,dword ptr ss:[ebp-10]         //ASCII "7878787878"
+                                                                 //ASCII "kungbimwhm_w"
+0040B2A3    8D4D F0           lea ecx,dword ptr ss:[ebp-10]         //试炼码的地址
+0040B2A6    8B40 F8           mov eax,dword ptr ds:[eax-8]          //试炼码的位数，eax=0A
+0040B2A9    83C0 FE           add eax,-2                             //把注册码分段,以便下面计算，eax=eax+(-2)
+0040B2AC    50                push eax                               //eax=8
+0040B2AD    8D45 D4           lea eax,dword ptr ss:[ebp-2C]
+0040B2B0    57                push edi
+0040B2B1    50                push eax
+0040B2B2    E8 5B1C0000       call <jmp.&MFC42.#4278>
+0040B2B7    FF30              push dword ptr ds:[eax]               //ASCII "78787878"
+0040B2B9    8B35 C0F44000     mov esi,dword ptr ds:[<&MSVCR>        //msvcrt.atol，esi=77
+0040B2BF    FFD6              call esi                              //把"78787878"转换为 16 进制值
+0040B2C1    59                pop ecx
+0040B2C2    8BF8              mov edi,eax                           //eax 赋值给 edi，eax=4B23526（"78787878"的 16 进制值）
+0040B2C4    8D4D D4           lea ecx,dword ptr ss:[ebp-2C]
+0040B2C7    E8 961A0000       call <jmp.&MFC42.#800>
+0040B2CC    8D45 D4           lea eax,dword ptr ss:[ebp-2C]
+0040B2CF    6A 02             push 2
+0040B2D1    50                push eax
+0040B2D2    8D4D F0           lea ecx,dword ptr ss:[ebp-10]
+0040B2D5    E8 3A1D0000       call <jmp.&MFC42.#5710>
+0040B2DA    FF30              push dword ptr ds:[eax]               //准备计算最后两位，ASCII "78"
+0040B2DC    FF15 BCF44000     call dword ptr ds:[<&MSVCRT.a>       //msvcrt.atoi
+0040B2E2    59                pop ecx                               //把"78"转换为 16 进制值
+0040B2E3    8945 D8           mov dword ptr ss:[ebp-28],eax         //把转换值写入 eax，并赋值给[ebp-28]，eax=4E
+0040B2E6    8D4D D4           lea ecx,dword ptr ss:[ebp-2C]
+0040B2E9    E8 741A0000       call <jmp.&MFC42.#800>
+0040B2EE    337D D8           xor edi,dword ptr ss:[ebp-28]         //edi 中的值与[ebp-28]中的值作异或运算，结果保存在 edi 中
+                                                                 //edi=edi Xor [ebp-28]
+                                                                 //edi= 4B23526 Xor 4E = 4B23568
+0040B2F1    397D DC           cmp dword ptr ss:[ebp-24],edi         //HEX(kungbimwhm_w)的值与异或运算后的值比较
+                                                                 //HEX(kungbimwhm_w)=50F，edi=4B23568
+0040B2F4    0F85 64010000     jnz pswmonit.0040B45E                 //不相等则跳死！（注册失败）
+```
+
+---------------------------------------------------------
+
+## 算法总结
+
+以我的用户名为例：
+
+用户名 `name`=`KUNGBIM`
+
+注册码 `sn`=`7878787878`
+
+1. 运算码=用户名+固定字符串：
+
+```
+ysm = name+"whm_w" ==> kungbimwhm_w
+```
+
+2. 分别取运算码每个字符的 HEX 值的和：
+
+```
+ysm = HEX(ysm)             //每个字符的 HEX 值相加: 6B+75+6E+67+62+69+6D+77+68+6D+5F+77+=50F
+```
+
+3. 根据以上计算得出：
+
+注册码:`sn`=`7878787878`
+
+注册码的位数:`n`=`10`
+
+```
+sn == "sn_L"+"sn_R"                       //注册码分左右两部分
+
+条件如下：
+
+sn_L=left[sn,n-2] ==>转化为 16 进制数
+sn_R=right[sn,n-2] ==>转化为 16 进制数
+
+edi = Xor sn_L sn_R                       //异或运算
+
+If edi = hex(ysm) then
+MsgBox "注册成功！"
+else
+MsgBox "注册失败！"
+end if
+```
+
+====================================================================
+
+### 制做算法注册机思路
+
+提示：从上面算法详解来看，可以看出，同一注册名有 N 多注册号,具体怎么写就看自己的爱好了。
+
+我这里制做注册码最后两位为“32”的注册机（32 的 HEX 值刚好 20）
+
+```
+Begin:
+
+name="kungbim"+"whm_w"        //这里是连接字符串,连接后就为“kungbimwhm_w”
+ysm=HEX(name)                 //每个字符的 ASCii 值想加: 6B+75+6E+67+62+69+6D+77+68+6D+5F+77+=50F
+运算后 ysm 的结果等于 50F      //这里的 50F 为 16 进制数
+Xor 50F 20                    //异运算，因为我确定了最后两位为“32”，16 进制就是 20
+结果为 52F                    //这里的 52F 为 16 进制数
+把 16 进制数 52F 转换 10 进制数   //Hex[50F]=1327
+连接注册码:sn="1327"+"32"     //132732 就是正确注册码
+```
+
+=======================
+
+### 注册信息
+
+用户名：`KUNGBIM`
+
+注册码：`132732`
+
+注册信息保存在：
+
+安装目录下 `Option.ini` 文件中格式为：
+
+```
+[REGINFO]
+USERNAME=kungbim
+PASSWORD=46757138265
+```
+
+〓本文完〓
+
+---------------------------------------------------------
+
+版权所有（C）2005 `KuNgBiM[DFCG]` Copyright (C) 2005 `KuNgBiM[DFCG]`
+
+---------------------------------------------------------
+
+Cracked By `KuNgBiM[DFCG]`
+2005-05-31
+11:13:26 AM
+
+
+
+`4dd466d0e1e0cc123afbe504da2462ca`
