@@ -1,0 +1,517 @@
+
+# 飞雪日历调试笔记
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-429.htm`](https://www.pediy.com/kssd/pediy08/pediy8-429.htm)
+
+**\[简介\]** 飞雪日历 V1.62.0437 绿色软件 有万年历、时钟、世界时间、定时、限时、提醒、备忘录、系统热键、光驱控制、定期清理、语音报时等功能。
+
+**\[来源\]** `http://www.zheng99.com/`
+
+**\[限制\]** 未注册版没有时间和功能限制，但是定时弹出提醒注册的窗口
+
+**\[工具\]** `PEid`, `OllyDbg`, `Numega SmartCheck`
+
+**\[声明\]** 调试分析纯属兴趣，请不要用于其他目的
+
+**\[过程\]**
+
+先注册，随便填写注册名 `abc`、注册码 `1234567890`，程序仅提示已保存机器码和用户输入的注册名、注册码，没有其他反应。
+
+`PEiD` 查壳 `UPX 0.89.6 - 1.02 / 1.05 - 1.24 -> Markus & Laszlo`，手工脱壳后再查是 `VB` 写的，但运行脱壳后的程序有"不精确的浮点数运算结果异常"而退出，看雪老大在脱壳基础第六课没有说这种粘壳的粽子怎么剥，
+
+![](img/45777b5dbd6b901752ab7df42fce6892.jpg)
+
+没法子只好带壳调试。
+
+用 `SmartCheck` 打开运行原程序，是多线程，`Thread0` 下的 `ThunRTMain` 有很多 `DispatchMessageA` 向下翻到一个 `TimerTmp(1)_Timer`，展开看到有机器码等三项注册用的字串，估计是这里验证是否已注册，向前翻看可知是读自子目录 `FXSYS` 下的文件 `FXSYS.INI`，还看到前面调用 `Randomize`、用处理器信息字符串各 `ASCII` 值*2 累加成机器码，有这些信息在 `OD` 就好定位了。
+
+用 `OD` 打开、停下，翻屏找 `POPAD` 和长 `JMP`，在真正入口点 `00405CE0` 下断，`F9` 运行再停下时程序已脱壳，入口点上面几行就是输入表的跳转命令，找到 `MSVBVM60.rtcRandomize` 是 `JMP [DWORD DS:4010DC]`，查找命令 `CALL [DWORD DS:4010DC]`只有一处。向下翻看见到读注册文件的地方就是我们要找的了。
+
+```
+00465880    55               PUSH EBP
+```
+
+...注册过一次就能到这里，这些忽略过...
+
+```
+00465B42    8B55 E0          MOV EDX,[DWORD SS:EBP-20]                ; 注册名地址
+00465B45    52               PUSH EDX
+00465B46    FF15 2C104000    CALL [DWORD DS:40102C]                   ; MSVBVM60.__vbaLenBstr
+00465B4C    3BC7             CMP EAX,EDI                                ; 注册名长度，不能少于 2 字节
+00465B4E    0F8C 4F060000    JL FXRL.004661A3                           ; 跳就完
+00465B54    C745 88 0100000>MOV [DWORD SS:EBP-78],1
+00465B5B    897D 80          MOV [DWORD SS:EBP-80],EDI
+00465B5E    8D45 80          LEA EAX,[DWORD SS:EBP-80]
+00465B61    50               PUSH EAX
+00465B62    6A 01            PUSH 1
+00465B64    8B4D E0          MOV ECX,[DWORD SS:EBP-20]
+00465B67    51               PUSH ECX
+00465B68    8B3D 20114000    MOV EDI,[DWORD DS:401120]                  ; MSVBVM60.rtcMidCharBstr
+00465B6E    FFD7             CALL EDI
+00465B70    8BD0             MOV EDX,EAX                                ; 注册名第 1 个字符'a'(地址)
+00465B72    8D4D A0          LEA ECX,[DWORD SS:EBP-60]
+00465B75    FFD6             CALL ESI
+00465B77    50               PUSH EAX
+00465B78    FF15 50104000    CALL [DWORD DS:401050]                     ; MSVBVM60.rtcAnsiValueBstr
+00465B7E    8BD8             MOV EBX,EAX                                ; 返回'a'的 ASCII 值 61
+00465B80    6A 01            PUSH 1
+00465B82    8B55 CC          MOV EDX,[DWORD SS:EBP-34]                  ; 注册码地址
+00465B85    52               PUSH EDX
+00465B86    FF15 CC124000    CALL [DWORD DS:4012CC]                     ; MSVBVM60.rtcLeftCharBstr
+00465B8C    8BD0             MOV EDX,EAX                                ; 注册码第 1 个字符(地址)
+00465B8E    8D4D 98          LEA ECX,[DWORD SS:EBP-68]
+00465B91    FFD6             CALL ESI
+00465B93    50               PUSH EAX
+00465B94    6A 01            PUSH 1
+00465B96    53               PUSH EBX
+00465B97    FF15 08104000    CALL [DWORD DS:401008]                     ; MSVBVM60.__vbaStrI2
+00465B9D    8BD0             MOV EDX,EAX                                ; 注册名第 1 字符 ASCII 值(十进制)转换为字符串"97"
+00465B9F    8D4D 9C          LEA ECX,[DWORD SS:EBP-64]
+00465BA2    FFD6             CALL ESI
+00465BA4    50               PUSH EAX
+00465BA5    FF15 EC124000    CALL [DWORD DS:4012EC]                     ; MSVBVM60.rtcRightCharBstr
+00465BAB    8BD0             MOV EDX,EAX
+00465BAD    8D4D 94          LEA ECX,[DWORD SS:EBP-6C]
+00465BB0    FFD6             CALL ESI
+00465BB2    50               PUSH EAX                                   ; "97"的最后 1 个字符'7'(地址)
+00465BB3    FF15 60114000    CALL [DWORD DS:401160]                     ; MSVBVM60.__vbaStrCmp
+00465BB9    8BD8             MOV EBX,EAX                                ; 比较'7'和注册码第 1 字符，如果相等就返回 0
+00465BBB    F7DB             NEG EBX
+00465BBD    1BDB             SBB EBX,EBX
+00465BBF    F7DB             NEG EBX
+00465BC1    F7DB             NEG EBX
+00465BC3    8D45 94          LEA EAX,[DWORD SS:EBP-6C]
+00465BC6    50               PUSH EAX
+00465BC7    8D4D 98          LEA ECX,[DWORD SS:EBP-68]
+00465BCA    51               PUSH ECX
+00465BCB    8D55 9C          LEA EDX,[DWORD SS:EBP-64]
+00465BCE    52               PUSH EDX
+00465BCF    8D45 A0          LEA EAX,[DWORD SS:EBP-60]
+00465BD2    50               PUSH EAX
+00465BD3    6A 04            PUSH 4
+00465BD5    FF15 70124000    CALL [DWORD DS:401270]                     ; MSVBVM60.__vbaFreeStrList
+00465BDB    83C4 14          ADD ESP,14
+00465BDE    8D4D 80          LEA ECX,[DWORD SS:EBP-80]
+00465BE1    FF15 20104000    CALL [DWORD DS:401020]                     ; MSVBVM60.__vbaFreeVar
+00465BE7    66:85DB          TEST BX,BX
+00465BEA    0F85 B3050000    JNZ FXRL.004661A3                           ; 上面字符比较相等，这里就不会跳走，否则跳就完。此时知道注册码第 1 字符对应注册名 a 应该是 7 才对。
+```
+
+...然后比较注册名第 2 字符`b`与注册码第 2 字符，知道第 2 个应该是`8`。过程同上略过...
+
+```
+00465CA5    0F85 F8040000    JNZ FXRL.004661A3                           ; 不能跳
+00465CAB    C745 88 0400028>MOV [DWORD SS:EBP-78],80020004
+00465CB2    C745 80 0A00000>MOV [DWORD SS:EBP-80],0A
+00465CB9    8D55 80          LEA EDX,[DWORD SS:EBP-80]
+00465CBC    52               PUSH EDX
+00465CBD    6A 03            PUSH 3
+00465CBF    8B45 CC          MOV EAX,[DWORD SS:EBP-34]
+00465CC2    50               PUSH EAX
+00465CC3    FFD7             CALL EDI
+00465CC5    8BD0             MOV EDX,EAX                                ; 取得注册码第 3 字符开始的右边子串(地址)
+00465CC7    8D4D CC          LEA ECX,[DWORD SS:EBP-34]
+00465CCA    FFD6             CALL ESI
+00465CCC    8D4D 80          LEA ECX,[DWORD SS:EBP-80]
+00465CCF    FF15 20104000    CALL [DWORD DS:401020]                     ; MSVBVM60.__vbaFreeVar
+00465CD5    8B4D CC          MOV ECX,[DWORD SS:EBP-34]                  ; 截取注册码第 3 字符开始的右边子串
+00465CD8    51               PUSH ECX                                   ; 入栈，下面把它转换成浮点数
+00465CD9    FF15 50134000    CALL [DWORD DS:401350]                     ; MSVBVM60.rtcR8ValFromBstr
+00465CDF    FF15 14114000    CALL [DWORD DS:401114]                     ; MSVBVM60.__vbaFpR8
+00465CE5    DC1D 30234000    FCOMP [QWORD DS:402330]                    ; 和 999999.0 比较，要比这个常数大才行
+00465CEB    DFE0             FSTSW AX
+00465CED    F6C4 41          TEST AH,41
+00465CF0    C785 CCFEFFFF 0>MOV [DWORD SS:EBP-134],1
+00465CFA    74 0A            JE SHORT FXRL.00465D06                      ; 必须跳（以使之赋值为 1 后面马上用到）
+00465CFC    C785 CCFEFFFF 0>MOV [DWORD SS:EBP-134],0                     ; 然后同法比较机器码，暂时不管
+00465D06    8D55 A4          LEA EDX,[DWORD SS:EBP-5C]
+00465D09    52               PUSH EDX
+00465D0A    8D45 A0          LEA EAX,[DWORD SS:EBP-60]
+00465D0D    50               PUSH EAX
+00465D0E    FF15 0C124000    CALL [DWORD DS:40120C]                     ; MSVBVM60.__vbaStrVarVal
+00465D14    50               PUSH EAX
+00465D15    FF15 50134000    CALL [DWORD DS:401350]                     ; MSVBVM60.rtcR8ValFromBstr
+00465D1B    FF15 14114000    CALL [DWORD DS:401114]                     ; MSVBVM60.__vbaFpR8
+00465D21    DC1D 28234000    FCOMP [QWORD DS:402328]                    ; 和 101.0 比较
+00465D27    DFE0             FSTSW AX
+00465D29    F6C4 41          TEST AH,41
+00465D2C    75 07            JNZ SHORT FXRL.00465D35                     ; 这里正常地是不跳的
+00465D2E    BB 01000000      MOV EBX,1
+00465D33    EB 02            JMP SHORT FXRL.00465D37
+00465D35    33DB             XOR EBX,EBX
+00465D37    8B4D E0          MOV ECX,[DWORD SS:EBP-20]                  ; 注册名，检查它的长度
+00465D3A    51               PUSH ECX
+00465D3B    FF15 2C104000    CALL [DWORD DS:40102C]                     ; MSVBVM60.__vbaLenBstr
+00465D41    33D2             XOR EDX,EDX
+00465D43    83F8 01          CMP EAX,1
+```
+
+
+
+```asm
+00465D46    0F9FC2           SETG DL                             ; 长度大于 1 则条件为真，寄存器 DL 设置为 1  
+00465D49    F7DA             NEG EDX  
+00465D4B    8B85 CCFFFFF     MOV EAX,[DWORD SS:EBP-134]  
+00465D51    F7D8             NEG EAX  
+00465D53    23D0             AND EDX,EAX  
+00465D55    F7DB             NEG EBX  
+00465D57    23DA             AND EBX,EDX  
+00465D59    8D4D A0          LEA ECX,[DWORD SS:EBP-60]  
+00465D5C    FF15 4C134000    CALL [DWORD DS:40134C]             ; MSVBVM60.__vbaFreeStr  
+00465D62    66:85DB          TEST BX,BX  
+00465D65    0F84 38040000    JE FXRL.004661A3                    ; 上面几个两个跳转正确到这里就不会跳走，继续  
+
+00465D6B    BB 01000000      MOV EBX,1  
+00465D70    899D 48FFFFFF    MOV [DWORD SS:EBP-B8],EBX  
+00465D76    C785 40FFFFFF 0> MOV [DWORD SS:EBP-C0],2  
+00465D80    8D95 40FFFFFF    LEA EDX,[DWORD SS:EBP-C0]  
+00465D86    8D4D BC          LEA ECX,[DWORD SS:EBP-44]  
+00465D89    FF15 18104000    CALL [DWORD DS:401018]             ; MSVBVM60.__vbaVarMove  
+00465D8F    C785 F0FEFFFF 0> MOV [DWORD SS:EBP-110],3  
+00465D99    66:3B9D F0FEFFF> CMP BX,[WORD SS:EBP-110]           ; 循环机器码前 3 个字符  
+00465DA0    0F8F 91000000    JG FXRL.00465E37  
+00465DA6    C745 88 0100000> MOV [DWORD SS:EBP-78],1  
+00465DAD    C745 80 0200000> MOV [DWORD SS:EBP-80],2  
+00465DB4    8D45 80          LEA EAX,[DWORD SS:EBP-80]  
+00465DB7    50               PUSH EAX  
+00465DB8    0FBFCB           MOVSX ECX,BX  
+00465DBB    51               PUSH ECX  
+00465DBC    8D55 A4          LEA EDX,[DWORD SS:EBP-5C]  
+00465DBF    52               PUSH EDX  
+00465DC0    8D45 A0          LEA EAX,[DWORD SS:EBP-60]  
+00465DC3    50               PUSH EAX  
+00465DC4    FF15 0C124000    CALL [DWORD DS:40120C]             ; MSVBVM60.__vbaStrVarVal  
+00465DCA    50               PUSH EAX  
+00465DCB    FFD7             CALL EDI  
+00465DCD    8BD0             MOV EDX,EAX                         ; 机器码一字符(地址)  
+00465DCF    8D4D 9C          LEA ECX,[DWORD SS:EBP-64]  
+00465DD2    FFD6             CALL ESI  
+00465DD4    50               PUSH EAX  
+00465DD5    FF15 50104000    CALL [DWORD DS:401050]             ; MSVBVM60.rtcAnsiValueBstr  
+00465DDB    66:8985 38FFFFF> MOV [WORD SS:EBP-C8],AX            ; 返回其 ASCII 值  
+00465DE2    C785 30FFFFFF 0> MOV [DWORD SS:EBP-D0],2  
+00465DEC    8D4D BC          LEA ECX,[DWORD SS:EBP-44]  
+00465DEF    51               PUSH ECX  
+00465DF0    8D95 30FFFFFF    LEA EDX,[DWORD SS:EBP-D0]  
+00465DF6    52               PUSH EDX  
+00465DF7    8D85 70FFFFFF    LEA EAX,[DWORD SS:EBP-90]  
+00465DFD    50               PUSH EAX  
+00465DFE    FF15 AC124000    CALL [DWORD DS:4012AC]             ; MSVBVM60.__vbaVarAdd，跟进看到第 1 字符 ASCII 值加到 1 上，其他的再累加上去  
+00465E04    8BD0             MOV EDX,EAX  
+00465E06    8D4D BC          LEA ECX,[DWORD SS:EBP-44]  
+00465E09    FF15 18104000    CALL [DWORD DS:401018]             ; MSVBVM60.__vbaVarMove  
+00465E0F    8D4D 9C          LEA ECX,[DWORD SS:EBP-64]  
+00465E12    51               PUSH ECX  
+00465E13    8D55 A0          LEA EDX,[DWORD SS:EBP-60]  
+00465E16    52               PUSH EDX  
+00465E17    6A 02            PUSH 2  
+00465E19    FF15 70124000    CALL [DWORD DS:401270]             ; MSVBVM60.__vbaFreeStrList  
+00465E1F    83C4 0C          ADD ESP,0C  
+00465E22    8D4D 80          LEA ECX,[DWORD SS:EBP-80]  
+00465E25    FF15 20104000    CALL [DWORD DS:401020]             ; MSVBVM60.__vbaFreeVar  
+00465E2B    B8 01000000      MOV EAX,1  
+00465E30    03D8             ADD EBX,EAX  
+00465E32   ^ E9 62FFFFFF      JMP FXRL.00465D99  
+
+00465E37    8D45 A4          LEA EAX,[DWORD SS:EBP-5C]          ; 上面循环体跳出到此  
+00465E3A    50               PUSH EAX  
+00465E3B    8D4D 80          LEA ECX,[DWORD SS:EBP-80]  
+00465E3E    51               PUSH ECX  
+00465E3F    FF15 B4104000    CALL [DWORD DS:4010B4]             ; MSVBVM60.__vbaLenVar  
+00465E45    50               PUSH EAX  
+00465E46    FF15 24124000    CALL [DWORD DS:401224]             ; MSVBVM60.__vbaI2Var  
+00465E4C    8985 E8FEFFFF    MOV [DWORD SS:EBP-118],EAX  
+00465E52    BB 04000000      MOV EBX,4  
+00465E57    66:3B9D E8FEFFF> CMP BX,[WORD SS:EBP-118]           ; 循环机器码的第 4 字符开始后面的各字符  
+00465E5E    0F8F 91000000    JG FXRL.00465EF5  
+00465E64    C745 88 0100000> MOV [DWORD SS:EBP-78],1  
+00465E6B    C745 80 0200000> MOV [DWORD SS:EBP-80],2  
+00465E72    8D55 80          LEA EDX,[DWORD SS:EBP-80]  
+00465E75    52               PUSH EDX  
+00465E76    0FBFC3           MOVSX EAX,BX  
+00465E79    50               PUSH EAX  
+00465E7A    8D4D A4          LEA ECX,[DWORD SS:EBP-5C]  
+00465E7D    51               PUSH ECX  
+00465E7E    8D55 A0          LEA EDX,[DWORD SS:EBP-60]  
+00465E81    52               PUSH EDX  
+00465E82    FF15 0C124000    CALL [DWORD DS:40120C]             ; MSVBVM60.__vbaStrVarVal  
+00465E88    50               PUSH EAX                            ; 返回机器码地址  
+00465E89    FFD7             CALL EDI  
+00465E8B    8BD0             MOV EDX,EAX  
+00465E8D    8D4D 9C          LEA ECX,[DWORD SS:EBP-64]  
+00465E90    FFD6             CALL ESI  
+00465E92    50               PUSH EAX  
+00465E93    FF15 50104000    CALL [DWORD DS:401050]             ; MSVBVM60.rtcAnsiValueBstr  
+00465E99    66:8985 38FFFFF> MOV [WORD SS:EBP-C8],AX  
+00465EA0    C785 30FFFFFF 0> MOV [DWORD SS:EBP-D0],2  
+00465EAA    8D45 BC          LEA EAX,[DWORD SS:EBP-44]  
+00465EAD    50               PUSH EAX  
+00465EAE    8D8D 30FFFFFF    LEA ECX,[DWORD SS:EBP-D0]  
+00465EB4    51               PUSH ECX  
+00465EB5    8D95 70FFFFFF    LEA EDX,[DWORD SS:EBP-90]  
+00465EBB    52               PUSH EDX  
+00465EBC    FF15 C0114000    CALL [DWORD DS:4011C0]             ; MSVBVM60.__vbaVarMul，跟进看到第一轮是上面那个循环的累加值为被乘数，注册码第 4 字符 ASCII 值为乘数，积作为下一轮的被乘数；乘数依次变为注册码第 4 字符以后各字符的 ASCII 值  
+00465EC2    8BD0             MOV EDX,EAX  
+00465EC4    8D4D BC          LEA ECX,[DWORD SS:EBP-44]  
+00465EC7    FF15 18104000    CALL [DWORD DS:401018]             ; MSVBVM60.__vbaVarMove  
+00465ECD    8D45 9C          LEA EAX,[DWORD SS:EBP-64]  
+00465ED0    50               PUSH EAX  
+00465ED1    8D4D A0          LEA ECX,[DWORD SS:EBP-60]  
+00465ED4    51               PUSH ECX  
+00465ED5    6A 02            PUSH 2  
+00465ED7    FF15 70124000    CALL [DWORD DS:401270]             ; MSVBVM60.__vbaFreeStrList  
+00465EDD    83C4 0C          ADD ESP,0C  
+00465EE0    8D4D 80          LEA ECX,[DWORD SS:EBP-80]  
+00465EE3    FF15 20104000    CALL [DWORD DS:401020]             ; MSVBVM60.__vbaFreeVar  
+00465EE9    B8 01000000      MOV EAX,1  
+00465EEE    03D8             ADD EBX,EAX  
+00465EF0   ^ E9 62FFFFFF      JMP FXRL.00465E57  
+
+00465EF5    8D55 BC          LEA EDX,[DWORD SS:EBP-44]          ; 上面循环体跳出到此  
+//设上面两个循环体对机器码计算结果为 RES（64 位双精度浮点数）  
+
+00465EF8    52               PUSH EDX  
+00465EF9    FF15 80124000    CALL [DWORD DS:401280]             ; MSVBVM60.__vbaR8Var  
+00465EFF    E8 5AF9F9FF      CALL FXRL.0040585E                 ; JMP 到 MSVBVM60._CIsqrt  
+00465F04    DD9D 04FFFFFF    FSTP [QWORD SS:EBP-FC]            ; 上面求出 RES 的平方根  
+00465F0A    6A 05            PUSH 5  
+00465F0C    8B85 08FFFFFF    MOV EAX,[DWORD SS:EBP-F8]  
+00465F12    50               PUSH EAX  
+00465F13    8B8D 04FFFFFF    MOV ECX,[DWORD SS:EBP-FC]  
+00465F19    51               PUSH ECX  
+00465F1A    8B1D A0114000    MOV EBX,[DWORD DS:4011A0]          ; MSVBVM60.__vbaStrR8  
+00465F20    FFD3             CALL EBX                            ; 把 sqrt(RES)从浮点数转换成字串(长度 16，小数部分 11 位，四舍五入)  
+00465F22    8BD0             MOV EDX,EAX  
+00465F24    8D4D A0          LEA ECX,[DWORD SS:EBP-60]  
+00465F27    FFD6             CALL ESI  
+00465F29    50               PUSH EAX
+```
+
+
+
+```
+00465F2A    FF15 EC124000   CALL [DWORD DS:4012EC]                   ; MSVBVM60.rtcRightCharBstr  
+00465F30    8BD0            MOV EDX,EAX                              ; 返回 EAX=该串最后 5 个字符子串(地址)  
+00465F32    8D4D 9C         LEA ECX,[DWORD SS:EBP-64]  
+00465F35    FFD6            CALL ESI  
+00465F37    50              PUSH EAX  
+00465F38    FF15 50134000   CALL [DWORD DS:401350]                   ; MSVBVM60.rtcR8ValFromBstr，子串再转换成浮点数 TAIL  
+00465F3E    DD9D FCFEFFFF   FSTP [QWORD SS:EBP-104]  
+00465F44    8D55 BC         LEA EDX,[DWORD SS:EBP-44]  
+00465F47    52              PUSH EDX  
+00465F48    FF15 80124000   CALL [DWORD DS:401280]                   ; MSVBVM60.__vbaR8Var  
+00465F4E    E8 0BF9F9FF     CALL FXRL.0040585E                       ; JMP 到 MSVBVM60._CIsqrt  
+00465F53    DC0D 20234000   FMUL [QWORD DS:402320]                   ; 上面再一次计算 RES 的平方根，这里再乘以 10000.0，合起来就是 sqrt(RES)*10000.0  
+00465F59    FF15 30134000   CALL [DWORD DS:401330]                   ; MSVBVM60.__vbaFPInt，取整  
+00465F5F    DC85 FCFEFFFF   FADD [QWORD SS:EBP-104]                  ; 取整后再加上 TAIL，得 W=Int(sqrt(RES)*10000.0)+TAIL  
+00465F65    DD9D 48FFFFFF   FSTP [QWORD SS:EBP-B8]  
+00465F6B    C785 40FFFFFF 0>MOV [DWORD SS:EBP-C0],5  
+00465F75    8D95 40FFFFFF   LEA EDX,[DWORD SS:EBP-C0]  
+00465F7B    8D4D BC         LEA ECX,[DWORD SS:EBP-44]  
+00465F7E    FF15 18104000   CALL [DWORD DS:401018]                   ; MSVBVM60.__vbaVarMove  
+00465F84    8D45 9C         LEA EAX,[DWORD SS:EBP-64]  
+00465F87    50              PUSH EAX  
+00465F88    8D4D A0         LEA ECX,[DWORD SS:EBP-60]  
+00465F8B    51              PUSH ECX  
+00465F8C    6A 02           PUSH 2  
+00465F8E    FF15 70124000   CALL [DWORD DS:401270]                   ; MSVBVM60.__vbaFreeStrList  
+00465F94    83C4 0C         ADD ESP,0C  
+00465F97    C745 88 0100000>MOV [DWORD SS:EBP-78],1  
+00465F9E    C745 80 0200000>MOV [DWORD SS:EBP-80],2  
+00465FA5    8D55 80         LEA EDX,[DWORD SS:EBP-80]  
+00465FA8    52              PUSH EDX  
+00465FA9    6A 01           PUSH 1  
+00465FAB    8B45 E0         MOV EAX,[DWORD SS:EBP-20]  
+00465FAE    50              PUSH EAX  
+00465FAF    FFD7            CALL EDI  
+00465FB1    8BD0            MOV EDX,EAX  
+00465FB3    8D4D A0         LEA ECX,[DWORD SS:EBP-60]  
+00465FB6    FFD6            CALL ESI  
+00465FB8    50              PUSH EAX  
+00465FB9    FF15 50104000   CALL [DWORD DS:401050]                   ; MSVBVM60.rtcAnsiValueBstr  
+00465FBF    8985 0CFFFFFF   MOV [DWORD SS:EBP-F4],EAX  
+00465FC5    8D4D BC         LEA ECX,[DWORD SS:EBP-44]  
+00465FC8    51              PUSH ECX  
+00465FC9    FF15 80124000   CALL [DWORD DS:401280]                   ; MSVBVM60.__vbaR8Var  
+00465FCF    E8 8AF8F9FF     CALL FXRL.0040585E                       ; JMP 到 MSVBVM60._CIsqrt  
+00465FD4    E8 79F8F9FF     CALL FXRL.00405852                       ; JMP 到 MSVBVM60._CIlog  
+00465FD9    DD9D 04FFFFFF   FSTP [QWORD SS:EBP-FC]                   ; 上面几行命令计算 W 的平方根，再求出根的自然对数 LN  
+00465FDF    8B55 CC         MOV EDX,[DWORD SS:EBP-34]                ; 注册码第 3 字符开始的子串，现在还是假的，下面把它转换成浮点数 HM  
+00465FE2    52              PUSH EDX  
+00465FE3    FF15 40124000   CALL [DWORD DS:401240]                   ; MSVBVM60.__vbaR8Str  
+00465FE9    DD9D C4FEFFFF   FSTP [QWORD SS:EBP-13C]  
+00465FEF    DD85 04FFFFFF   FLD [QWORD SS:EBP-FC]  
+00465FF5    DC0D 18234000   FMUL [QWORD DS:402318]                   ; 对数 LN 乘 100.0  
+00465FFB    FF15 30134000   CALL [DWORD DS:401330]                   ; MSVBVM60.__vbaFPInt，对积取整得到 LN100  
+00466001    8B85 0CFFFFFF   MOV EAX,[DWORD SS:EBP-F4]                ; 取注册名第 1 字符 ASCII 值  
+00466007    83C0 F9         ADD EAX,-7                               ; 加-7，设为 CA  
+0046600A    0FBFC8          MOVSX ECX,AX  
+0046600D    898D C0FEFFFF   MOV [DWORD SS:EBP-140],ECX  
+00466013    DB85 C0FEFFFF   FILD [DWORD SS:EBP-140]                 ; CA 入浮点栈  
+00466019    DD9D B8FEFFFF   FSTP [QWORD SS:EBP-148]  
+0046601F    DC8D B8FEFFFF   FMUL [QWORD SS:EBP-148]                 ; 将 LN100 与 CA 相乘  
+00466025    DCAD C4FEFFFF   FSUBR [QWORD SS:EBP-13C]                ; HM-(LN100*CA)，下面把差(整数)转换成字串 SS  
+0046602B    83EC 08         SUB ESP,8  
+0046602E    DD1C24          FSTP [QWORD SS:ESP]  
+00466031    FFD3            CALL EBX  
+00466033    8BD0            MOV EDX,EAX  
+00466035    8D4D CC         LEA ECX,[DWORD SS:EBP-34]  
+00466038    FFD6            CALL ESI  
+0046603A    8D4D A0         LEA ECX,[DWORD SS:EBP-60]  
+0046603D    FF15 4C134000   CALL [DWORD DS:40134C]                   ; MSVBVM60.__vbaFreeStr  
+00466043    8D4D 80         LEA ECX,[DWORD SS:EBP-80]  
+00466046    FF15 20104000   CALL [DWORD DS:401020]                   ; MSVBVM60.__vbaFreeVar  
+//下面是最后一个循环体  
+0046604C    8B55 E0         MOV EDX,[DWORD SS:EBP-20]  
+0046604F    52              PUSH EDX  
+00466050    FF15 2C104000   CALL [DWORD DS:40102C]                   ; MSVBVM60.__vbaLenBstr  
+00466056    8BD8            MOV EBX,EAX                              ; 注册名长度  
+00466058    B8 02000000     MOV EAX,2                                ; 循环结束条件是经计算过注册名第 2 字符以后  
+0046605D    66:3BD8         CMP BX,AX  
+00466060    8B45 CC         MOV EAX,[DWORD SS:EBP-34]                ; 第 1 轮循环这个地址指向字串 SS，是该循环体的初始值，以后各轮它指向的字串是前一轮计算结果  
+00466063    0F8C 02010000   JL FXRL.0046616B  
+00466069    8985 48FFFFFF   MOV [DWORD SS:EBP-B8],EAX  
+0046606F    C785 40FFFFFF 0>MOV [DWORD SS:EBP-C0],8  
+00466079    C785 78FFFFFF 0>MOV [DWORD SS:EBP-88],1  
+00466083    C785 70FFFFFF 0>MOV [DWORD SS:EBP-90],2  
+0046608D    8D8D 70FFFFFF   LEA ECX,[DWORD SS:EBP-90]  
+00466093    51              PUSH ECX  
+00466094    0FBFD3          MOVSX EDX,BX  
+00466097    52              PUSH EDX  
+00466098    8B45 E0         MOV EAX,[DWORD SS:EBP-20]  
+0046609B    50              PUSH EAX  
+0046609C    FFD7            CALL EDI                                 ; 倒取注册名各字符  
+0046609E    8BD0            MOV EDX,EAX  
+004660A0    8D4D A0         LEA ECX,[DWORD SS:EBP-60]  
+004660A3    FFD6            CALL ESI  
+004660A5    50              PUSH EAX  
+004660A6    FF15 50104000   CALL [DWORD DS:401050]                   ; MSVBVM60.rtcAnsiValueBstr  
+004660AC    83E8 32         SUB EAX,32                               ; 当前字符的 ASCII 值减去 32，设为 Cn  
+004660AF    66:8985 28FFFFF>MOV [WORD SS:EBP-D8],AX  
+004660B6    C785 20FFFFFF 0>MOV [DWORD SS:EBP-E0],2  
+004660C0    8D4D BC         LEA ECX,[DWORD SS:EBP-44]  
+004660C3    51              PUSH ECX  
+004660C4    FF15 80124000   CALL [DWORD DS:401280]                   ; MSVBVM60.__vbaR8Var  
+004660CA    E8 83F7F9FF     CALL FXRL.00405852                       ; JMP 到 MSVBVM60._CIlog  
+004660CF    DC0D 18234000   FMUL [QWORD DS:402318]                   ; 上句求出 W 的自然对数，这句乘以 100.0，下句把积取整；明显该值在各轮是相同的，设为 D  
+004660D5    FF15 30134000   CALL [DWORD DS:401330]                   ; MSVBVM60.__vbaFPInt  
+004660DB    DD9D 18FFFFFF   FSTP [QWORD SS:EBP-E8]  
+004660E1    C785 10FFFFFF 0>MOV [DWORD SS:EBP-F0],5  
+004660EB    8D95 40FFFFFF   LEA EDX,[DWORD SS:EBP-C0]  
+004660F1    52              PUSH EDX  
+004660F2    8D45 BC         LEA EAX,[DWORD SS:EBP-44]  
+004660F5    50              PUSH EAX  
+004660F6    8D4D 80         LEA ECX,[DWORD SS:EBP-80]  
+004660F9    51              PUSH ECX  
+004660FA    FF15 04104000   CALL [DWORD DS:401004]                   ; MSVBVM60.__vbaVarSub，跟进看到 SS 串变成浮点数减去 W，注意各轮 SS 是用上一轮的结果  
+00466100    50              PUSH EAX  
+00466101    8D95 20FFFFFF   LEA EDX,[DWORD SS:EBP-E0]  
+00466107    52              PUSH EDX  
+00466108    8D85 60FFFFFF   LEA EAX,[DWORD SS:EBP-A0]  
+0046610E    50              PUSH EAX  
+0046610F    FF15 AC124000   CALL [DWORD DS:4012AC]                   ; MSVBVM60.__vbaVarAdd，差加上 Cn
+```
+
+
+
+# 汇编代码分析
+
+## 计算与验证逻辑
+
+```
+00466115    50               PUSH EAX
+00466116    8D8D 10FFFFFF    LEA ECX, [DWORD SS:EBP-F0]
+0046611C    51               PUSH ECX
+0046611D    8D95 50FFFFFF    LEA EDX, [DWORD SS:EBP-B0]
+00466123    52               PUSH EDX
+00466124    52               PUSH EDX
+00466124    FF15 AC124000    CALL [DWORD DS:4012AC]        ; MSVBVM60.__vbaVarAdd，再加上 D，得到这一轮计算结果，转换成字串用于下一轮
+0046612A    50               PUSH EAX
+0046612B    FF15 30104000    CALL [DWORD DS:401030]         ; MSVBVM60.__vbaStrVarMove
+00466131    8BD0             MOV EDX, EAX
+00466133    8D4D CC          LEA ECX, [DWORD SS:EBP-34]
+00466136    FFD6             CALL ESI
+00466138    8D4D A0          LEA ECX, [DWORD SS:EBP-60]
+0046613B    FF15 4C134000    CALL [DWORD DS:40134C]         ; MSVBVM60.__vbaFreeStr
+00466141    8D85 50FFFFFF    LEA EAX, [DWORD SS:EBP-B0]
+00466147    50               PUSH EAX
+00466148    8D8D 60FFFFFF    LEA ECX, [DWORD SS:EBP-A0]
+0046614E    51               PUSH ECX
+0046614F    8D95 70FFFFFF    LEA EDX, [DWORD SS:EBP-90]
+00466155    52               PUSH EDX
+00466156    6A 03            PUSH 3
+00466158    FF15 3C104000    CALL [DWORD DS:40103C]         ; MSVBVM60.__vbaFreeVarList
+0046615E    83C4 10          ADD ESP, 10
+00466161    83C8 FF          OR EAX, FFFFFFFF
+00466164    03D8             ADD EBX, EAX
+00466166    E9 EDFEFFFF      JMP FXRL.00466058
+0046616B    50               PUSH EAX                         ; 循环的最后一轮处理过注册名第 2 字符'b'后，跳出到这里，准备返回上级
+0046616C    FF15 40124000    CALL [DWORD DS:401240]          ; MSVBVM60.__vbaR8Str
+00466172    DC25 20144000    FSUB [QWORD DS:401420]
+00466178    DD5D D8          FSTP [QWORD SS:EBP-28]
+0046617B    FF15 D8104000    CALL [DWORD DS:4010D8]          ; MSVBVM60.__vbaExitProc
+00466181    9B               WAIT
+00466182    68 13624600      PUSH FXRL.00466213
+00466187    EB 69            JMP SHORT FXRL.004661F2
+...
+004661F2    8D4D E0          LEA ECX, [DWORD SS:EBP-20]
+004661F5    8B35 4C134000    MOV ESI, [DWORD DS:40134C]      ; MSVBVM60.__vbaFreeStr
+004661FB    FFD6             CALL ESI
+004661FD    8D4D CC          LEA ECX, [DWORD SS:EBP-34]
+00466200    FFD6             CALL ESI
+00466202    8D4D BC          LEA ECX, [DWORD SS:EBP-44]
+00466205    8B35 20104000    MOV ESI, [DWORD DS:401020]      ; MSVBVM60.__vbaFreeVar
+0046620B    FFD6             CALL ESI
+0046620D    8D4D A4          LEA ECX, [DWORD SS:EBP-5C]
+00466210    FFD6             CALL ESI
+00466212    C3               RETN
+```
+
+## 返回与注册验证
+
+上面返回到下面这部分
+
+```
+004D2BE5    FF15 4C104000    CALL [DWORD DS:40104C]          ; MSVBVM60.__vbaFreeObjList
+004D2BEB    83C4 0C          ADD ESP, 0C
+004D2BEE    C745 FC 1900000> MOV [DWORD SS:EBP-4], 19
+004D2BF5    E8 862CF9FF      CALL FXRL.00465880              ; 调用注册验证部分
+004D2BFA    DD9D 78FFFFFF    FSTP [QWORD SS:EBP-88]          ; 验证结果的字串转换成浮点数
+004D2C00    DD05 D04B4000    FLD [QWORD DS:404BD0]
+004D2C06    DC85 78FFFFFF    FADD [QWORD SS:EBP-88]          ; 加常数 98.0
+004D2C0C    DC0D C84B4000    FMUL [QWORD DS:404BC8]          ; 乘常数 3.0
+004D2C12    FF15 14114000    CALL [DWORD DS:401114]          ; MSVBVM60.__vbaFpR8
+004D2C18    DC1D C04B4000    FCOMP [QWORD DS:404BC0]         ; 与常数 291.0 相比，必须相等
+004D2C1E    DFE0             FSTSW AX
+004D2C20    F6C4 40          TEST AH, 40
+004D2C23    74 0C            JE SHORT FXRL.004D2C31          ; 不跳就是注册版
+```
+
+## 算法总结
+
+由 `(0-1+98)*3=291` 可知，调用返回的字串必须是 `"0"`。
+
+1. 程序自己计算出机器码；用户注册名最少 2 字符
+    - 注册码是数字组成的字串，开头两个字符分别是注册名前两字符 `ASCII` 值的十进制个位数字
+2. 由机器码前 3 字符(加法)和后半部分(乘法)计算出 `RES`
+    - `TAIL` 是 `sqrt(RES)` 浮点数转换成字符串(长度 16，小数部分 11 位)后的最后 5 个数字，变成浮点数(整)
+    - `W = Int(sqrt(RES)*10000.0) + TAIL`，此 `W` 后面多次要用到
+    - 注册名第 1 字符 `ASCII` 值减 7，变成浮点数，设为 `CA`
+    - 注册码第 3 字符开始的余部设为 `HM`
+    - `SS = HM - Int(ln(sqrt(W))*100.0) * CA`，此 `SS` 是最后循环体计算用的初始值
+3. 最后，循环倒取注册名各字符，直到第 2 字符计算过
+    - `Cn` = 当前字符 `ASCII` 值减 32（转换成浮点数）
+    - `D = Int(ln(W)*100.0)`
+    - `SS = SS - W + Cn + D`
+    - 循环最后 `SS` 要等于 0
+4. 根据第 2 步不涉及注册码余部的一些计算结果，对第 3 步反向循环不难得出初始的 `SS`，由它可得注册码剩余部分
+    - `HM = Int(ln(sqrt(W))*100.0) * CA + W * n - (D * n + CN)`
+
+其中 `n` 是注册名长度减 1、`CN` 是注册名除第 1 字符外各字符 `ASCII` 值减 `32h` 后的总和（转换成浮点数），`Int` 表示取整，`ln` 表示求自然对数，`sqrt` 表示求平方根。
+
+第一次写这么多，感谢你读完全文！
+
+月中人  
+于 2006 年端午节
+
+`4dd466d0e1e0cc123afbe504da2462ca`
