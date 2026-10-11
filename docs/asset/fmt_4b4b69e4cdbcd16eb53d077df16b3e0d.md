@@ -1,0 +1,231 @@
+
+# A-one Home Looker 1.13
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-141.htm`](https://www.pediy.com/kssd/pediy08/pediy8-141.htm)
+
+`A-one Home Looker 1.13`
+
+程序进行 2 轮 `RSA` 加密，第 1 轮只是烟雾弹，第 2 轮还搞了个脑筋急转弯，而且又是 `bit` 级处理，害的我开了 `n` 个工具计算，到现在脑袋还很大，晕晕的。写的比较乱，算法实在太繁琐了，加密前处理是根据对注册码的硬件访问断点跟踪的，加密部分是套用加密公式计算推出的。
+
+### 1. 断点
+
+`Borland Delphi 6.0 - 7.0`
+
+根据注册提示，串参考：
+
+```
+004DCE01     8B45 F8           mov eax,dword ptr ss:[ebp-8]
+004DCE04     E8 9F78F2FF       call VideoCap.004046A8
+004DCE09     83F8 24           cmp eax,24
+004DCE0C     74 0C             je short VideoCap.004DCE1A
+004DCE0E     B8 14CF4D00       mov eax,VideoCap.004DCF14          ; ASCII "Please input serial number!"
+```
+
+练码需要 36 位：`876543211234567887654321123456789999`
+
+然后来到：
+
+```
+004DCE50     8B45 E8           mov eax,dword ptr ss:[ebp-18]
+004DCE53     5A              pop edx
+004DCE54     E8 67F2FFFF       call VideoCap.004DC0C0            ; 计算
+004DCE59     84C0              test al,al
+004DCE5B     74 22             je short VideoCap.004DCE7F        ; 关键比较
+004DCE5D     B8 38CF4D00       mov eax,VideoCap.004DCF38         ; ASCII "Register successed!"
+```
+
+### 2. 进入计算 `call` 来到第一轮加密计算：
+
+```
+004DC15D     BA 12000000       mov edx,12
+004DC162     8B45 F8           mov eax,dword ptr ss:[ebp-8]
+004DC165     E8 9EB1F5FF       call VideoCap.00437308            ; 取前 18 位
+004DC16A     8B45 E4           mov eax,dword ptr ss:[ebp-1C]     ; "876543211234567887"
+004DC16D     B9 60C44D00       mov ecx,VideoCap.004DC460         ; ASCII "567315147181381047622517681039"
+004DC172     BA 88C44D00       mov edx,VideoCap.004DC488         ; ASCII "65537"
+004DC177     E8 34FDFFFF       call VideoCap.004DBEB0            ; 第一批注册码的计算
+004DC17C     8B55 E8           mov edx,dword ptr ss:[ebp-18]     ; 计算值
+```
+
+可以看出 `N=567315147181381047622517681039`（`D`）＝`729181748E63BE5BA59406B8F`（`H`），
+
+`E`＝`65537`（`D`）＝`10001`（`H`）
+
+#### 加密过程：
+
+`HR EAX`（对注册码前半部分下断）：
+
+```
+004D9163     8BC6              mov eax,esi
+004D9165     8B55 FC           mov edx,dword ptr ss:[ebp-4]
+004D9168     0FB6543A FF       movzx edx,byte ptr ds:[edx+edi-1]
+004D916D     8B9495 FCFBFFFF   mov edx,dword ptr ss:[ebp+edx*4-404]    ; 断在此，查表
+004D9174     E8 37B5F2FF       call VideoCap.004046B0
+004D9179     47              inc edi
+004D917A     4B              dec ebx
+004D917B    ^ 75 E6           jnz short VideoCap.004D9163
+```
+
+输入的字符查表得到 2 进制，其实就是将 `ASCII` 码转换成 2 进制：
+
+比如：`876543211234567887`＝`383736353433323131323334353637383837`：
+
+```
+001110000011011100110110001101010011010000110011001100100011000100110001001100100011001100110100001101010011011000110111001110000011100000110111
+```
+
+返回到：
+
+```
+004DB896     E8 69D8FFFF       call VideoCap.004D9104                  ; 查表
+004DB89B     8D45 DC           lea eax,dword ptr ss:[ebp-24]          ; 返回处
+004DB89E     8B4D DC           mov ecx,dword ptr ss:[ebp-24]
+```
+
+连接上 `111`：
+
+```
+004DB89E     8B4D DC           mov ecx,dword ptr ss:[ebp-24]
+004DB8A1     BA 7CBA4D00       mov edx,VideoCap.004DBA7C               ; ASCII "111"
+004DB8A6     E8 498EF2FF       call VideoCap.004046F4
+```
+
+堆栈 `ss:[0012F90C]`=`00FC5EE4`, (`ASCII "111001110000011011100110110001101010011010000110011001100100011000100110001001100100011001100110100001101010011011000110111001110000011100000110111"`)
+
+长度＝`147bit`(`D`)
+
+然后分组，后面的 `98bit` 为第 2 组，前面剩下的为第 1 组：
+
+第 1 组：长度＝`49bit`（`D`）
+
+堆栈 `ss:[0012F904]`=`00FC5FB8`, (`ASCII "1110011100000110111001101100011010100110100001100"`)
+
+即：`M1`＝`1CE0DCD8D4D0C`（`H`）
+
+第 2 组：长度＝`98bit`（`D`）
+
+```
+11001100100011000100110001001100100011001100110100001101010011011000110111001110000011100000110111
+```
+
+`M2`=`3323131323334353637383837`(`H`)
+
+加密：
+
+```
+004DB991     8D45 F0           lea eax,dword ptr ss:[ebp-10]
+004DB994     E8 8BDCFFFF       call VideoCap.004D9624
+004DB999     8D45 D4           lea eax,dword ptr ss:[ebp-2C]
+004DB99C     E8 2B8AF2FF       call VideoCap.004043CC
+004DB9A1     8D55 D4           lea edx,dword ptr ss:[ebp-2C]
+004DB9A4     8D45 E8           lea eax,dword ptr ss:[ebp-18]
+004DB9A7     E8 B0E8FFFF       call VideoCap.004DA25C
+004DB9AC     EB 10             jmp short VideoCap.004DB9BE
+...
+004DB9BE     8B45 D4           mov eax,dword ptr ss:[ebp-2C]          ; 加密值
+```
+
+此时出现另一个不一样的值：
+
+堆栈 `ss:[0012F904]`=`00FC5A2C`, (`ASCII "100111100100010000000100010110100011111010111101010101101010010101111101101101010000110110010011100"`)
+
+套用 `RSA` 加密公式：
+
+`N`=`729181748E63BE5BA59406B8F`
+
+`E`=`10001`
+
+`M1`=`1CE0DCD8D4D0C`
+
+那么：
+
+`C1`=`M1~E MOD(N)`=`4F22022D1F5EAB52BEDA86C9C`
+
+即：`100111100100010000000100010110100011111010111101010101101010010101111101101101010000110110010011100`
+
+呵呵，的确对上，这就好办。
+
+马上分解 `N`，得到 `D`＝`68FF4D2042822BBAF2449D1B1`（`H`）
+
+然后判断 `message` 加密完了吗：
+
+```
+004DB9C1     E8 E28CF2FF       call VideoCap.004046A8
+004DB9C6     99              cdq
+004DB9C7     F7FB            idiv ebx
+004DB9C9     85D2            test edx,edx
+004DB9CB    ^ 75 E1           jnz short VideoCap.004DB9AE             ; message 都加密完了吗？
+```
+
+如果还有 `message`，再对其加密，因为第一次的 `message` 只取前 `49BIT`，还有 `98BIT`，即：
+
+`message2`：堆栈 `ss:[0012F904]`=`00FC5018`, (`ASCII "11001100100011000100110001001100100011001100110100001101010011011000110111001110000011100000110111"`)
+
+十六进制为：`3323131323334353637383837`
+
+加密后值：堆栈 `ss:[0012F904]`=`00FC7474`, (`ASCII 101110101011110101110100101001001111001100000111001010100110101011100110011000110101110001000010101`)
+
+十六进制为：`5D5EBA52798395357331AE215`
+
+可以在堆栈看到 2 个加密后的值：
+
+`message2`:`0012F904`   `00FC7474`  `ASCII "101110101011110101110100101001001111001100000111001010100110101011100110011000110101110001000010101"`
+
+`message1`:`0012F908`   `00FC5A2C`  `ASCII "100111100100010000000100010110100011111010111101010101101010010101111101101101010000110110010011100"`
+
+两个加密值连接：
+
+```
+004DB9D3     E8 D88CF2FF       call VideoCap.004046B0
+004DB9D8     8D45 E8           lea eax,dword ptr ss:[ebp-18]
+```
+
+```
+100111100100010000000100010110100011111010111101010101101010010101111101101101010000110110010011100101110101011110101110100101001001111001100000111001010100110101011100110011000110101110001000010101
+```
+
+```
+279101168FAF55A95F6D4364E5D5EBA52798395357331AE215
+```
+
+补齐 8 的倍数：
+
+```
+004D91E4     8D45 FC           lea eax,dword ptr ss:[ebp-4]
+004D91E7     8B4D FC           mov ecx,dword ptr ss:[ebp-4]
+004D91EA     BA A8924D00       mov edx,VideoCap.004D92A8
+004D91EF     E8 00B5F2FF       call VideoCap.004046F4
+004D91F4     8B45 FC           mov eax,dword ptr ss:[ebp-4]
+004D91F7     E8 ACB4F2FF       call VideoCap.004046A8
+004D91FC     25 07000080       and eax,80000007
+004D9201     79 05             jns short VideoCap.004D9208
+004D9203     48              dec eax
+004D9204     83C8 F8           or eax,FFFFFFF8
+004D9207     40              inc eax
+004D9208     85C0            test eax,eax
+004D920A    ^ 75 D8           jnz short VideoCap.004D91E4
+```
+
+原来的 198 位，加了 2 个 0，200 位（十进制＝`512`），刚好被 8 整除：
+
+```
+0012F8DC   00FC75B8  ASCII "00100111100100010000000100010110100011111010111101010101101010010101111101101101010000110110010011100101110101011110101110100101001001111001100000111001010100110101011100110011000110101110001000010101"
+```
+
+逆转换：2 进制到十六进制
+
+```
+004D9224     8D45 F4           lea eax,dword ptr ss:[ebp-C]
+004D9227     50              push eax
+004D9228     B9 08000000       mov ecx,8
+004D922D     BA 01000000       mov edx,1
+004D9232     8B45 FC           mov eax,dword ptr ss:[ebp-4]
+004D9235     E8 CEB6F2FF       call VideoCap.00404908                  ; 取出 8 个 bit
+004D923A     8B55 F4           mov edx,dword ptr ss:[ebp-C]
+004D923D     8D45 FB           lea eax,dword ptr ss:[ebp-5]
+004D9240     E8 6FF8FFFF       call VideoCap.004D8AB4                  ; 转换
+004D9245     8D45 F0           lea eax,dword ptr ss:[ebp-10]
+004D9248     8A55 FB           mov dl,byte ptr ss:[ebp-5]              ; 值
+004D924B     E8 64B3F2FF       call VideoCap.004045B4
+004D9250     8B55 F0           mov edx,dword ptr ss:[ebp-10]
+```

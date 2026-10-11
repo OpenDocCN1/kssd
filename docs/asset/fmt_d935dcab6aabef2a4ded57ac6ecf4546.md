@@ -1,0 +1,179 @@
+
+```
+0050A109   |.  A1 20A85400        mov eax,dword ptr ds:[54A820]  
+
+0050A10E   |.  BA FF010000        mov edx,1FF  
+
+0050A113   |.  E8 08C0FEFF        call <IP_TOOLS.HashToInt>                     ;得到的 640 位大数进行处理，这个是注册码的  
+
+0050A118   |.  3BF8               cmp edi,eax                                   ;结果相同吗？不同就出错,相同就继续检验  
+
+0050A11A   |.  0F85 4E010000      jnz <IP_TOOLS.loc_50A26E>  
+
+0050A120   |.  A1 9CA95400        mov eax,dword ptr ds:[54A99C]  
+
+0050A125   |.  83C0 07            add eax,7  
+
+0050A128   |.  8B00               mov eax,dword ptr ds:[eax]  
+
+0050A12A   |.  8B15 20A85400      mov edx,dword ptr ds:[54A820]                 ;  IP_TOOLS.0054CB00  
+
+0050A130   |.  83C2 07            add edx,7  
+
+0050A133   |.  3B02               cmp eax,dword ptr ds:[edx]                    ;这里  
+
+0050A135   |.  0F85 33010000      jnz <IP_TOOLS.loc_50A26E>  
+
+0050A13B   |.  8D55 D0            lea edx,dword ptr ss:[ebp-30]  
+
+0050A13E   |.  8B06               mov eax,dword ptr ds:[esi]  
+
+0050A140 <>|.  8B80 E4020000      mov eax,dword ptr ds:[eax+2E4]                ;  *Label1:TLabel  
+
+0050A146 <>|.  E8 8DBFF2FF        call <IP_TOOLS.sub_4360D8>                   ;  ->controls.TControl.GetText(TControl):TCaption;  
+
+0050A14B   |.  8B55 D0            mov edx,dword ptr ss:[ebp-30]  
+
+0050A14E   |.  A1 C4AB5400        mov eax,dword ptr ds:[54ABC4]  
+
+0050A153 <>|.  E8 609EEFFF        call <IP_TOOLS.sub_403FB8>                   ;  ->system.@LStrAsg;  
+
+0050A158   |.  8D55 CC            lea edx,dword ptr ss:[ebp-34]  
+
+0050A15B   |.  8B06               mov eax,dword ptr ds:[esi]  
+
+0050A15D <>|.  8B80 E8020000      mov eax,dword ptr ds:[eax+2E8]                ;  *RxGIFAnimator1:TRxGIFAnimator  
+
+0050A163 <>|.  E8 70BFF2FF        call <IP_TOOLS.sub_4360D8>                   ;  ->controls.TControl.GetText(TControl):TCaption;  
+
+0050A168   |.  8B55 CC            mov edx,dword ptr ss:[ebp-34]  
+
+0050A16B   |.  A1 64A85400        mov eax,dword ptr ds:[54A864]  
+
+0050A170 <>|.  E8 439EEFFF        call <IP_TOOLS.sub_403FB8>                   ;  ->system.@LStrAsg;  
+
+0050A175   |.  8BC3               mov eax,ebx  
+
+0050A177   |.  E8 B0F9FFFF        call <IP_TOOLS.sub_509B2C>  
+
+0050A17C   |.  B8 9CA35000        mov eax,<IP_TOOLS.aThankYouForReg>            ;  ASCII "Thank you for registering IP-Tools.
+Please, restart the program."  
+
+0050A181 <>|.  E8 E247F5FF        call <IP_TOOLS.sub_45E968>                   ;  ->dialogs.ShowMessage(AnsiString);  
+
+0050A186   |.  B2 01              mov dl,1  
+
+0050A188   |.  A1 E0634500        mov eax,dword ptr ds:[<off_4563E0>]  
+
+0050A18D <>|.  E8 BAC3F4FF        call <IP_TOOLS.sub_45654C>                   ;  ->registry.TRegistry.Create(TRegistry;boolean);overload;  
+
+0050A192   |.  8BD8               mov ebx,eax  
+
+0050A194   |.  B1 01              mov cl,1  
+
+0050A196   |.  BA E8A35000        mov edx,<IP_TOOLS.aSoftwareKsSo_3>            ;  ASCII "\\Software\\KS-Soft\\IP-Tools"  
+
+0050A19B   |.  8BC3               mov eax,ebx  
+
+0050A19D <>|.  E8 CAC5F4FF        call <IP_TOOLS.sub_45676C>                   ;  ->registry.TRegistry.OpenKey(TRegistry;AnsiString;Boolean):Boolean;  
+
+0050A1A2   |.  A1 C4AB5400        mov eax,dword ptr ds:[54ABC4]  
+
+0050A1A7   |.  8B00               mov eax,dword ptr ds:[eax]  
+
+0050A1A9 <>|.  E8 36A0EFFF        call <IP_TOOLS.sub_4041E4>                   ;  ->system.@LStrLen:Integer;<+>  
+
+0050A1AE   |.  8D55 C8            lea edx,dword ptr ss:[ebp-38]  
+
+0050A1B1   |.  E8 1EA9FCFF        call <IP_TOOLS.sub_4D4AD4>  
+
+0050A1B6   |.  8B4D C8            mov ecx,dword ptr ss:[ebp-38]                ;  下面就是用 Base64 把 UserName 和 UserNum 存入注册表  
+
+0050A1B9   |.  BA 0CA45000        mov edx,<IP_TOOLS.aUsername_1>                ;  ASCII "UserName"  
+
+0050A1BE   |.  8BC3               mov eax,ebx  
+
+0050A1C0 <>|.  E8 43CAF4FF        call <IP_TOOLS.sub_456C08>                   ;  ->registry.TRegistry.WriteString(TRegistry;AnsiString;AnsiString);  
+
+0050A1C5   |.  A1 64A85400        mov eax,dword ptr ds:[54A864]  
+
+0050A1CA   |.  8B00               mov eax,dword ptr ds:[eax]  
+
+0050A1CC <>|.  E8 13A0EFFF        call <IP_TOOLS.sub_4041E4>                   ;  ->system.@LStrLen:Integer;<+>  
+
+0050A1D1   |.  8D55 C4            lea edx,dword ptr ss:[ebp-3C]  
+
+0050A1D4   |.  E8 FBA8FCFF        call <IP_TOOLS.sub_4D4AD4>  
+
+0050A1D9   |.  8B4D C4            mov ecx,dword ptr ss:[ebp-3C]  
+
+0050A1DC   |.  BA 20A45000        mov edx,<IP_TOOLS.aUsersnum>                 ;  ASCII "UserSNum"
+```
+
+....................................
+
+---------------------------------------------------------------------------------------------------------------------------
+
+```
+0050A0D0 <>|.  E8 67C0FEFF        call <IP_TOOLS.sub_4F613C> 
+
+{
+004F613C <>/$  55                 push ebp                              ;  sub_4F613C
+004F613D   |.  8BEC               mov ebp,esp
+004F613F   |.  81C4 FCFDFFFFFF    add esp,-204
+004F6145   |.  53                 push ebx
+004F6146   |.  8945 FC            mov dword ptr ss:[ebp-4],eax
+004F6149   |.  8B45 FC            mov eax,dword ptr ss:[ebp-4]
+004F614C   |.  E8 47E2F0FF        call <IP_TOOLS.sub_404398>
+004F6151   |.  33C0               xor eax,eax
+004F6153   |.  55                 push ebp
+004F6154   |.  68 C9614F00        push <IP_TOOLS.loc_4F61C9>
+004F6159   |.  64:FF30            push dword ptr fs:[eax]
+004F615C   |.  64:8920            mov dword ptr fs:[eax],esp
+}
+
+---------------------------------------------------------------------
+```
+
+把用户名的长度送给 `ebx`，如果长度大于 64 的话就以 64 来计算
+
+```
+004F615F   |.  8B45 FC            mov eax,dword ptr ss:[ebp-4]
+004F6162   |.  E8 7DE0F0FF        call <IP_TOOLS.sub_4041E4>
+004F6167   |.  83F8 40            cmp eax,40
+004F616A   |.  7E 07              jle short <IP_TOOLS.loc_4F6173>
+004F616C   |.  BB 40000000        mov ebx,40
+004F6171   |.  EB 0A              jmp short <IP_TOOLS.loc_4F617D>
+004F6173 <>|>  8B45 FC            mov eax,dword ptr ss:[ebp-4]                ;  loc_4F6173
+004F6176   |.  E8 69E0F0FF        call <IP_TOOLS.sub_4041E4>
+004F617B   |.  8BD8               mov ebx,eax
+004F617D <>|>  8D45 FC            lea eax,dword ptr ss:[ebp-4]                ;  loc_4F617D
+004F6180   |.  E8 2FE2F0FF        call <IP_TOOLS.sub_4043B4>
+004F6185   |.  8D95 FCFDFFFFFF    lea edx,dword ptr ss:[ebp-204]
+004F618B   |.  8BCB               mov ecx,ebx
+004F618D   |.  E8 62C8F0FF        call <IP_TOOLS.sub_4029F4>
+004F6192   |.  8D85 FCFDFFFFFF    lea eax,dword ptr ss:[ebp-204]
+004F6198   |.  50                 push eax                              ; /Arg5 pointer to name
+004F6199   |.  68 00C95400        push IP_TOOLS.0054C900                  ; |Arg4 = 0054C900
+004F619E   |.  53                 push ebx                              ; |Arg3 namelen
+004F619F   |.  68 02805400        push IP_TOOLS.00548002                  ; |Arg2 = 00548002 固定参数 1
+004F61A4   |.  68 02815400        push IP_TOOLS.00548102                  ; |Arg1 = 00548102 公钥,用于加密
+004F61A9   |.  E8 3C060000        call <IP_TOOLS.sub_4F67EA>               ; \IP_TOOLS.004F67EA
+004F61AE   |.  0FBEC0             movsx eax,al
+
+}
+```
+
+`00548002` 处的固定参数为一个长度为 2 的 `WORD` 数组，`WORD constants={0x0003,0x0008};`
+
+`00548102` 处的公钥是一个 640 位的大数，在内存中表示如下：
+
+```
+--------------------------------------------------------------------------
+
+00548102  A1 8B 33 A7 FA CE 05 97 99 EA 8F 95 AD 8E F5 7C  3?棛陱暛庻|
+00548112  97 09 D6 3B F3 85 6D CC EA 56 FE 14 FE 22 FB 86  ??髤 m 剃 V??麊
+00548122  F7 A5 2F 00 C5 86 78 3B 05 DA CE 9E 8E 40 10 E5  鳐/.艈 x;谖瀻@
+00548132  77 6F E2 71 80 47 99 C7 60 85 DE 1B 1D E9 EB 9D  wo 鈗€G 櫱`呣殡
+00548142  79 C2 7E 40 40 91 EB 2A 38 C9 BB C2 EC EC 79 C9  y 聗@@戨*8 苫蚂靬
+```

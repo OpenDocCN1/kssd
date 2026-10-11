@@ -1,0 +1,238 @@
+
+# 成功的保护——Calendarscope 注册算法分析
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-320.htm`](https://www.pediy.com/kssd/pediy07/pediy7-320.htm)
+
+## Calendarscope 2V5 Beta Crack Tutorial
+
+### 程序说明
+
+`Calendarscope` is a full-featured calendar program for planning, managing, and scheduling appointments, meetings, birthdays, vacations, and special events. It allows you to view all your events in a daily, weekly, monthly, or yearly overview. You can get a quick look at the events of a single day in any calendar view.
+
+....
+
+总之很强大的功能。^\_^
+
+### 破解说明
+
+**限制方式：**
+
+时间限制+Nag
+
+**保护方式**
+
+`KeyCode` `[RSA1024]` `[MD5]`
+
+**保存位置：**
+
+注册表
+
+**破解目的：**
+
+周末闲极无聊，随便从 `onlinedown` 当了写软件准备玩玩。
+
+先是肯了 1 天的 `FeedDemon`，总于搞明白 `Serial` 和 `ActiveKey` 的算法了，
+
+正准备写 `KeyGen`，忽然灵光一闪，上网查了查，`FAINT`，发现 `ECLiPSE` 小组早就放出 `KEYGEN` 了，郁闷。
+
+于是又换了个小东东，叫什么 `DocRepair` 的，竟然是最新版 `ASProtect` 加壳的。
+
+只好用 `OD` 附加，发现里面竟然是 `MD5`，不能爆（有壳），也找不到注册码，更郁闷。
+
+最后只好蹂躏这个 `Calendarscope` 了，因为它。。。。。。没壳！！！^\_^
+
+不过搞了一天之后，发现其实是自己被这个东西蹂躏了，竟然是 `RSA1024`+`MD5`！
+
+唉，时不与我啊。不过好歹也折腾了 1 天，基本的注册流程也搞清楚了，还是出来 `SHOW` 一下吧。
+
+**破解结果：**
+
+无。。。。:-(，可恶的 `MD5`，可恶的 `RSA`。
+
+### 破解分析
+
+1. 第一步是对程序进行查壳/脱壳，无壳。
+
+   这也是我决定研究它的原因。本人脱壳实在弱项。
+
+2. 第二步是侦测软件的加密算法，这一步大大减小了手动跟踪算法的强度。
+
+   这一步使用 `PEiD` 的插件 `Kanal`：
+
+   `BASE64`/`CRC32`/`MD5`/`RsaEuro NN_ModMult`/`RsaRef2 NN_ModExp`/`TWOFISH`。
+
+   因为这是一个 `PIM` 类软件，初步估计 `BASE64`/`CRC32`/`TWOFISH` 是与用户数据有关的；
+
+   `MD5` 与 `RSA` 可能与注册有关。。。。上帝保佑，希望别都用了。。。结果上帝 `TMD` 休假了。
+
+3. 第三步是运行程序，进行注册，观察程序反应。
+
+   启动程序，出现 `NAG` 提示注册，点 `Active` 按钮，进入注册对话框。
+
+   随便输入一些字符，发现 `OK` 按钮一直是灰色，不能激活。。。。狡猾啊。
+
+4. 静态分析，用 `PLL621` 大侠的 `C32ASM` 找到关键的注册码判断提示字串：
+
+   "Thank you for the registering Calendarscope.............."
+
+   "This is not a valid registration. ......................."
+
+   向上搜索，发现。。。。。找不到这个 `CALL` 的地址！
+
+   估计作者使用的是 `CALL [EAX]` 的形式调用这个函数的，郁闷：
+
+   输入注册码的 `OK` 按钮无法激活，也就跟踪不到这些关键判断的地方。
+
+   看来第一步是要解决注册码格式的问题，只有正确的注册码格式，才能激活 `OK` 按钮。
+
+5. 要找到合适的注册码格式，只能使用动态跟踪了。
+
+   `OD` 载入，下断 `GetWindowTextA`，这样每当注册表单里的注册码发生改变时，都会被拦截。
+
+   通过跟踪，发现注册码要求有 172（`0xAC`)个字符，最后一个字符是`=`。
+
+   这样，`OK` 按钮就激活了。
+
+   万里长征走完第一步。
+
+   注册码的 172 个字符的 `ASCII` 码经过 0x40 进制压缩，成为 128(`0x80`)个字节数据。
+
+   然后程序使用 `RSA` 算法对该 80 个字节数据进行解密，其中：
+
+   ```
+   N=0xBB4F91978B3D881D4AC1671B74402EA34687D13BF5300689E00C5110003EA36014C4F572B7DDD6DB7F26719C016BD51C664CACD478ED63FB797AE0AE7C2761E3DD938D33F349933FBEA342B2E054E5EDAFE92247AEBED97B8F45F511A413C397334FD03A14D1E8585E2EE996ACF89F0D7C88C5E502AAD08EA6055BA3BC1A79AF
+   
+   E=0x10001
+   ```
+
+   密钥长度位 1024`BITS`。
+
+   想用 `RSATOOL` 分解？呵呵，免了。先不说消耗多少时间的问题，
+
+   我随便试了一下，虚拟内存开 2G，用 `MPQS` 算法，内存不够直接退出，呵呵。
+
+   `RSA` 这到关过不去的话，后边的工作也没法进行。
+
+   所以，采用替换 `N` 的方法，让 `RSATOOL` 生成一组 1024`BITS` 的密钥，将程序中的 `N` 替换掉。
+
+   方法是用 `ULTRAEDIT` 打开程序，搜索上面的 `N`，注意要在 `HEX` 模式下，因为本程序将 `N` 直接作为数据存储，
+
+   而没有作为字符串存储。
+
+   替换完程序的 `N`，`RSA` 的编码解码就可以自己搞定了。
+
+   继续跟踪，得到经过 `RSA` 解密后的数据要求。
+
+   数据共 0x80 个字节，最多共包含 7 个字段：
+
+   - 倒数第 1 个字段，11 个字节，要求符合 `MD5` 校验。郁闷啊，11 个字节啊，不知道格式，不要妄想穷举破解了；
+   - 倒数第 2 个字段，8 个字节，表示过期时间，格式是 `yyyymmdd`。如果小于当前日期，则软件过期；
+   - 倒数第 3 个字段，长度不定，还没分析出作用；
+   - 倒数第 4 个字段，长度不定，要求 `0x23` 开头，后边个的数字大于 0 则软件会判断后边倒数第 2 个字段的时间字段；
+   - 倒数第 5 个字段，长度不定，表示产品 `ID`；
+   - 倒数第 6 个字段，长度不定，表示注册的计算机数量；
+   - 倒数第 7 个字段，长度不定，表示注册人的 `ID`。
+
+   每个字段间，用一个 0x0D，或 0x0A 隔开；
+
+   数据以 0x00 0x01 开头，所有字段、间隔符长度不足 0x80 个字节的在 0x00 0x01 后以 0xFF 填充，
+
+   并且要求 0xFF 的数量不少于 8 个。0xFF 与倒数第 7 个字段间用 0x00 间隔。
+
+   现举例说明：（括号内表示 `ASCII`，因为显示不出来)
+
+   ```
+   (0x00)(0x01)(75*0xFF)(0x00)MrBeer\CCG\999(0x0D)10111(0x0D)(0x23)22(0x0D)110(0x0D)99991230(0x0D)11111022222
+                       注册 ID       注册数量   产品 ID                              过期日期
+   ```
+
+   虽然注册成功了，但是因为有部分字段含义不明，估计程序运行过程中可能还有暗桩。
+
+   总的来讲，这个软件的保护还是非常成功的。
+
+   只要不发生密钥外泄的事，想写注册机是不可能的。
+
+   另外因为程序里可能有暗桩，爆破也是非常危险的。
+
+   唯一的遗憾就是没有做一机一码，注册码还是会外泻的。
+
+### 源码分析
+
+通过对 `GetWindowTextA` 设断，跟踪到这里
+
+```assembly
+004CF010   /$  8B4424 08     mov eax,dword ptr ss:[esp+8]
+004CF014   |.  81EC 10030000 sub esp,310
+004CF01A   |.  3D AC000000   cmp eax,0AC                          ; --->判断输入注册码是否等于 172 个字节，不跳！！
+004CF01F   |.  56           push esi
+004CF020   |.  57           push edi
+004CF021   |.  0F85 9A010000 jnz cs.004CF1C1
+004CF027   |.  8B8424 1C0300>mov eax,dword ptr ss:[esp+31C]
+004CF02E   |.  68 AC000000  push 0AC
+004CF033   |.  8D4C24 18    lea ecx,dword ptr ss:[esp+18]
+004CF037   |.  50           push eax
+004CF038   |.  51           push ecx
+004CF039   |.  E8 C2CDFFFF  call cs.004CBE00
+004CF03E   |.  8D9424 200100>lea edx,dword ptr ss:[esp+120]
+004CF045   |.  68 AC000000  push 0AC
+004CF04A   |.  8D4424 24    lea eax,dword ptr ss:[esp+24]
+004CF04E   |.  52           push edx
+004CF04F   |.  50           push eax
+004CF050   |.  E8 BB4EF3FF  call cs.00403F10                     ; --->对输入注册码做 0x40 进制压缩
+004CF055   |.  83C4 18      add esp,18
+004CF058   |.  3D 80000000  cmp eax,80
+004CF05D   |.  0F85 5E010000 jnz cs.004CF1C1                      ; --->判断压缩结果是否为 0x80 个字节，不跳！！
+004CF063   |.  8D4C24 08    lea ecx,dword ptr ss:[esp+8]
+004CF067   |.  51           push ecx
+004CF068   |.  68 AA000000  push 0AA
+004CF06D   |.  E8 6E010000  call cs.004CF1E0
+004CF072   |.  83C4 08      add esp,8
+004CF075   |.  85C0         test eax,eax
+004CF077   |.  0F84 44010000 je cs.004CF1C1
+004CF07D   |.  817C24 08 020>cmp dword ptr ss:[esp+8],102
+004CF085   |.  0F85 36010000 jnz cs.004CF1C1
+004CF08B   |.  68 02010000  push 102
+004CF090   |.  8D9424 180200>lea edx,dword ptr ss:[esp+218]
+004CF097   |.  50           push eax
+004CF098   |.  52           push edx
+004CF099   |.  E8 62CDFFFF  call cs.004CBE00
+004CF09E   |.  8D8424 200200>lea eax,dword ptr ss:[esp+220]
+004CF0A5   |.  8D8C24 200100>lea ecx,dword ptr ss:[esp+120]
+004CF0AC   |.  50           push eax
+004CF0AD   |.  68 80000000  push 80
+004CF0B2   |.  8D5424 24    lea edx,dword ptr ss:[esp+24]
+004CF0B6   |.  51           push ecx
+004CF0B7   |.  8D4424 2C    lea eax,dword ptr ss:[esp+2C]
+004CF0BB   |.  52           push edx
+004CF0BC   |.  50           push eax
+004CF0BD   |.  E8 AECDFFFF  call cs.004CBE70                     ; --->RSA 解密运算
+004CF0C2   |.  83C4 20      add esp,20
+004CF0C5   |.  85C0         test eax,eax
+004CF0C7   |.  0F85 F4000000 jnz cs.004CF1C1                     ; --->不跳
+004CF0CD   |.  8B4424 10    mov eax,dword ptr ss:[esp+10]
+004CF0D1   |.  83F8 0A      cmp eax,0A
+004CF0D4   |.  0F82 E7000000 jb cs.004CF1C1                     ; --->不跳
+004CF0DA   |.  3D 00010000  cmp eax,100
+004CF0DF   |.  0F83 DC000000 jnb cs.004CF1C1                     ; --->不跳
+004CF0E5   |.  C64404 14 00 mov byte ptr ss:[esp+eax+14],0
+004CF0EA   |.  40           inc eax
+004CF0EB   |.  3D 80000000  cmp eax,80
+004CF0F0   |.  72 05        jb short cs.004CF0F7
+004CF0F2   |.  B8 80000000  mov eax,80
+004CF0F7   |>  8D4C24 14    lea ecx,dword ptr ss:[esp+14]
+004CF0FB   |.  50           push eax
+004CF0FC   |.  51           push ecx
+004CF0FD   |.  68 DCC95500  push cs.0055C9DC
+004CF102   |.  E8 F9CCFFFF  call cs.004CBE00
+004CF107   |.  8B5424 1C    mov edx,dword ptr ss:[esp+1C]
+004CF10B   |.  6A 0B        push 0B
+004CF10D   |.  8D8C24 240100>lea ecx,dword ptr ss:[esp+124]
+004CF114   |.  8D4414 19    lea eax,dword ptr ss:[esp+edx+19]
+004CF118   |.  50           push eax
+004CF119   |.  51           push ecx
+004CF11A   |.  E8 E1CCFFFF  call cs.004CBE00
+004CF11F   |.  8D9424 2C0100>lea edx,dword ptr ss:[esp+12C]
+004CF126   |.  6A 0B        push 0B
+004CF128   |.  52           push edx
+004CF129   |.  68 D0C95500  push cs.0055C9D0
+```

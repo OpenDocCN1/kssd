@@ -1,0 +1,199 @@
+
+```
+004AE046  |.  8BD8          MOV EBX,EAX  
+004AE048  |.  85DB          TEST EBX,EBX  
+004AE04A  |.  7E 20         JLE SHORT videospl.004AE06C  
+004AE04C  |.  BE 01000000   MOV ESI,1  
+004AE051  |>  8D45 F8       /LEA EAX,DWORD PTR SS:\[EBP-8\]  
+004AE054  |.  8B55 FC       |MOV EDX,DWORD PTR SS:\[EBP-4\]      ;  read regcode  
+004AE057  |.  0FB65432 FF   |MOVZX EDX,BYTE PTR DS:\[EDX+ESI-1\] ;  regcode\[i\]  
+004AE05C  |.  8B9495 F4FBFF>|MOV EDX,DWORD PTR SS:\[EBP+EDX\*4-4>; 根据 regcode\[i\]查替换表得 6 位的二进制字符串  
+004AE063  |.  E8 9C63F5FF   |CALL videospl.00404404              ;  strcat( )  
+004AE068  |.  46            |INC ESI                             ;  i + 1  
+004AE069  |.  4B            |DEC EBX                             ;  循环次数减 1  
+004AE06A  |.^ 75 E5         \JNZ SHORT videospl.004AE051  
+```
+
+替换表在堆栈窗口可以看到：
+
+```
+0012FBEC   01165088  ASCII "111110"  ; +  
+0012FBF0   00000000  
+0012FBF4   00000000  
+0012FBF8   00000000  
+0012FBFC   00000000  
+0012FC00   01164FC0  ASCII "110100"  ; 0  
+0012FC04   01164FD4  ASCII "110101"  ; 1  
+0012FC08   01164FE8  ASCII "110110"  ; 2  
+0012FC0C   01164FFC  ASCII "110111"  ; 3  
+0012FC10   01165010  ASCII "111000"  ; 4  
+0012FC14   01165024  ASCII "111001"  ; 5  
+0012FC18   01165038  ASCII "111010"  ; 6  
+0012FC1C   0116504C  ASCII "111011"  ; 7  
+0012FC20   01165060  ASCII "111100"  ; 8  
+0012FC24   01165074  ASCII "111101"  ; 9  
+0012FC28   00000000  
+0012FC2C   00000000  
+0012FC30   00000000  
+0012FC34   0116509C  ASCII "111111"  ; =  
+0012FC38   00000000  
+0012FC3C   00000000  
+0012FC40   00000000  
+0012FC44   01160234  ASCII "000001"  ; A  
+0012FC48   0115DAF0  ASCII "000011"  ; B  
+0012FC4C   01161F28  ASCII "000101"  ; C  
+0012FC50   01164C3C  ASCII "000111"  ; D  
+………………  
+………………  依次加 2  
+………………  
+0012FCA0   01164F5C  ASCII "101111"  ; X  
+0012FCA4   01164F84  ASCII "110001"  ; Y  
+0012FCA8   01164FAC  ASCII "110011"  ; Z  
+0012FCAC   00000000  
+0012FCB0   00000000  
+0012FCB4   00000000  
+0012FCB8   00000000  
+0012FCBC   00000000  
+0012FCC0   00000000  
+0012FCC4   01162F88  ASCII "000000"  ; a  
+0012FCC8   01149CFC  ASCII "000010"  ; b  
+0012FCCC   01161F14  ASCII "000100"  ; c  
+0012FCD0   01164C28  ASCII "000110"  ; d  
+0012FCD4   01164C50  ASCII "001000"  ; e  
+………………  
+………………  依次加 2  
+………………  
+0012FD20   01164F48  ASCII "101110"  ; x  
+0012FD24   01164F70  ASCII "110000"  ; y  
+0012FD28   01164F98  ASCII "110010"  ; z  
+```
+
+```
+004AE06C  |>  8BC7          MOV EAX,EDI  
+004AE06E  |.  E8 C960F5FF   CALL videospl.0040413C  
+004AE073  |.  8B45 F8       MOV EAX,DWORD PTR SS:\[EBP-8\]  
+004AE076  |.  E8 8163F5FF   CALL videospl.004043FC               ;  strcat( ) 结果的长度  
+004AE07B  |.  85C0          TEST EAX,EAX  
+004AE07D  |.  79 03         JNS SHORT videospl.004AE082  
+004AE07F  |.  83C0 07       ADD EAX,7                              ;  if(strlen()==0) strlen()=7  
+004AE082  |>  C1F8 03       SAR EAX,3                              ;  strlen()/8 作为下面的循环次数  
+004AE085  |.  8BD8          MOV EBX,EAX  
+004AE087  |.  85DB          TEST EBX,EBX  
+004AE089  |.  7E 57         JLE SHORT videospl.004AE0E2  
+004AE08B  |>  8D85 F0FBFFFF /LEA EAX,DWORD PTR SS:\[EBP-410\]  
+004AE091  |.  50            |PUSH EAX  
+004AE092  |.  B9 08000000   |MOV ECX,8  
+004AE097  |.  BA 01000000   |MOV EDX,1  
+004AE09C  |.  8B45 F8       |MOV EAX,DWORD PTR SS:\[EBP-8\]      ;  char *pstr 指针最初指向上面 strcat( )的结果  
+004AE09F  |.  E8 B865F5FF   |CALL videospl.0040465C               ;  从 pstr 指针处取 8 个字符  
+004AE0A4  |.  8B95 F0FBFFFF |MOV EDX,DWORD PTR SS:\[EBP-410\]  
+004AE0AA  |.  8D45 F7       |LEA EAX,DWORD PTR SS:\[EBP-9\]  
+004AE0AD  |.  E8 AAFBFFFF   |CALL videospl.004ADC5C               ;  转成数值，得到一个 byte  
+004AE0B2  |.  8D85 ECFBFFFF |LEA EAX,DWORD PTR SS:\[EBP-414\]  
+004AE0B8  |.  8A55 F7       |MOV DL,BYTE PTR SS:\[EBP-9\]  
+004AE0BB  |.  E8 6462F5FF   |CALL videospl.00404324  
+004AE0C0  |.  8B95 ECFBFFFF |MOV EDX,DWORD PTR SS:\[EBP-414\]  
+004AE0C6  |.  8BC7          |MOV EAX,EDI  
+004AE0C8  |.  E8 3763F5FF   |CALL videospl.00404404               ;  将每轮循环中得到的 byte 拼成字节串  
+004AE0CD  |.  8D45 F8       |LEA EAX,DWORD PTR SS:\[EBP-8\]  
+004AE0D0  |.  B9 08000000   |MOV ECX,8  
+004AE0D5  |.  BA 01000000   |MOV EDX,1  
+004AE0DA  |.  E8 BD65F5FF   |CALL videospl.0040469C               ;  pstr + 8  
+004AE0DF  |.  4B            |DEC EBX  
+004AE0E0  |.^ 75 A9         \JNZ SHORT videospl.004AE08B  
+004AE0E2  |>  33C0          XOR EAX,EAX  
+004AE0E4  |.  5A            POP EDX  
+004AE0E5  |.  59            POP ECX  
+004AE0E6  |.  59            POP ECX  
+```
+
+程序首先将注册码中的每一个字符替换成`'0'`、`'1'`组成的六位字符串，然后每八个转成一个`byte`，连接后作待加密信息。
+
+比如，输入假码：`9876543321abcd`
+
+程序首先查表替换成：`"111101 111100 111011 111010 111000 111001 110111 110110 110101 000000 000010 000100 000110"`
+
+然后每八个分组：`"11110111 11001110 11111010 11100011 10011101 11110110 11010100 00000000 10000100 000110"`
+
+十六进制就是：`F7 CE FA E7 8D F6 D4 00 84`，最后还多一些不足`8`位的就舍去，这个进行`rsa`计算结果等于`username`就通过。
+
+如果要作注册机就必须多模数`n`因式分解，再看看`n`：
+
+`10 进制：64339699515705192068194993623307081615062638322012232511872724556480843761749970481781239168889774406854078190595474311516630418546131048058995412744169522448609743655131377088569993438211545658975497514074789487215208702967896731510271633140995521267487600450311206985573`
+
+`HEX：`
+
+```
+79C99D3C3FAF7FF633A11AC06DB700D5B0A93ED27F641C66A9DCEFBE9E679ACB0EE67791C742313BD7A71A10028AFB28661757BF2816DBF1CC000076247DCD371179C831E10887F4AC34C96C5448C83702668432FEA31B5DC6C938D8EAB27B68A7B5065787A02632C3817B7C9E71DFDF65
+```
+
+`rsa_tools II`测试数据达到`903`位，因式分解式不可能了。程序只能爆破，程序有四处地方拿`rsa`结果跟`username`比较：
+
+1. 启动程序时；
+2. 打开关于对话框时；
+3. 打开注册对话框时；
+4. 关闭程序时；
+5. 打开视频文件及添加水印时；
+
+如果一一修改比较麻烦，程序并不进行多次的`rsa`运算，`rsa`会拖掉程序的运行速度，每次比较都是调用的同一个`rsa`的运算结果，我们就在第一次`rsa`运算后，比较前修改`rsa`的运算结果
+
+找到这个地方修改：
+
+```
+004B1387  |.  8B15 F43E4B00 MOV EDX,DWORD PTR DS:\[4B3EF4\]      ;  videospl.004B5CD8  
+004B138D  |.  8B12          MOV EDX,DWORD PTR DS:\[EDX\]  
+004B138F  |.  E8 B431F5FF   CALL videospl.00404548               ;  rsa 的结果跟用户名比较，patch  
+004B1394  |.  75 2D         JNZ SHORT videospl.004B13C3  
+004B1396  |.  A1 A0424B00   MOV EAX,DWORD PTR DS:\[4B42A0\]  
+```
+
+以上代码改为：
+
+```
+004B1387   .  8B15 F43E4B00 MOV EDX,DWORD PTR DS:\[4B3EF4\]      ;  videospl.004B5CD8  
+004B138D   .  8B12          MOV EDX,DWORD PTR DS:\[EDX\]  
+004B138F   .  E9 6C090000   JMP videospl.004B1D00                ;  patch，不用比了，直接跳到自己的代码  
+004B1394   .  75 2D         JNZ SHORT videospl.004B13C3  
+004B1396   >  A1 A0424B00   MOV EAX,DWORD PTR DS:\[4B42A0\]  
+………………  
+004B1D00   > \60            PUSHAD                                 ;  保护现场  
+004B1D01   .  8B48 FC       MOV ECX,DWORD PTR DS:\[EAX-4\]  
+004B1D04   .  894A FC       MOV DWORD PTR DS:\[EDX-4\],ECX       ;  取用户名长度  
+004B1D07   .  85C9          TEST ECX,ECX  
+004B1D09   .  74 0A         JE SHORT videospl.004B1D15  
+004B1D0B   .  8BFA          MOV EDI,EDX                           ;  usename  
+004B1D0D   .  8BF0          MOV ESI,EAX                           ;  rsa_result  
+004B1D0F   .  FC            CLD  
+004B1D10   .  F3:A4         REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR>; 字符串传送  
+004B1D12   .  C607 00       MOV BYTE PTR DS:\[EDI\],0             ;  字符串结束标志  
+004B1D15   >  61            POPAD                                  ;  恢复现场  
+004B1D16   .^ E9 7BF6FFFF   JMP videospl.004B1396                  ;  跳回去执行原来的代码，不好意思，来比较都省了，看下堆栈，没有问题，^\_^  
+```
+
+最后不要忘记在程序文件夹中建立一个文件`xxxx.ini`，`xxxx`跟程序文件名相同，里面写上自己的名字和任意注册码：
+
+```
+[Options]
+
+User=rdsnow[BCG][PYG][D.4s]
+
+Pass=98764321abcd
+```
+
+测试程序，变成了注册版，剪接的视频也没有了水印，看来是完美爆破了，看到论坛上有用替换模数`n`的方法破解，但是反正要改程序，我就直接爆了。
+
+--------------------------------------------------------------------------------
+
+### 破解心得
+
+同样是使用`rsa`加密程序，但是两个程序都有缺陷
+
+第一个程序被写出了注册机模是因为数太短，现在`256`位大数的因式分解用时不到`1`小时，失去了使用`rsa`的意义。
+
+第二个程序虽然用了`rsa1024`，但是却在程序的校验上做的不够，让人随意修改他的代码，关键代码要着重保护。
+
+--------------------------------------------------------------------------------
+
+### 版权声明
+
+本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!
