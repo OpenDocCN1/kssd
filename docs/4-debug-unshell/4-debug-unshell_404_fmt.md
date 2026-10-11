@@ -1,0 +1,312 @@
+
+# UNPack CommView v.3.0
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum1285.htm`](https://www.pediy.com/kssd/pediy03/forum1285.htm)
+
+作个自我介绍先，我叫 Liotta[BCG]，CRACK 初学者，请多关照。
+
+下文简述 `Asprotect1.3` 脱壳及重构问题，仅供新手参考。
+
+## CommView v.3.0
+
+关于 `CommView`：
+
+`CommView` is a program for monitoring Internet and Local Area Network (LAN) activity capable of capturing and analyzing network packets. It gathers information about data passing through your dial-up connection or Ethernet card and decodes the analyzed data.
+
+WWW: [http://www.tamos.com](http://www.tamos.com)
+
+目标: `CV.exe`
+
+Entry Point: `00001000`
+
+Image Base: `00400000`
+
+Base of Data: `00177000`
+
+Size of Image: `001E5000`
+
+### 相关工具
+
+- `FI`
+- `Peditor`
+- `Softice`
+- `icedump` + `iceload`
+- `ImpREC`
+
+### 参考文档
+
+- ljttt “对 Asprotect 脱壳的一点总结”
+- fs0 “脱 Advanced Email Extractor PRO 的壳”
+
+## 一，脱壳
+
+用 `FI` 查一查 `CV.exe` 的保护方式，显示是用 `Asprotect.V1.2`?加壳的。
+
+现在让我们来找到 `CV.exe` 的 `OEP`。找 `OEP` 方法请参考以上文档。
+
+我是这样做的：
+
+用 `iceload` 装入 `CV.exe`
+
+`BPX GetProcAddress` 中断进入加壳程序，
+
+`BD*`
+
+按几下 `F12` 来到
+
+```
+017F:01791AD0  55               PUSH      EBP
+017F:01791AD1  8BEC             MOV       EBP,ESP
+017F:01791AD3  83C4F4           ADD       ESP,-0C
+017F:01791AD6  E85516FFFF       CALL      01783130
+017F:01791ADB  0F856B23FFFF     JNZ       01783E4C
+017F:01791AE1  E82228FFFF       CALL      01784308
+017F:01791AE6  E8DD6FFFFF       CALL      01788AC8
+017F:01791AEB  E86C79FFFF       CALL      0178945C
+017F:01791AF0  E89BA4FFFF       CALL      0178BF90
+017F:01791AF5  E85223FFFF       CALL      01783E4C     <--按 F8 进入
+```
+
+按 `F10` 一会就到一段所谓 `SEH`（Structure Exception Handling）反跟踪代码
+
+如果你不小心中招，可用 `icedump` 中的 `/tracex 400000 eip-8` 来回到正道。
+
+```
+017F:01790614  31C0             XOR       EAX,EAX
+017F:01790616  C3               RET        <--小心 SEH，向下看看
+017F:01790617  EB01             JMP       0179061A
+017F:01790619  E831C0EB02       CALL      0464C64F
+017F:0179061E  CD20             INT       20 VXDJmp EB30,7F64
+017F:01790624  01E9             ADD       ECX,EBP
+017F:01790626  648920           MOV       FS:[EAX],ESP
+017F:01790629  3100             XOR       [EAX],EAX
+017F:0179062B  EB01             JMP       0179062E     <--在该行按 F7 直接跳到这里
+017F:0179062D  68648F0500       PUSH      00058F64
+```
+
+按 `F8` 几次来到
+
+```
+017F:01790639  58               POP       EAX
+017F:0179063A  6830E27801       PUSH      0178E230     <--以下是可选择的断点
+017F:0179063F  6864077901       PUSH      01790764
+017F:01790644  68DCFC7801       PUSH      0178FCDC
+017F:01790649  688CF97801       PUSH      0178F98C
+017F:0179064E  6864F37801       PUSH      0178F364
+017F:01790653  68F4ED7801       PUSH      0178EDF4
+017F:01790658  6878007901       PUSH      01790078
+017F:0179065D  C3               RET
+```
+
+下断点 `bpx 0178e230`
+
+你如果想了解 `Asprotect` 是如何还原数据及处理 `DLL`，可参考 fs0 的“脱 Advanced Email Extractor PRO 的壳”一文
+
+按 `F10` 来到
+
+```
+017F:017911C4  68FF691A33       PUSH      331A69FF
+017F:017911C9  6850250000       PUSH      00002550
+017F:017911CE  6870EC0000       PUSH      0000EC70
+017F:017911D3  6800600100       PUSH      00016000
+017F:017911D8  FF3514307901     PUSH      DWORD PTR [01793014]
+017F:017911DE  E801000000       CALL      017911E4      <--注意花指令
+017F:017911E3  8183C404E888B8FFFFE8ADD    DWORD PTR [EBX+88E804C4],E8FFFFB8
+017F:017911ED  0100             ADD       [EAX],EAX
+017F:017911EF  0000             ADD       [EAX],AL
+017F:017911F1  8183C404310424E80100ADD    DWORD PTR [EBX+043104C4],0001E824
+017F:017911FB  0000             ADD       [EAX],AL
+017F:017911FD  6883C4048B       PUSH      8B04C483
+017F:01791202  0514307901       ADD       EAX,01793014
+017F:01791207  E802000000       CALL      0179120E      <--按 F8 进入
+017F:0179120C  E86883C404       CALL      063D9579
+017F:01791211  010424           ADD       [ESP],EAX
+017F:01791214  C3               RET
+017F:01791215  C3               RET
+```
+
+按 `F10` 来到
+
+```
+017F:01790060  B8BC397901       MOV       EAX,017939BC
+017F:01790065  BA0A000000       MOV       EDX,0000000A
+017F:0179006A  E8A9C2FFFF       CALL      0178C318      <--F10 略过
+017F:0179006F  E82CFEFFFF       CALL      0178FEA0      <--F8 进入
+017F:01790074  C3               RET
+```
+
+按 `F10` 来到
+
+```
+017F:0178FFE5  B9A4397901       MOV       ECX,017939A4
+017F:0178FFEA  8D45F8           LEA       EAX,[EBP-08]
+017F:0178FFED  BA04000000       MOV       EDX,00000004
+017F:0178FFF2  E879C4FFFF       CALL      0178C470      <--F10 略过
+017F:0178FFF7  E815000000       CALL      01790011      <--F8 进入
+017F:0178FFFC  8B44240C         MOV       EAX,[ESP+0C]
+017F:01790000  8380B800000002   ADD       DWORD PTR [EAX+000000B8],02
+017F:01790007  C7401800000000   MOV       DWORD PTR [EAX+18],00000000
+017F:0179000E  31C0             XOR       EAX,EAX
+017F:01790010  C3               RET
+```
+
+以下有段指令比较花，可用 `icedump` 中的 `/tracex 400000 eip-8` 来找到 `OEP`
+
+`CV.exe` 的 `OEP` 是 `00576164-00400000`
+
+然后用 `/dump 400000 001E5000 c:\dump.exe`
+
+`A EIP`
+
+```
+017F:00576164   JMP EIP
+```
+
+按 `F5` 回到 Windows
+
+把 `c:\dump.exe` 复制到 `CommView` 的安装目录下
+
+再用 `Peditor` 的 `dumpfixer` 来修改 `dump.exe`，并改 `CV.exe` 的 `OEP` 是 `00176164`
+
+然后用 `ImpREC` 重构输入表，完成后不要忘了 `KILL` 这个进程。
+
+## 二，用 ImpREC 重构输入表
+
+在 `ImpREC` 中 "Attach to an Active Process" 下拉框中选择目标 `CV.exe`，填入 `OEP`，按 "IAT AutoSearch"、"Get Import"、"Auto Trace"，接着按 "Show Invalid"，发现有 6 个 `KERNEL32.dll` 未知函数
+
+```
+Target: C:\TOOLS\COMMVIEW\CV.EXE
+OEP: 00176164    IATRVA: 00189204    IATSize: 000008F4
+
+    RVA        ModuleName    PTR
+(1)   00189274    ?          0178C960
+(2)   001893D0    ?          0178C968
+(3)   00189414    ?          0178C928
+(4)   00189474    ?          0178C958
+(5)   00189478    ?          0178C950
+(6)   00189480    ?          0178C974
+```
+
+记下这些未知函数的 `RVA` 和 `PTR`，并 `Save Tree`。
+
+然后设断 `BPX GetVersion` 并再次装入目标程序
+
+```
+017F:0178C7BC  6A00             PUSH      00
+017F:0178C7BE  E8897CFFFF       CALL      KERNEL32!GetModuleHandleA
+017F:0178C7C3  A34C367901       MOV       [0179364C],EAX
+017F:0178C7C8  E8977CFFFF       CALL      KERNEL32!GetVersion      <--(3)号未知函数
+017F:0178C7CD  A344367901       MOV       [01793644],EAX
+017F:0178C7D2  68AC357901       PUSH      017935AC
+017F:0178C7D7  E8907CFFFF       CALL      KERNEL32!GetVersionExA
+017F:0178C7DC  E83B7CFFFF       CALL      KERNEL32!GetCurrentProcess      <--(5)号未知函数
+017F:0178C7E1  A348367901       MOV       [01793648],EAX
+017F:0178C7E6  E8397CFFFF       CALL      KERNEL32!GetCurrentProcessId    <--(4)号未知函数
+017F:0178C7EB  A350367901       MOV       [01793650],EAX
+017F:0178C7F0  E81F7CFFFF       CALL      KERNEL32!GetCommandLineA    <--(1)号未知函数
+017F:0178C7F5  A340367901       MOV       [01793640],EAX       <-a-注意 01793640
+017F:0178C7FA  C3               RET
+```
+
+对于每项未知函数都先 `u PTR` 看看。
+
+如(1)：
+
+`u 0178C960`
+
+```
+017F:0178C960  A140367901       MOV       EAX,[01793640]       <-b-注意 01793640
+017F:0178C965  C3               RET
+```
+
+看到的吧！a 和 b 处方括号内的地址是相同的，故(1)号未知函数是 `KERNEL32!GetCommandLineA`
+
+同理
+
+(3)
+
+`u 0178C928`
+
+```
+017F:0178C928  A144367901       MOV       EAX,[01793644]
+017F:0178C92D  C3               RET
+```
+
+(3)号未知函数是 `KERNEL32!GetVersion`
+
+(4)
+
+`u 0178C958`
+
+```
+017F:0178C958  A150367901       MOV       EAX,[01793650]
+017F:0178C95D  C3               RET
+```
+
+(4)号未知函数是 `KERNEL32!GetCurrentProcessId`
+
+(5)
+
+`u 0178C950`
+
+```
+017F:0178C950  A148367901       MOV       EAX,[01793648]
+017F:0178C955  C3               RET
+```
+
+(5)号未知函数是 `KERNEL32!GetCurrentProcess`
+
+
+
+另外二个比较复杂，请参考`fs0`的“脱 Advanced Email Extractor PRO 的壳”一文
+
+**(2)**
+
+```
+u    0178C968
+
+017F:0178C968  55                   PUSH      EBP
+017F:0178C969  8BEC                 MOV       EBP,ESP
+017F:0178C96B  8B4508               MOV       EAX,[EBP+08]
+017F:0178C96E  5D                   POP       EBP
+017F:0178C96F  C20400               RET       0004
+```
+
+**(2)**号未知函数是`KERNEL32.dll!LockResource`
+
+**(6)**
+
+```
+u    0178C974
+
+017F:0178C974  55                   PUSH      EBP
+017F:0178C975  8BEC                 MOV       EBP,ESP
+017F:0178C977  5D                   POP       EBP
+017F:0178C978  C20400               RET       0004
+```
+
+**(6)**号未知函数是`KERNEL32.dll!FreeResource`
+
+修复完输入表后，就可"Fix Dump"，为了避免不必要的麻烦我们还是"add new section"吧。
+
+完工。咦，运行……没反应！
+
+那里出问题了？
+
+让我们`LOAD`脱壳后的程序，来到
+
+```
+017F:00576A21  E8A229EFFF           CALL      004693C8
+017F:00576A26  3D00CC0A00           CMP       EAX,000ACC00     <--改 EAX=000ACC00 就 OK
+017F:00576A2B  7405                 JZ        00576A32         <--不等就退出
+017F:00576A2D  E8DAD2E8FF           CALL      00403D0C         <--退出处理
+017F:00576A32  8B0D7CDC5700         MOV       ECX,[0057DC7C]
+017F:00576A38  A1F8D95700           MOV       EAX,[0057D9F8]
+017F:00576A3D  8B00                 MOV       EAX,[EAX]
+017F:00576A3F  8B1520115600         MOV       EDX,[00561120]
+017F:00576A45  E822E7EDFF           CALL      0045516C
+```
+
+在`SOFTICE`中修改`EAX=000ACC00`后就一切`OK`。请注意，直接改`74->EB`无效，好像在前面有段还原代码。
+
+难道还要`SMC`，请高手指点！ `4dd466d0e1e0cc123afbe504da2462ca`

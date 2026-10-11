@@ -1,0 +1,89 @@
+
+# SynchroMagic 2.0 build 503
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum1012.htm`](https://www.pediy.com/kssd/pediy03/forum1012.htm)
+
+`http://www.gelosoft.com/synchro.exe`
+
+`ASProtect` 的壳。`OEP` 为 `43EC73`。
+
+下面 5 处引入函数名无法在 `ImpRec` 中解析：
+
+`RVA`：`6915C`，`69268`，`69274`，`69350`，`69380`
+
+对应的程序段为（下面的是 6 个函数）：
+
+```
+//这里是初始化时调用 6 个函数的地方
+
+0177:0167C868  PUSH       00
+0177:0167C86A  CALL       KERNEL32!GetModuleHandleA
+0177:0167C86F  MOV       [016835D4],EAX
+0177:0167C874  CALL       KERNEL32!GetVersion
+0177:0167C879  MOV       [016835D8],EAX
+0177:0167C87E  PUSH       016835E4
+0177:0167C883  CALL       KERNEL32!GetVersionExA
+0177:0167C888  CALL       KERNEL32!GetCurrentProcess
+0177:0167C88D  MOV       [016835DC],EAX
+0177:0167C892  CALL       KERNEL32!GetCurrentProcessId
+0177:0167C897  MOV       [016835E0],EAX
+0177:0167C89C  CALL       KERNEL32!GetCommandLineA
+0177:0167C8A1  MOV       [01683678],EAX
+0177:0167C8A6  RET
+
+//以下紧跟着的是直接使用上面几个函数的返回值的地方
+
+0177:0167C8A7  NOP
+0177:0167C8A8  PUSH       EBP
+0177:0167C8A9  MOV       EBP,ESP
+0177:0167C8AB  MOV       EAX,[EBP+08]
+0177:0167C8AE  TEST       EAX,EAX
+0177:0167C8B0  JNZ       0167C8B9
+0177:0167C8B2  MOV       EAX,[01683560]
+0177:0167C8B7  JMP       0167C8BF
+0177:0167C8B9  PUSH       EAX
+0177:0167C8BA  CALL       KERNEL32!GetModuleHandleA
+0177:0167C8BF  POP       EBP
+0177:0167C8C0  RET       0004
+0177:0167C8C3  NOP
+0177:0167C8C4  MOV       EAX,[016835D8]
+0177:0167C8C9  RET
+0177:0167C8CA  MOV       EAX,EAX
+0177:0167C8CC  PUSH       EBP
+0177:0167C8CD  MOV       EBP,ESP
+0177:0167C8CF  PUSH       ESI
+0177:0167C8D0  PUSH       EDI
+0177:0167C8D1  MOV       EAX,[EBP+08]
+0177:0167C8D4  MOV       EDI,EAX
+0177:0167C8D6  MOV       ESI,016835E4
+0177:0167C8DB  MOV       ECX,00000025
+0177:0167C8E0  REPZ MOVSD
+0177:0167C8E2  MOV       AL,01
+0177:0167C8E4  POP       EDI
+0177:0167C8E5  POP       ESI
+0177:0167C8E6  POP       EBP
+0177:0167C8E7  RET       0004
+0177:0167C8EA  MOV       EAX,EAX
+0177:0167C8EC  MOV       EAX,[016835DC]
+0177:0167C8F1  RET
+0177:0167C8F2  MOV       EAX,EAX
+0177:0167C8F4  MOV       EAX,[016835E0]
+0177:0167C8F9  RET
+0177:0167C8FA  MOV       EAX,EAX
+0177:0167C8FC  MOV       EAX,[01683678]
+0177:0167C901  RET
+0177:0167C902  MOV       EAX,EAX
+0177:0167C904  PUSH       EBP
+0177:0167C905  MOV       EBP,ESP
+0177:0167C907  POP       EBP
+0177:0167C908  RET       0004
+0177:0167C90B  NOP
+0177:0167C90C  PUSH       EBP
+0177:0167C90D  MOV       EBP,ESP
+0177:0167C90F  POP       EBP
+0177:0167C910  RET       0004
+```
+
+有种办法可以对上述的几个函数进行特殊处理，以便脱壳后的程序可以跨平台运行，不过比较麻烦。就是新增一个 section，把上述地址为 `0168XXXX` 的变量全部放在这个新的 section 中（当然地址不再是 `0168XXXX` 了，相应地也要修改引用这些地址的那些指令），并把上述引用这些 `0168XXXX` 地址的几段代码也都搬到这个新的 section 中。并采用 `SMC`，修改去壳后的 `EXE`，将程序入口指向这个新的 section，这样一加载去壳后的 `EXE` 就会执行这个新的 section 中的代码，完成上述几个函数的初始化。在这个新的 section 中，还要增加代码填充 `ImpRec` 未解析出来的那几个 `RVA` 处的值，以便指向新的 section 中的这几段代码。
+
+总的来说就是把本来应该放在壳中的东西全部搬到新增的 section 中去。 `4dd466d0e1e0cc123afbe504da2462ca`
