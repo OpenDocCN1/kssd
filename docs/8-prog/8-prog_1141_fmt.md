@@ -1,0 +1,256 @@
+
+# 检测 SSDT 获得 hook rootkit 驱动模块信息
+
+> 原文：[`www.pediy.com/kssd/pediy11/107082.html`](https://www.pediy.com/kssd/pediy11/107082.html)
+
+`检测 SSDT 获得 hook rootkit 驱动模块信息`一直十分崇尚看雪里的大牛们![](img/234a76e67df951b6551d305c177a8b78.jpg "扮鬼脸")，很兴奋的注册了个会员，却只是个临时会员，小弟我当临时会员好多年呀，这次也来跪求一下邀请码，向看雪牛人靠近。
+
+本人是初学者，高手飘过，如果不嫌脏的话，呵呵来坐坐，给我这个菜鸟点训示。这是用 C++ 写的，在 `2000`、`xp`、`2003` 下通过，检测 `SSDT` 获取 `hook rootkit` 的内核模块的各项信息（这里只列出了全路径文件名）。技术很古老了，网上也大堆相关的资料，原理很简单，代码是我自己硬着头皮从头到尾全重写的，编码有点乱，不过还算是在各个版本上通过了。
+
+首先，关于 `SSDT` 我都不介绍了，看雪上大牛们在 n 年前都讲过了。但还是说说原理吧，也给和我一样的菜鸟们拍拍砖。
+
+我们要实现检测通过 `hook SSDT` 的 `rootkit`，首先必须解决如下几个问题：
+
+1.  如何找到 `SSDT` 的服务函数？
+2.  如何判定这个服务函数是否被 `hook`？
+3.  如果这个服务函数被 `hook`，那么这个 `hook` 函数是属于哪个驱动程序或 `rookit`？
+
+现在我们来一个一个的解决。
+
+## 第一个问题：如何找到 SSDT 的服务函数？
+
+在 `ntoskrnl.exe` 中导出了一个指针变量 `KeServiceDescriptorTable`，她是服务描述符表 `SERVICE_DESCRIPTOR_TABLE` 的地址，结构定义如下：
+
+```
+typedef struct _SERVICE_DESCRIPTOR_TABLE
+{
+  PVOID   ServiceTableBase;
+  PULONG  ServiceCounterTableBase;
+  ULONG   NumberOfService;
+  ULONG   ParamTableBase;
+}SERVICE_DESCRIPTOR_TABLE,*PSERVICE_DESCRIPTOR_TABLE;
+```
+
+通过 `ServiceTableBase` 我们可以找到服务函数表的基地址，通过 `NumberOfService` 我们可以遍历任何一个服务函数，呵呵就这么简单地解决了第一个问题。
+
+## 第二个问题：如何判定这个服务函数是否被 hook？
+
+根据我的观察发现，在 `windows 2000`、`xp(sp1,sp2,sp3)`、`2003`（其他的没有试过）下，`SSDT` 中的服务函数地址开头都是 `0x80xxxxxx` 形式的，其实内核模块 `ntoskrnl.exe` 和硬件抽象层 `hal.dll` 都是在 `0x80xxxxxx` 的虚拟地址空间中，而其他驱动程序都在 `0xfoxxxxxx` 的地址空间，当然 `rootkit` 的地址空间也无一例外（当然也有可能有例外）。因此服务函数地址被 `hook` 后的地址也在此 `0xfoxxxxxx` 的地址空间中。我们可以将第一步得到的地址进行判断即可。其实含有另外一种通用的办法，就是通过查询系统模块信息表项（接下来讲到）来获取各个模块的基地址和范围来判断。我把这种方法用在判断地址所属的具体模块上了。我只是觉得这种方法简单，还比较快而已。
+
+## 第三个问题：这个 hook 函数属于哪个驱动程序？
+
+当我们发现了这个服务函数地址被 `hook` 后，就根据它来判断是被哪个模块 `hook` 了。因此，我们要首先获取所有的系统模块信息，这里我采用了比较简单的方法，就是通过系统模块信息表项来查找模块，这里涉及几个结构，`SYSTEM_MODULE_INFORMATION`、`SYSTEM_MODULE_INFORMATION_ENTRY` 和 `SYSTEM_INFORMATION_CLASS`，它们分别是系统模块信息、系统模块信息和系统信息类，定义在以下程序中。
+
+`ntdll.dll` 导出了一个函数是：
+
+```
+NTSTATUS ZwQuerySystemInformation(
+                IN  ULONG SystemInformationClass,
+                IN  OUT PVOID SystemInformation,
+                IN  ULONG SystemInformationLength,
+                OUT PULONG ReturnLength OPTIONAL
+                );
+```
+
+但在 `ntddk.h` 中未声明，程序中自己声明，这个东西我都不介绍了，因为都是老生常谈的东东，免得人家笑话，呵呵。函数和变量的导入在程序中（注意导入时我加了个 `extern "c"`，因为我的程序是 `.cpp` 文件）。通过 `ZwQuerySystemInformation` 我们可以获得一个缓冲区，缓冲区中的信息就是系统模块信息项的内容，不过前四个字节是系统模块信息项的个数。循环获得系统模块信息，根据模块的基地址和范围来确定这个地址所属的模块，并打印模块的全路径。不多说了，贴出代码，结构定义比较长。
+
+## 头文件定义
+
+（文件：`checkhook.h`）
+
+```
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+#include <NTDDK.h>
+#ifdef __cplusplus
+}
+#endif
+typedef
+
+//模块详细信息结构如下
+struct _SYSTEM_MODULE_INFORMATION_ENTRY {
+  HANDLE Section;
+  PVOID MappedBase;
+  PVOID Base;
+  ULONG Size;
+  ULONG Flags;
+  USHORT LoadOrderIndex;
+  USHORT InitOrderIndex;
+  USHORT LoadCount;
+  USHORT PathLength;
+  CHAR ImageName[256];
+} SYSTEM_MODULE_INFORMATION_ENTRY, *PSYSTEM_MODULE_INFORMATION_ENTRY;
+
+//systemModulInformation
+typedef struct _SYSTEM_MODULE_INFORMATION {
+  ULONG Count;
+  SYSTEM_MODULE_INFORMATION_ENTRY Module[1];
+} SYSTEM_MODULE_INFORMATION, *PSYSTEM_MODULE_INFORMATION;
+
+typedef struct _SERVICE_DESCRIPTOR_TABLE
+{
+  PVOID   ServiceTableBase;
+  PULONG  ServiceCounterTableBase;
+  ULONG   NumberOfService;
+  ULONG   ParamTableBase;
+}SERVICE_DESCRIPTOR_TABLE,*PSERVICE_DESCRIPTOR_TABLE;
+
+///////////////////////////////////////////////////////////
+//systemInformationClass 系统信息类
+typedef enum _SYSTEM_INFORMATION_CLASS {
+  SystemBasicInformation, // 0 Y N
+   SystemProcessorInformation, // 1 Y N
+   SystemPerformanceInformation, // 2 Y N
+   SystemTimeOfDayInformation, // 3 Y N
+   SystemNotImplemented1, // 4 Y N
+   SystemProcessesAndThreadsInformation, // 5 Y N
+   SystemCallCounts, // 6 Y N
+   SystemConfigurationInformation, // 7 Y N
+   SystemProcessorTimes, // 8 Y N
+   SystemGlobalFlag, // 9 Y Y
+   SystemNotImplemented2, // 10 Y N
+   SystemModuleInformation, // 11 Y N
+   SystemLockInformation, // 12 Y N
+   SystemNotImplemented3, // 13 Y N
+   SystemNotImplemented4, // 14 Y N
+   SystemNotImplemented5, // 15 Y N
+   SystemHandleInformation, // 16 Y N
+   SystemObjectInformation, // 17 Y N
+   SystemPagefileInformation, // 18 Y N
+   SystemInstructionEmulationCounts, // 19 Y N
+   SystemInvalidInfoClass1, // 20
+   SystemCacheInformation, // 21 Y Y
+   SystemPoolTagInformation, // 22 Y N
+   SystemProcessorStatistics, // 23 Y N
+   SystemDpcInformation, // 24 Y Y
+   SystemNotImplemented6, // 25 Y N
+   SystemLoadImage, // 26 N Y
+   SystemUnloadImage, // 27 N Y
+   SystemTimeAdjustment, // 28 Y Y
+   SystemNotImplemented7, // 29 Y N
+   SystemNotImplemented8, // 30 Y N
+   SystemNotImplemented9, // 31 Y N
+   SystemCrashDumpInformation, // 32 Y N
+   SystemExceptionInformation, // 33 Y N
+   SystemCrashDumpStateInformation, // 34 Y Y/N
+   SystemKernelDebuggerInformation, // 35 Y N
+   SystemContextSwitchInformation, // 36 Y N
+   SystemRegistryQuotaInformation, // 37 Y Y
+   SystemLoadAndCallImage, // 38 N Y
+   SystemPrioritySeparation, // 39 N Y
+   SystemNotImplemented10, // 40 Y N
+   SystemNotImplemented11, // 41 Y N
+   SystemInvalidInfoClass2, // 42
+   SystemInvalidInfoClass3, // 43
+   SystemTimeZoneInformation, // 44 Y N
+   SystemLookasideInformation, // 45 Y N
+   SystemSetTimeSlipEvent, // 46 N Y
+   SystemCreateSession, // 47 N Y
+   SystemDeleteSession, // 48 N Y
+   SystemInvalidInfoClass4, // 49
+   SystemRangeStartInformation, // 50 Y N
+   SystemVerifierInformation, // 51 Y Y
+   SystemAddVerifier, // 52 N Y
+   SystemSessionProcessesInformation // 53 Y N
+}SYSTEM_INFORMATION_CLASS;
+
+//变量及函数定义如下：
+
+extern "C" PSERVICE_DESCRIPTOR_TABLE    KeServiceDescriptorTable;
+
+extern "C" NTKERNELAPI  //声明 ZwQuerySystemInformation 导出函数
+NTSTATUS ZwQuerySystemInformation(
+                IN  ULONG SystemInformationClass,
+                IN  OUT PVOID SystemInformation,
+                IN  ULONG SystemInformationLength,
+                OUT PULONG ReturnLength OPTIONAL
+                );
+
+VOID Unload(IN PDRIVER_OBJECT DriverObject);
+
+//检测 SSDT 中被 HOOK 的函数及进程
+void check();
+
+//根据函数名取得模块信息
+VOID findModuleNameByAddress(PVOID address, BOOLEAN isDoubt);
+```
+
+## 源代码
+
+（文件 `CheckRootkit.cpp`）
+
+```
+extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT pDriver, PUNICODE_STRING registryPath)
+{
+  pDriver->DriverUnload=Unload;
+  check();
+  return STATUS_SUCCESS;
+}
+
+//检测 SSDT 中是否有地址被 hook 了
+void check()
+{
+  ULONG32 *pBase=NULL;
+  ULONG32 i=0;
+  BOOLEAN isDoubt=FALSE;
+  //取得服务函数表基地址；
+  pBase=(ULONG32 *)KeServiceDescriptorTable->ServiceTableBase;
+  for (i=0;i<KeServiceDescriptorTable->NumberOfService;i++)
+  {
+    isDoubt=FALSE;
+    //如何高一字节不为 80 的话，确定其为可疑（即已经被 hook）
+    if ((pBase[i]>>24)!=0x80)
+    {
+      isDoubt=TRUE;
+      findModuleNameByAddress((PVOID)pBase[i],isDoubt);
+    }
+  }
+}
+
+VOID findModuleNameByAddress(PVOID address, BOOLEAN isDoubt)
+{
+  ULONG32 i=0;
+  ULONG32 base=0;//模块基地址
+  ULONG32 end=0;//模块空间结束地址
+  ULONG32 currentAddress=(ULONG32)address;
+  ULONG cbBuffer = 0x10000; //要分配足够多的空间
+  ULONG *pSize=NULL;
+  PVOID pBuffer=NULL;//返回缓冲
+  PSYSTEM_MODULE_INFORMATION pModuleInf;
+  pBuffer=ExAllocatePool(PagedPool,cbBuffer);
+  ZwQuerySystemInformation(SystemModuleInformation,
+              pBuffer,
+              cbBuffer,
+              NULL);
+  pModuleInf=(PSYSTEM_MODULE_INFORMATION)pBuffer;
+  for (i=0;i<pModuleInf->Count;i++)
+  {
+    base=(ULONG32)(pModuleInf->Module[i].Base);//当前模块基地址
+    end=(ULONG32)(base+pModuleInf->Module[i].Size);//当前模块
+    if (currentAddress>=base&&currentAddress<=end)
+    {
+      if (isDoubt)//如果被 hook 了，显示相关信息
+      {
+        KdPrint(("doubt module:0x%08x->%s\n",address,pModuleInf->Module[i].ImageName));
+```
+
+
+
+```
+    }  
+}  
+}  
+
+ExFreePool(pBuffer);  
+
+}  
+
+//卸载  
+
+VOID Unload(IN PDRIVER_OBJECT DriverObject)  
+{  
+    KdPrint(("exit driver!.......\\n"));  
+}
+```

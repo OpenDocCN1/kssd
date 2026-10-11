@@ -1,0 +1,117 @@
+
+# 简单算法遍历 `PspCidTable` 句柄表
+
+> 原文：[`www.pediy.com/kssd/pediy10/99664.html`](https://www.pediy.com/kssd/pediy10/99664.html)
+
+写完后.个人感觉比较"简洁明了,浅显易懂",分享一下..欢迎拍砖..![](img/c72cb8eba397ac67dda6e1ac58a9b627.jpg "微笑")
+
+代码:
+
+```
+ULONG GetPspCidTable()
+{
+  ULONG PspCidTable=0;
+  ULONG FuncAddr=NULL;
+  UNICODE_STRING FuncName={0};
+  
+  RtlInitUnicodeString(&FuncName,L"PsLookupProcessByProcessId");
+  FuncAddr=(ULONG)MmGetSystemRoutineAddress(&FuncName);
+  for (;;FuncAddr++)
+  {
+    if ((0x35ff==(*(PUSHORT)FuncAddr)) && (0xe8==(*(PUCHAR)(FuncAddr+6))))
+    {   
+      PspCidTable=*(PULONG)(FuncAddr+2);
+      break;
+    }   
+     
+  }
+  return PspCidTable;
+}
+
+#define OBJECT_BODY_TO_TYPE 0x10
+//从 3 级表开始遍历
+ULONG BrowseTableL3(ULONG TableAddr)
+{
+  ULONG Object=0;
+  ULONG ItemCount=511;
+
+  do 
+  {
+    TableAddr+=8;
+    Object=*(PULONG)TableAddr;
+    Object&=0xfffffff8;
+     
+    if (Object==0)
+    {
+      continue;
+    }
+    if (( *PsProcessType)==(*(PULONG)(Object-OBJECT_BODY_TO_TYPE)))
+    {
+      KdPrint(("%s",PsGetProcessImageFileName((PEPROCESS)Object)));
+    }     
+  } while (--ItemCount>0);
+   
+  return 0;
+}
+
+//从二级表开始遍历
+ULONG BrowseTableL2(ULONG TableAddr)
+{
+  do 
+  {
+    BrowseTableL3(*(PULONG)TableAddr);
+    TableAddr+=4;
+  } while ((*(PULONG)TableAddr)!=0);
+
+  return 0;
+}
+
+//从 1 级表开始遍历
+ULONG BrowseTableL1(ULONG TableAddr)
+{
+  do 
+  {
+    BrowseTableL2(*(PULONG)TableAddr);
+    TableAddr+=4;
+  } while ((*(PULONG)TableAddr)!=0);
+
+  return 0;
+}
+
+VOID RefreshProcessByPspCidTable()
+{
+  ULONG PspCidTable=0;
+  ULONG HandleTable=0;
+  ULONG TableCode=0;
+  ULONG flag=0;
+
+  PspCidTable=GetPspCidTable();
+  HandleTable=*(PULONG)PspCidTable;
+  TableCode=*(PULONG)HandleTable;
+  flag=TableCode&3;
+  TableCode&=0xfffffffc;   
+  
+  switch (flag)
+  {
+  case 0:
+    BrowseTableL3(TableCode);
+    break;
+  case 1:
+    BrowseTableL2(TableCode);
+    break;
+  case 2:
+    BrowseTableL1(TableCode);
+    break;     
+  }
+  
+  
+}
+```
+
+附件是编译好的 `sys` 文件..
+
+上传的附件
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || `process.rar`  
+
+ |
