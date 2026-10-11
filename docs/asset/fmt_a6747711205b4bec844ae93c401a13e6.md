@@ -1,0 +1,67 @@
+
+# 全国电话通 Ver1.09
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6333.htm`](https://www.pediy.com/kssd/pediy06/pediy6333.htm)
+
+前几天看见有全国电话通 1.07 的贴子，其中说到内存中的注册码不一致，经过对全国电话通 Ver1.09 的分析，得出了注册算法，也找到了注册码不一致的原因。
+
+## 1、机器码生成部分
+
+```
+:00478D87 E8DC9CF8FF              call 00402A68
+:00478D8C 52                      push edx
+:00478D8D 50                      push eax
+:00478D8E 8D45EC                  lea eax, dword ptr [ebp-14]
+:00478D91 E802F4F8FF              call 00408198
+:00478D96 8B45EC                  mov eax, dword ptr [ebp-14]              eax=ASCII 997
+:00478D99 8D4DF4                  lea ecx, dword ptr [ebp-0C]
+:00478D9C 5A                      pop edx
+:00478D9D E85E33FBFF              call 0042C100
+:00478DA2 8B45F4                  mov eax, dword ptr [ebp-0C]               eax=ASCII 99
+:00478DA5 E83EF4F8FF              call 004081E8                        eax=63(十六进制的 99)
+:00478DAA 69C0D3020000            imul eax, 000002D3                   eax=eax*2D3=11799
+:00478DB0 05F9030000              add eax, 000003F9                    eax=eax+3F9=11B92
+:00478DB5 8D55F8                  lea edx, dword ptr [ebp-08]
+:00478DB8 E8EFF2F8FF              call 004080AC                               转换成十进制
+:00478DBD 8B4DF8                  mov ecx, dword ptr [ebp-08]      ecx=ASCII 72594 机器码
+:00478DC0 8D45FC                  lea eax, dword ptr [ebp-04]
+* Possible StringData Ref from Code Obj ->"您的机器码："
+```
+
+## 2、注册码生成部分
+
+```
+:004786C8 E89BA3F8FF              call 00402A68
+:004786CD 52                      push edx
+:004786CE 50                      push eax
+:004786CF 8D85ECFDFFFF            lea eax, dword ptr [ebp+FFFFFDEC]
+:004786D5 E8BEFAF8FF              call 00408198
+:004786DA 8B85ECFDFFFF            mov eax, dword ptr [ebp+FFFFFDEC]           eax=ASCII 994
+:004786E0 8D8DF4FDFFFF            lea ecx, dword ptr [ebp+FFFFFDF4]
+:004786E6 5A                      pop edx
+:004786E7 E8143AFBFF              call 0042C100
+:004786EC 8B85F4FDFFFF            mov eax, dword ptr [ebp+FFFFFDF4]           eax=ASCII 99
+:004786F2 E8F1FAF8FF              call 004081E8  eax=63(十六进制的 99)
+:004786F7 05F9030000              add eax, 000003F9      eax=eax+3F9=145C
+:004786FC 69C0D3020000            imul eax, 000002D3             eax=eax*2D3=C4FD4(806868)真注册码十六进制
+```
+
+总结如下：
+
+注册算法：
+
+```
+注册码(十六进制)＝((机器码(转成十六进制)-3F9)/2D3+3F9)*2D3
+```
+
+注册后，在软件安装目录生成文件`user.ini`，内容如下：
+
+```ini
+[user]
+username=coldeye              用户名，可任意填写，不参与校验
+usercode=806868               注册码（和机器有关）
+```
+
+由于软件中生成注册码的时候采用浮点运算，有误差存在，在破解过程中，`eax`的初值就有所不同，尽管略去最后一位，但还是有可能影响到最后生成的注册码。
+
+`4dd466d0e1e0cc123afbe504da2462ca`
