@@ -1,0 +1,268 @@
+
+```
+00518483   .  FFD6             CALL ESI  
+
+00518485   .  8D4D AC         LEA ECX,DWORD PTR SS:[EBP-54]  
+
+00518488   .  FF15 28104000 CALL DWORD PTR DS:[<&MSVBVM60.__vbaFreeVar>]     ;  MSVBVM60.__vbaFreeVar  
+
+0051848E   >  C785 4CFFFFFF>MOV DWORD PTR SS:[EBP-B4],0A  
+
+00518498   .  BF 01000000    MOV EDI,1  
+
+0051849D   >  66:3BBD 4CFFF>CMP DI,WORD PTR SS:[EBP-B4]                     ;  DI 是计数器  
+
+005184A4   .  0F8F B7010000 JG JXCShoes.00518661  
+
+005184AA   .  8D55 AC         LEA EDX,DWORD PTR SS:[EBP-54]  
+
+005184AD   .  52             PUSH EDX  
+
+005184AE   .  0FBFC7          MOVSX EAX,DI  
+
+005184B1   .  8D4D D8         LEA ECX,DWORD PTR SS:[EBP-28]  
+
+005184B4   .  894D 84         MOV DWORD PTR SS:[EBP-7C],ECX  
+
+005184B7   .  50             PUSH EAX  
+
+005184B8   .  8D8D 7CFFFFFF LEA ECX,DWORD PTR SS:[EBP-84]  
+
+005184BE   .  51             PUSH ECX  
+
+005184BF   .  8D55 9C         LEA EDX,DWORD PTR SS:[EBP-64]  
+
+005184C2   .  52             PUSH EDX  
+
+005184C3   .  C745 B4 01000>MOV DWORD PTR SS:[EBP-4C],1  
+
+005184CA   .  C745 AC 02000>MOV DWORD PTR SS:[EBP-54],2  
+
+005184D1   .  C785 7CFFFFFF>MOV DWORD PTR SS:[EBP-84],4008  
+
+005184DB   .  FF15 64104000 CALL DWORD PTR DS:[<&MSVBVM60.#629>]           ;  MSVBVM60.rtcMidVar  
+
+005184E1   .  8D45 9C         LEA EAX,DWORD PTR SS:[EBP-64]  
+
+005184E4   .  50             PUSH EAX  
+
+005184E5   .  FFD3            CALL EBX  
+
+005184E7   .  8BD0            MOV EDX,EAX  
+
+005184E9   .  8D4D D0         LEA ECX,DWORD PTR SS:[EBP-30]  
+
+005184EC   .  FFD6            CALL ESI  
+
+005184EE   .  8D4D 9C         LEA ECX,DWORD PTR SS:[EBP-64]  
+
+005184F1   .  51             PUSH ECX  
+
+005184F2   .  8D55 AC         LEA EDX,DWORD PTR SS:[EBP-54]  
+
+005184F5   .  52             PUSH EDX  
+
+005184F6   .  6A 02           PUSH 2  
+
+005184F8   .  FF15 38104000 CALL DWORD PTR DS:[<&MSVBVM60.__vbaFreeVarList>] ;  MSVBVM60.__vbaFreeVarList  
+
+005184FE   .  8B45 D0         MOV EAX,DWORD PTR SS:[EBP-30]  
+
+00518501   .  83C4 0C         ADD ESP,0C  
+
+00518504   .  50             PUSH EAX  
+
+00518505   .  FF15 20104000 CALL DWORD PTR DS:[<&MSVBVM60.#693>]           ;  取各个字符  
+
+0051850B   .  8B55 DC         MOV EDX,DWORD PTR SS:[EBP-24]  
+
+0051850E   .  66:33C9         XOR CX,CX  
+
+00518511   .  8AC8            MOV CL,AL  
+
+00518513   .  8995 74FFFFFF MOV DWORD PTR SS:[EBP-8C],EDX  
+
+00518519   .  8D55 AC         LEA EDX,DWORD PTR SS:[EBP-54]  
+
+0051851C   .  8D45 D4         LEA EAX,DWORD PTR SS:[EBP-2C]  
+
+0051851F   .  C785 6CFFFFFF>MOV DWORD PTR SS:[EBP-94],8  
+
+00518529   .  8945 84         MOV DWORD PTR SS:[EBP-7C],EAX  
+
+0051852C   .  C785 7CFFFFFF>MOV DWORD PTR SS:[EBP-84],4002  
+
+00518536   .  894D D4         MOV DWORD PTR SS:[EBP-2C],ECX  
+
+00518539   .  8D8D 7CFFFFFF LEA ECX,DWORD PTR SS:[EBP-84]  
+
+0051853F   .  51             PUSH ECX  
+
+00518540   .  52             PUSH EDX  
+
+00518541   .  FF15 DC114000 CALL DWORD PTR DS:[<&MSVBVM60.#573>]           ;  MSVBVM60.rtcHexVarFromVar  
+
+00518547   .  8D85 6CFFFFFF LEA EAX,DWORD PTR SS:[EBP-94]  
+
+0051854D   .  50             PUSH EAX  
+
+0051854E   .  8D4D AC         LEA ECX,DWORD PTR SS:[EBP-54]  
+
+00518551   .  51             PUSH ECX  
+
+00518552   .  8D55 9C         LEA EDX,DWORD PTR SS:[EBP-64]  
+
+00518555   .  52             PUSH EDX  
+
+00518556   .  C785 64FFFFFF>MOV DWORD PTR SS:[EBP-9C],JXCShoes.004541C4  
+
+00518560   .  C785 5CFFFFFF>MOV DWORD PTR SS:[EBP-A4],8  
+
+0051856A   .  FF15 AC114000 CALL DWORD PTR DS:[<&MSVBVM60.__vbaVarCat>]     ;  MSVBVM60.__vbaVarCat  
+
+00518570   .  50             PUSH EAX  
+
+00518571   .  8D85 5CFFFFFF LEA EAX,DWORD PTR SS:[EBP-A4]  
+
+00518577   .  50             PUSH EAX  
+
+00518578   .  8D4D 8C         LEA ECX,DWORD PTR SS:[EBP-74]  
+
+0051857B   .  51             PUSH ECX  
+
+0051857C   .  FF15 AC114000 CALL DWORD PTR DS:[<&MSVBVM60.__vbaVarCat>]     ;  把输入的注册名改成 UNICODE 一个一个存储  
+
+00518582   .  50             PUSH EAX  
+
+00518583   .  FFD3            CALL EBX                                      ;  得到刚刚存储好合并字符的地址  
+
+00518585   .  8BD0            MOV EDX,EAX  
+
+00518587   .  8D4D DC         LEA ECX,DWORD PTR SS:[EBP-24]  
+
+0051858A   .  FFD6            CALL ESI  
+
+0051858C   .  8D55 8C         LEA EDX,DWORD PTR SS:[EBP-74]  
+
+0051858F   .  52             PUSH EDX  
+
+00518590   .  8D45 9C         LEA EAX,DWORD PTR SS:[EBP-64]  
+
+00518593   .  50             PUSH EAX  
+
+00518594   .  8D4D AC         LEA ECX,DWORD PTR SS:[EBP-54]  
+
+00518597   .  51             PUSH ECX  
+
+00518598   .  6A 03           PUSH 3  
+
+0051859A   .  FF15 38104000 CALL DWORD PTR DS:[<&MSVBVM60.__vbaFreeVarList>] ;  MSVBVM60.__vbaFreeVarList  
+
+005185A0   .  B8 01000000    MOV EAX,1  
+
+005185A5   .  83C4 10         ADD ESP,10  
+
+005185A8   .  66:03C7        ADD AX,DI  
+
+005185AB   .  0F80 66010000 JO JXCShoes.00518717  
+
+005185B1   .  8BF8            MOV EDI,EAX  
+
+005185B3   .^ E9 E5FEFFFF    JMP JXCShoes.0051849D  
+
+005185B8   >  8B45 D8         MOV EAX,DWORD PTR SS:[EBP-28]  
+
+005185BB   .  50             PUSH EAX  
+
+005185BC   .  FF15 7C104000 CALL DWORD PTR DS:[<&MSVBVM60.__vbaLenBstrB>]   ;  MSVBVM60.__vbaLenBstrB  
+
+005185C2   .  B9 0A000000    MOV ECX,0A  
+
+005185C7   .  2BC8            SUB ECX,EAX                                   ;  你输入的位数与 A 相差多少  
+
+005185C9   .  0F80 48010000 JO JXCShoes.00518717  
+
+005185CF   .  FF15 2C114000 CALL DWORD PTR DS:[<&MSVBVM60.__vbaI2I4>]       ;  MSVBVM60.__vbaI2I4  
+
+005185D5   .  C745 E8 01000>MOV DWORD PTR SS:[EBP-18],1  
+
+005185DC   .  8985 54FFFFFF MOV DWORD PTR SS:[EBP-AC],EAX  
+
+005185E2   >  66:8B8D 54FFF>MOV CX,WORD PTR SS:[EBP-AC]  
+
+005185E9   .  66:394D E8     CMP WORD PTR SS:[EBP-18],CX                     ;  EBP-18 是计算器，一共相差 3 位，要三次  
+
+005185ED   .^ 0F8F 9BFEFFFF  JG JXCShoes.0051848E  
+
+005185F3   .  8B55 D8         MOV EDX,DWORD PTR SS:[EBP-28]  
+
+005185F6   .  0FBFC7          MOVSX EAX,DI  
+
+005185F9   .  50             PUSH EAX  
+
+005185FA   .  8D4D AC         LEA ECX,DWORD PTR SS:[EBP-54]  
+
+005185FD   .  51             PUSH ECX  
+
+005185FE   .  8955 84         MOV DWORD PTR SS:[EBP-7C],EDX  
+
+00518601   .  C785 7CFFFFFF>MOV DWORD PTR SS:[EBP-84],8  
+
+0051860B   .  FF15 94114000 CALL DWORD PTR DS:[<&MSVBVM60.#608>]           ;  MSVBVM60.rtcVarBstrFromAnsi  
+
+00518611   .  8D95 7CFFFFFF LEA EDX,DWORD PTR SS:[EBP-84]  
+
+00518617   .  52             PUSH EDX  
+
+00518618   .  8D45 AC         LEA EAX,DWORD PTR SS:[EBP-54]  
+
+0051861B   .  50             PUSH EAX  
+
+0051861C   .  8D4D 9C         LEA ECX,DWORD PTR SS:[EBP-64]  
+
+0051861F   .  51             PUSH ECX  
+
+00518620   .  FF15 AC114000 CALL DWORD PTR DS:[<&MSVBVM60.__vbaVarCat>]     ;  把相差的字符存储在原来注册名的后面  
+
+00518626   .  50             PUSH EAX  
+
+00518627   .  FFD3            CALL EBX                                      ;  得到刚刚存储好合并字符的地址  
+
+00518629   .  8BD0            MOV EDX,EAX  
+
+0051862B   .  8D4D D8         LEA ECX,DWORD PTR SS:[EBP-28]  
+
+0051862E   .  FFD6            CALL ESI  
+
+00518630   .  8D55 9C         LEA EDX,DWORD PTR SS:[EBP-64]  
+
+00518633   .  52             PUSH EDX  
+
+00518634   .  8D45 AC         LEA EAX,DWORD PTR SS:[EBP-54]  
+
+00518637   .  50             PUSH EAX  
+
+00518638   .  6A 02           PUSH 2  
+
+0051863A   .  FF15 38104000 CALL DWORD PTR DS:[<&MSVBVM60.__vbaFreeVarList>] ;  MSVBVM60.__vbaFreeVarList  
+
+00518640   .  83C4 0C         ADD ESP,0C  
+
+00518643   .  66:83C7 0A     ADD DI,0A                                       ;  把上一次的加上 0A  
+
+00518647   .  B8 01000000    MOV EAX,1  
+
+0051864C   .  0F80 C5000000 JO JXCShoes.00518717  
+
+00518652   .  66:0345 E8     ADD AX,WORD PTR SS:[EBP-18]                     ;  累加一次共相差 3 次  
+
+00518656   .  0F80 BB000000 JO JXCShoes.00518717  
+
+0051865C   .  8945 E8         MOV DWORD PTR SS:[EBP-18],EAX                 ;  存储到计数器  
+
+0051865F   .^ EB 81           JMP SHORT JXCShoes.005185E2  
+
+00518661   >  8D85 7CFFFFFF LEA EAX,DWORD PTR SS:[EBP-84]  
+
+00518667   .  50             PUSH EAX  
+```
