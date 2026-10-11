@@ -1,0 +1,310 @@
+
+# objectHook 简单介绍
+
+> 原文：[`www.pediy.com/kssd/pediy12/128161.html`](https://www.pediy.com/kssd/pediy12/128161.html)
+
+其实这东西很多大牛都玩腻了的东西，看下论坛上比较少这类的，就来献献丑，科普一下。大牛们直接可以飘过，这东西主要是自我复习一下 `OBJECT` 的一些知识。技术这东西久了不弄容易忘记，所以拿出来跟和我一样菜的菜鸟们分享一下。如果有不对的地方欢迎大家指正，这样对于自己也进步得快一点，多多交流，互相学习，水平才能提高得快。
+
+## 1. OBJECT 的组成
+
+第一我们先看下 `OBJECT` 的组成，主要是 3 部分，如下图：
+
+```
+|---------| 
+    | 附加信息|  -->  主要的几个结构是 OBJECT_HEADER_CREATOR_INFO 创建信息 
+                                          OBJECT_HEADER_NAME_INFO 这里面有对象名等主要信息 
+                                          OBJECT_HEADER_HANDLE_INFO 一些句柄信息           
+    |_______|                 
+    |           | 
+    | 对象头      |-->      一个重要的结构   OBJECT_HEADER           
+    |_______|   
+    |           | 
+    | OBJECT     |  -->       对象          
+    |_______|   
+```
+
+我们主要看下 `OBJECT_HEADER` 这个数据结构，几个重要成员我注释出来：
+
+```c
+typedef struct _OBJECT_HEADER {  
+  LONG PointerCount;  
+  union {  
+    LONG HandleCount;  
+    PSINGLE_LIST_ENTRY SEntry;  
+  };  
+  POBJECT_TYPE Type; // 这个很重要 HOOK 就靠它，对象类型结构也是一个对象，TYPE 它是系统第一个创建出来的对象类型  
+  UCHAR NameInfoOffset; // OBJECT_HEADER_NAME_INFO 偏移  
+  UCHAR HandleInfoOffset; // OBJECT_HEADER_HANDLE_INFO 偏移  
+  UCHAR QuotaInfoOffset;  
+  UCHAR Flags;  
+  union  
+  {  
+    POBJECT_CREATE_INFORMATION ObjectCreateInfo;  
+    PVOID QuotaBlockCharged;  
+  };
+  PSECURITY_DESCRIPTOR SecurityDescriptor;  
+  QUAD Body; // 对象本身  
+} OBJECT_HEADER, *POBJECT_HEADER;  
+```
+
+## 2. 对象类型结构
+
+```c
+typedef struct _OBJECT_TYPE {  
+  ERESOURCE Mutex;  
+  LIST_ENTRY TypeList; // 队列
+  UNICODE_STRING Name;  
+  PVOID DefaultObject;  
+  ULONG Index;  
+  ULONG TotalNumberOfObjects;  
+  ULONG TotalNumberOfHandles;  
+  ULONG HighWaterNumberOfObjects;  
+  ULONG HighWaterNumberOfHandles;  
+  OBJECT_TYPE_INITIALIZER TypeInfo; // 这个很重要，下面讲这个结构  
+#ifdef POOL_TAGGING  
+  ULONG Key;  
+#endif  
+} OBJECT_TYPE, *POBJECT_TYPE;
+```
+
+对象类型结构主要是创建对象类型，比如 `*IoFileObjectType`、`*PsProcessType`、`*PsThreadType` 这些类型。
+
+系统初始化的时候，第一个创建的对象类型结构就是 `TYPE` 类型结构生成对象目录 `\ObjectTypes`。其它后面的比如文件对象类型就挂在 `\ObjectTypes\File`，再比如 `\ObjectTypes\Device`。
+
+说白点就是你要生成对象就会创建（指定）相对应的对象类型结构。
+
+## 3. 最重要的一个数据结构
+
+```c
+typedef struct _OBJECT_TYPE_INITIALIZER {
+  USHORT Length;
+  BOOLEAN UseDefaultObject;
+  BOOLEAN CaseInsensitive;
+  ULONG InvalidAttributes;
+  GENERIC_MAPPING GenericMapping;
+  ULONG ValidAccessMask;
+  BOOLEAN SecurityRequired;
+  BOOLEAN MaintainHandleCount;
+  BOOLEAN MaintainTypeList;
+  POOL_TYPE PoolType;
+  ULONG DefaultPagedPoolCharge;
+  ULONG DefaultNonPagedPoolCharge;
+  PVOID DumpProcedure;/*
+  PVOID OpenProcedure;        这几个函数指针就是我们最需要的  
+  PVOID CloseProcedure;       这些函数都是决定你的对象的的一些  
+  PVOID DeleteProcedure;      操作或者叫方法，比如打开 创建 删除  
+  PVOID ParseProcedure;       不同的对象类型(OBJECT_TYPE)操作也不同  
+  PVOID SecurityProcedure;    所以要清楚的知道(OBJECT_TYPE)对象是什么类型  
+  PVOID QueryNameProcedure;   如果没有配置系统调用的对象类型 都是用 NtOpenFile  
+  PVOID OkayToCloseProcedure;*/
+} OBJECT_TYPE_INITIALIZER, *POBJECT_TYPE_INITIALIZER;
+```
+
+## 4. 方法调用机制
+
+这些方法何时被调用呢，我举个例子：
+
+当你调用 `NtCreateFile` -> `IoCreateFile` -> `ObOpenObjectByName` -> `ObpLookupObjectName` -> `IopParseFile` -> `IopParseDevice`
+
+`IopParseFile` 最终也会调用 `IopParseDevice`
+
+`ObjectHook` 其实就是比如你要 HOOK 创建打开就是 `OBJECT_TYPE_INITIALIZER->ParseProcedure`
+
+说了一大堆废话，上段代码。
+
+```c
+#include <ntddk.h>  
+
+#define OBJECT_TO_OBJECT_HEADER(o)\  
+      CONTAINING_RECORD((o),OBJECT_HEADER,Body)  
+
+#define CONTAINING_RECORD(address,type,field)\  
+      ((type*)(((ULONG_PTR)address)-(ULONG_PTR)(&(((type*)0)->field))))  
+
+typedef struct _OBJECT_TYPE_INITIALIZER {  
+  USHORT Length;  
+  BOOLEAN UseDefaultObject;  
+  BOOLEAN CaseInsensitive;  
+  ULONG InvalidAttributes;  
+  GENERIC_MAPPING GenericMapping;  
+  ULONG ValidAccessMask;  
+  BOOLEAN SecurityRequired;  
+  BOOLEAN MaintainHandleCount;  
+  BOOLEAN MaintainTypeList;  
+  POOL_TYPE PoolType;  
+  ULONG DefaultPagedPoolCharge;  
+  ULONG DefaultNonPagedPoolCharge;  
+  PVOID DumpProcedure;  
+  PVOID OpenProcedure;  
+  PVOID CloseProcedure;  
+  PVOID DeleteProcedure;  
+  PVOID ParseProcedure;  
+  PVOID SecurityProcedure;  
+  PVOID QueryNameProcedure;  
+  PVOID OkayToCloseProcedure;  
+} OBJECT_TYPE_INITIALIZER, *POBJECT_TYPE_INITIALIZER;  
+
+typedef struct _OBJECT_TYPE {  
+  ERESOURCE Mutex;  
+  LIST_ENTRY TypeList;  
+  UNICODE_STRING Name;  
+  PVOID DefaultObject;  
+  ULONG Index;  
+  ULONG TotalNumberOfObjects;  
+  ULONG TotalNumberOfHandles;  
+  ULONG HighWaterNumberOfObjects;  
+  ULONG HighWaterNumberOfHandles;  
+  OBJECT_TYPE_INITIALIZER TypeInfo;  
+#ifdef POOL_TAGGING  
+  ULONG Key;  
+#endif  
+} OBJECT_TYPE, *POBJECT_TYPE;  
+
+typedef struct _OBJECT_CREATE_INFORMATION {  
+  ULONG Attributes;  
+  HANDLE RootDirectory;  
+  PVOID ParseContext;  
+  KPROCESSOR_MODE ProbeMode;  
+  ULONG PagedPoolCharge;  
+  ULONG NonPagedPoolCharge;  
+  ULONG SecurityDescriptorCharge;  
+  PSECURITY_DESCRIPTOR SecurityDescriptor;  
+  PSECURITY_QUALITY_OF_SERVICE SecurityQos;  
+  SECURITY_QUALITY_OF_SERVICE SecurityQualityOfService;  
+} OBJECT_CREATE_INFORMATION, *POBJECT_CREATE_INFORMATION;  
+
+typedef struct _OBJECT_HEADER {  
+  LONG PointerCount;  
+  union {  
+    LONG HandleCount;  
+    PSINGLE_LIST_ENTRY SEntry;  
+  };  
+  POBJECT_TYPE Type;  
+  UCHAR NameInfoOffset;  
+  UCHAR HandleInfoOffset;  
+  UCHAR QuotaInfoOffset;  
+  UCHAR Flags;  
+  union  
+  {  
+    POBJECT_CREATE_INFORMATION ObjectCreateInfo;  
+    PVOID QuotaBlockCharged;  
+  };
+  PSECURITY_DESCRIPTOR SecurityDescriptor;  
+  QUAD Body;  
+} OBJECT_HEADER, *POBJECT_HEADER;  
+
+POBJECT_TYPE pType = NULL;  
+POBJECT_HEADER addrs = NULL;  
+PVOID OldParseProcedure = NULL;  
+
+NTSTATUS NewParseProcedure(IN PVOID ParseObject,  
+            IN PVOID ObjectType,  
+            IN OUT PACCESS_STATE AccessState,  
+            IN KPROCESSOR_MODE AccessMode,  
+            IN ULONG Attributes,  
+            IN OUT PUNICODE_STRING CompleteName,  
+            IN OUT PUNICODE_STRING RemainingName,  
+            IN OUT PVOID Context OPTIONAL,  
+            IN PSECURITY_QUALITY_OF_SERVICE SecurityQos OPTIONAL,  
+            OUT PVOID *Object)  
+{  
+    NTSTATUS Status;  
+    KdPrint(("object is hook\n"));  
+  __asm  
+  {  
+     push eax  
+     push Object  
+     push SecurityQos  
+     push Context  
+     push RemainingName  
+     push CompleteName  
+     push Attributes  
+     movzx eax, AccessMode  
+     push eax  
+     push AccessState  
+     push ObjectType  
+     push ParseObject  
+     call OldParseProcedure  
+     mov Status, eax  
+     pop eax  
+  }  
+  return Status;  
+}  
+
+NTSTATUS Hook()  
+{  
+  NTSTATUS  Status;  
+  HANDLE hFile;  
+  UNICODE_STRING Name;  
+  OBJECT_ATTRIBUTES Attr;  
+  IO_STATUS_BLOCK ioStaBlock;  
+  PVOID pObject = NULL;  
+  RtlInitUnicodeString(&Name,L"\\Device\\HarddiskVolume1\\1.txt");  
+  InitializeObjectAttributes(&Attr,&Name,OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE ,\  
+    0,NULL);  
+  Status = ZwOpenFile(&hFile,GENERIC_ALL,&Attr,&ioStaBlock,\  
+    0,FILE_NON_DIRECTORY_FILE);  
+  if (!NT_SUCCESS(Status))  
+  {  
+    KdPrint(("File is Null\n"));  
+    return Status;  
+  }  
+  Status = ObReferenceObjectByHandle(hFile,GENERIC_ALL,NULL,KernelMode,&pObject,NULL);  
+  if (!NT_SUCCESS(Status))  
+  {  
+    KdPrint(("Object is Null\n"));  
+    return Status;  
+  }  
+  KdPrint(("pobject is %08X\n",pObject));  
+  addrs = OBJECT_TO_OBJECT_HEADER(pObject); // 获取对象头  
+  pType = addrs->Type; // 获取对象类型结构 object-10h  
+  KdPrint(("pType is %08X\n",pType));  
+  OldParseProcedure = pType->TypeInfo.ParseProcedure; // 获取服务函数原始地址 OBJECT_TYPE+9C 位置为打开
+}
+```
+
+
+
+```
+KdPrint(("OldParseProcedure addrs is %08X\n",OldParseProcedure));  
+
+KdPrint(("addrs is %08X\n",addrs));  
+
+//这里最好检查一下 OldParseProcedure ，我真的是太懒了。  
+
+__asm  
+  {  
+    cli;  
+    mov eax, cr0;  
+    and eax, not 10000h;  
+    mov cr0, eax;  
+  }  
+
+pType->TypeInfo.ParseProcedure = NewParseProcedure;//hook  
+  __asm  
+  {  
+    mov eax, cr0;  
+    or eax, 10000h;  
+    mov cr0, eax;  
+    sti;  
+  }  
+
+ Status = ZwClose(hFile);  
+
+  return Status;  
+
+}  
+
+NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject,PUNICODE_STRING RegistryPath)  
+
+{  
+  NTSTATUS Status = STATUS_SUCCESS;  
+  Status=Hook();  
+  return Status;  
+
+}  
+```
+
+![](img/8bfcb520dcd38d15a87b3b6894fee165.jpg)
+
+![](img/a3509246108d0c27ec6cad30216c8ac4.jpg)
