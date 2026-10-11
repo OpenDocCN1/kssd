@@ -1,0 +1,440 @@
+
+# PeX V0.99b
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6386.htm`](https://www.pediy.com/kssd/pediy06/pediy6386.htm)
+
+## PeX V0.99b 脱壳——PeX.exe 主程序
+
+**下载页面：** `http://protools.anticrack.de/packers.htm` (以前 DOWN 的 ^O^)
+
+**软件大小：** 45 KB
+
+**【软件简介】：** `code`, `data`, `import` compression (based on `APLIB v0.26b` by `Joergen Ibsen`) & encryption; new technique was developed to increase compression ratio; protection against cracking & reverse engineering; `bpx` protection; import table handling; advanced import table protection.
+
+**【作者声明】：** 初学 Crack，只是感兴趣，没有其它目的。失误之处敬请诸位大侠赐教！
+
+**【破解工具】：** `Ollydbg1.09`, `PEiD`, `LordPE`, `Import REConstructor V1.4.2+`
+
+---
+
+## 【脱壳过程】
+
+PeX 壳应该是罕见的，至少我没见过用 `PeX` 保护的软件。既然 `loveboom` 兄弟提出来我就学习一下吧。呵呵，偶是脱壳白痴，碰不了猛壳，只好看看名不见经传的小壳，^O^ 但是这个壳却不算太弱呀，首次跟踪一不小心就 OVER 了。
+
+下面的调试环境是：`WinXP` + `Ollydbg`
+
+---
+
+```asm
+00408000     E9 F5000000           jmp pex.004080FA
+                         ==== > 进入 OD 后断在这！F7 进入！
+00408005     0D 0AC4C4C4          or eax,C4C4C40A
+```
+
+这种入口方式是固定的，很容易辨认 ^O^
+
+---
+
+这下面就要小心了，如果用 `F7` 走就很容易迷入陷阱！呵呵，所以这次采取另外的方法啦。
+
+可以看见下面的 `call 0040XXXX`，用 `F4` 走过去，但是这样还是要 `F4` 很多次，并且不小心就晕入循环！好了，往下看，使劲向下看：`popad`, `retn` 在 `004082FA` 处，直接在 `004082FA` 下断，`F9`，砰，睁开眼睛，高兴的看见安全着陆啦！ :-) 这是对付 `PeX` 壳的有效方法，我已实验过 N 次啦。
+
+```asm
+004080FA     60                  pushad
+004080FB     E8 01000000         call pex.00408101
+                         ==== > F7 进去就 OVER 啦 :-(
+00408100     E8 83C404E8         call E8454588
+00408105     0100               add dword ptr ds:[eax],eax
+00408107     0000               add byte ptr ds:[eax],al
+00408109   - E9 5D81EDD5        jmp D62E026B
+0040810E     2240 00            and al,byte ptr ds:[eax]
+00408111     E8 06020000        call pex.0040831C
+00408116     E8 EB08EB02        call 032B8A06
+0040811B     CD20 FF24249A      vxdcall 9A2424FF
+00408121     66:BE 4746        mov si,4647
+00408125     E8 01000000        call pex.0040812B
+0040812A     9A 598D9527 2340  call far 4023:27958D59     
+00408131     00E8               add al,ch
+00408133     0100               add dword ptr ds:[eax],eax
+00408135     0000               add byte ptr ds:[eax],al
+00408137     6958 66 BF4D4AE8   imul ebx,dword ptr ds:[eax+66],E84A4DBF
+0040813E     C101 00            rol dword ptr ds:[ecx],0   
+00408141     008D 52F9E801      add byte ptr ss:[ebp+1E8F952],cl
+00408147     0000               add byte ptr ds:[eax],al
+00408149     00E8               add al,ch
+0040814B     5B                 pop ebx
+0040814C     68 CCFFE29A        push 9AE2FFCC
+00408151     FFE4               jmp esp
+00408153     69FF A5452540      imul edi,edi,402545A5
+00408159     00E9               add cl,ch
+0040815B     E8 B9FFFFFF        call pex.00408119
+00408160     EB 02              jmp short pex.00408164
+00408162     CD20 8BC4EB02      vxdcall 2EBC48B
+00408168     CD20 81001600      vxdcall 160081
+0040816E     0000               add byte ptr ds:[eax],al
+00408170     0F85 A6010000      jnz pex.0040831C
+00408176     69E8 00000000      imul ebp,eax,0
+0040817C     58                 pop eax
+0040817D     99                 cdq
+0040817E     80CA 15            or dl,15
+00408181     8D0402             lea eax,dword ptr ds:[edx+eax]
+00408184     50                 push eax
+00408185     E8 72010000        call pex.004082FC
+0040818A     66:3D 86F3         cmp ax,0F386
+0040818E     74 03              je short pex.00408193
+00408190   - E9 8D95CB23        jmp 240C1722
+00408195     40                 inc eax
+00408196     00E8               add al,ch
+00408198     67:0100            add dword ptr ds:[bx+si],eax
+0040819B     00E8               add al,ch
+0040819D     0100               add dword ptr ds:[eax],eax
+0040819F     0000               add byte ptr ds:[eax],al
+004081A1     6983 C4048DBD CA2540>imul eax,dword ptr ds:[ebx+BD8D04C4],pex.004025CA
+004081AB     B9 89210000        mov ecx,2189
+004081B0     BA 0CC8B7E1        mov edx,E1B7C80C
+004081B5     8A07               mov al,byte ptr ds:[edi]
+004081B7     D2C0               rol al,cl
+004081B9     D2C8               ror al,cl
+004081BB     32C1               xor al,cl
+004081BD     F6D0               not al
+004081BF     32C5               xor al,ch
+004081C1     32C2               xor al,dl
+004081C3     32C6               xor al,dh
+004081C5     D2C0               rol al,cl
+004081C7     02C1               add al,cl
+004081C9     02C5               add al,ch
+004081CB     F6D8               neg al
+004081CD     02C2               add al,dl
+004081CF     02C6               add al,dh
+004081D1     D2C8               ror al,cl
+004081D3     2AC1               sub al,cl
+004081D5     2AC5               sub al,ch
+004081D7     F6D0               not al
+004081D9     2AC2               sub al,dl
+004081DB     2AC6               sub al,dh
+004081DD     D3C2               rol edx,cl
+004081DF     8807               mov byte ptr ds:[edi],al
+004081E1     47                 inc edi
+004081E2     49                 dec ecx
+004081E3   ^ 75 D0              jnz short pex.004081B5
+004081E5     E8 01000000        call pex.004081EB
+004081EA     E8 83C4040F        call 0F454672
+004081EF     0BE8               or ebp,eax
+004081F1     2BD2               sub edx,edx
+004081F3     64:8B02            mov eax,dword ptr fs:[edx]
+004081F6     8B20               mov esp,dword ptr ds:[eax]
+004081F8     64:8F02            pop dword ptr fs:[edx]
+004081FB     58                 pop eax
+004081FC     5D                 pop ebp
+004081FD     C3                 retn
+004081FE     9A 8B954525 4000  call far 0040:2545958B   
+00408205     E8 F9000000        call pex.00408303
+0040820A     E8 01000000        call pex.00408210
+0040820F     C783 C404BB73 4E0000>mov dword ptr ds:[ebx+73BB04C4],6A00004E
+00408219     04 68              add al,68
+0040821B     0030               add byte ptr ds:[eax],dh
+0040821D     0000               add byte ptr ds:[eax],al
+0040821F     53                 push ebx
+00408220     6A 00              push 0
+00408222     FF95 49254000      call dword ptr ss:[ebp+402549]
+00408228     E8 01000000        call pex.0040822E
+0040822D     E8 83C40468        call 684546B5
+00408232     0040 00            add byte ptr ds:[eax],al
+00408235     0053 50            add byte ptr ds:[ebx+50],dl
+00408238     E8 01000000        call pex.0040823E
+0040823D   - E9 83C40450        jmp 504546C5
+00408242     8D95 CA254000      lea edx,dword ptr ss:[ebp+4025CA]
+00408248     52                 push edx
+00408249     E8 0E000000        call pex.0040825C
+0040824E     E8 01000000        call pex.00408254
+00408253     6983 C4045A5E 0E56CB>imul eax,dword ptr ds:[ebx+5E5A04C4],60CB560E
+0040825D     8B7424 24          mov esi,dword ptr ss:[esp+24]
+00408261     8B7C24 28          mov edi,dword ptr ss:[esp+28]
+00408265     FC                 cld
+00408266     B2 80              mov dl,80
+00408268     A4                 movs byte ptr es:[edi],byte ptr ds:[esi]
+00408269     E8 68000000        call pex.004082D6
+0040826E   ^ 73 F8              jnb short pex.00408268
+00408270     2BC9               sub ecx,ecx
+00408272     E8 5F000000        call pex.004082D6
+00408277     73 1A              jnb short pex.00408293
+00408279     2BC0               sub eax,eax
+0040827B     E8 56000000        call pex.004082D6
+```
+
+
+
+```
+00408280     73 20                 jnb short pex.004082A2
+00408282     41                    inc ecx
+00408283     B0 10                 mov al,10
+00408285     E8 4C000000          call pex.004082D6
+0040828A     12C0                 adc al,al
+0040828C   ^ 73 F7                jnb short pex.00408285
+0040828E     75 3C                jnz short pex.004082CC
+00408290     AA                    stos byte ptr es:\[edi\]
+00408291   ^ EB D6                jmp short pex.00408269
+00408293     E8 4A000000          call pex.004082E2
+00408298     49                    dec ecx
+00408299     E2 10                 loopd short pex.004082AB
+0040829B     E8 40000000          call pex.004082E0
+004082A0     EB 28                 jmp short pex.004082CA
+004082A2     AC                    lods byte ptr ds:\[esi\]
+004082A3     D1E8                  shr eax,1
+004082A5     74 4B                 je short pex.004082F2
+004082A7     13C9                  adc ecx,ecx
+004082A9     EB 1C                 jmp short pex.004082C7
+004082AB     91                    xchg eax,ecx
+004082AC     48                    dec eax
+004082AD     C1E0 08               shl eax,8
+004082B0     AC                    lods byte ptr ds:\[esi\]
+004082B1     E8 2A000000          call pex.004082E0
+004082B6     3D 007D0000          cmp eax,7D00
+004082BB     73 0A                 jnb short pex.004082C7
+004082BD     80FC 05              cmp ah,5
+004082C0     73 06                 jnb short pex.004082C8
+004082C2     83F8 7F              cmp eax,7F
+004082C5     77 02                 ja short pex.004082C9
+004082C7     41                    inc ecx
+004082C8     41                    inc ecx
+004082C9     95                    xchg eax,ebp
+004082CA     8BC5                  mov eax,ebp
+004082CC     56                    push esi
+004082CD     8BF7                  mov esi,edi
+004082CF     2BF0                  sub esi,eax
+004082D1     F3:A4                 rep movs byte ptr es:\[edi\],byte ptr ds:\[esi\]
+004082D3     5E                    pop esi
+004082D4   ^ EB 93                 jmp short pex.00408269
+004082D6     02D2                  add dl,dl
+004082D8     75 05                 jnz short pex.004082DF
+004082DA     8A16                  mov dl,byte ptr ds:\[esi\]
+004082DC     46                    inc esi
+004082DD     12D2                  adc dl,dl
+004082DF     C3                    retn
+
+                  ==== 这上面都是循环啦 :-)
+
+004082E0     2BC9                  sub ecx,ecx
+004082E2     41                    inc ecx
+004082E3     E8 EEFFFFFF          call pex.004082D6
+004082E8     13C9                  adc ecx,ecx
+004082EA     E8 E7FFFFFF          call pex.004082D6
+004082EF   ^ 72 F2                jb short pex.004082E3
+004082F1     C3                    retn
+004082F2     2B7C24 28             sub edi,dword ptr ss:\[esp+28\]
+004082F6     897C24 1C             mov dword ptr ss:\[esp+1C\],edi
+004082FA     61                    popad
+
+                  ==== F2 此处下断！F9 运行，安全着陆！:-)
+
+004082FB     C3                    retn
+
+                  ==== 返回到 `0040824E`
+```
+
+———————————————————————
+
+```
+0040824E     E8 01000000          call pex.00408254
+                  ==== 变形 JMP！F7 走进
+00408254     83C4 04              add esp,4
+00408257     5A                   pop edx
+00408258     5E                   pop esi
+00408259     0E                   push cs
+0040825A     56                   push esi
+0040825B     CB                   retf
+
+                  ==== 返回到 `003A0000`
+
+003A0000     95                   xchg eax,ebp
+003A0001     E8 01000000          call `003A0007`
+                  ==== 变形 JMP！F7 走进
+
+003A0007     5D                   pop ebp
+003A0008     81ED D0254000        sub ebp,4025D0
+003A000E     8D95 212A4000        lea edx,dword ptr ss:\[ebp+402A21\]
+003A0014     6A 07                push 7
+003A0016     59                   pop ecx
+003A0017     8B1A                 mov ebx,dword ptr ds:\[edx\]
+003A0019     03DD                 add ebx,ebp
+003A001B     0103                 add dword ptr ds:\[ebx\],eax
+003A001D     83C2 04              add edx,4
+003A0020   ^ E2 F5               loopd short `003A0017`
+                  ==== F4 下去，跳出 LOOP
+
+003A0022     81C6 73040000        add esi,473
+003A0028     41                   inc ecx
+003A0029     C1F1 01              sal ecx,1
+003A002C     E2 01                loopd short `003A002F`
+                  ==== 这里用 F7 走啦！
+
+003A002F     FC                   cld
+003A0030     BF C0014000          mov edi,4001C0
+003A0035     BB 04000000          mov ebx,4
+003A003A     E8 01000000          call `003A0040`
+                  ==== 变形 JMP！F7 走进
+
+003A0040     83C4 04              add esp,4
+003A0043     57                   push edi
+003A0044     807F 22 00            cmp byte ptr ds:\[edi+22\],0
+003A0048     75 23                jnz short `003A006D`
+003A004A     E8 01000000          call `003A0050`
+                  ==== 变形 JMP！F7 走进
+
+003A0050     83C4 04              add esp,4
+003A0053     8B0F                 mov ecx,dword ptr ds:\[edi\]
+003A0055     0FB647 24            movzx eax,byte ptr ds:\[edi+24\]
+003A0059     3247 27              xor al,byte ptr ds:\[edi+27\]
+003A005C     0347 0C              add eax,dword ptr ds:\[edi+C\]
+003A005F     05 00004000          add eax,400000
+003A0064     6A 7F                push 7F
+003A0066     5A                   pop edx
+003A0067     42                   inc edx
+003A0068     2BC2                 sub eax,edx
+003A006A     97                   xchg eax,edi
+003A006B     F3:A4                rep movs byte ptr es:\[edi\],byte ptr ds:\[esi\]
+003A006D     5F                   pop edi
+003A006E     83C7 28              add edi,28
+003A0071     E8 01000000          call `003A0077`
+                  ==== 变形 JMP！F7 走进
+
+003A0077     83C4 04              add esp,4
+003A007A     4B                   dec ebx
+003A007B   ^ 75 C6                jnz short `003A0043`
+                  ==== F4 下去
+
+003A007D     E8 01000000          call `003A0083`
+                  ==== 变形 JMP！F7 走进
+
+003A0083     83C4 04              add esp,4
+003A0086     899D CB254000        mov dword ptr ss:\[ebp+4025CB\],ebx
+003A008C     BE C8500000          mov esi,50C8
+003A0091     85F6                 test esi,esi
+003A0093     0F84 AA020000        je `003A0343`
+                  ==== G `003A0343` 加快速度啦 :-)
+
+003A0343     50                   push eax
+003A0344     50                   push eax
+003A0345     DF3C24               fistp qword ptr ss:\[esp\]
+003A0348     58                   pop eax
+003A0349     58                   pop eax
+003A034A     E8 01000000          call `003A0350`
+                  ==== 变形 JMP！F7 走进
+
+003A0350     83C4 04              add esp,4
+003A0353     BF 01804000          mov edi,408001
+003A0358     57                   push edi
+003A0359     8DB5 2F294000        lea esi,dword ptr ss:\[ebp+40292F\]
+003A035F     6A 3D                push 3D
+003A0361     59                   pop ecx
+003A0362     F3:A4                rep movs byte ptr es:\[edi\],byte ptr ds:\[esi\]
+003A0364     C3                   retn
+
+                  ==== 返回到 `00408001`
+```
+
+———————————————————————
+
+```
+00408001     FF15 81834000        call dword ptr ds:\[<&KERNEL32.VirtualFree>\]
+00408007     E8 01000000          call pex.0040800D
+                  ==== 变形 JMP！F7 走进
+```
+
+
+
+```
+0040800D     83C4 04              add esp,4
+00408010     2BC0                 sub eax,eax
+00408012     64:8F00              pop dword ptr fs:[eax]
+00408015     83C4 0C              add esp,0C
+00408018     E8 01000000          call pex.0040801E
+======================================>变形 JMP！F7 走进
+0040801E     58                   pop eax
+0040801F     61                   popad
+00408020     E8 15000000          call pex.0040803A
+======================================>变形 JMP！F7 走进
+0040803A     58                   pop eax
+0040803B     40                   inc eax
+0040803C     50                   push eax
+0040803D     C3                   retn    //第一次到这！
+======================================>返回到 00408026
+00408026     E8 0F000000          call pex.0040803A
+======================================>变形 JMP！F7 走进
+0040803A     58                   pop eax
+0040803B     40                   inc eax
+0040803C     50                   push eax
+0040803D     C3                   retn    //第二次到这！！
+======================================>返回到 0040802C
+0040802C     E8 09000000          call pex.0040803A
+======================================>变形 JMP！F7 走进
+0040803A     58                   pop eax
+0040803B     40                   inc eax
+0040803C     50                   push eax
+0040803D     C3                   retn    //第三次到这！！
+======================================>返回到 00408032
+00408032     68 FF0F4000          push pex.00400FFF
+00408037     EB 01                jmp short pex.0040803A
+======================================>跳
+0040803A     58                   pop eax
+0040803B     40                   inc eax
+0040803C     50                   push eax
+0040803D     C3                   retn    //第四次到这！！！
+======================================>返回到 00401000   这就是 OEP 值 :-)
+```
+
+```
+00401000     E8                   db E8
+======================================>在这儿用 LordPE 完全 DUMP 这个进程
+00401001     69                   db 69
+00401002     1A                   db 1A
+```
+
+重新运行程序修复后虽然能够正常运行，但是执行压缩功能时提示出错！
+
+晕，脱`PeX`加壳的其他程序都能够正常使用的呀。所以想出以下办法： :-)
+
+重新运行`pex.exe`，运行`Import REConstructor v1.4.2+汉化版`，选择这个进程。
+
+把`OEP`改为`00001000`，点`IT AutoSearch`，把`RAV`改为：`00005000`，把大小改为：`0000054E`
+
+点“`Get Import`”，函数全部无效！偶晕…… 手动修复后还有几个函数无效 :-(
+
+算了，点右键，选择“开关\*载入程序\*”。`FixDump`，正常运行！执行压缩功能正常了！`13K->48K`
+
+虽然这样不能跨平台运行，但偶也没办法了。注：脱`PeX`加壳的其他程序不需这样做的。
+
+### 附：陷阱的地方 @v@ :-) @v@
+
+```
+0040814B     5B                   pop ebx
+0040814C     68 CCFFE29A          push 9AE2FFCC
+00408151   - FFE4                jmp esp
+======================================>返回到 0012FF90
+0012FF90     CC                   int3
+======================================>这里 INT3 后就直接运行了，如果 NOP 掉下面就 VOER 了。
+0012FF91     FFE2                jmp edx
+======================================>跳向 00408154
+00408154   - FFA5 45254000        jmp dword ptr ss:[ebp+402545] ; kernel32.ExitProcess
+======================================>这里就 OVER 了 *o*
+```
+
+```
+        ,     \_/
+      /| \_.-~/           \_     ,        青春都一饷
+     ( /~   /              ~-.
+     `\\  \_/                  ~ )           忍把浮名
+ _-~~~-.)  )\__/;;,.          _  //'
+ '/\_,   --~    ~~~-  ,;;___((.-~~~-.        换了破解轻狂
+ `~ _( ,..-- (       ,;''/     ~--   /.\_
+ /~~//'   /  `~            ) /--..\_,)_  `~
+ "  `~"  "       `"       /~'`    \\\\~~
+
+             "     "   "~'  ""
+
+         Cracked By 巢水工作坊——fly [OCN][FCG]
+
+               2003-10-01  22:04
+```
+
+`4dd466d0e1e0cc123afbe504da2462ca`
