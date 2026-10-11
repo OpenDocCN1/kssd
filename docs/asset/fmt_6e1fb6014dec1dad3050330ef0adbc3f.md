@@ -1,0 +1,254 @@
+
+```
+00405DAF  |.  8B7E 74       MOV EDI,DWORD PTR DS:[ESI+74]  
+
+00405DB2  |.  884C24 13     MOV BYTE PTR SS:[ESP+13],CL  
+
+00405DB6  |.  837F F4 02    CMP DWORD PTR DS:[EDI-0C],2  
+
+00405DBA  |.  7D 0A         JGE SHORT 00405DC6  
+
+00405DBC  |.  68 57000780   PUSH 80070057  
+
+00405DC1  |.  E8 6AB6FFFF   CALL 00401430  
+
+00405DC6  |>  8A4F 02       MOV CL,BYTE PTR DS:[EDI+2]  
+
+00405DC9  |.  8B7E 74       MOV EDI,DWORD PTR DS:[ESI+74]  
+
+00405DCC  |.  884C24 14     MOV BYTE PTR SS:[ESP+14],CL  
+
+00405DD0  |.  837F F4 03    CMP DWORD PTR DS:[EDI-0C],3  
+
+00405DD4  |.  7D 0A         JGE SHORT 00405DE0  
+
+00405DD6  |.  68 57000780   PUSH 80070057  
+
+00405DDB  |.  E8 50B6FFFF   CALL 00401430  
+
+00405DE0  |>  8A4F 03       MOV CL,BYTE PTR DS:[EDI+3]  
+
+00405DE3  |.  8B7E 74       MOV EDI,DWORD PTR DS:[ESI+74]  
+
+00405DE6  |.  884C24 15     MOV BYTE PTR SS:[ESP+15],CL  
+
+00405DEA  |.  837F F4 04    CMP DWORD PTR DS:[EDI-0C],4  
+
+00405DEE  |.  7D 0A         JGE SHORT 00405DFA  
+
+00405DF0  |.  68 57000780   PUSH 80070057  
+
+00405DF5  |.  E8 36B6FFFF   CALL 00401430  
+
+00405DFA  |>  8A4F 04       MOV CL,BYTE PTR DS:[EDI+4]  
+
+00405DFD  |.  8B7E 74       MOV EDI,DWORD PTR DS:[ESI+74]  
+
+00405E00  |.  837F F4 05    CMP DWORD PTR DS:[EDI-0C],5  
+
+00405E04  |.  7D 0A         JGE SHORT 00405E10  
+
+00405E06  |.  68 57000780   PUSH 80070057  
+
+00405E0B  |.  E8 20B6FFFF   CALL 00401430  
+
+00405E10  |>  8A5F 05       MOV BL,BYTE PTR DS:[EDI+5]  
+
+00405E13  |.  8B7E 74       MOV EDI,DWORD PTR DS:[ESI+74]  
+
+00405E16  |.  885C24 1A     MOV BYTE PTR SS:[ESP+1A],BL  
+
+00405E1A  |.  837F F4 06    CMP DWORD PTR DS:[EDI-0C],6  
+
+00405E1E  |.  7D 0A         JGE SHORT 00405E2A  
+
+00405E20  |.  68 57000780   PUSH 80070057  
+
+00405E25  |.  E8 06B6FFFF   CALL 00401430  
+
+00405E2A  |>  8A5F 06       MOV BL,BYTE PTR DS:[EDI+6]  
+
+00405E2D  |.  8B7E 74       MOV EDI,DWORD PTR DS:[ESI+74]  
+
+00405E30  |.  885C24 1B     MOV BYTE PTR SS:[ESP+1B],BL  
+
+00405E34  |.  837F F4 07    CMP DWORD PTR DS:[EDI-0C],7  
+
+00405E38  |.  7D 0A         JGE SHORT 00405E44                ; numax: end address, simple calculating related to regcode  
+
+00405E3A  |>  68 57000780   PUSH 80070057  
+
+00405E3F  |.  E8 ECB5FFFF   CALL 00401430  
+
+00405E44  |>  8A5F 07       MOV BL,BYTE PTR DS:[EDI+7]        ; numax: start address, checking regcode and username  
+
+00405E47  |.  0FB67C24 16   MOVZX EDI,BYTE PTR SS:[ESP+16]  
+
+00405E4C  |.  0FB6D2        MOVZX EDX,DL  
+
+00405E4F  |.  83EA 30       SUB EDX,30  
+
+00405E52  |.  3BFA          CMP EDI,EDX                         ; edi, regcode first character         
+
+00405E54  |.  75 48         JNE SHORT 00405E9E  
+
+00405E56  |.  0FB65424 13   MOVZX EDX,BYTE PTR SS:[ESP+13]   
+
+00405E5B  |.  0FB67C24 12   MOVZX EDI,BYTE PTR SS:[ESP+12]  
+
+00405E60  |.  83EA 30       SUB EDX,30  
+
+00405E63  |.  3BFA          CMP EDI,EDX                         ; edi, regcode second character       
+
+00405E65  |.  75 37         JNE SHORT 00405E9E  
+
+00405E67  |.  0FB65424 14   MOVZX EDX,BYTE PTR SS:[ESP+14]  
+
+00405E6C  |.  0FB67C24 17   MOVZX EDI,BYTE PTR SS:[ESP+17]  
+
+00405E71  |.  83EA 30       SUB EDX,30  
+
+00405E74  |.  3BFA          CMP EDI,EDX                         ; edi, regcode third character  
+
+00405E76  |.  75 26         JNE SHORT 00405E9E  
+
+00405E78  |.  0FB65424 15   MOVZX EDX,BYTE PTR SS:[ESP+15]  
+
+00405E7D  |.  0FB67C24 18   MOVZX EDI,BYTE PTR SS:[ESP+18]  
+
+00405E82  |.  83EA 30       SUB EDX,30  
+
+00405E85  |.  3BFA          CMP EDI,EDX                         ; edi, regcode fourth character  
+
+00405E87  |.  75 15         JNE SHORT 00405E9E   
+
+00405E89  |.  99            CDQ  
+
+00405E8A  |.  BF 0A000000   MOV EDI,0A  
+
+00405E8F  |.  F7FF          IDIV EDI  
+
+00405E91  |.  0FB6C2        MOVZX EAX,DL  
+
+00405E94  |.  0FB6D1        MOVZX EDX,CL  
+
+00405E97  |.  83EA 30       SUB EDX,30                          ; edx, regcode fifth character  
+
+00405E9A  |.  3BC2          CMP EAX,EDX                         ; numax: end address, checking regcode and username  
+
+00405E9C  |.  74 38         JE SHORT 00405ED6  
+
+00405E9E  |>  807C24 19 39  CMP BYTE PTR SS:[ESP+19],39         ; numax: built-in regcode: "93023147"  
+
+00405EA3  |.  0F85 83000000 JNE 00405F2C  
+
+00405EA9  |.  807C24 13 33  CMP BYTE PTR SS:[ESP+13],33  
+
+00405EAE  |.  75 7C         JNE SHORT 00405F2C  
+
+00405EB0  |.  807C24 14 30  CMP BYTE PTR SS:[ESP+14],30  
+
+00405EB5  |.  75 75         JNE SHORT 00405F2C  
+
+00405EB7  |.  807C24 15 32  CMP BYTE PTR SS:[ESP+15],32  
+
+00405EBC  |.  75 6E         JNE SHORT 00405F2C  
+
+00405EBE  |.  80F9 33       CMP CL,33  
+
+00405EC1  |.  75 69         JNE SHORT 00405F2C  
+
+00405EC3  |.  807C24 1A 31  CMP BYTE PTR SS:[ESP+1A],31  
+
+00405EC8  |.  75 62         JNE SHORT 00405F2C  
+
+00405ECA  |.  807C24 1B 34  CMP BYTE PTR SS:[ESP+1B],34  
+
+00405ECF  |.  75 5B         JNE SHORT 00405F2C  
+
+00405ED1  |.  80FB 37       CMP BL,37                             ;  
+
+00405ED4  |.  75 56         JNE SHORT 00405F2C  
+
+00405ED6  |>  6A 00         PUSH 0                                ; /Arg3 = 0  
+
+00405ED8  |.  6A 00         PUSH 0                                ; |Arg2 = 0  
+
+00405EDA  |.  68 A0D24200   PUSH OFFSET AVIJoiner.0042D2A0        ; |Arg1 = ASCII "Registration has succeeded!"  
+
+00405EDF  |.  E8 6CFB0100   CALL 00425A50                         ; \\AVIJoiner.00425A50  
+
+00405EE4  |.  8B7E 70       MOV EDI,DWORD PTR DS:[ESI+70]  
+
+00405EE7  |.  E8 49210200   CALL 00428035                         ; [AVIJoiner.00428035  
+
+00405EEC  |.  8B40 04       MOV EAX,DWORD PTR DS:[EAX+4]  
+
+00405EEF  |.  57            PUSH EDI                                ; /Arg3  
+
+00405EF0  |.  68 2CCF4200   PUSH OFFSET AVIJoiner.0042CF2C        ; |Arg2 = ASCII "username"  
+
+00405EF5  |.  68 24CF4200   PUSH OFFSET AVIJoiner.0042CF24        ; |Arg1 = ASCII "Option"  
+
+00405EFA  |.  8BC8          MOV ECX,EAX                             ; |  
+
+00405EFC  |.  E8 8FFC0100   CALL 00425B90                         ; \\AVIJoiner.00425B90  
+
+00405F01  |.  8B7E 74       MOV EDI,DWORD PTR DS:[ESI+74]  
+
+00405F04  |.  E8 2C210200   CALL 00428035                         ; [AVIJoiner.00428035  
+
+00405F09  |.  8B40 04       MOV EAX,DWORD PTR DS:[EAX+4]  
+
+00405F0C  |.  57            PUSH EDI                                ; /Arg3  
+
+00405F0D  |.  68 10CF4200   PUSH OFFSET AVIJoiner.0042CF10        ; |Arg2 = ASCII "registration\_code"  
+
+00405F12  |.  68 24CF4200   PUSH OFFSET AVIJoiner.0042CF24        ; |Arg1 = ASCII "Option"  
+
+00405F17  |.  8BC8          MOV ECX,EAX                             ; |  
+
+00405F19  |.  E8 72FC0100   CALL 00425B90                         ; \\AVIJoiner.00425B90  
+
+00405F1E  |.  5B            POP EBX  
+
+00405F1F  |.  5F            POP EDI  
+
+00405F20  |.  8BCE          MOV ECX,ESI  
+
+00405F22  |.  5E            POP ESI  
+
+00405F23  |.  5D            POP EBP  
+
+00405F24  |.  83C4 0C       ADD ESP,0C  
+
+00405F27  |.  E9 53870100   JMP 0041E67F  
+
+00405F2C  |>  6A 00         PUSH 0                                ; /Arg3 = 0  
+
+00405F2E  |.  6A 00         PUSH 0                                ; |Arg2 = 0  
+
+00405F30  |.  68 88D24200   PUSH OFFSET AVIJoiner.0042D288        ; |Arg1 = ASCII "Registration failed!"  
+
+00405F35  |.  E8 16FB0100   CALL 00425A50                         ; \\AVIJoiner.00425A50  
+
+00405F3A  |.  5B            POP EBX  
+
+00405F3B  |.  5F            POP EDI  
+
+00405F3C  |.  5E            POP ESI  
+
+00405F3D  |.  5D            POP EBP  
+
+00405F3E  |.  83C4 0C       ADD ESP,0C  
+
+00405F41  \\.  C3            RETN  
+```
+
+我简单的用文字描述下这段代码的意思，并按照功能不同将其分为以下几个部分：
+
+1. 简单检查 `username`，`registration code`：
+   - 如果 `username` 的长度小于 2，将提示：`Please input correct User Name`
+   - 如果 `registration code` 的长度小于 8，将提示：`Please input correct Registration Code`
+
+2. 基于 `username` 进行计算，代码中我用
