@@ -1,0 +1,562 @@
+
+# duelist crackme 3
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum382.htm`](https://www.pediy.com/kssd/pediy03/forum382.htm)
+
+duelist crackme 3 破解 (希望转载的时候保持完整)
+
+作者 丁丁虾 ddxia/\[CCG\]
+
+E\_mail ddxia@263.net (如果 Crackme 教学文章中有错，请来信:))
+
+Web http://go18.163.com/~ddxia
+
+目标 duelist crackme 3
+
+目标 URL `http://go.163.com/~ddxia/crackme/DueList/Due-cm3.zip`
+
+工具 `SoftIce4.01 for NT` `ExeScope` `winapi.hlp`
+
+这个 Crackme 就做得比较 COOL，不信，你运行起来看一看，有两行 18 个 `CheckBox`，
+
+你要 Crack it，必须要选中其中的几个 `CheckBox`，你可以试一试说不定，好运气，一试就对了！
+
+呵呵~~~ 。在主界面中还有一句话说你一定要使用资源编辑器。（这句话也是让我百思不得其解 N 分钟，随着深入代码，然后就会慢慢的明白了，也非常有趣）
+
+`bpx messagebox`
+
+`F11` 回到程序代码中
+
+在 `SoftIce` 中截下如下代码（来！我们"烟酒" "烟酒" "烟酒"）
+
+`:u 401117 L9a`
+
+```
+001B:00401117 33F6               XOR       ESI,ESI
+001B:00401119 33D2               XOR       EDX,EDX
+001B:0040111B 89355E214000       MOV       [0040215E],ESI
+001B:00401121 893562214000       MOV       [00402162],ESI
+001B:00401127 0FBE8EFE204000     MOVSX     ECX,BYTE PTR [ESI+004020FE]
+
+      ^^^^^^^^^^^^^^^^---->4020FE 中存放着 CheckBox 的 ID 号
+
+001B:0040112E 83F94D             CMP       ECX,4D
+
+      ^^^^^^^^^^^^^^^^---->判断是否到最后一个 CheckBox
+
+001B:00401131 742F               JZ        00401162
+001B:00401133 890D5E214000       MOV       [0040215E],ECX
+001B:00401139 51                 PUSH      ECX
+001B:0040113A FF7508             PUSH      DWORD PTR [EBP+08]
+001B:0040113D E8D0010000         CALL      USER32!IsDlgButtonChecked
+
+      ^^^^^^^^^^^^^^^^---->判断 CheckBox 是否被选中
+
+      ECX 中存放 CheckBox 的 ID 号
+
+001B:00401142 46                 INC       ESI
+001B:00401143 83F800             CMP       EAX,00
+001B:00401146 74DF               JZ        00401127
+
+      ^^^^^^^^^^^^^^^^---->如果没有被选中就跳到 401127
+
+      检查下一个 CheckBox
+
+001B:00401148 A15E214000         MOV       EAX,[0040215E]
+
+      ^^^^^^^^^^^^^^^^---->把当前的 ID 号放入 EAX
+
+001B:0040114D 0FBE8EFE204000     MOVSX     ECX,BYTE PTR [ESI+004020FE]
+
+      ^^^^^^^^^^^^^^^^---->把下一个的 ID 号放入 EAX
+
+001B:00401154 0FAFC1             IMUL      EAX,ECX
+001B:00401157 0FAFC6             IMUL      EAX,ESI
+001B:0040115A 010562214000       ADD       [00402162],EAX
+
+      ^^^^^^^^^^^^^^^^^^^^^^^^---->>在 00402162 进行累加
+
+001B:00401160 EBC5               JMP       00401127
+001B:00401162 A162214000         MOV       EAX,[00402162]
+001B:00401167 6BC04D             IMUL      EAX,EAX,4D
+
+      ^^^^^^^^^^^^^^^^^^^^^^^--->累加的值乘于 4D 放入 EAX
+
+001B:0040116A 3D6654F300         CMP       EAX,00F35466
+001B:0040116F 7520               JNZ       00401191
+
+      ^^^^^^^^^^^^^^^^^^^^^^^--->比较 EAX 的最后的值是否
+
+      为 00F35466
+
+001B:00401171 6800200000         PUSH      00002000
+001B:00401176 6801204000         PUSH      00402001
+001B:0040117B 6817204000         PUSH      00402017
+001B:00401180 6A00               PUSH      00
+001B:00401182 E855010000         CALL      USER32!MessageBoxA
+001B:00401187 B801000000         MOV       EAX,00000001
+001B:0040118C E969FFFFFF         JMP       004010FA
+001B:00401191 6800200000         PUSH      00002000
+001B:00401196 6801204000         PUSH      00402001
+001B:0040119B 6868204000         PUSH      00402068
+001B:004011A0 6A00               PUSH      00
+001B:004011A2 E835010000         CALL      USER32!MessageBoxA
+001B:004011A7 B800000000         MOV       EAX,00000000
+001B:004011AC E949FFFFFF         JMP       004010FA
+```
+
+相信各位已经把上面的算法弄清了吧！接下来我们来凑数 `00F35466`！
+
+1、我们先把 `4020FE` 的数据给弄到手。
+
+`:d 4020fe 40210e`
+
+```
+0023:004020FE 16 49 5E 15 27 26 21 25-1D 59 53 37 31 48 5D 0C  .I^.'&!%.YS71H].
+0023:0040210E 61 52 4D 00 00 00 00 00-00 00 00 00 00 00 00 00  aRM.............
+0023:0040211E 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+0023:0040212E 03 40 00 00 AB 10 40 00-00 00 00 00 00 00 00 00  .@....@.........
+0023:0040213E 00 00 40 00 8E 1A 73 00-08 00 01 00 00 00 00 00  ..@...s.........
+0023:0040214E 00 00 00 00 00 00 00 00-00 00 00 00 00 00 40 00  ..............@.
+0023:0040215E 5E 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ^...............
+0023:0040216E 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+```
+
+2、计算出正确的 ID 号。
+
+缺一段程序！！不知道那位大虾愿意赐教 :)
+
+你得到了 ID 号后，并没有大功告成哦！！^\_^这些 ID 号的排列，并不是按界面那样进行排列的！这时就会明白为什么要用资源编辑器，查看那些 `CheckBox` 的 ID 号，再进行正确的选择，这样就可以说收工了！（其实在 `readme.txt` 中有提示:)）
+
+时间：2000.10.18 13:46
+
+### R!SC's Solution to Duelist's Crackme #3 -- http://csir.cjb.net -- risc@notme.com :)
+
+Difficulty level : 5/10 (probably the toughest crack i have done)
+
+Tools Needed : `Symantec Resource Workshop 1.0`
+
+: `W32Dasm`
+
+: `Hex WorkShop`
+
+: `Tasm`
+
+: `Softice`
+
+: `Efnet` :) (optional)
+
+First off (well, after running the crackme, and trying a few random combinations), i loaded
+
+`due-cm3.exe` into `W32Dasm`, scrolling through the code, i soon found this bit...
+
+the important code...`ESI` points to button check order array thingy
+
+```
+:00401127 0FBE8EFE204000          movsx ecx, byte ptr [esi+004020FE]
+:0040112E 83F94D                  cmp ecx, 0000004D     <-- 4D is like a NULL terminator, also used
+:00401131 742F                    je 00401162            - for the last bit of maths
+:00401133 890D5E214000            mov dword ptr [0040215E], ecx    <-- save the current button iD
+:00401139 51                      push ecx              <-- button iD
+:0040113A FF7508                  push [ebp+08]           <-- dialog box handle
+* Reference To: USER32.IsDlgButtonChecked, Ord:0000h
+                                      |
+:0040113D E8D0010000              Call 00401312
+:00401142 46                      inc esi                 <-- Counter, points to next button,
+:00401143 83F800                  cmp eax, 00000000        - and used in the maths
+:00401146 74DF                    je 00401127             <-- Loop until one is found checked...
+:00401148 A15E214000              mov eax, dword ptr [0040215E]         <-- Our checked box iD
+:0040114D 0FBE8EFE204000          movsx ecx, byte ptr [esi+004020FE] <-- Next button iD
+:00401154 0FAFC1                  imul eax, ecx           <-- Multiply next button iD with current one
+:00401157 0FAFC6                  imul eax, esi           <-- Multiply count with answer
+:0040115A 010562214000            add dword ptr [00402162], eax   <-- Add it to our magic number
+:00401160 EBC5                    jmp 00401127
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00401131(C)
+|
+:00401162 A162214000              mov eax, dword ptr [00402162]    <-- Our final magic number..
+:00401167 6BC04D                  imul eax, 0000004D
+:0040116A 3D6654F300              cmp eax, 00F35466        <-- Magic number we have to get...
+```
+
+So, from this, we know we can `bpx IsDlgButtonChecked`, to make `softice` break at the routine which does the checking. After returning from `USER32.IsDlgButtonChecked`, if `eax` is NULL, the button wasnt checked, and it loops back to get the next iD, if `eax` != 0, the button is checked, and it does some maths on it
+
+`MAGIC NUMBER = MAGIC NUMBER + (Current box iD * Next box iD * Button counter)`
+
+After the last button, it puts our `MAGIC NUMBER` into `eax`, multiplys it by 4D, then compares it against the predifined number we have to get, `F35466`.. for the sake of it, to save some
+
+
+
+# R!SC's Matrix Brute Forcer Analysis
+
+`maths`, `F35466 / 4D = 328FE` (the number i finally use to figure out the correct order of ticks)
+
+## Routine Behavior
+
+At the start of the routine, it loads `ESI` with the check order of the buttons, displaying the memory at `\[esi+004020FE\]` (when `ESI==0`) we get this information
+
+```
+---button iD check order---
+
+004020FE 16 49 5E 15 27 26 21 25 1D 59 53 37 31 48 5D 0C 61 52 4D
+
+    ESI== 0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f 10 11 --
+    my id 1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18  (9*2)
+```
+
+This means bugger all to us, because we dont know which number represents which check box on the screen. We have to use a resource editor, to look at the dialog box resources, and find out which box uses which `iD`..
+
+I used `Symantec Resource Editor 1.0`, availble from `http://protools.cjb.net` (couldnt get `BRW` to load the exe) . So load `due-cm3.exe` into your resource editor, and click to edit the dialog...
+
+After clicking on each button, starting from the top left, converting the `iD` into hex, then writing them down, i got this information from it..
+
+### Buttons on screen
+
+```
+61 49 5E 16 25 26 21 59 53    ; top row of check boxes
+15 37 31 48 5D 0C 52 27 1D    ; bottom row of check boxes 10-18
+```
+
+Okay, with all this information, we know what button gets checked when, and we still cant figure out the correct order (can you do the maths in your head?)
+
+## Brute Force Theory
+
+My theory, to write a brute forcer, which will go through every possible combination you can have, do the maths on them, and compare the result with `328FE` (the correct `MAGIC NUMBER / 4D`)
+
+90 minutes of coding later (i am real bad at this :) i got a result!!
+
+Picture this in your head, 18 boxes, can be checked or unchecked, 0 or 1, imagine a binary value, using 18 bits, to represent these boxes, we test each bit in the binary value, if its 0 it represents an unchecked box, if its 1, it represents a tick ;) we use a 1 bit binary value, scrolling this to the left, bit by bit, and increase a counter, so we know which bit we are checking (bit 0 through to 17), test a with b, if the bit is set, do the maths..
+
+(see the comments i added to the source for the brute forcer..)
+
+### theory behind R!SC's Matrix Brute Forcer (r)
+
+we have 18 check boxes, can be either 'checked' or 'unchecked' (1 or 0)
+
+apparantly, the amount of diff combo's is square of 18, 324??? so where i come up with 262,144 :)
+
+we also have a way of testing single 'bits' in a value, by using `'TEST dest, src'`
+
+i use a 18bit binary value (well, 32bit binary value, but only use the `TEST` on the first 18 bits of it...) (i'll refer to this as my `MAGIC NUMBER`)
+
+i start the `MAGIC NUMBER` with the first bit set, (01h) then do the maths, check the result, if it doesnt find the correct answer, we increase the `MAGIC NUMBER` by 1, and check again....
+
+#### examples of the MAGIC NUMBER, and how it represents the matrix of check boxes....
+
+```
+000000000000000001 = 01h = box 1 checked, 2-18 unckecked, simulate the maths, check the results
+000000000000000010 = 02h = box 2 checked, 1,3-18 unchecked
+000000000000000011 = 03h = box 1,2 checked, 3-18 unckecked
+000000000000000100 = 04h = box 3 checked, 1,2,4-18 unchecked
+000000000000000101
+000000000000000110
+000000000000000111 = 07h = box 1-3 checked, 4-18 unchecked...
+000000000000001000
+000000000000001001
+101000110101000110 = 028d46h = box 2,3,7,9,11,12,16,18 checked
+                                box 1,4,5,6,8,10,13,14,15,17 unchecked
+111111111111111111 = 03ffffh = box 1-18 checked...
+```
+
+to find out if a bit is set or not, i use another 18bit (32bit :) value, with only one bit set in it (i'll call this `X`)
+
+```
+TEST MAGIC NUMBER, X    ; see if bit 'X' is set in the magic number
+JNZ CHECKED             ; if bit 'X' is not '0' jump to calculation routine
+```
+
+which will check bit `X` in the `MAGIC NUMBER`, and alter the `ZERO` flag accordingly
+
+i.e, bit `X` is 0, `ZERO` flag is set, bit `X` is 1, `ZERO` flag is cleared...
+
+`X` gets shifted to the left by 1 bit, the counter increased, check the counter, if its equal to 18, we have checked every bit in the `MAGIC NUMBER`, and have to loop back to check our result
+
+erm... still with me??
+
+#### examples of X
+
+```
+000000000000000001 = bit 1 set = 01h, counter = 0
+000000000000000010 = bit 2 set = 02h, counter = 1
+000000000000000100 = bit 3 set = 04h, counter = 2
+000000000000001000 = bit 4 set = 08h, counter = 3
+000000000000010000 = bit 5 set = 10h, counter = 4
+000000000000100000 = bit 6 set = 20h, counter = 5
+000000000001000000 = bit 7 set = 40h, counter = 6
+..................
+001000000000000000 = bit 16 set = 08000h, counter = 15
+010000000000000000 = bit 17 set = 10000h, counter = 16
+100000000000000000 = bit 18 set = 20000h, counter = 17
+```
+
+bit gets shifted one more time, counter increased to 18,
+
+counter gets checked, weve done, so loop back and check the answer...
+
+okay, go study the source code
+
+...
+
+...
+
+heh, you back already? try changing this line
+
+```
+:0040116A 3D6654F300             cmp eax, 00F35466
+```
+
+to read
+
+```
+:0040116A 3D6E8BC000             cmp eax, 00C08B6E    ; file offset 76A
+```
+
+and figure out the correct sequence :)
+
+(CHANGE ALREADY MADE IN `28026-DUE-CM3.EXE`)
+
+(SOLUTION IN `TEST.ZIP`)
+
+R!SC 31st May 1999
+
+=========================================================
+
+```
+; R!SC 191198
+; asm stylee!!!
+; <\_risc> well, your a good bloke.. thx for the second opinion (can i have it in writing please..)
+; <josephCo> haha
+; <\_risc> got it..
+; <\_risc> <josephCo> the total combinations are 2¹⁸
+; <\_risc> <josephCo> which is 262144
+; \* josephCo writes "it's 2¹⁸ possible combinations"
+; \* josephCo writes "which is 262144"
+; <josephCo> :)
+; <josephCo> there you go
+; theory behind R!SC's Matrix Brute Forcer (r)
+; we have 18 check boxes, can be either 'checked' or 'unchecked' (1 or 0)
+; (apparantly, the amount of diff combo's is square of 18, 324??? so where i come up with 262,144 :)
+; we also have a way of testing single 'bits' in a value, by using 'TEST dest, src'
+; i use a 18bit binary value (well, 32bit binary value, but only use the TEST on the first
+; 18 bits of it...) (i'll refer to this as my MAGIC NUMBER)
+; i start the MAGIC NUMBER with the first bit set, (01h) then do the maths, check the result,
+; if it doesnt find the correct answer, we increase the MAGIC NUMBER by 1, and check again....
+; examples of the MAGIC NUMBER, and how it represents the matrix of check boxes....
+; 000000000000000001 = 01h = box 1 checked, 2-18 unckecked, simulate the maths, check the results
+; 000000000000000010 = 02h = box 2 checked, 1,3-18 unchecked
+; 000000000000000011 = 03h = box 1,2 checked, 3-18 unckecked
+; 000000000000000100 = 04h = box 3 checked, 1,2,4-18 unchecked
+; 000000000000000101
+; 000000000000000110
+; 000000000000000111 = 07h = box 1-3 checked, 4-18 unchecked...
+; 000000000000001000
+; 000000000000001001
+; 101000110101000110 = 028d46h = box 2,3,7,9,11,12,16,18 checked
+;                         box 1,4,5,6,8,10,13,14,15,17 unchecked
+; 111111111111111111 = 03ffffh = box 1-18 checked...
+; to find out if a bit is set or not, i use another 18bit (32bit :) value, with only one bit
+; set in it (i'll call this X)
+; TEST MAGIC NUMBER, X    ; see if bit 'X' is set in the magic number
+; JNZ CHECKED             ; if bit 'X' is not '0' jump to calculation routine
+; which will check bit X in the MAGIC NUMBER, and alter the ZERO flag accordingly
+; i.e, bit X is 0, zero flag is set, bit X is 1, zero flag is cleared...
+; X gets shifted to the left by 1 bit, the counter increased, check the counter, if its equal
+; to 18, we have checked every bit in the MAGIC NUMBER, and have to loop back to check our result
+```
+
+
+
+# 示例与位模式
+
+`; examples of X`
+
+## 位模式表
+
+`; 000000000000000001 = bit 1 set = 01h, counter = 0`
+
+`; 000000000000000010 = bit 2 set = 02h, counter = 1`
+
+`; 000000000000000100 = bit 3 set = 04h, counter = 2`
+
+`; 000000000000001000 = bit 4 set = 08h, counter = 3`
+
+`; 000000000000010000 = bit 5 set = 10h, counter = 4`
+
+`; 000000000000100000 = bit 6 set = 20h, counter = 5`
+
+`; 000000000001000000 = bit 7 set = 40h, counter = 6`
+
+`; ..................`
+
+`; 001000000000000000 = bit 16 set = 08000h, counter = 15`
+
+`; 010000000000000000 = bit 17 set = 10000h, counter = 16`
+
+`; 100000000000000000 = bit 18 set = 20000h, counter = 17`
+
+`; bit gets shifted one more time, counter increased to 18,`
+
+`; counter gets checked, we've done, so loop back and check the answer...`
+
+## R!SC's Matrix Brute Forcer 描述
+
+`; R!SC's Matrix Brute Forcer for duelist's cm#3`
+
+`; compile to a com file, tasm boo, tlink /t boo`
+
+`; bpint 03 in sice.`
+
+`; run the com..`
+
+`; it breaks when it has found the pattern (about 1 second :)`
+
+`; eax\==duelist's magic number, ebx\==my magic number...`
+
+`; magic number it created is : 647E -- 110010001111110 in binary`
+
+`; which means bit pattern : 0111111000100110000000 (yeah, reversed...)`
+
+`; which means each bit thats a 1 is a checked box.. or something`
+
+`  ;    0  1  1  1  1  1  1  0  0  0  1  0  0  1  1  0  0  0`
+
+`  ;db 16h,49h,5Eh,15h,27h,26h,21h,25h,1Dh,59h,53h,37h,31h,48h,5Dh,0Ch,61h,52h,4Dh`
+
+`; boxes 2,3,6,7,9,10,13,14,17 checked...`
+
+`;     buttons on screen`
+
+`;   id  61 49 5e 16 25 26 21 59 53`
+
+`;bit was  0  1  1  0  0  1  1  0  1`
+
+`;   id  15 37 31 48 5d 0c 52 27 1d`
+
+`;        1  0  0  1  1  0  0  1  0`
+
+## 汇编代码
+
+```asm
+.MODEL TINY
+
+.CODE
+
+.386
+
+ORG 100h
+
+start:
+
+    lea       si, data
+    xor       ecx,ecx
+    xor       edx,edx
+    xor       eax,eax
+    xor       ebx,ebx
+    mov       ebx, 01
+    ; we gonna inc ebx, which will add 1 bit to it each time
+    ; 040000h=all 18 bits set, cant go no futher
+    jmp       tryme@
+    ; try bit 1, before entering the loop which goes through all the other
+    ; possible combinations
+
+nextbits:
+
+    lea       si, data
+    ; data is the button iD array, in the mixed up order...
+    mov       eax, dword ptr [temp]
+    ; get our calculated number
+    cmp       eax, 328feh
+    ; and check it..
+    je        gotit@@
+    xor       eax,eax
+    mov       dword ptr [temp], eax
+    ; it wasnt right, so we reset it to 0 :)
+    inc       ebx
+    ; our 18bit value, inc ebx will make it go through every possible combination
+    cmp       ebx, 040000h
+    ; check if we have reached our limit.
+    je        shit_fuck_damn
+    ; shit fuck damn.. means that we have checked all possible
+    ; combinations and not found our answer, we never want to jump here
+
+tryme@:
+
+    mov       eax, 01
+    ; gonna be our single bit , for checking which bit is set in EBX
+    xor       edx,edx
+    ; our iD counter
+    inc       edx
+
+loopy@:
+
+    test  ebx, eax
+    ; TEST MAGIC NUMBER, X
+    jnz       callit
+    ; JNZ CHECKED
+
+still:
+
+    shl       eax, 1
+    ; shift our bit to the left :)
+    inc       edx
+    ; increase the iD counter
+    inc       si
+    ; point data to next iD
+    cmp       edx, 19
+    ; see if we have checked all 18 bits
+    je        nextbits
+    ; je next bit pattern, i.e. inc EBX
+    jmp       loopy@
+    ; loop until finished
+
+callit:
+    ; bit X in EBX\==1
+    pushad
+    call      @1
+    ; do maths
+    popad
+    jmp       still
+
+@1:
+
+    mov     al, byte ptr [si]
+    ; current iD
+    mov     cl, byte ptr [si+1]
+    ; next iD
+    movsx   eax, al
+    ; clear rest of register
+    movsx   ecx, cl
+    ; "             "
+    imul    eax, ecx
+    ; EAX\==Current box iD \* Next box iD
+    imul    eax, edx
+    ; EAX\*=Button counter
+    add       dword ptr [temp],eax
+    ; MAGIC NUMBER = MAGIC NUMBER + EAX
+    ret
+
+shit_fuck_damn:
+
+    mov       eax, dword ptr [temp]
+    ; bad news, either my code is wrong, or???
+    int     03
+
+gotit@@:
+
+    mov       eax, dword ptr [temp]
+    ; temp==duelist's magic number
+    int 03
+    ; so EBX\==our bit pattern
+    mov     ax, 4C00h
+    int     21h
+
+;___________________________________________________
+
+temp    dd    0
+
+data    db 16h,49h,5Eh,15h,27h,26h,21h,25h,1Dh,59h,53h,37h,31h,48h,5Dh,0Ch,61h,52h,4Dh
+
+end start
+```
+
+;   4dd466d0e1e0cc123afbe504da2462ca

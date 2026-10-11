@@ -1,0 +1,25 @@
+
+# Easy CD 2.0
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum327.htm`](https://www.pediy.com/kssd/pediy03/forum327.htm)
+
+我又成功了！破`Easy CD 2.0`成功！
+
+`User:quboo cracked`
+
+`Code:AECDC83BC4`
+
+我试一试写写教程。
+
+先填`User:quboo cracked`、`Code:12121212`，然后`bpx hmemcpy`。中断后用`F12`跑呀跑。
+
+出现错误信息。记下它在`SoftIce`中的位置，然后再来一次。这次在错误信息的上面发现：
+
+```
+0137:0047CCFE CALL 00403F84 //紧挨下面是
+xxxx:xxxxxxxx JNZ 0047CD75 //很可疑，压 F8 进入上面的 CALL
+```
+
+进入后打`d EAX`或`d EDX`就看见啦！
+
+`4dd466d0e1e0cc123afbe504da2462ca`

@@ -1,0 +1,152 @@
+
+# DUN Meter 2.
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum429.htm`](https://www.pediy.com/kssd/pediy03/forum429.htm)
+
+**目标--dephi**
+
+SoftSol Ativa DUN Meter 2.3
+
+类似于 VB，dephi 也是一种面向对象的编程语言。同时因为它的一些特性，所以关于 dephi 编译的程序破解也有一些可以取巧之处。关于 dephi 的逆向工程国外已经有人专文进行了探讨，而在国内还鲜有人提及。在此仅就使用 `DEDE2.42` －－一个 dephi 反编译工具进行介绍。
+
+**目标**：SoftSol Ativa DUN Meter 2.3 一个网络下载数据测量工具。
+
+首先用 `DEDE2.42` 反编译 `ativa.exe`。
+
+1、在 Form 面板中找到一个 ClassName 叫 `TfmKeyRegister`，单击后就可以见到“注册”窗体中各个对象的属性及相互关系。
+
+...
+
+```
+object btnOK: TButton    <--注册按钮
+    
+    Left = 230                <--
+    Top = 292                 |
+    Width = 75                |按钮的大小尺寸
+    Height = 23               <--
+    Caption = '&OK'          <--按钮的名字
+    TabOrder = 0              
+    OnClick = btnOKClick      <--按下按钮后击发的事件
+end
+```
+
+...
+
+```
+object editReg1: TEdit    <--
+    Left = 80                |
+    Top = 237                |
+    Width = 90                |注册码填入框 1
+    Height = 21              |
+    MaxLength = 6            |
+    TabOrder = 2              |
+end                          <--
+
+object editReg2: TEdit  <--
+    Left = 188                |
+    Top = 237                |
+    Width = 90                |注册码填入框 2
+    Height = 21              |
+    MaxLength = 6            |
+    TabOrder = 3              |
+end                          <--
+
+object editReg3: TEdit  <--
+    Left = 297                |
+    Top = 237                |
+    Width = 90                |注册码填入框 3
+    Height = 21              |
+    MaxLength = 6            |
+    TabOrder = 4              |
+end                          <--
+```
+
+2、在 Procedures 面板中可以看到一个 UnitName，名为 `KeyRegister`，双击名为 `btnOKClick` 的事件，
+
+...
+
+```
+\* Reference to control TfmKeyRegister.editReg1 : TEdit
+
+004835C6  8B86E8020000          mov     eax, [esi+$02E8]
+
+\* Reference to: Controls.TControl.GetText()  <--取注册框 1 的内容
+
+004835CC  E8178FFBFF            call    0043C4E8
+004835D1  8B45FC                mov     eax, [ebp-$04]
+
+\* Possible String Reference to: '560616'
+
+004835D4  BA00374800            mov     edx, $00483700
+
+\* Reference to: System..LStrCmp()
+
+004835D9  E8D208F8FF            call    00403EB0 <-- ＝560616 ?
+004835DE  7402                  jz      004835E2
+004835E0  33DB                  xor     ebx, ebx
+004835E2  8D55F8                lea     edx, [ebp-$08]
+
+\* Reference to control TfmKeyRegister.editReg2 : TEdit
+
+004835E5  8B86EC020000          mov     eax, [esi+$02EC]
+
+\* Reference to: Controls.TControl.GetText()  <--取注册框 2 的内容
+
+004835EB  E8F88EFBFF            call    0043C4E8
+004835F0  8B45F8                mov     eax, [ebp-$08]
+
+\* Possible String Reference to: '201839'
+
+004835F3  BA10374800            mov     edx, $00483710
+
+\* Reference to: System..LStrCmp()
+
+004835F8  E8B308F8FF            call    00403EB0
+004835FD  7402                  jz      00483601 <-- ＝ 201839 ?
+004835FF  33DB                  xor     ebx, ebx
+00483601  8D55F4                lea     edx, [ebp-$0C]
+
+\* Reference to control TfmKeyRegister.editReg3 : TEdit
+
+00483604  8B86F0020000          mov     eax, [esi+$02F0]
+
+\* Reference to: Controls.TControl.GetText()  <--取注册框 3 的内容
+
+0048360A  E8D98EFBFF            call    0043C4E8
+0048360F  8B45F4                mov     eax, [ebp-$0C]
+
+\* Reference to: System..DynArrayLength()
+
+|               or: System..LStrLen()              <--得到注册框 3 字窜长度
+
+00483612  E88907F8FF            call    00403DA0
+00483617  83F806                cmp     eax, +$06  
+0048361A  7D02                  jnl     0048361E  >=6, OK!
+0048361C  33DB                  xor     ebx, ebx
+0048361E  84DB                  test    bl, bl
+00483620  7530                  jnz     00483652
+00483622  6A00                  push    $00
+00483624  668B0D18374800        mov     cx, word ptr [$483718]
+0048362B  B201                  mov     dl, $01
+
+\* Possible String Reference to: 'The Code you have entered is invali
+
+|                                   d.  Please try again.'
+
+0048362D  B824374800            mov     eax, $00483724
+
+...
+
+00483652  8D55F0                lea     edx, [ebp-$10]
+
+...
+
+\* Possible String Reference to: 'Congratulations and thankyou.  You
+
+|                                   have successfully registered Ativa
+
+|                                   DUN Meter.'
+
+004836B6  B868374800            mov     eax, $00483768
+END  4dd466d0e1e0cc123afbe504da2462ca
+```
