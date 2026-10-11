@@ -1,0 +1,157 @@
+
+# 劫持内核句柄
+
+> 原文：[`www.pediy.com/kssd/pediy10/91447.html`](https://www.pediy.com/kssd/pediy10/91447.html)
+
+Sysnap 2009,6
+
+为什么需要句柄?
+
+句柄只是对对象的引用,当我们进入内核时,获取对象显然是很简单,但为什么还需要句柄呢? 应该说我们需要句柄做为参数调用 API. 因为直接操作对象,可能会涉及到许多的未导出的东西,如果自己实现的话是不大现实,而调用标准的内核 API 又很多时候依赖于句柄,但又很多时候因为种种原因,我们得不到句柄,这里我们将探讨下怎样获取一个有用的句柄.
+
+任何问题欢迎指正: `http://hi.baidu.com/sysnap/blog`
+
+## 1 句柄的创建
+
+`ObpCreateHandle` 这个函数会判断 `AccessMode`,如果是用户态的,那 `PVOID ObjectTable;`
+
+`ObjectTable = PsGetCurrentProcess()->ObjectTable`
+
+如果是在驱动中打开句柄,则 `ObjectTable = ObpKernelHandleTable;`
+
+`ObpKernelHandleTable` 是一个指向 `HANDLE_TABLE` 的指针,在系统中并没有导出
+
+接着便会 ATTACH 到 SYSTEM 进程..
+
+调用 `ObpIncrementHandleCount` 增添 Object 引用数,这个地方我们慢点再考虑有没必要做一些工作.
+
+调用 `ExCreateHandle` 创建句柄,`ExCreateHandle` 中调用
+
+```
+//// 分配一个 HANDLE_TABLE_ENTRY 和一个句柄,这个句柄的值的产生是在
+///ExpAllocateHandleTableEntry 中完成的.
+```
+
+`ExpAllocateHandleTableEntry` 是句柄分配的核心,也涉及到了相关的数据结构.但这里我们可以不用管它.
+
+我们只需要知道 `ObpCreateHandle` 会给我们返回一个句柄,并且会在 `ObjectTable` 新添加一个 `HANDLE_TABLE_ENTRY`
+
+```
+lkd> dt _HANDLE_TABLE_ENTRY
+
+nt!_HANDLE_TABLE_ENTRY
+
+   +0x000 Object           : Ptr32 Void
+```
+
+`HANDLE_TABLE_ENTRY` 就包含有我们的 Object 了.
+
+## 2 句柄到 OBJECT 的映射
+
+这里涉及到了句柄表的格式,关于句柄表,网上已经有相关的文章讨论了,这里将不再说
+
+```
+typedef struct _EXHANDLE      
+{     
+    union     
+    {     
+        struct     
+        {     
+            ULONG TagBits : 02;     
+            ULONG Index   : 30;     
+        };     
+        HANDLE GenericHandleOverlay;     
+    };     
+} EXHANDLE, *PEXHANDLE;
+```
+
+可以看出,一个类型为 `HANDLE` 的,其实分为俩部分,`TagBits` 和 `Index`,具体干什么,请看到下面的函数
+
+```
+PHANDLE_TABLE_ENTRY     
+    LookupHandleTableEntry(     
+               IN PXP_HANDLE_TABLE HandleTable,     
+               IN EXHANDLE         Handle     
+               )     
+{     
+    ULONG i, j, k;     
+    PHANDLE_TABLE_ENTRY Entry = NULL;     
+    ULONG TableCode = HandleTable->TableCode& ~TABLE_LEVEL_MASK;     
+    i = (Handle.Index >> 17) &0x1FF;     
+    j = (Handle.Index >> 9)  &0x1FF;     
+    k = (Handle.Index)       &0x1FF;     
+    switch (HandleTable->TableCode &TABLE_LEVEL_MASK)     
+    {     
+        case 0 :     
+          Entry = &((PHANDLE_TABLE_ENTRY)TableCode)[k];     
+        break;     
+        case 1 :     
+          if (((PVOID *)TableCode)[j])     
+          {     
+            Entry = &((PHANDLE_TABLE_ENTRY *)TableCode)[j][k];          
+          }     
+        break;     
+        case 2 :     
+          if (((PVOID *)TableCode)[i])     
+          if (((PVOID **)TableCode)[i][j])     
+          {     
+            Entry = &((PHANDLE_TABLE_ENTRY **)TableCode)[i][j][k];          
+          }     
+        break;     
+    }     
+    return Entry;     
+}
+```
+
+这样的话我们就可以根据 `HANDLE`..获取到 `HANDLE_TABLE_ENTRY` 从而得到 Object
+
+上面的函数只适合 XP 和 2003
+
+## 3 句柄的权限
+
+如果我们想修改某个句柄的权限,可以通过 `HANDLE_TABLE_ENTRY::GrantedAccess`
+
+## 4 ObOpenObjectByPointer
+
+`ObReferenceObjectByPointer` 添加计数
+
+`ObpCreateHandle` 句柄的创建
+
+## 5 怎样伪造.
+
+比如我们想伪造一个 `XX.EXE` 进程的句柄.
+
+1. 首先我们需要确定 `ObpKernelHandleTable`
+   ```
+   DWORD dwObpKernelHandleTable = 0; 
+   PVOID lpPsSystemObject = (PVOID)PsGetCurrentProcess(); 
+   dwObpKernelHandleTable = *(DWORD*)((DWORD)lpPsSystemObject + 
+   gdwObjectTableOffset);
+   ```
+2. `ObOpenObjectByPointer` 打开 `explorer.exe` (这里随便找个没保护的进程就可以)
+
+   获取句柄 `hProcess`
+3. 用某些办法获取 `XX.EXE` 的进程对象 `EPROCESS`
+4. 用 `hProcess` 为参数调用,`LookupHandleTableEntry` 得到一个指向 `PHANDLE_TABLE_ENTRY` 的指针 `pEntry`
+
+   这个时候 `pEntry->Object` 应该就是 `explorer.exe` 的 `EPRCESS`
+5. 修改 `pEntry->Object = XX.EXE` 的 `EPROCESS`
+
+   这样我们就完成了 `HANDLE` 和 OBJECT 的劫持..
+
+这都是主要步骤,其中有些细节问题需要注意,比如增加对象的句柄数啊等等.
+
+## 6 有效果吗?
+
+我们知道大部分内核 API 都会以一个 `HANDLE` 做为参数的,其内部基本都是调用了 `ObReferenceObjectByHandle` 来定位对象,我们分析下 `ObReferenceObjectByHandle` 就知道我们的劫持是否有用了.
+
+很显然 `ObReferenceObjectByHandle` 是根据 `HANDLE_TABLE` 来把句柄转化为对象,过程简单为 `handle--->> pEntry->Object`
+
+所以劫持是成功的.
+
+这就是我的思路,有什么问题大家可以指正,谢谢.
+
+参考资料:
+
+1. WRK
+2. `PsCidTable` 相关文章

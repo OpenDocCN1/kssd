@@ -1,0 +1,91 @@
+
+# 封装的 malloc，安全，有效防止内存泄漏
+
+> 原文：[`www.pediy.com/kssd/pediy12/109341.html`](https://www.pediy.com/kssd/pediy12/109341.html)
+
+```c
+#include "cons.h" // 包含控制台程序用到的一些头文件
+
+typedef struct NODE
+{
+  void *alloc;
+  struct NODE *next;
+} Node; // 使用链表记录申请的内存
+
+static Node head;
+
+int total = 0; // 记录未释放的内存（malloc 一次，自增，free 一次，自减）
+
+static void *FreeAll(Node *p)
+{
+  // 递归释放 p 结点（包括后续结点）
+  if (p == NULL)
+    return NULL; // 递归出口
+  if (p->next != NULL)
+    p->next = FreeAll(p->next);
+  free(p->alloc);
+  free(p);
+  total -= 2; // free2 次，自减 2
+  return NULL;
+}
+
+void *Malloc(int size)
+{
+  static Node *p;
+  static char f; // f 用以标记是否初始化（仅一次初始化）
+  if (size <= 0)
+    exit(-1);
+  if (f == 0)
+  {
+    p = &head;
+    p->alloc = NULL;
+    f = 1;
+  }
+  // 生成结点并返回
+  p->next = (Node *)malloc(sizeof(Node));
+  p = p->next;
+  p->alloc = malloc(size);
+  p->next = NULL;
+  total += 2; // malloc2 次，自增 2
+  return p->alloc;
+}
+
+int Free(void *tmp)
+{ // 释放 tmp 指向的结点，p==NULL 时释放全部；
+  Node *pa, *pb;
+  if (tmp == NULL)
+  {
+    FreeAll(head.next);
+    return 0;
+  }
+  pa = &head;
+  while (pa) // 循环，查找结点
+  {
+    pb = pa;
+    if (pa->alloc == tmp) // 找到！
+    {
+      free(tmp);
+      pb->next = pa->next;
+      free(pa); // free2 次，自减 2
+      total -= 2;
+      return 0;
+    }
+    pa = pa->next;
+  }
+  return error;
+}
+
+void main()
+{
+  int *a;
+  int i = 0;
+  for (i = 0; i < 10; i++)
+    a = Malloc(sizeof(int)); // 申请十个空间
+  printf("有%d 个空间未释放!\\n", total);
+  *a = 4;
+  Free(NULL);
+  printf("有%d 个空间未释放!\\n", total);
+}
+```
+
+绝对原创，使用时直接调用 `Malloc`/`Free`

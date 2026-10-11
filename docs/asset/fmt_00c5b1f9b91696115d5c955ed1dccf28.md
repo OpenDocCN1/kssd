@@ -1,0 +1,44 @@
+
+# Advanced Windows Debugging 的第五章
+
+> 原文：[`www.pediy.com/kssd/pediy12/125262.html`](https://www.pediy.com/kssd/pediy12/125262.html)
+
+准备开始新的阶段好好学习了，发篇译文鼓励下自己。
+
+第一次发翻译文章，排版啊什么的可能都有点乱，大家将就下吧。
+
+不对的地方那是肯定有的，如果你有空，请 `MAIL` 我修正，谢谢！
+
+附件中有 `pdf` 和 `word` 两个版本，应该总有一款适合你吧。
+
+另外，原文肯定是没办法贴出来了，来个第一页意思一下：
+
+CHAPTER 5 MEMORY CORRUPTION PART I STACKS
+
+A memory corruption is one of the most intractable forms of programming error for two reasons. First, the source of the corruption and the manifestation might be far apart, making it difficult to correlate cause and effect. Second, symptoms appear under unusual conditions, making it hard to consistently reproduce the error.
+
+Fundamentally, memory corruption occurs when one or both of the following are true.
+
+* The executing thread writes to a block of memory that it does not own.
+* The executing thread writes to a block of memory that it does own, but corrupts the state of that memory block.
+
+To exemplify the first condition, consider this small application:
+
+```c
+#include <windows.h>
+
+#define BAD_ADDRESS 0xBAADF00D
+
+int __cdecl wmain(int argc, wchar_t* pArgs[])
+{
+    char* p = (char*)BAD_ADDRESS;
+    *p = 'A';
+    return 0;
+}
+```
+
+This small application declares a pointer to a `char` data type and initializes the pointer to an address for which it does not have access (`0xBAADF00D`). The net result of running the application is a crash, and the dreaded `Dr. Watson` UI pops up. Although it’s very clear that this simple application performs an invalid memory access, more complex systems can be trickier to figure out.
+
+上传的附件
+
+| ![](img/b7e61e3627e1e92d7b948dd8fdd24fa6.jpg) | `5.Memory Corruption.doc` |

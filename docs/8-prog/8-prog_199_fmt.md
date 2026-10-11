@@ -1,0 +1,405 @@
+
+# 第三方二进制汇编代码在 VC 中的移植和应用
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-179.htm`](https://www.pediy.com/kssd/pediy09/pediy09-179.htm)
+
+> 二进制汇编代码在 VC 中的移植和应用
+
+> 作者：老实和尚 coverlove@163.com
+
+## 1、前言
+
+对于没有源代码的开发库中提供的函数或者关键代码（一般是 `dll` 或者 `exe` 程序提供）。我们不能分析出其某个函数或者某段代码的实现细节，而又想在自己的工程中进行代码复用，这时我们比较直观的做法就是移植其汇编代码到我们的开发环境中。
+
+本文主要介绍在如何 `VC`（`Microsoft Visual C++ 6.0`）中内联汇编代码及其注意事项。主要涉及的工具有 `OLLYDBG`（修改版本的 `OLLYICE` 功能更加强大）、`Microsoft Visual C++ 6.0`。
+
+## 2、OLLYDBG 简介
+
+`OllyDbg` 是一种具有可视化界面的 32 位汇编-动态分析调试器。它的特别之处在于可以在没有源代码时解决问题，并且可以处理其它编译器无法解决的难题。
+
+运行环境：
+
+`OllyDbg` 可以以在任何采用奔腾处理器的 `Windows 95`、`98`、`ME`、`NT` 或是 `XP`（未经完全测试）操作系统中工作。
+
+支持的处理器：
+
+`OllyDbg` 支持所有 `80x86`、奔腾、`MMX`、`3DNOW!`、`Athlon` 扩展指令集、`SSE` 指令集以及相关的数据格式，但是不支持 `SSE2` 指令集。
+
+配置：
+
+有多达百余个选项用来设置 `OllyDbg` 的外观和运行。
+
+数据格式：
+
+`OllyDbg` 的数据窗口能够显示的所有数据格式：`HEX`、`ASCII`、`UNICODE`、16/32 位有/无符号/`HEX` 整数、32/64/80 位浮点数、地址、反汇编（`MASM`、`IDEAL` 或是 `HLA`）、`PE` 文件头或线程数据块。
+
+## 3、应用实例
+
+![](img/ca94d07eeb69b945b333fce54eb3c06f.jpg)
+
+如上图有一个函数 `PcInfo.dll`，里面导出了两个函数，`RegistryCode` 和 `IsValidCheckCode`。通过 `OllyICE` 我们很容易找到这两个函数的实现过程。
+
+![](img/a94c944fad140a369582464f5585de5c.jpg)
+
+第一个函数 `RegistryCode` 有三个参数，第一个压栈的是一个字符串的地址，第二个和第三个是一个整数，通过函数返回后对 `eax` 寄存器进行了检查可以断定函数带一个 `int` 型的返回值。
+
+函数调用后没有进行堆栈的平衡说明这个函数是一个 `__stdcall` 方式调用的，堆栈平衡由被调用者平衡。调用方式确定后就可以还原函数原型如下：
+
+```
+int __stdcall RegistryCode(int a1, int a2, const char * key)
+```
+
+![](img/7ac409ee6d7b6e80214c09d025ecb6fe.jpg)
+
+函数内部代码实现如上图，我们可以将汇编实现代码拷贝出来如下：
+
+```
+10002280 >   83EC 10         sub     esp, 10
+10002283    8D4424 00       lea     eax, [esp]
+10002287    56              push    esi
+10002288    57              push    edi
+10002289    33FF            xor     edi, edi
+1000228B    57              push    edi
+1000228C    50              push    eax
+1000228D    57              push    edi
+1000228E    68 3F000F00     push    0F003F
+10002293    57              push    edi
+10002294    57              push    edi
+10002295    57              push    edi
+10002296    68 44910010     push    10009144    ; ASCII "Software\\abc\\def"
+1000229B    68 02000080     push    80000002
+100022A0    FF15 00800010   call    [<&ADVAPI32.RegCreateKeyExA>]  ; ADVAPI32.RegCreateKeyExA
+100022A6    85C0            test    eax, eax
+100022A8    75 56           jnz     short 10002300
+100022AA    8B7424 24       mov     esi, [esp+24]
+100022AE    8B0D 88910010   mov     ecx, [10009188]
+100022B4    8B15 8C910010   mov     edx, [1000918C]
+100022BA    A1 90910010     mov     eax, [10009190]
+100022BF    85F6            test    esi, esi
+100022C1    894C24 0C       mov     [esp+C], ecx
+100022C5    895424 10       mov     [esp+10], edx
+100022C9    894424 14       mov     [esp+14], eax
+100022CD    74 31           je      short 10002300
+100022CF    56              push    esi
+100022D0    FF15 24800010   call    [<&KERNEL32.lstrlenA>]     ; kernel32.lstrlenA
+100022D6    40              inc     eax
+100022D7    8D4C24 0C       lea     ecx, [esp+C]
+100022DB    8B5424 08       mov     edx, [esp+8]
+100022DF    50              push    eax
+100022E0    56              push    esi
+100022E1    6A 01           push    1
+100022E3    57              push    edi
+100022E4    51              push    ecx
+100022E5    52              push    edx
+100022E6    FF15 04800010   call   [<&ADVAPI32.RegSetValueExA>]  ; ADVAPI32.RegSetValueExA
+100022EC    85C0            test    eax, eax
+100022EE    75 05           jnz     short 100022F5
+100022F0    BF 01000000     mov     edi, 1
+100022F5    8B4424 08       mov     eax, [esp+8]
+100022F9    50              push    eax
+100022FA    FF15 08800010   call    [<&ADVAPI32.RegCloseKey>]  ; ADVAPI32.RegCloseKey
+10002300    8BC7            mov     eax, edi
+10002302    5F              pop     edi
+10002303    5E              pop     esi
+10002304    83C4 10         add     esp, 10
+10002307    C2 0C00         retn    0C
+```
+
+有两种方法可以复用上面这段代码，第一种方法是把这段代码复制到一个汇编编译器中编译成 `object`，然后在 `VC` 中链接这个外部函数，但是这种方法需要额外的编译器，使用起来比较复杂。本文主要介绍第二种方法，就是在 `VC` 编译器中复用这段汇编代码，然后直接编译调试。
+
+在 `VC` 编译器中使用内联汇编，有两种方式：一种是在每一条指令前面加上 `__asm`，另外一种方式比较适合大段汇编代码，就是使用 `__asm { }` 包含汇编代码块。这个不改变变量作用域，只是一个指示符号，注意大部分伪汇编代码 `VC` 是不支持的。将以上汇编代码拷贝到 `VC` 的函数 `int __stdcall RegistryCode(int a1, int a2, const char * key)` 函数内部，这样一个简单函数初步实现了，但是还需要作一些调整。
+
+`VC` 内联外部汇编代码需要注意以下几个事项：
+
+### A. 代码的修正
+
+拷贝出来的汇编代码需要进行初步处理才能移植到 `VC` 的函数中，上面的汇编代码中地址头需要全部删除掉（这个可以在 `UltraEdit` 的列模式中复制），对于代码中的常数全部要加上 `0x`，因为 `Ollyice` 拷贝出来的都是 16 进制数，对应跳转指令可以用原来的标示符号，如 `jnz short 100022F5`，改成 `jnz short A100022F5`，将地址前加上一个字符，否则 `VC` 对于这样的跳转会将数字理解成数字而认为是错误代码，而不会根据目标标签自动计算偏移量。
+
+### B. 堆栈的平衡
+
+由于 `VC` 默认为函数生成了保护寄存器的代码，也就是进行了寄存器压栈操作，这样栈顶就可能改变，因此拷贝过来的汇编代码中基于栈顶取数据的地址就不对了，因为堆栈栈顶已经被 `VC` 默认保护堆栈的 `PUSH` 指令改变了。最简单的做法就是先平衡堆栈，也就是先弹出压栈的寄存器，这样拷贝过来的汇编代码在函数内部运行的环境就是干净的，无污染的，而 `VC` 在 `DEBUG` 模式和 `RELEASE` 模式为函数生成的保护寄存器的代码是不同的，需要分别处理来平衡堆栈。（注：如果不想 `VC` 生成保护寄存器的代码，可以加上关键字：`__declspec( naked )`，这样就不需要平衡堆栈了，可以连这一步都省了，但是了解编译器的一些行为对内联汇编的成功与否很重要）
+
+### C. 地址的处理
+
+对于汇编代码中出现的地址，有些是字符或者整数数组的首地址，需要在全局或者局部建立字符串数组，然后替换成字符数组的地址。对于 `VC` 而言，指针类型的变量本身就是地址，因此在汇编代码中直接使用指针名称，而不需要 `LEA`（或者 `OFFSET` 伪指令）来计算地址。
+
+### D. 函数调用的处理
+
+对于汇编中使用到的函数需要加入其相应的 `Lib` 文件，对于 `Windows Api` 只需要加入 `Windows.h` 文件即可，这样 `VC` 才会为使用到的函数加入导入表和函数符号。对于外部 `DLL` 中的函数调用需要注意的是，必须使用间接寻址方式调用函数，而不能是立即数地址，也就是使用 `FirstThunk + RVA` 的方式来寻址，由 `PE` 加载器动态填充的地址代替实际地址，而 `FirstThunk + RVA` 的地址在编译过程中就可以惟一确定。对于静态连接的函数如 `printf` 等这些函数，则使用直接调用方式，调用地址是立即数。而编译器对于有些外部导出函数，采用一个 `call（立即数） + jmp（间接寻址）` 方式实现。
+
+具体实现过程：
+
+添加需要使用的全局字符串，定义如下：
+
+```
+char *key1="Software\\abc\\def";
+char *key2="InstallCode";
+```
+
+由于 `DEBUG` 模式 `VC` 默认为函数生成了保护寄存器的代码，总共对 4 个寄存器进行了保护，因此我们在函数的入口处平衡堆栈，代码如下：
+
+```
+__asm
+   {
+     pop edi
+     pop esi
+     pop ebx
+     pop ebp
+   }
+```
+
+如果是 `RELEASE` 模式，则只对 3 个寄存器进行了压栈保护，因此我们在函数的入口处平衡堆栈，两种模式可以合成写成如下的方式：
+
+```
+//还原堆栈,VC 为函数默认生成了保护寄存器的代码
+
+ #ifdef _DEBUG   //DEBUG 模式和 RELEASE 模式生成的保护寄存器的代码不一样
+
+   __asm
+   {
+     pop edi
+     pop esi
+     pop ebx
+     pop ebp
+   }
+
+ #else 
+   __asm
+   {
+     pop edi
+     pop esi
+     pop ebp
+   }
+
+ #endif
+```
+
+上面的一段代码，可以使用在函数前面加上 `__declspec( naked )` 的方法来替代。
+
+移植的部分代码加到上面的代码后面即可，具体修改如下：
+
+```
+__asm
+  {
+    sub     esp, 0x10
+    lea     eax, dword ptr [esp]
+    push    esi
+    push    edi
+    xor     edi, edi
+    push    edi
+    push    eax
+    push    edi
+    push    0x0F003F
+    push    edi
+    push    edi
+    push    edi
+    push    key1   //如果是指针直接使用指针名称，否则使用 lea eax, key1;  push eax 方式
+    push    0x80000002
+    call dword ptr [RegCreateKeyExA] //此处不能使用 call RegCreateKeyExA,只能进行间接寻址调用 
+    test    eax, eax
+    jnz     short  A10002300 //使用标签让 VC 自动计算偏移地址，不能使用纯数组标签
+    mov     esi, dword ptr [esp+0x24]
+    mov     eax, key2
+    mov     ecx, [eax]
+    mov     edx, [eax+4]
+    mov     eax, [eax+8]
+    test    esi, esi
+    mov     dword ptr [esp+0x0C], ecx
+    mov     dword ptr [esp+0x10], edx
+    mov     dword ptr [esp+0x14], eax
+    je      short  A10002300    //使用标签让 VC 自动计算偏移地址
+    push    esi
+    call dword ptr [lstrlenA]   //此处不能使用 call lstrlenA，只能进行间接寻址调用
+    inc     eax
+    lea     ecx, dword ptr [esp+0x0C]
+    mov     edx, dword ptr [esp+0x08]
+```
+
+
+
+```asm
+    push    eax  
+    push    esi  
+    push    1  
+    push    edi  
+    push    ecx  
+    push    edx  
+    
+    call dword ptr [RegSetValueExA]   //此处不能使用 call RegSetValueExA，只能进行间接寻址调用  
+  
+    
+    test    eax, eax  
+    
+    jnz     short  A100022F5  
+    
+    mov     edi, 1  
+    
+A100022F5:  
+    
+    mov     eax, dword ptr [esp+0x08]  
+    push    eax  
+    
+    call dword ptr [RegCloseKey]     //此处不能使用 call RegCloseKey，只能进行间接寻址调用  
+    
+A10002300:  
+    
+    mov     eax, edi  
+    pop     edi  
+    pop     esi  
+    add     esp, 0x10  
+     
+    retn    0x0c  
+ }  
+```
+
+全部源代码如下：
+
+```cpp
+// PCInfoAPI.cpp : Defines the entry point for the DLL application.  
+//  
+  
+#include "stdafx.h"  
+
+#define PCInfoAPI\_EXPORTS  
+
+#ifdef PCInfoAPI\_EXPORTS  
+  
+#define PCInfoAPI\_API extern "C" \_\_declspec(dllexport)  
+#else  
+#define PCInfoAPI\_API \_\_declspec(dllimport)  
+#endif  
+
+BOOL APIENTRY DllMain( HANDLE hModule,  
+                      DWORD  ul\_reason\_for\_call,  
+                      LPVOID lpReserved  
+          )  
+{  
+    return TRUE;  
+}  
+  
+  
+char \*key1="Software\\\\abc\\\\def";  
+
+char \*key2="InstallCode";  
+
+  
+PCInfoAPI\_API  int \_\_stdcall RegistryCode(int a1,int a2,const char \* key)  
+{  
+  //还原堆栈,VC 为函数默认生成了保护寄存器的代码  
+  
+  #ifdef \_DEBUG //DEBUG 模式和 RELEASE 模式生成的保护寄存器的代码不一样  
+  
+    \_\_asm  
+    {  
+      pop edi  
+      
+      pop esi  
+      
+      pop ebx  
+      
+      pop ebp  
+    }  
+  
+  #else  
+    \_\_asm  
+    {  
+      pop edi  
+      
+      pop esi  
+      
+      pop ebp  
+    }  
+  
+  #endif  
+  
+  
+  \_\_asm  
+  {  
+    sub     esp, 0x10  
+      
+    lea     eax, dword ptr [esp]  
+      
+    push    esi  
+    push    edi  
+    xor     edi, edi  
+    push    edi  
+    push    eax  
+    push    edi  
+    push    0x0F003F  
+    push    edi  
+    push    edi  
+    push    edi  
+      
+    push    key1          
+      
+    push    0x80000002  
+      
+    call dword ptr [RegCreateKeyExA]  
+      
+    test    eax, eax  
+      
+    jnz     short A10002300  
+      
+    mov     esi, dword ptr [esp+0x24]  
+      
+    //mov     esi,  key  
+     
+    mov     eax, key2  
+      
+    mov     ecx, [eax]  
+      
+    mov     edx, [eax+4]  
+      
+    mov     eax, [eax+8]  
+      
+    test    esi, esi  
+      
+    mov     dword ptr [esp+0x0C], ecx  
+    mov     dword ptr [esp+0x10], edx  
+    mov     dword ptr [esp+0x14], eax  
+      
+    je      short A10002300  
+     
+    push    esi  
+      
+    call dword ptr [lstrlenA]  
+     
+    inc     eax  
+     
+    lea     ecx, dword ptr [esp+0x0C]  
+      
+    mov     edx, dword ptr [esp+0x08]  
+      
+    push    eax  
+    push    esi  
+    push    1  
+    push    edi  
+    push    ecx  
+    push    edx  
+      
+    call dword ptr [RegSetValueExA]     
+     
+    test    eax, eax  
+      
+    jnz     short A100022F5  
+      
+    mov     edi, 1  
+      
+A100022F5:  
+      
+    mov     eax, dword ptr [esp+0x08]  
+    push    eax  
+      
+    call dword ptr [RegCloseKey]     
+      
+A10002300:  
+      
+    mov     eax, edi  
+    pop     edi  
+    pop     esi  
+    add     esp, 0x10  
+     
+    retn    0x0c  
+ }  
+}
+```
