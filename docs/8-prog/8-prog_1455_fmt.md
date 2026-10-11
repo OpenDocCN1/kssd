@@ -1,0 +1,498 @@
+
+# 【更新完成】调试器的实现<控制台版>（26 楼已发布源代码） 更新完毕！
+
+> 原文：[`www.pediy.com/kssd/pediy11/111877.html`](https://www.pediy.com/kssd/pediy11/111877.html)
+
+此项目为本人在武汉科锐学习的第三阶段项目。因本人水平有限，程序难免存在 `BUG`。现发布调试程序供测试使用。如发现 `BUG` 或有好的建议，请告之！ 万分感谢！
+
+程序流程:
+
+## 第一章 程序处理框架
+
+### 一.`CREATE_PROCESS_DEBUG_EVENT` 处理流程
+
+当创建调试进程时，进入此流程。在程序的入口点下一个 `INT3` 断点，作为单独的软中断处理，即这个断点不加入 `INT3` 断点列表。
+
+作用是调试程序时，使程序暂停执行于程序入口点。其断点原理参照软中断详细设计。
+
+### 二.`LOAD_DLL_DEBUG_EVENT` 处理流程
+
+当 `CREATE_PROCESS_DEBUG_EVENT` 创建后，进入 DLL 装载过程，利用此过程可以进行函数名称解析，显示出该装载的 DLL 文件所有的导出表函数。
+
+### 三.`EXCEPTION_DEBUG_EVENT` 处理流程
+
+1. `EXCEPTION_ACCESS_VIOLATION` 响应
+   此部分用于内存断点的处理，原理是程序运行时触发内存访问异常。
+
+2. `EXCEPTION_BREAKPOINT` 响应
+   此部分用于程序入口处理，`INT3` 处理，`G` 命令处理
+
+3. `EXCEPTION_SINGLE_STEP` 响应
+   此部分用于单步进入`<T>`，单步步过`<P>`，硬件断点处理，内存断点属性重置，`INT3` 断点重置，硬件断点重置
+
+附件为: 调试器使用手册 + `debug` 版的程序
+
+程序效果图:
+
+1. 显示各个断点列表
+
+![](img/39a670a2c13aa1a61f0f76d6b5c4eaab.jpg)
+
+2. 将下断点命令导出文件
+
+![](img/25bb990a20b0689504e0e1f0199b95c0.jpg)
+
+3.断点效果图
+
+![](img/0af21e3db3ab18f35f7016ff3b0d0152.jpg)
+
+4.显示 `DLL` 中的所有导出函数
+
+![](img/ad678da8d6526d24f7920a568cb3d5c8.jpg)
+
+注：源代码后期开放！
+
+### 上传的附件
+
+| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) | `MyDebug.rar` |
+| :--- | :--- |
+| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) | `MyDebug-Release 版.rar` |
+| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) | `MyDebug-sl.rar` |
+
+## 第二章 软中断（`CC`）的实现
+
+### 1.相关函数与结构
+
+```
+//软中断处理部分
+
+public:
+
+//设置 INT3 断点
+
+void Int3BreakPoint(DWORD BreakAddress);
+
+//设置 INT3 断点并保存首字节
+
+BYTE SetBreakPoint(HANDLE hProcess,LPVOID pAdd, BYTE code, BOOL bFlag = TRUE);
+
+//查找列表中是否已存在该地址断点
+
+BOOL FindInt3BPoint(DWORD BreakAddress, char *Code = NULL);
+
+//由硬件断点引起的实效 INT3 断点重设
+
+BOOL SetInt3BPointAgain(DWORD BreakAddress);
+
+//删除找到的 INT3 断点
+
+BOOL DelFindInt3BPoint(DWORD BreakAddress);
+
+//INT3 结构
+
+struct BreakPoint
+{
+BOOL DelFlag;
+BYTE b_code;
+DWORD BreakAddress;
+};
+
+//保存链表
+
+CList<BreakPoint,BreakPoint> m_myBreakList;
+```
+
+### 2.设计思路
+
+将下断点地址首字节改 `CC`，并保存原字节机器码，并写入链表。触发断点后，先将首字节 `CC` 改为原字节，`EIP` 减 1。 当程序运行到断点代码时，进入断点访问处理函数 `DisposeBreakException();` 在断点函数中，显示并恢复原来的第一个首字节，并置单步，其作用是在单步异常函数中把当前地址重新设置为此断点，即此断点永久生效，并非一次性断点。
+
+### 3.删除 `INT3` 断点的处理
+
+直接操作 `INT3` 结构体中的 `DelFlag` 作删除标记。 代码如下
+
+```
+//多个断点下同一地址，去除 INT3 断点，执行硬件或内存
+
+BOOL CMyDebugInfor::DelFindInt3BPoint(DWORD BreakAddress)
+{
+POSITION pos = m_myBreakList.GetHeadPosition();
+BreakPoint BpNode;
+for (int i=0;i<m_myBreakList.GetCount();i++)
+{
+BpNode = m_myBreakList.GetNext(pos);
+if (BpNode.BreakAddress == BreakAddress)
+{
+//清除 INT3 断点
+SetBreakPoint(m_hProcess,(LPVOID)BpNode.BreakAddress,BpNode.b_code);
+//删除标记
+BpNode.DelFlag = FALSE;
+pos = m_myBreakList.FindIndex(i);
+m_myBreakList.SetAt(pos, BpNode);
+m_EpnFlag.bSetInt3Flag = FALSE;
+//m_myBreakList.RemoveAt(pos);
+return TRUE;
+}
+}
+return FALSE;
+}
+```
+
+### 4. 多种断点的特殊处理
+
+对 `INT3` 断点和硬件执行断点在同一地址的特殊处理：
+
+1. 当下硬件断点时，检测是否下硬件的地址是否存在于 `INT3` 断点列表，如果存在，则迫使 `INT3` 断点暂时失效，当且仅当用户删除硬件执行断点时，`INT3` 断点才自动生效，具体示例请见测试分析报告。
+
+对 `INT3` 断点和硬件访问，写入。内存访问，写入断点在同一地址的特殊处理：
+
+2. 当下硬件访问，写入，内存访问，写入断点时，检测是否存在于 `INT3` 断点列表，存在则迫使其永久失效。`<无太大作用，因为下硬件访问，写入，内存访问，写入断点时地址一般情况下是数据段，而 INT3 在代码段>`
+
+3. 对于 `INT3` 断点和内存访问，写入，硬件访问，写入断点同时存在于当前 `EIP` 时，程序执行时会断 2 次或多次，在此情况下和 `OD` 有区别`<OD 还是只断一次>`，不过会提示当前的被断下的是哪种断点。
+
+对硬件访问，写入和内存访问，写入断点在同一地址的特殊处理：
+
+4. 在此种情况下和第 3 种的处理一样，区别于 `OD` 的处理，程序执行时会断 2 次或多次，但是程序会提示当前被断下的是那种断点。
+
+5. 当 `INT3`，硬件，内存所有断点下与同一个地址 `EIP`，`INT3` 失效，其他断点存在。
+
+科锐五期学员 易新
+
+## 第三章 硬件断点实现
+
+### 1.相关函数,相关结构，与主要成员
+
+```
+//硬件断点处理部分
+
+public:
+
+//硬件断点设置
+
+void SetHardWarePoint(DWORD SetAddress, int DR, int PointType, int nLen = 1);
+
+//硬件 DR0
+
+void SetDR0HardWarePoint(int PointType, int nLen);
+
+//硬件 DR1
+
+void SetDR1HardWarePoint(int PointType, int nLen);
+
+//硬件 DR2
+
+void SetDR2HardWarePoint(int PointType, int nLen);
+
+//硬件 DR3
+
+void SetDR3HardWarePoint(int PointType, int nLen);
+
+//硬件写
+
+void HardWareWrite(DWORD WriteAddress, int nLen);
+
+//硬件读或写
+
+void HardWareReadWrite(DWORD ReadAddress,int nLen);
+
+//硬件执行
+
+void HardWareExecute(DWORD ExecuteAddress);
+
+//硬件断点处理事件
+
+void DebughardWareProc();
+
+//释放设置的硬件标志
+
+void DelHWBPointFlag(int nChoise);
+
+//硬件断点处理标记
+
+struct HareWareFlag
+{
+BOOL DR0; //当前寄存器使用状态
+BOOL DR1;
+BOOL DR2;
+BOOL DR3;
+HareWareFlag()
+{
+DR0 = FALSE;
+DR1 = FALSE;
+DR2 = FALSE;
+DR3 = FALSE;
+}
+};
+```
+
+### 2.设计思路
+
+硬件调试寄存器 `DR0-DR3`, 将用户下断地址赋给空闲的调试寄存器。并设置好 `DR7` 中位的数值。当命中硬件执行断点，在单步中，先取消掉这个硬件执行断点，设置单步，然后执行程序，进入单步后再重新设置这个硬件执行断点。
+
+当设置硬件断点时，通过对 `DR7` 进行相应取值即可设置成功。
+
+### 3.删除硬件断点
+
+在删除硬件断点时，同样通过对 `DR7` 进行赋值可达到删除断点的效果。
+
+`DR7` 赋值：
+
+```
+DR0 &= 0xfffffffe； DR1 &= 0xfffffffb
+
+DR2 &= 0xffffffef； DR3 &= 0xffffffbf
+```
+
+### 4.图片资料部分详解：`<DR6 和 DR7 寄存器>`
+
+`LE` 和 `GE`：
+
+`P6` family 和之后的 `IA32` 处理器都不支持这两位。当设置时，使得处理器会检测触发数据断点的精确的指令。当其中一个被设置的时候，处理器会放慢执行速度，这样当命令执行的时候可以通知这些数据断点。建议在设置数据断点是需要设置其中一个。切换任务时 `LE` 会被清除而 `GE` 不会被清除。为了兼容性，`Intel` 建议使用精确断点时把 `LE` 和 `GE` 都设置为 `1`。
+
+`LEN0` 到 `LEN3`
+
+指定在调试地址寄存器 `DR0` 到 `DR3` 中指定的地址位置的大小。如果 `R/Wx` 位为 `0`，则 `LENx` 位也必须为 `0`，否则会产生不确定的行为。
+
+可能取值：
+
+- `00` 1 字节
+- `01` 2 字节
+- `10` 保留
+- `11` 4 字节
+
+`R/W0` 到 `R/W3`
+
+指定各个断点的触发条件。它们对应于 `DR0` 到 `DR3` 中的地址以及 `DR6` 中的 4 个断点条件标志。
+
+- `00` 只执行
+- `01` 写入数据断点
+- `10` `I/O` 端口断点（只用于 `pentium+`，需设置 `CR4` 的 `DE` 位，`DE` 是 `CR4` 的第 3 位 ）
+- `11` 读或写数据断点
+
+调试状态寄存器 `Dr6`
+
+该寄存器用于表示进入陷阱 1 的原因，各个位的含义如下：
+
+`B0~B3`，如果其中任何一个位置位，则表示是相应的 `Dr0~3` 断点引发的调试陷阱
+
+注： 硬件断点为永久断点！
+
+科锐五期学员 `Tariq`
+
+### 上传的附件
+
+| ![](img/75e0e1a4e7c018bbe8c4e858a9542593.jpg) | `hd.JPG` |
+| :--- | :--- |
+
+## 第四章 内存断点
+
+### 1. 函数和结构
+
+```
+//内存断点处理部分
+
+public:
+
+//设置内存读写断点
+
+void SetMemReadWriteBPoint(DWORD StartAddress,DWORD EndAddress);
+
+//查找指定的当前内存页
+
+BOOL FindMemPage(DWORD PageAddress, DWORD EndAddress);
+
+//删除指定内存断点数据 <仅仅用于显示内存链表信息个数>
+
+void DelMemBreakPoint(DWORD StartAddress, DWORD EndAddress, int MemFlag);
+
+//删除已下的内存断点
+
+BOOL DelMemBPoint(DWORD StartAddress, DWORD EndAddress, int MemFlag);
+
+//内存断点处理标记
+
+struct MemBPointFlag
+{
+BOOL bMemRead;
+BOOL bMemWrite;
+MemBPointFlag()
+{
+bMemRead = FALSE;
+bMemWrite = FALSE;
+}
+};
+
+#define READ 0
+
+#define WRITE 1
+
+struct MemBPointInfor
+{
+BOOL bDelFlag; // 删除标记
+BOOL bRWFlag; // READ or WRITE
+DWORD beginAddress; //断点开始地址
+DWORD endAddress; //断点终止地址
+};
+
+//添加用户断点表 <当前页>
+
+struct MemPageBreakPoint
+{
+DWORD BeginPageAddress; //分页开始地址
+DWORD EndPageAddress; //设置内存断点当前分页的最后终止地址
+DWORD OldPageProtect; //原来页的保护属性
+CList<MemBPointInfor,MemBPointInfor> *RWMemBPList; //保存当前分页中所有读地址断点 <段+偏移 （保存偏移）>
+};
+```
+
+### 3. 设计思路
+
+内存断点和内存分页之间存在多对多的关系。用户下内存断点时，先决定出断点所跨分页，再每个分页中再组建一个读写断点链表，这个链表用来保存多个内存读断点和多个内存写断点。
+
+设置内存断点部分：
+
+`SetMemReadWriteBPoint()` 中进行读或写内存断点的设置，在工程代码中分为三种情况写入到链表保存。
+
+第一种：当下断点的地址的首地址和结束地址相同
+
+可根据下断点的属性`<访问或写>`设置对应的值 `PAGE_NOACCESS`, `PAGE_EXECUTE_READ`，并保存原来的属性，保存在结构体 `MemBPointInfor` 中，在写入内存链表中。
+
+第二种：当下断点地址跨分页时。
+
+跨分页情况下，结束地址减去首地址得出跨的分页数，通过一个循环设置内存属性。断点开始地址，结束地址的分页分别保存开始地址断点，结束地址断点，跨分页的过程中保存分页的首地址。
+
+例如：`bpmr 405520-408520` 跨 4 个分页，链表中对应产生 4 个分页结点 `405000` 分页中保存断点 `405520`,
+`406000` 分页保存 `406000`,
+`407000` 分页保存 `407000`，
+`408000` 分页保存 `408520`
+
+得出当前分页： （下断的地址/`0x1000)` * `0x1000`
+
+第三种，下断地址已存在但断点的位置不同，即通过查找到对应分页加入断点列表，同时设置相对应属性。
+
+因为当前分页的旧属性已存在，所以在此分页中多次下断点时不在保存分页属性，`dwProtect` 的值即可舍弃。
+
+触发访问异常部分： 当程序执行到访问异常时，触发访问异常处理
+
+在 `DisposeAccessException(EXCEPTION_RECORD RecordTmp)` 函数中
+
+
+
+`RecordTmp.ExceptionInformation[0]`是否为空可以判断触发的当前动作时访问数据还是写入数据。`RecordTmp.ExceptionInformation[1]`的具体地址值与内存链表中的地址进行匹配来判断是否处理访问异常，如果匹配则保存下断地址的《访问或写》属性，然后设置单步进入单步异常重新设置内存页的属性。
+
+单步处理中恢复内存页属性的代码段：
+
+```
+if(m_MemStepFlag == TRUE)
+{
+    DWORD dwProtect = 0;
+    if (m_RWMemFlag == READ)
+    ::VirtualProtectEx(m_hProcess,(void *)m_StartMemAddr,1,PAGE_NOACCESS,&dwProtect);
+    if (m_RWMemFlag == WRITE)
+    ::VirtualProtectEx(m_hProcess,(void *)m_StartMemAddr,1,PAGE_EXECUTE_READ,&dwProtect);
+
+    //代码跟踪，保存当前程序运行时的 EIP 值
+    m_CurCode.pCurCodeEntryAddress = m_Context.Eip;
+
+    m_MemStepFlag = FALSE;
+}
+```
+
+### 4.查询内存断点设计
+
+//保存内存链表用于显示 <仅仅用于显示内存链表信息个数>
+
+```
+CList<MemBPointInfor, MemBPointInfor> m_ShowMemList;
+```
+
+考虑到内存断点跨分页的情况，所以依靠保存下断地址的分页查找很麻烦，所以在设计上多增加了一个链表`m_ShowMemList`保存所有内存断点的链表，主要方便与在查找内存断点和删除内存断点。
+
+### 5.删除内存断点设计
+
+<删除标记位>
+
+先在`m_ShowMemList`链表中查到内存断点，将删除标记位清 0，通过`DelMemBreakPoint`在`m_MemBPList`内存链表将对应的内存断点的删除标记位清 0。
+
+注意： 当删除分页中最后一个断点时，必须恢复原来分页的属性。
+
+内容中涉及到的具体代码请见后期发布源代码和相关详细文档！[](img/962324edb48d57effae0c0571850a66b.jpg "酷")
+
+## 第五章 函数名称解析
+
+### 1.相关函数 相关结构，与主要成员
+
+//导出表结构
+
+```
+struct ExportFunInfor
+{
+    char  szFunName[64];               //函数名称
+    int   nExportNumber;               //导出编号
+    DWORD dwFunAddress;                //函数所在地址
+};
+
+struct ExportTableInfor                //导出函数表
+{
+    char szDllTableName[32];                     //表名<DLL>
+    CList<ExportFunInfor,ExportFunInfor> *pEptTableFun;  //数据
+};
+
+//保存解析 DLL 的所有函数
+CList<ExportTableInfor,ExportTableInfor> m_ExportTableList;
+```
+
+### 2.设计思路
+
+进入`StartDebugDll`时，传来一个参数，此参数保存了当前加载`DLL`的信息，可以通过此信息解析出导出表在文件中的位置，然后可以定位到导出函数的位置，把函数用类成员`m_ExportTableList`保存。
+
+### 3.关键代码部分
+
+```
+ExportFunInfor pEptFunInfor;
+ZeroMemory(&pEptFunInfor,sizeof(ExportFunInfor));
+for ( i = 0; i <= (int)m_DllExportTable.NumberOfFunctions; i++ )
+{
+    ReadProcessMemory(hProcess,(LPCVOID)nStartFunAddr,
+                        &nAllFunOffset,sizeof(int),&dwOldProto);
+    if ( 0 == nAllFunOffset )
+    {
+    //循环读取链表
+    nStartFunAddr += sizeof(DWORD);
+    continue;
+    }
+
+    for( j = 0; j <= (int)m_DllExportTable.NumberOfNames; j++)
+  {
+    ReadProcessMemory(hProcess,(LPVOID)(nStartFunNameOrd + j*2),
+                &nFunNameAddr,sizeof(WORD),&dwOldProto);
+    if(i == (int)nFunNameAddr)
+    {
+                memset(szFunName,0,MAX_PATH);
+      DWORD nAddress = j*sizeof(DWORD) + nStartFunName;
+      ReadProcessMemory(hProcess,(LPVOID)(nAddress),
+                        CurAddress,sizeof(DWORD),&dwOldProto);
+      nCurAddress += (DWORD)StartAddress;
+               ReadProcessMemory(hProcess,(LPVOID)(nCurAddress),         szFunName,MAX_PATH,&dwOldProto);
+      break;
+  }
+}
+```
+
+### 4.显示解析函数部分
+
+主要对`CALL`, `MOV`, `JMP`, `6`个寄存器`<eax,ebx,ecx,edx,esi,edi>`的函数名称显示进行解析。
+
+处理函数：`void CMyDebugInfor::ShowExportFun(char *szBuf)`
+
+注意：当`CALL`/`JMP`一个指令地址时，又`JMP`/`CALL`另一个地址或更深层次的嵌套解析情况下，采用递归来处理这种特殊情况。
+
+最后一次上传调试器源代码，相关文档， 请各位大侠多多指教！
+
+QQ:`88123414`
+
+[](img/cda69129882b40377a87144c782680e1.jpg "微笑")
+
+上传的附件
+
+| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) || 调试器源代码.rar
+|
