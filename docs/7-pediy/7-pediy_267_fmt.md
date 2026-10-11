@@ -1,0 +1,157 @@
+
+# 逆向工程-打造飞鸽传书自动启动功能
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-22.htm`](https://www.pediy.com/kssd/pediy09/pediy09-22.htm)
+
+> 【文章标题】: 打造飞鸽传书自动启动功能
+
+> 【文章作者】: `dododo[tfw]`
+
+> 【作者邮箱】: `sfengtfw@gmail.com`
+
+> 【作者主页】: `http://www.cniso.org`
+
+> 【详细过程】
+
+飞鸽传书的简介：
+
+- `IPMsg` 是一款局域网内即时通信软件，基于 `TCP/IP(UDP)`。
+- 可运行于多种操作平台(`Win`/`Mac`/`UNIX`/`Java`)，并实现跨平台信息交流。
+- 不需要服务器支持。
+- 支持文件/文件夹的传送 (`2.00` 版以上)
+- 通讯数据采用 `RSA/Blofish` 加密 (`2.00` 版以上)
+- 十分小巧，简单易用，而且你可以完全免费使用它
+
+改造原因：
+
+由于它小巧的体积和强大的功能，博得我们公司所有员工的青睐，但是每天早上总是由于很多繁琐的事情而忘了打开飞鸽传书，很不方便，于是决定给它动动“手术”
+
+### 步骤 1：增加菜单
+
+启动 `Resource Hacker`，装载 `ipmsg.exe`，打开菜单 `107`，在中间加入：`MENUITEM "跟随 windows 启动", 30000` （注：`3000` 是标识，后面要用到的）
+
+编译脚本，保存，退出
+
+### 步骤 2：编写 DLL 文件
+
+考虑到以后的扩展性，采用外挂 `dll` 文件为其添加功能
+
+编译器采用 `borland c++ 5.0` 版本 （执行效率高）
+
+```c
+#include <windows.h>
+
+#pragma argsused
+extern "C" __declspec(dllexport) _cdecl void plug();
+
+BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fwdreason, LPVOID lpvReserved)
+{
+    return 1;
+}
+//---------------------------------------------------------------------------
+void _cdecl plug()
+{
+    HKEY m_hKey;
+    DWORD dw;
+    char   szFileName[256]={0};
+    GetModuleFileName(NULL,szFileName,256);  //获取当前文件所在路径
+    RegCreateKeyEx(HKEY_LOCAL_MACHINE,"Software\\Microsoft\\Windows\\CurrentVersion\\Run",0L,NULL,REG_OPTION_VOLATILE,KEY_ALL_ACCESS,NULL,&m_hKey,&dw); //打开注册表
+    RegSetValueEx(m_hKey,"ipmsg",0L,REG_SZ,(CONST BYTE *)szFileName,strlen(szFileName)+1); //写入注册表
+    RegCloseKey(m_hKey);  //关闭注册表
+    m_hKey = NULL;
+
+    MessageBox(NULL,"设置成功!","OK",64);
+}
+```
+
+将编译好的 `dll` 文件放到 `ipmsg.exe` 同一目录下
+
+### 步骤 3：嵌入 dll
+
+启动 `Lordpe`，点击 `pe` 编辑器 ，装载 `ipmsg.exe`，确定，点击目录->输入表 ,右键->添加导入表，填入 `dll` 文件名和 `_plug` 函数名，点确定
+
+选中输入表中的 `plug.dll`，会在下面看到它的 `ThunkRVA` ，先记住这个地址 ，我的是 `00027011`，保存，确定，退出
+
+### 步骤 4：修改 ipmsg
+
+启动 `OD`，装载 `ipmsg`，下断点 `BP DefWindowProcA` ，因为 `windows` 窗口都是大量的消息处理，我们添加的菜单主要响应 `WM_COMMAND` 事件，
+
+不难找到 消息处理的 `switch` 语句：
+
+```asm
+...
+00416A63  |. /E9 A0010000    jmp     00416C08
+00416A68  |> |3D 17010000    cmp     eax, 117                  ;  Switch (cases 84..312)
+00416A6D  |. |0F87 DE000000  ja      00416B51
+00416A73  |. |3D 16010000    cmp     eax, 116
+00416A78  |. |0F83 BB000000  jnb     00416B39
+00416A7E  |. |B9 11010000    mov     ecx, 111
+00416A83  |. |3BC1           cmp     eax, ecx
+00416A85  |. |77 5D         ja      short 00416AE4
+00416A87  |. |74 47         je      short 00416AD0
+00416A89  |. |3D 84000000   cmp     eax, 84
+00416A8E  |. |74 2F         je      short 00416ABF
+00416A90  |. |3D 85000000   cmp     eax, 85
+00416A95  |. |74 1B         je      short 00416AB2
+00416A97  |. |3D A0000000   cmp     eax, 0A0
+00416A9C  |. |0F86 22010000 jbe     00416BC4
+00416AA2  |. |3D A6000000   cmp     eax, 0A6
+00416AA7  |. |0F86 FD000000 jbe     00416BAA
+00416AAD  |. |E9 12010000   jmp     00416BC4
+00416AB2  |> |8B06          mov     eax, dword ptr [esi]      ;  Case 85 (WM_NCPAINT) of switch 00416A68
+00416AB4  |. |57            push    edi
+00416AB5  |. |8BCE         mov     ecx, esi
+00416AB7  |. |FF50 34       call    dword ptr [eax+34]
+00416ABA  |. |E9 45010000   jmp     00416C04
+00416ABF  |> |8B06          mov     eax, dword ptr [esi]      ;  Case 84 (WM_NCHITTEST) of switch 00416A68
+00416AC1  |. |8D4D FC       lea     ecx, dword ptr [ebp-4]
+00416AC4  |. |51            push    ecx
+00416AC5  |. |53            push    ebx
+00416AC6  |. |8BCE         mov     ecx, esi
+00416AC8  |. |FF50 4C       call    dword ptr [eax+4C]
+00416ACB  |. |E9 34010000   jmp     00416C04
+00416AD0  |> |8B06          mov     eax, dword ptr [esi]      ;  Case 111 (WM_COMMAND) of switch 00416A68 我们需要下断点的地方
+00416AD2  |. |8BCF         mov     ecx, edi
+00416AD4  |. |53            push    ebx
+00416AD5  |. |57            push    edi
+00416AD6  |. |C1E9 10       shr     ecx, 10
+00416AD9  |. |51            push    ecx
+00416ADA  |. |8BCE         mov     ecx, esi
+00416ADC  |. |FF50 10       call    dword ptr [eax+10]
+00416ADF  |. |E9 20010000   jmp     00416C04
+00416AE4  |> |3D 12010000   cmp     eax, 112
+00416AE9  |. |74 40         je      short 00416B2B
+00416AEB  |. |B9 13010000   mov     ecx, 113
+00416AF0  |. |3BC1          cmp     eax, ecx
+00416AF2  |. |74 29         je      short 00416B1D
+00416AF4  |. |0F86 CA000000 jbe     00416BC4
+00416AFA  |. |3D 15010000   cmp     eax, 115
+00416AFF  |. |0F87 BF000000 ja      00416BC4
+00416B05  |. |8BCF         mov     ecx, edi                  ;  Cases 114 (WM_HSCROLL),115 (WM_VSCROLL) of switch 00416A68
+...
+```
+
+取消 `DefWindowProcA` 断点，下断点 `00416AD0`，运行，点击飞鸽托盘区域的右键，选择我们加的菜单：跟随 `windows` 启动
+
+`OD` 暂停在 `00416AD0` 上，往下走到 `00416ADC` 处理完消息后马上就是一个飞跳，既然要跳，那就跳得更远一点
+
+在最下方找一个空地，填入自己需要的代码：
+
+```asm
+0041AA9F      00            db      00
+0041AAA0      81FF 30750000 cmp     edi, 7530       ;比较是否是 30000 标识
+0041AAA6      75 06         jnz     short 0041AAAE    ;不是则跳过
+0041AAA8      FF15 11704200 call    dword ptr [<&plug._plug>]    ;  plug._plug  是就执行 dll 文件中的 plug 函数
+0041AAAE    ^ E9 51C1FFFF   jmp     00416C04          ;跳回地址
+0041AAB3      00            db      00
+```
+
+将 `00416ADF   jmp     00416C04` 改为   `jmp     0041AAA0`,
+
+全部复制，保存，运行，从此.....
+
+完
+
+> 【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢! 
+
+`4dd466d0e1e0cc123afbe504da2462ca`

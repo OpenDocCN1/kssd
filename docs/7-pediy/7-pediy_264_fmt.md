@@ -1,0 +1,599 @@
+
+# 初试 DIY 之给某嗅探器添加保存功能【原创】
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-173.htm`](https://www.pediy.com/kssd/pediy08/pediy8-173.htm)
+
+初试 DIY 之给某嗅探器添加保存功能  
+
+by csjwaman  
+
+最近偶然看到一个网络数据包嗅探器，觉得挺好用。但没有保存功能，所以就动手 DIY。由于本人很菜，又是第一次玩 DIY，让诸位见笑了。  
+
+## 一、申请内存  
+
+首先要申请内存用于存放截获的数据。我们在程序入口处开始申请吧:)  
+
+```
+004C2EB8   > /55                   PUSH EBP///原入口
+004C2EB9   . |8BEC                 MOV EBP,ESP
+004C2EBB   . |83C4 F0             ADD ESP,-10
+004C2EBE   . |B8 782B4C00         MOV EAX,4C2B78
+004C2EC3   . |E8 243CF4FF         CALL 00406AEC                             ;  00406AEC
+004C2EC8   . |A1 444D4C00         MOV EAX,DWORD PTR DS:[4C4D44]
+004C2ECD   . |8B00                MOV EAX,DWORD PTR DS:[EAX]
+004C2ECF   . |E8 80BCF9FF         CALL 0045EB54                             ;  0045EB54
+004C2ED4   . |8B0D 304C4C00       MOV ECX,DWORD PTR DS:[4C4C30]             ;  8.004C5E38
+004C2EDA   . |A1 444D4C00         MOV EAX,DWORD PTR DS:[4C4D44]
+004C2EDF   . |8B00                MOV EAX,DWORD PTR DS:[EAX]
+004C2EE1   . |8B15 88EF4B00       MOV EDX,DWORD PTR DS:[4BEF88]             ;  8.004BEFD4
+```
+
+从 `4C2F00` 开始有一段空地址可供我们使用。在 `004C2F02` 处写入以下代码：
+
+```
+004C2F02 > $  60                  PUSHAD///保护现场。
+004C2F03   .  6A 04                PUSH 4                                  ; /Protect = PAGE_READWRITE
+004C2F05   .  68 00300000         PUSH 3000                                 ; |AllocationType = MEM_COMMIT|MEM_RESERVE
+004C2F0A   .  68 00001000         PUSH 100000                               ; |Size = 100000 (1048576.)
+004C2F0F   .  6A 00                PUSH 0                                  ; |Address = NULL
+004C2F11   .  E8 0AE5F3FF          CALL 00401420                             ; \\VirtualAlloc
+004C2F16   .  A3 046E5C00         MOV DWORD PTR DS:[5C6E04],EAX///将申请到的地址保存下来。
+004C2F1B   .  A3 086E5C00         MOV DWORD PTR DS:[5C6E08],EAX///再保存一下。以后计算数据总长度时要用。
+004C2F20   .  61                   POPAD///恢复现场。
+004C2F21   .^ EB 95                JMP SHORT 004C2EB8///跳回原入口。
+004C2F23     90                   NOP
+```
+
+将程序入口地址改为：`004C2F02`。这样我们就完成了第一步。
+
+## 二、保存通讯协议、IP 地址及端口等信息
+
+`bp WriteFile` 下断后，可跟踪到处理数据包的地方：
+
+```
+004C23F8  /.  55             PUSH EBP///处理数据包入口
+004C23F9  |.  8BEC           MOV EBP,ESP
+004C23FB  |.  6A 00          PUSH 0
+004C23FD  |.  53             PUSH EBX
+004C23FE  |.  56             PUSH ESI
+004C23FF  |.  57             PUSH EDI
+004C2400  |.  8BDA           MOV EBX,EDX
+004C2402  |.  8BF0           MOV ESI,EAX
+004C2404  |.  33C0           XOR EAX,EAX
+004C2406  |.  55             PUSH EBP
+004C2407  |.  68 E3244C00    PUSH 4C24E3
+004C240C  |.  64:FF30        PUSH DWORD PTR FS:[EAX]
+004C240F  |.  64:8920        MOV DWORD PTR FS:[EAX],ESP
+004C2412  |.  8B43 08        MOV EAX,DWORD PTR DS:[EBX+8]
+004C2415  |.  8B78 08        MOV EDI,DWORD PTR DS:[EAX+8]
+004C2418  |.  66:8B47 0C     MOV AX,WORD PTR DS:[EDI+C]
+004C241C  |.  50             PUSH EAX                             ; /NetShort
+004C241D  |.  E8 26CBFFFF    CALL 004BEF48                         ; \\ntohs
+004C2422  |.  66:3D 0008     CMP AX,800
+004C2426  |.  73 11          JNB SHORT 004C2439                   ;  SniffGUI.004C2439
+004C2428  |.  8B43 08        MOV EAX,DWORD PTR DS:[EBX+8]
+004C242B  |.  8B48 04        MOV ECX,DWORD PTR DS:[EAX+4]
+004C242E  |.  8BD7           MOV EDX,EDI
+004C2430  |.  8BC6           MOV EAX,ESI
+004C2432  |.  E8 29F7FFFF    CALL 004C1B60///这里处理不同的协议
+004C2437  |.  EB 43          JMP SHORT 004C247C                   ;  SniffGUI.004C247C
+004C2439  |>  66:3D 0008     CMP AX,800
+004C243D  |.  75 11          JNZ SHORT 004C2450                   ;  SniffGUI.004C2450
+004C243F  |.  8B43 08        MOV EAX,DWORD PTR DS:[EBX+8]
+004C2442  |.  8B48 04        MOV ECX,DWORD PTR DS:[EAX+4]
+004C2445  |.  8BD7           MOV EDX,EDI
+004C2447  |.  8BC6           MOV EAX,ESI
+004C2449  |.  E8 2EFEFFFF    CALL 004C227C///这里处理不同的协议  
+004C244E  |.  EB 2C          JMP SHORT 004C247C                   ;  SniffGUI.004C247C
+004C2450  |>  66:3D 0608     CMP AX,806
+004C2454  |.  75 11          JNZ SHORT 004C2467                   ;  SniffGUI.004C2467
+004C2456  |.  8B43 08        MOV EAX,DWORD PTR DS:[EBX+8]
+004C2459  |.  8B48 04        MOV ECX,DWORD PTR DS:[EAX+4]
+004C245C  |.  8BD7           MOV EDX,EDI
+004C245E  |.  8BC6           MOV EAX,ESI
+004C2460  |.  E8 47F9FFFF    CALL 004C1DAC///这里处理不同的协议
+004C2465  |.  EB 15          JMP SHORT 004C247C                   ;  SniffGUI.004C247C
+004C2467  |>  66:3D 0090     CMP AX,9000
+004C246B  |.  75 0F          JNZ SHORT 004C247C                   ;  SniffGUI.004C247C
+004C246D  |.  8B43 08        MOV EAX,DWORD PTR DS:[EBX+8]
+004C2470  |.  8B48 04        MOV ECX,DWORD PTR DS:[EAX+4]
+004C2473  |.  8BD7           MOV EDX,EDI
+004C2475  |.  8BC6           MOV EAX,ESI
+004C2477  |.  E8 08F8FFFF    CALL 004C1C84///这里处理不同的协议
+004C247C  |>  \\FF05 A0494C00 INC DWORD PTR DS:[4C49A0]///序号递增
+004C2482  |.  8B43 08        MOV EAX,DWORD PTR DS:[EBX+8]
+004C2485  |.  8B48 04        MOV ECX,DWORD PTR DS:[EAX+4]
+004C2488  |.  8B50 08        MOV EDX,DWORD PTR DS:[EAX+8]
+004C248B  |.  B8 84605400    MOV EAX,546084
+004C2490  |.  E8 CF6BFFFF    CALL 004B9064///将数据写入文件。
+004C2495  |.  A1 A0494C00    MOV EAX,DWORD PTR DS:[4C49A0]
+004C249A  |.  33D2           XOR EDX,EDX
+004C249C  |.  52             PUSH EDX                             ; /Arg2 => 00000000
+004C249D  |.  50             PUSH EAX                             ; |Arg1 => 0000000A
+004C249E  |.  8D45 FC        LEA EAX,DWORD PTR SS:[EBP-4]         ; |
+004C24A1  |.  E8 E667F4FF    CALL 00408C8C///序号转换为十进制　　     ; \\SniffGUI.00408C8C
+004C24A6  |.  8B45 FC        MOV EAX,DWORD PTR SS:[EBP-4]
+004C24A9  |.  50             PUSH EAX
+004C24AA  |.  8B86 08030000  MOV EAX,DWORD PTR DS:[ESI+308]
+```
+
+跟踪程序对不同协议数据包处理过程，发现：
+
+```
+004C20E8  /$  55             PUSH EBP
+004C20E9  |.  8BEC           MOV EBP,ESP
+004C20EB  |.  51             PUSH ECX
+004C20EC  |.  B9 06000000    MOV ECX,6
+004C20F1  |>  6A 00          /PUSH 0
+004C20F3  |.  6A 00          |PUSH 0
+004C20F5  |.  49             |DEC ECX
+004C20F6  |.^ 75 F9         \\JNZ SHORT 004C20F1                   ;  SniffGUI.004C20F1
+004C20F8  |.  874D FC        XCHG DWORD PTR SS:[EBP-4],ECX
+
+......
+
+004C222A  |.  8B55 CC        MOV EDX,DWORD PTR SS:[EBP-34]
+004C222D  |.  8B43 08        MOV EAX,DWORD PTR DS:[EBX+8]
+004C2230  |.  8B08           MOV ECX,DWORD PTR DS:[EAX]
+004C2232  |.  FF51 38        CALL NEAR DWORD PTR DS:[ECX+38]///所有处理都有这两行代码。
+004C2235  |.  B2 01          MOV DL,1///运行到这里时堆栈如下。
+004C2237  |.  8BC3           MOV EAX,EBX
+004C2239  |.  E8 9AF3FAFF    CALL 004715D8///这个 CALL 都相同
+004C223E  |.  33C0           XOR EAX,EAX
+004C2240  |.  5A             POP EDX
+004C2241  |.  59             POP ECX
+004C2242  |.  59             POP ECX
+004C2243  |.  64:8910        MOV DWORD PTR FS:[EAX],EDX
+004C2246  |.  68 60224C00    PUSH 4C2260
+004C224B  |>  8D45 CC        LEA EAX,DWORD PTR SS:[EBP-34]
+004C224E  |.  BA 0A000000    MOV EDX,0A
+004C2253  |.  E8 7423F4FF    CALL 004045CC                         ;  SniffGUI.004045CC
+004C2258  \\.  C3             RETN
+004C2259   .^ E9 521DF4FF    JMP 00403FB0                           ;  SniffGUI.00403FB0
+004C225E   .^\\EB EB          JMP SHORT 004C224B                               ;  004C224B
+004C2260   .  5F             POP EDI
+004C2261   .  5E             POP ESI
+004C2262   .  5B             POP EBX
+004C2263   .  8BE5           MOV ESP,EBP
+004C2265   .  5D             POP EBP
+004C2266   .  C3             RETN
+```
+
+堆栈中保存了所有相关信息：
+
+```
+0012F8D4   0012F928  指针到下一个 SEH 记录
+0012F8D8   004C2259  SE 句柄
+0012F8DC   0012F920
+0012F8E0   0012FE8C
+0012F8E4   0012FE9A
+0012F8E8   0012FB2C
+0012F8EC   011230BC  ASCII "78"///数据包长度
+```
+
+
+
+### 内存偏移与信息映射
+
+* `0012F8F0`   `01123148`  ASCII `"8000"`///目的端口  
+* `0012F8F4`   `011230A8`  ASCII `"4002"`///来源端口  
+* `0012F8F8`   `011230E8`  ASCII `"219.133.38.135"`///目的 IP  
+* `0012F8FC`   `011230CC`  ASCII `"60.185.53.58"`///来源 IP  
+* `0012F900`   `01123078`  ASCII `"QQ-SRV"`  
+* `0012F904`   `0112308C`  ASCII `"IP->UDP->QQ-SRV"`///协议  
+* `0012F908`   `01123058`  ASCII `"7C-FD-20-00-01-00"`///目的 MAC  
+* `0012F90C`   `01123000`  ASCII `"00-00-01-00-00-00"`///来源 MAC  
+
+信息地址-4 处保存的是该信息字符串的长度。
+
+所有处理都有这两行代码：
+
+`CALL NEAR DWORD PTR DS:\[ECX+38\]`
+
+`MOV DL,1`
+
+以上可以作为特征码。搜索命令序列，可以找到 6 处：
+
+#### 1.
+
+```asm
+004C2230   .   8B08                     MOV ECX,DWORD PTR DS:\[EAX\]
+004C2232   .   FF51 38                  CALL DWORD PTR DS:\[ECX+38\]
+004C2235   .   B2 01                    MOV DL,1
+004C2237   .   8BC3                     MOV EAX,EBX
+004C2239   .-  E9 C23D1000              JMP 005C6000///将 CALL 004715D8 改成了跳转。下同。
+004C223E   .   33C0                     XOR EAX,EAX
+004C2240   .   5A                       POP EDX
+004C2241   .   59                       POP ECX
+004C2242   .   59                       POP ECX
+```
+
+#### 2.
+
+```asm
+004C1C31   .   8B08                     MOV ECX,DWORD PTR DS:\[EAX\]
+004C1C33   .   FF51 38                  CALL DWORD PTR DS:\[ECX+38\]
+004C1C36   .   B2 01                    MOV DL,1
+004C1C38   .   8BC3                     MOV EAX,EBX
+004C1C3A   .-  E9 1D441000              JMP 005C605C                       ;  005C605C
+004C1C3F   .   33C0                     XOR EAX,EAX
+004C1C41   .   5A                       POP EDX
+004C1C42   .   59                       POP ECX
+```
+
+#### 3.
+
+```asm
+004C1D55   .   8B08                     MOV ECX,DWORD PTR DS:\[EAX\]
+004C1D57   .   FF51 38                  CALL DWORD PTR DS:\[ECX+38\]
+004C1D5A   .   B2 01                    MOV DL,1
+004C1D5C   .   8BC3                     MOV EAX,EBX
+004C1D5E   .-  E9 55431000              JMP 005C60B8                       ;  005C60B8
+004C1D63   .   33C0                     XOR EAX,EAX
+004C1D65   .   5A                       POP EDX
+004C1D66   .   59                       POP ECX
+```
+
+#### 4.
+
+```asm
+004C1ECF   .   8B08                     MOV ECX,DWORD PTR DS:\[EAX\]
+004C1ED1   .   FF51 38                  CALL DWORD PTR DS:\[ECX+38\]
+004C1ED4   .   B2 01                    MOV DL,1
+004C1ED6   .   8BC3                     MOV EAX,EBX
+004C1ED8   .-  E9 37421000              JMP 005C6114                       ;  005C6114
+004C1EDD   .   33C0                     XOR EAX,EAX
+004C1EDF   .   5A                       POP EDX
+004C1EE0   .   59                       POP ECX
+```
+
+#### 5.
+
+```asm
+004C209C   .   8B08                     MOV ECX,DWORD PTR DS:\[EAX\]
+004C209E   .   FF51 38                  CALL DWORD PTR DS:\[ECX+38\]
+004C20A1   .   B2 01                    MOV DL,1
+004C20A3   .   8BC3                     MOV EAX,EBX
+004C20A5   .-  E9 C6401000              JMP 005C6170                       ;  005C6170
+004C20AA   .   33C0                     XOR EAX,EAX
+004C20AC   .   5A                       POP EDX
+004C20AD   .   59                       POP ECX
+```
+
+#### 6.
+
+```asm
+004C23A1   .   8B08                     MOV ECX,DWORD PTR DS:\[EAX\]
+004C23A3   .   FF51 38                  CALL DWORD PTR DS:\[ECX+38\]
+004C23A6   .   B2 01                    MOV DL,1
+004C23A8   .   8BC3                     MOV EAX,EBX
+004C23AA   .-  E9 1D3E1000              JMP 005C61CC                       ;  005C61CC
+004C23AF   >   33C0                     XOR EAX,EAX
+004C23B1   .   5A                       POP EDX
+004C23B2   .   59                       POP ECX
+```
+
+### 相应的补丁代码
+
+```asm
+005C6000    60                       PUSHAD///保护现场。
+005C6001    8B45 EC                  MOV EAX,DWORD PTR SS:\[EBP-14\]///\[EBP-14\]中保存的是信息地址。
+005C6004    3D 00002000              CMP EAX,200000///比较一下是不是信息地址。信息地址大于 200000。
+005C6009    72 36                    JB SHORT 005C6041///不是信息地址则跳出循环。
+005C600B    A3 006E5C00              MOV DWORD PTR DS:\[5C6E00\],EAX///保存一下信息地址。
+005C6010    832D 006E5C00 04         SUB DWORD PTR DS:\[5C6E00\],4///减 4 处是该信息的长度。
+005C6017    8B3D 046E5C00            MOV EDI,DWORD PTR DS:\[5C6E04\]///\[5C6E04\]中保存的是申请到的虚拟内存地址。
+005C601D    8BF0                     MOV ESI,EAX///源字符串地址移入 ESI。
+005C601F    8B0D 006E5C00            MOV ECX,DWORD PTR DS:\[5C6E00\]///信息长度地址移入 ECX。
+005C6025    8B09                     MOV ECX,DWORD PTR DS:\[ECX\]///取出信息长度。
+005C6027    F3:A4                    REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR DS:\[ESI\]///进行传送。
+005C6029    893D 046E5C00            MOV DWORD PTR DS:\[5C6E04\],EDI///保存数据指针。
+005C602F    C707 20202020            MOV DWORD PTR DS:\[EDI\],20202020///移入 4 个空格。
+005C6035    8305 046E5C00 04         ADD DWORD PTR DS:\[5C6E04\],4///指针再加 4。
+005C603C    83ED 04                  SUB EBP,4///保存下一个信息。
+005C603F   ^ EB C0                   JMP SHORT 005C6001///循环。
+005C6041    C747 04 0D0A0D0A          MOV DWORD PTR DS:\[EDI+4\],0A0D0A0D///信息全部保存后加 2 个回车。
+005C6048    8305 046E5C00 04         ADD DWORD PTR DS:\[5C6E04\],4///指针再加 4。
+005C604F    61                       POPAD///恢复现场。
+005C6050    E8 83B5EAFF              CALL 004715D8///执行原来的代码。
+005C6055   - E9 E4C1EFFF             JMP 004C223E///跳回去。
+005C605A    0000                     ADD BYTE PTR DS:\[EAX\],AL
+
+005C605C    60                       PUSHAD///处理另一个协议的信息。方法都一样，只是返回地址不同。
+005C605D    8B45 EC                  MOV EAX,DWORD PTR SS:\[EBP-14\]
+005C6060    3D 00002000              CMP EAX,200000
+005C6065    72 36                    JB SHORT 005C609D                      ; 005C609D
+005C6067    A3 006E5C00              MOV DWORD PTR DS:\[5C6E00\],EAX
+005C606C    832D 006E5C00 04         SUB DWORD PTR DS:\[5C6E00\],4
+005C6073    8B3D 046E5C00            MOV EDI,DWORD PTR DS:\[5C6E04\]
+005C6079    8BF0                     MOV ESI,EAX
+005C607B    8B0D 006E5C00            MOV ECX,DWORD PTR DS:\[5C6E00\]
+005C6081    8B09                     MOV ECX,DWORD PTR DS:\[ECX\]
+005C6083    F3:A4                    REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR D>
+005C6085    893D 046E5C00            MOV DWORD PTR DS:\[5C6E04\],EDI
+005C608B    C707 20202020            MOV DWORD PTR DS:\[EDI\],20202020
+005C6091    8305 046E5C00 04         ADD DWORD PTR DS:\[5C6E04\],4
+005C6098    83ED 04                  SUB EBP,4
+005C609B   ^ EB C0                   JMP SHORT 005C605D                     ; 005C605D
+005C609D    C747 04 0D0A0D0A          MOV DWORD PTR DS:\[EDI+4\],0A0D0A0D
+005C60A4    8305 046E5C00 04         ADD DWORD PTR DS:\[5C6E04\],4
+005C60AB    61                       POPAD
+005C60AC    E8 27B5EAFF              CALL 004715D8                          ; 004715D8
+005C60B1   - E9 89BBEFFF             JMP 004C1C3F                           ; 004C1C3F
+005C60B6    0000                     ADD BYTE PTR DS:\[EAX\],AL
+
+005C60B8    60                       PUSHAD
+005C60B9    8B45 EC                  MOV EAX,DWORD PTR SS:\[EBP-14\]
+005C60BC    3D 00002000              CMP EAX,200000
+005C60C1    72 36                    JB SHORT 005C60F9                      ; 005C60F9
+005C60C3    A3 006E5C00              MOV DWORD PTR DS:\[5C6E00\],EAX
+005C60C8    832D 006E5C00 04         SUB DWORD PTR DS:\[5C6E00\],4
+005C60CF    8B3D 046E5C00            MOV EDI,DWORD PTR DS:\[5C6E04\]
+005C60D5    8BF0                     MOV ESI,EAX
+005C60D7    8B0D 006E5C00            MOV ECX,DWORD PTR DS:\[5C6E00\]
+005C60DD    8B09                     MOV ECX,DWORD PTR DS:\[ECX\]
+005C60DF    F3:A4                    REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR D>
+005C60E1    893D 046E5C00            MOV DWORD PTR DS:\[5C6E04\],EDI
+005C60E7    C707 20202020            MOV DWORD PTR DS:\[EDI\],20202020
+005C60ED    8305 046E5C00 04         ADD DWORD PTR DS:\[5C6E04\],4
+005C60F4    83ED 04                  SUB EBP,4
+005C60F7   ^ EB C0                   JMP SHORT 005C60B9                     ; 005C60B9
+005C60F9    C747 04 0D0A0D0A          MOV DWORD PTR DS:\[EDI+4\],0A0D0A0D
+005C6100    8305 046E5C00 04         ADD DWORD PTR DS:\[5C6E04\],4
+005C6107    61                       POPAD
+005C6108    E8 CBB4EAFF              CALL 004715D8                          ; 004715D8
+005C610D   - E9 51BCEFFF             JMP 004C1D63                           ; 004C1D63
+```
+
+
+
+```
+005C6112    0000                    ADD BYTE PTR DS:[EAX],AL  
+005C6114    60                      PUSHAD  
+005C6115    8B45 EC                 MOV EAX,DWORD PTR SS:[EBP-14]  
+005C6118    3D 00002000             CMP EAX,200000  
+005C611D    72 36                   JB SHORT 005C6155                ; 005C6155  
+005C611F    A3 006E5C00             MOV DWORD PTR DS:[5C6E00],EAX  
+005C6124    832D 006E5C00 04        SUB DWORD PTR DS:[5C6E00],4  
+005C612B    8B3D 046E5C00           MOV EDI,DWORD PTR DS:[5C6E04]  
+005C6131    8BF0                    MOV ESI,EAX  
+005C6133    8B0D 006E5C00           MOV ECX,DWORD PTR DS:[5C6E00]  
+005C6139    8B09                    MOV ECX,DWORD PTR DS:[ECX]  
+005C613B    F3:A4                   REP MOVS BYTE PTR ES:[EDI],BYTE PTR D>  
+005C613D    893D 046E5C00           MOV DWORD PTR DS:[5C6E04],EDI  
+005C6143    C707 20202020           MOV DWORD PTR DS:[EDI],20202020  
+005C6149    8305 046E5C00 04        ADD DWORD PTR DS:[5C6E04],4  
+005C6150    83ED 04                 SUB EBP,4  
+005C6153  ^ EB C0                   JMP SHORT 005C6115              ; 005C6115  
+005C6155    C747 04 0D0A0D0A        MOV DWORD PTR DS:[EDI+4],0A0D0A0D  
+005C615C    8305 046E5C00 04        ADD DWORD PTR DS:[5C6E04],4  
+005C6163    61                      POPAD  
+005C6164    E8 6FB4EAFF             CALL 004715D8                   ; 004715D8  
+005C6169  - E9 6FBDEFFF             JMP 004C1EDD                    ; 004C1EDD  
+
+005C616E    0000                    ADD BYTE PTR DS:[EAX],AL  
+005C6170    60                      PUSHAD  
+005C6171    8B45 EC                 MOV EAX,DWORD PTR SS:[EBP-14]  
+005C6174    3D 00002000             CMP EAX,200000  
+005C6179    72 36                   JB SHORT 005C61B1                ; 005C61B1  
+005C617B    A3 006E5C00             MOV DWORD PTR DS:[5C6E00],EAX  
+005C6180    832D 006E5C00 04        SUB DWORD PTR DS:[5C6E00],4  
+005C6187    8B3D 046E5C00           MOV EDI,DWORD PTR DS:[5C6E04]  
+005C618D    8BF0                    MOV ESI,EAX  
+005C618F    8B0D 006E5C00           MOV ECX,DWORD PTR DS:[5C6E00]  
+005C6195    8B09                    MOV ECX,DWORD PTR DS:[ECX]  
+005C6197    F3:A4                   REP MOVS BYTE PTR ES:[EDI],BYTE PTR D>  
+005C6199    893D 046E5C00           MOV DWORD PTR DS:[5C6E04],EDI  
+005C619F    C707 20202020           MOV DWORD PTR DS:[EDI],20202020  
+005C61A5    8305 046E5C00 04        ADD DWORD PTR DS:[5C6E04],4  
+005C61AC    83ED 04                 SUB EBP,4  
+005C61AF  ^ EB C0                   JMP SHORT 005C6171              ; 005C6171  
+005C61B1    C747 04 0D0A0D0A        MOV DWORD PTR DS:[EDI+4],0A0D0A0D  
+005C61B8    8305 046E5C00 04        ADD DWORD PTR DS:[5C6E04],4  
+005C61BF    61                      POPAD  
+005C61C0    E8 13B4EAFF             CALL 004715D8                   ; 004715D8  
+005C61C5  - E9 E0BEEFFF             JMP 004C20AA                    ; 004C20AA  
+
+005C61CA    0000                    ADD BYTE PTR DS:[EAX],AL  
+005C61CC    60                      PUSHAD  
+005C61CD    8B45 EC                 MOV EAX,DWORD PTR SS:[EBP-14]  
+005C61D0    3D 00002000             CMP EAX,200000  
+005C61D5    72 36                   JB SHORT 005C620D                ; 005C620D  
+005C61D7    A3 006E5C00             MOV DWORD PTR DS:[5C6E00],EAX  
+005C61DC    832D 006E5C00 04        SUB DWORD PTR DS:[5C6E00],4  
+005C61E3    8B3D 046E5C00           MOV EDI,DWORD PTR DS:[5C6E04]  
+005C61E9    8BF0                    MOV ESI,EAX  
+005C61EB    8B0D 006E5C00           MOV ECX,DWORD PTR DS:[5C6E00]  
+005C61F1    8B09                    MOV ECX,DWORD PTR DS:[ECX]  
+005C61F3    F3:A4                   REP MOVS BYTE PTR ES:[EDI],BYTE PTR D>  
+005C61F5    893D 046E5C00           MOV DWORD PTR DS:[5C6E04],EDI  
+005C61FB    C707 20202020           MOV DWORD PTR DS:[EDI],20202020  
+005C6201    8305 046E5C00 04        ADD DWORD PTR DS:[5C6E04],4  
+005C6208    83ED 04                 SUB EBP,4  
+005C620B  ^ EB C0                   JMP SHORT 005C61CD              ; 005C61CD  
+005C620D    C747 04 0D0A0D0A        MOV DWORD PTR DS:[EDI+4],0A0D0A0D  
+005C6214    8305 046E5C00 04        ADD DWORD PTR DS:[5C6E04],4  
+005C621B    61                      POPAD  
+005C621C    E8 B7B3EAFF             CALL 004715D8                   ; 004715D8  
+005C6221  - E9 89C1EFFF             JMP 004C23AF                    ; 004C23AF  
+```
+
+### 三、保存数据包内容
+
+`bp WriteFile` 下断后，可跟踪到保存数据包内容的地方（因为这个程序将截获的数据存放在一个名叫 `WHGSniffer.dat` 的文件中，所以我们可以在程序写数据时断下，然后保存到我们指定的地方）：
+
+```
+004B9064  /$  53              PUSH EBX  
+004B9065  |.  56              PUSH ESI  
+004B9066  |.  57              PUSH EDI  
+004B9067  |.  55              PUSH EBP  
+004B9068  |.  83C4 F0         ADD ESP,-10  
+004B906B  |.  8BF1            MOV ESI,ECX  
+004B906D  |.  8BEA            MOV EBP,EDX  
+004B906F  |.  8BF8            MOV EDI,EAX  
+004B9071  |.  33DB            XOR EBX,EBX  
+004B9073  |.  6A 02           PUSH 2                            ; /Origin = FILE_END  
+004B9075  |.  6A 00           PUSH 0                            ; |pOffsetHi = NULL  
+004B9077  |.  6A 00           PUSH 0                            ; |OffsetLo = 0  
+004B9079  |.  8B07            MOV EAX,DWORD PTR DS:[EDI]         ; |  
+004B907B  |.  50              PUSH EAX                          ; |hFile  
+004B907C  |.  E8 9BDDF4FF     CALL 00406E1C                     ; \SetFilePointer  
+004B9081  |.  83F8 FF         CMP EAX,-1  
+004B9084  |.  74 56           JE SHORT 004B90DC                 ;  004B90DC  
+004B9086  |.  6A 02           PUSH 2                            ; /Origin = FILE_END  
+004B9088  |.  6A 00           PUSH 0                            ; |pOffsetHi = NULL  
+004B908A  |.  6A 00           PUSH 0                            ; |OffsetLo = 0  
+004B908C  |.  8B47 04         MOV EAX,DWORD PTR DS:[EDI+4]       ; |  
+004B908F  |.  50              PUSH EAX                          ; |hFile  
+004B9090  |.  E8 87DDF4FF     CALL 00406E1C                     ; \SetFilePointer  
+004B9095  |.  83F8 FF         CMP EAX,-1  
+004B9098  |.  74 42           JE SHORT 004B90DC                 ;  004B90DC  
+004B909A  |.  894424 04       MOV DWORD PTR SS:[ESP+4],EAX  
+004B909E  |.  897424 08       MOV DWORD PTR SS:[ESP+8],ESI  
+004B90A2  |.  C74424 0C 443>  MOV DWORD PTR SS:[ESP+C],11223344  
+004B90AA  |.  6A 00           PUSH 0                            ; /pOverlapped = NULL///这个是写另外一个文件的。  
+004B90AC  |.  8D4424 04       LEA EAX,DWORD PTR SS:[ESP+4]       ; |  
+004B90B0  |.  50              PUSH EAX                          ; |pBytesWritten  
+004B90B1  |.  6A 0C           PUSH 0C                           ; |nBytesToWrite = C (12.)  
+004B90B3  |.  8D4424 10       LEA EAX,DWORD PTR SS:[ESP+10]      ; |  
+004B90B7  |.  50              PUSH EAX                          ; |Buffer  
+004B90B8  |.  8B07            MOV EAX,DWORD PTR DS:[EDI]         ; |  
+004B90BA  |.  50              PUSH EAX                          ; |hFile  
+004B90BB  |.  E8 9CDDF4FF     CALL 00406E5C                     ; \WriteFile  
+004B90C0  |.  85C0            TEST EAX,EAX  
+004B90C2  |.  74 18           JE SHORT 004B90DC                 ;  004B90DC  
+004B90C4  |.  6A 00           PUSH 0                            ; /pOverlapped = NULL///这个就是写数据包内容的。  
+004B90C6  |.  8D4424 04       LEA EAX,DWORD PTR SS:[ESP+4]       ; |  
+004B90CA  |.  50              PUSH EAX                          ; |pBytesWritten  
+004B90CB  |.  56              PUSH ESI                          ; |nBytesToWrite  
+004B90CC  |.  55              PUSH EBP                          ; |Buffer  
+004B90CD  |.  8B47 04         MOV EAX,DWORD PTR DS:[EDI+4]       ; |  
+004B90D0  |.  50              PUSH EAX                          ; |hFile  
+```
+
+
+
+### 01. 数据写入钩子与补丁
+
+```
+004B90D1  .  E8 86DDF4FF    CALL 00406E5C ; WriteFile /// 所有截获的数据都通过这里写入 WHGSniffer.dat 文件。我们在这里打补丁，改为 JMP 4C2F25。
+
+004B90D6  .  85C0           TEST EAX,EAX
+004B90D8  .  74 02          JE SHORT 004B90DC ; 004B90DC
+004B90DA  .  B3 01          MOV BL,1
+004B90DC  > 8BC3           MOV EAX,EBX
+004B90DE  .  83C4 10        ADD ESP,10
+004B90E1  .  5D             POP EBP
+004B90E2  .  5F             POP EDI
+004B90E3  .  5E             POP ESI
+004B90E4  .  5B             POP EBX
+004B90E5  \.  C3             RETN
+```
+
+找到程序入口附近的空地，写上补丁代码：
+
+```
+004C2F25  > \60             PUSHAD /// 保护现场。
+004C2F26  . 8B3D 046E5C00  MOV EDI,DWORD PTR DS:[5C6E04] /// 数据写入的目标地址移入 EDI。
+004C2F2C  . 8BCE           MOV ECX,ESI /// 此时 ESI 中保存的是数据包长度。
+004C2F2E  . 8BF5           MOV ESI,EBP /// EBP 中保存的缓冲区地址。
+004C2F30  . F3:A4          REP MOVS BYTE PTR ES:[EDI],BYTE PTR DS:[ESI] /// 传送数据。
+004C2F32  . 893D 046E5C00  MOV DWORD PTR DS:[5C6E04],EDI /// 保存数据指针。
+004C2F38  . C707 0D0A0D0A  MOV DWORD PTR DS:[EDI],0A0D0A0D /// 加 2 个回车。
+004C2F3E  . 8305 046E5C00 04 ADD DWORD PTR DS:[5C6E04],4 /// 调整指针。
+004C2F45  . 61             POPAD /// 恢复现场。
+004C2F46  . E8 113FF4FF    CALL 00406E5C ; WriteFile /// 执行原来的代码。
+004C2F4B  . ^ E9 8661FFFF  JMP 004B90D6 /// 跳回去。
+```
+
+这样就将程序所有截获的数据保存到我们指定的地方了。
+
+### 四、将内存中的数据保存到文件
+
+我的要求是在程序停止嗅探时自动将内存中的数据保存到文件。
+
+先要找到程序处理“停止嗅探”按钮的代码。很好找。具体过程不说了。
+
+```
+004C288C     53           PUSH EBX /// 处理“停止嗅探”按钮的函数入口。改为 JMP 005C6228，跳到我们的补丁代码。
+004C288D     56           PUSH ESI
+004C288E     57           PUSH EDI
+004C288F     8BF0         MOV ESI,EAX
+004C2891   . BF 9C494C00  MOV EDI,4C499C
+004C2896   . C605 98494C00 01 MOV BYTE PTR DS:[4C4998],1
+004C289D   . 33D2         XOR EDX,EDX
+004C289F   . 8B86 28030000 MOV EAX,DWORD PTR DS:[ESI+328]
+004C28A5   . 8B08         MOV ECX,DWORD PTR DS:[EAX]
+004C28A7   . FF51 64      CALL DWORD PTR DS:[ECX+64]
+004C28AA   . E8 A544F4FF  CALL 00406D54 ; [GetTickCount
+004C28AF   . 8BD8         MOV EBX,EAX
+004C28B1   . EB 1A        JMP SHORT 004C28CD ; 004C28CD
+```
+
+```
+005C6228    53           PUSH EBX /// 执行原来的代码。
+005C6229    56           PUSH ESI /// 执行原来的代码。
+005C622A    57           PUSH EDI /// 执行原来的代码。
+005C622B    8BF0         MOV ESI,EAX /// 执行原来的代码。
+005C622D    90           NOP
+005C622E    90           NOP
+005C622F    90           NOP
+005C6230    90           NOP
+005C6231    90           NOP
+005C6232    90           NOP
+005C6233    90           NOP
+005C6234    90           NOP
+005C6235    90           NOP
+005C6236    90           NOP
+005C6237    60           PUSHAD /// 以下是补丁代码。
+005C6238    9C           PUSHFD
+005C6239    6A 00        PUSH 0 /// 先创建文件。
+005C623B    6A 00        PUSH 0
+005C623D    6A 02        PUSH 2 |Mode = CREATE_ALWAYS /// 有文件存在时覆盖原文件。
+005C623F    6A 00        PUSH 0 |pSecurity = NULL
+005C6241    6A 03        PUSH 3 |ShareMode = FILE_SHARE_READ|FILE_SHARE_WRITE /// 共享读写。
+005C6243    68 000000C0  PUSH C0000000 |Access = GENERIC_READ|GENERIC_WRITE /// 可读写。
+005C6248    68 F0675C00  PUSH 5C67F0 |FileName = "WHGSniffer.txt" /// 在程序目录下创建 WHGSniffer.txt 文件。
+005C624D    E8 020AE4FF  CALL 00406C54 ; <JMP.&kernel32.CreateFileA>
+005C6252    A3 0C6E5C00  MOV DWORD PTR DS:[5C6E0C],EAX /// 将句柄保存一下。
+005C6257    6A 00        PUSH 0 /// 下面开始写入数据。
+005C6259    68 106E5C00  PUSH 5C6E10 /// 随便打个空地址让程序保存一下写入数据的长度。
+005C625E    8B1D 046E5C00 MOV EBX,DWORD PTR DS:[5C6E04] /// 数据指针取出。
+005C6264    2B1D 086E5C00 SUB EBX,DWORD PTR DS:[5C6E08] /// 减去申请的基地址。得到数据总长度。
+005C626A    53           PUSH EBX
+005C626B    FF35 086E5C00 PUSH DWORD PTR DS:[5C6E08] /// 数据起始地址。
+005C6271    50           PUSH EAX /// 文件句柄。
+005C6272    E8 E50BE4FF  CALL 00406E5C ; <JMP.&kernel32.WriteFile>
+005C6277    FF35 0C6E5C00 PUSH DWORD PTR DS:[5C6E0C] /// 最后关闭文件。
+005C627D    E8 1AB0E3FF  CALL 0040129C ; <JMP.&kernel32.CloseHandle>
+005C6282    9D           POPFD
+005C6283    61           POPAD
+005C6284  - E9 08C6EFFF  JMP 004C2891 /// 跳回去。
+005C6289    0000         ADD BYTE PTR DS:[EAX],AL
+```
+
+这样修改后，当点“停止嗅探”按钮时，程序自动将内存中的数据保存到 `WHGSniffer.txt` 文件中。但还不合我意。因为只能这样显示：
+
+```
+00-00-01-00-00-00    C4-1B-20-00-01-00    IP->UDP->DNS    DNS    60.185.55.224    202.96.113.34    3005    53    73
+
+?         E  ;K  €K<?嗍\`q" 5 '踤 o?        pop3sohucom
+
+C4-1B-20-00-01-00    00-00-01-00-00-00    IP->UDP->3005    3005    202.96.113.34    60.185.55.224    53    3005    191
+
+   ?    E 辩 W@ ?媲蔪 q"<? 5 ?憃垇€    pop3sohucom   ?    , =噭 a?    H\` ns3??    H\` dns??    H\` ns1?繫   |. =噧 V 繽   |2 =噧?   |. 艿?
+```
+
+我想让数据部分这样显示：
+
+```
+0x02 0x0E 0x2D 0x00 0x5F 0x10 0x22 0xEF 0x43 0xA6 0x89 0xCC 0xAC 0x56 0xDD 0x5C   ..-.\".".C....V.\
+
+0xEC 0xB1 0x45 0x16 0x34 0xF6 0xEE 0x81 0x99 0x98 0x9F 0x27 0x7E 0x77 0x76 0x16   ..E.4......'~wv.
+
+0xDD 0x36 0x17 0x68 0xDE 0x47 0x6B 0x03                                                  6.h.Gk..
+```
+
+也就是左边是 16 进制值，右边是 `ASCII` 相应的字符。请问该如何做？
+
+`4dd466d0e1e0cc123afbe504da2462ca`
