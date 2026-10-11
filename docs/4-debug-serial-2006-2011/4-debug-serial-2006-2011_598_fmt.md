@@ -1,0 +1,456 @@
+
+# 第一次写破解文章
+
+> 原文：[`www.pediy.com/kssd/pediy12/93201.html`](https://www.pediy.com/kssd/pediy12/93201.html)
+
+我是个菜菜鸟，我第一次写破解文章，所以有很多说不清楚的地方，还希望高手指正.同时想得到邀请码 .能让我学习方便。
+
+`WinASO Registry Optimizer` 是一 Windows 优化工具和高级注册表清理工具。它可以使大家以简单的鼠标来安全的清理及修复注册表故障。不介绍这么多，这是简单介绍这个软件。
+
+用到的东东：
+
+- 破解软件：`WinASO Registry Optimizer 3.2`
+- 工具：`PEid`, `OllyICE`
+
+我们开始：
+
+1. 用 `PEid` 检查，结果显示软件使用 `Borland Delphi` 编写，没壳。这下方便了，不用脱壳。
+2. 这个软件以弹出注册提示窗口，收集信息。
+3. 用 `OD` 载入这软件，同时在 `OD` 的命令行中输入: "`bp MessageBoxA`",在 `OD` 按`F9`使软件运行。在弹出的窗口中任意输入一些注册码。按“Register"按钮，程序中断下来；
+4. 这时候我们在 `OD` 右下角的堆栈中给我们提示，代码以下
+
+```
+012F7BC   0056A7B2  /CALL 到 MessageBoxA 来自 RegOpt.0056A7AD
+
+0012F7C0   00080754  |hOwner = 00080754 ('Register Information',class='TfrmRegister',parent=000907FE)
+
+0012F7C4   01F3F0B8  |Text = "Sorry, that is an invalid license key. Please ensure you have entered the license key exactly as provided."
+
+0012F7C8   01F9EDB8  |Title = "Information"
+
+0012F7CC   00000040  \\Style = MB_OK|MB_ICONASTERISK|MB_APPLMODAL
+```
+
+5. 我们从上图中这句代码： `0012F7BC   0056A7B2  /CALL 到 MessageBoxA 来自 RegOpt.0056A7AD`
+
+知，关键点在`0056A7AD`这个地址。在 `OD` 中按`Ctrl+G`输入这地址。确定后到我们指定的地方。如下
+
+```
+0056A7A4   .  50            push    eax
+0056A7A5   .  8BC3          mov     eax, ebx
+0056A7A7   .  E8 7040EFFF   call    0045E81C
+0056A7AC   .  50            push    eax                  ; |hOwner
+0056A7AD   .  E8 8ADBE9FF   call    <jmp.&user32.MessageBoxA>        ; \\MessageBoxA
+0056A7B2   .  E9 C1010000   jmp     0056A978
+0056A7B7   |>  8B75 F8       mov     esi, dword ptr [ebp-8]
+0056A7BA   .  81C6 01020000 add     esi, 201
+0056A7C0   .  0FAFF7        imul    esi, edi
+```
+
+6. 通用，算法的核心部分就上面，我们逆上找，在`0056A3A9`这个地址我下断的地方,代码如下:
+
+我们按 `F8` 单步调试,如下
+
+```
+0056A389      00            db      00
+0056A38A      00            db      00
+0056A38B      00            db      00
+0056A38C  /.  55            push    ebp
+0056A38D  |.  8BEC          mov     ebp, esp
+0056A38F  |.  B9 0E000000   mov     ecx, 0E
+0056A394  |>  6A 00         /push    0
+0056A396  |.  6A 00         |push    0
+0056A398  |.  49            |dec     ecx
+0056A399  |.^ 75 F9         \jnz     short 0056A394
+0056A39B  |.  51            push    ecx
+0056A39C  |.  53            push    ebx
+0056A39D  |.  56            push    esi
+0056A39E  |.  57            push    edi
+0056A39F  |.  8BD8          mov     ebx, eax
+0056A3A1  |.  33C0          xor     eax, eax
+0056A3A3  |.  55            push    ebp
+0056A3A4  |.  68 E4A95600   push    0056A9E4
+0056A3A9  |.  64:FF30      push    dword ptr fs:[eax]     ;这是我下断点地方
+0056A3AC  |.  64:8920      mov     dword ptr fs:[eax], esp
+0056A3AF  |.  8D45 FC      lea     eax, dword ptr [ebp-4]
+0056A3B2  |.  8B15 84055A00 mov     edx, dword ptr [5A0584]   ;  RegOpt.005A55E0
+0056A3B8  |>  8B92 70080000 mov     edx, dword ptr [edx+870]  ;  加载错误注册码后，提示错误信息
+0056A3BE  |.  E8 6DAEE9FF   call    00405230
+0056A3C3  |.  8D55 F4      lea     edx, dword ptr [ebp-C]
+0056A3C6  |.  8B83 A4030000 mov     eax, dword ptr [ebx+3A4]
+0056A3CC  |.  E8 4BC9EEFF   call    00456D1C                  ;  取输入第一组注册码
+0056A3D1  |.  8B45 F4      mov     eax, dword ptr [ebp-C]    ;  将输入第一组注册码放在 EAX 中
+0056A3D4  |.  E8 9B45F6FF   call    004CE974                  ;  检查第一组注册码中是不是都是数字,都是数字,返回 al=1
+0056A3D9  |.  84C0          test    al, al                     ；
+0056A3DB  |.  75 2E         jnz     short 0056A40B            ;  都是数字，继续验证
+0056A3DD  |.  6A 40         push    40
+0056A3DF  |.  A1 84055A00   mov     eax, dword ptr [5A0584]
+0056A3E4  |.  8B80 6C080000 mov     eax, dword ptr [eax+86C]
+0056A3EA  |.  E8 6DB2E9FF   call    0040565C
+0056A3EF  |.  50            push    eax
+0056A3F0  |.  8B45 FC      mov     eax, dword ptr [ebp-4]
+0056A3F3  |.  E8 64B2E9FF   call    0040565C
+0056A3F8  |.  50            push    eax
+0056A3F9  |.  8BC3          mov     eax, ebx
+0056A3FB  |.  E8 1C44EFFF   call    0045E81C
+0056A400  |.  50            push    eax                     ; |hOwner
+0056A401  |.  E8 36DFE9FF   call    <jmp.&user32.MessageBoxA> ; \\MessageBoxA
+0056A406  |.  E9 6D050000   jmp     0056A978
+0056A40B  |>  8D55 F0      lea     edx, dword ptr [ebp-10]
+0056A40E  |.  8B83 A8030000 mov     eax, dword ptr [ebx+3A8]
+0056A414  |.  E8 03C9EEFF   call    00456D1C                  ;  取输入第二组注册码
+0056A419  |.  8B45 F0      mov     eax, dword ptr [ebp-10]   ;  将输入第二组注册码放在 EAX 中
+0056A41C  |.  E8 5345F6FF   call    004CE974                  ;  检查第二组注册码中是不是都是数字,都是数字,返回 al=1
+0056A421  |.  84C0          test    al, al                     ;
+0056A423  |.  75 2E         jnz     short 0056A453            ； 都是数字，继续验证
+0056A425  |.  6A 40         push    40
+0056A427  |.  A1 84055A00   mov     eax, dword ptr [5A0584]
+0056A42C  |.  8B80 6C080000 mov     eax, dword ptr [eax+86C]
+0056A432  |.  E8 25B2E9FF   call    0040565C
+0056A437  |.  50            push    eax
+0056A438  |.  8B45 FC      mov     eax, dword ptr [ebp-4]
+0056A43B  |.  E8 1CB2E9FF   call    0040565C
+0056A440  |.  50            push    eax
+0056A441  |.  8BC3          mov     eax, ebx
+0056A443  |.  E8 D443EFFF   call    0045E81C
+0056A448  |.  50            push    eax                     ; |hOwner
+0056A449  |.  E8 EEE9FF    call    <jmp.&user32.MessageBoxA> ; \\MessageBoxA
+0056A44E  |.  E9 25050000   jmp     0056A978
+0056A453  |>  8D55 EC      lea     edx, dword ptr [ebp-14]
+0056A456  |.  8B83 AC030000 mov     eax, dword ptr [ebx+3AC]
+0056A45C  |.  E8 BBC8EEFF   call    00456D1C                  ;  取输入第三组注册码
+0056A461  |.  8B45 EC      mov     eax, dword ptr [ebp-14]
+0056A464  |.  E8 0B45F6FF   call    004CE974                  ;  检查第三组注册码中是不是都是数字
+0056A469  |.  84C0          test    al, al
+0056A46B  |.  75 2E         jnz     short 0056A49B            ;  都是数字，继续验证
+0056A46D  |.  6A 40         push    40
+0056A46F  |.  A1 84055A00   mov     eax, dword ptr [5A0584]
+0056A474  |.  8B80 6C080000 mov     eax, dword ptr [eax+86C]
+0056A47A  |.  E8 DDB1E9FF   call    0040565C
+0056A47F  |.  50            push    eax
+0056A480  |.  8B45 FC      mov     eax, dword ptr [ebp-4]
+0056A483  |.  E8 D4B1E9FF   call    0040565C
+0056A488  |.  50            push    eax
+0056A489  |.  8BC3          mov     eax, ebx
+0056A48B  |.  E8 8C43EFFF   call    0045E81C
+0056A490  |.  50            push    eax                     ; |hOwner
+0056A491  |.  E8 A6DEE9FF   call    <jmp.&user32.MessageBoxA> ; \\MessageBoxA
+0056A496  |.  E9 DD040000   jmp     0056A978
+0056A49B  |>  8D55 E8      lea     edx, dword ptr [ebp-18]
+0056A49E  |.  8B83 B0030000 mov     eax, dword ptr [ebx+3B0]
+0056A4A4  |.  E8 73C8EEFF   call    00456D1C                  ;  取输入第 4 组注册码
+0056A4A9  |.  8B45 E8      mov     eax, dword ptr [ebp-18]
+0056A4AC  |.  E8 C344F6FF   call    004CE974                  ;  检查第 4 组注册码中是不是都是数字
+0056A4B1  |.  84C0          test    al, al
+0056A4B3  |.  75 2E         jnz     short 0056A4E3            ;  都是数字，继续验证
+0056A4B5  |.  6A 40         push    40
+0056A4B7  |.  A1 84055A00   mov     eax, dword ptr [5A0584]
+0056A4BC  |.  8B80 6C080000 mov     eax, dword ptr [eax+86C]
+0056A4C2  |.  E8 95B1E9FF   call    0040565C
+0056A4C7  |.  50            push    eax
+```
+
+
+
+```
+0056A4C8  |.  8B45 FC       mov     eax, dword ptr [ebp-4]
+0056A4CB  |.  E8 8CB1E9FF   call    0040565C
+0056A4D0  |.  50            push    eax
+0056A4D1  |.  8BC3          mov     eax, ebx
+0056A4D3  |.  E8 4443EFFF   call    0045E81C
+0056A4D8  |.  50            push    eax                           ; |hOwner
+0056A4D9  |.  E8 5EDEE9FF   call    <jmp.&user32.MessageBoxA> ; \\MessageBoxA
+0056A4DE  |.  E9 95040000   jmp     0056A978
+0056A4E3  |>  8D55 E4       lea     edx, dword ptr [ebp-1C]
+0056A4E6  |.  8B83 B4030000 mov     eax, dword ptr [ebx+3B4]
+
+0056A4EC  |.  E8 2BC8EEFF   call    00456D1C                      ;  取输入第 5 组注册码
+0056A4F1  |.  8B45 E4       mov     eax, dword ptr [ebp-1C]
+
+0056A4F4  |.  E8 7B44F6FF   call    004CE974                      ;  检查第 5 组注册码中是不是都是数字
+0056A4F9  |.  84C0          test    al, al
+
+0056A4FB  |.  75 2E         jnz     short 0056A52B                ;  都是数字，继续验证
+0056A4FD  |.  6A 40         push    40
+0056A4FF  |.  A1 84055A00   mov     eax, dword ptr [5A0584]
+0056A504  |.  8B80 6C080000 mov     eax, dword ptr [eax+86C]
+0056A50A  |.  E8 4DB1E9FF   call    0040565C
+0056A50F  |.  50            push    eax
+0056A510  |.  8B45 FC       mov     eax, dword ptr [ebp-4]
+0056A513  |.  E8 44B1E9FF   call    0040565C
+0056A518  |.  50            push    eax
+0056A519  |.  8BC3          mov     eax, ebx
+0056A51B  |.  E8 FC42EFFF   call    0045E81C
+0056A520  |.  50            push    eax                           ; |hOwner
+0056A521  |.  E8 16DEE9FF   call    <jmp.&user32.MessageBoxA> ; \\MessageBoxA
+0056A526  |.  E9 4D040000   jmp     0056A978
+0056A52B  |>  8D55 E0       lea     edx, dword ptr [ebp-20]
+0056A52E  |.  8B83 A4030000 mov     eax, dword ptr [ebx+3A4]
+0056A534  |.  E8 E3C7EEFF   call    00456D1C
+0056A539  |.  8B45 E0       mov     eax, dword ptr [ebp-20]
+0056A53C  |.  8945 DC       mov     dword ptr [ebp-24], eax
+0056A53F  |.  8B45 DC       mov     eax, dword ptr [ebp-24]
+0056A542  |.  85C0          test    eax, eax
+0056A544  |.  74 05         je      short 0056A54B
+0056A546  |.  83E8 04       sub     eax, 4
+
+0056A549  |.  8B00          mov     eax, dword ptr [eax]         ;  取第一组注册码的位数
+0056A54B  |>  83F8 04       cmp     eax, 4                        ;  位数等于 4 吗？
+
+0056A54E  |.  74 2E         je      short 0056A57E                ;  是，跳到第 2 组验证
+0056A550  |.  6A 40         push    40
+0056A552  |.  A1 84055A00   mov     eax, dword ptr [5A0584]
+0056A557  |.  8B80 6C080000 mov     eax, dword ptr [eax+86C]
+0056A55D  |.  E8 FAB0E9FF   call    0040565C
+0056A562  |.  50            push    eax
+0056A563  |.  8B45 FC       mov     eax, dword ptr [ebp-4]
+0056A566  |.  E8 F1B0E9FF   call    0040565C
+0056A56B  |.  50            push    eax
+0056A56C  |.  8BC3          mov     eax, ebx
+0056A56E  |.  E8 A942EFFF   call    0045E81C
+0056A573  |.  50            push    eax                           ; |hOwner
+0056A574  |.  E8 C3DDE9FF   call    <jmp.&user32.MessageBoxA> ; \\MessageBoxA
+0056A579  |.  E9 FA030000   jmp     0056A978
+0056A57E  |>  8D55 D8       lea     edx, dword ptr [ebp-28]
+0056A581  |.  8B83 A8030000 mov     eax, dword ptr [ebx+3A8]
+0056A587  |.  E8 90C7EEFF   call    00456D1C
+0056A58C  |.  8B45 D8       mov     eax, dword ptr [ebp-28]
+0056A58F  |.  8945 DC       mov     dword ptr [ebp-24], eax
+0056A592  |.  8B45 DC       mov     eax, dword ptr [ebp-24]
+0056A595  |.  85C0          test    eax, eax
+0056A597  |.  74 05         je      short 0056A59E
+0056A599  |.  83E8 04       sub     eax, 4
+
+0056A59C  |.  8B00          mov     eax, dword ptr [eax]         ;  取第 2 组注册码的位数
+0056A59E  |>  83F8 04       cmp     eax, 4                        ;  比较位数等于 4 吗？
+
+0056A5A1  |.  74 2E         je      short 0056A5D1                ;  是，跳到第 3 组验证
+0056A5A3  |.  6A 40         push    40
+0056A5A5  |.  A1 84055A00   mov     eax, dword ptr [5A0584]
+0056A5AA  |.  8B80 6C080000 mov     eax, dword ptr [eax+86C]
+0056A5B0  |.  E8 A7B0E9FF   call    0040565C
+0056A5B5  |.  50            push    eax
+0056A5B6  |.  8B45 FC       mov     eax, dword ptr [ebp-4]
+0056A5B9  |.  E8 9EB0E9FF   call    0040565C
+0056A5BE  |.  50            push    eax
+0056A5BF  |.  8BC3          mov     eax, ebx
+0056A5C1  |.  E8 5642EFFF   call    0045E81C
+0056A5C6  |.  50            push    eax                           ; |hOwner
+0056A5C7  |.  E8 70DDE9FF   call    <jmp.&user32.MessageBoxA> ; \\MessageBoxA
+0056A5CC  |.  E9 A7030000   jmp     0056A978
+0056A5D1  |>  8D55 D4       lea     edx, dword ptr [ebp-2C]
+0056A5D4  |.  8B83 AC030000 mov     eax, dword ptr [ebx+3AC]
+0056A5DA  |.  E8 3DC7EEFF   call    00456D1C
+0056A5DF  |.  8B45 D4       mov     eax, dword ptr [ebp-2C]
+0056A5E2  |.  8945 DC       mov     dword ptr [ebp-24], eax
+0056A5E5  |.  8B45 DC       mov     eax, dword ptr [ebp-24]
+0056A5E8  |.  85C0          test    eax, eax
+0056A5EA  |.  74 05         je      short 0056A5F1
+0056A5EC  |.  83E8 04       sub     eax, 4
+
+0056A5EF  |.  8B00          mov     eax, dword ptr [eax]         ;  取第 3 组注册码的位数
+0056A5F1  |>  83F8 04       cmp     eax, 4                        ;  比较位数等于 4 吗？
+
+0056A5F4  |.  74 2E         je      short 0056A624                ;  是，跳到第 4 组验证
+0056A5F6  |.  6A 40         push    40
+0056A5F8  |.  A1 84055A00   mov     eax, dword ptr [5A0584]
+0056A5FD  |.  8B80 6C080000 mov     eax, dword ptr [eax+86C]
+0056A603  |.  E8 54B0E9FF   call    0040565C
+0056A608  |.  50            push    eax
+0056A609  |.  8B45 FC       mov     eax, dword ptr [ebp-4]
+0056A60C  |.  E8 4BB0E9FF   call    0040565C
+0056A611  |.  50            push    eax
+0056A612  |.  8BC3          mov     eax, ebx
+0056A614  |.  E8 0342EFFF   call    0045E81C
+0056A619  |.  50            push    eax                           ; |hOwner
+0056A61A  |.  E8 1DDDE9FF   call    <jmp.&user32.MessageBoxA> ; \\MessageBoxA
+0056A61F  |.  E9 54030000   jmp     0056A978
+0056A624  |>  8D55 D0       lea     edx, dword ptr [ebp-30]
+0056A627  |.  8B83 B0030000 mov     eax, dword ptr [ebx+3B0]
+0056A62D  |.  E8 EAC6EEFF   call    00456D1C
+0056A632  |.  8B45 D0       mov     eax, dword ptr [ebp-30]
+0056A635  |.  8945 DC       mov     dword ptr [ebp-24], eax
+0056A638  |.  8B45 DC       mov     eax, dword ptr [ebp-24]
+0056A63B  |.  85C0          test    eax, eax
+0056A63D  |.  74 05         je      short 0056A644
+0056A63F  |.  83E8 04       sub     eax, 4
+
+0056A642  |.  8B00          mov     eax, dword ptr [eax]         ;  取第 4 组注册码的位数
+0056A644  |>  83F8 04       cmp     eax, 4                        ;  比较位数等于 4 吗？
+
+0056A647  |.  74 2E         je      short 0056A677                ;  是，跳到第 5 组验证
+  0056A649  |.  6A 40         push    40
+0056A64B  |.  A1 84055A00   mov     eax, dword ptr [5A0584]
+0056A650  |.  8B80 6C080000 mov     eax, dword ptr [eax+86C]
+0056A656  |.  E8 01B0E9FF   call    0040565C
+0056A65B  |.  50            push    eax
+0056A65C  |.  8B45 FC       mov     eax, dword ptr [ebp-4]
+0056A65F  |.  E8 F8AFE9FF   call    0040565C
+0056A664  |.  50            push    eax
+0056A665  |.  8BC3          mov     eax, ebx
+0056A667  |.  E8 B041EFFF   call    0045E81C
+```
+
+
+
+```
+0056A66C  |.  50            push    eax                         ; |hOwner
+0056A66D  |.  E8 CADCE9FF   call    <jmp.&user32.MessageBoxA> ; \\MessageBoxA
+0056A672  |.  E9 01030000   jmp     0056A978
+0056A677  |>  8D55 CC       lea     edx, dword ptr [ebp-34]
+0056A67A  |.  8B83 B4030000 mov     eax, dword ptr [ebx+3B4]
+0056A680  |.  E8 97C6EEFF   call    00456D1C
+0056A685  |.  8B45 CC       mov     eax, dword ptr [ebp-34]
+0056A688  |.  8945 DC       mov     dword ptr [ebp-24], eax
+0056A68B  |.  8B45 DC       mov     eax, dword ptr [ebp-24]
+0056A68E  |.  85C0          test    eax, eax
+0056A690  |.  74 05         je      short 0056A697
+0056A692  |.  83E8 04       sub     eax, 4
+    0056A695  |.  8B00          mov     eax, dword ptr [eax]      ;  取第 5 组注册码的位数
+    0056A697  |>  83F8 04       cmp     eax, 4                    ;  比较位数等于 4 吗？
+    0056A69A  |.  74 2E         je      short 0056A6CA            ;  是，跳到进行下一步的验证
+0056A69C  |.  6A 40         push    40
+0056A69E  |.  A1 84055A00   mov     eax, dword ptr [5A0584]
+0056A6A3  |.  8B80 6C080000 mov     eax, dword ptr [eax+86C]
+0056A6A9  |.  E8 AEAFE9FF   call    0040565C
+0056A6AE  |.  50            push    eax
+0056A6AF  |.  8B45 FC       mov     eax, dword ptr [ebp-4]
+0056A6B2  |.  E8 A5AFE9FF   call    0040565C
+0056A6B7  |.  50            push    eax
+0056A6B8  |.  8BC3          mov     eax, ebx
+0056A6BA  |.  E8 5D41EFFF   call    0045E81C
+0056A6BF  |.  50            push    eax                         ; |hOwner
+0056A6C0  |.  E8 77DCE9FF   call    <jmp.&user32.MessageBoxA> ; \\MessageBoxA
+0056A6C5  |.  E9 AE020000   jmp     0056A978
+0056A6CA  |>  8D55 C8       lea     edx, dword ptr [ebp-38]
+0056A6CD  |.  8B83 A4030000 mov     eax, dword ptr [ebx+3A4]
+    0056A6D3  |.  E8 44C6EEFF   call    00456D1C                  ;  取第一组注册码
+0056A6D8  |.  8B45 C8       mov     eax, dword ptr [ebp-38]
+    0056A6DB  |.  E8 D4F7E9FF   call    00409EB4                  ;  将第一组注册码转成对应 16 进制,设为 A
+    0056A6E0  |.  8BF0          mov     esi, eax                  ;  ESI 保存转换的结果
+0056A6E2  |.  8D55 C4       lea     edx, dword ptr [ebp-3C]
+0056A6E5  |.  8B83 A8030000 mov     eax, dword ptr [ebx+3A8]
+    0056A6EB  |.  E8 2CC6EEFF   call    00456D1C                  ;  取第 2 组注册码
+0056A6F0  |.  8B45 C4       mov     eax, dword ptr [ebp-3C]
+    0056A6F3  |.  E8 BCF7E9FF   call    00409EB4                  ;  将第 2 组注册码转成对应 16 进制，设为 B
+    0056A6F8  |.  8BF8          mov     edi, eax                  ;  EDI 保存转换的结果
+0056A6FA  |.  8D55 C0       lea     edx, dword ptr [ebp-40]
+0056A6FD  |.  8B83 AC030000 mov     eax, dword ptr [ebx+3AC]
+    0056A703  |.  E8 14C6EEFF   call    00456D1C                  ;  取第 3 组注册码
+0056A708  |.  8B45 C0       mov     eax, dword ptr [ebp-40]
+    0056A70B  |.  E8 A4F7E9FF   call    00409EB4                  ;  将第 3 组注册码转成对应 16 进制，设为 C
+     0056A710  |.  8945 F8       mov     dword ptr [ebp-8], eax
+    0056A713  |.  0FAFF7        imul    esi, edi                  ;  ESI 乘以 EDI,A*B
+    0056A716  |.  81EE 2B060000 sub     esi, 62B                  ;  ESI*EDI 的结果减 0x62B(A*B-62B)
+    0056A71C  |.  81FE 10270000 cmp     esi, 2710                 ;  计算的结果与 0x2710 比较
+    0056A722      7D 2E         jge     short 0056A752            ;  大于 0x2710 继续计算，小于错误提示
+0056A724  |.  6A 40         push    40
+0056A726  |.  A1 84055A00   mov     eax, dword ptr [5A0584]
+0056A72B  |.  8B80 6C080000 mov     eax, dword ptr [eax+86C]
+0056A731  |.  E8 26AFE9FF   call    0040565C
+0056A736  |.  50            push    eax
+0056A737  |.  8B45 FC       mov     eax, dword ptr [ebp-4]
+0056A73A  |.  E8 1DAFE9FF   call    0040565C
+0056A73F  |.  50            push    eax
+0056A740  |.  8BC3          mov     eax, ebx
+0056A742  |.  E8 D540EFFF   call    0045E81C
+0056A747  |.  50            push    eax                         ; |hOwner
+0056A748  |.  E8 EFDBE9FF   call    <jmp.&user32.MessageBoxA> ; \\MessageBoxA
+0056A74D  |.  E9 26020000   jmp     0056A978
+0056A752  |>  8D55 B8       lea     edx, dword ptr [ebp-48]
+0056A755  |.  8BC6          mov     eax, esi
+    0056A757  |.  E8 1CF6E9FF   call    00409D78                  ;  上面 A*B-62B 结果转换 10 进数,设为 D
+0056A75C  |.  8B45 B8       mov     eax, dword ptr [ebp-48]
+0056A75F  |.  8D4D BC       lea     ecx, dword ptr [ebp-44]
+0056A762  |.  BA 04000000   mov     edx, 4
+    0056A767  |.  E8 24DDEDFF   call    00448490                  ;  取 D 的后 4 位
+    0056A76C  |.  8B45 BC       mov     eax, dword ptr [ebp-44]   ;  保存下来
+0056A76F  |.  50            push    eax
+0056A770  |.  8D55 B4       lea     edx, dword ptr [ebp-4C]
+0056A773  |.  8B83 B0030000 mov     eax, dword ptr [ebx+3B0]
+    0056A779  |.  E8 9EC5EEFF   call    00456D1C                  ;  取第 4 组注册码
+0056A77E  |.  8B55 B4       mov     edx, dword ptr [ebp-4C]
+0056A781  |.  58            pop     eax
+    0056A782  |.  E8 21AEE9FF   call    004055A8                  ;  D 的后 4 位与输入的第 4 组注册码相比较
+    0056A787      74 2E         je      short 0056A7B7            ;  相等继续计算，否就到错误提示
+0056A789  |.  6A 40         push    40
+0056A78B  |.  A1 84055A00   mov     eax, dword ptr [5A0584]
+0056A790  |.  8B80 6C080000 mov     eax, dword ptr [eax+86C]
+0056A796  |.  E8 C1AEE9FF   call    0040565C
+0056A79B  |.  50            push    eax
+0056A79C  |.  8B45 FC       mov     eax, dword ptr [ebp-4]
+0056A79F  |.  E8 B8AEE9FF   call    0040565C
+0056A7A4  |.  50            push    eax
+0056A7A5  |.  8BC3          mov     eax, ebx
+0056A7A7  |.  E8 7040EFFF   call    0045E81C
+0056A7AC  |.  50            push    eax                         ; |hOwner
+0056A7AD  |.  E8 8ADBE9FF   call    <jmp.&user32.MessageBoxA> ; \\MessageBoxA
+0056A7B2  |.  E9 C1010000   jmp     0056A978
+0056A7B7  |>  8B75 F8       mov     esi, dword ptr [ebp-8]
+0056A7BA  |.  81C6 01020000 add     esi, 201                  ;  C 加上 0x201
+0056A7C0  |.  0FAFF7        imul    esi, edi                  ;  结果乘上 B
+    0056A7C3  |.  81EE F50D0000 sub     esi, 0DF5                ;  得到的积减去 0x0DF5,设为 E
+0056A7C9  |.  8D55 AC       lea     edx, dword ptr [ebp-54]
+0056A7CC  |.  8BC6          mov     eax, esi
+    0056A7CE  |.  E8 A5F5E9FF   call    00409D78                  ;  将 E 转成对应的 10 进制数
+0056A7D3  |.  8B45 AC       mov     eax, dword ptr [ebp-54]
+0056A7D6  |.  8D4D B0       lea     ecx, dword ptr [ebp-50]
+0056A7D9  |.  BA 04000000   mov     edx, 4
+    0056A7DE  |.  E8 ADDCEDFF   call    00448490                  ;  取结果 E 十进数后 4 位
+    0056A7E3  |.  8B45 B0       mov     eax, dword ptr [ebp-50]   ;  保存到 EAX 中
+0056A7E6  |.  50            push    eax
+0056A7E7  |.  8D55 A8       lea     edx, dword ptr [ebp-58]
+0056A7EA  |.  8B83 B4030000 mov     eax, dword ptr [ebx+3B4]
+    0056A7F0  |.  E8 27C5EEFF   call    00456D1C                  ;  取第 5 组注册码
+0056A7F5  |.  8B55 A8       mov     edx, dword ptr [ebp-58]
+0056A7F8  |.  58            pop     eax
+    0056A7F9  |.  E8 AAADE9FF   call    004055A8                  ;  E 十进数后 4 位与第 5 组注册码比较
+    0056A7FE  |.  74 2E         je      short 0056A82E            ;  相等就注册成功
+0056A800  |.  6A 40         push    40
+0056A802  |.  A1 84055A00   mov     eax, dword ptr [5A0584]
+```
+
+### 总结
+`第一组转成 16 进数 A` 乘上 `第二组转成 16 进数 B` 减去 `0x62B`; (`A * B - 0x62B`) > `0x2710`
+
+
+
+第 4 组等于(`A * B - 0x62B`)转成 10 进制数的后 4 位；
+
+第 5 组等于(`(C+0x201)*B-0x0DF5`)转成 10 进制数的后 4 位；`C` 是第 3 组转成 16 进制数。
+
+写一小程序验证一下：
+
+通过上总结知，第 1,2,3 组注册码可以任意。
+
+小程序代码如下：
+
+```c
+#include<stdio.h>  
+
+void main()  
+
+{  
+
+  int num1,num2,num3,num4,num5;  
+
+  printf("请输入 3 组 4 位数:\n");  
+
+  scanf("%d%d%d",&num1,&num2,&num3);  
+
+  if(num1*num2-0x62B>0x2710)  
+
+  {  
+
+    num4=(num1*num2-0x62B)%10000;  
+
+    num5=((num3+0x201)*num2-0x0DF5)%10000;  
+
+    printf("%d - %d - %d - %d - %d\n",num1,num2,num3,num4,num5);  
+
+  }  
+
+}
+```
+
+通过程序得到注册码能注册成功，证明我们分析正确。
