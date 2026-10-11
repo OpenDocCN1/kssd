@@ -1,0 +1,438 @@
+
+# [表格算法] 电子小说浏览器 ReadBook v1.51 Plus 注册算法分析 ＋ delphi(kol/mck) 完整注册机源代码(包含所有的 5 种注册情况)
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-152.htm`](https://www.pediy.com/kssd/pediy09/pediy09-152.htm)
+
+> 这几天在看『诛仙』这本书，真好看，不过就是看网页看久了刺眼，便下了个 `ReadBook 1.51 plus` 版本的小说浏览器来看，发现这个共享软件是需要注册，爱物及乌，自然想看看它的注册算法是如何的。
+
+> 可上来一搜索，却突然发现这么好的一个软件居然在论坛上没有一个与这版本相关的算法分析文章，而找到的以前版本的算法分析又不适用，这怎么可以嘛！这么好的软件没有一个相关的分析，心中不爽呀！于是...，希望有人喜欢，呵呵 :)
+
+> 好，先分析这个程序，使用了 `PEtite2.2` 压缩，在注册框中输入注册名和假码后，会有提示：‘注册码错误,请重新填写注册码!’，顺着这个提示，将脱壳后的程序拖入 `OD` 中，先不运行，使用字符串参考，找到了提示所在的位置：
+
+> 字符串参考 , 条目 `346`
+> 地址=`00409F28`
+> 反汇编地址=`push un-packe.00475AAC`
+> 字符内容=`注册码错误,请重新填写注册码!`
+
+> 而在它的上面便是注册成功的提示：‘您已经成功地注册了!’
+
+> 字符串参考 , 条目 `341`
+> 地址=`00409EC6`
+> 反汇编地址=`push un-packe.00475A7C`
+> 字符内容=`祝贺`
+
+> 字符串参考 , 条目 `342`
+> 地址=`00409ECB`
+> 反汇编地址=`push un-packe.00475A68`
+> 字符内容=`您已经成功地注册了!`
+
+> 双击错误提示、成功提示的字符串后，分别来到了如下的地方：
+
+> ```
+> 》》》》》》》》
+> 00409F21   .  68 CC5A4700   push    un-packe.00475ACC            ;  错了啦!
+> 00409F26   .  8BF1          mov     esi, ecx
+> 00409F28   .  68 AC5A4700   push    un-packe.00475AAC            ;  注册码错误,请重新填写注册码!
+> 》》》》》》》》
+> 
+> 00409EBD  |.  3935 A4AC4C00 cmp     dword ptr [4CACA4], esi
+> 00409EC3  |.  74 4D         je      short un-packe.00409F12
+> 00409EC5  |.  56            push    esi
+> 00409EC6  |.  68 7C5A4700   push    un-packe.00475A7C            ;  祝贺
+> 00409ECB  |.  68 685A4700   push    un-packe.00475A68            ;  您已经成功地注册了!
+> 》》》》》》》》
+> ```
+
+> 顺着它们往上查看，来到开始处：
+
+> ```
+> 》》》》》》》》
+> 00409D58  |.  FF70 1C       push    dword ptr [eax+1C]           ; |hWnd
+> 00409D5B  |.  FF15 74064600 call    dword ptr [<&USER32.PostMessageA>>; \PostMessageA
+> 00409D61  |.  E9 B3010000   jmp     un-packe.00409F19
+> 00409D66  |>  8D85 48FFFFFF lea     eax, dword ptr [ebp-B8]      ;  从这里开始分析
+> 00409D6C  |.  50            push    eax
+> 00409D6D  |.  E8 A4550300   call    un-packe.0043F316F7 进入
+> 00409D72  |.  8B85 54FFFFFF mov     eax, dword ptr [ebp-AC]
+> 》》》》》》》》
+> ```
+
+> 因此，我们在 `00409D66` 这个地方按 `F2` 键下断点，然后 `Ctrl+F2` 重新载入程序，`F9` 运行，这时会弹出一个询问框，告诉你文件被感染了，这是程序的自验校，不管它，继续运行，然后打开注册输入窗口，输入一组实验码：
+
+> `name`：`aCaFeeL`
+> `code`：`12345678`
+
+> 点击‘填写完毕’按钮，程序便被中断在了如下位置（开始分析）：
+
+> ```
+> 》》》》》》》》
+> 『以上代码省略』
+> 00409D5B  |.  FF15 74064600 call    dword ptr [<&USER32.PostMessageA>>; \PostMessageA
+> 00409D61  |.  E9 B3010000   jmp     un-packe.00409F19            ; ××下面便是被中断的开始位置××
+> 00409D66  |>  8D85 48FFFFFF lea     eax, dword ptr [ebp-B8]      ;  注册码到 eax 中
+> 00409D6C  |.  50            push    eax                           ;  压栈
+> 00409D6D  |.  E8 A4550300   call    un-packe.0043F316             ;  将注册名全部转为小写，写入 0012FAB0 开始的地方
+> 00409D72  |.  8B85 54FFFFFF mov     eax, dword ptr [ebp-AC]      ; |注册名 13～16 位(hex 反序) ->eax|不足用$00$20..$20 填补
+> 00409D78  |.  8B8D 4CFFFFFF mov     ecx, dword ptr [ebp-B4]      ; |注册名 8～5 位(hex 反序)   ->ecx|不足用$00$20..$20 填补
+> 00409D7E  |.  8BB5 48FFFFFF mov     esi, dword ptr [ebp-B8]      ; |注册名 4～1 位(hex 反序)   ->esi|不足用$00$20..$20 填补
+> 00409D84  |.  03C8          add     ecx, eax                      ; |ecx = ecx + eax
+> 00409D86  |.  038D 50FFFFFF add     ecx, dword ptr [ebp-B0]      ; |ecx = ecx+注册名 12～9 位(反序)|不足用$00$20..$20 填补
+> 00409D8C  |.  69F6 31750000 imul    esi, esi, 7531               ; |esi = esi * $7531;
+> 00409D92  |.  69C9 31750000 imul    ecx, ecx, 7531               ; |ecx = ecx * $7531;
+> 00409D98  |.  C70424 605447>mov     dword ptr [esp], un-packe.0047546>; |ASCII "BIN_OR_TEXT"
+> 00409D9F  |.  68 B5000000   push    0B5                           ; |ResourceName = B5
+> 00409DA4  |.  6A 00         push    0                             ; |hModule = NULL
+> 00409DA6  |.  2BF1          sub     esi, ecx                      ; |esi = esi - ecx;//最终结果值
+> 00409DA8  |.  FF15 38024600 call    dword ptr [<&KERNEL32.FindResourc>; \FindResourceA
+> 00409DAE  |.  50            push    eax                             ; /hResource
+> 00409DAF  |.  6A 00         push    0                             ; |hModule = NULL
+> 00409DB1  |.  FF15 40024600 call    dword ptr [<&KERNEL32.LoadResourc>; \LoadResource
+> 00409DB7  |.  68 985A4700   push    un-packe.00475A98             ;  ASCII "Register"
+> 00409DBC  |.  57            push    edi
+> 00409DBD  |.  8945 F0       mov     dword ptr [ebp-10], eax
+> 00409DC0  |.  E8 F8ED0000   call    un-packe.00418BBD             ;  获取 ini 文件的节点
+> 00409DC5  |.  68 845A4700   push    un-packe.00475A84            ;  ASCII "RegisterEncryptMode"
+> 00409DCA  |.  57            push    edi
+> 00409DCB  |.  8945 FC       mov     dword ptr [ebp-4], eax
+> 00409DCE  |.  C745 F4 12320>mov     dword ptr [ebp-C], 3212
+> 00409DD5  |.  C745 E8 34120>mov     dword ptr [ebp-18], 1234
+> 00409DDC  |.  C745 EC 88880>mov     dword ptr [ebp-14], 8888
+> 00409DE3  |.  C745 F8 23230>mov     dword ptr [ebp-8], 2323
+> 00409DEA  |.  E8 CEED0000   call    un-packe.00418BBD             ;  获取 ini 文件的节点
+> 00409DEF  |.  83C4 10       add     esp, 10
+> 00409DF2  |.  85C0          test    eax, eax
+> 00409DF4  |.  75 24         jnz     short un-packe.00409E1A
+> 00409DF6  |.  8D45 F8       lea     eax, dword ptr [ebp-8]       ;  2323 -> eax
+> 00409DF9  |.  50            push    eax                             ; /pClusters
+> 00409DFA  |.  8D45 EC       lea     eax, dword ptr [ebp-14]      ; |8888 -> eax
+> 00409DFD  |.  50            push    eax                             ; |pFreeClusters
+> 00409DFE  |.  8D45 E8       lea     eax, dword ptr [ebp-18]      ; |1234 -> eax
+> 00409E01  |.  50            push    eax                             ; |pBytesPerSector
+> 00409E02  |.  8D45 F4       lea     eax, dword ptr [ebp-C]       ; |3212 -> eax
+> 00409E05  |.  50            push    eax                             ; |pSectorsPerCluster
+> 00409E06  |.  68 34594700   push    un-packe.00475934             ; |c:\\
+> 00409E0B  |.  FF15 FC014600 call    dword ptr [<&KERNEL32.GetDiskFree>; \GetDiskFreeSpaceA
+> 00409E11  |.  8B45 F8       mov     eax, dword ptr [ebp-8]
+> 00409E14  |.  0FAF45 F4     imul    eax, dword ptr [ebp-C]
+> 00409E18  |.  EB 19         jmp     short un-packe.00409E33
+> 00409E1A  |>  8D45 C8       lea     eax, dword ptr [ebp-38]
+> 00409E1D  |.  C745 C8 20000>mov     dword ptr [ebp-38], 20
+> 00409E24  |.  50            push    eax                             ; /pMemStat
+> 00409E25  |.  FF15 EC014600 call    dword ptr [<&KERNEL32.GlobalMemor>; \GlobalMemoryStatus
+> 00409E2B  |.  8B45 D4       mov     eax, dword ptr [ebp-2C]
+> 00409E2E  |.  05 CCEDFFFF   add     eax, -1234
+> 00409E33  |>  F7D0          not     eax                             ;  not eax
+> 00409E35  |.  3145 FC       xor     dword ptr [ebp-4], eax
+> 00409E38  |.  33C0          xor     eax, eax                        ;  eax 清零
+> 00409E3A  |.  A3 B8774700   mov     dword ptr [4777B8], eax
+> 00409E3F  |>  3975 FC       /cmp     dword ptr [ebp-4], esi
+> 00409E42  |.  74 1D         |je      short un-packe.00409E61
+> 00409E44  |.  8B55 F0       |mov     edx, dword ptr [ebp-10]       ;  [ebp-10] -> edx
+> 00409E47  |.  8BC8          |mov     ecx, eax                       ;  eax -> ecx
+> 00409E49  |.  83E1 7F       |and     ecx, 7F                         ;  ecx = ecx and $7F;
+> 00409E4C  |.  03348A        |add     esi, dword ptr [edx+ecx*4]     ;  esi = esi + key\i\;
+> 00409E4F  |.  40            |inc     eax                             ;  i = i + 1;
+> ```
+
+
+
+# 汇编代码片段
+
+```
+00409E50  |.  3D FF0F0000   |cmp     eax, 0FFF                       ;  ? > $0FFF-1  
+
+00409E55  |.  A3 B8774700   |mov     dword ptr [4777B8], eax  
+
+00409E5A  |.^ 72 E3         \jb      short un-packe.00409E3F           ;  小于$0FFF 便继续循环  
+
+00409E5C  |.  3975 FC       |cmp     dword ptr [ebp-4], esi           ;  esi 的十进制无符号数便为真正的注册码  
+
+00409E5F  |.  75 78         jnz     short un-packe.00409ED9           ;  关键跳转,真假码相等不跳  
+
+00409E61  |>  8B35 EC054600 mov     esi, dword ptr [<&USER32.GetMenu>] ;  以下便是注册成功后，保存注册信息到 ini 文件中的代码  
+
+00409E67  |.  C705 A0AC4C00>mov     dword ptr [4CACA0], 1  
+
+00409E71  |.  FF73 1C       |push    dword ptr [ebx+1C]               ; /hWnd  
+
+『以下代码省略』
+
+》》》》》》》》
+```
+
+## 算法分析
+
+通过上面的分析，我们知道了其算法主要是由一张表的结果累加，再配上不等的逻辑和算术运算的结果决定的，而这张表可从：
+
+```
+00409E4C  |.  03348A        |add     esi, dword ptr [edx+ecx*4]  
+```
+
+这里的 `dword ptr [edx+ecx*4]` 获得，在内存窗口中抓出来后，便是如下的格式：
+
+```
+[004E78D0~004E7ACC 的这张表]:
+
+004E78D0  4D 44 07 48 36 6C 81 0B 4B 7C 5A 27 97 31 96 25  MDH6l?K|Z'??  
+004E78E0  A6 32 C0 2C 40 05 44 67 E2 7E 7D 3E FD 6D 75 4F  ??@Dg??>焔 uO  
+004E78F0  50 6A 6B 6E CA 6C 8A 77 E2 13 86 5E 43 5F FA 3B  Pjkn?Y?T 魿\_?  
+004E7900  3D 46 AE 4E 5C 66 3C 58 10 34 A9 37 52 25 E8 79  =Fu\\f<X4?R%攊  
+004E7910  A4 4E 68 17 E2 6C 19 0F B5 6A 8B 52 B8 26 15 54  弭 h?y?Z{?T  
+004E7920  81 27 27 4F 2A 15 30 64 1E 4C C6 2C 26 3B ED 51  ?'O\*0dL?&;椂  
+004E7930  10 0F AF 3D 69 00 67 0A 1B 7C 68 25 F2 65 EF 07  ?i.g.|h%??  
+004E7940  56 6C 7A 40 B7 5E F7 17 81 44 74 39 96 20 2F 38  Vlz@zE?Nt9?/8  
+004E7950  98 6D 32 6F 8E 01 ED 4E A8 3B 5F 10 2F 35 D2 42  i?2o?棻?\_/5?  
+004E7960  E2 36 39 10 4F 7E AB 35 EE 7A 94 58 FF 28 95 66  ?9O~?業 d 鼬?(f.  
+004E7970  82 20 22 5D BE 60 65 7F 32 65 F1 73 EC 36 46 51  ?"\]}籩2e 櫷?FQ  
+004E7980  8A 05 35 17 81 6D A4 44 5A 7D 48 74 FE 59 49 00  ?5Nu 尻 Z}Ht?I.  
+004E7990  51 22 EF 6B A4 74 C6 0B CD 4C DF 67 E4 67 15 71  Q"樓??唴恄捬 q  
+004E79A0  F2 02 80 29 18 34 7C 21 FA 59 F0 75 70 3B B4 21  ? ?)4|!澕橜 p;?  
+004E79B0  CB 01 4B 43 2F 4A 4B 41 CF 2E 2A 4B 17 6F 47 61  ?KC/JKA?\*KoGa  
+004E79C0  00 56 69 26 21 38 0C 0E 42 6F 2E 56 72 27 80 70  .Vi&!8.Bo.Vr' 琾  
+004E79D0  F6 31 26 5E 8B 74 6C 5A CC 7F 12 54 C0 6D 26 72  ?&^Z?Z?T~??&r  
+004E79E0  D8 71 83 08 EB 0D 6D 41 E9 3B E1 2C 61 1A 94 2B  寀??mA??a?  
+004E79F0  16 5A B2 1A 25 5D E3 0E 99 3C 19 20 5C 4F 3A 15  Z?%\]?? \\O:  
+004E7A00  E1 65 9D 75 01 48 F7 77 E2 2E 2C 41 DA 02 1A 3B  憲 o8H 渟?,A?;  
+004E7A10  B0 25 60 4A AB 13 A7 23 4C 3A 01 44 A9 19 4C 6D  ?\`J??L:D?Lm  
+004E7A20  BD 2D CA 4E 31 47 44 03 63 77 70 19 BA 11 7B 40  ???1GDcwp?{@  
+004E7A30  89 14 E0 41 09 1E F3 7A 39 76 C8 5B A4 3C 66 5E  ?惷.氉 9v??f^  
+004E7A40  54 01 5A 40 88 0A 2D 5A E2 54 4D 0B 1E 0A 60 26  TZ@?-Z 扂 M  
+.\`&  
+004E7A50  A6 4A 24 69 6C 48 3F 24 F5 65 B2 1A 88 62 D0 1D  姘$ilH?$洝?WF?  
+004E7A60  C9 24 DE 51 53 7F CA 28 12 67 A4 4B 63 11 B2 30  ?廣 S?g 羼 c?  
+004E7A70  4C 60 5C 4B 41 75 44 6C 56 47 3F 5B D5 3F 14 42  L\`\\KAuDlVG?\[?B  
+004E7A80  82 38 27 76 1E 51 75 60 E9 7D 96 7E 27 7F 9A 0C  ?'vQu\`暕 gv'?  
+004E7A90  01 32 FA 26 36 6D FB 6C 71 70 2F 2F 46 63 FA 52  2?6m 瀇 qp//Fc 澋  
+004E7AA0  23 09 46 1B B7 39 C7 47 9B 69 85 47 45 2D 81 60  #.F?僇 l 琒 E-Nc  
+004E7AB0  88 30 AE 7D 37 2F 9E 1D 99 1F 85 6F D8 05 8C 59  ?uW7/??Sm?\[{  
+004E7AC0  92 5F 8C 3A 2B 51 98 0A 9F 4A 11 59 DB 47 10 5C  b??+Q?p?Y 嶅\\  
+```
+
+将其转换后，便是如下的一组 `KEY` 数据了，共 128 组：
+
+```
+$4807444D,$0B816C36,$275A7C4B,$25963197,
+$2CC032A6,$67440540,$3E7D7EE2,$4F756DFD,
+$6E6B6A50,$778A6CCA,$5E8613E2,$3BFA5F43,
+$4EAE463D,$583C665C,$37A93410,$79E82552,
+$17684EA4,$0F196CE2,$528B6AB5,$541526B8,
+$4F272781,$6430152A,$2CC64C1E,$51ED3B26,
+$3DAF0F10,$0A670069,$25687C1B,$07EF65F2,
+$407A6C56,$17F75EB7,$39744481,$382F2096,
+$6F326D98,$4EED018E,$105F3BA8,$42D2352F,
+$103936E2,$35AB7E4F,$58947AEE,$669528FF,
+$5D222082,$7F6560BE,$73F16532,$514636EC,
+$1735058A,$44A46D81,$74487D5A,$004959FE,
+$6BEF2251,$0BC674A4,$67DF4CCD,$711567E4,
+$298002F2,$217C3418,$75F059FA,$21B43B70,
+$434B01CB,$414B4A2F,$4B2A2ECF,$61476F17,
+$26695600,$0E0C3821,$562E6F42,$70802772,
+$5E2631F6,$5A6C748B,$54127FCC,$72266DC0,
+$088371D8,$416D0DEB,$2CE13BE9,$2B941A61,
+$1AB25A16,$0EE35D25,$20193C99,$153A4F5C,
+$759D65E1,$77F74801,$412C2EE2,$3B1A02DA,
+$4A6025B0,$23A713AB,$44013A4C,$6D4C19A9,
+$4ECA2DBD,$03444731,$19707763,$407B11BA,
+$41E01489,$7AF31E09,$5BC87639,$5E663CA4,
+$405A0154,$5A2D0A88,$0B4D54E2,$26600A1E,
+$69244AA6,$243F486C,$1AB265F5,$1DD06288,
+$51DE24C9,$28CA7F53,$4BA46712,$30B21163,
+$4B5C604C,$6C447541,$5B3F4756,$42143FD5,
+$76273882,$6075511E,$7E967DE9,$0C9A7F27,
+$26FA3201,$6CFB6D36,$2F2F7071,$52FA6346,
+$1B460923,$47C739B7,$4785699B,$60812D45,
+$7DAE3088,$1D9E2F37,$6F851F99,$598C05D8,
+$3A8C5F92,$0A98512B,$59114A9F,$5C1047DB
+```
+
+## 算法思路
+
+好，得到上面这些有用的信息后，现在我就把它具体算法的思路给理一下吧：
+
+1.  程序先判断注册名或注册码是否为空，不为空便进入运算中；
+2.  先将输入的注册名全部转换为小写；
+3.  再分配一个以堆栈 `ss:[0012FAB0]` 开始，以堆栈 `ss:[0012FB2C]` 结束的 `(4x4)x32` 的 512 字符串长度的空间，并全部用 `$20` 填满，将得到的注册名放入其中，并再注册名的最后加上 `$00` 结束符号；
+4.  取堆栈 `ss:[0012FABC]` 开始的 hex 格式数据，放入 `eax` 中；
+    取堆栈 `ss:[0012FAB4]` 开始的 hex 格式数据，放入 `ecx` 中；
+    取堆栈 `ss:[0012FAB0]` 开始的 hex 格式数据，放入 `esi` 中；
+    然后：
+    *   `ecx := ecx + eax;`
+    *   `ecx := ecx + (取堆栈 ss:[0012FAB8]开始的 hex 格式数据);`
+    *   `esi := esi * $7531;`
+    *   `ecx := ecx * $7531;`
+    *   `esi := esi - ecx;`
+    *   通过上面的处理，我们知道了，注册名长度的相关计算有 5 种情况，分别是：
+        *   a： `0 < 注册名长度 <= 4`；
+        *   b： `4 < 注册名长度 <= 8`；
+        *   c： `8 < 注册名长度 <= 12`；
+        *   d： `12 < 注册名长度 <= 16`；
+        *   e： `16 < 注册名长度 <= 512`；
+5.  然后开始循环将 `KEY` 表中的数据累加，一直要到计算的次数大于 `$0FFF`，即大于十进制数 4095 才结束。
+
+也许我无法表示清楚，还是看相关的源代码吧！
+
+转换成用 Delphi + KOL/MCK 写的代码即是如下形式:（已写成为一个 `string` 函数格式，方便你的调用和修改，嘿嘿 :)
+
+```delphi
+//ReadBooK v1.51 注册算法
+function ReadBook151_SN(RegName: string): string; //定义为 string 函数
+var
+  temp4,  temp8,  temp12, temp16, cz : string;   //先定义相关的变量
+  temp41, temp85, tempB9, temp10D, i,
+  Teax, Tecx, Tesi                  : cardinal;
+const
+  key: array[0 .. 127] of cardinal =             //密文表全部数据，共 128 组
+  ($4807444D,$0B816C36,$275A7C4B,$25963197,
+   $2CC032A6,$67440540,$3E7D7EE2,$4F756DFD,
+   $6E6B6A50,$778A6CCA,$5E8613E2,$3BFA5F43,
+   $4EAE463D,$583C665C,$37A93410,$79E82552,
+   $17684EA4,$0F196CE2,$528B6AB5,$541526B8,
+   $4F272781,$6430152A,$2CC64C1E,$51ED3B26,
+   $3DAF0F10,$0A670069,$25687C1B,$07EF65F2,
+   $407A6C56,$17F75EB7,$39744481,$382F2096,
+   $6F326D98,$4EED018E,$105F3BA8,$42D2352F,
+   $103936E2,$35AB7E4F,$58947AEE,$669528FF,
+   $5D222082,$7F6560BE,$73F16532,$514636EC,
+   $1735058A,$44A46D81,$74487D5A,$004959FE,
+   $6BEF2251,$0BC674A4,$67DF4CCD,$711567E4,
+   $298002F2,$217C3418,$75F059FA,$21B43B70,
+   $434B01CB,$414B4A2F,$4B2A2ECF,$61476F17,
+   $26695600,$0E0C3821,$562E6F42,$70802772,
+   $5E2631F6,$5A6C748B,$54127FCC,$72266DC0,
+   $088371D8,$416D0DEB,$2CE13BE9,$2B941A61,
+   $1AB25A16,$0EE35D25,$20193C99,$153A4F5C,
+   $759D65E1,$77F74801,$412C2EE2,$3B1A02DA,
+   $4A6025B0,$23A713AB,$44013A4C,$6D4C19A9,
+   $4ECA2DBD,$03444731,$19707763,$407B11BA,
+   $41E01489,$7AF31E09,$5BC87639,$5E663CA4,
+   $405A0154,$5A2D0A88,$0B4D54E2,$26600A1E,
+   $69244AA6,$243F486C,$1AB265F5,$1DD06288,
+   $51DE24C9,$28CA7F53,$4BA46712,$30B21163,
+   $4B5C604C,$6C447541,$5B3F4756,$42143FD5,
+   $76273882,$6075511E,$7E967DE9,$0C9A7F27,
+   $26FA3201,$6CFB6D36,$2F2F7071,$52FA6346,
+   $1B460923,$47C739B7,$4785699B,$60812D45,
+   $7DAE3088,$1D9E2F37,$6F851F99,$598C05D8,
+   $3A8C5F92,$0A98512B,$59114A9F,$5C1047DB);
+begin
+```
+
+
+
+```
+if RegName = '' then      //注册名不能为空!  
+  begin  
+    ShowMessage('first, you need input your name! :)');  
+    Exit;  
+  end;  
+
+  cz := LowerCase(RegName); //注册名全部转为小写!  
+
+  //注册名的长度可以为: (4x4)x32 = 512 位数的长度!  
+  case length(cz) of        //分 5 种情况的不同对待  
+    1 .. 4: begin //0< 注册名长度 <=4 :  
+                for i:=1 to length(cz) do  
+                  temp4 := temp4 + int2hex(ord(cz[i]),2);  
+                temp4 := temp4 + '00'+'20'+'20';  
+                temp4 := copy(temp4,1,8);  
+                temp4 := copy(temp4,7,2)+copy(temp4,5,2)+copy(temp4,3,2)+copy(temp4,1,2);//反顺序  
+
+                if length(cz)=4  
+                then temp8 := '20202000'  //如注册名长度为 4  
+                else temp8 := '20202020';  
+
+                temp12 := '20202020';  
+                temp16 := '20202020';  
+              end;  
+    5 .. 8: begin //4< 注册名长度 <=8 :  
+                temp4 := int2hex(ord(cz[4]),2)+int2hex(ord(cz[3]),2)+  
+                          int2hex(ord(cz[2]),2)+int2hex(ord(cz[1]),2);  
+
+                for i:=5 to length(cz) do  
+                  temp8 := temp8 + int2hex(ord(cz[i]),2);  
+                temp8 := temp8 + '00'+'20'+'20';  
+                temp8 := copy(temp8,1,8);  
+                temp8 := copy(temp8,7,2)+copy(temp8,5,2)+copy(temp8,3,2)+copy(temp8,1,2);//反顺序  
+
+                if length(cz)=8  
+                then temp12 := '20202000'  //如注册名长度为 8  
+                else temp12 := '20202020';  
+
+                temp16 := '20202020';  
+              end;  
+     9 .. 12: begin //8< 注册名长度 <=12 :  
+                temp4 := int2hex(ord(cz[4]),2)+int2hex(ord(cz[3]),2)+  
+                          int2hex(ord(cz[2]),2)+int2hex(ord(cz[1]),2);  
+
+                temp8 := int2hex(ord(cz[8]),2)+int2hex(ord(cz[7]),2)+  
+                          int2hex(ord(cz[6]),2)+int2hex(ord(cz[5]),2);  
+
+                for i:=9 to length(cz) do  
+                  temp12 := temp12 + int2hex(ord(cz[i]),2);  
+                temp12 := temp12 + '00'+'20'+'20';  
+                temp12 := copy(temp12,1,8);  
+                temp12 := copy(temp12,7,2)+copy(temp12,5,2)+copy(temp12,3,2)+copy(temp12,1,2);//反顺序  
+
+                if length(cz)=12  
+                then temp16 := '20202000'  //如注册名长度为 12  
+                else temp16 := '20202020';  
+              end;  
+  13 .. 512: begin //12< 注册名长度 <=512 :  
+                temp4 := int2hex(ord(cz[4]),2)+int2hex(ord(cz[3]),2)+  
+                          int2hex(ord(cz[2]),2)+int2hex(ord(cz[1]),2);  
+
+                temp8 := int2hex(ord(cz[8]),2)+int2hex(ord(cz[7]),2)+  
+                          int2hex(ord(cz[6]),2)+int2hex(ord(cz[5]),2);  
+
+                temp12 := int2hex(ord(cz[12]),2)+int2hex(ord(cz[11]),2)+  
+                           int2hex(ord(cz[10]),2)+int2hex(ord(cz[9]), 2);  
+
+                for i:=13 to length(cz) do  
+                  temp16 := temp16 + int2hex(ord(cz[i]),2);  
+                temp16 := temp16 + '00'+'20'+'20';  
+                temp16 := copy(temp16,1,8);  
+                temp16 := copy(temp16,7,2)+copy(temp16,5,2)+copy(temp16,3,2)+copy(temp16,1,2);//反顺序  
+              end;  
+  else        begin //注册名长度 > 512 :  
+                ShowMessage('the length of your name must less than 513!');  
+                Exit;  
+              end;  
+  end;  
+
+  temp41  := Hex2Int('$' + temp4);//KOL 的这个 Hex2Int 函数好呀!  
+  temp85  := Hex2Int('$' + temp8);  
+  tempB9  := Hex2Int('$' + temp12);  
+  temp10D := Hex2Int('$' + temp16);  
+  Teax := temp10D;  
+  Tecx := temp85;  
+  Tesis := temp41;  
+
+  Tecx := Tecx + Teax;  
+  Tecx := Tecx + tempB9;  
+  Tesis := Tesis * $7531;  
+  Tecx := Tecx * $7531;  
+  Tesis := Tesis - Tecx;  
+
+  i:=0;  //i 的初始值  
+  repeat //开始循环！  
+    Teax := i;  
+    Tecx := Teax;  
+    Tecx := Tecx and $7F;  
+    Tesis := Tesis + key[Tecx];  
+    i := i + 1;  
+  until i > ($0FFF - 1);  
+  
+  Result := Uint2str(Tesis); //返回结果；应为：无符号的十进制数，故用 KOL 的 Uint2str 函数!  
+end;
+```
+
+好的，就到这里结束吧！分析难免有不当之处，还望大家给我指出来！
+
+放上一组可用的 Key：
+
+name: `aCaFeeL`
+code: `936627489`
+
+注册机的算法在多台机器上使用不同注册名通过验证，但没有时间再优化它了，应该不存在 bug 的问题，附件中为我打包后的注册机源代码。
+
+`4dd466d0e1e0cc123afbe504da2462ca`
