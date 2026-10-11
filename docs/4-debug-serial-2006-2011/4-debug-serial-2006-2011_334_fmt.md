@@ -1,0 +1,891 @@
+
+# 极品私人密盘 6.1.2 逆向研究
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-282.htm`](https://www.pediy.com/kssd/pediy09/pediy09-282.htm)
+
+> 极品私人密盘 6.1.2 逆向研究
+
+> 软件简介：
+
+> 《极品私人密盘》一款人性化，专为拥有大量机密的用户设计的密盘软件。
+
+> 轻轻松松点击"新建密盘"，然后选择空间建立盘，这样就可以创建一个需要密码的密盘。
+
+> 软件具有界面豪华、稳定易用、功能强大和兼容性好等特点。
+
+> 您可以在硬盘上建立无数个密盘，密盘名字任你改。
+
+> 可以直接往个人密盘里下载文件，随便编辑处理观看里面的文件。
+
+> 可以把空间提供盘上的文件或文件夹直接转移密盘内。
+
+> 用户只需将文件存入密盘，操作完后将密盘关闭，程序就会自动将密盘中的文件加密，
+
+> 别人无法打开，杀毒程序也无法访问，既方便又安全，真正的个人文件保险箱。
+
+> 绿色软件，安装卸载 100%无残留。
+
+> 使用方法：
+
+> 新建密盘：打开软件，点击“新建密盘”即可。
+
+> 导入文件：在密盘上单击右键，选中“导入文件”
+
+> 安全设置：点击“软件设置”-“个性设置”-“安全设置”
+
+> 设置运行密码：点击“软件设置”-“运行密码”即可
+
+> 今晚无事，看了看某杂志附带的光盘，发现这个“加密”软件，研究下吧！
+
+### 一、测试文件加密功能
+
+首先测试下所谓的加密功能：在硬盘某个分区建立一个密盘 `B`，复制一个文件进去，再关闭密盘，查看分区大小，发现已经有文件写入了。现有文件夹大小都没有改变，看来是放到隐藏文件夹里了。
+
+用 `TotalCommander` 查看该分区，可以看到有一个名为“recycle”的隐藏系统文件夹，创建时间为大约刚才建立密盘的时间，进入查看后可以发现，刚才复制过来的测试文件居然原封不动躺在文件夹下：
+
+`"recycle\\S-1-5-21-1060284298-811497611-11778920086-500\\com1.{21ec2020-3aea-1069-a2dd-08002b30309d}\\data\\B\\"`
+
+PS：后来我又用 `WINRAR` 和 `ACDSEE` 分别进入这个文件夹查看，`ACDSEE` 无法发现“com1.{21ec2020-3aea-1069-a2dd-08002b30309d}”文件夹，在 `WINRAR` 里可以发现这个文件夹，但是把它认作一个文件，打开时直接回到根目录下了。看来 `TC` 真够强悍的！
+
+分析目录结构：
+
+在“S-1-5-21-1060284298-811497611-11778920086-500”（注意，最后面有一个全角空格）文件夹下有二个文件夹：
+
+* “com1.{21ec2020-3aea-1069-a2dd-08002b30309d}”：伪装成系统文件，阻止 Windows 系统进入。用 `TC` 可以浏览和操作该文件夹下的内容，但无法删除该文件夹。
+* “mp..”：利用系统漏洞创建的非法文件夹名，这种文件夹名称可以在命令行下用“md mp...\\”创建，可以用“rd mp...\\”删除，但是无法访问和重命名。在 Windows 环境里这种非法文件夹就成了霸王，无法对其进行任何操作，连浏览和删除操作都无效！
+
+在“data”文件夹下还有个名为“panfile2.dll”的文件，用记事本打开可以看到存放的就是密盘的设置信息，包括盘符、盘名以及加密过的密盘打开密码。密码的加密方式稍后研究。
+
+### 二、注册算法逆向研究
+
+未注册版本会有 30 次使用限制，在注册窗口中输入任意字符后点“确定”，弹出“感谢您的注册,请重新启动本软件”提示，居然还是重启验证，呵呵。
+
+开始分析程序：
+
+用 `PEID` 看下加壳情况：`UPX 0.89.6 - 1.02 / 1.05 - 1.24 (Delphi) stub -> Markus & Laszlo`
+
+最简单的压缩壳，脱掉后在 `OD` 里用 `Ultra String Reference` 看了下，所有的字符参考都出来了！
+
+找到前面提示窗口中的字符串，双击后来到：
+
+```assembly
+004A8751   jnz short dump\_.004A8767
+004A8753   mov eax,dump\_.004A890C               ;  请输入用户名和注册码
+004A8758   call dump\_.004312DC
+004A875D   call dump\_.00403BB4
+004A8762   jmp dump\_.004A88BD
+004A8767   lea eax,dword ptr ss:\[ebp-8\]
+004A876A   push eax
+004A876B   lea edx,dword ptr ss:\[ebp-14\]
+004A876E   mov eax,dword ptr ss:\[ebp-4\]
+004A8771   mov eax,dword ptr ds:\[eax+2FC\]
+004A8777   call dump\_.004573B4
+004A877C   mov eax,dword ptr ss:\[ebp-14\]
+004A877F   mov ecx,6
+004A8784   mov edx,1
+004A8789   call <dump\_.MidStr>                 ;  取注册码前 6 位
+004A878E   xor eax,eax
+004A8790   push ebp
+004A8791   push dump\_.004A884E
+004A8796   push dword ptr fs:\[eax\]
+004A8799   mov dword ptr fs:\[eax\],esp
+004A879C   mov eax,dword ptr ss:\[ebp-8\]
+004A879F   call <dump\_.StrToInt>               ;  转换为数字
+004A87A4   mov ecx,3
+004A87A9   cdq
+004A87AA   idiv ecx                             ;  除 3
+004A87AC   lea edx,dword ptr ss:\[ebp-18\]
+004A87AF   call <dump\_.IntToStr>               ;  再转换为字符
+004A87B4   mov eax,dword ptr ss:\[ebp-18\]
+004A87B7   call dump\_.004A8430                 ;  关键 CALL!
+004A87BC   test al,al
+004A87BE   je short dump\_.004A8822
+004A87C0   lea edx,dword ptr ss:\[ebp-1C\]
+004A87C3   mov eax,dword ptr ss:\[ebp-4\]
+004A87C6   mov eax,dword ptr ds:\[eax+2FC\]
+004A87CC   call dump\_.004573B4                 ;  GetSN
+004A87D1   mov eax,dword ptr ss:\[ebp-1C\]
+004A87D4   push eax
+004A87D5   mov eax,dword ptr ds:\[4B6114\]
+004A87DA   mov eax,dword ptr ds:\[eax\]
+004A87DC   mov eax,dword ptr ds:\[eax+4B8\]
+004A87E2   mov ecx,dump\_.004A892C              ;  ASCII "zcm"
+004A87E7   mov edx,dump\_.004A8938              ;  edia
+004A87EC   mov ebx,dword ptr ds:\[eax\]
+004A87EE   call dword ptr ds:\[ebx+4\]
+004A87F1   lea edx,dword ptr ss:\[ebp-20\]
+004A87F4   mov eax,dword ptr ss:\[ebp-4\]
+004A87F7   mov eax,dword ptr ds:\[eax+2F8\]
+004A87FD   call dump\_.004573B4                 ;  GetName
+004A8802   mov eax,dword ptr ss:\[ebp-20\]
+004A8805   push eax
+004A8806   mov eax,dword ptr ds:\[4B6114\]
+004A880B   mov eax,dword ptr ds:\[eax\]
+004A880D   mov eax,dword ptr ds:\[eax+4B8\]
+004A8813   mov ecx,dump\_.004A8948              ;  ASCII "jqm"
+004A8818   mov edx,dump\_.004A8938              ;  edia
+004A881D   mov ebx,dword ptr ds:\[eax\]
+004A881F   call dword ptr ds:\[ebx+4\]
+004A8822   mov eax,dump\_.004A8954              ;  感谢您的注册,请重新启动本软件
+004A8827   call dump\_.004312DC
+004A882C   mov eax,dword ptr ds:\[4B6114\]
+004A8831   mov eax,dword ptr ds:\[eax\]
+004A8833   call dump\_.00473DD4
+004A8838   mov eax,dword ptr ds:\[4B6114\]
+004A883D   mov eax,dword ptr ds:\[eax\]
+004A883F   call dump\_.00473C34
+004A8844   xor eax,eax
+004A8846   pop edx
+004A8847   pop ecx
+004A8848   pop ecx
+004A8849   mov dword ptr fs:\[eax\],edx
+004A884C   jmp short dump\_.004A887A
+004A884E   jmp dump\_.0040381C
+004A8853   mov eax,dump\_.004A8954              ;  感谢您的注册,请重新启动本软件
+```
+
+对程序流程稍加分析：
+
+获取用户输入的用户名和注册码－－判断是否为空（为空时弹出提示）－－取注册码前 6 位进行计算－－符合时将用户名和密码保存到配置文件中－－弹出重启提示
+
+而 `004A87B7` 处的 `call dump\_.004A8430` 即为判断算法，跟入：
+
+```assembly
+004A8489   mov edi,ebx                          ;  循环次数
+004A848B   imul edi,ebx
+004A848E   mov eax,edi
+004A8490   imul ebx                              ;  eax=i*i*i
+004A8492   lea edx,dword ptr ds:\[ebx+14\]       ;  edx=14+i
+004A8495   mov ecx,edx
+004A8497   cdq
+004A8498   idiv ecx
+004A849A   mov esi,edx                          ;  n1=(i*i*i) mod (i+14)
+004A849C   mov eax,edi                          ;  eax=i*i
+004A849E   lea edx,dword ptr ds:\[ebx+A\]
+004A84A1   mov ecx,edx                          ;  ecx=A+i
+004A84A3   cdq
+004A84A4   idiv ecx                              ;  n2=(i*i) mod (A+i)
+004A84A6   add esi,edx                          ;  n1+n2
+004A84A8   mov eax,ebx
+004A84AA   add eax,eax                          ;  eax=i+i
+004A84AC   add esi,eax                          ;  n1+n2+i+i
+004A84AE   inc esi                              ;  n3=n1+n2+i+i+1
+004A84AF   lea eax,dword ptr ss:\[ebp-18\]
+004A84B2   mov edx,dword ptr ss:\[ebp-C\]
+004A84B5   movzx edx,byte ptr ds:\[edx+ebx-1\]    ;  edx=ord(s[i])
+004A84BA   add edx,esi                          ;  n=n3+ord(s[i])
+004A84BC   call dump\_.004042B4
+004A84C1   mov edx,dword ptr ss:\[ebp-18\]
+004A84C4   lea eax,dword ptr ss:\[ebp-10\]
+004A84C7   call dump\_.00404394                 ;  保存字符
+004A84CC   mov eax,ebx
+004A84CE   imul ebx
+004A84D0   imul ebx                              ;  i*i*i
+004A84D2   lea edx,dword ptr ds:\[ebx+A\]        ;  A+i
+004A84D5   mov ecx,edx
+004A84D7   cdq
+004A84D8   idiv ecx
+004A84DA   mov esi,edx                          ;  n1=(i*i*i) mod (A+i)
+004A84DC   mov eax,edi                          ;  i*i
+004A84DE   lea edx,dword ptr ds:\[ebx+14\]       ;  14+i
+004A84E1   mov ecx,edx
+004A84E3   cdq
+004A84E4   idiv ecx                              ;  n2=(i*i) mod (14+i)
+004A84E6   add esi,edx                          ;  n1+n2
+004A84E8   mov eax,ebx
+004A84EA   add eax,eax                          ;  i+i
+004A84EC   add esi,eax
+004A84EE   inc esi                              ;  n3=n1+n2+i+i+1
+004A84EF   lea eax,dword ptr ss:\[ebp-1C\]
+004A84F2   mov edx,dword ptr ss:\[ebp-C\]
+004A84F5   movzx edx,byte ptr ds:\[edx+ebx-1\]
+004A84FA   add edx,esi                          ;  n=n3+ord(s[i])
+004A84FC   call dump\_.004042B4
+004A8501   mov edx,dword ptr ss:\[ebp-1C\]
+004A8504   lea eax,dword ptr ss:\[ebp-10\]
+004A8507   call dump\_.00404394
+```
+
+
+
+> 004A850C `inc ebx`
+>
+> 004A850D `dec dword ptr ss:[ebp-14]`
+>
+> 004A8510 `jnz dump_.004A8489`
+>
+> 004A8516 `mov eax,dword ptr ss:[ebp-10]`
+>
+> 004A8519 `mov edx,dump_.004A858C` ; `66FFMJRXJELR`
+>
+> 004A851E `call <dump_.CmpStr>`
+>
+> 004A8523 `jnz short dump_.004A8529`
+>
+> 具体算法是把循环次数经过一系列计算，然后加到注册码中的每一位生成一个新字符串，再判断生成的字符串是否为“66FFMJRXJELR”。于是用 VB 写了段小代码：
+>
+> ```vb
+> Private Sub Command1_Click()
+>     Dim i As Long, i1 As Long, i2 As Long
+>     Dim s As String, sn As String
+>
+>     s = "66FFMJRXJELR"
+>     For i = 1 To 6
+>         i1 = (((i * i * i) Mod (20 + i)) + ((i * i) Mod (10 + i)) + i + i + 1)
+>         i2 = (((i * i * i) Mod (10 + i)) + ((i * i) Mod (20 + i)) + i + i + 1)
+>         sn = sn & Chr(Asc(Mid$(s, i * 2 - 1, 1)) - i1) 'or: Chr(Asc(Mid$(s, i * 2, 1)) - i2)
+>     Next
+>     MsgBox sn 'Output:159753
+> End Sub
+> ```
+>
+> 输出为：159753。于是得到注册码 6 位为 159753×3＝479259。如果把余数也考虑在内的话注册码前 6 位也可以为 479260、479261。
+>
+> 这个算法通过以后程序会把用户输入的用户名和注册码保存到“`C:\WINDOWS\system32\driveset.dll`”中，用记事本打开这个文件还可以看到程序的运行次数也保存在这里。
+>
+> 再注意看到字符串参考中有“极品私人密盘 2007 (已注册)”的字样，从这里入手可以观察重启验证的算法。
+>
+> 004B0B43 `mov ecx,dump_.004B10C8` ; `ASCII "zcm"`
+>
+> 004B0B48 `mov edx,dump_.004B10D4` ; `edia`
+>
+> 004B0B4D `mov esi,dword ptr ds:[eax]`
+>
+> 004B0B4F `call dword ptr ds:[esi]` ; `取注册码 sn`
+>
+> 004B0B51 `push 0`
+>
+> 004B0B53 `lea eax,dword ptr ss:[ebp-4C]`
+>
+> 004B0B56 `push eax`
+>
+> 004B0B57 `mov eax,dword ptr ss:[ebp-4]`
+>
+> 004B0B5A `mov eax,dword ptr ds:[eax+4B8]`
+>
+> 004B0B60 `mov ecx,dump_.004B10E4` ; `ASCII "jqm"`
+>
+> 004B0B65 `mov edx,dump_.004B10D4` ; `edia`
+>
+> 004B0B6A `mov esi,dword ptr ds:[eax]`
+>
+> 004B0B6C `call dword ptr ds:[esi]` ; `取用户名 name`
+>
+> 004B0B6E `mov edx,dword ptr ss:[ebp-4C]`
+>
+> 004B0B71 `mov eax,dword ptr ss:[ebp-4]`
+>
+> 004B0B74 `add eax,46C`
+>
+> 004B0B79 `call dump_.00404120`
+>
+> 004B0B7E `mov eax,dword ptr ss:[ebp-4]`
+>
+> 004B0B81 `add eax,4AC`
+>
+> 004B0B86 `push eax`
+>
+> 004B0B87 `mov ecx,6`
+>
+> 004B0B8C `mov edx,1`
+>
+> 004B0B91 `mov eax,dword ptr ss:[ebp-8]`
+>
+> 004B0B94 `call <dump_.MidStr>` ; `sn1=midstr(sn,1,6)`
+>
+> 004B0B99 `mov eax,dword ptr ss:[ebp-4]`
+>
+> 004B0B9C `add eax,4B0`
+>
+> 004B0BA1 `push eax`
+>
+> 004B0BA2 `mov ecx,4`
+>
+> 004B0BA7 `mov edx,7`
+>
+> 004B0BAC `mov eax,dword ptr ss:[ebp-8]`
+>
+> 004B0BAF `call <dump_.MidStr>` ; `sn2=midstr(sn,7,4)`
+>
+> 004B0BB4 `mov eax,dword ptr ss:[ebp-4]`
+>
+> 004B0BB7 `add eax,4B4`
+>
+> 004B0BBC `push eax`
+>
+> 004B0BBD `mov eax,dword ptr ss:[ebp-8]`
+>
+> 004B0BC0 `call <dump_.LenStr>`
+>
+> 004B0BC5 `mov ecx,eax`
+>
+> 004B0BC7 `sub ecx,0A`
+>
+> 004B0BCA `mov edx,0B`
+>
+> 004B0BCF `mov eax,dword ptr ss:[ebp-8]`
+>
+> 004B0BD2 `call <dump_.MidStr>` ; `sn3=midstr(sn,11,len-10)`
+>
+> 004B0BD7 `mov eax,dword ptr ss:[ebp-4]`
+>
+> 004B0BDA `mov eax,dword ptr ds:[eax+4AC]`
+>
+> 004B0BE0 `call <dump_.StrToInt>` ; `sn1 转换为数字`
+>
+> 004B0BE5 `mov ecx,3`
+>
+> 004B0BEA `cdq`
+>
+> 004B0BEB `idiv ecx` ; `sn1/3`
+>
+> 004B0BED `lea edx,dword ptr ss:[ebp-50]`
+>
+> 004B0BF0 `call <dump_.IntToStr>`
+>
+> 004B0BF5 `mov eax,dword ptr ss:[ebp-50]`
+>
+> 004B0BF8 `call dump_.004AF61C` ; `①计算 sn1，与保存时的计算过程一样`
+>
+> 004B0BFD `test al,al`
+>
+> 004B0BFF `je short dump_.004B0C03`
+>
+> 004B0C01 `mov bl,1`
+>
+> 004B0C03 `cmp dword ptr ss:[ebp-28],1E0`
+>
+> 004B0C0A `jle short dump_.004B0C39`
+>
+> 004B0C0C `cmp bl,1`
+>
+> 004B0C0F `jnz short dump_.004B0C39`
+>
+> 004B0C11 `mov eax,dword ptr ss:[ebp-4]`
+>
+> 004B0C14 `mov eax,dword ptr ds:[eax+4B0]`
+>
+> 004B0C1A `call <dump_.StrToInt>` ; `sn2 转换为数字`
+>
+> 004B0C1F `mov ecx,3`
+>
+> 004B0C24 `cdq`
+>
+> 004B0C25 `idiv ecx` ; `sn2/3`
+>
+> 004B0C27 `lea edx,dword ptr ss:[ebp-54]`
+>
+> 004B0C2A `call <dump_.IntToStr>`
+>
+> 004B0C2F `mov eax,dword ptr ss:[ebp-54]`
+>
+> 004B0C32 `call dump_.004AF788` ; `②计算 sn2，跟进！`
+>
+> 004B0C37 `test al,al`
+>
+> 004B0C39 `cmp dword ptr ss:[ebp-24],1D`
+>
+> 004B0C3D `jle dump_.004B0CE0`
+>
+> 004B0C43 `mov eax,dword ptr ss:[ebp-4]`
+>
+> 004B0C46 `mov eax,dword ptr ds:[eax+4AC]`
+>
+> 004B0C4C `call <dump_.StrToInt>` ; `sn1 转换为数字`
+>
+> 004B0C51 `mov ecx,3`
+>
+> 004B0C56 `cdq`
+>
+> 004B0C57 `idiv ecx` ; `sn1/3`
+>
+> 004B0C59 `lea edx,dword ptr ss:[ebp-58]`
+>
+> 004B0C5C `call <dump_.IntToStr>`
+>
+> 004B0C61 `mov eax,dword ptr ss:[ebp-58]`
+>
+> 004B0C64 `call dump_.004AF4B0` ; `③计算 sn1，与保存时的计算过程一样`
+>
+> 004B0C69 `test al,al`
+>
+> 004B0C6B `je short dump_.004B0CE0`
+>
+> 004B0C6D `lea edx,dword ptr ss:[ebp-5C]`
+>
+> 004B0C70 `mov eax,dword ptr ss:[ebp-4]`
+>
+> 004B0C73 `mov eax,dword ptr ds:[eax+46C]` ; `用户名 name`
+>
+> 004B0C79 `call <dump_.字符替换>` ; `转换 name，生成 name1`
+>
+> 004B0C7E `mov eax,dword ptr ss:[ebp-5C]` ; `sn3`
+>
+> 004B0C81 `mov edx,dword ptr ss:[ebp-4]`
+>
+> 004B0C84 `mov edx,dword ptr ds:[edx+4B4]`
+>
+> 004B0C8A `call <dump_.CmpStr>` ; `④sn3=name1?`
+>
+> 004B0C8F `je short dump_.004B0CC7`
+>
+> 004B0C91 `lea edx,dword ptr ss:[ebp-68]`
+>
+> 004B0C94 `mov eax,dword ptr ds:[4B7CEC]`
+>
+> 004B0C99 `call dump_.004ACF18`
+>
+> 004B0C9E `mov eax,dword ptr ss:[ebp-68]` ; `"61686902"`
+>
+> 004B0CA1 `lea edx,dword ptr ss:[ebp-64]`
+>
+> 004B0CA4 `call dump_.0040834C`
+>
+> 004B0CA9 `mov eax,dword ptr ss:[ebp-64]`
+>
+> 004B0CAC `lea edx,dword ptr ss:[ebp-60]`
+>
+> 004B0CAF `call <dump_.字符替换>` ; `转换"61686902"，生成 sn0`
+>
+> 004B0CB4 `mov eax,dword ptr ss:[ebp-60]`
+>
+> 004B0CB7 `mov edx,dword ptr ss:[ebp-4]` ; `sn3`
+>
+> 004B0CBA `mov edx,dword ptr ds:[edx+4B4]`
+>
+> 004B0CC0 `call <dump_.CmpStr>` ; `⑤sn0=sn3?`
+>
+> 004B0CC5 `jnz short dump_.004B0CE0`
+>
+> 004B0CC7 `mov eax,dword ptr ss:[ebp-4]`
+>
+> 004B0CCA `mov byte ptr ds:[eax+474],1`
+>
+> 004B0CD1 `mov edx,dump_.004B10F0` ; `极品私人密盘 2007 (已注册)`
+>
+> 计算时把注册码分成三部分：`sn1=1-6`, `sn2=7-10`, `sn3=11` 以后。对 `sn1` 计算了二次，计算过程与之前保存时的计算过程完全相同，对 `sn2` 的计算过程为关键 CALL②：
+>
+> 004AF7CC `mov dl,byte ptr ds:[edx]` ; `取第 1 位 n1`
+>
+> 004AF7CE `call dump_.004042B4`
+>
+> 004AF7D3 `mov eax,dword ptr ss:[ebp-C]`
+>
+> 004AF7D6 `call <dump_.StrToInt>`
+>
+> 004AF7DB `mov ebx,eax`
+>
+> 004AF7DD `lea eax,dword ptr ss:[ebp-10]`
+>
+> 004AF7E0 `mov edx,dword ptr ss:[ebp-4]`
+>
+> 004AF7E3 `mov dl,byte ptr ds:[edx+1]` ; `取第 2 位 n2`
+>
+> 004AF7E6 `call dump_.004042B4`
+>
+> 004AF7EB `mov eax,dword ptr ss:[ebp-10]`
+>
+> 004AF7EE `call <dump_.StrToInt>`
+>
+> 004AF7F3 `mov esi,eax`
+>
+> 004AF7F5 `lea eax,dword ptr ds:[esi+3]` ; `n2+3`
+>
+> 004AF7F8 `mov dword ptr ss:[ebp-14],eax`
+>
+> 004AF7FB `fild dword ptr ss:[ebp-14]`
+>
+> 004AF7FE `fsqrt`
+>
+> 004AF800 `fstp tbyte ptr ss:[ebp-20]` ; `sqr(n2+3)`
+>
+> 004AF803 `wait`
+>
+> 004AF804 `lea eax,dword ptr ds:[esi+3]`
+>
+> 004AF807 `mov dword ptr ss:[ebp-24],eax`
+>
+> 004AF80A `fild dword ptr ss:[ebp-24]`
+>
+> 004AF80D `fsqrt` ; `t1=sqr(n2+3)`
+>
+> 004AF80F `mov edi,ebx`
+>
+> 004AF811 `imul edi,ebx` ; `n1*n1`
+>
+> 004AF814 `mov eax,edi`
+>
+> 004AF816 `add eax,ebx` ; `t2=n1*n1+n1=n1*(n1+1)`
+>
+> 004AF818 `mov dword ptr ss:[ebp-28],eax`
+>
+> 004AF81B `fild dword ptr ss:[ebp-28]`
+>
+> 004AF81E `faddp st(1),st` ; `t1+t2`
+>
+> 004AF820 `fld tbyte ptr ss:[ebp-20]`
+>
+> 004AF823 `fmulp st(1),st` ; `t0=t1*(t1+t2)`
+>
+> 004AF825 `mov eax,edi` ; `n1*n1`
+>
+> 004AF827 `imul ebx`
+>
+> 004AF829 `imul ebx`
+>
+> 004AF82B `mov edx,ebx` ; `s1=n1*n1*n1*n1`
+
+
+
+### 汇编代码分析
+
+```
+004AF82D  add edx,edx                         ;  n1+n1  
+004AF82F  imul edx,ebx  
+004AF832  imul edx,ebx                        ;  s2=(n1+n1)*n1*n1  
+004AF835  add eax,edx                         ;  s1+s2  
+004AF837  add eax,edi                         ;  s1+s2+n1*n1  
+004AF839  mov dword ptr ss:[ebp-2C],eax       ;  s3=(n1*(n1+1))²  
+004AF83C  fild dword ptr ss:[ebp-2C]  
+004AF83F  fdiv dword ptr ds:[4AF994]          ;  s3/4  
+004AF845  fadd dword ptr ds:[4AF998]          ;  s0=s3/4+3  
+004AF84B  faddp st(1),st                      ;  s0+t0  
+004AF84D  fstp tbyte ptr ss:[ebp-38]  
+004AF850  wait  
+004AF851  add esi,3                           ;  n2+3  
+004AF854  mov dword ptr ss:[ebp-3C],esi  
+004AF857  fild dword ptr ss:[ebp-3C]  
+004AF85A  fsqrt                               ;  t1=sqr(n2+3)  
+004AF85C  fmul dword ptr ds:[4AF99C]          ;  r0=t1*12  
+004AF862  fld tbyte ptr ss:[ebp-38]  
+004AF865  fsubrp st(1),st                     ;  s0+t0-r0  
+004AF867  fcomp dword ptr ds:[4AF998]         ;  s0+50-r0=3?  
+004AF86D  fstsw ax  
+004AF86F  sahf  
+004AF870  je short dump_.004AF87F  
+```
+
+……下面还对第 3、4 位进行了计算，算法与第 1、2 位相同，略过
+
+### 算法总结
+
+这个算法是一个方程式，还用到了浮点数，算法总结为：
+
+设：（`n1`,`n2`,`n3`,`n4` 分别代表 `sn2/3` 的各位数字）
+
+`t1 = sqrt(n2+3)`, `t2 = n1*(n1+1)`
+
+求：
+
+`t1*12 = t2*t2/4 + t1*t1 + t1*t2`
+
+方程式的正整数 0－9 的解。
+
+注意到 `sqrt(n2+3)` 为整数，可得知 `n2` 值必须为 1 或 6，进而计算出唯一解：`2626`。
+
+这里又得到了注册码 7－10 位必须为：`2626*3＝7878`
+
+### 关键 CALL 分析
+
+关键 `CALL④` 只是对用户名进行了简单的字符替换，然后判断是否与注册码第三节 `sn3` 相同。字符替换表为：（只统计了数字和字母）
+
+```
+0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
+I2M4K6N89:BCDEFGHIJKLMNOPQRSTUVWXYZ[bcdefghijklmnopqrstuvwxyz{
+```
+
+算法是大部分字符都是 `ASC` 码＋1，只有数字中的偶数有个小变换。
+
+关键 `CALL⑤` 则是程序预留的后门，判断注册码第三节 `sn3` 是否与 `61686902` 字符替换后的 `N2N9N:IM` 相同。从这里可以得到程序的通用注册码：`4792597878N2N9N:IM`
+
+### 三、程序用到的配置文件
+
+1. 与程序同目录下的 `setting.ini`：保存程序设置的隐藏分区信息。
+2. `C:\recycle\set.ini`：保存程序的配置。
+3. `C:\recycle\mpan.dat`：程序的运行密码经过加密处理后保存在这里。
+4. `C:\recycle\mp.dat`：保存未注册时的密盘打开次数。
+5. `C:\WINDOWS\system32\driveset.dll`：保存程序的运行次数（未注册时）以及注册的用户名和注册码。
+6. `X:\recycle\S-1-5-21-1060284298-811497611-11778920086-500\com1.{21ec2020-3aea-1069-a2dd-08002b30309d}\data\panfile2.dll`：保存当前分区中的密盘信息，以及经过加密处理的密盘打开密码。
+
+### 四、程序的运行密码和密盘打开密码
+
+调试程序可以发现程序的运行密码及密盘打开密码都只是简单的字符替换处理，于是设置一个所有字符的密码后就能得到对应的字符替换表。
+
+运行密码替换表为：
+
+```
+0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
+89:;<=>?@AIJKLMNOPQRSTUVWXYZ[\]^_\`abijklmnopqrstuvwxyz{|}~
+```
+
+调试程序发现加密算法只是将各位 `ASC` 码加 8 后保存。
+
+密盘打开密码替换表与上相同。
+
+### 五、建立特殊文件夹
+
+```
+004945FE  push dump_.00494A60                   ;  ASCII "recycle"
+00494603  lea eax,dword ptr ss:[ebp-C]
+00494606  mov edx,3
+0049460B  call dump_.0040444C
+00494610  mov eax,dword ptr ds:[4B6114]
+00494615  mov eax,dword ptr ds:[eax]
+00494617  mov edx,dword ptr ss:[ebp-C]
+0049461A  call dump_.004AEE5C                   ;  建立 recycle
+0049461F  push dword ptr ss:[ebp-20]
+00494622  push dump_.00494A54
+00494627  push dump_.00494A60                   ;  ASCII "recycle"
+0049462C  push dump_.00494A70
+00494631  push dump_.00494AAC                   ;  ASCII "com1.{21ec2020-3aea-1069-a2dd-08002b30309d}"
+00494636  lea eax,dword ptr ss:[ebp-18]
+00494639  mov edx,5
+0049463E  call dump_.0040444C
+00494643  lea edx,dword ptr ss:[ebp-44]
+00494646  mov eax,dword ptr ss:[ebp-18]
+00494649  call dump_.00408DE4
+0049464E  mov eax,dword ptr ss:[ebp-44]
+00494651  call dump_.00408AF0                   ;  建立 S-1-5-21-1060284298-811497611-11778920086-500
+00494656  xor eax,eax
+00494658  push ebp
+00494659  push dump_.00494705
+0049465E  push dword ptr fs:[eax]
+00494661  mov dword ptr fs:[eax],esp
+00494664  lea eax,dword ptr ss:[ebp-48]
+00494667  mov ecx,dump_.00494A54
+0049466C  mov edx,dword ptr ss:[ebp-18]
+0049466F  call dump_.004043D8
+00494674  mov eax,dword ptr ss:[ebp-48]
+00494677  call dump_.00408ACC
+0049467C  test al,al
+0049467E  jnz short dump_.0049469D              ;  判断 com1.是否存在
+00494680  lea eax,dword ptr ss:[ebp-4C]
+00494683  mov ecx,dump_.00494A54
+00494688  mov edx,dword ptr ss:[ebp-18]
+0049468B  call dump_.004043D8
+00494690  mov eax,dword ptr ss:[ebp-4C]
+00494693  call <dump_.CreateSpecialDir>         ;  建立 com1.{21ec2020-3aea-1069-a2dd-08002b30309d}
+00494698  call dump_.0040284C
+0049469D  push dword ptr ss:[ebp-20]
+004946A0  push dump_.00494A54
+004946A5  push dump_.00494A60                   ;  ASCII "recycle"
+004946AA  push dump_.00494AE0
+004946AF  lea eax,dword ptr ss:[ebp-50]
+004946B2  mov edx,4
+004946B7  call dump_.0040444C
+004946BC  mov eax,dword ptr ss:[ebp-50]
+004946BF  call dump_.00408ACC
+004946C4  test al,al
+004946C6  jnz short dump_.004946F4              ;  判断 mp...\ 是否存在
+004946C8  push dword ptr ss:[ebp-20]
+004946CB  push dump_.00494A54
+004946D0  push dump_.00494A60                   ;  ASCII "recycle"
+004946D5  push dump_.00494AE0
+004946DA  lea eax,dword ptr ss:[ebp-54]
+004946DD  mov edx,4
+004946E2  call dump_.0040444C
+004946E7  mov eax,dword ptr ss:[ebp-54]
+004946EA  call <dump_.CreateSpecialDir>         ;  建立 mp...\
+004946EF  call dump_.0040284C
+004946F4  push 64
+004946F6  call <jmp.&kernel32.Sleep>
+004946FB  xor eax,eax
+004946FD  pop edx
+004946FE  pop ecx
+004946FF  pop ecx
+00494700  mov dword ptr fs:[eax],edx
+00494703  jmp short dump_.00494728
+00494705  jmp dump_.0040381C
+0049470A  mov eax,dump_.00494B20
+0049470F  call dump_.004312DC
+00494714  call dump_.00403B84
+00494719  call dump_.00403BB4
+0049471E  jmp dump_.00494929
+00494723  call dump_.00403B84
+00494728  lea eax,dword ptr ss:[ebp-14]
+0049472B  mov ecx,dump_.00494B4C               ;  ASCII "\data"
+00494730  mov edx,dword ptr ss:[ebp-18]
+00494733  call dump_.004043D8
+00494738  mov eax,dword ptr ss:[ebp-14]
+0049473B  call dump_.00408ACC
+00494740  test al,al
+00494742  jnz short dump_.0049474C              ;  判断 data 是否存在
+00494744  mov eax,dword ptr ss:[ebp-14]
+00494747  call <dump_.CreateDir>                ;  建立 data
+0049474C  push dword ptr ss:[ebp-14]
+0049474F  push dump_.00494A54
+00494754  lea edx,dword ptr ss:[ebp-60]
+00494757  mov eax,dword ptr ss:[ebp-4]
+0049475A  mov eax,dword ptr ds:[eax+32C]
+00494760  call dump_.004573B4
+00494765  mov eax,dword ptr ss:[ebp-60]
+00494768  mov dl,byte ptr ds:[eax]
+0049476A  lea eax,dword ptr ss:[ebp-5C]
+0049476D  call dump_.004042B4
+00494772  push dword ptr ss:[ebp-5C]
+00494775  lea eax,dword ptr ss:[ebp-58]
+00494778  mov edx,3
+0049477D  call dump_.0040444C
+00494782  mov eax,dword ptr ss:[ebp-58]
+00494785  call dump_.00408ACC
+0049478A  test al,al
+0049478C  jnz short dump_.004947CC              ;  判断盘符文件夹是否存在
+0049478E  push dword ptr ss:[ebp-14]
+00494791  push dump_.00494A54
+00494796  lea edx,dword ptr ss:[ebp-6C]
+00494799  mov eax,dword ptr ss:[ebp-4]
+0049479C  mov eax,dword ptr ds:[eax+32C]
+004947A2  call dump_.004573B4
+004947A7  mov eax,dword ptr ss:[ebp-6C]
+004947AA  mov dl,byte ptr ds:[eax]
+004947AC  lea eax,dword ptr ss:[ebp-68]
+004947AF  call dump_.004042B4
+004947B4  push dword ptr ss:[ebp-68]
+004947B7  lea eax,dword ptr ss:[ebp-64]
+004947BA  mov edx,3
+004947BF  call dump_.0040444C
+```
+
+
+
+## 汇编代码分析
+
+```
+004947C4  mov eax,dword ptr ss:[ebp-64]
+004947C7  call <dump\_.CreateDir>                 ; 建立盘符文件夹
+004947CC  lea eax,dword ptr ss:[ebp-8]
+004947CF  mov ecx,dump\_.00494B5C                 ; ASCII "\panfile2.dll"
+004947D4  mov edx,dword ptr ss:[ebp-14]           ; 保存密盘的设置
+004947D7  call dump\_.004043D8
+004947DC  xor eax,eax
+004947DE  push ebp
+004947DF  push dump\_.004948CB
+004947E4  push dword ptr fs:[eax]
+004947E7  mov dword ptr fs:[eax],esp
+004947EA  mov ecx,dword ptr ss:[ebp-8]
+004947ED  mov dl,1
+004947EF  mov eax,dword ptr ds:[436CC4]
+004947F4  call dump\_.00436D74
+004947F9  mov dword ptr ss:[ebp-10],eax
+004947FC  lea edx,dword ptr ss:[ebp-70]
+004947FF  mov eax,dword ptr ss:[ebp-4]
+00494802  mov eax,dword ptr ds:[eax+304]
+00494808  call dump\_.004573B4
+0049480D  mov eax,dword ptr ss:[ebp-70]
+00494810  push eax
+00494811  lea edx,dword ptr ss:[ebp-78]
+00494814  mov eax,dword ptr ss:[ebp-4]
+00494817  mov eax,dword ptr ds:[eax+32C]
+0049481D  call dump\_.004573B4
+00494822  mov eax,dword ptr ss:[ebp-78]
+00494825  mov dl,byte ptr ds:[eax]
+00494827  lea eax,dword ptr ss:[ebp-74]
+0049482A  call dump\_.004042B4
+0049482F  mov edx,dword ptr ss:[ebp-74]
+00494832  mov ecx,dump\_.00494B74                 ; ASCII "name"，密盘名称
+00494837  mov eax,dword ptr ss:[ebp-10]
+0049483A  mov ebx,dword ptr ds:[eax]
+0049483C  call dword ptr ds:[ebx+4]
+0049483F  mov eax,dword ptr ss:[ebp-4]
+00494842  mov eax,dword ptr ds:[eax+314]
+00494848  mov edx,dword ptr ds:[eax]
+0049484A  call dword ptr ds:[edx+C8]
+00494850  test al,al
+00494852  je short dump\_.004948B5
+00494854  lea edx,dword ptr ss:[ebp-80]
+00494857  mov eax,dword ptr ss:[ebp-4]
+0049485A  mov eax,dword ptr ds:[eax+318]
+00494860  call dump\_.004573B4
+00494865  mov edx,dword ptr ss:[ebp-80]
+00494868  lea ecx,dword ptr ss:[ebp-7C]
+0049486B  mov eax,dword ptr ds:[4B6114]
+00494870  mov eax,dword ptr ds:[eax]
+00494872  call dump\_.004AFCA8
+00494877  mov eax,dword ptr ss:[ebp-7C]
+0049487A  push eax
+0049487B  lea edx,dword ptr ss:[ebp-88]
+00494881  mov eax,dword ptr ss:[ebp-4]
+00494884  mov eax,dword ptr ds:[eax+32C]
+0049488A  call dump\_.004573B4
+0049488F  mov eax,dword ptr ss:[ebp-88]
+00494895  mov dl,byte ptr ds:[eax]
+00494897  lea eax,dword ptr ss:[ebp-84]
+0049489D  call dump\_.004042B4
+004948A2  mov edx,dword ptr ss:[ebp-84]
+004948A8  mov ecx,dump\_.00494B84                 ; ASCII "ps"，密盘打开密码
+004948AD  mov eax,dword ptr ss:[ebp-10]
+004948B0  mov ebx,dword ptr ds:[eax]
+004948B2  call dword ptr ds:[ebx+4]
+```
+
+经测试文件夹都是用`CreateDirectoryA`创建的，用`RemoveDirectoryA`可以直接删除该非法文件夹。
+
+删除 2 个非法文件夹的代码：
+
+```
+RemoveDirectory("E:\\recycle\\S-1-5-21-1060284298-811497611-11778920086-500\\com1.{21ec2020-3aea-1069-a2dd-08002b30309d}\\")
+RemoveDirectory("E:\\recycle\\S-1-5-21-1060284298-811497611-11778920086-500\\mp...\\")
+```
+
+## 六、打开和关闭密盘
+
+打开和关闭密盘都是用`subst`命令直接虚拟相关文件夹：
+
+```
+004AEA51  |.  6A 0>push 0
+004AEA53  |.  68 F>push dump\_.004AEBF0                ;  subst
+004AEA58  |.  FF75>push [local.3]
+004AEA5B  |.  68 0>push dump\_.004AEC00
+004AEA60  |.  FF75>push [local.4]
+004AEA63  |.  8D45>lea eax,[local.10]
+004AEA66  |.  BA 0>mov edx,4
+004AEA6B  |.  E8 D>call dump\_.0040444C
+004AEA70  |.  8B45>mov eax,[local.10]
+004AEA73  |.  E8 1>call dump\_.0040458C
+004AEA78  |.  50   push eax                            ; |CmdLine
+004AEA79  |.  E8 6>call <jmp.&kernel32.WinExec>        ; \WinExec
+004AEA7E  |.  68 B>push 0B4                            ; /Timeout = 180. ms
+004AEA83  |.  E8 8>call <jmp.&kernel32.Sleep>          ; \Sleep
+004AEA88  |.  6A 0>push 1
+004AEA8A  |.  8D45>lea eax,[local.11]
+004AEA8D  |.  8B4D>mov ecx,[local.3]
+004AEA90  |.  BA 0>mov edx,dump\_.004AEC0C             ;  explorer
+004AEA95  |.  E8 3>call dump\_.004043D8
+004AEA9A  |.  8B45>mov eax,[local.11]
+004AEA9D  |.  E8 E>call dump\_.0040458C
+004AEAA2  |.  50   push eax                            ; |CmdLine
+004AEAA3  |.  E8 4>call <jmp.&kernel32.WinExec>        ; \WinExec
+```
+
+调用`WinExec`执行的命令为：
+
+打开密盘：
+
+```
+0012FD18   00E8C838  |CmdLine = "subst B: C:\\recycle\\S-1-5-21-1060284298-811497611-11778920086-500\\com1.{21ec2020-3aea-1069-a2dd-08002b30309d}\\data\\B"
+0012FD1C   00000000  \\ShowState = SW_HIDE
+```
+
+浏览密盘：
+
+```
+0012FD18   00E8A3B0  |CmdLine = "explorer B:"
+0012FD1C   00000001  \\ShowState = SW_SHOWNORMAL
+```
+
+关闭密盘：
+
+```
+0012FD4C   00E896FC  |CmdLine = "subst B: /d"
+0012FD50   00000000  \\ShowState = SW_HIDE
+```
+
+## 七、其他
+
+删除密盘功能只是删除了分区下的`panfile2.dll`文件，并没有删除那几个非法文件夹。
+
+其他功能，如导入、导出功能仅是文件夹的移动。
+
+另外，程序还内置了`CHM`帮助文件，看不出 500 多 K 的程序居然还内置了 100K 的帮助文件，呵～
+
+--------------2007.9.19 by lelfei-----------------
