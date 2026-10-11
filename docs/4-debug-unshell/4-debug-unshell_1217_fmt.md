@@ -1,0 +1,89 @@
+
+# 幻影 v1.5b3
+
+> 原文：`[www.pediy.com/kssd/pediy02/forum279.htm](https://www.pediy.com/kssd/pediy02/forum279.htm)`
+
+对幻影 v1.5b3 中 Anti-Debug 代码的一点分析
+
+### 【声明】
+
+我写文章以交流为主，希望大家在转载时能保持文章的完整性。
+
+### 【前言】
+
+不能上网的日子真是难熬，就把幻影加壳的程序分析了一下。最近写了个"幻影 1.5b3 解密脱壳的小工具"。今天（2000-08-25）上网一小段时间，就把他发给 `D.Boy` 看看。这里我说一点幻影中的 Anti-Debug 代码。
+
+作者： `ljttt`
+
+写作日期： 2000-08-23
+
+```
+:0041246A 6A00                          push 00000000       <---大循环开始处
+:0041246C 6A00                          push 00000000
+:0041246E 6A00                          push 00000000
+:00412470 6A00                          push 00000000
+:00412472 6A00                          push 00000000
+:00412474 6A00                          push 00000000
+:00412476 56                            push esi
+:00412477 FF95A3BB4000                  call dword ptr [ebp+0040BBA3]    <---这里的 Call 调用实际上就是调用 CreateFileA 函数
+:0041247D 83F8FF                        cmp eax, FFFFFFFF
+:00412480 7568                          jne 004124EA
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00412486(C)
+|
+:00412482 46                            inc esi               <---小循环开始
+:00412483 803E00                        cmp byte ptr [esi], 00
+:00412486 75FA                          jne 00412482          <---小循环结束
+:00412488 46                            inc esi
+:00412489 803E00                        cmp byte ptr [esi], 00
+:0041248C 75DC                          jne 0041246A          <---大循环结束处
+:0041248E EB5A                          jmp 004124EA
+..............（省略中间的代码）
+:004124EA 83F8FF                        cmp eax, FFFFFFFF
+:004124ED 7406                          je 004124F5
+:004124EF FF956CBF4000                  call dword ptr [ebp+0040BF6C]    <---ExitProcess()
+```
+
+我们来看一下幻影是怎样来超度我们的。
+
+`call dword ptr [ebp+0040BBA3]` 实际上就是 `CreateFileA` 函数调用。在大循环中他反复地想创建文件，也就是看你跟踪他没有，所以在 `cmp eax, FFFFFFFF` 后跳转代码处，你就看着办吧。如果你想继续跟踪，就要跳走。`esi` 指向的地址有以下检测内容：
+
+`\\.\TRW` \&lt;---检测 `TRW`
+
+`\\.\TRW2000` \&lt;---检测 `TRW2000`
+
+`\\.\TRWDEBUG` \&lt;---检测 `TRW2000`
+
+`\\.\REGVXD` \&lt;---检测 `RegMON`
+
+`\\.\NTICE` \&lt;---检测 `SoftICE`
+
+`\\.\SICE` \&lt;---检测 `SoftICE`
+
+`\\.\VKEYPROD` \&lt;---检测....，这是什么东东带的，我还不清楚。：-(
+
+`\\.\FILEVXD` \&lt;---检测 `FileMON`
+
+大循环结束后，通过判断 `eax` 是否为-1，来确定幻影加壳的程序是否被跟踪。
+
+### 【后记】
+
+幻影加壳的程序中破坏了跟踪环境 `int 1` 和 `int 3` 的环境，如果你想直接进行跟踪，门都没有。（你有门，快告诉我一声）。所以必须处理一下，才能动态跟踪。我 80% 是静态分析出来的。看上面的，`W32Dasm` 反汇编的，西西。幻影中有许多值得研究的地方，不过由于这是 `D.Boy` 的秘密，不便泄露。所以.....西西。我可不想 `D.Boy` 在幻影新版中给我来一段。
+
+```
+Call_killljttt()
+{   
+    if( Call_ 寻找跟踪者()=="ljttt" || Call_ 寻找跟踪者()=="ljtt" )
+    {   
+        for(int i=0;i<1000000;i++)
+        {   
+            Call_ 发送超级龟派气功("ljttt");
+        }
+        return 你死去吧!
+    }
+}
+```
+
+4dd466d0e1e0cc123afbe504da2462ca
