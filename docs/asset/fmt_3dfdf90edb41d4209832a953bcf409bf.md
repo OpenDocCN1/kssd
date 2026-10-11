@@ -1,0 +1,165 @@
+
+# 用 Ollydbg 手脱 tElock V0.98 加壳的 DLL(菜鸟练习篇）
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-642.htm`](https://www.pediy.com/kssd/pediy07/pediy7-642.htm)
+
+**目标程序**：`tElock` 加壳的 `wjtd.dll`。附件中含有原程序和脱壳文件
+
+**作者声明**：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+**调试环境**：`Win2000SP4`、`Ollydbg1.10`、`LordPE`
+
+**实例下载**：`61.130.100.251/wjtd.rar`
+
+**脱壳过程**：
+
+本文参考 Fly 大侠《用 Ollydbg 手脱 tElock V0.98 加壳的 DLL》写成！
+
+希望 Fly 兄多多指点
+
+## 一、双重 Magic Jump：避开重定位和输入表加密
+
+设置 `Ollydbg` 忽略除了“INT3 中断”“单步中断”之外的所有其它异常选项。老规矩：用 `IsDebug 1.4` 插件去掉 `Ollydbg` 的调试器标志。
+
+```
+00853BD6     E9 25E4FFFF          jmp Wjtd.00852000//进入 OD 后停在这
+00853BD0     0000               add byte ptr ds:\[eax\],al
+```
+
+`Shift+F9` 12 次后程序运行，返回后，再按 `Shift+F9` 10 次后程序停在
+
+```
+00852E40     73 DC              jnb short wjtd.00852E1E
+```
+
+现在设置 `Ollydbg` 忽略所有异常选项。`Ctrl+S` 在“整个段块”搜索命令序列：
+
+```
+mov ebx,edx
+shr ebx,10
+mov eax,dword ptr ds:\[esi\]
+```
+
+找到在 `00853195` 处！我们在其上的 `00853177` 处下断，`Shift+F9` 运行，中断
+
+```
+00853177    8BB5 56D34000    mov esi,dword ptr ss:\[ebp+40D356\]
+//\[ebp+40D356\]=\[00853CB4\]=00097000  ★ 这个 00097000 就是重定位表的 RVA！
+0085317D    85F6             test esi,esi
+0085317F    0F84 8B000000    je wjtd.00853210
+00853185    8B95 62D34000    mov edx,dword ptr ss:\[ebp+40D362\]
+0085318B    03F2             add esi,edx
+0085318D    2B95 66D34000    sub edx,dword ptr ss:\[ebp+40D366\]
+//这里其实就是检测与映像基址是否相符，不符则重定位处理！★
+00853193    74 7B            je short wjtd.00853210
+//Magic Jump，可以第 2 次 Load 后在这里改标志位 Z=1，使其跳转 ★
+00853195    8BDA             mov ebx,edx
+00853197    C1EB 10          shr ebx,10
+0085319A    8B06             mov eax,dword ptr ds:\[esi\]
+0085319C    85C0             test eax,eax
+0085319E    74 70            je short wjtd.00853210
+008531A0    8B4E 04          mov ecx,dword ptr ds:\[esi+4\]
+008531A3    83E9 08          sub ecx,8
+008531A6    D1E9             shr ecx,1
+008531A8    8BBD 62D34000    mov edi,dword ptr ss:\[ebp+40D362\]
+008531AE    03F8             add edi,eax
+008531B0    83C6 08          add esi,8
+008531B3    0FB706           movzx eax,word ptr ds:\[esi\]
+008531B6    C1C8 0C          ror eax,0C
+008531B9    FEC8             dec al
+008531BB    78 4C            js short wjtd.00853209
+008531BD    74 0E            je short wjtd.008531CD
+008531BF    FEC8             dec al
+008531C1    74 13            je short wjtd.008531D6
+008531C3    FEC8             dec al
+008531C5    74 3C            je short wjtd.00853203
+008531C7    FEC8             dec al
+008531C9    74 14            je short wjtd.008531DF
+008531CB    EB 3C            jmp short wjtd.00853209
+008531CD    C1E8 14          shr eax,14
+008531D0    66:011C07        add word ptr ds:\[edi+eax\],bx
+008531D4    EB 33            jmp short wjtd.00853209
+008531D6    C1E8 14          shr eax,14
+008531D9    66:011407        add word ptr ds:\[edi+eax\],dx
+008531DD    EB 2A            jmp short wjtd.00853209
+008531DF    52               push edx
+008531E0    C1E8 14          shr eax,14
+008531E3    8BD8             mov ebx,eax
+008531E5    C1E0 10          shl eax,10
+008531E8    66:8B16          mov dx,word ptr ds:\[esi\]
+008531EB    66:81E2 FF0F     and dx,0FFF
+008531F0    66:8BC2          mov ax,dx
+008531F3    5A               pop edx
+008531F4    8D8410 00800000  lea eax,dword ptr ds:\[eax+edx+8000\]
+008531FB    89041F           mov dword ptr ds:\[edi+ebx\],eax
+008531FE    46               inc esi
+008531FF    46               inc esi
+00853200    49               dec ecx
+00853201    EB 06            jmp short wjtd.00853209
+00853203    C1E8 14          shr eax,14
+00853206    011407           add dword ptr ds:\[edi+eax\],edx
+00853209    46               inc esi
+0085320A    46               inc esi
+0085320B    49               dec ecx
+0085320C   ^ 7F A5          jg short wjtd.008531B3
+0085320E   ^ EB 8A          jmp short wjtd.0085319A
+00853210    8B95 62D34000    mov edx,dword ptr ss:\[ebp+40D362\]
+//当我们中断在 00853210 处时，重定位处理完毕。此时 ESI=00840780，★ 就是重定位表的结束地址啦。
+//得到重定位表信息：RVA=00097000，大小＝840780-837000=00009780
+00853216    8BB5 52D34000    mov esi,dword ptr ss:\[ebp+40D352\]
+//\[ebp+40D352\]=\[0853CB0\]=00093000  ★ 这就是输入表的 RVA 啦。
+0085321C    85F6             test esi,esi
+0085321E    0F84 06040000    je wjtd.0085362A
+//第 2 个 Magic Jump，改标志位 Z=1，使其跳转，则不加密 IAT
+00853224    03F2             add esi,edx
+00853226    83A5 52D44000 00 and dword ptr ss:\[ebp+40D452\],0
+0085322D    8B46 0C          mov eax,dword ptr ds:\[esi+C\]
+00853230    8366 0C 00       and dword ptr ds:\[esi+C\],0
+00853234    85C0             test eax,eax
+00853236    0F84 EE030000    je wjtd.0085362A
+0085323C    03C2             add eax,edx
+0085323E    8BD8             mov ebx,eax
+00853240    50               push eax
+00853241    FF95 D0D24000    call dword ptr ss:\[ebp+40D2D0\]
+00853247    85C0             test eax,eax
+00853249    0F85 BA000000    jnz wjtd.00853309
+```
+
+咱们已经得到重定位表信息了，所以可以再次载入这个 DLL，重复上面的步骤，避开重定位表加密！
+
+## 二、第 2 区段内存断点法：快速直达 OEP
+
+当我们修改了以上两个 Magic Jump，自 `0085321E` 处跳至 `0083562A`。
+
+```
+0085362A    8BBD 5AD34000    mov edi,dword ptr ss:\[ebp+40D35A\]
+00853630    85FF             test edi,edi
+00853632    EB 03            jmp short wjtd.00853637
+```
+
+现在我们 `Alt+M` 打开 内存查看 窗口：
+
+在 `007A1000` 第 2 区段上 设置内存访问断点！`Shift+F9` 运行，直接中断在 `OEP` 处！
+
+```
+0082C07C    55               push ebp
+0082C07D    8BEC             mov ebp,esp
+0082C07F    83C4 C4          add esp,-3C
+0082C082    B8 ECBD4800      mov eax,48BDEC
+0082C087    E8 14A2F7FF      call wjtd.007A62A0
+```
+
+用 `LordPE` 选中 `Ollydbg` 的 `loaddll.exe` 的进程，在下面的列表里选择 `wjtd.dll`，然后完整脱壳，得到 `dumped.dll`。
+
+## 三、PE 修正
+
+```
+//修正参数如下
+入口点 OEP = 8C07C
+输入表 RVA = 93000
+重定位 RVA = 9700  大小 = 9780
+```
+
+OK，脱壳完成啦,运行后无错
+
+`4dd466d0e1e0cc123afbe504da2462ca`
