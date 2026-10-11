@@ -1,0 +1,262 @@
+
+# 一路 Goo，Gle 出个 PEDIY 来（给 `PEBrowseDbg8.13.1` 加个窗口置顶功能）
+
+> 原文：[`www.pediy.com/kssd/pediy10/81619.html`](https://www.pediy.com/kssd/pediy10/81619.html)
+
+快雪时晴 2009 年 2 月 8 日
+
+问题提出：
+
+下了最新的 `PEBrowse` Professional Interactive, native and managed code debugger. Last update 1/24/2009.
+
+`http://www.smidgeonsoft.prohosting.com/`
+
+发现在调试某些程序如局域网通讯软件飞秋 `FeiQ` 时，界面常被遮盖，影响调试，找来找去没看到有类似 `OD` 的窗口置顶（`ALWAYS ON TOP`）选项。
+
+记起 `cxlrb` 的一篇 DIY 文章，搜了下：
+
+标 题: 【原创】用 `OD` 给 `EXE` 文件添加一个对话框初探
+
+作 者: `cxlrb`
+
+时 间: 2006-06-08,17:16
+
+链 接: `http://bbs.pediy.com/showthread.php?t=27054`
+
+【文章标题】: 用 `OD` 给 `exe` 文件添加一个对话框初探
+
+【文章作者】: `CxLrb`
+
+【作者邮箱】: `cxlrb@yahoo.com.cn`
+
+【作者主页】: `http://unpack.blog.sohu.com/`
+
+【作者 QQ 号】: `21252130`
+
+【软件名称】: `Pe_optimizer1.4` 汉化版 by.`CxLrb`
+
+【下载地址】: 自己搜索下载
+
+【使用工具】: `OD`, `HexDecChar`, `XN Resource Editor`
+
+不过 `Cxlrb` 给出的是 `MFC` 程序的改造方法，先找到资源项 `ID`，再找 `CMP R,XXXX` 的形式。
+
+我这里的 `PEBrowseDbg v8.13.1` 是 `DELPHI` 编写的, 查找事件改造方法还不太一样。
+
+`PE Explorer199r5` 查看资源文件并反编译（`Delphi6`）非常方便，很容易找到菜单项 `Tile` 对应的处理事件 `proc`：
+
+```
+0061230C TMainForm.WindowTile:
+0061230C 55 push ebp
+0061230D 8BEC mov ebp,esp
+0061230F 83C4F8 add esp,FFFFFFF8h
+00612312 8955F8 mov [ebp-08h],edx
+00612315 8945FC mov [ebp-04h],eax
+00612318 8B45FC mov eax,[ebp-04h]
+0061231B E8ECFBE6FF call SUB_L00481F0C
+00612320 59 pop ecx
+00612321 59 pop ecx
+00612322 5D pop ebp
+00612323 C3 retn
+```
+
+不知道置顶的具体参数，看看资源中其他项的属性 `Ex_Tyle` 就有 `WS_EX_TOPMOST`
+
+好了，`google` 一下置顶的 `C` 语句（很尴尬，没用过 `VC` 编写 `MFC` 或是 `GUI` 程序）
+
+[`www.google.cn/codesearch/p?hl...pmost%20lang:c`](http://www.google.cn/codesearch/p?hl=zh-CN#n9JSARjJDyQ/quake2-3.21/win32/vid_dll.c&q=setwindowlong%20ws_ex_topmost%20lang:c)
+
+```
+void VID_Front_f( void )
+
+{
+    SetWindowLong( cl_hwnd, GWL_EXSTYLE, WS_EX_TOPMOST );
+    SetForegroundWindow( cl_hwnd );
+}
+```
+
+`//` 时候证明这两句没能完成任务，仅在任务栏图标提示性的闪两下（`OD` 调试时），界面还是被遮盖。
+
+看看常量定义，又是本机搜素一下 `dwing` 的那个 `VC6RC2_lite` 带 `*.h`：
+
+```
+\VC6RC2\VC98\Include
+   283,697 WINUSER.H
+
+#define GWL_EXSTYLE         (-20)
+#define WS_EX_TOPMOST       0x00000008L
+```
+
+现在要找的数据就是 `cl_hwnd` 即主窗口 `hwnd` 了，在 `OD` 中查看窗口：
+
+```
+000F070C G:\DOWNLOAD\n.exe (2700) (STOPP Topmost 000209AD 17CF0000 00010110 主 004619F4 TMainForm
+0002099E 000F070C =句柄 0 54000100 主 004619F4 TStatusBar
+000209A0 000F070C =句柄 0 5600084E 00010000 主 004619F4 TToolBar
+00100704 000F070C =句柄 0 54010017 00000200 主 004619F4 TTreeView
+```
+
+此次进程主窗口为 `000F070C`，在 `OD` 中 `ALT+M`, 在进程 `DATA` 区段查找，找到一处：`0x00626130`（如此精确，如此幸运）
+
+下硬件访问断点，`CTRL+F2` 重新加载，`F9` 运行，出现 `PEBr` 界面后随便选择一个目标程序加载（`PEBr` 加载，非 `OD`），
+
+第三次中断后，该地址处有赋值了（当然每次运行不一样了）
+
+```
+0047BB0D |. 6A EC PUSH -14 ; /Index = GWL_EXSTYLE
+0047BB0F |. 53 PUSH EBX ; |hWnd = 000F070C ('G:\DOWNLOAD\n.exe (2700) (STO...',class='TMainForm')
+0047BB10 |. E8 5FC4F8FF CALL <JMP.&user32.GetWindowLongA> ; \GetWindowLongA
+0047BB15 |. A8 08 TEST AL,8
+0047BB17 |. 75 11 JNZ SHORT PEBrowse.0047BB2A
+0047BB19 |. 833D 30616200 00 CMP DWORD PTR DS:[626130],0
+0047BB20 |. 75 17 JNZ SHORT PEBrowse.0047BB39
+0047BB22 |. 891D 30616200 MOV DWORD PTR DS:[626130],EBX ; 这里赋值
+0047BB28 |./EB 0F JMP SHORT PEBrowse.0047BB39 ;;停在这里
+```
+
+`//` 回到上一行查看
+
+`EBX=0007066A`
+
+`DS:[00626130]=0007066A`
+
+可以看出，该 `hwnd` 放在一个全局变量里面，后面可以直接使用了。
+
+好了，现在就重利用 `Tile` 菜单项事件，夹带处理一下置顶语句吧，省了再添加一项“`Alway On Top`”菜单，一切为了省事，简化。
+
+`OD` 中 `CTRL+N` 看了下,
+
+```
+SetWindowLong( cl_hwnd, GWL_EXSTYLE, WS_EX_TOPMOST );
+SetForegroundWindow( cl_hwnd );
+```
+
+两个 `API` 都有，又免去了导入。
+
+考虑到要求能够取消置顶，恢复原窗口参数，需再用到一个 `api`：
+
+```
+LONG GetWindowLong( HWND hWnd, // handle of window
+    int nIndex // offset of value to retrieve
+   );
+```
+
+注意，为了跨平台，不要直接用 `API` 地址，参照原程序中的方法用 `CALL JMP` 地址：
+
+```
+00408174 $- FF25 4CB76500 JMP DWORD PTR DS:[<&user32.SetForeground>; user32.SetForegroundWindow
+004081CC $- FF25 20B76500 JMP DWORD PTR DS:[<&user32.SetWindowLong>; user32.SetWindowLongA
+00407F74 $- FF25 48B86500 JMP DWORD PTR DS:[<&user32.GetWindowLongA>];user32.GetWindowLongA
+```
+
+修改原 `WindowTile` 事件响应 `PROC` 头为：
+
+```
+0061230C /E9 8F2C0100 JMP PEBrowse.00624FA0 ; 跳到 PE 空白处写代码
+00612311 |90 NOP
+```
+
+找到 `PE` 尾部的空白处写如下代码：
+
+```
+00624FA0 60 PUSHAD
+00624FA1 9C PUSHFD
+00624FA2 6A EC PUSH -14
+00624FA4 FF35 30616200 PUSH DWORD PTR DS:[626130]
+00624FAA E8 C52FDEFF CALL <JMP.&user32.GetWindowLongA>
+00624FAF 83F0 08 XOR EAX,8
+00624FB2 50 PUSH EAX
+00624FB3 6A EC PUSH -14
+00624FB5 FF35 30616200 PUSH DWORD PTR DS:[626130]
+00624FBB E8 0C32DEFF CALL <JMP.&user32.SetWindowLongA>
+00624FC0 FF35 30616200 PUSH DWORD PTR DS:[626130]
+00624FC6 E8 A931DEFF CALL <JMP.&user32.SetForegroundWindow>
+00624FCB 9D POPFD
+00624FCC 61 POPAD
+00624FCD 55 PUSH EBP
+00624FCE 8BEC MOV EBP,ESP
+00624FD0 83C4 F8 ADD ESP,-8
+00624FD3 ^ E9 39D3FEFF JMP PEBrowse.00612311 ; 返回原事件响应 PROC
+00624FD8 90 NOP
+```
+
+奇怪，`OD` 没法保存，提示“在可执行文件中无法定位数据”，现把二进制记录下：
+
+```
+60 9C 6A EC FF 35 30 61 62 00 E8 C5 2F DE FF 83 F0 08 50 6A EC FF 35 30 61 62 00 E8 0C 32 DE FF
+FF 35 30 61 62 00 E8 A9 31 DE FF 9D 61 55 8B EC 83 C4 F8 E9 39 D3 FE FF 90
+```
+
+用 `HEXWORKSHOP` 打开看，该空白地址处原来有很多数据，似乎是 `API IMPORT` 等信息？？？？怎么在 `OD` 中又全 `0` 了呢？不懂，等专家回答。
+
+只好拿 `ZEROADD` 新增一个 `KXSQ` 区段 `400H` 大小起始地址 `00733000`：
+
+原 `PROC` 头：
+
+```
+0061230C - E9 EF0C1200 JMP PEBrowse.00733000
+00612311 90 NOP
+```
+
+新区段 `KXSQ`:
+
+```
+00733000 60 PUSHAD
+00733001 9C PUSHFD
+00733002 6A EC PUSH -14
+00733004 FF35 30616200 PUSH DWORD PTR DS:[626130]
+0073300A E8 654FCDFF CALL <JMP.&user32.GetWindowLongA>
+0073300F 83F0 08 XOR EAX,8
+00733012 50 PUSH EAX
+00733013 6A EC PUSH -14
+00733015 FF35 30616200 PUSH DWORD PTR DS:[626130]
+0073301B E8 AC51CDFF CALL <JMP.&user32.SetWindowLongA>
+00733020 FF35 30616200 PUSH DWORD PTR DS:[626130]
+00733026 E8 4951CDFF CALL <JMP.&user32.SetForegroundWindow>
+0073302B 9D POPFD
+0073302C 61 POPAD
+0073302D 55 PUSH EBP
+0073302E 8BEC MOV EBP,ESP
+00733030 83C4 F8 ADD ESP,-8
+00733033 - E9 D9F2EDFF JMP PEBrowse.00612311
+00733038 90 NOP
+```
+
+注意：二进制串复制过来后，3 个 `CALL` 和 1 个 `JMP` 都要调整到正确的地址数值。
+
+```
+60 9C 6A EC FF 35 30 61 62 00 E8 65 4F CD FF 83 F0 08 50 6A EC FF 35 30 61 62 00 E8 AC 51 CD FF
+FF 35 30 61 62 00 E8 49 51 CD FF 9D 61 55 8B EC 83 C4 F8 E9 D9 F2 ED FF 90
+```
+
+还是不起作用，`google` 了下，也许是多窗口的缘故。
+
+由于 `PEBrDbg` 包含多个子窗口，光设置主窗口 `TOPMOST` 属性不起作用，子窗口还是被被调试窗口遮盖。
+
+而且一开始再应加个检测是否主窗口 `hwnd` 已经获取（非 `0`）。
+
+继续改进：
+
+```
+#define GW_CHILD 5
+00407EFC $- FF25 80B86500 JMP DWORD PTR DS:[<&user32.GetWindow>] ; user32.GetWindow
+```
+
+最终要改成如此形式：
+
+```
+if(hWndParent != NULL)
+{
+    HWND hWndChild ;
+    while((hWndChild = GetWindow(hWndParent,GW_CHILD)) != NULL)//不知道如何遍历子窗口，暂时这样表述一下
+    {
+        SetWindowPos(hWndChild,HWND_TOPMOST,0,0,800,480,SWP_SHOWWINDOW);
+    }
+    SetWindowPos(hWndParent,HWND_TOPMOST,0,0,800,480,SWP_SHOWWINDOW);
+}
+```
+
+```
+00733000 60 PUSHAD
+00733001 9C PUSHFD
+```
