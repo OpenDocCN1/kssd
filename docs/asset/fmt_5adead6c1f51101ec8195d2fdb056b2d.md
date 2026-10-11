@@ -1,0 +1,166 @@
+
+# 英语小精灵 1.20
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50053.htm`](https://www.pediy.com/kssd/pediy05/pediy50053.htm)
+
+文章名称：用 `WKTVBDE` 搞定英语小精灵 1.20
+
+写作原因：用 `smartcheck` 调试时候显示的机器号不同，那么取得的注册码没有用
+
+作者：`staray[BCG]`
+
+下载地址：`http://www.kytop.net/englishelf/EE120.exe`
+
+软件大小：7366kb
+
+使用工具：`WKTVBDE`
+
+保护方式：机器码+注册码
+
+## 软件简介
+
+英语小精灵融合了逆向学习法和疯狂英语这两种有效的英语学习方法的精髓，并加以创新，集英语的“听、说、读、写”功能于一身，解决了困扰国人的“中国式英语”和“哑巴英语”的问题。
+
+## 破解过程
+
+用 `WKTVBDE` 装入英语小精灵 1.20，中断在程序入口后点 `FormManager`，
+
+`form` 选 `FrmRegister`（知道为什么吧），在 `command` 选择 `cmdRegister`，点 `bpx`（即 `0041CCF8h` 处），`F5` 继续运行，出现未注册提示，不管按确定通过，进入运行界面，点击右上角弹出菜单，选择软件注册，出现注册界面，在注册号那里输入 `staray[BCG]`，点击“注册”，被拦截
+
+```
+0041CCF8: 04 FLdRfVar 0065F378h//////////拦截在这里
+0041CCFB: 21 FLdPrThis 00443664h
+0041CCFC: 0F VCallAd frmRegister.txtSoftCode
+0041CCFF: 19 FStAdFunc
+0041CD02: 08 FLdPr
+0041CD05: 0D VCallHresult get__ipropTEXTEDIT
+0041CD0A: 3E FLdZeroAd
+0041CD0D: FD Lead2/PopTmpLdAdStr
+0041CD11: 0A ImpAdCallFPR4 ModPublic!0041DC54h
+0041CD16: 2F FFree1Str
+0041CD19: 1A FFree1Ad
+0041CD1C: 0B ImpAdCallI2 ModPublic!0041D470h////////，F10 执行到此处后 F8 进入，哈哈
+0041CD21: 1C BranchF 0041CD76 ///////////关键跳转?
+0041CD24: 1B LitStr: '本软件正确注册，请访问主页以获取本软件的最新情况'
+```
+
+\==============================================================
+
+跟入后 `F10` 来到此处，请仔细看
+
+```
+0041D4C8: 3A LitVarStr ''
+0041D4CD: 4E FStVarCopyObj 0065F2A4h
+0041D4D0: 04 FLdRfVar 0065F2A4h
+0041D4D3: 0B ImpAdCallI2 kGen!00426564h
+0041D4D8: 31 FStStr
+0041D4DB: 35 FFree1Var
+0041D4DE: F4 LitI2_Byte: -> 3h 3
+0041D4E0: 2B PopTmpLdAd2 0065F292 -> fffff2d4h -3372
+0041D4E3: 04 FLdRfVar 0065F2D4h
+0041D4E6: 3A LitVarStr ''
+0041D4EB: 4E FStVarCopyObj 0065F2A4h
+0041D4EE: 04 FLdRfVar 0065F2A4h
+0041D4F1: 0B ImpAdCallI2 kGen!00426564h
+0041D4F6: 31 FStStr
+0041D4F9: 35 FFree1Var
+0041D4FC: 6C ILdRf 0044502Ch//////这里 1，可以修改为一致的，但不要改错
+0041D4FF: 6C ILdRf 00444FE8h////////这里 2，改错后出现正确窗口，但重启还是未注册，因为一个是真注册码计算出来的，一个是假注册码计算出来的
+0041D502: 30 EqStr//////////进行比较
+0041D504: 1C BranchF 0041D50F
+```
+
+\==================================================
+
+下面是 `message` 窗口的内容
+
+```
+tack dump is enabled and relative to ESP<-EBP.
+Breakpoint reached.
+FStStr -> '2351033393686136'//////////这是机器码
+Freeing Addrs: 0065F2A4h 0065F294h
+FStStr -> 'staray[BCG]'//////这是输入的假注册码
+FStStr -> 'ICOZ59RNPUW6690E'//////这是真的注册码,注意零和 O
+FStStr -> 'E092-155F-8F11-CC15'////这两个把真的和假的注册码进行计算
+FStStr -> '1B7B-27A0-7837-5A7C'后的结果，也就是比较
+```
+
+退出后重新启动，输入注册码，成功！
+
+此文只做讨论，不得用于商业用途！
+
+---
+
+各位大虾好，我是 `lipan`，这是本人的第二篇破文，是模仿大家的文章写的，若有不正确之处，希望能得到前辈们的指教，谢谢。本文仅在研究破解技术，请大家支持软件作者制作出更优秀的软件。
+
+## 破解 Aspack 加壳 p-code 方式编译的 VB 程序一例
+
+目标软件：`EnglishElf` 英语精灵 1.2.1 版
+
+软件主页：`http://www.kytop.net/englishelf/`
+
+工具软件：`VBDebug_13e`、`TRW2000_1.23`、`Winhex_10` 可以在看雪学院下载
+
+### 过程
+
+首先 `VBDebug` 无法加载，用 `fi249` 探测显示未知的壳（难道现在不好用啦），用 `Winhex` 打开看，发现 `Aspack` 字样。自然要先脱壳。
+
+从看雪的教材上可以看到，找到程序入口最关键，入口最可能在跨段的转移。先自行分析看看吧？
+
+用 `TRW` 装入主程序，下断 `4011d0`，拦住后用 `makepe` 命令生成脱壳后的程序。
+
+运行脱壳后的 `newpe.exe`（默认），一切正常，脱壳成功。
+
+用 `VBDebug_13e` 装载主程序，下断 `41d738`，如下：
+
+```
+0041D738: 31 FStStr 00451744h to 0066F3A4h
+0041D73B: 35 FFree1Var
+0041D73E: 6C ILdRf 00492EBCh  《---  和我上一篇破文（1.0.5 版）相同，修改此处一个字节即可。
+0041D741: 6C ILdRf 004932B8h  《---  修改的目的就是让此句和前句完全一样。（会改吧？）
+0041D744: 30 EqStr  《---  比较语句
+0041D746: 1C BranchF 0041D751 ?  《---  错误就跳出
+0041D749: F4 LitI2_Byte: -> FFh 255
+0041D74B: 70 FStI2 0066F2AE
+0041D74E: 1E Branch 0041D756 ?
+0041D751: F4 LitI2_Byte: -> 0h 0
+0041D753: 70 FStI2 0066F2AE
+0041D756: 15 ExitProcI2
+0041D757: 00 LargeBos
+0041D759: 19 FStAdFunc
+0041D75C: 04 FLdRfVar 00674B34h
+```
+
+好了，记下偏移量或字串，用 `winhex` 到脱壳后的程序中修改。完工！
+
+后面还有个暗桩：
+
+下断：`426726`
+
+```
+00426726: 23 FStStrNoPop 0066F2C8h
+00426729: 30 EqStr
+0042672B: C4 AndI4
+0042672C: 2F FFree1Str
+0042672F: 35 FFree1Var
+00426732: 1C BranchF 004268DB  《--- 跳转就到了注册提示框?
+00426735: 04 FLdRfVar 0066F2C8h
+00426738: 04 FLdRfVar 0066F352h
+0042673B: 21 FLdPrThis 00492EC8h
+0042673C: 0F VCallAd frmConfig.lstBigScene
+0042673F: 19 FStAdFunc
+00426742: 08 FLdPr
+00426745: 0D VCallHresult get__ipropLISTINDEXLBOX
+0042674A: 6B FLdI2
+0042674D: 21 FLdPrThis 00492EC8h
+0042674E: 0F VCallAd frmConfig.lstBigScene
+00426751: 19 FStAdFunc
+00426754: 08 FLdPr
+00426757: 0D VCallHresult get__ipropLISTLBOX
+```
+
+要修改 `426732` 处，不能像上面的改法，要将此处三字节 `1CE704` 改成 `1C4103`，即跳转到 `426735`，:)。
+
+现在总算完工了，另外，虽然设置中的退出保存进度是不可选的，但是功能已经有了。
+
+`4dd466d0e1e0cc123afbe504da2462ca`
