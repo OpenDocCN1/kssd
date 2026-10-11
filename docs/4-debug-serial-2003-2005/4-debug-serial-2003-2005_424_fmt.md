@@ -1,0 +1,403 @@
+
+# 蓝图餐饮娱乐管理系统 v2.21
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6148.htm`](https://www.pediy.com/kssd/pediy06/pediy6148.htm)
+
+软件： `蓝图餐饮娱乐管理系统 V2.41 试用版`
+功能： `国际级完美餐饮全面性电脑管理系统`
+开发者： `圣蓝图软件技术有限公司`
+网址： [`www.adslt.com`](http://www.adslt.com)
+限制： `60 天时间限制`
+开发工具： `delphi 6.0`
+使用技术： `MD5 + 明码比较` （是不是滑天下之大稽）
+破解工具： `OD1.09e`
+
+\====================================================
+
+注册名字： `lianzi2000`
+试炼码： `1357924680931654`
+
+观察： 没有注册错误提示。需要重启验证。
+
+`ACDC`: 启动时未见可疑文件访问，但有如下注册表访问：
+
+`Ginshop.ExE:3180` `CreateKeyHKLM\\Software\\JDGL\\FoodSUCCESSKey: 0xE119D368`
+
+`Ginshop.ExE:3180` `QueryvalueHKLM\\Software\\JDGL\\Food\\UsrNameNOTFOUND`
+
+`Ginshop.ExE:3180` `QueryvalueHKLM\\Software\\JDGL\\Food\\PasswdNOTFOUND`
+
+防 `Dede`,会连 `Dede` 一起退出。
+
+防 `OD`,若用 `OD` 载入运行会死机，必须先运行然后 `attach.`
+
+壳： `aspr2.12, 用 aspdie 可脱去.`
+
+思路： 由于当注册码错误时并不保存，所以设想验证应该在启动之前，很可能就在输入之后，只不过没有提示而已。
+
+\====================================================
+
+寻找验证代码：
+
+启动脱壳后的程序，进入管理员账户。主界面出来以后，运行 `OD` 并绑定。在 `CreateWindowExA` 上下断，
+
+然后再“帮助信息”菜单中选择“产品注册”，被 `OD` 栏下（由于 `OD` 绑定时的线程结束了，不如此作 `OD` 会失去控制）。
+
+继续运行，会看到各个控件被分别建立。然后打开窗口叶面，记下注册窗口和编辑框的句柄。`Delphi` 不采用 `GetWindowTextA` 获取输入，
+
+而是利用 `CallWindowProcA` 发送一条 `WM\_GETTEXT` 消息给编辑控件，其 `wParam` 是字符串存放地址（请参看 `API` 手册）。
+
+所以在这个函数上下条件断点(`[esp+8]==0x1a02b0) && ([esp+0xC]==WM\_GETTEXT).` 不出所料，点击“正版注册”按钮
+
+后这个断点被触发。从堆栈上读出口令存放地址并记下，然后直接 `F4` 到返回地址，在口令存放处下内存断点，
+
+然后运行直至程序访问输入的口令串。
+
+\====================================================
+
+```
+00402A38    56                PUSH ESI
+00402A39    57                PUSH EDI
+00402A3A    89C6              MOV ESI,EAX
+00402A3C    89D7              MOV EDI,EDX
+00402A3E    89C8              MOV EAX,ECX
+00402A40    39F7              CMP EDI,ESI
+00402A42    77 13             JA SHORT Ginshop.00402A57
+00402A44    74 2F             JE SHORT Ginshop.00402A75
+00402A46    C1F9 02           SAR ECX,2
+00402A49    78 2A             JS SHORT Ginshop.00402A75
+00402A4B    F3:A5             REP MOVSD
+00402A4D    89C1              MOV ECX,EAX
+00402A4F    83E1 03           AND ECX,3
+00402A52    F3:A4             REP MOVSB     <============ 内存断点在这里触发, 发现拷贝的是注册码的第 0B 个字符
+00402A54    5F                POP EDI       一路 F8 返回可见其将目标字符的地址放在堆栈中，
+                                  实际上是上层函数的临时变量。
+00402A55    5E                POP ESI
+00402A56    C3                RETN
+...................................................
+```
+
+最后返回到如下函数：
+
+```
+0056D52C    B9 01000000       MOV ECX,1
+0056D531    BA 0B000000       MOV EDX,0B
+0056D536    8B45 F0           MOV EAX,DWORD PTR SS:[EBP-10]
+0056D539    E8 527DE9FF       CALL Ginshop.00405290    <=========显然是刚刚调用的函数
+0056D53E    8B45 EC           MOV EAX,DWORD PTR SS:[EBP-14]  <============目标字符的地址就在这里
+0056D541    E8 D6C6E9FF       CALL Ginshop.00409C1C                 这个函数返回字符对应的值，如'9'->9
+0056D546    8BD8              MOV EBX,EAX                 ; ebx==value(code[0b])
+0056D548    8D45 E8           LEA EAX,DWORD PTR SS:[EBP-18]
+0056D54B    50                PUSH EAX
+0056D54C    B9 01000000       MOV ECX,1                   ; 只取一个字符
+0056D551    BA 0C000000       MOV EDX,0C                  ; 字符索引 0xC
+0056D556    8B45 F0           MOV EAX,DWORD PTR SS:[EBP-10]      ; 试炼码
+0056D559    E8 327DE9FF       CALL Ginshop.00405290       <======== 取字符
+0056D55E    8B45 E8           MOV EAX,DWORD PTR SS:[EBP-18]
+0056D561    E8 B6C6E9FF       CALL Ginshop.00409C1C       ;取值
+0056D566    8BF0              MOV ESI,EAX
+0056D568    8D45 E4           LEA EAX,DWORD PTR SS:[EBP-1C]
+0056D56B    50                PUSH EAX
+0056D56C    B9 01000000       MOV ECX,1
+0056D571    BA 0D000000       MOV EDX,0D
+0056D576    8B45 F0           MOV EAX,DWORD PTR SS:[EBP-10]  ;同上
+0056D579    E8 127DE9FF       CALL Ginshop.00405290
+0056D57E    8B45 E4           MOV EAX,DWORD PTR SS:[EBP-1C]
+0056D581    E8 96C6E9FF       CALL Ginshop.00409C1C       ; get the value
+0056D586    8BF8              MOV EDI,EAX           ; edi==value(code[0d])
+```
+
+至此，取了注册码第 `0b,0c and 0d` 个字符，并转换成相应的数值，如果是`"0xa0x6"`的形式，取值函数会自动转换。
+
+```
+0056D588    8D45 C8           LEA EAX,DWORD PTR SS:[EBP-38]      ; 临时变量
+0056D58B    8B55 F4           MOV EDX,DWORD PTR SS:[EBP-C]       ; 注册名字
+0056D58E    8A541A FF         MOV DL,BYTE PTR DS:[EDX+EBX-1]     ; 根据索引取字符 get char =name(value(code[0b])-1)
+0056D592    8850 01           MOV BYTE PTR DS:[EAX+1],DL         ; 存放
+0056D595    C600 01           MOV BYTE PTR DS:[EAX],1            ; 长度为 1
+0056D598    8D55 C8           LEA EDX,DWORD PTR SS:[EBP-38]
+0056D59B    8D45 C4           LEA EAX,DWORD PTR SS:[EBP-3C]
+0056D59E    E8 D95AE9FF       CALL Ginshop.0040307C              ; 取出的字符拷贝到另一处
+0056D5A3    8D45 C0           LEA EAX,DWORD PTR SS:[EBP-40]      ; new var
+0056D5A6    8B55 F4           MOV EDX,DWORD PTR SS:[EBP-C]       ; name
+0056D5A9    8A5432 FF         MOV DL,BYTE PTR DS:[EDX+ESI-1]     ; 取第二个字符 get char =name(value(code[0c])-1)
+0056D5AD    8850 01           MOV BYTE PTR DS:[EAX+1],DL
+0056D5B0    C600 01           MOV BYTE PTR DS:[EAX],1
+0056D5B3    8D55 C0           LEA EDX,DWORD PTR SS:[EBP-40]
+0056D5B6    8D45 C4           LEA EAX,DWORD PTR SS:[EBP-3C]
+0056D5B9    B1 02             MOV CL,2
+0056D5BB    E8 8C5AE9FF       CALL Ginshop.0040304C              ; 把两个字符连接
+0056D5C0    8D55 C4           LEA EDX,DWORD PTR SS:[EBP-3C]
+0056D5C3    8D45 BC           LEA EAX,DWORD PTR SS:[EBP-44]
+0056D5C6    E8 B15AE9FF       CALL Ginshop.0040307C
+0056D5CB    8D45 C0           LEA EAX,DWORD PTR SS:[EBP-40]
+0056D5CE    8B55 F4           MOV EDX,DWORD PTR SS:[EBP-C]
+0056D5D1    8A543A FF         MOV DL,BYTE PTR DS:[EDX+EDI-1]     ; 取第三个字符 get char =name(value(code[0d])-1)
+0056D5D5    8850 01           MOV BYTE PTR DS:[EAX+1],DL
+0056D5D8    C600 01           MOV BYTE PTR DS:[EAX],1
+0056D5DB    8D55 C0           LEA EDX,DWORD PTR SS:[EBP-40]
+0056D5DE    8D45 BC           LEA EAX,DWORD PTR SS:[EBP-44]
+0056D5E1    B1 03             MOV CL,3
+0056D5E3    E8 645AE9FF       CALL Ginshop.0040304C              ; 三个字符都连起来"0al"
+0056D5E8    8D55 BC           LEA EDX,DWORD PTR SS:[EBP-44]
+0056D5EB    8D45 CC           LEA EAX,DWORD PTR SS:[EBP-34]
+0056D5EE    E8 E979E9FF       CALL Ginshop.00404FDC              ; 拷贝到内存某处
+0056D5F3    8B45 CC           MOV EAX,DWORD PTR SS:[EBP-34]
+0056D5F6    8D55 D0           LEA EDX,DWORD PTR SS:[EBP-30]      ;存放结果的变量
+0056D5F9    E8 525EFEFF       CALL Ginshop.00553450              <============ 跟进
+0056D5FE    8D45 D0           LEA EAX,DWORD PTR SS:[EBP-30]      ; 函数计算结果
+0056D601    8D55 E0           LEA EDX,DWORD PTR SS:[EBP-20]      ; 指针用来存放返回结果
+0056D604    E8 BB5EFEFF       CALL Ginshop.005534C4              ; 这个函数把上一个函数返回的数值结果转换成字符串，
+0056D609    8B55 E0           MOV EDX,DWORD PTR SS:[EBP-20]      ; 如 0xED=>"ED"
+0056D60C    8D45 F4           LEA EAX,DWORD PTR SS:[EBP-C]       ; 注册名字
+0056D60F    E8 0478E9FF       CALL Ginshop.00404E18              ; 这里拷贝结果字符串到另一个变量，并调整引用计数
+```
+
+
+
+0056D614 `8D45 B8` LEA EAX,DWORD PTR SS:\[EBP\-48\] ; 
+
+0056D617 `50` PUSH EAX 
+
+0056D618 `B9 0A000000` MOV ECX,0A ; 要拷贝的字符计数 
+
+0056D61D `BA 09000000` MOV EDX,9 ; 从第 9 个字符开始（从 1 算起） 
+
+0056D622 `8B45 F4` MOV EAX,DWORD PTR SS:\[EBP\-C\] ; 结果字符串 ed79d869e220dc026ff71ca87cbf2fca 
+
+0056D625 `E8 667CE9FF` CALL Ginshop.00405290 ; 取得子串 
+
+0056D62A `FF75 B8` PUSH DWORD PTR SS:\[EBP\-48\] ; 子串 e220dc026f 
+
+0056D62D `8D55 B4` LEA EDX,DWORD PTR SS:\[EBP\-4C\] ; new var 
+
+0056D630 `8BC3` MOV EAX,EBX ; 注册码第 B 为对应的数值 ebx==value(code\[0b\]) 
+
+0056D632 `E8 05C5E9FF` CALL Ginshop.00409B3C ; 这个函数用 wsprintf("%d",x)把数值重新转成字符 
+
+0056D637 `FF75 B4` PUSH DWORD PTR SS:\[EBP\-4C\] ; 结果 
+
+0056D63A `8D55 B0` LEA EDX,DWORD PTR SS:\[EBP\-50\] 
+
+0056D63D `8BC6` MOV EAX,ESI ; 第 0C 位 esi==value(code\[0c\]) 
+
+0056D63F `E8 F8C4E9FF` CALL Ginshop.00409B3C ; 同上 
+
+0056D644 `FF75 B0` PUSH DWORD PTR SS:\[EBP\-50\] 
+
+0056D647 `8D55 AC` LEA EDX,DWORD PTR SS:\[EBP\-54\] 
+
+0056D64A `8BC7` MOV EAX,EDI ; 第 0D 位 edi==value(code\[0d\]) 
+
+0056D64C `E8 EBC4E9FF` CALL Ginshop.00409B3C 
+
+0056D651 `FF75 AC` PUSH DWORD PTR SS:\[EBP\-54\] 
+
+0056D654 `8D45 F4` LEA EAX,DWORD PTR SS:\[EBP\-C\] ; 结果字符串 ed79d869e220dc026ff71ca87cbf2fca 
+
+0056D657 `BA 04000000` MOV EDX,4 
+
+0056D65C `E8 977AE9FF` CALL Ginshop.004050F8 ; 这里把子串 e220dc026f 和刚刚转回的 3 个字符连起来 
+
+0056D661 `8B45 08` MOV EAX,DWORD PTR SS:\[EBP+8\] ; 成为正确注册码 
+
+0056D664 `8B55 F4` MOV EDX,DWORD PTR SS:\[EBP\-C\] ; 这里可以看到正确注册码 
+
+0056D667 `E8 6877E9FF` CALL Ginshop.00404DD4 ; 调整引用计数 
+
+0056D66C `33C0` XOR EAX,EAX 
+
+0056D66E `5A` POP EDX 
+
+0056D66F `59` POP ECX 
+
+0056D670 `59` POP ECX 
+
+0056D671 `64:8910` MOV DWORD PTR FS:\[EAX\],EDX 
+
+0056D674 `68 A3D65600` PUSH Ginshop.0056D6A3 
+
+0056D679 `8D45 AC` LEA EAX,DWORD PTR SS:\[EBP\-54\] ; 清除堆栈 
+
+0056D67C `BA 04000000` MOV EDX,4 
+
+0056D681 `E8 1E77E9FF` CALL Ginshop.00404DA4 
+
+0056D686 `8D45 CC` LEA EAX,DWORD PTR SS:\[EBP\-34\] 
+
+0056D689 `E8 F276E9FF` CALL Ginshop.00404D80 
+
+0056D68E `8D45 E0` LEA EAX,DWORD PTR SS:\[EBP\-20\] 
+
+0056D691 `BA 08000000` MOV EDX,8 
+
+0056D696 `E8 0977E9FF` CALL Ginshop.00404DA4 
+
+0056D69B `C3` RETN 
+
+## 返回后
+
+0056D7E0 `E8 E3FCFFFF` CALL Ginshop.0056D4C8 ; 这是上面的函数 
+
+0056D7E5 `8B55 F8` MOV EDX,DWORD PTR SS:\[EBP\-8\] ; 试炼码 
+
+0056D7E8 `8B45 F4` MOV EAX,DWORD PTR SS:\[EBP\-C\] ; 真码 
+
+0056D7EB `E8 54BEE9FF` CALL Ginshop.00409644 ; 明码比较：返回 0 为成功 
+
+0056D7F0 `85C0` TEST EAX,EAX 
+
+0056D7F2 `74 0C` JE SHORT Ginshop.0056D800 ; 跳走就对了 
+
+0056D7F4 `6A 0A` PUSH 0A 
+
+0056D7F6 `E8 B91BEAFF` CALL <JMP.&kernel32.Sleep> ; 失败时就躺倒不干了 
+
+0056D7FB `E9 95000000` JMP Ginshop.0056D895 
+
+0056D800 `33C0` XOR EAX,EAX 
+
+0056D802 `55` PUSH EBP ; 下面不用看了，明显就是保存注册信息了。 
+
+0056D803 `68 86D85600` PUSH Ginshop.0056D886 
+
+0056D808 `64:FF30` PUSH DWORD PTR FS:\[EAX\] 
+
+0056D80B `64:8920` MOV DWORD PTR FS:\[EAX\],ESP 
+
+0056D80E `B2 01` MOV DL,1 
+
+0056D810 `A1 408D4700` MOV EAX,DWORD PTR DS:\[478D40\] 
+
+0056D815 `E8 92B6F0FF` CALL Ginshop.00478EAC 
+
+0056D81A `8945 F0` MOV DWORD PTR SS:\[EBP\-10\],EAX 
+
+0056D81D `BA 02000080` MOV EDX,80000002 
+
+0056D822 `8B45 F0` MOV EAX,DWORD PTR SS:\[EBP\-10\] 
+
+0056D825 `E8 5EB7F0FF` CALL Ginshop.00478F88 
+
+0056D82A `8D45 EC` LEA EAX,DWORD PTR SS:\[EBP\-14\] 
+
+0056D82D `BA CCD85600` MOV EDX,Ginshop.0056D8CC ; ASCII "Software\JDGL\Food" 
+
+0056D832 `E8 E175E9FF` CALL Ginshop.00404E18 
+
+0056D837 `B1 01` MOV CL,1 
+
+0056D839 `8B55 EC` MOV EDX,DWORD PTR SS:\[EBP\-14\] 
+
+0056D83C `8B45 F0` MOV EAX,DWORD PTR SS:\[EBP\-10\] 
+
+0056D83F `E8 88B8F0FF` CALL Ginshop.004790CC 
+
+0056D844 `84C0` TEST AL,AL 
+
+0056D846 `74 20` JE SHORT Ginshop.0056D868 
+
+0056D848 `8B4D F8` MOV ECX,DWORD PTR SS:\[EBP\-8\] 
+
+0056D84B `BA E8D85600` MOV EDX,Ginshop.0056D8E8 ; ASCII "Passwd" 
+
+0056D850 `8B45 F0` MOV EAX,DWORD PTR SS:\[EBP\-10\] 
+
+0056D853 `E8 F0BBF0FF` CALL Ginshop.00479448 
+
+0056D858 `8B4D FC` MOV ECX,DWORD PTR SS:\[EBP\-4\] 
+
+0056D85B `BA F8D85600` MOV EDX,Ginshop.0056D8F8 ; ASCII "UsrName" 
+
+0056D860 `8B45 F0` MOV EAX,DWORD PTR SS:\[EBP\-10\] 
+
+## 跟进函数 553450
+
+```
+00553450  /$ 55             PUSH EBP
+00553451  |. 8BEC           MOV EBP,ESP
+00553453  |. 83C4 A4        ADD ESP,-5C
+00553456  |. 53             PUSH EBX
+00553457  |. 8BDA           MOV EBX,EDX
+00553459  |. 8945 FC        MOV DWORD PTR SS:\[EBP\-4\],EAX
+0055345C  |. 8B45 FC        MOV EAX,DWORD PTR SS:\[EBP\-4\]      ;"0al"
+0055345F  |. E8 BC1DEBFF     CALL Ginshop.00405220        ;调整引用计数
+
+00553464  |. 33C0           XOR EAX,EAX
+00553466  |. 55             PUSH EBP
+00553467  |. 68 B6345500    PUSH Ginshop.005534B6
+
+0055346C  |. 64:FF30        PUSH DWORD PTR FS:\[EAX\]       ;安装 SEH
+0055346F  |. 64:8920        MOV DWORD PTR FS:\[EAX\],ESP
+00553472  |. 8D45 A4        LEA EAX,DWORD PTR SS:\[EBP\-5C\]   ;"0al"
+00553475  |. E8 AEFEFFFF    CALL Ginshop.00553328       <========跟进看看：
+
+......................................................................
+
+00553328   C700 01234567    MOV DWORD PTR DS:\[EAX\],67452301   <=========眼熟吗？我反正是啼笑皆非...
+0055332E   C740 04 89ABCDEF MOV DWORD PTR DS:\[EAX+4\],EFCDAB89  ;明知道后来要明码比较，何必糟践 MD5 呢
+00553335   C740 08 FEDCBA98 MOV DWORD PTR DS:\[EAX+8\],98BADCFE
+0055333C   C740 0C 76543210 MOV DWORD PTR DS:\[EAX+C\],10325476
+00553343   33D2             XOR EDX,EDX
+00553345   8950 10          MOV DWORD PTR DS:\[EAX+10\],EDX
+00553348   33D2             XOR EDX,EDX
+0055334A   8950 14          MOV DWORD PTR DS:\[EAX+14\],EDX
+0055334D   83C0 18          ADD EAX,18
+00553350   BA 40000000      MOV EDX,40
+00553355   E8 BE4FEBFF      CALL Ginshop.00408318
+0055335A   C3               RETN
+
+.....................................................................
+```
+
+```
+0055347A  |. 8B45 FC        MOV EAX,DWORD PTR SS:\[EBP\-4\]
+0055347D  |. E8 B61BEBFF    CALL Ginshop.00405038   ;取字符串长度
+00553482  |. 50             PUSH EAX
+00553483  |. 8B45 FC        MOV EAX,DWORD PTR SS:\[EBP\-4\]
+00553486  |. E8 A51DEBFF    CALL Ginshop.00405230   ;陷阱，如果没有字符串（eax==0）会返回一个代码段的地址，
+0055348B  |. 8BD0           MOV EDX,EAX            ;导致 crash,由 SEH 接受控制。
+0055348D  |. 8D45 A4        LEA EAX,DWORD PTR SS:\[EBP\-5C\]
+00553490  |. 59             POP ECX
+00553491  |. E8 C6FEFFFF    CALL Ginshop.0055335C   ;MD5 大法.....
+00553496  |. 8BD3           MOV EDX,EBX
+00553498  |. 8D45 A4        LEA EAX,DWORD PTR SS:\[EBP\-5C\]
+0055349B  |. E8 3CFFFFFF    CALL Ginshop.005533DC
+005534A0  |. 33C0           XOR EAX,EAX
+005534A2  |. 5A             POP EDX
+005534A3  |. 59             POP ECX
+```
+
+
+
+```
+005534A4  |. 59                  POP ECX  
+005534A5  |. 64:8910             MOV DWORD PTR FS:[EAX],EDX  
+005534A8  |. 68 BD345500         PUSH Ginshop.005534BD  
+005534AD  |> 8D45 FC            LEA EAX,DWORD PTR SS:[EBP-4]  
+005534B0  |. E8 CB18EBFF         CALL Ginshop.00404D80  
+005534B5  \. C3                 RETN  
+```
+
+==========================================================================
+
+`MD5` 算法代码太长，就不贴了，反正没有什么特别，参照相关文献就可以了。
+
+### 算法总结
+
+- 注册码必须有 `13` 个以上个字符，前十个字符由后面的字符和注册名字共同确定；
+- 从第十一个字符开始的注册码必须给出三个个位数字，可以使 `10` 进制也可以是 `16` 进制（以 `'x'` 或 `'0x'` 开始）；
+- 将这三个数字作为索引，从注册名字中取出 `3` 个字符（索引从 `1` 开始）；
+- 取出的字符连成一个串，做 `MD5` 运算，得到 `16` 字节的结果，转换成字符串（`32` 字符）；
+- 取该字符串的 `8` - `17` 子串（索引从 `0` 开始）作为注册码的前 `10` 位。
+
+对于 `lianzi2000`，注册码为 `e220dc026f931`
+
+### 遗留问题
+
+- 根据软件作者说明，该软件可以被注册为普及版或标准版，但我没有发现有那里有这个判断。
+- 修改机器时间到 `11` 月份，仍然正常运行，包括普及版中理应受到限制的功能。
+
+```
+4dd466d0e1e0cc123afbe504da2462ca
+```
