@@ -1,0 +1,266 @@
+
+0043CCAF    .   FF15 5C10400>call dword ptr ds:[<&MSVBVM60.__v>;  MSVBVM60.__vbaHresultCheckObj  
+
+0043CCB5    >   8B16         mov edx,dword ptr ds:[esi]  
+
+0043CCB7    .   56           push esi  
+
+0043CCB8    .   FF92 0803000>call dword ptr ds:[edx+308]  
+
+0043CCBE    .   50           push eax  
+
+0043CCBF    .   8D45 D0      lea eax,dword ptr ss:[ebp-30]  
+
+0043CCC2    .   50           push eax  
+
+0043CCC3    .   FFD7         call edi  
+
+0043CCC5    .   8BF8         mov edi,eax  
+
+0043CCC7    .   8D55 D8      lea edx,dword ptr ss:[ebp-28]  
+
+0043CCCA    .   52           push edx  
+
+0043CCCB    .   57           push edi  
+
+0043CCCC    .   8B0F         mov ecx,dword ptr ds:[edi]  
+
+0043CCCE    .   FF91 A000000>call dword ptr ds:[ecx+A0]  
+
+0043CCD4    .   85C0         test eax,eax  
+
+0043CCD6    .   DBE2         fclex  
+
+0043CCD8    .   7D 12        jge short BatchDoc.0043CCEC  
+
+0043CCDA    .   68 A0000000  push 0A0  
+
+0043CCDF    .   68 58064100  push BatchDoc.00410658  
+
+0043CCE4    .   57           push edi  
+
+0043CCE5    .   50           push eax  
+
+0043CCE6    .   FF15 5C10400>call dword ptr ds:[<&MSVBVM60.__v>;  MSVBVM60.__vbaHresultCheckObj  
+
+0043CCEC    >   8B45 DC      mov eax,dword ptr ss:[ebp-24]  
+
+0043CCEF    .   C745 DC 0000>mov dword ptr ss:[ebp-24],0  
+
+0043CCF6    .   8945 C4      mov dword ptr ss:[ebp-3C],eax  
+
+0043CCF9    .   8B45 D8      mov eax,dword ptr ss:[ebp-28]  
+
+0043CCFC    .   50           push eax  
+
+0043CCFD    .   C745 BC 0800>mov dword ptr ss:[ebp-44],8  
+
+0043CD04    .   FF15 2810400>call dword ptr ds:[<&MSVBVM60.__v>;  MSVBVM60.__vbaLenBstr  
+
+0043CD0A    .   0FBF4D E8    movsx ecx,word ptr ss:[ebp-18]  
+
+0043CD0E    .   2BC1         sub eax,ecx  
+
+0043CD10    .   8D55 BC      lea edx,dword ptr ss:[ebp-44]  
+
+0043CD13    .   0F80 0E05000>jo BatchDoc.0043D227  
+
+0043CD19    .   50           push eax                           ; /Arg3  
+0043CD1A    .   8D45 AC      lea eax,dword ptr ss:[ebp-54]      ; |  
+0043CD1D    .   52           push edx                           ; |Arg2  
+0043CD1E    .   50           push eax                           ; |Arg1  
+0043CD1F    .   FF15 E011400>call dword ptr ds:[<&MSVBVM60.#61>; \\rtcRightCharVar  
+
+0043CD25    .   8D4D AC      lea ecx,dword ptr ss:[ebp-54]  
+
+0043CD28    .   51           push ecx  
+
+0043CD29    .   FF15 2410400>call dword ptr ds:[<&MSVBVM60.__v>;  MSVBVM60.__vbaStrVarMove  
+
+//////////////////////////////////////////////////////////////////////////////////////////////  
+
+上面这段代码是对输入的注册码按`-`进行分离  
+
+/////////////////////////////////////////////////////////////////////////////////////////////  
+
+0043CD2F    .   8BD0         mov edx,eax  
+
+0043CD31    .   8D4D E0      lea ecx,dword ptr ss:[ebp-20]  
+
+0043CD34    .   FFD3         call ebx  
+
+0043CD36    .   8D4D D8      lea ecx,dword ptr ss:[ebp-28]  
+
+0043CD39    .   FF15 FC11400>call dword ptr ds:[<&MSVBVM60.__v>;  MSVBVM60.__vbaFreeStr  
+
+0043CD3F    .   8D55 D0      lea edx,dword ptr ss:[ebp-30]  
+
+0043CD42    .   8D45 D4      lea eax,dword ptr ss:[ebp-2C]  
+
+0043CD45    .   52           push edx  
+
+0043CD46    .   50           push eax  
+
+0043CD47    .   6A 02        push 2  
+
+0043CD49    .   FF15 3810400>call dword ptr ds:[<&MSVBVM60.__v>;  MSVBVM60.__vbaFreeObjList  
+
+0043CD4F    .   8D4D AC      lea ecx,dword ptr ss:[ebp-54]  
+
+0043CD52    .   8D55 BC      lea edx,dword ptr ss:[ebp-44]  
+
+0043CD55    .   51           push ecx  
+
+0043CD56    .   52           push edx  
+
+0043CD57    .   6A 02        push 2  
+
+0043CD59    .   FF15 2C10400>call dword ptr ds:[<&MSVBVM60.__v>;  MSVBVM60.__vbaFreeVarList  
+
+0043CD5F    .   8B45 E0      mov eax,dword ptr ss:[ebp-20]  
+
+0043CD62    .   83C4 18      add esp,18  
+
+0043CD65    .   8D4D E4      lea ecx,dword ptr ss:[ebp-1C]  
+
+0043CD68    .   50           push eax  
+
+0043CD69    .   51           push ecx  
+
+0043CD6A    .   E8 31F9FFFF  call BatchDoc.0043C6A0             ;  关键算法  
+
+0043CD6F    .   8BD0         mov edx,eax  
+
+0043CD71    .   8D4D DC      lea ecx,dword ptr ss:[ebp-24]  
+
+0043CD74    .   FFD3         call ebx  
+
+0043CD76    .   50           push eax  
+
+0043CD77    .   FF15 C410400>call dword ptr ds:[<&MSVBVM60.__v>;  MSVBVM60.__vbaStrCmp  
+
+0043CD7D    .   8BF8         mov edi,eax  
+
+0043CD7F    .   8D4D DC      lea ecx,dword ptr ss:[ebp-24]  
+
+0043CD82    .   F7DF         neg edi  
+
+0043CD84    .   1BFF         sbb edi,edi  
+
+0043CD86    .   47           inc edi  
+
+0043CD87    .   F7DF         neg edi  
+
+0043CD89    .   FF15 FC11400>call dword ptr ds:[<&MSVBVM60.__v>;  MSVBVM60.__vbaFreeStr  
+
+0043CD8F    .   66:85FF      test di,di  
+
+0043CD92    .   0F84 4702000>je BatchDoc.0043CFDF               ;  跳 OVER  
+
+跟进上面的关键算法来到  
+
+0043C6A0    $   55           push ebp  
+
+0043C6A1    .   8BEC         mov ebp,esp  
+
+0043C6A3    .   83EC 0C      sub esp,0C  
+
+0043C6A6    .   68 061E4000  push ;  SE 句柄安装  
+
+0043C6AB    .   64:A1 000000>mov eax,dword ptr fs:[0]  
+
+。。。省略往下  
+
+0043C6EF    .   85C0         test eax,eax                       ;  左边字符长度，后面循环用  
+
+0043C6F1    .   0F84 2003000>je BatchDoc.0043CA17  
+
+。。。省略往下  
+
+0043C85F    >   \\8B51 0C     mov edx,dword ptr ds:[ecx+C]  
+
+0043C862    .   8BC3         mov eax,ebx  
+
+0043C864    .   33DB         xor ebx,ebx  
+
+0043C866    .   8A1C02       mov bl,byte ptr ds:[edx+eax]       ;  把倒数第二位的 ASC 码送入 bl  
+
+0043C869    .   8BF3         mov esi,ebx                        ;  把 bl 的值送至 esi，记为 c  
+
+。。。省略往下  
+
+0043C8B0    .   8A1C02       mov bl,byte ptr ds:[edx+eax]       ;  左边每个字符的 ASC  
+
+0043C8B3    .   8B55 D0      mov edx,dword ptr ss:[ebp-30]      ;  第一次为最后一位的 ASC 码，后为 b 值  
+
+0043C8B6    .   23DA         and ebx,edx                         ;  和最后一位 ASC 码或 b 值做 and 运算,记为 a  
+
+0043C8B8    .   85C9         test ecx,ecx  
+
+0043C8BA    .   74 22        je short BatchDoc.0043C8DE  
+
+0043C8BC    .   66:8339 01   cmp word ptr ds:[ecx],1  
+
+0043C8C0    .   75 1C        jnz short BatchDoc.0043C8DE  
+
+0043C8C2    .   8B7D 84      mov edi,dword ptr ss:[ebp-7C]  
+
+0043C8C5    .   8B51 14      mov edx,dword ptr ds:[ecx+14]  
+
+0043C8C8    .   8B41 10      mov eax,dword ptr ds:[ecx+10]  
+
+0043C8CB    .   2BFA         sub edi,edx  
+
+0043C8CD    .   3BF8         cmp edi,eax  
+
+0043C8CF    .   72 09        jb short BatchDoc.0043C8DA  
+
+0043C8D1    .   FF15 C010400>call dword ptr ds:[<&MSVBVM60.__v>;  MSVBVM60.__vbaGenerateBoundsError  
+
+0043C8D7    .   8B4D D8      mov ecx,dword ptr ss:[ebp-28]  
+
+0043C8DA    >   8BC7         mov eax,edi  
+
+0043C8DC    .   EB 05        jmp short BatchDoc.0043C8E3  
+
+0043C8DE    >   FFD7         call edi  
+
+0043C8E0    .   8B4D D8      mov ecx,dword ptr ss:[ebp-28]  
+
+0043C8E3    >   8B49 0C      mov ecx,dword ptr ds:[ecx+C]  
+
+0043C8E6    .   33D2         xor edx,edx  
+
+0043C8E8    .   8A1401       mov dl,byte ptr ds:[ecx+eax]       ;  每个字符的 ASC 码  
+
+0043C8EB    .   8BFA         mov edi,edx  
+
+0043C8ED    .   0BFE         or edi,esi                          ;  与 c 做 OR 运算，记作 b  
+
+0043C8EF    .   81FB 8000000>cmp ebx,80  
+
+0043C8F5    .   7E 0F        jle short BatchDoc.0043C906  
+
+0043C8F7    .   B8 00010000  mov eax,100  
+
+0043C8FC    .   2BC3         sub eax,ebx  
+
+0043C8FE    .   0F80 7501000>jo BatchDoc.0043CA79  
+
+0043C904    .   8BD8         mov ebx,eax  
+
+0043C906    >   81FF 8000000>cmp edi,80                          ;  b>80  
+
+0043C90C    .   7E 0F        jle short BatchDoc.0043C91D  
+
+0043C90E    .   B9 00010000  mov ecx,100  
+
+0043C913    .   2BCF         sub ecx,edi                         ;  100-b  
+
+0043C915    .   0F80 5E01000>jo BatchDoc.0043CA79  
+
+0043C91B    .   8BF9         mov edi,ecx                         ;  b=100-b  
+
+0043C91D    >   8B45 C4      mov eax,dword ptr ss:[ebp-3C]  
+
+0043C920    .   85C0         test eax,eax  

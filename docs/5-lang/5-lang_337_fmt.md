@@ -1,0 +1,253 @@
+
+# DataFit 8.0
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6302.htm`](https://www.pediy.com/kssd/pediy06/pediy6302.htm)
+
+## 破解 DataFit 8.0
+
+这是个科学与工程工具（science and engineering, 不知道怎么译:-)。用于对数据进行统计分析，曲线拟合，绘图等。在 `RCE Message Board` 上见到有人提起，以为是个 `VB PCode` 程序，虽然很讨厌 `PCode`，可是不学不行呀，于是下载回来练手，结果是 `Native Code`。既来之，则破之，这个倒比较简单。
+
+### 1. 初步分析
+
+大致看了看，好像没什么别的东西，只要研究主程序就行。在 `SmartCheck` 下加载，运行起来后，有个 `"New Project"` 对话框，这个地方最好选 `Cancel`，否则 `SmartCheck` 好像动不了了，可以看到一大堆对 `Rnd` 的调用。我以为是掉到陷阱里了，不过从后面看未必，只是太慢而已。
+
+从 `SmartCheck` 中可以看见，实际上是 `keyfile` 保护，会访问 `DataFit.lic` 和 `Eval.lic`。
+
+另外，我习惯性地把 `text section` 改为 `E0000020`，结果不能运行。在 `SoftIce` 下没反应，直接运行报找不到 `Q.dll`，看来还有自校验。先不管它。
+
+### 2. License 输入与分析
+
+在 `SmartCheck` 下运行，打开 `Help|License`，可以输一个 `license number`，与用户名无关?输入 `12345678`。
+
+输完后没有反应，也许是重启校验，于是退出程序。在主窗口的 `Unload` 事件处理中，找到对 `license number` 的处理（`SmartCheck` 不能把代码拷出来，这点不如 `W32Dasm`:-)，从 `9C2148` 开始：
+
+1) `license number` 按奇、偶数位重新组合：
+   `"12345678"` -> `"24681357"`
+
+2) 将最后 `1` 位放到最前面，循环 `13` 次。我的 `number` 给得太小，有的数字用了两次。
+   这中间调用了 `LCase`，说明 `number` 实际上是字母或包含字母。
+
+3) 从 `9C239B` 起，对 `license number` 进行换码（一个大的 `select case`），`26` 个小写字母乱序后重新得到一个字符串。可见 `license number` 全为字母。
+
+4) 从 `9C2876` 起，对 `number` 再次换码，把 `26` 个小写字母看作一个闭合的环，每个字母左移 `12` 位，如 `'l'->'a'`，`'m'->'b'`。
+
+以下好象就没什么明显的代码了，无数的 `Rnd`, `Double`, `Chr` 调用。我以为这些代码是 `"逗你玩"`，于是掉头去看前面，也有很多类似的代码，而且没有看到上面变换的结果被使用。
+
+### 3. Keyfile 尝试与逆向逻辑
+
+也许应该试试凑个 `keyfile`。不过在 `IDA Pro` 中看看再说。在上面的代码之后，却可以看到调用 `__vbaStrCmp` 进行明码比较。不知为什么 `SmartCheck` 没有报出对 `__vbaStrCmp` 的调用。用于与明码比较的字符串是上面处理过的字符串再次按奇偶数位组合的结果。
+
+比较指令很多，实际上是个循环，在 `5CD150` 开始的函数内。比较循环执行 `300` 次，难怪在 `SmartCheck` 中那么多重复的代码。问题是用于比较的明码是用 `Rnd` 生成的?
+
+先不管它，用断到的第 `1` 个明码 `"stcrdvgiexsgxqyh"` 写一个逆反过程试试:
+
+```cpp
+CString strInput="stcrdvgiexsgxqyh";
+//将奇,偶数位重新放置
+CString strKey;
+for(int i=0;i<strInput.GetLength()/2;i++)
+{
+    strKey += strInput[i + strInput.GetLength()/2];
+    strKey += strInput[i];
+}
+//逐字符移位(把 26 个字母看做封闭的环:-)
+int nLen=strKey.GetLength();
+for(i=0;i<nLen;i++)
+{
+    strKey.SetAt(i,(strKey[i] + 0xC >'z')?
+    strKey[i] + 0xC - 0x1A : strKey[i] + 0xC);
+}
+//换码
+char szPlain[]="abcdefghijklmnopqrstuvwxyz";
+char szCipher[]="lesiaxkcpgnmvrzfbhjuqdoywt";
+for(i=0;i<nLen;i++)
+{
+    for(int j=0;j<26;j++)
+    {
+        if(strKey[i]==szCipher[j])
+        {
+            strKey.SetAt(i,szPlain[j]);
+            break;
+        }
+    }
+}
+//把第 1 位放到最后面,循环 13 次
+for(i=0;i<13;i++)
+{
+    strKey=strKey.Right(nLen - 1) + strKey.Left(1);
+}
+//再次将奇,偶数位重新放置
+CString strOutput;
+for(i=0;i<strKey.GetLength()/2;i++)
+{
+    strOutput += strKey[i + strKey.GetLength()/2];
+    strOutput += strKey[i];
+}
+TRACE("%s",strOutput);
+```
+
+把结果 `"wcczvtsuibhsrpgb"` 输入，`OK`:-)。再看看目录下面，并没有 `DataFit.lic` 文件。上述 `license number` 被写入了注册表。看来没有 `keyfile` 也行:-)。
+
+### 4. License 生成原理（汇编分析）
+
+下面再来看看 `license number` 怎么会由随机数生成?以下为相关的汇编代码。
+
+```asm
+.text:005CD1F2                 mov     ebx, 61h        ; 'a'
+.text:005CD1F7                 mov     [ebp+var_50], 0FFFFFFFFh
+.text:005CD1FE                 mov     edi, 2
+.text:005CD203                 mov     [ebp+var_number], edi
+.text:005CD206                 lea     eax, [ebp+var_number]
+.text:005CD209                 push    eax
+.text:005CD20A                 call    ds:rtcRandomNext  ; 这里把 var_50 置为-1,push 的
+                                                          ; 却是另一个指针(->2)?
+                                                          ;
+                                                          ; 在 SmartCheck 中为 Rnd(-1),
+                                                          ; 这个是对的
+                                                          ;
+.text:005CD210                 fstp    st
+.text:005CD212                 lea     ecx, [ebp+var_number]
+.text:005CD215                 mov     esi, ds:__vbaFreeVar
+.text:005CD21B                 call    esi ; __vbaFreeVar
+.text:005CD21D                 mov     word ptr [ebp+var_50], 19h
+.text:005CD223                 mov     [ebp+var_number], edi
+.text:005CD226                 lea     ecx, [ebp+var_number]
+.text:005CD229                 push    ecx
+.text:005CD22A                 call    ds:rtcRandomize ; Rnd(25)
+.text:005CD230                 lea     ecx, [ebp+var_number]
+.text:005CD233                 call    esi ; __vbaFreeVar
+.text:005CD235                 mov     [ebp+var_38], 0
+.text:005CD23C                 mov     [ebp+var_nCount], 1
+.text:005CD243
+.text:005CD243 loc_5CD243:                  ; CODE XREF: sub_5CD150+21D
+.text:005CD243                 mov     eax, 12Ch       ; 300 次
+.text:005CD248                 cmp     word ptr [ebp+var_nCount], ax
+.text:005CD24C                 jg      loc_5CD379
+.text:005CD252                 mov     edx, offset unk_45F354
+.text:005CD257                 lea     ecx, [ebp+var_pCurrLicNum]
+.text:005CD25A                 call    ds:__vbaStrCopy
+.text:005CD260                 mov     esi, 1
+.text:005CD265
+.text:005CD265 loc_5CD265:                  ; CODE XREF: sub_5CD150+1F2
+.text:005CD265                 mov     eax, 10h        ; 1 个 license number 为 16 位
+.text:005CD26A                 cmp     si, ax
+.text:005CD26D                 jg      l_cmp
+.text:005CD273                 mov     [ebp+var_50], 80020004h
+.text:005CD27A                 mov     [ebp+var_number], 0Ah
+.text:005CD281                 lea     edx, [ebp+var_number]
+.text:005CD284                 push    edx
+.text:005CD285                 call    ds:rtcRandomNext
+.text:005CD28B                 fstp    [ebp+var_rnd]
+.text:005CD291                 mov     eax, 7Ah        ; 'z'
+.text:005CD296                 sub     ax, bx          ; bx=0x61 ->'a'
+.text:005CD299                 jo      l_exception
+.text:005CD29F                 add     ax, 1
+.text:005CD2A3                 jo      l_exception
+.text:005CD2A9                 movsx   eax, ax
+.text:005CD2AC                 mov     [ebp+var_int], eax
+.text:005CD2B2                 fild    [ebp+var_int]   ; 装入整数到 st(0)
+.text:005CD2B8                 fstp    [ebp+var_194]   ; var_194 <-st(0)
+.text:005CD2BE                 fld     [ebp+var_194]   ; 装入实数到 st(0)
+                                                          ; 这几句把 0x7A 转化为实数
+                                                          ; 0x7A->字符'z'
+.text:005CD2C4                 fmul    [ebp+var_rnd]
+.text:005CD2CA                 movsx   ecx, bx
+.text:005CD2CD                 mov     [ebp+var_198], ecx
+.text:005CD2D3                 fild    [ebp+var_198]
+.text:005CD2D9                 fstp    [ebp+var_19C]
+.text:005CD2DF                 fadd    [ebp+var_19C]   ; 加,不用再看下去了:-)
+.text:005CD2E5                 fnstsw  ax
+.text:005CD2E7                 test    al, 0Dh
+.text:005CD2E9                 jnz     loc_5CD74E
+.text:005CD2EF                 call    ds:__vbaR8IntI2
+.text:005CD2F5                 mov     edi, eax
+.text:005CD2F7                 lea     ecx, [ebp+var_number]
+.text:005CD2FA                 call    ds:__vbaFreeVar
+.text:005CD300                 mov     edx, [ebp+var_pCurrLicNum]
+.text:005CD303                 push    edx
+.text:005CD304                 movsx   eax, di
+.text:005CD307                 push    eax
+.text:005CD308                 call    ds:rtcBstrFromAnsi
+.text:005CD30E                 mov     edx, eax
+.text:005CD310                 lea     ecx, [ebp+var_48]
+.text:005CD313                 mov     edi, ds:__vbaStrMove
+```
+
+
+
+```asm
+.text:005CD319             call    edi ; __vbaStrMove   
+
+.text:005CD31B             push    eax   
+
+.text:005CD31C             call    ds:__vbaStrCat   
+
+.text:005CD322             mov     edx, eax   
+
+.text:005CD324             lea     ecx, [ebp+var_pCurrLicNum]   
+
+.text:005CD327             call    edi ; __vbaStrMove   
+
+.text:005CD329             lea     ecx, [ebp+var_48]   
+
+.text:005CD32C             call    ds:__vbaFreeStr   
+
+.text:005CD332             mov     eax, 1   
+
+.text:005CD337             add     ax, si   
+
+.text:005CD33A             jo      l_exception   
+
+.text:005CD340             mov     esi, eax   
+
+.text:005CD342             jmp     loc_5CD265   
+
+.text:005CD347 ; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━   
+
+.text:005CD347   
+
+.text:005CD347 l_cmp:                         ; CODE XREF: sub_5CD150+11D   
+
+.text:005CD347             mov     ecx, [ebp+arg_pPtInputedLicNum]   
+
+.text:005CD34A             mov     edx, [ecx]   
+
+.text:005CD34C             push    edx   
+
+.text:005CD34D             mov     eax, [ebp+var_pCurrLicNum]   
+
+.text:005CD350             push    eax   
+
+.text:005CD351             call    ds:__vbaStrCmp   
+
+.text:005CD357             test    eax, eax   
+
+.text:005CD359             jz      short loc_5CD372   
+
+.text:005CD35B             mov     eax, 1   
+
+.text:005CD360             add     ax, word ptr [ebp+var_nCount]   
+
+.text:005CD364             jo      l_exception   
+
+.text:005CD36A             mov     [ebp+var_nCount], eax   
+
+.text:005CD36D             jmp     loc_5CD243  
+```
+
+没有太大的意思。见 MSDN 对 `Randomize` 的解释：若想得到重复的随机数序列，在使用具有数值参数的 `Randomize` 之前直接调用具有负参数值的 `Rnd`。这里先用 `-1` 去调 `Rnd`，得到固定的"随机数"序列，用来在 `'a'-'z'` 间取值。可以照葫芦画瓢，做出 `300` 个 `license number`，一网打尽:-)。
+
+```vb
+Rnd (-1) 
+Randomize (25) 
+For i = 1 To 300   '300 个 license number 
+    CurrLicNum = "" 
+    For j = 1 To 16    '每个 16 字符 
+        CurrLicNum = CurrLicNum + Chr(&H61 + Int(26 * Rnd)) 
+    Next j 
+Next i 
+```
+
+这里只是明文，还要逆回去。难道厂商只打算卖 `300` 份?或许这 `300` 个 `license number` 用完了，就要用 `keyfile` 了:-)
+
+`4dd466d0e1e0cc123afbe504da2462ca`
