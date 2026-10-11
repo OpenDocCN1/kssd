@@ -1,0 +1,111 @@
+
+# ADD/Remove v2.0
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum311.htm`](https://www.pediy.com/kssd/pediy03/forum311.htm)
+
+ADD/Remove v2.0
+
+（计算系列号）
+
+破解人：`punisher`
+
+软件的保护机制：你必须填入 `User Name` 和 `Registration Code`。注册码是用你输入的名字计算出来的。
+
+破解过程：我试过用 `Wdasm32` 来反汇编，但失败了，所以我用 `SOFTICE` 跟踪程序以便发现注册码。
+
+一启动程序就遇上一个破框要你注册，破框上有一组按钮其中包括 `'Register Later'`，点击它会进入程序主窗口。看一下标题栏，有 `'UNREGISTERED VERSION'` 的字样。点击 `"EXIT"`，退出程序时又跳出刚才的那个破框。
+
+让我们解决它吧！
+
+启动程序，在破框中键入你的名字和一个假的注册码，然后按 `Ctrl-D` 激活 `SOFTICE`，下断点 `GetWindowTextA`，再按 `Ctrl-D` 回到破框。这时就可以点击 `"unlock"`，程序会被 `SOFTICE` 拦截在 `GetWindowTextA` 中，因为程序要有俩个 `CALL` 去获取我们的名字和注册码，所以我们现在在 `SOFTICE` 的命令窗中输入 `"X"` 并按回车以略过第一个 `CALL`。
+
+马上，`SOFTICE` 第二次中断在 `GetWindowTextA` 中，按 `F11` 步出这个 `CALL`，然后按 `F12` 来到这里：
+
+```asm
+      call  004053B6
+      push  00408360                   ; 你在这里
+      lea   ecx, [ebp-18]
+      call  00405386
+      mov   dword ptr [ebp-04], 0000000
+      mov   eax, [eax]
+      push  eax
+      call  [0040A810]
+      mov   dword ptr [ebp-04], FFFFFFFF
+      add   esp, 08
+      cmp   eax, 01
+      mov   eax, [ebp-14]
+      sbb   [ebp-14], eax
+      neg   dword ptr [ebp-14]
+      call  00401A33
+      cmp   dword ptr [ebp-14], 00
+      jz    00401949                   ; 跳到计算注册码的 CALL
+```
+
+在内存中搜寻一下你的假注册码吧，只要键入：
+
+```
+s 0 LFFFFFFF '15151515'（我是用 15151515）
+```
+
+你会在数据窗中发现你输入的东东。按住 `ALT` 和 `PAGEDOWN` 组合键，直到在数据窗中看到 `"UNREGISTERED USER"`，在它之前你会看到四个数字并有一个破折号 `"-"`，这是注册码的第一部分。记下来，可别忘了破折号哦！
+
+现在要跟入 `"jz 00401949"` 这个跳转指令了，你会来到这里：
+
+```asm
+      call  00401620                   ; 这个 CALL 计算注册码的第二部分
+      test  eax, eax
+      jz    004019F8                   ; <- 若在这里跳就惨了
+```
+
+按 `F8` 追入 `CALL 00401620`，按 `F10` 跟踪到这里：
+
+```asm
+      mov   eax, [004835C]
+      lea   ecx, [ebp-10]
+      mov   al, [edx + eax]            ; 这是注册码的第二部分的第一个字符
+```
+
+在光条带过 `mov al, [edx + eax]` 时键入命令：
+
+```
+? al
+```
+
+记下 `al` 的 `ASCII` 码内容，不管是数字还是字母。
+
+继续按 `F10` 来到这里：
+
+```asm
+   Test  byte ptr [ebp-10] 01
+   jnz   00401728
+   mov   eax, [ebp-10]
+   mov   al, [eax+00408360]           ; 在 al 中存入你的名字的第一个字母
+   cmp   al, 7F
+   jg    00401773
+   cmp   al, 20
+   jl    00401784
+   cbw
+   mov   cl, 02
+   idiv  cl                           ;将该字母的值除以 2
+   add   al, 20                       ;再加上 20
+   cmp   al, 61
+   jge   004016FA
+   add   al, 06
+   cmp   al, 39
+   jle   00401704
+   cmp   al, 41
+   add   al, 08                       ;用 ? al 取得运算后的字符
+   push eax
+```
+
+以上就是注册码的计算过程，它取出你的名字的第一个字符，将它除以 2，然后加上 20。若结果是字母就存起来，若不是就加上 8 后再转换。接着，程序会略过第二个字符而用第三个字符进行同样的运算，直到没有字符为止。
+
+在算出注册码后，程序从 `CALL` 中返回，测试 `EAX` 的值，如果是零就跳转到出错对话框；非零就在注册表中存入你的注册码和名字。
+
+为了取得注册码，你就必须一直在 `CALL` 中跟踪，在 `"add al,08"` 指令时用 `"? al"` 并记下 `al` 的内容。跟踪完这个 `CALL` 后再将注册码的第一部分与这部分的内容连起来。注意，注册码的长度是取决于你名字的长度。
+
+我用的名字是 `Punisher`，我的注册码=`6582-mHWYR`
+
+你自己试试吧，快去拥有属于你的注册码!
+
+`4dd466d0e1e0cc123afbe504da2462ca`
