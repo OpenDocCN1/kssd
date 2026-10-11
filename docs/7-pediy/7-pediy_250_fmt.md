@@ -1,0 +1,214 @@
+
+# FlashGet
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6590.htm`](https://www.pediy.com/kssd/pediy06/pediy6590.htm)
+
+**PEDIY** 之 我自己的 **FlashGet** 面向初学者
+
+**FlashGet** 地球人都知道吧，偶可是从以前的 `JetCar` 一直用过来的。看它的宣传中颇为自豪的是对下载来的文件的管理功能，可以分成软件、游戏、音乐之类来安排。可是偶还是用得不太爽，像偶这样每天 `DOWN` 一堆乱七八糟东东的，几个月就能累积起几百个文件，不少珍贵或是超大的东东是绝对舍不得先删了等需要时再下的。于是乎在七八百个压缩包中寻找三天前下载的一份资料就成了我的必修课，痛苦啊~~~~~
+
+最近忽发奇想，`FLASHGET` 的文件管理只是简单的把文件分成了几类，要是把文件按下载的日期来分别放入不同的文件夹，岂不是十分方便？正好借此练练偶的 `Reversing Engineer`。
+
+先确定大概的方向，`FLASHGET` 有一个预先指定的下载目录，默认时为 `C:\downloads`，如果下载时不加改变就会保存到这里，我们的目标就是根据不同的日期自动改变这个下载目录。
+
+这个设定在什么地方呢，自己找找吧，`INI` 文件里没有，注册表里~~~~找到乐！是 `HKEY_USERS\.DEFAULT\Software\JetCar\JetCar\Download default`，里面有个 `path` 键值就是了。（我的 `FLASHGET` 版本为 1.60，新版不知有没有变化）
+
+怎么修改呢，我想的方法是在软件启动时从注册表读取信息之前把用系统日期表示的默认下载目录写进注册表中。先用 `C` 语言写个，看你的编程功力啦：
+
+```
+代码:
+void F()
+{
+  char path[30]="D:\\downloads\\";
+  char date[10]={0};
+  DWORD dw;
+  HKEY hKey;
+  GetDateFormat(NULL,DATE_SHORTDATE,NULL,NULL,date,10);
+  RegCreateKeyEx(HKEY_USERS,".DEFAULT\\Software\\JetCar\\JetCar\\Download default",0,0,
+    REG_OPTION_VOLATILE,KEY_ALL_ACCESS,NULL,&hKey,&dw);
+  strcat(path,date);
+  RegSetValueEx(hKey,"path",0,REG_SZ,(byte*)path,30);
+  RegCloseKey(hKey);
+}
+```
+
+就把这个函数插进程序刚启动时就行了。呵呵~~~，往人家的程序写代码可不是那么简单的，先做一点准备工作，把需要的常量查出来（偶最讨厌这个！）
+
+```
+HKEY_USERS=80000003
+DATE_SHORTDATE=1
+REG_OPTION_VOLATILE=1
+KEY_ALL_ACCESS=1F003F （这个是根据下面一堆值加出来的）
+REG_SZ=1
+#define KEY_QUERY_VALUE         (0x0001)
+#define KEY_SET_VALUE           (0x0002)
+#define KEY_CREATE_SUB_KEY      (0x0004)
+#define KEY_ENUMERATE_SUB_KEYS  (0x0008)
+#define KEY_NOTIFY              (0x0010)
+#define KEY_CREATE_LINK         (0x0020)
+#define STANDARD_RIGHTS_ALL             (0x001F0000L)
+#define KEY_ALL_ACCESS          ((STANDARD_RIGHTS_ALL        |\\
+                                 KEY_QUERY_VALUE            |\\
+                                 KEY_SET_VALUE              |\\
+                                 KEY_CREATE_SUB_KEY         |\\
+                                 KEY_ENUMERATE_SUB_KEYS     |\\
+                                 KEY_NOTIFY                 |\\
+                                 KEY_CREATE_LINK)            \\
+                                 &                            \\
+                                 (~SYNCHRONIZE))
+```
+
+找这个有什么用呢？在我们平时编程时候，不管用 `VC` 或是 `DELPHI` 还是 `MASM` 什么，都会包含一个有大量的常量定义的“头文件”，免去了记忆各种参数值的麻烦，可是现在我们几乎是用机器码写程序，你总不能在 `HIEW` 里写上 `PUSH REG_SZ` 吧（或许有高人能给 `HIEW` 扩充一下也说不定）。
+
+常量记好没有，准备工作还没完呢，找找我们用到的函数的地址，用 `LordPE` 就很好，记得选上那个 `View always FirstThunk`。其中 `GetDateFormat` 这个函数没有，用 `LordPE` 加入也很方便的，在 `KERNEL32.DLL` 里面。
+
+```
+GetDateFormat  [54001E]
+RegCreateKeyEx  [4DC020]
+RegSetValueEx  [4DC040]
+RegCloseKey  [4DC028]
+lstrcat    [4DC370]
+```
+
+好了，开始写代码了。我们在程序入口点处就强行跳转到后面的大片空白处写我们的代码：
+
+原来的代码：
+
+
+
+# 代码
+
+```
+//******************************** Program Entry Point ***************
+:0049DDF1 55                    push ebp
+:0049DDF2 8BEC                  mov ebp, esp
+:0049DDF4 6AFF                  push FFFFFFFF
+:0049DDF6 68A8AA4E00            push 004EAAA8
+:0049DDFB 68DC214A00            push 004A21DC
+:0049DE00 64A100000000          mov eax, dword ptr fs:[00000000]
+:0049DE06 50                    push eax
+:0049DE07 64892500000000        mov dword ptr fs:[00000000], esp
+///////////////////////////////////////////////////////////////
+:004DBC38 B8C0055000            mov eax, 005005C0
+:004DBC3D E999F8FBFF            jmp 0049B4DB
+:004DBC42 00000000000000000000    BYTE 10 DUP(0)
+:004DBC4C 00000000000000000000    BYTE 10 DUP(0)
+:004DBC56 00000000000000000000    BYTE 10 DUP(0)
+:004DBC60 00000000000000000000    BYTE 10 DUP(0)
+:004DBC6A 00000000000000000000    BYTE 10 DUP(0)
+:004DBC74 00000000000000000000    BYTE 10 DUP(0)
+:004DBC7E 00000000000000000000    BYTE 10 DUP(0)
+```
+
+下面是在 `HIEW` 里面选 `EDIT` 模式时应输入的形式，要注意的地方一看就明白了，输入完以后按 `F9` `Update` 后会有所变化，这一点请注意。
+
+```
+000DBC42: 6A0A                   push        00A
+000DBC44: 6800BE4D00             push        0004DBE00 ;" M?"
+000DBC49: 6A00                   push        000
+000DBC4B: 6A00                   push        000
+000DBC4D: 6A01                   push        001
+000DBC4F: 6A00                   push        000
+000DBC51: FF151E005400           call        d,[0054001E]
+000DBC57: 680BBE4D00             push        0004DBE0B ;" M?"
+000DBC5C: 6810BE4D00             push        0004DBE10 ;" M?"
+000DBC61: 6A00                   push        000
+000DBC63: 683F001F00             push        0001F003F ;"  ?"
+000DBC68: 6A01                   push        001
+000DBC6A: 6A00                   push        000
+000DBC6C: 6A00                   push        000
+000DBC6E: 6896805000             push        000508096 ;" P€?
+000DBC73: 6803000080             push        080000003 ;"€  "
+000DBC78: FF1520C04D00           call        d,[004DC020]
+000DBC7E: 6800BE4D00             push        0004DBE00 ;" M?"
+000DBC83: 68C7805000             push        0005080C7 ;" P€?
+000DBC88: FF1570C34D00           call        d,[004DC370]
+000DBC8E: 6A30                   push        030
+000DBC90: 68C7805000             push        0005080C7 ;" P€?
+000DBC95: 6A01                   push        001
+000DBC97: 6A00                   push        000
+000DBC99: 6891805000             push        000508091 ;" P€?
+000DBC9E: FF3510BE4D00           push        d,[004DBE10]
+000DBCA4: FF1540C04D00           call        d,[004DC040]
+000DBCAA: FF3510BE4D00           push        d,[004DBE10]
+000DBCB0: FF1528C04D00           call        d,[004DC028]
+000DBCB6: 55                     push        ebp
+000DBCB7: 8BEC                   mov         ebp,esp
+000DBCB9: 6AFF                   push        0FF
+000DBCBB: E93621FCFF             jmp         00009DDF6
+000DBCC0: 0000                   add         [eax],al
+000DBCC2: 0000                   add         [eax],al
+```
+
+下面是在 `W32DASM` 里的样子，加了注释：
+
+```
+//******************************** Program Entry Point ***************
+:0049DDF1 E94CDE0300             jmp 004DBC42    ;跳到后面
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004DBCBB(U)
+|
+:0049DDF6 68A8AA4E00             push 004EAAA8
+:0049DDFB 68DC214A00             push 004A21DC
+:0049DE00 64A100000000           mov eax, dword ptr fs:[00000000]
+:0049DE06 50                     push eax
+:0049DE07 64892500000000         mov dword ptr fs:[00000000], esp
+///////////////////////////////////////////////////////////////
+:004DBC38 B8C0055000             mov eax, 005005C0
+:004DBC3D E999F8FBFF             jmp 0049B4DB
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0049DDF1(U)
+|
+:004DBC42 6A0A                   push 0000000A  ;缓冲区的长度
+:004DBC44 6800BE4D00             push 004DBE00  ;返回的日期字串的地址
+:004DBC49 6A00                   push 00000000
+:004DBC4B 6A00                   push 00000000
+:004DBC4D 6A01                   push 00000001  ;DATE_SHORTDATE,短日期
+:004DBC4F 6A00                   push 00000000
+:004DBC51 FF151E005400           call dword ptr [0054001E]  ;GetDateFormat
+:004DBC57 680BBE4D00             push 004DBE0B  ;返回值的地址,没用
+:004DBC5C 6810BE4D00             push 004DBE10  ;hKey 的地址,重要
+:004DBC61 6A00                   push 00000000
+:004DBC63 683F001F00             push 001F003F ;KEY_ALL_ACCESS
+:004DBC68 6A01                   push 00000001 ;REG_OPTION_VOLATILE
+:004DBC6A 6A00                   push 00000000
+:004DBC6C 6A00                   push 00000000
+
+* Possible StringData Ref from Data Obj ->".DEFAULT\Software\JetCar\JetCar\Download "
+                                                 ->"default"
+                                         |
+:004DBC6E 6896805000             push 00508096  ;打开的子键,注意先在[508096]这里写好
+:004DBC73 6803000080             push 80000003  ;HKEY_USERS
+:004DBC78 FF1520C04D00           call dword ptr [004DC020]  ;RegCreateKeyEx
+:004DBC7E 6800BE4D00             push 004DBE00  ;前面得到的系统日期
+
+* Possible StringData Ref from Data Obj ->"D:\downloads\"
+                                         |
+:004DBC83 68C7805000             push 005080C7 ;要保存的文件夹,事先写好
+:004DBC88 FF1570C34D00           call dword ptr [004DC370]  ;lstrcat,组合起来
+:004DBC8E 6A30                   push 00000030  ;缓冲区长度
+
+* Possible StringData Ref from Data Obj ->"D:\downloads\"
+                                         |
+:004DBC90 68C7805000             push 005080C7  ;组合后的完整目录
+:004DBC95 6A01                   push 00000001  ;REG_SZ
+:004DBC97 6A00                   push 00000000
+
+* Possible StringData Ref from Data Obj ->"path"
+                                         |
+:004DBC99 6891805000             push 00508091  ;键值,事先写好
+:004DBC9E FF3510BE4D00           push dword ptr [004DBE10]  ;hKey
+:004DBCA4 FF1540C04D00           call dword ptr [004DC040]  ;RegSetValueEx
+:004DBCAA FF3510BE4D00           push dword ptr [004DBE10]  ;hKey
+:004DBCB0 FF1528C04D00           call dword ptr [004DC028]  ;RegCloseKey
+:004DBCB6 55                     push ebp
+:004DBCB7 8BEC                   mov ebp, esp
+:004DBCB9 6AFF                   push FFFFFFFF  ;原来的开头部分
+:004DBCBB E93621FCFF             jmp 0049DDF6  ;返回喽
+:004DBCC0 00000000000000000000    BYTE 10 DUP(0)
+:004DBCCA 00000000000000000000    BYTE 10 DUP(0)
+```
+
+写好了，运行一下，哈哈，默认目录自动改变成了 `D:\downloads\04-7-19` 这种形式,从此清清楚楚了. ![](img/653a807544322e74f80cb7cea3c60f29.jpg) `4dd466d0e1e0cc123afbe504da2462ca`
