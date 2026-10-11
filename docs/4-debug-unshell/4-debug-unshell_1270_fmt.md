@@ -1,0 +1,930 @@
+
+# 伪 ASProtect V2.X 脱壳
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-581.htm`](https://www.pediy.com/kssd/pediy07/pediy7-581.htm)
+
+【破解作者】 `stasi[DCM][BCG][FCG][DFCG][OCN][CZG][D.4s]`
+【作者邮箱】 `stasi@163.com`
+【使用工具】 `ollydbg` `peid0.92`
+【破解平台】 `Win9x/NT/2000/XP`
+【软件名称】 `HidePE`
+【软件简介】 `exetool` 论坛上的朋友发到我邮箱的，说是国外的外壳，能躲过 `pedi` 和 `fi` 的查壳,很厉害的说。我试了，的确我手里的 `peid` 和 `fi` 最新版都查不出已加的壳：）
+【软件下载】 [http://www.pediy.com/bbs/pediy7/pediy7-581.rar](http://www.pediy.com/bbs/pediy7/pediy7-581.rar)
+【加壳方式】 疑似 `ASProtect V2.X Registered -> Alexey Solodovnikov`
+【破解声明】 我是一只小菜鸟，偶得一点心得，愿与大家分享：）
+
+---
+
+## 破解内容
+
+很奇怪的壳 `peid 0.92` 查是 `ASProtect V2.X Registered -> Alexey Solodovnikov` ，但发觉弱很多，估计是 `pe` 头被伪装过了,`fi3.01` 就查不出来，`ep` 区段更奇怪都为空，没办法只能简单分析一下：（
+
+```assembly
+00469000  >  68 01D04600       push HidePE.0046D001
+00469005    E8 01000000       call HidePE.0046900B     变形 jmp，最常见的招呼方式了：）
+0046900A    C3               retn
+0046900B    C3               retn
+
+0046D001    BA 00904600       mov edx,offset HidePE.   edx 放基址
+0046D006    B8 EB066884       mov eax,846806EB         简单的解码
+0046D00B    8902              mov dword ptr ds:[edx],eax
+0046D00D    83C2 04           add edx,4
+0046D010    B8 450500C3       mov eax,C3000545
+0046D015    8902              mov dword ptr ds:[edx],eax
+0046D017    83C2 04           add edx,4
+0046D01A    B8 9C60E802       mov eax,2E8609C
+0046D01F    8902              mov dword ptr ds:[edx],eax
+0046D021    83C2 F8           add edx,-8
+0046D024    FFE2              jmp edx
+
+00469000  > /EB 06           jmp short HidePE.00469008
+00469002   |68 84450500       push 54584
+00469007   |C3               retn
+00469008   \\9C              pushfd
+00469009    60               pushad                   寄存器依次压入堆栈
+0046900A    E8 02000000      call HidePE.00469011
+0046900F    33C0             xor eax,eax
+00469011    8BC4             mov eax,esp
+00469013    83C0 04          add eax,4
+00469016    93               xchg eax,ebx
+00469017    8BE3             mov esp,ebx
+00469019    8B5B FC          mov ebx,dword ptr ds:[ebx-4]
+0046901C    81EB 0F804000    sub ebx,HidePE.0040800F      ebx 就是偏移地址
+00469022    87DD             xchg ebp,ebx
+00469024    8B85 A6804000    mov eax,dword ptr ss:[ebp+4080A6]
+0046902A    0185 03804000    add dword ptr ss:[ebp+408003],eax
+00469030    66:C785 00804000 >mov word ptr ss:[ebp+408000],9090
+00469039    0185 9E804000    add dword ptr ss:[ebp+40809E],eax
+0046903F    BB E20E0000      mov ebx,0EE2
+00469044    039D AA804000    add ebx,dword ptr ss:[ebp+4080AA]   很明显 要在 469EE2 处解压代码
+0046904A    039D A6804000    add ebx,dword ptr ss:[ebp+4080A6]
+00469050    53               push ebx
+00469051    53               push ebx
+00469052    53               push ebx
+00469053    53               push ebx
+00469054    58               pop eax
+00469055    2D 70804000      sub eax,HidePE.00408070
+0046905A    8985 71804000    mov dword ptr ss:[ebp+408071],eax
+00469060    5F               pop edi
+00469061    8DB5 70804000    lea esi,dword ptr ss:[ebp+408070]
+00469067    B9 9D030000      mov ecx,39D
+0046906C    F3:A5            rep movs dword ptr es:[edi],dword p>
+0046906E    5F               pop edi
+0046906F    C3               retn
+
+00469EE7    57               push edi               ; HidePE.00469EE2 开始的地方
+00469EE8    5E               pop esi
+00469EE9    83C6 42          add esi,42
+00469EEC    81C7 720E0000    add edi,0E72
+00469EF2    56               push esi
+00469EF3    57               push edi
+00469EF4    57               push edi
+00469EF5    56               push esi
+00469EF6    FF95 9E804000    call dword ptr ss:[ebp+40809E]
+00469EFC    8BC8             mov ecx,eax
+00469EFE    5E               pop esi
+00469EFF    5F               pop edi
+00469F00    8BC1             mov eax,ecx
+00469F02    C1F9 02          sar ecx,2
+00469F05    F3:A5            rep movs dword ptr es:[edi],dword p>
+00469F07    03C8             add ecx,eax
+00469F09    83E1 03          and ecx,3
+00469F0C    F3:A4            rep movs byte ptr es:[edi],byte ptr>
+00469F0E    EB 14            jmp short HidePE.00469F24
+
+00469F2B    03B5 AE804000    add esi,dword ptr ss:[ebp+4080AE]
+00469F31    57               push edi
+00469F32    83C6 14          add esi,14
+00469F35    03B5 34854000    add esi,dword ptr ss:[ebp+408534] 把 dll 的名称保存地址放到 esi 中
+00469F3B    8DBD 38854000    lea edi,dword ptr ss:[ebp+408538]
+00469F41    B9 05000000      mov ecx,5
+00469F46    F3:A5            rep movs dword ptr es:[edi],dword p>
+00469F48    5F               pop edi
+00469F49    6A 04            push 4                 申请空间
+00469F4B    68 00100000      push 1000
+00469F50    FFB5 4C854000    push dword ptr ss:[ebp+40854C]
+00469F56    6A 00            push 0                 分配空间
+00469F58    FF95 40854000    call dword ptr ss:[ebp+408540]    取 KERNEL32.VirtualAlloc
+00469F5E    8BF8             mov edi,eax
+00469F60    5B               pop ebx
+00469F61    019D BE824000    add dword ptr ss:[ebp+4082BE],ebx 申请到的开始地址入[ebp+4082BE]处
+00469F67    8DB5 62854000    lea esi,dword ptr ss:[ebp+408562]
+00469F6D    57               push edi
+00469F6E    AD               lods dword ptr ds:[esi]
+00469F6F    0BC0             or eax,eax
+00469F71    74 31            je short HidePE.00469FA4
+00469F73    8BD0             mov edx,eax
+00469F75    0395 A6804000    add edx,dword ptr ss:[ebp+4080A6]
+00469F7B    AD               lods dword ptr ds:[esi]
+00469F7C    56               push esi
+00469F7D    8BC8             mov ecx,eax
+00469F7F    57               push edi
+00469F80    52               push edx
+00469F81    8BF2             mov esi,edx
+00469F83    8B85 38854000    mov eax,dword ptr ss:[ebp+408538]
+00469F89    8B9D 3C854000    mov ebx,dword ptr ss:[ebp+40853C]
+00469F8F    E8 C0090000      call HidePE.0046A954
+```
+
+取以下些 `API` 的地址，万一以后搞丢了，能对照着找：）
+
+```hex
+00455DE0  00 00 00 00 00 6B 65 72 6E 65 6C 33 32 2E 64 6C  .....kernel32.dl
+00455DF0  6C 00 00 47 65 74 43 75 72 72 65 6E 74 54 68 72  l..GetCurrentThr
+00455E00  65 61 64 49 64 00 00 00 00 44 65 6C 65 74 65 43  eadId....DeleteC
+00455E10  72 69 74 69 63 61 6C 53 65 63 74 69 6F 6E 00 00   criticalSection..
+00455E20  00 4C 65 61 76 65 43 72 69 74 69 63 61 6C 53 65  .LeaveCriticalSe
+00455E30  63 74 69 6F 6E 00 00 00 00 45 6E 74 65 72 43 72  ction....EnterCr
+00455E40  69 74 69 63 61 6C 53 65 63 74 69 6F 6E 00 00 00   iticalSection...
+00455E50  00 49 6E 69 74 69 61 6C 69 7A 65 43 72 69 74 69  .InitializeCriti
+00455E60  63 61 6C 53 65 63 74 69 6F 6E 00 00 00 56 69 72  calSection...Vir
+00455E70  74 75 61 6C 46 72 65 65 00 00 00 56 69 72 74 75  tualFree...Virtu
+00455E80  61 6C 41 6C 6C 6F 63 00 00 00 00 4C 6F 63 61 6C  alAlloc....Local
+00455E90  46 72 65 65 00 00 00 4C 6F 63 61 6C 41 6C 6C 6F  Free...LocalAllo
+00455EA0  63 00 00 00 00 49 6E 74 65 72 6C 6F 63 6B 65 64  c....Interlocked
+00455EB0  44 65 63 72 65 6D 65 6E 74 00 00 00 00 49 6E 74  Decrement....Int
+00455EC0  65 72 6C 6F 63 6B 65 64 49 6E 63 72 65 6D 65 6E  erlockedIncremen
+00455ED0  74 00 00 00 00 56 69 72 74 75 61 6C 51 75 65 72  t....VirtualQuer
+00455EE0  79 00 00 00 00 57 69 64 65 43 68 61 72 54 6F 4D  y....WideCharToM
+00455EF0  75 6C 74 69 42 79 74 65 00 00 00 4D 75 6C 74 69  ultiByte...Multi
+00455F00  42 79 74 65 54 6F 57 69 64 65 43 68 61 72 00 00  ByteToWideChar..
+00455F10  00 6C 73 74 72 6C 65 6E 41 00 00 00 00 6C 73 74  .lstrlenA....lst
+```
+
+
+
+```
+00455F20   72 63 70 79 6E 41 00 00 00 6C 73 74 72 63 70 79   rcpynA...lstrcpy  
+
+00455F30   41 00 00 00 00 4C 6F 61 64 4C 69 62 72 61 72 79   A....LoadLibrary  
+
+00455F40   45 78 41 00 00 00 00 47 65 74 54 68 72 65 61 64   ExA....GetThread  
+
+00455F50   4C 6F 63 61 6C 65 00 00 00 47 65 74 53 74 61 72   Locale...GetStar  
+
+00455F60   74 75 70 49 6E 66 6F 41 00 00 00 47 65 74 50 72   tupInfoA...GetPr  
+
+00455F70   6F 63 41 64 64 72 65 73 73 00 00 00 00 47 65 74   ocAddress....Get  
+
+00455F80   4D 6F 64 75 6C 65 48 61 6E 64 6C 65 41 00 00 00   ModuleHandleA...  
+
+00455F90   00 47 65 74 4D 6F 64 75 6C 65 46 69 6C 65 4E 61   .GetModuleFileNa  
+
+00455FA0   6D 65 41 00 00 00 00 47 65 74 4C 6F 63 61 6C 65   meA....GetLocale  
+
+00455FB0   49 6E 66 6F 41 00 00 00 00 47 65 74 4C 61 73 74   InfoA....GetLast  
+
+00455FC0   45 72 72 6F 72 00 00 00 00 47 65 74 43 6F 6D 6D   Error....GetComm  
+
+00455FD0   61 6E 64 4C 69 6E 65 41 00 00 00 46 72 65 65 4C   andLineA...FreeL  
+
+00455FE0   69 62 72 61 72 79 00 00 00 46 69 6E 64 46 69 72   ibrary...FindFir  
+
+00455FF0   73 74 46 69 6C 65 41 00 00 00 00 46 69 6E 64 43   stFileA....FindC  
+
+00456000   6C 6F 73 65 00 00 00 45 78 69 74 50 72 6F 63 65   lose...ExitProce  
+
+00456010   73 73 00 00 00 57 72 69 74 65 46 69 6C 65 00 00   ss...WriteFile..  
+
+00456020   00 55 6E 68 61 6E 64 6C 65 64 45 78 63 65 70 74   .UnhandledExcept  
+
+00456030   69 6F 6E 46 69 6C 74 65 72 00 00 00 00 53 65 74   ionFilter....Set  
+
+00456040   46 69 6C 65 50 6F 69 6E 74 65 72 00 00 00 00 53   FilePointer....S  
+
+00456050   65 74 45 6E 64 4F 66 46 69 6C 65 00 00 00 00 52   etEndOfFile....R  
+
+00456060   74 6C 55 6E 77 69 6E 64 00 00 00 52 65 61 64 46   tlUnwind...ReadF  
+
+00456070   69 6C 65 00 00 00 00 52 61 69 73 65 45 78 63 65   ile....RaiseExce  
+
+00456080   70 74 69 6F 6E 00 00 00 00 47 65 74 53 74 64 48   ption....GetStdH  
+
+00456090   61 6E 64 6C 65 00 00 00 00 47 65 74 46 69 6C 65   andle....GetFile  
+
+004560A0   53 69 7A 65 00 00 00 47 65 74 53 79 73 74 65 6D   Size...GetSystem  
+
+004560B0   54 69 6D 65 00 00 00 47 65 74 46 69 6C 65 54 79   Time...GetFileTy  
+
+004560C0   70 65 00 00 00 43 72 65 61 74 65 46 69 6C 65 41   pe...CreateFileA  
+
+004560D0   00 00 00 43 6C 6F 73 65 48 61 6E 64 6C 65 00 00   ...CloseHandle..  
+
+004560E0   00 75 73 65 72 33 32 2E 64 6C 6C 00 00 47 65 74   .user32.dll..Get  
+
+004560F0   4B 65 79 62 6F 61 72 64 54 79 70 65 00 00 00 4C   KeyboardType...L  
+
+00456100   6F 61 64 53 74 72 69 6E 67 41 00 00 00 4D 65 73   oadStringA...Mes  
+
+00456110   73 61 67 65 42 6F 78 41 00 00 00 43 68 61 72 4E   sageBoxA...CharN  
+
+00456120   65 78 74 41 00 00 00 61 64 76 61 70 69 33 32 2E   extA...advapi32.  
+
+00456130   64 6C 6C 00 00 52 65 67 51 75 65 72 79 56 61 6C   dll..RegQueryVal  
+
+00456140   75 65 45 78 41 00 00 00 00 52 65 67 4F 70 65 6E   ueExA....RegOpen  
+
+00456150   4B 65 79 45 78 41 00 00 00 52 65 67 43 6C 6F 73   KeyExA...RegClos  
+
+00456160   65 4B 65 79 00 00 00 6F 6C 65 61 75 74 33 32 2E   eKey...oleaut32.  
+
+00456170   64 6C 6C 00 00 56 61 72 69 61 6E 74 43 68 61 6E   dll..VariantChan  
+
+00456180   67 65 54 79 70 65 45 78 00 00 00 56 61 72 69 61   geTypeEx...Varia  
+
+00456190   6E 74 43 6F 70 79 49 6E 64 00 00 00 00 56 61 72   ntCopyInd....Var  
+
+004561A0   69 61 6E 74 43 6C 65 61 72 00 00 00 00 53 79 73   iantClear....Sys  
+
+004561B0   53 74 72 69 6E 67 4C 65 6E 00 00 00 00 53 79 73   StringLen....Sys  
+
+004561C0   46 72 65 65 53 74 72 69 6E 67 00 00 00 53 79 73   FreeString...Sys  
+
+004561D0   52 65 41 6C 6C 6F 63 53 74 72 69 6E 67 4C 65 6E   ReAllocStringLen  
+
+004561E0   00 00 00 53 79 73 41 6C 6C 6F 63 53 74 72 69 6E   ...SysAllocStrin  
+
+004561F0   67 4C 65 6E 00 00 00 6B 65 72 6E 65 6C 33 32 2E   gLen...kernel32.  
+
+00456200   64 6C 6C 00 00 54 6C 73 53 65 74 56 61 6C 75 65   dll..TlsSetValue  
+
+00456210   00 00 00 54 6C 73 47 65 74 56 61 6C 75 65 00 00   ...TlsGetValue..  
+
+00456220   00 4C 6F 63 61 6C 41 6C 6C 6F 63 00 00 00 00 47   .LocalAlloc....G  
+
+00456230   65 74 4D 6F 64 75 6C 65 48 61 6E 64 6C 65 41 00   etModuleHandleA.  
+
+00456240   00 00 00 47 65 74 4D 6F 64 75 6C 65 46 69 6C 65   ...GetModuleFile  
+
+00456250   4E 61 6D 65 41 00 00 00 00 61 64 76 61 70 69 33   NameA....advapi3  
+
+00456260   32 2E 64 6C 6C 00 00 52 65 67 51 75 65 72 79 56   2.dll..RegQueryV  
+
+00456270   61 6C 75 65 45 78 41 00 00 00 00 52 65 67 4F 70   alueExA....RegOp  
+
+00456280   65 6E 4B 65 79 45 78 41 00 00 00 52 65 67 43 6C   enKeyExA...RegCl  
+
+00456290   6F 73 65 4B 65 79 00 00 00 6B 65 72 6E 65 6C 33   oseKey...kernel3  
+
+004562A0   32 2E 64 6C 6C 00 00 6C 73 74 72 63 70 79 41 00   2.dll..lstrcpyA.  
+
+004562B0   00 00 00 57 72 69 74 65 46 69 6C 65 00 00 00 57   ...WriteFile...W  
+
+004562C0   61 69 74 46 6F 72 53 69 6E 67 6C 65 4F 62 6A 65   aitForSingleObje  
+
+004562D0   63 74 00 00 00 56 69 72 74 75 61 6C 51 75 65 72   ct...VirtualQuer  
+
+004562E0   79 00 00 00 00 56 69 72 74 75 61 6C 41 6C 6C 6F   y....VirtualAllo  
+
+004562F0   63 00 00 00 00 53 6C 65 65 70 00 00 00 53 69 7A   c....Sleep...Siz  
+
+00456300   65 6F 66 52 65 73 6F 75 72 63 65 00 00 00 00 53   eofResource....S  
+
+00456310   65 74 54 68 72 65 61 64 4C 6F 63 61 6C 65 00 00   etThreadLocale..  
+
+00456320   00 53 65 74 46 69 6C 65 50 6F 69 6E 74 65 72 00   .SetFilePointer.  
+
+00456330   00 00 00 53 65 74 45 76 65 6E 74 00 00 00 00 53   ...SetEvent....S  
+
+00456340   65 74 45 72 72 6F 72 4D 6F 64 65 00 00 00 00 53   etErrorMode....S  
+
+00456350   65 74 45 6E 64 4F 66 46 69 6C 65 00 00 00 00 52   etEndOfFile....R  
+
+00456360   65 61 64 46 69 6C 65 00 00 00 00 4D 75 6C 44 69   adFile....MulDi  
+
+00456370   76 00 00 00 00 4C 6F 63 6B 52 65 73 6F 75 72 63   v....LockResourc  
+
+00456380   65 00 00 00 00 4C 6F 61 64 52 65 73 6F 75 72 63   e....LoadResourc  
+
+00456390   65 00 00 00 00 4C 6F 61 64 4C 69 62 72 61 72 79   e....LoadLibrary  
+
+004563A0   41 00 00 00 00 4C 65 61 76 65 43 72 69 74 69 63   A....LeaveCritic  
+
+004563B0   61 6C 53 65 63 74 69 6F 6E 00 00 00 00 49 6E 69   alSection....Ini  
+
+004563C0   74 69 61 6C 69 7A 65 43 72 69 74 69 63 61 6C 53   tializeCriticalS  
+
+004563D0   65 63 74 69 6F 6E 00 00 00 47 6C 6F 62 61 6C 55   ection...GlobalU  
+
+004563E0   6E 6C 6F 63 6B 00 00 00 00 47 6C 6F 62 61 6C 53   nlock....GlobalS  
+
+004563F0   69 7A 65 00 00 00 00 47 6C 6F 62 61 6C 52 65 41   ize....GlobalReA  
+
+00456400   6C 6C 6F 63 00 00 00 47 6C 6F 62 61 6C 48 61 6E   lloc...GlobalHan  
+
+00456410   64 6C 65 00 00 00 00 47 6C 6F 62 61 6C 4C 6F 63   dle....GlobalLoc  
+
+00456420   6B 00 00 00 00 47 6C 6F 62 61 6C 46 72 65 65 00   k....GlobalFree.  
+
+00456430   00 00 00 47 6C 6F 62 61 6C 44 65 6C 65 74 65 41   ...GlobalDeleteA  
+
+00456440   74 6F 6D 00 00 00 00 47 6C 6F 62 61 6C 41 6C 6C   tom....GlobalAll  
+
+00456450   6F 63 00 00 00 47 6C 6F 62 61 6C 41 64 64 41 74   oc...GlobalAddAt  
+
+00456460   6F 6D 41 00 00 00 00 47 65 74 56 65 72 73 69 6F   omA....GetVersio  
+
+00456470   6E 45 78 41 00 00 00 47 65 74 56 65 72 73 69 6F   nExA...GetVersio  
+
+00456480   6E 00 00 00 00 47 65 74 54 69 63 6B 43 6F 75 6E   n....GetTickCoun  
+
+00456490   74 00 00 00 00 47 65 74 54 68 72 65 61 64 4C 6F   t....GetThreadLo  
+
+004564A0   63 61 6C 65 00 00 00 47 65 74 53 79 73 74 65 6D   cale...GetSystem  
+
+004564B0   49 6E 66 6F 00 00 00 47 65 74 50 72 6F 63 41 64   Info...GetProcAd  
+
+004564C0   64 72 65 73 73 00 00 00 00 47 65 74 4D 6F 64 75   dress....GetModu  
+
+004564D0   6C 65 48 61 6E 64 6C 65 41 00 00 00 00 47 65 74   leHandleA....Get  
+
+004564E0   4D 6F 64 75 6C 65 46 69 6C 65 4E 61 6D 65 41 00   ModuleFileNameA.  
+
+004564F0   00 00 00 47 65 74 4C 6F 63 61 6C 65 49 6E 66 6F   ...GetLocaleInfo  
+
+00456500   41 00 00 00 00 47 65 74 4C 61 73 74 45 72 72 6F   A....GetLastErro  
+
+00456510   72 00 00 00 00 47 65 74 44 69 73 6B 46 72 65 65   r....GetDiskFree  
+
+00456520   53 70 61 63 65 41 00 00 00 47 65 74 43 75 72 72   SpaceA...GetCurr  
+
+00456530   65 6E 74 54 68 72 65 61 64 49 64 00 00 00 00 47   entThreadId....G  
+
+00456540   65 74 43 75 72 72 65 6E 74 50 72 6F 63 65 73 73   etCurrentProcess  
+
+00456550   49 64 00 00 00 47 65 74 43 50 49 6E 66 6F 00 00   Id...GetCPInfo..  
+
+00456560   00 46 72 65 65 52 65 73 6F 75 72 63 65 00 00 00   .FreeResource...  
+```
+
+
+
+```
+00456570   00 46 72 65 65 4C 69 62 72 61 72 79 00 00 00 46   .FreeLibrary...F  
+00456580   6F 72 6D 61 74 4D 65 73 73 61 67 65 41 00 00 00   ormatMessageA...  
+00456590   00 46 69 6E 64 52 65 73 6F 75 72 63 65 41 00 00   .FindResourceA..  
+004565A0   00 45 6E 75 6D 43 61 6C 65 6E 64 61 72 49 6E 66   .EnumCalendarInf  
+004565B0   6F 41 00 00 00 45 6E 74 65 72 43 72 69 74 69 63   oA...EnterCritic  
+004565C0   61 6C 53 65 63 74 69 6F 6E 00 00 00 00 44 65 6C   alSection....Del  
+004565D0   65 74 65 43 72 69 74 69 63 61 6C 53 65 63 74 69   eteCriticalSecti  
+004565E0   6F 6E 00 00 00 43 72 65 61 74 65 54 68 72 65 61   on...CreateThrea  
+004565F0   64 00 00 00 00 43 72 65 61 74 65 46 69 6C 65 41   d....CreateFileA  
+00456600   00 00 00 43 72 65 61 74 65 45 76 65 6E 74 41 00   ...CreateEventA.  
+00456610   00 00 00 43 6F 6D 70 61 72 65 53 74 72 69 6E 67   ...CompareString  
+00456620   41 00 00 00 00 43 6C 6F 73 65 48 61 6E 64 6C 65   A....CloseHandle  
+00456630   00 00 00 67 64 69 33 32 2E 64 6C 6C 00 55 6E 72   ...gdi32.dll.Unr  
+00456640   65 61 6C 69 7A 65 4F 62 6A 65 63 74 00 00 00 53   ealizeObject...S  
+00456650   74 72 65 74 63 68 42 6C 74 00 00 00 00 53 65 74   tretchBlt....Set  
+00456660   57 69 6E 64 6F 77 4F 72 67 45 78 00 00 00 00 53   WindowOrgEx....S  
+00456670   65 74 57 69 6E 4D 65 74 61 46 69 6C 65 42 69 74   etWinMetaFileBit  
+00456680   73 00 00 00 00 53 65 74 56 69 65 77 70 6F 72 74   s....SetViewport  
+00456690   4F 72 67 45 78 00 00 00 00 53 65 74 54 65 78 74   OrgEx....SetText  
+004566A0   43 6F 6C 6F 72 00 00 00 00 53 65 74 53 74 72 65   Color....SetStre  
+004566B0   74 63 68 42 6C 74 4D 6F 64 65 00 00 00 53 65 74   tchBltMode...Set  
+004566C0   52 4F 50 32 00 00 00 53 65 74 50 69 78 65 6C 00   ROP2...SetPixel.  
+004566D0   00 00 00 53 65 74 4D 61 70 4D 6F 64 65 00 00 00   ...SetMapMode...  
+004566E0   00 53 65 74 45 6E 68 4D 65 74 61 46 69 6C 65 42   .SetEnhMetaFileB  
+004566F0   69 74 73 00 00 00 00 53 65 74 44 49 42 43 6F 6C   its....SetDIBCol  
+00456700   6F 72 54 61 62 6C 65 00 00 00 00 53 65 74 42 72   orTable....SetBr  
+00456710   75 73 68 4F 72 67 45 78 00 00 00 53 65 74 42 6B   ushOrgEx...SetBk  
+00456720   4D 6F 64 65 00 00 00 53 65 74 42 6B 43 6F 6C 6F   Mode...SetBkColo  
+00456730   72 00 00 00 00 53 65 6C 65 63 74 50 61 6C 65 74   r....SelectPalet  
+00456740   74 65 00 00 00 53 65 6C 65 63 74 4F 62 6A 65 63   te...SelectObjec  
+00456750   74 00 00 00 00 53 61 76 65 44 43 00 00 00 00 52   t....SaveDC....R  
+00456760   65 73 74 6F 72 65 44 43 00 00 00 52 65 63 74 61   estoreDC...Recta  
+00456770   6E 67 6C 65 00 00 00 52 65 63 74 56 69 73 69 62   ngle...RectVisib  
+00456780   6C 65 00 00 00 52 65 61 6C 69 7A 65 50 61 6C 65   le...RealizePale  
+00456790   74 74 65 00 00 00 00 50 6F 6C 79 6C 69 6E 65 00   tte....Polyline.  
+004567A0   00 00 00 50 6C 61 79 45 6E 68 4D 65 74 61 46 69   ...PlayEnhMetaFi  
+004567B0   6C 65 00 00 00 50 61 74 42 6C 74 00 00 00 00 4D   le...PatBlt....M  
+004567C0   6F 76 65 54 6F 45 78 00 00 00 00 4D 61 73 6B 42   oveToEx....MaskB  
+004567D0   6C 74 00 00 00 4C 69 6E 65 54 6F 00 00 00 00 49   lt...LineTo....I  
+004567E0   6E 74 65 72 73 65 63 74 43 6C 69 70 52 65 63 74   ntersectClipRect  
+004567F0   00 00 00 47 65 74 57 69 6E 64 6F 77 4F 72 67 45   ...GetWindowOrgE  
+00456800   78 00 00 00 00 47 65 74 57 69 6E 4D 65 74 61 46   x....GetWinMetaF  
+00456810   69 6C 65 42 69 74 73 00 00 00 00 47 65 74 54 65   ileBits....GetTe  
+00456820   78 74 4D 65 74 72 69 63 73 41 00 00 00 47 65 74   xtMetricsA...Get  
+00456830   54 65 78 74 45 78 74 65 6E 74 50 6F 69 6E 74 41   TextExtentPointA  
+00456840   00 00 00 47 65 74 54 65 78 74 45 78 74 65 6E 74   ...GetTextExtent  
+00456850   50 6F 69 6E 74 33 32 41 00 00 00 47 65 74 53 79   Point32A...GetSy  
+00456860   73 74 65 6D 50 61 6C 65 74 74 65 45 6E 74 72 69   stemPaletteEntri  
+00456870   65 73 00 00 00 47 65 74 53 74 6F 63 6B 4F 62 6A   es...GetStockObj  
+00456880   65 63 74 00 00 00 00 47 65 74 50 69 78 65 6C 00   ect....GetPixel.  
+00456890   00 00 00 47 65 74 50 61 6C 65 74 74 65 45 6E 74   ...GetPaletteEnt  
+004568A0   72 69 65 73 00 00 00 47 65 74 4F 62 6A 65 63 74   tries...GetObject  
+004568B0   41 00 00 00 00 47 65 74 4E 65 61 72 65 73 74 43   A....GetNearestC  
+004568C0   6F 6C 6F 72 00 00 00 47 65 74 4D 61 70 4D 6F 64   olor...GetMapMod  
+004568D0   65 00 00 00 00 47 65 74 45 6E 68 4D 65 74 61 46   e....GetEnhMetaF  
+004568E0   69 6C 65 50 61 6C 65 74 74 65 45 6E 74 72 69 65   ilePaletteEntrie  
+004568F0   73 00 00 00 00 47 65 74 45 6E 68 4D 65 74 61 46   s....GetEnhMetaF  
+00456900   69 6C 65 48 65 61 64 65 72 00 00 00 00 47 65 74   ileHeader....Get  
+00456910   45 6E 68 4D 65 74 61 46 69 6C 65 42 69 74 73 00   EnhMetaFileBits.  
+00456920   00 00 00 47 65 74 44 65 76 69 63 65 43 61 70 73   ...GetDeviceCaps  
+00456930   00 00 00 47 65 74 44 49 42 69 74 73 00 00 00 47   ...GetDIBits...G  
+00456940   65 74 44 49 42 43 6F 6C 6F 72 54 61 62 6C 65 00   etDIBColorTable.  
+00456950   00 00 00 47 65 74 44 43 4F 72 67 45 78 00 00 00   ...GetDCOrgEx...  
+00456960   00 47 65 74 43 75 72 72 65 6E 74 50 6F 73 69 74   .GetCurrentPosit  
+00456970   69 6F 6E 45 78 00 00 00 00 47 65 74 43 6C 69 70   ionEx....GetClip  
+00456980   42 6F 78 00 00 00 00 47 65 74 42 72 75 73 68 4F   Box....GetBrushO  
+00456990   72 67 45 78 00 00 00 47 65 74 42 69 74 6D 61 70   rgEx...GetBitmap  
+004569A0   42 69 74 73 00 00 00 45 78 74 54 65 78 74 4F 75   Bits...ExtTextOu  
+004569B0   74 41 00 00 00 45 78 63 6C 75 64 65 43 6C 69 70   tA...ExcludeClip  
+004569C0   52 65 63 74 00 00 00 44 65 6C 65 74 65 4F 62 6A   Rect...DeleteObj  
+004569D0   65 63 74 00 00 00 00 44 65 6C 65 74 65 45 6E 68   ect....DeleteEnh  
+004569E0   4D 65 74 61 46 69 6C 65 00 00 00 44 65 6C 65 74   MetaFile...Delet  
+004569F0   65 44 43 00 00 00 00 43 72 65 61 74 65 53 6F 6C   eDC....CreateSol  
+00456A00   69 64 42 72 75 73 68 00 00 00 00 43 72 65 61 74   idBrush....Creat  
+00456A10   65 50 65 6E 49 6E 64 69 72 65 63 74 00 00 00 43   ePenIndirect...C  
+00456A20   72 65 61 74 65 50 61 6C 65 74 74 65 00 00 00 43   reatePalette...C  
+00456A30   72 65 61 74 65 48 61 6C 66 74 6F 6E 65 50 61 6C   reateHalftonePal  
+00456A40   65 74 74 65 00 00 00 43 72 65 61 74 65 46 6F 6E   ette...CreateFon  
+00456A50   74 49 6E 64 69 72 65 63 74 41 00 00 00 43 72 65   tIndirectA...Cre  
+00456A60   61 74 65 44 49 42 69 74 6D 61 70 00 00 00 00 43   ateDIBitmap....C  
+00456A70   72 65 61 74 65 44 49 42 53 65 63 74 69 6F 6E 00   reateDIBSection.  
+00456A80   00 00 00 43 72 65 61 74 65 43 6F 6D 70 61 74 69   ...CreateCompati  
+00456A90   62 6C 65 44 43 00 00 00 00 43 72 65 61 74 65 43   bleDC....CreateC  
+00456AA0   6F 6D 70 61 74 69 62 6C 65 42 69 74 6D 61 70 00   ompatibleBitmap.  
+00456AB0   00 00 00 43 72 65 61 74 65 42 72 75 73 68 49 6E   ...CreateBrushIn  
+00456AC0   64 69 72 65 63 74 00 00 00 43 72 65 61 74 65 42   direct...CreateB  
+00456AD0   69 74 6D 61 70 00 00 00 00 43 6F 70 79 45 6E 68   itmap....CopyEnh  
+00456AE0   4D 65 74 61 46 69 6C 65 41 00 00 00 00 42 69 74   MetaFileA....Bit  
+00456AF0   42 6C 74 00 00 00 00 75 73 65 72 33 32 2E 64 6C   Blt....user32.dl  
+00456B00   6C 00 00 57 69 6E 64 6F 77 46 72 6F 6D 50 6F 69   l..WindowFromPoi  
+00456B10   6E 74 00 00 00 57 69 6E 48 65 6C 70 41 00 00 00   nt...WinHelpA...  
+00456B20   00 57 61 69 74 4D 65 73 73 61 67 65 00 00 00 55   .WaitMessage...U  
+00456B30   70 64 61 74 65 57 69 6E 64 6F 77 00 00 00 00 55   pdateWindow....U  
+00456B40   6E 72 65 67 69 73 74 65 72 43 6C 61 73 73 41 00   nregisterClassA.  
+00456B50   00 00 00 55 6E 68 6F 6F 6B 57 69 6E 64 6F 77 73   ...UnhookWindows  
+00456B60   48 6F 6F 6B 45 78 00 00 00 54 72 61 6E 73 6C 61   HookEx...Transla  
+00456B70   74 65 4D 65 73 73 61 67 65 00 00 00 00 54 72 61   teMessage....Tra  
+00456B80   6E 73 6C 61 74 65 4D 44 49 53 79 73 41 63 63 65   nslateMDISysAcce  
+00456B90   6C 00 00 00 00 54 72 61 63 6B 50 6F 70 75 70 4D   l....TrackPopupM  
+00456BA0   65 6E 75 00 00 00 00 53 79 73 74 65 6D 50 61 72   enu....SystemPar  
+00456BB0   61 6D 65 74 65 72 73 49 6E 66 6F 41 00 00 00 53   ametersInfoA...S
+```
+
+
+
+```text
+00456BC0  68 6F 77 57 69 6E 64 6F 77 00 00 00 00 53 68 6F  howWindow....Sho
+00456BD0  77 53 63 72 6F 6C 6C 42 61 72 00 00 00 53 68 6F  wScrollBar...Sho
+00456BE0  77 4F 77 6E 65 64 50 6F 70 75 70 73 00 00 00 53  wOwnedPopups...S
+00456BF0  68 6F 77 43 75 72 73 6F 72 00 00 00 00 53 65 74  howCursor....Set
+00456C00  57 69 6E 64 6F 77 73 48 6F 6F 6B 45 78 41 00 00  WindowsHookExA..
+00456C10  00 53 65 74 57 69 6E 64 6F 77 54 65 78 74 41 00  .SetWindowTextA.
+00456C20  00 00 00 53 65 74 57 69 6E 64 6F 77 50 6F 73 00  ...SetWindowPos.
+00456C30  00 00 00 53 65 74 57 69 6E 64 6F 77 50 6C 61 63  ...SetWindowPlac
+00456C40  65 6D 65 6E 74 00 00 00 00 53 65 74 57 69 6E 64  ement....SetWind
+00456C50  6F 77 4C 6F 6E 67 41 00 00 00 00 53 65 74 54 69  owLongA....SetTi
+00456C60  6D 65 72 00 00 00 00 53 65 74 53 63 72 6F 6C 6C  mer....SetScroll
+00456C70  52 61 6E 67 65 00 00 00 00 53 65 74 53 63 72 6F  Range....SetScro
+00456C80  6C 6C 50 6F 73 00 00 00 00 53 65 74 53 63 72 6F  llPos....SetScro
+00456C90  6C 6C 49 6E 66 6F 00 00 00 53 65 74 52 65 63 74  llInfo...SetRect
+00456CA0  00 00 00 53 65 74 50 72 6F 70 41 00 00 00 00 53  ...SetPropA....S
+00456CB0  65 74 4D 65 6E 75 49 74 65 6D 49 6E 66 6F 41 00  etMenuItemInfoA.
+00456CC0  00 00 00 53 65 74 4D 65 6E 75 00 00 00 53 65 74  ...SetMenu...Set
+00456CD0  46 6F 72 65 67 72 6F 75 6E 64 57 69 6E 64 6F 77  ForegroundWindow
+00456CE0  00 00 00 53 65 74 46 6F 63 75 73 00 00 00 00 53  ...SetFocus....S
+00456CF0  65 74 43 75 72 73 6F 72 00 00 00 53 65 74 43 6C  etCursor...SetCl
+00456D00  69 70 62 6F 61 72 64 44 61 74 61 00 00 00 00 53  ipboardData....S
+00456D10  65 74 43 6C 61 73 73 4C 6F 6E 67 41 00 00 00 53  etClassLongA...S
+00456D20  65 74 43 61 70 74 75 72 65 00 00 00 00 53 65 74  etCapture....Set
+00456D30  41 63 74 69 76 65 57 69 6E 64 6F 77 00 00 00 53  ActiveWindow...S
+00456D40  65 6E 64 4D 65 73 73 61 67 65 41 00 00 00 00 53  endMessageA....S
+00456D50  63 72 6F 6C 6C 57 69 6E 64 6F 77 00 00 00 00 53  crollWindow....S
+00456D60  63 72 65 65 6E 54 6F 43 6C 69 65 6E 74 00 00 00  reenToClient...
+00456D70  00 52 65 6D 6F 76 65 50 72 6F 70 41 00 00 00 52  .RemovePropA...R
+00456D80  65 6D 6F 76 65 4D 65 6E 75 00 00 00 00 52 65 6C  emoveMenu....Rel
+00456D90  65 61 73 65 44 43 00 00 00 52 65 6C 65 61 73 65  easeDC...Release
+00456DA0  43 61 70 74 75 72 65 00 00 00 00 52 65 67 69 73  Capture....Regis
+00456DB0  74 65 72 57 69 6E 64 6F 77 4D 65 73 73 61 67 65  terWindowMessage
+00456DC0  41 00 00 00 00 52 65 67 69 73 74 65 72 43 6C 69  A....RegisterCli
+00456DD0  70 62 6F 61 72 64 46 6F 72 6D 61 74 41 00 00 00  pboardFormatA...
+00456DE0  00 52 65 67 69 73 74 65 72 43 6C 61 73 73 41 00  .RegisterClassA.
+00456DF0  00 00 00 50 74 49 6E 52 65 63 74 00 00 00 00 50  ...PtInRect....P
+00456E00  6F 73 74 51 75 69 74 4D 65 73 73 61 67 65 00 00  ostQuitMessage..
+00456E10  00 50 6F 73 74 4D 65 73 73 61 67 65 41 00 00 00  .PostMessageA...
+00456E20  00 50 65 65 6B 4D 65 73 73 61 67 65 41 00 00 00  .PeekMessageA...
+00456E30  00 4F 66 66 73 65 74 52 65 63 74 00 00 00 00 4F  .OffsetRect....O
+00456E40  65 6D 54 6F 43 68 61 72 41 00 00 00 00 4D 65 73  emToCharA....Mes
+00456E50  73 61 67 65 42 6F 78 41 00 00 00 4D 61 70 57 69  sageBoxA...MapWi
+00456E60  6E 64 6F 77 50 6F 69 6E 74 73 00 00 00 4D 61 70  ndowPoints...Map
+00456E70  56 69 72 74 75 61 6C 4B 65 79 41 00 00 00 00 4C  VirtualKeyA....L
+00456E80  6F 61 64 53 74 72 69 6E 67 41 00 00 00 4C 6F 61  adStringA...Loa
+00456E90  64 4B 65 79 62 6F 61 72 64 4C 61 79 6F 75 74 41  dKeyboardLayoutA
+00456EA0  00 00 00 4C 6F 61 64 49 63 6F 6E 41 00 00 00 4C  ...LoadIconA...L
+00456EB0  6F 61 64 43 75 72 73 6F 72 41 00 00 00 4C 6F 61  adCursorA...Loa
+00456EC0  64 42 69 74 6D 61 70 41 00 00 00 4B 69 6C 6C 54  dBitmapA...KillT
+00456ED0  69 6D 65 72 00 00 00 49 73 5A 6F 6F 6D 65 64 00  imer...IsZoomed.
+00456EE0  00 00 00 49 73 57 69 6E 64 6F 77 56 69 73 69 62  ...IsWindowVisib
+00456EF0  6C 65 00 00 00 49 73 57 69 6E 64 6F 77 45 6E 61  le...IsWindowEna
+00456F00  62 6C 65 64 00 00 00 49 73 57 69 6E 64 6F 77 00  bled...IsWindow.
+00456F10  00 00 00 49 73 52 65 63 74 45 6D 70 74 79 00 00  ...IsRectEmpty..
+00456F20  00 49 73 49 63 6F 6E 69 63 00 00 00 00 49 73 44  .IsIconic....IsD
+00456F30  69 61 6C 6F 67 4D 65 73 73 61 67 65 41 00 00 00  ialogMessageA...
+00456F40  00 49 73 43 68 69 6C 64 00 00 00 49 6E 76 61 6C  .IsChild...Inval
+00456F50  69 64 61 74 65 52 65 63 74 00 00 00 00 49 6E 74  idateRect....Int
+00456F60  65 72 73 65 63 74 52 65 63 74 00 00 00 49 6E 73  ersectRect...Ins
+00456F70  65 72 74 4D 65 6E 75 49 74 65 6D 41 00 00 00 49  ertMenuItemA...I
+00456F80  6E 73 65 72 74 4D 65 6E 75 41 00 00 00 49 6E 66  nsertMenuA...Inf
+00456F90  6C 61 74 65 52 65 63 74 00 00 00 47 65 74 57 69  lateRect...GetWi
+00456FA0  6E 64 6F 77 54 68 72 65 61 64 50 72 6F 63 65 73  ndowThreadProces
+00456FB0  73 49 64 00 00 00 00 47 65 74 57 69 6E 64 6F 77  sId....GetWindow
+00456FC0  54 65 78 74 41 00 00 00 00 47 65 74 57 69 6E 64  TextA....GetWind
+00456FD0  6F 77 52 65 63 74 00 00 00 47 65 74 57 69 6E 64  owRect...GetWind
+00456FE0  6F 77 50 6C 61 63 65 6D 65 6E 74 00 00 00 00 47  owPlacement....G
+00456FF0  65 74 57 69 6E 64 6F 77 4C 6F 6E 67 41 00 00 00  etWindowLongA...
+00457000  00 47 65 74 57 69 6E 64 6F 77 44 43 00 00 00 47  .GetWindowDC...G
+00457010  65 74 54 6F 70 57 69 6E 64 6F 77 00 00 00 00 47  etTopWindow....G
+00457020  65 74 53 79 73 74 65 6D 4D 65 74 72 69 63 73 00  etSystemMetrics.
+00457030  00 00 00 47 65 74 53 79 73 74 65 6D 4D 65 6E 75  ...GetSystemMenu
+00457040  00 00 00 47 65 74 53 79 73 43 6F 6C 6F 72 00 00  ...GetSysColor..
+00457050  00 47 65 74 53 75 62 4D 65 6E 75 00 00 00 00 47  .GetSubMenu....G
+00457060  65 74 53 63 72 6F 6C 6C 52 61 6E 67 65 00 00 00  etScrollRange...
+00457070  00 47 65 74 53 63 72 6F 6C 6C 50 6F 73 00 00 00  .GetScrollPos...
+00457080  00 47 65 74 53 63 72 6F 6C 6C 49 6E 66 6F 00 00  .GetScrollInfo..
+00457090  00 47 65 74 50 72 6F 70 41 00 00 00 00 47 65 74  .GetPropA....Get
+004570A0  50 61 72 65 6E 74 00 00 00 47 65 74 57 69 6E 64  Parent...GetWind
+004570B0  6F 77 00 00 00 47 65 74 4D 65 6E 75 53 74 72 69  ow...GetMenuStri
+004570C0  6E 67 41 00 00 00 00 47 65 74 4D 65 6E 75 53 74  ngA....GetMenuSt
+004570D0  61 74 65 00 00 00 00 47 65 74 4D 65 6E 75 49 74  ate....GetMenuIt
+004570E0  65 6D 49 6E 66 6F 41 00 00 00 00 47 65 74 4D 65  emInfoA....GetMe
+004570F0  6E 75 49 74 65 6D 49 44 00 00 00 47 65 74 4D 65  nuItemID...GetMe
+00457100  6E 75 49 74 65 6D 43 6F 75 6E 74 00 00 00 00 47  nuItemCount....G
+00457110  65 74 4D 65 6E 75 00 00 00 47 65 74 4C 61 73 74  etMenu...GetLast
+00457120  41 63 74 69 76 65 50 6F 70 75 70 00 00 00 00 47  ActivePopup....G
+00457130  65 74 4B 65 79 62 6F 61 72 64 53 74 61 74 65 00  etKeyboardState.
+00457140  00 00 00 47 65 74 4B 65 79 62 6F 61 72 64 4C 61  ...GetKeyboardLa
+00457150  79 6F 75 74 4C 69 73 74 00 00 00 47 65 74 4B 65  youtList...GetKe
+00457160  79 62 6F 61 72 64 4C 61 79 6F 75 74 00 00 00 47  yboardLayout...G
+00457170  65 74 4B 65 79 53 74 61 74 65 00 00 00 47 65 74  etKeyState...Get
+00457180  4B 65 79 4E 61 6D 65 54 65 78 74 41 00 00 00 47  KeyNameTextA...G
+00457190  65 74 49 63 6F 6E 49 6E 66 6F 00 00 00 47 65 74  etIconInfo...Get
+004571A0  46 6F 72 65 67 72 6F 75 6E 64 57 69 6E 64 6F 77  ForegroundWindow
+004571B0  00 00 00 47 65 74 46 6F 63 75 73 00 00 00 00 47  ...GetFocus....G
+004571C0  65 74 44 6C 67 49 74 65 6D 00 00 00 00 47 65 74  etDlgItem....Get
+004571D0  44 65 73 6B 74 6F 70 57 69 6E 64 6F 77 00 00 00  DesktopWindow...
+004571E0  00 47 65 74 44 43 45 78 00 00 00 47 65 74 44 43  .GetDCEx...GetDC
+004571F0  00 00 00 47 65 74 43 75 72 73 6F 72 50 6F 73 00  ...GetCursorPos.
+00457200  00 00 00 47 65 74 43 75 72 73 6F 72 00 00 00 47  ...GetCursor...G
+```
+
+
+
+00457210 65 74 43 6C 69 70 62 6F 61 72 64 44 61 74 61 00 etClipboardData.
+
+00457220 00 00 00 47 65 74 43 6C 69 65 6E 74 52 65 63 74 ...GetClientRect
+
+00457230 00 00 00 47 65 74 43 6C 61 73 73 49 6E 66 6F 41 ...GetClassInfoA
+
+00457240 00 00 00 47 65 74 43 61 70 74 75 72 65 00 00 00 ...GetCapture...
+
+00457250 00 47 65 74 41 63 74 69 76 65 57 69 6E 64 6F 77 .GetActiveWindow
+
+00457260 00 00 00 46 72 61 6D 65 52 65 63 74 00 00 00 46 ...FrameRect...F
+
+00457270 69 6E 64 57 69 6E 64 6F 77 41 00 00 00 46 69 6C indWindowA...Fil
+
+00457280 6C 52 65 63 74 00 00 00 00 45 71 75 61 6C 52 65 lRect....EqualRe
+
+00457290 63 74 00 00 00 45 6E 75 6D 57 69 6E 64 6F 77 73 ct...EnumWindows
+
+004572A0 00 00 00 45 6E 75 6D 54 68 72 65 61 64 57 69 6E ...EnumThreadWin
+
+004572B0 64 6F 77 73 00 00 00 45 6E 64 50 61 69 6E 74 00 dows...EndPaint.
+
+004572C0 00 00 00 45 6E 61 62 6C 65 57 69 6E 64 6F 77 00 ...EnableWindow.
+
+004572D0 00 00 00 45 6E 61 62 6C 65 53 63 72 6F 6C 6C 42 ...EnableScrollB
+
+004572E0 61 72 00 00 00 45 6E 61 62 6C 65 4D 65 6E 75 49 ar...EnableMenuI
+
+004572F0 74 65 6D 00 00 00 00 44 72 61 77 54 65 78 74 41 tem....DrawTextA
+
+00457300 00 00 00 44 72 61 77 4D 65 6E 75 42 61 72 00 00 ...DrawMenuBar..
+
+00457310 00 44 72 61 77 49 63 6F 6E 45 78 00 00 00 00 44 .DrawIconEx....D
+
+00457320 72 61 77 49 63 6F 6E 00 00 00 00 44 72 61 77 46 rawIcon....DrawF
+
+00457330 72 61 6D 65 43 6F 6E 74 72 6F 6C 00 00 00 00 44 rameControl....D
+
+00457340 72 61 77 46 6F 63 75 73 52 65 63 74 00 00 00 44 rawFocusRect...D
+
+00457350 72 61 77 45 64 67 65 00 00 00 00 44 69 73 70 61 rawEdge....Dispa
+
+00457360 74 63 68 4D 65 73 73 61 67 65 41 00 00 00 00 44 tchMessageA....D
+
+00457370 65 73 74 72 6F 79 57 69 6E 64 6F 77 00 00 00 44 estroyWindow...D
+
+00457380 65 73 74 72 6F 79 4D 65 6E 75 00 00 00 44 65 73 estroyMenu...Des
+
+00457390 74 72 6F 79 49 63 6F 6E 00 00 00 44 65 73 74 72 troyIcon...Destr
+
+004573A0 6F 79 43 75 72 73 6F 72 00 00 00 44 65 6C 65 74 oyCursor...Delet
+
+004573B0 65 4D 65 6E 75 00 00 00 00 44 65 66 57 69 6E 64 eMenu....DefWind
+
+004573C0 6F 77 50 72 6F 63 41 00 00 00 00 44 65 66 4D 44 owProcA....DefMD
+
+004573D0 49 43 68 69 6C 64 50 72 6F 63 41 00 00 00 00 44 IChildProcA....D
+
+004573E0 65 66 46 72 61 6D 65 50 72 6F 63 41 00 00 00 43 efFrameProcA...C
+
+004573F0 72 65 61 74 65 57 69 6E 64 6F 77 45 78 41 00 00 reateWindowExA..
+
+00457400 00 43 72 65 61 74 65 50 6F 70 75 70 4D 65 6E 75 .CreatePopupMenu
+
+00457410 00 00 00 43 72 65 61 74 65 4D 65 6E 75 00 00 00 ...CreateMenu...
+
+00457420 00 43 72 65 61 74 65 49 63 6F 6E 00 00 00 00 43 .CreateIcon....C
+
+00457430 6C 69 65 6E 74 54 6F 53 63 72 65 65 6E 00 00 00 lientToScreen...
+
+00457440 00 43 68 65 63 6B 4D 65 6E 75 49 74 65 6D 00 00 .CheckMenuItem..
+
+00457450 00 43 61 6C 6C 57 69 6E 64 6F 77 50 72 6F 63 41 .CallWindowProcA
+
+00457460 00 00 00 43 61 6C 6C 4E 65 78 74 48 6F 6F 6B 45 ...CallNextHookE
+
+00457470 78 00 00 00 00 42 65 67 69 6E 50 61 69 6E 74 00 x....BeginPaint.
+
+00457480 00 00 00 43 68 61 72 4C 6F 77 65 72 42 75 66 66 ...CharLowerBuff
+
+00457490 41 00 00 00 00 43 68 61 72 4C 6F 77 65 72 41 00 A....CharLowerA.
+
+004574A0 00 00 00 41 64 6A 75 73 74 57 69 6E 64 6F 77 52 ...AdjustWindowR
+
+004574B0 65 63 74 45 78 00 00 00 00 41 63 74 69 76 61 74 ectEx....Activat
+
+004574C0 65 4B 65 79 62 6F 61 72 64 4C 61 79 6F 75 74 00 eKeyboardLayout.
+
+004574D0 00 00 00 6F 6C 65 33 32 2E 64 6C 6C 00 49 73 45 ...ole32.dll.IsE
+
+004574E0 71 75 61 6C 47 55 49 44 00 00 00 63 6F 6D 63 74 qualGUID...comct
+
+004574F0 6C 33 32 2E 64 6C 6C 00 00 49 6D 61 67 65 4C 69 l32.dll..ImageLi
+
+00457500 73 74 5F 53 65 74 49 63 6F 6E 53 69 7A 65 00 00 st_SetIconSize..
+
+00457510 00 49 6D 61 67 65 4C 69 73 74 5F 47 65 74 49 63 .ImageList_GetIc
+
+00457520 6F 6E 53 69 7A 65 00 00 00 49 6D 61 67 65 4C 69 onSize...ImageLi
+
+00457530 73 74 5F 57 72 69 74 65 00 00 00 49 6D 61 67 65 st_Write...Image
+
+00457540 4C 69 73 74 5F 52 65 61 64 00 00 00 00 49 6D 61 List_Read....Ima
+
+00457550 67 65 4C 69 73 74 5F 47 65 74 44 72 61 67 49 6D geList_GetDragIm
+
+00457560 61 67 65 00 00 00 00 49 6D 61 67 65 4C 69 73 74 age....ImageList
+
+00457570 5F 44 72 61 67 53 68 6F 77 4E 6F 6C 6F 63 6B 00 _DragShowNolock.
+
+00457580 00 00 00 49 6D 61 67 65 4C 69 73 74 5F 53 65 74 ...ImageList_Set
+
+00457590 44 72 61 67 43 75 72 73 6F 72 49 6D 61 67 65 00 DragCursorImage.
+
+004575A0 00 00 00 49 6D 61 67 65 4C 69 73 74 5F 44 72 61 ...ImageList_Dra
+
+004575B0 67 4D 6F 76 65 00 00 00 00 49 6D 61 67 65 4C 69 gMove....ImageLi
+
+004575C0 73 74 5F 44 72 61 67 4C 65 61 76 65 00 00 00 49 st_DragLeave...I
+
+004575D0 6D 61 67 65 4C 69 73 74 5F 44 72 61 67 45 6E 74 mageList_DragEnt
+
+004575E0 65 72 00 00 00 49 6D 61 67 65 4C 69 73 74 5F 45 er...ImageList_E
+
+004575F0 6E 64 44 72 61 67 00 00 00 49 6D 61 67 65 4C 69 ndDrag...ImageLi
+
+00457600 73 74 5F 42 65 67 69 6E 44 72 61 67 00 00 00 49 st_BeginDrag...I
+
+00457610 6D 61 67 65 4C 69 73 74 5F 52 65 6D 6F 76 65 00 mageList_Remove.
+
+00457620 00 00 00 49 6D 61 67 65 4C 69 73 74 5F 44 72 61 ...ImageList_Dra
+
+00457630 77 45 78 00 00 00 00 49 6D 61 67 65 4C 69 73 74 wEx....ImageList
+
+00457640 5F 44 72 61 77 00 00 00 00 49 6D 61 67 65 4C 69 _Draw....ImageLi
+
+00457650 73 74 5F 47 65 74 42 6B 43 6F 6C 6F 72 00 00 00 st_GetBkColor...
+
+00457660 00 49 6D 61 67 65 4C 69 73 74 5F 53 65 74 42 6B .ImageList_SetBk
+
+00457670 43 6F 6C 6F 72 00 00 00 00 49 6D 61 67 65 4C 69 Color....ImageLi
+
+00457680 73 74 5F 52 65 70 6C 61 63 65 49 63 6F 6E 00 00 st_ReplaceIcon..
+
+00457690 00 49 6D 61 67 65 4C 69 73 74 5F 41 64 64 00 00 .ImageList_Add..
+
+004576A0 00 49 6D 61 67 65 4C 69 73 74 5F 47 65 74 49 6D .ImageList_GetIm
+
+004576B0 61 67 65 43 6F 75 6E 74 00 00 00 49 6D 61 67 65 ageCount...Image
+
+004576C0 4C 69 73 74 5F 44 65 73 74 72 6F 79 00 00 00 49 List_Destroy...I
+
+004576D0 6D 61 67 65 4C 69 73 74 5F 43 72 65 61 74 65 00 mageList_Create.
+
+004576E0 00 00 00 63 6F 6D 64 6C 67 33 32 2E 64 6C 6C 00 ...comdlg32.dll.
+
+004576F0 00 47 65 74 4F 70 65 6E 46 69 6C 65 4E 61 6D 65 .GetOpenFileName
+
+00457700 41 A
+
+00469F94 5A pop edx
+
+00469F95 5F pop edi
+
+00469F96 52 push edx
+
+00469F97 57 push edi
+
+00469F98 FF95 9E804000 call dword ptr ss:\[ebp+40809E\]
+
+00469F9E 8BC8 mov ecx,eax
+
+00469FA0 5E pop esi
+
+00469FA1 5F pop edi
+
+00469FA2 ^ EB C9 jmp short HidePE.00469F6D
+
+00469FA4 58 pop eax
+
+00469FA5 8DB5 E2854000 lea esi,dword ptr ss:\[ebp+4085E2\]
+
+00469FAB AD lods dword ptr ds:\[esi\]
+
+00469FAC 0BC0 or eax,eax
+
+00469FAE 74 73 je short HidePE.0046A023
+
+00469FB0 0385 A6804000 add eax,dword ptr ss:\[ebp+4080A6\]
+
+00469FB6 8BD8 mov ebx,eax
+
+00469FB8 AD lods dword ptr ds:\[esi\]
+
+00469FB9 0385 A6804000 add eax,dword ptr ss:\[ebp+4080A6\]
+
+00469FBF 8BD0 mov edx,eax
+
+00469FC1 AD lods dword ptr ds:\[esi\]
+
+00469FC2 8BC8 mov ecx,eax
+
+00469FC4 57 push edi
+
+00469FC5 56 push esi
+
+00469FC6 8BF3 mov esi,ebx
+
+00469FC8 57 push edi
+
+00469FC9 51 push ecx
+
+00469FCA 8BC1 mov eax,ecx
+
+00469FCC C1F9 02 sar ecx,2
+
+00469FCF F3:A5 rep movs dword ptr es:\[edi\],dword p>
+
+00469FD1 03C8 add ecx,eax
+
+00469FD3 83E1 03 and ecx,3
+
+00469FD6 F3:A4 rep movs byte ptr es:\[edi\],byte ptr>
+
+00469FD8 59 pop ecx
+
+
+
+```
+00469FD9    5E                pop esi
+00469FDA    8BFA              mov edi,edx
+00469FDC    8BC1              mov eax,ecx
+00469FDE    C1F9 02           sar ecx,2
+00469FE1    F3:A5             rep movs dword ptr es:[edi],dword p>
+00469FE3    03C8              add ecx,eax
+00469FE5    83E1 03           and ecx,3
+00469FE8    F3:A4             rep movs byte ptr es:[edi],byte ptr>
+00469FEA    5E                pop esi
+00469FEB    AD                lods dword ptr ds:[esi]
+00469FEC    8BC8              mov ecx,eax
+00469FEE    8BD0              mov edx,eax
+00469FF0    33C0              xor eax,eax
+00469FF2    C1F9 02           sar ecx,2
+00469FF5    F3:AB             rep stos dword ptr es:[edi]
+00469FF7    03CA              add ecx,edx
+00469FF9    83E1 03           and ecx,3
+00469FFC    F3:AA             rep stos byte ptr es:[edi]
+00469FFE    8B7E F0           mov edi,dword ptr ds:[esi-10]
+0046A001    03BD A6804000     add edi,dword ptr ss:[ebp+4080A6]
+0046A007    8B4E F4           mov ecx,dword ptr ds:[esi-C]
+0046A00A    038D A6804000     add ecx,dword ptr ss:[ebp+4080A6]
+0046A010    2BCF              sub ecx,edi
+0046A012    8BD1              mov edx,ecx
+0046A014    C1F9 02           sar ecx,2
+0046A017    F3:AB             rep stos dword ptr es:[edi]
+0046A019    03CA              add ecx,edx
+0046A01B    83E1 03           and ecx,3
+0046A01E    F3:AA             rep stos byte ptr es:[edi]
+0046A020    5F                pop edi
+0046A021  ^ EB 88             jmp short HidePE.00469FAB
+0046A023    57                push edi
+0046A024    8BBD 4F844000     mov edi,dword ptr ss:[ebp+40844F]
+0046A02A    03BD A6804000     add edi,dword ptr ss:[ebp+4080A6]
+0046A030    8B8D 53844000     mov ecx,dword ptr ss:[ebp+408453]
+0046A036    33D2              xor edx,edx
+0046A038    33DB              xor ebx,ebx
+0046A03A    33F6              xor esi,esi
+0046A03C    03FE              add edi,esi
+0046A03E    03DE              add ebx,esi
+0046A040    49                dec ecx
+0046A041    74 44             je short HidePE.0046A087
+0046A043    78 42             js short HidePE.0046A087
+0046A045    66:8B07           mov ax,word ptr ds:[edi]
+0046A048    2C E8             sub al,0E8
+0046A04A    3C 01             cmp al,1
+0046A04C    76 0A             jbe short HidePE.0046A058
+0046A04E    66:3D 1725        cmp ax,2517
+0046A052    74 23             je short HidePE.0046A077
+0046A054    47                inc edi
+0046A055    43                inc ebx
+0046A056  ^ EB E8             jmp short HidePE.0046A040
+0046A058    8B47 01           mov eax,dword ptr ds:[edi+1]
+0046A05B    3C 0D             cmp al,0D
+0046A05D  ^ 75 F5             jnz short HidePE.0046A054
+0046A05F    66:C1E8 08        shr ax,8
+0046A063    C1C0 10           rol eax,10
+0046A066    86C4              xchg ah,al
+0046A068    2BC3              sub eax,ebx
+0046A06A    8947 01           mov dword ptr ds:[edi+1],eax
+0046A06D    BE 05000000       mov esi,5
+0046A072    83E9 04           sub ecx,4
+0046A075  ^ EB C5             jmp short HidePE.0046A03C
+0046A077    0157 02           add dword ptr ds:[edi+2],edx
+0046A07A    BE 08000000       mov esi,8
+0046A07F    83EA 04           sub edx,4
+0046A082    2BCE              sub ecx,esi
+0046A084    41                inc ecx
+0046A085  ^ EB B5             jmp short HidePE.0046A03C
+0046A087    5F                pop edi
+0046A088    E8 87010000       call HidePE.0046A214
+0046A08D    68 00400000       push 4000
+0046A092    6A 00             push 0
+0046A094    57                push edi
+0046A095    FF95 44854000     call dword ptr ss:[ebp+408544]      ; KERNEL32.VirtualFree
+0046A09B    E8 97000000       call HidePE.0046A137
+0046A0A0    73 79             jnb short HidePE.0046A11B
+0046A0A2    8D9D 0F854000     lea ebx,dword ptr ss:[ebp+40850F]
+0046A0A8    53                push ebx
+0046A0A9    FF95 38854000     call dword ptr ss:[ebp+408538]
+0046A0AF    8985 4F844000     mov dword ptr ss:[ebp+40844F],eax
+0046A0B5    8D9D 26854000     lea ebx,dword ptr ss:[ebp+408526]
+0046A0BB    53                push ebx
+0046A0BC    50                push eax
+0046A0BD    FF95 3C854000     call dword ptr ss:[ebp+40853C]
+0046A0C3    8D9D E2864000     lea ebx,dword ptr ss:[ebp+4086E2]
+0046A0C9    53                push ebx
+0046A0CA    83BD 5F844000 01   cmp dword ptr ss:[ebp+40845F],1
+0046A0D1    74 08             je short HidePE.0046A0DB
+0046A0D3    8D8D BD844000     lea ecx,dword ptr ss:[ebp+4084BD]
+0046A0D9    EB 06             jmp short HidePE.0046A0E1
+0046A11B    8BB5 38854000     mov esi,dword ptr ss:[ebp+408538]   KERNEL32.LoadLibraryA
+0046A121    8BBD 3C854000     mov edi,dword ptr ss:[ebp+40853C]   KERNEL32.GetProcAddress
+0046A127    E8 280A0000       call HidePE.0046AB54          
+0046A12C    61                popad
+0046A12D    9D                popfd
+0046A12E    50                push eax
+0046A12F    68 84454500       push HidePE.00454584
+0046A134    C2 0400           retn 4
+```
+
+回到 OEP
+
+```
+00454584    55                push ebp                    Delphi 入口代码
+00454585    8BEC              mov ebp,esp
+00454587    83C4 F4           add esp,-0C
+0045458A    B8 F4434500       mov eax,HidePE.004543F4
+0045458F    E8 C81CFBFF       call HidePE.0040625C
+```
+
+`oep=00051A28` 不用修 Import 了，可以执行。
+
+--------------------------------------------------------------------------------
+
+【破解总结】
+
+发现入口代码很规范，强 anti 几乎没有，不知道是什么地下壳，只能疑似为
+
+`ASProtect V2.X Registered -> Alexey Solodovnikov`。望见识广博人士多多指点。
+
+--------------------------------------------------------------------------------
+
+【版权声明】 本文纯属技术交流，转载请注明作者并保持文章的完整，谢谢!
+
+好像是这个 `Hide PE 1.0 -> BGCorp`
+
+`4dd466d0e1e0cc123afbe504da2462ca`
