@@ -1,0 +1,272 @@
+
+```
+.text:00405153 ; 哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪?
+
+.text:00405153
+
+.text:00405153 loc_405153:                         ; CODE XREF: sub_404D84+3A8j
+
+.text:00405153                 cmp     [ebp+eax+Data], 0
+
+.text:0040515B                 jnz     short loc_4051A1
+
+.text:0040515D
+
+.text:0040515D loc_40515D:                         ; CODE XREF: sub_404D84+3CDj
+
+.text:0040515D                 mov     esi, [ebp+Var_CalClassAddr]
+
+.text:00405160                 mov     ecx, [ebp+Buffer]
+
+.text:00405166                 cmp     eax, 8
+
+.text:00405169                 mov     [esi+30Ch], ecx
+
+.text:0040516F                 mov     ecx, [ebp+var_22E0]
+
+.text:00405175                 mov     [esi+310h], ecx
+
+.text:0040517B                 jbe     loc_405617
+
+.text:00405181                 add     eax, 0FFFFFFF8h
+
+.text:00405184                 push    offset unk_46ABA8
+
+.text:00405189                 push    eax
+
+.text:0040518A                 lea     eax, [ebp+var_22DC]
+
+.text:00405190                 push    eax
+
+.text:00405191                 call    Sub_Cal1
+
+.text:00405196                 mov     [esi+31Ch], eax
+
+.text:0040519C                 jmp     loc_405617
+
+.text:004051A1 ; 哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪?
+
+.text:004051A1
+
+.text:004051A1 loc_4051A1:                         ; CODE XREF: sub_404D84+354j
+
+.text:004051A1                                          ; sub_404D84+35Dj ...
+
+.text:004051A1                 or      edi, 0FFFFFFFFh
+
+.text:004051A4                 jmp     loc_40552E
+
+.text:004051A9 ; 哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪?
+
+.text:004051A9
+
+.text:004051A9 loc_4051A9:                         ; CODE XREF: sub_404D84+33Aj
+
+.text:004051A9                                          ; sub_404D84+34Bj
+
+.text:004051A9                 push    edi
+
+.text:004051AA                 push    edi
+
+.text:004051AB                 lea     ecx, [ebp+var_68]
+
+.text:004051AE                 call    Sub_ReadReg     ; 读取注册信息
+
+.text:004051B3                 cmp     [ebp+hKey], edi
+
+.text:004051B6                 mov     esi, eax
+
+.text:004051B8                 mov     [ebp+Type], esi
+
+.text:004051BB                 jz      short loc_4051C6
+
+.text:004051BD                 push    [ebp+hKey]      ; hKey
+
+.text:004051C0                 call    ds:RegCloseKey
+
+.text:004051C6
+
+.text:004051C6 loc_4051C6:                         ; CODE XREF: sub_404D84+437j
+
+.text:004051C6                 cmp     esi, edi
+
+.text:004051C8                 mov     [ebp+hKey], esi
+
+.text:004051CB                 jnz     short loc_4051D4
+
+.text:004051CD                 push    2
+
+.text:004051CF                 jmp     loc_40552D
+
+.text:004051D4 ; 哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪?
+
+.text:004051D4
+
+.text:004051D4 loc_004051D4:                       ; CODE XREF: sub_404D84+447j
+
+.text:004051D4                 mov     eax, [ebp+SystemTimeAsFileTime.dwLowDateTime]
+
+.text:004051D7                 cmp     [ebp+Arg_Key], 0
+
+.text:004051DB                 mov     esi, ds:lstrlenW
+
+.text:004051E1                 push    8
+
+.text:004051E3                 mov     [ebp+var_32E4], eax
+
+.text:004051E9                 mov     eax, [ebp+SystemTimeAsFileTime.dwHighDateTime]
+
+.text:004051EC                 pop     edi
+
+.text:004051ED                 mov     [ebp+var_32E0], eax
+
+.text:004051F3                 mov     [ebp+nNumberOfBytesToWrite], edi
+
+.text:004051F6                 jz      short loc_405247
+
+.text:004051F8                 push    [ebp+Arg_Key]   ; lpString
+
+.text:004051FB                 or      byte ptr [ebp+var_4], 80h
+
+.text:004051FF                 call    esi ; lstrlenW
+
+.text:00405201                 cdq
+
+.text:00405202                 sub     eax, edx
+
+.text:00405204                 sar     eax, 1
+
+.text:00405206                 add     eax, edi
+
+.text:00405208                 cmp     eax, 1000h
+
+.text:0040520D                 mov     [ebp+nNumberOfBytesToWrite], eax
+
+.text:00405210                 jb      short loc_405219
+
+.text:00405212                 push    3
+
+.text:00405214                 jmp     loc_40552D
+
+.text:00405219 ; 哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪?
+
+.text:00405219
+
+.text:00405219 loc_405219:                         ; CODE XREF: sub_404D84+48Cj
+
+.text:00405219                 lea     eax, [ebp+var_32DC]
+
+.text:0040521F                 push    eax
+
+.text:00405220                 push    [ebp+Arg_Key]
+
+.text:00405223                 call    Sub_StrToHex    ; strtohex
+
+.text:00405228                 and     [ebp+var_38], 0
+
+.text:0040522C                 pop     ecx
+
+.text:0040522D                 pop     ecx
+
+.text:0040522E                 push    1
+
+.text:00405230                 pop     eax
+
+.text:00405231
+
+.text:00405231 loc_405231:                         ; CODE XREF: sub_404D84+4BFj
+
+.text:00405231                 movzx   ecx, byte ptr [ebp+eax+var_32E0+3]
+
+.text:00405239                 imul    ecx, eax
+
+.text:0040523C                 add     [ebp+var_38], ecx
+
+.text:0040523F                 inc     eax
+
+.text:00405240                 cmp     eax, 64h
+
+.text:00405243                 jle     short loc_405231
+
+.text:00405245                 jmp     short loc_00405258
+
+.text:00405247 ; 哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪?
+
+.text:00405247
+
+.text:00405247 loc_405247:                         ; CODE XREF: sub_404D84+472j
+
+.text:00405247                 mov     eax, [ebp+Var_CalClassAddr]
+
+.text:0040524A                 or      byte ptr [ebp+var_4+1], 1
+
+.text:0040524E                 mov     dword ptr [eax+320h], 1
+
+.text:00405258
+
+.text:00405258 loc_405258:                         ; CODE XREF: sub_404D84+4C1j
+
+.text:00405258                 push    ebx
+
+.text:00405259                 lea     eax, [ebp+var_7C]
+
+.text:0040525C                 push    offset aC       ; "晖凶孪乡伦?
+
+.text:00405261                 push    eax
+
+.text:00405262                 call    sub_432191      ; 字符串解密，参数：地址，字符串，屏蔽字
+
+.text:00405267                 mov     eax, [eax]
+
+.text:00405269                 mov     [ebp+hFile], eax
+
+.text:0040526C                 lea     eax, [ebp+SystemTimeAsFileTime]
+
+.text:0040526F                 push    eax
+
+.text:00405270                 lea     eax, [ebp+var_80]
+
+.text:00405273                 push    eax
+
+.text:00405274                 call    sub_43270F
+
+.text:00405279                 mov     edi, [eax]
+
+.text:0040527B                 add     esp, 14h
+
+.text:0040527E                 push    edi             ; lpString
+
+.text:0040527F                 call    esi ; lstrlenW
+
+.text:00405281                 lea     eax, [eax+eax+2]
+
+.text:00405285                 push    eax             ; cbData
+
+.text:00405286                 push    edi             ; lpData
+
+.text:00405287                 push    1               ; dwType
+
+.text:00405289                 push    0               ; Reserved
+
+.text:0040528B                 push    [ebp+hFile]     ; lpValueName
+
+.text:0040528E                 push    [ebp+Type]      ; hKey
+
+.text:00405291                 call    ds:RegSetValueExW
+
+.text:00405297                 lea     ecx, [ebp+var_80]
+
+.text:0040529A                 call    sub_401541
+
+.text:0040529F                 lea     ecx, [ebp+var_7C]
+
+.text:004052A2                 call    sub_401541
+
+.text:004052A7                 push    [ebp+lpFileName] ; lpFileName
+
+.text:004052AA                 call    ds:GetFileAttributesW
+
+.text:004052B0                 cmp     eax, 0FFFFFFFFh
+
+.text:004052B3                 mov     [ebp+NumberOfBytesWritten], eax
+```
