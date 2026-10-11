@@ -1,0 +1,290 @@
+
+# 寻找 WebZip4.1.0 注册码之菜鸟教程
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-801.htm`](https://www.pediy.com/kssd/pediy07/pediy7-801.htm)
+
+题目：寻找 WebZip4.1.0 注册码之菜鸟教程  
+难度：易  
+文件大小：984KB  
+适用平台：Win9x/Me/NT/2000  
+
+软件简介：WebZIP 把一个网站下载并压缩到一个单独的 ZIP 文件中，可以帮您将某个站台全部或部份之资料以 ZIP 格式压缩起来，可供你日后快速浏览这个网站。新版能排定时间来下载，具有当漂亮的立体界面及传输的曲线图。此软件 30 天试用期。  
+
+工具：TRW（有些大侠不喜欢这个，我喜欢），FI  
+
+引子：给菜鸟写破文的热情一直有增无减，今天就看到我的电脑报 2001 光盘上这个软件，有 3.8 版和 4.1 版的。（读者可能要问：怎么老是电脑报电脑报的？而且都是多年前的东西了！没错！跟您解释一下，我现在在埃塞援教呢，我只有带来我以前的光盘，这里没有宽带，上网不方便，无法从网上找到软件下载，只有拿这些老古董练手了。对菜鸟练手刚好合适！不要嫌弃我破解的软件版本太老哟！\*\_^）我大体瞄了一眼精华 III 的几篇文章，但没有按照他们的文章去练习，原因是过于简略了，操作性不强。因为相同的软件在不同电脑上的虚拟地址可能不同，那些大侠只是给出在他机器上的某条指令地址，可是在其他机器上不见得就是一样的。所以，我想根据我自己的实践经验写了这篇破文，错误在所难免，希望指正！书归正传！！  
+
+拿 `FI` 检查一下到底带“甲克”没有，果然带有甲克，是 `Aspack2.11c`，尝试用 `ASPACK DIE` 去壳，提示你已经成功保存，名字 `Unpacked.exe`，改为其他名字也可以。我用 `FI` 再次查看已经没有壳了，显示用 `DELPHI` 开发的。不过我们这里只是通过 `TRW` 找到其注册码，所以没有必要脱壳的。当然如果爆破除外，因为爆破需要修改某些地方，只有去壳才可以修改。  
+
+启动 `WebZip4.1.0`，出现 `NAG`，点击 `Register`，弹出对话框，输入用户名 `bigpig`，系列号 `123456`，注册码 `78787878`，`Ctrl+N` 唤出 `TRW`，下 `bpx hmemcpy`，`F5` 返回 `WebZip`，单击 `OK` 按钮，被 `TRW` 拦住。下 `pmodule` 回到主程序领空，`bc *`取消所有断点，还需要按 `F10` 多次，一直到你在后面程序看不到 `RET` 指令为止。  
+
+## 1.先用 F10 粗跟踪，直到出现错误提示窗口。
+
+```asm
+CODE:00530410                 call    loc_437820
+CODE:00530415                 mov     eax, [ebp-0Ch]  //来到此处
+CODE:00530418                 lea     edx, [ebp-8]
+CODE:0053041B                 call    loc_409654
+CODE:00530420                 mov     edx, [ebp-8]
+CODE:00530423                 mov     eax, [ebx+344h]
+CODE:00530429                 call    loc_4D5E9C
+CODE:0053042E                 lea     edx, [ebp-14h]
+CODE:00530431                 mov     eax, [ebp-4]
+CODE:00530434                 mov     eax, [eax+2ECh]
+CODE:0053043A                 call    loc_437820
+CODE:0053043F                 mov     eax, [ebp-14h]
+CODE:00530442                 lea     edx, [ebp-10h]
+CODE:00530445                 call    loc_409654
+CODE:0053044A                 mov     edx, [ebp-10h]
+CODE:0053044D                 mov     eax, [ebx+344h]
+CODE:00530453                 call    loc_4D57F8    //此处出现错误窗口，需要 F8 跟入
+CODE:00530458                 lea     edx, [ebp-1Ch]
+CODE:0053045B                 mov     eax, [ebp-4]
+CODE:0053045E                 mov     eax, [eax+2F4h]
+CODE:00530464                 call    loc_437820
+```
+
+\========================================
+
+## 2.细跟踪
+
+在 `530453` 处下断点，`bpx 530453` ，重新填写注册信息，然后按 `OK` 被拦住，此刻我们从 `530453` 这里细跟踪。`F8` 跟入：
+
+```asm
+CODE:004D57F8                 push    ebp
+CODE:004D57F9                 mov     ebp, esp
+CODE:004D57FB                 add     esp, 0FFFFFFF8h
+CODE:004D57FE                 push    ebx
+CODE:004D57FF                 xor     ecx, ecx
+CODE:004D5801                 mov     [ebp+var_8], ecx
+CODE:004D5804                 mov     [ebp+var_4], edx
+CODE:004D5807                 mov     ebx, eax
+CODE:004D5809                 mov     eax, [ebp+var_4]
+CODE:004D580C                 call    sub_404298
+CODE:004D5811                 xor     eax, eax
+CODE:004D5813                 push    ebp
+CODE:004D5814                 push    offset loc_4D58B3
+CODE:004D5819                 push    dword ptr fs:[eax]
+CODE:004D581C                 mov     fs:[eax], esp
+CODE:004D581F                 cmp     byte ptr [ebx+74h], 0
+CODE:004D5823                 jnz     short loc_4D5898    //此处不跳
+CODE:004D5825                 cmp     byte ptr [ebx+2Ch], 0
+CODE:004D5829                 jz      short loc_4D5898     //此处不跳
+CODE:004D582B                 lea     edx, [ebp+var_8]
+CODE:004D582E                 mov     eax, [ebp+var_4]
+CODE:004D5831                 call    sub_4093F0  //此 CALL 复制注册码
+CODE:004D5836                 mov     edx, [ebp+var_8]
+CODE:004D5839                 mov     eax, ebx
+CODE:004D583B                 call    sub_4D59D8  //此处为关键地方，F8 跟入
+CODE:004D5840                 sub     eax, 0C8h     //如果上面这个 CALL 返回 C8H 则走向光明
+CODE:004D5845                 jz      short loc_4D584F //此处跳往天堂
+CODE:004D5847                 dec     eax
+CODE:004D5848                 jz      short loc_4D5872 //如果返回为 C9H，走向地狱
+CODE:004D584A                 dec     eax
+CODE:004D584B                 jz      short loc_4D587F //如果返回为 CAH，走向地狱
+CODE:004D584D                 jmp     short loc_4D5891
+CODE:004D584F 
+CODE:004D584F loc_4D584F:                     ; CODE XREF: sub_4D57F8+4Dj
+CODE:004D584F                 lea     eax, [ebx+38h]
+CODE:004D5852                 mov     edx, [ebp+var_4]
+CODE:004D5855                 call    sub_403EB8
+CODE:004D585A                 mov     byte ptr [ebx+74h], 1
+CODE:004D585E                 mov     eax, ebx
+CODE:004D5860                 call    sub_4D5F84
+CODE:004D5865                 mov     eax, ebx
+CODE:004D5867                 call    sub_4D6E2C
+CODE:004D586C                 mov     byte ptr [ebx+58h], 3
+CODE:004D5870                 jmp     short loc_4D5891
+CODE:004D5872 
+CODE:004D5872 loc_4D5872:                     ; CODE XREF: sub_4D57F8+50j
+CODE:004D5872                 mov     byte ptr [ebx+74h], 0
+CODE:004D5876                 mov     eax, ebx
+CODE:004D5878                 call    sub_4D6D78   // 此处出现错误提示窗口
+CODE:004D587D                 jmp     short loc_4D5891
+```
+
+\========================================
+
+## 3.深入关键地方寻宝去也. 在 4D583B 设置断点,bpx 4D583B ，F5 退出，然后重新填写注册信息，点击 OK，被拦住，F8 跟入。如下：
+
+```asm
+CODE:004D59D8                 push    ebp
+CODE:004D59D9                 mov     ebp, esp
+CODE:004D59DB                 add     esp, 0FFFFFFF0h
+CODE:004D59DE                 push    ebx
+CODE:004D59DF                 push    esi
+CODE:004D59E0                 push    edi
+CODE:004D59E1                 xor     ecx, ecx
+CODE:004D59E3                 mov     [ebp+var_8], ecx
+CODE:004D59E6                 mov     [ebp+var_4], ecx
+CODE:004D59E9                 mov     edi, edx
+CODE:004D59EB                 mov     ebx, eax
+CODE:004D59ED                 xor     eax, eax
+CODE:004D59EF                 push    ebp
+CODE:004D59F0                 push    offset loc_4D5B1D
+CODE:004D59F5                 push    dword ptr fs:[eax]
+CODE:004D59F8                 mov     fs:[eax], esp
+CODE:004D59FB                 lea     eax, [ebp+var_4]
+CODE:004D59FE                 push    eax
+CODE:004D59FF                 mov     eax, edi
+CODE:004D5A01                 call    @System@$_16823  ; System::$_16823
+CODE:004D5A06                 mov     edx, eax
+CODE:004D5A08                 dec     edx
+CODE:004D5A09                 mov     ecx, 2
+CODE:004D5A0E                 mov     eax, edi
+CODE:004D5A10                 call    @System@@LStrCopy$qqrv
+CODE:004D5A15                 mov     eax, [ebp+var_4]
+CODE:004D5A18                 mov     edx, offset unk_4D5B38
+CODE:004D5A1D                 call    @System@@LStrCmp$qqrv //比较最后 2 位是否是 1Y，如果是则无效。
+CODE:004D5A22                 jnz     short loc_4D5A2B  //此处跳转。
+CODE:004D5A24                 mov     esi, 16Dh
+CODE:004D5A29                 jmp     short loc_4D5A66
+CODE:004D5A2B 
+CODE:004D5A2B loc_4D5A2B:                    
+CODE:004D5A2B                 xor     eax, eax
+CODE:004D5A2D                 push    ebp
+CODE:004D5A2E                 push    offset loc_4D5A4D
+CODE:004D5A33                 push    dword ptr fs:[eax]
+CODE:004D5A36                 mov     fs:[eax], esp
+CODE:004D5A39                 mov     eax, [ebp+var_4]
+CODE:004D5A3C                 call    @Sysutils@StrToInt$qqrx17System@AnsiString// 把注册码最后两位转换后保存在 ESI
+CODE:004D5A41                 mov     esi, eax   //最后两位必须为 0，如果不是则错。
+CODE:004D5A43                 xor     eax, eax
+CODE:004D5A45                 pop     edx
+CODE:004D5A46                 pop     ecx
+```
+
+
+
+### 汇编代码段 1
+
+```
+CODE:004D5A47                     pop     ecx  
+CODE:004D5A48                     mov     fs:[eax], edx  
+CODE:004D5A4B                     jmp     short loc_4D5A66  
+CODE:004D5A4D                     jmp     @System@@HandleAnyException$qqrv ;  
+CODE:004D5A52                     mov     ebx, 0C9h  
+CODE:004D5A57                     call    @@DoneExcept$qqrv  
+CODE:004D5A5C                     jmp     loc_4D5B02  
+CODE:004D5A61                     call    @@DoneExcept$qqrv  
+CODE:004D5A66                     test    esi, esi        //测试 esi 是否为 0  
+CODE:004D5A68                     jnz     short loc_4D5A95 //如果不是则出错，后面程序总是返回 0C9H。  
+CODE:004D5A6A                     lea     eax, [ebp+var_4]  
+CODE:004D5A6D                     push    eax  
+CODE:004D5A6E                     mov     edx, [ebx+6Ch]  
+CODE:004D5A71                     mov     eax, [ebx+34h]  
+CODE:004D5A74                     mov     ecx, esi  
+CODE:004D5A76                     call    sub_4D36CC  
+CODE:004D5A7B                     mov     eax, [ebp+var_4]   
+CODE:004D5A7E                     mov     edx, edi  
+CODE:004D5A80                     call    @System@@LStrCmp$qqrv ; //在这里 d eax 看到真注册码，d edi 看到假码。此 CALL 就是关键，为了看清如何比较，我也把这个 CALL 代码放在下面了。不过没有多大意义 了。：）  
+CODE:004D5A85                     jnz     short loc_4D5A8E  
+CODE:004D5A87                     mov     ebx, 0C8h    //如果注册码正确，则 ebx=C8H  
+CODE:004D5A8C                     jmp     short loc_4D5B02  
+```
+
+*略掉 10 多行*
+
+```
+CODE:004D5AB0                     jnz     short loc_4D5AFD  
+CODE:004D5AB2                     inc     dword ptr [ebx+44h]  
+CODE:004D5AB5                     lea     edx, [ebp+var_8]  
+CODE:004D5AB8                     mov     eax, ebx  
+CODE:004D5ABA                     call    sub_4D6A94  
+CODE:004D5ABF                     mov     edx, [ebp+var_8]  
+CODE:004D5AC2                     lea     eax, [ebx+34h]  
+```
+
+========================================
+
+### 4. 在 `004D5A80` 设断点，`F8` 跟入：
+
+```
+CODE:004041F4                     push    ebx  
+CODE:004041F5                     push    esi  
+CODE:004041F6                     push    edi  
+CODE:004041F7                     mov     esi, eax  
+CODE:004041F9                     mov     edi, edx  
+CODE:004041FB                     cmp     eax, edx  
+CODE:004041FD                     jz      loc_404292  
+CODE:00404203                     test    esi, esi  
+CODE:00404205                     jz      short loc_40426F  
+CODE:00404207                     test    edi, edi  
+CODE:00404209                     jz      short loc_404276  
+CODE:0040420B                     mov     eax, [esi-4]  
+CODE:0040420E                     mov     edx, [edi-4]  
+CODE:00404211                     sub     eax, edx           //计算真假注册码的长度之差  
+CODE:00404213                     ja      short loc_404217  
+CODE:00404215                     add     edx, eax  
+CODE:00404217                     push    edx  
+CODE:00404218                     shr     edx, 2  
+CODE:0040421B                     jz      short loc_404243  
+CODE:0040421D                     mov     ecx, [esi]  
+CODE:0040421F                     mov     ebx, [edi]  
+CODE:00404221                     cmp     ecx, ebx    //此处 d esi 看到真注册码，d edi 看到你的假注册码！  
+CODE:00404223                     jnz     short loc_40427D  
+CODE:00404225                     dec     edx  
+CODE:00404226                     jz      short loc_40423D  
+CODE:00404228                     mov     ecx, [esi+4]  
+CODE:0040422B                     mov     ebx, [edi+4] //比较真假注册码  
+CODE:0040422E                     cmp     ecx, ebx  
+CODE:00404230                     jnz     short loc_40427D  
+CODE:00404232                     add     esi, 8  
+CODE:00404235                     add     edi, 8  
+CODE:00404238                     dec     edx  
+CODE:00404239                     jnz     short loc_40421D  //没有结束，返回上面，继续比较。  
+CODE:0040423B                     jmp     short loc_404243  
+CODE:0040423D                     add     esi, 4  
+CODE:00404240                     add     edi, 4  
+CODE:00404243                     pop     edx  
+CODE:00404244                     and     edx, 3  
+CODE:00404247                     jz      short loc_40426B  //此处自动跳走，不要修改 Z 标志。  
+CODE:00404249                     mov     ecx, [esi]  
+CODE:0040424B                     mov     ebx, [edi]  
+CODE:0040424D                     cmp     cl, bl  
+CODE:0040424F                     jnz     short loc_404292  
+CODE:00404251                     dec     edx  
+CODE:00404252                     jz      short loc_40426B  
+CODE:00404254                     cmp     ch, bh  
+CODE:00404256                     jnz     short loc_404292  
+CODE:00404258                     dec     edx  
+CODE:00404259                     jz      short loc_40426B  
+```
+
+*略掉 10 多行*
+
+```
+CODE:0040428C                     cmp     cl, bl  
+CODE:0040428E                     jnz     short loc_404292  
+CODE:00404290                     cmp     ch, bh  
+CODE:00404292                     pop     edi  
+CODE:00404293                     pop     esi  
+CODE:00404294                     pop     ebx  
+CODE:00404295                     retn  
+```
+
+========================================
+
+### 后记：
+
+1. 本来我已经正确找到了 3.8 版的注册码了，我又安装了这个新版 4.1 实验一下找注册码，结果发现这个 4.1 版用 `ASPACK2.11C` 加壳了，我用 `ASPACK DIE` 脱壳成功，可是无法用 `W32DASM` 打开查看，因为打开后只有前面的文件头部分，没有代码部分。我用 `IDA` 打开可以看到代码。
+
+2. 在输入注册码的时候，必须使最后 2 位是 `0`，我就是因为忽视了这个问题，最后实验了好多次总是返回 `CA`，感到纳闷，后来发现一个 `CALL` 就是验证这个最后 2 个位的。
+
+3. 如果想让原来注册码作废，可以重新输入用户名，其他的系列号和注册码即可使原先正确的注册码作废。便于继续深入调试。
+
+4. 注册信息如下：
+
+   - `User Name`: `bigpig`
+   - `Serial Number`: `123456`
+   - `Register Number`: `2E1F0C4F1B00` （注册码好像与系列号和用户名无关？）
+
+5. 同样的程序可能在不同机器上的地址是不同的，菜鸟在学习的时候不要用文章中显示的地址去和你电脑上出现的实际地址比较，您应该关注代码是否相同才行。在不同电脑上，同样的代码可能地址不同。
+
+耽误您的时间阅读，非常感谢！讨论技术问题 EMAIL TO:
+
+`qduwg@163.com`
+
+2005/12/30
+
+`4dd466d0e1e0cc123afbe504da2462ca`

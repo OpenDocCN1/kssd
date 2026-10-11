@@ -1,0 +1,919 @@
+
+# ChinaRen 校友录伴侣 (v2.01 build 20807)
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50496.htm`](https://www.pediy.com/kssd/pediy05/pediy50496.htm)
+
+**简单算法——ChinaRen 校友录伴侣 (v2.01 build 20807)**
+
+- **下载页面**：`http://regcrap.yeah.net`（最新版是 `v2.02 build 20821`）
+- **软件大小**：`932KB`
+- **软件语言**：简体中文
+- **软件类别**：共享
+- **应用平台**：`Win9x/2000/xp`
+
+**【软件简介】**：`ChinaRen` 校友录伴侣（以下简称 `CRAP`）是一款专门针对 `ChinaRen` 校友录设计的共享软件。您或许曾因为 `ChinaRen` 的速度太慢而无法浏览自己班级的最新留言；您或许想看看班级以往的留言，但由于一页一页的翻阅太麻烦而苦苦等待；您或许想查找以往的某一条留言，但由于留言太多而无从下手；您或许为由于 `ChinaRen` 服务器瘫痪所造成的班级留言的丢失而遗憾；您或许……你还是试试吧。
+
+**【软件限制】**：功能限制。每一个用户名进行一次注册。
+
+**【作者声明】**：初学 Crack，只是感兴趣，没有其它目的。失误之处敬请诸位大侠赐教！
+
+**【破解工具】**：`TRW2000` 娃娃修改版、`Ollydbg1.09`、`FI2.5`、`W32Dasm8.93` 黄金版
+
+---
+
+**【过 程】**：
+
+`Crap.exe` 无壳。`DELPHI` 编写。反汇编，查找出错提示，很容易找到核心。
+
+伪装者`[CCG]`大侠曾写过 `v1.01 build 10717` 的注册机，`2.01` 版的算法还是差不多一样的。
+
+有些分支判断就没写了，如果自己追一下就知道了。
+
+- **用户名**：`fly`
+- **试炼码**：`13572468`
+
+---
+
+*Referenced by a (U)nconditional or (C)onditional Jump at Address:*
+
+```
+|:004D61CD(C)
+
+|
+
+:004D61C8 6A00                         push 00000000
+:004D61CA 6A00                         push 00000000
+:004D61CC 49                           dec ecx
+:004D61CD 75F9                         jne 004D61C8
+:004D61CF 51                           push ecx
+:004D61D0 53                           push ebx
+:004D61D1 56                           push esi
+:004D61D2 8BD8                         mov ebx, eax
+:004D61D4 33C0                         xor eax, eax
+:004D61D6 55                           push ebp
+:004D61D7 68C6644D00                   push 004D64C6
+:004D61DC 64FF30                       push dword ptr fs:[eax]
+:004D61DF 648920                       mov dword ptr fs:[eax], esp
+:004D61E2 8D55FC                       lea edx, dword ptr [ebp-04]
+:004D61E5 8B8300030000                 mov eax, dword ptr [ebx+00000300]
+```
+
+*Referenced by a (U)nconditional or (C)onditional Jump at Address:*
+
+```
+|:004D6184(C)
+
+|
+
+:004D61EB E8A06EF7FF                   call 0044D090
+:004D61F0 837DFC00                     cmp dword ptr [ebp-04], 00000000
+:004D61F4 751C                         jne 004D6212
+```
+
+*Possible StringData Ref from Code Obj -> "请输入用户名。"*
+
+```
+                                    |
+:004D61F6 B8DC644D00               mov eax, 004D64DC
+:004D61FB E8DCFCF6FF               call 00445EDC
+```
+
+*Referenced by a (U)nconditional or (C)onditional Jump at Address:*
+
+```
+|:004D6195(C)
+
+|
+
+:004D6200 8B9300030000             mov edx, dword ptr [ebx+00000300]
+:004D6206 8BC3                     mov eax, ebx
+:004D6208 E81F1CF9FF               call 00467E2C
+:004D620D E95A020000               jmp 004D646C
+```
+
+*Referenced by a (U)nconditional or (C)onditional Jump at Address:*
+
+```
+|:004D61F4(C)
+
+|
+
+:004D6212 8D55F8                   lea edx, dword ptr [ebp-08]
+:004D6215 8B8300030000             mov eax, dword ptr [ebx+00000300]
+:004D621B E8706EF7FF               call 0044D090
+:004D6220 837DF800                 cmp dword ptr [ebp-08], 00000000
+:004D6224 751C                     jne 004D6242
+```
+
+*Possible StringData Ref from Code Obj -> "请输入用户名。"*
+
+```
+                                    |
+:004D6226 B8DC644D00               mov eax, 004D64DC
+:004D622B E8ACFCF6FF               call 00445EDC
+:004D6230 8B9300030000             mov edx, dword ptr [ebx+00000300]
+:004D6236 8BC3                     mov eax, ebx
+:004D6238 E8EF1BF9FF               call 00467E2C
+:004D623D E92A020000               jmp 004D646C
+```
+
+*Referenced by a (U)nconditional or (C)onditional Jump at Address:*
+
+```
+|:004D6224(C)
+
+|
+
+:004D6242 8D55F0                   lea edx, dword ptr [ebp-10]
+:004D6245 8B8300030000             mov eax, dword ptr [ebx+00000300]
+:004D624B E8406EF7FF               call 0044D090
+:004D6250 8B45F0                   mov eax, dword ptr [ebp-10]
+                                    =====>EAX=fly
+:004D6253 8D55F4                   lea edx, dword ptr [ebp-0C]
+:004D6256 E8A9DF0000               call 004E4204
+                                    =====>算法 CALL！进入！
+:004D625B 8B45F4                   mov eax, dword ptr [ebp-0C]
+                                    =====>EAX=434349016219029972
+:004D625E 50                       push eax
+:004D625F 8D55EC                   lea edx, dword ptr [ebp-14]
+:004D6262 8B8304030000             mov eax, dword ptr [ebx+00000304]
+:004D6268 E8236EF7FF               call 0044D090
+:004D626D 8B55EC                   mov edx, dword ptr [ebp-14]
+:004D6270 58                       pop eax
+:004D6271 E8F2E8F2FF               call 00404B68
+                                    =====>比较 CALL！进入！
+:004D6276 7416                     je 004D628E
+                                    =====>不跳则 OVER！
+```
+
+*Possible StringData Ref from Code Obj -> "您输入的用户注册码不正确。"*
+
+```
+                                    =====>BAD BOY！
+:004D6278 B8F4644D00               mov eax, 004D64F4
+:004D627D E85AFCF6FF               call 00445EDC
+:004D6282 8BC3                     mov eax, ebx
+:004D6284 E80335F9FF               call 0046978C
+:004D6289 E9DE010000               jmp 004D646C
+```
+
+*Referenced by a (U)nconditional or (C)onditional Jump at Address:*
+
+```
+|:004D6276(C)
+
+|
+
+:004D628E 8D55E8                   lea edx, dword ptr [ebp-18]
+:004D6291 8B8300030000             mov eax, dword ptr [ebx+00000300]
+:004D6297 E8F46DF7FF               call 0044D090
+:004D629C 8B55E8                   mov edx, dword ptr [ebp-18]
+:004D629F 8B83F0020000             mov eax, dword ptr [ebx+000002F0]
+:004D62A5 8B8018020000             mov eax, dword ptr [eax+00000218]
+:004D62AB 8B08                     mov ecx, dword ptr [eax]
+:004D62AD FF5154                   call [ecx+54]
+:004D62B0 40                       inc eax
+:004D62B1 741C                     je 004D62CF
+```
+
+*Possible StringData Ref from Code Obj -> "请已经注册过该用户名。"*
+
+```
+                                    |
+:004D62B3 B818654D00               mov eax, 004D6518
+:004D62B8 E81FFCF6FF               call 00445EDC
+:004D62BD 8B9300030000             mov edx, dword ptr [ebx+00000300]
+:004D62C3 8BC3                     mov eax, ebx
+:004D62C5 E8621BF9FF               call 00467E2C
+:004D62CA E99D010000               jmp 004D646C
+```
+
+…… …… 省 略 …… ……
+
+*Possible StringData Ref from Code Obj -> "注册成功！感谢您的注册。"*
+
+```
+                                    =====>呵呵，胜利女神！
+:004D640D 68A8654D00               push 004D65A8
+```
+
+------------------------------------------------------------------
+
+★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+
+**进入算法 CALL：`4D6256`**
+
+```
+:004D6256 E8A9DF0000               call 004E4204
+```
+
+*Referenced by a CALL at Addresses:*
+
+```
+|:004D60FC   , :004D6256   , :004E3E92
+
+|
+
+:004E4204 55                       push ebp
+:004E4205 8BEC                     mov ebp, esp
+:004E4207 83C4C0                   add esp, FFFFFFC0
+:004E420A 56                       push esi
+:004E420B 57                       push edi
+:004E420C 33C9                     xor ecx, ecx
+:004E420E 894DC0                   mov dword ptr [ebp-40], ecx
+:004E4211 894DC4                   mov dword ptr [ebp-3C], ecx
+:004E4214 894DC8                   mov dword ptr [ebp-38], ecx
+:004E4217 894DCC                   mov dword ptr [ebp-34], ecx
+:004E421A 894DF4                   mov dword ptr [ebp-0C], ecx
+:004E421D 894DF0                   mov dword ptr [ebp-10], ecx
+:004E4220 894DEC                   mov dword ptr [ebp-14], ecx
+:004E4223 894DE8                   mov dword ptr [ebp-18], ecx
+:004E4226 8955F8                   mov dword ptr [ebp-08], edx
+:004E4229 8945FC                   mov dword ptr [ebp-04], eax
+:004E422C 8B45FC                   mov eax, dword ptr [ebp-04]
+:004E422F E8D809F2FF               call 00404C0C
+:004E4234 33C0                     xor eax, eax
+:004E4236 55                       push ebp
+:004E4237 6888444E00               push 004E4488
+:004E423C 64FF30                   push dword ptr fs:[eax]
+:004E423F 648920                   mov dword ptr fs:[eax], esp
+:004E4242 8D55CC                   lea edx, dword ptr [ebp-34]
+```
+
+
+
+```
+:004E4245 8B45FC                 mov eax, dword ptr [ebp-04]
+
+:004E4248 E8374BF2FF             call 00408D84
+
+====> 如果用户名是大写字母则转化为小写字母
+
+:004E424D 8B55CC                 mov edx, dword ptr [ebp-34]
+
+====> `EDX` = `fly`
+
+:004E4250 8D45FC                 lea eax, dword ptr [ebp-04]
+
+:004E4253 E8AC05F2FF             call 00404804
+
+:004E4258 8B45FC                 mov eax, dword ptr [ebp-04]
+
+:004E425B E8C407F2FF             call 00404A24
+
+:004E4260 8B55FC                 mov edx, dword ptr [ebp-04]
+
+:004E4263 0FB612                 movzx edx, byte ptr [edx]
+
+:004E4266 83E201                 and edx, 00000001
+
+:004E4269 85D2                   test edx, edx
+
+:004E426B 0F9445D3               sete byte ptr [ebp-2D]
+
+:004E426F 8B55FC                 mov edx, dword ptr [ebp-04]
+
+:004E4272 0FB65402FF             movzx edx, byte ptr [edx+eax-01]
+
+:004E4277 83E201                 and edx, 00000001
+
+:004E427A 85D2                   test edx, edx
+
+:004E427C 0F9445D2               sete byte ptr [ebp-2E]
+
+:004E4280 807DD301               cmp byte ptr [ebp-2D], 01
+
+:004E4284 751B                   jne 004E42A1
+
+:004E4286 807DD201               cmp byte ptr [ebp-2E], 01
+
+:004E428A 7515                   jne 004E42A1
+
+:004E428C C745E43B000000         mov [ebp-1C], 0000003B
+
+:004E4293 C745E017000000         mov [ebp-20], 00000017
+
+:004E429A BE07000000             mov esi, 00000007
+
+:004E429F EB55                   jmp 004E42F6
+```
+
+**Referenced by a (U)nconditional or (C)onditional Jump at Addresses:**
+
+`:004E4284(C), :004E428A(C)`
+
+```
+:004E42A1 807DD301               cmp byte ptr [ebp-2D], 01
+
+:004E42A5 751B                   jne 004E42C2
+
+:004E42A7 807DD200               cmp byte ptr [ebp-2E], 00
+
+:004E42AB 7515                   jne 004E42C2
+
+:004E42AD C745E43B000000         mov [ebp-1C], 0000003B
+
+====> `[ebp-1C]` = `3B`
+
+:004E42B4 C745E007000000         mov [ebp-20], 00000007
+
+====> `[ebp-20]` = `07`
+
+:004E42BB BE17000000             mov esi, 00000017
+
+====> `ESI` = `17`
+
+:004E42C0 EB34                   jmp 004E42F6
+```
+
+**Referenced by a (U)nconditional or (C)onditional Jump at Addresses:**
+
+`:004E42A5(C), :004E42AB(C)`
+
+```
+:004E42C2 807DD300               cmp byte ptr [ebp-2D], 00
+
+:004E42C6 751B                   jne 004E42E3
+
+:004E42C8 807DD201               cmp byte ptr [ebp-2E], 01
+
+:004E42CC 7515                   jne 004E42E3
+
+:004E42CE C745E417000000         mov [ebp-1C], 00000017
+
+:004E42D5 C745E03B000000         mov [ebp-20], 0000003B
+
+:004E42DC BE07000000             mov esi, 00000007
+
+:004E42E1 EB13                   jmp 004E42F6
+```
+
+**Referenced by a (U)nconditional or (C)onditional Jump at Addresses:**
+
+`:004E42C6(C), :004E42CC(C)`
+
+```
+:004E42E3 C745E417000000         mov [ebp-1C], 00000017
+
+:004E42EA C745E007000000         mov [ebp-20], 00000007
+
+:004E42F1 BE3B000000             mov esi, 0000003B
+```
+
+**Referenced by a (U)nconditional or (C)onditional Jump at Addresses:**
+
+`:004E429F(U), :004E42C0(U), :004E42E1(U)`
+
+```
+:004E42F6 33D2                   xor edx, edx
+
+:004E42F8 8955DC                 mov dword ptr [ebp-24], edx
+
+:004E42FB 33D2                   xor edx, edx
+
+:004E42FD 8955D8                 mov dword ptr [ebp-28], edx
+
+:004E4300 33D2                   xor edx, edx
+
+:004E4302 8955D4                 mov dword ptr [ebp-2C], edx
+
+:004E4305 8BC8                   mov ecx, eax
+
+:004E4307 85C9                   test ecx, ecx
+
+:004E4309 7E17                   jle 004E4322
+
+:004E430B BF01000000             mov edi, 00000001
+```
+
+**Referenced by a (U)nconditional or (C)onditional Jump at Address:**
+
+`:004E4320(C)`
+
+```
+:004E4310 8B55FC                 mov edx, dword ptr [ebp-04]
+
+====> `EDX` = `fly`
+
+:004E4313 0FB6543AFF             movzx edx, byte ptr [edx+edi-01]
+
+====> 依次取用户名的 `HEX` 值
+
+1. `EDX` = `66`
+2. `EDX` = `6C`
+3. `EDX` = `79`
+
+:004E4318 0355E4                 add edx, dword ptr [ebp-1C]
+
+1. `EDX` = `66` + `3B` = `A1`
+2. `EDX` = `6C` + `3B` = `A7`
+3. `EDX` = `79` + `3B` = `B4`
+
+:004E431B 0155DC                 add dword ptr [ebp-24], edx
+
+1. `[EBP-24]` = `00` + `A1` = `A1`
+2. `[EBP-24]` = `A1` + `A7` = `148`
+3. `[EBP-24]` = `148` + `B4` = `1FC`
+
+循环结果 `====>` `[ebp-24]` = `1FC`
+
+:004E431E 47                     inc edi
+
+====> `EDI` 依次增 1 计数器
+
+:004E431F 49                     dec ecx
+
+:004E4320 75EE                   jne 004E4310
+
+====> 循环用户名的位数次
+```
+
+**Referenced by a (U)nconditional or (C)onditional Jump at Address:**
+
+`:004E4309(C)`
+
+```
+:004E4322 8BC8                   mov ecx, eax
+
+:004E4324 85C9                   test ecx, ecx
+
+:004E4326 7E18                   jle 004E4340
+
+:004E4328 BF01000000             mov edi, 00000001
+```
+
+**Referenced by a (U)nconditional or (C)onditional Jump at Address:**
+
+`:004E433E(C)`
+
+```
+:004E432D 8B55FC                 mov edx, dword ptr [ebp-04]
+
+====> `EDX` = `fly`
+
+:004E4330 0FB6543AFF             movzx edx, byte ptr [edx+edi-01]
+
+====> 依次取用户名的 `HEX` 值
+
+1. `EDX` = `66`
+2. `EDX` = `6C`
+3. `EDX` = `79`
+
+:004E4335 0FAF55E0               imul edx, dword ptr [ebp-20]
+
+1. `EDX` = `66` * `07` = `2CA`
+2. `EDX` = `6C` * `07` = `2F4`
+3. `EDX` = `79` * `07` = `34F`
+
+:004E4339 0155D8                 add dword ptr [ebp-28], edx
+
+1. `[EBP-28]` = `00` + `2CA` = `2CA`
+2. `[EBP-28]` = `2CA` + `2F4` = `5BE`
+3. `[EBP-28]` = `5BE` + `34F` = `90D`
+
+循环结果 `====>` `[ebp-28]` = `90D`
+
+:004E433C 47                     inc edi
+
+====> `EDI` 依次增 1 计数器
+
+:004E433D 49                     dec ecx
+
+:004E433E 75ED                   jne 004E432D
+
+====> 循环用户名的位数次
+```
+
+**Referenced by a (U)nconditional or (C)onditional Jump at Address:**
+
+`:004E4326(C)`
+
+```
+:004E4340 8BC8                   mov ecx, eax
+
+:004E4342 85C9                   test ecx, ecx
+
+:004E4344 7E21                   jle 004E4367
+
+:004E4346 BF01000000             mov edi, 00000001
+
+====> `EDI` = `01`
+```
+
+**Referenced by a (U)nconditional or (C)onditional Jump at Address:**
+
+`:004E4365(C)`
+
+```
+:004E434B 8B45FC                 mov eax, dword ptr [ebp-04]
+
+====> `EAX` = `fly`
+
+:004E434E 0FB64438FF             movzx eax, byte ptr [eax+edi-01]
+
+====> 依次取用户名的 `HEX` 值
+
+1. `EAX` = `66`
+2. `EAX` = `6C`
+3. `EAX` = `79`
+
+:004E4353 99                     cdq
+
+:004E4354 F7FE                   idiv esi
+
+====> `ESI` = `17`
+
+1. `EAX` = `66` / `17` = `04`
+2. `EAX` = `6C` / `17` = `04`
+3. `EAX` = `79` / `17` = `05`
+
+:004E4356 0345D4                 add eax, dword ptr [ebp-2C]
+
+1. `EAX` = `04` + `00` = `04`
+```
+
+
+
+2. `====>` `EAX\=04 + 1B=1F`
+3. `====>` `EAX\=05 + 4D=52`
+
+`mov edx, edi`
+`====>` `EDX\=EDI\=1` （依次增 1）
+
+`imul edx, esi`
+1. `====>` `EDX\=01 \* 17=17`
+2. `====>` `EDX\=02 \* 17=2E`
+3. `====>` `EDX\=03 \* 17=45`
+
+`add eax, edx`
+1. `====>` `EAX\=04 + 17=1B`
+2. `====>` `EAX\=1F + 2E=4D`
+3. `====>` `EAX\=52 + 45=97`
+
+`mov dword ptr \[ebp\-2C\], eax`
+`====>` `\[ebp\-2C\]=EAX`
+循环结果 `====>` `\[ebp\-2C\]=97`
+
+`inc edi`
+`====>` `EDI` 依次增 1 计数器
+
+`dec ecx`
+
+`jne 004E434B`
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004E4344(C)
+|
+
+`lea edx, dword ptr \[ebp\-38\]`
+
+`mov eax, dword ptr \[ebp\-24\]`
+`====>` `EAX\=\[EBP\-24\]=1FC`
+
+`imul eax, dword ptr \[ebp\-1C\]`
+`====>` `EAX\=1FC \* 3B=7514（H）=29972（D）`
+
+`call 004092B4`
+`====>` 将 `7514`（H）转化为 10 进制值 `29972`
+
+`mov eax, dword ptr \[ebp\-38\]`
+`====>` `EAX\=29972`
+
+`lea ecx, dword ptr \[ebp\-0C\]`
+
+`mov edx, 00000006`
+
+`call 004E4158`
+`====>` 整理 CALL。上面所得＜6 位则前面加 0；若＞6 位则只取后 6 位
+`====>` `29972－->029972`
+
+`lea edx, dword ptr \[ebp\-3C\]`
+
+`mov eax, dword ptr \[ebp\-28\]`
+`====>` `EAX\=\[EBP\-28\]=90D`
+
+`imul eax, dword ptr \[ebp\-20\]`
+`====>` `EAX\=90D \* 07=3F5B（H）=16219（D）`
+
+`call 004092B4`
+`====>` 将 `3F5B`（H）转化为 10 进制值 `16219`
+
+`mov eax, dword ptr \[ebp\-3C\]`
+`====>` `EAX\=16219`
+
+`lea ecx, dword ptr \[ebp\-10\]`
+
+`mov edx, 00000006`
+
+`call 004E4158`
+`====>` 整理 CALL。上面所得＜6 位则前面加 0；若＞6 位则只取后 6 位
+`====>` `16219 －->01629`
+
+`lea edx, dword ptr \[ebp\-40\]`
+
+`mov eax, dword ptr \[ebp\-2C\]`
+`====>` `EAX\=\[EBP\-2C\]=97`
+
+`imul eax, dword ptr \[ebp\-1C\]`
+`====>` `EAX\=97 \* 3B=22CD`
+
+`imul eax, dword ptr \[ebp\-20\]`
+`====>` `EAX\=22CD \* 07=F39B`
+
+`imul eax, esi`
+`====>` `EAX\=F39B \* 17=15E2ED（H）=1434349（D）`
+
+`call 004092B4`
+`====>` 将 `15E2ED`（H）转化为 10 进制值 `1434349`
+
+`mov eax, dword ptr \[ebp\-40\]`
+`====>` `EAX\=1434349`
+
+`lea ecx, dword ptr \[ebp\-14\]`
+
+`mov edx, 00000006`
+
+`call 004E4158`
+`====>` 整理 CALL。上面所得＜6 位则前面加 0；若＞6 位则只取后 6 位
+`====>` `1434339－->434349`
+
+`cmp byte ptr \[ebp\-2D\], 01`
+
+`jne 004E43EF`
+
+`cmp byte ptr \[ebp\-2E\], 01`
+
+`jne 004E43EF`
+
+`push \[ebp\-10\]`
+
+`push \[ebp\-14\]`
+
+`push \[ebp\-0C\]`
+
+`lea eax, dword ptr \[ebp\-18\]`
+
+`mov edx, 00000003`
+
+`call 00404AE4`
+
+`jmp 004E444D`
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:004E43CF(C), :004E43D5(C)
+|
+
+`cmp byte ptr \[ebp\-2D\], 01`
+
+`jne 004E4413`
+
+`cmp byte ptr \[ebp\-2E\], 00`
+
+`jne 004E4413`
+
+`push \[ebp\-14\]`
+`====>` `\[ebp\-14\]=434349` 壹
+
+`push \[ebp\-10\]`
+`====>` `\[ebp\-10\]=016219` 贰
+
+`push \[ebp\-0C\]`
+`====>` `\[ebp\-0C\]=029972` 叁
+
+`lea eax, dword ptr \[ebp\-18\]`
+
+`mov edx, 00000003`
+
+`call 00404AE4`
+`====>` 将上面所得的 壹 贰 叁 连接起来
+
+`jmp 004E444D`
+
+…… …… 省 略 …… ……
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:004E43ED(U), :004E4411(U), :004E4435(U)
+|
+
+`mov eax, dword ptr \[ebp\-08\]`
+
+`mov edx, dword ptr \[ebp\-18\]`
+`====>` `EDX\=434349016219029972`
+
+★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+
+### 进入整理 CALL
+
+\* Referenced by a CALL at Addresses:
+|:004E4381 , :004E43A0 , :004E43C6
+|
+
+`push ebp`
+
+`mov ebp, esp`
+
+`push ecx`
+
+`push ebx`
+
+`push esi`
+
+`mov esi, ecx`
+
+`mov ebx, edx`
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004E40FB(C)
+|
+
+`mov dword ptr \[ebp\-04\], eax`
+
+`mov eax, dword ptr \[ebp\-04\]`
+
+`call 00404C0C`
+
+`xor eax, eax`
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004E4108(C)
+|
+
+`push ebp`
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004E4102(C)
+|
+
+`push 004E41EB`
+
+`push dword ptr fs:\[eax\]`
+
+`mov dword ptr fs:\[eax\], esp`
+
+`mov eax, dword ptr \[ebp\-04\]`
+
+`call 00404A24`
+`====>` 求位数
+
+`cmp ebx, eax`
+`====>` 与 6 比较
+
+`jl 004E41B0`
+
+`mov eax, dword ptr \[ebp\-04\]`
+
+`call 00404A24`
+
+`push eax`
+
+`mov eax, ebx`
+
+`pop edx`
+
+`sub eax, edx`
+
+`mov ebx, eax`
+
+`test ebx, ebx`
+
+`jle 004E41CB`
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004E41AC(C)
+|
+
+
+
+:004E419B 8D45FC lea eax, dword ptr [ebp-04]  
+
+:004E419E 8B4DFC mov ecx, dword ptr [ebp-04]  
+
+:004E41A1 BA00424E00 mov edx, 004E4200  
+
+:004E41A6 E8C508F2FF call 00404A70  
+
+:004E41AB 4B dec ebx  
+
+:004E41AC 75ED jne 004E419B  
+
+:004E41AE EB1B jmp 004E41CB
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+
+`:004E4185(C)`  
+
+:004E41B0 8D45FC lea eax, dword ptr [ebp-04]  
+
+:004E41B3 50 push eax  
+
+:004E41B4 8B45FC mov eax, dword ptr [ebp-04]  
+
+:004E41B7 E86808F2FF call 00404A24  
+
+:004E41BC 8BD0 mov edx, eax  
+
+:004E41BE 2BD3 sub edx, ebx  
+
+:004E41C0 42 inc edx  
+
+:004E41C1 8BCB mov ecx, ebx  
+
+:004E41C3 8B45FC mov eax, dword ptr [ebp-04]  
+
+:004E41C6 E8B10AF2FF call 00404C7C
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
+
+`:004E4199(C), :004E41AE(U)`  
+
+:004E41CB 8BC6 mov eax, esi  
+
+:004E41CD 8B55FC mov edx, dword ptr [ebp-04]  
+
+1、 ==== >EDX=022972  
+
+2、 ==== >EDX=016219  
+
+3、 ==== >EDX=434349
+
+:004E41D0 E8EB05F2FF call 004047C0  
+
+:004E41D5 33C0 xor eax, eax  
+
+:004E41D7 5A pop edx  
+
+:004E41D8 59 pop ecx  
+
+:004E41D9 59 pop ecx  
+
+:004E41DA 648910 mov dword ptr fs:[eax], edx  
+
+:004E41DD 68F2414E00 push 004E41F2
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+
+`:004E41F0(U)`  
+
+:004E41E2 8D45FC lea eax, dword ptr [ebp-04]  
+
+:004E41E5 E88205F2FF call 0040476C  
+
+:004E41EA C3 ret
+
+————————————————————————————————————  
+
+进入比较 CALL：`:004D6271` `call 00404B68`
+
+:00404B68 53 push ebx  
+
+:00404B69 56 push esi  
+
+:00404B6A 57 push edi  
+
+:00404B6B 89C6 mov esi, eax  
+
+:00404B6D 89D7 mov edi, edx  
+
+:00404B6F 39D0 cmp eax, edx  
+
+==== >EAX=434349016219029972  
+
+==== >EDX=13572468
+
+—————————————————————————————————   
+
+【KeyMake 之`{48th}`内存注册机】：
+
+中断地址：`:004D625E`  
+
+中断次数：`1`  
+
+第一字节：`50`  
+
+指令长度：`1`
+
+内存方式：`EAX`    
+
+—————————————————————————————————   
+
+【注册信息保存】：
+
+`\CRAP\Data` 文件夹下的 `Alumni.mdb` 中：
+
+`UserInfo`
+
+—————————————————————————————————   
+
+【整 理】：
+
+用户名：`fly`  
+
+注册码：`434349016219029972`
+
+—————————————————————————————————  
+
+Cracked By 巢水工作坊——fly【OCN】
+
+2003-03-18 19:41:48   
+
+`4dd466d0e1e0cc123afbe504da2462ca`
