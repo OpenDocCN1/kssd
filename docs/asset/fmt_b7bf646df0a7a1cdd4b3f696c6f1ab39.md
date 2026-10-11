@@ -1,0 +1,128 @@
+
+```
+004F2997 8945 EC mov dword ptr ss:[ebp-14],eax ; 组合为新地址，ASCII "SOFTWARE\\JD"
+004F299A 6A FF push -1
+004F299C 6A 08 push 8
+004F299E 68 15270116 push 16012715
+004F29A3 68 A3260152 push 520126A3
+004F29A8 E8 22E50300 call 超想家电.00530ECF
+004F29AD 83C4 10 add esp,10
+004F29B0 8945 E8 mov dword ptr ss:[ebp-18],eax
+004F29B3 68 04000080 push 80000004
+004F29B8 6A 00 push 0
+004F29BA 8B45 E8 mov eax,dword ptr ss:[ebp-18]
+004F29BD 85C0 test eax,eax
+004F29BF 75 05 jnz short 超想家电.004F29C6
+004F29C1 B8 92924000 mov eax,超想家电.00409292
+004F29C6 50 push eax
+004F29C7 68 01000000 push 1
+004F29CC BB 50010000 mov ebx,150
+004F29D1 E8 F3E40300 call 超想家电.00530EC9
+004F29D6 83C4 10 add esp,10
+004F29D9 8945 E4 mov dword ptr ss:[ebp-1C],eax
+004F29DC 8B5D E8 mov ebx,dword ptr ss:[ebp-18]
+004F29DF 85DB test ebx,ebx
+004F29E1 74 09 je short 超想家电.004F29EC
+004F29E3 53 push ebx
+004F29E4 E8 CEE40300 call 超想家电.00530EB7
+004F29E9 83C4 04 add esp,4
+004F29EC 68 04000080 push 80000004
+004F29F1 6A 00 push 0
+004F29F3 8B45 E4 mov eax,dword ptr ss:[ebp-1C]
+004F29F6 85C0 test eax,eax
+004F29F8 75 05 jnz short 超想家电.004F29FF
+004F29FA B8 92924000 mov eax,超想家电.00409292
+004F29FF 50 push eax
+004F2A00 68 04000080 push 80000004
+004F2A05 6A 00 push 0
+004F2A07 8B45 EC mov eax,dword ptr ss:[ebp-14]
+004F2A0A 85C0 test eax,eax
+004F2A0C 75 05 jnz short 超想家电.004F2A13
+004F2A0E B8 92924000 mov eax,超想家电.00409292
+004F2A13 50 push eax
+004F2A14 68 01030080 push 80000301
+004F2A19 6A 00 push 0
+004F2A1B 68 03000000 push 3
+004F2A20 68 03000000 push 3
+004F2A25 BB A4060000 mov ebx,6A4
+004F2A2A E8 9AE40300 call 超想家电.00530EC9
+004F2A2F 83C4 28 add esp,28
+004F2A32 8945 E0 mov dword ptr ss:[ebp-20],eax
+004F2A35 8B5D EC mov ebx,dword ptr ss:[ebp-14]
+004F2A38 85DB test ebx,ebx
+004F2A3A 74 09 je short 超想家电.004F2A45
+004F2A3C 53 push ebx
+004F2A3D E8 75E40300 call 超想家电.00530EB7
+004F2A42 83C4 04 add esp,4
+004F2A45 8B5D E4 mov ebx,dword ptr ss:[ebp-1C]
+004F2A48 85DB test ebx,ebx
+004F2A4A 74 09 je short 超想家电.004F2A55
+004F2A4C 53 push ebx
+004F2A4D E8 65E40300 call 超想家电.00530EB7
+004F2A52 83C4 04 add esp,4
+004F2A55 837D E0 00 cmp dword ptr ss:[ebp-20],0
+004F2A59 0F84 56000000 je 超想家电.004F2AB5
+004F2A5F 6A 00 push 0
+004F2A61 6A 00 push 0
+004F2A63 6A 00 push 0
+004F2A65 68 01030080 push 80000301
+004F2A6A 6A 00 push 0
+004F2A6C 68 00000000 push 0
+004F2A71 68 04000080 push 80000004
+004F2A76 6A 00 push 0
+004F2A78 68 68594100 push 超想家电.00415968 ; ASCII "注册成功，欢迎使用!!!"
+........
+============== 跟进：004F2839 E8 766FFDFF call 超想家电.004C97B4 ==============
+
+004C97B4 55 push ebp ; ebp=0012F69C
+004C97B5 8BEC mov ebp,esp ; esp=0012F4DC，ebp=0012F69C
+004C97B7 8BC1 mov eax,ecx ; ecx 送入 eax，eax=0023F350
+004C97B9 40 inc eax ; eax 自加，eax=00000008
+004C97BA C1E0 02 shl eax,2 ; eax 逻辑左移 2 位，eax=00000009
+004C97BD 2BE0 sub esp,eax ; eax=00000024
+004C97BF 8D3C24 lea edi,dword ptr ss:[esp] ; edi=0023E354
+004C97C2 51 push ecx ; ecx 压栈，ecx=00000008
+004C97C3 C745 FC 01000000 mov dword ptr ss:[ebp-4],1
+004C97CA 8D75 08 lea esi,dword ptr ss:[ebp+8] ; esi=0023E329
+004C97CD 8B1E mov ebx,dword ptr ds:[esi] ; 堆栈 ds:[0012F4E4]=00225670，ebx=100DF2D8 (krnln.100DF2D8)
+004C97CF 83C6 04 add esi,4 ; esi=0012F4E4
+004C97D2 51 push ecx
+004C97D3 E8 71FFFFFF call 超想家电.004C9749 ; ★算法 CALL，F7 跟进★
+004C97D8 59 pop ecx
+004C97D9 0145 FC add dword ptr ss:[ebp-4],eax
+004C97DC 8907 mov dword ptr ds:[edi],eax
+004C97DE 83C7 04 add edi,4
+004C97E1 49 dec ecx
+004C97E2 75 E9 jnz short 超想家电.004C97CD
+004C97E4 FF75 FC push dword ptr ss:[ebp-4]
+004C97E7 E8 D1760600 call 超想家电.00530EBD
+004C97EC 83C4 04 add esp,4
+004C97EF 8BF8 mov edi,eax
+004C97F1 58 pop eax ; eax=0023F370
+004C97F2 8D1C24 lea ebx,dword ptr ss:[esp] ; ebx=0023F350
+004C97F5 57 push edi ; edi=0023F370
+004C97F6 8D55 08 lea edx,dword ptr ss:[ebp+8] ; edx=00140608
+004C97F9 8B0B mov ecx,dword ptr ds:[ebx] ; **** 循环检测 ****
+004C97FB 83C3 04 add ebx,4
+004C97FE 8B32 mov esi,dword ptr ds:[edx]
+004C9800 83C2 04 add edx,4
+004C9803 F3:A4 rep movs byte ptr es:[edi],byte ptr ds:[esi]
+004C9805 48 dec eax
+004C9806 75 F1 jnz short 超想家电.004C97F9 ; 循环开始
+004C9808 C607 00 mov byte ptr ds:[edi],0
+004C980B 58 pop eax ; 真码出现，ASCII "532F2A1D"
+004C980C 8BE5 mov esp,ebp
+004C980E 5D pop ebp
+004C980F C3 retn
+
+============== 跟进：004C97D3 E8 71FFFFFF call 超想家电.004C9749 ==============
+
+004C9749 85DB test ebx,ebx ; ebx=00225670
+; ebx=0023F7F8
+; ebx=0023E4C0
+; ebx=0023E328
+; ebx=0023E348
+; ebx=0023E368
+; ebx=0023F330
+; ebx=0023F350
+```
