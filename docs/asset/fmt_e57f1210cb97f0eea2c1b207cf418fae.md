@@ -1,0 +1,138 @@
+
+# QQGAME 挤房改造
+
+> 原文：[`www.pediy.com/kssd/pediy11/115112.html`](https://www.pediy.com/kssd/pediy11/115112.html)
+
+【文章标题】: `QQGAME` 挤房改造  
+【文章作者】: `wxxw`  
+【软件名称】: `qqgame` `2010`  
+【保护方式】: 无壳  
+【编写语言】: `Microsoft` `Visual` `C++` `6.0`  
+【使用工具】: `PEID` `0.95` `Olldbg` `1.10` `lordpe`  
+【操作平台】: `XP` `sp3`  
+【软件介绍】: 不用介绍了吧  
+【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
+
+---
+
+## 详细过程
+
+跟上次改 `qq` 对战平台类似，不过这次采用记录左键双击消息，然后重复发送，首先找到房间人满时弹出的对话框，将此处改为发送消息即可，可该对话框明显不是 `MessageBox` 所为,究竟是用的什么函数，因为发现弹出的对话框上有个倒计时数字，于是猜测有可能处理 `WM_TIMER` 消息，弹出对话框后对此消息下断，顺藤摸瓜最后发现原对话框是调用了 `CommonUI.dll` 里的 `DialogBoxParamA` 来完成的，代码如下：
+
+```
+1001E075  |> \837D 14 00     CMP DWORD PTR SS:[EBP+14],0
+1001E079  |.   53           PUSH EBX                              ; /lParam
+1001E07A  |.   68 2EFE0110  PUSH CommonUI.1001FE2E                ; |pDlgProc = CommonUI.1001FE2E
+1001E07F  |.   50           PUSH EAX                              ; |hOwner
+1001E080  |.   FF75 0C      PUSH DWORD PTR SS:[EBP+C]             ; |pTemplate
+1001E083  |.   897E 58      MOV DWORD PTR DS:[ESI+58],EDI         ; |
+1001E086  |.   FF75 08      PUSH DWORD PTR SS:[EBP+8]             ; |hInst
+1001E089  |.   74 27        JE SHORT CommonUI.1001E0B2            ; |
+1001E08B  |.   FF15 48570510 CALL DWORD PTR DS:[<&USER32.CreateDialog>; \CreateDialogParamA
+1001E091  |.   50           PUSH EAX
+1001E092  |.   8D8E B0050000 LEA ECX,DWORD PTR DS:[ESI+5B0]
+1001E098  |.   8946 54      MOV DWORD PTR DS:[ESI+54],EAX
+1001E09B  |.   E8 38A5FFFF  CALL CommonUI.100185D8
+1001E0A0  |.   8BCB         MOV ECX,EBX
+1001E0A2  |.   E8 6E200000  CALL CommonUI.10020115
+1001E0A7  |.   FF76 54      PUSH DWORD PTR DS:[ESI+54]            ; /hWnd
+1001E0AA  |.   FF15 A8560510 CALL DWORD PTR DS:[<&USER32.IsWindow>]   \IsWindow
+1001E0B0  |.   EB 06        JMP SHORT CommonUI.1001E0B8
+1001E0B2  |>   FF15 4C570510 CALL DWORD PTR DS:[<&USER32.DialogBoxPar>; \DialogBoxParamA
+1001E0B8  |>   5F           POP EDI
+1001E0B9  |.   5E           POP ESI
+1001E0BA  |.   5B           POP EBX
+1001E0BB  |.   5D           POP EBP
+1001E0BC  |\.  C2 1000      RETN 10
+```
+
+还需要将双击鼠标的消息记录下来，对 `WM_LBUTTONDBLCLK`（`203H`)消息下断，然后在堆栈里溯源，最后发现这个消息是由 `startup.dll` 里 `0107107F` 处调用 `DispatchMessageA` 分派来的，将代码改为
+
+```
+01071079   /E9 18D90000     JMP StartUp.0107E996
+0107107E   |50             PUSH EAX
+0107107F   |FF15 C4F10701   CALL DWORD PTR DS:[<&USER32.DispatchMess>; USER32.DispatchMessageA
+。。。。
+0107E996  ^\0F85 E926FFFF   JNZ StartUp.01071085
+0107E99C    8D45 D8         LEA EAX,DWORD PTR SS:[EBP-28]       EAX 为 PMSG
+0107E99F    8178 04 0302000>CMP DWORD PTR DS:[EAX+4],203        ;比较消息是否为 WM_LBUTTONDBLCLK
+0107E9A6  ^ 0F85 D226FFFF   JNZ StartUp.0107107E
+0107E9AC    FF30           PUSH DWORD PTR DS:[EAX]   ；如果是则将消息内容保存在 00404ff0 开始的地方
+0107E9AE    8F05 F04F4000  POP DWORD PTR DS:[404FF0]
+0107E9B4    FF70 04        PUSH DWORD PTR DS:[EAX+4]
+0107E9B7    8F05 F44F4000  POP DWORD PTR DS:[404FF4]
+0107E9BD    FF70 08        PUSH DWORD PTR DS:[EAX+8]
+0107E9C0    8F05 F84F4000  POP DWORD PTR DS:[404FF8]
+0107E9C6    FF70 0C        PUSH DWORD PTR DS:[EAX+C]
+0107E9C9    8F05 FC4F4000  POP DWORD PTR DS:[404FFC]            
+0107E9CF  ^ E9 AA26FFFF    JMP StartUp.0107107E
+```
+
+好了，现在将上面对话框的代码改为
+
+```
+0151E4A5   /E9 E0770300     JMP CommonUI.01555C8A
+0151E4AA   |90             NOP
+0151E4AB   |68 AF015201     PUSH CommonUI.015201AF
+0151E4B0   |50             PUSH EAX
+0151E4B1   |56             PUSH ESI
+0151E4B2   |51             PUSH ECX
+0151E4B3   |90             NOP
+0151E4B4   |90             NOP
+0151E4B5   |FF15 50675501  CALL DWORD PTR DS:[<&USER32.CreateDialog>; USER32.CreateDialogIndirectParamA
+0151E4BB   |50             PUSH EAX
+0151E4BC   |8D8B B0050000  LEA ECX,DWORD PTR DS:[EBX+5B0]
+0151E4C2   |8943 54        MOV DWORD PTR DS:[EBX+54],EAX
+0151E4C5   |E8 47A4FFFF    CALL CommonUI.01518911
+0151E4CA   |8B4D FC        MOV ECX,DWORD PTR SS:[EBP-4]
+0151E4CD   |E8 F91E0000    CALL CommonUI.015203CB
+0151E4D2   |FF73 54        PUSH DWORD PTR DS:[EBX+54]
+0151E4D5   |FF15 B8665501  CALL DWORD PTR DS:[<&USER32.IsWindow>]   ; USER32.IsWindow
+0151E4DB   |EB 06          JMP SHORT CommonUI.0151E4E3
+0151E4DD   |FF15 60675501  CALL DWORD PTR DS:[<&USER32.PostMessageA>; USER32.PostMessageA
+0151E4E3   |5F             POP EDI
+0151E4E4   |5E             POP ESI
+0151E4E5   |5B             POP EBX
+0151E4E6   |C9             LEAVE
+0151E4E7   |C2 1000        RETN 10
+.......
+.......
+01555C8A    394D 14        CMP DWORD PTR SS:[EBP+14],ECX
+01555C8D  ^ 0F85 1888FCFF  JNZ CommonUI.0151E4AB
+01555C93    68 E8030000    PUSH 3E8
+01555C98    FF15 32905701  CALL DWORD PTR DS:[<&kernel32.Sleep>]    ; kernel32.Sleep
+01555C9E    FF35 FC4F4000  PUSH DWORD PTR DS:[404FFC]              
+01555CA4    FF35 F84F4000  PUSH DWORD PTR DS:[404FF8]
+01555CAA    FF35 F44F4000  PUSH DWORD PTR DS:[404FF4]
+01555CB0    FF35 F04F4000  PUSH DWORD PTR DS:[404FF0]
+01555CB6  ^ E9 2288FCFF    JMP CommonUI.0151E4DD
+```
+
+这里遇到了几个问题，一开始时将 `0151E4DD` 处原来调用 `DialogBoxParamA` 函数改为 `SendMessage` 函数，奇怪的是双击鼠标后并没有循环进房间，后来改用 `PostMessage`，循环到是循环了，可能没间隔时间，会报 `qqgame` 错误要报告什么的，然后退出，后来想想还是加个 `sleep` 吧，首先用 `LORDPE` 在输入表里加入 `sleep` 函数，函数是加入了，但调用时还存在一个重定位问题，如上在 `01555C9a` 处，所以在重定位表里首先找到 `055000` 重定位块，它的最后一个数据刚好是 `0000`，后面紧跟的是 `056000` 重定位块和它的大小 `354`，数据如下：
+
+`01572040` `81` `3C` `00` `00` `00` `60` `05` `00` `54` `03` `00` `00` `20` `39` `24` `39` `??.\`.T.. 9$9`  
+`01572050` `40` `39` `44` `39` `48` `39` `4C` `39` `50` `39` `54` `39` `58` `39` `5C` `39` `@9D9H9L9P9T9X9\9`  
+`01572060` `60` `39` `64` `39` `68` `39` `6C` `39` `70` `39` `74` `39` `78` `39` `7C` `39` `\`9d9h9l9p9t9x9|9`
+
+于是将 `01572042` 处数据改为 `9A3C`,(`01555c9a`-dll 基址 `0150000`-重定位块 `055000`=`c9a`,类型为 `3`，所以最后重定位数据为 `3C9A`)
+
+保存即可
+
+至此改造完毕
+
+ps:试用发现还是有些问题,有时双击还是没循环，有时循环几次后就中断了，需要重新双击，有时会直接弹出申请蓝钻的页面，不知什么原因，希望大家能指点下，谢谢！
+
+2010.6.16
+
+终于发现问题症结所在，双击鼠标进入循环后，鼠标不能离开左边的树形视图窗口，一离开就中断了。。。。，这导致这次挤房改造几乎没什么意义了！
+
+---
+
+【版权声明】: 看雪论坛首发，转载请注明作者并保持文章的完整, 谢谢!
+
+---
+
+### 上传的附件
+
+| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) | `qqgame.rar` |
+| :--- | :--- |
