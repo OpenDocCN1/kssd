@@ -1,0 +1,28 @@
+
+# 看雪学苑
+
+> 原文：[`www.pediy.com/kssd/pediy02/forum168.htm`](https://www.pediy.com/kssd/pediy02/forum168.htm)
+
+看到国外都已经有修正工具了，实在是替中国人急。
+
+由于我水平有限，只知道大概原理，希望有高手出面也做个修正工具。
+
+`AsProtect` 加密的 import table 还是有迹可寻的。
+
+例如：`41841c` 为加密过的 `RegCloseKey`（好像是第一个地址）
+
+`4186b8` 为 `GetModuleHandleA`
+
+`418694` 为 `GetCommandLineA`
+
+我估计每个 `AsProtect` 版本的加密函数的顺序是固定的，所以才会有改正工具。
+
+改正方法：
+
+1、首先先脱壳，脱壳后的文件可以分发下载。
+
+2、用工具将脱壳后文件的 import table 提出。（在用户机器）
+
+3、用工具将对应的函数改回。（在用户的机器）
+
+这就是我所能想到的，肯定有不少问题，请知道的一定来信告知。 `4dd466d0e1e0cc123afbe504da2462ca`
