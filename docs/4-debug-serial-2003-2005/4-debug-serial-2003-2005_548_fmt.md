@@ -1,0 +1,193 @@
+
+# 英语会话精灵 2.0
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50354.htm`](https://www.pediy.com/kssd/pediy05/pediy50354.htm)
+
+`英语会话精灵 2.0`
+
+`[Cracked on 11-25-2002 by youth]`
+
+平台：`Windows 2000 Professional`
+
+工具：`pe-scan 3.31` `ollydbg 1.08` `lordpe 1.4`
+
+## 1、脱壳
+
+经 `pe-scan3.31` 检测，此软件用 `aspack 2.12` 加壳。
+
+用 `ollydbg` 载入，停在壳的入口处，向下寻找 `popad` 指令，下断点，运行后在断点处中断，单步至 `oep`。
+
+运行 `lordpe`，找到该程序的进程后 `[dump full]`，然后修改 `oep` 为正确的 `oep`，再自动修复输入表。
+
+至此，程序已经脱壳成功。
+
+## 2、运行未注册的此程序
+
+在注册时，输入不正确的注册码后，会提示注册失败。因此，可以通过拦截 `user32:ShowWindow` 这一 API 函数。拦截成功并返回到程序的领空后，来到了这里：
+
+```
+0047A058  /. 55              PUSH EBP
+、、、
+0047A07A  |. 6A 00           PUSH 0
+0047A07C  |. 6A 1B           PUSH 1B
+0047A07E  |. E8 5DFDFFFF     CALL untopbar.00479DE0
+0047A083  |. 2D 1F17F601     SUB EAX,1F6171F                  ;eax 为 16 进制的用户编号 UserNo=UserNo-0x1f6171f
+0047A088  |. 83DA 00         SBB EDX,0
+0047A08B  |. E8 E0C4F8FF     CALL untopbar.00406570           ;UserNo=UserNo*0x1b
+0047A090  |. 52              PUSH EDX                         ; /Arg2
+0047A091  |. 50              PUSH EAX                         ; |Arg1:UserNo
+0047A092  |. 8D45 FC         LEA EAX,DWORD PTR SS:[EBP-4]     ; |
+0047A095  |. E8 0EE9F8FF     CALL untopbar.004089A8           ; \untopbar.004089A8  计算真正的注册码
+0047A09A  |. 8B45 FC         MOV EAX,DWORD PTR SS:[EBP-4]
+0047A09D  |. 50              PUSH EAX
+0047A09E  |. 8D55 F4         LEA EDX,DWORD PTR SS:[EBP-C]
+0047A0A1  |. 8B86 E8020000   MOV EAX,DWORD PTR DS:[ESI+2E8]
+0047A0A7  |. E8 E849FBFF     CALL untopbar.0042EA94
+0047A0AC  |. 8B45 F4         MOV EAX,DWORD PTR SS:[EBP-C]
+0047A0AF  |. 8D55 F8         LEA EDX,DWORD PTR SS:[EBP-8]
+0047A0B2  |. E8 41E7F8FF     CALL untopbar.004087F8
+0047A0B7  |. 8B55 F8         MOV EDX,DWORD PTR SS:[EBP-8]
+0047A0BA  |. 58              POP EAX
+0047A0BB  |. E8 E49DF8FF     CALL untopbar.00403EA4           ;和真正的注册码依次按位比较
+0047A0C0  |. 0F85 3D010000   JNZ untopbar.0047A203            ;不同则跳转，注册失败
+0047A0C6  |. 68 40000400     PUSH 40040
+0047A0CB  |. B9 6CA24700     MOV ECX,untopbar.0047A26C
+0047A0D0  |. BA 7CA24700     MOV EDX,untopbar.0047A27C
+、、、
+0047A201  |. EB 29           JMP SHORT untopbar.0047A22C
+0047A203  |> 68 30000400     PUSH 40030                       ;/
+0047A208  |. B9 6CA24700     MOV ECX,untopbar.0047A26C        ;|
+0047A20D  |. BA D0A24700     MOV EDX,untopbar.0047A2D0        ;|
+0047A212  |. A1 E8794B00     MOV EAX,DWORD PTR DS:[4B79E8]    ;|
+0047A217  |. 8B00            MOV EAX,DWORD PTR DS:[EAX]       ;|
+0047A219  |. E8 462AFDFF     CALL untopbar.0044CC64           ;\显示“注册码无效”窗口
+0047A21E  |. 8B86 E8020000   MOV EAX,DWORD PTR DS:[ESI+2E8]
+0047A224  |. 8B10            MOV EDX,DWORD PTR DS:[EAX]
+0047A226  |. FF92 CC000000   CALL DWORD PTR DS:[EDX+CC]
+0047A22C  |> 33C0            XOR EAX,EAX
+、、、
+0047A25E  \. C3              RETN
+```
+
+由 `0047A095` 处跟踪进出后，来到这里，也就是该软件根据用户编号算出注册码的核心过程：
+
+```
+0040916B  |> 51              /PUSH ECX
+0040916C  |. 6A 00           |PUSH 0
+0040916E  |. 51              |PUSH ECX
+0040916F  |. 8B03            |MOV EAX,DWORD PTR DS:[EBX]    ;/初始值为:(UserNo-0x1f6171f)*0x1b,见 0047A083-0047A08B
+00409171  |. 8B53 04         |MOV EDX,DWORD PTR DS:[EBX+4]  ;\
+00409174  |. E8 DCD5FFFF     |CALL untopbar.00406755
+00409179  |. 59              |POP ECX
+0040917A  |. 92              |XCHG EAX,EDX
+0040917B  |. 80C2 30         |ADD DL,30
+0040917E  |. 80FA 3A         |CMP DL,3A
+00409181  |. 72 03           |JB SHORT untopbar.00409186
+00409183  |. 80C2 07         |ADD DL,7
+00409186  |> 4E              |DEC ESI
+00409187  |. 8816            |MOV BYTE PTR DS:[ESI],DL
+00409189  |. 51              |PUSH ECX
+0040918A  |. 6A 00           |PUSH 0
+0040918C  |. 51              |PUSH ECX
+0040918D  |. 8B03            |MOV EAX,DWORD PTR DS:[EBX]
+0040918F  |. 8B53 04         |MOV EDX,DWORD PTR DS:[EBX+4]
+00409192  |. E8 C9D4FFFF     |CALL untopbar.00406660
+00409197  |. 59              |POP ECX
+00409198  |. 8903            |MOV DWORD PTR DS:[EBX],EAX
+0040919A  |. 8953 04         |MOV DWORD PTR DS:[EBX+4],EDX
+0040919D  |. 09D0            |OR EAX,EDX
+0040919F  |. JNZ SHORT untopbar.0040916B
+
+=VV==<<由 00409174 调用>>==VV===============================================================
+
+（此过程很简单，就是将 16 进制转化为 10 进制后输出）
+
+00406755  /$ 55              PUSH EBP
+00406756  |. 53              PUSH EBX
+00406757  |. 56              PUSH ESI
+00406758  |. 57              PUSH EDI
+00406759  |. 8B5C24 14       MOV EBX,DWORD PTR SS:[ESP+14]
+0040675D  |. 8B4C24 18       MOV ECX,DWORD PTR SS:[ESP+18]
+00406761  |. 0BC9            OR ECX,ECX
+00406763  |. 75 08           JNZ SHORT untopbar.0040676D
+00406765  |. 0BD2            OR EDX,EDX
+00406767  |. 74 33           JE SHORT untopbar.0040679C
+00406769  |. 0BDB            OR EBX,EBX
+0040676B  |. 74 2F           JE SHORT untopbar.0040679C
+0040676D  |> 8BE9            MOV EBP,ECX
+0040676F  |. B9 40000000     MOV ECX,40
+00406774  |. 33FF            XOR EDI,EDI
+00406776  |. 33F6            XOR ESI,ESI
+00406778  |> D1E0            /SHL EAX,1
+0040677A  |. D1D2            |RCL EDX,1
+0040677C  |. D1D6            |RCL ESI,1
+0040677E  |. D1D7            |RCL EDI,1
+00406780  |. 3BFD            |CMP EDI,EBP
+00406782  |. 72 0B           |JB SHORT untopbar.0040678F
+00406784  |. 77 04           |JA SHORT untopbar.0040678A
+00406786  |. 3BF3            |CMP ESI,EBX
+00406788  |. 72 05           |JB SHORT untopbar.0040678F
+0040678A  |> 2BF3            |SUB ESI,EBX
+0040678C  |. 1BFD            |SBB EDI,EBP
+0040678E  |. 40              |INC EAX
+0040678F  |>^E2 E7            \LOOPD SHORT untopbar.00406778
+00406791  |. 8BC6            MOV EAX,ESI
+00406793  |. 8BD7            MOV EDX,EDI
+00406795  |> 5F              POP EDI
+00406796  |. 5E              POP ESI
+00406797  |. 5B              POP EBX
+00406798  |. 5D              POP EBP
+00406799  |. C2 0800         RETN 8
+0040679C  |> F7F3            DIV EBX
+0040679E  |. 92              XCHG EAX,EDX
+0040679F  |. 33D2            XOR EDX,EDX
+004067A1  \.^EB F2            JMP SHORT untopbar.00406795
+```
+
+到这里，我们就弄清了此软件的算号方法。其实很简单(用 `calc` 即可算出，呵呵)：
+
+`UserNo`：软件给出的用户编号
+
+`RegCode`：由 `(UserNo-0x1f6171f)*0x1b` 转化成 10 进制后得到
+
+在前面注册成功后，通过拦截 `advapi32.RegSetValueExA`，会到达这里把正确的注册码写入注册表：
+
+```
+00453130  /$ 53              PUSH EBX
+00453131  |. 56              PUSH ESI
+00453132  |. 57              PUSH EDI
+00453133  |. 8BF1            MOV ESI,ECX
+00453135  |. 8BFA            MOV EDI,EDX
+00453137  |. 8BD8            MOV EBX,EAX
+00453139  |. 8BC6            MOV EAX,ESI
+0045313B  |. E8 540CFBFF     CALL untopbar.00403D94
+00453140  |. 40              INC EAX                          ;注册码长度，由软件给出的注册码长度为 0x0a
+00453141  |. 50              PUSH EAX
+00453142  |. 6A 01           PUSH 1
+00453144  |. 8BC6            MOV EAX,ESI
+00453146  |. E8 0D0EFBFF     CALL untopbar.00403F58
+0045314B  |. 8BC8            MOV ECX,EAX                      ; |注册码
+0045314D  |. 8BD7            MOV EDX,EDI                      ; |由软件计算出的注册码在[12f5e0]，即[ebp-4]
+0045314F  |. 8BC3            MOV EAX,EBX                      ; |
+00453151  |. E8 5E010000     CALL untopbar.004532B4           ; \untopbar.004532B4  写入注册表
+00453156  |. 5F              POP EDI
+00453157  |. 5E              POP ESI
+00453158  |. 5B              POP EBX
+00453159  \. C3              RETN
+```
+
+这里同时给出另外一种修改方法，输入任意注册码注册后，会把正确的注册码写入注册表：
+
+(如果注册码很难计算出的话，就可以用这个对付了，不是吗)
+
+```
+47A0BB:E8E49DF8FF 0F853D010000 684000000400
+                 909090909090
+
+453139:8BD8 8BC6E8540CFBFF 40506A01 8BC6E80D0EFBFF
+       B80A0000009090              8B45FC90909090
+```
+
+
+
+`[2002-11-25 中午]` `4dd466d0e1e0cc123afbe504da2462ca`
