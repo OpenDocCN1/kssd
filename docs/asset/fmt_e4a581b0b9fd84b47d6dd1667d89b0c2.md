@@ -1,0 +1,210 @@
+
+# winreplace 的破解及算法分析
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-387.htm`](https://www.pediy.com/kssd/pediy09/pediy09-387.htm)
+
+> 【文章标题】:`WinReplace`  
+> 【文章作者】: `kflnig` 又名：狂枫  
+> 【作者邮箱】: `lnig1`（at）`163.com`  
+> 【作者 QQ 号】: 自己都忘了。  
+> 【软件名称】:`WinReplace`  
+> 【下载地址】: 自己搜索下载  
+> 【加壳方式】: 无  
+> 【保护方式】: 注册码  
+> 【编写语言】:`Borland Delphi 6.0 - 7.0`  
+> 【使用工具】:`fixdbg`、`PEiD`  
+> 【操作平台】:`WinXP`  
+> 【难易程度】极易。  
+> 【软件介绍】:`WinReplace` 是一款功能强大的多文件字符串替换工具，它可以在不打开文件的情况下，批量地将文件中匹配的字符串一次性替换成您定义的字符串。  
+> 【作者声明】:都只要 15 块钱一个了，有钱的朋友你不要用我的破解序列号了。我写教程，很是害怕误人子弟，大家注意努力发现错误！  
+> 【作者期望】：希望小鸟会使用 `OD` 所有的功能。  
+
+这几天本来想去捏一个软柿子，谁知被软柿子捏了一把。`WINCHM` 我拿它没辙，只好来拿 `WINREPLACE` 来开刀了，没有办法，谁叫它们都姓 `WIN` 呢！
+
+既然没有壳，那么不用 `DEDE` 分析的人是傻瓜。
+
+点击进去目标 `winreplace`，`registform` 赫然在目，一不小心随便点了一下就看到字符串“注册名称和注册号码均不能为空”。很容易找到下面：
+
+```
+/*4B12EF*/   MOV ECX,DWORD PTR SS:[EBP-8]；[EBP-8]用户名
+
+/*4B12F2*/   MOV EDX,DWORD PTR SS:[EBP-4]；[EBP-4]伪码
+
+/*4B12F5*/   MOV EAX,EBX
+
+/*4B12F7*/   CALL WinRepla.004B1078 ；关键 call，踏进去！
+
+/*4B12FC*/   CMP AL,1；注册是否成功的标志位
+
+/*4B12FE*/   JNZ SHORT WinRepla.004B1319
+```
+
+进入关键 `call`，很长很长……大家也不用害怕因为尽是一些相同的 `call`。所以我们可以很快分析完毕。写完此文我有一点感触就是要了解 `DELPHI` 等自带的库函数，有必要的话我们真的需要针对它写一写，真的很重要，可以避免让你在 `call` 的海洋中打转。我估计这个软件就用了好多。介绍一点经验吧。对于软件大量使用库函数，我一般都是先粗跟踪，步过每个 `call` 的时候眼睛紧盯信息窗口。看看有什么发生，一般若是库函数，那么总会有一点动作。很好辨认。所以你不要问我下面我怎么知道它们是在这么干，多数，我就是凭借上面这个方法判别出来的。
+
+用户名：`kflnig`
+
+伪码：`19900501`（唉，把我的生日都豁出去了）。只能输入数字不要是英文字符。
+
+```
+004B1128   .   E8 CB35F5FF   CALL WinRepla.004046F8
+
+004B112D   .   8B45 DC       MOV EAX,DWORD PTR SS:[EBP-24]  ; 前四位移入 eax 
+
+004B1130   .   E8 BF77F5FF   CALL WinRepla.004088F4       ;  前四位的转成数字值 
+
+004B1135   .   8BF8          MOV EDI,EAX                   ;  保存在 EDI 中 
+
+004B1137   .   8D45 D8       LEA EAX,DWORD PTR SS:[EBP-28] 
+
+004B113A   .   50            PUSH EAX 
+
+004B113B   .   B9 02000000   MOV ECX,2 
+
+004B1140   .   BA 05000000   MOV EDX,5 
+
+004B1145   .   8B45 F0       MOV EAX,DWORD PTR SS:[EBP-10] 
+
+004B1148   .   E8 AB35F5FF   CALL WinRepla.004046F8 
+
+004B114D   .   8B45 D8       MOV EAX,DWORD PTR SS:[EBP-28]  ;  五六 2 位 
+
+004B1150   .   E8 9F77F5FF   CALL WinRepla.004088F4    ; 五六两位的转成数字值 
+
+004B1155   .   8945 F8       MOV DWORD PTR SS:[EBP-8],EAX   ;  保存在[ebp-8]中 
+
+004B1158   .   8D45 D4       LEA EAX,DWORD PTR SS:[EBP-2C] 
+
+004B115B   .   50            PUSH EAX 
+
+004B115C   .   B9 02000000   MOV ECX,2 
+
+004B1161   .   BA 07000000   MOV EDX,7 
+
+004B1166   .   8B45 F0       MOV EAX,DWORD PTR SS:[EBP-10] 
+
+004B1169   .   E8 8A35F5FF   CALL WinRepla.004046F8 
+
+004B116E   .   8B45 D4       MOV EAX,DWORD PTR SS:[EBP-2C]    ;  七八 2 位 
+
+004B1171   .   E8 7E77F5FF   CALL WinRepla.004088F4     ;  七八两位的转成数字 
+
+004B1176   .   8945 F4       MOV DWORD PTR SS:[EBP-C],EAX     ;  放到[ebp-c]中 
+
+004B1179   .   8D55 D0       LEA EDX,DWORD PTR SS:[EBP-30] 
+
+004B117C   .   8D047F       LEA EAX,DWORD PTR DS:[EDI+EDI*2\];相当于 eax=edi*3 
+
+004B117F   .   E8 3476F5FF   CALL WinRepla.004087B8 ;重要极了，是 16 进制转 10 进制 
+
+004B1184   .   FF75 D0       PUSH DWORD PTR SS:[EBP-30] 
+
+004B1187   .   8D55 CC       LEA EDX,DWORD PTR SS:[EBP-34] 
+
+004B118A   .   8B45 F4    MOV EAX,DWORD PTR SS:[EBP-C] ;[EBP-C]来自 004B1176 
+
+004B118D   .   03C0          ADD EAX,EAX                  ;  eax＝eax*2 
+
+004B118F   .   E8 2476F5FF   CALL WinRepla.004087B8 
+
+004B1194   .   FF75 CC       PUSH DWORD PTR SS:[EBP-34] 
+
+004B1197   .   8D55 C8       LEA EDX,DWORD PTR SS:[EBP-38] 
+
+004B119A   .   6BC6 0D       IMUL EAX,ESI,0D;ESI 中的是用户名长度。 
+
+004B119D   .   E8 1676F5FF   CALL WinRepla.004087B8 
+
+004B11A2   .   FF75 C8       PUSH DWORD PTR SS:[EBP-38] 
+
+004B11A5   .   8D55 C4       LEA EDX,DWORD PTR SS:[EBP-3C] 
+
+004B11A8  .   6B45 F8 43  IMUL EAX,DWORD PTR SS:[EBP-8],43；[EBP-8]来自 004B1155 
+
+004B11AC   .   E8 0776F5FF   CALL WinRepla.004087B8 
+
+004B11B1   .   FF75 C4       PUSH DWORD PTR SS:[EBP-3C] 
+
+004B11B4   .   8D45 F0       LEA EAX,DWORD PTR SS:[EBP-10] 
+
+004B11B7   .   BA 04000000   MOV EDX,4 
+
+004B11BC   .   E8 9733F5FF   CALL WinRepla.00404558 
+
+004B11C1   .   8B45 EC       MOV EAX,DWORD PTR SS:[EBP-14]；这里的地址恒为 12f214 
+
+004B11C4   .   8B55 F0       MOV EDX,DWORD PTR SS:[EBP-10] 
+
+004B11C7   .   E8 1834F5FF   CALL WinRepla.004045E4；EAX 须＝EDX 
+
+004B11CC   .  /75 02         JNZ SHORT WinRepla.004B11D0；谁跳谁傻瓜 
+
+004B11CE   .  |B3 01         MOV BL,1 
+```
+
+好了假如告诉了你那么多，你会怎么办！首先我们必须了解 `12f214` 值在哪里变动，我们可以对症下药。
+
+所以我们如下操作：查看——>监视。
+
+添加一个监视`[12f214]`，你不会连这个都不能理解吧！
+
+再用 `OD` 调试一遍。把注册码改成 `199005010016`。因为假如是 `19900501`，在执行这句 `MOV EAX,DWORD PTR SS:[EBP-14]`后 `EAX` 的值会是 `00 00 00 00`。所以我怀疑是注册码不够长。
+
+软件开始有这么写语句：
+
+```
+004B107C   .   B9 07000000   MOV ECX,7 
+
+004B1081   >   6A 00         PUSH 0 
+
+004B1083   .   6A 00         PUSH 0 
+
+004B1085   .   49            DEC ECX 
+
+004B1086   .  ^75 F9        JNZ SHORT WinRepla.004B1081 
+```
+
+这里就毫不留情的将`[12f214]`变成了 0。`OD` 里调试就可以知道了。当突然执行过这里的时候
+
+```
+004B10E9   .   8B45 F0       MOV EAX,DWORD PTR SS:[EBP-10] 
+
+004B10EC   .   E8 0736F5FF   CALL WinRepla.004046F8；这里，这里 
+
+004B10F1   .   8D55 E0       LEA EDX,DWORD PTR SS:[EBP-20] 
+```
+
+`[12f214]`变成了 `00 E9 10 6C`。从上面我们知道 `CALL WinRepla.004046F8` 有着类似于 `copy` 的功能，其实我估计和 `DELPHI` 中的 `copy` 函数差不多，所以那个值我分外的怀疑。
+
+当我输入 `d [12f214]`的时候一切就揭晓了。
+
+```
+00E9106C  30 30 31 36                                           0016 
+```
+
+不用我多说了吧！是伪码 8 位后截断剩下的东西。
+
+总结一下这个软件的算法。
+
+序列号与用户名无关，与长度有关，输入一个 8 位数字。假如我们认为前 8 位是 `12345678`。
+
+那么前 4 位 `1234×3＝3702`；前四位的值×3
+
+7、8 两位 `78×2＝156`；7、8 两位的数值×2
+
+`6×13＝78`；用户名长度×`Dh`
+
+`56×43h＝3752`；5、6 两位的值×`43h`
+
+依次连接 `n1`、`n2`、`n3`，成 `n`。然后真正的序列号就是把 8 位数字和 `n`。
+
+所以
+
+用户名：`kflnig`
+
+注册码：`123456783702156783752`
+
+就注册成功了。
+
+文章到此为止，希望可以混个精华帖。自觉此文非常适合想飞的小鸟。大家给鼓个掌，就为了我写文章的积极。记个时间：2007 年 2 月 21 日 0 时 45 分。破解只花了我半个小时，写文章写了 5 个小时。
+
+`4dd466d0e1e0cc123afbe504da2462ca`
