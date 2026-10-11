@@ -1,0 +1,404 @@
+
+# 升级注册机
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-262.htm`](https://www.pediy.com/kssd/pediy08/pediy8-262.htm)
+
+## 引 子
+
+有铁杆“活死人”，不知道又想耍什么新花样，让偶给制作一个屏幕录像专家 `V6` 的注册机。这东西前几年玩过，注册算法大概记得流程，于是欣然接受。迷迷糊糊中记得看雪中有人搞过 `V6` 的注册算法，就搜索了一下，还真的给找着了。省心 ing……
+
+接下来，拉软件、跟踪分析。因那篇算法的综合分析过程不是很条理，故而对由 `V5` 过渡到 `V6` 的部分作了仔细的分析，揣摩算法的再实现方法。一切搞定后，请出 `TC`，编写注册机代码，忙得不亦乐乎。因对 `TC` 的用法不熟悉，一些地方没有设置好，使得机器码和用户名输入时发生追尾现象^_**。于是作狂人，让注册名固定为我的名称，也好顺便做做宣传。经过测试，可用，编译之。
+
+上 `QQ`，呼出“活死人”，交账—特别声明，截至目前为止，还未受到任何汇款之类的东西，只有一句：谢谢，辛苦了。
+
+帐嘛，是交了。谁知道这家伙不大领情，嫌注册机工作于 `DOS` 界面，不方便复制粘贴—我想他是觉得不能用他自己的名称注册，心里不大平衡**_^。于是他又动了歪心思，要我在不能用于 `V6` 的 `V5` 的注册机的基础上修改一下，以便他好复制粘贴之事，云云。
+
+他嘴巴甜如蜜，我心里咬牙切齿（啊，忘记当时心里哪来的牙齿了！）。明明知道我能用 `VB`、`VC` 编写注册机，却不叫我重写一个，却让我去修改他给的老版本的注册机。明摆着是欺负人，想修理修理我，伤心 ing。明明知道我能用 `VB`、`VC` 编写注册机，却不叫我重写一个，却让我去修改他给的老版本的注册机。好在我的眼泪没有，好奇心还在，不就是对注册机进行升级么！对我来说，应该算小菜一碟罢。只见我抬头挺胸，轻喝一声：“要不将你那东西拿过来我看看，如何？”如是，我有了不是我编写的 `V5` 版的注册机。
+
+## 观察
+
+### 观察 1：外观
+
+见图：（见附件）
+
+`FCG` 的朋友 `tankaiha` 编写的，内带音乐，比较漂亮的啊。`Tankaiha` 朋友别见怪，我不想破坏你的注册机，只是想升级一下而已。
+
+从图上可以看到，升级要修改界面两处，一是版本编号，二是释放日期。这两项都好办，请出 `ResScope` 即可迅速解决，此处不多说了。
+
+### 观察 2：注册机的算法
+
+启动 `OD`，加载脱壳后的 `V5` 注册机，搜索常数 `0x3039`，马上定位于所需代码处：
+
+```
+004019CF  ADD  EBX,3039
+
+004019D5  PUSH  EBX                 ; /<%d>
+
+004019D6  LEA  EAX,DWORD PTR SS:[ESP+28]        ; |
+
+004019DA  PUSH  UnPacked.004066E8        ; |Format = "%d"
+
+004019DF  PUSH  EAX                 ; |s
+
+004019E0  CALL  DWORD PTR DS:[<&USER32.wsprintf>; \wsprintfA
+
+004019E6  MOV  CL,BYTE PTR SS:[ESP+30]
+
+004019EA  MOV  DL,BYTE PTR SS:[ESP+31]
+
+004019EE  MOV  AL,BYTE PTR SS:[ESP+32]
+
+004019F2  ADD  EBX,4D44
+
+004019F8  ADD  CL,14
+
+004019FB  ADD  DL,14
+
+004019FE  MOV  DWORD PTR SS:[ESP+1C],EBX
+
+00401A02  FILD  DWORD PTR SS:[ESP+1C]
+
+00401A06  MOV  BYTE PTR DS:[4082F0],CL           ;  sn1
+
+00401A0C  MOV  CL,BYTE PTR SS:[ESP+33]
+
+00401A10  MOV  BYTE PTR DS:[4082F1],DL           ;  sn2
+
+00401A16  MOV  DL,BYTE PTR SS:[ESP+34]
+
+00401A1A  FMUL  QWORD PTR DS:[4066E0]            ;  常数 0.5007974481658692
+
+00401A20  ADD  AL,14
+
+00401A22  ADD  CL,14
+
+00401A25  ADD  DL,14
+
+00401A28  ADD  ESP,0C
+
+00401A2B  MOV  BYTE PTR DS:[4082F2],AL           ;  sn3
+
+00401A30  MOV  BYTE PTR DS:[4082F3],CL           ;  sn4
+
+00401A36  MOV  BYTE PTR DS:[4082F4],DL           ;  sn5
+
+00401A3C  CALL  UnPacked.00405020               ;  取整
+
+00401A41  CDQ                          ;  这里也有修改，要保存取整结果备用
+
+00401A42  MOV  ECX,186A0
+
+00401A47  IDIV  ECX
+
+00401A49  MOV  ECX,0A
+
+00401A4E  MOV  ESI,6
+
+00401A53  MOV  EAX,EDX
+
+00401A55  CDQ
+
+00401A56  IDIV  ECX                  ;  求取个位
+
+00401A58  ADD  DL,41
+
+00401A5B  MOV  BYTE PTR DS:[4082F5],DL           ;  sn6
+
+00401A61  /CALL  <JMP.&MSVCR71.rand>             ; [rand
+
+00401A66  |CDQ                          ;  随机结果填充
+
+00401A67  |MOV  ECX,1A
+
+00401A6C  |IDIV  ECX
+
+00401A6E  |ADD  DL,41
+
+00401A71  |MOV  BYTE PTR DS:[ESI+4082F0],DL
+
+00401A77  |INC  ESI
+
+00401A78  |CMP  ESI,14
+
+00401A7B  \JL  SHORT  UnPacked.00401A61
+
+00401A7D  POP  ESI                   ;  要从这里开始修改
+
+00401A7E  POP  EDI
+
+00401A7F  POP  EBP
+
+00401A80  MOV  EAX,1
+
+00401A85  POP  EBX
+
+00401A86  ADD  ESP,114
+
+00401A8C  RETN
+```
+
+其中，偏移 `00401A5B` 处及以前是注册计算的关键位置，后面的部分非关键计算部分，所以使用了随机编码的方法进行了填充，只要足位就行了。
+
+根据 `V6` 的计算方式要求，前面的计算方法相同后面的就不同了。通过对 `V6` 计算的过程分析，到偏移 `00401A41` 时 `EAX` 中的数据还要用到，故而需要备份。而注册机中存放注册码时使用了约 `100` 个字符的数组（实际只使用 `21` 位），为我修改代码提供了极大方便，避免了到处寻找存放数据的位置的麻烦。
+
+选定偏移 `00401A41` 处作为跳转点，复制偏移 `00401A41` 到 `00401A7B` 备用，这段代码移至后面，而此处的代码作废。
+
+对于 `V6` 中增添部分算法，我懒得自己边想边写，请 `VC` 帮忙代劳：
+
+```
+53:       sn[5]=p%10+0x41;
+
+0040134A   mov         eax,dword ptr [ebp-6Ch]
+
+0040134D   cdq
+
+0040134E   mov         ecx,0Ah
+
+00401353   idiv        eax,ecx
+
+00401355   add         edx,41h
+
+00401358   mov         byte ptr [ebp-43h],dl
+
+54:       sn[6]=s[1]+0x19;
+
+0040135B   movsx       edx,byte ptr [ebp-4Fh]
+
+0040135F   add         edx,19h
+
+00401362   mov         byte ptr [ebp-42h],dl
+
+55:       sn[8]=s[2]+0x19;
+
+00401365   movsx       eax,byte ptr [ebp-4Eh]
+
+00401369   add         eax,19h
+
+0040136C   mov         byte ptr [ebp-40h],al
+
+56:       sn[10]=s[5]+0x19;
+
+0040136F   movsx       ecx,byte ptr [ebp-4Bh]
+
+00401373   add         ecx,19h
+
+00401376   mov         byte ptr [ebp-3Eh],cl
+
+57:       zzh=0;
+
+00401379   mov         dword ptr [ebp-60h],0     和清 0
+
+58:       for(i=0;i<19;i++)zzh+=sn[i];
+
+00401380   mov         dword ptr [ebp-5Ch],0     i=0
+
+00401387   jmp         main+382h (00401392)
+
+00401389   mov         edx,dword ptr [ebp-5Ch]
+
+0040138C   add         edx,1
+
+0040138F   mov         dword ptr [ebp-5Ch],edx    i++
+
+00401392   cmp         dword ptr [ebp-5Ch],13h
+
+00401396   jge         main+39Ah (004013aa)
+
+00401398   mov         eax,dword ptr [ebp-5Ch]    i
+
+0040139B   movsx       ecx,byte ptr [ebp+eax-48h] 注册码
+
+004013A0   mov         edx,dword ptr [ebp-60h]
+
+004013A3   add         edx,ecx
+
+004013A5   mov         dword ptr [ebp-60h],edx
+
+004013A8   jmp         main+379h (00401389)
+
+59:       sn[19]=zzh%10+0x30;
+
+004013AA   mov         eax,dword ptr [ebp-60h]
+
+004013AD   xor         edx,edx
+
+004013AF   mov         ecx,0Ah
+
+004013B4   div         eax,ecx
+
+004013B6   add         edx,30h
+
+004013B9   mov         byte ptr [ebp-35h],dl
+```
+
+有了这个模子，在 `OD` 中就好办事了。
+
+在 `OD` 的代码区向下拖动滚动条，寻找代码对齐的空白区域。我选用了偏移 `00415B70` 处，作为添加代码的首地址。到此，准备工作都做好，就要开始动手了。
+
+## 添加代码
+
+按照计算流程，在选定的区域添加代码如下：
+
+```
+00415B70  PUSH  EAX                 ;  添加代码开始位置
+
+00415B71  CDQ                       ;  原来的代码
+
+00415B72  MOV  ECX,186A0
+
+00415B77  IDIV  ECX
+
+00415B79  MOV  ECX,0A
+
+00415B7E  MOV  ESI,6
+
+00415B83  MOV  EAX,EDX
+
+00415B85  CDQ
+
+00415B86  IDIV  ECX
+
+00415B88  ADD  DL,41
+
+00415B8B  MOV  BYTE PTR DS:[4082F5],DL
+
+00415B91  CALL  <JMP.&MSVCR71.rand>
+
+00415B96  CDQ
+
+00415B97  MOV  ECX,1A
+
+00415B9C  IDIV  ECX
+
+00415B9E  ADD  DL,41
+
+00415BA1  MOV  BYTE PTR DS:[ESI+4082F0],DL
+
+00415BA7  INC  ESI
+
+00415BA8  CMP  ESI,14
+
+00415BAB  JL  SHORT  UnPacked.00415B91
+
+00415BAD  POP  EAX
+
+00415BAE  PUSHAD                   ;  准备补充代码
+
+00415BAF  MOV  EDI,EAX             ； 补充的代码
+
+00415BB1  CDQ
+
+00415BB2  MOV  ECX,0A
+
+00415BB7  IDIV  ECX
+
+00415BB9  ADD  DL,49
+
+00415BBC  MOV  BYTE PTR DS:[4082FA],DL
+
+00415BC2  MOV  EAX,EDI
+
+00415BC4  CDQ
+
+00415BC5  MOV  ECX,0A
+
+00415BCA  IDIV  ECX
+
+00415BCC  MOV  EDI,EAX
+
+00415BCE  CDQ
+
+00415BCF  MOV  ECX,0A
+
+00415BD4  IDIV  ECX
+
+00415BD6  ADD  DL,49
+
+00415BD9  MOV  BYTE PTR DS:[4082F8],DL
+
+00415BDF  MOV  EAX,EDI
+
+00415BE1  CDQ
+
+00415BE2  MOV  ECX,0A
+
+00415BE7  IDIV  ECX
+
+00415BE9  ADD  DL,49
+
+00415BEC  MOV  BYTE PTR DS:[4082F6],DL         ;  以下部分循环求和
+
+00415BF2  MOV  DWORD PTR DS:[408320],0         ;  和清 0
+
+00415BFC  MOV  DWORD PTR DS:[408324],0         ;  i=0
+
+00415C06  JMP  SHORT  UnPacked.00415C11        ;  地址待修改
+
+00415C08  NOP
+
+00415C09  NOP
+
+00415C0A  NOP
+
+00415C0B  INC  DWORD PTR DS:[408324]
+
+00415C11  CMP  DWORD PTR DS:[408324],13
+
+00415C18  JGE  SHORT  UnPacked.00415C3A        ;  地址待修改
+
+00415C1A  NOP
+
+00415C1B  NOP
+
+00415C1C  NOP
+
+00415C1D  NOP
+
+00415C1E  MOV  EAX,DWORD PTR DS:[408324]
+
+00415C23  MOVSX  ECX,BYTE PTR DS:[EAX+4082F0]
+
+00415C2A  MOV  EDX,DWORD PTR DS:[408320]
+
+00415C30  ADD  EDX,ECX
+
+00415C32  MOV  DWORD PTR DS:[408320],EDX
+
+00415C38  JMP  SHORT  UnPacked.00415C0B
+
+00415C3A  MOV  EAX,DWORD PTR DS:[408320]
+
+00415C3F  CDQ
+
+00415C40  MOV  ECX,0A
+
+00415C45  IDIV  ECX
+
+00415C47  ADD  DL,30
+
+00415C4A  MOV  BYTE PTR DS:[408303],DL
+
+00415C50  POPAD
+
+00415C51  JMP  UnPacked.00401A7D
+```
+
+大家可能看到有两段 `nop` 语句是多余的，其实这是事先不好确定跳转的位置，我设置的跳转稍远，事后又懒的修改造成的。修改好跳转后，该进行第一次保存了。
+
+再次载入修改后的注册机，定位于偏移 `00401A41` 处，将这里的代码修为：
+
+```
+JMP 00415B70
+```
+
+再次保存修改的结果。如果不出差错，也就大功告成了。经过修改后的注册机如图：(见附件）
+
+我想，`tankaiha` 该不会找人揍我吧！
+
+再次呼出“活死人”，你看他那张脸，笑得象花儿一样。而我多想咬他一口，可是口已经无力到张不开了，5555……
+
+觉得好玩，没什么技术，权当笑料尔。各位不必认真看，我虽然到了该隐退的时候了，但技术是永存的。
+
+
+
+`4dd466d0e1e0cc123afbe504da2462ca`
