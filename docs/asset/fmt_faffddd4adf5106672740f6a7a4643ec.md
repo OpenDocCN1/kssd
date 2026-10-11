@@ -1,0 +1,118 @@
+
+## 汇编代码分析
+
+以下汇编代码片段展示了 `MessageBoxA` 的调用及后续逻辑。
+
+```asm
+0041544A  |.  68 DC484200   push    004248DC             ; |invalid code.  
+0041544F  |.  6A 00         push    0                    ; |hOwner = NULL  
+00415451  |.  FF15 58254900 call    [<&USER32.MessageB>; \MessageBoxA  
+00415457  |.  8D65 F4       lea     esp, [ebp-C]  
+0041545A  |.  30C0          xor     al, al  
+0041545C  |.  5F            pop     edi  
+0041545D  |.  5E            pop     esi  
+0041545E  |.  5B            pop     ebx  
+0041545F  |.  5D            pop     ebp  
+00415460  |.  C3            retn  
+
+00415461  |>  8DBD F0FAFFFF lea     edi, [ebp-510]  
+00415467  |.  FF75 08       push    dword ptr [ebp+8]  
+0041546A  |.  57            push    edi  
+0041546B  |.  E8 C02D0000   call    00418230  
+00415470  |.  59            pop     ecx  
+00415471  |.  59            pop     ecx  
+00415472  |.  8D8D F0FBFFFF lea     ecx, [ebp-410]  
+00415478  |.  FF75 0C       push    dword ptr [ebp+C]  
+0041547B  |.  51            push    ecx  
+0041547C  |.  E8 AF2D0000   call    00418230  
+00415481  |.  8D95 F0FCFFFF lea     edx, [ebp-310]  
+00415487  |.  59            pop     ecx  
+00415488  |.  59            pop     ecx  
+00415489  |.  FF75 10       push    dword ptr [ebp+10]  
+0041548C  |.  52            push    edx  
+0041548D  |.  E8 9E2D0000   call    00418230  
+00415492  |.  59            pop     ecx  
+00415493  |.  59            pop     ecx  
+00415494  |.  68 EC484200   push    004248EC             ;  wb  
+00415499  |.  68 F0484200   push    004248F0             ;  hsrg.raw  
+0041549E  |.  E8 2D300000   call    004184D0  
+004154A3  |.  89C3          mov     ebx, eax  
+004154A5  |.  59            pop     ecx  
+004154A6  |.  85DB          test    ebx, ebx  
+004154A8  |.  59            pop     ecx  
+004154A9  |.  75 0A         jnz     short 004154B5  
+004154AB  |.  8D65 F4       lea     esp, [ebp-C]  
+004154AE  |.  B0 01         mov     al, 1  
+004154B0  |.  5F            pop     edi  
+004154B1  |.  5E            pop     esi  
+004154B2  |.  5B            pop     ebx  
+004154B3  |.  5D            pop     ebp  
+004154B4  |.  C3            retn  
+
+004154B5  |>  8D85 F0FAFFFF lea     eax, [ebp-510]  
+004154BB  |.  53            push    ebx  
+004154BC  |.  6A 01         push    1  
+004154BE  |.  68 00030000   push    300  
+004154C3  |.  50            push    eax  
+004154C4  |.  E8 77350000   call    00418A40  
+004154C9  |.  83C4 10       add     esp, 10  
+004154CC  |.  53            push    ebx  
+004154CD  |.  E8 9E2E0000   call    00418370  
+004154D2  |.  59            pop     ecx  
+004154D3  |.  C705 84444200>mov     dword ptr [424484]>  
+004154DD  |.  6A 00         push    0                    ; /Style = MB_OK|MB_APPLMODAL  
+004154DF  |.  68 FC484200   push    004248FC             ; |operation successful !  
+004154E4  |.  68 14494200   push    00424914             ; |cutter has been successfully registered !  
+004154E9  |.  6A 00         push    0                    ; |hOwner = NULL  
+004154EB  |.  FF15 58254900 call    [<&USER32.MessageB>; \MessageBoxA
+```
+
+### 调用 00418300 验证逻辑
+
+跟进 `call 00418300`，来到这里：
+
+```asm
+00418301  |.  55            push    ebp  
+00418302  |.  31ED          xor     ebp, ebp  
+00418304  |.  8B5424 14     mov     edx, [esp+14]  
+00418308  |.  8B5C24 0C     mov     ebx, [esp+C]  
+0041830C  |.  8B4C24 10     mov     ecx, [esp+10]       ;  eax 为真码，ecx 为试练码  
+00418310  |.  85D2          test    edx, edx  
+00418312  |.  74 1D         je      short 00418331       ;  逐位验证试练码是否正确的一个小循环  
+00418314  |>  8A03          /mov     al, [ebx]  
+00418316  |.  3A01          |cmp     al, [ecx]  
+00418318  |.  75 0D         |jnz     short 00418327  
+0041831A  |.  84C0          |test    al, al  
+0041831C  |.  74 09         |je      short 00418327  
+0041831E  |.  43            |inc     ebx  
+0041831F  |.  41            |inc     ecx  
+00418320  |.  83EA 01       |sub     edx, 1  
+00418323  |.^ 75 EF         \jnz     short 00418314  
+00418325  |.  EB 0A         jmp     short 00418331       试练码正确则正常跳出循环  
+00418327  |>  0FB609        movzx   ecx, byte ptr \ecx>  
+0041832A  |.  0FB6C0        movzx   eax, al  
+0041832D  |.  29C8          sub     eax, ecx  
+0041832F  |.  89C5          mov     ebp, eax  
+00418331  |>  89E8          mov     eax, ebp  
+00418333  |.  5D            pop     ebp  
+00418334  |.  5B            pop     ebx  
+00418335  \\.  C3            retn
+```
+
+## 算法总结
+
+软件算法很简单，主要思路如下：
+
+1. 将第一位注册名与第二位注册名合起来并转成大写字母，然后与固定字符串 `supersprites` 逐位进行 `imul` 运算，结果记做 `codeC`。
+2. `codeC` 与固定值 `88888889` 进行 `imul` 运算，结果的余数与 `codeC` 相加，并右移 `3`，结果记做 `codeF`。
+3. `imul` 运算，即 `codeF * 0F`，然后进行 `codeC - codeF` 运算。
+4. `codeC - codeF` 的运算结果放 `cl` 中，并与 `46` 相加，结果的 `ascii` 码转成字符即为注册码。
+5. 逐位循环计算，将计算结果合起来即是注册码。
+
+### 特别说明
+
+鉴于对编程还不是很通，咱就不做算法注册机了，哪位兄弟写出注册机咱可以好好学习一下。
+
+![ 本文仅是一些破解的心得和思路，完全是个人对程序的研究，无其他目的。
+
+ 4dd466d0e1e0cc123afbe504da2462ca
