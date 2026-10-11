@@ -1,0 +1,317 @@
+
+# 新手处女作，脱带 KEY 的 ARM 双进程的壳
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-588.htm`](https://www.pediy.com/kssd/pediy08/pediy8-588.htm)
+
+看了好多大侠的帖子，今天终于动手作了自己的教程，有好多地方不到位，请高手不要见笑。
+
+## 一、准备工作
+
+1. **侦壳**：用 `PEID` 查一下，显示为 `Armadillo 1.xx - 2.xx -> Silicon Realms Toolworks` 的壳，根据经验应该是 `Armadillo 4.00` 的壳。
+
+2. **判断进程**：启动程序。然后在 Windows 任务管理器或 `LordPE` 里查看是单进程的 `Armadillo` 还是双进程的。
+
+   打开程序，是带 KEY 的双进程程序。
+
+3. **必须要有一个正确的 KEY、用户名和对应的机器码才行**：
+   - 名字：`qmz`
+   - 硬盘号：`A3C2-5A13`
+   - 注册号：`000015-486QGW-QR2Q1B-J0T9HA-XYNCE9-7P2FPZ-GG0D33-7FZ9R5-GGTAPY-FACJHC`
+
+## 二、脱壳
+
+### OD 载入
+
+```
+0182C243  >/$  55             PUSH EBP
+0182C244  |.  8BEC            MOV EBP,ESP
+0182C246  |.  6A FF          PUSH -1
+0182C248  |.  68 405F8501   PUSH Cam.01855F40
+0182C24D  |.  68 80BF8201   PUSH Cam.0182BF80              ;  SE 处理程序安装
+0182C252  |.  64:A1 0000000>MOV EAX,DWORD PTR FS:[0]
+0182C258  |.  50             PUSH EAX
+0182C259  |.  64:8925 00000>MOV DWORD PTR FS:[0],ESP
+```
+
+### 1 分离父子进程
+
+下断点 `BP OpenMutexA`。
+
+`F9` 运行中断后，看堆栈：
+
+```
+0012F798   01817DB8  /CALL 到 OpenMutexA 来自 Cam.01817DB2
+0012F79C   001F0001  |Access = 1F0001
+0012F7A0   00000000  |Inheritable = FALSE
+0012F7A4   0012FDD8  \MutexName = "90C::DA3428C337"
+0012F7A8   0012B884
+0012F7AC   00000000
+```
+
+在 CPU 窗口中 `Ctrl+G`：`401000` 键入以下代码：
+
+```
+00401000    60               PUSHAD
+00401001    9C               PUSHFD
+00401002    68 D8FD1200      PUSH 12FDD8                      ; ★ 堆栈里看到的值
+00401007    33C0             XOR EAX,EAX
+00401009    50               PUSH EAX
+0040100A    50               PUSH EAX
+0040100B    E8 08A6A577      CALL kernel32.CreateMutexA
+00401010    9D               POPFD
+00401011    61               POPAD
+00401012  - E9 D012A677      JMP kernel32.OpenMutexA
+00401017    90               NOP
+```
+
+二进值：
+
+```
+60 9C 68 D8 FD 12 00 33 C0 50 50 E8 08 A6 A5 77 9D 61 E9 D0 12 A6 77 90
+```
+
+在 `401000` 处点鼠标右键 "此处为新 EIP"，`F9` 运行，再次中断在 `OpenMutexA` 处，此时 `Ctrl+G`：`401000` 撤销刚才的修改的代码，使代码还原。
+
+OK，父进程分离完毕！清除 `OpenMutexA` 断点。
+
+### 2 找 PATCH 的地方
+
+下断 `he GetDlgItem shift+f9` 两次，出现提示后 `ALT+F9` 返回。
+
+```
+77D1CEB9  >  8B4C24 04       MOV ECX,DWORD PTR SS:[ESP+4]       ALT+F9 返回
+77D1CEBD    E8 4EB7FFFF      CALL USER32.77D18610
+77D1CEC2    85C0            TEST EAX,EAX
+77D1CEC4    74 20           JE SHORT USER32.77D1CEE6
+77D1CEC6    56              PUSH ESI
+77D1CEC7    FF7424 0C       PUSH DWORD PTR SS:[ESP+C]
+77D1CECB    50              PUSH EAX
+77D1CECC    E8 B5FFFFFF     CALL USER32.77D1CE86
+77D1CED1    85C0            TEST EAX,EAX
+77D1CED3  ^ 0F84 CBF5FFFF   JE USER32.77D1C4A4
+77D1CED9    8B30            MOV ESI,DWORD PTR DS:[EAX]
+77D1CEDB    85F6            TEST ESI,ESI
+77D1CEDD  ^ 0F84 C3F5FFFF   JE USER32.77D1C4A6
+```
+
+来到这里：
+
+```
+02484618    50               PUSH EAX
+02484619    68 15040000     PUSH 415
+0248461E    57               PUSH EDI
+0248461F    FFD6             CALL ESI
+02484621    50               PUSH EAX
+02484622    68 07040000     PUSH 407
+02484627    57               PUSH EDI
+02484628    FFD6             CALL ESI
+0248462A    50               PUSH EAX
+0248462B    E8 2370FFFF     CALL 0247B653
+02484630    8B0D E01E4A02   MOV ECX,DWORD PTR DS:[24A1EE0]
+02484636    83C4 0C         ADD ESP,0C
+02484639    E8 9F3EFEFF     CALL 024684DD
+0248463E    33DB            XOR EBX,EBX
+02484640    84C0            TEST AL,AL
+02484642    75 36           JNZ SHORT 0248467A
+02484644    381D E8C04902   CMP BYTE PTR DS:[249C0E8],BL
+0248464A    74 2E           JE SHORT 0248467A
+0248464C    8B0D E01E4A02   MOV ECX,DWORD PTR DS:[24A1EE0]
+02484652    894D 08         MOV DWORD PTR SS:[EBP+8],ECX
+02484655    E8 833EFEFF     CALL 024684DD
+0248465A    84C0            TEST AL,AL
+0248465C    74 07           JE SHORT 02484665
+0248465E    A1 44904902     MOV EAX,DWORD PTR DS:[2499044]
+02484663    EB 06           JMP SHORT 0248466B
+02484665    8B45 08         MOV EAX,DWORD PTR SS:[EBP+8]
+```
+
+`F4` 到 `02484640` 时程序中断在这里：
+
+```
+77D1CEB9  >  8B4C24 04       MOV ECX,DWORD PTR SS:[ESP+4]   ALT+F9 返回
+77D1CEBD    E8 4EB7FFFF      CALL USER32.77D18610
+77D1CEC2    85C0            TEST EAX,EAX
+77D1CEC4    74 20           JE SHORT USER32.77D1CEE6
+77D1CEC6    56              PUSH ESI
+77D1CEC7    FF7424 0C       PUSH DWORD PTR SS:[ESP+C]
+77D1CECB    50              PUSH EAX
+77D1CECC    E8 B5FFFFFF     CALL USER32.77D1CE86
+77D1CED1    85C0            TEST EAX,EAX
+77D1CED3  ^ 0F84 CBF5FFFF   JE USER32.77D1C4A4
+77D1CED9    8B30            MOV ESI,DWORD PTR DS:[EAX]
+77D1CEDB    85F6            TEST ESI,ESI
+77D1CEDD  ^ 0F84 C3F5FFFF   JE USER32.77D1C4A6
+77D1CEE3    8BC6            MOV EAX,ESI
+77D1CEE5    5E              POP ESI
+77D1CEE6    C2 0800         RETN 8
+```
+
+继续 `ALT+F9` 返回来在这里：
+
+```
+02484621    50               PUSH EAX
+02484622    68 07040000     PUSH 407
+02484627    57               PUSH EDI
+02484628    FFD6             CALL ESI
+0248462A    50               PUSH EAX
+0248462B    E8 2370FFFF     CALL 0247B653
+02484630    8B0D E01E4A02   MOV ECX,DWORD PTR DS:[24A1EE0]
+02484636    83C4 0C         ADD ESP,0C
+02484639    E8 9F3EFEFF     CALL 024684DD
+0248463E    33DB            XOR EBX,EBX
+02484640    84C0            TEST AL,AL
+02484642    75 36           JNZ SHORT 0248467A
+02484644    381D E8C04902   CMP BYTE PTR DS:[249C0E8],BL
+0248464A    74 2E           JE SHORT 0248467A
+0248464C    8B0D E01E4A02   MOV ECX,DWORD PTR DS:[24A1EE0]
+02484652    894D 08         MOV DWORD PTR SS:[EBP+8],ECX
+02484655    E8 833EFEFF     CALL 024684DD
+0248465A    84C0            TEST AL,AL
+0248465C    74 07           JE SHORT 02484665
+0248465E    A1 44904902     MOV EAX,DWORD PTR DS:[2499044]
+02484663    EB 06           JMP SHORT 0248466B
+02484665    8B45 08         MOV EAX,DWORD PTR SS:[EBP+8]
+02484668    83C0 08         ADD EAX,8
+```
+
+`F8` 到 `02484642` 处，跳转实现，来到 `0248467A` 处：
+
+```
+0248467A    395D 14         CMP DWORD PTR SS:[EBP+14],EBX
+0248467D    0F84 B7000000   JE 0248473A
+02484683    53              PUSH EBX
+02484684    B9 98FA4902     MOV ECX,249FA98
+02484689    E8 253CFEFF     CALL 024682B3                  F7 进入
+0248468E    53              PUSH EBX
+0248468F    B9 98FA4902     MOV ECX,249FA98
+02484694    8945 08         MOV DWORD PTR SS:[EBP+8],EAX
+02484697    E8 353CFEFF     CALL 024682D1
+0248469C    837D 14 01      CMP DWORD PTR SS:[EBP+14],1
+024846A0    75 27           JNZ SHORT 024846C9
+024846A2    8B45 08         MOV EAX,DWORD PTR SS:[EBP+8]
+024846A5    8BC8            MOV ECX,EAX
+024846A7    81E1 FFFF0000   AND ECX,0FFFF
+```
+
+看到 `02484689` 处的 `CALL`，`F7` 进入：
+
+```
+024682B3    56               PUSH ESI                        ; USER32.GetDlgItem
+024682B4    8BF1            MOV ESI,ECX
+024682B6    FF7424 08       PUSH DWORD PTR SS:[ESP+8]
+024682BA    8B8E 5C060000   MOV ECX,DWORD PTR DS:[ESI+65C]
+024682C0    6A 00           PUSH 0
+024682C2    E8 24D70000     CALL 024759EB                     F7 进入
+024682C7    3386 5C200000   XOR EAX,DWORD PTR DS:[ESI+205C]
+024682CD    5E              POP ESI
+024682CE    C2 0400         RETN 4
+```
+
+在 `024682C2` 处的 `CALL` 处，`F7` 进入：
+
+```
+024759EB    8B4424 04       MOV EAX,DWORD PTR SS:[ESP+4]
+024759EF    C1E0 06         SHL EAX,6
+024759F2    034424 08       ADD EAX,DWORD PTR SS:[ESP+8]
+024759F6    8B4481 18       MOV EAX,DWORD PTR DS:[ECX+EAX*4+18]
+024759FA    35 8AC0E665     XOR EAX,65E6C08A
+024759FF    C2 0800         RETN 8
+02475A02    E8 05000000     CALL 02475A0C
+02475A07    E9 0C000000     JMP 02475A18
+02475A0C    68 78304A02     PUSH 24A3078
+02475A11    FF15 70624902   CALL DWORD PTR DS:[2496270]        ; kernel32.InitializeCriticalSection
+02475A17    C3              RETN
+```
+
+找到 `024759F6  8B4481 18       MOV EAX,DWORD PTR DS:[ECX+EAX*4+18]`，`PATCH` 的好地方，在 `024759F6` 处下硬件执行断点后，`CTRL+F2` 重新载入程序。
+
+
+
+# 步骤：父子进程分离与代码修补
+
+## 1. 设置断点与运行
+
+下断点 `BP OpenMutexA`。
+
+`F9` 运行中断后，查看堆栈：
+
+```
+0012F798   01817DB8  /CALL 到 OpenMutexA 来自 Cam.01817DB2
+0012F79C   001F0001  |Access = 1F0001
+0012F7A0   00000000  |Inheritable = FALSE
+0012F7A4   0012FDD8  \MutexName = "90C::DA3428C337"
+0012F7A8   0012B884
+0012F7AC   00000000
+```
+
+## 2. 首次代码注入
+
+在 `CPU` 窗口中 `Ctrl+G` 跳转到 `401000`，键入以下代码：
+
+```
+00401000    60              PUSHAD
+00401001    9C              PUSHFD
+00401002    68 D8FD1200     PUSH 12FDD8                      ; ★ 堆栈里看到的值
+00401007    33C0            XOR EAX,EAX
+00401009    50              PUSH EAX
+0040100A    50              PUSH EAX
+0040100B    E8 08A6A577     CALL kernel32.CreateMutexA
+00401010    9D              POPFD
+00401011    61              POPAD
+00401012  - E9 D012A677     JMP kernel32.OpenMutexA
+00401017    90              NOP
+```
+
+对应的二进值：
+
+```
+60 9C 68 D8 FD 12 00 33 C0 50 50 E8 08 A6 A5 77 9D 61 E9 D0 12 A6 77 90
+```
+
+在 `401000` 处点鼠标右键选择“此处为新 EIP”，`F9` 运行，再次中断在 `OpenMutexA` 处。此时 `Ctrl+G` 跳转到 `401000` 撤销刚才修改的代码，使代码还原。
+
+OK，父进程分离完毕！清除 `OpenMutexA` 断点。
+
+## 3. 定位目标与机器码检测
+
+然后直接 `F9` 运行中断在 `024759F6` 处。不要告诉我不知道这是什么地方，现在开如 `PATCH` 代码了：
+
+```
+024759F6    8B4481 18       MOV EAX,DWORD PTR DS:[ECX+EAX*4+18]
+024759FA    35 8AC0E665     XOR EAX,65E6C08A
+024759FF    C2 0800         RETN 8
+```
+
+`PATCH` 之前，需要先知道自己的机器码（例如 `493F-1E33`）。找空白处（如 `401000`）写代码。
+
+将 `024759FA` 的地方改为 `JMP 401000`。
+
+## 4. 编写补丁逻辑
+
+在 `CPU` 窗口中 `Ctrl+G` 跳转到 `401000`，键入以下代码：
+
+```
+00401000    35 8AC0E665     XOR EAX,65E6C08A
+00401005    3D 331E3F49     CMP EAX,493F1E33
+0040100A    75 05           JNZ SHORT Cam.00401011
+0040100C    B8 135AC2A3     MOV EAX,A3C25A13
+00401011    C2 0800         RETN 8
+```
+
+对应的二进值：
+
+```
+35 8A C0 E6 65 3D 33 1E 3F 49 75 05 B8 13 5A C2 A3 C2 08 00
+```
+
+## 5. 测试与验证
+
+好了，写好代码之后，就一直 `F9`，直到程序提示注册，点 `YES`。发现机器码已经变成 `A3C2-5A13` 了，输入那个正确的用户名和 `KEY` 后，程序提示注册成功了。
+
+接下来，就可以按双进程脱壳了。今天第一次做教程，电脑出了点问题，做了两遍，现在 2 点了，还没做完，明天再续吧~！~！
+
+程序有点大，我没办法上传，明天搞个网络硬盘，传上去。先去睡了，老婆都骂了，呵呵![](img/f5d9879e4703d3dcc963d0743af268d2.jpg) ![](img/f5d9879e4703d3dcc963d0743af268d2.jpg) ![](img/f5d9879e4703d3dcc963d0743af268d2.jpg)
+
+程序下载地址 [`xiucai.ys168.com`](http://xiucai.ys168.com)
+
+`4dd466d0e1e0cc123afbe504da2462ca`
