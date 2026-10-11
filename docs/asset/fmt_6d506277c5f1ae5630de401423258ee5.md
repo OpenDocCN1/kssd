@@ -1,0 +1,107 @@
+
+# 逻辑锁
+
+> 原文：[`www.pediy.com/kssd/pediy04/kanxue286.htm`](https://www.pediy.com/kssd/pediy04/kanxue286.htm)
+
+小牧童的方法（借用王江民的方法）：用 `UEDIT` 打开 `C:\IO.SYS`，查找 `b9 01 00 cd 13` (`msdos6.22` 只有一处，`98` 有 2 处)，改为 `b9 10 00 cd 13`。
+
+自己的分析（可能不正确）：
+
+```
+sub bx,bx
+mov ax,201h
+xor dh,dh
+mov cx,1  ;原为读取第 1 个扇区,改为读第 10H 个扇区,这样就不会出现死循环了.
+int 13h
+push es
+pop ds
+jb TryAgain
+cmp word ptr [bx][1fe],0aa55h    ;Magict Code
+.
+.
+.
+```
+
+通常硬盘分区表被锁住以后，形成一个闭合的循环链，`IO.SYS` 从链头读起，试图读取所有分区的信息，从而形成死循环。如果修改 `IO.SYS` 文件，这样读的第十个扇区结尾处不是 `0aa55h`，就认为不是一个逻辑分区的主引导记录，停止读盘，跳出死循环链。不过据我测试，这样即使硬盘分区表是完好的，启动后也不认硬盘。所以修改 `IO.SYS` 以后，如果要正常访问硬盘还要将 `IO.SYS` 恢复原状。
+
+以下是源程序。
+
+```
+;==================================================================
+;    如果你的硬盘被老王的逻辑锁给锁住了，把这个小工具复制到你的引导盘上，
+;    运行它 Modify 一下，然后用它来引导被锁的机器。一切 OK。谢谢小牧童的提示。
+;    注意修复硬盘后 Restore 回来。当然你运行它时，软驱要打开写保护啦：）
+;==================================================================
+.286
+.model tiny
+.code
+    org  100h
+start:
+    jmp Entry
+FileName db "io.sys",0
+Prompt  db 10,9,"I can MODIFY/RESTORE IO.SYS when it is locked by THE LOGIC LOCK.",13,10
+        db 9,9,9,"--- By WenXinJY ---",13,10
+        db "Restore|Modify|Cancel(R/M/C)?$"
+Error    db "M/R Error!$"
+OK       db "M/R OK!$"
+ModiData db 1
+Entry:
+    mov ah,9
+    lea dx,Prompt
+    int 21h
+    mov ah,0
+    int 16h
+    cmp ah,13h    ;R/r
+    jnz Next1
+    mov dl,1
+    jmp ModiIt
+Next1:
+    cmp ah,32h    ;M/m  ;C/c:2Eh
+    jnz Exit
+    mov dl,10h
+ModiIt:
+    mov ModiData,dl
+    mov ax,4301h
+    mov dx,offset FileName
+    xor cx,cx
+    int 21h
+    jc Err
+    mov ax,3d02h
+    lea dx,FileName
+    int 21h
+    mov bx,ax
+    jc Err
+    mov ax,4200h
+    xor cx,cx
+    mov dx,1858h
+    int 21h
+    jc Err
+    mov ax,4000h
+    mov cx,1
+    mov dx,offset ModiData
+    int 21h
+    jc Err
+    mov ax,4200h
+    xor cx,cx
+    mov dx,18c3h
+    int 21h
+    jc Err
+    mov ax,4000h
+    mov cx,1
+    mov dx,offset ModiData
+    int 21h
+    jc Err
+    mov ah,3eh
+    int 21h
+    lea dx,OK
+    jmp DispMsg
+Err:
+    lea dx,Error
+DispMsg:
+    mov ah,9
+    int 21h    
+Exit:
+    mov ah,4ch
+    int 21h
+    end start
+```

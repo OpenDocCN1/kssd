@@ -1,0 +1,201 @@
+
+# 一次另类的 PE-DIY::修改游戏
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-319.htm`](https://www.pediy.com/kssd/pediy07/pediy7-319.htm)
+
+这个程序是在 `KFC`(`Key Fans Club`)上面看到的,我给一个朋友玩,可能是他的技术太烂了吧,就和我说太难了玩不过
+
+如果有无敌版就好了之类的话.顺便在帮帮(还是害了呢?)朋友的同时也锻炼一下自己的 `PE-DIY` 水平吧.
+
+使用工具:`OllyDbg` 自修改版,`LordPE`,`金山游侠 2002`
+
+用 `OD` 载入程序,没有加压缩提示,入口代码是看来应该是 `VC` 的,初步判定程序没有加壳,是 `VC` 写的.(现在有点信不过 `PEID` 了 :D)
+
+然后按 `F9` 运行程序,进入程序,进入游戏,让别人打自己一下,那个"被打飞值"就会增加,用`金山游侠`寻找,
+
+几次后,就找到两个地址了,如我的是 `79A1F94` 和 `79A1F98` 两个地址,用 `OD` 查看所在的内存地址如下:
+
+```
+079A1F84  00 00 1C 40 00 00 00 00 00 00 26 C0 03 00 00 00  ..@......&?...
+079A1F94  20 00 00 00 20 00 00 00 02 00 00 00 02 00 00 00   ... .........
+079A1FA4  03 00 00 00 03 00 00 00 03 00 00 00 80 03 00 00  .........€..
+```
+
+两个地址,一般可能是数值的一份 `COPY`,防止某些非法原因更改数据,现在试验一下,把第一个 `0x32` 改为 `0`,
+
+即:
+
+```
+079A1F84  00 00 1C 40 00 00 00 00 00 00 26 C0 03 00 00 00  ..@......&?...
+079A1F94  00 00 00 00 20 00 00 00 02 00 00 00 02 00 00 00   ... .........
+079A1FA4  03 00 00 00 03 00 00 00 03 00 00 00 80 03 00 00  .........€..
+```
+
+返回游戏,发现没有什么提示说是非法修改数据,而且发现"被打飞值"由 `50`(`32h`)直接下降到 `0`,而且后面的 `0x32` 也变成了 `0`,
+
+初步判定前面的 `73C288C` 记录的是真正的"被打飞值",后面的 `73C2890` 记录的是游戏里面显示的"被打飞值",
+
+后来再试验多几次,也证实了自己的判断.
+
+找到了真正的地址后,就下内存硬件断点,类型是 `DWORD` 的 `write` 断点,然后再次运行程序来到这里:
+
+```
+0040A842  |.  DD4424 10     fld qword ptr ss:[esp+10]
+0040A846  |.  DC8E 10030000 fmul qword ptr ds:[esi+310]
+0040A84C  |.  DA86 44030000 fiadd dword ptr ds:[esi+344]          ;  浮点数相加(在这里设断点)
+0040A852  |.  E8 69B60300   call KanoAir.00445EC0                 ;  这个 CALL 是计算打飞值的
+0040A857  |.  8BCE          mov ecx,esi
+0040A859  |.  8986 44030000 mov dword ptr ds:[esi+344],eax        ;  更改被打飞值
+0040A85F  |.  E8 CC020000   call KanoAir.0040AB30                 ;  硬件中断断在这里
+0040A864  |.  DD87 18030000 fld qword ptr ds:[edi+318]
+0040A86A  |.  8B4D 0C       mov ecx,dword ptr ss:[ebp+C]
+0040A86D  |.  DC0D 68E44500 fmul qword ptr ds:[45E468]
+0040A873  |.  8D41 FB       lea eax,dword ptr ds:[ecx-5]          ;  Switch (cases 5..17)
+0040A876  |.  83F8 12       cmp eax,12
+0040A879  |.  DD5C24 10     fstp qword ptr ss:[esp+10]
+```
+
+下了断点以后再次运行程序,一但被打以后,程序就会断下来了(被 `K` 以后被打飞值是会增加的),
+
+也就是说每一次改变被打飞值就会经过这样一段程序,那就把
+
+```
+0040A859  |.  8986 44030000 mov dword ptr ds:[esi+344],eax       ;  更改被打飞值
+```
+
+这一句 `NOP` 掉,这样的话就不会增加了,`NOP` 先.
+
+接着又发现一个问题,自己的被打飞值不变,可是怎么连敌人的值也不会变呢?大家的值不变,
+
+这不是我修改游戏的目的啊-\_-/// 就猜想可能每一个人的被打飞值都是由这一段代码修改的,
+
+那就要考虑条件的问题了.
+
+```
+0040A846  |.  DC8E 10030000 fmul qword ptr ds:[esi+310]
+0040A84C  |.  DA86 44030000 fiadd dword ptr ds:[esi+344]         ;  浮点数相加(在这里设断点)
+```
+
+这两段代码好像发现了 `ESI` 是一个人物指针,看看先:
+
+```
+079A1C50  C8 E3 45 00 0D F0 AD BA CE 4C 4D 10 00 00 8B 40    茹 E..瓠何 LM..婡
+079A1C60  42 89 C0 75 5B FF 8C 40 26 00 00 00 01 61 79 75     B 壚 u\[⺷...ayu
+079A1C70  00 F0 AD BA 0D F0 AD BA 0D F0 AD BA 0D F0 AD BA     .瓠?瓠?瓠?瓠?
+079A1C80  0D F0 AD BA 0D F0 AD BA 0D F0 AD BA 0D F0 AD BA     .瓠?瓠?瓠?瓠?
+079A1C90  0D F0 AD BA 0D F0 AD BA 0D F0 AD BA 0D F0 AD BA     .瓠?瓠?瓠?瓠?
+079A1CA0  0D F0 AD BA 0D F0 AD BA 0D F0 AD BA 0D F0 AD BA     .瓠?瓠?瓠?瓠?
+079A1CB0  0D F0 AD BA 0D F0 AD BA 0D F0 AD BA 0D F0 AD BA     .瓠?瓠?瓠?瓠?
+079A1CC0  0D F0 AD BA 0D F0 AD BA 0D F0 AD BA 0D F0 AD BA     .瓠?瓠?瓠?瓠?
+079A1CD0  0D 73 79 73 74 65 6D 5C 61 79 75 2E 62 6D 70 00     .system\\ayu.bmp.
+```
+
+嗯?`ayu`?不正是我在使用的人物吗?做一个人物 `ASCII` 码过滤就可以了嘛,
+
+但细想一下又行不通:人物一共有 `9` 个,如何判断自己是用什么人物啊?
+
+不管那么多了,改了再说;
+
+由于这里已经没有空间来改代码了,所以找了程序的尾部来改写代码,
+
+我就用了 `45D9C0` 以后的一大片代码空间来写:
+
+我就直接改
+
+```
+0040A852  |.  E8 69B60300   call KanoAir.00445EC0                 ;  这个 CALL 是计算打飞值的
+```
+
+这个 `CALL` 吧
+
+```
+0045D9C0   > \83C4 F4       add esp,-0C                             ;  从这里开始
+0045D9C3   .  9B            wait
+0045D9C4   .  D97D FE       fstcw word ptr ss:[ebp-2]
+0045D9C7   .  9B            wait
+0045D9C8   .  66:8B45 FE    mov ax,word ptr ss:[ebp-2]
+0045D9CC   .  80CC 0C       or ah,0C
+0045D9CF   .  66:8945 FC    mov word ptr ss:[ebp-4],ax
+0045D9D3   .  D96D FC       fldcw word ptr ss:[ebp-4]
+0045D9D6   .  DF7D F4       fistp qword ptr ss:[ebp-C]
+0045D9D9   .  D96D FE       fldcw word ptr ss:[ebp-2]
+0045D9DC   .  8B45 F4       mov eax,dword ptr ss:[ebp-C]
+0045D9DF   .  8B55 F8       mov edx,dword ptr ss:[ebp-8]           ;  到这里之间的代码是原来 CALL 有的代码
+0045D9E2   .  9C            pushfd                                   ;  保存现场
+0045D9E3   .  60            pushad                                   ;  保存现场
+```
+
+嗯,保存现场以后就开始干坏事了 :D
+
+经过自己多次的调试发现,`ESI` 的人物地址指针都是 `0x6Dxxxxx` 的形式的,这样就加上一个过滤:
+
+```
+0045D9E4   .  81FE 0000D006 cmp esi,6D00000                          ;  指针在 ESI 里面,而且数值大于 0x6D00000,过滤一下
+0045D9EA   .  7E 12           jle short KanoAir_.0045D9FE            ;  小于 0x600000 的话就不处理
+0045D9F1   .  EB 15           jmp short KanoAir_.0045DA08            ;  无条件跳下去
+0045D9F3   .  36:C786 44030>mov dword ptr ss:[esi+344],0            ;  没用的指令,忘了 DEL 掉 :p
+0045D9FE   >  61            popad                                    ;  恢复现场
+0045D9FF   .  9D            popfd                                    ;  恢复现场
+0045DA00   .^ E9 E084FEFF   jmp KanoAir_.00445EE5                   ;  跳回原程序继续执行
+```
+
+之后调试又发现这个 `CALL` 不止处理人物的打飞值,还处理一些求知的东西,具体是些什么东西我也搞不懂,
+
+太乱了,不过发现如果这个 `CALL` 处理人特打飞值的时候,当前 `[ESI]` 的值一定是为 `0x45E3C8`,
+
+这样的话就加上了第二个过滤:
+
+```
+0045DA08   >  813E C8E34500 cmp dword ptr ds:[esi],KanoAir_.0045E3C8 ;  地址指针,值一定为 0x45E3C8
+0045DA0E   .^ 75 EE          jnz short KanoAir_.0045D9FE            ;  地址指针不对的话就跳走,不处理
+```
+
+接着是处理人名信息:
+
+```
+0045DA10   .  8B46 1C       mov eax,dword ptr ds:[esi+1C]          ; ESI+1C
+```
+
+`//ESI+1C` 是这样的: `079A1C60`  `01 61 79 75` `ayu`
+
+把最后一位置 `0` 就可以了
+
+```
+0045DA13   .  B0 00          mov al,0
+0045DA15   .  3D 00617975   cmp eax,75796100                        ;  ayu
+0045DA1A   .  74 38          je short KanoAir_.0045DA54
+0045DA1C   .  3D 006D616B   cmp eax,6B616D00                        ;  Makoto
+0045DA21   .  74 31          je short KanoAir_.0045DA54
+0045DA23   .  3D 006D696E   cmp eax,6E696D00                        ;  Minagi
+0045DA28   .  74 2A          je short KanoAir_.0045DA54
+0045DA2A   .  3D 006B616E   cmp eax,6E616B00                        ;  Kano & Kanna
+0045DA2F   .  74 23          je short KanoAir_.0045DA54
+0045DA31   .  3D 006D6973   cmp eax,73696D00                        ;  Misuzu
+0045DA36   .  74 1C          je short KanoAir_.0045DA54
+0045DA38   .  3D 006D6169   cmp eax,69616D00                        ;  mai
+0045DA3D   .  74 15          je short KanoAir_.0045DA54
+0045DA3F   .  3D 00736869   cmp eax,69687300                        ;  shiori
+0045DA44   .  74 0E          je short KanoAir_.0045DA54
+0045DA46   .  3D 006E6179   cmp eax,79616E00                        ;  Nayuki
+0045DA4B   .  74 07          je short KanoAir_.0045DA54
+0045DA4D   .^ EB AF          jmp short KanoAir_.0045D9FE            ;  如果不是这几个人名的话就跳走,不处理
+```
+
+后来又调试无数次以后发现了:每一次开始游戏时,第一次调用这个 `CALL` 的是自己用的人物.哈,这就有点办法了:
+
+找个地方去第一次调用 `CALL` 的时候的 `ESI` 值记录下来,供以后修改用不就行了吗,而且还要做一个标记位,
+
+用来标记 `ESI` 地址有没有被记录,如果有记录 `ESI` 地址的话就不能再次记录了,代码如下:
+
+```
+0045DA5A   .  36:8B1D A6DA4>mov ebx,dword ptr ss:[45DAA6]           ;  读取内存地址
+0045DA61   .  36:8B0D ABDA4>mov ecx,dword ptr ss:[45DAAB]           ;  读取 tigger(标记)
+0045DA68   .  90            nop
+0045DA69   .  90            nop
+0045DA6A   .  85C9          test ecx,ecx                              ;  看标记是否为 0
+0045DA6C   .  75 17         jnz short KanoAir_.0045DA85              ;  为 0 的话就不跳
+0045DA6E   .  36:8935 A6DA4>mov dword ptr ss:[45DAA6],esi            ;  把当前地址指针存入内存
+0045DA75   .  36:C705 ABDA4>mov dword ptr ss:[45DAAB],1              ;  tigger(标记)赋 1 表示已经记了内存指针
+0045DA80   .^ E9 79FFFFFF   jmp KanoAir_.0045D9FE                    ;  跳走,不处理
+0045DA85   >  36:A1 A6DA450>mov eax,dword ptr ss:[45DAA6]            ;  刚才判断标记不为空的话,就把内存指针放入 EAX
+```
