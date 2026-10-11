@@ -1,0 +1,53 @@
+
+# UPX 0.72
+
+> 原文：[`www.pediy.com/kssd/pediy03/forum393.htm`](https://www.pediy.com/kssd/pediy03/forum393.htm)
+
+## How to unpack PE file packed by UPX 0.72
+
+### Analysis
+
+`UPX`是一个可以高度压缩`PE`文件格式的免费的`packer`，压缩后`original file`的`section`被重新组织成`4`个`section`，分别从`upx0`到`upx2`。
+
+- `section of upx0`：其`Raw Size`是`0`，但`Virtual Size`与原始文件`Size of Image`相比，稍大，可见是`UPX`是将解压缩后的原始文件数据映射到此；
+- `upx1`：起始部分是被`UPX`重新构建的`Import Table`，但很不幸，只包括`IMAGE_IMPORT_DESCRIPTOR`中的`Name`部分的正确信息，再往下是被`extract`出的`Resource`部分的`Icon`和`Version Information`，但无法用`eXeScope`正确查看；
+- `upx2`：为`UPX`的解压缩代码；
+- `upx3`：包括被压缩的原始数据。
+
+### Unpacking Procedure
+
+1. 用`PEditor`查看`size of image`及`image base`，并记录。
+2. 在`Hex Workshop`中，查找`"EBE261E9"`，在`E9`处记下`file offset`。
+3. 计算`E9`处的`VA`。
+4. 在`Sice Loader`中载入要`dump`的压缩`exe`文件，并根据`E9`的`VA`设断点。
+5. 中断后，记下断点处`jmp 00******`，其中跳转的地址是程序真正的`EP`，并记下。
+6. 根据`size of image`及`image base`用`IceDump`将刚刚解压缩完毕的内存映射数据`dump`到文件中。
+7. 修改文件的`EP`，并令各个`section`的`Raw size`=`Virtual Size`，`Raw offset`=`Virtual Size`。
+8. 删除`section` `upx2`，`upx3`（一些情况下你可能需要保留`upx2`）。
+9. `Realign File`。
+
+### Tools to be included
+
+1. `PEditor 1.7` by by `yoda` and `M.o.D.`
+2. `SoftIce for Win9x 4.05` by `NuMega Company`
+3. `Hex Workshop` by `BreakPoint SoftWare, Inc.`
+4. `IceDump 6.0.1.9` by the `Icedump Team`
+5. 笔和纸 :-)
+
+以上所有工具均可从`Programmer's tools`站点下载（别告诉我你不知道）。
+
+### Problem
+
+虽然用`UPX 0.72`加完壳的程序在脱壳后，可以不需重新构建`import table`，但我看到`import table`结构已完全发生变化，`IMAGE_IMPORT_DESCRIPTOR`结构中，只有`Name`部分指向是正确的，而`FirstThunk`部分定位不正确，但原始文件中被`FirstThunk`所指向的`array of IMAGE_THUNK_DATA`与脱壳的文件中存在的部分内存映射是一样的，只是原始文件中的`array of IMAGE_THUNK_DATA`在被映射到内存中后会被`PE Loader`替换为各个`dll`中的`function`的内存真正入口地址，而在脱壳文件中本身已被`UPX`手动替换成各个`dll`中的`function`的内存入口地址，当脱壳文件被`PE Loader`载入后，不再需要`PE Loader`的帮忙。
+
+我的疑问就在于此，即我现在搞不清楚，`PE Loader`在将此脱壳文件装入内存后，就不再需要对这些`function`做重新定位了吗？每次`dll`的装载位置都是一样的吗？
+
+另外`resource`如何重新构建？请高手回答！
+
+---
+
+Written by `dREAMtHEATER`
+
+E-Mail: `dreamtheater@263.net`
+
+`2000.10.22` `4dd466d0e1e0cc123afbe504da2462ca`
