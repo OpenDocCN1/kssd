@@ -1,0 +1,317 @@
+
+# 桌面钢笔 v2.0 破解过程，入门级，高手莫入。
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-11.htm`](https://www.pediy.com/kssd/pediy07/pediy7-11.htm)
+
+破解软件：桌面钢笔 v2.0
+
+下载地址：[`www.arongsoft.net/soft/4533.htm，阿榕软件园`](http://www.arongsoft.net/soft/4533.htm，阿榕软件园)
+
+调试工具：`OD`，`PEID`
+
+破解平台：`XP`
+
+软件介绍：运行本桌面钢笔 `V2.0` 后，桌面会出现一支钢笔图形，按住鼠标左键移动鼠标可在桌面随意写字画画。
+
+破解说明：今天闲得无聊，拿来试试手，失误之处请见谅。
+
+运行软件，提示注册，随便输入点注册，出现错误提示。`PEID` 查有 `UPX` 壳，弱壳，不想脱了，带壳调试。
+
+用 `OD` 附加进程，然后用 `Ultra String Refrence` 插件查找错误信息，一直向上看来到判断子过程的入口处：
+
+```
+0041C02D   push ebp
+0041C02E   mov ebp,esp
+0041C030   sub esp,2C
+0041C036   push 0
+0041C03B   mov ebx,6C4
+0041C040   call 桌面钢笔.0041D199
+0041C045   add esp,4
+0041C048   push 80000301
+0041C04D   push 0
+0041C04F   push eax
+0041C050   push 1
+0041C055   mov ebx,164
+0041C05A   call 桌面钢笔.0041D199
+0041C05F   add esp,10
+0041C062   mov dword ptr ss:[ebp-C],eax
+0041C065   mov dword ptr ss:[ebp-8],edx
+0041C068   fld qword ptr ss:[ebp-C]                      ; 机器码入栈，2111755623
+0041C06B   fmul qword ptr ds:[412FC0]                    ; 乘[412FC0]的浮点值 46398，得 9.7981237395954E+13
+0041C071   fstp qword ptr ss:[ebp-14]                    ; 出栈
+0041C074   fld qword ptr ss:[ebp-14]                     ; 入栈
+0041C077   fadd qword ptr ds:[412FC8]                    ; 加浮点值 1111,结果为 9.7981237397065E+13
+0041C07D   fstp qword ptr ss:[ebp-1C]                    ; 出栈
+0041C080   fld qword ptr ss:[ebp-1C]                     ; 入栈
+0041C083   call 桌面钢笔.0041A381                          ; 取浮点的结果，返回 EAX 值。跟入
+0041A381   push ebp
+0041A382   mov ebp,esp
+0041A384   add esp,-0C
+0041A387   fstcw word ptr ss:[ebp-2]
+0041A38A   mov ax,word ptr ss:[ebp-2]
+0041A38E   or ah,0C
+0041A391   mov word ptr ss:[ebp-4],ax
+0041A395   fldcw word ptr ss:[ebp-4]
+0041A398   fistp qword ptr ss:[ebp-C]                     ; 浮点结果出栈，保存在[ebp-c]，十六进制为 591D08D98649
+0041A39B   fldcw word ptr ss:[ebp-2]
+0041A39E   mov eax,dword ptr ss:[ebp-C]                   ; 将结果的后 8 位赋值给 eax，即 08D98649
+0041A3A1   mov edx,dword ptr ss:[ebp-8]
+0041A3A4   mov esp,ebp
+0041A3A6   pop ebp
+0041A3A7   retn
+
+    继续跟踪：
+
+0041C088   push 80000301
+0041C08D   push 0
+0041C08F   push eax                                       ; EAX=08D98649
+0041C090   push 1
+0041C095   mov ebx,1D4
+0041C09A   call 桌面钢笔.0041D199                          ; 将 EAX 的值转化为字符，即“8D98649”
+0041C09F   add esp,10
+0041C0A2   mov dword ptr ss:[ebp-20],eax
+0041C0A5   push 80000004
+0041C0AA   push 0
+0041C0AC   mov eax,dword ptr ss:[ebp-20]
+0041C0AF   test eax,eax
+0041C0B1   jnz short 桌面钢笔.0041C0B8
+0041C0B3   mov eax,桌面钢笔.0040F1D3
+0041C0B8   push eax
+0041C0B9   push 1
+0041C0BE   mov ebx,168
+0041C0C3   call 桌面钢笔.0041D199
+0041C0C8   add esp,10
+0041C0CB   mov dword ptr ss:[ebp-24],eax
+0041C0CE   mov ebx,dword ptr ss:[ebp-20]
+0041C0D1   test ebx,ebx
+0041C0D3   je short 桌面钢笔.0041C0DE
+0041C0D5   push ebx
+0041C0D6   call 桌面钢笔.0041D181
+0041C0DB   add esp,4
+0041C0DE   push -1
+0041C0E0   push 8
+0041C0E2   push 1601009F
+0041C0E7   push 5201009B
+0041C0EC   call 桌面钢笔.0041D1A5                          ; 获取输入码第一部分
+0041C0F1   add esp,10
+0041C0F4   mov dword ptr ss:[ebp-28],eax
+0041C0F7   mov eax,dword ptr ss:[ebp-24]
+0041C0FA   push eax                                       ; 正确码
+0041C0FB   push dword ptr ss:[ebp-28]                     ; 输入码
+0041C0FE   call 桌面钢笔.0041BF09                          ; 比较是否相等
+0041C103   add esp,8
+0041C106   cmp eax,0
+0041C109   mov eax,0
+0041C10E   sete al                                        ; 相等则置 1
+0041C111   mov dword ptr ss:[ebp-2C],eax                  ; [ebp-2c]标志位
+0041C114   mov ebx,dword ptr ss:[ebp-28]
+0041C117   test ebx,ebx
+0041C119   je short 桌面钢笔.0041C124
+0041C11B   push ebx
+0041C11C   call 桌面钢笔.0041D181
+0041C121   add esp,4
+0041C124   mov ebx,dword ptr ss:[ebp-24]
+0041C127   test ebx,ebx
+0041C129   je short 桌面钢笔.0041C134
+0041C12B   push ebx
+0041C12C   call 桌面钢笔.0041D181
+0041C131   add esp,4
+0041C134   cmp dword ptr ss:[ebp-2C],0
+0041C138   je 桌面钢笔.0041C4A5                            ; 暴破点一
+0041C13E   push 0
+0041C143   mov ebx,6C4
+0041C148   call 桌面钢笔.0041D199
+0041C14D   add esp,4
+0041C150   push 80000301
+0041C155   push 0
+0041C157   push eax
+0041C158   push 1
+0041C15D   mov ebx,164
+0041C162   call 桌面钢笔.0041D199
+0041C167   add esp,10
+0041C16A   mov dword ptr ss:[ebp-C],eax
+0041C16D   mov dword ptr ss:[ebp-8],edx
+0041C170   fld qword ptr ss:[ebp-C]                      ; 机器码入栈，2111755623
+0041C173   fmul qword ptr ds:[412FD0]                    ; 乘 12987，得 2.7425370275901E+13
+0041C179   fstp qword ptr ss:[ebp-14]
+0041C17C   fld qword ptr ss:[ebp-14]
+0041C17F   fadd qword ptr ds:[412FD8]                    ; 加 2222，得 2.7425370278123E+13
+0041C185   fstp qword ptr ss:[ebp-1C]
+0041C188   fld qword ptr ss:[ebp-1C]
+0041C18B   call 桌面钢笔.0041A381                          ; 取浮点的结果，返回 EAX 值。略
+0041C190   push 80000301
+0041C195   push 0
+0041C197   push eax                                       ; EAX=777408EB
+0041C198   push 1
+0041C19D   mov ebx,1D4
+0041C1A2   call 桌面钢笔.0041D199                          ; 将 EAX 的值转化为字符，即“777408EB”
+0041C1A7   add esp,10
+0041C1AA   mov dword ptr ss:[ebp-20],eax
+0041C1AD   push 80000004
+0041C1B2   push 0
+0041C1B4   mov eax,dword ptr ss:[ebp-20]
+0041C1B7   test eax,eax
+0041C1B9   jnz short 桌面钢笔.0041C1C0
+0041C1BB   mov eax,桌面钢笔.0040F1D3
+0041C1C0   push eax
+0041C1C1   push 1
+0041C1C6   mov ebx,168
+0041C1CB   call 桌面钢笔.0041D199
+0041C1D0   add esp,10
+0041C1D3   mov dword ptr ss:[ebp-24],eax
+0041C1D6   mov ebx,dword ptr ss:[ebp-20]
+0041C1D9   test ebx,ebx
+0041C1DB   je short 桌面钢笔.0041C1E6
+0041C1DD   push ebx
+0041C1DE   call 桌面钢笔.0041D181
+0041C1E3   add esp,4
+0041C1E6   push -1
+0041C1E8   push 8
+0041C1EA   push 160100A1
+0041C1EF   push 5201009B
+0041C1F4   call 桌面钢笔.0041D1A5                          ; 获得输入码第二部分
+0041C1F9   add esp,10
+0041C1FC   mov dword ptr ss:[ebp-28],eax
+0041C1FF   mov eax,dword ptr ss:[ebp-24]
+0041C202   push eax                                       ; 正确码
+0041C203   push dword ptr ss:[ebp-28]                     ; 输入码
+0041C206   call 桌面钢笔.0041BF09                          ; 比较是否相等
+0041C20B   add esp,8
+0041C20E   cmp eax,0
+0041C211   mov eax,0
+0041C216   sete al                                        ; 相等则置 1
+0041C219   mov dword ptr ss:[ebp-2C],eax                  ; [ebp-2c]标志位
+0041C21C   mov ebx,dword ptr ss:[ebp-28]
+0041C21F   test ebx,ebx
+0041C221   je short 桌面钢笔.0041C22C
+0041C223   push ebx
+0041C224   call 桌面钢笔.0041D181
+0041C229   add esp,4
+0041C22C   mov ebx,dword ptr ss:[ebp-24]
+0041C22F   test ebx,ebx
+0041C231   je short 桌面钢笔.0041C23C
+0041C233   push ebx
+0041C234   call 桌面钢笔.0041D181
+0041C239   add esp,4
+0041C23C   cmp dword ptr ss:[ebp-2C],0
+0041C240   je 桌面钢笔.0041C42F                            ; 暴破点二
+0041C246   push 0
+0041C24B   mov ebx,6C4
+0041C250   call 桌面钢笔.0041D199
+0041C255   add esp,4
+0041C258   push 80000301
+0041C25D   push 0
+0041C25F   push eax
+0041C260   push 1
+0041C265   mov ebx,164
+0041C26A   call 桌面钢笔.0041D199
+0041C26F   add esp,10
+0041C272   mov dword ptr ss:[ebp-C],eax
+0041C275   mov dword ptr ss:[ebp-8],edx
+0041C278   fld qword ptr ss:[ebp-C]                      ; 机器码入栈，2111755623
+0041C27B   fmul qword ptr ds:[412FE0]                    ; 乘 91548，得 1.93403026976832E+14
+0041C281   fstp qword ptr ss:[ebp-14]
+0041C284   fld qword ptr ss:[ebp-14]
+0041C287   fadd qword ptr ds:[412FE8]                    ; 加 3333，得 1.93403026980165E+14
+0041C28D   fstp qword ptr ss:[ebp-1C]
+0041C290   fld qword ptr ss:[ebp-1C]
+0041C293   call 桌面钢笔.0041A381                          ; 取浮点的结果，返回 EAX 值。略
+0041C298   push 80000301
+0041C29D   push 0
+```
+
+
+
+```
+0041C29F   push eax                           ; EAX=26B8BD45  
+0041C2A0   push 1  
+0041C2A5   mov ebx,1D4  
+0041C2AA   call 桌面钢笔.0041D199              ; 将 EAX 的值转化为字符，即“26B8BD45  
+0041C2AF   add esp,10  
+0041C2B2   mov dword ptr ss:[ebp-20],eax  
+0041C2B5   push 80000004  
+0041C2BA   push 0  
+0041C2BC   mov eax,dword ptr ss:[ebp-20]  
+0041C2BF   test eax,eax  
+0041C2C1   jnz short 桌面钢笔.0041C2C8  
+0041C2C3   mov eax,桌面钢笔.0040F1D3  
+0041C2C8   push eax  
+0041C2C9   push 1  
+0041C2CE   mov ebx,168  
+0041C2D3   call 桌面钢笔.0041D199  
+0041C2D8   add esp,10  
+0041C2DB   mov dword ptr ss:[ebp-24],eax  
+0041C2DE   mov ebx,dword ptr ss:[ebp-20]  
+0041C2E1   test ebx,ebx  
+0041C2E3   je short 桌面钢笔.0041C2EE  
+0041C2E5   push ebx  
+0041C2E6   call 桌面钢笔.0041D181  
+0041C2EB   add esp,4  
+0041C2EE   push -1  
+0041C2F0   push 8  
+0041C2F2   push 160100A0  
+0041C2F7   push 5201009B  
+0041C2FC   call 桌面钢笔.0041D1A5              ; 获得输入码第三部分  
+0041C301   add esp,10  
+0041C304   mov dword ptr ss:[ebp-28],eax  
+0041C307   mov eax,dword ptr ss:[ebp-24]  
+0041C30A   push eax                            ; 正确码  
+0041C30B   push dword ptr ss:[ebp-28]          ; 输入码  
+0041C30E   call 桌面钢笔.0041BF09              ; 比较是否相等  
+0041C313   add esp,8  
+0041C316   cmp eax,0  
+0041C319   mov eax,0  
+0041C31E   sete al                             ; 相等则置 1  
+0041C321   mov dword ptr ss:[ebp-2C],eax      ; [ebp-2c]标志位  
+0041C324   mov ebx,dword ptr ss:[ebp-28]  
+0041C327   test ebx,ebx  
+0041C329   je short 桌面钢笔.0041C334  
+0041C32B   push ebx  
+0041C32C   call 桌面钢笔.0041D181  
+0041C331   add esp,4  
+0041C334   mov ebx,dword ptr ss:[ebp-24]  
+0041C337   test ebx,ebx  
+0041C339   je short 桌面钢笔.0041C344  
+0041C33B   push ebx  
+0041C33C   call 桌面钢笔.0041D181  
+0041C341   add esp,4  
+0041C344   cmp dword ptr ss:[ebp-2C],0  
+0041C348   je 桌面钢笔.0041C3B9                ; 暴破点三  
+0041C34E   call 桌面钢笔.0041C51A  
+0041C353   push 80000004  
+0041C358   push 0  
+0041C35A   push 桌面钢笔.00412FF0  
+0041C35F   push 80000301  
+0041C364   push 0  
+0041C366   push 40  
+0041C36B   push 80000004  
+0041C370   push 0  
+0041C372   push 桌面钢笔.00413001               ; 恭喜你，你已经成功注册此软件  
+0041C377   push 3  
+0041C37C   mov ebx,300  
+0041C381   call 桌面钢笔.0041D199  
+0041C386   add esp,28  
+0041C389   push 10001  
+0041C38E   push 601009C  
+0041C393   push 5201009B  
+0041C398   push 1  
+0041C39D   mov ebx,360  
+0041C3A2   call 桌面钢笔.0041D199  
+0041C3A7   add esp,10  
+0041C3AA   push 0  
+0041C3AC   call 桌面钢笔.0041D169  
+0041C3B1   add esp,4  
+0041C3B4   jmp 桌面钢笔.0041C42A  
+```
+
+### 小结
+
+分三部分采用浮点计算（用十进制）注册码。算完后取十六进制的后 8 位结果为正确码。
+
+- `SN1=2111755623*46398+1111=591D08D98649`，正确码为 `8D98649`（首位 0 不要）
+- `SN2=2111755623*12987+2222=18F1777408EB`，正确码为 `777408EB`
+- `SN3=2111755623*91548+3333=AFE626B8BD45`，正确码为 `26B8BD45`
+
+即注册码为 `8D98649-777408EB-26B8BD45`
+
+`4dd466d0e1e0cc123afbe504da2462ca`
