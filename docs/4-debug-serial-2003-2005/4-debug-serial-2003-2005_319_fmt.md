@@ -1,0 +1,166 @@
+
+# 冰盾滤镜 v3.0
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50571.htm`](https://www.pediy.com/kssd/pediy05/pediy50571.htm)
+
+- **整理日期**：2003.4.10
+- **最新版本**：`3.0`
+- **文件大小**：`175KB`
+- **软件授权**：共享软件
+- **使用平台**：`Win9x/Me/NT/2000/XP`
+- **发布公司**：`Home Page`
+- **软件简介**：使最终用户可以实现对系统中运行的一切垃圾程序窗口和可疑进程得到全面监控，从而达到杜绝非法窗口、垃圾或广告窗口以及黑客程序及病毒进程对计算机系统造成的肆意破坏的目的。
+- **注册申请码**：`560338156`
+- **注册认证码(假码)**：`654321`
+
+## 一、`W32DASM` 中查找出错信息
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+```
+|:0040A72C(C)
+|
+:0040A74A 6A00                        push 00000000
+:0040A74C 6A00                        push 00000000
+```
+
+\* Possible StringData Ref from Data Obj -> `"注册失败!"`
+
+```
+                                |
+:0040A74E 6874054400               push 00440574
+```
+
+向上看，如下
+
+```
+:0040A725 33C7                    xor eax, edi
+:0040A727 83C408                  add esp, 00000008
+:0040A72A 3BC1                    cmp eax, ecx
+:0040A72C 751C                    jne 0040A74A====>关键出错
+:0040A72E 8BCE                    mov ecx, esi
+:0040A730 E82B000000              call 0040A760
+:0040A735 85C0                    test eax, eax
+:0040A737 741F                    je 0040A758
+:0040A739 6A00                    push 00000000
+:0040A73B 6A00                    push 00000000
+```
+
+\* Possible StringData Ref from Data Obj -> `"注册成功!"`
+
+```
+                                |
+:0040A73D 6880054400               push 00440580
+:0040A742 E8212D0200               call 0042D468
+:0040A747 5F                       pop edi
+```
+
+## 二、用 `ollyDbg` 载入，前往 `0040A725` 地址，如下，动态跟踪
+
+```
+0040A700   .  56            PUSH ESI
+0040A701   .  57            PUSH EDI
+0040A702   .  8BF1         MOV ESI,ECX
+0040A704   .  6A 01        PUSH 1
+0040A706   .  E8 1DDD0100  CALL ProcessC.00428428
+0040A70B   .  8B46 5C      MOV EAX,DWORD PTR DS:[ESI+5C]               ;  取注册申请码，入 eax
+0040A70E   .  50            PUSH EAX
+0040A70F   .  E8 7C950000  CALL ProcessC.00413C90                       ;  转换为十六进制，eax=216614EC0（具体请看下面）
+0040A714   .  8BF8         MOV EDI,EAX
+0040A716   .  8B46 60      MOV EAX,DWORD PTR DS:[ESI+60]               ;  取注册认证码，入 eax
+0040A719   .  50            PUSH EAX
+0040A71A   .  E8 71950000  CALL ProcessC.00413C90                       ;  注册认证码转换为十六进制，运算结果返回 eax＝0009FBF1
+0040A71F   .  8B8E 54010000 MOV ECX,DWORD PTR DS:[ESI+154]             ;  ecx 为 AA6D3522
+0040A725   .  33C7         XOR EAX,EDI                                  ;  EAX 与 EDI 异或：EDI 为注册申请码 560338156 的十六进制，EAX 为认证码 654321 的十六进制
+0040A727   .  83C4 08       ADD ESP,8
+0040A72A   .  3BC1         CMP EAX,ECX                                  ;  EAX 与 ECX 比是否相等，ECX＝AA6D3522
+0040A72C     75 1C        JNZ SHORT ProcessC.0040A74A===========>关键跳转
+0040A72E   .  8BCE         MOV ECX,ESI
+0040A730   .  E8 2B000000  CALL ProcessC.0040A760
+```
+
+－－－－－－－－－－－－－－－－－－－－
+
+转换为十六进制子程序
+
+```
+00413C05  /$  53            PUSH EBX
+00413C06  |.  55            PUSH EBP
+00413C07  |.  56            PUSH ESI
+00413C08  |.  57            PUSH EDI
+00413C09  |.  8B7C24 14     MOV EDI,DWORD PTR SS:[ESP+14]              ;  注册码入 edi
+00413C0D  |>  833D B41B4400>/CMP DWORD PTR DS:[441BB4],1
+00413C14  |.  7E 0F         |JLE SHORT ProcessC.00413C25
+00413C16  |.  0FB607        |MOVZX EAX,BYTE PTR DS:[EDI]
+00413C19  |.  6A 08         |PUSH 8
+00413C1B  |.  50            |PUSH EAX
+00413C1C  |.  E8 E53E0000   |CALL ProcessC.00417B06
+00413C21  |.  59            |POP ECX
+00413C22  |.  59            |POP ECX
+00413C23  |.  EB 0F         |JMP SHORT ProcessC.00413C34
+00413C25  |>  0FB607        |MOVZX EAX,BYTE PTR DS:[EDI]               ;  注册码依次入 eax,BYTE
+00413C28  |.  8B0D A8194400 |MOV ECX,DWORD PTR DS:[4419A8]            ;  ProcessC.004419B2
+00413C2E  |.  8A0441        |MOV AL,BYTE PTR DS:[ECX+EAX*2]
+00413C31  |.  83E0 08       |AND EAX,8
+00413C34  |>  85C0          |TEST EAX,EAX
+00413C36  |.  74 03         |JE SHORT ProcessC.00413C3B
+00413C38  |.  47            |INC EDI
+00413C39  |.^ EB D2         \JMP SHORT ProcessC.00413C0D
+00413C3B  |>  0FB637        MOVZX ESI,BYTE PTR DS:[EDI]               ;  注册码第一位入 esiYTE PTR
+00413C3E  |.  47            INC EDI                                     ;  下一位注册码
+00413C3F  |.  83FE 2D       CMP ESI,2D                                  ;  判断注册码是否为"-"
+00413C42  |.  8BEE          MOV EBP,ESI                                 ;  esi 入 ebpE
+00413C44  |.  74 05         JE SHORT ProcessC.00413C4B
+00413C46  |.  83FE 2B       CMP ESI,2B                                  ;  第一位是否为 2BB
+00413C49  |.  75 04         JNZ SHORT ProcessC.00413C4F
+00413C4B  |>  0FB637        MOVZX ESI,BYTE PTR DS:[EDI]
+00413C4E  |.  47            INC EDI
+00413C4F  |>  33DB          XOR EBX,EBX
+00413C51  |>  833D B41B4400>/CMP DWORD PTR DS:[441BB4],1
+00413C58  |.  7E 0C         |JLE SHORT ProcessC.00413C66
+00413C5A  |.  6A 04         |PUSH 4
+00413C5C  |.  56            |PUSH ESI
+00413C5D  |.  E8 A43E0000   |CALL ProcessC.00417B06
+00413C62  |.  59            |POP ECX
+00413C63  |.  59            |POP ECX
+00413C64  |.  EB 0B         |JMP SHORT ProcessC.00413C71
+00413C66  |>  A1 A8194400   |MOV EAX,DWORD PTR DS:[4419A8]
+00413C6B  |.  8A0470        |MOV AL,BYTE PTR DS:[EAX+ESI*2]            ;  AL=84
+00413C6E  |.  83E0 04       |AND EAX,4
+00413C71  |>  85C0          |TEST EAX,EAX
+00413C73  |.  74 0D         |JE SHORT ProcessC.00413C82
+00413C75  |.  8D049B        |LEA EAX,DWORD PTR DS:[EBX+EBX*4]         ;  eax=ebx*5
+00413C78  |.  8D5C46 D0     |LEA EBX,DWORD PTR DS:[ESI+EAX*2-30]      ;  转换为十进制   ebxD PTR
+00413C7C  |.  0FB637        |MOVZX ESI,BYTE PTR DS:[EDI]
+00413C7F  |.  47            |INC EDI
+00413C80  |.^ EB CF         \JMP SHORT ProcessC.00413C51              ;  以上申请码转换为十六进制 ocessC.00413
+00413C82  |>  83FD 2D       CMP EBP,2D
+00413C85  |.  8BC3          MOV EAX,EBX
+00413C87  |.  75 02         JNZ SHORT ProcessC.00413C8B
+00413C89  |.  F7D8          NEG EAX
+00413C8B  |>  5F            POP EDI
+00413C8C  |.  5E            POP ESI
+00413C8D  |.  5D            POP EBP
+00413C8E  |.  5B            POP EBX
+00413C8F  \\.  C3            RETN
+```
+
+－－－－－－－－－－－－－－－－－－－－
+
+总结如下：
+
+申请码与认证码转换为十六进制，然后再异或，结果与 `AA6D3522` 相比是否相等，如相等，则注册成功。
+
+## 三、制作注册机
+
+利用程序本身制作，如下：
+
+在 `0040A725`，把 `eax` 改为第 `0040A71F` 句的 `ECX` 值，本例为 `AA6D3522`，单步运行到 `0040A727` 时，`EAX` 的值即为认证码
+
+整理如下：
+
+- **注册申请码**：`560338156`
+- **注册认证码**：`2332762574`
+
+`lordor`  
+`4.12  4dd466d0e1e0cc123afbe504da2462ca`

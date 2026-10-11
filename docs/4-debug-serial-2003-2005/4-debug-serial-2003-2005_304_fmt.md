@@ -1,0 +1,942 @@
+
+# WinRCAD 2000 公路设计软件
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50618.htm`](https://www.pediy.com/kssd/pediy05/pediy50618.htm)
+
+## 简介
+简单算法——WinRCAD 2000 公路设计软件
+
+## 资源信息
+*   **下载地址**：`http://tongtian.net/pediy/usr/19/19_2315.rar`
+*   **软件大小**：199K
+
+## 详细说明
+*   **软件简介**：公路设计软件解密的二次加密文件。呵呵，zchlb 朋友没说，我不清楚。
+*   **软件限制**：必须注册
+*   **作者声明**：初学 Crack，只是感兴趣，没有其它目的。失误之处敬请诸位大侠赐教！
+*   **破解工具**：`TRW2000` 娃娃修改版、`Ollydbg1.09`、`PEiD`、`W32Dasm` 9.0 白金版
+
+---
+
+## 过程
+
+呵呵，注册画面一现出来就知道我又碰上 Softsentry 壳的东东了。^O^^O^
+
+没想到作者“很怕麻烦”，算法一点都没加难，简直就是用 Softsentry 随便做了一下保护。
+
+用 `TRW` 很容易就找到核心了，呵呵，再用 `Ollydbg` 跟踪吧，比较直观，还可以享受 MP3 呀。^O^^O^
+
+*   **系列号**：95065
+*   **试炼码**：13572468
+
+---
+
+## 汇编代码分析
+
+```
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0046E895(C)
+|
+:0046E8BA 8D442450                lea eax, dword ptr [esp+50]
+:0046E8BE 6A32                    push 00000032
+:0046E8C0 8B4C2418                mov ecx, dword ptr [esp+18]
+:0046E8C4 50                      push eax
+:0046E8C5 6801100000              push 00001001
+:0046E8CA 51                      push ecx
+:0046E8CB FF1538954700            call dword ptr [00479538]
+                                  ==== GetDlgItemTextA  呵呵，很好的断点呀。
+:0046E8D1 6689442410              mov word ptr [esp+10], ax
+:0046E8D6 8D7C2450                lea edi, dword ptr [esp+50]
+                                  ==== EDI=13572468             试炼码
+:0046E8DA B9FFFFFFFF               mov ecx, FFFFFFFF
+:0046E8DF 2BC0                    sub eax, eax
+:0046E8E1 F2                      repnz
+:0046E8E2 AE                      scasb
+:0046E8E3 F7D1                    not ecx
+:0046E8E5 2BF9                    sub edi, ecx
+:0046E8E7 8BD1                    mov edx, ecx
+:0046E8E9 C1E902                 shr ecx, 02
+:0046E8EC 8BF7                    mov esi, edi
+:0046E8EE 8DBC2484000000          lea edi, dword ptr [esp+00000084]
+:0046E8F5 F3                      repz
+:0046E8F6 A5                      movsd
+:0046E8F7 8BCA                    mov ecx, edx
+:0046E8F9 83E103                  and ecx, 00000003
+:0046E8FC F3                      repz
+:0046E8FD A4                      movsb
+:0046E8FE 66C74424120000          mov [esp+12], 0000
+:0046E905 66833D488C470000        cmp word ptr [00478C48], 0000
+:0046E90D 0F8E0F040000            jle 0046ED22
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0046ED1A(C)
+|
+:0046E913 668B5C2410              mov bx, word ptr [esp+10]
+:0046E918 33ED                    xor ebp, ebp
+:0046E91A 8D7C2450                lea edi, dword ptr [esp+50]
+:0046E91E B9FFFFFFFF               mov ecx, FFFFFFFF
+:0046E923 2BC0                    sub eax, eax
+:0046E925 F2                      repnz
+:0046E926 AE                      scasb
+:0046E927 F7D1                    not ecx
+:0046E929 2BF9                    sub edi, ecx
+:0046E92B 8BC1                    mov eax, ecx
+:0046E92D C1E902                 shr ecx, 02
+:0046E930 8BF7                    mov esi, edi
+:0046E932 8D7C241C                lea edi, dword ptr [esp+1C]
+:0046E936 F3                      repz
+:0046E937 A5                      movsd
+:0046E938 8BC8                    mov ecx, eax
+:0046E93A 83E103                  and ecx, 00000003
+:0046E93D F3                      repz
+:0046E93E A4                      movsb
+:0046E93F 0FBF4C2412              movsx ecx, word ptr [esp+12]
+:0046E944 8B354C8C4700            mov esi, dword ptr [00478C4C]
+:0046E94A 894C2418                mov dword ptr [esp+18], ecx
+:0046E94E C1E102                 shl ecx, 02
+:0046E951 8D0449                  lea eax, dword ptr [ecx+2*ecx]
+:0046E954 8D1480                  lea edx, dword ptr [eax+4*eax]
+:0046E957 03F2                    add esi, edx
+:0046E959 668B06                  mov ax, word ptr [esi]
+:0046E95C 66A3388C4700            mov word ptr [00478C38], ax
+:0046E962 8B4E08                  mov ecx, dword ptr [esi+08]
+:0046E965 890D348C4700            mov dword ptr [00478C34], ecx
+:0046E96B 8B7E0C                  mov edi, dword ptr [esi+0C]
+:0046E96E 893D448C4700            mov dword ptr [00478C44], edi
+:0046E974 8B4610                  mov eax, dword ptr [esi+10]
+:0046E977 A3CC8B4700              mov dword ptr [00478BCC], eax
+:0046E97C 66833D388C470001        cmp word ptr [00478C38], 0001
+:0046E984 668B4E14                mov cx, word ptr [esi+14]
+:0046E988 66890D3E8C4700          mov word ptr [00478C3E], cx
+:0046E98F 740E                    je 0046E99F
+:0046E991 66833D388C470002        cmp word ptr [00478C38], 0002
+:0046E999 0F85A4000000            jne 0046EA43
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0046E98F(C)
+|
+:0046E99F BFFC504700              mov edi, 004750FC
+:0046E9A4 B909000000               mov ecx, 00000009
+:0046E9A9 8B7620                  mov esi, dword ptr [esi+20]
+                                  ==== ESI=310                  呵呵，这是 string_1 了！
+:0046E9AC F3                      repz
+:0046E9AD A6                      cmpsb
+:0046E9AE 750C                    jne 0046E9BC
+:0046E9B0 A1E0894700              mov eax, dword ptr [004789E0]
+:0046E9B5 A3C08B4700              mov dword ptr [00478BC0], eax
+:0046E9BA EB32                    jmp 0046E9EE
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0046E9AE(C)
+|
+:0046E9BC A14C8C4700              mov eax, dword ptr [00478C4C]
+:0046E9C1 BFF0504700              mov edi, 004750F0
+:0046E9C6 B909000000               mov ecx, 00000009
+:0046E9CB 8B740220                mov esi, dword ptr [edx+eax+20]
+:0046E9CF F3                      repz
+:0046E9D0 A6                      cmpsb
+:0046E9D1 750C                    jne 0046E9DF
+:0046E9D3 A1E4894700              mov eax, dword ptr [004789E4]
+:0046E9D8 A3C08B4700              mov dword ptr [00478BC0], eax
+:0046E9DD EB0F                    jmp 0046E9EE
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0046E9D1(C)
+|
+:0046E9DF A14C8C4700              mov eax, dword ptr [00478C4C]
+:0046E9E4 8B4C0220                mov ecx, dword ptr [edx+eax+20]
+:0046E9E8 890DC08B4700            mov dword ptr [00478BC0], ecx
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:0046E9BA(U), :0046E9DD(U)
+|
+:0046E9EE A14C8C4700              mov eax, dword ptr [00478C4C]
+:0046E9F3 BFFC504700              mov edi, 004750FC
+:0046E9F8 B909000000               mov ecx, 00000009
+:0046E9FD 8B740224                mov esi, dword ptr [edx+eax+24]
+                                  ==== ESI=228                  呵呵，这是 string_2 了！
+:0046EA01 F3                      repz
+:0046EA02 A6                      cmpsb
+:0046EA03 750C                    jne 0046EA11
+:0046EA05 A1E0894700              mov eax, dword ptr [004789E0]
+:0046EA0A A3C48B4700              mov dword ptr [00478BC4], eax
+:0046EA0F EB32                    jmp 0046EA43
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0046EA03(C)
+|
+:0046EA11 A14C8C4700              mov eax, dword ptr [00478C4C]
+:0046EA16 BFF0504700              mov edi, 004750F0
+:0046EA1B B909000000               mov ecx, 00000009
+:0046EA20 8B740224                mov esi, dword ptr [edx+eax+24]
+:0046EA24 F3                      repz
+:0046EA25 A6                      cmpsb
+:0046EA26 750C                    jne 0046EA34
+:0046EA28 A1E4894700              mov eax, dword ptr [004789E4]
+:0046EA2D A3C48B4700              mov dword ptr [00478BC4], eax
+:0046EA32 EB0F                    jmp 0046EA43
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0046EA26(C)
+|
+:0046EA34 A14C8C4700              mov eax, dword ptr [00478C4C]
+```
+
+
+
+:0046EA39 8B4C0224          mov ecx, dword ptr [edx+eax+24]
+
+:0046EA3D 890DC48B4700      mov dword ptr [00478BC4], ecx
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+`:0046E999(C), :0046EA0F(U), :0046EA32(U)`
+
+:0046EA43 A14C8C4700        mov eax, dword ptr [00478C4C]
+
+:0046EA48 66837C020400      cmp word ptr [edx+eax+04], 0000
+
+:0046EA4E 7555              jne 0046EAA5
+
+:0046EA50 8D4C241C          lea ecx, dword ptr [esp+1C]
+
+:0046EA54 E8A7F9FFFF        call 0046E400
+
+:0046EA59 33C0              xor eax, eax
+
+:0046EA5B 66A1388C4700      mov ax, word ptr [00478C38]
+
+:0046EA61 85C0              test eax, eax
+
+:0046EA63 740C              je 0046EA71
+
+:0046EA65 83F801            cmp eax, 00000001
+
+:0046EA68 7C3B              jl 0046EAA5
+
+:0046EA6A 83F802            cmp eax, 00000002
+
+:0046EA6D 7E0A              jle 0046EA79
+
+:0046EA6F EB34              jmp 0046EAA5
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`:0046EA63(C)`
+
+:0046EA71 8B0D348C4700      mov ecx, dword ptr [00478C34]
+
+:0046EA77 EB27              jmp 0046EAA0
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`:0046EA6D(C)`
+
+:0046EA79 8B0D448C4700      mov ecx, dword ptr [00478C44]
+
+:0046EA7F E87CF9FFFF        call 0046E400
+
+:0046EA84 8B0DCC8B4700      mov ecx, dword ptr [00478BCC]
+
+:0046EA8A E871F9FFFF        call 0046E400
+
+:0046EA8F 8B0DC08B4700      mov ecx, dword ptr [00478BC0]
+
+:0046EA95 E866F9FFFF        call 0046E400
+
+:0046EA9A 8B0DC48B4700      mov ecx, dword ptr [00478BC4]
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`:0046EA77(U)`
+
+:0046EAA0 E85BF9FFFF        call 0046E400
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+`:0046EA4E(C), :0046EA68(C), :0046EA6F(U)`
+
+:0046EAA5 33C0              xor eax, eax
+
+:0046EAA7 66A1388C4700      mov ax, word ptr [00478C38]
+
+:0046EAAD 85C0              test eax, eax
+
+:0046EAAF 7417              je 0046EAC8
+
+:0046EAB1 83F801            cmp eax, 00000001
+
+:0046EAB4 0F8C4B020000      jl 0046ED05
+
+:0046EABA 83F802            cmp eax, 00000002
+
+:0046EABD 0F8E92000000      jle 0046EB55
+
+:0046EAC3 E93D020000        jmp 0046ED05
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`:0046EAAF(C)`
+
+:0046EAC8 A1348C4700        mov eax, dword ptr [00478C34]
+
+:0046EACD 803800            cmp byte ptr [eax], 00
+
+:0046EAD0 7519              jne 0046EAEB
+
+:0046EAD2 8B442418          mov eax, dword ptr [esp+18]
+
+:0046EAD6 8A80A3894700      mov al, byte ptr [eax+004789A3]
+
+:0046EADC 3C01              cmp al, 01
+
+:0046EADE 7404              je 0046EAE4
+
+:0046EAE0 3C02              cmp al, 02
+
+:0046EAE2 7507              jne 0046EAEB
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`:0046EADE(C)`
+
+:0046EAE4 33ED              xor ebp, ebp
+
+:0046EAE6 E91A020000        jmp 0046ED05
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+`:0046EAD0(C), :0046EAE2(C)`
+
+:0046EAEB 8B3D348C4700      mov edi, dword ptr [00478C34]
+
+:0046EAF1 B9FFFFFFFF        mov ecx, FFFFFFFF
+
+:0046EAF6 2BC0              sub eax, eax
+
+:0046EAF8 F2                repnz
+
+:0046EAF9 AE                scasb
+
+:0046EAFA 0FBF442410        movsx eax, word ptr [esp+10]
+
+:0046EAFF F7D1              not ecx
+
+:0046EB01 49                dec ecx
+
+:0046EB02 3BC8              cmp ecx, eax
+
+:0046EB04 7C15              jl 0046EB1B
+
+:0046EB06 8B3D348C4700      mov edi, dword ptr [00478C34]
+
+:0046EB0C B9FFFFFFFF        mov ecx, FFFFFFFF
+
+:0046EB11 2BC0              sub eax, eax
+
+:0046EB13 F2                repnz
+
+:0046EB14 AE                scasb
+
+:0046EB15 F7D1              not ecx
+
+:0046EB17 49                dec ecx
+
+:0046EB18 668BD9            mov bx, cx
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`:0046EB04(C)`
+
+:0046EB1B 6633C9            xor cx, cx
+
+:0046EB1E 6685DB            test bx, bx
+
+:0046EB21 7E1E              jle 0046EB41
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`:0046EB3F(C)`
+
+:0046EB23 8B15348C4700      mov edx, dword ptr [00478C34]
+
+:0046EB29 0FBFC1            movsx eax, cx
+
+:0046EB2C 8A1402            mov dl, byte ptr [edx+eax]
+
+:0046EB2F 80FA3F            cmp dl, 3F
+
+:0046EB32 7406              je 0046EB3A
+
+:0046EB34 3854041C          cmp byte ptr [esp+eax+1C], dl
+
+:0046EB38 7507              jne 0046EB41
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`:0046EB32(C)`
+
+:0046EB3A 6641              inc cx
+
+:0046EB3C 663BCB            cmp cx, bx
+
+:0046EB3F 7CE2              jl 0046EB23
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+`:0046EB21(C), :0046EB38(C)`
+
+:0046EB41 662BCB            sub cx, bx
+
+:0046EB44 BD00000000        mov ebp, 00000000
+
+:0046EB49 6683F901          cmp cx, 0001
+
+:0046EB4D 83D5FF            adc ebp, FFFFFFFF
+
+:0046EB50 E9B0010000        jmp 0046ED05
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`:0046EABD(C)`
+
+:0046EB55 8B3D448C4700      mov edi, dword ptr [00478C44]
+
+:0046EB5B B9FFFFFFFF        mov ecx, FFFFFFFF
+
+:0046EB60 2BC0              sub eax, eax
+
+:0046EB62 F2                repnz
+
+:0046EB63 AE                scasb
+
+:0046EB64 F7D1              not ecx
+
+:0046EB66 49                dec ecx
+
+:0046EB67 6649              dec cx
+
+:0046EB69 6683F9FF          cmp cx, FFFF
+
+:0046EB6D 7426              je 0046EB95
+
+:0046EB6F 6685C9            test cx, cx
+
+:0046EB72 7C1B              jl 0046EB8F
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`:0046EB8D(C)`
+
+:0046EB74 8B15448C4700      mov edx, dword ptr [00478C44]
+
+:0046EB7A 0FBFC1            movsx eax, cx
+
+:0046EB7D 8A1402            mov dl, byte ptr [edx+eax]
+
+:0046EB80 80FA3F            cmp dl, 3F
+
+:0046EB83 7406              je 0046EB8B
+
+:0046EB85 3854041C          cmp byte ptr [esp+eax+1C], dl
+
+:0046EB89 7504              jne 0046EB8F
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`:0046EB83(C)`
+
+:0046EB8B 6649              dec cx
+
+:0046EB8D 79E5              jns 0046EB74
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+`:0046EB72(C), :0046EB89(C)`
+
+:0046EB8F 6683F9FF          cmp cx, FFFF
+
+:0046EB93 7505              jne 0046EB9A
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`:0046EB6D(C)`
+
+:0046EB95 BD01000000        mov ebp, 00000001
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`:0046EB93(C)`
+
+:0046EB9A 8B3DCC8B4700      mov edi, dword ptr [00478BCC]
+
+:0046EBA0 B9FFFFFFFF        mov ecx, FFFFFFFF
+
+:0046EBA5 2BC0              sub eax, eax
+
+:0046EBA7 F2                repnz
+
+:0046EBA8 AE                scasb
+
+:0046EBA9 F7D1              not ecx
+
+:0046EBAB 49                dec ecx
+
+:0046EBAC 8D7C241C          lea edi, dword ptr [esp+1C]
+
+EDI=13572468          试炼码
+
+
+
+```
+:0046EBB0 668BD1                 mov dx, cx
+:0046EBB3 2BC0                   sub eax, eax
+:0046EBB5 B9FFFFFFFF             mov ecx, FFFFFFFF
+:0046EBBA F2                    repnz
+:0046EBBB AE                    scasb
+:0046EBBC F7D1                  not ecx
+:0046EBBE 49                    dec ecx
+:0046EBBF 662BCA                sub cx, dx
+:0046EBC2 6685C9                test cx, cx
+:0046EBC5 7E2F                  jle 0046EBF6
+:0046EBC7 6633F6                xor si, si
+:0046EBCA 6685D2                test dx, dx
+:0046EBCD 7E21                  jle 0046EBF0
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+`|:0046EBEE(C)`
+`|`
+
+```
+:0046EBCF A1CC8B4700            mov eax, dword ptr [00478BCC]
+:0046EBD4 0FBFFE                movsx edi, si
+:0046EBD7 8A0438                mov al, byte ptr [eax+edi]
+:0046EBDA 3C3F                  cmp al, 3F
+:0046EBDC 740B                  je 0046EBE9
+:0046EBDE 0FBFD9                movsx ebx, cx
+:0046EBE1 03DF                  add ebx, edi
+:0046EBE3 38441C1C              cmp byte ptr [esp+ebx+1C], al
+:0046EBE7 7507                  jne 0046EBF0
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+`|:0046EBDC(C)`
+`|`
+
+```
+:0046EBE9 6646                  inc si
+:0046EBEB 663BD6                cmp dx, si
+:0046EBEE 7FDF                  jg 0046EBCF
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+`|:0046EBCD(C), :0046EBE7(C)`
+`|`
+
+```
+:0046EBF0 663BD6                cmp dx, si
+:0046EBF3 7501                  jne 0046EBF6
+:0046EBF5 45                    inc ebp
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+`|:0046EBC5(C), :0046EBF3(C)`
+`|`
+
+```
+:0046EBF6 83FD02                cmp ebp, 00000002
+:0046EBF9 740A                  je 0046EC05
+:0046EBFB BDFEFFFFFF            mov ebp, FFFFFFFE
+:0046EC00 E900010000            jmp 0046ED05
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+`|:0046EBF9(C)`
+`|`
+
+```
+:0046EC05 8B3D448C4700          mov edi, dword ptr [00478C44]
+:0046EC0B B9FFFFFFFF            mov ecx, FFFFFFFF
+:0046EC10 2BC0                  sub eax, eax
+:0046EC12 F2                    repnz
+:0046EC13 AE                    scasb
+:0046EC14 F7D1                  not ecx
+:0046EC16 2BC0                  sub eax, eax
+:0046EC18 8D740C1B              lea esi, dword ptr [esp+ecx+1B]
+:0046EC1C 8BFE                  mov edi, esi
+:0046EC1E B9FFFFFFFF            mov ecx, FFFFFFFF
+:0046EC23 F2                    repnz
+:0046EC24 AE                    scasb
+:0046EC25 F7D1                  not ecx
+:0046EC27 8B3DCC8B4700          mov edi, dword ptr [00478BCC]
+:0046EC2D 2BC0                  sub eax, eax
+:0046EC2F 8D51FF                lea edx, dword ptr [ecx-01]
+:0046EC32 B9FFFFFFFF            mov ecx, FFFFFFFF
+:0046EC37 F2                    repnz
+:0046EC38 AE                    scasb
+:0046EC39 F7D1                  not ecx
+:0046EC3B 49                    dec ecx
+:0046EC3C 8BC6                  mov eax, esi
+:0046EC3E 2BC1                  sub eax, ecx
+:0046EC40 8BCE                  mov ecx, esi
+:0046EC42 C6041000              mov byte ptr [eax+edx], 00
+:0046EC46 E8C54D0000            call 00473A10
+:0046EC4B 85C0                  test eax, eax
+:0046EC4D 750A                  jne 0046EC59
+:0046EC4F BDFDFFFFFF            mov ebp, FFFFFFFD
+:0046EC54 E9AC000000            jmp 0046ED05
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+`|:0046EC4D(C)`
+`|`
+
+```
+:0046EC59 BAE8504700            mov edx, 004750E8
+                                =====>EDX=0604       呵呵，程序自给的！
+
+:0046EC5E 8BCE                  mov ecx, esi
+                                =====>ECX=ESI=13572468       试炼码
+
+:0046EC60 BDFCFFFFFF            mov ebp, FFFFFFFC
+:0046EC65 E8F64D0000            call 00473A60
+                                =====>将 13572468 转化成 16 进制值  EAX=00CF1974
+
+:0046EC6A 66833D388C470001      cmp word ptr [00478C38], 0001
+:0046EC72 8BF0                  mov esi, eax
+                                =====>ESI=EAX=00CF1974（H）=13572468（D）
+
+:0046EC74 7559                  jne 0046ECCF
+:0046EC76 668B3D3E8C4700        mov di, word ptr [00478C3E]
+:0046EC7D 8B15C08B4700          mov edx, dword ptr [00478BC0]
+:0046EC83 66C1EF08              shr di, 08
+:0046EC87 668B0D3E8C4700        mov cx, word ptr [00478C3E]
+:0046EC8E 6681E1FF00            and cx, 00FF
+:0046EC93 E8F8FAFFFF            call 0046E790
+:0046EC98 03F0                  add esi, eax
+:0046EC9A 6685FF                test di, di
+:0046EC9D 750A                  jne 0046ECA9
+:0046EC9F 8B15C48B4700          mov edx, dword ptr [00478BC4]
+:0046ECA5 8BCF                  mov ecx, edi
+:0046ECA7 EB0B                  jmp 0046ECB4
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+`|:0046EC9D(C)`
+`|`
+
+```
+:0046ECA9 668BCF                mov cx, di
+:0046ECAC 8B15C48B4700          mov edx, dword ptr [00478BC4]
+:0046ECB2 6641                  inc cx
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+`|:0046ECA7(U)`
+`|`
+
+```
+:0046ECB4 E8D7FAFFFF            call 0046E790
+:0046ECB9 8BC8                  mov ecx, eax
+:0046ECBB 85C9                  test ecx, ecx
+:0046ECBD 7507                  jne 0046ECC6
+:0046ECBF BDFBFFFFFF            mov ebp, FFFFFFFB
+:0046ECC4 EB36                  jmp 0046ECFC
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+`|:0046ECBD(C)`
+`|`
+
+```
+:0046ECC6 8BC6                  mov eax, esi
+:0046ECC8 99                    cdq
+:0046ECC9 F7F9                  idiv ecx
+:0046ECCB 8BEA                  mov ebp, edx
+:0046ECCD EB2D                  jmp 0046ECFC
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+`|:0046EC74(C)`
+`|`
+
+```
+:0046ECCF 66833D388C470002      cmp word ptr [00478C38], 0002
+:0046ECD7 7523                  jne 0046ECFC
+:0046ECD9 668B153E8C4700        mov dx, word ptr [00478C3E]
+:0046ECE0 A1C48B4700            mov eax, dword ptr [00478BC4]
+                                =====>EAX=228
+:0046ECE5 50                    push eax
+:0046ECE6 8B0DC08B4700          mov ecx, dword ptr [00478BC0]
+                                =====>ECX=310
+:0046ECEC 51                    push ecx
+:0046ECED 8B0DD4894700          mov ecx, dword ptr [004789D4]
+                                =====>ECX=00017359（H）=95605（D）呵呵，系统代码
+:0046ECF3 E828FBFFFF            call 0046E820
+                                =====>算法 CALL！得出下面的 EAX 值。进入！
+:0046ECF8 8BE8                  mov ebp, eax
+                                =====>EBP=EAX=014BCF5C
+:0046ECFA 2BEE                  sub ebp, esi
+                                =====>EBP=014BCF5C（H）=21745500（D）   注册码！
+                                =====>ESI=00CF1974（H）=13572468（D）   试炼码！
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+`|:0046ECC4(U), :0046ECCD(U), :0046ECD7(C)`
+`|`
+
+```
+:0046ECFC 85ED                  test ebp, ebp
+                                =====>相减结果是否为 0？即：上面 2 部分是否相等？
+:0046ECFE 7429                  je 0046ED29
+                                =====>不为 0 则不跳则 OVER！
+:0046ED00 BDFBFFFFFF            mov ebp, FFFFFFFB
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+`|:0046EAB4(C), :0046EAC3(U), :0046EAE6(U), :0046EB50(U), :0046EC00(U)`
+`|:0046EC54(U)`
+`|`
+
+```
+:0046ED05 85ED                  test ebp, ebp
+:0046ED07 7D20                  jge 0046ED29
+:0046ED09 66FF442412            inc [esp+12]
+```
+
+
+
+```assembly
+:0046ED0E 668B442412                 mov ax, word ptr [esp+12]
+
+:0046ED13 663905488C4700            cmp word ptr [00478C48], ax
+
+:0046ED1A 0F8FF3FBFFFF              jg 0046E913
+
+:0046ED20 EB07                       jmp 0046ED29
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0046E90D(C)
+|
+
+:0046ED22 8BAC2484000000            mov ebp, dword ptr [esp+00000084]
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:0046ECFE(C), :0046ED07(C), :0046ED20(U)
+|
+
+:0046ED29 33F6                       xor esi, esi
+:0046ED2B 85ED                       test ebp, ebp
+:0046ED2D 0F8CD5000000              jl 0046EE08
+:0046ED33 668B442412                 mov ax, word ptr [esp+12]
+:0046ED38 663905488C4700            cmp word ptr [00478C48], ax
+:0046ED3F 0F8EC3000000              jle 0046EE08
+:0046ED45 BA01000000                mov edx, 00000001
+:0046ED4A 8B4C2412                  mov ecx, dword ptr [esp+12]
+:0046ED4E E86DF7FFFF                call 0046E4C0
+:0046ED53 85C0                      test eax, eax
+:0046ED55 7476                      je 0046EDCD
+:0046ED57 6810100000                push 00001010
+:0046ED5C 8B1D4C8C4700              mov ebx, dword ptr [00478C4C]
+:0046ED62 0FBF442416                movsx eax, word ptr [esp+16]
+:0046ED67 C1E002                    shl eax, 02
+:0046ED6A 68E0504700                push 004750E0
+:0046ED6F 8D0C40                    lea ecx, dword ptr [eax+2*eax]
+:0046ED72 8D1489                    lea edx, dword ptr [ecx+4*ecx]
+:0046ED75 8B4C241C                  mov ecx, dword ptr [esp+1C]
+:0046ED79 8B441A34                  mov eax, dword ptr [edx+ebx+34]
+:0046ED7D 50                        push eax
+:0046ED7E 51                        push ecx
+:0046ED7F FF154C954700              call dword ptr [0047954C]
+:0046ED85 8B4C2414                  mov ecx, dword ptr [esp+14]
+:0046ED89 6801100000                push 00001001
+:0046ED8E 51                        push ecx
+:0046ED8F FF153C954700              call dword ptr [0047953C]
+:0046ED95 8BC8                      mov ecx, eax
+:0046ED97 E874EBFFFF                call 0046D910
+:0046ED9C 6689356E894700            mov word ptr [0047896E], si
+:0046EDA3 56                        push esi
+:0046EDA4 668935C0514700            mov word ptr [004751C0], si
+:0046EDAB 6802800000                push 00008002
+:0046EDB0 6811010000                push 00000111
+:0046EDB5 8B0D908B4700              mov ecx, dword ptr [00478B90]
+:0046EDBB 51                        push ecx
+:0046EDBC FF155C954700              call dword ptr [0047955C]
+:0046EDC2 5D                        pop ebp
+:0046EDC3 5F                        pop edi
+:0046EDC4 5E                        pop esi
+:0046EDC5 5B                        pop ebx
+:0046EDC6 81C4A8000000              add esp, 000000A8
+:0046EDCC C3                        ret
+
+:0046EE74 FF154C954700              call dword ptr [0047954C]
+
+                             ==== >BAD BOY！
+```
+
+—————————————————————————————————
+
+进入算法 `CALL`：`0046ECF3 call 0046E820`
+
+```
+* Referenced by a CALL at Address:
+|:0046ECF3
+|
+```
+
+```assembly
+:0046E820 53                        push ebx
+:0046E821 56                        push esi
+:0046E822 57                        push edi
+:0046E823 8BD9                      mov ebx, ecx
+
+                             ==== >EBX=ECX=17359    呵呵，系统代码
+
+:0046E825 668BCA                    mov cx, dx
+:0046E828 668BFA                    mov di, dx
+:0046E82B 8B542410                  mov edx, dword ptr [esp+10]
+
+                             ==== >EDX=310
+
+:0046E82F 6681E1FF00                and cx, 00FF
+:0046E834 66C1EF08                  shr di, 08
+:0046E838 E853FFFFFF                call 0046E790
+
+                             ==== >将 310 转化成 16 进制值  EAX=136
+
+:0046E83D 668BCF                    mov cx, di
+:0046E840 8BF0                      mov esi, eax
+
+                             ==== >ESI=EAX=136
+
+:0046E842 6685C9                    test cx, cx
+:0046E845 7517                      jne 0046E85E
+:0046E847 8B542414                  mov edx, dword ptr [esp+14]
+
+                             ==== >EDX=228
+
+:0046E84B E840FFFFFF                call 0046E790
+
+                             ==== >将 228 转化成 16 进制值  EAX=E4
+
+:0046E850 8D0C33                    lea ecx, dword ptr [ebx+esi]
+
+                             ==== >ECX=17359 + 136=1748F
+
+:0046E853 5F                        pop edi
+:0046E854 0FAFC8                    imul ecx, eax
+
+                             ==== >ECX=1748F * E4=014BCF5C
+
+:0046E857 8BC1                      mov eax, ecx
+
+                             ==== >EAX=ECX=014BCF5C
+
+:0046E859 5E                        pop esi
+:0046E85A 5B                        pop ebx
+:0046E85B C20800                    ret 0008
+```
+
+—————————————————————————————————
+
+【算法总结】：
+
+（系列码 `17359` + `136`）\*`E4` 的 `10` 进制值
+
+—————————————————————————————————
+
+【C++ KeyGen】：
+
+```cpp
+#include<iostream.h>
+
+void main()
+{
+unsigned long int m;
+cout<<"★★★★WinRCAD 公路设计软件 KeyGen{10th}★★★★\n\n\n\n";
+cout<<"请输入系列号:";
+cin >>m;
+m+=0X136;
+m*=0XE4;
+cout<<"\n 呵呵，注册码:"<<m<<endl;
+cout<<"\n\n\nCracked By 巢水工作坊——fly [OCN][FCG] 2003-04-21 1:10 COMPILE";
+cout<<"\n\n\n              * * * 按回车退出！* * *";cin.get();cin.get();
+}
+```
+
+—————————————————————————————————
+
+【完美爆破】：
+
+`0046ECFC test ebp, ebp`
+
+改为：`33ED xor ebp, ebp`
+
+—————————————————————————————————
+
+【KeyMake 之{56th}内存注册机】：
+
+中断地址：`0046ECFA`
+
+中断次数：`1`
+
+第一字节：`2B`
+
+指令长度：`2`
+
+寄存器方式：`EBP`
+
+十进制
+
+—————————————————————————————————
+
+【注册信息保存】：
+
+1、注册表中
+
+```registry
+REGEDIT4
+
+[HKEY_CLASSES_ROOT\{vHMU12PzPS}]
+@="NUQ=%!!%!&1!!!!)!-1\"O!$5Q.4)U!!!!!!\"=R1!!>`]S-4=U.45Q-!!!!!!!N!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#!!!!!!!!N!!!!!!!!!.-(\"!!\"!\"5!!!!#!$%!<A!!!!)!!!!!!!!!!07M8Q%!!!!!!!!!.!!!!!!!!!!!!!!!!!!!!"
+```
+
+2、
+
+```registry
+REGEDIT4
+
+[HKEY_CLASSES_ROOT\SystemAppIDs]
+@="N\"!!!!!!!!!\"\\\\<WZ63E&:=T-W?8V\\\\2V\".3'6K17.%-(V\\\\=X.Y6F:D75N8:XV\\\\->EB.64%S5(J15XU!"
+```
+
+3、`C:\WINDOWS\SYSTEM` 下的 `access.ctl` 文件。
+
+如果想重新注册必须把以上 3 处删干净。
+
+—————————————————————————————————
+
+【整理】：
+
+系列号：`95065`
+
+注册码：`21745500`
+
+—————————————————————————————————
+
+,      \_/
+     /| \_.-~/          \_     ,        青春都一饷
+     ( /~   /            \~-._ |\
+     \`\\   /_              \   ~\ )         忍把浮名
+  _-~~~-.)  )\_\_/;;,.          \_  //'
+  /'_,\   --~   \ ~~~-  ,;;\_\_\_(  (.-~~~-.       换了破解轻狂
+\`~ \_( ,\_..\ (     ,;'' /    ~--  /._\`
+ /~~//'   /' \`\\         ) /--..\_, )_  \`~
+ "  \`~"  "       \`"       /~'\`\\    \`\\~~\
+
+                    "     "   "~'  ""
+
+                  Cracked By 巢水工作坊——fly [OCN][FCG]
+
+                           2003-04-21 1:10  4dd466d0e1e0cc123afbe504da2462ca

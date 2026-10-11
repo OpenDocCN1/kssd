@@ -1,0 +1,141 @@
+
+# XDos v1.1
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6795.htm`](https://www.pediy.com/kssd/pediy06/pediy6795.htm)
+
+Software:`XDos v1.1`
+
+[`www.MoreQuick.com/`](http://www.MoreQuick.com/)
+
+`Dos`的外壳程序，可以运行大多数`Dos`命令，也可以运行一些`Windows`程序，它是一个多窗口的程序，可以在`XDos`中使用复制、粘贴等命令
+
+Tools:`TRW 2000`
+
+Cracker:`lq7972[bruceyu13@sina.com]`
+
+Notes:学习 ing～
+
+这是个典型的注册码比较程序，跟踪不难；很适合我等生手练习
+
+用`TRW`载入后，断点`bpx hmemcpy`，再`pmodule`转到程序领空（要记得`bc`清除断点）；大约按 15 次`F15`，按`F10`返回，来到
+
+```
+0167:00401B10 E8B08F0100       CALL     0041AAC5                             用户名
+0167:00401B15 8B4C2408         MOV      ECX,[ESP+08]
+0167:00401B19 8379F801         CMP      DWORD [ECX-08],BYTE +01
+0167:00401B1D 7D0E             JNL      00401B2D
+0167:00401B1F 6AFF             PUSH     BYTE -01
+0167:00401B21 6A00             PUSH     BYTE +00
+0167:00401B23 680BF00000       PUSH     DWORD F00B
+0167:00401B28 E996000000       JMP      00401BC3
+0167:00401B2D 8D542404         LEA      EDX,[ESP+04]
+0167:00401B31 8D4E5C           LEA      ECX,[ESI+5C]
+0167:00401B34 52               PUSH     EDX
+0167:00401B35 E88B8F0100       CALL     0041AAC5                             输入的注册码
+0167:00401B3A 8B442404         MOV      EAX,[ESP+04]
+0167:00401B3E 8378F801         CMP      DWORD [EAX-08],BYTE +01
+0167:00401B42 7E76             JNG      00401BBA
+0167:00401B44 51               PUSH     ECX
+0167:00401B45 8D542408         LEA      EDX,[ESP+08]
+0167:00401B49 8BCC             MOV      ECX,ESP
+0167:00401B4B 89642410         MOV      [ESP+10],ESP
+0167:00401B4F 52               PUSH     EDX
+0167:00401B50 E8C1D00100       CALL     0041EC16
+0167:00401B55 E856FDFFFF       CALL     004018B0                             这里是关键，【跟进】
+0167:00401B5A 83C404           ADD      ESP,BYTE +04
+0167:00401B5D 85C0             TEST     EAX,EAX
+0167:00401B5F 744E             JZ       00401BAF
+
+;【跟进】
+0167:004018B0 6AFF             PUSH     BYTE -01
+0167:004018B2 6858A44300       PUSH     DWORD 0043A458
+0167:004018B7 64A100000000     MOV      EAX,[FS:00]
+0167:004018BD 50               PUSH     EAX
+0167:004018BE 64892500000000   MOV      [FS:00],ESP
+0167:004018C5 83EC38           SUB      ESP,BYTE +38
+0167:004018C8 53               PUSH     EBX
+0167:004018C9 56               PUSH     ESI
+0167:004018CA 33F6             XOR      ESI,ESI                             esi 清零
+0167:004018CC 8D4C2450         LEA      ECX,[ESP+50]
+0167:004018D0 89742448         MOV      [ESP+48],ESI
+0167:004018D4 E804620100       CALL     00417ADD
+0167:004018D9 8D4C2450         LEA      ECX,[ESP+50]
+0167:004018DD E8AF610100       CALL     00417A91                 这个 Call 检查输入的注册码全部是数字吗？
+0167:004018E2 8B442450         MOV      EAX,[ESP+50]                     输入注册码
+0167:004018E6 8B40F8           MOV      EAX,[EAX-08]                         的长度
+0167:004018E9 83F80A           CMP      EAX,BYTE +0A                         等于 10D 吗？
+0167:004018EC 7424             JZ       00401912                         是，一定要跳
+0167:004018EE 8D4C2450         LEA      ECX,[ESP+50]
+0167:004018F2 C7442448FFFFFFFF MOV      DWORD [ESP+48],FFFFFFFF
+0167:004018FA E8A2D50100       CALL     0041EEA1
+0167:004018FF 5E               POP      ESI
+0167:00401900 33C0             XOR      EAX,EAX
+0167:00401902 5B               POP      EBX
+0167:00401903 8B4C2438         MOV      ECX,[ESP+38]
+0167:00401907 64890D00000000   MOV      [FS:00],ECX
+0167:0040190E 83C444           ADD      ESP,BYTE +44
+0167:00401911 C3               RET
+0167:00401912 A11CD64400       MOV      EAX,[0044D61C]                 跳转到了这里
+0167:00401917 57               PUSH     EDI
+0167:00401918 8944240C         MOV      [ESP+0C],EAX
+0167:0040191C 89442410         MOV      [ESP+10],EAX
+0167:00401920 8D4C2414         LEA      ECX,[ESP+14]
+0167:00401924 6A05             PUSH     BYTE +05
+0167:00401926 BB02000000       MOV      EBX,02                         ebx=2，下面用
+0167:0040192B 51               PUSH     ECX
+0167:0040192C 8D4C245C         LEA      ECX,[ESP+5C]
+0167:00401930 885C2454         MOV      [ESP+54],BL
+0167:00401934 E8C55D0100       CALL     004176FE
+                                这个 Call 是把输入的注册码拦腰截断，并且翻转第一部分得 Num1，Num2
+0167:00401939 50               PUSH     EAX
+0167:0040193A 8D4C2410         LEA      ECX,[ESP+10]
+0167:0040193E C644245003       MOV      BYTE [ESP+50],03
+0167:00401943 E892D60100       CALL     0041EFDA
+0167:00401948 8D4C2414         LEA      ECX,[ESP+14]
+0167:0040194C 885C244C         MOV      [ESP+4C],BL
+0167:00401950 E84CD50100       CALL     0041EEA1
+0167:00401955 8D542418         LEA      EDX,[ESP+18]
+0167:00401959 6A05             PUSH     BYTE +05
+0167:0040195B 52               PUSH     EDX
+0167:0040195C 8D4C245C         LEA      ECX,[ESP+5C]
+0167:00401960 E81D5D0100       CALL     00417682
+0167:00401965 50               PUSH     EAX
+0167:00401966 8D4C2414         LEA      ECX,[ESP+14]
+0167:0040196A C644245004       MOV      BYTE [ESP+50],04
+0167:0040196F E866D60100       CALL     0041EFDA
+0167:00401974 8D4C2418         LEA      ECX,[ESP+18]
+0167:00401978 885C244C         MOV      [ESP+4C],BL
+0167:0040197C E820D50100       CALL     0041EEA1
+0167:00401981 8D4C240C         LEA      ECX,[ESP+0C]
+;***********************************************************************把你的眼球转到这里来
+0167:00401985 E8D7D90100       CALL     0041F361
+0167:0040198A 895C241C         MOV      [ESP+1C],EBX               ebx=2，还记得吗？
+0167:0040198E 83CBFF           OR       EBX,BYTE -01
+0167:00401991 33C0             XOR      EAX,EAX
+0167:00401993 C744242006000000 MOV      DWORD [ESP+20],06
+0167:0040199B 89442434         MOV      [ESP+34],EAX
+0167:0040199F C7442424F9FFFFFF MOV      DWORD [ESP+24],FFFFFFF9
+0167:004019A7 89442438         MOV      [ESP+38],EAX
+0167:004019AB C744242804000000 MOV      DWORD [ESP+28],04
+0167:004019B3 8944243C         MOV      [ESP+3C],EAX
+0167:004019B7 895C242C         MOV      [ESP+2C],EBX
+0167:004019BB C744243008000000 MOV      DWORD [ESP+30],08
+0167:004019C3 89442440         MOV      [ESP+40],EAX
+;+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++最后定位在这里
+0167:004019C7 8D7C241C         LEA      EDI,[ESP+1C]               [edi]=2
+;-----------------------------------------------------------------------
+0167:004019CB 8B4C240C         MOV      ECX,[ESP+0C]               Num1
+0167:004019CF 8A17             MOV      DL,[EDI]                   [edi]送 dl
+0167:004019D1 8A040E           MOV      AL,[ESI+ECX]               Num1 第 i 位，(i 从 0 到 4)
+0167:004019D4 02C2             ADD      AL,DL                       al+dl
+0167:004019D6 3C30             CMP      AL,30                        大于/等于 30h 吗？
+0167:004019D8 88442414         MOV      [ESP+14],AL                 (结果存放)
+0167:004019DC 7D06             JNL      004019E4                     是，跳～
+0167:004019DE 040A             ADD      AL,0A                        否，加 0Ah
+0167:004019E0 88442414         MOV      [ESP+14],AL
+0167:004019E4 3C39             CMP      AL,39                        小于/等于 39h 吗？
+0167:004019E6 7E06             JNG      004019EE                     是，跳～
+0167:004019E8 04F6             ADD      AL,F6                        否，加 6Fh
+0167:004019EA 88442414         MOV      [ESP+14],AL
+0167:004019EE 8B542414         MOV      EDX,[ESP+14]               计算结果
+```
