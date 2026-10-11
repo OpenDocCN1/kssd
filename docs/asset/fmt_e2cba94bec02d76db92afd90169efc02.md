@@ -1,0 +1,129 @@
+
+```
+004135D2: 0000                      add byte ptr [eax],al  
+004135D4: 0000                      add byte ptr [eax],al  
+004135D6: 0000                      add byte ptr [eax],al  
+004135D8: 0000                      add byte ptr [eax],al  
+004135DA: 0000                      add byte ptr [eax],al  
+004135DC: 0000                      add byte ptr [eax],al  
+004135DE: 0000                      add byte ptr [eax],al  
+004135E0: 0000                      add byte ptr [eax],al  
+004135E2: 0000                      add byte ptr [eax],al  
+004135E4: 0000                      add byte ptr [eax],al  
+004135E6: 0000                      add byte ptr [eax],al  
+004135E8: 0000                      add byte ptr [eax],al  
+004135EA: 0000                      add byte ptr [eax],al  
+004135EC: 0000                      add byte ptr [eax],al  
+004135EE: 0000                      add byte ptr [eax],al  
+004135F0: 0000                      add byte ptr [eax],al  
+004135F2: 0000                      add byte ptr [eax],al  
+004135F4: 0000                      add byte ptr [eax],al  
+004135F6: 0000                      add byte ptr [eax],al  
+004135F8: 0000                      add byte ptr [eax],al  
+004135FA: 0000                      add byte ptr [eax],al  
+004135FC: 0000                      add byte ptr [eax],al  
+004135FE: 0000                      add byte ptr [eax],al  
+00413600: 0000                      add byte ptr [eax],al  
+00413602: 0000                      add byte ptr [eax],al  
+00413604: 0000                      add byte ptr [eax],al  
+00413606: 0000                      add byte ptr [eax],al  
+00413608: 0000                      add byte ptr [eax],al  
+0041360A: 0000                      add byte ptr [eax],al  
+0041360C: 49                        dec ecx  
+0041360D: 6E                        outsb dx,ds:[esi]  
+0041360E: 7661                      jbe 00413671  
+00413610: 6C                        insb es:[edi],dx  
+00413611: 6964205365726961          imul esp,dword ptr [eax+53],61697265  
+00413619: 6C                        insb es:[edi],dx  
+0041361A: 204E4F                    and byte ptr [esi+4F],cl  
+0041361D: 0000                      add byte ptr [eax],al  
+0041361F: 0000                      add byte ptr [eax],al  
+00413621: 0000                      add byte ptr [eax],al  
+00413623: 0000                      add byte ptr [eax],al  
+00413625: 0000                      add byte ptr [eax],al  
+00413627: 0000                      add byte ptr [eax],al  
+00413629: 0000                      add byte ptr [eax],al  
+0041362B: 0000                      add byte ptr [eax],al  
+0041362D: 0000                      add byte ptr [eax],al  
+0041362F: 0000                      add byte ptr [eax],al  
+00413631: 0000                      add byte ptr [eax],al  
+00413633: 0000                      add byte ptr [eax],al  
+00413635: 0000                      add byte ptr [eax],al  
+00413637: 0000                      add byte ptr [eax],al  
+00413639: 0000                      add byte ptr [eax],al  
+0041363B: 0000                      add byte ptr [eax],al  
+0041363D: 0000                      add byte ptr [eax],al  
+0041363F: 0000                      add byte ptr [eax],al  
+00413641: 0000                      add byte ptr [eax],al  
+00413643: 0000                      add byte ptr [eax],al  
+00413645: 0000                      add byte ptr [eax],al  
+00413647: 0000                      add byte ptr [eax],al  
+00413649: 0000                      add byte ptr [eax],al  
+0041364B: 0000                      add byte ptr [eax],al  
+0041364D: 0000                      add byte ptr [eax],al  
+0041364F: 0000                      add byte ptr [eax],al  
+00413651: 0000                      add byte ptr [eax],al  
+00413653: 0000                      add byte ptr [eax],al  
+00413655: 0000                      add byte ptr [eax],al  
+00413657: 0000                      add byte ptr [eax],al  
+00413659: 0000                      add byte ptr [eax],al  
+0041365B: 0000                      add byte ptr [eax],al  
+0041365D: 0000                      add byte ptr [eax],al  
+0041365F: 0000                      add byte ptr [eax],al  
+00413661: 0000                      add byte ptr [eax],al  
+00413663: 0000                      add byte ptr [eax],al  
+00413665: 0000                      add byte ptr [eax],al  
+00413667: 0000                      add byte ptr [eax],al  
+00413669: 0000                      add byte ptr [eax],al  
+0041366B: 0000                      add byte ptr [eax],al  
+0041366D: 0000                      add byte ptr [eax],al  
+0041366F: 004520                    add byte ptr [ebp+20],al  
+00413672: 0020                      add byte ptr [eax],ah  
+00413674: 0020                      add byte ptr [eax],ah  
+00413676: 2020                      and byte ptr [eax],ah  
+00413678: 4C                        dec esp  
+00413679: 6F                        outsd dx,ds:[esi]  
+0041367A: 61                        popad   
+0041367B: 642020                    and byte ptr fs:[eax],ah  
+0041367E: 20446961                  and byte ptr [ecx+ebp*2+61],al  
+00413682: 6C                        insb es:[edi],dx  
+00413683: 2E646C                    insb es:[edi],dx  
+00413686: 6C                        insb es:[edi],dx  
+00413687: 2020                      and byte ptr [eax],ah  
+00413689: 6661                      popa   
+0041368B: 6C                        insb es:[edi],dx  
+0041368C: 7365                      jnb 004136F3  
+0041368E: 642120                    and dword ptr fs:[eax],esp  
+00413691: 2020                      and byte ptr [eax],ah  
+00413693: 00D0                      add al,dl  
+00413695: 07                        pop es  
+00413696: 0800                      or byte ptr [eax],al  
+00413698: 0400                      add al,00  
+0041369A: 1100                      adc dword ptr [eax],eax  
+0041369C: 0800                      or byte ptr [eax],al  
+0041369E: 3800                      cmp byte ptr [eax],al  
+004136A0: 1900                      sbb dword ptr [eax],eax  
+004136A2: EE                        out dx,al  
+004136A3: 0200                      add al,byte ptr [eax]  
+004136A5: 346C                      xor al,6C  
+004136A7: 0000                      add byte ptr [eax],al  
+004136A9: 0000                      add byte ptr [eax],al  
+004136AB: 0000                      add byte ptr [eax],al  
+004136AD: 60                        pushad   
+004136AE: BB85BA4000                mov ebx,0040BA85  
+004136B3: 03DD                      add ebx,ebp  
+004136B5: 807B0800                  cmp byte ptr [ebx+08],00  
+004136B9: 746D                      jz 00413728  
+004136BB: 8BC3                      mov eax,ebx  
+004136BD: 83C008                    add eax,00000008  
+004136C0: 50                        push eax  
+004136C1: FF9564BF4000              call dword ptr [ebp+0040BF64]  
+004136C7: 89857DBA4000              mov dword ptr [ebp+0040BA7D],eax  
+004136CD: 83F800                    cmp eax,00000000  
+004136D0: 750C                      jnz 004136DE  
+004136D2: C78581BA400000000000      mov dword ptr [ebp+0040BA81],00000000  
+004136DC: EB4A                      jmp 00413728  
+004136DE: 8B33                      mov esi,dword ptr [ebx]  
+004136E0: 8B7B04                    mov edi,dword ptr [ebx+04]  
+004136E3: 03F5                      add esi,ebp  
+```
