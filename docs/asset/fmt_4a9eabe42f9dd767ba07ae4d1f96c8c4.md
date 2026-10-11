@@ -1,0 +1,144 @@
+
+# 远程网络维护系统 V4.5.2 算法分析+vb 注册机
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-131.htm`](https://www.pediy.com/kssd/pediy07/pediy7-131.htm)
+
+【破解作者】 落魄浪子  
+【使用工具】 `FlyOD1.1`  
+【破解平台】 `Win9x`/`NT`/`2000`/`XP`  
+【软件名称】 远程网络维护系统 V4.5.2  
+【下载地址】 华军软件园  
+【加壳方式】 `ASPack 2.001` -> `Alexey Solodovnikov`  
+【破解声明】 我是一只小菜鸟，偶得一点心得，愿与大家分享：）
+
+【破解内容】
+
+软件没有注册时有 100 次的使用限制，注册码不对时有注册错误的提示。软件是一机一码，通过序列号算出注册码。先脱壳，之后用 `OD` 载入注程式 `pcNxeit.exe`，`F9` 运行。找到出错提示字符，向上找看看哪里跳来的，下断。然后点网络设置＝》注册，输入注册名和注册码。点注册，OK，`OD` 断下了。
+
+```
+005336E8   /.  55              push ebp                断在这里
+005336E9   |.  8BEC            mov ebp,esp
+005336EB   |.  33C9            xor ecx,ecx
+005336ED   |.  51              push ecx
+005336EE   |.  51              push ecx
+005336EF   |.  51              push ecx
+005336F0   |.  51              push ecx
+005336F1   |.  51              push ecx
+005336F2   |.  51              push ecx
+005336F3   |.  51              push ecx
+005336F4   |.  53              push ebx
+005336F5   |.  8BD8            mov ebx,eax
+005336F7   |.  33C0            xor eax,eax
+005336F9   |.  55              push ebp
+005336FA   |.  68 EA375300     push pcNxeit\_.005337EA
+005336FF   |.  64:FF30         push dword ptr fs:[eax]
+00533702   |.  64:8920         mov dword ptr fs:[eax],esp
+00533705   |.  8D45 F4         lea eax,dword ptr ss:[ebp-C]
+00533708   |.  E8 2B9CFCFF     call pcNxeit\_.004FD338
+0053370D   |.  8B45 F4         mov eax,dword ptr ss:[ebp-C]
+00533710   |.  8D55 FC         lea edx,dword ptr ss:[ebp-4]
+00533713   |.  E8 445AEDFF     call pcNxeit\_.0040915C
+00533718   |.  8D55 F0         lea edx,dword ptr ss:[ebp-10]
+0053371B   |.  8B83 F8020000  mov eax,dword ptr ds:[ebx+2F8]
+00533721   |.  E8 7E43F1FF     call pcNxeit\_.00447AA4
+00533726   |.  8B45 F0         mov eax,dword ptr ss:[ebp-10]   输入的注册码入 EAX
+00533729   |.  50              push eax
+0053372A   |.  8D55 E8         lea edx,dword ptr ss:[ebp-18]
+0053372D   |.  8B83 F4020000  mov eax,dword ptr ds:[ebx+2F4]
+00533733   |.  E8 6C43F1FF     call pcNxeit\_.00447AA4
+00533738   |.  8B45 E8         mov eax,dword ptr ss:[ebp-18]    注册名入 EAX
+0053373B   |.  8D4D EC         lea ecx,dword ptr ss:[ebp-14]
+0053373E   |.  8B55 FC         mov edx,dword ptr ss:[ebp-4]     序列号入 EDX
+00533741   |.  E8 769AFCFF     call pcNxeit\_.004FD1BC          进入看看
+004FD1BC   /$  55              push ebp  进入后来到这里
+004FD1BD   |.  8BEC            mov ebp,esp
+004FD1BF   |.  83C4 E0         add esp,-20
+004FD1C2   |.  53              push ebx
+004FD1C3   |.  33DB            xor ebx,ebx
+```
+
+------------------略过代码---------------------------------
+
+```
+004FD1E2   |.  8B45 F8         mov eax,dword ptr ss:[ebp-8]    序列号入 EAX
+004FD1E5   |.  E8 767AF0FF     call pcNxeit\_.00404C60
+004FD1EA   |.  33C0            xor eax,eax
+004FD1EC   |.  55              push ebp
+004FD1ED   |.  68 FED24F00     push pcNxeit\_.004FD2FE
+004FD1F2   |.  64:FF30         push dword ptr fs:[eax]
+004FD1F5   |.  64:8920         mov dword ptr fs:[eax],esp
+004FD1F8   |.  33DB            xor ebx,ebx
+004FD1FA   |.  33C0            xor eax,eax
+004FD1FC   |.  8945 E0         mov dword ptr ss:[ebp-20],eax
+004FD1FF   |.  8B45 FC         mov eax,dword ptr ss:[ebp-4]   注册名入 EAX
+004FD202   |.  E8 7178F0FF     call pcNxeit\_.00404A78    取注册名的长度
+004FD207   |.  85C0            test eax,eax
+004FD209   |.  7E 1F           jle short pcNxeit\_.004FD22A
+004FD20B   |.  BA 01000000     mov edx,1
+004FD210   |>  8B4D FC         /mov ecx,dword ptr ss:[ebp-4] 注册名入 ECX
+004FD213   |.  8A4C11 FF       |mov cl,byte ptr ds:[ecx+edx-1]
+004FD217   |.  80F9 7F         |cmp cl,7F
+004FD21A   |.  72 0A           |jb short pcNxeit\_.004FD226 看看是否中文，不是则跳，是则计算
+004FD21C   |.  8B4D FC         |mov ecx,dword ptr ss:[ebp-4]注册名入 ECX
+004FD21F   |.  0FB64C11 FF    |movzx ecx,byte ptr ds:[ecx+edx-1]右取注册名一位的十六进制入 ECX
+004FD224   |.  03D9            |add ebx,ecx   依次右取注册名一位 HEX 累加
+004FD226   |>  42              |inc edx       记数器加一
+004FD227   |.  48              |dec eax       用户名长度减一
+004FD228   |.^ 75 E6           \jnz short pcNxeit\_.004FD210  是否取完，没有则继续
+004FD22A   |>  8B45 F8         mov eax,dword ptr ss:[ebp-8]  序列号入 EAX
+004FD22D   |.  E8 4678F0FF     call pcNxeit\_.00404A78    取序列号的长度
+004FD232   |.  85C0            test eax,eax
+004FD234   |.  7E 20           jle short pcNxeit\_.004FD256
+004FD236   |.  BA 01000000     mov edx,1
+004FD23B   |>  8B4D F8         /mov ecx,dword ptr ss:[ebp-8]    序列号入 ECX
+004FD23E   |.  8A4C11 FF       |mov cl,byte ptr ds:[ecx+edx-1]  依次右取序列号一位的十六进制入 CL
+004FD242   |.  80F9 7F         |cmp cl,7F
+004FD245   |.  73 0B           |jnb short pcNxeit\_.004FD252    看看序列号是否有非法字符
+004FD247   |.  8B4D F8         |mov ecx,dword ptr ss:[ebp-8]  序列号入 ECX
+004FD24A   |.  0FB64C11 FF     |movzx ecx,byte ptr ds:[ecx+edx-1]依次右取序列号一位的十六进制入 ECX
+004FD24F   |.  014D E0         |add dword ptr ss:[ebp-20],ecx  依次右取序列号一位 HEX 累加
+004FD252   |>  42              |inc edx       记数器加一
+004FD253   |.  48              |dec eax       注同码长度减一
+004FD254   |.^ 75 E5           \jnz short pcNxeit\_.004FD23B 是否取完，没有则继续
+004FD256   |>  \81C3 400A0000  add ebx,0A40    用户名的累加结果+0A40
+004FD25C   |.  8D4D F0          lea ecx,dword ptr ss:[ebp-10]
+004FD25F   |.  BA 05000000      mov edx,5       注同码长度
+004FD264   |.  8BC3             mov eax,ebx
+004FD266   |.  E8 71C2F0FF      call pcNxeit\_.004094DC   0A40 前加 0 补足 5 位得到第一组注同码
+004FD26B   |.  81C3 2F090000  add ebx,92F              0A40+92F＝136F
+004FD271   |.  8D4D EC          lea ecx,dword ptr ss:[ebp-14]
+004FD274   |.  BA 05000000      mov edx,5        注同码长度
+004FD279   |.  8BC3             mov eax,ebx
+004FD27B   |.  E8 5CC2F0FF      call pcNxeit\_.004094DC  136F 前加 0 补足 5 位得到第二组注同码
+004FD280   |.  8145 E0 400A0000 add dword ptr ss:[ebp-20],0A40    0A40 与序列号累加的结果相加＝0C5C
+004FD287   |.  8D4D E8          lea ecx,dword ptr ss:[ebp-18]
+004FD28A   |.  BA 05000000      mov edx,5       注同码长度
+004FD28F   |.  8B45 E0          mov eax,dword ptr ss:[ebp-20]
+004FD292   |.  E8 45C2F0FF      call pcNxeit\_.004094DC  0C5C 前加 0 补足 5 位得到第三组注同码
+004FD297   |.  8145 E0 2F090000 add dword ptr ss:[ebp-20],92F 92F+0C5C=158B
+004FD29E   |.  8D4D E4          lea ecx,dword ptr ss:[ebp-1C]
+004FD2A1   |.  BA 05000000      mov edx,5       注同码长度
+004FD2A6   |.  8B45 E0          mov eax,dword ptr ss:[ebp-20]
+004FD2A9   |.  E8 2EC2F0FF      call pcNxeit\_.004094DC  158B 前加 0 补足 5 位得到第四组注同码
+004FD2AE   |.  FF75 F0          push dword ptr ss:[ebp-10] 第一组注册码
+004FD2B1   |.  68 14D34F00      push pcNxeit\_.004FD314    符号“-”
+004FD2B6   |.  FF75 EC          push dword ptr ss:[ebp-14] 第二组注册码
+004FD2B9   |.  68 14D34F00      push pcNxeit\_.004FD314     符号“-”
+004FD2BE   |.  FF75 E8          push dword ptr ss:[ebp-18] 第三组注册码
+004FD2C1   |.  68 14D34F00      push pcNxeit\_.004FD314      符号“-”
+004FD2C6   |.  FF75 E4          push dword ptr ss:[ebp-1C]  第四组注册码
+004FD2C9   |.  8B45 F4          mov eax,dword ptr ss:[ebp-C]
+004FD2CC   |.  BA 07000000      mov edx,7
+004FD2D1   |.  E8 6278F0FF      call pcNxeit\_.00404B38  把注册码用“-”连起来
+004FD2D6   |.  33C0             xor eax,eax
+004FD2D8   |.  5A               pop edx
+004FD2D9   |.  59               pop ecx
+004FD2DA   |.  59               pop ecx
+004FD2DB   |.  64:8910          mov dword ptr fs:[eax],edx
+004FD2DE   |.  68 05D34F00      push pcNxeit\_.004FD305
+004FD2E3   |>  8D45 E4          lea eax,dword ptr ss:[ebp-1C]
+004FD2E6   |.  BA 04000000      mov edx,4
+004FD2EB   |.  E8 F474F0FF      call pcNxeit\_.004047E4
+004FD2F0   |.  8D45 F8          lea eax,dword ptr ss:[ebp-8]
+004FD2F3   |.  BA 02000000      mov edx,2
+```

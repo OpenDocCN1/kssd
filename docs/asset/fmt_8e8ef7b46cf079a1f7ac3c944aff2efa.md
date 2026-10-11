@@ -1,0 +1,248 @@
+
+```
+00472B1A   |.  8955 FC        mov [local.1],edx  
+
+00472B1D   |.  8BD8           mov ebx,eax  
+
+00472B1F   |.  8B45 FC        mov eax,[local.1]  
+
+00472B22   |.  E8 D119F9FF    call Unpacked.004044F8  
+
+00472B27   |.  8B45 F8        mov eax,[local.2]  
+
+00472B2A   |.  E8 C919F9FF    call Unpacked.004044F8  
+
+00472B2F   |.  8B45 08        mov eax,[arg.1]  
+
+00472B32   |.  E8 C119F9FF    call Unpacked.004044F8  
+
+00472B37   |.  33C0           xor eax,eax  
+
+00472B39   |.  55             push ebp  
+
+00472B3A   |.  68 F22B4700    push Unpacked.00472BF2  
+
+00472B3F   |.  64:FF30        push dword ptr fs:[eax]  
+
+00472B42   |.  64:8920        mov dword ptr fs:[eax],esp  
+
+00472B45   |.  8B45 FC        mov eax,[local.1]                           ;  注册名  
+
+00472B48   |.  E8 BB17F9FF    call Unpacked.00404308                     ;  System.@LStrLen(String):Integer;  
+
+00472B4D   |.  3B43 4C        cmp eax,dword ptr ds:[ebx+4C]             ;  64  
+
+00472B50   |.  7F 19          jg short Unpacked.00472B6B                 ;  注册名长度不能>64  
+
+00472B52   |.  8B45 FC        mov eax,[local.1]                           ;  注册名  
+
+00472B55   |.  E8 AE17F9FF    call Unpacked.00404308                     ;  System.@LStrLen(String):Integer;  
+
+00472B5A   |.  3B43 50        cmp eax,dword ptr ds:[ebx+50]             ;  3  
+
+00472B5D   |.  7C 0C          jl short Unpacked.00472B6B                 ;  注册名长度不能<3  
+
+00472B5F   |.  8B45 08        mov eax,[arg.1]                             ;  试炼码  
+
+00472B62   |.  E8 A117F9FF    call Unpacked.00404308                     ;  System.@LStrLen(String):Integer;  
+
+00472B67   |.  85C0           test eax,eax  
+
+00472B69   |.  75 04          jnz short Unpacked.00472B6F                ;  试炼码长度不能为 0  
+
+00472B6B   |>  33DB           xor ebx,ebx  
+
+00472B6D   |.  EB 60          jmp short Unpacked.00472BCF  
+
+00472B6F   |>  8D55 F4        lea edx,[local.3]  
+
+00472B72   |.  8B45 08        mov eax,[arg.1]                             ;  试炼码  
+
+00472B75   |.  E8 A654F9FF    call Unpacked.00408020                     ;  转大写 UpperCase():AnsiString;  
+
+00472B7A   |.  8B55 F4        mov edx,[local.3]                           ;  UpperCase(试炼码)  
+
+00472B7D   |.  8D45 08        lea eax,[arg.1]  
+
+00472B80   |.  E8 5B15F9FF    call Unpacked.004040E0  
+
+00472B85   |.  8D4D F0        lea ecx,[local.4]  
+
+00472B88   |.  8B55 FC        mov edx,[local.1]                           ;  注册名  
+
+00472B8B   |.  8BC3           mov eax,ebx  
+
+00472B8D   |.  E8 46FBFFFF    call Unpacked.004726D8                     ;  重要函数  
+
+00472B92   |.  8B45 F0        mov eax,[local.4]                           ;  注册码  
+
+00472B95   |.  8B55 08        mov edx,[arg.1]                             ;  试炼码  
+
+00472B98   |.  E8 FB54F9FF    call Unpacked.00408098                     ;  比较 CompareStr():Integer;  
+
+00472B9D   |.  85C0           test eax,eax  
+
+00472B9F   |.  74 04          je short Unpacked.00472BA5                 ;  明码比较,内存注册机或爆破点  
+
+00472BA1   |.  33DB           xor ebx,ebx  
+
+00472BA3   |.  EB 2A          jmp short Unpacked.00472BCF  
+
+00472BA5   |>  8D43 48        lea eax,dword ptr ds:[ebx+48]  
+
+00472BA8   |.  8B55 FC        mov edx,[local.1]  
+
+00472BAB   |.  E8 EC14F9FF    call Unpacked.0040409C  
+
+00472BB0   |.  8D43 54        lea eax,dword ptr ds:[ebx+54]  
+
+00472BB3   |.  8B55 F8        mov edx,[local.2]  
+
+00472BB6   |.  E8 E114F9FF    call Unpacked.0040409C  
+
+00472BBB   |.  8D43 5C        lea eax,dword ptr ds:[ebx+5C]  
+
+00472BBE   |.  8B55 08        mov edx,[arg.1]  
+
+00472BC1   |.  E8 D614F9FF    call Unpacked.0040409C  
+
+00472BC6   |.  8BC3           mov eax,ebx  
+
+00472BC8   |.  E8 5B020000    call Unpacked.00472E28  
+
+00472BCD   |.  B3 01          mov bl,1                                    ;  标志  
+
+00472BCF   |>  33C0           xor eax,eax  
+
+00472BD1   |.  5A             pop edx  
+
+00472BD2   |.  59             pop ecx  
+
+00472BD3   |.  59             pop ecx  
+
+00472BD4   |.  64:8910        mov dword ptr fs:[eax],edx  
+
+00472BD7   |.  68 F92B4700    push Unpacked.00472BF9  
+
+00472BDC   |>  8D45 F0        lea eax,[local.4]  
+
+00472BDF   |.  BA 04000000    mov edx,4  
+
+00472BE4   |.  E8 8314F9FF    call Unpacked.0040406C  
+
+00472BE9   |.  8D45 08        lea eax,[arg.1]  
+
+00472BEC   |.  E8 5714F9FF    call Unpacked.00404048  
+
+00472BF1   \\.  C3             retn  
+
+00472BF2     .^ E9 550EF9FF   jmp Unpacked.00403A4C  
+
+00472BF7     .^ EB E3          jmp short Unpacked.00472BDC  
+
+00472BF9      .  8BC3          mov eax,ebx  
+
+00472BFB      .  5B             pop ebx  
+
+00472BFC      .  8BE5          mov esp,ebp  
+
+00472BFE      .  5D             pop ebp  
+
+00472BFF      .  C2 0400        retn 4  
+```
+
+明码比较，我喜欢，继续跟进关键函数 `00472B8D   |.  E8 46FBFFFF    call Unpacked.004726D8`：
+
+\-------------------------------------------------------------------------------------------------------------------------
+
+```
+004726D8   /$  55             push ebp  
+
+004726D9   |.  8BEC           mov ebp,esp  
+
+004726DB   |.  51             push ecx  
+
+004726DC   |.  B9 04000000    mov ecx,4  
+
+004726E1   |>  6A 00          /push 0  
+
+004726E3   |.  6A 00          |push 0  
+
+004726E5   |.  49             |dec ecx  
+
+004726E6   |.^ 75 F9          \jnz short Unpacked.004726E1  
+
+004726E8   |.  874D FC        xchg [local.1],ecx  
+
+004726EB   |.  53             push ebx  
+
+004726EC   |.  56             push esi  
+
+004726ED   |.  57             push edi  
+
+004726EE   |.  8BF9           mov edi,ecx  
+
+004726F0   |.  8955 FC        mov [local.1],edx                           ;  注册名  
+
+004726F3   |.  8BF0           mov esi,eax  
+
+004726F5   |.  8B45 FC        mov eax,[local.1]  
+
+004726F8   |.  E8 FB1DF9FF    call Unpacked.004044F8  
+
+004726FD   |.  33C0           xor eax,eax  
+
+004726FF   |.  55             push ebp  
+
+00472700   |.  68 78284700    push Unpacked.00472878  
+
+00472705   |.  64:FF30        push dword ptr fs:[eax]  
+
+00472708   |.  64:8920        mov dword ptr fs:[eax],esp  
+
+0047270B   |.  8D55 DC        lea edx,[local.9]  
+
+0047270E   |.  8BC6           mov eax,esi  
+
+00472710   |.  E8 430F0000    call Unpacked.00473658                     ;  产生机器码,没必要分析  
+
+00472715   |.  8B45 DC        mov eax,[local.9]                           ;  机器码  
+
+00472718   |.  8D55 EC        lea edx,[local.5]  
+
+0047271B   |.  E8 505BF9FF    call Unpacked.00408270                     ;  SysUtils.Trim(AnsiString);  
+
+00472720   |.  837D EC 00     cmp [local.5],0  
+
+00472724   |.  75 0D          jnz short Unpacked.00472733                ;  机器码不为空  
+
+00472726   |.  8D45 E0        lea eax,[local.8]  
+
+00472729   |.  8B55 FC        mov edx,[local.1]  
+
+0047272C   |.  E8 AF19F9FF    call Unpacked.004040E0  
+
+00472731   |.  EB 5D          jmp short Unpacked.00472790  
+
+00472733   |>  8B45 EC        mov eax,[local.5]                           ;  机器码  
+
+00472736   |.  E8 CD1BF9FF    call Unpacked.00404308                     ;  Length(机器码)  
+
+0047273B   |.  8BD8           mov ebx,eax                                 ;  长度  
+
+0047273D   |.  8D45 E8        lea eax,[local.6]  
+
+00472740   |.  50             push eax  
+
+00472741   |.  8BCB           mov ecx,ebx                                 ;  EBX=机器码长度,记为 M  
+
+00472743   |.  D1F9           sar ecx,1                                   ;  M/2  
+
+00472745   |.  79 03          jns short Unpacked.0047274A  
+
+00472747   |.  83D1 00        adc ecx,0  
+
+0047274A   |>  BA 01000000    mov edx,1                                   ;  1  
+
+0047274F   |.  8B45 EC        mov eax,[local.5]                           ;  机器码  
+```
