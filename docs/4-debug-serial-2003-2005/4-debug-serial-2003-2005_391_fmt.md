@@ -1,0 +1,1210 @@
+
+# 呼吸主页秀
+
+> 原文：`www.pediy.com/kssd/pediy06/pediy6105.htm`
+
+软件大小： 1213 KB
+
+软件语言： 简体中文
+
+软件类别： 国产软件 / 共享版 / 网页辅助
+
+应用平台： `Win9x/NT/2000/XP`
+
+加入时间： 2002-02-05 15:34:44
+
+下载次数： 27068
+
+推荐等级： \*\*\*\*
+
+软件下载：`http://count.skycn.com/softdown.php?id=960&url=http://js\-http.skycn.net/down/okayle32.exe`
+
+## 软件介绍
+
+呼吸『OK 了！』主页秀是呼吸小秘——主页特效篇 1.2 版的升级版本。软件在呼吸小秘书主页特效篇基础上作了较大改动，增加了大量的特效代码，改变了其原有的设计风格，具有独特的窗口预览功能，无需使用 `IE` 进行特效预览（部分特效受窗口设计的限制仍然使用 `IE` 观看）。软件继承原有风格，简单易用，不需要太多的网页知识便能轻松上手，软件内置代码编辑器，能将代码轻松的插入 `htm` 文件中。软件中每一个插件都具有相应的提示信息，使操作者使用更加方便。除特效生成外还有网页颜色捕获工具、软件特效代码智能升级、自制插件代码管理、免费计数器、留言本申请等。
+
+## 破解工具
+
+`TRW2000`, `Windows` 自带计算器
+
+## 作者声明
+
+初学破解，仅作学习交流之用，失误之处敬请大侠赐教
+
+`Delphi` 编写，无壳。
+
+填入用户名: `ShenGe` 和注册码: `52093241386514845512`, 用 `S` 大法定位，来到如下代码：
+
+```
+0167:004AB72A  CALL     0042FCE8
+                       <--取输入的假码
+0167:004AB72F  MOV      EAX,[EBP-0C]
+                       <--EAX="52093241386514845512"
+0167:004AB732  CALL     00403F10
+                       <--取假码的长度
+0167:004AB737  CMP      EAX,BYTE +14
+                       <--比较假码是否为 20 位
+0167:004AB73A  JNZ      NEAR 004ABCB2
+0167:004AB740  LEA      EDX,[EBP-10]
+0167:004AB743  MOV      EAX,[EBX+0300]
+0167:004AB749  CALL     0042FCE8
+                       <--取用户名
+0167:004AB74E  MOV      EAX,[EBP-10]
+                       <--EAX=ShenGeAA
+0167:004AB751  CALL     00403F10
+0167:004AB756  TEST     EAX,EAX
+                       <--判断有无输入用户名
+0167:004AB758  JNG      NEAR 004ABCB2
+0167:004AB75E  LEA      EAX,[EBP-04]
+0167:004AB761  PUSH     EAX
+0167:004AB762  LEA      EDX,[EBP-18]
+0167:004AB765  MOV      EAX,[EBX+0300]
+0167:004AB76B  CALL     0042FCE8
+0167:004AB770  MOV      EAX,[EBP-18]
+0167:004AB773  LEA      EDX,[EBP-14]
+0167:004AB776  CALL     0040890C
+0167:004AB77B  LEA      EAX,[EBP-14]
+0167:004AB77E  MOV      EDX,004ABD50
+                       <--004ABD50 中的值在内存单元中为
+                        20 20 20 20 20 20 20 20
+0167:004AB783  CALL     00403F18
+0167:004AB788  MOV      EAX,[EBP-14]
+0167:004AB78B  MOV      ECX,08
+0167:004AB790  MOV      EDX,01
+0167:004AB795  CALL     00404118
+0167:004AB79A  LEA      EAX,[EBP-08]
+                       <--此时 EAX 在内存单元中的值为
+                       53 68 65 6E 47 65 20 20
+0167:004AB79D  PUSH     EAX
+0167:004AB79E  LEA      EDX,[EBP-1C]
+0167:004AB7A1  MOV      EAX,[EBX+0310]
+0167:004AB7A7  CALL     0042FCE8
+0167:004AB7AC  MOV      EAX,[EBP-1C]
+                       <--EAX="52093241386514845512"
+0167:004AB7AF  PUSH     EAX
+0167:004AB7B0  LEA      EAX,[EBP-20]
+0167:004AB7B3  MOV      ECX,[004B7FA4]
+                       <--ECX="7558"
+0167:004AB7B9  MOV      EDX,[EBP-04]
+                       <--EDX="ShenGe"
+0167:004AB7BC  CALL     00403F5C
+                       <--字符串连接
+0167:004AB7C1  MOV      EDX,[EBP-20]
+                       <--EDX="ShenGe  7558"
+0167:004AB7C4  XOR      ECX,ECX
+0167:004AB7C6  POP      EAX
+                       <--EAX="52093241386514845512"
+0167:004AB7C7  CALL     0049FAC0
+                       <--关键的 Call,跟进
+0167:004AB7CC  MOV      EAX,004B7FE4
+0167:004AB7D1  MOV      EDX,[EBP-08]
+0167:004AB7D4  CALL     00403CE4
+---------------------------------------------------
+0167:004AB7D9  LEA      EAX,[EBP-24]
+0167:004AB7DC  PUSH     EAX
+0167:004AB7DD  MOV      ECX,06
+0167:004AB7E2  MOV      EDX,01
+0167:004AB7E7  MOV      EAX,[004B7FE4]
+                       <--EAX 中为用户名与注册码运算的值,
+                       上面那个关键 Call 中[EBP-18]中的值
+                       我得到的为:(内存中)
+                       08 51 F1 15 E9 0C 90 F0 CF
+0167:004AB7EC  CALL     00404118
+0167:004AB7F1  MOV      EAX,[EBP-24]
+                       <--即从上个 Call 得到的字中自
+                       第 1 个位置取 6 个字节到 EAX 中，我得到的为
+                       08 51 F1 15 E9 0C
+0167:004AB7F4  MOV      EDX,[004B7FA8]
+                       <--EDX="161863"
+0167:004AB7FA  CALL     00404020
+                       <--比较是否相等
+0167:004AB7FF  JNZ      NEAR 004ABCB2
+--------------------------------------------
+这段程序功能详见上面跟进那个关键 Call 中注释，不再啰嗦了!
+
+0167:004AB805  LEA      EAX,[EBP-28]
+0167:004AB808  PUSH     EAX
+0167:004AB809  MOV      ECX,06
+0167:004AB80E  MOV      EDX,01
+0167:004AB813  MOV      EAX,[004B7FE4]
+0167:004AB818  CALL     00404118
+0167:004AB81D  MOV      EAX,[EBP-28]
+0167:004AB820  MOV      EDX,[004B7FA8]
+0167:004AB826  CALL     00404020
+0167:004AB82B  JNZ      004AB844
+--------------------------------------------
+0167:004AB82D  PUSH     DWORD 004B7FB0
+0167:004AB832  MOV      ECX,03
+0167:004AB837  MOV      EDX,07
+0167:004AB83C  MOV      EAX,[EBP-08]
+0167:004AB83F  CALL     00404118
+0167:004AB844  LEA      EAX,[EBP-2C]
+0167:004AB847  PUSH     EAX
+0167:004AB848  MOV      ECX,06
+0167:004AB84D  MOV      EDX,01
+0167:004AB852  MOV      EAX,[004B7FE4]
+0167:004AB857  CALL     00404118
+0167:004AB85C  MOV      EAX,[EBP-2C]
+0167:004AB85F  MOV      EDX,[004B7FA8]
+0167:004AB865  CALL     00404020
+0167:004AB86A  JNZ      004AB891
+-----------------------------------------
+0167:004AB86C  PUSH     DWORD 004B7FB4
+0167:004AB871  LEA      EDX,[EBP-30]
+0167:004AB874  MOV      EAX,[EBX+0310]
+0167:004AB87A  CALL     0042FCE8
+0167:004AB87F  MOV      EAX,[EBP-30]
+0167:004AB882  MOV      ECX,04
+0167:004AB887  MOV      EDX,01
+0167:004AB88C  CALL     00404118
+0167:004AB891  LEA      EAX,[EBP-34]
+0167:004AB894  PUSH     EAX
+0167:004AB895  MOV      ECX,06
+0167:004AB89A  MOV      EDX,01
+0167:004AB89F  MOV      EAX,[004B7FE4]
+0167:004AB89A  MOV      EDX,01
+0167:004AB89F  MOV      EAX,[004B7FE4]
+0167:004AB8A4  CALL     00404118
+0167:004AB8A9  MOV      EAX,[EBP-34]
+0167:004AB8AC  MOV      EDX,[004B7FA8]
+0167:004AB8B2  CALL     00404020
+0167:004AB8B7  JNZ      004AB8C0
+-----------------------------------------------
+0167:004AB8B9  MOV      BYTE [004B7FA1],01
+                       <--[004B7FA1]=01,置已注册成功标志?
+0167:004AB8C0  LEA      EAX,[EBP-38]
+0167:004AB8C3  PUSH     EAX
+0167:004AB8C4  MOV      ECX,06
+0167:004AB8C9  MOV      EDX,01
+0167:004AB8CE  MOV      EAX,[004B7FE4]
+0167:004AB8D3  CALL     00404118
+0167:004AB8D8  MOV      EAX,[EBP-38]
+0167:004AB8DB  MOV      EDX,[004B7FA8]
+0167:004AB8E1  CALL     00404020
+0167:004AB8E6  JNZ      004AB8F6
+------------------------------------------------
+0167:004AB8E8  MOV      EAX,[EBX+031C]
+0167:004AB8EE  MOV      EDX,[EAX]
+0167:004AB8F0  CALL     NEAR [EDX+CC]
+0167:004AB8F6  LEA      EAX,[EBP-3C]
+0167:004AB8F9  PUSH     EAX
+0167:004AB8FA  MOV      ECX,06
+0167:004AB8FF  MOV      EDX,01
+0167:004AB904  MOV      EAX,[004B7FE4]
+0167:004AB909  CALL     00404118
+0167:004AB90E  MOV      EAX,[EBP-3C]
+0167:004AB911  MOV      EDX,[004B7FA8]
+0167:004AB917  CALL     00404020
+0167:004AB91C  JNZ      004AB934
+------------------------------------------------
+0167:004AB91E  MOV      EAX,[EBX+031C]
+0167:004AB924  MOV      EAX,[EAX+0208]
+0167:004AB92A  MOV      EDX,004ABD64
+0167:004AB92F  MOV      ECX,[EAX]
+0167:004AB931  CALL     NEAR [ECX+34]
+0167:004AB934  LEA      EAX,[EBP-40]
+0167:004AB937  PUSH     EAX
+0167:004AB938  MOV      ECX,06
+0167:004AB93D  MOV      EDX,01
+0167:004AB942  MOV      EAX,[004B7FE4]
+0167:004AB947  CALL     00404118
+0167:004AB94C  MOV      EAX,[EBP-40]
+0167:004AB94F  MOV      EDX,[004B7FA8]
+0167:004AB955  CALL     00404020
+0167:004AB95A  JNZ      004AB970
+------------------------------------------------
+0167:004AB95C  MOV      EAX,[EBX+031C]
+```
+
+
+
+```asm
+0167:004AB962  MOV      EAX,[EAX+0208]  
+
+0167:004AB968  MOV      EDX,[EBP-04]  
+
+0167:004AB96B  MOV      ECX,[EAX]  
+
+0167:004AB96D  CALL     NEAR [ECX+34]  
+
+0167:004AB970  LEA      EAX,[EBP-44]  
+
+0167:004AB973  PUSH     EAX  
+
+0167:004AB974  MOV      ECX,06  
+
+0167:004AB979  MOV      EDX,01  
+
+0167:004AB97E  MOV      EAX,[004B7FE4]  
+
+0167:004AB983  CALL     00404118  
+
+0167:004AB988  MOV      EAX,[EBP-44]  
+
+0167:004AB98B  MOV      EDX,[004B7FA8]  
+
+0167:004AB991  CALL     00404020  
+
+0167:004AB996  JNZ      004AB9BA  
+
+----------------------------------------------  
+
+0167:004AB998  LEA      EDX,[EBP-48]  
+
+0167:004AB99B  MOV      EAX,[EBX+0304]  
+
+0167:004AB9A1  CALL     0042FCE8  
+
+0167:004AB9A6  MOV      EDX,[EBP-48]  
+
+0167:004AB9A9  MOV      EAX,[EBX+031C]  
+
+0167:004AB9AF  MOV      EAX,[EAX+0208]  
+
+0167:004AB9B5  MOV      ECX,[EAX]  
+
+0167:004AB9B7  CALL     NEAR [ECX+34]  
+
+0167:004AB9BA  LEA      EAX,[EBP-4C]  
+
+0167:004AB9BD  PUSH     EAX  
+
+0167:004AB9BE  MOV      ECX,06  
+
+0167:004AB9C3  MOV      EDX,01  
+
+0167:004AB9C8  MOV      EAX,[004B7FE4]  
+
+0167:004AB9CD  CALL     00404118  
+
+0167:004AB9D2  MOV      EAX,[EBP-4C]  
+
+0167:004AB9D5  MOV      EDX,[004B7FA8]  
+
+0167:004AB9DB  CALL     00404020  
+
+0167:004AB9E0  JNZ      004ABA04  
+
+---------------------------------------------  
+
+0167:004AB9E2  LEA      EDX,[EBP-50]  
+
+0167:004AB9E5  MOV      EAX,[EBX+0310]  
+
+0167:004AB9EB  CALL     0042FCE8  
+
+0167:004AB9F0  MOV      EDX,[EBP-50]  
+
+0167:004AB9F3  MOV      EAX,[EBX+031C]  
+
+0167:004AB9F9  MOV      EAX,[EAX+0208]  
+
+0167:004AB9FF  MOV      ECX,[EAX]  
+
+0167:004ABA01  CALL     NEAR [ECX+34]  
+
+0167:004ABA04  LEA      EAX,[EBP-54]  
+
+0167:004ABA07  PUSH     EAX  
+
+0167:004ABA08  MOV      ECX,06  
+
+0167:004ABA0D  MOV      EDX,01  
+
+0167:004ABA12  MOV      EAX,[004B7FE4]  
+
+0167:004ABA17  CALL     00404118  
+
+0167:004ABA1C  MOV      EAX,[EBP-54]  
+
+0167:004ABA1F  MOV      EDX,[004B7FA8]  
+
+0167:004ABA25  CALL     00404020  
+
+0167:004ABA2A  JNZ      004ABA55  
+
+--------------------------------------------  
+
+0167:004ABA2C  MOV      EAX,[EBX+031C]  
+
+0167:004ABA32  PUSH     EAX  
+
+0167:004ABA33  LEA      EAX,[EBP-58]  
+
+0167:004ABA36  MOV      ECX,004ABD80  
+
+0167:004ABA3B  MOV      EDX,[EBX+080C]  
+
+0167:004ABA41  CALL     00403F5C  
+
+0167:004ABA46  MOV      ECX,[EBP-58]  
+
+0167:004ABA49  MOV      EDX,004ABD94  
+
+0167:004ABA4E  MOV      EAX,EBX  
+
+0167:004ABA50  CALL     004A5B28  
+
+0167:004ABA55  LEA      EAX,[EBP-5C]  
+
+0167:004ABA58  PUSH     EAX  
+
+0167:004ABA59  MOV      ECX,06  
+
+0167:004ABA5E  MOV      EDX,01  
+
+0167:004ABA63  MOV      EAX,[004B7FE4]  
+
+0167:004ABA68  CALL     00404118  
+
+0167:004ABA6D  MOV      EAX,[EBP-5C]  
+
+0167:004ABA70  MOV      EDX,[004B7FA8]  
+
+0167:004ABA76  CALL     00404020  
+
+0167:004ABA7B  JNZ      004ABA8A  
+
+-----------------------------------------------  
+
+0167:004ABA7D  XOR      EDX,EDX  
+
+0167:004ABA7F  MOV      EAX,[EBX+02E8]  
+
+0167:004ABA85  CALL     0042FC00  
+
+0167:004ABA8A  LEA      EAX,[EBP-60]  
+
+0167:004ABA8D  PUSH     EAX  
+
+0167:004ABA8E  MOV      ECX,06  
+
+0167:004ABA93  MOV      EDX,01  
+
+0167:004ABA98  MOV      EAX,[004B7FE4]  
+
+0167:004ABA9D  CALL     00404118  
+
+0167:004ABAA2  MOV      EAX,[EBP-60]  
+
+0167:004ABAA5  MOV      EDX,[004B7FA8]  
+
+0167:004ABAAB  CALL     00404020  
+
+0167:004ABAB0  JNZ      004ABABF  
+
+-----------------------------------------  
+
+0167:004ABAB2  XOR      EDX,EDX  
+
+0167:004ABAB4  MOV      EAX,[EBX+0354]  
+
+0167:004ABABA  CALL     0042FC00  
+
+0167:004ABABF  LEA      EAX,[EBP-64]  
+
+0167:004ABAC2  PUSH     EAX  
+
+0167:004ABAC3  MOV      ECX,06  
+
+0167:004ABAC8  MOV      EDX,01  
+
+0167:004ABACD  MOV      EAX,[004B7FE4]  
+
+0167:004ABAD2  CALL     00404118  
+
+0167:004ABAD7  MOV      EAX,[EBP-64]  
+
+0167:004ABADA  MOV      EDX,[004B7FA8]  
+
+0167:004ABAE0  CALL     00404020  
+
+0167:004ABAE5  JNZ      004ABAF4  
+
+-------------------------------------------  
+
+0167:004ABAE7  MOV      DL,01  
+
+0167:004ABAE9  MOV      EAX,[EBX+0800]  
+
+0167:004ABAEF  CALL     0042FC00  
+
+0167:004ABAF4  LEA      EAX,[EBP-68]  
+
+0167:004ABAF7  PUSH     EAX  
+
+0167:004ABAF8  MOV      ECX,06  
+
+0167:004ABAFD  MOV      EDX,01  
+
+0167:004ABB02  MOV      EAX,[004B7FE4]  
+
+0167:004ABB07  CALL     00404118  
+
+0167:004ABB0C  MOV      EAX,[EBP-68]  
+
+0167:004ABB0F  MOV      EDX,[004B7FA8]  
+
+0167:004ABB15  CALL     00404020  
+
+0167:004ABB1A  JNZ      004ABB29  
+
+-------------------------------------------  
+
+0167:004ABB1C  MOV      DL,01  
+
+0167:004ABB1E  MOV      EAX,[EBX+0724]  
+
+0167:004ABB24  MOV      ECX,[EAX]  
+
+0167:004ABB26  CALL     NEAR [ECX+5C]  
+
+0167:004ABB29  LEA      EAX,[EBP-6C]  
+
+0167:004ABB2C  PUSH     EAX  
+
+0167:004ABB2D  MOV      ECX,06  
+
+0167:004ABB32  MOV      EDX,01  
+
+0167:004ABB37  MOV      EAX,[004B7FE4]  
+
+0167:004ABB3C  CALL     00404118  
+
+0167:004ABB41  MOV      EAX,[EBP-6C]  
+
+0167:004ABB44  MOV      EDX,[004B7FA8]  
+
+0167:004ABB4A  CALL     00404020  
+
+0167:004ABB4F  JNZ      004ABB5E  
+
+----------------------------------------  
+
+0167:004ABB51  XOR      EDX,EDX  
+
+0167:004ABB53  MOV      EAX,[EBX+07C4]  
+
+0167:004ABB59  CALL     004405F0  
+
+0167:004ABB5E  LEA      EAX,[EBP-70]  
+
+0167:004ABB61  PUSH     EAX  
+
+0167:004ABB62  MOV      ECX,06  
+
+0167:004ABB67  MOV      EDX,01  
+
+0167:004ABB6C  MOV      EAX,[004B7FE4]  
+
+0167:004ABB71  CALL     00404118  
+
+0167:004ABB76  MOV      EAX,[EBP-70]  
+
+0167:004ABB79  MOV      EDX,[004B7FA8]  
+
+0167:004ABB7F  CALL     00404020  
+
+0167:004ABB84  JNZ      004ABB93  
+
+-------------------------------------------  
+
+0167:004ABB86  MOV      DL,01  
+
+0167:004ABB88  MOV      EAX,[EBX+07C8]  
+
+0167:004ABB8E  CALL     004404D4  
+
+0167:004ABB93  LEA      EAX,[EBP-74]  
+
+0167:004ABB96  PUSH     EAX  
+
+0167:004ABB97  MOV      ECX,06  
+
+0167:004ABB9C  MOV      EDX,01  
+
+0167:004ABBA1  MOV      EAX,[004B7FE4]  
+
+0167:004ABBA6  CALL     00404118  
+
+0167:004ABBAB  MOV      EAX,[EBP-74]  
+
+0167:004ABBAE  MOV      EDX,[004B7FA8]  
+
+0167:004ABBB4  CALL     00404020  
+
+0167:004ABBB9  JNZ      004ABBC8  
+
+-------------------------------------------  
+
+0167:004ABBBB  XOR      EDX,EDX  
+
+0167:004ABBBD  MOV      EAX,[EBX+057C]  
+
+0167:004ABBC3  CALL     0042FC00  
+
+0167:004ABBC8  LEA      EAX,[EBP-78]  
+
+0167:004ABBCB  PUSH     EAX  
+
+0167:004ABBCC  MOV      ECX,06  
+
+0167:004ABBD1  MOV      EDX,01  
+
+0167:004ABBD6  MOV      EAX,[004B7FE4]  
+
+0167:004ABBDB  CALL     00404118  
+
+0167:004ABBE0  MOV      EAX,[EBP-78]  
+
+0167:004ABBE3  MOV      EDX,[004B7FA8]  
+
+0167:004ABBE9  CALL     00404020  
+
+0167:004ABBEE  JNZ      004ABBFD  
+
+------------------------------------------  
+
+0167:004ABBF0  XOR      EDX,EDX  
+
+0167:004ABBF2  MOV      EAX,[EBX+0580]  
+
+0167:004ABBF8  CALL     0042FC00  
+
+0167:004ABBFD  LEA      EAX,[EBP-7C]  
+
+0167:004ABC00  PUSH     EAX  
+
+0167:004ABC01  MOV      ECX,06  
+
+0167:004ABC06  MOV      EDX,01  
+
+0167:004ABC0B  MOV      EAX,[004B7FE4]  
+
+0167:004ABC10  CALL     00404118  
+
+0167:004ABC15  MOV      EAX,[EBP-7C]  
+
+0167:004ABC18  MOV      EDX,[004B7FA8]  
+
+0167:004ABC1E  CALL     00404020  
+
+0167:004ABC23  JNZ      004ABC43  
+
+------------------------------------------  
+
+0167:004ABC25  LEA      EAX,[EBP-80]  
+
+0167:004ABC28  MOV      ECX,[EBP-04]  
+
+0167:004ABC2B  MOV      EDX,004ABDA0  
+
+0167:004ABC30  CALL     00403F5C  
+
+0167:004ABC35  MOV      EDX,[EBP-80]  
+
+0167:004ABC38  MOV      EAX,[EBX+0570]  
+
+0167:004ABC3E  CALL     0042FD18  
+
+0167:004ABC43  LEA      EAX,[EBP+FFFFFF7C]  
+
+0167:004ABC49  PUSH     EAX  
+
+0167:004ABC4A  MOV      ECX,06  
+
+0167:004ABC4F  MOV      EDX,01  
+
+0167:004ABC54  MOV      EAX,[004B7FE4]  
+
+0167:004ABC59  CALL     00404118  
+
+0167:004ABC5E  MOV      EAX,[EBP+FFFFFF7C]  
+
+0167:004ABC64  MOV      EDX,[004B7FA8]  
+
+0167:004ABC6A  CALL     00404020
+```
+
+
+
+## 0167:004ABC6F JNZ 004ABCB2
+
+```
+0167:004ABC6F  JNZ      004ABCB2  
+
+-------------------------------------------  
+
+0167:004ABC71  PUSH     DWORD 004ABDB0  
+
+0167:004ABC76  LEA      EDX,[EBP+FFFFFF74]  
+
+0167:004ABC7C  MOV      EAX,[004B7F94]  
+
+0167:004ABC81  CALL     00408AC0  
+
+0167:004ABC86  PUSH     DWORD [EBP+FFFFFF74]  
+
+0167:004ABC8C  PUSH     DWORD 004ABDCC  
+
+0167:004ABC91  LEA      EAX,[EBP+FFFFFF78]  
+
+0167:004ABC97  MOV      EDX,03  
+
+0167:004ABC9C  CALL     00403FD0  
+
+0167:004ABCA1  MOV      EDX,[EBP+FFFFFF78]  
+
+0167:004ABCA7  MOV      EAX,[EBX+03FC]  
+
+0167:004ABCAD  CALL     0042FD18  
+
+0167:004ABCB2  XOR      EAX,EAX  
+
+                   <---EAX=0  
+
+0167:004ABCB4  POP      EDX  
+
+0167:004ABCB5  POP      ECX  
+
+0167:004ABCB6  POP      ECX  
+
+0167:004ABCB7  MOV      [FS:EAX],EDX  
+
+0167:004ABCBA  PUSH     DWORD 004ABD43  
+
+0167:004ABCBF  LEA      EAX,[EBP+FFFFFF74]  
+
+0167:004ABCC5  MOV      EDX,0F  
+
+0167:004ABCCA  CALL     00403CB4  
+
+0167:004ABCCF  LEA      EAX,[EBP-50]  
+
+0167:004ABCD2  CALL     00403C90  
+
+0167:004ABCD7  LEA      EAX,[EBP-4C]  
+
+0167:004ABCDA  CALL     00403C90  
+
+0167:004ABCDF  LEA      EAX,[EBP-48]  
+
+0167:004ABCE2  CALL     00403C90  
+
+0167:004ABCE7  LEA      EAX,[EBP-44]  
+
+0167:004ABCEA  MOV      EDX,05  
+
+0167:004ABCEF  CALL     00403CB4  
+
+0167:004ABCF4  LEA      EAX,[EBP-30]  
+
+0167:004ABCF7  CALL     00403C90  
+
+0167:004ABCFC  LEA      EAX,[EBP-2C]  
+
+0167:004ABCFF  MOV      EDX,04  
+
+0167:004ABD04  CALL     00403CB4  
+
+0167:004ABD09  LEA      EAX,[EBP-1C]  
+
+0167:004ABD0C  MOV      EDX,02  
+
+0167:004ABD11  CALL     00403CB4  
+
+0167:004ABD16  LEA      EAX,[EBP-14]  
+
+0167:004ABD19  CALL     00403C90  
+
+0167:004ABD1E  LEA      EAX,[EBP-10]  
+
+0167:004ABD21  MOV      EDX,02  
+
+0167:004ABD26  CALL     00403CB4  
+
+0167:004ABD2B  LEA      EAX,[EBP-08]  
+
+0167:004ABD2E  MOV      EDX,02  
+
+0167:004ABD33  CALL     00403CB4  
+
+0167:004ABD38  RET      
+```
+
+呵呵，头都看晕了，这么多校验，作者在防爆方面真是舍得下功夫。我粗略看了一下，好像还有不少校验点。上面代码的后面部分大概是将注册信息加密后保存在安装目录下的 `reginfo.pin` 文件中。(没仔细跟)
+
+## 0167:0049FAC0 函数代码
+
+跟进上面的那个关键 `Call`，可看到如下代码：
+
+```
+0167:0049FAC0  PUSH     EBP  
+
+0167:0049FAC1  MOV      EBP,ESP  
+
+0167:0049FAC3  ADD      ESP,BYTE -3C  
+
+0167:0049FAC6  PUSH     EBX  
+
+0167:0049FAC7  PUSH     ESI  
+
+0167:0049FAC8  PUSH     EDI  
+
+0167:0049FAC9  XOR      EBX,EBX  
+
+                   <---EBX=0  
+
+0167:0049FACB  MOV      [EBP-3C],EBX  
+
+0167:0049FACE  MOV      [EBP-34],EBX  
+
+0167:0049FAD1  MOV      [EBP-38],EBX  
+
+0167:0049FAD4  MOV      [EBP-2C],EBX  
+
+0167:0049FAD7  MOV      [EBP-30],EBX  
+
+0167:0049FADA  MOV      [EBP-28],EBX  
+
+0167:0049FADD  MOV      [EBP-10],EBX  
+
+                   <---将内存单元清 0   
+
+0167:0049FAE0  MOV      EBX,ECX  
+
+0167:0049FAE2  MOV      [EBP-08],EDX  
+
+0167:0049FAE5  MOV      [EBP-04],EAX  
+
+0167:0049FAE8  MOV      EAX,[EBP-04]  
+
+0167:0049FAEB  CALL     004040C4  
+
+0167:0049FAF0  MOV      EAX,[EBP-08]  
+
+0167:0049FAF3  CALL     004040C4  
+
+0167:0049FAF8  XOR      EAX,EAX  
+
+0167:0049FAFA  PUSH     EBP  
+
+0167:0049FAFB  PUSH     DWORD 0049FCFF  
+
+0167:0049FB00  PUSH     DWORD [FS:EAX]  
+
+0167:0049FB03  MOV      [FS:EAX],ESP  
+
+0167:0049FB06  XOR      EAX,EAX  
+
+0167:0049FB08  PUSH     EBP  
+
+0167:0049FB09  PUSH     DWORD 0049FCBD  
+
+0167:0049FB0E  PUSH     DWORD [FS:EAX]  
+
+0167:0049FB11  MOV      [FS:EAX],ESP  
+
+0167:0049FB14  MOV      EAX,[EBP-08]  
+
+                   <---EAX 中为我们输入的假码  
+
+0167:0049FB17  CALL     00403F10  
+
+                   <---取假码长度  
+
+0167:0049FB1C  MOV      [EBP-0C],EAX  
+
+0167:0049FB1F  CMP      DWORD [EBP-0C],BYTE +00  
+
+0167:0049FB23  JNZ      0049FB32  
+
+0167:0049FB25  LEA      EAX,[EBP-08]  
+
+0167:0049FB28  MOV      EDX,0049FD18  
+
+0167:0049FB2D  CALL     00403D28  
+
+0167:0049FB32  XOR      ESI,ESI  
+
+0167:0049FB34  MOV      EDI,0100  
+
+0167:0049FB39  TEST     BL,BL  
+
+0167:0049FB3B  JZ       NEAR 0049FBE5  
+
+0167:0049FB41  CALL     00402A50  
+
+0167:0049FB46  MOV      EAX,EDI  
+
+0167:0049FB48  CALL     00402C90  
+
+0167:0049FB4D  MOV      EDI,EAX  
+
+0167:0049FB4F  LEA      EAX,[EBP-10]  
+
+0167:0049FB52  PUSH     EAX  
+
+0167:0049FB53  MOV      [EBP-24],EDI  
+
+0167:0049FB56  MOV      BYTE [EBP-20],00  
+
+0167:0049FB5A  LEA      EDX,[EBP-24]  
+
+0167:0049FB5D  XOR      ECX,ECX  
+
+0167:0049FB5F  MOV      EAX,0049FD30  
+
+0167:0049FB64  CALL     00409908  
+
+0167:0049FB69  MOV      EAX,[EBP-04]  
+
+0167:0049FB6C  CALL     00403F10  
+
+0167:0049FB71  TEST     EAX,EAX  
+
+0167:0049FB73  JNG      NEAR 0049FCA8  
+
+0167:0049FB79  MOV      [EBP-1C],EAX  
+
+0167:0049FB7C  MOV      DWORD [EBP-14],01  
+
+0167:0049FB83  MOV      EAX,[EBP-04]  
+
+0167:0049FB86  MOV      EDX,[EBP-14]  
+
+0167:0049FB89  MOVZX    EAX,BYTE [EAX+EDX-01]  
+
+0167:0049FB8E  ADD      EAX,EDI  
+
+0167:0049FB90  MOV      ECX,FF  
+
+0167:0049FB95  CDQ      
+
+0167:0049FB96  IDIV     ECX  
+
+0167:0049FB98  MOV      EBX,EDX  
+
+0167:0049FB9A  CMP      ESI,[EBP-0C]  
+
+0167:0049FB9D  JNL      0049FBA2  
+
+0167:0049FB9F  INC      ESI  
+
+0167:0049FBA0  JMP      SHORT 0049FBA7  
+
+0167:0049FBA2  MOV      ESI,01  
+
+0167:0049FBA7  MOV      EAX,[EBP-08]  
+
+0167:0049FBAA  MOVZX    EAX,BYTE [EAX+ESI-01]  
+
+0167:0049FBAF  XOR      EBX,EAX  
+
+0167:0049FBB1  LEA      EAX,[EBP-28]  
+
+0167:0049FBB4  PUSH     EAX  
+
+0167:0049FBB5  MOV      [EBP-24],EBX  
+
+0167:0049FBB8  MOV      BYTE [EBP-20],00  
+
+0167:0049FBBC  LEA      EDX,[EBP-24]  
+
+0167:0049FBBF  XOR      ECX,ECX  
+
+0167:0049FBC1  MOV      EAX,0049FD30  
+
+0167:0049FBC6  CALL     00409908  
+
+0167:0049FBCB  MOV      EDX,[EBP-28]  
+
+0167:0049FBCE  LEA      EAX,[EBP-10]  
+
+0167:0049FBD1  CALL     00403F18  
+
+0167:0049FBD6  MOV      EDI,EBX  
+
+0167:0049FBD8  INC      DWORD [EBP-14]  
+
+0167:0049FBDB  DEC      DWORD [EBP-1C]  
+
+0167:0049FBDE  JNZ      0049FB83  
+
+0167:0049FBE0  JMP      0049FCA8  
+
+0167:0049FBE5  LEA      EAX,[EBP-30]  
+
+                   <---EAX="52093241386514845512"  
+
+0167:0049FBE8  PUSH     EAX  
+
+------------------------------------------------------------  
+
+0167:0049FBE9  MOV      ECX,02  
+
+                   <---置第 1 个参数 ECX=02  
+
+0167:0049FBEE  MOV      EDX,01  
+
+                   <---置第 2 个参数 EDX=01  
+
+0167:0049FBF3  MOV      EAX,[EBP-04]  
+
+0167:0049FBF6  CALL     00404118  
+
+                   <---这个 Call 自假码的第 01 位置(第 2 个参数值)  
+
+                    取 02 个(第 1 个参数值)字符  
+
+0167:0049FBFB  MOV      ECX,[EBP-30]  
+
+                   <---ECX="52"  
+
+0167:0049FBFE  LEA      EAX,[EBP-2C]  
+
+0167:0049FC01  MOV      EDX,0049FD40  
+
+                   <---EDX="$"  
+
+0167:0049FC06  CALL     00403F5C  
+
+                   <---连接字串  
+
+0167:0049FC0B  MOV      EAX,[EBP-2C]  
+
+                   <---EAX="$52"  
+
+0167:0049FC0E  CALL     00408B60  
+
+                   <---对字符进行转换，注意看寄存器的值，  
+
+                    此时 EAX=00000012  
+
+0167:0049FC13  MOV      EDI,EAX  
+
+                   <---EDI=52  
+
+------------------------------------------ 
+
+0167:0049FC15  MOV      DWORD [EBP-14],03  
+
+--------------------------  
+
+0167:0049FC1C  LEA      EAX,[EBP-38]  
+
+0167:0049FC1F  PUSH     EAX  
+
+0167:0049FC20  MOV      ECX,02  
+
+0167:0049FC25  MOV      EDX,[EBP-14]  
+
+0167:0049FC28  MOV      EAX,[EBP-04]  
+
+0167:0049FC2B  CALL     00404118  
+
+0167:0049FC30  MOV      ECX,[EBP-38]  
+
+0167:0049FC33  LEA      EAX,[EBP-34]  
+
+0167:0049FC36  MOV      EDX,0049FD40  
+
+0167:0049FC3B  CALL     00403F5C  
+
+0167:0049FC40  MOV      EAX,[EBP-34]  
+
+0167:0049FC43  CALL     00408B60  
+
+0167:0049FC48  MOV      EBX,EAX  
+
+                   <---EBX=09,循环第 1 次时  
+
+---------------------------------------  
+
+0167:0049FC4A  CMP      ESI,[EBP-0C]  
+
+                   <---比较是否取完字符串"ShenGe  7558",[EBP-0C]  
+
+                   中为合并后的字串长度  
+
+0167:0049FC4D  JNL      0049FC52  
+
+0167:0049FC4F  INC      ESI  
+
+0167:0049FC50  JMP      SHORT 0049FC57  
+
+0167:0049FC52  MOV      ESI,01  
+```
+
+同上，懒得写了!
+
+
+
+
+# 汇编指令分析
+
+```
+0167:0049FC57  MOV     EAX,[EBP-08]
+                <---EAX="ShenGe  7558"
+
+0167:0049FC5A  MOVZX   EAX,BYTE [EAX+ESI-01]
+                <---按位取合并后字串中的每个字符
+
+0167:0049FC5F  XOR     EAX,EBX
+                <---EAX=53⁰⁹=5A,EBX 中的值见上
+
+0167:0049FC61  MOV     [EBP-18],EAX
+
+0167:0049FC64  CMP     EDI,[EBP-18]
+                <---比较是否小于 EDI 中的值
+
+0167:0049FC67  JL      0049FC78
+                <---小于跳到不同处理段
+
+0167:0049FC69  MOV     EAX,[EBP-18]
+
+0167:0049FC6C  ADD     EAX,FF
+                <---EAX=EAX+FFH
+
+0167:0049FC71  SUB     EAX,EDI
+                <---EAX=EAX-EDI
+
+0167:0049FC73  MOV     [EBP-18],EAX
+                <---EAX 中的值存入[EBP-18]中，后面会用到
+
+0167:0049FC76  JMP     SHORT 0049FC7B
+
+0167:0049FC78  SUB     [EBP-18],EDI
+                <---上面比较小于时跳到这，
+                  循环第 1 次时[EBP-18]=08。
+
+0167:0049FC7B  LEA     EAX,[EBP-3C]
+
+0167:0049FC7E  MOV     EDX,[EBP-18]
+
+0167:0049FC81  CALL    00403E38
+
+0167:0049FC86  MOV     EDX,[EBP-3C]
+
+0167:0049FC89  LEA     EAX,[EBP-10]
+
+0167:0049FC8C  CALL    00403F18
+
+0167:0049FC91  MOV     EDI,EBX
+
+0167:0049FC93  ADD     DWORD [EBP-14],BYTE +02
+                <---[EBP-14]作计数器
+
+0167:0049FC97  MOV     EAX,[EBP-04]
+                <---[EBP-04]中为假码
+
+0167:0049FC9A  CALL    00403F10
+
+0167:0049FC9F  CMP     EAX,[EBP-14]
+                <---比较是否取完假码
+
+0167:0049FCA2  JG      NEAR 0049FC1C
+                <---没取完继续比较
+
+0167:0049FCA8  MOV     EAX,[EBP+08]
+
+0167:0049FCAB  MOV     EDX,[EBP-10]
+
+0167:0049FCAE  CALL    00403CE4
+
+0167:0049FCB3  XOR     EAX,EAX
+
+0167:0049FCB5  POP     EDX
+
+0167:0049FCB6  POP     ECX
+
+0167:0049FCB7  POP     ECX
+
+0167:0049FCB8  MOV     [FS:EAX],EDX
+
+0167:0049FCBB  JMP     SHORT 0049FCCF
+
+0167:0049FCBD  JMP     004033F0
+
+0167:0049FCC2  MOV     EAX,[EBP+08]
+
+0167:0049FCC5  CALL    00403C90
+
+0167:0049FCCA  CALL    0040374C
+
+0167:0049FCCF  XOR     EAX,EAX
+                <---EAX=0,置标志位
+
+0167:0049FCD1  POP     EDX
+
+0167:0049FCD2  POP     ECX
+
+0167:0049FCD3  POP     ECX
+
+0167:0049FCD4  MOV     [FS:EAX],EDX
+
+0167:0049FCD7  PUSH    DWORD 0049FD06
+
+0167:0049FCDC  LEA     EAX,[EBP-3C]
+
+0167:0049FCDF  MOV     EDX,06
+
+0167:0049FCE4  CALL    00403CB4
+
+0167:0049FCE9  LEA     EAX,[EBP-10]
+
+0167:0049FCEC  CALL    00403C90
+
+0167:0049FCF1  LEA     EAX,[EBP-08]
+
+0167:0049FCF4  MOV     EDX,02
+
+0167:0049FCF9  CALL    00403CB4
+
+0167:0049FCFE  RET
+```
+
+# 算法分析与注册码推导
+
+到此我们已基本弄清这个软件的算法了，以我的为例：首先它对输入的用户名 `ShenGe` 进行处理，不足 8 位的补空格，然后与 `7558` 合并成一字符串 `"ShenGe  7558"`，然后按位取字符值与注册码的值作运算，得到一组值：
+
+- `S`----->`53⁰⁹=5A`, `5A>52` --->`5A-52=08`
+- `h`----->`68³²=5A`, `5A>09` --->`5A-09=51`
+- `e`----->`65⁴¹=24`, `24<32` --->`24+FF-32=F1`
+- `n`----->`6E³⁸=56`, `56>41` --->`56-41=15`
+- `G`----->`47⁶⁵=22`, `22<38` --->`22+FF-38=E9`
+- `e`----->`65¹⁴=71`, `71>65` --->`71-65=0C`
+- `(space)`--->`20⁸⁴=A4`, `A4>14` --->`A4-14=90`
+- `(space)`--->`20⁵⁵=75`, `75<84` --->`75+FF-84=F0`
+- `7`----->`37¹²=25`, `25<55` --->`25+FF-55=CF`
+
+结果在内存中为 `08 51 F1 15 E9 0C 90 F0 CF`。
+
+由上面的分析可知，只要注册码的前 14 位经过上述运算后其字串值为 `"161863"` 即可。
+
+所以可逆推得注册码，设注册码第 1、2 位为 `6C`：
+
+1. 由于 `31+6C<FF`，故有 `53^(31+6C)=CE`，注册码第 3、4 位为 `CE`。
+2. `68^(36+CE-FF)=6D`，注册码第 5、6 位为 `6D`。
+3. 由于 `6D+31<FF`，故有 `65^(6D+31)=FB`，注册码第 7、8 位为 `FB`。
+4. `6E^(38+FB-FF)=5A`，注册码第 9、10 位为 `5A`。
+5. 由于 `5A+36<FF`，故有 `47^(5A+36)=D7`，注册码第 11、12 位为 `D7`。
+6. `65^(33+D7-FF)=6E`，注册码第 13、14 位为 `6E`。
+
+注册码后 6 位可任意填。
+
+这样在我的机器上得到的注册码为：
+
+- 用户名：`ShenGe`
+- 预注册号码：`99BD8-4C2D4-64FC9-9A7AB-397E1`
+- 注册序列号：`6CCE6DFB5AD76E123456`
+
+本想跟出两个与预注册号码有关的值 `"7558"` 和 `"161863"` 是如何算出来的，但是始终跟不到核心部分，只好作罢！请高手帮着看看！
+
+软件注册成功后将信息加密后保存在安装目录下的 `reginfo.pin` 文件中，将该文件删除就又变成未注册版了。
+
+欢迎发信到 `shengecrack@163.com` 交流。
+
+Crack By `ShenGe[BCG]`
+
+`4dd466d0e1e0cc123afbe504da2462ca`
