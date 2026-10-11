@@ -1,0 +1,27 @@
+
+# 【作品提交】OD Script Edit
+
+> 原文：[`www.pediy.com/kssd/pediy10/67144.html`](https://www.pediy.com/kssd/pediy10/67144.html)
+
+首先感谢看雪老大和北极星提供这个机会，不然我这个软件可能还在拖着呢，关键最近项目太忙了，呵呵，没办法为了生存![](img/9d43c9aee695f95b024aafd1b69ffa5a.jpg "伤心") 。
+
+下面简单介绍一下这个软件：
+
+`OllyScript` 是 `OLLYDBG` 的一个功能增强插件(`Plugin`),`OllyScript` 使用的脚本语言是一个种类汇编的语言。现在对壳的调试中 `OllyScript` 起着很大的作用，有时我们不用写专门的脱壳机，一个脚本就搞定了，但是这么好的东东，还没有一个好的编写环境，也许高手一个记事本就可以写脚本了，但那么多命令难免忘记，我写的这个简单 `Edit`，希望在大家写脚本时给予一些帮助。
+
+Ps：这个软件都是晚上加班写的，时间紧急，难免出错，希望大家见谅啊。
+
+主要功能：
+
+- 基本的 `Edit` 功能
+- 代码高亮
+- 颜色自定义
+- 代码提示
+
+代码提示的内容可以自定义：
+
+修改 `ODScript.syn` 配置文件即可
+
+上传的附件
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || `ODScriptEdit.rar`\[附件请到论坛下载：[`bbs.pediy.com/showthread.php?t=67144`](http://bbs.pediy.com/showthread.php?t=67144) \] |
