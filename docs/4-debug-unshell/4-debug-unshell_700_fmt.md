@@ -1,0 +1,177 @@
+
+# FSG V1.33
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6209.htm`](https://www.pediy.com/kssd/pediy06/pediy6209.htm)
+
+这是上月底 `二点` 朋友发在 `初学者园地` 的一个被处理过的 `FSG V1.33` 主程序，“`FSG v1.33` 专用的脱壳工具也无用处”，呵呵。原来帖子上传的程序已经没有了，想看看的朋友可以找 `二点` 要。 `^O^`
+
+BTW：这个 `FSG V1.33` 加完壳后发出的一声“凄厉”的惨叫 ……
+
+【作者声明】：初学 `Crack`，只是感兴趣，没有其它目的。失误之处敬请诸位大侠赐教！
+
+【破解工具】：`Ollydbg1.09`、`PEiD`、`LordPE`、`ImportREC`、`W32Dasm 9.0` 白金版
+
+【脱壳过程】：
+
+用 `FI` 看：`FSG v1.33 dulek//xt clr_by_4` 好了，`Ollydbg` 伺候 `^O^`
+
+```
+00533124     BE A4014000           mov esi,FSG.004001A4
+                    ==== > 进入 OD 后断在这！
+00533129     AD                    lods dword ptr ds:[esi]
+0053312A     93                    xchg eax,ebx
+0053312B     AD                    lods dword ptr ds:[esi]
+0053312C     97                    xchg eax,edi
+0053312D     AD                    lods dword ptr ds:[esi]
+0053312E     56                    push esi
+0053312F     96                    xchg eax,esi
+00533130     B2 80                 mov dl,80
+00533132     A4                    movs byte ptr es:[edi],byte ptr ds:[esi]
+00533133     B6 80                 mov dh,80
+00533135     FF13                  call dword ptr ds:[ebx]
+00533137   ^ 73 F9                 jnb short FSG.00533132
+                    ==== > F4 下去
+00533139     33C9                  xor ecx,ecx
+0053313B     FF13                  call dword ptr ds:[ebx]
+0053313D     73 16                 jnb short FSG.00533155
+0053313F     33C0                  xor eax,eax
+00533141     FF13                  call dword ptr ds:[ebx]
+00533143     73 1F                 jnb short FSG.00533164
+                    ==== > 跳
+00533164     AC                    lods byte ptr ds:[esi]
+00533165     D1E8                  shr eax,1
+00533167     74 2F                 je short FSG.00533198
+00533169     13C9                  adc ecx,ecx
+0053316B     EB 1A                 jmp short FSG.00533187
+                    ==== > 跳
+00533187     41                    inc ecx
+00533188     41                    inc ecx
+00533189     95                    xchg eax,ebp
+0053318A     8BC5                  mov eax,ebp
+0053318C     B6 00                 mov dh,0
+0053318E     56                    push esi
+0053318F     8BF7                  mov esi,edi
+00533191     2BF0                  sub esi,eax
+00533193     F3:A4                 rep movs byte ptr es:[edi],byte ptr ds:[esi]
+00533195     5E                    pop esi
+00533196   ^ EB 9D                 jmp short FSG.00533135
+                    ==== > F4 下去 没必要再回去 ^O^
+00533198     8BD6                  mov edx,esi
+                    ==== > F4 到这儿
+0053319A     5E                    pop esi
+0053319B     AD                    lods dword ptr ds:[esi]
+0053319C     48                    dec eax
+0053319D     74 0A                 je short FSG.005331A9
+0053319F     79 02                 jns short FSG.005331A3
+                    ==== > 跳
+005331A1     AD                    lods dword ptr ds:[esi]
+005331A2     50                    push eax
+005331A3     56                    push esi
+005331A4     8BF2                  mov esi,edx
+005331A6     97                    xchg eax,edi
+005331A7   ^ EB 87                 jmp short FSG.00533130
+                    ==== > F4 下去
+005331A9     AD                    lods dword ptr ds:[esi]
+                    ==== > F4 到这儿
+005331AA     93                    xchg eax,ebx
+005331AB     5E                    pop esi       ; FSG.005201B0
+005331AC     46                    inc esi
+005331AD     AD                    lods dword ptr ds:[esi]
+005331AE     97                    xchg eax,edi
+005331AF     56                    push esi
+005331B0     FF13                  call dword ptr ds:[ebx]
+                    ==== > 这个 CALL KERNEL 32.LoadLibraryA
+005331B2     95                    xchg eax,ebp
+005331B3     AC                    lods byte ptr ds:[esi]
+005331B4     84C0                  test al,al
+005331B6   ^ 75 FB                 jnz short FSG.005331B3
+                    ==== > F4 下去
+005331B8     FE0E                  dec byte ptr ds:[esi]
+005331BA   ^ 74 F0                 je short FSG.005331AC
+005331BC     79 05                 jns short FSG.005331C3
+                    ==== > 跳
+005331BE     46                    inc esi
+005331BF     AD                    lods dword ptr ds:[esi]
+005331C0     50                    push eax
+005331C1     EB 09                 jmp short FSG.005331CC
+005331C3     FE0E                  dec byte ptr ds:[esi]
+005331C5     74 59                 je short FSG.00533220
+                    ==== > 可以下命令 G 00533220
+005331C7     66:C1E0 00            shl ax,0
+005331CB     56                    push esi
+005331CC     55                    push ebp
+005331CD     FF53 04               call dword ptr ds:[ebx+4]
+                    ==== > 这个 CALL KERNEL GetProcAddress
+005331D0     AB                    stos dword ptr es:[edi]
+005331D1   ^ EB E0                 jmp short FSG.005331B3
+                    ==== > 程序循环
+```
+
+跟过 `FSG` 壳的朋友都知道上面 `005331C5` 应该是跳到 `OEP` 了，精华 `5` 里面 `CoolWolF[BCG]` 大侠写的教程也是在这种情况下跳 `OEP` 的。但是这个东东是被某位大侠“修理”过的，并没有直接跳到 `OEP`，所以 `Unpacker for FSG v1.33` 在这“犯了错误”，把这里当成 `OEP`，以致脱壳后无法运行。 `^O^`
+
+```
+00533220     E8 00000000           call FSG.00533225
+                    ==== > 来到这里！变形 JMP！F7 走进
+00533225     5D                    pop ebp
+00533226     81ED 07104000         sub ebp,FSG.00401007
+0053322C     B9 54104000           mov ecx,FSG.00401054
+00533231     03CD                  add ecx,ebp
+00533233     51                    push ecx
+00533234     FF13                  call dword ptr ds:[ebx]
+                    ==== > 这个 CALL KERNEL 32.LoadLibraryA
+00533236     B9 61104000           mov ecx,FSG.00401061
+0053323B     03CD                  add ecx,ebp
+0053323D     51                    push ecx
+0053323E     50                    push eax
+0053323F     FF53 04               call dword ptr ds:[ebx+4]
+                    ==== > 这个 CALL KERNEL GetProcAddress
+00533242     FFB5 70104000         push dword ptr ss:[ebp+401070]
+00533248     6A 04                 push 4
+0053324A     FFB5 74104000         push dword ptr ss:[ebp+401074]
+00533250     FFB5 78104000         push dword ptr ss:[ebp+401078]
+00533256     FFD0                  call eax
+00533258     8B8D 74104000         mov ecx,dword ptr ss:[ebp+401074]
+0053325E     8B85 78104000         mov eax,dword ptr ss:[ebp+401078]
+00533264     C64401 FF 00          mov byte ptr ds:[ecx+eax-1],0
+00533269   ^ E2 F9                 loopd short FSG.00533264
+                    ==== > F4 下去 跳出这个 LOOP！
+0053326B     FFA5 7C104000         jmp dword ptr ss:[ebp+40107C]
+                    ==== > F4 到这里后会发现[ebp+40107C]=00401000 这才是真正的 OEP！
+```
+
+在这里可以下命令：`G 00401000` 会弹出“可疑断点”的对话，点“是”，否则程序就直接运行了！
+
+```
+00401000       EB                  db EB
+                    ==== > 在这儿用 LordPE 完全 DUMP 这个进程
+00401001       02                  db 02
+00401002       65                  db 65
+00401003       10                  db 10
+00401004       EB                  db EB
+```
+
+`F9` 运行程序，运行 `ImportREC`，选择这个进程。把 `OEP` 改为 `00001000`，点 `IT AutoSearch`，点“`Get Import`”，`FixDump`，正常运行！
+
+, `\/_`
+
+`/| \_.-~/` `\_ ,` 青春都一饷
+
+`( /~ /` `~.\_ |`
+
+`\`\\ `\/_` `~ )` 忍把浮名
+
+
+
+`_-~~~-.)  )\_\_/;;,.         \_  //`
+
+` /'\_,   --~    ~~-  ,;;\_\_\_(  (.-~~~-.        换了破解轻狂`
+
+` \`~ \_( ,\_..-- (     ,;'' /    ~--   /.\_\` `
+
+` /~~//'   /' \`~         ) /--..\_, )\_  \`~`
+
+` "  \`~"  "     \`"      /~'\`    \`\\~~   `
+
+`                "     "   "~'  ""`
+
+`4dd466d0e1e0cc123afbe504da2462ca`
