@@ -1,0 +1,273 @@
+
+# 制作 AUTOcad2002 中文网络版的 Flexlm license
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6846.htm`](https://www.pediy.com/kssd/pediy06/pediy6846.htm)
+
+软件名称: `AUTOcad2002` 中文网络版
+
+软件类别：地球人都知道
+
+软件介绍：地球人都知道 `Flexlm7.1f` 加密
+
+破解工具：`ollydbg` `1.10(FLY)` ，`w32Dasm_2002828_pll621`，`UltraEdit8.0`，`Flexlm7.1f` SDK, `calcseed`, `lmkg`，`lmutil` 等
+
+破解目的：制作无限制使用 license 文件
+
+通过这篇文章我们将向你介绍如何制作 FlexLm 的 license，当然有些重复的我省略了
+
+## 第一部分: 废话
+
+这个软件上次爆破了，大家也用的很满意。前些日子想玩玩 Flexlm, 就拿它来开刀，我参考了 `tulipfan[CCG]` 大虾的《制作 Compuware.SoftIce.Driver.Suite.3.0.1.StinkyD 的 license》，有些还照搬了！
+
+## 第二部分: 转入正题
+
+破解 FlexLm 最主要的是找到 4 样东西.
+
+1. 确定版本号
+2. 找 vendor
+3. 计算 `ENCRYPTION_SEED`
+4. 找 `FEATURE`
+
+有了这几个,就可以使用 FlexLm SDK（如果你有）做出注册机了.
+
+btw：FlexLm SDK 一般是通用兼容的的，比如 7.2 就可以制作 7.1 的，甚至有时 7.1 也可以制作 7.2 的，关键是参数设置。
+
+### 1. 确定版本号
+
+* 确定版本号可以通过 `lmutil.exe`（`tulipfan[CCG]` 大虾提供的工具里有）来确定
+* 还有一个办法就是用二进制编辑器,推荐使用 `HexWorkshop`,它的查找功能很强,特别是 `Find All Instances` 更是我最最常用的.
+
+在查找对话框 `Type` 中选择类型 `Text String`,`Value` 中输入 `"@(#) FLEXlm v"`,查找, `"@(#) FLEXlm v"` 后面的就是版本号.
+
+* 以上是 `tulipfan[CCG]` 大虾说的
+
+而我的方法是用 Flexlm SDK 里的 `lmtools`（在 `\flexlm\v7.1\i86_n3` 目录里），运行进入 `Utilities`，点击“Browse”查找你的 Flexlm 加密的程序主 `exe`，然后“find version”，在下面就会显示你的 Flexlm 版本，用 `v7.1` 版甚至可以看到 `8.3` 版以后，是通用的。
+
+最后确定版本号是 `7.1f`,这一步的目的有两个,一是在 `lmkg.exe` 中生成 Vendor 信息时用,二是在写制作 FlexLm 的 license 时使用。
+
+### 2. 先找 FEATURE
+
+我没有用 `IDA`，太麻烦了，既然有 SDK 和前人的经验，我偷个懒。如果你没有像我的条件就只好去找 `lc_checkout`，其实也不难，我记得在我写上篇《cad2002 中文版的破解[网络验证及限制用户]》时，跟踪时我就看到它的 `FEATURE` 和 `VENDOR`，但是当时不明白，只觉得这个值很特别就记下来了 `"41100ACD_2002_0F"` 和 `"adskflex"`，跟踪过程我到是忘记了。
+
+我偷懒的办法，还是用 Flexlm SDK 里的 `lmtools`！打开“Server status”项，点击“Perform status Equiry”,你就会看到服务器端的正版 `license.dat` 内容！
+
+```
+101: SERVER main 001234567890      （我的服务器网卡号，我隐去正确的，避免麻烦啊！）
+
+  80: VENDOR adskflex port=8080
+
+150: INCREMENT 41100ACD_2002_0F adskflex 1.000 permanent 100 VENDOR_STRING=（中间有很多参数，省略避免麻烦）SIGN=787878787878（我隐去正确的，避免麻烦，为什么是 78 ？） 
+
+     关联信息: 省略
+
+170: (overall file checksum)
+```
+
+看到了吗！
+
+`VENDOR adskflex`
+
+`INCREMENT 41100ACD_2002_0F`，这个 `INCREMENT` 其实就是 `FEATURE`，后面那个 `1.000` 就是 `Version`
+
+`permanent` 是用户数
+
+`VENDOR_STRING=` 这个也参与计算验证的
+
+中间有很多参数也参与计算验证的，省略避免麻烦
+
+`SIGN=787878787878` 我就不说了
+
+如果你没有像我的条件就只好去看别的资料学习，很简单的！
+
+### 3. 找 vendor 以及计算 seed 的关键数据
+
+下面引用自 `tulipfan[CCG]`：
+
+> “要找 `vendor_id` 就需要找到 `l_sg` 这个函数了(至于为什么要找这个函数建议看一些更基础的文章),在这儿我主要是介绍一下如何定位 `l_sg` 函数,这个是 FlexLm 的一个内部使用的函数. `lc_init`, `lc_checkout` 都会调用它下面是它们的调用关系,括号里面的数字是调用的次数,这个是我从 7.2i 版的 `demo.exe` 上跟踪得到的结果,其他版本可能略有不同.
+>
+> a. `lc_init` -> `l_init`
+>
+> b. `l_init` -> `l_sg`
+>
+> a. `lc_checkout` -> `l_checkout`
+>
+> b. `l_checkout` -> `lm_start_real(2)`
+>
+> c. `lm_start_real` -> `l_good_lic_key(3)`
+>
+> d. `l_good_lic_key` -> `l_sg(2)`
+>
+> 从上面可以看到它们的调用关系. 
+>
+> 我们可以通过 `l_sg` 确定 `vendor_id` 和 `ENCRYPTION_SEED`,通过 `lc_checkout` 可以确定 `FEATURE`
+>
+> `IDA` 通过 FlexLm 的 sig 文件可以确定上面的大部分函数,再通过他们的调用关系,很容易找到其他函数.
+>
+> 制作 FlexLm 的批处理文件和工具包可去 CrackZ 去下载.
+>
+> 最后定位到 `l_sg` 函数”
+
+————————————————————
+
+各位看官说了，我们上面已经找到了 `VENDOR`，还麻烦什么？
+
+嘿嘿，大头在后面呢！
+
+废话少说，我们直接反汇编 `acad.exe`（好大啊，我的机子是 P42.8，用了 10 多分钟），我们查找 `"7648B98E"`，来到下面，好像就这么１，２处。前人的经验就是宝贵啊，我省了很多事！
+
+```
+代码:
+* Referenced by a CALL at Addresses:
+:00945490  , :0094C1EA  , :0094C7B0  , :0096383C  , :00971159   
+:00985C14   
+:
+:0094DB50 55                push ebp        ====先在这个地方下断
+:0094DB51 8BEC              mov ebp, esp
+:0094DB53 83EC30            sub esp, 00000030
+:0094DB56 C745F08EB94876    mov [ebp-10], 7648B98E   ====这个数在确定 l_sg 函数上很有用
+:0094DB5D C745EC03000000    mov [ebp-14], 00000003
+:0094DB64 8B4508            mov eax, dword ptr [ebp+08]
+:0094DB67 8B486C            mov ecx, dword ptr [eax+6C]
+:0094DB6A 8B91D4010000      mov edx, dword ptr [ecx+000001D4]
+:0094DB70 81E200800000      and edx, 00008000
+:0094DB76 85D2              test edx, edx
+:0094DB78 7423              je 0094DB9D    ====这个跳，第一次肯定会跳的，迷惑了我一下。
+:0094DB7A 833DC4DAB50000    cmp dword ptr [00B5DAC4], 00000000
+:0094DB81 741A              je 0094DB9D
+:0094DB83 8B4510            mov eax, dword ptr [ebp+10]
+:0094DB86 50                push eax
+:0094DB87 8B4D0C            mov ecx, dword ptr [ebp+0C]
+:0094DB8A 51                push ecx
+:0094DB8B 8B5508            mov edx, dword ptr [ebp+08]
+:0094DB8E 52                push edx
+:0094DB8F FF15C4DAB500      call dword ptr [00B5DAC4]  ====在这个地方下断，之后就是我们要的！
+:0094DB95 83C40C            add esp, 0000000C
+:0094DB98 E913010000        jmp 0094DCB0
+```
+
+————————————————————
+
+别急，先做一下准备工作：
+
+————————————————————
+
+因为我们是网络版，而且以前是正常使用的，就是说我们要去服务器验证正版的 `license.dat`，那我们机子里已经有了 `LICPATH.LIC` 文件，这时我们必须断开网络！记得以前调试时没这么作，得到的 `seed1` 和 `seed2` 不对，不知道什么原因。
+
+但是问题又来了，我们没有了 `license.dat`，这就要我们做一个假的，格式我不说了看雪的书上很清楚了。
+
+我们根据我们上面得到的正版 `license.dat` 内容，做一个假的 `license.dat`，放在 `acad` 目录里:
+
+```
+FEATURE 41100ACD_2002_0F adskflex 1.000 permanent uncounted \
+  VENDOR_STRING="Cracked By laoqian[FCG]" HOSTID=ANY \
+  SIGN=787878787878  (怎么又是 78 !?)
+```
+
+因为断开网络，所以运行 `acad` 会找不到 license，我们把它指向我们的假的 `license.dat`，当然是出错退出！
+
+好，工作开始：
+
+下面我启动 `ollydbg` `1.10` 调入 `acad.exe`，在入口停下，直接下 `bp 0094DB50`, `bp 0094DB8F`
+
+`F9` 执行，中断在 `0094DB50`。
+
+这时第一次来到 `:0094DB78 7423 je 0094DB9D` 时它是要跳过去的，注意要跳就让他跳吧。我开始时强制不跳，倒是能来到 `0094DB8F`，结果跟出了错误的 `seed1` 和 `seed2`，而且居然多少次结果还都一样，邪门了。
+
+再次 `F9`，我们又回来中断在 `0094DB50`，`F8` 单步执行，这次不跳了，直到过了 `:0094DB8F`，暂停！
+
+我们在命令栏下如下命令，可以看到：（我纪录了２次的调试结果）
+
+输入 `dd [esp+4]`
+
+```
+00F886CC  6B736461
+ESP+4     > 00F886CC  ASCII "adskflex"
+```
+
+输入 `dd [esp+8]`
+
+```
+***1***
+0012F608  00000004
+0012F60C  1731E48D      data[0]
+0012F610  061711DA      data[1]
+0012F614  A3A37979
+0012F618  CC926A64
+0012F61C  A1136749
+0012F620  F174A41F
+0012F624  00000000
+
+******2******
+0012F608  00000004
+0012F60C  F3D50069      data[0]
+0012F610  E2F3F53E      data[1]
+0012F614  A3A37979
+0012F618  CC926A64
+0012F61C  A1136749
+0012F620  F174A41F
+0012F624  00000000
+```
+
+输入 `dd [esp]`
+
+```
+******1******
+0131B660  00000066
+0131B664  0073001F   
+0131B668  AEF0D6A0    job+08
+0131B66C  A21343D5    job+0c
+0131B670  C156EC2E    job+10
+0131B674  00000000
+
+*******2*******
+0131B6C0  00000066
+0131B6C4  0073001F   
+0131B6C8  4A143244    job+08
+0131B6CC  46F7A731    job+0c
+0131B6D0  25B208CA    job+10
+```
+
+这些数据就是我们计算 `seed1` 和 `seed2` 的关键！
+
+### 4. 计算 ENCRYPTION_SEED
+
+使用工具 `calcseed.exe`,输入上述信息,计算
+
+`ENCRYPTION_SEED0` `0x39e414xx` `=SEED1` 为了不给看雪带来麻烦故意给个错的
+`ENCRYPTION_SEED1` `0x28c2e1xx` `=SEED2` 为了不给看雪带来麻烦故意给个错的
+
+２次结果是一样的
+
+至此,分析已经基本完成,可以使用 SDK 写 `license.dat`
+
+## 第三部分: 制作 license.dat
+
+我们得到数据如下：
+
+`Feathure`  `41100ACD_2002_0F`
+
+`Version`  `1.000`
+
+`#define` `ENCRYPTION_SEED1` `0x39e414xx` 为了不给看雪带来麻烦故意给个错的
+`#define` `ENCRYPTION_SEED2` `0x28c2e1xx` 为了不给看雪带来麻烦故意给个错的
+
+`VENDOR` `adskflex`
+
+使用 `lmkg.exe`,选择 version `7.0`,在 `vendor_id` 输入 `"adskflex"` 得到:
+
+```
+/* Version 7 keys */
+
+#define VENDOR_KEY1 0x2bb24a5b
+#define VENDOR_KEY2 0x9d6d840b
+#define VENDOR_KEY3 0x0f9b9894
+#define VENDOR_KEY4 0x97fc2c5b
+#define VENDOR_KEY5 0x7140af80
+#define CRO_KEY1 0x2f924853
+#define CRO_KEY2 0xdb4fe68d
+#define VENDOR_NAME "adskflex"
+```
+
+按照上面的信息,编辑 `\flexlm\v7.1\machind\lm_code.h`
+
+————————————————————

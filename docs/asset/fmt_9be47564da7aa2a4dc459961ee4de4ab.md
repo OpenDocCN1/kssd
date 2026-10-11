@@ -1,0 +1,184 @@
+
+# 制作 GL Studio v3.02 的 license
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-47.htm`](https://www.pediy.com/kssd/pediy09/pediy09-47.htm)
+
+> 按：好像没什么技术含量，仅供参考！
+
+手头的这个软件，试用版 license 已经过期，故不得不自己动手找一个不过期的 license。
+
+license 中签名的长度是 12 个字符，可断定没使用公钥保护，不需打补丁就可以找出关键参数，做出正确的 license。
+
+## 1、确定版本号
+
+用 `lmtools.exe` 或 `lmver.exe` 都可以：
+
+`FLEXlm v9.2.0 (lmgr.lib)`
+
+## 2、生成 Vendor Key
+
+用 `lmkg.exe`：
+
+```c
+/* Version 9 keys */
+
+#define VENDOR_KEY1 0x109922eb
+#define VENDOR_KEY2 0x9ca04eba
+#define VENDOR_KEY3 0xc3934b79
+#define VENDOR_KEY4 0xdbcfd49c
+#define VENDOR_KEY5 0x623a63f1
+#define CRO_KEY1 0x14b920e3
+#define CRO_KEY2 0xda822c3c
+
+#define VENDOR_NAME "DISTI"
+```
+
+## 3、找 FEATURE
+
+这个很好找，在试用版 license 里面就有。或者在 IDA 里面也能找到。有两个：
+
+- `glStudio`
+- `glStudioRuntime`
+
+## 4、找 ENCRYPTION_SEED
+
+反汇编主程序 `glStudio.exe`，其中有一段是进行 license 检查的代码：
+
+```asm
+.text:004642CA                push    offset aAcquiringLicen ; "Acquiring License..."
+.text:004642CF                call    sub_476F60
+.text:004642D4                add     esp, 4
+
+.text:004642D7 loc_4642D7:                ; CODE XREF: _main+328j
+.text:004642D7                push    edi
+.text:004642D8                push    offset a3_0     ; "3.0"
+.text:004642DD                push    offset aGlstudio ; "glStudio"
+.text:004642E2                mov     ecx, offset unk_653090
+.text:004642E7                call    ds:?Checkout@License@disti@@QAEXPAD0_N@Z ; disti::License::Checkout(char *,char *,bool)
+.text:004642ED                mov     ecx, offset unk_653090
+.text:004642F2                call    ds:?Valid@License@disti@@QAE_NXZ ; disti::License::Valid(void)
+.text:004642F8                test    al, al
+.text:004642FA                jnz     short loc_46430A
+.text:004642FC                push    offset aGlStudioDevelo ; "GL Studio Development license not found"...
+.text:00464301                call    ds:?fl_message@@YAXPBDZZ ; fl_message(char const *,...)
+.text:00464307                add     esp, 4
+```
+
+上面这段代码调用了 `glstudio3_0_2_vc71.dll` 中的几个函数。
+
+反汇编 `glstudio3_0_2_vc71.dll`，寻找两个关键函数 `lc_checkout`、`l_sg`。
+
+这两个函数的原型（见 `lm_ckout.c`）：
+
+```c
+API_ENTRY
+lc_checkout(
+  LM_HANDLE_PTR      job,    /* Current license job */
+  const LM_CHAR_PTR   feature,  /* The feature to be checked in */
+  const LM_CHAR_PTR   version,  /* Feature's version */
+  int            nlic,    /* Number of licenses to checkout */
+  int            flag,    /* Checkout flag */
+  const VENDORCODE_PTR  key,    /* The vendor's key */
+  int            dup_group)  /* Duplicate license grouping criteria */
+{
+
+void
+l_sg(
+  LM_HANDLE *    job,
+  char *       vendor_id,
+  VENDORCODE *  key) /*- l_sg means "signature vendor_key5" */
+```
+
+`lc_checkout` 的定位比较简单，因为它有 7 个参数，在 feature 出现的地方就可以找到它。
+
+```asm
+.text:10079F20 _lc_checkout    proc near                ; CODE XREF: sub_10037C9A+54p
+.text:10079F20                                ; sub_10037C9A+A9p ...
+
+.text:10079F20 var_8           = dword ptr -8
+.text:10079F20 var_4           = dword ptr -4
+.text:10079F20 arg_0           = dword ptr  8
+.text:10079F20 arg_4           = dword ptr  0Ch
+.text:10079F20 arg_8           = dword ptr  10h
+.text:10079F20 arg_C           = dword ptr  14h
+.text:10079F20 arg_10          = dword ptr  18h
+.text:10079F20 arg_14          = dword ptr  1Ch
+.text:10079F20 arg_18          = dword ptr  20h
+
+.text:10079F20                push    ebp
+.text:10079F21                mov     ebp, esp
+.text:10079F23                sub     esp, 8
+.text:10079F26                mov     [ebp+var_4], 0
+.text:10079F2D                 mov     eax, [ebp+arg_0]
+.text:10079F30                push    eax
+.text:10079F31                call    sub_100862CE
+.text:10079F36                add     esp, 4
+.text:10079F39                mov     ecx, [ebp+arg_0]
+.text:10079F3C                mov     edx, [ecx+3FCh]
+.text:10079F42                or      dh, 40h
+.text:10079F45                mov     eax, [ebp+arg_0]
+.text:10079F48                mov     [eax+3FCh], edx
+.text:10079F4E                push    95h
+.text:10079F53                push    offset aLm_ckout_c ; "lm_ckout.c"      // 看看，多好的提示
+.text:10079F58                mov     ecx, [ebp+arg_0]
+.text:10079F5B                push    ecx
+.text:10079F5C                call    __initp_misc_winxfltr_0
+.text:10079F61                add     esp, 0Ch
+.text:10079F64                mov     edx, [ebp+arg_0]
+.text:10079F67                add     edx, 494h
+.text:10079F6D                push    0
+.text:10079F6F                push    edx
+.text:10079F70                call    _setjmp3
+.text:10079F75                add     esp, 8
+.text:10079F78                test    eax, eax
+.text:10079F7A                jz      short loc_10079F87
+.text:10079F7C                mov     eax, [ebp+arg_0]
+.text:10079F7F                mov     eax, [eax+14h]
+.text:10079F82                jmp     loc_1007A057
+```
+
+在 IDA 中搜索立即数 `0x6f7330b8`，可找到 `l_sg`。
+
+```asm
+.text:1007DABB _l_sg           proc near                ; CODE XREF: sub_10073B7E+C63p
+.text:1007DABB                                ; sub_1007BC9F+C4p ...
+
+.text:1007DABB var_24           = dword ptr -24h
+.text:1007DABB var_20           = dword ptr -20h
+.text:1007DABB var_1C           = dword ptr -1Ch
+.text:1007DABB var_14           = byte  ptr -14h
+.text:1007DABB var_13           = word  ptr -13h
+.text:1007DABB var_11           = byte  ptr -11h
+.text:1007DABB var_10           = dword ptr -10h
+.text:1007DABB var_C            = dword ptr -0Ch
+.text:1007DABB var_8            = dword ptr -8
+.text:1007DABB var_4            = dword ptr -4
+.text:1007DABB arg_0            = dword ptr  8
+.text:1007DABB arg_4            = dword ptr  0Ch
+.text:1007DABB arg_8            = dword ptr  10h
+
+.text:1007DABB                push    ebp
+.text:1007DABC                mov     ebp, esp
+.text:1007DABE                sub     esp, 24h
+.text:1007DAC1                mov     [ebp+var_14], 0
+.text:1007DAC5                xor     eax, eax
+.text:1007DAC7                mov     [ebp+var_13], ax
+.text:1007DACB                mov     [ebp+var_11], al
+.text:1007DACE                mov     [ebp+var_C], 6F7330B8h    // 这个是比较重要的特征参数
+.text:1007DAD5                mov     [ebp+var_4], 0
+.text:1007DADC                mov     [ebp+var_8], 0
+.text:1007DAE3                mov     [ebp+var_10], 3
+.text:1007DAEA                mov     ecx, [ebp+arg_0]
+.text:1007DAED                mov     edx, [ecx+6Ch]
+.text:1007DAF0                mov     eax, [edx+0F54h]
+.text:1007DAF6                and     eax, 8000h
+.text:1007DAFB                test    eax, eax
+.text:1007DAFD                jz      short loc_1007DB22
+.text:1007DAFF                cmp     dword_10213CB4, 0
+.text:1007DB06                jz      short loc_1007DB22
+.text:1007DB08                mov     ecx, [ebp+arg_8]
+.text:1007DB0B                push    ecx
+.text:1007DB0C                mov     edx, [ebp+arg_4]
+.text:1007DB0F                push    edx
+.text:1007DB10                mov     eax, [ebp+arg_0]
+```
