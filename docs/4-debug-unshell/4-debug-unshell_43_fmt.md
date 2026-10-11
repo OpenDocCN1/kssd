@@ -1,0 +1,458 @@
+
+# 第三章 Anti-dump 的原理
+
+> 原文：`www.pediy.com/kssd/pediy07/pediy7-659-3.htm`
+>
+> 链接：[链接](https://www.pediy.com/kssd/pediy07/pediy7-659-3.htm)
+
+"我们踏进又踏不进同一条河，我们存在又不存在。"
+
+*----赫拉克利特*
+
+事物往往就是这样，它在发展中需要正面的也需要反面的，他们是对立统一在一起的。在前面我们的 `dump` 已经基本和一个 `LordPE` 的功能差不多了，现在我们要分析一下，一个程序是如何 `anti-dump` 的，同时我们也会给出一些简单的解决办法。
+
+注意：下面所说的方法都是在 `NT` 内核下的执行的，并不涉及 `9x` 下的。
+
+## 一. 纠正 ImageSize
+
+这里我们首先讨论一下关于 `LordPE` 的其中一个 `correct ImageSize` 的功能。
+
+![](img/c8930c2ef9735ad3ec929d00063ae4fa.jpg)
+
+首先我们要知道，这个 `anti` 是如何产生的。根据上面的介绍我们知道，我们获得的 `image size` 是通过 `MODULEENTRY32` 的结构的快照，但是这个结构是从那里获得这些数据的呢？
+
+答案是通过 `PEB(Process Environment Block)` 进程环境模块获得的。下面是 `PEB` 的结构。
+
+```c
+struct   _PEB (sizeof=488) 
+
++000 byte     InheritedAddressSpace 
+
++001 byte     ReadImageFileExecOptions 
+
++002 byte     BeingDebugged 
+
++003 byte     SpareBool 
+
++004 void     *Mutant 
+
++008 void     *ImageBaseAddress 
+
++00c struct   _PEB_LDR_DATA *Ldr 
+
++010 struct   _RTL_USER_PROCESS_PARAMETERS *ProcessParameters 
+
++014 void     *SubSystemData 
+
++018 void     *ProcessHeap 
+
++01c void     *FastPebLock 
+
++020 void     *FastPebLockRoutine 
+
++024 void     *FastPebUnlockRoutine 
+
++028 uint32   EnvironmentUpdateCount 
+
++02c void     *KernelCallbackTable 
+
++030 uint32   SystemReserved[2] 
+
++038 struct   _PEB_FREE_BLOCK *FreeList 
+
++03c uint32   TlsExpansionCounter 
+
++040 void     *TlsBitmap 
+
++044 uint32   TlsBitmapBits[2] 
+
++04c void     *ReadOnlySharedMemoryBase 
+
++050 void     *ReadOnlySharedMemoryHeap 
+
++054 void     **ReadOnlyStaticServerData 
+
++058 void     *AnsiCodePageData 
+
++05c void     *OemCodePageData 
+
++060 void     *UnicodeCaseTableData 
+
++064 uint32   NumberOfProcessors 
+
++068 uint32   NtGlobalFlag 
+
++070 union    _LARGE_INTEGER CriticalSectionTimeout 
+
++070    uint32   LowPart 
+
++074    int32    HighPart 
+
++070    struct   __unnamed3 u 
+
++070       uint32   LowPart 
+
++074       int32    HighPart 
+
++070    int64    QuadPart 
+
++078 uint32   HeapSegmentReserve 
+
++07c uint32   HeapSegmentCommit 
+
++080 uint32   HeapDeCommitTotalFreeThreshold 
+
++084 uint32   HeapDeCommitFreeBlockThreshold 
+
++088 uint32   NumberOfHeaps 
+
++08c uint32   MaximumNumberOfHeaps 
+
++090 void     **ProcessHeaps 
+
++094 void     *GdiSharedHandleTable 
+
++098 void     *ProcessStarterHelper 
+
++09c uint32   GdiDCAttributeList 
+
++0a0 void     *LoaderLock 
+
++0a4 uint32   OSMajorVersion 
+
++0a8 uint32   OSMinorVersion 
+
++0ac uint16   OSBuildNumber 
+
++0ae uint16   OSCSDVersion 
+
++0b0 uint32   OSPlatformId 
+
++0b4 uint32   ImageSubsystem 
+
++0b8 uint32   ImageSubsystemMajorVersion 
+
++0bc uint32   ImageSubsystemMinorVersion 
+
++0c0 uint32   ImageProcessAffinityMask 
+
++0c4 uint32   GdiHandleBuffer[34] 
+
++14c function *PostProcessInitRoutine 
+
++150 void     *TlsExpansionBitmap 
+
++154 uint32   TlsExpansionBitmapBits[32] 
+
++1d4 uint32   SessionId 
+
++1d8 void     *AppCompatInfo 
+
++1dc struct   _UNICODE_STRING CSDVersion 
+
++1dc    uint16   Length 
+
++1de    uint16   MaximumLength 
+
++1e0    uint16   *Buffer
+```
+
+我们从 `FS:[30]` 就可以获得这个 `PEB` 的首地址。然后在 `0C` 处的 `_PEB_LDR_DATA *Ldr` 是一个关键通过它，我们能访问到
+
+```c
+typedef struct _PEB_LDR_DATA {  
+
+ULONG Length;  
+
+BOOLEAN Initialized;  
+
+PVOID SsHandle;  
+
+LIST_ENTRY InLoadOrderModuleList;  
+
+LIST_ENTRY InMemoryOrderModuleList;  
+
+LIST_ENTRY InInitializationOrderModuleList;  
+
+} PEB_LDR_DATA, *PPEB_LDR_DATA;
+```
+
+该结构的后三个成员是指向 `LDR_MODULE` 链表结构中相应三条双向链表头的指针，分别是按照加载顺序、在内存中的地址顺序和初始化顺序排列的模块信息结构的指针。于是通过它，我们能访问到 `_LDR_MODULE` 结构，而这里面包括了本进程的 `SizeOfImage`。
+
+`_LDR_MODULE` 结构如下：
+
+```c
+typedef struct _LDR_MODULE {  
+
+LIST_ENTRY InLoadOrderModuleList;  
+
+LIST_ENTRY InMemoryOrderModuleList;  
+
+LIST_ENTRY InInitializationOrderModuleList;  
+
+PVOID BaseAddress;  
+
+PVOID EntryPoint;  
+
+ULONG SizeOfImage;                   //进程的 image size  
+
+UNICODE_STRING FullDllName;  
+
+UNICODE_STRING BaseDllName;  
+
+ULONG Flags;  
+
+SHORT LoadCount;  
+
+SHORT TlsIndex;  
+
+LIST_ENTRY HashTableEntry;  
+
+ULONG TimeDateStamp;  
+
+} LDR_MODULE, *PLDR_MODULE;
+```
+
+所以，我们得到关键的代码就是：
+
+```cpp
+////////////////////////////////////////////////////////////////////////////////////  
+
+  //这里的几个代码是修改 PEB 的关键  
+
+  __asm  
+
+  {  
+
+    mov eax,fs:[30h]                //获得 PEB 地址  
+
+    mov eax,[eax+0ch]               // +00c struct   _PEB_LDR_DATA *Ldr  
+
+    mov eax,[eax+0ch]               // _LDR_MODULE 的首地址  
+
+    mov dword ptr [eax+20h],1000h   //eax+20 是保存 image size 的地方  
+
+  }  
+
+////////////////////////////////////////////////////////////////////////////////////
+```
+
+上面的代码的作用就是把 `image size` 的大小改为了 `1000h`，这样我们用 `MODULEENTRY32` 得到的大小是不准确的。所以大家在跟踪壳的时候特别要小心上面的几行代码。如果看见它就直接跳过吧。
+
+好了，知道他是怎么 `anti` 的以后看看 `LordPE` 是怎么使用 `correct ImageSize` 的，我稍微跟踪了一下它的的代码。发现了下面的 `API` 函数：
+
+1. `GetProcessBaseSize`
+2. `GetProcessPath`
+3. `CreateFileA`
+4. `ReadFile`
+
+看到这里想必大家也知道，怎么回事了吧。他在获得了绝对路径以后打开了磁盘上的 `PE` 文件，读取里面 `PE` 头的 `ImageSize`，来纠正这个错误了的 `image size`。恩，或许你会说，那么我写一个 `anti` 来修改 `PE` 文件头的 `ImageSize`，让它获得的还是错误的。呵呵，我不得不提醒你的是，任何对文件的操作都是危险的。我们来设想一下这种情形：当你把原来的 `PE` 文件打开了以后，把一个错误的 `ImageSize` 写入了这个 `PE` 文件里面，使 `LordPE` 的 `correct ImageSize` 仍然无功而反，而打算在某一个地方，再次打开文件把正确的信息写回 `PE` 文件。（否则你下次就别想打开它了）且不说这样的办法很烦琐，我们设想一下这个时候，你的机器死机了！你不得不重起机器。而你的收尾工作还没结束。于是你的 `PE` 文件除了 `anti` 的作者，别人在不知道为什么的情况下，再也别想打开它了。
+
+所以一个聪明的程序员，都不会做这种危险的事情。好了，来看看我是如何实现这个功能的吧。我在原来的基础上填加了一个按钮“纠正大小”的按钮。那再重新定义了一个函数来实现这个功能：
+
+```cpp
+BOOL CorrectSizeFunc(HWND hDlg,HWND hWindList)  
+
+{  
+
+  //函数能获取文件的 PE 头部的 SizeOfImage，作为正确的 SizeOfImage  
+
+    LPCTSTR File_Name=NULL;                
+
+    WPARAM tmp=(WPARAM)SendMessage(hWindList,LB_GETCURSEL,0,0);  
+
+  if (tmp==LB_ERR)  
+
+  {  
+
+    MessageBox(hDlg,TEXT("Please choose a process..."),TEXT("oh...no,no,no..."),MB_OK);  
+
+    return FALSE;  
+
+  }  
+
+  DWORD IDProcess=SendMessage(hWindList,LB_GETITEMDATA,tmp,0); //获得此列单里面的进程 ID  
+
+  ID=IDProcess;//全局变量 ID 的作用是控制在不同的进程的切换  
+
+  File_Name=GetFilePath(hDlg,IDProcess);  
+
+  if(!File_Name)  
+
+    return FALSE;  
+
+    //打开文件  
+
+  HANDLE  hFile;  
+
+  hFile=CreateFile(File_Name,GENERIC_READ,0,0,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);  
+
+  if (hFile == INVALID_HANDLE_VALUE )  
+
+  {  
+
+    return FALSE ;  
+
+  }  
+
+  //创建文件映射内核对象  
+
+  HANDLE hMapping;  
+
+  hMapping =  CreateFileMapping (hFile, NULL, PAGE_READONLY,0,0,NULL);  
+
+  if (hMapping == NULL )  
+
+  {  
+
+    CloseHandle (hFile) ;  
+
+    return FALSE;  
+
+  }  
+
+  //创建文件视图  
+
+  LPVOID ImageBase ;  
+
+  ImageBase =MapViewOfFile(hMapping,FILE_MAP_READ,0,0,0) ;  
+
+  if (ImageBase == NULL)  
+
+  {  
+
+    CloseHandle (hMapping) ;  
+
+    return FALSE;  
+
+  }  
+
+    //下面的代码就是从文件的 PE 头找到 SizeOfImage 的  
+
+  PIMAGE_DOS_HEADER DosHead = NULL ;  
+
+  PIMAGE_NT_HEADERS32 pNtHeader = NULL ;  
+
+    PIMAGE_FILE_HEADER pFileHeader = NULL ;  
+
+    PIMAGE_OPTIONAL_HEADER pOptionalHeader = NULL ;  
+
+    PIMAGE_SECTION_HEADER pSectionHeader = NULL ;  
+
+  DosHead=(PIMAGE_DOS_HEADER)ImageBase;  
+
+  pNtHeader = ( PIMAGE_NT_HEADERS32 ) ((DWORD)ImageBase + DosHead->e_lfanew ) ;  
+
+  pOptionalHeader = &pNtHeader->OptionalHeader;   
+
+    sizeofimage=(int)pOptionalHeader->SizeOfImage;  
+
+    //找到了以后，输出结果  
+
+  char szBuffer[100];  
+
+  char szMsg[]="原来的 image size 是：%08X\n 修整的 image size 是：%08X";  
+
+  wsprintf(szBuffer,szMsg,GetSizeOfImage(hDlg,IDProcess),sizeofimage);  
+
+  MessageBox(hDlg,szBuffer,TEXT("纠正结果"),MB_OK );  
+
+    CloseHandle (hMapping);  
+
+    CloseHandle (hFile) ;  
+
+  Sleep(200);  
+
+  return TRUE;  
+
+}
+```
+
+这个功能实现到是很简单，但是同时要强调的一点是，在我在协调纠正的进程和 `dump` 进程是不一样的进程的时候，出了一些小问题。我采用了一个很愚蠢的办法，定义了一个全局变量 `ID` 来控制这种事情的发生。
+
+## 二. 实战
+
+这个 `modify_module_imagesize` 程序包括了上面的修改 `PEB` 里面 `image size` 的代码。运行它：
+
+![](img/094f5ae45166bd4498303871825a64ed.jpg)
+
+可以看到原来的 `image size` 已经被修改了。
+
+好了，现在用我们的 `dump` 来试试吧。
+
+![](img/3da86b0c32f4b6a61c3e9dd2e1a4a3ca.jpg)
+
+![](img/5a21832b362b501475ccabdd5a3edf94.jpg)
+
+这样我们再 `dump` 它，就能得到原来 `C000` 大小的进程了。
+
+## 二. 其他 Anti 方式
+
+
+
+# 根据 `MODULEENTRY32` 结构的启发
+
+根据上面的 `MODULEENTRY32` 结构，我们能得到很多启发。毕竟懂得了原理，那么寻找 anti 的办法是不难的。首先是基地址，我们能不能修改 `PEB` 中的基地址呢？
+
+事实上，这种方法会产生不必要的麻烦。也就是说不可行。
+
+另一种办法是修改文件的路径，这种办法很好。但是只是能在 `9x` 中使用，因为目前为止，不知道在 `NT` 内核下的这种办法。所以在这里我也不介绍了。有兴趣的读者可以去看看《软件加密技术内幕》P204-P207，在那里 `hying` 有完整的介绍。
+
+下面要介绍的是一种非常普遍，也很常用的办法。就是利用内存属性进行 anti。
+
+我们知道，如果我们打开了一个进程，那么要读写进程里面的内容，必须要获得应有的权限读权利。实际上，当一个 `exe` 文件被 `load` 到内存里面的时候，他的所有取段都具有读的权利，而正是这样我们才能把他从内存中读出来，写到磁盘文件上面。所以，我们的 anti 来了，如果我们将部分不用区段的权限修改一下，把他的读权限取消。会发生什么结果呢？
+
+让我们来做一个简单的实验吧！
+
+```cpp
+/*------------------------------------------------------------------------
+Save as Modify_the_read_right.cpp
+(c) Lenus Margin 2005 10.15
+-------------------------------------------------------------------------*/
+
+#include <windows.h>
+#include <iostream.h>
+#include <stdio.h>
+
+void main()
+{
+  DWORD dwOldProtect;
+  HMODULE ImageBase=GetModuleHandle(NULL);
+  VirtualProtect(ImageBase,1000,PAGE_NOACCESS,&dwOldProtect);//将 PE 头改为不可访问的的属性
+  cout<<"The PE HEAD read right change to no_access!!"<<endl;
+  cout<<"U can try to dump at here!"<<endl;
+  getchar();
+}
+```
+
+等运行了以后，我们用 `LordPE` 来 `dump` 它吧，发现了什么没有？一个经典的对话框！
+
+![](img/2719a1e9b42439f006b86ebef2b69601.jpg)
+
+这个东西，相信大家一定见过。让我们看看，在这个进程里面的 `400000` 处吧！
+
+![](img/c35b1abcb7aeb645a0d4f74b718a9147.jpg)
+
+选中进程---右键---`dump region` 就可以看到上面的窗口了。果然已经变成了 `NOACCESS` 的属性了。
+
+那么应该怎么解决呢？这个我们就要请出更强的工具来了。现在我们就用 `OD` 的 `ollydump` 来 `dump` 它！
+
+用 `OD` 载入以后，`F9` 运行！好了，这时我们可以用 `LordPE` 还是看到上面的 `NOACCESS` 的属性，但是我们到 `OD` 的内存镜象里面看看是什么结果呢？
+
+![](img/bbab98a1b06728601f8c3276e51554b7.jpg)
+
+我们可以看到，他仍然是可读，可写，可执行的权限。
+
+为什么会这样呢？
+
+因为 `OD` 这个调试器需要编辑这个进程的空间中的数据，而如果一个区段因为设置了 `NOACCESS` 而得不到访问，不能编辑实在是不可想象的。所以他在我们需要使用这段空间的时候就将它的属性临时的修改到了完整的权限，而当我们使用完毕以后呢？再修改回来，可以说，`ring3` 的调试器老是在干这种事情，比如说 `int3` 的放置也是这样的。从这些侧面我们也能体会到 `OD` 的强大。
+
+好了，现在用 `ollydump` 就可以 `dump` 下来了。
+
+## 小结
+
+小结一下。关于 anti 这一章，以上的这些只是一些常见的手段。事实上，矛盾的较量永远不会停止，正如开篇的赫拉克利特所说"我们踏进又踏不进同一条河，我们存在又不存在。"在哲学上事物是矛盾的统一，没有了此消彼长的竞争，也没有了任何存在的可能。而在加密解密的世界 anti-dump 也是一个大学问，从而我们在避开 anti 的同时也会发现很多很巧妙的方法。好了原理就说到这里，下面一章我们将转入实战，让你感受另类的脱壳！
+
+附件:实例下载
+
+`4dd466d0e1e0cc123afbe504da2462ca`

@@ -1,0 +1,178 @@
+
+# Any to Icon 1.3
+
+> 原文：[`www.pediy.com/kssd/pediy05/pediy50005.htm`](https://www.pediy.com/kssd/pediy05/pediy50005.htm)
+
+ASPROtect 1.22 加壳的 Any to Icon 1.3 脱壳
+crack by fwnl
+
+软件说明:可以把 `BMP`、`JPEG`、`GIF`、`PNG`、`WMF`、`CUR` 图形文件转换为图标(ICO)的工具，还可以更改彩度及大小
+
+软件下载:http://sq.onlinedown.net/down/any2icon.zip
+
+破解工具:trw2000, superbpm,Import REConstructor v1.4.2+ ,UltraEdit32, Peditor.
+
+首先我要感谢 zombieys,小球，hume 等高手的帮忙和鼓励，不然我是脱不了这个壳的。其实这次脱壳有很大部分是参照小球写的 `Iconxp` 的脱壳来做的.
+
+由于这个程序是用 Aspr1.22(FI 249 查的)加壳，所以 caspr 不能脱此壳，于是就只有手动来脱了。
+
+## 一.找入口点
+
+由于是 delphi 程序，所以利用快速寻找 aspr 入口的方法:
+
+执行 `Any2Icon.exe`，用 prodump 选 dump(full)脱壳,存为 `dump.exe`。接着用 UltraEdit32 打开 `dump.exe`，ALT+F3，填 runtime,选中查找 ASCⅡ,执行搜索，搜到后,向上查找离 runtime 最近的机器码为 55 8B EC 的地方就是程序的 oep，而在 `Any2Icon.exe` 里这个位置在 `offset:000bc178` 处，用 peditor 的 flc 功能将它转换为 virtual address 就是 `004bcb78----oep`。
+
+## 二.用 trw2000 初步脱壳
+
+下面要在入口处脱壳，打开 SuperBPM，点 erase，用 trw 载入 `Any2Icon.exe`，下 g 4bcb78，接着下 pedump 脱出程序.
+
+## 三.修复 import table
+
+打开原加壳程序,在 Import REConstructor v1.4.2+ 的 Attach to an Active Process 窗口中选取 ang2icon.exe 的进程,然后在下方的 oep 处填入 `000bcb78`,点 IAI AutoSearch,再点 Get Imports 然后点 Show Invalid,在 Imported Functions Found 窗口里的无效地址上点鼠标右键，选 Trace Leve11(disasm),再点 show invaids，发现还有几个没有修复，再次在那几个没有修复的地址上点鼠标右键.
+
+选中 Plugin Tracer(Asprotect 1.2X Emul),再点 show invaids 应发现所有的 dll 显示 valid:Yes 了。然后点 Fix Dump,选中你用 trw2000 pedump 出的文件修复.
+
+这样修复后的程序还是不能运行.于是我们要看程序在那里出错，然后再用原版的对比看.
+
+## 四.修复脱壳后的程序
+
+```
+0167:004BCB78  PUSH    EBP 
+0167:004BCB79  MOV     EBP,ESP 
+0167:004BCB7B  ADD     ESP,BYTE -0C 
+0167:004BCB7E  MOV     EAX,004BC810 
+0167:004BCB83  CALL    00406320 
+0167:004BCB88  MOV     EAX,[004C13EC] 
+0167:004BCB8D  MOV     EAX,[EAX] 
+0167:004BCB8F  CALL    0044FA8C 
+0167:004BCB94  CALL    NEAR [004C10EC] ==>这个 call 指向 c9c8fc，F8 进去全是?号 
+0167:004BCB9A  CALL    00403AB0 
+```
+
+用原未脱壳的程序进入 `0167:004BCB94 CALL NEAR [004C10EC]` 发现到了下面这里:
+
+```
+0167:00C9C8FC  CMP     DWORD [00CA35A8],BYTE +00 
+0167:00C9C903  JZ      00C9C90B 
+0167:00C9C905  CALL    NEAR [00CA35A8] ==>F8 进入        
+0167:00C9C90B  RET    
+0167:00C9C90C  PUSH    EBP 
+0167:00C9C90D  MOV     EBP,ESP 
+```
+
+F8 进入就到了下面这里:
+
+```
+0167:004BC6B0  PUSH    EBX                ==>上面那个 CALL NEAR [004C10EC]真正的指向 
+0167:004BC6B1  MOV     EAX,[004C1580] 
+0167:004BC6B6  CMP     DWORD [EAX],BYTE +00 
+0167:004BC6B9  JNZ     004BC730 
+0167:004BC6BB  CALL    004B7050 
+```
+
+于是知道脱出的程序少了 CXXXXX 到 CXXXXXX 这段。
+
+听电神大哥说可以把 `CALL NEAR [004C10EC]`改成 call 4bc6b0.不过后面还有不少地方指向 CXXXXX，要都改过来才行. 我改了好久也没完全成功。于是用小球的方法来补数据
+
+我们首先 d c9c8fc,然后 Alt+Page Up ,当看到数据框内如下显示
+
+可知道这段数据从 c90100 开始.
+
+```
+0030:00C90FD0 ?? ?? ?? ?? ?? ?? ?? ??-?? ?? ?? ?? ?? ?? ?? ?? 
+0030:00C90FE0 ?? ?? ?? ?? ?? ?? ?? ??-?? ?? ?? ?? ?? ?? ?? ?? 
+0030:00C90FF0 ?? ?? ?? ?? ?? ?? ?? ??-?? ?? ?? ?? ?? ?? ?? ?? <---空地址了 
+0030:00C91000 0A 06 73 74 72 69 6E 67-00 00 00 00 00 00 00 00 ..string........ 
+0030:00C91010 00 00 00 00 00 00 00 00-3C 10 C9 00 00 00 00 00 ........<.?.... 
+0030:00C91020 6D 11 C9 00 04 00 00 00-00 00 00 00 B0 29 C9 00 m.?........?? 
+0030:00C91030 98 28 C9 00 C0 28 C9 00-04 29 C9 00 11 00 0B 00 ????.)?.... 
+0030:00C91040 10 29 C9 00 04 46 72 65-65 13 00 1C 29 C9 00 0C .)?.Free...)?. 
+```
+
+然后 Alt+Page Down ,当看到数据框内如下显示
+
+可知道这段数据从 ca8000 结束.
+
+```
+0030:00CA7FD0 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00 ................ 
+0030:00CA7FE0 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00 ................ 
+0030:00CA7FF0 00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00 ................ 
+0030:00CA8000 ?? ?? ?? ?? ?? ?? ?? ??-?? ?? ?? ?? ?? ?? ?? ?? <---空地址了 
+0030:00CA8010 ?? ?? ?? ?? ?? ?? ?? ??-?? ?? ?? ?? ?? ?? ?? ?? 
+0030:00CA8020 ?? ?? ?? ?? ?? ?? ?? ??-?? ?? ?? ?? ?? ?? ?? ?? 
+```
+
+于是我们就在 trw2000 中 `w c90100 ca8000 new.bin`.来保存出 `new.bin`
+
+用 winhex 打开 `dump\_.exe` 和 `NEW.bin` 把 `NEW.bin` 的内容粘贴到 `dump\_.exe` 的最后，然后再用 peditor 载入 `dump\_.exe`,点 sections,然后右键点 add a section 添加一个新段名字为 new.然后选中 new 这段 section,右键点 edit ection 编辑它,由于 ca8000-c91000=17000,所以在 Virtuel Siae 填入 `00017000`,Virtuel Offsize 填 `00891000` ,因为(c91000-400000=891000), Raw 填 `00017000`,然后点 apply changes 来保存修改。最后再点 rebuilder,去掉所有的勾，只保留 make PE Header win nt/2k compatible 这一项.然后点 do 这样就重建好的 Pe 头了.
+
+这时程序就可以运行了，不过退出时会发生错误.听说 aspr 的壳用到 findfirstfilea 作为检查是否被脱壳的判断。于是用 bpx findfirstfilea 来下断.
+
+```
+0167:0040874B E8ECDCFFFF      CALL    `KERNEL32!FindFirstFileA` 
+0167:00408750 8BF0            MOV     ESI,EAX 
+0167:00408752 897314          MOV     [EBX+14],ESI 
+0167:00408755 83FEFF          CMP     ESI,BYTE -01 
+0167:00408758 7416            JZ      00408770 
+0167:0040875A 8BC3            MOV     EAX,EBX 
+0167:0040875C E86BFFFFFF      CALL    004086CC 
+0167:00408761 8BF0            MOV     ESI,EAX ==>改 inc esi，还要补一个 nop,也就是把 8bf0 改为 4690 
+0167:00408763 85F6            TEST    ESI,ESI 
+0167:00408765 7410            JZ      00408777==>上面改后就可跳过下面的`KERNEL32!GetLastError` 
+0167:00408767 8BC3            MOV     EAX,EBX 
+0167:00408769 E836000000      CALL    004087A4 
+0167:0040876E EB07            JMP     SHORT 00408777 
+0167:00408770 E847DDFFFF      CALL    `KERNEL32!GetLastError` 
+0167:00408775 8BF0            MOV     ESI,EAX 
+0167:00408777 8BC6            MOV     EAX,ESI 
+0167:00408779 5F              POP     EDI 
+0167:0040877A 5E              POP     ESI 
+0167:0040877B 5B              POP     EBX 
+0167:0040877C C3              RET    
+```
+
+这样改后程序就可正常运行了。
+
+对于上面说的那个退出错误电神大哥的改法是:
+
+```
+0167:00448F94 53              PUSH    EBX 
+0167:00448F95 6683B87A02000000 CMP     WORD [EAX+027A],BYTE +00 
+0167:00448F9D 7412            JZ      00448FB1    ==>这里一定要跳，就是 7412 改 eb12 
+0167:00448F9F 8BCA            MOV     ECX,EDX 
+0167:00448FA1 8BD8            MOV     EBX,EAX 
+0167:00448FA3 8BD0            MOV     EDX,EAX 
+0167:00448FA5 8B837C020000    MOV     EAX,[EBX+027C] 
+0167:00448FAB FF9378020000    CALL    NEAR [EBX+0278] 
+0167:00448FB1 5B              POP     EBX 
+```
+
+这样改后，一样的程序也可正常运行了
+
+不过这样脱出的程序还是未注册版，听电神大哥说 aspr 用注册码给自身解压,所以最完美的脱法是注册后再脱，这样脱出是文件就是完美版了.
+
+电神大哥脱壳后的修复方法我还是不会,这个程序的破解我也搞了好久，发现好像一定要在脱壳前破解还只能够正常运行,在未注册版上脱壳后的程序中好难找到关键代码。
+
+由于本人水平太菜，加之又是第一次脱 ASPR 的壳，所以一定还有不少问题，谢谢各高手指正.
+
+最后还是很想知道电神大哥倒底是怎样注册脱壳的？因为我搞了好久还是不行，
+
+不知是不是太笨了 :)
+
+这次脱壳共耗时: 4 天*9 小时(脱壳)+1 天*4 小时(写文章)=40 小时，希望下次脱 VC 的程序不要这么欠了，
+
+不然我可真要@#!#%$^%$了. :)
+
+fwnl
+
+2002.3.23
+
+长沙
+
+```
+HNVNW9S9rGFgWa6Z0XWuvsNXbCZ03LzAewoeTQKH10jYdIbrCSbILy9LgAMjvZDVXYecxqy6/q
+
+4ovFAEqluU4QGIPj7gM7d2KT7Q0XEAi15wKLMOrodHXiyMpeXQeFRb+AEEmgNgjoNK6heWsk4Wj
+
+YVsfkfxtuNtbwNXVG9SLyg=  4dd466d0e1e0cc123afbe504da2462ca
+```
