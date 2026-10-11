@@ -1,0 +1,285 @@
+
+# 视窗锁王 ver5.10
+
+> 原文：[`www.pediy.com/kssd/pediy06/pediy6236.htm`](https://www.pediy.com/kssd/pediy06/pediy6236.htm)
+
+## 简介
+
+这是一款强大的安全保护软件。它利用 `Windows` 底层的 `VxD` 技术在 `WINDOWS 95/98/Me` 下实现了对硬盘的全面保护。主要功能有:可以对硬盘上的任意分区、目录实现隐藏,防删除，防改写(只读),抗恶性病毒传染，资料防窃等功能。
+
+软件使用简单，只需运行(运行时无踪无迹）即可，无须先对硬盘重新分区,是硬盘保护卡理想的软件解决方案，广泛适用于学校机房，单位机房，网吧，电脑屋以及个人电脑的安全保护。
+
+`视窗锁王` 使用 `pe-compact` 加壳，用 `pe-scan` 可以脱壳。
+
+`视窗锁王` 防 `TRW2000`，一旦它的运行界面出现以后，如果发现 `TRW2000` 就会直接关机。但是不防 `Twx2002`。使用静态方法分析，查找 `ExitWindowsEx`,其中一处为程序处次运行时重新启动用，另一处就是防 `Trw2000` 关机处。
+
+```
+:00407972 83BDECFEFFFF00 cmp dword ptr [ebp+FFFFFEEC], 00000000
+
+:00407979 7706 ja 00407981--------------------------------->跳到关闭系统(改成 90)
+
+:0040797B 837DFC00 cmp dword ptr [ebp\-04], 00000000
+
+:0040797F 760E jbe 0040798F-------------------------------->不跳会走到关闭系统(改成 EB)
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00407979(C)
+
+|
+
+:00407981 6A00 push 00000000
+
+:00407983 6A05 push 00000005
+
+* Reference To: USER32.ExitWindowsEx, Ord:0000h----------------------------->到此处会关闭 Windows
+
+                                  |
+
+:00407985 FF1514144200 Call dword ptr [00421414]
+
+:0040798B 33C0 xor eax, eax
+
+:0040798D EB05 jmp 00407994
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0040797F(C)
+
+|
+
+:0040798F B801000000 mov eax, 00000001
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0040798D(U)
+
+|
+
+:00407994 8BE5 mov esp, ebp
+
+:00407996 5D pop ebp
+
+:00407997 C20800 ret 0008
+```
+
+再来看注册问题，由于我还是新手，搞了好多天也没有搞好注册的问题，没有办法了，爆破吧
+
+软件退出时会出现提示框，询问是否继续保护。由此处入手!
+
+此软件实现保护的方法时调用 `KERNEL32.DeviceIoControl` 这个 `API` 函数，此函数参数说明如下：
+
+**说明**
+
+对设备执行指定的操作
+
+**返回值**
+
+`Long`，非零表示成功，零表示失败。会设置 `GetLastError`
+
+**参数表**
+
+* `hDevice`: `Long`，设备句柄
+* `dwIoControlCode`: `Long`，带有 `FSCTL_` 前缀的常数。参考设备控制选项的部分列表
+* `lpInBuffer`: `Any`，具体取决于 `dwIoControlCode` 参数。参考设备控制选项的部分列表
+* `nInBufferSize`: `Long`，输入缓冲区的长度
+* `lpOutBuffer`: `Any`，具体取决于 `dwIoControlCode` 参数。参考设备控制选项的部分列表
+* `nOutBufferSize`: `Long`，输出缓冲区的长度
+* `lpBytesReturned`: `Long`，实际装载到输出缓冲区的字节数量
+* `lpOverlapped`: `OVERLAPPED`，这个结构用于重叠操作。针对同步操作，请用 `ByVal As Long` 传递零值
+
+用 `TRW2000` 跟踪，在此函数上下断点，从 `Load` 到程序后台运行总共调用 6 次
+
+1. `004075BD CALL NTEAPI32!NetBios`
+2. `00407016 CALL NTEAPI32!NetBios`
+3. `0040765C CALL NTEAPI32!NetBios`
+4. `004073E8 CALL KERNEL32.DeviceIoControl`
+5. `0040741A CALL KERNEL32.DeviceIoControl`
+6. `00407C64 CALL KERNEL32.DeviceIoControl`
+
+根据函数说明猜测关键是后 3 次调用，并且最终确定是否保护是在最后一次调用，其余两次是在确定分区和目录的目前状态。基于此种猜想，将最后一次调用之前的参数入栈操作全部按照如下格式进行更改！
+
+```
+* Possible StringData Ref from Code Obj ->"请您确认！"
+
+                                  |
+
+:0040811E 680CA34200 push 0042A30C
+
+* Possible StringData Ref from Code Obj ->"软件退出后是否继续保护？"
+
+                                  |
+
+:00408123 6818A34200 push 0042A318
+
+:00408128 8B8D0CFDFFFF mov ecx, dword ptr [ebp+FFFFFD0C]
+
+:0040812E E8F1090100 call 00418B24
+
+:00408133 83F806 cmp eax, 00000006
+
+:00408136 751E jne 00408156---------------> 如果选择否，则此处跳！
+
+:00408138 6A00 push 00000000--------------------
+
+:0040813A 6A00 push 00000000                       |
+
+:0040813C 6A00 push 00000000                       |
+
+:0040813E 6A00 push 00000000                       |
+
+:00408140 6A00 push 00000000                       |这里就是 8 个参数
+
+:00408142 6A00 push 00000000                       |
+
+:00408144 6808C0EBFF push FFEBC008                 |
+
+:00408149 8B1560E34200 mov edx, dword ptr [0042E360] |
+
+:0040814F 52 push edx\-------------------------/
+
+* Reference To: KERNEL32.DeviceIoControl, Ord:0000h
+
+                                  |
+
+:00408150 FF15AC124200 Call dword ptr [004212AC]
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:----->到此处取消保护，结束程序
+
+|:00408136(C)
+
+|
+
+:00408156 8B850CFDFFFF mov eax, dword ptr [ebp+FFFFFD0C]
+
+:0040815C 8B10 mov edx, dword ptr [eax]
+
+:0040815E 8B8D0CFDFFFF mov ecx, dword ptr [ebp+FFFFFD0C]
+
+:00408164 FF5258 call [edx+58]
+
+:00408167 8BE5 mov esp, ebp
+
+:00408169 5D pop ebp
+
+:0040816A C3 ret
+
+********************************************************
+```
+
+下面是动态跟踪发现的最后一次调用
+
+```
+:00407BF3 55 push ebp
+
+:00407BF4 8BEC mov ebp, esp
+
+:00407BF6 83EC10 sub esp, 00000010
+
+:00407BF9 56 push esi
+
+:00407BFA 894DF0 mov dword ptr [ebp\-10], ecx
+
+* Possible StringData Ref from Code Obj ->"KERNEL32.DLL"
+
+                                  |
+
+:00407BFD 6868A14200 push 0042A168
+
+* Reference To: KERNEL32.LoadLibraryA, Ord:0000h
+
+                                  |
+
+:00407C02 FF1570114200 Call dword ptr [00421170]
+
+:00407C08 8945F8 mov dword ptr [ebp\-08], eax
+
+* Possible StringData Ref from Code Obj ->"RegisterServiceProcess"
+
+                                  |
+
+:00407C0B 6878A14200 push 0042A178
+
+:00407C10 8B45F8 mov eax, dword ptr [ebp\-08]
+
+:00407C13 50 push eax
+
+* Reference To: KERNEL32.GetProcAddress, Ord:0000h
+
+                                  |
+
+:00407C14 FF1580124200 Call dword ptr [00421280]
+
+:00407C1A 8945F4 mov dword ptr [ebp\-0C], eax
+
+:00407C1D 6A01 push 00000001
+
+:00407C1F 6A00 push 00000000
+
+:00407C21 FF55F4 call [ebp\-0C]
+
+:00407C24 8B0D5CE34200 mov ecx, dword ptr [0042E35C]
+
+:00407C2A C1E903 shr ecx, 03
+
+:00407C2D 8B155CE34200 mov edx, dword ptr [0042E35C]
+
+:00407C33 F7D2 not edx
+
+:00407C35 03CA add ecx, edx
+
+:00407C37 A15CE34200 mov eax, dword ptr [0042E35C]
+
+:00407C3C 33D2 xor edx, edx
+
+:00407C3E BEB2070000 mov esi, 000007B2
+
+:00407C43 F7F6 div esi
+
+:00407C45 2BC8 sub ecx, eax
+
+:00407C47 894DFC mov dword ptr [ebp\-04], ecx
+
+:00407C4A 6A00 push 00000000-------------------------
+
+:00407C4C 6A00 push 00000000                         |
+
+:00407C4E 6A00 push 00000000                         |
+
+:00407C50 6A00 push 00000000                         |
+
+:00407C52 6A04 push 00000004  ------------------------|--->对照上面改成 6A00
+
+:00407C54 8D45FC lea eax, dword ptr [ebp\-04]-----------|--->对照上面改成 8D45
+
+:00407C57 50 push eax\------------------------------|--->对照上面改成 6A00
+
+:00407C58 6814C0EBFF push FFEBC014-------------------------|--->对照上面改成 6808C0EBFF
+
+:00407C5D 8B0D60E34200 mov ecx, dword ptr [0042E360] |--->此处相同
+
+:00407C63 51 push ecx\------------------------------/
+
+* Reference To: KERNEL32.DeviceIoControl, Ord:0000h
+
+                                  |
+
+:00407C64 FF15AC124200 Call dword ptr [004212AC]
+
+:00407C6A 33C0 xor eax, eax
+
+:00407C6C 5E pop esi
+
+:00407C6D 8BE5 mov esp, ebp
+
+:00407C6F 5D pop ebp
+
+:00407C70 C20800 ret 0008
+
+******************************************************************
+******************************************************************
+```
+
+更改以后程序开机实现保护 `2003.8.16`
+
+`4dd466d0e1e0cc123afbe504da2462ca`
