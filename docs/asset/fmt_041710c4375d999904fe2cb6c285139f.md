@@ -1,0 +1,170 @@
+
+# 超级简单的：桌面图标任我排 v2.10 分析及 Keygen 源码
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-73.htm`](https://www.pediy.com/kssd/pediy09/pediy09-73.htm)
+
+## 桌面图标任我排 v2.10 信息及注册码
+
+- 桌面图标任我排 v2.10
+- `DIYDeskTop.exe`
+- 申请码：`Z3WIL6UF`
+- 注册码：`123456`
+
+偶尔在 PYG 看到，分析，发现真是超级简单，不过软件还是很有趣。
+
+## 加壳与开发环境信息
+
+- `ASPack 2.12` -> Alexey Solodovnikov
+- `Borland Delphi 6.0 - 7.0`
+
+居然有提示消息：
+
+```
+注册码错误，请重新输入!
+```
+
+`bpx MessageBoxA`
+
+填入注册信息，会断在这里：
+
+```
+00464ED0  |.  53             push    ebx                     ; /Style
+00464ED1  |.  57             push    edi                     ; |Title
+00464ED2  |.  56             push    esi                     ; |Text
+00464ED3  |.  8B45 FC       mov     eax, dword ptr [ebp-4]    ; |
+00464ED6  |.  8B40 30       mov     eax, dword ptr [eax+30]   ; |
+00464ED9  |.  50             push    eax                     ; |hOwner
+00464EDA  |.  E8 D526FAFF   call    <jmp.&user32.MessageBoxA> ; \MessageBoxA
+```
+
+## 关键断点分析
+
+向上找到关键断点在这里：
+
+```
+004B1A8B  |.  8B45 FC       mov     eax, dword ptr [ebp-4]      ;  假注册码：123456
+004B1A8E  |.  8A58 01       mov     bl, byte ptr [eax+1]        ;  注册码第二位送 BL，BL=32
+004B1A91  |.  8B45 FC       mov     eax, dword ptr [ebp-4]
+004B1A94  |.  E8 9F2EF5FF   call    00404938
+004B1A99  |.  8B55 FC       mov     edx, dword ptr [ebp-4]
+004B1A9C  |.  0FB64402 FE   movzx   eax, byte ptr [edx+eax-2]   ;  注册码倒数第二位，送 EAX，EAX=35
+004B1AA1  |.  48             dec     eax                         ;  自减 1，EAX=34
+004B1AA2  |.  50             push    eax                         ;  压栈保护结果
+004B1AA3  |.  8D45 FC       lea     eax, dword ptr [ebp-4]
+004B1AA6  |.  E8 DD30F5FF   call    00404B88
+004B1AAB  |.  5A             pop     edx
+004B1AAC  |.  8850 01       mov     byte ptr [eax+1], dl        ;  将刚才压栈保护的结果，弹出到 DL，替换假注册码的顺数第二位，假注册码变成：143456
+004B1AAF  |.  8B45 FC       mov     eax, dword ptr [ebp-4]
+004B1AB2  |.  E8 812EF5FF   call    00404938
+004B1AB7  |.  8BF0          mov     esi, eax
+004B1AB9  |.  8D45 FC       lea     eax, dword ptr [ebp-4]
+004B1ABC  |.  E8 C730F5FF   call    00404B88
+004B1AC1  |.  33D2          xor     edx, edx
+004B1AC3  |.  8AD3          mov     dl, bl                      ;  原来的假注册码码的顺数第二位，即 32
+004B1AC5  |.  83C2 02       add     edx, 2                       ;  加 2，变成 34
+004B1AC8  |.  885430 FE     mov     byte ptr [eax+esi-2], dl     ;  还是替换，原来是：分别取假注册码顺数第二位的 ASCII 码加上 2，倒数第二位的 ASCII 码减 1，然后互换而已！！
+004B1ACC  |.  8B87 00030000 mov     eax, dword ptr [edi+300]      ;  假注册码 123456 变化成：143446
+004B1AD2  |.  8B55 FC       mov     edx, dword ptr [ebp-4]
+004B1AD5  |.  E8 A224F9FF   call    00443F7C
+004B1ADA  |.  8D45 FC       lea     eax, dword ptr [ebp-4]
+004B1ADD  |.  E8 9E2BF5FF   call    00404680
+004B1AE2  |.  8D55 F0       lea     edx, dword ptr [ebp-10]
+004B1AE5  |.  8B87 00030000 mov     eax, dword ptr [edi+300]
+004B1AEB  |.  E8 5C24F9FF   call    00443F4C
+004B1AF0  |.  8B45 F0       mov     eax, dword ptr [ebp-10]
+004B1AF3  |.  E8 402EF5FF   call    00404938
+004B1AF8  |.  8BF0          mov     esi, eax
+004B1AFA  |.  83FE 01       cmp     esi, 1
+004B1AFD  |.  7C 38         jl      short 004B1B37
+004B1AFF  |>  8D55 EC       /lea     edx, dword ptr [ebp-14]
+004B1B02  |.  8B87 00030000 |mov     eax, dword ptr [edi+300]
+004B1B08  |.  E8 3F24F9FF   |call    00443F4C
+004B1B0D  |.  8B45 EC       |mov     eax, dword ptr [ebp-14]     ;  处理变化后的假注册码：143446
+004B1B10  |.  8A5C30 FF     |mov     bl, byte ptr [eax+esi-1]    ;  倒数第一位开始传送。
+004B1B14  |.  33C0          |xor     eax, eax
+004B1B16  |.  8AC3          |mov     al, bl
+004B1B18  |.  83C0 03       |add     eax, 3                       ;  每一位都加 3
+004B1B1B  |.  8BD8          |mov     ebx, eax
+004B1B1D  |.  8D45 E8       |lea     eax, dword ptr [ebp-18]
+004B1B20  |.  8BD3          |mov     edx, ebx
+004B1B22  |.  E8 392DF5FF   |call    00404860
+004B1B27  |.  8B55 E8       |mov     edx, dword ptr [ebp-18]
+004B1B2A  |.  8D45 FC       |lea     eax, dword ptr [ebp-4]
+004B1B2D  |.  E8 0E2EF5FF   |call    00404940
+004B1B32  |.  4E             |dec     esi
+004B1B33  |.  85F6          |test    esi, esi
+004B1B35  |.^ 75 C8         \jnz     short 004B1AFF               ;  循环，循环次数就是注册码的位数
+004B1B37  |>  B8 300D4C00   mov     eax, 004C0D30
+004B1B3C  |.  8B55 FC       mov     edx, dword ptr [ebp-4]       ;  得到结果：977674
+004B1B3F  |.  E8 902BF5FF   call    004046D4
+004B1B44  |.  E8 AFF3FFFF   call    004B0EF8                      ;  比较函数，两个参数，一个是机器码，另一个就是上面用注册码运算的结果：977674
+```
+
+## 总结
+
+- 本机机器码：`Z3WIL6UF`
+- 对应的 ASCII 码是：`5A 33 57 49 4C 36 55 46`
+- 每一位的 ASCII 码都减 3：`57 30 54 46 49 33 52 43`
+- 然后逆序：`43 52 33 49 46 54 30 57`
+- 顺数第二位加 1，`52+1=53`
+- 倒数第二位减 2，`30-2=2E`
+- 互换：`43 2E 33 49 46 54 53 57`
+- 转换成字符串形式就是注册码：`C.3IFTSW`
+
+11:02 2007-2-27  
+by `wofan[OCN]`
+
+顺手给出 KeyGen 源码。
+
+```pascal
+//-----------------------------------------------------------------------
+//=============  函数，过程，回调函数  =================================
+//=======================================================================
+
+procedure wofanKeygen(hdlg: HWND);
+var
+  Title, text: string;
+Begin
+  Title := '提示';
+  Text := '输入机器码了吗？';
+  ZeroMemory(@mCode, sizeof(mCode));
+  ZeroMemory(@mName, sizeof(mName));
+  GetDlgItemText(hDlg, IDC_Name, @mName, sizeof(mName));
+  asm
+    LEA ESI, mName  //把机器码的地址传到 ESI
+    test eax, eax   //EAX 是 GetDlgItemText 函数返回值，它是字串实际长度
+    JE @Err         //测试的结果，如果 EAX 为零，使 Flag 标志寄存器中的 Z 标志为零，则出错
+    lea edi, mCode  //===========存放注册码=====================
+    mov ecx, eax    //存放机器码的位数
+    xor edx, edx
+  @loop:
+    mov al, byte ptr [esi+ecx-1]
+    sub al, 3
+    mov byte ptr [edi+edx], al
+    dec ecx
+    inc edx
+    test ecx, ecx
+    jnz @loop
+    mov cl, byte ptr [edi+1]
+    inc cl
+    mov al, byte ptr [edi+edx-2]
+    sub al, 2
+    mov byte ptr [edi+edx-2], cl
+    mov byte ptr [edi+1], al
+    jmp @End
+  @Err:
+    push 0
+    MOV EAX, DWORD PTR SS:[Title]
+    PUSH EAX
+    MOV EAX, DWORD PTR SS:[Text]
+    PUSH EAX
+    PUSH MB_OK
+    Call MessageBox       //提示
+  @End:
+  End;  //End ASM
+End;
+
+//=======================================================================
+```
+
+`4dd466d0e1e0cc123afbe504da2462ca`
