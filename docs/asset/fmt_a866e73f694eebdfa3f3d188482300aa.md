@@ -1,0 +1,91 @@
+
+# 改造 `INSTDRV`
+
+> 原文：[`www.pediy.com/kssd/pediy10/69170.html`](https://www.pediy.com/kssd/pediy10/69170.html)
+
+最近没事想学学驱动程序编程，在驱动的加载中使用了一个工具叫 `INSTDRV.EXE`，这个工具加载驱动有点麻烦就是要手动把驱动程序的完整路径添加给它，我感觉这实在是有些麻烦，它居然不提供一个文件选择对话框，所以操作得相当郁闷，于是就想给它加个文件选择对话框。
+
+## 1. 系统规划
+
+要给这个程序加文件选择对话框就得先给它加个打开文件选择对话框的按钮，打开文件的对话框的函数是 `GetOpenFileName`，而这个函数在 `comdlg32.dll` 中，程序中没有这个链接库。根据以上条件，可把整个过程分为一下几个部分：添加资源、增加引入表、添加代码。
+
+使用工具：资源工具 `Resource Hacker`，16 进制编辑工具 `WinHex`，PE 工具 `PEtools`，调试工具 `OllyICE`，反汇编工具 `IDA`
+
+## 2. 添加资源
+
+第一次使用 `Resource Hacker`，别的资源工具也不会，把 `INSTDRV.EXE` 拖到 `Resource Hacker` 中，打开 Dialog 项会发现一个程序对话框界面，在界面上右键在弹出的菜单中选择 `Insert Control`，在添加控件的对话框中我们选择“按钮 button”，caption：“打开…”，ID：`3007`，别的不用管默认就行了。退出该对话框，然后在编译脚本，最后保存就行。也可以复制脚本中的按钮控件，然后修改属性，编译保存就行，其实我就是这么干的，因为开始没发现可以像第一种方法那样插入控件^\_^。
+
+## 3. 增加引入表
+
+先介绍一下相对虚拟地址 `RVA`，与文件偏移地址 `File Offset` 的转化方法。原理：某个数据相对所在节的地址，不论在磁盘文件中还是映射到内存文件中，一定是相同的。用一下公式表示：
+
+`RVARb=FOFb`；`RVA`:数据在内存中的相对偏移地址、`Rb` 数据所在节的相对偏移地址、`FO` 数据在文件中的文件偏移地址、`Fb` 数据所在节的文件偏移地址。当然这个公式与《加密解密》中有点不同，不过我认为书上的公式很令人费解。
+
+用 `WinHex` 打开第二部分保存的文件，找到偏移地址为 `3Ch` (`e_lfanew` 用于定位 PE 文件头)处，此处的值为 `80H`，这就是 PE 文件头的文件偏移地址，数据目录表中的引入表相对与 PE 文件头的偏移为 `80H`，可得引入表的文件偏移为 `80H+80H=100H`。引入表地址为 `6000H` 大小为 `704H`，注意地址是 `RVA`。打开 `PEtools`，使用快捷键 `Alt+1` 打开 PE Editor，然后点击“Sections”，弹出各个节的信息，找到 `Virtual Offset` 一栏，可以看出 `6000H` 在 `.idata` 中 `Raw Offset` 为 `4C00`。
+
+所以 `6000H` 指向的文件偏移地址为 `4C00`，找到 `4C00` 处。在 `4C00` 出可以看到程序有三个 `IMAGE_IMPORT_DESCRIPTOR`（简写为 `IDD`），由于程序中没有引入 `comdlg32.dll`，所以要添加一个 `IDD`，显然在 `4C00` 处没有足够的空间。在 `WinHex` 向下翻，选择偏移为 `5330H` 处写入新的 `IDD`，把 `4C00H` 处的三个 `IDD` 复制到 `5330H` 处，修改数据目录表，找到 `100H` 处把 `5330H` 转化为 `RVA6730` 填在此处，后面的 `704H` 可以不改，对程序的运行没影响。在新位置的三个 `IDD` 后面添一个 `IDD`，前面三个双字(`DWORD`)设为 0 即可，第四个 `DWORD` 为指向“`comdlg32.dll`”的指针，我把这个字符串放在 `5310` 处转化为 `RVA6710`，第五个双字为指向 `IMAGE_THUNK_DATA` 指针，这里只引用了一个函数所以第一个该结构指向的 `IMAGE_IMPORT_BY_NAME`，为 `GetOpenFileNameA`，我在 `0053B0` 处设置了一个 `IMAGE_IMPORT_BY_NAME` 结构。最终的添加效果图如下：
+
+![](img/ae0b10935413f5293a18f30b7c8a4eba.jpg)
+
+## 4. 添加代码
+
+用 `IDA` 打开修改后的文件，在 `WinMain` 中点击 `DialogFunc`，可以看到处理消息的代码，请看如下代码：
+
+```assembly
+AUTO:0040129B                cmp     ax, 3003        ; 执行
+AUTO:0040129F                jb      short AnZhuang
+AUTO:004012A1                jbe     Zhixing
+AUTO:004012A7                cmp     ax, 3004        ; 停止
+AUTO:004012AB                jbe     Tingzhi
+AUTO:004012B1                cmp     ax, 3005        ; 卸载
+AUTO:004012B5                jz      Xiezai
+AUTO:004012BB                jmp     default;default=401346
+```
+
+这段代码是处理 `WM_COMMAND` 消息的，`ax` 中保存的是控件 ID，或者菜单 ID，`004012BB` 就是要跳到添加代码中的位置。打开按钮的工作流程如下：分配文件名空间、分配 `OPENFILENAME` 空间、`GetOpenFileName`、回收各空间，使用函数流程：`VirtualAlloc` > `VirtualAlloc` > `GetOpenFileName` > `VirtualFree` > `VirtualFree`
+
+在代码段的后面找空隙空间，这里的起始地址为 `004056A0`，于是把 `jmp default` 改为 `JMP 004056A0`。在 `004056A0` 处添加如下代码：
+
+```assembly
+004056A0      66:3D BF0B    cmp     ax, 0BBF
+004056A4      74 05         je      short 004056AB
+004056A6    ^ E9 9BBCFFFF   jmp     00401346
+004056AB      6A 04         push    4
+004056AD      68 00100000   push    1000
+004056B2      68 00020000   push    200
+004056B7      6A 00         push    0
+004056B9  FF15 4C624000 call dword  ptr [40624C];   kernel32.VirtualAlloc
+004056BF      8BF8          mov     edi, eax
+004056C1      6A 04         push    4
+004056C3      68 00100000   push    1000
+004056C8      6A 4C         push    4C
+004056CA      6A 00         push    0
+004056CC FF15 4C624000 call  dword ptr [40624C]>;   kernel32.VirtualAlloc
+004056D2      8BD0          mov     edx, eax
+004056D4      C702 4C000000 mov     dword ptr [edx], 4C
+004056DA   C742 0C D0674>mov    dword ptr [edx+C], 004067D0      ;   ASCII "All Files"过滤字符串是自己添加的文件偏移地址为 53D0
+004056E1      897A 1C       mov     dword ptr [edx+1C], edi
+004056E4      C742 20 00020>mov     dword ptr [edx+20], 200
+004056EB      C742 34 00100>mov     dword ptr [edx+34], 1000
+004056F2      52            push    edx
+004056F3  FF15 A0674000 call   dword ptr [4067A0];  comdlg32.GetOpenFileNameA
+004056F9      09C0          or      eax, eax
+004056FB      74 0D         je      short 0040570A
+004056FD      57            push    edi
+004056FE      68 01300000   push    0BB9
+00405703      56            push    esi
+00405704 FF15 9C614000 call    dword ptr [40619C];  USER32.SetDlgItemTextA
+0040570A      68 00800000   push    8000
+0040570F      6A 00         push    0
+00405711      57            push    edi
+00405712  FF15 50624000 call   dword ptr [406250]>;  kernel32.VirtualFree
+00405718      68 00800000   push    8000
+0040571D      6A 00         push    0
+0040571F      52            push    edx
+00405720  FF15 50624000 call dword ptr [406250];  kernel32.VirtualFree
+00405726    ^ E9 1BBCFFFF   jmp     00401346
+```
+
+由于不熟悉工具手工操作比较多，中间的叙述比较嗦，第一次写文章写的不好，还希望各位指教。
+
+附件.rar
