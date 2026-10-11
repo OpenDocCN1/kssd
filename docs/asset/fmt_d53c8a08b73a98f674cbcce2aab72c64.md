@@ -1,0 +1,267 @@
+
+# Delphi 下构建无导入表程序-使用:hash 获取 API,k32Base 等
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-672.htm`](https://www.pediy.com/kssd/pediy08/pediy8-672.htm)
+
+小弟菜菜～这篇是以前写的东西一直没有发出来献丑。。  
+
+新年到了余下的时间也不多了就发出来大家一起斜视一下好了  
+
+//Start~~~  
+
+《Delphi 实现无导入表程序》  
+
+初学编程，请勿奸笑:P  
+
+首先感谢,一些认识不认识的前辈高人的资料.谢谢～  
+
+前提假设您已经有了一定的 PE Virus 的知识.  
+
+好了～先简单的说说无导入表程序的几点基本的构成
+
+### 1. GetkernelBase(获取 kernel32.dll 的基址)
+
+由于我们是无导入表的程序所以，所有 API 函数都是依靠内存搜索完成的,  
+
+想必大家已经知道 EXE 载入到内存中 `ESP` 保存 `ExitThread` 函数地址  
+
+`ExitThread` 函数是在 `kernel32.dll` 模块中的，所以证明 EXE 载入的时候就已经加载  
+
+了 `kernel32.dll` 模块，于是我们的工作就是确定 `kernel32.dll` 的基址。  
+
+这里我使用"PEB 获取地址 kernel32.dll 基址"的方法(简单嘛。。Delphi 调试这种程序很麻烦的～所以使用这个。。)
+
+```
+代码:
+
+* * *
+
+asm
+  mov eax,fs:$30
+  mov eax,[eax + $0c]
+  mov esi,[eax + $1c]
+  lodsd
+  mov eax,[eax+$08]                //这个时候 eax 中保存的就是 k32 的基址了
+end;
+
+* * *
+
+
+```
+
+基址获取到了剩下的就是需要确定我们需要的两个重要的函数  
+
+"GetProcAddress"和"LoadLibraryA"两个函数～有了这两个函数我们就可以  
+
+获取到我们需要的任何函数了..  
+
+### 2. 自构建"GetProcAddress"函数
+
+上面我们已经获取到 `k32` 的基址了～但是问题是我们还需要一些其他函数来完成我们程序  
+
+的功能,首先我们回顾一下～前辈们写的 API 搜索函数,为了减少程序体积和保护程序自身  
+
+他们基本上都是使用 hash 值来搜索模块的导入表的,这样我们就可以自己构建一个 API 搜索  
+
+函数了。直接贴代码好了～其实 Delphi 版本的 API 搜索函数许多前辈都写过  
+
+Aming,老王,liumazi 等等～
+
+```
+代码:
+
+* * *
+
+FUNCTION GetProcAddress(Module:Cardinal;ProcessCRC:DWORD) : Pointer;
+VAR
+  ExportName            : pChar;
+  Address               : Cardinal;
+  J                     : Cardinal;
+  ImageDosHeader        : PImageDosHeader;
+  ImageNTHeaders        : PImageNTHeaders;
+  ImageExportDirectory  : PImageExportDirectory;
+BEGIN
+  ImageDosHeader:=Pointer(Module);
+  ImageNTHeaders:=Pointer(Module+ImageDosHeader._lfanew);
+  ImageExportDirectory:=Pointer(ImageNtHeaders.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress+Module);
+  J:=0;
+  Address:=0;
+  REPEAT
+    ExportName:=Pointer(Cardinal(Pointer(Cardinal(ImageExportDirectory.AddressOfNames)+Module+J*4)^)+Module);
+    IF CalculateCRC32(ExportName^,StrLen(ExportName))=ProcessCRC THEN
+      Address:=Cardinal(Pointer(Word(Pointer(J SHL 1+Cardinal(
+                 ImageExportDirectory.AddressOfNameOrdinals)+Module)^) AND
+                 $0000FFFF SHL 2+Cardinal(ImageExportDirectory.AddressOfFunctions)
+                 +Module)^)+Module;
+    Inc(J);
+  UNTIL (Address<>0)OR(J=ImageExportDirectory.NumberOfNames);
+  Result:=Pointer(Address);
+END;
+
+* * *
+
+
+```
+
+好了～此函数就可以帮我们，循环对比 `ProcessCRC` 参数中给出的 API 的 hash 值  
+
+然后发挥这个函数的地址,我这里使用的是 `Crc32` 算法～  
+
+上面的 PE 的数据结构可以从 Windows 中 Copy 出来
+
+```
+代码:
+
+* * *
+
+PROCEDURE BuildCRC32Table; ASSEMBLER;
+ASM
+    mov       ebx, 0EDB88320h
+    lea       edi, crc32tab
+    xor       ecx, ecx
+  @loc1:
+    mov       eax, ecx
+    mov       edx, 8
+  @loc2:
+    test eax, 1
+    jz  @loc3
+    shr       eax, 1
+    xor       eax, ebx
+    jmp       @loc4
+  @loc3:
+    shr       eax, 1
+  @loc4:
+    dec       edx
+    jnz       @loc2
+    stosd
+    inc       ecx
+    cmp       ecx, 256
+    jb  @loc1
+END;
+
+FUNCTION CalculateCRC32(VAR Buffer;CONST Size:DWORD) : DWORD; ASSEMBLER;
+ASM
+    push esi
+    push edi
+    push ebx
+    mov edi,edx
+    mov esi,eax
+    xor ebx,ebx
+    mov eax,$ffffffff
+    mov ecx,edi
+    shr ecx,2
+    jecxz @Rest
+  @Loop:
+    mov edx,[esi]
+    mov bl,al
+    xor bl,dl
+    shr eax,8
+    xor eax,dword ptr [CRC32tab+ebx*4]
+    mov bl,al
+    xor bl,dh
+    shr eax,8
+    xor eax,dword ptr [CRC32tab+ebx*4]
+    shr edx,16
+    mov bl,al
+    xor bl,dl
+    shr eax,8
+    xor eax,dword ptr [CRC32tab+ebx*4]
+    mov bl,al
+    xor bl,dh
+    shr eax,8
+    xor eax,dword ptr [CRC32tab+ebx*4]
+    add esi,4
+    loop @Loop
+  @Rest:
+    mov ecx,edi
+    and ecx,3
+    jecxz @End
+  @Loop_Rest:
+    mov bl,al
+    xor bl,[esi]
+    shr eax,8
+    inc esi
+    xor eax,dword ptr [CRC32tab+ebx*4]
+    loop @Loop_Rest
+@End:
+    xor eax,$ffffffff
+    pop ebx
+    pop edi
+    pop esi
+END;
+
+* * *
+
+
+```
+
+这个是计算一个数据的 `Crc32` 数值--返回是 10 进制的～可以自己改变成 16 进制  
+
+好了现在我们已经有了 `GetProcAddress` 函数了～好像还少一个？？  
+
+前面我们提到过需要两个函数～`GetProcAddress` 有了·`k32` 的基址也有了  
+
+这样我们就可以搜索出 `LoadLibraryA` 的地址....  
+
+好了完成前面的代码
+
+```
+代码:
+
+* * *
+
+FUNCTION MyLoadLibraryA:Pointer;
+const
+  MyLoadLibraryA=$3FC1BD8D;//LoadLibraryA 的 Crc32 数值
+asm
+  mov eax,fs:$30
+  mov eax,[eax + $0c]
+  mov esi,[eax + $1c]
+  lodsd
+  mov eax,[eax+$08]                //此时 eax 中就保存了 k32 的基址
+  mov edx,MyLoadLibraryA        //压入 LoadLibraryA 的 Hash
+  call GetProcAddress                //开始获取 LoadLibraryA 的地址
+end;
+
+* * *
+
+
+```
+
+好了现在我们两个函数都有了～现在我们的任务已经完成一半了！  
+
+(为什么是一半？？因为 Delphi 非等同于 VC 和 XXXASM,他不能够自己构建 PE 结构)  
+
+准确的说～即使你写一个只有一条 `begin end.`的程序～编译器编译的时候还是会连接 N 多  
+
+的 API 函数～进来....  
+
+为了完成任务，我们这里就使用了 `Nico Bendlin` 前辈的 `miniEXE` 的模板...  
+
+自己打造了一个无导入表的程序...  
+
+这里需要我们自己编译 `system.pas` 和 `SysInit.pas` 单元
+
+```
+代码:
+
+* * *
+
+//SysInit.pas 单元代码
+unit SysInit;
+
+interface
+
+var
+  TlsIndex: LongWord;
+
+implementation
+
+end.
+
+* * *
+
+
+```
+
+System.pas 单元代码
