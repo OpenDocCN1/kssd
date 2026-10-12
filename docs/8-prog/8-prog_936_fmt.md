@@ -1,0 +1,57 @@
+
+# xp sp3 下简单遍历 ActiveProcessLinks 获取进程
+
+> 原文：[`www.pediy.com/kssd/pediy12/137189.html`](https://www.pediy.com/kssd/pediy12/137189.html)
+
+先声明~我是小菜，初学 `windows` 驱动，欢迎各位大牛拍砖~~
+
+先放代码~
+
+```c
+/*
+从 ActiveProcessLink 上遍历进程
+*/
+VOID GetProcess()
+{
+  //获取 EPROCESS 结构
+  ULONG epadr = (ULONG)PsGetCurrentProcess();
+  if((epadr == 0) || (epadr == 0xffffffff)){
+    KdPrint(("Can't get the process!\n"));
+    return;
+  }
+  //获取 ActiveProcessLink 链表,EPROCESS+0X88 是 ActiveProcessLink 节点
+  LIST_ENTRY* pActPro = (LIST_ENTRY*)(epadr + 0x88);
+  LIST_ENTRY* bC = pActPro;
+  //获取保存文件名的 ImageFileName 数组,EPROCESS+0X174 是 ImageFileName 数组
+  UCHAR* ImageFileName = (UCHAR*)(epadr + 0x174);
+  do{
+    KdPrint(("%s.\n",ImageFileName));
+    //遍历链表
+    pActPro = (LIST_ENTRY*)pActPro->Flink;
+    //获得 ImageFileName
+    _asm{
+      mov eax,pActPro
+      add eax,236
+      mov ImageFileName,eax
+    }
+  }while(pActPro->Flink != bC);
+}
+
+#pragma LOCKEDCODE
+extern "C" NTSTATUS DriverEntry (
+      IN PDRIVER_OBJECT pDriverObject,
+      IN PUNICODE_STRING pRegistryPath  )
+{
+#ifdef  DBG
+  _asm int 3
+#endif
+  KdPrint(("进入驱动入口\n"));
+  GetProcess();
+  KdPrint(("DriverEntry end\n"));
+  return STATUS_SUCCESS;
+}
+```
+
+在 `EPROCESS` 中，`ActiveProcessLinks` 域是一个双链表节点，在 `windows` 中，所有活动进程都连接在一起，构成一个双链表，表头是全局变量 `PsActiveProcessHead`。当一个进程创建时，其 `ActiveProcessLinks` 域将作为节点加入到此链表中；当进程删除时，则从链表中移除。
+
+但是为什么 `System Idle Process` 不能在链表中遍历出来呢？想不通。。。

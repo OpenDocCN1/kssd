@@ -1,0 +1,355 @@
+
+# PSAPI 和 ToolHelpAPI 学习笔记
+
+> 原文：[`www.pediy.com/kssd/pediy07/pediy7-730-1.htm`](https://www.pediy.com/kssd/pediy07/pediy7-730-1.htm)
+
+关键字：`PSAPI Functions`
+
+`EmptyWorkingSet`
+
+`EnumDeviceDrivers`
+
+`EnumPageFiles`
+
+`EnumProcesses`
+
+`EnumProcessModules`
+
+`GetDeviceDriverBaseName`
+
+`GetDeviceDriverFileName`
+
+`GetMappedFileName`
+
+`GetModuleBaseName`
+
+`GetModuleFileNameEx`
+
+`GetModuleInformation`
+
+`GetPerformanceInfo`
+
+`GetProcessImageFileName`
+
+`GetProcessMemoryInfo`
+
+`GetWsChanges`
+
+`InitializeProcessForWsWatch`
+
+`QueryWorkingSet`
+
+红色为 `.NET` 新增
+
+## 实践应用：
+
+### 1).枚举进程、模块以及相关信息
+
+使用 `PSAPI`：
+
+- `EnumProcess`
+- `EnumProcessModule`
+- `GetProcessMemoryInfo`
+- `GetModuleBaseName`
+- `GetModuleFileNameEx`
+- `GetModuleInformation`
+
+```cpp
+#include <windows.h>
+#include <fstream>
+#include <iomanip>
+#include "psapi.h"
+
+#pragma comment ( lib, "psapi.lib" )
+
+using namespace std ;
+
+
+int main( )
+{
+    ofstream fout ( "EnumProcessAndModule.txt" ) ;
+
+    DWORD dwProcessId[1024], cbNeededProcess;
+
+    if ( !EnumProcesses( dwProcessId, sizeof(dwProcessId), &cbNeededProcess ) )
+        return 0;
+
+    for ( unsigned int i = 0; i < ( cbNeededProcess/sizeof(DWORD) ); i++ )
+	{
+		char szProcessName[MAX_PATH] = "unknown";
+
+		HANDLE hProcess = OpenProcess( PROCESS_QUERY_INFORMATION |
+                                   PROCESS_VM_READ,
+                                   FALSE, dwProcessId[i] );
+		if ( NULL != hProcess )
+		{					
+			HMODULE hMods[1024];
+			DWORD cbNeededModule ;
+
+			if ( EnumProcessModules( hProcess, hMods, sizeof(hMods), &cbNeededModule ) )
+			{
+				PROCESS_MEMORY_COUNTERS ProcessMemCounters ;
+
+				GetProcessMemoryInfo ( hProcess, &ProcessMemCounters, sizeof(ProcessMemCounters) ) ;
+
+				fout << "ProcessId : " << dwProcessId[i] << endl ;
+				fout << "Process Memory information:" << endl ;
+				fout << "PageFaultCount                 :" << hex << setw(8) << ProcessMemCounters.PageFaultCount		<< endl ;
+				fout << "PeakWorkingSetSize             :" << hex << setw(8) << ProcessMemCounters.PeakWorkingSetSize	<< endl ;
+				fout << "WorkingSetSize                 :" << hex << setw(8) << ProcessMemCounters.WorkingSetSize		<< endl ;
+				fout << "QuotaPeakPagedPoolUsage        :" << hex << setw(8) << ProcessMemCounters.QuotaPeakPagedPoolUsage	<< endl ;
+				fout << "QuotaPagedPoolUsage            :" << hex << setw(8) << ProcessMemCounters.QuotaPagedPoolUsage	<< endl ;
+				fout << "QuotaPeakNonPagedPoolUsage     :" << hex << setw(8) << ProcessMemCounters.QuotaPeakNonPagedPoolUsage	<< endl ;
+				fout << "QuotaNonPagedPoolUsage         :" << hex << setw(8) << ProcessMemCounters.QuotaNonPagedPoolUsage	<< endl ;
+				fout << "PagefileUsage                  :" << hex << setw(8) << ProcessMemCounters.PagefileUsage		<< endl ;
+				fout << "PeakPagefileUsage              :" << hex << setw(8) << ProcessMemCounters.PeakPagefileUsage		<< endl ;
+
+				for ( unsigned int j = 0; j < ( cbNeededModule/sizeof(DWORD) ); j++ )	
+				{					
+					char szModuleName[MAX_PATH];
+
+					if ( GetModuleFileNameEx ( hProcess, hMods[j], szModuleName, sizeof(szModuleName) ) )
+					{
+						fout << '\t' << szModuleName << setw(8) << hex << "(0x" << hMods[j] << ")" << endl ;
+
+                    	                            MODULEINFO ModuleInfo ;
+
+						if ( GetModuleInformation ( hProcess, hMods[j], &ModuleInfo, sizeof(ModuleInfo) ) )
+						{
+							fout << "\t\tBaseOfDll   : " << ModuleInfo.lpBaseOfDll << endl ;
+							fout << "\t\tSizeOfImage : " << ModuleInfo.SizeOfImage << endl ;
+							fout << "\t\tEntryPoint  : " << ModuleInfo.EntryPoint  << endl ;
+						}
+					 }
+                                     }
+
+				fout << endl << endl ;
+			}
+
+			 CloseHandle( hProcess );
+		}
+			
+	}
+
+	return 0 ;
+}
+```
+
+### 二.枚举设备驱动信息
+
+使用 `PSAPI`：
+
+- `EnumDeviceDrivers`
+- `GetDeviceDriverBaseName`
+- `GetDeviceDriverFileName`
+
+```cpp
+#include <windows.h>
+#include <fstream>
+#include "psapi.h"
+
+#pragma comment ( lib, "psapi.lib" )
+
+using namespace std ;
+
+int main()
+{
+	ofstream fout ( "DeviceDrivers.txt" ) ;
+
+	LPVOID lpImageBase[1024] ;
+	DWORD  cbNeeded ;
+
+	if ( EnumDeviceDrivers( lpImageBase, sizeof(lpImageBase), &cbNeeded ) )
+	{
+                  for ( unsigned int i = 0; i < ( cbNeeded/sizeof(LPVOID) ); i++ )
+		{
+			char szDeviceDriveBaseName[128] ;
+			char szDeviceDriveFileName[1024] ;
+
+			GetDeviceDriverBaseName ( lpImageBase[i], szDeviceDriveBaseName, sizeof(szDeviceDriveBaseName) ) ;
+			GetDeviceDriverFileName ( lpImageBase[i], szDeviceDriveFileName, sizeof(szDeviceDriveFileName) ) ;
+
+			fout << "BaseName : " << szDeviceDriveBaseName << endl ;
+			fout << "FileName : " << szDeviceDriveFileName << endl << endl ;
+		}
+	}
+
+	return 0 ;
+}
+```
+
+### 三.WorkingSet Info
+
+使用 `PSAPI`：
+
+- `EmptyWorkingSet`
+- `QueryWorkingSet`
+- `InitializeProcessForWsWatch`
+- `GetWsChanges`
+
+注：在执行下面这个程序的时候最好打开“任务管理器”，观察 `NOTEPAD.EXE` 的内存使用情况（在程序中是以 `NOTEPAD.EXE` 为例）
+
+
+
+```
+#include <windows.h>
+#include <iostream>
+#include <fstream>
+#include "psapi.h"
+#define MAX_NUM 10000
+
+#pragma comment ( lib, "psapi.lib" ) 
+
+using namespace std ;
+
+ofstream fout ( "WorkingSetInformation.txt" ) ;
+
+void ShowErrorMessage ( )
+{
+	DWORD dwErrorCode = GetLastError() ;
+
+	HLOCAL hLocal = NULL ;
+	FormatMessage ( FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER,
+				NULL,
+				dwErrorCode,
+				MAKELANGID ( LANG_ENGLISH, SUBLANG_ENGLISH_US),
+				(PTSTR)&hLocal, 
+				0,
+				NULL 
+			) ; 
+				
+	fout << '\t' << "ErrorCode    : " << dwErrorCode		<< endl ;
+	fout << '\t' << "ErrorMessage : " << (char*)hLocal      << endl ;
+
+	LocalFree ( hLocal ) ;
+}
+
+
+int main( )
+{
+	//get notepad's PID from "Windows task maganent"
+
+	DWORD dwProcessId = 6536 ; //change it
+
+	HANDLE hProcess = OpenProcess( PROCESS_ALL_ACCESS, FALSE, dwProcessId ); 
+	if ( InitializeProcessForWsWatch( hProcess ) )
+	{
+		/********** QueryWorkingSet *********/
+
+		PVOID pv[MAX_NUM] = { 0 } ;
+
+		if ( !QueryWorkingSet ( hProcess, pv, sizeof(pv) ) )
+		{
+			fout << "QueryWorkingSet failed!" << endl ;
+			
+			ShowErrorMessage() ;			
+		}
+		else
+		{
+			for ( unsigned int i = 0; i < MAX_NUM; i++ )
+			{
+				if ( pv[i] != NULL )
+				{
+					if ( i == 0 )
+						fout << "TotalNum : " << hex << pv[i] << endl ;
+
+					else
+						fout << '\t' << i << "  pv : " << hex << pv[i] << endl ;
+				}
+				else
+				{
+					break ;
+				}
+			}
+		}
+
+		fout << endl << endl ;
+
+		/********** GetWsChanges *********/
+		
+		cout << "waiting for 5 second..." << endl ;
+
+		Sleep ( 5000 ) ;
+		
+		PSAPI_WS_WATCH_INFORMATION WatchInfo[MAX_NUM] = { 0 };
+
+		if ( !GetWsChanges( hProcess, WatchInfo, sizeof(WatchInfo) ) )
+		{
+			fout << "GetWsChanges failed!" << endl ;
+			
+			ShowErrorMessage ( ) ;			
+		}
+		else
+		{
+			for ( unsigned int i = 0; i < MAX_NUM; i++ )
+			{
+				if ( WatchInfo[i].FaultingPc != NULL || WatchInfo[i].FaultingVa != NULL )
+				{
+					fout << "Pc : " << WatchInfo[i].FaultingPc << endl ;
+					fout << "Va : " << WatchInfo[i].FaultingVa << endl << endl ;
+				}
+				else
+				{
+					break ;
+				}
+			}
+		}
+
+
+		fout << endl << endl ;
+
+
+		/********** EmptyWorkingSet *********/
+
+		if ( !EmptyWorkingSet( hProcess ) )
+		{
+			fout << "EmptyWorkingSet failed!" << endl ;
+			
+			ShowErrorMessage() ;
+		}
+		else
+		{
+			PVOID pv[MAX_NUM] = { 0 } ;
+
+			if ( !QueryWorkingSet ( hProcess, pv, sizeof(pv) ) )
+			{
+				fout << "EmptyWorkingSet failed!" << endl ;
+
+				ShowErrorMessage() ;	
+			}
+			else
+			{
+				for ( unsigned int i = 0; i < MAX_NUM; i++ )
+				{
+					if ( pv[i] != NULL )
+					{
+						if ( i == 0 )
+							fout << "TotalNum : " << hex << pv[i] << endl ;
+
+						else
+							fout << '\t' << i << "  pv : " << hex << pv[i] << endl ;
+					}
+					else
+					{
+						break ;
+					}
+				}
+			}
+		}
+	}
+
+	CloseHandle ( hProcess ) ;
+ 
+	return 0 ;
+}
+```
+
+说明：`EmptyWorkingSet`有整理内存的功能，对系统中的所有进程执行该功能，即可以实现内存整理。（ 内存整理工具也不过如此吧 ~v~ )
+
+***
+
+**作者：北极星 2003**
+
+**邮箱：zhangjingsheng_nbu@yahoo.com.cn**
+
+`4dd466d0e1e0cc123afbe504da2462ca`

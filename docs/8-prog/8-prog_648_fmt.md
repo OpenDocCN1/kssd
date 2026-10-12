@@ -1,0 +1,1870 @@
+
+# NDIS 中间层驱动开发在 Win7 系统下和 Windows XP 系统下的区别
+
+> 原文：[`www.pediy.com/kssd/pediy12/137545.html`](https://www.pediy.com/kssd/pediy12/137545.html)
+
+NDIS 中间层驱动的开发在 Win7 系统上和 Windows XP 系统上有差别。
+
+我把 NDIS 中间层的讨论分成 2 块。windows 7 系统和 Windows XP 系统。
+
+## (一) 在 Windows XP 系统上进行开发
+
+平时很多朋友包括我在内，我们都在 XP 系统上使用 NDIS5.1 的框架来进行程序开发。我们都使用 Microsoft WDK 提供的 NDIS 的 Passthru 例子，在这个例子上做进一步的修改，来达到我们的目地。
+
+在 Passthru 工程的 `DriverEntry` 函数里面，我们都看见如下的代码：
+
+```c
+NTSTATUS  DriverEntry(IN PDRIVER_OBJECT  DriverObject,  IN  PUNICODE_STRING  RegistryPath)
+
+{
+          NDIS_STATUS    Status;
+  NDIS_PROTOCOL_CHARACTERISTICS  PChars;
+  NDIS_MINIPORT_CHARACTERISTICS  MChars;
+  PNDIS_CONFIGURATION_PARAMETER  Param;
+  NDIS_STRING      Name;
+  NDIS_HANDLE      WrapperHandle;
+  UNICODE_STRING nameString, linkString;
+  UINT FuncIndex;
+  PDEVICE_OBJECT MyDeviceObject;
+  PDRIVER_DISPATCH MajorFunction[IRP_MJ_MAXIMUM_FUNCTION + 1];
+  Status = NDIS_STATUS_SUCCESS;
+  //申请自旋锁 以到达资源共享的同步访问
+  NdisAllocateSpinLock(&GlobalLock);
+  //调用 NdisMInitializeWrapper 函数来保存在 NdisWrapperHandle 返回的句柄
+  NdisMInitializeWrapper(&NdisWrapperHandle, DriverObject, RegistryPath, NULL);
+  do
+  {
+//调用 NdisMInitializeWrapper 函数来保存在 WrapperHandle 返回的句柄
+    NdisMInitializeWrapper(&WrapperHandle, DriverObject, RegistryPath, NULL);
+
+//对于 MiniportCharacteristics 组件,如果驱动程序不用导出 MiniportXxx 这样的函数,则必须赋值为 NULL。
+
+//如果要导出任何新版本的 V4.0 或 V5.0 的 MiniportXxx 函数,那么中间层驱动程序的主版本必须是 V4.0,并且提供 4.0 或 5.0 版本的 MiniportCharacteristics 组件.
+  NdisZeroMemory(&MChars, sizeof(NDIS_MINIPORT_CHARACTERISTICS));
+  MChars.MajorNdisVersion = PASSTHRU_MAJOR_NDIS_VERSION;
+  MChars.MinorNdisVersion = PASSTHRU_MINOR_NDIS_VERSION;
+
+   /******************************
+
+      下面开始注册中间层驱动程序的 MiniportXxx 函数
+
+    ****************************/
+  MChars.HaltHandler           =   MPHalt;
+  MChars.InitializeHandler     =   MPInitialize;
+  MChars.QueryInformationHandler =   MPQueryInformation;
+  MChars.SetInformationHandler   =   MPSetInformation;
+  MChars.ResetHandler           =   MPReset;
+  MChars.SendHandler           =   NULL;
+  MChars.SendPacketsHandler      =   MPSendPackets;
+  MChars.TransferDataHandler     =   MPTransferData;
+  MChars.ReturnPacketHandler     =   MPReturnPacket;
+  MChars.CheckForHangHandler     =   NULL;
+
+#ifdef NDIS51_MINIPORT
+  MChars.CancelSendPacketsHandler =  MPCancelSendPackets;
+  MChars.PnPEventNotifyHandler    =  MPDevicePnPEvent;
+  MChars.AdapterShutdownHandler   =  MPAdapterShutdown;
+#endif // NDIS51_MINIPORT
+
+/*
+传递上一步保存的句柄,并调用 NdisIMRegisterLayeredMiniport 函数来注册驱动程序的 MiniportXxx 系列函数。其中句柄 NdisWrapperHandle 是由先前的 NdisMInitializeWrapper 函数返回的。
+
+当驱动程序调用 NdisIMInitializeDeviceInstance 函数,请求中间层驱动程序的 MiniportInitialize 函数对虚拟 NIC 进行初始化时,需要把句柄 NdisWrapperHandle 传入 NDIS
+
+当中间层驱动程序成功地绑定到一个或者多个 NIC 驱动程序上的时候, 或者是绑定到一个非 NIC 驱动程序上的时候也会调用 NdisIMInitializeDeviceInstance 函数。这样做使得中间层驱动程序可以初始化 Miniport 组件来接受虚拟 NIC 上的 I/O 请求
+*/
+           Status = NdisIMRegisterLayeredMiniport(NdisWrapperHandle, &MChars, sizeof(MChars), &DriverHandle);
+            if (Status != NDIS_STATUS_SUCCESS)
+       {
+       break;
+             }
+
+#ifndef WIN9X
+  NdisMRegisterUnloadHandler(NdisWrapperHandle, PtUnload);
+#endif
+  //中间层驱动程序要做的事情:
+  //初始化 NDIS_PROTOCOL_CHARACTERISTICS 类型的结构.  NDIS 不再支持 3.0 版本的协议驱动.
+  //能够使用 4.0 或 5.0 版本的 ProtocolCharacteristic 结构体,协议驱动必须支持 PNP 即插即用功能.
+  NdisZeroMemory(&PChars, sizeof(NDIS_PROTOCOL_CHARACTERISTICS));
+  PChars.MajorNdisVersion = PASSTHRU_PROT_MAJOR_NDIS_VERSION;
+  PChars.MinorNdisVersion = PASSTHRU_PROT_MINOR_NDIS_VERSION;
+  NdisInitUnicodeString(&Name, L"Passthru");
+
+  PChars.Name = Name;
+
+  /******************************
+
+         下面开始注册中间层驱动程序的  ProtocolXxx 函数
+
+    这里主要是注册---下边界面向无连接的中间层驱动程序的 ProtocolXxx 函数
+
+        ****************************/
+  PChars.OpenAdapterCompleteHandler = PtOpenAdapterComplete;
+  PChars.CloseAdapterCompleteHandler = PtCloseAdapterComplete;
+  PChars.SendCompleteHandler = PtSendComplete;
+  PChars.TransferDataCompleteHandler = PtTransferDataComplete;
+  PChars.ResetCompleteHandler = PtResetComplete;
+  PChars.RequestCompleteHandler = PtRequestComplete;
+  PChars.ReceiveHandler = PtReceive;
+  PChars.ReceivePacketHandler = PtReceivePacket;
+  PChars.ReceiveCompleteHandler = PtReceiveComplete;
+  PChars.StatusHandler = PtStatus;
+  PChars.StatusCompleteHandler = PtStatusComplete;
+  PChars.BindAdapterHandler = PtBindAdapter;
+  PChars.UnbindAdapterHandler = PtUnbindAdapter;
+  PChars.UnloadHandler = PtUnloadProtocol;
+  PChars.PnPEventHandler= PtPNPHandler;
+
+  /*
+  如果驱动程序随后要绑定到底层的 NDIS 驱动程序上,则调用 NdisRegisterProtocol 函数来注册驱动程序的 ProtocolXxx 函数。
+
+  全局变量 ProtHandle 是在 NDIS 协议驱动里面的 NdisRegisterProtocol 函数里面初始化的,然后中间层驱动必须保存 protHandle 的值,并在将来 NDIS 中间层驱动程序的协议部分的函数调用中作为输入参数来传递.
+
+  */
+  NdisRegisterProtocol(&Status,  &ProtHandle,&PChars,
+       sizeof(NDIS_PROTOCOL_CHARACTERISTICS));
+  if (Status != NDIS_STATUS_SUCCESS)
+  {
+    NdisIMDeregisterLayeredMiniport(DriverHandle);
+                break;
+  }
+
+//如果驱动程序导出了 MiniportXxx 和 ProtocolXxx 这一些列的函数,那么就调用 NdisIMAssociateMiniport 函数向 NDIS 通告有关驱动程序的微端口低边界和协议高边界信息
+    NdisIMAssociateMiniport(DriverHandle, ProtHandle);
+
+  }
+  while (FALSE);
+
+//----------------- 创建设备对象与符号连接----------------------------
+  RtlInitUnicodeString(&nameString, L"\\\\Device\\\\MyPassthru" );
+  RtlInitUnicodeString(&linkString, L"\\\\??\\\\MyPassthru");
+  for(FuncIndex = 0;
+            FuncIndex <=IRP_MJ_MAXIMUM_FUNCTION;
+            FuncIndex++)
+  {
+    MajorFunction[FuncIndex] = NULL;
+  }
+  MajorFunction[IRP_MJ_CREATE]           =  MydrvDispatch;
+  MajorFunction[IRP_MJ_CLOSE]            =  MydrvDispatch;
+  MajorFunction[IRP_MJ_DEVICE_CONTROL]  =  MydrvDispatchIoctl;
+  Status = NdisMRegisterDevice(
+            WrapperHandle,
+            &nameString,
+            &linkString,
+            MajorFunction,
+            &MyDeviceObject,
+            &NdisDeviceHandle
+            );
+  if(Status != STATUS_SUCCESS)
+  {
+    DbgPrint("NdisMRegisterDevice failed!\n");
+  }
+  return(Status);
+}
+```
+
+然后，我们就开始实现相应的回调函数。然而为了收、发网络数据包，对它们进行控制，我们基本上只会去修改以下的回调函数：
+
+下面我把相关的函数的功能给罗列出来。
+
+```c
+/**** MPSend 函数的功能是: 发送单个数据包。
+    若中间层驱动不支持 MiniportSendPackets,那么 MPSend 函数必须实现。
+    参数说明:
+      MiniportAdapterContext    它是适配器。
+      PacketArray               它是包描述符指针。
+      Flags                     它未被使用。
+    *****/
+NDIS_STATUS
+MPSend(
+    IN NDIS_HANDLE        MiniportAdapterContext,
+    IN PNDIS_PACKET       Packet,
+    IN  UINT              Flags
+    )
+
+/**** MPSendPackets 函数的功能是:
+  用于指定网络上传输数据包的包描述符指针数组。该函数可以用来发送多个数据包。而不是只发送单个数据包。除非中间层驱动程序绑定到低层 WAN NIC 驱动程序上,并提供 MiniportWanSend 函数,否则驱动程序应提供对 MPSendPackets 函数的支持, 而不是对 MPSend 函数的支持。
+****/
+```
+
+
+
+## 参数说明
+
+- `MiniportAdapterContext`：它是适配器。
+- `PacketArray`：它是包描述符数组。
+- `NumberOfPackets`：它是 `PacketArray` 的长度。
+
+每个数据包发送完成后无论是否成功都要调用 `NdisMSendComplete` 函数。让上层的协议驱动能够收到 `SendCompleteHandler` 来判断数据包的完成状态。
+
+```c
+/*
+ * Function Description:
+ * MPTransferData 函数的功能:
+ *
+ * 该函数用于传输在前视缓冲区中没有指示的接收数据包的剩余部分。前视缓冲区由
+ * 中间层驱动程序传递给 NdisMXxxIndicateReceive 函数。这个被指示的数据包可以是
+ * 中间层驱动程序的 ProtocolReceive 函数或者是 ProtocolReceivePackets 处理程序接收的
+ * 转换数据包。
+ *
+ * 如果中间层驱动程序通过调用 NdisMXxxIndicateReceive 函数向上层驱动程序指示接收
+ * 数据包,那么 MPTransferData 函数必须提供。
+ *
+ * 如果中间层通过调用驱动程序总是 NdisMIndicateReceive 函数向上层驱动程序指示接收
+ * 数据包,那么 MPTransferData 函数可以不必提供。即 NdisMIndicateReceivePacket 指示
+ * 接收数据包,那么传递给 ProtocoltReceive 函数 的前视缓冲区将总是获得完整的数据包。
+ */
+
+NDIS_STATUS
+MPTransferData(
+    OUT PNDIS_PACKET     Packet,             //目的数据包
+    OUT PUINT            BytesTransferred,  //复制了多少数据
+    IN  NDIS_HANDLE      MiniportAdapterContext,//适配器结构体
+    IN  NDIS_HANDLE      MiniportReceiveContext,//上下文
+    IN  UINT             ByteOffset,        //指向拷贝数据包的偏移
+    IN  UINT             BytesToTransfer    //实际传输了多少字节的数据
+    )
+```
+
+```c
+/*
+ * Function Description:
+ * PtTransferDataComplete 函数的功能:
+ *
+ * 它是 MPTransferData()的异步完成函数。
+ *
+ * 当 ProtocolReceive 函数需要调用 NdisTransferData 函数,那么我们必须实现
+ * PtTransferDataComplete 的代码。
+ *
+ * 当 NdisTransferData 调用之后,并且返回值是 NDIS_STATUS_PENDING，在数据包传输完成了以后,会去调用
+ * PtTransferDataComplete 函数用来表明一个数据包的传输完成。这时就会得到一个完整的数据包。
+ */
+
+VOID
+PtTransferDataComplete(
+    IN  NDIS_HANDLE      ProtocolBindingContext,
+    IN  PNDIS_PACKET     Packet,
+    IN  NDIS_STATUS      Status,
+    IN  UINT             BytesTransferred
+    )
+```
+
+```c
+/*
+ * Function Description:
+ * PtReceive 函数的功能是:
+ *
+ * 该函数以指向包含网络接收数据的前视缓冲区的指针为参数被调用执行。如果这个前视缓冲区没有包含完整的网络数据包,
+ * 那么 ProtocolReceive 函数将以包描述符作为参数,调用 NdisTransferData 函数。
+ *
+ * 当 NdisTransferData 调用之后,数据包传输完成了以后,会去调用
+ * ProtocolTransferDataComplete 函数以用来表明一个数据包的传输完成。这时就会得到一个完整的数据包。
+ *
+ * 如果低层驱动程序调用了 NdisMIndicateReceivePacket 指示接收数据包,那么传递给 PtReceive 函数的前视缓冲区
+ * 将总是获得完整的数据包。
+ *
+ * 如果中间层驱动不需要完整的数据包时,可以调用 NdisMXxxIndicateReceice 函数向上通知,这样就省略了获取完整数据包的过程。
+ *
+ * 前视缓冲区:考虑数据包的接收,如果我们只需要看见数据内容的前几个字节(如 TCP 头)就可以决定这个包是否是本协议
+ * 所需要处理的,那么显然下层驱动就没有必要提交整个数据包,只提供一个包开始的几个字节就可以了。
+ *
+ * 参数说明:
+ * ProtocolBindingContext    在绑定是得到的绑定句柄,即它是在 NdisOpenAdapter 被调用时设置的。
+ * MacReceiveContext        它指向一个不透明的环境变量,由底层 NIC 驱动传入,它用此句柄与从网络上收到的 Packet
+ *                          关联。当调用 NdisGetReceivePacket 函数取得低层驱动上面的包描述符时,需要用到这个参数。
+ *                          当 NDIS 协议驱动的 ProtocolReceive 函数的实现中,可能要调用 NdisTransferData 函数,
+ *                          那么也会用到这个参数。
+ * HeaderBuffer             它是一个以太网帧,就是以太网的包头。它是个虚拟的地址,只能在当前函数中有效,
+ *                          它不能被存储而作为全局变量来使用。
+ * HeaderBufferSize         它是包头的长度,它的值一般为 14
+ * LookAheadBuffer          它是前视缓冲区指针。
+ * LookAheadBufferSize      LookAheadBuffer 的大小。
+ * PacketSize               它是完整的数据包长度(不包括包头)。
+ *
+ * 当 PtReceive 函数被调用了以后,系统将会去调用完成函数 PtReceiveComplete
+ *
+ * 如果传递给 PtReceive 的数据是通过 NdisMXxxIndicateReceive 进行指示的,那么传递给 PtReceive 的前视缓冲区的长度
+ * 不会超过用 OID_GEN_CURRENT_LOOKAHEAD 调用 NdisRequest 返回的值。
+ *
+ * 如果 PtReceive 的调用执行在 NdisMIndicateReceivePacket 之前进行,那么底层驱动程序把包数组中的一个或者多个包
+ * 状态设置为 NDIS_STATUS_RESOURCES,那么前视缓冲区的大小总是等于整个网络数据包的大小。所以中间层驱动程序可以
+ * 不必调用 NdisTransferData 函数。
+ */
+
+NDIS_STATUS
+PtReceive(
+    IN  NDIS_HANDLE      ProtocolBindingContext,
+    IN  NDIS_HANDLE      MacReceiveContext,
+    IN  PVOID           HeaderBuffer,
+    IN  UINT            HeaderBufferSize,
+    IN  PVOID           LookAheadBuffer,
+    IN  UINT            LookAheadBufferSize,
+    IN  UINT            PacketSize
+    )
+```
+
+```c
+/*
+ * Function Description:
+ * PtReceivePacket 函数的功能是:
+ *
+ * 这是一个可选函数。 如果中间层驱动程序所基于的 NIC 驱动程序指示的是数据包描述符指针数组,或者调用
+ * NdisMIndicateReceivePacket 函数指示接收带外数据,那么驱动程序应该提供 PtReceivePacket 函数。
+ *
+ * 如果开发者不能够确定中间层驱动程序的执行环境,也应该提供该函数,因为在能够产生多包指示的底层 NIC
+ * 驱动程序上,中间层驱动程序将获得更好的性能。
+ */
+
+INT
+PtReceivePacket(
+    IN NDIS_HANDLE       ProtocolBindingContext,
+    IN PNDIS_PACKET      Packet
+    )
+```
+
+我们可以在这几个回调函数里面来处理、过滤、分析 捕捉到的数据包。防火墙软件一般也都是在这几个回调函数里面进行编程。
+
+其它的回调函数的代码，我们基本上不用去修改。
+
+`NDIS` `Passthru` 的例子很多，在网络上搜索一下，就有很多源代码例子，也有很多相关的技术说明。
+
+下面，我想重点的说明在 `Windows 7` 系统下，(当然是 `Win7` 32/64 位系统)如何做 `NDIS` 中间层驱动程序的开发，代码和之前老的 `Windows` 操作系统提供的 `Passthru` 例子的区别。
+
+## (二)在 Windows 7 系统上进行开发
+
+在 `Win7` 系统下开发驱动程序，需要数字证书，还需要驱动签名认证。
+
+由于 `Win7` 系统的内核做了大幅度的修改，它和 `XP` 系统的内核起了很大的变化，最显著的就是刚才说的：需要签名和证书。 还有就是：不能随意的 `HOOK` `SSDT` 了。
+
+在开发 `NDIS` 驱动程序的时候，`WDK` 开发包提供了一个新的框架，叫着 `NDIS` `Filter`
+
+`NDIS` `Filter` 是一个例子工程。
+
+假入我把 `WDK` 安装在 `E` 盘，那么这个工程代码就在：
+
+`E:\WinDDK\7600.16385.1\src\network\ndis\filter` 目录下。
+
+把这个例子工程和原来的 `Passthru` 工程代码做比较，您会发现，原来需要导出来的 2 种类型的回调函数 `MiniportXXX` 和 `ProtocolXXX` 在新的框架里面被全部隐藏起来了。
+
+微软提供了新的函数。 一起来看看，微软提供了什么。
+
+在这里，为了方便分析， 我把函数代码都做了功能注释，请大家一起看看。
+
+代码如下：
+
+```c
+#pragma NDIS_INIT_FUNCTION(DriverEntry)
+
+#define LITTLE_ENDIAN   (1)
+
+//
+// Global variables
+//
+NDIS_HANDLE         FilterDriverHandle; // NDIS handle for filter driver
+NDIS_HANDLE         FilterDriverObject;
+NDIS_HANDLE         NdisFilterDeviceHandle = NULL;
+PDEVICE_OBJECT      DeviceObject = NULL;
+FILTER_LOCK         FilterListLock;
+LIST_ENTRY          FilterModuleList;
+PWCHAR              InstanceStrings = NULL;
+
+NDIS_FILTER_PARTIAL_CHARACTERISTICS DefaultChars = {
+    { 0, 0, 0},
+      0,
+      FilterSendNetBufferLists,
+      FilterSendNetBufferListsComplete,
+      NULL,
+      FilterReceiveNetBufferLists,
+      FilterReturnNetBufferLists
+};
+
+typedef struct in_addr {
+  union {
+    struct { UCHAR s_b1,s_b2,s_b3,s_b4; } S_un_b;
+    struct { USHORT s_w1,s_w2; } S_un_w;
+    ULONG S_addr;
+  } S_un;
+} IN_ADDR, *PIN_ADDR, FAR *LPIN_ADDR;
+
+#pragma push(1)
+
+typedef struct IP_HEADER
+{
+#if LITTLE_ENDIAN
+  unsigned char  ip_hl:4;    /* 头长度 */
+  unsigned char  ip_v:4;     /* 版本号 */
+#else
+  unsigned char   ip_v:4;
+  unsigned char   ip_hl:4;
+
+#endif
+  unsigned char  TOS;         // 服务类型
+  unsigned short   TotLen;    // 封包总长度，即整个 IP 包的长度
+  unsigned short   ID;        // 封包标识，唯一标识发送的每一个数据报
+  unsigned short   FlagOff;   // 标志
+```
+
+
+
+```c
+unsigned char  TTL;           // 生存时间，就是 TTL
+unsigned char  Protocol;      // 协议，可能是 TCP、UDP、ICMP 等
+unsigned short Checksum;      // 校验和
+struct in_addr   iaSrc;       // 源 IP 地址
+struct in_addr   iaDst;       // 目的 PI 地址
+}IP_HEADER, *PIP_HEADER;
+
+typedef struct tcp_header
+{
+  unsigned short src_port;    //源端口号
+  unsigned short dst_port;    //目的端口号
+  unsigned int   seq_no;      //序列号
+  unsigned int   ack_no;      //确认号
+#if LITTLE_ENDIAN
+  unsigned char reserved_1:4; //保留 6 位中的 4 位首部长度
+  unsigned char thl:4;        //tcp 头部长度
+  unsigned char flag:6;       //6 位标志
+  unsigned char reseverd_2:2; //保留 6 位中的 2 位
+#else
+  unsigned char thl:4;        //tcp 头部长度
+  unsigned char reserved_1:4; //保留 6 位中的 4 位首部长度
+  unsigned char reseverd_2:2; //保留 6 位中的 2 位
+  unsigned char flag:6;       //6 位标志
+#endif
+  unsigned short wnd_size;    //16 位窗口大小
+  unsigned short chk_sum;     //16 位 TCP 检验和
+  unsigned short urgt_p;      //16 为紧急指针
+}TCP_HEADER,*PTCP_HEADER;
+
+typedef struct udp_header
+{
+  USHORT srcport;    // 源端口
+  USHORT dstport;    // 目的端口
+  USHORT total_len;  // 包括 UDP 报头及 UDP 数据的长度(单位:字节)
+  USHORT chksum;     // 校验和
+}UDP_HEADER,*PUDP_HEADER;
+
+#pragma push()
+
+#define IP_OFFSET                      0x0E
+
+//IP 协议类型
+#define PROT_ICMP                      0x01
+#define PROT_TCP                       0x06
+#define PROT_UDP                       0x11
+
+USHORT UTIL_htons( USHORT hostshort )
+{
+  PUCHAR  pBuffer;
+  USHORT  nResult;
+  nResult = 0;
+  pBuffer = (PUCHAR *)&hostshort;
+  nResult = ( (pBuffer[ 0 ] << 8) & 0xFF00) | (pBuffer[ 1 ] & 0x00FF);
+  return( nResult );
+}
+
+/*UTIL_ntohs 把网络字节顺序转换成主机字节顺序*/
+USHORT UTIL_ntohs( USHORT netshort )
+{
+  return( UTIL_htons( netshort ) );
+}
+
+NTSTATUS
+DriverEntry(IN  PDRIVER_OBJECT  DriverObject, IN  PUNICODE_STRING   RegistryPath)
+{
+    NDIS_STATUS                        Status;
+    NDIS_FILTER_DRIVER_CHARACTERISTICS   FChars;
+    NDIS_STRING                        ServiceName;
+    NDIS_STRING                        UniqueName;
+    NDIS_STRING                        FriendlyName;
+    BOOLEAN                            bFalse = FALSE;
+    UNREFERENCED_PARAMETER(RegistryPath);
+    DEBUGP(DL_TRACE,("===>DriverEntry...\n"));
+    RtlInitUnicodeString(&ServiceName, FILTER_SERVICE_NAME);
+    RtlInitUnicodeString(&FriendlyName, FILTER_FRIENDLY_NAME);
+    RtlInitUnicodeString(&UniqueName, FILTER_UNIQUE_NAME);
+    FilterDriverObject = DriverObject;
+    do
+    {
+        NdisZeroMemory(&FChars, sizeof(NDIS_FILTER_DRIVER_CHARACTERISTICS));
+
+/*
+大多数的 NDIS6.0 数据结构中包含的对象头结构的成员，即 NDIS_OBJECT_HEADER 结构。
+对象头有三个成员：类型，大小和修改。如果头信息是不正确的，那么调用 NDIS6.0 函数将失败。
+*/
+        FChars.Header.Type =
+        NDIS_OBJECT_TYPE_FILTER_DRIVER_CHARACTERISTICS;
+        FChars.Header.Size = sizeof(NDIS_FILTER_DRIVER_CHARACTERISTICS);
+        FChars.Header.Revision = NDIS_FILTER_CHARACTERISTICS_REVISION_1;
+        FChars.MajorNdisVersion = FILTER_MAJOR_NDIS_VERSION;
+        FChars.MinorNdisVersion = FILTER_MINOR_NDIS_VERSION;
+        FChars.MajorDriverVersion = 1;
+        FChars.MinorDriverVersion = 0;
+        FChars.Flags = 0;
+        FChars.FriendlyName = FriendlyName;
+        FChars.UniqueName = UniqueName;
+        FChars.ServiceName = ServiceName;
+/********************************************************************************
+NDIS_FILTER_DRIVER_CHARACTERISTICS 结构中 Mandatory 例程
+********************************************************************************/
+        FChars.AttachHandler = FilterAttach;
+        FChars.DetachHandler = FilterDetach;
+        FChars.RestartHandler = FilterRestart;
+        FChars.PauseHandler = FilterPause;
+/********************************************************************************
+NDIS_FILTER_DRIVER_CHARACTERISTICS 结构中 Optional 且不能在运行时变更的例程
+********************************************************************************/
+        FChars.SetOptionsHandler = FilterRegisterOptions;
+        FChars.SetFilterModuleOptionsHandler = FilterSetModuleOptions;
+        FChars.OidRequestHandler = FilterOidRequest;
+        FChars.OidRequestCompleteHandler = FilterOidRequestComplete;
+        FChars.StatusHandler = FilterStatus;
+       FChars.DevicePnPEventNotifyHandler = FilterDevicePnPEventNotify;
+       FChars.NetPnPEventHandler = FilterNetPnPEvent;
+
+      FChars.CancelSendNetBufferListsHandler = FilterCancelSendNetBufferLists;
+/********************************************************************************
+DIS_FILTER_DRIVER_CHARACTERISTICS 结构中 Optional 且能在运行时变更的例程。
+下面这 4 个例程也被定义在 NDIS_FILTER_PARTIAL_CHARACTERISTICS 中,这个结构指定的
+例程可以在运行时的 FilterSetModuleOptions 例程中调用 NdisSetOptionHandles 来改变。
+如果过滤驱动要在例程中修改自身的一个特性,那么必须提供 FilterSetModuleOptions 例程。
+********************************************************************************/
+        FChars.SendNetBufferListsHandler = FilterSendNetBufferLists;
+
+   FChars.SendNetBufferListsCompleteHandler = FilterSendNetBufferListsComplete;
+        FChars.ReturnNetBufferListsHandler = FilterReturnNetBufferLists;
+        FChars.ReceiveNetBufferListsHandler = FilterReceiveNetBufferLists;
+
+       ///
+        FChars.CancelOidRequestHandler = FilterCancelOidRequest;
+
+        DriverObject->DriverUnload = FilterUnload;
+        FilterDriverHandle = NULL;
+        FILTER_INIT_LOCK(&FilterListLock);
+        InitializeListHead(&FilterModuleList);
+
+  // 把 Filter 驱动注册给 NDIS
+        Status = NdisFRegisterFilterDriver(DriverObject,
+                                          (NDIS_HANDLE)FilterDriverObject,
+                                          &FChars,
+                                          &FilterDriverHandle);
+        if (Status != NDIS_STATUS_SUCCESS)
+        {
+            DEBUGP(DL_WARN, ("MSFilter: Register filter driver failed.\n"));
+            break;
+        }
+        //
+        // Initilize spin locks
+        //
+        Status = FilterRegisterDevice();
+        if (Status != NDIS_STATUS_SUCCESS)
+        {
+            NdisFDeregisterFilterDriver(FilterDriverHandle);
+            FILTER_FREE_LOCK(&FilterListLock);
+            DEBUGP(DL_WARN, ("MSFilter: Register device for the filter driver failed.\n"));
+            break;
+        }
+    }
+    while(bFalse);
+    DEBUGP(DL_TRACE, ("<===DriverEntry, Status = %8x\n", Status));
+    return Status;
+}
+
+//过滤驱动注册可选服务
+NDIS_STATUS
+FilterRegisterOptions(
+        IN NDIS_HANDLE  NdisFilterDriverHandle, //它指向了这个过滤驱动
+        IN NDIS_HANDLE  FilterDriverContext      //它是这个驱动的上下文
+        )
+{
+    DEBUGP(DL_TRACE, ("===>FilterRegisterOptions\n"));
+    ASSERT(NdisFilterDriverHandle == FilterDriverHandle);
+    ASSERT(FilterDriverContext == (NDIS_HANDLE)FilterDriverObject);
+    if ((NdisFilterDriverHandle != (NDIS_HANDLE)FilterDriverHandle) ||
+        (FilterDriverContext != (NDIS_HANDLE)FilterDriverObject))
+    {
+        return NDIS_STATUS_INVALID_PARAMETER;
+    }
+    DEBUGP(DL_TRACE, ("<===FilterRegisterOptions\n"));
+    return (NDIS_STATUS_SUCCESS);
+}
+
+/********************************************************************************
+FilterAttach 函数的功能:
+   Attaching 状态表示：一个 Filter Driver 正准备附加一个 Filter Module 到一个驱动栈上。
+
+
+
+### Attaching 状态约束
+
+一个过滤驱动进入 `Attaching` 状态下不能进行发送请求、接收指示、状态指示、OID 请求操作。
+
+### Attaching 状态操作
+
+当一个过滤驱动进入 `Attaching` 状态时，它可以:
+
+(1) 创建一个环境上下文区域并且初始化一个缓冲区池以及其 `Filter Module` 特点的资源。
+
+(2) 用 `NDIS` 传来给 `Filter Attach` 的 `NdisFilterHandle` 作为输入来调用 `NdisFSetAttributes` 例程。
+
+### Attach is complete
+
+当 `Filter Module` 在 `Attaching` 状态下并且 `Filter Driver` 初始化了所有的 `Filter Module` 所需要的
+所有资源时,`Filter Module` 进入 `Paused` 状态。
+
+### 参数说明
+
+*   `NdisFilterHandle`: 它用于所有过滤驱动中对 `Ndisxxx` 类例程的调用时引用指示这个过滤模块。
+*   `FilterDriverContext`: 它由 `NdisFRegisterFilterDriver` 的 `FilterDriverContext` 来指定。
+*   `AttachParameters`: 它是过滤模块的初始化参数结构体。
+
+```c
+/*************************************************************************
+
+NDIS_STATUS
+FilterAttach(
+    IN  NDIS_HANDLE                     NdisFilterHandle,
+    IN  NDIS_HANDLE                     FilterDriverContext,
+    IN  PNDIS_FILTER_ATTACH_PARAMETERS  AttachParameters
+    )
+{
+    PMS_FILTER              pFilter = NULL;
+    NDIS_STATUS             Status = NDIS_STATUS_SUCCESS;
+    NDIS_FILTER_ATTRIBUTES  FilterAttributes;
+    ULONG                  Size;
+    BOOLEAN               bFalse = FALSE;
+
+    DEBUGP(DL_TRACE, ("===>FilterAttach: NdisFilterHandle %p\n", NdisFilterHandle));
+
+    do
+    {
+        ASSERT(FilterDriverContext == (NDIS_HANDLE)FilterDriverObject);
+        if (FilterDriverContext != (NDIS_HANDLE)FilterDriverObject)
+        {
+            Status = NDIS_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if ((AttachParameters->MiniportMediaType != NdisMedium802_3)
+            && (AttachParameters->MiniportMediaType != NdisMediumWan))
+        {
+           DEBUGP(DL_ERROR, ("MSFilter: Doesn't support media type other than NdisMedium802_3.\n"));
+           Status = NDIS_STATUS_INVALID_PARAMETER;
+           break;
+        }
+
+        Size = sizeof(MS_FILTER) +
+               AttachParameters->FilterModuleGuidName->Length +
+               AttachParameters->BaseMiniportInstanceName->Length +
+               AttachParameters->BaseMiniportName->Length;
+
+        pFilter = (PMS_FILTER)FILTER_ALLOC_MEM(NdisFilterHandle, Size);
+        if (pFilter == NULL)
+        {
+            DEBUGP(DL_WARN, ("MSFilter: Failed to allocate context structure.\n"));
+            Status = NDIS_STATUS_RESOURCES;
+            break;
+        }
+
+        NdisZeroMemory(pFilter, sizeof(MS_FILTER));
+
+        pFilter->FilterModuleName.Length = pFilter->FilterModuleName.MaximumLength = AttachParameters->FilterModuleGuidName->Length;
+        pFilter->FilterModuleName.Buffer = (PWSTR)((PUCHAR)pFilter + sizeof(MS_FILTER));
+
+        NdisMoveMemory(pFilter->FilterModuleName.Buffer,
+                       AttachParameters->FilterModuleGuidName->Buffer,
+                       pFilter->FilterModuleName.Length);
+
+        pFilter->MiniportFriendlyName.Length = pFilter->MiniportFriendlyName.MaximumLength = AttachParameters->BaseMiniportInstanceName->Length;
+        pFilter->MiniportFriendlyName.Buffer = (PWSTR)((PUCHAR)pFilter->FilterModuleName.Buffer + pFilter->FilterModuleName.Length);
+        NdisMoveMemory(pFilter->MiniportFriendlyName.Buffer,
+                       AttachParameters->BaseMiniportInstanceName->Buffer,
+                       pFilter->MiniportFriendlyName.Length);
+
+        pFilter->MiniportName.Length = pFilter->MiniportName.MaximumLength = AttachParameters->BaseMiniportName->Length;
+        pFilter->MiniportName.Buffer = (PWSTR)((PUCHAR)pFilter->MiniportFriendlyName.Buffer +
+                                                pFilter->MiniportFriendlyName.Length);
+
+        NdisMoveMemory(pFilter->MiniportName.Buffer,
+                       AttachParameters->BaseMiniportName->Buffer,
+                       pFilter->MiniportName.Length);
+
+        pFilter->MiniportIfIndex = AttachParameters->BaseMiniportIfIndex;
+        pFilter->TrackReceives = TRUE;
+        pFilter->TrackSends = TRUE;
+        pFilter->FilterHandle = NdisFilterHandle;
+
+        NdisZeroMemory(&FilterAttributes, sizeof(NDIS_FILTER_ATTRIBUTES));
+        FilterAttributes.Header.Revision = NDIS_FILTER_ATTRIBUTES_REVISION_1;
+        FilterAttributes.Header.Size = sizeof(NDIS_FILTER_ATTRIBUTES);
+        FilterAttributes.Header.Type = NDIS_OBJECT_TYPE_FILTER_ATTRIBUTES;
+        FilterAttributes.Flags = 0;
+
+        Status = NdisFSetAttributes(NdisFilterHandle,
+                                    pFilter, //pFilter 参数的功能是，为过滤模块指定环境上下文
+                                    &FilterAttributes);
+
+        if (Status != NDIS_STATUS_SUCCESS)
+        {
+            DEBUGP(DL_WARN, ("MSFilter: Failed to set attributes.\n"));
+            break;
+        }
+
+        pFilter->State = FilterPaused;
+        FILTER_ACQUIRE_LOCK(&FilterListLock, bFalse);
+        InsertHeadList(&FilterModuleList, &pFilter->FilterModuleLink);
+        FILTER_RELEASE_LOCK(&FilterListLock, bFalse);
+
+    }
+    while (bFalse);
+
+    if (Status != NDIS_STATUS_SUCCESS)
+    {
+        if (pFilter != NULL)
+        {
+            FILTER_FREE_MEM(pFilter);
+        }
+    }
+
+    DEBUGP(DL_TRACE, ("<===FilterAttach:     Status %x\n", Status));
+
+    return Status;
+}
+/*************************************************************************
+
+### FilterPause 函数的功能
+
+**Paused 状态**：在这种状态下，`Filter Driver` 不能执行接收和发送操作。
+
+当 `FilterDriver` 执行 `FilterPause` 全程时它就进入了 `Pausing` 状态。
+
+**Pausing 状态**：在这种状态下,`Filter Driver` 要为一个 `Filter Module` 完成停止发送和接收
+处理所需要的所有准备工作。
+
+一个在 `Pausing` 状态的 `Filter Driver` 有如下的约束：
+
+(1) `Filter Module` 不能发起任何新的接收指示,但可以传递下层驱动的接收指示。
+
+(2) 如果有 `Filter Module` 发起的接收指示还没有完成,那么必须等到它们全部完成。有只当
+    `FilterReturnNetBufferLists` 完成所有外部接收指示后,暂停操作才能完成。
+
+(3) 要返回任何未处理的由下层驱动引发的接收指示给 `NDIS`,只有等到 `NdisFReturnNetBufferLists` 返回了所有未处理的接收指示后暂停操作才能完成。这里也可以排队缓冲这些未完成的接收指示。
+
+(4) 立即用 `NdisFReturnNetBufferLists` 返回所有下层驱动新传来的接收指示,如果需要可以在返回之前制和排队这些接收指示。
+
+(5) 不能发起任何新的发送请求。
+
+(6) 如果有 `Filter Driver` 引的但 `NDIS` 还未完成的发送操作,必须等待它们完成。
+
+(7) 应该在 `FilterSendNetBufferLists` 例程中立即调用 `NdisFSendNetBufferListsComplete` 返回那些新达到的发送请求。并且为每一个 `NET_BUFFER_LIST` 设置 `NDIS_STATUS_PAUSED` 返回状态。
+
+(8) 这时可以使用 `NdisFIndicateStatus` 提供状态指示。
+
+(9) 可以在 `FilterStatus` 中处理状态指示。
+
+(10) 可以在 `FilterOidRequest` 里面处理 `OID` 请求。
+
+(11) 可以发起一个 `OID` 操作。
+
+(12) 不能释放分配的相关资源,和 `Filter Module` 相关的资源最好放在 `FilterDetach` 例程里面来释放。
+
+(13) 如果有用于发送和接收的定时器那么要停止它。
+
+当成功停止发送和接收操作后就必须完成暂停操作。暂停操作的完成可以是同步的也可以是异步的。
+
+若返回值是 `NDIS_STATUS_SUCCESS` 则，是同步。
+若是异步，则返回 `NDIS_STATUS_PENDING`。那么还必须调用 `NdisFPauseComplete` 函数。
+
+暂停操作完成了以后,`Filter Module` 进入了 `Paused` 状态。这里它有如下的约束：
+
+(1) 不能发起任何接收指示,但可以传递底层驱动发来的接收指示。
+
+(2) 需要立即调用 `NdisFReturnNetBufferLists` 返回底层驱动的接收指示给 `NDIS`,如果需要可以在返回之前复制和排队这些接收指示。
+
+(3) 不能引发任何新的发送指示。
+
+(4) 需要立即调用 `NdisFSendNetBufferListsComplete` 完成那些在 `FilterSendNetBufferLists` 中收到的发送请求，并为每一个 `NET_BUFFER_LIST` 设置 `NDIS_STATUS_PAUSED` 返回状态。
+
+(5) 这时可以使用 `NdisFIndicateStatus` 发起状态指示。
+
+(6) 可以在 `FilterStatus` 中进行状态指示处理。
+
+(7) 可以在 `FilterOidRequest` 里面处理 `OID` 请求。
+
+(8) 可以发起一个 `OID` 请求。
+
+在 `Filter Module` 进行 `Pausing` 状态时 `NDIS` 不会发起其它 `PnP` 操作，比如:附加、分离、重启。只有当 `Filter Module` 进入了 `Paused` 状态后 `NDIS` 才能对它进行分离和重启操作。
+
+```c
+/*************************************************************************
+
+NDIS_STATUS
+FilterPause(
+        IN  NDIS_HANDLE                     FilterModuleContext,
+        IN  PNDIS_FILTER_PAUSE_PARAMETERS   PauseParameters
+        )
+{
+    PMS_FILTER          pFilter = (PMS_FILTER)(FilterModuleContext);
+    NDIS_STATUS         Status;
+    BOOLEAN             bFalse = FALSE;
+    UNREFERENCED_PARAMETER(PauseParameters);
+```
+
+
+
+```c
+DEBUGP(DL_TRACE, ("===>NDISLWF FilterPause: FilterInstance %p\n", FilterModuleContext));
+FILTER_ASSERT(pFilter->State == FilterRunning);
+FILTER_ACQUIRE_LOCK(&pFilter->Lock, bFalse);
+pFilter->State = FilterPausing;
+FILTER_RELEASE_LOCK(&pFilter->Lock, bFalse);
+Status = NDIS_STATUS_SUCCESS;
+pFilter->State = FilterPaused;
+DEBUGP(DL_TRACE, ("<===FilterPause:  Status %x\n", Status));
+return Status;
+}
+```
+
+`FilterRestart` 函数的功能：
+
+在 `Restarting` 状态下，一个 Filter Driver 必须为一个 Filter Module 完成重启发送和接收数据时所需要的所有准备工作。
+
+`Restart is complete`
+
+当 Filter Module 在 `Restarting` 状态下并且完成所有发送和接收所需要的准备工作时，Filter Module 就进入了 `Running` 状态。
+
+要启动一个 `Paused` 状态的 Filter Module，如果有 `FilterSetModuleOptions` 就先调用它，接着调用 `FilterRestart`。
+
+当 Filter Module 在 `Restarting` 状态下，它可以：
+
+(1) 完成任何正常的发送和接收所需要的准备工作。
+(2) 可读写 Filter Module 的配置参数。
+(3) 可以接收网络数据指示，拷贝和排队数据稍后只是给上层驱动或者丢弃数据。
+(4) 不能发起任何新的接收指示。
+(5) 应该立即调用 `NdisFSendNetBufferListsComplete` 例程来拒绝 `FilterSendNetBufferLists` 传来的发送的请求。应该设置每一个 `NET_BUFFER_LIST` 的完成状态为 `NDIS_STATUS_PAUSED`
+(6) 可以使用 `NdisFIndicateStatus` 例程进行状态指示。
+(7) 可以控制 OID 请求操作。
+(8) 不能发起任何新的发送请求。
+(9) 应该调用 `NdisFReturnNetBufferLists` 返回所有新的接收指示。如果需要的话可以在接收指示返回之前拷贝它们。
+(10) 可以制作 OID 请求发送给下层驱动设置或查询配置信息。
+(11) 可以在 `FilterStatus` 中控制状态指示。
+(12) 返回时指示 `NDIS_STATUS_SUCCESS` 或失败状态，如果不 Filter Module 不能启动返回了失败，而它又是一个 Mandatory 的 Filter Driver 那个 NDIS 将会结束这个驱动栈
+
+在一个 Filter Driver 完成对发送和接收的重启后必须指示完成这个重启操作。
+
+Filter Driver 的重启操作的完成可以是同步也可以是异步的，同步时返回 `NDIS_STATUS_SUCCESS` 异步时返回 `NDIS_STATUS_PENDING`。如果返回的是 `NDIS_STATUS_PENDING` 就必须调用 `NdisFRestartComplete` 例程在重启操作完成后。
+
+在这种情况下，驱动需要传递给 `NdisFRestartComplete` 一个固定状态（标识重启结果的成功或失败状态）。
+
+重启操作完成 Filter Module 就进入了 `Running` 状态，恢得一切正常的发送和接收外理。
+
+在 Filter Driver 的 `FilterRestart` 例程执行的时候 NDIS 不会发起任即插即用操作，如附加、分离、暂停请求等等。Ndis 可以在 Filter Module 进入 `Running` 状态后发起一个暂停请求。
+
+```c
+NDIS_STATUS
+FilterRestart(
+    IN  NDIS_HANDLE                    FilterModuleContext,
+    IN  PNDIS_FILTER_RESTART_PARAMETERS RestartParameters
+    )
+{
+    NDIS_STATUS     Status;
+    PMS_FILTER      pFilter = (PMS_FILTER)FilterModuleContext; // BUGBUG, the cast may be wrong
+    NDIS_HANDLE     ConfigurationHandle = NULL;
+    PNDIS_RESTART_GENERAL_ATTRIBUTES NdisGeneralAttributes;
+    PNDIS_RESTART_ATTRIBUTES         NdisRestartAttributes;
+    NDIS_CONFIGURATION_OBJECT        ConfigObject;
+    DEBUGP(DL_TRACE, ("===>FilterRestart:   FilterModuleContext %p\n", FilterModuleContext));
+    FILTER_ASSERT(pFilter->State == FilterPaused);
+    ConfigObject.Header.Type = NDIS_OBJECT_TYPE_CONFIGURATION_OBJECT;
+    ConfigObject.Header.Revision = NDIS_CONFIGURATION_OBJECT_REVISION_1;
+    ConfigObject.Header.Size = sizeof(NDIS_CONFIGURATION_OBJECT);
+    ConfigObject.NdisHandle = FilterDriverHandle;
+    ConfigObject.Flags = 0;
+    Status = NdisOpenConfigurationEx(&ConfigObject, &ConfigurationHandle);
+    if (Status != NDIS_STATUS_SUCCESS)
+    {        
+#if 0
+        //
+        // The code is here just to demonstrate how to call NDIS to write an eventlog. If drivers need to write
+        // an event log.
+        //
+        PWCHAR             ErrorString = L"Ndislwf";
+        DEBUGP(DL_WARN, ("FilterRestart: Cannot open configuration.\n"));
+        NdisWriteEventLogEntry(FilterDriverObject,
+                                EVENT_NDIS_DRIVER_FAILURE,
+                                0,
+                                1,
+                                &ErrorString,
+                                sizeof(Status),
+                                &Status);
+#endif                        
+    }
+    if (Status == NDIS_STATUS_SUCCESS)
+    {
+        NdisCloseConfiguration(ConfigurationHandle);
+    }
+    NdisRestartAttributes = RestartParameters->RestartAttributes;
+    if (NdisRestartAttributes != NULL)
+    {
+        PNDIS_RESTART_ATTRIBUTES   NextAttributes;
+        ASSERT(NdisRestartAttributes->Oid == OID_GEN_MINIPORT_RESTART_ATTRIBUTES);
+        NdisGeneralAttributes = (PNDIS_RESTART_GENERAL_ATTRIBUTES)NdisRestartAttributes->Data;
+        NdisGeneralAttributes->LookaheadSize = 128;
+        NextAttributes = NdisRestartAttributes->Next;
+        while (NextAttributes != NULL)
+        {
+            NextAttributes = NextAttributes->Next;
+        }
+    }
+    pFilter->State = FilterRunning;
+    Status = NDIS_STATUS_SUCCESS;
+    if (Status != NDIS_STATUS_SUCCESS)
+    {
+        pFilter->State = FilterPaused;
+    }
+    DEBUGP(DL_TRACE, ("<===FilterRestart:  FilterModuleContext %p, Status %x\n", FilterModuleContext, Status));
+    return Status;
+}
+```
+
+`FilterDetach` 函数的功能：
+
+`Detach` 状态：当 Filter Driver 从一个驱动栈上分离一个 Filter Module 时，将发生该事件。
+在驱动栈上分离一个过滤模块时，NDIS 会暂停这个驱动栈。这意味着 NDIS 已经使过滤模块进入了 Parse 状态。即 `FilterPause` 函数先被调用了。
+在这个例程中释放和这个过滤模块相关的环境上下文和其它资源。这个过程不能失败。
+当 `FilterDetach` 函数返回以后，NDIS 会重新启动被暂停的驱动栈。
+
+参数说明：
+`FilterDriverContext` 它由 `NdisFRegisterFilterDriver` 的 `FilterDriverContext` 来指定。
+
+```c
+VOID
+FilterDetach(
+        IN  NDIS_HANDLE     FilterModuleContext
+        )
+{
+    PMS_FILTER            pFilter = (PMS_FILTER)FilterModuleContext;
+    BOOLEAN               bFalse = FALSE;
+    DEBUGP(DL_TRACE, ("===>FilterDetach:    FilterInstance %p\n", FilterModuleContext));
+    FILTER_ASSERT(pFilter->State == FilterPaused);
+    if (pFilter->FilterName.Buffer != NULL)
+    {
+        FILTER_FREE_MEM(pFilter->FilterName.Buffer);
+    }
+    FILTER_ACQUIRE_LOCK(&FilterListLock, bFalse);
+    RemoveEntryList(&pFilter->FilterModuleLink);
+    FILTER_RELEASE_LOCK(&FilterListLock, bFalse);
+    FILTER_FREE_MEM(pFilter);
+    DEBUGP(DL_TRACE, ("<===FilterDetach Successfully\n"));
+    return;
+}
+```
+
+系统只会在调用 `FilterDetach()` 分离了所有和本 Filter Driver 相关的 Filter Module 以后，才会调用 `FilterUnload` 例程。
+
+```c
+VOID
+FilterUnload(
+        IN  PDRIVER_OBJECT    DriverObject
+        )
+{
+#if DBG      
+    BOOLEAN         bFalse = FALSE;
+#endif
+    UNREFERENCED_PARAMETER(DriverObject);
+    DEBUGP(DL_TRACE, ("===>FilterUnload\n"));
+    FilterDeregisterDevice();
+    NdisFDeregisterFilterDriver(FilterDriverHandle);
+#if DBG      
+    FILTER_ACQUIRE_LOCK(&FilterListLock, bFalse);
+    ASSERT(IsListEmpty(&FilterModuleList));
+    FILTER_RELEASE_LOCK(&FilterListLock, bFalse);
+#endif      
+    FILTER_FREE_LOCK(&FilterListLock);
+    DEBUGP(DL_TRACE, ("<===FilterUnload\n"));
+    return;
+}
+```
+
+`FilterOidRequest` 函数的功能：
+
+Filter Module 可以在 `Runnig` 状态、`Restarting` 状态、`Paused` 状态和 `Pauseing` 状态进行 OID 的控制和处理。
+Filter Driver 可以处理上层驱动引发的 OID 请求，NDIS 调用 Filter Driver 的 `FilterOidRequest` 例程来处理 OID 请求，Filter Driver 需要调用 `NdisFOidRequest` 例程来转发请求给下层驱动。
+
+
+
+### NDIS_OID 请求处理
+
+`Filter Driver` 可以从 `FilterOidRequest` 同步和异步完成一个 OID 请求，分别返回 `NDIS_STATUS_SUCCESS` 和 `NDIS_STATUS_PENDING` 即可。`FilterOidRequest` 可以用同步的直接完成一个 OID 请求并返回一个错误状态。
+
+如果 `FilterOidRequest` 返回 `NDIS_STATUS_PENDING`，就必须在 OID 请求完成后调用 `NdisFOidRequestComplete` 来通知上层驱动请求完成。在这种情况下，请求的结果通过 `NdisFOidRequestComplete` 的 `OidRequest` 参数返回给上层驱动，并通过 `Status` 参数返回请求完成的最终状态。
+
+如果 `FilterOidRequest` 返回 `NDIS_STATUS_SUCCESS`，通过 `FilterOidRequest` 的 `OidRequest` 参数返回一个查询结果到上层。这时不调用 `NdisFOidRequestComplete` 例程。
+
+要转发 OID 请求到下层驱动，`Filter Driver` 必须调用 `NdisFOidRequest`。如果一个 OID 请求不能被转发到下层驱动应该当立即返回。要完成一个请求且不转发可以直接返回 `NDIS_STATUS_SUCCESS` 或其它错误状态或返回 `NDIS_STATUS_PENDING` 后调用 `NdisFOidRequestComplete`。
+
+如果 `NdisFOidRequest` 返回 `NDIS_STATUS_PENDING`，`NDIS` 在 OID 请求完成后调用 `FilterOidRequestComplete` 来通知请求完成。在这种情况下，请求的结果通过 `NdisFOidRequestComplete` 的 `OidRequest` 参数返回给上层驱动，并通过 `Status` 参数返回请求完成的最终状态。
+
+如果 `NdisFOidRequest` 返回 `NDIS_STATUS_SUCCESS`，通过 `NdisFOidRequest` 的 `OidRequest` 参数返回一个查询结果到上层。这时不调用 `FilterOidRequestComplete` 例程。
+
+一个 `Filter Driver` 可以调用 `NdisFOidRequest` 引发 OID 请求在 `Restarting`、`Running`、`Pausing` 和 `Paused` 状态。
+
+**注意**：`Filter Driver` 必须跟踪这个请求确保不在 `FilterOidRequestComplete` 中调用 `NdisFOidRequestComplete`（因为请求是自己引发的不能传到上层）。
+
+### 代码示例
+
+以下代码展示了 `FilterOidRequest`、`FilterCancelOidRequest` 和 `FilterOidRequestComplete` 的实现逻辑：
+
+```c
+/**
+ * FilterOidRequest
+ */
+NDIS_STATUS
+FilterOidRequest(IN  NDIS_HANDLE    FilterModuleContext,
+                 IN  PNDIS_OID_REQUEST   Request)
+{
+    PMS_FILTER              pFilter = (PMS_FILTER)FilterModuleContext;
+    NDIS_STATUS             Status;
+    PNDIS_OID_REQUEST       ClonedRequest = NULL;
+    BOOLEAN                 bSubmitted = FALSE;
+    PFILTER_REQUEST_CONTEXT Context;
+    BOOLEAN                 bFalse = FALSE;
+
+    DEBUGP(DL_TRACE, ("===>FilterOidRequest: Request %p.\n", Request));
+
+    do
+    {
+        Status = NdisAllocateCloneOidRequest(pFilter->FilterHandle,
+                                              Request,
+                                              FILTER_TAG,
+                                              &ClonedRequest);
+        if (Status != NDIS_STATUS_SUCCESS)
+        {
+            DEBUGP(DL_WARN, ("FilerOidRequest: Cannot Clone Request\n"));
+            break;
+        }
+
+        Context = (PFILTER_REQUEST_CONTEXT)(&ClonedRequest->SourceReserved[0]);
+        *Context = Request;
+        bSubmitted = TRUE;
+        ClonedRequest->RequestId = Request->RequestId;
+        pFilter->PendingOidRequest = ClonedRequest;
+
+        // Filter Driver 可以调用 NdisFOidRequest 引发一个 OID 查询和设置请求给下层驱动。
+        Status = NdisFOidRequest(pFilter->FilterHandle, ClonedRequest);
+        if (Status != NDIS_STATUS_PENDING)
+        {
+            FilterOidRequestComplete(pFilter, ClonedRequest, Status);
+            Status = NDIS_STATUS_PENDING;
+        }
+    } while (bFalse);
+
+    if (bSubmitted == FALSE)
+    {
+        switch (Request->RequestType)
+        {
+            case NdisRequestMethod:
+                Request->DATA.METHOD_INFORMATION.BytesRead = 0;
+                Request->DATA.METHOD_INFORMATION.BytesNeeded = 0;
+                Request->DATA.METHOD_INFORMATION.BytesWritten = 0;
+                break;
+            case NdisRequestSetInformation:
+                Request->DATA.SET_INFORMATION.BytesRead = 0;
+                Request->DATA.SET_INFORMATION.BytesNeeded = 0;
+                break;
+            case NdisRequestQueryInformation:
+            case NdisRequestQueryStatistics:
+            default:
+                Request->DATA.QUERY_INFORMATION.BytesWritten = 0;
+                Request->DATA.QUERY_INFORMATION.BytesNeeded = 0;
+                break;
+        }
+    }
+
+    DEBUGP(DL_TRACE, ("<===FilterOidRequest: Status %8x.\n", Status));
+    return Status;
+}
+
+/**
+ * FilterCancelOidRequest
+ *
+ * NDIS 调用 FilterCancelOidRequest 来取消一个 OID 请求, 当 NDIS 调用 FilterCancelOidRequest 时,
+ * Filter Driver 应该尽可能快的调用 NdisFCancelOidRequest。
+ */
+VOID
+FilterCancelOidRequest(
+    IN  NDIS_HANDLE         FilterModuleContext,
+    IN  PVOID              RequestId
+    )
+{
+    PMS_FILTER               pFilter = (PMS_FILTER)FilterModuleContext;
+    PNDIS_OID_REQUEST        Request = NULL;
+    PFILTER_REQUEST_CONTEXT  Context;
+    PNDIS_OID_REQUEST        OriginalRequest = NULL;
+    BOOLEAN                  bFalse = FALSE;
+
+    FILTER_ACQUIRE_LOCK(&pFilter->Lock, bFalse);
+    Request = pFilter->PendingOidRequest;
+
+    if (Request != NULL)
+    {
+        Context = (PFILTER_REQUEST_CONTEXT)(&Request->SourceReserved[0]);
+        OriginalRequest = (*Context);
+    }
+
+    if ((OriginalRequest != NULL) && (OriginalRequest->RequestId == RequestId))
+    {
+        FILTER_RELEASE_LOCK(&pFilter->Lock, bFalse);
+        NdisFCancelOidRequest(pFilter->FilterHandle, RequestId);
+    }
+    else
+    {
+        FILTER_RELEASE_LOCK(&pFilter->Lock, bFalse);
+    }
+}
+
+VOID
+FilterOidRequestComplete(
+        IN  NDIS_HANDLE        FilterModuleContext,
+        IN  PNDIS_OID_REQUEST  Request,
+        IN  NDIS_STATUS        Status
+        )
+{
+    PMS_FILTER               pFilter = (PMS_FILTER)FilterModuleContext;
+    PNDIS_OID_REQUEST        OriginalRequest;
+    PFILTER_REQUEST_CONTEXT  Context;
+    BOOLEAN                  bFalse = FALSE;
+
+    DEBUGP(DL_TRACE, ("===>FilterOidRequestComplete, Request %p.\n", Request));
+
+    Context = (PFILTER_REQUEST_CONTEXT)(&Request->SourceReserved[0]);
+    OriginalRequest = (*Context);
+
+    if (OriginalRequest == NULL)
+    {
+        filterInternalRequestComplete(pFilter, Request, Status);
+        return;
+    }
+
+    FILTER_ACQUIRE_LOCK(&pFilter->Lock, bFalse);
+    ASSERT(pFilter->PendingOidRequest == Request);
+    pFilter->PendingOidRequest = NULL;
+    FILTER_RELEASE_LOCK(&pFilter->Lock, bFalse);
+
+    switch (Request->RequestType)
+    {
+        case NdisRequestMethod:
+            OriginalRequest->DATA.METHOD_INFORMATION.OutputBufferLength =  Request->DATA.METHOD_INFORMATION.OutputBufferLength;
+            OriginalRequest->DATA.METHOD_INFORMATION.BytesRead = Request->DATA.METHOD_INFORMATION.BytesRead;
+            OriginalRequest->DATA.METHOD_INFORMATION.BytesNeeded = Request->DATA.METHOD_INFORMATION.BytesNeeded;
+            OriginalRequest->DATA.METHOD_INFORMATION.BytesWritten = Request->DATA.METHOD_INFORMATION.BytesWritten;
+            break;
+        case NdisRequestSetInformation:   
+            OriginalRequest->DATA.SET_INFORMATION.BytesRead = Request->DATA.SET_INFORMATION.BytesRead;
+            OriginalRequest->DATA.SET_INFORMATION.BytesNeeded = Request->DATA.SET_INFORMATION.BytesNeeded;
+            break;
+        case NdisRequestQueryInformation:
+        case NdisRequestQueryStatistics:
+        default:     
+            OriginalRequest->DATA.QUERY_INFORMATION.BytesWritten = Request->DATA.QUERY_INFORMATION.BytesWritten;
+            OriginalRequest->DATA.QUERY_INFORMATION.BytesNeeded = Request->DATA.QUERY_INFORMATION.BytesNeeded;
+            break;
+    }
+
+    (*Context) = NULL;
+    NdisFreeCloneOidRequest(pFilter->FilterHandle, Request);
+}
+```
+
+### 说明
+
+如果 `FilterOidRequest` 返回 `NDIS_STATUS_PENDING`，就必须在 OID 请求完成后调用 `NdisFOidRequestComplete` 来通知上层驱动请求完成。在这种情况下，请求的结果通过 `NdisFOidRequestComplete` 的 `OidRequest` 参数返回给上层驱动，并通过 `Status` 参数返回请求完成的最终状态。
+
+要转发 OID 请求到下层驱动，`Filter Driver` 必须调用 `NdisFOidRequest`。
+
+如果一个 OID 请求不能被转发到下层驱动应该当立即返回。
+
+
+
+要完成一个请求且不转发可以直接返回 `NDIS_STATUS_SUCCESS` 或其它错误状态  
+
+或返回 `NDIS_STATUS_PENDING` 后调用 `NdisFOidRequestComplete`。  
+
+\*/  
+
+```c
+    NdisFOidRequestComplete(pFilter->FilterHandle, OriginalRequest, Status);  
+
+    DEBUGP(DL_TRACE, ("<===FilterOidRequestComplete.\n"));  
+
+}  
+
+/\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+  FilterStatus 函数的功能:  
+
+    当下层驱动报告状态的时候 NDIS 会调用它。此外,Filter Driver 还可以自己引发一个状态指示。  
+
+当下层驱动调用一个状态指示例程时(NdisMIndicateStatusEx 或 NdisFIndicateStats),NDIS  
+
+会调用 Filter Driver 的 FilterStatus 例程。  
+
+Filter Driver 在 FilterStatus 中调用 NdisFIndicateStatus 传递一个状态指示给上层驱动。此外,还可以过滤状态指示(不用调用 NdisFIndicateStatus)或在调用 NdisFIndicateStatus 之前修改状态信息。  
+
+Filter Driver 要自己引发一个状态报告,可以在 NDIS 未调用 FilterStatus 的情况下调用 NdisFIndicateStatus。在这种情况下,Filter Driver 要设置 SourceHandle 成员为 FilteAttech 参数提供的 NdisFilterHandle 句柄。  
+
+如果一个状态指示是一个 OID 请求相关的(下层请求一个 OID 下层要做相应的状态指示),那么状态的 DestinationHandle 和 RequestId 成员要设置成上层的 OID 请求包携带的数据。  
+
+Filter Driver 调用 NdisFIndicateStatus 后 NDIS 会调用相邻上层的状态指示函数(ProtocolStatusEx 或 FilterStatus)。  
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*/  
+
+VOID  
+
+FilterStatus(  
+        IN  NDIS_HANDLE           FilterModuleContext,  
+        IN  PNDIS_STATUS_INDICATION StatusIndication  
+        )  
+
+{  
+    PMS_FILTER             pFilter = (PMS_FILTER)FilterModuleContext;  
+
+#if DBG      
+    BOOLEAN                bFalse = FALSE;  
+#endif  
+
+    DEBUGP(DL_TRACE, ("===>FilterStaus, IndicateStatus = %8x.\n", StatusIndication->StatusCode));  
+
+#if DBG  
+    FILTER_ACQUIRE_LOCK(&pFilter->Lock, bFalse);  
+    ASSERT(pFilter->bIndicating == FALSE);  
+    pFilter->bIndicating = TRUE;  
+    FILTER_RELEASE_LOCK(&pFilter->Lock, bFalse);  
+#endif     
+    
+    NdisFIndicateStatus(pFilter->FilterHandle, StatusIndication);  
+
+#if DBG      
+    FILTER_ACQUIRE_LOCK(&pFilter->Lock, bFalse);  
+    ASSERT(pFilter->bIndicating == TRUE);  
+    pFilter->bIndicating = FALSE;  
+    FILTER_RELEASE_LOCK(&pFilter->Lock, bFalse);  
+#endif  
+
+    DEBUGP(DL_TRACE, ("<===FilterStaus.\n"));  
+
+}  
+
+/\*  
+Filter Driver 提供 FilterPnpEventNotify 来接收 NDIS 传递的 PnP 和电源管理事件  
+\*/  
+
+VOID  
+
+FilterDevicePnPEventNotify(  
+        IN  NDIS_HANDLE           FilterModuleContext,  
+        IN  PNET_DEVICE_PNP_EVENT  NetDevicePnPEvent  
+        )  
+
+{  
+    PMS_FILTER        pFilter = (PMS_FILTER)FilterModuleContext;  
+    NDIS_DEVICE_PNP_EVENT   DevicePnPEvent = NetDevicePnPEvent->DevicePnPEvent;  
+
+#if DBG  
+    BOOLEAN             bFalse = FALSE;  
+#endif  
+
+    DEBUGP(DL_TRACE, ("===>FilterDevicePnPEventNotify: NetPnPEvent = %p.\n", NetDevicePnPEvent));  
+
+    switch (DevicePnPEvent)  
+    {  
+        case NdisDevicePnPEventQueryRemoved:   
+        case NdisDevicePnPEventRemoved:  
+        case NdisDevicePnPEventSurpriseRemoved:  
+        case NdisDevicePnPEventQueryStopped:  
+        case NdisDevicePnPEventStopped:  
+        case NdisDevicePnPEventPowerProfileChanged:  
+        case NdisDevicePnPEventFilterListChanged:  
+            break;  
+        default:  
+            DEBUGP(DL_ERROR, ("FilterDevicePnPEventNotify: Invalid event.\n"));  
+            FILTER_ASSERT(bFalse);  
+            break;  
+    }  
+
+  //Filter Driver 要下层驱动转发收到的事件,转发事件要用到 NdisFDevicePnPEventNotify 例程  
+    NdisFDevicePnPEventNotify(pFilter->FilterHandle, NetDevicePnPEvent);  
+    DEBUGP(DL_TRACE, ("<===FilterDevicePnPEventNotify\n"));  
+}  
+
+/\*  
+Filter Driver 提供了 FilterNetPnpEvent 例程来处理网络 Pnp 和电源管理事件通知。  
+\*/  
+
+NDIS_STATUS  
+FilterNetPnPEvent(  
+        IN  NDIS_HANDLE           FilterModuleContext,  
+        IN  PNET_PNP_EVENT_NOTIFICATION NetPnPEventNotification  
+        )  
+
+{  
+    PMS_FILTER          pFilter = (PMS_FILTER)FilterModuleContext;  
+    NDIS_STATUS         Status = NDIS_STATUS_SUCCESS;  
+//Filter Driver 需要转发网络 PnP 和电源管理事件给上层驱动。转发这些事件是通 NdisFNetPnpEvent 来完成的。  
+    
+    Status = NdisFNetPnPEvent(pFilter->FilterHandle, NetPnPEventNotification);  
+    
+    return Status;  
+    
+}  
+
+/\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+ FilterSendNetBufferListsComplete 函数的功能:  
+
+  NDIS 调用 FilterSendNetBufferListsComplete 把发送的结构和数据返还给 Filter Driver。NDIS 可以收集多次 NdisFSendNetBufferLists 发送的结构和数据形成一个单链表传递给 FilterSendNetBufferListsComplete。除非到 NDIS 调用 FilterSendNetBufferListsComplete,否则一个发送请求的当前状态总是未知的。  
+
+  一个过滤驱动是不能在 NDIS 调用 FilterSendNetBufferListsComplete 返回结构之前对 NET_BUFFER_LIST 和其关联的数据做检查的。FilterSendNetBufferListsComplete 要完成一个发送请求完成后的任何必要的后继处理。当 NDIS 调用 FilterSendNetBufferListsComplete 时,Filter Driver 就重新获地对结构及结构相关资源的所有权。可以在 FilterSendNetBufferListsComplete 中释放相关的资源和准备下一个 NdisFSendNetBufferLists 调用。  
+  
+
+  NDIS 总是按照过滤驱动调用 NdisFSendNetBufferLists 提交的顺序传递给下层驱动,但是回返 FilterSendNetBufferListsComplete 的顺序则是任意的。Filter Driver 可以请求一个回环发送请求,只要把 NdisFSendNetBufferLists 的 SendFlags 设置成 NDIS_SEND_FLAGS_CHECK_FOR_LOOPBACK 就行了。NDIS 会引发一个包含发送数据的接收包指示。  
+
+  一个 Filter Driver 应该对自己引发的发送请求保持跟踪并确保在完成时不调用 NdisFSendNetBufferComplete 例程。  
+  
+
+ \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+VOID  
+
+FilterSendNetBufferListsComplete(  
+        IN  NDIS_HANDLE         FilterModuleContext,  
+        IN  PNET_BUFFER_LIST    NetBufferLists,  
+        IN  ULONG               SendCompleteFlags  
+        )  
+
+{  
+    PMS_FILTER        pFilter = (PMS_FILTER)FilterModuleContext;  
+    ULONG             NumOfSendCompletes = 0;  
+    BOOLEAN           DispatchLevel;  
+    PNET_BUFFER_LIST  CurrNbl;  
+    DEBUGP(DL_TRACE, ("===>SendNBLComplete, NetBufferList: %p.\n", NetBufferLists));  
+    if (pFilter->TrackSends)  
+    {  
+        CurrNbl = NetBufferLists;  
+        while (CurrNbl)  
+        {  
+            NumOfSendCompletes++;  
+            CurrNbl = NET_BUFFER_LIST_NEXT_NBL(CurrNbl);  
+        }  
+        DispatchLevel = NDIS_TEST_SEND_AT_DISPATCH_LEVEL(SendCompleteFlags);  
+        FILTER_ACQUIRE_LOCK(&pFilter->Lock, DispatchLevel);  
+        pFilter->OutstandingSends -= NumOfSendCompletes;  
+        FILTER_LOG_SEND_REF(2, pFilter, PrevNbl, pFilter->OutstandingSends);          
+        FILTER_RELEASE_LOCK(&pFilter->Lock, DispatchLevel);  
+    }  
+    NdisFSendNetBufferListsComplete(pFilter->FilterHandle, NetBufferLists, SendCompleteFlags);  
+    DEBUGP(DL_TRACE, ("<===SendNBLComplete.\n"));  
+}  
+
+/\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
+
+ FilterSendNetBufferLists 函数的功能:  
+
+  NDIS 调用一个 Filter Driver 的 FilterSendNetBufferLists 例程来过滤上层驱动的发送请求。Filter Driver 不能改变其它驱动传来的 NET_BUFFER_LIST 结构中的 SourceHandle 成员的值。它可以过滤数据并发送过滤的数据到下层驱动。  
+
+  对每一个提交到 FilterSendNetBufferLists 的 NDIS_BUFFER_LIST，我们可做下面的操作。  
+
+  1)可以把缓冲区通过 NdisFSendBufferLists 传递给下层驱动,NDIS 保证上下文空间对 FilterDriver 的有效性。过滤驱动可以在发送前修改缓冲区的内容。可以像处理自己引发的发送请求的缓冲区一样处理这个缓冲区。    
+    
+  2)可以调用 NdisFSendNetBufferListsComplete 拒绝传递这个包  
+  
+
+  3)排队缓冲区内容到本地的供以后处理。例如要在一定超时后处理或要接收到特定包后才处理等。如果支持这种处理方式就要支持取消请求的操作。     
+  
+
+  4)可以拷贝缓冲区并引发一个发送请求。它类似自己引发一个发送请求,但必须先调用 NdisFSendNetBufferComplete 返回上层驱动的缓冲区。  
+
+  发送请求在驱动栈继续完成,当一个微端口驱动调用 NdisMSendNetBufferListsComplete 完成一个发送请求时,NDIS 会调用微端口  
+
+  驱动之上最近的 Filter Driver 的 FilterSendNetBufferLists 例程。  
+
+  在一个发送操作完成后,Filter Driver 可以做在 FilterSendNetBufferLists 中所有修改的相反操作。FilterSendNetBufferListsComplete 返回一个 NET_BUFFER_LIST 结构的单链表和发送请求的最终状态给上层的驱动。当最顶层的 Filter Module 的 FilterSendNetBufferListsComplete 被调用完成后 NDIS 会调用引发发送请求的协议驱动的 ProtocolSendNetBufferListsComplete。如果 Filter Driver 不提供 FilterSendNetBufferLists 它还是可以引发一个发送操作的,但它必须提供一个 FilterSendNetBufferListsComplete 并且不能在这个例程里把这个事件传递给上层驱动。  
+
+
+
+### 回环请求处理
+
+一个 Filter Driver 可以传递或过滤一个上层驱动的回环请求。要传递一个回环请求，NDIS 会设置 `FilterSendNetBufferLists` 的 `SendFlags` 参数为 `NDIS_SEND_FLAGS_CHECK_FOR_LOOPBACK`，Filter Driver 在调用 `NdisFSendNetBufferLists` 时把这个标记传给它即可。在回环请求的情况下，NDIS 会指示一个包含发送数据的接收包。
+
+通常情况下，如果一个 Filter Driver 修改的任何行为不是 NDIS 提供的标准服务，那么它应该当自己为 NDIS 提供相应的服务。例如，如果一个 Filter Driver 修改了一个硬件地址请求，就必须处理直接到这个新地址回环包。在这种情况下，因为 Filter Driver 已经更改了地址，NDIS 是不能提供一个回环服务的。
+
+还有就是如果 Filter Driver 设置了混杂模式那它就不能传递额外的数据给上层接收。
+
+### FilterSendNetBufferLists
+
+```c
+/**************************************************************************
+FilterSendNetBufferLists 函数的功能:
+如果 Filter Driver 设置了 NdisFIndicateReceiveNetBufferLists 的状态为 NDIS_STATUS_SUCCESS, NDIS 通过驱动的 FilterReturnNetBufferLists
+返回指示数据。在这种情况下 Filter Driver 失去了对 NET_BUFFER_LIST 的所有权,直到 FilterReturnNetBufferLists 被调用。
+
+Filter Driver 调用 NdisFIndicateNetBufferLists 传递接收指示给驱动栈上的上层驱动,如果上层驱动保留了对缓冲区(NET_BUFFER_LIST)的所有权,NDIS 会调用 Filter Driver 的 FilterReturnNetBufferLists 例程。
+
+在 FilterReturnNetBufferLists 中应该撤消在接收路径上(如在 FilterReciveNetBufferLists 中做的一些处理)的操作。当最底层的 Filter Module 完成对缓冲区(NET_BUFFER_LIST)的处理后,NDIS 把缓冲区返回给微端口驱动。如果 FilterReceiveNetBufferLists 的 ReceiveFlags 没有设置 NDIS_RECEIVE_FLAGS_RESOURCES 标记, FilterDriver 调用 NdisFReturnNetBufferList 返回这个缓冲区数据,如果设置了 FilterReceiveNetBufferLists 直接返回时就把缓冲区返还给了下层微端口驱动。
+**************************************************************************/
+
+VOID
+FilterSendNetBufferLists(
+        IN  NDIS_HANDLE           FilterModuleContext,
+        IN  PNET_BUFFER_LIST     NetBufferLists,
+        IN  NDIS_PORT_NUMBER     PortNumber,
+        IN  ULONG               SendFlags
+        )
+{
+    PMS_FILTER           pFilter = (PMS_FILTER)FilterModuleContext;
+    PNET_BUFFER_LIST     CurrNbl;
+    BOOLEAN              DispatchLevel;
+    BOOLEAN              bFalse = FALSE;
+    DEBUGP(DL_TRACE, ("===>SendNetBufferList: NBL = %p.\n", NetBufferLists));
+    do
+    {
+       DispatchLevel = NDIS_TEST_SEND_AT_DISPATCH_LEVEL(SendFlags);
+#if DBG
+        FILTER_ACQUIRE_LOCK(&pFilter->Lock, DispatchLevel);
+        if (pFilter->State != FilterRunning)
+        {
+            FILTER_RELEASE_LOCK(&pFilter->Lock, DispatchLevel);
+            CurrNbl = NetBufferLists;
+            while (CurrNbl)
+            {
+                NET_BUFFER_LIST_STATUS(CurrNbl) = NDIS_STATUS_PAUSED;
+                CurrNbl = NET_BUFFER_LIST_NEXT_NBL(CurrNbl);
+            }
+            NdisFSendNetBufferListsComplete(pFilter->FilterHandle,
+                        NetBufferLists,
+                        DispatchLevel ? NDIS_SEND_COMPLETE_FLAGS_DISPATCH_LEVEL : 0);
+            break;
+        }
+        FILTER_RELEASE_LOCK(&pFilter->Lock, DispatchLevel);
+#endif
+        /************************************************************
+          //在这里添加我们的代码
+        /************************************************************
+        if (pFilter->TrackSends)
+        {
+            FILTER_ACQUIRE_LOCK(&pFilter->Lock, DispatchLevel);
+            CurrNbl = NetBufferLists;
+            while (CurrNbl)
+            {
+                pFilter->OutstandingSends++;
+                FILTER_LOG_SEND_REF(1, pFilter, CurrNbl, pFilter->OutstandingSends);
+                CurrNbl = NET_BUFFER_LIST_NEXT_NBL(CurrNbl);
+            }
+            FILTER_RELEASE_LOCK(&pFilter->Lock, DispatchLevel);
+        }
+        NdisFSendNetBufferLists(pFilter->FilterHandle, NetBufferLists, PortNumber, SendFlags);
+    }
+    while (bFalse);
+    DEBUGP(DL_TRACE, ("<===SendNetBufferList.\n"));
+}
+```
+
+### FilterReturnNetBufferLists
+
+```c
+/**************************************************************************
+FilterReturnNetBufferLists 函数的功能:
+
+如果 Filter Driver 设置了 NdisFIndicateReceiveNetBufferLists 的状态为 NDIS_STATUS_SUCCESS, NDIS 通过驱动的 FilterReturnNetBufferLists
+返回指示数据。在这种情况下 Filter Driver 失去了对 NET_BUFFER_LIST 的所有权,直到 FilterReturnNetBufferLists 被调用。
+
+Filter Driver 调用 NdisFIndicateNetBufferLists 传递接收指示给驱动栈上的上层驱动,如果上层驱动保留了对缓冲区(NET_BUFFER_LIST)的所有权,NDIS 会调用 Filter Driver 的 FilterReturnNetBufferLists 例程。
+
+在 FilterReturnNetBufferLists 中应该撤消在接收路径上(如在 FilterReciveNetBufferLists 中做的一些处理)的操作。当最底层的 Filter Module 完成对缓冲区(NET_BUFFER_LIST)的处理后,NDIS 把缓冲区返回给微端口驱动。如果 FilterReceiveNetBufferLists 的 ReceiveFlags 没有设置 NDIS_RECEIVE_FLAGS_RESOURCES 标记, FilterDriver 调用 NdisFReturnNetBufferList 返回这个缓冲区数据,如果设置了 FilterReceiveNetBufferLists 直接返回时就把缓冲区返还给了下层微端口驱动。
+**************************************************************************/
+
+VOID
+FilterReturnNetBufferLists(
+        IN  NDIS_HANDLE           FilterModuleContext,
+        IN  PNET_BUFFER_LIST     NetBufferLists,
+        IN  ULONG               ReturnFlags
+        )
+{
+    PMS_FILTER           pFilter = (PMS_FILTER)FilterModuleContext;
+    PNET_BUFFER_LIST     CurrNbl = NULL;
+    UINT                 NumOfNetBufferLists = 0;
+    BOOLEAN              DispatchLevel;
+    ULONG                Ref;
+    DEBUGP(DL_TRACE, ("===>ReturnNetBufferLists, NetBufferLists is %p.\n", NetBufferLists));
+    if (pFilter->TrackReceives)
+    {
+        while (CurrNbl)
+        {
+            NumOfNetBufferLists++;
+            CurrNbl = NET_BUFFER_LIST_NEXT_NBL(CurrNbl);
+        }
+    }
+    NdisFReturnNetBufferLists(pFilter->FilterHandle, NetBufferLists, ReturnFlags);
+    if (pFilter->TrackReceives)
+    {
+        DispatchLevel = NDIS_TEST_RETURN_AT_DISPATCH_LEVEL(ReturnFlags);
+        FILTER_ACQUIRE_LOCK(&pFilter->Lock, DispatchLevel);
+        pFilter->OutstandingRcvs -= NumOfNetBufferLists;
+        Ref = pFilter->OutstandingRcvs;
+        FILTER_LOG_RCV_REF(3, pFilter, NetBufferLists, Ref);
+        FILTER_RELEASE_LOCK(&pFilter->Lock, DispatchLevel);
+    }
+    DEBUGP(DL_TRACE, ("<===ReturnNetBufferLists.\n"));
+}
+```
+
+### FilterReceiveNetBufferLists
+
+```c
+/**************************************************************************
+FilterReceiveNetBufferLists 函数的功能:
+
+Filter Driver 调用 NdisFIndicateReceiveNetBufferLists 来指示发送数据。这个函数通过 NET_BUFFER_LIST 结构给上层驱动指示数据。Filter Driver 可以从池中分配这个结构。如果 Filter Driver 设置了 NdisFIndicateReceiveNetBufferLists 的状态为 NDIS_STATUS_SUCCESS, NDIS 通过驱动的 FilterReturnNetBufferLists 返回指示数据。在这种情况下 Filter Driver 失去了对 NET_BUFFER_LIST 的所有权直到 FilterReturnNetBufferLists 被调用。如果 Filter Driver 在调用 NdisFIndicateReceiveNetBufferLists 时设置 ReceiveFlags 为 NDIS_RECEIVE_FLAGS_RESOURCES，在函数返回后 Filter Driver 会立即恢复对 NET_BUFFER_LIST 的所有权,这时 Filter Driver 必须立即处理这个 NET_BUFFER_LIST 的返回,因为 NDIS 在这种情况下是不会调用 FilterReturnNetBufferLists 返回 NET_BUFFER_LIST 结构的。
+
+注意: 一个 Filter Driver 应该跟踪自己引发的接收指示确保它在 FilterReturnNetBufferLists
+中不调用 NdisFReturnNetBufferLists。
+**************************************************************************/
+
+VOID
+FilterReceiveNetBufferLists(
+        IN  NDIS_HANDLE           FilterModuleContext,
+        IN  PNET_BUFFER_LIST     NetBufferLists,
+        IN  NDIS_PORT_NUMBER     PortNumber,
+        IN  ULONG               NumberOfNetBufferLists,
+        IN  ULONG               ReceiveFlags
+        )
+{
+    PMS_FILTER           pFilter = (PMS_FILTER)FilterModuleContext;
+    BOOLEAN              DispatchLevel;
+    ULONG                Ref;
+    BOOLEAN              bFalse = FALSE;
+#if DBG
+    ULONG                ReturnFlags;
+#endif
+    DEBUGP(DL_TRACE, ("===>ReceiveNetBufferList: NetBufferLists = %p.\n", NetBufferLists));
+    do
+    {
+        DispatchLevel = NDIS_TEST_RECEIVE_AT_DISPATCH_LEVEL(ReceiveFlags);
+#if DBG
+        FILTER_ACQUIRE_LOCK(&pFilter->Lock, DispatchLevel);
+        if (pFilter->State != FilterRunning)
+        {
+            FILTER_RELEASE_LOCK(&pFilter->Lock, DispatchLevel);
+            if (NDIS_TEST_RECEIVE_CAN_PEND(ReceiveFlags))
+            {
+                ReturnFlags = 0;
+                if (NDIS_TEST_RECEIVE_AT_DISPATCH_LEVEL(ReceiveFlags))
+                {
+                    NDIS_SET_RETURN_FLAG(ReturnFlags, NDIS_RETURN_FLAGS_DISPATCH_LEVEL);
+                }
+                NdisFReturnNetBufferLists(pFilter->FilterHandle, NetBufferLists, ReturnFlags);
+            }
+            break;
+        }
+        FILTER_RELEASE_LOCK(&pFilter->Lock, DispatchLevel);
+#endif
+        ASSERT(NumberOfNetBufferLists >= 1);
+```
+
+
+
+/*--------------------------------------------------------------------------------------*/   
+   
+   
+//在这里添加我们的代码
+   
+/*---------------------------------------------------------------------------------------*/
+   
+   if (pFilter->TrackReceives)   
+   {   
+      FILTER_ACQUIRE_LOCK(&pFilter->Lock, DispatchLevel);   
+      pFilter->OutstandingRcvs += NumberOfNetBufferLists;   
+      Ref = pFilter->OutstandingRcvs;   
+      FILTER_LOG_RCV_REF(1, pFilter, NetBufferLists, Ref);   
+      FILTER_RELEASE_LOCK(&pFilter->Lock, DispatchLevel);   
+   }
+   
+```
+/**/
+
+调用 `NdisFIndicateReceiveNetBufferLists` 来指示发送数据。
+
+如果 Filter Driver 设置了 `NdisFIndicateReceiveNetBufferLists` 的状态为 `NDIS_STATUS_SUCCESS`，NDIS 通过驱动的 `FilterReturnNetBufferLists` 返回指示数据。
+
+如果 Filter Driver 设置了 `NdisFIndicateReceiveNetBufferLists` 的 `ReceiveFlags` 值为 `NDIS_RECEIVE_FLAGS_RESOURCES`，那么在函数返回后 Filter Driver 会立即恢复对 `NET_BUFFER_LIST` 的所有权，这时 Filter Driver 必须立即处理这个 `NET_BUFFER_LIST` 的返回。
+
+在这种情况下是不会调用 `FilterReturnNetBufferLists` 返回 `NET_BUFFER_LIST` 结构的。
+   
+   NdisFIndicateReceiveNetBufferLists(
+      pFilter->FilterHandle,
+      NetBufferLists,
+      PortNumber,  
+      NumberOfNetBufferLists,
+      ReceiveFlags);
+   
+   if (NDIS_TEST_RECEIVE_CANNOT_PEND(ReceiveFlags) && pFilter->TrackReceives)
+   {
+      FILTER_ACQUIRE_LOCK(&pFilter->Lock, DispatchLevel);
+      pFilter->OutstandingRcvs -= NumberOfNetBufferLists;
+      Ref = pFilter->OutstandingRcvs;
+      FILTER_LOG_RCV_REF(2, pFilter, NetBufferLists, Ref);
+      FILTER_RELEASE_LOCK(&pFilter->Lock, DispatchLevel);
+   }
+
+} while (bFalse);
+
+DEBUGP(DL_TRACE, ("<===ReceiveNetBufferList: Flags = %8x.\n", ReceiveFlags));
+
+}
+
+```
+/**/
+
+`FilterCancelSendNetBufferLists` 函数的功能：
+
+过滤驱动调用 `NDIS_SET_NET_BUFFER_LIST_CANCEL_ID` 宏为每一个 `NET_BUFFER_LIST` 标记一个取消 ID。
+
+在为网络数据分配取消 ID 之前，必须先调用 `NdisGenratePartialCanceld` 获得取消 ID 的高字节。
+
+这是为了确保驱动不会把一个取消 ID 分配给两个不同的对象。驱动通常在 `DriverEntry` 调用 `NdisGenratePartialCanceld`，但是驱动可以在不同的时间多次调用它来获得多个取消 ID。
+
+要取消被标记过取消 ID 且正在传输的数据，驱动可以调用 `NdisFCancelSendNetBufferLists` 例程来完成。要获得取消 ID 可以用 `NDIS_GET_NET_BUFFER_LIST_CANCEL_ID` 宏来完成。
+
+如果一个 Filter Driver 对所有发送的 `NET_BUFFER_LIST` 标记了相同的取消 ID，那它可以用一个 `NdisFCancelSendNetBufferLists` 来取消所有的发送请求。如果把一部分发送请求的 `NET_BUFFER_LIST` 标记相同的取消 ID，那么就可以调用一次 `NdisFCancelSendNetBufferLists` 来取消这部分发送请求。
+
+在实现这个功能时 NDIS 会调用下层驱动的取消发送功能。中断正在执行的发送任务后，下层驱动会调用发送完成例程（如：`NdisMSendNetBufferListComplete`）返回指定的 `NET_BUFFER_LIST` 结构并指定返回状态为 `NDIS_STATUS_CANCELLED`，NDIS 依次调用 Filter Driver 的 `FilterSendNetBufferListsComplete` 例程。在 `FilterSendNetBufferListsComplete` 中要用 `NDIS_SET_NET_BUFFER_LIST_CANCEL_ID` 设置取消的 `NET_BUFFER_LIST` 的取消 ID 为 `NULL`，这样是为了防止这个 ID 在 `NET_BUFFER_LIST` 被再次分配时使用。
+
+上层驱动在取消一个未完成的发送请求时也必须对这个发送请求的 `NET_BUFFER_LIST` 结构设定取消 ID。
+
+NDIS 会传递给 Filter Driver 的 `FilterCancelSendNetBufferLists` 一个取消 ID 来取消发送请求的 `NET_BUFFER_LIST` 发送。`FilterCancelSendNetBufferLists` 下执行下列操作：
+
+1) 遍历 Filter Driver 的发送队列，用 `NDIS_GET_NET_BUFFER_LIST_CANCEL_ID` 获得队列中 `NET_BUFFER_LIST` 的取消 ID 与 `FilterCancelSendBufferLists` 的取消 ID 比较。
+
+2) 移除队列中取消 ID 和 `FilterCancelSentBufferLists` 中取消 ID 相同的元素。
+
+3) 调用 `NdisFSendNetBufferListsComplete` 来完成这些 `NET_BUFFER_LIST` 并设定返回状态为 `NDIS_STATUS_CANCELLED`。
+
+4) 调用 `NdisFCancelSendNetBufferLists` 传递取消发送请求给下层驱动。传递取消 ID 给下层驱动就 Filter Driver 取消自己引发的发送请求一样。
+
+```
+VOID FilterCancelSendNetBufferLists(
+   IN  NDIS_HANDLE            FilterModuleContext,
+   IN  PVOID                 CancelId
+   )
+{
+   PMS_FILTER  pFilter = (PMS_FILTER)FilterModuleContext;
+   NdisFCancelSendNetBufferLists(pFilter->FilterHandle, CancelId);
+}
+```
+
+```
+/**/
+
+`FilterSetModuleOptions` 函数的功能：
+
+必须要在初始化时为驱动注册 `FilterSetModuleOptions` 例程，驱动可以在这个例程中初始化 `NDIS_FILTER_PARTIAL_CHARACTERISTICS` 结构来调用 `NdisSetOptionalHandlers` 来完成初始化。
+
+这个例程如果存在那么在调用 Filter Driver 的 `FilterRestart` 例程之前调用它。
+```
+
+```
+NDIS_STATUS FilterSetModuleOptions(
+   IN  NDIS_HANDLE            FilterModuleContext
+   )
+{
+   PMS_FILTER                 pFilter = (PMS_FILTER)FilterModuleContext;
+   NDIS_FILTER_PARTIAL_CHARACTERISTICS     OptionalHandlers;
+   NDIS_STATUS               Status = NDIS_STATUS_SUCCESS;
+   BOOLEAN                   bFalse = FALSE;
+   if (bFalse)
+   {
+      UINT    i;
+      pFilter->CallsRestart++;
+      i = pFilter->CallsRestart % 8;
+      pFilter->TrackReceives = TRUE;
+      pFilter->TrackSends = TRUE;
+      NdisMoveMemory(&OptionalHandlers, &DefaultChars, sizeof(OptionalHandlers));
+      OptionalHandlers.Header.Type = NDIS_OBJECT_TYPE_FILTER_PARTIAL_CHARACTERISTICS;
+      OptionalHandlers.Header.Size = sizeof(OptionalHandlers);
+      switch (i)
+      {
+         case 0:  
+            OptionalHandlers.ReceiveNetBufferListsHandler = NULL;
+            pFilter->TrackReceives = FALSE;
+            break;
+         case 1:  
+            OptionalHandlers.ReturnNetBufferListsHandler = NULL;
+            pFilter->TrackReceives = FALSE;
+            break;
+         case 2:  
+            OptionalHandlers.SendNetBufferListsHandler = NULL;
+            pFilter->TrackSends = FALSE;
+            break;
+         case 3:  
+            OptionalHandlers.SendNetBufferListsCompleteHandler = NULL;
+            pFilter->TrackSends = FALSE;
+            break;
+         case 4:  
+            OptionalHandlers.ReceiveNetBufferListsHandler = NULL;
+            OptionalHandlers.ReturnNetBufferListsHandler = NULL;
+            break;
+         case 5:  
+            OptionalHandlers.SendNetBufferListsHandler = NULL;
+            OptionalHandlers.SendNetBufferListsCompleteHandler = NULL;
+            break;
+         case 6:  
+            OptionalHandlers.ReceiveNetBufferListsHandler = NULL;
+            OptionalHandlers.ReturnNetBufferListsHandler = NULL;
+            OptionalHandlers.SendNetBufferListsHandler = NULL;
+            OptionalHandlers.SendNetBufferListsCompleteHandler = NULL;
+            break;
+         case 7:  
+            break;
+      }
+      Status = NdisSetOptionalHandlers(pFilter->FilterHandle, (PNDIS_DRIVER_OPTIONAL_HANDLERS)&OptionalHandlers );
+   }
+   return Status;
+}
+```
+
+```
+NDIS_STATUS filterDoInternalRequest(
+   IN PMS_FILTER                 FilterModuleContext,
+   IN NDIS_REQUEST_TYPE         RequestType,
+   IN NDIS_OID                 Oid,
+   IN PVOID                    InformationBuffer,
+   IN ULONG                    InformationBufferLength,
+   IN ULONG                    OutputBufferLength, OPTIONAL
+   IN ULONG                    MethodId, OPTIONAL
+   OUT PULONG                  pBytesProcessed
+   )
+{
+   FILTER_REQUEST               FilterRequest;
+   PNDIS_OID_REQUEST            NdisRequest = &FilterRequest.Request;
+```
+
+
+
+```c
+    NDIS_STATUS                Status;  
+
+    BOOLEAN                   bFalse;  
+
+    bFalse = FALSE;  
+
+    NdisZeroMemory(NdisRequest, sizeof(NDIS_OID_REQUEST));  
+
+    NdisInitializeEvent(&FilterRequest.ReqEvent);  
+
+    NdisRequest->Header.Type = NDIS_OBJECT_TYPE_OID_REQUEST;  
+
+    NdisRequest->Header.Revision = NDIS_OID_REQUEST_REVISION_1;  
+
+    NdisRequest->Header.Size = sizeof(NDIS_OID_REQUEST);  
+
+    NdisRequest->RequestType = RequestType;  
+
+    switch (RequestType)  
+    {  
+        case NdisRequestQueryInformation:  
+            NdisRequest->DATA.QUERY_INFORMATION.Oid = Oid;  
+            NdisRequest->DATA.QUERY_INFORMATION.InformationBuffer =InformationBuffer;  
+            NdisRequest->DATA.QUERY_INFORMATION.InformationBufferLength = InformationBufferLength;  
+            break;  
+        case NdisRequestSetInformation:  
+            NdisRequest->DATA.SET_INFORMATION.Oid = Oid;  
+            NdisRequest->DATA.SET_INFORMATION.InformationBuffer =InformationBuffer;  
+            NdisRequest->DATA.SET_INFORMATION.InformationBufferLength =InformationBufferLength;  
+            break;  
+        case NdisRequestMethod:  
+            NdisRequest->DATA.METHOD_INFORMATION.Oid = Oid;  
+            NdisRequest->DATA.METHOD_INFORMATION.MethodId = MethodId;  
+            NdisRequest->DATA.METHOD_INFORMATION.InformationBuffer = InformationBuffer;  
+            NdisRequest->DATA.METHOD_INFORMATION.InputBufferLength = InformationBufferLength;  
+            NdisRequest->DATA.METHOD_INFORMATION.OutputBufferLength = OutputBufferLength;  
+            break;  
+        default:  
+            FILTER_ASSERT(bFalse);  
+            break;  
+    }  
+    NdisRequest->RequestId = (PVOID)FILTER_REQUEST_ID;  
+    Status = NdisFOidRequest(FilterModuleContext->FilterHandle,NdisRequest);  
+    if (Status == NDIS_STATUS_PENDING)  
+    {  
+        NdisWaitEvent(&FilterRequest.ReqEvent, 0);  
+        Status = FilterRequest.Status;  
+    }  
+    if (Status == NDIS_STATUS_SUCCESS)  
+    {  
+        if (RequestType == NdisRequestSetInformation)  
+        {  
+            *pBytesProcessed = NdisRequest->DATA.SET_INFORMATION.BytesRead;  
+        }  
+        if (RequestType == NdisRequestQueryInformation)  
+        {  
+            *pBytesProcessed = NdisRequest->DATA.QUERY_INFORMATION.BytesWritten;  
+        }  
+        if (RequestType == NdisRequestMethod)  
+        {  
+            *pBytesProcessed = NdisRequest->DATA.METHOD_INFORMATION.BytesWritten;  
+        }  
+        if (RequestType == NdisRequestMethod)  
+        {  
+            if (*pBytesProcessed > OutputBufferLength)  
+            {  
+                *pBytesProcessed = OutputBufferLength;  
+            }  
+        }  
+        else  
+        {  
+            if (*pBytesProcessed > InformationBufferLength)  
+            {  
+                *pBytesProcessed = InformationBufferLength;  
+            }  
+        }  
+    }  
+    return (Status);  
+}  
+
+VOID  
+filterInternalRequestComplete(  
+    IN NDIS_HANDLE               FilterModuleContext,  
+    IN PNDIS_OID_REQUEST         NdisRequest,  
+    IN NDIS_STATUS               Status  
+    )  
+{  
+    PFILTER_REQUEST             FilterRequest;  
+    UNREFERENCED_PARAMETER(FilterModuleContext);  
+    FilterRequest = CONTAINING_RECORD(NdisRequest, FILTER_REQUEST, Request);  
+    FilterRequest->Status = Status;  
+    NdisSetEvent(&FilterRequest->ReqEvent);  
+}
+```
+
+网络数据由在网络上发送和接收的数据包组成。`NDIS` 提供了数据结构来描述它们，`NDIS 6.0` 提供了如下数据结构：
+
+1.  `NET_BUFFER`
+2.  `NET_BUFFERLIST`
+3.  `NET_BUFFER_LIST_CONTEXT`
+
+在 `NDIS 6.0` 中，`NET_BUFFER` 是封闭网络数据的基本构建块。每一个 `NET_BUFFER` 都有一个 `MDL` 链。这些 `MDL` 映射的缓冲区地址是 `NET_BUFFER` 指定的数据空间。这种数据映射同 `NDIS 5.X` 及之前的版本使用的 `NDIS_PACKET` 中的映射是一样的。`NDIS` 提供函数来管理这些 `MDL` 链。
+
+多个 `NET_BUFFER` 可以被附加到（可以被串到）一个 `NET_BUFFER_LIST` 上。这些 `NET_BUFFER` 被组织成一个以 `NULL` 结束的单链表。驱动或 `NDIS` 仅创建一个 `NET_BUFFER_LIST`，应该修改它的链表给它插入或删除一些 `NET_BUFFER` 结构。
+
+`NET_BUFFER_LIST` 结构中包含的信息中描述了所有被串到一个链表上的 `NET_BUFFER` 结构。如果 `NET_BUFFER_LIST` 需要上下文信息，可以分配额外的空间来存储一个 `NET_BUFFER_LIST_CONTEXT` 结构。`NDIS` 提供函数来分配、访问 `NET_BUFFER_LIST_CONTEXT` 中的数据。
+
+多个 `NET_BUFFER_LIST` 结构可以串成一个 `NET_BUFFER_LIST` 链表。它们可以被组织成一个以 `NULL` 结尾的单向链表。驱动可以对这个链表直接进行插入、删除操作。
+
+`NDIS 6.0` 中使用的 `NET_BUFFER` 结构相似于 `NDIS 5.X` 以前使用的 `NDIS_PACKET` 结构，每一个 `NET_BUFFER` 结构中都包装了一个网络数据包。
+
+这里，上传一份 `NDIS` 中间层开发的资料
+
+上传的附件
+
+| ![](img/aabdec8de01ec04d2bc68959c61abb93.jpg) || `NDIS 中间层驱动开发.pdf`
+|

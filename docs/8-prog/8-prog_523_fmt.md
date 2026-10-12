@@ -1,0 +1,406 @@
+
+# Windows 下的 tail，附代码-添加 f 选项，看 5 楼
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-618.htm`](https://www.pediy.com/kssd/pediy09/pediy09-618.htm)
+
+> ```
+> //                                                             
+> //  作者：Aker Lee  mailtoljm#163。com                         
+> //  标题：windows 下的 tail                                      
+> //  日期：2007-6-16 7:16                                          
+> //                                                             
+> //  这几天，总要查看大文件，每次用 ultraedit 打开文件，但是还是很慢，         
+> //  非常怀念 linux 下的 tail，到网上搜索了一下，发现有 unixutils 里面有 tail.      
+> //  但是从 sourceforge 上下了 n 久，都连不上；另外发现 codeproject 上面有个 gui 版的  
+> //  不喜欢，而且那个是 mfc 写得。                                    
+> //  想想还是自己动手，丰衣足食                                     
+> //  所以就有了这个小工具，希望大家喜欢。有时候应该比较有用:)          
+> //                                                             
+> //  思路很简单，打开文件读到最后，往回读，读到'\\n'，行计数加一，         
+> //  直到满足要读的行数，确定位置，输出........                       
+> //                                                             
+> //  编译环境：winxpsp2 + cl 13.10.3077 + link 7.10                
+> //                                                             
+> //  问题：读大文件(2G)不支持,不过一般应该够用了,如果要用的话,自己改下        
+> //        如果还有其他问题，请 mailme:)                             
+> //                                                             
+> //  改进：如果想要多功能的 tail，如从文件某个位置开始读一定行数        
+> //        以 16 进制，字符等显示........                            
+> //                                                             
+> //  使用方法：tail 文件名 [最后的行数]                               
+> //            最后的行数为可选项，默认最后 10 行                    
+> //                                                             
+> //  代码随便修改，最好给我发一份:)                                  
+> //                                                             
+> //   
+> 
+> ```
+> 
+> 代码:
+> 
+> \* \* \*
+> 
+
+
+
+```c
+//----------------------------------------------------------------------------
+//  作者：Aker Lee mailtoljm#163。com                                     
+//  标题：windows 下的 tail                                              
+//  日期：2007-6-16 7:16                                                   
+//                                                                          //  这几天，总要查看大文件，每次用 ultraedit 打开文件，但是还是很慢，      
+//  非常怀念 linux 下的 tail，到网上搜索了一下，发现有 unixutils 里面有 tail.   
+//  但是从 sourceforge 上下了 n 久，都连不上；另外发现 codeproject 上面有个 gui 版的
+//  不喜欢，而且那个是 mfc 写得。                                          
+//  想想还是自己动手，丰衣足食                                            
+//  所以就有了这个小工具，希望大家喜欢。有时候应该比较有用:)                
+//                                                                          //  思路很简单，打开文件读到最后，往回读，读到'\n'，行计数加一，         
+//  直到满足要读的行数，确定位置，输出........                              
+//                                                                          //  编译环境：winxpsp2 + cl 13.10.3077 + link 7.10                          
+//                                                                          //  问题：读大文件(2G)不支持,不过一般应该够用了,如果要用的话,自己改下        
+//        如果还有其他问题，请 mailme:)                                     
+//                                                                          //  改进：如果想要多功能的 tail，如从文件某个位置开始读一定行数              
+//        以 16 进制，字符等显示........                                     
+//                                                                          //  使用方法：tail 文件名 [最后的行数]                                      
+//             最后的行数为可选项，默认最后 10 行                            
+//                                                                          //  代码随便修改，最好给我发一份:)                                         
+//                                                                          //----------------------------------------------------------------------------
+//////////////////////////////////////////////////////////////////////////////
+// 头文件
+#include <stdio.h>
+#include <assert.h>
+#include <windows.h>
+
+//////////////////////////////////////////////////////////////////////////////
+#pragma comment(lib,"advapi32")
+#pragma comment(linker, "/align:0x1000") 
+// 如果觉得文件大的话，谁把 printf 换成 wsprintf 和 writeconsole
+//////////////////////////////////////////////////////////////////////////////
+// 全局变量
+
+//////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+// 函数定义
+// taken from msdn SetFilePointer :)
+__int64 myFileSeek (HANDLE hf, __int64 distance, DWORD MoveMethod)
+{
+   LARGE_INTEGER li;
+   li.QuadPart = distance;
+   li.LowPart = SetFilePointer (hf, li.LowPart, &li.HighPart, MoveMethod);
+   if (li.LowPart == INVALID_SET_FILE_POINTER && GetLastError() != NO_ERROR)
+   {    // vc6 要修改 INVALID_SET_FILE_POINTER 为((DWORD)-1)
+        // WinBase.h:#define INVALID_SET_FILE_POINTER ((DWORD)-1)
+       li.QuadPart = -1;
+   }
+   return li.QuadPart;
+}
+
+void MyCloseFile(HANDLE hFile)
+{
+    BOOL    bFlag;               // a result holder
+    bFlag = CloseHandle(hFile);  // close the file
+    
+    if(!bFlag) 
+    {
+        printf("[-] Error # %ld occurred closing the file!\n",
+           GetLastError());
+    }     
+}
+//////////////////////////////////////////////////////////////////////////////
+int gettail(char *filename,DWORD nlastlines )
+{
+    // 局部变量
+  HANDLE  hFile;
+    DWORD   dwFileSize,iterator,bytes_read,lines = 0;
+#define BUFFSIZE 1024               // the size of the memory to examine at any one time
+  char    buf[BUFFSIZE];
+    
+    // 函数参数分析
+  assert(filename != NULL);
+    assert(nlastlines > 0);
+    
+    // 函数动作
+    // 打开文件
+  hFile = CreateFile(  filename, GENERIC_READ,
+    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE ,  NULL,
+      OPEN_EXISTING,  FILE_ATTRIBUTE_NORMAL,  NULL);
+  if(hFile == INVALID_HANDLE_VALUE)
+  {
+        printf("[-] Error # %ld occurred opening %s!\n", GetLastError(),filename);
+    return -1;
+  }
+    
+    // 获取文件大小
+    dwFileSize = iterator = GetFileSize(hFile,  NULL);
+   
+    // 寻找最后 nlastlines 行的初始位置
+  while(lines < nlastlines && iterator > 0)
+  {
+    iterator--;
+    myFileSeek(hFile, iterator, FILE_BEGIN);
+    if(!ReadFile(hFile, buf, 1, &bytes_read, NULL))
+    {
+            printf("[-] Error # %ld occurred reading %s!\n", GetLastError(),filename);
+      MyCloseFile(hFile);
+      return -1;
+    }
+    
+    if(buf[0] == '\n')  lines++;
+  }
+  // 如果已经遍历到文件头，重设文件开始位置
+  if(iterator == 0) myFileSeek(hFile, 0, FILE_BEGIN);
+    
+    // 读取到文件末尾并输出
+  do{
+    if(!ReadFile(hFile, buf, BUFFSIZE-1, &bytes_read, NULL))
+    {
+            printf("[-] Error # %ld occurred reading %s!\n", GetLastError(),filename);
+      MyCloseFile(hFile);
+      return -1;
+    }
+    iterator += bytes_read;
+    buf[bytes_read] = '\0';
+    
+    printf("%s", buf);
+  }while(bytes_read >0 );
+  
+    MyCloseFile(hFile);
+    // 返回值
+    return 0;
+}
+
+////////////////////////////////////////////////////////////////////////////
+// 入口点
+int main(int argc, char* argv[])
+{
+    // 局部变量
+    DWORD nlastlines = 10;         // 默认最后 10 行
+    char *szFileName = strdup(argv[1]);
+    // 参数分析
+    // 1 命令行分析
+    if (argc < 2)
+    {
+          printf("[+] Tail 0.90 created by Aker Lee <mailtoljm#163.com>\n");
+            printf("[-] Usage: tail {file name} [number of lines]\n"
+                  "[-]        Display last 10 lines by default\n");
+            return 1;
+    }
+    else if(argc == 3)
+    {
+        nlastlines = (DWORD)atoi(argv[2]);
+    }
+    // 函数动作
+    gettail(szFileName,nlastlines);
+    
+    free(szFileName);
+    // 返回值
+  return 0;
+}
+////////////////////////////////////////////////////////////////////////////
+```
+
+* * *
+
+修改了下，不过有点糙，将就用吧
+
+`tail` `文件名` `行数` `f`
+
+* * *
+
+代码:
+
+
+
+```
+//----------------------------------------------------------------------------
+//  作者：Aker Lee  mailtoljm#163。com
+//  标题：windows 下的 tail
+//  日期：2007-6-16 7:16
+//  修改：2007-6-18 11:41  添加 f，可以实时跟踪修改，
+//            谁自己修改下，可以更友好
+//  这几天，总要查看大文件，每次用 ultraedit 打开文件，但是还是很慢，
+//  非常怀念 linux 下的 tail，到网上搜索了一下，发现有 unixutils 里面有 tail.
+//  但是从 sourceforge 上下了 n 久，都连不上；另外发现 codeproject 上面有个 gui 版的
+//  不喜欢，而且那个是 mfc 写得。
+//  想想还是自己动手，丰衣足食
+//  所以就有了这个小工具，希望大家喜欢。有时候应该比较有用:)
+//  思路很简单，打开文件读到最后，往回读，读到'\n'，行计数加一，
+//  直到满足要读的行数，确定位置，输出........
+//  编译环境：winxpsp2 + cl 13.10.3077 + link 7.10
+//  问题：读大文件(2G)不支持,不过一般应该够用了,如果要用的话,自己改下
+//        如果还有其他问题，请 mailme:)
+//  改进：如果想要多功能的 tail，如从文件某个位置开始读一定行数
+//        以 16 进制，字符等显示........
+//  使用方法：tail 文件名 [最后的行数]
+//        最后的行数为可选项，默认最后 10 行
+//  代码随便修改，最好给我发一份:)
+----------------------------------------------------------------------------
+
+//////////////////////////////////////////////////////////////////////////////
+// 头文件
+#include <stdio.h>
+#include <assert.h>
+#include <windows.h>
+
+////////////////////////////////////////////////////////////////////////////////
+#pragma comment(lib,"advapi32")
+#pragma comment(linker, "/align:0x1000")
+// 如果觉得文件大的话，谁把 printf 换成 wsprintf 和 writeconsole
+////////////////////////////////////////////////////////////////////////////////
+
+// 全局变量
+
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+// 函数定义
+// taken from msdn SetFilePointer :)
+__int64 myFileSeek (HANDLE hf, __int64 distance, DWORD MoveMethod)
+{
+  LARGE_INTEGER li;
+  li.QuadPart = distance;
+  li.LowPart = SetFilePointer (hf, li.LowPart, &li.HighPart, MoveMethod);
+  if (li.LowPart == INVALID_SET_FILE_POINTER && GetLastError() != NO_ERROR)
+  { // vc6 要修改 INVALID_SET_FILE_POINTER 为((DWORD)-1)
+    // WinBase.h:#define INVALID_SET_FILE_POINTER ((DWORD)-1)
+    li.QuadPart = -1;
+  }
+  return li.QuadPart;
+}
+
+void MyCloseFile(HANDLE hFile)
+{
+  BOOL   bFlag;             // a result holder
+  bFlag = CloseHandle(hFile); // close the file
+
+  if(!bFlag)
+  {
+    printf("[-] Error # %ld occurred closing the file!\n",
+      GetLastError());
+  }
+}
+////////////////////////////////////////////////////////////////////////////////
+
+int gettail(char *filename,DWORD nlastlines, int bFollowFlag)
+{
+  // 局部变量
+  HANDLE  hFile;
+  DWORD   dwFileSize,dwOldFileSize,iterator,bytes_read,lines = 0;
+#define BUFFSIZE 1024             // the size of the memory to examine at any one time
+  char    buf[BUFFSIZE];
+
+  // 函数参数分析
+  assert(filename != NULL);
+  assert(nlastlines > 0);
+
+  // 函数动作
+  // 打开文件
+  hFile = CreateFile(  filename, GENERIC_READ,
+    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE ,  NULL,
+    OPEN_EXISTING,  FILE_ATTRIBUTE_NORMAL,  NULL);
+  if(hFile == INVALID_HANDLE_VALUE)
+  {
+    printf("[-] Error # %ld occurred opening %s!\n", GetLastError(),filename);
+  return -1;
+  }
+
+  // 获取文件大小
+  dwFileSize = iterator = GetFileSize(hFile,  NULL);
+  dwOldFileSize = dwFileSize;
+  // 寻找最后 nlastlines 行的初始位置
+  while(lines < nlastlines && iterator > 0)
+  {
+    iterator--;
+    myFileSeek(hFile, iterator, FILE_BEGIN);
+    if(!ReadFile(hFile, buf, 1, &bytes_read, NULL))
+    {
+        printf("[-] Error # %ld occurred reading %s!\n", GetLastError(),filename);
+      MyCloseFile(hFile);
+      return -1;
+    }
+
+    if(buf[0] == '\n')  lines++;
+  }
+  // 如果已经遍历到文件头，重设文件开始位置
+  if(iterator == 0) myFileSeek(hFile, 0, FILE_BEGIN);
+
+
+  // 读取到文件末尾并输出
+  do{
+    if(!ReadFile(hFile, buf, BUFFSIZE-1, &bytes_read, NULL))
+    {
+        printf("[-] Error # %ld occurred reading %s!\n", GetLastError(),filename);
+      MyCloseFile(hFile);
+      return -1;
+    }
+    iterator += bytes_read;
+    buf[bytes_read] = '\0';
+
+    printf("%s", buf);
+  }while(bytes_read >0 );
+
+#define SLEEPTIME 1000
+  do {
+    dwFileSize = iterator = GetFileSize(hFile,  NULL);
+    if(dwFileSize > dwOldFileSize)
+    {
+      myFileSeek(hFile, dwOldFileSize, FILE_BEGIN);
+
+      // 读取到文件末尾并输出
+      do{
+        if(!ReadFile(hFile, buf, BUFFSIZE-1, &bytes_read, NULL))
+        {
+            printf("[-] Error # %ld occurred reading %s!\n", GetLastError(),filename);
+          MyCloseFile(hFile);
+          return -1;
+        }
+        iterator += bytes_read;
+        buf[bytes_read] = '\0';
+
+        printf("%s", buf);
+      }while(bytes_read >0 );
+    }
+    dwOldFileSize = dwFileSize;
+    Sleep(SLEEPTIME);
+  }while(bFollowFlag)
+
+
+  MyCloseFile(hFile);
+  // 返回值
+  return 0;
+}
+
+////////////////////////////////////////////////////////////////////////////
+// 入口点
+int main(int argc, char* argv[])
+{
+  // 局部变量
+  DWORD nlastlines = 10;        // 默认最后 10 行
+  char *szFileName = strdup(argv[1]);
+  int  bFollowFlag = 0;
+  // 参数分析
+  // 1 命令行分析
+  if (argc < 2)
+  {
+    printf("[+] Tail 0.90 created by Aker Lee <mailtoljm#163.com>\n");
+    printf("[-] Usage: tail {file name} [number of lines] [f]\n"
+          "[-]       Display last 10 lines by default\n");
+    return -1;
+  }
+  else if(argc >= 3)
+  {
+    nlastlines = (DWORD)atoi(argv[2]);
+  }
+  if(argc == 4 && argv[3][0] == 'f') bFollowFlag = 1;
+  // 函数动作
+  gettail(szFileName,nlastlines,bFollowFlag);
+
+  free(szFileName);
+  // 返回值
+  return 0;
+}
+////////////////////////////////////////////////////////////////////////////
+```
+
+4dd466d0e1e0cc123afbe504da2462ca

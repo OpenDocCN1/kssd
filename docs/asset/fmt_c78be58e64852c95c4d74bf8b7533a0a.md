@@ -1,0 +1,202 @@
+
+# 获取设备范例 ID
+
+> 原文：[`www.pediy.com/kssd/pediy12/137138.html`](https://www.pediy.com/kssd/pediy12/137138.html)
+
+![](img/e66c53e91f1fe0884d6e393e4558430e.jpg)
+
+近来正好在学习磁盘过滤驱动相关的知识，有一需求需要得到与磁盘分别对应的设备范例 ID 号，如上图所示，可以看出来 windows 的设备管理器找到了这种对应的关联，不同的磁盘对应着不同的设备范例 ID。于是我就尝识了下去获得这个设备范例 ID。百度了下收集了点资料，自己把方法总结了下大概有两种。
+
+## 方法一：向磁盘设备发送 `IOCTL_STORAGE_QUERY_PROPERTY`
+
+方法一、向磁盘设备发送 `IOCTL_STORAGE_QUERY_PROPERTY`，这样将返回这样的一个结构体：
+
+```
+typedef struct _STORAGE_DEVICE_DESCRIPTOR {
+  ULONG  Version;
+  ULONG  Size;
+  UCHAR  DeviceType;
+  UCHAR  DeviceTypeModifier;
+  BOOLEAN RemovableMedia;
+  BOOLEAN CommandQueueing;
+  ULONG  VendorIdOffset;
+  ULONG  ProductIdOffset;
+  ULONG  ProductRevisionOffset;
+  ULONG  SerialNumberOffset;
+  STORAGE_BUS_TYPE  BusType;
+  ULONG  RawPropertiesLength;
+  UCHAR  RawDeviceProperties[1];
+} STORAGE_DEVICE_DESCRIPTOR, *PSTORAGE_DEVICE_DESCRIPTOR;
+```
+
+利用返回的信息、自已组合得到设备范例 ID，至此也说明是一种对应关系。
+
+## 方法二：通过 `SetupApi` 系列 API 进行获取
+
+方法二、可以通过 `SetupApi` 系列 API 进行获取。于是翻了下 MSDN，查询了下 `SetupApi` 系列。大概实现的思路就是利用 `SetupDiGetClassDevs((LPGUID)&GUID_DEVINTERFACE_DISK, NULL, NULL, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE)` 枚举磁盘设备信息，然后利用 `SetupDiEnumDeviceInterfaces(hdevInfo, NULL, (LPGUID)&GUID_DEVINTERFACE_DISK, ndx, &devInfData)` 枚举磁盘设备，然后对磁盘设备调用 `SetupDiGetDeviceInterfaceDetail(hdevInfo, &devIntfData, NULL, 0, &reqSize, NULL)`，得到磁盘设备路径，向该设备发送 `IOCTL_STORAGE_GET_DEVICE_NUMBER`，可以得到磁盘的设备号，至此也就说明了两者是一种对应关系了。
+
+还有一种方法，我黑盒分析了下，发现 windows 的设备管理器，在你点击对应磁盘选属性的时候是 MMC 向 WMIDataDevice，发送 `0x224004`，会得到的该设备范例 ID，写了测试代码没有实现。
+
+方法一代码简单，只是要自己组装，而且不能完全组装出完整设备范例 ID。
+
+### 方法二实现代码
+
+方法二实现的代码如下（细节没有处理，误拍砖，只是说明可以实现）：
+
+```c
+#include <windows.h>
+#include <setupapi.h>
+#include <initguid.h>
+#include <stdio.h>
+#include <WinIoCtl.h>
+
+#pragma comment(lib, "setupapi.lib")
+
+DEFINE_GUID(GUID_DEVINTERFACE_DISK,          0x53f56307L, 0xb6bf, 0x11d0, 0x94, 0xf2, 0x00, 0xa0, 0xc9, 0x1e, 0xfb, 0x8b);
+
+/****/
+
+/*
+Function:    GetDiskIdNumber()
+Parameters:   CHAR*
+Description:  获取磁盘的 ID
+Date:     2011-07-13
+Author:     By EvilMind
+*/
+/****/
+
+ULONG GetDiskIdNumber(CHAR* szPath)
+{
+  HANDLE hDevice = CreateFile(szPath,
+    FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+    FILE_SHARE_READ | FILE_SHARE_WRITE,
+    NULL,
+    OPEN_EXISTING,
+    FILE_ATTRIBUTE_NORMAL,
+    NULL);
+  if (hDevice != INVALID_HANDLE_VALUE)
+  {
+    STORAGE_DEVICE_NUMBER storageDeviceNumber2;
+    DWORD dwByteReturned = 0;
+    if (DeviceIoControl(hDevice,
+      IOCTL_STORAGE_GET_DEVICE_NUMBER,
+      NULL,
+      0,
+      &storageDeviceNumber2,
+      (DWORD)
+      sizeof(STORAGE_DEVICE_NUMBER),
+      &dwByteReturned,
+      NULL))
+    {
+      //printf("%d", storageDeviceNumber2.DeviceNumber);
+      return storageDeviceNumber2.DeviceNumber;
+    }
+  }
+  CloseHandle(hDevice);
+  return -1;
+}
+
+/****/
+
+/*
+Function:    GetDiskInstancePath()
+Parameters:   CHAR*, CHAR* szDisk
+Description:  获取目标磁盘的实例 ID
+Date:     2011-07-13
+Author:     By EvilMind
+*/
+/****/
+
+BOOL GetDiskInstancePath(CHAR *szInstancePath, CHAR *szTargetDisk)
+{
+  //
+  // 利用 SetupApi 枚举得到各设备的实例 ID.
+  // 获取枚举后得到各设备的磁盘 ID,与目标磁盘的
+  // 磁盘 ID 对比,如果相等,则为目标磁盘的实例 ID
+  //
+  HDEVINFO hdevInfo;
+  HRESULT hr;
+  SP_DEVICE_INTERFACE_DATA devIntfData;
+  DWORD dwTargetId = GetDiskIdNumber(szTargetDisk);
+  hdevInfo = SetupDiGetClassDevs((LPGUID)&GUID_DEVINTERFACE_DISK,
+    NULL,
+    NULL,
+    DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
+  hr = (hdevInfo != INVALID_HANDLE_VALUE) ? S_OK : E_UNEXPECTED;
+  for (DWORD ndx = 0; SUCCEEDED(hr); ndx++)
+  {
+    ZeroMemory(&devIntfData,
+      sizeof(devIntfData));
+    devIntfData.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
+    hr = (SetupDiEnumDeviceInterfaces(hdevInfo,
+        NULL,
+        (LPGUID)&GUID_DEVINTERFACE_DISK,
+        ndx,
+        &devIntfData)) ? S_OK : E_UNEXPECTED;
+    if (SUCCEEDED(hr))
+    {
+      DWORD reqSize = 0;
+      //
+      // 获取实际的所需的内存大小
+      //
+      hr = (SetupDiGetDeviceInterfaceDetail(hdevInfo,
+        &devIntfData,
+        NULL,
+        0,
+        &reqSize,
+        NULL)) ? E_UNEXPECTED : ERROR_INSUFFICIENT_BUFFER;
+
+      //
+      // 获取实例 ID
+      //
+      if (hr == ERROR_INSUFFICIENT_BUFFER)
+      {
+        PSP_DEVICE_INTERFACE_DETAIL_DATA pDiDetail = (PSP_DEVICE_INTERFACE_DETAIL_DATA)LocalAlloc(LPTR, reqSize);
+        hr = (pDiDetail != NULL) ? S_OK : E_OUTOFMEMORY;
+        if (SUCCEEDED(hr))
+        {
+          pDiDetail->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
+          SP_DEVINFO_DATA devInfoData;
+          ZeroMemory(&devInfoData,
+            sizeof(devInfoData));
+          devInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
+          if (SetupDiGetDeviceInterfaceDetail(hdevInfo,
+            &devIntfData,
+            pDiDetail,
+            reqSize,
+            NULL,
+            &devInfoData))
+          {
+            if (dwTargetId == GetDiskIdNumber(pDiDetail->DevicePath))
+            {
+              printf("disk %s path is %s", szTargetDisk, pDiDetail->DevicePath);
+            }
+          }
+        }
+      }
+    }
+  }
+  return TRUE;
+}
+
+void main()
+{
+  GetDiskInstancePath(NULL, "\\\\.\\PhysicalDrive0");
+  GetDiskInstancePath(NULL, "\\\\.\\PhysicalDrive1");
+  GetDiskInstancePath(NULL, "\\\\.\\PhysicalDrive2");
+}
+```
+
+![](img/e5d60b0553b8dc0301ff0e231b53d2c2.jpg)
+
+![](img/7b2eaea4ca72115ca59ad6d7a554df4a.jpg)
+
+### 疑问
+
+代码没什么技术含量，小菜只有疑问望高手解答下：
+
+如图二所示，我用 `WINDBG` 查看了下信息，对比 `devicetree`，当然实际上只用 `windbg` 就能获取足够信息了，我看到这个设备实际上是 `atapi` 的一个设备。这是为什么呢？为什么不是 `disk` 的设备呢？
+
+如图三所示，从图三看信息推论，设备应该是 `DISK` 的啊，但实事上就是如 1 所述为 `atapi` 的设备，设备范例 ID 有什么用呢？
+
+希望我准确的表达了我想问的问题，希望高手解答下小菜的疑问。

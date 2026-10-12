@@ -1,0 +1,216 @@
+
+```delphi
+unit SharedSection;
+
+interface
+
+uses
+  nt_status, ntoskrnl, native, winioctl, fcall, macros;
+
+function _DriverEntry(pDriverObject:PDRIVER_OBJECT; pusRegistryPath:PUNICODE_STRING): NTSTATUS; stdcall;
+
+implementation
+
+uses
+  seh;
+
+const
+  SECTION_SIZE           = $1000;
+
+var
+  g_usDeviceName, g_usSymbolicLinkName, g_usSectionName: UNICODE_STRING;
+
+function DispatchCreateClose(p_DeviceObject:PDEVICE_OBJECT; p_Irp:PIRP): NTSTATUS; stdcall;
+begin
+  p_Irp^.IoStatus.Status := STATUS_SUCCESS;
+  p_Irp^.IoStatus.Information := 0;
+
+  IofCompleteRequest(p_Irp, IO_NO_INCREMENT);
+  result := STATUS_SUCCESS;
+end;
+
+function DispatchControl(p_DeviceObject: PDEVICE_OBJECT; p_Irp:PIRP): NTSTATUS; stdcall;
+label
+  SafePlace;
+var
+  status:NTSTATUS;
+  IOCTL_SHARE_MY_SECTION: DWORD;
+  psl:PIO_STACK_LOCATION;
+  oa:OBJECT_ATTRIBUTES;
+  hSection:HANDLE;
+  pSectionBaseAddress:PVOID;
+  liViewSize:LARGE_INTEGER;
+begin
+  IOCTL_SHARE_MY_SECTION := CTL_CODE(FILE_DEVICE_UNKNOWN, $800, 0, 0);
+  psl := IoGetCurrentIrpStackLocation(p_Irp); {取 IRP 的 stack location 的指针}
+  if psl^.Parameters.DeviceIoControl.IoControlCode = IOCTL_SHARE_MY_SECTION then
+  begin
+    {是我们控制码就开始处理}
+    DbgPrint('SharedSection: Opening section object'#10#13);
+    RtlInitUnicodeString(g_usSectionName, '\\BaseNamedObjects\\UserKernelSharedSection');
+    InitializeObjectAttributes(oa, @g_usSectionName,
+                               OBJ_CASE_INSENSITIVE, 0, nil);
+    status := ZwOpenSection(@hSection,
+                            SECTION_MAP_WRITE or SECTION_MAP_READ,
+                            @oa);
+    if status = STATUS_SUCCESS then
+    begin
+      DbgPrint('SharedSection: Section object opened'#13#10);
+      pSectionBaseAddress := nil;
+      liViewSize.HighPart := 0;
+      liViewSize.LowPart := 0;
+      status := ZwMapViewOfSection(hSection, HANDLE(NtCurrentProcess),
+                                   pSectionBaseAddress, 0,
+                                   SECTION_SIZE, nil,
+                                   @liViewSize, ViewShare, 0,
+                                   PAGE_READWRITE);
+      if status = STATUS_SUCCESS then
+      begin
+        DbgPrint('SharedSection: Section mapped at address %08X'#13#10,
+                 pSectionBaseAddress);
+        {安装 SEH}
+        asm
+          push offset DefaultExceptionHandler
+          push fs:[0]
+          mov fs:[0], esp
+
+          mov sseh.SafeEip, offset SafePlace
+          mov sseh.PrevEbp, ebp
+          mov sseh.PrevEsp, esp
+        end;
+        _strrev(pSectionBaseAddress);
+        p_Irp^.IoStatus.Status := STATUS_SUCCESS;
+        DbgPrint('SharedSection: String reversed'#13#10);
+SafePlace:
+        asm
+          pop fs:[0]
+          add esp, 4
+        end;
+        ZwUnmapViewOfSection(HANDLE(NtCurrentProcess), pSectionBaseAddress);
+        DbgPrint('SharedSection: Section at address %08X unmapped '#13#10,
+                 pSectionBaseAddress);
+      end else
+      begin
+        DbgPrint('SharedSection: Couldn''t map view of section. Status: %08X'#13#10,
+                 status);
+      end;
+      ZwClose(hSection);
+      DbgPrint('SharedSection: Section object handle closed'#13#10);
+    end else
+    begin
+      DbgPrint('SharedSection: Couldn''t open section. Status: %08X'#13#10, status);
+    end;
+  end else
+  begin
+    status := STATUS_INVALID_DEVICE_REQUEST;
+  end;
+  p_Irp^.IoStatus.Status := status;
+  IofCompleteRequest(p_Irp, IO_NO_INCREMENT);
+  DbgPrint('SharedSection: Leaving DispatchControl'#13#10);
+  result := status;
+end;
+
+{卸载驱动}
+procedure DriverUnload(p_DriverObject:PDRIVER_OBJECT); stdcall;
+begin
+  IoDeleteSymbolicLink(@g_usSymbolicLinkName);
+  IoDeleteDevice(p_DriverObject^.DeviceObject);
+end;
+
+{驱动进入点}
+function _DriverEntry(pDriverObject:PDRIVER_OBJECT; pusRegistryPath:PUNICODE_STRING): NTSTATUS;
+var
+  status: NTSTATUS;
+  pDeviceObject: TDeviceObject;
+begin
+  status := STATUS_DEVICE_CONFIGURATION_ERROR;
+  RtlInitUnicodeString(g_usDeviceName, '\\Device\\SharedSection');
+  RtlInitUnicodeString(g_usSymbolicLinkName, '\\DosDevices\\SharedSection');
+
+  if IoCreateDevice(pDriverObject, 0, @g_usDeviceName,
+                    FILE_DEVICE_UNKNOWN, 0, TRUE,
+                    pDeviceObject) = STATUS_SUCCESS then
+  begin
+    if IoCreateSymbolicLink(@g_usSymbolicLinkName,
+                            @g_usDeviceName) = STATUS_SUCCESS then
+    begin
+      pDriverObject^.MajorFunction[IRP_MJ_CREATE] := @DispatchCreateClose;
+      pDriverObject^.MajorFunction[IRP_MJ_CLOSE] := @DispatchCreateClose;
+      pDriverObject^.MajorFunction[IRP_MJ_DEVICE_CONTROL] := @DispatchControl;
+      pDriverObject^.DriverUnload := @DriverUnload;
+      status := STATUS_SUCCESS;
+    end else
+    begin
+      IoDeleteDevice(@pDeviceObject);
+    end;
+  end;
+  result := status;
+end;
+
+end.
+```
+
+整个驱动程序非常简单，但它却是个完整意义上的驱动程序，包含了一个驱动程序所必须的各个部分。程序很简单，大家一看就明白，所以也没加什么注释，只捡几个重要的地方说明一下。
+
+使用共享资源通常情况下需要考虑同步问题，即读写线程不能同时访问共享资源。在本例中总是只有一个线程，所以不需要同步。
+
+代码：
+
+```delphi
+InitializeObjectAttributes(oa, @g_usSectionName,
+                          OBJ_CASE_INSENSITIVE, 0, nil);
+```
+
+取得控制代码 `IOCTL_SHARE_MY_SECTION`，驱动程序尝试打开 section 对象，其名字定义为变量 `g_usSectionName`。
+
+代码：
+
+```delphi
+status := ZwOpenSection(@hSection,
+                        SECTION_MAP_WRITE or SECTION_MAP_READ,
+                        @oa);
+if status = STATUS_SUCCESS then
+begin
+  DbgPrint('SharedSection: Section object opened'#13#10);
+  pSectionBaseAddress := nil;
+  liViewSize.HighPart := 0;
+  liViewSize.LowPart := 0;
+  status := ZwMapViewOfSection(hSection, HANDLE(NtCurrentProcess),
+                               pSectionBaseAddress, 0,
+                               SECTION_SIZE, nil,
+                               @liViewSize, ViewShare, 0,
+                               PAGE_READWRITE);
+end;
+```
+
+如果取得了 section 的句柄，我们就来映射它的视图。这里与应用程序中的映射视图部分几乎完全相同。但是在调用了 `ZwMapViewOfSection` 之后，变量 `pSectionBaseAddress` 保存的值位于用户地址区域中，而不是核心区域中的地址，这点我们可以预料到。这可是个原则上的问题，即对这个地址的使用将只能在这个进程的上下文中，在映射 section 的地址空间中。由于 `SharedSection` 驱动程序是单层的（您还记得 `IRP_MJ_DEVICE_CONTROL` 类型的 IRP 处理要经过驱动程序进入发出该操作的线程上下文中），所以我们位于我们的应用程序的上下文中。
+
+这里视图的虚拟地址与应用程序中视图的地址将有所不同，但共享 section 所在的物理页是同一个。我们这里有一个内存页，其中还保存着倒着写的一行文字。
+
+代码：
+
+```delphi
+asm
+  push offset DefaultExceptionHandler
+  push fs:[0]
+  mov fs:[0], esp
+
+  mov sseh.SafeEip, offset SafePlace
+  mov sseh.PrevEbp, ebp
+  mov sseh.PrevEsp, esp
+end;
+_strrev(pSectionBaseAddress);
+p_Irp^.IoStatus.Status := STATUS_SUCCESS;
+DbgPrint('SharedSection: String reversed'#13#10);
+SafePlace:
+asm
+  pop fs:[0]
+  add esp, 4
+end;
+```
+
+以上建立 SEH-frame，并调用 `_strrev` 函数将内存里的字符串反转过来。
+
+下面来看看在用户模式下如何加载和调用这个驱动程序。
+
+代码：

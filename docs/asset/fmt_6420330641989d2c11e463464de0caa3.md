@@ -1,0 +1,18 @@
+
+# 驱动入门：从 `WRK` 看 `IRP` 理论篇
+
+> 原文：[`www.pediy.com/kssd/pediy12/130876.html`](https://www.pediy.com/kssd/pediy12/130876.html)
+
+上周学习 `HIPS` 中的文件保护，就看了下文件过滤驱动。
+
+对驱动中的一些基本概念结合 `WRK` 中的代码理解了下。
+
+初学驱动，仅仅是为了将概念和驱动的基本结构理清楚。
+
+附件中是通过结合自己发送 `IRP` 的代码来解释驱动中的 `IRP` 和 `IRP Stack` 的基本概念的。
+
+上传的附件
+
+| ![](img/b7e61e3627e1e92d7b948dd8fdd24fa6.jpg) || `驱动入门：从 WRK 到 IRP.doc`
+
+ |

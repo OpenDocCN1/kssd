@@ -1,0 +1,846 @@
+
+# 电子教室软件开发之广播文件
+
+> 原文：[`www.pediy.com/kssd/pediy12/130628.html`](https://www.pediy.com/kssd/pediy12/130628.html)
+
+小弟刚学编程，近段时间开发《电子教室软件》（类似于 `NetOp School` 等等这样的软件）。很多都是独立想出来的思路，特一篇一篇的分享。由于编程不在行，希望高手指点。
+
+用 `Delphi` 的 `Indy` 中的 `TIdTCPServer`（教师端）、`IdTCPClient`（学生端）可以向所有学生广播文件和目录。
+
+### 主要思路如下：
+
+学生机首先得到文件目录列表，然后学生机根据这个目录列表一个一个的向教师请求并下载。假定要向 50 个学生机器广播文件目录，教师要对每个连接进行处理。
+
+#### 第一，广播文件目录时，教师端首先将要广播的文件目录存到一个文件 `bfzx.txt` 里
+
+```
+procedure Tfrm_File_Gb.SpeedButton5Click(Sender: TObject);
+var    //发送按钮
+  i,j: Integer;
+  k:Integer;//计算文件总个数
+  m,mm:real;//计算所有文件大小
+  Cmd: TCtlCmd;
+  txt:TStringList;
+begin
+ButtonBegin;//只有取消有效
+txt := TstringList.Create; //将 listbox1 里的内容存成  txt 文件
+label2.Caption := '正在计算大小......';
+  IdTCPServer1.DefaultPort := bfxzport - 3;
+  try
+  if not IdTCPServer1.Active then IdTCPServer1.Active := True;
+  except
+  showmessage('端口绑定错，请关主程序后再启动');
+  end;
+//-----------------第一步 将 list2 里的列表和大小计算出来
+  k:= 0; //文件总个数
+  m:= 0; //发送的文件总大小
+  for i:=ListView2.Items.Count-1 downto 0 Do
+  begin
+    if  ListView2.Items.Item[i].ImageIndex = 0 then   //第一，如果是目录 得到目录列表
+    begin
+    //--------------------
+    if wllstop  > 1 then
+    begin
+      listview2.Clear;
+      listbox1.Clear;
+      txt.Clear;
+      ButtonEnd;
+      exit;
+    end;
+    application.ProcessMessages;
+    //--------------------
+        //目录个数 与 > 代表这一段数据是 某目录下的。
+        listbox1.Items.Add(ListView2.Items[i].Caption + '>' + inttostr(MakeFileList(ListView2.Items[i].Caption,'.\*').Count));
+        for j:=MakeFileList(ListView2.Items[i].Caption,'.\*').Count -1 downto 0 Do
+        begin
+         listbox1.Items.Add(MakeFileList(ListView2.Items[i].Caption,'.\*')[j]);
+         k:=k+1;
+         m := m + GetFileSize1( MakeFileList(ListView2.Items[i].Caption,'.\*')[j]);
+         //a 处
+    //--------------------
+    if wllstop  > 1 then
+    begin
+      listview2.Clear;
+      listbox1.Clear;
+      ButtonEnd;
+      txt.Clear ;
+      exit;
+    end;
+    application.ProcessMessages ;
+    //--------------------
+      mm := (m/1048576) ;
+      label2.Caption := '正在计算发送的总个数: [' + inttostr(k)  + '] 总大小:' + Format('%.2f', [mm]) + 'M 字节';
+      if k > 180 then
+      begin
+      showmessage('测试版，发送的总文件个数多于 180 个了，不能发送。');
+      listview2.Clear;
+      listbox1.Clear;
+      ButtonEnd;
+      exit;
+      end;
+      if mm  > 199 then //大于 100M 不能发送
+      begin
+      showmessage('测试版，发送的总文件的总大小大于 200M 了，不能发送。');
+      listbox1.Clear;
+      exit;
+      end;
+         //a 处 end
+        end;
+    end
+    else                                                   //第二，是文件
+    begin
+        listbox1.Items.Add(ListView2.Items[i].Caption + '**');//单个文件用**来标志
+        k:=k+1;
+        m := m + GetFileSize1(ListView2.Items[i].Caption);
+          //a 处
+    //--------------------
+    if wllstop  > 1 then
+    begin
+      listview2.Clear;
+      listbox1.Clear;
+      ButtonEnd;
+      txt.Clear;
+      exit;
+    end;
+    application.ProcessMessages;
+    //--------------------
+      mm := (m/1048576) ;
+      label2.Caption := '正在计算发送的总个数: [' + inttostr(k)  + ']    总大小:' + Format('%.2f', [mm]) + 'M 字节';
+      if k > 180 then
+      begin
+      showmessage('测试版，发送的总文件个数多于 180 个了，不能发送。');
+      listview2.Clear;
+      listbox1.Clear;
+      ButtonEnd;
+      exit;
+      end;
+      if mm  > 199 then //大于 100M 不能发送
+      begin
+      showmessage('测试版，发送的总文件的总大小大于 200M 了，不能发送。');
+      listview2.Clear;
+      listbox1.Clear;
+      ButtonEnd;
+      exit;
+      end;
+         //a 处 end
+    end;
+    //b 处
+    label2.Width := 450;
+    label2.Caption := '发送的文件总个数: [' + inttostr(k)  + ']    总大小:' + Format('%.2f', [mm]) + 'M 字节';
+    //b 处 end
+  end;
+  //最后一项写上保存的位置
+  listbox1.Items.Add(Combobox1.Text);
+  txt := tstringlist(listbox1.Items);   
+  txt.SaveToFile(ExtractFilePath(Application.ExeName) + '\bfzx.txt');
+//上面将选择的所有都放到了 listbox 里面
+// 学生得到后，如果后面打问号的，则建立
+//-----------------第二步
+//当点击发送按钮时，则处于 active 状态，且发送  28 号指令
+  ButtonBegin;           // 只有取消按钮可用
+  Cmd.Cmd := 28; //trans File
+  for i := 0 to frmMain.lv1.Items.Count - 1 do
+  begin
+    if frmMain.lv1.Items.Item[i].Selected then
+    begin
+      try
+        TMyClient(frmMain.lv1.Items.Item[i].SubItems.Objects[0]).Send(@Cmd, SizeOf(Cmd));
+      except
+      end;
+    end;
+  end;
+//----------------- 第三步
+end;
+```
+
+#### 第二：教师端处理学生的请求如下：
+
+```
+procedure Tfrm_File_Gb.IdTCPServer1Execute(AThread: TIdPeerThread);
+var
+  s, sCommand,sAction : string;
+  fStream : TFileStream;
+  tBM : tbitmap;
+  //以下为 PIC:时用
+  cmd: string; //接收到客户端的字符串信息
+  ASize: Integer; //需要传输的流大小
+  AFileStream: TFileStream; //传输的文件流
+  ss_1 : string;
+  i:integer;
+begin
+CS.Enter;   //进程互斥 
+try
+//########################
+//读来的指令有   LST:     PIC:c:\wll\22.doc    END    0    32768  ...  等等//########################
+//AFileStream:=tfilestream.Create('E:\Media\维尼和跳跳虎_维尼和跳跳虎 01 屹耳掉了尾巴_黑暗里的亮光.rmvb',fmOpenRead + fmShareDenyNone);
+s := uppercase(AThread.Connection.ReadLn); //如果咱路径太长。。。。。。。怎么办？
+syn_kk := s;
+AThread.Synchronize(syn_bfxz); //同步 d
+//label2.Caption := copy(s,0,50);
+//Application.ProcessMessages;
+//memo1.Lines.Add(s);
+sCommand := copy(s,1,3);
+sAction := copy(s,5,length(s)-4 );  //从第五个字符开始
+if sCommand = 'LST' then
+  begin
+---------------------------begin
+  if FileExists( ExtractFilePath(Application.ExeName) + '\bfzx.txt') then   //将文件列表 txt 发送过去
+    Begin
+    //lstRequests.items.add('Serving up: ' + sAction);
+    // open file stream to image requested
+    fStream := TFileStream.Create(ExtractFilePath(Application.ExeName) + '\bfzx.txt',fmOpenRead  + fmShareDenyNone);
+    // copy file stream to write stream
+    AThread.Connection.OpenWriteBuffer;
+    AThread.Connection.WriteStream(fStream);
+    AThread.Connection.CloseWriteBuffer;
+    // free the file stream
+    FreeAndNil(fStream);
+    //lstRequests.items.add('File transfer completed');
+    //-----------(((((((
+    syn_pp := AThread.Connection.Socket.Binding.PeerIP;
+    AThread.Synchronize(syn_1); //同步 d
+    //-----------(((((((
+    End
+else
+  AThread.Connection.WriteLn('ERR - bfxz.txt 文件不存在');
+  AThread.Connection.Disconnect;
+//---------------------------end
+  end
+else
+if sCommand = 'END' then
+  begin
+      //释放文件流
+    //StatusBar1.SimpleText := '传输完成...';
+    ===同步 e====ProgressBar1.Position := 0;
+    syn_oo := AThread.Connection.Socket.Binding.PeerIP;
+    AThread.Synchronize(syn_2); //同步 d
+    //=======Application.ProcessMessages;
+    AThread.Connection.Disconnect;        //该连接断开
+  End
+else
+if sCommand = 'OVE' then
+  begin
+----------------(((((
+    //syn_mm := '完成！';
+    AThread.Synchronize(syn_3);
+----------------(((((
+    AThread.Connection.Disconnect;        //该连接断开
+  End
+else
+if sCommand = 'PIC' then
+  begin
+----------------
+    //首先使  文件流变量关连上某文件
+    AFileStream:=tfilestream.Create(sAction,fmOpenRead + fmShareDenyNone);
+    //第一步：告诉大小
+    AThread.Connection.WriteLn(Format('%d', [AFileStream.Size]));
+    //--frm_File_Gb.StatusBar1.SimpleText := '准备传输...';
+    //=====ProgressBar1.Max := AFileStream.Size;  //总大小
+    //=====同步 f====Application.ProcessMessages;
+    AFileStream.Free;          
+
+
+
+```pascal
+//----------------  
+    end  
+else  
+if pos('|',s) > 1 then  
+    begin  
+    //########发来的是   32768|e:\大矸\23.doc  的形式  
+    AFileStream:=tfilestream.Create(Copy(s, Pos('|', s) + 1, Length(s)),fmOpenRead + fmShareDenyNone);  
+    //Copy(s, Pos('|', s) + 1, Length(s))  
+    //下面是 s 切记 切记  
+    try  
+    StrToInt(Copy(s, 0, Pos('|', s) - 1));//总得判断下 cmd 是不是字符  
+    except  
+    Exit;  
+    end;  
+    AFileStream.Seek(StrToInt(Copy(s, 0, Pos('|', s) - 1)), soFromBeginning); //转到文件流传输的位置  
+    ASize := Min(AFileStream.Size - AFileStream.Position, AThread.Connection.RecvBufferSize);  
+    //计算需要发送的大小，Min()函数在 Math 单元  
+    AThread.Connection.OpenWriteBuffer; //准备发送缓冲  
+    AThread.Connection.WriteStream(AFileStream, false, false, ASize);  
+    //注意这个函数的参数。  
+    AThread.Connection.CloseWriteBuffer; //结束发送缓冲  
+    //====ProgressBar1.Position := ProgressBar1.Position + ASize;  
+    //====同步 h=====Application.ProcessMessages;  
+    AFileStream.Free;//?放于此？？？  
+    end;  
+except  
+on E : Exception do  
+ShowMessage(E.Message);  
+End;  
+CS.Leave;  
+end;  
+```
+
+### 第三、学生端的程序如下（这是一个线程）：
+
+```pascal
+unit MyFile2;
+
+interface
+
+uses
+  //--------------------1
+  Classes,
+  Windows, Messages, SysUtils, Variants, Graphics, Controls, Forms,
+  Dialogs,
+  Math,
+  ShellApi, ShlObj,  //获取桌面的路径
+ StdCtrls,//下面的 listbox 要用
+ bfxz_pub,
+ ScreenSpy,//用来发 28 号命令
+  //Main,//下面的 listbox1 要用到？
+  IdTCPConnection, IdTCPClient;
+  //---------------------1 end
+
+type
+  TMyFile2 = class(TThread)
+  private
+  //--------------------2
+  txt:TStringList;  //只要取这城面的每一项就可以下载下载了。
+   IdTCPClient: TIdTCPClient;
+   FHost: string;  //记录教师方的 IP
+   fn_wll: string;  //文件名
+    cmd_1: string;
+    kk : integer;
+    ASize, TotalSize: Int64;
+    AFileStream: TFileStream;
+ function GetSpecialFolderDir(const folderid: integer): string;
+  //--------------------2 end
+    { Private declarations }
+  protected
+    procedure Execute; override;
+  //---------------------3
+   public
+    constructor Create; reintroduce;
+    destructor Destroy; override;
+    property Host: string read FHost write FHost;  //远方的 IP 地址
+  //---------------------3 end
+  end;
+
+implementation
+
+{ Important: Methods and properties of objects in visual components can only be
+  used in a method called using Synchronize, for example,
+      Synchronize(UpdateCaption);
+  and UpdateCaption could look like,
+    procedure TMyFile2.UpdateCaption;
+    begin
+      Form1.Caption := 'Updated in a thread';
+    end; }
+
+{ TMyFile2 }
+
+//--------------------5   //自己加的 Create 函数
+
+constructor TMyFile2.Create;
+begin
+  FreeOnTerminate := True;  //表示执行完会自动释放掉所有的
+  IdTCPClient    := TIdTCPClient.Create(nil);
+  txt := TStringList.Create;
+  inherited Create(True);
+end;
+
+destructor TMyFile2.Destroy;   //是不是等价于窗体的 Destroy 事件？
+begin
+//当线程终止时，End 指令对吗？
+//IdTCPClient1.WriteLn('CANCEL'); //提示服务器传输完成
+//IdTCPClient1.Disconnect; //断开连接
+IdTCPClient.Free;
+  inherited;
+end;
+
+function TMyFile2.GetSpecialFolderDir(const folderid: integer): string;
+var
+pidl: pItemIDList;
+buffer: array[0..255] of char;
+begin
+//取指定的文件夹项目表
+SHGetSpecialFolderLocation(application.Handle, folderid, pidl);
+SHGetPathFromIDList(pidl, buffer); //转换成文件系统的路径
+Result := strpas(buffer);
+end;
+
+//--------------------5 end
+
+procedure TMyFile2.Execute;
+var
+    ftmpStream : TFileStream;//接收文件流
+    i,j: integer;
+    s_1,s_2,s_3 : String;
+    kk:integer;
+    y_1,y_2,y_3 : String;
+    dir : String;
+    //---------第二种方式要用的变量
+  cmd: string;
+  ASize, TotalSize: Int64;
+  AFileStream: TFileStream;
+    //---------第二种方式要用的变量结束
+begin
+  { Place thread code here }
+  //--------------------444444
+  //----------------------999
+try
+with IdTCPClient do
+    begin
+    if connected then DisConnect;
+    Host := FHost;//赋值 远端的 ip 地址
+    Port := bfxzport - 3;
+    Connect;          //★★★★★★begin 下述将文件列表保存为 bfxz1.txt
+    WriteLn('LST:');
+    // delete if exists
+    // in production situation you might store binary downloads like this in a cache folder
+    if FileExists(ExtractFileDir(ParamStr(0)) + '\bfxz1.txt') then
+        DeleteFile(ExtractFileDir(ParamStr(0)) + '\bfxz1.txt');
+    ftmpStream := TFileStream.Create(ExtractFileDir(ParamStr(0)) + '\bfxz1.txt',fmCreate);
+    while connected do
+        ReadStream(fTmpStream,-1,true);
+    FreeAndNil(fTmpStream);
+    txt.LoadFromFile(ExtractFilePath(Application.ExeName) + '\bfxz1.txt');
+    //txt := tstringlist(listbox1.Items);
+    //listbox1.Items := txt;
+    //for j:=txt.Count -1 downto 0 Do
+    //begin
+    //  showmessage(txt[j]);
+    //end;
+    Disconnect;       //★★★★★★end
+    end;
+except
+on E : Exception do
+    ////9999 ShowMessage(E.Message);
+end;
+
+//############################################1 begin
+//第一步  将 txt[txt.Count-1]里的值取出来建立文件夹
+//==showmessage(txt[txt.Count-1]);
+if txt[txt.Count-1] = '学生机的桌面' then
+    begin
+     dir:=GetSpecialFolderDir(0) ;
+    end
+else if txt[txt.Count-1] = '学生机的桌面\学生素材\' then
+    begin
+    //--------
+    dir:=GetSpecialFolderDir(0) + '\学生素材';
+    if not DirectoryExists(dir) then //先判断文件夹在不在，不在再创建
+    begin
+      try
+        ForceDirectories(dir);  //返回 Boolean
+      except
+        showmessage('创建[学生素材]文件夹失败，接收文件失败。');
+        exit;
+      end;
+    end;
+    //--------
+    end
+else if txt[txt.Count-1] = '学生机的桌面\百宝箱\' then
+    begin
+    //--------
+    dir:=GetSpecialFolderDir(0) + '\百宝箱';
+    if not DirectoryExists(dir) then //先判断文件夹在不在，不在再创建
+    begin
+      try
+        ForceDirectories(dir);
+      except
+        showmessage('创建[百宝箱]文件夹失败，接收文件失败。');
+        exit;
+      end;
+    end;
+    //--------
+    end
+else
+    begin
+    //--------
+    dir := txt[txt.Count-1];
+    if not DirectoryExists(dir) then             //包括其子目录一块创建
+      if not ForceDirectories(dir) then
+          showmessage('创建文件夹失败，接收文件失败。' + dir );
+    //--------
+    end;
+//############################################1 end
+//############################################2 begin
+//上述得到  dir  即保存位置 ,不以\结束
+//==showmessage(dir);
+//第二步，从 txt[]数组里一个一个的下载文件，是目录的要创建目录
+i := 0;
+While( i < txt.Count-1 ) do   //只处理总数少数 1 个元素,因为最后一个元素为 存放位置
+begin
+  if  pos('**',txt[i])  > 2  then          //有两星的为文件
+  begin
+      //直接下载
+      //showmessage(txt[i]); //显示原字符串
+          s_1 := copy(txt[i],0,pos('**',txt[i]) -1 );
+          //showmessage(s_1);   //去掉两星
+      s_2 := ExtractFileDir(s_1);   //得到目录名 不以\结尾
+      //showmessage(s_2);
+          s_3 := ExtractFileName(s_1);  //得到文件名
+          //showmessage(s_3);
+          //===============================begin
+Try
+//with IdTCPClient do
+//begin
+    if IdTCPClient.connected then IdTCPClient.DisConnect;
+    IdTCPClient.Host := FHost;//赋值 远端的 ip 地址
+    IdTCPClient.Port := bfxzport - 3;
+    IdTCPClient.Connect;     //★★★★★  发 PIC：指令是发起新的连接 ★★★★★★★★★
+    IdTCPClient.WriteLn('PIC:' + s_1 );
+    cmd := IdTCPClient.ReadLn;  //这里是获取大小
+    //以"|"符号分离文件名
+    //showmessage(cmd);
+//TotalSize := StrToInt64(Copy(cmd, 0, Pos('|', cmd) - 1)); //分离文件总大小 。。。总的好不好。。
+    TotalSize := StrToInt(cmd); //分离文件大小
+    //建立文件流准备接收
+    AFileStream := TFileStream.Create(Dir + '\' + s_3, fmCreate);
+    try //循环开始接受
+      repeat
+        //WriteLn(Format('%d|%s', [AFileStream.Size, ExtractFileName(Edit1.Text)]));
+        //IdTCPClient.WriteLn(IntToStr(AFileStream.Size));//发送当前传输的位置
+        IdTCPClient.WriteLn(Format('%d|%s', [AFileStream.Size, s_1]));
+        ASize := Min(TotalSize - AFileStream.Size, IdTCPClient.RecvBufferSize);
+```
+
+
+
+```
+        //选择剩余大小和缓冲区大小小的一个作为传输的大小  
+
+        IdTCPClient.ReadStream(AFileStream, ASize); //接收流  
+
+        //StatusBar1.SimpleText := Format('当前传输位置%d/大小%d', [AFileStream.Size, TotalSize]);  
+
+        Application.ProcessMessages;  
+
+      until AFileStream.Size >= TotalSize; //大小一致了表示结束  
+
+    finally  
+
+      AFileStream.Free; //释放文件流  
+
+    end;  
+
+    IdTCPClient.WriteLn('END:'); //提示服务器传输完成  
+
+    IdTCPClient.Disconnect;    //★★★★★  
+
+except  
+
+on E : Exception do  
+
+    ///9999ShowMessage(E.Message);  
+
+end;  
+
+          //===============================end  
+
+      i:= i+1;  
+
+      continue;  
+
+  end  
+
+  else if ( pos('>',txt[i])  > 2 ) then  //只有>的情况 ，表示是传的文件夹  
+
+  begin  
+
+  //###202020begin  
+
+            s_1 := copy(txt[i],0,pos('>',txt[i]) -1 );  //E:\大矸成人学校\三门>22  
+
+            //showmessage(s_1);   //去掉>22  
+
+            //s_1 := copy(extractfiledir(s_1),0,length(extractfiledir(s_1))-1);  
+
+            s_1 := ExcludeTrailingPathDelimiter(extractfiledir(s_1));     //先去掉后面的，再无论有无，先去掉 \\  
+
+            kk := strtoint(Copy(txt[i], Pos('>', txt[i]) + 1, Length(txt[i])));   //得到数目  
+
+            //showmessage(inttostr(kk));  
+
+            //Application.ProcessMessages;  
+
+            i:=i+1; //##############  
+
+            //s_3 := ExtractFileName(s_1);  //得到文件名  
+
+            //showmessage(s_3);  
+
+            for j := 0 to kk - 1 do  
+
+            begin  
+
+               if ( pos('?',txt[i])  > 2 ) then  
+
+               begin  
+
+                    //++++++++++++1  
+
+                    y_1 := copy(txt[i],0,pos('?',txt[i]) -1 );   //去掉 ?  
+
+                    //y_1 := extractfiledir(y_1);  
+
+                    y_2 :=copy(y_1,pos(s_1,y_1)+ length(s_1),length(y_1));       //+ length(s_1)  
+
+                    y_3 := dir +  y_2 ;  
+
+                    if not DirectoryExists(y_3) then  
+
+                    try  
+
+                      ForceDirectories(y_3);  
+
+                    except  
+
+                    end;  
+
+                    i := i+1;  //##############$$$  
+
+                    //++++++++++++1 end  
+
+               end  
+
+               else  
+
+               begin  
+
+                     //++++++++++++2  
+
+                    s_2 := ExtractFileDir(txt[i]);   //得到目录名 不以\\结尾  
+
+                    y_2 :=copy(s_2,pos(s_1,s_2)+ length(s_1),length(s_2));     //+ length(s_1)  
+
+                   //y_2 := copy(y_2,0,RightPos('\\',y_2));  
+
+                    y_3 := dir +  y_2 ;  
+
+                    if not DirectoryExists(y_3) then  
+
+                    try  
+
+                      ForceDirectories(y_3);  
+
+                    except  
+
+                    end;  
+
+                    // 真正要保存的位置是 y_3 + '\\' + ExtractFileName(txt[i])  
+
+                    //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
+
+                    //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%begin  
+
+           //===============================begin  
+
+Try  
+
+//with IdTCPClient do  
+
+//begin  
+
+    if IdTCPClient.connected then IdTCPClient.DisConnect;  
+
+    IdTCPClient.Host := FHost;//赋值 远端的 ip 地址  
+
+    IdTCPClient.Port := bfzxport - 3;  
+
+    IdTCPClient.Connect;      //★★★★★  发 PIC：指令是发起新的连接 ★★★★★★★★★  
+
+    IdTCPClient.WriteLn('PIC:' + txt[i] );  
+
+    cmd := IdTCPClient.ReadLn;  //这里是获取大小  
+
+    //以"|"符号分离文件名  
+
+    //showmessage(cmd);  
+
+    //TotalSize := StrToInt64(Copy(cmd, 0, Pos('|', cmd) - 1)); //分离文件总大小 。。。总的好不好。。  
+
+    TotalSize := StrToInt(cmd); //分离文件大小  
+
+    //建立文件流准备接收  
+
+    AFileStream := TFileStream.Create(y_3 + '\\' + ExtractFileName(txt[i]), fmCreate);  
+
+    try //循环开始接受  
+
+      repeat  
+
+        //WriteLn(Format('%d|%s', [AFileStream.Size, ExtractFileName(Edit1.Text)]));  
+
+        //IdTCPClient.WriteLn(IntToStr(AFileStream.Size));//发送当前传输的位置  
+
+        IdTCPClient.WriteLn(Format('%d|%s', [AFileStream.Size, txt[i]]));  
+
+        ASize := Min(TotalSize - AFileStream.Size, IdTCPClient.RecvBufferSize);  
+
+        //选择剩余大小和缓冲区大小小的一个作为传输的大小  
+
+        IdTCPClient.ReadStream(AFileStream, ASize); //接收流  
+
+        //StatusBar1.SimpleText := Format('当前传输位置%d/大小%d', [AFileStream.Size, TotalSize]);  
+
+        Application.ProcessMessages;  
+
+      until AFileStream.Size >= TotalSize; //大小一致了表示结束  
+
+    finally  
+
+      AFileStream.Free; //释放文件流  
+
+    end;  
+
+    IdTCPClient.WriteLn('END:'); //提示服务器传输完成  
+
+    IdTCPClient.Disconnect;    //★★★★★  
+
+except  
+
+on E : Exception do  
+
+    //99999999    ShowMessage(E.Message);  
+
+end;  
+
+          //===============================end  
+
+                    //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
+
+                    //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%end  
+
+                    i := i+1; //##############$$$  
+
+                     //++++++++++++2 end  
+
+               end;  
+
+            end;  
+
+  //###202020end  
+
+  end;  
+
+end;  
+
+//############################################2 end  
+
+  //----------------------999 end  
+
+//-----第三步发传完指令--------begin  
+
+try  
+
+with IdTCPClient do  
+
+    begin  
+
+    if connected then DisConnect;  
+
+    Host := FHost;//赋值 远端的 ip 地址  
+
+    Port := bfzxport - 3;  
+
+    Connect;           //★★★★★★begin 下述将文件列表保存为 bfzx1.txt  
+
+    WriteLn('OVE:');  
+
+    Disconnect;       //★★★★★★end  
+
+    end;  
+
+except  
+
+on E : Exception do  
+
+    ////9999 ShowMessage(E.Message);  
+
+end;  
+
+//-----第三步发传完指令--------end  
+
+  //--------------------444444 end  
+
+end;  
+
+end.
+```
+
+### 第四，学生端在接收到指令时才开始接收文件
+
+```
+          28:   //接收教师发来的 28 号指令  
+
+        begin  
+
+  Filedown2 := TMyFile2.Create;  
+
+  Filedown2.Host := Teacher_Ip;  
+
+  Filedown2.Resume;  
+
+        end;
+```
+
+### 第五、广播的文件列表样式如下
+
+末尾说明：
+
+打双星的为文件；24 表示此目录下有多少个；打？的表示是目录
+
+```
+F:\I\Old\BOOTEX.LOG**  
+
+E:\大矸成人学校>24  
+
+E:\大矸成人学校\三门\管理信息系统.doc  
+
+E:\大矸成人学校\三门\电子商务物流管理\答案.doc  
+
+E:\大矸成人学校\三门\电子商务物流管理\电子商务物流管理考试题.doc  
+
+E:\大矸成人学校\三门\电子商务物流管理\?  
+
+E:\大矸成人学校\三门\电子商务物流管理?  
+
+E:\大矸成人学校\三门\电子商务安全\电子商务信息安全 B 卷答案.doc  
+
+E:\大矸成人学校\三门\电子商务安全\电子商务信息安全 B 卷.doc  
+
+E:\大矸成人学校\三门\电子商务安全\电子商务信息安全 A 卷答案.doc  
+
+E:\大矸成人学校\三门\电子商务安全\电子商务信息安全 A 卷.doc  
+
+E:\大矸成人学校\三门\电子商务安全\?  
+
+E:\大矸成人学校\三门\电子商务安全?  
+
+E:\大矸成人学校\三门\电子商务信息安全.doc  
+
+E:\大矸成人学校\三门\bb\2\?  
+
+E:\大矸成人学校\三门\bb\2?  
+
+E:\大矸成人学校\三门\bb\1\?  
+
+E:\大矸成人学校\三门\bb\1?  
+
+E:\大矸成人学校\三门\bb\?  
+
+E:\大矸成人学校\三门\bb?  
+
+E:\大矸成人学校\三门\AcroRd32.exe.lnk  
+
+E:\大矸成人学校\三门\aa\?  
+
+E:\大矸成人学校\三门\aa?  
+
+E:\大矸成人学校\三门\?  
+
+E:\大矸成人学校\三门?  
+
+E:\大矸成人学校\?  
+
+学生机的桌面\学生素材\
+```
+
+### 第六、上述程序代码是原样拷贝，测试通过，但没排版，请见量。

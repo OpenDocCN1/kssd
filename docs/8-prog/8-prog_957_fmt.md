@@ -1,0 +1,1475 @@
+
+# 俄罗斯方块雏形，没啥子技术含量，见笑
+
+> 原文：[`www.pediy.com/kssd/pediy12/95138.html`](https://www.pediy.com/kssd/pediy12/95138.html)
+
+没啥子技术含量。。。但绝对是本人原创，道理很简单，网上的博客我发过这个帖子，不过 `.inc` 文件没有发布，所以只有我有![](img/8665dab461df9ff5e20e52adf9adf6de.jpg "伤心")  
+
+![`images.cnblogs.com/cnblogs\_com/originality/rgame.jpg`](img/f31af4b47c4ebd0c39b953a74778412a.jpg)  
+
+; 俄罗斯方块 by Originality  
+
+```asm
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+.386
+.model flat, stdcall
+option casemap : none
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+; Include 文件定义
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+include rgame.inc
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+; 代码段
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+.code
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+; 定时器测试
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+DwonTest proc _hWnd, _uMsg, _idEvent, _dwTime
+pushad
+mov eax, curState
+.if eax ;下落结束
+mov curState, 0
+invoke InitControl1
+.else
+invoke Control1Down
+.endif
+popad
+ret
+DwonTest endp
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+; 窗口过程
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+_ProcWinMain proc uses ebx edi esi hWnd, uMsg, wParam, lParam
+local @stPs : PAINTSTRUCT
+local @stRect : RECT
+local @hDc
+mov eax, uMsg
+
+.if eax == WM_PAINT
+invoke BeginPaint, hWnd, addr @stPs
+invoke InitContainer
+invoke ShowControl, 1
+invoke Control1Down
+invoke EndPaint, hWnd, addr @stPs
+.elseif eax == WM_CREATE
+invoke GetDC, hWnd
+mov hGame, eax
+;【此处定时器为测试所用】
+invoke SetTimer, NULL, NULL, 1000, offset DwonTest
+.elseif eax == WM_CLOSE
+invoke ReleaseDC, hWnd, hGame
+invoke DestroyWindow, hWinMain
+invoke PostQuitMessage, NULL
+.elseif eax == WM_SIZE
+invoke ValidateRect, hWnd, offset gameArea
+.else
+invoke DefWindowProc, hWnd, uMsg, wParam, lParam
+ret
+.endif
+
+xor eax, eax
+ret
+_ProcWinMain endp
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+_WinMain proc
+local @stWndClass : WNDCLASSEX
+local @stMsg : MSG
+invoke GetModuleHandle, NULL ;获得应用程序实例
+mov hInstance, eax ;实例保存在全局变量中
+invoke RtlZeroMemory, addr @stWndClass, sizeof @stWndClass ;以 0 填充 WNDCLASSEX 结构体
+
+; 注册窗口类
+invoke LoadCursor, 0, IDC_ARROW ;获取光标句柄
+mov @stWndClass.hCursor, eax ;设置光标
+push hInstance
+pop @stWndClass.hInstance ;保存应用程序实例
+mov @stWndClass.cbSize, sizeof WNDCLASSEX ;保存结构体大小
+mov @stWndClass.style, CS_HREDRAW or CS_VREDRAW ;设置窗体样式
+mov @stWndClass.lpfnWndProc, offset _ProcWinMain ;保存回调函数
+mov @stWndClass.hbrBackground, COLOR_WINDOW + 3 ;设置窗体背景色
+mov @stWndClass.lpszClassName, offset szClassName ;保存窗体类名
+invoke RegisterClassEx, addr @stWndClass ;注册窗口类
+
+; 建立并显示窗口
+invoke CreateWindowEx, WS_EX_TOOLWINDOW, offset szClassName, offset szCaptionMain,\
+           WS_OVERLAPPEDWINDOW,\
+           100, 100, 400, 456,\
+           NULL, NULL, hInstance, NULL ;建立窗口
+mov hWinMain, eax ;保存窗口句柄
+invoke ShowWindow, hWinMain, SW_SHOWNORMAL ;显示窗口
+invoke UpdateWindow, hWinMain ;更新窗口
+
+; 消息循环
+.while TRUE ;消息循环
+invoke GetMessage, addr @stMsg, NULL, 0, 0 ;获取消息并填充 MSG 结构体
+.break .if eax == 0 ;判断是否退出
+invoke TranslateMessage, addr @stMsg ;消息装换
+invoke DispatchMessage, addr @stMsg ;分发消息
+.endw
+ret
+_WinMain endp
+
+; 初始化游戏容器
+InitContainer proc
+local @lpRect : RECT
+pushad
+;建立游戏容器边框
+invoke CreatePen, PS_SOLID, 5, 8000FFh
+push eax
+invoke SelectObject, hGame, eax
+invoke DeleteObject, eax
+pop eax
+invoke FrameRect, hGame, offset gameArea, eax
+popad
+ret
+InitContainer endp
+
+; 显示方块控件
+; type：控件类型 1 为 4 格横条，2 为田字形，3..4..
+ShowControl proc cType : DWORD
+pushad
+.if cType == 1 ;4 格横条■■■■
+invoke InitControl1
+.endif
+popad
+ret
+ShowControl endp
+
+; 初始化■■■■图形
+InitControl1 proc
+pushad
+;设置方块颜色
+invoke SetColor, 0FF80FFh, 400040h
+;创建方块并排列方块
+mov ecx, 60 ;左上角起始位置
+mov edx, 90 ;右下角起始位置
+xor esi, esi
+lea ebx, curControl
+@@:
+cmp ecx, 180
+jz @F ;4 个方块都初始化完毕
+push ebx
+push ecx
+push edx
+invoke Rectangle, hGame, ecx, 5, edx, 30
+pop edx
+pop ecx
+pop ebx
+mov [ebx + esi], ecx
+push topSpace
+pop DWORD ptr [ebx + esi + 4]
+add esi, 8
+add ecx, 30
+add edx, 30
+jmp @B
+@@:
+popad
+ret
+InitControl1 endp
+```
+
+
+
+```asm
+SetColor proc color : DWORD, pColor : DWORD
+    pushad
+    invoke CreatePen, PS_SOLID, 1, pColor
+    invoke SelectObject, hGame, eax
+    invoke DeleteObject, eax
+    invoke CreateSolidBrush, color
+    invoke SelectObject, hGame, eax
+    invoke DeleteObject, eax
+    popad
+    ret
+SetColor endp
+
+;********************************************************************
+; ■■■■图形向下走动
+;********************************************************************
+
+Control1Down proc
+    pushad
+    invoke IsDownEnd
+    .if eax == 1 ;下面有障碍，改变状态为创建新的方块并保存当前方块在容器中的位置
+        mov curState, 1
+        invoke ChangeAreaState
+        invoke RtlZeroMemory, offset curControl, sizeof curControl
+        popad
+        ret
+    .endif
+    ;如果下面不是障碍，则■■■■向下走动
+    lea edx, curControl
+    xor ecx, ecx
+@@:
+    cmp ecx, 4
+    jz @F
+    ;覆盖原有的方块
+    push ecx
+    invoke SetColor, 0h, 0h
+    mov eax, [edx + ecx * 8 + 4]
+    mov ebx, 30
+    add ebx, eax ;ebx 右下角 y 坐标
+    mov eax, [edx + ecx * 8]
+    add eax, 30 ;eax 为右下角 x 坐标
+    push eax ;保存右下角坐标
+    push ebx
+    push edx
+    invoke Rectangle, hGame, [edx + ecx * 8], [edx + ecx * 8 + 4], eax, ebx
+    pop edx
+    ;生成新的方块
+    invoke SetColor, 0FF80FFh, 400040h
+    pop ebx
+    pop eax
+    pop ecx
+    add DWORD ptr [edx + ecx * 8 + 4], 30
+    add ebx, 30
+    push ecx
+    push edx
+    invoke Rectangle, hGame, [edx + ecx * 8], [edx + ecx * 8 + 4], eax, ebx
+    pop edx
+    pop ecx
+    inc ecx
+    jmp @B
+@@:
+    popad
+    ret
+Control1Down endp
+
+;********************************************************************
+; 保存当前方块在容器中的状态
+;********************************************************************
+
+ChangeAreaState proc
+    pushad
+    ;计算区域单元坐标
+    lea ebx, curControl
+    xor ecx, ecx
+@@:
+    cmp ecx, 4
+    jz @F
+    ;计算二维 x 坐标
+    invoke CalculatePos, [ebx + ecx * 8], [ebx + ecx * 8 + 4], 1
+    mov esi, eax
+    ;计算二维 y 坐标
+    invoke CalculatePos, [ebx + ecx * 8], [ebx + ecx * 8 + 4], 2
+    mov edi, eax
+    ;设置区域更新，更新的坐标位置（eax + esi * 4 * 8 + edi * 4）
+    lea eax, area
+    push eax
+    xchg edi, eax
+    mov edi, 8
+    mul edi
+    add esi, eax
+    pop eax
+    mov DWORD ptr [eax + esi * 4], 1 ;设置当前位置已经被填充
+    inc ecx
+    jmp @B
+@@:
+    popad
+    ret
+ChangeAreaState endp
+
+;********************************************************************
+; 根据顶角计算二维坐标
+; left, top：顶角像素
+; posType：1 表示计算 x 坐标，2 表示计算 y 坐标
+; eax 返回二维坐标
+;********************************************************************
+
+CalculatePos proc left : DWORD, top :DWORD, posType : DWORD
+    local @ret : DWORD
+    pushad
+    mov edx, left
+    add edx, rectArea ;右下角 x 坐标
+    mov ecx, top
+    add ecx, rectArea ;右下角 y 坐标
+    .if posType == 1
+        mov eax, edx
+        mov ebx, 30
+        xor edx, edx
+        div ebx
+    .elseif
+        mov eax, ecx
+        sub eax, topSpace
+        mov ecx, 30
+        xor edx, edx
+        div ecx
+    .endif
+    mov @ret, eax
+    popad
+    mov eax, @ret
+    dec eax
+    ret
+CalculatePos endp
+
+;********************************************************************
+; 判断下面是否有障碍
+; 返回值:：eax 为 1 表示下落完毕，为 0 表示未完毕
+;********************************************************************
+
+IsDownEnd proc
+    pushad
+    lea ebx, curControl
+    xor ecx, ecx
+@@:
+    cmp ecx, 4
+    jz @F
+    ;计算二维 x 坐标
+    invoke CalculatePos, [ebx + ecx * 8], [ebx + ecx * 8 + 4], 1
+    mov esi, eax
+    ;计算二维 y 坐标
+    invoke CalculatePos, [ebx + ecx * 8], [ebx + ecx * 8 + 4], 2
+    mov edi, eax
+    inc edi
+    ;设置区域更新，更新的坐标位置（eax + esi * 4 * 8 + edi * 4）
+    lea eax, area
+    push eax
+    xchg edi, eax
+    mov edi, 8
+    mul edi
+    add esi, eax
+    pop eax
+    mov edx, [eax + esi * 4]
+    .if edx == 1
+        popad
+        mov eax, 1
+        ret
+    .endif
+    inc ecx
+    jmp @B
+@@:
+    popad
+    xor eax, eax
+    ret
+IsDownEnd endp
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+start:
+    call _WinMain
+    invoke ExitProcess, NULL
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+; Include 文件定义
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+include windows.inc
+include gdi32.inc
+include user32.inc
+include kernel32.inc
+includelib gdi32.lib
+includelib user32.lib
+includelib kernel32.lib
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+; 数据段
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+.data?
+hInstance dd ?
+hWinMain dd ?
+curType dd ? ;当前图形
+curControl dd 8 dup (?) ;当前控件左上顶点坐标集
+netxType dd ? ;下一个图形
+hGame dd ? ;游戏区 DC
+hTimer dd ?
+
+.const
+szClassName db 'Ogame',0
+szCaptionMain db '仿俄罗斯方块',0
+rectArea dd 30 ;每个方块的大小为 30*30 像素
+topSpace dd 5 ;顶端偏差值
+
+.data
+gameArea RECT <0, 0, 242, 426>
+curState dd 0 ;当前控件移动状态，1 代表下落结束，0 代表下落过程中
+curKey dd 0 ;当前方向按键
+curDir dd 0 ;图片当前方向，对于■■■■0 表示横着，1 表示竖着
+area dd 112 dup (?)
+    dd 8 dup (1)
+gamePoint dd 0
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+; 函数定义
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+InitContainer proto
+InitControl1 proto
+ShowControl proto :DWORD
+SetColor proto :DWORD, :DWORD
+Control1Down proto
+ChangeAreaState proto
+CalculatePos proto :DWORD, :DWORD, :DWORD
+IsDownEnd proto
+RLDown proto :DWORD
+IsRLDownEnd proto :DWORD
+ChangeC1 proto
+ClearCur proto
+GetPoint proto
+```
+
+刚把 `rgame.inc` 找出来
+
+刚才自己又看了一下，才发现这个好像不是最后的版本，虽然没写完，但是向下，向左，向右移动，还有填满后清除方块都写了。。。原来这个是很早的，这里才是一个图形完整的处理。其他的图形我没写，其实处理差不多，所以当时也就没兴趣了![](img/8665dab461df9ff5e20e52adf9adf6de.jpg "伤心")
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+; 俄罗斯方块 by Originality
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+```asm
+.386
+.model flat, stdcall
+option casemap : none
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+; Include 文件定义
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+include rgame.inc
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+; 代码段
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+.code
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+; 定时器测试
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+DwonTest proc _hWnd, _uMsg, _idEvent, _dwTime
+    pushad
+    mov eax, curState
+    .if eax ;下落结束
+
+
+
+## 窗口控制逻辑
+
+```asm
+mov curState, 0
+invoke InitControl1
+
+.else
+.if curKey == VK_RIGHT ;向右移动
+  invoke RLDown, 1
+  mov curKey, 0
+
+.elseif curKey == VK_LEFT ;向左移动
+  invoke RLDown, 0
+  mov curKey, 0
+
+; .elseif curKey == VK_DOWN ;加速
+;
+;   mov curKey, 0
+
+.elseif curKey == VK_UP ;转向
+  invoke ChangeC1
+  invoke Control1Down
+  mov curKey, 0
+
+.else
+  mov curDir, 0
+  invoke Control1Down
+.endif
+.endif
+
+popad
+ret
+
+DwonTest endp
+```
+
+## 窗口过程
+
+```asm
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+; 窗口过程
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+_ProcWinMain proc uses ebx edi esi hWnd, uMsg, wParam, lParam
+  local @stPs : PAINTSTRUCT
+  local @stRect : RECT
+  local @hDc
+
+  mov eax, uMsg
+  ;********************************************************************
+  .if eax == WM_PAINT
+    invoke BeginPaint, hWnd, addr @stPs
+    invoke InitContainer
+    invoke ShowControl, 1
+    invoke Control1Down
+    invoke EndPaint, hWnd, addr @stPs
+
+  .elseif eax == WM_KEYDOWN
+    push wParam
+    pop curKey
+
+  .elseif eax == WM_CREATE
+    invoke GetDC, hWnd
+    mov hGame, eax
+    ;【此处定时器为测试所用】
+    invoke SetTimer, NULL, NULL, 1000, offset DwonTest
+
+  .elseif eax == WM_CLOSE
+    invoke ReleaseDC, hWnd, hGame
+    invoke DestroyWindow, hWinMain
+    invoke PostQuitMessage, NULL
+
+  .elseif eax == WM_SIZE
+    invoke ValidateRect, hWnd, offset gameArea
+
+  .else
+    invoke DefWindowProc, hWnd, uMsg, wParam, lParam
+    ret
+  .endif
+  ;********************************************************************
+
+  xor eax, eax
+  ret
+_ProcWinMain endp
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+```
+
+## 主程序入口
+
+```asm
+_WinMain proc
+  local @stWndClass : WNDCLASSEX
+  local @stMsg : MSG
+
+  invoke GetModuleHandle, NULL ;获得应用程序实例
+  mov hInstance, eax ;实例保存在全局变量中
+  invoke RtlZeroMemory, addr @stWndClass, sizeof @stWndClass ;以 0 填充 WNDCLASSEX 结构体
+  ;********************************************************************
+  ; 注册窗口类
+  ;********************************************************************
+
+  invoke LoadCursor, 0, IDC_ARROW ;获取光标句柄
+  mov @stWndClass.hCursor, eax ;设置光标
+
+  push hInstance
+  pop @stWndClass.hInstance ;保存应用程序实例
+  mov @stWndClass.cbSize, sizeof WNDCLASSEX ;保存结构体大小
+  mov @stWndClass.style, CS_HREDRAW or CS_VREDRAW ;设置窗体样式
+  mov @stWndClass.lpfnWndProc, offset _ProcWinMain ;保存回调函数
+  mov @stWndClass.hbrBackground, COLOR_WINDOW + 3 ;设置窗体背景色
+  mov @stWndClass.lpszClassName, offset szClassName ;保存窗体类名
+  invoke RegisterClassEx, addr @stWndClass ;注册窗口类
+  ;********************************************************************
+
+  ; 建立并显示窗口
+  ;********************************************************************
+
+  invoke CreateWindowEx, WS_EX_TOOLWINDOW, offset szClassName, offset szCaptionMain, \
+    WS_OVERLAPPEDWINDOW, \
+    100, 100, 400, 456, \
+    NULL, NULL, hInstance, NULL ;建立窗口
+
+  mov hWinMain, eax ;保存窗口句柄
+  invoke ShowWindow, hWinMain, SW_SHOWNORMAL ;显示窗口
+  invoke UpdateWindow, hWinMain ;更新窗口
+  ;********************************************************************
+
+  ; 消息循环
+  ;********************************************************************
+
+  .while TRUE ;消息循环
+    invoke GetMessage, addr @stMsg, NULL, 0, 0 ;获取消息并填充 MSG 结构体
+      .break .if eax == 0 ;判断是否退出
+      invoke TranslateMessage, addr @stMsg ;消息装换
+      invoke DispatchMessage, addr @stMsg ;分发消息
+    .endw
+    ret
+_WinMain endp
+```
+
+## 初始化游戏容器
+
+```asm
+;********************************************************************
+; 初始化游戏容器
+;********************************************************************
+
+InitContainer proc
+  local @lpRect : RECT
+  pushad
+
+  ;建立游戏容器边框
+  invoke CreatePen, PS_SOLID, 5, 8000FFh
+  push eax
+  invoke SelectObject, hGame, eax
+  invoke DeleteObject, eax
+  pop eax
+  invoke FrameRect, hGame, offset gameArea, eax
+
+  popad
+  ret
+
+InitContainer endp
+```
+
+## 显示方块控件
+
+```asm
+;********************************************************************
+; 显示方块控件
+; type：控件类型 1 为 4 格横条，2 为田字形，3..4..
+;********************************************************************
+
+ShowControl proc cType : DWORD
+  pushad
+  .if cType == 1 ;4 格横条■■■■
+    invoke InitControl1
+  .endif
+  popad
+  ret
+
+ShowControl endp
+```
+
+## 初始化图形
+
+```asm
+;********************************************************************
+; 初始化■■■■图形
+;********************************************************************
+
+InitControl1 proc
+  pushad
+  ;设置方块颜色
+  invoke SetColor, 0FF80FFh, 400040h
+  ;创建方块并排列方块
+  mov ecx, 60 ;左上角起始位置
+  mov edx, 90 ;右下角起始位置
+  xor esi, esi
+  lea ebx, curControl
+
+@@:
+  cmp ecx, 180
+  jz @F ;4 个方块都初始化完毕
+
+  push ebx
+  push ecx
+  push edx
+  invoke Rectangle, hGame, ecx, 5, edx, 30
+  pop edx
+  pop ecx
+  pop ebx
+  mov [ebx + esi], ecx
+  push topSpace
+  pop DWORD ptr [ebx + esi + 4]
+  add esi, 8
+  add ecx, 30
+  add edx, 30
+  jmp @B
+
+@@:
+  popad
+  ret
+
+InitControl1 endp
+```
+
+## 设置方块颜色
+
+```asm
+;********************************************************************
+; 设置方块颜色
+;********************************************************************
+
+SetColor proc color : DWORD, pColor : DWORD
+  pushad
+  invoke CreatePen, PS_SOLID, 1, pColor
+  invoke SelectObject, hGame, eax
+  invoke DeleteObject, eax
+
+  invoke CreateSolidBrush, color
+  invoke SelectObject, hGame, eax
+  invoke DeleteObject, eax
+
+  popad
+  ret
+
+SetColor endp
+```
+
+## 图形向下走动逻辑
+
+```asm
+;********************************************************************
+; ■■■■图形向下走动
+;********************************************************************
+
+Control1Down proc
+  pushad
+  invoke IsDownEnd
+
+  .if eax == 1 ;下面有障碍，改变状态为创建新的方块并保存当前方块在容器中的位置
+    mov curState, 1
+    invoke ChangeAreaState
+    invoke RtlZeroMemory, offset curControl, sizeof curControl
+    popad
+    ret
+  .endif
+
+  ;如果下面不是障碍，则■■■■向下走动
+  lea edx, curControl
+  xor ecx, ecx
+
+@@:
+  cmp ecx, 4
+  jz @F
+
+  ;覆盖原有的方块
+  push ecx
+  invoke SetColor, 0h, 0h
+  mov eax, [edx + ecx * 8 + 4]
+  mov ebx, 30
+  add ebx, eax ;ebx 右下角 y 坐标
+  mov eax, [edx + ecx * 8]
+  add eax, 30 ;eax 为右下角 x 坐标
+  push eax ;保存右下角坐标
+  push ebx
+  push edx
+
+
+
+```
+  invoke  Rectangle, hGame, [edx + ecx * 8], [edx + ecx * 8 + 4], eax, ebx  
+
+  pop   edx  
+
+  ;生成新的方块  
+
+  invoke  SetColor, 0FF80FFh, 400040h  
+
+  pop   ebx  
+
+  pop   eax  
+
+  pop   ecx   
+
+  add    DWORD ptr [edx + ecx * 8 + 4], 30  
+
+  add   ebx, 30  
+
+  push  ecx  
+
+  push  edx  
+
+  invoke  Rectangle, hGame, [edx + ecx * 8], [edx + ecx * 8 + 4], eax, ebx  
+
+  pop   edx  
+
+  pop   ecx  
+
+  inc   ecx  
+
+  jmp   @B  
+
+@@:  
+
+  popad  
+
+  ret  
+
+Control1Down endp  
+
+;*******************************************************************  
+
+; 保存当前方块在容器中的状态  
+
+;*******************************************************************  
+
+ChangeAreaState proc  
+
+  pushad  
+
+  ;计算区域单元坐标  
+
+  lea   ebx, curControl  
+
+  xor   ecx, ecx  
+
+@@:  
+
+  cmp   ecx, 4  
+
+  jz    @F  
+
+  ;计算二维 x 坐标  
+
+  invoke  CalculatePos, [ebx + ecx * 8 ], [ebx + ecx * 8 + 4], 1  
+
+  mov   esi, eax  
+
+  ;计算二维 y 坐标  
+
+  invoke  CalculatePos, [ebx + ecx * 8 ], [ebx + ecx * 8 + 4], 2  
+
+  mov   edi, eax  
+
+  ;设置区域更新，更新的坐标位置（eax + esi * 4 * 8 + edi * 4）  
+
+  lea   eax, area  
+
+  push  eax  
+
+  xchg  edi, eax  
+
+  mov   edi, 8  
+
+  mul   edi  
+
+  add   esi, eax  
+
+  pop   eax  
+
+  mov   DWORD ptr [eax + esi * 4], 1  ;设置当前位置已经被填充  
+
+  inc   ecx  
+
+  jmp   @B  
+
+@@:   
+
+  popad  
+
+  ret  
+
+ChangeAreaState endp  
+
+;*******************************************************************  
+
+; 根据顶角计算二维坐标  
+
+; left, top：顶角像素  
+
+; posType：1 表示计算 x 坐标，2 表示计算 y 坐标  
+
+; eax 返回二维坐标  
+
+;*******************************************************************  
+
+CalculatePos proc left : DWORD, top :DWORD, posType : DWORD  
+
+  local @ret : DWORD  
+
+  pushad  
+
+  mov   edx, left   
+
+  add   edx, rectArea ;右下角 x 坐标  
+
+  mov   ecx, top  
+
+  add   ecx, rectArea ;右下角 y 坐标  
+
+  .if   posType == 1  
+
+    mov   eax, edx  
+
+    mov   ebx, 30  
+
+    xor   edx, edx  
+
+    div   ebx  
+
+  .elseif  
+
+    mov   eax, ecx  
+
+    sub   eax, topSpace  
+
+    mov   ecx, 30  
+
+    xor   edx, edx  
+
+    div   ecx  
+
+  .endif  
+
+  mov   @ret, eax  
+
+  popad  
+
+  mov   eax, @ret  
+
+  dec   eax  
+
+  ret  
+
+CalculatePos endp  
+
+;*******************************************************************  
+
+; 判断下面是否有障碍  
+
+; 返回值:：eax 为 1 表示下落完毕，为 0 表示未完毕  
+
+;*******************************************************************  
+
+IsDownEnd proc  
+
+  pushad  
+
+  lea   ebx, curControl  
+
+  xor   ecx, ecx  
+
+@@:  
+
+  cmp   ecx, 4  
+
+  jz    @F  
+
+  ;计算二维 x 坐标  
+
+  invoke  CalculatePos, [ebx + ecx * 8 ], [ebx + ecx * 8 + 4], 1  
+
+  mov   esi, eax  
+
+  ;计算二维 y 坐标  
+
+  invoke  CalculatePos, [ebx + ecx * 8 ], [ebx + ecx * 8 + 4], 2  
+
+  mov   edi, eax  
+
+  inc   edi  
+
+  ;设置区域更新，更新的坐标位置（eax + esi * 4 * 8 + edi * 4）  
+
+  lea   eax, area  
+
+  push  eax  
+
+  xchg  edi, eax  
+
+  mov   edi, 8  
+
+  mul   edi  
+
+  add   esi, eax  
+
+  pop   eax  
+
+  mov   edx, [eax + esi * 4]  
+
+  .if   edx == 1  
+
+    popad  
+
+    mov   eax, 1  
+
+    ret  
+
+  .endif  
+
+  inc   ecx  
+
+  jmp   @B  
+
+@@:   
+
+  popad  
+
+  xor   eax, eax  
+
+  ret  
+
+IsDownEnd endp  
+
+;*******************************************************************  
+
+; 向右，左移动  
+
+; mType：1 向右移动，2 向左移动  
+
+; 返回值:：eax 为 1 表示移动成功，为 0 表示移动失败  
+
+;*******************************************************************  
+
+RLDown proc mType : DWORD  
+
+  pushad  
+
+  invoke  IsRLDownEnd, mType  
+
+  .if   eax == 0  ;不能向右下移动，所以失败  
+
+    popad  
+
+    xor   eax, eax  
+
+    ret  
+
+  .else  
+
+    lea   edx, curControl  
+
+    xor   ecx, ecx  
+
+@@:  
+
+    cmp   ecx, 4  
+
+    jz    @F  
+
+    ;覆盖原有的方块  
+
+    push  ecx  
+
+    invoke  SetColor, 0h, 0h  
+
+    mov   eax, [edx + ecx * 8 + 4]  
+
+    mov   ebx, 30  
+
+    add   ebx, eax  ;ebx 右下角 y 坐标  
+
+    mov   eax, [edx + ecx * 8]  
+
+    add   eax, 30    ;eax 为右下角 x 坐标  
+
+    push  eax    ;保存右下角坐标  
+
+    push  ebx  
+
+    push  edx  
+
+    invoke  Rectangle, hGame, [edx + ecx * 8], [edx + ecx * 8 + 4], eax, ebx  
+
+    pop   edx  
+
+    ;生成新的方块向右下角移动  
+
+    invoke  SetColor, 0FF80FFh, 400040h  
+
+    pop   ebx  
+
+    pop   eax  
+
+    pop   ecx   
+
+    .if   mType  
+
+      add   eax, 30  
+
+      add    DWORD ptr [edx + ecx * 8], 30    ;右边移动  
+
+    .else  
+
+      sub   eax, 30  
+
+      sub    DWORD ptr [edx + ecx * 8], 30    ;左边移动  
+
+    .endif  
+
+    add    DWORD ptr [edx + ecx * 8 + 4], 30  
+
+    add   ebx, 30  
+
+    push  ecx  
+
+    push  edx  
+
+    invoke  Rectangle, hGame, [edx + ecx * 8], [edx + ecx * 8 + 4], eax, ebx  
+
+    pop   edx  
+
+    pop   ecx  
+
+    inc   ecx  
+
+    jmp   @B  
+
+  .endif  
+
+@@:   
+
+  popad  
+
+  mov   eax, 1  
+
+  ret  
+
+RLDown endp  
+
+;*******************************************************************  
+
+; 判断是否可以进行左右  
+
+; mType：1 判断是否可以向右边移动，0 判断是否可以向左边移动  
+
+; 返回值:：eax 为 1 表示可以，为 0 表示不行  
+
+;*******************************************************************  
+
+IsRLDownEnd proc mType : DWORD  
+
+  pushad  
+
+  lea   ebx, curControl  
+
+  xor   ecx, ecx  
+
+@@:  
+
+  cmp   ecx, 4  
+
+  jz    @F  
+
+  ;计算二维 x 坐标  
+
+  invoke  CalculatePos, [ebx + ecx * 8 ], [ebx + ecx * 8 + 4], 1  
+
+  mov   esi, eax  
+
+  ;计算二维 y 坐标  
+
+  invoke  CalculatePos, [ebx + ecx * 8 ], [ebx + ecx * 8 + 4], 2  
+
+  mov   edi, eax  
+
+  .if   (mType == 1 && esi >= 7) || edi >= 13 || (mType == 0 && esi == 0) ;如果已经在右边沿或在底部或者向左移动时在左边  
+
+    mov   curKey, 0  
+
+    .if   edi < 14      ;如果还没有到底部，则继续尝试向下滚动  
+
+      invoke  Control1Down  
+
+    .endif  
+
+    popad  
+
+    xor   eax, eax  
+
+    ret  
+
+  .endif  
+
+  ;右下  
+
+  .if   mType  
+
+    inc   esi  
+
+  .elseif    ;左下  
+
+    dec   esi  
+
+  .endif  
+
+  inc   edi  
+
+  ;判断当前块右下角是否有障碍  
+
+  lea   eax, area  
+
+  push  eax  
+
+  xchg  edi, eax  
+
+  mov   edi, 8  
+
+  mul   edi  
+
+  add   esi, eax  
+
+  pop   eax  
+
+  mov   edx, [eax + esi * 4]  
+
+  .if   edx == 1  
+
+    mov   curKey, 0  
+
+    popad  
+
+    xor   eax, eax  
+
+    ret  
+
+  .endif  
+
+  inc   ecx  
+
+  jmp   @B  
+
+@@:  
+
+  popad  
+
+  mov   eax, 1  
+
+  ret  
+
+IsRLDownEnd endp  
+
+;*******************************************************************  
+
+; ■■■■反转  
+
+; 返回值：eax 为 1 表示翻转成功，eax 为 0 表示翻转失败  
+
+;*******************************************************************  
+
+ChangeC1 proc  
+
+  pushad  
+
+  .if   curDir  ;当前为竖着  
+
+  .else    ;当前为横着  
+
+    ;判断是否可以竖立，以第二个点位基准树立判断是否有障碍  
+
+    ;1.判断当前 y 坐标是否大于 2，如果大于 2 则表示可以竖立，否则返回 0 表示反转失败  
+
+    lea   ebx, curControl  
+
+    invoke  CalculatePos, [ebx + 8], [ebx + 12], 2  
+
+    .if   eax <= 2  ;当前 y 坐标小于 2 不能竖立  
+
+      popad  
+
+      xor   eax, eax  
+
+      ret  
+
+    .endif  
+
+    push  eax  
+
+    inc   eax  
+
+    ;判断在树立的线路上是否有障碍，判断 eax 为 y 轴的上三点是否有障碍  
+
+    lea   ebx, area  
+
+    mov   edx, 32  
+
+    mul   edx  
+
+    mov   ecx, 32  
+
+@@:  
+
+    cmp   ecx, 128  
+
+    jz    @F     
+
+    push  eax  
+
+    sub   eax, ecx  
+
+    mov   edx, [ebx + eax]  
+
+    pop   eax  
+
+    .if   edx == 1  ;有障碍返回 0  
+
+      pop   eax  
+
+      popad  
+
+      xor   eax, eax  
+
+      ret  
+
+    .endif  
+
+    add   ecx, 32  
+
+    jmp   @B  
+
+@@:  
+
+    invoke  IsDownEnd  
+
+    .if   eax == 0  
+
+      invoke  ClearCur  ;清除当前点  
+
+      ;说明没有障碍可以翻转  
+
+      ;开始翻转  
+
+      lea   ebx, curControl  
+
+      invoke  CalculatePos, [ebx + 8], [ebx + 12], 1  
+
+      mov   edx, 30  
+
+      mul   edx  
+
+      mov   edx, eax  ;edx 存放 x 坐标的水平像素  
+
+      pop   esi    ;esi 为最下点的 y 坐标  
+
+      ;使得 curControl 为竖立状态  
+
+      xor   ecx, ecx  
+```
+
+
+
+```asm
+  @@:  
+
+     cmp  ecx, 4  
+
+     je  @F  
+
+     mov  eax, 8  
+
+     push  edx  
+
+     mul  ecx  
+
+     pop  edx  
+
+     push  ecx  
+
+     mov  ecx, eax  
+
+     mov  [ebx + ecx], edx  ;设置水平坐标  
+
+     mov  edi, 30  
+
+     mov  eax, esi  
+
+     push  edx  
+
+     mul  edi  
+
+     pop  edx  
+
+     add  eax, 5  
+
+     mov  [ebx + ecx + 4], eax;设置垂直像素  
+
+     pop  ecx  
+
+     dec  esi  
+
+     inc  ecx  
+
+     jmp  @B  
+
+  @@:  
+
+     mov  curDir, 1  
+
+   .else  
+
+     pop  eax  
+
+   .endif  
+
+  .endif  
+
+  popad  
+
+  mov  eax, 1  
+
+  ret  
+
+ChangeC1 endp  
+
+;********************************************************************  
+
+; 清除当前方块  
+
+;********************************************************************  
+
+ClearCur proc  
+
+  pushad  
+
+  lea  edx, curControl  
+
+  xor  ecx, ecx  
+
+@@:  
+
+  cmp  ecx, 4  
+
+  jz  @F  
+
+  ;覆盖原有的方块  
+
+  push  ecx  
+
+  invoke  SetColor, 0h, 0h  
+
+  mov  eax, [edx + ecx * 8 + 4]  
+
+  mov  ebx, 30  
+
+  add  ebx, eax  ;ebx 右下角 y 坐标  
+
+  mov  eax, [edx + ecx * 8]  
+
+  add  eax, 30    ;eax 为右下角 x 坐标  
+
+  push  edx  
+
+  invoke  Rectangle, hGame, [edx + ecx * 8], [edx + ecx * 8 + 4], eax, ebx  
+
+  pop  edx  
+
+  pop  ecx  
+
+  inc  ecx  
+
+  jmp  @B  
+
+@@:  
+
+  popad  
+
+  ret  
+
+ClearCur endp  
+
+;********************************************************************  
+
+; 更新游戏分数  
+
+;********************************************************************  
+
+GetPoint proc  
+
+  pushad  
+
+  popad  
+
+  ret  
+
+GetPoint endp  
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
+
+start:  
+
+  call  _WinMain  
+
+  invoke   ExitProcess, NULL  
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
+
+end start
+```

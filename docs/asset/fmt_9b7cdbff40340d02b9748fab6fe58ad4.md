@@ -1,0 +1,162 @@
+
+# 每天三篇 PaPer 系列之一,多线程同步问题,学习笔记~~~
+
+> 原文：[`www.pediy.com/kssd/pediy11/124021.html`](https://www.pediy.com/kssd/pediy11/124021.html)
+
+最近定下目标,坚持每天最少三篇 paper~
+
+- -
+
+于是有就有了下文~~~
+
+是关于对 多线程同步的一些理解，包括 事件，临界,信号灯，互斥体~
+
+come on~
+
+首先
+
+代码:
+
+```
+hInstance dd ?
+hWinMain dd ?
+hWinCount dd ?
+
+dwCounter1 dd ?
+dwCounter2 dd ?
+
+dwThreads dd ? ;thread sum
+
+hEvent dd ?
+
+F_STOP equ 0001h
+dwOption dd ?
+```
+
+对每个变量做以下 解释（从上到下顺序）
+
+1. 模块 handle
+2. 窗口 handle
+3. 按钮 handle
+4. 和 5 用于 累加的 var
+5. 线程数变量
+6. 事件 handle
+7. 停止的 flag
+8. flag 的 var~~~
+
+go~
+
+代码:
+
+```
+004011D4 syn_fix.<模块入口点> 6A 00 push 0
+004011D6 E8 63000000 call <jmp.&kernel32.GetModuleHandleA>
+004011DB A3 00304000 mov dword ptr ds:[403000],eax
+004011E0 6A 00 push 0
+004011E2 68 7F104000 push syn_fix.0040107F ; 消息处理过程
+004011E7 6A 00 push 0
+004011E9 68 E8030000 push 3E8
+004011EE 50 push eax
+004011EF E8 08000000 call <jmp.&user32.DialogBoxParamA>
+004011F4 6A 00 push 0
+004011F6 E8 3D000000 call <jmp.&kernel32.ExitProcess>
+
+____ 分割线
+
+0040107F /. 55 push ebp
+00401080 |. 8BEC mov ebp,esp
+00401082 |. 83C4 FC add esp,-4
+00401085 |. 53 push ebx
+00401086 |. 57 push edi
+00401087 |. 56 push esi
+00401088 |. 8B45 0C mov eax,dword ptr ss:[ebp+C]
+0040108B |. 3D 13010000 cmp eax,113 ; Switch (cases 10..113)
+00401090 |. 75 4D jnz short syn_fix.004010DF
+00401092 |. 6A FF push -1 ; /Timeout = INFINITE; Case 113 (WM_TIMER) of switch 0040108B
+00401094 |. FF35 18304000 push dword ptr ds:[403018] ; |hObject = NULL
+0040109A |. E8 AB010000 call <jmp.&kernel32.WaitForSingleObject>; \WaitForSingleObject
+0040109F |. 6A 00 push 0 ; /IsSigned = FALSE
+....
+...
+..
+```
+
+首先 我们先看 `dlg` 初始化消息的处理~
+
+源代码~
+
+`.elseif eax == WM_INITDIALOG`
+
+```
+push hWnd
+pop hWinMain
+invoke GetDlgItem,hWnd,IDC_BTN1
+mov hWinCount,eax; 给我控制室的联系方式~~
+invoke CreateEvent,NULL,FALSE,TRUE,NULL;叫黑丝御姐去协调，那 20 多个工人的同步问题
+;要是一个工人干完了，直接联系下一个工人,同时通知第一个工人，到了就直接工作，谁也不用报告~
+mov hEvent,eax
+```
+
+1. 保存 窗口句柄
+2. 获得按钮控件句柄
+3. 创建一直自动的事件，且为置位，这样第一个线程，在遇到 `WaitForSingleObject` 直接就可以开始,不会陷入等待，造成 无法执行下去的 bug~~~
+
+代码:
+
+```
+00401186 |> \3D 10010000 cmp eax,110
+0040118B |. 75 2F jnz short syn_fix.004011BC
+0040118D |. FF75 08 push dword ptr ss:[ebp+8] ; Case 110 (WM_INITDIALOG) of switch 0040108B
+00401190 |. 8F05 04304000 pop dword ptr ds:[403004] ; 得到窗口句柄存放到数据段
+00401196 |. 68 EB030000 push 3EB ; /ControlID = 3EB (1003.)
+0040119B |. FF75 08 push dword ptr ss:[ebp+8] ; |hWnd
+0040119E |. E8 65000000 call <jmp.&user32.GetDlgItem> ; \GetDlgItem
+004011A3 |. A3 08304000 mov dword ptr ds:[403008],eax ; 获得 子控件句柄
+004011A8 |. 6A 00 push 0 ; /EventName = NULL
+004011AA |. 6A 01 push 1 ; |InitiallySignaled = TRUE
+004011AC |. 6A 00 push 0 ; |ManualReset = FALSE
+004011AE |. 6A 00 push 0 ; |pSecurity = NULL
+004011B0 |. E8 77000000 call <jmp.&kernel32.CreateEventA> ; \CreateEventA
+004011B5 |. A3 18304000 mov dword ptr ds:[403018],eax ; 控件的句柄
+004011BA |. EB 0C jmp short syn_fix.004011C8
+```
+
+接下来看~`WM_COMMAND` 消息的处理
+
+代码:
+
+```
+004010E6 |. 8B45 10 mov eax,dword ptr ss:[ebp+10] ; Case 111 (WM_COMMAND) of switch 0040108B
+004010E9 |. 66:3D EB03 cmp ax,3EB ; 比较是否是相应的按钮控件
+004010ED |. 0F85 D5000000 jnz syn_fix.004011C8
+004010F3 |. 833D 14304000 00 cmp dword ptr ds:[403014],0
+; 这里是通过判断 dwThread 来检测，是要开始计算，还是要停止，如果是已经开始计算了，要停止下来，
+;那么这个变量就是非零，反之亦然,如果是非零 就继续向下执行，非零就从 0040110F 开始执行了
+004010FA |. 74 13 je short syn_fix.0040110F
+004010FC |. 830D 1C304000 01 or dword ptr ds:[40301C],1
+00401103 |. 6A 01 push 1 ; /TimerID = 1
+00401105 |. FF75 08 push dword ptr ss:[ebp+8] ; |hWnd
+00401108 |. E8 01010000 call <jmp.&user32.KillTimer> ; \KillTimer
+0040110D |. EB 4D jmp short syn_fix.0040115C
+0040110F |> C705 0C304000 0000>mov dword ptr ds:[40300C],0 ; 计数变量清 0
+00401119 |. C705 10304000 0000>mov dword ptr ds:[403010],0
+00401123 |. 33DB xor ebx,ebx
+00401125 |. EB 1F jmp short syn_fix.00401146
+00401127 |> 8D45 FC /lea eax,dword ptr ss:[ebp-4] ; 线程 ID 变量的指针
+0040112A |. 50 |push eax ; /pThreadId
+0040112B |. 6A 00 |push 0 ; |CreationFlags = 0
+0040112D |. 6A 00 |push 0 ; |pThreadParm = NULL
+0040112F |. 68 00104000 |push syn_fix.00401000 ; |ThreadFunction = syn_fix.00401000
+00401134 |. 6A 00 |push 0 ; |StackSize = 0
+00401136 |. 6A 00 |push 0 ; |pSecurity = NULL
+00401138 |. E8 F5000000 |call <jmp.&kernel32.CreateThread> ; \CreateThread
+0040113D |. FF75 FC |push dword ptr ss:[ebp-4] ; /hObject
+00401140 |. E8 E1000000 |call <jmp.&kernel32.CloseHandle> ; \CloseHandle
+```
+
+这里就开始执行线程了。我们到 线程函数里面 看看把~~~
+这个是重点~
+
+第一条线程创建后 `SetWindowText` 后~
+
+代码:

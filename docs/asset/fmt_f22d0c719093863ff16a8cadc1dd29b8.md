@@ -1,0 +1,205 @@
+
+# Delphi 研究之驱动开发篇（一）--实现原理
+
+> 原文：[`www.pediy.com/kssd/pediy10/57762.html`](https://www.pediy.com/kssd/pediy10/57762.html)
+
+Delphi 能不能开发 Windows 的驱动程序（这里的驱动程序当然不是指 VxD 了^\_^）一直是广大 Delphi fans 关注的问题。姑且先不说能或者不能，我们先来看看用 Delphi 开发驱动程序需要解决哪些技术上问题。
+
+Delphi 的链接器是无法生成 Windows 内核模式程序的，因此用 delphi 无法直接生成驱动程序。M$的链接器是可以生成 Windows 内核模式程序的，那么是否可以用 Delphi 生成目标文件，然后用 M$链接呢？要这么做必须要解决以下的问题：
+
+Delphi 生成的目标文件是 OMF 格式的，而 M$ link 虽然声称支持 OMF 格式的目标文件，但基本无用。最好能将 OMF 格式转换成 COFF 格式，EliCZ 大侠的 OMF2D 正好可以解决这个问题。解决了目标格式的问题，一切都 OK 了吗？远没这么简单。继续之前，让我们先来看一下著名的 DDDK 吧。
+
+DDDK（Delphi Driver Development Kit）是 The Hacker Defender Project team 发布的一个用 Delphi 开发 Windows 驱动程序的工具包，目前最新版是 0.0.4 版。DDDK 是将常用的驱动 API 用 Delphi 做了层包装放在 DDDK 单元中，就像下面这样：
+
+```
+unit DDDK;
+
+interface
+
+const 
+ NtKernel='ntoskrnl.exe';
+……
+procedure IoCompleteRequest(Irp:PIrp;PriorityBoost:Integer); stdcall;
+  ……
+implementation
+procedure krnlIoCompleteRequest(Irp:PIrp;PriorityBoost:Integer); stdcall; external NtKernel name 'IoCompleteRequest';
+
+procedure IoCompleteRequest(Irp:PIrp;PriorityBoost:Integer); stdcall; 
+begin 
+krnlIoCompleteRequest(Irp,PriorityBoost); 
+end;
+……
+```
+
+然后在每次链接驱动文件之前，用 omf2d 对 dddk.obj 中需要引入的驱动 API 做以下的处理：
+
+`omf2d inc\DDDK.obj /U- /CEIoCompleteRequest=_IoCompleteRequest@8 2>nul` 将 `DDDK.obj` 中的 `IoCompleteRequest` 改成`_IoCompleteRequest@8`，为什么要这样做呢？那是因为诸如 `ntoskrnl.lib` 之类的导入库都是 coff 格式的，coff 格式就是这样命名的。完成这步以后就可以调用 m$ link 将目标文件链接成驱动文件了。
+
+这样做虽然可以生成正确的驱动文件，但缺点也是明显的。将驱动 API 用 delphi 包装，这些用 delphi 包装的函数不管是否使用都会被链接到最终生成的驱动文件中，这样会增加驱动文件的尺寸，而且通过 delphi 的封装函数再去调用驱动 API 效率也会受影响，还有就是每次链接前都要用 `omf2d inc\DDDK.obj /U- /CEIoCompleteRequest=_IoCompleteRequest@8` 去转换 delphi 的目标文件，既麻烦又容易出错。有没有更好的办法呢？
+
+omf2d 的工作就是将 delphi 的命名方法转换成 coff 的`_xxxxxxx@xx` 格式，默认 omf2d 会去掉前导下划线和@xx 后缀，可以用`/U_*`开关让 omf2d 不删除前导下划线，如果我们再有没有@xx 后缀的导入库，那问题就简单多了。但 m$并没有提供没有@xx 后缀的导入库，那就让我们自己做一个吧^\_^，其实很简单，比如我们要生成 `hal.dll` 的导入库，只需要编辑一个如下内容的 `hal.def` 文件：
+
+```
+LIBRARY     HAL.DLL
+
+EXPORTS
+    ExAcquireFastMutex               
+    ExReleaseFastMutex               
+    ExTryToAcquireFastMutex          
+    HalAcquireDisplayOwnership       
+    HalAdjustResourceList           
+    HalAllProcessorsStarted
+    ……
+```
+
+然后用 `LINK /LIB /MACHINE:IX86 /DEF:hal.def /OUT:hal.lib` 命令就可以生成我们需要的没有@xx 后缀的导入库文件了。有了这个文件，事情就好办多了。下面就让我们开始用 delphi 来开发一个简单的驱动程序 beeper 吧。
+
+这个驱动程序是从 Four-F 的 KmdKit 里的 beeper 转换过来的，程序的目标就是通过访问端口让 PC 的扬声器发声，程序通过三种方法让扬声器发声，一种是直接访问端口，一种是调用 `hal.dll` 的 `READ_PORT_UCHAR` 和 `WRITE_PORT_UCHAR` 访问端口，第三种方法则是调用 `hal.dll` 的 `HalMakeBeep` 函数。
+
+```
+unit beeper;
+
+interface
+
+uses windows, DDDK, hal;
+
+function _DriverEntry(DriverObject:PDriverObject;RegistryPath:PUnicodeString):NTSTATUS; stdcall;
+
+implementation
+
+const  
+  TIMER_FREQUENCY:DWORD = 1193167;  {1,193,167 Hz}
+  OCTAVE:DWORD          = 2;        {octave multiplier}
+  PITCH_C:DWORD         = 523;      {C        -  523,25 Hz}
+  PITCH_Cs:DWORD        = 554;      {C#       -  554,37 Hz}
+  PITCH_D:DWORD         = 587;      {D        -  587,33 Hz}
+  PITCH_Ds:DWORD        = 622;      {D#       -  622,25 Hz}
+  PITCH_E:DWORD         = 659;      {E        -  659,25 Hz}
+  PITCH_F:DWORD         = 698;      {F        -  698,46 Hz}
+  PITCH_Fs:DWORD        = 740;      {F#       -  739,99 Hz}
+  PITCH_G:DWORD         = 784;      {G        -  783,99 Hz}
+  PITCH_Gs:DWORD        = 831;      {G#       -  830,61 Hz}
+  PITCH_A:DWORD         = 880;      {A        -  880,00 Hz}
+  PITCH_As:DWORD        = 988;      {B        -  987,77 Hz}
+  PITCH_H:DWORD         = 1047;     {H        - 1046,50 Hz}
+  { We are going to play c-major chord }
+
+  DELAY:DWORD           = $18000000;   {for my ~800mHz box}
+
+  TONE_1:DWORD          = 1141;
+  TONE_2:DWORD          = 905;
+  TONE_3:DWORD          = 1568;   {for HalMakeBeep}
+
+  STATUS_DEVICE_CONFIGURATION_ERROR:DWORD =  $00C0000182;
+
+procedure MakeBeep1(dwPitch: DWORD); stdcall; assembler;
+asm
+  cli
+  mov al, 10110110b
+  out 43h, al
+  mov eax, dwPitch
+  out 42h, al
+  mov al, ah
+  out 42h, al
+  {Turn speaker ON}
+  in al, 61h
+  or  al, 11b
+  out 61h, al
+  sti
+  push eax
+  mov eax, DELAY
+@@1:
+  dec eax
+  jnz @@1
+  pop eax
+  cli
+  {Turn speaker OFF}
+  in al, 61h
+  and al, 11111100b
+  out 61h, al
+
+  sti
+end;
+
+procedure MakeBeep2(dwPitch: DWORD); stdcall;
+var
+  dwPort, i: DWORD;
+begin
+  asm
+    cli;
+  end;
+  WRITE_PORT_UCHAR(PUCHAR($43), $b6);
+  WRITE_PORT_UCHAR(PUCHAR($42), dwPitch and $FF);
+  WRITE_PORT_UCHAR(PUCHAR($42), ((dwPitch shr 8) and $FF));
+  dwPort := READ_PORT_UCHAR(PUCHAR($61));
+  dwPort := dwPort or 3;
+  WRITE_PORT_UCHAR(PUCHAR($61), dwPort);
+  asm
+    sti
+  end;
+  for i := 1 to DELAY do
+  begin
+  end;
+  asm
+    cli
+  end;
+  { Turn speaker OFF }
+  dwPort := READ_PORT_UCHAR(PUCHAR($61));
+  dwPort := dwPort and $FC;
+  WRITE_PORT_UCHAR(PUCHAR($61), dwPort);
+  asm
+    sti
+  end;
+end;
+
+function _DriverEntry(DriverObject:PDriverObject;RegistryPath:PUnicodeString):NTSTATUS; stdcall;
+var
+  i: integer;
+begin
+  MakeBeep1(TONE_1);
+  MakeBeep2(TONE_2);
+  HalMakeBeep(TONE_3);
+
+  for i := 1 to DELAY do
+  begin
+  end;
+  HalMakeBeep(0);
+  Result := STATUS_DEVICE_CONFIGURATION_ERROR;
+end;
+
+end.
+```
+
+```
+unit hal;
+
+interface
+
+uses
+  Windows;
+
+const
+  NtHal = 'hal.dll';
+
+function HalMakeBeep(Frequency: ULONG):BOOLEAN; stdcall;
+function READ_PORT_UCHAR(Port:PUCHAR):UCHAR; stdcall;
+procedure WRITE_PORT_UCHAR(Port: PUCHAR; Value: UCHAR); stdcall; 
+
+implementation
+
+function HalMakeBeep(Frequency: ULONG):BOOLEAN; stdcall; external NtHal name '_HalMakeBeep';
+function READ_PORT_UCHAR(Port:PUCHAR):UCHAR; stdcall; external NtHal name '_READ_PORT_UCHAR';
+procedure WRITE_PORT_UCHAR(Port: PUCHAR; Value: UCHAR); stdcall; external NtHal name '_WRITE_PORT_UCHAR';
+
+end.
+```
+
+1. 用 `dcc32 U ..\include -B -CG -JP -$A-,C-,D-,G-,H-,I-,L-,P-,V-,W+,Y- beeper.pas` 生成目标文件（此处的`..\inc` 是我保存相关 delphi 单元文件的目录，你的可能不是这个目录哟）
+
+2. 用 `omf2d beeper.obj /U_*` 转换目标文件，使其能被 m$ link 链接
+
+3. 用 `link /NOLOGO /ALIGN:32 /BASE:0x10000 /SUBSYSTEM:NATIVE /DRIVER /FORCE:UNRESOLVED /FORCE:MULTIPLE /ENTRY:DriverEntry ..\lib\hal.lib beeper.obj /OUT:beeper.sys` 生成最终的驱动文件。（注意这里用`/FORCE:UNRESOLVED` 是因为 dcc32 会在 delphi 的目标文件中加入一些单元的初始化及销毁代码，这些东东在驱动程序中是不需要的，所以强行忽略之，还会出现一堆链接警告，也不用理会）。
+
+执行完以上的步骤，在你的目录下就会生成一个 `beeper.sys` 文件了。把它拷贝到 KmdKit 的 beeper 目录中，用它的 SCP 文件加载，PC 的喇叭果然发出的清脆的声音，证明我们的 delphi 驱动是正确的。用此种方法生成的 `beeper.sys` 只有 1376 字节，只比用 KmdKit 的汇编代码的 `beeper.sys` 大几百个字节，而用 DDDK 生成的 `beeper.sys` 则要超过 3K。
+
+打完这么多字真不容易，这篇教程就到这里吧，下一篇我们再来用 delphi 做一个更有趣的东东。

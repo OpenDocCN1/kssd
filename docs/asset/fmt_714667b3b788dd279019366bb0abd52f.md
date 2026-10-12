@@ -1,0 +1,19 @@
+
+# C 语言写的俄罗斯方块
+
+> 原文：[`www.pediy.com/kssd/pediy11/119739.html`](https://www.pediy.com/kssd/pediy11/119739.html)
+
+小游戏使用`c`语言+`SDL`写的，编译环境为`vs2005`，也没什么技术含量，希望能拿到邀请码，成为正式会员，更好的学习。
+
+节了两张图，程序和源码在`debug.rar`，由于大小限制图片单独打包了，解压后放在`debug`就可运行。
+
+![](img/c154b01ca7a71fc5c38f1989881b1ae0.jpg)
+
+![](img/1bdf13b56724442c459b0e5da10491cd.jpg)
+
+上传的附件：
+
+| 图片 | 文件 |
+| :--- | :--- |
+| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) | `debug.rar` |
+| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) | `pictures.rar` |

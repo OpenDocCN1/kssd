@@ -1,0 +1,57 @@
+
+# 端口读写总结 2 之 R3 无驱读端口
+
+> 原文：[`www.pediy.com/kssd/pediy12/136280.html`](https://www.pediy.com/kssd/pediy12/136280.html)
+
+这是我总结的第四种方法中的第一个函数的使用
+
+`NtSystemDebugControl` 可以调用其 14、15 号功能即可实现对端口的读写
+
+另外附 `MJ` 在 `windows7RC` 版 `NtSystemDebugControl` 的功能
+
+`http://hi.baidu.com/mj0011/blog/item/b3ee910a05811636b1351db5.html`
+
+总之 `NtSystemDebugControl` 是一个很繁杂但是却很有用的函数，调用它我们能干很多事情
+
+我的机器 `T4300` 的处理器不支持 `VT` 虚拟化，我只能在真实机器上装 64 位系统。下面是 `2008R2SP1` 的关于这个函数的反汇编。一开始看到 `rax`、`rsp` 好惊奇呢，忽然想起来是 64 位的系统啊
+
+其他的注释还有链接都写在代码里面。大家又要纠正或者补充的请跟帖
+
+直接在 `XP SP3` 下拖动 `console.exe` 到 `CMD` 就可以看到 `CMOS` 密码被清空了
+
+`nt!NtSystemDebugControl:`
+
+```
+fffff800`01b67ab0 488bc4           mov     rax,rsp
+fffff800`01b67ab3 4c894820         mov     qword ptr [rax+20h],r9
+fffff800`01b67ab7 44894018         mov     dword ptr [rax+18h],r8d
+fffff800`01b67abb 48895010         mov     qword ptr [rax+10h],rdx
+fffff800`01b67abf 894808           mov     dword ptr [rax+8],ecx
+fffff800`01b67ac2 53               push    rbx
+fffff800`01b67ac3 56               push    rsi
+fffff800`01b67ac4 57               push    rdi
+fffff800`01b67ac5 4154             push    r12
+fffff800`01b67ac7 4155             push    r13
+fffff800`01b67ac9 4156             push    r14
+fffff800`01b67acb 4157             push    r15
+fffff800`01b67acd 4881ec90000000  sub     rsp,90h
+fffff800`01b67ad4 4d8bf1           mov     r14,r9
+fffff800`01b67ad7 458be0           mov     r12d,r8d
+fffff800`01b67ada 4c8bea           mov     r13,rdx
+fffff800`01b67add 8bf9             mov     edi,ecx
+fffff800`01b67adf 8364243800       and     dword ptr [rsp+38h],0
+fffff800`01b67ae4 83609000         and     dword ptr [rax-70h],0
+fffff800`01b67ae8 33d2             xor     edx,edx
+fffff800`01b67aea 448d4234         lea     r8d,[rdx+34h]
+fffff800`01b67aee 488d4894         lea     rcx,[rax-6Ch]
+fffff800`01b67af2 e8990dd7ff       call    nt!memset (fffff800`018d8890)
+fffff800`01b67af7 488364244800     and     qword ptr [rsp+48h],0
+fffff800`01b67afd 488364244000     and     qword ptr [rsp+40h],0
+fffff800`01b67b03 803d30b7edff00  cmp     byte ptr [nt!KdPitchDebugger (fffff800`01a4323a)],0
+fffff800`01b67b0a 0f85c0bb0c00     jne     nt! ?? ::NNGAKEGL::`string'+0x58590 (fffff800`01c336d0)
+```
+
+### 上传的附件
+
+| ![image](img/31a2c422ae120fd0b6c241a4e6e83632.jpg) | `NtSystemDebugControlXP.7z` |
+| :--- | :--- |

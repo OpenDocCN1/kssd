@@ -1,0 +1,148 @@
+
+# 同步问题与临界区分析
+
+## 1. 定时器与线程管理
+
+如果创建完 20 条线程以后，我们就创建一个定时器，用以将数值写到控件里面。
+
+```
+00401149                 |.  6A 00                push 0                    ; /如果创建完 20 条线程以后~我们就创建一个定时器，用以将数值写到控件里面
+0040114B                 |.  68 F4010000          push 1F4                  ; |Timeout = 500. ms
+00401150                 |.  6A 01                push 1                    ; |TimerID = 1
+00401152                 |.  FF75 08              push dword ptr ss:[ebp+8] ; |hWnd
+00401155                 |.  E8 BE000000          call <jmp.&user32.SetTimer> ; \\SetTimer
+```
+
+会创建一个定时器，`500MS` 执行一次 `WM_TIMER` 消息。
+
+```
+0040108B                 |.  3D 13010000          cmp eax,113               ;  Switch (cases 10..113)
+00401090                 |.  75 4D                jnz short syn_fix.004010DF
+00401092                 |.  6A FF                push -1                   ; /Timeout = INFINITE; Case 113 (WM_TIMER) of switch
+00401094                 |.  FF35 18304000        push dword ptr ds:[403018] ; |hObject = 00000064 (window)
+0040109A                 |.  E8 A9010000          call <jmp.&kernel32.WaitForSingleObject> ; \\WaitForSingleObject
+```
+
+这里同样是用一组 `WaitForSingleObject` 来等待线程完成，才进行下一个线程。
+
+```
+0040109F                 |.  6A 00                push 0                    ; /IsSigned = FALSE
+004010A1                 |.  FF35 0C304000        push dword ptr ds:[40300C] ; |Value = A (10.)
+004010A7                 |.  68 E9030000          push 3E9                  ; |ControlID = 3E9 (1001.)
+004010AC                 |.  FF35 04304000        push dword ptr ds:[403004] ; |hWnd = 00700340 ('同步问题解决',class='#32770')
+004010B2                 |.  E8 5B010000          call <jmp.&user32.SetDlgItemInt> ; \\SetDlgItemInt
+004010B7                 |.  6A 00                push 0                    ; /IsSigned = FALSE
+004010B9                 |.  FF35 10304000        push dword ptr ds:[403010] ; |Value = A (10.)
+004010BF                 |.  68 EA030000          push 3EA                  ; |ControlID = 3EA (1002.)
+004010C4                 |.  FF35 04304000        push dword ptr ds:[403004] ; |hWnd = 00700340 ('同步问题解决',class='#32770')
+004010CA                 |.  E8 43010000          call <jmp.&user32.SetDlgItemInt> ; \\SetDlgItemInt
+004010CF                 |.  FF35 18304000        push dword ptr ds:[403018] ; /hEvent = 00000064 (window)
+004010D5                 |.  E8 68010000          call <jmp.&kernel32.SetEvent> ; \\SetEvent
+```
+
+同样告诉 Windows 自己搞完了，让别的线程进~~~
+
+```
+004010DA                 |.  E9 E7000000          jmp syn_fix.004011C6
+```
+
+## 2. 事件对象与线程调度
+
+代码逻辑如下：
+
+```
+00401025                 |> /6A FF                /push -1                  ; /Timeout = INFINITE
+00401027                 |. |FF35 18304000        |push dword ptr ds:[403018] ; |hObject = 00000064 (window)
+0040102D                 |. |E8 16020000          |call <jmp.&kernel32.WaitForSingleObject> ; \\WaitForSingleObject
+;  这里 WaitForSingleObject 来判断下一个线程是否能运行，当然因为我们创建事件的时候是置位的，所以第一条线程顺利运行.....其他的事件就会等待在这里
+00401032                 |. |FF05 0C304000        |inc dword ptr ds:[40300C]
+00401043                 |.  FF35 18304000        |push dword ptr ds:[403018] ; /hEvent = 00000064 (window)
+00401049                 |.  E8 F4010000          |call <jmp.&kernel32.SetEvent> ; \\SetEvent
+;等到线程要运行的执行运行完，我们就使用 SetEvent 置位，相当于告诉 Windows, 我做完了，让别的线程进来 XXOO 把~~~~
+```
+
+OK 事件搞完了~~~
+
+## 3. 临界区（CRITICAL_SECTION）
+
+我们看一下临界区~~~
+
+临界区实现的是互斥技术。在任何时刻，只有一个线程能进入临界区。只有在该线程离开临界区后，其它线程才能进入。临界区对象不能被移动或者拷贝，进程也不能够修改该对象，而必须把它看作逻辑上不透明的（小黑箱）。使用由 Win32 API 提供的临界区函数来管理临界区对象。
+
+要使用临界区，首先需要定义一个临界区对象，此时，进程负责分配相应内存：
+
+```
+CRITICAL_SECTION cs;
+```
+
+然后，临界区对象必须由程序中某个线程初始化：
+
+```
+InitializeCriticalSection(&cs);
+```
+
+当初始化完该临界区对象后，线程可以调用下面的函数进入临界区：
+
+```
+EnterCriticalSection(&cs);
+```
+
+进入临界区后，该线程被认为拥有该临界区对象。因此，其它线程调用 `EnterCriticalSection` 想进入该临界区时，会被挂起。等到拥有临界区对象的线程离开临界区后，它才有机会获得该临界区对象。一旦一个线程拥有临界区，那么它可以再调用 `EnterCriticalSection` 或者 `TryEnterCriticalSection` 而不会阻塞它自己的执行。这防止了一个线程因等待它自己所拥有的临界区而出现死锁。
+
+（`TryEnterCriticalSection` 与 `EnterCriticalSection` 的区别：`EnterCriticalSection` 无论是否获得临界区，都立即返回（注：此处原文描述可能有误，通常 `Enter` 是阻塞的，`TryEnter` 是非阻塞的；但根据原文语境，应理解为：`TryEnterCriticalSection` 是立即返回且不阻塞的，而 `EnterCriticalSection` 在未获得时阻塞。原文表述为：“前者无论是否获得临界区，都立即返回；而后者在获得临界区前一直处理阻塞状态。” 这里的“前者”指代不明，根据上下文逻辑，通常 `TryEnter` 是非阻塞的。为了保持原文语义，我将保留原文对 `TryEnterCriticalSection` 的描述：“`TryEnterCriticalSection` 可以通过函数的返回值判断是否获得临界区，如果没有，可以做其它事情，而不是处于等待状态。”）
+
+离开临界区：
+
+```
+LeaveCriticalSection(&cs);
+```
+
+当临界区不再需要时，可将其删除，从而释放相应系统资源：
+
+```
+DeleteCriticalSection(&cs);
+```
+
+使用临界区有一个限制，它只能用于同一进程内的线程间的互斥。而在某些情况下，需要协调两个不同进程对同一资源的共享（如共享内存）。此时，已不能再使用临界区做到，需要借助于互斥对象（`mutex object`）来实现（注：`mutex` 是一个合成词 `[mutual exclusion]`）。
+
+理论我是从网上直接粘贴的 - - 大家直接看吧~~~
+
+就是定义了一个 `CRITICAL_SECTION` 结构，然后初始化，然后 `EnterCriticalSection` 一下，这样就保证了只有一条线程可以操作指令，剩下的执行到这里就被挂起了。嘿嘿
+
+还是看 OD~~
+
+## 4. 线程状态观察
+
+代码：
+
+```
+线程
+标识       入口       数据块       最后错误          状态        优先权     用户时间     系统时间
+0000009C   7C810856   7FF99000     ERROR_SUCCESS (000  激活         32 + 0      1.1875 s     0.0468 s
+000000F8   7C810856   7FFD3000     ERROR_SUCCESS (000  激活         32 + 0      0.0937 s     0.4531 s
+00000344   7C810856   7FFD5000     ERROR_SUCCESS (000  激活         32 + 0      0.0937 s     0.6718 s
+0000055C   7C810856   7FF9B000     ERROR_SUCCESS (000  激活         32 + 0      1.4218 s     0.0781 s
+00000560   7C810856   7FFDC000     ERROR_SUCCESS (000  激活         32 + 0      0.0312 s     0.5000 s
+00000654   7C810856   7FFDA000     ERROR_SUCCESS (000  激活         32 + 0      0.0312 s     0.4218 s
+0000071C   7C810856   7FFDB000     ERROR_SUCCESS (000  激活         32 + 0      0.7968 s     0.0937 s
+00000748   7C810856   7FFD4000     ERROR_SUCCESS (000  激活         32 + 0      1.0625 s     0.0625 s
+00000908(  004011C1   7FFDF000     ERROR_ACCESS_DENIE  激活         32 + 0      0.0468 s     0.1093 s
+000009A8   7C810856   7FF9A000     ERROR_SUCCESS (000  激活         32 + 0      0.1093 s     0.9218 s
+00000A24   7C810856   7FF9D000     ERROR_SUCCESS (000  激活         32 + 0      0.9062 s     0.1093 s
+00000AF0   7C810856   7FFD9000     ERROR_SUCCESS (000  激活         32 + 0      1.1562 s     0.0468 s
+00000B00   7C810856   7FFD7000     ERROR_SUCCESS (000  激活         32 + 0      1.0937 s     0.0312 s
+00000BA4   7C810856   7FF9C000     ERROR_SUCCESS (000  激活         32 + 0      0.1093 s     0.4531 s
+00000CE8   7C810856   7FFD8000     ERROR_SUCCESS (000  激活         32 + 0      0.1406 s     0.7031 s
+00000D10   7C810856   7FF9E000     ERROR_SUCCESS (000  激活         32 + 0      0.1406 s     0.6093 s
+00000D2C   7C810856   7FFDD000     ERROR_SUCCESS (000  激活         32 + 0      1.5468 s     0.0781 s
+00000E20   7C810856   7FF98000     ERROR_SUCCESS (000  激活         32 + 0      0.0937 s     0.4531 s
+00000E44   7C810856   7FFDE000     ERROR_SUCCESS (000  激活         32 + 0      0.0625 s     0.5000 s
+00000F1C   7C810856   7FF97000     ERROR_SUCCESS (000  激活         32 + 0      1.1250 s     0.0625 s
+00000F88   7C810856   7FF9F000     ERROR_SUCCESS (000  激活         32 + 0      1.2187 s     0.0781 s
+```
+
+这里可以看到所有线程还都是激活的，当我们运行 `EnterCriticalSection` 后我们看：
+
+线程
+
+标识       入口       数据块       最后错误          状态        优先权     用户时间     系统时间

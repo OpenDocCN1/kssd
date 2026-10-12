@@ -1,0 +1,214 @@
+
+# 控制其他程序内部函数（汇编源代码）【原创】
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-686.htm`](https://www.pediy.com/kssd/pediy08/pediy8-686.htm)
+
+首先声明本文为菜鸟级，高手就不要看了，呵呵。关于如何控制其它程序内部函数的问题，我在网上找了很久也没有找到比较全面的技术资料和文档。于是我开始翻看《WINDOWS 核心编程》及《WINDOWS 网络编程》两本资料，并且进行了实际测试。
+
+首先说下大体思路，如果要控制一个进程的内部函数，我认为功能上大体可分为两个部分。第一部分需要控制的就是函数的参数，能够取出函数的参数；第二部分就是能够根据自己的需要调用这个函数。今天我想先根据我的经验给大家介绍下第一部分的内容，有说的不对的地方欢迎大家指正。
+
+要控制一个进程，方式有很多，比如 `HOOK` 等技术，但是我个人认为那些技术不够灵活，在功能上也不够全面，也可能是我对 `HOOK` 的理解和应用不够深入吧。我采取的方法是利用创建远程线程的办法，插入一个 `DLL` 到目标进程，然后利用 `DLL` 内部代码捕获指定函数的指定参数，并且传送到我们自己的一个进程。具体分为以下几部进行的：
+
+1. 首先建立一个 `EXE` 文件用于插入 `DLL` 到目标进程。
+2. `DLL` 被成功插入后，立即执行其初始化代码。
+3. 捕获函数参数。
+4. 利用管道通信技术，把参数值传回我们自己的程序。
+
+以下我分步具体讲解实施细节。
+
+### 1. 首先建立一个 EXE 文件用于插入 DLL 到目标进程。
+
+这个过程在《WINDOWS 核心编程》里面介绍的比较详细，不过里面是 C 语言代码，我是利用汇编语言实现的。首先我们需要找到目标进程的窗口，然后取得进程的句柄，然后以我们需要的方式打开进程，然后在目标进程内创建一端内存，用来存放我们的 `DLL` 名称字符串，然后再获得 `Kernel32.dll` 的 `LoadLibraryA` 函数的内存入口地址，然后利用这个函数装载我们的 `DLL` 到目标进程，然后利用 `CreateRemoteThread` 函数在目标进程中创建一个线程，用来执行 `DLL` 的初始化代码。
+
+汇编源代码如下：
+
+```asm
+.386
+.model flat,stdcall
+option casemap:none
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+include       windows.inc
+include       user32.inc
+includelib    user32.lib
+include       kernel32.inc
+includelib    kernel32.lib
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+        .data
+hGameHandle   dd     ?    ;进程句柄
+hGameClass    dd      ?   ;游戏窗口类名
+dwProcessID   dd      ?
+szBuffer      db      256 dup (?)
+dwMemAdd      dd      ?   ;创建的内存空间的地址
+dwSizeDllName dd      ?   ;欲插入的 DLL 文件名长度
+dwLoadLibraryW      dd      ?   ;LoadLibraryW 函数地址
+dwRemoteThreadID    dd      ?   ;创建的远程线程的 ID
+dwExitCode      dd      ?
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+        .const
+szCaption      db      'SendMessage',0
+szStart        db      'Press OK to start SendMessage, param: %d',0
+szReturn       db      'SendMessage returned!',0
+szGameClass    db      'FSOnline Class',0
+szText         db      'Text send to other windows',0
+szNotFound     db      'Receive Message Window not found!',0
+szError        db      '无法打开进程',0
+szSucceed      db      '打开进程成功',0
+szMemError     db      '申请内存失败',0
+szMemSucceed   db      '申请内存成功',0
+szExit         db      '线程退出,0
+szFileName     db      'c:\\mylib.dll',0
+szKernel32     db      'Kernel32.dll',0
+szLoadLibraryW db      'LoadLibraryA',0
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+        .code
+start:
+        invoke  FindWindow,addr szGameClass,NULL    ;查找目标进程窗口
+        mov     hGameClass,eax
+        invoke  GetWindowThreadProcessId,hGameClass,addr dwProcessID  ;取得目标进程 ID
+        .if     dwProcessID
+                invoke  wsprintf,addr szBuffer,addr szStart,dwProcessID
+                invoke  MessageBox,NULL,offset szBuffer,\
+                        offset szCaption,MB_OK
+                invoke  OpenProcess,PROCESS_QUERY_INFORMATION or PROCESS_CREATE_THREAD or \
+                        PROCESS_VM_OPERATION or PROCESS_VM_WRITE,FALSE, dwProcessID
+                ; Required by Alpha// For CreateRemoteThread// For VirtualAllocEx/VirtualFreeEx// For WriteProcessMemory
+                .if eax==NULL
+                invoke  MessageBox,NULL,addr szError,addr szCaption,MB_OK
+                invoke  ExitProcess,NULL
+                .else
+                mov hGameHandle,eax
+                invoke  MessageBox,NULL,addr szSucceed,addr szCaption,MB_OK
+                .endif
+
+                mov eax,sizeof szFileName
+                mov dwSizeDllName,eax
+                invoke  VirtualAllocEx,hGameHandle, NULL, dwSizeDllName, MEM_COMMIT,PAGE_READWRITE ;创建内存地址空间，用来传递 DLL 名称字符串
+                .if eax==NULL
+                invoke  MessageBox,NULL,addr szMemError,addr szCaption,MB_OK
+                invoke  ExitProcess,NULL
+                .else
+                mov dwMemAdd,eax
+                invoke  MessageBox,NULL,addr szMemSucceed,addr szCaption,MB_OK
+                .endif
+
+                invoke  WriteProcessMemory,hGameHandle, dwMemAdd,addr szFileName,\
+                        dwSizeDllName, NULL  ;目标 DLL 名称写入进程内存
+                invoke  GetModuleHandle,addr szKernel32
+                invoke  GetProcAddress,eax,offset szLoadLibraryW
+                mov dwLoadLibraryW,eax
+                invoke  CreateRemoteThread,hGameHandle, NULL, 0,dwLoadLibraryW, dwMemAdd, 0, NULL   ；创建线程
+                mov dwRemoteThreadID,eax
+                invoke  WaitForSingleObject,dwRemoteThreadID, INFINITE ；等待线程结束并释放资源
+                invoke  MessageBox,NULL,addr szExit,addr szCaption,MB_OK
+                invoke  GetExitCodeThread,dwRemoteThreadID, dwExitCode
+                invoke  CloseHandle,dwRemoteThreadID
+        .else
+                invoke  MessageBox,NULL,offset szNotFound,\
+                offset  szCaption,MB_OK
+        .endif
+        invoke  ExitProcess,NULL
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        end    start
+```
+
+我这个人比较懒，很多出错代码没有写，还有些用于调试的代码没有删除，呵呵。
+
+下面我们再来看看插入到目标进程内的 `DLL` 代码，这段代码的初始化代码在远程线程建立的时候即开始运行。我目前要控制的函数是目标进程的 `WSASend` 函数，不要以为这种方法只能控制 API，等你看完你就明白，只要是目标进程使用的函数，不管是内部的还是外部的，都可以控制。我们的目标是 `WSASend` 函数的第 2 个参数，因为这个参数记录着要发送数据包的长度和数据包的内存地址，我们先来看下用 `OD` 打开目标进程后，它调用 `WSASend` 函数的过程。
+
+```asm
+005609D2    6A 00           push    0
+005609D4    8906            mov     [esi], eax
+005609D6    03E9            add     ebp, ecx
+005609D8    6A 00           push    0
+005609DA    8D4424 18       lea     eax, [esp+18]
+005609DE    6A 00           push    0
+005609E0    896E 04         mov     [esi+4], ebp
+005609E3    2BF9            sub     edi, ecx
+005609E5    8B8B FC010000   mov     ecx, [ebx+1FC]
+005609EB    50              push    eax
+005609EC    6A 01           push    1
+005609EE    56              push    esi
+005609EF    51              push    ecx
+005609F0    897C24 30       mov     [esp+30], edi
+005609F4    FF15 5CC75700   call    [57C75C]                   ; WS2_32.WSASend
+```
+
+可以看到我们要获得的函数的参数在 `ESI` 中保存，那么我们插入 `DLL` 的初始化代码就把：
+
+```asm
+005609EB    50              push    eax
+```
+
+这一条指令改为跳转到我们 `DLL` 的获取参数的代码的地址处，为什么选从这里开始呢，因为在这里之前，`ESI` 已经被付值，并且 `JMP` 指令占用的是 5 字节内存，正好到：
+
+```asm
+005609F0    897C24 30       mov     [esp+30], edi
+```
+
+这里，我们的代码取出 `ESI` 的数值后，在 `JMP` 到 `005609F0`，即可不影响这个进程的正常工作。好了，看下我们的 `DLL` 代码：
+
+```asm
+.386
+.model flat, stdcall
+option casemap :none
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+include   windows.inc
+include   user32.inc
+includelib  user32.lib
+include   kernel32.inc
+includelib  kernel32.lib
+includelib  ws2_32.lib
+include   ws2_32.inc
+
+PATCH_POSITION  equ     005609ebh
+
+WSASendBuf  struct
+  dwSize  dd  ?
+  dwAddr  dd  ?
+WSASendBuf ends
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+hModel  dd  ?      ;本模块入口地址
+dwAddress  dd  ?    ;跳转回去的目标地址
+lpBuffers  dd  ?    ;数据包地址
+dwProcAddr  dd  ?    ;跳转函数的入口地址
+hPipe    dd  ?    ;管道句柄
+dwSize    dd  ?    ;已经发送数据的长度、字节
+dwMemAdd  dd  ?    ;发送数据的地址
+dwPackSize  dd  ?    ;需要发送数据的长度、字节
+lpBufRecv  dd  ?    ;接收管道数据包地址
+szBuffer  db  1024 dump (?)  ;数据处理空间
+hSocket    dd  ?    ;SOCKET 句柄
+dwWsasend  WSASendBuf  ?
+dwSizePipe  dd  ?    ;模拟发送的数据长度
+
+.const
+szText  db  '载入成功',0
+szProc  db  '_lanjie',0
+szModel  db  'mylib.dll',0
+szPipeName  db  '\\.\Pipe\masm',0
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+.code
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+DllEntry  proc  _hInstance,_dwReason,_dwReserved
+        mov     eax,_dwReason
+        .if     eax ==  DLL_PROCESS_ATTACH
+                invoke  MessageBox,NULL,addr szText,addr szModel,MB_OKCANCEL
+```

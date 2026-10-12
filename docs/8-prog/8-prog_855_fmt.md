@@ -1,0 +1,20 @@
+
+# MTK 驱动一年知识总结
+
+> 原文：[`www.pediy.com/kssd/pediy12/132798.html`](https://www.pediy.com/kssd/pediy12/132798.html)
+
+总结下，自己做 MTK 驱动一年来所学到的东西。
+
+一：LCD 的调试，MTK 的架构已经帮你搭建好了，调试的时候要注意的是 1. 需要调试的 LCDbit 位是否是硬件相同。2. IC 是什么？需要特别注意他的刷屏方式。TFT 的调试比较简单。串口屏的调试主要注意 I2C 的写法就可以了，总的来说屏上没有太难的东西。
+
+二：camera 的调试，驱动方面也比较，只是点亮的话，如果要深入研究，还是涉及到比较多的知识点，比较刷屏窗口是怎么实现；上层 MMI 是怎么调用你的等等，希望大家一起研究探讨。
+
+三：对 `GPIO` 的控制，看看 datasheet 就能明白了。
+
+四：`Flash` 配置：一般来说，NOR Flash 被划分为两个区域，一个用于下载代码；另一个用于文件系统，被 flash 磁盘驱动来管理，在它的上层就是 `FAT`。最重要的是这两个区域应被分配在 NOR Flash 设备上的两个不同的 Bank 上。对于 Nand Flash 内存，所有的内存空间被用于文件系统。对应的文件为 `FlashConf.c` 和 `NANDFlashConf.c` 是 Flash 驱动。`FLASH_BASE_ADDRESS`, `ALLOCATED_FAT_SPACE`, `RegionInfo` 表和 `TOTAL_BLOCKS`；除了这四个参数，其他的不要改动。`FLASH_BASE_ADDRESS`：文件系统部分的起始地址；`ALLOCATED_FAT_SPACE`：配置为 FAT 分配的 flash 内存空间。
+
+五：是 Touch panal 充电等模块的开发，如硬件没有改变，改动也是不大。
+
+总的来说，要自己多分析问题，多了解硬件原理，才能让自己的驱动之路走的更远，对模电数电的知识的掌握，对 C 语言的深刻理解。
+
+我将的很初略，希望大家参与，多多讨论，共同进步！

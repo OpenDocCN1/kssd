@@ -1,0 +1,15 @@
+
+# `Vim_for_wdk7600` 开发配置
+
+> 原文：[`www.pediy.com/kssd/pediy12/141890.html`](https://www.pediy.com/kssd/pediy12/141890.html)
+
+具体的设置自行参考我的 `VIM` 配置，直接上效果图，just enjoy 有问题可问我，哈哈
+
+话说 `VS` 系列简直是太大了，至今只用 `VC6`，可惜 `VC6` 好像 `WDK` 支持不好~
+
+![](img/0490458e95d9bce1555b7b34ebb3ee9a.jpg)
+
+上传的附件
+
+| ![](img/67af4f1ef9c98996f43e89e749c7dcf5.jpg) || `vim_for_wdk.rar` |
+|---|---|

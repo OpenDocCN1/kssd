@@ -1,0 +1,134 @@
+
+# 程序：怎么样去启动一个进程
+
+> 原文：[`www.pediy.com/kssd/pediy12/126748.html`](https://www.pediy.com/kssd/pediy12/126748.html)
+
+有几种方法去启动一个进程：
+
+*   `_exec()``（C 运行时函数）
+*   `_spawn()``（C 运行时函数）
+*   `WinExec()``（Win32 API）
+*   `ShellExecute()``（Shell API）
+*   `ShellExecuteEx()``（Shell API）
+*   `CreateProcess()``（Win32 API）
+*   `CreateProcessAsUser()``（Win32 API）
+*   `CreateProcessWithLogonW()``（Win32 API）
+
+最常见的是`ShellExecute()`、`ShellExecuteEx()`和`CreateProcess()`。
+
+注意，`WinExec()`是只兼容于 16Windows 系统，应该不再使用它。
+
+下面的例子将演示如何运用这 3 个函数在`notepad.exe`里面显示文本文件`c:\\example.txt`。
+
+附加参数可以改为自己的 DLL 的地址
+
+### `ShellExecute()`
+
+```
+HINSTANCE hInst = ShellExecute(0,
+                     "open",                   // 执行的操作
+                     "c:\\windows\\notepad.exe",  // 应应用程序的名称
+                     "c:\\example.txt",          //附加参数，
+                     0,                       //默认目录
+                     SW_SHOW);
+
+if(reinterpret_cast<int>(hInst) <= 32)
+{
+  //无法启动应用程序
+  switch(reinterpret_cast<int>(hInst))
+  {
+    case 0:
+      //操作系统内存不足或资源.
+      break;
+    case ERROR_FILE_NOT_FOUND:
+      // 指定文件没有找到，.
+      break;
+    case ERROR_PATH_NOT_FOUND:
+      // 指定路径没有找到.
+      break;
+    case ERROR_BAD_FORMAT:
+      // .EXE 文件是无效文件 (不是-Microsoft Win32 .exe 或错误的.exe 映像).
+      break;
+    case SE_ERR_ACCESSDENIED:
+      // 操作系统拒绝访问指定文件.
+      break;
+    case SE_ERR_ASSOCINCOMPLETE:
+      // 文件名称不完整或无效.
+      break;
+    case SE_ERR_DDEBUSY:
+      // 动态数据(DDE)处理可能无法完成
+// 因为别的 DDE 在处理队列中.
+      break;
+    case SE_ERR_DDEFAIL:
+      // DDE 处理失败.
+      break;
+    case SE_ERR_DDETIMEOUT:
+      // DDE 处理可能无法完成请求超时.
+      break;
+    case SE_ERR_DLLNOTFOUND:
+      // 指定动态链接库(DLL) 没有找到.
+    case SE_ERR_FNF:
+      // 指定文件没有找到.
+      break;
+    case SE_ERR_NOASSOC:
+      // 没有相应的文件具有指定扩展名.
+      // 如果你尝试去打印文件那么这个错误将同样是返回
+      // not printable.
+      break;
+    case SE_ERR_OOM:
+      // 没有足够的内存来完成操作.
+      break;
+    case SE_ERR_PNF:
+      // 指定路径没有找到.
+      break;
+    case SE_ERR_SHARE:
+      // 发生共享冲突.
+      break;
+  }
+}
+```
+
+### `ShellExecuteEx()`
+
+```
+SHELLEXECUTEINFO ExecuteInfo;
+memset(&ExecuteInfo, 0, sizeof(ExecuteInfo))；
+ExecuteInfo.cbSize      = sizeof(ExecuteInfo);
+ExecuteInfo.fMask       = 0;
+ExecuteInfo.hwnd        = 0;
+ExecuteInfo.lpVerb      = "open";        // 执行的操作
+ExecuteInfo.lpFile      = "c:\\windows\\notepad.exe";  // 应用程序名称
+ExecuteInfo.lpParameters = "c:\\example.txt";  // 附加参数
+ExecuteInfo.lpDirectory = 0;             // 默认的目录
+ExecuteInfo.nShow       = SW_SHOW;
+ExecuteInfo.hInstApp    = 0;
+if(ShellExecuteEx(&ExecuteInfo) == FALSE)
+  // 如果不能启动应用程序 -> call 'GetLastError()'
+```
+
+### `CreateProcess()`
+
+```
+STARTUPINFO        siStartupInfo;
+PROCESS_INFORMATION piProcessInfo;
+memset(&siStartupInfo, 0, sizeof(siStartupInfo));
+memset(&piProcessInfo, 0, sizeof(piProcessInfo));
+siStartupInfo.cb = sizeof(siStartupInfo);
+if(CreateProcess("c:\\windows\\notepad.exe", // 应用程序名称
+                 " example.txt",    // 附加参数
+                 0,
+                 0,
+                 FALSE,
+                 CREATE_DEFAULT_ERROR_MODE,
+                 0,
+                 0,                 //工作的目录
+                 &siStartupInfo,
+                 &piProcessInfo) == FALSE)
+  //如果不能启动应用程序 -> call 'GetLastError()'
+```
+
+在一般情况下`ShellExecuteEx()` 甚至 `CreateProcess()` 提供更多的应用程序的启动和应用程序的终止控制特征，如图所示 在 FAQ 中`How can I wait until a process ends?`
+
+[Andreas Masur]
+
+来源 e: `http://www.codeguru.com/forum/showthrea ... did=231233`

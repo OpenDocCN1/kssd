@@ -1,0 +1,181 @@
+
+### 00404AC7 - 00404AD0
+
+```
+00404AC7   .  C1E8 04       SHR EAX,4
+00404ACA   .  83E8 02       SUB EAX,2
+00404ACD   .  8B0424        MOV EAX,DWORD PTR SS:[ESP]
+00404AD0   .  83C4 04       ADD ESP,4
+```
+
+### 00404AD3 - 00404AD9
+
+```
+00404AD3   .- FF25 0C514000 JMP DWORD PTR DS:[<&KERNEL32.GlobalFree>]         ;  kernel32.GlobalFree
+00404AD9   .  FF0D 3C104000 DEC DWORD PTR DS:[40103C]
+```
+
+### 00404ADF - 00404AFB
+
+```
+00404ADF   .  75 1F         JNZ SHORT gay80.00404B00
+00404AE1   .  68 004B4000   PUSH gay80.00404B00
+00404AE6   .  50            PUSH EAX
+00404AE7   .  B8 E84A4000   MOV EAX,gay80.00404AE8
+00404AEC   .  0FB7C0        MOVZX EAX,AX
+00404AEF   .  C1E8 04       SHR EAX,4
+00404AF2   .  83E8 02       SUB EAX,2
+00404AF5   .  8B0424        MOV EAX,DWORD PTR SS:[ESP]
+00404AF8   .  83C4 04       ADD ESP,4
+00404AFB   .^ E9 A0FAFFFF   JMP gay80.004045A0
+```
+
+### 004045A0 - 004045CD
+
+```
+004045A0   > /57            PUSH EDI
+004045A1   . |55            PUSH EBP
+004045A2   . |89E5          MOV EBP,ESP
+004045A4   . |81EC F4010000 SUB ESP,1F4
+004045AA   . |89E7          MOV EDI,ESP
+004045AC   . |57            PUSH EDI
+004045AD   . |57            PUSH EDI
+004045AE   . |68 A4534000   PUSH gay80.004053A4                        ;  ASCII "%ComSpec% /c ERASE /F "
+004045B3   . |68 D3454000   PUSH gay80.004045D3
+004045B8   . |50            PUSH EAX
+004045B9   . |B8 BA454000   MOV EAX,gay80.004045BA
+004045BE   . |0FB7C0        MOVZX EAX,AX
+004045C1   . |C1E8 04       SHR EAX,4
+004045C4   . |83E8 02       SUB EAX,2
+004045C7   . |8B0424        MOV EAX,DWORD PTR SS:[ESP]
+004045CA   . |83C4 04       ADD ESP,4
+004045CD   .-|FF25 E8504000 JMP DWORD PTR DS:[<&KERNEL32.ExpandEnvir>;  kernel32.ExpandEnvironmentStringsA
+```
+
+### 004045D3 - 004045FB
+
+```
+004045D3   . |81C7 2C010000 ADD EDI,12C
+004045D9   . |68 C8000000    PUSH 0C8
+004045DE   . |57            PUSH EDI
+004045DF   . |6A 00         PUSH 0
+004045E1   . |68 01464000   PUSH gay80.00404601
+004045E6   . |50            PUSH EAX
+004045E7   . |B8 E8454000   MOV EAX,gay80.004045E8
+004045EC   . |0FB7C0        MOVZX EAX,AX
+004045EF   . |C1E8 04       SHR EAX,4
+004045F2   . |83E8 02       SUB EAX,2
+004045F5   . |8B0424        MOV EAX,DWORD PTR SS:[ESP]
+004045F8   . |83C4 04       ADD ESP,4
+004045FB   .-|FF25 F4504000 JMP DWORD PTR DS:[<&KERNEL32.GetModuleFi>;  kernel32.GetModuleFileNameA
+```
+
+### 00404601 - 00404622
+
+```
+00404601   . |68 C8000000    PUSH 0C8
+00404606   . |57            PUSH EDI
+00404607   . |57            PUSH EDI
+00404608   . |68 28464000   PUSH gay80.00404628
+0040460D   . |50            PUSH EAX
+0040460E   . |B8 0F464000   MOV EAX,gay80.0040460F
+00404613   . |0FB7C0        MOVZX EAX,AX
+00404616   . |C1E8 04       SHR EAX,4
+00404619   . |83E8 02       SUB EAX,2
+0040461C   . |8B0424        MOV EAX,DWORD PTR SS:[ESP]
+0040461F   . |83C4 04       ADD ESP,4
+00404622   .-|FF25 F8504000 JMP DWORD PTR DS:[<&KERNEL32.GetShortPat>;  kernel32.GetShortPathNameA
+```
+
+### 00404628 - 0040464A
+
+```
+00404628   . |57            PUSH EDI
+00404629   . |81EF 2C010000 SUB EDI,12C
+0040462F   . |57            PUSH EDI
+00404630   . |68 50464000   PUSH gay80.00404650
+00404635   . |50            PUSH EAX
+00404636   . |B8 37464000   MOV EAX,gay80.00404637
+0040463B   . |0FB7C0        MOVZX EAX,AX
+0040463E   . |C1E8 04       SHR EAX,4
+00404641   . |83E8 02       SUB EAX,2
+00404644   . |8B0424        MOV EAX,DWORD PTR SS:[ESP]
+00404647   . |83C4 04       ADD ESP,4
+0040464A   .-|FF25 28514000 JMP DWORD PTR DS:[<&KERNEL32.lstrcatA>]  ;  kernel32.lstrcatA
+```
+
+### 00404650 - 0040466D
+
+```
+00404650   . |6A 00         PUSH 0
+00404652   . |57            PUSH EDI
+00404653   . |68 73464000   PUSH gay80.00404673
+00404658   . |50            PUSH EAX
+00404659   . |B8 5A464000   MOV EAX,gay80.0040465A
+0040465E   . |0FB7C0        MOVZX EAX,AX
+00404661   . |C1E8 04       SHR EAX,4
+00404664   . |83E8 02       SUB EAX,2
+00404667   . |8B0424        MOV EAX,DWORD PTR SS:[ESP]
+0040466A   . |83C4 04       ADD ESP,4
+0040466D   .-|FF25 20514000 JMP DWORD PTR DS:[<&KERNEL32.WinExec>]   ;  kernel32.WinExec
+```
+
+### 逻辑分析
+
+得到自身的路径。
+
+将路径转换成短路径。
+
+然后在命令行下启动。
+
+```
+0006FCB4   00404650  /CALL 到 lstrcatA
+0006FCB8   0006FCC0  |ConcatString = "C:\WINDOWS\system32\cmd.exe /c ERASE /F "
+0006FCBC   0006FDEC  \StringToAdd = "C:\DOCUME~1\ADMINI~1\桌面\gay80\gay80.exe"
+```
+
+### 00404673 - 00404681
+
+```
+00404673   . |87EC          XCHG ESP,EBP
+00404675   . |8B2C24        MOV EBP,DWORD PTR SS:[ESP]
+00404678   . |83C4 04       ADD ESP,4
+0040467B   . |8B3C24        MOV EDI,DWORD PTR SS:[ESP]
+0040467E   . |83C4 04       ADD ESP,4
+00404681   . |C3            RETN
+```
+
+### 00404B00 - 00404B1C
+
+```
+00404B00   >  6A 00         PUSH 0
+00404B02   .  68 224B4000   PUSH gay80.00404B22
+00404B07   .  50            PUSH EAX
+00404B08   .  B8 094B4000   MOV EAX,gay80.00404B09
+00404B0D   .  0FB7C0        MOVZX EAX,AX
+00404B10   .  C1E8 04       SHR EAX,4
+00404B13   .  83E8 02       SUB EAX,2
+00404B16   .  8B0424        MOV EAX,DWORD PTR SS:[ESP]
+00404B19   .  83C4 04       ADD ESP,4
+00404B1C   .- FF25 E4504000 JMP DWORD PTR DS:<&KERNEL32.ExitProcess>;  kernel32.ExitProcess
+```
+
+### DLL 行为分析
+
+接下来看我们那个 `dll` 是做什么的。
+
+里面先用设置 `"%windir%\system32\ntshrui.dll"` 的环境变量，这个字符都是动态解析出来的。
+
+然后加载 `"C:\WINDOWS\system32\ntshrui.dll"`。这个是系统原本的 `dll`。
+
+然后调用 `GetProAddress` 得到 `DllCanUnloadNow` 和 `DllGetClassObject` 的地址，分别将这 2 个地址写入到一个固定的地方。
+
+再继续动态解析出 `explorer.exe` 字符，使用 `GetModuleFileName` 得到当前目录下的 `exe` 名。
+
+然后和 `explorer` 比较是否相等，相等的话就创建一个 `071900` 的事件。
+
+并调用 `RtlGetLastWin32Error` 进行判断，返回 `0` 的话就创建一个线程。
+
+线程地址是 `381387`，在往下看下这个线程做些什么就知道啥病毒行为了就不分析了，需要的自己看下吧。
+
+不早了，要睡觉了，困死了。晚安大家。

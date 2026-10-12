@@ -1,0 +1,555 @@
+
+# Grub for dos bootloader 分析
+
+> 原文：[`www.pediy.com/kssd/pediy10/97063.html`](https://www.pediy.com/kssd/pediy10/97063.html)
+
+## 概述
+
+`Grubfordos0.4.4` 的主题为三部分：`MBR`，`bootloader`, `kernel`
+
+### 1：`MBR` 对应的文件
+
+`stage1` 目录下的 `stage1.S` `.S` 后缀为 `GAS` 汇编源文件
+
+### Stage1
+
+大小 512 字节，编译后的结构为 `DBR` 结构，这样的优点是，无论你将 `GRUB` 安装在 `MBR` 还是分区的 `DBR` 中，都能正常引导，如果安装在硬盘的 `MBR` 中，那么 `bios` 的 `int19` 号中断会 `MBR` 中的内容读入到内存 `0x7C00` 处，而 `stage1` 的功能只是为了将 `start.S` 编译后存放在 `MBR 1`（`LBA`）扇区的地方二进制文件载入内存的 `0x8000` 处后跳转到该处执行，当然，在载入内存之前使用 `bios` 的 `int13` 号中断，或者 `int 13` 扩展调用读到缓冲区后在拷贝到相应的内存地址处；
+
+### 2：`bootload` 对应文件
+
+`start.S`
+
+由 `start1` 载入到内存 `0x8000` 处的代码功能充当 `bootload` 的功能，之所以不写在 `stage1` 中，是受硬盘每扇区存储字节数的限制，而 `MBR` 除引导代码外还保存有分区表信息，因此，`MBR` 中可用的字节数就更少了，而 `DBR` 中还应该保持 `BPB` 数据结构类型，故此，将 `loader` 单独编译一个扇区是情有可言的；
+
+### Start 的功能
+
+在末尾 -8 偏移的地方保存有 `stage2` 存放的扇区号（`LBA`）以及大小，`start1` 只是将对应 `kernel` 载入内存地址 `0x8200` 处，因为 `start` 编译后大小为 512 字节，故此占了 `0x200`,当 `stage2` 被载入完成后，就 `jmp` 到 `0x8200` 处执行，这时，真正的 `Grub` 代码才开始；
+
+### Stage2
+
+相当于一个小型的操作系统，`grub` 提供多引导支持，`grub` 对文件系统的支持较为全面，而一个操作系统，最复杂而核心的部分恐怕在于文件系统的实现上，故此，分析 `grub`，无论是对想了解操作系统原理还是文件系统原理的人来说，应该有一定的帮助；
+
+## 关于地址转换
+
+### 扇区的编号和线性地址
+
+由于 `int 13` 的限制，三维地址 `C/H/S` 的最大值为 `1024/16/63`，因此容量只能达到：`1024*16*63*512Byte=504MB`；故因此系统把所有的无聊扇区都按某种方式或规则看做是线性编号的扇区，从 0 到某一最大值；
+
+### 扇区编号
+
+`C/H/S`： 扇区编号从 1 开始至 63
+
+`LBA` : 扇区编号从 0 开始顺序编号
+
+### `C/H/S` 到线性地址的转换
+
+`C` : 当前柱面号 `CS`：起始柱面号
+
+`H` : 当前磁头号 `HS`：起始磁头号
+
+`S` ： 当前扇区号 `SS`：起始扇区号
+
+`PH`： 每柱面有多少个磁道
+
+`PS`: 每磁道有多少个扇区
+
+则有公式： `LBA = ( C - CS)*PH*PS + (H - HS)*PS + (S - SS)`
+
+一般情况下： `CS = 0` `HS = 0` `SS = 1` `PS = 63` `PH = 255`
+
+而 `LBA` 到 `C/H/S` 的转换稍微复杂一些，各变量按上述，有如下公式：
+
+`C = LBA div (PH*PS) + CS`
+
+`H = (LBA div PS) MOD PH + HS`
+
+`S = LBA MOD PS + SS`
+
+如果只用 `DIV`，则转换公式如下：
+
+`C = LBA div (PH*PS) + CS`
+
+`H = (LBA div PS)  (C-CS)*PH + HS`
+
+`S = LBA  (C-CS)*PH*PS  (H-HS)*PS +SS`
+
+## 代码:
+
+
+
+# GRUB2 启动代码解析：`start.S`
+
+## 预处理与包含
+
+```asm
+/\*预处理包含定义
+ *其中 STAGE1_5 被自 GRUB2 后不使用
+ *用到的 share.h 被其它一些源文件使用，
+ *此文件使用到的宏不多，用到时给与说明
+********************************************************/
+
+#define ASM_FILE
+#include <shared.h>
+
+#ifndef STAGE1_5
+#include <stage2_size.h>
+#endif
+```
+
+## 代码定义与宏
+
+```asm
+/\*
+ *  defines for the code go here
+ *\/
+
+  /* Absolute addresses
+     This makes the assembler generate the address without support
+     from the linker. (ELF can't relocate 16-bit addresses!) */
+
+/*重定位，并根据是否定义 STAGE1_5 选择装入地址*/
+
+#ifdef STAGE1_5
+# define ABS(x) (x-_start+0x2000)
+#else
+# define ABS(x) (x-_start+0x8000)
+#endif /* STAGE1_5 */
+  
+  /* 调用 int 10h 中断以打印机模式在屏幕上显示一字符串*/
+
+#define MSG(x)  movw $ABS(x), %si; call message
+
+************************************************************
+   .file op 指定和目标文件关联的源文件名
+***********************************************************/
+
+  .file  "start.S"
+
+************************************************************
+    .text 代码段声明; .code16 使用实模式
+***********************************************************/
+
+  .text
+
+  /* 告诉 GAS 产生 16 位指令，以便此代码能在实模式下运行 */
+  .code16
+
+  .globl  start, _start
+start:
+_start:   
+```
+
+## 主程序逻辑
+
+`start` 由 `stage1` 载入到 `0x8000` 处，`si` 仍然用于 `DiskAddressPacket` 结构。
+
+```asm
+  /* 首先保存设备类型号，stage1 由 bios 初始化在 dl 中! */
+
+  pushw  %dx
+
+  /* 在屏幕上打印字符串：loading stage2 or loading stage1_5 
+   *由于在输出字符的时候使用了 si 寄存器，故此保存原 si 地址
+   *字符串输出完毕后恢复原字符串*/
+
+  pushw  %si
+  MSG(notification_string)
+  popw  %si
+  
+  /**** #define BOOTSEC_LISTSIZE    8"  firstlist 为此段末尾偏移地址*/
+
+  movw  $ABS(firstlist - BOOTSEC_LISTSIZE), %di
+
+  /* LBA 以 0 开始，故此，stage1 占 1 扇区，start 占一扇区，故 stage2 从 2 开始，并存 倒数第 8 个字节处。 */
+  movl  (%di), %ebp
+
+        /*由于 firstlist -08h 处保存着需要载入的扇区号和扇区的数目，故此，
+         * bootloop 子功能，循环将对应的扇区号中的数据载入相应内存中并执行，
+   *可能有人会问，为什么不将 stage1 和 start 融合在一起呢，这是因为一般的
+   * 硬盘低格后，默认的扇区大小为 512 个字节，也就是分开也是不得于而为之
+   */
+
+bootloop:
+
+  /* [edi]+4 处为  .word (STAGE2_SIZE + 511) >> 9，这里不考虑 stage1_5 的情况
+   * STAGE2_SIZE 为 grub 编译后的大小，>>9 相当于除以 512，
+   *4（%di）处存的是 stage2 占的扇区数目/
+
+  cmpw  $0, 4(%di)
+
+  /* 如果为 0 说明使用 stage1_5 直接跳至 bootit 处执行 */
+  je  bootit
+
+setup_sectors:  
+  /* stage1 中，如果检测支持 LBA 模式，此语句被执行：movb  $1, -1(%si)
+   * 避免了相同功能的重复调用/
+
+  cmpb  $0, -1(%si)
+
+  /* 结果为 0，说明不支持 LBA 模式 */
+  je  chs_mode
+
+lba_mode:  
+  /* 装载逻辑扇区号入 ebx */
+  movl  (%di), %ebx
+
+
+/* the maximum is limited to 0x7f because of Phoenix EDD   
+ 看一下 int 43 的调用的参数说明：
+  Format   of   disk   address   packet:    
+  Offset   Size   Description    
+  00h   BYTE   10h   (size   of   packet)    
+  01h   BYTE   reserved   (0)    
+  02h   WORD   number   of   blocks   to   transfer   (max   007Fh   for   Phoenix   EDD)    
+  04h   DWORD   ->   transfer   buffer    
+  08h   QWORD   starting   absolute   block   number    
+  (for   non-LBA   devices,   compute   as    
+  (Cylinder*NumHeads   +   SelectedHead)   *   SectorPerTrack   +    
+  SelectedSector   -   1    
+  --------N-134257DX1234-----------------------   */
+
+
+  xorl  %eax, %eax
+  movb  $0x7f, %al
+
+  /* 比较应该读的数据数否超过最大传输参数 */
+
+  cmpw  %ax, 4(%di)  /* compare against total number of sectors */
+
+  /* 如果大于，跳至本句后一个标号 1:处，否则将值付给 ax 寄存器 */
+
+  jg  1f
+
+  /* if less than, set to total */
+  movw  4(%di), %ax
+
+1:  
+  /* 用 stage2 的总大小减去 ax 中的值，ax 的值为上面的判断后的设置值 */
+
+  subw  %ax, 4(%di)
+
+  /* 将 ax 的值加上起始扇区号，因为下面的代码会将 ax 中保存的扇区数目循环读出
+   * 这样，即使要读的数据超出 7f 也不用在定义其它的数据来保存剩下的扇区数
+   * /
+
+  addl  %eax, (%di)
+
+  /* 设置磁盘地址数据包结构体 */
+
+  /* the size and the reserved byte */
+  movw  $0x0010, (%si)
+
+  /* 需要读出的扇区数目，见到 ax 的用处了吧！ */
+  movw  %ax, 2(%si)
+
+  /* 绝对扇区地址，(low 32 bits) */
+  movl  %ebx, 8(%si)
+
+  /* 缓冲区段地址设置，读出的数据保存于此处   #define BUFFERSEG   RAW_SEG (0x7000)*/
+
+  movw  $BUFFERSEG, 6(%si)
+
+  /* 保存 ax 的值 */
+  pushw  %ax
+
+  /* zero %eax */
+  xorl  %eax, %eax
+
+  /* 缓冲区偏移地址设置 == 0 */
+  movw  %ax, 4(%si)
+
+  /* 高 32 位绝对地址 (high 32 bits) */
+  movl  %eax, 12(%si)
+
+
+/*
+ * BIOS call "INT 0x13 Function 0x42" to read sectors from disk into memory
+ *  Call with  %ah = 0x42
+ *      %dl = drive number
+ *      %ds:%si = segment:offset of disk address packet
+ *  Return:
+ *      %al = 0x0 on success; err code on failure
+ */
+
+  movb  $0x42, %ah
+  int  $0x13
+
+  jc  read_error
+
+  movw  $BUFFERSEG, %bx      /*缓冲区地址保存*/
+  jmp  copy_buffer          /*拷贝读出的数据*/
+       
+chs_mode:  
+  /* lBA 扇区号送 eax 寄存器 ，需要将 LBA 转换为 CHS 地址在读写*/
+  movl  (%di), %eax
+
+  /* edx 填零*/
+  xorl  %edx, %edx
+
+  /* divide by number of sectors */
+  divl  (%si)
+
+  /* save sector start */
+  movb  %dl, 10(%si)
+
+  xorl  %edx, %edx  /* zero %edx */
+  divl  4(%si)    /* divide by number of heads */
+
+  /* save head start */
+  movb  %dl, 11(%si)
+
+  /* save cylinder start */
+  movw  %ax, 12(%si)
+
+  /* do we need too many cylinders? */
+  cmpw  8(%si), %ax
+  jge  geometry_error
+
+  /* determine the maximum sector length of this read */
+  movw  (%si), %ax  /* get number of sectors per track/head */
+
+  /* subtract sector start */
+  subb  10(%si), %al
+
+  /* how many do we really want to read? */
+  cmpw  %ax, 4(%di)  /* compare against total number of sectors */
+
+
+  /* which is greater? */
+  jg  2f
+
+  /* if less than, set to total */
+  movw  4(%di), %ax
+
+2:  
+  /* subtract from total */
+  subw  %ax, 4(%di)
+
+  /* add into logical sector start */
+  addl  %eax, (%di)
+
+/*
+ *  This is the loop for taking care of BIOS geometry translation (ugh!)
+ */
+
+  /* get high bits of cylinder */
+  movb  13(%si), %dl
+
+  shlb  $6, %dl    /* shift left by 6 bits */
+  movb  10(%si), %cl  /* get sector */
+
+  incb  %cl    /* normalize sector (sectors go
+          from 1-N, not 0-(N-1) ) */
+  orb  %dl, %cl  /* composite together */
+  movb  12(%si), %ch  /* sector+hcyl in cl, cylinder in ch */
+
+  /* restore %dx */
+  popw  %dx
+  pushw  %dx
+
+  /* head number */
+  movb  11(%si), %dh
+
+  pushw  %ax  /* save %ax from destruction! */
+
+/*
+ * BIOS call "INT 0x13 Function 0x2" to read sectors from disk into memory
+ *  Call with  %ah = 0x2
+ *      %al = number of sectors
+ *      %ch = cylinder
+ *      %cl = sector (bits 6-7 are high bits of "cylinder")
+ *      %dh = head
+ *      %dl = drive (0x80 for hard disk, 0x0 for floppy disk)
+ *      %es:%bx = segment:offset of buffer
+ *  Return:
+ *      %al = 0x0 on success; err code on failure
+ */
+
+  movw  $BUFFERSEG, %bx
+  movw  %bx, %es  /* load %es segment with disk buffer */
+
+  xorw  %bx, %bx  /* %bx = 0, put it at 0 in the segment */
+  movb  $0x2, %ah  /* function 2 */
+  int  $0x13
+
+  jc  read_error
+
+  /* save source segment */
+  movw  %es, %bx
+  
+copy_buffer:   
+
+  /* load addresses for copy from disk buffer to destination */
+
+  /*附加段数据初始化。。
+   * blocklist_default_seg:
+   *  #ifdef STAGE1_5
+   *  .word 0x220
+   *  #else
+   *  .word 0x820   段的开始地址，*16 后为 8200，其中 8000 - 8200 被 start 占用
+   ******************************************************************** */
+      
+  movw  6(%di), %es  /* load destination segment */
+
+  /* 读了几个扇区，吐出来。。 */
+  popw  %ax
+
+  /* determine the next possible destination address (presuming
+    512 byte sectors!) */
+
+  //逻辑左移，末尾补零，移 1 位相当于算术*2，这里以 16 进制算出下一次拷贝的起始地址；
+  shlw  $5, %ax    /* shift %ax five bits to the left */
+  addw  %ax, 6(%di)  /* add the corrected value to the destination
+         address for next time */
+         
+  /* 环境保存，因为 MSG 调用 int10 中断后可能会改变寄存器的值 */
+  pusha
+  pushw  %ds
+
+  /* 由于开始用>>9 ，故此，两次 shl 移动的位数为 9，从而得到读出的字节数 */
+  shlw  $4, %ax
+  movw  %ax, %cx
+
+  xorw  %di, %di  /* zero offset of destination addresses */
+  xorw  %si, %si  /* zero offset of source addresses */
+  movw  %bx, %ds  /* 读出后保存于此 movw  $BUFFERSEG, %bx    缓冲区地址保存
+                     * 这里得分开，BUFFERSEG 为 0x7000 ，保存到 16 位的 bx 中取的是 0x70，注意 AT&T 和 MASM 的字节序/ 
+
+  cld    /* 自增方向标志*/
+
+  /* 重复拷贝，每次一个字节，拷贝到 0x8200 处 */
+  rep    /* sets a repeat */
+  movsb    /* this runs the actual copy */
+
+  /* restore addressing regs and print a dot with correct DS 
+     (MSG modifies SI, which is saved, and unused AX and BX) */
+  popw  %ds
+  MSG(notification_step)
+  popa     /*环境恢复*/
+
+  /*检查数据是否已经读完，如果没有，继续读取并拷贝 */
+  cmpw  $0, 4(%di)
+  jne  setup_sectors
+
+  /* update position to load from */
+  subw  $BOOTSEC_LISTSIZE, %di
+
+  /* jump to bootloop */
+  jmp  bootloop
+
+/* END OF MAIN LOOP */
+
+bootit:
+  /* 打印\r\n 后，恢复寄存器 dx 的值，根据是否定义了 STAGE1_5 跳到相应的起始地址处执行装入的 stage2 的内容 */
+
+  MSG(notification_done)
+  popw  %dx  /* 保证 dl 寄存器的内容为 boot 设置的初始值 */
+
+
+#ifdef STAGE1_5
+  ljmp  $0, $0x2200
+#else /* ! STAGE1_5 */
+  ljmp  $0, $0x8200
+#endif /* ! STAGE1_5 */
+
+
+/*
+ * BIOS Geometry translation error (past the end of the disk geometry!).
+ */
+
+/*错误处理代码，出错后执行，stop ： jmp stop 死循环；*/
+geometry_error:
+  MSG(geometry_error_string)
+  jmp  general_error
+
+/*
+ * Read error on the disk.
+ */
+read_error:
+  MSG(read_error_string)
+
+general_error:
+  MSG(general_error_string)
+
+/* go here when you need to stop the machine hard after an error condition */
+stop:  jmp  stop
+
+#ifdef STAGE1_5
+notification_string:  .string "Loading stage1.5"
+#else
+notification_string:  .string "Loading stage2"
+#endif
+
+notification_step:  .string "."
+notification_done:  .string "\r\n"
+  
+geometry_error_string:  .string "Geom"
+read_error_string:  .string "Read"
+general_error_string:  .string " Error"
+```
+
+## 辅助函数与数据区
+
+```asm
+/*
+ * message: write the string pointed to by %si
+ *
+ *   WARNING: trashes %si, %ax, and %bx
+ */
+
+  /*
+   * Use BIOS "int 10H Function 0Eh" to write character in teletype mode
+   *  %ah = 0xe  %al = character
+   *  %bh = page  %bl = foreground color (graphics modes)
+   */
+1:
+  movw  $0x0001, %bx
+  movb  $0xe, %ah
+  int  $0x10    /* display a byte */
+
+  incw  %si
+message:
+  movb  (%si), %al
+  cmpb  $0, %al
+  jne  1b  /* if not end of string, jmp to display */
+  ret
+lastlist:
+
+/*
+ *  This area is an empty space between the main body of code below which
+ *  grows up (fixed after compilation, but between releases it may change
+ *  in size easily), and the lists of sectors to read, which grows down
+ *  from a fixed top location.
+ */
+
+  .word 0
+  .word 0
+
+  . = _start + 0x200 - BOOTSEC_LISTSIZE
+  
+        /* fill the first data listing with the default */
+blocklist_default_start:
+  .long 2    /* this is the sector start parameter, in logical
+        sectors from the start of the disk, sector 0 */
+blocklist_default_len:
+      /* this is the number of sectors to read */
+#ifdef STAGE1_5
+  .word 0    /* the command "install" will fill this up */
+#else
+  .word (STAGE2_SIZE + 511) >> 9
+#endif
+blocklist_default_seg:
+#ifdef STAGE1_5
+  .word 0x220
+#else
+  .word 0x820  /* this is the segment of the starting address
+        to load the data into */
+#endif
+  
+firstlist:  /* this label has to be after the list data!!! */
+
+```
+
+
+
+由于是开源软件，以及上传的大小限制，源代码就不上来了，大家 `google` 一下吧！

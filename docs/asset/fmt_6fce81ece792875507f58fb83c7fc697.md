@@ -1,0 +1,167 @@
+
+# 用我的方法实现屏幕截图
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-687.htm`](https://www.pediy.com/kssd/pediy08/pediy8-687.htm)
+
+前一段时间学钩子，用它实现了许多的功能。现在将我在低级鼠标钩子的基础上实现屏幕截图的程序拿来和大家一起交流交流。如果您想转贴的话请保证文章完整性,谢谢。感谢陈老师对我的帮助，感谢网上那些无私奉献他们编程心得和代码的朋友们。
+
+!!!
+
+## 总体思路
+
+首先您要想截取屏幕上的任意一块区域,您首先要得到这个区域的屏幕坐标,把这块区域左上和右下的位置都得到后,在你的程序中把整个桌面的图形读入内存中,按照你的那两个坐标位置截下这个屏幕的哪个区域,在显示到您的 `View` 窗口中,在保存成 `.bmp` 文件。
+
+关于怎么把图片寸成 `.bmp` 文件,大家可以参考江上飞鸟(网名)的那篇<<VC 实现自绘图形输出到 bmp 文件>>我这里就是参考他的。
+
+### <1> 先做一个低级鼠标钩子
+
+```cpp
+#pragma data_seg("shared")
+
+HHOOK g_hook = NULL;
+
+//由于这个是你按下鼠标左键后一直拉到你想要的地方在释放，所以我设置 down 看它是否是在按下左键的情况下拉拽鼠标的
+BOOL down = FALSE;
+
+//按下鼠标和弹起鼠标的位置
+CPoint StartPt = NULL, EndPt = NULL;
+
+#pragma data_seg()
+
+extern "C" _declspec(dllexport) void EndHook()
+{
+  if (g_hook != NULL)
+  {
+    UnhookWindowsHookEx(g_hook);
+    g_hook = NULL;
+  }
+}
+
+//我这里用低级鼠标钩子，是为了直接得到按下和弹起鼠标的屏幕位置，用鼠标钩子回出现问题．
+LRESULT CALLBACK LowLevelMouseProc(
+                    int nCode,     // hook code
+                    WPARAM wParam, // message identifier
+                    LPARAM lParam  // pointer to structure with message data
+                  )
+{
+    if (nCode == HC_ACTION)
+  {
+       if (wParam == WM_LBUTTONDOWN)
+     {
+       StartPt = ((MSLLHOOKSTRUCT *)lParam)->pt;
+       down = TRUE;
+     }
+     if (wParam == WM_LBUTTONUP)
+     {
+       if (down)
+       {
+         EndPt = ((MSLLHOOKSTRUCT *)lParam)->pt;
+         down = FALSE;
+         EndHook();
+       }
+     }
+  }
+  return CallNextHookEx(g_hook, nCode, wParam, lParam);
+}
+
+extern "C" _declspec(dllexport) void SetHook()
+{
+  g_hook =  SetWindowsHookEx(
+                  WH_MOUSE_LL,        // type of hook to install
+                  LowLevelMouseProc,  // address of hook procedure
+                  theApp.m_hInstance, // handle to application instance
+                  0                  // identity of thread to install hook for
+                );
+  if (g_hook == NULL)
+  {
+    MessageBox(NULL, TEXT("Set Hook Failed"), NULL, MB_OK);
+    return ;
+  }
+}
+
+// 这个是在您的主程序中传递参数给这个 dll 以得到屏幕位置
+extern "C" _declspec(dllexport) void GetPoint(CPoint *x, CPoint *y)
+{
+  x->x = StartPt.x;
+  x->y = StartPt.y;
+  y->x = EndPt.x;
+  y->y = EndPt.y;
+}
+```
+
+### <2> 在来看我们的主程序
+
+在窗口中加上２个菜单项 `ID_LOADHOOK`<安装钩子>和 `ID_PICTURE`<开始抓图>。请注意这两个菜单项，当以下可以点击时另外的是不能用的。
+
+在安装钩子函数里我们写上：
+
+```cpp
+void CMyView::OnLoadhook() // 安装钩子
+{
+  // TODO: Add your command handler code here
+  SetHook();
+  m_x = NULL;
+  m_y = NULL;
+  if (m_Memdc != NULL)
+  {
+    DeleteDC(m_Memdc);
+  }
+  m_enable = TRUE;
+  if (m_enable)
+  {
+//这个设置两个菜单项谁显示谁不显示
+      AfxGetMainWnd()->GetMenu()->GetSubMenu(2)->EnableMenuItem(ID_PICTURE, MF_ENABLED|MF_BYCOMMAND);
+    AfxGetMainWnd()->GetMenu()->GetSubMenu(2)->EnableMenuItem(ID_LOADHOOK, MF_DISABLED|MF_BYCOMMAND|MF_GRAYED);
+  }
+}
+```
+
+下来我们来看看这个开始抓图的函数，它实现了将图片写到内存里面：
+
+```cpp
+void CMyView::OnPicture() // 在客户区显示图片
+{
+    // 得到鼠标左键按下的位置和左键弹起的位置
+  // m_x 表示左键按下的位置
+  // m_y 表示左键弹起的位置
+  GetPoint(&m_x, &m_y);
+  m_ok = TRUE;
+  CDC hdc;
+  hdc.CreateDC("DISPLAY", NULL, NULL, NULL);
+  CBitmap bm;
+  // 得到位图的高度和宽度
+  m_width = abs(m_x.x - m_y.x);
+  m_height = abs(m_x.y - m_y.y);
+  // 得到整个桌面的高度和宽度
+  m_ScreenX = ::GetSystemMetrics(SM_CXSCREEN);
+  m_ScreenY = ::GetSystemMetrics(SM_CYSCREEN);
+
+    // 得到整个桌面的 bm 信息
+    bm.CreateCompatibleBitmap(&hdc, m_ScreenX, m_ScreenY);
+  m_Memdc = ::CreateCompatibleDC(hdc);
+  ::SelectObject(m_Memdc, bm);
+  CRect rect;
+  ::GetWindowRect(::GetDesktopWindow(), &rect);
+  ::BitBlt(m_Memdc, 0, 0, m_ScreenX, m_ScreenY, hdc, rect.left, rect.top, SRCCOPY);
+  hdc.DeleteDC();
+  m_enable = FALSE;
+  if (!m_enable)
+  {
+      AfxGetMainWnd()->GetMenu()->GetSubMenu(2)->EnableMenuItem(ID_PICTURE, MF_DISABLED|MF_BYCOMMAND|MF_GRAYED);
+    AfxGetMainWnd()->GetMenu()->GetSubMenu(2)->EnableMenuItem(ID_LOADHOOK, MF_ENABLED|MF_BYCOMMAND);
+  }
+
+//调用 OnDraw()函数
+  Invalidate();
+}
+```
+
+另外这个程序还实现了全屏显示的功能代码我就不在说了，大家看看代码就ＯＫ了。
+
+好了，先休息了，大家午安！
+
+![](img/77a5f7cfd3ec840c98be3aecc80df838.jpg)
+
+附件下载：`pic.rar`
+
+`4dd466d0e1e0cc123afbe504da2462ca`

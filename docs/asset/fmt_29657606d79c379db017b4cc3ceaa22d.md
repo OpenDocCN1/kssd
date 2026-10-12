@@ -1,0 +1,110 @@
+
+# 一段好用的代码
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-95.htm`](https://www.pediy.com/kssd/pediy09/pediy09-95.htm)
+
+> ```
+> void _declspec(naked) Shutoooo()
+> {
+>   __asm
+>   {
+>     push    ebx
+>     push    ebx
+>
+>     ooo0:
+>       in      al, 64h
+>       mov     bl, al
+>       test    bl, 1
+>       jz      short ooo1
+>
+>       in      al, 60h
+>
+>       ooo1:
+>       test    bl, 2
+>       jnz     ooo0
+>
+>       mov     al, 0FEh
+>       out     64h, al
+>
+>       pop     ebx
+>       pop     ebx
+>       retn
+>   }
+> }
+> ```
+
+> ![](img/768c8e05987a6949d1bb5f7378212ee0.jpg "狂笑")
+
+> `NP` 的驱动里用的这个
+
+> 实际起作用的是
+
+> ```
+>   mov     al, 0FEh
+>   out     64h, al
+> ```
+
+> 那几个跳转是用来等待 input buffer 和 output buffer 准备完毕，然后就读用户输入的字符，并回填一次。之所以要 `out 64h, FEh` 一下是因为 output buffer 的数据已经被读出来了，上层就读不到原始数据了。
+
+> 顺便说一下，这种方法对 `USB` 键盘无效。
+
+> 这是 `IBM PC` 或兼容机实现当中的一个功能，记忆中为了让 `BIOS` 在测试完内存容量后做模式切换使用的。键盘控制器 `8042` 上有一个输出连到了系统的复位！
+
+> 引用: 最初由 `HuangZhiHua` 发布 ![查看帖子](img/showthread.php?p=291326#post291326) 这是 `IBM PC` 或兼容机实现当中的一个功能，记忆中为了让 `BIOS` 在测试完内存容量后做模式切换使用的。键盘控制器 `8042` 上有一个输出连到了系统的复位！
+
+> 这几句汇编的意思就是 `HuangZhiHua` 所说的意思，楼主将这段汇编直接用几个数字写出来，所有人都晕过去了，其实多定义几个值，这样就非常好理解了。
+
+> 代码:
+
+> ```
+>   PORT_A             EQU      60H       ; 8042 键盘扫描/诊断输出
+>   STATUS_PORT        EQU      64H       ; 8042 状态口
+>   OUT_BUF_FULL       EQU      01H       ; 0 = + 输出缓冲器满
+>   INPT_BUF_FULL      EQU      02H       ; 1 = + 输入缓冲器满
+>   ... ...
+>   ... ...
+>   SHUT_CMD           EQU     0FEH       ; 引起停止命令
+>
+>   ;KEYBOARD STATUS REGISTER
+>   ; 7 6 5 4 3 2 1 0   Name                    Allowable Values
+>   ; *                 Parity error            0=odd parity(no error),1=even parity
+>   ;   *               Receive time out        0=no error,1=keyboard did not finish
+>   ;     *             Transmit time out      0=no error,1=keyboard did not finish
+>   ;       *           Inhibit switch          0=keyboard inhibited,1=not inhibited
+>   ;         *         Command/data            0=addressed as port 60H,1=port 64H
+>   ;           *       System flag             0=reset by power ON,1=Self test OK
+>   ;             *     Input buffer full       0=empty,1=full
+>   ;               *   Output buffer full      0=empty,1=full
+>
+> ooo0:
+>   in      al, STATUS_PORT   ; 检测输入缓冲器满
+>   mov     bl, al
+>   test    bl, OUT_BUF_FULL
+>   jz      short ooo1        ; 若没有，转 ooo1
+>
+>   in      al, PORT_A        ; 冲清
+>
+>
+> ooo1:
+>   test    bl, INPT_BUF_FULL ; 输出缓冲器还满吗？
+>   jnz     ooo0              ; 再次尝试
+>
+>   mov     al, SHUT_CMD      ; shutdown cmd
+>   out     STATUS_PORT, al   ; 返回到实模式
+> ```
+
+> 根据 `Ralf` 的中断大全：
+
+> `0064` `-W` keyboard controller input buffer (ISA, EISA) (see `#P0401`)
+
+> 在 `P401` 里有：
+
+> `F0-FF` sngl pulse output port low for 6 microseconds.
+> bits 0-3 contain the mask for the bits to be pulsed. A bit is pulsed if its mask bit is zero
+> bit0=system reset. Don't set to zero. Pulse only!
+
+> `FE` 的 `bit0` 是 `0`，所以直接就 reset 了
+
+> 当然，`out 64h,f0h` 效果一样
+
+`4dd466d0e1e0cc123afbe504da2462ca`

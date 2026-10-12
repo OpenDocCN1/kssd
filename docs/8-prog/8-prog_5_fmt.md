@@ -1,0 +1,407 @@
+
+# Windows 下的 Makefile 编写
+
+> 原文：[`www.pediy.com/kssd/pediy11/126998.html`](https://www.pediy.com/kssd/pediy11/126998.html)
+
+## 一、Makefile 的基本规则
+
+**作者：** cntrump
+
+Makefile 对于很多人来说是陌生的，特别是习惯于使用 IDE 的人来说，似乎没有听说过 Makefile，因为 Makefile 的工作都由 IDE 代劳了。但是 Makefile 的地位是不可忽略的，从 VC 诞生到现在 `Nmake` 这个实用程序就一直伴随着 VC 编译器一起发行。
+
+很多大的工程都是基于 Makefile 编译和维护的，对于开源项目来说，大多数都使用 Makefile 进行编译，使用 IDE 来编译大型工程是不可想象的。
+
+Makefile 是什么？它是一个文本文件，里面记录着项目由哪些目标构成，以及各个目标的生成方式等信息。Makefile 的核心任务是定义一系列的规则，然后由 `Nmake` 来解释执行，任何一个文本编辑器都可以用来编写 Makefile。
+
+先来大概看一下 Makefile 的基本规则：
+
+```
+Target:dependent;command
+    Command
+    ........
+```
+
+`Target` 是目标，目标可以是一个文件，也可以是一个标签，如果 `Target` 用作标签，则称之为伪目标。Makefile 至少要有一个目标。
+
+`Dependent` 是依赖项目，指明目标所依赖的具体项目。依赖项目和目标之间用 `:` 号分隔。
+
+`Command` 是命令，如果命令和依赖项目在同一行，则需要使用 `;` 号与之相隔，各个命令之间使用空格或 `Tab` 键分开，如果命令是单独一行，则需要使用 `Tab` 缩进。`Command` 命令由 `Nmake` 来执行。
+
+上述内容简单地表明了一个依赖关系，生成 `Target` 目标依赖 `dependent` 中指定的文件，而生成的规则由 `Command` 来定义，`Nmake` 负责执行这些命令。
+
+默认情况下，`Nmake` 会查找当前目录下任何名称为 `Makefile` 的文件（名称不区分大小写，并且没有后缀），如果你的 Makefile 文件名称是其他的，则需要使用 `-f` 参数指定。
+
+以上就是 Makefile 的核心内容，任何系统的 Makefile 都是这样执行的。但是要写好一个 Makefile，仅仅这些还不够。
+
+对于一个新知识，我更喜欢从做中学。下面举一个例子来说明上面的规则在实际应用中如何操作：
+
+```
+Test.exe:main.obj
+    Link.exe main.obj /out:Test.exe
+
+main.obj:main.cpp
+    #仅编译文件
+    cl.exe main.cpp
+```
+
+在 Makefile 中注释使用 `#` 号开头，且仅有这一种注释方式。它的作用和 C++ 语法中的 `//` 注释是一样的。所不同的是 `#` 号必须放在行首。
+
+上面的 Makefile 文件指定了两个目标，分别是 `Test.exe` 和 `main.obj`，生成 `Test.exe` 需要依赖 `main.obj` 文件，而生成 `main.obj` 文件依赖 `main.cpp`。在目标下方指明了生成该目标方法。
+
+`main.cpp` 的内容如下：
+
+```
+#include <stdio.h>
+
+int main()
+{
+    printf("Hello Makefile!\n");
+    return 0;
+}
+```
+
+将 Makefile 和 `main.cpp` 放置于同一目录下，在 VC 的命令提示符窗口中执行 `nmake` 命令，就会自动生成 `Test.exe` 和 `main.obj` 两个文件。再运行生成后的 `Test.exe` 测试一下：
+
+![](img/9114c3435d6a073aad5a2f6a622321f4.jpg)
+
+在 Makefile 中定义了两个目标，`Nmake` 默认只生成 Makefile 中的第一个目标，由于 `main.obj` 是 `Test.exe` 的依赖项，所以 `main.obj` 目标也得以执行。
+
+是不是每执行一次 `nmake` 命令就会重新生成一次目标文件呢？答案：不是。每次都重新生成目标显然是一种资源浪费，`nmake` 是根据时间戳来决定是否需要重新生成目标。只有在依赖文件不存在或者依赖文件时间高于目标文件时，`nmake` 才会生成目标。
+
+前面的例子已经生成了目标文件，如果修改了 `main.cpp` 中的代码或者删除了 `main.obj`，都将会重新生成 `Test.exe`。
+
+一般来说，为了使清理中间文件或重新生成目标更加方便，都会在 Makefile 中加入一个伪目标来清理生成的中间文件。以删除 `main.obj` 为例，Makefile 修改如下：
+
+```
+Test.exe:main.obj
+    Link.exe main.obj /out:Test.exe
+
+Main.obj:main.cpp
+    # 仅编译文件
+    cl.exe /c main.cpp
+
+clean:
+    @del *.obj
+    @echo Project has clean.
+```
+
+`clean` 是一个伪目标，只是作为标签使用。`clean` 下的指令是命令行下的删除文件命令和显示一个字符串。在命令前加 `@` 符号是为了不显示命令本身。
+
+默认情况下 `nmake` 只会生成第一个 `Test.exe` 目标，不会执行到 `clean` 目标，如果要指定生成目标，需要显式指定目标名称：
+
+```
+nmake clean
+```
+
+就指定要执行 Makefile 中的 `clean` 伪目标。执行之后会删除生成的 `main.obj` 并显示一行文字：
+
+![](img/4562e0d55b8f9b49201a54c445564a03.jpg)
+
+还可以指定多个目标，`nmake` 会从左往右依次生成目标。所以如果要在清除中间之后立即生成 `Test.exe`，可以这么做：
+
+`nmake clean Test.exe`
+
+![](img/89356bdc0b530e01e815fe47102637f6.jpg)
+
+一般来说，总是把最终生成的目标放在最前，而把清理中间文件的伪目标放到最后。下一回，我会结合实际的例子再介绍 Makefile 的其他内容。
+
+**上传的附件**
+
+| ![](img/668feaf58c8e7ddb6fbdbf839a5a19db.jpg) | Windows 下的 Makefile 编写（一）Makefile 的基本规则.pdf |
+
+## 二、宏和预处理的简单示例
+
+**作者：** cntrump
+
+在 Makefile 中使用宏和预处理能明显提高工作的效率。
+
+### 宏
+
+宏的语法为：
+
+```
+macroname=string
+```
+
+`macroname` 是字母、数字和下划线（`_`）的组合，最多 1,024 个字符且区分大小写。`macroname` 可以包含调用的宏。如果 `macroname` 完全是由调用的宏组成的，则正调用的宏不能为空或未定义。
+
+宏的使用：
+
+定义了一个宏之后就可以使用了。使用的方法很简单，如下所示就是一个简单的调用过程：
+
+```
+$(macroname)
+```
+
+使用括号将宏名称括起来，再在前面加上 `$` 符号就可以了。在实际中的使用：
+
+```
+objects=stdafx.obj main.obj
+Test.exe:$(objects)
+    .......
+```
+
+如果 `string` 的长度太长或者需要分行显示。可以使用 `\`。反斜杠后紧跟着回车就表示换行：
+
+```
+objects=stdafx.obj \
+         main.obj
+Test.exe:$(objects)
+```
+
+`nmake` 还内置了用于指定文件名的宏，叫作文件名宏。
+
+文件名宏被预定义为依赖项中指定的文件名（而不是磁盘上的完整文件名指定）。在调用时不需要将这些宏括在括号内；只需按如下方式指定 `$`。
+
+| 宏 | 意义 |
+| :--- | :--- |
+| `$@` | 当前所指定的当前目标的全名（路径、基名称、扩展名）。 |
+| `$$@` | 当前所指定的当前目标的全名（路径、基名称、扩展名）。仅在作为依赖项中的依赖项时有效。 |
+| `$*` | 当前目标的路径和基名称，没有文件扩展名。 |
+| `$**` | 当前目标的所有依赖项。 |
+| `$?` | 时间戳比当前目标的时间戳晚的所有依赖项。 |
+| `$<` | 时间戳比当前目标的时间戳晚的依赖文件。仅在推理规则的命令中有效。 |
+
+使用文件名宏对编写 Makefile 是很有帮助的，特别是在文件数量多的时候，可以节省大量时间。例如上面的例子，使用的文件名宏后：
+
+```
+objects=stdafx.obj \
+         main.obj
+Test.exe:$(objects)
+    link.exe $**
+```
+
+这样只需使用 `$**` 就替代了 `Test.exe` 所依赖的所有 `.obj` 文件，相当方便。
+
+### 生成文件预处理
+
+预处理指令不区分大小写。初始感叹号（`!`）必须出现在行首。感叹号后面可以有零个或多个空格或制表符，用于缩进。
+
+下面是经常会用到的预处理：
+
+`!MESSAGE text`
+用来显示一段文本信息，显示的内容就是 `text` 所指定的内容。
+
+`!INCLUDE [<>]filename[<>]`
+作用类似于 C++ 中的 `#include`，将 `filename` 包含进来，如果 `filename` 里的指令可执行则会先执行其中的指令然后再继续。
+
+`!IF constantexpression`
+如果 `constantexpression` 计算结果为非零值，则处理 `!IF` 和下一个 `!ELSE` 或 `!ENDIF` 之间的语句。
+
+`!IFDEF macroname`
+如果定义了 `macroname`，则处理 `!IFDEF` 和下一个 `!ELSE` 或 `!ENDIF` 之间的语句。空宏将被视为尚待定义。
+
+`!IFNDEF macroname`
+如果没有定义 `macroname`，则处理 `!IFNDEF` 和下一个 `!ELSE` 或 `!ENDIF` 之间的语句。
+
+`!ELSE [IF constantexpression | IFDEF macroname | IFNDEF macroname]`
+如果前面的 `!IF`、`!IFDEF` 或 `!IFNDEF` 语句计算结果为零值，则处理 `!ELSE` 和下一个 `!ENDIF` 之间的语句。可选关键字提供了进一步的预处理控制。
+
+`!ELSEIF`
+`!ELSE IF` 的同义词。
+
+`!ELSEIFDEF`
+`!ELSE IFDEF` 的同义词。
+
+`!ELSEIFNDEF`
+`!ELSE IFNDEF` 的同义词。
+
+`!ENDIF`
+标记 `!IF`、`!IFDEF` 或 `!IFNDEF` 块的结尾。同一行上 `!ENDIF` 后面的所有文本被忽略。
+
+`!UNDEF macroname`
+取消定义 `macroname`。
+
+预处理数量虽然不少，但是很多都有其同义预处理。只需要记忆其中一个就可以了。
+
+最后用一个简单的示例来说明宏和预处理的应用，附件中的例子是使用 VC6 生成的一个 Hello World 控制台程序，及其相应的 Makefile 编写方法。
+
+在 VC6 的命令提示符下，生成 Release 版的命令为：
+
+```
+nmake clean cfg=Release
+```
+
+生成 Debug 版的命令为：
+
+```
+nmake clean cfg=Debug
+```
+
+现在，你已经具有编写简单 Makefile 的能力了。
+
+*注：PDF 文件中还有附件，里面是例子代码。*
+
+**上传的附件**
+
+| ![](img/668feaf58c8e7ddb6fbdbf839a5a19db.jpg) | Windows 下的 Makefile 编写（二）宏和预处理的简单示例.pdf |
+
+## 三、推理规则
+
+**作者：** cntrump
+
+推理规则是 Makefile 中自动化的核心功能之一，掌握了推理规则会让 Makefile 的编写更简单和更易维护。
+
+### 推理规则
+
+推理规则提供命令来更新目标并推理目标的依赖项。推理规则是用户自定义的或者是预定义的，预定义的推理规则可以被重新定义。
+
+#### 定义规则
+
+```
+.fromExt.toExt:
+    commands
+```
+
+`fromExt` 是依赖文件的扩展名，`toExt` 是目标文件的扩展名。在依赖文件扩展名前面的 `.` 号必须被放在行首。
+
+```
+All:main.obj func.obj
+    link $**
+
+main.obj:main.cpp
+    cl /c main.cpp
+
+func.obj:func.cpp
+    cl /c func.cpp
+```
+
+在应用了推理规则之后，可以简单地写为
+
+```
+All:main.obj func.obj
+    link $**
+
+.cpp.obj:
+    cl /c $<
+```
+
+在命令行下的输出结果如下：
+
+```
+F:\我的文章\hello>nmake
+Microsoft (R) Program Maintenance Utility   Version 6.00.9782.0
+Copyright (C) Microsoft Corp 1988-1998. All rights reserved.
+
+        cl /c main.cpp
+Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 12.00.8804 for 80x86
+Copyright (C) Microsoft Corp 1984-1998. All rights reserved.
+
+main.cpp
+        cl /c func.cpp
+Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 12.00.8804 for 80x86
+Copyright (C) Microsoft Corp 1984-1998. All rights reserved.
+
+func.cpp
+        link main.obj func.obj
+Microsoft (R) Incremental Linker Version 6.00.8447
+Copyright (C) Microsoft Corp 1992-1998. All rights reserved.
+```
+
+由此可以看出来，推理规则已经从 `.obj` 目标文件自动推导出相应的 `.cpp` 文件，并且为每一个目标执行一次编译命令。
+
+上述的推理规则叫做标准推理规则，标准推理规则会被调用多次。在文件数量很多的时候，这样显然会降低速度，为此在 1.62 及以后的版本中，还定义了批模式规则。
+
+当 N 条命令通过推理规则时，批模式推理规则只调用一次该推理规则。如果没有批模式推理规则，将需要调用 N 条命令。N 是触发推理规则的依赖项的数目。
+
+由于较低版本的 `nmake` 不支持批模式推理规则，所以在使用批模式规则时最好先检查一下当前 `nmake` 的版本：
+
+`_NMAKE_VER` 宏可以返回当前 `nmake` 的文件版本，返回的是一个字符串文本。
+
+```
+!message $(_NMAKE_VER)
+```
+
+在 VC6 SP6 下的输出结果为：
+
+```
+6.00.9782.0
+```
+
+批模式和标准模式唯一的差异就是在目标后多加上一个冒号：
+
+```
+All:main.obj func.obj
+    link $**
+
+.cpp.obj::
+    cl /c $<
+```
+
+执行后的输出结果如下：
+
+```
+        cl /c main.cpp func.cpp
+Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 12.00.8804 for 80x86
+Copyright (C) Microsoft Corp 1984-1998. All rights reserved.
+
+main.cpp
+func.cpp
+Generating Code...
+        link main.obj func.obj
+Microsoft (R) Incremental Linker Version 6.00.8447
+Copyright (C) Microsoft Corp 1992-1998. All rights reserved.
+```
+
+不同的地方我标识了红色，可以看到编译命令只执行一次，并且一次编译多个文件。这样 `cl.exe` 在编译期间只会被调用一次，相对于多次调用速度要快。
+
+需要注意的一个地方是：由于一次处理多个文件，这就得要求执行命令的程序本身支持处理多个文件，假如 `cl.exe` 一次只能处理单个源文件，那么使用批模式肯定会导致失败。
+
+在上面的例子中，目标文件和依赖文件都没有指定路径，所以默认使用当前目录。如果目标文件或者依赖文件不在当前目录下，就需要为其指定搜索路径：
+
+```
+{fromDir}.fromExt{toDir}.toExt:
+    command
+```
+
+
+
+`fromDir` 是依赖文件所在目录，`toDir` 是依赖文件所在目录。目录可以使用宏来表示。大括号是必须的，且每个扩展名只能指定一个目录路径，`{}`（空的大括号）表示当前目录。
+
+例如，`.obj` 文件被编译输出到 `Debug` 目录，源文件在当前目录下：
+
+代码:
+
+```
+outdir=.\\Debug
+
+objects=$(outdir)\\main.obj \
+
+$(outdir)\\func.obj
+
+All:$(objects)
+
+link $\*\*
+
+.cpp{$(outdir)}.obj::
+
+cl /Fo"$(outdir)/" /c $<
+```
+
+在执行命令之前 `Debug` 目录必须存在，否则编译命令将失败。命令成功执行后，会在 `Debug` 目录下生成 `.obj` 文件，最终的可执行文件生成在当前目录下。
+
+为了能更好的理解上面的推理规则，可以将上面的宏进行展开：
+
+代码:
+
+```
+All:.\\Debug\\main.obj .\\Debug\\func.obj
+
+link $\*\*
+
+.cpp{.\\Debug}.obj::
+
+cl /Fo".\\Debug/" /c $<
+```
+
+最后需要说明的是，在批模式下，必须使用 `$<` 宏来指定依赖文件项目。
+
+如果你理解了宏，预处理和推理规则，那么已经可以阅读大多数 Windows 下开源项目的 `Makefile` 文件了，并且已经可以自己写出实用的 `Makefile`。
+
+剩下的就是多加练习，试着为 IDE 向导生成的项目编写 `Makefile`，多尝试几次之后你会发现原来 `Makefile` 很简单。
+
+上传的附件
+
+| ![](img/668feaf58c8e7ddb6fbdbf839a5a19db.jpg) || Windows 下的 Makefile 编写（三）推理规则.pdf
+
+|

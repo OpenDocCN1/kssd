@@ -1,0 +1,532 @@
+
+# 汇编写驱动字符串问题的补充 `string.mac` 使用说明部分的译文
+
+> 原文：[`www.pediy.com/kssd/pediy12/131332.html`](https://www.pediy.com/kssd/pediy12/131332.html)
+
+我的上一篇文章，提到了 `masm32/macros/strings.mac` 这个文件里的宏，但是没有说明使用方法，所以我直接把这个文件里的使用说明翻译一下。英文水平有限，还请见谅。原文件和翻译版本，我挂在这了。`String.rar`
+
+```asm
+;; 文本宏的集合
+;; 作者： Four-F (four-f@mail.ru)
+;; 最后更新 2004 年 9 月 1 日
+;; 欢迎您的改进、建议和修正
+;; 测试了与 windows.inc v.1.25e 的兼容性
+```
+
+`STRINGA`/`STRINGW` 是内部宏。基本上，你不需要使用它们
+
+## 语法
+
+```
+MacroName quotedtext [,lebel] [,alignment]
+or
+MacroName quotedtext [,alignment] [,lebel]
+$MacroName(quotedtext [,lebel] [,alignment])
+or
+$MacroName(quotedtext [,alignment] [,lebel])
+```
+
+- `MacroName` / `$MacroName` 语法用于下列表：
+
+```
+TA / TW / T
+CTA / CTW / CT
+$TA / $TW / $T
+$CTA / $CTW / $CT
+TA0 / TW0 / T0
+CTA0 / CTW0 / CT0
+$TA0 / $TW0 / $T0
+$CTA0 / $CTW0 / $CT0
+```
+
+（译者注：`KmdTut` 里提到的关于 `UNICODE_STRING` 的宏也使用这个语法）
+
+- `T`：所有名称带字母 `T` 的宏。意味着它是文本。
+- `C`：常量字符串。字符串的定义是在只读数据段（`.const`）。没有 `'C'` 在其名称中的宏定义在读写数据段的字符串（`.data`）。
+- `A`：宏定义的 `ASCII` 字符串。
+- `W`：宏定义宽（`Unicode`）的字符串。每个字的大小是 2 个字节。
+- `0`：零字符不是 `'O'`。定义的字符串是终止零字节（`ASCII`）或零的字码（`Unicode`）结束。
+- `$`：宏函数。返回定义文本的偏移。
+
+每一个宏都有相应的宏函数，该函数在宏前加 `' $ '`。所有的宏函数都返回定义文本的偏移地址。所有宏定义都不返回任何值。
+
+如果宏的名称不包含字母 `'A'` 或 `'W'`，其行为取决于全局变量 `UNICODE` 的定义。
+- 如果 `UNICODE` 是未定义或等于 0，即宏定义为 `ASCII` 字符串。
+- 如果 `UNICODE` 被定义并且不等于 0，即宏定义为 `Unicode` 字符串。
+
+你可以通过两种方式定义全局变量：
+1. 在 `ml.exe` 的命令行使用：`\UNICODE=1`
+2. 在源文件里使用：`UNICODE = 1` 或 `UNICODE equ 1`
+
+## 语法中提到的参数解释
+
+**`quotedtext`**：
+第一个参数是你想定义的文本字符串。它需要被引号标记。你可以使用转义字符。
+
+| `esc. char.` | `code` | `symbol` |
+| :--- | :--- | :--- |
+| `\:` | `21h` | `'!'` |
+| `\{` | `28h` | `'('` |
+| `\}` | `29h` | `')'` |
+| `\[` | `3Ch` | `'<'` |
+| `\]` | `3Eh` | `'>'` |
+| `\=` | `22h` | `'"'` |
+| `\-` | `27h` | `"'"` |
+| `\\` | `5Ch` | `'\'` |
+| `\*` | `-` | `-` ;; To workaround "CopyFile" -> `CopyFileA` problem |
+| `\0` | `0` | zero byte/word |
+| `\a` | `7` | alert (BEL) |
+| `\b` | `8` | backspace |
+| `\t` | `9` | horizontal tabulation |
+| `\n` | `0Dh`, `0Ah` | new line |
+| `\l` | `0Ah` | line feed |
+| `\v` | `0Bh` | verticalal tabulation |
+| `\f` | `0Ch` | formfeed |
+| `\r` | `0Dh` | carrige return |
+
+**`lebel, alignment`**：
+第二和第三个参数是可选的。它们用于标记和对齐。这些宏可以识别标记符号和自动对齐。后面你可以通过标记识别被定义文本。对齐方式可以立即值 1（字节），2（字）或 4（双字）。
+
+通过默认对齐方式是：
+- 1 `ASCII` 字符串
+- 2 `Unicode` 字符串
+
+结构体 `UNICODE_STRING`，总是 4 字节对齐的通过下面这些宏来定义：`COUNTED_UNICODE_STRING` / `$COUNTED_UNICODE_STRING` / `CCOUNTED_UNICODE_STRING` / `$CCOUNTED_UNICODE_STRING`
+
+你可以设置字符串指针所指向的字符串的对齐方式。
+
+## 消除重复字符串
+
+下面的宏试图消除重复的字符串。因此，相同的字符串只有单个副本。这将反应在程序映像上，产生更小的程序。
+
+涉及的宏：
+`$TA` / `$CTA` / `$TW` / `$CTW` / `$T` / `$CT`
+`$TA0` / `$CTA0` / `$TW0` / `$CTW0` / `$T0` / `$CT0`
+
+每次你使用上面的宏来定义字符串，字符串都将被定义在数据段。如果一个地方在后面的代码使用相同的宏定义相同内容的字符串，宏会记住它的偏移量，而不是定义它第二次数据库。
+
+看这个例子：
+```asm
+invoke MessageBox, NULL, $CTA0("OK"), $CTA0("Success"), MB_OK
+. . .
+invoke MessageBox, NULL, $CTA0("OK"), $CTA0("Success"), MB_OK
+```
+
+如果您使用此代码，上述两个字符串编译为：
+```asm
+.const
+szOK      db "OK", 0
+szSuccess db "Success", 0
+
+.code
+invoke MessageBox, NULL, addr szOK, addr szSuccess, MB_OK
+. . .
+invoke MessageBox, NULL, addr szOK, addr szSuccess, MB_OK
+```
+
+记住，每一个宏有自己的数据段。因此，例如，`$CTA0` 只搜索以前定义的字符串中相同内容的宏！
+
+这种优化只适用于无标记字符串。所以，如果你明确地传递标记给宏，它就不会在自己定义的数据段里搜索相同字符串。
+
+看这个例子：
+```asm
+invoke MessageBox, NULL, $CTA0("OK"), $CTA0("Success"), MB_OK
+. . .
+invoke MessageBox, NULL, $CTA0("OK", szOK), $CTA0("Success", szSuccess), MB_OK
+```
+
+The above two strings are compiled as if you use this code:
+```asm
+.const
+???1      db "OK", 0
+???2      db "Success", 0
+szOK      db "OK", 0
+szSuccess db "Success", 0
+
+.code
+invoke MessageBox, NULL, addr ???1, addr ???2, MB_OK
+. . .
+invoke MessageBox, NULL, addr szOK, addr szSuccess, MB_OK
+```
+
+也请记住，如果你明确地传递的对齐值是大于以前的对齐，定义字符串的宏将使用字符串在数据段中对齐后的偏移，并通过消息警告你：
+
+Also remember that if you explicity pass alignment that is greater then the alignment of previously defined string the macro will use offset to the string from database and warn you with the message:
+```asm
+mov eax, $CTA0("Alignment", 2)
+mov eax, $CTA0("Alignment", 4)
+
+C:\masm32\macros\xxx.asm(xxx) : $CTA0 macro WARNING! Alignment is greater then previous instance of "Alignment".
+```
+
+在所有宏之前，可以用这样一行来使得字符串池无效：
+`DISABLE_STRING_POOLING equ 1`
+
+注意：您指定的值并不重要。它可以是任何值。所以定义它为 0 也是可以的。这些宏定义只关心它是否被定义。所以，如果你想再次启用字符串池，只需删除或注释掉 `DISABLE_STRING_POOLING` 定义。
+
+## 限制
+
+`Unicode` 字符串可以达到 47 个字符长。否则，你会得到汇编错误：
+`: error A2042: statement too complex`
+希望我以后会解决这个问题。
+
+## 已知的 bug
+
+`$CTA0("CopyFile")` 会生成 `CopyFileA` 这是因为：
+`CopyFile equ <CopyFileA>`
+这是因为 `masm` 的内部行为。
+
+你可以通过放置 `'*'` 来解决这个问题，比如：
+`$CTA0("Copy*File")`
+
+`'*'` 转移字符拓展了语句。因此你能得到 `"CopyFile"`，而不是 `"CopyFileA"`。
+
+或者你可以使用无法识别的字符转义序列。因为，像这样的例子：
+`$CTA0("C\opyFile")`
+
+你将得到 `"WARNING!: 'o' : unrecognized character escape sequence"` from macro。但是字节 `'o'` 将被加到字符串里。因此你能得到 `"CopyFile"`，而不是 `"CopyFileA"`。
+
+（译者注：我想对我们来说，还有一个 bug，这些宏还不支持中文）
+
+## 举例
+
+最有用的宏: `$CTA0`, `$CTW0`, `CTA0`, `CTW0`
+
+要定义空字符串使用任何以零终止的宏是这样的：
+```asm
+mov eax, $TA0()
+or
+mov eax, $TA0('')
+or
+mov eax, $TA0("")
+```
+
+DON'T TRY TO DEFINE EMPTY STRINGS WITH NON-ZERO TERMINATING MACROS:
+`TA` / `TW` / `T` / `CTA` / `CTW` / `CT` / `$TA` / `$TW` / `$T` / `$CTA` / `$CTW` / `$CT`
+
+### Ex 1
+```asm
+invoke AppendMenu, hMenuPopupFile, MF_STRING, IDM_OPEN, $CTA0("&Open...\tCtrl+O")
+```
+拓展为：
+```asm
+.const
+??? db "&Open...", 9, "Ctrl+O", 0
+
+.code
+invoke AppendMenu, hMenuPopupFile, MF_STRING, IDM_OPEN, offset ???
+```
+
+### Ex 2
+```asm
+TA0 "http://board.win32asmcommunity.net/", szUrl, 4
+invoke MessageBox, NULL, offset szUrl, $TA0("Go To", 4), MB_OK
+```
+拓展为：
+```asm
+.data
+align 4
+szUrl db "http://board.win32asmcommunity.net/", 0
+align 4
+??? db "Go To", 0
+```
+
+
+
+### Ex 3
+
+```asm
+.code  
+
+invoke MessageBox, NULL, offset szUrl, offset ???, MB_OK  
+```
+
+### Ex 3 (Expanded)
+
+```asm
+.const  
+
+??1 db "< Well done! :-) >", 0  
+
+??2 db "Congratulations", 0  
+
+.code   
+
+invoke MessageBox, NULL, offset ??1, ??2, MB_OK  
+```
+
+### Ex 4
+
+```asm
+invoke IoCreateDevice, pDriverObject, 0, \\  
+      $CCOUNTED_UNICODE_STRING("\\Device\\DevName", g_usDeviceName, 4), \\  
+      FILE_DEVICE_UNKNOWN, 0, FALSE, addr g_pDeviceObject  
+```
+
+**Expanded:**
+
+```asm
+.const  
+
+align 4  
+
+??? dw "\","D","e","v","i","c","e","\","D","e","v","N","a","m","e", 0  
+
+align 4           ; The UNICODE_STRING structure itself is always DWORD alignmented  
+
+g_usDeviceName    dw (sizeof ???) - 2   ; UNICODE_STRING.Length  
+                  dw (sizeof ???)       ; UNICODE_STRING.MaximumLength  
+                  dd offset ???         ; UNICODE_STRING.Buffer  
+
+.code  
+
+invoke IoCreateDevice, pDriverObject, 0, offset g_usDeviceName, \\  
+      FILE_DEVICE_UNKNOWN, 0, FALSE, addr g_pDeviceObject  
+```
+
+## 准备编译的例子
+
+### Ready To Compile Ex 1
+
+```asm
+.386  
+
+.model flat, stdcall  
+
+option casemap:none  
+
+include \masm32\include\windows.inc  
+
+include \masm32\include\user32.inc  
+
+include \masm32\include\kernel32.inc  
+
+includelib \masm32\lib\user32.lib  
+
+includelib \masm32\lib\kernel32.lib  
+
+include \masm32\Macros\Strings.mac  
+
+.data  
+
+ms MEMORYSTATUS <>  
+
+buffer db 100 dup(0)  
+
+TA "Percent of memory in use:\t\t%d\n", szFormat  
+
+TA "Bytes of physical memory:\t\t%d\n"  
+
+TA "Free physical memory bytes:\t\t%d\n"  
+
+TA "Bytes of paging file:\t\t%d\n"  
+
+TA "Free bytes of paging file:\t\t%d\n"  
+
+TA "User bytes of address space:\t\t%d\n"  
+
+TA0 "Free user bytes:\t\t\t%d\n"  
+
+.code  
+
+start:  
+
+invoke GlobalMemoryStatus, addr ms  
+
+invoke wsprintf, addr buffer, addr szFormat, \\  
+          ms.dwMemoryLoad, \\  
+          ms.dwTotalPhys, \\  
+          ms.dwAvailPhys, \\  
+          ms.dwTotalPageFile, \\  
+          ms.dwAvailPageFile, \\  
+          ms.dwTotalVirtual, \\  
+          ms.dwAvailVirtual  
+
+invoke MessageBox, NULL, addr buffer, $CTA0("Memory Info"), MB_OK  
+
+invoke ExitProcess, 0  
+
+end start  
+```
+
+### Ready To Compile Ex 2
+
+```asm
+.386  
+
+.model flat, stdcall  
+
+option casemap:none  
+
+include \masm32\include\windows.inc  
+
+include \masm32\include\user32.inc  
+
+include \masm32\include\kernel32.inc  
+
+includelib \masm32\lib\user32.lib  
+
+includelib \masm32\lib\kernel32.lib  
+
+include \masm32\Macros\Strings.mac  
+
+.code  
+
+start:  
+
+invoke WinHelp, NULL, $CTA0("\\masm32\\help\\masm32.hlp", 4), HELP_CONTENTS, 0  
+
+invoke ExitProcess, 0  
+
+end start  
+```
+
+### Ready To Compile Ex 3
+
+```asm
+.386  
+
+.model flat, stdcall  
+
+option casemap:none  
+
+include \masm32\include\windows.inc  
+
+include \masm32\include\user32.inc  
+
+include \masm32\include\kernel32.inc  
+
+includelib \masm32\lib\user32.lib  
+
+includelib \masm32\lib\kernel32.lib  
+
+include \masm32\Macros\Strings.mac  
+
+.code  
+
+start:  
+
+invoke MessageBox, NULL, $CTA0("Cool program v1.0\nCopyright ?Cool Coder, 2005"), $CTA0("About"), MB_OK  
+
+invoke ExitProcess, 0  
+
+end start  
+```
+
+### Ready To Compile Ex 4
+
+```asm
+.386  
+
+.model flat, stdcall  
+
+option casemap:none  
+
+includelib \masm32\lib\kernel32.lib  
+
+includelib \masm32\lib\user32.lib  
+
+include \masm32\Macros\Strings.mac  
+
+; under NT define 1  
+
+; under w9x define 0  
+
+UNICODE = 0  
+
+LoadLibraryA proto :DWORD  
+
+LoadLibraryW proto :DWORD  
+
+IF UNICODE EQ 1  
+
+  LoadLibrary equ <LoadLibraryW>  
+
+ELSE  
+
+  LoadLibrary equ <LoadLibraryA>  
+
+ENDIF  
+
+GetProcAddress proto :DWORD, :DWORD  
+
+ExitProcess proto :DWORD  
+
+MessageBoxA proto :DWORD, :DWORD, :DWORD, :DWORD  
+
+MessageBoxW proto :DWORD, :DWORD, :DWORD, :DWORD  
+
+IF UNICODE EQ 1  
+
+  MessageBox equ <MessageBoxW>  
+
+ELSE  
+
+  MessageBox equ <MessageBoxA>  
+
+ENDIF  
+
+wsprintfA proto C :DWORD, :DWORD, :VARARG  
+
+wsprintfW proto C :DWORD, :DWORD, :VARARG  
+
+IF UNICODE EQ 1  
+
+  wsprintf equ <wsprintfW>  
+
+ELSE  
+
+  wsprintf equ <wsprintfA>  
+
+ENDIF  
+
+proto04 TYPEDEF proto :DWORD, :DWORD, :DWORD, :DWORD  
+
+pproto04 TYPEDEF PTR proto04  
+
+.data?  
+
+pfnMassageBox  DWORD    ?  
+
+hinstUser32    DWORD    ?  
+
+buffer      BYTE 32 dup(?)  
+
+.code  
+
+start:  
+
+invoke LoadLibrary, $CT0("user32.dll", 4)  
+
+mov hinstUser32, eax  
+
+;; Exported functions names is always ASCII  
+
+IF UNICODE EQ 1  
+
+  invoke GetProcAddress, hinstUser32, $CTA0("MessageBoxW", 4)  
+
+ELSE  
+
+  invoke GetProcAddress, hinstUser32, $CTA0("MessageBoxA", 4)  
+
+ENDIF  
+
+mov pfnMassageBox, eax  
+
+invoke wsprintf, addr buffer, $CT0("%08X"), pfnMassageBox  
+
+invoke pproto04 ptr [pfnMassageBox], 0, addr buffer, $CT0("MessageBox", 4), 0  
+
+invoke ExitProcess, 0  
+
+end start  
+```
+
+`;`
+
+```asm
+;;IFDEF UNICODE  
+;;  UNICODE = 1  
+;;ENDIF  
+```

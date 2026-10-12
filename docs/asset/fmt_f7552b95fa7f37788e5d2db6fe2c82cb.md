@@ -1,0 +1,11 @@
+
+# 半成品画板(VC++6.0 作品)
+
+> 原文：[`www.pediy.com/kssd/pediy12/131378.html`](https://www.pediy.com/kssd/pediy12/131378.html)
+
+当年学可视化程序设计的时候的大作业，不是很完善，但是结合了当时在网上找到了许多技巧，附上技术文档。
+
+上传的附件：
+
+| `![](img/620251b33676a8e4b98ca0ece915ee8d.jpg)` | `Sketchpad.zip` |
+| :--- | :--- |

@@ -1,0 +1,488 @@
+
+# 【屠夫科普】R3 枚举目标进程加载模块【C++标准版】【Part.1】【Part.2】
+
+> 原文：[`www.pediy.com/kssd/pediy11/125080.html`](https://www.pediy.com/kssd/pediy11/125080.html)
+
+## 【目录】
+
+Part.1：R3 枚举目标进程加载模块  
+Part.2：R3 通过 `IAT` 修改 `HOOK` 目标进程 `API`  
+Part.3：R3 环境 `HOOK` 目标进程 `D3D` 输入接口  
+Part.4：R0 恢复 `SSDT HOOK`  
+Part.5：R0 通过进程名称枚举系统进程得到 `PID`  
+Part.6：R0 通过内存搜索硬编码得到内核未导出函数  
+Part.7：R0 通过拦截 `EIP` 实现调用 R3 进程内部函数
+
+## 【引言】
+
+小弟渤海屠夫,今年 4 月第一次走进计算机编程世界,于近日借朋友帐号又来到了伟大的看雪学院,在此先对为中国计算机事业添砖加瓦,奋战在第一线的看雪大牛们致敬,
+
+因为是自学出身的原因所以对像看雪学院这种技术论坛怀有一种特殊的情感,在长期黑暗中的摸索,经过无数次碰壁,无数次打击,无数次失落,如今百炼成钢,本着取之于民用之于民的原则,为看雪学院尽一份力,
+
+看过太多的文章,`Google` 或者 `Baidu` 到用坏 2 只鼠标,得到的认识是：一个题目几百个索引过滤后只能看到不超过 5 篇不重复的结果,至于为何如此就留给社会学家去研究吧,而且有这样一种尴尬,就是懂的不想看,想看的看不懂,这正是此系列诞生的原因啦。
+
+此文谨献给和我一样渴望获得知识,日复一日辛苦努力在键盘上的同学们
+
+## 【正文】
+
+相信观众朋友通过 `Google` 或者 `Baidu` 连接到这里的时候已经很清楚自己需要什么啦,我也就不在说明枚举目标进程加载模块的用处啦。
+
+### 【开发环境】
+
+`Windows 6.0.1` + `Microsoft Visual 9.0`
+
+### 【开发语言】
+
+`C++`
+
+### 【功能实现方法】
+
+通过 `ZwQueryVirtualMemory` 枚举进程
+
+### 【功能实现步骤】
+
+因为 `ZwQueryVirtualMemory` 是未文档化的 `API`,我们不可以象使用 `MessageBox` 一样来使用它,,但是我们一定要使用它呢？其实也很容易,我们只需要多做几项工作就可以啦,首先我们先去 `Google` 或者 `Baidu` 搜索得到它的原形：
+
+`NTSTATUS` 这种类型需要引用 `winternl.h` 不然默认工程不会知道他是一个 `long` 型的
+
+```
+NTAPI 
+ZwQueryVirtualMemory 
+(
+    IN HANDLE ProcessHandle, 您要枚举的进程句柄 
+    IN PVOID BaseAddress, 你要工作的起始地址, 
+    IN MEMORY_INFORMATION_CLASS MemoryInformationClass, 你要枚举的类型 
+    OUT PVOID MemoryInformation, 你要把枚举得到的数据存放在什么容器里 
+    IN ULONG MemoryInformationLength, 你要告诉此函数它你的容器的尺寸 
+    OUT PULONG ReturnLength OPTIONAL 工作成功后函数告诉你,他到底给了你多少数量 
+);
+```
+
+现在有了它的原形后,我们要做的就是模仿他的样子,来自己定义一个函数类型,至于为什么要这么做呢？ 我们一会再说
+
+```c++
+#include <winternl.h>
+
+typedef 
+NTSTATUS 
+(WINAPI *ZWQUERYVIRTUALMEMORY) 
+( 
+    IN HANDLE ProcessHandle,  
+    IN PVOID BaseAddress,  
+    IN MEMORY_INFORMATION_CLASS MemoryInformationClass,  
+    OUT PVOID MemoryInformation,  
+    IN ULONG MemoryInformationLength,  
+    OUT PULONG ReturnLength OPTIONAL 
+);
+```
+
+别问我为什么要这么定义,我也不知道,这是 `C++` 的语法,想知道就只能去看基础书啦。接下来做什么呢？观众朋友们还记得 `MEMORY_INFORMATION_CLASS` 这个类型的参数吗？呵呵,sorry 它也是未文档化的,你想使用它,一样模仿它自己做一个吧。
+
+```c++
+typedef enum _MEMORY_INFORMATION_CLASS 
+{ 
+MemoryBasicInformation, 
+MemoryWorkingSetList, 
+MemorySectionName 
+} MEMORY_INFORMATION_CLASS;
+```
+
+对于这哥们呢,也没什么好说的,枚举是语言的基础语法,里面的成员呢字面含义很好理解。如果实在不懂呢,你就把他当成一个领导给他的工人下的三种指示好啦,通过参数的形式来传达给 `ZwQueryVirtualMemory` 这个工人。让他按照指示来完成工作。基本的准备工作到这里就告一段落啦,真正的故事开始了,构造一个函数来实现我们的目的吧。
+
+```c++
+VOID EnumProcessForModule ()
+这是一个最基本的函数,没有返回类型,没有参数,为什么要这样定义呢？因为每个同学想要达到的效果各不相同,为了避免扰乱视听,在您真正理解了他的实现原理后,自己再做自己喜欢的封装吧。或翻译成其他语言 
+{ 
+按惯例函数头部创建一些需要的局部变量,虽然 `C++` 有个优点可以随时随地创建,但是我不喜欢那么做,为了函数的整体环境规划清爽,不然怕城管来砸,  
+
+ZWQUERYVIRTUALMEMORY QueryVirtualMemoryFunction=NULL; 
+
+DWORD Index=0; 
+
+NTSTATUS NtStatus=0; 
+
+MEMORY_BASIC_INFORMATION InfoMation; 
+
+BYTE Buffer[MAX_PATH*2+4]={0}; 
+
+PUNICODE_STRING SectionName=NULL; 
+
+DWORD Counter; 
+
+CString ModuleAddress; 
+
+CString ModuleName; 
+
+这些就是我们所需要配合我们完成工作的变量啦,用到那个说那个,Let's Begin 
+第一个局部变量：这就接上文章头部我们没讲完的故事啦,我们自己模仿了 `ZwQueryVirtualMemory` 的样子定义了一个我们自己的函数型类型的指针,但是光这样是没用,只有一个空壳,并没有灵魂,他什么也做不了,所以我们要给他赋予灵魂,什么是它的灵魂呢,那就是它真正的函数地址(如果您对汇编有一定了解，那就会感觉很清晰啦),怎么得到它呢？这就需要 `GetProcAddress` 这个 `API` 来帮忙啦。他就像鬼差一样,去地府地府里把它的灵魂抓回来,让他回魂,呵呵~ 
+
+QueryVirtualMemoryFunction=(ZWQUERYVIRTUALMEMORY) 
+::GetProcAddress 
+( 
+GetModuleHandle("ntdll.dll"), //ntdll.dll=地府 
+_T("ZwQueryVirtualMemory") //ZwQueryVirtualMemory=鬼魂名 
+); 
+
+为了尽量做一个严谨的程序员,我们要尽量对每一步工作的有效性作下判断,这是很有好处的 
+if (QueryVirtualMemoryFunction==NULL)判断它是否有了灵魂, 
+{ 
+AfxMessageBox(_T("别瞎 TM 扯淡啦！")); 
+如果没有,那啥都别想啦,一切工作都要靠它来完成你不能让一个死人来干活吧 
+} 
+else 呵呵,哥们如果你还没死,那就别歇着啦,帮兄弟点忙吧。。。 
+{ 
+到底让他干点什么活呢？不知道观众朋友们知道人口普查不？就是挨家挨户的查户口,HOHO,这哥们就是干这种活的,怎么回事呢？我来说明一下,我们用户层的一个进程呢,就好比是一座城市,他所管理的人口呢就是 0-0x80000000(虚拟内存)这么多,行啦,那就让他从 0 开始去查户口吧,每查完 0x1000 个人呢。让他回来报告一次就行啦,为什么要以 0x1000 来做标准呢？这就涉及了 `PE` 的一种对齐方式啦,不过不用担心,只是枚举进程模块而已,这么简单的活还不用去学习 `PE` 格式,等以后真正不学不行的时候再说。 
+
+第二个局部变量：`Index` 建立一个循环在 0-0x80000000 之间,0x1000 一次的跑吧 
+for(Index;Index<0x80000000;Index+=0x1000) 
+{ 
+第三个局部变量：`NtStatus` 你把它当成锦衣卫好了,他就是监督工人是否正常干活，就是负责接收函数的 `long` 型返回值来判断执行的效果 
+
+NtStatus=QueryVirtualMemoryFunction 
+( 
+(HANDLE)-1, 因为我们是注入的,所以-1 就代表当前进程的句柄,HOHO,i love dll 
+(PULONG)Index, 工作地址哟,第一次从 0x00000000 开始,第二次从 0x00001000MemoryBasicInformation, 记得不？枚举类型,普查嘛,要有目的的查呀,他就代表我们的目的 
+&InfoMation, 第四个局部变量,你把它理解成移动硬盘好啦,查到的数据放到里面,回来交给我们 
+sizeof(InfoMation), 你要告诉工人。你给了他一个多大的移动硬盘才行,HOHO 
+null 最后一个参数我们用不到,无视它, 
+); 
+
+if (NtStatus>=0) 老规矩,判断下>=0 就表示成功,这不是我规定的,是 `MicroSoft` 规定的 
+{ 
+呵呵,既然成功了,工人拿着查到的数据回来啦交给我们检查,而什么是我们关心的呢,那就是这次普查的 0x1000 个人的类型啦,我们就来看下移动硬盘里 
+if (InfoMation.Type==MEM_IMAGE)  
+Type 就表示这些人的类型啦,如果是暴民,那我们就要严肃的处理啦,`MEM_IMAGE` 这样的就表示暴民啦,HOHO,开个玩笑,其实它是 0x1000 这个大小的 
+一块内存的描述标志,比如这块内存的标志是 `MEM_IMAGE` 哪就说明他是一个我们要的模块啦 
+{ 
+既然找到了我们要的东西,接下来作什么呢,我们要对抓到的暴民进行再过滤以免抓错人： 
+if ((DWORD)InfoMation.AllocationBase==Index) 
+{ 
+这么做是为什么,因为你不这样过滤,你会得到几千个模块,为什么呢？因为模块之间互相映射,唉,挺乱的,实话说我解释的不太清楚,如果你真的想知道你要花几个星期的时间去深入学习下 `PE` 啦,如果你不在意你就按照我的方法做就行啦,他其实就是过滤掉同名的模块。 
+
+NtStatus=QueryVirtualMemoryFunction 
+\[/COLOR\] 
+啊,你又看见他啦,为什么呢？因为它普查出了暴民,你就要派他再去一次对这些暴民作深入的调查,(事实是当我们找到模块后,我们要再次调用它,让他去把这个模块的名称信息弄回来) 
+( 
+(HANDLE)-1, 不变 
+(PULONG)Index, 模块地址啦, 
+MemorySectionName, 看见了吗,我们换了一个命令让他做不同的工作(内存节名枚举) 
+Buffer,  
+第五个局部变量：`BYTE Buffer[MAX_PATH*2+4]` 换一个牌子的移动硬盘, 我要详细的解释一下为什么要用这种类型的来接收数据,其实呢,`MemorySectionName` 这种类型的枚举,他也像 `MemoryBasicInformation` 类型一样有一个对应的结构用来接收数据的,那就是： 
+
+typedef struct MEMORY_SECTION_NAME 
+{ 
+    UNICODE_STRING SectionFileName; 
+    WCHAR       NameBuffer[ANYSIZE_ARRAY]; 
+} *PMEMORY_SECTION_NAME; 
+
+但是为什么不用它呢？因为它更底层一些在 R3 层用它很麻烦,所以放弃它,定义一个和他同样大小的数组,一样可以接收数据,关键在于这个尺寸问题,因为这个结构是在宽字节环境所以我们来计算一下这个结构到底有多大。首先来看第一个成员 `UNICODE_STRING` 他的最大值就是 `MAX_PATH` 这 
+个宏表示 260 个字节,又因为它是宽字符环境所以要*2 啦,再来看第二个成员 `WCHAR` 大家知道这个宏 `[ANYSIZE_ARRAY]` 表示 2,同样因为 `UNICODE` 的关系要*2 也就是 4,所以这个结构最大不会超过 `[MAX_PATH*2+4]`,那么定义这个尺寸的一个数组接收数据就绰绰有余啦,大家知道数组作为参数的时候会自动降级为指针,  怎么样？还好理解吧？继续...... 
+
+sizeof(Buffer),解释过了。 
+null 
+); 
+if (NtStatus>=0)老规矩,检查, 
+{ 
+走到这一步我们的工作也就基本完成了,我们得到了 2 个重要的数据,一个是模块的基址也就是我们做了 `GetModuleHandle();` 的工作,  还有就是模块名称啦,这个循环执行结束,进程内所加载的模块就被我们全部枚举出来啦。这里呢。我用 2 个 `CString` 来接收他们，并用一个列表控件来输出. 
+
+SectionName=(PUNICODE_STRING)Buffer;我们的移动硬盘要换个驱动,不然系统不认 
+ModuleName=SectionName->Buffer; 
+ModuleAddress.Format(_T("%x"),Index); 
+Counter=ListGoodsFilter.InsertItem(Counter,ModuleAddress); 
+ListGoodsFilter.SetItemText(Counter,1,ModuleName); 
+这些都是界面编程和字符串的事,我就不解释啦, 
+} 
+} 
+} 
+} 
+} 
+} 
+}
+```
+
+## 【小结】
+
+这种东西在看雪根本算不上技术,太小儿科啦,可是就是这么简单的东西,我就用了一个星期才学到,相信很多朋友和我一样,因为我在学习的同时 
+,我发现看雪有很多关于此方法的提问还没有得到解决,  至于写的好坏,只能这样啦,我尽力啦,因为我不是科班出身的程序员,所以代码和一些 
+概念的解释都不够严谨,希望大牛能给与点拨,但是人身攻击就不要啦,我这个人没什么好的涵养,会发脾气的,HOHO
+
+## Part.2：R3 通过 IAT 修改 HOOK 目标进程 API
+
+大家好，我们又见面啦，今天我将为各位讲述一个新故事，那就是 `IAT HOOK`。再观看这个故事之前，需要观众确定具备两个基本能力：
+
+1. 对简单的数据结构在内存中的样子能有个宏观的理解。
+2. 理解运行在 `Windows` 环境程序的工作原理。
+
+### 导入地址表（IAT）: Import Address Table
+
+由于导入函数就是被程序调用但其执行代码又不在程序中的函数，这些函数的代码位于一个或者多个 `DLL` 中.当 `PE` 文件被装入内存的时候,`Windows` 装载器才将 `DLL` 装入，并将调用导入函数的指令和函数实际所处的地址联系起来(动态连接)，这操作就需要导入表完成.其中导入地址表就指示函数实际地址。
+
+比如我们想对目标程序的 `PeekMessage` 这个 `API` 函数进行 `HOOK`，那么只需要找到他的 `IAT` 表，并把这个 `API` 的实际地址修改，这就完成了一个 `API HOOK`。按常理，想执行此过程需要对 `PE` 格式有一定的理解，但是我认为并没有这个必要，毕竟这是一个很简单的工作。接下来我将用我的方法带领大家来实现它，那就是角色扮演。
+
+首先幻想自己是 30 年代，蓝衣社的一名特务。今天接到上级的任务，去某地杀掉一名为敌对势力工作的人，然后经过易容，伪装成他来执行潜伏。那么目标是谁呢？他又住在哪里呢？拿起 `MSDN` 情报科送来的文件看看吧，目标叫 `PeekMessage`，是姓“`USER32.dll`”家族的成员，它住在：
+
+`xxx.exe` 市  
+`IMAGE_DOS_HEADER` 区  
+`IMAGE_OPTIONAL_HEADER` 街  
+`IMAGE_IMPORT_DESCRIPTOR` 小区  
+
+还有一张目标的相片
+
+```c++
+BOOL PeekMessage 
+(LPMSG lpMsg,  
+HWND hWnd,  
+UINT wMsgFilterMin,  
+UINT wMsgFilterMax,  
+UINT wRemoveMsg 
+)
+```
+
+资料就这么多啦，但是并没有说明目标住在几号楼几层几号啊。不过没有关系我们是特务嘛。这难不倒我们的，Let's begin
+
+
+
+坐着蓝衣社为我们准备的专机 `SetWindowsHookEx` 把我们 (DLL) 注入到 `xxx.exe` 市，哈哈~下了飞机来到一个陌生的城市真是俩眼一摸黑呀，怎么找我们的目的地呢？最简单的办法：打车，于是我们拦了一辆 `GetModuleHandle(NULL)` 牌的出租车，谁知道一上车。司机看到我给他的地址后告诉我要去的地方需要过海，没办法直接到，只能先送我到 `IMAGE_DOS_HEADER` 区，然后再换船过海才行。听得我晕头转向的，没办法，走吧。。。闲来打量一下这个城市，满眼尽是一些由 `0` 和 `1` 搭建黑白 `2` 色的高楼大厦，颜色和款式是多么的单调枯燥哇，算了，还是闭目养神吧。不一会我们来到了 `IMAGE_DOS_HEADER` 区的水路码头，该下车换乘船过海啦。于是买了 `(ModuleAddress+ImageDosHearderPointer->e_lfanew+24)` 号渡轮的船票，继续这次无聊的旅程。晕船从头吐到尾，好不容易熬到了地方，原来一出了码头就来到了 `IMAGE_OPTIONAL_HEADER` 街，抬头一望在我们 `12` 点钟方向，有个小巴站台，走过去这么一看才知道原来坐
+
+`ModuleAddress+ImageOptionalHeaderPointer->DataDirectory`
+
+`[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress` 线小巴，可以直达我们的终点：`IMAGE_IMPORT_DESCRIPTOR` 小区。二话不说，走着您~~~~~马上要到目的地啦。趁坐小巴的这段时间我们先来整理下思绪，因为不知道具体的楼号和门牌号，所以我们要先想个什么办法，于是找同车的一位美丽小姐打听得知，`IMAGE_IMPORT_DESCRIPTOR` 小区的每座楼都是同一样式的，那就是 `ImageImportDescriptorPointer->FirstThunk` 风格，又知道一楼大厅有个收信箱，上面登记着住户的姓名。有了这些线索我们就下车一栋楼，一栋楼的找吧，虽然这个方案毫无创意，但是记得有位大师曾经说过：往往通过复杂的数据结构和华丽的算法并不是解决问题的好方法，因为它加大了维护和调试的难度。所以我们就用这种直接而有效的土办法来老老实实的找吧：先逐楼搜索
+
+`while(ImageImportDescriptorPointer->FirstThunk!=0)`，然后找到一楼大厅的收信箱
+
+`TargetName=(LPCTSTR)((DWORD)ModuleAddress+ImageImportDescriptorPointer->Name)`，再逐户的查找姓“`USER32.dll`”的家族
+
+`if(TargetName.Compare(_T("USER32.dll"))==0)`，没过多久我们终于找到了，登记簿上写明了具体的门牌号，哈哈~这表示我们离成功只有一步之遥，于是迫不及待的走进 `ModuleAddress+ImageImportDescriptorPointer->FirstThunk` 号电梯，走向“`USER32.dll`”家，来到门口，我停住啦，静静地站在那里平复一下心绪，`10` 秒后我飞起一脚踹开了大门走了进去，映入眼帘的是：坐在屋里男女老少，大大小小 `10` 几口子，全部一脸惊愕的盯着我这位不速之客。我拿出相片 `while(ImageThunkDataPointer->u1.Function)` 迅速搜索，
+
+`FunctionAddress=(PDWORD)&(ImageThunkDataPointer->u1.Function)` 定位目标，
+
+`if(*FunctionAddress==(DWORD)PeekMessageAddress)` 经过一轮的搜索，我找到了目标，他正傻傻的坐在角落里的电脑桌前，我走到它面前
+
+`VirtualQuery(FunctionAddress, &InforMation, sizeof(InforMation))` 细细的打量着他：凌乱的头发如同杂草，一架高度数眼镜戴在苍白消瘦的脸颊上，驼背，纤细却小腹异常隆起的身材，套着 `10` 几年前流行的服饰，HOHO~做技术典型的形象，我冷漠的从怀中掏出了枪：
+
+`VirtualProtect(FunctionAddress, sizeof(DWORD), PAGE_READWRITE, &BeforeProtect)` 顶在目标的眉心。此时此刻，在场的所有人都清楚了我的来意。死亡的恐惧笼罩在每个人的心头，我不在多做停留，无情的勾动了扳机，这就是一个特务的专业操守。嘿嘿
+
+`::WriteProcessMemory((HANDLE)-1, FunctionAddress, &FunctionOfSelf, sizeof(DWORD), NULL)` 目标应声倒地。在手枪的淫威下，其他人也只好无奈的接受这痛苦的事实，我也就成功的完成了此次任务。开始潜伏。
+
+### 接下来换种语言再来讲述一下这个故事：C++
+
+```cpp
+#include <winternl.h>
+
+#include "DialogMain.h"
+
+typedef BOOL (WINAPI* PEEKMESSAGE)(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg);
+
+PEEKMESSAGE FakePeekMessage = (PEEKMESSAGE)PeekMessage;
+
+BOOL WINAPI MinePeekMessage(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg)
+{
+  AfxMessageBox(_T("你 TM 是不是调用我啦？"));
+  return ((PEEKMESSAGE)FakePeekMessage)(lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg);
+}
+
+BOOL CDialogMain::ImportAddressTableHook(HMODULE ModuleAddress, LPCTSTR Library, LPCVOID TargetAddress, LPCVOID ReplaceAddress)
+{
+  IMAGE_DOS_HEADER* ImageDosHearderPointer = NULL;
+  IMAGE_OPTIONAL_HEADER* ImageOptionalHeaderPointer = NULL;
+  IMAGE_IMPORT_DESCRIPTOR* ImageImportDescriptorPointer = NULL;
+  IMAGE_THUNK_DATA* ImageThunkDataPointer = NULL;
+  CString TargetName;
+  DWORD Value = 0;
+  LPDWORD FunctionAddress = NULL;
+  MEMORY_BASIC_INFORMATION InforMation;
+  DWORD BeforeProtect = 0;
+
+  ImageDosHearderPointer = (IMAGE_DOS_HEADER*)ModuleAddress;
+  ImageOptionalHeaderPointer = (IMAGE_OPTIONAL_HEADER*)((DWORD)ModuleAddress + ImageDosHearderPointer->e_lfanew + 24);
+  ImageImportDescriptorPointer = (IMAGE_IMPORT_DESCRIPTOR*)
+    ((DWORD)ModuleAddress + ImageOptionalHeaderPointer->DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
+
+  while (ImageImportDescriptorPointer->FirstThunk != 0)
+  {
+    TargetName = (LPCTSTR)((DWORD)ModuleAddress + ImageImportDescriptorPointer->Name);
+    if (TargetName.Compare(Library) == 0)
+    {
+      Value = (DWORD)ModuleAddress + ImageImportDescriptorPointer->FirstThunk;
+      break;
+    }
+    ImageImportDescriptorPointer++;
+  }
+
+  if (Value == 0)
+  {
+    AfxMessageBox(_T("获取导入地址表失败!"));
+    return FALSE;
+  }
+  else
+  {
+    ImageThunkDataPointer = (IMAGE_THUNK_DATA*)Value;
+    while (ImageThunkDataPointer->u1.Function)
+    {
+      FunctionAddress = (LPDWORD)&(ImageThunkDataPointer->u1.Function);
+      if (*FunctionAddress == (DWORD)TargetAddress)
+      {
+        DebugInfo.Format(_T("%x"), *FunctionAddress);
+        EditHeroBlood.SetWindowText(DebugInfo);
+        VirtualQuery(FunctionAddress, &InforMation, sizeof(InforMation));
+        VirtualProtect(FunctionAddress, sizeof(DWORD), PAGE_READWRITE, &BeforeProtect);
+        if (::WriteProcessMemory((HANDLE)-1, FunctionAddress, &ReplaceAddress, sizeof(DWORD), NULL) == FALSE)
+        {
+          AfxMessageBox(_T("修改导入地址表失败!"));
+          return FALSE;
+        }
+        else
+        {
+          VirtualProtect(FunctionAddress, sizeof(DWORD), BeforeProtect, 0);
+          return TRUE;
+        }
+      }
+      ImageThunkDataPointer++;
+    }
+  }
+  return FALSE;
+}
+```
+
+我再换一种语言来讲述：
+
+大家都知道其实我上述我说地名都是一些结构体，而 `Windows` 就是靠无数个这样的结构体连接搭建起来的，你中有我，我中有你，这就好比一个生物由无数个细胞组成的一样。因为今天我们不是讲述 `Windows` 体系，所以我也不做过多解释。
+
+那么通过 `IAT` 修改来实现 `API HOOK` 的实现原理是什么呢？关键就在于如何在茫茫的内存中找到我们的目标，听起来好像很恐怖，像大海捞针，其实没那么难，因为 `Windows` 就是通过那些结构体把数据在内存中全部线形连接起来啦。这就像玩大富翁，或者一种挖宝藏游戏，从起点出发走几步就会得到一个提示，告诉我们下一步该怎么走。现在我就带领大家来玩一次这种游戏
+
+#### 先来说明游戏规则
+
+- `WORD` = `2` 步
+- `DWORD` = `4` 步
+- 指针 = 进入下一房间
+- 数组 = 翻卡片得到答案
+- `RVA` = 地图宝箱
+
+```asm
+IMAGE_DOS_HEADER STRUCT
+```
+
+这里就是我们的起点，可以通过 `GetModuleHandle(NULL)` 获得，比如起点地址是 `0x00000000`，我们得到的第一个提示 `(ModuleAddress+ImageDosHearderPointer->e_lfanew+24)`，怎么理解这个提示呢？就是从起点开始走 `36` 步，找到一个叫 `e_lfanew` 的门（因为它是指针，所以他就是通往下一个房间的大门），然后推门进去后再走 `24` 步，我们就找到了第二个将要给我们提示的地方
+
+```
+e_magic          WORD
+e_cblp           WORD
+e_cp             WORD
+e_crlc           WORD
+e_cparhdr        WORD
+e_minalloc       WORD
+e_maxalloc       WORD
+e_ss             WORD
+e_sp             WORD
+e_csum           WORD
+e_ip             WORD
+e_cs             WORD
+e_lfarlc         WORD
+e_ovno           WORD
+e_res            WORD
+e_oemid          WORD
+e_oeminfo        WORD
+e_res2           WORD
+e_lfanew         DWORD
+IMAGE_DOS_HEADER ENDS
+```
+
+```c
+typedef struct _IMAGE_OPTIONAL_HEADER
+{
+```
+
+我们通过上一个提示来到了这个房间，同样我们得到了又一个提示 `ModuleAddress+ImageOptionalHeaderPointer->DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress`
+
+理解下这个提示。这代表我们从起点走到 `e_lfanew` 大门进入这个房间再走 `96` 步找到 `DataDirectory` 开始翻卡片（他是一个结构体形数组），来找答案，而答案就在第 `IMAGE_DIRECTORY_ENTRY_IMPORT`（表示 `1`，也就是 `DataDirectory[1]`）张卡片内
+
+```
+WORD    Magic;
+BYTE    MajorLinkerVersion;
+BYTE    MinorLinkerVersion;
+DWORD   SizeOfCode;
+DWORD   SizeOfInitializedData;
+DWORD   SizeOfUninitializedData;
+DWORD   AddressOfEntryPoint;
+DWORD   BaseOfCode;
+DWORD   BaseOfData;
+DWORD   ImageBase;
+DWORD   SectionAlignment;
+DWORD   FileAlignment;
+WORD    MajorOperatingSystemVersion;
+WORD    MinorOperatingSystemVersion;
+WORD    MajorImageVersion;
+WORD    MinorImageVersion;
+WORD    MajorSubsystemVersion;
+WORD    MinorSubsystemVersion;
+DWORD   Win32VersionValue;
+DWORD   SizeOfImage;
+DWORD   SizeOfHeaders;
+DWORD   CheckSum;
+WORD    Subsystem;
+WORD    DllCharacteristics;
+DWORD   SizeOfStackReserve;
+DWORD   SizeOfStackCommit;
+DWORD   SizeOfHeapReserve;
+DWORD   SizeOfHeapCommit;
+DWORD   LoaderFlags;
+DWORD   NumberOfRvaAndSizes;
+IMAGE_DATA_DIRECTORY DataDirectory[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];
+} IMAGE_OPTIONAL_HEADER;
+```
+
+```asm
+IMAGE_IMPORT_DESCRIPTOR STRUCT
+```
+
+通过上面的提示，我们来到了这个房间，那么下一个提示是什么呢？那就是 `while(ImageImportDescriptorPointer->FirstThunk!=0)`，再来理解下这个提示。它是说让我们找到 `FirstThunk` 这个地图宝箱（`RAV`）在里面找到我们需要的地图才能找到下一个房间，那我们就一张一张的翻看吧
+
+我们要找的地图名就是“`USER32.dll`”
+
+```
+union
+    Characteristics
+    OriginalFirstThunk
+ends
+TimeDateStamp
+ForwarderChain
+Name1
+FirstThunk
+IMAGE_IMPORT_DESCRIPTOR ENDS
+```
+
+有了地图我们就来到了下一个房间
+
+```
+IMAGE_THUNK_DATA32 STRUCT
+```
+
+
+
+哈哈。这就使传说中的 `IAT` 表啦，就差一步就找到宝藏啦。我们看一下这次的提示 `while(ImageThunkDataPointer->u1.Function)`，它是说让后找到 `u1.Function` 这个卡片商来得到宝藏位置的答案，只是这次我们不知道第几张卡片里有我们要的答案。没办法挨个翻吧。指导找到
+
+```
+PeekMessage
+
+    union u1
+
+        ForwarderString
+
+        Function
+
+        Ordinal
+
+        AddressOfData
+
+    ends
+
+IMAGE_THUNK_DATA32 ENDS
+```
+
+找到后，还用我教吗？关闭他的保护属性，然后改写他的地址吧。。。
+
+### 小结
+
+这里我钩了一个目标程序接收消息的函数 `PeekMessage`，然后把它传进来的参数输出出来。看看他会不会自己给自己发消息。HOHO。。挺无聊的
+
+但是如果你想钩点别的。比如目标程序的 `socket`，哈哈~那你觉得这像什么呢？

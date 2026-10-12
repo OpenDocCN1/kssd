@@ -1,0 +1,18 @@
+
+# 虚拟键盘、虚拟鼠标驱动
+
+> 原文：[`www.pediy.com/kssd/pediy10/74327.html`](https://www.pediy.com/kssd/pediy10/74327.html)
+
+能够在设备管理器中模拟出虚拟鼠标和键盘的驱动程序。
+
+![img](img/93204fd853b9e085a4e646beef53763d.jpg)
+
+![img](img/1d76c551e655df84c1cebbdede07dd6e.jpg)
+
+上传的附件
+
+|  |  |
+| :--- | :--- |
+| ![img](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) | `虚拟设备.rar` |
+| ![img](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) | `虚拟鼠标.rar` |
+|  |  |

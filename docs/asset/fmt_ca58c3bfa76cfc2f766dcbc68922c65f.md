@@ -1,0 +1,173 @@
+
+# ZwLoadDriver 用其他注册表路径加载驱动的办法~
+
+> 原文：[`www.pediy.com/kssd/pediy12/142021.html`](https://www.pediy.com/kssd/pediy12/142021.html)
+
+先上代码~
+
+```c
+#include <stdio.h>
+#include <tchar.h>
+#include <locale.h>    
+#include <windows.h>    
+#include <stdlib.h>
+#include <psapi.h>    
+#include <Tlhelp32.h>    
+#pragma comment (lib, "psapi.lib")
+typedef struct _UNICODE_STRING {
+  USHORT Length;
+  USHORT MaximumLength;
+  PWSTR Buffer;
+} UNICODE_STRING;
+typedef UNICODE_STRING *PUNICODE_STRING;
+typedef struct _STRING {
+  USHORT Length;
+  USHORT MaximumLength;
+  PCHAR Buffer;
+} ANSI_STRING;
+typedef ANSI_STRING *PANSI_STRING;
+DWORD drvldr_load(char* drvname)
+{
+  char regkey[512];
+  int buflen;
+  UNICODE_STRING us;
+  ANSI_STRING as;
+  HMODULE hNtdll = LoadLibraryA( ("ntdll.dll") );
+  int (__stdcall *RtlAnsiStringToUnicodeString)(void*,void*,int)=
+    (int (__stdcall *)(void *,void *,int))GetProcAddress(hNtdll,"RtlAnsiStringToUnicodeString");
+  int (__stdcall *ZwLoadDriver)(void*)=
+    (int (__stdcall *)(void *))GetProcAddress(hNtdll,"ZwLoadDriver");
+  ///
+  buflen=sprintf(regkey,"\\Registry\\Machine\\SOFTWARE\\%s",drvname);
+  as.Buffer = (PCHAR)regkey;
+  as.Length = (USHORT)buflen;
+  as.MaximumLength=(USHORT)buflen;
+  RtlAnsiStringToUnicodeString(&us, &as,TRUE);
+
+  return ZwLoadDriver(&us);
+}
+DWORD drvldr_reg(char* drvname,DWORD start_type,char* path)
+  //path should be kernel type like \\??\\xxx
+{
+  char regkey[512];
+  DWORD regdata;
+  int buflen;
+  HKEY hkey;
+  ///
+  sprintf(regkey,"SOFTWARE\\%s",drvname);
+  if(RegCreateKeyA(HKEY_LOCAL_MACHINE, regkey, &hkey)!=ERROR_SUCCESS)
+  {return -1;}
+  regdata=SERVICE_KERNEL_DRIVER;
+  RegSetValueExA(hkey, ("Type"), 0, REG_DWORD, (const unsigned char *)&regdata, 4);
+  regdata=SERVICE_ERROR_NORMAL;
+  RegSetValueExA(hkey, ("ErrorControl"), 0, REG_DWORD, (const unsigned char *)&regdata, 4);
+  regdata = start_type;
+  RegSetValueExA(hkey, ("Start"), 0, REG_DWORD, (const unsigned char *)&regdata, 4);
+  buflen = strlen(drvname);
+  RegSetValueExA(hkey, ("DisplayName"), 0, REG_EXPAND_SZ, (const unsigned char *)drvname, buflen);
+  buflen = strlen(path); 
+  RegSetValueExA(hkey, ("ImagePath"), 0, REG_EXPAND_SZ, (const unsigned char *)path, buflen);
+  RegSetValueExA(hkey,("Group"),0,REG_SZ,(const BYTE *)"Base",strlen("Base"));
+  RegCloseKey(hkey); 
+  //sprintf(regkey,"System\\CurrentControlSet\\Services\\%s",drvname);
+  //RegCreateKeyA(HKEY_LOCAL_MACHINE, regkey, &hkey);
+  //regdata=SERVICE_KERNEL_DRIVER;
+  //RegCloseKey(hkey); 
+  sprintf(regkey,"System\\Setup\\AllowStart\\%s",drvname);
+  RegCreateKeyA(HKEY_LOCAL_MACHINE, regkey, &hkey);
+  regdata=SERVICE_KERNEL_DRIVER;
+  RegCloseKey(hkey); 
+  return 0;
+}
+//Jan 4 2005
+//Enable specific privilege
+BOOL EnableSpecificPrivilege(BOOL bEnable,LPCTSTR Name)
+{
+  BOOL bResult = FALSE;
+  HANDLE hToken;
+  TOKEN_PRIVILEGES TokenPrivileges;
+
+  if(OpenProcessToken(GetCurrentProcess(),TOKEN_QUERY | TOKEN_ADJUST_PRIVILEGES,&hToken) == 0)
+  {
+    return FALSE;
+  }
+
+  TokenPrivileges.PrivilegeCount = 1;
+  TokenPrivileges.Privileges[0].Attributes = bEnable ? SE_PRIVILEGE_ENABLED : 0;
+  bResult = LookupPrivilegeValue(NULL,Name,&TokenPrivileges.Privileges[0].Luid);
+  if(!bResult)
+  {
+    CloseHandle(hToken);
+    return FALSE;
+  }
+
+  bResult = AdjustTokenPrivileges(hToken,FALSE,&TokenPrivileges,sizeof(TOKEN_PRIVILEGES),NULL,NULL);
+  if(GetLastError() != ERROR_SUCCESS || !bResult)
+  {
+    CloseHandle(hToken);
+    return FALSE;
+  }
+
+  CloseHandle(hToken);
+  return TRUE;
+}
+
+//Jan 4 2005
+//Enable all privilege, return num of privileges successfully enabled
+DWORD EnableAllPrivilege(BOOL bEnable)
+{
+  DWORD count=0; 
+  ///
+  count+=EnableSpecificPrivilege(bEnable,SE_ASSIGNPRIMARYTOKEN_NAME);
+  count+=EnableSpecificPrivilege(bEnable,SE_AUDIT_NAME);
+  count+=EnableSpecificPrivilege(bEnable,SE_BACKUP_NAME);
+  count+=EnableSpecificPrivilege(bEnable,SE_CHANGE_NOTIFY_NAME);
+  count+=EnableSpecificPrivilege(bEnable,SE_CREATE_PAGEFILE_NAME);
+  count+=EnableSpecificPrivilege(bEnable,SE_CREATE_PERMANENT_NAME);
+  count+=EnableSpecificPrivilege(bEnable,SE_CREATE_TOKEN_NAME);
+  count+=EnableSpecificPrivilege(bEnable,SE_DEBUG_NAME);
+  count+=EnableSpecificPrivilege(bEnable,SE_INC_BASE_PRIORITY_NAME);
+  count+=EnableSpecificPrivilege(bEnable,SE_INCREASE_QUOTA_NAME);
+  count+=EnableSpecificPrivilege(bEnable,SE_LOAD_DRIVER_NAME);
+  count+=EnableSpecificPrivilege(bEnable,SE_LOCK_MEMORY_NAME);
+  count+=EnableSpecificPrivilege(bEnable,SE_PROF_SINGLE_PROCESS_NAME);
+  count+=EnableSpecificPrivilege(bEnable,SE_REMOTE_SHUTDOWN_NAME);
+  count+=EnableSpecificPrivilege(bEnable,SE_RESTORE_NAME);
+  count+=EnableSpecificPrivilege(bEnable,SE_SECURITY_NAME);
+  count+=EnableSpecificPrivilege(bEnable,SE_SHUTDOWN_NAME);
+  count+=EnableSpecificPrivilege(bEnable,SE_SYSTEM_ENVIRONMENT_NAME);
+  count+=EnableSpecificPrivilege(bEnable,SE_SYSTEM_PROFILE_NAME);
+  count+=EnableSpecificPrivilege(bEnable,SE_SYSTEMTIME_NAME);
+  count+=EnableSpecificPrivilege(bEnable,SE_TAKE_OWNERSHIP_NAME);
+  count+=EnableSpecificPrivilege(bEnable,SE_TCB_NAME);
+  count+=EnableSpecificPrivilege(bEnable,SE_UNSOLICITED_INPUT_NAME);
+  count+=EnableSpecificPrivilege(bEnable,SE_MACHINE_ACCOUNT_NAME);
+
+  return count;
+}
+int _tmain(int argc, _TCHAR* argv[])
+{
+  EnableAllPrivilege(TRUE);
+  drvldr_reg("caonima",3,"\\??\\D:\\1.sys");
+  drvldr_load("caonima");
+  return 0;
+}
+```
+
+对于`1.sys`的有些特殊的要求，首先`1.sys`里的代码不会被真的执行，但是`1.sys`这个驱动导入的动态库驱动可以被执行。
+
+举例下图：
+
+`1.sys`的导入表样子：
+
+![](img/4e9656cdfff09700d1293e9fbe887e36.jpg)
+
+导入的`dllsys`的导出表样子：
+
+![](img/a67a8bf3d09e9ee1ad686bb5850c2fc3.jpg)
+
+真正被执行的代码要写在动态库驱动的`NTSTATUS DllInitialize(IN PUNICODE_STRING RegistryPath)`里~~
+
+具体怎么写内核版动态库，请自行`baidu`研究。
+
+好了爆完~这个方法的好处就是写注册表的过程基本不触发任何报警至于加载部分，仁者见仁吧，这玩意 2005 年的东西了~

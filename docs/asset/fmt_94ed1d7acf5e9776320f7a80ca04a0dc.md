@@ -1,0 +1,12 @@
+
+# 放点源码备份
+
+> 原文：[`www.pediy.com/kssd/pediy11/116147.html`](https://www.pediy.com/kssd/pediy11/116147.html)
+
+远程维护用的，汇编写的`VNC`外壳，非安全勿下。
+
+上传的附件
+
+| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) | | `server.rar` |
+| :--- | :--- | :--- |
+| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) | | `client.rar` |

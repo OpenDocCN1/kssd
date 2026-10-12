@@ -1,0 +1,130 @@
+
+# 如何在 Windows 7 上使用 masm611
+
+> 原文：[`www.pediy.com/kssd/pediy12/142435.html`](https://www.pediy.com/kssd/pediy12/142435.html)
+
+我使用的是 Windows 7 旗舰版系统的平台，在使用 `masm611` 的时候遇到了一些问题，不知道大家是否曾经遇到过，接下来我描述下我遇到的状况吧！
+
+在 `ASM` 目录下，我编写了一个 `a.asm`，这是一个很简单的代码：
+
+```asm
+DATAS     SEGMENT  
+
+FIVE      DB 5  
+
+DATAS     ENDS  
+
+STACK     SEGMENT  STACK  
+
+          DB  128  DUP(0)  
+
+STACK     ENDS  
+
+CODES     SEGMENT  
+
+          ASSUME CS:CODES,DS:DATAS  
+
+START:    MOV  AX,DATAS  
+
+          MOV  DS,AX  
+
+          MOV  AL,FIVE  
+
+          ADD  AL,3  
+
+          ADD  AL,30H  
+
+          MOV  DL,AL  
+
+          MOV  AH,2  
+
+          INT  21H  
+
+          MOV  AH,4CH  
+
+          INT  21H  
+
+CODES     ENDS  
+
+          END START  
+```
+
+这不至于有语法错误吧！呵呵！
+
+老规矩，先在 `path` 变量中加入 `masm` 的 `bin` 的路径，也可以用 `bat` 这类的。
+
+首先：当我在 `ASM` 目录下运行 `masm a.asm`
+
+```
+D:\ASM>masm a.asm  
+
+Microsoft (R) MASM Compatibility Driver  
+
+Copyright (C) Microsoft Corp 1993.  All rights reserved.  
+
+ Invoking: ML.EXE /I. /Zm /c /Ta a.asm  
+
+Microsoft (R) Macro Assembler Version 6.11  
+
+Copyright (C) Microsoft Corp 1981-1993.  All rights reserved.  
+
+ Assembling: a.asm  
+```
+
+然后运行 `dir` 查看当前目录下的文件
+
+```
+D:\ASM>dir  
+
+2011/11/06  16:42    <DIR>          .  
+
+2011/11/06  16:42    <DIR>          ..  
+
+2011/11/06  16:16               456 a.asm  
+
+2011/11/06  16:42               134 a.obj  
+```
+
+发现编译成功了，接下来就是链接的问题了，如下：
+
+```
+D:\ASM>link a.obj  
+```
+
+当我们用 `link` 来编译 `a.obj` 文件的时候，它什么也没有输出。
+
+继续使用 `dir` 查看，发现 `ASM` 目录下什么也没有改变。
+
+推断：`link` 是一个空操作，至少在 Windows 7 上是这样的。（在 XP 上是没有问题的，运行正常）。
+
+于是我在（TASM）IDE86 的 `bin` 目录下复制了一个文件（`tlink.exe`）到 `masm` 的 `bin` 目录下，
+
+用 `tlink` 来链接 `a.obj` 文件并查看：
+
+```
+D:\MYPROJ~1\ASM>tlink a.obj  
+
+Turbo Link  Version 2.0  Copyright (c) 1987, 1988 Borland International  
+```
+
+```
+D:\ASM>dir  
+
+2011/11/06  16:48    <DIR>          .  
+
+2011/11/06  16:48    <DIR>          ..  
+
+2011/11/06  16:16               456 a.asm  
+
+2011/11/06  16:48               678 A.EXE  
+
+2011/11/06  16:48               219 A.MAP  
+
+2011/11/06  16:42               134 a.obj  
+```
+
+发现 `tlink` 可以与 `masm` 配合使用。
+
+早些时候在网上就听闻它们非常相似，今天的试验更是证明了这点。
+
+注：需要以上出现的软件的朋友，可以联系我。![酷](img/2aa97d64a7e0b211d2f8f207eb382aa7.jpg)

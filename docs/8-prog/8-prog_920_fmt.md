@@ -1,0 +1,263 @@
+
+# Inline Hook `NtQuerySystemInformation` 保护进程
+
+> 原文：[`www.pediy.com/kssd/pediy10/93531.html`](https://www.pediy.com/kssd/pediy10/93531.html)
+
+今晚又这么无聊，听着《那些花儿》有点想哭，放假这几天真是无聊 ing，正好前几天学习了内核的 inline hook，不如现在写点东西来总结一下吧。
+
+本人对内核的认识也不多，对内核的认识是在 2007 年离别的泪花中开始的，到现在一眨眼就两年啦，真快吖哈！不过认识的也不多，想那年还以为在内核中就是实模式，嘿嘿、你看我有多么的傻！嘿嘿、2 年过去了，梁老师现在还好吧，我很记得 2 年前的那个散学礼，当梁老师说不做我们的班主任了的时候，我还静静的哭了几分钟呢，有没有人看见我就不知到了，不过也正是这离别的泪花让我开始了内核的“不归路”，这儿说的内核是指 Windows 的内核，众周所知 Windows 也就 `ring0` 和 `ring3` 组成的吧，`ring0` 就是内核了，因为 Windows 的内核运行在 `ring0` 级别的哈....
+
+上面又扯了这么多的废话，那么下面就进入正题哈
+
+Inline Hook & `NtQuerySystemInformation` & `ring0`
+
+本文呢，是介绍一种保护进程不被结束的方法，这个方法不算新了，好旧好旧的了，其实呢，也是 hook 了某个函数来实现的，不过没有 hook `NtOpenProcess`、`NtTerminateProcess`、`KiInsertQueuApc` 等函数，而是 hook 了 `NtQuerySystemInformation` 来保护我们的进程，`NtQuerySystemInformation` 是用来查询系统信息的，可以查询的系统信息有 54 种这么多，其中 ID 是 5 的话呢，就会返回一个链表，这个链表中包括了当前系统中的所以的进程名、进程 ID，也就是说这个函数可以获取系统的进程列表，我们可以 hook 这个函数来隐藏进程，不过这次是保护进程，不是隐藏哦
+
+在 `ring3` 中，列举进程的方法是调用 `Tool32` 或者 `psapi` 中的 `EnumProcess`，可是这些函数都调用了 `ZwQuerySystemInformation` 然后在 `NtQuerySystemInformation`，也就是我们 hook `NtQuerySystemInformation` 就可以保护&隐藏进程了哇
+
+`hookNtQuerySystemInformation` 的方法有好的，可以修改 `SSDT`，也可以修改函数前 5 个字节，也就是 inline hook 了，本文采用后者哦
+
+在函数开始的 5 个字节中，改为一个 `Jmp` 指令，让她在调用这个函数的时候跳转到我们的函数中，我们在经过一些处理后再调用原来的
+
+流程如下:
+
+```
+cli
+mov eax,cr0
+and eax,0fffeffffh
+mov cr0,eax
+
+修改前 5 个字节
+
+mov eax,cr0
+or eax,not 0fffeffffh
+mov cr0,eax
+sti
+```
+
+这儿说下怎么样保护进程，在 `NtQuerySystemInformation` 返回的链表中包含了进程的 ID，想一下如果我们把某个进程的 ID 改了后再返回给别人，那么别人就不会得到某个进程的正确的 ID 了，这样她再怎么 `NtOpenProcess` 也没有了吧，因为她得到是一个错误的 ID 了哇，（听起来好像好衰，但有什么办法呢，现实就是这样）
+
+下面代码奉上
+
+代码:
+
+
+
+```c
+///////////////////////////////////////////////////////////////////////////////
+///
+/// Copyright (c) 2009 - <company name here>
+///
+/// Original filename: zhenzhen\_feifei\_inlinehook\_kernel.cpp
+/// Project          : zhenzhen\_feifei\_inlinehook\_kernel
+/// Date of creation : 2009-07-08
+/// Author(s)        : 
+///
+/// Purpose          : <description>
+///
+/// Revisions:
+///   0000 [2009-07-08] Initial revision.
+///
+///////////////////////////////////////////////////////////////////////////////
+
+// $Id$
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+#include <ntddk.h>
+#include <ntifs.h>
+#include <string.h>
+#ifdef __cplusplus
+}; // extern "C"
+#endif
+
+#include ".h"
+
+#ifdef __cplusplus
+namespace { // anonymous namespace to limit the scope of this global variable!
+#endif
+PDRIVER_OBJECT pdoGlobalDrvObj = 0;
+#ifdef __cplusplus
+}; // anonymous namespace
+#endif
+PVOID inlinehook(UNICODE_STRING *hookfunction,ULONG NewFunction,UCHAR oldCode[5]);
+void uninlinehook(PVOID oldfunaddr,UCHAR oldcode[5]);
+PVOID lpNtQuerySystemInformation;
+UCHAR boldCode[5];
+ULONG a;
+NTSTATUS MyNtQuerySystemInformation(IN SYSTEM_INFORMATION_CLASS SystemInformationClass,
+    OUT PVOID                   SystemInformation,
+    IN ULONG                   Length,
+    OUT PULONG                 ReturnLength);
+NTSTATUS ZHENZHENFEIFEI_INLINEHOOK_KERNEL_DispatchCreateClose(
+  IN PDEVICE_OBJECT    DeviceObject,
+  IN PIRP          Irp
+  )
+{
+  NTSTATUS status = STATUS_SUCCESS;
+  Irp->IoStatus.Status = status;
+  Irp->IoStatus.Information = 0;
+  IoCompleteRequest(Irp, IO_NO_INCREMENT);
+  return status;
+}
+
+NTSTATUS ZHENZHENFEIFEI_INLINEHOOK_KERNEL_DispatchDeviceControl(
+  IN PDEVICE_OBJECT    DeviceObject,
+  IN PIRP          Irp
+  )
+{
+  NTSTATUS status = STATUS_SUCCESS;
+  PIO_STACK_LOCATION irpSp = IoGetCurrentIrpStackLocation(Irp);
+
+  switch(irpSp->Parameters.DeviceIoControl.IoControlCode)
+  {
+  case IOCTL_ZHENZHENFEIFEI_INLINEHOOK_KERNEL_OPERATION:
+    // status = SomeHandlerFunction(irpSp);
+    break;
+  default:
+    Irp->IoStatus.Status = STATUS_INVALID_DEVICE_REQUEST;
+    Irp->IoStatus.Information = 0;
+    break;
+  }
+
+  status = Irp->IoStatus.Status;
+  IoCompleteRequest(Irp, IO_NO_INCREMENT);
+  return status;
+}
+
+VOID ZHENZHENFEIFEI_INLINEHOOK_KERNEL_DriverUnload(
+  IN PDRIVER_OBJECT    DriverObject
+  )
+{
+  PDEVICE_OBJECT pdoNextDeviceObj = pdoGlobalDrvObj->DeviceObject;
+  IoDeleteSymbolicLink(&usSymlinkName);
+
+  // Delete all the device objects
+  while(pdoNextDeviceObj)
+  {
+    PDEVICE_OBJECT pdoThisDeviceObj = pdoNextDeviceObj;
+    pdoNextDeviceObj = pdoThisDeviceObj->NextDevice;
+    IoDeleteDevice(pdoThisDeviceObj);
+  }
+  uninlinehook(lpNtQuerySystemInformation,boldCode);
+}
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+NTSTATUS DriverEntry(
+  IN OUT PDRIVER_OBJECT   DriverObject,
+  IN PUNICODE_STRING      RegistryPath
+  )
+{
+  PDEVICE_OBJECT pdoDeviceObj = 0;
+  NTSTATUS status = STATUS_UNSUCCESSFUL;
+  pdoGlobalDrvObj = DriverObject;
+
+  // Create the device object.
+  if(!NT_SUCCESS(status = IoCreateDevice(
+    DriverObject,
+    0,
+    &usDeviceName,
+    FILE_DEVICE_UNKNOWN,
+    FILE_DEVICE_SECURE_OPEN,
+    FALSE,
+    &pdoDeviceObj
+    )))
+  {
+    // Bail out (implicitly forces the driver to unload).;
+    return status;
+  };
+
+  // Now create the respective symbolic link object
+  if(!NT_SUCCESS(status = IoCreateSymbolicLink(
+    &usSymlinkName,
+    &usDeviceName
+    )))
+  {
+    IoDeleteDevice(pdoDeviceObj);
+    return status;
+  }
+
+  // NOTE: You need not provide your own implementation for any major function that
+  //       you do not want to handle. I have seen code using DDKWizard that left the
+  //       *empty* dispatch routines intact. This is not necessary at all!
+  DriverObject->MajorFunction[IRP_MJ_CREATE] =
+  DriverObject->MajorFunction[IRP_MJ_CLOSE] = ZHENZHENFEIFEI_INLINEHOOK_KERNEL_DispatchCreateClose;
+  DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = ZHENZHENFEIFEI_INLINEHOOK_KERNEL_DispatchDeviceControl;
+  DriverObject->DriverUnload = ZHENZHENFEIFEI_INLINEHOOK_KERNEL_DriverUnload;
+  UNICODE_STRING usNtOpenProcess;
+  RtlInitUnicodeString(&usNtOpenProcess,L"NtQuerySystemInformation");
+  lpNtQuerySystemInformation= inlinehook(&usNtOpenProcess,(ULONG)MyNtQuerySystemInformation,boldCode);
+  return STATUS_SUCCESS;
+}
+#ifdef __cplusplus
+}; // extern "C"
+#endif
+PVOID inlinehook(UNICODE_STRING *hookfunction,ULONG NewFunction,UCHAR oldCode[5])
+{
+  PVOID lpfunname = MmGetSystemRoutineAddress(hookfunction);
+  DbgPrint("\nyuan dizhi shi :%x,",oldCode);
+  int ijmpaddr;
+  UCHAR uchjmpcode[5] = {0xE9,0,0,0,0};
+  ijmpaddr = (UCHAR*)NewFunction - (UCHAR*)lpfunname - 5;
+  RtlCopyMemory(uchjmpcode+1,&ijmpaddr,4);
+  DbgPrint("\n%x",uchjmpcode);           
+  __asm cli;
+  __asm mov eax,cr0;
+  __asm and eax,0fffeffffh;
+  __asm mov cr0,eax;
+  RtlCopyMemory(oldCode,lpfunname,5);
+  RtlCopyMemory(lpfunname,uchjmpcode,5);
+  __asm mov eax,cr0;
+  __asm or eax,not 0fffeffffh;
+  __asm mov cr0,eax;
+  __asm sti;
+  return lpfunname;
+}
+void uninlinehook(PVOID oldfunaddr,UCHAR oldcode[5])
+{
+  __asm cli;
+  __asm mov eax,cr0;
+  __asm and eax,0fffeffffh;
+  __asm mov cr0,eax;
+  //DbgPrint("%x\n",oldCode);
+  RtlCopyMemory(oldfunaddr,oldcode,5);
+  __asm mov eax,cr0;
+  __asm or eax,not 0fffeffffh;
+  __asm mov eax,cr0;
+  __asm sti;
+}
+NTSTATUS
+MyNtQuerySystemInformation(
+    IN SYSTEM_INFORMATION_CLASS SystemInformationClass,
+    OUT PVOID                   SystemInformation,
+    IN ULONG                   Length,
+    OUT PULONG                 ReturnLength)
+{
+  SYSTEM_PROCESSES_INFORMATION *lpspi = 0,*lpspia = 0;
+  lpspi = (SYSTEM_PROCESSES_INFORMATION*)SystemInformation;
+  //lpspia = lpspi;
+  UNICODE_STRING aProcessName;
+  RtlInitUnicodeString(&aProcessName,L"Explorer.exe");
+                 uninlinehook(lpNtQuerySystemInformation,boldCode);
+  NTSTATUS a = Zwq(SystemInformationClass,SystemInformation,Length,ReturnLength);
+                 UNICODE_STRING usNtOpenProcess;
+  RtlInitUnicodeString(&usNtOpenProcess,L"NtQuerySystemInformation");
+  lpNtQuerySystemInformation= inlinehook(&usNtOpenProcess,(ULONG)MyNtQuerySystemInformation,boldCode);
+
+  if(SystemInformationClass != 5 || !NT_SUCCESS(a)) {
+    return a;
+  }
+  while(lpspi->NextEntryDelta != 0) {
+    if(RtlEqualUnicodeString(&aProcessName,&lpspi->ProcessName,1)) {
+      //lpspia->NextEntryDelta += lpspi->NextEntryDelta;
+      lpspi->ProcessId = 123;
+    }
+    //lpspia = lpspi;
+    lpspi = (SYSTEM_PROCESSES_INFORMATION*)((PUCHAR)lpspi+lpspi->NextEntryDelta);
+  }
+  return a;
+}
+```

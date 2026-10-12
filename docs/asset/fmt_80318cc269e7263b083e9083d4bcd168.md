@@ -1,0 +1,175 @@
+
+# 操作系统开发之实现多系统引导
+
+> 原文：[`www.pediy.com/kssd/pediy09/pediy09-684.htm`](https://www.pediy.com/kssd/pediy09/pediy09-684.htm)
+
+## 一. 一点说明
+
+一直都想写一个属于自己的操作系统，可是总是由于这样或那样的原因，一直没有集中精力去搞下来。作为一个非计算机专业的大五学生，现在忙于补修本职专业课（挂了些课）和找 `IT` 方面工作，暂时也没时间继续了。现公布一点自己些的垃圾，写得不好，请大家不要抛砖头砸我![](img/d40b5575a143b1b5e17e7f31e3f35d26.jpg "恐怖!")
+
+## 二. 设计与实现
+
+硬盘多系统引导功能基本有两部分组成，包括引导启动代码安装和导启动代码。考虑到测试的环境和处理问题的方便性，安装程序没有使用 `TASM` 来写。就拿从硬盘定位一个引导文件来说吧，就得考虑该分区的文件系统类型是 `VFAT` 还是 `NTFS` 或是 `EXT2` 之类情况。由于我们的主要目的是实现多系统引导，为了不喧宾夺主就将主要精力花在引导的设计上，至于文件系统的设计与处理，等以后有机会再与大家探讨![](img/7c79845954f5fbf9e981f570ed213a8d.jpg "扮鬼脸") 安装部分必须完成的任务有：保存原 `MBR` 内容，修改分区类型，恢复 `MBR` 内容，修改 `MBR` 启动代码，其他的可以按自己需要添加。
+
+对于多系统引导的设计与处理，考虑到代码可移植性与稳定性，没有采用默认开始执行的 `IP` 为 `0000:7c00`，而是选择程序自己动态调整；另外为了便于测试和改进代码应该具有重定位功能，在非引导环境下也应当能够执行（不然你没法 `DEBUG`![](img/7c79845954f5fbf9e981f570ed213a8d.jpg "扮鬼脸") ）。
+
+## 三. 具体代码
+
+每个部分都有详细的注释，相信大家都该能够看明白。
+
+代码:
+
+```c
+/* MDISK.C 功能简介:    1.)保存 MBR 内容    2.)修改分区类型    3.)删除分区    4.)恢复 MBR 内容    5.)修改 MBR 启动代码   */   
+#include <stdio.h>   
+#include <conio.h>   
+#include <bios.h>      
+
+void main(void)   
+{    
+  FILE *fp;    
+  unsigned char buff[512];    
+  int x,y,z,ch,i,s;    
+  /* read MBR     
+    int biosdisk(int cmd,int drive,int head,int track,int sector,int nsects,void *buffer)    
+  */    
+  /*读取 MBR 并检测是否改动*/    
+  biosdisk(2,0x80,0,0,1,1,buff);    
+  if(buff[3]=='H'&&buff[4]=='S'&&buff[5]=='Q')    
+  {    
+    printf("\n MBR had been modifled by HSQ ");    
+    printf("\n Do you want to Overlay MBR (y/n) :");    
+    for(ch='*';ch!='y'&&ch!='n';)ch=getchar();    
+    if(ch=='y')    
+    {      
+      printf("\n Enter (1-9) sector index to be read :"); /* 49-57*/      
+      for(x='*';x<'1'||x>'9';)x=getchar();      
+      biosdisk(2,0x80,0,0,x-48+10,1,buff); /* 2-10  */      
+      biosdisk(3,0x80,0,0,1,1,buff);      
+      printf("\n Overlay Complete !");    
+    }    
+  }    
+  else    
+  {  /*在处理原始 MBR 前,必须备份*/   
+    printf("\n Save MBR to (1-9) sector index :");    
+    for(x='*';x<'1'||x>'9';)x=getchar();    
+    biosdisk(3,0x80,0,0,x-48+10,1,buff);    
+    printf("\n Save MBR Complete !");    
+  }       
+  /*显示操作菜单*/    
+  while(1)    
+  {    
+    clrscr();    
+    printf("\n\n Disk Partition type information :");    
+    for(x=0x1c2;x<=0x1f2;x+=16)printf("%02x",buff[x]);    
+    printf("\n\n **************** Menu Title ******************");    
+    printf("\n *                                     *");    
+    printf("\n *     1--> Change partition type            *");    
+    printf("\n *                                     *");    
+    printf("\n *     2--> Delete partition                 *");    
+    printf("\n *                                     *");    
+    printf("\n *     3--> Recover MBR                      *");    
+    printf("\n *                                     *");    
+    printf("\n *     4--> Load LDMBR File                  *");    
+    printf("\n *                                     *");    
+    printf("\n *     5--> Load BOOT File                   *");    
+    printf("\n *                                     *");    
+    printf("\n *     0--> Quit this Program                *");    
+    printf("\n *                                     *");    
+    printf("\n *  MDISK v1.23 by Huang Shiquan  2007-10-06 *");    
+    printf("\n *                                     *");    
+    printf("\n *********************************************");    
+    printf("\n Enter your choice :");    
+    for(ch='*';ch<'0'||ch>'5';)ch=getchar();    
+    if(ch=='0')break;    
+    if(ch=='1')    
+    {      
+      printf("\n Partition do you want to change (1-4) :");      
+      for(x='*';x<'1'||x>'4';)x=getchar();      
+      printf("\n Current partition type is %02x",buff[0x1c2+(x-49)*16]);      
+      printf("\n Enter new partition type :");      
+      scanf("%02x",&y);      
+      buff[0x1c2+(x-49)*16]=y;      
+      biosdisk(3,0x80,0,0,1,1,buff);      
+      printf("\n Change Complete !");      
+      getch();    
+    }    
+    if(ch=='2')    
+    {      
+      printf("\n Partition do you want to delete (1-4) :");      
+      for(x='*';x<'1'||x>'4';)x=getchar();      
+      for(x-=49,y=0;y<(3-x)*16;y++)    
+      {        
+        z=0x1be+x*16+y;        
+        buff[z]=buff[z+16];    
+      }    
+      for(y=0;y<16;y++)buff[0x1ee+y]=0;    
+      biosdisk(3,0x80,0,0,1,1,buff);      
+      printf("\n Delete Complete !");      
+      getch();    
+    }    
+    if(ch=='3')                      /*调用备份扇区覆盖启动扇区*/    
+    {      
+      printf("\n Enter (1-9) sector index to read be :");      
+      for(x='*';x<'1'||x>'9';)x=getchar();/*HEX: 31 - DEC: 49 - ASCII: 1*/      
+      biosdisk(2,0x80,0,0,x-48+10,1,buff);      
+      biosdisk(3,0x80,0,0,1,1,buff);      
+      printf("\n Recover Complete !");      
+      getch();    
+    }    
+    if(ch=='4')                      /*装载启动扇区文件*/    
+    {      
+      s=1;      
+      if((fp=fopen("LDMBR.COM","rb")) == NULL)    
+      {        
+        printf("\n Open file LDMBR.COM error !\n");        
+        break;    
+      }      
+      for(i=2;i<=10;i++)          /*执行前检查被覆盖分区是否含有 MBR 信息*/    
+      {        
+        biosdisk(2,0x80,0,0,i,1,buff);        
+        if(buff[0x1fe]==0x55&&buff[0x1ff]==0xaa)    
+        {          
+          printf("\n Warming : The [%d] sector have MBR information!",i);          
+          printf("\n Are you sure to continue work (y/n) :");          
+          for(ch='*';ch!='y'&&ch!='n';)ch=getchar();          
+          if(ch=='n')    
+          {            
+            s=0;break;    
+          }        
+        }    
+      }      
+      for(i=1;s==1&&i<=10;i++)        /*读入 10 个扇区大小的文件*/    
+      {        
+        for(x=0;x<0x200;x++)buff[x]=0;  /*初始化缓冲区*/        
+        fread(buff,0x200,1,fp);        
+        biosdisk(3,0x80,0,0,i,1,buff);    
+      }      
+      if(s==1)printf("\n Modify Complete !");      
+      fclose(fp);      
+      getch();    
+    }    
+    if(ch=='5')                      /*装载启动扇区文件*/    
+    {      
+      s=1;      
+      if((fp=fopen("Boot.bin","rb")) == NULL)    
+      {        
+        printf("\n Open file Boot.BIN error !\n");        
+        break;    
+      }      
+      for(i=1;s==1&&i<=1;i++)      /*最多读入 1 个扇区大小的文件*/    
+      {        
+        for(x=0;x<0x200;x++)buff[x]=0;  /*初始化缓冲区*/        
+        fread(buff,0x200,1,fp);        
+        biosdisk(3,0x80,0,0,i,1,buff);    
+      }      
+      if(s==1)printf("\n Modify Boot Complete !");      
+      fclose(fp);      
+      getch();    
+    }    
+  }    
+  return;   
+}
+```
+
+说明: 此部分我只是具体实现了读取 `MBR` 并检测是否改动和备份，安装 `LDMBR` 和恢复 `MBR`(功能 4 和 5)，其他的没有测试.

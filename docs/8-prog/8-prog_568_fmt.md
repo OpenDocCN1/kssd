@@ -1,0 +1,766 @@
+
+# 小菜也学内核笔记---前提知识
+
+> 原文：[`www.pediy.com/kssd/pediy10/102010.html`](https://www.pediy.com/kssd/pediy10/102010.html)
+
+## 数据类型
+
+c 语言的定义 DDK 中的定义
+
+| 类型 | 说明 |
+| :--- | :--- |
+| `void` / `VOID` | 无类型 |
+| `char` / `CHAR` | 字符 8 位 |
+| `short` / `SHORT` | 短整型 |
+| `long` / `LONG` | 长整型 |
+| `wchar_t` / `WCHAR` | 宽字符 16 位 |
+| `char*` / `PCHAR` | 字符指针 `char *p; char c; p=&c;` => `p` 是指向字符的地址 |
+| `wchar_t` / `PWCHAR` | 宽字符指针 |
+
+```c
+#define VOID void
+
+typedef char CHAR;
+typedef short SHORT;
+typedef long LONG;
+typedef wchar_t WCHAR;
+typedef unsigned short WCHAR;
+typedef WCHAR *PWCHAR;
+typedef WCHAR *LPWCH, *PWCH;
+typedef CONST WCHAR *LPCWCH, *PCWCH;
+typedef WCHAR *NWPSTR;
+typedef WCHAR *LPWSTR, *PWSTR;
+typedef CONST WCHAR *LPCWSTR, *PCWSTR;
+typedef CHAR *PCHAR;
+typedef CHAR *LPCH, *PCH;
+typedef CONST CHAR *LPCCH, *PCCH;
+typedef CHAR *NPSTR;
+typedef CHAR *LPSTR, *PSTR;
+typedef CONST CHAR *LPCSTR, *PCSTR;
+```
+
+DDK 新加一种 64 位长整型整数，无符号形式，0 到 `2⁶⁴-1` 用 `LONGLONG` 表示。
+
+`LONGLONG test=100i64` 后面加上 `i64` 结尾。
+
+另一种 64 位整数表示 `LARGE_INTEGER` 数据结构。
+
+```c
+typedef union _LARGE_INTEGER {
+    struct {
+        DWORD LowPart;
+        LONG HighPart;
+    };
+    struct {
+        DWORD LowPart;
+        LONG HighPart;
+    } u;
+    LONGLONG QuadPart;
+} LARGE_INTEGER;
+```
+
+## 返回状态值
+
+```c
+typedef LONG NTSTATUS;
+```
+
+定义新类型 `NTSTATUS` 其实就是 `LONG` 型。
+
+```c
+#define NT_SUCCESS(Status) ((NTSTATUS)(Status) >= 0)
+```
+
+查看函数的返回状态是否成功
+
+```c
+NTSTATUS status;
+status=MyFun(...);
+
+if (NT_SUCCESS(status))
+{
+    //函数执行成功
+}
+```
+
+```c
+//  Values are 32 bit values layed out as follows:
+//   3 3 2 2 2 2 2 2 2 2 2 2 1 1 1 1 1 1 1 1 1 1
+//   1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
+//  +---+-+-+-----------------------+-------------------------------+
+//  |Sev|C|R|       Facility        |            Code              |
+//  +---+-+-+-----------------------+-------------------------------+
+//       Sev - is the severity code
+//           00 - Success
+//           01 - Informational
+//           10 - Warning
+//           11 - Error
+//       C - is the Customer code flag
+//       R - is a reserved bit
+//       Facility - is the facility code
+//       Code - is the facility's status code
+// Define the facility codes
+```
+
+### 使用宏注意的地方
+
+用各种流程控制语句时，不要省略`{}`
+
+```c
+if (a>b){大括号不要省去}
+```
+
+## ASCII 字符串与宽字符串
+
+*   `char` 型字符串，它是指向一个 `char` 数组的指针，每个 `char` 型变量大小为一个字节，以 0 标志字符串结束。
+*   `wchar_t` 型宽字符串 `[UNICODE]`，它是指向一个 `wchar_t` 数组指针，`wchar_t` 字符大小为两个字节，以 0 标志字符串结束。
+
+### ANSI
+
+```c
+char * str="0123";
+```
+
+`str` 指针指向的内容是 `30 31 32 33 00`
+
+### UNICODE
+
+```c
+wchar_t * str=L"0123"; //使用 L，编译器会自动生成所需要的宽字符
+```
+
+`str` 指针指向的内容是 `3000 3100 3200 3300 0000`
+
+## 打印字符串 `KdPrint` (与 `printf` 差不多)
+
+```c
+CHAR *string="zerostudy";
+KdPrint("%s\n",string); //小写 s
+
+WCHAR *string=L"zerostudy";
+KdPrint("%S\n",string);//大写%S
+```
+
+## DDK 定义的字符串
+
+```c
+/////////////////////////////////////////
+typedef unsigned char UCHAR;
+typedef unsigned short USHORT;
+typedef unsigned long ULONG;
+typedef QUAD UQUAD;
+/////////////////////////////////////////
+
+typedef struct _STRING {
+    USHORT Length;//字符长度，STRING 字符串不以 0 标志结束。
+    USHORT MaximumLength;//整个字符串缓冲区的最大长度
+    PCHAR Buffer;//缓冲区的指针
+} STRING;
+
+typedef STRING *PSTRING;
+typedef STRING ANSI_STRING;
+typedef PSTRING PANSI_STRING;
+
+typedef struct _UNICODE_STRING {
+    USHORT Length;//字符长度，单位字节，如果 N 个字符，那么 Length=N*2
+    USHORT MaximumLength;//整个字符串缓冲区的最大长度，单位字节。
+#ifdef MIDL_PASS
+    [size_is(MaximumLength / 2), length_is((Length) / 2) ] USHORT * Buffer;
+#else // MIDL_PASS
+    PWSTR  Buffer;
+#endif // MIDL_PASS
+} UNICODE_STRING;
+
+typedef UNICODE_STRING *PUNICODE_STRING;
+typedef const UNICODE_STRING *PCUNICODE_STRING;
+```
+
+### 打印 log
+
+```c
+ANSI_STRING ansistring
+KdPrint("%Z\n",&ansistring);
+
+UNICODE_STRING unistring;
+KdPrint("%wZ\n",&unistring);
+```
+
+## 初始化 `ANSI_STRING`
+
+```c
+VOID
+  RtlInitAnsiString(
+    IN OUT PANSI_STRING  DestinationString,//要初始化的字符串
+    IN PCSZ  SourceString//字符串的内容
+    );
+```
+
+### Parameters
+
+`DestinationString`
+
+Points to the buffer for a counted `ANSI` string to be initialized.
+
+`SourceString`
+
+Points to a zero-terminated string with which to initialize the counted string.
+
+### Include
+
+`wdm.h` or `ntddk.h`
+
+## 初始化 `UNICODE_STRING`
+
+```c
+VOID
+  RtlInitUnicodeString(
+    IN OUT PUNICODE_STRING  DestinationString,
+    IN PCWSTR  SourceString
+    );
+```
+
+### Parameters
+
+`DestinationString`
+
+Points to the buffer for a counted `Unicode` string to be initialized.
+
+`SourceString`
+
+Points to a zero-terminated `Unicode` string with which to initialize the counted string.
+
+### Include
+
+`wdm.h` or `ntddk.h`
+
+## 使用方法
+
+### 使用 `char*` 指针初始化
+
+```c
+ANSI_STING ansistring;
+CHAR * string1="my first";=>char *
+RtlInitAnsiString(&ansistring,string1);
+```
+
+将 `ansistring` 中的 `Buffer` 指针等于 `string1` 的指针 `[指向同一个地址]`。
+
+这样初始化用完后不城要清理内存，但是改了 `string1` 的话那么 `ansistring` 也会改变。
+
+### 使用字符串常量初始化
+
+```c
+ANSI_STRING ansistring;
+CHAR * string1="study driver  ^_^!";//若是在 C++中 CHAR * a="af";是会变成 const char* a="af";修改 a[0]会出错
+//因为在 C++中"asdf"是属于 const char*
+//可以 char a[]="asdf";定义一个数组刚，可以放下字符串常量大小，这样就可以更改
+RtlInitAnsiString(&ansistring,string1);
+KdPrint(("ansistring1:%Z\n",&ansistring));//打印出 string1
+```
+
+```c
+ULONG slen=strlen(string1);// [wcslen 计算宽字符长度 wcslen(L"asdf 哈哈"); 这样 a 这些都会按 16 位存放]
+for (ULONG i=0;i<slen;i++)
+{
+  if (string1[i]>='a') && (string1[i]<='z'))
+       {
+         string1[i]=string1[i]-32;
+       }
+}
+KdPrint(("ansistring:%Z\n",&ansistring));
+```
+
+### 动态内存初始化
+
+另一种是申请内存初始化，不用时要释放。//自己申请的要自己释放
+
+```c
+#define BUFFER_SIZE 1024
+
+UNICODE_STRING unicodestring={0};//初始化结构成员为 0
+unicodestring.MaximuLength=BUFFER_SIZE;//设置缓冲区大小
+unicodestring.Buffer=(PWSTR)ExAllocatePool(PagedPool,BUFFER_SIZE);//分配内存
+WCHAR * widestring=L"study driver";
+unicodestring.Length=2*wcslen(widestring); //设置字符长度[是以字符为单位的] 宽字符[16 位]所以要*2
+ASSERT(unicodestring.MaximumLength>=unicodestring.Length);
+RtlCopyMemory(Unicodestring.Buffer,widestring,unicodestring.Length);//复制内存
+unicodestring.Length=2*wcslen(widestring);
+KdPrint(("unicodestring:%wZ\n",&unicodestring));
+ExFreePool(unicodestring.Buffer);//清理内存
+unicodestring.Buffer=NULL;
+unicodestring.Length=unicodestring.MaximumLength=0;
+//RtlFreeAnsiString 与 RtlFreeUnicodeString 两个函数内部调用 ExFreePool 回收内存
+```
+
+## `ANSI_STRING` 字符串复制函数
+
+`RtlCopyString` copies a source string to a destination string.
+
+```c
+VOID
+  RtlCopyString(
+    IN OUT PSTRING  DestinationString,
+    IN PSTRING  SourceString  OPTIONAL
+    );
+```
+
+### Parameters
+
+`DestinationString`
+
+Points to the destination string buffer.
+
+`SourceString`
+
+Points to the source string buffer.
+
+### Include
+
+`wdm.h` or `ntddk.h`
+
+## `UNICODE_STRING` 字符串复制函数
+
+`RtlCopyUnicodeString` copies a source string to a destination string.
+
+```c
+VOID
+  RtlCopyUnicodeString(
+    IN OUT PUNICODE_STRING  DestinationString,
+    IN PUNICODE_STRING  SourceString
+    );
+```
+
+### Parameters
+
+`DestinationString`
+
+Points to the destination string buffer.
+
+`SourceString`
+
+Points to the source string buffer.
+
+### Include
+
+`wdm.h` or `ntddk.h`
+
+### `RtlCopyUnicodeString` 函数演示
+
+```c
+UNICODE_STRING sourceunicode;
+RtlInitUnicodeString(&sourceunicode,L"study driver");//初始化
+UNICODE_STRING destinationunicode={0};//结构初始化
+destinationunicode.Buffer=(PWSTR)ExAllocatePool(PagedPool,BUFFER_SIZE);
+destinationunicode.MaximumLength=BUFFER_SIZE;
+RtlCopyUnicodeString(&destinationunicode,&sourceunicode);//把源地址的字符串复制到目的地址
+KdPrint(("sourceunicode:%wZ\n",&sourceunicode));
+KdPrint(("sourceunicode:%wZ\n",&destinationunicode));
+//清除 destinationunicode
+RtlFreeUnicodeString(&destinationunicode);
+```
+
+## `ANSI_STRING` 字符串比较
+
+`RtlCompareString`
+
+`RtlCompareString` compares two counted strings.
+
+```c
+LONG
+  RtlCompareString(
+    IN PSTRING  String1,
+    IN PSTRING  String2,
+    BOOLEAN  CaseInSensitive
+    );
+```
+
+### Parameters
+
+`String1`
+
+Points to the first string.
+
+`String2`
+
+
+
+
+### UNICODE_STRING 字符串比较
+
+#### RtlCompareString
+
+`RtlCompareString` compares two strings.
+
+**Parameters**
+
+*   `String1`
+    Points to the first string.
+*   `String2`
+    Points to the second string.
+*   `CaseInSensitive`
+    If `TRUE`, case should be ignored when doing the comparison. //若是 TRUE 则忽略大小写
+
+**Return Value**
+
+`RtlCompareString` returns a signed value that gives the results of the comparison:
+
+*   Zero:
+    `String1` equals `String2`. //返回 0 则相等
+*   < Zero:
+    `String1` is less than `String2`. //小于 0 则第一个参数小于第二个参数
+*   > Zero:
+    `String1` is greater than `String2`. //大于 0 则第一个参数大于第二个参数
+
+**Include**
+
+`wdm.h` or `ntddk.h`
+
+#### RtlCompareUnicodeString
+
+`RtlCompareUnicodeString` compares two Unicode strings.
+
+```c
+LONG
+  RtlCompareUnicodeString(
+    IN PUNICODE_STRING  String1,
+    IN PUNICODE_STRING  String2,
+    IN BOOLEAN  CaseInSensitive
+    );
+```
+
+**Parameters**
+
+*   `String1`
+    Points to the first string.
+*   `String2`
+    Points to the second string.
+*   `CaseInSensitive`
+    If `TRUE`, case should be ignored when doing the comparison.
+
+**Include**
+
+`wdm.h` or `ntddk.h`
+
+**Return Value**
+
+`RtlCompareUnicodeString` returns a signed value that gives the results of the comparison:
+
+*   Zero:
+    `String1` equals `String2`.
+*   < Zero:
+    `String1` is less than `String2`.
+*   > Zero:
+    `String1` is greater than `String2`.
+
+**Comments**
+
+`RtlEqualString` 与 `RtlEqualUnicodeString` 返回非零表示相等，零表示不相等
+
+### 字符串转化成大写
+
+#### RtlUpperString
+
+`RtlUpperString` copies the given `SourceString` to the `DestinationString` buffer, converting it to uppercase. 把源字符串 copy 到目的字符串的 buffer 中，并转换为大写
+
+```c
+VOID
+  RtlUpperString(
+    IN OUT PSTRING  DestinationString,
+    IN PSTRING  SourceString
+    );
+```
+
+**Parameters**
+
+*   `DestinationString`
+    Points to the buffer for the converted destination string.
+*   `SourceString`
+    Points to the source string to be converted to uppercase.
+
+**Include**
+
+`ntddk.h`
+
+**Comments**
+
+*   The `MaximumLength` and `Buffer` fields of `DestinationString` are not modified by this routine.
+*   The number of bytes copied from `SourceString` is either the `Length` of `SourceString` or the `MaximumLength` of `DestinationString`, whichever is smaller.
+*   Callers of `RtlUpperString` must be running at `IRQL PASSIVE_LEVEL`. //必须运行在 PASSIVE 级
+
+#### RtlUpcaseUnicodeString
+
+`RtlUpcaseUnicodeString` converts a copy of the source string to upper case and writes the converted string in the destination buffer.
+
+```c
+NTSTATUS
+  RtlUpcaseUnicodeString(
+    IN OUT PUNICODE_STRING  DestinationString  OPTIONAL,
+    IN PCUNICODE_STRING  SourceString,
+    IN BOOLEAN  AllocateDestinationString //是否为目的字符串分配内存
+    );
+```
+
+**Parameters**
+
+*   `DestinationString`
+    Points to a caller-allocated buffer for the converted Unicode string or is `NULL` if `AllocateDestinationString` is set to `TRUE`.
+*   `SourceString`
+    Points to the source Unicode string to be converted to upper case.
+*   `AllocateDestinationString`
+    `TRUE` if `RtlUpcaseUnicodeString` is to allocate the buffer space for the `DestinationString`. If it does, the buffer must be deallocated by calling `RtlFreeUnicodeString`.
+
+**Include**
+
+`ntddk.h`
+
+**Return Value**
+
+If the operation succeeds, `RtlUpcaseUnicodeString` returns `STATUS_SUCCESS`. Otherwise, no storage was allocated, and no conversion was done.
+
+**Comments**
+
+Callers of `RtlUpcaseUnicodeString` must be running at `IRQL PASSIVE_LEVEL`.
+
+```c
+UNICODE_STRING unicodestring;
+RtlInitUnicodeString(&unicodestring, L"study driver");
+RtlUpcaseUnicodeString(&unicodestring, &unicodestring, FALSE);
+```
+
+### UNICODE_STRING 字符串与整数相互转换
+
+#### RtlUnicodeStringToInteger
+
+`RtlUnicodeStringToInteger` converts a Unicode string representation of an integer into its integer equivalent.
+
+```c
+NTSTATUS
+  RtlUnicodeStringToInteger(
+    IN PUNICODE_STRING  String,
+    IN ULONG  Base  OPTIONAL,
+    OUT PULONG  Value
+    );
+```
+
+**Parameters**
+
+*   `String`
+    Points to the Unicode string to be converted to its integer equivalent.
+*   `Base`
+    An optional argument that indicates the base of the number expressed as a Unicode string. //转换的数进制 2/8/10/16
+*   `Value`
+    Points to caller supplied storage of type `ULONG`. `RtlUnicodeStringToInteger` returns the integer conversion results in `Value`.
+
+**Include**
+
+`wdm.h` or `ntddk.h`
+
+**Return Value**
+
+If the conversion is successful, `RtlUnicodeStringToInteger` returns `STATUS_SUCCESS` and `Value` is set to the integer equivalent of the Unicode string. Otherwise, the `Value` is set to 0, and `RtlUnicodeStringToInteger` returns `STATUS_INVALID_PARAMETER`.
+
+If the first character of the string is a "-", the sign of the output `Value` is negative, otherwise if the first character is a "+" or there is no sign character, the sign of `Value` is positive. //如果字符第一个字符是 - 那么输出的值是负的，反之是正的。
+
+#### 整数转换成 UNICODE_STRING 字符串
+
+##### RtlIntegerToUnicodeString
+
+`RtlIntegerToUnicodeString` converts an unsigned integer value to a NULL-terminated string of one or more Unicode characters in the specified base.
+
+```c
+NTSTATUS
+  RtlIntegerToUnicodeString(
+    IN ULONG  Value,
+    IN ULONG  Base  OPTIONAL,
+    IN OUT PUNICODE_STRING  String
+    );
+```
+
+**Parameters**
+
+*   `Value`
+    Identifies an unsigned integer of type `ULONG`.
+*   `Base`
+    Optional. If not zero, this must be 2, 8, 10, or 16, to specify that the returned string should represent the integer as a binary, octal, decimal, or hexadecimal number. If zero, the integer is represented as a decimal number.
+*   `String`
+    Points to a buffer large enough to contain the Unicode string.
+
+**Include**
+
+`wdm.h` or `ntddk.h`
+
+**Return Value**
+
+If `RtlIntegerToUnicodeString` succeeds, it returns `STATUS_SUCCESS`. Otherwise, it can return `STATUS_INVALID_PARAMETER` if `Base` is not 0, 2, 8, 10, or 16, or `STATUS_BUFFER_OVERFLOW` if an internal buffer overflow occurs.
+
+**Conversion Demo**
+
+```c
+//(1)字符串转换成数字
+//初始化 UnicodeString1
+UNICODE_STRING UnicodeString1;
+RtlInitUnicodeString(&UnicodeString1, L"-100");
+
+ULONG lNumber;
+NTSTATUS nStatus = RtlUnicodeStringToInteger(&UnicodeString1, 10, &lNumber);
+
+if (NT_SUCCESS(nStatus))
+{
+  KdPrint(("Conver to integer succussfully!\n"));
+  KdPrint(("Result:%d\n", lNumber));
+} else
+{
+  KdPrint(("Conver to integer unsuccessfully!\n"));
+}
+
+//(2)数字转换成字符串
+//初始化 UnicodeString2
+UNICODE_STRING UnicodeString2 = {0};
+UnicodeString2.Buffer = (PWSTR)ExAllocatePool(PagedPool, BUFFER_SIZE);
+UnicodeString2.MaximumLength = BUFFER_SIZE;
+
+nStatus = RtlIntegerToUnicodeString(200, 10, &UnicodeString2);
+
+if (NT_SUCCESS(nStatus))
+{
+  KdPrint(("Conver to string succussfully!\n"));
+  KdPrint(("Result:%wZ\n", &UnicodeString2));
+} else
+{
+  KdPrint(("Conver to string unsuccessfully!\n"));
+}
+
+//销毁 UnicodeString2
+//注意!!UnicodeString1 不用销毁
+RtlFreeUnicodeString(&UnicodeString2);
+```
+
+### UNICODE_STRING 字符串与 ANSI_STRING 相互转换
+
+#### RtlUnicodeStringToAnsiString
+
+`RtlUnicodeStringToAnsiString` converts a given Unicode string into an ANSI string.
+
+```c
+NTSTATUS
+  RtlUnicodeStringToAnsiString(
+    IN OUT PANSI_STRING  DestinationString,
+    IN PUNICODE_STRING  SourceString,
+    IN BOOLEAN  AllocateDestinationString
+    );
+```
+
+#### RtlAnsiStringToUnicodeString
+
+`RtlAnsiStringToUnicodeString` converts the given ANSI source string into a Unicode string.
+
+```c
+NTSTATUS
+  RtlAnsiStringToUnicodeString(
+    IN OUT PUNICODE_STRING  DestinationString,
+    IN PANSI_STRING  SourceString,
+    IN BOOLEAN  AllocateDestinationString
+    );
+```
+
+**Conversion Demo**
+
+```c
+//(1)将 UNICODE_STRING 字符串转换成 ANSI_STRING 字符串
+//初始化 UnicodeString1
+UNICODE_STRING UnicodeString1;
+RtlInitUnicodeString(&UnicodeString1, L"Hello World");
+
+ANSI_STRING AnsiString1;
+NTSTATUS nStatus = RtlUnicodeStringToAnsiString(&AnsiString1, &UnicodeString1, TRUE);
+
+if (NT_SUCCESS(nStatus))
+{
+  KdPrint(("Conver succussfully!\n"));
+  KdPrint(("Result:%Z\n", &AnsiString1));
+} else
+{
+  KdPrint(("Conver unsuccessfully!\n"));
+}
+```
+
+
+
+//销毁 `AnsiString1`
+
+```
+RtlFreeAnsiString(&AnsiString1);
+```
+
+//(2)将 `ANSI_STRING` 字符串转换成 `UNICODE_STRING` 字符串
+
+//初始化 `AnsiString2`
+
+```
+ANSI_STRING AnsiString2;
+RtlInitString(&AnsiString2, "Hello World");
+UNICODE_STRING UnicodeString2;
+nStatus = RtlAnsiStringToUnicodeString(&UnicodeString2, &AnsiString2, TRUE);
+
+if (NT_SUCCESS(nStatus))
+{
+    KdPrint(("Conver succussfully!\n"));
+    KdPrint(("Result:%wZ\n", &UnicodeString2));
+}
+else
+{
+    KdPrint(("Conver unsuccessfully!\n"));
+}
+```
+
+//销毁 `UnicodeString2`
+
+```
+RtlFreeUnicodeString(&UnicodeString2);
+```
+
+`///CPU表///`
+
+*   **全局描述符表** `Global Descriptor Table`, `GDT` 用于映射地址
+*   **本地描述符表** `Local Descriptor Table`, `LDT` 用于映射地址
+*   **页目录** `Page Directory` 用于映射地址
+*   **中断描述符表** `Interrupt Descriptor Table`, `IDT` 用于寻找中断处理程序
+
+`///OS表///`
+
+*   **系统服务调度表** `System Service Dispatch Table`, `SSDT`, `Windows OS` 用于处理系统调用
+
+一个地址空间是否可以被写入，可以被多少优先级的代码写入，是不是允许执行等涉及保护，涉及属性和保护模式下段的其他参数，要表示的信息太多了，要用 64 位长的数据才能表示。我们把这 64 位的属性数据叫做段描述符（`Segment Descriptor`）。
+
+`80386` 中引入了两个新的寄存器来管理段描述符表。一个是 48 位的全局描述符表寄存器 `GDTR`，一个是 16 位的局部描述符表寄存器 `LDTR`。
+
+### GDTR [全局描述符表寄存器 48 位]
+
+`GDTR` 指向的描述符表为全局描述符表 `GDT`, `Global Descriptor Table`。
+
+它包含系统中所有任务都可用的段描述符，通常包含描述操作系统所使用的代码段、数据段和堆栈段的描述符及各任务的 `LDT` 段等；全局描述符表只有一个。
+
+`GDT` 不为系统提供任何安全能力。
+
+### LDTR [局部描述符表寄存器 16 位]
+
+`LDTR` 则指向局部描述符表 `LDT`（`Local Descriptor Table`）。`80386` 处理器设计成每个任务都有一个独立的 `LDT`。
+
+它包含有每个任务私有的代码段、数据段和堆栈段的描述符，也包含该任务所使用的一些门描述符，如任务门和调用门描述符等。
+
+`CS`, `DS`...段寄存器中的信息不再是段地址了，而是段选择器（`Segment Selector`）。可以通过它在段描述符表中“选择”一个项目以得到段的全部信息
+
+*   16 位的段选择器中只有高 13 位表示索引值。剩下的 3 个数据位中，第 0，1 位表示程序的当前优先级 `RPL`；第 2 位 `TI` 位用来表示在段描述符的位置；`TI=0` 表示在 `GDT` 中，`TI=1` 表示在 `LDT` 中。
+*   `xxxx:yyyyyyyy` 格式表示一个虚拟地址，经过段选择器及局部描述符表从全局描述符表得到段的起始地址。
+
+### 地址转换
+
+```
+test dd 100 ;若 test 的 rva 值是 2000, imagebast 是 400000,则物理地址是 402000 处
+...
+mov eax, test ;读入到 eax 中的值是存在物理地址上的值
+```
+
+| 转换过程 | 结果 |
+| :--- | :--- |
+| `______>` 页表转换 `------------->` `2000______>` `402000` `----------->` `eax` | `402000` |
