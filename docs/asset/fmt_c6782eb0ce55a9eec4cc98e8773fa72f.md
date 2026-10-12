@@ -1,0 +1,105 @@
+
+### `SaveToStruct`
+
+```
+.text:10001094 ; int __cdecl SaveToStruct(int STRUCT1.dw2, int STRUCT1.dw1, __int16 STRUCT2.w2, __int16 STRUCT2.w1, LPCSTR lpString2)
+.text:10001094 SaveToStruct    proc near                   ; CODE XREF: MainThread+C5p
+.text:10001094
+.text:10001094 systemStartedTime= dword ptr -4
+.text:10001094 STRUCT1.dw2      = dword ptr  8
+.text:10001094 STRUCT1.dw1      = dword ptr  0Ch
+.text:10001094 STRUCT2.w2       = word ptr  10h
+.text:10001094 STRUCT2.w1       = word ptr  14h
+.text:10001094 lpString2        = dword ptr  18h
+.text:10001094
+.text:10001094                push    ebp
+.text:10001095                mov     ebp, esp
+.text:10001097                push    ecx
+.text:10001098                push    esi
+.text:10001099                push    edi
+.text:1000109A                push    offset CriticalSection ; lpCriticalSection
+.text:1000109F                call    ds:EnterCriticalSection
+.text:100010A5                mov     esi, dword_10003168
+.text:100010AB                cmp     esi, offset dword_10003168
+.text:100010B1                jz      short loc_1000110B ; 如果结构 3160 为空，则跳转
+.text:100010B3                mov     eax, [esi]     ; eax = 上一个 APP_DATA 结构指针
+.text:100010B5                lea     edi, [esi+4]
+.text:100010B8                mov     ecx, [edi]     ; ecx = 下一个 APP_DATA 结构指针
+.text:100010BA                mov     [ecx], eax     ; OFFSET_3168.ptr_LAST_APP_DATA = 上一个节点
+.text:100010BC                mov     [eax+4], ecx   ; 上一个节点的 next_APP_DATA 被设置为 OFFSET_3168
+.text:100010BC                ; 此出操作为从链表后删除一个节点
+.text:100010BF                mov     eax, [ebp+STRUCT1.dw2]
+.text:100010C2                mov     [esi+8], eax
+.text:100010C5                mov     ax, [ebp+STRUCT2.w2]
+.text:100010C9                mov     [esi+10h], ax
+.text:100010CD                mov     eax, [ebp+STRUCT1.dw1]
+.text:100010D0                mov     [esi+0Ch], eax
+.text:100010D3                mov     ax, [ebp+STRUCT2.w1]
+.text:100010D7                mov     [esi+12h], ax
+.text:100010DB                call    ds:GetTickCount
+.text:100010E1                push    127           ; iMaxLength
+.text:100010E3                push    [ebp+lpString2] ; lpString2
+.text:100010E6                mov     [esi+14h], eax
+.text:100010E9                lea     eax, [esi+18h]
+.text:100010EC                push    eax           ; lpString1
+.text:100010ED                call    ds:lstrcpynA
+.text:100010F3                mov     eax, dword_10003160
+.text:100010F8                mov     [esi], eax     ; APP_DATA.pre_ptr_APPDATA = OFFSET_3160
+.text:100010FA                mov     dword ptr [edi], offset dword_10003160 ; APP_DATA.next_ptr_APPDATA = offset 10003160
+.text:10001100                mov     [eax+4], esi   ; OFFSET_3160.dw2 = 最后一个节点 ptr_LAST_APP_DATA
+.text:10001103                mov     dword_10003160, esi ; 3160.dw1 = 3168.ptr_LAST_APP_DATA
+.text:10001109                jmp     short loc_10001168
+.text:1000110B ; ---------------------------------------------------------------
+.text:1000110B
+.text:1000110B loc_1000110B:                     ; CODE XREF: SaveToStruct+1Dj
+.text:1000110B                mov     edi, ds:GetTickCount
+.text:10001111                push    ebx
+.text:10001112                call    edi ; GetTickCount
+.text:10001114                mov     esi, dword_10003160 ; esi = 3160.dw1
+.text:1000111A                mov     [ebp+systemStartedTime], eax
+.text:1000111D                mov     ebx, offset dword_10003160
+.text:10001122                jmp     short loc_10001163
+.text:10001124 ; ---------------------------------------------------------------
+.text:10001124
+.text:10001124 loc_10001124:                     ; CODE XREF: SaveToStruct+D1j
+.text:10001124                mov     eax, [ebp+systemStartedTime] ; 在 OFFSET_3160 链表中查找过期指令，并覆盖
+.text:10001127                sub     eax, [esi+14h]  ; 计算两条指令的时间间隔
+.text:1000112A                cmp     eax, 90000
+.text:1000112F                jbe     short loc_10001161 ; 如果<= 90 秒
+.text:10001131                mov     eax, [ebp+STRUCT1.dw2]
+.text:10001134                mov     [esi+8], eax
+.text:10001137                mov     ax, [ebp+STRUCT2.w2]
+.text:1000113B                mov     [esi+10h], ax
+.text:1000113F                mov     eax, [ebp+STRUCT1.dw1]
+.text:10001142                mov     [esi+0Ch], eax
+.text:10001145                mov     ax, [ebp+STRUCT2.w1]
+.text:10001149                mov     [esi+12h], ax
+.text:1000114D                call    edi ; GetTickCount
+.text:1000114F                push    127           ; iMaxLength
+.text:10001151                push    [ebp+lpString2] ; lpString2
+.text:10001154                mov     [esi+14h], eax
+.text:10001157                lea     eax, [esi+18h]
+.text:1000115A                push    eax           ; lpString1
+.text:1000115B                call    ds:lstrcpynA
+.text:10001161
+.text:10001161 loc_10001161:                     ; CODE XREF: SaveToStruct+9Bj
+.text:10001161                mov     esi, [esi]
+.text:10001163
+.text:10001163 loc_10001163:                     ; CODE XREF: SaveToStruct+8Ej
+.text:10001163                cmp     esi, ebx
+.text:10001165                jnz     short loc_10001124
+.text:10001167                pop     ebx
+.text:10001168
+.text:10001168 loc_10001168:                     ; CODE XREF: SaveToStruct+75j
+.text:10001168                push    offset CriticalSection ; lpCriticalSection
+.text:1000116D                call    ds:LeaveCriticalSection
+.text:10001173                pop     edi
+.text:10001174                pop     esi
+.text:10001175                leave
+.text:10001176                retn
+.text:10001176 SaveToStruct    endp
+```
+
+### `GetCurIPAddr`
+
+获取本机当前 IP
