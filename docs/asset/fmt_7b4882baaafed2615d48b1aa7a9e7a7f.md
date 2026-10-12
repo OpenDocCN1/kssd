@@ -1,0 +1,34 @@
+
+解密过程如下
+
+1，替换源代码中的 `Execute` 为 `Intercept`，
+
+`Intercept` 过程代码为
+
+```
+Sub Intercept (code)
+
+WScript.Echo code
+
+OutPutFile="decode\_1.txt"
+
+Set objFSO=CreateObject("Scripting.FileSystemObject")
+
+Set objTXT=objFSO.CreateTextFile(OutPutFile,True,False)
+
+objTXT.Write code
+
+objTXT.Close
+
+Set objWSH=CreateObject("WScript.Shell")
+
+objWSH.Run OutPutFile
+
+WScript.Quit
+
+End Sub
+```
+
+修改后代码为
+
+代码:
